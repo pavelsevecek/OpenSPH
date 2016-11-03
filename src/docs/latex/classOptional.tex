@@ -1,0 +1,99 @@
+\hypertarget{classOptional}{}\section{Optional$<$ T $>$ Class Template Reference}
+\label{classOptional}\index{Optional$<$ T $>$@{Optional$<$ T $>$}}
+
+
+{\ttfamily \#include $<$optional.\+h$>$}
+
+Inheritance diagram for Optional$<$ T $>$\+:\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[height=2.000000cm]{classOptional}
+\end{center}
+\end{figure}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\hypertarget{classOptional_af4deb96207fa2285779bbb8c073acbcd}{}\label{classOptional_af4deb96207fa2285779bbb8c073acbcd} 
+\hyperlink{classOptional_af4deb96207fa2285779bbb8c073acbcd}{Optional} (const Raw\+Type \&t)
+\begin{DoxyCompactList}\small\item\em Copy constuctor from stored value. Initialize the optional value. \end{DoxyCompactList}\item 
+\hypertarget{classOptional_a450e6403178db88f2fd9ec3a1391d858}{}\label{classOptional_a450e6403178db88f2fd9ec3a1391d858} 
+\hyperlink{classOptional_a450e6403178db88f2fd9ec3a1391d858}{Optional} (Raw\+Type \&\&t)
+\begin{DoxyCompactList}\small\item\em Move constuctor from stored value. Initialize the optional value. \end{DoxyCompactList}\item 
+\hyperlink{classOptional_a099b0dce0d5fedf466ca51057dd9eb5c}{Optional} (const \hyperlink{classOptional}{Optional} \&other)
+\item 
+\hyperlink{classOptional_a114c41318cb918540e6b0bac8159239c}{Optional} (\hyperlink{classOptional}{Optional} \&\&other)
+\item 
+\hypertarget{classOptional_af86726f19377893d4a73e2d05c8ca513}{}\label{classOptional_af86726f19377893d4a73e2d05c8ca513} 
+\hyperlink{classOptional_af86726f19377893d4a73e2d05c8ca513}{Optional} (const \hyperlink{structNothingType}{Nothing\+Type} \&)
+\begin{DoxyCompactList}\small\item\em Construct uninitialized. \end{DoxyCompactList}\item 
+\hypertarget{classOptional_a45557bde636d60b1a7c3a089b4e579bb}{}\label{classOptional_a45557bde636d60b1a7c3a089b4e579bb} 
+\hyperlink{classOptional_a45557bde636d60b1a7c3a089b4e579bb}{$\sim$\+Optional} ()
+\begin{DoxyCompactList}\small\item\em Destructor. \end{DoxyCompactList}\item 
+{\footnotesize template$<$typename... T\+Args$>$ }\\void \hyperlink{classOptional_a2e0236b5bd0e4877d7db446cf0bb784e}{emplace} (T\+Args \&\&... args)
+\item 
+\hypertarget{classOptional_a5a8c6588ed666899bd852579e4580141}{}\label{classOptional_a5a8c6588ed666899bd852579e4580141} 
+\hyperlink{classOptional}{Optional} \& \hyperlink{classOptional_a5a8c6588ed666899bd852579e4580141}{operator=} (const Raw\+Type \&t)
+\begin{DoxyCompactList}\small\item\em Copy operator. \end{DoxyCompactList}\item 
+\hypertarget{classOptional_a622aae8c71487f2e49fa5c47e6d34baa}{}\label{classOptional_a622aae8c71487f2e49fa5c47e6d34baa} 
+\hyperlink{classOptional}{Optional} \& \hyperlink{classOptional_a622aae8c71487f2e49fa5c47e6d34baa}{operator=} (Raw\+Type \&\&t)
+\begin{DoxyCompactList}\small\item\em Move operator. \end{DoxyCompactList}\item 
+\hypertarget{classOptional_a481a7ad95fd05cd1375bc00b8caee544}{}\label{classOptional_a481a7ad95fd05cd1375bc00b8caee544} 
+\hyperlink{classOptional}{Optional} \& \hyperlink{classOptional_a481a7ad95fd05cd1375bc00b8caee544}{operator=} (const \hyperlink{structNothingType}{Nothing\+Type} \&)
+\begin{DoxyCompactList}\small\item\em Assing \textquotesingle{}nothing\textquotesingle{}. \end{DoxyCompactList}\item 
+\hypertarget{classOptional_a447f20ebb4cca99d1c58ecb968678a09}{}\label{classOptional_a447f20ebb4cca99d1c58ecb968678a09} 
+Raw\+Type \& {\bfseries get} ()
+\item 
+\hypertarget{classOptional_a9026ee0972931845f56417bd12d3955b}{}\label{classOptional_a9026ee0972931845f56417bd12d3955b} 
+Const\+Raw\+Type \& {\bfseries get} () const
+\item 
+\hypertarget{classOptional_a2479bfa9bc2120288c3a8b0feee7f91c}{}\label{classOptional_a2479bfa9bc2120288c3a8b0feee7f91c} 
+Const\+Raw\+Type $\ast$ {\bfseries operator-\/$>$} () const
+\item 
+\hypertarget{classOptional_a0cb347583588069768d30cd10acc391f}{}\label{classOptional_a0cb347583588069768d30cd10acc391f} 
+Raw\+Type $\ast$ {\bfseries operator-\/$>$} ()
+\item 
+\hypertarget{classOptional_a58e7e6525d170747555c33b40fb12884}{}\label{classOptional_a58e7e6525d170747555c33b40fb12884} 
+{\bfseries operator bool} () const
+\item 
+\hypertarget{classOptional_a2d423ef9082ece2cc84599d2191b39a1}{}\label{classOptional_a2d423ef9082ece2cc84599d2191b39a1} 
+bool {\bfseries operator!} () const
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+\subsubsection*{template$<$typename T$>$\newline
+class Optional$<$ T $>$}
+
+Wrapper of type value of which may or may not be present. Similar to std\+::optional comming in c++17. \href{http://en.cppreference.com/w/cpp/utility/optional}{\tt http\+://en.\+cppreference.\+com/w/cpp/utility/optional} 
+
+\subsection{Constructor \& Destructor Documentation}
+\hypertarget{classOptional_a099b0dce0d5fedf466ca51057dd9eb5c}{}\label{classOptional_a099b0dce0d5fedf466ca51057dd9eb5c} 
+\index{Optional@{Optional}!Optional@{Optional}}
+\index{Optional@{Optional}!Optional@{Optional}}
+\subsubsection{\texorpdfstring{Optional()}{Optional()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily template$<$typename T$>$ \\
+\hyperlink{classOptional}{Optional}$<$ T $>$\+::\hyperlink{classOptional}{Optional} (\begin{DoxyParamCaption}\item[{const \hyperlink{classOptional}{Optional}$<$ T $>$ \&}]{other }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+Copy constructor from other optional. Copies the state and if the passed optional is initialized, copies the value as well. \hypertarget{classOptional_a114c41318cb918540e6b0bac8159239c}{}\label{classOptional_a114c41318cb918540e6b0bac8159239c} 
+\index{Optional@{Optional}!Optional@{Optional}}
+\index{Optional@{Optional}!Optional@{Optional}}
+\subsubsection{\texorpdfstring{Optional()}{Optional()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily template$<$typename T$>$ \\
+\hyperlink{classOptional}{Optional}$<$ T $>$\+::\hyperlink{classOptional}{Optional} (\begin{DoxyParamCaption}\item[{\hyperlink{classOptional}{Optional}$<$ T $>$ \&\&}]{other }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+Move constructor from other optional. Copies the state and if the passed optional is initialized, copies the value as well. 
+
+\subsection{Member Function Documentation}
+\hypertarget{classOptional_a2e0236b5bd0e4877d7db446cf0bb784e}{}\label{classOptional_a2e0236b5bd0e4877d7db446cf0bb784e} 
+\index{Optional@{Optional}!emplace@{emplace}}
+\index{emplace@{emplace}!Optional@{Optional}}
+\subsubsection{\texorpdfstring{emplace()}{emplace()}}
+{\footnotesize\ttfamily template$<$typename T$>$ \\
+template$<$typename... T\+Args$>$ \\
+void \hyperlink{classOptional}{Optional}$<$ T $>$\+::emplace (\begin{DoxyParamCaption}\item[{T\+Args \&\&...}]{args }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+Constructs the uninitialized object from a list of arguments. If the object was previously initialized, the stored value is destroyed. 
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/home/pavel/projects/astro/sph2/src/structs/optional.\+h\end{DoxyCompactItemize}

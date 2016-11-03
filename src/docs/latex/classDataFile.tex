@@ -1,0 +1,48 @@
+\hypertarget{classDataFile}{}\section{Data\+File$<$ T\+Args $>$ Class Template Reference}
+\label{classDataFile}\index{Data\+File$<$ T\+Args $>$@{Data\+File$<$ T\+Args $>$}}
+
+
+{\ttfamily \#include $<$parse.\+h$>$}
+
+Inheritance diagram for Data\+File$<$ T\+Args $>$\+:\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[height=2.000000cm]{classDataFile}
+\end{center}
+\end{figure}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\hypertarget{classDataFile_a39baec6df72d09c9fc17ce1448e434ed}{}\label{classDataFile_a39baec6df72d09c9fc17ce1448e434ed} 
+\hyperlink{classArray}{Array}$<$ \hyperlink{classTuple}{Tuple}$<$ T\+Args... $>$ $>$ {\bfseries load} (const std\+::string \&path)
+\item 
+\hypertarget{classDataFile_ae4cfc73ee9970372638ccb9fe8a2ce25}{}\label{classDataFile_ae4cfc73ee9970372638ccb9fe8a2ce25} 
+void \hyperlink{classDataFile_ae4cfc73ee9970372638ccb9fe8a2ce25}{save} (const \hyperlink{classArray}{Array}$<$ \hyperlink{classTuple}{Tuple}$<$ T\+Args... $>$$>$ \&array, const std\+::string \&path)
+\begin{DoxyCompactList}\small\item\em Save array of tuples with the same arguments as the file. \end{DoxyCompactList}\item 
+{\footnotesize template$<$typename T $>$ }\\void \hyperlink{classDataFile_a2ed8b7e88e74a459050959b782008821}{save} (const \hyperlink{classArray}{Array}$<$ T $>$ \&array, const std\+::string \&path, Saving\+Options options=Saving\+Options\+::\+N\+O\+\_\+\+U\+N\+I\+TS)
+\item 
+\hypertarget{classDataFile_a05882080cb1a937a64d6777600e8bc50}{}\label{classDataFile_a05882080cb1a937a64d6777600e8bc50} 
+void \hyperlink{classDataFile_a05882080cb1a937a64d6777600e8bc50}{save} (const std\+::string \&path, const \hyperlink{classArray}{Array}$<$ T\+Args $>$ \&... arrays)
+\begin{DoxyCompactList}\small\item\em \hyperlink{classTuple}{Tuple} of arrays. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+\subsubsection*{template$<$typename... T\+Args$>$\newline
+class Data\+File$<$ T\+Args $>$}
+
+Loading/saving array of generic data from/into textfiles. A column of file are determined by template parameters of the class. Can save/load any kind of data as long as operators $>$$>$ and $<$$<$ exist. T\+O\+DO\+: ignore \textquotesingle{}\#\textquotesingle{} lines when loading 
+
+\subsection{Member Function Documentation}
+\hypertarget{classDataFile_a2ed8b7e88e74a459050959b782008821}{}\label{classDataFile_a2ed8b7e88e74a459050959b782008821} 
+\index{Data\+File@{Data\+File}!save@{save}}
+\index{save@{save}!Data\+File@{Data\+File}}
+\subsubsection{\texorpdfstring{save()}{save()}}
+{\footnotesize\ttfamily template$<$typename... T\+Args$>$ \\
+template$<$typename T $>$ \\
+void \hyperlink{classDataFile}{Data\+File}$<$ T\+Args $>$\+::save (\begin{DoxyParamCaption}\item[{const \hyperlink{classArray}{Array}$<$ T $>$ \&}]{array,  }\item[{const std\+::string \&}]{path,  }\item[{Saving\+Options}]{options = {\ttfamily SavingOptions\+:\+:NO\+\_\+UNITS} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+Save an array of any type T that has \mbox{[}\mbox{]} operator and static constexpr int \textquotesingle{}dimensions\textquotesingle{}. Taylored for easily saving array of vectors. 
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/home/pavel/projects/astro/sph2/src/parser/parse.\+h\end{DoxyCompactItemize}

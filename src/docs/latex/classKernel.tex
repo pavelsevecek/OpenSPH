@@ -1,0 +1,47 @@
+\hypertarget{classKernel}{}\section{Kernel$<$ T\+Derived $>$ Class Template Reference}
+\label{classKernel}\index{Kernel$<$ T\+Derived $>$@{Kernel$<$ T\+Derived $>$}}
+
+
+{\ttfamily \#include $<$kernel.\+h$>$}
+
+Inheritance diagram for Kernel$<$ T\+Derived $>$\+:\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[height=3.000000cm]{classKernel}
+\end{center}
+\end{figure}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+I\+N\+L\+I\+NE Float \hyperlink{classKernel_aa8b9718f58edb6353460653f61b28131}{value} (const \hyperlink{classBasicVector}{Vector} \&r, const Float \&h) const
+\item 
+\hypertarget{classKernel_af6bb7a4aafc292cfca4225f2c6150509}{}\label{classKernel_af6bb7a4aafc292cfca4225f2c6150509} 
+I\+N\+L\+I\+NE \hyperlink{classBasicVector}{Vector} {\bfseries grad} (const \hyperlink{classBasicVector}{Vector} \&r, const Float \&h) const
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+\subsubsection*{template$<$class T\+Derived$>$\newline
+class Kernel$<$ T\+Derived $>$}
+
+A base class for all S\+PH kernels, providing interface for computing kernel values and gradients. All derived class must implement method {\ttfamily value} and {\ttfamily grad}. Both function take S\+Q\+U\+A\+R\+ED value of dimensionless distance q as a parameter. Function value returns the kernel value, grad returns gradient D\+I\+V\+I\+D\+ED BY q. 
+
+\subsection{Member Function Documentation}
+\hypertarget{classKernel_aa8b9718f58edb6353460653f61b28131}{}\label{classKernel_aa8b9718f58edb6353460653f61b28131} 
+\index{Kernel@{Kernel}!value@{value}}
+\index{value@{value}!Kernel@{Kernel}}
+\subsubsection{\texorpdfstring{value()}{value()}}
+{\footnotesize\ttfamily template$<$class T\+Derived$>$ \\
+I\+N\+L\+I\+NE Float \hyperlink{classKernel}{Kernel}$<$ T\+Derived $>$\+::value (\begin{DoxyParamCaption}\item[{const \hyperlink{classBasicVector}{Vector} \&}]{r,  }\item[{const Float \&}]{h }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+Value of kernel at given point this should be called only once for a pair of particles as there is expensive division \begin{DoxyRefDesc}{Todo}
+\item[\hyperlink{todo__todo000016}{Todo}]Test this carefully before going any further 
+
+Potentially precompute the 3rd power ... 
+
+How to resolve dimensions for d!=3 ?? \end{DoxyRefDesc}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/home/pavel/projects/astro/sph2/src/kernel/kernel.\+h\end{DoxyCompactItemize}

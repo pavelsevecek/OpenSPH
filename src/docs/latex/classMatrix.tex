@@ -1,0 +1,79 @@
+\hypertarget{classMatrix}{}\section{Matrix Class Reference}
+\label{classMatrix}\index{Matrix@{Matrix}}
+Inheritance diagram for Matrix\+:\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[height=2.000000cm]{classMatrix}
+\end{center}
+\end{figure}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\hypertarget{classMatrix_abcf708e864ed3d9db2c3b317c5e529ab}{}\label{classMatrix_abcf708e864ed3d9db2c3b317c5e529ab} 
+{\bfseries Matrix} (const \hyperlink{classMatrix}{Matrix} \&other)
+\item 
+\hypertarget{classMatrix_aa8221a09ab250cb0c6cf65c53d43b780}{}\label{classMatrix_aa8221a09ab250cb0c6cf65c53d43b780} 
+{\bfseries Matrix} (\hyperlink{classMatrix}{Matrix} \&\&other)
+\item 
+\hypertarget{classMatrix_a95c1e29ca70d8cadbcf55c6a86fbf837}{}\label{classMatrix_a95c1e29ca70d8cadbcf55c6a86fbf837} 
+{\bfseries Matrix} (const \hyperlink{classBasicVector}{Vector} \&v1, const \hyperlink{classBasicVector}{Vector} \&v2, const \hyperlink{classBasicVector}{Vector} \&v3)
+\item 
+\hypertarget{classMatrix_a935f841ddb4536f45a5ec161ccec0d15}{}\label{classMatrix_a935f841ddb4536f45a5ec161ccec0d15} 
+const double $\ast$ {\bfseries operator\mbox{[}$\,$\mbox{]}} (uint1 idx) const
+\item 
+\hypertarget{classMatrix_af5369ef5c65853353090112a676320c2}{}\label{classMatrix_af5369ef5c65853353090112a676320c2} 
+double $\ast$ {\bfseries operator\mbox{[}$\,$\mbox{]}} (uint1 idx)
+\item 
+\hypertarget{classMatrix_ad0c96cdea0d2ae3403653ca90aa70796}{}\label{classMatrix_ad0c96cdea0d2ae3403653ca90aa70796} 
+\hyperlink{classMatrix}{Matrix} {\bfseries Transpose} () const
+\item 
+\hypertarget{classMatrix_ad5f101877c4a10988bf7f128a9c248d8}{}\label{classMatrix_ad5f101877c4a10988bf7f128a9c248d8} 
+\hyperlink{classMatrix}{Matrix} {\bfseries Inverse} () const
+\item 
+\hypertarget{classMatrix_aa64659e33d639e69716034b2091bdaf6}{}\label{classMatrix_aa64659e33d639e69716034b2091bdaf6} 
+\hyperlink{classMatrix}{Matrix} {\bfseries Remove\+Translation} () const
+\item 
+\hypertarget{classMatrix_a05874398dc7839c74fb090c6bfe17e0a}{}\label{classMatrix_a05874398dc7839c74fb090c6bfe17e0a} 
+void {\bfseries To\+Log} (T\+Log $\ast$log=\&S\+T\+D\+\_\+\+O\+UT) const
+\end{DoxyCompactItemize}
+\subsection*{Static Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\hypertarget{classMatrix_a71946b221577fae7a86177bca76d9d96}{}\label{classMatrix_a71946b221577fae7a86177bca76d9d96} 
+static \hyperlink{classMatrix}{Matrix} {\bfseries Identity} ()
+\item 
+\hypertarget{classMatrix_aee442afe6336844ea24a0a9d1c4a70b4}{}\label{classMatrix_aee442afe6336844ea24a0a9d1c4a70b4} 
+static \hyperlink{classMatrix}{Matrix} {\bfseries Null} ()
+\item 
+\hypertarget{classMatrix_ae92199d7a89aad1f3f501a75ed668392}{}\label{classMatrix_ae92199d7a89aad1f3f501a75ed668392} 
+static \hyperlink{classMatrix}{Matrix} {\bfseries RotateX} (double a)
+\item 
+\hypertarget{classMatrix_a6c1deaa568066a0a058c2120701ca661}{}\label{classMatrix_a6c1deaa568066a0a058c2120701ca661} 
+static \hyperlink{classMatrix}{Matrix} {\bfseries RotateY} (double a)
+\item 
+\hypertarget{classMatrix_ab7d522fde5f8c5060898456aa1caf496}{}\label{classMatrix_ab7d522fde5f8c5060898456aa1caf496} 
+static \hyperlink{classMatrix}{Matrix} {\bfseries RotateZ} (double a)
+\item 
+\hypertarget{classMatrix_a28fcbc2c17a3f1192c1d057dce01f8a6}{}\label{classMatrix_a28fcbc2c17a3f1192c1d057dce01f8a6} 
+static \hyperlink{classMatrix}{Matrix} {\bfseries Rotate\+Euler} (double a, double b, double c)
+\item 
+\hypertarget{classMatrix_ac04a830d4b99b478088812ba0ee3cd57}{}\label{classMatrix_ac04a830d4b99b478088812ba0ee3cd57} 
+static \hyperlink{classMatrix}{Matrix} {\bfseries Rotate\+Axis} (const T\+Vector \&axis, double a)
+\item 
+\hypertarget{classMatrix_a6d94a46039304c204ff501a3cbd94892}{}\label{classMatrix_a6d94a46039304c204ff501a3cbd94892} 
+static \hyperlink{classMatrix}{Matrix} {\bfseries Translate} (const T\+Vector \&t)
+\item 
+\hypertarget{classMatrix_a9e247a9f062fb569f497aaf5615a8da0}{}\label{classMatrix_a9e247a9f062fb569f497aaf5615a8da0} 
+static \hyperlink{classMatrix}{Matrix} {\bfseries Scale} (double x, double y, double z)
+\item 
+\hypertarget{classMatrix_aee12e50e8a87b6bcdc0acdfc8ad42695}{}\label{classMatrix_aee12e50e8a87b6bcdc0acdfc8ad42695} 
+static \hyperlink{classMatrix}{Matrix} {\bfseries Scale} (double s)
+\item 
+\hypertarget{classMatrix_a2f65f62ed9ebe96aa92ef9ce45045e6e}{}\label{classMatrix_a2f65f62ed9ebe96aa92ef9ce45045e6e} 
+static \hyperlink{classMatrix}{Matrix} {\bfseries T\+RS} (const T\+Vector \&t, const T\+Vector \&r, const T\+Vector \&s)
+\end{DoxyCompactItemize}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/home/pavel/projects/astro/sph2/src/geometry/tensor.\+h\end{DoxyCompactItemize}

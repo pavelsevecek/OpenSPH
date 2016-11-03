@@ -1,0 +1,91 @@
+#pragma once
+
+#include "catch.hpp"
+#include "geometry/Vector.h"
+#include "math/rng/Rng.h"
+
+/// Test cases for testing of multiple types
+
+#define INTERNAL_CATCH_TEMPLATE_TEST_CASE_DECL(name, description, T)                                         \
+    template <typename T>                                                                                    \
+    void INTERNAL_CATCH_UNIQUE_NAME(____C_A_T_C_H____T_E_M_P_L_A_TE____T_E_S_T____)();                       \
+    TEST_CASE(name, description)
+
+#define INTERNAL_CATCH_TEMPLATE_TEST_CASE_SECTION(Tn)                                                        \
+    SECTION(#Tn) { INTERNAL_CATCH_UNIQUE_NAME(____C_A_T_C_H____T_E_M_P_L_A_TE____T_E_S_T____)<Tn>(); }
+
+#define INTERNAL_CATCH_TEMPLATE_TEST_CASE_DEFN(T)                                                            \
+    template <typename T>                                                                                    \
+    void INTERNAL_CATCH_UNIQUE_NAME(____C_A_T_C_H____T_E_M_P_L_A_TE____T_E_S_T____)()
+
+#define CATCH_TEMPLATE_TEST_CASE_1(name, description, T, T1)                                                 \
+    INTERNAL_CATCH_TEMPLATE_TEST_CASE_DECL(name, description, T) {                                           \
+        INTERNAL_CATCH_TEMPLATE_TEST_CASE_SECTION(T1)                                                        \
+    }                                                                                                        \
+    INTERNAL_CATCH_TEMPLATE_TEST_CASE_DEFN(T)
+
+#define CATCH_TEMPLATE_TEST_CASE_2(name, description, T, T1, T2)                                             \
+    INTERNAL_CATCH_TEMPLATE_TEST_CASE_DECL(name, description, T) {                                           \
+        INTERNAL_CATCH_TEMPLATE_TEST_CASE_SECTION(T1)                                                        \
+        INTERNAL_CATCH_TEMPLATE_TEST_CASE_SECTION(T2)                                                        \
+    }                                                                                                        \
+    INTERNAL_CATCH_TEMPLATE_TEST_CASE_DEFN(T)
+
+#define CATCH_TEMPLATE_TEST_CASE_3(name, description, T, T1, T2, T3)                                         \
+    INTERNAL_CATCH_TEMPLATE_TEST_CASE_DECL(name, description, T) {                                           \
+        INTERNAL_CATCH_TEMPLATE_TEST_CASE_SECTION(T1)                                                        \
+        INTERNAL_CATCH_TEMPLATE_TEST_CASE_SECTION(T2)                                                        \
+        INTERNAL_CATCH_TEMPLATE_TEST_CASE_SECTION(T3)                                                        \
+    }                                                                                                        \
+    INTERNAL_CATCH_TEMPLATE_TEST_CASE_DEFN(T)
+
+#define CATCH_TEMPLATE_TEST_CASE_4(name, description, T, T1, T2, T3, T4)                                     \
+    INTERNAL_CATCH_TEMPLATE_TEST_CASE_DECL(name, description, T) {                                           \
+        INTERNAL_CATCH_TEMPLATE_TEST_CASE_SECTION(T1)                                                        \
+        INTERNAL_CATCH_TEMPLATE_TEST_CASE_SECTION(T2)                                                        \
+        INTERNAL_CATCH_TEMPLATE_TEST_CASE_SECTION(T3)                                                        \
+        INTERNAL_CATCH_TEMPLATE_TEST_CASE_SECTION(T4)                                                        \
+    }                                                                                                        \
+    INTERNAL_CATCH_TEMPLATE_TEST_CASE_DEFN(T)
+
+
+
+
+NAMESPACE_SPH_BEGIN
+
+
+/// Returns a random vector. Components of integral types range from -5 to 5, for floating point types the range is -0.5 to 0.5.
+INLINE Vector randomVector() {
+    const Float range = 1._f;
+    static UniformRng rng;
+    Vector v;
+    for (int i=0; i<3; ++i) {
+        v[i] = Float(range * (rng() - 0.5_f));
+    }
+    return v;
+}
+
+
+struct DummyStruct {
+    int value;
+    static int constructedNum;
+
+    DummyStruct() {
+        constructedNum++;
+    }
+
+    DummyStruct(const int value)
+        : value(value) {
+        constructedNum++;
+    }
+
+    DummyStruct(const DummyStruct& other) {
+        constructedNum++;
+        value = other.value;
+    }
+
+    ~DummyStruct() { constructedNum--; }
+};
+
+
+NAMESPACE_SPH_END

@@ -1,0 +1,55 @@
+\hypertarget{structVectorComponentAdapter}{}\section{Vector\+Component\+Adapter$<$ T\+Buffer $>$ Struct Template Reference}
+\label{structVectorComponentAdapter}\index{Vector\+Component\+Adapter$<$ T\+Buffer $>$@{Vector\+Component\+Adapter$<$ T\+Buffer $>$}}
+
+
+Wrapper for iterating over given component of vector array.  
+
+
+
+
+{\ttfamily \#include $<$iterators.\+h$>$}
+
+Inheritance diagram for Vector\+Component\+Adapter$<$ T\+Buffer $>$\+:\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[height=2.000000cm]{structVectorComponentAdapter}
+\end{center}
+\end{figure}
+\subsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+\hypertarget{structVectorComponentAdapter_a254718439b8e7be6edd76cc0369212e3}{}\label{structVectorComponentAdapter_a254718439b8e7be6edd76cc0369212e3} 
+using {\bfseries T\+Iterator} = decltype(std\+::declval$<$ T\+Buffer $>$().begin())
+\end{DoxyCompactItemize}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\hypertarget{structVectorComponentAdapter_acd5018da29e2893c31d3e43b14bce848}{}\label{structVectorComponentAdapter_acd5018da29e2893c31d3e43b14bce848} 
+{\bfseries Vector\+Component\+Adapter} (T\+Buffer \&\&data, const int component)
+\item 
+\hypertarget{structVectorComponentAdapter_ab07b1f9f7c0115c97268fdbfabea810c}{}\label{structVectorComponentAdapter_ab07b1f9f7c0115c97268fdbfabea810c} 
+auto {\bfseries begin} ()
+\item 
+\hypertarget{structVectorComponentAdapter_af7a5f4f4363c0fb2cc3aa3384cc4f2a5}{}\label{structVectorComponentAdapter_af7a5f4f4363c0fb2cc3aa3384cc4f2a5} 
+auto {\bfseries end} ()
+\end{DoxyCompactItemize}
+\subsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\hypertarget{structVectorComponentAdapter_a91c42662ba5ff8008af9547acf6f2840}{}\label{structVectorComponentAdapter_a91c42662ba5ff8008af9547acf6f2840} 
+T\+Buffer {\bfseries data}
+\item 
+\hypertarget{structVectorComponentAdapter_af85eaf27bae110975a52b1c174f1bfc3}{}\label{structVectorComponentAdapter_af85eaf27bae110975a52b1c174f1bfc3} 
+const int {\bfseries component}
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+\subsubsection*{template$<$typename T\+Buffer$>$\newline
+struct Vector\+Component\+Adapter$<$ T\+Buffer $>$}
+
+Wrapper for iterating over given component of vector array. 
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/home/pavel/projects/astro/sph2/src/utils/iterators.\+h\end{DoxyCompactItemize}

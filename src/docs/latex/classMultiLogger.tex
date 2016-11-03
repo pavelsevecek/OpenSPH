@@ -1,0 +1,37 @@
+\hypertarget{classMultiLogger}{}\section{Multi\+Logger Class Reference}
+\label{classMultiLogger}\index{Multi\+Logger@{Multi\+Logger}}
+
+
+Class holding multiple loggers and writing messages to all of them. The objects is the owner of loggers.  
+
+
+
+
+{\ttfamily \#include $<$logger.\+h$>$}
+
+Inheritance diagram for Multi\+Logger\+:\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[height=4.000000cm]{classMultiLogger}
+\end{center}
+\end{figure}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\hypertarget{classMultiLogger_a96e4c7e567d5777c2e5c5234f6475ff6}{}\label{classMultiLogger_a96e4c7e567d5777c2e5c5234f6475ff6} 
+int {\bfseries get\+Logger\+Cnt} () const
+\item 
+\hypertarget{classMultiLogger_a3f0254d865a24ba628f95567bb52da73}{}\label{classMultiLogger_a3f0254d865a24ba628f95567bb52da73} 
+void {\bfseries add} (\hyperlink{classAbstract_1_1Logger}{Abstract\+::\+Logger} $\ast$logger)
+\item 
+\hypertarget{classMultiLogger_a1926134f872f630aa5825dfc84888d0c}{}\label{classMultiLogger_a1926134f872f630aa5825dfc84888d0c} 
+virtual void {\bfseries write} (const std\+::string \&s) override
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+Class holding multiple loggers and writing messages to all of them. The objects is the owner of loggers. 
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/home/pavel/projects/astro/sph2/src/system/logger.\+h\end{DoxyCompactItemize}

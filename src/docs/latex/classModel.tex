@@ -1,0 +1,63 @@
+\hypertarget{classModel}{}\section{Model$<$ T, d $>$ Class Template Reference}
+\label{classModel}\index{Model$<$ T, d $>$@{Model$<$ T, d $>$}}
+
+
+{\ttfamily \#include $<$particle.\+h$>$}
+
+Inheritance diagram for Model$<$ T, d $>$\+:\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[height=2.000000cm]{classModel}
+\end{center}
+\end{figure}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\hypertarget{classModel_a1a187b074f90554645f8565ca7e786e3}{}\label{classModel_a1a187b074f90554645f8565ca7e786e3} 
+void \hyperlink{classModel_a1a187b074f90554645f8565ca7e786e3}{init} ()
+\begin{DoxyCompactList}\small\item\em Before force computation. \end{DoxyCompactList}\item 
+\hypertarget{classModel_a4de6ed58a73baf4b2dab27a821f84935}{}\label{classModel_a4de6ed58a73baf4b2dab27a821f84935} 
+{\footnotesize template$<$int T\+Idx$>$ }\\decltype(auto) \hyperlink{classModel_a4de6ed58a73baf4b2dab27a821f84935}{get} ()
+\begin{DoxyCompactList}\small\item\em Here we use simply int to be able to use derived indices from struct \hyperlink{structIndices}{Indices}. \end{DoxyCompactList}\item 
+{\footnotesize template$<$typename T\+Visitor $>$ }\\void \hyperlink{classModel_a9cfb34e778da5c1b6a44929ca2430c34}{execute} (T\+Visitor \&\&visitor)
+\item 
+\hypertarget{classModel_a506809365df98c68196c0e95c9349de2}{}\label{classModel_a506809365df98c68196c0e95c9349de2} 
+int {\bfseries count} () const
+\end{DoxyCompactItemize}
+\subsection*{Protected Types}
+\begin{DoxyCompactItemize}
+\item 
+\hypertarget{classModel_a8efae0608417f70f6cb603a3f2a95649}{}\label{classModel_a8efae0608417f70f6cb603a3f2a95649} 
+using {\bfseries Data\+Storage} = \hyperlink{classTuple}{Tuple}$<$ \hyperlink{classArray}{Array}$<$ \hyperlink{classVector}{Vector}$<$ \hyperlink{classBaseUnit}{Length}$<$ T $>$, d $>$$>$, \hyperlink{classArray}{Array}$<$ \hyperlink{classVector}{Vector}$<$ \hyperlink{classBaseUnit}{Velocity}$<$ T $>$, d $>$$>$, \hyperlink{classArray}{Array}$<$ \hyperlink{classVector}{Vector}$<$ \hyperlink{classBaseUnit}{Acceleration}$<$ T $>$, d $>$$>$, \hyperlink{classArray}{Array}$<$ \hyperlink{classBaseUnit}{Mass}$<$ T $>$$>$, \hyperlink{classArray}{Array}$<$ \hyperlink{classBaseUnit}{Density}$<$ T $>$$>$, \hyperlink{classArray}{Array}$<$ Quotient$<$ \hyperlink{classBaseUnit}{Density}$<$ T $>$, \hyperlink{classBaseUnit}{Time}$<$ T $>$$>$$>$, \hyperlink{classArray}{Array}$<$ \hyperlink{classBaseUnit}{Pressure}$<$ T $>$$>$$>$
+\end{DoxyCompactItemize}
+\subsection*{Protected Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\hypertarget{classModel_a0bd3b122b98aa25e6fc0670ed2a56800}{}\label{classModel_a0bd3b122b98aa25e6fc0670ed2a56800} 
+int \hyperlink{classModel_a0bd3b122b98aa25e6fc0670ed2a56800}{N}
+\begin{DoxyCompactList}\small\item\em The number of particles. \end{DoxyCompactList}\item 
+\hypertarget{classModel_a55a32417414fbcc074cc85730adcbd1d}{}\label{classModel_a55a32417414fbcc074cc85730adcbd1d} 
+\hyperlink{classTuple}{Data\+Storage} {\bfseries values}
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+\subsubsection*{template$<$typename T, int d$>$\newline
+class Model$<$ T, d $>$}
+
+Base class storing arrays of particle quantities. If a model requires more quantities, it must inherits from this method and extend interface. 
+
+\subsection{Member Function Documentation}
+\hypertarget{classModel_a9cfb34e778da5c1b6a44929ca2430c34}{}\label{classModel_a9cfb34e778da5c1b6a44929ca2430c34} 
+\index{Model@{Model}!execute@{execute}}
+\index{execute@{execute}!Model@{Model}}
+\subsubsection{\texorpdfstring{execute()}{execute()}}
+{\footnotesize\ttfamily template$<$typename T, int d$>$ \\
+template$<$typename T\+Visitor $>$ \\
+void \hyperlink{classModel}{Model}$<$ T, d $>$\+::execute (\begin{DoxyParamCaption}\item[{T\+Visitor \&\&}]{visitor }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+A way to enumerate all arrays and apply generic methods to them (timestep). T\+Visitor struct must implement function visit 
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/home/pavel/projects/astro/sph/src/core/particle.\+h\end{DoxyCompactItemize}

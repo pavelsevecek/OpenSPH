@@ -1,0 +1,101 @@
+\hypertarget{classBody}{}\section{Body Class Reference}
+\label{classBody}\index{Body@{Body}}
+
+
+{\ttfamily \#include $<$particle.\+h$>$}
+
+Inheritance diagram for Body\+:\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[height=2.000000cm]{classBody}
+\end{center}
+\end{figure}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\hypertarget{classBody_a6e58829bd25233b0331c2e62b8d8934e}{}\label{classBody_a6e58829bd25233b0331c2e62b8d8934e} 
+{\footnotesize template$<$Quantity\+Id ID$>$ }\\auto {\bfseries get} () const
+\item 
+\hypertarget{classBody_a345a4e3c96434dbb98740e78b2b2f615}{}\label{classBody_a345a4e3c96434dbb98740e78b2b2f615} 
+void {\bfseries create} (const int n, const \hyperlink{classAbstract_1_1Domain}{Abstract\+::\+Domain} $\ast$domain, const \hyperlink{classAbstract_1_1Distribution}{Abstract\+::\+Distribution} $\ast$distribution, const \hyperlink{classSettings}{Settings}$<$ Body\+Settings\+Ids $>$ \&settings)
+\item 
+\hypertarget{classBody_acf614ab6b2734aa52bd8de02a0211ead}{}\label{classBody_acf614ab6b2734aa52bd8de02a0211ead} 
+void \hyperlink{classBody_acf614ab6b2734aa52bd8de02a0211ead}{move} (const \hyperlink{classBasicVector}{Vector} \&offset)
+\begin{DoxyCompactList}\small\item\em Moves all particles in given direction. Does not change velocities or other quantities. \end{DoxyCompactList}\item 
+void \hyperlink{classBody_ad506a868ff9e989282cb948d44f35f42}{rotate} (const \hyperlink{classBasicVector}{Vector} \&U\+N\+U\+S\+ED(center), const \hyperlink{classBasicVector}{Vector} \&U\+N\+U\+S\+ED(axis))
+\item 
+\hypertarget{classBody_acd8c26a7a416b6c579ca7ca447552fd1}{}\label{classBody_acd8c26a7a416b6c579ca7ca447552fd1} 
+void \hyperlink{classBody_acd8c26a7a416b6c579ca7ca447552fd1}{add\+Velocity} (const \hyperlink{classBasicVector}{Vector} \&velocity)
+\begin{DoxyCompactList}\small\item\em Adds velocity to all particles. \end{DoxyCompactList}\item 
+void \hyperlink{classBody_aefc7d09616d51ba1652a4a6940b06c5e}{add\+Angular\+Velocity} (const \hyperlink{classBasicVector}{Vector} \&U\+N\+U\+S\+ED(center), const \hyperlink{classBasicVector}{Vector} \&U\+N\+U\+S\+ED(axis))
+\begin{DoxyCompactList}\small\item\em Adds angular velocity around given center and axis of rotation. \end{DoxyCompactList}\item 
+\hypertarget{classBody_a39e2c28c977c5c6f1ab30b8790186eee}{}\label{classBody_a39e2c28c977c5c6f1ab30b8790186eee} 
+void {\bfseries merge} (const \hyperlink{classBody}{Body} \&other)
+\item 
+\hypertarget{classBody_ade96d728b06622303593eef008a58591}{}\label{classBody_ade96d728b06622303593eef008a58591} 
+void {\bfseries save\+To\+File} (const std\+::string \&path)
+\end{DoxyCompactItemize}
+\subsection*{Protected Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\hypertarget{classBody_a0f9839e3021bcd563d5b2eff97b96339}{}\label{classBody_a0f9839e3021bcd563d5b2eff97b96339} 
+int \hyperlink{classBody_a0f9839e3021bcd563d5b2eff97b96339}{N}
+\begin{DoxyCompactList}\small\item\em The number of particles. \end{DoxyCompactList}\item 
+\hypertarget{classBody_aa1edcd0f5cc675e042fec4e494e52e48}{}\label{classBody_aa1edcd0f5cc675e042fec4e494e52e48} 
+\hyperlink{classArray}{Array}$<$ \hyperlink{classBasicVector}{Vector} $>$ \hyperlink{classBody_aa1edcd0f5cc675e042fec4e494e52e48}{rs}
+\begin{DoxyCompactList}\small\item\em Coordinates of particles, fourth component is smoothing length. \end{DoxyCompactList}\item 
+\hypertarget{classBody_a08cf717fc912ebf9b792119c4b3808fd}{}\label{classBody_a08cf717fc912ebf9b792119c4b3808fd} 
+\hyperlink{classArray}{Array}$<$ \hyperlink{classBasicVector}{Vector} $>$ \hyperlink{classBody_a08cf717fc912ebf9b792119c4b3808fd}{vs}
+\begin{DoxyCompactList}\small\item\em Velocities of particles, fourth component if velocity divergence. \end{DoxyCompactList}\item 
+\hypertarget{classBody_afc78fa820ba77712a298dcd1cab36254}{}\label{classBody_afc78fa820ba77712a298dcd1cab36254} 
+\hyperlink{classArray}{Array}$<$ \hyperlink{classBasicVector}{Vector} $>$ \hyperlink{classBody_afc78fa820ba77712a298dcd1cab36254}{dvs}
+\begin{DoxyCompactList}\small\item\em Acceleration. \end{DoxyCompactList}\item 
+\hypertarget{classBody_a64fe5671c857851d4a21225e68291cd2}{}\label{classBody_a64fe5671c857851d4a21225e68291cd2} 
+\hyperlink{classArray}{Array}$<$ Float $>$ \hyperlink{classBody_a64fe5671c857851d4a21225e68291cd2}{ms}
+\begin{DoxyCompactList}\small\item\em Mass of S\+PH particles. \end{DoxyCompactList}\item 
+\hypertarget{classBody_af575f15071511dfb25bcc6e653b2c605}{}\label{classBody_af575f15071511dfb25bcc6e653b2c605} 
+\hyperlink{classArray}{Array}$<$ Float $>$ \hyperlink{classBody_af575f15071511dfb25bcc6e653b2c605}{rhos}
+\begin{DoxyCompactList}\small\item\em Density. \end{DoxyCompactList}\item 
+\hypertarget{classBody_ad97a2b2ca09bd5f099c5b5a398f5a7e1}{}\label{classBody_ad97a2b2ca09bd5f099c5b5a398f5a7e1} 
+\hyperlink{classArray}{Array}$<$ Float $>$ \hyperlink{classBody_ad97a2b2ca09bd5f099c5b5a398f5a7e1}{drhos}
+\begin{DoxyCompactList}\small\item\em Density derivative. \end{DoxyCompactList}\item 
+\hypertarget{classBody_ae5ed29defd3c45d482a93d18590fc66d}{}\label{classBody_ae5ed29defd3c45d482a93d18590fc66d} 
+\hyperlink{classArray}{Array}$<$ Float $>$ \hyperlink{classBody_ae5ed29defd3c45d482a93d18590fc66d}{ps}
+\begin{DoxyCompactList}\small\item\em Pressure. \end{DoxyCompactList}\item 
+\hypertarget{classBody_a49b491639fae94f1dfcdc84845af2c6b}{}\label{classBody_a49b491639fae94f1dfcdc84845af2c6b} 
+\hyperlink{classArray}{Array}$<$ Float $>$ \hyperlink{classBody_a49b491639fae94f1dfcdc84845af2c6b}{us}
+\begin{DoxyCompactList}\small\item\em Specific internal energy (=energy per unit mass) \end{DoxyCompactList}\item 
+\hypertarget{classBody_a60bbb48380ae9e8a8dea2e7a88a5bf27}{}\label{classBody_a60bbb48380ae9e8a8dea2e7a88a5bf27} 
+\hyperlink{classArray}{Array}$<$ Float $>$ \hyperlink{classBody_a60bbb48380ae9e8a8dea2e7a88a5bf27}{dus}
+\begin{DoxyCompactList}\small\item\em Derivative of internal energy;. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+Base class storing arrays of particle quantities. If a model requires more quantities, it must inherits from this method and extend interface. 
+
+\subsection{Member Function Documentation}
+\hypertarget{classBody_aefc7d09616d51ba1652a4a6940b06c5e}{}\label{classBody_aefc7d09616d51ba1652a4a6940b06c5e} 
+\index{Body@{Body}!add\+Angular\+Velocity@{add\+Angular\+Velocity}}
+\index{add\+Angular\+Velocity@{add\+Angular\+Velocity}!Body@{Body}}
+\subsubsection{\texorpdfstring{add\+Angular\+Velocity()}{addAngularVelocity()}}
+{\footnotesize\ttfamily void Body\+::add\+Angular\+Velocity (\begin{DoxyParamCaption}\item[{const \hyperlink{classBasicVector}{Vector} \&}]{U\+N\+U\+S\+EDcenter,  }\item[{const \hyperlink{classBasicVector}{Vector} \&}]{U\+N\+U\+S\+EDaxis }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Adds angular velocity around given center and axis of rotation. 
+
+\begin{DoxyRefDesc}{Todo}
+\item[\hyperlink{todo__todo000006}{Todo}]\end{DoxyRefDesc}
+\hypertarget{classBody_ad506a868ff9e989282cb948d44f35f42}{}\label{classBody_ad506a868ff9e989282cb948d44f35f42} 
+\index{Body@{Body}!rotate@{rotate}}
+\index{rotate@{rotate}!Body@{Body}}
+\subsubsection{\texorpdfstring{rotate()}{rotate()}}
+{\footnotesize\ttfamily void Body\+::rotate (\begin{DoxyParamCaption}\item[{const \hyperlink{classBasicVector}{Vector} \&}]{U\+N\+U\+S\+EDcenter,  }\item[{const \hyperlink{classBasicVector}{Vector} \&}]{U\+N\+U\+S\+EDaxis }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\begin{DoxyRefDesc}{Todo}
+\item[\hyperlink{todo__todo000005}{Todo}]\end{DoxyRefDesc}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/home/pavel/projects/astro/sph2/src/core/particle.\+h\end{DoxyCompactItemize}

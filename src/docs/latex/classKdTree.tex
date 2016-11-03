@@ -1,0 +1,54 @@
+\hypertarget{classKdTree}{}\section{Kd\+Tree Class Reference}
+\label{classKdTree}\index{Kd\+Tree@{Kd\+Tree}}
+Inheritance diagram for Kd\+Tree\+:\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[height=4.000000cm]{classKdTree}
+\end{center}
+\end{figure}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+virtual int \hyperlink{classKdTree_a830840ce00b519f37e922a69733b68c1}{find\+Neighbours} (const int index, const Float radius, \hyperlink{classArray}{Array}$<$ \hyperlink{structNeighbourRecord}{Neighbour\+Record} $>$ \&neighbours, \hyperlink{classFlags}{Flags}$<$ Finder\+Flags $>$ flags=E\+M\+P\+T\+Y\+\_\+\+F\+L\+A\+GS, const Float error=0.\+\_\+f) const override
+\end{DoxyCompactItemize}
+\subsection*{Protected Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\hypertarget{classKdTree_a2acc49e7949a6c0c2ba58a99cf2a1f63}{}\label{classKdTree_a2acc49e7949a6c0c2ba58a99cf2a1f63} 
+virtual void {\bfseries build\+Impl} (\hyperlink{classArrayView}{Array\+View}$<$ \hyperlink{classBasicVector}{Vector} $>$ values) override
+\end{DoxyCompactItemize}
+\subsection*{Additional Inherited Members}
+
+
+\subsection{Member Function Documentation}
+\hypertarget{classKdTree_a830840ce00b519f37e922a69733b68c1}{}\label{classKdTree_a830840ce00b519f37e922a69733b68c1} 
+\index{Kd\+Tree@{Kd\+Tree}!find\+Neighbours@{find\+Neighbours}}
+\index{find\+Neighbours@{find\+Neighbours}!Kd\+Tree@{Kd\+Tree}}
+\subsubsection{\texorpdfstring{find\+Neighbours()}{findNeighbours()}}
+{\footnotesize\ttfamily virtual int Kd\+Tree\+::find\+Neighbours (\begin{DoxyParamCaption}\item[{const int}]{index,  }\item[{const Float}]{radius,  }\item[{\hyperlink{classArray}{Array}$<$ \hyperlink{structNeighbourRecord}{Neighbour\+Record} $>$ \&}]{neighbours,  }\item[{\hyperlink{classFlags}{Flags}$<$ Finder\+Flags $>$}]{flags = {\ttfamily EMPTY\+\_\+FLAGS},  }\item[{const Float}]{error = {\ttfamily 0.\+\_\+f} }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [virtual]}}
+
+Finds all points within given radius from a point. 
+\begin{DoxyParams}{Parameters}
+{\em point} & \\
+\hline
+{\em radius} & \\
+\hline
+{\em neighbours} & List of neighbours, as indices to the array \\
+\hline
+{\em error} & Approximate solution \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+The number of neighbours. 
+\end{DoxyReturn}
+\begin{DoxyRefDesc}{Todo}
+\item[\hyperlink{todo__todo000025}{Todo}]flags \end{DoxyRefDesc}
+
+
+Implements \hyperlink{classAbstract_1_1Finder_a7f04b92d939992d0aa2978a259b2533f}{Abstract\+::\+Finder}.
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/home/pavel/projects/astro/sph2/src/tree/kdtree.\+h\end{DoxyCompactItemize}

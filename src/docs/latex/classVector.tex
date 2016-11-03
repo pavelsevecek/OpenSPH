@@ -1,0 +1,190 @@
+\hypertarget{classVector}{}\section{Vector$<$ T\+Unit, d, T\+Enabler $>$ Class Template Reference}
+\label{classVector}\index{Vector$<$ T\+Unit, d, T\+Enabler $>$@{Vector$<$ T\+Unit, d, T\+Enabler $>$}}
+
+
+{\ttfamily \#include $<$vector.\+h$>$}
+
+Inheritance diagram for Vector$<$ T\+Unit, d, T\+Enabler $>$\+:\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[height=2.000000cm]{classVector}
+\end{center}
+\end{figure}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+{\footnotesize template$<$typename  = std\+::enable\+\_\+if\+\_\+t$<$std\+::is\+\_\+default\+\_\+constructible$<$\+T\+Unit$>$\+::value$>$$>$ }\\\hyperlink{classVector_a9861ef252299f5ec6ba668fdfb58bdac}{Vector} ()
+\item 
+\hypertarget{classVector_a4fea692f3d2d03b29f07fe4ed857d3fe}{}\label{classVector_a4fea692f3d2d03b29f07fe4ed857d3fe} 
+\hyperlink{classVector_a4fea692f3d2d03b29f07fe4ed857d3fe}{Vector} (const \hyperlink{classVector}{Vector} \&other)
+\begin{DoxyCompactList}\small\item\em Copy constructor. Explicitly executes copy constructor on values. \end{DoxyCompactList}\item 
+\hyperlink{classVector_a22750ab935dc70912a8ce6f144077991}{Vector} (\hyperlink{classVector}{Vector} \&\&other)
+\item 
+\hypertarget{classVector_aa3460d35087956191d679aae646bacae}{}\label{classVector_aa3460d35087956191d679aae646bacae} 
+{\footnotesize template$<$typename T , typename  = std\+::enable\+\_\+if\+\_\+t$<$!\+Is\+Vector$<$\+T$>$$>$$>$ }\\\hyperlink{classVector_aa3460d35087956191d679aae646bacae}{Vector} (const T \&value)
+\begin{DoxyCompactList}\small\item\em Constructs by setting all components to given value. \end{DoxyCompactList}\item 
+{\footnotesize template$<$typename T1 , typename T2 , typename... T\+Args$>$ }\\\hyperlink{classVector_a3d44df3f400c3c16f01e6802e3046389}{Vector} (T1 \&\&t1, T2 \&\&t2, T\+Args \&\&... rest)
+\item 
+\hypertarget{classVector_a0b91248b376cb4ee66319973517669b4}{}\label{classVector_a0b91248b376cb4ee66319973517669b4} 
+\hyperlink{classVector}{Vector} \& \hyperlink{classVector_a0b91248b376cb4ee66319973517669b4}{operator=} (const \hyperlink{classVector}{Vector} \&other)
+\begin{DoxyCompactList}\small\item\em Copy operator, copies each component of the vector. \end{DoxyCompactList}\item 
+\hypertarget{classVector_a29b1e46e39ad65fd01e11495ebcdb8b7}{}\label{classVector_a29b1e46e39ad65fd01e11495ebcdb8b7} 
+\hyperlink{classVector}{Vector} \& \hyperlink{classVector_a29b1e46e39ad65fd01e11495ebcdb8b7}{operator=} (\hyperlink{classVector}{Vector} \&\&other)
+\begin{DoxyCompactList}\small\item\em Move operator. \end{DoxyCompactList}\item 
+\hypertarget{classVector_afb0121e977fc4410894899e4679346a8}{}\label{classVector_afb0121e977fc4410894899e4679346a8} 
+const T\+Unit \& {\bfseries operator\mbox{[}$\,$\mbox{]}} (const int i) const
+\item 
+\hypertarget{classVector_a35b278e92de6cb917c8605bf2a8951e2}{}\label{classVector_a35b278e92de6cb917c8605bf2a8951e2} 
+T\+Unit \& {\bfseries operator\mbox{[}$\,$\mbox{]}} (const int i)
+\item 
+\hypertarget{classVector_a7975d342c5f6ee6639f45f946c158d23}{}\label{classVector_a7975d342c5f6ee6639f45f946c158d23} 
+{\footnotesize template$<$int i$>$ }\\const T\+Unit \& {\bfseries get} () const
+\item 
+\hypertarget{classVector_aa69485c9cfa648be36da33b3a27a5072}{}\label{classVector_aa69485c9cfa648be36da33b3a27a5072} 
+{\footnotesize template$<$int i$>$ }\\T\+Unit \& {\bfseries get} ()
+\item 
+{\footnotesize template$<$typename  = std\+::enable\+\_\+if\+\_\+t$<$std\+::is\+\_\+convertible$<$\+T\+Unit, U$>$\+::value$>$$>$ }\\\hyperlink{classVector_af246ad31be841c0ff30906f2363bb415}{operator Vector$<$ U, d $>$} ()
+\item 
+\hypertarget{classVector_a6451ff990b9771e8e7e693f91720260d}{}\label{classVector_a6451ff990b9771e8e7e693f91720260d} 
+\hyperlink{classVector}{Vector} \& \hyperlink{classVector_a6451ff990b9771e8e7e693f91720260d}{operator+=} (const \hyperlink{classVector}{Vector} \&other)
+\begin{DoxyCompactList}\small\item\em Sum components and assign, only enabled for vectors of same type and dimension. \end{DoxyCompactList}\item 
+\hypertarget{classVector_afb827fd80709361d40cb8e9b96d837ac}{}\label{classVector_afb827fd80709361d40cb8e9b96d837ac} 
+\hyperlink{classVector}{Vector} \& \hyperlink{classVector_afb827fd80709361d40cb8e9b96d837ac}{operator-\/=} (const \hyperlink{classVector}{Vector} \&other)
+\begin{DoxyCompactList}\small\item\em Subtract components and assign, only enabled for vectors of same type and dimension. \end{DoxyCompactList}\item 
+\hypertarget{classVector_a8e0a687654972f12cbbc23ef0c5eb7b0}{}\label{classVector_a8e0a687654972f12cbbc23ef0c5eb7b0} 
+\hyperlink{classVector}{Vector} \& \hyperlink{classVector_a8e0a687654972f12cbbc23ef0c5eb7b0}{operator$\ast$=} (const U v)
+\begin{DoxyCompactList}\small\item\em Multiply by scalar and assign, only possible for dimensionless rhs. \end{DoxyCompactList}\item 
+\hypertarget{classVector_a4ce4c2e10575a4d09561fe550a16f4e0}{}\label{classVector_a4ce4c2e10575a4d09561fe550a16f4e0} 
+\hyperlink{classVector}{Vector} \& \hyperlink{classVector_a4ce4c2e10575a4d09561fe550a16f4e0}{operator/=} (const U v)
+\begin{DoxyCompactList}\small\item\em Divide by scalar and assign, only possible for dimensionless rhs. \end{DoxyCompactList}\item 
+\hypertarget{classVector_afca79e52af14d4886d66b68f2db70fa3}{}\label{classVector_afca79e52af14d4886d66b68f2db70fa3} 
+\hyperlink{classVector}{Vector} \& \hyperlink{classVector_afca79e52af14d4886d66b68f2db70fa3}{operator$\ast$=} (const \hyperlink{classVector}{Vector}$<$ U, d $>$ \&v)
+\begin{DoxyCompactList}\small\item\em Multiply by vector and assign, only possible for dimensionless rhs. \end{DoxyCompactList}\item 
+\hypertarget{classVector_ad93f66c4f6cd97e6f48fedc388fedead}{}\label{classVector_ad93f66c4f6cd97e6f48fedc388fedead} 
+\hyperlink{classVector}{Vector} \& \hyperlink{classVector_ad93f66c4f6cd97e6f48fedc388fedead}{operator/=} (const \hyperlink{classVector}{Vector}$<$ U, d $>$ v)
+\begin{DoxyCompactList}\small\item\em Divide by vector and assign, only possible for dimensionless rhs. \end{DoxyCompactList}\item 
+\hypertarget{classVector_a2f7c7d1b093fc195c0ca3ae40bd87cfc}{}\label{classVector_a2f7c7d1b093fc195c0ca3ae40bd87cfc} 
+\hyperlink{classVector}{Vector} friend \hyperlink{classVector_a2f7c7d1b093fc195c0ca3ae40bd87cfc}{operator+} (const \hyperlink{classVector}{Vector} \&v1, const \hyperlink{classVector}{Vector} \&v2)
+\begin{DoxyCompactList}\small\item\em Sum operator, enabled for vectors of equal dimensions and equal type. \end{DoxyCompactList}\item 
+\hypertarget{classVector_a286518ff6c7c35311c2d471ad7ef7131}{}\label{classVector_a286518ff6c7c35311c2d471ad7ef7131} 
+{\footnotesize template$<$typename T $>$ }\\auto \hyperlink{classVector_a286518ff6c7c35311c2d471ad7ef7131}{dot} (const \hyperlink{classVector}{Vector}$<$ T, d $>$ \&other) const
+\begin{DoxyCompactList}\small\item\em Dot product with a second vector. A product of stored values must be defined/. \end{DoxyCompactList}\item 
+\hypertarget{classVector_a6b8030240b7ab36049f21599f75efa26}{}\label{classVector_a6b8030240b7ab36049f21599f75efa26} 
+{\footnotesize template$<$typename T $>$ }\\auto \hyperlink{classVector_a6b8030240b7ab36049f21599f75efa26}{cross} (const \hyperlink{classVector}{Vector}$<$ T, 3 $>$ \&other) const
+\begin{DoxyCompactList}\small\item\em Cross product between two vectors. Only makes sense for d = 3. \end{DoxyCompactList}\item 
+\hypertarget{classVector_a8bc9e4a97cb055b7b0aa416ac0ed77f8}{}\label{classVector_a8bc9e4a97cb055b7b0aa416ac0ed77f8} 
+\hyperlink{classVector}{Vector} \hyperlink{classVector_a8bc9e4a97cb055b7b0aa416ac0ed77f8}{min} (const \hyperlink{classVector}{Vector} \&other) const
+\begin{DoxyCompactList}\small\item\em Component-\/wise minimum. Enabled only for vectors of same type and dimensions. \end{DoxyCompactList}\item 
+\hypertarget{classVector_ac1247fe7190b8880a7fa8f744ab9cea4}{}\label{classVector_ac1247fe7190b8880a7fa8f744ab9cea4} 
+\hyperlink{classVector}{Vector} \hyperlink{classVector_ac1247fe7190b8880a7fa8f744ab9cea4}{max} (const \hyperlink{classVector}{Vector} \&other) const
+\begin{DoxyCompactList}\small\item\em Component-\/wise maximum. Enabled only for vectors of same type and dimensions. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\subsection*{Friends}
+\begin{DoxyCompactItemize}
+\item 
+\hypertarget{classVector_a4f79607c18aef2105d5ec6b3259ecf32}{}\label{classVector_a4f79607c18aef2105d5ec6b3259ecf32} 
+{\footnotesize template$<$typename , int , typename $>$ }\\class {\bfseries Vector}
+\item 
+\hypertarget{classVector_a885f29c16d9844e1629e3f4c89cf5499}{}\label{classVector_a885f29c16d9844e1629e3f4c89cf5499} 
+\hyperlink{classVector}{Vector} \hyperlink{classVector_a885f29c16d9844e1629e3f4c89cf5499}{operator-\/} (const \hyperlink{classVector}{Vector} \&v1, const \hyperlink{classVector}{Vector} \&v2)
+\begin{DoxyCompactList}\small\item\em Difference operator, enabled for vectors of equal dimensions and equal type. \end{DoxyCompactList}\item 
+\hypertarget{classVector_ac7a74ab9b64a6ddb03e7d25895c2699d}{}\label{classVector_ac7a74ab9b64a6ddb03e7d25895c2699d} 
+\hyperlink{classVector}{Vector} \hyperlink{classVector_ac7a74ab9b64a6ddb03e7d25895c2699d}{operator-\/} (const \hyperlink{classVector}{Vector} \&v)
+\begin{DoxyCompactList}\small\item\em Unary minus operator. \end{DoxyCompactList}\item 
+\hypertarget{classVector_a7910afb9c9dbb82f155e980c6eba1538}{}\label{classVector_a7910afb9c9dbb82f155e980c6eba1538} 
+bool \hyperlink{classVector_a7910afb9c9dbb82f155e980c6eba1538}{operator==} (const \hyperlink{classVector}{Vector} \&v1, const \hyperlink{classVector}{Vector} \&v2)
+\begin{DoxyCompactList}\small\item\em Comparison operator, only available for vectors of same type and same dimension. \end{DoxyCompactList}\item 
+\hypertarget{classVector_af1f27f848ef4e7c750f8c49ac5fcacea}{}\label{classVector_af1f27f848ef4e7c750f8c49ac5fcacea} 
+bool \hyperlink{classVector_af1f27f848ef4e7c750f8c49ac5fcacea}{operator!=} (const \hyperlink{classVector}{Vector} \&v1, const \hyperlink{classVector}{Vector} \&v2)
+\begin{DoxyCompactList}\small\item\em Inequality operator. \end{DoxyCompactList}\item 
+\hypertarget{classVector_a60bf5a2966cbdacbd2a4f39de8157c77}{}\label{classVector_a60bf5a2966cbdacbd2a4f39de8157c77} 
+{\footnotesize template$<$typename T , typename  = std\+::enable\+\_\+if\+\_\+t$<$\+Have\+Scalar\+Product$<$\+T, T\+Unit$>$$>$$>$ }\\auto \hyperlink{classVector_a60bf5a2966cbdacbd2a4f39de8157c77}{operator$\ast$} (const \hyperlink{classVector}{Vector} \&v, const T \&t)
+\begin{DoxyCompactList}\small\item\em Multiplication of vector by scalar value. Enabled only if a product between the two types exists. \end{DoxyCompactList}\item 
+\hypertarget{classVector_a73d9b4f5fa688819788dce765fa2781d}{}\label{classVector_a73d9b4f5fa688819788dce765fa2781d} 
+{\footnotesize template$<$typename T , typename  = std\+::enable\+\_\+if\+\_\+t$<$\+Have\+Scalar\+Product$<$\+T, T\+Unit$>$$>$$>$ }\\auto \hyperlink{classVector_a73d9b4f5fa688819788dce765fa2781d}{operator$\ast$} (const T \&t, const \hyperlink{classVector}{Vector} \&v)
+\begin{DoxyCompactList}\small\item\em Multiplication of scalar and vector. Enabled only if a product operator between the two types exists. \end{DoxyCompactList}\item 
+{\footnotesize template$<$typename T , typename  = std\+::enable\+\_\+if\+\_\+t$<$\+Have\+Scalar\+Quotient$<$\+T\+Unit, T$>$$>$$>$ }\\auto \hyperlink{classVector_a6da5d490ff6380328266f2b24a2d85e7}{operator/} (const \hyperlink{classVector}{Vector} \&v, const T \&t)
+\item 
+{\footnotesize template$<$typename T , typename  = std\+::enable\+\_\+if\+\_\+t$<$\+Have\+Product$<$\+T, T\+Unit$>$$>$$>$ }\\auto \hyperlink{classVector_ae0327ce67bfbacc8e20970e5fe0319d6}{operator$\ast$} (const \hyperlink{classVector}{Vector} \&v1, const \hyperlink{classVector}{Vector}$<$ T, d $>$ \&v2)
+\item 
+{\footnotesize template$<$typename T , typename  = std\+::enable\+\_\+if\+\_\+t$<$\+Have\+Quotient$<$\+T, T\+Unit$>$$>$$>$ }\\auto \hyperlink{classVector_ada2ba21f8fde22223f85c7b017321d8b}{operator/} (const \hyperlink{classVector}{Vector} \&v1, const \hyperlink{classVector}{Vector}$<$ T, d $>$ \&v2)
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+\subsubsection*{template$<$typename T\+Unit = Evt\+::T, int d = Evt\+::d, typename T\+Enabler = void$>$\newline
+class Vector$<$ T\+Unit, d, T\+Enabler $>$}
+
+A general vector class. Can store d of any object. For values and units, optimized specializations are defined below. 
+
+\subsection{Constructor \& Destructor Documentation}
+\hypertarget{classVector_a9861ef252299f5ec6ba668fdfb58bdac}{}\label{classVector_a9861ef252299f5ec6ba668fdfb58bdac} 
+\index{Vector@{Vector}!Vector@{Vector}}
+\index{Vector@{Vector}!Vector@{Vector}}
+\subsubsection{\texorpdfstring{Vector()}{Vector()}\hspace{0.1cm}{\footnotesize\ttfamily [1/3]}}
+{\footnotesize\ttfamily template$<$typename T\+Unit = Evt\+::T, int d = Evt\+::d, typename T\+Enabler = void$>$ \\
+template$<$typename  = std\+::enable\+\_\+if\+\_\+t$<$std\+::is\+\_\+default\+\_\+constructible$<$\+T\+Unit$>$\+::value$>$$>$ \\
+\hyperlink{classVector}{Vector}$<$ T\+Unit, d, T\+Enabler $>$\+::\hyperlink{classVector}{Vector} (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+Default constructor, executes default constructor on stored values. Enabled only if type is default constructible \hypertarget{classVector_a22750ab935dc70912a8ce6f144077991}{}\label{classVector_a22750ab935dc70912a8ce6f144077991} 
+\index{Vector@{Vector}!Vector@{Vector}}
+\index{Vector@{Vector}!Vector@{Vector}}
+\subsubsection{\texorpdfstring{Vector()}{Vector()}\hspace{0.1cm}{\footnotesize\ttfamily [2/3]}}
+{\footnotesize\ttfamily template$<$typename T\+Unit = Evt\+::T, int d = Evt\+::d, typename T\+Enabler = void$>$ \\
+\hyperlink{classVector}{Vector}$<$ T\+Unit, d, T\+Enabler $>$\+::\hyperlink{classVector}{Vector} (\begin{DoxyParamCaption}\item[{\hyperlink{classVector}{Vector}$<$ T\+Unit, d, T\+Enabler $>$ \&\&}]{other }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+Move constructor \begin{DoxyRefDesc}{Todo}
+\item[\hyperlink{todo__todo000012}{Todo}]test !!! \end{DoxyRefDesc}
+\hypertarget{classVector_a3d44df3f400c3c16f01e6802e3046389}{}\label{classVector_a3d44df3f400c3c16f01e6802e3046389} 
+\index{Vector@{Vector}!Vector@{Vector}}
+\index{Vector@{Vector}!Vector@{Vector}}
+\subsubsection{\texorpdfstring{Vector()}{Vector()}\hspace{0.1cm}{\footnotesize\ttfamily [3/3]}}
+{\footnotesize\ttfamily template$<$typename T\+Unit = Evt\+::T, int d = Evt\+::d, typename T\+Enabler = void$>$ \\
+template$<$typename T1 , typename T2 , typename... T\+Args$>$ \\
+\hyperlink{classVector}{Vector}$<$ T\+Unit, d, T\+Enabler $>$\+::\hyperlink{classVector}{Vector} (\begin{DoxyParamCaption}\item[{T1 \&\&}]{t1,  }\item[{T2 \&\&}]{t2,  }\item[{T\+Args \&\&...}]{rest }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+Construct from individual components. Must have at least two arguments to distinguish from the other constructors. 
+
+\subsection{Member Function Documentation}
+\hypertarget{classVector_af246ad31be841c0ff30906f2363bb415}{}\label{classVector_af246ad31be841c0ff30906f2363bb415} 
+\index{Vector@{Vector}!operator Vector$<$ U, d $>$@{operator Vector$<$ U, d $>$}}
+\index{operator Vector$<$ U, d $>$@{operator Vector$<$ U, d $>$}!Vector@{Vector}}
+\subsubsection{\texorpdfstring{operator Vector$<$ U, d $>$()}{operator Vector< U, d >()}}
+{\footnotesize\ttfamily template$<$typename T\+Unit = Evt\+::T, int d = Evt\+::d, typename T\+Enabler = void$>$ \\
+template$<$typename  = std\+::enable\+\_\+if\+\_\+t$<$std\+::is\+\_\+convertible$<$\+T\+Unit, U$>$\+::value$>$$>$ \\
+\hyperlink{classVector}{Vector}$<$ T\+Unit, d, T\+Enabler $>$\+::operator \hyperlink{classVector}{Vector}$<$ U, d $>$ (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+Enable conversion to vector of base type. \begin{DoxyNote}{Note}
+We cannot define a generic conversion between vectors, because that would lead to ambiguity in conversion operators, for example. 
+\end{DoxyNote}
+
+
+\subsection{Friends And Related Function Documentation}
+\hypertarget{classVector_ae0327ce67bfbacc8e20970e5fe0319d6}{}\label{classVector_ae0327ce67bfbacc8e20970e5fe0319d6} 
+\index{Vector@{Vector}!operator$\ast$@{operator$\ast$}}
+\index{operator$\ast$@{operator$\ast$}!Vector@{Vector}}
+\subsubsection{\texorpdfstring{operator$\ast$}{operator*}}
+{\footnotesize\ttfamily template$<$typename T\+Unit = Evt\+::T, int d = Evt\+::d, typename T\+Enabler = void$>$ \\
+template$<$typename T , typename  = std\+::enable\+\_\+if\+\_\+t$<$\+Have\+Product$<$\+T, T\+Unit$>$$>$$>$ \\
+auto operator$\ast$ (\begin{DoxyParamCaption}\item[{const \hyperlink{classVector}{Vector}$<$ T\+Unit, d, T\+Enabler $>$ \&}]{v1,  }\item[{const \hyperlink{classVector}{Vector}$<$ T, d $>$ \&}]{v2 }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [friend]}}
+
+Component-\/wise multiplication of two vectors. Enabled only if a product operator between the two types exists. \hypertarget{classVector_a6da5d490ff6380328266f2b24a2d85e7}{}\label{classVector_a6da5d490ff6380328266f2b24a2d85e7} 
+\index{Vector@{Vector}!operator/@{operator/}}
+\index{operator/@{operator/}!Vector@{Vector}}
+\subsubsection{\texorpdfstring{operator/}{operator/}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily template$<$typename T\+Unit = Evt\+::T, int d = Evt\+::d, typename T\+Enabler = void$>$ \\
+template$<$typename T , typename  = std\+::enable\+\_\+if\+\_\+t$<$\+Have\+Scalar\+Quotient$<$\+T\+Unit, T$>$$>$$>$ \\
+auto operator/ (\begin{DoxyParamCaption}\item[{const \hyperlink{classVector}{Vector}$<$ T\+Unit, d, T\+Enabler $>$ \&}]{v,  }\item[{const T \&}]{t }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [friend]}}
+
+Division of vector by scalar. Enabled only if a quotient operator between the two types exists. Non-\/zero denominator is checked by assert. \hypertarget{classVector_ada2ba21f8fde22223f85c7b017321d8b}{}\label{classVector_ada2ba21f8fde22223f85c7b017321d8b} 
+\index{Vector@{Vector}!operator/@{operator/}}
+\index{operator/@{operator/}!Vector@{Vector}}
+\subsubsection{\texorpdfstring{operator/}{operator/}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily template$<$typename T\+Unit = Evt\+::T, int d = Evt\+::d, typename T\+Enabler = void$>$ \\
+template$<$typename T , typename  = std\+::enable\+\_\+if\+\_\+t$<$\+Have\+Quotient$<$\+T, T\+Unit$>$$>$$>$ \\
+auto operator/ (\begin{DoxyParamCaption}\item[{const \hyperlink{classVector}{Vector}$<$ T\+Unit, d, T\+Enabler $>$ \&}]{v1,  }\item[{const \hyperlink{classVector}{Vector}$<$ T, d $>$ \&}]{v2 }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [friend]}}
+
+Component-\/wise division of two vectors. Enabled only if a quotient operator between the two types exists. Denominator components are checked for non-\/zero values by assert. 
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/home/pavel/projects/astro/sph/src/geometry/vector.\+h\end{DoxyCompactItemize}

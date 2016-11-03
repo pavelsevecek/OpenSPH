@@ -1,0 +1,94 @@
+\hypertarget{classCore}{}\section{Core$<$ T, d $>$ Class Template Reference}
+\label{classCore}\index{Core$<$ T, d $>$@{Core$<$ T, d $>$}}
+Inheritance diagram for Core$<$ T, d $>$\+:\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[height=3.000000cm]{classCore}
+\end{center}
+\end{figure}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\hyperlink{classCore_ab22806e0a6b4cc36e65d37949412b375}{Core} ()
+\item 
+\hypertarget{classCore_a9003d25625be679e1d30d846072a62cd}{}\label{classCore_a9003d25625be679e1d30d846072a62cd} 
+void {\bfseries register\+Callback} (std\+::function$<$ void(void)$>$ \&clbc)
+\item 
+\hypertarget{classCore_ae6e2523d22f842f9b987babf1059ed18}{}\label{classCore_ae6e2523d22f842f9b987babf1059ed18} 
+void {\bfseries solve\+Continuity} ()
+\item 
+void \hyperlink{classCore_a1c4bb6ec0e601092692fee50317fa0ca}{compute\+Forces} ()
+\item 
+\hypertarget{classCore_a30ce1b6823bce79f57054643956c207c}{}\label{classCore_a30ce1b6823bce79f57054643956c207c} 
+void {\bfseries run} ()
+\end{DoxyCompactItemize}
+\subsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\hypertarget{classCore_ad3ef153613ec5a30383b556684df4ccb}{}\label{classCore_ad3ef153613ec5a30383b556684df4ccb} 
+\hyperlink{classLutKernel}{Lut\+Kernel}$<$ \hyperlink{classBaseUnit}{Length}$<$ T $>$, d $>$ {\bfseries kernel}
+\item 
+\hypertarget{classCore_a5d9b38289dc06e76ee20bbf0fe59de67}{}\label{classCore_a5d9b38289dc06e76ee20bbf0fe59de67} 
+std\+::unique\+\_\+ptr$<$ \hyperlink{classAbstract_1_1NeighbourStruct}{Abstract\+::\+Neighbour\+Struct}$<$ \hyperlink{classBaseUnit}{Length}$<$ T $>$, d $>$ $>$ {\bfseries finder}
+\item 
+std\+::unique\+\_\+ptr$<$ \hyperlink{classAbstract_1_1Domain}{Abstract\+::\+Domain}$<$ \hyperlink{classBaseUnit}{Length}$<$ T $>$, d $>$ $>$ \hyperlink{classCore_ac87630cef479b2beaa9ac6cc207e9ee2}{domain}
+\item 
+\hypertarget{classCore_afabdfe5fa54fb6b5b839a20fcb350f22}{}\label{classCore_afabdfe5fa54fb6b5b839a20fcb350f22} 
+std\+::unique\+\_\+ptr$<$ \hyperlink{classAbstract_1_1Timestepping}{Abstract\+::\+Timestepping}$<$ T, d $>$ $>$ {\bfseries timestepping}
+\item 
+\hypertarget{classCore_ad0a6ee8134df0c3f908d4635dfebffe2}{}\label{classCore_ad0a6ee8134df0c3f908d4635dfebffe2} 
+T {\bfseries eta} = T(1.\+5f)
+\item 
+\hypertarget{classCore_acbe48633bf36b971607c04127c15ad24}{}\label{classCore_acbe48633bf36b971607c04127c15ad24} 
+\hyperlink{classModel}{Model}$<$ T, d $>$ {\bfseries model}
+\item 
+\hypertarget{classCore_a988cf9ead455a6cb3299dd203556ae09}{}\label{classCore_a988cf9ead455a6cb3299dd203556ae09} 
+std\+::function$<$ void(void)$>$ {\bfseries time\+Step\+Callback}
+\end{DoxyCompactItemize}
+
+
+\subsection{Constructor \& Destructor Documentation}
+\hypertarget{classCore_ab22806e0a6b4cc36e65d37949412b375}{}\label{classCore_ab22806e0a6b4cc36e65d37949412b375} 
+\index{Core@{Core}!Core@{Core}}
+\index{Core@{Core}!Core@{Core}}
+\subsubsection{\texorpdfstring{Core()}{Core()}}
+{\footnotesize\ttfamily template$<$typename T  = Evt\+::T, int d = Evt\+::d$>$ \\
+\hyperlink{classCore}{Core}$<$ T, d $>$\+::\hyperlink{classCore}{Core} (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+Block domain
+
+Initial positions of particles
+
+Neighbour finding structure 
+
+\subsection{Member Function Documentation}
+\hypertarget{classCore_a1c4bb6ec0e601092692fee50317fa0ca}{}\label{classCore_a1c4bb6ec0e601092692fee50317fa0ca} 
+\index{Core@{Core}!compute\+Forces@{compute\+Forces}}
+\index{compute\+Forces@{compute\+Forces}!Core@{Core}}
+\subsubsection{\texorpdfstring{compute\+Forces()}{computeForces()}}
+{\footnotesize\ttfamily template$<$typename T  = Evt\+::T, int d = Evt\+::d$>$ \\
+void \hyperlink{classCore}{Core}$<$ T, d $>$\+::compute\+Forces (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+\begin{DoxyRefDesc}{Todo}
+\item[\hyperlink{todo__todo000002}{Todo}]upper limit for N\+\_\+neigh \end{DoxyRefDesc}
+
+
+hack\+: correct dimension analysis for d=1 and d=2 by simply multiplying by a unit this corresponds to a layer (d=2) of unit depth, or a block (d=1) of unit height and depth \begin{DoxyRefDesc}{Todo}
+\item[\hyperlink{todo__todo000003}{Todo}]this should be probably included in kernel gradient \end{DoxyRefDesc}
+
+
+\subsection{Member Data Documentation}
+\hypertarget{classCore_ac87630cef479b2beaa9ac6cc207e9ee2}{}\label{classCore_ac87630cef479b2beaa9ac6cc207e9ee2} 
+\index{Core@{Core}!domain@{domain}}
+\index{domain@{domain}!Core@{Core}}
+\subsubsection{\texorpdfstring{domain}{domain}}
+{\footnotesize\ttfamily template$<$typename T  = Evt\+::T, int d = Evt\+::d$>$ \\
+std\+::unique\+\_\+ptr$<$\hyperlink{classAbstract_1_1Domain}{Abstract\+::\+Domain}$<$\hyperlink{classBaseUnit}{Length}$<$T$>$, d$>$ $>$ \hyperlink{classCore}{Core}$<$ T, d $>$\+::domain}
+
+\begin{DoxyRefDesc}{Todo}
+\item[\hyperlink{todo__todo000001}{Todo}]generalize for more domains (target + impactor) \end{DoxyRefDesc}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/home/pavel/projects/astro/sph/src/core/core.\+h\end{DoxyCompactItemize}

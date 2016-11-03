@@ -1,0 +1,70 @@
+\hypertarget{classAbstract_1_1Domain}{}\section{Abstract\+:\+:Domain Class Reference}
+\label{classAbstract_1_1Domain}\index{Abstract\+::\+Domain@{Abstract\+::\+Domain}}
+
+
+Class for defining computational domain.  
+
+
+
+
+{\ttfamily \#include $<$domain.\+h$>$}
+
+Inheritance diagram for Abstract\+:\+:Domain\+:\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[height=4.000000cm]{classAbstract_1_1Domain}
+\end{center}
+\end{figure}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\hypertarget{classAbstract_1_1Domain_a6c974123492230c334468091cefa66dd}{}\label{classAbstract_1_1Domain_a6c974123492230c334468091cefa66dd} 
+\hyperlink{classAbstract_1_1Domain_a6c974123492230c334468091cefa66dd}{Domain} (const \hyperlink{classBasicVector}{Vector} \&center, const Float \&max\+Radius)
+\begin{DoxyCompactList}\small\item\em Constructs the domain given its center point and a radius of a sphere containing the whole domain. \end{DoxyCompactList}\item 
+\hypertarget{classAbstract_1_1Domain_a49180d7f20dc6eda9a7798a0052d4114}{}\label{classAbstract_1_1Domain_a49180d7f20dc6eda9a7798a0052d4114} 
+virtual \hyperlink{classBasicVector}{Vector} \hyperlink{classAbstract_1_1Domain_a49180d7f20dc6eda9a7798a0052d4114}{get\+Center} () const
+\begin{DoxyCompactList}\small\item\em Returns the center of the domain. \end{DoxyCompactList}\item 
+\hypertarget{classAbstract_1_1Domain_afa2c3a29f56b31e35613b05078918f9f}{}\label{classAbstract_1_1Domain_afa2c3a29f56b31e35613b05078918f9f} 
+virtual Float \hyperlink{classAbstract_1_1Domain_afa2c3a29f56b31e35613b05078918f9f}{get\+Bounding\+Radius} () const
+\begin{DoxyCompactList}\small\item\em Returns the bounding radius of the domain. \end{DoxyCompactList}\item 
+\hypertarget{classAbstract_1_1Domain_aa1e2803ef3f90984bdb82e46df32a082}{}\label{classAbstract_1_1Domain_aa1e2803ef3f90984bdb82e46df32a082} 
+virtual Float \hyperlink{classAbstract_1_1Domain_aa1e2803ef3f90984bdb82e46df32a082}{get\+Volume} () const =0
+\begin{DoxyCompactList}\small\item\em Returns the total d-\/dimensional volume of the domain. \end{DoxyCompactList}\item 
+\hypertarget{classAbstract_1_1Domain_ac562e4b29568a1572b01853d5809e87f}{}\label{classAbstract_1_1Domain_ac562e4b29568a1572b01853d5809e87f} 
+virtual bool \hyperlink{classAbstract_1_1Domain_ac562e4b29568a1572b01853d5809e87f}{is\+Inside} (const \hyperlink{classBasicVector}{Vector} \&v) const =0
+\begin{DoxyCompactList}\small\item\em Checks if the vector lies inside the domain. \end{DoxyCompactList}\item 
+virtual void \hyperlink{classAbstract_1_1Domain_a48ecb4ac3dab5f5a5e2de7b8e8218317}{are\+Inside} (const \hyperlink{classArrayView}{Array\+View}$<$ \hyperlink{classBasicVector}{Vector} $>$ vs, \hyperlink{classArrayView}{Array\+View}$<$ bool $>$ output) const =0
+\item 
+\hypertarget{classAbstract_1_1Domain_a25ad605750373faf0ade3d197187bc16}{}\label{classAbstract_1_1Domain_a25ad605750373faf0ade3d197187bc16} 
+virtual void \hyperlink{classAbstract_1_1Domain_a25ad605750373faf0ade3d197187bc16}{project} (\hyperlink{classArrayView}{Array\+View}$<$ \hyperlink{classBasicVector}{Vector} $>$ vs) const =0
+\begin{DoxyCompactList}\small\item\em Projects vectors outside of the domain onto its boundary. Vectors inside the domains are untouched. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\subsection*{Protected Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\hypertarget{classAbstract_1_1Domain_adc24a9392e0afc760beb51502baa9c0b}{}\label{classAbstract_1_1Domain_adc24a9392e0afc760beb51502baa9c0b} 
+\hyperlink{classBasicVector}{Vector} {\bfseries center}
+\item 
+\hypertarget{classAbstract_1_1Domain_afe14973fe813d9c5ec25927faf1873f7}{}\label{classAbstract_1_1Domain_afe14973fe813d9c5ec25927faf1873f7} 
+Float {\bfseries max\+Radius}
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+Class for defining computational domain. 
+
+\subsection{Member Function Documentation}
+\hypertarget{classAbstract_1_1Domain_a48ecb4ac3dab5f5a5e2de7b8e8218317}{}\label{classAbstract_1_1Domain_a48ecb4ac3dab5f5a5e2de7b8e8218317} 
+\index{Abstract\+::\+Domain@{Abstract\+::\+Domain}!are\+Inside@{are\+Inside}}
+\index{are\+Inside@{are\+Inside}!Abstract\+::\+Domain@{Abstract\+::\+Domain}}
+\subsubsection{\texorpdfstring{are\+Inside()}{areInside()}}
+{\footnotesize\ttfamily virtual void Abstract\+::\+Domain\+::are\+Inside (\begin{DoxyParamCaption}\item[{const \hyperlink{classArrayView}{Array\+View}$<$ \hyperlink{classBasicVector}{Vector} $>$}]{vs,  }\item[{\hyperlink{classArrayView}{Array\+View}$<$ bool $>$}]{output }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [pure virtual]}}
+
+Checks if elements of an array are inside the domain. Returns the result as array of bools. \hyperlink{classArray}{Array} must be already allocated and its size must match array vs. 
+
+Implemented in \hyperlink{classBlockDomain_a2dba56e9bbecdc5954147accfdcf331b}{Block\+Domain}, and \hyperlink{classSphericalDomain_aa5f4f17ecc1fa454da8b30e55bba98bf}{Spherical\+Domain}.
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/home/pavel/projects/astro/sph2/src/geometry/domain.\+h\end{DoxyCompactItemize}

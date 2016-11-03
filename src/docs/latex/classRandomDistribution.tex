@@ -1,0 +1,44 @@
+\hypertarget{classRandomDistribution}{}\section{Random\+Distribution Class Reference}
+\label{classRandomDistribution}\index{Random\+Distribution@{Random\+Distribution}}
+Inheritance diagram for Random\+Distribution\+:\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[height=4.000000cm]{classRandomDistribution}
+\end{center}
+\end{figure}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+virtual \hyperlink{classArray}{Array}$<$ \hyperlink{classBasicVector}{Vector} $>$ \hyperlink{classRandomDistribution_a3e1308d2bb28c5801e6e0537a8002597}{generate} (const int n, const \hyperlink{classAbstract_1_1Domain}{Abstract\+::\+Domain} $\ast$domain) const override
+\end{DoxyCompactItemize}
+
+
+\subsection{Member Function Documentation}
+\hypertarget{classRandomDistribution_a3e1308d2bb28c5801e6e0537a8002597}{}\label{classRandomDistribution_a3e1308d2bb28c5801e6e0537a8002597} 
+\index{Random\+Distribution@{Random\+Distribution}!generate@{generate}}
+\index{generate@{generate}!Random\+Distribution@{Random\+Distribution}}
+\subsubsection{\texorpdfstring{generate()}{generate()}}
+{\footnotesize\ttfamily virtual \hyperlink{classArray}{Array}$<$\hyperlink{classBasicVector}{Vector}$>$ Random\+Distribution\+::generate (\begin{DoxyParamCaption}\item[{const int}]{n,  }\item[{const \hyperlink{classAbstract_1_1Domain}{Abstract\+::\+Domain} $\ast$}]{domain }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [virtual]}}
+
+Base class for generating vertices with specific distribution. Also generates corresponding smoothing lengths and save them as fourth component of the vector. 
+\begin{DoxyParams}{Parameters}
+{\em n} & Expected number of generated vertices. \\
+\hline
+{\em domain} & Computational domain where the vertices are distributed \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+Output array of vertices. The total number of vertices can slightly differ from n. 
+\end{DoxyReturn}
+\begin{DoxyNote}{Note}
+This method is expected to be called once at the beginning of the run, so we can return allocated array without worrying about performance costs here. 
+\end{DoxyNote}
+
+
+Implements \hyperlink{classAbstract_1_1Distribution_aefb835b4c4d2d0a5f864bc2cee0492b2}{Abstract\+::\+Distribution}.
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/home/pavel/projects/astro/sph2/src/initconds/initconds.\+h\end{DoxyCompactItemize}

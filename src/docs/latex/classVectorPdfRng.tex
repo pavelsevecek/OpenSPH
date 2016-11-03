@@ -1,0 +1,59 @@
+\hypertarget{classVectorPdfRng}{}\section{Vector\+Pdf\+Rng$<$ T\+Scalar\+Rng, T\+Pdf, T\+Jacobian $>$ Class Template Reference}
+\label{classVectorPdfRng}\index{Vector\+Pdf\+Rng$<$ T\+Scalar\+Rng, T\+Pdf, T\+Jacobian $>$@{Vector\+Pdf\+Rng$<$ T\+Scalar\+Rng, T\+Pdf, T\+Jacobian $>$}}
+
+
+{\ttfamily \#include $<$vectorrng.\+h$>$}
+
+Inheritance diagram for Vector\+Pdf\+Rng$<$ T\+Scalar\+Rng, T\+Pdf, T\+Jacobian $>$\+:\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[height=3.000000cm]{classVectorPdfRng}
+\end{center}
+\end{figure}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\hyperlink{classVectorPdfRng_a4251ad37fad4cdbbbcfba87ba4997d12}{Vector\+Pdf\+Rng} (const \hyperlink{classBox}{Box} \&box, T\+Scalar\+Rng \&\&rng, T\+Pdf \&\&lambda=\mbox{[}$\,$\mbox{]}(const \hyperlink{classBasicVector}{Vector} \&) \{ return 1.\+\_\+f;\}, T\+Jacobian \&\&jacobian=\mbox{[}$\,$\mbox{]}(const \hyperlink{classBasicVector}{Vector} \&) \{ return 1.\+\_\+f;\})
+\item 
+\hypertarget{classVectorPdfRng_aaaa9b4f2636192ef9bb0245d69a180b0}{}\label{classVectorPdfRng_aaaa9b4f2636192ef9bb0245d69a180b0} 
+{\bfseries Vector\+Pdf\+Rng} (\hyperlink{classVectorPdfRng}{Vector\+Pdf\+Rng} \&\&other)
+\item 
+\hypertarget{classVectorPdfRng_abdc6ab74df6db2b802467d107a077e99}{}\label{classVectorPdfRng_abdc6ab74df6db2b802467d107a077e99} 
+\hyperlink{classBasicVector}{Vector} {\bfseries operator()} ()
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+\subsubsection*{template$<$typename T\+Scalar\+Rng, typename T\+Pdf, typename T\+Jacobian$>$\newline
+class Vector\+Pdf\+Rng$<$ T\+Scalar\+Rng, T\+Pdf, T\+Jacobian $>$}
+
+Generic generator of random vectors using sampling with given P\+DF. P\+DF must have units such that  pdf(x) jacobian(x) dV = dimensionless, however it does N\+OT have to be normalized (integral does not have to be 1) \begin{DoxyRefDesc}{Todo}
+\item[\hyperlink{todo__todo000020}{Todo}]make jacobian work, create few basic coordinate systems \end{DoxyRefDesc}
+
+
+\subsection{Constructor \& Destructor Documentation}
+\hypertarget{classVectorPdfRng_a4251ad37fad4cdbbbcfba87ba4997d12}{}\label{classVectorPdfRng_a4251ad37fad4cdbbbcfba87ba4997d12} 
+\index{Vector\+Pdf\+Rng@{Vector\+Pdf\+Rng}!Vector\+Pdf\+Rng@{Vector\+Pdf\+Rng}}
+\index{Vector\+Pdf\+Rng@{Vector\+Pdf\+Rng}!Vector\+Pdf\+Rng@{Vector\+Pdf\+Rng}}
+\subsubsection{\texorpdfstring{Vector\+Pdf\+Rng()}{VectorPdfRng()}}
+{\footnotesize\ttfamily template$<$typename T\+Scalar\+Rng, typename T\+Pdf, typename T\+Jacobian$>$ \\
+\hyperlink{classVectorPdfRng}{Vector\+Pdf\+Rng}$<$ T\+Scalar\+Rng, T\+Pdf, T\+Jacobian $>$\+::\hyperlink{classVectorPdfRng}{Vector\+Pdf\+Rng} (\begin{DoxyParamCaption}\item[{const \hyperlink{classBox}{Box} \&}]{box,  }\item[{T\+Scalar\+Rng \&\&}]{rng,  }\item[{T\+Pdf \&\&}]{lambda = {\ttfamily \mbox{[}\mbox{]}(const~\hyperlink{classBasicVector}{Vector}\&)~\{~return~1.\+\_\+f;~\}},  }\item[{T\+Jacobian \&\&}]{jacobian = {\ttfamily \mbox{[}\mbox{]}(const~\hyperlink{classBasicVector}{Vector}\&)~\{~return~1.\+\_\+f;~\}} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+Construct a random vector generator. Cannot be used directly unless template parameters are explicitly specified. Use make\+Vector\+Rng if the type is unknown (lambdas) 
+\begin{DoxyParams}{Parameters}
+{\em box} & bounds for minimal and maximal random values \\
+\hline
+{\em rng} & underlying uniform random-\/number generator. Must implement T operator()(int component). \\
+\hline
+{\em lambda} & used pdf. Must return Pdf\+Type, does N\+OT have to be normalized. Default is uniform sampling. \\
+\hline
+{\em jacobian} & used jacobian if other coordinate system is used. Default is cartesian system. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyRefDesc}{Todo}
+\item[\hyperlink{todo__todo000022}{Todo}]jacobian \end{DoxyRefDesc}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/home/pavel/projects/astro/sph2/src/rng/vectorrng.\+h\end{DoxyCompactItemize}

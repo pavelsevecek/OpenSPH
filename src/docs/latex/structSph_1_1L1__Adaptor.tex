@@ -1,0 +1,51 @@
+\hypertarget{structSph_1_1L1__Adaptor}{}\section{Sph\+:\+:L1\+\_\+\+Adaptor$<$ T, Data\+Source, \+\_\+\+Distance\+Type $>$ Struct Template Reference}
+\label{structSph_1_1L1__Adaptor}\index{Sph\+::\+L1\+\_\+\+Adaptor$<$ T, Data\+Source, \+\_\+\+Distance\+Type $>$@{Sph\+::\+L1\+\_\+\+Adaptor$<$ T, Data\+Source, \+\_\+\+Distance\+Type $>$}}
+
+
+{\ttfamily \#include $<$nanoflann.\+h$>$}
+
+\subsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+\hypertarget{structSph_1_1L1__Adaptor_a6deb0201338f2110e1eae879a884edbb}{}\label{structSph_1_1L1__Adaptor_a6deb0201338f2110e1eae879a884edbb} 
+typedef T {\bfseries Element\+Type}
+\item 
+\hypertarget{structSph_1_1L1__Adaptor_a3c106e0998983a06a7b2789cb5d8d479}{}\label{structSph_1_1L1__Adaptor_a3c106e0998983a06a7b2789cb5d8d479} 
+typedef \+\_\+\+Distance\+Type {\bfseries Distance\+Type}
+\end{DoxyCompactItemize}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\hypertarget{structSph_1_1L1__Adaptor_a69ec3a85eadd3533e8d2c0e614852f73}{}\label{structSph_1_1L1__Adaptor_a69ec3a85eadd3533e8d2c0e614852f73} 
+{\bfseries L1\+\_\+\+Adaptor} (const Data\+Source \&\+\_\+data\+\_\+source)
+\item 
+\hypertarget{structSph_1_1L1__Adaptor_a76be53fb089b9aa63d523de66dae2f29}{}\label{structSph_1_1L1__Adaptor_a76be53fb089b9aa63d523de66dae2f29} 
+Distance\+Type {\bfseries operator()} (const T $\ast$a, const size\+\_\+t b\+\_\+idx, size\+\_\+t size, Distance\+Type worst\+\_\+dist=-\/1) const
+\item 
+\hypertarget{structSph_1_1L1__Adaptor_ad1f49f13b3756278720413e0cd6a0833}{}\label{structSph_1_1L1__Adaptor_ad1f49f13b3756278720413e0cd6a0833} 
+{\footnotesize template$<$typename U , typename V $>$ }\\Distance\+Type {\bfseries accum\+\_\+dist} (const U a, const V b, int) const
+\end{DoxyCompactItemize}
+\subsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\hypertarget{structSph_1_1L1__Adaptor_a6d97126b0f1ae1a7fe18345937c1ecfb}{}\label{structSph_1_1L1__Adaptor_a6d97126b0f1ae1a7fe18345937c1ecfb} 
+const Data\+Source \& {\bfseries data\+\_\+source}
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+\subsubsection*{template$<$class T, class Data\+Source, typename \+\_\+\+Distance\+Type = T$>$\newline
+struct Sph\+::\+L1\+\_\+\+Adaptor$<$ T, Data\+Source, \+\_\+\+Distance\+Type $>$}
+
+Manhattan distance functor (generic version, optimized for high-\/dimensionality data sets). Corresponding distance traits\+: \hyperlink{structSph_1_1metric__L1}{metric\+\_\+\+L1} 
+\begin{DoxyTemplParams}{Template Parameters}
+{\em T} & Type of the elements (e.\+g. double, float, uint8\+\_\+t) \\
+\hline
+{\em \+\_\+\+Distance\+Type} & Type of distance variables (must be signed) (e.\+g. float, double, int64\+\_\+t) \\
+\hline
+\end{DoxyTemplParams}
+
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/home/pavel/projects/astro/sph2/src/tree/nanoflann.\+h\end{DoxyCompactItemize}

@@ -1,0 +1,50 @@
+\hypertarget{classShadow}{}\section{Shadow$<$ Type $>$ Class Template Reference}
+\label{classShadow}\index{Shadow$<$ Type $>$@{Shadow$<$ Type $>$}}
+
+
+{\ttfamily \#include $<$shadow.\+h$>$}
+
+Inheritance diagram for Shadow$<$ Type $>$\+:\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[height=2.000000cm]{classShadow}
+\end{center}
+\end{figure}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\hypertarget{classShadow_a6b9f4601d139818a05c07fe6d6c732c0}{}\label{classShadow_a6b9f4601d139818a05c07fe6d6c732c0} 
+{\footnotesize template$<$typename T0 , typename... T\+Args$>$ }\\void {\bfseries emplace} (T0 \&\&t0, T\+Args \&\&... rest)
+\item 
+\hypertarget{classShadow_a53136ec46fb68619652ef25bd3fa512b}{}\label{classShadow_a53136ec46fb68619652ef25bd3fa512b} 
+void {\bfseries destroy} ()
+\item 
+\hypertarget{classShadow_abf9c3bfc72664efeb45e720f313dbccc}{}\label{classShadow_abf9c3bfc72664efeb45e720f313dbccc} 
+\hyperlink{classShadow_abf9c3bfc72664efeb45e720f313dbccc}{operator Type \&} ()
+\begin{DoxyCompactList}\small\item\em Implicit conversion to stored type. \end{DoxyCompactList}\item 
+\hypertarget{classShadow_a105a239f6888c7c6a0747dab7e0e9b3d}{}\label{classShadow_a105a239f6888c7c6a0747dab7e0e9b3d} 
+\hyperlink{classShadow_a105a239f6888c7c6a0747dab7e0e9b3d}{operator const Type \&} ()
+\begin{DoxyCompactList}\small\item\em Implicit conversion to stored type, const version. \end{DoxyCompactList}\item 
+\hypertarget{classShadow_ac1e29c2df572ad24e55af67605fda05b}{}\label{classShadow_ac1e29c2df572ad24e55af67605fda05b} 
+Type \& \hyperlink{classShadow_ac1e29c2df572ad24e55af67605fda05b}{get} ()
+\begin{DoxyCompactList}\small\item\em Return the reference to the stored value. \end{DoxyCompactList}\item 
+\hypertarget{classShadow_aaa56a4059c2f050c59fc118ff2c4de23}{}\label{classShadow_aaa56a4059c2f050c59fc118ff2c4de23} 
+const Type \& \hyperlink{classShadow_aaa56a4059c2f050c59fc118ff2c4de23}{get} () const
+\begin{DoxyCompactList}\small\item\em Returns the reference to the stored value, const version. \end{DoxyCompactList}\item 
+\hypertarget{classShadow_a8fead834492f436012800fbc1c959f68}{}\label{classShadow_a8fead834492f436012800fbc1c959f68} 
+Type $\ast$ {\bfseries operator-\/$>$} ()
+\item 
+\hypertarget{classShadow_a029c58f5b34eed75a3302f786291a1d3}{}\label{classShadow_a029c58f5b34eed75a3302f786291a1d3} 
+const Type $\ast$ {\bfseries operator-\/$>$} () const
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+\subsubsection*{template$<$typename Type$>$\newline
+class Shadow$<$ Type $>$}
+
+Simple wrapper of type that sidesteps default construction. \hyperlink{classShadow}{Shadow} objects can be therefore default-\/constructed even if the underlying type does not have default constructor. Stored object can be later constructed by calling {\ttfamily emplace} method. Note that when constructed, it has to be later destroyed by explicitly calling {\ttfamily destroy} method, this is not done automatically! \hyperlink{classShadow}{Shadow} object does NO checks when the stored value is accessed, or whether it is constructed multiple times. This is left to the user. 
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/home/pavel/projects/astro/sph2/src/structs/shadow.\+h\end{DoxyCompactItemize}

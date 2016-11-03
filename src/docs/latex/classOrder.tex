@@ -1,0 +1,47 @@
+\hypertarget{classOrder}{}\section{Order Class Reference}
+\label{classOrder}\index{Order@{Order}}
+
+
+{\ttfamily \#include $<$order.\+h$>$}
+
+Inheritance diagram for Order\+:\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[height=3.000000cm]{classOrder}
+\end{center}
+\end{figure}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\hypertarget{classOrder_ae188d30917a4f10444d428e6bfafe8ac}{}\label{classOrder_ae188d30917a4f10444d428e6bfafe8ac} 
+{\bfseries Order} (\hyperlink{classOrder}{Order} \&\&other)
+\item 
+\hypertarget{classOrder_a07e33dd146779382d4f7321e1ae4d505}{}\label{classOrder_a07e33dd146779382d4f7321e1ae4d505} 
+\hyperlink{classOrder_a07e33dd146779382d4f7321e1ae4d505}{Order} (const int n)
+\begin{DoxyCompactList}\small\item\em Construct identity of given size. \end{DoxyCompactList}\item 
+\hypertarget{classOrder_ab6b1af85c1a2f67023b46bae2beaacf9}{}\label{classOrder_ab6b1af85c1a2f67023b46bae2beaacf9} 
+\hyperlink{classOrder}{Order} \& {\bfseries operator=} (\hyperlink{classOrder}{Order} \&\&other)
+\item 
+\hypertarget{classOrder_a337740020faa60244d7103d839465014}{}\label{classOrder_a337740020faa60244d7103d839465014} 
+{\footnotesize template$<$typename T\+Comparator $>$ }\\void \hyperlink{classOrder_a337740020faa60244d7103d839465014}{shuffle} (T\+Comparator \&\&comparator)
+\begin{DoxyCompactList}\small\item\em Shuffle order by given comparator. \end{DoxyCompactList}\item 
+\hypertarget{classOrder_abfb5b149c5993d6a99c50a847fe92414}{}\label{classOrder_abfb5b149c5993d6a99c50a847fe92414} 
+\hyperlink{classOrder}{Order} \hyperlink{classOrder_abfb5b149c5993d6a99c50a847fe92414}{get\+Inverted} () const
+\begin{DoxyCompactList}\small\item\em Returns inverted order. \end{DoxyCompactList}\item 
+\hypertarget{classOrder_ad5c943d3d8f6aafe3f8a0e0489b9a039}{}\label{classOrder_ad5c943d3d8f6aafe3f8a0e0489b9a039} 
+\hyperlink{classOrder}{Order} \hyperlink{classOrder_ad5c943d3d8f6aafe3f8a0e0489b9a039}{operator()} (const \hyperlink{classOrder}{Order} \&other) const
+\begin{DoxyCompactList}\small\item\em Compose two orders. \end{DoxyCompactList}\item 
+\hypertarget{classOrder_a2c1ba475a03c4429d996361c2e02690f}{}\label{classOrder_a2c1ba475a03c4429d996361c2e02690f} 
+I\+N\+L\+I\+NE int {\bfseries operator\mbox{[}$\,$\mbox{]}} (const int idx) const
+\item 
+\hypertarget{classOrder_a3a1b73d68ad74b75e18a57aaccc060cc}{}\label{classOrder_a3a1b73d68ad74b75e18a57aaccc060cc} 
+I\+N\+L\+I\+NE bool {\bfseries operator==} (const \hyperlink{classOrder}{Order} \&other) const
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+Permutation, i.\+e. (discrete) invertible function int-\/$>$int. Simple wrapper of \hyperlink{classArray}{Array$<$int$>$} with convenient interface that guarantees the object will be always valid permutation. Only way to modify the object is via {\ttfamily shuffle} function. 
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/home/pavel/projects/astro/sph2/src/tree/order.\+h\end{DoxyCompactItemize}
