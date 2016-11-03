@@ -5,7 +5,7 @@ using namespace Sph;
 
 TEST_CASE("Iterate", "[iterables]") {
     GenericStorage storage;
-    std::unique_ptr<BasicView> view(storage.makeViewer<BasicView>());
+    std::unique_ptr<BasicView> view(storage.emplace<BasicView>());
     iterate<IterableType::SECOND_ORDER>(storage, [](auto&& v, auto&& dv, auto&& d2v) {
         v.resize(5);
         dv.resize(5);
@@ -26,4 +26,12 @@ TEST_CASE("Iterate", "[iterables]") {
     REQUIRE(view->ps.size() == 0);
     REQUIRE(view->us.size() == 3);
     REQUIRE(view->dus.size() == 3);
+
+    iterate<IterableType::ALL>(storage, [](auto&& v) {
+        using TArray = std::decay_t<decltype(v)>;
+        using T = std::decay_t<decltype(std::declval<TArray>()[std::declval<int>()])>;
+        v.push(T(10._f));
+    });
+    REQUIRE(view->rs[5] == Vector(10._f));
+    REQUIRE(view->rhos[3] == 10._f);
 }

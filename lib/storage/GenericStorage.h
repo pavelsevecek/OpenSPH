@@ -17,6 +17,9 @@ enum class QuantityType {
 
 /// Base object for storing scalar, vector and tensor quantities of SPH particles.
 class GenericStorage : public Noncopyable {
+    template <IterableType Type>
+    friend struct StorageIterator;
+
 private:
     using ScalarQuantity = Array<Float>;
     using VectorQuantity = Array<Vector>;
@@ -24,16 +27,30 @@ private:
     Array<ScalarQuantity> scalars;
     Array<VectorQuantity> vectors;
 
-    Tuple<Iterables<IterableType::FIRST_ORDER>, Iterables<IterableType::SECOND_ORDER>> iterables;
+    using TIterables = Tuple<Iterables<IterableType::FIRST_ORDER>, Iterables<IterableType::SECOND_ORDER>>;
+    TIterables iterables;
 
 public:
     GenericStorage() = default;
+/*
+    GenericStorage(Array<ScalarQuantity>&& otherScalars,
+                   Array<VectorQuantity>&& otherVectors) {
+                   //const TIterables& otherIterables)
+        //: iterables(otherIterables) {
+        scalars.reserve(otherScalars.size());
+        for (int i = 0; i < otherScalars.size(); ++i) {
+            scalars[i].push(otherScalars[i].clone());
+        }
+        vectors.reserve(otherVectors.size());
+        for (int i = 0; i < vectors.size(); ++i) {
+            vectors[i].push(otherVectors[i].clone());
+        }
+    }*/
 
-    template <QuantityType Type>
-    INLINE decltype(auto) view(const int idx);
-
+    /// Constructs storage from given viewer type and creates new iterables. Returns new viewer object with
+    /// references initialized to arrays of this storage. Can be used only once.
     template <typename TViewer>
-    std::unique_ptr<TViewer> makeViewer() {
+    std::unique_ptr<TViewer> emplace() {
         scalars.resize(TViewer::getQuantityCnt(QuantityType::SCALAR));
         vectors.resize(TViewer::getQuantityCnt(QuantityType::VECTOR));
         std::unique_ptr<TViewer> viewer = std::make_unique<TViewer>(*this);
@@ -44,13 +61,18 @@ public:
         return viewer;
     }
 
-    template<IterableType Type>
+    template <IterableType Type>
     Iterables<Type>& getIterables() {
         return get<int(Type)>(iterables);
     }
 
 
-    virtual void merge(const GenericStorage& other) {
+    /// Returns idx-th array of given type
+    template <QuantityType Type>
+    INLINE decltype(auto) view(const int idx);
+
+
+    void merge(const GenericStorage& other) {
         // must contain the same quantities
         ASSERT(scalars.size() == other.scalars.size());
         ASSERT(vectors.size() == other.vectors.size());
@@ -61,6 +83,9 @@ public:
             vectors[i].pushAll(other.vectors[i]);
         }
     }
+
+    /// \todo clone only time-dependent quantities
+    //GenericStorage clone() const { GenericStorage cloned(scalars.clone(), vectors.clone()); }
 };
 
 template <>
