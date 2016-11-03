@@ -5,38 +5,38 @@ CONFIG -= qt
 
 QMAKE_CXXFLAGS += -msse4.1 -std=c++14 -pthread
 
-INCLUDEPATH += ../src ../external/Catch/include
-DEPENDPATH += . ../src
-LIBS += ../src/libsph.a
+INCLUDEPATH += ../lib ../../external/Catch/include
+DEPENDPATH += . ../lib
+LIBS += ../lib/libsph.a
 
 SOURCES += \
     main.cpp \
     utils/Utils.cpp \
-    ../src/math/test/Integrator.cpp \
-    ../src/math/test/Math.cpp \
-    ../src/math/rng/test/Rng.cpp \
-    ../src/math/rng/test/VectorRng.cpp \
-    ../src/physics/test/TimeFormat.cpp \
-    ../src/physics/test/Eos.cpp \
-    ../src/geometry/test/Vector.cpp \
-    ../src/geometry/test/Indices.cpp \
-    ../src/objects/wrappers/test/Optional.cpp \
-    ../src/objects/wrappers/test/Variant.cpp \
-    ../src/objects/wrappers/test/Iterators.cpp \
-    ../src/objects/wrappers/test/Range.cpp \
-    ../src/objects/wrappers/test/Shadow.cpp \
-    ../src/objects/wrappers/test/NonOwningPtr.cpp \
-    ../src/objects/wrappers/test/Any.cpp \
-    ../src/objects/containers/test/Array.cpp \
-    ../src/objects/containers/test/ArrayUtils.cpp \
-    ../src/objects/finders/test/KdTree.cpp \
-    ../src/objects/finders/test/LinkedList.cpp \
-    ../src/objects/finders/test/Order.cpp \
-    ../src/objects/finders/test/BruteForce.cpp \
-    ../src/sph/initconds/test/InitConds.cpp \
-    ../src/sph/kernel/test/Kernel.cpp \
-    ../src/system/test/Settings.cpp \
-    ../src/system/test/Timer.cpp
+    ../lib/math/test/Integrator.cpp \
+    ../lib/math/test/Math.cpp \
+    ../lib/math/rng/test/Rng.cpp \
+    ../lib/math/rng/test/VectorRng.cpp \
+    ../lib/physics/test/TimeFormat.cpp \
+    ../lib/physics/test/Eos.cpp \
+    ../lib/geometry/test/Vector.cpp \
+    ../lib/geometry/test/Indices.cpp \
+    ../lib/objects/wrappers/test/Optional.cpp \
+    ../lib/objects/wrappers/test/Variant.cpp \
+    ../lib/objects/wrappers/test/Iterators.cpp \
+    ../lib/objects/wrappers/test/Range.cpp \
+    ../lib/objects/wrappers/test/Shadow.cpp \
+    ../lib/objects/wrappers/test/NonOwningPtr.cpp \
+    ../lib/objects/wrappers/test/Any.cpp \
+    ../lib/objects/containers/test/Array.cpp \
+    ../lib/objects/containers/test/ArrayUtils.cpp \
+    ../lib/objects/finders/test/KdTree.cpp \
+    ../lib/objects/finders/test/LinkedList.cpp \
+    ../lib/objects/finders/test/Order.cpp \
+    ../lib/objects/finders/test/BruteForce.cpp \
+    ../lib/sph/initconds/test/InitConds.cpp \
+    ../lib/sph/kernel/test/Kernel.cpp \
+    ../lib/system/test/Settings.cpp \
+    ../lib/system/test/Timer.cpp
 
 HEADERS += \
     utils/Utils.h
