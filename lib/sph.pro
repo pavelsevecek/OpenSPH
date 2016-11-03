@@ -9,7 +9,7 @@ SOURCES += \
     system/Factory.cpp \
     physics/TimeStepping.cpp \
     models/BasicModel.cpp \
-    storage/BasicView.cpp \
+    storage/BasicView.cpp
 
 HEADERS += \
     core/Globals.h \

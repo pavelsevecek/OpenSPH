@@ -68,7 +68,6 @@ public:
     template <IterableType Type>
     INLINE Iterables<Type> getIterables() const;
 
-
     static int getQuantityCnt(const QuantityType type) {
         switch (type) {
         case QuantityType::SCALAR:
@@ -133,6 +132,10 @@ public:
     }
 };
 
+/*template <>
+INLINE Iterables<IterableType::ALL> BasicView::getIterables<IterableType::ALL>() const {
+    return Iterables<IterableType::ALL>{ storage.scalars, storage.vectors };
+}*/
 
 template <>
 INLINE Iterables<IterableType::SECOND_ORDER> BasicView::getIterables<IterableType::SECOND_ORDER>() const {
@@ -143,6 +146,5 @@ template <>
 INLINE Iterables<IterableType::FIRST_ORDER> BasicView::getIterables<IterableType::FIRST_ORDER>() const {
     return Iterables<IterableType::FIRST_ORDER>{ { { rhos, drhos }, { us, dus } }, {} };
 }
-
 
 NAMESPACE_SPH_END

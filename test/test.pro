@@ -36,7 +36,8 @@ SOURCES += \
     ../lib/sph/initconds/test/InitConds.cpp \
     ../lib/sph/kernel/test/Kernel.cpp \
     ../lib/system/test/Settings.cpp \
-    ../lib/system/test/Timer.cpp
+    ../lib/system/test/Timer.cpp \
+    ../lib/storage/test/Iterables.cpp
 
 HEADERS += \
     utils/Utils.h
