@@ -17,6 +17,9 @@ NAMESPACE_SPH_BEGIN
 template <typename Type>
 class Shadow : public Object {
 private:
+    using StorageT = std::conditional_t<std::is_lvalue_reference<Type>::value,
+                                        std::reference_wrapper<std::remove_reference_t<Type>>,
+                                        Type>;
     alignas(Type) char storage[sizeof(Type)];
 
     Type& data() { return *reinterpret_cast<Type*>(storage); }

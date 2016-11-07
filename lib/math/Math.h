@@ -88,9 +88,7 @@ namespace Math {
             // forcing type deduction
             template <typename T>
             INLINE static auto value(T&& v) {
-                using RawT  = std::decay_t<T>;
-                using BaseT = Base<RawT>;
-                return Root<RawT, n>(pow(BaseT(v), BaseT(1.f) / BaseT(n)));
+                return pow(v, 1.f / n);
             }
         };
 
@@ -99,9 +97,7 @@ namespace Math {
         struct GetRoot<2> {
             template <typename T>
             INLINE static auto value(T&& v) {
-                using RawT  = std::decay_t<T>;
-                using BaseT = Base<RawT>;
-                return Root<RawT, 2>(std::sqrt(BaseT(v)));
+                return std::sqrt(v);
             }
         };
         // specialization for cube root
@@ -109,9 +105,7 @@ namespace Math {
         struct GetRoot<3> {
             template <typename T>
             INLINE static auto value(T&& v) {
-                using RawT  = std::decay_t<T>;
-                using BaseT = Base<RawT>;
-                return Root<RawT, 3>(std::cbrt(BaseT(v)));
+                return std::cbrt(v);
             }
         };
     }
@@ -121,8 +115,6 @@ namespace Math {
     /// supported).
     template <int n, typename T>
     INLINE auto root(T&& f) {
-        using RawT = std::decay_t<T>;
-        static_assert(IsPower<RawT, n>, "n-th root can only be used on units of n-th power");
         return Detail::GetRoot<n>::value(std::forward<T>(f));
     }
 
@@ -144,8 +136,7 @@ namespace Math {
     struct Pow <d, std::enable_if_t<d<0>> {
         template<typename T>
         INLINE static auto value(T&& v) {
-            using RawT = std::decay_t<T>;
-            return Base<RawT>(1.f) / Pow<-d>::value(std::forward<T>(v)); }
+            return 1.f / Pow<-d>::value(std::forward<T>(v)); }
     };
     // clang-format on
 

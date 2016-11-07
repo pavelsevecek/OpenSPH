@@ -11,9 +11,10 @@ NAMESPACE_SPH_BEGIN
 template <typename T, typename TCounter = int>
 class Array : public Noncopyable {
 private:
-    T* data          = nullptr;
-    TCounter actSize = 0;
-    TCounter maxSize = 0;
+    using StorageType = typename WrapReferenceType<T>::Type;
+    StorageType* data = nullptr;
+    TCounter actSize  = 0;
+    TCounter maxSize  = 0;
 
 public:
     using Type = T;
@@ -30,29 +31,29 @@ public:
             this->maxSize = actSize;
         }
         // allocate maxSize elements
-        this->data = (T*)malloc(this->maxSize * sizeof(T));
+        this->data = (StorageType*)malloc(this->maxSize * sizeof(StorageType));
         // emplace size elements
         if (!std::is_trivially_constructible<T>::value) {
             for (int i = 0; i < actSize; ++i) {
-                new (data + i) T();
+                new (data + i) StorageType();
             }
         }
     }
 
     /// Constructs array from initialized list. Allocate only enough elements to store the list. Elements are
     /// constructed using copy constructor of stored type.
-    Array(std::initializer_list<T> list) {
+    Array(std::initializer_list<StorageType> list) {
         this->actSize = list.size();
         this->maxSize = this->actSize;
-        this->data    = (T*)malloc(maxSize * sizeof(T));
+        this->data    = (StorageType*)malloc(maxSize * sizeof(StorageType));
         int i         = 0;
         for (auto& l : list) {
-            new (data + i) T(l);
+            new (data + i) StorageType(l);
             i++;
         }
     }
 
-    /// Move constructor
+    /// Move constructor from array of the same type
     Array(Array&& other) {
         std::swap(this->data, other.data);
         std::swap(this->maxSize, other.maxSize);
@@ -64,7 +65,7 @@ public:
         // explicitly destroy all constructed elements
         if (!std::is_trivially_destructible<T>::value) {
             for (int i = 0; i < actSize; ++i) {
-                data[i].~T();
+                data[i].~StorageType();
             }
         }
         if (data) {
@@ -81,33 +82,50 @@ public:
         return *this;
     }
 
+    /// For l-value references assign each value (does not actually move anything). Works only for arrays of
+    /// same size, for simplicity.
+    template <typename U, typename = std::enable_if_t<std::is_lvalue_reference<T>::value, U>>
+    Array& operator=(Array<U>&& other) {
+        ASSERT(this->size() == other.size());
+        for (int i = 0; i < other.size(); ++i) {
+            (*this)[i] = other[i];
+        }
+        return *this;
+    }
+
     /// Copy method -- allow to copy array only with an explicit calling of 'clone' to avoid accidental deep
     /// copy.
     Array clone() const {
         Array newArray(this->actSize, maxSize);
-        Iterator<T> newIter             = newArray.begin();
-        Iterator<const T> thisIter      = this->begin();
-        const Iterator<const T> endIter = thisIter + this->actSize;
+        Iterator<StorageType> newIter             = newArray.begin();
+        Iterator<const StorageType> thisIter      = this->begin();
+        const Iterator<const StorageType> endIter = thisIter + this->actSize;
         for (; thisIter < endIter; ++thisIter, ++newIter) {
             *newIter = *thisIter;
         }
         return newArray;
     }
 
-    Iterator<T, TCounter> begin() { return Iterator<T>(data, data, data + actSize); }
+    Iterator<StorageType, TCounter> begin() { return Iterator<StorageType>(data, data, data + actSize); }
 
-    Iterator<const T, TCounter> begin() const { return Iterator<const T>(data, data, data + actSize); }
-
-    Iterator<const T, TCounter> cbegin() const { return Iterator<const T>(data, data, data + actSize); }
-
-    Iterator<T, TCounter> end() { return Iterator<T>(data + actSize, data, data + actSize); }
-
-    Iterator<const T, TCounter> end() const {
-        return Iterator<const T>(data + actSize, data, data + actSize);
+    Iterator<const StorageType, TCounter> begin() const {
+        return Iterator<const StorageType>(data, data, data + actSize);
     }
 
-    Iterator<const T, TCounter> cend() const {
-        return Iterator<const T>(data + actSize, data, data + actSize);
+    Iterator<const StorageType, TCounter> cbegin() const {
+        return Iterator<const StorageType>(data, data, data + actSize);
+    }
+
+    Iterator<StorageType, TCounter> end() {
+        return Iterator<StorageType>(data + actSize, data, data + actSize);
+    }
+
+    Iterator<const StorageType, TCounter> end() const {
+        return Iterator<const StorageType>(data + actSize, data, data + actSize);
+    }
+
+    Iterator<const StorageType, TCounter> cend() const {
+        return Iterator<const StorageType>(data + actSize, data, data + actSize);
     }
 
     T& operator[](const TCounter idx) {
@@ -138,14 +156,14 @@ public:
                 // enlarging array, we need to construct some new elements
                 if (!std::is_trivially_constructible<T>::value) {
                     for (int i = actSize; i < newSize; ++i) {
-                        new (data + i) T();
+                        new (data + i) StorageType();
                     }
                 }
             } else {
                 if (!std::is_trivially_destructible<T>::value) {
                     // shrinking array, we need to delete some elements
                     for (int i = newSize; i < actSize; ++i) {
-                        data[i].~T();
+                        data[i].~StorageType();
                     }
                 }
             }
@@ -157,12 +175,12 @@ public:
             Array newArray(0, actNewSize);
             // copy all elements into the new array, using move constructor
             for (int i = 0; i < actSize; ++i) {
-                new (newArray.data + i) T(std::move(this->data[i]));
+                new (newArray.data + i) StorageType(std::move(this->data[i]));
             }
             // default-construct new elements
             if (!std::is_trivially_constructible<T>::value) {
                 for (int i = actSize; i < newSize; ++i) {
-                    new (newArray.data + i) T();
+                    new (newArray.data + i) StorageType();
                 }
             }
             // move the array into this
@@ -177,7 +195,7 @@ public:
             Array newArray(0, actNewSize);
             // copy all elements into the new array, using move constructor
             for (int i = 0; i < actSize; ++i) {
-                new (newArray.data + i) T(std::move(this->data[i]));
+                new (newArray.data + i) StorageType(std::move(this->data[i]));
             }
             // move the array into this
             *this = std::move(newArray);
@@ -199,7 +217,7 @@ public:
     }
 
     void pushAll(const Array& other) {
-      //  reserve(actSize + other.size());
+        //  reserve(actSize + other.size());
         pushAll(other.cbegin(), other.cend());
     }
 
@@ -215,7 +233,7 @@ public:
     void clear() {
         if (!std::is_trivially_destructible<T>::value) {
             for (int i = 0; i < actSize; ++i) {
-                data[i].~T();
+                data[i].~StorageType();
             }
         }
         this->actSize = 0;
@@ -241,6 +259,19 @@ public:
         return true;
     }
 };
+
+/// Creates an array from a list of parameters.
+template <typename T0, typename... TArgs>
+Array<std::decay_t<T0>> makeArray(T0&& t0, TArgs&&... rest) {
+    return Array<std::decay_t<T0>>{ std::forward<T0>(t0), std::forward<TArgs>(rest)... };
+}
+
+/// Creates a l-value reference array from a list of l-value references.
+template <typename T0, typename... TArgs>
+Array<T0&> refs(T0& t0, TArgs&... rest) {
+    return Array<T0&>{ t0, rest... };
+}
+
 
 template <typename T, int N>
 class StaticArray : public Noncopyable {

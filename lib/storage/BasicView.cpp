@@ -3,7 +3,7 @@
 
 NAMESPACE_SPH_BEGIN
 
-void BasicView::create(const int n,
+/*void BasicView::create(const int n,
                        const Abstract::Domain* domain,
                        const Abstract::Distribution* distribution,
                        const Settings<BodySettingsIds>& settings) {
@@ -23,6 +23,6 @@ void BasicView::create(const int n,
 
     // get initial pressure
     eos->getPressure(rhos, us, ps);
-}
+}*/
 
 NAMESPACE_SPH_END

@@ -6,7 +6,7 @@
 
 #include "physics/Eos.h"
 #include "storage/GenericStorage.h"
-#include "storage/Iterables.h"
+#include "storage/Iterate.h"
 #include "system/Factory.h"
 #include "system/Settings.h"
 
@@ -53,7 +53,7 @@ public:
     GenericStorage& storage;
 
     /// Constructs by getting references from storage.
-    BasicView(GenericStorage& storage)
+ /*   BasicView(GenericStorage& storage)
         : rs(storage.view<QuantityType::VECTOR>(0))
         , vs(storage.view<QuantityType::VECTOR>(1))
         , dvs(storage.view<QuantityType::VECTOR>(2))
@@ -129,7 +129,7 @@ public:
                 << std::endl;
         }
         ofs.close();
-    }
+    }*/
 };
 
 /*template <>
@@ -137,7 +137,7 @@ INLINE Iterables<IterableType::ALL> BasicView::getIterables<IterableType::ALL>()
     return Iterables<IterableType::ALL>{ storage.scalars, storage.vectors };
 }*/
 
-template <>
+/*template <>
 INLINE Iterables<IterableType::SECOND_ORDER> BasicView::getIterables<IterableType::SECOND_ORDER>() const {
     return Iterables<IterableType::SECOND_ORDER>{ {}, { { rs, vs, dvs } } };
 }
@@ -145,6 +145,6 @@ INLINE Iterables<IterableType::SECOND_ORDER> BasicView::getIterables<IterableTyp
 template <>
 INLINE Iterables<IterableType::FIRST_ORDER> BasicView::getIterables<IterableType::FIRST_ORDER>() const {
     return Iterables<IterableType::FIRST_ORDER>{ { { rhos, drhos }, { us, dus } }, {} };
-}
+}*/
 
 NAMESPACE_SPH_END

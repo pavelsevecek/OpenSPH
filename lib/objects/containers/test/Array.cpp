@@ -74,6 +74,38 @@ TEST_CASE("PushAll", "[array]") {
     }
 }
 
+TEST_CASE("References", "[array]") {
+    int a, b, c;
+    Array<int&> ar{a, b, c};
+    ar[0] = 5;
+    ar[1] = 3;
+    ar[2] = 1;
+    REQUIRE(a == 5);
+    REQUIRE(b == 3);
+    REQUIRE(c == 1);
+
+    for (auto& i : ar) {
+        i = 2;
+    }
+    REQUIRE(a == 2);
+    REQUIRE(b == 2);
+    REQUIRE(c == 2);
+
+    auto getter = [](){
+        return Array<int>{1, 5, 9 };
+    };
+    ar = getter();
+    REQUIRE(a == 1);
+    REQUIRE(b == 5);
+    REQUIRE(c == 9);
+
+    int d, e, f;
+    refs(d, e, f) = makeArray(3, 1, 4);
+    REQUIRE(d == 3);
+    REQUIRE(e == 1);
+    REQUIRE(f == 4);
+}
+
 
 TEST_CASE("Moving", "[static array]") {
     auto f = []() {

@@ -4,6 +4,7 @@
 /// Pavel Sevecek 2016
 /// sevecek at sirrah.troja.mff.cuni.cz
 
+#include "core/Traits.h"
 #include "geometry/Vector.h"
 
 NAMESPACE_SPH_BEGIN
@@ -19,6 +20,8 @@ class Iterator : public Object {
     friend class ArrayView;
 
 protected:
+    using TValue = typename UnwrapReferenceType<T>::Type;
+
     T* data;
     const T *begin, *end;
 
@@ -31,12 +34,12 @@ protected:
 public:
     Iterator() = default;
 
-    const T& operator*() const {
+    const TValue& operator*() const {
         ASSERT(data >= begin);
         ASSERT(data <= end);
         return *data;
     }
-    T& operator*() {
+    TValue& operator*() {
         ASSERT(data >= begin);
         ASSERT(data <= end);
         return *data;
@@ -85,18 +88,20 @@ public:
 template <typename T, typename TCounter = int>
 class ArrayView : public Object {
 private:
-    T* data;
+    using StorageType = typename WrapReferenceType<T>::Type;
+
+    StorageType* data;
     TCounter actSize = 0;
 
 public:
     ArrayView()
         : data(nullptr) {}
 
-    ArrayView(T* data, TCounter size)
+    ArrayView(StorageType* data, TCounter size)
         : data(data)
         , actSize(size) {}
 
-    explicit ArrayView(std::initializer_list<T> list)
+    explicit ArrayView(std::initializer_list<StorageType> list)
         : data(&*list.begin())
         , actSize(list.size()) {}
 
@@ -125,13 +130,19 @@ public:
     }
 
 
-    Iterator<T, TCounter> begin() { return Iterator<T>(data, data, data + actSize); }
+    Iterator<StorageType, TCounter> begin() { return Iterator<StorageType>(data, data, data + actSize); }
 
-    Iterator<const T, TCounter> begin() const { return Iterator<const T>(data, data, data + actSize); }
+    Iterator<const StorageType, TCounter> begin() const {
+        return Iterator<const StorageType>(data, data, data + actSize);
+    }
 
-    Iterator<T, TCounter> end() { return Iterator<T>(data + actSize, data, data + actSize); }
+    Iterator<StorageType, TCounter> end() {
+        return Iterator<StorageType>(data + actSize, data, data + actSize);
+    }
 
-    Iterator<const T, TCounter> end() const { return Iterator<T>(data + actSize, data, data + actSize); }
+    Iterator<const StorageType, TCounter> end() const {
+        return Iterator<StorageType>(data + actSize, data, data + actSize);
+    }
 
     INLINE T& operator[](const TCounter idx) {
         ASSERT(unsigned(idx) < unsigned(actSize));

@@ -59,5 +59,6 @@ HEADERS += \
     models/BasicModel.h \
     storage/GenericStorage.h \
     storage/BasicView.h \
-    storage/Iterables.h \
-    objects/wrappers/Any.h
+    objects/wrappers/Any.h \
+    storage/Quantity.h \
+    storage/Iterate.h

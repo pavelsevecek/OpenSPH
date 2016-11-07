@@ -25,20 +25,20 @@ TEST_CASE("Optional constructor", "[optional]") {
 TEST_CASE("Optional References", "[optional]") {
     Optional<int&> o1 (NOTHING);
     REQUIRE(!o1);
-    /*Optional<int&> o2(o1);
-    REQUIRE(!o2);*/
+    Optional<int&> o2(o1);
+    REQUIRE(!o2);
     int value = 5;
-    /*Optional<int&> o3(value);
+    Optional<int&> o3(value);
     REQUIRE(o3);
     REQUIRE(o3.get() == 5);
     o3.get() = 3;
-    REQUIRE(value == 3);*/
+    REQUIRE(value == 3);
 
     Optional<const int&> o4(value);
     REQUIRE(o4);
-    REQUIRE(o4.get() == 5);
+    REQUIRE(o4.get() == 3);
 
-    /*// turn off
+    // turn off
     o3 = o1;
-    REQUIRE(!o3);*/
+    REQUIRE(!o3);
 }
