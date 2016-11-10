@@ -46,7 +46,7 @@ public:
 
     template <typename TValue>
     void set(TEnum idx, TValue&& value) {
-        entries[idx] = std::forward<TValue>(value);
+        entries[idx].value = std::forward<TValue>(value);
     }
 
     template <typename TValue>

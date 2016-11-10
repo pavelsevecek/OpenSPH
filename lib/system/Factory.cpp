@@ -3,7 +3,7 @@
 #include "objects/finders/BruteForce.h"
 #include "objects/finders/KdTree.h"
 #include "physics/Eos.h"
-#include "physics/TimeStepping.h"
+#include "sph/timestepping/TimeStepping.h"
 #include "sph/initconds/InitConds.h"
 
 NAMESPACE_SPH_BEGIN
@@ -21,7 +21,7 @@ std::unique_ptr<Abstract::Eos> Factory::getEos(const EosEnum id, const Settings<
 
 std::unique_ptr<Abstract::TimeStepping> Factory::getTimestepping(
     const TimesteppingEnum id,
-    const std::shared_ptr<GenericStorage>& storage,
+    const std::shared_ptr<Storage>& storage,
     const Settings<GlobalSettingsIds>& settings) {
     switch (id) {
     case TimesteppingEnum::EULER_EXPLICIT:

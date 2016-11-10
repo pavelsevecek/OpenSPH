@@ -33,12 +33,17 @@ SOURCES += \
     ../lib/objects/finders/test/LinkedList.cpp \
     ../lib/objects/finders/test/Order.cpp \
     ../lib/objects/finders/test/BruteForce.cpp \
+    ../lib/sph/timestepping/test/TimeStepping.cpp \
     ../lib/sph/initconds/test/InitConds.cpp \
     ../lib/sph/kernel/test/Kernel.cpp \
     ../lib/system/test/Settings.cpp \
     ../lib/system/test/Timer.cpp \
     ../lib/storage/test/Iterables.cpp \
-    ../lib/storage/test/Quantity.cpp
+    ../lib/storage/test/Quantity.cpp \
+    ../lib/storage/test/Storage.cpp \
+    ../lib/objects/containers/test/BufferedArray.cpp \
+    ../lib/objects/containers/test/Tuple.cpp \
+    ../lib/objects/wrappers/test/Flags.cpp
 
 HEADERS += \
     utils/Utils.h

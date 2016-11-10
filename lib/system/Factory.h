@@ -19,7 +19,7 @@ namespace Abstract {
 }
 
 
-class GenericStorage;
+class Storage;
 class LutKernel;
 
 
@@ -30,7 +30,7 @@ public:
 
     static std::unique_ptr<Abstract::TimeStepping> getTimestepping(
         const TimesteppingEnum id,
-                const std::shared_ptr<GenericStorage>& storage,
+                const std::shared_ptr<Storage>& storage,
         const Settings<GlobalSettingsIds>& settings);
 
     static std::unique_ptr<Abstract::Finder> getFinder(const FinderEnum id);

@@ -7,7 +7,7 @@ SOURCES += \
     sph/initconds/InitConds.cpp \
     system/Timer.cpp \
     system/Factory.cpp \
-    physics/TimeStepping.cpp \
+    sph/timestepping/TimeStepping.cpp \
     models/BasicModel.cpp \
     storage/BasicView.cpp
 
@@ -35,6 +35,7 @@ HEADERS += \
     objects/finders/Nanoflann.h \
     objects/finders/Octree.h \
     objects/finders/Order.h \
+    objects/wrappers/Any.h \
     objects/wrappers/Flags.h \
     objects/wrappers/Iterators.h \
     objects/wrappers/NonOwningPtr.h \
@@ -45,20 +46,20 @@ HEADERS += \
     physics/Constants.h \
     physics/Eos.h \
     physics/TimeFormat.h \
-    physics/TimeStepping.h \
     problem/Problem.h \
+    sph/timestepping/TimeStepping.h \
     sph/initconds/InitConds.h \
     sph/kernel/Kernel.h \
-    objects/containers/Array.h \
     system/Callbacks.h \
     system/Factory.h \
     system/Logger.h \
     system/Parser.h \
     system/Settings.h \
     system/Timer.h \
+    models/AbstractModel.h \
     models/BasicModel.h \
-    storage/GenericStorage.h \
     storage/BasicView.h \
-    objects/wrappers/Any.h \
     storage/Quantity.h \
-    storage/Iterate.h
+    storage/Iterate.h \
+    storage/Storage.h \
+    objects/containers/BufferedArray.h

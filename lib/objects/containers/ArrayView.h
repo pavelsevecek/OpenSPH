@@ -129,6 +129,8 @@ public:
         return *this;
     }
 
+    /// Implicit conversion to const version
+    operator ArrayView<const T, TCounter>() { return ArrayView<const T, TCounter>(data, actSize); }
 
     Iterator<StorageType, TCounter> begin() { return Iterator<StorageType>(data, data, data + actSize); }
 

@@ -46,8 +46,16 @@ public:
 
     INLINE constexpr bool has(const TEnum& flag) const { return (data & TValue(flag)) != 0; }
 
-    INLINE void set(const TEnum& flag) { data |= TValue(flag); }
-};
+    template <typename... TArgs>
+    INLINE constexpr bool hasAny(const TEnum& flag, const TArgs&... others) const {
+        return has(flag) || hasAny(others...);
+    }
 
+    INLINE void set(const TEnum& flag) { data |= TValue(flag); }
+
+private:
+    // overload with no argument ending the recursion
+    INLINE constexpr bool hasAny() const { return false; }
+};
 
 NAMESPACE_SPH_END

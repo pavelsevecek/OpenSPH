@@ -5,18 +5,12 @@
 NAMESPACE_SPH_BEGIN
 
 
-enum class IterateType {
-    FIRST_ORDER,  ///< Quantities evolved in time using its first derivatives
-    SECOND_ORDER, ///< Quantities evolved in time using its first and second derivatives derivatives
-    ALL,
-};
 
-
-template <IterateType Type>
+template <TemporalEnum Type>
 struct StorageIterator;
 
 template <>
-struct StorageIterator<IterateType::ALL> {
+struct StorageIterator<TemporalEnum::ALL> {
     template <typename TFunctor>
     static void iterate(Array<Quantity>& qs, TFunctor&& functor) {
         for (auto& q : qs) {
@@ -50,16 +44,21 @@ struct StorageIterator<IterateType::ALL> {
 };
 
 template <>
-struct StorageIterator<IterateType::FIRST_ORDER> {
+struct StorageIterator<TemporalEnum::FIRST_ORDER> {
     template <typename TFunctor>
     static void iterate(Array<Quantity>& qs, TFunctor&& functor) {
         for (auto& q : qs) {
-            auto scalar = q.cast<Float, TemporalType::FIRST_ORDER>();
-            ASSERT(scalar);
-            functor(scalar->getValue(), scalar->getDerivative());
-            auto vector = q.cast<Vector, TemporalType::FIRST_ORDER>();
-            ASSERT(vector);
-            functor(vector->getValue(), vector->getDerivative());
+            if (q.getTemporalEnum() != TemporalEnum::FIRST_ORDER) {
+                continue;
+            }
+            auto scalar = q.cast<Float, TemporalEnum::FIRST_ORDER>();
+            if (scalar) {
+                functor(scalar->getValue(), scalar->getDerivative());
+            } else {
+                auto vector = q.cast<Vector, TemporalEnum::FIRST_ORDER>();
+                ASSERT(vector);
+                functor(vector->getValue(), vector->getDerivative());
+            }
         }
     }
 
@@ -67,35 +66,46 @@ struct StorageIterator<IterateType::FIRST_ORDER> {
     static void iteratePair(Array<Quantity>& qs1, Array<Quantity>& qs2, TFunctor&& functor) {
         ASSERT(qs1.size() == qs2.size());
         for (int i = 0; i < qs1.size(); ++i) {
-            auto scalar1 = qs1[i].cast<Float, TemporalType::FIRST_ORDER>();
-            auto scalar2 = qs2[i].cast<Float, TemporalType::FIRST_ORDER>();
-            ASSERT(scalar1 && scalar2);
-            functor(scalar1->getValue(),
-                    scalar1->getDerivative(),
-                    scalar2->getValue(),
-                    scalar2->getDerivative());
-            auto vector1 = qs1[i].cast<Vector, TemporalType::FIRST_ORDER>();
-            auto vector2 = qs2[i].cast<Vector, TemporalType::FIRST_ORDER>();
-            ASSERT(vector1 && vector2);
-            functor(vector1->getValue(),
-                    vector1->getDerivative(),
-                    vector2->getValue(),
-                    vector2->getDerivative());
+            if (qs1[i].getTemporalEnum() != TemporalEnum::FIRST_ORDER) {
+                continue;
+            }
+            ASSERT(qs2[i].getTemporalEnum() == TemporalEnum::FIRST_ORDER);
+            auto scalar1 = qs1[i].cast<Float, TemporalEnum::FIRST_ORDER>();
+            auto scalar2 = qs2[i].cast<Float, TemporalEnum::FIRST_ORDER>();
+            if (scalar1 && scalar2) {
+                functor(scalar1->getValue(),
+                        scalar1->getDerivative(),
+                        scalar2->getValue(),
+                        scalar2->getDerivative());
+            } else {
+                auto vector1 = qs1[i].cast<Vector, TemporalEnum::FIRST_ORDER>();
+                auto vector2 = qs2[i].cast<Vector, TemporalEnum::FIRST_ORDER>();
+                ASSERT(vector1 && vector2);
+                functor(vector1->getValue(),
+                        vector1->getDerivative(),
+                        vector2->getValue(),
+                        vector2->getDerivative());
+            }
         }
     }
 };
 
 template <>
-struct StorageIterator<IterateType::SECOND_ORDER> {
+struct StorageIterator<TemporalEnum::SECOND_ORDER> {
     template <typename TFunctor>
     static void iterate(Array<Quantity>& qs, TFunctor&& functor) {
         for (auto& q : qs) {
-            auto scalar = q.cast<Float, TemporalType::SECOND_ORDER>();
-            ASSERT(scalar);
-            functor(scalar->getValue(), scalar->getDerivative(), scalar->get2ndDerivative());
-            auto vector = q.cast<Vector, TemporalType::SECOND_ORDER>();
-            ASSERT(vector);
-            functor(vector->getValue(), vector->getDerivative(), vector->get2ndDerivative());
+            if (q.getTemporalEnum() != TemporalEnum::SECOND_ORDER) {
+                continue;
+            }
+            auto scalar = q.cast<Float, TemporalEnum::SECOND_ORDER>();
+            if (scalar) {
+                functor(scalar->getValue(), scalar->getDerivative(), scalar->get2ndDerivative());
+            } else {
+                auto vector = q.cast<Vector, TemporalEnum::SECOND_ORDER>();
+                ASSERT(vector);
+                functor(vector->getValue(), vector->getDerivative(), vector->get2ndDerivative());
+            }
         }
     }
 
@@ -103,24 +113,30 @@ struct StorageIterator<IterateType::SECOND_ORDER> {
     static void iteratePair(Array<Quantity>& qs1, Array<Quantity>& qs2, TFunctor&& functor) {
         ASSERT(qs1.size() == qs2.size());
         for (int i = 0; i < qs1.size(); ++i) {
-            auto scalar1 = qs1[i].cast<Float, TemporalType::SECOND_ORDER>();
-            auto scalar2 = qs2[i].cast<Float, TemporalType::SECOND_ORDER>();
-            ASSERT(scalar1 && scalar2);
-            functor(scalar1->getValue(),
-                    scalar1->getDerivative(),
-                    scalar1->get2ndDerivative(),
-                    scalar2->getValue(),
-                    scalar2->getDerivative(),
-                    scalar2->get2ndDerivative());
-            auto vector1 = qs1[i].cast<Vector, TemporalType::SECOND_ORDER>();
-            auto vector2 = qs2[i].cast<Vector, TemporalType::SECOND_ORDER>();
-            ASSERT(vector1 && vector2);
-            functor(vector1->getValue(),
-                    vector1->getDerivative(),
-                    vector1->get2ndDerivative(),
-                    vector2->getValue(),
-                    vector2->getDerivative(),
-                    vector2->get2ndDerivative());
+            if (qs1[i].getTemporalEnum() != TemporalEnum::SECOND_ORDER) {
+                continue;
+            }
+            ASSERT(qs2[i].getTemporalEnum() == TemporalEnum::SECOND_ORDER);
+            auto scalar1 = qs1[i].cast<Float, TemporalEnum::SECOND_ORDER>();
+            auto scalar2 = qs2[i].cast<Float, TemporalEnum::SECOND_ORDER>();
+            if (scalar1 && scalar2) {
+                functor(scalar1->getValue(),
+                        scalar1->getDerivative(),
+                        scalar1->get2ndDerivative(),
+                        scalar2->getValue(),
+                        scalar2->getDerivative(),
+                        scalar2->get2ndDerivative());
+            } else {
+            auto vector1 = qs1[i].cast<Vector, TemporalEnum::SECOND_ORDER>();
+            auto vector2 = qs2[i].cast<Vector, TemporalEnum::SECOND_ORDER>();
+                ASSERT (vector1 && vector2);
+                functor(vector1->getValue(),
+                        vector1->getDerivative(),
+                        vector1->get2ndDerivative(),
+                        vector2->getValue(),
+                        vector2->getDerivative(),
+                        vector2->get2ndDerivative());
+            }
         }
     }
 };
@@ -129,17 +145,16 @@ struct StorageIterator<IterateType::SECOND_ORDER> {
 /// Iterate over given type of quantities and executes functor for each. The functor is used for scalars,
 /// vectors and tensors, so it must be a generic lambda or a class with overloaded operator() for each
 /// value type.
-template <IterateType Type, typename TFunctor>
+template <TemporalEnum Type, typename TFunctor>
 void iterate(Array<Quantity>& qs, TFunctor&& functor) {
     StorageIterator<Type>::iterate(qs, std::forward<TFunctor>(functor));
 }
 
 
 /// Iterate over given type of quantities in two storage views and executes functor for each pair.
-template <IterateType Type, typename TFunctor>
+template <TemporalEnum Type, typename TFunctor>
 void iteratePair(Array<Quantity>& qs1, Array<Quantity>& qs2, TFunctor&& functor) {
-    StorageIterator<Type>::iteratePair(qs1, qs2,
-                                       std::forward<TFunctor>(functor));
+    StorageIterator<Type>::iteratePair(qs1, qs2, std::forward<TFunctor>(functor));
 }
 
 NAMESPACE_SPH_END

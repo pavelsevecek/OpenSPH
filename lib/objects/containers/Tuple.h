@@ -20,9 +20,10 @@ public:
 
     constexpr TupleImpl() = default;
 
-    explicit TupleImpl(T0 first, TArgs... rest)
-        : TupleImpl<TArgs...>(std::forward<TArgs>(rest)...)
-        , elem(first) {}
+    template<typename T, typename... Ts>
+    explicit TupleImpl(T&& first, Ts&&... rest)
+        : TupleImpl<TArgs...>(std::forward<Ts>(rest)...)
+        , elem(std::forward<T>(first)) {}
 
     /// Move operator from a tuple (of generally different type)
     template <typename T, typename... TS>
@@ -49,8 +50,9 @@ public:
 
     constexpr TupleImpl() = default;
 
-    explicit constexpr TupleImpl(T0 last)
-        : elem(last) {}
+    template<typename T>
+    explicit constexpr TupleImpl(T&& last)
+        : elem(std::forward<T>(last)) {}
 
     template <typename T>
     TupleImpl& operator=(TupleImpl<T>&& other) {
@@ -226,6 +228,11 @@ namespace Detail {
     decltype(auto) applyImpl(TFunctor&& functor, TTuple&& tuple, IndexSequence<TIndices...>) {
         return functor(get<TIndices>(tuple)...);
     }
+
+    template <typename T, typename... TArgs, int... TIndices>
+    Tuple<TArgs..., T> appendImpl(const Tuple<TArgs...>& tuple, const T& value, IndexSequence<TIndices...>) {
+        return Tuple<TArgs..., T>(tuple.template get<TIndices>()..., value);
+    }
 }
 
 template <typename TFunctor, typename TTuple>
@@ -242,7 +249,14 @@ inline auto transformTuple(Tuple<TArgs...>& tuple, TFunctor&& functor) {
                  tuple);
 }
 
-template <typename... TArgs>
+
+template<typename T, typename... TArgs>
+Tuple<TArgs..., T> append(const Tuple<TArgs...>& tuple, const T& value) {
+    using Sequence = typename Detail::MakeIndexSequence<sizeof...(TArgs)>::Type;
+    return appendImpl(tuple, value, Sequence());
+}
+
+/*template <typename... TArgs>
 struct TupleIterator {
     Tuple<Iterator<TArgs>...> iterators;
 
@@ -269,7 +283,7 @@ struct TupleIterator {
                      iterators);
     }
 };
-
+*/
 
 
 NAMESPACE_SPH_END
