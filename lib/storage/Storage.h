@@ -135,13 +135,19 @@ public:
         });
     }
 
-    /// \todo clone only time-dependent quantities
-    Storage clone() const {
+    Storage clone(const Flags<TemporalEnum> flags) const {
         Storage cloned;
         for (const Quantity& q : quantities) {
-            cloned.quantities.push(q.clone());
+            cloned.quantities.push(q.clone(flags));
         }
         return cloned;
+    }
+
+    void swap(Storage& other, const Flags<TemporalEnum> flags) {
+        ASSERT(this->size() == other.size());
+        for (int i = 0; i < this->size(); ++i) {
+            quantities[i].swap(other.quantities[i], flags);
+        }
     }
 
     template <TemporalEnum Type, typename TFunctor>

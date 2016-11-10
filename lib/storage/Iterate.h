@@ -5,7 +5,6 @@
 NAMESPACE_SPH_BEGIN
 
 
-
 template <TemporalEnum Type>
 struct StorageIterator;
 
@@ -127,9 +126,9 @@ struct StorageIterator<TemporalEnum::SECOND_ORDER> {
                         scalar2->getDerivative(),
                         scalar2->get2ndDerivative());
             } else {
-            auto vector1 = qs1[i].cast<Vector, TemporalEnum::SECOND_ORDER>();
-            auto vector2 = qs2[i].cast<Vector, TemporalEnum::SECOND_ORDER>();
-                ASSERT (vector1 && vector2);
+                auto vector1 = qs1[i].cast<Vector, TemporalEnum::SECOND_ORDER>();
+                auto vector2 = qs2[i].cast<Vector, TemporalEnum::SECOND_ORDER>();
+                ASSERT(vector1 && vector2);
                 functor(vector1->getValue(),
                         vector1->getDerivative(),
                         vector1->get2ndDerivative(),
@@ -140,6 +139,51 @@ struct StorageIterator<TemporalEnum::SECOND_ORDER> {
         }
     }
 };
+
+/*
+template <>
+struct StorageIterator<TemporalEnum::HIGHEST_ORDER> {
+    template <typename TFunctor>
+    static void iterate(Array<Quantity>& qs, TFunctor&& functor) {
+        for (auto& q : qs) {
+            auto scalar = q.cast<Float, TemporalEnum::FIRST_ORDER>();
+            if (scalar) {
+                functor(scalar->getValue(), scalar->getDerivative());
+            } else {
+                auto vector = q.cast<Vector, TemporalEnum::FIRST_ORDER>();
+                ASSERT(vector);
+                functor(vector->getValue(), vector->getDerivative());
+            }
+        }
+    }
+
+    template <typename TFunctor>
+    static void iteratePair(Array<Quantity>& qs1, Array<Quantity>& qs2, TFunctor&& functor) {
+        ASSERT(qs1.size() == qs2.size());
+        for (int i = 0; i < qs1.size(); ++i) {
+            if (qs1[i].getTemporalEnum() != TemporalEnum::FIRST_ORDER) {
+                continue;
+            }
+            ASSERT(qs2[i].getTemporalEnum() == TemporalEnum::FIRST_ORDER);
+            auto scalar1 = qs1[i].cast<Float, TemporalEnum::FIRST_ORDER>();
+            auto scalar2 = qs2[i].cast<Float, TemporalEnum::FIRST_ORDER>();
+            if (scalar1 && scalar2) {
+                functor(scalar1->getValue(),
+                        scalar1->getDerivative(),
+                        scalar2->getValue(),
+                        scalar2->getDerivative());
+            } else {
+                auto vector1 = qs1[i].cast<Vector, TemporalEnum::FIRST_ORDER>();
+                auto vector2 = qs2[i].cast<Vector, TemporalEnum::FIRST_ORDER>();
+                ASSERT(vector1 && vector2);
+                functor(vector1->getValue(),
+                        vector1->getDerivative(),
+                        vector2->getValue(),
+                        vector2->getDerivative());
+            }
+        }
+    }
+};*/
 
 
 /// Iterate over given type of quantities and executes functor for each. The functor is used for scalars,

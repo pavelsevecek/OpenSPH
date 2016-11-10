@@ -239,17 +239,24 @@ public:
         this->actSize = 0;
     }
 
+    /// Swaps content of two arrays
+    void swap(Array<T, TCounter>& other) {
+        std::swap(this->data, other.data);
+        std::swap(this->maxSize, other.maxSize);
+        std::swap(this->actSize, other.actSize);
+    }
+
     /// Implicit conversion to arrayview.
     operator ArrayView<T, TCounter>() { return ArrayView<T, TCounter>(data, actSize); }
 
     /// Implicit conversion to arrayview, const version.
     operator ArrayView<const T, TCounter>() const { return ArrayView<const T, TCounter>(data, actSize); }
 
-    /// Explicit conversion to arrayview
-    ArrayView<T, TCounter> getView() { return ArrayView<T, TCounter>(data, actSize); }
+    /* /// Explicit conversion to arrayview
+     ArrayView<T, TCounter> getView() { return ArrayView<T, TCounter>(data, actSize); }
 
-    /// Explicit conversion to arrayview, const version
-    ArrayView<const T, TCounter> getView() const { return ArrayView<const T, TCounter>(data, actSize); }
+     /// Explicit conversion to arrayview, const version
+     ArrayView<const T, TCounter> getView() const { return ArrayView<const T, TCounter>(data, actSize); }*/
 
     /// Comparison operator, comparings array element-by-element. If arrays differ in number of constructed
     /// elements, the comparison always returns false; allocated size does not play role here.
