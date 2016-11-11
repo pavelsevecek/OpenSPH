@@ -2,7 +2,7 @@
 
 #include "objects/containers/Array.h"
 #include "objects/containers/Tuple.h"
-#include "storage/BasicView.h"
+#include "storage/QuantityMap.h"
 #include "storage/Iterate.h"
 
 NAMESPACE_SPH_BEGIN
@@ -50,18 +50,18 @@ public:
 
     /// Inserts a single quantity into the storage. The type and temporal enum are given by the index to
     /// template QuantityMap.
-    template <int TKey>
-    void insert() {
-        this->insert<QuantityType<TKey>, QuantityMap<TKey>::temporalEnum>(TKey);
+    template <int TKey, typename... TArgs>
+    void insert(TArgs&&... args) {
+        this->insert<QuantityType<TKey>, QuantityMap<TKey>::temporalEnum>(TKey, std::forward<TArgs>(args)...);
     }
 
     /// Inserts "manually" a quantity, given their type and temporal type. Note that the quantity cannot be
     /// extracted from storage unless its index is in QuantityMap; it can be reached using iterate method,
     /// though.
-    template <typename TValue, TemporalEnum TEnum>
-    void insert(const int key) {
+    template <typename TValue, TemporalEnum TEnum, typename... TArgs>
+    void insert(const int key, TArgs&&... args) {
         Quantity q;
-        q.template emplace<TValue, TEnum>(key);
+        q.template emplace<TValue, TEnum>(key, std::forward<TArgs>(args)...);
         quantities.push(std::move(q));
     }
 

@@ -27,6 +27,7 @@ SOURCES += \
     ../lib/objects/wrappers/test/Shadow.cpp \
     ../lib/objects/wrappers/test/NonOwningPtr.cpp \
     ../lib/objects/wrappers/test/Any.cpp \
+    ../lib/objects/wrappers/test/VectorizedArray.cpp \
     ../lib/objects/containers/test/Array.cpp \
     ../lib/objects/containers/test/ArrayUtils.cpp \
     ../lib/objects/finders/test/KdTree.cpp \
@@ -43,7 +44,9 @@ SOURCES += \
     ../lib/storage/test/Storage.cpp \
     ../lib/objects/containers/test/BufferedArray.cpp \
     ../lib/objects/containers/test/Tuple.cpp \
-    ../lib/objects/wrappers/test/Flags.cpp
+    ../lib/objects/wrappers/test/Flags.cpp \
+    ../lib/physics/test/Integrals.cpp
+
 
 HEADERS += \
     utils/Utils.h

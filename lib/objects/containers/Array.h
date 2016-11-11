@@ -10,6 +10,7 @@ NAMESPACE_SPH_BEGIN
 
 template <typename T, typename TCounter = int>
 class Array : public Noncopyable {
+        friend class VectorizedArray; // needs to explicitly set actSize
 private:
     using StorageType = typename WrapReferenceType<T>::Type;
     StorageType* data = nullptr;

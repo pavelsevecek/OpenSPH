@@ -5,8 +5,8 @@
 /// sevecek at sirrah.troja.mff.cuni.cz
 
 #include "core/Globals.h"
-#include "math/Math.h"
 #include "core/Traits.h"
+#include "math/Math.h"
 #include <immintrin.h>
 #include <iomanip>
 #include <smmintrin.h>
@@ -551,6 +551,15 @@ namespace Math {
 
     /// Component-wise clamping
     INLINE Vector clamp(const Vector& v, const Vector& v1, const Vector& v2) { return max(v1, min(v, v2)); }
+
+    /// Checks if two vectors are equal to some given accuracy.
+    INLINE bool almostEqual(const Vector& v1, const Vector& v2, const Float eps = EPS) {
+        return getSqrLength(v1 - v2) <= Math::sqr(eps);
+    }
+
+    INLINE Float norm(const Vector& v) { return getLengthApprox(v); }
+
+    INLINE Float normSqr(const Vector& v) { return getSqrLength(v); }
 }
 
 /// Construct a vector from spherical coordinates. The angle has generally different
@@ -574,13 +583,5 @@ INLINE Vector sphericalInversion(const Vector& v, const Vector& center, const Fl
     const Float lSqr  = getSqrLength(diff);
     return center + diff * radius * radius / lSqr;
 }
-
-namespace Math {
-    /// Checks if two vectors are equal to some given accuracy.
-    INLINE bool almostEqual(const Vector& v1, const Vector& v2, const Float eps = EPS) {
-        return getSqrLength(v1 - v2) <= Math::sqr(eps);
-    }
-}
-
 
 NAMESPACE_SPH_END

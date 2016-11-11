@@ -6,9 +6,9 @@
 
 #include "core/Globals.h"
 #include "core/Traits.h"
+#include <cstring>
 #include <math.h>
 #include <utility>
-#include <cstring>
 
 NAMESPACE_SPH_BEGIN
 
@@ -205,6 +205,23 @@ namespace Math {
     /// \note We use <= rather than < on purpose as EPS for integral types is zero.
     INLINE auto almostEqual(const Float& f1, const Float& f2, const Float& eps = EPS) {
         return abs(f1 - f2) <= eps;
+    }
+
+    /// Returns a norm of a object. Must be specialized to use other objects as quantities.
+    template<typename T>
+    INLINE Float norm(T&& value);
+
+    /// Squared value of the norm.
+    template<typename T>
+    INLINE Float normSqr(T&& value);
+
+    template<>
+    INLINE Float norm(const Float& value) {
+        return Math::abs(value);
+    }
+    template<>
+    INLINE Float normSqr(const Float& value) {
+        return Math::sqr(value);
     }
 }
 

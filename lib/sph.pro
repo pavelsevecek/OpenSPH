@@ -58,8 +58,11 @@ HEADERS += \
     system/Timer.h \
     models/AbstractModel.h \
     models/BasicModel.h \
-    storage/BasicView.h \
     storage/Quantity.h \
     storage/Iterate.h \
     storage/Storage.h \
-    objects/containers/BufferedArray.h
+    objects/containers/BufferedArray.h \
+    physics/Integrals.h \
+    storage/QuantityMap.h \
+    sph/timestepping/Step.h \
+    objects/wrappers/VectorizedArray.h

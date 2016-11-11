@@ -6,7 +6,7 @@
 #include "physics/TimeStepping.h"
 #include "sph/initconds/InitConds.h"
 #include "sph/kernel/Kernel.h"
-#include "storage/BasicView.h"
+#include "storage/QuantityMap.h"
 #include "system/Callbacks.h"
 #include "system/Logger.h"
 

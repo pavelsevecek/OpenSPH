@@ -8,7 +8,7 @@
 #include "objects/Object.h"
 #include "objects/finders/Finder.h"
 #include "sph/kernel/Kernel.h"
-#include "storage/BasicView.h"
+#include "storage/QuantityMap.h"
 #include "system/Settings.h"
 
 NAMESPACE_SPH_BEGIN

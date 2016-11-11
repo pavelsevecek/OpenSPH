@@ -25,10 +25,12 @@ NAMESPACE_SPH_BEGIN
 
 /// Force inline for gcc
 #ifdef DEBUG
-#define INLINE __attribute__((noinline)) inline
+#define INLINE inline
 #else
 #define INLINE __attribute__((always_inline)) inline
 #endif
+
+#define NO_INLINE __attribute__((noinline))
 
 #define UNUSED(x)
 
