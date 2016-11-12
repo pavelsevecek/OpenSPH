@@ -49,102 +49,109 @@ struct ForCurrentType<n, T0> {
     }
 };
 
-template <typename... TArgs>
-class Union;
 
-template <typename T0, typename T1, typename... TArgs>
-class Union<T0, T1, TArgs...> : public Object {
+template <typename... TArgs>
+class AlignedUnion : public Object {
 private:
-    union {
-        T0 data;
-        Union<T1, TArgs...> rest;
-    };
+    std::aligned_union_t<0, TArgs...> storage;
 
 public:
-    Union() {}
-
     template <typename T>
-    Union(const T& t)
-        : rest(t) {}
-
-    Union(const T0& t)
-        : data(t) {}
-
-    ~Union() {}
-
-    void destroy(const int idx) {
-        if (idx == 0) {
-            data.~T0();
-        } else {
-            rest.destroy(idx - 1);
-        }
+    T& get() {
+        return *reinterpret_cast<T*>(&storage);
     }
 
     template <typename T>
-    void copy(const int idx, const T& t) {
-        if (idx == 0) {
-            data = t.operator const T0&();
-        } else {
-            rest.copy(idx - 1, t);
-        }
-    }
-
-    template <typename T>
-    Union& operator=(const T& t) {
-        rest = t;
-        return *this;
-    }
-
-    Union& operator=(const T0& t) {
-        data = t;
-        return *this;
-    }
-
-    operator T0&() { return data; }
-
-    template <typename T>
-    operator T&() {
-        return static_cast<T&>(rest);
-    }
-
-    operator const T0&() const { return data; }
-
-    template <typename T>
-    operator const T&() const {
-        return static_cast<const T&>(rest);
+    const T& get() const {
+        return *reinterpret_cast<const T*>(&storage);
     }
 };
 
-/// Specialization for the last type
+namespace VariantHelpers {
+    template <typename... TArgs>
+    struct Create {
+        AlignedUnion<TArgs...>& storage;
+
+        template <typename T, typename TOther>
+        void visit(TOther&& other) {
+            using TRaw = std::decay_t<TOther>;
+            new (&storage) TRaw(std::forward<TOther>(other));
+        }
+    };
+
+    template <typename... TArgs>
+    struct Delete {
+        AlignedUnion<TArgs...>& storage;
+
+        template <typename T>
+        void visit() {
+            storage.template get<T>().~T();
+        }
+    };
+
+    template <typename... TArgs>
+    struct CopyMoveCreate {
+        AlignedUnion<TArgs...>& storage;
+
+        template <typename T, typename TOther>
+        void visit(TOther&& other) {
+            if (std::is_lvalue_reference<TOther>::value) {
+                new (&storage) T(other.template operator T());
+            } else {
+                new (&storage) T(std::move(other.template operator T()));
+            }
+        }
+    };
+
+    template <typename... TArgs>
+    struct Assign {
+        AlignedUnion<TArgs...>& storage;
+
+        template <typename T, typename TOther>
+        void visit(TOther&& other) {
+            using TRaw = std::decay_t<TOther>;
+            storage.template get<TRaw>() = std::forward<TOther>(other);
+        }
+    };
+
+    template <typename... TArgs>
+    struct CopyMoveAssign {
+        AlignedUnion<TArgs...>& storage;
+
+        template <typename T, typename TOther>
+        void visit(TOther&& other) {
+            if (std::is_lvalue_reference<TOther>::value) {
+                storage.template get<T>() = other.template operator T();
+            } else {
+                storage.template get<T>() = std::move(other.template operator T());
+            }
+        }
+    };
+}
+
+
+template <typename T0, typename... TArgs>
+struct VariantIterator {
+    template <typename TVisitor, typename... Ts>
+    static void visit(int idx, TVisitor&& visitor, Ts&&... args) {
+        if (idx == 0) {
+            visitor.template visit<T0>(std::forward<Ts>(args)...);
+        } else {
+            VariantIterator<TArgs...>::visit(idx - 1,
+                                             std::forward<TVisitor>(visitor),
+                                             std::forward<Ts>(args)...);
+        }
+    }
+};
+
+// specialization for last type
 template <typename T0>
-class Union<T0> : public Object {
-private:
-    T0 data;
-
-public:
-    Union() = default;
-
-    Union(const T0& t)
-        : data(t) {}
-
-    Union& operator=(const T0& t) {
-        data = t;
-        return *this;
-    }
-
-    void destroy(const int idx) {
+struct VariantIterator<T0> {
+    template <typename TVisitor, typename... Ts>
+    static void visit(int idx, TVisitor&& visitor, Ts&&... args) {
         ASSERT(idx == 0);
-        data.~T0();
+        visitor.template visit<T0>(std::forward<Ts>(args)...);
     }
-
-    void copy(const int idx, const T0& t) {
-        ASSERT(idx == 0);
-        data = t;
-    }
-
-    operator T0&() { return data; }
-
-    operator const T0&() const { return data; }
 };
 
 
@@ -152,40 +159,84 @@ public:
 template <typename... TArgs>
 class Variant : public Object {
 private:
-    Union<TArgs...> impl;
+    AlignedUnion<TArgs...> storage;
     int typeIdx = -1;
+
+    template <typename T>
+    T& getUnchecked() {
+        return storage.get<T>();
+    }
+
+    template <typename T>
+    const T& getUnchecked() const {
+        return storage.get<T>();
+    }
+    void destroy() {
+        if (typeIdx != -1) {
+            VariantHelpers::Delete<TArgs...> deleter{ storage };
+            VariantIterator<TArgs...>::visit(typeIdx, deleter);
+        }
+    }
 
 public:
     Variant() = default;
 
-    ~Variant() {
-        if (typeIdx != -1) {
-            impl.destroy(typeIdx);
-        }
-    }
+    ~Variant() { destroy(); }
 
     /// Construct variant from value of stored type
-    template <typename T>
-    Variant(const T& value)
-        : impl(value) {
-        typeIdx = getTypeIndex<T, TArgs...>;
+    template <typename T, typename = std::enable_if_t<!std::is_same<std::decay_t<T>, Variant>::value>>
+    Variant(T&& value) {
+        using RawT        = std::decay_t<T>;
+        constexpr int idx = getTypeIndex<RawT, TArgs...>;
+        static_assert(idx != -1, "Type must be listed in Variant");
+        VariantHelpers::Create<TArgs...> creator{ storage };
+        VariantIterator<TArgs...>::visit(idx, creator, std::forward<T>(value));
+        typeIdx = idx;
     }
 
     Variant(const Variant& other) {
-        impl.copy(other.typeIdx, other.impl);
+        VariantHelpers::CopyMoveCreate<TArgs...> creator{ storage };
+        VariantIterator<TArgs...>::visit(other.typeIdx, creator, other);
+        typeIdx = other.typeIdx;
+    }
+
+    Variant(Variant&& other) {
+        VariantHelpers::CopyMoveCreate<TArgs...> creator{ storage };
+        VariantIterator<TArgs...>::visit(other.typeIdx, creator, std::move(other));
         typeIdx = other.typeIdx;
     }
 
     /// Universal copy/move operator with type of rhs being one of stored types
-    template <typename T>
-    Variant& operator=(const T& t) {
-        impl    = t;
-        typeIdx = getTypeIndex<T, TArgs...>;
+    template <typename T, typename = std::enable_if_t<!std::is_same<std::decay_t<T>, Variant>::value>>
+    Variant& operator=(T&& value) {
+        using RawT        = std::decay_t<T>;
+        constexpr int idx = getTypeIndex<RawT, TArgs...>;
+        static_assert(idx != -1, "Type must be listed in Variant");
+        if (typeIdx != idx) {
+            destroy();
+        }
+        VariantHelpers::Assign<TArgs...> assigner{ storage };
+        VariantIterator<TArgs...>::visit(idx, assigner, std::forward<T>(value));
+        typeIdx = idx;
         return *this;
     }
 
     Variant& operator=(const Variant& other) {
-        impl.copy(other.typeIdx, other.impl);
+        if (typeIdx != other.typeIdx) {
+            destroy();
+        }
+        VariantHelpers::CopyMoveAssign<TArgs...> assigner{ storage };
+        VariantIterator<TArgs...>::visit(other.typeIdx, assigner, other);
+        typeIdx = other.typeIdx;
+        return *this;
+    }
+
+    Variant& operator=(Variant&& other) {
+        if (typeIdx != other.typeIdx) {
+            destroy();
+        }
+        VariantHelpers::CopyMoveAssign<TArgs...> assigner{ storage };
+        VariantIterator<TArgs...>::visit(other.typeIdx, assigner, std::move(other));
         typeIdx = other.typeIdx;
         return *this;
     }
@@ -199,7 +250,7 @@ public:
         constexpr int idx = getTypeIndex<T, TArgs...>;
         static_assert(idx != -1, "Cannot convert variant to this type");
         ASSERT((typeIdx == getTypeIndex<T, TArgs...>));
-        return static_cast<T&>(impl);
+        return getUnchecked<T>();
     }
 
     /// const version
@@ -208,7 +259,7 @@ public:
         constexpr int idx = getTypeIndex<T, TArgs...>;
         static_assert(idx != -1, "Cannot convert variant to this type");
         ASSERT((typeIdx == getTypeIndex<T, TArgs...>));
-        return static_cast<const T&>(impl);
+        return getUnchecked<T>();
     }
 
 
@@ -221,7 +272,8 @@ public:
         if (typeIdx != getTypeIndex<T, TArgs...>) {
             return NOTHING;
         }
-        return impl.operator const T&();
+        return getUnchecked<T>();
+        ;
     }
 };
 
