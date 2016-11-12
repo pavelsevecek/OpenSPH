@@ -10,64 +10,33 @@
 
 NAMESPACE_SPH_BEGIN
 
-
-/// Executes a functor with the current value (and current type) as a parameter
-template <int n, typename T0, typename... TArgs>
-struct ForCurrentType {
-    template <typename TFunctor>
-    static void action(const int idx, const char* data, TFunctor&& functor) {
-        if (idx == n) {
-            functor(*reinterpret_cast<const T0*>(data));
-        } else {
-            ForCurrentType<n + 1, TArgs...>::action(idx, data, std::forward<TFunctor>(functor));
-        }
-    }
-
-    template <typename TFunctor>
-    static void action(const int idx, char* data, TFunctor&& functor) {
-        if (idx == n) {
-            functor(*reinterpret_cast<T0*>(data));
-        } else {
-            ForCurrentType<n + 1, TArgs...>::action(idx, data, std::forward<TFunctor>(functor));
-        }
-    }
-};
-template <int n, typename T0>
-struct ForCurrentType<n, T0> {
-    template <typename TFunctor>
-    static void action(const int idx, const char* data, TFunctor&& functor) {
-        if (idx == n) {
-            functor(*reinterpret_cast<const T0*>(data));
-        }
-    }
-
-    template <typename TFunctor>
-    static void action(const int idx, char* data, TFunctor&& functor) {
-        if (idx == n) {
-            functor(*reinterpret_cast<T0*>(data));
-        }
-    }
-};
-
-
+/// Stores value of type std::aligned_union, having size and alignment equal to maximum of sizes and
+/// alignments of template types.
 template <typename... TArgs>
 class AlignedUnion : public Object {
 private:
     std::aligned_union_t<0, TArgs...> storage;
 
 public:
+    /// Converts stored value to a reference of type T, without checking that the currently stored value has
+    /// such a type.
     template <typename T>
     T& get() {
         return *reinterpret_cast<T*>(&storage);
     }
 
+    /// Converts stored value to a reference of type T, without checking that the currently stored value has
+    /// such a type, const version.
     template <typename T>
     const T& get() const {
         return *reinterpret_cast<const T*>(&storage);
     }
 };
 
+/// Helper visitors creating, deleting or modifying Variant
 namespace VariantHelpers {
+
+    /// Creates a variant using value type of which can be stored in variant.
     template <typename... TArgs>
     struct Create {
         AlignedUnion<TArgs...>& storage;
@@ -79,6 +48,7 @@ namespace VariantHelpers {
         }
     };
 
+    /// Destroys the object currently stored in variant.
     template <typename... TArgs>
     struct Delete {
         AlignedUnion<TArgs...>& storage;
@@ -89,6 +59,7 @@ namespace VariantHelpers {
         }
     };
 
+    /// Creates a variant by copying/moving value currently stored in other variant.
     template <typename... TArgs>
     struct CopyMoveCreate {
         AlignedUnion<TArgs...>& storage;
@@ -103,17 +74,19 @@ namespace VariantHelpers {
         }
     };
 
+    /// Assigns a value type of which can be stored in variant.
     template <typename... TArgs>
     struct Assign {
         AlignedUnion<TArgs...>& storage;
 
         template <typename T, typename TOther>
         void visit(TOther&& other) {
-            using TRaw = std::decay_t<TOther>;
+            using TRaw                   = std::decay_t<TOther>;
             storage.template get<TRaw>() = std::forward<TOther>(other);
         }
     };
 
+    /// Creates a variant by copying/moving value currently stored in other variant.
     template <typename... TArgs>
     struct CopyMoveAssign {
         AlignedUnion<TArgs...>& storage;
@@ -129,7 +102,8 @@ namespace VariantHelpers {
     };
 }
 
-
+/// Iterates through types of variant until idx-th type is found, and executes given TVisitor, passing
+/// arguments to its method visit().
 template <typename T0, typename... TArgs>
 struct VariantIterator {
     template <typename TVisitor, typename... Ts>
@@ -143,8 +117,7 @@ struct VariantIterator {
         }
     }
 };
-
-// specialization for last type
+/// Specialization for last type
 template <typename T0>
 struct VariantIterator<T0> {
     template <typename TVisitor, typename... Ts>
@@ -155,22 +128,13 @@ struct VariantIterator<T0> {
 };
 
 
-/// Variant, an implementation of type-safe union
+/// Variant, an implementation of type-safe union.
 template <typename... TArgs>
 class Variant : public Object {
 private:
     AlignedUnion<TArgs...> storage;
     int typeIdx = -1;
 
-    template <typename T>
-    T& getUnchecked() {
-        return storage.get<T>();
-    }
-
-    template <typename T>
-    const T& getUnchecked() const {
-        return storage.get<T>();
-    }
     void destroy() {
         if (typeIdx != -1) {
             VariantHelpers::Delete<TArgs...> deleter{ storage };
@@ -241,6 +205,7 @@ public:
         return *this;
     }
 
+    /// Returns index of type currently stored in variant. If no value is currently stored, returns -1.
     int getTypeIdx() const { return typeIdx; }
 
     /// Implicit conversion to one of stored values. Performs a compile-time check that the type is contained
@@ -250,16 +215,16 @@ public:
         constexpr int idx = getTypeIndex<T, TArgs...>;
         static_assert(idx != -1, "Cannot convert variant to this type");
         ASSERT((typeIdx == getTypeIndex<T, TArgs...>));
-        return getUnchecked<T>();
+        return storage.get<T>();
     }
 
-    /// const version
+    /// Const version of conversion operator.
     template <typename T>
     operator T() const {
         constexpr int idx = getTypeIndex<T, TArgs...>;
         static_assert(idx != -1, "Cannot convert variant to this type");
         ASSERT((typeIdx == getTypeIndex<T, TArgs...>));
-        return getUnchecked<T>();
+        return storage.get<T>();
     }
 
 
@@ -272,9 +237,49 @@ public:
         if (typeIdx != getTypeIndex<T, TArgs...>) {
             return NOTHING;
         }
-        return getUnchecked<T>();
-        ;
+        return storage.get<T>();
     }
 };
+
+
+namespace Detail {
+    template <int n, typename T0, typename... TArgs>
+    struct ForCurrentType {
+        template <typename TFunctor>
+        static void action(const int idx, const char* data, TFunctor&& functor) {
+            if (idx == n) {
+                functor(*reinterpret_cast<const T0*>(data));
+            } else {
+                ForCurrentType<n + 1, TArgs...>::action(idx, data, std::forward<TFunctor>(functor));
+            }
+        }
+
+        template <typename TFunctor>
+        static void action(const int idx, char* data, TFunctor&& functor) {
+            if (idx == n) {
+                functor(*reinterpret_cast<T0*>(data));
+            } else {
+                ForCurrentType<n + 1, TArgs...>::action(idx, data, std::forward<TFunctor>(functor));
+            }
+        }
+    };
+    template <int n, typename T0>
+    struct ForCurrentType<n, T0> {
+        template <typename TFunctor>
+        static void action(const int idx, const char* data, TFunctor&& functor) {
+            if (idx == n) {
+                functor(*reinterpret_cast<const T0*>(data));
+            }
+        }
+
+        template <typename TFunctor>
+        static void action(const int idx, char* data, TFunctor&& functor) {
+            if (idx == n) {
+                functor(*reinterpret_cast<T0*>(data));
+            }
+        }
+    };
+}
+
 
 NAMESPACE_SPH_END
