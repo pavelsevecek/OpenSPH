@@ -114,17 +114,6 @@ enum class TimesteppingEnum {
     BULIRSCH_STOER
 };
 
-enum class EosEnum {
-    /// Equation of state for ideal gas
-    IDEAL_GAS,
-
-    /// Tillotson (1962) equation of state
-    TILLOTSON,
-
-    /// ANEOS given by look-up table
-    ANEOS
-};
-
 enum class FinderEnum {
     /// Brute-force search by going through each pair of particles (O(N^2) complexity)
     BRUTE_FORCE,
@@ -186,11 +175,41 @@ const Settings<GlobalSettingsIds> GLOBAL_SETTINGS = {
 // clang-format on
 
 
+enum class DistributionEnum {
+    /// Hexagonally close packing
+    HEXAGONAL,
+
+    /// Cubic close packing
+    CUBIC,
+
+    /// Random distribution of particles
+    RANDOM,
+
+    /// Isotropic uniform distribution by Diehl et al. (2012)
+    DIEHL_ET_AL
+};
+
+
+enum class EosEnum {
+    /// Equation of state for ideal gas
+    IDEAL_GAS,
+
+    /// Tillotson (1962) equation of state
+    TILLOTSON,
+
+    /// ANEOS given by look-up table
+    ANEOS
+};
+
+
 /// Settings of a single body / gas phase / ...
 /// Combines material parameters and numerical parameters of the SPH method specific for one body.
 enum class BodySettingsIds {
     /// Equation of state for this material
     EOS,
+
+    /// Initial distribution of SPH particles within the domain
+    INITIAL_DISTRIBUTION,
 
     /// Density at zero pressure
     DENSITY,
@@ -198,6 +217,9 @@ enum class BodySettingsIds {
     BULK_MODULUS,
 
     NONLINEAR_TILLOTSON_B,
+
+    /// Initial energy
+    ENERGY,
 
     /// Specific energy of incipient vaporization
     ENERGY_IV,
@@ -219,9 +241,11 @@ enum class BodySettingsIds {
 
 // clang-format off
 const Settings<BodySettingsIds> BODY_SETTINGS = {
-    { BodySettingsIds::EOS,             "material.eos",         int(EosEnum::IDEAL_GAS) },
-    { BodySettingsIds::DENSITY,         "material.density",     2700.f },
-    { BodySettingsIds::PARTICLE_COUNT,  "sph.particle_count",   10000 },
+    { BodySettingsIds::EOS,                     "material.eos",             int(EosEnum::IDEAL_GAS) },
+    { BodySettingsIds::DENSITY,                 "material.density",         2700.f },
+    { BodySettingsIds::ENERGY,                  "material.energy",          0.f },
+    { BodySettingsIds::INITIAL_DISTRIBUTION,    "sph.initial_distribution", int(DistributionEnum::HEXAGONAL) },
+    { BodySettingsIds::PARTICLE_COUNT,          "sph.particle_count",       10000 },
 };
 // clang-format on
 

@@ -29,11 +29,12 @@ public:
     static std::unique_ptr<Abstract::Eos> getEos(const EosEnum id, const Settings<BodySettingsIds>& settings);
 
     static std::unique_ptr<Abstract::TimeStepping> getTimestepping(
-        const TimesteppingEnum id,
-                const std::shared_ptr<Storage>& storage,
-        const Settings<GlobalSettingsIds>& settings);
+        const Settings<GlobalSettingsIds>& settings,
+        const std::shared_ptr<Storage>& storage);
 
     static std::unique_ptr<Abstract::Finder> getFinder(const FinderEnum id);
+
+    static std::unique_ptr<Abstract::Distribution> getDistribution(const Settings<BodySettingsIds>& settings);
 
     static LutKernel getKernel(const KernelEnum id);
 };

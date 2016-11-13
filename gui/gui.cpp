@@ -6,6 +6,7 @@
 #include "wx/wx.h"
 
 #include "problem/Problem.h"
+#include "system/Factory.h"
 
 
 IMPLEMENT_APP(MyApp)
@@ -40,13 +41,23 @@ bool MyApp::OnInit() {
     frame->Show();
 
 
-    Problem<BasicModel>* p1 = new Problem<BasicModel>(GLOBAL_SETTINGS);
-    //p1->finder              = std::make_unique<KdTree>();
-    p1->logger              = std::make_unique<StdOut>();
-    //p1->timestepping        = std::make_unique<EulerExplicit>(p1->model, GLOBAL_SETTINGS); /// \todo add model
-    p1->timeRange           = Range<Float>(0._f, 10._f);
-    //p1->model.create(10000, new SphericalDomain(Vector(0._f), 1._f), new HexagonalPacking(), BODY_SETTINGS);
-    p1->callbacks = std::make_unique<GuiCallbacks>(glPane);
+    Problem<BasicModel>* p = new Problem<BasicModel>(GLOBAL_SETTINGS);
+    p->logger              = std::make_unique<StdOut>();
+    p->timeRange           = Range<Float>(0._f, 10._f);
+    p->timestepping        = Factory::getTimestepping(GLOBAL_SETTINGS, p->storage);
+
+    Storage body1 =
+        p->model.createParticles(10000, std::make_unique<SphericalDomain>(Vector(0._f), 1._f), BODY_SETTINGS);
+    Storage body2 =
+        p->model.createParticles(1000,
+                                 std::make_unique<SphericalDomain>(Vector(2._f, 1._f, 0._f), 0.3_f),
+                                 BODY_SETTINGS);
+
+    *p->storage = std::move(body1);
+    p->storage->merge(body2);
+
+
+    p->callbacks = std::make_unique<GuiCallbacks>(glPane);
     /*BaseStorage projectile;
     projectile.create(100,
                       new SphericalDomain(Vector(2._f, 1._f, 0._f), 0.3_f),
@@ -56,7 +67,7 @@ bool MyApp::OnInit() {
     p1->model.merge(projectile);*/
 
 
-    worker = std::thread([&p1]() { p1->run(); });
+    worker = std::thread([&p]() { p->run(); });
 
 
     return true;

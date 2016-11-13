@@ -1,11 +1,11 @@
 #pragma once
 
+#include "objects/containers/Tuple.h"
 #include "objects/finders/Finder.h"
 #include "objects/wrappers/Range.h"
-#include "objects/containers/Tuple.h"
-#include "physics/TimeStepping.h"
 #include "sph/initconds/InitConds.h"
 #include "sph/kernel/Kernel.h"
+#include "sph/timestepping/TimeStepping.h"
 #include "storage/QuantityMap.h"
 #include "system/Callbacks.h"
 #include "system/Logger.h"
@@ -34,26 +34,25 @@ public:
     /// GUI callbacks
     std::unique_ptr<Abstract::Callbacks> callbacks;
 
+    /// Timestepping
+    std::unique_ptr<Abstract::TimeStepping> timestepping;
+
     /// Time range of the simulations
     /// \todo other conditions? For example pressure-limited simulations?
     Range<Float> timeRange;
 
     /// Stores all SPH particles
-    std::shared_ptr<GenericStorage> storage;
+    std::shared_ptr<Storage> storage;
 
     /// Implements computations of quantities and their temporal evolution
     TModel model;
-
-    /// "View" of particles \todo needed?
-    std::unique_ptr<typename TModel::View> view;
 
 
     /// initialize problem by constructing model
     template <typename... TArgs>
     Problem(TArgs&&... args)
-        : model(std::forward<TArgs>(args)...)
-        , storage(std::make_shared<GenericStorage>())
-        , view(storage->makeViewer<typename TModel::View>()) {}
+        : storage(std::make_shared<Storage>())
+        , model(storage, std::forward<TArgs>(args)...) {}
 
     void init(const int n, Abstract::Distribution* distribution) {
         /// Generate initial conditions
@@ -75,7 +74,7 @@ public:
             // model.makeTimeStep(timestepping.get());
 
             if (callbacks) {
-                callbacks->onTimeStep(view->rs);
+                callbacks->onTimeStep(storage->get<QuantityKey::R>());
             }
         }
     }

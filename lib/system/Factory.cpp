@@ -3,8 +3,8 @@
 #include "objects/finders/BruteForce.h"
 #include "objects/finders/KdTree.h"
 #include "physics/Eos.h"
-#include "sph/timestepping/TimeStepping.h"
 #include "sph/initconds/InitConds.h"
+#include "sph/timestepping/TimeStepping.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -19,11 +19,12 @@ std::unique_ptr<Abstract::Eos> Factory::getEos(const EosEnum id, const Settings<
     }
 }
 
-std::unique_ptr<Abstract::TimeStepping> Factory::getTimestepping(
-    const TimesteppingEnum id,
-    const std::shared_ptr<Storage>& storage,
-    const Settings<GlobalSettingsIds>& settings) {
-    switch (id) {
+std::unique_ptr<Abstract::TimeStepping> Factory::getTimestepping(const Settings<GlobalSettingsIds>& settings,
+                                                                 const std::shared_ptr<Storage>& storage) {
+    const Optional<TimesteppingEnum> id =
+        optionalCast<TimesteppingEnum>(settings.get<int>(GlobalSettingsIds::TIMESTEPPING_INTEGRATOR));
+    ASSERT(id);
+    switch (id.get()) {
     case TimesteppingEnum::EULER_EXPLICIT:
         return std::make_unique<EulerExplicit>(storage, settings);
     case TimesteppingEnum::PREDICTOR_CORRECTOR:
@@ -32,6 +33,7 @@ std::unique_ptr<Abstract::TimeStepping> Factory::getTimestepping(
         return std::make_unique<BulirschStoer>(storage, settings);
     default:
         ASSERT(false);
+        return nullptr;
     }
 }
 
@@ -43,6 +45,25 @@ std::unique_ptr<Abstract::Finder> Factory::getFinder(const FinderEnum id) {
         return std::make_unique<KdTree>();
     default:
         ASSERT(false);
+        return nullptr;
+    }
+}
+
+std::unique_ptr<Abstract::Distribution> Factory::getDistribution(const Settings<BodySettingsIds>& settings) {
+    const Optional<DistributionEnum> id =
+        optionalCast<DistributionEnum>(settings.get<int>(BodySettingsIds::INITIAL_DISTRIBUTION));
+    switch (id.get()) {
+    case DistributionEnum::HEXAGONAL:
+        return std::make_unique<HexagonalPacking>();
+    case DistributionEnum::CUBIC:
+        return std::make_unique<CubicPacking>();
+    case DistributionEnum::RANDOM:
+        return std::make_unique<RandomDistribution>();
+    /*case DistributionEnum::DIEHL_ET_AL:
+        return std::make_unique<DiehlDistribution>();*/
+    default:
+        ASSERT(false);
+        return nullptr;
     }
 }
 
@@ -52,6 +73,7 @@ LutKernel Factory::getKernel(const KernelEnum id) {
         return LutKernel(CubicSpline());
     default:
         ASSERT(false);
+        throw std::exception();
     }
 }
 

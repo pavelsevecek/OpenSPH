@@ -190,9 +190,4 @@ public:
 */
 
 
-enum class DistributionEnum { RANDOM, HEXAGONAL_PACKING, DIEHL };
-
-std::unique_ptr<Abstract::Distribution> makeDistribution(const DistributionEnum type);
-
-
 NAMESPACE_SPH_END

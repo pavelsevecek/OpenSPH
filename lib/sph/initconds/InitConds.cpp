@@ -234,16 +234,4 @@ public:
 */
 
 
-std::unique_ptr<Abstract::Distribution> makeDistribution(const DistributionEnum type) {
-    switch (type) {
-    case DistributionEnum::RANDOM:
-        return std::make_unique<RandomDistribution>();
-    case DistributionEnum::HEXAGONAL_PACKING:
-        return std::make_unique<HexagonalPacking>();
-    default:
-        return nullptr;
-    }
-}
-
-
 NAMESPACE_SPH_END

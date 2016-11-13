@@ -124,6 +124,7 @@ namespace Detail {
         Holder(const Array<TValue>& v)
             : Holder<TValue, TemporalEnum::CONST>(v) {
             dv.resize(this->v.size());
+            dv.fill(TValue(0._f)); // fill derivative with zeroes
         }
 
         Holder(const Array<TValue>& v, const Array<TValue>& dv)
@@ -171,6 +172,7 @@ namespace Detail {
         Holder(const Array<TValue>& v)
             : Holder<TValue, TemporalEnum::FIRST_ORDER>(v) {
             d2v.resize(this->v.size());
+            d2v.fill(TValue(0._f)); // fill derivative with zeroes
         }
 
         Holder(const Array<TValue>& v, const Array<TValue>& dv, const Array<TValue>& d2v)
