@@ -2,8 +2,8 @@
 
 #include "objects/containers/Array.h"
 #include "objects/containers/Tuple.h"
-#include "storage/QuantityMap.h"
 #include "storage/Iterate.h"
+#include "storage/QuantityMap.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -68,29 +68,38 @@ public:
     /// Returns a list of at least two quantities (given by their indices) from the storage. Returns them as
     /// tuple of array references.
     template <int TFirst, int TSecond, int... TRest>
-    Tuple<Array<QuantityType<TFirst>>&, Array<QuantityType<TSecond>>&, Array<QuantityType<TRest>>&...> get() {
+    Tuple<ArrayView<QuantityType<TFirst>>,
+          ArrayView<QuantityType<TSecond>>,
+          ArrayView<QuantityType<TRest>>...>
+    get() {
         auto getter = [](auto&& holder) -> auto& { return holder.getValue(); };
-        return tie(this->template getSingle<TFirst>(getter),
-                   this->template getSingle<TSecond>(getter),
-                   this->template getSingle<TRest>(getter)...);
+        return makeTuple(this->template getSingle<TFirst>(getter).getView(),
+                         this->template getSingle<TSecond>(getter).getView(),
+                         this->template getSingle<TRest>(getter).getView()...);
     }
 
     /// Returns a list of derivatives
     template <int TFirst, int TSecond, int... TRest>
-    Tuple<Array<QuantityType<TFirst>>&, Array<QuantityType<TSecond>>&, Array<QuantityType<TRest>>&...> dt() {
+    Tuple<ArrayView<QuantityType<TFirst>>,
+          ArrayView<QuantityType<TSecond>>,
+          ArrayView<QuantityType<TRest>>...>
+    dt() {
         auto getter = [](auto&& holder) -> auto& { return holder.getDerivative(); };
-        return makeTuple(this->template getSingle<TFirst>(getter),
-                         this->template getSingle<TSecond>(getter),
-                         this->template getSingle<TRest>(getter)...);
+        return makeTuple(this->template getSingle<TFirst>(getter).getView(),
+                         this->template getSingle<TSecond>(getter).getView(),
+                         this->template getSingle<TRest>(getter).getView()...);
     }
 
     /// Returns a list of 2nd derivatives
     template <int TFirst, int TSecond, int... TRest>
-    Tuple<Array<QuantityType<TFirst>>&, Array<QuantityType<TSecond>>&, Array<QuantityType<TRest>>&...> d2t() {
+    Tuple<ArrayView<QuantityType<TFirst>>,
+          ArrayView<QuantityType<TSecond>>,
+          ArrayView<QuantityType<TRest>>...>
+    d2t() {
         auto getter = [](auto&& holder) -> auto& { return holder.get2ndDerivative(); };
-        return makeTuple(this->template getSingle<TFirst>(getter),
-                         this->template getSingle<TSecond>(getter),
-                         this->template getSingle<TRest>(getter)...);
+        return makeTuple(this->template getSingle<TFirst>(getter).getView(),
+                         this->template getSingle<TSecond>(getter).getView(),
+                         this->template getSingle<TRest>(getter).getView()...);
     }
 
     /// Returns a quantity given by its index from the storage.
@@ -113,7 +122,25 @@ public:
         });
     }
 
+    /// Returns views to all buffers stored in a quantity.
+    template<int TKey>
+    Array<Array<QuantityType<TKey>>&> getAll() {
+        for (Quantity& q : quantities) {
+            if (q.getKey() == TKey) {
+                auto optHolder = q.template cast<QuantityType<TKey>, QuantityMap<TKey>::temporalEnum>();
+                ASSERT(optHolder);
+                return optHolder->getBuffers();
+            }
+        }
+        throw std::exception();
+    }
+
     int size() const { return quantities.size(); }
+
+    int getParticleCnt() {
+        // assuming positions R are ALWAYS present
+        return this->get<QuantityKey::R>().size();
+    }
 
     void merge(Storage& other) {
         // must contain the same quantities

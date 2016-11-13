@@ -96,11 +96,13 @@ public:
     // template <bool TApprox = false>
     INLINE Float gradImpl(const Float& qSqr) const {
         ASSERT(qSqr >= 0._f);
-        const Float floatIdx = Float(NEntries) * qSqr * radInvSqr;
-        const int idx1       = floor(floatIdx);
-        if (idx1 >= NEntries) {
+        if (qSqr >= Math::sqr(rad)) {
+            // outside of kernel support
             return 0._f;
         }
+        const Float floatIdx = Float(NEntries) * qSqr * radInvSqr;
+        const int idx1       = floor(floatIdx);
+        ASSERT(unsigned(idx1) < unsigned(NEntries));
         const int idx2    = idx1 + 1;
         const Float ratio = floatIdx - Float(idx1);
 
@@ -162,22 +164,33 @@ public:
 /// Two possibilities - Symmetrized kernel W_ij = 0.5(W_i + W_j)
 ///                   - Symmetrized smoothing length h_ij = 0.5(h_i + h_j)
 class SymW : public Object {
+private:
+    const LutKernel& kernel;
+
 public:
-    Float getValue(const LutKernel& kernel, const Vector& r1, const Vector& r2) {
+    SymW(const LutKernel& kernel) : kernel(kernel) {}
+
+    Float getValue(const Vector& r1, const Vector& r2) {
         return 0.5_f * (kernel.value(r1 - r2, r1[H]) + kernel.value(r1 - r2, r2[H]));
     }
 
-    Vector getGrad(const LutKernel& kernel, const Vector& r1, const Vector& r2) {
+    Vector getGrad(const Vector& r1, const Vector& r2) {
         return 0.5_f * (kernel.grad(r1 - r2, r1[H]) + kernel.grad(r1 - r2, r2[H]));
     }
 };
 
 class SymH : public Object {
-    Float getValue(const LutKernel& kernel, const Vector& r1, const Vector& r2) {
+private:
+    const LutKernel& kernel;
+
+public:
+    SymH(const LutKernel& kernel) : kernel(kernel) {}
+
+    Float getValue(const Vector& r1, const Vector& r2) {
         return kernel.value(r1 - r2, 0.5_f * (r1[H] + r2[H]));
     }
 
-    Vector getGrad(const LutKernel& kernel, const Vector& r1, const Vector& r2) {
+    Vector getGrad(const Vector& r1, const Vector& r2) {
         return kernel.grad(r1 - r2, 0.5_f * (r1[H] + r2[H]));
     }
 };

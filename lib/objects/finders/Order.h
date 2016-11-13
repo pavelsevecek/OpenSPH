@@ -56,6 +56,10 @@ public:
         return inverted;
     }
 
+    Order clone() const {
+        return storage.clone();
+    }
+
     /// Compose two orders
     Order operator()(const Order& other) const {
         Array<int> composed(storage.size());

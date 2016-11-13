@@ -5,7 +5,8 @@
 #include "wx/wx.h"
 
 #include "gui/common.h"
-#include "objects/containers/Array.h"
+#include "objects/containers/BufferedArray.h"
+#include <thread>
 
 class GLUquadric;
 
@@ -41,9 +42,10 @@ private:
 
     GLUquadric* quadric;
 
-    Array<Vector> vertices;
-    Array<Vector> normals;
-    Array<int> indices;
+    std::thread reloadThread;
+    BufferedArray<Vector> vertices;
+    BufferedArray<Vector> normals;
+    BufferedArray<int> indices;
 
     VisualSphere sphere;
 

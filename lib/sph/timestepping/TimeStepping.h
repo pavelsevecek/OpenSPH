@@ -13,7 +13,13 @@
 NAMESPACE_SPH_BEGIN
 
 
-/// To use generic method for timestepping all quantities.
+/// Base object providing integration in time for all quantities. The integration is done by iterating with
+/// discrete time step, using step() method. All derived objects must implement step() function, which
+/// iterates over all independant quantities and advances their values using temporal derivatives computed by
+/// Abstract::Model passed in argument of the method. The time-stepping object must also take care of clearing
+/// derivatives, as there can be values from previous timestep, or some garbage memory when the method is
+/// called for the first time. When model->compute is called, the storage passed as an argument MUST have zero
+/// highest order derivatives.
 namespace Abstract {
     class TimeStepping : public Polymorphic {
     protected:

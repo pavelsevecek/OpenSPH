@@ -7,25 +7,29 @@
 using namespace Sph;
 
 struct TestModel : public Abstract::Model {
-    std::shared_ptr<Storage> storage;
     Float period = 1._f;
 
-    TestModel() {
-        storage = std::make_shared<Storage>();
-        storage->template insert<QuantityKey::R>(); // add positions
+    TestModel(const std::shared_ptr<Storage>& storage)
+        : Abstract::Model(storage) {
+        this->storage->template insert<QuantityKey::R>(); // add positions
     }
 
     virtual void compute(Storage& storage) override {
         ArrayView<Vector> r, v, dv;
         /// \todo get value and 1st and 2nd derivatives at once
         /// \todo get from storage using ID and explicitly specifying type and temporal enum ("manual")
-        r           = storage.template get<QuantityKey::R>();
-        v           = storage.template dt<QuantityKey::R>();
-        dv          = storage.template d2t<QuantityKey::R>();
+        r           = storage.get<QuantityKey::R>();
+        v           = storage.dt<QuantityKey::R>();
+        dv          = storage.d2t<QuantityKey::R>();
         Float omega = 2._f * Math::PI / period;
         for (int i = 0; i < r.size(); ++i) {
             dv[i] = -Math::sqr(omega) * r[i];
         }
+    }
+
+    virtual Storage createParticles(const int, std::unique_ptr<Abstract::Domain>, const Settings<BodySettingsIds>&) const {
+        ASSERT(false);
+        return Storage();
     }
 };
 
@@ -33,16 +37,17 @@ const Float timeStep = 0.01_f;
 
 template <typename TTimestepping, typename... TArgs>
 void testTimestepping(TArgs&&... args) {
-    TestModel model;
+    std::shared_ptr<Storage> storage = std::make_shared<Storage>();
+    TestModel model(storage);
 
-    Array<Vector>& rs = model.storage->template get<QuantityKey::R>();
+    Array<Vector>& rs = storage->get<QuantityKey::R>();
     rs.push(Vector(1.f, 0.f, 0.f));
-    Array<Vector>& vs = model.storage->template dt<QuantityKey::R>();
+    Array<Vector>& vs = storage->dt<QuantityKey::R>();
     vs.push(Vector(0.f, 0.f, 0.f));
-    Array<Vector>& dvs = model.storage->template d2t<QuantityKey::R>();
+    Array<Vector>& dvs = storage->d2t<QuantityKey::R>();
     dvs.resize(1);
 
-    TTimestepping timestepping(model.storage, std::forward<TArgs>(args)...);
+    TTimestepping timestepping(storage, std::forward<TArgs>(args)...);
     int n;
     for (float t = 0.f; t < 3.f; t += timestepping.getTimeStep()) {
         // std::cout << rs[0][X] << "  " << vs[0][X] << "  " << Math::cos(2.f * Math::PI * t) << std::endl;

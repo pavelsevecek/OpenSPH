@@ -15,17 +15,26 @@ NAMESPACE_SPH_BEGIN
 class PointCloud : public Object {
 private:
     ArrayView<Vector> storage;
-
+    const Order* rankH;
 public:
+    /// \todo this is really ugly solution, solve it directly in nanoflann
+    mutable int refRank = -1; // rank of the reference index
+
     PointCloud() = default;
 
-    PointCloud(ArrayView<Vector> storage)
-        : storage(storage) {}
+    PointCloud(ArrayView<Vector> storage, const Order& rankH)
+        : storage(storage)
+        , rankH(&rankH) {}
 
     INLINE int kdtree_get_point_count() const { return storage.size(); }
 
-    INLINE Float kdtree_distance(const Vector& p1, const int idx2, int UNUSED(size)) const {
-        return getSqrLength(storage[idx2] - p1);
+    INLINE Float kdtree_distance(const Vector& v, const int idx, int UNUSED(size)) const {
+        ASSERT(refRank >= 0);
+        if (refRank > (*rankH)[idx]) {
+            return getSqrLength(v - storage[idx]);
+        } else {
+            return INFTY;
+        }
     }
 
     INLINE Float kdtree_get_pt(const int idx, int n) const { return storage[idx][n]; }
@@ -46,7 +55,7 @@ private:
 
 protected:
     virtual void buildImpl(ArrayView<Vector> values) override {
-        cloud = PointCloud(values);
+        cloud = PointCloud(values, this->rankH);
         kdTree.emplace(3, cloud, KDTreeSingleIndexAdaptorParams(1));
         kdTree->buildIndex();
     }
@@ -63,10 +72,12 @@ public:
         SearchParams params;
         params.sorted = false;
         params.eps    = error;
-        /// \todo flags
-        (void)flags;
-        const int n = kdTree->radiusSearch(values[index], radius, neighbours, params);
-        return n;
+        if (flags.has(FinderFlags::FIND_ONLY_SMALLER_H)) {
+            cloud.refRank = rankH[index];
+        } else {
+            cloud.refRank = this->values.size(); // largest rank, all particles are smaller
+        }
+        return kdTree->radiusSearch(values[index], Math::sqr(radius), neighbours, params);
     }
 };
 

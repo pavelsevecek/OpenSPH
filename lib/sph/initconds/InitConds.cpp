@@ -66,7 +66,7 @@ Array<Vector> HexagonalPacking::generate(const int n, const Abstract::Domain* do
     const Box box(center - radius, center + radius);
 
     /// \todo generalize to 1 and 2 dim
-    Array<Vector> vecs(0, 2 * n); /// \todo !!!
+    Array<Vector> vecs;
     const Float deltaX = 0.5_f * dx;
     const Float deltaY = Math::sqrt(3._f) / 6._f * dx;
     Float lastY        = 0._f;

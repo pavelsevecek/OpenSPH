@@ -61,7 +61,7 @@ public:
     }
 
     void run() {
-        Float t = 0._f;
+        UNUSED(Float t = 0._f);
         while (true) {
             // for (Float& t : rangeAdapter(timeRange, timestepping->getTimeStep())) {
             /// Output

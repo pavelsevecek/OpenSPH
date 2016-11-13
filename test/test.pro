@@ -45,7 +45,8 @@ SOURCES += \
     ../lib/objects/containers/test/BufferedArray.cpp \
     ../lib/objects/containers/test/Tuple.cpp \
     ../lib/objects/wrappers/test/Flags.cpp \
-    ../lib/physics/test/Integrals.cpp
+    ../lib/physics/test/Integrals.cpp \
+    ../lib/models/test/BasicModel.cpp
 
 
 HEADERS += \

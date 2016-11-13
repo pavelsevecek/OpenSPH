@@ -26,7 +26,7 @@ class LutKernel;
 /// Class providing construction of objects from enums. Contain only static member functions.
 class Factory : public Noncopyable {
 public:
-    static std::unique_ptr<Abstract::Eos> getEos(const EosEnum id, const Settings<BodySettingsIds>& settings);
+    static std::unique_ptr<Abstract::Eos> getEos(const Settings<BodySettingsIds>& settings);
 
     static std::unique_ptr<Abstract::TimeStepping> getTimestepping(
         const Settings<GlobalSettingsIds>& settings,

@@ -52,7 +52,7 @@ Tuple<Iterator<T>, Iterator<T>> findPairByComparator(ArrayView<T> container,
                                                      TComparator&& comparator) {
     Iterator<T> maxOuterIter = container.begin();
     Iterator<T> maxInnerIter = container.end();
-    U maxValue = defaultValue;
+    U maxValue               = defaultValue;
     for (Iterator<T> outerIter = container.begin(); outerIter != container.end(); ++outerIter) {
         for (Iterator<T> innerIter = container.begin(); innerIter != container.end(); ++innerIter) {
             if (outerIter == innerIter) {
@@ -86,10 +86,10 @@ Tuple<Iterator<T>, Iterator<T>> findPairByMinimum(ArrayView<T> container, TFunct
                                    [](const U& v1, const U& v2) { return v1 < v2; });
 }
 
-template <typename T, typename TFunctor>
-int getCountMatching(ArrayView<const T> container, TFunctor&& functor) {
+template <typename TStorage, typename TFunctor>
+int getCountMatching(const TStorage& container, TFunctor&& functor) {
     int cnt = 0;
-    for (const T& t : container) {
+    for (auto&& t : container) {
         if (functor(t)) {
             cnt++;
         }
@@ -97,9 +97,9 @@ int getCountMatching(ArrayView<const T> container, TFunctor&& functor) {
     return cnt;
 }
 
-template <typename T, typename TFunctor>
-bool areAllMatching(ArrayView<const T> container, TFunctor&& functor) {
-    for (const T& t : container) {
+template <typename TStorage, typename TFunctor>
+bool areAllMatching(const TStorage& container, TFunctor&& functor) {
+    for (auto&& t : container) {
         if (!functor(t)) {
             return false;
         }
@@ -107,9 +107,9 @@ bool areAllMatching(ArrayView<const T> container, TFunctor&& functor) {
     return true;
 }
 
-template <typename T, typename TFunctor>
-bool isAnyMatching(ArrayView<const T> container, TFunctor&& functor) {
-    for (const T& t : container) {
+template <typename TStorage, typename TFunctor>
+bool isAnyMatching(const TStorage& container, TFunctor&& functor) {
+    for (auto&& t : container) {
         if (functor(t)) {
             return true;
         }

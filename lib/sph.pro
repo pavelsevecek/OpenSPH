@@ -65,4 +65,5 @@ HEADERS += \
     physics/Integrals.h \
     storage/QuantityMap.h \
     sph/timestepping/Step.h \
-    objects/wrappers/VectorizedArray.h
+    objects/wrappers/VectorizedArray.h \
+    objects/finders/BruteForce.h

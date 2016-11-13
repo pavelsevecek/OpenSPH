@@ -132,18 +132,20 @@ public:
     /// Implicit conversion to const version
     operator ArrayView<const T, TCounter>() { return ArrayView<const T, TCounter>(data, actSize); }
 
-    Iterator<StorageType, TCounter> begin() { return Iterator<StorageType>(data, data, data + actSize); }
+    Iterator<StorageType, TCounter> begin() {
+        return Iterator<StorageType, TCounter>(data, data, data + actSize);
+    }
 
     Iterator<const StorageType, TCounter> begin() const {
-        return Iterator<const StorageType>(data, data, data + actSize);
+        return Iterator<const StorageType, TCounter>(data, data, data + actSize);
     }
 
     Iterator<StorageType, TCounter> end() {
-        return Iterator<StorageType>(data + actSize, data, data + actSize);
+        return Iterator<StorageType, TCounter>(data + actSize, data, data + actSize);
     }
 
     Iterator<const StorageType, TCounter> end() const {
-        return Iterator<StorageType>(data + actSize, data, data + actSize);
+        return Iterator<const StorageType, TCounter>(data + actSize, data, data + actSize);
     }
 
     INLINE T& operator[](const TCounter idx) {

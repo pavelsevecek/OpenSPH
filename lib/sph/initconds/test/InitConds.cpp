@@ -9,7 +9,7 @@ void testDistribution(Abstract::Distribution* distribution) {
     Array<Vector> values = distribution->generate(1000, &domain);
     REQUIRE(values.size() > 900);
     REQUIRE(values.size() < 1100);
-    bool allInside = areAllMatching<Vector>(values, [&](const Vector& v) { return domain.isInside(v); });
+    bool allInside = areAllMatching(values, [&](const Vector& v) { return domain.isInside(v); });
     REQUIRE(allInside);
 }
 

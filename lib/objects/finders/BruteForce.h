@@ -21,11 +21,11 @@ public:
                                Flags<FinderFlags> flags  = EMPTY_FLAGS,
                                const Float UNUSED(error) = 0._f) const override {
         neighbours.clear();
-        const int lastIdx =
+        const int refRank =
             (flags.has(FinderFlags::FIND_ONLY_SMALLER_H)) ? this->rankH[index] : this->values.size();
-        for (int i = 0; i < lastIdx; ++i) {
+        for (int i = 0; i < this->values.size(); ++i) {
             Float distSqr = getSqrLength(this->values[i] - this->values[index]);
-            if (distSqr < Math::sqr(radius)) {
+            if (rankH[i] < refRank && distSqr < Math::sqr(radius)) {
                 neighbours.push(NeighbourRecord{ i, distSqr });
             }
         }

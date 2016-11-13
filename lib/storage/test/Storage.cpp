@@ -16,20 +16,20 @@ TEST_CASE("Storage", "[storage]") {
 
     auto tuple = storage.template get<QuantityKey::R, QuantityKey::M>();
     static_assert(tuple.size == 2, "static test failed");
-    static_assert(std::is_same<decltype(get<0>(tuple)), Array<Vector>&>::value, "static test failed");
-    static_assert(std::is_same<decltype(get<1>(tuple)), Array<Float>&>::value, "static test failed");
+    static_assert(std::is_same<decltype(get<0>(tuple)), ArrayView<Vector>&>::value, "static test failed");
+    static_assert(std::is_same<decltype(get<1>(tuple)), ArrayView<Float>&>::value, "static test failed");
     REQUIRE(get<0>(tuple).size() == 5);
     REQUIRE(get<1>(tuple).size() == 5);
 }
 
 
 TEST_CASE("Clone storages", "[storage]") {
-    Storage storage    = makeStorage<QuantityKey::R, QuantityKey::RHO, QuantityKey::M>();
-    Array<Vector>& rs  = storage.template get<QuantityKey::R>();
-    Array<Vector>& vs = storage.template dt<QuantityKey::R>();
-    Array<Vector>& dvs = storage.template d2t<QuantityKey::R>();
-    Array<Float>& ms   = storage.template get<QuantityKey::M>();
-    Array<Float>& rhos = storage.template get<QuantityKey::RHO>();
+    Storage storage     = makeStorage<QuantityKey::R, QuantityKey::RHO, QuantityKey::M>();
+    Array<Vector>& rs   = storage.template get<QuantityKey::R>();
+    Array<Vector>& vs   = storage.template dt<QuantityKey::R>();
+    Array<Vector>& dvs  = storage.template d2t<QuantityKey::R>();
+    Array<Float>& ms    = storage.template get<QuantityKey::M>();
+    Array<Float>& rhos  = storage.template get<QuantityKey::RHO>();
     Array<Float>& drhos = storage.template dt<QuantityKey::RHO>();
 
     rs.resize(6);

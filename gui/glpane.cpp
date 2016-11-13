@@ -99,6 +99,9 @@ void VisualSphere::push(const Vector& center,
     for (int i = begVecIdx; i < vs.size(); ++i) {
         vs[i] = vs[i] * radius + center;
     }
+    for (int i = begVecIdx; i < vs.size(); ++i) {
+        ns[i] = getNormalized(vs[i]);
+    }
     // increase indices
     for (int i = begIdcsIdx; i < is.size(); ++i) {
         is[i] += begVecIdx;
@@ -112,15 +115,21 @@ void CustomGlPane::onTimer(wxTimerEvent& evt) {
         break;
     case ID_RELOAD:
         if (!cached.positions.empty()) {
-            vertices.clear();
-            normals.clear();
-            indices.clear();
-            for (const Vector& v : cached.positions) {
-                // drawSphere(v, v[H], 5, 7, vertices, normals, indices);
-                sphere.push(v, v[H], vertices, normals, indices);
+            if (reloadThread.joinable()) {
+                reloadThread.join();
             }
-            // std::cout << "vertices: " << vertices.size() << "  indices: " << indices.size()
-            //        << "   spheres: " << cached.positions.size() << std::endl;
+            reloadThread = std::thread([this]() {
+                vertices->clear();
+                normals->clear();
+                indices->clear();
+                for (const Vector& v : cached.positions) {
+                    // drawSphere(v, v[H], 5, 7, vertices, normals, indices);
+                    sphere.push(v, v[H], vertices.first(), normals.first(), indices.first());
+                }
+                vertices.swap();
+                normals.swap();
+                indices.swap();
+            });
         }
         break;
     }
@@ -220,15 +229,16 @@ void CustomGlPane::render(wxPaintEvent& UNUSED(evt)) {
     glRotatef(rotate, 0.3f, 1.0f, 0.0f);
     rotate += 4.f;
 
-    if (!vertices.empty()) {
+    /// draw spheres using buffered array
+    if (!vertices.second().empty()) {
 
         glEnableClientState(GL_VERTEX_ARRAY);
         glEnableClientState(GL_NORMAL_ARRAY);
         glEnableClientState(GL_INDEX_ARRAY);
 
-        glVertexPointer(3, GL_FLOAT, sizeof(Vector), &vertices[0]);
-        glNormalPointer(GL_FLOAT, sizeof(Vector), &normals[0]);
-        glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, &indices[0]);
+        glVertexPointer(3, GL_FLOAT, sizeof(Vector), &vertices.second()[0]);
+        glNormalPointer(GL_FLOAT, sizeof(Vector), &normals.second()[0]);
+        glDrawElements(GL_TRIANGLES, indices.second().size(), GL_UNSIGNED_INT, &indices.second()[0]);
         glDisableClientState(GL_VERTEX_ARRAY);
         glDisableClientState(GL_NORMAL_ARRAY);
         glDisableClientState(GL_INDEX_ARRAY);

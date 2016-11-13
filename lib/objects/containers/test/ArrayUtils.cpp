@@ -33,8 +33,8 @@ TEST_CASE("FindPair", "[arrayutils]") {
 
 TEST_CASE("CountMatching", "[arrayutils]") {
     Array<float> storage = { -4.f, -3.f, 0.f, 1.f, 2.f, 10.f, 7.f };
-    int even             = getCountMatching<float>(storage, [](const float v) { return int(v) % 2 == 0; });
+    int even             = getCountMatching(storage, [](const float v) { return int(v) % 2 == 0; });
     REQUIRE(even == 4);
-    int negative = getCountMatching<float>(storage, [](const float v) { return v < 0; });
+    int negative = getCountMatching(storage, [](const float v) { return v < 0; });
     REQUIRE(negative == 2);
 }

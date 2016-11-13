@@ -8,14 +8,16 @@
 
 NAMESPACE_SPH_BEGIN
 
-std::unique_ptr<Abstract::Eos> Factory::getEos(const EosEnum id, const Settings<BodySettingsIds>& settings) {
-    switch (id) {
+std::unique_ptr<Abstract::Eos> Factory::getEos(const Settings<BodySettingsIds>& settings) {
+    const Optional<EosEnum> id = optionalCast<EosEnum>(settings.get<int>(BodySettingsIds::EOS));
+    switch (id.get()) {
     case EosEnum::IDEAL_GAS:
         return std::make_unique<IdealGasEos>();
     case EosEnum::TILLOTSON:
         return std::make_unique<TillotsonEos>(settings);
     default:
         ASSERT(false);
+        return nullptr;
     }
 }
 
