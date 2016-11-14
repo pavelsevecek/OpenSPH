@@ -29,14 +29,14 @@ public:
     ///                    computation time.
     template <typename TFunctor>
     auto integrate(TFunctor&& f, const Float targetError = 0.001_f) {
-        double sum = 0.;
-        double sumSqr = 0.;
+        double sum      = 0.;
+        double sumSqr   = 0.;
         double errorSqr = Math::sqr(targetError);
-        int64_t n              = 0;
+        int64_t n       = 0;
         StaticArray<Vector, chunk> buffer;
-        StaticArray<bool, chunk> inside;
+        Array<int> inside;
         Vector center = domain->getCenter();
-        Float radius = domain->getBoundingRadius();
+        Float radius  = domain->getBoundingRadius();
         while (true) {
             for (int i = 0; i < chunk; ++i) {
                 // dimensionless vector
@@ -44,16 +44,14 @@ public:
                 const Vector q(rng(0), rng(1), rng(2));
                 // vector with units and properly scaled and moved
                 const Vector v = radius * (2._f * q - Vector(1._f)) + center;
-                buffer[i] = v;
+                buffer[i]      = v;
             }
-            domain->areInside(buffer, inside);
-            for (int i = 0; i < chunk; ++i) {
-                if (inside[i]) {
-                    const double x = (double)f(buffer[i]);
-                    sum += x;
-                    sumSqr += x * x;
-                    n++;
-                }
+            domain->getSubset(buffer, inside, SubsetType::INSIDE);
+            for (int i : inside) {
+                const double x = (double)f(buffer[i]);
+                sum += x;
+                sumSqr += x * x;
+                n++;
             }
             //  const TResult e = (n*sumSqr - sum*sum)/(n*sumSqr);
             // std::cout << e << std::endl;

@@ -43,7 +43,7 @@ TEST_CASE("create particles", "[basicmodel]") {
 
 TEST_CASE("simple run", "[basicmodel]") {
     Settings<GlobalSettingsIds> globalSettings(GLOBAL_SETTINGS);
-    globalSettings.set<Float>(GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP, 1.e-4_f);
+    globalSettings.set<Float>(GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP, 1.e-2_f);
     globalSettings.set<int>(GlobalSettingsIds::FINDER, int(FinderEnum::BRUTE_FORCE));
     std::shared_ptr<Storage> storage = std::make_shared<Storage>();
     BasicModel model(storage, globalSettings);
@@ -59,17 +59,20 @@ TEST_CASE("simple run", "[basicmodel]") {
     // check integrals of motion
     TotalMomentum momentum(storage);
     TotalAngularMomentum angularMomentum(storage);
-    const Vector mom0 = momentum.compute();
-    const Vector angmom0 = angularMomentum.compute();
+    const Vector mom0 = momentum();
+    const Vector angmom0 = angularMomentum();
     REQUIRE(mom0 == Vector(0._f));
     REQUIRE(angmom0 == Vector(0._f));
     for (float t = 0._f; t < 1._f; t += timestepping.getTimeStep()) {
         timestepping.step(&model);
     }
-    const Vector mom1 = momentum.compute();
-    const Vector angmom1 = angularMomentum.compute();
-    REQUIRE(mom1 == Vector(0._f));
-    REQUIRE(angmom1 == Vector(0._f));
+    const Vector mom1 = momentum();
+    const Vector angmom1 = angularMomentum();
+    const Float momVar = momentum.getVariance();
+    const Float angmomVar = angularMomentum.getVariance();
+
+    REQUIRE(Math::almostEqual(mom1, Vector(0._f), Math::sqrt(momVar)));
+    REQUIRE(Math::almostEqual(angmom1, Vector(0._f), Math::sqrt(angmomVar)));
 
     // check that particles gained some velocity
     Float totV = 0._f;

@@ -115,6 +115,10 @@ public:
         std::swap(this->actSize, other.actSize);
     }
 
+    /// Explicitly initialize to nullptr
+    ArrayView(std::nullptr_t)
+        : data(nullptr) {}
+
     /// Copy operator
     ArrayView& operator=(const ArrayView& other) {
         this->data    = other.data;
@@ -163,6 +167,8 @@ public:
     INLINE bool empty() const { return this->actSize == 0; }
 
     bool operator!() const { return data == nullptr; }
+
+    explicit operator bool() const { return data != nullptr; }
 };
 
 

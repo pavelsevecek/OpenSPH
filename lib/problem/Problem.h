@@ -61,16 +61,14 @@ public:
     }
 
     void run() {
-        UNUSED(Float t = 0._f);
-        while (true) {
-            // for (Float& t : rangeAdapter(timeRange, timestepping->getTimeStep())) {
+        for (Float& t : rangeAdapter(timeRange, timestepping->getTimeStep())) {
             /// Output
 
             // logger->write("Time: " + std::to_string(t) + " s");
-            // t += timestepping->getTimeStep();
+            t += timestepping->getTimeStep();
             /// Initialize all quantities
             // model.init();
-
+            timestepping->step(&model);
             // model.makeTimeStep(timestepping.get());
 
             if (callbacks) {

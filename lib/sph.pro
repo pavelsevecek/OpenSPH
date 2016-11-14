@@ -1,7 +1,7 @@
 TEMPLATE = lib
 CONFIG += c++14 staticLib thread
 CONFIG -= app_bundle qt
-QMAKE_CXXFLAGS += -Wall -msse4.1 -std=c++14 -pthread
+QMAKE_CXXFLAGS += -Wall -msse4.1 -std=c++14 -pthread -pg
 SOURCES += \
     physics/TimeFormat.cpp \
     sph/initconds/InitConds.cpp \
@@ -66,4 +66,7 @@ HEADERS += \
     storage/QuantityMap.h \
     sph/timestepping/Step.h \
     objects/wrappers/VectorizedArray.h \
-    objects/finders/BruteForce.h
+    objects/finders/BruteForce.h \
+    sph/av/Monaghan.h \
+    sph/boundary/Boundary.h \
+    objects/finders/PeriodicFinder.h

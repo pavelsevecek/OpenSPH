@@ -142,7 +142,7 @@ void CustomGlPane::draw(ArrayView<const Vector> positions) {
 
 CustomGlPane::CustomGlPane(wxFrame* parent, int* args)
     : wxGLCanvas(parent, wxID_ANY, args, wxDefaultPosition, wxDefaultSize, wxFULL_REPAINT_ON_RESIZE)
-    , sphere(5, 7) {
+    , sphere(7, 9) {
     context = std::make_unique<wxGLContext>(this);
 
 
@@ -150,10 +150,10 @@ CustomGlPane::CustomGlPane(wxFrame* parent, int* args)
     SetBackgroundStyle(wxBG_STYLE_CUSTOM);
 
     reloadTimer = new wxTimer(this, ID_RELOAD);
-    reloadTimer->Start(1000);
+    reloadTimer->Start(50);
 
     repaintTimer = new wxTimer(this, ID_REPAINT);
-    repaintTimer->Start(50);
+    repaintTimer->Start(20);
 }
 
 CustomGlPane::~CustomGlPane() {}
@@ -227,7 +227,7 @@ void CustomGlPane::render(wxPaintEvent& UNUSED(evt)) {
 
     glTranslatef(0.f, 0.f, -5.f);
     glRotatef(rotate, 0.3f, 1.0f, 0.0f);
-    rotate += 4.f;
+   // rotate += 4.f;
 
     /// draw spheres using buffered array
     if (!vertices.second().empty()) {

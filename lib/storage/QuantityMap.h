@@ -9,13 +9,15 @@
 NAMESPACE_SPH_BEGIN
 
 /// Unique ID of basic quantities of SPH particles
+/// Order MUST match order in QuantityMap
 namespace QuantityKey {
     enum BasicKey {
         R   = 0, ///< Positions (velocities, accelerations) of particles
+      //  H   = 1, ///< Smoothing lengths
         M   = 1, ///< Paricles masses
         P   = 2, ///< Pressure
         RHO = 3, ///< Density
-        U   = 4  ///< Specific internal energy
+        U   = 4 ///< Specific internal energy
     };
 };
 
@@ -32,6 +34,7 @@ template <int TKey>
 struct QuantityMap {
     static constexpr QuantityDescriptor quantityDescriptors[] =
         { { QuantityKey::R, ValueEnum::VECTOR, TemporalEnum::SECOND_ORDER },
+        //  { QuantityKey::H, ValueEnum::SCALAR, TemporalEnum::FIRST_ORDER },
           { QuantityKey::M, ValueEnum::SCALAR, TemporalEnum::CONST },
           { QuantityKey::P, ValueEnum::SCALAR, TemporalEnum::CONST },
           { QuantityKey::RHO, ValueEnum::SCALAR, TemporalEnum::FIRST_ORDER },
@@ -43,7 +46,7 @@ struct QuantityMap {
 };
 
 /// alias
-template<int TKey>
+template <int TKey>
 using QuantityType = typename QuantityMap<TKey>::Type;
 
 

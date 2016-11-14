@@ -12,8 +12,8 @@ TEST_CASE("Total momentum", "[integrals]") {
     storage->template insert<QuantityKey::M>(Array<Float>{5._f, 7._f});
 
     TotalMomentum momentum(storage);
-    REQUIRE(momentum.compute() == Vector(0._f, 31._f, 0._f));
+    REQUIRE(momentum() == Vector(0._f, 31._f, 0._f));
 
     TotalAngularMomentum angularMomentum(storage);
-    REQUIRE(angularMomentum.compute() == Vector(0._f, 0._f, 10._f));
+    REQUIRE(angularMomentum() == Vector(0._f, 0._f, 10._f));
 }

@@ -12,13 +12,16 @@ BasicModel::BasicModel(const std::shared_ptr<Storage>& storage, const Settings<G
     finder = Factory::getFinder((FinderEnum)settings.get<int>(GlobalSettingsIds::FINDER).get());
     kernel = Factory::getKernel((KernelEnum)settings.get<int>(GlobalSettingsIds::KERNEL).get());
 
-    /// \todo we have to somehow connect EoS with storage. Plus when two storages are merged, we have to remember EoS for each particles. This should be probably generalized, for example we want to remember original body of the particle, possibly original position (right under surface, core of the body, antipode, ...)
+    /// \todo we have to somehow connect EoS with storage. Plus when two storages are merged, we have to
+    /// remember EoS for each particles. This should be probably generalized, for example we want to remember
+    /// original body of the particle, possibly original position (right under surface, core of the body,
+    /// antipode, ...)
     eos = Factory::getEos(BODY_SETTINGS);
 }
 
 BasicModel::~BasicModel() {}
 
-void BasicModel::compute(Storage& storage) {
+NO_INLINE void BasicModel::compute(Storage& storage) {
     const int size = storage.getParticleCnt();
 
     ArrayView<Vector> r, v, dv;
@@ -27,17 +30,29 @@ void BasicModel::compute(Storage& storage) {
     refs(r, v, dv) = storage.getAll<QuantityKey::R>();
     refs(rho, drho) = storage.getAll<QuantityKey::RHO>();
     refs(u, du)     = storage.getAll<QuantityKey::U>();
-    tie(p, m)       = storage.get<QuantityKey::P, QuantityKey::M>();
+    // refs(h, dh)     = storage.getAll<QuantityKey::H>();
+    tie(p, m) = storage.get<QuantityKey::P, QuantityKey::M>();
 
     // clear velocity divergence (derivatives are already cleared by timestepping)
     divv.resize(r.size());
     divv.fill(0._f);
+
+    // clamp smoothing length
+    /// \todo generalize clamping, min / max values
+    for (Float& h : componentAdapter(r, H)) {
+        h = Math::max(h, EPS);
+    }
 
     // find new pressure
     /// \todo move outside? to something like "poststep" method
     eos->getPressure(rho, u, p);
 
     // build neighbour finding object
+    /// \todo only rebuild(), try to limit allocations
+    /// \todo do it without saving h in r
+    /* for (int i=0; i<size; ++i) {
+         r[i][H] = h[i];
+     }*/
     finder->build(r);
 
     // we symmetrize kernel by averaging smoothing lenghts
@@ -46,54 +61,69 @@ void BasicModel::compute(Storage& storage) {
         // Find all neighbours within kernel support. Since we are only searching for particles with smaller
         // h, we know that symmetrized lengths (h_i + h_j)/2 will be ALWAYS smaller or equal to h_i, and we
         // thus never "miss" a particle.
-        const int n =
-            finder->findNeighbours(i, r[i][H] * kernel.radius(), neighs, FinderFlags::FIND_ONLY_SMALLER_H);
+        finder->findNeighbours(i, r[i][H] * kernel.radius(), neighs, FinderFlags::FIND_ONLY_SMALLER_H);
 
         // iterate over neighbours
         const Float pRhoInvSqr = p[i] / Math::sqr(rho[i]);
-        for (int j = 0; j < n; ++j) {
-            ASSERT(0.5_f * (r[i][H] + r[j][H]) <= r[i][H]);
+        ASSERT(Math::isReal(pRhoInvSqr));
+        for (const auto& neigh : neighs) {
+            const int j = neigh.index;
+            // actual smoothing length
+            const Float hbar = 0.5_f * (r[i][H] + r[j][H]);
+            ASSERT(hbar <= r[i][H]);
+            if (getSqrLength(r[i] - r[j]) > Math::sqr(kernel.radius() * hbar)) {
+                // aren't actual neighbours
+                continue;
+            }
             // compute gradient of kernel
             const Vector grad = w.getGrad(r[i], r[j]);
+            ASSERT(Math::isReal(grad));
 
             // compute forces (accelerations)
             const Vector f = (pRhoInvSqr + p[j] / Math::sqr(rho[j])) * grad;
+            ASSERT(Math::isReal(f));
             dv[i] -= m[j] * f;
             dv[j] += m[i] * f;
 
             // compute velocity divergence, save them as 4th computent of velocity vector
-            const Float u = dot(v[j] - v[i], grad);
-            divv[i] -= m[j] * u;
-            divv[j] += m[i] * u;
+            const Float delta = dot(v[j] - v[i], grad);
+            ASSERT(Math::isReal(delta));
+            divv[i] -= m[j] * delta;
+            divv[j] += m[i] * delta;
         }
     }
     // solve all remaining quantities using computed values
     /// \todo this should be also generalized to some abstract solvers ...
-    /// \todo smoothing length should also be solved together with density. This is probably not performance critical, though.
-    this->solveSmoothingLength(v, r);
-    this->solveDensity(drho, rho);
+    /// \todo smoothing length should also be solved together with density. This is probably not performance
+    /// critical, though.
+    this->solveSmoothingLength(v, dv, r, rho);
+    this->solveDensity(drho);
     this->solveEnergy(du, p, rho);
 }
 
-void BasicModel::solveSmoothingLength(ArrayView<Vector> v, ArrayView<const Vector> r) {
+void BasicModel::solveSmoothingLength(ArrayView<Vector> v,
+                                      ArrayView<Vector> dv,
+                                      ArrayView<const Vector> r,
+                                      ArrayView<const Float> rho) {
     ASSERT(divv.size() == r.size());
-    constexpr Float dimInv = 1._f / 3._f;
     for (int i = 0; i < r.size(); ++i) {
-        v[i][H] = r[i][H] * divv[i] * dimInv;
+        v[i][H] = r[i][H] * divv[i] / (3._f * rho[i]);
+        // clear 'acceleration' of smoothing lengths, we advance h as first-order quantity, even though it is
+        // stored within positions.
+        dv[i][H] = 0._f;
     }
 }
 
-void BasicModel::solveDensity(ArrayView<Float> drho, ArrayView<const Float> rho) {
-    ASSERT(drho.size() == rho.size());
+void BasicModel::solveDensity(ArrayView<Float> drho) {
     ASSERT(drho.size() == divv.size());
     for (int i = 0; i < drho.size(); ++i) {
-        drho[i] = -rho[i] * divv[i];
+        drho[i] = -divv[i];
     }
 }
 
 void BasicModel::solveEnergy(ArrayView<Float> du, ArrayView<const Float> p, ArrayView<const Float> rho) {
     for (int i = 0; i < du.size(); ++i) {
-        du[i] = -p[i] / rho[i] *divv[i];
+        du[i] = -p[i] / Math::sqr(rho[i]) * divv[i];
     }
 }
 
@@ -107,11 +137,21 @@ Storage BasicModel::createParticles(const int n,
 
     // Final number of particles
     const int N = rs.size();
+    ASSERT(N);
+
+    /* // Extract smoothing lengths
+     Array<Float> hs;
+     for (Vector& r : rs) {
+         hs.push(r[H]);
+     }*/
 
     Storage st;
 
     // Put generated particles inside the storage.
     st.insert<QuantityKey::R>(std::move(rs));
+
+    /*// Same for smoothing lengths
+    st.insert<QuantityKey::H>(std::move(hs));*/
 
     // Create all other quantities (with empty arrays so far)
     st.insert<QuantityKey::M, QuantityKey::P, QuantityKey::RHO, QuantityKey::U>();

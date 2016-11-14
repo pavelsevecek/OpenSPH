@@ -27,7 +27,6 @@ public:
     /// this should be called only once for a pair of particles as there is expensive division
     /// \todo Test this carefully before going any further
     /// \todo Potentially precompute the 3rd power ...
-    /// \todo How to resolve dimensions for d!=3 ??
     //    template <bool TApprox = false>
     INLINE Float value(const Vector& r, const Float& h) const {
         return Math::pow<-3>(h) * kernel->valueImpl(getSqrLength(r) / (h * h));
@@ -81,12 +80,14 @@ public:
     // template <bool TApprox = false>
     INLINE Float valueImpl(const Float& qSqr) const {
         ASSERT(qSqr >= 0.f);
+        if (qSqr >= Math::sqr(rad)) {
+            // outside of kernel support
+            return 0._f;
+        }
         // linear interpolation of stored values
         const Float floatIdx = Float(NEntries) * qSqr * radInvSqr;
         const int idx1       = floor(floatIdx);
-        if (idx1 >= NEntries) {
-            return 0._f;
-        }
+        ASSERT(idx1 < NEntries);
         const int idx2    = idx1 + 1;
         const Float ratio = floatIdx - Float(idx1);
 

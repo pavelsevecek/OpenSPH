@@ -223,6 +223,11 @@ namespace Math {
     INLINE Float normSqr(const Float& value) {
         return Math::sqr(value);
     }
+
+    template<typename T>
+    INLINE bool isReal(const T& value) {
+        return value == 0._f || std::isnormal(value);
+    }
 }
 
 NAMESPACE_SPH_END

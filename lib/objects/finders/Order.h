@@ -71,6 +71,10 @@ public:
 
     INLINE int operator[](const int idx) const { return storage[idx]; }
 
+    INLINE int size() const {
+        return storage.size();
+    }
+
     INLINE bool operator==(const Order& other) const { return storage == other.storage; }
 };
 

@@ -3,7 +3,7 @@ CONFIG += c++14 thread
 CONFIG -= app_bundle
 CONFIG -= qt
 
-QMAKE_CXXFLAGS += -msse4.1 -std=c++14 -pthread
+QMAKE_CXXFLAGS += -msse4.1 -std=c++14 -pthread -pg
 
 INCLUDEPATH += ../lib ../../external/Catch/include
 DEPENDPATH += . ../lib

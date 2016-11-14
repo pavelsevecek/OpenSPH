@@ -560,6 +560,11 @@ namespace Math {
     INLINE Float norm(const Vector& v) { return getLengthApprox(v); }
 
     INLINE Float normSqr(const Vector& v) { return getSqrLength(v); }
+
+    INLINE bool isReal(const Vector& v) {
+        /// \todo optimize using SSE intrinsics
+        return isReal(v[0]) && isReal(v[1]) && isReal(v[2]);
+    }
 }
 
 /// Construct a vector from spherical coordinates. The angle has generally different

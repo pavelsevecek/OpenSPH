@@ -6,8 +6,8 @@
 
 #include "geometry/Vector.h"
 #include "objects/containers/Array.h"
-#include "objects/wrappers/Flags.h"
 #include "objects/finders/Order.h"
+#include "objects/wrappers/Flags.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -29,15 +29,13 @@ namespace Abstract {
 
         virtual void buildImpl(ArrayView<Vector> values) = 0;
 
+        virtual void rebuildImpl() {}
+
     public:
         /// Constructs the struct with an array of vectors
         void build(ArrayView<Vector> values) {
             this->values = values;
-            Order tmp(values.size());
-            // sort by smoothing length
-            tmp.shuffle([&values](const int i1, const int i2) { return values[i1][H] < values[i2][H]; });
-            // invert to get rank in H
-            rankH = tmp.getInverted();
+            rebuild();
             buildImpl(values);
         }
 
@@ -56,7 +54,22 @@ namespace Abstract {
                                    const Float error = 0._f) const = 0;
 
         /// Updates the structure when the position change.
-        virtual void rebuild() {}
+        void rebuild() {
+            Order tmp(this->values.size());
+            // sort by smoothing length
+            tmp.shuffle([this](const int i1, const int i2) { return values[i1][H] < values[i2][H]; });
+// invert to get rank in H
+/// \todo avoid allocation here
+#ifdef DEBUG
+            Float lastH = 0._f;
+            for (int i = 0; i < tmp.size(); ++i) {
+                ASSERT(this->values[tmp[i]][H] >= lastH);
+                lastH = this->values[tmp[i]][H];
+            }
+#endif
+            rankH = tmp.getInverted();
+            rebuildImpl();
+        }
     };
 }
 
