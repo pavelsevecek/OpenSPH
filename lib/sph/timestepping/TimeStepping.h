@@ -8,6 +8,7 @@
 #include "models/BasicModel.h"
 #include "objects/containers/Array.h"
 #include "storage/Storage.h"
+#include "system/Profiler.h"
 #include <memory>
 
 NAMESPACE_SPH_BEGIN
@@ -54,6 +55,7 @@ public:
         // compute derivatives
         model->compute(*this->storage);
 
+        PROFILE_SCOPE("EulerExplicit::step")
         // advance all 2nd-order quantities by current timestep, first values, then 1st derivatives
         iterate<TemporalEnum::SECOND_ORDER>(*this->storage, [this](auto& v, auto& dv, auto& d2v) {
             for (int i = 0; i < v.size(); ++i) {
@@ -84,27 +86,31 @@ public:
 
     virtual void step(Abstract::Model* model) override {
         const Float dt2 = 0.5_f * Math::sqr(this->dt);
-        // make prediction using old derivatives (simple euler)
-        iterate<TemporalEnum::SECOND_ORDER>(*this->storage, [this, dt2](auto& v, auto& dv, auto& d2v) {
-            for (int i = 0; i < v.size(); ++i) {
-                v[i] += dv[i] * this->dt + d2v[i] * dt2;
-                dv[i] += d2v[i] * this->dt;
-            }
-        });
-        iterate<TemporalEnum::FIRST_ORDER>(*this->storage, [this](auto& v, auto& dv) {
-            for (int i = 0; i < v.size(); ++i) {
-                v[i] += dv[i] * this->dt;
-            }
-        });
-        // save derivatives from predictions
-        this->storage->swap(predictions, TemporalEnum::HIGHEST_ORDER);
 
-        // clear derivatives
-        this->storage->init();
+        {
+            PROFILE_SCOPE("PredictorCorrector::step   Predictions")
+            // make prediction using old derivatives (simple euler)
+            iterate<TemporalEnum::SECOND_ORDER>(*this->storage, [this, dt2](auto& v, auto& dv, auto& d2v) {
+                for (int i = 0; i < v.size(); ++i) {
+                    v[i] += dv[i] * this->dt + d2v[i] * dt2;
+                    dv[i] += d2v[i] * this->dt;
+                }
+            });
+            iterate<TemporalEnum::FIRST_ORDER>(*this->storage, [this](auto& v, auto& dv) {
+                for (int i = 0; i < v.size(); ++i) {
+                    v[i] += dv[i] * this->dt;
+                }
+            });
+            // save derivatives from predictions
+            this->storage->swap(predictions, TemporalEnum::HIGHEST_ORDER);
 
+            // clear derivatives
+            this->storage->init();
+        }
         // compute model
         model->compute(*storage);
 
+        PROFILE_SCOPE("PredictorCorrector::step   Corrections")
         // make corrections
         // clang-format off
         iteratePair<TemporalEnum::SECOND_ORDER>(*this->storage, this->predictions,

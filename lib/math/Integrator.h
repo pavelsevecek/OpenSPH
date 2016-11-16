@@ -46,6 +46,7 @@ public:
                 const Vector v = radius * (2._f * q - Vector(1._f)) + center;
                 buffer[i]      = v;
             }
+            inside.clear();
             domain->getSubset(buffer, inside, SubsetType::INSIDE);
             for (int i : inside) {
                 const double x = (double)f(buffer[i]);

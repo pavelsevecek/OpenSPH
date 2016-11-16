@@ -1,4 +1,5 @@
 #include "sph/initconds/InitConds.h"
+#include "system/Profiler.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -28,6 +29,7 @@ Array<Vector> RandomDistribution::generate(const int n, const Abstract::Domain* 
 }
 
 Array<Vector> CubicPacking::generate(const int n, const Abstract::Domain* domain) const {
+    PROFILE_SCOPE("CubicPacking::generate")
     ASSERT(n > 0);
     const Float volume          = domain->getVolume();
     const Float particleDensity = Float(n) / volume;
@@ -51,6 +53,7 @@ Array<Vector> CubicPacking::generate(const int n, const Abstract::Domain* domain
 }
 
 Array<Vector> HexagonalPacking::generate(const int n, const Abstract::Domain* domain) const {
+    PROFILE_SCOPE("HexagonalPacking::generate")
     ASSERT(n > 0);
     const Float volume          = domain->getVolume();
     const Float particleDensity = Float(n) / volume;

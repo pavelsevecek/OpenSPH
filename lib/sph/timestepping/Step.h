@@ -1,6 +1,7 @@
 #pragma once
 
 #include "storage/Storage.h"
+#include "system/Profiler.h"
 #include <memory>
 
 NAMESPACE_SPH_BEGIN
@@ -16,6 +17,7 @@ public:
 
     /// Returns the time step based on ratio between quantities and their derivatives
     virtual Float operator()() const {
+        PROFILE_SCOPE("StepGetter::operator()");
         Float minStep = INFTY;
         iterate<TemporalEnum::FIRST_ORDER>(*storage, [&minStep](auto&& v, auto&& dv) {
             ASSERT(v.size() == dv.size());

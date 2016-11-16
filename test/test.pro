@@ -4,6 +4,7 @@ CONFIG -= app_bundle
 CONFIG -= qt
 
 QMAKE_CXXFLAGS += -msse4.1 -std=c++14 -pthread -pg
+QMAKE_LFLAGS += -pg
 
 INCLUDEPATH += ../lib ../../external/Catch/include
 DEPENDPATH += . ../lib
@@ -46,7 +47,9 @@ SOURCES += \
     ../lib/objects/containers/test/Tuple.cpp \
     ../lib/objects/wrappers/test/Flags.cpp \
     ../lib/physics/test/Integrals.cpp \
-    ../lib/models/test/BasicModel.cpp
+    ../lib/models/test/BasicModel.cpp \
+    ../lib/geometry/test/Tensor.cpp \
+    ../lib/system/test/Profiler.cpp
 
 
 HEADERS += \

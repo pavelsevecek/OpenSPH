@@ -29,7 +29,7 @@ public:
     /// Create timer with given expiration duration. Flag PERIODIC does not do anything in this case, user
     /// must check for expiration and possibly restart timer, this isn't provided by timer constructed this
     /// way.
-    Timer(const int64_t interval, const Flags<TimerFlags> flags = EMPTY_FLAGS);
+    Timer(const int64_t interval = 0, const Flags<TimerFlags> flags = EMPTY_FLAGS);
 
     /// Create timer with given exporation duration and on-timer-expired callback. The callback is executed
     /// only once by default, or periodically if PERIODIC flag is passed.
@@ -49,7 +49,6 @@ public:
 
     bool isPeriodic() const { return flags.has(TimerFlags::PERIODIC); }
 };
-
 
 class TimerThread : public Noncopyable {
 private:

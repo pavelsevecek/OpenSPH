@@ -1,30 +1,34 @@
-#include "geometry/vector.h"
-#include "core/core.h"
-#include "physics/eos.h"
-#include "system/settings.h"
+#include "physics/Eos.h"
+#include "problem/Problem.h"
+#include "system/Factory.h"
 
-#include <iostream>
+
 
 using namespace Sph;
 
 int main() {
-    //globalSettings.saveToFile("/home/pavel/projects/astro/sph2/settings.conf");
+    auto globalSettings = GLOBAL_SETTINGS;
+    globalSettings.set<int>(GlobalSettingsIds::FINDER, int(FinderEnum::BRUTE_FORCE));
+    Problem<BasicModel>* p = new Problem<BasicModel>(globalSettings);
+    p->logger              = std::make_unique<StdOut>();
+    p->timeRange           = Range<Float>(0._f, 1000._f);
+    p->timestepping        = Factory::getTimestepping(globalSettings, p->storage);
 
-    Problem<Body> p1;
-//    p1.domain = std::make_unique<SphericalDomain>(Vector(0._f), 1._f);
-    p1.finder = std::make_unique<KdTree>();
-    p1.logger = std::make_unique<StdOut>();
-    p1.timestepping = std::make_unique<EulerExplicit>(0.1_f);
-    p1.timeRange = Range<Float>(0._f, 10._f);
-    p1.model.create(10000, new SphericalDomain(Vector(0._f), 1._f), new HexagonalPacking(), BODY_SETTINGS);
+    auto bodySettings = BODY_SETTINGS;
+    bodySettings.set(BodySettingsIds::ENERGY, 0.001_f);
+    Storage body1 =
+        p->model.createParticles(1000, std::make_unique<SphericalDomain>(Vector(0._f), 1._f), bodySettings);
 
-    Body projectile;
-    projectile.create(1000, new SphericalDomain(Vector(2._f, 1._f, 0._f), 0.3_f), new HexagonalPacking(), BODY_SETTINGS);
-    projectile.addVelocity(Vector(-3.f, 0.f, 0.f));
-    p1.model.merge(projectile);
+    Storage body2 =
+        p->model.createParticles(100,
+                                 std::make_unique<SphericalDomain>(Vector(2._f, 1._f, 0._f), 0.3_f),
+                                 bodySettings);
+    body2.dt<QuantityKey::R>().fill(Vector(-0.4_f, 0._f, 0._f));
 
-    //p1.model.saveToFile("/home/pavel/projects/astro/sph2/dump.txt");
+    *p->storage = std::move(body1);
+    p->storage->merge(body2);
 
-    p1.run();
+
+    p->run();
     return 0;
 }

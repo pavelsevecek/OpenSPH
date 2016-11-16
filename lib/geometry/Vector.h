@@ -189,15 +189,17 @@ public:
                                   _mm_shuffle_ps(other.data, other.data, _MM_SHUFFLE(3, 0, 2, 1)))));
     }
 
-    // component-wise minimum
+    /// Component-wise minimum
     INLINE BasicVector min(const BasicVector& other) const {
         return BasicVector(_mm_min_ps(data, other.data));
     }
 
-    // component-wise maximum
+    /// Component-wise maximum
     INLINE BasicVector max(const BasicVector& other) const {
         return BasicVector(_mm_max_ps(data, other.data));
     }
+
+    /// Output to stream
     template <typename TStream>
     friend TStream& operator<<(TStream& stream, const BasicVector& v) {
         constexpr int digits = 6;
@@ -564,6 +566,12 @@ namespace Math {
     INLINE bool isReal(const Vector& v) {
         /// \todo optimize using SSE intrinsics
         return isReal(v[0]) && isReal(v[1]) && isReal(v[2]);
+    }
+
+    /// Cosine applied to all components of the vector.
+    INLINE BasicVector<float> cos(const BasicVector<float>& v) {
+        /// \todo optimize
+        return BasicVector<float>(cos(v[0]), cos(v[1]), cos(v[2]), cos(v[3]));
     }
 }
 

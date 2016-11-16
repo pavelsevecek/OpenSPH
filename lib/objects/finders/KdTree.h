@@ -8,6 +8,7 @@
 #include "objects/finders/Finder.h"
 #include "objects/finders/Nanoflann.h"
 #include "objects/wrappers/Optional.h"
+#include "system/Profiler.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -55,6 +56,7 @@ private:
 
 protected:
     virtual void buildImpl(ArrayView<Vector> values) override {
+        PROFILE_SCOPE("KdTree::buildImpl")
         cloud = PointCloud(values, this->rankH);
         kdTree.emplace(3, cloud, KDTreeSingleIndexAdaptorParams(1));
         kdTree->buildIndex();
@@ -68,6 +70,7 @@ public:
                                Array<NeighbourRecord>& neighbours,
                                Flags<FinderFlags> flags = EMPTY_FLAGS,
                                const Float error        = 0._f) const override {
+        PROFILE_SCOPE("KdTree::findNeighbours")
         neighbours.clear();
         SearchParams params;
         params.sorted = false;

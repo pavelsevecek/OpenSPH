@@ -4,6 +4,7 @@
 #include "sph/initconds/InitConds.h"
 #include "storage/Iterate.h"
 #include "system/Factory.h"
+#include "system/Profiler.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -22,6 +23,8 @@ BasicModel::BasicModel(const std::shared_ptr<Storage>& storage, const Settings<G
 BasicModel::~BasicModel() {}
 
 NO_INLINE void BasicModel::compute(Storage& storage) {
+    PROFILE_SCOPE("BasicModel::compute")
+
     const int size = storage.getParticleCnt();
 
     ArrayView<Vector> r, v, dv;
@@ -130,6 +133,7 @@ void BasicModel::solveEnergy(ArrayView<Float> du, ArrayView<const Float> p, Arra
 Storage BasicModel::createParticles(const int n,
                                     std::unique_ptr<Abstract::Domain> domain,
                                     const Settings<BodySettingsIds>& settings) const {
+    PROFILE_SCOPE("BasicModel::createParticles")
     std::unique_ptr<Abstract::Distribution> distribution = Factory::getDistribution(settings);
 
     // Generate positions of particles
