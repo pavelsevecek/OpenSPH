@@ -1,4 +1,4 @@
-#include "sph/initconds/InitConds.h"
+#include "sph/distributions/Distribution.h"
 #include "catch.hpp"
 #include "objects/containers/ArrayUtils.h"
 
@@ -29,4 +29,18 @@ TEST_CASE("RandomDistribution", "[initconds]") {
 
 
     // 100 points inside block [0,1]^d, approx. distance is 100^(-1/d)
+}
+
+TEST_CASE("LinearDistribution", "[initconds]") {
+    LinearDistribution linear;
+    SphericalDomain domain(Vector(0.5_f), 0.5_f);
+    Array<Vector> values = linear.generate(101, &domain);
+    REQUIRE(values.size() == 101);
+    bool equal = true;
+    for (int i=0; i<=100; ++i) {
+        if (!Math::almostEqual(values[i], Vector(i/100._f, 0._f, 0._f))) {
+            equal = false;
+        }
+    }
+    REQUIRE(equal);
 }

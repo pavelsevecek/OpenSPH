@@ -21,6 +21,10 @@ namespace Abstract {
         virtual void getPressure(ArrayView<const Float> rho,
                                  ArrayView<const Float> u,
                                  ArrayView<Float> p) = 0;
+
+        virtual void getInternalEnergy(ArrayView<const Float> rho,
+                                       ArrayView<const Float> p,
+                                       ArrayView<Float> u) = 0;
     };
 }
 
@@ -30,7 +34,7 @@ private:
     const Float gamma;
 
 public:
-    IdealGasEos(const Float gamma = 1.5_f)
+    IdealGasEos(const Float gamma)
         : gamma(gamma) {}
 
     virtual void getPressure(ArrayView<const Float> rho,
@@ -39,6 +43,15 @@ public:
         ASSERT(rho.size() == u.size() && rho.size() == p.size());
         for (int i = 0; i < p.size(); ++i) {
             p[i] = gamma * u[i] * rho[i];
+        }
+    }
+
+    virtual void getInternalEnergy(ArrayView<const Float> rho,
+                                   ArrayView<const Float> p,
+                                   ArrayView<Float> u) override {
+        ASSERT(rho.size() == u.size() && rho.size() == p.size());
+        for (int i = 0; i < p.size(); ++i) {
+            u[i] = p[i] / (gamma * rho[i]);
         }
     }
 
@@ -70,7 +83,7 @@ private:
 
 public:
     TillotsonEos(const Settings<BodySettingsIds>& settings)
-        : uiv(settings.get<Float>(BodySettingsIds::ENERGY_IV).get()) {}
+        : uiv(settings.get<Float>(BodySettingsIds::TILLOTSON_ENERGY_IV).get()) {}
 
     virtual void getPressure(ArrayView<const Float> rho,
                              ArrayView<const Float> u,
@@ -94,6 +107,12 @@ public:
                 p[i] = ((u[i] - uiv) * pe + (ucv - u[i]) * pc) / (ucv - uiv);
             }
         }
+    }
+
+    virtual void getInternalEnergy(ArrayView<const Float> UNUSED(rho),
+                                   ArrayView<const Float> UNUSED(p),
+                                   ArrayView<Float> UNUSED(u)) override {
+        ASSERT(false);
     }
 };
 

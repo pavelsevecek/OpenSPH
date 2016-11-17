@@ -6,7 +6,7 @@ QMAKE_LFLAGS += -pg
 
 SOURCES += \
     physics/TimeFormat.cpp \
-    sph/initconds/InitConds.cpp \
+    sph/distributions/Distribution.cpp \
     system/Timer.cpp \
     system/Factory.cpp \
     sph/timestepping/TimeStepping.cpp \
@@ -51,7 +51,6 @@ HEADERS += \
     physics/TimeFormat.h \
     problem/Problem.h \
     sph/timestepping/TimeStepping.h \
-    sph/initconds/InitConds.h \
     sph/kernel/Kernel.h \
     system/Callbacks.h \
     system/Factory.h \
@@ -73,4 +72,6 @@ HEADERS += \
     sph/av/Monaghan.h \
     sph/boundary/Boundary.h \
     objects/finders/PeriodicFinder.h \
-    system/Profiler.h
+    system/Profiler.h \
+    models/CompositeModel.h \
+    sph/distributions/Distribution.h

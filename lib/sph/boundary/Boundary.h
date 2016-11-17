@@ -5,6 +5,7 @@
 /// sevecek at sirrah.troja.mff.cuni.cz
 
 #include "geometry/Domain.h"
+#include "objects/wrappers/Range.h"
 #include "storage/Storage.h"
 #include <memory>
 
@@ -14,16 +15,7 @@ NAMESPACE_SPH_BEGIN
 
 namespace Abstract {
     class BoundaryConditions : public Polymorphic {
-    protected:
-        std::shared_ptr<Storage> storage;
-        std::unique_ptr<Abstract::Domain> domain;
-
     public:
-        BoundaryConditions(const std::shared_ptr<Storage>& storage,
-                           const std::unique_ptr<Abstract::Domain> domain)
-            : storage(storage)
-            , domain(domain) {}
-
         /// Applies boundary conditions onto the particles
         virtual void apply() = 0;
     };
@@ -51,17 +43,20 @@ enum class ProjectingOptions {
 };
 
 /// Simply project all particles outside of the domain to its boundary.
-class ParticleProjecting : public Abstract::BoundaryConditions {
+class DomainProjecting : public Abstract::BoundaryConditions {
 private:
-    ProjectingOptions options;
-    Array<bool> outside;
+    std::shared_ptr<Storage> storage;
+    std::unique_ptr<Abstract::Domain> domain;
+    Array<int> outside;
     Array<Vector> vproj;
+    ProjectingOptions options;
 
 public:
-    ParticleProjecting(const std::shared_ptr<Storage>& storage,
-                       const std::unique_ptr<Abstract::Domain> domain,
-                       const ProjectingOptions options)
-        : Abstract::BoundaryConditions(storage, domain)
+    DomainProjecting(const std::shared_ptr<Storage>& storage,
+                     std::unique_ptr<Abstract::Domain>&& domain,
+                     const ProjectingOptions options)
+        : storage(storage)
+        , domain(std::move(domain))
         , options(options) {}
 
     virtual void apply() override {
@@ -71,6 +66,7 @@ public:
         domain->getSubset(r, outside, SubsetType::OUTSIDE);
         domain->project(r, outside);
         vproj.clear();
+        int idx = 0;
         switch (options) {
         case ProjectingOptions::ZERO_VELOCITY:
             for (int i : outside) {
@@ -79,14 +75,12 @@ public:
             break;
         case ProjectingOptions::ZERO_PERPENDICULAR:
             projectVelocity(r, v);
-            int idx = 0;
             for (int i : outside) {
                 v[i] = 0.5_f * (v[i] + vproj[idx] - r[i]);
             }
             break;
         case ProjectingOptions::REFLECT:
             projectVelocity(r, v);
-            int idx = 0;
             for (int i : outside) {
                 // subtract the original position and we have projected velocities! Yay!)
                 v[i] = vproj[idx] - r[i];
@@ -94,6 +88,7 @@ public:
             break;
         }
     }
+
 private:
     void projectVelocity(ArrayView<const Vector> r, ArrayView<const Vector> v) {
         /// \todo implement using normal to the boundary
@@ -101,14 +96,40 @@ private:
             // sum up position and velocity
             vproj.push(r[i] + v[i]);
         }
-        // project the sum
-        domain->project(vproj);
-
+        // invert the sum
+        domain->invert(vproj);
     }
 };
 
 class PeriodicDomain : public Abstract::BoundaryConditions {
     /// \todo modify Finder to search periodically in domain. That should be the whole trick
 };
+
+class Projection1D : public Abstract::BoundaryConditions {
+private:
+    std::shared_ptr<Storage> storage;
+    Range<Float> domain;
+
+public:
+    /// Constructs using range as 1D domain
+    Projection1D(const std::shared_ptr<Storage>& storage, const Range<Float> domain)
+        : storage(storage)
+        , domain(domain) {}
+
+    virtual void apply() override {
+        Array<Vector>& r = this->storage->get<QuantityKey::R>();
+        Array<Vector>& v = this->storage->dt<QuantityKey::R>();
+
+        for (int i = 0; i < r.size(); ++i) {
+            // throw away y and z, keep h
+            r[i] = Vector(domain.clamp(r[i][0]), 0._f, 0._f, r[i][H]);
+            v[i] = Vector(v[i][0], 0._f, 0._f);
+        }
+        // null velocity of first and last particle
+        v[0] = Vector(0._f);
+        v[v.size()-1] = Vector(0._f);
+    }
+};
+
 
 NAMESPACE_SPH_END

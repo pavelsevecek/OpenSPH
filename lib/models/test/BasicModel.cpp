@@ -3,17 +3,18 @@
 #include "geometry/Domain.h"
 #include "objects/containers/ArrayUtils.h"
 #include "objects/wrappers/Range.h"
-#include "sph/timestepping/TimeStepping.h"
-#include "physics/Integrals.h"
 #include "physics/Constants.h"
+#include "physics/Integrals.h"
+#include "sph/timestepping/TimeStepping.h"
 
 using namespace Sph;
 
 TEST_CASE("create particles", "[basicmodel]") {
-    BasicModel model(std::make_shared<Storage>(), GLOBAL_SETTINGS);
-    Storage storage =
-        model.createParticles(100, std::make_unique<BlockDomain>(Vector(0._f), Vector(1._f)), BODY_SETTINGS);
-
+    BasicModel<3> model(std::make_shared<Storage>(), GLOBAL_SETTINGS);
+    Settings<BodySettingsIds> bodySettings(BODY_SETTINGS);
+    bodySettings.set(BodySettingsIds::PARTICLE_COUNT, 100);
+    BlockDomain domain(Vector(0._f), Vector(1._f));
+    Storage storage = model.createParticles(&domain, bodySettings);
 
     const int size = storage.get<QuantityKey::R>().size();
     REQUIRE(Range<int>(80, 120).contains(size));
@@ -44,31 +45,32 @@ TEST_CASE("create particles", "[basicmodel]") {
 TEST_CASE("simple run", "[basicmodel]") {
     Settings<GlobalSettingsIds> globalSettings(GLOBAL_SETTINGS);
     globalSettings.set<Float>(GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP, 1.e-2_f);
-    globalSettings.set<int>(GlobalSettingsIds::FINDER, int(FinderEnum::BRUTE_FORCE));
+    globalSettings.set<int>(GlobalSettingsIds::SPH_FINDER, int(FinderEnum::BRUTE_FORCE));
     std::shared_ptr<Storage> storage = std::make_shared<Storage>();
-    BasicModel model(storage, globalSettings);
+    BasicModel<3> model(storage, globalSettings);
 
     // set initial energy to nonzero value, to get some pressure
     Settings<BodySettingsIds> bodySettings(BODY_SETTINGS);
-    bodySettings.set<Float>(BodySettingsIds::ENERGY, 100._f * Constants::gasConstant); // 100K
-    *storage =
-        model.createParticles(100, std::make_unique<BlockDomain>(Vector(0._f), Vector(1._f)), bodySettings);
+    bodySettings.set(BodySettingsIds::PARTICLE_COUNT, 100);
+    bodySettings.set(BodySettingsIds::ENERGY, 100._f * Constants::gasConstant); // 100K
+    BlockDomain domain(Vector(0._f), Vector(1._f));
+    *storage = model.createParticles(&domain, bodySettings);
 
 
     EulerExplicit timestepping(storage, globalSettings);
     // check integrals of motion
     TotalMomentum momentum(storage);
     TotalAngularMomentum angularMomentum(storage);
-    const Vector mom0 = momentum();
+    const Vector mom0    = momentum();
     const Vector angmom0 = angularMomentum();
     REQUIRE(mom0 == Vector(0._f));
     REQUIRE(angmom0 == Vector(0._f));
     for (float t = 0._f; t < 1._f; t += timestepping.getTimeStep()) {
         timestepping.step(&model);
     }
-    const Vector mom1 = momentum();
-    const Vector angmom1 = angularMomentum();
-    const Float momVar = momentum.getVariance();
+    const Vector mom1     = momentum();
+    const Vector angmom1  = angularMomentum();
+    const Float momVar    = momentum.getVariance();
     const Float angmomVar = angularMomentum.getVariance();
 
     REQUIRE(Math::almostEqual(mom1, Vector(0._f), Math::sqrt(momVar)));

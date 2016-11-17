@@ -15,6 +15,7 @@ void function2() {
 }
 
 TEST_CASE("Profiler", "[profiler]") {
+    Profiler::getInstance()->clear();
     {
         PROFILE_SCOPE("all");
         function1();
@@ -24,9 +25,9 @@ TEST_CASE("Profiler", "[profiler]") {
     Array<ScopeStatistics> stats = Profiler::getInstance()->getStatistics();
     REQUIRE(stats.size() == 3);
     REQUIRE(stats[0].name == "all");
-    REQUIRE(stats[0].totalTime == 170);
+    REQUIRE(stats[0].totalTime / 1000 == 170); // totalTime is in microseconds
     REQUIRE(stats[1].name == "function1");
-    REQUIRE(stats[1].totalTime == 100);
+    REQUIRE(stats[1].totalTime / 1000 == 100);
     REQUIRE(stats[2].name == "function2");
-    REQUIRE(stats[2].totalTime == 70);
+    REQUIRE(stats[2].totalTime / 1000 == 70);
 }

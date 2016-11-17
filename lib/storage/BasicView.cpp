@@ -1,5 +1,5 @@
 #include "storage/QuantityMap.h"
-#include "sph/initconds/InitConds.h"
+#include "sph/distributions/Distribution.h"
 
 NAMESPACE_SPH_BEGIN
 

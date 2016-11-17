@@ -4,6 +4,7 @@
 #include "objects/containers/Tuple.h"
 #include "storage/Iterate.h"
 #include "storage/QuantityMap.h"
+#include "system/Logger.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -187,6 +188,22 @@ public:
         StorageIterator<Type>::iteratePair(storage1.quantities,
                                            storage2.quantities,
                                            std::forward<TFunctor>(functor));
+    }
+
+    /// \todo saving velocities?
+    template<int... TKeys>
+    void save(Abstract::Logger* output, const Float UNUSED(time)) {
+        auto tuple = this->get<TKeys...>();
+        auto first = tuple.template get<0>();
+        const int size = first.size();
+        for (int i=0; i<size; ++i) {
+            forEach(tuple, [output, i](auto&& array) {
+                std::stringstream ss;
+                ss << std::setw(15) << array[i];
+                output->write(ss.str());
+            });
+            output->write("\n");
+        }
     }
 };
 

@@ -27,7 +27,8 @@ struct TestModel : public Abstract::Model {
         }
     }
 
-    virtual Storage createParticles(const int, std::unique_ptr<Abstract::Domain>, const Settings<BodySettingsIds>&) const {
+    virtual Storage createParticles(Abstract::Domain* domain,
+                                    const Settings<BodySettingsIds>&) const override {
         ASSERT(false);
         return Storage();
     }

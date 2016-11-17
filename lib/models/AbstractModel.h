@@ -25,8 +25,7 @@ namespace Abstract {
 
         /// Creates particles in storage and initializes all quantities to default values.
         /// \param n Expected number of particles.
-        virtual Storage createParticles(const int n,
-                                        std::unique_ptr<Abstract::Domain> domain,
+        virtual Storage createParticles(Abstract::Domain* domain,
                                         const Settings<BodySettingsIds>& settings) const = 0;
     };
 }

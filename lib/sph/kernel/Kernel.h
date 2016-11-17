@@ -12,7 +12,7 @@ NAMESPACE_SPH_BEGIN
 /// All derived class must implement method <code>value</code> and
 /// <code>grad</code>. Both function take SQUARED value of dimensionless distance q as a parameter. Function
 /// value returns the kernel value, grad returns gradient DIVIDED BY q.
-template <class TDerived>
+template <class TDerived, int d>
 class Kernel : public Noncopyable {
 private:
     const TDerived* kernel;
@@ -29,18 +29,19 @@ public:
     /// \todo Potentially precompute the 3rd power ...
     //    template <bool TApprox = false>
     INLINE Float value(const Vector& r, const Float& h) const {
-        return Math::pow<-3>(h) * kernel->valueImpl(getSqrLength(r) / (h * h));
+        return Math::pow<-d>(h) * kernel->valueImpl(getSqrLength(r) / (h * h));
     }
 
     //  template <bool TApprox = false>
     INLINE Vector grad(const Vector& r, const Float& h) const {
-        return r * Math::pow<-5>(h) * kernel->gradImpl(getSqrLength(r) / (h * h));
+        return r * Math::pow<-d - 2>(h) * kernel->gradImpl(getSqrLength(r) / (h * h));
     }
 };
 
 
 /// A look-up table approximation of the kernel. Can be constructed from any SPH kernel.
-class LutKernel : public Kernel<LutKernel> {
+template <int d>
+class LutKernel : public Kernel<LutKernel<d>, d> {
 private:
     static constexpr int NEntries = 40000;
 
@@ -113,9 +114,10 @@ public:
 
 
 /// A cubic spline (M4) kernel
-class CubicSpline : public Kernel<CubicSpline> {
+template <int d>
+class CubicSpline : public Kernel<CubicSpline<d>, d> {
 private:
-    static constexpr Float normalization = 1._f / Math::PI;
+    static constexpr Float normalization[] = { 2._f / 3._f, 10._f / (7._f * Math::PI), 1._f / Math::PI };
 
 public:
     CubicSpline() = default;
@@ -127,10 +129,10 @@ public:
         const Float q = Math::sqrt(qSqr);
         ASSERT(q >= 0);
         if (q < 1._f) {
-            return normalization * (0.25_f * Math::pow<3>(2._f - q) - Math::pow<3>(1._f - q));
+            return normalization[d - 1] * (0.25_f * Math::pow<3>(2._f - q) - Math::pow<3>(1._f - q));
         }
         if (q < 2._f) {
-            return normalization * (0.25_f * Math::pow<3>(2._f - q));
+            return normalization[d - 1] * (0.25_f * Math::pow<3>(2._f - q));
         }
         return 0._f; // compact within 2r radius
     }
@@ -142,11 +144,11 @@ public:
             return 0._f;
         }
         if (q < 1._f) {
-            return (1._f / q) * normalization *
+            return (1._f / q) * normalization[d - 1] *
                    (-0.75_f * Math::pow<2>(2._f - q) + 3 * Math::pow<2>(1._f - q));
         }
         if (q < 2._f) {
-            return (1._f / q) * normalization * (-0.75f * Math::pow<2>(2.f - q));
+            return (1._f / q) * normalization[d - 1] * (-0.75f * Math::pow<2>(2.f - q));
         }
         return 0._f;
     }
@@ -164,12 +166,14 @@ public:
 /// Symmetrization of the kernel with a respect to different smoothing lenths
 /// Two possibilities - Symmetrized kernel W_ij = 0.5(W_i + W_j)
 ///                   - Symmetrized smoothing length h_ij = 0.5(h_i + h_j)
+template <int d>
 class SymW : public Object {
 private:
-    const LutKernel& kernel;
+    const LutKernel<d>& kernel;
 
 public:
-    SymW(const LutKernel& kernel) : kernel(kernel) {}
+    SymW(const LutKernel<d>& kernel)
+        : kernel(kernel) {}
 
     Float getValue(const Vector& r1, const Vector& r2) {
         return 0.5_f * (kernel.value(r1 - r2, r1[H]) + kernel.value(r1 - r2, r2[H]));
@@ -180,12 +184,14 @@ public:
     }
 };
 
+template <int d>
 class SymH : public Object {
 private:
-    const LutKernel& kernel;
+    const LutKernel<d>& kernel;
 
 public:
-    SymH(const LutKernel& kernel) : kernel(kernel) {}
+    SymH(const LutKernel<d>& kernel)
+        : kernel(kernel) {}
 
     Float getValue(const Vector& r1, const Vector& r2) {
         return kernel.value(r1 - r2, 0.5_f * (r1[H] + r2[H]));

@@ -1,7 +1,7 @@
 #include "objects/finders/KdTree.h"
 #include "catch.hpp"
 #include "objects/containers/ArrayUtils.h"
-#include "sph/initconds/InitConds.h"
+#include "sph/distributions/Distribution.h"
 #include "objects/wrappers/Range.h"
 #include <iostream>
 

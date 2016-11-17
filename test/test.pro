@@ -36,7 +36,7 @@ SOURCES += \
     ../lib/objects/finders/test/Order.cpp \
     ../lib/objects/finders/test/BruteForce.cpp \
     ../lib/sph/timestepping/test/TimeStepping.cpp \
-    ../lib/sph/initconds/test/InitConds.cpp \
+    ../lib/sph/distributions/test/Distribution.cpp \
     ../lib/sph/kernel/test/Kernel.cpp \
     ../lib/system/test/Settings.cpp \
     ../lib/system/test/Timer.cpp \

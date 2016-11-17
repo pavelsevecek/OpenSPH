@@ -2,33 +2,30 @@
 #include "problem/Problem.h"
 #include "system/Factory.h"
 
-
-
 using namespace Sph;
 
 int main() {
     auto globalSettings = GLOBAL_SETTINGS;
-    globalSettings.set<int>(GlobalSettingsIds::FINDER, int(FinderEnum::BRUTE_FORCE));
-    Problem<BasicModel>* p = new Problem<BasicModel>(globalSettings);
-    p->logger              = std::make_unique<StdOut>();
-    p->timeRange           = Range<Float>(0._f, 1000._f);
-    p->timestepping        = Factory::getTimestepping(globalSettings, p->storage);
+    Problem<BasicModel<3>> p(globalSettings);
+    p.logger       = std::make_unique<StdOutput>();
+    p.timeRange    = Range<Float>(0._f, 10._f);
+    p.timeStepping = Factory::getTimestepping(globalSettings, p.storage);
 
     auto bodySettings = BODY_SETTINGS;
     bodySettings.set(BodySettingsIds::ENERGY, 0.001_f);
-    Storage body1 =
-        p->model.createParticles(1000, std::make_unique<SphericalDomain>(Vector(0._f), 1._f), bodySettings);
+    auto domain1  = std::make_unique<SphericalDomain>(Vector(0._f), 1._f);
+    Storage body1 = p.model.createParticles(domain1.get(), bodySettings);
 
-    Storage body2 =
-        p->model.createParticles(100,
-                                 std::make_unique<SphericalDomain>(Vector(2._f, 1._f, 0._f), 0.3_f),
-                                 bodySettings);
+    auto domain2  = std::make_unique<SphericalDomain>(Vector(2._f, 1._f, 0._f), 0.3_f);
+    Storage body2 = p.model.createParticles(domain2.get(), bodySettings);
     body2.dt<QuantityKey::R>().fill(Vector(-0.4_f, 0._f, 0._f));
 
-    *p->storage = std::move(body1);
-    p->storage->merge(body2);
+    *p.storage = std::move(body1);
+    p.storage->merge(body2);
 
+    p.run();
 
-    p->run();
+    Profiler::getInstance()->printStatistics(p.logger.get());
+
     return 0;
 }

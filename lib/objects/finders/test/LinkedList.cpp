@@ -1,6 +1,6 @@
 #include "objects/finders/LinkedList.h"
 #include "objects/finders/BruteForce.h"
-#include "sph/initconds/InitConds.h"
+#include "sph/distributions/Distribution.h"
 #include "catch.hpp"
 
 /// \todo !!

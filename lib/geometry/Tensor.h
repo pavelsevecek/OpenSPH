@@ -114,8 +114,6 @@ public:
         }
     }
 
-    Tensor transpose() const {}
-
     Tensor inverse() const {
         const Float det = determinant();
         ASSERT(det != 0._f);
@@ -143,6 +141,7 @@ public:
     template <typename TStream>
     friend TStream& operator<<(TStream& stream, const Tensor& v) {
         stream << v[0] << std::endl << v[1] << std::endl << v[2];
+        return stream;
     }
 };
 

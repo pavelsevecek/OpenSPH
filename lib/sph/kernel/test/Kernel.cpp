@@ -6,7 +6,7 @@
 using namespace Sph;
 
 /// Test given kernel and its approximation given by LUT
-template <typename TKernel, typename TTest>
+template <int d, typename TKernel, typename TTest>
 void testKernel(const TKernel& kernel, TTest&& test) {
     // compact support
     Float radiusSqr = Math::sqr(kernel.radius());
@@ -33,7 +33,7 @@ void testKernel(const TKernel& kernel, TTest&& test) {
     }
 
     // check that kernel and LUT give the same values and gradients
-    LutKernel lut(kernel);
+    LutKernel<d> lut(kernel);
     // check that its values match the precise M4 kernels
     for (Float x = 0._f; x < kernel.radius(); x += 0.2_f) {
         REQUIRE(Math::almostEqual(lut.valueImpl(x), kernel.valueImpl(x)));
@@ -46,10 +46,10 @@ void testKernel(const TKernel& kernel, TTest&& test) {
 }
 
 TEST_CASE("M4 kernel", "[kernel]") {
-    CubicSpline m4;
+    CubicSpline<3> m4;
 
 
-    testKernel(m4, [](auto&& kernel) {
+    testKernel<3>(m4, [](auto&& kernel) {
         REQUIRE(kernel.radius() == 2._f);
         Float norm = 1. / Math::PI;
 

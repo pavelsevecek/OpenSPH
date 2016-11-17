@@ -209,11 +209,11 @@ namespace Math {
 
     /// Returns a norm of a object. Must be specialized to use other objects as quantities.
     template<typename T>
-    INLINE Float norm(T&& value);
+    INLINE Float norm(const T& value);
 
     /// Squared value of the norm.
     template<typename T>
-    INLINE Float normSqr(T&& value);
+    INLINE Float normSqr(const T& value);
 
     template<>
     INLINE Float norm(const Float& value) {

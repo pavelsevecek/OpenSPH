@@ -16,8 +16,11 @@ enum class TimerFlags { PERIODIC = 1 << 0, START_EXPIRED = 1 << 1 };
 
 class TimerThread;
 
+enum class TimerUnit { MILLISECOND, MICROSECOND };
+
+/// Basic time-measuring tool. Starts automatically when constructed.
 class Timer : public Observable {
-private:
+protected:
     using TTimePoint = std::chrono::time_point<std::chrono::system_clock>;
     using TClock     = std::chrono::system_clock;
 
@@ -29,6 +32,8 @@ public:
     /// Create timer with given expiration duration. Flag PERIODIC does not do anything in this case, user
     /// must check for expiration and possibly restart timer, this isn't provided by timer constructed this
     /// way.
+    /// \param interval Timer interval in milliseconds. It isn't currently possible to create interval in
+    /// different units, but you can explicitly specify units in elapsed() method.
     Timer(const int64_t interval = 0, const Flags<TimerFlags> flags = EMPTY_FLAGS);
 
     /// Create timer with given exporation duration and on-timer-expired callback. The callback is executed
@@ -40,14 +45,65 @@ public:
     /// Reset elapsed duration to zero.
     void restart() { started = TClock::now(); }
 
-    /// Returns elapsed time in milliseconds. Does not reset the timer.
+    /// Returns elapsed time in timer units. Does not reset the timer.
+    template <TimerUnit TUnit>
     int64_t elapsed() const {
-        return std::chrono::duration_cast<std::chrono::milliseconds>(TClock::now() - started).count();
+        switch (TUnit) {
+        case TimerUnit::MILLISECOND:
+            return std::chrono::duration_cast<std::chrono::milliseconds>(TClock::now() - started).count();
+        case TimerUnit::MICROSECOND:
+            return std::chrono::duration_cast<std::chrono::microseconds>(TClock::now() - started).count();
+        }
     }
 
-    bool isExpired() const { return elapsed() >= interval; }
+    /// Checks if the interval has already passed.
+    bool isExpired() const { return elapsed<TimerUnit::MILLISECOND>() >= interval; }
 
     bool isPeriodic() const { return flags.has(TimerFlags::PERIODIC); }
+};
+
+/// Simple extension of Timer allowing to pause and continue timer.
+class StoppableTimer : public Timer {
+protected:
+    TTimePoint stopped;
+    bool isStopped = false;
+
+public:
+    /// Stops the timer. Function getElapsed() will report the same value from now on.
+    void stop() {
+        if (!isStopped) {
+            isStopped = true;
+            stopped = TClock::now();
+        }
+    }
+
+    /// Resumes stopped timer.
+    void resume() {
+        if (isStopped) {
+            isStopped = false;
+            // advance started by stopped duration to report correct elapsed time of the timer
+            started += TClock::now() - stopped;
+        }
+    }
+
+    /// Returns elapsed time in timer units. Does not reset the timer.
+    template <TimerUnit TUnit>
+    int64_t elapsed() const {
+        switch (TUnit) {
+        case TimerUnit::MILLISECOND:
+            return std::chrono::duration_cast<std::chrono::milliseconds>(elapsedImpl()).count();
+        case TimerUnit::MICROSECOND:
+            return std::chrono::duration_cast<std::chrono::microseconds>(elapsedImpl()).count();
+        }
+    }
+private:
+    auto elapsedImpl() const {
+        if (!isStopped) {
+            return TClock::now() - started;
+        } else {
+            return stopped - started;
+        }
+    }
 };
 
 class TimerThread : public Noncopyable {

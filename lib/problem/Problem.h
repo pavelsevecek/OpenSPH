@@ -3,12 +3,13 @@
 #include "objects/containers/Tuple.h"
 #include "objects/finders/Finder.h"
 #include "objects/wrappers/Range.h"
-#include "sph/initconds/InitConds.h"
+#include "sph/distributions/Distribution.h"
 #include "sph/kernel/Kernel.h"
 #include "sph/timestepping/TimeStepping.h"
 #include "storage/QuantityMap.h"
 #include "system/Callbacks.h"
 #include "system/Logger.h"
+#include "sph/boundary/Boundary.h"
 
 
 NAMESPACE_SPH_BEGIN
@@ -35,7 +36,9 @@ public:
     std::unique_ptr<Abstract::Callbacks> callbacks;
 
     /// Timestepping
-    std::unique_ptr<Abstract::TimeStepping> timestepping;
+    std::unique_ptr<Abstract::TimeStepping> timeStepping;
+
+    std::unique_ptr<Abstract::BoundaryConditions> boundary;
 
     /// Time range of the simulations
     /// \todo other conditions? For example pressure-limited simulations?
@@ -61,15 +64,22 @@ public:
     }
 
     void run() {
-        for (Float& t : rangeAdapter(timeRange, timestepping->getTimeStep())) {
-            /// Output
+        int i = 0;
+        for (Float& t : rangeAdapter(timeRange, timeStepping->getTimeStep())) {
+            const Float dt = timeStepping->getTimeStep();
+            t += dt;
 
-            // logger->write("Time: " + std::to_string(t) + " s");
-            t += timestepping->getTimeStep();
-            /// Initialize all quantities
-            // model.init();
-            timestepping->step(&model);
-            // model.makeTimeStep(timestepping.get());
+            if (logger) {
+                logger->write("t = " + std::to_string(t) + ", dt = " + std::to_string(dt));
+            }
+
+            // Make time step
+            timeStepping->step(&model);
+
+            // Apply boundary conditions
+            if (boundary) {
+                boundary->apply();
+            }
 
             if (callbacks) {
                 callbacks->onTimeStep(storage->get<QuantityKey::R>());

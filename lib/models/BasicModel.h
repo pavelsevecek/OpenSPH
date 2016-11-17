@@ -18,12 +18,13 @@ namespace Abstract {
 }
 struct NeighbourRecord;
 
+template<int d>
 class BasicModel : public Abstract::Model {
 private:
     std::unique_ptr<Abstract::Finder> finder;
      std::unique_ptr<Abstract::Eos> eos;
     /// \todo what if we have more EoSs in one model? (rock and ice together in a comet)
-    LutKernel kernel;
+    LutKernel<d> kernel;
     Array<NeighbourRecord> neighs; /// \todo store neighbours directly here?!
 
     Array<Float> divv; /// auxiliary buffer storing velocity divergences
@@ -35,8 +36,7 @@ public:
 
     virtual void compute(Storage& storage) override;
 
-    virtual Storage createParticles(const int n,
-                                    std::unique_ptr<Abstract::Domain> domain,
+    virtual Storage createParticles(Abstract::Domain* domain,
                                     const Settings<BodySettingsIds>& settings) const override;
 
 private:

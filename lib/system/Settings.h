@@ -89,7 +89,7 @@ public:
 
 enum class KernelEnum { CUBIC_SPLINE };
 
-enum class SmoothingLengthEnum {
+enum class KernelSymmetryEnum {
     /// Will return value of kernel at average smoothing lenghts
     SYMMETRIZE_LENGTHS,
 
@@ -121,8 +121,28 @@ enum class FinderEnum {
     /// Optimized kNN queries using K-d tree
     KD_TREE,
 
+    /// Optimized kNN queries using octree
+    OCTREE,
+
     /// Optimized kNN queries using precomputed linked list
     LINKED_LIST
+};
+
+enum class BoundaryEnum {
+    /// Do not use any boundary conditions (= vacuum conditions)
+    NONE,
+
+    /// Project outside particles onto the boundary
+    DOMAIN_PROJECTING,
+
+    /// Create ghosts to keep particles inside domain
+    GHOST_PARTICLES,
+
+    /// Periodic boundary conditions
+    PERIODIC,
+
+    /// Project all movement onto a line, effectivelly reducing the simulation to 1D
+    PROJECT_1D
 };
 
 
@@ -131,14 +151,23 @@ enum class GlobalSettingsIds {
     /// Custom name of the run
     RUN_NAME,
 
+    /// Frequency of dumping data to disk in number of timesteps
+    RUN_OUTPUT_STEP,
+
+    /// File name of the output file (including extension), where %d is a placeholder for output number.
+    RUN_OUTPUT_NAME,
+
     /// Index of SPH Kernel, see KernelEnum
-    KERNEL,
+    SPH_KERNEL,
 
     /// Structure for searching nearest neighbours of particles
-    FINDER,
+    SPH_FINDER,
+
+    /// Boundary conditions
+    BOUNDARY,
 
     /// Approach of smoothing length symmetrization, see SmoothingLengthEnum
-    SMOOTHING_LENGTH_SYMMETRIZATION,
+    SPH_KERNEL_SYMMETRY,
 
     /// Selected timestepping integrator
     TIMESTEPPING_INTEGRATOR,
@@ -152,6 +181,9 @@ enum class GlobalSettingsIds {
     /// Initial value of time step (relative to the maximal time step)
     TIMESTEPPING_INITIAL_TIMESTEP,
 
+    /// Constant / adaptive time step
+    TIMESTEPPING_ADAPTIVE,
+
     /// Artificial viscosity alpha coefficient
     AV_ALPHA,
 
@@ -162,15 +194,19 @@ enum class GlobalSettingsIds {
 // clang-format off
 const Settings<GlobalSettingsIds> GLOBAL_SETTINGS = {
     { GlobalSettingsIds::RUN_NAME,                          "run.name",             std::string("unnamed run") },
-    { GlobalSettingsIds::KERNEL,                            "sph.kernel",           int(KernelEnum::CUBIC_SPLINE) },
-    { GlobalSettingsIds::SMOOTHING_LENGTH_SYMMETRIZATION,   "sph.h_sym",            int(SmoothingLengthEnum::SYMMETRIZE_LENGTHS) },
-    { GlobalSettingsIds::FINDER,                            "sph.finder",           int(FinderEnum::KD_TREE) },
+    { GlobalSettingsIds::RUN_OUTPUT_STEP,                   "run.output_step",      100 },
+    { GlobalSettingsIds::RUN_OUTPUT_NAME,                   "run.output_name",      std::string("out_%d.txt") },
+    { GlobalSettingsIds::SPH_KERNEL,                        "sph.kernel",           int(KernelEnum::CUBIC_SPLINE) },
+    { GlobalSettingsIds::SPH_KERNEL_SYMMETRY,               "sph.kernel.symmetry",  int(KernelSymmetryEnum::SYMMETRIZE_LENGTHS) },
+    { GlobalSettingsIds::SPH_FINDER,                        "sph.finder",           int(FinderEnum::KD_TREE) },
     { GlobalSettingsIds::TIMESTEPPING_INTEGRATOR,           "timestep.integrator",  int(TimesteppingEnum::EULER_EXPLICIT) },
     { GlobalSettingsIds::TIMESTEPPING_COURANT,              "timestep.courant",     1.f },
     { GlobalSettingsIds::TIMESTEPPING_MAX_TIMESTEP,         "timestep.max_step",    0.1f /*s*/}, /// \todo units necessary in settings!!!
     { GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP,     "timestep.initial",     0.03f },
+    { GlobalSettingsIds::TIMESTEPPING_ADAPTIVE,             "timestep.adaptive",    false },
     { GlobalSettingsIds::AV_ALPHA,                          "av.alpha",             1.5f },
     { GlobalSettingsIds::AV_BETA,                           "av.beta",              3.f },
+    { GlobalSettingsIds::BOUNDARY,                          "boundary",             int(BoundaryEnum::NONE) }
 };
 // clang-format on
 
@@ -186,7 +222,10 @@ enum class DistributionEnum {
     RANDOM,
 
     /// Isotropic uniform distribution by Diehl et al. (2012)
-    DIEHL_ET_AL
+    DIEHL_ET_AL,
+
+    /// Distributes particles uniformly on line
+    LINEAR
 };
 
 
@@ -216,16 +255,19 @@ enum class BodySettingsIds {
 
     BULK_MODULUS,
 
-    NONLINEAR_TILLOTSON_B,
-
     /// Initial energy
     ENERGY,
 
+    ADIABATIC_INDEX,
+
+
+    TILLOTSON_NONLINEAR_B,
+
     /// Specific energy of incipient vaporization
-    ENERGY_IV,
+    TILLOTSON_ENERGY_IV,
 
     /// Specific energy of complete vaporization
-    EVERGY_CV,
+    TILLOTSON_EVERGY_CV,
 
     SHEAR_MODULUS,
 
@@ -237,15 +279,23 @@ enum class BodySettingsIds {
 
     /// Number of SPH particles in the body
     PARTICLE_COUNT,
+
+    DOMAIN_TYPE,
+
+    DOMAIN_CENTER,
+
+    DOMAIN_RADIUS,
 };
 
 // clang-format off
 const Settings<BodySettingsIds> BODY_SETTINGS = {
-    { BodySettingsIds::EOS,                     "material.eos",             int(EosEnum::IDEAL_GAS) },
-    { BodySettingsIds::DENSITY,                 "material.density",         2700.f },
-    { BodySettingsIds::ENERGY,                  "material.energy",          0.f },
-    { BodySettingsIds::INITIAL_DISTRIBUTION,    "sph.initial_distribution", int(DistributionEnum::HEXAGONAL) },
-    { BodySettingsIds::PARTICLE_COUNT,          "sph.particle_count",       10000 },
+    { BodySettingsIds::EOS,                     "material.eos",                 int(EosEnum::IDEAL_GAS) },
+    { BodySettingsIds::ADIABATIC_INDEX,         "material.eos.adiabatic_index", 1.5f },
+    { BodySettingsIds::DENSITY,                 "material.density",             2700.f },
+    { BodySettingsIds::ENERGY,                  "material.energy",              0.f },
+    { BodySettingsIds::INITIAL_DISTRIBUTION,    "sph.initial_distribution",     int(DistributionEnum::HEXAGONAL) },
+    { BodySettingsIds::PARTICLE_COUNT,          "sph.particle_count",           10000 },
+
 };
 // clang-format on
 

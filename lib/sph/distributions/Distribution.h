@@ -4,8 +4,8 @@
 /// Pavel Sevecek 2016
 /// sevecek at sirrah.troja.mff.cuni.cz
 
-#include "math/Integrator.h"
 #include "geometry/Bounds.h"
+#include "math/Integrator.h"
 #include "math/rng/VectorRng.h"
 #include "objects/containers/Array.h"
 #include "objects/finders/KdTree.h"
@@ -47,6 +47,21 @@ public:
     virtual Array<Vector> generate(const int n, const Abstract::Domain* domain) const override;
 };
 
+
+/// Generates particles uniformly on a line in x direction, for testing purposes. Uses only center and radius of the domain.
+class LinearDistribution : public Abstract::Distribution {
+public:
+    virtual Array<Vector> generate(const int n, const Abstract::Domain* domain) const override {
+        const Float center = domain->getCenter()[X];
+        const Float radius = domain->getBoundingRadius();
+        Array<Vector> vs(0, n);
+        const Float dx = 2._f * radius / Float(n-1);
+        for (Float x = center - radius; x<=center+radius; x += dx) {
+            vs.push(Vector(x, 0._f, 0._f, dx)); // smoothing length = interparticle distance
+        }
+        return vs;
+    }
+};
 /*
 template <typename T, int d>
 class Nonuniform : public AbstractDistribution {
@@ -96,7 +111,8 @@ public:
         for (particleCount = mc.integrate(lambda); Math::abs(particleCount - n) > allowedError;) {
             const float ratio = particleCount / n;
             drop *= ratio;
-            std::cout << "ratio = " << ratio << "  drop = " << drop << " particle count  " << particleCount
+            std::cout << "ratio = " << ratio << "  drop = " << drop << " particle count  " <<
+particleCount
                       << std::endl;
             particleCount = mc.integrate(lambda);
             if (cnt++ > 100) { // break potential infinite loop

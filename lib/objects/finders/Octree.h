@@ -4,67 +4,32 @@
 /// Pavel Sevecek 2016
 /// sevecek at sirrah.troja.mff.cuni.cz
 
-/// \todo UNFINISHED !!!
 
 #include "objects/containers/Array.h"
-#include "geometry/Vector.h"
+#include "geometry/Bounds.h"
 
-template<typename T, int d>
-struct Node {
-    T* data;
-    Node* children[1<<d];
-};
 
-template<typename T, int d>
-class BoundingBox {
+
+class Octree : public Abstract::Finder {
 private:
-    Vector<T, d> minBound, maxBound;
+    Box box;
+    Array
+
+
+protected:
+    virtual void buildImpl(ArrayView<Vector> values) override {
+        PROFILE_SCOPE("Octree::buildImpl")
+
+    }
 
 public:
-    BoundingBox() :
-        minBound(INFTY), maxBound(-INFTY) {
-    }
-    explicit BoundingBox(Array<Vector<T, d>& arr) {
-        arr.forAll([](const Vector<T, d>& v){
-            extend(v);
-        });
-    }
-    void extend(const Vector<T, d>& v) {
-        minBound = Vector<T, d>::min(minBound, v);
-        maxBound = Vector<T, d>::max(maxBound, v);
-    }
-    Vector<T, d> getCenter() const {
-        return 0.5f*(maxBound+minBound);
-    }
-    Vector<T, d> getDimensions() const {
-        return Vector<T, d>::max(Vector<T, d>(0.f), maxBound-minBound);
-    }
-    T getVolume() const {
-        T result = 1.f;
-        Vector<T, d> dimensions = getDimensions();
-        for (int i=0; i<d; ++i) {
-            result *= dimensions[i];
-        }
-        return result;
-    }
-    bool isInside(const Vector<T, d>& v) {
-        // todo: optimize
-        for (int i=0; i<d; ++i) {
-            if (v[i]<minBound[i] || v[i]>maxBound[i]) {
-                return false;
-            }
-        }
-        return true;
-    }
-};
+    Octree() =  default;
 
-template<typename T, int d>
-class Octree {
-private:
-    BoundingBox<T, d> box;
+    virtual int findNeighbours(const int index,
+                               const Float radius,
+                               Array<NeighbourRecord>& neighbours,
+                               Flags<FinderFlags> flags = EMPTY_FLAGS,
+                               const Float error        = 0._f) const override {
+     }
 
-public:
-    Octree(const Array<Vector<T, d>>& vecs) {
-        box.extend(vecs);
-    }
 };

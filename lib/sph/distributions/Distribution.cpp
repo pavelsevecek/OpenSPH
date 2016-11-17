@@ -1,4 +1,4 @@
-#include "sph/initconds/InitConds.h"
+#include "sph/distributions/Distribution.h"
 #include "system/Profiler.h"
 
 NAMESPACE_SPH_BEGIN

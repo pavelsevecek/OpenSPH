@@ -541,7 +541,7 @@ INLINE auto getLengthApprox(const Vector& v) {
 INLINE auto getNormalized(const Vector& v) {
     const Float length = getLength(v);
     ASSERT(length != 0._f);
-    return v / getLength(v);
+    return v / length;
 }
 
 namespace Math {

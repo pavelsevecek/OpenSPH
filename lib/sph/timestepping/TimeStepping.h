@@ -7,6 +7,7 @@
 #include "geometry/Vector.h"
 #include "models/BasicModel.h"
 #include "objects/containers/Array.h"
+#include "sph/timestepping/Step.h"
 #include "storage/Storage.h"
 #include "system/Profiler.h"
 #include <memory>
@@ -27,17 +28,30 @@ namespace Abstract {
         std::shared_ptr<Storage> storage;
         Float dt;
         Float maxdt;
+        Optional<TimeStepGetter> getter;
 
     public:
         TimeStepping(const std::shared_ptr<Storage>& storage, const Settings<GlobalSettingsIds>& settings)
             : storage(storage) {
-            dt    = settings.get<Float>(GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP).get();
-            maxdt = settings.get<Float>(GlobalSettingsIds::TIMESTEPPING_MAX_TIMESTEP).get();
+            dt    = settings.get<float>(GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP).get();
+            maxdt = settings.get<float>(GlobalSettingsIds::TIMESTEPPING_MAX_TIMESTEP).get();
+            if (settings.get<bool>(GlobalSettingsIds::TIMESTEPPING_ADAPTIVE).get()) {
+                getter.emplace(storage);
+            }
         }
 
         INLINE Float getTimeStep() const { return dt; }
 
-        virtual void step(Abstract::Model* model) = 0;
+        void step(Abstract::Model* model) {
+            this->stepImpl(model);
+            // update time step
+            if (getter) {
+                this->dt = getter.get()(this->maxdt);
+            }
+        }
+
+    protected:
+        virtual void stepImpl(Abstract::Model* model) = 0;
     };
 }
 
@@ -48,7 +62,7 @@ public:
                            const Settings<GlobalSettingsIds>& settings)
         : Abstract::TimeStepping(storage, settings) {}
 
-    virtual void step(Abstract::Model* model) override {
+    virtual void stepImpl(Abstract::Model* model) override {
         // clear derivatives from previous timestep
         this->storage->init();
 
@@ -84,7 +98,8 @@ public:
         storage->init(); // clear derivatives before using them in step method
     }
 
-    virtual void step(Abstract::Model* model) override {
+protected:
+    virtual void stepImpl(Abstract::Model* model) override {
         const Float dt2 = 0.5_f * Math::sqr(this->dt);
 
         {
@@ -137,7 +152,8 @@ public:
     LeapFrog(const std::shared_ptr<Storage>& storage, const Settings<GlobalSettingsIds>& settings)
         : Abstract::TimeStepping(storage, settings) {}
 
-    virtual void step(Abstract::Model* UNUSED(model)) override {}
+protected:
+    virtual void stepImpl(Abstract::Model* UNUSED(model)) override {}
 };
 
 
@@ -146,7 +162,8 @@ public:
     BulirschStoer(const std::shared_ptr<Storage>& storage, const Settings<GlobalSettingsIds>& settings)
         : Abstract::TimeStepping(storage, settings) {}
 
-    virtual void step(Abstract::Model* UNUSED(model)) override {}
+protected:
+    virtual void stepImpl(Abstract::Model* UNUSED(model)) override {}
 };
 
 NAMESPACE_SPH_END
