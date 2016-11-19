@@ -14,8 +14,8 @@ BasicModel<d>::BasicModel(const std::shared_ptr<Storage>& storage,
                           const Settings<GlobalSettingsIds>& settings)
     : Abstract::Model(storage)
     , monaghanAv(settings) {
-    finder = Factory::getFinder((FinderEnum)settings.get<int>(GlobalSettingsIds::SPH_FINDER).get());
-    kernel = Factory::getKernel<d>((KernelEnum)settings.get<int>(GlobalSettingsIds::SPH_KERNEL).get());
+    finder = Factory::getFinder(settings);
+    kernel = Factory::getKernel<d>(settings);
 
     /// \todo we have to somehow connect EoS with storage. Plus when two storages are merged, we have to
     /// remember EoS for each particles. This should be probably generalized, for example we want to remember
@@ -176,7 +176,7 @@ Storage BasicModel<d>::createParticles(const Abstract::Domain& domain,
     PROFILE_SCOPE("BasicModel::createParticles")
     std::unique_ptr<Abstract::Distribution> distribution = Factory::getDistribution(settings);
 
-    const int n = settings.get<int>(BodySettingsIds::PARTICLE_COUNT).get();
+    const int n = settings.get<int>(BodySettingsIds::PARTICLE_COUNT);
     // Generate positions of particles
     Array<Vector> rs = distribution->generate(n, domain);
 
@@ -196,16 +196,23 @@ Storage BasicModel<d>::createParticles(const Abstract::Domain& domain,
     st.insert<QuantityKey::H>(std::move(hs));*/
 
     // Create all other quantities (with empty arrays so far)
-    st.insert<QuantityKey::R, QuantityKey::M, QuantityKey::P, QuantityKey::RHO, QuantityKey::U, QuantityKey::CS>();
+    st.insert<QuantityKey::R,
+              QuantityKey::M,
+              QuantityKey::P,
+              QuantityKey::RHO,
+              QuantityKey::U,
+              QuantityKey::CS>();
 
     // Put generated particles inside the storage.
     st.get<QuantityKey::R>() = std::move(rs);
 
     // Allocate all arrays
-    // Note: derivatives of positions (velocity, accelerations) are set to 0 by inserting the array. All other
-    // quantities are constant or 1st order, so their derivatives will be cleared by timestepping, we don't
-    // have to do this here.
+    // Note that this will leave some garbage data in the arrays. We have to make sure the arrays are filled
+    // with correct values before we use them. Highest-order derivatives are cleared automatically by
+    // timestepping object.
     iterate<TemporalEnum::ALL>(st, [N](auto&& array) { array.resize(N); });
+    // Set velocity to zero
+    st.dt<QuantityKey::R>().fill(Vector(0._f));
 
     // Set density to default value
     const Optional<Float> rho0 = settings.get<Float>(BodySettingsIds::DENSITY);

@@ -40,7 +40,6 @@ SOURCES += \
     ../lib/sph/kernel/test/Kernel.cpp \
     ../lib/system/test/Settings.cpp \
     ../lib/system/test/Timer.cpp \
-    ../lib/storage/test/Iterables.cpp \
     ../lib/storage/test/Quantity.cpp \
     ../lib/storage/test/Storage.cpp \
     ../lib/objects/containers/test/BufferedArray.cpp \
@@ -50,7 +49,9 @@ SOURCES += \
     ../lib/models/test/BasicModel.cpp \
     ../lib/geometry/test/Tensor.cpp \
     ../lib/system/test/Profiler.cpp \
-    ../lib/objects/containers/test/LimitedArray.cpp
+    ../lib/objects/containers/test/LimitedArray.cpp \
+    ../lib/storage/test/Iterate.cpp \
+    ../lib/storage/test/QuantityHelpers.cpp
 
 
 HEADERS += \

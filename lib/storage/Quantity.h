@@ -1,15 +1,18 @@
 #pragma once
 
 #include "geometry/Tensor.h"
+#include "objects/containers/LimitedArray.h"
 #include "objects/wrappers/Flags.h"
 #include "objects/wrappers/Optional.h"
-#include "objects/containers/LimitedArray.h"
 #include "storage/QuantityHelpers.h"
 
 NAMESPACE_SPH_BEGIN
 
 
 namespace Detail {
+    /// Abstract holder of all data associated with a quantity. Provides interface to extract information
+    /// about the quantity. Must be static/dynamic_casted to one of derived types to extract information
+    /// abount stored types or number of stored arrays.
     struct PlaceHolder : public Polymorphic {
         /// Returns number of derivatives stored within the quantity
         virtual TemporalEnum getTemporalEnum() const = 0;
@@ -24,6 +27,8 @@ namespace Detail {
         virtual void swap(PlaceHolder* other, Flags<TemporalEnum> flags) = 0;
     };
 
+    /// Abstract extension of PlaceHolder that adds interface to get all buffers of given type stored in the
+    /// holder.
     template <typename TValue>
     struct ValueHolder : public PlaceHolder {
         virtual Array<LimitedArray<TValue>&> getBuffers() = 0;
@@ -32,6 +37,10 @@ namespace Detail {
     template <typename TValue, TemporalEnum Type>
     class Holder;
 
+    /// Holder of constant quantities or quantities values of which are NOT computed in timestepping using
+    /// derivatives (pressure, sound speed, ...). This is also parent of holder with derivatives, it is
+    /// therefore possible to cast first/second order holder to const holder and access its methods without
+    /// error.
     template <typename TValue>
     class Holder<TValue, TemporalEnum::CONST> : public ValueHolder<TValue> {
     protected:
@@ -80,7 +89,8 @@ namespace Detail {
         LimitedArray<TValue>& getValue() { return v; }
     };
 
-
+    /// Holder for first-order quantities, contains also derivative of the quantity. The derivative can be
+    /// accessed using getDerivative() method.
     template <typename TValue>
     class Holder<TValue, TemporalEnum::FIRST_ORDER> : public Holder<TValue, TemporalEnum::CONST> {
     protected:
@@ -129,6 +139,8 @@ namespace Detail {
         LimitedArray<TValue>& getDerivative() { return dv; }
     };
 
+    /// Holder for second-order quantities, contains also second derivative of the quantity. The second
+    /// derivative can be accessed using get2ndDerivative() method.
     template <typename TValue>
     class Holder<TValue, TemporalEnum::SECOND_ORDER> : public Holder<TValue, TemporalEnum::FIRST_ORDER> {
     private:
@@ -186,7 +198,17 @@ namespace Detail {
 }
 
 
-/// Generic container for storing scalar, vector or tensor arrays and its temporal derivatives.
+/// Generic container for storing scalar, vector or tensor quantities. Containes current values of the unit
+/// and all derivatives (if there is an evolution equation for the unit, of course).
+/// As the quantity can have data of different types, there is no direct way to access the arrays stored
+/// within. There are several methods, however, that allow to access the information indirectly:
+/// 1) cast<Type, TemporalEnum>; returns holder of quantity (see above) IF the type and temporal enum in
+///                              template parameters match the ones of the holder.
+/// 2) getBuffers<Type>; returns all arrays (values and derivatives) stored in the holder IF the template type
+///                      matches the holder type.
+/// Beside accessing values through cast<> method, you can also use functions in QuantityCast namespace that
+/// allow to access values or given derivative. The system is the same, though; we try to get
+/// values/derivatives of given type and if they are stored within the quantity, they are returned.
 class Quantity : public Noncopyable {
 private:
     std::unique_ptr<Detail::PlaceHolder> data;

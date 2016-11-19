@@ -28,6 +28,11 @@ public:
         : diag(diag)
         , off(off) {}
 
+    /// Initialize all components of the tensor to given value.
+    Tensor(const Float value)
+        : diag(value)
+        , off(value) {}
+
     /// Construct tensor given three vectors as rows. Matrix represented by the vectors MUST be symmetric,
     /// checked by assert.
     Tensor(const Vector& v0, const Vector& v1, const Vector& v2) {
@@ -81,6 +86,35 @@ public:
         return Vector(diag[0] * v[0] + off[0] * v[1] + off[1] * v[2],
                       off[0] * v[0] + diag[1] * v[1] + off[2] * v[2],
                       off[1] * v[0] + off[2] * v[1] + diag[2] * v[2]);
+    }
+
+    /// Multiplies the tensor by a scalar
+    INLINE friend Tensor operator*(const Tensor& t, const Float v) {
+        return Tensor(t.diag*v, t.off*v);
+    }
+
+    INLINE friend Tensor operator*(const Float v, const Tensor& t) {
+        return Tensor(t.diag*v, t.off*v);
+    }
+
+    INLINE friend Tensor operator+(const Tensor& t1, const Tensor& t2) {
+        return Tensor(t1.diag + t2.diag, t1.off + t2.off);
+    }
+
+    INLINE friend Tensor operator-(const Tensor& t1, const Tensor& t2) {
+        return Tensor(t1.diag - t2.diag, t1.off - t2.off);
+    }
+
+    INLINE Tensor& operator+=(const Tensor& other) {
+        diag += other.diag;
+        off += other.off;
+        return *this;
+    }
+
+    INLINE Tensor& operator-=(const Tensor& other) {
+        diag -= other.diag;
+        off -= other.off;
+        return *this;
     }
 
     INLINE bool operator==(const Tensor& other) const { return diag == other.diag && off == other.off; }
@@ -153,9 +187,16 @@ namespace Math {
     }
 
     /// Arbitrary norm of the tensor.
+    /// \todo Use some well-defined norm instead? (spectral norm, L1 or L2 norm, ...)
     INLINE Float norm(const Tensor& t) {
         const Vector v = Math::max(t.diagonal(), t.offDiagonal());
         return norm(v);
+    }
+
+    /// Arbitrary squared norm of the tensor
+    INLINE Float normSqr(const Tensor& t) {
+        const Vector v = Math::max(t.diagonal(), t.offDiagonal());
+        return normSqr(v);
     }
 
     /// Clamping all components by range.

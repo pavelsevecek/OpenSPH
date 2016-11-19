@@ -124,7 +124,7 @@ public:
     }
 
     /// Returns views to all buffers stored in a quantity.
-    template<int TKey>
+    template <int TKey>
     Array<LimitedArray<QuantityType<TKey>>&> getAll() {
         for (Quantity& q : quantities) {
             if (q.getKey() == TKey) {
@@ -180,23 +180,21 @@ public:
 
     template <TemporalEnum Type, typename TFunctor>
     friend void iterate(Storage& storage, TFunctor&& functor) {
-        StorageIterator<Type>::iterate(storage.quantities, std::forward<TFunctor>(functor));
+        iterate<Type>(storage.quantities, std::forward<TFunctor>(functor));
     }
 
     template <TemporalEnum Type, typename TFunctor>
     friend void iteratePair(Storage& storage1, Storage& storage2, TFunctor&& functor) {
-        StorageIterator<Type>::iteratePair(storage1.quantities,
-                                           storage2.quantities,
-                                           std::forward<TFunctor>(functor));
+        iteratePair<Type>(storage1.quantities, storage2.quantities, std::forward<TFunctor>(functor));
     }
 
     /// \todo saving velocities?
-    template<int... TKeys>
+    template <int... TKeys>
     void save(Abstract::Logger* output, const Float UNUSED(time)) {
-        auto tuple = this->get<TKeys...>();
-        auto first = tuple.template get<0>();
+        auto tuple     = this->get<TKeys...>();
+        auto first     = tuple.template get<0>();
         const int size = first.size();
-        for (int i=0; i<size; ++i) {
+        for (int i = 0; i < size; ++i) {
             forEach(tuple, [output, i](auto&& array) {
                 std::stringstream ss;
                 ss << std::setw(15) << array[i];

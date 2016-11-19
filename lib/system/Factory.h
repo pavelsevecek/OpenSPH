@@ -32,7 +32,7 @@ public:
         const Settings<GlobalSettingsIds>& settings,
         const std::shared_ptr<Storage>& storage);
 
-    static std::unique_ptr<Abstract::Finder> getFinder(const FinderEnum id);
+    static std::unique_ptr<Abstract::Finder> getFinder(const Settings<GlobalSettingsIds>& settings);
 
     static std::unique_ptr<Abstract::Distribution> getDistribution(const Settings<BodySettingsIds>& settings);
 
@@ -44,7 +44,8 @@ public:
     static std::unique_ptr<Abstract::Domain> getDomain(const Settings<GlobalSettingsIds>& settings);
 
     template <int d>
-    static LutKernel<d> getKernel(const KernelEnum id) {
+    static LutKernel<d> getKernel(const Settings<GlobalSettingsIds>& settings) {
+        const KernelEnum id = KernelEnum(settings.get<int>(GlobalSettingsIds::SPH_KERNEL));
         switch (id) {
         case KernelEnum::CUBIC_SPLINE:
             return LutKernel<d>(CubicSpline<d>());

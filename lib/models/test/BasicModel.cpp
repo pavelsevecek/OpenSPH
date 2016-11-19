@@ -61,6 +61,7 @@ TEST_CASE("simple run", "[basicmodel]") {
     // check integrals of motion
     TotalMomentum momentum(storage);
     TotalAngularMomentum angularMomentum(storage);
+
     const Vector mom0    = momentum();
     const Vector angmom0 = angularMomentum();
     REQUIRE(mom0 == Vector(0._f));

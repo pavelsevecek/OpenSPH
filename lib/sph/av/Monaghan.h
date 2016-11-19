@@ -17,8 +17,8 @@ private:
 
 public:
     MonaghanAV(const Settings<GlobalSettingsIds>& settings) {
-        alpha = settings.get<Float>(GlobalSettingsIds::AV_ALPHA).get();
-        beta  = settings.get<Float>(GlobalSettingsIds::AV_BETA).get();
+        alpha = settings.get<Float>(GlobalSettingsIds::AV_ALPHA);
+        beta  = settings.get<Float>(GlobalSettingsIds::AV_BETA);
     }
 
     INLINE Float

@@ -51,12 +51,13 @@ public:
     }
 
     template <typename TValue>
-    Optional<TValue> get(TEnum idx) const {
+    TValue get(TEnum idx) const {
         typename std::map<TEnum, Entry>::const_iterator iter = entries.find(idx);
-        if (iter == entries.end()) {
-            return NOTHING;
-        }
-        return iter->second.value.get<TValue>();
+        ASSERT(iter != entries.end());
+        /// \todo can be cast here as we no longer return optional
+        auto opt = iter->second.value.get<TValue>();
+        ASSERT(opt);
+        return opt.get();
     }
 
     void saveToFile(const std::string& path) const {

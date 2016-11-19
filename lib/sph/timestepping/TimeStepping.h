@@ -37,11 +37,10 @@ namespace Abstract {
     public:
         TimeStepping(const std::shared_ptr<Storage>& storage, const Settings<GlobalSettingsIds>& settings)
             : storage(storage) {
-            dt    = settings.get<float>(GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP).get();
-            maxdt = settings.get<float>(GlobalSettingsIds::TIMESTEPPING_MAX_TIMESTEP).get();
-            if (settings.get<bool>(GlobalSettingsIds::TIMESTEPPING_ADAPTIVE).get()) {
-                const Float factor =
-                    settings.get<float>(GlobalSettingsIds::TIMESTEPPING_ADAPTIVE_FACTOR).get();
+            dt    = settings.get<float>(GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP);
+            maxdt = settings.get<float>(GlobalSettingsIds::TIMESTEPPING_MAX_TIMESTEP);
+            if (settings.get<bool>(GlobalSettingsIds::TIMESTEPPING_ADAPTIVE)) {
+                const Float factor = settings.get<float>(GlobalSettingsIds::TIMESTEPPING_ADAPTIVE_FACTOR);
                 getter.emplace(storage, factor);
             }
         }
@@ -81,7 +80,8 @@ public:
             for (int i = 0; i < v.size(); ++i) {
                 dv[i] += d2v[i] * this->dt;
                 v[i] += dv[i] * this->dt;
-                /// \todo clamp --- maybe use LimitedArray instead of Array in quantities? Better than passing range
+                /// \todo clamp --- maybe use LimitedArray instead of Array in quantities? Better than passing
+                /// range
                 // as parameters, or by iterating twice
             }
         });

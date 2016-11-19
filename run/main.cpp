@@ -5,7 +5,7 @@
 using namespace Sph;
 
 int main() {
-    auto globalSettings = GLOBAL_SETTINGS;
+ /*   auto globalSettings = GLOBAL_SETTINGS;
     Problem<BasicModel<3>> p(globalSettings);
     p.logger       = std::make_unique<StdOutput>();
     p.timeRange    = Range<Float>(0._f, 10._f);
@@ -25,7 +25,7 @@ int main() {
 
     p.run();
 
-    Profiler::getInstance()->printStatistics(p.logger.get());
+    Profiler::getInstance()->printStatistics(p.logger.get());*/
 
     return 0;
 }

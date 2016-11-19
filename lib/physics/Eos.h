@@ -96,7 +96,7 @@ private:
 
 public:
     TillotsonEos(const Settings<BodySettingsIds>& settings)
-        : uiv(settings.get<Float>(BodySettingsIds::TILLOTSON_ENERGY_IV).get()) {}
+        : uiv(settings.get<Float>(BodySettingsIds::TILLOTSON_ENERGY_IV)) {}
 
     virtual void getPressure(ArrayView<const Float> rho,
                              ArrayView<const Float> u,

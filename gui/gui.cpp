@@ -45,16 +45,16 @@ bool MyApp::OnInit() {
     globalSettings.set<int>(GlobalSettingsIds::SPH_FINDER, int(FinderEnum::BRUTE_FORCE));
     Problem<BasicModel<3>>* p = new Problem<BasicModel<3>>(globalSettings);
     p->logger                 = std::make_unique<StdOutput>();
-    p->timeRange              = Range<Float>(0._f, 1000._f);
+    p->timeRange              = Range(0._f, 1000._f);
     p->timeStepping           = Factory::getTimestepping(globalSettings, p->storage);
 
     auto bodySettings = BODY_SETTINGS;
     bodySettings.set(BodySettingsIds::ENERGY, 0.001_f);
-    auto domain1  = std::make_unique<SphericalDomain>(Vector(0._f), 1._f);
-    Storage body1 = p->model.createParticles(domain1.get(), bodySettings);
+    SphericalDomain domain1(Vector(0._f), 1._f);
+    Storage body1 = p->model.createParticles(domain1, bodySettings);
 
-    auto domain2  = std::make_unique<SphericalDomain>(Vector(2._f, 1._f, 0._f), 0.3_f);
-    Storage body2 = p->model.createParticles(domain2.get(), bodySettings);
+    SphericalDomain domain2(Vector(2._f, 1._f, 0._f), 0.3_f);
+    Storage body2 = p->model.createParticles(domain2, bodySettings);
     body2.dt<QuantityKey::R>().fill(Vector(-0.4_f, 0._f, 0._f));
 
     *p->storage = std::move(body1);

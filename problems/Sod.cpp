@@ -49,7 +49,7 @@ TEST_CASE("Sod", "[sod]") {
         m[i] = rho[i] / N;
         p[i] = Math::pow(Math::sin(Float(i) / x.size() * Math::PI), 10._f);*/
     }
-    IdealGasEos eos(bodySettings.get<float>(BodySettingsIds::ADIABATIC_INDEX).get());
+    IdealGasEos eos(bodySettings.get<float>(BodySettingsIds::ADIABATIC_INDEX));
     eos.getInternalEnergy(rho, p, u);
 
     FileOutput out1("sod0.txt");
