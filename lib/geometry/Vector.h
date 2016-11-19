@@ -6,7 +6,7 @@
 
 #include "core/Globals.h"
 #include "core/Traits.h"
-#include "math/Math.h"
+#include "objects/wrappers/Range.h"
 #include <immintrin.h>
 #include <iomanip>
 #include <smmintrin.h>
@@ -553,6 +553,11 @@ namespace Math {
 
     /// Component-wise clamping
     INLINE Vector clamp(const Vector& v, const Vector& v1, const Vector& v2) { return max(v1, min(v, v2)); }
+
+    /// Clamping all components by range.
+    INLINE Vector clamp(const Vector& v, const Range& range) {
+        return Vector(range.clamp(v[0]), range.clamp(v[1]), range.clamp(v[2]), range.clamp(v[3]));
+    }
 
     /// Checks if two vectors are equal to some given accuracy.
     INLINE bool almostEqual(const Vector& v1, const Vector& v2, const Float eps = EPS) {

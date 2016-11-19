@@ -157,10 +157,15 @@ namespace Math {
         const Vector v = Math::max(t.diagonal(), t.offDiagonal());
         return norm(v);
     }
+
+    /// Clamping all components by range.
+    INLINE Tensor clamp(const Tensor& t, const Range& range) {
+        return Tensor(clamp(t.diagonal(), range), clamp(t.offDiagonal(), range));
+    }
 }
 
 INLINE StaticArray<Float, 3> findEigenvalues(const Tensor& t) {
-    const Float n = 1._f;// Math::norm(t);
+    const Float n = 1._f; // Math::norm(t);
     const Float p = -t.invariant<1>() / n;
     const Float q = -t.invariant<2>() / Math::sqr(n);
     const Float r = -t.invariant<3>() / Math::pow<3>(n);
@@ -175,7 +180,7 @@ INLINE StaticArray<Float, 3> findEigenvalues(const Tensor& t) {
     const Float phi = Math::acos(-0.5_f * b / Math::sqrt(-aCub));
     const Vector v(phi / 3._f, (phi + 2 * Math::PI) / 3._f, (phi + 4 * Math::PI) / 3._f);
     const Vector sig = t1 * Math::cos(v) - Vector(p / 3._f);
-    return { sig[0] * n, sig[1] * n, sig[2] *n};
+    return { sig[0] * n, sig[1] * n, sig[2] * n };
 }
 
 

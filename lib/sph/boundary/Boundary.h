@@ -108,11 +108,11 @@ class PeriodicDomain : public Abstract::BoundaryConditions {
 class Projection1D : public Abstract::BoundaryConditions {
 private:
     std::shared_ptr<Storage> storage;
-    Range<Float> domain;
+    Range domain;
 
 public:
     /// Constructs using range as 1D domain
-    Projection1D(const std::shared_ptr<Storage>& storage, const Range<Float> domain)
+    Projection1D(const std::shared_ptr<Storage>& storage, const Range& domain)
         : storage(storage)
         , domain(domain) {}
 
@@ -125,9 +125,18 @@ public:
             r[i] = Vector(domain.clamp(r[i][0]), 0._f, 0._f, r[i][H]);
             v[i] = Vector(v[i][0], 0._f, 0._f);
         }
-        // null velocity of first and last particle
-        v[0] = Vector(0._f);
-        v[v.size()-1] = Vector(0._f);
+        // null all derivatives of first and last particles (fixed boundary conditions)
+        /// \todo iterate highest order
+        iterate<TemporalEnum::FIRST_ORDER>(*storage, [](auto&& UNUSED(v), auto&& dv) {
+            using Type = typename std::decay_t<decltype(dv)>::Type;
+            dv[0] = Type(0._f);
+            dv[dv.size()-1] = Type(0._f);
+        });
+        iterate<TemporalEnum::SECOND_ORDER>(*storage, [](auto&& UNUSED(v), auto&& UNUSED(dv), auto&& d2v) {
+            using Type = typename std::decay_t<decltype(d2v)>::Type;
+            d2v[0] = Type(0._f);
+            d2v[d2v.size()-1] = Type(0._f);
+        });
     }
 };
 

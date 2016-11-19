@@ -74,4 +74,6 @@ HEADERS += \
     objects/finders/PeriodicFinder.h \
     system/Profiler.h \
     models/CompositeModel.h \
-    sph/distributions/Distribution.h
+    sph/distributions/Distribution.h \
+    storage/LimitedArray.h \
+    storage/QuantityHelpers.h

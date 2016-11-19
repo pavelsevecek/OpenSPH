@@ -15,16 +15,20 @@ namespace Abstract {
     /// Base class for equations of state.
     class Eos : public Polymorphic {
     public:
-        /// Computes a pressure from given density.
-        /// \todo EoS have more general relations, like P = P(rho, T) or P = P(rho, u)
-        /// \todo maybe pass model as a parameter?
+        /// Computes pressure from given density rho and specific internal energy u.
         virtual void getPressure(ArrayView<const Float> rho,
                                  ArrayView<const Float> u,
                                  ArrayView<Float> p) = 0;
 
+        /// Inverted function; computes specific internal energy u from given density rho and pressure p.
         virtual void getInternalEnergy(ArrayView<const Float> rho,
                                        ArrayView<const Float> p,
                                        ArrayView<Float> u) = 0;
+
+        /// Computes local sound speed.
+        virtual void getSoundSpeed(ArrayView<const Float> rho,
+                                   ArrayView<const Float> p,
+                                   ArrayView<Float> cs) = 0;
     };
 }
 
@@ -52,6 +56,15 @@ public:
         ASSERT(rho.size() == u.size() && rho.size() == p.size());
         for (int i = 0; i < p.size(); ++i) {
             u[i] = p[i] / (gamma * rho[i]);
+        }
+    }
+
+    virtual void getSoundSpeed(ArrayView<const Float> rho,
+                               ArrayView<const Float> p,
+                               ArrayView<Float> cs) override {
+        ASSERT(rho.size() == cs.size() && rho.size() == cs.size());
+        for (int i = 0; i < p.size(); ++i) {
+            cs[i] = Math::sqrt(gamma * p[i] / rho[i]);
         }
     }
 
@@ -112,6 +125,12 @@ public:
     virtual void getInternalEnergy(ArrayView<const Float> UNUSED(rho),
                                    ArrayView<const Float> UNUSED(p),
                                    ArrayView<Float> UNUSED(u)) override {
+        ASSERT(false);
+    }
+
+    virtual void getSoundSpeed(ArrayView<const Float> UNUSED(rho),
+                                   ArrayView<const Float> UNUSED(p),
+                                   ArrayView<Float> UNUSED(cs)) override {
         ASSERT(false);
     }
 };

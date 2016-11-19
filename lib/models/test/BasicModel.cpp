@@ -14,10 +14,10 @@ TEST_CASE("create particles", "[basicmodel]") {
     Settings<BodySettingsIds> bodySettings(BODY_SETTINGS);
     bodySettings.set(BodySettingsIds::PARTICLE_COUNT, 100);
     BlockDomain domain(Vector(0._f), Vector(1._f));
-    Storage storage = model.createParticles(&domain, bodySettings);
+    Storage storage = model.createParticles(domain, bodySettings);
 
     const int size = storage.get<QuantityKey::R>().size();
-    REQUIRE(Range<int>(80, 120).contains(size));
+    REQUIRE((size >= 80 && size <= 120));
     iterate<TemporalEnum::ALL>(storage, [size](auto&& array) { REQUIRE(array.size() == size); });
 
     ArrayView<Float> rhos, us, drhos, dus;
@@ -54,7 +54,7 @@ TEST_CASE("simple run", "[basicmodel]") {
     bodySettings.set(BodySettingsIds::PARTICLE_COUNT, 100);
     bodySettings.set(BodySettingsIds::ENERGY, 100._f * Constants::gasConstant); // 100K
     BlockDomain domain(Vector(0._f), Vector(1._f));
-    *storage = model.createParticles(&domain, bodySettings);
+    *storage = model.createParticles(domain, bodySettings);
 
 
     EulerExplicit timestepping(storage, globalSettings);

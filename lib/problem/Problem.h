@@ -9,7 +9,6 @@
 #include "storage/QuantityMap.h"
 #include "system/Callbacks.h"
 #include "system/Logger.h"
-#include "sph/boundary/Boundary.h"
 
 
 NAMESPACE_SPH_BEGIN
@@ -42,7 +41,7 @@ public:
 
     /// Time range of the simulations
     /// \todo other conditions? For example pressure-limited simulations?
-    Range<Float> timeRange;
+    Range timeRange;
 
     /// Stores all SPH particles
     std::shared_ptr<Storage> storage;
@@ -64,7 +63,7 @@ public:
     }
 
     void run() {
-        int i = 0;
+        //int i = 0;
         for (Float& t : rangeAdapter(timeRange, timeStepping->getTimeStep())) {
             const Float dt = timeStepping->getTimeStep();
             t += dt;
@@ -75,11 +74,6 @@ public:
 
             // Make time step
             timeStepping->step(&model);
-
-            // Apply boundary conditions
-            if (boundary) {
-                boundary->apply();
-            }
 
             if (callbacks) {
                 callbacks->onTimeStep(storage->get<QuantityKey::R>());

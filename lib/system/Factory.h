@@ -41,6 +41,8 @@ public:
         const std::shared_ptr<Storage>& storage,
         std::unique_ptr<Abstract::Domain>&& domain);
 
+    static std::unique_ptr<Abstract::Domain> getDomain(const Settings<GlobalSettingsIds>& settings);
+
     template <int d>
     static LutKernel<d> getKernel(const KernelEnum id) {
         switch (id) {

@@ -13,11 +13,11 @@ NAMESPACE_SPH_BEGIN
 namespace QuantityKey {
     enum BasicKey {
         R   = 0, ///< Positions (velocities, accelerations) of particles
-      //  H   = 1, ///< Smoothing lengths
         M   = 1, ///< Paricles masses
         P   = 2, ///< Pressure
         RHO = 3, ///< Density
-        U   = 4 ///< Specific internal energy
+        U   = 4, ///< Specific internal energy
+        CS  = 5, ///< Sound speed
     };
 };
 
@@ -32,13 +32,15 @@ struct QuantityDescriptor {
 /// Can be extended by partial specialization.
 template <int TKey>
 struct QuantityMap {
+    // clang-format off
     static constexpr QuantityDescriptor quantityDescriptors[] =
-        { { QuantityKey::R, ValueEnum::VECTOR, TemporalEnum::SECOND_ORDER },
-        //  { QuantityKey::H, ValueEnum::SCALAR, TemporalEnum::FIRST_ORDER },
-          { QuantityKey::M, ValueEnum::SCALAR, TemporalEnum::CONST },
-          { QuantityKey::P, ValueEnum::SCALAR, TemporalEnum::CONST },
-          { QuantityKey::RHO, ValueEnum::SCALAR, TemporalEnum::FIRST_ORDER },
-          { QuantityKey::U, ValueEnum::SCALAR, TemporalEnum::FIRST_ORDER } };
+        { { QuantityKey::R,     ValueEnum::VECTOR, TemporalEnum::SECOND_ORDER },
+          { QuantityKey::M,     ValueEnum::SCALAR, TemporalEnum::CONST },
+          { QuantityKey::P,     ValueEnum::SCALAR, TemporalEnum::CONST },
+          { QuantityKey::RHO,   ValueEnum::SCALAR, TemporalEnum::FIRST_ORDER },
+          { QuantityKey::U,     ValueEnum::SCALAR, TemporalEnum::FIRST_ORDER },
+          { QuantityKey::CS,    ValueEnum::SCALAR, TemporalEnum::CONST } };
+    // clang-format on
 
     static constexpr QuantityDescriptor descriptor = quantityDescriptors[int(TKey)];
     using Type                                     = typename GetTypeFromValue<descriptor.valueEnum>::Type;

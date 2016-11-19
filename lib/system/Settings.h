@@ -6,6 +6,7 @@
 
 #include "objects/containers/Array.h"
 #include "objects/wrappers/Variant.h"
+#include "objects/wrappers/Range.h"
 #include <fstream>
 #include <initializer_list>
 #include <map>
@@ -16,9 +17,9 @@ NAMESPACE_SPH_BEGIN
 template <typename TEnum>
 class Settings : public Object {
 private:
-    enum Types { BOOL, INT, FLOAT, STRING, VECTOR };
+    enum Types { BOOL, INT, FLOAT, RANGE, STRING, VECTOR };
 
-    using Value = Variant<bool, int, float, std::string, Vector>;
+    using Value = Variant<bool, int, float, Range, std::string, Vector>;
 
     struct Entry {
         TEnum id;
@@ -55,7 +56,7 @@ public:
         if (iter == entries.end()) {
             return NOTHING;
         }
-        return (TValue)iter->second.value;
+        return iter->second.value.get<TValue>();
     }
 
     void saveToFile(const std::string& path) const {
@@ -73,13 +74,16 @@ public:
             case FLOAT:
                 ofs << (float)entry.value;
                 break;
+            case RANGE:
+                ofs << entry.value.get<Range>().get();
+                break;
             case STRING:
                 ofs << entry.value.get<std::string>().get();
                 break;
             case VECTOR:
                 ofs << entry.value.get<Vector>().get();
             default:
-                ASSERT(false);
+                NOT_IMPLEMENTED;
             }
             ofs << std::endl;
         }
@@ -145,6 +149,17 @@ enum class BoundaryEnum {
     PROJECT_1D
 };
 
+enum class DomainEnum {
+    /// No computational domain (can only be used with BoundaryEnum::NONE)
+    NONE,
+
+    /// Sphere with given radius
+    SPHERICAL,
+
+    /// Block with edge sizes given by vector
+    BLOCK
+    // CYLINDER
+};
 
 /// Settings relevant for whole run of the simulation
 enum class GlobalSettingsIds {
@@ -184,29 +199,49 @@ enum class GlobalSettingsIds {
     /// Constant / adaptive time step
     TIMESTEPPING_ADAPTIVE,
 
+    /// Multiplicative factor k in timestep computation; dt = k * v / dv
+    TIMESTEPPING_ADAPTIVE_FACTOR,
+
     /// Artificial viscosity alpha coefficient
     AV_ALPHA,
 
     /// Artificial viscosity beta coefficient
     AV_BETA,
+
+    /// Computational domain, enforced by boundary conditions
+    DOMAIN_TYPE,
+
+    /// Center point of the domain
+    DOMAIN_CENTER,
+
+    /// Radius of a spherical domain
+    DOMAIN_RADIUS,
+
+    /// (Vector) size of a block domain
+    DOMAIN_SIZE,
 };
 
 // clang-format off
 const Settings<GlobalSettingsIds> GLOBAL_SETTINGS = {
-    { GlobalSettingsIds::RUN_NAME,                          "run.name",             std::string("unnamed run") },
-    { GlobalSettingsIds::RUN_OUTPUT_STEP,                   "run.output_step",      100 },
-    { GlobalSettingsIds::RUN_OUTPUT_NAME,                   "run.output_name",      std::string("out_%d.txt") },
-    { GlobalSettingsIds::SPH_KERNEL,                        "sph.kernel",           int(KernelEnum::CUBIC_SPLINE) },
-    { GlobalSettingsIds::SPH_KERNEL_SYMMETRY,               "sph.kernel.symmetry",  int(KernelSymmetryEnum::SYMMETRIZE_LENGTHS) },
-    { GlobalSettingsIds::SPH_FINDER,                        "sph.finder",           int(FinderEnum::KD_TREE) },
-    { GlobalSettingsIds::TIMESTEPPING_INTEGRATOR,           "timestep.integrator",  int(TimesteppingEnum::EULER_EXPLICIT) },
-    { GlobalSettingsIds::TIMESTEPPING_COURANT,              "timestep.courant",     1.f },
-    { GlobalSettingsIds::TIMESTEPPING_MAX_TIMESTEP,         "timestep.max_step",    0.1f /*s*/}, /// \todo units necessary in settings!!!
-    { GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP,     "timestep.initial",     0.03f },
-    { GlobalSettingsIds::TIMESTEPPING_ADAPTIVE,             "timestep.adaptive",    false },
-    { GlobalSettingsIds::AV_ALPHA,                          "av.alpha",             1.5f },
-    { GlobalSettingsIds::AV_BETA,                           "av.beta",              3.f },
-    { GlobalSettingsIds::BOUNDARY,                          "boundary",             int(BoundaryEnum::NONE) }
+    { GlobalSettingsIds::RUN_NAME,                      "run.name",                 std::string("unnamed run") },
+    { GlobalSettingsIds::RUN_OUTPUT_STEP,               "run.output_step",          100 },
+    { GlobalSettingsIds::RUN_OUTPUT_NAME,               "run.output_name",          std::string("out_%d.txt") },
+    { GlobalSettingsIds::SPH_KERNEL,                    "sph.kernel",               int(KernelEnum::CUBIC_SPLINE) },
+    { GlobalSettingsIds::SPH_KERNEL_SYMMETRY,           "sph.kernel.symmetry",      int(KernelSymmetryEnum::SYMMETRIZE_LENGTHS) },
+    { GlobalSettingsIds::SPH_FINDER,                    "sph.finder",               int(FinderEnum::KD_TREE) },
+    { GlobalSettingsIds::TIMESTEPPING_INTEGRATOR,       "timestep.integrator",      int(TimesteppingEnum::EULER_EXPLICIT) },
+    { GlobalSettingsIds::TIMESTEPPING_COURANT,          "timestep.courant",         1.f },
+    { GlobalSettingsIds::TIMESTEPPING_MAX_TIMESTEP,     "timestep.max_step",        0.1f /*s*/}, /// \todo units necessary in settings!!!
+    { GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP, "timestep.initial",         0.03f },
+    { GlobalSettingsIds::TIMESTEPPING_ADAPTIVE,         "timestep.adaptive",        false },
+    { GlobalSettingsIds::TIMESTEPPING_ADAPTIVE_FACTOR,  "timestep.adaptive.factor", 0.1f },
+    { GlobalSettingsIds::AV_ALPHA,                      "av.alpha",                 1.5f },
+    { GlobalSettingsIds::AV_BETA,                       "av.beta",                  3.f },
+    { GlobalSettingsIds::BOUNDARY,                      "boundary",                 int(BoundaryEnum::NONE) },
+    { GlobalSettingsIds::DOMAIN_TYPE,                   "domain.type",              int(DomainEnum::NONE) },
+    { GlobalSettingsIds::DOMAIN_CENTER,                 "domain.center",            Vector(0.f) },
+    { GlobalSettingsIds::DOMAIN_RADIUS,                 "domain.radius",            1.f },
+    { GlobalSettingsIds::DOMAIN_SIZE,                   "domain.size",              Vector(1.f) },
 };
 // clang-format on
 
@@ -253,6 +288,8 @@ enum class BodySettingsIds {
     /// Density at zero pressure
     DENSITY,
 
+    DENSITY_RANGE,
+
     BULK_MODULUS,
 
     /// Initial energy
@@ -279,12 +316,6 @@ enum class BodySettingsIds {
 
     /// Number of SPH particles in the body
     PARTICLE_COUNT,
-
-    DOMAIN_TYPE,
-
-    DOMAIN_CENTER,
-
-    DOMAIN_RADIUS,
 };
 
 // clang-format off
@@ -292,6 +323,7 @@ const Settings<BodySettingsIds> BODY_SETTINGS = {
     { BodySettingsIds::EOS,                     "material.eos",                 int(EosEnum::IDEAL_GAS) },
     { BodySettingsIds::ADIABATIC_INDEX,         "material.eos.adiabatic_index", 1.5f },
     { BodySettingsIds::DENSITY,                 "material.density",             2700.f },
+    { BodySettingsIds::DENSITY_RANGE,           "material.density.range",       Range(EPS, NOTHING) },
     { BodySettingsIds::ENERGY,                  "material.energy",              0.f },
     { BodySettingsIds::INITIAL_DISTRIBUTION,    "sph.initial_distribution",     int(DistributionEnum::HEXAGONAL) },
     { BodySettingsIds::PARTICLE_COUNT,          "sph.particle_count",           10000 },

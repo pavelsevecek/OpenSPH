@@ -15,13 +15,17 @@
 NAMESPACE_SPH_BEGIN
 
 
-/// Base object providing integration in time for all quantities. The integration is done by iterating with
-/// discrete time step, using step() method. All derived objects must implement step() function, which
-/// iterates over all independant quantities and advances their values using temporal derivatives computed by
-/// Abstract::Model passed in argument of the method. The time-stepping object must also take care of clearing
-/// derivatives, as there can be values from previous timestep, or some garbage memory when the method is
-/// called for the first time. When model->compute is called, the storage passed as an argument MUST have zero
-/// highest order derivatives.
+/// Base object providing integration in time for all quantities.
+///
+/// The integration is done by iterating with discrete time step, using step() method. All derived objects
+/// must implement step() function, which iterates over all independant quantities and advances their values
+/// using temporal derivatives computed by Abstract::Model passed in argument of the method.
+///
+/// The time-stepping object must take care of clearing derivatives, as there can be values from previous
+/// timestep, or some garbage memory when the method is called for the first time. It is also necessary to
+/// clamp all quantities by their minimal/maximal allowed values.
+///
+/// When model->compute is called, the storage passed as an argument MUST have zero highest order derivatives.
 namespace Abstract {
     class TimeStepping : public Polymorphic {
     protected:
@@ -36,7 +40,9 @@ namespace Abstract {
             dt    = settings.get<float>(GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP).get();
             maxdt = settings.get<float>(GlobalSettingsIds::TIMESTEPPING_MAX_TIMESTEP).get();
             if (settings.get<bool>(GlobalSettingsIds::TIMESTEPPING_ADAPTIVE).get()) {
-                getter.emplace(storage);
+                const Float factor =
+                    settings.get<float>(GlobalSettingsIds::TIMESTEPPING_ADAPTIVE_FACTOR).get();
+                getter.emplace(storage, factor);
             }
         }
 
@@ -75,6 +81,8 @@ public:
             for (int i = 0; i < v.size(); ++i) {
                 dv[i] += d2v[i] * this->dt;
                 v[i] += dv[i] * this->dt;
+                /// \todo clamp --- maybe use LimitedArray instead of Array in quantities? Better than passing range
+                // as parameters, or by iterating twice
             }
         });
         iterate<TemporalEnum::FIRST_ORDER>(*this->storage, [this](auto& v, auto& dv) {
@@ -94,6 +102,7 @@ public:
     explicit PredictorCorrector(const std::shared_ptr<Storage>& storage,
                                 const Settings<GlobalSettingsIds>& settings)
         : Abstract::TimeStepping(storage, settings) {
+        ASSERT(storage->size() > 0); // quantities must already been emplaced
         predictions = storage->clone(TemporalEnum::HIGHEST_ORDER);
         storage->init(); // clear derivatives before using them in step method
     }

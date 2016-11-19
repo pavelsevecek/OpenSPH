@@ -27,10 +27,9 @@ struct TestModel : public Abstract::Model {
         }
     }
 
-    virtual Storage createParticles(Abstract::Domain* domain,
+    virtual Storage createParticles(const Abstract::Domain& UNUSED(domain),
                                     const Settings<BodySettingsIds>&) const override {
-        ASSERT(false);
-        return Storage();
+        NOT_IMPLEMENTED;
     }
 };
 

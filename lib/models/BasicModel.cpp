@@ -1,4 +1,5 @@
 #include "models/BasicModel.h"
+#include "objects/containers/ArrayUtils.h"
 #include "objects/finders/Finder.h"
 #include "physics/Eos.h"
 #include "sph/distributions/Distribution.h"
@@ -11,7 +12,8 @@ NAMESPACE_SPH_BEGIN
 template <int d>
 BasicModel<d>::BasicModel(const std::shared_ptr<Storage>& storage,
                           const Settings<GlobalSettingsIds>& settings)
-    : Abstract::Model(storage) {
+    : Abstract::Model(storage)
+    , monaghanAv(settings) {
     finder = Factory::getFinder((FinderEnum)settings.get<int>(GlobalSettingsIds::SPH_FINDER).get());
     kernel = Factory::getKernel<d>((KernelEnum)settings.get<int>(GlobalSettingsIds::SPH_KERNEL).get());
 
@@ -20,6 +22,9 @@ BasicModel<d>::BasicModel(const std::shared_ptr<Storage>& storage,
     /// original body of the particle, possibly original position (right under surface, core of the body,
     /// antipode, ...)
     eos = Factory::getEos(BODY_SETTINGS);
+
+    std::unique_ptr<Abstract::Domain> domain = Factory::getDomain(settings);
+    boundary = Factory::getBoundaryConditions(settings, storage, std::move(domain));
 }
 
 template <int d>
@@ -30,15 +35,15 @@ void BasicModel<d>::compute(Storage& storage) {
     const int size = storage.getParticleCnt();
 
     ArrayView<Vector> r, v, dv;
-    ArrayView<Float> rho, drho, u, du, p, m;
+    ArrayView<Float> rho, drho, u, du, p, m, cs;
     {
         PROFILE_SCOPE("BasicModel::compute (getters)")
         // fetch quantities from storage
         refs(r, v, dv) = storage.getAll<QuantityKey::R>();
         refs(rho, drho) = storage.getAll<QuantityKey::RHO>();
         refs(u, du)     = storage.getAll<QuantityKey::U>();
-        // refs(h, dh)     = storage.getAll<QuantityKey::H>();
-        tie(p, m) = storage.get<QuantityKey::P, QuantityKey::M>();
+        tie(p, m, cs) = storage.get<QuantityKey::P, QuantityKey::M, QuantityKey::CS>();
+        ASSERT(areAllMatching(dv, [](const Vector v) { return v == Vector(0._f); }));
     }
 
     {
@@ -56,6 +61,9 @@ void BasicModel<d>::compute(Storage& storage) {
         // find new pressure
         /// \todo move outside? to something like "poststep" method
         eos->getPressure(rho, u, p);
+        eos->getSoundSpeed(rho, p, cs);
+        ASSERT(areAllMatching(rho, [](const Float v) { return v > 0._f; }));
+        ASSERT(areAllMatching(cs, [](const Float v) { return v > 0._f; }));
 
         // build neighbour finding object
         /// \todo only rebuild(), try to limit allocations
@@ -85,25 +93,31 @@ void BasicModel<d>::compute(Storage& storage) {
                 const int j = neigh.index;
                 // actual smoothing length
                 const Float hbar = 0.5_f * (r[i][H] + r[j][H]);
-                ASSERT(hbar <= r[i][H]);
+                ASSERT(hbar > EPS && hbar <= r[i][H]);
                 if (getSqrLength(r[i] - r[j]) > Math::sqr(kernel.radius() * hbar)) {
                     // aren't actual neighbours
                     continue;
                 }
-                // compute gradient of kernel
+                // compute gradient of kernel W_ij
                 const Vector grad = w.getGrad(r[i], r[j]);
-                ASSERT(Math::isReal(grad));
+                ASSERT(dot(grad, r[i] - r[j]) <= 0._f);
+                // ASSERT(Math::isReal(grad) && getSqrLength(grad) > 0._f);
 
-                // compute forces (accelerations)
-                const Vector f = (pRhoInvSqr + p[j] / Math::sqr(rho[j])) * grad;
+                // compute forces (accelerations) + artificial viscosity
+                const Float av = monaghanAv(v[i] - v[j],
+                                            r[i] - r[j],
+                                            0.5_f * (cs[i] + cs[j]),
+                                            0.5_f * (rho[i] + rho[j]),
+                                            hbar);
+                const Vector f = (pRhoInvSqr + p[j] / Math::sqr(rho[j]) + av) * grad;
                 ASSERT(Math::isReal(f));
-                dv[i] -= m[j] * f;
+                dv[i] -= m[j] * f; // opposite sign due to antisymmetry of gradient
                 dv[j] += m[i] * f;
 
                 // compute velocity divergence, save them as 4th computent of velocity vector
                 const Float delta = dot(v[j] - v[i], grad);
                 ASSERT(Math::isReal(delta));
-                divv[i] -= m[j] * delta;
+                divv[i] += m[j] * delta; // same sign as both gradient and (v_i-v_j) are antisymmetric
                 divv[j] += m[i] * delta;
             }
         }
@@ -117,6 +131,11 @@ void BasicModel<d>::compute(Storage& storage) {
         this->solveSmoothingLength(v, dv, r, rho);
         this->solveDensity(drho);
         this->solveEnergy(du, p, rho);
+
+        // Apply boundary conditions
+        if (boundary) {
+            boundary->apply();
+        }
     }
 }
 
@@ -136,6 +155,7 @@ void BasicModel<d>::solveSmoothingLength(ArrayView<Vector> v,
 
 template <int d>
 void BasicModel<d>::solveDensity(ArrayView<Float> drho) {
+    ASSERT(areAllMatching(drho, [](const Float v) { return v == 0._f; }));
     ASSERT(drho.size() == divv.size());
     for (int i = 0; i < drho.size(); ++i) {
         drho[i] = -divv[i];
@@ -144,13 +164,14 @@ void BasicModel<d>::solveDensity(ArrayView<Float> drho) {
 
 template <int d>
 void BasicModel<d>::solveEnergy(ArrayView<Float> du, ArrayView<const Float> p, ArrayView<const Float> rho) {
+    ASSERT(areAllMatching(du, [](const Float v) { return v == 0._f; }));
     for (int i = 0; i < du.size(); ++i) {
         du[i] = -p[i] / Math::sqr(rho[i]) * divv[i];
     }
 }
 
 template <int d>
-Storage BasicModel<d>::createParticles(Abstract::Domain* domain,
+Storage BasicModel<d>::createParticles(const Abstract::Domain& domain,
                                        const Settings<BodySettingsIds>& settings) const {
     PROFILE_SCOPE("BasicModel::createParticles")
     std::unique_ptr<Abstract::Distribution> distribution = Factory::getDistribution(settings);
@@ -178,7 +199,7 @@ Storage BasicModel<d>::createParticles(Abstract::Domain* domain,
     st.insert<QuantityKey::H>(std::move(hs));*/
 
     // Create all other quantities (with empty arrays so far)
-    st.insert<QuantityKey::M, QuantityKey::P, QuantityKey::RHO, QuantityKey::U>();
+    st.insert<QuantityKey::M, QuantityKey::P, QuantityKey::RHO, QuantityKey::U, QuantityKey::CS>();
 
     // Allocate all arrays
     // Note: derivatives of positions (velocity, accelerations) are set to 0 by inserting the array. All other
@@ -198,15 +219,16 @@ Storage BasicModel<d>::createParticles(Abstract::Domain* domain,
 
     // set masses of particles, assuming all particles have the same mass
     /// \todo this has to be generalized when using nonuniform particle destribution
-    const Float totalM = domain->getVolume() * rho0.get(); // m = rho * V
+    const Float totalM = domain.getVolume() * rho0.get(); // m = rho * V
     ASSERT(totalM > 0._f);
     st.get<QuantityKey::M>().fill(totalM / N);
 
-    // compute pressure using equation of state
+    // compute pressure and sound speed using equation of state
     std::unique_ptr<Abstract::Eos> bodyEos = Factory::getEos(settings);
-    ArrayView<Float> rhos, us, ps;
-    tie(rhos, us, ps) = st.get<QuantityKey::RHO, QuantityKey::U, QuantityKey::P>();
+    ArrayView<Float> rhos, us, ps, css;
+    tie(rhos, us, ps, css) = st.get<QuantityKey::RHO, QuantityKey::U, QuantityKey::P, QuantityKey::CS>();
     bodyEos->getPressure(rhos, us, ps);
+    bodyEos->getSoundSpeed(rhos, ps, css);
 
     return st;
 }

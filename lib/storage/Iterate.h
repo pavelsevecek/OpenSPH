@@ -10,15 +10,22 @@ struct StorageIterator;
 
 template <>
 struct StorageIterator<TemporalEnum::ALL> {
+
+    template<typename TFunctor>
+    struct Visitor {
+        template <typename TValue>
+        void visit(Quantity& q, TFunctor&& functor) {
+            for (auto& i : q.template getBuffers<TValue>()) {
+                functor(i);
+            }
+        }
+    };
+
     template <typename TFunctor>
     static void iterate(Array<Quantity>& qs, TFunctor&& functor) {
+        Visitor<TFunctor> visitor;
         for (auto& q : qs) {
-            for (auto& i : q.template getBuffers<Float>()) {
-                functor(i);
-            }
-            for (auto& i : q.template getBuffers<Vector>()) {
-                functor(i);
-            }
+            dispatch(q.getValueEnum(), visitor, q, std::forward<TFunctor>(functor));
         }
     }
 

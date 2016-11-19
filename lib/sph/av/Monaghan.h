@@ -17,15 +17,20 @@ private:
 
 public:
     MonaghanAV(const Settings<GlobalSettingsIds>& settings) {
-        alpha = settings.get<Float>(GlobalSettingsIds::AV_ALPHA);
-        beta  = settings.get<Float>(GlobalSettingsIds::AV_BETA);
+        alpha = settings.get<Float>(GlobalSettingsIds::AV_ALPHA).get();
+        beta  = settings.get<Float>(GlobalSettingsIds::AV_BETA).get();
     }
 
     INLINE Float
-    operator()(const Vector& dv, const Vector& dr, const Float cs, const Float rhobar, const Float hbar) {
-        const Float mu = hbar * dot(dv, dr) / (getSqrLength(dr) + eps * Math::sqr(hbar));
-        return 1._f / rhobar * (-alpha * cs * mu + beta * Math::sqr(mu));
+    operator()(const Vector& dv, const Vector& dr, const Float csbar, const Float rhobar, const Float hbar) {
+        const Float dvdr = dot(dv, dr);
+        if (dvdr >= 0._f) {
+            return 0._f;
+        }
+        const Float mu = hbar * dvdr / (getSqrLength(dr) + eps * Math::sqr(hbar));
+        return 1._f / rhobar * (-alpha * csbar * mu + beta * Math::sqr(mu));
     }
 };
+
 
 NAMESPACE_SPH_END

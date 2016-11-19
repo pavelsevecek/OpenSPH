@@ -5,54 +5,98 @@
 /// sevecek at sirrah.troja.mff.cuni.cz
 
 #include "math/Math.h"
-#include "objects/Object.h"
+#include "objects/wrappers/Optional.h"
 
 NAMESPACE_SPH_BEGIN
 
-/// Object defining 1D interval for arbitrary type. Underlying type must define operator <= and functions
-/// Math::min and Math::max.
-template <typename T>
+/// Object defining 1D interval. Can also represent one sided [x, infty] or [-infty, x], or even "zero" sided
+/// [-infty, infty] intervals.
 class Range : public Object {
 private:
-    T lower;
-    T upper;
+    Optional<Float> lower;
+    Optional<Float> upper;
 
 public:
+    /// Default construction of an empty interval. Any contains() call will return false, extending the
+    /// interval will result in zero-size interval containing the inserted value.
     INLINE Range()
-        : lower(T(INFTY))
-        , upper(T(-INFTY)) {}
+        : lower(INFTY)
+        , upper(-INFTY) {}
 
-    INLINE Range(const T& lower, const T& upper)
+    /// Constructs the interval given its lower and upper bound. You can use NOTHING to create unbounded
+    /// interval.
+    INLINE Range(const Optional<Float>& lower, const Optional<Float>& upper)
         : lower(lower)
         , upper(upper) {
-        ASSERT(lower <= upper);
+        ASSERT(!lower || !upper || lower.get() <= upper.get());
     }
 
-    INLINE void extend(const T& value) {
-        lower = Math::min(lower, value);
-        upper = Math::max(upper, value);
+    /// Extends the interval to contain given value. If the value is already inside the interval, nothing
+    /// changes.
+    INLINE void extend(const Float value) {
+        if (lower) {
+            lower = Math::min(lower.get(), value);
+        }
+        if (upper) {
+            upper = Math::max(upper.get(), value);
+        }
     }
 
-    INLINE bool contains(const T& value) const { return lower <= value && value <= upper; }
+    /// Checks whether value is inside the interval.
+    INLINE bool contains(const Float value) const {
+        return (!lower || lower.get() <= value) && (!upper || value <= upper.get());
+    }
 
-    INLINE T clamp(const T& value) const { return Math::max(lower, Math::min(value, upper)); }
+    /// Clamps the given value by the interval.
+    INLINE Float clamp(const Float value) const {
+        ASSERT(!lower || !upper || lower.get() <= upper.get());
+        const Float rightBounded = upper ? Math::min(value, upper.get()) : value;
+        return lower ? Math::max(lower.get(), rightBounded) : rightBounded;
+    }
 
-    INLINE const T& getLower() const { return lower; }
+    /// Returns lower bound of the interval. Asserts if the bound does not exist.
+    INLINE const Float& getLower() const {
+        ASSERT(lower);
+        return lower.get();
+    }
 
-    INLINE const T& getUpper() const { return upper; }
+    /// Returns upper bound of the interval. Asserts if the bound does not exist.
+    INLINE const Float& getUpper() const {
+        ASSERT(upper);
+        return upper.get();
+    }
+
+    /// Output to stream
+    template<typename TStream>
+    friend TStream& operator<<(TStream& stream, const Range& range) {
+        stream << "[" << (range.lower ? std::to_string(range.lower.get()) : std::string("-infinity")) << ", " <<
+                  (range.upper ? std::to_string(range.upper.get()) : std::string("infinity")) << "]";
+    }
 };
 
 
+namespace Math {
+    /// Overload of clamp method using range instead of lower and upper bound as values.
+    /// Can be used by other types by specializing the method
+    template<typename T>
+    INLINE T clamp(const T& v, const Range& range);
+
+    template<>
+    INLINE Float clamp(const Float& v, const Range& range) {
+        return range.clamp(v);
+    }
+}
+
 /// Helper class for iterating over interval using range-based for loop. Cannot be used (and should not be
 /// used) in STL algorithms.
-template <typename T, typename TStep>
+template <typename TStep>
 class RangeIterator : public Object {
 private:
-    T value;
+    Float value;
     TStep step;
 
 public:
-    RangeIterator(const T& value, TStep step)
+    RangeIterator(const Float value, TStep step)
         : value(value)
         , step(std::forward<TStep>(step)) {}
 
@@ -61,9 +105,9 @@ public:
         return *this;
     }
 
-    INLINE T& operator*() { return value; }
+    INLINE  Float& operator*() { return value; }
 
-    INLINE const T& operator*() const { return value; }
+    INLINE const Float& operator*() const { return value; }
 
     bool operator!=(const RangeIterator& other) {
         // hack: this is actually used as < operator in range-based for loops
@@ -71,26 +115,25 @@ public:
     }
 };
 
-template <typename T, typename TStep>
+template <typename TStep>
 class RangeAdapter : public Object {
 private:
-    Range<T> range;
+    Range range;
     TStep step; // can be l-value ref, allowing variable step
 
 public:
-    RangeAdapter(const Range<T>& range, TStep&& step)
+    RangeAdapter(const Range& range, TStep&& step)
         : range(range)
         , step(std::forward<TStep>(step)) {}
 
-    INLINE RangeIterator<T, TStep> begin() { return RangeIterator<T, TStep>(range.getLower(), step); }
+    INLINE RangeIterator<TStep> begin() { return RangeIterator<TStep>(range.getLower(), step); }
 
-    INLINE RangeIterator<T, TStep> end() { return RangeIterator<T, TStep>(range.getUpper(), step); }
+    INLINE RangeIterator<TStep> end() { return RangeIterator<TStep>(range.getUpper(), step); }
 };
 
-template <typename T, typename TStep>
-RangeAdapter<T, TStep> rangeAdapter(const Range<T>& range, TStep&& step) {
-    return RangeAdapter<T, TStep>(range, std::forward<TStep>(step));
+template <typename TStep>
+RangeAdapter<TStep> rangeAdapter(const Range& range, TStep&& step) {
+    return RangeAdapter<TStep>(range, std::forward<TStep>(step));
 }
-
 
 NAMESPACE_SPH_END

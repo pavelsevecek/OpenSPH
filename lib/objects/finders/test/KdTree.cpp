@@ -10,7 +10,7 @@ using namespace Sph;
 TEST_CASE("KdTree", "[kdtree]") {
     HexagonalPacking distr;
     SphericalDomain domain(Vector(0._f), 2._f);
-    Array<Vector> storage = distr.generate(50, &domain);
+    Array<Vector> storage = distr.generate(50, domain);
 
     KdTree tree;
     tree.build(storage);
@@ -57,9 +57,8 @@ TEST_CASE("KdTree Smaller H", "[kdtree]") {
     int nSmaller = tree.findNeighbours(4, 10._f, kdNeighs, FinderFlags::FIND_ONLY_SMALLER_H);
     REQUIRE(nSmaller == 4); // this should find indices 0, 1, 2, 3
     bool allMatching = true;
-    Range<int> range(0, 3);
     for (auto& n : kdNeighs) {
-        if (!range.contains(n.index)) {
+        if (n.index < 0 || n.index > 3) {
             allMatching = false;
         }
     }

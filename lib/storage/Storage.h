@@ -125,7 +125,7 @@ public:
 
     /// Returns views to all buffers stored in a quantity.
     template<int TKey>
-    Array<Array<QuantityType<TKey>>&> getAll() {
+    Array<LimitedArray<QuantityType<TKey>>&> getAll() {
         for (Quantity& q : quantities) {
             if (q.getKey() == TKey) {
                 auto optHolder = q.template cast<QuantityType<TKey>, QuantityMap<TKey>::temporalEnum>();

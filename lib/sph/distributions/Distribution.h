@@ -23,41 +23,42 @@ namespace Abstract {
         /// \return Output array of vertices. The total number of vertices can slightly differ from n.
         /// \note This method is expected to be called once at the beginning of the run, so we can
         ///       return allocated array without worrying about performance costs here.
-        virtual Array<Vector> generate(const int n, const Domain* domain) const = 0;
+        virtual Array<Vector> generate(const int n, const Domain& domain) const = 0;
     };
 }
 
 /// Generating random positions withing the domain.
 class RandomDistribution : public Abstract::Distribution {
 public:
-    virtual Array<Vector> generate(const int n, const Abstract::Domain* domain) const override;
+    virtual Array<Vector> generate(const int n, const Abstract::Domain& domain) const override;
 };
 
 
 /// Cubic close packing
 class CubicPacking : public Abstract::Distribution {
 public:
-    virtual Array<Vector> generate(const int n, const Abstract::Domain* domain) const override;
+    virtual Array<Vector> generate(const int n, const Abstract::Domain& domain) const override;
 };
 
 
 /// Hexagonal close packing
 class HexagonalPacking : public Abstract::Distribution {
 public:
-    virtual Array<Vector> generate(const int n, const Abstract::Domain* domain) const override;
+    virtual Array<Vector> generate(const int n, const Abstract::Domain& domain) const override;
 };
 
 
-/// Generates particles uniformly on a line in x direction, for testing purposes. Uses only center and radius of the domain.
+/// Generates particles uniformly on a line in x direction, for testing purposes. Uses only center and radius
+/// of the domain.
 class LinearDistribution : public Abstract::Distribution {
 public:
-    virtual Array<Vector> generate(const int n, const Abstract::Domain* domain) const override {
-        const Float center = domain->getCenter()[X];
-        const Float radius = domain->getBoundingRadius();
+    virtual Array<Vector> generate(const int n, const Abstract::Domain& domain) const override {
+        const Float center = domain.getCenter()[X];
+        const Float radius = domain.getBoundingRadius();
         Array<Vector> vs(0, n);
-        const Float dx = 2._f * radius / Float(n-1);
-        for (Float x = center - radius; x<=center+radius; x += dx) {
-            vs.push(Vector(x, 0._f, 0._f, dx)); // smoothing length = interparticle distance
+        const Float dx = 2._f * radius / Float(n - 1);
+        for (Float x = center - radius; x <= center + radius; x += dx) {
+            vs.push(Vector(x, 0._f, 0._f, 2.5_f * dx)); // smoothing length = interparticle distance
         }
         return vs;
     }

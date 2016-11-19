@@ -226,7 +226,7 @@ namespace Math {
 
     template<typename T>
     INLINE bool isReal(const T& value) {
-        return value == 0._f || std::isnormal(value);
+        return !std::isnan(value) && !std::isinf(value);
     }
 }
 

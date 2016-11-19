@@ -24,6 +24,8 @@ NAMESPACE_SPH_BEGIN
 #define ASSERT(x)
 #endif
 
+#define NOT_IMPLEMENTED ASSERT(false && "not implemented"); throw std::exception();
+
 /// Force inline for gcc
 #ifdef DEBUG
 #define INLINE inline

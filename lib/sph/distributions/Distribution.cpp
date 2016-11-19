@@ -3,9 +3,9 @@
 
 NAMESPACE_SPH_BEGIN
 
-Array<Vector> RandomDistribution::generate(const int n, const Abstract::Domain* domain) const {
-    const Vector center(domain->getCenter());
-    const Vector radius(domain->getBoundingRadius());
+Array<Vector> RandomDistribution::generate(const int n, const Abstract::Domain& domain) const {
+    const Vector center(domain.getCenter());
+    const Vector radius(domain.getBoundingRadius());
     const Box bounds(center - radius, center + radius);
 
     auto boxRng = makeVectorPdfRng(bounds,
@@ -14,13 +14,13 @@ Array<Vector> RandomDistribution::generate(const int n, const Abstract::Domain* 
                                    [](const Vector&) { return 1._f; });
     Array<Vector> vecs(0, n);
     // use homogeneous smoothing lenghs regardless of actual spatial variability of particle concentration
-    const Float volume = domain->getVolume();
+    const Float volume = domain.getVolume();
     const Float h      = Math::root<3>(volume / n);
     int found          = 0;
     for (int i = 0; i < 1e5 * n && found < n; ++i) {
         Vector w = boxRng();
         w[H]     = h;
-        if (domain->isInside(w)) {
+        if (domain.isInside(w)) {
             vecs.push(w);
             ++found;
         }
@@ -28,23 +28,23 @@ Array<Vector> RandomDistribution::generate(const int n, const Abstract::Domain* 
     return vecs;
 }
 
-Array<Vector> CubicPacking::generate(const int n, const Abstract::Domain* domain) const {
+Array<Vector> CubicPacking::generate(const int n, const Abstract::Domain& domain) const {
     PROFILE_SCOPE("CubicPacking::generate")
     ASSERT(n > 0);
-    const Float volume          = domain->getVolume();
+    const Float volume          = domain.getVolume();
     const Float particleDensity = Float(n) / volume;
 
     // interparticle distance based on density
     const Float h = 1._f / Math::root<3>(particleDensity);
 
-    const Vector center(domain->getCenter());
-    const Vector radius(domain->getBoundingRadius() + h);
+    const Vector center(domain.getCenter());
+    const Vector radius(domain.getBoundingRadius() + h);
     const Box box(center - radius, center + radius);
 
     Array<Vector> vecs(0, 2 * n); /// \todo better estimate of how many we need to allocate, or
                                   /// reallocation like std::vector
-    box.iterate(Vector(h, h, h), [&vecs, domain, h](Vector&& v) {
-        if (domain->isInside(v)) {
+    box.iterate(Vector(h, h, h), [&vecs, &domain, h](Vector&& v) {
+        if (domain.isInside(v)) {
             v[H] = h;
             vecs.push(std::move(v));
         }
@@ -52,10 +52,10 @@ Array<Vector> CubicPacking::generate(const int n, const Abstract::Domain* domain
     return vecs;
 }
 
-Array<Vector> HexagonalPacking::generate(const int n, const Abstract::Domain* domain) const {
+Array<Vector> HexagonalPacking::generate(const int n, const Abstract::Domain& domain) const {
     PROFILE_SCOPE("HexagonalPacking::generate")
     ASSERT(n > 0);
-    const Float volume          = domain->getVolume();
+    const Float volume          = domain.getVolume();
     const Float particleDensity = Float(n) / volume;
 
     // interparticle distance based on density
@@ -64,8 +64,8 @@ Array<Vector> HexagonalPacking::generate(const int n, const Abstract::Domain* do
     const Float dy = Math::sqrt(3._f) * 0.5_f * dx;
     const Float dz = Math::sqrt(6._f) / 3._f * dx;
 
-    const Vector center(domain->getCenter());
-    const Vector radius(domain->getBoundingRadius() + dx);
+    const Vector center(domain.getCenter());
+    const Vector radius(domain.getBoundingRadius() + dx);
     const Box box(center - radius, center + radius);
 
     /// \todo generalize to 1 and 2 dim
@@ -74,7 +74,7 @@ Array<Vector> HexagonalPacking::generate(const int n, const Abstract::Domain* do
     const Float deltaY = Math::sqrt(3._f) / 6._f * dx;
     Float lastY        = 0._f;
     box.iterateWithIndices(Vector(dx, dy, dz),
-                           [&lastY, deltaX, deltaY, &vecs, domain, h](Indices&& idxs, Vector&& v) {
+                           [&lastY, deltaX, deltaY, &vecs, &domain, h](Indices&& idxs, Vector&& v) {
                                if (idxs[2] % 2 == 0) {
                                    if (idxs[1] % 2 == 0) {
                                        v[X] += deltaX;
@@ -85,7 +85,7 @@ Array<Vector> HexagonalPacking::generate(const int n, const Abstract::Domain* do
                                    }
                                    v[Y] += deltaY;
                                }
-                               if (domain->isInside(v)) {
+                               if (domain.isInside(v)) {
                                    v[H] = h;
                                    vecs.push(std::move(v));
                                }

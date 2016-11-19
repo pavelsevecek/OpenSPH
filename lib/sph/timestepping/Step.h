@@ -8,12 +8,13 @@ NAMESPACE_SPH_BEGIN
 
 class TimeStepGetter : public Object {
 private:
-    Float factor;
     std::shared_ptr<Storage> storage;
+    Float factor;
 
 public:
-    TimeStepGetter(const std::shared_ptr<Storage>& storage)
-        : storage(storage) {}
+    TimeStepGetter(const std::shared_ptr<Storage>& storage, const Float factor)
+        : storage(storage)
+        , factor(factor) {}
 
     /// Returns the time step based on ratio between quantities and their derivatives
     virtual Float operator()(const Float maxStep) const {
@@ -25,11 +26,12 @@ public:
                 if (Math::normSqr(dv[i]) != 0._f) {
                     /// \todo here, float quantities could be significantly optimized using SSE
                     minStep = Math::min(minStep, factor * Math::norm(v[i]) / Math::norm(dv[i]));
+                    ASSERT(Math::isReal(minStep) && minStep > 0._f && minStep < INFTY);
                 }
             }
         });
-        ASSERT(Math::isReal(minStep) && minStep > 0._f && minStep < INFTY);
-        return Math::min(minStep, maxStep);
+        minStep = Math::min(minStep, maxStep);
+        return minStep;
     }
 };
 

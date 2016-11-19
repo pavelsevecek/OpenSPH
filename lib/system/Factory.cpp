@@ -17,8 +17,7 @@ std::unique_ptr<Abstract::Eos> Factory::getEos(const Settings<BodySettingsIds>& 
     case EosEnum::TILLOTSON:
         return std::make_unique<TillotsonEos>(settings);
     default:
-        ASSERT(false);
-        return nullptr;
+        NOT_IMPLEMENTED;
     }
 }
 
@@ -35,8 +34,7 @@ std::unique_ptr<Abstract::TimeStepping> Factory::getTimestepping(const Settings<
     case TimesteppingEnum::BULIRSCH_STOER:
         return std::make_unique<BulirschStoer>(storage, settings);
     default:
-        ASSERT(false);
-        return nullptr;
+        NOT_IMPLEMENTED;
     }
 }
 
@@ -47,8 +45,7 @@ std::unique_ptr<Abstract::Finder> Factory::getFinder(const FinderEnum id) {
     case FinderEnum::KD_TREE:
         return std::make_unique<KdTree>();
     default:
-        ASSERT(false);
-        return nullptr;
+        NOT_IMPLEMENTED;
     }
 }
 
@@ -68,8 +65,26 @@ std::unique_ptr<Abstract::Distribution> Factory::getDistribution(const Settings<
     case DistributionEnum::LINEAR:
         return std::make_unique<LinearDistribution>();
     default:
-        ASSERT(false);
+        NOT_IMPLEMENTED;
+    }
+}
+
+std::unique_ptr<Abstract::Domain> Factory::getDomain(const Settings<GlobalSettingsIds>& settings) {
+    const Optional<DomainEnum> id =
+        optionalCast<DomainEnum>(settings.get<int>(GlobalSettingsIds::DOMAIN_TYPE));
+    const Vector center = settings.get<Vector>(GlobalSettingsIds::DOMAIN_CENTER).get();
+    ASSERT(id);
+    switch (id.get()) {
+    case DomainEnum::NONE:
         return nullptr;
+    case DomainEnum::BLOCK:
+        return std::make_unique<BlockDomain>(center,
+                                             settings.get<Vector>(GlobalSettingsIds::DOMAIN_SIZE).get());
+    case DomainEnum::SPHERICAL:
+        return std::make_unique<SphericalDomain>(center,
+                                                 settings.get<float>(GlobalSettingsIds::DOMAIN_RADIUS).get());
+    default:
+        NOT_IMPLEMENTED;
     }
 }
 
@@ -84,17 +99,18 @@ std::unique_ptr<Abstract::BoundaryConditions> Factory::getBoundaryConditions(
     case BoundaryEnum::NONE:
         return nullptr;
     case BoundaryEnum::DOMAIN_PROJECTING:
+        ASSERT(domain != nullptr);
         return std::make_unique<DomainProjecting>(storage,
                                                   std::move(domain),
                                                   ProjectingOptions::ZERO_PERPENDICULAR);
     case BoundaryEnum::PROJECT_1D: {
+        ASSERT(domain != nullptr);
         const Vector center = domain->getCenter();
         const Float radius  = domain->getBoundingRadius();
-        return std::make_unique<Projection1D>(storage, Range<float>(center[0] - radius, center[0] + radius));
+        return std::make_unique<Projection1D>(storage, Range(center[0] - radius, center[0] + radius));
     }
     default:
-        ASSERT(false);
-        return nullptr;
+        NOT_IMPLEMENTED;
     }
 }
 

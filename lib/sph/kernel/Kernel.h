@@ -29,11 +29,13 @@ public:
     /// \todo Potentially precompute the 3rd power ...
     //    template <bool TApprox = false>
     INLINE Float value(const Vector& r, const Float& h) const {
+        ASSERT(h > EPS);
         return Math::pow<-d>(h) * kernel->valueImpl(getSqrLength(r) / (h * h));
     }
 
     //  template <bool TApprox = false>
     INLINE Vector grad(const Vector& r, const Float& h) const {
+        ASSERT(h > EPS);
         return r * Math::pow<-d - 2>(h) * kernel->gradImpl(getSqrLength(r) / (h * h));
     }
 };
@@ -145,7 +147,7 @@ public:
         }
         if (q < 1._f) {
             return (1._f / q) * normalization[d - 1] *
-                   (-0.75_f * Math::pow<2>(2._f - q) + 3 * Math::pow<2>(1._f - q));
+                   (-0.75_f * Math::pow<2>(2._f - q) + 3._f * Math::pow<2>(1._f - q));
         }
         if (q < 2._f) {
             return (1._f / q) * normalization[d - 1] * (-0.75f * Math::pow<2>(2.f - q));

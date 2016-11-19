@@ -6,7 +6,7 @@ using namespace Sph;
 
 void testDistribution(Abstract::Distribution* distribution) {
     BlockDomain domain(Vector(-3._f), Vector(2._f));
-    Array<Vector> values = distribution->generate(1000, &domain);
+    Array<Vector> values = distribution->generate(1000, domain);
     REQUIRE(values.size() > 900);
     REQUIRE(values.size() < 1100);
     bool allInside = areAllMatching(values, [&](const Vector& v) { return domain.isInside(v); });
@@ -34,7 +34,7 @@ TEST_CASE("RandomDistribution", "[initconds]") {
 TEST_CASE("LinearDistribution", "[initconds]") {
     LinearDistribution linear;
     SphericalDomain domain(Vector(0.5_f), 0.5_f);
-    Array<Vector> values = linear.generate(101, &domain);
+    Array<Vector> values = linear.generate(101, domain);
     REQUIRE(values.size() == 101);
     bool equal = true;
     for (int i=0; i<=100; ++i) {
