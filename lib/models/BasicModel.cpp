@@ -192,14 +192,14 @@ Storage BasicModel<d>::createParticles(const Abstract::Domain& domain,
 
     Storage st;
 
-    // Put generated particles inside the storage.
-    st.insert<QuantityKey::R>(std::move(rs));
-
     /*// Same for smoothing lengths
     st.insert<QuantityKey::H>(std::move(hs));*/
 
     // Create all other quantities (with empty arrays so far)
-    st.insert<QuantityKey::M, QuantityKey::P, QuantityKey::RHO, QuantityKey::U, QuantityKey::CS>();
+    st.insert<QuantityKey::R, QuantityKey::M, QuantityKey::P, QuantityKey::RHO, QuantityKey::U, QuantityKey::CS>();
+
+    // Put generated particles inside the storage.
+    st.get<QuantityKey::R>() = std::move(rs);
 
     // Allocate all arrays
     // Note: derivatives of positions (velocity, accelerations) are set to 0 by inserting the array. All other

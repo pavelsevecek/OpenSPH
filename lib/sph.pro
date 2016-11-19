@@ -31,6 +31,8 @@ HEADERS += \
     objects/containers/ArrayUtils.h \
     objects/containers/ArrayView.h \
     objects/containers/Tuple.h \
+    objects/containers/LimitedArray.h \
+    objects/containers/BufferedArray.h \
     objects/finders/Bruteforce.h \
     objects/finders/Finder.h \
     objects/finders/KdTree.h \
@@ -38,6 +40,7 @@ HEADERS += \
     objects/finders/Nanoflann.h \
     objects/finders/Octree.h \
     objects/finders/Order.h \
+    objects/finders/PeriodicFinder.h \
     objects/wrappers/Any.h \
     objects/wrappers/Flags.h \
     objects/wrappers/Iterators.h \
@@ -46,34 +49,30 @@ HEADERS += \
     objects/wrappers/Range.h \
     objects/wrappers/Shadow.h \
     objects/wrappers/Variant.h \
+    objects/wrappers/VectorizedArray.h \
     physics/Constants.h \
     physics/Eos.h \
     physics/TimeFormat.h \
+    physics/Integrals.h \
     problem/Problem.h \
-    sph/timestepping/TimeStepping.h \
     sph/kernel/Kernel.h \
+    sph/distributions/Distribution.h \
+    sph/timestepping/Step.h \
+    sph/timestepping/TimeStepping.h \
+    sph/av/Monaghan.h \
+    sph/boundary/Boundary.h \
     system/Callbacks.h \
     system/Factory.h \
     system/Logger.h \
     system/Parser.h \
     system/Settings.h \
     system/Timer.h \
+    system/Profiler.h \
     models/AbstractModel.h \
     models/BasicModel.h \
-    storage/Quantity.h \
+    models/CompositeModel.h \
     storage/Iterate.h \
     storage/Storage.h \
-    objects/containers/BufferedArray.h \
-    physics/Integrals.h \
-    storage/QuantityMap.h \
-    sph/timestepping/Step.h \
-    objects/wrappers/VectorizedArray.h \
-    objects/finders/BruteForce.h \
-    sph/av/Monaghan.h \
-    sph/boundary/Boundary.h \
-    objects/finders/PeriodicFinder.h \
-    system/Profiler.h \
-    models/CompositeModel.h \
-    sph/distributions/Distribution.h \
-    storage/LimitedArray.h \
-    storage/QuantityHelpers.h
+    storage/Quantity.h \
+    storage/QuantityHelpers.h \
+    storage/QuantityMap.h

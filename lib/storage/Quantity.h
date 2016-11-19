@@ -3,7 +3,7 @@
 #include "geometry/Tensor.h"
 #include "objects/wrappers/Flags.h"
 #include "objects/wrappers/Optional.h"
-#include "storage/LimitedArray.h"
+#include "objects/containers/LimitedArray.h"
 #include "storage/QuantityHelpers.h"
 
 NAMESPACE_SPH_BEGIN

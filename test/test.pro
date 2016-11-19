@@ -49,7 +49,8 @@ SOURCES += \
     ../lib/physics/test/Integrals.cpp \
     ../lib/models/test/BasicModel.cpp \
     ../lib/geometry/test/Tensor.cpp \
-    ../lib/system/test/Profiler.cpp
+    ../lib/system/test/Profiler.cpp \
+    ../lib/objects/containers/test/LimitedArray.cpp
 
 
 HEADERS += \
