@@ -13,7 +13,11 @@ namespace Constants {
 
     const Float atomicMass = 1.660539040e-27_f; // kg
 
+    /// Boltzmann constant
     const Float boltzmann = 1.380648e-23_f; // J K^-1
+
+    /// Gravitational constant
+    const Float gravity = 6.67408e-11; // m^3 kg^-1 s^-2
 }
 
 NAMESPACE_SPH_END

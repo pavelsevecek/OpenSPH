@@ -1,6 +1,6 @@
 #pragma once
 
-/// Output routines of the run.
+/// Logging routines of the run.
 /// Pavel Sevecek 2016
 /// sevecek at sirrah.troja.mff.cuni.cz
 
@@ -12,9 +12,11 @@
 
 NAMESPACE_SPH_BEGIN
 
-/// Interface providing generic (text, human readable) output of the program.
+/// Interface providing generic (text, human readable) output of the program. It's meant for logging current
+/// time, some statistics of the simulation, encountered warnings and errors, etc. For output of particle
+/// quantities, use Abstract::Output.
 namespace Abstract {
-    class Logger : public Polymorphic {
+    class Logger : public Polymorphic, public Noncopyable {
     public:
         virtual void write(const std::string& s) = 0;
 
@@ -26,23 +28,21 @@ namespace Abstract {
 }
 
 /// Standard output logger.
-class StdOutput : public Abstract::Logger {
+class StdOutLogger : public Abstract::Logger {
 public:
     virtual void write(const std::string& s) override { std::cout << s << std::endl; }
 };
 
 /// File output logger
-class FileOutput : public Abstract::Logger {
+class FileLogger : public Abstract::Logger {
 private:
     std::ofstream stream;
 
 public:
-    FileOutput(const std::string& path)
+    FileLogger(const std::string& path)
         : stream(path, std::ofstream::out) {}
 
-    ~FileOutput() {
-        stream.close();
-    }
+    ~FileLogger() { stream.close(); }
 
     virtual void write(const std::string& s) override { stream << s; }
 };
@@ -55,7 +55,9 @@ private:
 public:
     int getLoggerCnt() const { return loggers.size(); }
 
-    void add(Abstract::Logger* logger) { loggers.insert(std::unique_ptr<Abstract::Logger>(logger)); }
+    void add(std::unique_ptr<Abstract::Logger>&& logger) {
+        loggers.insert(std::move(logger));
+    }
 
     virtual void write(const std::string& s) override {
         for (auto& l : loggers) {

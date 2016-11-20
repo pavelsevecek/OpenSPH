@@ -207,7 +207,7 @@ Storage BasicModel<d>::createParticles(const Abstract::Domain& domain,
 
     // Set density to default value and save the allowed range
     LimitedArray<Float>& rho = st.get<QuantityKey::RHO>();
-    const Float rho0 = settings.get<Float>(BodySettingsIds::DENSITY);
+    const Float rho0         = settings.get<Float>(BodySettingsIds::DENSITY);
     rho.fill(rho0);
     rho.setBounds(settings.get<Range>(BodySettingsIds::DENSITY_RANGE));
 

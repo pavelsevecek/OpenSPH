@@ -44,6 +44,22 @@ struct StoragePairVisitor<VisitorEnum::ALL_BUFFERS, TFunctor> {
     }
 };
 
+
+/// Iterator over all zero-order quantities. This won't access first-order quantities nor second-order
+/// quantities! The functor is executed with array of quantity values.
+template <typename TFunctor>
+struct StorageVisitor<VisitorEnum::ZERO_ORDER, TFunctor> {
+    template <typename TValue>
+    void visit(Quantity& q, TFunctor&& functor) {
+        if (q.getTemporalEnum() != TemporalEnum::ZERO_ORDER) {
+            return;
+        }
+        auto holder = q.cast<TValue, TemporalEnum::ZERO_ORDER>();
+        ASSERT(holder);
+        functor(holder->getValue());
+    }
+};
+
 /// Iterator over all first-order quantities. This won't access second-order quantities! The functor is
 /// executed with two parameters: values and derivatives (both LimitedArrays).
 template <typename TFunctor>

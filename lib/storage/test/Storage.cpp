@@ -5,7 +5,7 @@ using namespace Sph;
 
 TEST_CASE("Storage", "[storage]") {
     Storage storage = makeStorage<QuantityKey::R, QuantityKey::M>();
-    REQUIRE(storage.size() == 2);
+    REQUIRE(storage.getQuantityCnt() == 2);
 
     int counter = 0;
     iterate<VisitorEnum::ALL_BUFFERS>(storage, [&counter](auto&& ar) {

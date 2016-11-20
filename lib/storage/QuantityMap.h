@@ -34,13 +34,14 @@ struct QuantityDescriptor {
 /// Can be extended by partial specialization.
 template <int TKey>
 struct QuantityMap {
+    // this array needs to be inside a class, otherwise it produces internal compiler error ...
     // clang-format off
     static constexpr QuantityDescriptor quantityDescriptors[] =
         { { QuantityKey::R,     ValueEnum::VECTOR,              TemporalEnum::SECOND_ORDER },
           { QuantityKey::M,     ValueEnum::SCALAR,              TemporalEnum::ZERO_ORDER },
-          { QuantityKey::P,     ValueEnum::SCALAR,              TemporalEnum::ZERO_ORDER },
+          { QuantityKey::P,     ValueEnum::SCALAR,              TemporalEnum::ZERO_ORDER},
           { QuantityKey::RHO,   ValueEnum::SCALAR,              TemporalEnum::FIRST_ORDER },
-          { QuantityKey::U,     ValueEnum::SCALAR,              TemporalEnum::FIRST_ORDER },
+          { QuantityKey::U,     ValueEnum::SCALAR,              TemporalEnum::FIRST_ORDER},
           { QuantityKey::CS,    ValueEnum::SCALAR,              TemporalEnum::ZERO_ORDER },
           { QuantityKey::S,     ValueEnum::TRACELESS_TENSOR,    TemporalEnum::FIRST_ORDER },
           { QuantityKey::D,     ValueEnum::SCALAR,              TemporalEnum::FIRST_ORDER } };
@@ -55,123 +56,37 @@ struct QuantityMap {
 template <int TKey>
 using QuantityType = typename QuantityMap<TKey>::Type;
 
-
-/*
-enum class DamageKey { D = 5 };
-
-template <DamageKey Key>
-struct QuantityMap<DamageKey, Key> {
-    static constexpr QuantityDescriptor<DamageKey> quantityDescriptors[] = {
-        { DamageKey::D, ValueEnum::VECTOR, TemporalEnum::FIRST_ORDER }
-    };
-
-    static constexpr QuantityDescriptor<DamageKey> descriptor = quantityDescriptors[int(Key)];
-    using Type                                 = typename GetTypeFromValue<descriptor.valueEnum>::Type;
-    static constexpr TemporalEnum temporalEnum = descriptor.temporalEnum;
-};*/
-
-
-/// Convenient way to access quantities by their name. Does not actually store anyting, requires constructed
-/// GenericStorage that owns the arrays.
-class BasicView : public Noncopyable {
-public:
-    /// The number of particles
-
-
-    /// Constructs by getting references from storage.
-    /*   BasicView(GenericStorage& storage)
-           : rs(storage.view<QuantityType::VECTOR>(0))
-           , vs(storage.view<QuantityType::VECTOR>(1))
-           , dvs(storage.view<QuantityType::VECTOR>(2))
-           , ms(storage.view<QuantityType::SCALAR>(0))
-           , rhos(storage.view<QuantityType::SCALAR>(1))
-           , drhos(storage.view<QuantityType::SCALAR>(2))
-           , ps(storage.view<QuantityType::SCALAR>(3))
-           , us(storage.view<QuantityType::SCALAR>(4))
-           , dus(storage.view<QuantityType::SCALAR>(5))
-           , storage(storage) {}
-
-       template <IterableType Type>
-       INLINE Iterables<Type> getIterables() const;
-
-       static int getQuantityCnt(const QuantityType type) {
-           switch (type) {
-           case QuantityType::SCALAR:
-               return 6;
-           case QuantityType::VECTOR:
-               return 3;
-           default:
-               ASSERT(false);
-           }
-       }
-
-       void init() {
-           dvs.fill(Vector(0._f));
-           dus.fill(0._f);
-           drhos.fill(0._f);
-       }
-
-       /// Fill the storage by particles.
-       /// \param n Expected number of particles (note that final number of particles can be different, based
-       on
-       /// selected particle distribution).
-       /// \param domain Spatial domain filled with particles.
-       /// \param distribution Algorithm for distribution particles in space.
-       /// \param settings Settings used to get default values for quantities of SPH particles.
-       void create(const int n,
-                   const Abstract::Domain* domain,
-                   const Abstract::Distribution* distribution,
-                   const Settings<BodySettingsIds>& settings);
-
-       /// Moves all particles in given direction. Does not change velocities or other quantities
-       void move(const Vector& offset) {
-           for (Vector& r : rs) {
-               r += offset;
-           }
-       }
-
-       void rotate(const Vector& UNUSED(center), const Vector& UNUSED(axis)) {
-           /// \todo
-       }
-
-       /// Adds velocity to all particles.
-       void addVelocity(const Vector& velocity) {
-           for (Vector& v : vs) {
-               v += velocity;
-           }
-       }
-
-
-       /// Adds angular velocity around given center and axis of rotation
-       void addAngularVelocity(const Vector& UNUSED(center), const Vector& UNUSED(axis)) {
-           /// \todo
-       }
-
-
-       /// \todo generalize using some output routine
-       void saveToFile(const std::string& path) {
-           std::ofstream ofs(path);
-           for (int i = 0; i < N; ++i) {
-               ofs << i << " " << rs[i] << " " << vs[i] << " " << ms[i] << " " << rhos[i] << " " << ps[i]
-                   << std::endl;
-           }
-           ofs.close();
-       }*/
-};
-
-/*template <>
-INLINE Iterables<IterableType::ALL> BasicView::getIterables<IterableType::ALL>() const {
-    return Iterables<IterableType::ALL>{ storage.scalars, storage.vectors };
-}*/
-
-/*template <>
-INLINE Iterables<IterableType::SECOND_ORDER> BasicView::getIterables<IterableType::SECOND_ORDER>() const {
-    return Iterables<IterableType::SECOND_ORDER>{ {}, { { rs, vs, dvs } } };
+/// \todo rewrite this to something less stupid
+INLINE std::string getQuantityName(const int key) {
+    switch (key) {
+    case QuantityKey::R:
+        return "Position";
+    case QuantityKey::M:
+        return "Particle mass";
+    case QuantityKey::P:
+        return "Pressure";
+    case QuantityKey::RHO:
+        return "Density";
+    case QuantityKey::U:
+        return "Specific energy";
+    case QuantityKey::CS:
+        return "Sound speed";
+    case QuantityKey::S:
+        return "Deviatoric stress tensor";
+    case QuantityKey::D:
+        return "Damage";
+    default:
+        NOT_IMPLEMENTED;
+    }
 }
 
-template <>
-INLINE Iterables<IterableType::FIRST_ORDER> BasicView::getIterables<IterableType::FIRST_ORDER>() const {
-    return Iterables<IterableType::FIRST_ORDER>{ { { rhos, drhos }, { us, dus } }, {} };
-}*/
+INLINE std::string getDerivativeName(const int key) {
+    switch (key) {
+    case QuantityKey::R:
+        return "Velocity";
+    default:
+        NOT_IMPLEMENTED;
+    }
+}
 
 NAMESPACE_SPH_END

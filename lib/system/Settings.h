@@ -273,14 +273,14 @@ enum class GlobalSettingsIds {
     /// File name of the output file (including extension), where %d is a placeholder for output number.
     RUN_OUTPUT_NAME,
 
+    /// Path where all output files (dumps, logs, ...) will be written
+    RUN_OUTPUT_PATH,
+
     /// Index of SPH Kernel, see KernelEnum
     SPH_KERNEL,
 
     /// Structure for searching nearest neighbours of particles
     SPH_FINDER,
-
-    /// Boundary conditions
-    BOUNDARY,
 
     /// Approach of smoothing length symmetrization, see SmoothingLengthEnum
     SPH_KERNEL_SYMMETRY,
@@ -312,6 +312,9 @@ enum class GlobalSettingsIds {
     /// Computational domain, enforced by boundary conditions
     DOMAIN_TYPE,
 
+    /// Type of boundary conditions.
+    DOMAIN_BOUNDARY,
+
     /// Center point of the domain
     DOMAIN_CENTER,
 
@@ -325,8 +328,9 @@ enum class GlobalSettingsIds {
 // clang-format off
 const Settings<GlobalSettingsIds> GLOBAL_SETTINGS = {
     { GlobalSettingsIds::RUN_NAME,                      "run.name",                 std::string("unnamed run") },
-    { GlobalSettingsIds::RUN_OUTPUT_STEP,               "run.output_step",          100 },
-    { GlobalSettingsIds::RUN_OUTPUT_NAME,               "run.output_name",          std::string("out_%d.txt") },
+    { GlobalSettingsIds::RUN_OUTPUT_STEP,               "run.output.step",          10 },
+    { GlobalSettingsIds::RUN_OUTPUT_NAME,               "run.output.name",          std::string("out_%d.txt") },
+    { GlobalSettingsIds::RUN_OUTPUT_PATH,               "run.output.path",          std::string(" ") }, /// \todo Variant somehow doesnt handle empty strings
     { GlobalSettingsIds::SPH_KERNEL,                    "sph.kernel",               int(KernelEnum::CUBIC_SPLINE) },
     { GlobalSettingsIds::SPH_KERNEL_SYMMETRY,           "sph.kernel.symmetry",      int(KernelSymmetryEnum::SYMMETRIZE_LENGTHS) },
     { GlobalSettingsIds::SPH_FINDER,                    "sph.finder",               int(FinderEnum::KD_TREE) },
@@ -338,8 +342,8 @@ const Settings<GlobalSettingsIds> GLOBAL_SETTINGS = {
     { GlobalSettingsIds::TIMESTEPPING_ADAPTIVE_FACTOR,  "timestep.adaptive.factor", 0.1f },
     { GlobalSettingsIds::AV_ALPHA,                      "av.alpha",                 1.5f },
     { GlobalSettingsIds::AV_BETA,                       "av.beta",                  3.f },
-    { GlobalSettingsIds::BOUNDARY,                      "boundary",                 int(BoundaryEnum::NONE) },
     { GlobalSettingsIds::DOMAIN_TYPE,                   "domain.type",              int(DomainEnum::NONE) },
+    { GlobalSettingsIds::DOMAIN_BOUNDARY,               "domain.boundary",          int(BoundaryEnum::NONE) },
     { GlobalSettingsIds::DOMAIN_CENTER,                 "domain.center",            Vector(0.f) },
     { GlobalSettingsIds::DOMAIN_RADIUS,                 "domain.radius",            1.f },
     { GlobalSettingsIds::DOMAIN_SIZE,                   "domain.size",              Vector(1.f) },

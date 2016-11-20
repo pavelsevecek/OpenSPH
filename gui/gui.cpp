@@ -44,7 +44,7 @@ bool MyApp::OnInit() {
     auto globalSettings = GLOBAL_SETTINGS;
     globalSettings.set<int>(GlobalSettingsIds::SPH_FINDER, int(FinderEnum::BRUTE_FORCE));
     Problem<BasicModel<3>>* p = new Problem<BasicModel<3>>(globalSettings);
-    p->logger                 = std::make_unique<StdOutput>();
+    p->logger                 = std::make_unique<StdOutLogger>();
     p->timeRange              = Range(0._f, 1000._f);
     p->timeStepping           = Factory::getTimestepping(globalSettings, p->storage);
 

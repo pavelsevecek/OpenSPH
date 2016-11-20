@@ -137,7 +137,16 @@ public:
         throw std::exception();
     }
 
-    int size() const { return quantities.size(); }
+    Quantity& operator[](const int idx) {
+        return quantities[idx];
+    }
+
+    const Quantity& operator[](const int idx) const {
+        return quantities[idx];
+    }
+
+    int getQuantityCnt() const { return quantities.size(); }
+
 
     int getParticleCnt() {
         // assuming positions R are ALWAYS present
@@ -146,7 +155,7 @@ public:
 
     void merge(Storage& other) {
         // must contain the same quantities
-        ASSERT(this->size() == other.size());
+        ASSERT(this->getQuantityCnt() == other.getQuantityCnt());
         iteratePair<VisitorEnum::ALL_BUFFERS>(quantities, other.quantities, [](auto&& ar1, auto&& ar2) {
             ar1.pushAll(ar2);
         });
@@ -173,8 +182,8 @@ public:
     }
 
     void swap(Storage& other, const Flags<VisitorEnum> flags) {
-        ASSERT(this->size() == other.size());
-        for (int i = 0; i < this->size(); ++i) {
+        ASSERT(this->getQuantityCnt() == other.getQuantityCnt());
+        for (int i = 0; i < this->getQuantityCnt(); ++i) {
             quantities[i].swap(other.quantities[i], flags);
         }
     }
@@ -187,22 +196,6 @@ public:
     template <VisitorEnum Type, typename TFunctor>
     friend void iteratePair(Storage& storage1, Storage& storage2, TFunctor&& functor) {
         iteratePair<Type>(storage1.quantities, storage2.quantities, std::forward<TFunctor>(functor));
-    }
-
-    /// \todo saving velocities?
-    template <int... TKeys>
-    void save(Abstract::Logger* output, const Float UNUSED(time)) {
-        auto tuple     = this->get<TKeys...>();
-        auto first     = tuple.template get<0>();
-        const int size = first.size();
-        for (int i = 0; i < size; ++i) {
-            forEach(tuple, [output, i](auto&& array) {
-                std::stringstream ss;
-                ss << std::setw(15) << array[i];
-                output->write(ss.str());
-            });
-            output->write("\n");
-        }
     }
 };
 

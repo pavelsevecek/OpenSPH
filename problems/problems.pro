@@ -12,6 +12,6 @@ LIBS += ../lib/libsph.a
 
 SOURCES += \
     main.cpp \
-    Sod.cpp
+    sod/Sod.cpp
 
 HEADERS +=  

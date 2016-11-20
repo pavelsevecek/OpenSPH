@@ -11,7 +11,6 @@ SOURCES += \
     system/Factory.cpp \
     sph/timestepping/TimeStepping.cpp \
     models/BasicModel.cpp \
-    storage/BasicView.cpp \
     system/Profiler.cpp
 
 HEADERS += \
@@ -76,4 +75,5 @@ HEADERS += \
     storage/Quantity.h \
     storage/QuantityHelpers.h \
     storage/QuantityMap.h \
-    geometry/TracelessTensor.h
+    geometry/TracelessTensor.h \
+    system/Output.h

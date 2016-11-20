@@ -52,7 +52,8 @@ SOURCES += \
     ../lib/objects/containers/test/LimitedArray.cpp \
     ../lib/storage/test/Iterate.cpp \
     ../lib/storage/test/QuantityHelpers.cpp \
-    ../lib/geometry/test/TracelessTensor.cpp
+    ../lib/geometry/test/TracelessTensor.cpp \
+    ../lib/system/test/Output.cpp
 
 
 HEADERS += \

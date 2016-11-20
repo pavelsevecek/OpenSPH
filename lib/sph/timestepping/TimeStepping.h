@@ -101,7 +101,7 @@ public:
     explicit PredictorCorrector(const std::shared_ptr<Storage>& storage,
                                 const Settings<GlobalSettingsIds>& settings)
         : Abstract::TimeStepping(storage, settings) {
-        ASSERT(storage->size() > 0); // quantities must already been emplaced
+        ASSERT(storage->getQuantityCnt() > 0); // quantities must already been emplaced
         predictions = storage->clone(VisitorEnum::HIGHEST_DERIVATIVES);
         storage->init(); // clear derivatives before using them in step method
     }
