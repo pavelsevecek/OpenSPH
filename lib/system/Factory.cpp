@@ -10,7 +10,7 @@
 NAMESPACE_SPH_BEGIN
 
 std::unique_ptr<Abstract::Eos> Factory::getEos(const Settings<BodySettingsIds>& settings) {
-    const EosEnum id = EosEnum(settings.get<int>(BodySettingsIds::EOS));
+    const EosEnum id = settings.get<EosEnum>(BodySettingsIds::EOS);
     switch (id) {
     case EosEnum::IDEAL_GAS:
         return std::make_unique<IdealGasEos>(settings.get<float>(BodySettingsIds::ADIABATIC_INDEX));
@@ -23,8 +23,7 @@ std::unique_ptr<Abstract::Eos> Factory::getEos(const Settings<BodySettingsIds>& 
 
 std::unique_ptr<Abstract::TimeStepping> Factory::getTimestepping(const Settings<GlobalSettingsIds>& settings,
                                                                  const std::shared_ptr<Storage>& storage) {
-    const TimesteppingEnum id =
-        TimesteppingEnum(settings.get<int>(GlobalSettingsIds::TIMESTEPPING_INTEGRATOR));
+    const TimesteppingEnum id = settings.get<TimesteppingEnum>(GlobalSettingsIds::TIMESTEPPING_INTEGRATOR);
     switch (id) {
     case TimesteppingEnum::EULER_EXPLICIT:
         return std::make_unique<EulerExplicit>(storage, settings);
@@ -38,7 +37,7 @@ std::unique_ptr<Abstract::TimeStepping> Factory::getTimestepping(const Settings<
 }
 
 std::unique_ptr<Abstract::Finder> Factory::getFinder(const Settings<GlobalSettingsIds>& settings) {
-    const FinderEnum id = FinderEnum(settings.get<int>(GlobalSettingsIds::SPH_FINDER));
+    const FinderEnum id = settings.get<FinderEnum>(GlobalSettingsIds::SPH_FINDER);
     switch (id) {
     case FinderEnum::BRUTE_FORCE:
         return std::make_unique<BruteForceFinder>();
@@ -50,7 +49,7 @@ std::unique_ptr<Abstract::Finder> Factory::getFinder(const Settings<GlobalSettin
 }
 
 std::unique_ptr<Abstract::Distribution> Factory::getDistribution(const Settings<BodySettingsIds>& settings) {
-    const DistributionEnum id = DistributionEnum(settings.get<int>(BodySettingsIds::INITIAL_DISTRIBUTION));
+    const DistributionEnum id = settings.get<DistributionEnum>(BodySettingsIds::INITIAL_DISTRIBUTION);
     switch (id) {
     case DistributionEnum::HEXAGONAL:
         return std::make_unique<HexagonalPacking>();
@@ -68,14 +67,13 @@ std::unique_ptr<Abstract::Distribution> Factory::getDistribution(const Settings<
 }
 
 std::unique_ptr<Abstract::Domain> Factory::getDomain(const Settings<GlobalSettingsIds>& settings) {
-    const DomainEnum id = DomainEnum(settings.get<int>(GlobalSettingsIds::DOMAIN_TYPE));
+    const DomainEnum id = settings.get<DomainEnum>(GlobalSettingsIds::DOMAIN_TYPE);
     const Vector center = settings.get<Vector>(GlobalSettingsIds::DOMAIN_CENTER);
     switch (id) {
     case DomainEnum::NONE:
         return nullptr;
     case DomainEnum::BLOCK:
-        return std::make_unique<BlockDomain>(center,
-                                             settings.get<Vector>(GlobalSettingsIds::DOMAIN_SIZE));
+        return std::make_unique<BlockDomain>(center, settings.get<Vector>(GlobalSettingsIds::DOMAIN_SIZE));
     case DomainEnum::SPHERICAL:
         return std::make_unique<SphericalDomain>(center,
                                                  settings.get<float>(GlobalSettingsIds::DOMAIN_RADIUS));
@@ -88,7 +86,7 @@ std::unique_ptr<Abstract::BoundaryConditions> Factory::getBoundaryConditions(
     const Settings<GlobalSettingsIds>& settings,
     const std::shared_ptr<Storage>& storage,
     std::unique_ptr<Abstract::Domain>&& domain) {
-    const BoundaryEnum id = BoundaryEnum(settings.get<int>(GlobalSettingsIds::BOUNDARY));
+    const BoundaryEnum id = settings.get<BoundaryEnum>(GlobalSettingsIds::BOUNDARY);
     switch (id) {
     case BoundaryEnum::NONE:
         return nullptr;

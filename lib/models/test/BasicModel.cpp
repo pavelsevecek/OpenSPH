@@ -18,7 +18,7 @@ TEST_CASE("create particles", "[basicmodel]") {
 
     const int size = storage.get<QuantityKey::R>().size();
     REQUIRE((size >= 80 && size <= 120));
-    iterate<TemporalEnum::ALL>(storage, [size](auto&& array) { REQUIRE(array.size() == size); });
+    iterate<VisitorEnum::ALL_BUFFERS>(storage, [size](auto&& array) { REQUIRE(array.size() == size); });
 
     ArrayView<Float> rhos, us, drhos, dus;
     tie(rhos, us)   = storage.get<QuantityKey::RHO, QuantityKey::U>();

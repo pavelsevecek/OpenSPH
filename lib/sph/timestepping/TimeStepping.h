@@ -76,7 +76,7 @@ public:
 
         PROFILE_SCOPE("EulerExplicit::step")
         // advance all 2nd-order quantities by current timestep, first values, then 1st derivatives
-        iterate<TemporalEnum::SECOND_ORDER>(*this->storage, [this](auto& v, auto& dv, auto& d2v) {
+        iterate<VisitorEnum::SECOND_ORDER>(*this->storage, [this](auto& v, auto& dv, auto& d2v) {
             for (int i = 0; i < v.size(); ++i) {
                 dv[i] += d2v[i] * this->dt;
                 v[i] += dv[i] * this->dt;
@@ -85,7 +85,7 @@ public:
                 // as parameters, or by iterating twice
             }
         });
-        iterate<TemporalEnum::FIRST_ORDER>(*this->storage, [this](auto& v, auto& dv) {
+        iterate<VisitorEnum::FIRST_ORDER>(*this->storage, [this](auto& v, auto& dv) {
             for (int i = 0; i < v.size(); ++i) {
                 v[i] += dv[i] * this->dt;
             }
@@ -103,7 +103,7 @@ public:
                                 const Settings<GlobalSettingsIds>& settings)
         : Abstract::TimeStepping(storage, settings) {
         ASSERT(storage->size() > 0); // quantities must already been emplaced
-        predictions = storage->clone(TemporalEnum::HIGHEST_ORDER);
+        predictions = storage->clone(VisitorEnum::HIGHEST_DERIVATIVES);
         storage->init(); // clear derivatives before using them in step method
     }
 
@@ -114,19 +114,19 @@ protected:
         {
             PROFILE_SCOPE("PredictorCorrector::step   Predictions")
             // make prediction using old derivatives (simple euler)
-            iterate<TemporalEnum::SECOND_ORDER>(*this->storage, [this, dt2](auto& v, auto& dv, auto& d2v) {
+            iterate<VisitorEnum::SECOND_ORDER>(*this->storage, [this, dt2](auto& v, auto& dv, auto& d2v) {
                 for (int i = 0; i < v.size(); ++i) {
                     v[i] += dv[i] * this->dt + d2v[i] * dt2;
                     dv[i] += d2v[i] * this->dt;
                 }
             });
-            iterate<TemporalEnum::FIRST_ORDER>(*this->storage, [this](auto& v, auto& dv) {
+            iterate<VisitorEnum::FIRST_ORDER>(*this->storage, [this](auto& v, auto& dv) {
                 for (int i = 0; i < v.size(); ++i) {
                     v[i] += dv[i] * this->dt;
                 }
             });
             // save derivatives from predictions
-            this->storage->swap(predictions, TemporalEnum::HIGHEST_ORDER);
+            this->storage->swap(predictions, VisitorEnum::HIGHEST_DERIVATIVES);
 
             // clear derivatives
             this->storage->init();
@@ -137,7 +137,7 @@ protected:
         PROFILE_SCOPE("PredictorCorrector::step   Corrections")
         // make corrections
         // clang-format off
-        iteratePair<TemporalEnum::SECOND_ORDER>(*this->storage, this->predictions,
+        iteratePair<VisitorEnum::SECOND_ORDER>(*this->storage, this->predictions,
             [this, dt2](auto& pv, auto& pdv, auto& pd2v, auto& UNUSED(cv), auto& UNUSED(cdv), auto& cd2v) {
             ASSERT(pv.size() == pd2v.size());
             for (int i = 0; i < pv.size(); ++i) {
@@ -145,7 +145,7 @@ protected:
                 pdv[i] -= 0.5_f * (cd2v[i] - pd2v[i]) * this->dt;
             }
         });
-        iteratePair<TemporalEnum::FIRST_ORDER>(*this->storage, this->predictions,
+        iteratePair<VisitorEnum::FIRST_ORDER>(*this->storage, this->predictions,
             [this](auto& pv, auto& pdv, auto& UNUSED(cv), auto& cdv) {
             ASSERT(pv.size() == pdv.size());
             for (int i = 0; i < pv.size(); ++i) {

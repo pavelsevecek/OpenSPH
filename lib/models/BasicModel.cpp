@@ -182,18 +182,9 @@ Storage BasicModel<d>::createParticles(const Abstract::Domain& domain,
 
     // Final number of particles
     const int N = rs.size();
-    ASSERT(N);
-
-    /* // Extract smoothing lengths
-     Array<Float> hs;
-     for (Vector& r : rs) {
-         hs.push(r[H]);
-     }*/
+    ASSERT(N > 0);
 
     Storage st;
-
-    /*// Same for smoothing lengths
-    st.insert<QuantityKey::H>(std::move(hs));*/
 
     // Create all other quantities (with empty arrays so far)
     st.insert<QuantityKey::R,
@@ -210,23 +201,24 @@ Storage BasicModel<d>::createParticles(const Abstract::Domain& domain,
     // Note that this will leave some garbage data in the arrays. We have to make sure the arrays are filled
     // with correct values before we use them. Highest-order derivatives are cleared automatically by
     // timestepping object.
-    iterate<TemporalEnum::ALL>(st, [N](auto&& array) { array.resize(N); });
+    iterate<VisitorEnum::ALL_BUFFERS>(st, [N](auto&& array) { array.resize(N); });
     // Set velocity to zero
     st.dt<QuantityKey::R>().fill(Vector(0._f));
 
-    // Set density to default value
-    const Optional<Float> rho0 = settings.get<Float>(BodySettingsIds::DENSITY);
-    ASSERT(rho0);
-    st.get<QuantityKey::RHO>().fill(rho0.get());
+    // Set density to default value and save the allowed range
+    LimitedArray<Float>& rho = st.get<QuantityKey::RHO>();
+    const Float rho0 = settings.get<Float>(BodySettingsIds::DENSITY);
+    rho.fill(rho0);
+    rho.setBounds(settings.get<Range>(BodySettingsIds::DENSITY_RANGE));
 
-    // set internal energy to default value
-    const Optional<Float> u0 = settings.get<Float>(BodySettingsIds::ENERGY);
-    ASSERT(u0);
-    st.get<QuantityKey::U>().fill(u0.get());
+    // set internal energy to default value and save the allowed range
+    LimitedArray<Float>& u = st.get<QuantityKey::U>();
+    u.fill(settings.get<Float>(BodySettingsIds::ENERGY));
+    u.setBounds(settings.get<Range>(BodySettingsIds::ENERGY_RANGE));
 
     // set masses of particles, assuming all particles have the same mass
     /// \todo this has to be generalized when using nonuniform particle destribution
-    const Float totalM = domain.getVolume() * rho0.get(); // m = rho * V
+    const Float totalM = domain.getVolume() * rho0; // m = rho * V
     ASSERT(totalM > 0._f);
     st.get<QuantityKey::M>().fill(totalM / N);
 

@@ -20,7 +20,7 @@ public:
     virtual Float operator()(const Float maxStep) const {
         PROFILE_SCOPE("StepGetter::operator()");
         Float minStep = INFTY;
-        iterate<TemporalEnum::FIRST_ORDER>(*storage, [this, &minStep](auto&& v, auto&& dv) {
+        iterate<VisitorEnum::FIRST_ORDER>(*storage, [this, &minStep](auto&& v, auto&& dv) {
             ASSERT(v.size() == dv.size());
             for (int i = 0; i < v.size(); ++i) {
                 if (Math::normSqr(dv[i]) != 0._f) {

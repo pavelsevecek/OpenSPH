@@ -5,14 +5,16 @@
 /// sevecek at sirrah.troja.mff.cuni.cz
 
 #include "objects/containers/Array.h"
-#include "objects/wrappers/Variant.h"
 #include "objects/wrappers/Range.h"
+#include "objects/wrappers/Variant.h"
 #include <fstream>
 #include <initializer_list>
 #include <map>
+#include <regex>
 #include <string>
 
 NAMESPACE_SPH_BEGIN
+
 
 template <typename TEnum>
 class Settings : public Object {
@@ -47,7 +49,8 @@ public:
 
     template <typename TValue>
     void set(TEnum idx, TValue&& value) {
-        entries[idx].value = std::forward<TValue>(value);
+        using StoreType = EnumToInt<TValue>;
+        entries[idx].value = StoreType(std::forward<TValue>(value));
     }
 
     template <typename TValue>
@@ -55,16 +58,17 @@ public:
         typename std::map<TEnum, Entry>::const_iterator iter = entries.find(idx);
         ASSERT(iter != entries.end());
         /// \todo can be cast here as we no longer return optional
-        auto opt = iter->second.value.get<TValue>();
+        using StoreType = EnumToInt<TValue>;
+        auto opt = iter->second.value.get<StoreType>();
         ASSERT(opt);
-        return opt.get();
+        return TValue(opt.get());
     }
 
     void saveToFile(const std::string& path) const {
         std::ofstream ofs(path);
         for (auto& e : entries) {
             const Entry& entry = e.second;
-            ofs << entry.name << " = ";
+            ofs << std::setw(30) << std::left << entry.name << " = ";
             switch (entry.value.getTypeIdx()) {
             case BOOL:
                 ofs << (bool)entry.value;
@@ -83,6 +87,7 @@ public:
                 break;
             case VECTOR:
                 ofs << entry.value.get<Vector>().get();
+                break;
             default:
                 NOT_IMPLEMENTED;
             }
@@ -90,9 +95,104 @@ public:
         }
         ofs.close();
     }
+
+    /// \todo split settings and descriptors? Settings actual object with values, descriptors global object
+    /// with ids, names and default values.
+    bool loadFromFile(const std::string& path, const Settings& descriptors) {
+        std::ifstream ifs(path);
+        std::string line;
+        while (std::getline(ifs, line, '\n')) {
+            std::string::size_type idx = line.find("=");
+            if (idx == std::string::npos) {
+                // didn't find '=', invalid format of the file
+                return false;
+            }
+            std::string key   = line.substr(0, idx);
+            std::string value = line.substr(idx + 1);
+            // throw away spaces from key
+            std::string trimmedKey;
+            for (const char c : key) {
+                if (c != ' ') {
+                    trimmedKey.push_back(c);
+                }
+            }
+            // find the key in decriptor settings
+            for (auto&& e : descriptors.entries) {
+                if (e.second.name == trimmedKey) {
+                    if (!setValueByType(this->entries[e.second.id], e.second.value.getTypeIdx(), value)) {
+                        return false;
+                    }
+                }
+            }
+        }
+        ifs.close();
+        return true;
+    }
+
+private:
+    bool setValueByType(Entry& entry, const int typeIdx, const std::string& str) {
+        std::stringstream ss(str);
+        switch (typeIdx) {
+        case BOOL: {
+            bool b;
+            ss >> b;
+            if (ss.fail()) {
+                return false;
+            } else {
+                entry.value = b;
+                return true;
+            }
+        }
+        case INT:
+            int i;
+            ss >> i;
+            if (ss.fail()) {
+                return false;
+            } else {
+                entry.value = i;
+                return true;
+            }
+        case FLOAT:
+            float f;
+            ss >> f;
+            if (ss.fail()) {
+                return false;
+            } else {
+                entry.value = f;
+                return true;
+            }
+        case RANGE:
+            Float f1, f2;
+            ss >> f1 >> f2;
+            if (ss.fail()) {
+                return false;
+            } else {
+                entry.value = Range(f1, f2);
+                return true;
+            }
+        case STRING:
+            // trim leading and trailing spaces
+            entry.value = std::regex_replace(str, std::regex("^ +| +$|( ) +"), "$1");
+            return true;
+        case VECTOR:
+            Float v1, v2, v3;
+            ss >> v1 >> v2 >> v3;
+            if (ss.fail()) {
+                return false;
+            } else {
+                entry.value = Vector(v1, v2, v3);
+                return true;
+            }
+        default:
+            NOT_IMPLEMENTED;
+        }
+    }
 };
 
-enum class KernelEnum { CUBIC_SPLINE };
+enum class KernelEnum {
+    /// M4 B-spline (piecewise cubic)
+    CUBIC_SPLINE
+};
 
 enum class KernelSymmetryEnum {
     /// Will return value of kernel at average smoothing lenghts
@@ -289,12 +389,22 @@ enum class BodySettingsIds {
     /// Density at zero pressure
     DENSITY,
 
+    /// Allowed range of density. Densities of all particles all clamped to fit in the range.
     DENSITY_RANGE,
 
-    BULK_MODULUS,
-
-    /// Initial energy
+    /// Initial specific internal energy
     ENERGY,
+
+    /// Allowed range of specific internal energy.
+    ENERGY_RANGE,
+
+    /// Initial damage of the body.
+    DAMAGE,
+
+    /// Allowed range of damage.
+    DAMAGE_RANGE,
+
+    BULK_MODULUS,
 
     ADIABATIC_INDEX,
 
@@ -321,11 +431,14 @@ enum class BodySettingsIds {
 
 // clang-format off
 const Settings<BodySettingsIds> BODY_SETTINGS = {
-    { BodySettingsIds::EOS,                     "material.eos",                 int(EosEnum::IDEAL_GAS) },
-    { BodySettingsIds::ADIABATIC_INDEX,         "material.eos.adiabatic_index", 1.5f },
+    { BodySettingsIds::EOS,                     "eos",                          int(EosEnum::IDEAL_GAS) },
+    { BodySettingsIds::ADIABATIC_INDEX,         "eos.adiabatic_index",          1.5f },
     { BodySettingsIds::DENSITY,                 "material.density",             2700.f },
-    { BodySettingsIds::DENSITY_RANGE,           "material.density.range",       Range(EPS, NOTHING) },
+    { BodySettingsIds::DENSITY_RANGE,           "material.density.range",       Range(1.f, NOTHING) },
     { BodySettingsIds::ENERGY,                  "material.energy",              0.f },
+    { BodySettingsIds::ENERGY_RANGE,            "material.energy.range",        Range(0.f, NOTHING) },
+    { BodySettingsIds::DAMAGE,                  "material.damage",              0.f },
+    { BodySettingsIds::DAMAGE_RANGE,            "material.damage.range",        Range(0.f, 1.f) },
     { BodySettingsIds::INITIAL_DISTRIBUTION,    "sph.initial_distribution",     int(DistributionEnum::HEXAGONAL) },
     { BodySettingsIds::PARTICLE_COUNT,          "sph.particle_count",           10000 },
 

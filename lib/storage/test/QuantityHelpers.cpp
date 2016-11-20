@@ -19,6 +19,11 @@ template<>
 void executeType<Tensor>(int& a) {
      a = 3;
 }
+template<>
+void executeType<TracelessTensor>(int& a) {
+     a = 4;
+}
+
 
 struct TestVisitor {
     template<typename TValue>
@@ -35,4 +40,6 @@ TEST_CASE("Dispatch", "[quantityhelpers]") {
     REQUIRE(a == 2);
     dispatch(ValueEnum::TENSOR, TestVisitor(), a);
     REQUIRE(a == 3);
+    dispatch(ValueEnum::TRACELESS_TENSOR, TestVisitor(), a);
+    REQUIRE(a == 4);
 }

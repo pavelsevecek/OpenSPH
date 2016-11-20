@@ -66,11 +66,24 @@ public:
         return upper.get();
     }
 
+    /// Comparison operator; true if and only if both bounds are equal.
+    INLINE bool operator==(const Range& other) const {
+        // note that NOTHING == NOTHING returns false!
+        return ((!upper && !other.upper) || upper == other.upper) &&
+               ((!lower && !other.lower) || lower == other.lower);
+    }
+
+    /// Negation of comparison operator
+    INLINE bool operator!=(const Range& other) const {
+        return !(*this == other);
+    }
+
     /// Output to stream
-    template<typename TStream>
+    template <typename TStream>
     friend TStream& operator<<(TStream& stream, const Range& range) {
-        stream << "[" << (range.lower ? std::to_string(range.lower.get()) : std::string("-infinity")) << ", " <<
-                  (range.upper ? std::to_string(range.upper.get()) : std::string("infinity")) << "]";
+        stream << "[" << (range.lower ? std::to_string(range.lower.get()) : std::string("-infinity")) << ", "
+               << (range.upper ? std::to_string(range.upper.get()) : std::string("infinity")) << "]";
+        return stream;
     }
 };
 
@@ -78,10 +91,10 @@ public:
 namespace Math {
     /// Overload of clamp method using range instead of lower and upper bound as values.
     /// Can be used by other types by specializing the method
-    template<typename T>
+    template <typename T>
     INLINE T clamp(const T& v, const Range& range);
 
-    template<>
+    template <>
     INLINE Float clamp(const Float& v, const Range& range) {
         return range.clamp(v);
     }
@@ -105,7 +118,7 @@ public:
         return *this;
     }
 
-    INLINE  Float& operator*() { return value; }
+    INLINE Float& operator*() { return value; }
 
     INLINE const Float& operator*() const { return value; }
 

@@ -93,4 +93,50 @@ struct UnwrapReferenceType<std::reference_wrapper<T>> {
     using Type = T&;
 };
 
+/// Adds const or reference to the type, based on const-ness and reference-ness of given type.
+template<typename T, typename TOther>
+struct UndecayType {
+    using Type = T;
+};
+
+template<typename T, typename TOther>
+struct UndecayType<T, const TOther> {
+    using Type = const T;
+};
+template<typename T, typename TOther>
+struct UndecayType<T, TOther&> {
+    using Type = T&;
+};
+template<typename T, typename TOther>
+struct UndecayType<T, const TOther&> {
+    using Type = const T&;
+};
+template<typename T, typename TOther>
+using Undecay = typename UndecayType<T, TOther>::Type;
+
+static_assert(std::is_same<int, Undecay<int, float>>::value, "invalid Undecay");
+static_assert(std::is_same<int&, Undecay<int, float&>>::value, "invalid Undecay");
+static_assert(std::is_same<const int, Undecay<int, const float>>::value, "invalid Undecay");
+static_assert(std::is_same<const int&, Undecay<int, const float&>>::value, "invalid Undecay");
+
+/// Converts enums into int, does not change other types.
+template<typename T, typename TEnabler = void>
+struct EnumToIntType {
+    using Type = T;
+};
+template<typename T>
+struct EnumToIntType<T, std::enable_if_t<std::is_enum<std::decay_t<T>>::value>> {
+    using Type = Undecay<std::underlying_type_t<std::decay_t<T>>, T>;
+};
+template<typename T>
+using EnumToInt = typename EnumToIntType<T>::Type;
+
+enum class TestEnum { DUMMY };
+
+static_assert(std::is_same<int, EnumToInt<int>>::value, "invalid EnumToInt");
+static_assert(std::is_same<float, EnumToInt<float>>::value, "invalid EnumToInt");
+static_assert(std::is_same<int&, EnumToInt<int&>>::value, "invalid EnumToInt");
+static_assert(std::is_same<int, EnumToInt<TestEnum>>::value, "invalid EnumToInt");
+static_assert(std::is_same<int&, EnumToInt<TestEnum&>>::value, "invalid EnumToInt");
+
 NAMESPACE_SPH_END

@@ -8,7 +8,7 @@ TEST_CASE("Storage", "[storage]") {
     REQUIRE(storage.size() == 2);
 
     int counter = 0;
-    iterate<TemporalEnum::ALL>(storage, [&counter](auto&& ar) {
+    iterate<VisitorEnum::ALL_BUFFERS>(storage, [&counter](auto&& ar) {
         counter++;
         ar.resize(5);
     });
@@ -39,7 +39,7 @@ TEST_CASE("Clone storages", "[storage]") {
     rhos.resize(2);
     drhos.resize(1);
 
-    Storage cloned1 = storage.clone(TemporalEnum::ALL);
+    Storage cloned1 = storage.clone(VisitorEnum::ALL_BUFFERS);
     REQUIRE(cloned1.template get<QuantityKey::R>().size() == 6);
     REQUIRE(cloned1.template dt<QuantityKey::R>().size() == 5);
     REQUIRE(cloned1.template d2t<QuantityKey::R>().size() == 4);
@@ -47,7 +47,7 @@ TEST_CASE("Clone storages", "[storage]") {
     REQUIRE(cloned1.template get<QuantityKey::RHO>().size() == 2);
     REQUIRE(cloned1.template dt<QuantityKey::RHO>().size() == 1);
 
-    Storage cloned2 = storage.clone(TemporalEnum::HIGHEST_ORDER);
+    Storage cloned2 = storage.clone(VisitorEnum::HIGHEST_DERIVATIVES);
     REQUIRE(cloned2.template get<QuantityKey::R>().size() == 0);
     REQUIRE(cloned2.template dt<QuantityKey::R>().size() == 0);
     REQUIRE(cloned2.template d2t<QuantityKey::R>().size() == 4);
@@ -55,7 +55,7 @@ TEST_CASE("Clone storages", "[storage]") {
     REQUIRE(cloned2.template get<QuantityKey::RHO>().size() == 0);
     REQUIRE(cloned2.template dt<QuantityKey::RHO>().size() == 1);
 
-    Storage cloned3 = storage.clone(TemporalEnum::SECOND_ORDER);
+    Storage cloned3 = storage.clone(VisitorEnum::SECOND_ORDER);
     REQUIRE(cloned3.template get<QuantityKey::R>().size() == 0);
     REQUIRE(cloned3.template dt<QuantityKey::R>().size() == 0);
     REQUIRE(cloned3.template d2t<QuantityKey::R>().size() == 4);
@@ -63,7 +63,7 @@ TEST_CASE("Clone storages", "[storage]") {
     REQUIRE(cloned3.template get<QuantityKey::RHO>().size() == 0);
     REQUIRE(cloned3.template dt<QuantityKey::RHO>().size() == 0);
 
-    cloned3.swap(cloned1, TemporalEnum::ALL);
+    cloned3.swap(cloned1, VisitorEnum::ALL_BUFFERS);
     REQUIRE(cloned3.template get<QuantityKey::R>().size() == 6);
     REQUIRE(cloned3.template dt<QuantityKey::R>().size() == 5);
     REQUIRE(cloned3.template d2t<QuantityKey::R>().size() == 4);
@@ -79,7 +79,7 @@ TEST_CASE("Clone storages", "[storage]") {
     REQUIRE(cloned1.template dt<QuantityKey::RHO>().size() == 0);
 
     cloned3.template d2t<QuantityKey::R>().resize(12);
-    cloned3.swap(cloned1, TemporalEnum::HIGHEST_ORDER);
+    cloned3.swap(cloned1, VisitorEnum::HIGHEST_DERIVATIVES);
     REQUIRE(cloned3.template get<QuantityKey::R>().size() == 6);
     REQUIRE(cloned3.template dt<QuantityKey::R>().size() == 5);
     REQUIRE(cloned3.template d2t<QuantityKey::R>().size() == 4);

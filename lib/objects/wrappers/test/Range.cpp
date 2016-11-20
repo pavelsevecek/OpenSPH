@@ -50,6 +50,25 @@ TEST_CASE("One sided range", "[range]") {
     REQUIRE(range3.contains(INFTY));
 }
 
+TEST_CASE("Range comparison", "[range]") {
+    Range range1(0._f, 2._f);
+    Range range2(NOTHING, 3._f);
+    Range range3(1._f, NOTHING);
+    Range range4(NOTHING, NOTHING);
+
+    REQUIRE(range1 != range2);
+    REQUIRE(range1 != range3);
+    REQUIRE(range1 != range4);
+    REQUIRE(range2 != range3);
+    REQUIRE(range2 != range4);
+    REQUIRE(range3 != range4);
+
+    REQUIRE(range1 == Range(0._f, 2._f));
+    REQUIRE(range2 == Range(NOTHING, 3._f));
+    REQUIRE(range3 == Range(1._f, NOTHING));
+    REQUIRE(range4 == Range(NOTHING, NOTHING));
+}
+
 TEST_CASE("Range loop", "[range]") {
     Range range(0._f, 5._f);
     auto adapter = rangeAdapter(range, 1._f);
@@ -75,5 +94,4 @@ TEST_CASE("Range loop", "[range]") {
         REQUIRE(i == array2[idx++]);
         step *= 2._f;
     }
-
 }

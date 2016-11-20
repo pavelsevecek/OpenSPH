@@ -9,6 +9,42 @@
 NAMESPACE_SPH_BEGIN
 
 
+/// \todo maybe split into levels and number of derivatives?
+enum class TemporalEnum {
+    ZERO_ORDER,   ///< Quantity without derivatives, or "zero order" of quantity
+    FIRST_ORDER,  ///< Quantity with 1st derivative
+    SECOND_ORDER, ///< Quantity with 1st and 2nd derivative
+};
+
+
+/// Types of iteration over storage
+enum class VisitorEnum {
+    /// Iterates only over const quantities or quantities with no derivatives. Passes the values as argument
+    /// of functor.
+    /// \note To iterate over all quantities and pass their values into the functor, use ALL_VALUES
+    ZERO_ORDER = 1 << 0,
+
+    /// Iterates only over first-order quantities. Passes values and derivatives as arguments of functor.
+    FIRST_ORDER = 1 << 1,
+
+    /// Iterates only over second-order quantities. Passes values, 1st derivatives and 2nd derivatives as
+    /// arguments of functor.
+    SECOND_ORDER = 1 << 2,
+
+    /// Iterates over all stored arrays of all quantities. Executes functor for each value array and each
+    /// derivative array.
+    ALL_BUFFERS = 1 << 3,
+
+    /// Iterates over all quantities, but executes the functor for values only (derivatives are not passed for
+    /// higher-order quantities).
+    ALL_VALUES = 1 << 4,
+
+    /// Iterates over all 1st order and 2nd order quantities, passes their 1st and 2nd derivatives as
+    /// parameters, respectively.
+    HIGHEST_DERIVATIVES = 1 << 5,
+};
+
+
 namespace Detail {
     /// Abstract holder of all data associated with a quantity. Provides interface to extract information
     /// about the quantity. Must be static/dynamic_casted to one of derived types to extract information
@@ -21,10 +57,10 @@ namespace Detail {
         virtual ValueEnum getValueEnum() const = 0;
 
         /// Clones the quantity, optionally selecting arrays to clone; returns them as unique_ptr.
-        virtual std::unique_ptr<PlaceHolder> clone(const Flags<TemporalEnum> flags) const = 0;
+        virtual std::unique_ptr<PlaceHolder> clone(const Flags<VisitorEnum> flags) const = 0;
 
         /// Swaps arrays in two quantities, optionally selecting arrays to swap.
-        virtual void swap(PlaceHolder* other, Flags<TemporalEnum> flags) = 0;
+        virtual void swap(PlaceHolder* other, Flags<VisitorEnum> flags) = 0;
     };
 
     /// Abstract extension of PlaceHolder that adds interface to get all buffers of given type stored in the
@@ -42,7 +78,7 @@ namespace Detail {
     /// therefore possible to cast first/second order holder to const holder and access its methods without
     /// error.
     template <typename TValue>
-    class Holder<TValue, TemporalEnum::CONST> : public ValueHolder<TValue> {
+    class Holder<TValue, TemporalEnum::ZERO_ORDER> : public ValueHolder<TValue> {
     protected:
         LimitedArray<TValue> v;
 
@@ -68,20 +104,20 @@ namespace Detail {
         Holder(const LimitedArray<TValue>& v)
             : v(v.clone()) {}
 
-        virtual TemporalEnum getTemporalEnum() const override { return TemporalEnum::CONST; }
+        virtual TemporalEnum getTemporalEnum() const override { return TemporalEnum::ZERO_ORDER; }
 
         virtual ValueEnum getValueEnum() const override { return GetValueType<TValue>::type; }
 
-        virtual std::unique_ptr<PlaceHolder> clone(const Flags<TemporalEnum> flags) const override {
+        virtual std::unique_ptr<PlaceHolder> clone(const Flags<VisitorEnum> flags) const override {
             LimitedArray<TValue>&& cv =
-                conditionalClone(v, flags.hasAny(TemporalEnum::CONST, TemporalEnum::ALL));
+                conditionalClone(v, flags.hasAny(VisitorEnum::ZERO_ORDER, VisitorEnum::ALL_BUFFERS));
             return std::make_unique<Holder>(cv);
         }
 
-        virtual void swap(PlaceHolder* other, Flags<TemporalEnum> flags) override {
-            ASSERT((dynamic_cast<Holder<TValue, TemporalEnum::CONST>*>(other)));
-            auto holder = static_cast<Holder<TValue, TemporalEnum::CONST>*>(other);
-            conditionalSwap(v, holder->v, flags.hasAny(TemporalEnum::CONST, TemporalEnum::ALL));
+        virtual void swap(PlaceHolder* other, Flags<VisitorEnum> flags) override {
+            ASSERT((dynamic_cast<Holder<TValue, TemporalEnum::ZERO_ORDER>*>(other)));
+            auto holder = static_cast<Holder<TValue, TemporalEnum::ZERO_ORDER>*>(other);
+            conditionalSwap(v, holder->v, flags.hasAny(VisitorEnum::ZERO_ORDER, VisitorEnum::ALL_BUFFERS));
         }
 
         virtual Array<LimitedArray<TValue>&> getBuffers() override { return { this->v }; }
@@ -92,7 +128,7 @@ namespace Detail {
     /// Holder for first-order quantities, contains also derivative of the quantity. The derivative can be
     /// accessed using getDerivative() method.
     template <typename TValue>
-    class Holder<TValue, TemporalEnum::FIRST_ORDER> : public Holder<TValue, TemporalEnum::CONST> {
+    class Holder<TValue, TemporalEnum::FIRST_ORDER> : public Holder<TValue, TemporalEnum::ZERO_ORDER> {
     protected:
         LimitedArray<TValue> dv;
 
@@ -100,38 +136,40 @@ namespace Detail {
         Holder() = default;
 
         Holder(const LimitedArray<TValue>& v)
-            : Holder<TValue, TemporalEnum::CONST>(v) {
+            : Holder<TValue, TemporalEnum::ZERO_ORDER>(v) {
             dv.resize(this->v.size());
             dv.fill(TValue(0._f)); // fill derivative with zeroes
         }
 
         Holder(const LimitedArray<TValue>& v, const LimitedArray<TValue>& dv)
-            : Holder<TValue, TemporalEnum::CONST>(v)
+            : Holder<TValue, TemporalEnum::ZERO_ORDER>(v)
             , dv(dv.clone()) {}
 
         virtual TemporalEnum getTemporalEnum() const override { return TemporalEnum::FIRST_ORDER; }
 
         virtual ValueEnum getValueEnum() const override { return GetValueType<TValue>::type; }
 
-        virtual std::unique_ptr<PlaceHolder> clone(const Flags<TemporalEnum> flags) const override {
+        virtual std::unique_ptr<PlaceHolder> clone(const Flags<VisitorEnum> flags) const override {
             LimitedArray<TValue>&& cv =
-                this->conditionalClone(this->v, flags.hasAny(TemporalEnum::CONST, TemporalEnum::ALL));
+                this->conditionalClone(this->v, flags.hasAny(VisitorEnum::ZERO_ORDER, VisitorEnum::ALL_BUFFERS));
             LimitedArray<TValue>&& cdv = this->conditionalClone(this->dv,
-                                                                flags.hasAny(TemporalEnum::FIRST_ORDER,
-                                                                             TemporalEnum::HIGHEST_ORDER,
-                                                                             TemporalEnum::ALL));
+                                                                flags.hasAny(VisitorEnum::FIRST_ORDER,
+                                                                             VisitorEnum::HIGHEST_DERIVATIVES,
+                                                                             VisitorEnum::ALL_BUFFERS));
             return std::make_unique<Holder>(cv, cdv);
         }
 
-        virtual void swap(PlaceHolder* other, Flags<TemporalEnum> flags) override {
+        virtual void swap(PlaceHolder* other, Flags<VisitorEnum> flags) override {
             ASSERT((dynamic_cast<Holder<TValue, TemporalEnum::FIRST_ORDER>*>(other)));
             auto holder = static_cast<Holder<TValue, TemporalEnum::FIRST_ORDER>*>(other);
-            this->conditionalSwap(this->v, holder->v, flags.hasAny(TemporalEnum::CONST, TemporalEnum::ALL));
+            this->conditionalSwap(this->v,
+                                  holder->v,
+                                  flags.hasAny(VisitorEnum::ZERO_ORDER, VisitorEnum::ALL_BUFFERS));
             this->conditionalSwap(this->dv,
                                   holder->dv,
-                                  flags.hasAny(TemporalEnum::FIRST_ORDER,
-                                               TemporalEnum::HIGHEST_ORDER,
-                                               TemporalEnum::ALL));
+                                  flags.hasAny(VisitorEnum::FIRST_ORDER,
+                                               VisitorEnum::HIGHEST_DERIVATIVES,
+                                               VisitorEnum::ALL_BUFFERS));
         }
 
         virtual Array<LimitedArray<TValue>&> getBuffers() override { return { this->v, this->dv }; }
@@ -163,30 +201,35 @@ namespace Detail {
 
         virtual ValueEnum getValueEnum() const final { return GetValueType<TValue>::type; }
 
-        virtual std::unique_ptr<PlaceHolder> clone(const Flags<TemporalEnum> flags) const override {
+        virtual std::unique_ptr<PlaceHolder> clone(const Flags<VisitorEnum> flags) const override {
             LimitedArray<TValue>&& cv =
-                this->conditionalClone(this->v, flags.hasAny(TemporalEnum::CONST, TemporalEnum::ALL));
+                this->conditionalClone(this->v,
+                                       flags.hasAny(VisitorEnum::ZERO_ORDER, VisitorEnum::ALL_BUFFERS));
             LimitedArray<TValue>&& cdv =
-                this->conditionalClone(this->dv, flags.hasAny(TemporalEnum::FIRST_ORDER, TemporalEnum::ALL));
-            LimitedArray<TValue>&& cd2v = this->conditionalClone(d2v,
-                                                                 flags.hasAny(TemporalEnum::SECOND_ORDER,
-                                                                              TemporalEnum::HIGHEST_ORDER,
-                                                                              TemporalEnum::ALL));
+                this->conditionalClone(this->dv,
+                                       flags.hasAny(VisitorEnum::FIRST_ORDER, VisitorEnum::ALL_BUFFERS));
+            LimitedArray<TValue>&& cd2v =
+                this->conditionalClone(d2v,
+                                       flags.hasAny(VisitorEnum::SECOND_ORDER,
+                                                    VisitorEnum::HIGHEST_DERIVATIVES,
+                                                    VisitorEnum::ALL_BUFFERS));
             return std::make_unique<Holder>(cv, cdv, cd2v);
         }
 
-        virtual void swap(PlaceHolder* other, Flags<TemporalEnum> flags) override {
+        virtual void swap(PlaceHolder* other, Flags<VisitorEnum> flags) override {
             ASSERT((dynamic_cast<Holder<TValue, TemporalEnum::SECOND_ORDER>*>(other)));
             auto holder = static_cast<Holder<TValue, TemporalEnum::SECOND_ORDER>*>(other);
-            this->conditionalSwap(this->v, holder->v, flags.hasAny(TemporalEnum::CONST, TemporalEnum::ALL));
+            this->conditionalSwap(this->v,
+                                  holder->v,
+                                  flags.hasAny(VisitorEnum::ZERO_ORDER, VisitorEnum::ALL_BUFFERS));
             this->conditionalSwap(this->dv,
                                   holder->dv,
-                                  flags.hasAny(TemporalEnum::FIRST_ORDER, TemporalEnum::ALL));
+                                  flags.hasAny(VisitorEnum::FIRST_ORDER, VisitorEnum::ALL_BUFFERS));
             this->conditionalSwap(d2v,
                                   holder->d2v,
-                                  flags.hasAny(TemporalEnum::SECOND_ORDER,
-                                               TemporalEnum::HIGHEST_ORDER,
-                                               TemporalEnum::ALL));
+                                  flags.hasAny(VisitorEnum::SECOND_ORDER,
+                                               VisitorEnum::HIGHEST_DERIVATIVES,
+                                               VisitorEnum::ALL_BUFFERS));
         }
 
         virtual Array<LimitedArray<TValue>&> getBuffers() override {
@@ -250,7 +293,7 @@ public:
 
     int getKey() const { return idx; }
 
-    Quantity clone(const Flags<TemporalEnum> flags) const {
+    Quantity clone(const Flags<VisitorEnum> flags) const {
         ASSERT(data);
         Quantity cloned;
         cloned.data = this->data->clone(flags);
@@ -258,7 +301,7 @@ public:
         return cloned;
     }
 
-    void swap(Quantity& other, const Flags<TemporalEnum> flags) {
+    void swap(Quantity& other, const Flags<VisitorEnum> flags) {
         ASSERT(data);
         this->data->swap(other.data.get(), flags);
         std::swap(this->idx, other.idx);
@@ -311,7 +354,7 @@ Quantity makeQuantity() {
 namespace QuantityCast {
     template <typename TValue>
     Optional<LimitedArray<TValue>&> get(Quantity& quantity) {
-        auto holder = quantity.template cast<TValue, TemporalEnum::CONST>();
+        auto holder = quantity.template cast<TValue, TemporalEnum::ZERO_ORDER>();
         if (!holder) {
             return NOTHING;
         } else {

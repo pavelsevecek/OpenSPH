@@ -15,7 +15,7 @@ private:
     Array<Quantity> quantities;
 
     template <int TKey, typename TGetter>
-    Array<QuantityType<TKey>>& getSingle(TGetter&& getter) {
+    LimitedArray<QuantityType<TKey>>& getSingle(TGetter&& getter) {
         // linear search in array of quantities
         for (Quantity& q : quantities) {
             if (q.getKey() == TKey) {
@@ -51,23 +51,23 @@ public:
 
     /// Inserts a single quantity into the storage. The type and temporal enum are given by the index to
     /// template QuantityMap.
-    template <int TKey, typename... TArgs>
-    void insert(TArgs&&... args) {
-        this->insert<QuantityType<TKey>, QuantityMap<TKey>::temporalEnum>(TKey, std::forward<TArgs>(args)...);
+    template <int TKey>
+    void insert() {
+        this->insert<QuantityType<TKey>, QuantityMap<TKey>::temporalEnum>(TKey);
     }
 
     /// Inserts "manually" a quantity, given their type and temporal type. Note that the quantity cannot be
     /// extracted from storage unless its index is in QuantityMap; it can be reached using iterate method,
     /// though.
-    template <typename TValue, TemporalEnum TEnum, typename... TArgs>
-    void insert(const int key, TArgs&&... args) {
+    template <typename TValue, TemporalEnum TEnum>
+    void insert(const int key) {
         Quantity q;
-        q.template emplace<TValue, TEnum>(key, std::forward<TArgs>(args)...);
+        q.template emplace<TValue, TEnum>(key);
         quantities.push(std::move(q));
     }
 
     /// Returns a list of at least two quantities (given by their indices) from the storage. Returns them as
-    /// tuple of array references.
+    /// tuple of arrayviews.
     template <int TFirst, int TSecond, int... TRest>
     Tuple<ArrayView<QuantityType<TFirst>>,
           ArrayView<QuantityType<TSecond>>,
@@ -103,21 +103,22 @@ public:
                          this->template getSingle<TRest>(getter).getView()...);
     }
 
-    /// Returns a quantity given by its index from the storage.
+    /// Returns a quantity given by its index from the storage as array.
+    /// \todo or LimitedArray
     template <int TKey>
-    Array<QuantityType<TKey>>& get() {
+    LimitedArray<QuantityType<TKey>>& get() {
         return this->template getSingle<TKey>([](auto&& holder) -> auto& { return holder.getValue(); });
     }
 
     /// Returns a derivative given by its index from the storage.
     template <int TKey>
-    Array<QuantityType<TKey>>& dt() {
+    LimitedArray<QuantityType<TKey>>& dt() {
         return this->template getSingle<TKey>([](auto&& holder) -> auto& { return holder.getDerivative(); });
     }
 
     /// Returns a 2nd derivative given by its index from the storage.
     template <int TKey>
-    Array<QuantityType<TKey>>& d2t() {
+    LimitedArray<QuantityType<TKey>>& d2t() {
         return this->template getSingle<TKey>([](auto&& holder) -> auto& {
             return holder.get2ndDerivative();
         });
@@ -146,24 +147,24 @@ public:
     void merge(Storage& other) {
         // must contain the same quantities
         ASSERT(this->size() == other.size());
-        iteratePair<TemporalEnum::ALL>(quantities, other.quantities, [](auto&& ar1, auto&& ar2) {
+        iteratePair<VisitorEnum::ALL_BUFFERS>(quantities, other.quantities, [](auto&& ar1, auto&& ar2) {
             ar1.pushAll(ar2);
         });
     }
 
     /// Clears all highest level derivatives of quantities
     void init() {
-        iterate<TemporalEnum::FIRST_ORDER>(quantities, [](auto&& UNUSED(v), auto&& dv) {
+        iterate<VisitorEnum::FIRST_ORDER>(quantities, [](auto&& UNUSED(v), auto&& dv) {
             using TValue = typename std::decay_t<decltype(dv)>::Type;
             dv.fill(TValue(0._f));
         });
-        iterate<TemporalEnum::SECOND_ORDER>(quantities, [](auto&& UNUSED(v), auto&& UNUSED(dv), auto&& d2v) {
+        iterate<VisitorEnum::SECOND_ORDER>(quantities, [](auto&& UNUSED(v), auto&& UNUSED(dv), auto&& d2v) {
             using TValue = typename std::decay_t<decltype(d2v)>::Type;
             d2v.fill(TValue(0._f));
         });
     }
 
-    Storage clone(const Flags<TemporalEnum> flags) const {
+    Storage clone(const Flags<VisitorEnum> flags) const {
         Storage cloned;
         for (const Quantity& q : quantities) {
             cloned.quantities.push(q.clone(flags));
@@ -171,19 +172,19 @@ public:
         return cloned;
     }
 
-    void swap(Storage& other, const Flags<TemporalEnum> flags) {
+    void swap(Storage& other, const Flags<VisitorEnum> flags) {
         ASSERT(this->size() == other.size());
         for (int i = 0; i < this->size(); ++i) {
             quantities[i].swap(other.quantities[i], flags);
         }
     }
 
-    template <TemporalEnum Type, typename TFunctor>
+    template <VisitorEnum Type, typename TFunctor>
     friend void iterate(Storage& storage, TFunctor&& functor) {
         iterate<Type>(storage.quantities, std::forward<TFunctor>(functor));
     }
 
-    template <TemporalEnum Type, typename TFunctor>
+    template <VisitorEnum Type, typename TFunctor>
     friend void iteratePair(Storage& storage1, Storage& storage2, TFunctor&& functor) {
         iteratePair<Type>(storage1.quantities, storage2.quantities, std::forward<TFunctor>(functor));
     }

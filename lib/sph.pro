@@ -75,4 +75,5 @@ HEADERS += \
     storage/Storage.h \
     storage/Quantity.h \
     storage/QuantityHelpers.h \
-    storage/QuantityMap.h
+    storage/QuantityMap.h \
+    geometry/TracelessTensor.h

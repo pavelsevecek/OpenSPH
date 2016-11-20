@@ -18,6 +18,8 @@ namespace QuantityKey {
         RHO = 3, ///< Density
         U   = 4, ///< Specific internal energy
         CS  = 5, ///< Sound speed
+        S   = 6, ///< Deviatoric stress tensor
+        D   = 7, ///< Damage
     };
 };
 
@@ -34,12 +36,14 @@ template <int TKey>
 struct QuantityMap {
     // clang-format off
     static constexpr QuantityDescriptor quantityDescriptors[] =
-        { { QuantityKey::R,     ValueEnum::VECTOR, TemporalEnum::SECOND_ORDER },
-          { QuantityKey::M,     ValueEnum::SCALAR, TemporalEnum::CONST },
-          { QuantityKey::P,     ValueEnum::SCALAR, TemporalEnum::CONST },
-          { QuantityKey::RHO,   ValueEnum::SCALAR, TemporalEnum::FIRST_ORDER },
-          { QuantityKey::U,     ValueEnum::SCALAR, TemporalEnum::FIRST_ORDER },
-          { QuantityKey::CS,    ValueEnum::SCALAR, TemporalEnum::CONST } };
+        { { QuantityKey::R,     ValueEnum::VECTOR,              TemporalEnum::SECOND_ORDER },
+          { QuantityKey::M,     ValueEnum::SCALAR,              TemporalEnum::ZERO_ORDER },
+          { QuantityKey::P,     ValueEnum::SCALAR,              TemporalEnum::ZERO_ORDER },
+          { QuantityKey::RHO,   ValueEnum::SCALAR,              TemporalEnum::FIRST_ORDER },
+          { QuantityKey::U,     ValueEnum::SCALAR,              TemporalEnum::FIRST_ORDER },
+          { QuantityKey::CS,    ValueEnum::SCALAR,              TemporalEnum::ZERO_ORDER },
+          { QuantityKey::S,     ValueEnum::TRACELESS_TENSOR,    TemporalEnum::FIRST_ORDER },
+          { QuantityKey::D,     ValueEnum::SCALAR,              TemporalEnum::FIRST_ORDER } };
     // clang-format on
 
     static constexpr QuantityDescriptor descriptor = quantityDescriptors[int(TKey)];

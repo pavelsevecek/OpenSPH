@@ -127,12 +127,12 @@ public:
         }
         // null all derivatives of first and last particles (fixed boundary conditions)
         /// \todo iterate highest order
-        iterate<TemporalEnum::FIRST_ORDER>(*storage, [](auto&& UNUSED(v), auto&& dv) {
+        iterate<VisitorEnum::FIRST_ORDER>(*storage, [](auto&& UNUSED(v), auto&& dv) {
             using Type = typename std::decay_t<decltype(dv)>::Type;
             dv[0] = Type(0._f);
             dv[dv.size()-1] = Type(0._f);
         });
-        iterate<TemporalEnum::SECOND_ORDER>(*storage, [](auto&& UNUSED(v), auto&& UNUSED(dv), auto&& d2v) {
+        iterate<VisitorEnum::SECOND_ORDER>(*storage, [](auto&& UNUSED(v), auto&& UNUSED(dv), auto&& d2v) {
             using Type = typename std::decay_t<decltype(d2v)>::Type;
             d2v[0] = Type(0._f);
             d2v[d2v.size()-1] = Type(0._f);

@@ -4,6 +4,7 @@
 
 NAMESPACE_SPH_BEGIN
 
+
 /// Helper structure allowing to iterate over values/derivatives of quantities in storage. The type of
 /// iteration if selected by template parameter Type; struct need to be specialized for all options and each
 /// one must implement static methods iterate() that iterates over quantities of one storage, and
@@ -11,10 +12,10 @@ NAMESPACE_SPH_BEGIN
 /// contain the same quantities).
 ///
 /// \note We have to pass TFunctor type here as visit<> method must have only one argument (type).
-template <TemporalEnum Type, typename TFunctor>
+template <VisitorEnum TVisitorType, typename TFunctor>
 struct StorageVisitor;
 
-template <TemporalEnum Type, typename TFunctor>
+template <VisitorEnum TVisitorType, typename TFunctor>
 struct StoragePairVisitor;
 
 
@@ -22,7 +23,7 @@ struct StoragePairVisitor;
 /// both values of the quantities and all derivatives. Stored buffers are passed as LimitedArray to the
 /// functor. Useful for operations such as merging two storages, resizing all arrays of the storage, ...
 template <typename TFunctor>
-struct StorageVisitor<TemporalEnum::ALL, TFunctor> {
+struct StorageVisitor<VisitorEnum::ALL_BUFFERS, TFunctor> {
     template <typename TValue>
     void visit(Quantity& q, TFunctor&& functor) {
         for (auto& i : q.template getBuffers<TValue>()) {
@@ -31,7 +32,7 @@ struct StorageVisitor<TemporalEnum::ALL, TFunctor> {
     }
 };
 template <typename TFunctor>
-struct StoragePairVisitor<TemporalEnum::ALL, TFunctor> {
+struct StoragePairVisitor<VisitorEnum::ALL_BUFFERS, TFunctor> {
     template <typename TValue>
     void visit(Quantity& q1, Quantity& q2, TFunctor&& functor) {
         auto values1 = q1.template getBuffers<TValue>();
@@ -46,7 +47,7 @@ struct StoragePairVisitor<TemporalEnum::ALL, TFunctor> {
 /// Iterator over all first-order quantities. This won't access second-order quantities! The functor is
 /// executed with two parameters: values and derivatives (both LimitedArrays).
 template <typename TFunctor>
-struct StorageVisitor<TemporalEnum::FIRST_ORDER, TFunctor> {
+struct StorageVisitor<VisitorEnum::FIRST_ORDER, TFunctor> {
     template <typename TValue>
     void visit(Quantity& q, TFunctor&& functor) {
         if (q.getTemporalEnum() != TemporalEnum::FIRST_ORDER) {
@@ -61,7 +62,7 @@ struct StorageVisitor<TemporalEnum::FIRST_ORDER, TFunctor> {
 };
 
 template <typename TFunctor>
-struct StoragePairVisitor<TemporalEnum::FIRST_ORDER, TFunctor> {
+struct StoragePairVisitor<VisitorEnum::FIRST_ORDER, TFunctor> {
     template <typename TValue>
     void visit(Quantity& q1, Quantity& q2, TFunctor&& functor) {
         if (q1.getTemporalEnum() != TemporalEnum::FIRST_ORDER) {
@@ -78,7 +79,7 @@ struct StoragePairVisitor<TemporalEnum::FIRST_ORDER, TFunctor> {
 /// Iterator over all second-order quantities. Functor is executed with three parameters: values, 1st
 /// derivatives and 2nd derivatives (as LimitedArrays).
 template <typename TFunctor>
-struct StorageVisitor<TemporalEnum::SECOND_ORDER, TFunctor> {
+struct StorageVisitor<VisitorEnum::SECOND_ORDER, TFunctor> {
     template <typename TValue>
     void visit(Quantity& q, TFunctor&& functor) {
         if (q.getTemporalEnum() != TemporalEnum::SECOND_ORDER) {
@@ -91,7 +92,7 @@ struct StorageVisitor<TemporalEnum::SECOND_ORDER, TFunctor> {
 };
 
 template <typename TFunctor>
-struct StoragePairVisitor<TemporalEnum::SECOND_ORDER, TFunctor> {
+struct StoragePairVisitor<VisitorEnum::SECOND_ORDER, TFunctor> {
     template <typename TValue>
     void visit(Quantity& q1, Quantity& q2, TFunctor&& functor) {
         if (q1.getTemporalEnum() != TemporalEnum::SECOND_ORDER) {
@@ -114,7 +115,7 @@ struct StoragePairVisitor<TemporalEnum::SECOND_ORDER, TFunctor> {
 /// Iterate over given type of quantities and executes functor for each. The functor is used for scalars,
 /// vectors and tensors, so it must be a generic lambda or a class with overloaded operator() for each
 /// value type.
-template <TemporalEnum Type, typename TFunctor>
+template <VisitorEnum Type, typename TFunctor>
 void iterate(Array<Quantity>& qs, TFunctor&& functor) {
     StorageVisitor<Type, TFunctor> visitor;
     for (auto& q : qs) {
@@ -124,7 +125,7 @@ void iterate(Array<Quantity>& qs, TFunctor&& functor) {
 
 
 /// Iterate over given type of quantities in two storage views and executes functor for each pair.
-template <TemporalEnum Type, typename TFunctor>
+template <VisitorEnum Type, typename TFunctor>
 void iteratePair(Array<Quantity>& qs1, Array<Quantity>& qs2, TFunctor&& functor) {
     ASSERT(qs1.size() == qs2.size());
     StoragePairVisitor<Type, TFunctor> visitor;

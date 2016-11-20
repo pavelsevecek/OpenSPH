@@ -1,22 +1,10 @@
 #pragma once
 
-#include "geometry/Tensor.h"
+#include "geometry/TracelessTensor.h"
 
 NAMESPACE_SPH_BEGIN
 
-/// \todo maybe split into levels and number of derivatives?
-enum class TemporalEnum {
-    CONST        = 1 << 0, ///< Quantity without derivatives, or "zero order" of quantity
-    FIRST_ORDER  = 1 << 1, ///< Quantity with 1st derivative
-    SECOND_ORDER = 1 << 2, ///< Quantity with 1st and 2nd derivative
-    /// additional helper flags for getters
-    ALL           = 1 << 3, ///< All values and derivatives of all quantities
-    HIGHEST_ORDER = 1 << 4, ///< Derivative with the highest order; nothing for const quantities
-};
-
 enum class ValueEnum { SCALAR, VECTOR, TENSOR, TRACELESS_TENSOR };
-
-
 
 /// Convert type to ValueType enum
 template <typename T>
@@ -33,6 +21,11 @@ template <>
 struct GetValueType<Tensor> {
     static constexpr ValueEnum type = ValueEnum::TENSOR;
 };
+template <>
+struct GetValueType<TracelessTensor> {
+    static constexpr ValueEnum type = ValueEnum::TRACELESS_TENSOR;
+};
+
 
 /// Convert ValueType enum to type
 template <ValueEnum Type>
@@ -49,6 +42,10 @@ template <>
 struct GetTypeFromValue<ValueEnum::TENSOR> {
     using Type = Tensor;
 };
+template <>
+struct GetTypeFromValue<ValueEnum::TRACELESS_TENSOR> {
+    using Type = TracelessTensor;
+};
 
 /// Selects type based on run-time ValueEnum value and runs visit<Type>() method of the visitor. This provides
 /// a way to run generic code with different types. Return whatever TVisitor::visit returns.
@@ -61,6 +58,8 @@ auto dispatch(const ValueEnum value, TVisitor&& visitor, TArgs&&... args) {
         return visitor.template visit<Vector>(std::forward<TArgs>(args)...);
     case ValueEnum::TENSOR:
         return visitor.template visit<Tensor>(std::forward<TArgs>(args)...);
+    case ValueEnum::TRACELESS_TENSOR:
+        return visitor.template visit<TracelessTensor>(std::forward<TArgs>(args)...);
     default:
         NOT_IMPLEMENTED;
     }
