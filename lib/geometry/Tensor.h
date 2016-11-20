@@ -200,6 +200,7 @@ namespace Math {
     }
 
     /// Clamping all components by range.
+    template<>
     INLINE Tensor clamp(const Tensor& t, const Range& range) {
         return Tensor(clamp(t.diagonal(), range), clamp(t.offDiagonal(), range));
     }

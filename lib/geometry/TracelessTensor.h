@@ -152,6 +152,10 @@ public:
         return Math::max(vectorMax, m12);
     }
 
+    TracelessTensor clamp(const Range& range) const {
+        return TracelessTensor(Math::clamp(m, range), Math::clamp(m12, range));
+    }
+
     template <typename TStream>
     friend TStream& operator<<(TStream& stream, const TracelessTensor& v) {
         stream << v[0] << std::endl << v[1] << std::endl << v[2];
@@ -170,19 +174,14 @@ namespace Math {
     /// Arbitrary norm of the tensor.
     /// \todo Use some well-defined norm instead? (spectral norm, L1 or L2 norm, ...)
     /// \todo Same norm for Tensor and TracelessTensor
-    INLINE Float norm(const TracelessTensor& t) {
-        return Math::abs(t.maxElement());
-    }
+    INLINE Float norm(const TracelessTensor& t) { return Math::abs(t.maxElement()); }
 
     /// Arbitrary squared norm of the tensor
-    INLINE Float normSqr(const TracelessTensor& t) {
-        return Math::sqr(t.maxElement());
-    }
-    /*
-        /// Clamping all components by range.
-        INLINE Tensor clamp(const Tensor& t, const Range& range) {
-            return Tensor(clamp(t.diagonal(), range), clamp(t.offDiagonal(), range));
-        }*/
+    INLINE Float normSqr(const TracelessTensor& t) { return Math::sqr(t.maxElement()); }
+
+    /// Clamping all components by range.
+    template<>
+    INLINE TracelessTensor clamp(const TracelessTensor& t, const Range& range) { return t.clamp(range); }
 }
 
 

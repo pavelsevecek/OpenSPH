@@ -125,17 +125,20 @@ public:
             r[i] = Vector(domain.clamp(r[i][0]), 0._f, 0._f, r[i][H]);
             v[i] = Vector(v[i][0], 0._f, 0._f);
         }
-        // null all derivatives of first and last particles (fixed boundary conditions)
-        /// \todo iterate highest order
+        // To get fixed boundary conditions at ends, we need to null all derivatives of first few and last few
+        // particles. Number of particles depends on smoothing length.
         iterate<VisitorEnum::FIRST_ORDER>(*storage, [](auto&& UNUSED(v), auto&& dv) {
             using Type = typename std::decay_t<decltype(dv)>::Type;
-            dv[0] = Type(0._f);
-            dv[dv.size()-1] = Type(0._f);
+            for (int i : { 0, 1, dv.size() - 2, dv.size() - 1 }) {
+                dv[i] = Type(0._f);
+            }
         });
-        iterate<VisitorEnum::SECOND_ORDER>(*storage, [](auto&& UNUSED(v), auto&& UNUSED(dv), auto&& d2v) {
-            using Type = typename std::decay_t<decltype(d2v)>::Type;
-            d2v[0] = Type(0._f);
-            d2v[d2v.size()-1] = Type(0._f);
+        iterate<VisitorEnum::SECOND_ORDER>(*storage, [](auto&& UNUSED(v), auto&& dv, auto&& d2v) {
+            using Type = typename std::decay_t<decltype(dv)>::Type;
+            for (int i : { 0, 1, dv.size() - 2, dv.size() - 1 }) {
+                dv[i]  = Type(0._f);
+                d2v[i] = Type(0._f);
+            }
         });
     }
 };

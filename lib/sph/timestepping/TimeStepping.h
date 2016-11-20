@@ -80,14 +80,13 @@ public:
             for (int i = 0; i < v.size(); ++i) {
                 dv[i] += d2v[i] * this->dt;
                 v[i] += dv[i] * this->dt;
-                /// \todo clamp --- maybe use LimitedArray instead of Array in quantities? Better than passing
-                /// range
-                // as parameters, or by iterating twice
+                v.clamp(i);
             }
         });
         iterate<VisitorEnum::FIRST_ORDER>(*this->storage, [this](auto& v, auto& dv) {
             for (int i = 0; i < v.size(); ++i) {
                 v[i] += dv[i] * this->dt;
+                v.clamp(i);
             }
         });
     }
@@ -118,11 +117,13 @@ protected:
                 for (int i = 0; i < v.size(); ++i) {
                     v[i] += dv[i] * this->dt + d2v[i] * dt2;
                     dv[i] += d2v[i] * this->dt;
+                    v.clamp(i);
                 }
             });
             iterate<VisitorEnum::FIRST_ORDER>(*this->storage, [this](auto& v, auto& dv) {
                 for (int i = 0; i < v.size(); ++i) {
                     v[i] += dv[i] * this->dt;
+                    v.clamp(i);
                 }
             });
             // save derivatives from predictions
@@ -143,6 +144,7 @@ protected:
             for (int i = 0; i < pv.size(); ++i) {
                 pv[i] -= 0.333333_f * (cd2v[i] - pd2v[i]) * dt2;
                 pdv[i] -= 0.5_f * (cd2v[i] - pd2v[i]) * this->dt;
+                pv.clamp(i);
             }
         });
         iteratePair<VisitorEnum::FIRST_ORDER>(*this->storage, this->predictions,
@@ -150,6 +152,7 @@ protected:
             ASSERT(pv.size() == pdv.size());
             for (int i = 0; i < pv.size(); ++i) {
                 pv[i] -= 0.5_f * (cdv[i] - pdv[i]) * this->dt;
+                pv.clamp(i);
             }
         });
         // clang-format on
