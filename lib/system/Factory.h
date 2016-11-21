@@ -49,9 +49,10 @@ public:
         switch (id) {
         case KernelEnum::CUBIC_SPLINE:
             return LutKernel<d>(CubicSpline<d>());
+        case KernelEnum::FOURTH_ORDER_SPLINE:
+            return LutKernel<d>(FourthOrderSpline<d>());
         default:
-            ASSERT(false);
-            throw std::exception();
+            NOT_IMPLEMENTED;
         }
     }
 };

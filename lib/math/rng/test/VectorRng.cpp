@@ -16,7 +16,7 @@ void testVectorRng(TVectorRng&& rng,
     Vector minValues(1000.);
     Vector maxValues(-1000.);
 
-    int N       = 1000000;
+    int N       = 100000;
     double norm = 1. / double(N);
     for (int i = 0; i < N; ++i) {
         Vector values = rng();

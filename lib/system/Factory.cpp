@@ -13,7 +13,7 @@ std::unique_ptr<Abstract::Eos> Factory::getEos(const Settings<BodySettingsIds>& 
     const EosEnum id = settings.get<EosEnum>(BodySettingsIds::EOS);
     switch (id) {
     case EosEnum::IDEAL_GAS:
-        return std::make_unique<IdealGasEos>(settings.get<float>(BodySettingsIds::ADIABATIC_INDEX));
+        return std::make_unique<IdealGasEos>(1.4_f); // settings.get<float>(BodySettingsIds::ADIABATIC_INDEX));
     case EosEnum::TILLOTSON:
         return std::make_unique<TillotsonEos>(settings);
     default:
@@ -86,7 +86,7 @@ std::unique_ptr<Abstract::BoundaryConditions> Factory::getBoundaryConditions(
     const Settings<GlobalSettingsIds>& settings,
     const std::shared_ptr<Storage>& storage,
     std::unique_ptr<Abstract::Domain>&& domain) {
-    const BoundaryEnum id = settings.get<BoundaryEnum>(GlobalSettingsIds::BOUNDARY);
+    const BoundaryEnum id = settings.get<BoundaryEnum>(GlobalSettingsIds::DOMAIN_BOUNDARY);
     switch (id) {
     case BoundaryEnum::NONE:
         return nullptr;

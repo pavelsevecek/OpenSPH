@@ -177,7 +177,7 @@ public:
     INLINE friend bool operator!=(const BasicVector& v1, const BasicVector& v2) { return !(v1 == v2); }
 
     INLINE auto dot(const BasicVector& other) const {
-        constexpr int d = 3;
+        constexpr int d = 1;
         return _mm_cvtss_f32(_mm_dp_ps(data, other.data, (1 << (d + 4)) - 0x0F));
     }
 

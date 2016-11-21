@@ -142,7 +142,7 @@ public:
     // template <bool TApprox = false>
     INLINE Float gradImpl(const Float& qSqr) const {
         const Float q = Math::sqrt(qSqr);
-        if (q == 0) {
+        if (q == 0._f) {
             return 0._f;
         }
         if (q < 1._f) {
@@ -156,14 +156,58 @@ public:
     }
 };
 
-/*LutKernel makeKernel(const KernelEnum type) {
-    switch (type) {
-    case KernelEnum::CUBIC_SPLINE:
-        return LutKernel(CubicSpline());
-    default:
-        return LutKernel();
+/// A fourth-order spline (M5) kernel
+template <int d>
+class FourthOrderSpline : public Kernel<FourthOrderSpline<d>, d> {
+private:
+    static constexpr Float normalization[] = { 1._f / 24._f,
+                                               96._f / (1199._f * Math::PI),
+                                               1._f / (20._f * Math::PI) };
+
+public:
+    FourthOrderSpline() = default;
+
+    INLINE Float radius() const { return 2.5_f; }
+
+    // template <bool TApprox = false>
+    INLINE Float valueImpl(const Float& qSqr) const {
+        const Float q = Math::sqrt(qSqr);
+        ASSERT(q >= 0);
+        if (q < 0.5_f) {
+            return normalization[d - 1] * (Math::pow<4>(2.5_f - q) - 5._f * Math::pow<4>(1.5_f - q) +
+                                           10._f * Math::pow<4>(0.5_f - q));
+        }
+        if (q < 1.5_f) {
+            return normalization[d - 1] * (Math::pow<4>(2.5_f - q) - 5._f * Math::pow<4>(1.5_f - q));
+        }
+        if (q < 2.5_f) {
+            return normalization[d - 1] * (Math::pow<4>(2.5_f - q));
+        }
+        return 0._f; // compact within 2r radius
     }
-}*/
+
+    // template <bool TApprox = false>
+    INLINE Float gradImpl(const Float& qSqr) const {
+        const Float q = Math::sqrt(qSqr);
+        if (q == 0._f) {
+            return 0._f;
+        }
+        if (q < 0.5_f) {
+            return (1._f / q) * normalization[d - 1] *
+                   (-4._f * Math::pow<3>(2.5_f - q) + 20._f * Math::pow<3>(1.5_f - q) -
+                    40._f * Math::pow<3>(0.5_f - q));
+        }
+        if (q < 1.5_f) {
+            return (1._f / q) * normalization[d - 1] *
+                   (-4._f * Math::pow<3>(2.5_f - q) + 20._f * Math::pow<3>(1.5_f - q));
+        }
+        if (q < 2.5_f) {
+            return (1._f / q) * normalization[d - 1] * (-4._f * Math::pow<3>(2.5_f - q));
+        }
+        return 0._f;
+    }
+};
+
 
 /// Symmetrization of the kernel with a respect to different smoothing lenths
 /// Two possibilities - Symmetrized kernel W_ij = 0.5(W_i + W_j)

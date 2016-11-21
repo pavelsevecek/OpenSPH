@@ -20,7 +20,7 @@ void testKernel(const TKernel& kernel, TTest&& test) {
     SphericalDomain domain(Vector(0._f), kernel.radius());
     Integrator<> in(&domain);
     Float norm = in.integrate([&](const Vector& v) { return kernel.value(v, 1._f); }, targetError);
-    REQUIRE(Math::almostEqual(norm, 1._f, 2._f * targetError));
+    REQUIRE(Math::almostEqual(norm, 1._f, 3._f * targetError));
 
     // check that kernel gradients match (approximately) finite differences of values
     // fine-tuned for floats, maximum accuracy (lower - round-off errors, higher - imprecise derivative)
@@ -29,7 +29,8 @@ void testKernel(const TKernel& kernel, TTest&& test) {
         Float xSqr = x * x;
         Float diff =
             (kernel.valueImpl(Math::sqr(x + eps)) - kernel.valueImpl(Math::sqr(x - eps))) / (2 * eps);
-        REQUIRE(Math::almostEqual(kernel.gradImpl(xSqr) * x, diff, eps));
+        //std::cout << kernel.gradImpl(xSqr) * x << "  |  " <<  diff << std::endl;
+        REQUIRE(Math::almostEqual(kernel.gradImpl(xSqr) * x, diff, 2._f * eps));
     }
 
     // check that kernel and LUT give the same values and gradients
@@ -58,5 +59,15 @@ TEST_CASE("M4 kernel", "[kernel]") {
         REQUIRE(kernel.valueImpl(1._f) == 0.25_f * norm);
         REQUIRE(kernel.gradImpl(0._f) == 0._f);
         REQUIRE(kernel.gradImpl(1._f) == -0.75_f * norm);
+    });
+}
+
+
+TEST_CASE("M5 kernel", "[kernel]") {
+    FourthOrderSpline<3> m5;
+
+
+    testKernel<3>(m5, [](auto&& kernel) {
+        REQUIRE(kernel.radius() == 2.5_f);
     });
 }

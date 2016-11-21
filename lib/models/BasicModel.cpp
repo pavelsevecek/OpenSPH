@@ -21,6 +21,8 @@ BasicModel<d>::BasicModel(const std::shared_ptr<Storage>& storage,
     /// remember EoS for each particles. This should be probably generalized, for example we want to remember
     /// original body of the particle, possibly original position (right under surface, core of the body,
     /// antipode, ...)
+
+    /// \todo !!!toto je ono, tady nejde globalni nastaveni
     eos = Factory::getEos(BODY_SETTINGS);
 
     std::unique_ptr<Abstract::Domain> domain = Factory::getDomain(settings);
@@ -79,10 +81,8 @@ void BasicModel<d>::compute(Storage& storage) {
         PROFILE_SCOPE("BasicModel::compute (main cycle)")
         for (int i = 0; i < size; ++i) {
             // Find all neighbours within kernel support. Since we are only searching for particles with
-            // smaller
-            // h, we know that symmetrized lengths (h_i + h_j)/2 will be ALWAYS smaller or equal to h_i, and
-            // we
-            // thus never "miss" a particle.
+            // smaller h, we know that symmetrized lengths (h_i + h_j)/2 will be ALWAYS smaller or equal to
+            // h_i, and we thus never "miss" a particle.
             SCOPE_STOP;
             finder->findNeighbours(i, r[i][H] * kernel.radius(), neighs, FinderFlags::FIND_ONLY_SMALLER_H);
             SCOPE_RESUME;
@@ -117,8 +117,9 @@ void BasicModel<d>::compute(Storage& storage) {
                 // compute velocity divergence, save them as 4th computent of velocity vector
                 const Float delta = dot(v[j] - v[i], grad);
                 ASSERT(Math::isReal(delta));
-                divv[i] += m[j] * delta; // same sign as both gradient and (v_i-v_j) are antisymmetric
-                divv[j] += m[i] * delta;
+                // same sign as both gradient and (v_i-v_j) are antisymmetric
+                divv[i] += m[j] /*/ rho[j]*/ * delta;
+                divv[j] += m[i] /*/ rho[i]*/ * delta;
             }
         }
     }
@@ -129,7 +130,7 @@ void BasicModel<d>::compute(Storage& storage) {
     {
         PROFILE_SCOPE("BasicModel::compute (solvers)")
         this->solveSmoothingLength(v, dv, r, rho);
-        this->solveDensity(drho);
+        this->solveDensity(drho, rho);
         this->solveEnergy(du, p, rho);
 
         // Apply boundary conditions
@@ -154,11 +155,11 @@ void BasicModel<d>::solveSmoothingLength(ArrayView<Vector> v,
 }
 
 template <int d>
-void BasicModel<d>::solveDensity(ArrayView<Float> drho) {
+void BasicModel<d>::solveDensity(ArrayView<Float> drho, ArrayView<const Float> rho) {
     ASSERT(areAllMatching(drho, [](const Float v) { return v == 0._f; }));
     ASSERT(drho.size() == divv.size());
     for (int i = 0; i < drho.size(); ++i) {
-        drho[i] = -divv[i];
+        drho[i] = -/*rho[i] **/ divv[i];
     }
 }
 

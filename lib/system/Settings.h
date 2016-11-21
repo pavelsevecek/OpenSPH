@@ -170,10 +170,13 @@ private:
                 entry.value = Range(f1, f2);
                 return true;
             }
-        case STRING:
+        case STRING: {
             // trim leading and trailing spaces
-            entry.value = std::regex_replace(str, std::regex("^ +| +$|( ) +"), "$1");
+            const std::string trimmed  =std::regex_replace(str, std::regex("^ +| +$|( ) +"), "$1");
+            ASSERT(!trimmed.empty() && "Variant cannot handle empty strings");
+            entry.value = trimmed;
             return true;
+        }
         case VECTOR:
             Float v1, v2, v3;
             ss >> v1 >> v2 >> v3;
@@ -190,8 +193,11 @@ private:
 };
 
 enum class KernelEnum {
-    /// M4 B-spline (piecewise cubic)
-    CUBIC_SPLINE
+    /// M4 B-spline (piecewise cubic polynomial)
+    CUBIC_SPLINE,
+
+    /// M5 B-spline (piecewise 4th-order polynomial)
+    FOURTH_ORDER_SPLINE,
 };
 
 enum class KernelSymmetryEnum {
@@ -330,7 +336,7 @@ const Settings<GlobalSettingsIds> GLOBAL_SETTINGS = {
     { GlobalSettingsIds::RUN_NAME,                      "run.name",                 std::string("unnamed run") },
     { GlobalSettingsIds::RUN_OUTPUT_STEP,               "run.output.step",          10 },
     { GlobalSettingsIds::RUN_OUTPUT_NAME,               "run.output.name",          std::string("out_%d.txt") },
-    { GlobalSettingsIds::RUN_OUTPUT_PATH,               "run.output.path",          std::string(" ") }, /// \todo Variant somehow doesnt handle empty strings
+    { GlobalSettingsIds::RUN_OUTPUT_PATH,               "run.output.path",          std::string("out") }, /// \todo Variant somehow doesnt handle empty strings
     { GlobalSettingsIds::SPH_KERNEL,                    "sph.kernel",               int(KernelEnum::CUBIC_SPLINE) },
     { GlobalSettingsIds::SPH_KERNEL_SYMMETRY,           "sph.kernel.symmetry",      int(KernelSymmetryEnum::SYMMETRIZE_LENGTHS) },
     { GlobalSettingsIds::SPH_FINDER,                    "sph.finder",               int(FinderEnum::KD_TREE) },

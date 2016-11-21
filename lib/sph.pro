@@ -4,6 +4,19 @@ CONFIG -= app_bundle qt
 QMAKE_CXXFLAGS += -Wall -msse4.1 -std=c++14 -pthread -pg
 QMAKE_LFLAGS += -pg
 
+CONFIG(release, debug|profile|release) {
+  message( "Building for Release" )
+}
+CONFIG(profile, debug|profile|release) {
+  message( "Building for Profile" )
+  DEFINES += PROFILE
+}
+CONFIG(debug, debug|profile|release) {
+  message( "Building for Debug" )
+  DEFINES += DEBUG PROFILE
+}
+
+
 SOURCES += \
     physics/TimeFormat.cpp \
     sph/distributions/Distribution.cpp \

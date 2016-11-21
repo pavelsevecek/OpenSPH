@@ -216,8 +216,7 @@ INLINE StaticArray<Float, 3> findEigenvalues(const Tensor& t) {
     ASSERT(a < 0._f);
     const Float b     = (2._f * Math::pow<3>(p) - 9._f * p * q + 27._f * r) / 27._f;
     const Float aCub  = Math::pow<3>(a) / 27._f;
-    const Float roots = 0.25_f * b * b + aCub;
-    ASSERT(roots < 0._f);
+    ASSERT(0.25_f * b * b + aCub < 0._f);
     const Float t1  = 2._f * Math::sqrt(-a / 3._f);
     const Float phi = Math::acos(-0.5_f * b / Math::sqrt(-aCub));
     const Vector v(phi / 3._f, (phi + 2 * Math::PI) / 3._f, (phi + 4 * Math::PI) / 3._f);

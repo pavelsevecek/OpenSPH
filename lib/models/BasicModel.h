@@ -54,7 +54,7 @@ private:
                               ArrayView<const Vector> r,
                               ArrayView<const Float> rho);
 
-    void solveDensity(ArrayView<Float> drho);
+    void solveDensity(ArrayView<Float> drho, ArrayView<const Float> rho);
 
     void solveEnergy(ArrayView<Float> du, ArrayView<const Float> p, ArrayView<const Float> rho);
 };

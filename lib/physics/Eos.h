@@ -46,7 +46,7 @@ public:
                              ArrayView<Float> p) override {
         ASSERT(rho.size() == u.size() && rho.size() == p.size());
         for (int i = 0; i < p.size(); ++i) {
-            p[i] = gamma * u[i] * rho[i];
+            p[i] = (gamma - 1._f) * u[i] * rho[i];
         }
     }
 
@@ -55,7 +55,7 @@ public:
                                    ArrayView<Float> u) override {
         ASSERT(rho.size() == u.size() && rho.size() == p.size());
         for (int i = 0; i < p.size(); ++i) {
-            u[i] = p[i] / (gamma * rho[i]);
+            u[i] = p[i] / ((gamma - 1._f) * rho[i]);
         }
     }
 
@@ -129,8 +129,8 @@ public:
     }
 
     virtual void getSoundSpeed(ArrayView<const Float> UNUSED(rho),
-                                   ArrayView<const Float> UNUSED(p),
-                                   ArrayView<Float> UNUSED(cs)) override {
+                               ArrayView<const Float> UNUSED(p),
+                               ArrayView<Float> UNUSED(cs)) override {
         ASSERT(false);
     }
 };

@@ -33,7 +33,7 @@ namespace Abstract {
             std::string::size_type n = fileMask.find("%d", 0);
             ASSERT(n != std::string::npos);
             std::ostringstream ss;
-            ss << std::setw(3) << std::setfill('0') << dumpNum;
+            ss << std::setw(4) << std::setfill('0') << dumpNum;
             name.replace(n, 2, ss.str());
             return name;
         }

@@ -128,14 +128,16 @@ public:
         // To get fixed boundary conditions at ends, we need to null all derivatives of first few and last few
         // particles. Number of particles depends on smoothing length.
         iterate<VisitorEnum::FIRST_ORDER>(*storage, [](auto&& UNUSED(v), auto&& dv) {
-            using Type = typename std::decay_t<decltype(dv)>::Type;
-            for (int i : { 0, 1, dv.size() - 2, dv.size() - 1 }) {
+            using Type  = typename std::decay_t<decltype(dv)>::Type;
+            const int s = dv.size();
+            for (int i : { 0, 1, 2, 3, 4, s - 4, s - 3, s - 2, s - 1 }) {
                 dv[i] = Type(0._f);
             }
         });
         iterate<VisitorEnum::SECOND_ORDER>(*storage, [](auto&& UNUSED(v), auto&& dv, auto&& d2v) {
-            using Type = typename std::decay_t<decltype(dv)>::Type;
-            for (int i : { 0, 1, dv.size() - 2, dv.size() - 1 }) {
+            using Type  = typename std::decay_t<decltype(dv)>::Type;
+            const int s = dv.size();
+            for (int i : { 0, 1, 2, 3, 4, s - 4, s - 3, s - 2, s - 1 }) {
                 dv[i]  = Type(0._f);
                 d2v[i] = Type(0._f);
             }
