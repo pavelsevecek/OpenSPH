@@ -21,8 +21,8 @@ namespace Abstract {
             ASSERT(fileMask.find("%d") != std::string::npos);
         }
 
-        /// Saves data from particle storage into the file.
-        virtual void dump(Storage& storage) = 0;
+        /// Saves data from particle storage into the file. Returns the filename of the dump.
+        virtual std::string dump(Storage& storage) = 0;
 
         /// Loads data from the file into the storage. Can be used to continue simulation from saved snapshot.
         virtual void load(const std::string& path, Storage& storage) = 0;
@@ -47,8 +47,9 @@ public:
         : Abstract::Output(fileMask) {}
 
     /// \todo rewrite in less retarded way
-    virtual void dump(Storage& storage) override {
-        std::ofstream ofs(getFileName());
+    virtual std::string dump(Storage& storage) override {
+        const std::string fileName = getFileName();
+        std::ofstream ofs(fileName);
         const int size = storage.getQuantityCnt();
         // print description
         ofs << "# ";
@@ -83,9 +84,27 @@ public:
         }
         ofs.close();
         this->dumpNum++;
+        return fileName;
     }
 
     virtual void load(const std::string& UNUSED(path), Storage& UNUSED(storage)) override { NOT_IMPLEMENTED; }
+};
+
+/// Extension of text output that runs given gnuplot script on dumped text data.
+class GnuplotOutput : public TextOutput {
+private:
+    std::string scriptPath;
+
+public:
+    GnuplotOutput(const std::string& fileMask, const std::string& scriptPath) : TextOutput(fileMask), scriptPath(scriptPath) {}
+
+    virtual std::string dump(Storage& storage) override {
+        const std::string fileName = TextOutput::dump(storage);
+        const std::string nameWithoutExt = fileName.substr(0, fileName.find_last_of("."));
+        const std::string command = "gnuplot -e \"filename='" + nameWithoutExt + "'\" " + scriptPath;
+        system(command.c_str());
+        return fileName;
+    }
 };
 
 

@@ -129,8 +129,7 @@ void BasicModel<d>::compute(Storage& storage) {
     /// critical, though.
     {
         PROFILE_SCOPE("BasicModel::compute (solvers)")
-        this->solveSmoothingLength(v, dv, r, rho);
-        this->solveDensity(drho, rho);
+        this->solveDensityAndSmoothingLength(drho, dv, v, r, rho);
         this->solveEnergy(du, p, rho);
 
         // Apply boundary conditions
@@ -140,26 +139,21 @@ void BasicModel<d>::compute(Storage& storage) {
     }
 }
 
-template <int d>
-void BasicModel<d>::solveSmoothingLength(ArrayView<Vector> v,
-                                         ArrayView<Vector> dv,
-                                         ArrayView<const Vector> r,
-                                         ArrayView<const Float> rho) {
-    ASSERT(divv.size() == r.size());
-    for (int i = 0; i < r.size(); ++i) {
-        v[i][H] = r[i][H] * divv[i] / (Float(d) * rho[i]);
-        // clear 'acceleration' of smoothing lengths, we advance h as first-order quantity, even though it is
-        // stored within positions.
-        dv[i][H] = 0._f;
-    }
-}
 
 template <int d>
-void BasicModel<d>::solveDensity(ArrayView<Float> drho, ArrayView<const Float> rho) {
+void BasicModel<d>::solveDensityAndSmoothingLength(ArrayView<Float> drho,
+                                                   ArrayView<Vector> dv,
+                                                   ArrayView<Vector> v,
+                                                   ArrayView<const Vector> r,
+                                                   ArrayView<const Float> rho) {
     ASSERT(areAllMatching(drho, [](const Float v) { return v == 0._f; }));
     ASSERT(drho.size() == divv.size());
     for (int i = 0; i < drho.size(); ++i) {
         drho[i] = -/*rho[i] **/ divv[i];
+        //v[i][H] = r[i][H] * divv[i] / (Float(d) * rho[i]);
+        // clear 'acceleration' of smoothing lengths, we advance h as first-order quantity, even though it is
+        // stored within positions.
+        dv[i][H] = 0._f;
     }
 }
 

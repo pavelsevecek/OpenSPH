@@ -49,13 +49,11 @@ public:
                                     const Settings<BodySettingsIds>& settings) const override;
 
 private:
-    void solveSmoothingLength(ArrayView<Vector> v,
-                              ArrayView<Vector> dv,
-                              ArrayView<const Vector> r,
-                              ArrayView<const Float> rho);
-
-    void solveDensity(ArrayView<Float> drho, ArrayView<const Float> rho);
-
+    void solveDensityAndSmoothingLength(ArrayView<Float> drho,
+                                        ArrayView<Vector> dv,
+                                        ArrayView<Vector> v,
+                                        ArrayView<const Vector> r,
+                                        ArrayView<const Float> rho);
     void solveEnergy(ArrayView<Float> du, ArrayView<const Float> p, ArrayView<const Float> rho);
 };
 

@@ -334,7 +334,7 @@ enum class GlobalSettingsIds {
 // clang-format off
 const Settings<GlobalSettingsIds> GLOBAL_SETTINGS = {
     { GlobalSettingsIds::RUN_NAME,                      "run.name",                 std::string("unnamed run") },
-    { GlobalSettingsIds::RUN_OUTPUT_STEP,               "run.output.step",          10 },
+    { GlobalSettingsIds::RUN_OUTPUT_STEP,               "run.output.step",          100 },
     { GlobalSettingsIds::RUN_OUTPUT_NAME,               "run.output.name",          std::string("out_%d.txt") },
     { GlobalSettingsIds::RUN_OUTPUT_PATH,               "run.output.path",          std::string("out") }, /// \todo Variant somehow doesnt handle empty strings
     { GlobalSettingsIds::SPH_KERNEL,                    "sph.kernel",               int(KernelEnum::CUBIC_SPLINE) },
@@ -442,7 +442,7 @@ enum class BodySettingsIds {
 // clang-format off
 const Settings<BodySettingsIds> BODY_SETTINGS = {
     { BodySettingsIds::EOS,                     "eos",                          int(EosEnum::IDEAL_GAS) },
-    { BodySettingsIds::ADIABATIC_INDEX,         "eos.adiabatic_index",          1.5f },
+    { BodySettingsIds::ADIABATIC_INDEX,         "eos.adiabatic_index",          1.4f },
     { BodySettingsIds::DENSITY,                 "material.density",             2700.f },
     { BodySettingsIds::DENSITY_RANGE,           "material.density.range",       Range(1.f, NOTHING) },
     { BodySettingsIds::ENERGY,                  "material.energy",              0.f },
