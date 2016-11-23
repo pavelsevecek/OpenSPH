@@ -28,4 +28,5 @@ SOURCES += \
     main.cpp \
     sod/Sod.cpp
 
-HEADERS +=  
+HEADERS += \  
+    sod/solution.h

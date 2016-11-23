@@ -1,12 +1,11 @@
 #!/bin/bash
 
-for f in out/*.txt; do
-    filename=$(basename "$f")
-    filename="${filename%.*}"
+#for f in out/*.txt; do
+#    filename=$(basename "$f")
+#    filename="${filename%.*}"
+#    echo $filename
+#    gnuplot -e "filename='$filename'" sod.plt
+#done
 
-    echo $filename
-    gnuplot -e "filename='$filename'" sod.plt
-done
 
-
-ffmpeg -framerate 40 -i out/out_%03d.png -c:v libx264 -r 30 -pix_fmt yuv420p -y out.mp4
+ffmpeg -framerate 30 -i out/out_%04d.png -c:v libx264 -r 30 -pix_fmt yuv420p -y out.mp4

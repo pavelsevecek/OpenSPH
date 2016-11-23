@@ -45,7 +45,7 @@ public:
 
     template <int d>
     static LutKernel<d> getKernel(const Settings<GlobalSettingsIds>& settings) {
-        const KernelEnum id = KernelEnum(settings.get<int>(GlobalSettingsIds::SPH_KERNEL));
+        const KernelEnum id = settings.get<KernelEnum>(GlobalSettingsIds::SPH_KERNEL);
         switch (id) {
         case KernelEnum::CUBIC_SPLINE:
             return LutKernel<d>(CubicSpline<d>());
