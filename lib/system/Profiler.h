@@ -26,6 +26,12 @@ public:
     void stop() { impl.stop(); }
 
     void resume() { impl.resume(); }
+
+    void next(const std::string& newName) {
+        callback(name, impl.elapsed<TimerUnit::MICROSECOND>());
+        impl.restart();
+        name = newName;
+    }
 };
 
 struct ScopeStatistics {
@@ -81,6 +87,7 @@ public:
 #define PROFILE_SCOPE(name)                                                                                  \
     Profiler* __instance      = Profiler::getInstance();                                                     \
     ScopedTimer __scopedTimer = __instance->makeScopedTimer(name);
+#define PROFILE_NEXT(name) __scopedTimer.next(name);
 #define SCOPE_STOP __scopedTimer.stop()
 #define SCOPE_RESUME __scopedTimer.resume()
 #else

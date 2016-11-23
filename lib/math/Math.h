@@ -190,6 +190,11 @@ namespace Math {
         return std::asin(f);
     }
 
+    template <typename T>
+    INLINE int sgn(const T val) {
+        return (T(0) < val) - (val < T(0));
+    }
+
     /// \note One test failed because I rounded up Pi too much. I'm not taking any chances ;)
     constexpr Float PI = 3.14159265358979323846264338327950288419716939937510582097_f;
 
@@ -208,23 +213,23 @@ namespace Math {
     }
 
     /// Returns a norm of a object. Must be specialized to use other objects as quantities.
-    template<typename T>
+    template <typename T>
     INLINE Float norm(const T& value);
 
     /// Squared value of the norm.
-    template<typename T>
+    template <typename T>
     INLINE Float normSqr(const T& value);
 
-    template<>
+    template <>
     INLINE Float norm(const Float& value) {
         return Math::abs(value);
     }
-    template<>
+    template <>
     INLINE Float normSqr(const Float& value) {
         return Math::sqr(value);
     }
 
-    template<typename T>
+    template <typename T>
     INLINE bool isReal(const T& value) {
         return !std::isnan(value) && !std::isinf(value);
     }

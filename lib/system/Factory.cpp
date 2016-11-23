@@ -76,7 +76,7 @@ std::unique_ptr<Abstract::Domain> Factory::getDomain(const Settings<GlobalSettin
         return std::make_unique<BlockDomain>(center, settings.get<Vector>(GlobalSettingsIds::DOMAIN_SIZE));
     case DomainEnum::SPHERICAL:
         return std::make_unique<SphericalDomain>(center,
-                                                 settings.get<float>(GlobalSettingsIds::DOMAIN_RADIUS));
+                                                 settings.get<Float>(GlobalSettingsIds::DOMAIN_RADIUS));
     default:
         NOT_IMPLEMENTED;
     }

@@ -1,16 +1,16 @@
 #include "sph/timestepping/TimeStepping.h"
 #include "catch.hpp"
-#include "models/AbstractModel.h"
+#include "solvers/AbstractSolver.h"
 #include "storage/Storage.h"
 #include <iostream>
 
 using namespace Sph;
 
-struct TestModel : public Abstract::Model {
+struct TestModel : public Abstract::Solver {
     Float period = 1._f;
 
     TestModel(const std::shared_ptr<Storage>& storage)
-        : Abstract::Model(storage) {
+        : Abstract::Solver(storage) {
         this->storage->template insert<QuantityKey::R>(); // add positions
     }
 

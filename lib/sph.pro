@@ -1,20 +1,20 @@
 TEMPLATE = lib
 CONFIG += c++14 staticLib thread
 CONFIG -= app_bundle qt
-QMAKE_CXXFLAGS += -Wall -msse4.1 -std=c++14 -pthread -pg
+QMAKE_CXXFLAGS += -Wall -msse4.1 -mavx -std=c++14 -pthread -pg
 QMAKE_LFLAGS += -pg
 
-CONFIG(release, debug|profile|release) {
-  message( "Building for Release" )
-}
-CONFIG(profile, debug|profile|release) {
-  message( "Building for Profile" )
-  DEFINES += PROFILE
-}
-CONFIG(debug, debug|profile|release) {
-  message( "Building for Debug" )
-  DEFINES += DEBUG PROFILE
-}
+#CONFIG(release, debug|profile|release) {
+#  message( "Building for Release" )
+#}
+#CONFIG(profile, debug|profile|release) {
+#  message( "Building for Profile" )
+#  DEFINES += PROFILE
+#}
+#CONFIG(debug, debug|profile|release) {
+#  message( "Building for Debug" )
+#  DEFINES += DEBUG PROFILE
+#}
 
 
 SOURCES += \
@@ -23,8 +23,9 @@ SOURCES += \
     system/Timer.cpp \
     system/Factory.cpp \
     sph/timestepping/TimeStepping.cpp \
-    models/BasicModel.cpp \
-    system/Profiler.cpp
+    system/Profiler.cpp \
+    solvers/ContinuitySolver.cpp \
+    solvers/SummationSolver.cpp
 
 HEADERS += \
     core/Globals.h \
@@ -80,13 +81,13 @@ HEADERS += \
     system/Settings.h \
     system/Timer.h \
     system/Profiler.h \
-    models/AbstractModel.h \
-    models/BasicModel.h \
-    models/CompositeModel.h \
     storage/Iterate.h \
     storage/Storage.h \
     storage/Quantity.h \
     storage/QuantityHelpers.h \
     storage/QuantityMap.h \
     geometry/TracelessTensor.h \
-    system/Output.h
+    system/Output.h \
+    solvers/AbstractSolver.h \
+    solvers/ContinuitySolver.h \
+    solvers/SummationSolver.h

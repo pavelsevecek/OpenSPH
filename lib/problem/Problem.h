@@ -7,9 +7,11 @@
 #include "sph/kernel/Kernel.h"
 #include "sph/timestepping/TimeStepping.h"
 #include "storage/QuantityMap.h"
+#include "sph/boundary/Boundary.h"
 #include "system/Callbacks.h"
 #include "system/Logger.h"
 #include "system/Output.h"
+#include "solvers/ContinuitySolver.h"
 
 
 NAMESPACE_SPH_BEGIN
@@ -77,7 +79,7 @@ public:
 
             // Dump output
             if (output && (i % outputEvery == 0)) {
-                output->dump(*storage);
+                output->dump(*storage, t);
             }
             i++;
 

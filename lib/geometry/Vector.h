@@ -177,7 +177,7 @@ public:
     INLINE friend bool operator!=(const BasicVector& v1, const BasicVector& v2) { return !(v1 == v2); }
 
     INLINE auto dot(const BasicVector& other) const {
-        constexpr int d = 1;
+        constexpr int d = 3;
         return _mm_cvtss_f32(_mm_dp_ps(data, other.data, (1 << (d + 4)) - 0x0F));
     }
 
@@ -574,9 +574,9 @@ namespace Math {
     }
 
     /// Cosine applied to all components of the vector.
-    INLINE BasicVector<float> cos(const BasicVector<float>& v) {
+    INLINE Vector cos(const Vector& v) {
         /// \todo optimize
-        return BasicVector<float>(cos(v[0]), cos(v[1]), cos(v[2]), cos(v[3]));
+        return Vector(cos(v[0]), cos(v[1]), cos(v[2]), cos(v[3]));
     }
 }
 

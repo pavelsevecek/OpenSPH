@@ -46,14 +46,14 @@ SOURCES += \
     ../lib/objects/containers/test/Tuple.cpp \
     ../lib/objects/wrappers/test/Flags.cpp \
     ../lib/physics/test/Integrals.cpp \
-    ../lib/models/test/BasicModel.cpp \
     ../lib/geometry/test/Tensor.cpp \
     ../lib/system/test/Profiler.cpp \
     ../lib/objects/containers/test/LimitedArray.cpp \
     ../lib/storage/test/Iterate.cpp \
     ../lib/storage/test/QuantityHelpers.cpp \
     ../lib/geometry/test/TracelessTensor.cpp \
-    ../lib/system/test/Output.cpp
+    ../lib/system/test/Output.cpp \
+    ../lib/solvers/test/ContinuitySolver.cpp
 
 
 HEADERS += \

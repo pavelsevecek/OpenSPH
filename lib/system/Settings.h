@@ -21,7 +21,7 @@ class Settings : public Object {
 private:
     enum Types { BOOL, INT, FLOAT, RANGE, STRING, VECTOR };
 
-    using Value = Variant<bool, int, float, Range, std::string, Vector>;
+    using Value = Variant<bool, int, Float, Range, std::string, Vector>;
 
     struct Entry {
         TEnum id;
@@ -291,6 +291,9 @@ enum class GlobalSettingsIds {
     /// Approach of smoothing length symmetrization, see SmoothingLengthEnum
     SPH_KERNEL_SYMMETRY,
 
+    /// Eta-factor between smoothing length and particle concentration (h = eta * n^(-1/d) )
+    SPH_KERNEL_ETA,
+
     /// Selected timestepping integrator
     TIMESTEPPING_INTEGRATOR,
 
@@ -339,20 +342,21 @@ const Settings<GlobalSettingsIds> GLOBAL_SETTINGS = {
     { GlobalSettingsIds::RUN_OUTPUT_PATH,               "run.output.path",          std::string("out") }, /// \todo Variant somehow doesnt handle empty strings
     { GlobalSettingsIds::SPH_KERNEL,                    "sph.kernel",               int(KernelEnum::CUBIC_SPLINE) },
     { GlobalSettingsIds::SPH_KERNEL_SYMMETRY,           "sph.kernel.symmetry",      int(KernelSymmetryEnum::SYMMETRIZE_LENGTHS) },
+    { GlobalSettingsIds::SPH_KERNEL_ETA,                "sph.kernel.eta",           1.5_f },
     { GlobalSettingsIds::SPH_FINDER,                    "sph.finder",               int(FinderEnum::KD_TREE) },
     { GlobalSettingsIds::TIMESTEPPING_INTEGRATOR,       "timestep.integrator",      int(TimesteppingEnum::EULER_EXPLICIT) },
-    { GlobalSettingsIds::TIMESTEPPING_COURANT,          "timestep.courant",         1.f },
-    { GlobalSettingsIds::TIMESTEPPING_MAX_TIMESTEP,     "timestep.max_step",        0.1f /*s*/}, /// \todo units necessary in settings!!!
-    { GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP, "timestep.initial",         0.03f },
+    { GlobalSettingsIds::TIMESTEPPING_COURANT,          "timestep.courant",         1._f },
+    { GlobalSettingsIds::TIMESTEPPING_MAX_TIMESTEP,     "timestep.max_step",        0.1_f /*s*/}, /// \todo units necessary in settings!!!
+    { GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP, "timestep.initial",         0.03_f },
     { GlobalSettingsIds::TIMESTEPPING_ADAPTIVE,         "timestep.adaptive",        false },
-    { GlobalSettingsIds::TIMESTEPPING_ADAPTIVE_FACTOR,  "timestep.adaptive.factor", 0.1f },
-    { GlobalSettingsIds::AV_ALPHA,                      "av.alpha",                 1.5f },
-    { GlobalSettingsIds::AV_BETA,                       "av.beta",                  3.f },
+    { GlobalSettingsIds::TIMESTEPPING_ADAPTIVE_FACTOR,  "timestep.adaptive.factor", 0.1_f },
+    { GlobalSettingsIds::AV_ALPHA,                      "av.alpha",                 1.5_f },
+    { GlobalSettingsIds::AV_BETA,                       "av.beta",                  3._f },
     { GlobalSettingsIds::DOMAIN_TYPE,                   "domain.type",              int(DomainEnum::NONE) },
     { GlobalSettingsIds::DOMAIN_BOUNDARY,               "domain.boundary",          int(BoundaryEnum::NONE) },
-    { GlobalSettingsIds::DOMAIN_CENTER,                 "domain.center",            Vector(0.f) },
-    { GlobalSettingsIds::DOMAIN_RADIUS,                 "domain.radius",            1.f },
-    { GlobalSettingsIds::DOMAIN_SIZE,                   "domain.size",              Vector(1.f) },
+    { GlobalSettingsIds::DOMAIN_CENTER,                 "domain.center",            Vector(0._f) },
+    { GlobalSettingsIds::DOMAIN_RADIUS,                 "domain.radius",            1._f },
+    { GlobalSettingsIds::DOMAIN_SIZE,                   "domain.size",              Vector(1._f) },
 };
 // clang-format on
 
@@ -442,13 +446,13 @@ enum class BodySettingsIds {
 // clang-format off
 const Settings<BodySettingsIds> BODY_SETTINGS = {
     { BodySettingsIds::EOS,                     "eos",                          int(EosEnum::IDEAL_GAS) },
-    { BodySettingsIds::ADIABATIC_INDEX,         "eos.adiabatic_index",          1.4f },
-    { BodySettingsIds::DENSITY,                 "material.density",             2700.f },
-    { BodySettingsIds::DENSITY_RANGE,           "material.density.range",       Range(1.f, NOTHING) },
-    { BodySettingsIds::ENERGY,                  "material.energy",              0.f },
-    { BodySettingsIds::ENERGY_RANGE,            "material.energy.range",        Range(0.f, NOTHING) },
-    { BodySettingsIds::DAMAGE,                  "material.damage",              0.f },
-    { BodySettingsIds::DAMAGE_RANGE,            "material.damage.range",        Range(0.f, 1.f) },
+    { BodySettingsIds::ADIABATIC_INDEX,         "eos.adiabatic_index",          1.4_f },
+    { BodySettingsIds::DENSITY,                 "material.density",             2700._f },
+    { BodySettingsIds::DENSITY_RANGE,           "material.density.range",       Range(1._f, NOTHING) },
+    { BodySettingsIds::ENERGY,                  "material.energy",              0._f },
+    { BodySettingsIds::ENERGY_RANGE,            "material.energy.range",        Range(0._f, NOTHING) },
+    { BodySettingsIds::DAMAGE,                  "material.damage",              0._f },
+    { BodySettingsIds::DAMAGE_RANGE,            "material.damage.range",        Range(0.f, 1._f) },
     { BodySettingsIds::INITIAL_DISTRIBUTION,    "sph.initial_distribution",     int(DistributionEnum::HEXAGONAL) },
     { BodySettingsIds::PARTICLE_COUNT,          "sph.particle_count",           10000 },
 

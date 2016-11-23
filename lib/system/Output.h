@@ -22,7 +22,7 @@ namespace Abstract {
         }
 
         /// Saves data from particle storage into the file. Returns the filename of the dump.
-        virtual std::string dump(Storage& storage) = 0;
+        virtual std::string dump(Storage& storage,const Float time) = 0;
 
         /// Loads data from the file into the storage. Can be used to continue simulation from saved snapshot.
         virtual void load(const std::string& path, Storage& storage) = 0;
@@ -47,11 +47,12 @@ public:
         : Abstract::Output(fileMask) {}
 
     /// \todo rewrite in less retarded way
-    virtual std::string dump(Storage& storage) override {
+    virtual std::string dump(Storage& storage, const Float time) override {
         const std::string fileName = getFileName();
         std::ofstream ofs(fileName);
         const int size = storage.getQuantityCnt();
         // print description
+        ofs << "# SPH dump, time = " << time << std::endl;
         ofs << "# ";
         for (int i=0; i<size; ++i) {
             if (storage[i].getTemporalEnum() == TemporalEnum::SECOND_ORDER) {
@@ -98,10 +99,10 @@ private:
 public:
     GnuplotOutput(const std::string& fileMask, const std::string& scriptPath) : TextOutput(fileMask), scriptPath(scriptPath) {}
 
-    virtual std::string dump(Storage& storage) override {
-        const std::string fileName = TextOutput::dump(storage);
+    virtual std::string dump(Storage& storage, const Float time) override {
+        const std::string fileName = TextOutput::dump(storage, time);
         const std::string nameWithoutExt = fileName.substr(0, fileName.find_last_of("."));
-        const std::string command = "gnuplot -e \"filename='" + nameWithoutExt + "'\" " + scriptPath;
+        const std::string command = "gnuplot -e \"filename='" + nameWithoutExt + "'; time="+std::to_string(time)+"\" " + scriptPath;
         system(command.c_str());
         return fileName;
     }

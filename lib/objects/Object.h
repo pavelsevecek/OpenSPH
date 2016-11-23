@@ -15,6 +15,9 @@
 
 NAMESPACE_SPH_BEGIN
 
+#define DEBUG
+#define PROFILE
+
 #ifdef DEBUG
 #define ASSERT(x) assert(x)
 #else

@@ -29,13 +29,13 @@ public:
     /// \todo Potentially precompute the 3rd power ...
     //    template <bool TApprox = false>
     INLINE Float value(const Vector& r, const Float& h) const {
-        ASSERT(h > EPS);
+        ASSERT(h > 0._f);
         return Math::pow<-d>(h) * kernel->valueImpl(getSqrLength(r) / (h * h));
     }
 
     //  template <bool TApprox = false>
     INLINE Vector grad(const Vector& r, const Float& h) const {
-        ASSERT(h > EPS);
+        ASSERT(h > 0._f);
         return r * Math::pow<-d - 2>(h) * kernel->gradImpl(getSqrLength(r) / (h * h));
     }
 };
@@ -221,11 +221,11 @@ public:
     SymW(const LutKernel<d>& kernel)
         : kernel(kernel) {}
 
-    Float getValue(const Vector& r1, const Vector& r2) {
+    Float value(const Vector& r1, const Vector& r2) {
         return 0.5_f * (kernel.value(r1 - r2, r1[H]) + kernel.value(r1 - r2, r2[H]));
     }
 
-    Vector getGrad(const Vector& r1, const Vector& r2) {
+    Vector grad(const Vector& r1, const Vector& r2) {
         return 0.5_f * (kernel.grad(r1 - r2, r1[H]) + kernel.grad(r1 - r2, r2[H]));
     }
 };
@@ -239,11 +239,11 @@ public:
     SymH(const LutKernel<d>& kernel)
         : kernel(kernel) {}
 
-    Float getValue(const Vector& r1, const Vector& r2) {
+    Float value(const Vector& r1, const Vector& r2) {
         return kernel.value(r1 - r2, 0.5_f * (r1[H] + r2[H]));
     }
 
-    Vector getGrad(const Vector& r1, const Vector& r2) {
+    Vector grad(const Vector& r1, const Vector& r2) {
         return kernel.grad(r1 - r2, 0.5_f * (r1[H] + r2[H]));
     }
 };

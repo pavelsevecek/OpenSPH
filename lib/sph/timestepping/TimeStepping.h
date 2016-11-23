@@ -5,7 +5,7 @@
 /// sevecek at sirrah.troja.mff.cuni.cz
 
 #include "geometry/Vector.h"
-#include "models/BasicModel.h"
+#include "solvers/AbstractSolver.h"
 #include "objects/containers/Array.h"
 #include "sph/timestepping/Step.h"
 #include "storage/Storage.h"
@@ -37,17 +37,17 @@ namespace Abstract {
     public:
         TimeStepping(const std::shared_ptr<Storage>& storage, const Settings<GlobalSettingsIds>& settings)
             : storage(storage) {
-            dt    = settings.get<float>(GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP);
-            maxdt = settings.get<float>(GlobalSettingsIds::TIMESTEPPING_MAX_TIMESTEP);
+            dt    = settings.get<Float>(GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP);
+            maxdt = settings.get<Float>(GlobalSettingsIds::TIMESTEPPING_MAX_TIMESTEP);
             if (settings.get<bool>(GlobalSettingsIds::TIMESTEPPING_ADAPTIVE)) {
-                const Float factor = settings.get<float>(GlobalSettingsIds::TIMESTEPPING_ADAPTIVE_FACTOR);
+                const Float factor = settings.get<Float>(GlobalSettingsIds::TIMESTEPPING_ADAPTIVE_FACTOR);
                 getter.emplace(storage, factor);
             }
         }
 
         INLINE Float getTimeStep() const { return dt; }
 
-        void step(Abstract::Model* model) {
+        void step(Abstract::Solver* model) {
             this->stepImpl(model);
             // update time step
             if (getter) {
@@ -56,7 +56,7 @@ namespace Abstract {
         }
 
     protected:
-        virtual void stepImpl(Abstract::Model* model) = 0;
+        virtual void stepImpl(Abstract::Solver* model) = 0;
     };
 }
 
@@ -67,7 +67,7 @@ public:
                            const Settings<GlobalSettingsIds>& settings)
         : Abstract::TimeStepping(storage, settings) {}
 
-    virtual void stepImpl(Abstract::Model* model) override {
+    virtual void stepImpl(Abstract::Solver* model) override {
         // clear derivatives from previous timestep
         this->storage->init();
 
@@ -107,7 +107,7 @@ public:
     }
 
 protected:
-    virtual void stepImpl(Abstract::Model* model) override {
+    virtual void stepImpl(Abstract::Solver* model) override {
         const Float dt2 = 0.5_f * Math::sqr(this->dt);
 
         {
@@ -165,7 +165,7 @@ public:
         : Abstract::TimeStepping(storage, settings) {}
 
 protected:
-    virtual void stepImpl(Abstract::Model* UNUSED(model)) override {}
+    virtual void stepImpl(Abstract::Solver* UNUSED(model)) override {}
 };
 
 
@@ -175,7 +175,7 @@ public:
         : Abstract::TimeStepping(storage, settings) {}
 
 protected:
-    virtual void stepImpl(Abstract::Model* UNUSED(model)) override {}
+    virtual void stepImpl(Abstract::Solver* UNUSED(model)) override {}
 };
 
 NAMESPACE_SPH_END

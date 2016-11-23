@@ -4,7 +4,7 @@
 /// Pavel Sevecek 2016
 /// sevecek at sirrah.troja.mff.cuni.cz
 
-#include "models/AbstractModel.h"
+#include "solvers/AbstractSolver.h"
 #include "objects/Object.h"
 #include "sph/av/Monaghan.h"
 #include "sph/boundary/Boundary.h"
@@ -22,7 +22,7 @@ namespace Abstract {
 struct NeighbourRecord;
 
 template <int d>
-class BasicModel : public Abstract::Model {
+class SummationSolver : public Abstract::Solver {
 private:
     std::unique_ptr<Abstract::Finder> finder;
 
@@ -34,27 +34,26 @@ private:
     LutKernel<d> kernel;
     Array<NeighbourRecord> neighs; /// \todo store neighbours directly here?!
 
-    Array<Float> divv; /// auxiliary buffer storing velocity divergences
+
+    Array<Float> accumulatedRho;
+    Array<Float> accumulatedH;
+
+    Float eta;
 
     MonaghanAV monaghanAv;
 
-public:
-    BasicModel(const std::shared_ptr<Storage>& storage, const Settings<GlobalSettingsIds>& settings);
 
-    ~BasicModel(); // necessary because of unique_ptrs to incomplete types
+
+public:
+    SummationSolver(const std::shared_ptr<Storage>& storage, const Settings<GlobalSettingsIds>& settings);
+
+    ~SummationSolver(); // necessary because of unique_ptrs to incomplete types
 
     virtual void compute(Storage& storage) override;
 
     virtual Storage createParticles(const Abstract::Domain& domain,
                                     const Settings<BodySettingsIds>& settings) const override;
 
-private:
-    void solveDensityAndSmoothingLength(ArrayView<Float> drho,
-                                        ArrayView<Vector> dv,
-                                        ArrayView<Vector> v,
-                                        ArrayView<const Vector> r,
-                                        ArrayView<const Float> rho);
-    void solveEnergy(ArrayView<Float> du, ArrayView<const Float> p, ArrayView<const Float> rho);
 };
 
 NAMESPACE_SPH_END
