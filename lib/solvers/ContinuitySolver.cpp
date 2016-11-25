@@ -11,7 +11,7 @@ NAMESPACE_SPH_BEGIN
 
 template <int d>
 ContinuitySolver<d>::ContinuitySolver(const std::shared_ptr<Storage>& storage,
-                          const Settings<GlobalSettingsIds>& settings)
+                                      const Settings<GlobalSettingsIds>& settings)
     : Abstract::Solver(storage)
     , monaghanAv(settings) {
     finder = Factory::getFinder(settings);
@@ -38,136 +38,115 @@ void ContinuitySolver<d>::compute(Storage& storage) {
 
     ArrayView<Vector> r, v, dv;
     ArrayView<Float> rho, drho, u, du, p, m, cs;
-    {
-        PROFILE_SCOPE("ContinuitySolver::compute (getters)")
-        // fetch quantities from storage
-        refs(r, v, dv) = storage.getAll<QuantityKey::R>();
-        refs(rho, drho) = storage.getAll<QuantityKey::RHO>();
-        refs(u, du)     = storage.getAll<QuantityKey::U>();
-        tie(p, m, cs) = storage.get<QuantityKey::P, QuantityKey::M, QuantityKey::CS>();
-        ASSERT(areAllMatching(dv, [](const Vector v) { return v == Vector(0._f); }));
+
+    PROFILE_SCOPE("ContinuitySolver::compute (getters)")
+    // fetch quantities from storage
+    refs(r, v, dv) = storage.getAll<QuantityKey::R>();
+    refs(rho, drho) = storage.getAll<QuantityKey::RHO>();
+    refs(u, du)     = storage.getAll<QuantityKey::U>();
+    tie(p, m, cs) = storage.get<QuantityKey::P, QuantityKey::M, QuantityKey::CS>();
+    ASSERT(areAllMatching(dv, [](const Vector v) { return v == Vector(0._f); }));
+
+    PROFILE_NEXT("ContinuitySolver::compute (init)")
+    // clear velocity divergence (derivatives are already cleared by timestepping)
+    divv.resize(r.size());
+    divv.fill(0._f);
+
+    // clamp smoothing length
+    /// \todo generalize clamping, min / max values
+    for (Float& h : componentAdapter(r, H)) {
+        h = Math::max(h, EPS);
     }
 
-    {
-        PROFILE_SCOPE("ContinuitySolver::compute (init)")
-        // clear velocity divergence (derivatives are already cleared by timestepping)
-        divv.resize(r.size());
-        divv.fill(0._f);
+    // find new pressure
+    /// \todo move outside? to something like "poststep" method
+    eos->getPressure(rho, u, p);
+    eos->getSoundSpeed(rho, p, cs);
+    ASSERT(areAllMatching(rho, [](const Float v) { return v > 0._f; }));
+    ASSERT(areAllMatching(cs, [](const Float v) { return v > 0._f; }));
 
-        // clamp smoothing length
-        /// \todo generalize clamping, min / max values
-        for (Float& h : componentAdapter(r, H)) {
-            h = Math::max(h, EPS);
-        }
+    // build neighbour finding object
+    /// \todo only rebuild(), try to limit allocations
+    /// \todo do it without saving h in r
+    /* for (int i=0; i<size; ++i) {
+         r[i][H] = h[i];
+     }*/
+    finder->build(r);
 
-        // find new pressure
-        /// \todo move outside? to something like "poststep" method
-        eos->getPressure(rho, u, p);
-        eos->getSoundSpeed(rho, p, cs);
-        ASSERT(areAllMatching(rho, [](const Float v) { return v > 0._f; }));
-        ASSERT(areAllMatching(cs, [](const Float v) { return v > 0._f; }));
-
-        // build neighbour finding object
-        /// \todo only rebuild(), try to limit allocations
-        /// \todo do it without saving h in r
-        /* for (int i=0; i<size; ++i) {
-             r[i][H] = h[i];
-         }*/
-        finder->build(r);
-    }
     // we symmetrize kernel by averaging smoothing lenghts
     SymH<d> w(kernel);
-    {
-        PROFILE_SCOPE("ContinuitySolver::compute (main cycle)")
-        for (int i = 0; i < size; ++i) {
-            // Find all neighbours within kernel support. Since we are only searching for particles with
-            // smaller h, we know that symmetrized lengths (h_i + h_j)/2 will be ALWAYS smaller or equal to
-            // h_i, and we thus never "miss" a particle.
-            SCOPE_STOP;
-            finder->findNeighbours(i, r[i][H] * kernel.radius(), neighs, FinderFlags::FIND_ONLY_SMALLER_H);
-            SCOPE_RESUME;
-            // iterate over neighbours
-            const Float pRhoInvSqr = p[i] / Math::sqr(rho[i]);
-            ASSERT(Math::isReal(pRhoInvSqr));
-            for (const auto& neigh : neighs) {
-                const int j = neigh.index;
-                // actual smoothing length
-                const Float hbar = 0.5_f * (r[i][H] + r[j][H]);
-                ASSERT(hbar > EPS && hbar <= r[i][H]);
-                if (getSqrLength(r[i] - r[j]) > Math::sqr(kernel.radius() * hbar)) {
-                    // aren't actual neighbours
-                    continue;
-                }
-                // compute gradient of kernel W_ij
-                const Vector grad = w.grad(r[i], r[j]);
-                ASSERT(dot(grad, r[i] - r[j]) <= 0._f);
-                // ASSERT(Math::isReal(grad) && getSqrLength(grad) > 0._f);
 
-                // compute forces (accelerations) + artificial viscosity
-                const Float av = monaghanAv(v[i] - v[j],
-                                            r[i] - r[j],
-                                            0.5_f * (cs[i] + cs[j]),
-                                            0.5_f * (rho[i] + rho[j]),
-                                            hbar);
-                const Vector f = (pRhoInvSqr + p[j] / Math::sqr(rho[j]) + av) * grad;
-                ASSERT(Math::isReal(f));
-                dv[i] -= m[j] * f; // opposite sign due to antisymmetry of gradient
-                dv[j] += m[i] * f;
-
-                // compute velocity divergence, save them as 4th computent of velocity vector
-                const Float delta = dot(v[j] - v[i], grad);
-                ASSERT(Math::isReal(delta));
-                // same sign as both gradient and (v_i-v_j) are antisymmetric
-                divv[i] += m[j] /*/ rho[j]*/ * delta;
-                divv[j] += m[i] /*/ rho[i]*/ * delta;
+    PROFILE_NEXT("ContinuitySolver::compute (main cycle)")
+    for (int i = 0; i < size; ++i) {
+        // Find all neighbours within kernel support. Since we are only searching for particles with
+        // smaller h, we know that symmetrized lengths (h_i + h_j)/2 will be ALWAYS smaller or equal to
+        // h_i, and we thus never "miss" a particle.
+        SCOPE_STOP;
+        finder->findNeighbours(i, r[i][H] * kernel.radius(), neighs, FinderFlags::FIND_ONLY_SMALLER_H);
+        SCOPE_RESUME;
+        // iterate over neighbours
+        const Float pRhoInvSqr = p[i] / Math::sqr(rho[i]);
+        ASSERT(Math::isReal(pRhoInvSqr));
+        for (const auto& neigh : neighs) {
+            const int j = neigh.index;
+            // actual smoothing length
+            const Float hbar = 0.5_f * (r[i][H] + r[j][H]);
+            ASSERT(hbar > EPS && hbar <= r[i][H]);
+            if (getSqrLength(r[i] - r[j]) > Math::sqr(kernel.radius() * hbar)) {
+                // aren't actual neighbours
+                continue;
             }
+            // compute gradient of kernel W_ij
+            const Vector grad = w.grad(r[i], r[j]);
+            ASSERT(dot(grad, r[i] - r[j]) <= 0._f);
+            // ASSERT(Math::isReal(grad) && getSqrLength(grad) > 0._f);
+
+            // compute forces (accelerations) + artificial viscosity
+            const Float av = monaghanAv(v[i] - v[j],
+                                        r[i] - r[j],
+                                        0.5_f * (cs[i] + cs[j]),
+                                        0.5_f * (rho[i] + rho[j]),
+                                        hbar);
+            //((p[i] + p[j]) / (rho[i] * rho[j]) + av) *
+            // grad; // (pRhoInvSqr + p[j] / Math::sqr(rho[j]) + av) * grad;
+            const Vector f =
+                0.4_f * m[j] * u[i] * u[j] * (1._f / (u[i] * rho[i]) + 1._f / (u[j] * rho[j])) * grad;
+
+            ASSERT(Math::isReal(f));
+            dv[i] -= m[j] * f; // opposite sign due to antisymmetry of gradient
+            dv[j] += m[i] * f;
+
+            // compute velocity divergence, save them as 4th computent of velocity vector
+            const Float delta = dot(v[j] - v[i], grad);
+            ASSERT(Math::isReal(delta));
+            // same sign as both gradient and (v_i-v_j) are antisymmetric
+            divv[i] += m[j] * (p[i] + p[j]) / rho[j] * delta;
+            divv[j] += m[i] * (p[i] + p[j]) / rho[i] * delta;
+
+            drho[i] += -m[i] * delta;
+            drho[j] += -m[j] * delta;
         }
     }
+
     // solve all remaining quantities using computed values
     /// \todo this should be also generalized to some abstract solvers ...
     /// \todo smoothing length should also be solved together with density. This is probably not performance
     /// critical, though.
-    {
-        PROFILE_SCOPE("ContinuitySolver::compute (solvers)")
-        this->solveDensityAndSmoothingLength(drho, dv, v, r, rho);
-        this->solveEnergy(du, p, rho);
 
-        // Apply boundary conditions
-        if (boundary) {
-            boundary->apply();
-        }
+    PROFILE_NEXT("ContinuitySolver::compute (solvers)")
+    // this->solveDensityAndSmoothingLength(drho, dv, v, r, rho);
+    this->solveEnergy(du, p, rho);
+
+    // Apply boundary conditions
+    if (boundary) {
+        boundary->apply();
     }
 }
 
-
-template <int d>
-void ContinuitySolver<d>::solveDensityAndSmoothingLength(ArrayView<Float> drho,
-                                                   ArrayView<Vector> dv,
-                                                   ArrayView<Vector> ,
-                                                   ArrayView<const Vector> ,
-                                                   ArrayView<const Float> ) {
-    ASSERT(areAllMatching(drho, [](const Float v) { return v == 0._f; }));
-    ASSERT(drho.size() == divv.size());
-    for (int i = 0; i < drho.size(); ++i) {
-        drho[i] = -/*rho[i] **/ divv[i];
-        //v[i][H] = r[i][H] * divv[i] / (Float(d) * rho[i]);
-        // clear 'acceleration' of smoothing lengths, we advance h as first-order quantity, even though it is
-        // stored within positions.
-        dv[i][H] = 0._f;
-    }
-}
-
-template <int d>
-void ContinuitySolver<d>::solveEnergy(ArrayView<Float> du, ArrayView<const Float> p, ArrayView<const Float> rho) {
-    ASSERT(areAllMatching(du, [](const Float v) { return v == 0._f; }));
-    for (int i = 0; i < du.size(); ++i) {
-        du[i] = -p[i] / Math::sqr(rho[i]) * divv[i];
-    }
-}
 
 template <int d>
 Storage ContinuitySolver<d>::createParticles(const Abstract::Domain& domain,
-                                       const Settings<BodySettingsIds>& settings) const {
+                                             const Settings<BodySettingsIds>& settings) const {
     PROFILE_SCOPE("ContinuitySolver::createParticles")
     std::unique_ptr<Abstract::Distribution> distribution = Factory::getDistribution(settings);
 

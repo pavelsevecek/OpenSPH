@@ -17,7 +17,7 @@ TEST_CASE("Sod", "[sod]") {
     globalSettings.set(GlobalSettingsIds::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::EULER_EXPLICIT);
     globalSettings.set(GlobalSettingsIds::AV_ALPHA, 1.0_f);
     globalSettings.set(GlobalSettingsIds::AV_BETA, 2.0_f);
-    globalSettings.set<Float>(GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP, 2.e-5_f);
+    globalSettings.set<Float>(GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP, 1.e-4_f);
     globalSettings.set<Float>(GlobalSettingsIds::TIMESTEPPING_MAX_TIMESTEP, 1.e-3_f);
     globalSettings.set<bool>(GlobalSettingsIds::TIMESTEPPING_ADAPTIVE, false);
 
@@ -29,7 +29,7 @@ TEST_CASE("Sod", "[sod]") {
                                                          GlobalSettingsIds::RUN_OUTPUT_NAME),
                                                  "sod.plt");
 
-    const int N                            = 400;
+    const int N                            = 1000;
     Settings<BodySettingsIds> bodySettings = BODY_SETTINGS;
     bodySettings.set(BodySettingsIds::PARTICLE_COUNT, N);
     bodySettings.set(BodySettingsIds::INITIAL_DISTRIBUTION, int(DistributionEnum::LINEAR));
@@ -48,7 +48,7 @@ TEST_CASE("Sod", "[sod]") {
     tie(rho, p, u, m) = sod.storage->get<QuantityKey::RHO, QuantityKey::P, QuantityKey::U, QuantityKey::M>();
     Float totalM = 0._f;
     auto func    = [](const Float x, const Float x1, const Float x2) {
-        const Float w = exp(-(x - 0.5_f) / 0.003_f);
+        const Float w = exp(-(x - 0.5_f) / 0.001_f);
         if (x > 0.55_f) {
             return x2;
         } else if (x < 0.45_f) {

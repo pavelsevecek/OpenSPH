@@ -6,6 +6,10 @@
 
 NAMESPACE_SPH_BEGIN
 
+template<typename TFunctor>
+INLINE Float findRoot(const Float initial, TFunctor&& functor) {
+
+}
 
 /// Analytical solutions of the Sod shock tube
 /// http://www.phys.lsu.edu/~tohline/PHYS7412/sod.html
@@ -27,14 +31,15 @@ inline void analyticSod(const float t) {
     const Float c_l = Math::sqrt((gamma * P_l / rho_l));
     const Float c_r = Math::sqrt((gamma * P_r / rho_r));
 
-    auto func = [=](const Float P) {
-        return (P - P_r) *
-                   (Math::sqrt((Math::sqr(1._f - mu * mu)) * (1._f / (rho_r * (P + mu * mu * P_r))))) -
-               2._f * (Math::sqrt(gamma) / (gamma - 1._f)) *
-                   (1._f - Math::pow(P, (gamma - 1) / (2._f * gamma)));
-    };
+    auto func =
+        [=](const Float P) {
+            return (P - P_r) *
+                       (Math::sqrt((Math::sqr(1._f - mu * mu)) * (1._f / (rho_r * (P + mu * mu * P_r))))) -
+                   2._f * (Math::sqrt(gamma) / (gamma - 1._f)) *
+                       (1._f - Math::pow(P, (gamma - 1) / (2._f * gamma)));
+        };
 
-    const Float P_post = fzero('sod_func', pi);
+   /* const Float P_post = fzero('sod_func', pi);
     v_post             = 2 * (sqrt(gamma) / (gamma - 1)) * (1 - power(P_post, (gamma - 1) / (2 * gamma)));
     rho_post           = rho_r * (((P_post / P_r) + mu ^ 2) / (1 + mu * mu * (P_post / P_r)));
     v_shock            = v_post * ((rho_post / rho_r) / ((rho_post / rho_r) - 1));
@@ -51,9 +56,9 @@ inline void analyticSod(const float t) {
     x_max                                        = 0.5;
 
     x      = linspace(x_min, x_max, n_points);
-    data.x = x'; data.rho = zeros(n_points, 1); % density data.P = zeros(n_points, 1); % pressure data.u =
-                 zeros(n_points, 1);
-    % velocity data.e = zeros(n_points, 1); %internal energy
+    data.x = x'; data.rho = zeros(n_points, 1); % density data.P = zeros(n_points, 1);
+    % pressure data.u                                            = zeros(n_points, 1);
+    % velocity data.e                                            = zeros(n_points, 1); %internal energy
 
 for index = 1:n_points
     if data.x(index) < x1
@@ -77,7 +82,7 @@ for index = 1:n_points
     data.P(index)                                                                                 = P_r;
     data.u(index)                                                                                 = u_r;
     end data.e(index) = data.P(index) / ((gamma - 1) * data.rho(index));
-    end
+    end*/
 }
 
 
