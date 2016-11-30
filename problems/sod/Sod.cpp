@@ -48,17 +48,33 @@ TEST_CASE("Sod", "[sod]") {
     tie(rho, p, u, m) = sod.storage->get<QuantityKey::RHO, QuantityKey::P, QuantityKey::U, QuantityKey::M>();
     Float totalM = 0._f;
     auto func    = [](const Float x, const Float x1, const Float x2) {
-        const Float w = exp(-(x - 0.5_f) / 0.001_f);
-        if (x > 0.55_f) {
+        const Float w = exp(-(x - 0.5_f) / 0.0005_f);
+        if (x > 0.52_f) {
             return x2;
-        } else if (x < 0.45_f) {
+        } else if (x < 0.48_f) {
             return x1;
         }
         return (x1 * w + x2) / (1._f * w + 1._f);
     };
 
 
-    Float actX = 0._f;
+    float dx = 1.f / N;
+    do {
+        float actX = 0.f;
+        for (int i = 0; i < x.size(); ++i) {
+            x[i][0]           = actX;
+            const float actDx = func(x[i][0], dx, dx / 0.125_f);
+            actX += actDx;
+            x[i][H] = 1.9_f * actDx;
+        }
+        if (x[x.size() - 1][0] > 1._f) {
+            dx -= 0.001_f / N;
+        } else {
+            dx += 0.001_f / N;
+        }
+        std::cout << x[x.size() - 1][0] << std::endl;
+    } while (!Range(0.99f, 1.01f).contains(x[x.size() - 1][0]));
+
     for (int i = 0; i < x.size(); ++i) {
        /* x[i][0] = actX;
         if (actX < 0.5_f) {
