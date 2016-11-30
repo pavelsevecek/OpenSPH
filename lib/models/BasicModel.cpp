@@ -57,7 +57,7 @@ void BasicModel<d>::compute(Storage& storage) {
         // clamp smoothing length
         /// \todo generalize clamping, min / max values
         for (Float& h : componentAdapter(r, H)) {
-            h = Math::max(h, EPS);
+            h = Math::max(h, 1.e-20f);
         }
 
         // find new pressure

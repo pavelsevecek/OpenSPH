@@ -14,9 +14,9 @@ TEST_CASE("Sod", "[sod]") {
     globalSettings.set(GlobalSettingsIds::DOMAIN_RADIUS, 0.5_f);
     globalSettings.set(GlobalSettingsIds::DOMAIN_BOUNDARY, BoundaryEnum::PROJECT_1D);
     globalSettings.set(GlobalSettingsIds::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::EULER_EXPLICIT);
-    globalSettings.set(GlobalSettingsIds::AV_ALPHA, 0.3_f);
-    globalSettings.set(GlobalSettingsIds::AV_BETA, 0.6_f);
-    globalSettings.set<float>(GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP, 2.e-5);
+    globalSettings.set(GlobalSettingsIds::AV_ALPHA, 1._f);
+    globalSettings.set(GlobalSettingsIds::AV_BETA, 2._f);
+    globalSettings.set<float>(GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP, 1.e-4);
     globalSettings.set<float>(GlobalSettingsIds::TIMESTEPPING_MAX_TIMESTEP, 1.e-3);
     globalSettings.set<bool>(GlobalSettingsIds::TIMESTEPPING_ADAPTIVE, false);
 
@@ -28,7 +28,7 @@ TEST_CASE("Sod", "[sod]") {
                                                          GlobalSettingsIds::RUN_OUTPUT_NAME),
                                                  "sod.plt");
 
-    const int N                            = 300;
+    const int N                            = 1000;
     Settings<BodySettingsIds> bodySettings = BODY_SETTINGS;
     bodySettings.set(BodySettingsIds::PARTICLE_COUNT, N);
     bodySettings.set(BodySettingsIds::INITIAL_DISTRIBUTION, int(DistributionEnum::LINEAR));
@@ -39,11 +39,6 @@ TEST_CASE("Sod", "[sod]") {
 
     SphericalDomain domain(Vector(0.5_f), 0.5_f);
     *sod.storage = sod.model.createParticles(domain, bodySettings);
-    // SphericalDomain domain2(Vector(0.77_f), 0.25_f);
-    // bodySettings.set(BodySettingsIds::DENSITY, 0.125f);
-    // bodySettings.set(BodySettingsIds::PARTICLE_COUNT, 25);
-    // Storage other = sod.model.createParticles(domain2, bodySettings);
-    // sod.storage->merge(other);
     sod.timeStepping = Factory::getTimestepping(globalSettings, sod.storage);
 
     /// setup initial conditions of Sod Shock Tube
@@ -52,10 +47,10 @@ TEST_CASE("Sod", "[sod]") {
     tie(rho, p, u, m) = sod.storage->get<QuantityKey::RHO, QuantityKey::P, QuantityKey::U, QuantityKey::M>();
     Float totalM = 0._f;
     auto func    = [](const Float x, const Float x1, const Float x2) {
-        const Float w = exp(-(x - 0.5_f) / 0.002_f);
-        if (x > 0.55_f) {
+        const Float w = exp(-(x - 0.5_f) / 0.0005_f);
+        if (x > 0.52_f) {
             return x2;
-        } else if (x < 0.45_f) {
+        } else if (x < 0.48_f) {
             return x1;
         }
         return (x1 * w + x2) / (1._f * w + 1._f);
@@ -69,7 +64,7 @@ TEST_CASE("Sod", "[sod]") {
             x[i][0]           = actX;
             const float actDx = func(x[i][0], dx, dx / 0.125_f);
             actX += actDx;
-            x[i][H] = 3._f * actDx;
+            x[i][H] = 1.9_f * actDx;
         }
         if (x[x.size() - 1][0] > 1._f) {
             dx -= 0.001_f / N;
@@ -77,7 +72,7 @@ TEST_CASE("Sod", "[sod]") {
             dx += 0.001_f / N;
         }
         std::cout << x[x.size() - 1][0] << std::endl;
-    } while (!Range(0.98f, 1.02f).contains(x[x.size() - 1][0]));
+    } while (!Range(0.99f, 1.01f).contains(x[x.size() - 1][0]));
 
     for (int i = 0; i < x.size(); ++i) {
         rho[i] = func(x[i][0], 1._f, 0.125_f);

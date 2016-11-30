@@ -8,7 +8,7 @@ set output sprintf("%s.png", filename)
 
 set multiplot layout 2,2
 
-#set xrange [0:1]
+set xrange [0:1]
 set yrange [0:1.2]
 
 set linestyle 1 lt 6 lc 1
