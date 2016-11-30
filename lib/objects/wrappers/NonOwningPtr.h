@@ -5,71 +5,32 @@
 /// sevecek at sirrah.troja.mff.cuni.cz
 
 #include "objects/Object.h"
-#include <atomic>
+#include <memory>
 
 NAMESPACE_SPH_BEGIN
 
 class Observable;
-
-struct ControlBlock : public Noncopyable {
-    Observable* parent;
-    std::atomic<int> referenceCnt;
-
-    ControlBlock(Observable* parent)
-        : parent(parent)
-        , referenceCnt(1) {}
-};
-
-class NonOwningBase : public Object {
-protected:
-    ControlBlock* block = nullptr;
-
-    /// Increase the number of references
-    void incRefCnt() {
-        if (!block) {
-            // not counting anything, don't do anything
-            return;
-        }
-        ++block->referenceCnt;
-    }
-
-    /// Decrease the number of references, destroy the control block if nothing references it anymore
-    void decRefCnt() {
-        if (!block) {
-            // not counting anything, don't do anything
-            return;
-        }
-        --block->referenceCnt;
-        if (block->referenceCnt == 0) {
-            // nothing else is holding reference to the block, safe to delete
-            delete block;
-            block = nullptr;
-        }
-    }
-};
 
 
 /// Smart pointer that references object without taking ownership and without a need for that object to be
 /// referenced by std::shared_ptr. It is always initialized to nullptr and when the referenced object is
 /// destroyed, this pointer (and all other non-owning pointers referencing the object) are set to nullptr.
 template <typename T>
-class NonOwningPtr : public NonOwningBase {
+class NonOwningPtr : public Object {
     template <typename>
     friend class NonOwningPtr;
+    friend class Observable;
+
     static_assert(std::is_base_of<Observable, T>::value,
                   "Non-owning pointer can be only used for Observable types.");
 
 private:
     T* ptr = nullptr;
 
-    INLINE bool isValid() const { return block && block->parent; }
+    INLINE bool isValid() { return valid && *valid; }
 
 public:
     NonOwningPtr() = default;
-
-    ~NonOwningPtr() {
-        decRefCnt();
-    }
 
     NonOwningPtr(const std::nullptr_t&) {}
 
@@ -77,90 +38,83 @@ public:
     template <typename T2, typename = std::enable_if_t<std::is_convertible<T2*, T*>::value>>
     NonOwningPtr(const NonOwningPtr<T2>& other)
         : ptr(other.ptr) {
-        this->block = other.block;
-        incRefCnt();
+        this->valid = other.valid;
     }
 
-    template <typename T2, typename = std::enable_if_t<std::is_convertible<T2*, T*>::value>>
+    /// Copy constructor from pointer to other observable type, adds a reference to parent observable.
+    template <typename T2,
+              typename = std::enable_if_t<std::is_base_of<Observable, T2>::value &&
+                                          std::is_convertible<T2*, T*>::value>>
     NonOwningPtr(T2* other)
         : ptr(other) {
-        this->block = other->block;
-        incRefCnt();
+        this->valid = other->valid;
     }
 
     /// Assings nullptr, removes reference from parent observable.
     NonOwningPtr& operator=(const std::nullptr_t&) {
-        decRefCnt();
-        ptr   = nullptr;
-        block = nullptr;
+        this->ptr = nullptr;
+        this->valid.reset();
         return *this;
     }
 
-    template <typename T2, typename = std::enable_if_t<std::is_convertible<T2*, T*>::value>>
+    /// Copy assignment from pointer to other observable type, adds a reference to parent observable.
+    template <typename T2,
+              typename = std::enable_if_t<std::is_base_of<Observable, T2>::value &&
+                                          std::is_convertible<T2*, T*>::value>>
     NonOwningPtr& operator=(T2* parent) {
-        if (ptr == parent) {
-            // assigning the same, don't add reference twice
-            return *this;
-        }
-        decRefCnt();
-        ptr   = parent;
-        block = parent->block;
-        incRefCnt();
+        this->ptr   = parent;
+        this->valid = parent->valid;
         return *this;
     }
 
     template <typename T2, typename = std::enable_if_t<std::is_convertible<T2*, T*>::value>>
     NonOwningPtr& operator=(const NonOwningPtr<T2>& other) {
-        if (ptr == other.ptr) {
-            // assigning the same, don't add reference twice
-            return *this;
-        }
-        decRefCnt();
-        ptr   = other.ptr;
-        block = other.block;
-        incRefCnt();
+        this->ptr   = other.ptr;
+        this->valid = other.valid;
         return *this;
     }
 
-    /// Implicit conversion to other pointers
+    /// Implicit conversion to other non-owning pointers
     template <typename T2, typename = std::enable_if_t<std::is_convertible<T*, T2*>::value>>
     operator NonOwningPtr<T2>() {
-        return NonOwningPtr<T2>(static_cast<T2*>(ptr));
+        return NonOwningPtr<T2>(static_cast<T2*>(this->ptr));
     }
 
-    /// Implicit conversion to other pointers
+    /// Implicit conversion to other non-owning pointers, const version.
     template <typename T2, typename = std::enable_if_t<std::is_convertible<T*, T2*>::value>>
     operator const NonOwningPtr<T2>() const {
-        return NonOwningPtr<T2>(static_cast<T2*>(ptr));
+        return NonOwningPtr<T2>(static_cast<T2*>(this->ptr));
     }
 
+    /// Returns stored resource. If the pointer is no longer valid, returns nullptr.
     T* get() {
-        if (isValid()) {
-            return ptr;
+        if (this->isValid()) {
+            return this->ptr;
         }
         return nullptr;
     }
 
+    /// Returns stored resource, const version. If the pointer is no longer valid, returns nullptr.
     const T* get() const {
-        if (isValid()) {
-            return ptr;
+        if (this->isValid()) {
+            return this->ptr;
         }
         return nullptr;
     }
 
     T* operator->() {
-        ASSERT(isValid());
-        return ptr;
+        ASSERT(this->isValid());
+        return this->ptr;
     }
 
     const T* operator->() const {
-        ASSERT(isValid());
-        return ptr;
+        ASSERT(this->isValid());
+        return this->ptr;
     }
 
-    bool operator!() const { return !isValid(); }
+    bool operator!() const { return !this->isValid(); }
 
-    explicit operator bool() const { return isValid(); }
+    explicit operator bool() const { return this->isValid(); }
 };
 
 template <typename T1, typename T2>
@@ -185,26 +139,21 @@ NonOwningPtr<T1> nonOwningDynamicCast(NonOwningPtr<T2> ptr) {
 
 
 /// Base class for all objects that can be referenced by non-owning pointers.
-class Observable : public Polymorphic, public NonOwningBase {
+class Observable : public Polymorphic {
     template <typename>
     friend class NonOwningPtr;
 
-public:
-    /// Control block is always created by parent observable (but can be destroyed by parent or any non-owning
-    /// ptr, whatever is destroyed last)
-    Observable() {
-        ASSERT(!block);
-        block = new ControlBlock(this);
-    }
+protected:
+    std::shared_ptr<bool> valid;
 
-    ~Observable() {
-        block->parent = nullptr;
-        decRefCnt();
-    }
+public:
+    Observable() { valid = std::make_shared<bool>(true); }
+
+    ~Observable() { *valid = false; }
 
     /// Returns the number of non-owning pointers referencing this observable. This object itself does NOT
     /// count as a reference.
-    int getReferenceCnt() const { return block->referenceCnt - 1; }
+    int getReferenceCnt() const { return valid.use_count() - 1; }
 };
 
 NAMESPACE_SPH_END

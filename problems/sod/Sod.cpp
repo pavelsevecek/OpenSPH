@@ -15,13 +15,17 @@ TEST_CASE("Sod", "[sod]") {
     globalSettings.set(GlobalSettingsIds::DOMAIN_RADIUS, 0.5_f);
     globalSettings.set(GlobalSettingsIds::DOMAIN_BOUNDARY, BoundaryEnum::PROJECT_1D);
     globalSettings.set(GlobalSettingsIds::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::EULER_EXPLICIT);
-    globalSettings.set(GlobalSettingsIds::AV_ALPHA, 1.0_f);
-    globalSettings.set(GlobalSettingsIds::AV_BETA, 2.0_f);
+    globalSettings.set(GlobalSettingsIds::SPH_AV_ALPHA, 1.0_f);
+    globalSettings.set(GlobalSettingsIds::SPH_AV_BETA, 2.0_f);
     globalSettings.set<Float>(GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP, 1.e-4_f);
     globalSettings.set<Float>(GlobalSettingsIds::TIMESTEPPING_MAX_TIMESTEP, 1.e-3_f);
     globalSettings.set<bool>(GlobalSettingsIds::TIMESTEPPING_ADAPTIVE, false);
 
-    Problem<ContinuitySolver<1>> sod(globalSettings);
+    struct force {
+        INLINE Vector operator()(const int i, const int j) { return Vector(0._f); }
+    };
+
+    Problem<ContinuitySolver<1, force>> sod(globalSettings);
     sod.timeRange = Range(0._f, 0.5_f);
     sod.logger    = std::make_unique<StdOutLogger>();
     sod.output    = std::make_unique<GnuplotOutput>("sod/" +
@@ -39,13 +43,13 @@ TEST_CASE("Sod", "[sod]") {
     bodySettings.set(BodySettingsIds::DENSITY, 1._f);
 
     SphericalDomain domain(Vector(0.5_f), 0.5_f);
-    *sod.storage     = sod.model.createParticles(domain, bodySettings);
+    //*sod.storage     = sod.model.createParticles(domain, bodySettings);
     sod.timeStepping = Factory::getTimestepping(globalSettings, sod.storage);
 
     /// setup initial conditions of Sod Shock Tube
-    ArrayView<Vector> x = sod.storage->get<QuantityKey::R>();
+    ArrayView<Vector> x = sod.storage->get<QuantityKey::R, Vector, OrderEnum::ZERO_ORDER>()[0];
     ArrayView<Float> rho, p, u, m;
-    tie(rho, p, u, m) = sod.storage->get<QuantityKey::RHO, QuantityKey::P, QuantityKey::U, QuantityKey::M>();
+    //tie(rho, p, u, m) = sod.storage->get<QuantityKey::RHO, QuantityKey::P, QuantityKey::U, QuantityKey::M>();
     Float totalM = 0._f;
     auto func    = [](const Float x, const Float x1, const Float x2) {
         const Float w = exp(-(x - 0.5_f) / 0.0005_f);

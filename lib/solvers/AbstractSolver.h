@@ -4,6 +4,7 @@
 #include "sph/kernel/Kernel.h"
 #include "storage/Storage.h"
 #include "system/Settings.h"
+#include "system/Factory.h"
 #include <memory>
 
 NAMESPACE_SPH_BEGIN
@@ -11,7 +12,7 @@ NAMESPACE_SPH_BEGIN
 namespace Abstract {
     class Domain;
     class Finder;
-    class Boundary;
+    class BoundaryConditions;
 }
 struct NeighbourRecord;
 
@@ -19,15 +20,15 @@ namespace Abstract {
     class Solver : public Polymorphic {
     public:
         /// Creates the solver, must be called before compute().
-        virtual void create(Storage& storage) = 0;
+        //virtual void create(Storage& storage) = 0;
 
         /// Solver can store references to quantities (as ArrayView) internally for fast access. When
         /// particles are added or removed, update() must be called to get updated pointers and sizes.
         /// This is espetially important when adding particles as pointers are potentially invalidated!
-        virtual void update(Storage& storage) = 0;
+        //virtual void update(Storage& storage) = 0;
 
         /// Computes derivatives of all time-dependent quantities
-        virtual void compute() = 0;
+        virtual void compute(Storage& storage) = 0;
     };
 }
 
@@ -38,7 +39,7 @@ protected:
 
     Array<NeighbourRecord> neighs;
 
-    std::unique_ptr<Abstract::Boundary> boundary;
+    std::unique_ptr<Abstract::BoundaryConditions> boundary;
 
     LutKernel<d> kernel;
 

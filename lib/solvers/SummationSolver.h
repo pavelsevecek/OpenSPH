@@ -6,7 +6,7 @@
 
 #include "objects/Object.h"
 #include "solvers/AbstractSolver.h"
-#include "sph/av/Monaghan.h"
+#include "sph/av/Standard.h"
 #include "sph/boundary/Boundary.h"
 #include "sph/kernel/Kernel.h"
 #include "storage/QuantityKey.h"
@@ -42,7 +42,7 @@ private:
 
     Float eta;
 
-    MonaghanAV monaghanAv;
+    StandardAV monaghanAv;
 
 
 public:

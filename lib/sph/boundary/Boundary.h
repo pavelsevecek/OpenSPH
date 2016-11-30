@@ -104,6 +104,7 @@ class PeriodicDomain : public Abstract::BoundaryConditions {
 class Projection1D : public Abstract::BoundaryConditions {
 private:
     Range domain;
+    ArrayView<Vector> r, v;
 
 public:
     /// Constructs using range as 1D domain
@@ -111,7 +112,7 @@ public:
         : domain(domain) {}
 
     virtual void apply(Storage& storage) override {
-        refs(r, v) = storage->get<QuantityKey::R, Vector, OrderEnum::FIRST_ORDER>();
+        refs(r, v) = storage.get<QuantityKey::R, Vector, OrderEnum::FIRST_ORDER>();
         for (int i = 0; i < r.size(); ++i) {
             // throw away y and z, keep h
             r[i] = Vector(domain.clamp(r[i][0]), 0._f, 0._f, r[i][H]);
@@ -119,14 +120,14 @@ public:
         }
         // To get fixed boundary conditions at ends, we need to null all derivatives of first few and last few
         // particles. Number of particles depends on smoothing length.
-        iterate<VisitorEnum::FIRST_ORDER>(*storage, [](auto&& UNUSED(v), auto&& dv) {
+        iterate<VisitorEnum::FIRST_ORDER>(storage, [](auto&& UNUSED(v), auto&& dv) {
             using Type  = typename std::decay_t<decltype(dv)>::Type;
             const int s = dv.size();
             for (int i : { 0, 1, 2, 3, 4, s - 4, s - 3, s - 2, s - 1 }) {
                 dv[i] = Type(0._f);
             }
         });
-        iterate<VisitorEnum::SECOND_ORDER>(*storage, [](auto&& UNUSED(v), auto&& dv, auto&& d2v) {
+        iterate<VisitorEnum::SECOND_ORDER>(storage, [](auto&& UNUSED(v), auto&& dv, auto&& d2v) {
             using Type  = typename std::decay_t<decltype(dv)>::Type;
             const int s = dv.size();
             for (int i : { 0, 1, 2, 3, 4, s - 4, s - 3, s - 2, s - 1 }) {

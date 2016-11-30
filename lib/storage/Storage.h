@@ -6,9 +6,11 @@
 #include "storage/QuantityKey.h"
 #include "system/Logger.h"
 #include "system/Settings.h"
+#include "objects/wrappers/NonOwningPtr.h"
 
 NAMESPACE_SPH_BEGIN
 
+class StorageAccessor;
 
 /// Usage:
 /// body1 = storage(bodysettings1)
@@ -27,8 +29,14 @@ NAMESPACE_SPH_BEGIN
 /// simply point to stored arrays using ArrayView.
 class Storage : public Noncopyable {
 private:
+    // stored quantities (array of arrays). All arrays must be the same size at all times.
     Array<Quantity> quantities;
+
+    // Number of particles (=size of each array)
     int particleCnt;
+
+    // objects that can register and access quantities in storage
+    Array<NonOwningPtr<StorageAccessor>> accessors;
 
 public:
     Storage() = default;
@@ -149,12 +157,9 @@ public:
     }
 };
 
-template <int... TKeys>
-Storage makeStorage() {
-    Storage storage;
-    storage.template insert<TKeys...>();
-    return storage;
-}
+class StorageAccessor : public Observable {
+
+};
 
 
 NAMESPACE_SPH_END

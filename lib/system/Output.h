@@ -55,18 +55,18 @@ public:
         ofs << "# SPH dump, time = " << time << std::endl;
         ofs << "# ";
         for (int i=0; i<size; ++i) {
-            if (storage[i].getTemporalEnum() == OrderEnum::SECOND_ORDER) {
+            if (storage[i].getOrderEnum() == OrderEnum::SECOND_ORDER) {
                 ofs << std::setw(15) << getQuantityName(storage[i].getKey()) << std::setw(15)
                     << getDerivativeName(storage[i].getKey());
             }
         }
         for (int i=0; i<size; ++i) {
-            if (storage[i].getTemporalEnum() == OrderEnum::FIRST_ORDER) {
+            if (storage[i].getOrderEnum() == OrderEnum::FIRST_ORDER) {
                 ofs << std::setw(15) << getQuantityName(storage[i].getKey());
             }
         }
         for (int i=0; i<size; ++i) {
-            if (storage[i].getTemporalEnum() == OrderEnum::ZERO_ORDER) {
+            if (storage[i].getOrderEnum() == OrderEnum::ZERO_ORDER) {
                 ofs << std::setw(15) << getQuantityName(storage[i].getKey());
             }
         }

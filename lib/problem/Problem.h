@@ -60,7 +60,7 @@ public:
     template <typename... TArgs>
     Problem(TArgs&&... args)
         : storage(std::make_shared<Storage>())
-        , model(storage, std::forward<TArgs>(args)...) {}
+        , model(std::forward<TArgs>(args)...) {}
 
     void run() {
         int i = 0;
@@ -87,7 +87,7 @@ public:
             timeStepping->step(&model);
 
             if (callbacks) {
-                callbacks->onTimeStep(storage->get<QuantityKey::R>());
+                callbacks->onTimeStep(storage->get<QuantityKey::R, Vector, OrderEnum::ZERO_ORDER>()[0]);
             }
         }
     }

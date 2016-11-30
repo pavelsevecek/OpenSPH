@@ -28,7 +28,7 @@ SummationSolver<d>::SummationSolver(const std::shared_ptr<Storage>& storage,
     eta = settings.get<Float>(GlobalSettingsIds::SPH_KERNEL_ETA);
 
     std::unique_ptr<Abstract::Domain> domain = Factory::getDomain(settings);
-    boundary = Factory::getBoundaryConditions(settings, storage, std::move(domain));
+    boundary = Factory::getBoundaryConditions(settings, std::move(domain));
 }
 
 template <int d>

@@ -210,6 +210,7 @@ public:
 
 /// Kernel proposed by Read et al. (2010) with improved stability. Only for 3 dimensions.
 class CoreTriangle : public Kernel<CoreTriangle, 3> {
+public:
     INLINE Float radius() const { return 1._f; }
 
     INLINE Float valueImpl(const Float qSqr) const {
