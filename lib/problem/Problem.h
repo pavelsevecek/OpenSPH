@@ -6,7 +6,7 @@
 #include "sph/distributions/Distribution.h"
 #include "sph/kernel/Kernel.h"
 #include "sph/timestepping/TimeStepping.h"
-#include "storage/QuantityMap.h"
+#include "storage/QuantityKey.h"
 #include "sph/boundary/Boundary.h"
 #include "system/Callbacks.h"
 #include "system/Logger.h"

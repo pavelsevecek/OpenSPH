@@ -2,6 +2,7 @@
 
 #include "storage/Storage.h"
 #include "system/Profiler.h"
+#include "system/Settings.h"
 #include <memory>
 
 NAMESPACE_SPH_BEGIN
@@ -9,17 +10,24 @@ NAMESPACE_SPH_BEGIN
 class TimeStepGetter : public Object {
 private:
     std::shared_ptr<Storage> storage;
+    ArrayView<Vector> r;
+    ArrayView<Float> cs;
     Float factor;
+    Float courant;
 
 public:
-    TimeStepGetter(const std::shared_ptr<Storage>& storage, const Float factor)
-        : storage(storage)
-        , factor(factor) {}
+    TimeStepGetter(const std::shared_ptr<Storage>& storage, const Settings<GlobalSettingsIds>& settings)
+        : storage(storage) {
+        factor  = settings.get<Float>(GlobalSettingsIds::TIMESTEPPING_ADAPTIVE_FACTOR);
+        courant = settings.get<Float>(GlobalSettingsIds::TIMESTEPPING_COURANT);
+    }
+
 
     /// Returns the time step based on ratio between quantities and their derivatives
     virtual Float operator()(const Float maxStep) const {
         PROFILE_SCOPE("StepGetter::operator()");
         Float minStep = INFTY;
+        // Find highest step from ratios 'value/derivative'
         iterate<VisitorEnum::FIRST_ORDER>(*storage, [this, &minStep](auto&& v, auto&& dv) {
             ASSERT(v.size() == dv.size());
             for (int i = 0; i < v.size(); ++i) {
@@ -30,6 +38,13 @@ public:
                 }
             }
         });
+        // Courant criterion
+        /// \todo AV contribution?
+        for (int i = 0; i < r.size(); ++i) {
+            minStep = Math::min(minStep, courant * r[i][H]/cs[i]);
+        }
+
+        // Make sure the step is lower than largest allowed step
         minStep = Math::min(minStep, maxStep);
         return minStep;
     }

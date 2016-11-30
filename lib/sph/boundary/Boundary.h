@@ -17,7 +17,7 @@ namespace Abstract {
     class BoundaryConditions : public Polymorphic {
     public:
         /// Applies boundary conditions onto the particles
-        virtual void apply() = 0;
+        virtual void apply(Storage& storage) = 0;
     };
 }
 
@@ -45,23 +45,19 @@ enum class ProjectingOptions {
 /// Simply project all particles outside of the domain to its boundary.
 class DomainProjecting : public Abstract::BoundaryConditions {
 private:
-    std::shared_ptr<Storage> storage;
     std::unique_ptr<Abstract::Domain> domain;
     Array<int> outside;
     Array<Vector> vproj;
     ProjectingOptions options;
 
 public:
-    DomainProjecting(const std::shared_ptr<Storage>& storage,
-                     std::unique_ptr<Abstract::Domain>&& domain,
-                     const ProjectingOptions options)
-        : storage(storage)
-        , domain(std::move(domain))
+    DomainProjecting(std::unique_ptr<Abstract::Domain>&& domain, const ProjectingOptions options)
+        : domain(std::move(domain))
         , options(options) {}
 
-    virtual void apply() override {
-        Array<Vector>& r = this->storage->get<QuantityKey::R>();
-        Array<Vector>& v = this->storage->dt<QuantityKey::R>();
+    virtual void apply(Storage& storage) override {
+        ArrayView<Vector> r, v;
+        refs(r, v) = storage.get<QuantityKey::R, Vector, OrderEnum::FIRST_ORDER>();
         // check which particles are outside of the domain
         domain->getSubset(r, outside, SubsetType::OUTSIDE);
         domain->project(r, outside);
@@ -107,19 +103,15 @@ class PeriodicDomain : public Abstract::BoundaryConditions {
 
 class Projection1D : public Abstract::BoundaryConditions {
 private:
-    std::shared_ptr<Storage> storage;
     Range domain;
 
 public:
     /// Constructs using range as 1D domain
-    Projection1D(const std::shared_ptr<Storage>& storage, const Range& domain)
-        : storage(storage)
-        , domain(domain) {}
+    Projection1D(const Range& domain)
+        : domain(domain) {}
 
-    virtual void apply() override {
-        Array<Vector>& r = this->storage->get<QuantityKey::R>();
-        Array<Vector>& v = this->storage->dt<QuantityKey::R>();
-
+    virtual void apply(Storage& storage) override {
+        refs(r, v) = storage->get<QuantityKey::R, Vector, OrderEnum::FIRST_ORDER>();
         for (int i = 0; i < r.size(); ++i) {
             // throw away y and z, keep h
             r[i] = Vector(domain.clamp(r[i][0]), 0._f, 0._f, r[i][H]);

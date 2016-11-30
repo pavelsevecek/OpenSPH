@@ -51,10 +51,10 @@ template <typename TFunctor>
 struct StorageVisitor<VisitorEnum::ZERO_ORDER, TFunctor> {
     template <typename TValue>
     void visit(Quantity& q, TFunctor&& functor) {
-        if (q.getTemporalEnum() != TemporalEnum::ZERO_ORDER) {
+        if (q.getOrderEnum() != OrderEnum::ZERO_ORDER) {
             return;
         }
-        auto holder = q.cast<TValue, TemporalEnum::ZERO_ORDER>();
+        auto holder = q.cast<TValue, OrderEnum::ZERO_ORDER>();
         ASSERT(holder);
         functor(holder->getValue());
     }
@@ -66,12 +66,12 @@ template <typename TFunctor>
 struct StorageVisitor<VisitorEnum::FIRST_ORDER, TFunctor> {
     template <typename TValue>
     void visit(Quantity& q, TFunctor&& functor) {
-        if (q.getTemporalEnum() != TemporalEnum::FIRST_ORDER) {
+        if (q.getOrderEnum() != OrderEnum::FIRST_ORDER) {
             return;
         }
         /// \todo no dynamic_cast necessary here, maybe use two versions of cast, safe/checked and
         /// unsafe/unchecked
-        auto holder = q.cast<TValue, TemporalEnum::FIRST_ORDER>();
+        auto holder = q.cast<TValue, OrderEnum::FIRST_ORDER>();
         ASSERT(holder);
         functor(holder->getValue(), holder->getDerivative());
     }
@@ -81,12 +81,12 @@ template <typename TFunctor>
 struct StoragePairVisitor<VisitorEnum::FIRST_ORDER, TFunctor> {
     template <typename TValue>
     void visit(Quantity& q1, Quantity& q2, TFunctor&& functor) {
-        if (q1.getTemporalEnum() != TemporalEnum::FIRST_ORDER) {
+        if (q1.getOrderEnum() != OrderEnum::FIRST_ORDER) {
             return;
         }
-        ASSERT(q2.getTemporalEnum() == TemporalEnum::FIRST_ORDER);
-        auto holder1 = q1.cast<TValue, TemporalEnum::FIRST_ORDER>();
-        auto holder2 = q2.cast<TValue, TemporalEnum::FIRST_ORDER>();
+        ASSERT(q2.getOrderEnum() == OrderEnum::FIRST_ORDER);
+        auto holder1 = q1.cast<TValue, OrderEnum::FIRST_ORDER>();
+        auto holder2 = q2.cast<TValue, OrderEnum::FIRST_ORDER>();
         ASSERT(holder1 && holder2);
         functor(holder1->getValue(), holder1->getDerivative(), holder2->getValue(), holder2->getDerivative());
     }
@@ -98,10 +98,10 @@ template <typename TFunctor>
 struct StorageVisitor<VisitorEnum::SECOND_ORDER, TFunctor> {
     template <typename TValue>
     void visit(Quantity& q, TFunctor&& functor) {
-        if (q.getTemporalEnum() != TemporalEnum::SECOND_ORDER) {
+        if (q.getOrderEnum() != OrderEnum::SECOND_ORDER) {
             return;
         }
-        auto holder = q.cast<TValue, TemporalEnum::SECOND_ORDER>();
+        auto holder = q.cast<TValue, OrderEnum::SECOND_ORDER>();
         ASSERT(holder);
         functor(holder->getValue(), holder->getDerivative(), holder->get2ndDerivative());
     }
@@ -111,12 +111,12 @@ template <typename TFunctor>
 struct StoragePairVisitor<VisitorEnum::SECOND_ORDER, TFunctor> {
     template <typename TValue>
     void visit(Quantity& q1, Quantity& q2, TFunctor&& functor) {
-        if (q1.getTemporalEnum() != TemporalEnum::SECOND_ORDER) {
+        if (q1.getOrderEnum() != OrderEnum::SECOND_ORDER) {
             return;
         }
-        ASSERT(q2.getTemporalEnum() == TemporalEnum::SECOND_ORDER);
-        auto holder1 = q1.cast<TValue, TemporalEnum::SECOND_ORDER>();
-        auto holder2 = q2.cast<TValue, TemporalEnum::SECOND_ORDER>();
+        ASSERT(q2.getOrderEnum() == OrderEnum::SECOND_ORDER);
+        auto holder1 = q1.cast<TValue, OrderEnum::SECOND_ORDER>();
+        auto holder2 = q2.cast<TValue, OrderEnum::SECOND_ORDER>();
         ASSERT(holder1 && holder2);
         functor(holder1->getValue(),
                 holder1->getDerivative(),

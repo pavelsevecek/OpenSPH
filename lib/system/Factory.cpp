@@ -13,7 +13,8 @@ std::unique_ptr<Abstract::Eos> Factory::getEos(const Settings<BodySettingsIds>& 
     const EosEnum id = settings.get<EosEnum>(BodySettingsIds::EOS);
     switch (id) {
     case EosEnum::IDEAL_GAS:
-        return std::make_unique<IdealGasEos>(1.4_f); // settings.get<float>(BodySettingsIds::ADIABATIC_INDEX));
+        return std::make_unique<IdealGasEos>(
+            1.4_f); // settings.get<float>(BodySettingsIds::ADIABATIC_INDEX));
     case EosEnum::TILLOTSON:
         return std::make_unique<TillotsonEos>(settings);
     default:
@@ -84,7 +85,6 @@ std::unique_ptr<Abstract::Domain> Factory::getDomain(const Settings<GlobalSettin
 
 std::unique_ptr<Abstract::BoundaryConditions> Factory::getBoundaryConditions(
     const Settings<GlobalSettingsIds>& settings,
-    const std::shared_ptr<Storage>& storage,
     std::unique_ptr<Abstract::Domain>&& domain) {
     const BoundaryEnum id = settings.get<BoundaryEnum>(GlobalSettingsIds::DOMAIN_BOUNDARY);
     switch (id) {
@@ -92,14 +92,12 @@ std::unique_ptr<Abstract::BoundaryConditions> Factory::getBoundaryConditions(
         return nullptr;
     case BoundaryEnum::DOMAIN_PROJECTING:
         ASSERT(domain != nullptr);
-        return std::make_unique<DomainProjecting>(storage,
-                                                  std::move(domain),
-                                                  ProjectingOptions::ZERO_PERPENDICULAR);
+        return std::make_unique<DomainProjecting>(std::move(domain), ProjectingOptions::ZERO_PERPENDICULAR);
     case BoundaryEnum::PROJECT_1D: {
         ASSERT(domain != nullptr);
         const Vector center = domain->getCenter();
         const Float radius  = domain->getBoundingRadius();
-        return std::make_unique<Projection1D>(storage, Range(center[0] - radius, center[0] + radius));
+        return std::make_unique<Projection1D>(Range(center[0] - radius, center[0] + radius));
     }
     default:
         NOT_IMPLEMENTED;

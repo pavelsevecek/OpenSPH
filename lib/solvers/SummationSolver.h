@@ -4,12 +4,12 @@
 /// Pavel Sevecek 2016
 /// sevecek at sirrah.troja.mff.cuni.cz
 
-#include "solvers/AbstractSolver.h"
 #include "objects/Object.h"
+#include "solvers/AbstractSolver.h"
 #include "sph/av/Monaghan.h"
 #include "sph/boundary/Boundary.h"
 #include "sph/kernel/Kernel.h"
-#include "storage/QuantityMap.h"
+#include "storage/QuantityKey.h"
 #include "system/Settings.h"
 
 
@@ -21,6 +21,8 @@ namespace Abstract {
 }
 struct NeighbourRecord;
 
+/// Uses density and specific energy as independent variables. Density is solved by direct summation, using
+/// self-consistent solution with smoothing length. Energy is evolved using energy equation.
 template <int d>
 class SummationSolver : public Abstract::Solver {
 private:
@@ -43,7 +45,6 @@ private:
     MonaghanAV monaghanAv;
 
 
-
 public:
     SummationSolver(const std::shared_ptr<Storage>& storage, const Settings<GlobalSettingsIds>& settings);
 
@@ -53,7 +54,6 @@ public:
 
     virtual Storage createParticles(const Abstract::Domain& domain,
                                     const Settings<BodySettingsIds>& settings) const override;
-
 };
 
 NAMESPACE_SPH_END

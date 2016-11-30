@@ -1,7 +1,7 @@
 #pragma once
 
 #include "objects/containers/ArrayView.h"
-#include "storage/QuantityMap.h"
+#include "storage/QuantityKey.h"
 #include "storage/Storage.h"
 #include <memory>
 

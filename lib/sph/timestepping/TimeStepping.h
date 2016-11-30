@@ -40,8 +40,7 @@ namespace Abstract {
             dt    = settings.get<Float>(GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP);
             maxdt = settings.get<Float>(GlobalSettingsIds::TIMESTEPPING_MAX_TIMESTEP);
             if (settings.get<bool>(GlobalSettingsIds::TIMESTEPPING_ADAPTIVE)) {
-                const Float factor = settings.get<Float>(GlobalSettingsIds::TIMESTEPPING_ADAPTIVE_FACTOR);
-                getter.emplace(storage, factor);
+                getter.emplace(storage, settings);
             }
         }
 

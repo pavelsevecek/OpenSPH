@@ -1,15 +1,17 @@
 #pragma once
 
-/// Definition of physical model.
+/// Standard SPH solver, using density and specific energy as independent variables. Evolves density using
+/// continuity equation and energy using energy equation. Works with any artificial viscosity and any equation
+/// of state.
 /// Pavel Sevecek 2016
 /// sevecek at sirrah.troja.mff.cuni.cz
 
-#include "solvers/AbstractSolver.h"
 #include "objects/Object.h"
-#include "sph/av/Monaghan.h"
+#include "solvers/AbstractSolver.h"
+#include "sph/av/Standard.h"
 #include "sph/boundary/Boundary.h"
 #include "sph/kernel/Kernel.h"
-#include "storage/QuantityMap.h"
+#include "storage/QuantityKey.h"
 #include "system/Settings.h"
 
 
@@ -21,40 +23,32 @@ namespace Abstract {
 }
 struct NeighbourRecord;
 
-template <int d>
-class ContinuitySolver : public Abstract::Solver {
+
+
+template <int d, typename TForce>
+class ContinuitySolver : public SolverBase<d> {
 private:
-    std::unique_ptr<Abstract::Finder> finder;
-
-    std::unique_ptr<Abstract::Eos> eos;
-
-    std::unique_ptr<Abstract::BoundaryConditions> boundary;
-
-    /// \todo what if we have more EoSs in one model? (rock and ice together in a comet)
-    LutKernel<d> kernel;
-    Array<NeighbourRecord> neighs; /// \todo store neighbours directly here?!
-
-    Array<Float> divv; /// auxiliary buffer storing velocity divergences
-
-    MonaghanAV monaghanAv;
+    TForce force;
 
 public:
-    ContinuitySolver(const std::shared_ptr<Storage>& storage, const Settings<GlobalSettingsIds>& settings);
+    ContinuitySolver(const Settings<GlobalSettingsIds>& settings)
+        : SolverBase<d>(settings)
+        , force(settings) {
 
-    ~ContinuitySolver(); // necessary because of unique_ptrs to incomplete types
+        /// \todo we have to somehow connect EoS with storage. Plus when two storages are merged, we have to
+        /// remember EoS for each particles. This should be probably generalized, for example we want to
+        /// remember
+        /// original body of the particle, possibly original position (right under surface, core of the body,
+        /// antipode, ...)
+
+        /// \todo !!!toto je ono, tady nejde globalni nastaveni
+        eos = Factory::getEos(BODY_SETTINGS);
+
+        std::unique_ptr<Abstract::Domain> domain = Factory::getDomain(settings);
+        this->boundary = Factory::getBoundaryConditions(settings, storage, std::move(domain));
+    }
 
     virtual void compute(Storage& storage) override;
-
-    virtual Storage createParticles(const Abstract::Domain& domain,
-                                    const Settings<BodySettingsIds>& settings) const override;
-
-private:
-    void solveDensityAndSmoothingLength(ArrayView<Float> drho,
-                                        ArrayView<Vector> dv,
-                                        ArrayView<Vector> v,
-                                        ArrayView<const Vector> r,
-                                        ArrayView<const Float> rho);
-    void solveEnergy(ArrayView<Float> du, ArrayView<const Float> p, ArrayView<const Float> rho);
 };
 
 NAMESPACE_SPH_END

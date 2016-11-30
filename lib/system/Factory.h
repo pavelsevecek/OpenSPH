@@ -38,7 +38,6 @@ public:
 
     static std::unique_ptr<Abstract::BoundaryConditions> getBoundaryConditions(
         const Settings<GlobalSettingsIds>& settings,
-        const std::shared_ptr<Storage>& storage,
         std::unique_ptr<Abstract::Domain>&& domain);
 
     static std::unique_ptr<Abstract::Domain> getDomain(const Settings<GlobalSettingsIds>& settings);
@@ -51,27 +50,13 @@ public:
             return LutKernel<d>(CubicSpline<d>());
         case KernelEnum::FOURTH_ORDER_SPLINE:
             return LutKernel<d>(FourthOrderSpline<d>());
+        case KernelEnum::CORE_TRIANGLE:
+            ASSERT(d == 3);
+            return LutKernel<3>(CoreTriangle());
         default:
             NOT_IMPLEMENTED;
         }
     }
 };
-
-/*class StaticFactory : public Noncopyable {
-    template <typename TCreator>
-    static void getSymmetrization(const Settings<GlobalSettingsIds>& settings, TCreator&& creator) {
-        Optional<SmoothingLengthEnum> id = optionalCast<SmoothingLengthEnum>(
-            settings.get<int>(GlobalSettingsIds::SMOOTHING_LENGTH_SYMMETRIZATION));
-        switch (settings) {
-        case SmoothingLengthEnum::SYMMETRIZE_KERNELS:
-            creator.template create<SymW>();
-            return;
-        case SmoothingLengthEnum::SYMMETRIZE_LENGTHS:
-            creator.template create<SymH>();
-            return;
-        }
-    }
-};*/
-
 
 NAMESPACE_SPH_END

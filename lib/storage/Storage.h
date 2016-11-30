@@ -3,154 +3,104 @@
 #include "objects/containers/Array.h"
 #include "objects/containers/Tuple.h"
 #include "storage/Iterate.h"
-#include "storage/QuantityMap.h"
+#include "storage/QuantityKey.h"
 #include "system/Logger.h"
+#include "system/Settings.h"
 
 NAMESPACE_SPH_BEGIN
 
 
-/// Base object for storing scalar, vector and tensor quantities of SPH particles.
+/// Usage:
+/// body1 = storage(bodysettings1)
+/// body2 = storage(bodysettings2)
+/// merged = merge(body1, body2) // now merged contains quantities AND references to body settings. there
+///                                 really shouldn't be that many bodies, so copying settings is not a problem
+/// continuitysolver(merged)
+///   -- merged.emplace(r, P, rho, u, ...)  -- based on bodysettings
+///   -- force saves arrayview ...
+///
+/// notes:
+///  you can still edit storage of course, we are holding arrayviews
+///  any resizing, adding more bodies, removing particles etc. must be called update(Storage& ... ) method
+
+/// Base object for storing scalar, vector and tensor quantities of SPH particles. Other parts of the code
+/// simply point to stored arrays using ArrayView.
 class Storage : public Noncopyable {
 private:
     Array<Quantity> quantities;
-
-    template <int TKey, typename TGetter>
-    LimitedArray<QuantityType<TKey>>& getSingle(TGetter&& getter) {
-        // linear search in array of quantities
-        for (Quantity& q : quantities) {
-            if (q.getKey() == TKey) {
-                // found the right quantity
-                auto optHolder = q.template cast<QuantityType<TKey>, QuantityMap<TKey>::temporalEnum>();
-                ASSERT(optHolder); // we got the type and time enum from map, it has to be correct
-                return getter(optHolder.get());
-            }
-        }
-        throw std::exception();
-        // not found, return nullptr arrayview
-        // return Array<QuantityType<TKey>>();
-    }
+    int particleCnt;
 
 public:
     Storage() = default;
 
     Storage(Storage&& other)
-        : quantities(std::move(other.quantities)) {}
+        : quantities(std::move(other.quantities))
+        , particleCnt(other.particleCnt) {}
 
     Storage& operator=(Storage&& other) {
-        quantities = std::move(other.quantities);
+        quantities  = std::move(other.quantities);
+        particleCnt = other.particleCnt;
         return *this;
     }
 
-    /// Inserts a list of quantities into the storage. Quantities are given by their index to template map
-    /// QuantityMap, from which we get type and temporal enum of the quantity.
-    template <int TKey, int TSecond, int... TRest>
-    void insert() {
-        this->insert<QuantityType<TKey>, QuantityMap<TKey>::temporalEnum>(TKey);
-        this->insert<TSecond, TRest...>(); // recursive call
-    }
-
-    /// Inserts a single quantity into the storage. The type and temporal enum are given by the index to
-    /// template QuantityMap.
-    template <int TKey>
-    void insert() {
-        this->insert<QuantityType<TKey>, QuantityMap<TKey>::temporalEnum>(TKey);
-    }
-
-    /// Inserts "manually" a quantity, given their type and temporal type. Note that the quantity cannot be
-    /// extracted from storage unless its index is in QuantityMap; it can be reached using iterate method,
-    /// though.
-    template <typename TValue, TemporalEnum TEnum>
-    void insert(const int key) {
+    /// Creates a quantity in the storage, given its ID, value type and order. Quantity is resized and filled
+    /// with default value.
+    /// If a quantity with the same ID already exists, it is simply returned unchanged; its type and order,
+    /// however, must match the required ones (checked by assert).
+    /// \tparam TKey Unique ID of the quantity.
+    /// \tparam TValue Type of the quantity. Can be scalar, vector, tensor or traceless tensor.
+    /// \tparam TOrder Order (number of derivatives) associated with the quantity.
+    /// \param defaultValue Value to which quantity is initialized. If the quantity already exists in the
+    ///                     storage, the value is unused.
+    /// \param range Optional parameter specifying lower and upper bound of the quantity. Bound are enforced
+    ///              by timestepping algorithm. By default, quantities are unbounded.
+    /// \return Array of references to LimitedArrays, containing quantity values and derivatives.
+    template <QuantityKey TKey, typename TValue, OrderEnum TOrder>
+    auto emplace(const TValue& defaultValue, const Optional<Range> range = NOTHING) {
+        // linear search in array of quantities
+        for (Quantity& q : quantities) {
+            if (q.getKey() == TKey) {
+                // found the right quantity
+                auto optHolder = q.template cast<TValue, QuantityKey>();
+                ASSERT(optHolder); // type or order mismatch!
+                return optHolder->getBuffers();
+            }
+        }
+        // quantity not found, create it.
+        ASSERT(particleCnt != 0);
         Quantity q;
-        q.template emplace<TValue, TEnum>(key);
+        q.template emplace<TValue, TOrder>(TKey, defaultValue, range);
         quantities.push(std::move(q));
     }
 
-    /// Returns a list of at least two quantities (given by their indices) from the storage. Returns them as
-    /// tuple of arrayviews.
-    template <int TFirst, int TSecond, int... TRest>
-    Tuple<ArrayView<QuantityType<TFirst>>,
-          ArrayView<QuantityType<TSecond>>,
-          ArrayView<QuantityType<TRest>>...>
-    get() {
-        auto getter = [](auto&& holder) -> auto& { return holder.getValue(); };
-        return makeTuple(this->template getSingle<TFirst>(getter).getView(),
-                         this->template getSingle<TSecond>(getter).getView(),
-                         this->template getSingle<TRest>(getter).getView()...);
-    }
-
-    /// Returns a list of derivatives
-    template <int TFirst, int TSecond, int... TRest>
-    Tuple<ArrayView<QuantityType<TFirst>>,
-          ArrayView<QuantityType<TSecond>>,
-          ArrayView<QuantityType<TRest>>...>
-    dt() {
-        auto getter = [](auto&& holder) -> auto& { return holder.getDerivative(); };
-        return makeTuple(this->template getSingle<TFirst>(getter).getView(),
-                         this->template getSingle<TSecond>(getter).getView(),
-                         this->template getSingle<TRest>(getter).getView()...);
-    }
-
-    /// Returns a list of 2nd derivatives
-    template <int TFirst, int TSecond, int... TRest>
-    Tuple<ArrayView<QuantityType<TFirst>>,
-          ArrayView<QuantityType<TSecond>>,
-          ArrayView<QuantityType<TRest>>...>
-    d2t() {
-        auto getter = [](auto&& holder) -> auto& { return holder.get2ndDerivative(); };
-        return makeTuple(this->template getSingle<TFirst>(getter).getView(),
-                         this->template getSingle<TSecond>(getter).getView(),
-                         this->template getSingle<TRest>(getter).getView()...);
-    }
-
-    /// Returns a quantity given by its index from the storage as array.
-    /// \todo or LimitedArray
-    template <int TKey>
-    LimitedArray<QuantityType<TKey>>& get() {
-        return this->template getSingle<TKey>([](auto&& holder) -> auto& { return holder.getValue(); });
-    }
-
-    /// Returns a derivative given by its index from the storage.
-    template <int TKey>
-    LimitedArray<QuantityType<TKey>>& dt() {
-        return this->template getSingle<TKey>([](auto&& holder) -> auto& { return holder.getDerivative(); });
-    }
-
-    /// Returns a 2nd derivative given by its index from the storage.
-    template <int TKey>
-    LimitedArray<QuantityType<TKey>>& d2t() {
-        return this->template getSingle<TKey>([](auto&& holder) -> auto& {
-            return holder.get2ndDerivative();
-        });
-    }
-
-    /// Returns views to all buffers stored in a quantity.
-    template <int TKey>
-    Array<LimitedArray<QuantityType<TKey>>&> getAll() {
+    /// Retrieves a quantity from the storage, given its ID, value type and order. The stored quantity must
+    /// have the same type and order (checked by assert). If no quantity with this ID is stored, throws
+    /// std::exception.
+    /// \return Array of references to LimitedArrays, containing quantity values and derivatives.
+    template <QuantityKey TKey, typename TValue, OrderEnum TOrder>
+    auto get() {
+        // linear search in array of quantities
         for (Quantity& q : quantities) {
             if (q.getKey() == TKey) {
-                auto optHolder = q.template cast<QuantityType<TKey>, QuantityMap<TKey>::temporalEnum>();
-                ASSERT(optHolder);
+                // found the right quantity
+                auto optHolder = q.template cast<TValue, TOrder>();
+                ASSERT(optHolder); // type or order mismatch!
                 return optHolder->getBuffers();
             }
         }
         throw std::exception();
     }
 
-    Quantity& operator[](const int idx) {
-        return quantities[idx];
-    }
+    Quantity& operator[](const int idx) { return quantities[idx]; }
 
-    const Quantity& operator[](const int idx) const {
-        return quantities[idx];
-    }
+    const Quantity& operator[](const int idx) const { return quantities[idx]; }
 
     int getQuantityCnt() const { return quantities.size(); }
 
 
     int getParticleCnt() {
         // assuming positions R are ALWAYS present
-        return this->get<QuantityKey::R>().size();
+        return particleCnt;
     }
 
     void merge(Storage& other) {

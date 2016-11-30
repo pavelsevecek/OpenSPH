@@ -72,7 +72,7 @@ HEADERS += \
     sph/distributions/Distribution.h \
     sph/timestepping/Step.h \
     sph/timestepping/TimeStepping.h \
-    sph/av/Monaghan.h \
+    sph/av/Standard.h \
     sph/boundary/Boundary.h \
     system/Callbacks.h \
     system/Factory.h \
@@ -85,9 +85,15 @@ HEADERS += \
     storage/Storage.h \
     storage/Quantity.h \
     storage/QuantityHelpers.h \
-    storage/QuantityMap.h \
     geometry/TracelessTensor.h \
     system/Output.h \
     solvers/AbstractSolver.h \
     solvers/ContinuitySolver.h \
-    solvers/SummationSolver.h
+    solvers/SummationSolver.h \
+    sph/av/Riemann.h \
+    sph/av/MorrisMonaghan.h \
+    sph/av/Balsara.h \
+    solvers/Force.h \
+    solvers/DensityIndependentSolver.h \
+    solvers/EntropySolver.h \
+    storage/QuantityKey.h

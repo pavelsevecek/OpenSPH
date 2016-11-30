@@ -163,7 +163,6 @@ public:
     }
 };
 
-
 namespace Math {
     /*    /// Checks if two tensors are equal to some given accuracy.
         INLINE bool almostEqual(const TracelessTensor& t1, const TracelessTensor& t2, const Float eps = EPS) {
@@ -184,5 +183,18 @@ namespace Math {
     INLINE TracelessTensor clamp(const TracelessTensor& t, const Range& range) { return t.clamp(range); }
 }
 
+
+/// Double-dot product t1 : t2 = sum_ij t1_ij t2_ij
+INLINE Float ddot(const TracelessTensor& UNUSED(t1), const Tensor& UNUSED(t2)) {
+    NOT_IMPLEMENTED
+}
+
+INLINE Float ddot(const Tensor& UNUSED(t1), const TracelessTensor& UNUSED(t2)) {
+    NOT_IMPLEMENTED
+}
+
+INLINE Float ddot(const TracelessTensor& UNUSED(t1), const TracelessTensor& UNUSED(t2)) {
+    NOT_IMPLEMENTED
+}
 
 NAMESPACE_SPH_END

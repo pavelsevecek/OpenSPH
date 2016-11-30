@@ -5,12 +5,13 @@
 #include "objects/wrappers/Flags.h"
 #include "objects/wrappers/Optional.h"
 #include "storage/QuantityHelpers.h"
+#include "storage/QuantityKey.h"
 
 NAMESPACE_SPH_BEGIN
 
 
 /// \todo maybe split into levels and number of derivatives?
-enum class TemporalEnum {
+enum class OrderEnum {
     ZERO_ORDER,   ///< Quantity without derivatives, or "zero order" of quantity
     FIRST_ORDER,  ///< Quantity with 1st derivative
     SECOND_ORDER, ///< Quantity with 1st and 2nd derivative
@@ -51,7 +52,7 @@ namespace Detail {
     /// abount stored types or number of stored arrays.
     struct PlaceHolder : public Polymorphic {
         /// Returns number of derivatives stored within the quantity
-        virtual TemporalEnum getTemporalEnum() const = 0;
+        virtual OrderEnum getOrderEnum() const = 0;
 
         /// Return type of quantity values
         virtual ValueEnum getValueEnum() const = 0;
@@ -70,7 +71,7 @@ namespace Detail {
         virtual Array<LimitedArray<TValue>&> getBuffers() = 0;
     };
 
-    template <typename TValue, TemporalEnum Type>
+    template <typename TValue, OrderEnum Type>
     class Holder;
 
     /// Holder of constant quantities or quantities values of which are NOT computed in timestepping using
@@ -78,7 +79,7 @@ namespace Detail {
     /// therefore possible to cast first/second order holder to const holder and access its methods without
     /// error.
     template <typename TValue>
-    class Holder<TValue, TemporalEnum::ZERO_ORDER> : public ValueHolder<TValue> {
+    class Holder<TValue, OrderEnum::ZERO_ORDER> : public ValueHolder<TValue> {
     protected:
         LimitedArray<TValue> v;
 
@@ -101,10 +102,17 @@ namespace Detail {
     public:
         Holder() = default;
 
-        Holder(const LimitedArray<TValue>& v)
-            : v(v.clone()) {}
+        Holder(const int size, const TValue& value) {
+            v.resize(size);
+            v.fill(value);
+        }
 
-        virtual TemporalEnum getTemporalEnum() const override { return TemporalEnum::ZERO_ORDER; }
+        template <typename TDistribution>
+        Holder(TDistribution&& distribution) {
+            v = std::forward<TDistribution>(distribution);
+        }
+
+        virtual OrderEnum getOrderEnum() const override { return OrderEnum::ZERO_ORDER; }
 
         virtual ValueEnum getValueEnum() const override { return GetValueType<TValue>::type; }
 
@@ -115,8 +123,8 @@ namespace Detail {
         }
 
         virtual void swap(PlaceHolder* other, Flags<VisitorEnum> flags) override {
-            ASSERT((dynamic_cast<Holder<TValue, TemporalEnum::ZERO_ORDER>*>(other)));
-            auto holder = static_cast<Holder<TValue, TemporalEnum::ZERO_ORDER>*>(other);
+            ASSERT((dynamic_cast<Holder<TValue, OrderEnum::ZERO_ORDER>*>(other)));
+            auto holder = static_cast<Holder<TValue, OrderEnum::ZERO_ORDER>*>(other);
             conditionalSwap(v, holder->v, flags.hasAny(VisitorEnum::ZERO_ORDER, VisitorEnum::ALL_BUFFERS));
         }
 
@@ -128,30 +136,34 @@ namespace Detail {
     /// Holder for first-order quantities, contains also derivative of the quantity. The derivative can be
     /// accessed using getDerivative() method.
     template <typename TValue>
-    class Holder<TValue, TemporalEnum::FIRST_ORDER> : public Holder<TValue, TemporalEnum::ZERO_ORDER> {
+    class Holder<TValue, OrderEnum::FIRST_ORDER> : public Holder<TValue, OrderEnum::ZERO_ORDER> {
     protected:
         LimitedArray<TValue> dv;
 
     public:
         Holder() = default;
 
-        Holder(const LimitedArray<TValue>& v)
-            : Holder<TValue, TemporalEnum::ZERO_ORDER>(v) {
+        Holder(const int size, const TValue& value)
+            : Holder<TValue, OrderEnum::ZERO_ORDER>(size, value) {
             dv.resize(this->v.size());
-            dv.fill(TValue(0._f)); // fill derivative with zeroes
+            dv.fill(TValue(0._f));
         }
 
-        Holder(const LimitedArray<TValue>& v, const LimitedArray<TValue>& dv)
-            : Holder<TValue, TemporalEnum::ZERO_ORDER>(v)
-            , dv(dv.clone()) {}
+        template <typename TDistribution>
+        Holder(TDistribution&& distribution)
+            : Holder<TValue, OrderEnum::ZERO_ORDER>(std::forward<TDistribution>(distribution)) {
+            dv.resize(this->v.size());
+            dv.fill(TValue(0._f));
+        }
 
-        virtual TemporalEnum getTemporalEnum() const override { return TemporalEnum::FIRST_ORDER; }
+        virtual OrderEnum getOrderEnum() const override { return OrderEnum::FIRST_ORDER; }
 
         virtual ValueEnum getValueEnum() const override { return GetValueType<TValue>::type; }
 
         virtual std::unique_ptr<PlaceHolder> clone(const Flags<VisitorEnum> flags) const override {
             LimitedArray<TValue>&& cv =
-                this->conditionalClone(this->v, flags.hasAny(VisitorEnum::ZERO_ORDER, VisitorEnum::ALL_BUFFERS));
+                this->conditionalClone(this->v,
+                                       flags.hasAny(VisitorEnum::ZERO_ORDER, VisitorEnum::ALL_BUFFERS));
             LimitedArray<TValue>&& cdv = this->conditionalClone(this->dv,
                                                                 flags.hasAny(VisitorEnum::FIRST_ORDER,
                                                                              VisitorEnum::HIGHEST_DERIVATIVES,
@@ -160,8 +172,8 @@ namespace Detail {
         }
 
         virtual void swap(PlaceHolder* other, Flags<VisitorEnum> flags) override {
-            ASSERT((dynamic_cast<Holder<TValue, TemporalEnum::FIRST_ORDER>*>(other)));
-            auto holder = static_cast<Holder<TValue, TemporalEnum::FIRST_ORDER>*>(other);
+            ASSERT((dynamic_cast<Holder<TValue, OrderEnum::FIRST_ORDER>*>(other)));
+            auto holder = static_cast<Holder<TValue, OrderEnum::FIRST_ORDER>*>(other);
             this->conditionalSwap(this->v,
                                   holder->v,
                                   flags.hasAny(VisitorEnum::ZERO_ORDER, VisitorEnum::ALL_BUFFERS));
@@ -180,24 +192,27 @@ namespace Detail {
     /// Holder for second-order quantities, contains also second derivative of the quantity. The second
     /// derivative can be accessed using get2ndDerivative() method.
     template <typename TValue>
-    class Holder<TValue, TemporalEnum::SECOND_ORDER> : public Holder<TValue, TemporalEnum::FIRST_ORDER> {
+    class Holder<TValue, OrderEnum::SECOND_ORDER> : public Holder<TValue, OrderEnum::FIRST_ORDER> {
     private:
         LimitedArray<TValue> d2v;
 
     public:
         Holder() = default;
 
-        Holder(const LimitedArray<TValue>& v)
-            : Holder<TValue, TemporalEnum::FIRST_ORDER>(v) {
+        Holder(const int size, const TValue& value)
+            : Holder<TValue, OrderEnum::FIRST_ORDER>(size, value) {
             d2v.resize(this->v.size());
-            d2v.fill(TValue(0._f)); // fill derivative with zeroes
+            d2v.fill(TValue(0._f));
         }
 
-        Holder(const LimitedArray<TValue>& v, const LimitedArray<TValue>& dv, const LimitedArray<TValue>& d2v)
-            : Holder<TValue, TemporalEnum::FIRST_ORDER>(v, dv)
-            , d2v(d2v.clone()) {}
+        template <typename TDistribution>
+        Holder(TDistribution&& distribution)
+            : Holder<TValue, OrderEnum::FIRST_ORDER>(std::forward<TDistribution>(distribution)) {
+            d2v.resize(this->v.size());
+            d2v.fill(TValue(0._f));
+        }
 
-        virtual TemporalEnum getTemporalEnum() const final { return TemporalEnum::SECOND_ORDER; }
+        virtual OrderEnum getOrderEnum() const final { return OrderEnum::SECOND_ORDER; }
 
         virtual ValueEnum getValueEnum() const final { return GetValueType<TValue>::type; }
 
@@ -217,8 +232,8 @@ namespace Detail {
         }
 
         virtual void swap(PlaceHolder* other, Flags<VisitorEnum> flags) override {
-            ASSERT((dynamic_cast<Holder<TValue, TemporalEnum::SECOND_ORDER>*>(other)));
-            auto holder = static_cast<Holder<TValue, TemporalEnum::SECOND_ORDER>*>(other);
+            ASSERT((dynamic_cast<Holder<TValue, OrderEnum::SECOND_ORDER>*>(other)));
+            auto holder = static_cast<Holder<TValue, OrderEnum::SECOND_ORDER>*>(other);
             this->conditionalSwap(this->v,
                                   holder->v,
                                   flags.hasAny(VisitorEnum::ZERO_ORDER, VisitorEnum::ALL_BUFFERS));
@@ -241,8 +256,8 @@ namespace Detail {
 }
 
 
-/// Generic container for storing scalar, vector or tensor quantities. Containes current values of the unit
-/// and all derivatives (if there is an evolution equation for the unit, of course).
+/// Generic container for storing scalar, vector or tensor quantities. Contains current values of the quantity
+/// and all derivatives (if there is an evolution equation for the quantity, of course).
 /// As the quantity can have data of different types, there is no direct way to access the arrays stored
 /// within. There are several methods, however, that allow to access the information indirectly:
 /// 1) cast<Type, TemporalEnum>; returns holder of quantity (see above) IF the type and temporal enum in
@@ -255,7 +270,7 @@ namespace Detail {
 class Quantity : public Noncopyable {
 private:
     std::unique_ptr<Detail::PlaceHolder> data;
-    int idx = -1;
+    QuantityKey idx;
 
 public:
     Quantity() = default;
@@ -265,15 +280,30 @@ public:
         std::swap(idx, other.idx);
     }
 
-    /// Creates a quantity from array of values and given type. If the type is 1st-order or 2nd-order,
-    /// derivatives arrays resized to the same size as the array of values.
-    template <typename TValue, TemporalEnum Type, typename... TArgs>
-    void emplace(int key, TArgs&&... args) {
-        using Holder = Detail::Holder<TValue, Type>;
-        data         = std::make_unique<Holder>(std::forward<TArgs>(args)...);
+    /// Creates a quantity given number of particles and default value of the quantity. All values are set to
+    /// the default value. If the type is 1st-order or 2nd-order, derivatives arrays resized to the same size
+    /// as the array of values and set to zero.
+    /// \param key Unique identifier of the quantity, used to locate quantity within a storage.
+    /// \param size Size of the array, equal to the number of particles.
+    /// \param defaultValue Value assigned to all particles.
+    /// \param range Optional parameter, used to set bounds for the quantity. By default, quantity is
+    ///              unbounded.
+    template <typename TValue, OrderEnum TOrder>
+    void emplace(QuantityKey key, const int size, const TValue& defaultValue, const Optional<Range> range) {
+        using Holder = Detail::Holder<TValue, TOrder>;
+        data         = std::make_unique<Holder>(size, defaultValue, range);
         idx          = key;
     }
 
+    /// Creates a quantity using functor that returns an array of values. Can also be directly another Array
+    /// or LimitedArray, provided the type of the array is the same. If the type is 1st-order or
+    /// 2nd-order, derivatives arrays resized to the same size as the array of values and set to zero.
+    template <typename TValue, OrderEnum TOrder, typename TDistribution>
+    void emplace(QuantityKey key, TDistribution&& distribution, const Optional<Range> range) {
+        using Holder = Detail::Holder<TValue, TOrder>;
+        data         = std::make_unique<Holder>(std::forward<TDistribution>(distribution), range);
+        idx          = key;
+    }
 
     Quantity& operator=(Quantity&& other) {
         std::swap(data, other.data);
@@ -281,9 +311,9 @@ public:
         return *this;
     }
 
-    TemporalEnum getTemporalEnum() const {
+    OrderEnum getOrderEnum() const {
         ASSERT(data);
-        return data->getTemporalEnum();
+        return data->getOrderEnum();
     }
 
     ValueEnum getValueEnum() const {
@@ -291,7 +321,7 @@ public:
         return data->getValueEnum();
     }
 
-    int getKey() const { return idx; }
+    QuantityKey getKey() const { return idx; }
 
     Quantity clone(const Flags<VisitorEnum> flags) const {
         ASSERT(data);
@@ -312,9 +342,9 @@ public:
     /// quantity
     /// is const or 1st order, as even 2nd order quantities can be successfully casted to const or 1st
     /// order.
-    template <typename TValue, TemporalEnum Type>
-    Optional<Detail::Holder<TValue, Type>&> cast() {
-        using Holder   = Detail::Holder<TValue, Type>;
+    template <typename TValue, OrderEnum TOrder>
+    Optional<Detail::Holder<TValue, TOrder>&> cast() {
+        using Holder   = Detail::Holder<TValue, TOrder>;
         Holder* holder = dynamic_cast<Holder*>(data.get());
         if (holder) {
             return *holder;
@@ -337,24 +367,11 @@ public:
     }
 };
 
-/*template <typename TValue, TemporalEnum Type>
-Quantity makeQuantity() {
-    Quantity q;
-    q.emplace<TValue, Type>();
-    return q;
-}
-*/
-template <typename TMap>
-Quantity makeQuantity() {
-    Quantity q;
-    q.emplace<typename TMap::Type, TMap::temporalEnum>();
-    return q;
-}
 
 namespace QuantityCast {
     template <typename TValue>
     Optional<LimitedArray<TValue>&> get(Quantity& quantity) {
-        auto holder = quantity.template cast<TValue, TemporalEnum::ZERO_ORDER>();
+        auto holder = quantity.template cast<TValue, OrderEnum::ZERO_ORDER>();
         if (!holder) {
             return NOTHING;
         } else {
@@ -364,7 +381,7 @@ namespace QuantityCast {
 
     template <typename TValue>
     Optional<LimitedArray<TValue>&> dt(Quantity& quantity) {
-        auto holder = quantity.template cast<TValue, TemporalEnum::FIRST_ORDER>();
+        auto holder = quantity.template cast<TValue, OrderEnum::FIRST_ORDER>();
         if (!holder) {
             return NOTHING;
         } else {
@@ -374,7 +391,7 @@ namespace QuantityCast {
 
     template <typename TValue>
     Optional<LimitedArray<TValue>&> dt2(Quantity& quantity) {
-        auto holder = quantity.template cast<TValue, TemporalEnum::SECOND_ORDER>();
+        auto holder = quantity.template cast<TValue, OrderEnum::SECOND_ORDER>();
         if (!holder) {
             return NOTHING;
         } else {

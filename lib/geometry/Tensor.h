@@ -89,13 +89,9 @@ public:
     }
 
     /// Multiplies the tensor by a scalar
-    INLINE friend Tensor operator*(const Tensor& t, const Float v) {
-        return Tensor(t.diag*v, t.off*v);
-    }
+    INLINE friend Tensor operator*(const Tensor& t, const Float v) { return Tensor(t.diag * v, t.off * v); }
 
-    INLINE friend Tensor operator*(const Float v, const Tensor& t) {
-        return Tensor(t.diag*v, t.off*v);
-    }
+    INLINE friend Tensor operator*(const Float v, const Tensor& t) { return Tensor(t.diag * v, t.off * v); }
 
     INLINE friend Tensor operator+(const Tensor& t1, const Tensor& t2) {
         return Tensor(t1.diag + t2.diag, t1.off + t2.off);
@@ -200,10 +196,15 @@ namespace Math {
     }
 
     /// Clamping all components by range.
-    template<>
+    template <>
     INLINE Tensor clamp(const Tensor& t, const Range& range) {
         return Tensor(clamp(t.diagonal(), range), clamp(t.offDiagonal(), range));
     }
+}
+
+/// Double-dot product t1 : t2 = sum_ij t1_ij t2_ij
+INLINE Float ddot(const Tensor& t1, const Tensor& t2) {
+    return dot(t1.diagonal(), t2.diagonal()) + 2._f * dot(t1.offDiagonal(), t2.offDiagonal());
 }
 
 INLINE StaticArray<Float, 3> findEigenvalues(const Tensor& t) {
@@ -214,8 +215,8 @@ INLINE StaticArray<Float, 3> findEigenvalues(const Tensor& t) {
 
     const Float a = q - p * p / 3._f;
     ASSERT(a < 0._f);
-    const Float b     = (2._f * Math::pow<3>(p) - 9._f * p * q + 27._f * r) / 27._f;
-    const Float aCub  = Math::pow<3>(a) / 27._f;
+    const Float b    = (2._f * Math::pow<3>(p) - 9._f * p * q + 27._f * r) / 27._f;
+    const Float aCub = Math::pow<3>(a) / 27._f;
     ASSERT(0.25_f * b * b + aCub < 0._f);
     const Float t1  = 2._f * Math::sqrt(-a / 3._f);
     const Float phi = Math::acos(-0.5_f * b / Math::sqrt(-aCub));

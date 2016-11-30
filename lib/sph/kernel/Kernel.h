@@ -28,13 +28,13 @@ public:
     /// \todo Test this carefully before going any further
     /// \todo Potentially precompute the 3rd power ...
     //    template <bool TApprox = false>
-    INLINE Float value(const Vector& r, const Float& h) const {
+    INLINE Float value(const Vector& r, const Float h) const {
         ASSERT(h > 0._f);
         return Math::pow<-d>(h) * kernel->valueImpl(getSqrLength(r) / (h * h));
     }
 
     //  template <bool TApprox = false>
-    INLINE Vector grad(const Vector& r, const Float& h) const {
+    INLINE Vector grad(const Vector& r, const Float h) const {
         ASSERT(h > 0._f);
         return r * Math::pow<-d - 2>(h) * kernel->gradImpl(getSqrLength(r) / (h * h));
     }
@@ -81,7 +81,7 @@ public:
     INLINE Float radius() const { return rad; }
 
     // template <bool TApprox = false>
-    INLINE Float valueImpl(const Float& qSqr) const {
+    INLINE Float valueImpl(const Float qSqr) const {
         ASSERT(qSqr >= 0.f);
         if (qSqr >= Math::sqr(rad)) {
             // outside of kernel support
@@ -98,7 +98,7 @@ public:
     }
 
     // template <bool TApprox = false>
-    INLINE Float gradImpl(const Float& qSqr) const {
+    INLINE Float gradImpl(const Float qSqr) const {
         ASSERT(qSqr >= 0._f);
         if (qSqr >= Math::sqr(rad)) {
             // outside of kernel support
@@ -127,7 +127,7 @@ public:
     INLINE Float radius() const { return 2._f; }
 
     // template <bool TApprox = false>
-    INLINE Float valueImpl(const Float& qSqr) const {
+    INLINE Float valueImpl(const Float qSqr) const {
         const Float q = Math::sqrt(qSqr);
         ASSERT(q >= 0);
         if (q < 1._f) {
@@ -140,7 +140,7 @@ public:
     }
 
     // template <bool TApprox = false>
-    INLINE Float gradImpl(const Float& qSqr) const {
+    INLINE Float gradImpl(const Float qSqr) const {
         const Float q = Math::sqrt(qSqr);
         if (q == 0._f) {
             return 0._f;
@@ -170,7 +170,7 @@ public:
     INLINE Float radius() const { return 2.5_f; }
 
     // template <bool TApprox = false>
-    INLINE Float valueImpl(const Float& qSqr) const {
+    INLINE Float valueImpl(const Float qSqr) const {
         const Float q = Math::sqrt(qSqr);
         ASSERT(q >= 0);
         if (q < 0.5_f) {
@@ -187,7 +187,7 @@ public:
     }
 
     // template <bool TApprox = false>
-    INLINE Float gradImpl(const Float& qSqr) const {
+    INLINE Float gradImpl(const Float qSqr) const {
         const Float q = Math::sqrt(qSqr);
         if (q == 0._f) {
             return 0._f;
@@ -208,6 +208,31 @@ public:
     }
 };
 
+/// Kernel proposed by Read et al. (2010) with improved stability. Only for 3 dimensions.
+class CoreTriangle : public Kernel<CoreTriangle, 3> {
+    INLINE Float radius() const { return 1._f; }
+
+    INLINE Float valueImpl(const Float qSqr) const {
+        const Float q     = Math::sqrt(qSqr);
+        const Float alpha = 1._f / 3._f;
+        const Float beta  = 1._f + 6._f * Math::sqr(alpha) - 12._f * Math::pow<3>(alpha);
+        const Float normalization =
+            8._f / (Math::PI * (6.4_f * Math::pow<5>(alpha) - 16._f * Math::pow<6>(alpha) + 1._f));
+        if (q < alpha) {
+            return normalization * ((-12._f * alpha + 18._f * Math::sqr(alpha)) * q + beta);
+        } else if (q < 0.5_f) {
+            return normalization * (1._f - 6._f * q * q * (1._f - q));
+        } else if (q < 1._f) {
+            return normalization * 2._f * Math::pow<3>(1._f - q);
+        } else {
+            return 0._f;
+        }
+    }
+
+    INLINE Float gradImpl(const Float UNUSED(qSqr)) const {
+        NOT_IMPLEMENTED;
+    }
+};
 
 /// Symmetrization of the kernel with a respect to different smoothing lenths
 /// Two possibilities - Symmetrized kernel W_ij = 0.5(W_i + W_j)
@@ -239,13 +264,9 @@ public:
     SymH(const LutKernel<d>& kernel)
         : kernel(kernel) {}
 
-    Float value(const Vector& r1, const Vector& r2) {
-        return kernel.value(r1 - r2, 0.5_f * (r1[H] + r2[H]));
-    }
+    Float value(const Vector& r1, const Vector& r2) { return kernel.value(r1 - r2, 0.5_f * (r1[H] + r2[H])); }
 
-    Vector grad(const Vector& r1, const Vector& r2) {
-        return kernel.grad(r1 - r2, 0.5_f * (r1[H] + r2[H]));
-    }
+    Vector grad(const Vector& r1, const Vector& r2) { return kernel.grad(r1 - r2, 0.5_f * (r1[H] + r2[H])); }
 };
 
 

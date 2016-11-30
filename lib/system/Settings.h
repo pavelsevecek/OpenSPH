@@ -49,7 +49,7 @@ public:
 
     template <typename TValue>
     void set(TEnum idx, TValue&& value) {
-        using StoreType = EnumToInt<TValue>;
+        using StoreType    = EnumToInt<TValue>;
         entries[idx].value = StoreType(std::forward<TValue>(value));
     }
 
@@ -59,7 +59,7 @@ public:
         ASSERT(iter != entries.end());
         /// \todo can be cast here as we no longer return optional
         using StoreType = EnumToInt<TValue>;
-        auto opt = iter->second.value.get<StoreType>();
+        auto opt        = iter->second.value.get<StoreType>();
         ASSERT(opt);
         return TValue(opt.get());
     }
@@ -172,7 +172,7 @@ private:
             }
         case STRING: {
             // trim leading and trailing spaces
-            const std::string trimmed  =std::regex_replace(str, std::regex("^ +| +$|( ) +"), "$1");
+            const std::string trimmed = std::regex_replace(str, std::regex("^ +| +$|( ) +"), "$1");
             ASSERT(!trimmed.empty() && "Variant cannot handle empty strings");
             entry.value = trimmed;
             return true;
@@ -198,14 +198,9 @@ enum class KernelEnum {
 
     /// M5 B-spline (piecewise 4th-order polynomial)
     FOURTH_ORDER_SPLINE,
-};
 
-enum class KernelSymmetryEnum {
-    /// Will return value of kernel at average smoothing lenghts
-    SYMMETRIZE_LENGTHS,
-
-    /// Average values of kernel for both smoothing lenghts
-    SYMMETRIZE_KERNELS
+    /// Core Triangle (CT) kernel by Read et al. (2010)
+    CORE_TRIANGLE
 };
 
 enum class TimesteppingEnum {
@@ -294,6 +289,15 @@ enum class GlobalSettingsIds {
     /// Eta-factor between smoothing length and particle concentration (h = eta * n^(-1/d) )
     SPH_KERNEL_ETA,
 
+    /// Artificial viscosity alpha coefficient
+    SPH_AV_ALPHA,
+
+    /// Lower and upper bound of the alpha coefficient, used only for time-dependent artificial viscosity.
+    SPH_AV_ALPHA_RANGE,
+
+    /// Artificial viscosity beta coefficient
+    SPH_AV_BETA,
+
     /// Selected timestepping integrator
     TIMESTEPPING_INTEGRATOR,
 
@@ -312,11 +316,9 @@ enum class GlobalSettingsIds {
     /// Multiplicative factor k in timestep computation; dt = k * v / dv
     TIMESTEPPING_ADAPTIVE_FACTOR,
 
-    /// Artificial viscosity alpha coefficient
-    AV_ALPHA,
-
-    /// Artificial viscosity beta coefficient
-    AV_BETA,
+    /// Global rotation of the coordinate system around axis (0, 0, 1) passing through origin. If non-zero,
+    /// causes non-intertial acceleration.
+    FRAME_ANGULAR_FREQUENCY,
 
     /// Computational domain, enforced by boundary conditions
     DOMAIN_TYPE,
@@ -336,22 +338,28 @@ enum class GlobalSettingsIds {
 
 // clang-format off
 const Settings<GlobalSettingsIds> GLOBAL_SETTINGS = {
+    /// Parameters of the run
     { GlobalSettingsIds::RUN_NAME,                      "run.name",                 std::string("unnamed run") },
     { GlobalSettingsIds::RUN_OUTPUT_STEP,               "run.output.step",          100 },
     { GlobalSettingsIds::RUN_OUTPUT_NAME,               "run.output.name",          std::string("out_%d.txt") },
     { GlobalSettingsIds::RUN_OUTPUT_PATH,               "run.output.path",          std::string("out") }, /// \todo Variant somehow doesnt handle empty strings
+    /// Global SPH parameters
     { GlobalSettingsIds::SPH_KERNEL,                    "sph.kernel",               int(KernelEnum::CUBIC_SPLINE) },
-    { GlobalSettingsIds::SPH_KERNEL_SYMMETRY,           "sph.kernel.symmetry",      int(KernelSymmetryEnum::SYMMETRIZE_LENGTHS) },
     { GlobalSettingsIds::SPH_KERNEL_ETA,                "sph.kernel.eta",           1.5_f },
+    { GlobalSettingsIds::SPH_AV_ALPHA,                  "sph.av.alpha",             1.5_f },
+    { GlobalSettingsIds::SPH_AV_ALPHA_RANGE,            "sph.av.alpha.range",       Range(0.05_f, 1.5_f) },
+    { GlobalSettingsIds::SPH_AV_BETA,                   "sph.av.beta",              3._f },
     { GlobalSettingsIds::SPH_FINDER,                    "sph.finder",               int(FinderEnum::KD_TREE) },
+    /// Timestepping parameters
     { GlobalSettingsIds::TIMESTEPPING_INTEGRATOR,       "timestep.integrator",      int(TimesteppingEnum::EULER_EXPLICIT) },
     { GlobalSettingsIds::TIMESTEPPING_COURANT,          "timestep.courant",         1._f },
     { GlobalSettingsIds::TIMESTEPPING_MAX_TIMESTEP,     "timestep.max_step",        0.1_f /*s*/}, /// \todo units necessary in settings!!!
     { GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP, "timestep.initial",         0.03_f },
     { GlobalSettingsIds::TIMESTEPPING_ADAPTIVE,         "timestep.adaptive",        false },
     { GlobalSettingsIds::TIMESTEPPING_ADAPTIVE_FACTOR,  "timestep.adaptive.factor", 0.1_f },
-    { GlobalSettingsIds::AV_ALPHA,                      "av.alpha",                 1.5_f },
-    { GlobalSettingsIds::AV_BETA,                       "av.beta",                  3._f },
+    /// Selected coordinate system, rotation of bodies
+    { GlobalSettingsIds::FRAME_ANGULAR_FREQUENCY,       "frame.angular_frequency",  0._f },
+    /// Computational domain and boundary conditions
     { GlobalSettingsIds::DOMAIN_TYPE,                   "domain.type",              int(DomainEnum::NONE) },
     { GlobalSettingsIds::DOMAIN_BOUNDARY,               "domain.boundary",          int(BoundaryEnum::NONE) },
     { GlobalSettingsIds::DOMAIN_CENTER,                 "domain.center",            Vector(0._f) },
@@ -435,6 +443,9 @@ enum class BodySettingsIds {
 
     VON_MISES_ELASTICITY_LIMIT,
 
+    /// Speed of crack growth, in units of local sound speed.
+    RAYLEIGH_SOUND_SPEED,
+
     WEIBULL_COEFFICIENT,
 
     WEIBULL_EXPONENT,
@@ -445,17 +456,23 @@ enum class BodySettingsIds {
 
 // clang-format off
 const Settings<BodySettingsIds> BODY_SETTINGS = {
+    /// Equation of state
     { BodySettingsIds::EOS,                     "eos",                          int(EosEnum::IDEAL_GAS) },
     { BodySettingsIds::ADIABATIC_INDEX,         "eos.adiabatic_index",          1.4_f },
+    /// Material properties
     { BodySettingsIds::DENSITY,                 "material.density",             2700._f },
     { BodySettingsIds::DENSITY_RANGE,           "material.density.range",       Range(1._f, NOTHING) },
     { BodySettingsIds::ENERGY,                  "material.energy",              0._f },
     { BodySettingsIds::ENERGY_RANGE,            "material.energy.range",        Range(0._f, NOTHING) },
     { BodySettingsIds::DAMAGE,                  "material.damage",              0._f },
     { BodySettingsIds::DAMAGE_RANGE,            "material.damage.range",        Range(0.f, 1._f) },
+    { BodySettingsIds::SHEAR_MODULUS,           "material.shear_modulus",       2.27e10_f },
+    { BodySettingsIds::RAYLEIGH_SOUND_SPEED,    "material.rayleigh_speed",      0.4_f },
+    { BodySettingsIds::WEIBULL_COEFFICIENT,     "material.weibull_coefficient", 4.e23_f },
+    { BodySettingsIds::WEIBULL_EXPONENT,        "material.weibull_exponent",    9._f },
+    /// SPH parameters specific for the body
     { BodySettingsIds::INITIAL_DISTRIBUTION,    "sph.initial_distribution",     int(DistributionEnum::HEXAGONAL) },
     { BodySettingsIds::PARTICLE_COUNT,          "sph.particle_count",           10000 },
-
 };
 // clang-format on
 
