@@ -24,7 +24,16 @@ NAMESPACE_SPH_BEGIN
 #define ASSERT(x)
 #endif
 
-#define NOT_IMPLEMENTED ASSERT(false && "not implemented"); throw std::exception();
+/// Helper macro marking missing implementation
+#define NOT_IMPLEMENTED                                                                                      \
+    ASSERT(false && "not implemented");                                                                      \
+    throw std::exception();
+
+/// Helper macro marking code that should never be executed (default branch of switch where there is finite
+/// number of options, for example)
+#define STOP                                                                                                 \
+    ASSERT(false && "stop");                                                                                 \
+    throw std::exception();
 
 /// Force inline for gcc
 #ifdef DEBUG

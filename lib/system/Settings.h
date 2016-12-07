@@ -4,11 +4,13 @@
 /// Pavel Sevecek 2016
 /// sevecek at sirrah.troja.mff.cuni.cz
 
+#include "geometry/TracelessTensor.h"
 #include "objects/containers/Array.h"
 #include "objects/wrappers/Range.h"
 #include "objects/wrappers/Variant.h"
 #include <fstream>
 #include <initializer_list>
+#include <iostream>
 #include <map>
 #include <regex>
 #include <string>
@@ -19,9 +21,9 @@ NAMESPACE_SPH_BEGIN
 template <typename TEnum>
 class Settings : public Object {
 private:
-    enum Types { BOOL, INT, FLOAT, RANGE, STRING, VECTOR };
+    enum Types { BOOL, INT, FLOAT, RANGE, STRING, VECTOR, TENSOR, TRACELESS_TENSOR };
 
-    using Value = Variant<bool, int, Float, Range, std::string, Vector>;
+    using Value = Variant<bool, int, Float, Range, std::string, Vector, Tensor, TracelessTensor>;
 
     struct Entry {
         TEnum id;
@@ -88,6 +90,12 @@ public:
             case VECTOR:
                 ofs << entry.value.get<Vector>().get();
                 break;
+            case TENSOR:
+                ofs << entry.value.get<Tensor>().get();
+                break;
+            case TRACELESS_TENSOR:
+                ofs << entry.value.get<TracelessTensor>().get();
+                break;
             default:
                 NOT_IMPLEMENTED;
             }
@@ -120,6 +128,7 @@ public:
             for (auto&& e : descriptors.entries) {
                 if (e.second.name == trimmedKey) {
                     if (!setValueByType(this->entries[e.second.id], e.second.value.getTypeIdx(), value)) {
+                        std::cout << "failed loading " << trimmedKey << std::endl;
                         return false;
                     }
                 }
@@ -161,15 +170,38 @@ private:
                 entry.value = f;
                 return true;
             }
-        case RANGE:
-            Float f1, f2;
-            ss >> f1 >> f2;
+        case RANGE: {
+            std::string s1, s2;
+            ss >> s1 >> s2;
+            if (ss.fail()) {
+                return false;
+            }
+            Optional<Float> lower, upper;
+            if (s1 == "-infinity") {
+                lower = NOTHING;
+            } else {
+                ss.clear();
+                ss.str(s1);
+                Float value;
+                ss >> value;
+                lower = value;
+            }
+            if (s2 == "infinity") {
+                upper = NOTHING;
+            } else {
+                ss.clear();
+                ss.str(s2);
+                Float value;
+                ss >> value;
+                upper = value;
+            }
             if (ss.fail()) {
                 return false;
             } else {
-                entry.value = Range(f1, f2);
+                entry.value = Range(lower, upper);
                 return true;
             }
+        }
         case STRING: {
             // trim leading and trailing spaces
             const std::string trimmed = std::regex_replace(str, std::regex("^ +| +$|( ) +"), "$1");
@@ -185,6 +217,23 @@ private:
             } else {
                 entry.value = Vector(v1, v2, v3);
                 return true;
+            }
+        case TENSOR:
+            Float sxx, syy, szz, sxy, sxz, syz;
+            ss >> sxx >> syy >> szz >> sxy >> sxz >> syz;
+            if (ss.fail()) {
+                return false;
+            } else {
+                entry.value = Tensor(Vector(sxx, syy, szz), Vector(sxy, sxz, syz));
+                return true;
+            }
+        case TRACELESS_TENSOR:
+            Float txx, tyy, txy, txz, tyz;
+            ss >> txx >> tyy >> txy >> txz >> tyz;
+            if (ss.fail()) {
+                return false;
+            } else {
+                entry.value = TracelessTensor(txx, tyy, txy, txz, tyz);
             }
         default:
             NOT_IMPLEMENTED;
@@ -282,9 +331,6 @@ enum class GlobalSettingsIds {
 
     /// Structure for searching nearest neighbours of particles
     SPH_FINDER,
-
-    /// Approach of smoothing length symmetrization, see SmoothingLengthEnum
-    SPH_KERNEL_SYMMETRY,
 
     /// Eta-factor between smoothing length and particle concentration (h = eta * n^(-1/d) )
     SPH_KERNEL_ETA,
@@ -420,6 +466,9 @@ enum class BodySettingsIds {
     /// Allowed range of specific internal energy.
     ENERGY_RANGE,
 
+    /// Initial values of the deviatoric stress tensor
+    STRESS_TENSOR,
+
     /// Initial damage of the body.
     DAMAGE,
 
@@ -466,6 +515,7 @@ const Settings<BodySettingsIds> BODY_SETTINGS = {
     { BodySettingsIds::ENERGY_RANGE,            "material.energy.range",        Range(0._f, NOTHING) },
     { BodySettingsIds::DAMAGE,                  "material.damage",              0._f },
     { BodySettingsIds::DAMAGE_RANGE,            "material.damage.range",        Range(0.f, 1._f) },
+    { BodySettingsIds::STRESS_TENSOR,           "material.stress_tensor",       TracelessTensor(0._f) },
     { BodySettingsIds::SHEAR_MODULUS,           "material.shear_modulus",       2.27e10_f },
     { BodySettingsIds::RAYLEIGH_SOUND_SPEED,    "material.rayleigh_speed",      0.4_f },
     { BodySettingsIds::WEIBULL_COEFFICIENT,     "material.weibull_coefficient", 4.e23_f },

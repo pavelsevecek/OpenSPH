@@ -23,6 +23,10 @@ template<>
 void executeType<TracelessTensor>(int& a) {
      a = 4;
 }
+template<>
+void executeType<int>(int& a) {
+     a = 5;
+}
 
 
 struct TestVisitor {

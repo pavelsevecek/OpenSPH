@@ -220,12 +220,23 @@ namespace Math {
     template <typename T>
     INLINE Float normSqr(const T& value);
 
+    /// Specialization for float, magnitude of float = absolute value
     template <>
     INLINE Float norm(const Float& value) {
         return Math::abs(value);
     }
     template <>
     INLINE Float normSqr(const Float& value) {
+        return Math::sqr(value);
+    }
+
+    /// Specialization for int (needed to use int in quantities)
+    template <>
+    INLINE Float norm(const int& value) {
+        return Math::abs(value);
+    }
+    template <>
+    INLINE Float normSqr(const int& value) {
         return Math::sqr(value);
     }
 

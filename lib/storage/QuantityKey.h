@@ -4,26 +4,26 @@
 /// Pavel Sevecek 2016
 /// sevecek at sirrah.troja.mff.cuni.cz
 
-#include "storage/Quantity.h"
+#include "objects/Object.h"
 
 NAMESPACE_SPH_BEGIN
 
 /// Unique ID of basic quantities of SPH particles
 enum class QuantityKey {
-    R     = 0,  ///< Positions (velocities, accelerations) of particles
-    M     = 1,  ///< Paricles masses
-    P     = 2,  ///< Pressure
-    RHO   = 3,  ///< Density
-    U     = 4,  ///< Specific internal energy
-    CS    = 5,  ///< Sound speed
-    S     = 6,  ///< Deviatoric stress tensor
-    A     = 7,  ///< Specific entropy
-    D     = 8,  ///< Damage
-    DIVV  = 9,  ///< Velocity divergence
-    ROTV  = 10, ///< Velocity rotation
-    ALPHA = 11, ///< Coefficient alpha of the artificial viscosity
-    BETA  = 12, ///< Coefficient beta of the artificial viscosity
-    MAT   = 13, ///< ID of material (equation of state)
+    R        = 0,  ///< Positions (velocities, accelerations) of particles
+    M        = 1,  ///< Paricles masses
+    P        = 2,  ///< Pressure
+    RHO      = 3,  ///< Density
+    U        = 4,  ///< Specific internal energy
+    CS       = 5,  ///< Sound speed
+    S        = 6,  ///< Deviatoric stress tensor
+    A        = 7,  ///< Specific entropy
+    D        = 8,  ///< Damage
+    DIVV     = 9,  ///< Velocity divergence
+    ROTV     = 10, ///< Velocity rotation
+    ALPHA    = 11, ///< Coefficient alpha of the artificial viscosity
+    BETA     = 12, ///< Coefficient beta of the artificial viscosity
+    RHO_DIVV = 13, ///< Density times velocity divergence (auxiliary quantitiy)
 };
 
 /// \todo rewrite this to something less stupid

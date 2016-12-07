@@ -28,6 +28,7 @@ TEST_CASE("TracelessTensor construction", "[tracelesstesnro]") {
 TEST_CASE("TracelessTensor apply", "[tensor]") {
     Tensor t(Vector(1._f, 2._f, 3._f), Vector(2._f, 2._f, 4._f), Vector(3._f, 4._f, -3._f));
     Vector v(2._f, 1._f, -1._f);
-
     REQUIRE(t * v == Vector(1._f, 2._f, 13._f));
+    v = Vector(0._f);
+    REQUIRE(t * v == Vector(0._f));
  }

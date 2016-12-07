@@ -26,8 +26,9 @@ class NonOwningPtr : public Object {
 
 private:
     T* ptr = nullptr;
+    std::shared_ptr<bool> valid;
 
-    INLINE bool isValid() { return valid && *valid; }
+    INLINE bool isValid() const { return valid && *valid; }
 
 public:
     NonOwningPtr() = default;

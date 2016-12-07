@@ -149,7 +149,7 @@ inline Tuple<TArgs&&...> forwardAsTuple(TArgs&&... args) {
 /// placeholder for unused variables in
 struct Ignore {
     template <class T>
-    const Ignore& operator=(const T&) const {
+    const Ignore& operator=(T&&) const {
         return *this;
     }
 };

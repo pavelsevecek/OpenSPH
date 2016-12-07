@@ -24,7 +24,6 @@ TEST_CASE("Settings save/load", "[settings]") {
     settings.set(GlobalSettingsIds::DOMAIN_CENTER, Vector(1._f, 2._f, 3._f));
     settings.set(GlobalSettingsIds::DOMAIN_RADIUS, 3.5f);
     settings.set(GlobalSettingsIds::RUN_NAME, std::string("test"));
-    settings.set(GlobalSettingsIds::SPH_KERNEL_SYMMETRY, 0);
     settings.saveToFile("tmp.sph");
 
     Settings<GlobalSettingsIds> loadedSettings;
@@ -35,6 +34,4 @@ TEST_CASE("Settings save/load", "[settings]") {
     REQUIRE(radius == 3.5f);
     const std::string name = loadedSettings.get<std::string>(GlobalSettingsIds::RUN_NAME);
     REQUIRE(name == "test");
-    const int sym = loadedSettings.get<int>(GlobalSettingsIds::SPH_KERNEL_SYMMETRY);
-    REQUIRE(sym == 0);
 }

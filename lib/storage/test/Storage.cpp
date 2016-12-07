@@ -1,96 +1,190 @@
 #include "storage/Storage.h"
 #include "catch.hpp"
+#include "physics/Eos.h"
+#include "system/Factory.h"
+#include "system/Settings.h"
 
 using namespace Sph;
 
-TEST_CASE("Storage", "[storage]") {
-    Storage storage = makeStorage<QuantityKey::R, QuantityKey::M>();
+TEST_CASE("Storage resize", "[storage]") {
+    Storage storage;
+    REQUIRE(storage.getQuantityCnt() == 0);
+    REQUIRE(storage.getParticleCnt() == 0);
+    storage.resize<VisitorEnum::ALL_BUFFERS>(5);
+    REQUIRE(storage.getQuantityCnt() == 0);
+    REQUIRE(storage.getParticleCnt() == 5);
+
+    storage.emplace<Float, OrderEnum::FIRST_ORDER>(QuantityKey::RHO, 3._f);
+    storage.emplace<Vector, OrderEnum::SECOND_ORDER>(QuantityKey::M, Vector(5._f));
+
     REQUIRE(storage.getQuantityCnt() == 2);
+    REQUIRE(storage.has(QuantityKey::RHO));
+    REQUIRE(storage.has(QuantityKey::M));
+    REQUIRE(!storage.has(QuantityKey::R));
+    REQUIRE((storage.has<Float, OrderEnum::FIRST_ORDER>(QuantityKey::RHO)));
+    REQUIRE(!(storage.has<Float, OrderEnum::SECOND_ORDER>(QuantityKey::RHO)));
+    REQUIRE(!(storage.has<Vector, OrderEnum::FIRST_ORDER>(QuantityKey::RHO)));
 
-    int counter = 0;
-    iterate<VisitorEnum::ALL_BUFFERS>(storage, [&counter](auto&& ar) {
-        counter++;
-        ar.resize(5);
-    });
-    REQUIRE(counter == 4); // should visit R, dR, d2R and M
-
-    auto tuple = storage.template get<QuantityKey::R, QuantityKey::M>();
-    static_assert(tuple.size == 2, "static test failed");
-    static_assert(std::is_same<decltype(get<0>(tuple)), ArrayView<Vector>&>::value, "static test failed");
-    static_assert(std::is_same<decltype(get<1>(tuple)), ArrayView<Float>&>::value, "static test failed");
-    REQUIRE(get<0>(tuple).size() == 5);
-    REQUIRE(get<1>(tuple).size() == 5);
+    REQUIRE(storage.getValue<Vector>(QuantityKey::M).size() == 5);
+    REQUIRE(storage.getValue<Float>(QuantityKey::RHO) == Array<Float>({ 3._f, 3._f, 3._f, 3._f, 3._f }));
 }
 
+TEST_CASE("Storage emplaceWithFunctor", "[storage]") {
+    Storage storage;
+    Array<Vector> r{ Vector(0._f), Vector(1._f), Vector(2._f), Vector(4._f) };
+    Array<Vector> origR = r.clone();
+    storage.emplace<Vector, OrderEnum::SECOND_ORDER>(QuantityKey::R, std::move(r));
+
+    int idx = 0;
+    storage.emplaceWithFunctor<Vector, OrderEnum::FIRST_ORDER>(
+        QuantityKey::M, [&idx, &origR](const Vector& v, const int i) {
+            REQUIRE(v == origR[idx]);
+            REQUIRE(i == idx);
+            idx++;
+
+            return Vector(Float(i), 0._f, 0._f);
+        });
+    REQUIRE(storage.getValue<Vector>(QuantityKey::M) == Array<Vector>({ Vector(0._f, 0._f, 0._f),
+                                                            Vector(1._f, 0._f, 0._f),
+                                                            Vector(2._f, 0._f, 0._f),
+                                                            Vector(3._f, 0._f, 0._f) }));
+}
 
 TEST_CASE("Clone storages", "[storage]") {
-    Storage storage     = makeStorage<QuantityKey::R, QuantityKey::RHO, QuantityKey::M>();
-    Array<Vector>& rs   = storage.template get<QuantityKey::R>();
-    Array<Vector>& vs   = storage.template dt<QuantityKey::R>();
-    Array<Vector>& dvs  = storage.template d2t<QuantityKey::R>();
-    Array<Float>& ms    = storage.template get<QuantityKey::M>();
-    Array<Float>& rhos  = storage.template get<QuantityKey::RHO>();
-    Array<Float>& drhos = storage.template dt<QuantityKey::RHO>();
+    Storage storage;
+    storage.resize<VisitorEnum::ALL_BUFFERS>(5);
+    storage.emplace<Float, OrderEnum::SECOND_ORDER>(QuantityKey::R, 4._f);
+    storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityKey::M, 1._f);
+    storage.emplace<Float, OrderEnum::FIRST_ORDER>(QuantityKey::RHO, 3._f);
 
-    rs.resize(6);
-    vs.resize(5);
-    dvs.resize(4);
-    ms.resize(3);
-    rhos.resize(2);
-    drhos.resize(1);
 
+    auto rs = storage.getAll<Float>(QuantityKey::R);
+    rs[0].resize(6);
+    rs[1].resize(5);
+    rs[2].resize(4);
+    storage.getValue<Float>(QuantityKey::M).resize(3);
+    auto rhos = storage.getAll<Float>(QuantityKey::RHO);
+    rhos[0].resize(2);
+    rhos[1].resize(1);
+
+    ArrayView<Float> r, v, dv, m, rho, drho;
+
+    auto updateViews = [&](Storage& st) {
+        tieToArray(r, v, dv) = st.getAll<Float>(QuantityKey::R);
+        tieToArray(rho, drho) = st.getAll<Float>(QuantityKey::RHO);
+        m = st.getValue<Float>(QuantityKey::M);
+    };
+
+    // clone all buffers
     Storage cloned1 = storage.clone(VisitorEnum::ALL_BUFFERS);
-    REQUIRE(cloned1.template get<QuantityKey::R>().size() == 6);
-    REQUIRE(cloned1.template dt<QuantityKey::R>().size() == 5);
-    REQUIRE(cloned1.template d2t<QuantityKey::R>().size() == 4);
-    REQUIRE(cloned1.template get<QuantityKey::M>().size() == 3);
-    REQUIRE(cloned1.template get<QuantityKey::RHO>().size() == 2);
-    REQUIRE(cloned1.template dt<QuantityKey::RHO>().size() == 1);
+    updateViews(cloned1);
+    REQUIRE(makeArray(r.size(), v.size(), dv.size(), m.size(), rho.size(), drho.size()) ==
+            makeArray(6, 5, 4, 3, 2, 1));
 
+    // only highest derivatives
     Storage cloned2 = storage.clone(VisitorEnum::HIGHEST_DERIVATIVES);
-    REQUIRE(cloned2.template get<QuantityKey::R>().size() == 0);
-    REQUIRE(cloned2.template dt<QuantityKey::R>().size() == 0);
-    REQUIRE(cloned2.template d2t<QuantityKey::R>().size() == 4);
-    REQUIRE(cloned2.template get<QuantityKey::M>().size() == 0);
-    REQUIRE(cloned2.template get<QuantityKey::RHO>().size() == 0);
-    REQUIRE(cloned2.template dt<QuantityKey::RHO>().size() == 1);
+    updateViews(cloned2);
+    REQUIRE(makeArray(r.size(), v.size(), dv.size(), m.size(), rho.size(), drho.size()) ==
+            makeArray(0, 0, 4, 0, 0, 1));
 
+    // only second derivatives
     Storage cloned3 = storage.clone(VisitorEnum::SECOND_ORDER);
-    REQUIRE(cloned3.template get<QuantityKey::R>().size() == 0);
-    REQUIRE(cloned3.template dt<QuantityKey::R>().size() == 0);
-    REQUIRE(cloned3.template d2t<QuantityKey::R>().size() == 4);
-    REQUIRE(cloned3.template get<QuantityKey::M>().size() == 0);
-    REQUIRE(cloned3.template get<QuantityKey::RHO>().size() == 0);
-    REQUIRE(cloned3.template dt<QuantityKey::RHO>().size() == 0);
+    updateViews(cloned3);
+    REQUIRE(makeArray(r.size(), v.size(), dv.size(), m.size(), rho.size(), drho.size()) ==
+            makeArray(0, 0, 4, 0, 0, 0));
 
+    // swap all buffers with 1st storage
     cloned3.swap(cloned1, VisitorEnum::ALL_BUFFERS);
-    REQUIRE(cloned3.template get<QuantityKey::R>().size() == 6);
-    REQUIRE(cloned3.template dt<QuantityKey::R>().size() == 5);
-    REQUIRE(cloned3.template d2t<QuantityKey::R>().size() == 4);
-    REQUIRE(cloned3.template get<QuantityKey::M>().size() == 3);
-    REQUIRE(cloned3.template get<QuantityKey::RHO>().size() == 2);
-    REQUIRE(cloned3.template dt<QuantityKey::RHO>().size() == 1);
+    updateViews(cloned3);
+    REQUIRE(makeArray(r.size(), v.size(), dv.size(), m.size(), rho.size(), drho.size()) ==
+            makeArray(6, 5, 4, 3, 2, 1));
+    updateViews(cloned1);
+    REQUIRE(makeArray(r.size(), v.size(), dv.size(), m.size(), rho.size(), drho.size()) ==
+            makeArray(0, 0, 4, 0, 0, 0));
 
-    REQUIRE(cloned1.template get<QuantityKey::R>().size() == 0);
-    REQUIRE(cloned1.template dt<QuantityKey::R>().size() == 0);
-    REQUIRE(cloned1.template d2t<QuantityKey::R>().size() == 4);
-    REQUIRE(cloned1.template get<QuantityKey::M>().size() == 0);
-    REQUIRE(cloned1.template get<QuantityKey::RHO>().size() == 0);
-    REQUIRE(cloned1.template dt<QuantityKey::RHO>().size() == 0);
-
-    cloned3.template d2t<QuantityKey::R>().resize(12);
+    cloned3.getAll<Float>(QuantityKey::R)[2].resize(12);
     cloned3.swap(cloned1, VisitorEnum::HIGHEST_DERIVATIVES);
-    REQUIRE(cloned3.template get<QuantityKey::R>().size() == 6);
-    REQUIRE(cloned3.template dt<QuantityKey::R>().size() == 5);
-    REQUIRE(cloned3.template d2t<QuantityKey::R>().size() == 4);
-    REQUIRE(cloned3.template get<QuantityKey::M>().size() == 3);
-    REQUIRE(cloned3.template get<QuantityKey::RHO>().size() == 2);
-    REQUIRE(cloned3.template dt<QuantityKey::RHO>().size() == 0);
+    updateViews(cloned3);
+    REQUIRE(makeArray(r.size(), v.size(), dv.size(), m.size(), rho.size(), drho.size()) ==
+            makeArray(6, 5, 4, 3, 2, 0));
+    updateViews(cloned1);
+    REQUIRE(makeArray(r.size(), v.size(), dv.size(), m.size(), rho.size(), drho.size()) ==
+            makeArray(0, 0, 12, 0, 0, 1));
+}
 
-    REQUIRE(cloned1.template get<QuantityKey::R>().size() == 0);
-    REQUIRE(cloned1.template dt<QuantityKey::R>().size() == 0);
-    REQUIRE(cloned1.template d2t<QuantityKey::R>().size() == 12);
-    REQUIRE(cloned1.template get<QuantityKey::M>().size() == 0);
-    REQUIRE(cloned1.template get<QuantityKey::RHO>().size() == 0);
-    REQUIRE(cloned1.template dt<QuantityKey::RHO>().size() == 1);
+TEST_CASE("Storage merge", "[storage]") {
+    Storage storage1;
+    storage1.emplace<Float, OrderEnum::FIRST_ORDER>(QuantityKey::RHO, Array<Float>{ 0._f, 1._f });
+
+    Storage storage2;
+    storage2.emplace<Float, OrderEnum::FIRST_ORDER>(QuantityKey::RHO, Array<Float>{ 2._f, 3._f });
+    storage1.merge(std::move(storage2));
+
+    REQUIRE(storage1.getQuantityCnt() == 1);
+    REQUIRE(storage1.getParticleCnt() == 4);
+
+    ArrayView<Float> rho = storage1.getValue<Float>(QuantityKey::RHO);
+    REQUIRE(rho == makeArray(0._f, 1._f, 2._f, 3._f));
+}
+
+TEST_CASE("Storage init", "[storage]") {
+    Storage storage;
+    storage.resize<VisitorEnum::ALL_BUFFERS>(3);
+    storage.emplace<Float, OrderEnum::SECOND_ORDER>(QuantityKey::R, 3._f);
+    storage.emplace<Float, OrderEnum::FIRST_ORDER>(QuantityKey::M, 1._f);
+    storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityKey::RHO, 2._f);
+
+    iterate<VisitorEnum::ALL_BUFFERS>(storage, [](auto&& buffer) {
+        using Type = typename std::decay_t<decltype(buffer)>::Type;
+        buffer.fill(Type(5._f));
+    });
+    REQUIRE(storage.getAll<Float>(QuantityKey::R)[2] == makeArray(5._f, 5._f, 5._f));
+    REQUIRE(storage.getAll<Float>(QuantityKey::M)[1] == makeArray(5._f, 5._f, 5._f));
+
+    storage.init();
+
+    REQUIRE(storage.getAll<Float>(QuantityKey::R)[2] == makeArray(0._f, 0._f, 0._f));
+    REQUIRE(storage.getAll<Float>(QuantityKey::R)[1] == makeArray(5._f, 5._f, 5._f));
+    REQUIRE(storage.getAll<Float>(QuantityKey::R)[0] == makeArray(5._f, 5._f, 5._f));
+    REQUIRE(storage.getAll<Float>(QuantityKey::M)[1] == makeArray(0._f, 0._f, 0._f));
+    REQUIRE(storage.getAll<Float>(QuantityKey::M)[0] == makeArray(5._f, 5._f, 5._f));
+    REQUIRE(storage.getAll<Float>(QuantityKey::RHO)[0] == makeArray(5._f, 5._f, 5._f));
+}
+
+TEST_CASE("Storage material", "[storage]") {
+    Settings<BodySettingsIds> settings;
+    settings.set<Float>(BodySettingsIds::ADIABATIC_INDEX, 5._f);
+    settings.set<EosEnum>(BodySettingsIds::EOS, EosEnum::IDEAL_GAS);
+
+    Storage storage(settings);
+    storage.emplace<Vector, OrderEnum::SECOND_ORDER>(
+        QuantityKey::R, makeArray(Vector(1._f, 0._f, 0._f), Vector(-2._f, 1._f, 1._f)));
+
+    settings.set<Float>(BodySettingsIds::ADIABATIC_INDEX, 13._f);
+    Storage other(settings);
+    other.emplace<Vector, OrderEnum::SECOND_ORDER>(
+        QuantityKey::R, makeArray(Vector(-3._f, 4._f, 0._f), Vector(5._f, 1._f, 0._f)));
+
+    storage.merge(std::move(other));
+    REQUIRE(storage.getMaterial(0).eos->getPressure(1._f, 1._f) == 4._f);
+    REQUIRE(storage.getMaterial(1).eos->getPressure(1._f, 1._f) == 4._f);
+    REQUIRE(storage.getMaterial(2).eos->getPressure(1._f, 1._f) == 12._f);
+    REQUIRE(storage.getMaterial(3).eos->getPressure(1._f, 1._f) == 12._f);
+
+    Array<Material> mats;
+    mats.push(Factory::getEos(settings));
+    settings.set<Float>(BodySettingsIds::ADIABATIC_INDEX, 25._f);
+    mats.push(Factory::getEos(settings));
+
+    storage.setMaterial(std::move(mats), [](const Vector& pos, int) {
+        if (pos[X] > 0._f) {
+            return 0;
+        } else {
+            return 1;
+        }
+    });
+    REQUIRE(storage.getMaterial(0).eos->getPressure(1._f, 1._f) == 12._f);
+    REQUIRE(storage.getMaterial(1).eos->getPressure(1._f, 1._f) == 24._f);
+    REQUIRE(storage.getMaterial(2).eos->getPressure(1._f, 1._f) == 24._f);
+    REQUIRE(storage.getMaterial(3).eos->getPressure(1._f, 1._f) == 12._f);
 }

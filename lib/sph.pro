@@ -25,7 +25,8 @@ SOURCES += \
     sph/timestepping/TimeStepping.cpp \
     system/Profiler.cpp \
     solvers/ContinuitySolver.cpp \
-    solvers/SummationSolver.cpp
+    solvers/SummationSolver.cpp \
+    solvers/AbstractSolver.cpp
 
 HEADERS += \
     core/Globals.h \
@@ -96,4 +97,5 @@ HEADERS += \
     solvers/Force.h \
     solvers/DensityIndependentSolver.h \
     solvers/EntropySolver.h \
-    storage/QuantityKey.h
+    storage/QuantityKey.h \
+    solvers/Accumulator.h

@@ -1,4 +1,4 @@
-AlignAfterOpenBracket: true
+AlignAfterOpenBracket: DontAlign
 AlignConsecutiveAssignments: true
 #AlignConsecutiveDeclarations: true
 AlignEscapedNewlinesLeft: false

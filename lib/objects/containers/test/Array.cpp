@@ -100,7 +100,7 @@ TEST_CASE("References", "[array]") {
     REQUIRE(c == 9);
 
     int d, e, f;
-    refs(d, e, f) = makeArray(3, 1, 4);
+    tieToArray(d, e, f) = makeArray(3, 1, 4);
     REQUIRE(d == 3);
     REQUIRE(e == 1);
     REQUIRE(f == 4);

@@ -169,6 +169,19 @@ public:
     bool operator!() const { return data == nullptr; }
 
     explicit operator bool() const { return data != nullptr; }
+
+    /// Comparison operator, comparings arrayviews element-by-element.
+    bool operator==(const ArrayView& other) const {
+        if (actSize != other.actSize) {
+            return false;
+        }
+        for (int i = 0; i < actSize; ++i) {
+            if (data[i] != other[i]) {
+                return false;
+            }
+        }
+        return true;
+    }
 };
 
 

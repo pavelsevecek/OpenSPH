@@ -81,9 +81,13 @@ public:
     /// Output to stream
     template <typename TStream>
     friend TStream& operator<<(TStream& stream, const Range& range) {
-        stream << "[" << (range.lower ? std::to_string(range.lower.get()) : std::string("-infinity")) << ", "
-               << (range.upper ? std::to_string(range.upper.get()) : std::string("infinity")) << "]";
+        stream << (range.lower ? std::to_string(range.lower.get()) : std::string("-infinity")) << " "
+               << (range.upper ? std::to_string(range.upper.get()) : std::string("infinity"));
         return stream;
+    }
+
+    static Range unbounded() {
+        return Range(NOTHING, NOTHING);
     }
 };
 
@@ -96,6 +100,10 @@ namespace Math {
 
     template <>
     INLINE Float clamp(const Float& v, const Range& range) {
+        return range.clamp(v);
+    }
+    template <>
+    INLINE int clamp(const int& v, const Range& range) {
         return range.clamp(v);
     }
 }

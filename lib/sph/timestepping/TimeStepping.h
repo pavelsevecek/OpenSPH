@@ -25,7 +25,7 @@ NAMESPACE_SPH_BEGIN
 /// timestep, or some garbage memory when the method is called for the first time. It is also necessary to
 /// clamp all quantities by their minimal/maximal allowed values.
 ///
-/// When model->compute is called, the storage passed as an argument MUST have zero highest order derivatives.
+/// When solver->compute is called, the storage passed as an argument MUST have zero highest order derivatives.
 namespace Abstract {
     class TimeStepping : public Polymorphic {
     protected:
@@ -46,8 +46,8 @@ namespace Abstract {
 
         INLINE Float getTimeStep() const { return dt; }
 
-        void step(Abstract::Solver* model) {
-            this->stepImpl(model);
+        void step(Abstract::Solver& solver) {
+            this->stepImpl(solver);
             // update time step
             if (getter) {
                 this->dt = getter.get()(this->maxdt);
@@ -55,7 +55,7 @@ namespace Abstract {
         }
 
     protected:
-        virtual void stepImpl(Abstract::Solver* model) = 0;
+        virtual void stepImpl(Abstract::Solver& solver) = 0;
     };
 }
 
@@ -66,12 +66,12 @@ public:
                            const Settings<GlobalSettingsIds>& settings)
         : Abstract::TimeStepping(storage, settings) {}
 
-    virtual void stepImpl(Abstract::Solver* model) override {
+    virtual void stepImpl(Abstract::Solver& solver) override {
         // clear derivatives from previous timestep
         this->storage->init();
 
         // compute derivatives
-        model->compute(*this->storage);
+        solver.compute(*this->storage);
 
         PROFILE_SCOPE("EulerExplicit::step")
         // advance all 2nd-order quantities by current timestep, first values, then 1st derivatives
@@ -106,7 +106,7 @@ public:
     }
 
 protected:
-    virtual void stepImpl(Abstract::Solver* model) override {
+    virtual void stepImpl(Abstract::Solver& solver) override {
         const Float dt2 = 0.5_f * Math::sqr(this->dt);
 
         {
@@ -131,8 +131,8 @@ protected:
             // clear derivatives
             this->storage->init();
         }
-        // compute model
-        model->compute(*storage);
+        // compute derivative
+        solver.compute(*this->storage);
 
         PROFILE_SCOPE("PredictorCorrector::step   Corrections")
         // make corrections
@@ -164,7 +164,7 @@ public:
         : Abstract::TimeStepping(storage, settings) {}
 
 protected:
-    virtual void stepImpl(Abstract::Solver* UNUSED(model)) override {}
+    virtual void stepImpl(Abstract::Solver& UNUSED(solver)) override {}
 };
 
 
@@ -174,7 +174,7 @@ public:
         : Abstract::TimeStepping(storage, settings) {}
 
 protected:
-    virtual void stepImpl(Abstract::Solver* UNUSED(model)) override {}
+    virtual void stepImpl(Abstract::Solver& UNUSED(solver)) override {}
 };
 
 NAMESPACE_SPH_END

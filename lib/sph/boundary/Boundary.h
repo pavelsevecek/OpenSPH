@@ -57,7 +57,7 @@ public:
 
     virtual void apply(Storage& storage) override {
         ArrayView<Vector> r, v;
-        refs(r, v) = storage.get<QuantityKey::R, Vector, OrderEnum::FIRST_ORDER>();
+        tieToArray(r, v) = storage.getAll<Vector>(QuantityKey::R);
         // check which particles are outside of the domain
         domain->getSubset(r, outside, SubsetType::OUTSIDE);
         domain->project(r, outside);
@@ -112,7 +112,8 @@ public:
         : domain(domain) {}
 
     virtual void apply(Storage& storage) override {
-        refs(r, v) = storage.get<QuantityKey::R, Vector, OrderEnum::FIRST_ORDER>();
+        ArrayView<Vector> dv;
+        tieToArray(r, v, dv) = storage.getAll<Vector>(QuantityKey::R);
         for (int i = 0; i < r.size(); ++i) {
             // throw away y and z, keep h
             r[i] = Vector(domain.clamp(r[i][0]), 0._f, 0._f, r[i][H]);

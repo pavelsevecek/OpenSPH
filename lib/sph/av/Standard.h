@@ -6,8 +6,9 @@
 /// Pavel Sevecek 2016
 /// sevecek at sirrah.troja.mff.cuni.cz
 
-#include "system/Settings.h"
 #include "storage/Storage.h"
+#include "system/Factory.h"
+#include "system/Settings.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -19,13 +20,26 @@ private:
     const Float eps = 1.e-2_f;
 
 public:
-    StandardAV(const std::shared_ptr<Storage>& storage, const Settings<GlobalSettingsIds>& settings) {
-        refs(r, v) = storage->get<QuantityKey::R, Vector, OrderEnum::FIRST_ORDER>();
-        refs(rho) = storage->get<QuantityKey::RHO, Float, OrderEnum::ZERO_ORDER>();
-        refs(cs) = storage->get<QuantityKey::CS, Float, OrderEnum::ZERO_ORDER>();
-
+    StandardAV(const Settings<GlobalSettingsIds>& settings) {
         alpha = settings.get<Float>(GlobalSettingsIds::SPH_AV_ALPHA);
         beta  = settings.get<Float>(GlobalSettingsIds::SPH_AV_BETA);
+    }
+
+    static void setQuantities(Storage& storage, const Settings<BodySettingsIds>& settings) {
+        // emplace cs
+        std::unique_ptr<Abstract::Eos> eos = Factory::getEos(settings);
+        ArrayView<Float> rho, p;
+        tieToArray(rho, p) = storage.getValues<Float>(QuantityKey::RHO, QuantityKey::P);
+        if (!storage.has(QuantityKey::CS)) {
+            storage.emplaceWithFunctor<Float, OrderEnum::ZERO_ORDER>(QuantityKey::CS,
+                [&](const Vector&, const int i) { return eos->getSoundSpeed(rho[i], p[i]); });
+        }
+    }
+
+    void update(Storage& storage) {
+        ArrayView<const Vector> dv;
+        tieToArray(r, v, dv) = storage.getAll<Vector>(QuantityKey::R);
+        tieToArray(rho, cs) = storage.getValues<Float>(QuantityKey::RHO, QuantityKey::CS);
     }
 
     INLINE Float operator()(const int i, const int j) {

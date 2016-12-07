@@ -25,7 +25,6 @@ NAMESPACE_SPH_BEGIN
 ///  periodic conditions
 
 
-template <typename TModel>
 class Problem : public Noncopyable {
 public:
     /// Selected computational domain
@@ -50,17 +49,17 @@ public:
     Range timeRange;
 
     /// Stores all SPH particles
+    /// \todo does it have to be shared_ptr?
     std::shared_ptr<Storage> storage;
 
     /// Implements computations of quantities and their temporal evolution
-    TModel model;
+    std::unique_ptr<Abstract::Solver> solver;
 
 
-    /// initialize problem by constructing model
-    template <typename... TArgs>
-    Problem(TArgs&&... args)
+    /// initialize problem by constructing solver
+    Problem(std::unique_ptr<Abstract::Solver>&& solver)
         : storage(std::make_shared<Storage>())
-        , model(std::forward<TArgs>(args)...) {}
+        , solver(std::move(solver)) {}
 
     void run() {
         int i = 0;
@@ -84,10 +83,10 @@ public:
             i++;
 
             // Make time step
-            timeStepping->step(&model);
+            timeStepping->step(*solver);
 
             if (callbacks) {
-                callbacks->onTimeStep(storage->get<QuantityKey::R, Vector, OrderEnum::ZERO_ORDER>()[0]);
+                callbacks->onTimeStep(storage->getValue<Vector>(QuantityKey::R));
             }
         }
     }

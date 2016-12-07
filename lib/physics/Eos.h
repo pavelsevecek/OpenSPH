@@ -16,19 +16,13 @@ namespace Abstract {
     class Eos : public Polymorphic {
     public:
         /// Computes pressure from given density rho and specific internal energy u.
-        virtual void getPressure(ArrayView<const Float> rho,
-                                 ArrayView<const Float> u,
-                                 ArrayView<Float> p) = 0;
+        virtual Float getPressure(const Float rho, const Float u) const = 0;
 
         /// Inverted function; computes specific internal energy u from given density rho and pressure p.
-        virtual void getInternalEnergy(ArrayView<const Float> rho,
-                                       ArrayView<const Float> p,
-                                       ArrayView<Float> u) = 0;
+        virtual Float getInternalEnergy(const Float rho, const Float p) const = 0;
 
         /// Computes local sound speed.
-        virtual void getSoundSpeed(ArrayView<const Float> rho,
-                                   ArrayView<const Float> p,
-                                   ArrayView<Float> cs) = 0;
+        virtual Float getSoundSpeed(const Float rho, const Float p) const = 0;
     };
 }
 
@@ -41,31 +35,16 @@ public:
     IdealGasEos(const Float gamma)
         : gamma(gamma) {}
 
-    virtual void getPressure(ArrayView<const Float> rho,
-                             ArrayView<const Float> u,
-                             ArrayView<Float> p) override {
-        ASSERT(rho.size() == u.size() && rho.size() == p.size());
-        for (int i = 0; i < p.size(); ++i) {
-            p[i] = (gamma - 1._f) * u[i] * rho[i];
-        }
+    virtual Float getPressure(const Float rho, const Float u) const override {
+        return (gamma - 1._f) * u * rho;
     }
 
-    virtual void getInternalEnergy(ArrayView<const Float> rho,
-                                   ArrayView<const Float> p,
-                                   ArrayView<Float> u) override {
-        ASSERT(rho.size() == u.size() && rho.size() == p.size());
-        for (int i = 0; i < p.size(); ++i) {
-            u[i] = p[i] / ((gamma - 1._f) * rho[i]);
-        }
+    virtual Float getInternalEnergy(const Float rho, const Float p) const override {
+        return p / ((gamma - 1._f) * rho);
     }
 
-    virtual void getSoundSpeed(ArrayView<const Float> rho,
-                               ArrayView<const Float> p,
-                               ArrayView<Float> cs) override {
-        ASSERT(rho.size() == cs.size() && rho.size() == cs.size());
-        for (int i = 0; i < p.size(); ++i) {
-            cs[i] = Math::sqrt(gamma * p[i] / rho[i]);
-        }
+    virtual Float getSoundSpeed(const Float rho, const Float p) const override {
+        return Math::sqrt(gamma * p / rho);
     }
 
     Float getTemperature(const Float u) { return u / Constants::gasConstant; }
@@ -98,10 +77,9 @@ public:
     TillotsonEos(const Settings<BodySettingsIds>& settings)
         : uiv(settings.get<Float>(BodySettingsIds::TILLOTSON_ENERGY_IV)) {}
 
-    virtual void getPressure(ArrayView<const Float> rho,
-                             ArrayView<const Float> u,
-                             ArrayView<Float> p) override {
-        ASSERT(rho.size() == u.size() && rho.size() == p.size());
+        virtual Float getPressure(const Float UNUSED(rho), const Float UNUSED(u)) const override {
+        NOT_IMPLEMENTED;
+        /*ASSERT(rho.size() == u.size() && rho.size() == p.size());
         for (int i = 0; i < p.size(); ++i) {
             const Float eta   = rho[i] / rho0;
             const Float mu    = eta - 1._f;
@@ -119,19 +97,15 @@ public:
             } else {
                 p[i] = ((u[i] - uiv) * pe + (ucv - u[i]) * pc) / (ucv - uiv);
             }
-        }
+        }*/
     }
 
-    virtual void getInternalEnergy(ArrayView<const Float> UNUSED(rho),
-                                   ArrayView<const Float> UNUSED(p),
-                                   ArrayView<Float> UNUSED(u)) override {
-        ASSERT(false);
+    virtual Float getInternalEnergy(const Float UNUSED(rho), const Float UNUSED(p)) const override {
+        NOT_IMPLEMENTED;
     }
 
-    virtual void getSoundSpeed(ArrayView<const Float> UNUSED(rho),
-                               ArrayView<const Float> UNUSED(p),
-                               ArrayView<Float> UNUSED(cs)) override {
-        ASSERT(false);
+     virtual Float getSoundSpeed(const Float UNUSED(rho), const Float UNUSED(p)) const override {
+        NOT_IMPLEMENTED;
     }
 };
 

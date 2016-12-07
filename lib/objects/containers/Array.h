@@ -222,6 +222,13 @@ public:
         pushAll(other.cbegin(), other.cend());
     }
 
+    /// \todo add tests!
+    void pushAll(Array&& other) {
+        for (Iterator<T> iter = other.begin(); iter != other.end(); ++iter) {
+            push(std::move(*iter));
+        }
+    }
+
     /// Removes the last element from the array and return its value. Asserts if the array is empty.
     T pop() {
         ASSERT(this->actSize > 0);
@@ -262,15 +269,7 @@ public:
     /// Comparison operator, comparings array element-by-element. If arrays differ in number of constructed
     /// elements, the comparison always returns false; allocated size does not play role here.
     bool operator==(const Array<T, TCounter>& other) const {
-        if (actSize != other.actSize) {
-            return false;
-        }
-        for (int i = 0; i < actSize; ++i) {
-            if (data[i] != other[i]) {
-                return false;
-            }
-        }
-        return true;
+        return getView() == other.getView();
     }
 };
 
@@ -282,10 +281,9 @@ Array<std::decay_t<T0>> makeArray(T0&& t0, TArgs&&... rest) {
 
 /// Creates a l-value reference array from a list of l-value references.
 template <typename T0, typename... TArgs>
-Array<T0&> refs(T0& t0, TArgs&... rest) {
+Array<T0&> tieToArray(T0& t0, TArgs&... rest) {
     return Array<T0&>{ t0, rest... };
 }
-
 
 template <typename T, int N>
 class StaticArray : public Noncopyable {

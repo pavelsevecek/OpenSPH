@@ -22,7 +22,7 @@ namespace Abstract {
         }
 
         /// Saves data from particle storage into the file. Returns the filename of the dump.
-        virtual std::string dump(Storage& storage,const Float time) = 0;
+        virtual std::string dump(Storage& storage, const Float time) = 0;
 
         /// Loads data from the file into the storage. Can be used to continue simulation from saved snapshot.
         virtual void load(const std::string& path, Storage& storage) = 0;
@@ -50,24 +50,23 @@ public:
     virtual std::string dump(Storage& storage, const Float time) override {
         const std::string fileName = getFileName();
         std::ofstream ofs(fileName);
-        const int size = storage.getQuantityCnt();
         // print description
         ofs << "# SPH dump, time = " << time << std::endl;
         ofs << "# ";
-        for (int i=0; i<size; ++i) {
-            if (storage[i].getOrderEnum() == OrderEnum::SECOND_ORDER) {
-                ofs << std::setw(15) << getQuantityName(storage[i].getKey()) << std::setw(15)
-                    << getDerivativeName(storage[i].getKey());
+        for (auto&& q : storage) {
+            if (q.second.getOrderEnum() == OrderEnum::SECOND_ORDER) {
+                ofs << std::setw(15) << getQuantityName(q.first) << std::setw(15)
+                    << getDerivativeName(q.first);
             }
         }
-        for (int i=0; i<size; ++i) {
-            if (storage[i].getOrderEnum() == OrderEnum::FIRST_ORDER) {
-                ofs << std::setw(15) << getQuantityName(storage[i].getKey());
+        for (auto&& q : storage) {
+            if (q.second.getOrderEnum() == OrderEnum::FIRST_ORDER) {
+                ofs << std::setw(15) << getQuantityName(q.first);
             }
         }
-        for (int i=0; i<size; ++i) {
-            if (storage[i].getOrderEnum() == OrderEnum::ZERO_ORDER) {
-                ofs << std::setw(15) << getQuantityName(storage[i].getKey());
+        for (auto&& q : storage) {
+            if (q.second.getOrderEnum() == OrderEnum::ZERO_ORDER) {
+                ofs << std::setw(15) << getQuantityName(q.first);
             }
         }
         ofs << std::endl;
@@ -97,12 +96,15 @@ private:
     std::string scriptPath;
 
 public:
-    GnuplotOutput(const std::string& fileMask, const std::string& scriptPath) : TextOutput(fileMask), scriptPath(scriptPath) {}
+    GnuplotOutput(const std::string& fileMask, const std::string& scriptPath)
+        : TextOutput(fileMask)
+        , scriptPath(scriptPath) {}
 
     virtual std::string dump(Storage& storage, const Float time) override {
-        const std::string fileName = TextOutput::dump(storage, time);
+        const std::string fileName       = TextOutput::dump(storage, time);
         const std::string nameWithoutExt = fileName.substr(0, fileName.find_last_of("."));
-        const std::string command = "gnuplot -e \"filename='" + nameWithoutExt + "'; time="+std::to_string(time)+"\" " + scriptPath;
+        const std::string command        = "gnuplot -e \"filename='" + nameWithoutExt + "'; time=" +
+                                    std::to_string(time) + "\" " + scriptPath;
         system(command.c_str());
         return fileName;
     }

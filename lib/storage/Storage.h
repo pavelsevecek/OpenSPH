@@ -2,147 +2,267 @@
 
 #include "objects/containers/Array.h"
 #include "objects/containers/Tuple.h"
+#include "objects/wrappers/NonOwningPtr.h"
+#include "physics/Eos.h"
 #include "storage/Iterate.h"
 #include "storage/QuantityKey.h"
+#include "system/Factory.h"
 #include "system/Logger.h"
 #include "system/Settings.h"
-#include "objects/wrappers/NonOwningPtr.h"
+/// \todo do not include eos, move material to cpp
 
 NAMESPACE_SPH_BEGIN
 
-class StorageAccessor;
 
-/// Usage:
-/// body1 = storage(bodysettings1)
-/// body2 = storage(bodysettings2)
-/// merged = merge(body1, body2) // now merged contains quantities AND references to body settings. there
-///                                 really shouldn't be that many bodies, so copying settings is not a problem
-/// continuitysolver(merged)
-///   -- merged.emplace(r, P, rho, u, ...)  -- based on bodysettings
-///   -- force saves arrayview ...
-///
-/// notes:
-///  you can still edit storage of course, we are holding arrayviews
-///  any resizing, adding more bodies, removing particles etc. must be called update(Storage& ... ) method
+/// Runtime settings and functions for given material. Should not hold any constant values, these can be
+/// stored in Settings<BodySettingsIds>.
+struct Material : public Noncopyable {
+    std::unique_ptr<Abstract::Eos> eos; /// equation of state for given material
+
+    Material() = default;
+
+    Material(std::unique_ptr<Abstract::Eos>&& eos) : eos(std::move(eos)) {}
+
+    Material(Material&& other)
+        : eos(std::move(other.eos)) {}
+
+    Material& operator=(Material&& other) {
+        eos = std::move(other.eos);
+        return *this;
+    }
+};
+
 
 /// Base object for storing scalar, vector and tensor quantities of SPH particles. Other parts of the code
 /// simply point to stored arrays using ArrayView.
 class Storage : public Noncopyable {
 private:
-    // stored quantities (array of arrays). All arrays must be the same size at all times.
-    Array<Quantity> quantities;
+    /// Stored quantities (array of arrays). All arrays must be the same size at all times.
+    std::map<QuantityKey, Quantity> quantities;
 
-    // Number of particles (=size of each array)
-    int particleCnt;
+    /// Holds materials of particles. Each particle can (in theory) have a different material. Use method
+    /// getMaterial to obtain material for given particle.
+    Array<Material> materials;
 
-    // objects that can register and access quantities in storage
-    Array<NonOwningPtr<StorageAccessor>> accessors;
+    /// Index to material array for each particle
+    Array<int> materialIdxs;
+
+    /// Number of particles (=size of each array).
+    int particleCnt = 0;
 
 public:
     Storage() = default;
 
+    /// Create storage from body settings. This determines material of all particles in the storage. Particles
+    /// keep the material when two storages are merged.
+    Storage(const Settings<BodySettingsIds>& settings) {
+        Material mat;
+        mat.eos = Factory::getEos(settings);
+        materials.push(std::move(mat));
+    }
+
     Storage(Storage&& other)
         : quantities(std::move(other.quantities))
+        , materials(std::move(materials))
+        , materialIdxs(std::move(materialIdxs))
         , particleCnt(other.particleCnt) {}
 
     Storage& operator=(Storage&& other) {
-        quantities  = std::move(other.quantities);
-        particleCnt = other.particleCnt;
+        quantities   = std::move(other.quantities);
+        materials    = std::move(other.materials);
+        materialIdxs = std::move(materialIdxs);
+        particleCnt  = other.particleCnt;
         return *this;
     }
 
-    /// Creates a quantity in the storage, given its ID, value type and order. Quantity is resized and filled
-    /// with default value.
-    /// If a quantity with the same ID already exists, it is simply returned unchanged; its type and order,
-    /// however, must match the required ones (checked by assert).
-    /// \tparam TKey Unique ID of the quantity.
+    /// Checks if the storage contains quantity with given key. Type or order of unit is not specified.
+    bool has(const QuantityKey key) const { return quantities.find(key) != quantities.end(); }
+
+    /// Checks if the storage contains quantity with given key, value type and order.
+    template <typename TValue, OrderEnum TOrder>
+    bool has(const QuantityKey key) const {
+        auto iter = quantities.find(key);
+        if (iter == quantities.end()) {
+            return false;
+        }
+        const Quantity& q = iter->second;
+        return q.getOrderEnum() == TOrder && q.getValueEnum() == GetValueEnum<TValue>::type;
+    }
+
+    /// Retrieves a quantity from the storage, given its key and value type. The stored quantity must be of
+    /// type TValue, checked by assert. Quantity must already exist in the storage, checked by assert. To
+    /// check whether the quantity is stored, use has() method.
+    /// \return Array of references to LimitedArrays, containing quantity values and all derivatives.
+    template <typename TValue>
+    auto getAll(const QuantityKey key) {
+        auto iter = quantities.find(key);
+        ASSERT(iter != quantities.end());
+        Quantity& q = iter->second;
+        ASSERT(q.getValueEnum() == GetValueEnum<TValue>::type);
+        return q.getBuffers<TValue>();
+    }
+
+    /// Retrieves a quantity values from the storage, given its key and value type. The stored quantity must
+    /// be of type TValue, checked by assert. Quantity must already exist in the storage, checked by assert.
+    /// \return LimitedArray reference containing quantity values.
+    template <typename TValue>
+    LimitedArray<TValue>& getValue(const QuantityKey key) {
+        auto iter = quantities.find(key);
+        ASSERT(iter != quantities.end());
+        Quantity& q = iter->second;
+        ASSERT(q.getValueEnum() == GetValueEnum<TValue>::type);
+        return q.getValue<TValue>();
+    }
+
+    /// Retrieves an array of quantities from the key. The type of all quantities must be the same and equal
+    /// to TValue, checked by assert.
+    template <typename TValue, typename... TArgs>
+    auto getValues(const QuantityKey key, const TArgs... otherKeys) {
+        return tieToArray(getValue<TValue>(key), getValue<TValue>(otherKeys)...);
+    }
+
+    /// Creates a quantity in the storage, given its key, value type and order. Quantity is resized and filled
+    /// with default value. This cannot be used to set number of particles, the size of the quantity is set to
+    /// match current particle number. Can be used to override existing quantity with the same key.
     /// \tparam TValue Type of the quantity. Can be scalar, vector, tensor or traceless tensor.
     /// \tparam TOrder Order (number of derivatives) associated with the quantity.
+    /// \param key Unique key of the quantity.
     /// \param defaultValue Value to which quantity is initialized. If the quantity already exists in the
     ///                     storage, the value is unused.
     /// \param range Optional parameter specifying lower and upper bound of the quantity. Bound are enforced
     ///              by timestepping algorithm. By default, quantities are unbounded.
-    /// \return Array of references to LimitedArrays, containing quantity values and derivatives.
-    template <QuantityKey TKey, typename TValue, OrderEnum TOrder>
-    auto emplace(const TValue& defaultValue, const Optional<Range> range = NOTHING) {
-        // linear search in array of quantities
-        for (Quantity& q : quantities) {
-            if (q.getKey() == TKey) {
-                // found the right quantity
-                auto optHolder = q.template cast<TValue, QuantityKey>();
-                ASSERT(optHolder); // type or order mismatch!
-                return optHolder->getBuffers();
-            }
-        }
-        // quantity not found, create it.
-        ASSERT(particleCnt != 0);
+    template <typename TValue, OrderEnum TOrder>
+    void emplace(const QuantityKey key, const TValue& defaultValue, const Range& range = Range::unbounded()) {
+        ASSERT(particleCnt);
         Quantity q;
-        q.template emplace<TValue, TOrder>(TKey, defaultValue, range);
-        quantities.push(std::move(q));
+        q.emplace<TValue, TOrder>(defaultValue, particleCnt, range);
+        quantities[key] = std::move(q);
     }
 
-    /// Retrieves a quantity from the storage, given its ID, value type and order. The stored quantity must
-    /// have the same type and order (checked by assert). If no quantity with this ID is stored, throws
-    /// std::exception.
-    /// \return Array of references to LimitedArrays, containing quantity values and derivatives.
-    template <QuantityKey TKey, typename TValue, OrderEnum TOrder>
-    auto get() {
-        // linear search in array of quantities
-        for (Quantity& q : quantities) {
-            if (q.getKey() == TKey) {
-                // found the right quantity
-                auto optHolder = q.template cast<TValue, TOrder>();
-                ASSERT(optHolder); // type or order mismatch!
-                return optHolder->getBuffers();
+    /// Creates a quantity in the storage, given array of values. The size of the array must match the number
+    /// of particles. Derivatives of the quantity are set to zero. Can be used to override existing quantity
+    /// with the same key. If this is the first quantity inserted into the storage, it sets
+    /// the number of particles; all quantities added after that must have the same size.
+    template <typename TValue, OrderEnum TOrder>
+    void emplace(const QuantityKey key, Array<TValue>&& values, const Range range = Range::unbounded()) {
+        Quantity q;
+        q.emplace<TValue, TOrder>(std::move(values), range);
+        if (quantities.size() == 0) {
+            // this is the first quantity, set up number of particles
+            ASSERT(particleCnt == 0);
+            particleCnt = q.size();
+            // set material ids; we have only one material, so set everything to zero
+            if (!materials.empty()) {
+                materialIdxs.resize(particleCnt);
+                materialIdxs.fill(0);
             }
+        } else {
+            ASSERT(particleCnt > 0 && q.size() == particleCnt); // size must match sizes of other quantities
         }
-        throw std::exception();
+        quantities[key] = std::move(q);
     }
 
-    Quantity& operator[](const int idx) { return quantities[idx]; }
+    /// Creates a quantity in the storage, given a functor. This functor is called for every particle, takes
+    /// position of the particle (Vector) and index of the particle (int) as argument, and returns quantity
+    /// value for given particle. This can only be used if particle positions (QuantityKey::R) already exists
+    /// in the storage. Derivatives of the quantity are set to zero. Can be used to override existing quantity
+    /// with the same key.
+    template <typename TValue, OrderEnum TOrder, typename TFunctor>
+    void emplaceWithFunctor(const QuantityKey key,
+        TFunctor&& functor,
+        const Range range = Range::unbounded()) {
+        Array<Vector>& r = this->getValue<Vector>(QuantityKey::R);
+        Array<TValue> values(r.size());
+        for (int i = 0; i < r.size(); ++i) {
+            values[i] = functor(r[i], i);
+        }
+        this->emplace<TValue, TOrder>(key, std::move(values), range);
+    }
 
-    const Quantity& operator[](const int idx) const { return quantities[idx]; }
-
+    /// Returns the number of stored quantities.
     int getQuantityCnt() const { return quantities.size(); }
 
+    /// Returns the number of particles. The number of particle is always the same for all quantities.
+    int getParticleCnt() { return particleCnt; }
 
-    int getParticleCnt() {
-        // assuming positions R are ALWAYS present
-        return particleCnt;
+    /// Returns the material of given particle.
+    Material& getMaterial(const int particleIdx) {
+        ASSERT(!materials.empty());
+        return materials[materialIdxs[particleIdx]];
     }
 
-    void merge(Storage& other) {
+    /// Assigns materials to particles. Particle positions (QuantityKey::R) must already be stored, checked by
+    /// assert. This will override previously assigned materials. Selector is a functor taking particle
+    /// position and its index and must return index into the array of materials.
+    template <typename TSelector>
+    void setMaterial(Array<Material>&& mats, TSelector&& selector) {
+        ASSERT((this->has<Vector, OrderEnum::SECOND_ORDER>(QuantityKey::R)));
+        this->materials     = std::move(mats);
+        ArrayView<Vector> r = this->getValue<Vector>(QuantityKey::R);
+        this->materialIdxs.resize(r.size());
+        for (int i = 0; i < r.size(); ++i) {
+            this->materialIdxs[i] = selector(r[i], i);
+        }
+    }
+
+    /// Returns iterator at the beginning of quantity map. Dereferencing the iterator yields
+    /// std::pair<QuantityKey, Quantity>.
+    auto begin() { return quantities.begin(); }
+
+    /// Returns iterator at the past-to-end of quantity map. Dereferencing the iterator yields
+    /// std::pair<QuantityKey, Quantity>.
+    auto end() { return quantities.end(); }
+
+    void merge(Storage&& other) {
         // must contain the same quantities
         ASSERT(this->getQuantityCnt() == other.getQuantityCnt());
-        iteratePair<VisitorEnum::ALL_BUFFERS>(quantities, other.quantities, [](auto&& ar1, auto&& ar2) {
-            ar1.pushAll(ar2);
-        });
+        // as material id is an index to array, we have to increase indices before the merge
+        for (int& id : other.materialIdxs) {
+            id += other.materials.size();
+        }
+        materialIdxs.pushAll(std::move(other.materialIdxs));
+        materials.pushAll(std::move(other.materials));
+
+        // merge all quantities
+        iteratePair<VisitorEnum::ALL_BUFFERS>(
+            quantities, other.quantities, [](auto&& ar1, auto&& ar2) { ar1.pushAll(ar2); });
+        particleCnt += other.particleCnt;
     }
 
     /// Clears all highest level derivatives of quantities
     void init() {
-        iterate<VisitorEnum::FIRST_ORDER>(quantities, [](auto&& UNUSED(v), auto&& dv) {
+        iterate<VisitorEnum::HIGHEST_DERIVATIVES>(quantities, [](auto&& dv) {
             using TValue = typename std::decay_t<decltype(dv)>::Type;
             dv.fill(TValue(0._f));
         });
-        iterate<VisitorEnum::SECOND_ORDER>(quantities, [](auto&& UNUSED(v), auto&& UNUSED(dv), auto&& d2v) {
-            using TValue = typename std::decay_t<decltype(d2v)>::Type;
-            d2v.fill(TValue(0._f));
-        });
     }
 
+    /// Clones specified buffers of the storage. Cloned (sub)set of buffers is given by flags. Cloned storage
+    /// will have the same number of quantities and the order and types of quantities will match; if some
+    /// buffer is excluded from cloning, it is simply left empty.
     Storage clone(const Flags<VisitorEnum> flags) const {
         Storage cloned;
-        for (const Quantity& q : quantities) {
-            cloned.quantities.push(q.clone(flags));
+        for (const auto& q : quantities) {
+            cloned.quantities[q.first] = q.second.clone(flags);
         }
         return cloned;
     }
 
+    /// Changes number of particles for all quantities stored in the storage. If there is currently no
+    /// quantity stored, this sets up number of particles of any quantity created using its default value
+    /// (see method Storage::emplace(const TValue&, const Range&) ).
+    /// \todo signal all accessors
+    template <VisitorEnum Type>
+    void resize(const int newParticleCnt) {
+        iterate<Type>(quantities, [newParticleCnt](auto&& buffer) { buffer.resize(newParticleCnt); });
+        particleCnt = newParticleCnt;
+    }
+
     void swap(Storage& other, const Flags<VisitorEnum> flags) {
         ASSERT(this->getQuantityCnt() == other.getQuantityCnt());
-        for (int i = 0; i < this->getQuantityCnt(); ++i) {
-            quantities[i].swap(other.quantities[i], flags);
+        for (auto i1 = quantities.begin(), i2 = other.quantities.begin(); i1 != quantities.end();
+             ++i1, ++i2) {
+            i1->second.swap(i2->second, flags);
         }
     }
 
@@ -156,10 +276,5 @@ public:
         iteratePair<Type>(storage1.quantities, storage2.quantities, std::forward<TFunctor>(functor));
     }
 };
-
-class StorageAccessor : public Observable {
-
-};
-
 
 NAMESPACE_SPH_END

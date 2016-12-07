@@ -47,6 +47,11 @@ public:
         : m(value)
         , m12(value) {}
 
+    /// Initialize tensor given 5 independent components.
+    TracelessTensor(const Float xx, const Float yy, const Float xy, const Float xz, const Float yz)
+        : m(xx, yy, xy, xz)
+        , m12(yz) {}
+
     /// Construct tensor given three vectors as rows. Matrix represented by the vectors MUST be symmetric and
     /// traceless, checked by assert.
     TracelessTensor(const Vector& v0, const Vector& v1, const Vector& v2) {
@@ -107,8 +112,8 @@ public:
     /// Applies the tensor on given vector
     INLINE Vector operator*(const Vector& v) const {
         return Vector(m[M00] * v[0] + m[M01] * v[1] + m[M02] * v[2],
-                      m[M01] * v[0] + m[M11] * v[1] + m12 * v[2],
-                      m[M02] * v[0] + m12 * v[1] + (1._f - m[M00] - m[M11]) * v[2]);
+            m[M01] * v[0] + m[M11] * v[1] + m12 * v[2],
+            m[M02] * v[0] + m12 * v[1] + (1._f - m[M00] - m[M11]) * v[2]);
     }
 
     /// Multiplies the tensor by a scalar
@@ -179,8 +184,10 @@ namespace Math {
     INLINE Float normSqr(const TracelessTensor& t) { return Math::sqr(t.maxElement()); }
 
     /// Clamping all components by range.
-    template<>
-    INLINE TracelessTensor clamp(const TracelessTensor& t, const Range& range) { return t.clamp(range); }
+    template <>
+    INLINE TracelessTensor clamp(const TracelessTensor& t, const Range& range) {
+        return t.clamp(range);
+    }
 }
 
 
