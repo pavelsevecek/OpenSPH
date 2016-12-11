@@ -9,7 +9,7 @@
 using namespace Sph;
 
 INLINE Float smoothingFunc(const Float x, const Float x1, const Float x2) {
-    const Float w = exp(-(x - 0.5_f) / 0.002_f);
+    const Float w = exp(-(x - 0.5_f) / 0.001_f);
     if (x > 0.52_f) {
         return x2;
     } else if (x < 0.48_f) {
@@ -47,19 +47,19 @@ TEST_CASE("Sod", "[sod]") {
     globalSettings.set(GlobalSettingsIds::DOMAIN_RADIUS, 0.5_f);
     globalSettings.set(GlobalSettingsIds::DOMAIN_BOUNDARY, BoundaryEnum::PROJECT_1D);
     globalSettings.set(GlobalSettingsIds::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::EULER_EXPLICIT);
-    globalSettings.set(GlobalSettingsIds::SPH_AV_ALPHA, 1.0_f);
-    globalSettings.set(GlobalSettingsIds::SPH_AV_BETA, 2.0_f);
-    globalSettings.set(GlobalSettingsIds::SPH_KERNEL_ETA, 1.5_f);
-    globalSettings.set<Float>(GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP, 1.e-4_f);
-    globalSettings.set<Float>(GlobalSettingsIds::TIMESTEPPING_MAX_TIMESTEP, 1.e-3_f);
-    globalSettings.set<bool>(GlobalSettingsIds::TIMESTEPPING_ADAPTIVE, false);
+    globalSettings.set(GlobalSettingsIds::SPH_AV_ALPHA, 0.5_f);
+    globalSettings.set(GlobalSettingsIds::SPH_AV_BETA, 1.0_f);
+    globalSettings.set(GlobalSettingsIds::SPH_KERNEL_ETA, 1.7_f);
+    globalSettings.set<Float>(GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP, 1.e-5_f);
+    globalSettings.set<Float>(GlobalSettingsIds::TIMESTEPPING_MAX_TIMESTEP, 1.e-5_f);
+    globalSettings.set<bool>(GlobalSettingsIds::TIMESTEPPING_ADAPTIVE, true);
 
     // Number of SPH particles
-    const int N = 100;
+    const int N = 400;
     // Material properties
     Settings<BodySettingsIds> bodySettings = BODY_SETTINGS;
     bodySettings.set(BodySettingsIds::PARTICLE_COUNT, N);
-    bodySettings.set(BodySettingsIds::INITIAL_DISTRIBUTION, int(DistributionEnum::LINEAR));
+    bodySettings.set(BodySettingsIds::INITIAL_DISTRIBUTION, DistributionEnum::LINEAR);
     bodySettings.set(BodySettingsIds::ADIABATIC_INDEX, 1.4_f);
     bodySettings.set(BodySettingsIds::DENSITY_RANGE, Range(0.05_f, NOTHING));
     bodySettings.set(BodySettingsIds::ENERGY_RANGE, Range(0.05_f, NOTHING));
@@ -78,7 +78,7 @@ TEST_CASE("Sod", "[sod]") {
 
 
     // Setup initial conditions of Sod Shock Tube:
-    sod.storage = std::make_shared<Storage>(bodySettings);
+    sod.storage      = std::make_shared<Storage>(bodySettings);
     Storage& storage = *sod.storage;
     // 1) setup initial positions, with different spacing in each region
     const Float eta = globalSettings.get<Float>(GlobalSettingsIds::SPH_KERNEL_ETA);
@@ -88,8 +88,8 @@ TEST_CASE("Sod", "[sod]") {
     // 2) setup initial pressure and masses of particles
     storage.emplaceWithFunctor<Float, OrderEnum::FIRST_ORDER>(
         QuantityKey::P, [&](const Vector& r, const int) { return smoothingFunc(r[0], 1._f, 0.1_f); });
-    storage.emplaceWithFunctor<Float, OrderEnum::ZERO_ORDER>(QuantityKey::M,
-        [&](const Vector& r, const int) { return smoothingFunc(r[0], 1._f / N, 0.125_f / N); });
+    // mass = 1/N *integral density * dx
+    storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityKey::M, 0.5_f * (1._f + 0.125_f) / N);
 
     // 3) setup density to be consistent with masses
     std::unique_ptr<Abstract::Finder> finder = Factory::getFinder(globalSettings);
@@ -97,24 +97,32 @@ TEST_CASE("Sod", "[sod]") {
     LutKernel<1> kernel = Factory::getKernel<1>(globalSettings);
     Array<NeighbourRecord> neighs;
     ArrayView<const Float> m  = storage.getValue<Float>(QuantityKey::M);
-    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityKey::R);
+    ArrayView<const Vector> rs = storage.getValue<Vector>(QuantityKey::R);
     storage.emplaceWithFunctor<Float, OrderEnum::FIRST_ORDER>(
-        QuantityKey::RHO, [&](const Vector&, const int i) {
-            finder->findNeighbours(i, r[i][H] * kernel.radius(), neighs);
-            Float rho = 0._f;
-            for (int n = 0; n < neighs.size(); ++n) {
-                const int j = neighs[n].index;
-                rho += m[j] * kernel.value(r[i] - r[j], r[i][H]);
-            }
-            return rho;
+        QuantityKey::RHO, [&](const Vector& x, const int i) {
+              if (x[X] < 0.25_f) {
+                  return 1._f;
+              } else if (x[X] > 0.75_f) {
+                  return 0.125_f;
+              }
+              finder->findNeighbours(i, rs[i][H] * kernel.radius(), neighs);
+              Float rho = 0._f;
+              for (int n = 0; n < neighs.size(); ++n) {
+                  const int j = neighs[n].index;
+                  rho += m[j] * kernel.value(rs[i] - rs[j], rs[i][H]);
+              }
+              return rho;
+            //return smoothingFunc(x[0], 1._f, 0.125_f);
         });
 
     // 4) compute internal energy using equation of state
     std::unique_ptr<Abstract::Eos> eos = Factory::getEos(bodySettings);
-    ArrayView<const Float> rho, p;
-    tieToArray(rho, p) = storage.getValues<Float>(QuantityKey::RHO, QuantityKey::P);
     storage.emplaceWithFunctor<Float, OrderEnum::FIRST_ORDER>(
-        QuantityKey::U, [&](const Vector&, const int i) { return eos->getInternalEnergy(rho[i], p[i]); });
+        QuantityKey::U, [&](const Vector& r, const int) {
+            const Float rho = smoothingFunc(r[0], 1._f, 0.125_f);
+            const Float p   = smoothingFunc(r[0], 1._f, 0.1_f);
+            return eos->getInternalEnergy(rho, p);
+        });
 
     // 5) setup other quantities needed by model (sounds speed, ...)
     SphericalDomain domain(Vector(0.5_f), 0.5_f);

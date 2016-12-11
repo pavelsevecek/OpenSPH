@@ -166,10 +166,11 @@ TEST_CASE("Storage material", "[storage]") {
         QuantityKey::R, makeArray(Vector(-3._f, 4._f, 0._f), Vector(5._f, 1._f, 0._f)));
 
     storage.merge(std::move(other));
-    REQUIRE(storage.getMaterial(0).eos->getPressure(1._f, 1._f) == 4._f);
-    REQUIRE(storage.getMaterial(1).eos->getPressure(1._f, 1._f) == 4._f);
-    REQUIRE(storage.getMaterial(2).eos->getPressure(1._f, 1._f) == 12._f);
-    REQUIRE(storage.getMaterial(3).eos->getPressure(1._f, 1._f) == 12._f);
+    auto pressure = [&](const int i) { return get<0>(storage.getMaterial(i).eos->getPressure(1._f, 1._f)); };
+    REQUIRE(pressure(0) == 4._f);
+    REQUIRE(pressure(1) == 4._f);
+    REQUIRE(pressure(2) == 12._f);
+    REQUIRE(pressure(3) == 12._f);
 
     Array<Material> mats;
     mats.push(Factory::getEos(settings));
@@ -183,8 +184,8 @@ TEST_CASE("Storage material", "[storage]") {
             return 1;
         }
     });
-    REQUIRE(storage.getMaterial(0).eos->getPressure(1._f, 1._f) == 12._f);
-    REQUIRE(storage.getMaterial(1).eos->getPressure(1._f, 1._f) == 24._f);
-    REQUIRE(storage.getMaterial(2).eos->getPressure(1._f, 1._f) == 24._f);
-    REQUIRE(storage.getMaterial(3).eos->getPressure(1._f, 1._f) == 12._f);
+    REQUIRE(pressure(0) == 12._f);
+    REQUIRE(pressure(1) == 24._f);
+    REQUIRE(pressure(2) == 24._f);
+    REQUIRE(pressure(3) == 12._f);
 }

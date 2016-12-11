@@ -13,7 +13,7 @@ std::unique_ptr<Abstract::Eos> Factory::getEos(const Settings<BodySettingsIds>& 
     const EosEnum id = settings.get<EosEnum>(BodySettingsIds::EOS);
     switch (id) {
     case EosEnum::IDEAL_GAS:
-        return std::make_unique<IdealGasEos>(settings.get<float>(BodySettingsIds::ADIABATIC_INDEX));
+        return std::make_unique<IdealGasEos>(settings.get<Float>(BodySettingsIds::ADIABATIC_INDEX));
     case EosEnum::TILLOTSON:
         return std::make_unique<TillotsonEos>(settings);
     default:

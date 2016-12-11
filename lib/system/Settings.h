@@ -79,7 +79,7 @@ public:
                 ofs << (int)entry.value;
                 break;
             case FLOAT:
-                ofs << (float)entry.value;
+                ofs << (Float)entry.value;
                 break;
             case RANGE:
                 ofs << entry.value.get<Range>().get();
@@ -162,7 +162,7 @@ private:
                 return true;
             }
         case FLOAT:
-            float f;
+            Float f;
             ss >> f;
             if (ss.fail()) {
                 return false;
@@ -472,21 +472,35 @@ enum class BodySettingsIds {
     /// Initial damage of the body.
     DAMAGE,
 
-    /// Allowed range of damage.
-    DAMAGE_RANGE,
-
-    BULK_MODULUS,
-
+    /// Adiabatic index used by some equations of state (such as ideal gas)
     ADIABATIC_INDEX,
 
+    /// Allowed range of damage
+    DAMAGE_RANGE,
 
+    /// Bulk modulus of the material
+    BULK_MODULUS,
+
+    /// Coefficient B of the nonlinear compressive term in Tillotson equation
     TILLOTSON_NONLINEAR_B,
+
+    /// "Small a" coefficient in Tillotson equation
+    TILLOTSON_SMALL_A,
+
+    /// "Small b" coefficient in Tillotson equation
+    TILLOTSON_SMALL_B,
+
+    /// Alpha coefficient in expanded phase of Tillotson equation
+    TILLOTSON_ALPHA,
+
+    /// Beta coefficient in expanded phase of Tillotson equation
+    TILLOTSON_BETA,
 
     /// Specific energy of incipient vaporization
     TILLOTSON_ENERGY_IV,
 
     /// Specific energy of complete vaporization
-    TILLOTSON_EVERGY_CV,
+    TILLOTSON_ENERGY_CV,
 
     SHEAR_MODULUS,
 
@@ -508,6 +522,14 @@ const Settings<BodySettingsIds> BODY_SETTINGS = {
     /// Equation of state
     { BodySettingsIds::EOS,                     "eos",                          int(EosEnum::IDEAL_GAS) },
     { BodySettingsIds::ADIABATIC_INDEX,         "eos.adiabatic_index",          1.4_f },
+    { BodySettingsIds::TILLOTSON_SMALL_A,       "eos.tillotson.small_a",        0.5_f },
+    { BodySettingsIds::TILLOTSON_SMALL_B,       "eos.tillotson.small_b",        1.5_f },
+    { BodySettingsIds::TILLOTSON_ALPHA,         "eos.tillotson.alpha",          5._f },
+    { BodySettingsIds::TILLOTSON_BETA,          "eos.tillotson.beta",           5._f },
+    { BodySettingsIds::TILLOTSON_NONLINEAR_B,   "eos.tillotson.nonlinear_b",    2.67e10_f },
+    { BodySettingsIds::TILLOTSON_ENERGY_IV,     "eos.tillotson.energy_iv",      4.72e6_f },
+    { BodySettingsIds::TILLOTSON_ENERGY_CV,     "eos.tillotson.energy_cv",      1.82e7_f },
+
     /// Material properties
     { BodySettingsIds::DENSITY,                 "material.density",             2700._f },
     { BodySettingsIds::DENSITY_RANGE,           "material.density.range",       Range(1._f, NOTHING) },
@@ -516,10 +538,12 @@ const Settings<BodySettingsIds> BODY_SETTINGS = {
     { BodySettingsIds::DAMAGE,                  "material.damage",              0._f },
     { BodySettingsIds::DAMAGE_RANGE,            "material.damage.range",        Range(0.f, 1._f) },
     { BodySettingsIds::STRESS_TENSOR,           "material.stress_tensor",       TracelessTensor(0._f) },
+    { BodySettingsIds::BULK_MODULUS,            "material.bulk_modulus",        2.67e10_f },
     { BodySettingsIds::SHEAR_MODULUS,           "material.shear_modulus",       2.27e10_f },
     { BodySettingsIds::RAYLEIGH_SOUND_SPEED,    "material.rayleigh_speed",      0.4_f },
     { BodySettingsIds::WEIBULL_COEFFICIENT,     "material.weibull_coefficient", 4.e23_f },
     { BodySettingsIds::WEIBULL_EXPONENT,        "material.weibull_exponent",    9._f },
+
     /// SPH parameters specific for the body
     { BodySettingsIds::INITIAL_DISTRIBUTION,    "sph.initial_distribution",     int(DistributionEnum::HEXAGONAL) },
     { BodySettingsIds::PARTICLE_COUNT,          "sph.particle_count",           10000 },

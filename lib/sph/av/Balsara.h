@@ -25,14 +25,6 @@ NAMESPACE_SPH_BEGIN
 /// fragmentation
 ///
 
-struct Divv {
-    Array
-
-
-    Float operator()(const int i, const Float kernel, const Vector grad) {
-        return dot(v[i], grad);
-    }
-};
 
 struct Rotv {
     Vector operator()(const int i, const Float kernel, const Vector grad) {

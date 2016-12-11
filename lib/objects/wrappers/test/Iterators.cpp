@@ -10,14 +10,14 @@ TEST_CASE("ComponentIterator", "[iterators]") {
     data.fill(Vector(1._f));
 
     int i = 0;
-    for (float& iter : componentAdapter(data, 0)) {
-        iter = float(i++);
+    for (Float& iter : componentAdapter(data, 0)) {
+        iter = Float(i++);
     }
     REQUIRE(data[0] == Vector(0.f, 1.f, 1.f));
     REQUIRE(data[1] == Vector(1.f, 1.f, 1.f));
     REQUIRE(data[2] == Vector(2.f, 1.f, 1.f));
-    for (float& iter : componentAdapter(data, 2)) {
-        iter = 5.f - float(i++);
+    for (Float& iter : componentAdapter(data, 2)) {
+        iter = 5.f - Float(i++);
     }
     REQUIRE(data[0] == Vector(0.f, 1.f, 2.f));
     REQUIRE(data[1] == Vector(1.f, 1.f, 1.f));

@@ -60,21 +60,20 @@ public:
         ArrayView<Vector> r, v, dv;
         tieToArray(r, v, dv) = storage.getAll<Vector>(QuantityKey::R);
         ArrayView<Float> m, u, du, rho, drho;
-        tieToArray(u, du)  = storage.getAll<Float>(QuantityKey::U);
+        tieToArray(u, du)     = storage.getAll<Float>(QuantityKey::U);
         tieToArray(rho, drho) = storage.getAll<Float>(QuantityKey::RHO);
         m = storage.getValue<Float>(QuantityKey::M);
-        force.update(storage);
         // Check that quantities are valid
         ASSERT(areAllMatching(dv, [](const Vector v) { return v == Vector(0._f); }));
         ASSERT(areAllMatching(rho, [](const Float v) { return v > 0._f; }));
 
         // clamp smoothing length
-        /// \todo generalize clamping, min / max values
         for (Float& h : componentAdapter(r, H)) {
             h = Math::max(h, 1.e-12_f);
         }
-        // initialize divv
+        // initialize stuff
         divv.update(storage);
+        force.update(storage);
 
         // find new pressure
         this->computeMaterial(storage);
@@ -115,20 +114,23 @@ public:
                 dv[i] += m[j] * f; // opposite sign due to antisymmetry of gradient
                 dv[j] -= m[i] * f;
 
-                const Float en = force.du(i, j, grad);
-                du[i] += m[j] * en;
-                du[j] += m[i] * en;
+                /*const Float en = force.du(i, j, grad);
+                du[i] -= m[j] * en;
+                du[j] -= m[i] * en;*/
 
                 divv.accumulate(i, j, grad);
+                divv.accumulate(j, i, -grad);
             }
         }
 
+        ArrayView<Float> p = storage.getValue<Float>(QuantityKey::P);
         // set derivative of density and smoothing length
-        for (int i=0; i<drho.size(); ++i) {
+        for (int i = 0; i < drho.size(); ++i) {
             drho[i] = -divv[i];
             /// \todo smoothing length
-            v[i][H] = 0._f;
+            v[i][H]  = 0._f;
             dv[i][H] = 0._f;
+            du[i]    = -p[i] / Math::sqr(rho[i]) * divv[i];
         }
 
         // apply boundary conditions

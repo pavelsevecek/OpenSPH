@@ -1,12 +1,12 @@
 #pragma once
 
 #include "objects/Object.h"
+#include "sph/distributions/Distribution.h"
 #include "sph/kernel/Kernel.h"
 #include "storage/Storage.h"
 #include "system/Factory.h"
 #include "system/Profiler.h"
 #include "system/Settings.h"
-#include "sph/distributions/Distribution.h"
 #include <memory>
 
 NAMESPACE_SPH_BEGIN
@@ -126,8 +126,8 @@ public:
         ArrayView<Float> rho, u, p;
         tieToArray(rho, u) = storage.getValues<Float>(QuantityKey::RHO, QuantityKey::U);
         if (!storage.has(QuantityKey::P)) {
-            storage.emplaceWithFunctor<Float, OrderEnum::ZERO_ORDER>(
-                QuantityKey::P, [&](const Vector&, const int i) { return eos->getPressure(rho[i], u[i]); });
+            storage.emplaceWithFunctor<Float, OrderEnum::ZERO_ORDER>(QuantityKey::P,
+                [&](const Vector&, const int i) { return get<0>(eos->getPressure(rho[i], u[i])); });
             /// \todo pressure range?
         }
 

@@ -44,7 +44,7 @@ struct PressureForce : public Noncopyable {
 
     INLINE Float du(const int i, const int j, const Vector& grad) {
         const Float divv = dot(v[i] - v[j], grad);
-        return -divv * (p[i] / Math::sqr(rho[i]) + 0.5_f * av(i, j));
+        return -divv * (p[i] / Math::sqr(rho[i]) /*+ 0.5_f * av(i, j)*/);
     }
 };
 

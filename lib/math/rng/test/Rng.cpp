@@ -44,3 +44,16 @@ TEST_CASE("UniformRng", "[rng]") {
 TEST_CASE("HaltonQrng", "[rng]") {
     testRng(HaltonQrng());
 }
+
+TEST_CASE("BenzAsphaugRng", "[rng]") {
+    testRng(BenzAsphaugRng(1234));
+    // first few numbers with seed 1234
+    BenzAsphaugRng rng(1234);
+    const Float eps = 1.e-6_f;
+    REQUIRE(Math::almostEqual(rng(), 0.655416369, eps));
+    REQUIRE(Math::almostEqual(rng(), 0.200995207, eps));
+    REQUIRE(Math::almostEqual(rng(), 0.893622458, eps));
+    REQUIRE(Math::almostEqual(rng(), 0.281886548, eps));
+    REQUIRE(Math::almostEqual(rng(), 0.525000393, eps));
+    REQUIRE(Math::almostEqual(rng(), 0.314126790, eps));
+}

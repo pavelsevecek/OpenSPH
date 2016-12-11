@@ -4,7 +4,7 @@
 using namespace Sph;
 
 TEST_CASE("Vectorized array", "[vectorizedarray]") {
-    Array<float> array { 1._f, 2._f, 3._f, 4._f, 5._f, 6._f, 7._f, 8._f};
+    Array<Float> array { 1._f, 2._f, 3._f, 4._f, 5._f, 6._f, 7._f, 8._f};
 
     VectorizedArray vectorized(array);
     REQUIRE(vectorized->size() == 2);

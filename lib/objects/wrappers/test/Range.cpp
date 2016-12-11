@@ -78,7 +78,7 @@ TEST_CASE("Range loop", "[range]") {
     Float array[] = {0._f, 1._f, 2._f, 3._f, 4._f};
 
     int idx = 0;
-    for (float& i : adapter) {
+    for (Float& i : adapter) {
         REQUIRE(i == array[idx++]);
     }
 

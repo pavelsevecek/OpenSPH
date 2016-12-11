@@ -27,9 +27,6 @@ NAMESPACE_SPH_BEGIN
 
 class Problem : public Noncopyable {
 public:
-    /// Selected computational domain
-    std::unique_ptr<Abstract::Domain> domain;
-
     /// Logging
     std::unique_ptr<Abstract::Logger> logger;
 
@@ -42,7 +39,6 @@ public:
     /// Timestepping
     std::unique_ptr<Abstract::TimeStepping> timeStepping;
 
-    std::unique_ptr<Abstract::BoundaryConditions> boundary;
 
     /// Time range of the simulations
     /// \todo other conditions? For example pressure-limited simulations?

@@ -63,7 +63,9 @@ TEST_CASE("Vector unary operators", "[vector]") {
 
 TEST_CASE("Vector comparisons 1", "[vector]") {
     Vector v(6._f, 3._f, 2._f);
+    REQUIRE(v == v);
     REQUIRE(v == Vector(6._f, 3._f, 2._f));
+    REQUIRE(Vector(6._f, 3._f, 2._f) == v);
     REQUIRE(v != Vector(5._f, 3._f, 2._f));
     REQUIRE(v != Vector(6._f, 4._f, 2._f));
     REQUIRE(v != Vector(6._f, 3._f, 1._f));

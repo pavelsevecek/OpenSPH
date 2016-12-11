@@ -65,7 +65,7 @@ TEST_CASE("simple run", "[basicmodel]") {
     bodySettings.set(BodySettingsIds::PARTICLE_COUNT, 100);
     bodySettings.set(BodySettingsIds::ENERGY, 100._f * Constants::gasConstant); // 100K
     BlockDomain domain(Vector(0._f), Vector(1._f));
-    std::shared_ptr<Storage> storage = std::make_shared<Storage>();
+    std::shared_ptr<Storage> storage = std::make_shared<Storage>(bodySettings);
     model.setQuantities(*storage, domain, bodySettings);
 
 

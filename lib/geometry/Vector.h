@@ -172,11 +172,10 @@ public:
     }
 
     INLINE auto cross(const BasicVector& other) const {
-        return BasicVector(
-            _mm_sub_ps(_mm_mul_ps(_mm_shuffle_ps(data, data, _MM_SHUFFLE(3, 0, 2, 1)),
-                                  _mm_shuffle_ps(other.data, other.data, _MM_SHUFFLE(3, 1, 0, 2))),
-                       _mm_mul_ps(_mm_shuffle_ps(data, data, _MM_SHUFFLE(3, 1, 0, 2)),
-                                  _mm_shuffle_ps(other.data, other.data, _MM_SHUFFLE(3, 0, 2, 1)))));
+        return BasicVector(_mm_sub_ps(_mm_mul_ps(_mm_shuffle_ps(data, data, _MM_SHUFFLE(3, 0, 2, 1)),
+                                          _mm_shuffle_ps(other.data, other.data, _MM_SHUFFLE(3, 1, 0, 2))),
+            _mm_mul_ps(_mm_shuffle_ps(data, data, _MM_SHUFFLE(3, 1, 0, 2)),
+                _mm_shuffle_ps(other.data, other.data, _MM_SHUFFLE(3, 0, 2, 1)))));
     }
 
     /// Component-wise minimum
@@ -336,9 +335,9 @@ public:
     INLINE auto cross(const BasicVector& other) const {
         return BasicVector(
             _mm256_sub_pd(_mm256_mul_pd(_mm256_shuffle_pd(data, data, _MM_SHUFFLE(3, 0, 2, 1)),
-                                        _mm256_shuffle_pd(other.data, other.data, _MM_SHUFFLE(3, 1, 0, 2))),
-                          _mm256_mul_pd(_mm256_shuffle_pd(data, data, _MM_SHUFFLE(3, 1, 0, 2)),
-                                        _mm256_shuffle_pd(other.data, other.data, _MM_SHUFFLE(3, 0, 2, 1)))));
+                              _mm256_shuffle_pd(other.data, other.data, _MM_SHUFFLE(3, 1, 0, 2))),
+                _mm256_mul_pd(_mm256_shuffle_pd(data, data, _MM_SHUFFLE(3, 1, 0, 2)),
+                    _mm256_shuffle_pd(other.data, other.data, _MM_SHUFFLE(3, 0, 2, 1)))));
     }
 
     // component-wise minimum
@@ -495,25 +494,29 @@ public:
     /// Comparison operator, only compares first three components of vectors
     INLINE friend bool operator==(const BasicVector& v1, const BasicVector& v2) {
         constexpr int d = 3;
-        const int mask1 = (1 << d) - 0x01;
+        const int r1    = _mm_movemask_pd(_mm_cmpeq_pd(v1.data[0], v2.data[0]));
+        const int r2    = _mm_movemask_pd(_mm_cmpeq_pd(v1.data[1], v2.data[1]));
+        const int mask1 = (1 << 2) - 0x01;
         const int mask2 = (1 << (d - 2)) - 0x01;
-        return (_mm_movemask_pd(_mm_cmpeq_pd(v1.data[0], v2.data[0])) & mask1) == mask1 &&
-               (_mm_movemask_pd(_mm_cmpeq_pd(v1.data[1], v2.data[1])) & mask2) == mask2;
+        return (r1 & mask1) == mask1 && (r2 & mask2) == mask2;
     }
 
     INLINE friend bool operator!=(const BasicVector& v1, const BasicVector& v2) { return !(v1 == v2); }
 
     INLINE auto dot(const BasicVector& other) const {
-        const __m128d first  = _mm_dp_pd(data[0], other.data[0], 0x31);
+        /// \todo optimize
+        return this->get<0>() * other.get<0>() + this->get<1>() * other.get<1>() +
+               this->get<2>() * other.get<2>();
+        /*const __m128d first  = _mm_dp_pd(data[0], other.data[0], 0x31);
         const __m128d second = _mm_dp_pd(data[1], other.data[1], 0x21);
-        return *(double*)(&first) + *(double*)(&second);
+        return *(const double*)(&first) + *(const double*)(&second);*/
     }
 
     /// \todo optimize
     INLINE auto cross(const BasicVector& other) const {
         return BasicVector(this->get<1>() * other.get<2>() - this->get<2>() * other.get<1>(),
-                           this->get<2>() * other.get<0>() - this->get<0>() * other.get<2>(),
-                           this->get<0>() * other.get<1>() - this->get<1>() * other.get<0>());
+            this->get<2>() * other.get<0>() - this->get<0>() * other.get<2>(),
+            this->get<0>() * other.get<1>() - this->get<1>() * other.get<0>());
     }
 
     /// Component-wise minimum

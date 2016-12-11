@@ -16,7 +16,7 @@ class StandardAV : public Object {
 private:
     Float alpha, beta;
     ArrayView<const Vector> r, v;
-    ArrayView<const Float> rho, cs;
+    ArrayView<Float> rho, cs;
     const Float eps = 1.e-2_f;
 
 public:
@@ -28,18 +28,24 @@ public:
     static void setQuantities(Storage& storage, const Settings<BodySettingsIds>& settings) {
         // emplace cs
         std::unique_ptr<Abstract::Eos> eos = Factory::getEos(settings);
-        ArrayView<Float> rho, p;
-        tieToArray(rho, p) = storage.getValues<Float>(QuantityKey::RHO, QuantityKey::P);
+        ArrayView<Float> rho, u;
+        tieToArray(rho, u) = storage.getValues<Float>(QuantityKey::RHO, QuantityKey::U);
         if (!storage.has(QuantityKey::CS)) {
             storage.emplaceWithFunctor<Float, OrderEnum::ZERO_ORDER>(QuantityKey::CS,
-                [&](const Vector&, const int i) { return eos->getSoundSpeed(rho[i], p[i]); });
+                [&](const Vector&, const int i) { return get<1>(eos->getPressure(rho[i], u[i])); });
         }
     }
 
     void update(Storage& storage) {
         ArrayView<const Vector> dv;
+        ArrayView<const Float> u;
         tieToArray(r, v, dv) = storage.getAll<Vector>(QuantityKey::R);
         tieToArray(rho, cs) = storage.getValues<Float>(QuantityKey::RHO, QuantityKey::CS);
+        u = storage.getValue<Float>(QuantityKey::U);
+        for (int i=0; i<cs.size(); ++i) {
+            /// \todo update sound speed together with pressure
+            cs[i] = get<1>(storage.getMaterial(i).eos->getPressure(rho[i], u[i]));
+        }
     }
 
     INLINE Float operator()(const int i, const int j) {
