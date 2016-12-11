@@ -23,7 +23,7 @@ enum class QuantityKey {
     ROTV     = 10, ///< Velocity rotation
     ALPHA    = 11, ///< Coefficient alpha of the artificial viscosity
     BETA     = 12, ///< Coefficient beta of the artificial viscosity
-    RHO_DIVV = 13, ///< Density times velocity divergence (auxiliary quantitiy)
+    MAT_ID   = 13, ///< Material ID
 };
 
 /// \todo rewrite this to something less stupid

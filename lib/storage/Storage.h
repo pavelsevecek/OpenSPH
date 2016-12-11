@@ -21,7 +21,8 @@ struct Material : public Noncopyable {
 
     Material() = default;
 
-    Material(std::unique_ptr<Abstract::Eos>&& eos) : eos(std::move(eos)) {}
+    Material(std::unique_ptr<Abstract::Eos>&& eos)
+        : eos(std::move(eos)) {}
 
     Material(Material&& other)
         : eos(std::move(other.eos)) {}
@@ -44,9 +45,6 @@ private:
     /// getMaterial to obtain material for given particle.
     Array<Material> materials;
 
-    /// Index to material array for each particle
-    Array<int> materialIdxs;
-
     /// Number of particles (=size of each array).
     int particleCnt = 0;
 
@@ -64,14 +62,12 @@ public:
     Storage(Storage&& other)
         : quantities(std::move(other.quantities))
         , materials(std::move(materials))
-        , materialIdxs(std::move(materialIdxs))
         , particleCnt(other.particleCnt) {}
 
     Storage& operator=(Storage&& other) {
-        quantities   = std::move(other.quantities);
-        materials    = std::move(other.materials);
-        materialIdxs = std::move(materialIdxs);
-        particleCnt  = other.particleCnt;
+        quantities  = std::move(other.quantities);
+        materials   = std::move(other.materials);
+        particleCnt = other.particleCnt;
         return *this;
     }
 
@@ -117,8 +113,8 @@ public:
     /// Retrieves an array of quantities from the key. The type of all quantities must be the same and equal
     /// to TValue, checked by assert.
     template <typename TValue, typename... TArgs>
-    auto getValues(const QuantityKey key, const TArgs... otherKeys) {
-        return tieToArray(getValue<TValue>(key), getValue<TValue>(otherKeys)...);
+    auto getValues(const QuantityKey first, const QuantityKey second, const TArgs... others) {
+        return tieToArray(getValue<TValue>(first), getValue<TValue>(second), getValue<TValue>(others)...);
     }
 
     /// Creates a quantity in the storage, given its key, value type and order. Quantity is resized and filled
@@ -153,8 +149,7 @@ public:
             particleCnt = q.size();
             // set material ids; we have only one material, so set everything to zero
             if (!materials.empty()) {
-                materialIdxs.resize(particleCnt);
-                materialIdxs.fill(0);
+                this->emplace<int, OrderEnum::ZERO_ORDER>(QuantityKey::MAT_ID, 0);
             }
         } else {
             ASSERT(particleCnt > 0 && q.size() == particleCnt); // size must match sizes of other quantities
@@ -188,7 +183,9 @@ public:
     /// Returns the material of given particle.
     Material& getMaterial(const int particleIdx) {
         ASSERT(!materials.empty());
-        return materials[materialIdxs[particleIdx]];
+        /// \todo profile and possibly optimize (cache matIdxs array)
+        Array<int>& matIdxs = this->getValue<int>(QuantityKey::MAT_ID);
+        return materials[matIdxs[particleIdx]];
     }
 
     /// Assigns materials to particles. Particle positions (QuantityKey::R) must already be stored, checked by
@@ -199,9 +196,13 @@ public:
         ASSERT((this->has<Vector, OrderEnum::SECOND_ORDER>(QuantityKey::R)));
         this->materials     = std::move(mats);
         ArrayView<Vector> r = this->getValue<Vector>(QuantityKey::R);
-        this->materialIdxs.resize(r.size());
+        if (!this->has(QuantityKey::MAT_ID)) {
+            this->emplace<int, OrderEnum::ZERO_ORDER>(QuantityKey::MAT_ID, 0);
+        }
+        Array<int>& matIdxs = this->getValue<int>(QuantityKey::MAT_ID);
+        matIdxs.resize(r.size());
         for (int i = 0; i < r.size(); ++i) {
-            this->materialIdxs[i] = selector(r[i], i);
+            matIdxs[i] = selector(r[i], i);
         }
     }
 
@@ -217,15 +218,18 @@ public:
         // must contain the same quantities
         ASSERT(this->getQuantityCnt() == other.getQuantityCnt());
         // as material id is an index to array, we have to increase indices before the merge
-        for (int& id : other.materialIdxs) {
-            id += other.materials.size();
+        if (this->has(QuantityKey::MAT_ID)) {
+            ASSERT(other.has(QuantityKey::MAT_ID));
+            Array<int>& matIdxs = other.getValue<int>(QuantityKey::MAT_ID);
+            for (int& id : matIdxs) {
+                id += this->materials.size();
+            }
+            materials.pushAll(std::move(other.materials));
         }
-        materialIdxs.pushAll(std::move(other.materialIdxs));
-        materials.pushAll(std::move(other.materials));
 
         // merge all quantities
         iteratePair<VisitorEnum::ALL_BUFFERS>(
-            quantities, other.quantities, [](auto&& ar1, auto&& ar2) { ar1.pushAll(ar2); });
+            quantities, other.quantities, [](auto&& ar1, auto&& ar2) { ar1.pushAll(std::move(ar2)); });
         particleCnt += other.particleCnt;
     }
 
@@ -269,6 +273,11 @@ public:
     template <VisitorEnum Type, typename TFunctor>
     friend void iterate(Storage& storage, TFunctor&& functor) {
         iterate<Type>(storage.quantities, std::forward<TFunctor>(functor));
+    }
+
+    template <typename TFunctor>
+    friend void iterateWithPositions(Storage& storage, TFunctor&& functor) {
+        iterateWithPositions(storage.quantities, std::forward<TFunctor>(functor));
     }
 
     template <VisitorEnum Type, typename TFunctor>

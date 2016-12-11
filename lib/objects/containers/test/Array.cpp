@@ -74,6 +74,16 @@ TEST_CASE("PushAll", "[array]") {
     }
 }
 
+TEST_CASE("Remove by index", "[array]") {
+    Array<int> ar{1, 5, 3, 6, 2, 3};
+    ar.remove(0);
+    REQUIRE(ar == Array<int>({5, 3, 6, 2, 3}));
+    ar.remove(ar.size() - 1);
+    REQUIRE(ar == Array<int>({5, 3, 6, 2}));
+    ar.remove(2);
+    REQUIRE(ar == Array<int>({5, 3, 2}));
+}
+
 TEST_CASE("References", "[array]") {
     int a, b, c;
     Array<int&> ar{a, b, c};

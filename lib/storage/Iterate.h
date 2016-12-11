@@ -27,7 +27,7 @@ template <typename TFunctor>
 struct StorageVisitor<VisitorEnum::ALL_BUFFERS, TFunctor> {
     template <typename TValue>
     void visit(Quantity& q, TFunctor&& functor) {
-        for (auto& i : q.template getBuffers<TValue>()) {
+        for (auto& i : q.getBuffers<TValue>()) {
             functor(i);
         }
     }
@@ -165,6 +165,35 @@ void iterate(std::map<QuantityKey, Quantity>& qs, TFunctor&& functor) {
     StorageVisitor<Type, TFunctor> visitor;
     for (auto& q : qs) {
         dispatch(q.second.getValueEnum(), visitor, q.second, std::forward<TFunctor>(functor));
+    }
+}
+
+template <typename TFunctor>
+struct StorageVisitorWithPositions {
+    template <typename TValue>
+    void visit(Quantity& q, Array<Vector>& r, QuantityKey key, TFunctor&& functor) {
+        if (key == QuantityKey::R) {
+            // exclude positions
+            auto buffers = q.getBuffers<TValue>();
+            functor(buffers[1], r);
+            functor(buffers[2], r);
+        } else {
+            for (auto& i : q.getBuffers<TValue>()) {
+                functor(i, r);
+            }
+        }
+    }
+};
+
+/// Iterate over all
+template <typename TFunctor>
+void iterateWithPositions(std::map<QuantityKey, Quantity>& qs, TFunctor&& functor) {
+    auto iter = qs.find(QuantityKey::R);
+    ASSERT(iter != qs.end());
+    Array<Vector>& r = iter->second.getValue<Vector>();
+    StorageVisitorWithPositions<TFunctor> visitor;
+    for (auto& q : qs) {
+        dispatch(q.second.getValueEnum(), visitor, q.second, r, q.first, std::forward<TFunctor>(functor));
     }
 }
 

@@ -10,7 +10,7 @@ NAMESPACE_SPH_BEGIN
 
 template <typename T, typename TCounter = int>
 class Array : public Noncopyable {
-        friend class VectorizedArray; // needs to explicitly set actSize
+    friend class VectorizedArray; // needs to explicitly set actSize
 private:
     using StorageType = typename WrapReferenceType<T>::Type;
     StorageType* data = nullptr;
@@ -237,6 +237,15 @@ public:
         return value;
     }
 
+    /// Removes an element with given index from the array.
+    void remove(const int idx) {
+        ASSERT(idx < this->actSize);
+        for (int i = idx; i < this->actSize - 1; ++i) {
+            this->data[i] = this->data[i + 1];
+        }
+        resize(this->actSize - 1);
+    }
+
     /// Removes all elements from the array, but does NOT release the memory.
     void clear() {
         if (!std::is_trivially_destructible<T>::value) {
@@ -260,17 +269,16 @@ public:
     /// Implicit conversion to arrayview, const version.
     operator ArrayView<const T, TCounter>() const { return ArrayView<const T, TCounter>(data, actSize); }
 
-     /// Explicit conversion to arrayview
-     ArrayView<T, TCounter> getView() { return ArrayView<T, TCounter>(data, actSize); }
+    /// Explicit conversion to arrayview
+    ArrayView<T, TCounter> getView() { return ArrayView<T, TCounter>(data, actSize); }
 
-     /// Explicit conversion to arrayview, const version
-     ArrayView<const T, TCounter> getView() const { return ArrayView<const T, TCounter>(data, actSize); }
+    /// Explicit conversion to arrayview, const version
+    ArrayView<const T, TCounter> getView() const { return ArrayView<const T, TCounter>(data, actSize); }
 
-    /// Comparison operator, comparings array element-by-element. If arrays differ in number of constructed
+    /// Comparison operator, comparings array element-by-element. If arrays differ in number of
+    /// constructed
     /// elements, the comparison always returns false; allocated size does not play role here.
-    bool operator==(const Array<T, TCounter>& other) const {
-        return getView() == other.getView();
-    }
+    bool operator==(const Array<T, TCounter>& other) const { return getView() == other.getView(); }
 };
 
 /// Creates an array from a list of parameters.

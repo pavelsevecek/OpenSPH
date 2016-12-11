@@ -7,6 +7,7 @@
 #include "core/Globals.h"
 #include "core/Traits.h"
 #include "objects/wrappers/Range.h"
+#include "objects/containers/Tuple.h"
 #include <immintrin.h>
 #include <iomanip>
 #include <smmintrin.h>
@@ -580,6 +581,13 @@ INLINE auto getNormalized(const Vector& v) {
     const Float length = getLength(v);
     ASSERT(length != 0._f);
     return v / length;
+}
+
+/// Returns normalized vector and length of the input vector as tuple.
+INLINE Tuple<Vector, Float> getNormalizedWithLength(const Vector& v) {
+    const Float length = getLength(v);
+    ASSERT(length != 0._f);
+    return makeTuple(v / length, length);
 }
 
 namespace Math {

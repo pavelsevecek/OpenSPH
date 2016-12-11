@@ -63,6 +63,15 @@ public:
         boundary = Factory::getBoundaryConditions(settings, std::move(domain));
     }
 
+    virtual void compute(Storage& storage) override {
+        computeImpl(storage);
+        if (this->boundary) {
+            this->boundary->apply(storage);
+        }
+    }
+
+    virtual void computeImpl(Storage& storage) = 0;
+
     /// Sets quantity values and optionally its allowed range to values given by settings.
     template <typename TValue, OrderEnum TOrder>
     void setQuantityImpl(Storage& storage,

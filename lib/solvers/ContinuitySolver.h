@@ -54,7 +54,7 @@ public:
         : SolverBase<d, TForce>(settings)
         , force(settings) {}
 
-    virtual void compute(Storage& storage) override {
+    virtual void computeImpl(Storage& storage) override {
         const int size = storage.getParticleCnt();
 
         ArrayView<Vector> r, v, dv;
@@ -131,11 +131,6 @@ public:
             v[i][H]  = 0._f;
             dv[i][H] = 0._f;
             du[i]    = -p[i] / Math::sqr(rho[i]) * divv[i];
-        }
-
-        // apply boundary conditions
-        if (this->boundary) {
-            this->boundary->apply(storage);
         }
     }
 };

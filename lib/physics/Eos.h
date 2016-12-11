@@ -94,7 +94,6 @@ public:
             alphaExp * (b * u * rho / denom) * rho0 * (2._f * alpha * rhoExp) / Math::sqr(rho) +
             alphaExp * betaExp * (1._f / (rho0 * mu) + rho0 / Math::sqr(rho) * (2._f * alpha * rhoExp + beta));
         const Float cse = dpdrho + dpdu * pe / (rho * rho);
-        std::cout << "cse = " << cse << std::endl;
 
         // select phase based on internal energy
         Float p, cs;

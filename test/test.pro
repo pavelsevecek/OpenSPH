@@ -53,7 +53,8 @@ SOURCES += \
     ../lib/storage/test/QuantityHelpers.cpp \
     ../lib/geometry/test/TracelessTensor.cpp \
     ../lib/system/test/Output.cpp \
-    ../lib/solvers/test/ContinuitySolver.cpp
+    ../lib/solvers/test/ContinuitySolver.cpp \
+    ../lib/sph/boundary/test/Boundary.cpp
 
 
 HEADERS += \
