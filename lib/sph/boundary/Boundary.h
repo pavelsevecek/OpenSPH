@@ -27,13 +27,16 @@ struct GhostFunctor {
     Array<int>& ghostIdxs;
     Abstract::Domain& domain;
 
+    /// Generic operator, simply copies value onto the ghost
     template <typename T>
     void operator()(LimitedArray<T>& v, Array<Vector>& UNUSED(r)) {
         for (int i : idxs) {
-            v.push(v[i]);
+            auto ghost = v[i];
+            v.push(ghost);
         }
     }
 
+    /// Specialization for vectors, copies parallel component of the vector along the boundary and inverts perpendicular component.
     void operator()(LimitedArray<Vector>& v, Array<Vector>& r) {
         const Float eps = 1.e-3_f * domain.getBoundingRadius();
         for (int i = 0; i < idxs.size(); ++i) {
@@ -41,7 +44,7 @@ struct GhostFunctor {
 
             Float length = getLength(v[idx]);
             if (length == 0._f) {
-                v.push(v[idx]); // simply copy zero vector
+                v.push(Vector(0._f)); // simply copy zero vector
                 continue;
             }
             Vector unit = v[idx] / length;
@@ -84,18 +87,9 @@ public:
         });
         Array<Vector>& r = storage.getValue<Vector>(QuantityKey::R);
 
-        std::cout << "Beginning" << std::endl;
-        for (Vector x : r) {
-            std::cout << x << std::endl;
-        }
         // project particles outside of the domain on the boundary
         /// \todo this will place particles on top of each other, we should probably separate them a little
         domain->project(r);
-
-        std::cout << "After projection" << std::endl;
-        for (Vector x : r) {
-            std::cout << x << std::endl;
-        }
 
         // find particles close to the boundary
         idxs.clear();
@@ -111,33 +105,17 @@ public:
             ghostIdxs.push(i);
         }
 
-        std::cout << "INDICES" << std::endl;
+        // create ghost particles:
+        // 1) simply copy positions of particles
         for (int i : idxs) {
-            std::cout << i << std::endl;
+            // we cannot push r[i] directly, as it can invalidate the reference!
+            const Vector ghost = r[i];
+            r.push(ghost);
         }
-        std::cout << "vectors with ghosts" << std::endl;
-        for (int i : idxs) {
-            std::cout << r[i] << std::endl;
-        }
-
-        // create ghost particles
-        for (int i : idxs) {
-            r.push(r[i]); // copy particle positions
-        }
-
-        std::cout << "Added initial ghosts" << std::endl;
-        for (Vector x : r) {
-            std::cout << x << std::endl;
-        }
-        // invert particle positions with a respect to the boundary
+        // 2) invert created vectors with a respect to the boundary
         domain->invert(r, ghostIdxs);
 
-        std::cout << "After inversion" << std::endl;
-        for (Vector x : r) {
-            std::cout << x << std::endl;
-        }
-
-        // copy values on ghosts
+        // 3) copy all quantities on ghosts
         GhostFunctor functor{ idxs, ghostIdxs, *domain };
         iterateWithPositions(storage, functor);
     }

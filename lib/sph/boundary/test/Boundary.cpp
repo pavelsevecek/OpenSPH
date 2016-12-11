@@ -87,9 +87,9 @@ TEST_CASE("GhostParticles", "[boundary]") {
     REQUIRE(r[10] == Vector(0._f, 0._f, 0._f));
     REQUIRE(r[11] == Vector(-1._f, 1._f, 1._f));
 
-    REQUIRE(v[7] == Vector(1._f, 1._f, 1._f));
-    REQUIRE(v[8] == Vector(0._f, 2._f, 1._f));
-    REQUIRE(v[9] == Vector(-1._f, 0._f, -3._f));
+    REQUIRE(Math::almostEqual(v[7], Vector(1._f, 1._f, 1._f), 1.e-3_f));
+    REQUIRE(Math::almostEqual(v[8], Vector(0._f, 2._f, 1._f), 1.e-3_f));
+    REQUIRE(Math::almostEqual(v[9], Vector(-1._f, 0._f, -3._f), 1.e-3_f));
 
     ArrayView<Float> rho = storage.getValue<Float>(QuantityKey::RHO);
     REQUIRE(rho[7] == 3._f);
@@ -97,4 +97,13 @@ TEST_CASE("GhostParticles", "[boundary]") {
     REQUIRE(rho[9] == 2._f);
     REQUIRE(rho[10] == 1._f);
     REQUIRE(rho[11] == 4._f);
+
+    // subsequent calls shouldn't change result
+    boundaryConditions.apply(storage);
+    tieToArray(r, v, dv) = storage.getAll<Vector>(QuantityKey::R);
+    REQUIRE(makeArray(r.size(), v.size(), dv.size()) == makeArray(12, 12, 12));
+    REQUIRE(r[7] == Vector(-1.5_f, 1._f, 3._f));
+    REQUIRE(Math::almostEqual(v[7], Vector(1._f, 1._f, 1._f), 1.e-3_f));
+    rho = storage.getValue<Float>(QuantityKey::RHO);
+    REQUIRE(rho[7] == 3._f);
 }
