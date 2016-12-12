@@ -22,8 +22,7 @@ TEST_CASE("Vector construction", "[vector]") {
         REQUIRE(v3[i] == 5._f);
     }
 
-    // move construct
-    /// \todo check that it was really moved
+    // "move" construct
     Vector v4(Vector(3._f));
     for (int i = 0; i < 3; ++i) {
         REQUIRE(v4[i] == 3._f);

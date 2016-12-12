@@ -63,4 +63,7 @@ TEST_CASE("Tensor algebra", "[tensor]") {
     REQUIRE(Math::almostEqual(eigens[0], 5._f));
     REQUIRE(Math::almostEqual(eigens[1], -3._f));
     REQUIRE(Math::almostEqual(eigens[2], 3._f));
+
+    // double-dot product
+    REQUIRE(ddot(t, t2) == 2._f);
 }

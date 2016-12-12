@@ -35,14 +35,14 @@ public:
     /// tensor is checked by assert.
     TracelessTensor(const Tensor& other) {
         ASSERT(other.trace() < EPS * Math::norm(other));
-        m                = other.diagonal();
+        m = other.diagonal();
         const Vector off = other.offDiagonal();
-        m[M01]           = off[0];
-        m[M02]           = off[1];
-        m12              = off[2];
+        m[M01] = off[0];
+        m[M02] = off[1];
+        m12 = off[2];
     }
 
-    /// Initialize all components of the tensor to given value.
+    /// Initialize all components of the tensor to given value, excluding last element of the diagonal, which is computed to keep the trace zero.
     TracelessTensor(const Float value)
         : m(value)
         , m12(value) {}
@@ -59,19 +59,19 @@ public:
         ASSERT(v0[2] == v2[0]);
         ASSERT(v1[2] == v2[1]);
         ASSERT(v0[0] + v1[1] + v2[2] < EPS * (Math::norm(v1) + Math::norm(v1) + Math::norm(v2)));
-        m   = Vector(v0[0], v1[1], v0[1], v0[2]);
+        m = Vector(v0[0], v1[1], v0[1], v0[2]);
         m12 = v1[2];
     }
 
     INLINE TracelessTensor& operator=(const TracelessTensor& other) {
-        m   = other.m;
+        m = other.m;
         m12 = other.m12;
         return *this;
     }
 
     /// Explicit conversion to ordinary Tensor
     INLINE explicit operator Tensor() const {
-        return Tensor(Vector(m[M00], m[M11], 1._f - m[M00] - m[M11]), Vector(m[M01], m[M02], m12));
+        return Tensor(Vector(m[M00], m[M11], - m[M00] - m[M11]), Vector(m[M01], m[M02], m12));
     }
 
     /// Returns a row of the matrix.
@@ -83,11 +83,17 @@ public:
         case 1:
             return Vector(m[M01], m[M11], m12);
         case 2:
-            return Vector(m[M02], m12, 1._f - m[M00] - m[M11]);
+            return Vector(m[M02], m12, - m[M00] - m[M11]);
         default:
-            throw std::exception();
+            STOP;
         }
     }
+
+    /// Returns diagonal of the matrix
+    INLINE Vector diagonal() const { return Vector(m[M00], m[M11], - m[M00] - m[M11]); }
+
+    /// Returns off-diagonal elements of the matrix
+    INLINE Vector offDiagonal() const { return Vector(m[M01], m[M02], m12); }
 
     /// Returns a given element of the matrix.
     INLINE Float operator()(const int rowIdx, const int colIdx) {
@@ -96,7 +102,7 @@ public:
             if (rowIdx < 2) {
                 return m[rowIdx];
             } else {
-                return 1._f - m[0] - m[1];
+                return - m[0] - m[1];
             }
         } else {
             // off-diagonal
@@ -113,7 +119,7 @@ public:
     INLINE Vector operator*(const Vector& v) const {
         return Vector(m[M00] * v[0] + m[M01] * v[1] + m[M02] * v[2],
             m[M01] * v[0] + m[M11] * v[1] + m12 * v[2],
-            m[M02] * v[0] + m12 * v[1] + (1._f - m[M00] - m[M11]) * v[2]);
+            m[M02] * v[0] + m12 * v[1] + (- m[M00] - m[M11]) * v[2]);
     }
 
     /// Multiplies the tensor by a scalar
@@ -192,16 +198,16 @@ namespace Math {
 
 
 /// Double-dot product t1 : t2 = sum_ij t1_ij t2_ij
-INLINE Float ddot(const TracelessTensor& UNUSED(t1), const Tensor& UNUSED(t2)) {
-    NOT_IMPLEMENTED
+INLINE Float ddot(const TracelessTensor& t1, const Tensor& t2) {
+    return dot(t1.diagonal(), t2.diagonal()) + 2._f * dot(t1.offDiagonal(), t2.offDiagonal());
 }
 
-INLINE Float ddot(const Tensor& UNUSED(t1), const TracelessTensor& UNUSED(t2)) {
-    NOT_IMPLEMENTED
+INLINE Float ddot(const Tensor& t1, const TracelessTensor& t2) {
+    return dot(t1.diagonal(), t2.diagonal()) + 2._f * dot(t1.offDiagonal(), t2.offDiagonal());
 }
 
-INLINE Float ddot(const TracelessTensor& UNUSED(t1), const TracelessTensor& UNUSED(t2)) {
-    NOT_IMPLEMENTED
+INLINE Float ddot(const TracelessTensor& t1, const TracelessTensor& t2) {
+    return dot(t1.diagonal(), t2.diagonal()) + 2._f * dot(t1.offDiagonal(), t2.offDiagonal());
 }
 
 NAMESPACE_SPH_END

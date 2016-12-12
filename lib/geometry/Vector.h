@@ -6,8 +6,8 @@
 
 #include "core/Globals.h"
 #include "core/Traits.h"
-#include "objects/wrappers/Range.h"
 #include "objects/containers/Tuple.h"
+#include "objects/wrappers/Range.h"
 #include <immintrin.h>
 #include <iomanip>
 #include <smmintrin.h>
@@ -71,20 +71,28 @@ public:
         : data(v.data) {}
 
     /// Get component by given index.
-    INLINE const float& operator[](const int i) const { return *(reinterpret_cast<const float*>(&data) + i); }
+    INLINE const float& operator[](const int i) const {
+        ASSERT(unsigned(i) < 4);
+        return *(reinterpret_cast<const float*>(&data) + i);
+    }
 
     /// Get component by given index.
-    INLINE float& operator[](const int i) { return *(reinterpret_cast<float*>(&data) + i); }
+    INLINE float& operator[](const int i) {
+        ASSERT(unsigned(i) < 4);
+        return *(reinterpret_cast<float*>(&data) + i);
+    }
 
     /// Get component by given compile-time constant index
     template <int i>
     INLINE const float& get() const {
+        static_assert(unsigned(i) < 4, "Invalid index");
         return *(reinterpret_cast<const float*>(&data) + i);
     }
 
     /// Get component by given compile-time constant index
     template <int i>
     INLINE float& get() {
+        static_assert(unsigned(i) < 4, "Invalid index");
         return *(reinterpret_cast<float*>(&data) + i);
     }
 
@@ -161,7 +169,7 @@ public:
     /// Comparison operator, only compares first three components of vectors
     INLINE friend bool operator==(const BasicVector& v1, const BasicVector& v2) {
         constexpr int d = 3;
-        const int mask  = (1 << d) - 0x01;
+        const int mask = (1 << d) - 0x01;
         return (_mm_movemask_ps(_mm_cmpeq_ps(v1.data, v2.data)) & mask) == mask;
     }
 
@@ -232,21 +240,27 @@ public:
 
     /// Get component by given index.
     INLINE const double& operator[](const int i) const {
+        ASSERT(unsigned(i) < 4);
         return *(reinterpret_cast<const double*>(&data) + i);
     }
 
     /// Get component by given index.
-    INLINE double& operator[](const int i) { return *(reinterpret_cast<double*>(&data) + i); }
+    INLINE double& operator[](const int i) {
+        ASSERT(unsigned(i) < 4);
+        return *(reinterpret_cast<double*>(&data) + i);
+    }
 
     /// Get component by given compile-time constant index
     template <int i>
     INLINE const double& get() const {
+        static_assert(unsigned(i) < 4, "Invalid index");
         return *(reinterpret_cast<const double*>(&data) + i);
     }
 
     /// Get component by given compile-time constant index
     template <int i>
     INLINE double& get() {
+        static_assert(unsigned(i) < 4, "Invalid index");
         return *(reinterpret_cast<double*>(&data) + i);
     }
 
@@ -391,21 +405,27 @@ public:
 
     /// Get component by given index.
     INLINE const double& operator[](const int i) const {
+        ASSERT(unsigned(i) < 4);
         return *(reinterpret_cast<const double*>(&data) + i);
     }
 
     /// Get component by given index.
-    INLINE double& operator[](const int i) { return *(reinterpret_cast<double*>(&data) + i); }
+    INLINE double& operator[](const int i) {
+        ASSERT(unsigned(i) < 4);
+        return *(reinterpret_cast<double*>(&data) + i);
+    }
 
     /// Get component by given compile-time constant index
     template <int i>
     INLINE const double& get() const {
+        static_assert(unsigned(i) < 4, "Invalid index");
         return *(reinterpret_cast<const double*>(&data) + i);
     }
 
     /// Get component by given compile-time constant index
     template <int i>
     INLINE double& get() {
+        static_assert(unsigned(i) < 4, "Invalid index");
         return *(reinterpret_cast<double*>(&data) + i);
     }
 
@@ -430,15 +450,15 @@ public:
 
     INLINE BasicVector& operator*=(const double f) {
         const __m128d value = _mm_set1_pd(f);
-        data[0]             = _mm_mul_pd(data[0], value);
-        data[1]             = _mm_mul_pd(data[1], value);
+        data[0] = _mm_mul_pd(data[0], value);
+        data[1] = _mm_mul_pd(data[1], value);
         return *this;
     }
 
     INLINE BasicVector& operator/=(const double f) {
         const __m128d value = _mm_set1_pd(f);
-        data[0]             = _mm_div_pd(data[0], value);
-        data[1]             = _mm_div_pd(data[1], value);
+        data[0] = _mm_div_pd(data[0], value);
+        data[1] = _mm_div_pd(data[1], value);
         return *this;
     }
 
@@ -495,8 +515,8 @@ public:
     /// Comparison operator, only compares first three components of vectors
     INLINE friend bool operator==(const BasicVector& v1, const BasicVector& v2) {
         constexpr int d = 3;
-        const int r1    = _mm_movemask_pd(_mm_cmpeq_pd(v1.data[0], v2.data[0]));
-        const int r2    = _mm_movemask_pd(_mm_cmpeq_pd(v1.data[1], v2.data[1]));
+        const int r1 = _mm_movemask_pd(_mm_cmpeq_pd(v1.data[0], v2.data[0]));
+        const int r2 = _mm_movemask_pd(_mm_cmpeq_pd(v1.data[1], v2.data[1]));
         const int mask1 = (1 << 2) - 0x01;
         const int mask2 = (1 << (d - 2)) - 0x01;
         return (r1 & mask1) == mask1 && (r2 & mask2) == mask2;
@@ -644,7 +664,7 @@ INLINE Vector spherical(const Float r, const Float theta, const Float phi) {
 ///               an identity transform.
 INLINE Vector sphericalInversion(const Vector& v, const Vector& center, const Float radius) {
     const Vector diff = v - center;
-    const Float lSqr  = getSqrLength(diff);
+    const Float lSqr = getSqrLength(diff);
     return center + diff * radius * radius / lSqr;
 }
 
