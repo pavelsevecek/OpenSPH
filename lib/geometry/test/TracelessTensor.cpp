@@ -53,4 +53,5 @@ TEST_CASE("TracelessTensor double-dot", "[tracelesstensor]") {
 
     Tensor t3(Vector(2._f, -1._f, 0._f), Vector(-1._f, 4._f, 3._f), Vector(0._f, 3._f, -2._f));
     REQUIRE(ddot(t1, t3) == 36._f);
+    REQUIRE(ddot(t3, t1) == 36._f);
 }

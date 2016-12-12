@@ -36,27 +36,36 @@ struct GhostFunctor {
         }
     }
 
-    /// Specialization for vectors, copies parallel component of the vector along the boundary and inverts perpendicular component.
+    /// Specialization for vectors, copies parallel component of the vector along the boundary and inverts
+    /// perpendicular component.
     void operator()(LimitedArray<Vector>& v, Array<Vector>& r) {
-        const Float eps = 1.e-3_f * domain.getBoundingRadius();
         for (int i = 0; i < idxs.size(); ++i) {
             const int idx = idxs[i];
-
             Float length = getLength(v[idx]);
             if (length == 0._f) {
                 v.push(Vector(0._f)); // simply copy zero vector
                 continue;
             }
-            Vector unit = v[idx] / length;
-            // approximate inverted vector
-            StaticArray<Vector, 1> vgSum{ r[idx] + unit * eps };
-            domain.invert(vgSum);
-            // position of ghost
-            const Vector rg = r[ghostIdxs[i]];
-            // get direction of inverted vector as difference
-            const Vector diff = vgSum[0] - rg;
-            // scale to correct length
-            v.push(diff * length / eps);
+            // trick: approximate normal by connection particle and its ghost
+            const Vector deltaR = r[idx] - r[ghostIdxs[i]];
+            if (getLength(deltaR) == 0._f) {
+                // ghost lie on top of the particle, approximate inverted vector by finite differences
+                // (imprecise)
+                /// \todo we should avoid this case altogether
+                const Float eps = 1.e-3_f * domain.getBoundingRadius();
+                const Vector unit = v[idx] / length;
+                StaticArray<Vector, 1> vgSum{ r[idx] + unit * eps };
+                domain.invert(vgSum);
+                const Vector rg = r[ghostIdxs[i]];
+                // get direction of inverted vector as difference inverted(r) and inverted(r + v)
+                const Vector diff = getNormalized(vgSum[0] - rg);
+                // scale to correct length
+                v.push(diff * length);
+            } else {
+                const Vector normal = getNormalized(deltaR);
+                const Float perp = dot(normal, v[idx]);
+                v.push(v[idx] - 2._f * normal * perp);
+            }
         }
     }
 };

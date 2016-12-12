@@ -1,5 +1,6 @@
 #include "sph/boundary/Boundary.h"
 #include "catch.hpp"
+#include "math/rng/VectorRng.h"
 #include "objects/containers/ArrayUtils.h"
 #include <iostream>
 
@@ -54,7 +55,7 @@ public:
     }
 };
 
-TEST_CASE("GhostParticles", "[boundary]") {
+TEST_CASE("GhostParticles wall", "[boundary]") {
     // default kernel = M4, radius = 2
     GhostParticles boundaryConditions(std::make_unique<WallDomain>(), GLOBAL_SETTINGS);
     Storage storage;
@@ -106,4 +107,63 @@ TEST_CASE("GhostParticles", "[boundary]") {
     REQUIRE(Math::almostEqual(v[7], Vector(1._f, 1._f, 1._f), 1.e-3_f));
     rho = storage.getValue<Float>(QuantityKey::RHO);
     REQUIRE(rho[7] == 3._f);
+}
+
+TEST_CASE("GhostParticles Sphere", "[boundary]") {
+    Storage storage;
+    Array<Vector> particles;
+    for (Float phi = 0._f; phi < 2._f * Math::PI; phi += 0.1_f) {
+        for (Float theta = 0._f; theta < Math::PI; theta += 0.1_f) {
+            Vector v = spherical(1.9_f, theta, phi);
+            v[H] = 0.1_f;
+            particles.push(v);
+        }
+    }
+    storage.emplace<Vector, OrderEnum::SECOND_ORDER>(QuantityKey::R, std::move(particles));
+    ArrayView<Vector> r, v, dv;
+    tieToArray(r, v, dv) = storage.getAll<Vector>(QuantityKey::R);
+    VectorRng<UniformRng> rng;
+    // randomize velocities
+    for (Vector& q : v) {
+        q = rng();
+    }
+
+    const int ghostIdx = r.size();
+    GhostParticles boundaryConditions(std::make_unique<SphericalDomain>(Vector(0._f), 2._f), GLOBAL_SETTINGS);
+    boundaryConditions.apply(storage);
+    tieToArray(r, v, dv) = storage.getAll<Vector>(QuantityKey::R);
+    REQUIRE(r.size() == 2 * ghostIdx); // ghost for each particle
+    bool allSymmetric = true;
+    for (int i = 0; i < ghostIdx; ++i) {
+        Vector normalized;
+        Float length;
+        tie(normalized, length) = getNormalizedWithLength(r[ghostIdx + i]);
+        if (!Math::almostEqual(length, 2.1_f)) {
+            std::cout << "Incorrect position of ghost: " << length << std::endl;
+            allSymmetric = false;
+            break;
+        }
+        if (!Math::almostEqual(normalized, getNormalized(r[i]))) {
+            std::cout << "Incorrect position of ghost: " << normalized << std::endl;
+            allSymmetric = false;
+            break;
+        }
+        // check that velocities are symmetric == their perpendicular component is inverted
+        const Float vPerp = dot(v[i], normalized);
+        const Float vgPerp = dot(v[ghostIdx + i], normalized);
+        if (!Math::almostEqual(vPerp, -vgPerp)) { /// \todo velocities are currently not very precise
+            std::cout << "Ghost velocity not inverted: " << vPerp << "  " << vgPerp << std::endl;
+            allSymmetric = false;
+            break;
+        }
+        // parallel component should be equal
+        const Vector vPar = v[i] - normalized * dot(v[i], normalized);
+        const Vector vgPar = v[ghostIdx + i] - normalized * dot(v[ghostIdx + i], normalized);
+        if (!Math::almostEqual(vPar, vgPar)) {
+            std::cout << "Ghost velocity not inverted: " << vPar << "  " << vgPar << std::endl;
+            allSymmetric = false;
+            break;
+        }
+    }
+    REQUIRE(allSymmetric);
 }
