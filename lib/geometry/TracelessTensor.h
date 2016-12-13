@@ -42,7 +42,8 @@ public:
         m12 = off[2];
     }
 
-    /// Initialize all components of the tensor to given value, excluding last element of the diagonal, which is computed to keep the trace zero.
+    /// Initialize all components of the tensor to given value, excluding last element of the diagonal, which
+    /// is computed to keep the trace zero.
     TracelessTensor(const Float value)
         : m(value)
         , m12(value) {}
@@ -71,7 +72,7 @@ public:
 
     /// Explicit conversion to ordinary Tensor
     INLINE explicit operator Tensor() const {
-        return Tensor(Vector(m[M00], m[M11], - m[M00] - m[M11]), Vector(m[M01], m[M02], m12));
+        return Tensor(Vector(m[M00], m[M11], -m[M00] - m[M11]), Vector(m[M01], m[M02], m12));
     }
 
     /// Returns a row of the matrix.
@@ -83,14 +84,14 @@ public:
         case 1:
             return Vector(m[M01], m[M11], m12);
         case 2:
-            return Vector(m[M02], m12, - m[M00] - m[M11]);
+            return Vector(m[M02], m12, -m[M00] - m[M11]);
         default:
             STOP;
         }
     }
 
     /// Returns diagonal of the matrix
-    INLINE Vector diagonal() const { return Vector(m[M00], m[M11], - m[M00] - m[M11]); }
+    INLINE Vector diagonal() const { return Vector(m[M00], m[M11], -m[M00] - m[M11]); }
 
     /// Returns off-diagonal elements of the matrix
     INLINE Vector offDiagonal() const { return Vector(m[M01], m[M02], m12); }
@@ -102,7 +103,7 @@ public:
             if (rowIdx < 2) {
                 return m[rowIdx];
             } else {
-                return - m[0] - m[1];
+                return -m[0] - m[1];
             }
         } else {
             // off-diagonal
@@ -119,7 +120,7 @@ public:
     INLINE Vector operator*(const Vector& v) const {
         return Vector(m[M00] * v[0] + m[M01] * v[1] + m[M02] * v[2],
             m[M01] * v[0] + m[M11] * v[1] + m12 * v[2],
-            m[M02] * v[0] + m12 * v[1] + (- m[M00] - m[M11]) * v[2]);
+            m[M02] * v[0] + m12 * v[1] + (-m[M00] - m[M11]) * v[2]);
     }
 
     /// Multiplies the tensor by a scalar
@@ -152,6 +153,14 @@ public:
     }
 
     INLINE bool operator==(const TracelessTensor& other) const { return m == other.m && m12 == other.m12; }
+
+    INLINE friend bool operator==(const TracelessTensor& t1, const Tensor& t2) {
+        return t1.diagonal() == t2.diagonal() && t1.offDiagonal() == t2.offDiagonal();
+    }
+
+    INLINE friend bool operator==(const Tensor& t1, const TracelessTensor& t2) {
+        return t1.diagonal() == t2.diagonal() && t1.offDiagonal() == t2.offDiagonal();
+    }
 
 
     /// Returns a tensor with all zeros.

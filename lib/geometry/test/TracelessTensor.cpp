@@ -26,7 +26,23 @@ TEST_CASE("TracelessTensor construction", "[tracelesstensor]") {
 }
 
 TEST_CASE("TracelessTensor copy", "[tracelesstensor]") {
-    /// \todo copy construct from TracelessTensor and Tensor
+    TracelessTensor t1(Vector(1._f, 2._f, 3._f), Vector(2._f, 2._f, 4._f), Vector(3._f, 4._f, -3._f));
+    TracelessTensor t2(t1);
+    REQUIRE(t1 == t2);
+    TracelessTensor t3;
+    t3 = t1;
+    REQUIRE(t1 == t3);
+
+    Tensor t4 = Tensor(t1);
+    REQUIRE(t1 == t4);
+
+    TracelessTensor t5(t4);
+    REQUIRE(t1 == t5);
+    REQUIRE(t4 == t5);
+
+    TracelessTensor t6;
+    t6 = t4;
+    REQUIRE(t4 == t6);
 }
 
 TEST_CASE("TracelessTensor apply", "[tracelesstensor]") {
