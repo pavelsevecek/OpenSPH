@@ -14,8 +14,8 @@ class Array : public Noncopyable {
 private:
     using StorageType = typename WrapReferenceType<T>::Type;
     StorageType* data = nullptr;
-    TCounter actSize  = 0;
-    TCounter maxSize  = 0;
+    TCounter actSize = 0;
+    TCounter maxSize = 0;
 
 public:
     using Type = T;
@@ -46,8 +46,8 @@ public:
     Array(std::initializer_list<StorageType> list) {
         this->actSize = list.size();
         this->maxSize = this->actSize;
-        this->data    = (StorageType*)malloc(maxSize * sizeof(StorageType));
-        int i         = 0;
+        this->data = (StorageType*)malloc(maxSize * sizeof(StorageType));
+        int i = 0;
         for (auto& l : list) {
             new (data + i) StorageType(l);
             i++;
@@ -98,8 +98,8 @@ public:
     /// copy.
     Array clone() const {
         Array newArray(this->actSize, maxSize);
-        Iterator<StorageType> newIter             = newArray.begin();
-        Iterator<const StorageType> thisIter      = this->begin();
+        Iterator<StorageType> newIter = newArray.begin();
+        Iterator<const StorageType> thisIter = this->begin();
         const Iterator<const StorageType> endIter = thisIter + this->actSize;
         for (; thisIter < endIter; ++thisIter, ++newIter) {
             *newIter = *thisIter;
@@ -107,34 +107,36 @@ public:
         return newArray;
     }
 
-    Iterator<StorageType, TCounter> begin() { return Iterator<StorageType>(data, data, data + actSize); }
+    INLINE Iterator<StorageType, TCounter> begin() {
+        return Iterator<StorageType>(data, data, data + actSize);
+    }
 
-    Iterator<const StorageType, TCounter> begin() const {
+    INLINE Iterator<const StorageType, TCounter> begin() const {
         return Iterator<const StorageType>(data, data, data + actSize);
     }
 
-    Iterator<const StorageType, TCounter> cbegin() const {
+    INLINE Iterator<const StorageType, TCounter> cbegin() const {
         return Iterator<const StorageType>(data, data, data + actSize);
     }
 
-    Iterator<StorageType, TCounter> end() {
+    INLINE Iterator<StorageType, TCounter> end() {
         return Iterator<StorageType>(data + actSize, data, data + actSize);
     }
 
-    Iterator<const StorageType, TCounter> end() const {
+    INLINE Iterator<const StorageType, TCounter> end() const {
         return Iterator<const StorageType>(data + actSize, data, data + actSize);
     }
 
-    Iterator<const StorageType, TCounter> cend() const {
+    INLINE Iterator<const StorageType, TCounter> cend() const {
         return Iterator<const StorageType>(data + actSize, data, data + actSize);
     }
 
-    T& operator[](const TCounter idx) {
+    INLINE T& operator[](const TCounter idx) {
         ASSERT(unsigned(idx) < unsigned(actSize));
         return data[idx];
     }
 
-    const T& operator[](const TCounter idx) const {
+    INLINE const T& operator[](const TCounter idx) const {
         ASSERT(unsigned(idx) < unsigned(actSize));
         return data[idx];
     }
@@ -145,9 +147,9 @@ public:
         }
     }
 
-    int size() const { return this->actSize; }
+    INLINE int size() const { return this->actSize; }
 
-    bool empty() const { return this->actSize == 0; }
+    INLINE bool empty() const { return this->actSize == 0; }
 
     /// Resize the array. All stored values (within interval [0, newSize-1]) are preserved.
     void resize(const int newSize) {
@@ -205,7 +207,7 @@ public:
 
     /// Adds new element to the end of the array, resizing the array if necessary.
     template <typename U>
-    void push(U&& u) {
+    INLINE void push(U&& u) {
         resize(this->actSize + 1);
         this->data[this->actSize - 1] = std::forward<U>(u);
     }
@@ -230,7 +232,7 @@ public:
     }
 
     /// Removes the last element from the array and return its value. Asserts if the array is empty.
-    T pop() {
+    INLINE T pop() {
         ASSERT(this->actSize > 0);
         T value = data[this->actSize - 1];
         resize(this->actSize - 1);
@@ -264,10 +266,12 @@ public:
     }
 
     /// Implicit conversion to arrayview.
-    operator ArrayView<T, TCounter>() { return ArrayView<T, TCounter>(data, actSize); }
+    INLINE operator ArrayView<T, TCounter>() { return ArrayView<T, TCounter>(data, actSize); }
 
     /// Implicit conversion to arrayview, const version.
-    operator ArrayView<const T, TCounter>() const { return ArrayView<const T, TCounter>(data, actSize); }
+    INLINE operator ArrayView<const T, TCounter>() const {
+        return ArrayView<const T, TCounter>(data, actSize);
+    }
 
     /// Explicit conversion to arrayview
     ArrayView<T, TCounter> getView() { return ArrayView<T, TCounter>(data, actSize); }
@@ -296,7 +300,9 @@ Array<T0&> tieToArray(T0& t0, TArgs&... rest) {
 template <typename T, int N>
 class StaticArray : public Noncopyable {
 private:
-    T data[N];
+    using StorageType = typename WrapReferenceType<T>::Type;
+
+    StorageType data[N];
 
 public:
     StaticArray() = default;

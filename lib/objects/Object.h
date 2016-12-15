@@ -80,29 +80,29 @@ public:
 
 
 namespace Detail {
-    template <int n1, int n2>
-    struct StaticForType : public Object {
-        template <typename TIteration>
-        static void action(TIteration&& iteration) {
-            iteration.template action<n1>();
-            StaticForType<n1 + 1, n2>::action(iteration);
+    template <std::size_t n1, std::size_t n2>
+    struct StaticForType {
+        template <typename TVisitor>
+        INLINE static void action(TVisitor&& visitor) {
+            visitor.template visit<n1>();
+            StaticForType<n1 + 1, n2>::action(std::forward<TVisitor>(visitor));
         }
     };
-    template <int n>
+    template <std::size_t n>
     struct StaticForType<n, n> : public Object {
-        template <typename TIteration>
-        static void action(TIteration&& iteration) {
-            iteration.template action<n>();
+        template <typename TVisitor>
+        INLINE static void action(TVisitor&& visitor) {
+            visitor.template visit<n>();
         }
     };
 }
 
 /// A static for loop from n1 to n2, including both values. Takes an object as an argument that must implement
-/// templated method template<int n> action(); for loop will pass the current index as a template parameter,
+/// templated method template<int n> visit(); for loop will pass the current index as a template parameter,
 /// so that it can be used as a constant expression.
-template <int n1, int n2, typename TIteration>
-void staticFor(TIteration&& iteration) {
-    Detail::StaticForType<n1, n2>::action(std::forward<TIteration>(iteration));
+template <std::size_t n1, std::size_t n2, typename TVisitor>
+INLINE void staticFor(TVisitor&& visitor) {
+    Detail::StaticForType<n1, n2>::action(std::forward<TVisitor>(visitor));
 }
 
 

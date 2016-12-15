@@ -166,7 +166,7 @@ TEST_CASE("Storage material", "[storage]") {
         QuantityKey::R, makeArray(Vector(-3._f, 4._f, 0._f), Vector(5._f, 1._f, 0._f)));
 
     storage.merge(std::move(other));
-    auto pressure = [&](const int i) { return get<0>(storage.getMaterial(i).eos->getPressure(1._f, 1._f)); };
+    auto pressure = [&](const int i) { return storage.getMaterial(i).eos->getPressure(1._f, 1._f).get<0>(); };
     REQUIRE(pressure(0) == 4._f);
     REQUIRE(pressure(1) == 4._f);
     REQUIRE(pressure(2) == 12._f);

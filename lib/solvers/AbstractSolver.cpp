@@ -11,7 +11,7 @@ void Abstract::Solver::computeMaterial(Storage& storage) {
 
     for (int i = 0; i < storage.getParticleCnt(); ++i) {
         Material& mat = storage.getMaterial(i);
-        tie(p[i], cs[i]) = mat.eos->getPressure(rho[i], u[i]);
+        tieToTuple(p[i], cs[i]) = mat.eos->getPressure(rho[i], u[i]);
     }
     ASSERT(areAllMatching(rho, [](const Float v) { return v > 0._f; }));
 }

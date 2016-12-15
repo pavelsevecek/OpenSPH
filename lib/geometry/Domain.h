@@ -119,7 +119,7 @@ public:
 
     virtual void project(ArrayView<Vector> vs, ArrayView<int> indices = nullptr) const override {
         Float radius = Math::sqrt(radiusSqr);
-        auto impl    = [this, radius](Vector& v) {
+        auto impl = [this, radius](Vector& v) {
             if (!isInsideImpl(v)) {
                 v = getNormalized(v - this->center) * radius + this->center;
             }
@@ -137,10 +137,10 @@ public:
 
     virtual void invert(ArrayView<Vector> vs, ArrayView<int> indices = nullptr) const override {
         Float radius = Math::sqrt(radiusSqr);
-        auto impl    = [this, radius](Vector& v) {
+        auto impl = [this, radius](Vector& v) {
             Float length;
             Vector normalized;
-            tie(normalized, length) = getNormalizedWithLength(v - this->center);
+            tieToTuple(normalized, length) = getNormalizedWithLength(v - this->center);
             return v + 2._f * (radius - length) * normalized;
         };
         if (indices) {
@@ -271,7 +271,7 @@ public:
 
     virtual void project(ArrayView<Vector> vs, ArrayView<int> indices = nullptr) const override {
         Float radius = Math::sqrt(radiusSqr);
-        auto impl    = [this, radius](Vector& v) {
+        auto impl = [this, radius](Vector& v) {
             if (!isInsideImpl(v)) {
                 v = getNormalized(Vector(v[X], v[Y], this->center[Z]) - this->center) * radius +
                     Vector(this->center[X], this->center[Y], v[Z]);
@@ -291,10 +291,10 @@ public:
 
     virtual void invert(ArrayView<Vector> vs, ArrayView<int> indices = nullptr) const override {
         Float radius = Math::sqrt(radiusSqr);
-        auto impl    = [this, radius](Vector& v) {
+        auto impl = [this, radius](Vector& v) {
             Float length;
             Vector normalized;
-            tie(normalized, length) =
+            tieToTuple(normalized, length) =
                 getNormalizedWithLength(Vector(v[X], v[Y], this->center[Z]) - this->center);
             return v + 2._f * (radius - length) * normalized;
         };

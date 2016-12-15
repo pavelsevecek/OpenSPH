@@ -137,7 +137,7 @@ TEST_CASE("GhostParticles Sphere", "[boundary]") {
     for (int i = 0; i < ghostIdx; ++i) {
         Vector normalized;
         Float length;
-        tie(normalized, length) = getNormalizedWithLength(r[ghostIdx + i]);
+        tieToTuple(normalized, length) = getNormalizedWithLength(r[ghostIdx + i]);
         if (!Math::almostEqual(length, 2.1_f)) {
             std::cout << "Incorrect position of ghost: " << length << std::endl;
             allSymmetric = false;

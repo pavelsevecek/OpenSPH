@@ -136,7 +136,7 @@ public:
         tieToArray(rho, u) = storage.getValues<Float>(QuantityKey::RHO, QuantityKey::U);
         if (!storage.has(QuantityKey::P)) {
             storage.emplaceWithFunctor<Float, OrderEnum::ZERO_ORDER>(QuantityKey::P,
-                [&](const Vector&, const int i) { return get<0>(eos->getPressure(rho[i], u[i])); });
+                [&](const Vector&, const int i) { return eos->getPressure(rho[i], u[i]).get<0>(); });
             /// \todo pressure range?
         }
 
