@@ -3,10 +3,10 @@
 /// Pavel Sevecek 2016
 /// sevecek at sirrah.troja.mff.cuni.cz
 
-#include "objects/Object.h"
 #include "core/Traits.h"
-#include <type_traits>
+#include "objects/Object.h"
 #include <functional>
+#include <type_traits>
 
 NAMESPACE_SPH_BEGIN
 
@@ -20,8 +20,10 @@ const NothingType NOTHING;
 template <typename Type>
 class Optional : public Object {
 private:
-    using RawType     = std::remove_reference_t<Type>;
+    using RawType = std::remove_reference_t<Type>;
     using StorageType = typename WrapReferenceType<Type>::Type;
+    static constexpr bool isRvalueRef = std::is_rvalue_reference<Type>::value;
+    using ReturnType = std::conditional_t<isRvalueRef, Type&&, Type&>;
 
     alignas(StorageType) char storage[sizeof(StorageType)];
     bool used = false;
@@ -86,7 +88,7 @@ public:
 
 
     /// Copy operator
-    template <typename T, typename = std::enable_if_t<std::is_copy_assignable<T>::value>>
+    template <typename T, typename = std::enable_if_t<std::is_assignable<Type, T>::value>>
     Optional& operator=(const T& t) {
         if (!used) {
             new (storage) StorageType(t);
@@ -155,24 +157,24 @@ public:
         return *this;
     }
 
-    Type& get() {
+    ReturnType get() {
         ASSERT(used);
-        return (Type&)*reinterpret_cast<StorageType*>(storage);
+        return (ReturnType) * reinterpret_cast<StorageType*>(storage);
     }
 
-    const Type& get() const {
+    const ReturnType get() const {
         ASSERT(used);
-        return (const Type&)*reinterpret_cast<const StorageType*>(storage);
+        return (const ReturnType) * reinterpret_cast<const StorageType*>(storage);
     }
 
     const RawType* operator->() const {
         ASSERT(used);
-        return &get();
+        return std::addressof(get());
     }
 
     RawType* operator->() {
         ASSERT(used);
-        return &get();
+        return std::addressof(get());
     }
 
     explicit operator bool() const { return used; }
@@ -186,6 +188,11 @@ Optional<T1> optionalCast(const Optional<T2>& opt) {
         return NOTHING;
     }
     return Optional<T1>(T1(opt.get()));
+}
+
+template<typename T>
+Optional<T&&> optionalForward(T&& value) {
+    return Optional<T&&>(std::forward<T>(value));
 }
 
 template <typename T>

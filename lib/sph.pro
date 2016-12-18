@@ -98,4 +98,8 @@ HEADERS += \
     solvers/DensityIndependentSolver.h \
     solvers/EntropySolver.h \
     storage/QuantityKey.h \
-    solvers/Accumulator.h
+    solvers/Accumulator.h \
+    solvers/SharedAccumulator.h \
+    objects/containers/StaticArray.h \
+    sph/av/Factory.h \
+    solvers/Factory.h

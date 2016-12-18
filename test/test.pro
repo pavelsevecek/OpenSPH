@@ -58,4 +58,5 @@ SOURCES += \
 
 
 HEADERS += \
-    utils/Utils.h
+    utils/Utils.h \
+    utils/RecordType.h

@@ -30,18 +30,19 @@ public:
             return 0._f;
         }
         const Float alphabar = 0.5_f * (alpha[i] + alpha[j]);
-        const Float betabar  = 0.5_f * (beta[i] + beta[j]);
-        const Float mu       = hbar * dvdr / (getSqrLength(dr) + eps * Math::sqr(hbar));
+        const Float betabar = 0.5_f * (beta[i] + beta[j]);
+        const Float mu = hbar * dvdr / (getSqrLength(dr) + eps * Math::sqr(hbar));
         return 1._f / rhobar * (-alphabar * csbar * mu + betabar * Math::sqr(mu));
     }
 
     /// virtual, tady to jde v cajku
-    INLINE void derive() {
+    INLINE void evaluate() {
         for (int i = 0; i < size; ++i) {
-            const Float tau    = r[i][H] / (eps * cs[i]);
+            const Float tau = r[i][H] / (eps * cs[i]);
             const Range bounds = alpha.getBounds();
-            dalpha[i]          = -(alpha[i] - bounds.getLower()) / tau +
-                        Math::max(-(bounds.getUpper() - alpha[i]) * divv[i], 0._f);
+            const Float decayTerm = -(alpha[i] - bounds.getLower()) / tau;
+            const Float sourceTerm = Math::max(-(bounds.getUpper() - alpha[i]) * divv[i], 0._f);
+            dalpha[i] = decayTerm + sourceTerm;
         }
     }
 };

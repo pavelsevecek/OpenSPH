@@ -43,7 +43,8 @@ namespace Abstract {
     };
 }
 
-template <int d, typename TForce>
+/// Extended base class for solvers (templated class, cannot be used directly in methods as templated virtual methods do not exist)
+template <typename TContext>
 class SolverBase : public Abstract::Solver {
 protected:
     std::unique_ptr<Abstract::Finder> finder;
@@ -52,25 +53,18 @@ protected:
 
     std::unique_ptr<Abstract::BoundaryConditions> boundary;
 
-    LutKernel<d> kernel;
+    static constexpr int dim = TContext::dim;
+    LutKernel<dim> kernel;
 
 public:
     SolverBase(const Settings<GlobalSettingsIds>& settings) {
         finder = Factory::getFinder(settings);
-        kernel = Factory::getKernel<d>(settings);
+        kernel = Factory::getKernel<dim>(settings);
 
         std::unique_ptr<Abstract::Domain> domain = Factory::getDomain(settings);
         boundary = Factory::getBoundaryConditions(settings, std::move(domain));
     }
 
-    virtual void compute(Storage& storage) override {
-        computeImpl(storage);
-        if (this->boundary) {
-            this->boundary->apply(storage);
-        }
-    }
-
-    virtual void computeImpl(Storage& storage) = 0;
 
     /// Sets quantity values and optionally its allowed range to values given by settings.
     template <typename TValue, OrderEnum TOrder>
@@ -141,7 +135,7 @@ public:
         }
 
         // sets additional quantities required by force evaluator
-        TForce::setQuantities(storage, settings);
+        TContext::setQuantities(storage, settings);
     }
 };
 

@@ -1,16 +1,18 @@
 #include "objects/wrappers/Optional.h"
 #include "objects/containers/Array.h"
 #include "catch.hpp"
+#include "utils/RecordType.h"
 
 using namespace Sph;
 
 
 TEST_CASE("Optional constructor", "[optional]") {
-    Optional<int> o1;
+    Optional<RecordType> o1;
     REQUIRE(!o1);
-    o1 = 5;
+    o1 = RecordType(5);
     REQUIRE(o1);
-    REQUIRE(o1.get() == 5);
+    REQUIRE(o1.get().value == 5);
+    REQUIRE(o1.get().wasMoveConstructed == 5);
 
     Optional<int> o2(o1);
     REQUIRE(o2);
@@ -22,7 +24,7 @@ TEST_CASE("Optional constructor", "[optional]") {
     REQUIRE(o3.get() == 2);
 }
 
-TEST_CASE("Optional References", "[optional]") {
+TEST_CASE("Optional Lvalue References", "[optional]") {
     Optional<int&> o1 (NOTHING);
     REQUIRE(!o1);
     Optional<int&> o2(o1);
@@ -41,4 +43,26 @@ TEST_CASE("Optional References", "[optional]") {
     // turn off
     o3 = o1;
     REQUIRE(!o3);
+}
+
+TEST_CASE("Optional Rvalue References",  "[optional]") {
+    Optional<RecordType&&> o1(NOTHING);
+    REQUIRE(!o1);
+    RecordType r1(5);
+    Optional<RecordType&&> o2(std::move(r1));
+    REQUIRE(o2);
+    REQUIRE(!o2.get().wasMoveConstructed);
+    REQUIRE(!r1.wasMoved);
+    REQUIRE(o2.get() == 5);
+    RecordType r2 = o2.get();
+    REQUIRE(r2.wasMoveConstructed);
+    REQUIRE(r1.wasMoved);
+}
+
+TEST_CASE("Optional forward", "[optional]") {
+
+}
+
+TEST_CASE("Optional cast", "[optional") {
+
 }

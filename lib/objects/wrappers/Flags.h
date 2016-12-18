@@ -16,7 +16,7 @@ template <typename TEnum>
 class Flags : public Object {
 private:
     using TValue = std::underlying_type_t<TEnum>;
-    TValue data  = TValue(0);
+    TValue data = TValue(0);
 
 public:
     constexpr Flags() = default;
@@ -24,34 +24,44 @@ public:
     constexpr Flags(const Flags& other)
         : data(other.data) {}
 
-    constexpr Flags(const TEnum& flag)
+    constexpr Flags(const TEnum flag)
         : data(TValue(flag)) {}
 
-    constexpr Flags(const EmptyFlags&) {}
+    constexpr Flags(const EmptyFlags) {}
 
     Flags& operator=(const Flags& other) {
         data = other.data;
         return *this;
     }
 
-    Flags& operator=(const TEnum& flag) {
+    Flags& operator=(const TEnum flag) {
         data = TValue(flag);
         return *this;
     }
 
-    Flags& operator=(const EmptyFlags&) {
+    Flags& operator=(const EmptyFlags) {
         data = TValue(0);
         return *this;
     }
 
-    INLINE constexpr bool has(const TEnum& flag) const { return (data & TValue(flag)) != 0; }
+    INLINE constexpr bool has(const TEnum flag) const { return (data & TValue(flag)) != 0; }
 
     template <typename... TArgs>
-    INLINE constexpr bool hasAny(const TEnum& flag, const TArgs&... others) const {
+    INLINE constexpr bool hasAny(const TEnum flag, const TArgs... others) const {
         return has(flag) || hasAny(others...);
     }
 
-    INLINE void set(const TEnum& flag) { data |= TValue(flag); }
+    INLINE void set(const TEnum flag) { data |= TValue(flag); }
+
+    INLINE void unset(const TEnum flag) { data &= ~TValue(flag); }
+
+    INLINE void setIf(const TEnum flag, const bool use) {
+        if (use) {
+            data |= TValue(flag);
+        } else {
+            data &= ~TValue(flag);
+        }
+    }
 
 private:
     // overload with no argument ending the recursion

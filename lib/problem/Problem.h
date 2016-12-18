@@ -3,15 +3,15 @@
 #include "objects/containers/Tuple.h"
 #include "objects/finders/Finder.h"
 #include "objects/wrappers/Range.h"
+#include "solvers/Factory.h"
+#include "sph/boundary/Boundary.h"
 #include "sph/distributions/Distribution.h"
 #include "sph/kernel/Kernel.h"
 #include "sph/timestepping/TimeStepping.h"
 #include "storage/QuantityKey.h"
-#include "sph/boundary/Boundary.h"
 #include "system/Callbacks.h"
 #include "system/Logger.h"
 #include "system/Output.h"
-#include "solvers/ContinuitySolver.h"
 
 
 NAMESPACE_SPH_BEGIN
@@ -53,9 +53,10 @@ public:
 
 
     /// initialize problem by constructing solver
-    Problem(std::unique_ptr<Abstract::Solver>&& solver)
-        : storage(std::make_shared<Storage>())
-        , solver(std::move(solver)) {}
+    Problem(const Settings<GlobalSettingsIds>& settings)
+        : storage(std::make_shared<Storage>()) {
+        solver = getSolver(settings);
+    }
 
     void run() {
         int i = 0;

@@ -6,7 +6,7 @@
 
 
 #include "geometry/Vector.h"
-#include "objects/containers/Array.h"
+#include "objects/containers/StaticArray.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -40,12 +40,12 @@ public:
         ASSERT(v0[2] == v2[0]);
         ASSERT(v1[2] == v2[1]);
         diag = Vector(v0[0], v1[1], v2[2]);
-        off  = Vector(v0[1], v0[2], v1[2]);
+        off = Vector(v0[1], v0[2], v1[2]);
     }
 
     INLINE Tensor& operator=(const Tensor& other) {
         diag = other.diag;
-        off  = other.off;
+        off = other.off;
         return *this;
     }
 
@@ -60,7 +60,7 @@ public:
         case 2:
             return Vector(off[1], off[2], diag[2]);
         default:
-            throw std::exception();
+            STOP;
         }
     }
 
@@ -84,8 +84,8 @@ public:
     INLINE Vector operator*(const Vector& v) const {
         /// \todo optimize using _mm_shuffle_ps
         return Vector(diag[0] * v[0] + off[0] * v[1] + off[1] * v[2],
-                      off[0] * v[0] + diag[1] * v[1] + off[2] * v[2],
-                      off[1] * v[0] + off[2] * v[1] + diag[2] * v[2]);
+            off[0] * v[0] + diag[1] * v[1] + off[2] * v[2],
+            off[1] * v[0] + off[2] * v[1] + diag[2] * v[2]);
     }
 
     /// Multiplies the tensor by a scalar
@@ -116,10 +116,10 @@ public:
     INLINE bool operator==(const Tensor& other) const { return diag == other.diag && off == other.off; }
 
     /// Returns an identity tensor.
-    static Tensor identity() { return Tensor(Vector(1._f, 1._f, 1._f), Vector(0._f, 0._f, 0._f)); }
+    INLINE static Tensor identity() { return Tensor(Vector(1._f, 1._f, 1._f), Vector(0._f, 0._f, 0._f)); }
 
     /// Returns a tensor with all zeros.
-    static Tensor null() { return Tensor(Vector(0._f), Vector(0._f)); }
+    INLINE static Tensor null() { return Tensor(Vector(0._f), Vector(0._f)); }
 
     /// Returns the determinant of the tensor
     INLINE Float determinant() const {
@@ -152,9 +152,9 @@ public:
         invDiag[0] = diag[1] * diag[2] - Math::sqr(off[2]);
         invDiag[1] = diag[2] * diag[0] - Math::sqr(off[1]);
         invDiag[2] = diag[0] * diag[1] - Math::sqr(off[0]);
-        invOff[0]  = off[1] * off[2] - diag[2] * off[0];
-        invOff[1]  = off[2] * off[0] - diag[1] * off[1];
-        invOff[2]  = off[0] * off[1] - diag[0] * off[2];
+        invOff[0] = off[1] * off[2] - diag[2] * off[0];
+        invOff[1] = off[2] * off[0] - diag[1] * off[1];
+        invOff[2] = off[0] * off[1] - diag[0] * off[2];
         return Tensor(invDiag / det, invOff / det);
     }
 
@@ -200,6 +200,11 @@ namespace Math {
     INLINE Tensor clamp(const Tensor& t, const Range& range) {
         return Tensor(clamp(t.diagonal(), range), clamp(t.offDiagonal(), range));
     }
+
+    template<>
+    INLINE bool isReal(const Tensor& t) {
+        return isReal(t.diagonal()) && isReal(t.offDiagonal());
+    }
 }
 
 /// Double-dot product t1 : t2 = sum_ij t1_ij t2_ij
@@ -207,6 +212,16 @@ INLINE Float ddot(const Tensor& t1, const Tensor& t2) {
     return dot(t1.diagonal(), t2.diagonal()) + 2._f * dot(t1.offDiagonal(), t2.offDiagonal());
 }
 
+/// SYMMETRIZED outer product of two vectors (simple outer product is not necessarily symmetric matrix).
+INLINE Tensor outer(const Vector& v1, const Vector& v2) {
+    /// \todo optimize
+    return Tensor(v1 * v2,
+        Vector(0.5_f * (v1[0] * v2[1] + v1[1] * v2[0]),
+            0.5_f * (v1[0] * v2[2] + v1[2] * v2[0]),
+            0.5_f * (v1[1] * v2[2] + v1[2] * v2[1])));
+}
+
+/// Returns three eigenvalue of symmetric matrix.
 INLINE StaticArray<Float, 3> findEigenvalues(const Tensor& t) {
     const Float n = 1._f; // Math::norm(t);
     const Float p = -t.invariant<1>() / n;
@@ -215,10 +230,10 @@ INLINE StaticArray<Float, 3> findEigenvalues(const Tensor& t) {
 
     const Float a = q - p * p / 3._f;
     ASSERT(a < 0._f);
-    const Float b    = (2._f * Math::pow<3>(p) - 9._f * p * q + 27._f * r) / 27._f;
+    const Float b = (2._f * Math::pow<3>(p) - 9._f * p * q + 27._f * r) / 27._f;
     const Float aCub = Math::pow<3>(a) / 27._f;
     ASSERT(0.25_f * b * b + aCub < 0._f);
-    const Float t1  = 2._f * Math::sqrt(-a / 3._f);
+    const Float t1 = 2._f * Math::sqrt(-a / 3._f);
     const Float phi = Math::acos(-0.5_f * b / Math::sqrt(-aCub));
     const Vector v(phi / 3._f, (phi + 2 * Math::PI) / 3._f, (phi + 4 * Math::PI) / 3._f);
     const Vector sig = t1 * Math::cos(v) - Vector(p / 3._f);

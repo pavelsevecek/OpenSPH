@@ -1,50 +1,80 @@
 #pragma once
 
-
+#include "objects/wrappers/Flags.h"
+#include "solvers/Accumulator.h"
 #include "storage/Storage.h"
 
 NAMESPACE_SPH_BEGIN
 
-/// Forces acting on SPH particles.
+/// Object computing acceleration of particles and increase of internal energy due to divergence of the stress
+/// tensor. When no stress tensor is used in the model, only pressure gradient is computed.
+class StressForce : public Noncopyable {
+private:
+    Accumulator<RhoDivv> rhoDivv;
+    Accumulator<RhoGradv> rhoGradv;
+    ArrayView<Float> p, rho, du, u, m;
+    ArrayView<Vector> v, dv;
+    ArrayView<TracelessTensor> s;
 
-/// Forces must implement method dv, du, setQuantities and update. They are passed to solver using
-/// template parameter to avoid calling virtual functions in inner loop of the solver.
+    enum class Options {
+        USE_GRAD_P = 1 << 0,
+        USE_DIV_S = 1 << 1,
+    };
+    Flags<Options> flags;
 
 
-
-
-
-template <typename TArtificialViscosity>
-struct PressureForce : public Noncopyable {
-    TArtificialViscosity av;
-    ArrayView<const Float> p, rho;
-    ArrayView<const Vector> v;
-
-
-    PressureForce(const Settings<GlobalSettingsIds>& settings)
-        : av(settings) {}
-
-    static void setQuantities(Storage& storage, const Settings<BodySettingsIds>& settings) {
-        // here pressure, density and velocity must be already set by the solver, just check
-        ASSERT(storage.has(QuantityKey::RHO) && storage.has(QuantityKey::P) && storage.has(QuantityKey::R));
-        // set quantities needed by artificial viscosity
-        TArtificialViscosity::setQuantities(storage, settings);
+public:
+    StressForce(const Settings<GlobalSettingsIds>& settings) {
+        flags.setIf(Options::USE_GRAD_P, settings.get<bool>(GlobalSettingsIds::MODEL_FORCE_GRAD_P));
+        flags.setIf(Options::USE_DIV_S, settings.get<bool>(GlobalSettingsIds::MODEL_FORCE_DIV_S));
+        // cannot use stress tensor without pressure
+        ASSERT(!(flags.has(Options::USE_DIV_S) && !flags.has(Options::USE_GRAD_P)));
     }
 
     void update(Storage& storage) {
-        tieToArray(p, rho) = storage.getValues<Float>(QuantityKey::P, QuantityKey::RHO);
-        v = storage.getAll<Vector>(QuantityKey::R)[1];
-        av.update(storage);
+        tieToArray(rho, u, m) = storage.getValues<Float>(QuantityKey::RHO, QuantityKey::U, QuantityKey::M);
+        ArrayView<const Vector> r;
+        tieToArray(r, v, dv) = storage.getAll<Vector>(QuantityKey::R);
+        if (flags.has(Options::USE_GRAD_P)) {
+            p = storage.getValue<Float>(QuantityKey::P);
+        }
+        if (flags.has(Options::USE_DIV_S)) {
+            s = storage.getValue<TracelessTensor>(QuantityKey::S);
+        }
+        rhoDivv.update(storage);
+        rhoGradv.update(storage);
     }
 
-    INLINE Vector dv(const int i, const int j, const Vector& grad) {
-        /// \todo generalize for tensor AV, using specialization
-        return -(p[i] / Math::sqr(rho[i]) + p[j] / Math::sqr(rho[j]) + av(i, j)) * grad;
+    INLINE void accumulate(const int i, const int j, const Vector& grad) {
+        Vector f(0._f);
+        const Float rhoInvSqri = 1._f / Math::sqr(rho[i]);
+        const Float rhoInvSqrj = 1._f / Math::sqr(rho[j]);
+        if (flags.has(Options::USE_GRAD_P)) {
+            /// \todo measure if these branches have any effect on performance
+            f -= (p[i] * rhoInvSqri + p[j] * rhoInvSqrj) * grad;
+            rhoDivv.accumulate(i, j, grad);
+        }
+        if (flags.has(Options::USE_DIV_S)) {
+            f += (s[i] * rhoInvSqri + s[j] * rhoInvSqrj) * grad;
+            rhoGradv.accumulate(i, j, grad);
+        }
+        dv[i] += m[j] * f;
+        dv[j] -= m[i] * f;
+        // internal energy is computed at the end using accumulated values
     }
 
-    INLINE Float du(const int i, const int j, const Vector& grad) {
-        const Float divv = dot(v[i] - v[j], grad);
-        return -divv * (p[i] / Math::sqr(rho[i]) /*+ 0.5_f * av(i, j)*/);
+    void evaluate(Storage&) {
+        for (int i = 0; i < du.size(); ++i) {
+            ASSERT(du[i] == 0._f); // derivative must be cleared
+            /// \todo check correct sign
+            const Float rhoInvSqr = 1._f / Math::sqr(rho[i]);
+            if (flags.has(Options::USE_GRAD_P)) {
+                du[i] -= p[i] * rhoInvSqr * rhoDivv[i];
+            }
+            if (flags.has(Options::USE_DIV_S)) {
+                du[i] += rhoInvSqr * ddot(s[i], rhoGradv[i]);
+            }
+        }
     }
 };
 
@@ -77,6 +107,16 @@ struct StressForce : public PressureForce<TArtificialViscosity> {
     INLINE Float energy(const Vector grad) {
         return pressureTerm(i, j, grad) + 1._f / rho[i] * ddot(s[i], edot[i]);
     }
+
+    stress evolution equation
+    ds = 2._f * shearModulus * (gradv  - Tensor::identity()*gradv.trace()/3._f);
 };*/
+
+/*
+ struct CentripetalForce {
+    INLINE Vector dv(const int i, const int j, const Vector& grad) {
+    // centripetal force is independent on particle relative position, acts on both particles
+        return omega * (r[i] - Vector(0._f, 0._f, 1._f)*dot(r[i], Vector(0._f, 0._f, 1._f)));
+    }*/
 
 NAMESPACE_SPH_END

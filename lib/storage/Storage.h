@@ -45,9 +45,6 @@ private:
     /// getMaterial to obtain material for given particle.
     Array<Material> materials;
 
-    /// Number of particles (=size of each array).
-    int particleCnt = 0;
-
 public:
     Storage() = default;
 
@@ -61,13 +58,11 @@ public:
 
     Storage(Storage&& other)
         : quantities(std::move(other.quantities))
-        , materials(std::move(materials))
-        , particleCnt(other.particleCnt) {}
+        , materials(std::move(materials)) {}
 
     Storage& operator=(Storage&& other) {
-        quantities  = std::move(other.quantities);
-        materials   = std::move(other.materials);
-        particleCnt = other.particleCnt;
+        quantities = std::move(other.quantities);
+        materials = std::move(other.materials);
         return *this;
     }
 
@@ -129,6 +124,7 @@ public:
     ///              by timestepping algorithm. By default, quantities are unbounded.
     template <typename TValue, OrderEnum TOrder>
     void emplace(const QuantityKey key, const TValue& defaultValue, const Range& range = Range::unbounded()) {
+        const int particleCnt = getParticleCnt();
         ASSERT(particleCnt);
         Quantity q;
         q.emplace<TValue, TOrder>(defaultValue, particleCnt, range);
@@ -144,15 +140,12 @@ public:
         Quantity q;
         q.emplace<TValue, TOrder>(std::move(values), range);
         if (quantities.size() == 0) {
-            // this is the first quantity, set up number of particles
-            ASSERT(particleCnt == 0);
-            particleCnt = q.size();
             // set material ids; we have only one material, so set everything to zero
             if (!materials.empty()) {
                 this->emplace<int, OrderEnum::ZERO_ORDER>(QuantityKey::MAT_ID, 0);
             }
         } else {
-            ASSERT(particleCnt > 0 && q.size() == particleCnt); // size must match sizes of other quantities
+            ASSERT(q.size() == getParticleCnt()); // size must match sizes of other quantities
         }
         quantities[key] = std::move(q);
     }
@@ -178,7 +171,10 @@ public:
     int getQuantityCnt() const { return quantities.size(); }
 
     /// Returns the number of particles. The number of particle is always the same for all quantities.
-    int getParticleCnt() { return particleCnt; }
+    int getParticleCnt() {
+        ASSERT(quantities.size() == 0);
+        return quantities.begin()->second.size();
+    }
 
     /// Returns the material of given particle.
     Material& getMaterial(const int particleIdx) {
@@ -194,7 +190,7 @@ public:
     template <typename TSelector>
     void setMaterial(Array<Material>&& mats, TSelector&& selector) {
         ASSERT((this->has<Vector, OrderEnum::SECOND_ORDER>(QuantityKey::R)));
-        this->materials     = std::move(mats);
+        this->materials = std::move(mats);
         ArrayView<Vector> r = this->getValue<Vector>(QuantityKey::R);
         if (!this->has(QuantityKey::MAT_ID)) {
             this->emplace<int, OrderEnum::ZERO_ORDER>(QuantityKey::MAT_ID, 0);
@@ -230,7 +226,6 @@ public:
         // merge all quantities
         iteratePair<VisitorEnum::ALL_BUFFERS>(
             quantities, other.quantities, [](auto&& ar1, auto&& ar2) { ar1.pushAll(std::move(ar2)); });
-        particleCnt += other.particleCnt;
     }
 
     /// Clears all highest level derivatives of quantities
@@ -259,7 +254,6 @@ public:
     template <VisitorEnum Type>
     void resize(const int newParticleCnt) {
         iterate<Type>(quantities, [newParticleCnt](auto&& buffer) { buffer.resize(newParticleCnt); });
-        particleCnt = newParticleCnt;
     }
 
     void swap(Storage& other, const Flags<VisitorEnum> flags) {

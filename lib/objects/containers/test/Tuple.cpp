@@ -1,55 +1,9 @@
 #include "objects/containers/Tuple.h"
 #include "catch.hpp"
 #include "objects/containers/Array.h"
+#include "utils/RecordType.h"
 
 using namespace Sph;
-
-struct RecordType {
-    bool wasMoved = false;
-    bool wasMoveConstructed = false;
-    bool wasCopyConstructed = false;
-    bool wasMoveAssigned = false;
-    bool wasCopyAssigned = false;
-    bool wasDefaultConstructed = false;
-    bool wasValueConstructed = false;
-
-    int value = -1;
-
-    RecordType() { wasDefaultConstructed = true; }
-
-    RecordType(const int value)
-        : value(value) {
-        wasValueConstructed = true;
-    }
-
-    RecordType(const RecordType& other) {
-        wasCopyConstructed = true;
-        value = other.value;
-    }
-
-    RecordType(RecordType&& other) {
-        wasMoveConstructed = true;
-        other.wasMoved = true;
-        value = other.value;
-    }
-
-    RecordType& operator=(const RecordType& other) {
-        wasCopyAssigned = true;
-        value = other.value;
-        return *this;
-    }
-
-    RecordType& operator=(RecordType&& other) {
-        wasMoveAssigned = true;
-        other.wasMoved = true;
-        value = other.value;
-        return *this;
-    }
-
-    bool operator==(const RecordType& other) const {
-        return value == other.value;
-    }
-};
 
 TEST_CASE("Tuple default construction", "[tuple]") {
     Tuple<> empty;
@@ -82,7 +36,7 @@ TEST_CASE("Tuple copy/move construction", "[tuple]") {
     REQUIRE(t3.get<1>().value == 10);
     REQUIRE(t3.get<1>().wasMoveConstructed);
 
-    Tuple<int, float> t4 { 3, 4.5_f};
+    Tuple<int, float> t4{ 3, 4.5_f };
     REQUIRE(t4.get<0>() == 3);
     REQUIRE(t4.get<1>() == 4.5_f);
 }
@@ -127,10 +81,13 @@ TEST_CASE("Tuple copy/move assignment", "[tuple]") {
 }
 
 TEST_CASE("Const tuple", "[tuple]") {
-    Tuple<const RecordType> constTuple(RecordType(5));
-    const RecordType& r = constTuple.get<0>();
-    REQUIRE(r.value == 5);
-    REQUIRE(r.wasMoveConstructed);
+    RecordType r1(3);
+    Tuple<const RecordType, const RecordType&> constTuple(RecordType(5), r1);
+    REQUIRE(constTuple.get<0>().value == 5);
+    REQUIRE(constTuple.get<0>().wasMoveConstructed);
+    REQUIRE(constTuple.get<1>().value == 3);
+    REQUIRE(!constTuple.get<1>().wasMoveConstructed);
+    REQUIRE(!constTuple.get<1>().wasCopyConstructed);
 }
 
 TEST_CASE("Tuple lvalue references", "[tuple]") {
@@ -170,6 +127,25 @@ TEST_CASE("Get rvalue reference of tuple", "[tuple]") {
     REQUIRE(r6.value == 15);
     REQUIRE(r6.wasMoveConstructed);
     REQUIRE(r3.wasMoved);
+}
+
+TEST_CASE("Tuple get by type", "[tuple]") {
+    RecordType r1(5), r2(10), r3(15);
+    Tuple<RecordType, RecordType&, RecordType&&, int> t(r1, r2, std::move(r3), 20);
+    decltype(auto) value = t.get<RecordType>();
+    static_assert(std::is_same<decltype(value), RecordType&>::value, "static test failed");
+    REQUIRE(value.value == 5);
+    decltype(auto) lref = t.get<RecordType&>();
+    static_assert(std::is_same<decltype(lref), RecordType&>::value, "static test failed");
+    REQUIRE(lref.value == 10);
+    decltype(auto) rref = t.get<RecordType&&>();
+    static_assert(std::is_same<decltype(rref), RecordType&&>::value, "static test failed");
+    REQUIRE(rref.value == 15);
+    decltype(auto) i = t.get<int>();
+    static_assert(std::is_same<decltype(i), int&>::value, "static test failed");
+    REQUIRE(i.value == 20);
+
+    /// \todo check r-value overload
 }
 
 TEST_CASE("MakeTuple", "[tuple]") {
@@ -388,4 +364,14 @@ TEST_CASE("Tuple comparison", "[tuple]") {
     REQUIRE(t1 != makeTuple(RecordType(0), RecordType(5), RecordType(10)));
     REQUIRE(t1 != makeTuple(RecordType(1), RecordType(4), RecordType(10)));
     REQUIRE(t1 != makeTuple(RecordType(1), RecordType(5), RecordType(9)));
+}
+
+
+TEST_CASE("Tuple contains", "[tuple]") {
+    using TestTuple = Tuple<int, char, RecordType>;
+    static_assert(TupleContains<TestTuple, int>::value, "static test failed");
+    static_assert(TupleContains<TestTuple, char>::value, "static test failed");
+    static_assert(TupleContains<TestTuple, RecordType>::value, "static test failed");
+    static_assert(!TupleContains<TestTuple, float>::value, "static test failed");
+    static_assert(TupleContains<TestTuple, void>::value, "static test failed");
 }

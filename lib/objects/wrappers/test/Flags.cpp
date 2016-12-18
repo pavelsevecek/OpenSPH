@@ -13,6 +13,23 @@ TEST_CASE("flags constructor", "[flags]") {
     REQUIRE(!flags.has(OPT3));
 
     REQUIRE(flags.hasAny(OPT1, OPT2, OPT3));
+
+    flags.set(OPT3);
+    REQUIRE(flags.has(OPT1));
+    REQUIRE(!flags.has(OPT2));
+    REQUIRE(flags.has(OPT3));
+
+    flags.unset(OPT1);
+    REQUIRE(!flags.has(OPT1));
+    REQUIRE(!flags.has(OPT2));
+    REQUIRE(flags.has(OPT3));
+
+    flags.setIf(OPT1, true);
+    flags.setIf(OPT2, true);
+    flags.setIf(OPT3, false);
+    REQUIRE(flags.has(OPT1));
+    REQUIRE(flags.has(OPT2));
+    REQUIRE(!flags.has(OPT3));
 }
 
 TEST_CASE("Empty flags", "[flags]") {

@@ -17,40 +17,38 @@ NAMESPACE_SPH_BEGIN
 template <typename Type>
 class Shadow : public Object {
 private:
-    using StorageT = std::conditional_t<std::is_lvalue_reference<Type>::value,
-                                        std::reference_wrapper<std::remove_reference_t<Type>>,
-                                        Type>;
-    alignas(Type) char storage[sizeof(Type)];
+    using StorageType = typename WrapReferenceType<Type>::Type;
+    alignas(StorageType) char storage[sizeof(StorageType)];
 
-    Type& data() { return *reinterpret_cast<Type*>(storage); }
+    INLINE constexpr Type& data() { return *reinterpret_cast<Type*>(storage); }
 
-    const Type& constData() const { return *reinterpret_cast<const Type*>(storage); }
+    INLINE constexpr const Type& constData() const { return *reinterpret_cast<const Type*>(storage); }
 
 public:
     Shadow() = default;
 
-    template <typename T0, typename... TArgs>
-    void emplace(T0&& t0, TArgs&&... rest) {
-        new (storage) Type(std::forward<T0>(t0), std::forward<TArgs>(rest)...);
+    template <typename... TArgs>
+    INLINE void emplace(TArgs&&... rest) {
+        new (storage) StorageType(std::forward<TArgs>(rest)...);
     }
 
-    void destroy() { data().~Type(); }
+    INLINE void destroy() { data().~Type(); }
 
     /// Implicit conversion to stored type
-    operator Type&() { return data(); }
+    INLINE constexpr operator Type&() noexcept { return data(); }
 
     /// Implicit conversion to stored type, const version
-    operator const Type&() { return constData(); }
+    INLINE constexpr operator const Type&() const noexcept { return constData(); }
 
     /// Return the reference to the stored value.
-    Type& get() { return data(); }
+    INLINE constexpr Type& get() noexcept { return data(); }
 
     /// Returns the reference to the stored value, const version.
-    const Type& get() const { return constData(); }
+    INLINE constexpr const Type& get() const noexcept { return constData(); }
 
-    Type* operator->() { return &data(); }
+    INLINE constexpr Type* operator->() noexcept { return &data(); }
 
-    const Type* operator->() const { return &constData(); }
+    INLINE constexpr const Type* operator->() const noexcept { return &constData(); }
 };
 
 

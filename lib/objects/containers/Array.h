@@ -5,6 +5,7 @@
 /// sevecek at sirrah.troja.mff.cuni.cz
 
 #include "objects/containers/ArrayView.h"
+#include "objects/containers/StaticArray.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -34,7 +35,7 @@ public:
         // allocate maxSize elements
         this->data = (StorageType*)malloc(this->maxSize * sizeof(StorageType));
         // emplace size elements
-        if (!std::is_trivially_constructible<T>::value) {
+        if (!std::is_trivially_default_constructible<T>::value) {
             for (int i = 0; i < actSize; ++i) {
                 new (data + i) StorageType();
             }
@@ -141,6 +142,12 @@ public:
         return data[idx];
     }
 
+    /// Returns array of references to elements given by a list of indices.
+    template <typename... TArgs>
+    INLINE auto operator()(const TCounter idx1, const TCounter idx2, const TArgs... rest) {
+        return tieToStatic(data[idx1], data[idx2], data[rest]...);
+    }
+
     void fill(const T& t) {
         for (auto& v : *this) {
             v = t;
@@ -157,7 +164,7 @@ public:
             // enough elements is already allocated
             if (newSize >= actSize) {
                 // enlarging array, we need to construct some new elements
-                if (!std::is_trivially_constructible<T>::value) {
+                if (!std::is_trivially_default_constructible<T>::value) {
                     for (int i = actSize; i < newSize; ++i) {
                         new (data + i) StorageType();
                     }
@@ -181,7 +188,7 @@ public:
                 new (newArray.data + i) StorageType(std::move(this->data[i]));
             }
             // default-construct new elements
-            if (!std::is_trivially_constructible<T>::value) {
+            if (!std::is_trivially_default_constructible<T>::value) {
                 for (int i = actSize; i < newSize; ++i) {
                     new (newArray.data + i) StorageType();
                 }
@@ -296,62 +303,5 @@ template <typename T0, typename... TArgs>
 Array<T0&> tieToArray(T0& t0, TArgs&... rest) {
     return Array<T0&>{ t0, rest... };
 }
-
-template <typename T, int N>
-class StaticArray : public Noncopyable {
-private:
-    using StorageType = typename WrapReferenceType<T>::Type;
-
-    StorageType data[N];
-
-public:
-    StaticArray() = default;
-
-    StaticArray(StaticArray&& other) { std::swap(data, other.data); }
-
-    StaticArray(std::initializer_list<T> list) {
-        int n = 0;
-        for (auto& i : list) {
-            data[n++] = i;
-        }
-    }
-
-    StaticArray& operator=(StaticArray&& other) {
-        std::swap(data, other.data);
-        return *this;
-    }
-
-    StaticArray clone() const {
-        StaticArray cloned;
-        for (int i = 0; i < N; ++i) {
-            cloned[i] = data[i];
-        }
-        return cloned;
-    }
-
-    T& operator[](const int idx) {
-        ASSERT(idx >= 0 && idx < N);
-        return data[idx];
-    }
-
-    const T& operator[](const int idx) const {
-        ASSERT(idx >= 0 && idx < N);
-        return data[idx];
-    }
-
-    constexpr int size() const { return N; }
-
-    Iterator<T> begin() { return Iterator<T>(data, data, data + N); }
-
-    Iterator<const T> begin() const { return Iterator<T>(data, data, data + N); }
-
-    Iterator<T> end() { return Iterator<T>(data + N, data, data + N); }
-
-    Iterator<const T> end() const { return Iterator<T>(data + N, data, data + N); }
-
-    operator ArrayView<T>() { return ArrayView<T>(data, N); }
-
-    operator ArrayView<const T>() const { return ArrayView<const T>(data, N); }
-};
 
 NAMESPACE_SPH_END

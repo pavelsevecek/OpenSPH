@@ -41,10 +41,6 @@ namespace Detail {
         INLINE constexpr TValue&& forward() { return std::forward<TValue>(value); }
     };
 
-    /// Helper type to disambiguate between construction from variadic parameter pack and copy/move
-    /// construction.
-    struct VariadicConstructTag {};
-
     template <typename TSequence, typename... TArgs>
     class TupleImpl;
 
@@ -59,8 +55,9 @@ namespace Detail {
     public:
         constexpr TupleImpl() = default;
 
-        template <typename... Ts>
-        INLINE constexpr TupleImpl(VariadicConstructTag, Ts&&... args)
+        template <typename... Ts,
+            typename = std::enable_if_t<AllTrue<std::is_constructible<TArgs, Ts>::value...>::value>>
+        INLINE constexpr TupleImpl(Ts&&... args)
             : TupleValue<TIndices, TArgs>(std::forward<Ts>(args))... {}
 
         template <typename... Ts>
@@ -77,7 +74,7 @@ namespace Detail {
         }
 
         template <std::size_t TIndex>
-        INLINE constexpr decltype(auto) get() const {
+        INLINE constexpr const decltype(auto) get() const {
             return Value<TIndex>::get();
         }
 
@@ -146,9 +143,11 @@ private:
 public:
     INLINE constexpr Tuple() = default;
 
-    template <typename T0, typename = std::enable_if_t<!IsTuple<T0>::value>, typename... Ts>
-    INLINE constexpr Tuple(T0&& first, Ts&&... rest)
-        : Impl(Detail::VariadicConstructTag(), std::forward<T0>(first), std::forward<Ts>(rest)...) {}
+
+    template <typename... Ts,
+        typename = std::enable_if_t<AllTrue<std::is_constructible<TArgs, Ts>::value...>::value>>
+    INLINE constexpr Tuple(Ts&&... args)
+        : Impl(std::forward<Ts>(args)...) {}
 
     INLINE constexpr Tuple(const Tuple& other)
         : Impl(other) {}
@@ -208,24 +207,58 @@ public:
         return *this;
     }
 
+    /// Returns an element of the tuple by index. If a value or l-value reference is stored, an l-value
+    /// reference to the element is returned. If an r-value references is stored, r-value reference is
+    /// returned.
     template <std::size_t TIndex>
     INLINE constexpr decltype(auto) get() & {
         static_assert(unsigned(TIndex) < sizeof...(TArgs), "Index out of bounds.");
         return Impl::template get<TIndex>();
     }
 
+    /// Returns an element of the tuple by index, const version.
     template <std::size_t TIndex>
-    INLINE constexpr decltype(auto) get() const & {
+    INLINE constexpr const decltype(auto) get() const & {
         static_assert(unsigned(TIndex) < sizeof...(TArgs), "Index out of bounds.");
         return Impl::template get<TIndex>();
     }
 
+    /// Returns an element of r-value reference to tuple by index. If a value or r-value reference is stored,
+    /// an r-value reference is returned, for stored l-value reference, l-value reference is returned (same
+    /// logic as in std::forward).
     template <std::size_t TIndex>
     INLINE constexpr decltype(auto) get() && {
         static_assert(unsigned(TIndex) < sizeof...(TArgs), "Index out of bounds.");
         return Impl::template forward<TIndex>();
     }
-    INLINE static constexpr std::size_t size() { return sizeof...(TArgs); }
+
+    /// Returns an element of the tuple by type. If the tuple contains more elements of the same type, the
+    /// first one is returned. The rules for l/r-value reference are same as for returning by index.
+    template <typename Type>
+    INLINE constexpr decltype(auto) get() & {
+        constexpr std::size_t index = getTypeIndex<Type, TArgs...>;
+        static_assert(index != -1, "Type not stored in tuple");
+        return Impl::template get<index>();
+    }
+
+    /// Returns an element of the tuple by type, const version.
+    template <typename Type>
+    INLINE constexpr const decltype(auto) get() const & {
+        constexpr std::size_t index = getTypeIndex<Type, TArgs...>;
+        static_assert(index != -1, "Type not stored in tuple");
+        return Impl::template get<index>();
+    }
+
+    /// Returns an element of r-value reference to tuple. Same rules apply as for other overloads.
+    template <typename Type>
+    INLINE constexpr decltype(auto) get() && {
+        constexpr std::size_t index = getTypeIndex<Type, TArgs...>;
+        static_assert(index != -1, "Type not stored in tuple");
+        return Impl::template forward<index>();
+    }
+
+    /// Returns the number of elements in tuple.
+    INLINE static constexpr std::size_t size() noexcept { return sizeof...(TArgs); }
 
     /// \todo Generalize operator to allow comparing tuples of different types.
     INLINE constexpr bool operator==(const Tuple& other) const { return Impl::isEqual(other, Sequence()); }
@@ -384,5 +417,16 @@ template <typename... Ts1, typename... Ts2>
 INLINE constexpr Tuple<Ts1..., Ts2...> append(const Tuple<Ts1...>& t1, const Tuple<Ts2...>& t2) {
     return Detail::appendImpl(t1, t2, std::index_sequence_for<Ts1...>(), std::index_sequence_for<Ts2...>());
 }
+
+/// Combile-time check if a tuple contains given type (at least once). Types T, T&, const T etc. are
+/// considered different.
+template <typename TTuple, typename Type>
+struct TupleContains {
+    static constexpr bool value = false;
+};
+template <typename... TArgs, typename Type>
+struct TupleContains<Tuple<TArgs...>, Type> {
+    static constexpr bool value = (getTypeIndex<Type, TArgs...> != -1);
+};
 
 NAMESPACE_SPH_END

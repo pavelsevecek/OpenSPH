@@ -51,7 +51,7 @@ public:
 
     template <typename TValue>
     void set(TEnum idx, TValue&& value) {
-        using StoreType    = EnumToInt<TValue>;
+        using StoreType = EnumToInt<TValue>;
         entries[idx].value = StoreType(std::forward<TValue>(value));
     }
 
@@ -61,7 +61,7 @@ public:
         ASSERT(iter != entries.end());
         /// \todo can be cast here as we no longer return optional
         using StoreType = EnumToInt<TValue>;
-        auto opt        = iter->second.value.get<StoreType>();
+        auto opt = iter->second.value.get<StoreType>();
         ASSERT(opt);
         return TValue(opt.get());
     }
@@ -115,7 +115,7 @@ public:
                 // didn't find '=', invalid format of the file
                 return false;
             }
-            std::string key   = line.substr(0, idx);
+            std::string key = line.substr(0, idx);
             std::string value = line.substr(idx + 1);
             // throw away spaces from key
             std::string trimmedKey;
@@ -308,9 +308,37 @@ enum class DomainEnum {
     SPHERICAL,
 
     /// Block with edge sizes given by vector
-    BLOCK
-    // CYLINDER
+    BLOCK,
+
+    /// Cylindrical domain aligned with z axis
+    CYLINDER
 };
+
+enum class ArtificialViscosityEnum {
+    /// No artificial viscosity
+    NONE,
+
+    /// Standard artificial viscosity term by Monaghan (1989).
+    STANDARD,
+
+    /// Artificial viscosity term analogous to Riemann solvers by Monaghan (1997)
+    RIEMANN,
+
+    /// Time-dependent artificial viscosity by Morris & Monaghan (1997).
+    MORRIS_MONAGHAN,
+};
+
+enum class SolverEnum {
+    /// Standard SPH formulation evolving density, velocity and internal energy in time.
+    CONTINUITY_SOLVER,
+
+    /// Density is obtained by direct summation over nearest SPH particles.
+    SUMMATION_SOLVER,
+
+    /// Density independent solver by Saitoh & Makino (2013).
+    DENSITY_INDEPENDENT
+};
+
 
 /// Settings relevant for whole run of the simulation
 enum class GlobalSettingsIds {
@@ -343,6 +371,29 @@ enum class GlobalSettingsIds {
 
     /// Artificial viscosity beta coefficient
     SPH_AV_BETA,
+
+    /// Use force from pressure gradient in the model
+    MODEL_FORCE_GRAD_P,
+
+    /// Use force from stress divergence in the model (must be used together with MODEL_FORCE_GRAD_P). Stress
+    /// tensor is then evolved in time using Hooke's equation.
+    MODEL_FORCE_DIV_S,
+
+    /// Use centripetal force given by angular frequency of the coordinate frame in the model
+    MODEL_FORCE_CENTRIPETAL,
+
+    /// Use gravitational force in the model.
+    MODEL_FORCE_GRAVITY,
+
+    /// Type of used artificial viscosity.
+    MODEL_AV_TYPE,
+
+    /// Whether to use balsara switch for computing artificial viscosity dissipation. If no artificial
+    /// viscosity is used, the value has no effect.
+    MODEL_AV_BALSARA_SWITCH,
+
+    /// Selected solver for computing derivatives of physical variables.
+    SOLVER_TYPE,
 
     /// Selected timestepping integrator
     TIMESTEPPING_INTEGRATOR,
@@ -389,6 +440,15 @@ const Settings<GlobalSettingsIds> GLOBAL_SETTINGS = {
     { GlobalSettingsIds::RUN_OUTPUT_STEP,               "run.output.step",          100 },
     { GlobalSettingsIds::RUN_OUTPUT_NAME,               "run.output.name",          std::string("out_%d.txt") },
     { GlobalSettingsIds::RUN_OUTPUT_PATH,               "run.output.path",          std::string("out") }, /// \todo Variant somehow doesnt handle empty strings
+    /// Physical model
+    { GlobalSettingsIds::MODEL_FORCE_GRAD_P,            "model.force.grad_p",       true },
+    { GlobalSettingsIds::MODEL_FORCE_DIV_S,             "model.force.div_s",        true },
+    { GlobalSettingsIds::MODEL_FORCE_CENTRIPETAL,       "model.force.centripetal",  false },
+    { GlobalSettingsIds::MODEL_FORCE_GRAVITY,           "model.force.gravity",      false },
+    { GlobalSettingsIds::MODEL_AV_TYPE,                 "model.av.type",            int(ArtificialViscosityEnum::STANDARD) },
+    { GlobalSettingsIds::MODEL_AV_BALSARA_SWITCH,       "model.av.balsara_switch",  false },
+    /// SPH solvers
+    { GlobalSettingsIds::SOLVER_TYPE,                   "solver.type",              int (SolverEnum::CONTINUITY_SOLVER) },
     /// Global SPH parameters
     { GlobalSettingsIds::SPH_KERNEL,                    "sph.kernel",               int(KernelEnum::CUBIC_SPLINE) },
     { GlobalSettingsIds::SPH_KERNEL_ETA,                "sph.kernel.eta",           1.5_f },

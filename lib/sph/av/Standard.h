@@ -25,17 +25,6 @@ public:
         beta  = settings.get<Float>(GlobalSettingsIds::SPH_AV_BETA);
     }
 
-    static void setQuantities(Storage& storage, const Settings<BodySettingsIds>& settings) {
-        // emplace cs
-        std::unique_ptr<Abstract::Eos> eos = Factory::getEos(settings);
-        ArrayView<Float> rho, u;
-        tieToArray(rho, u) = storage.getValues<Float>(QuantityKey::RHO, QuantityKey::U);
-        if (!storage.has(QuantityKey::CS)) {
-            storage.emplaceWithFunctor<Float, OrderEnum::ZERO_ORDER>(QuantityKey::CS,
-                [&](const Vector&, const int i) { return eos->getPressure(rho[i], u[i]).get<1>(); });
-        }
-    }
-
     void update(Storage& storage) {
         ArrayView<const Vector> dv;
         ArrayView<const Float> u;
@@ -44,7 +33,7 @@ public:
         u = storage.getValue<Float>(QuantityKey::U);
         for (int i=0; i<cs.size(); ++i) {
             /// \todo update sound speed together with pressure
-            cs[i] = storage.getMaterial(i).eos->getPressure(rho[i], u[i]).get<1>();
+            tieToTuple(IGNORE, cs[i]) = storage.getMaterial(i).eos->getPressure(rho[i], u[i]);
         }
     }
 

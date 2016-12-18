@@ -50,10 +50,10 @@ TEST_CASE("Sod", "[sod]") {
     globalSettings.set(GlobalSettingsIds::SPH_AV_ALPHA, 0.5_f);
     globalSettings.set(GlobalSettingsIds::SPH_AV_BETA, 1.0_f);
     globalSettings.set(GlobalSettingsIds::SPH_KERNEL_ETA, 1.7_f);
-    globalSettings.set<Float>(GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP, 1.e-5_f);
-    globalSettings.set<Float>(GlobalSettingsIds::TIMESTEPPING_MAX_TIMESTEP, 1.e-5_f);
-    globalSettings.set<bool>(GlobalSettingsIds::TIMESTEPPING_ADAPTIVE, true);
-
+    globalSettings.set(GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP, 1.e-5_f);
+    globalSettings.set(GlobalSettingsIds::TIMESTEPPING_MAX_TIMESTEP, 1.e-5_f);
+    globalSettings.set(GlobalSettingsIds::TIMESTEPPING_ADAPTIVE, true);
+    globalSettings.set(GlobalSettingsIds::MODEL_FORCE_GRAD_P, false);
     // Number of SPH particles
     const int N = 400;
     // Material properties
@@ -66,7 +66,8 @@ TEST_CASE("Sod", "[sod]") {
     bodySettings.set(BodySettingsIds::DENSITY, 1._f);
 
     // Construct solver used in Sod shock tube
-    Problem sod(std::make_unique<ContinuitySolver<1, PressureForce<StandardAV>>>(globalSettings));
+
+    Problem sod(globalSettings);
 
     // Solving to t = 0.5
     sod.timeRange = Range(0._f, 0.5_f);

@@ -25,42 +25,33 @@
 
 NAMESPACE_SPH_BEGIN
 
-template <int d, typename TForce>
-class ContinuitySolver : public SolverBase<d, TForce> {
+template <typename TContext>
+class ContinuitySolver : public SolverBase<TContext> {
 private:
-    TForce force;
+    TContext context;
+    static constexpr int dim = TContext::dim;
 
-    class Divv {
-    private:
-        ArrayView<const Float> m;
-        ArrayView<const Vector> v;
+    Accumulator<RhoDivv> rhoDivv;
 
-    public:
-        void update(Storage& storage) {
-            m = storage.getValue<Float>(QuantityKey::M);
-            v = storage.getAll<Vector>(QuantityKey::R)[1];
-        }
-
-        INLINE Float operator()(const int i, const int j, const Vector& grad) {
-            const Float delta = dot(v[j] - v[i], grad);
-            ASSERT(Math::isReal(delta));
-            return m[j] * delta;
-        }
+    /// Map of units required by this solver. Additional units are needed by solver context; if some units are
+    /// shared, their type and order must match!
+    std::map<QuantityKey, Tuple<ValueEnum, OrderEnum>> map{
+        { QuantityKey::RHO, { ValueEnum::SCALAR, OrderEnum::FIRST_ORDER } },
+        { QuantityKey::M, { ValueEnum::SCALAR, OrderEnum::ZERO_ORDER } },
     };
-    Accumulator<Float, Divv> divv;
+
 
 public:
     ContinuitySolver(const Settings<GlobalSettingsIds>& settings)
-        : SolverBase<d, TForce>(settings)
-        , force(settings) {}
+        : SolverBase<TContext>(settings)
+        , context(settings) {}
 
-    virtual void computeImpl(Storage& storage) override {
+    virtual void compute(Storage& storage) override {
         const int size = storage.getParticleCnt();
 
         ArrayView<Vector> r, v, dv;
         tieToArray(r, v, dv) = storage.getAll<Vector>(QuantityKey::R);
-        ArrayView<Float> m, u, du, rho, drho;
-        tieToArray(u, du)     = storage.getAll<Float>(QuantityKey::U);
+        ArrayView<Float> m, rho, drho;
         tieToArray(rho, drho) = storage.getAll<Float>(QuantityKey::RHO);
         m = storage.getValue<Float>(QuantityKey::M);
         // Check that quantities are valid
@@ -72,8 +63,8 @@ public:
             h = Math::max(h, 1.e-12_f);
         }
         // initialize stuff
-        divv.update(storage);
-        force.update(storage);
+        rhoDivv.update(storage);
+        context.update(storage);
 
         // find new pressure
         this->computeMaterial(storage);
@@ -84,17 +75,15 @@ public:
         this->finder->build(r);
 
         // we symmetrize kernel by averaging smoothing lenghts
-        SymH<d> w(this->kernel);
+        SymH<dim> w(this->kernel);
 
         PROFILE_NEXT("ContinuitySolver::compute (main cycle)")
         for (int i = 0; i < size; ++i) {
             // Find all neighbours within kernel support. Since we are only searching for particles with
             // smaller h, we know that symmetrized lengths (h_i + h_j)/2 will be ALWAYS smaller or equal to
             // h_i, and we thus never "miss" a particle.
-            SCOPE_STOP;
             this->finder->findNeighbours(
                 i, r[i][H] * this->kernel.radius(), this->neighs, FinderFlags::FIND_ONLY_SMALLER_H);
-            SCOPE_RESUME;
             // iterate over neighbours
             for (const auto& neigh : this->neighs) {
                 const int j = neigh.index;
@@ -109,28 +98,26 @@ public:
                 const Vector grad = w.grad(r[i], r[j]);
                 ASSERT(dot(grad, r[i] - r[j]) <= 0._f);
 
-                const Vector f = force.dv(i, j, grad);
+                const Vector f = context.dv(i, j, grad);
                 ASSERT(Math::isReal(f));
                 dv[i] += m[j] * f; // opposite sign due to antisymmetry of gradient
                 dv[j] -= m[i] * f;
 
-                /*const Float en = force.du(i, j, grad);
-                du[i] -= m[j] * en;
-                du[j] -= m[i] * en;*/
-
-                divv.accumulate(i, j, grad);
-                divv.accumulate(j, i, -grad);
+                rhoDivv.accumulate(i, j, grad);
+                context.accumulate(i, j, grad);
             }
         }
 
-        ArrayView<Float> p = storage.getValue<Float>(QuantityKey::P);
         // set derivative of density and smoothing length
         for (int i = 0; i < drho.size(); ++i) {
-            drho[i] = -divv[i];
+            drho[i] = -rhoDivv[i];
             /// \todo smoothing length
-            v[i][H]  = 0._f;
+            v[i][H] = 0._f;
             dv[i][H] = 0._f;
-            du[i]    = -p[i] / Math::sqr(rho[i]) * divv[i];
+        }
+        context.evaluate();
+        if (this->boundary) {
+            this->boundary->apply(storage);
         }
     }
 };
