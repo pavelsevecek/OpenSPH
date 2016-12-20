@@ -9,6 +9,6 @@ namespace Abstract {
 }
 
 /// Creates a solver from parameters in settings.
-INLINE std::unique_ptr<Abstract::Solver> getSolver(const GlobalSettings& settings);
+std::unique_ptr<Abstract::Solver> getSolver(const GlobalSettings& settings);
 
 NAMESPACE_SPH_END

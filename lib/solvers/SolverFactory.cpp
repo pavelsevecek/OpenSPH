@@ -1,5 +1,6 @@
 #include "solvers/SolverFactory.h"
 #include "solvers/SummationSolver.h"
+#include "solvers/ContinuitySolver.h"
 #include "sph/forces/Factory.h"
 
 NAMESPACE_SPH_BEGIN
@@ -21,7 +22,7 @@ public:
     }
 };
 
-INLINE std::unique_ptr<Abstract::Solver> getSolver(const GlobalSettings& settings) {
+std::unique_ptr<Abstract::Solver> getSolver(const GlobalSettings& settings) {
     const int dim = settings.get<int>(GlobalSettingsIds::SOLVER_DIMENSIONS);
     switch (dim) {
     case 1:
@@ -35,3 +36,4 @@ INLINE std::unique_ptr<Abstract::Solver> getSolver(const GlobalSettings& setting
     }
 }
 
+NAMESPACE_SPH_END
