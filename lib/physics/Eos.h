@@ -59,7 +59,7 @@ private:
     Float beta;
 
 public:
-    TillotsonEos(const Settings<BodySettingsIds>& settings)
+    TillotsonEos(const BodySettings& settings)
         : u0(settings.get<Float>(BodySettingsIds::ENERGY))
         , uiv(settings.get<Float>(BodySettingsIds::TILLOTSON_ENERGY_IV))
         , ucv(settings.get<Float>(BodySettingsIds::TILLOTSON_ENERGY_CV))

@@ -26,7 +26,8 @@ SOURCES += \
     system/Profiler.cpp \
     solvers/ContinuitySolver.cpp \
     solvers/SummationSolver.cpp \
-    solvers/AbstractSolver.cpp
+    solvers/AbstractSolver.cpp \
+    solvers/SolverFactory.cpp
 
 HEADERS += \
     core/Globals.h \
@@ -94,7 +95,7 @@ HEADERS += \
     sph/av/Riemann.h \
     sph/av/MorrisMonaghan.h \
     sph/av/Balsara.h \
-    solvers/Force.h \
+    sph/forces/StressForce.h \
     solvers/DensityIndependentSolver.h \
     solvers/EntropySolver.h \
     storage/QuantityKey.h \
@@ -102,4 +103,10 @@ HEADERS += \
     solvers/SharedAccumulator.h \
     objects/containers/StaticArray.h \
     sph/av/Factory.h \
-    solvers/Factory.h
+    storage/QuantityMap.h \
+    storage/Material.h \
+    sph/forces/CentripetalForce.h \
+    sph/forces/Factory.h \
+    sph/forces/Damage.h \
+    sph/forces/Yielding.h \
+    solvers/SolverFactory.h

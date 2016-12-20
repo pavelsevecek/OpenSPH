@@ -88,11 +88,15 @@ public:
             off[1] * v[0] + off[2] * v[1] + diag[2] * v[2]);
     }
 
-    /// Multiplies the tensor by a scalar
+    /// Multiplies a tensor by a scalar
     INLINE friend Tensor operator*(const Tensor& t, const Float v) { return Tensor(t.diag * v, t.off * v); }
 
     INLINE friend Tensor operator*(const Float v, const Tensor& t) { return Tensor(t.diag * v, t.off * v); }
 
+    /// Divides a tensor by a scalar
+    INLINE friend Tensor operator/(const Tensor& t, const Float v) { return Tensor(t.diag / v, t.off / v); }
+
+    /// Sums up two tensors
     INLINE friend Tensor operator+(const Tensor& t1, const Tensor& t2) {
         return Tensor(t1.diag + t2.diag, t1.off + t2.off);
     }
@@ -201,7 +205,7 @@ namespace Math {
         return Tensor(clamp(t.diagonal(), range), clamp(t.offDiagonal(), range));
     }
 
-    template<>
+    template <>
     INLINE bool isReal(const Tensor& t) {
         return isReal(t.diagonal()) && isReal(t.offDiagonal());
     }

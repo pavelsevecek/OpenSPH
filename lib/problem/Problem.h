@@ -3,7 +3,7 @@
 #include "objects/containers/Tuple.h"
 #include "objects/finders/Finder.h"
 #include "objects/wrappers/Range.h"
-#include "solvers/Factory.h"
+#include "solvers/SolverFactory.h"
 #include "sph/boundary/Boundary.h"
 #include "sph/distributions/Distribution.h"
 #include "sph/kernel/Kernel.h"
@@ -53,7 +53,7 @@ public:
 
 
     /// initialize problem by constructing solver
-    Problem(const Settings<GlobalSettingsIds>& settings)
+    Problem(const GlobalSettings& settings)
         : storage(std::make_shared<Storage>()) {
         solver = getSolver(settings);
     }

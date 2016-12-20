@@ -75,5 +75,4 @@ auto dispatch(const ValueEnum value, TVisitor&& visitor, TArgs&&... args) {
     }
 }
 
-
 NAMESPACE_SPH_END

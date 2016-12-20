@@ -40,6 +40,8 @@ TEST_CASE("Tensor operations", "[tensor]") {
     REQUIRE(t3 == t1 - t2);
     REQUIRE(3._f * t1 == Tensor(Vector(6._f, 3._f, -3._f), Vector(6._f, 9._f, -12._f)));
     REQUIRE(3._f * t1 == t1 * 3._f);
+
+    REQUIRE(t1 / 2._f == Tensor(Vector(1._f, 0.5_f, -0.5_f), Vector(1._f, 1.5_f, -2._f)));
 }
 
 TEST_CASE("Tensor apply", "[tensor]") {
@@ -79,6 +81,6 @@ TEST_CASE("Predefined tensors", "[tensor]") {
     REQUIRE(id * Vector(2._f, 5._f, 7._f) == Vector(2._f, 5._f, 7._f));
 
     Tensor zero = Tensor::null();
-    REQUIRE(id == Tensor(Vector(0, 0, 0), Vector(0, 0, 0), Vector(0, 0, 0)));
-    REQUIRE(id * Vector(2._f, 5._f, 7._f) == Vector(0._f, 0._f, 0._f));
+    REQUIRE(zero == Tensor(Vector(0, 0, 0), Vector(0, 0, 0), Vector(0, 0, 0)));
+    REQUIRE(zero * Vector(2._f, 5._f, 7._f) == Vector(0._f, 0._f, 0._f));
 }

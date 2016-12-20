@@ -1,7 +1,6 @@
 #include "catch.hpp"
 #include "physics/Eos.h"
 #include "problem/Problem.h"
-#include "solvers/Force.h"
 //#include "solvers/SummationSolver.h"
 #include "system/Factory.h"
 #include "system/Settings.h"
@@ -127,7 +126,8 @@ TEST_CASE("Sod", "[sod]") {
 
     // 5) setup other quantities needed by model (sounds speed, ...)
     SphericalDomain domain(Vector(0.5_f), 0.5_f);
-    sod.solver->setQuantities(storage, domain, bodySettings);
+    ///sod.solver->setQuantities(storage, domain, bodySettings);
+    /// \todo initial conditions - iterate over solver quantities
 
     // 6) setup used timestepping algorithm (this needs to be done after all quantities are allocated)
     sod.timeStepping = Factory::getTimestepping(globalSettings, sod.storage);

@@ -3,36 +3,14 @@
 #include "objects/containers/Array.h"
 #include "objects/containers/Tuple.h"
 #include "objects/wrappers/NonOwningPtr.h"
-#include "physics/Eos.h"
 #include "storage/Iterate.h"
 #include "storage/QuantityKey.h"
 #include "system/Factory.h"
 #include "system/Logger.h"
 #include "system/Settings.h"
-/// \todo do not include eos, move material to cpp
+#include "storage/Material.h"
 
 NAMESPACE_SPH_BEGIN
-
-
-/// Runtime settings and functions for given material. Should not hold any constant values, these can be
-/// stored in Settings<BodySettingsIds>.
-struct Material : public Noncopyable {
-    std::unique_ptr<Abstract::Eos> eos; /// equation of state for given material
-
-    Material() = default;
-
-    Material(std::unique_ptr<Abstract::Eos>&& eos)
-        : eos(std::move(eos)) {}
-
-    Material(Material&& other)
-        : eos(std::move(other.eos)) {}
-
-    Material& operator=(Material&& other) {
-        eos = std::move(other.eos);
-        return *this;
-    }
-};
-
 
 /// Base object for storing scalar, vector and tensor quantities of SPH particles. Other parts of the code
 /// simply point to stored arrays using ArrayView.
@@ -50,7 +28,7 @@ public:
 
     /// Create storage from body settings. This determines material of all particles in the storage. Particles
     /// keep the material when two storages are merged.
-    Storage(const Settings<BodySettingsIds>& settings) {
+    Storage(const BodySettings& settings) {
         Material mat;
         mat.eos = Factory::getEos(settings);
         materials.push(std::move(mat));

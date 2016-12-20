@@ -20,9 +20,9 @@ private:
     const Float eps = 1.e-2_f;
 
 public:
-    StandardAV(const Settings<GlobalSettingsIds>& settings) {
+    StandardAV(const GlobalSettings& settings) {
         alpha = settings.get<Float>(GlobalSettingsIds::SPH_AV_ALPHA);
-        beta  = settings.get<Float>(GlobalSettingsIds::SPH_AV_BETA);
+        beta = settings.get<Float>(GlobalSettingsIds::SPH_AV_BETA);
     }
 
     void update(Storage& storage) {
@@ -31,7 +31,7 @@ public:
         tieToArray(r, v, dv) = storage.getAll<Vector>(QuantityKey::R);
         tieToArray(rho, cs) = storage.getValues<Float>(QuantityKey::RHO, QuantityKey::CS);
         u = storage.getValue<Float>(QuantityKey::U);
-        for (int i=0; i<cs.size(); ++i) {
+        for (int i = 0; i < cs.size(); ++i) {
             /// \todo update sound speed together with pressure
             tieToTuple(IGNORE, cs[i]) = storage.getMaterial(i).eos->getPressure(rho[i], u[i]);
         }
@@ -42,10 +42,10 @@ public:
         if (dvdr >= 0._f) {
             return 0._f;
         }
-        const Float hbar   = 0.5_f * (r[i][H] + r[j][H]);
+        const Float hbar = 0.5_f * (r[i][H] + r[j][H]);
         const Float rhobar = 0.5_f * (rho[i] + rho[j]);
-        const Float csbar  = 0.5_f * (cs[i] + cs[j]);
-        const Float mu     = hbar * dvdr / (getSqrLength(r[i] - r[j]) + eps * Math::sqr(hbar));
+        const Float csbar = 0.5_f * (cs[i] + cs[j]);
+        const Float mu = hbar * dvdr / (getSqrLength(r[i] - r[j]) + eps * Math::sqr(hbar));
         return 1._f / rhobar * (-alpha * csbar * mu + beta * Math::sqr(mu));
     }
 };

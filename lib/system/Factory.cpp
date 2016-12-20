@@ -9,7 +9,7 @@
 
 NAMESPACE_SPH_BEGIN
 
-std::unique_ptr<Abstract::Eos> Factory::getEos(const Settings<BodySettingsIds>& settings) {
+std::unique_ptr<Abstract::Eos> Factory::getEos(const BodySettings& settings) {
     const EosEnum id = settings.get<EosEnum>(BodySettingsIds::EOS);
     switch (id) {
     case EosEnum::IDEAL_GAS:
@@ -21,7 +21,7 @@ std::unique_ptr<Abstract::Eos> Factory::getEos(const Settings<BodySettingsIds>& 
     }
 }
 
-std::unique_ptr<Abstract::TimeStepping> Factory::getTimestepping(const Settings<GlobalSettingsIds>& settings,
+std::unique_ptr<Abstract::TimeStepping> Factory::getTimestepping(const GlobalSettings& settings,
                                                                  const std::shared_ptr<Storage>& storage) {
     const TimesteppingEnum id = settings.get<TimesteppingEnum>(GlobalSettingsIds::TIMESTEPPING_INTEGRATOR);
     switch (id) {
@@ -36,7 +36,7 @@ std::unique_ptr<Abstract::TimeStepping> Factory::getTimestepping(const Settings<
     }
 }
 
-std::unique_ptr<Abstract::Finder> Factory::getFinder(const Settings<GlobalSettingsIds>& settings) {
+std::unique_ptr<Abstract::Finder> Factory::getFinder(const GlobalSettings& settings) {
     const FinderEnum id = settings.get<FinderEnum>(GlobalSettingsIds::SPH_FINDER);
     switch (id) {
     case FinderEnum::BRUTE_FORCE:
@@ -48,7 +48,7 @@ std::unique_ptr<Abstract::Finder> Factory::getFinder(const Settings<GlobalSettin
     }
 }
 
-std::unique_ptr<Abstract::Distribution> Factory::getDistribution(const Settings<BodySettingsIds>& settings) {
+std::unique_ptr<Abstract::Distribution> Factory::getDistribution(const BodySettings& settings) {
     const DistributionEnum id = settings.get<DistributionEnum>(BodySettingsIds::INITIAL_DISTRIBUTION);
     switch (id) {
     case DistributionEnum::HEXAGONAL:
@@ -66,7 +66,7 @@ std::unique_ptr<Abstract::Distribution> Factory::getDistribution(const Settings<
     }
 }
 
-std::unique_ptr<Abstract::Domain> Factory::getDomain(const Settings<GlobalSettingsIds>& settings) {
+std::unique_ptr<Abstract::Domain> Factory::getDomain(const GlobalSettings& settings) {
     const DomainEnum id = settings.get<DomainEnum>(GlobalSettingsIds::DOMAIN_TYPE);
     const Vector center = settings.get<Vector>(GlobalSettingsIds::DOMAIN_CENTER);
     switch (id) {
@@ -83,7 +83,7 @@ std::unique_ptr<Abstract::Domain> Factory::getDomain(const Settings<GlobalSettin
 }
 
 std::unique_ptr<Abstract::BoundaryConditions> Factory::getBoundaryConditions(
-    const Settings<GlobalSettingsIds>& settings,
+    const GlobalSettings& settings,
     std::unique_ptr<Abstract::Domain>&& domain) {
     const BoundaryEnum id = settings.get<BoundaryEnum>(GlobalSettingsIds::DOMAIN_BOUNDARY);
     switch (id) {

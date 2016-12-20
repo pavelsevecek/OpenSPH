@@ -17,34 +17,24 @@ namespace Abstract {
     class BoundaryConditions;
 }
 struct NeighbourRecord;
+class QuantityMap;
 
 namespace Abstract {
     class Solver : public Polymorphic {
     public:
-        /// Sets all quantities in the storage required by the solver to their default values. Quantities
-        /// already stored in the storage are not changed, only their allowed range is set to the value in
-        /// settings. This should only use the given storage and not the state or methods of the solver
-        /// itself! (should be used as static function, as static virtual functions are forbidden).
-        /// \param storage Storage where all quantities should be placed.
-        /// \param domain Domain defining boundaries of the body. This is only necessary for setting up
-        ///               particle positions and their masses.
-        /// \param settings Settings containing default values and allowed ranges of quantities.
-        virtual void setQuantities(Storage& storage,
-            const Abstract::Domain& domain,
-            const Settings<BodySettingsIds>& settings) const = 0;
-
         /// Computes derivatives of all time-dependent quantities.
         /// \param storage Storage containing all quantities. All highest order derivatives are guaranteed to
         ///        be set to zero (this is responsibility of TimeStepping).
-        virtual void compute(Storage& storage) = 0;
+        virtual void integrate(Storage& storage) = 0;
 
-    protected:
-        virtual void computeMaterial(Storage& storage);
+        /// Returns the quantity map used by the solver.
+        virtual QuantityMap getQuantityMap() const = 0;
     };
 }
 
-/// Extended base class for solvers (templated class, cannot be used directly in methods as templated virtual methods do not exist)
-template <typename TContext>
+/// Extended base class for solvers (templated class, cannot be used directly in methods as templated virtual
+/// methods do not exist)
+template <int D>
 class SolverBase : public Abstract::Solver {
 protected:
     std::unique_ptr<Abstract::Finder> finder;
@@ -53,13 +43,13 @@ protected:
 
     std::unique_ptr<Abstract::BoundaryConditions> boundary;
 
-    static constexpr int dim = TContext::dim;
-    LutKernel<dim> kernel;
+    static constexpr int dim = D;
+    LutKernel<D> kernel;
 
 public:
-    SolverBase(const Settings<GlobalSettingsIds>& settings) {
+    SolverBase(const GlobalSettings& settings) {
         finder = Factory::getFinder(settings);
-        kernel = Factory::getKernel<dim>(settings);
+        kernel = Factory::getKernel<D>(settings);
 
         std::unique_ptr<Abstract::Domain> domain = Factory::getDomain(settings);
         boundary = Factory::getBoundaryConditions(settings, std::move(domain));
@@ -70,7 +60,7 @@ public:
     template <typename TValue, OrderEnum TOrder>
     void setQuantityImpl(Storage& storage,
         const QuantityKey key,
-        const Settings<BodySettingsIds>& settings,
+        const BodySettings& settings,
         const BodySettingsIds valueId,
         const Optional<BodySettingsIds> rangeId) const {
         if (!storage.has(key)) {
@@ -88,9 +78,9 @@ public:
         }
     }
 
-    virtual void setQuantities(Storage& storage,
+    /*virtual void setQuantities(Storage& storage,
         const Abstract::Domain& domain,
-        const Settings<BodySettingsIds>& settings) const override {
+        const BodySettings& settings) const override {
         int N; // Final number of particles
         // Particle positions
         if (!storage.has(QuantityKey::R)) {
@@ -100,7 +90,7 @@ public:
             const int n = settings.get<int>(BodySettingsIds::PARTICLE_COUNT);
             // Generate positions of particles
             Array<Vector> r = distribution->generate(n, domain);
-            N               = r.size();
+            N = r.size();
             storage.emplace<Vector, OrderEnum::SECOND_ORDER>(QuantityKey::R, std::move(r));
             ASSERT(N > 0);
         } else {
@@ -118,7 +108,7 @@ public:
         // Set masses of particles, assuming all particles have the same mass
         /// \todo this has to be generalized when using nonuniform particle destribution
         if (!storage.has(QuantityKey::M)) {
-            const Float rho0   = settings.get<Float>(BodySettingsIds::DENSITY);
+            const Float rho0 = settings.get<Float>(BodySettingsIds::DENSITY);
             const Float totalM = domain.getVolume() * rho0; // m = rho * V
             ASSERT(totalM > 0._f);
             storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityKey::M, totalM / N);
@@ -135,8 +125,8 @@ public:
         }
 
         // sets additional quantities required by force evaluator
-        TContext::setQuantities(storage, settings);
-    }
+        /// TContext::setQuantities(storage, settings);
+    }*/
 };
 
 NAMESPACE_SPH_END

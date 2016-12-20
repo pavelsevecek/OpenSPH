@@ -26,24 +26,22 @@ class Storage;
 /// Class providing construction of objects from enums. Contain only static member functions.
 class Factory : public Noncopyable {
 public:
-    static std::unique_ptr<Abstract::Eos> getEos(const Settings<BodySettingsIds>& settings);
+    static std::unique_ptr<Abstract::Eos> getEos(const BodySettings& settings);
 
-    static std::unique_ptr<Abstract::TimeStepping> getTimestepping(
-        const Settings<GlobalSettingsIds>& settings,
+    static std::unique_ptr<Abstract::TimeStepping> getTimestepping(const GlobalSettings& settings,
         const std::shared_ptr<Storage>& storage);
 
-    static std::unique_ptr<Abstract::Finder> getFinder(const Settings<GlobalSettingsIds>& settings);
+    static std::unique_ptr<Abstract::Finder> getFinder(const GlobalSettings& settings);
 
-    static std::unique_ptr<Abstract::Distribution> getDistribution(const Settings<BodySettingsIds>& settings);
+    static std::unique_ptr<Abstract::Distribution> getDistribution(const BodySettings& settings);
 
-    static std::unique_ptr<Abstract::BoundaryConditions> getBoundaryConditions(
-        const Settings<GlobalSettingsIds>& settings,
+    static std::unique_ptr<Abstract::BoundaryConditions> getBoundaryConditions(const GlobalSettings& settings,
         std::unique_ptr<Abstract::Domain>&& domain);
 
-    static std::unique_ptr<Abstract::Domain> getDomain(const Settings<GlobalSettingsIds>& settings);
+    static std::unique_ptr<Abstract::Domain> getDomain(const GlobalSettings& settings);
 
     template <int d>
-    static LutKernel<d> getKernel(const Settings<GlobalSettingsIds>& settings) {
+    static LutKernel<d> getKernel(const GlobalSettings& settings) {
         const KernelEnum id = settings.get<KernelEnum>(GlobalSettingsIds::SPH_KERNEL);
         switch (id) {
         case KernelEnum::CUBIC_SPLINE:

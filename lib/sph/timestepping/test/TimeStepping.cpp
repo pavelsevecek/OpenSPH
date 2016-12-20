@@ -2,6 +2,7 @@
 #include "catch.hpp"
 #include "solvers/AbstractSolver.h"
 #include "storage/Storage.h"
+#include "storage/QuantityMap.h"
 #include <iostream>
 
 using namespace Sph;
@@ -11,18 +12,22 @@ struct TestSolver : public Abstract::Solver {
 
     TestSolver() = default;
 
-    virtual void setQuantities(Storage&,
+  /* virtual void setQuantities(Storage&,
         const Abstract::Domain&,
         const Settings<BodySettingsIds>&) const override {
-        NOT_IMPLEMENTED;}
+        NOT_IMPLEMENTED;}*/
 
-    virtual void compute(Storage& storage) override {
+    virtual void integrate(Storage& storage) override {
         ArrayView<Vector> r, v, dv;
         tieToArray(r, v, dv)  = storage.getAll<Vector>(QuantityKey::R);
         Float omega = 2._f * Math::PI / period;
         for (int i = 0; i < r.size(); ++i) {
             dv[i] = -Math::sqr(omega) * r[i];
         }
+    }
+
+    virtual QuantityMap getQuantityMap() const override {
+        NOT_IMPLEMENTED;
     }
 };
 

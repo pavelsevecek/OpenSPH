@@ -173,9 +173,14 @@ TEST_CASE("Storage material", "[storage]") {
     REQUIRE(pressure(3) == 12._f);
 
     Array<Material> mats;
-    mats.push(Factory::getEos(settings));
+    Material m1;
+    m1.eos = Factory::getEos(settings);
+    mats.push(std::move(m1));
+
     settings.set<Float>(BodySettingsIds::ADIABATIC_INDEX, 25._f);
-    mats.push(Factory::getEos(settings));
+    Material m2;
+    m2.eos = Factory::getEos(settings);
+    mats.push(std::move(m2));
 
     storage.setMaterial(std::move(mats), [](const Vector& pos, int) {
         if (pos[X] > 0._f) {

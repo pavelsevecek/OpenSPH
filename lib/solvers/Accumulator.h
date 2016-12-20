@@ -19,6 +19,12 @@ private:
     TAccumulate functor;
 
 public:
+    Accumulator() = default;
+
+    Accumulator(Accumulator&& other)
+        : values(std::move(other.values))
+        , functor(std::move(other.functor)) {}
+
     void update(Storage& storage) {
         values.resize(storage.getParticleCnt());
         values.fill(Value(0._f));
@@ -63,9 +69,7 @@ public:
     }
 
     INLINE void accumulate(const int i, const int j, const Vector& grad) {
-        forEach(accumulators, [i, j, &grad](auto& ac){
-            ac.accumulate(i, j, grad);
-        });
+        forEach(accumulators, [i, j, &grad](auto& ac) { ac.accumulate(i, j, grad); });
     }
 };
 

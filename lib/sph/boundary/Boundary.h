@@ -81,7 +81,7 @@ private:
     Float searchRadius;
 
 public:
-    GhostParticles(std::unique_ptr<Abstract::Domain>&& domain, const Settings<GlobalSettingsIds>& settings)
+    GhostParticles(std::unique_ptr<Abstract::Domain>&& domain, const GlobalSettings& settings)
         : domain(std::move(domain)) {
         searchRadius = Factory::getKernel<3>(settings).radius();
     }

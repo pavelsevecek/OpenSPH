@@ -12,11 +12,11 @@ TEST_CASE("Optional constructor", "[optional]") {
     o1 = RecordType(5);
     REQUIRE(o1);
     REQUIRE(o1.get().value == 5);
-    REQUIRE(o1.get().wasMoveConstructed == 5);
+    REQUIRE(o1.get().wasMoveConstructed);
 
-    Optional<int> o2(o1);
+    Optional<RecordType> o2(o1);
     REQUIRE(o2);
-    REQUIRE(o2.get() == 5);
+    REQUIRE(o2.get().value == 5);
 
     Optional<int> o3;
     o3.emplace(2);

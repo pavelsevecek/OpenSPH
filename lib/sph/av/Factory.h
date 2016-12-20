@@ -7,17 +7,26 @@
 
 NAMESPACE_SPH_BEGIN
 
+class DummyAV : public Object{
+public:
+    DummyAV(const GlobalSettings& UNUSED(settings)) {}
+
+    INLINE Float operator()(const int UNUSED(i), const int UNUSED(j)) {
+        return 0._f;
+    }
+};
+
+
 /// Executes TVisitor::visit<AV>(), where AV is artificial viscosity selected in settings.
 template <typename TVisitor>
-INLINE decltype(auto) dispatchAV(const Settings<GlobalSettingsIds>& settings, TVisitor&& visitor) {
+INLINE decltype(auto) dispatchAV(const  GlobalSettings& settings, TVisitor&& visitor) {
     const ArtificialViscosityEnum id =
         settings.get<ArtificialViscosityEnum>(GlobalSettingsIds::MODEL_AV_TYPE);
     const bool balsara = settings.get<bool>(GlobalSettingsIds::MODEL_AV_BALSARA_SWITCH);
-    struct DummyAV {};
     if (balsara) {
         switch (id) {
         case ArtificialViscosityEnum::NONE:
-            return visitor.template visit<DummyAV>();
+            return visitor.template visit<DummyAV>(settings);
         case ArtificialViscosityEnum::STANDARD:
             return visitor.template visit<BalsaraSwitch<StandardAV>>(settings);
         case ArtificialViscosityEnum::RIEMANN:
@@ -30,7 +39,7 @@ INLINE decltype(auto) dispatchAV(const Settings<GlobalSettingsIds>& settings, TV
     } else {
         switch (id) {
         case ArtificialViscosityEnum::NONE:
-            return visitor.template visit<DummyAV>();
+            return visitor.template visit<DummyAV>(settings);
         case ArtificialViscosityEnum::STANDARD:
             return visitor.template visit<StandardAV>(settings);
         case ArtificialViscosityEnum::RIEMANN:

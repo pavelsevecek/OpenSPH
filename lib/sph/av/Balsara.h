@@ -24,8 +24,6 @@ private:
     const Float eps = 1.e-4_f;
 
 public:
-
-
     template <typename... TArgs>
     BalsaraSwitch(TArgs&&... args)
         : av(std::forward<TArgs>(args)...) {}
@@ -35,9 +33,10 @@ public:
         r = storage.getValue<Vector>(QuantityKey::R);
     }
 
+    /// \todo implement swapping of accumulated values with stored quantities
     INLINE Float operator()(const int i, const int j) { return 0.5_f * (get(i) + get(j)) * av(i, j); }
 
-    INLINE void accumulate(const int i, const int j, const Vector& grad) const {
+    INLINE void accumulate(const int i, const int j, const Vector& grad) {
         rotv.accumulate(i, j, grad);
         divv.accumulate(i, j, grad);
     }

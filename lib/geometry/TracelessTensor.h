@@ -203,6 +203,11 @@ namespace Math {
     INLINE TracelessTensor clamp(const TracelessTensor& t, const Range& range) {
         return t.clamp(range);
     }
+
+    template<>
+    INLINE bool isReal(const TracelessTensor& t) {
+        return isReal(t.diagonal()) && isReal(t.offDiagonal());
+    }
 }
 
 

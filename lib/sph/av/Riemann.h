@@ -17,8 +17,9 @@ private:
     ArrayView<Float> cs, rho;
 
 public:
-    RiemannAV(const Settings<GlobalSettingsIds>& settings) {
-        alpha = settings.get<Float>(GlobalSettingsIds::AV_ALPHA);
+    RiemannAV(const GlobalSettings&) {
+        alpha = 1.5_f; /// \todo from body settinds
+        // settings.get<Float>(::AV_ALPHA);
     }
 
     void update(Storage& storage) {

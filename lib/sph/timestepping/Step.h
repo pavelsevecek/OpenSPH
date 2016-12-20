@@ -16,9 +16,9 @@ private:
     Float courant;
 
 public:
-    TimeStepGetter(const std::shared_ptr<Storage>& storage, const Settings<GlobalSettingsIds>& settings)
+    TimeStepGetter(const std::shared_ptr<Storage>& storage, const GlobalSettings& settings)
         : storage(storage) {
-        factor  = settings.get<Float>(GlobalSettingsIds::TIMESTEPPING_ADAPTIVE_FACTOR);
+        factor = settings.get<Float>(GlobalSettingsIds::TIMESTEPPING_ADAPTIVE_FACTOR);
         courant = settings.get<Float>(GlobalSettingsIds::TIMESTEPPING_COURANT);
     }
 
@@ -41,7 +41,7 @@ public:
         // Courant criterion
         /// \todo AV contribution?
         for (int i = 0; i < r.size(); ++i) {
-            minStep = Math::min(minStep, courant * r[i][H]/cs[i]);
+            minStep = Math::min(minStep, courant * r[i][H] / cs[i]);
         }
 
         // Make sure the step is lower than largest allowed step

@@ -339,6 +339,24 @@ enum class SolverEnum {
     DENSITY_INDEPENDENT
 };
 
+enum class YieldingEnum {
+    /// No yielding, just elastic deformations following Hooke's law
+    NONE,
+
+    /// Von Mises criterion
+    VON_MISES
+};
+
+enum class DamageEnum {
+    /// No fragmentation
+    NONE,
+
+    /// Grady-Kipp model of fragmentation using scalar damage
+    SCALAR_GRADY_KIPP,
+
+    /// Grady-Kipp model of fragmentation using tensor damage
+    TENSOR_GRADY_KIPP
+};
 
 /// Settings relevant for whole run of the simulation
 enum class GlobalSettingsIds {
@@ -392,8 +410,17 @@ enum class GlobalSettingsIds {
     /// viscosity is used, the value has no effect.
     MODEL_AV_BALSARA_SWITCH,
 
+    /// Type of material yielding
+    MODEL_YIELDING,
+
+    /// Selected fragmentation model
+    MODEL_DAMAGE,
+
     /// Selected solver for computing derivatives of physical variables.
     SOLVER_TYPE,
+
+    /// Number of spatial dimensions of the problem.
+    SOLVER_DIMENSIONS,
 
     /// Selected timestepping integrator
     TIMESTEPPING_INTEGRATOR,
@@ -440,6 +467,7 @@ const Settings<GlobalSettingsIds> GLOBAL_SETTINGS = {
     { GlobalSettingsIds::RUN_OUTPUT_STEP,               "run.output.step",          100 },
     { GlobalSettingsIds::RUN_OUTPUT_NAME,               "run.output.name",          std::string("out_%d.txt") },
     { GlobalSettingsIds::RUN_OUTPUT_PATH,               "run.output.path",          std::string("out") }, /// \todo Variant somehow doesnt handle empty strings
+
     /// Physical model
     { GlobalSettingsIds::MODEL_FORCE_GRAD_P,            "model.force.grad_p",       true },
     { GlobalSettingsIds::MODEL_FORCE_DIV_S,             "model.force.div_s",        true },
@@ -447,8 +475,13 @@ const Settings<GlobalSettingsIds> GLOBAL_SETTINGS = {
     { GlobalSettingsIds::MODEL_FORCE_GRAVITY,           "model.force.gravity",      false },
     { GlobalSettingsIds::MODEL_AV_TYPE,                 "model.av.type",            int(ArtificialViscosityEnum::STANDARD) },
     { GlobalSettingsIds::MODEL_AV_BALSARA_SWITCH,       "model.av.balsara_switch",  false },
+    { GlobalSettingsIds::MODEL_YIELDING,                "model.yielding",           int(YieldingEnum::NONE) },
+    { GlobalSettingsIds::MODEL_DAMAGE,                  "model.damage",             int(DamageEnum::NONE) },
+
     /// SPH solvers
     { GlobalSettingsIds::SOLVER_TYPE,                   "solver.type",              int (SolverEnum::CONTINUITY_SOLVER) },
+    { GlobalSettingsIds::SOLVER_DIMENSIONS,             "solver.dimensions",        3 },
+
     /// Global SPH parameters
     { GlobalSettingsIds::SPH_KERNEL,                    "sph.kernel",               int(KernelEnum::CUBIC_SPLINE) },
     { GlobalSettingsIds::SPH_KERNEL_ETA,                "sph.kernel.eta",           1.5_f },
@@ -456,6 +489,7 @@ const Settings<GlobalSettingsIds> GLOBAL_SETTINGS = {
     { GlobalSettingsIds::SPH_AV_ALPHA_RANGE,            "sph.av.alpha.range",       Range(0.05_f, 1.5_f) },
     { GlobalSettingsIds::SPH_AV_BETA,                   "sph.av.beta",              3._f },
     { GlobalSettingsIds::SPH_FINDER,                    "sph.finder",               int(FinderEnum::KD_TREE) },
+
     /// Timestepping parameters
     { GlobalSettingsIds::TIMESTEPPING_INTEGRATOR,       "timestep.integrator",      int(TimesteppingEnum::EULER_EXPLICIT) },
     { GlobalSettingsIds::TIMESTEPPING_COURANT,          "timestep.courant",         1._f },
@@ -463,8 +497,10 @@ const Settings<GlobalSettingsIds> GLOBAL_SETTINGS = {
     { GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP, "timestep.initial",         0.03_f },
     { GlobalSettingsIds::TIMESTEPPING_ADAPTIVE,         "timestep.adaptive",        false },
     { GlobalSettingsIds::TIMESTEPPING_ADAPTIVE_FACTOR,  "timestep.adaptive.factor", 0.1_f },
+
     /// Selected coordinate system, rotation of bodies
     { GlobalSettingsIds::FRAME_ANGULAR_FREQUENCY,       "frame.angular_frequency",  0._f },
+
     /// Computational domain and boundary conditions
     { GlobalSettingsIds::DOMAIN_TYPE,                   "domain.type",              int(DomainEnum::NONE) },
     { GlobalSettingsIds::DOMAIN_BOUNDARY,               "domain.boundary",          int(BoundaryEnum::NONE) },
@@ -609,6 +645,9 @@ const Settings<BodySettingsIds> BODY_SETTINGS = {
     { BodySettingsIds::PARTICLE_COUNT,          "sph.particle_count",           10000 },
 };
 // clang-format on
+
+using GlobalSettings = Settings<GlobalSettingsIds>;
+using BodySettings = Settings<BodySettingsIds>;
 
 
 NAMESPACE_SPH_END

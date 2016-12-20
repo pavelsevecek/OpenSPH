@@ -35,7 +35,7 @@ namespace Abstract {
         Optional<TimeStepGetter> getter;
 
     public:
-        TimeStepping(const std::shared_ptr<Storage>& storage, const Settings<GlobalSettingsIds>& settings)
+        TimeStepping(const std::shared_ptr<Storage>& storage, const GlobalSettings& settings)
             : storage(storage) {
             dt    = settings.get<Float>(GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP);
             maxdt = settings.get<Float>(GlobalSettingsIds::TIMESTEPPING_MAX_TIMESTEP);
@@ -63,7 +63,7 @@ namespace Abstract {
 class EulerExplicit : public Abstract::TimeStepping {
 public:
     explicit EulerExplicit(const std::shared_ptr<Storage>& storage,
-                           const Settings<GlobalSettingsIds>& settings)
+                           const GlobalSettings& settings)
         : Abstract::TimeStepping(storage, settings) {}
 
     virtual void stepImpl(Abstract::Solver& solver) override {
@@ -71,7 +71,7 @@ public:
         this->storage->init();
 
         // compute derivatives
-        solver.compute(*this->storage);
+        solver.integrate(*this->storage);
 
         PROFILE_SCOPE("EulerExplicit::step")
         // advance all 2nd-order quantities by current timestep, first values, then 1st derivatives
@@ -98,7 +98,7 @@ private:
 
 public:
     explicit PredictorCorrector(const std::shared_ptr<Storage>& storage,
-                                const Settings<GlobalSettingsIds>& settings)
+                                const GlobalSettings& settings)
         : Abstract::TimeStepping(storage, settings) {
         ASSERT(storage->getQuantityCnt() > 0); // quantities must already been emplaced
         predictions = storage->clone(VisitorEnum::HIGHEST_DERIVATIVES);
@@ -132,7 +132,7 @@ protected:
             this->storage->init();
         }
         // compute derivative
-        solver.compute(*this->storage);
+        solver.integrate(*this->storage);
 
         PROFILE_SCOPE("PredictorCorrector::step   Corrections")
         // make corrections
@@ -160,7 +160,7 @@ protected:
 
 class LeapFrog : public Abstract::TimeStepping {
 public:
-    LeapFrog(const std::shared_ptr<Storage>& storage, const Settings<GlobalSettingsIds>& settings)
+    LeapFrog(const std::shared_ptr<Storage>& storage, const GlobalSettings& settings)
         : Abstract::TimeStepping(storage, settings) {}
 
 protected:
@@ -170,7 +170,7 @@ protected:
 
 class BulirschStoer : public Abstract::TimeStepping {
 public:
-    BulirschStoer(const std::shared_ptr<Storage>& storage, const Settings<GlobalSettingsIds>& settings)
+    BulirschStoer(const std::shared_ptr<Storage>& storage, const GlobalSettings& settings)
         : Abstract::TimeStepping(storage, settings) {}
 
 protected:

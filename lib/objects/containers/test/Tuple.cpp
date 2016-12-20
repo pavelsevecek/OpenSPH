@@ -143,7 +143,7 @@ TEST_CASE("Tuple get by type", "[tuple]") {
     REQUIRE(rref.value == 15);
     decltype(auto) i = t.get<int>();
     static_assert(std::is_same<decltype(i), int&>::value, "static test failed");
-    REQUIRE(i.value == 20);
+    REQUIRE(i == 20);
 
     /// \todo check r-value overload
 }
@@ -373,5 +373,5 @@ TEST_CASE("Tuple contains", "[tuple]") {
     static_assert(TupleContains<TestTuple, char>::value, "static test failed");
     static_assert(TupleContains<TestTuple, RecordType>::value, "static test failed");
     static_assert(!TupleContains<TestTuple, float>::value, "static test failed");
-    static_assert(TupleContains<TestTuple, void>::value, "static test failed");
+    static_assert(!TupleContains<TestTuple, void>::value, "static test failed");
 }
