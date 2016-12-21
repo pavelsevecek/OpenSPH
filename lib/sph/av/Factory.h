@@ -7,19 +7,18 @@
 
 NAMESPACE_SPH_BEGIN
 
-class DummyAV : public Object{
+class DummyAV : public Object {
 public:
     DummyAV(const GlobalSettings& UNUSED(settings)) {}
 
-    INLINE Float operator()(const int UNUSED(i), const int UNUSED(j)) {
-        return 0._f;
-    }
+    INLINE Float operator()(const int UNUSED(i), const int UNUSED(j)) { return 0._f; }
+    INLINE void accumulate(const int UNUSED(i), const int UNUSED(j), const Vector& UNUSED(grad)) {}
 };
 
 
 /// Executes TVisitor::visit<AV>(), where AV is artificial viscosity selected in settings.
 template <typename TVisitor>
-INLINE decltype(auto) dispatchAV(const  GlobalSettings& settings, TVisitor&& visitor) {
+INLINE decltype(auto) dispatchAV(const GlobalSettings& settings, TVisitor&& visitor) {
     const ArtificialViscosityEnum id =
         settings.get<ArtificialViscosityEnum>(GlobalSettingsIds::MODEL_AV_TYPE);
     const bool balsara = settings.get<bool>(GlobalSettingsIds::MODEL_AV_BALSARA_SWITCH);

@@ -26,6 +26,8 @@ enum class QuantityKey {
     MAT_ID   = 13, ///< Material ID
 };
 
+
+
 /// \todo rewrite this to something less stupid
 INLINE std::string getQuantityName(const QuantityKey key) {
     switch (key) {

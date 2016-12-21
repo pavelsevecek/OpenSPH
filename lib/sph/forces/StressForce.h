@@ -66,6 +66,7 @@ public:
             const auto avij = av(i, j);
             f -= (reduce(p[i], i) * rhoInvSqri + reduce(p[j], i) * rhoInvSqrj + avij) * grad;
             rhoDivv.accumulate(i, j, grad);
+            av.accumulate(i, j, grad);
             // account for shock heating
             const Float heating = 0.5_f * avij * dot(v[i] - v[j], grad);
             du[i] += m[j] * heating;

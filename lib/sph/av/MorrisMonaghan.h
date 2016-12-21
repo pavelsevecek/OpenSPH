@@ -52,6 +52,10 @@ public:
         return 1._f / rhobar * (-alphabar * csbar * mu + betabar * Math::sqr(mu));
     }
 
+    void accumulate(const int i, const int j, const Vector& grad) {
+        divv.accumulate(i, j, grad);
+    }
+
     INLINE void evaluate(Storage& storage) {
         for (int i = 0; i < storage.getParticleCnt(); ++i) {
             const Float tau = r[i][H] / (eps * cs[i]);

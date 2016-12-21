@@ -37,6 +37,8 @@ public:
         }
     }
 
+    INLINE void accumulate(const int UNUSED(i), const int UNUSED(j), const Vector& UNUSED(grad)) {}
+
     INLINE Float operator()(const int i, const int j) {
         const Float dvdr = dot(v[i] - v[j], r[i] - r[j]);
         if (dvdr >= 0._f) {

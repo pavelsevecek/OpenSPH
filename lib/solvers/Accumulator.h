@@ -149,5 +149,30 @@ public:
     }
 };
 
+/// Correction tensor ensuring conversion of total angular momentum to the first order.
+/// The accumulated value is an inversion of the correction C_ij, applied as multiplicative factor on velocity
+/// gradient.
+/// \todo They use slightly different SPH equations, check that it's ok
+/// \todo It is really symmetric tensor?
+class SchaferEtAlCorrection {
+private:
+    ArrayView<const Float> m;
+    ArrayView<const Float> rho;
+    ArrayView<const Vector> r;
+
+public:
+    using Type = Tensor;
+
+    void update(Storage& storage) {
+        m = storage.getValue<Float>(QuantityKey::M);
+        r = storage.getValue<Vector>(QuantityKey::R);
+        rho = storage.getValue<Float>(QuantityKey::RHO);
+    }
+
+    INLINE Tuple<Tensor, Tensor> operator()(const int i, const int j, const Vector& grad) const {
+        Tensor t = outer(r[j] - r[i], grad); // symmetric in i,j ?
+        return { m[j] / rho[j] * t, m[i] / rho[i] * t };
+    }
+};
 
 NAMESPACE_SPH_END

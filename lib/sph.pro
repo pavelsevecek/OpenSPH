@@ -27,7 +27,8 @@ SOURCES += \
     solvers/ContinuitySolver.cpp \
     solvers/SummationSolver.cpp \
     solvers/AbstractSolver.cpp \
-    solvers/SolverFactory.cpp
+    solvers/SolverFactory.cpp \
+    system/Settings.cpp
 
 HEADERS += \
     core/Globals.h \
@@ -79,7 +80,6 @@ HEADERS += \
     system/Callbacks.h \
     system/Factory.h \
     system/Logger.h \
-    system/Parser.h \
     system/Settings.h \
     system/Timer.h \
     system/Profiler.h \
