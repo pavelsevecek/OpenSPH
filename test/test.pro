@@ -25,7 +25,6 @@ SOURCES += \
     ../lib/objects/wrappers/test/Variant.cpp \
     ../lib/objects/wrappers/test/Iterators.cpp \
     ../lib/objects/wrappers/test/Range.cpp \
-    ../lib/objects/wrappers/test/Shadow.cpp \
     ../lib/objects/wrappers/test/NonOwningPtr.cpp \
     ../lib/objects/wrappers/test/Any.cpp \
     ../lib/objects/wrappers/test/VectorizedArray.cpp \
@@ -36,7 +35,7 @@ SOURCES += \
     ../lib/objects/finders/test/Order.cpp \
     ../lib/objects/finders/test/BruteForce.cpp \
     ../lib/sph/timestepping/test/TimeStepping.cpp \
-    ../lib/sph/distributions/test/Distribution.cpp \
+    ../lib/sph/initial/test/Distribution.cpp \
     ../lib/sph/kernel/test/Kernel.cpp \
     ../lib/system/test/Settings.cpp \
     ../lib/system/test/Timer.cpp \
@@ -49,12 +48,15 @@ SOURCES += \
     ../lib/geometry/test/Tensor.cpp \
     ../lib/system/test/Profiler.cpp \
     ../lib/objects/containers/test/LimitedArray.cpp \
+    ../lib/objects/containers/test/StaticArray.cpp \
     ../lib/storage/test/Iterate.cpp \
     ../lib/storage/test/QuantityHelpers.cpp \
     ../lib/geometry/test/TracelessTensor.cpp \
     ../lib/system/test/Output.cpp \
     ../lib/solvers/test/ContinuitySolver.cpp \
-    ../lib/sph/boundary/test/Boundary.cpp
+    ../lib/sph/boundary/test/Boundary.cpp \
+    ../lib/objects/wrappers/test/AlignedStorage.cpp \
+    ../lib/solvers/test/Module.cpp
 
 
 HEADERS += \

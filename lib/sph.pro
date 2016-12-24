@@ -19,16 +19,18 @@ QMAKE_LFLAGS += -pg
 
 SOURCES += \
     physics/TimeFormat.cpp \
-    sph/distributions/Distribution.cpp \
+    sph/initial/Distribution.cpp \
     system/Timer.cpp \
     system/Factory.cpp \
     sph/timestepping/TimeStepping.cpp \
     system/Profiler.cpp \
-    solvers/ContinuitySolver.cpp \
-    solvers/SummationSolver.cpp \
-    solvers/AbstractSolver.cpp \
     solvers/SolverFactory.cpp \
-    system/Settings.cpp
+    system/Settings.cpp \
+    math/rng/Rng.cpp \
+    storage/Material.cpp \
+    storage/Storage.cpp \
+    sph/boundary/Boundary.cpp \
+    sph/initial/Initial.cpp
 
 HEADERS += \
     core/Globals.h \
@@ -63,7 +65,6 @@ HEADERS += \
     objects/wrappers/NonOwningPtr.h \
     objects/wrappers/Optional.h \
     objects/wrappers/Range.h \
-    objects/wrappers/Shadow.h \
     objects/wrappers/Variant.h \
     objects/wrappers/VectorizedArray.h \
     physics/Constants.h \
@@ -72,7 +73,7 @@ HEADERS += \
     physics/Integrals.h \
     problem/Problem.h \
     sph/kernel/Kernel.h \
-    sph/distributions/Distribution.h \
+    sph/initial/Distribution.h \
     sph/timestepping/Step.h \
     sph/timestepping/TimeStepping.h \
     sph/av/Standard.h \
@@ -109,4 +110,7 @@ HEADERS += \
     sph/forces/Factory.h \
     sph/forces/Damage.h \
     sph/forces/Yielding.h \
-    solvers/SolverFactory.h
+    solvers/SolverFactory.h \
+    objects/wrappers/AlignedStorage.h \
+    solvers/Module.h \
+    sph/initial/Initial.h

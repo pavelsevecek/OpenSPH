@@ -41,6 +41,8 @@ public:
     }
 
     INLINE void accumulate(const int UNUSED(i), const int UNUSED(j), const Vector& UNUSED(grad)) {}
+
+    INLINE void integrate(Storage& UNUSED(storage)) {}
 };
 
 

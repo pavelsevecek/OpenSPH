@@ -4,17 +4,18 @@
 #include "solvers/Accumulator.h"
 #include "storage/QuantityMap.h"
 #include "storage/Storage.h"
+#include "solvers/Module.h"
 
 NAMESPACE_SPH_BEGIN
 
 /// Object computing acceleration of particles and increase of internal energy due to divergence of the stress
 /// tensor. When no stress tensor is used in the model, only pressure gradient is computed.
 template <typename Yielding, typename Damage, typename AV>
-class StressForce : public Object {
+class StressForce : public Module<Yielding, Damage, AV, RhoDivv, RhoGradv> {
 private:
-    Accumulator<RhoDivv> rhoDivv;
-    Accumulator<RhoGradv> rhoGradv;
-    ArrayView<Float> p, rho, du, u, m;
+    RhoDivv rhoDivv;
+    RhoGradv rhoGradv;
+    ArrayView<Float> p, rho, du, u, m, cs;
     ArrayView<Vector> v, dv;
     ArrayView<TracelessTensor> s, ds;
 
@@ -29,8 +30,8 @@ private:
     AV av;
 
 public:
-    StressForce(const GlobalSettings& settings)
-        : av(settings) {
+    StressForce(const GlobalSettings& settings) : Module<Yielding, Damage, AV, RhoDivv, RhoGradv>(yielding, damage, av, rhoDivv, rhoGradv),
+         av(settings) {
         flags.setIf(Options::USE_GRAD_P, settings.get<bool>(GlobalSettingsIds::MODEL_FORCE_GRAD_P));
         flags.setIf(Options::USE_DIV_S, settings.get<bool>(GlobalSettingsIds::MODEL_FORCE_DIV_S));
         // cannot use stress tensor without pressure
@@ -47,14 +48,16 @@ public:
         tieToArray(r, v, dv) = storage.getAll<Vector>(QuantityKey::R);
         if (flags.has(Options::USE_GRAD_P)) {
             p = storage.getValue<Float>(QuantityKey::P);
+            cs = storage.getValue<Float>(QuantityKey::CS);
+            // compute new values of pressure and sound speed
+            for (int i=0; i<r.size(); ++i) {
+                tieToTuple(p[i], cs[i]) = storage.getMaterial(i).eos->getPressure(rho[i], u[i]);
+            }
         }
         if (flags.has(Options::USE_DIV_S)) {
             tieToArray(s, ds) = storage.getAll<TracelessTensor>(QuantityKey::S);
         }
-        rhoDivv.update(storage);
-        rhoGradv.update(storage);
-        damage.update(storage);
-        yielding.update(storage);
+        this->updateModules(storage);
     }
 
     INLINE void accumulate(const int i, const int j, const Vector& grad) {
@@ -65,8 +68,6 @@ public:
             /// \todo measure if these branches have any effect on performance
             const auto avij = av(i, j);
             f -= (reduce(p[i], i) * rhoInvSqri + reduce(p[j], i) * rhoInvSqrj + avij) * grad;
-            rhoDivv.accumulate(i, j, grad);
-            av.accumulate(i, j, grad);
             // account for shock heating
             const Float heating = 0.5_f * avij * dot(v[i] - v[j], grad);
             du[i] += m[j] * heating;
@@ -74,14 +75,14 @@ public:
         }
         if (flags.has(Options::USE_DIV_S)) {
             f += (reduce(s[i], i) * rhoInvSqri + reduce(s[j], i) * rhoInvSqrj) * grad;
-            rhoGradv.accumulate(i, j, grad);
         }
         dv[i] += m[j] * f;
         dv[j] -= m[i] * f;
         // internal energy is computed at the end using accumulated values
+        this->accumulateModules(i, j, grad);
     }
 
-    void evaluate(Storage& storage) {
+    void integrate(Storage& storage) {
         for (int i = 0; i < du.size(); ++i) {
             /// \todo check correct sign
             const Float rhoInvSqr = 1._f / Math::sqr(rho[i]);

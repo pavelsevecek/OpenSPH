@@ -42,10 +42,10 @@ TEST_CASE("Tuple copy/move construction", "[tuple]") {
 }
 
 TEST_CASE("Tuple copy/move assignment", "[tuple]") {
-    RecordType r1(5), r2(7);
-    Tuple<RecordType, RecordType&, RecordType&&> t1(r1, r2, RecordType(9));
-    RecordType r3;
-    Tuple<RecordType, RecordType&, RecordType> t2(RecordType(1), r3, RecordType(1));
+    RecordType r1(5), r2(7), r3(9);
+    Tuple<RecordType, RecordType&, RecordType&&> t1(r1, r2, std::move(r3));
+    RecordType r4;
+    Tuple<RecordType, RecordType&, RecordType> t2(RecordType(1), r4, RecordType(1));
     t2 = t1;
     REQUIRE(t2.size() == 3);
     REQUIRE(t2.get<0>().value == 5);
@@ -54,7 +54,7 @@ TEST_CASE("Tuple copy/move assignment", "[tuple]") {
 
     REQUIRE(t2.get<1>().value == 7);
     REQUIRE(t2.get<1>().wasCopyAssigned);
-    REQUIRE(r3.value == 7);
+    REQUIRE(r4.value == 7);
     REQUIRE(!t2.get<1>().wasMoveAssigned);
     REQUIRE(!t1.get<1>().wasMoved);
 
@@ -62,9 +62,11 @@ TEST_CASE("Tuple copy/move assignment", "[tuple]") {
     REQUIRE(!t2.get<2>().wasCopyAssigned);
     REQUIRE(t2.get<2>().wasMoveAssigned);
     REQUIRE(t1.get<2>().wasMoved);
+    REQUIRE(r3.wasMoved);
 
     // test that we cannot move out of const tuple
-    const Tuple<RecordType, RecordType&, RecordType&&> t3(RecordType(2), r2, RecordType(3));
+    RecordType r5(3);
+    const Tuple<RecordType, RecordType&, RecordType&&> t3(RecordType(2), r2, std::move(r5));
     Tuple<RecordType, RecordType, RecordType> t4;
     t4 = t3;
     REQUIRE(t4.get<0>().value == 2);
@@ -245,6 +247,30 @@ TEST_CASE("ForEach", "[tuple]") {
     int sum = 0;
     forEach(t, [&sum](auto& value) { sum += value; });
     REQUIRE(sum == 11);
+    /// \todo test other overloads
+}
+
+TEST_CASE("ForEachIf" "[tuple]") {
+    Tuple<int, float, int64_t> t (1, 2.f, 5);
+    int sum = 0;
+    forEachIf<std::is_integral>(t, [&sum](auto& value) { sum += value; });
+    REQUIRE(sum == 6);
+
+    int i = 3;
+    Tuple<int, const int, int&> t2 (1, 2, i);
+    forEachIf<std::is_copy_assignable>(t2, [](auto& value) {
+        value = 5;
+    });
+    REQUIRE(t2.get<0>() == 5);
+    REQUIRE(t2.get<1>() == 2);
+    REQUIRE(t2.get<2>() == 5);
+
+    Tuple<RecordType, int, RecordType> t3(5, 6, 7);
+    forEachIf<IsRecordType>(t3, [](auto& r){
+        r.value = 1;
+    });
+    REQUIRE(t3.get<0>().value == 1);
+    REQUIRE(t3.get<2>().value == 1);
 }
 
 

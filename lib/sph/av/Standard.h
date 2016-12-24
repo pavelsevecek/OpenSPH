@@ -9,6 +9,7 @@
 #include "storage/Storage.h"
 #include "system/Factory.h"
 #include "system/Settings.h"
+#include "physics/Eos.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -37,8 +38,6 @@ public:
         }
     }
 
-    INLINE void accumulate(const int UNUSED(i), const int UNUSED(j), const Vector& UNUSED(grad)) {}
-
     INLINE Float operator()(const int i, const int j) {
         const Float dvdr = dot(v[i] - v[j], r[i] - r[j]);
         if (dvdr >= 0._f) {
@@ -50,6 +49,10 @@ public:
         const Float mu = hbar * dvdr / (getSqrLength(r[i] - r[j]) + eps * Math::sqr(hbar));
         return 1._f / rhobar * (-alpha * csbar * mu + beta * Math::sqr(mu));
     }
+
+    INLINE void accumulate(const int UNUSED(i), const int UNUSED(j), const Vector& UNUSED(grad)) {}
+
+    INLINE void integrate(Storage& UNUSED(storage)) {}
 };
 
 

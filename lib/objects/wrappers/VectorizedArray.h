@@ -1,7 +1,7 @@
 #pragma once
 
 #include "objects/containers/Array.h"
-#include "objects/wrappers/Shadow.h"
+#include "objects/wrappers/AlignedStorage.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -14,24 +14,24 @@ NAMESPACE_SPH_BEGIN
 
 class VectorizedArray : public Noncopyable {
 private:
-    Shadow<Array<Vector>> storage;
+    AlignedStorage<Array<Vector>> storage;
 
 public:
     VectorizedArray(Array<Float>& array) {
         ASSERT((array.size() % 4) == 0);
         // copy pointer to storage, without using Array<> constructor or destructor
-        storage->data    = reinterpret_cast<Vector*>(array.data);
-        storage->actSize = array.actSize / 4;
-        storage->maxSize = storage->actSize;
+        storage.get().data = reinterpret_cast<Vector*>(array.data);
+        storage.get().actSize = array.actSize / 4;
+        storage.get().maxSize = storage.get().actSize;
     }
 
     Array<Vector>& get() { return storage.get(); }
 
     const Array<Vector>& get() const { return storage.get(); }
 
-    Array<Vector>* operator->() { return storage.operator->(); }
+    Array<Vector>* operator->() { return &storage.get(); }
 
-    const Array<Vector>* operator->() const { return storage.operator->(); }
+    const Array<Vector>* operator->() const { return &storage.get(); }
 };
 
 NAMESPACE_SPH_END

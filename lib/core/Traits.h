@@ -17,7 +17,7 @@ template <int n, typename T0, typename... TArgs>
 struct TypeSelector<n, T0, TArgs...> : TypeSelector<n - 1, TArgs...> {};
 
 template <typename T0, typename... TArgs>
-struct TypeSelector<0, T0, TArgs...> : public Object {
+struct TypeSelector<0, T0, TArgs...> {
     using Type = T0;
 };
 
@@ -223,5 +223,6 @@ static_assert(AnyTrue<true, true, true, false>::value == true, "invalid AnyTrue"
 static_assert(AnyTrue<false, false, false, false>::value == false, "invalid AnyTrue");
 static_assert(AnyTrue<true>::value == true, "invalid AnyTrue");
 static_assert(AnyTrue<false>::value == false, "invalid AnyTrue");
+
 
 NAMESPACE_SPH_END

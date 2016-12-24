@@ -1,7 +1,6 @@
 #include "objects/finders/BruteForce.h"
 #include "catch.hpp"
-#include "sph/distributions/Distribution.h"
-
+#include "sph/initial/Distribution.h"
 
 using namespace Sph;
 

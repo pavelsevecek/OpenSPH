@@ -10,14 +10,15 @@ TEST_CASE("Storage resize", "[storage]") {
     Storage storage;
     REQUIRE(storage.getQuantityCnt() == 0);
     REQUIRE(storage.getParticleCnt() == 0);
+
+    storage.emplace<int, OrderEnum::ZERO_ORDER>(QuantityKey::MAT_ID, Array<int>{0});
     storage.resize<VisitorEnum::ALL_BUFFERS>(5);
-    REQUIRE(storage.getQuantityCnt() == 0);
+    storage.emplace<Float, OrderEnum::FIRST_ORDER>(QuantityKey::RHO, 3._f);
+    REQUIRE(storage.getQuantityCnt() == 2);
     REQUIRE(storage.getParticleCnt() == 5);
 
-    storage.emplace<Float, OrderEnum::FIRST_ORDER>(QuantityKey::RHO, 3._f);
     storage.emplace<Vector, OrderEnum::SECOND_ORDER>(QuantityKey::M, Vector(5._f));
-
-    REQUIRE(storage.getQuantityCnt() == 2);
+    REQUIRE(storage.getQuantityCnt() == 3);
     REQUIRE(storage.has(QuantityKey::RHO));
     REQUIRE(storage.has(QuantityKey::M));
     REQUIRE(!storage.has(QuantityKey::R));
@@ -52,6 +53,7 @@ TEST_CASE("Storage emplaceWithFunctor", "[storage]") {
 
 TEST_CASE("Clone storages", "[storage]") {
     Storage storage;
+    storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityKey::MAT_ID, Array<Float>{});
     storage.resize<VisitorEnum::ALL_BUFFERS>(5);
     storage.emplace<Float, OrderEnum::SECOND_ORDER>(QuantityKey::R, 4._f);
     storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityKey::M, 1._f);
@@ -129,6 +131,7 @@ TEST_CASE("Storage merge", "[storage]") {
 
 TEST_CASE("Storage init", "[storage]") {
     Storage storage;
+    storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityKey::MAT_ID, Array<Float>{}); // dummy unit
     storage.resize<VisitorEnum::ALL_BUFFERS>(3);
     storage.emplace<Float, OrderEnum::SECOND_ORDER>(QuantityKey::R, 3._f);
     storage.emplace<Float, OrderEnum::FIRST_ORDER>(QuantityKey::M, 1._f);

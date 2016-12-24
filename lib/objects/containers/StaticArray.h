@@ -1,7 +1,7 @@
 #pragma once
 
 #include "objects/containers/ArrayView.h"
-#include "objects/wrappers/Shadow.h"
+#include "objects/wrappers/AlignedStorage.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -11,7 +11,7 @@ const struct EmptyArray {
 template <typename T, int N>
 class StaticArray : public Object {
 private:
-    Shadow<T> data[N];
+    AlignedStorage<T> data[N];
     int actSize;
 
     using StorageType = WrapReference<T>;
@@ -52,6 +52,7 @@ public:
                 data[i].destroy();
             }
         }
+        actSize = 0;
     }
 
     StaticArray& operator=(const StaticArray& other) = delete;
@@ -63,7 +64,7 @@ public:
     StaticArray& operator=(StaticArray<U, N>&& other) {
         ASSERT(this->size() == other.size());
         for (int i = 0; i < other.size(); ++i) {
-            (*this)[i] = other[i];
+            (*this)[i] = std::move(other[i]);
         }
         return *this;
     }
@@ -108,6 +109,7 @@ public:
         ASSERT(actSize > 0);
         T value = data[actSize - 1];
         data[actSize - 1].destroy();
+        actSize--;
         return value;
     }
 
@@ -116,7 +118,7 @@ public:
     /// constructor.
     void resize(const int newSize) {
         ASSERT(unsigned(newSize) <= N);
-        if (std::is_trivially_default_constructible<T>::value) {
+        if (!std::is_trivially_default_constructible<T>::value) {
             if (newSize > actSize) {
                 for (int i = actSize; i < newSize; ++i) {
                     data[i].emplace();
@@ -150,14 +152,14 @@ private:
 /// allocated size of the array and the number of constructed elements equal to the number of parameters.
 template <typename T0, typename... TArgs>
 StaticArray<T0, sizeof...(TArgs) + 1> makeStatic(T0&& t0, TArgs&&... rest) {
-    return StaticArray<T0, sizeof...(TArgs) + 1>(std::forward<T0>(t0), std::forward<TArgs>(rest)...);
+    return StaticArray<T0, sizeof...(TArgs) + 1>({std::forward<T0>(t0), std::forward<TArgs>(rest)...});
 }
 
 /// Creates a static array from a list of l-value references. All parameters must have the same type. Both the
 /// allocated size of the array and the number of constructed elements equal to the number of parameters.
 template <typename T0, typename... TArgs>
 StaticArray<T0&, sizeof...(TArgs) + 1> tieToStatic(T0& t0, TArgs&... rest) {
-    return StaticArray<T0&, sizeof...(TArgs) + 1>(t0, rest...);
+    return StaticArray<T0&, sizeof...(TArgs) + 1>({t0, rest...});
 }
 
 NAMESPACE_SPH_END

@@ -6,8 +6,8 @@ using namespace Sph;
 
 TEST_CASE("Iterate", "[iterate]") {
     Storage storage;
+    storage.emplace<Float, OrderEnum::SECOND_ORDER>(QuantityKey::R, makeArray(5._f));
     storage.resize<VisitorEnum::ALL_BUFFERS>(5);
-    storage.emplace<Float, OrderEnum::SECOND_ORDER>(QuantityKey::R, 5._f);
     storage.emplace<Vector, OrderEnum::FIRST_ORDER>(QuantityKey::RHO, Vector(1._f));
     storage.emplace<Tensor, OrderEnum::FIRST_ORDER>(QuantityKey::S, Tensor(3._f));
     storage.emplace<TracelessTensor, OrderEnum::ZERO_ORDER>(QuantityKey::BETA, TracelessTensor(6._f));

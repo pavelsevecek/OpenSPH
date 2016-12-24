@@ -23,20 +23,20 @@
 NAMESPACE_SPH_BEGIN
 
 template <typename Force, int D>
-class ContinuitySolver : public SolverBase<D> {
+class ContinuitySolver : public SolverBase<D>, Module<Force, RhoDivv> {
 private:
     Force force;
 
     static constexpr int dim = D;
 
     /// \todo SharedAccumulator
-    Accumulator<RhoDivv> rhoDivv;
+    RhoDivv rhoDivv;
 
 public:
     ContinuitySolver(const GlobalSettings& settings)
         : SolverBase<D>(settings)
-        , force(settings)
-    {}
+        , Module<Force, RhoDivv>(force, rhoDivv)
+        , force(settings) {}
 
     virtual void integrate(Storage& storage) override {
         const int size = storage.getParticleCnt();
@@ -55,12 +55,8 @@ public:
             h = Math::max(h, 1.e-12_f);
         }
         // initialize stuff
-        rhoDivv.update(storage);
-        force.update(storage);
+        this->updateModules(storage);
 
-        // find new pressure
-        /// \todo update pressure and sound speed
-        // this->computeMaterial(storage);
 
         /*void Abstract::Solver::computeMaterial(Storage& storage) {
             ArrayView<Float> p, rho, u, cs;
@@ -103,8 +99,7 @@ public:
                 const Vector grad = w.grad(r[i], r[j]);
                 ASSERT(dot(grad, r[i] - r[j]) <= 0._f);
 
-                force.accumulate(i, j, grad);
-                rhoDivv.accumulate(i, j, grad);
+                this->accumulateModules(i, j, grad);
             }
         }
 
@@ -115,7 +110,7 @@ public:
             v[i][H] = 0._f;
             dv[i][H] = 0._f;
         }
-        force.evaluate(storage);
+        this->integrateModules(storage);
         if (this->boundary) {
             this->boundary->apply(storage);
         }

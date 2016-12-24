@@ -1,11 +1,12 @@
 #pragma once
 
-/// \todo move include to cpp
-#include "physics/Eos.h"
 #include "system/Settings.h"
 
 NAMESPACE_SPH_BEGIN
 
+namespace Abstract {
+    class Eos;
+}
 
 /// Settings and functions for given material.
 /// \todo material per solver? How to avoid storing parameters the solver doesn't need?
@@ -14,25 +15,15 @@ struct Material : public Noncopyable {
     Float shearModulus = 0._f;
     Float elasticityLimit = 0._f;
 
-    Material() = default;
+    Material();
 
-    Material(const BodySettings& settings) {
-        eos = Factory::getEos(settings);
-        shearModulus = settings.get<Float>(BodySettingsIds::SHEAR_MODULUS);
-        elasticityLimit = settings.get<Float>(BodySettingsIds::VON_MISES_ELASTICITY_LIMIT);
-    }
+    ~Material();
 
-    Material(Material&& other)
-        : eos(std::move(other.eos))
-        , shearModulus(other.shearModulus)
-        , elasticityLimit(other.elasticityLimit) {}
+    Material(const BodySettings& settings);
 
-    Material& operator=(Material&& other) {
-        eos = std::move(other.eos);
-        shearModulus = other.shearModulus;
-        elasticityLimit = other.elasticityLimit;
-        return *this;
-    }
+    Material(Material&& other);
+
+    Material& operator=(Material&& other);
 };
 
 NAMESPACE_SPH_END

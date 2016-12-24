@@ -44,7 +44,8 @@ public:
         return (1._f - d) * s;
     }
 
-    void integrate(Storage& UNUSED(storage)) { NOT_IMPLEMENTED; }
+    void integrate(Storage& UNUSED(storage)) {
+    }
 
     QuantityMap getMap() const {
         QuantityMap map;

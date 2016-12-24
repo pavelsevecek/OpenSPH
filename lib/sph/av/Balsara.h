@@ -6,40 +6,43 @@
 /// sevecek at sirrah.troja.mff.cuni.cz
 
 #include "solvers/Accumulator.h"
+#include "solvers/Module.h"
 #include "storage/Storage.h"
 #include "system/Settings.h"
 
 NAMESPACE_SPH_BEGIN
 
 template <typename AV>
-class BalsaraSwitch : public Object {
+class BalsaraSwitch : public Module<AV, Rotv, Divv> {
 private:
     ArrayView<Float> cs;
     ArrayView<Vector> r;
     AV av;
-
-    Accumulator<Rotv> rotv;
-    Accumulator<Divv> divv;
+    Rotv rotv;
+    Divv divv;
 
     const Float eps = 1.e-4_f;
 
 public:
     template <typename... TArgs>
     BalsaraSwitch(TArgs&&... args)
-        : av(std::forward<TArgs>(args)...) {}
+        : Module<AV, Rotv, Divv>(av, rotv, divv)
+        , av(std::forward<TArgs>(args)...) {}
 
     void update(Storage& storage) {
         cs = storage.getValue<Float>(QuantityKey::CS);
         r = storage.getValue<Vector>(QuantityKey::R);
+        this->updateModules(storage);
     }
 
     /// \todo implement swapping of accumulated values with stored quantities
     INLINE Float operator()(const int i, const int j) { return 0.5_f * (get(i) + get(j)) * av(i, j); }
 
     INLINE void accumulate(const int i, const int j, const Vector& grad) {
-        rotv.accumulate(i, j, grad);
-        divv.accumulate(i, j, grad);
+        this->accumulateModules(i, j, grad);
     }
+
+    INLINE void integrate(Storage& UNUSED(storage)) {}
 
 private:
     INLINE Float get(const int i) {

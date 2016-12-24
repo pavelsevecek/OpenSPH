@@ -15,17 +15,18 @@ NAMESPACE_SPH_BEGIN
 /// must have 2 parts, accumulate: executed for every 2 particles (must not be virtual), and derive, compute
 /// derivatvies (can be virtual)
 
-class MorrisMonaghanAV : public Object {
+class MorrisMonaghanAV : public Module<Divv> {
 private:
     ArrayView<Float> alpha, beta, dalpha, dbeta, cs, rho;
     ArrayView<Vector> r, v;
     const Float eps = 0.1_f;
     Range bounds; /// \todo get bounds from body settings
 
-    Accumulator<Divv> divv;
+    Divv divv;
 
 public:
-    MorrisMonaghanAV(const GlobalSettings&) {}
+    MorrisMonaghanAV(const GlobalSettings&)
+        : Module<Divv>(divv) {}
 
     void update(Storage& storage) {
         ArrayView<Vector> dv;
@@ -56,7 +57,7 @@ public:
         divv.accumulate(i, j, grad);
     }
 
-    INLINE void evaluate(Storage& storage) {
+    INLINE void integrate(Storage& storage) {
         for (int i = 0; i < storage.getParticleCnt(); ++i) {
             const Float tau = r[i][H] / (eps * cs[i]);
             const Float decayTerm = -(alpha[i] - bounds.getLower()) / tau;

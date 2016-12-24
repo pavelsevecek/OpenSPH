@@ -75,7 +75,7 @@ public:
 
 /// \todo better names for accumulator, functors (inside accumulators) and owners
 /// Velocity divergence
-class Divv {
+class DivvImpl {
 private:
     ArrayView<const Vector> v;
 
@@ -90,9 +90,10 @@ public:
         return { delta, delta };
     }
 };
+using Divv = Accumulator<DivvImpl>;
 
 /// Velocity rotation
-class Rotv {
+class RotvImpl {
 private:
     ArrayView<const Vector> v;
 
@@ -106,9 +107,10 @@ public:
         return { rot, rot };
     }
 };
+using Rotv = Accumulator<RotvImpl>;
 
 /// Velocity divergence multiplied by density (right-hand side of continuity equation)
-class RhoDivv {
+class RhoDivvImpl {
 private:
     ArrayView<const Float> m;
     ArrayView<const Vector> v;
@@ -127,9 +129,10 @@ public:
         return { m[j] * delta, m[i] * delta };
     }
 };
+using RhoDivv = Accumulator<RhoDivvImpl>;
 
 /// Strain rate tensor (symmetrized velocity gradient) multiplied by density
-class RhoGradv {
+class RhoGradvImpl {
 private:
     ArrayView<const Float> m;
     ArrayView<const Vector> v;
@@ -148,13 +151,14 @@ public:
         return { m[j] * gradv, m[i] * gradv };
     }
 };
+using RhoGradv = Accumulator<RhoGradvImpl>;
 
 /// Correction tensor ensuring conversion of total angular momentum to the first order.
 /// The accumulated value is an inversion of the correction C_ij, applied as multiplicative factor on velocity
 /// gradient.
 /// \todo They use slightly different SPH equations, check that it's ok
 /// \todo It is really symmetric tensor?
-class SchaferEtAlCorrection {
+class SchaferEtAlCorrectionImpl {
 private:
     ArrayView<const Float> m;
     ArrayView<const Float> rho;
@@ -174,5 +178,6 @@ public:
         return { m[j] / rho[j] * t, m[i] / rho[i] * t };
     }
 };
+using SchaferEtAlCorrection = Accumulator<SchaferEtAlCorrectionImpl>;
 
 NAMESPACE_SPH_END

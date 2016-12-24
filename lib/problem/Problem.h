@@ -5,7 +5,7 @@
 #include "objects/wrappers/Range.h"
 #include "solvers/SolverFactory.h"
 #include "sph/boundary/Boundary.h"
-#include "sph/distributions/Distribution.h"
+#include "sph/initial/Distribution.h"
 #include "sph/kernel/Kernel.h"
 #include "sph/timestepping/TimeStepping.h"
 #include "storage/QuantityKey.h"

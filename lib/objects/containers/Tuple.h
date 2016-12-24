@@ -308,71 +308,6 @@ const struct Ignore {
     }
 } IGNORE;
 
-
-namespace Detail {
-    template <typename TFunctor, typename TTuple>
-    struct ForEachVisitor {
-        TTuple tuple;
-        TFunctor functor;
-
-        template <std::size_t TIndex>
-        INLINE void visit() {
-            functor(tuple.template get<TIndex>());
-        }
-    };
-}
-
-/// For loop to iterate over tuple. The functor must be a generic lambda or have overloaded operators()
-/// for all types stored within tuple.
-template <typename TFunctor, typename... TArgs>
-INLINE void forEach(Tuple<TArgs...>& tuple, TFunctor&& functor) {
-    Detail::ForEachVisitor<TFunctor, decltype(tuple)> visitor{ tuple, std::forward<TFunctor>(functor) };
-    staticFor<0, sizeof...(TArgs) - 1>(std::move(visitor));
-}
-
-/// For loop to iterate over tuple, const version.
-template <typename TFunctor, typename... TArgs>
-INLINE void forEach(const Tuple<TArgs...>& tuple, TFunctor&& functor) {
-    Detail::ForEachVisitor<TFunctor, decltype(tuple)> visitor{ tuple, std::forward<TFunctor>(functor) };
-    staticFor<0, sizeof...(TArgs) - 1>(std::move(visitor));
-}
-
-/// For loop to iterate over r-value reference of tuple. Values are moved into the functor.
-template <typename TFunctor, typename... TArgs>
-INLINE void forEach(Tuple<TArgs...>&& tuple, TFunctor&& functor) {
-    Detail::ForEachVisitor<TFunctor, decltype(tuple)> visitor{ std::move(tuple),
-        std::forward<TFunctor>(functor) };
-    staticFor<0, sizeof...(TArgs) - 1>(std::move(visitor));
-}
-
-
-namespace Detail {
-    template <typename TFunctor, typename TTuple, std::size_t... TIndices>
-    INLINE decltype(auto) applyImpl(TTuple&& tuple, TFunctor&& functor, std::index_sequence<TIndices...>) {
-        return functor(std::forward<TTuple>(tuple).template get<TIndices>()...);
-    }
-}
-
-/// Expands arguments stored in tuple into parameter pack of a functor.
-template <typename TFunctor, typename... TArgs>
-INLINE decltype(auto) apply(Tuple<TArgs...>& tuple, TFunctor&& functor) {
-    return Detail::applyImpl(tuple, std::forward<TFunctor>(functor), std::index_sequence_for<TArgs...>());
-}
-
-/// Expands arguments stored in tuple into parameter pack of a functor, const version.
-template <typename TFunctor, typename... TArgs>
-INLINE decltype(auto) apply(const Tuple<TArgs...>& tuple, TFunctor&& functor) {
-    return Detail::applyImpl(tuple, std::forward<TFunctor>(functor), std::index_sequence_for<TArgs...>());
-}
-
-/// Expands arguments stored in r-value reference of tuple into parameter pack of a functor.
-template <typename TFunctor, typename... TArgs>
-INLINE decltype(auto) apply(Tuple<TArgs...>&& tuple, TFunctor&& functor) {
-    return Detail::applyImpl(
-        std::move(tuple), std::forward<TFunctor>(functor), std::index_sequence_for<TArgs...>());
-}
-
-
 namespace Detail {
     template <typename... Ts1, typename... Ts2, std::size_t... TIdxs>
     INLINE constexpr Tuple<Ts1..., Ts2...> appendImpl(const Tuple<Ts1...>& tuple,
@@ -411,7 +346,6 @@ INLINE constexpr Tuple<Ts1..., Ts2...> append(Tuple<Ts1...>&& tuple, Ts2&&... va
         std::move(tuple), std::index_sequence_for<Ts1...>(), std::forward<Ts2>(values)...);
 }
 
-
 /// Creates elements of two tuples.
 template <typename... Ts1, typename... Ts2>
 INLINE constexpr Tuple<Ts1..., Ts2...> append(const Tuple<Ts1...>& t1, const Tuple<Ts2...>& t2) {
@@ -428,5 +362,115 @@ template <typename... TArgs, typename Type>
 struct TupleContains<Tuple<TArgs...>, Type> {
     static constexpr bool value = (getTypeIndex<Type, TArgs...> != -1);
 };
+
+/// Gets type of tuple element given its index.
+template <typename TTuple, std::size_t TIndex>
+struct TupleElementType;
+template <typename... TArgs, std::size_t TIndex>
+struct TupleElementType<Tuple<TArgs...>, TIndex> {
+    using Type = SelectType<TIndex, TArgs...>;
+};
+template <typename... TArgs, std::size_t TIndex>
+struct TupleElementType<Tuple<TArgs...>&, TIndex> {
+    using Type = SelectType<TIndex, TArgs...>;
+};
+template <typename... TArgs, std::size_t TIndex>
+struct TupleElementType<const Tuple<TArgs...>&, TIndex> {
+    using Type = SelectType<TIndex, TArgs...>;
+};
+template <typename... TArgs, std::size_t TIndex>
+struct TupleElementType<Tuple<TArgs...>&&, TIndex> {
+    using Type = SelectType<TIndex, TArgs...>;
+};
+
+template <typename TTuple, std::size_t TIndex>
+using TupleElement = typename TupleElementType<TTuple, TIndex>::Type;
+
+
+namespace Detail {
+    template <typename TFunctor, typename TTuple>
+    struct ForEachVisitor {
+        TTuple&& tuple;
+        TFunctor&& functor;
+
+        template <std::size_t TIndex>
+        INLINE void visit() {
+            functor(tuple.template get<TIndex>());
+        }
+    };
+
+    template <typename TFunctor, typename TTuple, template <class> typename TTrait>
+    struct ForEachIfVisitor {
+        TTuple&& tuple;
+        TFunctor&& functor;
+
+        template <std::size_t TIndex>
+        INLINE std::enable_if_t<TTrait<TupleElement<TTuple, TIndex>>::value> visit() {
+            functor(tuple.template get<TIndex>());
+        }
+
+        template <std::size_t TIndex>
+        INLINE std::enable_if_t<!TTrait<TupleElement<TTuple, TIndex>>::value> visit() {}
+    };
+}
+
+/// For loop to iterate over tuple. The functor must be a generic lambda or have overloaded operators()
+/// for all types stored within tuple.
+template <typename TFunctor, typename... TArgs>
+INLINE void forEach(Tuple<TArgs...>& tuple, TFunctor&& functor) {
+    Detail::ForEachVisitor<TFunctor, decltype(tuple)> visitor{ tuple, std::forward<TFunctor>(functor) };
+    staticFor<0, sizeof...(TArgs) - 1>(std::move(visitor));
+}
+
+/// For loop to iterate over tuple, const version.
+template <typename TFunctor, typename... TArgs>
+INLINE void forEach(const Tuple<TArgs...>& tuple, TFunctor&& functor) {
+    Detail::ForEachVisitor<TFunctor, decltype(tuple)> visitor{ tuple, std::forward<TFunctor>(functor) };
+    staticFor<0, sizeof...(TArgs) - 1>(std::move(visitor));
+}
+
+/// For loop to iterate over r-value reference of tuple. Values are moved into the functor.
+template <typename TFunctor, typename... TArgs>
+INLINE void forEach(Tuple<TArgs...>&& tuple, TFunctor&& functor) {
+    Detail::ForEachVisitor<TFunctor, decltype(tuple)> visitor{ std::move(tuple),
+        std::forward<TFunctor>(functor) };
+    staticFor<0, sizeof...(TArgs) - 1>(std::move(visitor));
+}
+
+/// Iterates over elements of the tuple and executes a functor if given type traits has value == true
+template <template <class T> typename TTrait, typename TFunctor, typename... TArgs>
+INLINE void forEachIf(Tuple<TArgs...>& tuple, TFunctor&& functor) {
+    Detail::ForEachIfVisitor<TFunctor, decltype(tuple), TTrait> visitor{ tuple,
+        std::forward<TFunctor>(functor) };
+    staticFor<0, sizeof...(TArgs) - 1>(std::move(visitor));
+}
+
+
+namespace Detail {
+    template <typename TFunctor, typename TTuple, std::size_t... TIndices>
+    INLINE decltype(auto) applyImpl(TTuple&& tuple, TFunctor&& functor, std::index_sequence<TIndices...>) {
+        return functor(std::forward<TTuple>(tuple).template get<TIndices>()...);
+    }
+}
+
+/// Expands arguments stored in tuple into parameter pack of a functor.
+template <typename TFunctor, typename... TArgs>
+INLINE decltype(auto) apply(Tuple<TArgs...>& tuple, TFunctor&& functor) {
+    return Detail::applyImpl(tuple, std::forward<TFunctor>(functor), std::index_sequence_for<TArgs...>());
+}
+
+/// Expands arguments stored in tuple into parameter pack of a functor, const version.
+template <typename TFunctor, typename... TArgs>
+INLINE decltype(auto) apply(const Tuple<TArgs...>& tuple, TFunctor&& functor) {
+    return Detail::applyImpl(tuple, std::forward<TFunctor>(functor), std::index_sequence_for<TArgs...>());
+}
+
+/// Expands arguments stored in r-value reference of tuple into parameter pack of a functor.
+template <typename TFunctor, typename... TArgs>
+INLINE decltype(auto) apply(Tuple<TArgs...>&& tuple, TFunctor&& functor) {
+    return Detail::applyImpl(
+        std::move(tuple), std::forward<TFunctor>(functor), std::index_sequence_for<TArgs...>());
+}
+
 
 NAMESPACE_SPH_END

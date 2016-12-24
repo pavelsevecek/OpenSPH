@@ -1,13 +1,14 @@
 #include "objects/containers/Array.h"
-#include "utils/Utils.h"
+#include "utils/RecordType.h"
 #include "catch.hpp"
 
 using namespace Sph;
 
-TEST_CASE("Construction", "[array]") {
+TEST_CASE("Array Construction", "[array]") {
+    RecordType::resetStats();
     // default construction
     Array<float> ar1;
-    REQUIRE(ar1.size() == 0);
+    REQUIRE(RecordType::constructedNum == 0);
 
     // initializer list construction
     Array<float> ar2{ 1.f, 2.f, 2.5f, 3.6f };
@@ -24,43 +25,45 @@ TEST_CASE("Construction", "[array]") {
     REQUIRE(ar2.size() == 0);
 }
 
-TEST_CASE("Resize", "[array]") {
-    DummyStruct::constructedNum = 0;
-    Array<DummyStruct> ar;
-    REQUIRE(DummyStruct::constructedNum == 0);
+TEST_CASE("Array Resize", "[array]") {
+    RecordType::resetStats();
+    Array<RecordType> ar;
     REQUIRE(ar.size() == 0);
     ar.resize(3);
-    REQUIRE(DummyStruct::constructedNum == 3);
+    REQUIRE(RecordType::constructedNum == 3);
     REQUIRE(ar.size() == 3);
+    for (int i=0; i<3; ++i) {
+        REQUIRE(ar[i].wasDefaultConstructed);
+    }
     ar.resize(5);
-    REQUIRE(DummyStruct::constructedNum == 5);
+    REQUIRE(RecordType::existingNum() == 5);
     REQUIRE(ar.size() == 5);
     ar.resize(2);
-    REQUIRE(DummyStruct::constructedNum == 2);
+    REQUIRE(RecordType::existingNum() == 2);
     REQUIRE(ar.size() == 2);
     ar.clear();
-    REQUIRE(DummyStruct::constructedNum == 0);
+    REQUIRE(RecordType::existingNum() == 0);
     REQUIRE(ar.size() == 0);
 }
 
-TEST_CASE("Push & pop", "[array]") {
-    DummyStruct::constructedNum = 0;
-    Array<DummyStruct> ar;
-    ar.push(DummyStruct(5));
-    REQUIRE(DummyStruct::constructedNum == 1);
+TEST_CASE("Array Push & Pop", "[array]") {
+    RecordType::resetStats();
+    Array<RecordType> ar;
+    ar.push(RecordType(5));
+    REQUIRE(RecordType::existingNum() == 1);
     REQUIRE(ar.size() == 1);
-    ar.push(DummyStruct(3));
-    REQUIRE(DummyStruct::constructedNum == 2);
+    ar.push(RecordType(3));
+    REQUIRE(RecordType::existingNum() == 2);
     REQUIRE(ar.size() == 2);
     REQUIRE(ar[0].value == 5);
     REQUIRE(ar[1].value == 3);
 
     REQUIRE(ar.pop().value == 3);
-    REQUIRE(DummyStruct::constructedNum == 1);
+    REQUIRE(RecordType::existingNum() == 1);
     REQUIRE(ar.size() == 1);
 
     REQUIRE(ar.pop().value == 5);
-    REQUIRE(DummyStruct::constructedNum == 0);
+    REQUIRE(RecordType::existingNum() == 0);
     REQUIRE(ar.size() == 0);
 }
 
@@ -74,7 +77,7 @@ TEST_CASE("PushAll", "[array]") {
     }
 }
 
-TEST_CASE("Remove by index", "[array]") {
+TEST_CASE("Array Remove by index", "[array]") {
     Array<int> ar{1, 5, 3, 6, 2, 3};
     ar.remove(0);
     REQUIRE(ar == Array<int>({5, 3, 6, 2, 3}));
@@ -84,7 +87,7 @@ TEST_CASE("Remove by index", "[array]") {
     REQUIRE(ar == Array<int>({5, 3, 2}));
 }
 
-TEST_CASE("References", "[array]") {
+TEST_CASE("Array References", "[array]") {
     int a, b, c;
     Array<int&> ar{a, b, c};
     ar[0] = 5;
@@ -114,17 +117,4 @@ TEST_CASE("References", "[array]") {
     REQUIRE(d == 3);
     REQUIRE(e == 1);
     REQUIRE(f == 4);
-}
-
-
-TEST_CASE("Moving", "[static array]") {
-    auto f = []() {
-        StaticArray<int, 3> ar = { 1, 3, 5 };
-        return ar;
-    };
-
-    StaticArray<int, 3> ar(f());
-    REQUIRE(ar[0] == 1);
-    REQUIRE(ar[1] == 3);
-    REQUIRE(ar[2] == 5);
 }

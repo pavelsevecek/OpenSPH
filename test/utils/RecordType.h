@@ -13,24 +13,42 @@ struct RecordType {
     bool wasDefaultConstructed = false;
     bool wasValueConstructed = false;
 
+    static int constructedNum;
+    static int destructedNum;
+
+    static void resetStats() {
+        constructedNum = 0;
+        destructedNum = 0;
+    }
+
+    static int existingNum() { return constructedNum - destructedNum; }
+
     int value = -1;
 
-    RecordType() { wasDefaultConstructed = true; }
+    RecordType() {
+        wasDefaultConstructed = true;
+        constructedNum++;
+    }
+
+    ~RecordType() { destructedNum++; }
 
     RecordType(const int value)
         : value(value) {
         wasValueConstructed = true;
+        constructedNum++;
     }
 
     RecordType(const RecordType& other) {
         wasCopyConstructed = true;
         value = other.value;
+        constructedNum++;
     }
 
     RecordType(RecordType&& other) {
         wasMoveConstructed = true;
         other.wasMoved = true;
         value = other.value;
+        constructedNum++;
     }
 
     RecordType& operator=(const RecordType& other) {
@@ -46,9 +64,16 @@ struct RecordType {
         return *this;
     }
 
-    bool operator==(const RecordType& other) const {
-        return value == other.value;
-    }
+    bool operator==(const RecordType& other) const { return value == other.value; }
+};
+
+template <typename T>
+struct IsRecordType {
+    static constexpr bool value = false;
+};
+template <>
+struct IsRecordType<RecordType> {
+    static constexpr bool value = true;
 };
 
 NAMESPACE_SPH_END

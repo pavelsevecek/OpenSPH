@@ -20,55 +20,6 @@ namespace Abstract {
     };
 }
 
-/// Functor copying quantities on ghost particles. Vector quantities are copied symmetrically with a respect
-/// to the boundary.
-struct GhostFunctor {
-    Array<int>& idxs;
-    Array<int>& ghostIdxs;
-    Abstract::Domain& domain;
-
-    /// Generic operator, simply copies value onto the ghost
-    template <typename T>
-    void operator()(LimitedArray<T>& v, Array<Vector>& UNUSED(r)) {
-        for (int i : idxs) {
-            auto ghost = v[i];
-            v.push(ghost);
-        }
-    }
-
-    /// Specialization for vectors, copies parallel component of the vector along the boundary and inverts
-    /// perpendicular component.
-    void operator()(LimitedArray<Vector>& v, Array<Vector>& r) {
-        for (int i = 0; i < idxs.size(); ++i) {
-            const int idx = idxs[i];
-            Float length = getLength(v[idx]);
-            if (length == 0._f) {
-                v.push(Vector(0._f)); // simply copy zero vector
-                continue;
-            }
-            // trick: approximate normal by connection particle and its ghost
-            const Vector deltaR = r[idx] - r[ghostIdxs[i]];
-            if (getLength(deltaR) == 0._f) {
-                // ghost lie on top of the particle, approximate inverted vector by finite differences
-                // (imprecise)
-                /// \todo we should avoid this case altogether
-                const Float eps = 1.e-3_f * domain.getBoundingRadius();
-                const Vector unit = v[idx] / length;
-                StaticArray<Vector, 1> vgSum{ r[idx] + unit * eps };
-                domain.invert(vgSum);
-                const Vector rg = r[ghostIdxs[i]];
-                // get direction of inverted vector as difference inverted(r) and inverted(r + v)
-                const Vector diff = getNormalized(vgSum[0] - rg);
-                // scale to correct length
-                v.push(diff * length);
-            } else {
-                const Vector normal = getNormalized(deltaR);
-                const Float perp = dot(normal, v[idx]);
-                v.push(v[idx] - 2._f * normal * perp);
-            }
-        }
-    }
-};
 
 /// Add ghost particles symmetrically for each SPH particle close to boundary, copying all quantities to them.
 class GhostParticles : public Abstract::BoundaryConditions {
@@ -81,58 +32,14 @@ private:
     Float searchRadius;
 
 public:
-    GhostParticles(std::unique_ptr<Abstract::Domain>&& domain, const GlobalSettings& settings)
-        : domain(std::move(domain)) {
-        searchRadius = Factory::getKernel<3>(settings).radius();
-    }
+    GhostParticles(std::unique_ptr<Abstract::Domain>&& domain, const GlobalSettings& settings);
 
-    virtual void apply(Storage& storage) override {
-        // remove previous ghost particles
-        iterate<VisitorEnum::ALL_BUFFERS>(storage, [this](auto&& v) {
-            // remove from highest index so that lower indices are unchanged
-            for (int i = ghostIdxs.size() - 1; i >= 0; --i) {
-                v.remove(ghostIdxs[i]);
-            }
-        });
-        Array<Vector>& r = storage.getValue<Vector>(QuantityKey::R);
-
-        // project particles outside of the domain on the boundary
-        /// \todo this will place particles on top of each other, we should probably separate them a little
-        domain->project(r);
-
-        // find particles close to the boundary
-        idxs.clear();
-        domain->getDistanceToBoundary(r, distances);
-        for (int i = 0; i < r.size(); ++i) {
-            if (distances[i] < r[i][H] * searchRadius) {
-                // close to boundary, needs a ghost particle
-                idxs.push(i);
-            }
-        }
-        ghostIdxs.clear();
-        for (int i = r.size(); i < r.size() + idxs.size(); ++i) {
-            ghostIdxs.push(i);
-        }
-
-        // create ghost particles:
-        // 1) simply copy positions of particles
-        for (int i : idxs) {
-            // we cannot push r[i] directly, as it can invalidate the reference!
-            const Vector ghost = r[i];
-            r.push(ghost);
-        }
-        // 2) invert created vectors with a respect to the boundary
-        domain->invert(r, ghostIdxs);
-
-        // 3) copy all quantities on ghosts
-        GhostFunctor functor{ idxs, ghostIdxs, *domain };
-        iterateWithPositions(storage, functor);
-    }
+    virtual void apply(Storage& storage) override;
 };
 
 enum class ProjectingOptions {
     ZERO_VELOCITY,      ///< velocities of particles outside of domain are set to zero
-    ZERO_PERPENDICULAR, /// < sets perpendicular component of the velocity to zero, parallel remains the same
+    ZERO_PERPENDICULAR, ///< sets perpendicular component of the velocity to zero, parallel remains the same
     REFLECT,            ///< particles 'bounce off' the boundary, the perpendicular component of the velocity
                         ///  changes sign
 };
@@ -146,50 +53,12 @@ private:
     ProjectingOptions options;
 
 public:
-    DomainProjecting(std::unique_ptr<Abstract::Domain>&& domain, const ProjectingOptions options)
-        : domain(std::move(domain))
-        , options(options) {}
+    DomainProjecting(std::unique_ptr<Abstract::Domain>&& domain, const ProjectingOptions options);
 
-    virtual void apply(Storage& storage) override {
-        ArrayView<Vector> r, v;
-        tieToArray(r, v) = storage.getAll<Vector>(QuantityKey::R);
-        // check which particles are outside of the domain
-        domain->getSubset(r, outside, SubsetType::OUTSIDE);
-        domain->project(r, outside);
-        vproj.clear();
-        int idx = 0;
-        switch (options) {
-        case ProjectingOptions::ZERO_VELOCITY:
-            for (int i : outside) {
-                v[i] = Vector(0._f);
-            }
-            break;
-        case ProjectingOptions::ZERO_PERPENDICULAR:
-            projectVelocity(r, v);
-            for (int i : outside) {
-                v[i] = 0.5_f * (v[i] + vproj[idx] - r[i]);
-            }
-            break;
-        case ProjectingOptions::REFLECT:
-            projectVelocity(r, v);
-            for (int i : outside) {
-                // subtract the original position and we have projected velocities! Yay!)
-                v[i] = vproj[idx] - r[i];
-            }
-            break;
-        }
-    }
+    virtual void apply(Storage& storage) override;
 
 private:
-    void projectVelocity(ArrayView<const Vector> r, ArrayView<const Vector> v) {
-        /// \todo implement using normal to the boundary
-        for (int i : outside) {
-            // sum up position and velocity
-            vproj.push(r[i] + v[i]);
-        }
-        // invert the sum
-        domain->invert(vproj);
-    }
+    void projectVelocity(ArrayView<const Vector> r, ArrayView<const Vector> v);
 };
 
 class PeriodicDomain : public Abstract::BoundaryConditions {
@@ -203,35 +72,9 @@ private:
 
 public:
     /// Constructs using range as 1D domain
-    Projection1D(const Range& domain)
-        : domain(domain) {}
+    Projection1D(const Range& domain);
 
-    virtual void apply(Storage& storage) override {
-        ArrayView<Vector> dv;
-        tieToArray(r, v, dv) = storage.getAll<Vector>(QuantityKey::R);
-        for (int i = 0; i < r.size(); ++i) {
-            // throw away y and z, keep h
-            r[i] = Vector(domain.clamp(r[i][0]), 0._f, 0._f, r[i][H]);
-            v[i] = Vector(v[i][0], 0._f, 0._f);
-        }
-        // To get fixed boundary conditions at ends, we need to null all derivatives of first few and last few
-        // particles. Number of particles depends on smoothing length.
-        iterate<VisitorEnum::FIRST_ORDER>(storage, [](auto&& UNUSED(v), auto&& dv) {
-            using Type = typename std::decay_t<decltype(dv)>::Type;
-            const int s = dv.size();
-            for (int i : { 0, 1, 2, 3, 4, s - 4, s - 3, s - 2, s - 1 }) {
-                dv[i] = Type(0._f);
-            }
-        });
-        iterate<VisitorEnum::SECOND_ORDER>(storage, [](auto&& UNUSED(v), auto&& dv, auto&& d2v) {
-            using Type = typename std::decay_t<decltype(dv)>::Type;
-            const int s = dv.size();
-            for (int i : { 0, 1, 2, 3, 4, s - 4, s - 3, s - 2, s - 1 }) {
-                dv[i] = Type(0._f);
-                d2v[i] = Type(0._f);
-            }
-        });
-    }
+    virtual void apply(Storage& storage) override;
 };
 
 

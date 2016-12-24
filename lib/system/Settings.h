@@ -65,7 +65,7 @@ public:
         return TValue(opt.get());
     }
 
-    void saveToFile(const std::string& path) const ;
+    void saveToFile(const std::string& path) const;
 
     /// \todo split settings and descriptors? Settings actual object with values, descriptors global object
     /// with ids, names and default values.
@@ -224,6 +224,9 @@ enum class GlobalSettingsIds {
     /// Artificial viscosity beta coefficient
     SPH_AV_BETA,
 
+    /// Lower and upper bound of the alpha coefficient, used only for time-dependent artificial viscosity.
+    SPH_AV_BETA_RANGE,
+
     /// Use force from pressure gradient in the model
     MODEL_FORCE_GRAD_P,
 
@@ -322,6 +325,7 @@ const Settings<GlobalSettingsIds> GLOBAL_SETTINGS = {
     { GlobalSettingsIds::SPH_AV_ALPHA,                  "sph.av.alpha",             1.5_f },
     { GlobalSettingsIds::SPH_AV_ALPHA_RANGE,            "sph.av.alpha.range",       Range(0.05_f, 1.5_f) },
     { GlobalSettingsIds::SPH_AV_BETA,                   "sph.av.beta",              3._f },
+    { GlobalSettingsIds::SPH_AV_ALPHA_RANGE,            "sph.av.beta.range",        Range(0.1_f, 3._f) },
     { GlobalSettingsIds::SPH_FINDER,                    "sph.finder",               int(FinderEnum::KD_TREE) },
 
     /// Timestepping parameters
@@ -482,6 +486,14 @@ const Settings<BodySettingsIds> BODY_SETTINGS = {
 
 using GlobalSettings = Settings<GlobalSettingsIds>;
 using BodySettings = Settings<BodySettingsIds>;
+
+
+
+/// Returns initial value of given quantity and its allowed range. Values are only defined for independent
+/// quantities for which it 'makes sense'. If the values are not defined for given key, throws an exception.
+Tuple<Float, Range> getInitialValues(const QuantityKey key,
+    const GlobalSettings& globalSettings,
+    const BodySettings& bodySettings);
 
 
 NAMESPACE_SPH_END

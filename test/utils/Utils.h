@@ -65,27 +65,4 @@ INLINE Vector randomVector() {
     return v;
 }
 
-
-struct DummyStruct {
-    int value;
-    static int constructedNum;
-
-    DummyStruct() {
-        constructedNum++;
-    }
-
-    DummyStruct(const int value)
-        : value(value) {
-        constructedNum++;
-    }
-
-    DummyStruct(const DummyStruct& other) {
-        constructedNum++;
-        value = other.value;
-    }
-
-    ~DummyStruct() { constructedNum--; }
-};
-
-
 NAMESPACE_SPH_END

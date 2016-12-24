@@ -1,0 +1,19 @@
+#include "utils/RecordType.h"
+#include "objects/wrappers/AlignedStorage.h"
+#include "catch.hpp"
+
+using namespace Sph;
+
+
+
+TEST_CASE("Emplace", "[shadow]") {
+    RecordType::resetStats();
+    AlignedStorage<RecordType> sd;
+    REQUIRE(RecordType::constructedNum == 0);
+    sd.emplace(5);
+    REQUIRE(RecordType::constructedNum == 1);
+    REQUIRE(RecordType::destructedNum == 0);
+    REQUIRE(sd.get().wasValueConstructed);
+    sd.destroy();
+    REQUIRE(RecordType::destructedNum == 1);
+}

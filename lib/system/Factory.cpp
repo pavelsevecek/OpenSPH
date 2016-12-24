@@ -4,7 +4,7 @@
 #include "objects/finders/KdTree.h"
 #include "physics/Eos.h"
 #include "sph/boundary/Boundary.h"
-#include "sph/distributions/Distribution.h"
+#include "sph/initial/Distribution.h"
 #include "sph/timestepping/TimeStepping.h"
 
 NAMESPACE_SPH_BEGIN
