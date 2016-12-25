@@ -44,13 +44,10 @@ public:
         return (1._f - d) * s;
     }
 
-    void integrate(Storage& UNUSED(storage)) {
-    }
-
-    QuantityMap getMap() const {
-        QuantityMap map;
-        map[QuantityKey::D] = { ValueEnum::SCALAR, OrderEnum::FIRST_ORDER };
-        return map;
+    void initialize(Storage& storage, const BodySettings& settings) const {
+        storage.emplace<Float, OrderEnum::FIRST_ORDER>(QuantityKey::D,
+            settings.get<Float>(BodySettingsIds::DAMAGE),
+            settings.get<Range>(BodySettingsIds::DAMAGE_RANGE));
     }
 };
 

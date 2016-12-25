@@ -49,10 +49,6 @@ public:
         const Float mu = hbar * dvdr / (getSqrLength(r[i] - r[j]) + eps * Math::sqr(hbar));
         return 1._f / rhobar * (-alpha * csbar * mu + beta * Math::sqr(mu));
     }
-
-    INLINE void accumulate(const int UNUSED(i), const int UNUSED(j), const Vector& UNUSED(grad)) {}
-
-    INLINE void integrate(Storage& UNUSED(storage)) {}
 };
 
 

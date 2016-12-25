@@ -116,13 +116,11 @@ public:
         }
     }
 
-    virtual QuantityMap getQuantityMap() const override {
-        QuantityMap map;
-        map[QuantityKey::RHO] = { ValueEnum::SCALAR, OrderEnum::FIRST_ORDER };
-        map[QuantityKey::U] = { ValueEnum::SCALAR, OrderEnum::FIRST_ORDER };
-        map[QuantityKey::M] = { ValueEnum::SCALAR, OrderEnum::ZERO_ORDER };
-        map.add(force.template getQuantityMap());
-        return map;
+    virtual void initialize(Storage& storage, const BodySettings& settings) const override {
+        storage.emplace<Float, OrderEnum::FIRST_ORDER>(QuantityKey::RHO,
+            settings.get<Float>(BodySettingsIds::DENSITY),
+            settings.get<Range>(BodySettingsIds::DENSITY_RANGE));
+        this->initializeModules(storage, settings);
     }
 };
 

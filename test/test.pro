@@ -56,7 +56,8 @@ SOURCES += \
     ../lib/solvers/test/ContinuitySolver.cpp \
     ../lib/sph/boundary/test/Boundary.cpp \
     ../lib/objects/wrappers/test/AlignedStorage.cpp \
-    ../lib/solvers/test/Module.cpp
+    ../lib/solvers/test/Module.cpp \
+    ../lib/geometry/test/Multipole.cpp
 
 
 HEADERS += \

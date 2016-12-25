@@ -7,7 +7,7 @@
 NAMESPACE_SPH_BEGIN
 
 /// Object computing acceleration of particles due to non-intertial reference frame.
-class CentripetalForce : public Noncopyable {
+class CentripetalForce : public Abstract::Force {
 private:
     ArrayView<Vector> r, dv;
     Float omega;
@@ -17,7 +17,7 @@ public:
         omega = settings.get<Float>(GlobalSettingsIds::FRAME_ANGULAR_FREQUENCY);
     }
 
-    INLINE void evaluate(Storage& storage) {
+    INLINE virtual void integrate(Storage& storage) override {
         ArrayView<Vector> v;
         tieToArray(r, v, dv) = storage.getAll<Vector>(QuantityKey::R);
         // centripetal force is independent on particle relative position
@@ -29,7 +29,8 @@ public:
     }
 };
 
-class ExternalPotential : public Noncopyable {
+template<typename TPotential>
+class ExternalPotential : public Abstract::Force {
 
 };
 

@@ -7,26 +7,34 @@
 /// sevecek at sirrah.troja.mff.cuni.cz
 
 #include "solvers/Accumulator.h"
+#include "solvers/Module.h"
 #include "storage/Storage.h"
 #include "system/Settings.h"
 
 NAMESPACE_SPH_BEGIN
 
-/// must have 2 parts, accumulate: executed for every 2 particles (must not be virtual), and derive, compute
-/// derivatvies (can be virtual)
 
 class MorrisMonaghanAV : public Module<Divv> {
 private:
     ArrayView<Float> alpha, beta, dalpha, dbeta, cs, rho;
     ArrayView<Vector> r, v;
     const Float eps = 0.1_f;
-    Range bounds; /// \todo get bounds from body settings
-
     Divv divv;
 
 public:
     MorrisMonaghanAV(const GlobalSettings&)
-        : Module<Divv>(divv) {}
+        : Module<Divv>(divv)
+        , divv(QuantityKey::DIVV) {}
+
+    void initialize(Storage& storage, const BodySettings& settings) const {
+        storage.emplace<Float, OrderEnum::FIRST_ORDER>(QuantityKey::ALPHA,
+            settings.get<Float>(BodySettingsIds::AV_ALPHA),
+            settings.get<Range>(BodySettingsIds::AV_ALPHA_RANGE));
+        storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityKey::BETA,
+            settings.get<Float>(BodySettingsIds::AV_BETA),
+            settings.get<Range>(BodySettingsIds::AV_BETA_RANGE));
+        this->initializeModules(storage, settings);
+    }
 
     void update(Storage& storage) {
         ArrayView<Vector> dv;
@@ -35,7 +43,25 @@ public:
         tieToArray(beta, dbeta) = storage.getAll<Float>(QuantityKey::BETA);
         cs = storage.getValue<Float>(QuantityKey::CS);
         rho = storage.getValue<Float>(QuantityKey::RHO);
-        divv.update(storage);
+        // always keep beta = 2*alpha
+        for (int i = 0; i < alpha.size(); ++i) {
+            beta[i] = 2._f * alpha[i];
+        }
+        this->updateModules(storage);
+    }
+
+    INLINE void accumulate(const int i, const int j, const Vector& grad) {
+        this->accumulateModules(i, j, grad);
+    }
+
+    INLINE void integrate(Storage& storage) {
+        Range bounds = storage.getValue<Float>(QuantityKey::ALPHA).getBounds();
+        for (int i = 0; i < storage.getParticleCnt(); ++i) {
+            const Float tau = r[i][H] / (eps * cs[i]);
+            const Float decayTerm = -(alpha[i] - bounds.getLower()) / tau;
+            const Float sourceTerm = Math::max(-(bounds.getUpper() - alpha[i]) * divv[i], 0._f);
+            dalpha[i] = decayTerm + sourceTerm;
+        }
     }
 
     INLINE Float operator()(const int i, const int j) {
@@ -51,19 +77,6 @@ public:
         const Float betabar = 0.5_f * (beta[i] + beta[j]);
         const Float mu = hbar * dvdr / (getSqrLength(dr) + eps * Math::sqr(hbar));
         return 1._f / rhobar * (-alphabar * csbar * mu + betabar * Math::sqr(mu));
-    }
-
-    void accumulate(const int i, const int j, const Vector& grad) {
-        divv.accumulate(i, j, grad);
-    }
-
-    INLINE void integrate(Storage& storage) {
-        for (int i = 0; i < storage.getParticleCnt(); ++i) {
-            const Float tau = r[i][H] / (eps * cs[i]);
-            const Float decayTerm = -(alpha[i] - bounds.getLower()) / tau;
-            const Float sourceTerm = Math::max(-(bounds.getUpper() - alpha[i]) * divv[i], 0._f);
-            dalpha[i] = decayTerm + sourceTerm;
-        }
     }
 };
 

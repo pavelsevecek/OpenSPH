@@ -26,7 +26,7 @@ struct TestSolver : public Abstract::Solver {
         }
     }
 
-    virtual QuantityMap getQuantityMap() const override { NOT_IMPLEMENTED; }
+    virtual void initialize(Storage&, const BodySettings&) const override { NOT_IMPLEMENTED; }
 };
 
 const Float timeStep = 0.01_f;

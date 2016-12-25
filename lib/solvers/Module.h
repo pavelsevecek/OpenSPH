@@ -49,7 +49,7 @@ namespace Detail {
     template <typename T>
     struct HasInitializeImpl<T,
         void_t<decltype(
-            std::declval<T>().initialize(std::declval<Storage&>(), std::declval<const BodySettings&>()))>> {
+            std::declval<const T>().initialize(std::declval<Storage&>(), std::declval<const BodySettings&>()))>> {
         static constexpr bool value = true;
     };
 }
@@ -108,7 +108,7 @@ public:
         forEachIf<HasIntegrate>(children, [&storage](auto& module) { module.integrate(storage); });
     }
 
-    INLINE void initializeModules(Storage& storage, const BodySettings& settings) {
+    INLINE void initializeModules(Storage& storage, const BodySettings& settings) const {
         forEachIf<HasInitialize>(
             children, [&storage, &settings](auto& module) { module.initialize(storage, settings); });
     }

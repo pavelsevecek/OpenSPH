@@ -218,14 +218,8 @@ enum class GlobalSettingsIds {
     /// Artificial viscosity alpha coefficient
     SPH_AV_ALPHA,
 
-    /// Lower and upper bound of the alpha coefficient, used only for time-dependent artificial viscosity.
-    SPH_AV_ALPHA_RANGE,
-
     /// Artificial viscosity beta coefficient
     SPH_AV_BETA,
-
-    /// Lower and upper bound of the alpha coefficient, used only for time-dependent artificial viscosity.
-    SPH_AV_BETA_RANGE,
 
     /// Use force from pressure gradient in the model
     MODEL_FORCE_GRAD_P,
@@ -323,9 +317,7 @@ const Settings<GlobalSettingsIds> GLOBAL_SETTINGS = {
     { GlobalSettingsIds::SPH_KERNEL,                    "sph.kernel",               int(KernelEnum::CUBIC_SPLINE) },
     { GlobalSettingsIds::SPH_KERNEL_ETA,                "sph.kernel.eta",           1.5_f },
     { GlobalSettingsIds::SPH_AV_ALPHA,                  "sph.av.alpha",             1.5_f },
-    { GlobalSettingsIds::SPH_AV_ALPHA_RANGE,            "sph.av.alpha.range",       Range(0.05_f, 1.5_f) },
     { GlobalSettingsIds::SPH_AV_BETA,                   "sph.av.beta",              3._f },
-    { GlobalSettingsIds::SPH_AV_ALPHA_RANGE,            "sph.av.beta.range",        Range(0.1_f, 3._f) },
     { GlobalSettingsIds::SPH_FINDER,                    "sph.finder",               int(FinderEnum::KD_TREE) },
 
     /// Timestepping parameters
@@ -449,6 +441,20 @@ enum class BodySettingsIds {
 
     /// Number of SPH particles in the body
     PARTICLE_COUNT,
+
+    /// Initial alpha coefficient of the artificial viscosity. This is only used if the coefficient is
+    /// different for each particle. For constant coefficient shared for all particles, use value from global
+    /// settings.
+    AV_ALPHA,
+
+    /// Lower and upper bound of the alpha coefficient, used only for time-dependent artificial viscosity.
+    AV_ALPHA_RANGE,
+
+    /// Initial beta coefficient of the artificial viscosity.
+    AV_BETA,
+
+    /// Lower and upper bound of the alpha coefficient, used only for time-dependent artificial viscosity.
+    AV_BETA_RANGE,
 };
 
 // clang-format off
@@ -481,19 +487,14 @@ const Settings<BodySettingsIds> BODY_SETTINGS = {
     /// SPH parameters specific for the body
     { BodySettingsIds::INITIAL_DISTRIBUTION,    "sph.initial_distribution",     int(DistributionEnum::HEXAGONAL) },
     { BodySettingsIds::PARTICLE_COUNT,          "sph.particle_count",           10000 },
+    { BodySettingsIds::AV_ALPHA,                "av.alpha",                     1.5_f },
+    { BodySettingsIds::AV_ALPHA_RANGE,          "av.alpha.range",               Range(0.05_f, 1.5_f) },
+    { BodySettingsIds::AV_BETA,                 "av.beta",                      3._f },
+    { BodySettingsIds::AV_ALPHA_RANGE,          "av.beta.range",                Range(0.1_f, 3._f) },
 };
 // clang-format on
 
 using GlobalSettings = Settings<GlobalSettingsIds>;
 using BodySettings = Settings<BodySettingsIds>;
-
-
-
-/// Returns initial value of given quantity and its allowed range. Values are only defined for independent
-/// quantities for which it 'makes sense'. If the values are not defined for given key, throws an exception.
-Tuple<Float, Range> getInitialValues(const QuantityKey key,
-    const GlobalSettings& globalSettings,
-    const BodySettings& bodySettings);
-
 
 NAMESPACE_SPH_END

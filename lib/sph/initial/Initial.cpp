@@ -15,10 +15,8 @@ InitialConditions::InitialConditions(const GlobalSettings& globalSettings)
     : solver(getSolver(globalSettings)) {}
 
 
-void InitialConditions::addBody(Abstract::Domain& domain,
-    const GlobalSettings& globalSettings,
-    BodySettings& bodySettings) {
-    Storage storage;
+void InitialConditions::addBody(Abstract::Domain& domain, BodySettings& bodySettings) {
+    Storage storage(bodySettings);
     int N; // Final number of particles
     PROFILE_SCOPE("InitialConditions::addBody");
 
@@ -39,17 +37,7 @@ void InitialConditions::addBody(Abstract::Domain& domain,
     ASSERT(totalM > 0._f);
     storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityKey::M, totalM / N);
 
-    // Compute pressure using equation of state
-    std::unique_ptr<Abstract::Eos> eos = Factory::getEos(bodySettings);
-    const Float u0 = bodySettings.get<Float>(BodySettingsIds::ENERGY);
-    Array<Float> p(N), cs(N);
-    for (int i = 0; i < N; ++i) {
-        tieToTuple(p[i], cs[i]) = eos->getPressure(rho0, u0);
-    }
-    storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityKey::P, std::move(p));
-    storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityKey::CS, std::move(cs));
-
-    //solver->intialize(storage, bodySettings);
+    solver->initialize(storage, bodySettings);
 }
 
 

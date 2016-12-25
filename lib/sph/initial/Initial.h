@@ -25,7 +25,7 @@ public:
     /// quantities, including density and energy, must be initialized by solver->initialize
     /// \todo generalize for entropy solver
     /// \todo setting velocities and rotation
-    void addBody(Abstract::Domain& domain, const GlobalSettings& globalSettings, BodySettings& bodySettings);
+    void addBody(Abstract::Domain& domain, BodySettings& bodySettings);
 };
 
 NAMESPACE_SPH_END

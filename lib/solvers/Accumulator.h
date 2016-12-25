@@ -17,9 +17,13 @@ private:
 
     Array<Value> values;
     TAccumulate functor;
+    Optional<QuantityKey> key = NOTHING;
 
 public:
     Accumulator() = default;
+
+    Accumulator(const QuantityKey key)
+        : key(key) {}
 
     Accumulator(Accumulator&& other)
         : values(std::move(other.values))
@@ -39,6 +43,14 @@ public:
         tieToTuple(v1, v2) = functor(i, j, grad);
         values[i] += v1;
         values[j] += v2;
+    }
+
+    void integrate(Storage& storage) {
+        if (key) {
+            ASSERT((storage.has<Value, OrderEnum::ZERO_ORDER>(key.get())));
+            Array<Value>& quantity = storage.getValue<Value>(key.get());
+            quantity.swap(values);
+        }
     }
 
     INLINE operator Array<Value>&() { return values; }

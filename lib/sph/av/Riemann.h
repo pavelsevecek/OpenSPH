@@ -17,9 +17,8 @@ private:
     ArrayView<Float> cs, rho;
 
 public:
-    RiemannAV(const GlobalSettings&) {
-        alpha = 1.5_f; /// \todo from body settinds
-        // settings.get<Float>(::AV_ALPHA);
+    RiemannAV(const GlobalSettings& settings) {
+        alpha = settings.get<Float>(GlobalSettingsIds::SPH_AV_ALPHA);
     }
 
     void update(Storage& storage) {
@@ -39,10 +38,6 @@ public:
         const Float rhobar = 0.5_f * (rho[i] + rho[j]);
         return -0.5_f * alpha * vsig * w / rhobar;
     }
-
-    INLINE void accumulate(const int UNUSED(i), const int UNUSED(j), const Vector& UNUSED(grad)) {}
-
-    INLINE void integrate(Storage& UNUSED(storage)) {}
 };
 
 

@@ -179,29 +179,6 @@ bool Settings<TEnum>::setValueByType(Entry& entry, const int typeIdx, const std:
     }
 }
 
-Tuple<Float, Range> getInitialValues(const QuantityKey key,
-    const GlobalSettings& globalSettings,
-    const BodySettings& bodySettings) {
-    switch (key) {
-    case QuantityKey::ALPHA:
-        return { globalSettings.get<Float>(GlobalSettingsIds::SPH_AV_ALPHA),
-            globalSettings.get<Range>(GlobalSettingsIds::SPH_AV_ALPHA_RANGE) };
-    case QuantityKey::BETA:
-        return { globalSettings.get<Float>(GlobalSettingsIds::SPH_AV_BETA),
-            globalSettings.get<Range>(GlobalSettingsIds::SPH_AV_BETA_RANGE) };
-    case QuantityKey::D:
-        return { bodySettings.get<Float>(BodySettingsIds::DAMAGE),
-            bodySettings.get<Range>(BodySettingsIds::DAMAGE_RANGE) };
-    case QuantityKey::RHO:
-        return { bodySettings.get<Float>(BodySettingsIds::DENSITY),
-            bodySettings.get<Range>(BodySettingsIds::DENSITY_RANGE) };
-    case QuantityKey::U:
-        return { bodySettings.get<Float>(BodySettingsIds::ENERGY),
-            bodySettings.get<Range>(BodySettingsIds::ENERGY_RANGE) };
-    default:
-        NOT_IMPLEMENTED;
-    }
-}
 
 // Explicit instantiation
 template class Settings<BodySettingsIds>;

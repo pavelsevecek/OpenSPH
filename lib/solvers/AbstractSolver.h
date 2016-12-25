@@ -26,8 +26,7 @@ namespace Abstract {
         ///        be set to zero (this is responsibility of TimeStepping).
         virtual void integrate(Storage& storage) = 0;
 
-        /// Returns the quantity map used by the solver.
-        virtual QuantityMap getQuantityMap() const = 0;
+        virtual void initialize(Storage& storage, const BodySettings& settings) const = 0;
     };
 }
 

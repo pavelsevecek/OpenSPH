@@ -445,6 +445,15 @@ INLINE void forEachIf(Tuple<TArgs...>& tuple, TFunctor&& functor) {
     staticFor<0, sizeof...(TArgs) - 1>(std::move(visitor));
 }
 
+/// Iterates over elements of the tuple and executes a functor if given type traits has value == true, const
+/// version.
+template <template <class T> typename TTrait, typename TFunctor, typename... TArgs>
+INLINE void forEachIf(const Tuple<TArgs...>& tuple, TFunctor&& functor) {
+    Detail::ForEachIfVisitor<TFunctor, decltype(tuple), TTrait> visitor{ tuple,
+        std::forward<TFunctor>(functor) };
+    staticFor<0, sizeof...(TArgs) - 1>(std::move(visitor));
+}
+
 
 namespace Detail {
     template <typename TFunctor, typename TTuple, std::size_t... TIndices>

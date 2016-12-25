@@ -19,7 +19,7 @@ private:
     ArrayView<Vector> r;
     AV av;
     Rotv rotv;
-    Divv divv;
+    Divv divv; /// \todo divv can be possibly shared with Morris & Monaghan AV
 
     const Float eps = 1.e-4_f;
 
@@ -27,7 +27,16 @@ public:
     template <typename... TArgs>
     BalsaraSwitch(TArgs&&... args)
         : Module<AV, Rotv, Divv>(av, rotv, divv)
-        , av(std::forward<TArgs>(args)...) {}
+        , av(std::forward<TArgs>(args)...)
+        , rotv(QuantityKey::ROTV)
+        , divv(QuantityKey::DIVV) {}
+
+    void initialize(Storage& storage, const BodySettings& settings) {
+        /// \todo set initial values of rot v and div v
+        storage.emplace<Vector, OrderEnum::ZERO_ORDER>(QuantityKey::ROTV, Vector(0._f));
+        storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityKey::DIVV, 0._f);
+        this->initializeModules(storage, settings);
+    }
 
     void update(Storage& storage) {
         cs = storage.getValue<Float>(QuantityKey::CS);
@@ -35,14 +44,14 @@ public:
         this->updateModules(storage);
     }
 
-    /// \todo implement swapping of accumulated values with stored quantities
-    INLINE Float operator()(const int i, const int j) { return 0.5_f * (get(i) + get(j)) * av(i, j); }
-
     INLINE void accumulate(const int i, const int j, const Vector& grad) {
         this->accumulateModules(i, j, grad);
     }
 
-    INLINE void integrate(Storage& UNUSED(storage)) {}
+    INLINE void integrate(Storage& storage) { this->integrateModules(storage); }
+
+    /// \todo implement swapping of accumulated values with stored quantities
+    INLINE Float operator()(const int i, const int j) { return 0.5_f * (get(i) + get(j)) * av(i, j); }
 
 private:
     INLINE Float get(const int i) {

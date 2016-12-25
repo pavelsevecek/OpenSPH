@@ -19,7 +19,7 @@ NAMESPACE_SPH_BEGIN
 /// Uses density and specific energy as independent variables. Density is solved by direct summation, using
 /// self-consistent solution with smoothing length. Energy is evolved using energy equation.
 template <typename Force, int D>
-class SummationSolver : public SolverBase<D> {
+class SummationSolver : public SolverBase<D>, Module<Force> {
 private:
     Array<Float> accumulatedRho;
     Array<Float> accumulatedH;
@@ -32,6 +32,7 @@ private:
 public:
     SummationSolver(const GlobalSettings& settings)
         : SolverBase<D>(settings)
+        , Module<Force>(force)
         , force(settings) {}
 
     virtual void integrate(Storage& storage) override {
@@ -62,7 +63,7 @@ public:
         }
 
         // find new pressure
-//        this->computeMaterial(storage);
+        //        this->computeMaterial(storage);
 
         this->finder->build(r);
 
@@ -124,14 +125,14 @@ public:
         }
     }
 
-
-    virtual QuantityMap getQuantityMap() const override {
-        QuantityMap map;
-        map[QuantityKey::RHO] = { ValueEnum::SCALAR, OrderEnum::ZERO_ORDER };
-        map[QuantityKey::U] = { ValueEnum::SCALAR, OrderEnum::FIRST_ORDER };
-        map[QuantityKey::M] = { ValueEnum::SCALAR, OrderEnum::ZERO_ORDER };
-        map.add(force.template getQuantityMap());
-        return map;
+    virtual void initialize(Storage& storage, const BodySettings& settings) const override {
+        storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityKey::RHO,
+            settings.get<Float>(BodySettingsIds::DENSITY),
+            settings.get<Range>(BodySettingsIds::DENSITY_RANGE));
+        storage.emplace<Float, OrderEnum::FIRST_ORDER>(QuantityKey::U,
+            settings.get<Float>(BodySettingsIds::ENERGY),
+            settings.get<Range>(BodySettingsIds::ENERGY_RANGE));
+        this->initializeModules(storage, settings);
     }
 };
 

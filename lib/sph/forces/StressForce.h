@@ -2,9 +2,9 @@
 
 #include "objects/wrappers/Flags.h"
 #include "solvers/Accumulator.h"
+#include "solvers/Module.h"
 #include "storage/QuantityMap.h"
 #include "storage/Storage.h"
-#include "solvers/Module.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -30,8 +30,9 @@ private:
     AV av;
 
 public:
-    StressForce(const GlobalSettings& settings) : Module<Yielding, Damage, AV, RhoDivv, RhoGradv>(yielding, damage, av, rhoDivv, rhoGradv),
-         av(settings) {
+    StressForce(const GlobalSettings& settings)
+        : Module<Yielding, Damage, AV, RhoDivv, RhoGradv>(yielding, damage, av, rhoDivv, rhoGradv)
+        , av(settings) {
         flags.setIf(Options::USE_GRAD_P, settings.get<bool>(GlobalSettingsIds::MODEL_FORCE_GRAD_P));
         flags.setIf(Options::USE_DIV_S, settings.get<bool>(GlobalSettingsIds::MODEL_FORCE_DIV_S));
         // cannot use stress tensor without pressure
@@ -50,7 +51,7 @@ public:
             p = storage.getValue<Float>(QuantityKey::P);
             cs = storage.getValue<Float>(QuantityKey::CS);
             // compute new values of pressure and sound speed
-            for (int i=0; i<r.size(); ++i) {
+            for (int i = 0; i < r.size(); ++i) {
                 tieToTuple(p[i], cs[i]) = storage.getMaterial(i).eos->getPressure(rho[i], u[i]);
             }
         }
@@ -98,24 +99,33 @@ public:
                 /// \todo how to enforce that this expression is traceless tensor?
                 ds[i] += 2._f * mu * (rhoGradv[i] - Tensor::identity() * rhoGradv[i].trace() / 3._f);
                 ASSERT(Math::isReal(ds[i]));
-
-                // compute derivatives of damage
-                damage.integrate(storage);
             }
             ASSERT(Math::isReal(du[i]));
         }
+        this->integrateModules(storage);
     }
 
-    QuantityMap getQuantityMap() const {
-        QuantityMap map;
-        map[QuantityKey::U] = { ValueEnum::SCALAR, OrderEnum::FIRST_ORDER };
+    void initialize(Storage& storage, const BodySettings& settings) const {
+        storage.emplace<Float, OrderEnum::FIRST_ORDER>(QuantityKey::U,
+            settings.get<Float>(BodySettingsIds::ENERGY),
+            settings.get<Range>(BodySettingsIds::ENERGY_RANGE));
         if (flags.has(Options::USE_GRAD_P)) {
-            map[QuantityKey::P] = { ValueEnum::SCALAR, OrderEnum::ZERO_ORDER };
+            // Compute pressure using equation of state
+            std::unique_ptr<Abstract::Eos> eos = Factory::getEos(settings);
+            const Float rho0 = settings.get<Float>(BodySettingsIds::DENSITY);
+            const Float u0 = settings.get<Float>(BodySettingsIds::ENERGY);
+            const int n = storage.getParticleCnt();
+            Array<Float> p(n), cs(n);
+            for (int i = 0; i < n; ++i) {
+                tieToTuple(p[i], cs[i]) = eos->getPressure(rho0, u0);
+            }
+            storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityKey::P, std::move(p));
+            storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityKey::CS, std::move(cs));
         }
         if (flags.has(Options::USE_DIV_S)) {
-            map[QuantityKey::S] = { ValueEnum::TRACELESS_TENSOR, OrderEnum::FIRST_ORDER };
+            storage.emplace<TracelessTensor, OrderEnum::FIRST_ORDER>(
+                QuantityKey::S, settings.get<Float>(BodySettingsIds::STRESS_TENSOR));
         }
-        return map;
     }
 
 private:
