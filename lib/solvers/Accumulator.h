@@ -94,7 +94,7 @@ private:
 public:
     using Type = Float;
 
-    void update(Storage& storage) { v = storage.getAll<Vector>(QuantityKey::R)[1]; }
+    void update(Storage& storage) { v = storage.getAll<Vector>(QuantityKey::POSITIONS)[1]; }
 
     INLINE Tuple<Float, Float> operator()(const int i, const int j, const Vector& grad) const {
         const Float delta = dot(v[j] - v[i], grad);
@@ -112,7 +112,7 @@ private:
 public:
     using Type = Vector;
 
-    void update(Storage& storage) { v = storage.getAll<Vector>(QuantityKey::R)[1]; }
+    void update(Storage& storage) { v = storage.getAll<Vector>(QuantityKey::POSITIONS)[1]; }
 
     INLINE Tuple<Vector, Vector> operator()(const int i, const int j, const Vector& grad) const {
         const Vector rot = cross(v[j] - v[i], grad);
@@ -131,8 +131,8 @@ public:
     using Type = Float;
 
     void update(Storage& storage) {
-        m = storage.getValue<Float>(QuantityKey::M);
-        v = storage.getAll<Vector>(QuantityKey::R)[1];
+        m = storage.getValue<Float>(QuantityKey::MASSES);
+        v = storage.getAll<Vector>(QuantityKey::POSITIONS)[1];
     }
 
     INLINE Tuple<Float, Float> operator()(const int i, const int j, const Vector& grad) const {
@@ -153,8 +153,8 @@ public:
     using Type = Tensor;
 
     void update(Storage& storage) {
-        m = storage.getValue<Float>(QuantityKey::M);
-        v = storage.getAll<Vector>(QuantityKey::R)[1];
+        m = storage.getValue<Float>(QuantityKey::MASSES);
+        v = storage.getAll<Vector>(QuantityKey::POSITIONS)[1];
     }
 
     INLINE Tuple<Tensor, Tensor> operator()(const int i, const int j, const Vector& grad) const {
@@ -180,9 +180,9 @@ public:
     using Type = Tensor;
 
     void update(Storage& storage) {
-        m = storage.getValue<Float>(QuantityKey::M);
-        r = storage.getValue<Vector>(QuantityKey::R);
-        rho = storage.getValue<Float>(QuantityKey::RHO);
+        m = storage.getValue<Float>(QuantityKey::MASSES);
+        r = storage.getValue<Vector>(QuantityKey::POSITIONS);
+        rho = storage.getValue<Float>(QuantityKey::DENSITY);
     }
 
     INLINE Tuple<Tensor, Tensor> operator()(const int i, const int j, const Vector& grad) const {

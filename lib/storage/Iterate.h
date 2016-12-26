@@ -172,7 +172,7 @@ template <typename TFunctor>
 struct StorageVisitorWithPositions {
     template <typename TValue>
     void visit(Quantity& q, Array<Vector>& r, QuantityKey key, TFunctor&& functor) {
-        if (key == QuantityKey::R) {
+        if (key == QuantityKey::POSITIONS) {
             // exclude positions
             auto buffers = q.getBuffers<TValue>();
             functor(buffers[1], r);
@@ -188,7 +188,7 @@ struct StorageVisitorWithPositions {
 /// Iterate over all
 template <typename TFunctor>
 void iterateWithPositions(std::map<QuantityKey, Quantity>& qs, TFunctor&& functor) {
-    auto iter = qs.find(QuantityKey::R);
+    auto iter = qs.find(QuantityKey::POSITIONS);
     ASSERT(iter != qs.end());
     Array<Vector>& r = iter->second.getValue<Vector>();
     StorageVisitorWithPositions<TFunctor> visitor;

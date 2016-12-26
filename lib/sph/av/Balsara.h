@@ -28,19 +28,19 @@ public:
     BalsaraSwitch(TArgs&&... args)
         : Module<AV, Rotv, Divv>(av, rotv, divv)
         , av(std::forward<TArgs>(args)...)
-        , rotv(QuantityKey::ROTV)
-        , divv(QuantityKey::DIVV) {}
+        , rotv(QuantityKey::VELOCITY_ROTATION)
+        , divv(QuantityKey::VELOCITY_DIVERGENCE) {}
 
     void initialize(Storage& storage, const BodySettings& settings) {
         /// \todo set initial values of rot v and div v
-        storage.emplace<Vector, OrderEnum::ZERO_ORDER>(QuantityKey::ROTV, Vector(0._f));
-        storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityKey::DIVV, 0._f);
+        storage.emplace<Vector, OrderEnum::ZERO_ORDER>(QuantityKey::VELOCITY_ROTATION, Vector(0._f));
+        storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityKey::VELOCITY_DIVERGENCE, 0._f);
         this->initializeModules(storage, settings);
     }
 
     void update(Storage& storage) {
-        cs = storage.getValue<Float>(QuantityKey::CS);
-        r = storage.getValue<Vector>(QuantityKey::R);
+        cs = storage.getValue<Float>(QuantityKey::SOUND_SPEED);
+        r = storage.getValue<Vector>(QuantityKey::POSITIONS);
         this->updateModules(storage);
     }
 

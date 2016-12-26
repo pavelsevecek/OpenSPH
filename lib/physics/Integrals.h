@@ -22,8 +22,8 @@ public:
     virtual Vector operator()(Storage& storage) const override {
         Vector total(0._f);
         ArrayView<const Vector> rs, vs, dvs;
-        tieToArray(rs, vs, dvs) = storage.getAll<Vector>(QuantityKey::R);
-        ArrayView<const Float> ms = storage.getValue<Float>(QuantityKey::M);
+        tieToArray(rs, vs, dvs) = storage.getAll<Vector>(QuantityKey::POSITIONS);
+        ArrayView<const Float> ms = storage.getValue<Float>(QuantityKey::MASSES);
         for (int i = 0; i < vs.size(); ++i) {
             total += ms[i] * vs[i];
         }
@@ -34,8 +34,8 @@ public:
         Vector total(0._f);
         Float totalSqr = 0._f;
         ArrayView<const Vector> rs, vs, dvs;
-        tieToArray(rs, vs, dvs) = storage.getAll<Vector>(QuantityKey::R);
-        ArrayView<const Float> ms = storage.getValue<Float>(QuantityKey::M);
+        tieToArray(rs, vs, dvs) = storage.getAll<Vector>(QuantityKey::POSITIONS);
+        ArrayView<const Float> ms = storage.getValue<Float>(QuantityKey::MASSES);
         for (int i = 0; i < vs.size(); ++i) {
             const Vector p = ms[i] * vs[i];
             total += p;
@@ -51,8 +51,8 @@ public:
     virtual Vector operator()(Storage& storage) const override {
         Vector total(0._f);
         ArrayView<const Vector> rs, vs, dvs;
-        tieToArray(rs, vs, dvs) = storage.getAll<Vector>(QuantityKey::R);
-        ArrayView<const Float> ms = storage.getValue<Float>(QuantityKey::M);
+        tieToArray(rs, vs, dvs) = storage.getAll<Vector>(QuantityKey::POSITIONS);
+        ArrayView<const Float> ms = storage.getValue<Float>(QuantityKey::MASSES);
         for (int i = 0; i < vs.size(); ++i) {
             total += ms[i] * cross(rs[i], vs[i]);
         }
@@ -63,8 +63,8 @@ public:
         Vector total(0._f);
         Float totalSqr = 0._f;
         ArrayView<const Vector> rs, vs, dvs;
-        tieToArray(rs, vs, dvs) = storage.getAll<Vector>(QuantityKey::R);
-        ArrayView<const Float> ms = storage.getValue<Float>(QuantityKey::M);
+        tieToArray(rs, vs, dvs) = storage.getAll<Vector>(QuantityKey::POSITIONS);
+        ArrayView<const Float> ms = storage.getValue<Float>(QuantityKey::MASSES);
         for (int i = 0; i < vs.size(); ++i) {
             const Vector p = ms[i] * cross(rs[i], vs[i]);
             total += p;

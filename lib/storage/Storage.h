@@ -113,7 +113,7 @@ public:
         if (quantities.size() == 1) {
             // set material ids; we have only one material, so set everything to zero
             if (!materials.empty()) {
-                this->emplace<int, OrderEnum::ZERO_ORDER>(QuantityKey::MAT_ID, 0);
+                this->emplace<int, OrderEnum::ZERO_ORDER>(QuantityKey::MATERIAL_IDX, 0);
             }
         } else {
             ASSERT(size == getParticleCnt()); // size must match sizes of other quantities
@@ -129,7 +129,7 @@ public:
     void emplaceWithFunctor(const QuantityKey key,
         TFunctor&& functor,
         const Range range = Range::unbounded()) {
-        Array<Vector>& r = this->getValue<Vector>(QuantityKey::R);
+        Array<Vector>& r = this->getValue<Vector>(QuantityKey::POSITIONS);
         Array<TValue> values(r.size());
         for (int i = 0; i < r.size(); ++i) {
             values[i] = functor(r[i], i);
@@ -157,13 +157,13 @@ public:
     /// position and its index and must return index into the array of materials.
     template <typename TSelector>
     void setMaterial(Array<Material>&& mats, TSelector&& selector) {
-        ASSERT((this->has<Vector, OrderEnum::SECOND_ORDER>(QuantityKey::R)));
+        ASSERT((this->has<Vector, OrderEnum::SECOND_ORDER>(QuantityKey::POSITIONS)));
         this->materials = std::move(mats);
-        ArrayView<Vector> r = this->getValue<Vector>(QuantityKey::R);
-        if (!this->has(QuantityKey::MAT_ID)) {
-            this->emplace<int, OrderEnum::ZERO_ORDER>(QuantityKey::MAT_ID, 0);
+        ArrayView<Vector> r = this->getValue<Vector>(QuantityKey::POSITIONS);
+        if (!this->has(QuantityKey::MATERIAL_IDX)) {
+            this->emplace<int, OrderEnum::ZERO_ORDER>(QuantityKey::MATERIAL_IDX, 0);
         }
-        Array<int>& matIdxs = this->getValue<int>(QuantityKey::MAT_ID);
+        Array<int>& matIdxs = this->getValue<int>(QuantityKey::MATERIAL_IDX);
         matIdxs.resize(r.size());
         for (int i = 0; i < r.size(); ++i) {
             matIdxs[i] = selector(r[i], i);

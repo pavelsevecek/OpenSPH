@@ -29,9 +29,9 @@ public:
     void update(Storage& storage) {
         ArrayView<const Vector> dv;
         ArrayView<const Float> u;
-        tieToArray(r, v, dv) = storage.getAll<Vector>(QuantityKey::R);
-        tieToArray(rho, cs) = storage.getValues<Float>(QuantityKey::RHO, QuantityKey::CS);
-        u = storage.getValue<Float>(QuantityKey::U);
+        tieToArray(r, v, dv) = storage.getAll<Vector>(QuantityKey::POSITIONS);
+        tieToArray(rho, cs) = storage.getValues<Float>(QuantityKey::DENSITY, QuantityKey::SOUND_SPEED);
+        u = storage.getValue<Float>(QuantityKey::ENERGY);
         for (int i = 0; i < cs.size(); ++i) {
             /// \todo update sound speed together with pressure
             tieToTuple(IGNORE, cs[i]) = storage.getMaterial(i).eos->getPressure(rho[i], u[i]);

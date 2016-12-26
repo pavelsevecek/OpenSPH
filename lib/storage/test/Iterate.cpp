@@ -6,11 +6,11 @@ using namespace Sph;
 
 TEST_CASE("Iterate", "[iterate]") {
     Storage storage;
-    storage.emplace<Float, OrderEnum::SECOND_ORDER>(QuantityKey::R, makeArray(5._f));
+    storage.emplace<Float, OrderEnum::SECOND_ORDER>(QuantityKey::POSITIONS, makeArray(5._f));
     storage.resize<VisitorEnum::ALL_BUFFERS>(5);
-    storage.emplace<Vector, OrderEnum::FIRST_ORDER>(QuantityKey::RHO, Vector(1._f));
-    storage.emplace<Tensor, OrderEnum::FIRST_ORDER>(QuantityKey::S, Tensor(3._f));
-    storage.emplace<TracelessTensor, OrderEnum::ZERO_ORDER>(QuantityKey::BETA, TracelessTensor(6._f));
+    storage.emplace<Vector, OrderEnum::FIRST_ORDER>(QuantityKey::DENSITY, Vector(1._f));
+    storage.emplace<Tensor, OrderEnum::FIRST_ORDER>(QuantityKey::DEVIATORIC_STRESS, Tensor(3._f));
+    storage.emplace<TracelessTensor, OrderEnum::ZERO_ORDER>(QuantityKey::AV_BETA, TracelessTensor(6._f));
 
     int cnt = 0;
     iterate<VisitorEnum::ALL_BUFFERS>(storage, [&cnt](auto&& UNUSED(v)) { cnt++; });

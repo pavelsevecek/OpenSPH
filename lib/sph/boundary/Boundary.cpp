@@ -67,7 +67,7 @@ void GhostParticles::apply(Storage& storage) {
             v.remove(ghostIdxs[i]);
         }
     });
-    Array<Vector>& r = storage.getValue<Vector>(QuantityKey::R);
+    Array<Vector>& r = storage.getValue<Vector>(QuantityKey::POSITIONS);
 
     // project particles outside of the domain on the boundary
     /// \todo this will place particles on top of each other, we should probably separate them a little
@@ -110,7 +110,7 @@ DomainProjecting::DomainProjecting(std::unique_ptr<Abstract::Domain>&& domain,
 
 void DomainProjecting::apply(Storage& storage) {
     ArrayView<Vector> r, v;
-    tieToArray(r, v) = storage.getAll<Vector>(QuantityKey::R);
+    tieToArray(r, v) = storage.getAll<Vector>(QuantityKey::POSITIONS);
     // check which particles are outside of the domain
     domain->getSubset(r, outside, SubsetType::OUTSIDE);
     domain->project(r, outside);
@@ -153,7 +153,7 @@ Projection1D::Projection1D(const Range& domain)
 
 void Projection1D::apply(Storage& storage) {
     ArrayView<Vector> dv;
-    tieToArray(r, v, dv) = storage.getAll<Vector>(QuantityKey::R);
+    tieToArray(r, v, dv) = storage.getAll<Vector>(QuantityKey::POSITIONS);
     for (int i = 0; i < r.size(); ++i) {
         // throw away y and z, keep h
         r[i] = Vector(domain.clamp(r[i][0]), 0._f, 0._f, r[i][H]);

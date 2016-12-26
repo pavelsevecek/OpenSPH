@@ -27,7 +27,7 @@ Storage& Storage::operator=(Storage&& other) {
 Material& Storage::getMaterial(const int particleIdx) {
     ASSERT(!materials.empty());
     /// \todo profile and possibly optimize (cache matIdxs array)
-    Array<int>& matIdxs = this->getValue<int>(QuantityKey::MAT_ID);
+    Array<int>& matIdxs = this->getValue<int>(QuantityKey::MATERIAL_IDX);
     return materials[matIdxs[particleIdx]];
 }
 
@@ -35,9 +35,9 @@ void Storage::merge(Storage&& other) {
     // must contain the same quantities
     ASSERT(this->getQuantityCnt() == other.getQuantityCnt());
     // as material id is an index to array, we have to increase indices before the merge
-    if (this->has(QuantityKey::MAT_ID)) {
-        ASSERT(other.has(QuantityKey::MAT_ID));
-        Array<int>& matIdxs = other.getValue<int>(QuantityKey::MAT_ID);
+    if (this->has(QuantityKey::MATERIAL_IDX)) {
+        ASSERT(other.has(QuantityKey::MATERIAL_IDX));
+        Array<int>& matIdxs = other.getValue<int>(QuantityKey::MATERIAL_IDX);
         for (int& id : matIdxs) {
             id += this->materials.size();
         }

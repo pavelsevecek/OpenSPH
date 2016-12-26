@@ -83,7 +83,7 @@ public:
             timeStepping->step(*solver);
 
             if (callbacks) {
-                callbacks->onTimeStep(storage->getValue<Vector>(QuantityKey::R));
+                callbacks->onTimeStep(storage->getValue<Vector>(QuantityKey::POSITIONS));
             }
         }
     }

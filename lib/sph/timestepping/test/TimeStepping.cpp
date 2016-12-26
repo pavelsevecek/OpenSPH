@@ -19,7 +19,7 @@ struct TestSolver : public Abstract::Solver {
 
     virtual void integrate(Storage& storage) override {
         ArrayView<Vector> r, v, dv;
-        tieToArray(r, v, dv) = storage.getAll<Vector>(QuantityKey::R);
+        tieToArray(r, v, dv) = storage.getAll<Vector>(QuantityKey::POSITIONS);
         Float omega = 2._f * Math::PI / period;
         for (int i = 0; i < r.size(); ++i) {
             dv[i] = -Math::sqr(omega) * r[i];
@@ -37,10 +37,10 @@ void testTimestepping(TArgs&&... args) {
 
     std::shared_ptr<Storage> storage = std::make_shared<Storage>();
     storage->emplace<Vector, OrderEnum::SECOND_ORDER>(
-        QuantityKey::R, Array<Vector>{ Vector(1._f, 0._f, 0._f) });
+        QuantityKey::POSITIONS, Array<Vector>{ Vector(1._f, 0._f, 0._f) });
 
     ArrayView<const Vector> r, v, dv;
-    tieToArray(r, v, dv) = storage->getAll<Vector>(QuantityKey::R);
+    tieToArray(r, v, dv) = storage->getAll<Vector>(QuantityKey::POSITIONS);
     TTimestepping timestepping(storage, std::forward<TArgs>(args)...);
     int n;
     for (float t = 0.f; t < 3.f; t += timestepping.getTimeStep()) {

@@ -30,7 +30,8 @@ SOURCES += \
     storage/Material.cpp \
     storage/Storage.cpp \
     sph/boundary/Boundary.cpp \
-    sph/initial/Initial.cpp
+    sph/initial/Initial.cpp \
+    sph/forces/Damage.cpp
 
 HEADERS += \
     core/Globals.h \
@@ -104,7 +105,6 @@ HEADERS += \
     solvers/SharedAccumulator.h \
     objects/containers/StaticArray.h \
     sph/av/Factory.h \
-    storage/QuantityMap.h \
     storage/Material.h \
     sph/forces/CentripetalForce.h \
     sph/forces/Factory.h \

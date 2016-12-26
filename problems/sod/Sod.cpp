@@ -83,23 +83,23 @@ TEST_CASE("Sod", "[sod]") {
     // 1) setup initial positions, with different spacing in each region
     const Float eta = globalSettings.get<Float>(GlobalSettingsIds::SPH_KERNEL_ETA);
     storage.emplace<Vector, OrderEnum::SECOND_ORDER>(
-        QuantityKey::R, sodDistribution(N, 1._f / N, eta, sod.logger.get()));
+        QuantityKey::POSITIONS, sodDistribution(N, 1._f / N, eta, sod.logger.get()));
 
     // 2) setup initial pressure and masses of particles
     storage.emplaceWithFunctor<Float, OrderEnum::FIRST_ORDER>(
-        QuantityKey::P, [&](const Vector& r, const int) { return smoothingFunc(r[0], 1._f, 0.1_f); });
+        QuantityKey::PRESSURE, [&](const Vector& r, const int) { return smoothingFunc(r[0], 1._f, 0.1_f); });
     // mass = 1/N *integral density * dx
-    storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityKey::M, 0.5_f * (1._f + 0.125_f) / N);
+    storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityKey::MASSES, 0.5_f * (1._f + 0.125_f) / N);
 
     // 3) setup density to be consistent with masses
     std::unique_ptr<Abstract::Finder> finder = Factory::getFinder(globalSettings);
-    finder->build(storage.getValue<Vector>(QuantityKey::R));
+    finder->build(storage.getValue<Vector>(QuantityKey::POSITIONS));
     LutKernel<1> kernel = Factory::getKernel<1>(globalSettings);
     Array<NeighbourRecord> neighs;
-    ArrayView<const Float> m  = storage.getValue<Float>(QuantityKey::M);
-    ArrayView<const Vector> rs = storage.getValue<Vector>(QuantityKey::R);
+    ArrayView<const Float> m  = storage.getValue<Float>(QuantityKey::MASSES);
+    ArrayView<const Vector> rs = storage.getValue<Vector>(QuantityKey::POSITIONS);
     storage.emplaceWithFunctor<Float, OrderEnum::FIRST_ORDER>(
-        QuantityKey::RHO, [&](const Vector& x, const int i) {
+        QuantityKey::DENSITY, [&](const Vector& x, const int i) {
               if (x[X] < 0.25_f) {
                   return 1._f;
               } else if (x[X] > 0.75_f) {
@@ -118,7 +118,7 @@ TEST_CASE("Sod", "[sod]") {
     // 4) compute internal energy using equation of state
     std::unique_ptr<Abstract::Eos> eos = Factory::getEos(bodySettings);
     storage.emplaceWithFunctor<Float, OrderEnum::FIRST_ORDER>(
-        QuantityKey::U, [&](const Vector& r, const int) {
+        QuantityKey::ENERGY, [&](const Vector& r, const int) {
             const Float rho = smoothingFunc(r[0], 1._f, 0.125_f);
             const Float p   = smoothingFunc(r[0], 1._f, 0.1_f);
             return eos->getInternalEnergy(rho, p);

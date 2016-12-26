@@ -43,9 +43,9 @@ public:
         PROFILE_SCOPE("SummationSolver::compute (getters)");
 
         // fetch quantities from storage
-        tieToArray(r, v, dv) = storage.getAll<Vector>(QuantityKey::R);
-        tieToArray(rho, drho) = storage.getAll<Float>(QuantityKey::RHO);
-        tieToArray(u, du) = storage.getAll<Float>(QuantityKey::U);
+        tieToArray(r, v, dv) = storage.getAll<Vector>(QuantityKey::POSITIONS);
+        tieToArray(rho, drho) = storage.getAll<Float>(QuantityKey::DENSITY);
+        tieToArray(u, du) = storage.getAll<Float>(QuantityKey::ENERGY);
         // tie(p, m, cs) = storage.get<QuantityKey::P, QuantityKey::M, QuantityKey::CS>();
         ASSERT(areAllMatching(dv, [](const Vector v) { return v == Vector(0._f); }));
         force.update(storage);
@@ -126,10 +126,10 @@ public:
     }
 
     virtual void initialize(Storage& storage, const BodySettings& settings) const override {
-        storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityKey::RHO,
+        storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityKey::DENSITY,
             settings.get<Float>(BodySettingsIds::DENSITY),
             settings.get<Range>(BodySettingsIds::DENSITY_RANGE));
-        storage.emplace<Float, OrderEnum::FIRST_ORDER>(QuantityKey::U,
+        storage.emplace<Float, OrderEnum::FIRST_ORDER>(QuantityKey::ENERGY,
             settings.get<Float>(BodySettingsIds::ENERGY),
             settings.get<Range>(BodySettingsIds::ENERGY_RANGE));
         this->initializeModules(storage, settings);

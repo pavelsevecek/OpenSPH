@@ -60,7 +60,7 @@ TEST_CASE("GhostParticles wall", "[boundary]") {
     GhostParticles boundaryConditions(std::make_unique<WallDomain>(), GLOBAL_SETTINGS);
     Storage storage;
     // Create few particles. Particles with x < 2 will create corresponding ghost particle.
-    storage.emplace<Vector, OrderEnum::SECOND_ORDER>(QuantityKey::R,
+    storage.emplace<Vector, OrderEnum::SECOND_ORDER>(QuantityKey::POSITIONS,
         Array<Vector>{ Vector(1.5_f, 1._f, 3._f, 1._f), // has ghost
             Vector(0.5_f, 2._f, -1._f, 1._f),           // has ghost
             Vector(-1._f, 2._f, 1._f, 1._f),            // negative - will be projected, + ghost
@@ -69,7 +69,7 @@ TEST_CASE("GhostParticles wall", "[boundary]") {
             Vector(1._f, 1._f, 1._f, 1._f),             // has ghost
             Vector(2.5_f, 0._f, 5._f, 1._f) });         // does not have ghost
     ArrayView<Vector> r, v, dv;
-    tieToArray(r, v, dv) = storage.getAll<Vector>(QuantityKey::R);
+    tieToArray(r, v, dv) = storage.getAll<Vector>(QuantityKey::POSITIONS);
     // add some velocities, the x-coordinate of the corresponding ghost should be inverted by the boundary
     // conditions
     v[0] = Vector(-1._f, 1._f, 1._f);
@@ -77,10 +77,10 @@ TEST_CASE("GhostParticles wall", "[boundary]") {
     v[2] = Vector(1._f, 0._f, -3._f);
     // add scalar quantity, should be simply copied onto ghosts
     storage.emplace<Float, OrderEnum::FIRST_ORDER>(
-        QuantityKey::RHO, Array<Float>{ 3._f, 5._f, 2._f, 1._f, 3._f, 4._f, 10._f });
+        QuantityKey::DENSITY, Array<Float>{ 3._f, 5._f, 2._f, 1._f, 3._f, 4._f, 10._f });
 
     boundaryConditions.apply(storage);
-    tieToArray(r, v, dv) = storage.getAll<Vector>(QuantityKey::R);
+    tieToArray(r, v, dv) = storage.getAll<Vector>(QuantityKey::POSITIONS);
     REQUIRE(makeArray(r.size(), v.size(), dv.size()) == makeArray(12, 12, 12));
     REQUIRE(r[7] == Vector(-1.5_f, 1._f, 3._f));
     REQUIRE(r[8] == Vector(-0.5_f, 2._f, -1._f));
@@ -92,7 +92,7 @@ TEST_CASE("GhostParticles wall", "[boundary]") {
     REQUIRE(Math::almostEqual(v[8], Vector(0._f, 2._f, 1._f), 1.e-3_f));
     REQUIRE(Math::almostEqual(v[9], Vector(-1._f, 0._f, -3._f), 1.e-3_f));
 
-    ArrayView<Float> rho = storage.getValue<Float>(QuantityKey::RHO);
+    ArrayView<Float> rho = storage.getValue<Float>(QuantityKey::DENSITY);
     REQUIRE(rho[7] == 3._f);
     REQUIRE(rho[8] == 5._f);
     REQUIRE(rho[9] == 2._f);
@@ -101,11 +101,11 @@ TEST_CASE("GhostParticles wall", "[boundary]") {
 
     // subsequent calls shouldn't change result
     boundaryConditions.apply(storage);
-    tieToArray(r, v, dv) = storage.getAll<Vector>(QuantityKey::R);
+    tieToArray(r, v, dv) = storage.getAll<Vector>(QuantityKey::POSITIONS);
     REQUIRE(makeArray(r.size(), v.size(), dv.size()) == makeArray(12, 12, 12));
     REQUIRE(r[7] == Vector(-1.5_f, 1._f, 3._f));
     REQUIRE(Math::almostEqual(v[7], Vector(1._f, 1._f, 1._f), 1.e-3_f));
-    rho = storage.getValue<Float>(QuantityKey::RHO);
+    rho = storage.getValue<Float>(QuantityKey::DENSITY);
     REQUIRE(rho[7] == 3._f);
 }
 
@@ -119,9 +119,9 @@ TEST_CASE("GhostParticles Sphere", "[boundary]") {
             particles.push(v);
         }
     }
-    storage.emplace<Vector, OrderEnum::SECOND_ORDER>(QuantityKey::R, std::move(particles));
+    storage.emplace<Vector, OrderEnum::SECOND_ORDER>(QuantityKey::POSITIONS, std::move(particles));
     ArrayView<Vector> r, v, dv;
-    tieToArray(r, v, dv) = storage.getAll<Vector>(QuantityKey::R);
+    tieToArray(r, v, dv) = storage.getAll<Vector>(QuantityKey::POSITIONS);
     VectorRng<UniformRng> rng;
     // randomize velocities
     for (Vector& q : v) {
@@ -131,7 +131,7 @@ TEST_CASE("GhostParticles Sphere", "[boundary]") {
     const int ghostIdx = r.size();
     GhostParticles boundaryConditions(std::make_unique<SphericalDomain>(Vector(0._f), 2._f), GLOBAL_SETTINGS);
     boundaryConditions.apply(storage);
-    tieToArray(r, v, dv) = storage.getAll<Vector>(QuantityKey::R);
+    tieToArray(r, v, dv) = storage.getAll<Vector>(QuantityKey::POSITIONS);
     REQUIRE(r.size() == 2 * ghostIdx); // ghost for each particle
     bool allSymmetric = true;
     for (int i = 0; i < ghostIdx; ++i) {

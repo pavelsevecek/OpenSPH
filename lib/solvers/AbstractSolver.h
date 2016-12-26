@@ -16,7 +16,6 @@ namespace Abstract {
     class BoundaryConditions;
 }
 struct NeighbourRecord;
-class QuantityMap;
 
 namespace Abstract {
     class Solver : public Polymorphic {

@@ -3,7 +3,6 @@
 #include "objects/wrappers/Flags.h"
 #include "solvers/Accumulator.h"
 #include "solvers/Module.h"
-#include "storage/QuantityMap.h"
 #include "storage/Storage.h"
 
 NAMESPACE_SPH_BEGIN
@@ -32,7 +31,7 @@ private:
 public:
     StressForce(const GlobalSettings& settings)
         : Module<Yielding, Damage, AV, RhoDivv, RhoGradv>(yielding, damage, av, rhoDivv, rhoGradv)
-        , damage(settings)
+        , damage(settings, [this](const TracelessTensor& s, const int i) { return yielding.reduce(s, i); })
         , av(settings) {
         flags.setIf(Options::USE_GRAD_P, settings.get<bool>(GlobalSettingsIds::MODEL_FORCE_GRAD_P));
         flags.setIf(Options::USE_DIV_S, settings.get<bool>(GlobalSettingsIds::MODEL_FORCE_DIV_S));
@@ -45,19 +44,20 @@ public:
     StressForce(StressForce&& other) = default;
 
     void update(Storage& storage) {
-        tieToArray(rho, u, m) = storage.getValues<Float>(QuantityKey::RHO, QuantityKey::U, QuantityKey::M);
+        tieToArray(rho, u, m) =
+            storage.getValues<Float>(QuantityKey::DENSITY, QuantityKey::ENERGY, QuantityKey::MASSES);
         ArrayView<Vector> r;
-        tieToArray(r, v, dv) = storage.getAll<Vector>(QuantityKey::R);
+        tieToArray(r, v, dv) = storage.getAll<Vector>(QuantityKey::POSITIONS);
         if (flags.has(Options::USE_GRAD_P)) {
-            p = storage.getValue<Float>(QuantityKey::P);
-            cs = storage.getValue<Float>(QuantityKey::CS);
+            p = storage.getValue<Float>(QuantityKey::PRESSURE);
+            cs = storage.getValue<Float>(QuantityKey::SOUND_SPEED);
             // compute new values of pressure and sound speed
             for (int i = 0; i < r.size(); ++i) {
                 tieToTuple(p[i], cs[i]) = storage.getMaterial(i).eos->getPressure(rho[i], u[i]);
             }
         }
         if (flags.has(Options::USE_DIV_S)) {
-            tieToArray(s, ds) = storage.getAll<TracelessTensor>(QuantityKey::S);
+            tieToArray(s, ds) = storage.getAll<TracelessTensor>(QuantityKey::DEVIATORIC_STRESS);
         }
         this->updateModules(storage);
     }
@@ -108,7 +108,7 @@ public:
     }
 
     void initialize(Storage& storage, const BodySettings& settings) const {
-        storage.emplace<Float, OrderEnum::FIRST_ORDER>(QuantityKey::U,
+        storage.emplace<Float, OrderEnum::FIRST_ORDER>(QuantityKey::ENERGY,
             settings.get<Float>(BodySettingsIds::ENERGY),
             settings.get<Range>(BodySettingsIds::ENERGY_RANGE));
         if (flags.has(Options::USE_GRAD_P)) {
@@ -121,12 +121,12 @@ public:
             for (int i = 0; i < n; ++i) {
                 tieToTuple(p[i], cs[i]) = eos->getPressure(rho0, u0);
             }
-            storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityKey::P, std::move(p));
-            storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityKey::CS, std::move(cs));
+            storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityKey::PRESSURE, std::move(p));
+            storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityKey::SOUND_SPEED, std::move(cs));
         }
         if (flags.has(Options::USE_DIV_S)) {
             storage.emplace<TracelessTensor, OrderEnum::FIRST_ORDER>(
-                QuantityKey::S, settings.get<Float>(BodySettingsIds::STRESS_TENSOR));
+                QuantityKey::DEVIATORIC_STRESS, settings.get<Float>(BodySettingsIds::STRESS_TENSOR));
         }
     }
 

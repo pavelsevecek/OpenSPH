@@ -24,13 +24,13 @@ private:
 public:
     MorrisMonaghanAV(const GlobalSettings&)
         : Module<Divv>(divv)
-        , divv(QuantityKey::DIVV) {}
+        , divv(QuantityKey::VELOCITY_DIVERGENCE) {}
 
     void initialize(Storage& storage, const BodySettings& settings) const {
-        storage.emplace<Float, OrderEnum::FIRST_ORDER>(QuantityKey::ALPHA,
+        storage.emplace<Float, OrderEnum::FIRST_ORDER>(QuantityKey::AV_ALPHA,
             settings.get<Float>(BodySettingsIds::AV_ALPHA),
             settings.get<Range>(BodySettingsIds::AV_ALPHA_RANGE));
-        storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityKey::BETA,
+        storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityKey::AV_BETA,
             settings.get<Float>(BodySettingsIds::AV_BETA),
             settings.get<Range>(BodySettingsIds::AV_BETA_RANGE));
         this->initializeModules(storage, settings);
@@ -38,11 +38,11 @@ public:
 
     void update(Storage& storage) {
         ArrayView<Vector> dv;
-        tieToArray(r, v, dv) = storage.getAll<Vector>(QuantityKey::R);
-        tieToArray(alpha, dalpha) = storage.getAll<Float>(QuantityKey::ALPHA);
-        tieToArray(beta, dbeta) = storage.getAll<Float>(QuantityKey::BETA);
-        cs = storage.getValue<Float>(QuantityKey::CS);
-        rho = storage.getValue<Float>(QuantityKey::RHO);
+        tieToArray(r, v, dv) = storage.getAll<Vector>(QuantityKey::POSITIONS);
+        tieToArray(alpha, dalpha) = storage.getAll<Float>(QuantityKey::AV_ALPHA);
+        tieToArray(beta, dbeta) = storage.getAll<Float>(QuantityKey::AV_BETA);
+        cs = storage.getValue<Float>(QuantityKey::SOUND_SPEED);
+        rho = storage.getValue<Float>(QuantityKey::DENSITY);
         // always keep beta = 2*alpha
         for (int i = 0; i < alpha.size(); ++i) {
             beta[i] = 2._f * alpha[i];
@@ -55,7 +55,7 @@ public:
     }
 
     INLINE void integrate(Storage& storage) {
-        Range bounds = storage.getValue<Float>(QuantityKey::ALPHA).getBounds();
+        Range bounds = storage.getValue<Float>(QuantityKey::AV_ALPHA).getBounds();
         for (int i = 0; i < storage.getParticleCnt(); ++i) {
             const Float tau = r[i][H] / (eps * cs[i]);
             const Float decayTerm = -(alpha[i] - bounds.getLower()) / tau;

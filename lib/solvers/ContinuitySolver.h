@@ -15,7 +15,6 @@
 #include "sph/kernel/Kernel.h"
 #include "storage/Iterate.h"
 #include "storage/QuantityKey.h"
-#include "storage/QuantityMap.h"
 #include "system/Factory.h"
 #include "system/Profiler.h"
 #include "system/Settings.h"
@@ -42,10 +41,10 @@ public:
         const int size = storage.getParticleCnt();
 
         ArrayView<Vector> r, v, dv;
-        tieToArray(r, v, dv) = storage.getAll<Vector>(QuantityKey::R);
+        tieToArray(r, v, dv) = storage.getAll<Vector>(QuantityKey::POSITIONS);
         ArrayView<Float> m, rho, drho;
-        tieToArray(rho, drho) = storage.getAll<Float>(QuantityKey::RHO);
-        m = storage.getValue<Float>(QuantityKey::M);
+        tieToArray(rho, drho) = storage.getAll<Float>(QuantityKey::DENSITY);
+        m = storage.getValue<Float>(QuantityKey::MASSES);
         // Check that quantities are valid
         ASSERT(areAllMatching(dv, [](const Vector v) { return v == Vector(0._f); }));
         ASSERT(areAllMatching(rho, [](const Float v) { return v > 0._f; }));
@@ -117,7 +116,7 @@ public:
     }
 
     virtual void initialize(Storage& storage, const BodySettings& settings) const override {
-        storage.emplace<Float, OrderEnum::FIRST_ORDER>(QuantityKey::RHO,
+        storage.emplace<Float, OrderEnum::FIRST_ORDER>(QuantityKey::DENSITY,
             settings.get<Float>(BodySettingsIds::DENSITY),
             settings.get<Range>(BodySettingsIds::DENSITY_RANGE));
         this->initializeModules(storage, settings);

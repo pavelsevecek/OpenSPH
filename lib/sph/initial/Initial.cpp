@@ -27,7 +27,7 @@ void InitialConditions::addBody(Abstract::Domain& domain, BodySettings& bodySett
     // Generate positions of particles
     Array<Vector> r = distribution->generate(n, domain);
     N = r.size();
-    storage.emplace<Vector, OrderEnum::SECOND_ORDER>(QuantityKey::R, std::move(r));
+    storage.emplace<Vector, OrderEnum::SECOND_ORDER>(QuantityKey::POSITIONS, std::move(r));
     ASSERT(N > 0);
 
     // Set masses of particles, assuming all particles have the same mass
@@ -35,7 +35,7 @@ void InitialConditions::addBody(Abstract::Domain& domain, BodySettings& bodySett
     const Float rho0 = bodySettings.get<Float>(BodySettingsIds::DENSITY);
     const Float totalM = domain.getVolume() * rho0; // m = rho * V
     ASSERT(totalM > 0._f);
-    storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityKey::M, totalM / N);
+    storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityKey::MASSES, totalM / N);
 
     solver->initialize(storage, bodySettings);
 }

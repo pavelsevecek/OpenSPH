@@ -1,7 +1,6 @@
 #pragma once
 
 #include "solvers/Accumulator.h"
-#include "storage/QuantityMap.h"
 #include "storage/Storage.h"
 
 NAMESPACE_SPH_BEGIN
@@ -19,7 +18,7 @@ public:
 
     INLINE virtual void integrate(Storage& storage) override {
         ArrayView<Vector> v;
-        tieToArray(r, v, dv) = storage.getAll<Vector>(QuantityKey::R);
+        tieToArray(r, v, dv) = storage.getAll<Vector>(QuantityKey::POSITIONS);
         // centripetal force is independent on particle relative position
         for (int i=0; i<r.size(); ++i) {
             const Float unitZ = Vector(0._f, 0._f, 1._f);
