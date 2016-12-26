@@ -30,7 +30,6 @@ SOURCES += \
     ../lib/objects/wrappers/test/VectorizedArray.cpp \
     ../lib/objects/containers/test/Array.cpp \
     ../lib/objects/containers/test/ArrayUtils.cpp \
-    ../lib/objects/finders/test/KdTree.cpp \
     ../lib/objects/finders/test/LinkedList.cpp \
     ../lib/objects/finders/test/Order.cpp \
     ../lib/objects/finders/test/BruteForce.cpp \
@@ -59,7 +58,8 @@ SOURCES += \
     ../lib/solvers/test/Module.cpp \
     ../lib/geometry/test/Multipole.cpp \
     ../lib/sph/forces/test/Damage.cpp \
-    ../lib/system/test/Statistics.cpp
+    ../lib/system/test/Statistics.cpp \
+    ../lib/objects/finders/test/Finders.cpp
 
 
 HEADERS += \

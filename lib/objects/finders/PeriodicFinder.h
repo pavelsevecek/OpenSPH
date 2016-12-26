@@ -4,7 +4,7 @@
 /// Pavel Sevecek 2016
 /// sevecek at sirrah.troja.mff.cuni.cz
 
-#include "objects/finders/Finder.h"
+#include "objects/finders/AbstractFinder.h"
 
 NAMESPACE_SPH_BEGIN
 

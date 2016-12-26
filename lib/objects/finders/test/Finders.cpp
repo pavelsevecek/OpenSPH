@@ -1,22 +1,21 @@
 #include "objects/finders/KdTree.h"
+#include "objects/finders/Voxel.h"
 #include "catch.hpp"
 #include "objects/containers/ArrayUtils.h"
 #include "sph/initial/Distribution.h"
 #include "objects/wrappers/Range.h"
-#include <iostream>
 
 using namespace Sph;
 
-TEST_CASE("KdTree", "[kdtree]") {
+void testFinder(Abstract::Finder& finder) {
     HexagonalPacking distr;
     SphericalDomain domain(Vector(0._f), 2._f);
     Array<Vector> storage = distr.generate(50, domain);
 
-    KdTree tree;
-    tree.build(storage);
+    finder.build(storage);
 
-    Array<NeighbourRecord> kdNeighs;
-    int nKdTree = tree.findNeighbours(25, 1.5_f, kdNeighs);
+    Array<NeighbourRecord> treeNeighs;
+    int nTree = finder.findNeighbours(25, 1.5_f, treeNeighs);
 
     /// checksum - count by bruteforce number of neighbours
 
@@ -28,39 +27,51 @@ TEST_CASE("KdTree", "[kdtree]") {
         }
     }
 
-    REQUIRE(nKdTree == bfNeighs.size());
+    REQUIRE(nTree == bfNeighs.size());
 
     // sort both indices and check pair by pair
-    std::sort(kdNeighs.begin(), kdNeighs.end(), [](NeighbourRecord n1, NeighbourRecord n2) {
+    std::sort(treeNeighs.begin(), treeNeighs.end(), [](NeighbourRecord n1, NeighbourRecord n2) {
         return n1.index < n2.index;
     });
     std::sort(bfNeighs.begin(), bfNeighs.end());
 
-    for (int i = 0; i < nKdTree; ++i) {
-        REQUIRE(bfNeighs[i] == kdNeighs[i].index);
-        REQUIRE(kdNeighs[i].distanceSqr == getSqrLength(storage[kdNeighs[i].index] - storage[25]));
+    for (int i = 0; i < nTree; ++i) {
+        REQUIRE(bfNeighs[i] == treeNeighs[i].index);
+        REQUIRE(treeNeighs[i].distanceSqr == getSqrLength(storage[treeNeighs[i].index] - storage[25]));
     }
 }
 
-TEST_CASE("KdTree Smaller H", "[kdtree]") {
+void testFinderSmallerH(Abstract::Finder& finder) {
     Array<Vector> storage(0, 10);
     for (int i = 0; i < 10; ++i) {
         storage.push(Vector(i, 0, 0, i)); // points on line with increasing H
     }
 
-    KdTree tree;
-    tree.build(storage);
-    Array<NeighbourRecord> kdNeighs;
-    int nAll = tree.findNeighbours(4, 10._f, kdNeighs);
+    finder.build(storage);
+    Array<NeighbourRecord> treeNeighs;
+    int nAll = finder.findNeighbours(4, 10._f, treeNeighs);
     REQUIRE(nAll == 10); // this should find all particles
 
-    int nSmaller = tree.findNeighbours(4, 10._f, kdNeighs, FinderFlags::FIND_ONLY_SMALLER_H);
+    int nSmaller = finder.findNeighbours(4, 10._f, treeNeighs, FinderFlags::FIND_ONLY_SMALLER_H);
     REQUIRE(nSmaller == 4); // this should find indices 0, 1, 2, 3
     bool allMatching = true;
-    for (auto& n : kdNeighs) {
+    for (auto& n : treeNeighs) {
         if (n.index < 0 || n.index > 3) {
             allMatching = false;
         }
     }
     REQUIRE(allMatching);
+}
+
+TEST_CASE("KdTree", "[finders]") {
+    KdTree finder;
+    testFinder(finder);
+    testFinderSmallerH(finder);
+}
+
+
+TEST_CASE("VoxelFinder", "[finders]") {
+    VoxelFinder finder;
+    testFinder(finder);
+    testFinderSmallerH(finder);
 }

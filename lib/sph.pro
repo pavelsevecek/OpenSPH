@@ -36,7 +36,6 @@ SOURCES += \
 HEADERS += \
     core/Globals.h \
     core/Traits.h \
-    geometry/Bounds.h \
     geometry/Domain.h \
     geometry/Indices.h \
     geometry/Vector.h \
@@ -53,7 +52,6 @@ HEADERS += \
     objects/containers/LimitedArray.h \
     objects/containers/BufferedArray.h \
     objects/finders/Bruteforce.h \
-    objects/finders/Finder.h \
     objects/finders/KdTree.h \
     objects/finders/Linkedlist.h \
     objects/finders/Nanoflann.h \
@@ -115,4 +113,9 @@ HEADERS += \
     solvers/Module.h \
     sph/initial/Initial.h \
     geometry/Multipole.h \
-    system/Statistics.h
+    system/Statistics.h \
+    objects/finders/LinkedList.h \
+    objects/finders/BruteForce.h \
+    objects/finders/Voxel.h \
+    objects/finders/AbstractFinder.h \
+    geometry/Box.h

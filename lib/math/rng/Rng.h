@@ -5,7 +5,7 @@
 /// Pavel Sevecek 2015
 /// sevecek at sirrah.troja.mff.cuni.cz
 
-#include "geometry/Bounds.h"
+#include "geometry/Box.h"
 #include "objects/containers/Array.h"
 #include <random>
 

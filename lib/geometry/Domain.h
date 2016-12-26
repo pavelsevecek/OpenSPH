@@ -4,7 +4,7 @@
 /// Pavel Sevecek 2016
 /// sevecek at sirrah.troja.mff.cuni.cz
 
-#include "geometry/Bounds.h"
+#include "geometry/Box.h"
 
 NAMESPACE_SPH_BEGIN
 

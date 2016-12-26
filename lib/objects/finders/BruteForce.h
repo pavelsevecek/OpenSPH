@@ -1,7 +1,7 @@
 #pragma once
 
-#include "geometry/Bounds.h"
-#include "objects/finders/Finder.h"
+#include "geometry/Box.h"
+#include "objects/finders/AbstractFinder.h"
 
 NAMESPACE_SPH_BEGIN
 

@@ -3,8 +3,8 @@
 /// Pavel Sevecek 2016
 /// sevecek at sirrah.troja.mff.cuni.cz
 
-#include "geometry/Vector.h"
 #include "geometry/Indices.h"
+#include "geometry/Vector.h"
 #include "objects/containers/Array.h"
 
 NAMESPACE_SPH_BEGIN
@@ -42,9 +42,7 @@ public:
     }
 
     /// Clamps all components of the vector to fit within the box
-    Vector clamp(const Vector& v) const {
-        return Math::clamp(v, minBound, maxBound);
-    }
+    Vector clamp(const Vector& v) const { return Math::clamp(v, minBound, maxBound); }
 
     INLINE const Vector& lower() const { return minBound; }
 
@@ -54,15 +52,11 @@ public:
 
     INLINE Vector& upper() { return maxBound; }
 
-    INLINE Vector getSize() const { return maxBound - minBound; }
+    INLINE Vector size() const { return maxBound - minBound; }
 
-    Float getVolume() const {
-        Float volume = 1._f;
-        Vector size = getSize();
-        for (int i = 0; i < 3; ++i) {
-            volume *= Math::abs(size[i]);
-        }
-        return volume;
+    INLINE Float getVolume() const {
+        const Vector s = size();
+        return s[X] * s[Y] * s[Z];
     }
 
     /// Execute functor for all possible values of vector (with constant stepping)

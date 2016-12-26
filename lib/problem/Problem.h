@@ -1,7 +1,7 @@
 #pragma once
 
 #include "objects/containers/Tuple.h"
-#include "objects/finders/Finder.h"
+#include "objects/finders/AbstractFinder.h"
 #include "objects/wrappers/Range.h"
 #include "solvers/SolverFactory.h"
 #include "sph/boundary/Boundary.h"

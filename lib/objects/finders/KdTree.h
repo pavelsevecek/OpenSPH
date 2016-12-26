@@ -5,7 +5,7 @@
 /// Pavel Sevecek 2016
 /// sevecek at sirrah.troja.mff.cuni.cz
 
-#include "objects/finders/Finder.h"
+#include "objects/finders/AbstractFinder.h"
 #include "objects/finders/Nanoflann.h"
 #include "objects/wrappers/Optional.h"
 #include "system/Profiler.h"

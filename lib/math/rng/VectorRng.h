@@ -78,7 +78,7 @@ public:
         , vectorRng(std::forward<TScalarRng>(rng)) {
         // step for finding pdf maximum
         // TODO: should depend on jacobian
-        const Vector delta = 0.05_f * box.getSize();
+        const Vector delta = 0.05_f * box.size();
         maxPdf             = 0._f;
         /// \todo jacobian
         box.iterate(delta, [this](const Vector& v) { maxPdf = Math::max(maxPdf, pdf(v) * jac(v)); });
@@ -93,9 +93,9 @@ public:
 
 
     Vector operator()() {
-        ASSERT(getLength(box.getSize()) > 0._f);
+        ASSERT(getLength(box.size()) > 0._f);
         while (true) {
-            Vector v     = vectorRng() * box.getSize() + box.lower();
+            Vector v     = vectorRng() * box.size() + box.lower();
             const auto p = vectorRng.getAdditional(4) * maxPdf;
             if (p < pdf(v) * jac(v)) {
                 return v;

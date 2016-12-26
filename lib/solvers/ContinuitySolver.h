@@ -7,7 +7,7 @@
 /// sevecek at sirrah.troja.mff.cuni.cz
 
 #include "objects/containers/ArrayUtils.h"
-#include "objects/finders/Finder.h"
+#include "objects/finders/AbstractFinder.h"
 #include "solvers/AbstractSolver.h"
 #include "sph/av/Standard.h"
 #include "sph/boundary/Boundary.h"

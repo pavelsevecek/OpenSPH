@@ -6,9 +6,10 @@
 
 
 #include "objects/containers/Array.h"
-#include "geometry/Bounds.h"
+#include "geometry/Box.h"
+#include "objects/finders/AbstractFinder.h"
 
-
+NAMESPACE_SPH_BEGIN
 
 class Octree : public Abstract::Finder {
 private:
@@ -33,3 +34,5 @@ public:
      }
 
 };
+
+NAMESPACE_SPH_END
