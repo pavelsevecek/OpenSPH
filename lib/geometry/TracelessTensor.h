@@ -33,7 +33,7 @@ public:
 
     /// Construct traceless tensor using other tensor (not traceless in general). "Tracelessness" of the
     /// tensor is checked by assert.
-    TracelessTensor(const Tensor& other) {
+    explicit TracelessTensor(const Tensor& other) {
         ASSERT(other.trace() < EPS * Math::norm(other));
         m = other.diagonal();
         const Vector off = other.offDiagonal();
@@ -70,8 +70,13 @@ public:
         return *this;
     }
 
-    /// Explicit conversion to ordinary Tensor
-    INLINE explicit operator Tensor() const {
+    INLINE TracelessTensor& operator=(const Tensor& other) {
+        *this = TracelessTensor(other);
+        return *this;
+    }
+
+    /// Conversion to ordinary Tensor
+    INLINE operator Tensor() const {
         return Tensor(Vector(m[M00], m[M11], -m[M00] - m[M11]), Vector(m[M01], m[M02], m12));
     }
 
@@ -204,7 +209,7 @@ namespace Math {
         return t.clamp(range);
     }
 
-    template<>
+    template <>
     INLINE bool isReal(const TracelessTensor& t) {
         return isReal(t.diagonal()) && isReal(t.offDiagonal());
     }

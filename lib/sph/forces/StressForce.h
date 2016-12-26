@@ -32,6 +32,7 @@ private:
 public:
     StressForce(const GlobalSettings& settings)
         : Module<Yielding, Damage, AV, RhoDivv, RhoGradv>(yielding, damage, av, rhoDivv, rhoGradv)
+        , damage(settings)
         , av(settings) {
         flags.setIf(Options::USE_GRAD_P, settings.get<bool>(GlobalSettingsIds::MODEL_FORCE_GRAD_P));
         flags.setIf(Options::USE_DIV_S, settings.get<bool>(GlobalSettingsIds::MODEL_FORCE_DIV_S));
@@ -97,7 +98,8 @@ public:
                 /// \todo rotation rate tensor?
                 const Float mu = storage.getMaterial(i).shearModulus;
                 /// \todo how to enforce that this expression is traceless tensor?
-                ds[i] += 2._f * mu * (rhoGradv[i] - Tensor::identity() * rhoGradv[i].trace() / 3._f);
+                ds[i] += TracelessTensor(
+                    2._f * mu * (rhoGradv[i] - Tensor::identity() * rhoGradv[i].trace() / 3._f));
                 ASSERT(Math::isReal(ds[i]));
             }
             ASSERT(Math::isReal(du[i]));
@@ -130,13 +132,13 @@ public:
 
 private:
     /// \todo possibly precompute damage / yielding
-    INLINE auto reduce(const Float pi, const int idx) const { return damage(pi, idx); }
+    INLINE auto reduce(const Float pi, const int idx) const { return damage.reduce(pi, idx); }
 
     INLINE auto reduce(const TracelessTensor& si, const int idx) const {
         // first apply damage
-        auto si_dmg = damage(si, idx);
+        auto si_dmg = damage.reduce(si, idx);
         // then apply yielding using reduced stress
-        return yielding(si_dmg, idx);
+        return yielding.reduce(si_dmg, idx);
     }
 };
 

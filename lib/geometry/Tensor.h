@@ -227,7 +227,7 @@ INLINE Tensor outer(const Vector& v1, const Vector& v2) {
 
 /// Returns three eigenvalue of symmetric matrix.
 INLINE StaticArray<Float, 3> findEigenvalues(const Tensor& t) {
-    const Float n = 1._f; // Math::norm(t);
+    const Float n = Math::norm(t);
     const Float p = -t.invariant<1>() / n;
     const Float q = -t.invariant<2>() / Math::sqr(n);
     const Float r = -t.invariant<3>() / Math::pow<3>(n);

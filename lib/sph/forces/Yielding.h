@@ -9,7 +9,7 @@ class DummyYielding : public Object {
 public:
     void update(Storage& UNUSED(storage)) {}
 
-    INLINE TracelessTensor operator()(const TracelessTensor& s, const int UNUSED(i)) const { return s; }
+    INLINE TracelessTensor reduce(const TracelessTensor& s, const int UNUSED(i)) const { return s; }
 };
 
 
@@ -26,7 +26,7 @@ public:
         }
     }
 
-    INLINE TracelessTensor operator()(const TracelessTensor& s, const int i) const {
+    INLINE TracelessTensor reduce(const TracelessTensor& s, const int i) const {
         const Float invariant = 1.5_f * ddot(s, s);
         /// \todo sqrt here?
         return s * Math::min(Math::sqr(y[i]) / invariant, 1._f);

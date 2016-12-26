@@ -13,6 +13,7 @@ namespace Abstract {
 struct Material : public Noncopyable {
     std::unique_ptr<Abstract::Eos> eos; /// equation of state for given material
     Float shearModulus = 0._f;
+    Float youngModulus = 0._f;
     Float elasticityLimit = 0._f;
 
     Material();

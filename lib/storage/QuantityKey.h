@@ -10,23 +10,32 @@ NAMESPACE_SPH_BEGIN
 
 /// Unique ID of basic quantities of SPH particles
 enum class QuantityKey {
-    R        = 0,  ///< Positions (velocities, accelerations) of particles
-    M        = 1,  ///< Paricles masses
-    P        = 2,  ///< Pressure
-    RHO      = 3,  ///< Density
-    U        = 4,  ///< Specific internal energy
-    CS       = 5,  ///< Sound speed
-    S        = 6,  ///< Deviatoric stress tensor
-    A        = 7,  ///< Specific entropy
-    D        = 8,  ///< Damage
-    DIVV     = 9,  ///< Velocity divergence
-    ROTV     = 10, ///< Velocity rotation
-    ALPHA    = 11, ///< Coefficient alpha of the artificial viscosity
-    BETA     = 12, ///< Coefficient beta of the artificial viscosity
-    MAT_ID   = 13, ///< Material ID
+    /// Common quantities
+    R,   ///< Positions (velocities, accelerations) of particles
+    M,   ///< Paricles masses
+    P,   ///< Pressure
+    RHO, ///< Density
+    U,   ///< Specific internal energy
+    CS,  ///< Sound speed
+    S,   ///< Deviatoric stress tensor
+    A,   ///< Specific entropy
+
+    /// Damage and fragmentation model (see Benz & Asphaug, 1994)
+    D,       ///< Damage
+    EPS,     ///< Activation strait rate
+    M_ZERO,  ///< Coefficient M_0 of the stretched Weibull distribution
+    DD_DT,   ///< Explicit growth of fractures
+    N_FLAWS, ///< Number of explicit flaws per particle
+
+    /// Artificial velocity
+    DIVV,  ///< Velocity divergence
+    ROTV,  ///< Velocity rotation
+    ALPHA, ///< Coefficient alpha of the artificial viscosity
+    BETA,  ///< Coefficient beta of the artificial viscosity
+
+    /// Materials
+    MAT_ID, ///< Material ID
 };
-
-
 
 /// \todo rewrite this to something less stupid
 INLINE std::string getQuantityName(const QuantityKey key) {

@@ -9,6 +9,7 @@
 #include <cstring>
 #include <math.h>
 #include <utility>
+#include <algorithm>
 
 NAMESPACE_SPH_BEGIN
 
@@ -32,13 +33,23 @@ constexpr Float INFTY = 1.e20f;
 
 namespace Math {
     template <typename T>
-    INLINE constexpr auto max(const T f1, const T f2) {
+    INLINE constexpr T max(const T f1, const T f2) {
         return (f1 > f2) ? f1 : f2;
     }
 
     template <typename T>
-    INLINE constexpr auto min(const T f1, const T f2) {
+    INLINE constexpr T min(const T f1, const T f2) {
         return (f1 < f2) ? f1 : f2;
+    }
+
+    template<typename T>
+    INLINE constexpr T min(const T f1, const T f2, const T f3) {
+         return std::max({f1, f2, f3});
+    }
+
+    template<typename T>
+    INLINE constexpr T max(const T f1, const T f2, const T f3) {
+         return std::max({f1, f2, f3});
     }
 
     template <typename T>
