@@ -58,7 +58,7 @@ void ScalarDamage::initialize(Storage& storage, const BodySettings& settings) co
     const Float denom = 1._f / Math::pow(k_weibull * V, 1._f / m_weibull);
     Array<Float> eps_max(size);
     BenzAsphaugRng rng(1234); /// \todo generalize random number generator
-    int flawedCnt = 0, p = 0;
+    int flawedCnt = 0, p = 1;
     while (flawedCnt < size) {
         const int i = int(rng() * size);
         if (options == ExplicitFlaws::ASSIGNED) {

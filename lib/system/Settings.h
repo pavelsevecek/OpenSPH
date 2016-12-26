@@ -481,7 +481,7 @@ const Settings<BodySettingsIds> BODY_SETTINGS = {
     { BodySettingsIds::BULK_MODULUS,            "material.bulk_modulus",        2.67e10_f },
     { BodySettingsIds::SHEAR_MODULUS,           "material.shear_modulus",       2.27e10_f },
     { BodySettingsIds::RAYLEIGH_SOUND_SPEED,    "material.rayleigh_speed",      0.4_f },
-    { BodySettingsIds::WEIBULL_COEFFICIENT,     "material.weibull_coefficient", 4.e23_f },
+    { BodySettingsIds::WEIBULL_COEFFICIENT,     "material.weibull_coefficient", 4.e35_f },
     { BodySettingsIds::WEIBULL_EXPONENT,        "material.weibull_exponent",    9._f },
 
     /// SPH parameters specific for the body

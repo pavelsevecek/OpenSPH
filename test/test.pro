@@ -57,7 +57,9 @@ SOURCES += \
     ../lib/sph/boundary/test/Boundary.cpp \
     ../lib/objects/wrappers/test/AlignedStorage.cpp \
     ../lib/solvers/test/Module.cpp \
-    ../lib/geometry/test/Multipole.cpp
+    ../lib/geometry/test/Multipole.cpp \
+    ../lib/sph/forces/test/Damage.cpp \
+    ../lib/system/test/Statistics.cpp
 
 
 HEADERS += \

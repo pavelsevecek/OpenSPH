@@ -6,6 +6,7 @@
 #include "solvers/SolverFactory.h"
 #include "sph/boundary/Boundary.h"
 #include "sph/initial/Distribution.h"
+#include "solvers/AbstractSolver.h"
 #include "sph/kernel/Kernel.h"
 #include "sph/timestepping/TimeStepping.h"
 #include "storage/QuantityKey.h"
@@ -45,7 +46,6 @@ public:
     Range timeRange;
 
     /// Stores all SPH particles
-    /// \todo does it have to be shared_ptr?
     std::shared_ptr<Storage> storage;
 
     /// Implements computations of quantities and their temporal evolution

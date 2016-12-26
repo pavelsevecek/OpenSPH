@@ -1,7 +1,6 @@
 #include "sph/timestepping/TimeStepping.h"
 #include "catch.hpp"
 #include "solvers/AbstractSolver.h"
-#include "storage/QuantityMap.h"
 #include "storage/Storage.h"
 #include <iostream>
 

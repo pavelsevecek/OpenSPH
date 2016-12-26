@@ -114,4 +114,5 @@ HEADERS += \
     objects/wrappers/AlignedStorage.h \
     solvers/Module.h \
     sph/initial/Initial.h \
-    geometry/Multipole.h
+    geometry/Multipole.h \
+    system/Statistics.h

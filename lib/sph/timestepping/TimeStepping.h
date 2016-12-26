@@ -5,15 +5,16 @@
 /// sevecek at sirrah.troja.mff.cuni.cz
 
 #include "geometry/Vector.h"
-#include "solvers/AbstractSolver.h"
 #include "objects/containers/Array.h"
 #include "sph/timestepping/Step.h"
 #include "storage/Storage.h"
-#include "system/Profiler.h"
 #include <memory>
 
 NAMESPACE_SPH_BEGIN
 
+namespace Abstract {
+    class Solver;
+}
 
 /// Base object providing integration in time for all quantities.
 ///
@@ -25,7 +26,8 @@ NAMESPACE_SPH_BEGIN
 /// timestep, or some garbage memory when the method is called for the first time. It is also necessary to
 /// clamp all quantities by their minimal/maximal allowed values.
 ///
-/// When solver->compute is called, the storage passed as an argument MUST have zero highest order derivatives.
+/// When solver->compute is called, the storage passed as an argument MUST have zero highest order
+/// derivatives.
 namespace Abstract {
     class TimeStepping : public Polymorphic {
     protected:
@@ -37,7 +39,7 @@ namespace Abstract {
     public:
         TimeStepping(const std::shared_ptr<Storage>& storage, const GlobalSettings& settings)
             : storage(storage) {
-            dt    = settings.get<Float>(GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP);
+            dt = settings.get<Float>(GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP);
             maxdt = settings.get<Float>(GlobalSettingsIds::TIMESTEPPING_MAX_TIMESTEP);
             if (settings.get<bool>(GlobalSettingsIds::TIMESTEPPING_ADAPTIVE)) {
                 getter.emplace(storage, settings);
@@ -62,33 +64,10 @@ namespace Abstract {
 
 class EulerExplicit : public Abstract::TimeStepping {
 public:
-    explicit EulerExplicit(const std::shared_ptr<Storage>& storage,
-                           const GlobalSettings& settings)
+    explicit EulerExplicit(const std::shared_ptr<Storage>& storage, const GlobalSettings& settings)
         : Abstract::TimeStepping(storage, settings) {}
 
-    virtual void stepImpl(Abstract::Solver& solver) override {
-        // clear derivatives from previous timestep
-        this->storage->init();
-
-        // compute derivatives
-        solver.integrate(*this->storage);
-
-        PROFILE_SCOPE("EulerExplicit::step")
-        // advance all 2nd-order quantities by current timestep, first values, then 1st derivatives
-        iterate<VisitorEnum::SECOND_ORDER>(*this->storage, [this](auto& v, auto& dv, auto& d2v) {
-            for (int i = 0; i < v.size(); ++i) {
-                dv[i] += d2v[i] * this->dt;
-                v[i] += dv[i] * this->dt;
-                v.clamp(i);
-            }
-        });
-        iterate<VisitorEnum::FIRST_ORDER>(*this->storage, [this](auto& v, auto& dv) {
-            for (int i = 0; i < v.size(); ++i) {
-                v[i] += dv[i] * this->dt;
-                v.clamp(i);
-            }
-        });
-    }
+    virtual void stepImpl(Abstract::Solver& solver) override;
 };
 
 
@@ -97,65 +76,10 @@ private:
     Storage predictions;
 
 public:
-    explicit PredictorCorrector(const std::shared_ptr<Storage>& storage,
-                                const GlobalSettings& settings)
-        : Abstract::TimeStepping(storage, settings) {
-        ASSERT(storage->getQuantityCnt() > 0); // quantities must already been emplaced
-        predictions = storage->clone(VisitorEnum::HIGHEST_DERIVATIVES);
-        storage->init(); // clear derivatives before using them in step method
-    }
+    PredictorCorrector(const std::shared_ptr<Storage>& storage, const GlobalSettings& settings);
 
 protected:
-    virtual void stepImpl(Abstract::Solver& solver) override {
-        const Float dt2 = 0.5_f * Math::sqr(this->dt);
-
-        {
-            PROFILE_SCOPE("PredictorCorrector::step   Predictions")
-            // make prediction using old derivatives (simple euler)
-            iterate<VisitorEnum::SECOND_ORDER>(*this->storage, [this, dt2](auto& v, auto& dv, auto& d2v) {
-                for (int i = 0; i < v.size(); ++i) {
-                    v[i] += dv[i] * this->dt + d2v[i] * dt2;
-                    dv[i] += d2v[i] * this->dt;
-                    v.clamp(i);
-                }
-            });
-            iterate<VisitorEnum::FIRST_ORDER>(*this->storage, [this](auto& v, auto& dv) {
-                for (int i = 0; i < v.size(); ++i) {
-                    v[i] += dv[i] * this->dt;
-                    v.clamp(i);
-                }
-            });
-            // save derivatives from predictions
-            this->storage->swap(predictions, VisitorEnum::HIGHEST_DERIVATIVES);
-
-            // clear derivatives
-            this->storage->init();
-        }
-        // compute derivative
-        solver.integrate(*this->storage);
-
-        PROFILE_SCOPE("PredictorCorrector::step   Corrections")
-        // make corrections
-        // clang-format off
-        iteratePair<VisitorEnum::SECOND_ORDER>(*this->storage, this->predictions,
-            [this, dt2](auto& pv, auto& pdv, auto& pd2v, auto& UNUSED(cv), auto& UNUSED(cdv), auto& cd2v) {
-            ASSERT(pv.size() == pd2v.size());
-            for (int i = 0; i < pv.size(); ++i) {
-                pv[i] -= 0.333333_f * (cd2v[i] - pd2v[i]) * dt2;
-                pdv[i] -= 0.5_f * (cd2v[i] - pd2v[i]) * this->dt;
-                pv.clamp(i);
-            }
-        });
-        iteratePair<VisitorEnum::FIRST_ORDER>(*this->storage, this->predictions,
-            [this](auto& pv, auto& pdv, auto& UNUSED(cv), auto& cdv) {
-            ASSERT(pv.size() == pdv.size());
-            for (int i = 0; i < pv.size(); ++i) {
-                pv[i] -= 0.5_f * (cdv[i] - pdv[i]) * this->dt;
-                pv.clamp(i);
-            }
-        });
-        // clang-format on
-    }
+    virtual void stepImpl(Abstract::Solver& solver) override;
 };
 
 class LeapFrog : public Abstract::TimeStepping {
