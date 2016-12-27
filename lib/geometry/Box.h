@@ -16,23 +16,23 @@ private:
     Vector maxBound;
 
 public:
-    Box() {
+    INLINE Box() {
         minBound = Vector(INFTY);
         maxBound = Vector(-INFTY);
     }
 
-    Box(const Vector& minBound, const Vector& maxBound)
+    INLINE Box(const Vector& minBound, const Vector& maxBound)
         : minBound(minBound)
         , maxBound(maxBound) {}
 
     /// Enlarges the box to contain the vector;
-    void extend(const Vector& v) {
+    INLINE void extend(const Vector& v) {
         maxBound = Math::max(maxBound, v);
         minBound = Math::min(minBound, v);
     }
 
     /// Checks if the vector lies inside the box
-    bool contains(const Vector& v) const {
+    INLINE bool contains(const Vector& v) const {
         for (int i = 0; i < 3; ++i) {
             if (v[i] < minBound[i] || v[i] > maxBound[i]) {
                 return false;
@@ -42,7 +42,7 @@ public:
     }
 
     /// Clamps all components of the vector to fit within the box
-    Vector clamp(const Vector& v) const { return Math::clamp(v, minBound, maxBound); }
+    INLINE Vector clamp(const Vector& v) const { return Math::clamp(v, minBound, maxBound); }
 
     INLINE const Vector& lower() const { return minBound; }
 

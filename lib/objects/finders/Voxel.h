@@ -65,6 +65,7 @@ protected:
     LookupMap lut;
 
     virtual void buildImpl(ArrayView<Vector> values) override {
+        // number of voxels, free parameter
         const int lutSize = Math::root<3>(values.size());
         // find bounding box
         Box boundingBox;
@@ -97,17 +98,31 @@ public:
         upper = lower;
         Box voxel = lut.voxel(lower[X], lower[Y], lower[Z]);
         const Vector size = lut.getVoxelSize();
-        for (int dim = 0; dim < 3; ++dim) {
-            while (
-                upper[dim] < lut.getDimensionSize() - 1 && voxel.upper()[dim] - values[index][dim] < radius) {
-                voxel.upper()[dim] += size[dim];
-                upper[dim]++;
-            }
-            while (lower[dim] > 0 && values[index][dim] - voxel.lower()[dim] < radius) {
-                voxel.lower()[dim] -= size[dim];
-                lower[dim]--;
-            }
+        while (upper[X] < lut.getDimensionSize() - 1 && voxel.upper()[X] - values[index][X] < radius) {
+            voxel.upper()[X] += size[X];
+            upper[X]++;
         }
+        while (lower[X] > 0 && values[index][X] - voxel.lower()[X] < radius) {
+            voxel.lower()[X] -= size[X];
+            lower[X]--;
+        }
+        while (upper[Y] < lut.getDimensionSize() - 1 && voxel.upper()[Y] - values[index][Y] < radius) {
+            voxel.upper()[Y] += size[Y];
+            upper[Y]++;
+        }
+        while (lower[Y] > 0 && values[index][Y] - voxel.lower()[Y] < radius) {
+            voxel.lower()[Y] -= size[Y];
+            lower[Y]--;
+        }
+        while (upper[Z] < lut.getDimensionSize() - 1 && voxel.upper()[Z] - values[index][Z] < radius) {
+            voxel.upper()[Z] += size[Z];
+            upper[Z]++;
+        }
+        while (lower[Z] > 0 && values[index][Z] - voxel.lower()[Z] < radius) {
+            voxel.lower()[Z] -= size[Z];
+            lower[Z]--;
+        }
+
         for (int x = lower[X]; x <= upper[X]; ++x) {
             for (int y = lower[Y]; y <= upper[Y]; ++y) {
                 for (int z = lower[Z]; z <= upper[Z]; ++z) {

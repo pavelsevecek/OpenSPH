@@ -2,6 +2,7 @@
 #include "geometry/Domain.h"
 #include "objects/finders/BruteForce.h"
 #include "objects/finders/KdTree.h"
+#include "objects/finders/Voxel.h"
 #include "physics/Eos.h"
 #include "sph/boundary/Boundary.h"
 #include "sph/initial/Distribution.h"
@@ -43,6 +44,8 @@ std::unique_ptr<Abstract::Finder> Factory::getFinder(const GlobalSettings& setti
         return std::make_unique<BruteForceFinder>();
     case FinderEnum::KD_TREE:
         return std::make_unique<KdTree>();
+    case FinderEnum::VOXEL:
+        return std::make_unique<VoxelFinder>();
     default:
         NOT_IMPLEMENTED;
     }

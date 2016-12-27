@@ -8,7 +8,7 @@ using namespace Sph;
 
 static void finderRun(benchmark::State& state, Abstract::Finder& finder) {
     HexagonalPacking distribution;
-    Array<Vector> r = distribution.generate(10000, SphericalDomain(Vector(0._f), 1._f));
+    Array<Vector> r = distribution.generate(1e4, SphericalDomain(Vector(0._f), 1._f));
     Array<NeighbourRecord> neighs;
     double distSum = 0.;
     while (state.KeepRunning()) {
@@ -34,9 +34,35 @@ static void voxelRun(benchmark::State& state) {
 }
 BENCHMARK(voxelRun);
 
-
-static void bruteForceRun(benchmark::State& state) {
+/*static void bruteForceRun(benchmark::State& state) {
     BruteForceFinder finder;
     finderRun(state, finder);
 }
-BENCHMARK(bruteForceRun);
+BENCHMARK(bruteForceRun);*/
+
+
+static void finderBuild(benchmark::State& state, Abstract::Finder& finder) {
+    HexagonalPacking distribution;
+    Array<Vector> r = distribution.generate(10000, SphericalDomain(Vector(0._f), 1._f));
+    while (state.KeepRunning()) {
+        finder.build(r);
+    }
+}
+
+static void kdTreeBuild(benchmark::State& state) {
+    KdTree tree;
+    finderBuild(state, tree);
+}
+BENCHMARK(kdTreeBuild);
+
+static void voxelBuild(benchmark::State& state) {
+    VoxelFinder voxelFiner;
+    finderBuild(state, voxelFiner);
+}
+BENCHMARK(voxelBuild);
+
+/*static void bruteForceBuild(benchmark::State& state) {
+    BruteForceFinder finder;
+    finderBuild(state, finder);
+}
+BENCHMARK(bruteForceBuild);*/

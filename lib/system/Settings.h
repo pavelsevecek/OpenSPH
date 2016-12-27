@@ -107,14 +107,17 @@ enum class FinderEnum {
     /// Brute-force search by going through each pair of particles (O(N^2) complexity)
     BRUTE_FORCE,
 
-    /// Optimized kNN queries using K-d tree
+    /// Using K-d tree
     KD_TREE,
 
-    /// Optimized kNN queries using octree
+    /// Using octree
     OCTREE,
 
-    /// Optimized kNN queries using precomputed linked list
-    LINKED_LIST
+    /// Using linked list
+    LINKED_LIST,
+
+    /// Partitioning particles into voxels
+    VOXEL
 };
 
 enum class BoundaryEnum {
