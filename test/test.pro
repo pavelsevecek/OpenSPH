@@ -59,7 +59,8 @@ SOURCES += \
     ../lib/sph/forces/test/Damage.cpp \
     ../lib/system/test/Statistics.cpp \
     ../lib/objects/finders/test/Finders.cpp \
-    ../lib/sph/initial/test/Initial.cpp
+    ../lib/sph/initial/test/Initial.cpp \
+    ../lib/system/test/CallbackList.cpp
 
 
 HEADERS += \

@@ -84,12 +84,14 @@ HEADERS += \
     system/Settings.h \
     system/Timer.h \
     system/Profiler.h \
+    system/CallbackList.h \
+    system/Statistics.h \
+    system/Output.h \
     quantities/Iterate.h \
     quantities/Storage.h \
     quantities/Quantity.h \
     quantities/QuantityHelpers.h \
     geometry/TracelessTensor.h \
-    system/Output.h \
     solvers/AbstractSolver.h \
     solvers/ContinuitySolver.h \
     solvers/SummationSolver.h \
@@ -114,7 +116,6 @@ HEADERS += \
     solvers/Module.h \
     sph/initial/Initial.h \
     geometry/Multipole.h \
-    system/Statistics.h \
     objects/finders/LinkedList.h \
     objects/finders/BruteForce.h \
     objects/finders/Voxel.h \

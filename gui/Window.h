@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gui/Renderer.h"
+#include "gui/Settings.h"
 #include "objects/Object.h"
 #include <wx/combobox.h>
 #include <wx/panel.h>
@@ -14,8 +15,12 @@ private:
     Abstract::Renderer* renderer;
 
 public:
-    Window()
-        : wxFrame(nullptr, wxID_ANY, "SPH", wxDefaultPosition, wxSize(800, 600)) {
+    Window(const GuiSettings& settings)
+        : wxFrame(nullptr,
+                  wxID_ANY,
+                  settings.get<std::string>(GuiSettingsIds::WINDOW_TITLE).c_str(),
+                  wxDefaultPosition,
+                  wxSize(800, 600)) {
         wxBoxSizer* sizer   = new wxBoxSizer(wxVERTICAL);
         wxBoxSizer* toolbar = new wxBoxSizer(wxHORIZONTAL);
         toolbar->Add(new wxButton(this, int(ControlIds::BUTTON_START), "Start"));
@@ -42,7 +47,7 @@ public:
             break;
         }
         case RendererEnum::ORTHO:
-            OrthoPane* pane = new OrthoPane(this);
+            OrthoPane* pane = new OrthoPane(this, settings);
             sizer->Add(pane, 1, wxEXPAND);
             renderer = pane;
             break;

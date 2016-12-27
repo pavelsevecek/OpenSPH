@@ -8,6 +8,7 @@
 #include "problem/Problem.h"
 #include "sph/initial/Initial.h"
 #include "system/Factory.h"
+#include "gui/Settings.h"
 
 #include <wx/glcanvas.h>
 #include <wx/sizer.h>
@@ -23,10 +24,6 @@ void MyApp::OnButton(wxCommandEvent& evt) {
 }
 
 bool MyApp::OnInit() {
-    window = new Window();
-    window->SetAutoLayout(true);
-    window->Show();
-
     auto globalSettings = GLOBAL_SETTINGS;
     Problem* p          = new Problem(globalSettings);
     p->logger           = std::make_unique<StdOutLogger>();
@@ -35,7 +32,7 @@ bool MyApp::OnInit() {
 
     auto bodySettings = BODY_SETTINGS;
     bodySettings.set(BodySettingsIds::ENERGY, 0.001_f);
-    bodySettings.set(BodySettingsIds::PARTICLE_COUNT, 1000);
+    bodySettings.set(BodySettingsIds::PARTICLE_COUNT, 5000);
     InitialConditions conds(p->storage, globalSettings);
     SphericalDomain domain1(Vector(0._f), 1._f);
     conds.addBody(domain1, bodySettings);
@@ -43,9 +40,14 @@ bool MyApp::OnInit() {
     SphericalDomain domain2(Vector(2._f, 1._f, 0._f), 0.3_f);
     conds.addBody(domain2, bodySettings);
 
+    GuiSettings guiSettings = GUI_SETTINGS;
+    guiSettings.set<Float>(GuiSettingsIds::VIEW_FOV, 2._f);
+    window = new Window(guiSettings);
+    window->SetAutoLayout(true);
+    window->Show();
+
     p->callbacks = std::make_unique<GuiCallbacks>(window->getRenderer());
     worker       = std::thread([&p]() { p->run(); });
-
     return true;
 }
 

@@ -4,8 +4,9 @@
 
 NAMESPACE_SPH_BEGIN
 
-OrthoPane::OrthoPane(wxWindow* parent)
-    : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize) {
+OrthoPane::OrthoPane(wxWindow* parent, const GuiSettings& settings)
+    : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize)
+    , settings(settings) {
     this->SetMinSize(wxSize(640, 480));
     this->Connect(wxEVT_PAINT, wxPaintEventHandler(OrthoPane::OnPaint));
 }
@@ -17,7 +18,7 @@ void OrthoPane::OnPaint(wxPaintEvent& UNUSED(evt)) {
     dc.SetBrush(*wxWHITE_BRUSH);
     dc.DrawRectangle(wxPoint(0, 0), dc.GetSize());
     wxPoint center(320, 240);
-    const int fov = int(240.f / GUI_SETTINGS.get<Float>(GuiSettingsIds::VIEW_FOV));
+    const int fov = int(240.f / settings.get<Float>(GuiSettingsIds::VIEW_FOV));
     for (int i : displayedIdxs) {
         dc.SetBrush(*wxBLACK_BRUSH);
         const Vector& r = positions[i];
@@ -29,7 +30,7 @@ void OrthoPane::draw(const std::shared_ptr<Storage>& newStorage) {
     storage   = newStorage;
     positions = storage->getValue<Vector>(QuantityKey::POSITIONS);
     displayedIdxs.clear();
-    const Float cutoff = GUI_SETTINGS.get<Float>(GuiSettingsIds::ORTHO_CUTOFF);
+    const Float cutoff = settings.get<Float>(GuiSettingsIds::ORTHO_CUTOFF);
     for (int i = 0; i < positions.size(); ++i) {
         if (Math::abs(positions[i][Z]) < cutoff) {
             displayedIdxs.push(i);

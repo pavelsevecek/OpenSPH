@@ -26,7 +26,10 @@ enum class GuiSettingsIds {
     VIEW_CENTER,
 
     /// View field of view (zoom)
-    VIEW_FOV
+    VIEW_FOV,
+
+    /// Title of the window appearing on taskbar
+    WINDOW_TITLE
 };
 
 // clang-format off
@@ -35,8 +38,11 @@ const Settings<GuiSettingsIds> GUI_SETTINGS = {
     { GuiSettingsIds::PARTICLE_RADIUS,  "particle_radius",  0.5_f },
     { GuiSettingsIds::ORTHO_CUTOFF,     "ortho.cutoff",     0.1_f },
     { GuiSettingsIds::VIEW_CENTER,      "view.center",      Vector(0._f) },
-    { GuiSettingsIds::VIEW_FOV,         "view.fov",         1._f }
+    { GuiSettingsIds::VIEW_FOV,         "view.fov",         1._f },
+    { GuiSettingsIds::WINDOW_TITLE,     "window.title",     std::string("SPH") },
 };
 // clang-format on
+
+using GuiSettings = Settings<GuiSettingsIds>;
 
 NAMESPACE_SPH_END
