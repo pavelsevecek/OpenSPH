@@ -2,6 +2,7 @@
 #include "objects/finders/BruteForce.h"
 #include "objects/finders/KdTree.h"
 #include "objects/finders/Voxel.h"
+#include "objects/finders/LinkedList.h"
 #include "sph/initial/Distribution.h"
 
 using namespace Sph;
@@ -34,11 +35,11 @@ static void voxelRun(benchmark::State& state) {
 }
 BENCHMARK(voxelRun);
 
-/*static void bruteForceRun(benchmark::State& state) {
-    BruteForceFinder finder;
-    finderRun(state, finder);
+static void linkedListRun(benchmark::State& state) {
+    LinkedList linkedList;
+    finderRun(state, linkedList);
 }
-BENCHMARK(bruteForceRun);*/
+BENCHMARK(linkedListRun);
 
 
 static void finderBuild(benchmark::State& state, Abstract::Finder& finder) {
@@ -61,8 +62,8 @@ static void voxelBuild(benchmark::State& state) {
 }
 BENCHMARK(voxelBuild);
 
-/*static void bruteForceBuild(benchmark::State& state) {
-    BruteForceFinder finder;
-    finderBuild(state, finder);
+static void linkedListBuild(benchmark::State& state) {
+    LinkedList linkedList;
+    finderBuild(state, linkedList);
 }
-BENCHMARK(bruteForceBuild);*/
+BENCHMARK(linkedListBuild);

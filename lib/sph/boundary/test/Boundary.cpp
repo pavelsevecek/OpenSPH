@@ -151,16 +151,16 @@ TEST_CASE("GhostParticles Sphere", "[boundary]") {
         // check that velocities are symmetric == their perpendicular component is inverted
         const Float vPerp = dot(v[i], normalized);
         const Float vgPerp = dot(v[ghostIdx + i], normalized);
-        if (!Math::almostEqual(vPerp, -vgPerp)) { /// \todo velocities are currently not very precise
-            std::cout << "Ghost velocity not inverted: " << vPerp << "  " << vgPerp << std::endl;
+        if (!Math::almostEqual(vPerp, -vgPerp, 1.e-5_f)) {
+            std::cout << "Perpendicular component not inverted: " << vPerp << "  " << vgPerp << std::endl;
             allSymmetric = false;
             break;
         }
         // parallel component should be equal
         const Vector vPar = v[i] - normalized * dot(v[i], normalized);
         const Vector vgPar = v[ghostIdx + i] - normalized * dot(v[ghostIdx + i], normalized);
-        if (!Math::almostEqual(vPar, vgPar)) {
-            std::cout << "Ghost velocity not inverted: " << vPar << "  " << vgPar << std::endl;
+        if (!Math::almostEqual(vPar, vgPar, 1.e-5_f)) {
+            std::cout << "Parallel component not copied: " << vPar << "  " << vgPar << std::endl;
             allSymmetric = false;
             break;
         }

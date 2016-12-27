@@ -1,4 +1,4 @@
-#include "gui/glpane.h"
+#include "gui/GlPane.h"
 
 // include OpenGL
 #ifdef __WXMAC__
@@ -9,35 +9,9 @@
 #include <GL/glu.h>
 #endif
 
-NAMESPACE_GUI_BEGIN
+NAMESPACE_SPH_BEGIN
 
 enum { ID_REPAINT = 1, ID_RELOAD = 2 };
-
-BEGIN_EVENT_TABLE(CustomGlPane, wxGLCanvas)
-    /*    EVT_MOTION(CustomGlPane::mouseMoved)
-        EVT_LEFT_DOWN(CustomGlPane::mouseDown)
-        EVT_LEFT_UP(CustomGlPane::mouseReleased)
-        EVT_RIGHT_DOWN(CustomGlPane::rightClick)
-        EVT_LEAVE_WINDOW(CustomGlPane::mouseLeftWindow)*/
-    EVT_SIZE(CustomGlPane::resized)
-    /*    EVT_KEY_DOWN(CustomGlPane::keyPressed)
-        EVT_KEY_UP(CustomGlPane::keyReleased)
-        EVT_MOUSEWHEEL(CustomGlPane::mouseWheelMoved)*/
-    EVT_PAINT(CustomGlPane::render)
-    EVT_TIMER(ID_REPAINT, CustomGlPane::onTimer)
-    EVT_TIMER(ID_RELOAD, CustomGlPane::onTimer)
-END_EVENT_TABLE()
-
-
-// some useful events to use
-/*void CustomGlPane::mouseMoved(wxMouseEvent& evt) {}
-void CustomGlPane::mouseDown(wxMouseEvent& evt) {}
-void CustomGlPane::mouseWheelMoved(wxMouseEvent& evt) {}
-void CustomGlPane::mouseReleased(wxMouseEvent& evt) {}
-void CustomGlPane::rightClick(wxMouseEvent& evt) {}
-void CustomGlPane::mouseLeftWindow(wxMouseEvent& evt) {}
-void CustomGlPane::keyPressed(wxKeyEvent& evt) {}
-void CustomGlPane::keyReleased(wxKeyEvent& evt) {}*/
 
 VisualSphere::VisualSphere(const int latitudeSegments, const int longitudeSegments) {
     const float dlon   = 2 * Math::PI / float(longitudeSegments) + EPS;
@@ -135,13 +109,14 @@ void CustomGlPane::onTimer(wxTimerEvent& evt) {
     }
 }
 
-void CustomGlPane::draw(ArrayView<const Vector> positions) {
-    cached.positions = positions;
-    /// \todo sharing data between different threads will break something sooner or later ...
+void CustomGlPane::draw(const std::shared_ptr<Storage>& storage) {
+    cached.positions.clear();
+    Array<Vector>& newPositions = storage->getValue<Vector>(QuantityKey::POSITIONS);
+    cached.positions.pushAll(newPositions);
 }
 
-CustomGlPane::CustomGlPane(wxFrame* parent, int* args)
-    : wxGLCanvas(parent, wxID_ANY, args, wxDefaultPosition, wxDefaultSize, wxFULL_REPAINT_ON_RESIZE)
+CustomGlPane::CustomGlPane(wxFrame* parent, Array<int> args)
+    : wxGLCanvas(parent, wxID_ANY, &args[0], wxDefaultPosition, wxDefaultSize, wxFULL_REPAINT_ON_RESIZE)
     , sphere(7, 9) {
     context = std::make_unique<wxGLContext>(this);
 
@@ -155,8 +130,6 @@ CustomGlPane::CustomGlPane(wxFrame* parent, int* args)
     repaintTimer = new wxTimer(this, ID_REPAINT);
     repaintTimer->Start(20);
 }
-
-CustomGlPane::~CustomGlPane() {}
 
 void CustomGlPane::resized(wxSizeEvent& evt) {
     //	wxGLCanvas::OnSize(evt);
@@ -227,7 +200,7 @@ void CustomGlPane::render(wxPaintEvent& UNUSED(evt)) {
 
     glTranslatef(0.f, 0.f, -5.f);
     glRotatef(rotate, 0.3f, 1.0f, 0.0f);
-   // rotate += 4.f;
+    // rotate += 4.f;
 
     /// draw spheres using buffered array
     if (!vertices.second().empty()) {
@@ -248,4 +221,4 @@ void CustomGlPane::render(wxPaintEvent& UNUSED(evt)) {
     SwapBuffers();
 }
 
-NAMESPACE_GUI_END
+NAMESPACE_SPH_END

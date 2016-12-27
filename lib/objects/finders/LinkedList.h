@@ -8,164 +8,142 @@
 
 NAMESPACE_SPH_BEGIN
 
-/*
-class LookupMap : public Noncopyable {
+class LinkedList : public Abstract::Finder {
 private:
-    Array<int> storage;
-    int dimensionSize;
+    VectorOrder sortedIndices;
+    VectorOrder rank;
 
 
-    int map(const Vector& v) const {
+    class LookupMap : public Noncopyable {
+    private:
+        Array<int> storage;
+        int dimensionSize;
+
+        INLINE int map(const Indices& v) const {
             return v[X] * Math::sqr(dimensionSize) + v[Y] * dimensionSize + v[Z];
-    }
+        }
 
-public:
-    LookupMap() = default;
+    public:
+        LookupMap() = default;
 
-    LookupMap(const int n)
-        : storage(Math::pow<3>(n))
-        , dimensionSize(n) {
-        // clear all cells
-        storage.fill(0);
-    }
+        LookupMap(const int n)
+            : storage(Math::pow<3>(n))
+            , dimensionSize(n) {
+            // clear all cells
+            storage.fill(0);
+        }
 
-    LookupMap& operator=(LookupMap&& other) {
-        storage       = std::move(other.storage);
-        dimensionSize = other.dimensionSize;
-        return *this;
-    }
+        LookupMap& operator=(LookupMap&& other) {
+            storage = std::move(other.storage);
+            dimensionSize = other.dimensionSize;
+            return *this;
+        }
 
-    int& operator()(const StaticArray<int, 3>& v) {
-        const int idx = map(v);
-        ASSERT(unsigned(idx) < unsigned(storage.getSize()));
-        return storage[idx];
-    }
+        INLINE int operator()(const Indices& v) const {
+            const int idx = map(v);
+            ASSERT(unsigned(idx) < unsigned(storage.size()));
+            return storage[idx];
+        }
 
-    int operator()(const Vector<int, d>& v) const {
-        const int idx = map(v);
-        ASSERT(unsigned(idx) < unsigned(storage.getSize()));
-        return storage[idx];
-    }
-};
-
-template <typename T = Evt::T, int d = Evt::d>
-class LinkedList : public Abstract::Finder<T, d> {
-private:
-    /// \todo specialize vector for ints
-    VectorOrder<d> sortedIndices;
-    VectorOrder<d> rank;
-
-    LookupMap<T, d> map;
+        INLINE int& operator()(const Indices& v) {
+            const int idx = map(v);
+            ASSERT(unsigned(idx) < unsigned(storage.size()));
+            return storage[idx];
+        }
+    };
+    LookupMap map;
     int cellCnt;
-    Field<T, d> lowerBounds;
-    Field<T, d> upperBounds;
+    Array<Vector> lowerBounds;
+    Array<Vector> upperBounds;
     Array<int> linkedList;
 
 
 public:
-    LinkedList(FieldView<T, d> values)
-        : Abstract::Finder<T, d>(values)
-        , sortedIndices(values.getSize())
-        , rank(values.getSize())
-        , linkedList(values.getSize()) {
-        cellCnt = Math::root<d>(values.getSize()) + 1;
-
-        lowerBounds.reallocate(cellCnt);
-        upperBounds.reallocate(cellCnt);
-        rebuild();
-    }
-
-    virtual int findNeighbours(const Vector<T, d>& point,
-                               const T radius,
-                               Neighbours<T>& neighbours,
-                               Flags<FinderFlags> UNUSED(flags) = EMPTY_FLAGS,
-                               const Base<T> UNUSED(error)      = 0.f) const override {
-
-        return 0;
-    }
+    LinkedList() = default;
 
     virtual int findNeighbours(const int index,
-                               const T radius,
-                               Neighbours<T>& neighbours,
-                               Flags<FinderFlags> flags    = EMPTY_FLAGS,
-                               const Base<T> UNUSED(error) = 0.f) const override {
+        const Float radius,
+        Array<NeighbourRecord>& neighbours,
+        Flags<FinderFlags> flags = EMPTY_FLAGS,
+        const Float UNUSED(error) = 0.f) const override {
         neighbours.clear();
-        using U = Base<T>;
-        const U cellCntSqrInv = U(1.) / Math::pow<d - 1>(cellCnt);
-        const Vector<int, d> multiIdx = static_cast<Vector<int, d>>(rank[index] * cellCntSqrInv);
-        const Box<T, d> bounds(this->values[index] - Vector<T, d>(radius),
-                               this->values[index] - Vector<T, d>(radius));
-        Box<int, d> boundIdx(multiIdx, multiIdx);
-        for (int i = 0; i < d; ++i) {
-            Vector<int, d>& lbi = boundIdx.lower();
-            while (lbi[i] > 0 && bounds.lower()[i] <= lowerBounds[lbi[i]][i]) {
-                lbi[i]--;
+        const Float cellCntSqrInv = 1._f / Math::sqr(cellCnt);
+        const Box bounds(this->values[index] - Vector(radius), this->values[index] + Vector(radius));
+        Indices refRank = rank[index];
+        Indices lower(Vector(refRank) * cellCntSqrInv);
+        Indices upper = lower;
+        for (int i = 0; i < 3; ++i) {
+            while (lower[i] > 0 && bounds.lower()[i] <= lowerBounds[lower[i]][i]) {
+                lower[i]--;
             }
         }
-        Vector<int, d> maxIdx = multiIdx;
-        for (int i = 0; i < d; ++i) {
-            Vector<int, d>& ubi = boundIdx.upper();
-            while (ubi[i] < upperBounds.getSize()-1 && bounds.upper()[i] <= upperBounds[ubi[i]][i]) {
-                ubi[i]++;
+        for (int i = 0; i < 3; ++i) {
+            while (upper[i] < upperBounds.size() - 1 && bounds.upper()[i] <= upperBounds[upper[i]][i]) {
+                upper[i]++;
             }
         }
-        /// \todo
-        boundIdx.extend(Vector<int, d>(0));
-        boundIdx.extend(Vector<int, d>(upperBounds.getSize()-1));
+        lower = Math::max(lower, Indices(0));
+        upper = Math::min(upper, Indices(upperBounds.size() - 1));
         const int refRankH =
-            flags.has(FinderFlags::FIND_ONLY_SMALLER_H) ? rank[index][H] : this->values.getSize();
-        boundIdx.iterate(Vector<int, d>(1), [this, &neighbours, refRankH, radius, index](Vector<int, d>&&
-idxs) {
-            int cell = map(std::move(idxs));
-            while (cell != 0) {
-                auto lengthSqr = getSqrLength(this->values[cell] - this->values[index]);
-                if (rank[cell][H] < refRankH && lengthSqr < Math::sqr(radius)) {
-                    neighbours.push(NeighbourRecord<T>{ cell, lengthSqr} );
+            flags.has(FinderFlags::FIND_ONLY_SMALLER_H) ? rank[index][H] : this->values.size();
+        for (int x = lower[X]; x <= upper[X]; ++x) {
+            for (int y = lower[Y]; y <= upper[Y]; ++y) {
+                for (int z = lower[Z]; z <= upper[Z]; ++z) {
+                    const Indices idxs(x, y, z);
+                    int cell = map(idxs);
+                    while (cell != 0) {
+                        const Float lengthSqr = getSqrLength(this->values[cell] - this->values[index]);
+                        if (rank[cell][H] < refRankH && lengthSqr < Math::sqr(radius)) {
+                            neighbours.push(NeighbourRecord{ cell, lengthSqr });
+                        }
+                        cell = linkedList[cell];
+                    }
                 }
-                cell = linkedList[cell];
             }
-        });
-
-
-        return 0;
+        }
+        return neighbours.size();
     }
 
-
-    virtual void rebuild() override {
-        for (int i = 0; i < d; ++i) {
-            sortedIndices.shuffle(i, [this, i](int idx1, int idx2) {
-                return this->values[idx1][i] < this->values[idx2][i];
-            });
+protected:
+    virtual void rebuildImpl() override {
+        for (int i = 0; i < 3; ++i) {
+            sortedIndices.shuffle(
+                i, [this, i](int idx1, int idx2) { return this->values[idx1][i] < this->values[idx2][i]; });
         }
         /// extra dimension - sort smoothing length
-        sortedIndices.shuffle(H, [this](int idx1, int idx2) {
-            return this->values[idx1][H] < this->values[idx2][H];
-        });
-        using U = Base<T>;
-        rank    = sortedIndices.getInverted();
-        map     = LookupMap<T, d>(cellCnt);
-        lowerBounds.fill(Vector<T, d>(INFTY));
-        upperBounds.fill(Vector<T, d>(-INFTY));
-        const U cellCntSqrInv = U(1.) / Math::pow<d - 1>(cellCnt);
+        sortedIndices.shuffle(
+            H, [this](int idx1, int idx2) { return this->values[idx1][H] < this->values[idx2][H]; });
+        rank = sortedIndices.getInverted();
+        map = LookupMap(cellCnt);
+        lowerBounds.fill(Vector(INFTY));
+        upperBounds.fill(Vector(-INFTY));
+        const Float cellCntSqrInv = 1._f / Math::sqr(cellCnt);
 
-        for (int idx = 0; idx < this->values.getSize(); ++idx) {
-            const Vector<int, d> multiIdx = static_cast<Vector<int, d>>(rank[idx] * cellCntSqrInv);
-            int& cell       = map(multiIdx);
+        for (int idx = 0; idx < this->values.size(); ++idx) {
+            const Indices multiIdx(Vector(rank[idx]) * cellCntSqrInv);
+            int& cell = map(multiIdx);
             linkedList[idx] = cell;
-            cell            = idx;
+            cell = idx;
             /// \todo optimize using multiindices
-            for (int i = 0; i < d; ++i) {
-                T& lb = lowerBounds[multiIdx[i]][i];
-                lb    = Math::min(lb, this->values[idx][i]);
-                T& ub = upperBounds[multiIdx[i]][i];
-                ub    = Math::max(ub, this->values[idx][i]);
+            for (int i = 0; i < 3; ++i) {
+                Float& lb = lowerBounds[multiIdx[i]][i];
+                lb = Math::min(lb, this->values[idx][i]);
+                Float& ub = upperBounds[multiIdx[i]][i];
+                ub = Math::max(ub, this->values[idx][i]);
             }
         }
-        std::cout << "Linked list: " << std::endl;
-        for (int i=0; i<linkedList.getSize(); ++i) {
-            std::cout << linkedList[i] << std::endl;
-        }
+    }
+
+    virtual void buildImpl(ArrayView<Vector> values) override {
+        sortedIndices = VectorOrder(values.size());
+        rank = VectorOrder(values.size());
+        linkedList.resize(values.size());
+        cellCnt = Math::root<3>(values.size()) + 1;
+
+        lowerBounds.resize(cellCnt);
+        upperBounds.resize(cellCnt);
+        rebuildImpl();
     }
 };
-*/
+
 NAMESPACE_SPH_END

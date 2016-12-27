@@ -1,7 +1,7 @@
 #pragma once
 
 #include "objects/containers/Array.h"
-#include "storage/Storage.h"
+#include "quantities/Storage.h"
 
 NAMESPACE_SPH_BEGIN
 

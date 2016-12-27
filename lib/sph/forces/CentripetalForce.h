@@ -1,7 +1,7 @@
 #pragma once
 
 #include "solvers/Accumulator.h"
-#include "storage/Storage.h"
+#include "quantities/Storage.h"
 
 NAMESPACE_SPH_BEGIN
 

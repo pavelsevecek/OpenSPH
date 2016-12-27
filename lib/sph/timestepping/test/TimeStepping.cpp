@@ -1,7 +1,7 @@
 #include "sph/timestepping/TimeStepping.h"
 #include "catch.hpp"
 #include "solvers/AbstractSolver.h"
-#include "storage/Storage.h"
+#include "quantities/Storage.h"
 #include <iostream>
 
 using namespace Sph;

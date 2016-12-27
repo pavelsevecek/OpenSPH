@@ -13,8 +13,8 @@
 #include "sph/boundary/Boundary.h"
 #include "sph/forces/StressForce.h"
 #include "sph/kernel/Kernel.h"
-#include "storage/Iterate.h"
-#include "storage/QuantityKey.h"
+#include "quantities/Iterate.h"
+#include "quantities/QuantityKey.h"
 #include "system/Factory.h"
 #include "system/Profiler.h"
 #include "system/Settings.h"
@@ -55,19 +55,6 @@ public:
         }
         // initialize stuff
         this->updateModules(storage);
-
-
-        /*void Abstract::Solver::computeMaterial(Storage& storage) {
-            ArrayView<Float> p, rho, u, cs;
-            tieToArray(p, cs, rho, u) =
-                storage.getValues<Float>(QuantityKey::P, QuantityKey::CS, QuantityKey::RHO, QuantityKey::U);
-
-            for (int i = 0; i < storage.getParticleCnt(); ++i) {
-                Material& mat = storage.getMaterial(i);
-                tieToTuple(p[i], cs[i]) = mat.eos->getPressure(rho[i], u[i]);
-            }
-            ASSERT(areAllMatching(rho, [](const Float v) { return v > 0._f; }));
-        }*/
 
         // build neighbour finding object
         /// \todo only rebuild(), try to limit allocations

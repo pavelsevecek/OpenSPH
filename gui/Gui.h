@@ -1,25 +1,28 @@
 #pragma once
 
+#include "objects/Object.h"
 #include "wx/wx.h"
 #include <thread>
 
-namespace Sph {
-    namespace Gui {
-        class CustomGlPane;
-    }
-}
-
 class wxFrame;
 
+NAMESPACE_SPH_BEGIN
+
+namespace Abstract {
+    class Renderer;
+}
+class Window;
 
 class MyApp : public wxApp {
 private:
-    wxFrame* frame;
-    Sph::Gui::CustomGlPane* glPane;
+    Window* window;
     std::thread worker;
 
     virtual bool OnInit();
     void OnButton(wxCommandEvent& evt);
+
 public:
     ~MyApp();
 };
+
+NAMESPACE_SPH_END

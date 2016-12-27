@@ -88,7 +88,7 @@ public:
     }
 
     /// Returns stored resource. If the pointer is no longer valid, returns nullptr.
-    T* get() {
+    INLINE T* get() {
         if (this->isValid()) {
             return this->ptr;
         }
@@ -96,26 +96,26 @@ public:
     }
 
     /// Returns stored resource, const version. If the pointer is no longer valid, returns nullptr.
-    const T* get() const {
+    INLINE const T* get() const {
         if (this->isValid()) {
             return this->ptr;
         }
         return nullptr;
     }
 
-    T* operator->() {
+    INLINE T* operator->() {
         ASSERT(this->isValid());
         return this->ptr;
     }
 
-    const T* operator->() const {
+    INLINE const T* operator->() const {
         ASSERT(this->isValid());
         return this->ptr;
     }
 
-    bool operator!() const { return !this->isValid(); }
+    INLINE bool operator!() const { return !this->isValid(); }
 
-    explicit operator bool() const { return this->isValid(); }
+    INLINE explicit operator bool() const { return this->isValid(); }
 };
 
 template <typename T1, typename T2>

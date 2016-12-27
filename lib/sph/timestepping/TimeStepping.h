@@ -7,7 +7,7 @@
 #include "geometry/Vector.h"
 #include "objects/containers/Array.h"
 #include "sph/timestepping/Step.h"
-#include "storage/Storage.h"
+#include "quantities/Storage.h"
 #include <memory>
 
 NAMESPACE_SPH_BEGIN

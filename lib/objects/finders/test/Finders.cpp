@@ -1,5 +1,6 @@
 #include "objects/finders/KdTree.h"
 #include "objects/finders/Voxel.h"
+#include "objects/finders/LinkedList.h"
 #include "catch.hpp"
 #include "objects/containers/ArrayUtils.h"
 #include "sph/initial/Distribution.h"
@@ -69,6 +70,11 @@ TEST_CASE("KdTree", "[finders]") {
     testFinderSmallerH(finder);
 }
 
+/*TEST_CASE("LinkedList", "[finders]") {
+    LinkedList linkedList;
+    testFinder(linkedList);
+    testFinderSmallerH(linkedList);
+}*/
 
 TEST_CASE("VoxelFinder", "[finders]") {
     VoxelFinder finder;

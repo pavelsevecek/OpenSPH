@@ -27,11 +27,12 @@ SOURCES += \
     solvers/SolverFactory.cpp \
     system/Settings.cpp \
     math/rng/Rng.cpp \
-    storage/Material.cpp \
-    storage/Storage.cpp \
+    quantities/Material.cpp \
+    quantities/Storage.cpp \
     sph/boundary/Boundary.cpp \
     sph/initial/Initial.cpp \
-    sph/forces/Damage.cpp
+    sph/forces/Damage.cpp \
+    objects/finders/Voxel.cpp
 
 HEADERS += \
     core/Globals.h \
@@ -83,10 +84,10 @@ HEADERS += \
     system/Settings.h \
     system/Timer.h \
     system/Profiler.h \
-    storage/Iterate.h \
-    storage/Storage.h \
-    storage/Quantity.h \
-    storage/QuantityHelpers.h \
+    quantities/Iterate.h \
+    quantities/Storage.h \
+    quantities/Quantity.h \
+    quantities/QuantityHelpers.h \
     geometry/TracelessTensor.h \
     system/Output.h \
     solvers/AbstractSolver.h \
@@ -98,12 +99,12 @@ HEADERS += \
     sph/forces/StressForce.h \
     solvers/DensityIndependentSolver.h \
     solvers/EntropySolver.h \
-    storage/QuantityKey.h \
+    quantities/QuantityKey.h \
     solvers/Accumulator.h \
     solvers/SharedAccumulator.h \
     objects/containers/StaticArray.h \
     sph/av/Factory.h \
-    storage/Material.h \
+    quantities/Material.h \
     sph/forces/CentripetalForce.h \
     sph/forces/Factory.h \
     sph/forces/Damage.h \
@@ -118,4 +119,5 @@ HEADERS += \
     objects/finders/BruteForce.h \
     objects/finders/Voxel.h \
     objects/finders/AbstractFinder.h \
-    geometry/Box.h
+    geometry/Box.h \
+    objects/containers/LookupMap.h

@@ -10,7 +10,7 @@
 #include "sph/boundary/Boundary.h"
 #include "sph/forces/StressForce.h"
 #include "sph/kernel/Kernel.h"
-#include "storage/QuantityKey.h"
+#include "quantities/QuantityKey.h"
 #include "system/Profiler.h"
 #include "system/Settings.h"
 

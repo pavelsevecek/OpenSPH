@@ -6,7 +6,7 @@
 
 #include "geometry/Domain.h"
 #include "objects/wrappers/Range.h"
-#include "storage/Storage.h"
+#include "quantities/Storage.h"
 #include <memory>
 
 /// \todo create some reasonable interface

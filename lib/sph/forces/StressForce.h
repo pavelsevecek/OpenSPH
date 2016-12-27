@@ -3,7 +3,7 @@
 #include "objects/wrappers/Flags.h"
 #include "solvers/Accumulator.h"
 #include "solvers/Module.h"
-#include "storage/Storage.h"
+#include "quantities/Storage.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -44,8 +44,8 @@ public:
     StressForce(StressForce&& other) = default;
 
     void update(Storage& storage) {
-        tieToArray(rho, u, m) =
-            storage.getValues<Float>(QuantityKey::DENSITY, QuantityKey::ENERGY, QuantityKey::MASSES);
+        tieToArray(rho, m) = storage.getValues<Float>(QuantityKey::DENSITY, QuantityKey::MASSES);
+        tieToArray(u, du) = storage.getAll<Float>(QuantityKey::ENERGY);
         ArrayView<Vector> r;
         tieToArray(r, v, dv) = storage.getAll<Vector>(QuantityKey::POSITIONS);
         if (flags.has(Options::USE_GRAD_P)) {
@@ -125,8 +125,8 @@ public:
             storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityKey::SOUND_SPEED, std::move(cs));
         }
         if (flags.has(Options::USE_DIV_S)) {
-            storage.emplace<TracelessTensor, OrderEnum::FIRST_ORDER>(
-                QuantityKey::DEVIATORIC_STRESS, settings.get<Float>(BodySettingsIds::STRESS_TENSOR));
+            storage.emplace<TracelessTensor, OrderEnum::FIRST_ORDER>(QuantityKey::DEVIATORIC_STRESS,
+                settings.get<TracelessTensor>(BodySettingsIds::STRESS_TENSOR));
         }
     }
 

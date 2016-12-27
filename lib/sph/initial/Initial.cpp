@@ -4,19 +4,22 @@
 #include "solvers/AbstractSolver.h"
 #include "solvers/SolverFactory.h"
 #include "sph/initial/Distribution.h"
-#include "storage/Quantity.h"
-#include "storage/Storage.h"
+#include "quantities/Quantity.h"
+#include "quantities/Storage.h"
 #include "system/Factory.h"
 #include "system/Profiler.h"
 
 NAMESPACE_SPH_BEGIN
 
-InitialConditions::InitialConditions(const GlobalSettings& globalSettings)
-    : solver(getSolver(globalSettings)) {}
+InitialConditions::InitialConditions(const std::shared_ptr<Storage> storage,
+    const GlobalSettings& globalSettings)
+    : storage(storage)
+    , solver(getSolver(globalSettings)) {}
 
+InitialConditions::~InitialConditions() = default;
 
 void InitialConditions::addBody(Abstract::Domain& domain, BodySettings& bodySettings) {
-    Storage storage(bodySettings);
+    Storage body(bodySettings);
     int N; // Final number of particles
     PROFILE_SCOPE("InitialConditions::addBody");
 
@@ -27,7 +30,7 @@ void InitialConditions::addBody(Abstract::Domain& domain, BodySettings& bodySett
     // Generate positions of particles
     Array<Vector> r = distribution->generate(n, domain);
     N = r.size();
-    storage.emplace<Vector, OrderEnum::SECOND_ORDER>(QuantityKey::POSITIONS, std::move(r));
+    body.emplace<Vector, OrderEnum::SECOND_ORDER>(QuantityKey::POSITIONS, std::move(r));
     ASSERT(N > 0);
 
     // Set masses of particles, assuming all particles have the same mass
@@ -35,9 +38,16 @@ void InitialConditions::addBody(Abstract::Domain& domain, BodySettings& bodySett
     const Float rho0 = bodySettings.get<Float>(BodySettingsIds::DENSITY);
     const Float totalM = domain.getVolume() * rho0; // m = rho * V
     ASSERT(totalM > 0._f);
-    storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityKey::MASSES, totalM / N);
+    body.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityKey::MASSES, totalM / N);
 
-    solver->initialize(storage, bodySettings);
+    solver->initialize(body, bodySettings);
+    if (storage->getQuantityCnt() == 0) {
+        // this is a first body, simply assign storage
+        *storage = std::move(body);
+    } else {
+        // more than one body, merge storages
+        storage->merge(std::move(body));
+    }
 }
 
 

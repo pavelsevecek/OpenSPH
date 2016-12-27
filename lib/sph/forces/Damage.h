@@ -3,7 +3,7 @@
 #include "geometry/Vector.h"
 #include "objects/containers/ArrayView.h"
 #include "system/Settings.h"
-#include "storage/Storage.h"
+#include "quantities/Storage.h"
 
 NAMESPACE_SPH_BEGIN
 

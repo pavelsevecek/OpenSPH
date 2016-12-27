@@ -2,7 +2,7 @@
 
 #include "geometry/Vector.h"
 #include "objects/containers/Tuple.h"
-#include "storage/Storage.h"
+#include "quantities/Storage.h"
 #include "system/Settings.h"
 
 NAMESPACE_SPH_BEGIN

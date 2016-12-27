@@ -11,6 +11,7 @@
 
 NAMESPACE_SPH_BEGIN
 
+
 class Octree : public Abstract::Finder {
 private:
     Box box;

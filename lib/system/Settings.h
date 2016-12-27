@@ -8,7 +8,7 @@
 #include "objects/containers/Array.h"
 #include "objects/wrappers/Range.h"
 #include "objects/wrappers/Variant.h"
-#include "storage/QuantityKey.h"
+#include "quantities/QuantityKey.h"
 #include <initializer_list>
 #include <map>
 #include <string>

@@ -4,6 +4,7 @@
 /// Pavel Sevecek 2016
 /// sevecek at sirrah.troja.mff.cuni.cz
 
+#include "geometry/Indices.h"
 #include "objects/containers/Array.h"
 #include "objects/wrappers/Iterators.h"
 #include <algorithm>
@@ -56,9 +57,7 @@ public:
         return inverted;
     }
 
-    Order clone() const {
-        return storage.clone();
-    }
+    Order clone() const { return storage.clone(); }
 
     /// Compose two orders
     Order operator()(const Order& other) const {
@@ -71,30 +70,38 @@ public:
 
     INLINE int operator[](const int idx) const { return storage[idx]; }
 
-    INLINE int size() const {
-        return storage.size();
-    }
+    INLINE int size() const { return storage.size(); }
 
     INLINE bool operator==(const Order& other) const { return storage == other.storage; }
 };
 
 /// Order in each component
-class VectorOrder : public Object {
+class VectorOrder : public Noncopyable {
 private:
-    Array<StaticArray<int, 3>> storage;
+    Array<Indices> storage;
 
 
     /// Private constructor from int storage
-    VectorOrder(Array<StaticArray<int, 3>>&& other)
+    VectorOrder(Array<Indices>&& other)
         : storage(std::move(other)) {}
 
 public:
+    VectorOrder() = default;
+
+    VectorOrder(VectorOrder&& other)
+        : storage(std::move(other.storage)) {}
+
     /// Construct identity of given size
     VectorOrder(const int n)
         : storage(0, n) {
         for (int i = 0; i < n; ++i) {
-            storage.push(StaticArray<int, 3>{i, i, i});
+            storage.push(Indices(i));
         }
+    }
+
+    VectorOrder& operator=(VectorOrder&& other) {
+        storage = std::move(other.storage);
+        return *this;
     }
 
     /// Shuffle order by given comparator
@@ -106,7 +113,7 @@ public:
 
     /// Returns inverted order
     VectorOrder getInverted() const {
-        Array<StaticArray<int, 3>> inverted(storage.size());
+        Array<Indices> inverted(storage.size());
         for (int i = 0; i < storage.size(); ++i) {
             for (int j = 0; j < 3; ++j) {
                 inverted[storage[i][j]][j] = i;
@@ -115,7 +122,7 @@ public:
         return inverted;
     }
 
-    INLINE StaticArray<int, 3> operator[](const int idx) const { return storage[idx].clone(); }
+    INLINE const Indices& operator[](const int idx) const { return storage[idx]; }
 };
 
 NAMESPACE_SPH_END

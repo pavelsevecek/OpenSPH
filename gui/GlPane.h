@@ -4,13 +4,14 @@
 #include "wx/timer.h"
 #include "wx/wx.h"
 
-#include "gui/common.h"
+#include "gui/Common.h"
+#include "gui/Renderer.h"
 #include "objects/containers/BufferedArray.h"
 #include <thread>
 
 class GLUquadric;
 
-NAMESPACE_GUI_BEGIN
+NAMESPACE_SPH_BEGIN
 
 /// Unit sphere
 class VisualSphere : public Object {
@@ -29,7 +30,7 @@ public:
               Array<int>& is) const;
 };
 
-class CustomGlPane : public wxGLCanvas {
+class CustomGlPane : public wxGLCanvas, public Abstract::Renderer {
 private:
     std::unique_ptr<wxGLContext> context;
     float rotate = 0.f;
@@ -37,7 +38,7 @@ private:
     wxTimer* reloadTimer;
 
     struct {
-        ArrayView<const Vector> positions;
+        Array<Vector> positions;
     } cached;
 
     GLUquadric* quadric;
@@ -50,8 +51,7 @@ private:
     VisualSphere sphere;
 
 public:
-    CustomGlPane(wxFrame* parent, int* args);
-    virtual ~CustomGlPane();
+    CustomGlPane(wxFrame* parent, Array<int> args);
 
     void resized(wxSizeEvent& evt);
 
@@ -62,19 +62,9 @@ public:
     void prepare3DViewport(int topleft_x, int topleft_y, int bottomrigth_x, int bottomrigth_y);
     void prepare2DViewport(int topleft_x, int topleft_y, int bottomrigth_x, int bottomrigth_y);
 
-    // events
-    void mouseMoved(wxMouseEvent& event);
-    void mouseDown(wxMouseEvent& event);
-    void mouseWheelMoved(wxMouseEvent& event);
-    void mouseReleased(wxMouseEvent& event);
-    void rightClick(wxMouseEvent& event);
-    void mouseLeftWindow(wxMouseEvent& event);
-    void keyPressed(wxKeyEvent& event);
-    void keyReleased(wxKeyEvent& event);
-
     void onTimer(wxTimerEvent& evt);
 
-    void draw(ArrayView<const Vector> positions);
+    virtual void draw(const std::shared_ptr<Storage>& storage) override;
 
     void drawSphere(const Vector& position,
                     const float radius,
@@ -83,8 +73,6 @@ public:
                     Array<Vector>& vertices,
                     Array<Vector>& normals,
                     Array<int>& indices);
-
-    DECLARE_EVENT_TABLE()
 };
 
-NAMESPACE_GUI_END
+NAMESPACE_SPH_END

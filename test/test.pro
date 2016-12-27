@@ -30,7 +30,6 @@ SOURCES += \
     ../lib/objects/wrappers/test/VectorizedArray.cpp \
     ../lib/objects/containers/test/Array.cpp \
     ../lib/objects/containers/test/ArrayUtils.cpp \
-    ../lib/objects/finders/test/LinkedList.cpp \
     ../lib/objects/finders/test/Order.cpp \
     ../lib/objects/finders/test/BruteForce.cpp \
     ../lib/sph/timestepping/test/TimeStepping.cpp \
@@ -38,8 +37,10 @@ SOURCES += \
     ../lib/sph/kernel/test/Kernel.cpp \
     ../lib/system/test/Settings.cpp \
     ../lib/system/test/Timer.cpp \
-    ../lib/storage/test/Quantity.cpp \
-    ../lib/storage/test/Storage.cpp \
+    ../lib/quantities/test/Quantity.cpp \
+    ../lib/quantities/test/Storage.cpp \
+    ../lib/quantities/test/Iterate.cpp \
+    ../lib/quantities/test/QuantityHelpers.cpp \
     ../lib/objects/containers/test/BufferedArray.cpp \
     ../lib/objects/containers/test/Tuple.cpp \
     ../lib/objects/wrappers/test/Flags.cpp \
@@ -48,8 +49,6 @@ SOURCES += \
     ../lib/system/test/Profiler.cpp \
     ../lib/objects/containers/test/LimitedArray.cpp \
     ../lib/objects/containers/test/StaticArray.cpp \
-    ../lib/storage/test/Iterate.cpp \
-    ../lib/storage/test/QuantityHelpers.cpp \
     ../lib/geometry/test/TracelessTensor.cpp \
     ../lib/system/test/Output.cpp \
     ../lib/solvers/test/ContinuitySolver.cpp \
@@ -59,7 +58,8 @@ SOURCES += \
     ../lib/geometry/test/Multipole.cpp \
     ../lib/sph/forces/test/Damage.cpp \
     ../lib/system/test/Statistics.cpp \
-    ../lib/objects/finders/test/Finders.cpp
+    ../lib/objects/finders/test/Finders.cpp \
+    ../lib/sph/initial/test/Initial.cpp
 
 
 HEADERS += \

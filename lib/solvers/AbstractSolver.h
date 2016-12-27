@@ -2,7 +2,7 @@
 
 #include "objects/Object.h"
 #include "sph/kernel/Kernel.h"
-#include "storage/Storage.h"
+#include "quantities/Storage.h"
 #include "system/Factory.h"
 #include "system/Profiler.h"
 #include "system/Settings.h"

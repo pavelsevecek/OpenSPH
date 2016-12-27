@@ -3,13 +3,13 @@
 #include "objects/containers/Tuple.h"
 #include "objects/finders/AbstractFinder.h"
 #include "objects/wrappers/Range.h"
+#include "quantities/QuantityKey.h"
+#include "solvers/AbstractSolver.h"
 #include "solvers/SolverFactory.h"
 #include "sph/boundary/Boundary.h"
 #include "sph/initial/Distribution.h"
-#include "solvers/AbstractSolver.h"
 #include "sph/kernel/Kernel.h"
 #include "sph/timestepping/TimeStepping.h"
-#include "storage/QuantityKey.h"
 #include "system/Callbacks.h"
 #include "system/Logger.h"
 #include "system/Output.h"
@@ -83,7 +83,7 @@ public:
             timeStepping->step(*solver);
 
             if (callbacks) {
-                callbacks->onTimeStep(storage->getValue<Vector>(QuantityKey::POSITIONS));
+                callbacks->onTimeStep(storage);
             }
         }
     }

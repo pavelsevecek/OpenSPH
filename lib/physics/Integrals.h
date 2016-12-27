@@ -1,8 +1,8 @@
 #pragma once
 
 #include "objects/containers/ArrayView.h"
-#include "storage/QuantityKey.h"
-#include "storage/Storage.h"
+#include "quantities/QuantityKey.h"
+#include "quantities/Storage.h"
 #include <memory>
 
 NAMESPACE_SPH_BEGIN

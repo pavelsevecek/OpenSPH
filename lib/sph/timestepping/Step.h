@@ -1,6 +1,6 @@
 #pragma once
 
-#include "storage/Storage.h"
+#include "quantities/Storage.h"
 #include "system/Profiler.h"
 #include "system/Settings.h"
 #include <memory>

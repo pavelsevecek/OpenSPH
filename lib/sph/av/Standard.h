@@ -6,7 +6,7 @@
 /// Pavel Sevecek 2016
 /// sevecek at sirrah.troja.mff.cuni.cz
 
-#include "storage/Storage.h"
+#include "quantities/Storage.h"
 #include "system/Factory.h"
 #include "system/Settings.h"
 #include "physics/Eos.h"

@@ -62,9 +62,9 @@ TEST_CASE("Tensor algebra", "[tensor]") {
     Tensor t2(Vector(5._f, 3._f, -3._f), Vector(0._f));
     StaticArray<Float, 3> eigens = findEigenvalues(t2);
     // eigenvalues of diagonal matrix are diagonal elements
-    REQUIRE(Math::almostEqual(eigens[0], 5._f));
-    REQUIRE(Math::almostEqual(eigens[1], -3._f));
-    REQUIRE(Math::almostEqual(eigens[2], 3._f));
+    REQUIRE(Math::almostEqual(eigens[0], 5._f, 1.e-5_f));
+    REQUIRE(Math::almostEqual(eigens[1], -3._f, 1.e-5_f));
+    REQUIRE(Math::almostEqual(eigens[2], 3._f, 1.e-5_f));
 
     // double-dot product
     REQUIRE(ddot(t, t2) == 2._f);

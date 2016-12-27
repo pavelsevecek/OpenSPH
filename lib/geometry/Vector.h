@@ -48,6 +48,8 @@ class BasicVector;
 /// 3-dimensional vector, float precision
 template <>
 class BasicVector<float> : public Object {
+    friend class Indices;
+
 private:
     __m128 data;
 

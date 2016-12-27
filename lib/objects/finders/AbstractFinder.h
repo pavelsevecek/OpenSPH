@@ -35,7 +35,7 @@ namespace Abstract {
         /// Constructs the struct with an array of vectors
         void build(ArrayView<Vector> values) {
             this->values = values;
-            rebuild();
+            makeRankH();
             buildImpl(values);
         }
 
@@ -48,13 +48,19 @@ namespace Abstract {
 
 
         virtual int findNeighbours(const int index,
-                                   const Float radius,
-                                   Array<NeighbourRecord>& neighbours,
-                                   Flags<FinderFlags> flags = EMPTY_FLAGS,
-                                   const Float error = 0._f) const = 0;
+            const Float radius,
+            Array<NeighbourRecord>& neighbours,
+            Flags<FinderFlags> flags = EMPTY_FLAGS,
+            const Float error = 0._f) const = 0;
 
         /// Updates the structure when the position change.
         void rebuild() {
+            makeRankH();
+            rebuildImpl();
+        }
+
+    private:
+        void makeRankH() {
             Order tmp(this->values.size());
             // sort by smoothing length
             tmp.shuffle([this](const int i1, const int i2) { return values[i1][H] < values[i2][H]; });
@@ -68,7 +74,6 @@ namespace Abstract {
             }
 #endif
             rankH = tmp.getInverted();
-            rebuildImpl();
         }
     };
 }
