@@ -37,20 +37,25 @@ public:
                 return points[i].color * x + points[i + 1].color * (1.f - x);
             }
         }
+        STOP;
     }
 
     /// Default palette for given quantity
-    static Palette forQuantity(const QuantityKey key, const float maxValue) {
+    static Palette forQuantity(const QuantityKey key, const Range range) {
+        const Float x0 = range.lower();
+        const Float dx = range.size();
         switch (key) {
         case QuantityKey::PRESSURE:
-            return Palette({ { 0.f, Color(0.f, 0.f, 0.2f) }, { maxValue, Color(1.f, 0.2f, 0.2f) } });
+            return Palette({ { x0, Color(0.f, 0.f, 0.2f) }, { x0 + dx, Color(1.f, 0.2f, 0.2f) } });
+        case QuantityKey::DENSITY:
+            return Palette({ { x0, Color(0.f, 0.f, 0.2f) }, { x0 + dx, Color(1.f, 0.2f, 0.2f) } });
         case QuantityKey::POSITIONS: // velocity
-            return Palette({ { 0.f, Color(0.0f, 0.0f, 0.2f) },
-                             { 0.2f * maxValue, Color(0.0f, 0.0f, 1.0f) },
-                             { 0.5f * maxValue, Color(1.0f, 0.0f, 0.2f) },
-                             { maxValue, Color(1.0f, 1.0f, 0.2f) } });
+            return Palette({ { x0, Color(0.0f, 0.0f, 0.2f) },
+                             { x0 + 0.2f * dx, Color(0.0f, 0.0f, 1.0f) },
+                             { x0 + 0.5f * dx, Color(1.0f, 0.0f, 0.2f) },
+                             { x0 + dx, Color(1.0f, 1.0f, 0.2f) } });
         case QuantityKey::DAMAGE:
-            return Palette({ { 0.f, Color(0.1f, 0.1f, 0.1f) }, { maxValue, Color(0.9f, 0.9f, 0.9f) } });
+            return Palette({ { x0, Color(0.1f, 0.1f, 0.1f) }, { x0 + dx, Color(0.9f, 0.9f, 0.9f) } });    
         default:
             NOT_IMPLEMENTED;
         }

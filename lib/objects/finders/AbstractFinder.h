@@ -19,6 +19,9 @@ struct NeighbourRecord {
 enum class FinderFlags {
     /// Finds only neighbours that have smaller smoothing length h than value given
     FIND_ONLY_SMALLER_H = 1 << 0,
+
+    /// Parallelize the search using all available threads
+    PARALLELIZE = 1 << 1,
 };
 
 namespace Abstract {

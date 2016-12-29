@@ -5,7 +5,7 @@ using namespace Sph;
 
 enum Enum { OPT1 = 1 << 0, OPT2 = 1 << 1, OPT3 = 1 << 2 };
 
-TEST_CASE("flags constructor", "[flags]") {
+TEST_CASE("Flags constructor", "[flags]") {
     Flags<Enum> flags;
     flags.set(OPT1);
     REQUIRE(flags.has(OPT1));
@@ -30,6 +30,18 @@ TEST_CASE("flags constructor", "[flags]") {
     REQUIRE(flags.has(OPT1));
     REQUIRE(flags.has(OPT2));
     REQUIRE(!flags.has(OPT3));
+}
+
+TEST_CASE("Flags operator", "[flags]") {
+    Flags<Enum> flags;
+    flags = OPT1 | OPT2;
+    REQUIRE(flags.has(OPT1));
+    REQUIRE(flags.has(OPT2));
+    REQUIRE(!flags.has(OPT3));
+    flags = OPT1 | OPT2 | OPT3;
+    REQUIRE(flags.has(OPT1));
+    REQUIRE(flags.has(OPT2));
+    REQUIRE(flags.has(OPT3));
 }
 
 TEST_CASE("Empty flags", "[flags]") {

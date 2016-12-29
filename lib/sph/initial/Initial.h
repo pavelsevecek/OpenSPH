@@ -29,8 +29,10 @@ public:
     /// sound speed, assuming both the pressure and sound speed are computed from equation of state. All other
     /// quantities, including density and energy, must be initialized by solver->initialize
     /// \todo generalize for entropy solver
-    /// \todo setting velocities and rotation
-    void addBody(Abstract::Domain& domain, BodySettings& bodySettings);
+    void addBody(const Abstract::Domain& domain,
+        const BodySettings& bodySettings,
+        const Vector& velocity = Vector(0._f),
+        const Vector& angularVelocity = Vector(0._f));
 };
 
 NAMESPACE_SPH_END

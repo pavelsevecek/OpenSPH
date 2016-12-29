@@ -13,64 +13,72 @@ NAMESPACE_SPH_BEGIN
 /// [-infty, infty] intervals.
 class Range : public Object {
 private:
-    Optional<Float> lower;
-    Optional<Float> upper;
+    Optional<Float> minBound;
+    Optional<Float> maxBound;
 
 public:
     /// Default construction of an empty interval. Any contains() call will return false, extending the
     /// interval will result in zero-size interval containing the inserted value.
     INLINE Range()
-        : lower(INFTY)
-        , upper(-INFTY) {}
+        : minBound(INFTY)
+        , maxBound(-INFTY) {}
 
     /// Constructs the interval given its lower and upper bound. You can use NOTHING to create unbounded
     /// interval.
     INLINE Range(const Optional<Float>& lower, const Optional<Float>& upper)
-        : lower(lower)
-        , upper(upper) {
+        : minBound(lower)
+        , maxBound(upper) {
         ASSERT(!lower || !upper || lower.get() <= upper.get());
     }
 
     /// Extends the interval to contain given value. If the value is already inside the interval, nothing
     /// changes.
     INLINE void extend(const Float value) {
-        if (lower) {
-            lower = Math::min(lower.get(), value);
+        if (minBound) {
+            minBound = Math::min(minBound.get(), value);
         }
-        if (upper) {
-            upper = Math::max(upper.get(), value);
+        if (maxBound) {
+            maxBound = Math::max(maxBound.get(), value);
         }
     }
 
     /// Checks whether value is inside the interval.
     INLINE bool contains(const Float value) const {
-        return (!lower || lower.get() <= value) && (!upper || value <= upper.get());
+        return (!minBound || minBound.get() <= value) && (!maxBound || value <= maxBound.get());
     }
 
     /// Clamps the given value by the interval.
     INLINE Float clamp(const Float value) const {
-        ASSERT(!lower || !upper || lower.get() <= upper.get());
-        const Float rightBounded = upper ? Math::min(value, upper.get()) : value;
-        return lower ? Math::max(lower.get(), rightBounded) : rightBounded;
+        ASSERT(!minBound || !maxBound || minBound.get() <= maxBound.get());
+        const Float rightBounded = maxBound ? Math::min(value, maxBound.get()) : value;
+        return minBound ? Math::max(minBound.get(), rightBounded) : rightBounded;
     }
 
     /// Returns lower bound of the interval. Asserts if the bound does not exist.
-    INLINE const Float& getLower() const {
-        ASSERT(lower);
-        return lower.get();
+    INLINE Float lower() const {
+        ASSERT(minBound);
+        return minBound.get();
     }
 
     /// Returns upper bound of the interval. Asserts if the bound does not exist.
-    INLINE const Float& getUpper() const {
-        ASSERT(upper);
-        return upper.get();
+    INLINE Float upper() const {
+        ASSERT(maxBound);
+        return maxBound.get();
+    }
+
+    ///Returns the size of the interval. If the interval is unbounded, returns infinity
+    INLINE Float size() const {
+        if (!minBound || !maxBound) {
+            return std::numeric_limits<Float>::infinity();
+        }
+        return maxBound.get() - minBound.get();
     }
 
     /// Comparison operator; true if and only if both bounds are equal.
     INLINE bool operator==(const Range& other) const {
         // note that NOTHING == NOTHING returns false!
-        return ((!upper && !other.upper) || upper == other.upper) &&
-               ((!lower && !other.lower) || lower == other.lower);
+        return ((!maxBound && !other.maxBound) || maxBound == other.maxBound) &&
+               ((!minBound && !other.minBound) || minBound == other.minBound);
     }
 
     /// Negation of comparison operator
@@ -81,8 +89,8 @@ public:
     /// Output to stream
     template <typename TStream>
     friend TStream& operator<<(TStream& stream, const Range& range) {
-        stream << (range.lower ? std::to_string(range.lower.get()) : std::string("-infinity")) << " "
-               << (range.upper ? std::to_string(range.upper.get()) : std::string("infinity"));
+        stream << (range.minBound ? std::to_string(range.minBound.get()) : std::string("-infinity")) << " "
+               << (range.maxBound ? std::to_string(range.maxBound.get()) : std::string("infinity"));
         return stream;
     }
 
@@ -147,9 +155,9 @@ public:
         : range(range)
         , step(std::forward<TStep>(step)) {}
 
-    INLINE RangeIterator<TStep> begin() { return RangeIterator<TStep>(range.getLower(), step); }
+    INLINE RangeIterator<TStep> begin() { return RangeIterator<TStep>(range.lower(), step); }
 
-    INLINE RangeIterator<TStep> end() { return RangeIterator<TStep>(range.getUpper(), step); }
+    INLINE RangeIterator<TStep> end() { return RangeIterator<TStep>(range.upper(), step); }
 };
 
 template <typename TStep>

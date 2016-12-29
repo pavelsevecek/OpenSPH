@@ -108,7 +108,6 @@ public:
                 force.accumulate(i, j, grad);
             }
         }
-        std::cout << "Max " << maxIteration << " iterations " << std::endl;
 
         PROFILE_NEXT("SummationSolver::compute (solvers)")
 

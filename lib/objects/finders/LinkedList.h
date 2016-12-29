@@ -4,7 +4,6 @@
 #include "objects/finders/AbstractFinder.h"
 #include "objects/wrappers/Iterators.h"
 #include <algorithm>
-#include <iostream>
 
 NAMESPACE_SPH_BEGIN
 

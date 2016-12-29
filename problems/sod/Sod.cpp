@@ -1,7 +1,8 @@
 #include "catch.hpp"
 #include "physics/Eos.h"
 #include "problem/Problem.h"
-//#include "solvers/SummationSolver.h"
+#include "sph/forces/StressForce.h"
+#include "solvers/ContinuitySolver.h"
 #include "system/Factory.h"
 #include "system/Settings.h"
 
@@ -65,8 +66,8 @@ TEST_CASE("Sod", "[sod]") {
     bodySettings.set(BodySettingsIds::DENSITY, 1._f);
 
     // Construct solver used in Sod shock tube
-
     Problem sod(globalSettings);
+//    sod.solver = ContinuitySolver<StressForce<DummyYielding, DummyDamage, StandardDV>, 1>(globalSettings);
 
     // Solving to t = 0.5
     sod.timeRange = Range(0._f, 0.5_f);

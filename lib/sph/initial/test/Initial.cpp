@@ -1,8 +1,9 @@
 #include "sph/initial/Initial.h"
-#include "geometry/Domain.h"
 #include "catch.hpp"
+#include "geometry/Domain.h"
 #include "objects/containers/ArrayUtils.h"
 #include "quantities/Storage.h"
+#include <iostream>
 
 using namespace Sph;
 
@@ -45,4 +46,61 @@ TEST_CASE("Initial conditions", "[initial]") {
         totalM += m;
     }
     REQUIRE(Math::almostEqual(totalM, 2700._f * domain.getVolume()));
+}
+
+TEST_CASE("Initial velocity", "[initial]") {
+    std::shared_ptr<Storage> storage = std::make_shared<Storage>();
+    InitialConditions conds(storage, GLOBAL_SETTINGS);
+    BodySettings bodySettings = BODY_SETTINGS;
+    bodySettings.set<Float>(BodySettingsIds::DENSITY, 1._f);
+    conds.addBody(SphericalDomain(Vector(0._f), 1._f), bodySettings, Vector(2._f, 1._f, -1._f));
+    bodySettings.set<Float>(BodySettingsIds::DENSITY, 2._f);
+    conds.addBody(SphericalDomain(Vector(0._f), 1._f), bodySettings, Vector(0._f, 0._f, 1._f));
+    ArrayView<Float> rho = storage->getValue<Float>(QuantityKey::DENSITY);
+    ArrayView<Vector> v = storage->getAll<Vector>(QuantityKey::POSITIONS)[1];
+
+    bool allMatching = true;
+    for (int i = 0; i < v.size(); ++i) {
+        if (rho[i] == 1._f && v[i] != Vector(2._f, 1._f, -1._f)) {
+            allMatching = false;
+            std::cout << "Invalid velocity: " << v[i] << std::endl;
+            break;
+        }
+        if (rho[i] == 2._f && v[i] != Vector(0._f, 0._f, 1._f)) {
+            allMatching = false;
+            std::cout << "Invalid velocity: " << v[i] << std::endl;
+            break;
+        }
+    }
+    REQUIRE(allMatching);
+}
+
+TEST_CASE("Initial rotation", "[initial]") {
+    std::shared_ptr<Storage> storage = std::make_shared<Storage>();
+    InitialConditions conds(storage, GLOBAL_SETTINGS);
+    conds.addBody(
+        SphericalDomain(Vector(0._f), 1._f), BODY_SETTINGS, Vector(0._f), Vector(1._f, 3._f, -2._f));
+    ArrayView<Vector> r, v, dv;
+    tieToArray(r, v, dv) = storage->getAll<Vector>(QuantityKey::POSITIONS);
+
+    Vector axis;
+    float magnitude;
+    tieToTuple(axis, magnitude) = getNormalizedWithLength(Vector(1._f, 3._f, -2._f));
+
+    bool allMatching = true;
+    for (int i = 0; i < r.size(); ++i) {
+        const Float distFromAxis = getLength(r[i] - axis * dot(r[i], axis));
+        if (!Math::almostEqual(getLength(v[i]), distFromAxis * magnitude)) {
+            allMatching = false;
+            std::cout << "Invalid angular velocity magnitude: " << getLength(v[i]) << " / "
+                      << distFromAxis * magnitude << std::endl;
+            break;
+        }
+        if (!Math::almostEqual(dot(v[i], axis), 0._f)) {
+            allMatching = false;
+            std::cout << "Invalid angular velocity vector: " << v[i] << " / " << axis << std::endl;
+            break;
+        }
+    }
+    REQUIRE(allMatching);
 }

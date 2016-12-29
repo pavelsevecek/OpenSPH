@@ -165,6 +165,32 @@ public:
 };
 using RhoGradv = Accumulator<RhoGradvImpl>;
 
+
+/// Average direction of neighbouring particles. This results to zero vector to order O(h^2) for particles
+/// inside a body and to nonzero vector to boundary particles. Direction of the vector is an approximation of
+/// surface (inward) normal.
+class SurfaceNormalImpl {
+private:
+    ArrayView<const Vector> r;
+
+public:
+    using Type = Vector;
+
+    void update(Storage& storage) { r = storage.getValue<Vector>(QuantityKey::POSITIONS); }
+
+    INLINE Tuple<Vector, Vector> operator()(const int i, const int j, const Vector& UNUSED(grad)) const {
+        const Vector dr = r[j] - r[i];
+        const Float length = getLength(dr);
+        /// \todo don't count particles of different materials
+        if (length == 0) {
+            return { Vector(0._f), Vector(0._f) };
+        }
+        const Vector normalized = dr / length;
+        return { normalized, -normalized };
+    }
+};
+using SurfaceNormal = Accumulator<SurfaceNormalImpl>;
+
 /// Correction tensor ensuring conversion of total angular momentum to the first order.
 /// The accumulated value is an inversion of the correction C_ij, applied as multiplicative factor on velocity
 /// gradient.

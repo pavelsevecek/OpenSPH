@@ -32,17 +32,18 @@ bool MyApp::OnInit() {
 
     auto bodySettings = BODY_SETTINGS;
     bodySettings.set(BodySettingsIds::ENERGY, 0.001_f);
-    bodySettings.set(BodySettingsIds::PARTICLE_COUNT, 5000);
+    bodySettings.set(BodySettingsIds::PARTICLE_COUNT, 10000);
     InitialConditions conds(p->storage, globalSettings);
     SphericalDomain domain1(Vector(0._f), 1._f);
     conds.addBody(domain1, bodySettings);
     bodySettings.set(BodySettingsIds::PARTICLE_COUNT, 100);
     SphericalDomain domain2(Vector(2._f, 1._f, 0._f), 0.3_f);
-    conds.addBody(domain2, bodySettings);
+    conds.addBody(domain2, bodySettings, Vector(-5._f, 0._f, 0._f));
 
     GuiSettings guiSettings = GUI_SETTINGS;
     guiSettings.set<Float>(GuiSettingsIds::VIEW_FOV, 2._f);
-    window = new Window(guiSettings);
+    guiSettings.set<Float>(GuiSettingsIds::PARTICLE_RADIUS, 0.25_f);
+    window = new Window(p->storage, guiSettings);
     window->SetAutoLayout(true);
     window->Show();
 

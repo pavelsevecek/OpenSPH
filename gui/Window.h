@@ -13,9 +13,10 @@ enum class ControlIds { BUTTON_START, QUANTITY_BOX };
 class Window : public wxFrame {
 private:
     Abstract::Renderer* renderer;
+    wxComboBox* quantityBox;
 
 public:
-    Window(const GuiSettings& settings)
+    Window(const std::shared_ptr<Storage>& storage, const GuiSettings& settings)
         : wxFrame(nullptr,
                   wxID_ANY,
                   settings.get<std::string>(GuiSettingsIds::WINDOW_TITLE).c_str(),
@@ -24,15 +25,16 @@ public:
         wxBoxSizer* sizer   = new wxBoxSizer(wxVERTICAL);
         wxBoxSizer* toolbar = new wxBoxSizer(wxHORIZONTAL);
         toolbar->Add(new wxButton(this, int(ControlIds::BUTTON_START), "Start"));
-        wxString quantities[]   = { "Velocity", "Damage", "Density", "Pressure" };
-        wxComboBox* quantityBox = new wxComboBox(this,
-                                                 int(ControlIds::QUANTITY_BOX),
-                                                 "",
-                                                 wxDefaultPosition,
-                                                 wxDefaultSize,
-                                                 4,
-                                                 quantities,
-                                                 wxCB_SIMPLE | wxCB_READONLY);
+        wxString quantities[] = { "Velocity", "Damage", "Density", "Pressure" };
+        quantityBox           = new wxComboBox(this,
+                                     int(ControlIds::QUANTITY_BOX),
+                                     "",
+                                     wxDefaultPosition,
+                                     wxDefaultSize,
+                                     4,
+                                     quantities,
+                                     wxCB_SIMPLE | wxCB_READONLY);
+        this->Connect(wxEVT_COMBOBOX, wxCommandEventHandler(Window::onComboBox));
         quantityBox->SetSelection(0);
         toolbar->Add(quantityBox);
         //    this->Connect(wxEVT_BUTTON, wxCommandEventHandler(MyApp::OnButton), nullptr, window);
@@ -47,7 +49,7 @@ public:
             break;
         }
         case RendererEnum::ORTHO:
-            OrthoPane* pane = new OrthoPane(this, settings);
+            OrthoPane* pane = new OrthoPane(this, storage, settings);
             sizer->Add(pane, 1, wxEXPAND);
             renderer = pane;
             break;
@@ -57,6 +59,26 @@ public:
     }
 
     Abstract::Renderer* getRenderer() { return renderer; }
+
+private:
+    void onComboBox(wxCommandEvent& evt) {
+        const int idx = quantityBox->GetSelection();
+        switch (idx) {
+        case 0:
+            renderer->setQuantity(QuantityKey::POSITIONS);
+            break;
+        case 1:
+            renderer->setQuantity(QuantityKey::DAMAGE);
+            break;
+        case 2:
+            renderer->setQuantity(QuantityKey::DENSITY);
+            break;
+        case 3:
+            renderer->setQuantity(QuantityKey::PRESSURE);
+            break;
+        }
+        evt.Skip();
+    }
 };
 
 NAMESPACE_SPH_END

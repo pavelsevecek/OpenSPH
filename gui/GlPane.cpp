@@ -115,6 +115,10 @@ void CustomGlPane::draw(const std::shared_ptr<Storage>& storage) {
     cached.positions.pushAll(newPositions);
 }
 
+void CustomGlPane::setQuantity(const QuantityKey UNUSED(key)) {
+    NOT_IMPLEMENTED;
+}
+
 CustomGlPane::CustomGlPane(wxFrame* parent, Array<int> args)
     : wxGLCanvas(parent, wxID_ANY, &args[0], wxDefaultPosition, wxDefaultSize, wxFULL_REPAINT_ON_RESIZE)
     , sphere(7, 9) {

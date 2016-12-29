@@ -1,11 +1,11 @@
 #include "sph/initial/Initial.h"
 #include "geometry/Domain.h"
 #include "physics/Eos.h"
+#include "quantities/Quantity.h"
+#include "quantities/Storage.h"
 #include "solvers/AbstractSolver.h"
 #include "solvers/SolverFactory.h"
 #include "sph/initial/Distribution.h"
-#include "quantities/Quantity.h"
-#include "quantities/Storage.h"
 #include "system/Factory.h"
 #include "system/Profiler.h"
 
@@ -18,7 +18,10 @@ InitialConditions::InitialConditions(const std::shared_ptr<Storage> storage,
 
 InitialConditions::~InitialConditions() = default;
 
-void InitialConditions::addBody(Abstract::Domain& domain, BodySettings& bodySettings) {
+void InitialConditions::addBody(const Abstract::Domain& domain,
+    const BodySettings& bodySettings,
+    const Vector& velocity,
+    const Vector& angularVelocity) {
     Storage body(bodySettings);
     int N; // Final number of particles
     PROFILE_SCOPE("InitialConditions::addBody");
@@ -28,10 +31,17 @@ void InitialConditions::addBody(Abstract::Domain& domain, BodySettings& bodySett
 
     const int n = bodySettings.get<int>(BodySettingsIds::PARTICLE_COUNT);
     // Generate positions of particles
-    Array<Vector> r = distribution->generate(n, domain);
-    N = r.size();
-    body.emplace<Vector, OrderEnum::SECOND_ORDER>(QuantityKey::POSITIONS, std::move(r));
+    Array<Vector> positions = distribution->generate(n, domain);
+    N = positions.size();
     ASSERT(N > 0);
+    body.emplace<Vector, OrderEnum::SECOND_ORDER>(QuantityKey::POSITIONS, std::move(positions));
+
+    // Set particle velocitites
+    ArrayView<Vector> r, v, dv;
+    tieToArray(r, v, dv) = body.getAll<Vector>(QuantityKey::POSITIONS);
+    for (int i = 0; i < N; ++i) {
+        v[i] += velocity + cross(r[i], angularVelocity);
+    }
 
     // Set masses of particles, assuming all particles have the same mass
     /// \todo this has to be generalized when using nonuniform particle destribution

@@ -50,6 +50,17 @@ TEST_CASE("One sided range", "[range]") {
     REQUIRE(range3.contains(INFTY));
 }
 
+TEST_CASE("Range size", "[range]") {
+    Range range1(0._f, 5._f);
+    Range range2(NOTHING, 3._f);
+    Range range3(1._f, NOTHING);
+    Range range4(NOTHING, NOTHING);
+    REQUIRE(range1.size() == 5._f);
+    REQUIRE(range2.size() > INFTY);
+    REQUIRE(range3.size() > INFTY);
+    REQUIRE(range4.size() > INFTY);
+}
+
 TEST_CASE("Range comparison", "[range]") {
     Range range1(0._f, 2._f);
     Range range2(NOTHING, 3._f);

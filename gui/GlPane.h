@@ -66,6 +66,8 @@ public:
 
     virtual void draw(const std::shared_ptr<Storage>& storage) override;
 
+    virtual void setQuantity(const QuantityKey key) override;
+
     void drawSphere(const Vector& position,
                     const float radius,
                     const int latitudeSegments,

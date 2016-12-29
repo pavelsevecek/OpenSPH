@@ -313,8 +313,7 @@ const Settings<GlobalSettingsIds> GLOBAL_SETTINGS = {
     { GlobalSettingsIds::MODEL_DAMAGE,                  "model.damage",             int(DamageEnum::NONE) },
 
     /// SPH solvers
-    { GlobalSettingsIds::SOLVER_TYPE,                   "solver.type",              int (SolverEnum::CONTINUITY_SOLVER) },
-    { GlobalSettingsIds::SOLVER_DIMENSIONS,             "solver.dimensions",        3 },
+    { GlobalSettingsIds::SOLVER_TYPE,                   "solver.type",              int(SolverEnum::CONTINUITY_SOLVER) },
 
     /// Global SPH parameters
     { GlobalSettingsIds::SPH_KERNEL,                    "sph.kernel",               int(KernelEnum::CUBIC_SPLINE) },

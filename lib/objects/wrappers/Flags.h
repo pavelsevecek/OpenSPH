@@ -24,8 +24,9 @@ public:
     constexpr Flags(const Flags& other)
         : data(other.data) {}
 
-    constexpr Flags(const TEnum flag)
-        : data(TValue(flag)) {}
+    template <typename... TArgs>
+    constexpr Flags(const TEnum flag, const TArgs... others)
+        : data(construct(flag, others...)) {}
 
     constexpr Flags(const EmptyFlags) {}
 
@@ -63,9 +64,23 @@ public:
         }
     }
 
+    INLINE constexpr Flags<TEnum> operator|(const TEnum flag) { return Flags<TEnum>(TEnum(data), flag); }
+
 private:
     // overload with no argument ending the recursion
     INLINE constexpr bool hasAny() const { return false; }
+
+    template <typename... TArgs>
+    INLINE constexpr TValue construct(const TEnum first, const TArgs... rest) {
+        return TValue(first) | construct(rest...);
+    }
+
+    INLINE constexpr TValue construct() { return 0; }
 };
+
+template <typename TEnum, typename = std::enable_if_t<std::is_enum<TEnum>::value>>
+INLINE constexpr Flags<TEnum> operator|(const TEnum flag1, const TEnum flag2) {
+    return Flags<TEnum>(flag1, flag2);
+}
 
 NAMESPACE_SPH_END

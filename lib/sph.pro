@@ -1,21 +1,10 @@
 TEMPLATE = lib
 CONFIG += c++14 staticLib thread
 CONFIG -= app_bundle qt
-QMAKE_CXXFLAGS += -Wall -msse4.1 -mavx -std=c++14 -pthread -pg
-QMAKE_LFLAGS += -pg
-
-#CONFIG(release, debug|profile|release) {
-#  message( "Building for Release" )
-#}
-#CONFIG(profile, debug|profile|release) {
-#  message( "Building for Profile" )
-#  DEFINES += PROFILE
-#}
-#CONFIG(debug, debug|profile|release) {
-#  message( "Building for Debug" )
-#  DEFINES += DEBUG PROFILE
-#}
-
+QMAKE_CXXFLAGS += -Wall -msse4.1 -std=c++14 -pthread
+CONFIG(release, debug|release) {
+    CONFIG += optimize_full
+}
 
 SOURCES += \
     physics/TimeFormat.cpp \
@@ -32,7 +21,8 @@ SOURCES += \
     sph/boundary/Boundary.cpp \
     sph/initial/Initial.cpp \
     sph/forces/Damage.cpp \
-    objects/finders/Voxel.cpp
+    objects/finders/Voxel.cpp \
+    system/Logger.cpp
 
 HEADERS += \
     core/Globals.h \

@@ -5,6 +5,7 @@
 NAMESPACE_SPH_BEGIN
 
 void EulerExplicit::stepImpl(Abstract::Solver& solver) {
+    MEASURE_SCOPE("EulerExplicit::step");
     // clear derivatives from previous timestep
     this->storage->init();
 

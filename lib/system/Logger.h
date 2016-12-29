@@ -6,9 +6,9 @@
 
 #include "objects/Object.h"
 #include <fstream>
-#include <iostream>
 #include <set>
 #include <string>
+#include <memory>
 
 NAMESPACE_SPH_BEGIN
 
@@ -30,7 +30,7 @@ namespace Abstract {
 /// Standard output logger.
 class StdOutLogger : public Abstract::Logger {
 public:
-    virtual void write(const std::string& s) override { std::cout << s << std::endl; }
+    virtual void write(const std::string& s) override;
 };
 
 /// File output logger

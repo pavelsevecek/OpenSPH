@@ -34,6 +34,12 @@ public:
     }
 };
 
+#define MEASURE_SCOPE(name)
+    /*ScopedTimer __timer("", [](const std::string&, const uint64_t time) {
+        std::cout << name << " took " << time / 1000 << " ms" << std::endl;
+    });*/
+
+
 struct ScopeStatistics {
     std::string name;
     uint64_t totalTime; // time spent in function (in ms)
@@ -68,7 +74,6 @@ public:
     /// profile when being destroyed.
     ScopedTimer makeScopedTimer(const std::string& name) {
         return ScopedTimer(name, [this](const std::string& n, const uint64_t elapsed) {
-            ASSERT(elapsed > 0 && "too small scope to be measured");
             map[n].time += elapsed;
         });
     }
@@ -85,7 +90,7 @@ public:
 
 #ifdef PROFILE
 #define PROFILE_SCOPE(name)                                                                                  \
-    Profiler* __instance      = Profiler::getInstance();                                                     \
+    Profiler* __instance = Profiler::getInstance();                                                          \
     ScopedTimer __scopedTimer = __instance->makeScopedTimer(name);
 #define PROFILE_NEXT(name) __scopedTimer.next(name);
 #define SCOPE_STOP __scopedTimer.stop()

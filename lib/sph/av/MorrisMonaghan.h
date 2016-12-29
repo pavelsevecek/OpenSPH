@@ -58,8 +58,8 @@ public:
         Range bounds = storage.getValue<Float>(QuantityKey::AV_ALPHA).getBounds();
         for (int i = 0; i < storage.getParticleCnt(); ++i) {
             const Float tau = r[i][H] / (eps * cs[i]);
-            const Float decayTerm = -(alpha[i] - bounds.getLower()) / tau;
-            const Float sourceTerm = Math::max(-(bounds.getUpper() - alpha[i]) * divv[i], 0._f);
+            const Float decayTerm = -(alpha[i] - bounds.lower()) / tau;
+            const Float sourceTerm = Math::max(-(bounds.upper() - alpha[i]) * divv[i], 0._f);
             dalpha[i] = decayTerm + sourceTerm;
         }
     }

@@ -8,13 +8,13 @@
 
 #include "objects/containers/ArrayUtils.h"
 #include "objects/finders/AbstractFinder.h"
+#include "quantities/Iterate.h"
+#include "quantities/QuantityKey.h"
 #include "solvers/AbstractSolver.h"
 #include "sph/av/Standard.h"
 #include "sph/boundary/Boundary.h"
 #include "sph/forces/StressForce.h"
 #include "sph/kernel/Kernel.h"
-#include "quantities/Iterate.h"
-#include "quantities/QuantityKey.h"
 #include "system/Factory.h"
 #include "system/Profiler.h"
 #include "system/Settings.h"
@@ -69,8 +69,10 @@ public:
             // Find all neighbours within kernel support. Since we are only searching for particles with
             // smaller h, we know that symmetrized lengths (h_i + h_j)/2 will be ALWAYS smaller or equal to
             // h_i, and we thus never "miss" a particle.
-            this->finder->findNeighbours(
-                i, r[i][H] * this->kernel.radius(), this->neighs, FinderFlags::FIND_ONLY_SMALLER_H);
+            this->finder->findNeighbours(i,
+                r[i][H] * this->kernel.radius(),
+                this->neighs,
+                FinderFlags::FIND_ONLY_SMALLER_H | FinderFlags::PARALLELIZE);
             // iterate over neighbours
             for (const auto& neigh : this->neighs) {
                 const int j = neigh.index;
