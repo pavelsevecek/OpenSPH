@@ -41,6 +41,7 @@ TEST_CASE("LinearDistribution", "[initconds]") {
     for (int i = 0; i <= 100; ++i) {
         if (!Math::almostEqual(values[i], Vector(i / 100._f, 0._f, 0._f), 1.e-5_f)) {
             std::cout << values[i] << " == " << Vector(i / 100._f, 0._f, 0._f) << std::endl;
+            break;
             equal = false;
         }
     }

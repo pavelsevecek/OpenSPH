@@ -632,9 +632,17 @@ namespace Math {
         return getSqrLength(v1 - v2) <= Math::sqr(eps);
     }
 
-    INLINE Float norm(const Vector& v) { return getLengthApprox(v); }
+    INLINE Float norm(const Vector& v) {
+        const Float result = getLengthApprox(v);
+        ASSERT(Math::isReal(result));
+        return result;
+    }
 
-    INLINE Float normSqr(const Vector& v) { return getSqrLength(v); }
+    INLINE Float normSqr(const Vector& v) {
+        const Float result = getSqrLength(v);
+        ASSERT(Math::isReal(result));
+        return result;
+    }
 
     INLINE bool isReal(const Vector& v) {
         /// \todo optimize using SSE intrinsics

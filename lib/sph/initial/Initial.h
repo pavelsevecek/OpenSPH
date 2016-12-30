@@ -1,5 +1,6 @@
 #pragma once
 
+#include "objects/containers/ArrayView.h"
 #include "system/Settings.h"
 #include <memory>
 
@@ -31,6 +32,15 @@ public:
     /// \todo generalize for entropy solver
     void addBody(const Abstract::Domain& domain,
         const BodySettings& bodySettings,
+        const Vector& velocity = Vector(0._f),
+        const Vector& angularVelocity = Vector(0._f));
+
+    /// Creates particles composed of different materials.
+    /// \param assigner Function returning index of material for given position.
+    /// \param settings Array of settings referenced by assigner.
+    void addHeterogeneousBody(const Abstract::Domain& domain,
+        const std::function<int(const Vector&)>& assigner,
+        ArrayView<const BodySettings> settings,
         const Vector& velocity = Vector(0._f),
         const Vector& angularVelocity = Vector(0._f));
 };

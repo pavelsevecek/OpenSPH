@@ -436,7 +436,8 @@ enum class BodySettingsIds {
 
     SHEAR_MODULUS,
 
-    VON_MISES_ELASTICITY_LIMIT,
+    /// Elasticity limit of the von Mises yielding criterion
+    ELASTICITY_LIMIT,
 
     /// Speed of crack growth, in units of local sound speed.
     RAYLEIGH_SOUND_SPEED,
@@ -486,6 +487,7 @@ const Settings<BodySettingsIds> BODY_SETTINGS = {
     { BodySettingsIds::STRESS_TENSOR,           "material.stress_tensor",       TracelessTensor(0._f) },
     { BodySettingsIds::BULK_MODULUS,            "material.bulk_modulus",        2.67e10_f },
     { BodySettingsIds::SHEAR_MODULUS,           "material.shear_modulus",       2.27e10_f },
+    { BodySettingsIds::ELASTICITY_LIMIT,        "material.elasticity_limit",    3.5e9_f },
     { BodySettingsIds::RAYLEIGH_SOUND_SPEED,    "material.rayleigh_speed",      0.4_f },
     { BodySettingsIds::WEIBULL_COEFFICIENT,     "material.weibull_coefficient", 4.e35_f },
     { BodySettingsIds::WEIBULL_EXPONENT,        "material.weibull_exponent",    9._f },

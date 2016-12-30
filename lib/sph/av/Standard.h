@@ -30,12 +30,8 @@ public:
         ArrayView<const Vector> dv;
         ArrayView<const Float> u;
         tie(r, v, dv) = storage.getAll<Vector>(QuantityKey::POSITIONS);
+        // sound speed must be computed by the solver using AV
         tie(rho, cs) = storage.getValues<Float>(QuantityKey::DENSITY, QuantityKey::SOUND_SPEED);
-        u = storage.getValue<Float>(QuantityKey::ENERGY);
-        for (int i = 0; i < cs.size(); ++i) {
-            /// \todo update sound speed together with pressure
-            tieToTuple(IGNORE, cs[i]) = storage.getMaterial(i).eos->getPressure(rho[i], u[i]);
-        }
     }
 
     INLINE Float operator()(const int i, const int j) {

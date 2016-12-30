@@ -36,6 +36,17 @@ TextOutput::TextOutput(const std::string& fileMask, const std::string& runName, 
     , runName(runName)
     , columns(std::move(columns)) {}
 
+struct LinePrinter {
+    template <typename TValue>
+    void visit(Quantity& q, const int i, std::ofstream& ofs) {
+        if (q.getOrderEnum() == OrderEnum::SECOND_ORDER) {
+            ofs << std::setw(15) << q.getValue<TValue>()[i] << std::setw(15) << q.getDt<TValue>()[i];
+        } else {
+            ofs << std::setw(15) << q.getValue<TValue>()[i];
+        }
+    }
+};
+
 std::string TextOutput::dump(Storage& storage, const Float time) {
     const std::string fileName = getFileName();
     std::ofstream ofs(fileName);
@@ -50,14 +61,10 @@ std::string TextOutput::dump(Storage& storage, const Float time) {
 
     // print data lines, starting with second-order quantities
     for (int i = 0; i < storage.getParticleCnt(); ++i) {
-        iterateCustom<VisitorEnum::SECOND_ORDER>(
-            storage, columns, [i, &ofs](auto&& v, auto&& dv, auto&& UNUSED(d2v)) {
-                ofs << std::setw(15) << v[i] << std::setw(15) << dv[i];
-            });
-        iterateCustom<VisitorEnum::FIRST_ORDER>(
-            storage, columns, [i, &ofs](auto&& v, auto&& UNUSED(dv)) { ofs << std::setw(15) << v[i]; });
-        iterateCustom<VisitorEnum::ZERO_ORDER>(
-            storage, columns, [i, &ofs](auto&& v) { ofs << std::setw(15) << v[i]; });
+        for (QuantityKey key : columns) {
+            Quantity& q = storage.getQuantity(key);
+            dispatch(q.getValueEnum(), LinePrinter(), q, i, ofs);
+        }
         ofs << std::endl;
     }
     ofs.close();

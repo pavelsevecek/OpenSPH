@@ -66,7 +66,7 @@ public:
         return maxBound.get();
     }
 
-    ///Returns the size of the interval. If the interval is unbounded, returns infinity
+    /// Returns the size of the interval. If the interval is unbounded, returns infinity
     INLINE Float size() const {
         if (!minBound || !maxBound) {
             return std::numeric_limits<Float>::infinity();
@@ -82,8 +82,18 @@ public:
     }
 
     /// Negation of comparison operator
-    INLINE bool operator!=(const Range& other) const {
-        return !(*this == other);
+    INLINE bool operator!=(const Range& other) const { return !(*this == other); }
+
+    /// Multiplies lower and upper bounds of two ranges.
+    INLINE Range operator*(const Range& other) const {
+        Optional<Float> l, u;
+        if (minBound && other.minBound) {
+            l = minBound.get() * other.minBound.get();
+        }
+        if (maxBound && other.maxBound) {
+            u = maxBound.get() * other.maxBound.get();
+        }
+        return Range(l, u);
     }
 
     /// Output to stream
@@ -94,9 +104,7 @@ public:
         return stream;
     }
 
-    static Range unbounded() {
-        return Range(NOTHING, NOTHING);
-    }
+    static Range unbounded() { return Range(NOTHING, NOTHING); }
 };
 
 

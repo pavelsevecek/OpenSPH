@@ -59,7 +59,8 @@ SOURCES += \
     ../lib/system/test/Statistics.cpp \
     ../lib/objects/finders/test/Finders.cpp \
     ../lib/sph/initial/test/Initial.cpp \
-    ../lib/system/test/CallbackList.cpp
+    ../lib/system/test/CallbackList.cpp \
+    ../lib/sph/av/test/Balsara.cpp
 
 
 HEADERS += \

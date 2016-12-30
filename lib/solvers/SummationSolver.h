@@ -33,19 +33,20 @@ public:
     SummationSolver(const GlobalSettings& settings)
         : SolverBase<D>(settings)
         , Module<Force>(force)
-        , force(settings) {}
+        , force(settings) {
+        eta = settings.get<Float>(GlobalSettingsIds::SPH_KERNEL_ETA);
+    }
 
     virtual void integrate(Storage& storage) override {
         const int size = storage.getParticleCnt();
 
         ArrayView<Vector> r, v, dv;
-        ArrayView<Float> rho, drho, u, du, p, m, cs;
+        ArrayView<Float> rho, m;
         PROFILE_SCOPE("SummationSolver::compute (getters)");
 
         // fetch quantities from storage
         tie(r, v, dv) = storage.getAll<Vector>(QuantityKey::POSITIONS);
-        tie(rho, drho) = storage.getAll<Float>(QuantityKey::DENSITY);
-        // tie(p, m, cs) = storage.get<QuantityKey::P, QuantityKey::M, QuantityKey::CS>();
+        tie(rho, m) = storage.getValues<Float>(QuantityKey::DENSITY, QuantityKey::MASSES);
         ASSERT(areAllMatching(dv, [](const Vector v) { return v == Vector(0._f); }));
         this->updateModules(storage);
 
@@ -69,10 +70,7 @@ public:
         PROFILE_NEXT("SummationSolver::compute (main cycle)");
         int maxIteration = 0;
         for (int i = 0; i < size; ++i) {
-            SCOPE_STOP;
             // find neighbours
-            const Float pRhoInvSqr = p[i] / Math::sqr(rho[i]);
-            ASSERT(Math::isReal(pRhoInvSqr));
             accumulatedH[i] = r[i][H];
             Float previousRho = EPS;
             accumulatedRho[i] = rho[i];
@@ -83,7 +81,6 @@ public:
                     // smoothing length increased, we need to recompute neighbours
                     this->finder->findNeighbours(i, accumulatedH[i] * this->kernel.radius(), this->neighs);
                 }
-                SCOPE_RESUME;
                 // find density and smoothing length by self-consistent solution.
                 accumulatedRho[i] = 0._f;
                 for (const auto& neigh : this->neighs) {
@@ -107,6 +104,7 @@ public:
 
         PROFILE_NEXT("SummationSolver::compute (solvers)")
 
+        this->integrateModules(storage);
         for (int i = 0; i < size; ++i) {
             rho[i] = accumulatedRho[i];
             r[i][H] = accumulatedH[i];

@@ -23,7 +23,8 @@ SOURCES += \
     sph/forces/Damage.cpp \
     objects/finders/Voxel.cpp \
     system/Logger.cpp \
-    system/Output.cpp
+    system/Output.cpp \
+    physics/Eos.cpp
 
 HEADERS += \
     core/Globals.h \

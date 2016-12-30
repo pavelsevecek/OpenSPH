@@ -6,10 +6,10 @@
 
 #include "core/Globals.h"
 #include "core/Traits.h"
+#include <algorithm>
 #include <cstring>
 #include <math.h>
 #include <utility>
-#include <algorithm>
 
 NAMESPACE_SPH_BEGIN
 
@@ -42,14 +42,14 @@ namespace Math {
         return (f1 < f2) ? f1 : f2;
     }
 
-    template<typename T>
+    template <typename T>
     INLINE constexpr T min(const T f1, const T f2, const T f3) {
-         return std::max({f1, f2, f3});
+        return std::max({ f1, f2, f3 });
     }
 
-    template<typename T>
+    template <typename T>
     INLINE constexpr T max(const T f1, const T f2, const T f3) {
-         return std::max({f1, f2, f3});
+        return std::max({ f1, f2, f3 });
     }
 
     template <typename T>
@@ -67,7 +67,7 @@ namespace Math {
         int i;
         // cast to float
         float x2 = float(f) * 0.5f;
-        float y  = f;
+        float y = f;
         memcpy(&i, &y, sizeof(float));
         i = 0x5f3759df - (i >> 1);
         memcpy(&y, &i, sizeof(float));
@@ -79,6 +79,9 @@ namespace Math {
 
     template <typename T>
     INLINE T sqrtApprox(const T f) {
+        if (f == T(0)) {
+            return T(0);
+        }
         return T(1.f) / sqrtInv(f);
     }
 

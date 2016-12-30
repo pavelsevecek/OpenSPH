@@ -90,16 +90,21 @@ public:
 class DivvImpl {
 private:
     ArrayView<const Vector> v;
+    ArrayView<const Float> m;
+    ArrayView<const Float> rho;
 
 public:
     using Type = Float;
 
-    void update(Storage& storage) { v = storage.getAll<Vector>(QuantityKey::POSITIONS)[1]; }
+    void update(Storage& storage) {
+        tie(m, rho) = storage.getValues<Float>(QuantityKey::MASSES, QuantityKey::DENSITY);
+        v = storage.getAll<Vector>(QuantityKey::POSITIONS)[1];
+    }
 
     INLINE Tuple<Float, Float> operator()(const int i, const int j, const Vector& grad) const {
         const Float delta = dot(v[j] - v[i], grad);
         ASSERT(Math::isReal(delta));
-        return { delta, delta };
+        return { m[j] / rho[j] * delta, m[i] / rho[i] * delta };
     }
 };
 using Divv = Accumulator<DivvImpl>;
@@ -108,15 +113,19 @@ using Divv = Accumulator<DivvImpl>;
 class RotvImpl {
 private:
     ArrayView<const Vector> v;
+    ArrayView<const Float> m;
+    ArrayView<const Float> rho;
 
 public:
     using Type = Vector;
 
-    void update(Storage& storage) { v = storage.getAll<Vector>(QuantityKey::POSITIONS)[1]; }
+    void update(Storage& storage) {
+        tie(m, rho) = storage.getValues<Float>(QuantityKey::MASSES, QuantityKey::DENSITY);
+        v = storage.getAll<Vector>(QuantityKey::POSITIONS)[1];
+    }
 
     INLINE Tuple<Vector, Vector> operator()(const int i, const int j, const Vector& grad) const {
-        const Vector rot = cross(v[j] - v[i], grad);
-        return { rot, rot };
+        return { m[j] / rho[j] * cross(v[j], grad), m[i] / rho[i] * cross(v[i], -grad) };
     }
 };
 using Rotv = Accumulator<RotvImpl>;

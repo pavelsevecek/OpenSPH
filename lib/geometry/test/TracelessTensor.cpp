@@ -71,3 +71,17 @@ TEST_CASE("TracelessTensor double-dot", "[tracelesstensor]") {
     REQUIRE(ddot(t1, t3) == 36._f);
     REQUIRE(ddot(t3, t1) == 36._f);
 }
+
+TEST_CASE("TracelessTensor algebra", "[tracelesstensor]") {
+    TracelessTensor t1(5._f);
+    REQUIRE(Tensor(t1).trace() == 0._f);
+}
+
+TEST_CASE("TracelessTensor norm", "[tracelesstensor]") {
+    // norm, check that the implementation satisfies basic requirements
+    REQUIRE(Math::norm(TracelessTensor::null()) == 0._f);
+    TracelessTensor t1(Vector(1._f, 2._f, 3._f), Vector(2._f, 2._f, 4._f), Vector(3._f, 4._f, -3._f));
+    REQUIRE(Math::norm(4._f * t1) == 4._f * Math::norm(t1));
+    TracelessTensor t2(Vector(-1._f, 0._f, 1._f), Vector(0._f, -2._f, 1._f), Vector(1._f, 1._f, 3._f));
+    REQUIRE(Math::norm(t1 + t2) <= Math::norm(t1) + Math::norm(t2));
+}

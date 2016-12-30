@@ -1,5 +1,6 @@
 #include "solvers/SolverFactory.h"
 #include "solvers/ContinuitySolver.h"
+#include "solvers/DensityIndependentSolver.h"
 #include "solvers/SummationSolver.h"
 #include "sph/forces/Factory.h"
 
@@ -22,7 +23,13 @@ public:
 };
 
 std::unique_ptr<Abstract::Solver> getSolver(const GlobalSettings& settings) {
-    return dispatchStressForce(settings, ForceVisitor());
+    const SolverEnum id = settings.get<SolverEnum>(GlobalSettingsIds::SOLVER_TYPE);
+    switch (id) {
+    case SolverEnum::DENSITY_INDEPENDENT:
+        return std::make_unique<DensityIndependentSolver<DIMENSIONS>>(settings);
+    default:
+        return dispatchStressForce(settings, ForceVisitor());
+    }
 }
 
 NAMESPACE_SPH_END

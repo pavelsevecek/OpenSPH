@@ -14,14 +14,15 @@ using namespace Sph;
 
 TEST_CASE("ContinuitySolver", "[solvers]") {
     GlobalSettings globalSettings(GLOBAL_SETTINGS);
-    globalSettings.set<Float>(GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP, 1.e-2_f);
-    globalSettings.set<int>(GlobalSettingsIds::SPH_FINDER, int(FinderEnum::BRUTE_FORCE));
+    globalSettings.set(GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP, 1.e-2_f);
+    globalSettings.set(GlobalSettingsIds::SPH_FINDER, int(FinderEnum::BRUTE_FORCE));
+    globalSettings.set(GlobalSettingsIds::MODEL_FORCE_DIV_S, false);
     auto solver = getSolver(globalSettings);
 
     // set initial energy to nonzero value, to get some pressure
     BodySettings bodySettings(BODY_SETTINGS);
     bodySettings.set(BodySettingsIds::PARTICLE_COUNT, 100);
-    bodySettings.set(BodySettingsIds::ENERGY, 100._f * Constants::gasConstant); // 100K
+    bodySettings.set(BodySettingsIds::ENERGY, 1.e-4_f);
     BlockDomain domain(Vector(0._f), Vector(1._f));
     std::shared_ptr<Storage> storage = std::make_shared<Storage>(bodySettings);
     InitialConditions conds(storage, globalSettings);

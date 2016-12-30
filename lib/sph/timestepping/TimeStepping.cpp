@@ -61,7 +61,7 @@ void PredictorCorrector::stepImpl(Abstract::Solver& solver) {
 
     // clear derivatives
     this->storage->init();
-    SCOPE_STOP
+    SCOPE_STOP;
     // compute derivative
     solver.integrate(*this->storage);
     PROFILE_NEXT("PredictorCorrector::step   Corrections");

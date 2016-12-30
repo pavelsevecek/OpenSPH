@@ -2,6 +2,8 @@
 #include "physics/Eos.h"
 #include "problem/Problem.h"
 #include "solvers/ContinuitySolver.h"
+#include "solvers/DensityIndependentSolver.h"
+#include "solvers/SummationSolver.h"
 #include "sph/forces/Damage.h"
 #include "sph/forces/StressForce.h"
 #include "sph/forces/Yielding.h"
@@ -45,7 +47,7 @@ TEST_CASE("Sod", "[sod]") {
     // Global settings of the problem
     Settings<GlobalSettingsIds> globalSettings = GLOBAL_SETTINGS;
     globalSettings.set(GlobalSettingsIds::RUN_NAME, std::string("Sod Shock Tube Problem"));
-    globalSettings.set(GlobalSettingsIds::RUN_OUTPUT_STEP, 10);
+    globalSettings.set(GlobalSettingsIds::RUN_OUTPUT_STEP, 1);
     globalSettings.set(GlobalSettingsIds::DOMAIN_TYPE, DomainEnum::SPHERICAL);
     globalSettings.set(GlobalSettingsIds::DOMAIN_CENTER, Vector(0.5_f));
     globalSettings.set(GlobalSettingsIds::DOMAIN_RADIUS, 0.5_f);
@@ -55,10 +57,11 @@ TEST_CASE("Sod", "[sod]") {
     globalSettings.set(GlobalSettingsIds::SPH_AV_BETA, 2.0_f);
     globalSettings.set(GlobalSettingsIds::SPH_KERNEL_ETA, 1.5_f);
     globalSettings.set(GlobalSettingsIds::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::PREDICTOR_CORRECTOR);
-    globalSettings.set(GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP, 1.e-4_f);
+    globalSettings.set(GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP, 1.e-5_f);
     globalSettings.set(GlobalSettingsIds::TIMESTEPPING_MAX_TIMESTEP, 1.e-1_f);
     globalSettings.set(GlobalSettingsIds::TIMESTEPPING_COURANT, 0.1_f);
     globalSettings.set(GlobalSettingsIds::TIMESTEPPING_ADAPTIVE, true);
+    globalSettings.set(GlobalSettingsIds::SOLVER_TYPE, SolverEnum::SUMMATION_SOLVER);
     globalSettings.set(GlobalSettingsIds::MODEL_FORCE_GRAD_P, true);
     globalSettings.set(GlobalSettingsIds::MODEL_FORCE_DIV_S, false);
     // Number of SPH particles
@@ -71,13 +74,15 @@ TEST_CASE("Sod", "[sod]") {
     bodySettings.set(BodySettingsIds::DENSITY_RANGE, Range(0.05_f, NOTHING));
     bodySettings.set(BodySettingsIds::ENERGY_RANGE, Range(0.05_f, NOTHING));
     bodySettings.set(BodySettingsIds::DENSITY, 1._f);
+    bodySettings.set(BodySettingsIds::ENERGY, 2.5_f);
 
     // Construct solver used in Sod shock tube
     Problem sod(globalSettings);
     InitialConditions initialConditions(sod.storage, globalSettings);
     initialConditions.addBody(SphericalDomain(Vector(0.5_f), 0.5_f), bodySettings);
-    sod.solver = std::make_unique<ContinuitySolver<StressForce<DummyYielding, DummyDamage, StandardAV>, 1>>(
-        globalSettings);
+    sod.solver = std::make_unique<SummationSolver<StressForce<DummyYielding, DummyDamage, StandardAV>, 1>>(globalSettings);
+    /// \todo hack, recreate solver with 1 dimension
+    //sod.solver = std::make_unique<DensityIndependentSolver<1>>(globalSettings);
 
     // Solving to t = 0.5
     sod.timeRange = Range(0._f, 0.5_f);
@@ -138,9 +143,22 @@ TEST_CASE("Sod", "[sod]") {
             smoothingFunc(r[i][0], 1._f, 0.125_f), smoothingFunc(r[i][0], 1._f, 0.1_f));
     }
 
-    // 5) setup used timestepping algorithm (this needs to be done after all quantities are allocated)
+    // 5) compute energy per particle and energy density if we are using DISPH
+    /// \todo this should be somehow computed automatically
+    if (globalSettings.get<SolverEnum>(GlobalSettingsIds::SOLVER_TYPE) == SolverEnum::DENSITY_INDEPENDENT) {
+        ArrayView<Float> q, e;
+        tie(q, e)= storage.getValues<Float>(QuantityKey::ENERGY_DENSITY, QuantityKey::ENERGY_PER_PARTICLE);
+        for (int i = 0; i < N; ++i) {
+            // update 'internal' quantities in case 'external' quantities (density, specific energy, ...) have
+            // been changed outside of the solver.
+            q[i] = rho[i] * u[i];
+            e[i] = m[i] * u[i];
+        }
+    }
+
+    // 6) setup used timestepping algorithm (this needs to be done after all quantities are allocated)
     sod.timeStepping = Factory::getTimestepping(globalSettings, sod.storage);
 
-    // 6) run the main loop
+    // 7) run the main loop
     sod.run();
 }

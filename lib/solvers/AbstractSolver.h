@@ -1,8 +1,8 @@
 #pragma once
 
 #include "objects/Object.h"
-#include "sph/kernel/Kernel.h"
 #include "quantities/Storage.h"
+#include "sph/kernel/Kernel.h"
 #include "system/Factory.h"
 #include "system/Profiler.h"
 #include "system/Settings.h"
@@ -25,6 +25,9 @@ namespace Abstract {
         ///        be set to zero (this is responsibility of TimeStepping).
         virtual void integrate(Storage& storage) = 0;
 
+        /// Initialize all quantities needed by the solver in the storage. When called, storage must already
+        /// contain particle positions and their masses. All remaining quantities must be created by the
+        /// solver.
         virtual void initialize(Storage& storage, const BodySettings& settings) const = 0;
     };
 }

@@ -50,8 +50,9 @@ public:
 
     INLINE void integrate(Storage& storage) { this->integrateModules(storage); }
 
-    /// \todo implement swapping of accumulated values with stored quantities
     INLINE Float operator()(const int i, const int j) { return 0.5_f * (get(i) + get(j)) * av(i, j); }
+
+
 
 private:
     INLINE Float get(const int i) {

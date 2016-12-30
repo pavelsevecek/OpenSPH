@@ -40,8 +40,8 @@ public:
             });
 
         // Courant criterion
-        ArrayView<Vector> r=storage.getValue<Vector>(QuantityKey::POSITIONS);
-        ArrayView<Float> cs=storage.getValue<Float>(QuantityKey::SOUND_SPEED);
+        ArrayView<Vector> r = storage.getValue<Vector>(QuantityKey::POSITIONS);
+        ArrayView<Float> cs = storage.getValue<Float>(QuantityKey::SOUND_SPEED);
         /// \todo AV contribution?
         for (int i = 0; i < r.size(); ++i) {
             minStep = Math::min(minStep, courant * r[i][H] / cs[i]);

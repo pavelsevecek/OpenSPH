@@ -10,6 +10,6 @@ TEST_CASE("Dumping data", "[output]") {
     storage.emplace<Vector, OrderEnum::SECOND_ORDER>(
         QuantityKey::POSITIONS, makeArray(Vector(0._f), Vector(1._f), Vector(2._f)));
     storage.emplace<Float, OrderEnum::FIRST_ORDER>(QuantityKey::DENSITY, 5._f);
-    TextOutput output("tmp%d.out", "Output", { QuantityKey::POSITIONS, QuantityKey::DENSITY });
+    TextOutput output("tmp%d.out", "Output", { QuantityKey::DENSITY, QuantityKey::POSITIONS });
     output.dump(storage, 0);
 }

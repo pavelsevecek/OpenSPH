@@ -145,6 +145,8 @@ public:
             return getSqrLength(off) - (diag[1] * diag[2] + diag[2] * diag[0] + diag[0] * diag[1]);
         case 3:
             return determinant();
+        default:
+            STOP;
         }
     }
 
@@ -190,6 +192,7 @@ namespace Math {
     /// \todo Use some well-defined norm instead? (spectral norm, L1 or L2 norm, ...)
     INLINE Float norm(const Tensor& t) {
         const Vector v = Math::max(t.diagonal(), t.offDiagonal());
+        ASSERT(Math::isReal(v));
         return norm(v);
     }
 

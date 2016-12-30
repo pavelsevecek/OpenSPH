@@ -75,6 +75,15 @@ TEST_CASE("Tensor algebra", "[tensor]") {
     REQUIRE(outer(Vector(-1._f, -4._f, 6._f), Vector(5._f, -3._f, -2._f)) == rhs);
 }
 
+TEST_CASE("Tensor norm", "[tensor]") {
+    // norm, check that the implementation satisfies basic requirements
+    REQUIRE(Math::norm(Tensor::null()) == 0._f);
+    Tensor t1(Vector(2._f, 1._f, -1._f), Vector(2._f, 3._f, -4._f));
+    REQUIRE(Math::norm(4._f * t1) == 4._f * Math::norm(t1));
+    Tensor t2(Vector(1._f, 2._f, 3._f), Vector(-1._f, -2._f, -3._f));
+    REQUIRE(Math::norm(t1+t2) <= Math::norm(t1) +Math::norm(t2));
+}
+
 TEST_CASE("Predefined tensors", "[tensor]") {
     Tensor id = Tensor::identity();
     REQUIRE(id == Tensor(Vector(1, 0, 0), Vector(0, 1, 0), Vector(0, 0, 1)));
@@ -83,4 +92,14 @@ TEST_CASE("Predefined tensors", "[tensor]") {
     Tensor zero = Tensor::null();
     REQUIRE(zero == Tensor(Vector(0, 0, 0), Vector(0, 0, 0), Vector(0, 0, 0)));
     REQUIRE(zero * Vector(2._f, 5._f, 7._f) == Vector(0._f, 0._f, 0._f));
+}
+
+TEST_CASE("Tensor trace", "[tensor]") {
+    Tensor t(Vector(1._f, 2._f, 3._f), Vector(-1._f, -2._f, -3._f));
+    REQUIRE(t.trace() == 6._f);
+
+    REQUIRE(Tensor::identity().trace() == 3);
+    REQUIRE(Tensor::null().trace() == 0);
+
+    REQUIRE((t - Tensor::identity() * t.trace() / 3._f).trace() == 0);
 }
