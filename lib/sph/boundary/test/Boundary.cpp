@@ -30,9 +30,9 @@ public:
         }
     }
 
-    virtual void project(ArrayView<Vector> vs, ArrayView<int> indices = nullptr) const {
+    virtual void project(ArrayView<Vector> vs, Optional<ArrayView<int>> indices = NOTHING) const {
         if (indices) {
-            for (int i : indices) {
+            for (int i : indices.get()) {
                 vs[i][X] = Math::max(0._f, vs[i][X]);
             }
         } else {
@@ -42,9 +42,9 @@ public:
         }
     }
 
-    virtual void invert(ArrayView<Vector> vs, ArrayView<int> indices = nullptr) const {
+    virtual void invert(ArrayView<Vector> vs, Optional<ArrayView<int>> indices = NOTHING) const {
         if (indices) {
-            for (int i : indices) {
+            for (int i : indices.get()) {
                 vs[i][X] *= -1;
             }
         } else {
@@ -69,7 +69,7 @@ TEST_CASE("GhostParticles wall", "[boundary]") {
             Vector(1._f, 1._f, 1._f, 1._f),             // has ghost
             Vector(2.5_f, 0._f, 5._f, 1._f) });         // does not have ghost
     ArrayView<Vector> r, v, dv;
-    tieToArray(r, v, dv) = storage.getAll<Vector>(QuantityKey::POSITIONS);
+    tie(r, v, dv) = storage.getAll<Vector>(QuantityKey::POSITIONS);
     // add some velocities, the x-coordinate of the corresponding ghost should be inverted by the boundary
     // conditions
     v[0] = Vector(-1._f, 1._f, 1._f);
@@ -80,7 +80,7 @@ TEST_CASE("GhostParticles wall", "[boundary]") {
         QuantityKey::DENSITY, Array<Float>{ 3._f, 5._f, 2._f, 1._f, 3._f, 4._f, 10._f });
 
     boundaryConditions.apply(storage);
-    tieToArray(r, v, dv) = storage.getAll<Vector>(QuantityKey::POSITIONS);
+    tie(r, v, dv) = storage.getAll<Vector>(QuantityKey::POSITIONS);
     REQUIRE(makeArray(r.size(), v.size(), dv.size()) == makeArray(12, 12, 12));
     REQUIRE(r[7] == Vector(-1.5_f, 1._f, 3._f));
     REQUIRE(r[8] == Vector(-0.5_f, 2._f, -1._f));
@@ -101,7 +101,7 @@ TEST_CASE("GhostParticles wall", "[boundary]") {
 
     // subsequent calls shouldn't change result
     boundaryConditions.apply(storage);
-    tieToArray(r, v, dv) = storage.getAll<Vector>(QuantityKey::POSITIONS);
+    tie(r, v, dv) = storage.getAll<Vector>(QuantityKey::POSITIONS);
     REQUIRE(makeArray(r.size(), v.size(), dv.size()) == makeArray(12, 12, 12));
     REQUIRE(r[7] == Vector(-1.5_f, 1._f, 3._f));
     REQUIRE(Math::almostEqual(v[7], Vector(1._f, 1._f, 1._f), 1.e-3_f));
@@ -121,7 +121,7 @@ TEST_CASE("GhostParticles Sphere", "[boundary]") {
     }
     storage.emplace<Vector, OrderEnum::SECOND_ORDER>(QuantityKey::POSITIONS, std::move(particles));
     ArrayView<Vector> r, v, dv;
-    tieToArray(r, v, dv) = storage.getAll<Vector>(QuantityKey::POSITIONS);
+    tie(r, v, dv) = storage.getAll<Vector>(QuantityKey::POSITIONS);
     VectorRng<UniformRng> rng;
     // randomize velocities
     for (Vector& q : v) {
@@ -131,7 +131,7 @@ TEST_CASE("GhostParticles Sphere", "[boundary]") {
     const int ghostIdx = r.size();
     GhostParticles boundaryConditions(std::make_unique<SphericalDomain>(Vector(0._f), 2._f), GLOBAL_SETTINGS);
     boundaryConditions.apply(storage);
-    tieToArray(r, v, dv) = storage.getAll<Vector>(QuantityKey::POSITIONS);
+    tie(r, v, dv) = storage.getAll<Vector>(QuantityKey::POSITIONS);
     REQUIRE(r.size() == 2 * ghostIdx); // ghost for each particle
     bool allSymmetric = true;
     for (int i = 0; i < ghostIdx; ++i) {
@@ -166,4 +166,57 @@ TEST_CASE("GhostParticles Sphere", "[boundary]") {
         }
     }
     REQUIRE(allSymmetric);
+}
+
+TEST_CASE("GhostParticles Sphere Projection", "[boundary]") {
+    Storage storage;
+    Array<Vector> particles;
+    // two spherical layers of particles
+    for (Float phi = 0._f; phi < 2._f * Math::PI; phi += 0.1_f) {
+        for (Float theta = 0._f; theta < Math::PI; theta += 0.1_f) {
+            Vector v = spherical(1.9_f, theta, phi);
+            v[H] = 0.1_f;
+            particles.push(v);
+            v = spherical(0.9_f, theta, phi);
+            v[H] = 0.1_f;
+            particles.push(v);
+        }
+    }
+    storage.emplace<Vector, OrderEnum::SECOND_ORDER>(QuantityKey::POSITIONS, std::move(particles));
+    ArrayView<Vector> r = storage.getValue<Vector>(QuantityKey::POSITIONS);
+    const int ghostIdx = r.size();
+    const int halfSize = ghostIdx >> 1;
+    GhostParticles boundaryConditions(std::make_unique<SphericalDomain>(Vector(0._f), 2._f), GLOBAL_SETTINGS);
+    boundaryConditions.apply(storage);
+    r = storage.getValue<Vector>(QuantityKey::POSITIONS);
+    REQUIRE(r.size() == halfSize * 3); // only layer with r=1.9 creates ghost particles
+    bool allMatching = true;
+    for (int i = 0; i < ghostIdx; ++i) {
+        if (i % 2 == 0) {
+            if (!Math::almostEqual(getLength(r[i]), 1.9_f)) {
+                std::cout << "Invalid particle position: " << getLength(r[i]) << " / 1.9" << std::endl;
+                allMatching = false;
+                break;
+            }
+        } else {
+            if (!Math::almostEqual(getLength(r[i]), 0.9_f)) {
+                std::cout << "Invalid particle position: " << getLength(r[i]) << " / 0.9" << std::endl;
+                allMatching = false;
+                break;
+            }
+        }
+    }
+    REQUIRE(allMatching);
+}
+
+TEST_CASE("GhostParticles empty", "[boundary]") {
+    Storage storage;
+    Array<Vector> particles;
+    particles.push(Vector(1._f, 0._f, 0._f, 0.1_f));
+    storage.emplace<Vector, OrderEnum::SECOND_ORDER>(QuantityKey::POSITIONS, std::move(particles));
+    GhostParticles boundaryConditions(std::make_unique<SphericalDomain>(Vector(0._f), 2._f), GLOBAL_SETTINGS);
+    boundaryConditions.apply(storage);
+    ArrayView<Vector> r = storage.getValue<Vector>(QuantityKey::POSITIONS);
+    REQUIRE(r.size() == 1);
+    REQUIRE(r[0] == Vector(1._f, 0._f, 0._f));
 }

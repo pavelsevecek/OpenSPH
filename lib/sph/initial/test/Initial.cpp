@@ -20,8 +20,8 @@ TEST_CASE("Initial conditions", "[initial]") {
     iterate<VisitorEnum::ALL_BUFFERS>(*storage, [size](auto&& array) { REQUIRE(array.size() == size); });
 
     ArrayView<Float> rhos, us, drhos, dus;
-    tieToArray(rhos, drhos) = storage->getAll<Float>(QuantityKey::DENSITY);
-    tieToArray(us, dus) = storage->getAll<Float>(QuantityKey::ENERGY);
+    tie(rhos, drhos) = storage->getAll<Float>(QuantityKey::DENSITY);
+    tie(us, dus) = storage->getAll<Float>(QuantityKey::ENERGY);
     bool result = areAllMatching(rhos, [](const Float f) {
         return f == 2700._f; // density of 2700km/m^3
     });
@@ -81,7 +81,7 @@ TEST_CASE("Initial rotation", "[initial]") {
     conds.addBody(
         SphericalDomain(Vector(0._f), 1._f), BODY_SETTINGS, Vector(0._f), Vector(1._f, 3._f, -2._f));
     ArrayView<Vector> r, v, dv;
-    tieToArray(r, v, dv) = storage->getAll<Vector>(QuantityKey::POSITIONS);
+    tie(r, v, dv) = storage->getAll<Vector>(QuantityKey::POSITIONS);
 
     Vector axis;
     float magnitude;

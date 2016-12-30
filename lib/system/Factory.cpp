@@ -23,7 +23,7 @@ std::unique_ptr<Abstract::Eos> Factory::getEos(const BodySettings& settings) {
 }
 
 std::unique_ptr<Abstract::TimeStepping> Factory::getTimestepping(const GlobalSettings& settings,
-                                                                 const std::shared_ptr<Storage>& storage) {
+    const std::shared_ptr<Storage>& storage) {
     const TimesteppingEnum id = settings.get<TimesteppingEnum>(GlobalSettingsIds::TIMESTEPPING_INTEGRATOR);
     switch (id) {
     case TimesteppingEnum::EULER_EXPLICIT:
@@ -77,28 +77,35 @@ std::unique_ptr<Abstract::Domain> Factory::getDomain(const GlobalSettings& setti
         return nullptr;
     case DomainEnum::BLOCK:
         return std::make_unique<BlockDomain>(center, settings.get<Vector>(GlobalSettingsIds::DOMAIN_SIZE));
+    case DomainEnum::CYLINDER:
+        return std::make_unique<CylindricalDomain>(center,
+            settings.get<Float>(GlobalSettingsIds::DOMAIN_RADIUS),
+            settings.get<Float>(GlobalSettingsIds::DOMAIN_HEIGHT),
+            false);
     case DomainEnum::SPHERICAL:
-        return std::make_unique<SphericalDomain>(center,
-                                                 settings.get<Float>(GlobalSettingsIds::DOMAIN_RADIUS));
+        return std::make_unique<SphericalDomain>(
+            center, settings.get<Float>(GlobalSettingsIds::DOMAIN_RADIUS));
     default:
         NOT_IMPLEMENTED;
     }
 }
 
-std::unique_ptr<Abstract::BoundaryConditions> Factory::getBoundaryConditions(
-    const GlobalSettings& settings,
+std::unique_ptr<Abstract::BoundaryConditions> Factory::getBoundaryConditions(const GlobalSettings& settings,
     std::unique_ptr<Abstract::Domain>&& domain) {
     const BoundaryEnum id = settings.get<BoundaryEnum>(GlobalSettingsIds::DOMAIN_BOUNDARY);
     switch (id) {
     case BoundaryEnum::NONE:
         return nullptr;
+    case BoundaryEnum::GHOST_PARTICLES:
+        ASSERT(domain != nullptr);
+        return std::make_unique<GhostParticles>(std::move(domain), settings);
     case BoundaryEnum::DOMAIN_PROJECTING:
         ASSERT(domain != nullptr);
         return std::make_unique<DomainProjecting>(std::move(domain), ProjectingOptions::ZERO_PERPENDICULAR);
     case BoundaryEnum::PROJECT_1D: {
         ASSERT(domain != nullptr);
         const Vector center = domain->getCenter();
-        const Float radius  = domain->getBoundingRadius();
+        const Float radius = domain->getBoundingRadius();
         return std::make_unique<Projection1D>(Range(center[0] - radius, center[0] + radius));
     }
     default:

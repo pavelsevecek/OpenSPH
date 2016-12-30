@@ -7,28 +7,23 @@
 
 NAMESPACE_SPH_BEGIN
 
-class TimeStepGetter : public Object {
+class TimeStep : public Object {
 private:
-    std::shared_ptr<Storage> storage;
-    ArrayView<Vector> r;
-    ArrayView<Float> cs;
     Float factor;
     Float courant;
 
 public:
-    TimeStepGetter(const std::shared_ptr<Storage>& storage, const GlobalSettings& settings)
-        : storage(storage) {
+    TimeStep(const GlobalSettings& settings) {
         factor = settings.get<Float>(GlobalSettingsIds::TIMESTEPPING_ADAPTIVE_FACTOR);
         courant = settings.get<Float>(GlobalSettingsIds::TIMESTEPPING_COURANT);
     }
 
-
     /// Returns the time step based on ratio between quantities and their derivatives
-    virtual Float operator()(const Float maxStep) const {
-        PROFILE_SCOPE("StepGetter::operator()");
+    Float get(Storage& storage, const Float maxStep) const {
+        PROFILE_SCOPE("TimeStep::get");
         Float minStep = INFTY;
         // Find highest step from ratios 'value/derivative'
-        iterate<VisitorEnum::FIRST_ORDER>(*storage, [this, &minStep](auto&& v, auto&& dv) {
+        iterate<VisitorEnum::FIRST_ORDER>(storage, [this, &minStep](auto&& v, auto&& dv) {
             ASSERT(v.size() == dv.size());
             for (int i = 0; i < v.size(); ++i) {
                 if (Math::normSqr(dv[i]) != 0._f) {
@@ -38,7 +33,15 @@ public:
                 }
             }
         });
+        /// \todo currently hard-coded for positions only
+        iterate<VisitorEnum::SECOND_ORDER>(
+            storage, [this, &minStep](auto&& v, auto&& UNUSED(dv), auto&& d2v) {
+                minStep = Math::min(minStep, this->cond2ndOrder(v, d2v));
+            });
+
         // Courant criterion
+        ArrayView<Vector> r=storage.getValue<Vector>(QuantityKey::POSITIONS);
+        ArrayView<Float> cs=storage.getValue<Float>(QuantityKey::SOUND_SPEED);
         /// \todo AV contribution?
         for (int i = 0; i < r.size(); ++i) {
             minStep = Math::min(minStep, courant * r[i][H] / cs[i]);
@@ -46,6 +49,26 @@ public:
 
         // Make sure the step is lower than largest allowed step
         minStep = Math::min(minStep, maxStep);
+        return minStep;
+    }
+
+private:
+    template <typename TArray>
+    Float cond2ndOrder(TArray&&, TArray&&) const {
+        NOT_IMPLEMENTED;
+    }
+
+    Float cond2ndOrder(LimitedArray<Vector>& v, LimitedArray<Vector>& d2v) const {
+        ASSERT(v.size() == d2v.size());
+        Float minStep = INFTY;
+        for (int i = 0; i < v.size(); ++i) {
+            const Float d2vNorm = Math::normSqr(d2v[i]);
+            if (d2vNorm != 0._f) {
+                const Float step = Math::root<4>(Math::sqr(v[i][H]) / d2vNorm);
+                minStep = Math::min(minStep, step);
+                ASSERT(Math::isReal(minStep) && minStep > 0._f && minStep < INFTY);
+            }
+        }
         return minStep;
     }
 };

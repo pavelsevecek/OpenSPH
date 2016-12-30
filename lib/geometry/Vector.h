@@ -205,7 +205,7 @@ public:
         constexpr int digits = 6;
         stream << std::fixed << std::setprecision(digits);
         for (int i = 0; i < 3; ++i) {
-            stream << std::fixed << std::setprecision(digits) << v[i] << (i < 2 ? "  " : "");
+            stream << std::setw(15) << std::fixed << std::setprecision(digits) << v[i];
         }
         return stream;
     }

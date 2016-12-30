@@ -22,7 +22,8 @@ SOURCES += \
     sph/initial/Initial.cpp \
     sph/forces/Damage.cpp \
     objects/finders/Voxel.cpp \
-    system/Logger.cpp
+    system/Logger.cpp \
+    system/Output.cpp
 
 HEADERS += \
     core/Globals.h \

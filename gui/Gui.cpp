@@ -25,24 +25,30 @@ void MyApp::OnButton(wxCommandEvent& evt) {
 
 bool MyApp::OnInit() {
     auto globalSettings = GLOBAL_SETTINGS;
+    globalSettings.set(GlobalSettingsIds::DOMAIN_BOUNDARY, BoundaryEnum::GHOST_PARTICLES);
+    globalSettings.set(GlobalSettingsIds::DOMAIN_RADIUS, 2.5_f);
+    globalSettings.set(GlobalSettingsIds::DOMAIN_TYPE, DomainEnum::SPHERICAL);
+    /*globalSettings.set(GlobalSettingsIds::MODEL_DAMAGE, DamageEnum::SCALAR_GRADY_KIPP);
+    globalSettings.set(GlobalSettingsIds::MODEL_YIELDING, YieldingEnum::VON_MISES);*/
     Problem* p          = new Problem(globalSettings);
     p->logger           = std::make_unique<StdOutLogger>();
     p->timeRange        = Range(0._f, 1000._f);
     p->timeStepping     = Factory::getTimestepping(globalSettings, p->storage);
 
     auto bodySettings = BODY_SETTINGS;
-    bodySettings.set(BodySettingsIds::ENERGY, 0.001_f);
+    bodySettings.set(BodySettingsIds::ENERGY, 1.e-6_f);
     bodySettings.set(BodySettingsIds::PARTICLE_COUNT, 10000);
+    bodySettings.set(BodySettingsIds::EOS, EosEnum::TILLOTSON);
     InitialConditions conds(p->storage, globalSettings);
     SphericalDomain domain1(Vector(0._f), 1._f);
-    conds.addBody(domain1, bodySettings);
-    bodySettings.set(BodySettingsIds::PARTICLE_COUNT, 100);
-    SphericalDomain domain2(Vector(2._f, 1._f, 0._f), 0.3_f);
-    conds.addBody(domain2, bodySettings, Vector(-5._f, 0._f, 0._f));
+    conds.addBody(domain1, bodySettings, Vector(0.5_f, 0._f, 0._f));
+    //bodySettings.set(BodySettingsIds::PARTICLE_COUNT, 100);
+    //SphericalDomain domain2(Vector(2._f, 1._f, 0._f), 0.3_f);
+    //conds.addBody(domain2, bodySettings, Vector(-5._f, 0._f, 0._f));
 
     GuiSettings guiSettings = GUI_SETTINGS;
     guiSettings.set<Float>(GuiSettingsIds::VIEW_FOV, 2._f);
-    guiSettings.set<Float>(GuiSettingsIds::PARTICLE_RADIUS, 0.25_f);
+    guiSettings.set<Float>(GuiSettingsIds::PARTICLE_RADIUS, 0.5_f);
     window = new Window(p->storage, guiSettings);
     window->SetAutoLayout(true);
     window->Show();

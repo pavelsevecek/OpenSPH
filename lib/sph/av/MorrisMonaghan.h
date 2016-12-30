@@ -6,9 +6,9 @@
 /// Pavel Sevecek 2016
 /// sevecek at sirrah.troja.mff.cuni.cz
 
+#include "quantities/Storage.h"
 #include "solvers/Accumulator.h"
 #include "solvers/Module.h"
-#include "quantities/Storage.h"
 #include "system/Settings.h"
 
 NAMESPACE_SPH_BEGIN
@@ -38,9 +38,9 @@ public:
 
     void update(Storage& storage) {
         ArrayView<Vector> dv;
-        tieToArray(r, v, dv) = storage.getAll<Vector>(QuantityKey::POSITIONS);
-        tieToArray(alpha, dalpha) = storage.getAll<Float>(QuantityKey::AV_ALPHA);
-        tieToArray(beta, dbeta) = storage.getAll<Float>(QuantityKey::AV_BETA);
+        tie(r, v, dv) = storage.getAll<Vector>(QuantityKey::POSITIONS);
+        tie(alpha, dalpha) = storage.getAll<Float>(QuantityKey::AV_ALPHA);
+        tie(beta, dbeta) = storage.getAll<Float>(QuantityKey::AV_BETA);
         cs = storage.getValue<Float>(QuantityKey::SOUND_SPEED);
         rho = storage.getValue<Float>(QuantityKey::DENSITY);
         // always keep beta = 2*alpha

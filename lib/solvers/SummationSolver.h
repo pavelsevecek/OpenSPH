@@ -4,13 +4,13 @@
 /// sevecek at sirrah.troja.mff.cuni.cz
 
 #include "objects/Object.h"
+#include "quantities/QuantityKey.h"
 #include "solvers/AbstractSolver.h"
 #include "solvers/Accumulator.h"
 #include "sph/av/Standard.h"
 #include "sph/boundary/Boundary.h"
 #include "sph/forces/StressForce.h"
 #include "sph/kernel/Kernel.h"
-#include "quantities/QuantityKey.h"
 #include "system/Profiler.h"
 #include "system/Settings.h"
 
@@ -43,12 +43,11 @@ public:
         PROFILE_SCOPE("SummationSolver::compute (getters)");
 
         // fetch quantities from storage
-        tieToArray(r, v, dv) = storage.getAll<Vector>(QuantityKey::POSITIONS);
-        tieToArray(rho, drho) = storage.getAll<Float>(QuantityKey::DENSITY);
-        tieToArray(u, du) = storage.getAll<Float>(QuantityKey::ENERGY);
+        tie(r, v, dv) = storage.getAll<Vector>(QuantityKey::POSITIONS);
+        tie(rho, drho) = storage.getAll<Float>(QuantityKey::DENSITY);
         // tie(p, m, cs) = storage.get<QuantityKey::P, QuantityKey::M, QuantityKey::CS>();
         ASSERT(areAllMatching(dv, [](const Vector v) { return v == Vector(0._f); }));
-        force.update(storage);
+        this->updateModules(storage);
 
         PROFILE_NEXT("SummationSolver::compute (init)");
         accumulatedRho.resize(r.size());
@@ -61,9 +60,6 @@ public:
         for (Float& h : componentAdapter(r, H)) {
             h = Math::max(h, 1.e-12_f);
         }
-
-        // find new pressure
-        //        this->computeMaterial(storage);
 
         this->finder->build(r);
 
@@ -105,7 +101,7 @@ public:
                 ASSERT(dot(grad, r[i] - r[j]) <= 0._f);
 
                 // compute forces (accelerations) + artificial viscosity
-                force.accumulate(i, j, grad);
+                this->accumulateModules(i, j, grad);
             }
         }
 

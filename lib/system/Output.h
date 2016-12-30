@@ -29,7 +29,7 @@ namespace Abstract {
 
     protected:
         std::string getFileName() const {
-            std::string name         = fileMask;
+            std::string name = fileMask;
             std::string::size_type n = fileMask.find("%d", 0);
             ASSERT(n != std::string::npos);
             std::ostringstream ss;
@@ -42,50 +42,14 @@ namespace Abstract {
 
 /// Output saving data to text (human readable) file.
 class TextOutput : public Abstract::Output {
+private:
+    std::string runName;
+    Array<QuantityKey> columns;
+
 public:
-    TextOutput(const std::string& fileMask)
-        : Abstract::Output(fileMask) {}
+    TextOutput(const std::string& fileMask, const std::string& runName, Array<QuantityKey>&& columns);
 
-    /// \todo rewrite in less retarded way
-    virtual std::string dump(Storage& storage, const Float time) override {
-        const std::string fileName = getFileName();
-        std::ofstream ofs(fileName);
-        // print description
-        ofs << "# SPH dump, time = " << time << std::endl;
-        ofs << "# ";
-        for (auto&& q : storage) {
-            if (q.second.getOrderEnum() == OrderEnum::SECOND_ORDER) {
-                ofs << std::setw(15) << getQuantityName(q.first) << std::setw(15)
-                    << getDerivativeName(q.first);
-            }
-        }
-        for (auto&& q : storage) {
-            if (q.second.getOrderEnum() == OrderEnum::FIRST_ORDER) {
-                ofs << std::setw(15) << getQuantityName(q.first);
-            }
-        }
-        for (auto&& q : storage) {
-            if (q.second.getOrderEnum() == OrderEnum::ZERO_ORDER) {
-                ofs << std::setw(15) << getQuantityName(q.first);
-            }
-        }
-        ofs << std::endl;
-
-        // print data lines, starting with second-order quantities
-        for (int i = 0; i < storage.getParticleCnt(); ++i) {
-            iterate<VisitorEnum::SECOND_ORDER>(storage, [i, &ofs](auto&& v, auto&& dv, auto&& UNUSED(d2v)) {
-                ofs << std::setw(15) << v[i] << std::setw(15) << dv[i];
-            });
-            iterate<VisitorEnum::FIRST_ORDER>(storage, [i, &ofs](auto&& v, auto&& UNUSED(dv)) {
-                ofs << std::setw(15) << v[i];
-            });
-            iterate<VisitorEnum::ZERO_ORDER>(storage, [i, &ofs](auto&& v) { ofs << std::setw(15) << v[i]; });
-            ofs << std::endl;
-        }
-        ofs.close();
-        this->dumpNum++;
-        return fileName;
-    }
+    virtual std::string dump(Storage& storage, const Float time) override;
 
     virtual void load(const std::string& UNUSED(path), Storage& UNUSED(storage)) override { NOT_IMPLEMENTED; }
 };
@@ -96,18 +60,14 @@ private:
     std::string scriptPath;
 
 public:
-    GnuplotOutput(const std::string& fileMask, const std::string& scriptPath)
-        : TextOutput(fileMask)
+    GnuplotOutput(const std::string& fileMask,
+        const std::string& runName,
+        Array<QuantityKey>&& columns,
+        const std::string& scriptPath)
+        : TextOutput(fileMask, runName, std::move(columns))
         , scriptPath(scriptPath) {}
 
-    virtual std::string dump(Storage& storage, const Float time) override {
-        const std::string fileName       = TextOutput::dump(storage, time);
-        const std::string nameWithoutExt = fileName.substr(0, fileName.find_last_of("."));
-        const std::string command        = "gnuplot -e \"filename='" + nameWithoutExt + "'; time=" +
-                                    std::to_string(time) + "\" " + scriptPath;
-        system(command.c_str());
-        return fileName;
-    }
+    virtual std::string dump(Storage& storage, const Float time) override;
 };
 
 

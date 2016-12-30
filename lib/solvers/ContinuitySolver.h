@@ -41,9 +41,9 @@ public:
         const int size = storage.getParticleCnt();
 
         ArrayView<Vector> r, v, dv;
-        tieToArray(r, v, dv) = storage.getAll<Vector>(QuantityKey::POSITIONS);
+        tie(r, v, dv) = storage.getAll<Vector>(QuantityKey::POSITIONS);
         ArrayView<Float> m, rho, drho;
-        tieToArray(rho, drho) = storage.getAll<Float>(QuantityKey::DENSITY);
+        tie(rho, drho) = storage.getAll<Float>(QuantityKey::DENSITY);
         m = storage.getValue<Float>(QuantityKey::MASSES);
         // Check that quantities are valid
         ASSERT(areAllMatching(dv, [](const Vector v) { return v == Vector(0._f); }));

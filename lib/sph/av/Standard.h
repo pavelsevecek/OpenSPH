@@ -6,10 +6,10 @@
 /// Pavel Sevecek 2016
 /// sevecek at sirrah.troja.mff.cuni.cz
 
+#include "physics/Eos.h"
 #include "quantities/Storage.h"
 #include "system/Factory.h"
 #include "system/Settings.h"
-#include "physics/Eos.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -29,8 +29,8 @@ public:
     void update(Storage& storage) {
         ArrayView<const Vector> dv;
         ArrayView<const Float> u;
-        tieToArray(r, v, dv) = storage.getAll<Vector>(QuantityKey::POSITIONS);
-        tieToArray(rho, cs) = storage.getValues<Float>(QuantityKey::DENSITY, QuantityKey::SOUND_SPEED);
+        tie(r, v, dv) = storage.getAll<Vector>(QuantityKey::POSITIONS);
+        tie(rho, cs) = storage.getValues<Float>(QuantityKey::DENSITY, QuantityKey::SOUND_SPEED);
         u = storage.getValue<Float>(QuantityKey::ENERGY);
         for (int i = 0; i < cs.size(); ++i) {
             /// \todo update sound speed together with pressure

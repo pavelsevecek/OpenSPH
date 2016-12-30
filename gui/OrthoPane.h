@@ -19,7 +19,7 @@ private:
     std::shared_ptr<Storage> storage;
     Array<int> displayedIdxs;
     QuantityKey quantity = QuantityKey::POSITIONS;
-    ArrayView<Vector> positions;
+    Array<Vector> positions;
     Array<Color> colors;
     Palette palette;
     GuiSettings settings;

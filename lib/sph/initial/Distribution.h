@@ -56,8 +56,9 @@ public:
         const Float center = domain.getCenter()[X];
         const Float radius = domain.getBoundingRadius();
         Array<Vector> vs(0, n);
-        const Float dx = (2._f * radius - EPS) / Float(n - 1);
-        for (Float x = center - radius; x <= center + radius; x += dx) {
+        const Float dx = 2._f * radius / (n - 1);
+        for (int i = 0; i < n; ++i) {
+            const Float x = center - radius + (2._f * radius) / (n - 1);
             vs.push(Vector(x, 0._f, 0._f, 1.5_f * dx)); // smoothing length = interparticle distance
         }
         return vs;

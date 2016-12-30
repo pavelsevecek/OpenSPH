@@ -95,7 +95,7 @@ void GhostParticles::apply(Storage& storage) {
         r.push(ghost);
     }
     // 2) invert created vectors with a respect to the boundary
-    domain->invert(r, ghostIdxs);
+    domain->invert(r, ghostIdxs.getView());
 
     // 3) copy all quantities on ghosts
     GhostFunctor functor{ idxs, ghostIdxs, *domain };
@@ -109,11 +109,11 @@ DomainProjecting::DomainProjecting(std::unique_ptr<Abstract::Domain>&& domain,
     , options(options) {}
 
 void DomainProjecting::apply(Storage& storage) {
-    ArrayView<Vector> r, v;
-    tieToArray(r, v) = storage.getAll<Vector>(QuantityKey::POSITIONS);
+    ArrayView<Vector> r, v, dv;
+    tie(r, v, dv) = storage.getAll<Vector>(QuantityKey::POSITIONS);
     // check which particles are outside of the domain
     domain->getSubset(r, outside, SubsetType::OUTSIDE);
-    domain->project(r, outside);
+    domain->project(r, outside.getView());
     vproj.clear();
     int idx = 0;
     switch (options) {
@@ -153,7 +153,7 @@ Projection1D::Projection1D(const Range& domain)
 
 void Projection1D::apply(Storage& storage) {
     ArrayView<Vector> dv;
-    tieToArray(r, v, dv) = storage.getAll<Vector>(QuantityKey::POSITIONS);
+    tie(r, v, dv) = storage.getAll<Vector>(QuantityKey::POSITIONS);
     for (int i = 0; i < r.size(); ++i) {
         // throw away y and z, keep h
         r[i] = Vector(domain.clamp(r[i][0]), 0._f, 0._f, r[i][H]);

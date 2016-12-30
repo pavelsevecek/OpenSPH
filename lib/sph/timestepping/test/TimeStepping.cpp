@@ -1,7 +1,7 @@
 #include "sph/timestepping/TimeStepping.h"
 #include "catch.hpp"
-#include "solvers/AbstractSolver.h"
 #include "quantities/Storage.h"
+#include "solvers/AbstractSolver.h"
 #include <iostream>
 
 using namespace Sph;
@@ -18,7 +18,7 @@ struct TestSolver : public Abstract::Solver {
 
     virtual void integrate(Storage& storage) override {
         ArrayView<Vector> r, v, dv;
-        tieToArray(r, v, dv) = storage.getAll<Vector>(QuantityKey::POSITIONS);
+        tie(r, v, dv) = storage.getAll<Vector>(QuantityKey::POSITIONS);
         Float omega = 2._f * Math::PI / period;
         for (int i = 0; i < r.size(); ++i) {
             dv[i] = -Math::sqr(omega) * r[i];
@@ -39,7 +39,7 @@ void testTimestepping(TArgs&&... args) {
         QuantityKey::POSITIONS, Array<Vector>{ Vector(1._f, 0._f, 0._f) });
 
     ArrayView<const Vector> r, v, dv;
-    tieToArray(r, v, dv) = storage->getAll<Vector>(QuantityKey::POSITIONS);
+    tie(r, v, dv) = storage->getAll<Vector>(QuantityKey::POSITIONS);
     TTimestepping timestepping(storage, std::forward<TArgs>(args)...);
     int n;
     for (float t = 0.f; t < 3.f; t += timestepping.getTimeStep()) {

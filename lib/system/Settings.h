@@ -287,8 +287,11 @@ enum class GlobalSettingsIds {
     /// Center point of the domain
     DOMAIN_CENTER,
 
-    /// Radius of a spherical domain
+    /// Radius of a spherical and cylindrical domain
     DOMAIN_RADIUS,
+
+    /// Height of a cylindrical domain
+    DOMAIN_HEIGHT,
 
     /// (Vector) size of a block domain
     DOMAIN_SIZE,
@@ -338,6 +341,7 @@ const Settings<GlobalSettingsIds> GLOBAL_SETTINGS = {
     { GlobalSettingsIds::DOMAIN_BOUNDARY,               "domain.boundary",          int(BoundaryEnum::NONE) },
     { GlobalSettingsIds::DOMAIN_CENTER,                 "domain.center",            Vector(0._f) },
     { GlobalSettingsIds::DOMAIN_RADIUS,                 "domain.radius",            1._f },
+    { GlobalSettingsIds::DOMAIN_HEIGHT,                 "domain.height",            1._f },
     { GlobalSettingsIds::DOMAIN_SIZE,                   "domain.size",              Vector(1._f) },
 };
 // clang-format on

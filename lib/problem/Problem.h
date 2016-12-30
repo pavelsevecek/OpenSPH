@@ -27,6 +27,9 @@ NAMESPACE_SPH_BEGIN
 
 
 class Problem : public Noncopyable {
+private:
+    int outputEvery;
+
 public:
     /// Logging
     std::unique_ptr<Abstract::Logger> logger;
@@ -56,15 +59,17 @@ public:
     Problem(const GlobalSettings& settings)
         : storage(std::make_shared<Storage>()) {
         solver = getSolver(settings);
+        outputEvery = settings.get<int>(GlobalSettingsIds::RUN_OUTPUT_STEP);
     }
 
     void run() {
         int i = 0;
 
-        /// \todo don't use global settings ...
-        const int outputEvery = GLOBAL_SETTINGS.get<int>(GlobalSettingsIds::RUN_OUTPUT_STEP);
-
         for (Float& t : rangeAdapter(timeRange, timeStepping->getTimeStep())) {
+            if (callbacks) {
+                callbacks->onTimeStep(storage);
+            }
+
             const Float dt = timeStepping->getTimeStep();
             t += dt;
 
@@ -81,10 +86,6 @@ public:
 
             // Make time step
             timeStepping->step(*solver);
-
-            if (callbacks) {
-                callbacks->onTimeStep(storage);
-            }
         }
     }
 };

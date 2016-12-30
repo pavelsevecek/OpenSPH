@@ -52,6 +52,7 @@ void OrthoPane::onMouseMotion(wxMouseEvent& evt) {
 void OrthoPane::draw(const std::shared_ptr<Storage>& newStorage) {
     MEASURE_SCOPE("OrthoPane::draw");
     storage = newStorage;
+    update();
     displayedIdxs.clear();
     const Float cutoff = settings.get<Float>(GuiSettingsIds::ORTHO_CUTOFF);
     for (int i = 0; i < positions.size(); ++i) {
@@ -59,13 +60,14 @@ void OrthoPane::draw(const std::shared_ptr<Storage>& newStorage) {
             displayedIdxs.push(i);
         }
     }
-    update();
+    this->Refresh();
 }
 
 void OrthoPane::update() {
     MEASURE_SCOPE("OrthoPane::update");
     ASSERT(storage);
-    positions = storage->getValue<Vector>(QuantityKey::POSITIONS);
+    /// \todo copy, avoid allocation
+    positions = storage->getValue<Vector>(QuantityKey::POSITIONS).clone();
     colors.clear();
     switch (quantity) {
     case QuantityKey::POSITIONS: {
@@ -99,7 +101,6 @@ void OrthoPane::update() {
     default:
         NOT_IMPLEMENTED;
     }
-    this->Refresh();
 }
 
 void OrthoPane::setQuantity(const QuantityKey key) {
@@ -123,6 +124,7 @@ void OrthoPane::setQuantity(const QuantityKey key) {
     }
     palette = Palette::forQuantity(key, range);
     update();
+    this->Refresh();
 }
 
 

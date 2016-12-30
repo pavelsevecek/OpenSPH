@@ -38,7 +38,7 @@ void InitialConditions::addBody(const Abstract::Domain& domain,
 
     // Set particle velocitites
     ArrayView<Vector> r, v, dv;
-    tieToArray(r, v, dv) = body.getAll<Vector>(QuantityKey::POSITIONS);
+    tie(r, v, dv) = body.getAll<Vector>(QuantityKey::POSITIONS);
     for (int i = 0; i < N; ++i) {
         v[i] += velocity + cross(r[i], angularVelocity);
     }

@@ -75,25 +75,28 @@ public:
         const Float eta   = rho / rho0;
         const Float mu    = eta - 1._f;
         const Float denom = u / (u0 * eta * eta) + 1._f;
-
+        ASSERT(Math::isReal(denom));
+        ASSERT(Math::isReal(eta));
         // compressed phase
         const Float pc = (a + b / denom) * rho * u + A * mu + B * mu * mu;
         Float dpdu     = a * rho + b * rho / Math::sqr(denom);
         Float dpdrho =
             a * u + b * u * (3._f * denom - 2._f) / Math::sqr(denom) + A / rho0 + 2._f * B * mu / rho0;
         const Float csc = dpdrho + dpdu * pc / (rho * rho);
+        ASSERT(Math::isReal(csc));
 
         // expanded phase
         const Float rhoExp   = rho0 / rho - 1._f;
-        const Float betaExp  = A * mu * Math::exp(-beta * rhoExp);
+        const Float betaExp  = Math::exp(-beta * rhoExp);
         const Float alphaExp = Math::exp(-alpha * Math::sqr(rhoExp));
-        const Float pe = a * rho * u + (b * rho * u / denom + betaExp) * alphaExp;
+        const Float pe = a * rho * u + (b * rho * u / denom + A * mu * betaExp) * alphaExp;
         dpdu = a * rho + alphaExp * b * rho / Math::sqr(denom);
         dpdrho =
             a * u + alphaExp * (b * u * (3._f * denom - 2._f) / Math::sqr(denom)) +
             alphaExp * (b * u * rho / denom) * rho0 * (2._f * alpha * rhoExp) / Math::sqr(rho) +
-            alphaExp * betaExp * (1._f / (rho0 * mu) + rho0 / Math::sqr(rho) * (2._f * alpha * rhoExp + beta));
+            alphaExp * A * betaExp * (1._f / rho0 + rho0 * mu / Math::sqr(rho) * (2._f * alpha * rhoExp + beta));
         const Float cse = dpdrho + dpdu * pe / (rho * rho);
+        ASSERT(Math::isReal(cse));
 
         // select phase based on internal energy
         Float p, cs;
@@ -107,6 +110,7 @@ public:
             p  = ((u - uiv) * pe + (ucv - u) * pc) / (ucv - uiv);
             cs = ((u - uiv) * cse + (ucv - u) * csc) / (ucv - uiv);
         }
+        ASSERT(Math::isReal(p) && Math::isReal(cs));
         return makeTuple(p, cs);
     }
 

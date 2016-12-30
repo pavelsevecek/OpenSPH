@@ -60,8 +60,8 @@ public:
     StaticArray& operator=(StaticArray&& other) = default;
 
     /// Assignment operator for array of references on left-hand side. Can be used as std::tie.
-    template <typename U, typename = std::enable_if_t<std::is_lvalue_reference<T>::value, U>>
-    StaticArray& operator=(StaticArray<U, N>&& other) {
+    template <typename U, int M, typename = std::enable_if_t<std::is_lvalue_reference<T>::value, U>>
+    StaticArray& operator=(StaticArray<U, M>&& other) {
         ASSERT(this->size() == other.size());
         for (int i = 0; i < other.size(); ++i) {
             (*this)[i] = std::move(other[i]);
@@ -132,13 +132,29 @@ public:
         actSize = newSize;
     }
 
-    Iterator<T> begin() { return Iterator<T>(rawData(), rawData(), rawData() + actSize); }
+    INLINE Iterator<StorageType> begin() {
+        return Iterator<StorageType>(rawData(), rawData(), rawData() + actSize);
+    }
 
-    Iterator<const T> begin() const { return Iterator<T>(rawData(), rawData(), rawData() + actSize); }
+    INLINE Iterator<const StorageType> begin() const {
+        return Iterator<const StorageType>(rawData(), rawData(), rawData() + actSize);
+    }
 
-    Iterator<T> end() { return Iterator<T>(rawData() + actSize, rawData(), rawData() + actSize); }
+    INLINE Iterator<const StorageType> cbegin() const {
+        return Iterator<const StorageType>(rawData(), rawData(), rawData() + actSize);
+    }
 
-    Iterator<const T> end() const { return Iterator<T>(rawData() + actSize, rawData(), rawData() + actSize); }
+    INLINE Iterator<StorageType> end() {
+        return Iterator<StorageType>(rawData() + actSize, rawData(), rawData() + actSize);
+    }
+
+    INLINE Iterator<const StorageType> end() const {
+        return Iterator<const StorageType>(rawData() + actSize, rawData(), rawData() + actSize);
+    }
+
+    INLINE Iterator<const StorageType> cend() const {
+        return Iterator<const StorageType>(rawData() + actSize, rawData(), rawData() + actSize);
+    }
 
     operator ArrayView<T>() { return ArrayView<T>(rawData(), actSize); }
 
@@ -152,14 +168,14 @@ private:
 /// allocated size of the array and the number of constructed elements equal to the number of parameters.
 template <typename T0, typename... TArgs>
 StaticArray<T0, sizeof...(TArgs) + 1> makeStatic(T0&& t0, TArgs&&... rest) {
-    return StaticArray<T0, sizeof...(TArgs) + 1>({std::forward<T0>(t0), std::forward<TArgs>(rest)...});
+    return StaticArray<T0, sizeof...(TArgs) + 1>({ std::forward<T0>(t0), std::forward<TArgs>(rest)... });
 }
 
 /// Creates a static array from a list of l-value references. All parameters must have the same type. Both the
 /// allocated size of the array and the number of constructed elements equal to the number of parameters.
 template <typename T0, typename... TArgs>
-StaticArray<T0&, sizeof...(TArgs) + 1> tieToStatic(T0& t0, TArgs&... rest) {
-    return StaticArray<T0&, sizeof...(TArgs) + 1>({t0, rest...});
+StaticArray<T0&, sizeof...(TArgs) + 1> tie(T0& t0, TArgs&... rest) {
+    return StaticArray<T0&, sizeof...(TArgs) + 1>({ t0, rest... });
 }
 
 NAMESPACE_SPH_END

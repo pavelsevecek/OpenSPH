@@ -44,10 +44,10 @@ public:
     StressForce(StressForce&& other) = default;
 
     void update(Storage& storage) {
-        tieToArray(rho, m) = storage.getValues<Float>(QuantityKey::DENSITY, QuantityKey::MASSES);
-        tieToArray(u, du) = storage.getAll<Float>(QuantityKey::ENERGY);
+        tie(rho, m) = storage.getValues<Float>(QuantityKey::DENSITY, QuantityKey::MASSES);
+        tie(u, du) = storage.getAll<Float>(QuantityKey::ENERGY);
         ArrayView<Vector> r;
-        tieToArray(r, v, dv) = storage.getAll<Vector>(QuantityKey::POSITIONS);
+        tie(r, v, dv) = storage.getAll<Vector>(QuantityKey::POSITIONS);
         if (flags.has(Options::USE_GRAD_P)) {
             p = storage.getValue<Float>(QuantityKey::PRESSURE);
             cs = storage.getValue<Float>(QuantityKey::SOUND_SPEED);
@@ -57,7 +57,7 @@ public:
             }
         }
         if (flags.has(Options::USE_DIV_S)) {
-            tieToArray(s, ds) = storage.getAll<TracelessTensor>(QuantityKey::DEVIATORIC_STRESS);
+            tie(s, ds) = storage.getAll<TracelessTensor>(QuantityKey::DEVIATORIC_STRESS);
         }
         this->updateModules(storage);
     }
@@ -128,6 +128,7 @@ public:
             storage.emplace<TracelessTensor, OrderEnum::FIRST_ORDER>(QuantityKey::DEVIATORIC_STRESS,
                 settings.get<TracelessTensor>(BodySettingsIds::STRESS_TENSOR));
         }
+        this->initializeModules(storage, settings);
     }
 
 private:

@@ -34,6 +34,10 @@ TEST_CASE("Tillotson", "[eos]") {
     REQUIRE(Math::almostEqual(p, -883133952._f));
     REQUIRE(Math::almostEqual(cs, 7.89542707e9_f));
 
+    tieToTuple(p, cs) = eos.getPressure(2.7_f, 1.e7_f);
+    REQUIRE(Math::almostEqual(p, 13900990._f));
+    REQUIRE(Math::almostEqual(cs, 9.89690573e9_f));
+
     tieToTuple(p, cs) = eos.getPressure(2.8_f, 1.e7_f);
     REQUIRE(Math::almostEqual(p, 1.03996064e9_f));
     REQUIRE(Math::almostEqual(cs, 1.08126444e10_f));

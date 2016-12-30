@@ -22,7 +22,7 @@ void ScalarDamage::initialize(Storage& storage, const BodySettings& settings) co
     storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityKey::EXPLICIT_GROWTH, 0._f);
     storage.emplace<int, OrderEnum::ZERO_ORDER>(QuantityKey::N_FLAWS, 0);
     ArrayView<Float> rho, m, eps_min, m_zero, growth;
-    tieToArray(rho, m, eps_min, m_zero, growth) = storage.getValues<Float>(QuantityKey::DENSITY,
+    tie(rho, m, eps_min, m_zero, growth) = storage.getValues<Float>(QuantityKey::DENSITY,
         QuantityKey::MASSES,
         QuantityKey::EPS_MIN,
         QuantityKey::M_ZERO,
@@ -86,17 +86,15 @@ void ScalarDamage::initialize(Storage& storage, const BodySettings& settings) co
 
 void ScalarDamage::integrate(Storage& storage) {
     ArrayView<TracelessTensor> s = storage.getValue<TracelessTensor>(QuantityKey::DEVIATORIC_STRESS);
-    ArrayView<Float> p, eps_min, m_zero, n_flaws, growth;
-    tieToArray(p, eps_min, m_zero, n_flaws, growth) = storage.getValues<Float>(QuantityKey::PRESSURE,
-        QuantityKey::EPS_MIN,
-        QuantityKey::M_ZERO,
-        QuantityKey::N_FLAWS,
-        QuantityKey::EXPLICIT_GROWTH);
+    ArrayView<Float> p, eps_min, m_zero, growth;
+    tie(p, eps_min, m_zero, growth) = storage.getValues<Float>(
+        QuantityKey::PRESSURE, QuantityKey::EPS_MIN, QuantityKey::M_ZERO, QuantityKey::EXPLICIT_GROWTH);
+    ArrayView<int> n_flaws = storage.getValue<int>(QuantityKey::N_FLAWS);
     ArrayView<Float> ddamage = storage.getAll<Float>(QuantityKey::DAMAGE)[1];
     for (int i = 0; i < p.size(); ++i) {
         Tensor sigma = yielding(reduce(s[i], i), i) - reduce(p[i], i) * Tensor::identity();
         float sig1, sig2, sig3;
-        tieToStatic(sig1, sig2, sig3) = findEigenvalues(sigma);
+        tie(sig1, sig2, sig3) = findEigenvalues(sigma);
         float sigMax = Math::max(sig1, sig2, sig3);
         const Float young = reduce(storage.getMaterial(i).youngModulus, i);
         const Float strain = sigMax / young;
@@ -104,7 +102,7 @@ void ScalarDamage::integrate(Storage& storage) {
         if (ratio <= 1._f) {
             continue;
         }
-        ddamage[i] = growth[i] * Math::root<3>(Math::min(Math::pow(ratio, m_zero[i]), n_flaws[i]));
+        ddamage[i] = growth[i] * Math::root<3>(Math::min(Math::pow(ratio, m_zero[i]), Float(n_flaws[i])));
     }
 }
 

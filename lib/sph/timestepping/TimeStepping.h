@@ -6,8 +6,8 @@
 
 #include "geometry/Vector.h"
 #include "objects/containers/Array.h"
-#include "sph/timestepping/Step.h"
 #include "quantities/Storage.h"
+#include "sph/timestepping/Step.h"
 #include <memory>
 
 NAMESPACE_SPH_BEGIN
@@ -34,7 +34,7 @@ namespace Abstract {
         std::shared_ptr<Storage> storage;
         Float dt;
         Float maxdt;
-        Optional<TimeStepGetter> getter;
+        Optional<TimeStep> adaptiveStep;
 
     public:
         TimeStepping(const std::shared_ptr<Storage>& storage, const GlobalSettings& settings)
@@ -42,7 +42,7 @@ namespace Abstract {
             dt = settings.get<Float>(GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP);
             maxdt = settings.get<Float>(GlobalSettingsIds::TIMESTEPPING_MAX_TIMESTEP);
             if (settings.get<bool>(GlobalSettingsIds::TIMESTEPPING_ADAPTIVE)) {
-                getter.emplace(storage, settings);
+                adaptiveStep.emplace(settings);
             }
         }
 
@@ -51,8 +51,8 @@ namespace Abstract {
         void step(Abstract::Solver& solver) {
             this->stepImpl(solver);
             // update time step
-            if (getter) {
-                this->dt = getter.get()(this->maxdt);
+            if (adaptiveStep) {
+                this->dt = adaptiveStep->get(*storage, this->maxdt);
             }
         }
 

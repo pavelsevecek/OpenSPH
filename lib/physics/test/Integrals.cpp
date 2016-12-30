@@ -9,7 +9,7 @@ TEST_CASE("Total momentum", "[integrals]") {
     storage.emplace<Vector, OrderEnum::SECOND_ORDER>(
         QuantityKey::POSITIONS, Array<Vector>{ Vector(1._f, 0._f, 0._f), Vector(0._f, 2._f, 0._f) });
     ArrayView<Vector> r, v, dv;
-    tieToArray(r, v, dv) = storage.getAll<Vector>(QuantityKey::POSITIONS);
+    tie(r, v, dv) = storage.getAll<Vector>(QuantityKey::POSITIONS);
     v[0] = Vector(0._f, 2._f, 0._f);
     v[1] = Vector(0._f, 3._f, 0._f);
 

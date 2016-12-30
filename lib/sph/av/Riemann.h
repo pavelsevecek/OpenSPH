@@ -23,7 +23,7 @@ public:
 
     void update(Storage& storage) {
         ArrayView<Vector> dv;
-        tieToArray(r, v, dv) = storage.getAll<Vector>(QuantityKey::POSITIONS);
+        tie(r, v, dv) = storage.getAll<Vector>(QuantityKey::POSITIONS);
         cs = storage.getValue<Float>(QuantityKey::SOUND_SPEED);
         rho = storage.getValue<Float>(QuantityKey::SOUND_SPEED);
     }

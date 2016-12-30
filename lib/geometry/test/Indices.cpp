@@ -29,10 +29,8 @@ TEST_CASE("Indices comparison", "[indices]") {
     Indices i1(1, 2, 3, 5);
     Indices i2(1, 2, 3, 7);
     Indices i3(1, -1, 3, 5);
-    Indices i4(0, 2, 3, 5);
     Indices i12 = i1 == i2;
     Indices i13 = i1 == i3;
-    Indices i14 = i1 == i4;
 
     REQUIRE(i12[0]);
     REQUIRE(i12[1]);

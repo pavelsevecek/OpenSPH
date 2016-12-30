@@ -23,12 +23,18 @@ protected:
     using TValue = typename UnwrapReferenceType<T>::Type;
 
     T* data;
+#ifdef DEBUG
     const T *begin, *end;
+#endif
 
     Iterator(T* data, const T* begin, const T* end)
         : data(data)
+#ifdef DEBUG
         , begin(begin)
-        , end(end) {}
+        , end(end)
+#endif
+    {
+    }
 
 
 public:
@@ -36,12 +42,12 @@ public:
 
     const TValue& operator*() const {
         ASSERT(data >= begin);
-        ASSERT(data <= end);
+        ASSERT(data < end);
         return *data;
     }
     TValue& operator*() {
         ASSERT(data >= begin);
-        ASSERT(data <= end);
+        ASSERT(data < end);
         return *data;
     }
     Iterator operator+(const TCounter n) const { return Iterator(data + n, begin, end); }
@@ -76,10 +82,10 @@ public:
 
 
     using iterator_category = std::random_access_iterator_tag;
-    using value_type        = T;
-    using difference_type   = size_t;
-    using pointer           = T*;
-    using reference         = T&;
+    using value_type = T;
+    using difference_type = size_t;
+    using pointer = T*;
+    using reference = T&;
 };
 
 
@@ -101,7 +107,7 @@ public:
         : data(data)
         , actSize(size) {}
 
-    explicit ArrayView(std::initializer_list<StorageType> list)
+    ArrayView(std::initializer_list<StorageType> list)
         : data(&*list.begin())
         , actSize(list.size()) {}
 
@@ -121,7 +127,7 @@ public:
 
     /// Copy operator
     ArrayView& operator=(const ArrayView& other) {
-        this->data    = other.data;
+        this->data = other.data;
         this->actSize = other.actSize;
         return *this;
     }

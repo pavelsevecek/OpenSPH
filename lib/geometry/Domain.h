@@ -58,14 +58,14 @@ namespace Abstract {
         /// \param vs Array of vectors we want to project
         /// \param indices Optional array of indices. If passed, only selected vectors will be projected. All
         ///        vectors are projected by default.
-        virtual void project(ArrayView<Vector> vs, ArrayView<int> indices = nullptr) const = 0;
+        virtual void project(ArrayView<Vector> vs, Optional<ArrayView<int>> indices = NOTHING) const = 0;
 
         /// Inverts positions of vectors with a respect to the boundary. Projected vectors shall have the same
         /// distance to the boundary as the input vectors.
         /// \param vs Array of vectors we want to invert
         /// \param indices Optional array of indices. If passed, only selected vectors will be inverted. All
         ///        vectors are inverted by default.
-        virtual void invert(ArrayView<Vector> vs, ArrayView<int> indices = nullptr) const = 0;
+        virtual void invert(ArrayView<Vector> vs, Optional<ArrayView<int>> indices = NOTHING) const = 0;
 
         /// \todo function for transforming block [0, 1]^d into the domain?
     };
@@ -117,7 +117,7 @@ public:
         }
     }
 
-    virtual void project(ArrayView<Vector> vs, ArrayView<int> indices = nullptr) const override {
+    virtual void project(ArrayView<Vector> vs, Optional<ArrayView<int>> indices = NOTHING) const override {
         Float radius = Math::sqrt(radiusSqr);
         auto impl = [this, radius](Vector& v) {
             if (!isInsideImpl(v)) {
@@ -125,7 +125,7 @@ public:
             }
         };
         if (indices) {
-            for (int i : indices) {
+            for (int i : indices.get()) {
                 impl(vs[i]);
             }
         } else {
@@ -135,7 +135,7 @@ public:
         }
     }
 
-    virtual void invert(ArrayView<Vector> vs, ArrayView<int> indices = nullptr) const override {
+    virtual void invert(ArrayView<Vector> vs, Optional<ArrayView<int>> indices = NOTHING) const override {
         Float radius = Math::sqrt(radiusSqr);
         auto impl = [this, radius](Vector& v) {
             Float length;
@@ -144,7 +144,7 @@ public:
             return v + 2._f * (radius - length) * normalized;
         };
         if (indices) {
-            for (int i : indices) {
+            for (int i : indices.get()) {
                 vs[i] = impl(vs[i]);
             }
         } else {
@@ -198,14 +198,14 @@ public:
         NOT_IMPLEMENTED;
     }
 
-    virtual void project(ArrayView<Vector> vs, ArrayView<int> indices = nullptr) const override {
+    virtual void project(ArrayView<Vector> vs, Optional<ArrayView<int>> indices = NOTHING) const override {
         auto impl = [this](Vector& v) {
             if (!box.contains(v)) {
                 v = box.clamp(v);
             }
         };
         if (indices) {
-            for (int i : indices) {
+            for (int i : indices.get()) {
                 impl(vs[i]);
             }
         } else {
@@ -216,7 +216,7 @@ public:
     }
 
     virtual void invert(ArrayView<Vector> UNUSED(vs),
-        ArrayView<int> UNUSED(indices) = nullptr) const override {
+        Optional<ArrayView<int>> UNUSED(indices) = NOTHING) const override {
         NOT_IMPLEMENTED;
     }
 };
@@ -269,7 +269,7 @@ public:
         }
     }
 
-    virtual void project(ArrayView<Vector> vs, ArrayView<int> indices = nullptr) const override {
+    virtual void project(ArrayView<Vector> vs, Optional<ArrayView<int>> indices = NOTHING) const override {
         Float radius = Math::sqrt(radiusSqr);
         auto impl = [this, radius](Vector& v) {
             if (!isInsideImpl(v)) {
@@ -279,7 +279,7 @@ public:
         };
         ASSERT(!includeBases); // including bases not implemented
         if (indices) {
-            for (int i : indices) {
+            for (int i : indices.get()) {
                 impl(vs[i]);
             }
         } else {
@@ -289,7 +289,7 @@ public:
         }
     }
 
-    virtual void invert(ArrayView<Vector> vs, ArrayView<int> indices = nullptr) const override {
+    virtual void invert(ArrayView<Vector> vs, Optional<ArrayView<int>> indices = NOTHING) const override {
         Float radius = Math::sqrt(radiusSqr);
         auto impl = [this, radius](Vector& v) {
             Float length;
@@ -300,7 +300,7 @@ public:
         };
         ASSERT(!includeBases); // including bases not implemented
         if (indices) {
-            for (int i : indices) {
+            for (int i : indices.get()) {
                 vs[i] = impl(vs[i]);
             }
         } else {
