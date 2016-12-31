@@ -31,6 +31,10 @@ public:
         ASSERT(!lower || !upper || lower.get() <= upper.get());
     }
 
+    INLINE Range(const Range& other)
+        : minBound(other.minBound)
+        , maxBound(other.maxBound) {}
+
     /// Extends the interval to contain given value. If the value is already inside the interval, nothing
     /// changes.
     INLINE void extend(const Float value) {
@@ -119,7 +123,7 @@ namespace Math {
         return range.clamp(v);
     }
     template <>
-    INLINE int clamp(const int& v, const Range& range) {
+    INLINE Size clamp(const Size& v, const Range& range) {
         return range.clamp(v);
     }
 }

@@ -27,12 +27,13 @@ Array<Vector> sodDistribution(const int N, Float dx, const Float eta, Abstract::
     Array<Vector> x(N);
     do {
         float actX = 0.f;
-        for (int i = 0; i < x.size(); ++i) {
+        for (Size i = 0; i < x.size(); ++i) {
             x[i][0] = actX;
             const float actDx = smoothingFunc(x[i][0], dx, dx / 0.125_f);
             actX += actDx;
             x[i][H] = eta * actDx;
         }
+        ASSERT(x.size() > 0);
         if (x[x.size() - 1][0] > 1._f) {
             dx -= 0.001_f / N;
         } else {
@@ -108,7 +109,7 @@ TEST_CASE("Sod", "[sod]") {
     ArrayView<Float> p, m;
     r = storage.getValue<Vector>(QuantityKey::POSITIONS);
     tie(p, m) = storage.getValues<Float>(QuantityKey::PRESSURE, QuantityKey::MASSES);
-    for (int i = 0; i < N; ++i) {
+    for (Size i = 0; i < N; ++i) {
         p[i] = smoothingFunc(r[i][0], 1._f, 0.1_f);
         // mass = 1/N *integral density * dx
         m[i] = 0.5_f * (1._f + 0.125_f) / N;
@@ -120,7 +121,7 @@ TEST_CASE("Sod", "[sod]") {
     LutKernel<1> kernel = Factory::getKernel<1>(globalSettings);
     Array<NeighbourRecord> neighs;
     ArrayView<Float> rho = storage.getValue<Float>(QuantityKey::DENSITY);
-    for (int i = 0; i < N; ++i) {
+    for (Size i = 0; i < N; ++i) {
         if (r[i][X] < 0.25_f) {
             rho[i] = 1._f;
         } else if (r[i][X] > 0.75_f) {
@@ -128,8 +129,8 @@ TEST_CASE("Sod", "[sod]") {
         } else {
             finder->findNeighbours(i, r[i][H] * kernel.radius(), neighs);
             rho[i] = 0._f;
-            for (int n = 0; n < neighs.size(); ++n) {
-                const int j = neighs[n].index;
+            for (Size n = 0; n < neighs.size(); ++n) {
+                const Size j = neighs[n].index;
                 rho[i] += m[j] * kernel.value(r[i] - r[j], r[i][H]);
             }
         }
@@ -138,7 +139,7 @@ TEST_CASE("Sod", "[sod]") {
     // 4) compute internal energy using equation of state
     std::unique_ptr<Abstract::Eos> eos = Factory::getEos(bodySettings);
     ArrayView<Float> u = storage.getValue<Float>(QuantityKey::ENERGY);
-    for (int i = 0; i < N; ++i) {
+    for (Size i = 0; i < N; ++i) {
         u[i] = eos->getInternalEnergy(
             smoothingFunc(r[i][0], 1._f, 0.125_f), smoothingFunc(r[i][0], 1._f, 0.1_f));
     }
@@ -148,7 +149,7 @@ TEST_CASE("Sod", "[sod]") {
     if (globalSettings.get<SolverEnum>(GlobalSettingsIds::SOLVER_TYPE) == SolverEnum::DENSITY_INDEPENDENT) {
         ArrayView<Float> q, e;
         tie(q, e)= storage.getValues<Float>(QuantityKey::ENERGY_DENSITY, QuantityKey::ENERGY_PER_PARTICLE);
-        for (int i = 0; i < N; ++i) {
+        for (Size i = 0; i < N; ++i) {
             // update 'internal' quantities in case 'external' quantities (density, specific energy, ...) have
             // been changed outside of the solver.
             q[i] = rho[i] * u[i];

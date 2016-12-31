@@ -18,8 +18,8 @@ namespace Detail {
     };
     template <typename T>
     struct HasAccumulateImpl<T,
-        void_t<decltype(std::declval<T>().accumulate(std::declval<int>(),
-            std::declval<int>(),
+        void_t<decltype(std::declval<T>().accumulate(std::declval<Size>(),
+            std::declval<Size>(),
             std::declval<const Vector&>()))>> {
         static constexpr bool value = true;
     };
@@ -48,8 +48,8 @@ namespace Detail {
     };
     template <typename T>
     struct HasInitializeImpl<T,
-        void_t<decltype(
-            std::declval<const T>().initialize(std::declval<Storage&>(), std::declval<const BodySettings&>()))>> {
+        void_t<decltype(std::declval<const T>().initialize(std::declval<Storage&>(),
+            std::declval<const BodySettings&>()))>> {
         static constexpr bool value = true;
     };
 }
@@ -99,7 +99,7 @@ public:
         forEachIf<HasUpdate>(children, [&storage](auto& module) { module.update(storage); });
     }
 
-    INLINE void accumulateModules(const int i, const int j, const Vector& grad) {
+    INLINE void accumulateModules(const Size i, const Size j, const Vector& grad) {
         forEachIf<HasAccumulate>(
             children, [i, j, &grad, this](auto& module) { module.accumulate(i, j, grad); });
     }

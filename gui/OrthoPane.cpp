@@ -55,7 +55,7 @@ void OrthoPane::draw(const std::shared_ptr<Storage>& newStorage) {
     update();
     displayedIdxs.clear();
     const Float cutoff = settings.get<Float>(GuiSettingsIds::ORTHO_CUTOFF);
-    for (int i = 0; i < positions.size(); ++i) {
+    for (Size i = 0; i < positions.size(); ++i) {
         if (Math::abs(positions[i][Z]) < cutoff) {
             displayedIdxs.push(i);
         }
@@ -72,28 +72,28 @@ void OrthoPane::update() {
     switch (quantity) {
     case QuantityKey::POSITIONS: {
         ArrayView<Vector> v = storage->getAll<Vector>(QuantityKey::POSITIONS)[1];
-        for (int i = 0; i < v.size(); ++i) {
+        for (Size i = 0; i < v.size(); ++i) {
             colors.push(palette(getLength(v[i])));
         }
         break;
     }
     case QuantityKey::DENSITY: {
         ArrayView<Float> rho = storage->getValue<Float>(QuantityKey::DENSITY);
-        for (int i = 0; i < rho.size(); ++i) {
+        for (Size i = 0; i < rho.size(); ++i) {
             colors.push(palette(rho[i]));
         }
         break;
     }
     case QuantityKey::PRESSURE: {
         ArrayView<Float> p = storage->getValue<Float>(QuantityKey::PRESSURE);
-        for (int i = 0; i < p.size(); ++i) {
+        for (Size i = 0; i < p.size(); ++i) {
             colors.push(palette(p[i]));
         }
         break;
     }
     case QuantityKey::DAMAGE: {
         ArrayView<Float> d = storage->getValue<Float>(QuantityKey::DAMAGE);
-        for (int i = 0; i < d.size(); ++i) {
+        for (Size i = 0; i < d.size(); ++i) {
             colors.push(palette(d[i]));
         }
         break;

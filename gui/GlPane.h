@@ -18,16 +18,16 @@ class VisualSphere : public Object {
 private:
     Array<Vector> vertices;
     Array<Vector> normals;
-    Array<int> indices;
+    Array<Size> indices;
 
 public:
-    VisualSphere(const int latitudeSegments, const int longitudeSegments);
+    VisualSphere(const Size latitudeSegments, const Size longitudeSegments);
 
     void push(const Vector& center,
               const float radius,
               Array<Vector>& vs,
               Array<Vector>& ns,
-              Array<int>& is) const;
+              Array<Size>& is) const;
 };
 
 class CustomGlPane : public wxGLCanvas, public Abstract::Renderer {
@@ -46,7 +46,7 @@ private:
     std::thread reloadThread;
     BufferedArray<Vector> vertices;
     BufferedArray<Vector> normals;
-    BufferedArray<int> indices;
+    BufferedArray<Size> indices;
 
     VisualSphere sphere;
 

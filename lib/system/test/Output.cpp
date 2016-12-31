@@ -12,4 +12,15 @@ TEST_CASE("Dumping data", "[output]") {
     storage.emplace<Float, OrderEnum::FIRST_ORDER>(QuantityKey::DENSITY, 5._f);
     TextOutput output("tmp%d.out", "Output", { QuantityKey::DENSITY, QuantityKey::POSITIONS });
     output.dump(storage, 0);
+
+    std::string expected = R"(# Run: Output
+# SPH dump, time = 0
+#         Density   Position [x]   Position [y]   Position [z]   Velocity [x]   Velocity [y]   Velocity [z]
+       5.000000       0.000000       0.000000       0.000000       0.000000       0.000000       0.000000
+       5.000000       1.000000       1.000000       1.000000       0.000000       0.000000       0.000000
+       5.000000       2.000000       2.000000       2.000000       0.000000       0.000000       0.000000
+)";
+    std::ifstream file("tmp0000.out");
+    std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+    REQUIRE(content == expected);
 }

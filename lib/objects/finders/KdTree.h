@@ -17,9 +17,10 @@ class PointCloud : public Object {
 private:
     ArrayView<Vector> storage;
     const Order* rankH;
+
 public:
     /// \todo this is really ugly solution, solve it directly in nanoflann
-    mutable int refRank = -1; // rank of the reference index
+    mutable Size refRank = std::numeric_limits<Size>::max(); // rank of the reference index
 
     PointCloud() = default;
 
@@ -29,8 +30,8 @@ public:
 
     INLINE int kdtree_get_point_count() const { return storage.size(); }
 
-    INLINE Float kdtree_distance(const Vector& v, const int idx, int UNUSED(size)) const {
-        ASSERT(refRank >= 0);
+    INLINE Float kdtree_distance(const Vector& v, const Size idx, int UNUSED(size)) const {
+        ASSERT(refRank < std::numeric_limits<Size>::max());
         if (refRank > (*rankH)[idx]) {
             return getSqrLength(v - storage[idx]);
         } else {
@@ -38,7 +39,7 @@ public:
         }
     }
 
-    INLINE Float kdtree_get_pt(const int idx, int n) const { return storage[idx][n]; }
+    INLINE Float kdtree_get_pt(const Size idx, uint n) const { return storage[idx][n]; }
 
     template <class BBOX>
     bool kdtree_get_bbox(BBOX& UNUSED(bb)) const {
@@ -50,7 +51,7 @@ public:
 class KdTree : public Abstract::Finder {
 private:
     PointCloud cloud;
-    using KdTreeImpl = KDTreeSingleIndexAdaptor<L2_Simple_Adaptor<Float, PointCloud>, PointCloud, 3, int>;
+    using KdTreeImpl = KDTreeSingleIndexAdaptor<L2_Simple_Adaptor<Float, PointCloud>, PointCloud, 3, Size>;
     Optional<KdTreeImpl> kdTree;
 
 
@@ -65,16 +66,16 @@ protected:
 public:
     KdTree() = default;
 
-    virtual int findNeighbours(const int index,
-                               const Float radius,
-                               Array<NeighbourRecord>& neighbours,
-                               Flags<FinderFlags> flags = EMPTY_FLAGS,
-                               const Float error        = 0._f) const override {
+    virtual Size findNeighbours(const Size index,
+        const Float radius,
+        Array<NeighbourRecord>& neighbours,
+        Flags<FinderFlags> flags = EMPTY_FLAGS,
+        const Float error = 0._f) const override {
         PROFILE_SCOPE("KdTree::findNeighbours")
         neighbours.clear();
         SearchParams params;
         params.sorted = false;
-        params.eps    = error;
+        params.eps = error;
         if (flags.has(FinderFlags::FIND_ONLY_SMALLER_H)) {
             cloud.refRank = rankH[index];
         } else {

@@ -13,7 +13,7 @@ NAMESPACE_SPH_BEGIN
 
 enum { ID_REPAINT = 1, ID_RELOAD = 2 };
 
-VisualSphere::VisualSphere(const int latitudeSegments, const int longitudeSegments) {
+VisualSphere::VisualSphere(const Size latitudeSegments, const Size longitudeSegments) {
     const float dlon   = 2 * Math::PI / float(longitudeSegments) + EPS;
     const float dlat   = Math::PI / float(latitudeSegments) + EPS;
     const float radius = 1.f;
@@ -34,26 +34,26 @@ VisualSphere::VisualSphere(const int latitudeSegments, const int longitudeSegmen
     vertices.push(sp);
     normals.push(sp);
 
-    auto map = [latitudeSegments, longitudeSegments](const int i, const int j) {
-        const int offset = (i % longitudeSegments) + j * longitudeSegments;
+    auto map = [latitudeSegments, longitudeSegments](const Size i, const Size j) {
+        const Size offset = (i % longitudeSegments) + j * longitudeSegments;
         return offset + 1;
     };
 
     // north pole triangles
-    for (int i = 0; i < longitudeSegments; ++i) {
+    for (Size i = 0; i < longitudeSegments; ++i) {
         indices.pushAll({ 0, i + 1, (i + 1) % longitudeSegments + 1 });
     }
     // all middle triangles (quads)
-    for (int j = 0; j < latitudeSegments - 2; ++j) {
-        for (int i = 0; i < longitudeSegments; ++i) {
+    for (Size j = 0; j < latitudeSegments - 2; ++j) {
+        for (Size i = 0; i < longitudeSegments; ++i) {
             indices.pushAll({ map(i, j), map(i + 1, j + 1), map(i + 1, j) });
             indices.pushAll({ map(i, j), map(i, j + 1), map(i + 1, j + 1) });
         }
     }
     // south pole triangles
-    const int j     = latitudeSegments - 2;
-    const int spIdx = vertices.size() - 1;
-    for (int i = 0; i < longitudeSegments; ++i) {
+    const Size j     = latitudeSegments - 2;
+    const Size spIdx = vertices.size() - 1;
+    for (Size i = 0; i < longitudeSegments; ++i) {
         indices.pushAll({ spIdx, map(i + 1, j), map(i, j) });
     }
 }
@@ -62,22 +62,22 @@ void VisualSphere::push(const Vector& center,
                         const float radius,
                         Array<Vector>& vs,
                         Array<Vector>& ns,
-                        Array<int>& is) const {
-    int begVecIdx  = vs.size();
-    int begIdcsIdx = is.size();
+                        Array<Size>& is) const {
+    Size begVecIdx  = vs.size();
+    Size begIdcsIdx = is.size();
     vs.pushAll(vertices);
     ns.pushAll(normals);
     is.pushAll(indices);
 
     // move and scale vertices
-    for (int i = begVecIdx; i < vs.size(); ++i) {
+    for (Size i = begVecIdx; i < vs.size(); ++i) {
         vs[i] = vs[i] * radius + center;
     }
-    for (int i = begVecIdx; i < vs.size(); ++i) {
+    for (Size i = begVecIdx; i < vs.size(); ++i) {
         ns[i] = getNormalized(vs[i]);
     }
     // increase indices
-    for (int i = begIdcsIdx; i < is.size(); ++i) {
+    for (Size i = begIdcsIdx; i < is.size(); ++i) {
         is[i] += begVecIdx;
     }
 }

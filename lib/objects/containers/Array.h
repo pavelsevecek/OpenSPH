@@ -9,7 +9,7 @@
 
 NAMESPACE_SPH_BEGIN
 
-template <typename T, typename TCounter = int>
+template <typename T, typename TCounter = Size>
 class Array : public Noncopyable {
     friend class VectorizedArray; // needs to explicitly set actSize
 private:
@@ -17,6 +17,8 @@ private:
     StorageType* data = nullptr;
     TCounter actSize = 0;
     TCounter maxSize = 0;
+
+    static constexpr TCounter maxValue = std::numeric_limits<TCounter>::max();
 
 public:
     using Type = T;
@@ -26,17 +28,17 @@ public:
     /// Constructs array of given size.
     /// \param elementCnt Number of elements to be constructed (using default constructor)
     /// \param allocatedSize Number of allocated elements.
-    explicit Array(const TCounter elementCnt, const TCounter allocatedSize = -1)
+    explicit Array(const TCounter elementCnt, const TCounter allocatedSize = maxValue)
         : actSize(elementCnt)
         , maxSize(allocatedSize) {
-        if (allocatedSize == -1) {
+        if (allocatedSize == maxValue) {
             this->maxSize = actSize;
         }
         // allocate maxSize elements
         this->data = (StorageType*)malloc(this->maxSize * sizeof(StorageType));
         // emplace size elements
         if (!std::is_trivially_default_constructible<T>::value) {
-            for (int i = 0; i < actSize; ++i) {
+            for (TCounter i = 0; i < actSize; ++i) {
                 new (data + i) StorageType();
             }
         }
@@ -48,7 +50,7 @@ public:
         this->actSize = list.size();
         this->maxSize = this->actSize;
         this->data = (StorageType*)malloc(maxSize * sizeof(StorageType));
-        int i = 0;
+        TCounter i = 0;
         for (auto& l : list) {
             new (data + i) StorageType(l);
             i++;
@@ -66,7 +68,7 @@ public:
     ~Array() {
         // explicitly destroy all constructed elements
         if (!std::is_trivially_destructible<T>::value) {
-            for (int i = 0; i < actSize; ++i) {
+            for (TCounter i = 0; i < actSize; ++i) {
                 data[i].~StorageType();
             }
         }
@@ -89,7 +91,7 @@ public:
     template <typename U, typename = std::enable_if_t<std::is_lvalue_reference<T>::value, U>>
     Array& operator=(Array<U>&& other) {
         ASSERT(this->size() == other.size());
-        for (int i = 0; i < other.size(); ++i) {
+        for (TCounter i = 0; i < other.size(); ++i) {
             (*this)[i] = other[i];
         }
         return *this;
@@ -154,25 +156,25 @@ public:
         }
     }
 
-    INLINE int size() const { return this->actSize; }
+    INLINE TCounter size() const { return this->actSize; }
 
     INLINE bool empty() const { return this->actSize == 0; }
 
     /// Resize the array. All stored values (within interval [0, newSize-1]) are preserved.
-    void resize(const int newSize) {
+    void resize(const TCounter newSize) {
         if (newSize <= maxSize) {
             // enough elements is already allocated
             if (newSize >= actSize) {
                 // enlarging array, we need to construct some new elements
                 if (!std::is_trivially_default_constructible<T>::value) {
-                    for (int i = actSize; i < newSize; ++i) {
+                    for (TCounter i = actSize; i < newSize; ++i) {
                         new (data + i) StorageType();
                     }
                 }
             } else {
                 if (!std::is_trivially_destructible<T>::value) {
                     // shrinking array, we need to delete some elements
-                    for (int i = newSize; i < actSize; ++i) {
+                    for (TCounter i = newSize; i < actSize; ++i) {
                         data[i].~StorageType();
                     }
                 }
@@ -181,15 +183,15 @@ public:
             // requested more elements than allocate, need to reallocated.
             // allocate twice the current number or the new size, whatever is higher, to avoid frequent
             // reallocation when pushing elements one by one
-            const int actNewSize = Math::max(2 * maxSize, newSize);
+            const TCounter actNewSize = Math::max(2 * maxSize, newSize);
             Array newArray(0, actNewSize);
             // copy all elements into the new array, using move constructor
-            for (int i = 0; i < actSize; ++i) {
+            for (TCounter i = 0; i < actSize; ++i) {
                 new (newArray.data + i) StorageType(std::move(this->data[i]));
             }
             // default-construct new elements
             if (!std::is_trivially_default_constructible<T>::value) {
-                for (int i = actSize; i < newSize; ++i) {
+                for (TCounter i = actSize; i < newSize; ++i) {
                     new (newArray.data + i) StorageType();
                 }
             }
@@ -199,12 +201,12 @@ public:
         this->actSize = newSize;
     }
 
-    void reserve(const int newMaxSize) {
+    void reserve(const TCounter newMaxSize) {
         if (newMaxSize > maxSize) {
-            const int actNewSize = Math::max(2 * maxSize, newMaxSize);
+            const TCounter actNewSize = Math::max(2 * maxSize, newMaxSize);
             Array newArray(0, actNewSize);
             // copy all elements into the new array, using move constructor
-            for (int i = 0; i < actSize; ++i) {
+            for (TCounter i = 0; i < actSize; ++i) {
                 new (newArray.data + i) StorageType(std::move(this->data[i]));
             }
             // move the array into this
@@ -247,9 +249,9 @@ public:
     }
 
     /// Removes an element with given index from the array.
-    void remove(const int idx) {
+    void remove(const TCounter idx) {
         ASSERT(idx < this->actSize);
-        for (int i = idx; i < this->actSize - 1; ++i) {
+        for (TCounter i = idx; i < this->actSize - 1; ++i) {
             this->data[i] = this->data[i + 1];
         }
         resize(this->actSize - 1);
@@ -258,7 +260,7 @@ public:
     /// Removes all elements from the array, but does NOT release the memory.
     void clear() {
         if (!std::is_trivially_destructible<T>::value) {
-            for (int i = 0; i < actSize; ++i) {
+            for (TCounter i = 0; i < actSize; ++i) {
                 data[i].~StorageType();
             }
         }

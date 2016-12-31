@@ -14,7 +14,9 @@ NAMESPACE_SPH_BEGIN
 InitialConditions::InitialConditions(const std::shared_ptr<Storage> storage,
     const GlobalSettings& globalSettings)
     : storage(storage)
-    , solver(getSolver(globalSettings)) {}
+    , solver(getSolver(globalSettings)) {
+    ASSERT(storage != nullptr);
+}
 
 InitialConditions::~InitialConditions() = default;
 
@@ -23,13 +25,13 @@ void InitialConditions::addBody(const Abstract::Domain& domain,
     const Vector& velocity,
     const Vector& angularVelocity) {
     Storage body(bodySettings);
-    int N; // Final number of particles
+    Size N; // Final number of particles
     PROFILE_SCOPE("InitialConditions::addBody");
 
     // generate particle positions
     std::unique_ptr<Abstract::Distribution> distribution = Factory::getDistribution(bodySettings);
 
-    const int n = bodySettings.get<int>(BodySettingsIds::PARTICLE_COUNT);
+    const Size n = bodySettings.get<int>(BodySettingsIds::PARTICLE_COUNT);
     // Generate positions of particles
     Array<Vector> positions = distribution->generate(n, domain);
     N = positions.size();
@@ -39,7 +41,7 @@ void InitialConditions::addBody(const Abstract::Domain& domain,
     // Set particle velocitites
     ArrayView<Vector> r, v, dv;
     tie(r, v, dv) = body.getAll<Vector>(QuantityKey::POSITIONS);
-    for (int i = 0; i < N; ++i) {
+    for (Size i = 0; i < N; ++i) {
         v[i] += velocity + cross(r[i], angularVelocity);
     }
 

@@ -12,14 +12,14 @@ GhostParticles::GhostParticles(std::unique_ptr<Abstract::Domain>&& domain, const
 /// Functor copying quantities on ghost particles. Vector quantities are copied symmetrically with a respect
 /// to the boundary.
 struct GhostFunctor {
-    Array<int>& idxs;
-    Array<int>& ghostIdxs;
+    Array<Size>& idxs;
+    Array<Size>& ghostIdxs;
     Abstract::Domain& domain;
 
     /// Generic operator, simply copies value onto the ghost
     template <typename T>
     void operator()(LimitedArray<T>& v, Array<Vector>& UNUSED(r)) {
-        for (int i : idxs) {
+        for (Size i : idxs) {
             auto ghost = v[i];
             v.push(ghost);
         }
@@ -28,8 +28,8 @@ struct GhostFunctor {
     /// Specialization for vectors, copies parallel component of the vector along the boundary and inverts
     /// perpendicular component.
     void operator()(LimitedArray<Vector>& v, Array<Vector>& r) {
-        for (int i = 0; i < idxs.size(); ++i) {
-            const int idx = idxs[i];
+        for (Size i = 0; i < idxs.size(); ++i) {
+            const Size idx = idxs[i];
             Float length = getLength(v[idx]);
             if (length == 0._f) {
                 v.push(Vector(0._f)); // simply copy zero vector
@@ -76,20 +76,20 @@ void GhostParticles::apply(Storage& storage) {
     // find particles close to the boundary
     idxs.clear();
     domain->getDistanceToBoundary(r, distances);
-    for (int i = 0; i < r.size(); ++i) {
+    for (Size i = 0; i < r.size(); ++i) {
         if (distances[i] < r[i][H] * searchRadius) {
             // close to boundary, needs a ghost particle
             idxs.push(i);
         }
     }
     ghostIdxs.clear();
-    for (int i = r.size(); i < r.size() + idxs.size(); ++i) {
+    for (Size i = r.size(); i < r.size() + idxs.size(); ++i) {
         ghostIdxs.push(i);
     }
 
     // create ghost particles:
     // 1) simply copy positions of particles
-    for (int i : idxs) {
+    for (Size i : idxs) {
         // we cannot push r[i] directly, as it can invalidate the reference!
         const Vector ghost = r[i];
         r.push(ghost);
@@ -115,22 +115,22 @@ void DomainProjecting::apply(Storage& storage) {
     domain->getSubset(r, outside, SubsetType::OUTSIDE);
     domain->project(r, outside.getView());
     vproj.clear();
-    int idx = 0;
+    Size idx = 0;
     switch (options) {
     case ProjectingOptions::ZERO_VELOCITY:
-        for (int i : outside) {
+        for (Size i : outside) {
             v[i] = Vector(0._f);
         }
         break;
     case ProjectingOptions::ZERO_PERPENDICULAR:
         projectVelocity(r, v);
-        for (int i : outside) {
+        for (Size i : outside) {
             v[i] = 0.5_f * (v[i] + vproj[idx] - r[i]);
         }
         break;
     case ProjectingOptions::REFLECT:
         projectVelocity(r, v);
-        for (int i : outside) {
+        for (Size i : outside) {
             // subtract the original position and we have projected velocities! Yay!)
             v[i] = vproj[idx] - r[i];
         }
@@ -140,7 +140,7 @@ void DomainProjecting::apply(Storage& storage) {
 
 void DomainProjecting::projectVelocity(ArrayView<const Vector> r, ArrayView<const Vector> v) {
     /// \todo implement using normal to the boundary
-    for (int i : outside) {
+    for (Size i : outside) {
         // sum up position and velocity
         vproj.push(r[i] + v[i]);
     }
@@ -154,7 +154,7 @@ Projection1D::Projection1D(const Range& domain)
 void Projection1D::apply(Storage& storage) {
     ArrayView<Vector> dv;
     tie(r, v, dv) = storage.getAll<Vector>(QuantityKey::POSITIONS);
-    for (int i = 0; i < r.size(); ++i) {
+    for (Size i = 0; i < r.size(); ++i) {
         // throw away y and z, keep h
         r[i] = Vector(domain.clamp(r[i][0]), 0._f, 0._f, r[i][H]);
         v[i] = Vector(v[i][0], 0._f, 0._f);
@@ -163,15 +163,15 @@ void Projection1D::apply(Storage& storage) {
     // particles. Number of particles depends on smoothing length.
     iterate<VisitorEnum::FIRST_ORDER>(storage, [](auto&& UNUSED(v), auto&& dv) {
         using Type = typename std::decay_t<decltype(dv)>::Type;
-        const int s = dv.size();
-        for (int i : { 0, 1, 2, 3, 4, s - 4, s - 3, s - 2, s - 1 }) {
+        const Size s = dv.size();
+        for (Size i : { 0u, 1u, 2u, 3u, 4u, s - 4, s - 3, s - 2, s - 1 }) {
             dv[i] = Type(0._f);
         }
     });
     iterate<VisitorEnum::SECOND_ORDER>(storage, [](auto&& UNUSED(v), auto&& dv, auto&& d2v) {
         using Type = typename std::decay_t<decltype(dv)>::Type;
-        const int s = dv.size();
-        for (int i : { 0, 1, 2, 3, 4, s - 4, s - 3, s - 2, s - 1 }) {
+        const Size s = dv.size();
+        for (Size i : { 0u, 1u, 2u, 3u, 4u, s - 4, s - 3, s - 2, s - 1 }) {
             dv[i] = Type(0._f);
             d2v[i] = Type(0._f);
         }

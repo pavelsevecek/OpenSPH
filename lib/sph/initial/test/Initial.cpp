@@ -15,7 +15,7 @@ TEST_CASE("Initial conditions", "[initial]") {
     InitialConditions conds(storage, GLOBAL_SETTINGS);
     conds.addBody(domain, bodySettings);
 
-    const int size = storage->getValue<Vector>(QuantityKey::POSITIONS).size();
+    const Size size = storage->getValue<Vector>(QuantityKey::POSITIONS).size();
     REQUIRE((size >= 80 && size <= 120));
     iterate<VisitorEnum::ALL_BUFFERS>(*storage, [size](auto&& array) { REQUIRE(array.size() == size); });
 
@@ -60,7 +60,7 @@ TEST_CASE("Initial velocity", "[initial]") {
     ArrayView<Vector> v = storage->getAll<Vector>(QuantityKey::POSITIONS)[1];
 
     bool allMatching = true;
-    for (int i = 0; i < v.size(); ++i) {
+    for (Size i = 0; i < v.size(); ++i) {
         if (rho[i] == 1._f && v[i] != Vector(2._f, 1._f, -1._f)) {
             allMatching = false;
             std::cout << "Invalid velocity: " << v[i] << std::endl;
@@ -88,7 +88,7 @@ TEST_CASE("Initial rotation", "[initial]") {
     tieToTuple(axis, magnitude) = getNormalizedWithLength(Vector(1._f, 3._f, -2._f));
 
     bool allMatching = true;
-    for (int i = 0; i < r.size(); ++i) {
+    for (Size i = 0; i < r.size(); ++i) {
         const Float distFromAxis = getLength(r[i] - axis * dot(r[i], axis));
         if (!Math::almostEqual(getLength(v[i]), distFromAxis * magnitude)) {
             allMatching = false;

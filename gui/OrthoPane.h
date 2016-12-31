@@ -17,7 +17,7 @@ class Storage;
 class OrthoPane : public wxPanel, public Abstract::Renderer {
 private:
     std::shared_ptr<Storage> storage;
-    Array<int> displayedIdxs;
+    Array<Size> displayedIdxs;
     QuantityKey quantity = QuantityKey::POSITIONS;
     Array<Vector> positions;
     Array<Color> colors;

@@ -21,7 +21,7 @@ private:
 public:
     void update(Storage& storage) {
         y.clear();
-        for (int i = 0; i < storage.getParticleCnt(); ++i) {
+        for (Size i = 0; i < storage.getParticleCnt(); ++i) {
             const Float limit = storage.getMaterial(i).elasticityLimit;
             ASSERT(limit > 0._f);
             y.push(limit);

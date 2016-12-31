@@ -14,7 +14,7 @@ static void finderRun(benchmark::State& state, Abstract::Finder& finder) {
     double distSum = 0.;
     while (state.KeepRunning()) {
         finder.build(r);
-        for (int i = 0; i < r.size(); ++i) {
+        for (Size i = 0; i < r.size(); ++i) {
             finder.findNeighbours(i, 2._f * r[i][H], neighs);
             for (NeighbourRecord& n : neighs) {
                 distSum += n.distanceSqr;

@@ -15,17 +15,17 @@ private:
 
     class LookupMap : public Noncopyable {
     private:
-        Array<int> storage;
-        int dimensionSize;
+        Array<Size> storage;
+        Size dimensionSize;
 
-        INLINE int map(const Indices& v) const {
+        INLINE Size map(const Indices& v) const {
             return v[X] * Math::sqr(dimensionSize) + v[Y] * dimensionSize + v[Z];
         }
 
     public:
         LookupMap() = default;
 
-        LookupMap(const int n)
+        LookupMap(const Size n)
             : storage(Math::pow<3>(n))
             , dimensionSize(n) {
             // clear all cells
@@ -38,29 +38,29 @@ private:
             return *this;
         }
 
-        INLINE int operator()(const Indices& v) const {
-            const int idx = map(v);
+        INLINE Size operator()(const Indices& v) const {
+            const Size idx = map(v);
             ASSERT(unsigned(idx) < unsigned(storage.size()));
             return storage[idx];
         }
 
-        INLINE int& operator()(const Indices& v) {
-            const int idx = map(v);
+        INLINE Size& operator()(const Indices& v) {
+            const Size idx = map(v);
             ASSERT(unsigned(idx) < unsigned(storage.size()));
             return storage[idx];
         }
     };
     LookupMap map;
-    int cellCnt;
+    Size cellCnt;
     Array<Vector> lowerBounds;
     Array<Vector> upperBounds;
-    Array<int> linkedList;
+    Array<Size> linkedList;
 
 
 public:
     LinkedList() = default;
 
-    virtual int findNeighbours(const int index,
+    virtual Size findNeighbours(const Size index,
         const Float radius,
         Array<NeighbourRecord>& neighbours,
         Flags<FinderFlags> flags = EMPTY_FLAGS,
@@ -71,28 +71,29 @@ public:
         Indices refRank = rank[index];
         Indices lower(Vector(refRank) * cellCntSqrInv);
         Indices upper = lower;
-        for (int i = 0; i < 3; ++i) {
+        for (uint i = 0; i < 3; ++i) {
             while (lower[i] > 0 && bounds.lower()[i] <= lowerBounds[lower[i]][i]) {
                 lower[i]--;
             }
         }
-        for (int i = 0; i < 3; ++i) {
-            while (upper[i] < upperBounds.size() - 1 && bounds.upper()[i] <= upperBounds[upper[i]][i]) {
+        for (uint i = 0; i < 3; ++i) {
+            while (
+                Size(upper[i]) < upperBounds.size() - 1 && bounds.upper()[i] <= upperBounds[upper[i]][i]) {
                 upper[i]++;
             }
         }
         lower = Math::max(lower, Indices(0));
         upper = Math::min(upper, Indices(upperBounds.size() - 1));
-        const int refRankH =
+        const Size refRankH =
             flags.has(FinderFlags::FIND_ONLY_SMALLER_H) ? rank[index][H] : this->values.size();
         for (int x = lower[X]; x <= upper[X]; ++x) {
             for (int y = lower[Y]; y <= upper[Y]; ++y) {
                 for (int z = lower[Z]; z <= upper[Z]; ++z) {
                     const Indices idxs(x, y, z);
-                    int cell = map(idxs);
+                    Size cell = map(idxs);
                     while (cell != 0) {
                         const Float lengthSqr = getSqrLength(this->values[cell] - this->values[index]);
-                        if (rank[cell][H] < refRankH && lengthSqr < Math::sqr(radius)) {
+                        if (Size(rank[cell][H]) < refRankH && lengthSqr < Math::sqr(radius)) {
                             neighbours.push(NeighbourRecord{ cell, lengthSqr });
                         }
                         cell = linkedList[cell];
@@ -105,26 +106,27 @@ public:
 
 protected:
     virtual void rebuildImpl() override {
-        for (int i = 0; i < 3; ++i) {
-            sortedIndices.shuffle(
-                i, [this, i](int idx1, int idx2) { return this->values[idx1][i] < this->values[idx2][i]; });
+        for (uint i = 0; i < 3; ++i) {
+            sortedIndices.shuffle(i, [this, i](Size idx1, Size idx2) {
+                return this->values[idx1][i] < this->values[idx2][i];
+            });
         }
         /// extra dimension - sort smoothing length
         sortedIndices.shuffle(
-            H, [this](int idx1, int idx2) { return this->values[idx1][H] < this->values[idx2][H]; });
+            H, [this](Size idx1, Size idx2) { return this->values[idx1][H] < this->values[idx2][H]; });
         rank = sortedIndices.getInverted();
         map = LookupMap(cellCnt);
         lowerBounds.fill(Vector(INFTY));
         upperBounds.fill(Vector(-INFTY));
         const Float cellCntSqrInv = 1._f / Math::sqr(cellCnt);
 
-        for (int idx = 0; idx < this->values.size(); ++idx) {
+        for (Size idx = 0; idx < this->values.size(); ++idx) {
             const Indices multiIdx(Vector(rank[idx]) * cellCntSqrInv);
-            int& cell = map(multiIdx);
+            Size& cell = map(multiIdx);
             linkedList[idx] = cell;
             cell = idx;
             /// \todo optimize using multiindices
-            for (int i = 0; i < 3; ++i) {
+            for (uint i = 0; i < 3; ++i) {
                 Float& lb = lowerBounds[multiIdx[i]][i];
                 lb = Math::min(lb, this->values[idx][i]);
                 Float& ub = upperBounds[multiIdx[i]][i];

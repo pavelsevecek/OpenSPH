@@ -12,7 +12,7 @@
 NAMESPACE_SPH_BEGIN
 
 struct NeighbourRecord {
-    int index;
+    Size index;
     Float distanceSqr;
 };
 
@@ -50,7 +50,7 @@ namespace Abstract {
         /// \return The number of neighbours.
 
 
-        virtual int findNeighbours(const int index,
+        virtual Size findNeighbours(const Size index,
             const Float radius,
             Array<NeighbourRecord>& neighbours,
             Flags<FinderFlags> flags = EMPTY_FLAGS,
@@ -66,12 +66,12 @@ namespace Abstract {
         void makeRankH() {
             Order tmp(this->values.size());
             // sort by smoothing length
-            tmp.shuffle([this](const int i1, const int i2) { return values[i1][H] < values[i2][H]; });
+            tmp.shuffle([this](const Size i1, const Size i2) { return values[i1][H] < values[i2][H]; });
 // invert to get rank in H
 /// \todo avoid allocation here
 #ifdef DEBUG
             Float lastH = 0._f;
-            for (int i = 0; i < tmp.size(); ++i) {
+            for (Size i = 0; i < tmp.size(); ++i) {
                 ASSERT(this->values[tmp[i]][H] >= lastH);
                 lastH = this->values[tmp[i]][H];
             }

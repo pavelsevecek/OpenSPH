@@ -38,7 +38,7 @@ public:
     /// Accumulate quantity for a pair of particles. This function should only be called once for each pair of
     /// particles; for particles i and j, functor returns Tuple<TValue, TValue> accumulating quantity
     /// increment of i-th and j-th particle.
-    INLINE void accumulate(const int i, const int j, const Vector& grad) {
+    INLINE void accumulate(const Size i, const Size j, const Vector& grad) {
         Value v1, v2;
         tieToTuple(v1, v2) = functor(i, j, grad);
         values[i] += v1;
@@ -80,7 +80,7 @@ public:
         return accumulators.template get<Accumulator<TFunctor>&>();
     }
 
-    INLINE void accumulate(const int i, const int j, const Vector& grad) {
+    INLINE void accumulate(const Size i, const Size j, const Vector& grad) {
         forEach(accumulators, [i, j, &grad](auto& ac) { ac.accumulate(i, j, grad); });
     }
 };
@@ -98,7 +98,7 @@ public:
 
     void update(Storage& storage) {
         tie(m, rho) = storage.getValues<Float>(QuantityKey::MASSES, QuantityKey::DENSITY);
-        v = storage.getAll<Vector>(QuantityKey::POSITIONS)[1];
+        v = storage.getDt<Vector>(QuantityKey::POSITIONS);
     }
 
     INLINE Tuple<Float, Float> operator()(const int i, const int j, const Vector& grad) const {
@@ -121,11 +121,13 @@ public:
 
     void update(Storage& storage) {
         tie(m, rho) = storage.getValues<Float>(QuantityKey::MASSES, QuantityKey::DENSITY);
-        v = storage.getAll<Vector>(QuantityKey::POSITIONS)[1];
+        v = storage.getDt<Vector>(QuantityKey::POSITIONS);
     }
 
     INLINE Tuple<Vector, Vector> operator()(const int i, const int j, const Vector& grad) const {
-        return { m[j] / rho[j] * cross(v[j], grad), m[i] / rho[i] * cross(v[i], -grad) };
+        const Vector rot = cross(v[j] - v[i], grad);
+        ASSERT(Math::isReal(rot));
+        return { m[j] / rho[j] * rot, m[i] / rho[i] * rot };
     }
 };
 using Rotv = Accumulator<RotvImpl>;

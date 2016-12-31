@@ -78,7 +78,7 @@ bool Settings<TEnum>::loadFromFile(const std::string& path, const Settings& desc
 }
 
 template <typename TEnum>
-bool Settings<TEnum>::setValueByType(Entry& entry, const int typeIdx, const std::string& str) {
+bool Settings<TEnum>::setValueByType(Entry& entry, const Size typeIdx, const std::string& str) {
     std::stringstream ss(str);
     switch (typeIdx) {
     case BOOL: {

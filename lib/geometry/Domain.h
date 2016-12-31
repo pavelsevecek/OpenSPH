@@ -44,28 +44,28 @@ namespace Abstract {
         /// Returns an array of indices, marking vectors with given property by their index.
         /// \param output Output array, is not cleared by the method, previously stored values are kept
         /// unchanged.
-        virtual void getSubset(const ArrayView<Vector> vs,
-            Array<int>& output,
+        virtual void getSubset(ArrayView<const Vector> vs,
+            Array<Size>& output,
             const SubsetType type) const = 0;
 
         /// Returns distances of particles lying close to the boundary. The distances are signed, negative
         /// number means the particle is lying outside of the domain.
         /// \param vs Input array of partices.
         /// \param distances Output array, will be resized to the size of particle array and cleared.
-        virtual void getDistanceToBoundary(ArrayView<Vector> vs, Array<Float>& distances) const = 0;
+        virtual void getDistanceToBoundary(ArrayView<const Vector> vs, Array<Float>& distances) const = 0;
 
         /// Projects vectors outside of the domain onto its boundary. Vectors inside the domain are untouched.
         /// \param vs Array of vectors we want to project
         /// \param indices Optional array of indices. If passed, only selected vectors will be projected. All
         ///        vectors are projected by default.
-        virtual void project(ArrayView<Vector> vs, Optional<ArrayView<int>> indices = NOTHING) const = 0;
+        virtual void project(ArrayView<Vector> vs, Optional<ArrayView<Size>> indices = NOTHING) const = 0;
 
         /// Inverts positions of vectors with a respect to the boundary. Projected vectors shall have the same
         /// distance to the boundary as the input vectors.
         /// \param vs Array of vectors we want to invert
         /// \param indices Optional array of indices. If passed, only selected vectors will be inverted. All
         ///        vectors are inverted by default.
-        virtual void invert(ArrayView<Vector> vs, Optional<ArrayView<int>> indices = NOTHING) const = 0;
+        virtual void invert(ArrayView<Vector> vs, Optional<ArrayView<Size>> indices = NOTHING) const = 0;
 
         /// \todo function for transforming block [0, 1]^d into the domain?
     };
@@ -85,19 +85,19 @@ public:
 
     virtual bool isInside(const Vector& v) const override { return isInsideImpl(v); }
 
-    virtual void getSubset(const ArrayView<Vector> vs,
-        Array<int>& output,
+    virtual void getSubset(ArrayView<const Vector> vs,
+        Array<Size>& output,
         const SubsetType type) const override {
         switch (type) {
         case SubsetType::OUTSIDE:
-            for (int i = 0; i < vs.size(); ++i) {
+            for (Size i = 0; i < vs.size(); ++i) {
                 if (!isInsideImpl(vs[i])) {
                     output.push(i);
                 }
             }
             break;
         case SubsetType::INSIDE:
-            for (int i = 0; i < vs.size(); ++i) {
+            for (Size i = 0; i < vs.size(); ++i) {
                 if (isInsideImpl(vs[i])) {
                     output.push(i);
                 }
@@ -108,7 +108,7 @@ public:
         }
     }
 
-    virtual void getDistanceToBoundary(ArrayView<Vector> vs, Array<Float>& distances) const override {
+    virtual void getDistanceToBoundary(ArrayView<const Vector> vs, Array<Float>& distances) const override {
         distances.clear();
         Float radius = Math::sqrt(radiusSqr);
         for (const Vector& v : vs) {
@@ -117,7 +117,7 @@ public:
         }
     }
 
-    virtual void project(ArrayView<Vector> vs, Optional<ArrayView<int>> indices = NOTHING) const override {
+    virtual void project(ArrayView<Vector> vs, Optional<ArrayView<Size>> indices = NOTHING) const override {
         Float radius = Math::sqrt(radiusSqr);
         auto impl = [this, radius](Vector& v) {
             if (!isInsideImpl(v)) {
@@ -125,7 +125,7 @@ public:
             }
         };
         if (indices) {
-            for (int i : indices.get()) {
+            for (Size i : indices.get()) {
                 impl(vs[i]);
             }
         } else {
@@ -135,7 +135,7 @@ public:
         }
     }
 
-    virtual void invert(ArrayView<Vector> vs, Optional<ArrayView<int>> indices = NOTHING) const override {
+    virtual void invert(ArrayView<Vector> vs, Optional<ArrayView<Size>> indices = NOTHING) const override {
         Float radius = Math::sqrt(radiusSqr);
         auto impl = [this, radius](Vector& v) {
             Float length;
@@ -144,7 +144,7 @@ public:
             return v + 2._f * (radius - length) * normalized;
         };
         if (indices) {
-            for (int i : indices.get()) {
+            for (Size i : indices.get()) {
                 vs[i] = impl(vs[i]);
             }
         } else {
@@ -173,19 +173,19 @@ public:
 
     virtual bool isInside(const Vector& v) const override { return box.contains(v); }
 
-    virtual void getSubset(const ArrayView<Vector> vs,
-        Array<int>& output,
+    virtual void getSubset(ArrayView<const Vector> vs,
+        Array<Size>& output,
         const SubsetType type) const override {
         switch (type) {
         case SubsetType::OUTSIDE:
-            for (int i = 0; i < vs.size(); ++i) {
+            for (Size i = 0; i < vs.size(); ++i) {
                 if (!box.contains(vs[i])) {
                     output.push(i);
                 }
             }
             break;
         case SubsetType::INSIDE:
-            for (int i = 0; i < vs.size(); ++i) {
+            for (Size i = 0; i < vs.size(); ++i) {
                 if (box.contains(vs[i])) {
                     output.push(i);
                 }
@@ -193,19 +193,19 @@ public:
         }
     }
 
-    virtual void getDistanceToBoundary(ArrayView<Vector> UNUSED(vs),
+    virtual void getDistanceToBoundary(ArrayView<const Vector> UNUSED(vs),
         Array<Float>& UNUSED(distances)) const override {
         NOT_IMPLEMENTED;
     }
 
-    virtual void project(ArrayView<Vector> vs, Optional<ArrayView<int>> indices = NOTHING) const override {
+    virtual void project(ArrayView<Vector> vs, Optional<ArrayView<Size>> indices = NOTHING) const override {
         auto impl = [this](Vector& v) {
             if (!box.contains(v)) {
                 v = box.clamp(v);
             }
         };
         if (indices) {
-            for (int i : indices.get()) {
+            for (Size i : indices.get()) {
                 impl(vs[i]);
             }
         } else {
@@ -216,7 +216,7 @@ public:
     }
 
     virtual void invert(ArrayView<Vector> UNUSED(vs),
-        Optional<ArrayView<int>> UNUSED(indices) = NOTHING) const override {
+        Optional<ArrayView<Size>> UNUSED(indices) = NOTHING) const override {
         NOT_IMPLEMENTED;
     }
 };
@@ -239,19 +239,19 @@ public:
 
     virtual bool isInside(const Vector& v) const override { return this->isInsideImpl(v); }
 
-    virtual void getSubset(const ArrayView<Vector> vs,
-        Array<int>& output,
+    virtual void getSubset(ArrayView<const Vector> vs,
+        Array<Size>& output,
         const SubsetType type) const override {
         switch (type) {
         case SubsetType::OUTSIDE:
-            for (int i = 0; i < vs.size(); ++i) {
+            for (Size i = 0; i < vs.size(); ++i) {
                 if (!isInsideImpl(vs[i])) {
                     output.push(i);
                 }
             }
             break;
         case SubsetType::INSIDE:
-            for (int i = 0; i < vs.size(); ++i) {
+            for (Size i = 0; i < vs.size(); ++i) {
                 if (isInsideImpl(vs[i])) {
                     output.push(i);
                 }
@@ -259,7 +259,7 @@ public:
         }
     }
 
-    virtual void getDistanceToBoundary(ArrayView<Vector> vs, Array<Float>& distances) const override {
+    virtual void getDistanceToBoundary(ArrayView<const Vector> vs, Array<Float>& distances) const override {
         distances.clear();
         Float radius = Math::sqrt(radiusSqr);
         ASSERT(!includeBases); // including bases not implemented
@@ -269,7 +269,7 @@ public:
         }
     }
 
-    virtual void project(ArrayView<Vector> vs, Optional<ArrayView<int>> indices = NOTHING) const override {
+    virtual void project(ArrayView<Vector> vs, Optional<ArrayView<Size>> indices = NOTHING) const override {
         Float radius = Math::sqrt(radiusSqr);
         auto impl = [this, radius](Vector& v) {
             if (!isInsideImpl(v)) {
@@ -279,7 +279,7 @@ public:
         };
         ASSERT(!includeBases); // including bases not implemented
         if (indices) {
-            for (int i : indices.get()) {
+            for (Size i : indices.get()) {
                 impl(vs[i]);
             }
         } else {
@@ -289,7 +289,7 @@ public:
         }
     }
 
-    virtual void invert(ArrayView<Vector> vs, Optional<ArrayView<int>> indices = NOTHING) const override {
+    virtual void invert(ArrayView<Vector> vs, Optional<ArrayView<Size>> indices = NOTHING) const override {
         Float radius = Math::sqrt(radiusSqr);
         auto impl = [this, radius](Vector& v) {
             Float length;
@@ -300,7 +300,7 @@ public:
         };
         ASSERT(!includeBases); // including bases not implemented
         if (indices) {
-            for (int i : indices.get()) {
+            for (Size i : indices.get()) {
                 vs[i] = impl(vs[i]);
             }
         } else {

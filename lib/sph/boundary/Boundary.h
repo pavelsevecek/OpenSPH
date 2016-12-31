@@ -28,8 +28,8 @@ class GhostParticles : public Abstract::BoundaryConditions {
 private:
     std::unique_ptr<Abstract::Domain> domain;
     // index where the ghost particles begin (they are always stored successively)
-    Array<int> ghostIdxs;
-    Array<int> idxs;
+    Array<Size> ghostIdxs;
+    Array<Size> idxs;
     Array<Float> distances;
     Float searchRadius;
 
@@ -53,7 +53,7 @@ enum class ProjectingOptions {
 class DomainProjecting : public Abstract::BoundaryConditions {
 private:
     std::unique_ptr<Abstract::Domain> domain;
-    Array<int> outside;
+    Array<Size> outside;
     Array<Vector> vproj;
     ProjectingOptions options;
 

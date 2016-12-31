@@ -10,11 +10,11 @@
 NAMESPACE_SPH_BEGIN
 
 /// Simple (forward) iterator. Can be used with STL algorithms.
-template <typename T, typename TCounter = int>
+template <typename T, typename TCounter = Size>
 class Iterator : public Object {
     template <typename, typename>
     friend class Array;
-    template <typename, int>
+    template <typename, int, typename>
     friend class StaticArray;
     template <typename, typename>
     friend class ArrayView;
@@ -72,7 +72,7 @@ public:
         operator--();
         return tmp;
     }
-    size_t operator-(const Iterator& iter) const { return data - iter.data; }
+    Size operator-(const Iterator& iter) const { return data - iter.data; }
     bool operator<(const Iterator& iter) const { return data < iter.data; }
     bool operator>(const Iterator& iter) const { return data > iter.data; }
     bool operator<=(const Iterator& iter) const { return data <= iter.data; }
@@ -83,7 +83,7 @@ public:
 
     using iterator_category = std::random_access_iterator_tag;
     using value_type = T;
-    using difference_type = size_t;
+    using difference_type = Size;
     using pointer = T*;
     using reference = T&;
 };
@@ -91,7 +91,7 @@ public:
 
 /// Object providing safe access to continuous memory of data, useful to write generic code that can be used
 /// with any kind of storage where the data are stored consecutively in memory.
-template <typename T, typename TCounter = int>
+template <typename T, typename TCounter = Size>
 class ArrayView : public Object {
 private:
     using StorageType = typename WrapReferenceType<T>::Type;
@@ -168,7 +168,7 @@ public:
         return data[idx];
     }
 
-    INLINE int size() const { return this->actSize; }
+    INLINE TCounter size() const { return this->actSize; }
 
     INLINE bool empty() const { return this->actSize == 0; }
 
@@ -181,7 +181,7 @@ public:
         if (actSize != other.actSize) {
             return false;
         }
-        for (int i = 0; i < actSize; ++i) {
+        for (TCounter i = 0; i < actSize; ++i) {
             if (data[i] != other[i]) {
                 return false;
             }

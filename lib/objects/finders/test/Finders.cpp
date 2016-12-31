@@ -1,10 +1,10 @@
-#include "objects/finders/KdTree.h"
-#include "objects/finders/Voxel.h"
-#include "objects/finders/LinkedList.h"
 #include "catch.hpp"
 #include "objects/containers/ArrayUtils.h"
-#include "sph/initial/Distribution.h"
+#include "objects/finders/KdTree.h"
+#include "objects/finders/LinkedList.h"
+#include "objects/finders/Voxel.h"
 #include "objects/wrappers/Range.h"
+#include "sph/initial/Distribution.h"
 
 using namespace Sph;
 
@@ -16,13 +16,13 @@ void testFinder(Abstract::Finder& finder) {
     finder.build(storage);
 
     Array<NeighbourRecord> treeNeighs;
-    int nTree = finder.findNeighbours(25, 1.5_f, treeNeighs);
+    Size nTree = finder.findNeighbours(25, 1.5_f, treeNeighs);
 
     /// checksum - count by bruteforce number of neighbours
 
-    Array<int> bfNeighs;
+    Array<Size> bfNeighs;
 
-    for (int i = 0; i < storage.size(); ++i) {
+    for (Size i = 0; i < storage.size(); ++i) {
         if (getSqrLength(storage[25] - storage[i]) <= Math::sqr(1.5_f)) {
             bfNeighs.push(i);
         }
@@ -36,7 +36,7 @@ void testFinder(Abstract::Finder& finder) {
     });
     std::sort(bfNeighs.begin(), bfNeighs.end());
 
-    for (int i = 0; i < nTree; ++i) {
+    for (Size i = 0; i < nTree; ++i) {
         REQUIRE(bfNeighs[i] == treeNeighs[i].index);
         REQUIRE(treeNeighs[i].distanceSqr == getSqrLength(storage[treeNeighs[i].index] - storage[25]));
     }
@@ -57,7 +57,7 @@ void testFinderSmallerH(Abstract::Finder& finder) {
     REQUIRE(nSmaller == 4); // this should find indices 0, 1, 2, 3
     bool allMatching = true;
     for (auto& n : treeNeighs) {
-        if (n.index < 0 || n.index > 3) {
+        if (n.index > 3) {
             allMatching = false;
         }
     }

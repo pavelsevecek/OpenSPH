@@ -4,7 +4,7 @@
 /// Pavel Sevecek 2016
 /// sevecek at sirrah.troja.mff.cuni.cz
 
-#include "objects/Object.h"
+#include "core/Globals.h"
 #include <type_traits>
 
 NAMESPACE_SPH_BEGIN
@@ -103,8 +103,8 @@ public:
     RvalueReferenceWrapper(T&& ref)
         : ref(std::move(ref)) {}
 
-    INLINE operator T&&() noexcept { return std::move(ref); }
-    INLINE operator const T&&() const noexcept { return std::move(ref); }
+    INLINE operator T &&() noexcept { return std::move(ref); }
+    INLINE operator const T &&() const noexcept { return std::move(ref); }
 };
 
 
@@ -121,9 +121,8 @@ template <typename T>
 struct WrapReferenceType<T&&> {
     using Type = RvalueReferenceWrapper<T>;
 };
-template<typename T>
+template <typename T>
 using WrapReference = typename WrapReferenceType<T>::Type;
-
 
 
 /// Type trait for "extracting" stored references from reference_wrappers. Other types keeps unchanged.
@@ -166,47 +165,48 @@ static_assert(std::is_same<int&, Undecay<int, float&>>::value, "invalid Undecay"
 static_assert(std::is_same<const int, Undecay<int, const float>>::value, "invalid Undecay");
 static_assert(std::is_same<const int&, Undecay<int, const float&>>::value, "invalid Undecay");
 
-/// Converts enums into int, does not change other types.
+/// Converts all signed integral types and enums into Size, does not change other types.
 template <typename T, typename TEnabler = void>
-struct EnumToIntType {
+struct ConvertToSizeType {
     using Type = T;
 };
 template <typename T>
-struct EnumToIntType<T, std::enable_if_t<std::is_enum<std::decay_t<T>>::value>> {
+struct ConvertToSizeType<T, std::enable_if_t<std::is_enum<std::decay_t<T>>::value>> {
     using Type = Undecay<std::underlying_type_t<std::decay_t<T>>, T>;
 };
+
 template <typename T>
-using EnumToInt = typename EnumToIntType<T>::Type;
+using ConvertToSize = typename ConvertToSizeType<T>::Type;
 
 enum class TestEnum { DUMMY };
 
-static_assert(std::is_same<int, EnumToInt<int>>::value, "invalid EnumToInt");
-static_assert(std::is_same<float, EnumToInt<float>>::value, "invalid EnumToInt");
-static_assert(std::is_same<int&, EnumToInt<int&>>::value, "invalid EnumToInt");
-static_assert(std::is_same<int, EnumToInt<TestEnum>>::value, "invalid EnumToInt");
-static_assert(std::is_same<int&, EnumToInt<TestEnum&>>::value, "invalid EnumToInt");
+static_assert(std::is_same<int, ConvertToSize<int>>::value, "invalid EnumToInt");
+static_assert(std::is_same<float, ConvertToSize<float>>::value, "invalid EnumToInt");
+static_assert(std::is_same<bool, ConvertToSize<bool>>::value, "invalid EnumToInt");
+static_assert(std::is_same<int, ConvertToSize<TestEnum>>::value, "invalid EnumToInt");
+static_assert(std::is_same<int&, ConvertToSize<TestEnum&>>::value, "invalid EnumToInt");
 
 
 /// Static logical and
-template<bool... Values>
+template <bool... Values>
 struct AllTrue;
-template<bool First, bool Second, bool... Others>
-struct AllTrue<First, Second,Others...> {
+template <bool First, bool Second, bool... Others>
+struct AllTrue<First, Second, Others...> {
     static constexpr bool value = First && AllTrue<Second, Others...>::value;
 };
-template<bool Value>
+template <bool Value>
 struct AllTrue<Value> {
     static constexpr bool value = Value;
 };
 
 /// Static logical or
-template<bool... Values>
+template <bool... Values>
 struct AnyTrue;
-template<bool First, bool Second, bool... Others>
-struct AnyTrue<First, Second,Others...> {
+template <bool First, bool Second, bool... Others>
+struct AnyTrue<First, Second, Others...> {
     static constexpr bool value = First || AnyTrue<Second, Others...>::value;
 };
-template<bool Value>
+template <bool Value>
 struct AnyTrue<Value> {
     static constexpr bool value = Value;
 };

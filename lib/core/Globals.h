@@ -11,6 +11,9 @@ NAMESPACE_SPH_BEGIN
 /// Precision used withing the code. Use Float instead of float or double where precision is important.
 using Float = float;
 
+/// Integral type used to index arrays (by default).
+using Size = uint32_t;
+
 /// Number of spatial dimensions using in the code.
 constexpr int DIMENSIONS = 3;
 

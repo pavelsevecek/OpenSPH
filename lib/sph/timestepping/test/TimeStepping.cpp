@@ -20,7 +20,7 @@ struct TestSolver : public Abstract::Solver {
         ArrayView<Vector> r, v, dv;
         tie(r, v, dv) = storage.getAll<Vector>(QuantityKey::POSITIONS);
         Float omega = 2._f * Math::PI / period;
-        for (int i = 0; i < r.size(); ++i) {
+        for (Size i = 0; i < r.size(); ++i) {
             dv[i] = -Math::sqr(omega) * r[i];
         }
     }
@@ -41,7 +41,7 @@ void testTimestepping(TArgs&&... args) {
     ArrayView<const Vector> r, v, dv;
     tie(r, v, dv) = storage->getAll<Vector>(QuantityKey::POSITIONS);
     TTimestepping timestepping(storage, std::forward<TArgs>(args)...);
-    int n;
+    Size n = 0;
     for (float t = 0.f; t < 3.f; t += timestepping.getTimeStep()) {
         // std::cout << rs[0][X] << "  " << vs[0][X] << "  " << Math::cos(2.f * Math::PI * t) << std::endl;
         if ((n++ % 15) == 0) {

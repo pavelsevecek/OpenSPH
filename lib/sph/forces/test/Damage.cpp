@@ -25,7 +25,7 @@ TEST_CASE("Distribute flaws", "[damage]") {
     model.initialize(storage, bodySettings);
 
     // check that all particles have at least one flaw
-    ArrayView<int> n_flaws = storage.getValue<int>(QuantityKey::N_FLAWS);
+    ArrayView<Size> n_flaws = storage.getValue<Size>(QuantityKey::N_FLAWS);
     REQUIRE(areAllMatching(n_flaws, [N](const int n) { return n >= 1 && n <= N; }));
 
     // check that the total number of flaws

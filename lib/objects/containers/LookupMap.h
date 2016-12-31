@@ -8,19 +8,19 @@ NAMESPACE_SPH_BEGIN
 
 class LookupMap : public Noncopyable {
 private:
-    Array<Array<int>> storage;
+    Array<Array<Size>> storage;
     Box boundingBox;
-    int dimensionSize;
+    Size dimensionSize;
 
 public:
     LookupMap() = default;
 
-    LookupMap(const int n, const Box& box)
+    LookupMap(const Size n, const Box& box)
         : storage(Math::pow<3>(n))
         , boundingBox(box)
         , dimensionSize(n) {
         // make sure bounding box has positive dimensions
-        for (int dim = 0; dim < 3; ++dim) {
+        for (uint dim = 0; dim < 3; ++dim) {
             if (boundingBox.size()[dim] == 0._f) {
                 boundingBox.lower()[dim] -= EPS;
                 boundingBox.upper()[dim] += EPS;
@@ -35,14 +35,14 @@ public:
         return *this;
     }
 
-    INLINE const Array<int>& operator()(const Indices& idxs) const {
-        const int idx = idxs[X] * Math::sqr(dimensionSize) + idxs[Y] * dimensionSize + idxs[Z];
+    INLINE const Array<Size>& operator()(const Indices& idxs) const {
+        const Size idx = idxs[X] * Math::sqr(dimensionSize) + idxs[Y] * dimensionSize + idxs[Z];
         ASSERT(unsigned(idx) < unsigned(storage.size()));
         return storage[idx];
     }
 
-    INLINE Array<int>& operator()(const Indices& idxs) {
-        const int idx = idxs[X] * Math::sqr(dimensionSize) + idxs[Y] * dimensionSize + idxs[Z];
+    INLINE Array<Size>& operator()(const Indices& idxs) {
+        const Size idx = idxs[X] * Math::sqr(dimensionSize) + idxs[Y] * dimensionSize + idxs[Z];
         ASSERT(unsigned(idx) < unsigned(storage.size()));
         return storage[idx];
     }

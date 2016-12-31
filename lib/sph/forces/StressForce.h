@@ -31,7 +31,7 @@ private:
 public:
     StressForce(const GlobalSettings& settings)
         : Module<Yielding, Damage, AV, RhoDivv, RhoGradv>(yielding, damage, av, rhoDivv, rhoGradv)
-        , damage(settings, [this](const TracelessTensor& s, const int i) { return yielding.reduce(s, i); })
+        , damage(settings, [this](const TracelessTensor& s, const Size i) { return yielding.reduce(s, i); })
         , av(settings) {
         flags.setIf(Options::USE_GRAD_P, settings.get<bool>(GlobalSettingsIds::MODEL_FORCE_GRAD_P));
         flags.setIf(Options::USE_DIV_S, settings.get<bool>(GlobalSettingsIds::MODEL_FORCE_DIV_S));
@@ -52,7 +52,7 @@ public:
             p = storage.getValue<Float>(QuantityKey::PRESSURE);
             cs = storage.getValue<Float>(QuantityKey::SOUND_SPEED);
             // compute new values of pressure and sound speed
-            for (int i = 0; i < r.size(); ++i) {
+            for (Size i = 0; i < r.size(); ++i) {
                 tieToTuple(p[i], cs[i]) = storage.getMaterial(i).eos->getPressure(rho[i], u[i]);
             }
         }
@@ -62,7 +62,7 @@ public:
         this->updateModules(storage);
     }
 
-    INLINE void accumulate(const int i, const int j, const Vector& grad) {
+    INLINE void accumulate(const Size i, const Size j, const Vector& grad) {
         Vector f(0._f);
         const Float rhoInvSqri = 1._f / Math::sqr(rho[i]);
         const Float rhoInvSqrj = 1._f / Math::sqr(rho[j]);
@@ -85,7 +85,7 @@ public:
     }
 
     void integrate(Storage& storage) {
-        for (int i = 0; i < du.size(); ++i) {
+        for (Size i = 0; i < du.size(); ++i) {
             /// \todo check correct sign
             const Float rhoInvSqr = 1._f / Math::sqr(rho[i]);
             if (flags.has(Options::USE_GRAD_P)) {
@@ -116,9 +116,9 @@ public:
             std::unique_ptr<Abstract::Eos> eos = Factory::getEos(settings);
             const Float rho0 = settings.get<Float>(BodySettingsIds::DENSITY);
             const Float u0 = settings.get<Float>(BodySettingsIds::ENERGY);
-            const int n = storage.getParticleCnt();
+            const Size n = storage.getParticleCnt();
             Array<Float> p(n), cs(n);
-            for (int i = 0; i < n; ++i) {
+            for (Size i = 0; i < n; ++i) {
                 tieToTuple(p[i], cs[i]) = eos->getPressure(rho0, u0);
             }
             storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityKey::PRESSURE, std::move(p));
@@ -133,9 +133,9 @@ public:
 
 private:
     /// \todo possibly precompute damage / yielding
-    INLINE auto reduce(const Float pi, const int idx) const { return damage.reduce(pi, idx); }
+    INLINE auto reduce(const Float pi, const Size idx) const { return damage.reduce(pi, idx); }
 
-    INLINE auto reduce(const TracelessTensor& si, const int idx) const {
+    INLINE auto reduce(const TracelessTensor& si, const Size idx) const {
         // first apply damage
         auto si_dmg = damage.reduce(si, idx);
         // then apply yielding using reduced stress

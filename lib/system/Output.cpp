@@ -38,11 +38,12 @@ TextOutput::TextOutput(const std::string& fileMask, const std::string& runName, 
 
 struct LinePrinter {
     template <typename TValue>
-    void visit(Quantity& q, const int i, std::ofstream& ofs) {
+    void visit(Quantity& q, const Size i, std::ofstream& ofs) {
         if (q.getOrderEnum() == OrderEnum::SECOND_ORDER) {
-            ofs << std::setw(15) << q.getValue<TValue>()[i] << std::setw(15) << q.getDt<TValue>()[i];
+            ofs << std::fixed << std::setprecision(6) << std::setw(15) << q.getValue<TValue>()[i]
+                << std::setw(15) << q.getDt<TValue>()[i];
         } else {
-            ofs << std::setw(15) << q.getValue<TValue>()[i];
+            ofs << std::fixed << std::setprecision(6) << std::setw(15) << q.getValue<TValue>()[i];
         }
     }
 };
@@ -60,7 +61,7 @@ std::string TextOutput::dump(Storage& storage, const Float time) {
     ofs << std::endl;
 
     // print data lines, starting with second-order quantities
-    for (int i = 0; i < storage.getParticleCnt(); ++i) {
+    for (Size i = 0; i < storage.getParticleCnt(); ++i) {
         for (QuantityKey key : columns) {
             Quantity& q = storage.getQuantity(key);
             dispatch(q.getValueEnum(), LinePrinter(), q, i, ofs);

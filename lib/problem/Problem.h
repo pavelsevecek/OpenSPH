@@ -63,7 +63,7 @@ public:
     }
 
     void run() {
-        int i = 0;
+        Size i = 0;
 
         for (Float& t : rangeAdapter(timeRange, timeStepping->getTimeStep())) {
             if (callbacks) {

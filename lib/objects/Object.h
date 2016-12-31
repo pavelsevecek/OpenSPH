@@ -6,6 +6,7 @@
 
 #include <cassert>
 #include <utility>
+#include <stdint.h>
 
 #define NAMESPACE_SPH_BEGIN namespace Sph {
 #define NAMESPACE_SPH_END }
@@ -45,7 +46,6 @@ NAMESPACE_SPH_BEGIN
 #define NO_INLINE __attribute__((noinline))
 
 #define UNUSED(x)
-
 
 namespace Abstract {}
 

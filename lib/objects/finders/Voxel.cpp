@@ -9,7 +9,7 @@ VoxelFinder::~VoxelFinder() = default;
 
 void VoxelFinder::buildImpl(ArrayView<Vector> values) {
     // number of voxels, free parameter
-    const int lutSize = Math::root<3>(values.size()) + 1;
+    const Size lutSize = Math::root<3>(values.size()) + 1;
     // find bounding box
     Box boundingBox;
     for (Vector& v : values) {
@@ -17,19 +17,19 @@ void VoxelFinder::buildImpl(ArrayView<Vector> values) {
     }
     lut = LookupMap(lutSize, boundingBox);
     // put particles into voxels
-    for (int i = 0; i < values.size(); ++i) {
+    for (Size i = 0; i < values.size(); ++i) {
         Indices idxs = lut.map(values[i]);
         lut(idxs).push(i);
     }
 }
 
-int VoxelFinder::findNeighbours(const int index,
+Size VoxelFinder::findNeighbours(const Size index,
     const Float radius,
     Array<NeighbourRecord>& neighbours,
     Flags<FinderFlags> flags,
     const Float UNUSED(error)) const {
     neighbours.clear();
-    const int refRank =
+    const Size refRank =
         (flags.has(FinderFlags::FIND_ONLY_SMALLER_H)) ? this->rankH[index] : this->values.size();
 
     Indices lower = lut.map(values[index]);
@@ -41,6 +41,7 @@ int VoxelFinder::findNeighbours(const int index,
     {
         PROFILE_SCOPE("Finding box");
 
+        ASSERT(lut.getDimensionSize() > 0);
         const int upperLimit = lut.getDimensionSize() - 1;
         while (upper[X] < upperLimit && diffUpper[X] < radius) {
             diffUpper[X] += size[X];
@@ -72,7 +73,7 @@ int VoxelFinder::findNeighbours(const int index,
         for (int x = lower[X]; x <= upper[X]; ++x) {
             for (int y = lower[Y]; y <= upper[Y]; ++y) {
                 for (int z = lower[Z]; z <= upper[Z]; ++z) {
-                    for (int i : lut(Indices(x, y, z))) {
+                    for (Size i : lut(Indices(x, y, z))) {
                         const Float distSqr = getSqrLength(values[i] - values[index]);
                         if (rankH[i] < refRank && distSqr < Math::sqr(radius)) {
                             neighbours.push(NeighbourRecord{ i, distSqr });

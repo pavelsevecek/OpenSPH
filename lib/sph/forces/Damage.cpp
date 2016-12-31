@@ -20,18 +20,18 @@ void ScalarDamage::initialize(Storage& storage, const BodySettings& settings) co
     storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityKey::EPS_MIN, 0._f);
     storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityKey::M_ZERO, 0._f);
     storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityKey::EXPLICIT_GROWTH, 0._f);
-    storage.emplace<int, OrderEnum::ZERO_ORDER>(QuantityKey::N_FLAWS, 0);
+    storage.emplace<Size, OrderEnum::ZERO_ORDER>(QuantityKey::N_FLAWS, 0);
     ArrayView<Float> rho, m, eps_min, m_zero, growth;
     tie(rho, m, eps_min, m_zero, growth) = storage.getValues<Float>(QuantityKey::DENSITY,
         QuantityKey::MASSES,
         QuantityKey::EPS_MIN,
         QuantityKey::M_ZERO,
         QuantityKey::EXPLICIT_GROWTH);
-    ArrayView<int> n_flaws = storage.getValue<int>(QuantityKey::N_FLAWS);
+    ArrayView<Size> n_flaws = storage.getValue<Size>(QuantityKey::N_FLAWS);
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityKey::POSITIONS);
-    ArrayView<int> activationIdx;
+    ArrayView<Size> activationIdx;
     if (options == ExplicitFlaws::ASSIGNED) {
-        activationIdx = storage.getValue<int>(QuantityKey::FLAW_ACTIVATION_IDX);
+        activationIdx = storage.getValue<Size>(QuantityKey::FLAW_ACTIVATION_IDX);
     }
     const Float mu = settings.get<Float>(BodySettingsIds::SHEAR_MODULUS);
     const Float A = settings.get<Float>(BodySettingsIds::BULK_MODULUS);
@@ -43,14 +43,14 @@ void ScalarDamage::initialize(Storage& storage, const BodySettings& settings) co
     const Float rho0 = settings.get<Float>(BodySettingsIds::DENSITY);
     const Float cg = cgFactor * Math::sqrt((A + 4._f / 3._f * mu) / rho0);
 
-    const int size = storage.getParticleCnt();
+    const Size size = storage.getParticleCnt();
     // compute explicit growth
-    for (int i = 0; i < size; ++i) {
+    for (Size i = 0; i < size; ++i) {
         growth[i] = cg / (kernelRadius * r[i][H]);
     }
     // find volume used to normalize fracture model
     Float V = 0._f;
-    for (int i = 0; i < size; ++i) {
+    for (Size i = 0; i < size; ++i) {
         V += m[i] / rho[i];
     }
     const Float k_weibull = settings.get<Float>(BodySettingsIds::WEIBULL_COEFFICIENT);
@@ -58,9 +58,9 @@ void ScalarDamage::initialize(Storage& storage, const BodySettings& settings) co
     const Float denom = 1._f / Math::pow(k_weibull * V, 1._f / m_weibull);
     Array<Float> eps_max(size);
     BenzAsphaugRng rng(1234); /// \todo generalize random number generator
-    int flawedCnt = 0, p = 1;
+    Size flawedCnt = 0, p = 1;
     while (flawedCnt < size) {
-        const int i = int(rng() * size);
+        const Size i = Size(rng() * size);
         if (options == ExplicitFlaws::ASSIGNED) {
             p = activationIdx[i];
         }
@@ -73,7 +73,7 @@ void ScalarDamage::initialize(Storage& storage, const BodySettings& settings) co
         p++;
         n_flaws[i]++;
     }
-    for (int i = 0; i < size; ++i) {
+    for (Size i = 0; i < size; ++i) {
         if (n_flaws[i] == 1) {
             m_zero[i] = 1._f;
         } else {
@@ -89,9 +89,9 @@ void ScalarDamage::integrate(Storage& storage) {
     ArrayView<Float> p, eps_min, m_zero, growth;
     tie(p, eps_min, m_zero, growth) = storage.getValues<Float>(
         QuantityKey::PRESSURE, QuantityKey::EPS_MIN, QuantityKey::M_ZERO, QuantityKey::EXPLICIT_GROWTH);
-    ArrayView<int> n_flaws = storage.getValue<int>(QuantityKey::N_FLAWS);
+    ArrayView<Size> n_flaws = storage.getValue<Size>(QuantityKey::N_FLAWS);
     ArrayView<Float> ddamage = storage.getAll<Float>(QuantityKey::DAMAGE)[1];
-    for (int i = 0; i < p.size(); ++i) {
+    for (Size i = 0; i < p.size(); ++i) {
         Tensor sigma = yielding(reduce(s[i], i), i) - reduce(p[i], i) * Tensor::identity();
         float sig1, sig2, sig3;
         tie(sig1, sig2, sig3) = findEigenvalues(sigma);

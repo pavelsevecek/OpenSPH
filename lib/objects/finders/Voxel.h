@@ -22,7 +22,7 @@ public:
 
     ~VoxelFinder();
 
-    virtual int findNeighbours(const int index,
+    virtual Size findNeighbours(const Size index,
         const Float radius,
         Array<NeighbourRecord>& neighbours,
         Flags<FinderFlags> flags = EMPTY_FLAGS,

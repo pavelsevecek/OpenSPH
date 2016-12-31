@@ -138,7 +138,7 @@ public:
 
         // energy per particle
         Array<Float> e = storage.getValue<Float>(QuantityKey::MASSES).clone();
-        for (int i = 0; i < e.size(); ++i) {
+        for (Size i = 0; i < e.size(); ++i) {
             e[i] *= u0;
         }
         storage.emplace<Float, OrderEnum::FIRST_ORDER>(QuantityKey::ENERGY_PER_PARTICLE, std::move(e));

@@ -28,6 +28,9 @@ bool MyApp::OnInit() {
     globalSettings.set(GlobalSettingsIds::DOMAIN_BOUNDARY, BoundaryEnum::GHOST_PARTICLES);
     globalSettings.set(GlobalSettingsIds::DOMAIN_RADIUS, 2.5_f);
     globalSettings.set(GlobalSettingsIds::DOMAIN_TYPE, DomainEnum::SPHERICAL);
+    globalSettings.set(GlobalSettingsIds::TIMESTEPPING_ADAPTIVE, true);
+    globalSettings.set(GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP, 1.e-8_f);
+    globalSettings.set(GlobalSettingsIds::MODEL_FORCE_DIV_S, false);
     /*globalSettings.set(GlobalSettingsIds::MODEL_DAMAGE, DamageEnum::SCALAR_GRADY_KIPP);
     globalSettings.set(GlobalSettingsIds::MODEL_YIELDING, YieldingEnum::VON_MISES);*/
     Problem* p          = new Problem(globalSettings);
@@ -41,7 +44,7 @@ bool MyApp::OnInit() {
     bodySettings.set(BodySettingsIds::EOS, EosEnum::TILLOTSON);
     InitialConditions conds(p->storage, globalSettings);
     SphericalDomain domain1(Vector(0._f), 1._f);
-    conds.addBody(domain1, bodySettings, Vector(0.5_f, 0._f, 0._f));
+    conds.addBody(domain1, bodySettings, Vector(5e5_f, 0._f, 0._f));
     //bodySettings.set(BodySettingsIds::PARTICLE_COUNT, 100);
     //SphericalDomain domain2(Vector(2._f, 1._f, 0._f), 0.3_f);
     //conds.addBody(domain2, bodySettings, Vector(-5._f, 0._f, 0._f));

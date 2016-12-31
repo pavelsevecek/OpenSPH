@@ -15,14 +15,14 @@ void EulerExplicit::stepImpl(Abstract::Solver& solver) {
     PROFILE_SCOPE("EulerExplicit::step")
     // advance all 2nd-order quantities by current timestep, first values, then 1st derivatives
     iterate<VisitorEnum::SECOND_ORDER>(*this->storage, [this](auto& v, auto& dv, auto& d2v) {
-        for (int i = 0; i < v.size(); ++i) {
+        for (Size i = 0; i < v.size(); ++i) {
             dv[i] += d2v[i] * this->dt;
             v[i] += dv[i] * this->dt;
             v.clamp(i);
         }
     });
     iterate<VisitorEnum::FIRST_ORDER>(*this->storage, [this](auto& v, auto& dv) {
-        for (int i = 0; i < v.size(); ++i) {
+        for (Size i = 0; i < v.size(); ++i) {
             v[i] += dv[i] * this->dt;
             v.clamp(i);
         }
@@ -44,14 +44,14 @@ void PredictorCorrector::stepImpl(Abstract::Solver& solver) {
     PROFILE_SCOPE("PredictorCorrector::step   Predictions")
     // make prediction using old derivatives (simple euler)
     iterate<VisitorEnum::SECOND_ORDER>(*this->storage, [this, dt2](auto& v, auto& dv, auto& d2v) {
-        for (int i = 0; i < v.size(); ++i) {
+        for (Size i = 0; i < v.size(); ++i) {
             v[i] += dv[i] * this->dt + d2v[i] * dt2;
             dv[i] += d2v[i] * this->dt;
             v.clamp(i);
         }
     });
     iterate<VisitorEnum::FIRST_ORDER>(*this->storage, [this](auto& v, auto& dv) {
-        for (int i = 0; i < v.size(); ++i) {
+        for (Size i = 0; i < v.size(); ++i) {
             v[i] += dv[i] * this->dt;
             v.clamp(i);
         }
@@ -70,7 +70,7 @@ void PredictorCorrector::stepImpl(Abstract::Solver& solver) {
     iteratePair<VisitorEnum::SECOND_ORDER>(*this->storage, this->predictions,
         [this, dt2](auto& pv, auto& pdv, auto& pd2v, auto& UNUSED(cv), auto& UNUSED(cdv), auto& cd2v) {
         ASSERT(pv.size() == pd2v.size());
-        for (int i = 0; i < pv.size(); ++i) {
+        for (Size i = 0; i < pv.size(); ++i) {
             pv[i] -= 0.333333_f * (cd2v[i] - pd2v[i]) * dt2;
             pdv[i] -= 0.5_f * (cd2v[i] - pd2v[i]) * this->dt;
             pv.clamp(i);
@@ -79,7 +79,7 @@ void PredictorCorrector::stepImpl(Abstract::Solver& solver) {
     iteratePair<VisitorEnum::FIRST_ORDER>(*this->storage, this->predictions,
         [this](auto& pv, auto& pdv, auto& UNUSED(cv), auto& cdv) {
         ASSERT(pv.size() == pdv.size());
-        for (int i = 0; i < pv.size(); ++i) {
+        for (Size i = 0; i < pv.size(); ++i) {
             pv[i] -= 0.5_f * (cdv[i] - pdv[i]) * this->dt;
             pv.clamp(i);
         }

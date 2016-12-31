@@ -11,16 +11,16 @@
 
 NAMESPACE_SPH_BEGIN
 
-/// Permutation, i.e. (discrete) invertible function int->int. Simple wrapper of Array<int> with convenient
+/// Permutation, i.e. (discrete) invertible function int->int. Simple wrapper of Array<size_t> with convenient
 /// interface that guarantees the object will be always valid permutation. Only way to modify the object is
 /// via <code>shuffle</code> function.
 class Order : public Noncopyable {
 private:
-    Array<int> storage;
+    Array<Size> storage;
 
 
-    /// Private constructor from int storage
-    Order(Array<int>&& other)
+    /// Private constructor from size_t storage
+    Order(Array<Size>&& other)
         : storage(std::move(other)) {}
 
 public:
@@ -30,9 +30,9 @@ public:
         : storage(std::move(other.storage)) {}
 
     /// Construct identity of given size
-    Order(const int n)
+    Order(const Size n)
         : storage(0, n) {
-        for (int i = 0; i < n; ++i) {
+        for (Size i = 0; i < n; ++i) {
             storage.push(i);
         }
     }
@@ -50,8 +50,8 @@ public:
 
     /// Returns inverted order
     Order getInverted() const {
-        Array<int> inverted(storage.size());
-        for (int i = 0; i < storage.size(); ++i) {
+        Array<Size> inverted(storage.size());
+        for (Size i = 0; i < storage.size(); ++i) {
             inverted[storage[i]] = i;
         }
         return inverted;
@@ -61,16 +61,16 @@ public:
 
     /// Compose two orders
     Order operator()(const Order& other) const {
-        Array<int> composed(storage.size());
-        for (int i = 0; i < storage.size(); ++i) {
+        Array<Size> composed(storage.size());
+        for (Size i = 0; i < storage.size(); ++i) {
             composed[i] = storage[other[i]];
         }
         return composed;
     }
 
-    INLINE int operator[](const int idx) const { return storage[idx]; }
+    INLINE Size operator[](const Size idx) const { return storage[idx]; }
 
-    INLINE int size() const { return storage.size(); }
+    INLINE Size size() const { return storage.size(); }
 
     INLINE bool operator==(const Order& other) const { return storage == other.storage; }
 };
@@ -92,9 +92,9 @@ public:
         : storage(std::move(other.storage)) {}
 
     /// Construct identity of given size
-    VectorOrder(const int n)
+    VectorOrder(const Size n)
         : storage(0, n) {
-        for (int i = 0; i < n; ++i) {
+        for (Size i = 0; i < n; ++i) {
             storage.push(Indices(i));
         }
     }
@@ -106,7 +106,7 @@ public:
 
     /// Shuffle order by given comparator
     template <typename TComparator>
-    void shuffle(const int component, TComparator&& comparator) {
+    void shuffle(const uint component, TComparator&& comparator) {
         auto adapter = componentAdapter(storage, component);
         std::sort(adapter.begin(), adapter.end(), std::forward<TComparator>(comparator));
     }
@@ -114,15 +114,15 @@ public:
     /// Returns inverted order
     VectorOrder getInverted() const {
         Array<Indices> inverted(storage.size());
-        for (int i = 0; i < storage.size(); ++i) {
-            for (int j = 0; j < 3; ++j) {
+        for (Size i = 0; i < storage.size(); ++i) {
+            for (uint j = 0; j < 3; ++j) {
                 inverted[storage[i][j]][j] = i;
             }
         }
         return inverted;
     }
 
-    INLINE const Indices& operator[](const int idx) const { return storage[idx]; }
+    INLINE const Indices& operator[](const Size idx) const { return storage[idx]; }
 };
 
 NAMESPACE_SPH_END

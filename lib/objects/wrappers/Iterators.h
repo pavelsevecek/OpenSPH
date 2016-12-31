@@ -15,7 +15,7 @@ struct ComponentIterator : public Object {
     TIterator iterator;
     int component;
 
-    using T = decltype((*std::declval<TIterator>())[std::declval<int>()]);
+    using T = decltype((*std::declval<TIterator>())[std::declval<Size>()]);
     using RawT = std::decay_t<T>;
 
     ComponentIterator() = default;
@@ -53,7 +53,7 @@ struct ComponentIterator : public Object {
     void operator+=(const int n) { iterator += n; }
     void operator-=(const int n) { iterator -= n; }
 
-    size_t operator-(const ComponentIterator& other) const { return iterator - other.iterator; }
+    Size operator-(const ComponentIterator& other) const { return iterator - other.iterator; }
     bool operator<(const ComponentIterator& other) const { return iterator < other.iterator; }
     bool operator>(const ComponentIterator& other) const { return iterator > other.iterator; }
     bool operator<=(const ComponentIterator& other) const { return iterator <= other.iterator; }
@@ -64,7 +64,7 @@ struct ComponentIterator : public Object {
 
     using iterator_category = std::random_access_iterator_tag;
     using value_type        = RawT;
-    using difference_type   = size_t;
+    using difference_type   = Size;
     using pointer           = RawT*;
     using reference         = RawT&;
 

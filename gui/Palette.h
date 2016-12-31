@@ -30,7 +30,7 @@ public:
         if (value > points[points.size() - 1].value) {
             return points[points.size() - 1].color;
         }
-        for (int i = 0; i < points.size() - 1; ++i) {
+        for (Size i = 0; i < points.size() - 1; ++i) {
             if (Range(points[i].value, points[i + 1].value).contains(value)) {
                 // interpolate
                 const float x = (points[i + 1].value - value) / (points[i + 1].value - points[i].value);

@@ -8,11 +8,11 @@ NAMESPACE_SPH_BEGIN
 const struct EmptyArray {
 } EMPTY_ARRAY;
 
-template <typename T, int N>
+template <typename T, int N, typename TCounter = Size>
 class StaticArray : public Object {
 private:
     AlignedStorage<T> data[N];
-    int actSize;
+    TCounter actSize;
 
     using StorageType = WrapReference<T>;
 
@@ -20,7 +20,7 @@ public:
     /// Default constructor, calls default constructor on all elements.
     StaticArray() {
         if (!std::is_trivially_default_constructible<T>::value) {
-            for (int i = 0; i < N; ++i) {
+            for (TCounter i = 0; i < N; ++i) {
                 data[i].emplace();
             }
         }
@@ -48,7 +48,7 @@ public:
     /// Destructor, destroys all elements in the array.
     ~StaticArray() {
         if (!std::is_trivially_destructible<T>::value) {
-            for (int i = 0; i < actSize; ++i) {
+            for (TCounter i = 0; i < actSize; ++i) {
                 data[i].destroy();
             }
         }
@@ -63,7 +63,7 @@ public:
     template <typename U, int M, typename = std::enable_if_t<std::is_lvalue_reference<T>::value, U>>
     StaticArray& operator=(StaticArray<U, M>&& other) {
         ASSERT(this->size() == other.size());
-        for (int i = 0; i < other.size(); ++i) {
+        for (TCounter i = 0; i < other.size(); ++i) {
             (*this)[i] = std::move(other[i]);
         }
         return *this;
@@ -73,27 +73,27 @@ public:
     /// to current size of this array.
     StaticArray clone() const {
         StaticArray cloned(EMPTY_ARRAY);
-        for (int i = 0; i < actSize; ++i) {
+        for (TCounter i = 0; i < actSize; ++i) {
             cloned.push(data[i].get());
         }
         return cloned;
     }
 
-    INLINE T& operator[](const int idx) noexcept {
+    INLINE T& operator[](const TCounter idx) noexcept {
         ASSERT(idx >= 0 && idx < actSize);
         return data[idx].get();
     }
 
-    INLINE const T& operator[](const int idx) const noexcept {
+    INLINE const T& operator[](const TCounter idx) const noexcept {
         ASSERT(idx >= 0 && idx < actSize);
         return data[idx].get();
     }
 
     /// Maximum allowed size of the array.
-    INLINE constexpr int maxSize() const noexcept { return N; }
+    INLINE constexpr TCounter maxSize() const noexcept { return N; }
 
     /// Current size of the array (number of constructed elements). Can be between 0 and N.
-    INLINE int size() const { return actSize; }
+    INLINE TCounter size() const { return actSize; }
 
     /// Inserts a value to the end of the array using copy/move constructor. The current size of the array
     /// must be less than N, checked by assert.
@@ -116,15 +116,15 @@ public:
     /// Changes size of the array. New size must be between 0 and N. If the array is shrinked, elements from
     /// the end of the array are destroyed; if the array is enlarged, new elements are created using default
     /// constructor.
-    void resize(const int newSize) {
+    void resize(const TCounter newSize) {
         ASSERT(unsigned(newSize) <= N);
         if (!std::is_trivially_default_constructible<T>::value) {
             if (newSize > actSize) {
-                for (int i = actSize; i < newSize; ++i) {
+                for (TCounter i = actSize; i < newSize; ++i) {
                     data[i].emplace();
                 }
             } else {
-                for (int i = newSize; i < actSize; ++i) {
+                for (TCounter i = newSize; i < actSize; ++i) {
                     data[i].destroy();
                 }
             }
@@ -162,6 +162,8 @@ public:
 
 private:
     INLINE StorageType* rawData() { return reinterpret_cast<StorageType*>(data); }
+
+    INLINE const StorageType* rawData() const { return reinterpret_cast<const StorageType*>(data); }
 };
 
 /// Creates a static array from a list of parameters. All parameters must have the same type. Both the

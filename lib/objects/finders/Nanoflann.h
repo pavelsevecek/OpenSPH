@@ -74,7 +74,7 @@ namespace Sph {
 
     /** @addtogroup result_sets_grp Result set classes
       *  @{ */
-    template <typename DistanceType, typename IndexType = size_t, typename CountType = size_t>
+    template <typename DistanceType, typename IndexType = Size, typename CountType = Size>
     class KNNResultSet {
         IndexType* indices;
         DistanceType* dists;
@@ -132,7 +132,7 @@ namespace Sph {
     /**
      * A result-set class used when performing a radius based search.
      */
-    template <typename DistanceType, typename IndexType = size_t>
+    template <typename DistanceType, typename IndexType = Size>
     class RadiusResultSet {
     public:
         const DistanceType radius;
@@ -150,7 +150,7 @@ namespace Sph {
         inline void init() { clear(); }
         inline void clear() { m_indices_dists.clear(); }
 
-        inline size_t size() const { return m_indices_dists.size(); }
+        inline Size size() const { return m_indices_dists.size(); }
 
         inline bool full() const { return true; }
 
@@ -195,20 +195,20 @@ namespace Sph {
     /** @addtogroup loadsave_grp Load/save auxiliary functions
       * @{ */
     template <typename T>
-    void save_value(FILE* stream, const T& value, size_t count = 1) {
+    void save_value(FILE* stream, const T& value, Size count = 1) {
         fwrite(&value, sizeof(value), count, stream);
     }
 
     template <typename T>
     void save_value(FILE* stream, const Array<T>& value) {
-        size_t size = value.actSize();
-        fwrite(&size, sizeof(size_t), 1, stream);
+        Size size = value.actSize();
+        fwrite(&size, sizeof(Size), 1, stream);
         fwrite(&value[0], sizeof(T), size, stream);
     }
 
     template <typename T>
-    void load_value(FILE* stream, T& value, size_t count = 1) {
-        size_t read_cnt = fread(&value, sizeof(value), count, stream);
+    void load_value(FILE* stream, T& value, Size count = 1) {
+        Size read_cnt = fread(&value, sizeof(value), count, stream);
         if (read_cnt != count) {
             throw std::runtime_error("Cannot read from file");
         }
@@ -217,8 +217,8 @@ namespace Sph {
 
     template <typename T>
     void load_value(FILE* stream, Array<T>& value) {
-        size_t size;
-        size_t read_cnt = fread(&size, sizeof(size_t), 1, stream);
+        Size size;
+        Size read_cnt = fread(&size, sizeof(Size), 1, stream);
         if (read_cnt != 1) {
             throw std::runtime_error("Cannot read from file");
         }
@@ -250,13 +250,13 @@ namespace Sph {
             : data_source(_data_source) {}
 
         inline DistanceType operator()(const T* a,
-                                       const size_t b_idx,
-                                       size_t size,
+                                       const Size b_idx,
+                                       Size size,
                                        DistanceType worst_dist = -1) const {
             DistanceType result = DistanceType();
             const T* last       = a + size;
             const T* lastgroup  = last - 3;
-            size_t d            = 0;
+            Size d            = 0;
 
             /* Process 4 items with each loop for efficiency. */
             while (a < lastgroup) {
@@ -299,13 +299,13 @@ namespace Sph {
             : data_source(_data_source) {}
 
         inline DistanceType operator()(const T* a,
-                                       const size_t b_idx,
-                                       size_t size,
+                                       const Size b_idx,
+                                       Size size,
                                        DistanceType worst_dist = -1) const {
             DistanceType result = DistanceType();
             const T* last       = a + size;
             const T* lastgroup  = last - 3;
-            size_t d            = 0;
+            Size d            = 0;
 
             /* Process 4 items with each loop for efficiency. */
             while (a < lastgroup) {
@@ -349,7 +349,7 @@ namespace Sph {
         L2_Simple_Adaptor(const DataSource& _data_source)
             : data_source(_data_source) {}
 
-        INLINE DistanceType operator()(const Vector& v, const size_t b_idx, size_t size) const {
+        INLINE DistanceType operator()(const Vector& v, const Size b_idx, Size size) const {
             return data_source.kdtree_distance(v, b_idx, size);
         }
 
@@ -388,10 +388,10 @@ namespace Sph {
 
     /**  Parameters (see README.md) */
     struct KDTreeSingleIndexAdaptorParams {
-        KDTreeSingleIndexAdaptorParams(size_t _leaf_max_size = 10)
+        KDTreeSingleIndexAdaptorParams(Size _leaf_max_size = 10)
             : leaf_max_size(_leaf_max_size) {}
 
-        size_t leaf_max_size;
+        Size leaf_max_size;
     };
 
     /** Search options for KDTreeSingleIndexAdaptor::findNeighbors() */
@@ -421,7 +421,7 @@ namespace Sph {
      * Returns: pointer (of type T*) to memory buffer
      */
     template <typename T>
-    inline T* allocate(size_t count = 1) {
+    inline T* allocate(Size count = 1) {
         T* mem = static_cast<T*>(::malloc(sizeof(T) * count));
         return mem;
     }
@@ -442,8 +442,8 @@ namespace Sph {
      *
      */
 
-    const size_t WORDSIZE  = 16;
-    const size_t BLOCKSIZE = 8192;
+    const Size WORDSIZE  = 16;
+    const Size BLOCKSIZE = 8192;
 
     class PooledAllocator {
         /* We maintain memory alignment to word boundaries by requiring that all
@@ -452,7 +452,7 @@ namespace Sph {
         /* Minimum number of bytes requested at a time from	the system.  Must be multiple of WORDSIZE. */
 
 
-        size_t remaining; /* Number of bytes left in current block of storage. */
+        Size remaining; /* Number of bytes left in current block of storage. */
         void* base;       /* Pointer to base of current block of storage. */
         void* loc;        /* Current location in block to next allocate memory. */
 
@@ -464,8 +464,8 @@ namespace Sph {
         }
 
     public:
-        size_t usedMemory;
-        size_t wastedMemory;
+        Size usedMemory;
+        Size wastedMemory;
 
         /**
             Default constructor. Initializes a new pool.
@@ -491,12 +491,12 @@ namespace Sph {
          * Returns a pointer to a piece of new memory of the given size in bytes
          * allocated from the pool.
          */
-        void* malloc(const size_t req_size) {
+        void* malloc(const Size req_size) {
             /* Round size up to a multiple of wordsize.  The following expression
                 only works for WORDSIZE that is a power of 2, by masking last bits of
                 incremented size to zero.
              */
-            const size_t size = (req_size + (WORDSIZE - 1)) & ~(WORDSIZE - 1);
+            const Size size = (req_size + (WORDSIZE - 1)) & ~(WORDSIZE - 1);
 
             /* Check whether a new block must be allocated.  Note that the first word
                 of a block is reserved for a pointer to the previous block.
@@ -506,7 +506,7 @@ namespace Sph {
                 wastedMemory += remaining;
 
                 /* Allocate new storage. */
-                const size_t blocksize = (size + sizeof(void*) + (WORDSIZE - 1) > BLOCKSIZE)
+                const Size blocksize = (size + sizeof(void*) + (WORDSIZE - 1) > BLOCKSIZE)
                                              ? size + sizeof(void*) + (WORDSIZE - 1)
                                              : BLOCKSIZE;
 
@@ -521,7 +521,7 @@ namespace Sph {
                 static_cast<void**>(m)[0] = base;
                 base                      = m;
 
-                size_t shift = 0;
+                Size shift = 0;
                 // int size_t = (WORDSIZE - ( (((size_t)m) + sizeof(void*)) & (WORDSIZE-1))) & (WORDSIZE-1);
 
                 remaining = blocksize - sizeof(void*) - shift;
@@ -544,7 +544,7 @@ namespace Sph {
          * Returns: pointer (of type T*) to memory buffer
          */
         template <typename T>
-        T* allocate(const size_t count = 1) {
+        T* allocate(const Size count = 1) {
             T* mem = static_cast<T*>(this->malloc(sizeof(T) * count));
             return mem;
         }
@@ -650,7 +650,7 @@ namespace Sph {
         enum { static_size = N };
         /** This method has no effects in this class, but raises an exception if the expected size does not
          * match */
-        inline void resize(const size_t nElements) {
+        inline void resize(const Size nElements) {
             if (nElements != N)
                 throw std::logic_error("Try to change the size of a CArray.");
         }
@@ -668,13 +668,13 @@ namespace Sph {
         }
         // assign one value to all elements
         inline void assign(const T& value) {
-            for (size_t i = 0; i < N; i++)
+            for (Size i = 0; i < N; i++)
                 elems[i]  = value;
         }
         // assign (compatible with Array's one) (by JLBC for MRPT)
-        void assign(const size_t n, const T& value) {
+        void assign(const Size n, const T& value) {
             assert(N == n);
-            for (size_t i = 0; i < N; i++)
+            for (Size i = 0; i < N; i++)
                 elems[i]  = value;
         }
 
@@ -742,7 +742,7 @@ namespace Sph {
      * \tparam DIM Dimensionality of data points (e.g. 3 for 3D points)
      * \tparam IndexType Will be typically size_t or int
      */
-    template <typename Distance, class DatasetAdaptor, int DIM = -1, typename IndexType = size_t>
+    template <typename Distance, class DatasetAdaptor, int DIM = -1, typename IndexType = Size>
     class KDTreeSingleIndexAdaptor {
     private:
         /** Hidden copy constructor, to disallow copying indices (Not implemented) */
@@ -758,7 +758,7 @@ namespace Sph {
          */
         Array<IndexType> vind;
 
-        size_t m_leaf_max_size;
+        Size m_leaf_max_size;
 
 
         /**
@@ -768,8 +768,8 @@ namespace Sph {
 
         const KDTreeSingleIndexAdaptorParams index_params;
 
-        size_t m_size;                //!< Number of current poins in the dataset
-        size_t m_size_at_index_build; //!< Number of points in the dataset when the index was built
+        Size m_size;                //!< Number of current poins in the dataset
+        Size m_size_at_index_build; //!< Number of points in the dataset when the index was built
         int dim;                      //!< Dimensionality of each data point
 
 
@@ -873,16 +873,16 @@ namespace Sph {
         }
 
         /** Returns number of points in dataset  */
-        size_t size() const { return m_size; }
+        Size size() const { return m_size; }
 
         /** Returns the length of each point in the dataset */
-        size_t veclen() const { return static_cast<size_t>(DIM > 0 ? DIM : dim); }
+        Size veclen() const { return static_cast<Size>(DIM > 0 ? DIM : dim); }
 
         /**
          * Computes the inde memory usage
          * Returns: memory used by the index
          */
-        size_t usedMemory() const {
+        Size usedMemory() const {
             return pool.usedMemory + pool.wastedMemory +
                    dataset.kdtree_get_point_count() * sizeof(IndexType); // pool memory and vind array memory
         }
@@ -927,7 +927,7 @@ namespace Sph {
          * \note nChecks_IGNORED is ignored but kept for compatibility with the original FLANN interface.
          */
         inline void knnSearch(const ElementType* query_point,
-                              const size_t num_closest,
+                              const Size num_closest,
                               IndexType* out_indices,
                               DistanceType* out_distances_sq,
                               const int /* nChecks_IGNORED */ = 10) const {
@@ -950,12 +950,12 @@ namespace Sph {
          *  \sa knnSearch, findNeighbors, radiusSearchCustomCallback
          * \return The number of points within the given radius (i.e. indices.size() or dists.size() )
          */
-        size_t radiusSearch(const Vector& query_point,
+        Size radiusSearch(const Vector& query_point,
                             const DistanceType& radius,
                             Array<NeighbourRecord>& IndicesDists,
                             const SearchParams& searchParams) const {
             RadiusResultSet<DistanceType, IndexType> resultSet(radius, IndicesDists);
-            const size_t nFound = radiusSearchCustomCallback(query_point, resultSet, searchParams);
+            const Size nFound = radiusSearchCustomCallback(query_point, resultSet, searchParams);
             if (searchParams.sorted)
                 std::sort(IndicesDists.begin(), IndicesDists.end(), IndexDist_Sorter());
             return nFound;
@@ -968,7 +968,7 @@ namespace Sph {
          * \sa radiusSearch
          */
         template <class SEARCH_CALLBACK>
-        size_t radiusSearchCustomCallback(const Vector& query_point,
+        Size radiusSearchCustomCallback(const Vector& query_point,
                                           SEARCH_CALLBACK& resultSet,
                                           const SearchParams& searchParams = SearchParams()) const {
             this->findNeighbors(resultSet, query_point, searchParams);
@@ -983,14 +983,14 @@ namespace Sph {
         void init_vind() {
             // Create a permutable array of indices to the input vectors.
             m_size = dataset.kdtree_get_point_count();
-            if (size_t(vind.size()) != m_size)
+            if (Size(vind.size()) != m_size)
                 vind.resize(m_size);
-            for (size_t i = 0; i < m_size; i++)
+            for (Size i = 0; i < m_size; i++)
                 vind[i]   = i;
         }
 
         /// Helper accessor to the dataset points:
-        inline ElementType dataset_get(size_t idx, int component) const {
+        inline ElementType dataset_get(Size idx, int component) const {
             return dataset.kdtree_get_pt(idx, component);
         }
 
@@ -1023,14 +1023,14 @@ namespace Sph {
             if (dataset.kdtree_get_bbox(bbox)) {
                 // Done! It was implemented in derived class
             } else {
-                const size_t N = dataset.kdtree_get_point_count();
+                const Size N = dataset.kdtree_get_point_count();
                 if (!N)
                     throw std::runtime_error(
                         "[nanoflann] computeBoundingBox() called but no data points found.");
                 for (int i = 0; i < (DIM > 0 ? DIM : dim); ++i) {
                     bbox[i].low = bbox[i].high = dataset_get(0, i);
                 }
-                for (size_t k = 1; k < N; ++k) {
+                for (Size k = 1; k < N; ++k) {
                     for (int i = 0; i < (DIM > 0 ? DIM : dim); ++i) {
                         if (dataset_get(k, i) < bbox[i].low)
                             bbox[i].low = dataset_get(k, i);
@@ -1384,7 +1384,7 @@ namespace Sph {
           * \note nChecks_IGNORED is ignored but kept for compatibility with the original FLANN interface.
           */
         inline void query(const num_t* query_point,
-                          const size_t num_closest,
+                          const Size num_closest,
                           IndexType* out_indices,
                           num_t* out_distances_sq,
                           const int /* nChecks_IGNORED */ = 10) const {
@@ -1400,7 +1400,7 @@ namespace Sph {
         self_t& derived() { return *this; }
 
         // Must return the number of data points
-        inline size_t kdtree_get_point_count() const { return m_data_matrix.rows(); }
+        inline Size kdtree_get_point_count() const { return m_data_matrix.rows(); }
 
         // Returns the L2 distance between the vector "p1[0:size-1]" and the data point with index "idx_p2"
         // stored in the class:

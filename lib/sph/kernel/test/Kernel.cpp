@@ -56,9 +56,10 @@ TEST_CASE("M4 kernel", "[kernel]") {
 
         // specific points from kernel
         REQUIRE(kernel.valueImpl(0._f) == norm);
-        REQUIRE(kernel.valueImpl(1._f) == 0.25_f * norm);
+        std::cout << "kernel = " << kernel.valueImpl(1._f) << " / " << 0.25_f << std::endl;
+        REQUIRE(Math::almostEqual(kernel.valueImpl(1._f), 0.25_f * norm));
         REQUIRE(kernel.gradImpl(0._f) == 0._f);
-        REQUIRE(kernel.gradImpl(1._f) == -0.75_f * norm);
+        REQUIRE(Math::almostEqual(kernel.gradImpl(1._f), -0.75_f * norm));
     });
 }
 

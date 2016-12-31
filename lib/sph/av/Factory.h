@@ -11,8 +11,8 @@ class DummyAV : public Object {
 public:
     DummyAV(const GlobalSettings& UNUSED(settings)) {}
 
-    INLINE Float operator()(const int UNUSED(i), const int UNUSED(j)) { return 0._f; }
-    INLINE void accumulate(const int UNUSED(i), const int UNUSED(j), const Vector& UNUSED(grad)) {}
+    INLINE Float operator()(const Size UNUSED(i), const Size UNUSED(j)) { return 0._f; }
+    INLINE void accumulate(const Size UNUSED(i), const Size UNUSED(j), const Vector& UNUSED(grad)) {}
 };
 
 

@@ -38,7 +38,7 @@ public:
         , force(settings) {}
 
     virtual void integrate(Storage& storage) override {
-        const int size = storage.getParticleCnt();
+        const Size size = storage.getParticleCnt();
 
         ArrayView<Vector> r, v, dv;
         tie(r, v, dv) = storage.getAll<Vector>(QuantityKey::POSITIONS);
@@ -65,7 +65,7 @@ public:
         SymH<dim> w(this->kernel);
 
         PROFILE_NEXT("ContinuitySolver::compute (main cycle)")
-        for (int i = 0; i < size; ++i) {
+        for (Size i = 0; i < size; ++i) {
             // Find all neighbours within kernel support. Since we are only searching for particles with
             // smaller h, we know that symmetrized lengths (h_i + h_j)/2 will be ALWAYS smaller or equal to
             // h_i, and we thus never "miss" a particle.
@@ -92,7 +92,7 @@ public:
         }
 
         // set derivative of density and smoothing length
-        for (int i = 0; i < drho.size(); ++i) {
+        for (Size i = 0; i < drho.size(); ++i) {
             drho[i] = -rhoDivv[i];
             /// \todo smoothing length
             v[i][H] = 0._f;

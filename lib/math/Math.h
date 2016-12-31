@@ -184,6 +184,11 @@ namespace Math {
         return ::abs(f);
     }
 
+    template<>
+    INLINE Size abs<Size>(const Size f) {
+        return ::abs(f);
+    }
+
     template <typename T>
     INLINE T cos(const T f) {
         return std::cos(f);
@@ -246,11 +251,11 @@ namespace Math {
 
     /// Specialization for int (needed to use int in quantities)
     template <>
-    INLINE Float norm(const int& value) {
+    INLINE Float norm(const Size& value) {
         return Math::abs(value);
     }
     template <>
-    INLINE Float normSqr(const int& value) {
+    INLINE Float normSqr(const Size& value) {
         return Math::sqr(value);
     }
 

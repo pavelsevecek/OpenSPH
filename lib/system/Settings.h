@@ -50,7 +50,7 @@ public:
 
     template <typename TValue>
     void set(TEnum idx, TValue&& value) {
-        using StoreType = EnumToInt<TValue>;
+        using StoreType = ConvertToSize<TValue>;
         entries[idx].value = StoreType(std::forward<TValue>(value));
     }
 
@@ -59,7 +59,7 @@ public:
         typename std::map<TEnum, Entry>::const_iterator iter = entries.find(idx);
         ASSERT(iter != entries.end());
         /// \todo can be cast here as we no longer return optional
-        using StoreType = EnumToInt<TValue>;
+        using StoreType = ConvertToSize<TValue>;
         auto opt = iter->second.value.get<StoreType>();
         ASSERT(opt);
         return TValue(opt.get());
@@ -72,7 +72,7 @@ public:
     bool loadFromFile(const std::string& path, const Settings& descriptors);
 
 private:
-    bool setValueByType(Entry& entry, const int typeIdx, const std::string& str);
+    bool setValueByType(Entry& entry, const Size typeIdx, const std::string& str);
 };
 
 enum class KernelEnum {

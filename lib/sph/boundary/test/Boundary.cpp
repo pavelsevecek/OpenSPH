@@ -17,22 +17,22 @@ public:
 
     virtual bool isInside(const Vector& UNUSED(v)) const override { NOT_IMPLEMENTED; }
 
-    virtual void getSubset(const ArrayView<Vector> UNUSED(vs),
-        Array<int>& UNUSED(output),
+    virtual void getSubset(ArrayView<const Vector> UNUSED(vs),
+        Array<Size>& UNUSED(output),
         const SubsetType UNUSED(type)) const override {
         NOT_IMPLEMENTED;
     }
 
-    virtual void getDistanceToBoundary(ArrayView<Vector> vs, Array<Float>& distances) const {
+    virtual void getDistanceToBoundary(ArrayView<const Vector> vs, Array<Float>& distances) const {
         distances.clear();
         for (const Vector& v : vs) {
             distances.push(v[X]);
         }
     }
 
-    virtual void project(ArrayView<Vector> vs, Optional<ArrayView<int>> indices = NOTHING) const {
+    virtual void project(ArrayView<Vector> vs, Optional<ArrayView<Size>> indices = NOTHING) const {
         if (indices) {
-            for (int i : indices.get()) {
+            for (Size i : indices.get()) {
                 vs[i][X] = Math::max(0._f, vs[i][X]);
             }
         } else {
@@ -42,9 +42,9 @@ public:
         }
     }
 
-    virtual void invert(ArrayView<Vector> vs, Optional<ArrayView<int>> indices = NOTHING) const {
+    virtual void invert(ArrayView<Vector> vs, Optional<ArrayView<Size>> indices = NOTHING) const {
         if (indices) {
-            for (int i : indices.get()) {
+            for (Size i : indices.get()) {
                 vs[i][X] *= -1;
             }
         } else {
@@ -81,7 +81,7 @@ TEST_CASE("GhostParticles wall", "[boundary]") {
 
     boundaryConditions.apply(storage);
     tie(r, v, dv) = storage.getAll<Vector>(QuantityKey::POSITIONS);
-    REQUIRE(makeArray(r.size(), v.size(), dv.size()) == makeArray(12, 12, 12));
+    REQUIRE(makeArray(r.size(), v.size(), dv.size()) == makeArray(12u, 12u, 12u));
     REQUIRE(r[7] == Vector(-1.5_f, 1._f, 3._f));
     REQUIRE(r[8] == Vector(-0.5_f, 2._f, -1._f));
     REQUIRE(r[9] == Vector(0._f, 2._f, 1._f));
@@ -102,7 +102,7 @@ TEST_CASE("GhostParticles wall", "[boundary]") {
     // subsequent calls shouldn't change result
     boundaryConditions.apply(storage);
     tie(r, v, dv) = storage.getAll<Vector>(QuantityKey::POSITIONS);
-    REQUIRE(makeArray(r.size(), v.size(), dv.size()) == makeArray(12, 12, 12));
+    REQUIRE(makeArray(r.size(), v.size(), dv.size()) == makeArray(12u, 12u, 12u));
     REQUIRE(r[7] == Vector(-1.5_f, 1._f, 3._f));
     REQUIRE(Math::almostEqual(v[7], Vector(1._f, 1._f, 1._f), 1.e-3_f));
     rho = storage.getValue<Float>(QuantityKey::DENSITY);

@@ -44,19 +44,19 @@ public:
         cs = storage.getValue<Float>(QuantityKey::SOUND_SPEED);
         rho = storage.getValue<Float>(QuantityKey::DENSITY);
         // always keep beta = 2*alpha
-        for (int i = 0; i < alpha.size(); ++i) {
+        for (Size i = 0; i < alpha.size(); ++i) {
             beta[i] = 2._f * alpha[i];
         }
         this->updateModules(storage);
     }
 
-    INLINE void accumulate(const int i, const int j, const Vector& grad) {
+    INLINE void accumulate(const Size i, const Size j, const Vector& grad) {
         this->accumulateModules(i, j, grad);
     }
 
     INLINE void integrate(Storage& storage) {
         Range bounds = storage.getValue<Float>(QuantityKey::AV_ALPHA).getBounds();
-        for (int i = 0; i < storage.getParticleCnt(); ++i) {
+        for (Size i = 0; i < storage.getParticleCnt(); ++i) {
             const Float tau = r[i][H] / (eps * cs[i]);
             const Float decayTerm = -(alpha[i] - bounds.lower()) / tau;
             const Float sourceTerm = Math::max(-(bounds.upper() - alpha[i]) * divv[i], 0._f);
@@ -64,7 +64,7 @@ public:
         }
     }
 
-    INLINE Float operator()(const int i, const int j) {
+    INLINE Float operator()(const Size i, const Size j) {
         const Vector dr = r[i] - r[j];
         const Float dvdr = dot(v[i] - v[j], dr);
         if (dvdr >= 0._f) {
