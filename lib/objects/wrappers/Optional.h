@@ -18,7 +18,7 @@ const NothingType NOTHING;
 /// Wrapper of type value of which may or may not be present. Similar to std::optional comming in c++17.
 /// http://en.cppreference.com/w/cpp/utility/optional
 template <typename Type>
-class Optional : public Object {
+class Optional  {
 private:
     using RawType = std::remove_reference_t<Type>;
     using StorageType = typename WrapReferenceType<Type>::Type;

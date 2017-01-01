@@ -8,12 +8,12 @@
 
 NAMESPACE_SPH_BEGIN
 
-struct EmptyFlags : public Object {};
+struct EmptyFlags  {};
 
 const EmptyFlags EMPTY_FLAGS;
 
 template <typename TEnum>
-class Flags : public Object {
+class Flags  {
 private:
     using TValue = std::underlying_type_t<TEnum>;
     TValue data = TValue(0);

@@ -9,7 +9,7 @@ template <typename TSignature>
 class CallbackList;
 
 template <typename TReturn, typename... TArgs>
-class CallbackList<TReturn(TArgs...)> : public Object {
+class CallbackList<TReturn(TArgs...)>  {
 private:
     struct Callback {
         NonOwningPtr<const Observable> parent;

@@ -6,7 +6,7 @@
 
 NAMESPACE_SPH_BEGIN
 
-class ForceVisitor : public Object {
+class ForceVisitor  {
 public:
     template <typename Force>
     std::unique_ptr<Abstract::Solver> visit(const GlobalSettings& settings) const {

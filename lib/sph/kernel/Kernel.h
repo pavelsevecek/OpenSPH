@@ -239,7 +239,7 @@ public:
 /// Two possibilities - Symmetrized kernel W_ij = 0.5(W_i + W_j)
 ///                   - Symmetrized smoothing length h_ij = 0.5(h_i + h_j)
 template <int d>
-class SymW : public Object {
+class SymW  {
 private:
     const LutKernel<d>& kernel;
 
@@ -257,7 +257,7 @@ public:
 };
 
 template <int d>
-class SymH : public Object {
+class SymH  {
 private:
     const LutKernel<d>& kernel;
 

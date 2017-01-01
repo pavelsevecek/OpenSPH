@@ -9,7 +9,7 @@
 
 NAMESPACE_SPH_BEGIN
 
-class TimeStep : public Object {
+class TimeStep  {
 private:
     Float factor;
     Float courant;

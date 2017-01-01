@@ -6,7 +6,7 @@
 
 NAMESPACE_SPH_BEGIN
 
-class Color : public Object {
+class Color  {
 private:
     Vector data;
 

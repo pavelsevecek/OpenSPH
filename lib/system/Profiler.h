@@ -8,7 +8,7 @@ NAMESPACE_SPH_BEGIN
 
 
 /// Timer that reports the measured duration when being destroyed
-struct ScopedTimer : public Object {
+struct ScopedTimer  {
 private:
     StoppableTimer impl;
     std::string name;

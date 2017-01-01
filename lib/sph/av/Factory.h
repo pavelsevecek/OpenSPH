@@ -7,7 +7,7 @@
 
 NAMESPACE_SPH_BEGIN
 
-class DummyAV : public Object {
+class DummyAV  {
 public:
     DummyAV(const GlobalSettings& UNUSED(settings)) {}
 

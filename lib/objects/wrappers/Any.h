@@ -6,7 +6,7 @@
 NAMESPACE_SPH_BEGIN
 
 /// Type-safe object that can store value of any type.
-class Any : public Object {
+class Any  {
 private:
     class AbstractHolder : public Polymorphic {
     public:

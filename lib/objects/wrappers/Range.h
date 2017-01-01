@@ -11,7 +11,7 @@ NAMESPACE_SPH_BEGIN
 
 /// Object defining 1D interval. Can also represent one sided [x, infty] or [-infty, x], or even "zero" sided
 /// [-infty, infty] intervals.
-class Range : public Object {
+class Range  {
 private:
     Optional<Float> minBound;
     Optional<Float> maxBound;
@@ -131,7 +131,7 @@ namespace Math {
 /// Helper class for iterating over interval using range-based for loop. Cannot be used (and should not be
 /// used) in STL algorithms.
 template <typename TStep>
-class RangeIterator : public Object {
+class RangeIterator  {
 private:
     Float value;
     TStep step;
@@ -157,7 +157,7 @@ public:
 };
 
 template <typename TStep>
-class RangeAdapter : public Object {
+class RangeAdapter  {
 private:
     Range range;
     TStep step; // can be l-value ref, allowing variable step

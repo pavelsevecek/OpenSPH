@@ -11,7 +11,7 @@ NAMESPACE_SPH_BEGIN
 
 /// Provides iterator over selected component of vector array.
 template <typename TIterator>
-struct ComponentIterator : public Object {
+struct ComponentIterator  {
     TIterator iterator;
     int component;
 
@@ -73,7 +73,7 @@ struct ComponentIterator : public Object {
 
 /// Wrapper for iterating over given component of vector array
 template <typename TBuffer>
-struct VectorComponentAdapter : public Object {
+struct VectorComponentAdapter  {
     TBuffer data;
     const int component;
 

@@ -224,8 +224,8 @@ public:
     }
 
     template <VisitorEnum Type, typename TFunctor>
-    friend void iterateCustom(Storage& storage, ArrayView<const QuantityKey> set, TFunctor&& functor) {
-        iterateCustom<Type>(storage.quantities, set, std::forward<TFunctor>(functor));
+    friend void iterateCustom(Storage& storage, Array<QuantityKey>&& set, TFunctor&& functor) {
+        iterateCustom<Type>(storage.quantities, std::move(set), std::forward<TFunctor>(functor));
     }
 
     template <VisitorEnum Type, typename TFunctor>

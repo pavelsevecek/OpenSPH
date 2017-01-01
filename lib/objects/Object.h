@@ -49,31 +49,21 @@ NAMESPACE_SPH_BEGIN
 
 namespace Abstract {}
 
-/// Basic object from which all types are derived
-class Object {};
-
 /// Object with deleted copy constructor and copy operator
-class Noncopyable : Object {
+class Noncopyable {
 public:
     Noncopyable() = default;
 
     Noncopyable(const Noncopyable&) = delete;
 
+    Noncopyable(Noncopyable&&) = default;
+
     Noncopyable& operator=(const Noncopyable&) = delete;
+
+    Noncopyable& operator=(Noncopyable&&) = default;
 };
 
-/// Dummy object that cannot be constructed, usable only in templates
-class Unconstructible : public Object {
-private:
-    struct Tag {
-        Tag() = delete;
-    };
-
-public:
-    Unconstructible(Tag) {}
-};
-
-class Polymorphic : public Object {
+class Polymorphic  {
 public:
     virtual ~Polymorphic() {}
 };
@@ -89,7 +79,7 @@ namespace Detail {
         }
     };
     template <std::size_t N>
-    struct StaticForType<N, N> : public Object {
+    struct StaticForType<N, N>  {
         template <typename TVisitor>
         INLINE static void action(TVisitor&& visitor) {
             visitor.template visit<N>();

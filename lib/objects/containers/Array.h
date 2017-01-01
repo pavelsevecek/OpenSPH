@@ -92,7 +92,7 @@ public:
     Array& operator=(Array<U>&& other) {
         ASSERT(this->size() == other.size());
         for (TCounter i = 0; i < other.size(); ++i) {
-            (*this)[i] = other[i];
+            (*this)[i] = std::forward<U>(other[i]);
         }
         return *this;
     }

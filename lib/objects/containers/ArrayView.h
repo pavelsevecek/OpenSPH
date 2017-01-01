@@ -92,7 +92,7 @@ public:
 /// Object providing safe access to continuous memory of data, useful to write generic code that can be used
 /// with any kind of storage where the data are stored consecutively in memory.
 template <typename T, typename TCounter = Size>
-class ArrayView : public Object {
+class ArrayView {
 private:
     using StorageType = typename WrapReferenceType<T>::Type;
 
@@ -107,9 +107,9 @@ public:
         : data(data)
         , actSize(size) {}
 
-    ArrayView(std::initializer_list<StorageType> list)
+    /*ArrayView(std::initializer_list<StorageType> list)
         : data(&*list.begin())
-        , actSize(list.size()) {}
+        , actSize(list.size()) {}*/
 
     ArrayView(const ArrayView& other)
         : data(other.data)
@@ -134,8 +134,10 @@ public:
 
     /// Move operator
     ArrayView& operator=(ArrayView&& other) {
-        std::swap(this->data, other.data);
-        std::swap(this->actSize, other.actSize);
+        this->data = other.data;
+        this->actSize = other.actSize;
+        //std::swap(this->data, other.data);
+        //std::swap(this->actSize, other.actSize);
         return *this;
     }
 

@@ -219,7 +219,7 @@ void iterateWithPositions(std::map<QuantityKey, Quantity>& qs, TFunctor&& functo
 /// be used with any visitors to further constrain the set of quantities/buffers passed into functor.
 template <VisitorEnum Type, typename TFunctor>
 void iterateCustom(std::map<QuantityKey, Quantity>& qs,
-    ArrayView<const QuantityKey> set,
+    Array<QuantityKey>&& set,
     TFunctor&& functor) {
     StorageVisitor<Type, TFunctor> visitor;
     for (QuantityKey key : set) {

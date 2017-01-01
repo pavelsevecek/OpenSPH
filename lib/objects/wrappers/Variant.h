@@ -13,7 +13,7 @@ NAMESPACE_SPH_BEGIN
 /// Stores value of type std::aligned_union, having size and alignment equal to maximum of sizes and
 /// alignments of template types.
 template <typename... TArgs>
-class AlignedUnion : public Object {
+class AlignedUnion  {
 private:
     std::aligned_union_t<0, TArgs...> storage;
 
@@ -130,7 +130,7 @@ struct VariantIterator<T0> {
 
 /// Variant, an implementation of type-safe union.
 template <typename... TArgs>
-class Variant : public Object {
+class Variant  {
 private:
     AlignedUnion<TArgs...> storage;
     int typeIdx = -1;

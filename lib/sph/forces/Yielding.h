@@ -5,7 +5,7 @@
 
 NAMESPACE_SPH_BEGIN
 
-class DummyYielding : public Object {
+class DummyYielding  {
 public:
     void update(Storage& UNUSED(storage)) {}
 
@@ -13,7 +13,7 @@ public:
 };
 
 
-class VonMisesYielding : public Object {
+class VonMisesYielding  {
 private:
     // cached values of elasticity limit
     Array<Float> y;

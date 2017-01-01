@@ -33,7 +33,7 @@ public:
     const Range& getBounds() const { return bounds; }
 
     /// Clamps i-th elements of the array by the bounds.
-    void clamp(const int idx) { (*this)[idx] = Math::clamp((*this)[idx], bounds); }
+    void clamp(const Size idx) { (*this)[idx] = Math::clamp((*this)[idx], bounds); }
 };
 
 NAMESPACE_SPH_END

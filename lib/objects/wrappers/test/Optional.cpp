@@ -45,7 +45,7 @@ TEST_CASE("Optional Lvalue References", "[optional]") {
     REQUIRE(!o3);
 }
 
-TEST_CASE("Optional Rvalue References",  "[optional]") {
+/*TEST_CASE("Optional Rvalue References",  "[optional]") {
     Optional<RecordType&&> o1(NOTHING);
     REQUIRE(!o1);
     RecordType r1(5);
@@ -57,7 +57,7 @@ TEST_CASE("Optional Rvalue References",  "[optional]") {
     RecordType r2 = o2.get();
     REQUIRE(r2.wasMoveConstructed);
     REQUIRE(r1.wasMoved);
-}
+}*/
 
 TEST_CASE("Optional forward", "[optional]") {
 

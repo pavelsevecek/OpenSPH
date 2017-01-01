@@ -9,7 +9,7 @@ const struct EmptyArray {
 } EMPTY_ARRAY;
 
 template <typename T, int N, typename TCounter = Size>
-class StaticArray : public Object {
+class StaticArray  {
 private:
     AlignedStorage<T> data[N];
     TCounter actSize;
@@ -43,7 +43,13 @@ public:
 
     StaticArray(const StaticArray& other) = delete;
 
-    StaticArray(StaticArray&& other) = default;
+    StaticArray(StaticArray&& other) {
+        actSize = 0;
+        for (TCounter i = 0; i < other.size(); ++i) {
+            // move if it contains values, just copy if it contains references
+            data[actSize++].emplace(std::forward<T>(other[i]));
+        }
+    }
 
     /// Destructor, destroys all elements in the array.
     ~StaticArray() {
@@ -57,14 +63,24 @@ public:
 
     StaticArray& operator=(const StaticArray& other) = delete;
 
-    StaticArray& operator=(StaticArray&& other) = default;
+    /// Move operator for arrays holding default-constructible types. Resizes array and moves all elements of
+    /// the rhs array.
+    template <typename U, typename = std::enable_if_t<std::is_default_constructible<T>::value, U>>
+    StaticArray& operator=(StaticArray<U, N>&& other) {
+        this->resize(other.size());
+        for (TCounter i = 0; i < other.size(); ++i) {
+            // move if it contains values, just copy if it contains references
+            (*this)[i] = std::forward<T>(other[i]);
+        }
+        return *this;
+    }
 
     /// Assignment operator for array of references on left-hand side. Can be used as std::tie.
     template <typename U, int M, typename = std::enable_if_t<std::is_lvalue_reference<T>::value, U>>
     StaticArray& operator=(StaticArray<U, M>&& other) {
         ASSERT(this->size() == other.size());
         for (TCounter i = 0; i < other.size(); ++i) {
-            (*this)[i] = std::move(other[i]);
+            (*this)[i] = std::forward<U>(other[i]);
         }
         return *this;
     }

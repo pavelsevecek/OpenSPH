@@ -10,7 +10,7 @@
 
 NAMESPACE_SPH_BEGIN
 
-class Tensor : public Object {
+class Tensor  {
 private:
     Vector diag; // diagonal part
     Vector off;  // over/below diagonal

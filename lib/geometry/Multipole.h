@@ -5,7 +5,7 @@
 NAMESPACE_SPH_BEGIN
 
 template <std::size_t Order>
-class Multipole : public Object {
+class Multipole  {
 private:
     using Previous = Multipole<Order - 1>;
     Previous data[3];

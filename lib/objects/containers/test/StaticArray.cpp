@@ -41,7 +41,6 @@ TEST_CASE("StaticArray destructor", "[staticarray]") {
     RecordType::resetStats();
     REQUIRE(RecordType::destructedNum == 0);
     ar.~StaticArray<RecordType, 3>();
-    REQUIRE(ar.size() == 0);
     REQUIRE(RecordType::destructedNum == 3);
 }
 
@@ -131,6 +130,7 @@ TEST_CASE("StaticArray resize", "[staticarray]") {
 }
 
 TEST_CASE("StaticArray references", "[staticarray]") {
+    RecordType::resetStats();
     RecordType r1(5), r2(3);
     StaticArray<RecordType&, 4> ar{ r1, r2 };
     REQUIRE(ar[0].value == 5);
@@ -143,6 +143,21 @@ TEST_CASE("StaticArray references", "[staticarray]") {
     r2.value = 3;
     REQUIRE(ar[0].value == 6);
     REQUIRE(ar[1].value == 3);
+    ar.~StaticArray<RecordType&, 4>();
+    REQUIRE(RecordType::destructedNum == 1); // one temporary
+}
+
+TEST_CASE("StaticArray move references", "[staticarray]") {
+    RecordType r1(5), r2(10);
+    StaticArray<RecordType&, 2> ar1{r1, r2};
+    RecordType r3, r4;
+    tie(r3, r4) = std::move(ar1);
+    REQUIRE(!r1.wasMoved);
+    REQUIRE(!r2.wasMoved);
+    REQUIRE(r3.wasCopyAssigned);
+    REQUIRE(r4.wasCopyAssigned);
+    REQUIRE(r3.value == 5);
+    REQUIRE(r4.value == 10);
 }
 
 TEST_CASE("makeStatic", "[staticarray]") {

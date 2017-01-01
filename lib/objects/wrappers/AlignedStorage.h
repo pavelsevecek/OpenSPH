@@ -15,7 +15,7 @@ NAMESPACE_SPH_BEGIN
 /// automatically! This object does NO checks when the stored value is accessed, or whether it is
 /// constructed multiple times. This is left to the user.
 template <typename Type>
-class AlignedStorage : public Object {
+class AlignedStorage {
 private:
     using StorageType = typename WrapReferenceType<Type>::Type;
     alignas(StorageType) char storage[sizeof(StorageType)];

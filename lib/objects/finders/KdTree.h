@@ -13,7 +13,7 @@
 NAMESPACE_SPH_BEGIN
 
 /// Array of vectors to be used in nanoflann code
-class PointCloud : public Object {
+class PointCloud  {
 private:
     ArrayView<Vector> storage;
     const Order* rankH;

@@ -47,7 +47,7 @@ class BasicVector;
 
 /// 3-dimensional vector, float precision
 template <>
-class BasicVector<float> : public Object {
+class BasicVector<float>  {
     friend class Indices;
 
 private:
@@ -217,7 +217,7 @@ public:
 
 #ifdef SPH_VECTOR_AVX
 template <>
-class BasicVector<double> : public Object {
+class BasicVector<double>  {
 private:
     __m256d data;
 

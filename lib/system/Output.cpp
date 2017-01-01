@@ -78,7 +78,8 @@ std::string GnuplotOutput::dump(Storage& storage, const Float time) {
     const std::string nameWithoutExt = fileName.substr(0, fileName.find_last_of("."));
     const std::string command =
         "gnuplot -e \"filename='" + nameWithoutExt + "'; time=" + std::to_string(time) + "\" " + scriptPath;
-    system(command.c_str());
+    const int returned = system(command.c_str());
+    (void)returned;
     return fileName;
 }
 

@@ -19,7 +19,7 @@ enum class JulianDateFormat {
 };
 
 /// Helper class for transforming Julian date to calendar date
-class DateFormat : public Object {
+class DateFormat  {
 private:
     Float time;
     std::string outputFormat;

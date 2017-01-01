@@ -11,7 +11,7 @@
 NAMESPACE_SPH_BEGIN
 
 /// Helper object for storing three (possibly four) int or bool values.
-class Indices : public Object {
+class Indices  {
 private:
     __m128i data;
 

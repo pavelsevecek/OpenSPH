@@ -13,7 +13,7 @@
 
 NAMESPACE_SPH_BEGIN
 
-class StandardAV : public Object {
+class StandardAV  {
 private:
     Float alpha, beta;
     ArrayView<const Vector> r, v;

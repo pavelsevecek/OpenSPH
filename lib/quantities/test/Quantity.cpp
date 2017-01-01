@@ -1,6 +1,7 @@
 #include "quantities/Quantity.h"
 #include "catch.hpp"
 #include "objects/containers/ArrayUtils.h"
+#include <iostream>
 
 using namespace Sph;
 
@@ -27,6 +28,7 @@ TEST_CASE("Quantity emplace array", "[quantity]") {
     Quantity q;
     Array<Vector> ar = { Vector(1._f), Vector(2._f, 3._f, 1._f), Vector(0._f) };
     q.emplace<Vector, OrderEnum::SECOND_ORDER>(std::move(ar), Range(1._f, 3._f));
+
     REQUIRE(q.size() == 3);
     ArrayView<Vector> v, dv, d2v;
     tie(v, dv, d2v) = q.getBuffers<Vector>();

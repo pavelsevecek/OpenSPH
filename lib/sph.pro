@@ -1,10 +1,10 @@
 TEMPLATE = lib
 CONFIG += c++14 staticLib thread
 CONFIG -= app_bundle qt
-QMAKE_CXXFLAGS += -Wall -Werror -msse4.1 -std=c++14 -pthread
-CONFIG(release, debug|release) {
-    CONFIG += optimize_full
-}
+QMAKE_CXXFLAGS += -Wall -Wextra -Werror -msse4.1 -std=c++14 -pthread
+QMAKE_CXXFLAGS_RELEASE -= -O2
+QMAKE_CXXFLAGS_RELEASE += -Os
+QMAKE_CXX = clang++
 
 SOURCES += \
     physics/TimeFormat.cpp \

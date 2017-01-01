@@ -10,7 +10,7 @@
 
 NAMESPACE_SPH_BEGIN
 
-class RiemannAV : public Object {
+class RiemannAV  {
 private:
     Float alpha;
     ArrayView<Vector> r, v;

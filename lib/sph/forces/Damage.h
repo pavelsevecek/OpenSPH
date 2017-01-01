@@ -7,7 +7,7 @@
 
 NAMESPACE_SPH_BEGIN
 
-class DummyDamage : public Object {
+class DummyDamage  {
 public:
     DummyDamage(const GlobalSettings& UNUSED(settings),
         const std::function<TracelessTensor(const TracelessTensor&, const int)>&) {}
@@ -25,7 +25,7 @@ enum class ExplicitFlaws {
 };
 
 /// Scalar damage describing fragmentation of the body according to Grady-Kipp model (Grady and Kipp, 1980)
-class ScalarDamage : public Object {
+class ScalarDamage  {
 private:
     // here d actually contains third root of damage
     ArrayView<Float> damage;

@@ -16,7 +16,7 @@ class Observable;
 /// referenced by std::shared_ptr. It is always initialized to nullptr and when the referenced object is
 /// destroyed, this pointer (and all other non-owning pointers referencing the object) are set to nullptr.
 template <typename T>
-class NonOwningPtr : public Object {
+class NonOwningPtr  {
     template <typename>
     friend class NonOwningPtr;
     friend class Observable;

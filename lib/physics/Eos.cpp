@@ -59,14 +59,11 @@ Tuple<Float, Float> TillotsonEos::getPressure(const Float rho, const Float u) co
     ASSERT(Math::isReal(cse));
 
     // select phase based on internal energy
-    Float p, cs;
-    if (u < uiv || rho > rho0) {
-        p = pc;
-        cs = csc;
-    } else if (rho <= rho0 && u > ucv) {
+    Float p = pc, cs = csc;
+    if (rho <= rho0 && u > ucv) {
         p = pe;
         cs = cse;
-    } else if (rho <= rho0) {
+    } else if (rho <= rho0 && u > uiv && u <= ucv) {
         p = ((u - uiv) * pe + (ucv - u) * pc) / (ucv - uiv);
         cs = ((u - uiv) * cse + (ucv - u) * csc) / (ucv - uiv);
     }

@@ -14,7 +14,7 @@ class GLUquadric;
 NAMESPACE_SPH_BEGIN
 
 /// Unit sphere
-class VisualSphere : public Object {
+class VisualSphere  {
 private:
     Array<Vector> vertices;
     Array<Vector> normals;

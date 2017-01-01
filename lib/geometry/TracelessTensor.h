@@ -8,7 +8,7 @@
 
 NAMESPACE_SPH_BEGIN
 
-class TracelessTensor : public Object {
+class TracelessTensor  {
 private:
     // 5 independent components: 4 in vector, 1 in float
     enum Ids {

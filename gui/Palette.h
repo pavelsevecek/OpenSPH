@@ -8,7 +8,7 @@ NAMESPACE_SPH_BEGIN
 
 enum class PaletteScale { LINEAR, LOGARITHMIC, HYBRID };
 
-class Palette : public Object {
+class Palette  {
 private:
     struct Point {
         float value;

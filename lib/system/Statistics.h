@@ -4,7 +4,7 @@
 
 NAMESPACE_SPH_BEGIN
 
-class Statistics : public Object {
+class Statistics  {
 private:
     Float minValue = INFTY, maxValue = -INFTY, medianValue = 0._f;
     double averageValue = 0.;

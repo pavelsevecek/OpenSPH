@@ -10,7 +10,7 @@
 NAMESPACE_SPH_BEGIN
 
 /// Helper object defining three-dimensional interval (box).
-class Box : public Object {
+class Box  {
 private:
     Vector minBound;
     Vector maxBound;

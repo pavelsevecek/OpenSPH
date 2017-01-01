@@ -17,7 +17,7 @@ NAMESPACE_SPH_BEGIN
 
 
 template <typename TEnum>
-class Settings : public Object {
+class Settings  {
 private:
     enum Types { BOOL, INT, FLOAT, RANGE, STRING, VECTOR, TENSOR, TRACELESS_TENSOR };
 
