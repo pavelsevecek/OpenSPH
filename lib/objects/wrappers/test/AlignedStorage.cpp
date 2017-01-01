@@ -8,12 +8,12 @@ using namespace Sph;
 
 TEST_CASE("Emplace", "[shadow]") {
     RecordType::resetStats();
-    AlignedStorage<RecordType> sd;
+    AlignedStorage<RecordType> as;
     REQUIRE(RecordType::constructedNum == 0);
-    sd.emplace(5);
+    as.emplace(5);
     REQUIRE(RecordType::constructedNum == 1);
     REQUIRE(RecordType::destructedNum == 0);
-    REQUIRE(sd.get().wasValueConstructed);
-    sd.destroy();
+    REQUIRE(as.get().wasValueConstructed);
+    as.destroy();
     REQUIRE(RecordType::destructedNum == 1);
 }

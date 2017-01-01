@@ -73,38 +73,24 @@ template <typename TFunction>
 using ReturnType = typename FunctionTraits<TFunction>::TReturnType;
 
 
-/// Helper class for storing l-value references
+/// Helper class for storing l-value references. Has a default constructor for convenient usage in containers.
 template <typename T>
-class LvalueReferenceWrapper {
+class ReferenceWrapper {
 private:
-    T& ref;
+    T* data = nullptr;
 
 public:
-    LvalueReferenceWrapper() = delete;
-    LvalueReferenceWrapper(const LvalueReferenceWrapper& other)
-        : ref(other.ref) {}
-    LvalueReferenceWrapper(T& ref)
-        : ref(ref) {}
+    ReferenceWrapper() = default;
 
-    INLINE operator T&() noexcept { return ref; }
-    INLINE operator const T&() const noexcept { return ref; }
-};
+    ReferenceWrapper(const ReferenceWrapper& other)
+        : data(other.data) {}
 
-/// Helper class for storing r-value references
-template <typename T>
-class RvalueReferenceWrapper {
-private:
-    T&& ref;
+    ReferenceWrapper(T& ref)
+        : data(std::addressof(ref)) {}
 
-public:
-    RvalueReferenceWrapper() = delete;
-    RvalueReferenceWrapper(const RvalueReferenceWrapper& other)
-        : ref(std::move(other.ref)) {}
-    RvalueReferenceWrapper(T&& ref)
-        : ref(std::move(ref)) {}
+    INLINE operator T&() noexcept { return *data; }
 
-    INLINE operator T &&() noexcept { return std::move(ref); }
-    INLINE operator const T &&() const noexcept { return std::move(ref); }
+    INLINE operator const T&() const noexcept { return *data; }
 };
 
 
@@ -115,11 +101,7 @@ struct WrapReferenceType {
 };
 template <typename T>
 struct WrapReferenceType<T&> {
-    using Type = LvalueReferenceWrapper<T>;
-};
-template <typename T>
-struct WrapReferenceType<T&&> {
-    using Type = RvalueReferenceWrapper<T>;
+    using Type = ReferenceWrapper<T>;
 };
 template <typename T>
 using WrapReference = typename WrapReferenceType<T>::Type;
@@ -131,12 +113,8 @@ struct UnwrapReferenceType {
     using Type = T;
 };
 template <typename T>
-struct UnwrapReferenceType<LvalueReferenceWrapper<T>> {
+struct UnwrapReferenceType<ReferenceWrapper<T>> {
     using Type = T&;
-};
-template <typename T>
-struct UnwrapReferenceType<RvalueReferenceWrapper<T>> {
-    using Type = T&&;
 };
 
 /// Adds const or reference to the type, based on const-ness and reference-ness of given type.

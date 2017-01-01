@@ -17,41 +17,62 @@ NAMESPACE_SPH_BEGIN
 template <typename Type>
 class AlignedStorage {
 private:
-    using StorageType = typename WrapReferenceType<Type>::Type;
-
-    alignas(StorageType) char storage[sizeof(StorageType)];
-
-    INLINE constexpr StorageType& data() {
-        StorageType* __attribute__((__may_alias__)) p = reinterpret_cast<StorageType*>(storage);
-        return *p;
-    }
-
-    INLINE constexpr const StorageType& constData() const {
-        const StorageType* __attribute__((__may_alias__)) p = reinterpret_cast<const StorageType*>(storage);
-        return *p;
-    }
+    struct __attribute__((__may_alias__)) Holder {
+        alignas(Type) char storage[sizeof(Type)];
+    } holder;
 
 public:
     AlignedStorage() = default;
 
     template <typename... TArgs>
     INLINE void emplace(TArgs&&... rest) {
-        new (storage) StorageType(std::forward<TArgs>(rest)...);
+        new (&holder) Type(std::forward<TArgs>(rest)...);
     }
 
-    INLINE void destroy() { data().~StorageType(); }
+    INLINE void destroy() { get().~Type(); }
 
     /// Implicit conversion to stored type
-    INLINE constexpr operator Type&() noexcept { return data(); }
+    INLINE constexpr operator Type&() noexcept { return get(); }
 
     /// Implicit conversion to stored type, const version
-    INLINE constexpr operator const Type&() const noexcept { return constData(); }
+    INLINE constexpr operator const Type&() const noexcept { return get(); }
 
     /// Return the reference to the stored value.
-    INLINE constexpr Type& get() noexcept { return data(); }
+    INLINE constexpr Type& get() noexcept { return reinterpret_cast<Type&>(holder); }
 
     /// Returns the reference to the stored value, const version.
-    INLINE constexpr const Type& get() const noexcept { return constData(); }
+    INLINE constexpr const Type& get() const noexcept { return reinterpret_cast<const Type&>(holder); }
+};
+
+/// Specialization for l-value references, a simple wrapper of ReferenceWrapper with same interface to allow
+/// generic usage of AlignedStorage for both values and references.
+template <typename Type>
+class AlignedStorage<Type&> {
+    using StorageType = ReferenceWrapper<Type>;
+
+    StorageType storage;
+
+public:
+    AlignedStorage() = default;
+
+    template <typename T>
+    INLINE void emplace(T& ref) {
+        storage = StorageType(ref);
+    }
+
+    // no need do explicitly destroy reference wrapper
+    INLINE void destroy() {}
+
+    INLINE constexpr operator Type&() noexcept { return get(); }
+
+    /// Implicit conversion to stored type, const version
+    INLINE constexpr operator const Type&() const noexcept { return get(); }
+
+    /// Return the reference to the stored value.
+    INLINE constexpr Type& get() noexcept { return storage; }
+
+    /// Returns the reference to the stored value, const version.
+    INLINE constexpr const Type& get() const noexcept { return storage; }
 };
 
 

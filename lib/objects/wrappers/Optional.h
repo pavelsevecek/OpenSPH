@@ -4,7 +4,7 @@
 /// sevecek at sirrah.troja.mff.cuni.cz
 
 #include "core/Traits.h"
-#include "objects/Object.h"
+#include "objects/wrappers/AlignedStorage.h"
 #include <functional>
 #include <type_traits>
 
@@ -22,15 +22,14 @@ class Optional  {
 private:
     using RawType = std::remove_reference_t<Type>;
     using StorageType = typename WrapReferenceType<Type>::Type;
-    static constexpr bool isRvalueRef = std::is_rvalue_reference<Type>::value;
-    using ReturnType = std::conditional_t<isRvalueRef, Type&&, Type&>;
 
-    alignas(StorageType) char storage[sizeof(StorageType)];
+    AlignedStorage<Type> storage;
     bool used = false;
 
     void destroy() {
         if (used) {
-            (reinterpret_cast<StorageType*>(storage))->~StorageType();
+            storage.destroy();
+            used = false;
         }
     }
 
@@ -40,14 +39,14 @@ public:
     /// Copy constuctor from stored value. Initialize the optional value.
     template <typename T, typename = std::enable_if_t<std::is_copy_assignable<T>::value>>
     Optional(const T& t) {
-        new (storage) StorageType(t);
+        storage.emplace(t);
         used = true;
     }
 
     /// Move constuctor from stored value. Initialize the optional value.
     Optional(Type&& t) {
         // intentionally using forward instead of move
-        new (storage) StorageType(std::forward<Type>(t));
+        storage.emplace(std::forward<Type>(t));
         used = true;
     }
 
@@ -56,17 +55,18 @@ public:
     Optional(const Optional& other) {
         used = other.used;
         if (used) {
-            new (storage) StorageType(other.get());
+            storage.emplace(other.get());
         }
     }
 
     /// Move constructor from other optional. Copies the state and if the passed optional is initialized,
-    /// copies the value as well.
+    /// copies the value as well. Also un-initializes moved optional.
     Optional(Optional&& other) {
         used = other.used;
         if (used) {
-            new (storage) StorageType(std::forward<Type>(other.get()));
+            storage.emplace(std::forward<Type>(other.get()));
         }
+        other.used = false;
     }
 
     /// Construct uninitialized
@@ -82,7 +82,7 @@ public:
         if (used) {
             destroy();
         }
-        new (storage) StorageType(std::forward<TArgs>(args)...);
+        storage.emplace(std::forward<TArgs>(args)...);
         used = true;
     }
 
@@ -91,10 +91,9 @@ public:
     template <typename T, typename = std::enable_if_t<std::is_assignable<Type, T>::value>>
     Optional& operator=(const T& t) {
         if (!used) {
-            new (storage) StorageType(t);
+            storage.emplace(t);
             used = true;
         } else {
-            destroy();
             get() = t;
         }
         return *this;
@@ -103,27 +102,22 @@ public:
     /// Move operator
     Optional& operator=(Type&& t) {
         if (!used) {
-            new (storage) StorageType(std::forward<Type>(t));
+            storage.emplace(std::forward<Type>(t));
             used = true;
         } else {
-            destroy();
             get() = std::forward<Type>(t);
         }
         return *this;
     }
 
     Optional& operator=(const Optional& other) {
-        if (!other.used) {
-            if (used) {
-                used = false;
-                destroy();
-            }
+        if (!other) {
+            destroy();
         } else {
             if (!used) {
-                new (storage) StorageType(other.get());
+                storage.emplace(other.get());
                 used = true;
             } else {
-                destroy();
                 get() = other.get();
             }
         }
@@ -132,16 +126,12 @@ public:
 
     Optional& operator=(Optional&& other) {
         if (!other.used) {
-            if (used) {
-                used = false;
-                destroy();
-            }
+            destroy();
         } else {
             if (!used) {
-                new (storage) StorageType(std::move(other.get()));
+                storage.emplace(std::move(other.get()));
                 used = true;
             } else {
-                destroy();
                 get() = std::move(other.get());
             }
         }
@@ -157,29 +147,29 @@ public:
         return *this;
     }
 
-    ReturnType get() {
+    INLINE Type& get() {
         ASSERT(used);
-        return (ReturnType) * reinterpret_cast<StorageType*>(storage);
+        return storage;
     }
 
-    const ReturnType get() const {
+    INLINE const Type& get() const {
         ASSERT(used);
-        return (const ReturnType) * reinterpret_cast<const StorageType*>(storage);
+        return storage;
     }
 
-    const RawType* operator->() const {
-        ASSERT(used);
-        return std::addressof(get());
-    }
-
-    RawType* operator->() {
+    INLINE const RawType* operator->() const {
         ASSERT(used);
         return std::addressof(get());
     }
 
-    explicit operator bool() const { return used; }
+    INLINE RawType* operator->() {
+        ASSERT(used);
+        return std::addressof(get());
+    }
 
-    bool operator!() const { return !used; }
+    INLINE explicit operator bool() const { return used; }
+
+    INLINE bool operator!() const { return !used; }
 };
 
 template <typename T1, typename T2>
@@ -188,11 +178,6 @@ Optional<T1> optionalCast(const Optional<T2>& opt) {
         return NOTHING;
     }
     return Optional<T1>(T1(opt.get()));
-}
-
-template<typename T>
-Optional<T&&> optionalForward(T&& value) {
-    return Optional<T&&>(std::forward<T>(value));
 }
 
 template <typename T>
