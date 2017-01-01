@@ -62,11 +62,11 @@ namespace Detail {
 
         template <typename... Ts>
         INLINE constexpr TupleImpl(const TupleImpl<Ts...>& other)
-            : TupleValue<TIndices, TArgs>(other.get<TIndices>())... {}
+            : TupleValue<TIndices, TArgs>(other.template get<TIndices>())... {}
 
         template <typename... Ts>
         INLINE constexpr TupleImpl(TupleImpl<Ts...>&& other)
-            : TupleValue<TIndices, TArgs>(other.forward<TIndices>())... {}
+            : TupleValue<TIndices, TArgs>(other.template forward<TIndices>())... {}
 
         template <std::size_t TIndex>
         INLINE constexpr decltype(auto) get() {
@@ -74,7 +74,7 @@ namespace Detail {
         }
 
         template <std::size_t TIndex>
-        INLINE constexpr const decltype(auto) get() const {
+        INLINE constexpr decltype(auto) get() const {
             return Value<TIndex>::get();
         }
 
@@ -86,7 +86,7 @@ namespace Detail {
     protected:
         template <typename... Ts, std::size_t TIndex, std::size_t... TIdxs>
         INLINE void copyAssign(const TupleImpl<Ts...>& other, std::index_sequence<TIndex, TIdxs...>) {
-            this->get<TIndex>() = other.get<TIndex>();
+            this->get<TIndex>() = other.template get<TIndex>();
             copyAssign(other, std::index_sequence<TIdxs...>());
         }
 
@@ -95,7 +95,7 @@ namespace Detail {
 
         template <typename... Ts, std::size_t TIndex, std::size_t... TIdxs>
         INLINE void copyAssign(TupleImpl<Ts...>& other, std::index_sequence<TIndex, TIdxs...>) {
-            this->get<TIndex>() = other.get<TIndex>();
+            this->get<TIndex>() = other.template get<TIndex>();
             copyAssign(other, std::index_sequence<TIdxs...>());
         }
 
@@ -104,7 +104,7 @@ namespace Detail {
 
         template <typename... Ts, std::size_t TIndex, std::size_t... TIdxs>
         INLINE void moveAssign(TupleImpl<Ts...>&& other, std::index_sequence<TIndex, TIdxs...>) {
-            this->get<TIndex>() = other.forward<TIndex>();
+            this->get<TIndex>() = other.template forward<TIndex>();
             moveAssign(std::move(other), std::index_sequence<TIdxs...>());
         }
 
@@ -113,7 +113,7 @@ namespace Detail {
 
         template <typename... Ts, std::size_t TIndex, std::size_t... TIdxs>
         INLINE bool isEqual(const TupleImpl<Ts...>& other, std::index_sequence<TIndex, TIdxs...>) const {
-            return this->get<TIndex>() == other.get<TIndex>() &&
+            return this->get<TIndex>() == other.template get<TIndex>() &&
                    isEqual(other, std::index_sequence<TIdxs...>());
         }
 
@@ -218,7 +218,7 @@ public:
 
     /// Returns an element of the tuple by index, const version.
     template <std::size_t TIndex>
-    INLINE constexpr const decltype(auto) get() const & {
+    INLINE constexpr decltype(auto) get() const & {
         static_assert(unsigned(TIndex) < sizeof...(TArgs), "Index out of bounds.");
         return Impl::template get<TIndex>();
     }
@@ -243,7 +243,7 @@ public:
 
     /// Returns an element of the tuple by type, const version.
     template <typename Type>
-    INLINE constexpr const decltype(auto) get() const & {
+    INLINE constexpr decltype(auto) get() const & {
         constexpr std::size_t index = getTypeIndex<Type, TArgs...>;
         static_assert(index != -1, "Type not stored in tuple");
         return Impl::template get<index>();
@@ -399,7 +399,7 @@ namespace Detail {
         }
     };
 
-    template <typename TFunctor, typename TTuple, template <class> typename TTrait>
+    template <typename TFunctor, typename TTuple, template <class> class TTrait>
     struct ForEachIfVisitor {
         TTuple&& tuple;
         TFunctor&& functor;
@@ -438,7 +438,7 @@ INLINE void forEach(Tuple<TArgs...>&& tuple, TFunctor&& functor) {
 }
 
 /// Iterates over elements of the tuple and executes a functor if given type traits has value == true
-template <template <class T> typename TTrait, typename TFunctor, typename... TArgs>
+template <template <class T> class TTrait, typename TFunctor, typename... TArgs>
 INLINE void forEachIf(Tuple<TArgs...>& tuple, TFunctor&& functor) {
     Detail::ForEachIfVisitor<TFunctor, decltype(tuple), TTrait> visitor{ tuple,
         std::forward<TFunctor>(functor) };
@@ -447,7 +447,7 @@ INLINE void forEachIf(Tuple<TArgs...>& tuple, TFunctor&& functor) {
 
 /// Iterates over elements of the tuple and executes a functor if given type traits has value == true, const
 /// version.
-template <template <class T> typename TTrait, typename TFunctor, typename... TArgs>
+template <template <class T> class TTrait, typename TFunctor, typename... TArgs>
 INLINE void forEachIf(const Tuple<TArgs...>& tuple, TFunctor&& functor) {
     Detail::ForEachIfVisitor<TFunctor, decltype(tuple), TTrait> visitor{ tuple,
         std::forward<TFunctor>(functor) };

@@ -62,8 +62,8 @@ public:
         radInvSqr = 1._f / (rad * rad);
         for (int i = 0; i < NEntries; ++i) {
             const Float q = Float(i) / Float(NEntries) * Math::sqr(rad);
-            values[i]     = source.valueImpl(q);
-            grads[i]      = source.gradImpl(q);
+            values[i] = source.valueImpl(q);
+            grads[i] = source.gradImpl(q);
         }
         /// \todo re-normalize?
     }
@@ -71,7 +71,7 @@ public:
     LutKernel& operator=(LutKernel&& other) {
         std::swap(values, other.values);
         std::swap(grads, other.grads);
-        rad       = other.rad;
+        rad = other.rad;
         radInvSqr = other.radInvSqr;
         return *this;
     }
@@ -89,9 +89,9 @@ public:
         }
         // linear interpolation of stored values
         const Float floatIdx = Float(NEntries) * qSqr * radInvSqr;
-        const int idx1       = floor(floatIdx);
+        const int idx1 = floor(floatIdx);
         ASSERT(idx1 < NEntries);
-        const int idx2    = idx1 + 1;
+        const int idx2 = idx1 + 1;
         const Float ratio = floatIdx - Float(idx1);
 
         return values[idx1] * (1._f - ratio) + (idx2 < NEntries ? values[idx2] : 0._f) * ratio;
@@ -105,9 +105,9 @@ public:
             return 0._f;
         }
         const Float floatIdx = Float(NEntries) * qSqr * radInvSqr;
-        const int idx1       = floor(floatIdx);
+        const int idx1 = floor(floatIdx);
         ASSERT(unsigned(idx1) < unsigned(NEntries));
-        const int idx2    = idx1 + 1;
+        const int idx2 = idx1 + 1;
         const Float ratio = floatIdx - Float(idx1);
 
         return grads[idx1] * (1._f - ratio) + (idx2 < NEntries ? grads[idx2] : 0._f) * ratio;
@@ -119,7 +119,7 @@ public:
 template <int d>
 class CubicSpline : public Kernel<CubicSpline<d>, d> {
 private:
-    static constexpr Float normalization[] = { 2._f / 3._f, 10._f / (7._f * Math::PI), 1._f / Math::PI };
+    const Float normalization[3] = { 2._f / 3._f, 10._f / (7._f * Math::PI), 1._f / Math::PI };
 
 public:
     CubicSpline() = default;
@@ -160,9 +160,7 @@ public:
 template <int d>
 class FourthOrderSpline : public Kernel<FourthOrderSpline<d>, d> {
 private:
-    static constexpr Float normalization[] = { 1._f / 24._f,
-                                               96._f / (1199._f * Math::PI),
-                                               1._f / (20._f * Math::PI) };
+    const Float normalization[3] = { 1._f / 24._f, 96._f / (1199._f * Math::PI), 1._f / (20._f * Math::PI) };
 
 public:
     FourthOrderSpline() = default;
@@ -175,7 +173,7 @@ public:
         ASSERT(q >= 0);
         if (q < 0.5_f) {
             return normalization[d - 1] * (Math::pow<4>(2.5_f - q) - 5._f * Math::pow<4>(1.5_f - q) +
-                                           10._f * Math::pow<4>(0.5_f - q));
+                                              10._f * Math::pow<4>(0.5_f - q));
         }
         if (q < 1.5_f) {
             return normalization[d - 1] * (Math::pow<4>(2.5_f - q) - 5._f * Math::pow<4>(1.5_f - q));
@@ -195,7 +193,7 @@ public:
         if (q < 0.5_f) {
             return (1._f / q) * normalization[d - 1] *
                    (-4._f * Math::pow<3>(2.5_f - q) + 20._f * Math::pow<3>(1.5_f - q) -
-                    40._f * Math::pow<3>(0.5_f - q));
+                       40._f * Math::pow<3>(0.5_f - q));
         }
         if (q < 1.5_f) {
             return (1._f / q) * normalization[d - 1] *
@@ -214,9 +212,9 @@ public:
     INLINE Float radius() const { return 1._f; }
 
     INLINE Float valueImpl(const Float qSqr) const {
-        const Float q     = Math::sqrt(qSqr);
+        const Float q = Math::sqrt(qSqr);
         const Float alpha = 1._f / 3._f;
-        const Float beta  = 1._f + 6._f * Math::sqr(alpha) - 12._f * Math::pow<3>(alpha);
+        const Float beta = 1._f + 6._f * Math::sqr(alpha) - 12._f * Math::pow<3>(alpha);
         const Float normalization =
             8._f / (Math::PI * (6.4_f * Math::pow<5>(alpha) - 16._f * Math::pow<6>(alpha) + 1._f));
         if (q < alpha) {
@@ -230,16 +228,14 @@ public:
         }
     }
 
-    INLINE Float gradImpl(const Float UNUSED(qSqr)) const {
-        NOT_IMPLEMENTED;
-    }
+    INLINE Float gradImpl(const Float UNUSED(qSqr)) const { NOT_IMPLEMENTED; }
 };
 
 /// Symmetrization of the kernel with a respect to different smoothing lenths
 /// Two possibilities - Symmetrized kernel W_ij = 0.5(W_i + W_j)
 ///                   - Symmetrized smoothing length h_ij = 0.5(h_i + h_j)
 template <int d>
-class SymW  {
+class SymW {
 private:
     const LutKernel<d>& kernel;
 
@@ -257,7 +253,7 @@ public:
 };
 
 template <int d>
-class SymH  {
+class SymH {
 private:
     const LutKernel<d>& kernel;
 

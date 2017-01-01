@@ -3,8 +3,8 @@ CONFIG += c++14 thread
 CONFIG -= app_bundle
 CONFIG -= qt
 
-QMAKE_CXXFLAGS += -msse4.1 -Wall -Werror -std=c++14 -pthread -pg
-QMAKE_LFLAGS += -pg
+QMAKE_CXXFLAGS += -msse4.1 -Wall -Werror -std=c++14 -pthread
+QMAKE_CXX = g++
 
 INCLUDEPATH += ../lib ../../external/Catch/include
 DEPENDPATH += . ../lib

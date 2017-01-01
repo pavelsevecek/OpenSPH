@@ -23,14 +23,14 @@ public:
         NOT_IMPLEMENTED;
     }
 
-    virtual void getDistanceToBoundary(ArrayView<const Vector> vs, Array<Float>& distances) const {
+    virtual void getDistanceToBoundary(ArrayView<const Vector> vs, Array<Float>& distances) const override {
         distances.clear();
         for (const Vector& v : vs) {
             distances.push(v[X]);
         }
     }
 
-    virtual void project(ArrayView<Vector> vs, Optional<ArrayView<Size>> indices = NOTHING) const {
+    virtual void project(ArrayView<Vector> vs, Optional<ArrayView<Size>> indices = NOTHING) const override {
         if (indices) {
             for (Size i : indices.get()) {
                 vs[i][X] = Math::max(0._f, vs[i][X]);
@@ -42,7 +42,7 @@ public:
         }
     }
 
-    virtual void invert(ArrayView<Vector> vs, Optional<ArrayView<Size>> indices = NOTHING) const {
+    virtual void invert(ArrayView<Vector> vs, Optional<ArrayView<Size>> indices = NOTHING) const override {
         if (indices) {
             for (Size i : indices.get()) {
                 vs[i][X] *= -1;

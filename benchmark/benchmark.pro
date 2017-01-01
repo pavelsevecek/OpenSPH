@@ -4,6 +4,7 @@ CONFIG -= app_bundle
 CONFIG -= qt
 
 QMAKE_CXXFLAGS += -msse4.1 -std=c++1z -pthread
+QMAKE_CXX = g++
 
 INCLUDEPATH += ../lib ../../external/benchmark/include
 DEPENDPATH += . ../lib

@@ -67,9 +67,9 @@ namespace VariantHelpers {
         template <typename T, typename TOther>
         void visit(TOther&& other) {
             if (std::is_lvalue_reference<TOther>::value) {
-                new (&storage) T(other.template operator T());
+                new (&storage) T(other.operator T());
             } else {
-                new (&storage) T(std::move(other.template operator T()));
+                new (&storage) T(std::move(other.operator T()));
             }
         }
     };
@@ -94,9 +94,9 @@ namespace VariantHelpers {
         template <typename T, typename TOther>
         void visit(TOther&& other) {
             if (std::is_lvalue_reference<TOther>::value) {
-                storage.template get<T>() = other.template operator T();
+                storage.template get<T>() = other.operator T();
             } else {
-                storage.template get<T>() = std::move(other.template operator T());
+                storage.template get<T>() = std::move(other.operator T());
             }
         }
     };
@@ -215,7 +215,7 @@ public:
         constexpr int idx = getTypeIndex<T, TArgs...>;
         static_assert(idx != -1, "Cannot convert variant to this type");
         ASSERT((typeIdx == getTypeIndex<T, TArgs...>));
-        return storage.get<T>();
+        return storage.template get<T>();
     }
 
     /// Const version of conversion operator.
@@ -224,7 +224,7 @@ public:
         constexpr int idx = getTypeIndex<T, TArgs...>;
         static_assert(idx != -1, "Cannot convert variant to this type");
         ASSERT((typeIdx == getTypeIndex<T, TArgs...>));
-        return storage.get<T>();
+        return storage.template get<T>();
     }
 
 
@@ -237,7 +237,7 @@ public:
         if (typeIdx != getTypeIndex<T, TArgs...>) {
             return NOTHING;
         }
-        return storage.get<T>();
+        return storage.template get<T>();
     }
 };
 

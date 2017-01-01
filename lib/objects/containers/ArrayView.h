@@ -11,7 +11,7 @@ NAMESPACE_SPH_BEGIN
 
 /// Simple (forward) iterator. Can be used with STL algorithms.
 template <typename T, typename TCounter = Size>
-class Iterator : public Object {
+class Iterator {
     template <typename, typename>
     friend class Array;
     template <typename, int, typename>

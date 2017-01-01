@@ -100,14 +100,14 @@ namespace Detail {
     template <std::size_t I, std::size_t N>
     struct SelectNthType {
         template <typename TValue, typename... TOthers>
-        INLINE static decltype(auto) action(TValue&& value, TOthers&&... others) {
+        INLINE static decltype(auto) action(TValue&& UNUSED(value), TOthers&&... others) {
             return SelectNthType<I + 1, N>::action(std::forward<TOthers>(others)...);
         }
     };
     template <std::size_t N>
     struct SelectNthType<N, N> {
         template <typename TValue, typename... TOthers>
-        INLINE static decltype(auto) action(TValue&& value, TOthers&&... others) {
+        INLINE static decltype(auto) action(TValue&& value, TOthers&&... UNUSED(others)) {
             return std::forward<TValue>(value);
         }
     };

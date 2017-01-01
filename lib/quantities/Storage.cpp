@@ -14,7 +14,7 @@ Storage::Storage(const BodySettings& settings) {
 
 Storage::Storage(Storage&& other)
     : quantities(std::move(other.quantities))
-    , materials(std::move(materials)) {}
+    , materials(std::move(other.materials)) {}
 
 Storage& Storage::operator=(Storage&& other) {
     quantities = std::move(other.quantities);

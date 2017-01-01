@@ -18,12 +18,17 @@ template <typename Type>
 class AlignedStorage {
 private:
     using StorageType = typename WrapReferenceType<Type>::Type;
+
     alignas(StorageType) char storage[sizeof(StorageType)];
 
-    INLINE constexpr StorageType& data() { return *reinterpret_cast<StorageType*>(storage); }
+    INLINE constexpr StorageType& data() {
+        StorageType* __attribute__((__may_alias__)) p = reinterpret_cast<StorageType*>(storage);
+        return *p;
+    }
 
     INLINE constexpr const StorageType& constData() const {
-        return *reinterpret_cast<const StorageType*>(storage);
+        const StorageType* __attribute__((__may_alias__)) p = reinterpret_cast<const StorageType*>(storage);
+        return *p;
     }
 
 public:

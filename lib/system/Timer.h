@@ -68,6 +68,14 @@ protected:
     TTimePoint stopped;
     bool isStopped = false;
 
+    auto elapsedImpl() const {
+        if (!isStopped) {
+            return TClock::now() - started;
+        } else {
+            return stopped - started;
+        }
+    }
+
 public:
     /// Stops the timer. Function getElapsed() will report the same value from now on.
     void stop() {
@@ -94,14 +102,6 @@ public:
             return std::chrono::duration_cast<std::chrono::milliseconds>(elapsedImpl()).count();
         case TimerUnit::MICROSECOND:
             return std::chrono::duration_cast<std::chrono::microseconds>(elapsedImpl()).count();
-        }
-    }
-private:
-    auto elapsedImpl() const {
-        if (!isStopped) {
-            return TClock::now() - started;
-        } else {
-            return stopped - started;
         }
     }
 };

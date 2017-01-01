@@ -22,19 +22,19 @@ void Settings<TEnum>::saveToFile(const std::string& path) const {
             ofs << (Float)entry.value;
             break;
         case RANGE:
-            ofs << entry.value.get<Range>().get();
+            ofs << entry.value.template get<Range>().get();
             break;
         case STRING:
-            ofs << entry.value.get<std::string>().get();
+            ofs << entry.value.template get<std::string>().get();
             break;
         case VECTOR:
-            ofs << entry.value.get<Vector>().get();
+            ofs << entry.value.template get<Vector>().get();
             break;
         case TENSOR:
-            ofs << entry.value.get<Tensor>().get();
+            ofs << entry.value.template get<Tensor>().get();
             break;
         case TRACELESS_TENSOR:
-            ofs << entry.value.get<TracelessTensor>().get();
+            ofs << entry.value.template get<TracelessTensor>().get();
             break;
         default:
             NOT_IMPLEMENTED;

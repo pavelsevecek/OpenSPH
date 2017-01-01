@@ -7,7 +7,8 @@ QMAKE_CXXFLAGS += -msse4.1 -Wall -Wextra -Werror -std=c++1z -pthread
 
 QMAKE_CXXFLAGS_RELEASE -= -O2
 QMAKE_CXXFLAGS_RELEASE += -Os
-QMAKE_CXX = clang++
+QMAKE_CXX = g++
+
 INCLUDEPATH += ../lib ../../external/Catch/include
 DEPENDPATH += . ../lib
 LIBS += ../lib/libsph.a

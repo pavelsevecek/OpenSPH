@@ -60,7 +60,7 @@ public:
         ASSERT(iter != entries.end());
         /// \todo can be cast here as we no longer return optional
         using StoreType = ConvertToSize<TValue>;
-        auto opt = iter->second.value.get<StoreType>();
+        auto opt = iter->second.value.template get<StoreType>();
         ASSERT(opt);
         return TValue(opt.get());
     }

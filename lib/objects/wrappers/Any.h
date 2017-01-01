@@ -37,13 +37,13 @@ private:
     std::unique_ptr<AbstractHolder> data;
 
     template<typename Type>
-    auto cast() {
+    auto* cast() {
         using RawT = std::decay_t<Type>;
         return dynamic_cast<Holder<RawT>*>(data.get());
     }
 
     template<typename Type>
-    const auto cast() const {
+    const auto* cast() const {
         using RawT = std::decay_t<Type>;
         return dynamic_cast<const Holder<RawT>*>(data.get());
     }
