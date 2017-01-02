@@ -27,7 +27,12 @@ protected:
     const T *begin, *end;
 #endif
 
-    Iterator(T* data, const T* begin, const T* end)
+#ifndef DEBUG
+    Iterator(T* data)
+        :data(data) {}
+#endif
+
+    Iterator(T* data, const T* UNUSED_IN_RELEASE(begin), const T* UNUSED_IN_RELEASE(end))
         : data(data)
 #ifdef DEBUG
         , begin(begin)
@@ -50,8 +55,13 @@ public:
         ASSERT(data < end);
         return *data;
     }
+#ifdef DEBUG
     Iterator operator+(const TCounter n) const { return Iterator(data + n, begin, end); }
     Iterator operator-(const TCounter n) const { return Iterator(data - n, begin, end); }
+#else
+    Iterator operator+(const TCounter n) const { return Iterator(data + n); }
+    Iterator operator-(const TCounter n) const { return Iterator(data - n); }
+#endif
     void operator+=(const TCounter n) { data += n; }
     void operator-=(const TCounter n) { data -= n; }
     Iterator& operator++() {

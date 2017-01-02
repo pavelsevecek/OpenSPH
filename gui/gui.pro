@@ -1,5 +1,5 @@
 TEMPLATE = app
-CONFIG += c++14
+CONFIG += c++14 silent
 CONFIG -= app_bundle
 CONFIG -= qt
 
@@ -11,6 +11,16 @@ LIBS += ../lib/libsph.a
 
 QMAKE_CXXFLAGS += -Wall -Werror -msse4.1 -std=c++14 `wx-config --libs --cxxflags --gl-libs`
 QMAKE_CXX = g++
+
+
+CONFIG(release, debug|release) {
+  message( "Building for Release" )
+}
+
+CONFIG(debug, debug|release) {
+  message( "Building for Debug" )
+  DEFINES += DEBUG PROFILE
+}
 
 SOURCES += \
     Gui.cpp \

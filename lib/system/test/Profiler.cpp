@@ -1,3 +1,7 @@
+// set PROFILE macro so that we can test profiling in release build
+#ifndef
+#define PROFILE
+#endif
 #include "system/Profiler.h"
 #include "catch.hpp"
 #include <thread>

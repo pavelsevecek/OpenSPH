@@ -1,5 +1,5 @@
 TEMPLATE = app
-CONFIG += c++14 thread
+CONFIG += c++14 thread silent
 CONFIG -= app_bundle
 CONFIG -= qt
 
@@ -11,18 +11,14 @@ DEPENDPATH += . ../lib
 LIBS += ../lib/libsph.a
 
 
-#CONFIG(release, debug|profile|release) {
-#  message( "Building for Release" )
-#}
-#CONFIG(profile, debug|profile|release) {
-#  message( "Building for Profile" )
-#  DEFINES += PROFILE
-#}
-#CONFIG(debug, debug|profile|release) {
-#  message( "Building for Debug" )
-#  DEFINES += DEBUG PROFILE
-#}
+CONFIG(release, debug|release) {
+  message( "Building for Release" )
+}
 
+CONFIG(debug, debug|release) {
+  message( "Building for Debug" )
+  DEFINES += DEBUG PROFILE
+}
 
 SOURCES += \
     main.cpp \

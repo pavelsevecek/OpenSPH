@@ -99,6 +99,7 @@ public:
 #define PROFILE_SCOPE(name)
 #define SCOPE_STOP
 #define SCOPE_RESUME
+#define PROFILE_NEXT(name)
 #endif
 
 NAMESPACE_SPH_END

@@ -11,13 +11,10 @@
 #define NAMESPACE_SPH_BEGIN namespace Sph {
 #define NAMESPACE_SPH_END }
 
-/// Turn off some warnings
-#pragma GCC diagnostic ignored "-Wstrict-aliasing"
-
 NAMESPACE_SPH_BEGIN
 
-#define DEBUG
-#define PROFILE
+// #define DEBUG
+// #define PROFILE
 
 #ifdef DEBUG
 #define ASSERT(x) assert(x)
@@ -46,6 +43,12 @@ NAMESPACE_SPH_BEGIN
 #define NO_INLINE __attribute__((noinline))
 
 #define UNUSED(x)
+
+#ifdef DEBUG
+#define UNUSED_IN_RELEASE(x) x
+#else
+#define UNUSED_IN_RELEASE(x)
+#endif
 
 namespace Abstract {}
 

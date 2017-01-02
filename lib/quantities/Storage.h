@@ -123,7 +123,7 @@ public:
     void emplace(const QuantityKey key, Array<TValue>&& values, const Range range = Range::unbounded()) {
         Quantity q;
         q.emplace<TValue, TOrder>(std::move(values), range);
-        const Size size = q.size(); // unused in release
+        UNUSED_IN_RELEASE(const Size size = q.size();)
         quantities[key] = std::move(q);
         if (quantities.size() == 1) {
             // set material ids; we have only one material, so set everything to zero
