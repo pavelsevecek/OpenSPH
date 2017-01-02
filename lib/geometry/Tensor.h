@@ -173,12 +173,6 @@ public:
     static Tensor Scale(const Float x, const Float y, const Float z);
     static Tensor Scale(const Float s);
     static Tensor TRS(const Vector& t, const Vector& r, const Vector& s);
-
-    template <typename TStream>
-    friend TStream& operator<<(TStream& stream, const Tensor& v) {
-        stream << v[0] << std::endl << v[1] << std::endl << v[2];
-        return stream;
-    }
 };
 
 namespace Math {
@@ -250,5 +244,12 @@ INLINE StaticArray<Float, 3> findEigenvalues(const Tensor& t) {
     return { sig[0] * n, sig[1] * n, sig[2] * n };
 }
 
-
 NAMESPACE_SPH_END
+
+namespace std {
+    INLINE string to_string(const Sph::Tensor& t) {
+        stringstream ss;
+        ss << to_string(t.diagonal()) << std::endl << to_string(t.offDiagonal());
+        return ss.str();
+    }
+}

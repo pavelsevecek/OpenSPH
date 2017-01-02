@@ -2,7 +2,7 @@
 #include "catch.hpp"
 #include "math/Math.h"
 #include "geometry/Box.h"
-#include <iostream>
+
 using namespace Sph;
 
 template <typename TVectorRng>

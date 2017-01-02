@@ -73,12 +73,6 @@ public:
     INLINE Indices max(const Indices& other) const { return _mm_max_epi32(data, other.data); }
 
     INLINE Indices min(const Indices& other) const { return _mm_min_epi32(data, other.data); }
-
-    template <typename TStream>
-    friend TStream& operator<<(TStream& stream, const Indices& indices) {
-        stream << indices[0] << "  " << indices[1] << "  " << indices[2];
-        return stream;
-    }
 };
 
 namespace Math {
@@ -97,3 +91,13 @@ INLINE auto getByMultiIndex(ArrayView<Indices> values, const Indices& idxs) {
 }*/
 
 NAMESPACE_SPH_END
+
+namespace std {
+    INLINE string to_string(const Sph::Indices& idxs) {
+        stringstream ss;
+        for (int i = 0; i < 3; ++i) {
+            ss << setw(15) << fixed << idxs[i];
+        }
+        return ss.str();
+    }
+}

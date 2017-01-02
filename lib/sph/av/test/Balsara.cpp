@@ -4,7 +4,7 @@
 #include "objects/finders/AbstractFinder.h"
 #include "sph/av/Standard.h"
 #include "sph/initial/Distribution.h"
-#include <iostream>
+#include "system/Logger.h"
 
 using namespace Sph;
 
@@ -66,6 +66,7 @@ TEST_CASE("Balsara shear flow", "[av]") {
     rotv = storage.getValue<Vector>(QuantityKey::VELOCITY_ROTATION);
     finder->build(r);
     LutKernel<3> kernel = Factory::getKernel<3>(GLOBAL_SETTINGS);
+    StdOutLogger logger;
     Array<NeighbourRecord> neighs;
     for (Size i = 0; i < r.size(); ++i) {
         if (getLength(r[i]) >= 0.7_f) {
@@ -80,18 +81,18 @@ TEST_CASE("Balsara shear flow", "[av]") {
             const Float orig = standardAv(i, j);
             const Float reduced = balsaraAv(i, j);
             if (reduced > orig) {
-                std::cout << "Balsara increased AV!";
+                logger << "Balsara increased AV!";
                 allMatching = false;
                 break;
             }
             if (orig > EPS && reduced > 1.e-3_f * orig) {
-                std::cout << "Balsara didn't reduce AV!" << std::endl;
-                std::cout << "particle: i = " << i << std::endl;
-                std::cout << "          r = " << r[i] << " & " << r[j] << std::endl;
-                std::cout << "          orig = " << orig << ", reduced = " << reduced << std::endl;
-                std::cout << "          divv = " << divv[i] << " & " << divv[j] << std::endl;
-                std::cout << "          rotv = " << rotv[i] << " & " << rotv[j] << std::endl;
-                std::cout << "Balsara factor: " << balsaraAv.getFactor(i) << " & " << balsaraAv.getFactor(j) << std::endl;
+                logger << "Balsara didn't reduce AV!";
+                logger << "particle: i = " << i;
+                logger << "          r = " << r[i] << " & " << r[j];
+                logger << "          orig = " << orig << ", reduced = " << reduced;
+                logger << "          divv = " << divv[i] << " & " << divv[j];
+                logger << "          rotv = " << rotv[i] << " & " << rotv[j];
+                logger << "Balsara factor: " << balsaraAv.getFactor(i) << " & " << balsaraAv.getFactor(j);
                 allMatching = false;
                 break;
             }
@@ -125,18 +126,19 @@ TEST_CASE("Balsara divergent flow", "[av]") {
     r = storage.getValue<Vector>(QuantityKey::POSITIONS);
     divv = storage.getValue<Float>(QuantityKey::VELOCITY_DIVERGENCE);
     rotv = storage.getValue<Vector>(QuantityKey::VELOCITY_ROTATION);
+    StdOutLogger logger;
     for (Size i = 0; i < divv.size(); ++i) {
         // particles on boundary have different velocity divergence, check only particles inside
         if (getLength(r[i]) < 0.7_f) {
             if (!Math::almostEqual(divv[i], -3._f, 0.1_f)) {
-                std::cout << "Incorrect velocity divergence: " << divv[i] << " / -3" << std::endl;
-                std::cout << "particle: r = " << r[i] << std::endl;
+                logger << "Incorrect velocity divergence: " << divv[i] << " / -3";
+                logger << "particle: r = " << r[i];
                 allMatching = false;
                 break;
             }
             if (!Math::almostEqual(rotv[i], Vector(0._f), 0.1_f)) {
-                std::cout << "Incorrect velocity rotation: " << rotv[i] << " / Vector(0.f) " << std::endl;
-                std::cout << "particle: r = " << r[i] << std::endl;
+                logger << "Incorrect velocity rotation: " << rotv[i] << " / Vector(0.f) ";
+                logger << "particle: r = " << r[i];
                 allMatching = false;
                 break;
             }
@@ -159,12 +161,11 @@ TEST_CASE("Balsara divergent flow", "[av]") {
             const Float orig = standardAv(i, j);
             const Float reduced = balsaraAv(i, j);
             if (!Math::almostEqual(reduced, orig)) {
-                std::cout << "Balsara changed AV in divergent flow! " << reduced << " / " << orig
-                          << std::endl;
-                std::cout << "particle: i = " << i << std::endl;
-                std::cout << "          divv = " << divv[i] << " & " << divv[j] << std::endl;
-                std::cout << "          rotv = " << rotv[i] << " & " << rotv[j] << std::endl;
-                std::cout << "Balsara factor: " << balsaraAv.getFactor(i) << " & " << balsaraAv.getFactor(j) << std::endl;
+                logger << "Balsara changed AV in divergent flow! " << reduced << " / " << orig;
+                logger << "particle: i = " << i;
+                logger << "          divv = " << divv[i] << " & " << divv[j];
+                logger << "          rotv = " << rotv[i] << " & " << rotv[j];
+                logger << "Balsara factor: " << balsaraAv.getFactor(i) << " & " << balsaraAv.getFactor(j);
                 allMatching = false;
                 break;
             }

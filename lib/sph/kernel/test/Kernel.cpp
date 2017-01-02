@@ -1,7 +1,6 @@
 #include "sph/kernel/Kernel.h"
 #include "catch.hpp"
 #include "math/Integrator.h"
-#include <iostream>
 
 using namespace Sph;
 
@@ -29,7 +28,6 @@ void testKernel(const TKernel& kernel, TTest&& test) {
         Float xSqr = x * x;
         Float diff =
             (kernel.valueImpl(Math::sqr(x + eps)) - kernel.valueImpl(Math::sqr(x - eps))) / (2 * eps);
-        //std::cout << kernel.gradImpl(xSqr) * x << "  |  " <<  diff << std::endl;
         REQUIRE(Math::almostEqual(kernel.gradImpl(xSqr) * x, diff, 2._f * eps));
     }
 

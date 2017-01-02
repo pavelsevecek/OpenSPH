@@ -2,7 +2,6 @@
 #include "catch.hpp"
 #include "quantities/Storage.h"
 #include "solvers/AbstractSolver.h"
-#include <iostream>
 
 using namespace Sph;
 
@@ -10,11 +9,6 @@ struct TestSolver : public Abstract::Solver {
     Float period = 1._f;
 
     TestSolver() = default;
-
-    /* virtual void setQuantities(Storage&,
-          const Abstract::Domain&,
-          const Settings<BodySettingsIds>&) const override {
-          NOT_IMPLEMENTED;}*/
 
     virtual void integrate(Storage& storage) override {
         ArrayView<Vector> r, v, dv;
@@ -43,7 +37,6 @@ void testTimestepping(TArgs&&... args) {
     TTimestepping timestepping(storage, std::forward<TArgs>(args)...);
     Size n = 0;
     for (float t = 0.f; t < 3.f; t += timestepping.getTimeStep()) {
-        // std::cout << rs[0][X] << "  " << vs[0][X] << "  " << Math::cos(2.f * Math::PI * t) << std::endl;
         if ((n++ % 15) == 0) {
             REQUIRE(Math::almostEqual(
                 r[0], Vector(Math::cos(2.f * Math::PI * t), 0.f, 0.f), timeStep * 2._f * Math::PI));

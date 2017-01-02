@@ -4,8 +4,6 @@
 #include "system/Profiler.h"
 #include "system/Settings.h"
 #include <memory>
-/// \todo remove, use loggers
-#include <iostream>
 
 NAMESPACE_SPH_BEGIN
 
@@ -68,7 +66,8 @@ public:
 
         // Make sure the step is lower than largest allowed step
         minStep = Math::min(minStep, maxStep);
-        std::cout << "Step set by " << getQuantityName(flag) << std::endl;
+        /// \todo logger
+        //std::cout << "Step set by " << getQuantityName(flag) << std::endl;
         return minStep;
     }
 

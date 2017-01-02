@@ -1,7 +1,7 @@
 #include "math/rng/Rng.h"
 #include "catch.hpp"
 #include "math/Math.h"
-#include <iostream>
+
 using namespace Sph;
 
 template <typename TRng>

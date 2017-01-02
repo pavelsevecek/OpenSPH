@@ -132,8 +132,8 @@ public:
         ASSERT(q0 > 0._f && "Cannot use DISPH with zero specific energy");
         const Range rhoRange = settings.get<Range>(BodySettingsIds::DENSITY_RANGE);
         const Range uRange = settings.get<Range>(BodySettingsIds::ENERGY_RANGE);
-        const Range qRange = rhoRange * uRange;
-        ASSERT(qRange.lower() > 0 && "Cannot use DISPH with zero specific energy");
+        const Range qRange(rhoRange.lower() * uRange.lower(), rhoRange.upper() * uRange.upper());
+        ASSERT(qRange.lower() > 0._f && "Cannot use DISPH with zero specific energy");
         storage.emplace<Float, OrderEnum::FIRST_ORDER>(QuantityKey::ENERGY_DENSITY, q0, qRange);
 
         // energy per particle

@@ -1,7 +1,6 @@
 #include "geometry/Vector.h"
 #include "catch.hpp"
 #include "utils/Utils.h"
-#include <iostream>
 
 using namespace Sph;
 

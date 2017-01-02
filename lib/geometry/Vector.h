@@ -47,7 +47,7 @@ class BasicVector;
 
 /// 3-dimensional vector, float precision
 template <>
-class BasicVector<float>  {
+class BasicVector<float> {
     friend class Indices;
 
 private:
@@ -198,18 +198,8 @@ public:
     INLINE BasicVector max(const BasicVector& other) const {
         return BasicVector(_mm_max_ps(data, other.data));
     }
-
-    /// Output to stream
-    template <typename TStream>
-    friend TStream& operator<<(TStream& stream, const BasicVector& v) {
-        constexpr int digits = 6;
-        stream << std::fixed << std::setprecision(digits);
-        for (int i = 0; i < 3; ++i) {
-            stream << std::setw(15) << std::fixed << std::setprecision(digits) << v[i];
-        }
-        return stream;
-    }
 };
+
 
 /// specialization for doubles or units of double precision
 
@@ -217,7 +207,7 @@ public:
 
 #ifdef SPH_VECTOR_AVX
 template <>
-class BasicVector<double>  {
+class BasicVector<double> {
 private:
     __m256d data;
 
@@ -368,13 +358,12 @@ public:
     }
 
     template <typename TStream>
-    friend TStream& operator<<(TStream& stream, const BasicVector& v) {
+    void toStream(TStream& stream) const {
         constexpr int digits = 12;
         stream << std::fixed << std::setprecision(digits);
         for (int i = 0; i < 3; ++i) {
-            stream << std::fixed << std::setprecision(digits) << v[i] << (i < 2 ? "  " : "");
+            stream << std::fixed << std::setprecision(digits) << (*this)[i];
         }
-        return stream;
     }
 };
 
@@ -554,13 +543,12 @@ public:
 
     /// Output to stream
     template <typename TStream>
-    friend TStream& operator<<(TStream& stream, const BasicVector& v) {
+    void toStream(TStream& stream) const {
         constexpr int digits = 12;
         stream << std::fixed << std::setprecision(digits);
         for (int i = 0; i < 3; ++i) {
-            stream << std::fixed << std::setprecision(digits) << v[i] << (i < 2 ? "  " : "");
+            stream << std::fixed << std::setprecision(digits) << (*this)[i];
         }
-        return stream;
     }
 };
 #endif
@@ -679,3 +667,16 @@ INLINE Vector sphericalInversion(const Vector& v, const Vector& center, const Fl
 }
 
 NAMESPACE_SPH_END
+
+namespace std {
+    /// Converts vector to string
+    INLINE string to_string(const Sph::Vector& v) {
+        constexpr int digits = 6;
+        stringstream ss;
+        ss << fixed << setprecision(digits);
+        for (int i = 0; i < 3; ++i) {
+            ss << setw(15) << fixed << setprecision(digits) << v[i];
+        }
+        return ss.str();
+    }
+}

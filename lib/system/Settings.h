@@ -479,9 +479,9 @@ const Settings<BodySettingsIds> BODY_SETTINGS = {
 
     /// Material properties
     { BodySettingsIds::DENSITY,                 "material.density",             2700._f },
-    { BodySettingsIds::DENSITY_RANGE,           "material.density.range",       Range(1._f, NOTHING) },
+    { BodySettingsIds::DENSITY_RANGE,           "material.density.range",       Range(1._f, Extended::infinity()) },
     { BodySettingsIds::ENERGY,                  "material.energy",              0._f },
-    { BodySettingsIds::ENERGY_RANGE,            "material.energy.range",        Range(0._f, NOTHING) },
+    { BodySettingsIds::ENERGY_RANGE,            "material.energy.range",        Range(0._f, Extended::infinity()) },
     { BodySettingsIds::DAMAGE,                  "material.damage",              0._f },
     { BodySettingsIds::DAMAGE_RANGE,            "material.damage.range",        Range(0.f, 1._f) },
     { BodySettingsIds::STRESS_TENSOR,           "material.stress_tensor",       TracelessTensor(0._f) },

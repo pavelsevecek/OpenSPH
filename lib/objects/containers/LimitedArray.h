@@ -11,7 +11,7 @@ NAMESPACE_SPH_BEGIN
 template <typename Type>
 class LimitedArray : public Array<Type> {
 private:
-    Range bounds = Range(NOTHING, NOTHING);
+    Range bounds = Range::unbounded();
 
 public:
     using Array<Type>::Array;

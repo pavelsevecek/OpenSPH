@@ -8,7 +8,7 @@
 
 NAMESPACE_SPH_BEGIN
 
-class TracelessTensor  {
+class TracelessTensor {
 private:
     // 5 independent components: 4 in vector, 1 in float
     enum Ids {
@@ -102,7 +102,7 @@ public:
     INLINE Vector offDiagonal() const { return Vector(m[M01], m[M02], m12); }
 
     /// Returns a given element of the matrix.
-    INLINE Float operator()(const int rowIdx, const int colIdx) {
+    INLINE Float operator()(const int rowIdx, const int colIdx) const {
         if (rowIdx == colIdx) {
             // diagonal
             if (rowIdx < 2) {
@@ -180,12 +180,6 @@ public:
     TracelessTensor clamp(const Range& range) const {
         return TracelessTensor(Math::clamp(m, range), Math::clamp(m12, range));
     }
-
-    template <typename TStream>
-    friend TStream& operator<<(TStream& stream, const TracelessTensor& v) {
-        stream << v[0] << std::endl << v[1] << std::endl << v[2];
-        return stream;
-    }
 };
 
 namespace Math {
@@ -230,3 +224,12 @@ INLINE Float ddot(const TracelessTensor& t1, const TracelessTensor& t2) {
 }
 
 NAMESPACE_SPH_END
+
+
+namespace std {
+    INLINE string to_string(const Sph::TracelessTensor& t) {
+        stringstream ss;
+        ss << t(0, 0) << " " << t(1, 1) << " " << t(0, 1) << " " << t(0, 2) << " " << t(1, 2);
+        return ss.str();
+    }
+}

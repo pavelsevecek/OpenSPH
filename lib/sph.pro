@@ -4,7 +4,8 @@ CONFIG -= app_bundle qt
 QMAKE_CXXFLAGS += -Wall -Wextra -Werror -msse4.1 -std=c++14 -pthread
 QMAKE_CXXFLAGS_RELEASE -= -O2
 QMAKE_CXXFLAGS_RELEASE += -Os
-QMAKE_CXX = g++
+QMAKE_CXXFLAGS_DEBUG += -fsanitize=undefined-trap -fsanitize-undefined-trap-on-error
+QMAKE_CXX = clang++
 
 
 

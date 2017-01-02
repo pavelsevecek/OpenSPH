@@ -1,5 +1,5 @@
 // set PROFILE macro so that we can test profiling in release build
-#ifndef
+#ifndef PROFILE
 #define PROFILE
 #endif
 #include "system/Profiler.h"

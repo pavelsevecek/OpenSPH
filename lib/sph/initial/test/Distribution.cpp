@@ -1,7 +1,7 @@
 #include "sph/initial/Distribution.h"
 #include "catch.hpp"
 #include "objects/containers/ArrayUtils.h"
-#include <iostream>
+#include "system/Logger.h"
 
 using namespace Sph;
 
@@ -38,9 +38,10 @@ TEST_CASE("LinearDistribution", "[initconds]") {
     Array<Vector> values = linear.generate(101, domain);
     REQUIRE(values.size() == 101);
     bool equal = true;
+    StdOutLogger logger;
     for (int i = 0; i <= 100; ++i) {
         if (!Math::almostEqual(values[i], Vector(i / 100._f, 0._f, 0._f), 1.e-5_f)) {
-            std::cout << values[i] << " == " << Vector(i / 100._f, 0._f, 0._f) << std::endl;
+            logger << values[i] << " == " << Vector(i / 100._f, 0._f, 0._f);
             break;
             equal = false;
         }

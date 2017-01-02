@@ -18,10 +18,26 @@ NAMESPACE_SPH_BEGIN
 namespace Abstract {
     class Logger : public Polymorphic, public Noncopyable {
     public:
+        /// Logs a string message.
+        /// \todo different types (log, warning, error, ...) and levels of verbosity
         virtual void write(const std::string& s) = 0;
 
+        /// Syntactic suggar, logs a string message.
         Logger& operator<<(const std::string& s) {
-            write(s);
+            this->write(s);
+            return *this;
+        }
+
+        /// Overload for char* (no matching std::to_string overload).
+        Logger& operator<<(const char* s) {
+            this->write(s);
+            return *this;
+        }
+
+        /// Print a value of deduced type into the logger.
+        template<typename T>
+        Logger& operator<<(const T& value) {
+            this->write(std::to_string(value));
             return *this;
         }
     };

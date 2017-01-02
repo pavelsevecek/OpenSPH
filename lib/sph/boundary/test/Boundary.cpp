@@ -2,7 +2,7 @@
 #include "catch.hpp"
 #include "math/rng/VectorRng.h"
 #include "objects/containers/ArrayUtils.h"
-#include <iostream>
+#include "system/Logger.h"
 
 using namespace Sph;
 
@@ -128,23 +128,24 @@ TEST_CASE("GhostParticles Sphere", "[boundary]") {
         q = rng();
     }
 
-    const int ghostIdx = r.size();
+    const Size ghostIdx = r.size();
     GhostParticles boundaryConditions(std::make_unique<SphericalDomain>(Vector(0._f), 2._f), GLOBAL_SETTINGS);
     boundaryConditions.apply(storage);
     tie(r, v, dv) = storage.getAll<Vector>(QuantityKey::POSITIONS);
     REQUIRE(r.size() == 2 * ghostIdx); // ghost for each particle
     bool allSymmetric = true;
-    for (int i = 0; i < ghostIdx; ++i) {
+    StdOutLogger logger;
+    for (Size i = 0; i < ghostIdx; ++i) {
         Vector normalized;
         Float length;
         tieToTuple(normalized, length) = getNormalizedWithLength(r[ghostIdx + i]);
         if (!Math::almostEqual(length, 2.1_f)) {
-            std::cout << "Incorrect position of ghost: " << length << std::endl;
+            logger.write("Incorrect position of ghost: " + std::to_string(length));
             allSymmetric = false;
             break;
         }
         if (!Math::almostEqual(normalized, getNormalized(r[i]))) {
-            std::cout << "Incorrect position of ghost: " << normalized << std::endl;
+            logger << "Incorrect position of ghost: " << normalized;
             allSymmetric = false;
             break;
         }
@@ -152,7 +153,7 @@ TEST_CASE("GhostParticles Sphere", "[boundary]") {
         const Float vPerp = dot(v[i], normalized);
         const Float vgPerp = dot(v[ghostIdx + i], normalized);
         if (!Math::almostEqual(vPerp, -vgPerp, 1.e-5_f)) {
-            std::cout << "Perpendicular component not inverted: " << vPerp << "  " << vgPerp << std::endl;
+            logger << "Perpendicular component not inverted: " << vPerp << "  " << vgPerp;
             allSymmetric = false;
             break;
         }
@@ -160,7 +161,7 @@ TEST_CASE("GhostParticles Sphere", "[boundary]") {
         const Vector vPar = v[i] - normalized * dot(v[i], normalized);
         const Vector vgPar = v[ghostIdx + i] - normalized * dot(v[ghostIdx + i], normalized);
         if (!Math::almostEqual(vPar, vgPar, 1.e-5_f)) {
-            std::cout << "Parallel component not copied: " << vPar << "  " << vgPar << std::endl;
+            logger << "Parallel component not copied: " << vPar << "  " << vgPar;
             allSymmetric = false;
             break;
         }
@@ -184,23 +185,24 @@ TEST_CASE("GhostParticles Sphere Projection", "[boundary]") {
     }
     storage.emplace<Vector, OrderEnum::SECOND_ORDER>(QuantityKey::POSITIONS, std::move(particles));
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityKey::POSITIONS);
-    const int ghostIdx = r.size();
-    const int halfSize = ghostIdx >> 1;
+    const Size ghostIdx = r.size();
+    const Size halfSize = ghostIdx >> 1;
     GhostParticles boundaryConditions(std::make_unique<SphericalDomain>(Vector(0._f), 2._f), GLOBAL_SETTINGS);
     boundaryConditions.apply(storage);
     r = storage.getValue<Vector>(QuantityKey::POSITIONS);
     REQUIRE(r.size() == halfSize * 3); // only layer with r=1.9 creates ghost particles
     bool allMatching = true;
-    for (int i = 0; i < ghostIdx; ++i) {
+    StdOutLogger logger;
+    for (Size i = 0; i < ghostIdx; ++i) {
         if (i % 2 == 0) {
             if (!Math::almostEqual(getLength(r[i]), 1.9_f)) {
-                std::cout << "Invalid particle position: " << getLength(r[i]) << " / 1.9" << std::endl;
+                logger << "Invalid particle position: " << getLength(r[i]) << " / 1.9";
                 allMatching = false;
                 break;
             }
         } else {
             if (!Math::almostEqual(getLength(r[i]), 0.9_f)) {
-                std::cout << "Invalid particle position: " << getLength(r[i]) << " / 0.9" << std::endl;
+                logger << "Invalid particle position: " << getLength(r[i]) << " / 0.9";
                 allMatching = false;
                 break;
             }

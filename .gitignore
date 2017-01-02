@@ -72,3 +72,5 @@ Thumbs.db
 *.dll
 *.exe
 
+# Output directories
+problems/sod/out

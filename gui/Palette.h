@@ -42,8 +42,8 @@ public:
 
     /// Default palette for given quantity
     static Palette forQuantity(const QuantityKey key, const Range range) {
-        const Float x0 = range.lower();
-        const Float dx = range.size();
+        const Float x0 = Float(range.lower());
+        const Float dx = Float(range.size());
         switch (key) {
         case QuantityKey::PRESSURE:
             return Palette({ { x0, Color(0.f, 0.f, 0.2f) }, { x0 + dx, Color(1.f, 0.2f, 0.2f) } });

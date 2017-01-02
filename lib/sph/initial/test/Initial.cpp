@@ -3,7 +3,7 @@
 #include "geometry/Domain.h"
 #include "objects/containers/ArrayUtils.h"
 #include "quantities/Storage.h"
-#include <iostream>
+#include "system/Logger.h"
 
 using namespace Sph;
 
@@ -59,16 +59,17 @@ TEST_CASE("Initial velocity", "[initial]") {
     ArrayView<Float> rho = storage->getValue<Float>(QuantityKey::DENSITY);
     ArrayView<Vector> v = storage->getAll<Vector>(QuantityKey::POSITIONS)[1];
 
+    StdOutLogger logger;
     bool allMatching = true;
     for (Size i = 0; i < v.size(); ++i) {
         if (rho[i] == 1._f && v[i] != Vector(2._f, 1._f, -1._f)) {
             allMatching = false;
-            std::cout << "Invalid velocity: " << v[i] << std::endl;
+            logger << "Invalid velocity: " << v[i];
             break;
         }
         if (rho[i] == 2._f && v[i] != Vector(0._f, 0._f, 1._f)) {
             allMatching = false;
-            std::cout << "Invalid velocity: " << v[i] << std::endl;
+            logger << "Invalid velocity: " << v[i];
             break;
         }
     }
@@ -88,17 +89,18 @@ TEST_CASE("Initial rotation", "[initial]") {
     tieToTuple(axis, magnitude) = getNormalizedWithLength(Vector(1._f, 3._f, -2._f));
 
     bool allMatching = true;
+    StdOutLogger logger;
     for (Size i = 0; i < r.size(); ++i) {
         const Float distFromAxis = getLength(r[i] - axis * dot(r[i], axis));
         if (!Math::almostEqual(getLength(v[i]), distFromAxis * magnitude)) {
             allMatching = false;
-            std::cout << "Invalid angular velocity magnitude: " << getLength(v[i]) << " / "
-                      << distFromAxis * magnitude << std::endl;
+            logger << "Invalid angular velocity magnitude: " << getLength(v[i]) << " / "
+                   << distFromAxis * magnitude;
             break;
         }
         if (!Math::almostEqual(dot(v[i], axis), 0._f)) {
             allMatching = false;
-            std::cout << "Invalid angular velocity vector: " << v[i] << " / " << axis << std::endl;
+            logger << "Invalid angular velocity vector: " << v[i] << " / " << axis;
             break;
         }
     }

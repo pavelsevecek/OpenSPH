@@ -1,6 +1,5 @@
 #include "system/Settings.h"
 #include <fstream>
-#include <iostream>
 #include <regex>
 
 NAMESPACE_SPH_BEGIN
@@ -22,19 +21,19 @@ void Settings<TEnum>::saveToFile(const std::string& path) const {
             ofs << (Float)entry.value;
             break;
         case RANGE:
-            ofs << entry.value.template get<Range>().get();
+            ofs << std::to_string(entry.value.template get<Range>().get());
             break;
         case STRING:
             ofs << entry.value.template get<std::string>().get();
             break;
         case VECTOR:
-            ofs << entry.value.template get<Vector>().get();
+            ofs << std::to_string(entry.value.template get<Vector>().get());
             break;
         case TENSOR:
-            ofs << entry.value.template get<Tensor>().get();
+            ofs << std::to_string(entry.value.template get<Tensor>().get());
             break;
         case TRACELESS_TENSOR:
-            ofs << entry.value.template get<TracelessTensor>().get();
+            ofs << std::to_string(entry.value.template get<TracelessTensor>().get());
             break;
         default:
             NOT_IMPLEMENTED;
@@ -67,7 +66,8 @@ bool Settings<TEnum>::loadFromFile(const std::string& path, const Settings& desc
         for (auto&& e : descriptors.entries) {
             if (e.second.name == trimmedKey) {
                 if (!setValueByType(this->entries[e.second.id], e.second.value.getTypeIdx(), value)) {
-                    std::cout << "failed loading " << trimmedKey << std::endl;
+                    /// \todo logger
+                    /// std::cout << "failed loading " << trimmedKey << std::endl;
                     return false;
                 }
             }
@@ -115,9 +115,9 @@ bool Settings<TEnum>::setValueByType(Entry& entry, const Size typeIdx, const std
         if (ss.fail()) {
             return false;
         }
-        Optional<Float> lower, upper;
+        Extended lower, upper;
         if (s1 == "-infinity") {
-            lower = NOTHING;
+            lower = -Extended::infinity();
         } else {
             ss.clear();
             ss.str(s1);
@@ -126,7 +126,7 @@ bool Settings<TEnum>::setValueByType(Entry& entry, const Size typeIdx, const std
             lower = value;
         }
         if (s2 == "infinity") {
-            upper = NOTHING;
+            upper = Extended::infinity();
         } else {
             ss.clear();
             ss.str(s2);
