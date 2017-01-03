@@ -122,36 +122,13 @@ public:
         }
     }
 
-    /* INLINE constexpr friend bool operator==(const Extended& ex, const Float f) {
-         return ex.isFinite() && ex.get() == f;
-     }
-
-     INLINE constexpr friend bool operator==(const Float f, const Extended& ex) {
-         return ex.isFinite() && ex.get() == f;
-     }
-
-     INLINE constexpr friend bool operator>(const Extended& ex, const Float f) {
-         return ex == infinity() || (ex.isFinite() && ex.get() > f);
-     }
-
-     INLINE constexpr friend bool operator>=(const Extended& ex, const Float f) {
-         return ex == infinity() || (ex.isFinite() && ex.get() >= f);
-     }
-
-     INLINE constexpr friend bool operator>(const Float f, const Extended& ex) {
-         return ex == -infinity() || (ex.isFinite() && ex.get() < f);
-     }
-
-     INLINE constexpr friend bool operator>=(const Float f, const Extended& ex) {
-         return ex == -infinity() || (ex.isFinite() && ex.get() <= f);
-     }*/
-
     INLINE constexpr Extended operator-(const Extended& other) const {
         ASSERT(isFinite() || finiteness != other.finiteness); // not infty-infty, undefined behavior
         if (isFinite() && other.isFinite()) {
             return value - other.value;
         }
-        if (finiteness == Finiteness::PLUS_INF) {
+        // always returns +-infinite
+        if (*this > other) {
             return PositiveInfinityTag();
         } else {
             return NegativeInfinityTag();
@@ -171,7 +148,12 @@ public:
         if (isFinite() && other.isFinite()) {
             return value * other.value;
         }
-        return infinity() * sign() * other.sign();
+        const int product = sign() * other.sign();
+        if (product > 0) {
+            return PositiveInfinityTag();
+        } else {
+            return NegativeInfinityTag();
+        }
     }
 
     INLINE constexpr Extended operator-() const {
@@ -184,6 +166,22 @@ public:
             // negative infinity
             return PositiveInfinityTag();
         }
+    }
+
+    template <typename TStream>
+    friend TStream& operator<<(TStream& stream, const Extended& ex) {
+        switch (ex.finiteness) {
+        case Finiteness::FINITE:
+            stream << ex.get();
+            break;
+        case Finiteness::PLUS_INF:
+            stream << "+infinity";
+            break;
+        case Finiteness::MINUS_INF:
+            stream << "-infinity";
+            break;
+        }
+        return stream;
     }
 };
 
@@ -206,7 +204,7 @@ public:
     INLINE Range(const Extended& lower, const Extended& upper)
         : minBound(lower)
         , maxBound(upper) {
-        ASSERT(lower.get() <= upper.get());
+        ASSERT(lower <= upper);
     }
 
     INLINE Range(const Range& other)
@@ -249,6 +247,12 @@ public:
     INLINE bool operator!=(const Range& other) const { return !(*this == other); }
 
     static Range unbounded() { return Range(-Extended::infinity(), Extended::infinity()); }
+
+    template <typename TStream>
+    friend TStream& operator<<(TStream& stream, const Range& range) {
+        stream << range.lower() << " " << range.upper();
+        return stream;
+    }
 };
 
 
@@ -318,10 +322,3 @@ RangeAdapter<TStep> rangeAdapter(const Range& range, TStep&& step) {
 }
 
 NAMESPACE_SPH_END
-
-namespace std {
-    INLINE string to_string(const Sph::Range& range) {
-        return (range.lower().isFinite() ? to_string(range.lower().get()) : string("-infinity")) + " " +
-               (range.upper().isFinite() ? to_string(range.upper().get()) : string("infinity"));
-    }
-}

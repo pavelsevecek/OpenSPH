@@ -6,9 +6,10 @@
 
 #include "objects/Object.h"
 #include <fstream>
+#include <memory>
 #include <set>
 #include <string>
-#include <memory>
+#include <sstream>
 
 NAMESPACE_SPH_BEGIN
 
@@ -22,24 +23,21 @@ namespace Abstract {
         /// \todo different types (log, warning, error, ...) and levels of verbosity
         virtual void write(const std::string& s) = 0;
 
-        /// Syntactic suggar, logs a string message.
-        Logger& operator<<(const std::string& s) {
-            this->write(s);
-            return *this;
+        /// Creates and logs message by concating arguments.
+        template <typename... TArgs>
+        void writeList(TArgs&&... args) {
+            std::stringstream ss;
+            writeImpl(ss, std::forward<TArgs>(args)...);
+            this->write(ss.str());
         }
 
-        /// Overload for char* (no matching std::to_string overload).
-        Logger& operator<<(const char* s) {
-            this->write(s);
-            return *this;
+    private:
+        template <typename T0, typename... TArgs>
+        void writeImpl(std::stringstream& ss, T0&& first, TArgs&&... rest) {
+            ss << first;
+            writeImpl(ss, std::forward<TArgs>(rest)...);
         }
-
-        /// Print a value of deduced type into the logger.
-        template<typename T>
-        Logger& operator<<(const T& value) {
-            this->write(std::to_string(value));
-            return *this;
-        }
+        void writeImpl(std::stringstream& UNUSED(ss)) {}
     };
 }
 
@@ -71,9 +69,7 @@ private:
 public:
     int getLoggerCnt() const { return loggers.size(); }
 
-    void add(std::unique_ptr<Abstract::Logger>&& logger) {
-        loggers.insert(std::move(logger));
-    }
+    void add(std::unique_ptr<Abstract::Logger>&& logger) { loggers.insert(std::move(logger)); }
 
     virtual void write(const std::string& s) override {
         for (auto& l : loggers) {

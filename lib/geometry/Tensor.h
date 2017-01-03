@@ -10,7 +10,7 @@
 
 NAMESPACE_SPH_BEGIN
 
-class Tensor  {
+class Tensor {
 private:
     Vector diag; // diagonal part
     Vector off;  // over/below diagonal
@@ -173,6 +173,12 @@ public:
     static Tensor Scale(const Float x, const Float y, const Float z);
     static Tensor Scale(const Float s);
     static Tensor TRS(const Vector& t, const Vector& r, const Vector& s);
+
+    template <typename TStream>
+    friend TStream& operator<<(TStream& stream, const Tensor& t) {
+        stream << t.diagonal() << t.offDiagonal();
+        return stream;
+    }
 };
 
 namespace Math {
@@ -245,11 +251,3 @@ INLINE StaticArray<Float, 3> findEigenvalues(const Tensor& t) {
 }
 
 NAMESPACE_SPH_END
-
-namespace std {
-    INLINE string to_string(const Sph::Tensor& t) {
-        stringstream ss;
-        ss << to_string(t.diagonal()) << std::endl << to_string(t.offDiagonal());
-        return ss.str();
-    }
-}

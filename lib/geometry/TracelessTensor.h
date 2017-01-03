@@ -180,6 +180,12 @@ public:
     TracelessTensor clamp(const Range& range) const {
         return TracelessTensor(Math::clamp(m, range), Math::clamp(m12, range));
     }
+
+    template <typename TStream>
+    friend TStream& operator<<(TStream& stream, const TracelessTensor& t) {
+        stream << t(0, 0) << " " << t(1, 1) << " " << t(0, 1) << " " << t(0, 2) << " " << t(1, 2);
+        return stream;
+    }
 };
 
 namespace Math {
@@ -224,12 +230,3 @@ INLINE Float ddot(const TracelessTensor& t1, const TracelessTensor& t2) {
 }
 
 NAMESPACE_SPH_END
-
-
-namespace std {
-    INLINE string to_string(const Sph::TracelessTensor& t) {
-        stringstream ss;
-        ss << t(0, 0) << " " << t(1, 1) << " " << t(0, 1) << " " << t(0, 2) << " " << t(1, 2);
-        return ss.str();
-    }
-}

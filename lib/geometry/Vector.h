@@ -198,6 +198,16 @@ public:
     INLINE BasicVector max(const BasicVector& other) const {
         return BasicVector(_mm_max_ps(data, other.data));
     }
+
+    template <typename TStream>
+    friend TStream& operator<<(TStream& stream, const BasicVector& v) {
+        constexpr int digits = 6;
+        stream << std::fixed << std::setprecision(digits);
+        for (int i = 0; i < 3; ++i) {
+            stream << std::setw(15) << v[i];
+        }
+        return stream;
+    }
 };
 
 
@@ -358,11 +368,11 @@ public:
     }
 
     template <typename TStream>
-    void toStream(TStream& stream) const {
+    friend TStream& operator<<(TStream& stream, const BasicVector& v) {
         constexpr int digits = 12;
         stream << std::fixed << std::setprecision(digits);
         for (int i = 0; i < 3; ++i) {
-            stream << std::fixed << std::setprecision(digits) << (*this)[i];
+            stream << std::fixed << std::setprecision(digits) << v[i];
         }
     }
 };
@@ -543,11 +553,11 @@ public:
 
     /// Output to stream
     template <typename TStream>
-    void toStream(TStream& stream) const {
-        constexpr int digits = 12;
+    friend TStream& operator<<(TStream& stream, const BasicVector& v) {
+        constexpr int digits = 6;
         stream << std::fixed << std::setprecision(digits);
         for (int i = 0; i < 3; ++i) {
-            stream << std::fixed << std::setprecision(digits) << (*this)[i];
+            stream << std::fixed << std::setprecision(digits) << v[i];
         }
     }
 };
@@ -667,16 +677,3 @@ INLINE Vector sphericalInversion(const Vector& v, const Vector& center, const Fl
 }
 
 NAMESPACE_SPH_END
-
-namespace std {
-    /// Converts vector to string
-    INLINE string to_string(const Sph::Vector& v) {
-        constexpr int digits = 6;
-        stringstream ss;
-        ss << fixed << setprecision(digits);
-        for (int i = 0; i < 3; ++i) {
-            ss << setw(15) << fixed << setprecision(digits) << v[i];
-        }
-        return ss.str();
-    }
-}

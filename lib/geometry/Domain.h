@@ -262,10 +262,14 @@ public:
     virtual void getDistanceToBoundary(ArrayView<const Vector> vs, Array<Float>& distances) const override {
         distances.clear();
         Float radius = Math::sqrt(radiusSqr);
-        ASSERT(!includeBases); // including bases not implemented
         for (const Vector& v : vs) {
             const Float dist = radius - getLength(Vector(v[X], v[Y], this->center[Z]) - this->center);
-            distances.push(dist);
+            if (includeBases) {
+                /// \todo properly implement includeBases
+                distances.push(Math::min(dist, Math::abs(0.5_f * height - (v[Z]-this->center[Z]))));
+            } else {
+                distances.push(dist);
+            }
         }
     }
 

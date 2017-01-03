@@ -64,12 +64,12 @@ TEST_CASE("Initial velocity", "[initial]") {
     for (Size i = 0; i < v.size(); ++i) {
         if (rho[i] == 1._f && v[i] != Vector(2._f, 1._f, -1._f)) {
             allMatching = false;
-            logger << "Invalid velocity: " << v[i];
+            logger.writeList("Invalid velocity: ", v[i]);
             break;
         }
         if (rho[i] == 2._f && v[i] != Vector(0._f, 0._f, 1._f)) {
             allMatching = false;
-            logger << "Invalid velocity: " << v[i];
+            logger.writeList("Invalid velocity: ", v[i]);
             break;
         }
     }
@@ -94,13 +94,13 @@ TEST_CASE("Initial rotation", "[initial]") {
         const Float distFromAxis = getLength(r[i] - axis * dot(r[i], axis));
         if (!Math::almostEqual(getLength(v[i]), distFromAxis * magnitude)) {
             allMatching = false;
-            logger << "Invalid angular velocity magnitude: " << getLength(v[i]) << " / "
-                   << distFromAxis * magnitude;
+            logger.writeList(
+                "Invalid angular velocity magnitude: ", getLength(v[i]), " / ", distFromAxis * magnitude);
             break;
         }
         if (!Math::almostEqual(dot(v[i], axis), 0._f)) {
             allMatching = false;
-            logger << "Invalid angular velocity vector: " << v[i] << " / " << axis;
+            logger.writeList("Invalid angular velocity vector: ", v[i], " / ", axis);
             break;
         }
     }
