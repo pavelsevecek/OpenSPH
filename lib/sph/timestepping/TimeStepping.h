@@ -7,7 +7,7 @@
 #include "geometry/Vector.h"
 #include "objects/containers/Array.h"
 #include "quantities/Storage.h"
-#include "sph/timestepping/Step.h"
+#include "sph/timestepping/AdaptiveTimeStep.h"
 #include <memory>
 
 NAMESPACE_SPH_BEGIN
@@ -34,7 +34,7 @@ namespace Abstract {
         std::shared_ptr<Storage> storage;
         Float dt;
         Float maxdt;
-        Optional<TimeStep> adaptiveStep;
+        Optional<AdaptiveTimeStep> adaptiveStep;
 
     public:
         TimeStepping(const std::shared_ptr<Storage>& storage, const GlobalSettings& settings)

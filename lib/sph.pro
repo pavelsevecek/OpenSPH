@@ -10,11 +10,11 @@ QMAKE_CXX = clang++
 
 
 CONFIG(release, debug|release) {
-  message( "Building for Release" )
+  message( "SPH LIB --- Building for Release" )
 }
 
 CONFIG(debug, debug|release) {
-  message( "Building for Debug" )
+  message( "SPH LIB --- Building for Debug" )
   DEFINES += DEBUG PROFILE
 }
 
@@ -37,7 +37,8 @@ SOURCES += \
     objects/finders/Voxel.cpp \
     system/Logger.cpp \
     system/Output.cpp \
-    physics/Eos.cpp
+    physics/Eos.cpp \
+    sph/timestepping/AdaptiveTimeStep.cpp
 
 HEADERS += \
     core/Globals.h \
@@ -79,7 +80,6 @@ HEADERS += \
     problem/Problem.h \
     sph/kernel/Kernel.h \
     sph/initial/Distribution.h \
-    sph/timestepping/Step.h \
     sph/timestepping/TimeStepping.h \
     sph/av/Standard.h \
     sph/boundary/Boundary.h \
@@ -126,4 +126,6 @@ HEADERS += \
     objects/finders/Voxel.h \
     objects/finders/AbstractFinder.h \
     geometry/Box.h \
-    objects/containers/LookupMap.h
+    objects/containers/LookupMap.h \
+    sph/timestepping/AdaptiveTimeStep.h \
+    post/Components.h

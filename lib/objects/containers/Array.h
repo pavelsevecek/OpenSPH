@@ -291,7 +291,16 @@ public:
     /// Comparison operator, comparings array element-by-element. If arrays differ in number of
     /// constructed
     /// elements, the comparison always returns false; allocated size does not play role here.
-    bool operator==(const Array<T, TCounter>& other) const { return getView() == other.getView(); }
+    bool operator==(const Array& other) const { return getView() == other.getView(); }
+
+    /// Prints content of array to stream. Stored values must have overloaded << operator.
+    template<typename TStream>
+    friend TStream& operator<<(TStream& stream, const Array& array) {
+        for (const T& t : array) {
+            stream << t << ", ";
+        }
+        return stream;
+    }
 };
 
 /// Creates an array from a list of parameters.

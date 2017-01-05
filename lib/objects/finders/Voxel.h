@@ -15,7 +15,7 @@ class VoxelFinder : public Abstract::Finder {
 protected:
     LookupMap lut;
 
-    virtual void buildImpl(ArrayView<Vector> values) override;
+    virtual void buildImpl(ArrayView<const Vector> values) override;
 
 public:
     VoxelFinder();

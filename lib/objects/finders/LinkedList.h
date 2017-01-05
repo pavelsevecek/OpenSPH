@@ -135,7 +135,7 @@ protected:
         }
     }
 
-    virtual void buildImpl(ArrayView<Vector> values) override {
+    virtual void buildImpl(ArrayView<const Vector> values) override {
         sortedIndices = VectorOrder(values.size());
         rank = VectorOrder(values.size());
         linkedList.resize(values.size());

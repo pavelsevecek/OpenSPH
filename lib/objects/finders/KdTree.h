@@ -15,7 +15,7 @@ NAMESPACE_SPH_BEGIN
 /// Array of vectors to be used in nanoflann code
 class PointCloud  {
 private:
-    ArrayView<Vector> storage;
+    ArrayView<const Vector> storage;
     const Order* rankH;
 
 public:
@@ -24,7 +24,7 @@ public:
 
     PointCloud() = default;
 
-    PointCloud(ArrayView<Vector> storage, const Order& rankH)
+    PointCloud(ArrayView<const Vector> storage, const Order& rankH)
         : storage(storage)
         , rankH(&rankH) {}
 
@@ -56,7 +56,7 @@ private:
 
 
 protected:
-    virtual void buildImpl(ArrayView<Vector> values) override {
+    virtual void buildImpl(ArrayView<const Vector> values) override {
         PROFILE_SCOPE("KdTree::buildImpl")
         cloud = PointCloud(values, this->rankH);
         kdTree.emplace(3, cloud, KDTreeSingleIndexAdaptorParams(1));

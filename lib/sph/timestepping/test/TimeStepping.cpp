@@ -48,7 +48,7 @@ void testTimestepping(TArgs&&... args) {
     }
 }
 
-TEST_CASE("harmonic oscilator", "[timestepping]") {
+TEST_CASE("Timestepping Harmonic oscilator", "[timestepping]") {
     Settings<GlobalSettingsIds> settings(GLOBAL_SETTINGS);
     settings.set(GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP, timeStep);
 

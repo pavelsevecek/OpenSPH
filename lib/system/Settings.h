@@ -60,9 +60,8 @@ public:
         ASSERT(iter != entries.end());
         /// \todo can be cast here as we no longer return optional
         using StoreType = ConvertToSize<TValue>;
-        auto opt = iter->second.value.template get<StoreType>();
-        ASSERT(opt);
-        return TValue(opt.get());
+        const StoreType& value = iter->second.value.template get<StoreType>();
+        return TValue(value);
     }
 
     void saveToFile(const std::string& path) const;

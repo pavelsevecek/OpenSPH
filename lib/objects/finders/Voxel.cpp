@@ -7,7 +7,7 @@ VoxelFinder::VoxelFinder() = default;
 
 VoxelFinder::~VoxelFinder() = default;
 
-void VoxelFinder::buildImpl(ArrayView<Vector> values) {
+void VoxelFinder::buildImpl(ArrayView<const Vector> values) {
     // number of voxels, free parameter
     const Size lutSize = Math::root<3>(values.size()) + 1;
     // find bounding box

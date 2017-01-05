@@ -13,23 +13,23 @@ NAMESPACE_SPH_BEGIN
 /// Stores value of type std::aligned_union, having size and alignment equal to maximum of sizes and
 /// alignments of template types.
 template <typename... TArgs>
-class AlignedUnion  {
+class AlignedUnion {
 private:
-    std::aligned_union_t<0, TArgs...> storage;
+    std::aligned_union_t<4, TArgs...> storage;
 
 public:
     /// Converts stored value to a reference of type T, without checking that the currently stored value has
     /// such a type.
     template <typename T>
-    T& get() {
-        return *reinterpret_cast<T*>(&storage);
+    INLINE T& get() {
+        return reinterpret_cast<T&>(storage);
     }
 
     /// Converts stored value to a reference of type T, without checking that the currently stored value has
     /// such a type, const version.
     template <typename T>
-    const T& get() const {
-        return *reinterpret_cast<const T*>(&storage);
+    INLINE const T& get() const {
+        return reinterpret_cast<const T&>(storage);
     }
 };
 
@@ -67,9 +67,9 @@ namespace VariantHelpers {
         template <typename T, typename TOther>
         void visit(TOther&& other) {
             if (std::is_lvalue_reference<TOther>::value) {
-                new (&storage) T(other.operator T());
+                new (&storage) T(other.template get<T>());
             } else {
-                new (&storage) T(std::move(other.operator T()));
+                new (&storage) T(std::move(other.template get<T>()));
             }
         }
     };
@@ -81,7 +81,7 @@ namespace VariantHelpers {
 
         template <typename T, typename TOther>
         void visit(TOther&& other) {
-            using TRaw                   = std::decay_t<TOther>;
+            using TRaw = std::decay_t<TOther>;
             storage.template get<TRaw>() = std::forward<TOther>(other);
         }
     };
@@ -94,9 +94,9 @@ namespace VariantHelpers {
         template <typename T, typename TOther>
         void visit(TOther&& other) {
             if (std::is_lvalue_reference<TOther>::value) {
-                storage.template get<T>() = other.operator T();
+                storage.template get<T>() = other.template get<T>();
             } else {
-                storage.template get<T>() = std::move(other.operator T());
+                storage.template get<T>() = std::move(other.template get<T>());
             }
         }
     };
@@ -111,9 +111,8 @@ struct VariantIterator {
         if (idx == 0) {
             visitor.template visit<T0>(std::forward<Ts>(args)...);
         } else {
-            VariantIterator<TArgs...>::visit(idx - 1,
-                                             std::forward<TVisitor>(visitor),
-                                             std::forward<Ts>(args)...);
+            VariantIterator<TArgs...>::visit(
+                idx - 1, std::forward<TVisitor>(visitor), std::forward<Ts>(args)...);
         }
     }
 };
@@ -130,7 +129,7 @@ struct VariantIterator<T0> {
 
 /// Variant, an implementation of type-safe union.
 template <typename... TArgs>
-class Variant  {
+class Variant {
 private:
     AlignedUnion<TArgs...> storage;
     int typeIdx = -1;
@@ -150,7 +149,7 @@ public:
     /// Construct variant from value of stored type
     template <typename T, typename = std::enable_if_t<!std::is_same<std::decay_t<T>, Variant>::value>>
     Variant(T&& value) {
-        using RawT        = std::decay_t<T>;
+        using RawT = std::decay_t<T>;
         constexpr int idx = getTypeIndex<RawT, TArgs...>;
         static_assert(idx != -1, "Type must be listed in Variant");
         VariantHelpers::Create<TArgs...> creator{ storage };
@@ -167,20 +166,27 @@ public:
     Variant(Variant&& other) {
         VariantHelpers::CopyMoveCreate<TArgs...> creator{ storage };
         VariantIterator<TArgs...>::visit(other.typeIdx, creator, std::move(other));
-        typeIdx = other.typeIdx;
+        std::swap(typeIdx, other.typeIdx);
     }
 
-    /// Universal copy/move operator with type of rhs being one of stored types
+    /// Universal copy/move operator with type of rhs being one of stored types. Valid type is checked by
+    /// static assert. If the type of rhs is the same as the type currently stored in variant, the value is
+    /// copy/move assigned, otherwise the current value is destroyed and a copy/move constructor is used.
     template <typename T, typename = std::enable_if_t<!std::is_same<std::decay_t<T>, Variant>::value>>
     Variant& operator=(T&& value) {
-        using RawT        = std::decay_t<T>;
+        using RawT = std::decay_t<T>;
         constexpr int idx = getTypeIndex<RawT, TArgs...>;
         static_assert(idx != -1, "Type must be listed in Variant");
         if (typeIdx != idx) {
+            // different type, destroy current and re-create
             destroy();
+            VariantHelpers::Create<TArgs...> creator{ storage };
+            VariantIterator<TArgs...>::visit(idx, creator, std::forward<T>(value));
+        } else {
+            // same type, can utilize assignment operator
+            VariantHelpers::Assign<TArgs...> assigner{ storage };
+            VariantIterator<TArgs...>::visit(idx, assigner, std::forward<T>(value));
         }
-        VariantHelpers::Assign<TArgs...> assigner{ storage };
-        VariantIterator<TArgs...>::visit(idx, assigner, std::forward<T>(value));
         typeIdx = idx;
         return *this;
     }
@@ -188,9 +194,12 @@ public:
     Variant& operator=(const Variant& other) {
         if (typeIdx != other.typeIdx) {
             destroy();
+            VariantHelpers::CopyMoveCreate<TArgs...> creator{ storage };
+            VariantIterator<TArgs...>::visit(other.typeIdx, creator, other);
+        } else {
+            VariantHelpers::CopyMoveAssign<TArgs...> assigner{ storage };
+            VariantIterator<TArgs...>::visit(other.typeIdx, assigner, other);
         }
-        VariantHelpers::CopyMoveAssign<TArgs...> assigner{ storage };
-        VariantIterator<TArgs...>::visit(other.typeIdx, assigner, other);
         typeIdx = other.typeIdx;
         return *this;
     }
@@ -198,40 +207,56 @@ public:
     Variant& operator=(Variant&& other) {
         if (typeIdx != other.typeIdx) {
             destroy();
+            VariantHelpers::CopyMoveCreate<TArgs...> creator{ storage };
+            VariantIterator<TArgs...>::visit(other.typeIdx, creator, std::move(other));
+        } else {
+            VariantHelpers::CopyMoveAssign<TArgs...> assigner{ storage };
+            VariantIterator<TArgs...>::visit(other.typeIdx, assigner, std::move(other));
         }
-        VariantHelpers::CopyMoveAssign<TArgs...> assigner{ storage };
-        VariantIterator<TArgs...>::visit(other.typeIdx, assigner, std::move(other));
         typeIdx = other.typeIdx;
+        other.typeIdx = -1;
         return *this;
     }
 
     /// Returns index of type currently stored in variant. If no value is currently stored, returns -1.
     int getTypeIdx() const { return typeIdx; }
 
+    /// Returns the stored value. Performs a compile-time check that the type is contained in Variant, and
+    /// runtime check that the variant currently holds value of given type.
+    template <typename T>
+    INLINE T& get() {
+        constexpr int idx = getTypeIndex<T, TArgs...>;
+        static_assert(idx != -1, "Cannot convert variant to this type");
+        ASSERT((typeIdx == getTypeIndex<T, TArgs...>));
+        return storage.template get<T>();
+    }
+
+    /// Returns the stored value, const version.
+    template <typename T>
+    INLINE const T& get() const {
+        constexpr int idx = getTypeIndex<T, TArgs...>;
+        static_assert(idx != -1, "Cannot convert variant to this type");
+        ASSERT((typeIdx == getTypeIndex<T, TArgs...>));
+        return storage.template get<T>();
+    }
+
     /// Implicit conversion to one of stored values. Performs a compile-time check that the type is contained
     /// in Variant, and runtime check that the variant currently holds value of given type.
     template <typename T>
     operator T&() {
-        constexpr int idx = getTypeIndex<T, TArgs...>;
-        static_assert(idx != -1, "Cannot convert variant to this type");
-        ASSERT((typeIdx == getTypeIndex<T, TArgs...>));
-        return storage.template get<T>();
+        return get<T>();
     }
 
     /// Const version of conversion operator.
     template <typename T>
-    operator T() const {
-        constexpr int idx = getTypeIndex<T, TArgs...>;
-        static_assert(idx != -1, "Cannot convert variant to this type");
-        ASSERT((typeIdx == getTypeIndex<T, TArgs...>));
-        return storage.template get<T>();
+    operator const T&() const {
+        return get<T>();
     }
-
 
     /// Returns the stored value in the variant. Safer than implicit conversion as it returns NOTHING in case
     /// the value is currently not stored in variant.
     template <typename T>
-    Optional<T> get() const {
+    Optional<T> tryGet() const {
         constexpr int idx = getTypeIndex<T, TArgs...>;
         static_assert(idx != -1, "Cannot convert variant to this type");
         if (typeIdx != getTypeIndex<T, TArgs...>) {
@@ -243,42 +268,45 @@ public:
 
 
 namespace Detail {
-    template <int n, typename T0, typename... TArgs>
+    template <Size N, typename T0, typename... TArgs>
     struct ForCurrentType {
-        template <typename TFunctor>
-        static void action(const int idx, const char* data, TFunctor&& functor) {
-            if (idx == n) {
-                functor(*reinterpret_cast<const T0*>(data));
+        template <typename TVariant, typename TFunctor>
+        static decltype(auto) action(TVariant&& variant, TFunctor&& functor) {
+            if (variant.template getTypeIdx() == N) {
+                return functor(variant.template get<T0>());
             } else {
-                ForCurrentType<n + 1, TArgs...>::action(idx, data, std::forward<TFunctor>(functor));
-            }
-        }
-
-        template <typename TFunctor>
-        static void action(const int idx, char* data, TFunctor&& functor) {
-            if (idx == n) {
-                functor(*reinterpret_cast<T0*>(data));
-            } else {
-                ForCurrentType<n + 1, TArgs...>::action(idx, data, std::forward<TFunctor>(functor));
+                return ForCurrentType<N + 1, TArgs...>::action(
+                    std::forward<TVariant>(variant), std::forward<TFunctor>(functor));
             }
         }
     };
-    template <int n, typename T0>
-    struct ForCurrentType<n, T0> {
-        template <typename TFunctor>
-        static void action(const int idx, const char* data, TFunctor&& functor) {
-            if (idx == n) {
-                functor(*reinterpret_cast<const T0*>(data));
-            }
-        }
-
-        template <typename TFunctor>
-        static void action(const int idx, char* data, TFunctor&& functor) {
-            if (idx == n) {
-                functor(*reinterpret_cast<T0*>(data));
-            }
+    template <Size N, typename T0>
+    struct ForCurrentType<N, T0> {
+        template <typename TVariant, typename TFunctor>
+        static decltype(auto) action(TVariant&& variant, TFunctor&& functor) {
+            return functor(variant.template get<T0>());
         }
     };
+}
+
+/// Executes a functor passing current value stored in variant as its parameter. The functor must either have
+/// templated operator() (i.e. generic lambda), or have an overloaded operator for each type contained in
+/// variant.
+/// \param variant Variant, must contain a value (checked by assert).
+/// \param functor Executed functor, takes one parameter - value obtained from Variant.
+/// \return Value returned by the functor.
+template <typename TFunctor, typename... TArgs>
+INLINE decltype(auto) forValue(Variant<TArgs...>& variant, TFunctor&& functor) {
+    ASSERT(variant.template getTypeIdx() != -1);
+    return Detail::ForCurrentType<0, TArgs...>::action(variant, std::forward<TFunctor>(functor));
+}
+
+/// Executes a functor passing current value stored in variant as its parameter. Overload for const l-value
+/// reference.
+template <typename TFunctor, typename... TArgs>
+INLINE decltype(auto) forValue(const Variant<TArgs...>& variant, TFunctor&& functor) {
+    ASSERT(variant.template getTypeIdx() != -1);
+    return Detail::ForCurrentType<0, TArgs...>::action(variant, std::forward<TFunctor>(functor));
 }
 
 

@@ -27,16 +27,16 @@ enum class FinderFlags {
 namespace Abstract {
     class Finder : public Polymorphic {
     protected:
-        ArrayView<Vector> values;
+        ArrayView<const Vector> values;
         Order rankH;
 
-        virtual void buildImpl(ArrayView<Vector> values) = 0;
+        virtual void buildImpl(ArrayView<const Vector> values) = 0;
 
         virtual void rebuildImpl() {}
 
     public:
         /// Constructs the struct with an array of vectors
-        void build(ArrayView<Vector> values) {
+        void build(ArrayView<const Vector> values) {
             this->values = values;
             makeRankH();
             buildImpl(values);

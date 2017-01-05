@@ -8,11 +8,11 @@ QMAKE_CXX = g++
 
 
 CONFIG(release, debug|release) {
-  message( "Building for Release" )
+  message( "SPH BENCHMARK --- Building for Release" )
 }
 
 CONFIG(debug, debug|release) {
-  message( "Building for Debug" )
+  message( "SPH BENCHMARK --- Building for Debug" )
   DEFINES += DEBUG PROFILE
 }
 

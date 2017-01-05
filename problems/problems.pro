@@ -12,11 +12,11 @@ LIBS += ../lib/libsph.a
 
 
 CONFIG(release, debug|release) {
-  message( "Building for Release" )
+  message( "SPH PROBLEMS --- Building for Release" )
 }
 
 CONFIG(debug, debug|release) {
-  message( "Building for Debug" )
+  message( "SPH PROBLEMS --- Building for Debug" )
   DEFINES += DEBUG PROFILE
 }
 
