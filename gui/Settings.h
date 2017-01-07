@@ -16,17 +16,17 @@ enum class GuiSettingsIds {
     /// Selected renderer
     RENDERER,
 
-    /// Displayed radius of particle in units of smoothing length
-    PARTICLE_RADIUS,
-
-    /// Max z-coordinate of particle to be displayed by ortho renderer
-    ORTHO_CUTOFF,
-
     /// Center point of the view
     VIEW_CENTER,
 
     /// View field of view (zoom)
     VIEW_FOV,
+
+    /// Displayed radius of particle in units of smoothing length
+    PARTICLE_RADIUS,
+
+    /// Max z-coordinate of particle to be displayed by ortho renderer
+    ORTHO_CUTOFF,
 
     /// Title of the window appearing on taskbar
     WINDOW_TITLE,

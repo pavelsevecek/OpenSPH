@@ -1,4 +1,5 @@
 #include "sph/initial//Distribution.h"
+#include "math/Morton.h"
 #include "system/Profiler.h"
 
 NAMESPACE_SPH_BEGIN
@@ -8,18 +9,16 @@ Array<Vector> RandomDistribution::generate(const int n, const Abstract::Domain& 
     const Vector radius(domain.getBoundingRadius());
     const Box bounds(center - radius, center + radius);
 
-    auto boxRng = makeVectorPdfRng(bounds,
-                                   HaltonQrng(),
-                                   [](const Vector&) { return 1._f; },
-                                   [](const Vector&) { return 1._f; });
+    auto boxRng = makeVectorPdfRng(
+        bounds, HaltonQrng(), [](const Vector&) { return 1._f; }, [](const Vector&) { return 1._f; });
     Array<Vector> vecs(0, n);
     // use homogeneous smoothing lenghs regardless of actual spatial variability of particle concentration
     const Float volume = domain.getVolume();
-    const Float h      = Math::root<3>(volume / n);
-    int found          = 0;
+    const Float h = Math::root<3>(volume / n);
+    int found = 0;
     for (int i = 0; i < 1e5 * n && found < n; ++i) {
         Vector w = boxRng();
-        w[H]     = h;
+        w[H] = h;
         if (domain.isInside(w)) {
             vecs.push(w);
             ++found;
@@ -31,7 +30,7 @@ Array<Vector> RandomDistribution::generate(const int n, const Abstract::Domain& 
 Array<Vector> CubicPacking::generate(const int n, const Abstract::Domain& domain) const {
     PROFILE_SCOPE("CubicPacking::generate")
     ASSERT(n > 0);
-    const Float volume          = domain.getVolume();
+    const Float volume = domain.getVolume();
     const Float particleDensity = Float(n) / volume;
 
     // interparticle distance based on density
@@ -52,14 +51,17 @@ Array<Vector> CubicPacking::generate(const int n, const Abstract::Domain& domain
     return vecs;
 }
 
+HexagonalPacking::HexagonalPacking(const Sorting sorting)
+    : sorting(sorting) {}
+
 Array<Vector> HexagonalPacking::generate(const int n, const Abstract::Domain& domain) const {
     PROFILE_SCOPE("HexagonalPacking::generate")
     ASSERT(n > 0);
-    const Float volume          = domain.getVolume();
+    const Float volume = domain.getVolume();
     const Float particleDensity = Float(n) / volume;
 
     // interparticle distance based on density
-    const Float h  = 1._f / Math::root<3>(particleDensity);
+    const Float h = 1._f / Math::root<3>(particleDensity);
     const Float dx = 1.075_f * h;
     const Float dy = Math::sqrt(3._f) * 0.5_f * dx;
     const Float dz = Math::sqrt(6._f) / 3._f * dx;
@@ -72,24 +74,33 @@ Array<Vector> HexagonalPacking::generate(const int n, const Abstract::Domain& do
     Array<Vector> vecs;
     const Float deltaX = 0.5_f * dx;
     const Float deltaY = Math::sqrt(3._f) / 6._f * dx;
-    Float lastY        = 0._f;
-    box.iterateWithIndices(Vector(dx, dy, dz),
-                           [&lastY, deltaX, deltaY, &vecs, &domain, h](Indices&& idxs, Vector&& v) {
-                               if (idxs[2] % 2 == 0) {
-                                   if (idxs[1] % 2 == 0) {
-                                       v[X] += deltaX;
-                                   }
-                               } else {
-                                   if (idxs[1] % 2 == 1) {
-                                       v[X] += deltaX;
-                                   }
-                                   v[Y] += deltaY;
-                               }
-                               if (domain.isInside(v)) {
-                                   v[H] = h;
-                                   vecs.push(std::move(v));
-                               }
-                           });
+    Float lastY = 0._f;
+    box.iterateWithIndices(
+        Vector(dx, dy, dz), [&lastY, deltaX, deltaY, &vecs, &domain, h](Indices&& idxs, Vector&& v) {
+            if (idxs[2] % 2 == 0) {
+                if (idxs[1] % 2 == 0) {
+                    v[X] += deltaX;
+                }
+            } else {
+                if (idxs[1] % 2 == 1) {
+                    v[X] += deltaX;
+                }
+                v[Y] += deltaY;
+            }
+            if (domain.isInside(v)) {
+                v[H] = h;
+                vecs.push(std::move(v));
+            }
+        });
+    if (sorting == Sorting::SORTED) {
+        // sort by Morton code
+        std::sort(vecs.begin(), vecs.end(), [&box](Vector& v1, Vector& v2) {
+            // compute relative coordinates in bounding box
+            const Vector vr1 = (v1 - box.lower()) / box.size();
+            const Vector vr2 = (v2 - box.lower()) / box.size();
+            return morton(vr1) > morton(vr2);
+        });
+    }
     return vecs;
 }
 

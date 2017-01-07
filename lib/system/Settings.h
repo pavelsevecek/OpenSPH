@@ -17,7 +17,7 @@ NAMESPACE_SPH_BEGIN
 
 
 template <typename TEnum>
-class Settings  {
+class Settings {
 private:
     enum Types { BOOL, INT, FLOAT, RANGE, STRING, VECTOR, TENSOR, TRACELESS_TENSOR };
 
@@ -34,19 +34,10 @@ private:
 public:
     Settings() = default;
 
-    Settings(std::initializer_list<Entry> list) {
-        for (auto&& entry : list) {
-            entries[entry.id] = entry;
-        }
-    }
+    Settings(std::initializer_list<Entry> list);
 
-    Settings& operator=(std::initializer_list<Entry> list) {
-        entries.clear();
-        for (auto&& entry : list) {
-            entries[entry.id] = entry;
-        }
-        return *this;
-    }
+    /// Assigns a list of settings into the object, erasing all previous entries.
+    Settings& operator=(std::initializer_list<Entry> list);
 
     template <typename TValue>
     void set(TEnum idx, TValue&& value) {
@@ -379,11 +370,14 @@ enum class EosEnum {
 /// Settings of a single body / gas phase / ...
 /// Combines material parameters and numerical parameters of the SPH method specific for one body.
 enum class BodySettingsIds {
-    /// Equation of state for this material
+    /// Equation of state for this material, see EosEnum for options.
     EOS,
 
-    /// Initial distribution of SPH particles within the domain
+    /// Initial distribution of SPH particles within the domain, see DistributionEnum for options.
     INITIAL_DISTRIBUTION,
+
+    /// If true, particles are sorted using Morton code, preserving locality in memory.
+    PARTICLE_SORTING,
 
     /// Density at zero pressure
     DENSITY,
@@ -493,6 +487,7 @@ const Settings<BodySettingsIds> BODY_SETTINGS = {
 
     /// SPH parameters specific for the body
     { BodySettingsIds::INITIAL_DISTRIBUTION,    "sph.initial_distribution",     int(DistributionEnum::HEXAGONAL) },
+    { BodySettingsIds::PARTICLE_SORTING,        "sph.particle_sorting",         false },
     { BodySettingsIds::PARTICLE_COUNT,          "sph.particle_count",           10000 },
     { BodySettingsIds::AV_ALPHA,                "av.alpha",                     1.5_f },
     { BodySettingsIds::AV_ALPHA_RANGE,          "av.alpha.range",               Range(0.05_f, 1.5_f) },

@@ -227,7 +227,7 @@ public:
     INLINE T& get() {
         constexpr int idx = getTypeIndex<T, TArgs...>;
         static_assert(idx != -1, "Cannot convert variant to this type");
-        ASSERT((typeIdx == getTypeIndex<T, TArgs...>));
+        ASSERT(typeIdx == idx);
         return storage.template get<T>();
     }
 
@@ -236,7 +236,7 @@ public:
     INLINE const T& get() const {
         constexpr int idx = getTypeIndex<T, TArgs...>;
         static_assert(idx != -1, "Cannot convert variant to this type");
-        ASSERT((typeIdx == getTypeIndex<T, TArgs...>));
+        ASSERT(typeIdx == idx);
         return storage.template get<T>();
     }
 

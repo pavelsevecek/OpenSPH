@@ -3,7 +3,7 @@
 #include "objects/containers/ArrayUtils.h"
 #include "sph/forces/Yielding.h"
 #include "sph/initial/Distribution.h"
-#include "system/Statistics.h"
+#include "system/ArrayStats.h"
 
 using namespace Sph;
 
@@ -37,9 +37,9 @@ TEST_CASE("Distribute flaws", "[damage]") {
     const Float m_weibull = bodySettings.get<Float>(BodySettingsIds::WEIBULL_EXPONENT);
     REQUIRE(Range(9._f * N, 11._f * N).contains(n_total));
 
-    Statistics mStats(storage.getValue<Float>(QuantityKey::M_ZERO));
-    Statistics growthStats(storage.getValue<Float>(QuantityKey::EXPLICIT_GROWTH));
-    Statistics epsStats(storage.getValue<Float>(QuantityKey::EPS_MIN));
+    ArrayStats<Float> mStats(storage.getValue<Float>(QuantityKey::M_ZERO));
+    ArrayStats<Float> growthStats(storage.getValue<Float>(QuantityKey::EXPLICIT_GROWTH));
+    ArrayStats<Float> epsStats(storage.getValue<Float>(QuantityKey::EPS_MIN));
     REQUIRE(mStats.min() == 1._f);
     REQUIRE(mStats.max() > m_weibull);
     REQUIRE(Math::almostEqual(mStats.average(), m_weibull, 0.5_f));

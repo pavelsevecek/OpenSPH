@@ -11,11 +11,16 @@ DEPENDPATH += . ../lib
 LIBS += ../lib/libsph.a
 
 
-CONFIG(release, debug|release) {
+CONFIG(release, debug|profile|release) {
   message( "SPH PROBLEMS --- Building for Release" )
 }
 
-CONFIG(debug, debug|release) {
+CONFIG(profile, debug|profile|release) {
+  message( "SPH PROBLEMS --- Building for Profile" )
+  DEFINES += PROFILE
+}
+
+CONFIG(debug, debug|profile|release) {
   message( "SPH PROBLEMS --- Building for Debug" )
   DEFINES += DEBUG PROFILE
 }

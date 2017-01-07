@@ -5,6 +5,7 @@
 /// sevecek at sirrah.troja.mff.cuni.cz
 
 #include "geometry/Box.h"
+#include "objects/wrappers/Optional.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -266,7 +267,7 @@ public:
             const Float dist = radius - getLength(Vector(v[X], v[Y], this->center[Z]) - this->center);
             if (includeBases) {
                 /// \todo properly implement includeBases
-                distances.push(Math::min(dist, Math::abs(0.5_f * height - (v[Z]-this->center[Z]))));
+                distances.push(Math::min(dist, Math::abs(0.5_f * height - (v[Z] - this->center[Z]))));
             } else {
                 distances.push(dist);
             }

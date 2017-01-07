@@ -10,11 +10,17 @@ QMAKE_CXXFLAGS_RELEASE += -Os
 QMAKE_CXXFLAGS_DEBUG += -fsanitize=undefined-trap -fsanitize-undefined-trap-on-error
 QMAKE_CXX = clang++
 
-CONFIG(release, debug|release) {
+CONFIG(release, debug|profile|release) {
   message( "SPH TESTS --- Building for Release" )
 }
 
-CONFIG(debug, debug|release) {
+
+CONFIG(profile, debug|profile|release) {
+  message( "SPH TESTS --- Building for Profile" )
+  DEFINES += PROFILE
+}
+
+CONFIG(debug, debug|profile|release) {
   message( "SPH TESTS --- Building for Debug" )
   DEFINES += DEBUG PROFILE
 }
@@ -71,13 +77,15 @@ SOURCES += \
     ../lib/solvers/test/Module.cpp \
     ../lib/geometry/test/Multipole.cpp \
     ../lib/sph/forces/test/Damage.cpp \
-    ../lib/system/test/Statistics.cpp \
     ../lib/objects/finders/test/Finders.cpp \
     ../lib/sph/initial/test/Initial.cpp \
     ../lib/system/test/CallbackList.cpp \
     ../lib/sph/av/test/Balsara.cpp \
     ../lib/sph/timestepping/test/AdaptiveTimeStep.cpp \
-    ../lib/post/test/Components.cpp
+    ../lib/post/test/Components.cpp \
+    ../lib/objects/wrappers/test/Extended.cpp \
+    ../lib/math/test/Morton.cpp \
+    ../lib/system/test/ArrayStats.cpp
 
 
 HEADERS += \

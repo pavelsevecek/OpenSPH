@@ -27,7 +27,7 @@ void Profiler::printStatistics(Abstract::Logger* logger) const {
     Array<ScopeStatistics> stats = this->getStatistics();
     for (ScopeStatistics& s : stats) {
         std::stringstream ss;
-        ss << std::setw(35) << std::left << s.name << " | " << std::setw(10) << std::right << s.totalTime
+        ss << std::setw(55) << std::left << s.name << " | " << std::setw(10) << std::right << s.totalTime
            << "mus   " << "|" << std::setw(10) << std::right << std::setprecision(3) << std::fixed
            << 100._f * s.relativeTime << "%";
         logger->write(ss.str());

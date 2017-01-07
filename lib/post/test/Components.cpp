@@ -1,4 +1,5 @@
 #include "post/Components.h"
+#include "quantities/Storage.h"
 #include "catch.hpp"
 #include "geometry/Domain.h"
 #include "objects/containers/ArrayUtils.h"
@@ -9,7 +10,9 @@ using namespace Sph;
 
 TEST_CASE("Components simple", "[components]") {
     Array<Vector> ar{ Vector(0, 0, 0, 1), Vector(5, 0, 0, 1), Vector(0, 4, 0, 1), Vector(0, 3, 0, 1) };
-    Array<Size> components = findComponents(ar, GLOBAL_SETTINGS);
+    Array<Size> components;
+    Size numComponents = findComponents(ar, GLOBAL_SETTINGS, components);
+    REQUIRE(numComponents == 3);
     REQUIRE(components == Array<Size>({ 0, 1, 2, 2 }));
 }
 
@@ -24,7 +27,9 @@ TEST_CASE("Component initconds", "[components]") {
     conds.addBody(SphericalDomain(Vector(5, 2.5_f, 0), 1._f), bodySettings);
 
     ArrayView<Vector> r = storage->getValue<Vector>(QuantityKey::POSITIONS);
-    Array<Size> components = findComponents(r, GLOBAL_SETTINGS);
+    Array<Size> components;
+    const Size numComponents = findComponents(r, GLOBAL_SETTINGS, components);
+    REQUIRE(numComponents == 3);
     REQUIRE(components.size() > 0); // sanity check
 
     auto isMatching = [&](const int i) {

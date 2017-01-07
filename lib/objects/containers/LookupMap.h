@@ -19,14 +19,18 @@ public:
         : storage(Math::pow<3>(n))
         , boundingBox(box)
         , dimensionSize(n) {
-        // make sure bounding box has positive dimensions
-        for (uint dim = 0; dim < 3; ++dim) {
-            if (boundingBox.size()[dim] == 0._f) {
-                boundingBox.lower()[dim] -= EPS;
-                boundingBox.upper()[dim] += EPS;
-            }
-        }
+        fixSingularBox();
     }
+
+    void update(const Box& box) {
+        boundingBox = box;
+        for (Array<Size>& ar : storage) {
+            ar.clear();
+        }
+        fixSingularBox();
+    }
+
+    bool empty() const { return storage.empty(); }
 
     LookupMap& operator=(LookupMap&& other) {
         storage = std::move(other.storage);
@@ -58,9 +62,21 @@ public:
     INLINE int getDimensionSize() const { return dimensionSize; }
 
     INLINE Indices map(const Vector& v) const {
-        Vector idxs = (v - boundingBox.lower()) / (boundingBox.size() + Vector(EPS)) * dimensionSize;
+        ASSERT(boundingBox.size()[X] > 0._f && boundingBox.size()[Y] > 0._f && boundingBox.size()[Z] > 0._f);
+        ASSERT(dimensionSize >= 2);
+        Vector idxs = (v - boundingBox.lower()) / (boundingBox.size()) * (dimensionSize - 1);
         ASSERT(idxs[X] < dimensionSize && idxs[Y] < dimensionSize && idxs[Z] < dimensionSize);
         return Indices(idxs);
+    }
+
+private:
+    void fixSingularBox() {
+        for (uint dim = 0; dim < 3; ++dim) {
+            if (boundingBox.size()[dim] == 0._f) {
+                boundingBox.lower()[dim] -= EPS;
+                boundingBox.upper()[dim] += EPS;
+            }
+        }
     }
 };
 

@@ -86,7 +86,7 @@ namespace Math {
     }
 
     template <typename T>
-    INLINE auto sqr(T&& f) {
+    INLINE constexpr auto sqr(T&& f) {
         return f * f;
     }
     template <typename T>
@@ -137,37 +137,73 @@ namespace Math {
         return root<2>(std::forward<T>(f));
     }
 
-    template <int d, typename = void>
-    struct Pow {
-        template <typename T>
-        INLINE static auto value(T&& v) {
-            return v * Pow<d - 1>::value(std::forward<T>(v));
-        }
-    };
+    /// Power for floats
+    template <int N>
+    INLINE constexpr Float pow(const Float v);
 
-    // clang-format off
-    template <int d>
-    struct Pow <d, std::enable_if_t<d<0>> {
-        template<typename T>
-        INLINE static auto value(T&& v) {
-            return 1.f / Pow<-d>::value(std::forward<T>(v)); }
-    };
-    // clang-format on
-
-    /// \todo maybe specialize first few pow-s to avoid recursion for small values of exponent?
     template <>
-    struct Pow<0> {
-        template <typename T>
-        INLINE static auto value(T&& UNUSED(v)) {
-            using RawT = std::decay_t<T>;
-            return RawT(1.f);
-        }
-    };
-
-    template <int n, typename T>
-    INLINE auto pow(T&& v) {
-        return Pow<n>::value(std::forward<T>(v));
+    INLINE constexpr Float pow<0>(const Float) {
+        return 1._f;
     }
+    template <>
+    INLINE constexpr Float pow<1>(const Float v) {
+        return v;
+    }
+    template <>
+    INLINE constexpr Float pow<2>(const Float v) {
+        return v*v;
+    }
+    template <>
+    INLINE constexpr Float pow<3>(const Float v) {
+        return v*v*v;
+    }
+    template <>
+    INLINE constexpr Float pow<4>(const Float v) {
+        return pow<2>(pow<2>(v));
+    }
+    template <>
+    INLINE constexpr Float pow<5>(const Float v) {
+        return pow<2>(pow<2>(v))*v;
+    }
+    template <>
+    INLINE constexpr Float pow<6>(const Float v) {
+        return pow<3>(pow<2>(v));
+    }
+
+
+    /// Power for ints
+    template <int N>
+    INLINE constexpr Size pow(const Size v);
+
+    template <>
+    INLINE constexpr Size pow<0>(const Size) {
+        return 1;
+    }
+    template <>
+    INLINE constexpr Size pow<1>(const Size v) {
+        return v;
+    }
+    template <>
+    INLINE constexpr Size pow<2>(const Size v) {
+        return v*v;
+    }
+    template <>
+    INLINE constexpr Size pow<3>(const Size v) {
+        return v*v*v;
+    }
+    template <>
+    INLINE constexpr Size pow<4>(const Size v) {
+        return pow<2>(pow<2>(v));
+    }
+    template <>
+    INLINE constexpr Size pow<5>(const Size v) {
+        return pow<2>(pow<2>(v))*v;
+    }
+    template <>
+    INLINE constexpr Size pow<6>(const Size v) {
+        return pow<3>(pow<2>(v));
+    }
+
 
     template <typename T>
     INLINE T exp(const T f) {

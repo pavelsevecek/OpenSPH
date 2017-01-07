@@ -29,7 +29,7 @@ public:
         const Float error = 0._f) const override;
 
     /// Updates the structure when the position change.
-    virtual void rebuild() {}
+    virtual void rebuild() {};
 };
 
 NAMESPACE_SPH_END

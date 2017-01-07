@@ -39,32 +39,32 @@ public:
 
     virtual void integrate(Storage& storage) override {
         const Size size = storage.getParticleCnt();
-
         ArrayView<Vector> r, v, dv;
-        tie(r, v, dv) = storage.getAll<Vector>(QuantityKey::POSITIONS);
         ArrayView<Float> m, rho, drho;
-        tie(rho, drho) = storage.getAll<Float>(QuantityKey::DENSITY);
-        m = storage.getValue<Float>(QuantityKey::MASSES);
-        // Check that quantities are valid
-        ASSERT(areAllMatching(dv, [](const Vector v) { return v == Vector(0._f); }));
-        ASSERT(areAllMatching(rho, [](const Float v) { return v > 0._f; }));
+        {
+            PROFILE_SCOPE("ContinuitySolver::compute (getters)")
+            tie(r, v, dv) = storage.getAll<Vector>(QuantityKey::POSITIONS);
+            tie(rho, drho) = storage.getAll<Float>(QuantityKey::DENSITY);
+            m = storage.getValue<Float>(QuantityKey::MASSES);
+            // Check that quantities are valid
+            ASSERT(areAllMatching(dv, [](const Vector v) { return v == Vector(0._f); }));
+            ASSERT(areAllMatching(rho, [](const Float v) { return v > 0._f; }));
 
-        // clamp smoothing length
-        for (Float& h : componentAdapter(r, H)) {
-            h = Math::max(h, 1.e-12_f);
+            // clamp smoothing length
+            for (Float& h : componentAdapter(r, H)) {
+                h = Math::max(h, 1.e-12_f);
+            }
         }
-        // initialize stuff
-        this->updateModules(storage);
-
-        // build neighbour finding object
-        /// \todo only rebuild(), try to limit allocations
-        PROFILE_SCOPE("ContinuitySolver::compute (init)")
-        this->finder->build(r);
-
+        {
+            PROFILE_SCOPE("ContinuitySolver::compute (updateModules)")
+            this->updateModules(storage);
+        }
+        {
+            PROFILE_SCOPE("ContinuitySolver::compute (build)")
+            this->finder->build(r);
+        }
         // we symmetrize kernel by averaging smoothing lenghts
         SymH<dim> w(this->kernel);
-
-        PROFILE_NEXT("ContinuitySolver::compute (main cycle)")
         for (Size i = 0; i < size; ++i) {
             // Find all neighbours within kernel support. Since we are only searching for particles with
             // smaller h, we know that symmetrized lengths (h_i + h_j)/2 will be ALWAYS smaller or equal to
@@ -74,6 +74,7 @@ public:
                 this->neighs,
                 FinderFlags::FIND_ONLY_SMALLER_H | FinderFlags::PARALLELIZE);
             // iterate over neighbours
+            PROFILE_SCOPE("ContinuitySolver::compute (iterate)")
             for (const auto& neigh : this->neighs) {
                 const int j = neigh.index;
                 // actual smoothing length
@@ -100,6 +101,7 @@ public:
         }
         this->integrateModules(storage);
         if (this->boundary) {
+            PROFILE_SCOPE("ContinuitySolver::compute (boundary)")
             this->boundary->apply(storage);
         }
     }

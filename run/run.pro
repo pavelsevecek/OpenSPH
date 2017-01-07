@@ -11,12 +11,18 @@ INCLUDEPATH += ../lib
 LIBS += ../lib/libsph.a
 
 
-CONFIG(release, debug|release) {
-  message( "Building for Release" )
+CONFIG(release, debug|profile|release) {
+  message( "SPH RUN --- Building for Release" )
 }
 
-CONFIG(debug, debug|release) {
-  message( "Building for Debug" )
+
+CONFIG(profile, debug|profile|release) {
+  message( "SPH RUN --- Building for Profile" )
+  DEFINES += PROFILE
+}
+
+CONFIG(debug, debug|profile|release) {
+  message( "SPH RUN --- Building for Debug" )
   DEFINES += DEBUG PROFILE
 }
 

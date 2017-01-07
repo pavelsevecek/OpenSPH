@@ -24,7 +24,7 @@ void OrthoPane::onPaint(wxPaintEvent& UNUSED(evt)) {
     wxMemoryDC memoryDc(bitmap);
     memoryDc.SetBrush(*wxWHITE_BRUSH);
     memoryDc.DrawRectangle(wxPoint(0, 0), dc.GetSize());
-    const int fov      = int(240.f / settings.get<Float>(GuiSettingsIds::VIEW_FOV));
+    const float fov    = 240.f / settings.get<Float>(GuiSettingsIds::VIEW_FOV);
     const float radius = settings.get<Float>(GuiSettingsIds::PARTICLE_RADIUS);
     wxBrush brush(*wxBLACK_BRUSH);
     wxPen pen(*wxBLACK_PEN);
@@ -34,7 +34,8 @@ void OrthoPane::onPaint(wxPaintEvent& UNUSED(evt)) {
         memoryDc.SetBrush(brush);
         memoryDc.SetPen(pen);
         const Vector& r = positions[i];
-        memoryDc.DrawCircle(wxPoint(center.x + r[X] * fov, center.y + r[Y] * fov), r[H] * fov * radius);
+        memoryDc.DrawCircle(wxPoint(center.x + r[X] * fov, center.y + r[Y] * fov),
+                            Math::max(r[H] * fov * radius, 1.f));
     }
     dc.DrawBitmap(bitmap, wxPoint(0, 0));
 }

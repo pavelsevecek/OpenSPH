@@ -13,11 +13,17 @@ QMAKE_CXXFLAGS += -Wall -Werror -msse4.1 -std=c++14 `wx-config --libs --cxxflags
 QMAKE_CXX = g++
 
 
-CONFIG(release, debug|release) {
+CONFIG(release, debug|profile|release) {
   message( "SPH GUI --- Building for Release" )
 }
 
-CONFIG(debug, debug|release) {
+
+CONFIG(profile, debug|profile|release) {
+  message( "SPH GUI --- Building for Profile" )
+  DEFINES += PROFILE
+}
+
+CONFIG(debug, debug|profile|release) {
   message( "SPH GUI --- Building for Debug" )
   DEFINES += DEBUG PROFILE
 }

@@ -44,7 +44,19 @@ public:
 /// Hexagonal close packing
 class HexagonalPacking : public Abstract::Distribution {
 public:
+    enum class Sorting {
+        UNSORTED, ///< Particles will be created in layers, meaning two particles close in space are not
+                  /// necessarily close in memory.
+        SORTED,   ///< Particles are sorted using its Morton code, particles close in space are also close in
+                  /// memory.
+    };
+
+    HexagonalPacking(const Sorting sorting = Sorting::UNSORTED);
+
     virtual Array<Vector> generate(const int n, const Abstract::Domain& domain) const override;
+
+private:
+    Sorting sorting;
 };
 
 

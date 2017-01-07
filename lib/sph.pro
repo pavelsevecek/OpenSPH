@@ -9,11 +9,16 @@ QMAKE_CXX = clang++
 
 
 
-CONFIG(release, debug|release) {
+CONFIG(release, debug|profile|release) {
   message( "SPH LIB --- Building for Release" )
 }
 
-CONFIG(debug, debug|release) {
+CONFIG(profile, debug|profile|release) {
+  message( "SPH LIB --- Building for Profile" )
+  DEFINES += PROFILE
+}
+
+CONFIG(debug, debug|profile|release) {
   message( "SPH LIB --- Building for Debug" )
   DEFINES += DEBUG PROFILE
 }
@@ -38,7 +43,9 @@ SOURCES += \
     system/Logger.cpp \
     system/Output.cpp \
     physics/Eos.cpp \
-    sph/timestepping/AdaptiveTimeStep.cpp
+    sph/timestepping/AdaptiveTimeStep.cpp \
+    post/Components.cpp \
+    math/Morton.cpp
 
 HEADERS += \
     core/Globals.h \
@@ -90,7 +97,6 @@ HEADERS += \
     system/Timer.h \
     system/Profiler.h \
     system/CallbackList.h \
-    system/Statistics.h \
     system/Output.h \
     quantities/Iterate.h \
     quantities/Storage.h \
@@ -128,4 +134,9 @@ HEADERS += \
     geometry/Box.h \
     objects/containers/LookupMap.h \
     sph/timestepping/AdaptiveTimeStep.h \
-    post/Components.h
+    post/Components.h \
+    objects/wrappers/Extended.h \
+    math/Morton.h \
+    system/ArrayStats.h \
+    system/Statistics.h \
+    system/FloatStats.h

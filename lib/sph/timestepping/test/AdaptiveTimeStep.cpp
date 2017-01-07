@@ -4,6 +4,7 @@
 #include "sph/initial/Distribution.h"
 
 using namespace Sph;
+
 TEST_CASE("Adaptive Timestep", "[timestepping]") {
     AdaptiveTimeStep getter(GLOBAL_SETTINGS);
     const Float courant = GLOBAL_SETTINGS.get<Float>(GlobalSettingsIds::TIMESTEPPING_COURANT);
@@ -25,7 +26,7 @@ TEST_CASE("Adaptive Timestep", "[timestepping]") {
     REQUIRE(step2 == 1.e-3_f);
 
     ArrayView<Float> u, du;
-    tie(u, du)=  storage.getAll<Float>(QuantityKey::ENERGY);
+    tie(u, du) = storage.getAll<Float>(QuantityKey::ENERGY);
     for (Float& f : u) {
         f = 12._f; // u = 12
     }
@@ -35,4 +36,21 @@ TEST_CASE("Adaptive Timestep", "[timestepping]") {
     const Float factor = GLOBAL_SETTINGS.get<Float>(GlobalSettingsIds::TIMESTEPPING_ADAPTIVE_FACTOR);
     const Float step3 = getter.get(storage, INFTY);
     REQUIRE(step3 == factor * 3._f);
+}
+
+TEST_CASE("MinOfArray", "[timestepping]") {
+    Array<Float> ar1{ 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+    REQUIRE(minOfArray(ar1) == 1);
+    REQUIRE(ar1 == Array<Float>({ 1, 2, 3, 4, 5, 6, 7, 8, 9 }));
+    Array<Float> ar2{ 3, 2, 7, 5, 3, 4, 1, 5, 9 };
+    REQUIRE(minOfArray(ar2) == 1);
+    REQUIRE(ar2 == Array<Float>({ 1, 2, 5, 5, 1, 4, 1, 5, 9 }));
+    Array<Float> ar3{ 11, 10, 9, 8, 7, 6, 5, 4, 3 };
+    REQUIRE(minOfArray(ar3) == 3);
+    Array<Float> ar4{ 2, 4, 6, 8 };
+    REQUIRE(minOfArray(ar4) == 2);
+    Array<Float> ar5{ 1 };
+    REQUIRE(minOfArray(ar5) == 1);
+    Array<Float> ar6{ 9, 5, 3, 6, 2, 5, 8, 1, 23, 6, 4 };
+    REQUIRE(minOfArray(ar6) == 1);
 }

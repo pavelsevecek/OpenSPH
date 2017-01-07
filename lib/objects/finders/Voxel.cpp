@@ -7,18 +7,22 @@ VoxelFinder::VoxelFinder() = default;
 
 VoxelFinder::~VoxelFinder() = default;
 
-void VoxelFinder::buildImpl(ArrayView<const Vector> values) {
+void VoxelFinder::buildImpl(ArrayView<const Vector> newValues) {
     // number of voxels, free parameter
-    const Size lutSize = Math::root<3>(values.size()) + 1;
+    const Size lutSize = Math::root<3>(newValues.size()) + 1;
     // find bounding box
     Box boundingBox;
-    for (Vector& v : values) {
+    for (const Vector& v : newValues) {
         boundingBox.extend(v);
     }
-    lut = LookupMap(lutSize, boundingBox);
+    if (lut.empty()) {
+        lut = LookupMap(lutSize, boundingBox);
+    } else {
+        lut.update(boundingBox);
+    }
     // put particles into voxels
-    for (Size i = 0; i < values.size(); ++i) {
-        Indices idxs = lut.map(values[i]);
+    for (Size i = 0; i < newValues.size(); ++i) {
+        Indices idxs = lut.map(newValues[i]);
         lut(idxs).push(i);
     }
 }
@@ -28,6 +32,7 @@ Size VoxelFinder::findNeighbours(const Size index,
     Array<NeighbourRecord>& neighbours,
     Flags<FinderFlags> flags,
     const Float UNUSED(error)) const {
+    PROFILE_SCOPE("VoxelFinder::findNeighbours");
     neighbours.clear();
     const Size refRank =
         (flags.has(FinderFlags::FIND_ONLY_SMALLER_H)) ? this->rankH[index] : this->values.size();
@@ -38,46 +43,41 @@ Size VoxelFinder::findNeighbours(const Size index,
     const Vector size = lut.getVoxelSize();
     Vector diffUpper = voxel.upper() - values[index];
     Vector diffLower = values[index] - voxel.lower();
-    {
-        PROFILE_SCOPE("Finding box");
 
-        ASSERT(lut.getDimensionSize() > 0);
-        const int upperLimit = lut.getDimensionSize() - 1;
-        while (upper[X] < upperLimit && diffUpper[X] < radius) {
-            diffUpper[X] += size[X];
-            upper[X]++;
-        }
-        while (lower[X] > 0 && diffLower[X] < radius) {
-            diffLower[X] += size[X];
-            lower[X]--;
-        }
-        while (upper[Y] < upperLimit && diffUpper[Y] < radius) {
-            diffUpper[Y] += size[Y];
-            upper[Y]++;
-        }
-        while (lower[Y] > 0 && diffLower[Y] < radius) {
-            diffLower[Y] += size[Y];
-            lower[Y]--;
-        }
-        while (upper[Z] < upperLimit && diffUpper[Z] < radius) {
-            diffUpper[Z] += size[Z];
-            upper[Z]++;
-        }
-        while (lower[Z] > 0 && diffLower[Z] < radius) {
-            diffLower[Z] += size[Z];
-            lower[Z]--;
-        }
+    ASSERT(lut.getDimensionSize() > 0);
+    const int upperLimit = lut.getDimensionSize() - 1;
+    while (upper[X] < upperLimit && diffUpper[X] < radius) {
+        diffUpper[X] += size[X];
+        upper[X]++;
     }
-    {
-        PROFILE_SCOPE("Filling neighs")
-        for (int x = lower[X]; x <= upper[X]; ++x) {
-            for (int y = lower[Y]; y <= upper[Y]; ++y) {
-                for (int z = lower[Z]; z <= upper[Z]; ++z) {
-                    for (Size i : lut(Indices(x, y, z))) {
-                        const Float distSqr = getSqrLength(values[i] - values[index]);
-                        if (rankH[i] < refRank && distSqr < Math::sqr(radius)) {
-                            neighbours.push(NeighbourRecord{ i, distSqr });
-                        }
+    while (lower[X] > 0 && diffLower[X] < radius) {
+        diffLower[X] += size[X];
+        lower[X]--;
+    }
+    while (upper[Y] < upperLimit && diffUpper[Y] < radius) {
+        diffUpper[Y] += size[Y];
+        upper[Y]++;
+    }
+    while (lower[Y] > 0 && diffLower[Y] < radius) {
+        diffLower[Y] += size[Y];
+        lower[Y]--;
+    }
+    while (upper[Z] < upperLimit && diffUpper[Z] < radius) {
+        diffUpper[Z] += size[Z];
+        upper[Z]++;
+    }
+    while (lower[Z] > 0 && diffLower[Z] < radius) {
+        diffLower[Z] += size[Z];
+        lower[Z]--;
+    }
+
+    for (int x = lower[X]; x <= upper[X]; ++x) {
+        for (int y = lower[Y]; y <= upper[Y]; ++y) {
+            for (int z = lower[Z]; z <= upper[Z]; ++z) {
+                for (Size i : lut(Indices(x, y, z))) {
+                    const Float distSqr = getSqrLength(values[i] - values[index]);
+                    if (rankH[i] < refRank && distSqr < Math::sqr(radius)) {
+                        neighbours.push(NeighbourRecord{ i, distSqr });
                     }
                 }
             }

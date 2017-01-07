@@ -7,11 +7,17 @@ QMAKE_CXXFLAGS += -Wall -Werror -msse4.1 -std=c++1z -pthread
 QMAKE_CXX = g++
 
 
-CONFIG(release, debug|release) {
+CONFIG(release, debug|profile|release) {
   message( "SPH BENCHMARK --- Building for Release" )
 }
 
-CONFIG(debug, debug|release) {
+
+CONFIG(profile, debug|profile|release) {
+  message( "SPH BENCHMARK --- Building for Profile" )
+  DEFINES += PROFILE
+}
+
+CONFIG(debug, debug|profile|release) {
   message( "SPH BENCHMARK --- Building for Debug" )
   DEFINES += DEBUG PROFILE
 }
@@ -20,4 +26,5 @@ INCLUDEPATH += ../lib ../../external/benchmark/include
 DEPENDPATH += . ../lib
 LIBS += ../lib/libsph.a -lbenchmark
 SOURCES += main.cpp \
-    ../lib/objects/finders/benchmark/Finders.cpp
+    ../lib/objects/finders/benchmark/Finders.cpp \
+    ../lib/solvers/benchmark/ContinuitySolver.cpp

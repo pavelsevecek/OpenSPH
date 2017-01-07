@@ -18,7 +18,7 @@ void testRng(TRng rng) {
         maxValue     = Math::max(maxValue, value);
         sum += value;
         sumSqr += Math::sqr(value);
-        sumCb += Math::pow<3>(value);
+        sumCb += Math::pow<3>((Float)value);
     }
     REQUIRE(minValue >= 0.);
     REQUIRE(minValue <= 1.e-5);
@@ -33,7 +33,7 @@ void testRng(TRng rng) {
     // third moment
     REQUIRE(Math::almostEqual(sumCb * norm, 0.25, 1.e-3));
     // third central moment
-    double thirdCentral = sumCb * norm - 3. * mean * sumSqr * norm + 2. * Math::pow<3>(mean);
+    double thirdCentral = sumCb * norm - 3. * mean * sumSqr * norm + 2. * Math::pow<3>((Float)mean);
     REQUIRE(Math::almostEqual(thirdCentral, 0., 1.e-3));
 }
 
