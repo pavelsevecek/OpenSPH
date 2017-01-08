@@ -4,23 +4,6 @@
 
 NAMESPACE_SPH_BEGIN
 
-
-template <typename TEnum>
-Settings::Settings(std::initializer_list<Settings::Entry> list) {
-    for (auto&& entry : list) {
-        entries[entry.id] = entry;
-    }
-}
-
-template <typename TEnum>
-Settings& Settings::operator=(std::initializer_list<Settings::Entry> list) {
-    entries.clear();
-    for (auto&& entry : list) {
-        entries[entry.id] = entry;
-    }
-    return *this;
-}
-
 template <typename TEnum>
 void Settings<TEnum>::saveToFile(const std::string& path) const {
     std::ofstream ofs(path);

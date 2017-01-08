@@ -35,6 +35,7 @@ void testTimestepping(TArgs&&... args) {
     ArrayView<const Vector> r, v, dv;
     tie(r, v, dv) = storage->getAll<Vector>(QuantityKey::POSITIONS);
     TTimestepping timestepping(storage, std::forward<TArgs>(args)...);
+    FrequentStats stats;
     Size n = 0;
     for (float t = 0.f; t < 3.f; t += timestepping.getTimeStep()) {
         if ((n++ % 15) == 0) {
@@ -44,7 +45,7 @@ void testTimestepping(TArgs&&... args) {
                 Vector(-Math::sin(2.f * Math::PI * t) * 2.f * Math::PI, 0.f, 0.f),
                 timeStep * Math::sqr(2._f * Math::PI)));
         }
-        timestepping.step(solver);
+        timestepping.step(solver, stats);
     }
 }
 

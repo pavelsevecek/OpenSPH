@@ -45,7 +45,8 @@ SOURCES += \
     physics/Eos.cpp \
     sph/timestepping/AdaptiveTimeStep.cpp \
     post/Components.cpp \
-    math/Morton.cpp
+    math/Morton.cpp \
+    sph/forces/Yielding.cpp
 
 HEADERS += \
     core/Globals.h \

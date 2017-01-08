@@ -13,6 +13,13 @@
 
 NAMESPACE_SPH_BEGIN
 
+template<typename TEnum>
+class Settings;
+
+enum class GlobalSettingsIds;
+using GlobalSettings = Settings<GlobalSettingsIds>;
+
+
 namespace Abstract {
     class BoundaryConditions : public Polymorphic {
     public:

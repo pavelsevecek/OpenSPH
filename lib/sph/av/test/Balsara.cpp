@@ -87,12 +87,12 @@ TEST_CASE("Balsara shear flow", "[av]") {
             }
             if (orig > EPS && reduced > 1.e-3_f * orig) {
                 logger.write("Balsara didn't reduce AV!");
-                logger.writeList("particle: i = ", i);
-                logger.writeList("          r = ", r[i], " & ", r[j]);
-                logger.writeList("          orig = ", orig, ", reduced = ", reduced);
-                logger.writeList("          divv = ", divv[i], " & ", divv[j]);
-                logger.writeList("          rotv = ", rotv[i], " & ", rotv[j]);
-                logger.writeList("Balsara factor: ", balsaraAv.getFactor(i), " & ", balsaraAv.getFactor(j));
+                logger.write("particle: i = ", i);
+                logger.write("          r = ", r[i], " & ", r[j]);
+                logger.write("          orig = ", orig, ", reduced = ", reduced);
+                logger.write("          divv = ", divv[i], " & ", divv[j]);
+                logger.write("          rotv = ", rotv[i], " & ", rotv[j]);
+                logger.write("Balsara factor: ", balsaraAv.getFactor(i), " & ", balsaraAv.getFactor(j));
                 allMatching = false;
                 break;
             }
@@ -131,14 +131,14 @@ TEST_CASE("Balsara divergent flow", "[av]") {
         // particles on boundary have different velocity divergence, check only particles inside
         if (getLength(r[i]) < 0.7_f) {
             if (!Math::almostEqual(divv[i], -3._f, 0.1_f)) {
-                logger.writeList("Incorrect velocity divergence: ", divv[i], " / -3");
-                logger.writeList("particle: r = ", r[i]);
+                logger.write("Incorrect velocity divergence: ", divv[i], " / -3");
+                logger.write("particle: r = ", r[i]);
                 allMatching = false;
                 break;
             }
             if (!Math::almostEqual(rotv[i], Vector(0._f), 0.1_f)) {
-                logger.writeList("Incorrect velocity rotation: ", rotv[i], " / Vector(0.f) ");
-                logger.writeList("particle: r = ", r[i]);
+                logger.write("Incorrect velocity rotation: ", rotv[i], " / Vector(0.f) ");
+                logger.write("particle: r = ", r[i]);
                 allMatching = false;
                 break;
             }
@@ -161,11 +161,11 @@ TEST_CASE("Balsara divergent flow", "[av]") {
             const Float orig = standardAv(i, j);
             const Float reduced = balsaraAv(i, j);
             if (!Math::almostEqual(reduced, orig)) {
-                logger.writeList("Balsara changed AV in divergent flow! ", reduced, " / ", orig);
-                logger.writeList("particle: i = ", i);
-                logger.writeList("          divv = ", divv[i], " & ", divv[j]);
-                logger.writeList("          rotv = ", rotv[i], " & ", rotv[j]);
-                logger.writeList("Balsara factor: ", balsaraAv.getFactor(i), " & ", balsaraAv.getFactor(j));
+                logger.write("Balsara changed AV in divergent flow! ", reduced, " / ", orig);
+                logger.write("particle: i = ", i);
+                logger.write("          divv = ", divv[i], " & ", divv[j]);
+                logger.write("          rotv = ", rotv[i], " & ", rotv[j]);
+                logger.write("Balsara factor: ", balsaraAv.getFactor(i), " & ", balsaraAv.getFactor(j));
                 allMatching = false;
                 break;
             }

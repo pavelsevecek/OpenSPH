@@ -18,6 +18,18 @@ private:
     std::aligned_union_t<4, TArgs...> storage;
 
 public:
+    /// Creates value of type T in place. Does not check whether another object has already been created.
+    template <typename T, typename... Ts>
+    INLINE void emplace(Ts&&... args) {
+        new (&storage) T(std::forward<Ts>(args)...);
+    }
+
+    /// Destroys value of type T. Does not check that the value of type T is currently stored
+    template <typename T>
+    INLINE void destroy() {
+        get<T>().~T();
+    }
+
     /// Converts stored value to a reference of type T, without checking that the currently stored value has
     /// such a type.
     template <typename T>
@@ -44,7 +56,7 @@ namespace VariantHelpers {
         template <typename T, typename TOther>
         void visit(TOther&& other) {
             using TRaw = std::decay_t<TOther>;
-            new (&storage) TRaw(std::forward<TOther>(other));
+            storage.template emplace<TRaw>(std::forward<TOther>(other));
         }
     };
 
@@ -55,7 +67,7 @@ namespace VariantHelpers {
 
         template <typename T>
         void visit() {
-            storage.template get<T>().~T();
+            storage.template destroy<T>();
         }
     };
 
@@ -67,9 +79,9 @@ namespace VariantHelpers {
         template <typename T, typename TOther>
         void visit(TOther&& other) {
             if (std::is_lvalue_reference<TOther>::value) {
-                new (&storage) T(other.template get<T>());
+                storage.template emplace<T>(other.template get<T>());
             } else {
-                new (&storage) T(std::move(other.template get<T>()));
+                storage.template emplace<T>(std::move(other.template get<T>()));
             }
         }
     };
@@ -152,8 +164,7 @@ public:
         using RawT = std::decay_t<T>;
         constexpr int idx = getTypeIndex<RawT, TArgs...>;
         static_assert(idx != -1, "Type must be listed in Variant");
-        VariantHelpers::Create<TArgs...> creator{ storage };
-        VariantIterator<TArgs...>::visit(idx, creator, std::forward<T>(value));
+        storage.template emplace<RawT>(std::forward<T>(value));
         typeIdx = idx;
     }
 
@@ -180,17 +191,18 @@ public:
         if (typeIdx != idx) {
             // different type, destroy current and re-create
             destroy();
-            VariantHelpers::Create<TArgs...> creator{ storage };
-            VariantIterator<TArgs...>::visit(idx, creator, std::forward<T>(value));
+            storage.template emplace<RawT>(std::forward<T>(value));
         } else {
             // same type, can utilize assignment operator
-            VariantHelpers::Assign<TArgs...> assigner{ storage };
-            VariantIterator<TArgs...>::visit(idx, assigner, std::forward<T>(value));
+            storage.template get<RawT>() = std::forward<T>(value);
         }
         typeIdx = idx;
         return *this;
     }
 
+    /// Assigns another variant into this. If the type of the currently stored value is the same as type in
+    /// rhs, the copy operator is utilized, otherwise the current value (if there is one) is destroyed and a
+    /// new value is created using copy constructor.
     Variant& operator=(const Variant& other) {
         if (typeIdx != other.typeIdx) {
             destroy();
@@ -204,6 +216,10 @@ public:
         return *this;
     }
 
+    /// Moves another variant into this. If the type of the currently stored value is the same as type in
+    /// rhs, the move operator is utilized, otherwise the current value (if there is one) is destroyed and a
+    /// new value is created using move constructor. Type index of the rhs variant is set to 'uninitialized'
+    /// (-1) to indicate the value has been moved and is no longer usable.
     Variant& operator=(Variant&& other) {
         if (typeIdx != other.typeIdx) {
             destroy();
@@ -216,6 +232,18 @@ public:
         typeIdx = other.typeIdx;
         other.typeIdx = -1;
         return *this;
+    }
+
+    /// Creates a value of type T in place. Type T must be one of variant types. Any previously stored value
+    /// is destroyed.
+    template <typename T, typename... Ts>
+    void emplace(Ts&&... args) {
+        using RawT = std::decay_t<T>;
+        constexpr int idx = getTypeIndex<RawT, TArgs...>;
+        static_assert(idx != -1, "Type must be listed in Variant");
+        destroy();
+        storage.template emplace<RawT>(std::forward<Ts>(args)...);
+        typeIdx = idx;
     }
 
     /// Returns index of type currently stored in variant. If no value is currently stored, returns -1.

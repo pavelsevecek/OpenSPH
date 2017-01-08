@@ -1,9 +1,10 @@
 #pragma once
 
 #include "objects/wrappers/Flags.h"
+#include "quantities/Material.h"
+#include "quantities/Storage.h"
 #include "solvers/Accumulator.h"
 #include "solvers/Module.h"
-#include "quantities/Storage.h"
 #include "system/Profiler.h"
 
 NAMESPACE_SPH_BEGIN

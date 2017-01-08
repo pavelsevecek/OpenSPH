@@ -1,11 +1,9 @@
 #pragma once
 
-#include "geometry/Tensor.h"
 #include "objects/containers/LimitedArray.h"
 #include "objects/wrappers/Flags.h"
 #include "objects/wrappers/Optional.h"
 #include "quantities/QuantityHelpers.h"
-#include "quantities/QuantityKey.h"
 
 NAMESPACE_SPH_BEGIN
 

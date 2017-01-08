@@ -43,6 +43,9 @@ enum class QuantityKey {
 
     /// Materials
     MATERIAL_IDX, ///< Material ID
+
+    /// Other
+    MAXIMUM_VALUE ///< Placeholder, used in timestepping settings
 };
 
 /// \todo rewrite this to something less stupid

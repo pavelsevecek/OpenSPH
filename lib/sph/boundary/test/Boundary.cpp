@@ -3,6 +3,7 @@
 #include "math/rng/VectorRng.h"
 #include "objects/containers/ArrayUtils.h"
 #include "system/Logger.h"
+#include "system/Settings.h"
 
 using namespace Sph;
 
@@ -145,7 +146,7 @@ TEST_CASE("GhostParticles Sphere", "[boundary]") {
             break;
         }
         if (!Math::almostEqual(normalized, getNormalized(r[i]))) {
-            logger.writeList("Incorrect position of ghost: ", normalized);
+            logger.write("Incorrect position of ghost: ", normalized);
             allSymmetric = false;
             break;
         }
@@ -153,7 +154,7 @@ TEST_CASE("GhostParticles Sphere", "[boundary]") {
         const Float vPerp = dot(v[i], normalized);
         const Float vgPerp = dot(v[ghostIdx + i], normalized);
         if (!Math::almostEqual(vPerp, -vgPerp, 1.e-5_f)) {
-            logger.writeList("Perpendicular component not inverted: ", vPerp, "  ", vgPerp);
+            logger.write("Perpendicular component not inverted: ", vPerp, "  ", vgPerp);
             allSymmetric = false;
             break;
         }
@@ -161,7 +162,7 @@ TEST_CASE("GhostParticles Sphere", "[boundary]") {
         const Vector vPar = v[i] - normalized * dot(v[i], normalized);
         const Vector vgPar = v[ghostIdx + i] - normalized * dot(v[ghostIdx + i], normalized);
         if (!Math::almostEqual(vPar, vgPar, 1.e-5_f)) {
-            logger.writeList("Parallel component not copied: ", vPar, "  ", vgPar);
+            logger.write("Parallel component not copied: ", vPar, "  ", vgPar);
             allSymmetric = false;
             break;
         }
@@ -196,13 +197,13 @@ TEST_CASE("GhostParticles Sphere Projection", "[boundary]") {
     for (Size i = 0; i < ghostIdx; ++i) {
         if (i % 2 == 0) {
             if (!Math::almostEqual(getLength(r[i]), 1.9_f)) {
-                logger.writeList("Invalid particle position: ", getLength(r[i]), " / 1.9");
+                logger.write("Invalid particle position: ", getLength(r[i]), " / 1.9");
                 allMatching = false;
                 break;
             }
         } else {
             if (!Math::almostEqual(getLength(r[i]), 0.9_f)) {
-                logger.writeList("Invalid particle position: ", getLength(r[i]), " / 0.9");
+                logger.write("Invalid particle position: ", getLength(r[i]), " / 0.9");
                 allMatching = false;
                 break;
             }

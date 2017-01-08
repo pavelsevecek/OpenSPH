@@ -34,10 +34,20 @@ private:
 public:
     Settings() = default;
 
-    Settings(std::initializer_list<Entry> list);
+    Settings(std::initializer_list<Entry> list) {
+        for (auto&& entry : list) {
+            entries[entry.id] = entry;
+        }
+    }
 
     /// Assigns a list of settings into the object, erasing all previous entries.
-    Settings& operator=(std::initializer_list<Entry> list);
+    Settings& operator=(std::initializer_list<Entry> list) {
+        entries.clear();
+        for (auto&& entry : list) {
+            entries[entry.id] = entry;
+        }
+        return *this;
+    }
 
     template <typename TValue>
     void set(TEnum idx, TValue&& value) {

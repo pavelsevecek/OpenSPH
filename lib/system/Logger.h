@@ -8,8 +8,8 @@
 #include <fstream>
 #include <memory>
 #include <set>
-#include <string>
 #include <sstream>
+#include <string>
 
 NAMESPACE_SPH_BEGIN
 
@@ -21,14 +21,15 @@ namespace Abstract {
     public:
         /// Logs a string message.
         /// \todo different types (log, warning, error, ...) and levels of verbosity
-        virtual void write(const std::string& s) = 0;
+        virtual void writeString(const std::string& s) = 0;
 
-        /// Creates and logs message by concating arguments.
+        /// Creates and logs message by concating arguments. Adds a new line to the output.
         template <typename... TArgs>
-        void writeList(TArgs&&... args) {
+        void write(TArgs&&... args) {
             std::stringstream ss;
             writeImpl(ss, std::forward<TArgs>(args)...);
-            this->write(ss.str());
+            ss << std::endl;
+            this->writeString(ss.str());
         }
 
     private:
@@ -44,7 +45,7 @@ namespace Abstract {
 /// Standard output logger.
 class StdOutLogger : public Abstract::Logger {
 public:
-    virtual void write(const std::string& s) override;
+    virtual void writeString(const std::string& s) override;
 };
 
 /// File output logger
@@ -58,7 +59,7 @@ public:
 
     ~FileLogger() { stream.close(); }
 
-    virtual void write(const std::string& s) override { stream << s; }
+    virtual void writeString(const std::string& s) override { stream << s; }
 };
 
 /// Class holding multiple loggers and writing messages to all of them. The objects is the owner of loggers.
@@ -71,9 +72,9 @@ public:
 
     void add(std::unique_ptr<Abstract::Logger>&& logger) { loggers.insert(std::move(logger)); }
 
-    virtual void write(const std::string& s) override {
+    virtual void writeString(const std::string& s) override {
         for (auto& l : loggers) {
-            l->write(s);
+            l->writeString(s);
         }
     }
 };

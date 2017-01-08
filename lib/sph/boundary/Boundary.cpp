@@ -1,5 +1,6 @@
 #include "sph/boundary/Boundary.h"
 #include "system/Factory.h"
+#include "quantities/Iterate.h"
 
 NAMESPACE_SPH_BEGIN
 

@@ -28,6 +28,7 @@ TEST_CASE("ContinuitySolver", "[solvers]") {
     InitialConditions conds(storage, globalSettings);
     conds.addBody(domain, bodySettings);
 
+    FrequentStats stats;
     EulerExplicit timestepping(storage, globalSettings);
     // check integrals of motion
     TotalMomentum momentum;
@@ -38,7 +39,7 @@ TEST_CASE("ContinuitySolver", "[solvers]") {
     REQUIRE(mom0 == Vector(0._f));
     REQUIRE(angmom0 == Vector(0._f));
     for (float t = 0._f; t < 1._f; t += timestepping.getTimeStep()) {
-        timestepping.step(*solver);
+        timestepping.step(*solver, stats);
     }
     const Vector mom1 = momentum(*storage);
     const Vector angmom1 = angularMomentum(*storage);

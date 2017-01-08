@@ -85,7 +85,7 @@ TEST_CASE("LinearDistribution", "[initconds]") {
     StdOutLogger logger;
     for (int i = 0; i <= 100; ++i) {
         if (!Math::almostEqual(values[i], Vector(i / 100._f, 0._f, 0._f), 1.e-5_f)) {
-            logger.writeList(values[i], " == ", Vector(i / 100._f, 0._f, 0._f));
+            logger.write(values[i], " == ", Vector(i / 100._f, 0._f, 0._f));
             break;
             equal = false;
         }

@@ -1,5 +1,6 @@
 #include "sph/forces/Damage.h"
 #include "math/rng/Rng.h"
+#include "quantities/Material.h"
 #include "system/Factory.h"
 
 NAMESPACE_SPH_BEGIN

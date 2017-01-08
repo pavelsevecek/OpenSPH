@@ -35,6 +35,14 @@ public:
     INLINE Extended max() const { return rangeValue.upper(); }
 
     INLINE Range range() const { return rangeValue; }
+
+    INLINE Size count() const { return weight; }
+
+    template <typename TStream>
+    friend TStream& operator<<(TStream& stream, const FloatStats& stats) {
+        stream << "average = " << stats.average() << "  (min = " << stats.min() << ", max = " << stats.max()
+               << ")";
+    }
 };
 
 NAMESPACE_SPH_END

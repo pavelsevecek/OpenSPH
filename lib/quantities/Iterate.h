@@ -1,7 +1,6 @@
 #pragma once
 
-#include "quantities/Quantity.h"
-#include <map>
+#include "quantities/Storage.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -178,9 +177,9 @@ struct StoragePairVisitor<VisitorEnum::HIGHEST_DERIVATIVES, TFunctor> {
 /// vectors and tensors, so it must be a generic lambda or a class with overloaded operator() for each
 /// value type.
 template <VisitorEnum Type, typename TFunctor>
-void iterate(std::map<QuantityKey, Quantity>& qs, TFunctor&& functor) {
+void iterate(Storage& storage, TFunctor&& functor) {
     StorageVisitor<Type, TFunctor> visitor;
-    for (auto& q : qs) {
+    for (auto& q : storage) {
         dispatch(q.second.getValueEnum(), visitor, q.second, std::forward<TFunctor>(functor));
     }
 }
@@ -205,20 +204,18 @@ struct StorageVisitorWithPositions {
 /// Iterate over all quantities and execute a functor, passing quantity buffers together with particle
 /// positions as arguments. Storage must already contain positions, checked by assert.
 template <typename TFunctor>
-void iterateWithPositions(std::map<QuantityKey, Quantity>& qs, TFunctor&& functor) {
-    auto iter = qs.find(QuantityKey::POSITIONS);
-    ASSERT(iter != qs.end());
-    Array<Vector>& r = iter->second.getValue<Vector>();
+void iterateWithPositions(Storage& storage, TFunctor&& functor) {
+    Array<Vector>& r = storage.getValue<Vector>(QuantityKey::POSITIONS);
     StorageVisitorWithPositions<TFunctor> visitor;
-    for (auto& q : qs) {
+    for (auto& q : storage) {
         dispatch(q.second.getValueEnum(), visitor, q.second, r, q.first, std::forward<TFunctor>(functor));
     }
 }
 
 /// Iterate over selected set of quantities. All quantities in the set must be stored, checked by assert. Can
 /// be used with any visitors to further constrain the set of quantities/buffers passed into functor.
-template <VisitorEnum Type, typename TFunctor>
-void iterateCustom(std::map<QuantityKey, Quantity>& qs,
+/*template <VisitorEnum Type, typename TFunctor>
+void iterateCustom(Storage& storage,
     Array<QuantityKey>&& set,
     TFunctor&& functor) {
     StorageVisitor<Type, TFunctor> visitor;
@@ -227,17 +224,17 @@ void iterateCustom(std::map<QuantityKey, Quantity>& qs,
         ASSERT(iter != qs.end());
         dispatch(iter->second.getValueEnum(), visitor, iter->second, std::forward<TFunctor>(functor));
     }
-}
+}*/
 
 
 /// Iterate over given type of quantities in two storage views and executes functor for each pair.
 template <VisitorEnum Type, typename TFunctor>
-void iteratePair(std::map<QuantityKey, Quantity>& qs1,
-    std::map<QuantityKey, Quantity>& qs2,
+void iteratePair(Storage& storage1,
+    Storage& storage2,
     TFunctor&& functor) {
-    ASSERT(qs1.size() == qs2.size());
+    ASSERT(storage1.getQuantityCnt() == storage2.getQuantityCnt());
     StoragePairVisitor<Type, TFunctor> visitor;
-    for (auto i1 = qs1.begin(), i2 = qs2.begin(); i1 != qs1.end(); ++i1, ++i2) {
+    for (auto i1 = storage1.begin(), i2 = storage2.begin(); i1 != storage1.end(); ++i1, ++i2) {
         Quantity& q1 = i1->second;
         Quantity& q2 = i2->second;
         ASSERT(q1.getValueEnum() == q2.getValueEnum());

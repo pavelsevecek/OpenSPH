@@ -1,15 +1,20 @@
 #pragma once
 
 #include "objects/containers/Array.h"
-#include "objects/containers/Tuple.h"
 #include "objects/wrappers/NonOwningPtr.h"
-#include "quantities/Iterate.h"
-#include "quantities/Material.h"
 #include "quantities/QuantityKey.h"
-#include "system/Logger.h"
-#include "system/Settings.h"
+#include "quantities/Quantity.h"
+#include <map>
 
 NAMESPACE_SPH_BEGIN
+
+
+struct Material;
+
+enum class BodySettingsIds;
+template<typename TEnum>
+class Settings;
+using BodySettings = Settings<BodySettingsIds>;
 
 /// Base object for storing scalar, vector and tensor quantities of SPH particles. Other parts of the code
 /// simply point to stored arrays using ArrayView.
@@ -170,7 +175,7 @@ public:
     /// Assigns materials to particles. Particle positions (QuantityKey::R) must already be stored, checked by
     /// assert. This will override previously assigned materials. Selector is a functor taking particle
     /// position and its index and must return index into the array of materials.
-    template <typename TSelector>
+    /*template <typename TSelector>
     void setMaterial(Array<Material>&& mats, TSelector&& selector) {
         ASSERT((this->has<Vector, OrderEnum::SECOND_ORDER>(QuantityKey::POSITIONS)));
         this->materials = std::move(mats);
@@ -183,7 +188,7 @@ public:
         for (Size i = 0; i < r.size(); ++i) {
             matIdxs[i] = selector(r[i], i);
         }
-    }
+    }*/
 
     /// Returns iterator at the beginning of quantity map. Dereferencing the iterator yields
     /// std::pair<QuantityKey, Quantity>.
@@ -205,33 +210,9 @@ public:
 
     /// Changes number of particles for all quantities stored in the storage. Storage must already contain at
     /// least one quantity, checked by assert.
-    template <VisitorEnum Type>
-    void resize(const Size newParticleCnt) {
-        ASSERT(getQuantityCnt() > 0);
-        iterate<Type>(quantities, [newParticleCnt](auto&& buffer) { buffer.resize(newParticleCnt); });
-    }
+    void resize(const Size newParticleCnt);
 
     void swap(Storage& other, const Flags<VisitorEnum> flags);
-
-    template <VisitorEnum Type, typename TFunctor>
-    friend void iterate(Storage& storage, TFunctor&& functor) {
-        iterate<Type>(storage.quantities, std::forward<TFunctor>(functor));
-    }
-
-    template <typename TFunctor>
-    friend void iterateWithPositions(Storage& storage, TFunctor&& functor) {
-        iterateWithPositions(storage.quantities, std::forward<TFunctor>(functor));
-    }
-
-    template <VisitorEnum Type, typename TFunctor>
-    friend void iterateCustom(Storage& storage, Array<QuantityKey>&& set, TFunctor&& functor) {
-        iterateCustom<Type>(storage.quantities, std::move(set), std::forward<TFunctor>(functor));
-    }
-
-    template <VisitorEnum Type, typename TFunctor>
-    friend void iteratePair(Storage& storage1, Storage& storage2, TFunctor&& functor) {
-        iteratePair<Type>(storage1.quantities, storage2.quantities, std::forward<TFunctor>(functor));
-    }
 };
 
 NAMESPACE_SPH_END

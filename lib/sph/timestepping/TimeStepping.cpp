@@ -1,4 +1,5 @@
 #include "sph/timestepping/TimeStepping.h"
+#include "quantities/Iterate.h"
 #include "solvers/AbstractSolver.h"
 #include "system/Profiler.h"
 

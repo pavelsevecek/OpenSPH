@@ -29,6 +29,9 @@ TEST_CASE("Variant constructor", "[variant]") {
     RecordType& r3 = variant4;
     REQUIRE(r3.wasCopyConstructed);
     REQUIRE(r3.value == 3);
+    RecordType::resetStats();
+    variant4.~Variant();
+    REQUIRE(RecordType::destructedNum == 1);
 }
 
 TEST_CASE("Variant copy construct", "[variant]") {
@@ -154,6 +157,34 @@ TEST_CASE("Variant get", "[variant]") {
     variant1 = 3.14f;
     REQUIRE(!variant1.tryGet<int>());
     REQUIRE(variant1.get<float>() == 3.14f);
+}
+
+TEST_CASE("Variant emplace", "[variant]") {
+    struct Dummy {
+        int i;
+        float f;
+        RecordType r;
+
+        Dummy(int i, float f, RecordType&& r)
+            : i(i), f(f), r(std::move(r)) {}
+    };
+
+    Variant<RecordType, Dummy> variant1;
+    variant1.emplace<RecordType>(3);
+    REQUIRE(variant1.getTypeIdx() == 0);
+    RecordType& r = variant1;
+    REQUIRE(r.wasValueConstructed);
+    REQUIRE(r.value == 3);
+    RecordType::resetStats();
+
+    variant1.emplace<Dummy>(5, 6.f, RecordType(7));
+    REQUIRE(RecordType::destructedNum == 2); // previous value + moved temporary
+    REQUIRE(variant1.getTypeIdx() == 1);
+    Dummy& d = variant1;
+    REQUIRE(d.i == 5);
+    REQUIRE(d.f == 6.f);
+    REQUIRE(d.r.wasMoveConstructed);
+    REQUIRE(d.r.value == 7);
 }
 
 TEST_CASE("Variant empty string", "[variant]") {

@@ -3,6 +3,9 @@
 #include "quantities/Storage.h"
 #include "system/Profiler.h"
 #include "system/Settings.h"
+#include "system/Statistics.h"
+
+/// \todo forward declare stats and settings
 
 NAMESPACE_SPH_BEGIN
 
@@ -21,12 +24,12 @@ private:
 public:
     AdaptiveTimeStep(const GlobalSettings& settings);
 
-    /// Returns the current time step.
+    /// Returns the current time step. Value FrequentStatsIds::TIMESTEP_CRITERION of statistics is set to
+    /// condition that limits the value of the timestep.
     /// \param storage Storage containing all physical quantities from which the time step is determined.
     ///                Must contain at least positions of particles and sound speed, checked by assert.
     /// \param maxStep Maximal allowed time-step.
-    /// \todo logging
-    Float get(Storage& storage, const Float maxStep);
+    Float get(Storage& storage, const Float maxStep, FrequentStats& stats);
 
 private:
     template <typename TArray>

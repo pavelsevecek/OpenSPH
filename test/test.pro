@@ -85,7 +85,8 @@ SOURCES += \
     ../lib/post/test/Components.cpp \
     ../lib/objects/wrappers/test/Extended.cpp \
     ../lib/math/test/Morton.cpp \
-    ../lib/system/test/ArrayStats.cpp
+    ../lib/system/test/ArrayStats.cpp \
+    ../lib/system/test/Statistics.cpp
 
 
 HEADERS += \

@@ -65,6 +65,7 @@ public:
     void run() {
         Size i = 0;
 
+        FrequentStats stats;
         for (Float& t : rangeAdapter(timeRange, timeStepping->getTimeStep())) {
             if (callbacks) {
                 callbacks->onTimeStep(storage);
@@ -85,7 +86,7 @@ public:
             i++;
 
             // Make time step
-            timeStepping->step(*solver);
+            timeStepping->step(*solver, stats);
         }
     }
 };

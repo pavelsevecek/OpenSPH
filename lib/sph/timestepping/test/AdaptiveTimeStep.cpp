@@ -16,15 +16,23 @@ TEST_CASE("Adaptive Timestep", "[timestepping]") {
 
     const Float cs = 5._f;
     storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityKey::SOUND_SPEED, cs);
+
+    // get timestep limited by CFL
+    FrequentStats stats;
+    const Float step = getter.get(storage, INFTY, stats);
+
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityKey::POSITIONS);
     const Float h = r[0][H]; // all hs are the same
-    const Float step = getter.get(storage, INFTY);
     const Float expected = courant * h / cs;
     REQUIRE(Math::almostEqual(expected, step));
+    REQUIRE(stats.get<QuantityKey>(FrequentStatsIds::TIMESTEP_CRITERION) == QuantityKey::SOUND_SPEED);
 
-    const Float step2 = getter.get(storage, 1.e-3_f);
+    // get timestep limited by stats
+    const Float step2 = getter.get(storage, 1.e-3_f, stats);
     REQUIRE(step2 == 1.e-3_f);
+    REQUIRE(stats.get<QuantityKey>(FrequentStatsIds::TIMESTEP_CRITERION) == QuantityKey::MAXIMUM_VALUE);
 
+    // get timestep limited by value-to-derivative ration of energy
     ArrayView<Float> u, du;
     tie(u, du) = storage.getAll<Float>(QuantityKey::ENERGY);
     for (Float& f : u) {
@@ -34,8 +42,10 @@ TEST_CASE("Adaptive Timestep", "[timestepping]") {
         f = 4._f; // du/dt = 4
     }
     const Float factor = GLOBAL_SETTINGS.get<Float>(GlobalSettingsIds::TIMESTEPPING_ADAPTIVE_FACTOR);
-    const Float step3 = getter.get(storage, INFTY);
-    REQUIRE(step3 == factor * 3._f);
+    const Float step3 = getter.get(storage, INFTY, stats);
+    // this is quite imprecise due to approximative sqrt, but it doesn't really matter for timestep
+    REQUIRE(Math::almostEqual(step3, factor * 3._f, 1.e-3_f));
+    REQUIRE(stats.get<QuantityKey>(FrequentStatsIds::TIMESTEP_CRITERION) == QuantityKey::ENERGY);
 }
 
 TEST_CASE("MinOfArray", "[timestepping]") {

@@ -1,6 +1,8 @@
 #pragma once
 
-#include "quantities/Storage.h"
+#include "system/Logger.h"
+#include "objects/containers/ArrayView.h"
+#include "objects/containers/Array.h"
 
 NAMESPACE_SPH_BEGIN
 

@@ -3,6 +3,7 @@
 
 NAMESPACE_SPH_BEGIN
 
+// https://devblogs.nvidia.com/parallelforall/thinking-parallel-part-iii-tree-construction-gpu/
 Size expandBits(Size v) {
     v = (v * 0x00010001u) & 0xFF0000FFu;
     v = (v * 0x00000101u) & 0x0F00F00Fu;

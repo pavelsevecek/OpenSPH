@@ -1,4 +1,5 @@
 #include "sph/timestepping/AdaptiveTimeStep.h"
+#include "quantities/Iterate.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -7,7 +8,7 @@ AdaptiveTimeStep::AdaptiveTimeStep(const GlobalSettings& settings) {
     courant = settings.get<Float>(GlobalSettingsIds::TIMESTEPPING_COURANT);
 }
 
-Float AdaptiveTimeStep::get(Storage& storage, const Float maxStep) {
+Float AdaptiveTimeStep::get(Storage& storage, const Float maxStep, FrequentStats& stats) {
     PROFILE_SCOPE("TimeStep::get");
     cachedSteps.reserve(storage.getParticleCnt());
     StaticArray<Float, 16> minTimeSteps(EMPTY_ARRAY);
@@ -20,12 +21,12 @@ Float AdaptiveTimeStep::get(Storage& storage, const Float maxStep) {
             const Float dvSqrNorm = Math::normSqr(dv[i]);
             if (dvSqrNorm != 0._f) {
                 /// \todo here, float quantities could be significantly optimized using SSE
-                const Float value = factor * Math::norm(v[i]) / Math::sqrtApprox(dvSqrNorm);
+                const Float value = factor * Math::norm(v[i]) * Math::sqrtInv(dvSqrNorm);
                 ASSERT(Math::isReal(value) && value > 0._f && value < INFTY);
                 this->cachedSteps.push(value);
             }
         }
-        const Float minStep= this->cachedSteps.empty() ? INFTY : minOfArray(this->cachedSteps);
+        const Float minStep = this->cachedSteps.empty() ? INFTY : minOfArray(this->cachedSteps);
         minTimeSteps.push(minStep);
     });
 
@@ -72,7 +73,11 @@ Float AdaptiveTimeStep::get(Storage& storage, const Float maxStep) {
     }
 
     // Make sure the step is lower than largest allowed step
-    minStep = Math::min(minStep, maxStep);
+    if (minStep > maxStep) {
+        minStep = maxStep;
+        flag = QuantityKey::MAXIMUM_VALUE;
+    }
+    stats.set(FrequentStatsIds::TIMESTEP_CRITERION, flag);
 
     return minStep;
 }

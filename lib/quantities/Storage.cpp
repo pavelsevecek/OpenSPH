@@ -1,5 +1,7 @@
 #include "quantities/Storage.h"
 #include "physics/Eos.h"
+#include "quantities/Iterate.h"
+#include "quantities/Material.h"
 #include "system/Factory.h"
 
 NAMESPACE_SPH_BEGIN
@@ -44,11 +46,11 @@ void Storage::merge(Storage&& other) {
 
     // merge all quantities
     iteratePair<VisitorEnum::ALL_BUFFERS>(
-        quantities, other.quantities, [](auto&& ar1, auto&& ar2) { ar1.pushAll(std::move(ar2)); });
+        *this, other, [](auto&& ar1, auto&& ar2) { ar1.pushAll(std::move(ar2)); });
 }
 
 void Storage::init() {
-    iterate<VisitorEnum::HIGHEST_DERIVATIVES>(quantities, [](auto&& dv) {
+    iterate<VisitorEnum::HIGHEST_DERIVATIVES>(*this, [](auto&& dv) {
         using TValue = typename std::decay_t<decltype(dv)>::Type;
         dv.fill(TValue(0._f));
     });
@@ -60,6 +62,12 @@ Storage Storage::clone(const Flags<VisitorEnum> flags) const {
         cloned.quantities[q.first] = q.second.clone(flags);
     }
     return cloned;
+}
+
+void Storage::resize(const Size newParticleCnt) {
+    ASSERT(getQuantityCnt() > 0);
+    iterate<VisitorEnum::ALL_BUFFERS>(
+        *this, [newParticleCnt](auto&& buffer) { buffer.resize(newParticleCnt); });
 }
 
 void Storage::swap(Storage& other, const Flags<VisitorEnum> flags) {

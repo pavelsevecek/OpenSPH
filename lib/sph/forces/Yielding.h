@@ -1,9 +1,11 @@
 #pragma once
 
 #include "geometry/TracelessTensor.h"
-#include "quantities/Storage.h"
+#include "objects/containers/Array.h"
 
 NAMESPACE_SPH_BEGIN
+
+class Storage;
 
 class DummyYielding  {
 public:
@@ -19,14 +21,7 @@ private:
     Array<Float> y;
 
 public:
-    void update(Storage& storage) {
-        y.clear();
-        for (Size i = 0; i < storage.getParticleCnt(); ++i) {
-            const Float limit = storage.getMaterial(i).elasticityLimit;
-            ASSERT(limit > 0._f);
-            y.push(limit);
-        }
-    }
+    void update(Storage& storage);
 
     INLINE TracelessTensor reduce(const TracelessTensor& s, const int i) const {
         const Float invariant = 1.5_f * ddot(s, s);
