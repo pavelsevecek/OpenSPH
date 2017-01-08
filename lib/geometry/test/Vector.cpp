@@ -85,7 +85,7 @@ TEST_CASE("Vector length", "[vector]") {
     REQUIRE(getSqrLength(v1) == 169._f);
     REQUIRE(getLength(v1) == 13._f);
     Vector v2(1._f);
-    REQUIRE(getLength(v2) == Math::sqrt(3._f));
+    REQUIRE(getLength(v2) == Sph::sqrt(3._f));
 }
 
 TEST_CASE("Vector products", "[vector]") {
@@ -103,8 +103,8 @@ TEST_CASE("Vector products", "[vector]") {
 
 TEST_CASE("Vector utilities", "[vector]") {
     // spherical coordinates
-    Vector v = spherical(Math::sqrt(2._f), Math::PI / 2._f, Math::PI / 4._f);
-    REQUIRE(Math::almostEqual(v, Vector(1._f, 1._f, 0._f), EPS));
+    Vector v = spherical(Sph::sqrt(2._f), PI / 2._f, PI / 4._f);
+    REQUIRE(almostEqual(v, Vector(1._f, 1._f, 0._f), EPS));
 }
 
 TEST_CASE("Vector inequalities", "[vectors]") {
@@ -112,36 +112,48 @@ TEST_CASE("Vector inequalities", "[vectors]") {
     for (int i = 0; i < nRounds; ++i) {
         // normalization
         const Vector v1 = randomVector();
-        REQUIRE(Math::abs(getLength(getNormalized(v1)) - 1._f) <= EPS);
+        REQUIRE(abs(getLength(getNormalized(v1)) - 1._f) <= EPS);
 
         // triangle inequality
         const Vector v2 = randomVector();
         REQUIRE(getLength(v1 + v2) <= getLength(v1) + getLength(v2));
 
         // Cauchy-Schwarz inequality
-        REQUIRE(Math::abs(dot(v1, v2)) <= getLength(v1) * getLength(v2));
+        REQUIRE(abs(dot(v1, v2)) <= getLength(v1) * getLength(v2));
     }
 }
 
 TEST_CASE("Vector product", "[vectors]") {
     // for d=3 only
     const int nRounds = 10;
-    for (int i          = 0; i < nRounds; ++i) {
+    for (int i = 0; i < nRounds; ++i) {
         const Vector v1 = randomVector();
         const Vector v2 = randomVector();
         // cross product is perpendicular to both vectors
-        const Vector c   = cross(v1, v2);
+        const Vector c = cross(v1, v2);
         const float dot1 = dot(c, v1);
         const float dot2 = dot(c, v2);
-        REQUIRE(Math::abs(dot1) <= EPS);
-        REQUIRE(Math::abs(dot2) <= EPS);
+        REQUIRE(abs(dot1) <= EPS);
+        REQUIRE(abs(dot2) <= EPS);
     }
 }
 
-TEST_CASE("Component-wise min and max", "[vectors]") {
+TEST_CASE("Vector Component-wise min and max", "[vectors]") {
     Vector v1(6._f, -7._f, 8._f);
     Vector v2(-1._f, 3._f, 5._f);
-    REQUIRE(Math::max(v1, v2) == Vector(6._f, 3._f, 8._f));
-    REQUIRE(Math::min(v1, v2) == Vector(-1._f, -7._f, 5._f));
+    REQUIRE(max(v1, v2) == Vector(6._f, 3._f, 8._f));
+    REQUIRE(min(v1, v2) == Vector(-1._f, -7._f, 5._f));
 }
 
+TEST_CASE("Vector MinElement", "[vector]") {
+    REQUIRE(minElement(Vector(-1._f, 5._f, 2._f)) == -1._f);
+    REQUIRE(minElement(Vector(5._f, 5._f, 2._f)) == 2._f);
+    REQUIRE(minElement(Vector(-1._f, -5._f, 3._f)) == -5._f);
+}
+
+TEST_CASE("Vector abs", "[vector]") {
+    REQUIRE(abs(Vector(-1._f, 0._f, 1._f)) == Vector(1._f, 0._f, 1._f));
+    REQUIRE(abs(Vector(-1._f, -2._f, -5._f)) == Vector(1._f, 2._f, 5._f));
+    REQUIRE(abs(Vector(0._f)) == Vector(0._f));
+    REQUIRE(abs(Vector(5._f, 5._f, -1._f)) == Vector(5._f, 5._f, 1._f));
+}

@@ -82,7 +82,7 @@ public:
         : Abstract::Domain(center, radius)
         , radiusSqr(radius * radius) {}
 
-    virtual Float getVolume() const override { return Math::sphereVolume(this->maxRadius); }
+    virtual Float getVolume() const override { return sphereVolume(this->maxRadius); }
 
     virtual bool isInside(const Vector& v) const override { return isInsideImpl(v); }
 
@@ -111,7 +111,7 @@ public:
 
     virtual void getDistanceToBoundary(ArrayView<const Vector> vs, Array<Float>& distances) const override {
         distances.clear();
-        Float radius = Math::sqrt(radiusSqr);
+        Float radius = sqrt(radiusSqr);
         for (const Vector& v : vs) {
             const Float dist = radius - getLength(v - this->center);
             distances.push(dist);
@@ -119,7 +119,7 @@ public:
     }
 
     virtual void project(ArrayView<Vector> vs, Optional<ArrayView<Size>> indices = NOTHING) const override {
-        Float radius = Math::sqrt(radiusSqr);
+        Float radius = sqrt(radiusSqr);
         auto impl = [this, radius](Vector& v) {
             if (!isInsideImpl(v)) {
                 v = getNormalized(v - this->center) * radius + this->center;
@@ -137,7 +137,7 @@ public:
     }
 
     virtual void invert(ArrayView<Vector> vs, Optional<ArrayView<Size>> indices = NOTHING) const override {
-        Float radius = Math::sqrt(radiusSqr);
+        Float radius = sqrt(radiusSqr);
         auto impl = [this, radius](Vector& v) {
             Float length;
             Vector normalized;
@@ -232,11 +232,11 @@ private:
 
 public:
     CylindricalDomain(const Vector& center, const Float radius, const Float height, const bool includeBases)
-        : Abstract::Domain(center, Math::sqrt(Math::sqr(radius) + Math::sqr(height)))
+        : Abstract::Domain(center, sqrt(sqr(radius) + sqr(height)))
         , radiusSqr(radius * radius)
         , includeBases(includeBases) {}
 
-    virtual Float getVolume() const override { return Math::PI * radiusSqr * height; }
+    virtual Float getVolume() const override { return PI * radiusSqr * height; }
 
     virtual bool isInside(const Vector& v) const override { return this->isInsideImpl(v); }
 
@@ -262,12 +262,12 @@ public:
 
     virtual void getDistanceToBoundary(ArrayView<const Vector> vs, Array<Float>& distances) const override {
         distances.clear();
-        Float radius = Math::sqrt(radiusSqr);
+        Float radius = sqrt(radiusSqr);
         for (const Vector& v : vs) {
             const Float dist = radius - getLength(Vector(v[X], v[Y], this->center[Z]) - this->center);
             if (includeBases) {
                 /// \todo properly implement includeBases
-                distances.push(Math::min(dist, Math::abs(0.5_f * height - (v[Z] - this->center[Z]))));
+                distances.push(min(dist, abs(0.5_f * height - (v[Z] - this->center[Z]))));
             } else {
                 distances.push(dist);
             }
@@ -275,7 +275,7 @@ public:
     }
 
     virtual void project(ArrayView<Vector> vs, Optional<ArrayView<Size>> indices = NOTHING) const override {
-        Float radius = Math::sqrt(radiusSqr);
+        Float radius = sqrt(radiusSqr);
         auto impl = [this, radius](Vector& v) {
             if (!isInsideImpl(v)) {
                 v = getNormalized(Vector(v[X], v[Y], this->center[Z]) - this->center) * radius +
@@ -295,7 +295,7 @@ public:
     }
 
     virtual void invert(ArrayView<Vector> vs, Optional<ArrayView<Size>> indices = NOTHING) const override {
-        Float radius = Math::sqrt(radiusSqr);
+        Float radius = sqrt(radiusSqr);
         auto impl = [this, radius](Vector& v) {
             Float length;
             Vector normalized;
@@ -318,7 +318,7 @@ public:
 private:
     INLINE bool isInsideImpl(const Vector& v) const {
         return getSqrLength(Vector(v[X], v[Y], this->center[Z]) - center) < radiusSqr &&
-               Math::sqr(v[Z] - this->center[Z]) < Math::sqr(0.5_f * height);
+               sqr(v[Z] - this->center[Z]) < sqr(0.5_f * height);
     }
 };
 

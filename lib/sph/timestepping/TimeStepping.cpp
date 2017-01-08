@@ -40,7 +40,7 @@ PredictorCorrector::PredictorCorrector(const std::shared_ptr<Storage>& storage,
 }
 
 void PredictorCorrector::stepImpl(Abstract::Solver& solver) {
-    const Float dt2 = 0.5_f * Math::sqr(this->dt);
+    const Float dt2 = 0.5_f * sqr(this->dt);
 
     PROFILE_SCOPE("PredictorCorrector::step   Predictions")
     // make prediction using old derivatives (simple euler)

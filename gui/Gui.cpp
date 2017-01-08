@@ -3,12 +3,12 @@
 #include "gui/GlPane.h"
 #include "gui/OrthoPane.h"
 #include "gui/Settings.h"
+#include "gui/Settings.h"
 #include "gui/Window.h"
 #include "physics/Constants.h"
 #include "problem/Problem.h"
 #include "sph/initial/Initial.h"
 #include "system/Factory.h"
-#include "gui/Settings.h"
 
 #include <wx/glcanvas.h>
 #include <wx/sizer.h>
@@ -31,18 +31,18 @@ bool MyApp::OnInit() {
     globalSettings.set(GlobalSettingsIds::TIMESTEPPING_ADAPTIVE, true);
     globalSettings.set(GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP, 1.e-6_f);
     globalSettings.set(GlobalSettingsIds::TIMESTEPPING_MAX_TIMESTEP, 1.e-1_f);
-    globalSettings.set(GlobalSettingsIds::MODEL_FORCE_DIV_S, false);
+    globalSettings.set(GlobalSettingsIds::MODEL_FORCE_DIV_S, true);
     globalSettings.set(GlobalSettingsIds::SPH_FINDER, FinderEnum::VOXEL);
-    /*globalSettings.set(GlobalSettingsIds::MODEL_DAMAGE, DamageEnum::SCALAR_GRADY_KIPP);
-    globalSettings.set(GlobalSettingsIds::MODEL_YIELDING, YieldingEnum::VON_MISES);*/
-    Problem* p          = new Problem(globalSettings);
-    p->logger           = std::make_unique<StdOutLogger>();
-    p->timeRange        = Range(0._f, 1000._f);
-    p->timeStepping     = Factory::getTimestepping(globalSettings, p->storage);
+    /*globalSettings.set(GlobalSettingsIds::MODEL_DAMAGE, DamageEnum::SCALAR_GRADY_KIPP);*/
+    globalSettings.set(GlobalSettingsIds::MODEL_YIELDING, YieldingEnum::VON_MISES);
+    Problem* p      = new Problem(globalSettings);
+    p->logger       = std::make_unique<StdOutLogger>();
+    p->timeRange    = Range(0._f, 1._f);
+    p->timeStepping = Factory::getTimestepping(globalSettings, p->storage);
 
     auto bodySettings = BODY_SETTINGS;
-    bodySettings.set(BodySettingsIds::ENERGY, 1.e-6_f);
-    bodySettings.set(BodySettingsIds::PARTICLE_COUNT, 100000);
+    bodySettings.set(BodySettingsIds::ENERGY, 1.e2_f);
+    bodySettings.set(BodySettingsIds::PARTICLE_COUNT, 1000);
     bodySettings.set(BodySettingsIds::EOS, EosEnum::TILLOTSON);
     InitialConditions conds(p->storage, globalSettings);
 
@@ -52,14 +52,14 @@ bool MyApp::OnInit() {
     SphericalDomain domain2(Vector(5.4e2_f, 1.35e2_f, 0._f), 20._f); // D = 40m
     bodySettings.set(BodySettingsIds::PARTICLE_COUNT, 100);
     conds.addBody(domain2, bodySettings, Vector(-5.e3_f, 0._f, 0._f)); // 5km/s
-    //bodySettings.set(BodySettingsIds::PARTICLE_COUNT, 100);
-    //SphericalDomain domain2(Vector(2._f, 1._f, 0._f), 0.3_f);
-    //conds.addBody(domain2, bodySettings, Vector(-5._f, 0._f, 0._f));
+    // bodySettings.set(BodySettingsIds::PARTICLE_COUNT, 100);
+    // SphericalDomain domain2(Vector(2._f, 1._f, 0._f), 0.3_f);
+    // conds.addBody(domain2, bodySettings, Vector(-5._f, 0._f, 0._f));
 
     GuiSettings guiSettings = GUI_SETTINGS;
     guiSettings.set<Float>(GuiSettingsIds::VIEW_FOV, 1.e3_f);
     guiSettings.set<Float>(GuiSettingsIds::PARTICLE_RADIUS, 0.5_f);
-    guiSettings.set<Float>(GuiSettingsIds::ORTHO_CUTOFF, 1.e3_f);
+    guiSettings.set<Float>(GuiSettingsIds::ORTHO_CUTOFF, 1.e2_f);
     window = new Window(p->storage, guiSettings);
     window->SetAutoLayout(true);
     window->Show();

@@ -372,6 +372,9 @@ enum class EosEnum {
     /// Tillotson (1962) equation of state
     TILLOTSON,
 
+    /// Murnaghan equation of state
+    MURNAGHAN,
+
     /// ANEOS given by look-up table
     ANEOS
 };
@@ -431,6 +434,9 @@ enum class BodySettingsIds {
     /// Beta coefficient in expanded phase of Tillotson equation
     TILLOTSON_BETA,
 
+    /// Specific sublimation energy
+    TILLOTSON_SUBLIMATION,
+
     /// Specific energy of incipient vaporization
     TILLOTSON_ENERGY_IV,
 
@@ -477,14 +483,15 @@ const Settings<BodySettingsIds> BODY_SETTINGS = {
     { BodySettingsIds::TILLOTSON_ALPHA,         "eos.tillotson.alpha",          5._f },
     { BodySettingsIds::TILLOTSON_BETA,          "eos.tillotson.beta",           5._f },
     { BodySettingsIds::TILLOTSON_NONLINEAR_B,   "eos.tillotson.nonlinear_b",    2.67e10_f },
+    { BodySettingsIds::TILLOTSON_SUBLIMATION,   "eos.tillotson.sublimation",    4.87e8_f },
     { BodySettingsIds::TILLOTSON_ENERGY_IV,     "eos.tillotson.energy_iv",      4.72e6_f },
     { BodySettingsIds::TILLOTSON_ENERGY_CV,     "eos.tillotson.energy_cv",      1.82e7_f },
 
     /// Material properties
     { BodySettingsIds::DENSITY,                 "material.density",             2700._f },
-    { BodySettingsIds::DENSITY_RANGE,           "material.density.range",       Range(1._f, Extended::infinity()) },
-    { BodySettingsIds::ENERGY,                  "material.energy",              0._f },
-    { BodySettingsIds::ENERGY_RANGE,            "material.energy.range",        Range(0._f, Extended::infinity()) },
+    { BodySettingsIds::DENSITY_RANGE,           "material.density.range",       Range(10._f, Extended::infinity()) },
+    { BodySettingsIds::ENERGY,                  "material.energy",              10._f },
+    { BodySettingsIds::ENERGY_RANGE,            "material.energy.range",        Range(10._f, Extended::infinity()) },
     { BodySettingsIds::DAMAGE,                  "material.damage",              0._f },
     { BodySettingsIds::DAMAGE_RANGE,            "material.damage.range",        Range(0.f, 1._f) },
     { BodySettingsIds::STRESS_TENSOR,           "material.stress_tensor",       TracelessTensor(0._f) },

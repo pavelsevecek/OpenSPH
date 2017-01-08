@@ -25,18 +25,18 @@ inline void analyticSod(const float t) {
     const Float u_r   = 0._f;
 
     const Float gamma = 1.4._f;
-    const Float mu    = Math::sqrt((gamma - 1._f) / (gamma + 1._f));
+    const Float mu    = sqrt((gamma - 1._f) / (gamma + 1._f));
 
     /// Sound speed
-    const Float c_l = Math::sqrt((gamma * P_l / rho_l));
-    const Float c_r = Math::sqrt((gamma * P_r / rho_r));
+    const Float c_l = sqrt((gamma * P_l / rho_l));
+    const Float c_r = sqrt((gamma * P_r / rho_r));
 
     auto func =
         [=](const Float P) {
             return (P - P_r) *
-                       (Math::sqrt((Math::sqr(1._f - mu * mu)) * (1._f / (rho_r * (P + mu * mu * P_r))))) -
-                   2._f * (Math::sqrt(gamma) / (gamma - 1._f)) *
-                       (1._f - Math::pow(P, (gamma - 1) / (2._f * gamma)));
+                       (sqrt((sqr(1._f - mu * mu)) * (1._f / (rho_r * (P + mu * mu * P_r))))) -
+                   2._f * (sqrt(gamma) / (gamma - 1._f)) *
+                       (1._f - pow(P, (gamma - 1) / (2._f * gamma)));
         };
 
    /* const Float P_post = fzero('sod_func', pi);

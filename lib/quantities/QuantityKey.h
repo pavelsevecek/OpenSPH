@@ -48,7 +48,6 @@ enum class QuantityKey {
     MAXIMUM_VALUE ///< Placeholder, used in timestepping settings
 };
 
-/// \todo rewrite this to something less stupid
 INLINE std::string getQuantityName(const QuantityKey key) {
     switch (key) {
     case QuantityKey::POSITIONS:
@@ -60,16 +59,22 @@ INLINE std::string getQuantityName(const QuantityKey key) {
     case QuantityKey::DENSITY:
         return "Density";
     case QuantityKey::ENERGY:
-        return "Specific energy";
+        return "Spec. energy";
     case QuantityKey::SOUND_SPEED:
         return "Sound speed";
     case QuantityKey::DEVIATORIC_STRESS:
-        return "Deviatoric stress";
+        return "Stress";
     case QuantityKey::DAMAGE:
         return "Damage";
     default:
         NOT_IMPLEMENTED;
     }
+}
+
+template<typename TStream>
+INLINE TStream& operator<<(TStream& stream, const QuantityKey key) {
+    stream << getQuantityName(key);
+    return stream;
 }
 
 INLINE std::string getDerivativeName(const QuantityKey key) {

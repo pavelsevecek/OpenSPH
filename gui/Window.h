@@ -25,13 +25,14 @@ public:
         wxBoxSizer* sizer   = new wxBoxSizer(wxVERTICAL);
         wxBoxSizer* toolbar = new wxBoxSizer(wxHORIZONTAL);
         toolbar->Add(new wxButton(this, int(ControlIds::BUTTON_START), "Start"));
-        wxString quantities[] = { "Velocity", "Damage", "Density", "Pressure" };
+        wxString quantities[] = { "Velocity", "Density", "Pressure", "Damage" };
+        const int quantityCnt = storage->has(QuantityKey::DAMAGE) ? 4 : 3;
         quantityBox           = new wxComboBox(this,
                                      int(ControlIds::QUANTITY_BOX),
                                      "",
                                      wxDefaultPosition,
                                      wxDefaultSize,
-                                     4,
+                                     quantityCnt,
                                      quantities,
                                      wxCB_SIMPLE | wxCB_READONLY);
         this->Connect(wxEVT_COMBOBOX, wxCommandEventHandler(Window::onComboBox));
@@ -68,13 +69,13 @@ private:
             renderer->setQuantity(QuantityKey::POSITIONS);
             break;
         case 1:
-            renderer->setQuantity(QuantityKey::DAMAGE);
-            break;
-        case 2:
             renderer->setQuantity(QuantityKey::DENSITY);
             break;
-        case 3:
+        case 2:
             renderer->setQuantity(QuantityKey::PRESSURE);
+            break;
+        case 3:
+            renderer->setQuantity(QuantityKey::DAMAGE);
             break;
         }
         evt.Skip();

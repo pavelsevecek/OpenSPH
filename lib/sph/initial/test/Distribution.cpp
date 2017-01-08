@@ -45,14 +45,14 @@ TEST_CASE("HexaPacking sorted", "[initconds]") {
     for (Size i = 0; i < r_sort.size(); ++i) {
         neighCnt_sort += finder_sort->findNeighbours(i, 2._f * r_sort[i][H], neighs);
         for (auto& n : neighs) {
-            const Size dist = Size(Math::abs(int(n.index) - int(i)));
+            const Size dist = Size(abs(int(n.index) - int(i)));
             dists_sort.push(dist);
         }
     }
     for (Size i = 0; i < r_unsort.size(); ++i) {
         neighCnt_unsort += finder_unsort->findNeighbours(i, 2._f * r_unsort[i][H], neighs);
         for (auto& n : neighs) {
-            const Size dist = Size(Math::abs(int(n.index) - int(i)));
+            const Size dist = Size(abs(int(n.index) - int(i)));
             dists_unsort.push(dist);
         }
     }
@@ -84,7 +84,7 @@ TEST_CASE("LinearDistribution", "[initconds]") {
     bool equal = true;
     StdOutLogger logger;
     for (int i = 0; i <= 100; ++i) {
-        if (!Math::almostEqual(values[i], Vector(i / 100._f, 0._f, 0._f), 1.e-5_f)) {
+        if (!almostEqual(values[i], Vector(i / 100._f, 0._f, 0._f), 1.e-5_f)) {
             logger.write(values[i], " == ", Vector(i / 100._f, 0._f, 0._f));
             break;
             equal = false;

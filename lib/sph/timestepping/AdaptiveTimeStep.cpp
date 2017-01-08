@@ -14,17 +14,18 @@ Float AdaptiveTimeStep::get(Storage& storage, const Float maxStep, FrequentStats
     StaticArray<Float, 16> minTimeSteps(EMPTY_ARRAY);
 
     // Find the step from ratios 'value/derivative'
-    iterate<VisitorEnum::FIRST_ORDER>(storage, [this, &minTimeSteps](auto&& v, auto&& dv) {
+    iterate<VisitorEnum::FIRST_ORDER>(storage, [&](auto&& v, auto&& dv) {
         ASSERT(v.size() == dv.size());
         this->cachedSteps.clear();
         for (Size i = 0; i < v.size(); ++i) {
-            const Float dvSqrNorm = Math::normSqr(dv[i]);
-            if (dvSqrNorm != 0._f) {
-                /// \todo here, float quantities could be significantly optimized using SSE
-                const Float value = factor * Math::norm(v[i]) * Math::sqrtInv(dvSqrNorm);
-                ASSERT(Math::isReal(value) && value > 0._f && value < INFTY);
-                this->cachedSteps.push(value);
-            }
+            const auto absdv = abs(dv[i]);
+            using T = decltype(absdv);
+            /// \todo we need to add some 'small' value to v, otherwise for zero value v, ANY small dv will
+            /// predict zero timestep. However this small value has to be dimensionless, how to do it?
+            const auto value = factor * (abs(v[i]) + T(1.f)) / (absdv + T(EPS));
+            ASSERT(isReal(value));
+            const Float minValue = minElement(value);
+            this->cachedSteps.push(minValue);
         }
         const Float minStep = this->cachedSteps.empty() ? INFTY : minOfArray(this->cachedSteps);
         minTimeSteps.push(minStep);
@@ -39,14 +40,13 @@ Float AdaptiveTimeStep::get(Storage& storage, const Float maxStep, FrequentStats
         });
 
     // Courant criterion
+    /// \todo AV contribution?
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityKey::POSITIONS);
     ArrayView<Float> cs = storage.getValue<Float>(QuantityKey::SOUND_SPEED);
-    /// \todo AV contribution?
-
     cachedSteps.clear();
     for (Size i = 0; i < r.size(); ++i) {
         const Float value = courant * r[i][H] / cs[i];
-        ASSERT(Math::isReal(value) && value > 0._f && value < INFTY);
+        ASSERT(isReal(value) && value > 0._f && value < INFTY);
         cachedSteps.push(value);
     }
     Float minStepCourant = cachedSteps.empty() ? INFTY : minOfArray(cachedSteps);
@@ -77,6 +77,8 @@ Float AdaptiveTimeStep::get(Storage& storage, const Float maxStep, FrequentStats
         minStep = maxStep;
         flag = QuantityKey::MAXIMUM_VALUE;
     }
+
+    stats.set(FrequentStatsIds::TIMESTEP_VALUE, minStep);
     stats.set(FrequentStatsIds::TIMESTEP_CRITERION, flag);
 
     return minStep;
@@ -86,7 +88,7 @@ Float minOfArray(Array<Float>& ar) {
     ASSERT(!ar.empty());
     for (Size step = 2; step < 2 * ar.size(); step *= 2) {
         for (Size i = 0; i < ar.size() - (step >> 1); i += step) {
-            ar[i] = Math::min(ar[i], ar[i + (step >> 1)]);
+            ar[i] = min(ar[i], ar[i + (step >> 1)]);
         }
     }
     return ar[0];
@@ -94,13 +96,12 @@ Float minOfArray(Array<Float>& ar) {
 
 Float AdaptiveTimeStep::cond2ndOrder(LimitedArray<Vector>& v, LimitedArray<Vector>& d2v) {
     ASSERT(v.size() == d2v.size());
-    Float minStep = INFTY;
     cachedSteps.clear();
     for (Size i = 0; i < v.size(); ++i) {
-        const Float d2vNorm = Math::normSqr(d2v[i]);
+        const Float d2vNorm = normSqr(d2v[i]);
         if (d2vNorm != 0._f) {
-            const Float step = Math::root<4>(Math::sqr(v[i][H]) / d2vNorm);
-            ASSERT(Math::isReal(minStep) && minStep > 0._f && minStep < INFTY);
+            const Float step = root<4>(sqr(v[i][H]) / d2vNorm);
+            ASSERT(isReal(step) && step > 0._f && step < INFTY);
             cachedSteps.push(step);
         }
     }

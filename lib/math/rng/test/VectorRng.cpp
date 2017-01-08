@@ -20,17 +20,17 @@ void testVectorRng(TVectorRng&& rng,
     double norm = 1. / double(N);
     for (int i = 0; i < N; ++i) {
         Vector values = rng();
-        minValues     = Math::min(minValues, values);
-        maxValues     = Math::max(maxValues, values);
+        minValues     = min(minValues, values);
+        maxValues     = max(maxValues, values);
         sum += values;
-        sumSqr += Math::sqr(values);
+        sumSqr += sqr(values);
     }
     Vector mean = sum * norm;
     for (int i = 0; i < 3; ++i) {
         REQUIRE(minValues[i] >= expectedMin[i]);
         REQUIRE(maxValues[i] <= expectedMax[i]);
-        REQUIRE(Math::almostEqual(mean[i], expectedMean[i], 1.e-2));
-        REQUIRE(Math::almostEqual(sumSqr[i] * norm - Math::sqr(mean[i]), expectedVariance[i], 1.e-2));
+        REQUIRE(almostEqual(mean[i], expectedMean[i], 1.e-2));
+        REQUIRE(almostEqual(sumSqr[i] * norm - sqr(mean[i]), expectedVariance[i], 1.e-2));
     }
 }
 

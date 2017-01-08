@@ -34,11 +34,11 @@ public:
     virtual void project(ArrayView<Vector> vs, Optional<ArrayView<Size>> indices = NOTHING) const override {
         if (indices) {
             for (Size i : indices.get()) {
-                vs[i][X] = Math::max(0._f, vs[i][X]);
+                vs[i][X] = max(0._f, vs[i][X]);
             }
         } else {
             for (Vector& v : vs) {
-                v[X] = Math::max(0._f, v[X]);
+                v[X] = max(0._f, v[X]);
             }
         }
     }
@@ -89,9 +89,9 @@ TEST_CASE("GhostParticles wall", "[boundary]") {
     REQUIRE(r[10] == Vector(0._f, 0._f, 0._f));
     REQUIRE(r[11] == Vector(-1._f, 1._f, 1._f));
 
-    REQUIRE(Math::almostEqual(v[7], Vector(1._f, 1._f, 1._f), 1.e-3_f));
-    REQUIRE(Math::almostEqual(v[8], Vector(0._f, 2._f, 1._f), 1.e-3_f));
-    REQUIRE(Math::almostEqual(v[9], Vector(-1._f, 0._f, -3._f), 1.e-3_f));
+    REQUIRE(almostEqual(v[7], Vector(1._f, 1._f, 1._f), 1.e-3_f));
+    REQUIRE(almostEqual(v[8], Vector(0._f, 2._f, 1._f), 1.e-3_f));
+    REQUIRE(almostEqual(v[9], Vector(-1._f, 0._f, -3._f), 1.e-3_f));
 
     ArrayView<Float> rho = storage.getValue<Float>(QuantityKey::DENSITY);
     REQUIRE(rho[7] == 3._f);
@@ -105,7 +105,7 @@ TEST_CASE("GhostParticles wall", "[boundary]") {
     tie(r, v, dv) = storage.getAll<Vector>(QuantityKey::POSITIONS);
     REQUIRE(makeArray(r.size(), v.size(), dv.size()) == makeArray(12u, 12u, 12u));
     REQUIRE(r[7] == Vector(-1.5_f, 1._f, 3._f));
-    REQUIRE(Math::almostEqual(v[7], Vector(1._f, 1._f, 1._f), 1.e-3_f));
+    REQUIRE(almostEqual(v[7], Vector(1._f, 1._f, 1._f), 1.e-3_f));
     rho = storage.getValue<Float>(QuantityKey::DENSITY);
     REQUIRE(rho[7] == 3._f);
 }
@@ -113,8 +113,8 @@ TEST_CASE("GhostParticles wall", "[boundary]") {
 TEST_CASE("GhostParticles Sphere", "[boundary]") {
     Storage storage;
     Array<Vector> particles;
-    for (Float phi = 0._f; phi < 2._f * Math::PI; phi += 0.1_f) {
-        for (Float theta = 0._f; theta < Math::PI; theta += 0.1_f) {
+    for (Float phi = 0._f; phi < 2._f * PI; phi += 0.1_f) {
+        for (Float theta = 0._f; theta < PI; theta += 0.1_f) {
             Vector v = spherical(1.9_f, theta, phi);
             v[H] = 0.1_f;
             particles.push(v);
@@ -140,12 +140,12 @@ TEST_CASE("GhostParticles Sphere", "[boundary]") {
         Vector normalized;
         Float length;
         tieToTuple(normalized, length) = getNormalizedWithLength(r[ghostIdx + i]);
-        if (!Math::almostEqual(length, 2.1_f)) {
+        if (!almostEqual(length, 2.1_f)) {
             logger.write("Incorrect position of ghost: " + std::to_string(length));
             allSymmetric = false;
             break;
         }
-        if (!Math::almostEqual(normalized, getNormalized(r[i]))) {
+        if (!almostEqual(normalized, getNormalized(r[i]))) {
             logger.write("Incorrect position of ghost: ", normalized);
             allSymmetric = false;
             break;
@@ -153,7 +153,7 @@ TEST_CASE("GhostParticles Sphere", "[boundary]") {
         // check that velocities are symmetric == their perpendicular component is inverted
         const Float vPerp = dot(v[i], normalized);
         const Float vgPerp = dot(v[ghostIdx + i], normalized);
-        if (!Math::almostEqual(vPerp, -vgPerp, 1.e-5_f)) {
+        if (!almostEqual(vPerp, -vgPerp, 1.e-5_f)) {
             logger.write("Perpendicular component not inverted: ", vPerp, "  ", vgPerp);
             allSymmetric = false;
             break;
@@ -161,7 +161,7 @@ TEST_CASE("GhostParticles Sphere", "[boundary]") {
         // parallel component should be equal
         const Vector vPar = v[i] - normalized * dot(v[i], normalized);
         const Vector vgPar = v[ghostIdx + i] - normalized * dot(v[ghostIdx + i], normalized);
-        if (!Math::almostEqual(vPar, vgPar, 1.e-5_f)) {
+        if (!almostEqual(vPar, vgPar, 1.e-5_f)) {
             logger.write("Parallel component not copied: ", vPar, "  ", vgPar);
             allSymmetric = false;
             break;
@@ -174,8 +174,8 @@ TEST_CASE("GhostParticles Sphere Projection", "[boundary]") {
     Storage storage;
     Array<Vector> particles;
     // two spherical layers of particles
-    for (Float phi = 0._f; phi < 2._f * Math::PI; phi += 0.1_f) {
-        for (Float theta = 0._f; theta < Math::PI; theta += 0.1_f) {
+    for (Float phi = 0._f; phi < 2._f * PI; phi += 0.1_f) {
+        for (Float theta = 0._f; theta < PI; theta += 0.1_f) {
             Vector v = spherical(1.9_f, theta, phi);
             v[H] = 0.1_f;
             particles.push(v);
@@ -196,13 +196,13 @@ TEST_CASE("GhostParticles Sphere Projection", "[boundary]") {
     StdOutLogger logger;
     for (Size i = 0; i < ghostIdx; ++i) {
         if (i % 2 == 0) {
-            if (!Math::almostEqual(getLength(r[i]), 1.9_f)) {
+            if (!almostEqual(getLength(r[i]), 1.9_f)) {
                 logger.write("Invalid particle position: ", getLength(r[i]), " / 1.9");
                 allMatching = false;
                 break;
             }
         } else {
-            if (!Math::almostEqual(getLength(r[i]), 0.9_f)) {
+            if (!almostEqual(getLength(r[i]), 0.9_f)) {
                 logger.write("Invalid particle position: ", getLength(r[i]), " / 0.9");
                 allMatching = false;
                 break;

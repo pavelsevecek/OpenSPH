@@ -8,7 +8,7 @@ NAMESPACE_SPH_BEGIN
 
 enum class PaletteScale { LINEAR, LOGARITHMIC, HYBRID };
 
-class Palette  {
+class Palette {
 private:
     struct Point {
         float value;
@@ -19,15 +19,22 @@ private:
 public:
     Palette() = default;
 
-    Palette(Array<Point>&& points)
-        : points(std::move(points)) {}
+    Palette(Array<Point>&& controlPoints)
+        : points(std::move(controlPoints)) {
+#ifdef DEBUG
+        // sanity check, points must be sorted
+        for (Size i = 0; i < points.size() - 1; ++i) {
+            ASSERT(points[i].value < points[i + 1].value);
+        }
+#endif
+    }
 
     Color operator()(const float value) {
         ASSERT(points.size() >= 2);
-        if (value < points[0].value) {
+        if (value <= points[0].value) {
             return points[0].color;
         }
-        if (value > points[points.size() - 1].value) {
+        if (value >= points[points.size() - 1].value) {
             return points[points.size() - 1].color;
         }
         for (Size i = 0; i < points.size() - 1; ++i) {
@@ -55,7 +62,7 @@ public:
                              { x0 + 0.5f * dx, Color(1.0f, 0.0f, 0.2f) },
                              { x0 + dx, Color(1.0f, 1.0f, 0.2f) } });
         case QuantityKey::DAMAGE:
-            return Palette({ { x0, Color(0.1f, 0.1f, 0.1f) }, { x0 + dx, Color(0.9f, 0.9f, 0.9f) } });    
+            return Palette({ { x0, Color(0.1f, 0.1f, 0.1f) }, { x0 + dx, Color(0.9f, 0.9f, 0.9f) } });
         default:
             NOT_IMPLEMENTED;
         }

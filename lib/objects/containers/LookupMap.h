@@ -16,7 +16,7 @@ public:
     LookupMap() = default;
 
     LookupMap(const Size n, const Box& box)
-        : storage(Math::pow<3>(n))
+        : storage(pow<3>(n))
         , boundingBox(box)
         , dimensionSize(n) {
         fixSingularBox();
@@ -40,13 +40,13 @@ public:
     }
 
     INLINE const Array<Size>& operator()(const Indices& idxs) const {
-        const Size idx = idxs[X] * Math::sqr(dimensionSize) + idxs[Y] * dimensionSize + idxs[Z];
+        const Size idx = idxs[X] * sqr(dimensionSize) + idxs[Y] * dimensionSize + idxs[Z];
         ASSERT(unsigned(idx) < unsigned(storage.size()));
         return storage[idx];
     }
 
     INLINE Array<Size>& operator()(const Indices& idxs) {
-        const Size idx = idxs[X] * Math::sqr(dimensionSize) + idxs[Y] * dimensionSize + idxs[Z];
+        const Size idx = idxs[X] * sqr(dimensionSize) + idxs[Y] * dimensionSize + idxs[Z];
         ASSERT(unsigned(idx) < unsigned(storage.size()));
         return storage[idx];
     }

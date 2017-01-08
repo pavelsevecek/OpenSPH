@@ -14,23 +14,23 @@ NAMESPACE_SPH_BEGIN
 enum { ID_REPAINT = 1, ID_RELOAD = 2 };
 
 VisualSphere::VisualSphere(const Size latitudeSegments, const Size longitudeSegments) {
-    const float dlon   = 2 * Math::PI / float(longitudeSegments) + EPS;
-    const float dlat   = Math::PI / float(latitudeSegments) + EPS;
+    const float dlon   = 2 * PI / float(longitudeSegments) + EPS;
+    const float dlat   = PI / float(latitudeSegments) + EPS;
     const float radius = 1.f;
     // north pole vertex
     const Vector np = spherical(radius, 0.f, 0.f);
     vertices.push(np);
     normals.push(np);
     // all middle vertices
-    for (float lat = dlat; lat < Math::PI; lat += dlat) {
-        for (float lon = 0.f; lon < 2 * Math::PI; lon += dlon) {
+    for (float lat = dlat; lat < PI; lat += dlat) {
+        for (float lon = 0.f; lon < 2 * PI; lon += dlon) {
             const Vector r = spherical(radius, lat, lon);
             vertices.push(r);
             normals.push(r);
         }
     }
     // south pole vertex
-    const Vector sp = spherical(radius, Math::PI, 0.f);
+    const Vector sp = spherical(radius, PI, 0.f);
     vertices.push(sp);
     normals.push(sp);
 

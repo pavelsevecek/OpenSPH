@@ -52,7 +52,7 @@ public:
 
             // clamp smoothing length
             for (Float& h : componentAdapter(r, H)) {
-                h = Math::max(h, 1.e-12_f);
+                h = max(h, 1.e-12_f);
             }
         }
         {
@@ -80,13 +80,13 @@ public:
                 // actual smoothing length
                 const Float hbar = 0.5_f * (r[i][H] + r[j][H]);
                 ASSERT(hbar > EPS && hbar <= r[i][H]);
-                if (getSqrLength(r[i] - r[j]) > Math::sqr(this->kernel.radius() * hbar)) {
+                if (getSqrLength(r[i] - r[j]) > sqr(this->kernel.radius() * hbar)) {
                     // aren't actual neighbours
                     continue;
                 }
                 // compute gradient of kernel W_ij
                 const Vector grad = w.grad(r[i], r[j]);
-                ASSERT(dot(grad, r[i] - r[j]) <= 0._f);
+                ASSERT(isReal(grad) && dot(grad, r[i] - r[j]) <= 0._f);
 
                 this->accumulateModules(i, j, grad);
             }
@@ -95,8 +95,7 @@ public:
         // set derivative of density and smoothing length
         for (Size i = 0; i < drho.size(); ++i) {
             drho[i] = -rhoDivv[i];
-            /// \todo smoothing length
-            v[i][H] = 0._f;
+            v[i][H] = r[i][H] / rho[i] * rhoDivv[i];
             dv[i][H] = 0._f;
         }
         this->integrateModules(storage);

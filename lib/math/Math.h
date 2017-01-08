@@ -1,6 +1,6 @@
 #pragma once
 
-/// Basic math routines used within the code. Use "Math::" functions instead of std:: ones, for consistency.
+/// Basic math routines used within the code. Use "" functions instead of std:: ones, for consistency.
 /// Pavel Sevecek 2016
 /// sevecek at sirrah.troja.mff.cuni.cz
 
@@ -31,274 +31,300 @@ constexpr Float EPS = Eps<Float>::value;
 /// Large value (compared with 1)
 constexpr Float INFTY = 1.e20f;
 
-namespace Math {
-    template <typename T>
-    INLINE constexpr T max(const T f1, const T f2) {
-        return (f1 > f2) ? f1 : f2;
-    }
 
-    template <typename T>
-    INLINE constexpr T min(const T f1, const T f2) {
-        return (f1 < f2) ? f1 : f2;
-    }
-
-    template <typename T>
-    INLINE constexpr T min(const T f1, const T f2, const T f3) {
-        return std::max({ f1, f2, f3 });
-    }
-
-    template <typename T>
-    INLINE constexpr T max(const T f1, const T f2, const T f3) {
-        return std::max({ f1, f2, f3 });
-    }
-
-    template <typename T>
-    INLINE constexpr auto clamp(const T f, const T f1, const T f2) {
-        return max(f1, min(f, f2));
-    }
-
-    INLINE int round(const float f) { return ::round(f); }
-
-
-    /// Returns an approximate value of inverse square root.
-    /// \tparam Iters Number of iterations of the algorithm. Higher value = more accurate result.
-    template <int iters = 1, typename T>
-    INLINE T sqrtInv(const T& f) {
-        int i;
-        // cast to float
-        float x2 = float(f) * 0.5f;
-        float y = f;
-        memcpy(&i, &y, sizeof(float));
-        i = 0x5f3759df - (i >> 1);
-        memcpy(&y, &i, sizeof(float));
-        for (int i = 0; i < iters; ++i) {
-            y = y * (1.5f - (x2 * y * y));
-        }
-        return T(y);
-    }
-
-    template <typename T>
-    INLINE T sqrtApprox(const T f) {
-        if (f == T(0)) {
-            return T(0);
-        }
-        return T(1.f) / sqrtInv(f);
-    }
-
-    template <typename T>
-    INLINE constexpr auto sqr(T&& f) {
-        return f * f;
-    }
-    template <typename T>
-    INLINE T pow(const T f, const T e) {
-        return ::pow(f, e);
-    }
-
-
-    namespace Detail {
-        // default implementation using (slow) pow function.
-        template <int n>
-        struct GetRoot {
-            // forcing type deduction
-            template <typename T>
-            INLINE static auto value(T&& v) {
-                return pow(v, 1.f / n);
-            }
-        };
-
-        // specialization for square root
-        template <>
-        struct GetRoot<2> {
-            template <typename T>
-            INLINE static auto value(T&& v) {
-                return std::sqrt(v);
-            }
-        };
-        // specialization for cube root
-        template <>
-        struct GetRoot<3> {
-            template <typename T>
-            INLINE static auto value(T&& v) {
-                return std::cbrt(v);
-            }
-        };
-    }
-
-    /// Return n-th root of a value. Works with dimensional analysis, throws compile error if attempted to get
-    /// a root of a unit that is not n-th power (that would result in units with rational powers, which is not
-    /// supported).
-    template <int n, typename T>
-    INLINE auto root(T&& f) {
-        return Detail::GetRoot<n>::value(std::forward<T>(f));
-    }
-
-    template <typename T>
-    INLINE auto sqrt(T&& f) {
-        return root<2>(std::forward<T>(f));
-    }
-
-    /// Power for floats
-    template <int N>
-    INLINE constexpr Float pow(const Float v);
-
-    template <>
-    INLINE constexpr Float pow<0>(const Float) {
-        return 1._f;
-    }
-    template <>
-    INLINE constexpr Float pow<1>(const Float v) {
-        return v;
-    }
-    template <>
-    INLINE constexpr Float pow<2>(const Float v) {
-        return v*v;
-    }
-    template <>
-    INLINE constexpr Float pow<3>(const Float v) {
-        return v*v*v;
-    }
-    template <>
-    INLINE constexpr Float pow<4>(const Float v) {
-        return pow<2>(pow<2>(v));
-    }
-    template <>
-    INLINE constexpr Float pow<5>(const Float v) {
-        return pow<2>(pow<2>(v))*v;
-    }
-    template <>
-    INLINE constexpr Float pow<6>(const Float v) {
-        return pow<3>(pow<2>(v));
-    }
-
-
-    /// Power for ints
-    template <int N>
-    INLINE constexpr Size pow(const Size v);
-
-    template <>
-    INLINE constexpr Size pow<0>(const Size) {
-        return 1;
-    }
-    template <>
-    INLINE constexpr Size pow<1>(const Size v) {
-        return v;
-    }
-    template <>
-    INLINE constexpr Size pow<2>(const Size v) {
-        return v*v;
-    }
-    template <>
-    INLINE constexpr Size pow<3>(const Size v) {
-        return v*v*v;
-    }
-    template <>
-    INLINE constexpr Size pow<4>(const Size v) {
-        return pow<2>(pow<2>(v));
-    }
-    template <>
-    INLINE constexpr Size pow<5>(const Size v) {
-        return pow<2>(pow<2>(v))*v;
-    }
-    template <>
-    INLINE constexpr Size pow<6>(const Size v) {
-        return pow<3>(pow<2>(v));
-    }
-
-
-    template <typename T>
-    INLINE T exp(const T f) {
-        return ::exp(f);
-    }
-
-    template <typename T>
-    INLINE T abs(const T f) {
-        return ::fabs(f);
-    }
-
-    template <>
-    INLINE int abs<int>(const int f) {
-        return ::abs(f);
-    }
-
-    template<>
-    INLINE Size abs<Size>(const Size f) {
-        return ::abs(f);
-    }
-
-    template <typename T>
-    INLINE T cos(const T f) {
-        return std::cos(f);
-    }
-
-    template <typename T>
-    INLINE T sin(const T f) {
-        return std::sin(f);
-    }
-
-    template <typename T>
-    INLINE T acos(const T f) {
-        return std::acos(f);
-    }
-
-    template <typename T>
-    INLINE T asin(const T f) {
-        return std::asin(f);
-    }
-
-    template <typename T>
-    INLINE int sgn(const T val) {
-        return (T(0) < val) - (val < T(0));
-    }
-
-    /// \note One test failed because I rounded up Pi too much. I'm not taking any chances ;)
-    constexpr Float PI = 3.14159265358979323846264338327950288419716939937510582097_f;
-
-    constexpr Float PI_INV = 1._f / PI;
-
-    constexpr Float E = 2.718281828459045235360287471352662497757247093699959574967_f;
-
-    INLINE auto sphereVolume(const Float radius) {
-        return 1.3333333333333333333333_f * PI * Math::pow<3>(radius);
-    }
-
-    /// Checks if two valeus are equal to some given accuracy.
-    /// \note We use <= rather than < on purpose as EPS for integral types is zero.
-    INLINE auto almostEqual(const Float& f1, const Float& f2, const Float& eps = EPS) {
-        return abs(f1 - f2) <= eps;
-    }
-
-    /// Returns a norm of a object. Must be specialized to use other objects as quantities.
-    template <typename T>
-    INLINE Float norm(const T& value);
-
-    /// Squared value of the norm.
-    template <typename T>
-    INLINE Float normSqr(const T& value);
-
-    /// Specialization for float, magnitude of float = absolute value
-    template <>
-    INLINE Float norm(const Float& value) {
-        return Math::abs(value);
-    }
-    template <>
-    INLINE Float normSqr(const Float& value) {
-        return Math::sqr(value);
-    }
-
-    /// Specialization for int (needed to use int in quantities)
-    template <>
-    INLINE Float norm(const Size& value) {
-        return Math::abs(value);
-    }
-    template <>
-    INLINE Float normSqr(const Size& value) {
-        return Math::sqr(value);
-    }
-
-    template <typename T>
-    INLINE bool isReal(const T& value) {
-        return !std::isnan(value) && !std::isinf(value);
-    }
+/// Minimum & Maximum value
+template <typename T>
+INLINE constexpr T max(const T& f1, const T& f2) {
+    return (f1 > f2) ? f1 : f2;
 }
+
+template <typename T>
+INLINE constexpr T min(const T& f1, const T& f2) {
+    return (f1 < f2) ? f1 : f2;
+}
+
+template <typename T>
+INLINE constexpr T min(const T& f1, const T& f2, const T& f3) {
+    return min(min(f1, f2), f3);
+}
+
+template <typename T>
+INLINE constexpr T max(const T& f1, const T& f2, const T& f3) {
+    return max(max(f1, f2), f3);
+}
+
+template <typename T>
+INLINE constexpr T clamp(const T& f, const T& f1, const T& f2) {
+    return max(f1, min(f, f2));
+}
+
+
+/// Returns an approximate value of inverse square root.
+/// \tparam Iters Number of iterations of the algorithm. Higher value = more accurate result.
+template <typename T>
+INLINE T sqrtInv(const T& f) {
+    int i;
+    // cast to float
+    float x2 = float(f) * 0.5f;
+    float y = f;
+    memcpy(&i, &y, sizeof(float));
+    i = 0x5f3759df - (i >> 1);
+    memcpy(&y, &i, sizeof(float));
+    return y * (1.5f - (x2 * y * y));
+}
+
+/// Returns an approximative value of square root.
+template <typename T>
+INLINE T sqrtApprox(const T f) {
+    if (f == T(0)) {
+        return T(0);
+    }
+    return T(1.f) / sqrtInv(f);
+}
+
+
+/// Return a squared value.
+template <typename T>
+INLINE constexpr T sqr(const T& f) {
+    return f * f;
+}
+
+
+/*template <typename T>
+INLINE T pow(const T f, const T e) {
+    return ::pow(f, e);
+}*/
+
+
+/*namespace Detail {
+    // default implementation using (slow) pow function.
+    template <int n>
+    struct GetRoot {
+        // forcing type deduction
+        template <typename T>
+        INLINE static auto value(T&& v) {
+            return pow(v, 1.f / n);
+        }
+    };
+
+    // specialization for square root
+    template <>
+    struct GetRoot<2> {
+        template <typename T>
+        INLINE static auto value(T&& v) {
+            return std::sqrt(v);
+        }
+    };
+    // specialization for cube root
+    template <>
+    struct GetRoot<3> {
+        template <typename T>
+        INLINE static auto value(T&& v) {
+            return std::cbrt(v);
+        }
+    };
+}*/
+
+
+/// Return a squared root of a value.
+INLINE Float sqrt(const Float f) {
+    ASSERT(f >= 0._f);
+    return std::sqrt(f);
+}
+
+/// Returns a cubed root of a value.
+INLINE Float cbrt(const Float f) {
+    return std::cbrt(f);
+}
+
+
+template <int N>
+INLINE Float root(const Float f);
+template <>
+INLINE Float root<1>(const Float f) {
+    return f;
+}
+template <>
+INLINE Float root<2>(const Float f) {
+    return sqrt(f);
+}
+template <>
+INLINE Float root<3>(const Float f) {
+    return cbrt(f);
+}
+template <>
+INLINE Float root<4>(const Float f) {
+    /// \todo is this faster than pow(f, 0.25)?
+    return sqrt(sqrt(f));
+}
+
+
+/// Power for floats
+template <int N>
+INLINE constexpr Float pow(const Float v);
+
+template <>
+INLINE constexpr Float pow<0>(const Float) {
+    return 1._f;
+}
+template <>
+INLINE constexpr Float pow<1>(const Float v) {
+    return v;
+}
+template <>
+INLINE constexpr Float pow<2>(const Float v) {
+    return v * v;
+}
+template <>
+INLINE constexpr Float pow<3>(const Float v) {
+    return v * v * v;
+}
+template <>
+INLINE constexpr Float pow<4>(const Float v) {
+    return pow<2>(pow<2>(v));
+}
+template <>
+INLINE constexpr Float pow<5>(const Float v) {
+    return pow<2>(pow<2>(v)) * v;
+}
+template <>
+INLINE constexpr Float pow<6>(const Float v) {
+    return pow<3>(pow<2>(v));
+}
+
+
+/// Power for ints
+template <int N>
+INLINE constexpr Size pow(const Size v);
+
+template <>
+INLINE constexpr Size pow<0>(const Size) {
+    return 1;
+}
+template <>
+INLINE constexpr Size pow<1>(const Size v) {
+    return v;
+}
+template <>
+INLINE constexpr Size pow<2>(const Size v) {
+    return v * v;
+}
+template <>
+INLINE constexpr Size pow<3>(const Size v) {
+    return v * v * v;
+}
+template <>
+INLINE constexpr Size pow<4>(const Size v) {
+    return pow<2>(pow<2>(v));
+}
+template <>
+INLINE constexpr Size pow<5>(const Size v) {
+    return pow<2>(pow<2>(v)) * v;
+}
+template <>
+INLINE constexpr Size pow<6>(const Size v) {
+    return pow<3>(pow<2>(v));
+}
+
+
+/// Mathematical functions
+
+
+template <typename T>
+INLINE T exp(const T f) {
+    return ::exp(f);
+}
+
+/// Computes absolute value.
+/// \note Return type must be auto as abs(TracelessTensor) != TracelessTensor
+template <typename T>
+INLINE auto abs(const T& f) {
+    return ::fabs(f);
+}
+
+template <>
+INLINE auto abs(const int& f) {
+    return int(::abs(f));
+}
+
+template <>
+INLINE auto abs(const Size& f) {
+    return Size(::abs(f));
+}
+
+template <typename T>
+INLINE T cos(const T f) {
+    return std::cos(f);
+}
+
+template <typename T>
+INLINE T sin(const T f) {
+    return std::sin(f);
+}
+
+template <typename T>
+INLINE T acos(const T f) {
+    return std::acos(f);
+}
+
+template <typename T>
+INLINE T asin(const T f) {
+    return std::asin(f);
+}
+
+template <typename T>
+INLINE int sgn(const T val) {
+    return (T(0) < val) - (val < T(0));
+}
+
+
+/// Mathematical constants
+constexpr Float PI = 3.14159265358979323846264338327950288419716939937510582097_f;
+
+constexpr Float PI_INV = 1._f / PI;
+
+constexpr Float E = 2.718281828459045235360287471352662497757247093699959574967_f;
+
+
+/// Computes a volume of a sphere given its radius.
+INLINE Float sphereVolume(const Float radius) {
+    return 1.3333333333333333333333_f * PI * pow<3>(radius);
+}
+
+/// Checks if two values are equal to some given accuracy.
+/// \note We use <= rather than < on purpose as EPS for integral types is zero.
+INLINE auto almostEqual(const Float& f1, const Float& f2, const Float& eps = EPS) {
+    return abs(f1 - f2) <= eps;
+}
+
+
+/// Function needed for generic operation with types in quantities. Must be specialized by every object stored
+/// in quantity.
+
+/// Returns a norm, absolute value by default.
+template <typename T>
+INLINE Float norm(const T& value) {
+    return abs(value);
+}
+
+/// Squared value of the norm.
+template <typename T>
+INLINE Float normSqr(const T& value) {
+    return sqr(value);
+}
+
+/// Returns minimum element, simply the value iself by default. This function is intended for vectors and
+/// tensors, function for float is only for writing generic code.
+template <typename T>
+INLINE Float minElement(const T& value) {
+    return value;
+}
+
+/// Checks for nans and infs.
+template <typename T>
+INLINE bool isReal(const T& value) {
+    return !std::isnan(value) && !std::isinf(value);
+}
+
 
 NAMESPACE_SPH_END

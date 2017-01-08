@@ -52,13 +52,13 @@ Array<Size> getCummulativeSFD(Storage& storage,
     Range range = params ? params->range : [&]() {
         Extended minVolume(Extended::infinity()), maxVolume(-Extended::infinity());
         for (Float v : volumes) {
-            minVolume = Math::min(minVolume, Extended(v));
-            maxVolume = Math::max(maxVolume, Extended(v));
+            minVolume = min(minVolume, Extended(v));
+            maxVolume = max(maxVolume, Extended(v));
         }
         return Range(minVolume, maxVolume);
     }();
     // estimate initial bin count as sqrt of component count
-    Size binCnt = params ? params->binCnt : Size(Math::sqrt(components.size()));
+    Size binCnt = params ? params->binCnt : Size(sqrt(components.size()));
     Array<Size> histogram(binCnt);
     histogram.fill(0);
     ASSERT(binCnt > 0);

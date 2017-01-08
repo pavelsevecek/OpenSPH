@@ -18,24 +18,24 @@ private:
 public:
     Tensor() = default;
 
-    Tensor(const Tensor& other)
+    INLINE Tensor(const Tensor& other)
         : diag(other.diag)
         , off(other.off) {}
 
     /// Construct tensor given its diagonal vector and a vector of off-diagonal elements (sorted top-bottom
     /// and left-right).
-    Tensor(const Vector& diag, const Vector& off)
+    INLINE Tensor(const Vector& diag, const Vector& off)
         : diag(diag)
         , off(off) {}
 
     /// Initialize all components of the tensor to given value.
-    Tensor(const Float value)
+    INLINE Tensor(const Float value)
         : diag(value)
         , off(value) {}
 
     /// Construct tensor given three vectors as rows. Matrix represented by the vectors MUST be symmetric,
     /// checked by assert.
-    Tensor(const Vector& v0, const Vector& v1, const Vector& v2) {
+    INLINE Tensor(const Vector& v0, const Vector& v1, const Vector& v2) {
         ASSERT(v0[1] == v1[0]);
         ASSERT(v0[2] == v2[0]);
         ASSERT(v1[2] == v2[1]);
@@ -93,8 +93,18 @@ public:
 
     INLINE friend Tensor operator*(const Float v, const Tensor& t) { return Tensor(t.diag * v, t.off * v); }
 
+    /// Multiplies a tensor by another tensor, element-wise. Not a matrix multiplication!
+    INLINE friend Tensor operator*(const Tensor& t1, const Tensor& t2) {
+        return Tensor(t1.diag * t2.diag, t1.off * t2.off);
+    }
+
     /// Divides a tensor by a scalar
     INLINE friend Tensor operator/(const Tensor& t, const Float v) { return Tensor(t.diag / v, t.off / v); }
+
+    /// Divides a tensor by another tensor, element-wise.
+    INLINE friend Tensor operator/(const Tensor& t1, const Tensor& t2) {
+        return Tensor(t1.diag / t2.diag, t1.off / t2.off);
+    }
 
     /// Sums up two tensors
     INLINE friend Tensor operator+(const Tensor& t1, const Tensor& t2) {
@@ -128,7 +138,7 @@ public:
     /// Returns the determinant of the tensor
     INLINE Float determinant() const {
         return diag[0] * diag[1] * diag[2] + 2 * off[0] * off[1] * off[2] -
-               (dot(Math::sqr(off), Vector(diag[2], diag[1], diag[0])));
+               (dot(sqr(off), Vector(diag[2], diag[1], diag[0])));
     }
 
     /// Return the trace of the tensor
@@ -136,7 +146,7 @@ public:
 
     /// Returns n-th invariant of the tensor (1<=n<=3)
     template <int n>
-    Float invariant() const {
+    INLINE Float invariant() const {
         switch (n) {
         case 1:
             return trace();
@@ -150,14 +160,14 @@ public:
         }
     }
 
-    Tensor inverse() const {
+    INLINE Tensor inverse() const {
         const Float det = determinant();
         ASSERT(det != 0._f);
         Vector invDiag, invOff;
         /// \todo optimize using SSE
-        invDiag[0] = diag[1] * diag[2] - Math::sqr(off[2]);
-        invDiag[1] = diag[2] * diag[0] - Math::sqr(off[1]);
-        invDiag[2] = diag[0] * diag[1] - Math::sqr(off[0]);
+        invDiag[0] = diag[1] * diag[2] - sqr(off[2]);
+        invDiag[1] = diag[2] * diag[0] - sqr(off[1]);
+        invDiag[2] = diag[0] * diag[1] - sqr(off[0]);
         invOff[0] = off[1] * off[2] - diag[2] * off[0];
         invOff[1] = off[2] * off[0] - diag[1] * off[1];
         invOff[2] = off[0] * off[1] - diag[0] * off[2];
@@ -181,38 +191,55 @@ public:
     }
 };
 
-namespace Math {
-    /// Checks if two tensors are equal to some given accuracy.
-    INLINE bool almostEqual(const Tensor& t1, const Tensor& t2, const Float eps = EPS) {
-        return almostEqual(t1.diagonal(), t2.diagonal(), eps) &&
-               almostEqual(t1.offDiagonal(), t2.offDiagonal(), eps);
-    }
 
-    /// Arbitrary norm of the tensor.
-    /// \todo Use some well-defined norm instead? (spectral norm, L1 or L2 norm, ...)
-    INLINE Float norm(const Tensor& t) {
-        const Vector v = Math::max(t.diagonal(), t.offDiagonal());
-        ASSERT(Math::isReal(v));
-        return norm(v);
-    }
+/// Tensor utils
 
-    /// Arbitrary squared norm of the tensor
-    INLINE Float normSqr(const Tensor& t) {
-        const Vector v = Math::max(t.diagonal(), t.offDiagonal());
-        return normSqr(v);
-    }
 
-    /// Clamping all components by range.
-    template <>
-    INLINE Tensor clamp(const Tensor& t, const Range& range) {
-        return Tensor(clamp(t.diagonal(), range), clamp(t.offDiagonal(), range));
-    }
-
-    template <>
-    INLINE bool isReal(const Tensor& t) {
-        return isReal(t.diagonal()) && isReal(t.offDiagonal());
-    }
+/// Checks if two tensors are equal to some given accuracy.
+INLINE bool almostEqual(const Tensor& t1, const Tensor& t2, const Float eps = EPS) {
+    return almostEqual(t1.diagonal(), t2.diagonal(), eps) &&
+           almostEqual(t1.offDiagonal(), t2.offDiagonal(), eps);
 }
+
+/// Arbitrary norm of the tensor.
+/// \todo Use some well-defined norm instead? (spectral norm, L1 or L2 norm, ...)
+template <>
+INLINE Float norm(const Tensor& t) {
+    const Vector v = max(t.diagonal(), t.offDiagonal());
+    ASSERT(isReal(v));
+    return norm(v);
+}
+
+/// Arbitrary squared norm of the tensor
+template <>
+INLINE Float normSqr(const Tensor& t) {
+    const Vector v = max(t.diagonal(), t.offDiagonal());
+    return normSqr(v);
+}
+
+/// Returns the tensor of absolute values
+template <>
+INLINE auto abs(const Tensor& t) {
+    return Tensor(abs(t.diagonal()), abs(t.offDiagonal()));
+}
+
+/// Returns the minimal element of the tensor.
+template <>
+INLINE Float minElement(const Tensor& t) {
+    return min(minElement(t.diagonal()), minElement(t.offDiagonal()));
+}
+
+/// Clamping all components by range.
+template <>
+INLINE Tensor clamp(const Tensor& t, const Range& range) {
+    return Tensor(clamp(t.diagonal(), range), clamp(t.offDiagonal(), range));
+}
+
+template <>
+INLINE bool isReal(const Tensor& t) {
+    return isReal(t.diagonal()) && isReal(t.offDiagonal());
+}
+
 
 /// Double-dot product t1 : t2 = sum_ij t1_ij t2_ij
 INLINE Float ddot(const Tensor& t1, const Tensor& t2) {
@@ -230,23 +257,23 @@ INLINE Tensor outer(const Vector& v1, const Vector& v2) {
 
 /// Returns three eigenvalue of symmetric matrix.
 INLINE StaticArray<Float, 3> findEigenvalues(const Tensor& t) {
-    const Float n = Math::norm(t);
+    const Float n = norm(t);
     if (n < 1.e-12_f) {
         return { 0._f, 0._f, 0._f };
     }
     const Float p = -t.invariant<1>() / n;
-    const Float q = -t.invariant<2>() / Math::sqr(n);
-    const Float r = -t.invariant<3>() / Math::pow<3>(n);
+    const Float q = -t.invariant<2>() / sqr(n);
+    const Float r = -t.invariant<3>() / pow<3>(n);
 
     const Float a = q - p * p / 3._f;
     ASSERT(a < 0._f);
-    const Float b = (2._f * Math::pow<3>(p) - 9._f * p * q + 27._f * r) / 27._f;
-    const Float aCub = Math::pow<3>(a) / 27._f;
+    const Float b = (2._f * pow<3>(p) - 9._f * p * q + 27._f * r) / 27._f;
+    const Float aCub = pow<3>(a) / 27._f;
     ASSERT(0.25_f * b * b + aCub < 0._f);
-    const Float t1 = 2._f * Math::sqrt(-a / 3._f);
-    const Float phi = Math::acos(-0.5_f * b / Math::sqrt(-aCub));
-    const Vector v(phi / 3._f, (phi + 2 * Math::PI) / 3._f, (phi + 4 * Math::PI) / 3._f);
-    const Vector sig = t1 * Math::cos(v) - Vector(p / 3._f);
+    const Float t1 = 2._f * sqrt(-a / 3._f);
+    const Float phi = acos(-0.5_f * b / sqrt(-aCub));
+    const Vector v(phi / 3._f, (phi + 2 * PI) / 3._f, (phi + 4 * PI) / 3._f);
+    const Vector sig = t1 * cos(v) - Vector(p / 3._f);
     return { sig[0] * n, sig[1] * n, sig[2] * n };
 }
 

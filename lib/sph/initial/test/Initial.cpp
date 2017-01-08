@@ -23,8 +23,8 @@ TEST_CASE("Initial conditions", "[initial]") {
     ArrayView<Float> rhos, us, drhos, dus;
     tie(rhos, drhos) = storage->getAll<Float>(QuantityKey::DENSITY);
     tie(us, dus) = storage->getAll<Float>(QuantityKey::ENERGY);
-    bool result = areAllMatching(rhos, [](const Float f) {
-        return f == 2700._f; // density of 2700km/m^3
+    bool result = areAllMatching(rhos, [&](const Float f) {
+        return f == bodySettings.get<Float>(BodySettingsIds::DENSITY);
     });
     REQUIRE(result);
 
@@ -32,8 +32,8 @@ TEST_CASE("Initial conditions", "[initial]") {
         return f == 0._f; // zero density derivative
     });
     REQUIRE(result);
-    result = areAllMatching(us, [](const Float f) {
-        return f == 0._f; // zero internal energy
+    result = areAllMatching(us, [&](const Float f) {
+        return f ==  bodySettings.get<Float>(BodySettingsIds::ENERGY);
     });
     REQUIRE(result);
     result = areAllMatching(dus, [](const Float f) {
@@ -46,7 +46,7 @@ TEST_CASE("Initial conditions", "[initial]") {
     for (Float m : ms) {
         totalM += m;
     }
-    REQUIRE(Math::almostEqual(totalM, 2700._f * domain.getVolume()));
+    REQUIRE(almostEqual(totalM, 2700._f * domain.getVolume()));
 }
 
 TEST_CASE("Initial velocity", "[initial]") {
@@ -93,13 +93,13 @@ TEST_CASE("Initial rotation", "[initial]") {
     StdOutLogger logger;
     for (Size i = 0; i < r.size(); ++i) {
         const Float distFromAxis = getLength(r[i] - axis * dot(r[i], axis));
-        if (!Math::almostEqual(getLength(v[i]), distFromAxis * magnitude)) {
+        if (!almostEqual(getLength(v[i]), distFromAxis * magnitude)) {
             allMatching = false;
             logger.write(
                 "Invalid angular velocity magnitude: ", getLength(v[i]), " / ", distFromAxis * magnitude);
             break;
         }
-        if (!Math::almostEqual(dot(v[i], axis), 0._f)) {
+        if (!almostEqual(dot(v[i], axis), 0._f)) {
             allMatching = false;
             logger.write("Invalid angular velocity vector: ", v[i], " / ", axis);
             break;

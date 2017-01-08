@@ -14,11 +14,11 @@ void testRng(TRng rng) {
     double norm   = 1. / double(N);
     for (int i = 0; i < N; ++i) {
         double value = rng(0);
-        minValue     = Math::min(minValue, value);
-        maxValue     = Math::max(maxValue, value);
+        minValue     = min(minValue, value);
+        maxValue     = max(maxValue, value);
         sum += value;
-        sumSqr += Math::sqr(value);
-        sumCb += Math::pow<3>((Float)value);
+        sumSqr += sqr(value);
+        sumCb += pow<3>((Float)value);
     }
     REQUIRE(minValue >= 0.);
     REQUIRE(minValue <= 1.e-5);
@@ -26,15 +26,15 @@ void testRng(TRng rng) {
     REQUIRE(maxValue >= 1. - 1.e-5);
     // mean
     double mean = sum * norm;
-    REQUIRE(Math::almostEqual(mean, 0.5, 1.e-3));
+    REQUIRE(almostEqual(mean, 0.5, 1.e-3));
     // variance
-    double variance = sumSqr * norm - Math::sqr(mean);
-    REQUIRE(Math::almostEqual(variance, 0.08333333333, 1.e-3));
+    double variance = sumSqr * norm - sqr(mean);
+    REQUIRE(almostEqual(variance, 0.08333333333, 1.e-3));
     // third moment
-    REQUIRE(Math::almostEqual(sumCb * norm, 0.25, 1.e-3));
+    REQUIRE(almostEqual(sumCb * norm, 0.25, 1.e-3));
     // third central moment
-    double thirdCentral = sumCb * norm - 3. * mean * sumSqr * norm + 2. * Math::pow<3>((Float)mean);
-    REQUIRE(Math::almostEqual(thirdCentral, 0., 1.e-3));
+    double thirdCentral = sumCb * norm - 3. * mean * sumSqr * norm + 2. * pow<3>((Float)mean);
+    REQUIRE(almostEqual(thirdCentral, 0., 1.e-3));
 }
 
 TEST_CASE("UniformRng", "[rng]") {
@@ -50,10 +50,10 @@ TEST_CASE("BenzAsphaugRng", "[rng]") {
     // first few numbers with seed 1234
     BenzAsphaugRng rng(1234);
     const Float eps = 1.e-6_f;
-    REQUIRE(Math::almostEqual(rng(), 0.655416369, eps));
-    REQUIRE(Math::almostEqual(rng(), 0.200995207, eps));
-    REQUIRE(Math::almostEqual(rng(), 0.893622458, eps));
-    REQUIRE(Math::almostEqual(rng(), 0.281886548, eps));
-    REQUIRE(Math::almostEqual(rng(), 0.525000393, eps));
-    REQUIRE(Math::almostEqual(rng(), 0.314126790, eps));
+    REQUIRE(almostEqual(rng(), 0.655416369, eps));
+    REQUIRE(almostEqual(rng(), 0.200995207, eps));
+    REQUIRE(almostEqual(rng(), 0.893622458, eps));
+    REQUIRE(almostEqual(rng(), 0.281886548, eps));
+    REQUIRE(almostEqual(rng(), 0.525000393, eps));
+    REQUIRE(almostEqual(rng(), 0.314126790, eps));
 }

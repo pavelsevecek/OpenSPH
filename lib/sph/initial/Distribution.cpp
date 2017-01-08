@@ -14,7 +14,7 @@ Array<Vector> RandomDistribution::generate(const int n, const Abstract::Domain& 
     Array<Vector> vecs(0, n);
     // use homogeneous smoothing lenghs regardless of actual spatial variability of particle concentration
     const Float volume = domain.getVolume();
-    const Float h = Math::root<3>(volume / n);
+    const Float h = root<3>(volume / n);
     int found = 0;
     for (int i = 0; i < 1e5 * n && found < n; ++i) {
         Vector w = boxRng();
@@ -34,7 +34,7 @@ Array<Vector> CubicPacking::generate(const int n, const Abstract::Domain& domain
     const Float particleDensity = Float(n) / volume;
 
     // interparticle distance based on density
-    const Float h = 1._f / Math::root<3>(particleDensity);
+    const Float h = 1._f / root<3>(particleDensity);
 
     const Vector center(domain.getCenter());
     const Vector radius(domain.getBoundingRadius() + h);
@@ -61,10 +61,10 @@ Array<Vector> HexagonalPacking::generate(const int n, const Abstract::Domain& do
     const Float particleDensity = Float(n) / volume;
 
     // interparticle distance based on density
-    const Float h = 1._f / Math::root<3>(particleDensity);
+    const Float h = 1._f / root<3>(particleDensity);
     const Float dx = 1.075_f * h;
-    const Float dy = Math::sqrt(3._f) * 0.5_f * dx;
-    const Float dz = Math::sqrt(6._f) / 3._f * dx;
+    const Float dy = sqrt(3._f) * 0.5_f * dx;
+    const Float dz = sqrt(6._f) / 3._f * dx;
 
     const Vector center(domain.getCenter());
     const Vector radius(domain.getBoundingRadius() + dx);
@@ -73,7 +73,7 @@ Array<Vector> HexagonalPacking::generate(const int n, const Abstract::Domain& do
     /// \todo generalize to 1 and 2 dim
     Array<Vector> vecs;
     const Float deltaX = 0.5_f * dx;
-    const Float deltaY = Math::sqrt(3._f) / 6._f * dx;
+    const Float deltaY = sqrt(3._f) / 6._f * dx;
     Float lastY = 0._f;
     box.iterateWithIndices(
         Vector(dx, dy, dz), [&lastY, deltaX, deltaY, &vecs, &domain, h](Indices&& idxs, Vector&& v) {
@@ -136,9 +136,9 @@ public:
 
     virtual int generateSphere(const int n, const T radius, Array<Vector>& vecs) override {
 
-        const Volume<T> projectVolume(Math::sphereVolume(projectRadius));
+        const Volume<T> projectVolume(sphereVolume(projectRadius));
         const NumberDensity<T> projectDensity = T(projectCnt) / projectVolume;
-        const Volume<T> targetVolume(Math::sphereVolume(radius));
+        const Volume<T> targetVolume(sphereVolume(radius));
 
         const auto center = Vector<Length<T>, d>::spherical(radius, angle.value(Units::SI<T>));
 
@@ -151,7 +151,7 @@ public:
         Integrator<float, d> mc(radius.value());
         int cnt = 0;
         float particleCount;
-        for (particleCount = mc.integrate(lambda); Math::abs(particleCount - n) > allowedError;) {
+        for (particleCount = mc.integrate(lambda); abs(particleCount - n) > allowedError;) {
             const float ratio = particleCount / n;
             drop *= ratio;
             std::cout << "ratio = " << ratio << "  drop = " << drop << " particle count  " << particleCount
@@ -161,7 +161,7 @@ public:
                 break;
             }
         }
-        const int N = Math::round(particleCount); // final particle count of the target
+        const int N = round(particleCount); // final particle count of the target
 
         HaltonQrng<T> halton;
         auto rng = makeSphericalRng(Vector(0.f), radius.value(), halton, lambda);
@@ -194,7 +194,7 @@ public:
                 Vector<Length<T>, d> delta(0._m);
                 const NumberDensity<T> n = lambda(vecs[i]); // average particle density
                 // average interparticle distance at given point
-                const Length<T> neighbourRadius = KERNEL_RADIUS / Math::root<d>(n);
+                const Length<T> neighbourRadius = KERNEL_RADIUS / root<d>(n);
                 neighbours.resize(0);
                 tree.findNeighbours(vecs[i], neighbourRadius, neighbours, NEIGHBOUR_ERROR);
 
@@ -210,21 +210,21 @@ public:
                     const Vector diff = vecs[k] - vecs[i];
                     const float lengthSqr = diff.getSqrLength();
                     // average kernel radius to allow for the gradient of particle density
-                    const float h = KERNEL_RADIUS * (0.5f / Math::root<d>(lambda(vecs[i])) +
-                                                     0.5f / Math::root<d>(lambda(vecs[k])));
+                    const float h = KERNEL_RADIUS * (0.5f / root<d>(lambda(vecs[i])) +
+                                                     0.5f / root<d>(lambda(vecs[k])));
                     if (lengthSqr > h * h || lengthSqr == 0) {
                         continue;
                     }
                     const float hSqrInv = 1.f / (h * h);
                     const float length  = diff.getLength();
                     average += length / h;
-                    averageSqr += Math::sqr(length) / Math::sqr(h);
+                    averageSqr += sqr(length) / sqr(h);
                     count++;
                     const Vector diffUnit = diff / length;
                     const float t =
                         converg * h * (strength / (SMALL + diff.getSqrLength() * hSqrInv) - correction);
                     if (MOVE_PARTICLES) {
-                        delta += diffUnit * Math::min(t, h); // clamp the dislocation to particle distance
+                        delta += diffUnit * min(t, h); // clamp the dislocation to particle distance
                     }
                 }
                 vecs[i] = vecs[i] - delta;

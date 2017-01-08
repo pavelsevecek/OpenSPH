@@ -38,6 +38,7 @@ public:
     Float getTemperature(const Float u) const;
 };
 
+/// Tillotson equation of state (Tillotson, 1962)
 class TillotsonEos : public Abstract::Eos {
 private:
     Float u0;
@@ -60,5 +61,22 @@ public:
         NOT_IMPLEMENTED;
     }
 };
+
+/// Murnaghan equation of state. Pressure is computed from density only (does not depend on energy).
+class MurnaghanEos : public Abstract::Eos {
+private:
+    Float rho0;
+    Float A;
+
+public:
+    MurnaghanEos(const BodySettings& settings);
+
+    virtual Tuple<Float, Float> getPressure(const Float rho, const Float u) const override;
+
+    virtual Float getInternalEnergy(const Float UNUSED(rho), const Float UNUSED(p)) const override {
+        NOT_IMPLEMENTED;
+    }
+};
+
 
 NAMESPACE_SPH_END

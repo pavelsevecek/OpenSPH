@@ -3,8 +3,8 @@
 #include "gui/Palette.h"
 #include "gui/Renderer.h"
 #include "gui/Settings.h"
-#include "objects/containers/Array.h"
 #include "objects/containers/ArrayView.h"
+#include "objects/containers/BufferedArray.h"
 
 #include <wx/panel.h>
 #include <wx/timer.h>
@@ -17,14 +17,16 @@ class Storage;
 class OrthoPane : public wxPanel, public Abstract::Renderer {
 private:
     std::shared_ptr<Storage> storage;
-    Array<Size> displayedIdxs;
+    BufferedArray<Size> displayedIdxs;
     QuantityKey quantity = QuantityKey::POSITIONS;
     Array<Vector> positions;
-    Array<Color> colors;
+    BufferedArray<Color> colors;
     Palette palette;
     GuiSettings settings;
     wxPoint center = wxPoint(320, 240);
+    float fov;
     wxPoint lastMousePosition;
+    wxTimer* refreshTimer;
 
 public:
     OrthoPane(wxWindow* parent, const std::shared_ptr<Storage>& storage, const GuiSettings& settings);
@@ -39,6 +41,10 @@ private:
     void onPaint(wxPaintEvent& evt);
 
     void onMouseMotion(wxMouseEvent& evt);
+
+    void onMouseWheel(wxMouseEvent& evt);
+
+    void onTimer(wxTimerEvent& evt);
 
     void update();
 };

@@ -29,7 +29,7 @@ private:
 
         INLINE Tuple<Float, Float> operator()(const int i, const int j, const Vector& grad) const {
             const Float delta = dot(v[j] - v[i], grad);
-            ASSERT(Math::isReal(delta));
+            ASSERT(isReal(delta));
             return { e[j] * delta, e[i] * delta };
         }
     };
@@ -63,7 +63,7 @@ public:
         // clamp smoothing length
         /// \todo generalize clamping, min / max values
         for (Float& h : componentAdapter(r, H)) {
-            h = Math::max(h, 1.e-12_f);
+            h = max(h, 1.e-12_f);
         }
 
         this->finder->build(r);
@@ -81,7 +81,7 @@ public:
                 // actual smoothing length
                 const Float hbar = 0.5_f * (r[i][H] + r[j][H]);
                 ASSERT(hbar > EPS && hbar <= r[i][H]);
-                if (getSqrLength(r[i] - r[j]) > Math::sqr(this->kernel.radius() * hbar)) {
+                if (getSqrLength(r[i] - r[j]) > sqr(this->kernel.radius() * hbar)) {
                     // aren't actual neighbours
                     continue;
                 }
@@ -90,13 +90,13 @@ public:
                 ASSERT(dot(grad, r[i] - r[j]) <= 0._f);
 
                 const Vector f = e[i] * e[j] * (1._f / q[i] + 1._f / q[j]) * grad;
-                ASSERT(Math::isReal(f));
+                ASSERT(isReal(f));
                 const Float gamma = storage.getMaterial(i).adiabaticIndex;
                 ASSERT(gamma > 1._f);
                 dv[i] -= (gamma - 1._f) / m[i] * f;
                 dv[j] += (gamma - 1._f) / m[j] * f;
-                ASSERT(Math::isReal(dv[i]));
-                ASSERT(Math::isReal(dv[j]));
+                ASSERT(isReal(dv[i]));
+                ASSERT(isReal(dv[j]));
 
                 udivv.accumulate(i, j, grad);
             }

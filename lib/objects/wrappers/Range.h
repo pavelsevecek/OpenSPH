@@ -38,8 +38,8 @@ public:
     /// Extends the interval to contain given value. If the value is already inside the interval, nothing
     /// changes.
     INLINE void extend(const Extended& value) {
-        minBound = Math::min(minBound, Extended(value));
-        maxBound = Math::max(maxBound, Extended(value));
+        minBound = min(minBound, Extended(value));
+        maxBound = max(maxBound, Extended(value));
     }
 
     /// Checks whether value is inside the interval.
@@ -48,7 +48,7 @@ public:
     /// Clamps the given value by the interval.
     INLINE Float clamp(const Float& value) const {
         ASSERT(minBound <= maxBound);
-        const Extended result = Math::max(minBound, Math::min(Extended(value), maxBound));
+        const Extended result = max(minBound, min(Extended(value), maxBound));
         ASSERT(result.isFinite());
         return result.get();
     }
@@ -80,21 +80,20 @@ public:
 };
 
 
-namespace Math {
-    /// Overload of clamp method using range instead of lower and upper bound as values.
-    /// Can be used by other Floats by specializing the method
-    template <typename T>
-    INLINE T clamp(const T& v, const Range& range);
+/// Overload of clamp method using range instead of lower and upper bound as values.
+/// Can be used by other Floats by specializing the method
+template <typename T>
+INLINE T clamp(const T& v, const Range& range);
 
-    template <>
-    INLINE Float clamp(const Float& v, const Range& range) {
-        return range.clamp(v);
-    }
-    template <>
-    INLINE Size clamp(const Size& v, const Range& range) {
-        return range.clamp(v);
-    }
+template <>
+INLINE Float clamp(const Float& v, const Range& range) {
+    return range.clamp(v);
 }
+template <>
+INLINE Size clamp(const Size& v, const Range& range) {
+    return range.clamp(v);
+}
+
 
 /// Helper class for iterating over interval using range-based for loop. Cannot be used (and should not be
 /// used) in STL algorithms.

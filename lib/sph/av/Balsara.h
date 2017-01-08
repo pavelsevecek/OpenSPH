@@ -63,7 +63,7 @@ public:
     /// Returns the Balsara factor for i-th particle. Mainly for testing purposes, operator() applies Balsara
     /// switch with no need to explicitly call getFactor by the user.
     INLINE Float getFactor(const Size i) {
-        const Float dv = Math::abs(divv[i]);
+        const Float dv = abs(divv[i]);
         const Float rv = getLength(rotv[i]);
         return dv / (dv + rv + eps * cs[i] / r[i][H]);
     }

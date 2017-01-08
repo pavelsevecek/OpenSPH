@@ -81,7 +81,7 @@ public:
         const Vector delta = 0.05_f * box.size();
         maxPdf             = 0._f;
         /// \todo jacobian
-        box.iterate(delta, [this](const Vector& v) { maxPdf = Math::max(maxPdf, pdf(v) * jac(v)); });
+        box.iterate(delta, [this](const Vector& v) { maxPdf = max(maxPdf, pdf(v) * jac(v)); });
     }
 
     VectorPdfRng(VectorPdfRng&& other)

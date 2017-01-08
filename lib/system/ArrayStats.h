@@ -18,8 +18,8 @@ public:
     /// \todo flags for each stat
     ArrayStats(ArrayView<const Type> values) {
         for (const Type& v : values) {
-            minValue = Math::min(minValue, v);
-            maxValue = Math::max(maxValue, v);
+            minValue = Sph::min(minValue, v);
+            maxValue = Sph::max(maxValue, v);
             averageValue += v;
         }
         if (values.empty()) {

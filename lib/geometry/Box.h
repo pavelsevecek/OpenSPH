@@ -27,8 +27,8 @@ public:
 
     /// Enlarges the box to contain the vector;
     INLINE void extend(const Vector& v) {
-        maxBound = Math::max(maxBound, v);
-        minBound = Math::min(minBound, v);
+        maxBound = max(maxBound, v);
+        minBound = min(minBound, v);
     }
 
     /// Checks if the vector lies inside the box
@@ -42,7 +42,7 @@ public:
     }
 
     /// Clamps all components of the vector to fit within the box
-    INLINE Vector clamp(const Vector& v) const { return Math::clamp(v, minBound, maxBound); }
+    INLINE Vector clamp(const Vector& v) const { return Sph::clamp(v, minBound, maxBound); }
 
     INLINE const Vector& lower() const { return minBound; }
 

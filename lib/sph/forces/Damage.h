@@ -50,7 +50,7 @@ public:
 
     /// Reduce pressure
     INLINE Float reduce(const Float p, const int i) const {
-        const Float d = Math::pow<3>(damage[i]);
+        const Float d = pow<3>(damage[i]);
         if (p < 0._f) {
             return (1._f - d) * p;
         } else {
@@ -60,7 +60,7 @@ public:
 
     /// Reduce deviatoric stress tensor
     INLINE TracelessTensor reduce(const TracelessTensor& s, const int i) const {
-        const Float d = Math::pow<3>(damage[i]);
+        const Float d = pow<3>(damage[i]);
         return (1._f - d) * s;
     }
 };

@@ -103,7 +103,7 @@ public:
 
     INLINE Tuple<Float, Float> operator()(const int i, const int j, const Vector& grad) const {
         const Float delta = dot(v[j] - v[i], grad);
-        ASSERT(Math::isReal(delta));
+        ASSERT(isReal(delta));
         return { m[j] / rho[j] * delta, m[i] / rho[i] * delta };
     }
 };
@@ -126,7 +126,7 @@ public:
 
     INLINE Tuple<Vector, Vector> operator()(const int i, const int j, const Vector& grad) const {
         const Vector rot = cross(v[j] - v[i], grad);
-        ASSERT(Math::isReal(rot));
+        ASSERT(isReal(rot));
         return { m[j] / rho[j] * rot, m[i] / rho[i] * rot };
     }
 };
@@ -148,7 +148,7 @@ public:
 
     INLINE Tuple<Float, Float> operator()(const int i, const int j, const Vector& grad) const {
         const Float delta = dot(v[j] - v[i], grad);
-        ASSERT(Math::isReal(delta));
+        ASSERT(isReal(delta));
         return { m[j] * delta, m[i] * delta };
     }
 };
@@ -170,7 +170,7 @@ public:
 
     INLINE Tuple<Tensor, Tensor> operator()(const int i, const int j, const Vector& grad) const {
         const Tensor gradv = outer(v[j] - v[i], grad);
-        ASSERT(Math::isReal(gradv));
+        ASSERT(isReal(gradv));
         return { m[j] * gradv, m[i] * gradv };
     }
 };

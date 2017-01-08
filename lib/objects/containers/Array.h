@@ -183,7 +183,7 @@ public:
             // requested more elements than allocate, need to reallocated.
             // allocate twice the current number or the new size, whatever is higher, to avoid frequent
             // reallocation when pushing elements one by one
-            const TCounter actNewSize = Math::max(2 * maxSize, newSize);
+            const TCounter actNewSize = max(2 * maxSize, newSize);
             Array newArray(0, actNewSize);
             // copy all elements into the new array, using move constructor
             for (TCounter i = 0; i < actSize; ++i) {
@@ -203,7 +203,7 @@ public:
 
     void reserve(const TCounter newMaxSize) {
         if (newMaxSize > maxSize) {
-            const TCounter actNewSize = Math::max(2 * maxSize, newMaxSize);
+            const TCounter actNewSize = max(2 * maxSize, newMaxSize);
             Array newArray(0, actNewSize);
             // copy all elements into the new array, using move constructor
             for (TCounter i = 0; i < actSize; ++i) {

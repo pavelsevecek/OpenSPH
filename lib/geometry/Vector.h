@@ -48,8 +48,6 @@ class BasicVector;
 /// 3-dimensional vector, float precision
 template <>
 class BasicVector<float> {
-    friend class Indices;
-
 private:
     __m128 data;
 
@@ -97,6 +95,9 @@ public:
         static_assert(unsigned(i) < 4, "Invalid index");
         return *(reinterpret_cast<float*>(&data) + i);
     }
+
+    /// Returns the data as SSE vector.
+    INLINE const __m128& sse() const { return data; }
 
     /// Copy operator
     INLINE BasicVector& operator=(const BasicVector& v) {
@@ -177,32 +178,10 @@ public:
 
     INLINE friend bool operator!=(const BasicVector& v1, const BasicVector& v2) { return !(v1 == v2); }
 
-    INLINE auto dot(const BasicVector& other) const {
-        constexpr int d = 3;
-        return _mm_cvtss_f32(_mm_dp_ps(data, other.data, (1 << (d + 4)) - 0x0F));
-    }
-
-    INLINE auto cross(const BasicVector& other) const {
-        return BasicVector(_mm_sub_ps(_mm_mul_ps(_mm_shuffle_ps(data, data, _MM_SHUFFLE(3, 0, 2, 1)),
-                                          _mm_shuffle_ps(other.data, other.data, _MM_SHUFFLE(3, 1, 0, 2))),
-            _mm_mul_ps(_mm_shuffle_ps(data, data, _MM_SHUFFLE(3, 1, 0, 2)),
-                _mm_shuffle_ps(other.data, other.data, _MM_SHUFFLE(3, 0, 2, 1)))));
-    }
-
-    /// Component-wise minimum
-    INLINE BasicVector min(const BasicVector& other) const {
-        return BasicVector(_mm_min_ps(data, other.data));
-    }
-
-    /// Component-wise maximum
-    INLINE BasicVector max(const BasicVector& other) const {
-        return BasicVector(_mm_max_ps(data, other.data));
-    }
-
     template <typename TStream>
     friend TStream& operator<<(TStream& stream, const BasicVector& v) {
         constexpr int digits = 6;
-        stream << std::fixed << std::setprecision(digits);
+        stream << std::setprecision(digits);
         for (int i = 0; i < 3; ++i) {
             stream << std::setw(15) << v[i];
         }
@@ -370,9 +349,8 @@ public:
     template <typename TStream>
     friend TStream& operator<<(TStream& stream, const BasicVector& v) {
         constexpr int digits = 12;
-        stream << std::fixed << std::setprecision(digits);
         for (int i = 0; i < 3; ++i) {
-            stream << std::fixed << std::setprecision(digits) << v[i];
+            stream << std::setprecision(digits) << v[i];
         }
     }
 };
@@ -555,9 +533,8 @@ public:
     template <typename TStream>
     friend TStream& operator<<(TStream& stream, const BasicVector& v) {
         constexpr int digits = 6;
-        stream << std::fixed << std::setprecision(digits);
         for (int i = 0; i < 3; ++i) {
-            stream << std::fixed << std::setprecision(digits) << v[i];
+            stream << std::setprecision(digits) << v[i];
         }
     }
 };
@@ -570,34 +547,38 @@ using Vector = BasicVector<Float>;
 /// Vector utils
 
 /// Generic dot product between two vectors.
-INLINE auto dot(const Vector& v1, const Vector& v2) {
-    return v1.dot(v2);
+INLINE Float dot(const Vector& v1, const Vector& v2) {
+    constexpr int d = 3;
+    return _mm_cvtss_f32(_mm_dp_ps(v1.sse(), v2.sse(), (1 << (d + 4)) - 0x0F));
 }
 
 /// Cross product between two vectors.
-INLINE auto cross(const Vector& v1, const Vector& v2) {
-    return v1.cross(v2);
+INLINE Vector cross(const Vector& v1, const Vector& v2) {
+    return _mm_sub_ps(_mm_mul_ps(_mm_shuffle_ps(v1.sse(), v1.sse(), _MM_SHUFFLE(3, 0, 2, 1)),
+                          _mm_shuffle_ps(v2.sse(), v2.sse(), _MM_SHUFFLE(3, 1, 0, 2))),
+        _mm_mul_ps(_mm_shuffle_ps(v1.sse(), v1.sse(), _MM_SHUFFLE(3, 1, 0, 2)),
+            _mm_shuffle_ps(v2.sse(), v2.sse(), _MM_SHUFFLE(3, 0, 2, 1))));
 }
 
 /// Returns squared length of the vector. Faster than simply getting length as there is no need to compute
 /// square root.
-INLINE auto getSqrLength(const Vector& v) {
+INLINE Float getSqrLength(const Vector& v) {
     return dot(v, v);
 }
 
 /// Returns the length of the vector. Enabled only for vectors of floating-point precision.
-INLINE auto getLength(const Vector& v) {
-    return Math::sqrt(dot(v, v));
+INLINE Float getLength(const Vector& v) {
+    return sqrt(dot(v, v));
 }
 
 /// Returns approximate value of the length. Enabled only for vectors of floating-point precision.
-INLINE auto getLengthApprox(const Vector& v) {
-    return Math::sqrtApprox(dot(v, v));
+INLINE Float getLengthApprox(const Vector& v) {
+    return sqrtApprox(dot(v, v));
 }
 
 /// Returns normalized vector. Throws assert if the vector has zero length. Enabled only for vectors of
 /// floating-point precision.
-INLINE auto getNormalized(const Vector& v) {
+INLINE Vector getNormalized(const Vector& v) {
     const Float length = getLength(v);
     ASSERT(length != 0._f);
     return v / length;
@@ -607,52 +588,85 @@ INLINE auto getNormalized(const Vector& v) {
 INLINE Tuple<Vector, Float> getNormalizedWithLength(const Vector& v) {
     const Float length = getLength(v);
     ASSERT(length != 0._f);
-    return makeTuple(v / length, length);
+    return { v / length, length };
 }
 
-namespace Math {
-    /// Component-wise minimum
-    INLINE Vector min(const Vector& v1, const Vector& v2) { return v1.min(v2); }
 
-    /// Component-wise maximum
-    INLINE Vector max(const Vector& v1, const Vector& v2) { return v1.max(v2); }
-
-    /// Component-wise clamping
-    INLINE Vector clamp(const Vector& v, const Vector& v1, const Vector& v2) { return max(v1, min(v, v2)); }
-
-    /// Clamping all components by range.
-    INLINE Vector clamp(const Vector& v, const Range& range) {
-        return Vector(range.clamp(v[0]), range.clamp(v[1]), range.clamp(v[2]), range.clamp(v[3]));
-    }
-
-    /// Checks if two vectors are equal to some given accuracy.
-    INLINE bool almostEqual(const Vector& v1, const Vector& v2, const Float eps = EPS) {
-        return getSqrLength(v1 - v2) <= Math::sqr(eps);
-    }
-
-    INLINE Float norm(const Vector& v) {
-        const Float result = getLengthApprox(v);
-        ASSERT(Math::isReal(result));
-        return result;
-    }
-
-    INLINE Float normSqr(const Vector& v) {
-        const Float result = getSqrLength(v);
-        ASSERT(Math::isReal(result));
-        return result;
-    }
-
-    INLINE bool isReal(const Vector& v) {
-        /// \todo optimize using SSE intrinsics
-        return isReal(v[0]) && isReal(v[1]) && isReal(v[2]);
-    }
-
-    /// Cosine applied to all components of the vector.
-    INLINE Vector cos(const Vector& v) {
-        /// \todo optimize
-        return Vector(cos(v[0]), cos(v[1]), cos(v[2]), cos(v[3]));
-    }
+/// Component-wise minimum
+template<>
+INLINE Vector min(const Vector& v1, const Vector& v2) {
+    return _mm_min_ps(v1.sse(), v2.sse());
 }
+
+/// Component-wise maximum
+template<>
+INLINE Vector max(const Vector& v1, const Vector& v2) {
+    return _mm_max_ps(v1.sse(), v2.sse());
+}
+
+/// Component-wise clamping
+template<>
+INLINE Vector clamp(const Vector& v, const Vector& v1, const Vector& v2) {
+    return max(v1, min(v, v2));
+}
+
+/// Clamping all components by range.
+INLINE Vector clamp(const Vector& v, const Range& range) {
+    return Vector(range.clamp(v[0]), range.clamp(v[1]), range.clamp(v[2]), range.clamp(v[3]));
+}
+
+/// Checks if two vectors are equal to some given accuracy.
+INLINE bool almostEqual(const Vector& v1, const Vector& v2, const Float eps = EPS) {
+    return getSqrLength(v1 - v2) <= sqr(eps);
+}
+
+/// Returns norm of a vector, i.e. its (approximative) length
+template <>
+INLINE Float norm(const Vector& v) {
+    const Float result = getLengthApprox(v);
+    ASSERT(isReal(result));
+    return result;
+}
+
+/// Returns squared length of a vector
+template <>
+INLINE Float normSqr(const Vector& v) {
+    const Float result = getSqrLength(v);
+    ASSERT(isReal(result));
+    return result;
+}
+
+/// Returns minimum element of a vector. Considers only the first 3 component, 4th one is ignored.
+template <>
+INLINE Float minElement(const Vector& v) {
+    /// \todo possibly optimize with SSE? Only 3 components though ...
+    return min(v[0], v[1], v[2]);
+}
+
+/// Computes vector of absolute values.
+template <>
+INLINE auto abs(const Vector& v) {
+    return Vector(_mm_andnot_ps(_mm_set1_ps(-0.f), v.sse()));
+}
+
+/// Computes vector of inverse squared roots.
+template <>
+INLINE Vector sqrtInv(const Vector& v) {
+    return _mm_rsqrt_ss(v.sse());
+}
+
+template<>
+INLINE bool isReal(const Vector& v) {
+    /// \todo optimize using SSE intrinsics
+    return isReal(v[0]) && isReal(v[1]) && isReal(v[2]);
+}
+
+/// Cosine applied to all components of the vector.
+INLINE Vector cos(const Vector& v) {
+    /// \todo return _mm_cos_ps(v.sse());
+    return Vector(cos(v[X]), cos(v[Y]), cos(v[Z]));
+}
+
 
 /// Construct a vector from spherical coordinates. The angle has generally different
 /// type to allow using units with dimensions.
@@ -660,9 +674,9 @@ namespace Math {
 /// \param theta Latitude in radians, where 0 and PI correspond to poles.
 /// \param phi Longitude in radians
 INLINE Vector spherical(const Float r, const Float theta, const Float phi) {
-    const Float s = Math::sin(theta);
-    const Float c = Math::cos(theta);
-    return r * Vector(s * Math::cos(phi), s * Math::sin(phi), c);
+    const Float s = sin(theta);
+    const Float c = cos(theta);
+    return r * Vector(s * cos(phi), s * sin(phi), c);
 }
 
 /// Computes a spherical inversion of a vector. Works in arbitrary number of dimensions.

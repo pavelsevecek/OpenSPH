@@ -46,8 +46,8 @@ TEST_CASE("ContinuitySolver", "[solvers]") {
     const Float momVar = momentum.getVariance(*storage);
     const Float angmomVar = angularMomentum.getVariance(*storage);
 
-    REQUIRE(Math::almostEqual(mom1, Vector(0._f), Math::sqrt(momVar)));
-    REQUIRE(Math::almostEqual(angmom1, Vector(0._f), Math::sqrt(angmomVar)));
+    REQUIRE(almostEqual(mom1, Vector(0._f), Sph::sqrt(momVar)));
+    REQUIRE(almostEqual(angmom1, Vector(0._f), Sph::sqrt(angmomVar)));
 
     // check that particles gained some velocity
     Float totV = 0._f;

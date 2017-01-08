@@ -12,30 +12,36 @@ OrthoPane::OrthoPane(wxWindow* parent, const std::shared_ptr<Storage>& storage, 
     this->SetMinSize(wxSize(640, 480));
     this->Connect(wxEVT_PAINT, wxPaintEventHandler(OrthoPane::onPaint));
     this->Connect(wxEVT_MOTION, wxMouseEventHandler(OrthoPane::onMouseMotion));
+    this->Connect(wxEVT_MOUSEWHEEL, wxMouseEventHandler(OrthoPane::onMouseWheel));
+    this->Connect(wxEVT_TIMER, wxTimerEventHandler(OrthoPane::onTimer));
     setQuantity(QuantityKey::POSITIONS);
+    this->fov = 240.f / settings.get<Float>(GuiSettingsIds::VIEW_FOV);
+    refreshTimer = new wxTimer(this, 1); /// \todo check that timer is destroyed
+    refreshTimer->Start(50);
 }
 
 OrthoPane::~OrthoPane() = default;
 
 void OrthoPane::onPaint(wxPaintEvent& UNUSED(evt)) {
     MEASURE_SCOPE("OrthoPane::onPaint");
+    // called from main thread
     wxPaintDC dc(this);
     wxBitmap bitmap(dc.GetSize());
     wxMemoryDC memoryDc(bitmap);
-    memoryDc.SetBrush(*wxWHITE_BRUSH);
+    memoryDc.SetBrush(*wxBLACK_BRUSH);
     memoryDc.DrawRectangle(wxPoint(0, 0), dc.GetSize());
-    const float fov    = 240.f / settings.get<Float>(GuiSettingsIds::VIEW_FOV);
     const float radius = settings.get<Float>(GuiSettingsIds::PARTICLE_RADIUS);
     wxBrush brush(*wxBLACK_BRUSH);
     wxPen pen(*wxBLACK_PEN);
-    for (int i : displayedIdxs) {
-        brush.SetColour(colors[i]);
-        pen.SetColour(colors[i]);
+    for (Size i = 0; i < displayedIdxs.second().size(); ++i) {
+        const Size idx = displayedIdxs.second()[i];
+        brush.SetColour(colors.second()[idx]);
+        pen.SetColour(colors.second()[idx]);
         memoryDc.SetBrush(brush);
         memoryDc.SetPen(pen);
-        const Vector& r = positions[i];
+        const Vector& r = positions[idx];
         memoryDc.DrawCircle(wxPoint(center.x + r[X] * fov, center.y + r[Y] * fov),
-                            Math::max(r[H] * fov * radius, 1.f));
+                            max(r[H] * fov * radius, 1.f));
     }
     dc.DrawBitmap(bitmap, wxPoint(0, 0));
 }
@@ -50,57 +56,59 @@ void OrthoPane::onMouseMotion(wxMouseEvent& evt) {
     evt.Skip();
 }
 
-void OrthoPane::draw(const std::shared_ptr<Storage>& newStorage) {
-    MEASURE_SCOPE("OrthoPane::draw");
-    storage = newStorage;
-    update();
-    displayedIdxs.clear();
-    const Float cutoff = settings.get<Float>(GuiSettingsIds::ORTHO_CUTOFF);
-    for (Size i = 0; i < positions.size(); ++i) {
-        if (Math::abs(positions[i][Z]) < cutoff) {
-            displayedIdxs.push(i);
-        }
+void OrthoPane::onMouseWheel(wxMouseEvent& evt) {
+    const float spin = evt.GetWheelRotation() / 120.f;
+    if (spin > 0.f) {
+        fov *= 1.2f;
+    } else {
+        fov *= 1.f / 1.2f;
     }
     this->Refresh();
+    evt.Skip();
+}
+
+void OrthoPane::onTimer(wxTimerEvent &evt) {
+    this->Refresh();
+    evt.Skip();
+}
+
+void OrthoPane::draw(const std::shared_ptr<Storage>& newStorage) {
+    MEASURE_SCOPE("OrthoPane::draw");
+    // called from worker thread, cannot touch wx stuff
+    storage = newStorage;
+    displayedIdxs->clear();
+    const Float cutoff = settings.get<Float>(GuiSettingsIds::ORTHO_CUTOFF);
+    for (Size i = 0; i < positions.size(); ++i) {
+        if (abs(positions[i][Z]) < cutoff) {
+            displayedIdxs->push(i);
+        }
+    }
+    update();
+    displayedIdxs.swap();
+    colors.swap();
 }
 
 void OrthoPane::update() {
     MEASURE_SCOPE("OrthoPane::update");
     ASSERT(storage);
     /// \todo copy, avoid allocation
-    positions = storage->getValue<Vector>(QuantityKey::POSITIONS).clone();
-    colors.clear();
+    positions = storage->getValue<Vector>(QuantityKey::POSITIONS).clone(); // swap should be atomic
+    colors->clear();
     switch (quantity) {
     case QuantityKey::POSITIONS: {
         ArrayView<Vector> v = storage->getAll<Vector>(QuantityKey::POSITIONS)[1];
         for (Size i = 0; i < v.size(); ++i) {
-            colors.push(palette(getLength(v[i])));
+            colors->push(palette(getLength(v[i])));
         }
         break;
     }
-    case QuantityKey::DENSITY: {
-        ArrayView<Float> rho = storage->getValue<Float>(QuantityKey::DENSITY);
-        for (Size i = 0; i < rho.size(); ++i) {
-            colors.push(palette(rho[i]));
+    default: {
+        ArrayView<Float> values = storage->getValue<Float>(quantity);
+        for (Size i = 0; i < values.size(); ++i) {
+            colors->push(palette(values[i]));
         }
         break;
     }
-    case QuantityKey::PRESSURE: {
-        ArrayView<Float> p = storage->getValue<Float>(QuantityKey::PRESSURE);
-        for (Size i = 0; i < p.size(); ++i) {
-            colors.push(palette(p[i]));
-        }
-        break;
-    }
-    case QuantityKey::DAMAGE: {
-        ArrayView<Float> d = storage->getValue<Float>(QuantityKey::DAMAGE);
-        for (Size i = 0; i < d.size(); ++i) {
-            colors.push(palette(d[i]));
-        }
-        break;
-    }
-    default:
-        NOT_IMPLEMENTED;
     }
 }
 

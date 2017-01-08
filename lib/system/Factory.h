@@ -45,12 +45,12 @@ public:
         const KernelEnum id = settings.get<KernelEnum>(GlobalSettingsIds::SPH_KERNEL);
         switch (id) {
         case KernelEnum::CUBIC_SPLINE:
-            return LutKernel<d>(CubicSpline<d>());
+            return CubicSpline<d>();
         case KernelEnum::FOURTH_ORDER_SPLINE:
-            return LutKernel<d>(FourthOrderSpline<d>());
+            return FourthOrderSpline<d>();
         case KernelEnum::CORE_TRIANGLE:
             ASSERT(d == 3);
-            return LutKernel<3>(CoreTriangle());
+            return CoreTriangle();
         default:
             NOT_IMPLEMENTED;
         }

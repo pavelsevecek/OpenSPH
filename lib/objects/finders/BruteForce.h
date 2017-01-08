@@ -25,7 +25,7 @@ public:
             (flags.has(FinderFlags::FIND_ONLY_SMALLER_H)) ? this->rankH[index] : this->values.size();
         for (Size i = 0; i < this->values.size(); ++i) {
             Float distSqr = getSqrLength(this->values[i] - this->values[index]);
-            if (rankH[i] < refRank && distSqr < Math::sqr(radius)) {
+            if (rankH[i] < refRank && distSqr < sqr(radius)) {
                 neighbours.push(NeighbourRecord{ i, distSqr });
             }
         }

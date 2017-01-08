@@ -42,8 +42,8 @@ public:
         const Float hbar = 0.5_f * (r[i][H] + r[j][H]);
         const Float rhobar = 0.5_f * (rho[i] + rho[j]);
         const Float csbar = 0.5_f * (cs[i] + cs[j]);
-        const Float mu = hbar * dvdr / (getSqrLength(r[i] - r[j]) + eps * Math::sqr(hbar));
-        return 1._f / rhobar * (-alpha * csbar * mu + beta * Math::sqr(mu));
+        const Float mu = hbar * dvdr / (getSqrLength(r[i] - r[j]) + eps * sqr(hbar));
+        return 1._f / rhobar * (-alpha * csbar * mu + beta * sqr(mu));
     }
 };
 

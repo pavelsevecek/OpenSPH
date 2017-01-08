@@ -13,9 +13,9 @@ struct TestSolver : public Abstract::Solver {
     virtual void integrate(Storage& storage) override {
         ArrayView<Vector> r, v, dv;
         tie(r, v, dv) = storage.getAll<Vector>(QuantityKey::POSITIONS);
-        Float omega = 2._f * Math::PI / period;
+        Float omega = 2._f * PI / period;
         for (Size i = 0; i < r.size(); ++i) {
-            dv[i] = -Math::sqr(omega) * r[i];
+            dv[i] = -sqr(omega) * r[i];
         }
     }
 
@@ -39,11 +39,11 @@ void testTimestepping(TArgs&&... args) {
     Size n = 0;
     for (float t = 0.f; t < 3.f; t += timestepping.getTimeStep()) {
         if ((n++ % 15) == 0) {
-            REQUIRE(Math::almostEqual(
-                r[0], Vector(Math::cos(2.f * Math::PI * t), 0.f, 0.f), timeStep * 2._f * Math::PI));
-            REQUIRE(Math::almostEqual(v[0],
-                Vector(-Math::sin(2.f * Math::PI * t) * 2.f * Math::PI, 0.f, 0.f),
-                timeStep * Math::sqr(2._f * Math::PI)));
+            REQUIRE(almostEqual(
+                r[0], Vector(cos(2.f * PI * t), 0.f, 0.f), timeStep * 2._f * PI));
+            REQUIRE(almostEqual(v[0],
+                Vector(-sin(2.f * PI * t) * 2.f * PI, 0.f, 0.f),
+                timeStep * sqr(2._f * PI)));
         }
         timestepping.step(solver, stats);
     }

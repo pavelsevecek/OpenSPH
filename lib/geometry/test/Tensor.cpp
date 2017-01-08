@@ -42,6 +42,9 @@ TEST_CASE("Tensor operations", "[tensor]") {
     REQUIRE(3._f * t1 == t1 * 3._f);
 
     REQUIRE(t1 / 2._f == Tensor(Vector(1._f, 0.5_f, -0.5_f), Vector(1._f, 1.5_f, -2._f)));
+
+    REQUIRE(t1 * t2 == Tensor(Vector(2._f, 2._f, -3._f), Vector(-2._f, -6._f, 12._f)));
+    REQUIRE(t1 / t2 == Tensor(Vector(2._f, 0.5_f, -1._f / 3._f), Vector(-2._f, -1.5_f, 4._f / 3._f)));
 }
 
 TEST_CASE("Tensor apply", "[tensor]") {
@@ -57,14 +60,14 @@ TEST_CASE("Tensor algebra", "[tensor]") {
 
     const Float detInv = 1._f / 26._f;
     Tensor inv(detInv * Vector(3._f, 1._f, -1._f), detInv * Vector(-9._f, -7._f, -5._f));
-    REQUIRE(Math::almostEqual(t.inverse(), inv, EPS));
+    REQUIRE(almostEqual(t.inverse(), inv, EPS));
 
     Tensor t2(Vector(5._f, 3._f, -3._f), Vector(0._f));
     StaticArray<Float, 3> eigens = findEigenvalues(t2);
     // eigenvalues of diagonal matrix are diagonal elements
-    REQUIRE(Math::almostEqual(eigens[0], 5._f, 1.e-5_f));
-    REQUIRE(Math::almostEqual(eigens[1], -3._f, 1.e-5_f));
-    REQUIRE(Math::almostEqual(eigens[2], 3._f, 1.e-5_f));
+    REQUIRE(almostEqual(eigens[0], 5._f, 1.e-5_f));
+    REQUIRE(almostEqual(eigens[1], -3._f, 1.e-5_f));
+    REQUIRE(almostEqual(eigens[2], 3._f, 1.e-5_f));
 
     // double-dot product
     REQUIRE(ddot(t, t2) == 2._f);
@@ -77,11 +80,11 @@ TEST_CASE("Tensor algebra", "[tensor]") {
 
 TEST_CASE("Tensor norm", "[tensor]") {
     // norm, check that the implementation satisfies basic requirements
-    REQUIRE(Math::norm(Tensor::null()) == 0._f);
+    REQUIRE(norm(Tensor::null()) == 0._f);
     Tensor t1(Vector(2._f, 1._f, -1._f), Vector(2._f, 3._f, -4._f));
-    REQUIRE(Math::norm(4._f * t1) == 4._f * Math::norm(t1));
+    REQUIRE(norm(4._f * t1) == 4._f * norm(t1));
     Tensor t2(Vector(1._f, 2._f, 3._f), Vector(-1._f, -2._f, -3._f));
-    REQUIRE(Math::norm(t1+t2) <= Math::norm(t1) +Math::norm(t2));
+    REQUIRE(norm(t1 + t2) <= norm(t1) + norm(t2));
 }
 
 TEST_CASE("Predefined tensors", "[tensor]") {
@@ -102,4 +105,10 @@ TEST_CASE("Tensor trace", "[tensor]") {
     REQUIRE(Tensor::null().trace() == 0);
 
     REQUIRE((t - Tensor::identity() * t.trace() / 3._f).trace() == 0);
+}
+
+TEST_CASE("Tensor abs", "[tensor]") {
+    Tensor t1(Vector(2._f, 1._f, -1._f), Vector(2._f, 0._f, -4._f));
+    Tensor abst1(Vector(2._f, 1._f, 1._f), Vector(2._f, 0._f, 4._f));
+    REQUIRE(abs(t1) == abst1);
 }

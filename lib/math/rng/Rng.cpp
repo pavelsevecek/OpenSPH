@@ -19,7 +19,7 @@ Float BenzAsphaugRng::operator()(const int UNUSED(s)) {
     const int ndiv = 1 + imm1 / ntab;
 
     if (idum < 0) {
-        idum = Math::max(-idum, 1);
+        idum = max(-idum, 1);
         idum2 = idum;
         for (int j = ntab + 8; j >= 1; --j) {
             const int k = idum / iq1;
@@ -49,7 +49,7 @@ Float BenzAsphaugRng::operator()(const int UNUSED(s)) {
     if (iy < 1) {
         iy = iy + imm1;
     }
-    return Math::min(am * iy, rnmx);
+    return min(am * iy, rnmx);
 }
 
 

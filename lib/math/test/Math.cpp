@@ -4,14 +4,34 @@
 using namespace Sph;
 
 TEST_CASE("Math", "[math]") {
-    REQUIRE(Math::almostEqual(Math::sqrtApprox(100.f), 10.f, 0.2f));
+    REQUIRE(almostEqual(sqrtApprox(100.f), 10.f, 0.2f));
 
-    REQUIRE(Math::pow<0>(2._f) == 1._f);
-    REQUIRE(Math::pow<1>(2._f) == 2._f);
-    REQUIRE(Math::pow<2>(2._f) == 4._f);
-    REQUIRE(Math::pow<3>(2._f) == 8._f);
-    REQUIRE(Math::pow<4>(2._f) == 16._f);
-    REQUIRE(Math::pow<5>(2._f) == 32._f);
-    REQUIRE(Math::pow<6>(2._f) == 64._f);
+    REQUIRE(pow<0>(2._f) == 1._f);
+    REQUIRE(pow<1>(2._f) == 2._f);
+    REQUIRE(pow<2>(2._f) == 4._f);
+    REQUIRE(pow<3>(2._f) == 8._f);
+    REQUIRE(pow<4>(2._f) == 16._f);
+    REQUIRE(pow<5>(2._f) == 32._f);
+    REQUIRE(pow<6>(2._f) == 64._f);
 
+    REQUIRE(max(6, 2) == 6);
+    REQUIRE(min(6, 2) == 2);
+
+    REQUIRE(max(1, 2, 3) == 3);
+    REQUIRE(max(1, 3, 2) == 3);
+    REQUIRE(max(2, 1, 3) == 3);
+    REQUIRE(max(2, 3, 1) == 3);
+    REQUIRE(max(3, 1, 2) == 3);
+    REQUIRE(max(3, 2, 1) == 3);
+
+    REQUIRE(min(1, 2, 3) == 1);
+    REQUIRE(min(1, 3, 2) == 1);
+    REQUIRE(min(2, 1, 3) == 1);
+    REQUIRE(min(2, 3, 1) == 1);
+    REQUIRE(min(3, 1, 2) == 1);
+    REQUIRE(min(3, 2, 1) == 1);
+
+    REQUIRE(clamp(-1, 2, 4) == 2);
+    REQUIRE(clamp(3, 2, 4) == 3);
+    REQUIRE(clamp(5, 2, 4) == 4);
 }

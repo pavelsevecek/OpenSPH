@@ -33,7 +33,7 @@ public:
     INLINE explicit Indices(const Vector& v) {
         /// \todo without rounding mode?
         _MM_SET_ROUNDING_MODE(_MM_ROUND_DOWN);
-        data = _mm_cvtps_epi32(v.data);
+        data = _mm_cvtps_epi32(v.sse());
     }
 
     INLINE Indices(const Indices& other)
@@ -77,16 +77,18 @@ public:
     template <typename TStream>
     friend TStream& operator<<(TStream& stream, const Indices& idxs) {
         for (int i = 0; i < 3; ++i) {
-            stream << std::setw(15) << std::fixed << idxs[i];
+            stream << std::setw(15) << idxs[i];
         }
         return stream;
     }
 };
 
-namespace Math {
-    INLINE Indices max(const Indices i1, const Indices i2) { return i1.max(i2); }
+INLINE Indices max(const Indices i1, const Indices i2) {
+    return i1.max(i2);
+}
 
-    INLINE Indices min(const Indices i1, const Indices i2) { return i1.min(i2); }
+INLINE Indices min(const Indices i1, const Indices i2) {
+    return i1.min(i2);
 }
 
 /*/// Returns a content of array of vectors, where each component is given by index.

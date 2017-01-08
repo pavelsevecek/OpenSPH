@@ -81,7 +81,7 @@ public:
         } else {
             cloud.refRank = this->values.size(); // largest rank, all particles are smaller
         }
-        return kdTree->radiusSearch(values[index], Math::sqr(radius), neighbours, params);
+        return kdTree->radiusSearch(values[index], sqr(radius), neighbours, params);
     }
 };
 

@@ -13,6 +13,7 @@
 #include "system/Callbacks.h"
 #include "system/Logger.h"
 #include "system/Output.h"
+#include <iostream>
 
 
 NAMESPACE_SPH_BEGIN
@@ -65,6 +66,10 @@ public:
     void run() {
         Size i = 0;
 
+        if (logger) {
+            logger->write("Running:");
+        }
+
         FrequentStats stats;
         for (Float& t : rangeAdapter(timeRange, timeStepping->getTimeStep())) {
             if (callbacks) {
@@ -74,11 +79,6 @@ public:
             const Float dt = timeStepping->getTimeStep();
             t += dt;
 
-            // Log
-            if (logger) {
-                logger->write("t = " + std::to_string(t) + ", dt = " + std::to_string(dt));
-            }
-
             // Dump output
             if (output && (i % outputEvery == 0)) {
                 output->dump(*storage, t);
@@ -87,6 +87,14 @@ public:
 
             // Make time step
             timeStepping->step(*solver, stats);
+
+            // Log
+            stats.set(FrequentStatsIds::TIME, t);
+            stats.set(FrequentStatsIds::INDEX, (int)i);
+            if (logger) {
+                FrequentStatsFormat format;
+                format.print(*logger, stats);
+            }
         }
     }
 };

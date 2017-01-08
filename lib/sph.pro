@@ -2,51 +2,57 @@ TEMPLATE = lib
 CONFIG += c++14 staticLib thread silent
 CONFIG -= app_bundle qt
 QMAKE_CXXFLAGS += -Wall -Wextra -Werror -msse4.1 -std=c++14 -pthread
-QMAKE_CXXFLAGS_RELEASE -= -O2
-QMAKE_CXXFLAGS_RELEASE += -Os
-QMAKE_CXXFLAGS_DEBUG += -fsanitize=undefined-trap -fsanitize-undefined-trap-on-error
+#QMAKE_CXXFLAGS_RELEASE -= -O2
+#QMAKE_CXXFLAGS_RELEASE += -Os
+QMAKE_CXXFLAGS_DEBUG += -fsanitize=undefined-trap -fsanitize-undefined-trap-on-error  # -ftime-report
 QMAKE_CXX = clang++
 
 
 
-CONFIG(release, debug|profile|release) {
+CONFIG(release, debug|profile|assert|release) {
   message( "SPH LIB --- Building for Release" )
 }
 
-CONFIG(profile, debug|profile|release) {
+CONFIG(profile, debug|profile|assert|release) {
   message( "SPH LIB --- Building for Profile" )
   DEFINES += PROFILE
 }
 
-CONFIG(debug, debug|profile|release) {
+CONFIG(assert, debug|profile|assert|release) {
+  message( "SPH LIB --- Building for Assert" )
+  DEFINES += DEBUG PROFILE
+  QMAKE_CXXFLAGS += -O2
+}
+
+CONFIG(debug, debug|profile|assert|release) {
   message( "SPH LIB --- Building for Debug" )
   DEFINES += DEBUG PROFILE
 }
 
 
 SOURCES += \
-    physics/TimeFormat.cpp \
-    sph/initial/Distribution.cpp \
-    system/Timer.cpp \
-    system/Factory.cpp \
-    sph/timestepping/TimeStepping.cpp \
-    system/Profiler.cpp \
     solvers/SolverFactory.cpp \
-    system/Settings.cpp \
     math/rng/Rng.cpp \
+    math/Morton.cpp \
     quantities/Material.cpp \
     quantities/Storage.cpp \
     sph/boundary/Boundary.cpp \
-    sph/initial/Initial.cpp \
     sph/forces/Damage.cpp \
+    sph/forces/Yielding.cpp \
+    sph/initial/Distribution.cpp \
+    sph/initial/Initial.cpp \
+    sph/timestepping/TimeStepping.cpp \
+    sph/timestepping/AdaptiveTimeStep.cpp \
     objects/finders/Voxel.cpp \
     system/Logger.cpp \
     system/Output.cpp \
+    system/Timer.cpp \
+    system/Factory.cpp \
+    system/Profiler.cpp \
+    system/Settings.cpp \
     physics/Eos.cpp \
-    sph/timestepping/AdaptiveTimeStep.cpp \
-    post/Components.cpp \
-    math/Morton.cpp \
-    sph/forces/Yielding.cpp
+    physics/TimeFormat.cpp \
+    post/Components.cpp
 
 HEADERS += \
     core/Globals.h \

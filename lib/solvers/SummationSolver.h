@@ -59,7 +59,7 @@ public:
         // clamp smoothing length
         /// \todo generalize clamping, min / max values
         for (Float& h : componentAdapter(r, H)) {
-            h = Math::max(h, 1.e-12_f);
+            h = max(h, 1.e-12_f);
         }
 
         this->finder->build(r);
@@ -75,7 +75,7 @@ public:
             Float previousRho = EPS;
             accumulatedRho[i] = rho[i];
             int iterationIdx = 0;
-            while (iterationIdx < 20 && Math::abs(previousRho - accumulatedRho[i]) / previousRho > 1.e-3_f) {
+            while (iterationIdx < 20 && abs(previousRho - accumulatedRho[i]) / previousRho > 1.e-3_f) {
                 previousRho = accumulatedRho[i];
                 if (iterationIdx == 0 || accumulatedH[i] > r[i][H]) {
                     // smoothing length increased, we need to recompute neighbours
@@ -87,10 +87,10 @@ public:
                     const int j = neigh.index;
                     accumulatedRho[i] += m[j] * this->kernel.value(r[i] - r[j], accumulatedH[i]);
                 }
-                accumulatedH[i] = eta * Math::root<dim>(m[i] / accumulatedRho[i]);
+                accumulatedH[i] = eta * root<dim>(m[i] / accumulatedRho[i]);
                 iterationIdx++;
             }
-            maxIteration = Math::max(maxIteration, iterationIdx);
+            maxIteration = max(maxIteration, iterationIdx);
             for (const auto& neigh : this->neighs) {
                 const int j = neigh.index;
                 // compute gradient of kernel W_ij

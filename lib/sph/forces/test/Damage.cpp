@@ -42,10 +42,10 @@ TEST_CASE("Distribute flaws", "[damage]") {
     ArrayStats<Float> epsStats(storage.getValue<Float>(QuantityKey::EPS_MIN));
     REQUIRE(mStats.min() == 1._f);
     REQUIRE(mStats.max() > m_weibull);
-    REQUIRE(Math::almostEqual(mStats.average(), m_weibull, 0.5_f));
+    REQUIRE(almostEqual(mStats.average(), m_weibull, 0.5_f));
     REQUIRE(growthStats.min() == growthStats.max());
     REQUIRE(epsStats.min() > 0._f);
-    REQUIRE(Math::almostEqual(epsStats.max(), 3.e-4_f, 1.e-4_f));
+    REQUIRE(almostEqual(epsStats.max(), 3.e-4_f, 1.e-4_f));
 }
 
 TEST_CASE("Fracture growth", "[damage]") {}

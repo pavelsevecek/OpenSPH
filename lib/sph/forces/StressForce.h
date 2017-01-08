@@ -66,8 +66,8 @@ public:
 
     INLINE void accumulate(const Size i, const Size j, const Vector& grad) {
         Vector f(0._f);
-        const Float rhoInvSqri = 1._f / Math::sqr(rho[i]);
-        const Float rhoInvSqrj = 1._f / Math::sqr(rho[j]);
+        const Float rhoInvSqri = 1._f / sqr(rho[i]);
+        const Float rhoInvSqrj = 1._f / sqr(rho[j]);
         if (flags.has(Options::USE_GRAD_P)) {
             /// \todo measure if these branches have any effect on performance
             const auto avij = av(i, j);
@@ -89,7 +89,7 @@ public:
     void integrate(Storage& storage) {
         for (Size i = 0; i < du.size(); ++i) {
             /// \todo check correct sign
-            const Float rhoInvSqr = 1._f / Math::sqr(rho[i]);
+            const Float rhoInvSqr = 1._f / sqr(rho[i]);
             if (flags.has(Options::USE_GRAD_P)) {
                 du[i] -= reduce(p[i], i) * rhoInvSqr * rhoDivv[i];
             }
@@ -102,9 +102,9 @@ public:
                 /// \todo how to enforce that this expression is traceless tensor?
                 ds[i] += TracelessTensor(
                     2._f * mu * (rhoGradv[i] - Tensor::identity() * rhoGradv[i].trace() / 3._f));
-                ASSERT(Math::isReal(ds[i]));
+                ASSERT(isReal(ds[i]));
             }
-            ASSERT(Math::isReal(du[i]));
+            ASSERT(isReal(du[i]));
         }
         this->integrateModules(storage);
     }

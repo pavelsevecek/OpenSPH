@@ -31,7 +31,7 @@ public:
     Float integrate(TFunctor&& f, const Float targetError = 0.001_f) {
         double sum = 0.;
         double sumSqr = 0.;
-        double errorSqr = Math::sqr(targetError);
+        double errorSqr = sqr(targetError);
         Size n = 0;
         StaticArray<Vector, chunk> buffer;
         Array<Size> inside;

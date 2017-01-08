@@ -31,13 +31,13 @@ public:
     INLINE Float value(const Vector& r, const Float h) const {
         ASSERT(h > 0._f);
         const Float hInv = 1._f / h;
-        return Math::pow<D>(hInv) * kernel->valueImpl(getSqrLength(r) * Math::sqr(hInv));
+        return pow<D>(hInv) * kernel->valueImpl(getSqrLength(r) * sqr(hInv));
     }
 
     INLINE Vector grad(const Vector& r, const Float h) const {
         ASSERT(h > 0._f);
         const Float hInv = 1._f / h;
-        return r * Math::pow<D + 2>(hInv) * kernel->gradImpl(getSqrLength(r) * Math::sqr(hInv));
+        return r * pow<D + 2>(hInv) * kernel->gradImpl(getSqrLength(r) * sqr(hInv));
     }
 };
 
@@ -48,13 +48,13 @@ class LutKernel : public Kernel<LutKernel<D>, D> {
 private:
     static constexpr int NEntries = 40000;
 
-    struct {
+    /*struct {
         Float values[NEntries + 4096 / sizeof(Float)];
         Float grads[NEntries + 4096 / sizeof(Float)];
-    } storage;
+    } storage;*/
 
-    Float* values;
-    Float* grads;
+    Float values[NEntries];
+    Float grads[NEntries];
 
     Float rad = 0._f;
     Float radInvSqr;
@@ -67,15 +67,16 @@ public:
         rad = source.radius();
 
         // align to page size
-        values = (Float*)(((uint64_t(storage.values) / 4096) + 1) * 4096);
-        grads = (Float*)(((uint64_t(storage.grads) / 4096) + 1) * 4096);
+        /// \todo
+        /*values = storage.values;//(Float*)(((uint64_t(storage.values) / 4096) + 1) * 4096);
+        grads = storage.grads; //(Float*)(((uint64_t(storage.grads) / 4096) + 1) * 4096);
         ASSERT((values - storage.values) * sizeof(Float) <= 4096);
-        ASSERT((grads - storage.grads) * sizeof(Float) <= 4096);
+        ASSERT((grads - storage.grads) * sizeof(Float) <= 4096);*/
 
         ASSERT(rad > 0._f);
         radInvSqr = 1._f / (rad * rad);
-        for (int i = 0; i < NEntries; ++i) {
-            const Float q = Float(i) / Float(NEntries) * Math::sqr(rad);
+        for (Size i = 0; i < NEntries; ++i) {
+            const Float q = Float(i) / Float(NEntries) * sqr(rad);
             values[i] = source.valueImpl(q);
             grads[i] = source.gradImpl(q);
         }
@@ -97,13 +98,13 @@ public:
     // template <bool TApprox = false>
     INLINE Float valueImpl(const Float qSqr) const {
         ASSERT(qSqr >= 0.f);
-        if (qSqr >= Math::sqr(rad)) {
+        if (qSqr >= sqr(rad)) {
             // outside of kernel support
             return 0._f;
         }
         // linear interpolation of stored values
         const Float floatIdx = Float(NEntries) * qSqr * radInvSqr;
-        const int idx1 = floor(floatIdx);
+        const int idx1 = Size(floatIdx);
         ASSERT(idx1 < NEntries);
         const int idx2 = idx1 + 1;
         const Float ratio = floatIdx - Float(idx1);
@@ -114,14 +115,14 @@ public:
     // template <bool TApprox = false>
     INLINE Float gradImpl(const Float qSqr) const {
         ASSERT(qSqr >= 0._f);
-        if (qSqr >= Math::sqr(rad)) {
+        if (qSqr >= sqr(rad)) {
             // outside of kernel support
             return 0._f;
         }
         const Float floatIdx = Float(NEntries) * qSqr * radInvSqr;
-        const int idx1 = floor(floatIdx);
+        const Size idx1 = Size(floatIdx);
         ASSERT(unsigned(idx1) < unsigned(NEntries));
-        const int idx2 = idx1 + 1;
+        const Size idx2 = idx1 + 1;
         const Float ratio = floatIdx - Float(idx1);
 
         return grads[idx1] * (1._f - ratio) + (idx2 < NEntries ? grads[idx2] : 0._f) * ratio;
@@ -133,7 +134,7 @@ public:
 template <int D>
 class CubicSpline : public Kernel<CubicSpline<D>, D> {
 private:
-    const Float normalization[3] = { 2._f / 3._f, 10._f / (7._f * Math::PI), 1._f / Math::PI };
+    const Float normalization[3] = { 2._f / 3._f, 10._f / (7._f * PI), 1._f / PI };
 
 public:
     CubicSpline() = default;
@@ -142,29 +143,29 @@ public:
 
     // template <bool TApprox = false>
     INLINE Float valueImpl(const Float qSqr) const {
-        const Float q = Math::sqrt(qSqr);
+        const Float q = sqrt(qSqr);
         ASSERT(q >= 0);
         if (q < 1._f) {
-            return normalization[D - 1] * (0.25_f * Math::pow<3>(2._f - q) - Math::pow<3>(1._f - q));
+            return normalization[D - 1] * (0.25_f * pow<3>(2._f - q) - pow<3>(1._f - q));
         }
         if (q < 2._f) {
-            return normalization[D - 1] * (0.25_f * Math::pow<3>(2._f - q));
+            return normalization[D - 1] * (0.25_f * pow<3>(2._f - q));
         }
         return 0._f; // compact within 2r radius
     }
 
     // template <bool TApprox = false>
     INLINE Float gradImpl(const Float qSqr) const {
-        const Float q = Math::sqrt(qSqr);
+        const Float q = sqrt(qSqr);
         if (q == 0._f) {
             return 0._f;
         }
         if (q < 1._f) {
             return (1._f / q) * normalization[D - 1] *
-                   (-0.75_f * Math::pow<2>(2._f - q) + 3._f * Math::pow<2>(1._f - q));
+                   (-0.75_f * pow<2>(2._f - q) + 3._f * pow<2>(1._f - q));
         }
         if (q < 2._f) {
-            return (1._f / q) * normalization[D - 1] * (-0.75f * Math::pow<2>(2.f - q));
+            return (1._f / q) * normalization[D - 1] * (-0.75f * pow<2>(2.f - q));
         }
         return 0._f;
     }
@@ -174,7 +175,7 @@ public:
 template <int D>
 class FourthOrderSpline : public Kernel<FourthOrderSpline<D>, D> {
 private:
-    const Float normalization[3] = { 1._f / 24._f, 96._f / (1199._f * Math::PI), 1._f / (20._f * Math::PI) };
+    const Float normalization[3] = { 1._f / 24._f, 96._f / (1199._f * PI), 1._f / (20._f * PI) };
 
 public:
     FourthOrderSpline() = default;
@@ -183,38 +184,38 @@ public:
 
     // template <bool TApprox = false>
     INLINE Float valueImpl(const Float qSqr) const {
-        const Float q = Math::sqrt(qSqr);
+        const Float q = sqrt(qSqr);
         ASSERT(q >= 0);
         if (q < 0.5_f) {
-            return normalization[D - 1] * (Math::pow<4>(2.5_f - q) - 5._f * Math::pow<4>(1.5_f - q) +
-                                              10._f * Math::pow<4>(0.5_f - q));
+            return normalization[D - 1] * (pow<4>(2.5_f - q) - 5._f * pow<4>(1.5_f - q) +
+                                              10._f * pow<4>(0.5_f - q));
         }
         if (q < 1.5_f) {
-            return normalization[D - 1] * (Math::pow<4>(2.5_f - q) - 5._f * Math::pow<4>(1.5_f - q));
+            return normalization[D - 1] * (pow<4>(2.5_f - q) - 5._f * pow<4>(1.5_f - q));
         }
         if (q < 2.5_f) {
-            return normalization[D - 1] * (Math::pow<4>(2.5_f - q));
+            return normalization[D - 1] * (pow<4>(2.5_f - q));
         }
         return 0._f; // compact within 2r radius
     }
 
     // template <bool TApprox = false>
     INLINE Float gradImpl(const Float qSqr) const {
-        const Float q = Math::sqrt(qSqr);
+        const Float q = sqrt(qSqr);
         if (q == 0._f) {
             return 0._f;
         }
         if (q < 0.5_f) {
             return (1._f / q) * normalization[D - 1] *
-                   (-4._f * Math::pow<3>(2.5_f - q) + 20._f * Math::pow<3>(1.5_f - q) -
-                       40._f * Math::pow<3>(0.5_f - q));
+                   (-4._f * pow<3>(2.5_f - q) + 20._f * pow<3>(1.5_f - q) -
+                       40._f * pow<3>(0.5_f - q));
         }
         if (q < 1.5_f) {
             return (1._f / q) * normalization[D - 1] *
-                   (-4._f * Math::pow<3>(2.5_f - q) + 20._f * Math::pow<3>(1.5_f - q));
+                   (-4._f * pow<3>(2.5_f - q) + 20._f * pow<3>(1.5_f - q));
         }
         if (q < 2.5_f) {
-            return (1._f / q) * normalization[D - 1] * (-4._f * Math::pow<3>(2.5_f - q));
+            return (1._f / q) * normalization[D - 1] * (-4._f * pow<3>(2.5_f - q));
         }
         return 0._f;
     }
@@ -226,17 +227,17 @@ public:
     INLINE Float radius() const { return 1._f; }
 
     INLINE Float valueImpl(const Float qSqr) const {
-        const Float q = Math::sqrt(qSqr);
+        const Float q = sqrt(qSqr);
         const Float alpha = 1._f / 3._f;
-        const Float beta = 1._f + 6._f * Math::sqr(alpha) - 12._f * Math::pow<3>(alpha);
+        const Float beta = 1._f + 6._f * sqr(alpha) - 12._f * pow<3>(alpha);
         const Float normalization =
-            8._f / (Math::PI * (6.4_f * Math::pow<5>(alpha) - 16._f * Math::pow<6>(alpha) + 1._f));
+            8._f / (PI * (6.4_f * pow<5>(alpha) - 16._f * pow<6>(alpha) + 1._f));
         if (q < alpha) {
-            return normalization * ((-12._f * alpha + 18._f * Math::sqr(alpha)) * q + beta);
+            return normalization * ((-12._f * alpha + 18._f * sqr(alpha)) * q + beta);
         } else if (q < 0.5_f) {
             return normalization * (1._f - 6._f * q * q * (1._f - q));
         } else if (q < 1._f) {
-            return normalization * 2._f * Math::pow<3>(1._f - q);
+            return normalization * 2._f * pow<3>(1._f - q);
         } else {
             return 0._f;
         }

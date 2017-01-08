@@ -16,9 +16,9 @@ TEST_CASE("Dumping data", "[output]") {
     std::string expected = R"(# Run: Output
 # SPH dump, time = 0
 #         Density   Position [x]   Position [y]   Position [z]   Velocity [x]   Velocity [y]   Velocity [z]
-       5.000000       0.000000       0.000000       0.000000       0.000000       0.000000       0.000000
-       5.000000       1.000000       1.000000       1.000000       0.000000       0.000000       0.000000
-       5.000000       2.000000       2.000000       2.000000       0.000000       0.000000       0.000000
+              5              0              0              0              0              0              0
+              5              1              1              1              0              0              0
+              5              2              2              2              0              0              0
 )";
     std::ifstream file("tmp0000.out");
     std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());

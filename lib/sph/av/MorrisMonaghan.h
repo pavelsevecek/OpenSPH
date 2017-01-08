@@ -59,7 +59,7 @@ public:
         for (Size i = 0; i < storage.getParticleCnt(); ++i) {
             const Float tau = r[i][H] / (eps * cs[i]);
             const Float decayTerm = -(alpha[i] - Float(bounds.lower())) / tau;
-            const Float sourceTerm = Math::max(-(Float(bounds.upper()) - alpha[i]) * divv[i], 0._f);
+            const Float sourceTerm = max(-(Float(bounds.upper()) - alpha[i]) * divv[i], 0._f);
             dalpha[i] = decayTerm + sourceTerm;
         }
     }
@@ -75,8 +75,8 @@ public:
         const Float rhobar = 0.5_f * (rho[i] + rho[j]);
         const Float alphabar = 0.5_f * (alpha[i] + alpha[j]);
         const Float betabar = 0.5_f * (beta[i] + beta[j]);
-        const Float mu = hbar * dvdr / (getSqrLength(dr) + eps * Math::sqr(hbar));
-        return 1._f / rhobar * (-alphabar * csbar * mu + betabar * Math::sqr(mu));
+        const Float mu = hbar * dvdr / (getSqrLength(dr) + eps * sqr(hbar));
+        return 1._f / rhobar * (-alphabar * csbar * mu + betabar * sqr(mu));
     }
 };
 

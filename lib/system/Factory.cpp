@@ -17,6 +17,8 @@ std::unique_ptr<Abstract::Eos> Factory::getEos(const BodySettings& settings) {
         return std::make_unique<IdealGasEos>(settings.get<Float>(BodySettingsIds::ADIABATIC_INDEX));
     case EosEnum::TILLOTSON:
         return std::make_unique<TillotsonEos>(settings);
+    case EosEnum::MURNAGHAN:
+        return std::make_unique<MurnaghanEos>(settings);
     default:
         NOT_IMPLEMENTED;
     }

@@ -13,6 +13,10 @@ static void printHeader(std::ofstream& ofs, const QuantityKey key, Quantity& q) 
             ofs << std::setw(15) << (name + " [x]") << std::setw(15) << (name + " [y]") << std::setw(15)
                 << (name + " [z]");
             break;
+        case ValueEnum::TRACELESS_TENSOR:
+            ofs << std::setw(15) << (name + " [xx]") << std::setw(15) << (name + " [yy]") << std::setw(15)
+                << (name + " [xy]") << std::setw(15) << (name + " [xz]") << std::setw(15) << (name + " [yz]");
+            break;
         default:
             NOT_IMPLEMENTED;
         }
@@ -40,10 +44,10 @@ struct LinePrinter {
     template <typename TValue>
     void visit(Quantity& q, const Size i, std::ofstream& ofs) {
         if (q.getOrderEnum() == OrderEnum::SECOND_ORDER) {
-            ofs << std::fixed << std::setprecision(6) << std::setw(15) << q.getValue<TValue>()[i]
+            ofs << std::setprecision(6) << std::setw(15) << q.getValue<TValue>()[i]
                 << std::setw(15) << q.getDt<TValue>()[i];
         } else {
-            ofs << std::fixed << std::setprecision(6) << std::setw(15) << q.getValue<TValue>()[i];
+            ofs << std::setprecision(6) << std::setw(15) << q.getValue<TValue>()[i];
         }
     }
 };

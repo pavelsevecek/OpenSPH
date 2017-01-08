@@ -9,7 +9,7 @@ VoxelFinder::~VoxelFinder() = default;
 
 void VoxelFinder::buildImpl(ArrayView<const Vector> newValues) {
     // number of voxels, free parameter
-    const Size lutSize = Math::root<3>(newValues.size()) + 1;
+    const Size lutSize = root<3>(newValues.size()) + 1;
     // find bounding box
     Box boundingBox;
     for (const Vector& v : newValues) {
@@ -76,7 +76,7 @@ Size VoxelFinder::findNeighbours(const Size index,
             for (int z = lower[Z]; z <= upper[Z]; ++z) {
                 for (Size i : lut(Indices(x, y, z))) {
                     const Float distSqr = getSqrLength(values[i] - values[index]);
-                    if (rankH[i] < refRank && distSqr < Math::sqr(radius)) {
+                    if (rankH[i] < refRank && distSqr < sqr(radius)) {
                         neighbours.push(NeighbourRecord{ i, distSqr });
                     }
                 }

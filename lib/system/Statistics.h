@@ -132,8 +132,8 @@ public:
     virtual void print(Abstract::Logger& logger,
         const Statistics<FrequentStatsIds>& statistics) const override {
         logger.write("Output #",
-            statistics.get<Float>(FrequentStatsIds::INDEX),
-            "time = ",
+            statistics.get<int>(FrequentStatsIds::INDEX),
+            "  time = ",
             statistics.get<Float>(FrequentStatsIds::TIME));
         logger.write(" - timestep: dt = ",
             statistics.get<Float>(FrequentStatsIds::TIMESTEP_VALUE),

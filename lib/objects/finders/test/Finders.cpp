@@ -23,7 +23,7 @@ void testFinder(Abstract::Finder& finder) {
     Array<Size> bfNeighs;
 
     for (Size i = 0; i < storage.size(); ++i) {
-        if (getSqrLength(storage[25] - storage[i]) <= Math::sqr(1.5_f)) {
+        if (getSqrLength(storage[25] - storage[i]) <= sqr(1.5_f)) {
             bfNeighs.push(i);
         }
     }

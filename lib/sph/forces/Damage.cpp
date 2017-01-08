@@ -42,7 +42,7 @@ void ScalarDamage::initialize(Storage& storage, const BodySettings& settings) co
 
     const Float cgFactor = settings.get<Float>(BodySettingsIds::RAYLEIGH_SOUND_SPEED);
     const Float rho0 = settings.get<Float>(BodySettingsIds::DENSITY);
-    const Float cg = cgFactor * Math::sqrt((A + 4._f / 3._f * mu) / rho0);
+    const Float cg = cgFactor * sqrt((A + 4._f / 3._f * mu) / rho0);
 
     const Size size = storage.getParticleCnt();
     // compute explicit growth
@@ -56,7 +56,7 @@ void ScalarDamage::initialize(Storage& storage, const BodySettings& settings) co
     }
     const Float k_weibull = settings.get<Float>(BodySettingsIds::WEIBULL_COEFFICIENT);
     const Float m_weibull = settings.get<Float>(BodySettingsIds::WEIBULL_EXPONENT);
-    const Float denom = 1._f / Math::pow(k_weibull * V, 1._f / m_weibull);
+    const Float denom = 1._f / std::pow(k_weibull * V, 1._f / m_weibull);
     Array<Float> eps_max(size);
     BenzAsphaugRng rng(1234); /// \todo generalize random number generator
     Size flawedCnt = 0, p = 1;
@@ -65,7 +65,7 @@ void ScalarDamage::initialize(Storage& storage, const BodySettings& settings) co
         if (options == ExplicitFlaws::ASSIGNED) {
             p = activationIdx[i];
         }
-        const Float eps = denom * Math::pow(Float(p), 1._f / m_weibull);
+        const Float eps = denom * std::pow(Float(p), 1._f / m_weibull);
         if (n_flaws[i] == 0) {
             flawedCnt++;
             eps_min[i] = eps;
@@ -79,7 +79,7 @@ void ScalarDamage::initialize(Storage& storage, const BodySettings& settings) co
             m_zero[i] = 1._f;
         } else {
             const Float ratio = eps_max[i] / eps_min[i];
-            ASSERT(Math::isReal(ratio));
+            ASSERT(isReal(ratio));
             m_zero[i] = log(n_flaws[i]) / log(ratio);
         }
     }
@@ -96,14 +96,14 @@ void ScalarDamage::integrate(Storage& storage) {
         Tensor sigma = yielding(reduce(s[i], i), i) - reduce(p[i], i) * Tensor::identity();
         float sig1, sig2, sig3;
         tie(sig1, sig2, sig3) = findEigenvalues(sigma);
-        float sigMax = Math::max(sig1, sig2, sig3);
+        float sigMax = max(sig1, sig2, sig3);
         const Float young = reduce(storage.getMaterial(i).youngModulus, i);
         const Float strain = sigMax / young;
         const Float ratio = strain / eps_min[i];
         if (ratio <= 1._f) {
             continue;
         }
-        ddamage[i] = growth[i] * Math::root<3>(Math::min(Math::pow(ratio, m_zero[i]), Float(n_flaws[i])));
+        ddamage[i] = growth[i] * root<3>(min(std::pow(ratio, m_zero[i]), Float(n_flaws[i])));
     }
 }
 

@@ -107,9 +107,9 @@ public:
 
     virtual int generateSphere(const int n, const T radius, Array<Vector>& vecs) override {
 
-        const Volume<T> projectVolume(Math::sphereVolume(projectRadius));
+        const Volume<T> projectVolume(sphereVolume(projectRadius));
         const NumberDensity<T> projectDensity = T(projectCnt) / projectVolume;
-        const Volume<T> targetVolume(Math::sphereVolume(radius));
+        const Volume<T> targetVolume(sphereVolume(radius));
 
         const auto center = Vector<Length<T>, d>::spherical(radius, angle.value(Units::SI<T>));
 
@@ -122,7 +122,7 @@ public:
         Integrator<float, d> mc(radius.value());
         int cnt = 0;
         float particleCount;
-        for (particleCount = mc.integrate(lambda); Math::abs(particleCount - n) > allowedError;) {
+        for (particleCount = mc.integrate(lambda); abs(particleCount - n) > allowedError;) {
             const float ratio = particleCount / n;
             drop *= ratio;
             std::cout << "ratio = " << ratio << "  drop = " << drop << " particle count  " <<
@@ -133,7 +133,7 @@ particleCount
                 break;
             }
         }
-        const int N = Math::round(particleCount); // final particle count of the target
+        const int N = round(particleCount); // final particle count of the target
 
         HaltonQrng<T> halton;
         auto rng = makeSphericalRng(Vector(0.f), radius.value(), halton, lambda);
@@ -166,7 +166,7 @@ particleCount
                 Vector<Length<T>, d> delta(0._m);
                 const NumberDensity<T> n = lambda(vecs[i]); // average particle density
                 // average interparticle distance at given point
-                const Length<T> neighbourRadius = KERNEL_RADIUS / Math::root<d>(n);
+                const Length<T> neighbourRadius = KERNEL_RADIUS / root<d>(n);
                 neighbours.resize(0);
                 tree.findNeighbours(vecs[i], neighbourRadius, neighbours, NEIGHBOUR_ERROR);
 
@@ -182,21 +182,21 @@ particleCount
                     const Vector diff = vecs[k] - vecs[i];
                     const float lengthSqr = diff.getSqrLength();
                     // average kernel radius to allow for the gradient of particle density
-                    const float h = KERNEL_RADIUS * (0.5f / Math::root<d>(lambda(vecs[i])) +
-                                                     0.5f / Math::root<d>(lambda(vecs[k])));
+                    const float h = KERNEL_RADIUS * (0.5f / root<d>(lambda(vecs[i])) +
+                                                     0.5f / root<d>(lambda(vecs[k])));
                     if (lengthSqr > h * h || lengthSqr == 0) {
                         continue;
                     }
                     const float hSqrInv = 1.f / (h * h);
                     const float length  = diff.getLength();
                     average += length / h;
-                    averageSqr += Math::sqr(length) / Math::sqr(h);
+                    averageSqr += sqr(length) / sqr(h);
                     count++;
                     const Vector diffUnit = diff / length;
                     const float t =
                         converg * h * (strength / (SMALL + diff.getSqrLength() * hSqrInv) - correction);
                     if (MOVE_PARTICLES) {
-                        delta += diffUnit * Math::min(t, h); // clamp the dislocation to particle distance
+                        delta += diffUnit * min(t, h); // clamp the dislocation to particle distance
                     }
                 }
                 vecs[i] = vecs[i] - delta;

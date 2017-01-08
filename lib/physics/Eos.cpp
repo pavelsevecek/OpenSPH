@@ -8,7 +8,7 @@ IdealGasEos::IdealGasEos(const Float gamma)
 
 Tuple<Float, Float> IdealGasEos::getPressure(const Float rho, const Float u) const {
     const Float p = (gamma - 1._f) * u * rho;
-    return { p, Math::sqrt(gamma * p / rho) };
+    return { p, sqrt(gamma * p / rho) };
 }
 
 Float IdealGasEos::getInternalEnergy(const Float rho, const Float p) const {
@@ -21,7 +21,7 @@ Float IdealGasEos::getTemperature(const Float u) const {
 
 
 TillotsonEos::TillotsonEos(const BodySettings& settings)
-    : u0(settings.get<Float>(BodySettingsIds::ENERGY))
+    : u0(settings.get<Float>(BodySettingsIds::TILLOTSON_SUBLIMATION))
     , uiv(settings.get<Float>(BodySettingsIds::TILLOTSON_ENERGY_IV))
     , ucv(settings.get<Float>(BodySettingsIds::TILLOTSON_ENERGY_CV))
     , a(settings.get<Float>(BodySettingsIds::TILLOTSON_SMALL_A))
@@ -36,27 +36,27 @@ Tuple<Float, Float> TillotsonEos::getPressure(const Float rho, const Float u) co
     const Float eta = rho / rho0;
     const Float mu = eta - 1._f;
     const Float denom = u / (u0 * eta * eta) + 1._f;
-    ASSERT(Math::isReal(denom));
-    ASSERT(Math::isReal(eta));
+    ASSERT(isReal(denom));
+    ASSERT(isReal(eta));
     // compressed phase
     const Float pc = (a + b / denom) * rho * u + A * mu + B * mu * mu;
-    Float dpdu = a * rho + b * rho / Math::sqr(denom);
-    Float dpdrho = a * u + b * u * (3._f * denom - 2._f) / Math::sqr(denom) + A / rho0 + 2._f * B * mu / rho0;
+    Float dpdu = a * rho + b * rho / sqr(denom);
+    Float dpdrho = a * u + b * u * (3._f * denom - 2._f) / sqr(denom) + A / rho0 + 2._f * B * mu / rho0;
     const Float csc = dpdrho + dpdu * pc / (rho * rho);
-    ASSERT(Math::isReal(csc));
+    ASSERT(isReal(csc));
 
     // expanded phase
     const Float rhoExp = rho0 / rho - 1._f;
-    const Float betaExp = Math::exp(-beta * rhoExp);
-    const Float alphaExp = Math::exp(-alpha * Math::sqr(rhoExp));
+    const Float betaExp = exp(-beta * rhoExp);
+    const Float alphaExp = exp(-alpha * sqr(rhoExp));
     const Float pe = a * rho * u + (b * rho * u / denom + A * mu * betaExp) * alphaExp;
-    dpdu = a * rho + alphaExp * b * rho / Math::sqr(denom);
+    dpdu = a * rho + alphaExp * b * rho / sqr(denom);
     dpdrho =
-        a * u + alphaExp * (b * u * (3._f * denom - 2._f) / Math::sqr(denom)) +
-        alphaExp * (b * u * rho / denom) * rho0 * (2._f * alpha * rhoExp) / Math::sqr(rho) +
-        alphaExp * A * betaExp * (1._f / rho0 + rho0 * mu / Math::sqr(rho) * (2._f * alpha * rhoExp + beta));
+        a * u + alphaExp * (b * u * (3._f * denom - 2._f) / sqr(denom)) +
+        alphaExp * (b * u * rho / denom) * rho0 * (2._f * alpha * rhoExp) / sqr(rho) +
+        alphaExp * A * betaExp * (1._f / rho0 + rho0 * mu / sqr(rho) * (2._f * alpha * rhoExp + beta));
     const Float cse = dpdrho + dpdu * pe / (rho * rho);
-    ASSERT(Math::isReal(cse));
+    ASSERT(isReal(cse));
 
     // select phase based on internal energy
     Float p = pc, cs = csc;
@@ -65,10 +65,26 @@ Tuple<Float, Float> TillotsonEos::getPressure(const Float rho, const Float u) co
         cs = cse;
     } else if (rho <= rho0 && u > uiv && u <= ucv) {
         p = ((u - uiv) * pe + (ucv - u) * pc) / (ucv - uiv);
+        /// \todo interpolate squared values or after sqrt?
         cs = ((u - uiv) * cse + (ucv - u) * csc) / (ucv - uiv);
     }
-    ASSERT(Math::isReal(p) && Math::isReal(cs));
+    // clamp sound speed to prevent negative values
+    cs = max(cs, 0.25_f * A / rho0);
+
+    ASSERT(isReal(p) && isReal(cs) && cs > 0._f);
+    return { p, sqrt(cs) };
+}
+
+
+MurnaghanEos::MurnaghanEos(const BodySettings& settings)
+    : rho0(settings.get<Float>(BodySettingsIds::DENSITY))
+    , A(settings.get<Float>(BodySettingsIds::BULK_MODULUS)) {}
+
+Tuple<Float, Float> MurnaghanEos::getPressure(const Float rho, const Float UNUSED(u)) const {
+    const Float cs = sqrt(A / rho0);
+    const Float p = sqr(cs) * (rho - rho0);
     return { p, cs };
 }
+
 
 NAMESPACE_SPH_END

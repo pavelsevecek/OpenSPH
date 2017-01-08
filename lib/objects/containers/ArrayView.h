@@ -29,7 +29,7 @@ protected:
 
 #ifndef DEBUG
     Iterator(T* data)
-        :data(data) {}
+        : data(data) {}
 #endif
 
     Iterator(T* data, const T* UNUSED_IN_RELEASE(begin), const T* UNUSED_IN_RELEASE(end))
@@ -146,8 +146,6 @@ public:
     ArrayView& operator=(ArrayView&& other) {
         this->data = other.data;
         this->actSize = other.actSize;
-        //std::swap(this->data, other.data);
-        //std::swap(this->actSize, other.actSize);
         return *this;
     }
 
@@ -184,9 +182,15 @@ public:
 
     INLINE bool empty() const { return this->actSize == 0; }
 
-    bool operator!() const { return data == nullptr; }
+    /// Returns a subset of the arrayview.
+    INLINE ArrayView subset(const TCounter start, const TCounter length) {
+        ASSERT(start + length <= size());
+        return ArrayView(data + start, length);
+    }
 
-    explicit operator bool() const { return data != nullptr; }
+    INLINE bool operator!() const { return data == nullptr; }
+
+    INLINE explicit operator bool() const { return data != nullptr; }
 
     /// Comparison operator, comparings arrayviews element-by-element.
     bool operator==(const ArrayView& other) const {

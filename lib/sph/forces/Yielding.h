@@ -7,7 +7,7 @@ NAMESPACE_SPH_BEGIN
 
 class Storage;
 
-class DummyYielding  {
+class DummyYielding {
 public:
     void update(Storage& UNUSED(storage)) {}
 
@@ -15,7 +15,7 @@ public:
 };
 
 
-class VonMisesYielding  {
+class VonMisesYielding {
 private:
     // cached values of elasticity limit
     Array<Float> y;
@@ -23,10 +23,19 @@ private:
 public:
     void update(Storage& storage);
 
+    /// \param s Deviatoric stress tensor of i-th particle, reduced by fragmentation model if applied.
     INLINE TracelessTensor reduce(const TracelessTensor& s, const int i) const {
-        const Float invariant = 1.5_f * ddot(s, s);
-        /// \todo sqrt here?
-        return s * Math::min(Math::sqr(y[i]) / invariant, 1._f);
+        ASSERT(y[i] > EPS);
+        const Float inv = 0.5_f * ddot(s, s) / sqr(y[i]);
+        if (inv < EPS) {
+            return s;
+        } else {
+            /// \todo Y depends on temperature, resp. melting energy!
+            ASSERT(isReal(inv));
+            const TracelessTensor s_red = s * min(sqrt(1._f / (3._f * inv)), 1._f);
+            ASSERT(isReal(s_red));
+            return s_red;
+        }
     }
 };
 

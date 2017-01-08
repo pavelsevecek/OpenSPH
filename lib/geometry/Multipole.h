@@ -58,7 +58,7 @@ public:
     Multipole(const Vector& v)
         : Vector(v) {}
 
-    INLINE Float apply(const Vector& v) { return this->dot(v); }
+    INLINE Float apply(const Vector& v) { return dot(*this, v); }
 };
 
 NAMESPACE_SPH_END

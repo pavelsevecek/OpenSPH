@@ -19,14 +19,14 @@ private:
         Size dimensionSize;
 
         INLINE Size map(const Indices& v) const {
-            return v[X] * Math::sqr(dimensionSize) + v[Y] * dimensionSize + v[Z];
+            return v[X] * sqr(dimensionSize) + v[Y] * dimensionSize + v[Z];
         }
 
     public:
         LookupMap() = default;
 
         LookupMap(const Size n)
-            : storage(Math::pow<3>(n))
+            : storage(pow<3>(n))
             , dimensionSize(n) {
             // clear all cells
             storage.fill(0);
@@ -66,7 +66,7 @@ public:
         Flags<FinderFlags> flags = EMPTY_FLAGS,
         const Float UNUSED(error) = 0.f) const override {
         neighbours.clear();
-        const Float cellCntSqrInv = 1._f / Math::sqr(cellCnt);
+        const Float cellCntSqrInv = 1._f / sqr(cellCnt);
         const Box bounds(this->values[index] - Vector(radius), this->values[index] + Vector(radius));
         Indices refRank = rank[index];
         Indices lower(Vector(refRank) * cellCntSqrInv);
@@ -82,8 +82,8 @@ public:
                 upper[i]++;
             }
         }
-        lower = Math::max(lower, Indices(0));
-        upper = Math::min(upper, Indices(upperBounds.size() - 1));
+        lower = max(lower, Indices(0));
+        upper = min(upper, Indices(upperBounds.size() - 1));
         const Size refRankH =
             flags.has(FinderFlags::FIND_ONLY_SMALLER_H) ? rank[index][H] : this->values.size();
         for (int x = lower[X]; x <= upper[X]; ++x) {
@@ -93,7 +93,7 @@ public:
                     Size cell = map(idxs);
                     while (cell != 0) {
                         const Float lengthSqr = getSqrLength(this->values[cell] - this->values[index]);
-                        if (Size(rank[cell][H]) < refRankH && lengthSqr < Math::sqr(radius)) {
+                        if (Size(rank[cell][H]) < refRankH && lengthSqr < sqr(radius)) {
                             neighbours.push(NeighbourRecord{ cell, lengthSqr });
                         }
                         cell = linkedList[cell];
@@ -118,7 +118,7 @@ protected:
         map = LookupMap(cellCnt);
         lowerBounds.fill(Vector(INFTY));
         upperBounds.fill(Vector(-INFTY));
-        const Float cellCntSqrInv = 1._f / Math::sqr(cellCnt);
+        const Float cellCntSqrInv = 1._f / sqr(cellCnt);
 
         for (Size idx = 0; idx < this->values.size(); ++idx) {
             const Indices multiIdx(Vector(rank[idx]) * cellCntSqrInv);
@@ -128,9 +128,9 @@ protected:
             /// \todo optimize using multiindices
             for (uint i = 0; i < 3; ++i) {
                 Float& lb = lowerBounds[multiIdx[i]][i];
-                lb = Math::min(lb, this->values[idx][i]);
+                lb = min(lb, this->values[idx][i]);
                 Float& ub = upperBounds[multiIdx[i]][i];
-                ub = Math::max(ub, this->values[idx][i]);
+                ub = max(ub, this->values[idx][i]);
             }
         }
     }
@@ -139,7 +139,7 @@ protected:
         sortedIndices = VectorOrder(values.size());
         rank = VectorOrder(values.size());
         linkedList.resize(values.size());
-        cellCnt = Math::root<3>(values.size()) + 1;
+        cellCnt = cbrt(values.size()) + 1;
 
         lowerBounds.resize(cellCnt);
         upperBounds.resize(cellCnt);
