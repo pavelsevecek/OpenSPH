@@ -29,6 +29,11 @@ public:
 #endif
     }
 
+    Range range() const {
+        ASSERT(points.size() >= 2);
+        return Range(points[0].value, points[points.size() - 1].value);
+    }
+
     Color operator()(const float value) {
         ASSERT(points.size() >= 2);
         if (value <= points[0].value) {

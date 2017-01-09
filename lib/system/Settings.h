@@ -398,6 +398,9 @@ enum class BodySettingsIds {
     /// Allowed range of density. Densities of all particles all clamped to fit in the range.
     DENSITY_RANGE,
 
+    /// Reference density used to determine value of timestep. Should be set to lowest reasonable value.
+    DENSITY_REF,
+
     /// Initial specific internal energy
     ENERGY,
 
@@ -490,6 +493,7 @@ const Settings<BodySettingsIds> BODY_SETTINGS = {
     /// Material properties
     { BodySettingsIds::DENSITY,                 "material.density",             2700._f },
     { BodySettingsIds::DENSITY_RANGE,           "material.density.range",       Range(10._f, Extended::infinity()) },
+    { BodySettingsIds::DENSITY_REF,             "material.density.ref",         1000._f },
     { BodySettingsIds::ENERGY,                  "material.energy",              10._f },
     { BodySettingsIds::ENERGY_RANGE,            "material.energy.range",        Range(10._f, Extended::infinity()) },
     { BodySettingsIds::DAMAGE,                  "material.damage",              0._f },

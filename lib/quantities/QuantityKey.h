@@ -66,6 +66,8 @@ INLINE std::string getQuantityName(const QuantityKey key) {
         return "Stress";
     case QuantityKey::DAMAGE:
         return "Damage";
+    case QuantityKey::MAXIMUM_VALUE:
+        return "Max. value";
     default:
         NOT_IMPLEMENTED;
     }

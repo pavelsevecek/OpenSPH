@@ -40,16 +40,41 @@ void OrthoPane::onPaint(wxPaintEvent& UNUSED(evt)) {
         memoryDc.SetBrush(brush);
         memoryDc.SetPen(pen);
         const Vector& r = positions[idx];
-        memoryDc.DrawCircle(wxPoint(center.x + r[X] * fov, center.y + r[Y] * fov),
-                            max(r[H] * fov * radius, 1.f));
+        memoryDc.DrawCircle(wxPoint(center.x + r[X] * fov, dc.GetSize().y - (center.y + r[Y] * fov) - 1),
+            max(r[H] * fov * radius, 1.f));
     }
     dc.DrawBitmap(bitmap, wxPoint(0, 0));
+
+    drawPalette(dc);
+}
+
+void OrthoPane::drawPalette(wxPaintDC& dc) {
+    const Range range = palette.range();
+    const int size = 201;
+    wxPoint origin(dc.GetSize().x - 50, size + 30);
+    wxPen pen = dc.GetPen();
+    for (int i = 0; i < size; ++i) {
+        const float value(range.size() * float(i) / (size - 1) + range.lower());
+        wxColour color = palette(value);
+        pen.SetColour(color);
+        dc.SetPen(pen);
+        dc.DrawLine(wxPoint(origin.x, origin.y - i), wxPoint(origin.x + 30, origin.y - i));
+        if (i % 50 == 0) {
+            dc.SetTextForeground(Color::white());
+            std::stringstream ss;
+            ss << std::setprecision(3) << value;
+            const std::string text = ss.str();
+            wxSize extent = dc.GetTextExtent(text);
+            dc.DrawText(text, wxPoint(origin.x - 50, origin.y - i - (extent.y >> 1)));
+        }
+    }
 }
 
 void OrthoPane::onMouseMotion(wxMouseEvent& evt) {
     wxPoint position = evt.GetPosition();
     if (evt.Dragging()) {
-        center += position - lastMousePosition;
+        center.x += position.x - lastMousePosition.x;
+        center.y -= position.y - lastMousePosition.y;
         this->Refresh();
     }
     lastMousePosition = position;
@@ -67,7 +92,7 @@ void OrthoPane::onMouseWheel(wxMouseEvent& evt) {
     evt.Skip();
 }
 
-void OrthoPane::onTimer(wxTimerEvent &evt) {
+void OrthoPane::onTimer(wxTimerEvent& evt) {
     this->Refresh();
     evt.Skip();
 }
@@ -92,7 +117,7 @@ void OrthoPane::update() {
     MEASURE_SCOPE("OrthoPane::update");
     ASSERT(storage);
     /// \todo copy, avoid allocation
-    positions = storage->getValue<Vector>(QuantityKey::POSITIONS).clone(); // swap should be atomic
+    positions = storage->getValue<Vector>(QuantityKey::POSITIONS).clone();
     colors->clear();
     switch (quantity) {
     case QuantityKey::POSITIONS: {

@@ -45,7 +45,7 @@ TEST_CASE("Adaptive Timestep", "[timestepping]") {
     //const Float step3 = getter.get(storage, INFTY, stats);
     // this is quite imprecise due to approximative sqrt, but it doesn't really matter for timestep
     //REQUIRE(almostEqual(step3, factor * 3._f, 1.e-3_f));
-    //REQUIRE(stats.get<QuantityKey>(FrequentStatsIds::TIMESTEP_CRITERION) == QuantityKey::ENERGY);
+    REQUIRE(stats.get<QuantityKey>(FrequentStatsIds::TIMESTEP_CRITERION) == QuantityKey::ENERGY);
 }
 
 TEST_CASE("MinOfArray", "[timestepping]") {

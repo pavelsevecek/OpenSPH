@@ -46,6 +46,8 @@ private:
 
     void onTimer(wxTimerEvent& evt);
 
+    void drawPalette(wxPaintDC& dc);
+
     void update();
 };
 

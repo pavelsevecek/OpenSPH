@@ -146,4 +146,5 @@ HEADERS += \
     math/Morton.h \
     system/ArrayStats.h \
     system/Statistics.h \
-    system/FloatStats.h
+    system/FloatStats.h \
+    objects/wrappers/UniquePtr.h

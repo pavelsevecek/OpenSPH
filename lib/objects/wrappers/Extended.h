@@ -42,13 +42,13 @@ public:
     /// Checks whether extended value is finite.
     INLINE constexpr bool isFinite() const { return finiteness == Finiteness::FINITE; }
 
-    /// Implicit conversion to value Float, checks that the stored value is finite by assert.
+    /// Explicit conversion to value Float, checks that the stored value is finite by assert.
     INLINE constexpr explicit operator Float() const {
         ASSERT(isFinite());
         return value;
     }
 
-    /// Implicit conversion to reference, checks that the stored value is finite by assert.
+    /// Explicit conversion to reference, checks that the stored value is finite by assert.
     INLINE explicit operator Float&() {
         ASSERT(isFinite());
         return value;

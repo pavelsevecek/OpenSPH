@@ -1,8 +1,8 @@
-AlignAfterOpenBracket: true
-AlignConsecutiveAssignments: true
+AlignAfterOpenBracket: DontAlign
+#AlignConsecutiveAssignments: true
 #AlignConsecutiveDeclarations: true
 AlignEscapedNewlinesLeft: false
-AlignOperands:   true
+#AlignOperands:   true
 AlignTrailingComments: true
 AllowAllParametersOfDeclarationOnNextLine: false
 AccessModifierOffset: -4
