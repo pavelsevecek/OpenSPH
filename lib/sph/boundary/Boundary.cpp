@@ -19,7 +19,7 @@ struct GhostFunctor {
 
     /// Generic operator, simply copies value onto the ghost
     template <typename T>
-    void operator()(LimitedArray<T>& v, Array<Vector>& UNUSED(r)) {
+    void operator()(Array<T>& v, Array<Vector>& UNUSED(r)) {
         for (Size i : idxs) {
             auto ghost = v[i];
             v.push(ghost);
@@ -28,7 +28,7 @@ struct GhostFunctor {
 
     /// Specialization for vectors, copies parallel component of the vector along the boundary and inverts
     /// perpendicular component.
-    void operator()(LimitedArray<Vector>& v, Array<Vector>& r) {
+    void operator()(Array<Vector>& v, Array<Vector>& r) {
         for (Size i = 0; i < idxs.size(); ++i) {
             const Size idx = idxs[i];
             Float length = getLength(v[idx]);

@@ -39,6 +39,4 @@ TEST_CASE("Quantity emplace array", "[quantity]") {
     REQUIRE(areAllMatching(d2v, [](Vector f) { return f == Vector(0._f); }));
     REQUIRE(q.getOrderEnum() == OrderEnum::SECOND_ORDER);
     REQUIRE(q.getValueEnum() == ValueEnum::VECTOR);
-    Range bounds = q.getValue<Vector>().getBounds();
-    REQUIRE(bounds == Range(1._f, 3._f));
 }

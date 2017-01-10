@@ -55,8 +55,8 @@ public:
     }
 
     INLINE void integrate(Storage& storage) {
-        Range bounds = storage.getValue<Float>(QuantityKey::AV_ALPHA).getBounds();
         for (Size i = 0; i < storage.getParticleCnt(); ++i) {
+            const Range bounds = storage.getMaterial(i).alphaRange;
             const Float tau = r[i][H] / (eps * cs[i]);
             const Float decayTerm = -(alpha[i] - Float(bounds.lower())) / tau;
             const Float sourceTerm = max(-(Float(bounds.upper()) - alpha[i]) * divv[i], 0._f);

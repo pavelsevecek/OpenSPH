@@ -42,7 +42,7 @@ bool MyApp::OnInit() {
 
     auto bodySettings = BODY_SETTINGS;
     bodySettings.set(BodySettingsIds::ENERGY, 1.e2_f);
-    bodySettings.set(BodySettingsIds::PARTICLE_COUNT, 1000);
+    bodySettings.set(BodySettingsIds::PARTICLE_COUNT, 10000);
     bodySettings.set(BodySettingsIds::EOS, EosEnum::TILLOTSON);
     InitialConditions conds(p->storage, globalSettings);
 

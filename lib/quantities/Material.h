@@ -1,6 +1,7 @@
 #pragma once
 
 #include "system/Settings.h"
+#include "objects/wrappers/Range.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -16,6 +17,7 @@ struct Material : public Noncopyable {
     Float youngModulus = 0._f;
     Float elasticityLimit = 0._f;
     Float adiabaticIndex = 0._f;
+    Range alphaRange;
 
     Material();
 

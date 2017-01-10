@@ -70,7 +70,6 @@ HEADERS += \
     objects/containers/ArrayUtils.h \
     objects/containers/ArrayView.h \
     objects/containers/Tuple.h \
-    objects/containers/LimitedArray.h \
     objects/containers/BufferedArray.h \
     objects/finders/Bruteforce.h \
     objects/finders/KdTree.h \

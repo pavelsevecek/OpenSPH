@@ -2,8 +2,8 @@
 
 #include "objects/containers/Array.h"
 #include "objects/wrappers/NonOwningPtr.h"
-#include "quantities/QuantityKey.h"
 #include "quantities/Quantity.h"
+#include "quantities/QuantityKey.h"
 #include <map>
 
 NAMESPACE_SPH_BEGIN
@@ -12,7 +12,7 @@ NAMESPACE_SPH_BEGIN
 struct Material;
 
 enum class BodySettingsIds;
-template<typename TEnum>
+template <typename TEnum>
 class Settings;
 using BodySettings = Settings<BodySettingsIds>;
 
@@ -65,7 +65,7 @@ public:
     /// Retrieves quantity buffers from the storage, given its key and value type. The stored quantity must be
     /// of type TValue, checked by assert. Quantity must already exist in the storage, checked by assert. To
     /// check whether the quantity is stored, use has() method.
-    /// \return Array of references to LimitedArrays, containing quantity values and all derivatives.
+    /// \return Array of references to Arrays, containing quantity values and all derivatives.
     template <typename TValue>
     auto getAll(const QuantityKey key) {
         Quantity& q = this->getQuantity(key);
@@ -75,9 +75,9 @@ public:
 
     /// Retrieves a quantity values from the storage, given its key and value type. The stored quantity must
     /// be of type TValue, checked by assert. Quantity must already exist in the storage, checked by assert.
-    /// \return LimitedArray reference containing quantity values.
+    /// \return Array reference containing quantity values.
     template <typename TValue>
-    LimitedArray<TValue>& getValue(const QuantityKey key) {
+    Array<TValue>& getValue(const QuantityKey key) {
         Quantity& q = this->getQuantity(key);
         ASSERT(q.getValueEnum() == GetValueEnum<TValue>::type);
         return q.getValue<TValue>();
@@ -86,9 +86,9 @@ public:
     /// Retrieves a quantity derivative from the storage, given its key and value type. The stored quantity
     /// must be of type TValue, checked by assert. Quantity must already exist in the storage and must be
     /// first or second order, checked by assert.
-    /// \return LimitedArray reference containing quantity derivatives.
+    /// \return Array reference containing quantity derivatives.
     template <typename TValue>
-    LimitedArray<TValue>& getDt(const QuantityKey key) {
+    Array<TValue>& getDt(const QuantityKey key) {
         Quantity& q = this->getQuantity(key);
         ASSERT(q.getValueEnum() == GetValueEnum<TValue>::type);
         return q.getDt<TValue>();

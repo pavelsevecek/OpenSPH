@@ -1,6 +1,6 @@
 #pragma once
 
-#include "objects/containers/LimitedArray.h"
+#include "objects/containers/Array.h"
 #include "objects/wrappers/Flags.h"
 #include "objects/wrappers/Optional.h"
 #include "quantities/QuantityHelpers.h"
@@ -61,6 +61,10 @@ namespace Detail {
         /// Swaps arrays in two quantities, optionally selecting arrays to swap.
         virtual void swap(PlaceHolder* other, Flags<VisitorEnum> flags) = 0;
 
+        /// Clamps values by the definition range. Unbounded values are unaffected, as well as all
+        /// derivatives.
+        virtual void clamp() = 0;
+
         /// Returns size of the stored arrays (=number of particles).
         virtual int size() const = 0;
     };
@@ -69,7 +73,7 @@ namespace Detail {
     /// holder.
     template <typename TValue>
     struct ValueHolder : public PlaceHolder {
-        virtual StaticArray<LimitedArray<TValue>&, 3> getBuffers() = 0;
+        virtual StaticArray<Array<TValue>&, 3> getBuffers() = 0;
     };
 
     template <typename TValue, OrderEnum Type>
@@ -82,19 +86,18 @@ namespace Detail {
     template <typename TValue>
     class Holder<TValue, OrderEnum::ZERO_ORDER> : public ValueHolder<TValue> {
     protected:
-        LimitedArray<TValue> v;
+        Array<TValue> v;
+        Range range;
 
-        LimitedArray<TValue> conditionalClone(const LimitedArray<TValue>& array, const bool condition) const {
+        Array<TValue> conditionalClone(const Array<TValue>& array, const bool condition) const {
             if (condition) {
                 return array.clone();
             } else {
-                return LimitedArray<TValue>();
+                return Array<TValue>();
             }
         }
 
-        void conditionalSwap(LimitedArray<TValue>& ar1,
-            LimitedArray<TValue>& ar2,
-            const bool condition) const {
+        void conditionalSwap(Array<TValue>& ar1, Array<TValue>& ar2, const bool condition) const {
             if (condition) {
                 ar1.swap(ar2);
             }
@@ -104,18 +107,14 @@ namespace Detail {
         Holder() = default;
 
         /// Move constructor
-        Holder(LimitedArray<TValue>&& v)
-            : v(std::move(v)) {}
+        Holder(Array<TValue>&& v, const Range range = Range::unbounded())
+            : v(std::move(v))
+            , range(range) {}
 
-        Holder(const TValue& value, const int size, const Range& range) {
+        Holder(const TValue& value, const int size, const Range range = Range::unbounded())
+            : range(range) {
             v.resize(size);
             v.fill(value);
-            v.setBounds(range);
-        }
-
-        Holder(Array<TValue>&& values, const Range& range) {
-            v = std::move(values);
-            v.setBounds(range);
         }
 
         virtual OrderEnum getOrderEnum() const override { return OrderEnum::ZERO_ORDER; }
@@ -123,9 +122,18 @@ namespace Detail {
         virtual ValueEnum getValueEnum() const override { return GetValueEnum<TValue>::type; }
 
         virtual std::unique_ptr<PlaceHolder> clone(const Flags<VisitorEnum> flags) const override {
-            LimitedArray<TValue> cv =
+            Array<TValue> cv =
                 conditionalClone(v, flags.hasAny(VisitorEnum::ZERO_ORDER, VisitorEnum::ALL_BUFFERS));
             return std::make_unique<Holder>(std::move(cv));
+        }
+
+        virtual void clamp() override {
+            if (range == Range::unbounded()) {
+                return;
+            }
+            for (TValue& x : v) {
+                x = Sph::clamp(x, range);
+            }
         }
 
         virtual void swap(PlaceHolder* other, Flags<VisitorEnum> flags) override {
@@ -136,9 +144,9 @@ namespace Detail {
 
         virtual int size() const override { return v.size(); }
 
-        virtual StaticArray<LimitedArray<TValue>&, 3> getBuffers() override { return { this->v }; }
+        virtual StaticArray<Array<TValue>&, 3> getBuffers() override { return { this->v }; }
 
-        LimitedArray<TValue>& getValue() { return v; }
+        Array<TValue>& getValue() { return v; }
     };
 
     /// Holder for first-order quantities, contains also derivative of the quantity. The derivative can be
@@ -146,23 +154,22 @@ namespace Detail {
     template <typename TValue>
     class Holder<TValue, OrderEnum::FIRST_ORDER> : public Holder<TValue, OrderEnum::ZERO_ORDER> {
     protected:
-        LimitedArray<TValue> dv;
+        Array<TValue> dv;
 
     public:
         Holder() = default;
 
-        /// Move constructor
-        Holder(LimitedArray<TValue>&& v, LimitedArray<TValue>&& dv)
+        Holder(Array<TValue>&& v, Array<TValue>&& dv)
             : Holder<TValue, OrderEnum::ZERO_ORDER>(std::move(v))
             , dv(std::move(dv)) {}
 
-        Holder(const TValue& value, const int size, const Range& range)
+        Holder(const TValue& value, const int size, const Range range = Range::unbounded())
             : Holder<TValue, OrderEnum::ZERO_ORDER>(value, size, range) {
             dv.resize(this->v.size());
             dv.fill(TValue(0._f));
         }
 
-        Holder(Array<TValue>&& values, const Range& range)
+        Holder(Array<TValue>&& values, const Range range = Range::unbounded())
             : Holder<TValue, OrderEnum::ZERO_ORDER>(std::move(values), range) {
             dv.resize(this->v.size());
             dv.fill(TValue(0._f));
@@ -173,9 +180,9 @@ namespace Detail {
         virtual ValueEnum getValueEnum() const override { return GetValueEnum<TValue>::type; }
 
         virtual std::unique_ptr<PlaceHolder> clone(const Flags<VisitorEnum> flags) const override {
-            LimitedArray<TValue> cv = this->conditionalClone(
+            Array<TValue> cv = this->conditionalClone(
                 this->v, flags.hasAny(VisitorEnum::ZERO_ORDER, VisitorEnum::ALL_BUFFERS));
-            LimitedArray<TValue> cdv = this->conditionalClone(this->dv,
+            Array<TValue> cdv = this->conditionalClone(this->dv,
                 flags.hasAny(
                     VisitorEnum::FIRST_ORDER, VisitorEnum::HIGHEST_DERIVATIVES, VisitorEnum::ALL_BUFFERS));
             return std::make_unique<Holder>(std::move(cv), std::move(cdv));
@@ -192,9 +199,9 @@ namespace Detail {
                     VisitorEnum::FIRST_ORDER, VisitorEnum::HIGHEST_DERIVATIVES, VisitorEnum::ALL_BUFFERS));
         }
 
-        virtual StaticArray<LimitedArray<TValue>&, 3> getBuffers() override { return { this->v, this->dv }; }
+        virtual StaticArray<Array<TValue>&, 3> getBuffers() override { return { this->v, this->dv }; }
 
-        LimitedArray<TValue>& getDerivative() { return dv; }
+        Array<TValue>& getDerivative() { return dv; }
     };
 
     /// Holder for second-order quantities, contains also second derivative of the quantity. The second
@@ -202,23 +209,22 @@ namespace Detail {
     template <typename TValue>
     class Holder<TValue, OrderEnum::SECOND_ORDER> : public Holder<TValue, OrderEnum::FIRST_ORDER> {
     private:
-        LimitedArray<TValue> d2v;
+        Array<TValue> d2v;
 
     public:
         Holder() = default;
 
-        /// Move constructor
-        Holder(LimitedArray<TValue>&& v, LimitedArray<TValue>&& dv, LimitedArray<TValue>&& d2v)
+        Holder(Array<TValue>&& v, Array<TValue>&& dv, Array<TValue>&& d2v)
             : Holder<TValue, OrderEnum::FIRST_ORDER>(std::move(v), std::move(dv))
             , d2v(std::move(d2v)) {}
 
-        Holder(const TValue& value, const int size, const Range& range)
+        Holder(const TValue& value, const int size, const Range range = Range::unbounded())
             : Holder<TValue, OrderEnum::FIRST_ORDER>(value, size, range) {
             d2v.resize(this->v.size());
             d2v.fill(TValue(0._f));
         }
 
-        Holder(Array<TValue>&& values, const Range& range)
+        Holder(Array<TValue>&& values, const Range range = Range::unbounded())
             : Holder<TValue, OrderEnum::FIRST_ORDER>(std::move(values), range) {
             d2v.resize(this->v.size());
             d2v.fill(TValue(0._f));
@@ -229,11 +235,11 @@ namespace Detail {
         virtual ValueEnum getValueEnum() const final { return GetValueEnum<TValue>::type; }
 
         virtual std::unique_ptr<PlaceHolder> clone(const Flags<VisitorEnum> flags) const override {
-            LimitedArray<TValue> cv = this->conditionalClone(
+            Array<TValue> cv = this->conditionalClone(
                 this->v, flags.hasAny(VisitorEnum::ZERO_ORDER, VisitorEnum::ALL_BUFFERS));
-            LimitedArray<TValue> cdv = this->conditionalClone(
+            Array<TValue> cdv = this->conditionalClone(
                 this->dv, flags.hasAny(VisitorEnum::FIRST_ORDER, VisitorEnum::ALL_BUFFERS));
-            LimitedArray<TValue> cd2v = this->conditionalClone(d2v,
+            Array<TValue> cd2v = this->conditionalClone(d2v,
                 flags.hasAny(
                     VisitorEnum::SECOND_ORDER, VisitorEnum::HIGHEST_DERIVATIVES, VisitorEnum::ALL_BUFFERS));
             return std::make_unique<Holder>(std::move(cv), std::move(cdv), std::move(cd2v));
@@ -252,11 +258,11 @@ namespace Detail {
                     VisitorEnum::SECOND_ORDER, VisitorEnum::HIGHEST_DERIVATIVES, VisitorEnum::ALL_BUFFERS));
         }
 
-        virtual StaticArray<LimitedArray<TValue>&, 3> getBuffers() override {
+        virtual StaticArray<Array<TValue>&, 3> getBuffers() override {
             return { this->v, this->dv, this->d2v };
         }
 
-        LimitedArray<TValue>& get2ndDerivative() { return d2v; }
+        Array<TValue>& get2ndDerivative() { return d2v; }
     };
 }
 
@@ -275,6 +281,8 @@ namespace Detail {
 class Quantity : public Noncopyable {
 private:
     std::unique_ptr<Detail::PlaceHolder> data;
+    Range range = Range::unbounded();
+    //Float referenceValue = 0.f;
 
 public:
     Quantity() = default;
@@ -324,6 +332,12 @@ public:
         return cloned;
     }
 
+    /// Clamps quantity values by the range. Derivatives are unchanged.
+    void clamp() {
+        ASSERT(data);
+        data->clamp();
+    }
+
     /// Swap quantity (or selected part of it) with other quantity.
     void swap(Quantity& other, const Flags<VisitorEnum> flags) {
         ASSERT(data);
@@ -341,14 +355,14 @@ public:
     /// Returns a reference to array of quantity values. The type of the quantity must match the provided
     /// type, checked by assert. To check whether the type of the quantity match, use getValueEnum().
     template <typename TValue>
-    LimitedArray<TValue>& getValue() {
+    Array<TValue>& getValue() {
         auto& holder = cast<TValue, OrderEnum::ZERO_ORDER>();
         return holder.getValue();
     }
 
     /// Returns a reference to array of quantity values, const version.
     template <typename TValue>
-    const LimitedArray<TValue>& getValue() const {
+    const Array<TValue>& getValue() const {
         const auto& holder = cast<TValue, OrderEnum::ZERO_ORDER>();
         return holder.getValue();
     }
@@ -357,14 +371,14 @@ public:
     /// provided type and the quantity must be (at least) 1st order, checked by assert. To check whether the
     /// type and order match, use getValueEnum() and getOrderEnum(), respectively.
     template <typename TValue>
-    LimitedArray<TValue>& getDt() {
+    Array<TValue>& getDt() {
         auto& holder = cast<TValue, OrderEnum::FIRST_ORDER>();
         return holder.getDerivative();
     }
 
     /// Returns a reference to array of first derivatives of quantity, const version.
     template <typename TValue>
-    const LimitedArray<TValue>& getDt() const {
+    const Array<TValue>& getDt() const {
         const auto& holder = cast<TValue, OrderEnum::FIRST_ORDER>();
         return holder.getDerivative();
     }
@@ -373,14 +387,14 @@ public:
     /// the provided type and the quantity must be 2st order, checked by assert. To check whether the type and
     /// order match, use getValueEnum() and getOrderEnum(), respectively.
     template <typename TValue>
-    LimitedArray<TValue>& getD2t() {
+    Array<TValue>& getD2t() {
         auto& holder = cast<TValue, OrderEnum::SECOND_ORDER>();
         return holder.get2ndDerivative();
     }
 
     /// Returns a reference to array of second derivatives of quantity, const version.
     template <typename TValue>
-    const LimitedArray<TValue>& getD2t() const {
+    const Array<TValue>& getD2t() const {
         const auto& holder = cast<TValue, OrderEnum::SECOND_ORDER>();
         return holder.get2ndDerivative();
     }
@@ -389,7 +403,7 @@ public:
     /// empty array is returned. Buffers in array are ordered such that quantity values is the first element
     /// (zero index), first derivative is the second element etc.
     template <typename TValue>
-    StaticArray<LimitedArray<TValue>&, 3> getBuffers() {
+    StaticArray<Array<TValue>&, 3> getBuffers() {
         using Holder = Detail::ValueHolder<TValue>;
         Holder* holder = dynamic_cast<Holder*>(data.get());
         if (holder) {

@@ -65,7 +65,6 @@ SOURCES += \
     ../lib/objects/containers/test/ArrayUtils.cpp \
     ../lib/objects/containers/test/BufferedArray.cpp \
     ../lib/objects/containers/test/Tuple.cpp \
-    ../lib/objects/containers/test/LimitedArray.cpp \
     ../lib/objects/containers/test/StaticArray.cpp \
     ../lib/objects/finders/test/Order.cpp \
     ../lib/objects/finders/test/BruteForce.cpp \

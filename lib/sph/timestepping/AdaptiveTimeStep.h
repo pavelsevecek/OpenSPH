@@ -37,7 +37,7 @@ private:
         NOT_IMPLEMENTED;
     }
 
-    Float cond2ndOrder(LimitedArray<Vector>& v, LimitedArray<Vector>& d2v);
+    Float cond2ndOrder(Array<Vector>& v, Array<Vector>& d2v);
 };
 
 NAMESPACE_SPH_END

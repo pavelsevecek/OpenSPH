@@ -94,7 +94,7 @@ Float minOfArray(Array<Float>& ar) {
     return ar[0];
 }
 
-Float AdaptiveTimeStep::cond2ndOrder(LimitedArray<Vector>& v, LimitedArray<Vector>& d2v) {
+Float AdaptiveTimeStep::cond2ndOrder(Array<Vector>& v, Array<Vector>& d2v) {
     ASSERT(v.size() == d2v.size());
     cachedSteps.clear();
     for (Size i = 0; i < v.size(); ++i) {
