@@ -23,9 +23,9 @@ public:
 
     void update(Storage& storage) {
         ArrayView<Vector> dv;
-        tie(r, v, dv) = storage.getAll<Vector>(QuantityKey::POSITIONS);
-        cs = storage.getValue<Float>(QuantityKey::SOUND_SPEED);
-        rho = storage.getValue<Float>(QuantityKey::SOUND_SPEED);
+        tie(r, v, dv) = storage.getAll<Vector>(QuantityIds::POSITIONS);
+        cs = storage.getValue<Float>(QuantityIds::SOUND_SPEED);
+        rho = storage.getValue<Float>(QuantityIds::SOUND_SPEED);
     }
 
     INLINE Float operator()(const int i, const int j) {

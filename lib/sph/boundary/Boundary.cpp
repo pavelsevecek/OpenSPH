@@ -1,6 +1,6 @@
 #include "sph/boundary/Boundary.h"
-#include "system/Factory.h"
 #include "quantities/Iterate.h"
+#include "system/Factory.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -68,7 +68,7 @@ void GhostParticles::apply(Storage& storage) {
             v.remove(ghostIdxs[i]);
         }
     });
-    Array<Vector>& r = storage.getValue<Vector>(QuantityKey::POSITIONS);
+    Array<Vector>& r = storage.getValue<Vector>(QuantityIds::POSITIONS);
 
     // project particles outside of the domain on the boundary
     /// \todo this will place particles on top of each other, we should probably separate them a little
@@ -111,7 +111,7 @@ DomainProjecting::DomainProjecting(std::unique_ptr<Abstract::Domain>&& domain,
 
 void DomainProjecting::apply(Storage& storage) {
     ArrayView<Vector> r, v, dv;
-    tie(r, v, dv) = storage.getAll<Vector>(QuantityKey::POSITIONS);
+    tie(r, v, dv) = storage.getAll<Vector>(QuantityIds::POSITIONS);
     // check which particles are outside of the domain
     domain->getSubset(r, outside, SubsetType::OUTSIDE);
     domain->project(r, outside.getView());
@@ -154,7 +154,7 @@ Projection1D::Projection1D(const Range& domain)
 
 void Projection1D::apply(Storage& storage) {
     ArrayView<Vector> dv;
-    tie(r, v, dv) = storage.getAll<Vector>(QuantityKey::POSITIONS);
+    tie(r, v, dv) = storage.getAll<Vector>(QuantityIds::POSITIONS);
     for (Size i = 0; i < r.size(); ++i) {
         // throw away y and z, keep h
         r[i] = Vector(domain.clamp(r[i][0]), 0._f, 0._f, r[i][H]);
@@ -162,21 +162,22 @@ void Projection1D::apply(Storage& storage) {
     }
     // To get fixed boundary conditions at ends, we need to null all derivatives of first few and last few
     // particles. Number of particles depends on smoothing length.
-    iterate<VisitorEnum::FIRST_ORDER>(storage, [](auto&& UNUSED(v), auto&& dv) {
-        using Type = typename std::decay_t<decltype(dv)>::Type;
-        const Size s = dv.size();
-        for (Size i : { 0u, 1u, 2u, 3u, 4u, s - 4, s - 3, s - 2, s - 1 }) {
-            dv[i] = Type(0._f);
-        }
-    });
-    iterate<VisitorEnum::SECOND_ORDER>(storage, [](auto&& UNUSED(v), auto&& dv, auto&& d2v) {
-        using Type = typename std::decay_t<decltype(dv)>::Type;
-        const Size s = dv.size();
-        for (Size i : { 0u, 1u, 2u, 3u, 4u, s - 4, s - 3, s - 2, s - 1 }) {
-            dv[i] = Type(0._f);
-            d2v[i] = Type(0._f);
-        }
-    });
+    iterate<VisitorEnum::FIRST_ORDER>(storage, [](const QuantityIds UNUSED(id), auto&& UNUSED(v), auto&& dv) {
+            using Type = typename std::decay_t<decltype(dv)>::Type;
+            const Size s = dv.size();
+            for (Size i : { 0u, 1u, 2u, 3u, 4u, s - 4, s - 3, s - 2, s - 1 }) {
+                dv[i] = Type(0._f);
+            }
+        });
+    iterate<VisitorEnum::SECOND_ORDER>(
+        storage, [](const QuantityIds UNUSED(id), auto&& UNUSED(v), auto&& dv, auto&& d2v) {
+            using Type = typename std::decay_t<decltype(dv)>::Type;
+            const Size s = dv.size();
+            for (Size i : { 0u, 1u, 2u, 3u, 4u, s - 4, s - 3, s - 2, s - 1 }) {
+                dv[i] = Type(0._f);
+                d2v[i] = Type(0._f);
+            }
+        });
 }
 
 NAMESPACE_SPH_END

@@ -36,16 +36,17 @@ CONFIG(debug, debug|profile|assert|release) {
 SOURCES += \
     Gui.cpp \
     GlPane.cpp \
-    OrthoPane.cpp
+    OrthoPane.cpp \
+    Window.cpp
 
 HEADERS += \
     Gui.h \
     OrthoPane.h \
     GlPane.h \
-    Callbacks.h \
     Common.h \
     Renderer.h \
     Window.h \
     Settings.h \
     Palette.h \
-    Color.h
+    Color.h \
+    GuiCallbacks.h

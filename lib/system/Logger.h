@@ -79,4 +79,8 @@ public:
     }
 };
 
+class DummyLogger : public Abstract::Logger {
+    virtual void writeString(const std::string& UNUSED(s)) override {}
+};
+
 NAMESPACE_SPH_END

@@ -9,7 +9,7 @@
 NAMESPACE_SPH_BEGIN
 
 /// Unique ID of basic quantities of SPH particles
-enum class QuantityKey {
+enum class QuantityIds {
     /// Common quantities
     POSITIONS,   ///< Positions (velocities, accelerations) of particles, always a vector quantity,
     MASSES,      ///< Paricles masses, always a scalar quantity.
@@ -44,29 +44,33 @@ enum class QuantityKey {
     /// Materials
     MATERIAL_IDX, ///< Material ID
 
-    /// Other
+    /// Debugging & Other
+    RHO_GRAD_V,
+    RHO_DIV_V,
     MAXIMUM_VALUE ///< Placeholder, used in timestepping settings
 };
 
-INLINE std::string getQuantityName(const QuantityKey key) {
+INLINE std::string getQuantityName(const QuantityIds key) {
     switch (key) {
-    case QuantityKey::POSITIONS:
+    case QuantityIds::POSITIONS:
         return "Position";
-    case QuantityKey::MASSES:
+    case QuantityIds::MASSES:
         return "Particle mass";
-    case QuantityKey::PRESSURE:
+    case QuantityIds::PRESSURE:
         return "Pressure";
-    case QuantityKey::DENSITY:
+    case QuantityIds::DENSITY:
         return "Density";
-    case QuantityKey::ENERGY:
+    case QuantityIds::ENERGY:
         return "Spec. energy";
-    case QuantityKey::SOUND_SPEED:
+    case QuantityIds::SOUND_SPEED:
         return "Sound speed";
-    case QuantityKey::DEVIATORIC_STRESS:
+    case QuantityIds::DEVIATORIC_STRESS:
         return "Stress";
-    case QuantityKey::DAMAGE:
+    case QuantityIds::DAMAGE:
         return "Damage";
-    case QuantityKey::MAXIMUM_VALUE:
+    case QuantityIds::RHO_GRAD_V:
+        return "rho grad v";
+    case QuantityIds::MAXIMUM_VALUE:
         return "Max. value";
     default:
         NOT_IMPLEMENTED;
@@ -74,14 +78,14 @@ INLINE std::string getQuantityName(const QuantityKey key) {
 }
 
 template<typename TStream>
-INLINE TStream& operator<<(TStream& stream, const QuantityKey key) {
+INLINE TStream& operator<<(TStream& stream, const QuantityIds key) {
     stream << getQuantityName(key);
     return stream;
 }
 
-INLINE std::string getDerivativeName(const QuantityKey key) {
+INLINE std::string getDerivativeName(const QuantityIds key) {
     switch (key) {
-    case QuantityKey::POSITIONS:
+    case QuantityIds::POSITIONS:
         return "Velocity";
     default:
         NOT_IMPLEMENTED;

@@ -12,14 +12,21 @@ namespace Abstract {
     class Renderer;
 }
 class Window;
+class Storage;
+
+template <typename TEnum>
+class Settings;
+enum class GlobalSettingsIds;
+using GlobalSettings = Settings<GlobalSettingsIds>;
 
 class MyApp : public wxApp {
 private:
     Window* window;
     std::thread worker;
 
+    void initialConditions(const GlobalSettings& globalSettings, const std::shared_ptr<Storage>& storage);
+
     virtual bool OnInit();
-    void OnButton(wxCommandEvent& evt);
 
 public:
     ~MyApp();

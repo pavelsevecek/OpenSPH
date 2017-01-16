@@ -1,4 +1,4 @@
-#include "sph/forces/Damage.h"
+#include "physics/Damage.h"
 #include "math/rng/Rng.h"
 #include "quantities/Material.h"
 #include "system/Factory.h"
@@ -15,30 +15,32 @@ ScalarDamage::ScalarDamage(const GlobalSettings& settings,
 }
 
 void ScalarDamage::initialize(Storage& storage, const BodySettings& settings) const {
-    storage.emplace<Float, OrderEnum::FIRST_ORDER>(QuantityKey::DAMAGE,
+    storage.emplace<Float, OrderEnum::FIRST_ORDER>(QuantityIds::DAMAGE,
         settings.get<Float>(BodySettingsIds::DAMAGE),
-        settings.get<Range>(BodySettingsIds::DAMAGE_RANGE));
-    storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityKey::EPS_MIN, 0._f);
-    storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityKey::M_ZERO, 0._f);
-    storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityKey::EXPLICIT_GROWTH, 0._f);
-    storage.emplace<Size, OrderEnum::ZERO_ORDER>(QuantityKey::N_FLAWS, 0);
+        settings.get<Range>(BodySettingsIds::DAMAGE_RANGE),
+        settings.get<Float>(BodySettingsIds::DAMAGE_MIN));
+    storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityIds::EPS_MIN, 0._f);
+    storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityIds::M_ZERO, 0._f);
+    storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityIds::EXPLICIT_GROWTH, 0._f);
+    storage.emplace<Size, OrderEnum::ZERO_ORDER>(QuantityIds::N_FLAWS, 0);
     ArrayView<Float> rho, m, eps_min, m_zero, growth;
-    tie(rho, m, eps_min, m_zero, growth) = storage.getValues<Float>(QuantityKey::DENSITY,
-        QuantityKey::MASSES,
-        QuantityKey::EPS_MIN,
-        QuantityKey::M_ZERO,
-        QuantityKey::EXPLICIT_GROWTH);
-    ArrayView<Size> n_flaws = storage.getValue<Size>(QuantityKey::N_FLAWS);
-    ArrayView<Vector> r = storage.getValue<Vector>(QuantityKey::POSITIONS);
+    tie(rho, m, eps_min, m_zero, growth) = storage.getValues<Float>(QuantityIds::DENSITY,
+        QuantityIds::MASSES,
+        QuantityIds::EPS_MIN,
+        QuantityIds::M_ZERO,
+        QuantityIds::EXPLICIT_GROWTH);
+    ArrayView<Size> n_flaws = storage.getValue<Size>(QuantityIds::N_FLAWS);
+    ArrayView<Vector> r = storage.getValue<Vector>(QuantityIds::POSITIONS);
     ArrayView<Size> activationIdx;
     if (options == ExplicitFlaws::ASSIGNED) {
-        activationIdx = storage.getValue<Size>(QuantityKey::FLAW_ACTIVATION_IDX);
+        activationIdx = storage.getValue<Size>(QuantityIds::FLAW_ACTIVATION_IDX);
     }
     const Float mu = settings.get<Float>(BodySettingsIds::SHEAR_MODULUS);
     const Float A = settings.get<Float>(BodySettingsIds::BULK_MODULUS);
     // here all particles have the same material
     /// \todo needs to be generalized for setting up initial conditions with heterogeneous material.
-    storage.getMaterial(0).youngModulus = mu * 9._f * A / (3._f * A + mu);
+    const Float youngModulus = mu * 9._f * A / (3._f * A + mu);
+    MaterialAccessor(storage).setParams(BodySettingsIds::YOUNG_MODULUS, youngModulus);
 
     const Float cgFactor = settings.get<Float>(BodySettingsIds::RAYLEIGH_SOUND_SPEED);
     const Float rho0 = settings.get<Float>(BodySettingsIds::DENSITY);
@@ -54,9 +56,12 @@ void ScalarDamage::initialize(Storage& storage, const BodySettings& settings) co
     for (Size i = 0; i < size; ++i) {
         V += m[i] / rho[i];
     }
+    ASSERT(V > 0.f);
     const Float k_weibull = settings.get<Float>(BodySettingsIds::WEIBULL_COEFFICIENT);
     const Float m_weibull = settings.get<Float>(BodySettingsIds::WEIBULL_EXPONENT);
-    const Float denom = 1._f / std::pow(k_weibull * V, 1._f / m_weibull);
+    // cannot use pow on k_weibull*V, leads to float overflow for larger V
+    const Float denom = 1._f / (std::pow(k_weibull, 1._f / m_weibull) * std::pow(V, 1.f / m_weibull));
+    ASSERT(isReal(denom) && denom > 0.f);
     Array<Float> eps_max(size);
     BenzAsphaugRng rng(1234); /// \todo generalize random number generator
     Size flawedCnt = 0, p = 1;
@@ -66,6 +71,7 @@ void ScalarDamage::initialize(Storage& storage, const BodySettings& settings) co
             p = activationIdx[i];
         }
         const Float eps = denom * std::pow(Float(p), 1._f / m_weibull);
+        ASSERT(isReal(eps) && eps > 0.f);
         if (n_flaws[i] == 0) {
             flawedCnt++;
             eps_min[i] = eps;
@@ -86,19 +92,21 @@ void ScalarDamage::initialize(Storage& storage, const BodySettings& settings) co
 }
 
 void ScalarDamage::integrate(Storage& storage) {
-    ArrayView<TracelessTensor> s = storage.getValue<TracelessTensor>(QuantityKey::DEVIATORIC_STRESS);
+    ArrayView<TracelessTensor> s = storage.getValue<TracelessTensor>(QuantityIds::DEVIATORIC_STRESS);
     ArrayView<Float> p, eps_min, m_zero, growth;
     tie(p, eps_min, m_zero, growth) = storage.getValues<Float>(
-        QuantityKey::PRESSURE, QuantityKey::EPS_MIN, QuantityKey::M_ZERO, QuantityKey::EXPLICIT_GROWTH);
-    ArrayView<Size> n_flaws = storage.getValue<Size>(QuantityKey::N_FLAWS);
-    ArrayView<Float> ddamage = storage.getAll<Float>(QuantityKey::DAMAGE)[1];
+        QuantityIds::PRESSURE, QuantityIds::EPS_MIN, QuantityIds::M_ZERO, QuantityIds::EXPLICIT_GROWTH);
+    ArrayView<Size> n_flaws = storage.getValue<Size>(QuantityIds::N_FLAWS);
+    ArrayView<Float> ddamage = storage.getAll<Float>(QuantityIds::DAMAGE)[1];
+    MaterialAccessor material(storage);
     for (Size i = 0; i < p.size(); ++i) {
         Tensor sigma = yielding(reduce(s[i], i), i) - reduce(p[i], i) * Tensor::identity();
         float sig1, sig2, sig3;
         tie(sig1, sig2, sig3) = findEigenvalues(sigma);
         float sigMax = max(sig1, sig2, sig3);
-        const Float young = reduce(storage.getMaterial(i).youngModulus, i);
-        const Float strain = sigMax / young;
+        const Float young = material.getParam<Float>(BodySettingsIds::YOUNG_MODULUS, i);
+        const Float young_red = reduce(young, i);
+        const Float strain = sigMax / young_red;
         const Float ratio = strain / eps_min[i];
         if (ratio <= 1._f) {
             continue;

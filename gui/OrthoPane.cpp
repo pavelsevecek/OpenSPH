@@ -14,7 +14,7 @@ OrthoPane::OrthoPane(wxWindow* parent, const std::shared_ptr<Storage>& storage, 
     this->Connect(wxEVT_MOTION, wxMouseEventHandler(OrthoPane::onMouseMotion));
     this->Connect(wxEVT_MOUSEWHEEL, wxMouseEventHandler(OrthoPane::onMouseWheel));
     this->Connect(wxEVT_TIMER, wxTimerEventHandler(OrthoPane::onTimer));
-    setQuantity(QuantityKey::POSITIONS);
+    setQuantity(QuantityIds::POSITIONS);
     this->fov = 240.f / settings.get<Float>(GuiSettingsIds::VIEW_FOV);
     refreshTimer = new wxTimer(this, 1); /// \todo check that timer is destroyed
     refreshTimer->Start(50);
@@ -117,13 +117,20 @@ void OrthoPane::update() {
     MEASURE_SCOPE("OrthoPane::update");
     ASSERT(storage);
     /// \todo copy, avoid allocation
-    positions = storage->getValue<Vector>(QuantityKey::POSITIONS).clone();
+    positions = storage->getValue<Vector>(QuantityIds::POSITIONS).clone();
     colors->clear();
     switch (quantity) {
-    case QuantityKey::POSITIONS: {
-        ArrayView<Vector> v = storage->getAll<Vector>(QuantityKey::POSITIONS)[1];
+    case QuantityIds::POSITIONS: {
+        ArrayView<Vector> v = storage->getAll<Vector>(QuantityIds::POSITIONS)[1];
         for (Size i = 0; i < v.size(); ++i) {
             colors->push(palette(getLength(v[i])));
+        }
+        break;
+    }
+    case QuantityIds::DEVIATORIC_STRESS: {
+        ArrayView<TracelessTensor> s = storage->getValue<TracelessTensor>(QuantityIds::DEVIATORIC_STRESS);
+        for (Size i = 0; i < s.size(); ++i) {
+            colors->push(palette(ddot(s[i], s[i])));
         }
         break;
     }
@@ -137,20 +144,23 @@ void OrthoPane::update() {
     }
 }
 
-void OrthoPane::setQuantity(const QuantityKey key) {
+void OrthoPane::setQuantity(const QuantityIds key) {
     quantity = key;
     Range range;
     switch (key) {
-    case QuantityKey::POSITIONS:
+    case QuantityIds::POSITIONS:
         range = settings.get<Range>(GuiSettingsIds::PALETTE_VELOCITY);
         break;
-    case QuantityKey::DENSITY:
+    case QuantityIds::DENSITY:
         range = settings.get<Range>(GuiSettingsIds::PALETTE_DENSITY);
         break;
-    case QuantityKey::PRESSURE:
+    case QuantityIds::PRESSURE:
         range = settings.get<Range>(GuiSettingsIds::PALETTE_PRESSURE);
         break;
-    case QuantityKey::DAMAGE:
+    case QuantityIds::DEVIATORIC_STRESS:
+        range = settings.get<Range>(GuiSettingsIds::PALETTE_STRESS);
+        break;
+    case QuantityIds::DAMAGE:
         range = settings.get<Range>(GuiSettingsIds::PALETTE_DAMAGE);
         break;
     default:

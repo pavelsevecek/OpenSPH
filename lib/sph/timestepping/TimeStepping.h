@@ -91,6 +91,19 @@ protected:
     virtual void stepImpl(Abstract::Solver& UNUSED(solver)) override {}
 };
 
+class RungeKutta : public Abstract::TimeStepping {
+private:
+    Storage k1, k2, k3, k4;
+
+public:
+    RungeKutta(const std::shared_ptr<Storage>& storage, const GlobalSettings& settings);
+
+protected:
+    virtual void stepImpl(Abstract::Solver& solver) override;
+
+    void integrateAndAdvance(Abstract::Solver& solver, Storage& k, const float m, const float n);
+};
+
 
 class BulirschStoer : public Abstract::TimeStepping {
 public:

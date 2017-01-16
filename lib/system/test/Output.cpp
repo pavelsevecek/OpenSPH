@@ -8,9 +8,9 @@ using namespace Sph;
 TEST_CASE("Dumping data", "[output]") {
     Storage storage;
     storage.emplace<Vector, OrderEnum::SECOND_ORDER>(
-        QuantityKey::POSITIONS, makeArray(Vector(0._f), Vector(1._f), Vector(2._f)));
-    storage.emplace<Float, OrderEnum::FIRST_ORDER>(QuantityKey::DENSITY, 5._f);
-    TextOutput output("tmp%d.out", "Output", { QuantityKey::DENSITY, QuantityKey::POSITIONS });
+        QuantityIds::POSITIONS, makeArray(Vector(0._f), Vector(1._f), Vector(2._f)));
+    storage.emplace<Float, OrderEnum::FIRST_ORDER>(QuantityIds::DENSITY, 5._f);
+    TextOutput output("tmp%d.out", "Output", { QuantityIds::DENSITY, QuantityIds::POSITIONS });
     output.dump(storage, 0);
 
     std::string expected = R"(# Run: Output

@@ -129,6 +129,8 @@ public:
 
     INLINE bool operator==(const Tensor& other) const { return diag == other.diag && off == other.off; }
 
+    INLINE bool operator!=(const Tensor& other) const { return diag != other.diag || off != other.off; }
+
     /// Returns an identity tensor.
     INLINE static Tensor identity() { return Tensor(Vector(1._f, 1._f, 1._f), Vector(0._f, 0._f, 0._f)); }
 
@@ -250,9 +252,9 @@ INLINE Float ddot(const Tensor& t1, const Tensor& t2) {
 INLINE Tensor outer(const Vector& v1, const Vector& v2) {
     /// \todo optimize
     return Tensor(v1 * v2,
-        Vector(0.5_f * (v1[0] * v2[1] + v1[1] * v2[0]),
-            0.5_f * (v1[0] * v2[2] + v1[2] * v2[0]),
-            0.5_f * (v1[1] * v2[2] + v1[2] * v2[1])));
+        0.5_f * Vector(v1[0] * v2[1] + v1[1] * v2[0],
+                    v1[0] * v2[2] + v1[2] * v2[0],
+                    v1[1] * v2[2] + v1[2] * v2[1]));
 }
 
 /// Returns three eigenvalue of symmetric matrix.

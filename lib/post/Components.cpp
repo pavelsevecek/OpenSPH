@@ -39,13 +39,13 @@ Size findComponents(ArrayView<const Vector> vertices, const GlobalSettings& sett
 Array<Size> getCummulativeSFD(Storage& storage,
     const GlobalSettings& settings,
     Optional<HistogramParams> params) {
-    ArrayView<Vector> r = storage.getValue<Vector>(QuantityKey::POSITIONS);
+    ArrayView<Vector> r = storage.getValue<Vector>(QuantityIds::POSITIONS);
     Array<Size> components;
     const Size numComponents = findComponents(r, settings, components);
     Array<Float> volumes(numComponents);
     volumes.fill(0._f);
     ArrayView<Float> rho, m;
-    tie(rho, m) = storage.getValues<Float>(QuantityKey::DENSITY, QuantityKey::MASSES);
+    tie(rho, m) = storage.getValues<Float>(QuantityIds::DENSITY, QuantityIds::MASSES);
     for (Size i = 0; i < r.size(); ++i) {
         volumes[components[i]] += m[i] / rho[i];
     }

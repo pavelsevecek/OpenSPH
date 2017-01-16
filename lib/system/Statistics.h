@@ -6,7 +6,7 @@
 
 #include "objects/wrappers/Range.h"
 #include "objects/wrappers/Variant.h"
-#include "quantities/QuantityKey.h"
+#include "quantities/QuantityIds.h"
 #include "system/FloatStats.h"
 #include "system/Logger.h"
 #include <map>
@@ -19,7 +19,7 @@ class Statistics {
 private:
     enum Types { BOOL, INT, FLOAT, FLOAT_STATS, RANGE, VECTOR };
 
-    using Value = Variant<bool, int, Float, FloatStats, Range, QuantityKey>;
+    using Value = Variant<bool, int, Float, FloatStats, Range, QuantityIds>;
 
     struct Entry {
         TEnum id;
@@ -138,18 +138,19 @@ public:
         logger.write(" - timestep: dt = ",
             statistics.get<Float>(FrequentStatsIds::TIMESTEP_VALUE),
             " (set by ",
-            getTimeStepCriterion(statistics.get<QuantityKey>(FrequentStatsIds::TIMESTEP_CRITERION)),
+            getTimeStepCriterion(statistics.get<QuantityIds>(FrequentStatsIds::TIMESTEP_CRITERION)),
             ")");
+        logger.write("");
     }
 
 private:
-    std::string getTimeStepCriterion(const QuantityKey key) const {
+    std::string getTimeStepCriterion(const QuantityIds key) const {
         switch (key) {
-        case QuantityKey::SOUND_SPEED:
+        case QuantityIds::SOUND_SPEED:
             return "CFL condition";
-        case QuantityKey::POSITIONS:
+        case QuantityIds::POSITIONS:
             return "Acceleration";
-        case QuantityKey::MATERIAL_IDX: // default value, only displayed when adaptive timestep is turned off
+        case QuantityIds::MATERIAL_IDX: // default value, only displayed when adaptive timestep is turned off
             return "Default value";
         default:
             return getQuantityName(key);

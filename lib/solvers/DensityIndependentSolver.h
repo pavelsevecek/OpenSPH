@@ -1,5 +1,6 @@
 #pragma once
 
+#include "quantities/Material.h"
 #include "solvers/AbstractSolver.h"
 #include "solvers/Accumulator.h"
 
@@ -23,8 +24,8 @@ private:
         using Type = Float;
 
         void update(Storage& storage) {
-            e = storage.getValue<Float>(QuantityKey::ENERGY_DENSITY);
-            v = storage.getAll<Vector>(QuantityKey::POSITIONS)[1];
+            e = storage.getValue<Float>(QuantityIds::ENERGY_DENSITY);
+            v = storage.getAll<Vector>(QuantityIds::POSITIONS)[1];
         }
 
         INLINE Tuple<Float, Float> operator()(const int i, const int j, const Vector& grad) const {
@@ -47,14 +48,14 @@ public:
         PROFILE_SCOPE("DensityIndependentSolver::integrate (getters)");
 
         // fetch quantities from storage
-        tie(r, v, dv) = storage.getAll<Vector>(QuantityKey::POSITIONS);
-        tie(e, de) = storage.getAll<Float>(QuantityKey::ENERGY_PER_PARTICLE);
-        tie(q, dq) = storage.getAll<Float>(QuantityKey::ENERGY_DENSITY);
-        tie(rho, m, p, u, cs) = storage.getValues<Float>(QuantityKey::DENSITY,
-            QuantityKey::MASSES,
-            QuantityKey::PRESSURE,
-            QuantityKey::ENERGY,
-            QuantityKey::SOUND_SPEED);
+        tie(r, v, dv) = storage.getAll<Vector>(QuantityIds::POSITIONS);
+        tie(e, de) = storage.getAll<Float>(QuantityIds::ENERGY_PER_PARTICLE);
+        tie(q, dq) = storage.getAll<Float>(QuantityIds::ENERGY_DENSITY);
+        tie(rho, m, p, u, cs) = storage.getValues<Float>(QuantityIds::DENSITY,
+            QuantityIds::MASSES,
+            QuantityIds::PRESSURE,
+            QuantityIds::ENERGY,
+            QuantityIds::SOUND_SPEED);
         ASSERT(areAllMatching(dv, [](const Vector v) { return v == Vector(0._f); }));
 
         udivv.update(storage);
@@ -68,6 +69,7 @@ public:
 
         this->finder->build(r);
         SymH<dim> w(this->kernel);
+        MaterialAccessor material(storage);
 
         PROFILE_NEXT("DensityIndependentSolver::compute (main cycle)")
         for (int i = 0; i < size; ++i) {
@@ -91,7 +93,7 @@ public:
 
                 const Vector f = e[i] * e[j] * (1._f / q[i] + 1._f / q[j]) * grad;
                 ASSERT(isReal(f));
-                const Float gamma = storage.getMaterial(i).adiabaticIndex;
+                const Float gamma = material.getParam<Float>(BodySettingsIds::ADIABATIC_INDEX, i);
                 ASSERT(gamma > 1._f);
                 dv[i] -= (gamma - 1._f) / m[i] * f;
                 dv[j] += (gamma - 1._f) / m[j] * f;
@@ -102,10 +104,11 @@ public:
             }
         }
 
+        EosAccessor eos(storage);
         for (int i = 0; i < size; ++i) {
             dq[i] = udivv[i];
 
-            const Float gamma = storage.getMaterial(i).adiabaticIndex;
+            const Float gamma = material.getParam<Float>(BodySettingsIds::ADIABATIC_INDEX, i);
             de[i] = (gamma - 1._f) * e[i] / q[i] * udivv[i];
             /// \todo smoothing length
             v[i][H] = 0._f;
@@ -115,7 +118,7 @@ public:
             u[i] = e[i] / m[i];
             rho[i] = q[i] / u[i];
 
-            tieToTuple(p[i], cs[i]) = storage.getMaterial(i).eos->getPressure(rho[i], u[i]);
+            tieToTuple(p[i], cs[i]) = eos.evaluate(i);
         }
         // Apply boundary conditions
         if (this->boundary) {
@@ -133,23 +136,27 @@ public:
         const Range rhoRange = settings.get<Range>(BodySettingsIds::DENSITY_RANGE);
         const Range uRange = settings.get<Range>(BodySettingsIds::ENERGY_RANGE);
         const Range qRange(rhoRange.lower() * uRange.lower(), rhoRange.upper() * uRange.upper());
+        const Float rhoMin = settings.get<Float>(BodySettingsIds::DENSITY_MIN);
+        const Float uMin = settings.get<Float>(BodySettingsIds::ENERGY_MIN);
+        const Float qMin = rhoMin * uMin;
         ASSERT(qRange.lower() > 0._f && "Cannot use DISPH with zero specific energy");
-        storage.emplace<Float, OrderEnum::FIRST_ORDER>(QuantityKey::ENERGY_DENSITY, q0, qRange);
+        storage.emplace<Float, OrderEnum::FIRST_ORDER>(QuantityIds::ENERGY_DENSITY, q0, qRange, qMin);
 
         // energy per particle
-        Array<Float> e = storage.getValue<Float>(QuantityKey::MASSES).clone();
+        Array<Float> e = storage.getValue<Float>(QuantityIds::MASSES).clone();
         for (Size i = 0; i < e.size(); ++i) {
             e[i] *= u0;
         }
-        storage.emplace<Float, OrderEnum::FIRST_ORDER>(QuantityKey::ENERGY_PER_PARTICLE, std::move(e));
+        /// \todo range and min value for energy per particle
+        storage.emplace<Float, OrderEnum::FIRST_ORDER>(QuantityIds::ENERGY_PER_PARTICLE, std::move(e));
 
         // setup quantities used 'outside' of the solver
-        storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityKey::DENSITY, rho0);
-        storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityKey::ENERGY, u0);
+        storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityIds::DENSITY, rho0);
+        storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityIds::ENERGY, u0);
         Float p0, cs0;
-        tieToTuple(p0, cs0) = storage.getMaterial(0).eos->getPressure(rho0, u0);
-        storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityKey::SOUND_SPEED, cs0);
-        storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityKey::PRESSURE, p0);
+        tieToTuple(p0, cs0) = EosAccessor(storage).evaluate(0);
+        storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityIds::SOUND_SPEED, cs0);
+        storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityIds::PRESSURE, p0);
     }
 };
 

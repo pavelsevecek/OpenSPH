@@ -32,19 +32,19 @@ public:
     BalsaraSwitch(TArgs&&... args)
         : Module<AV, Rotv, Divv>(av, accumulatedRotV, accumulatedDivV)
         , av(std::forward<TArgs>(args)...)
-        , accumulatedRotV(QuantityKey::VELOCITY_ROTATION)
-        , accumulatedDivV(QuantityKey::VELOCITY_DIVERGENCE) {}
+        , accumulatedRotV(QuantityIds::VELOCITY_ROTATION)
+        , accumulatedDivV(QuantityIds::VELOCITY_DIVERGENCE) {}
 
     void initialize(Storage& storage, const BodySettings& settings) {
         /// \todo set initial values of rot v and div v
-        storage.emplace<Vector, OrderEnum::ZERO_ORDER>(QuantityKey::VELOCITY_ROTATION, Vector(0._f));
-        storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityKey::VELOCITY_DIVERGENCE, 0._f);
+        storage.emplace<Vector, OrderEnum::ZERO_ORDER>(QuantityIds::VELOCITY_ROTATION, Vector(0._f));
+        storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityIds::VELOCITY_DIVERGENCE, 0._f);
         this->initializeModules(storage, settings);
     }
 
     void update(Storage& storage) {
-        tie(cs, divv) = storage.getValues<Float>(QuantityKey::SOUND_SPEED, QuantityKey::VELOCITY_DIVERGENCE);
-        tie(r, rotv) = storage.getValues<Vector>(QuantityKey::POSITIONS, QuantityKey::VELOCITY_ROTATION);
+        tie(cs, divv) = storage.getValues<Float>(QuantityIds::SOUND_SPEED, QuantityIds::VELOCITY_DIVERGENCE);
+        tie(r, rotv) = storage.getValues<Vector>(QuantityIds::POSITIONS, QuantityIds::VELOCITY_ROTATION);
         this->updateModules(storage);
     }
 

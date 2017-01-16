@@ -16,13 +16,15 @@ TEST_CASE("Initial conditions", "[initial]") {
     InitialConditions conds(storage, GLOBAL_SETTINGS);
     conds.addBody(domain, bodySettings);
 
-    const Size size = storage->getValue<Vector>(QuantityKey::POSITIONS).size();
+    const Size size = storage->getValue<Vector>(QuantityIds::POSITIONS).size();
     REQUIRE((size >= 80 && size <= 120));
-    iterate<VisitorEnum::ALL_BUFFERS>(*storage, [size](auto&& array) { REQUIRE(array.size() == size); });
+    iterate<VisitorEnum::ALL_BUFFERS>(*storage, [size](auto&& array) {
+        REQUIRE(array.size() == size);
+    });
 
     ArrayView<Float> rhos, us, drhos, dus;
-    tie(rhos, drhos) = storage->getAll<Float>(QuantityKey::DENSITY);
-    tie(us, dus) = storage->getAll<Float>(QuantityKey::ENERGY);
+    tie(rhos, drhos) = storage->getAll<Float>(QuantityIds::DENSITY);
+    tie(us, dus) = storage->getAll<Float>(QuantityIds::ENERGY);
     bool result = areAllMatching(rhos, [&](const Float f) {
         return f == bodySettings.get<Float>(BodySettingsIds::DENSITY);
     });
@@ -41,7 +43,7 @@ TEST_CASE("Initial conditions", "[initial]") {
     });
     REQUIRE(result);
 
-    ArrayView<Float> ms = storage->getValue<Float>(QuantityKey::MASSES);
+    ArrayView<Float> ms = storage->getValue<Float>(QuantityIds::MASSES);
     float totalM = 0._f;
     for (Float m : ms) {
         totalM += m;
@@ -57,8 +59,8 @@ TEST_CASE("Initial velocity", "[initial]") {
     conds.addBody(SphericalDomain(Vector(0._f), 1._f), bodySettings, Vector(2._f, 1._f, -1._f));
     bodySettings.set<Float>(BodySettingsIds::DENSITY, 2._f);
     conds.addBody(SphericalDomain(Vector(0._f), 1._f), bodySettings, Vector(0._f, 0._f, 1._f));
-    ArrayView<Float> rho = storage->getValue<Float>(QuantityKey::DENSITY);
-    ArrayView<Vector> v = storage->getAll<Vector>(QuantityKey::POSITIONS)[1];
+    ArrayView<Float> rho = storage->getValue<Float>(QuantityIds::DENSITY);
+    ArrayView<Vector> v = storage->getAll<Vector>(QuantityIds::POSITIONS)[1];
 
     StdOutLogger logger;
     bool allMatching = true;
@@ -83,7 +85,7 @@ TEST_CASE("Initial rotation", "[initial]") {
     conds.addBody(
         SphericalDomain(Vector(0._f), 1._f), BODY_SETTINGS, Vector(0._f), Vector(1._f, 3._f, -2._f));
     ArrayView<Vector> r, v, dv;
-    tie(r, v, dv) = storage->getAll<Vector>(QuantityKey::POSITIONS);
+    tie(r, v, dv) = storage->getAll<Vector>(QuantityIds::POSITIONS);
 
     Vector axis;
     float magnitude;

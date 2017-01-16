@@ -13,70 +13,70 @@ TEST_CASE("Storage resize", "[storage]") {
     REQUIRE(storage.getQuantityCnt() == 0);
     REQUIRE(storage.getParticleCnt() == 0);
 
-    storage.emplace<Size, OrderEnum::ZERO_ORDER>(QuantityKey::MATERIAL_IDX, Array<Size>{ 0 });
+    storage.emplace<Size, OrderEnum::ZERO_ORDER>(QuantityIds::MATERIAL_IDX, Array<Size>{ 0 });
     storage.resize(5);
-    storage.emplace<Float, OrderEnum::FIRST_ORDER>(QuantityKey::DENSITY, 3._f);
+    storage.emplace<Float, OrderEnum::FIRST_ORDER>(QuantityIds::DENSITY, 3._f);
     REQUIRE(storage.getQuantityCnt() == 2);
     REQUIRE(storage.getParticleCnt() == 5);
 
-    storage.emplace<Vector, OrderEnum::SECOND_ORDER>(QuantityKey::MASSES, Vector(5._f));
+    storage.emplace<Vector, OrderEnum::SECOND_ORDER>(QuantityIds::MASSES, Vector(5._f));
     REQUIRE(storage.getQuantityCnt() == 3);
-    REQUIRE(storage.has(QuantityKey::DENSITY));
-    REQUIRE(storage.has(QuantityKey::MASSES));
-    REQUIRE(!storage.has(QuantityKey::POSITIONS));
-    REQUIRE((storage.has<Float, OrderEnum::FIRST_ORDER>(QuantityKey::DENSITY)));
-    REQUIRE(!(storage.has<Float, OrderEnum::SECOND_ORDER>(QuantityKey::DENSITY)));
-    REQUIRE(!(storage.has<Vector, OrderEnum::FIRST_ORDER>(QuantityKey::DENSITY)));
+    REQUIRE(storage.has(QuantityIds::DENSITY));
+    REQUIRE(storage.has(QuantityIds::MASSES));
+    REQUIRE(!storage.has(QuantityIds::POSITIONS));
+    REQUIRE((storage.has<Float, OrderEnum::FIRST_ORDER>(QuantityIds::DENSITY)));
+    REQUIRE(!(storage.has<Float, OrderEnum::SECOND_ORDER>(QuantityIds::DENSITY)));
+    REQUIRE(!(storage.has<Vector, OrderEnum::FIRST_ORDER>(QuantityIds::DENSITY)));
 
-    REQUIRE(storage.getValue<Vector>(QuantityKey::MASSES).size() == 5);
-    REQUIRE(storage.getValue<Float>(QuantityKey::DENSITY) == Array<Float>({ 3._f, 3._f, 3._f, 3._f, 3._f }));
+    REQUIRE(storage.getValue<Vector>(QuantityIds::MASSES).size() == 5);
+    REQUIRE(storage.getValue<Float>(QuantityIds::DENSITY) == Array<Float>({ 3._f, 3._f, 3._f, 3._f, 3._f }));
 }
 
-TEST_CASE("Storage emplaceWithFunctor", "[storage]") {
+/*TEST_CASE("Storage emplaceWithFunctor", "[storage]") {
     Storage storage;
     Array<Vector> r{ Vector(0._f), Vector(1._f), Vector(2._f), Vector(4._f) };
     Array<Vector> origR = r.clone();
-    storage.emplace<Vector, OrderEnum::SECOND_ORDER>(QuantityKey::POSITIONS, std::move(r));
+    storage.emplace<Vector, OrderEnum::SECOND_ORDER>(QuantityIds::POSITIONS, std::move(r));
 
     int idx = 0;
     storage.emplaceWithFunctor<Vector, OrderEnum::FIRST_ORDER>(
-        QuantityKey::MASSES, [&idx, &origR](const Vector& v, const int i) {
+        QuantityIds::MASSES, [&idx, &origR](const Vector& v, const int i) {
             REQUIRE(v == origR[idx]);
             REQUIRE(i == idx);
             idx++;
 
             return Vector(Float(i), 0._f, 0._f);
         });
-    REQUIRE(storage.getValue<Vector>(QuantityKey::MASSES) == Array<Vector>({ Vector(0._f, 0._f, 0._f),
+    REQUIRE(storage.getValue<Vector>(QuantityIds::MASSES) == Array<Vector>({ Vector(0._f, 0._f, 0._f),
                                                                  Vector(1._f, 0._f, 0._f),
                                                                  Vector(2._f, 0._f, 0._f),
                                                                  Vector(3._f, 0._f, 0._f) }));
-}
+}*/
 
 TEST_CASE("Clone storages", "[storage]") {
     Storage storage;
-    storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityKey::MATERIAL_IDX, Array<Float>{});
+    storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityIds::MATERIAL_IDX, Array<Float>{ 0 });
     storage.resize(5);
-    storage.emplace<Float, OrderEnum::SECOND_ORDER>(QuantityKey::POSITIONS, 4._f);
-    storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityKey::MASSES, 1._f);
-    storage.emplace<Float, OrderEnum::FIRST_ORDER>(QuantityKey::DENSITY, 3._f);
+    storage.emplace<Float, OrderEnum::SECOND_ORDER>(QuantityIds::POSITIONS, 4._f);
+    storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityIds::MASSES, 1._f);
+    storage.emplace<Float, OrderEnum::FIRST_ORDER>(QuantityIds::DENSITY, 3._f);
 
 
-    auto rs = storage.getAll<Float>(QuantityKey::POSITIONS);
+    auto rs = storage.getAll<Float>(QuantityIds::POSITIONS);
     rs[0].resize(6);
     rs[1].resize(5);
     rs[2].resize(4);
-    storage.getValue<Float>(QuantityKey::MASSES).resize(3);
-    auto rhos = storage.getAll<Float>(QuantityKey::DENSITY);
+    storage.getValue<Float>(QuantityIds::MASSES).resize(3);
+    auto rhos = storage.getAll<Float>(QuantityIds::DENSITY);
     rhos[0].resize(2);
     rhos[1].resize(1);
 
     ArrayView<Float> r, v, dv, m, rho, drho;
 
     auto updateViews = [&](Storage& st) {
-        tie(r, v, dv) = st.getAll<Float>(QuantityKey::POSITIONS);
-        tie(rho, drho) = st.getAll<Float>(QuantityKey::DENSITY);
-        m = st.getValue<Float>(QuantityKey::MASSES);
+        tie(r, v, dv) = st.getAll<Float>(QuantityIds::POSITIONS);
+        tie(rho, drho) = st.getAll<Float>(QuantityIds::DENSITY);
+        m = st.getValue<Float>(QuantityIds::MASSES);
     };
 
     // clone all buffers
@@ -106,7 +106,7 @@ TEST_CASE("Clone storages", "[storage]") {
     REQUIRE(makeArray(r.size(), v.size(), dv.size(), m.size(), rho.size(), drho.size()) ==
             makeArray(0u, 0u, 4u, 0u, 0u, 0u));
 
-    cloned3.getAll<Float>(QuantityKey::POSITIONS)[2].resize(12);
+    cloned3.getAll<Float>(QuantityIds::POSITIONS)[2].resize(12);
     cloned3.swap(cloned1, VisitorEnum::HIGHEST_DERIVATIVES);
     updateViews(cloned3);
     REQUIRE(makeArray(r.size(), v.size(), dv.size(), m.size(), rho.size(), drho.size()) ==
@@ -118,42 +118,42 @@ TEST_CASE("Clone storages", "[storage]") {
 
 TEST_CASE("Storage merge", "[storage]") {
     Storage storage1;
-    storage1.emplace<Float, OrderEnum::FIRST_ORDER>(QuantityKey::DENSITY, Array<Float>{ 0._f, 1._f });
+    storage1.emplace<Float, OrderEnum::FIRST_ORDER>(QuantityIds::DENSITY, Array<Float>{ 0._f, 1._f });
 
     Storage storage2;
-    storage2.emplace<Float, OrderEnum::FIRST_ORDER>(QuantityKey::DENSITY, Array<Float>{ 2._f, 3._f });
+    storage2.emplace<Float, OrderEnum::FIRST_ORDER>(QuantityIds::DENSITY, Array<Float>{ 2._f, 3._f });
     storage1.merge(std::move(storage2));
 
     REQUIRE(storage1.getQuantityCnt() == 1);
     REQUIRE(storage1.getParticleCnt() == 4);
 
-    ArrayView<Float> rho = storage1.getValue<Float>(QuantityKey::DENSITY);
+    ArrayView<Float> rho = storage1.getValue<Float>(QuantityIds::DENSITY);
     REQUIRE(rho == makeArray(0._f, 1._f, 2._f, 3._f));
 }
 
 TEST_CASE("Storage init", "[storage]") {
     Storage storage;
-    storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityKey::MATERIAL_IDX, Array<Float>{}); // dummy unit
+    storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityIds::MATERIAL_IDX, Array<Float>{ 0 }); // dummy unit
     storage.resize(3);
-    storage.emplace<Float, OrderEnum::SECOND_ORDER>(QuantityKey::POSITIONS, 3._f);
-    storage.emplace<Float, OrderEnum::FIRST_ORDER>(QuantityKey::MASSES, 1._f);
-    storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityKey::DENSITY, 2._f);
+    storage.emplace<Float, OrderEnum::SECOND_ORDER>(QuantityIds::POSITIONS, 3._f);
+    storage.emplace<Float, OrderEnum::FIRST_ORDER>(QuantityIds::MASSES, 1._f);
+    storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityIds::DENSITY, 2._f);
 
     iterate<VisitorEnum::ALL_BUFFERS>(storage, [](auto&& buffer) {
         using Type = typename std::decay_t<decltype(buffer)>::Type;
         buffer.fill(Type(5._f));
     });
-    REQUIRE(storage.getAll<Float>(QuantityKey::POSITIONS)[2] == makeArray(5._f, 5._f, 5._f));
-    REQUIRE(storage.getAll<Float>(QuantityKey::MASSES)[1] == makeArray(5._f, 5._f, 5._f));
+    REQUIRE(storage.getAll<Float>(QuantityIds::POSITIONS)[2] == makeArray(5._f, 5._f, 5._f));
+    REQUIRE(storage.getAll<Float>(QuantityIds::MASSES)[1] == makeArray(5._f, 5._f, 5._f));
 
     storage.init();
 
-    REQUIRE(storage.getAll<Float>(QuantityKey::POSITIONS)[2] == makeArray(0._f, 0._f, 0._f));
-    REQUIRE(storage.getAll<Float>(QuantityKey::POSITIONS)[1] == makeArray(5._f, 5._f, 5._f));
-    REQUIRE(storage.getAll<Float>(QuantityKey::POSITIONS)[0] == makeArray(5._f, 5._f, 5._f));
-    REQUIRE(storage.getAll<Float>(QuantityKey::MASSES)[1] == makeArray(0._f, 0._f, 0._f));
-    REQUIRE(storage.getAll<Float>(QuantityKey::MASSES)[0] == makeArray(5._f, 5._f, 5._f));
-    REQUIRE(storage.getAll<Float>(QuantityKey::DENSITY)[0] == makeArray(5._f, 5._f, 5._f));
+    REQUIRE(storage.getAll<Float>(QuantityIds::POSITIONS)[2] == makeArray(0._f, 0._f, 0._f));
+    REQUIRE(storage.getAll<Float>(QuantityIds::POSITIONS)[1] == makeArray(5._f, 5._f, 5._f));
+    REQUIRE(storage.getAll<Float>(QuantityIds::POSITIONS)[0] == makeArray(5._f, 5._f, 5._f));
+    REQUIRE(storage.getAll<Float>(QuantityIds::MASSES)[1] == makeArray(0._f, 0._f, 0._f));
+    REQUIRE(storage.getAll<Float>(QuantityIds::MASSES)[0] == makeArray(5._f, 5._f, 5._f));
+    REQUIRE(storage.getAll<Float>(QuantityIds::DENSITY)[0] == makeArray(5._f, 5._f, 5._f));
 }
 
 TEST_CASE("Storage material", "[storage]") {
@@ -165,19 +165,21 @@ TEST_CASE("Storage material", "[storage]") {
 
     Storage storage(settings);
     storage.emplace<Vector, OrderEnum::SECOND_ORDER>(
-        QuantityKey::POSITIONS, makeArray(Vector(1._f, 0._f, 0._f), Vector(-2._f, 1._f, 1._f)));
-    Material& mat = storage.getMaterial(0);
+        QuantityIds::POSITIONS, makeArray(Vector(1._f, 0._f, 0._f), Vector(-2._f, 1._f, 1._f)));
+    /*Material& mat = storage.getMaterial(0);
     REQUIRE(mat.adiabaticIndex == 5._f);
     REQUIRE(mat.shearModulus == 2._f);
-    REQUIRE(mat.elasticityLimit == 3._f);
+    REQUIRE(mat.elasticityLimit == 3._f);*/
 
     settings.set<Float>(BodySettingsIds::ADIABATIC_INDEX, 13._f);
     Storage other(settings);
     other.emplace<Vector, OrderEnum::SECOND_ORDER>(
-        QuantityKey::POSITIONS, makeArray(Vector(-3._f, 4._f, 0._f), Vector(5._f, 1._f, 0._f)));
+        QuantityIds::POSITIONS, makeArray(Vector(-3._f, 4._f, 0._f), Vector(5._f, 1._f, 0._f)));
 
     storage.merge(std::move(other));
-    auto pressure = [&](const int i) { return storage.getMaterial(i).eos->getPressure(1._f, 1._f).get<0>(); };
+    storage.emplace<Float, OrderEnum::FIRST_ORDER>(QuantityIds::DENSITY, 1._f);
+    storage.emplace<Float, OrderEnum::FIRST_ORDER>(QuantityIds::ENERGY, 1._f);
+    auto pressure = [&](const int i) { return EosAccessor(storage).evaluate(i).get<0>(); };
     REQUIRE(pressure(0) == 4._f);
     REQUIRE(pressure(1) == 4._f);
     REQUIRE(pressure(2) == 12._f);
@@ -204,4 +206,20 @@ TEST_CASE("Storage material", "[storage]") {
     REQUIRE(pressure(1) == 24._f);
     REQUIRE(pressure(2) == 24._f);
     REQUIRE(pressure(3) == 12._f);*/
+}
+
+TEST_CASE("Storage removeAll", "[storage]") {
+    Storage storage;
+    storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityIds::MATERIAL_IDX, Array<Float>{ 0 }); // dummy unit
+    storage.resize(3);
+    storage.emplace<Float, OrderEnum::SECOND_ORDER>(QuantityIds::POSITIONS, 3._f);
+    storage.emplace<Float, OrderEnum::FIRST_ORDER>(QuantityIds::MASSES, 1._f);
+    storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityIds::DENSITY, 2._f);
+
+    storage.removeAll();
+    REQUIRE(storage.getParticleCnt() == 0);
+    REQUIRE(storage.getQuantityCnt() == 0);
+    storage.emplace<Float, OrderEnum::SECOND_ORDER>(QuantityIds::POSITIONS, { 3._f, 2._f, 5._f });
+    REQUIRE(storage.getParticleCnt() == 3);
+    REQUIRE(storage.getQuantityCnt() == 1);
 }

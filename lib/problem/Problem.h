@@ -3,7 +3,7 @@
 #include "objects/containers/Tuple.h"
 #include "objects/finders/AbstractFinder.h"
 #include "objects/wrappers/Range.h"
-#include "quantities/QuantityKey.h"
+#include "quantities/QuantityIds.h"
 #include "solvers/AbstractSolver.h"
 #include "solvers/SolverFactory.h"
 #include "sph/boundary/Boundary.h"
@@ -13,6 +13,7 @@
 #include "system/Callbacks.h"
 #include "system/Logger.h"
 #include "system/Output.h"
+#include "physics/Integrals.h"
 #include <iostream>
 
 
@@ -31,10 +32,10 @@ class Problem : public Noncopyable {
 private:
     int outputEvery;
 
-public:
     /// Logging
     std::unique_ptr<Abstract::Logger> logger;
 
+public:
     /// Data output
     std::unique_ptr<Abstract::Output> output;
 
@@ -57,23 +58,27 @@ public:
 
 
     /// initialize problem by constructing solver
-    Problem(const GlobalSettings& settings)
-        : storage(std::make_shared<Storage>()) {
+    Problem(const GlobalSettings& settings,
+        const std::shared_ptr<Storage> storage = std::make_shared<Storage>())
+        : storage(storage) {
         solver = getSolver(settings);
         outputEvery = settings.get<int>(GlobalSettingsIds::RUN_OUTPUT_STEP);
+        logger = Factory::getLogger(settings);
     }
 
     void run() {
         Size i = 0;
 
-        if (logger) {
-            logger->write("Running:");
-        }
+        logger->write("Running:");
 
+        Timer runTimer;
         FrequentStats stats;
         for (Float& t : rangeAdapter(timeRange, timeStepping->getTimeStep())) {
             if (callbacks) {
-                callbacks->onTimeStep(storage);
+                callbacks->onTimeStep(Float((Extended(t) - timeRange.lower()) / timeRange.size()), storage);
+                if (callbacks->shouldAbortRun()) {
+                    break;
+                }
             }
 
             const Float dt = timeStepping->getTimeStep();
@@ -91,11 +96,13 @@ public:
             // Log
             stats.set(FrequentStatsIds::TIME, t);
             stats.set(FrequentStatsIds::INDEX, (int)i);
-            if (logger) {
-                FrequentStatsFormat format;
-                format.print(*logger, stats);
-            }
+            FrequentStatsFormat format;
+            format.print(*logger, stats);
+
+            AvgDeviatoricStress avgds;
+            logger->write("ds = ", avgds.get(*storage));
         }
+        logger->write("Run ended after ", runTimer.elapsed<TimerUnit::SECOND>(), "s.");
     }
 };
 

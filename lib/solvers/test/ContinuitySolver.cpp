@@ -24,7 +24,7 @@ TEST_CASE("ContinuitySolver", "[solvers]") {
     bodySettings.set(BodySettingsIds::PARTICLE_COUNT, 100);
     bodySettings.set(BodySettingsIds::ENERGY, 1.e-4_f);
     BlockDomain domain(Vector(0._f), Vector(1._f));
-    std::shared_ptr<Storage> storage = std::make_shared<Storage>(bodySettings);
+    std::shared_ptr<Storage> storage = std::make_shared<Storage>();
     InitialConditions conds(storage, globalSettings);
     conds.addBody(domain, bodySettings);
 
@@ -34,15 +34,15 @@ TEST_CASE("ContinuitySolver", "[solvers]") {
     TotalMomentum momentum;
     TotalAngularMomentum angularMomentum;
 
-    const Vector mom0 = momentum(*storage);
-    const Vector angmom0 = angularMomentum(*storage);
+    const Vector mom0 = momentum.get(*storage);
+    const Vector angmom0 = angularMomentum.get(*storage);
     REQUIRE(mom0 == Vector(0._f));
     REQUIRE(angmom0 == Vector(0._f));
     for (float t = 0._f; t < 1._f; t += timestepping.getTimeStep()) {
         timestepping.step(*solver, stats);
     }
-    const Vector mom1 = momentum(*storage);
-    const Vector angmom1 = angularMomentum(*storage);
+    const Vector mom1 = momentum.get(*storage);
+    const Vector angmom1 = angularMomentum.get(*storage);
     const Float momVar = momentum.getVariance(*storage);
     const Float angmomVar = angularMomentum.getVariance(*storage);
 
@@ -51,7 +51,7 @@ TEST_CASE("ContinuitySolver", "[solvers]") {
 
     // check that particles gained some velocity
     Float totV = 0._f;
-    for (Vector& v : storage->getAll<Vector>(QuantityKey::POSITIONS)[1]) {
+    for (Vector& v : storage->getAll<Vector>(QuantityIds::POSITIONS)[1]) {
         totV += getLength(v);
     }
     REQUIRE(totV > 0._f);

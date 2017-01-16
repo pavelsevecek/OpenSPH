@@ -18,13 +18,12 @@ int main() {
     /*globalSettings.set(GlobalSettingsIds::MODEL_DAMAGE, DamageEnum::SCALAR_GRADY_KIPP);
     globalSettings.set(GlobalSettingsIds::MODEL_YIELDING, YieldingEnum::VON_MISES);*/
     Problem* p      = new Problem(globalSettings);
-    p->logger       = std::make_unique<StdOutLogger>();
     p->timeRange    = Range(0._f, 1._f);
     p->timeStepping = Factory::getTimestepping(globalSettings, p->storage);
     p->output =
         std::make_unique<TextOutput>(globalSettings.get<std::string>(GlobalSettingsIds::RUN_OUTPUT_NAME),
                                      globalSettings.get<std::string>(GlobalSettingsIds::RUN_NAME),
-                                     Array<QuantityKey>{ QuantityKey::POSITIONS, QuantityKey::DEVIATORIC_STRESS });
+                                     Array<QuantityIds>{ QuantityIds::POSITIONS, QuantityIds::DEVIATORIC_STRESS });
 
     auto bodySettings = BODY_SETTINGS;
     bodySettings.set(BodySettingsIds::ENERGY, 1.e2_f);
@@ -40,7 +39,8 @@ int main() {
     conds.addBody(domain2, bodySettings, Vector(-5.e3_f, 0._f, 0._f));*/
     p->run();
 
-    Profiler::getInstance()->printStatistics(p->logger.get());
+    StdOutLogger logger;
+    Profiler::getInstance()->printStatistics(logger);
 
     return 0;
 }

@@ -2,7 +2,7 @@
 
 NAMESPACE_SPH_BEGIN
 
-static void printHeader(std::ofstream& ofs, const QuantityKey key, Quantity& q) {
+static void printHeader(std::ofstream& ofs, const QuantityIds key, Quantity& q) {
     auto printHeaderImpl = [&q, &ofs](const std::string& name) {
         switch (q.getValueEnum()) {
         case ValueEnum::SCALAR:
@@ -12,6 +12,11 @@ static void printHeader(std::ofstream& ofs, const QuantityKey key, Quantity& q) 
         case ValueEnum::VECTOR:
             ofs << std::setw(15) << (name + " [x]") << std::setw(15) << (name + " [y]") << std::setw(15)
                 << (name + " [z]");
+            break;
+        case ValueEnum::TENSOR:
+            ofs << std::setw(15) << (name + " [xx]") << std::setw(15) << (name + " [yy]") << std::setw(15)
+                << (name + " [zz]") << std::setw(15) << (name + " [xy]") << std::setw(15) << (name + " [xz]")
+                << std::setw(15) << (name + " [yz]");
             break;
         case ValueEnum::TRACELESS_TENSOR:
             ofs << std::setw(15) << (name + " [xx]") << std::setw(15) << (name + " [yy]") << std::setw(15)
@@ -35,7 +40,7 @@ static void printHeader(std::ofstream& ofs, const QuantityKey key, Quantity& q) 
     }
 }
 
-TextOutput::TextOutput(const std::string& fileMask, const std::string& runName, Array<QuantityKey>&& columns)
+TextOutput::TextOutput(const std::string& fileMask, const std::string& runName, Array<QuantityIds>&& columns)
     : Abstract::Output(fileMask)
     , runName(runName)
     , columns(std::move(columns)) {}
@@ -44,8 +49,8 @@ struct LinePrinter {
     template <typename TValue>
     void visit(Quantity& q, const Size i, std::ofstream& ofs) {
         if (q.getOrderEnum() == OrderEnum::SECOND_ORDER) {
-            ofs << std::setprecision(6) << std::setw(15) << q.getValue<TValue>()[i]
-                << std::setw(15) << q.getDt<TValue>()[i];
+            ofs << std::setprecision(6) << std::setw(15) << q.getValue<TValue>()[i] << std::setw(15)
+                << q.getDt<TValue>()[i];
         } else {
             ofs << std::setprecision(6) << std::setw(15) << q.getValue<TValue>()[i];
         }
@@ -59,14 +64,14 @@ std::string TextOutput::dump(Storage& storage, const Float time) {
     ofs << "# Run: " << runName << std::endl;
     ofs << "# SPH dump, time = " << time << std::endl;
     ofs << "# ";
-    for (QuantityKey key : columns) {
+    for (QuantityIds key : columns) {
         printHeader(ofs, key, storage.getQuantity(key));
     }
     ofs << std::endl;
 
     // print data lines, starting with second-order quantities
     for (Size i = 0; i < storage.getParticleCnt(); ++i) {
-        for (QuantityKey key : columns) {
+        for (QuantityIds key : columns) {
             Quantity& q = storage.getQuantity(key);
             dispatch(q.getValueEnum(), LinePrinter(), q, i, ofs);
         }

@@ -8,45 +8,49 @@ using namespace Sph;
 TEST_CASE("Adaptive Timestep", "[timestepping]") {
     AdaptiveTimeStep getter(GLOBAL_SETTINGS);
     const Float courant = GLOBAL_SETTINGS.get<Float>(GlobalSettingsIds::TIMESTEPPING_COURANT);
-    Storage storage;
+    Storage storage(BODY_SETTINGS);
     HexagonalPacking distribution;
     storage.emplace<Vector, OrderEnum::SECOND_ORDER>(
-        QuantityKey::POSITIONS, distribution.generate(100, BlockDomain(Vector(0._f), Vector(100._f))));
-    storage.emplace<Float, OrderEnum::FIRST_ORDER>(QuantityKey::ENERGY, 0._f);
+        QuantityIds::POSITIONS, distribution.generate(100, BlockDomain(Vector(0._f), Vector(100._f))));
+    storage.emplace<Float, OrderEnum::FIRST_ORDER>(QuantityIds::ENERGY, 0._f, Range::unbounded(), EPS);
 
     const Float cs = 5._f;
-    storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityKey::SOUND_SPEED, cs);
+    storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityIds::SOUND_SPEED, cs);
 
     // get timestep limited by CFL
     FrequentStats stats;
     const Float step = getter.get(storage, INFTY, stats);
 
-    ArrayView<Vector> r = storage.getValue<Vector>(QuantityKey::POSITIONS);
+    ArrayView<Vector> r = storage.getValue<Vector>(QuantityIds::POSITIONS);
     const Float h = r[0][H]; // all hs are the same
     const Float expected = courant * h / cs;
     REQUIRE(almostEqual(expected, step));
-    REQUIRE(stats.get<QuantityKey>(FrequentStatsIds::TIMESTEP_CRITERION) == QuantityKey::SOUND_SPEED);
+    REQUIRE(stats.get<QuantityIds>(FrequentStatsIds::TIMESTEP_CRITERION) == QuantityIds::SOUND_SPEED);
 
     // get timestep limited by stats
     const Float step2 = getter.get(storage, 1.e-3_f, stats);
     REQUIRE(step2 == 1.e-3_f);
-    REQUIRE(stats.get<QuantityKey>(FrequentStatsIds::TIMESTEP_CRITERION) == QuantityKey::MAXIMUM_VALUE);
+    REQUIRE(stats.get<QuantityIds>(FrequentStatsIds::TIMESTEP_CRITERION) == QuantityIds::MAXIMUM_VALUE);
 
     // get timestep limited by value-to-derivative ration of energy
     ArrayView<Float> u, du;
-    tie(u, du) = storage.getAll<Float>(QuantityKey::ENERGY);
+    tie(u, du) = storage.getAll<Float>(QuantityIds::ENERGY);
     for (Float& f : u) {
         f = 12._f; // u = 12
     }
     for (Float& f : du) {
         f = 4._f; // du/dt = 4
     }
-    //const Float factor = GLOBAL_SETTINGS.get<Float>(GlobalSettingsIds::TIMESTEPPING_ADAPTIVE_FACTOR);
-    //const Float step3 = getter.get(storage, INFTY, stats);
-    // this is quite imprecise due to approximative sqrt, but it doesn't really matter for timestep
-    //REQUIRE(almostEqual(step3, factor * 3._f, 1.e-3_f));
-    /// \todo
-    // REQUIRE(stats.get<QuantityKey>(FrequentStatsIds::TIMESTEP_CRITERION) == QuantityKey::ENERGY);
+    const Float step3 = getter.get(storage, INFTY, stats);
+
+    // this is quite imprecise due to approximative sqrt, but it doesn't really matter for timestep estimation
+    const Float factor = GLOBAL_SETTINGS.get<Float>(GlobalSettingsIds::TIMESTEPPING_ADAPTIVE_FACTOR);
+    REQUIRE(almostEqual(step3, factor * 3._f, 1.e-3_f));
+    REQUIRE(stats.get<QuantityIds>(FrequentStatsIds::TIMESTEP_CRITERION) == QuantityIds::ENERGY);
+
+    storage.getQuantity(QuantityIds::ENERGY).getMinimalValue() = 16._f;
+    const Float step4 = getter.get(storage, INFTY, stats);
+    REQUIRE(almostEqual(step4, factor * 7._f, 1.e-3_f)); // (12+16)/4
 }
 
 TEST_CASE("MinOfArray", "[timestepping]") {

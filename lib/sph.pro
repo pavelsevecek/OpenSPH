@@ -37,8 +37,6 @@ SOURCES += \
     quantities/Material.cpp \
     quantities/Storage.cpp \
     sph/boundary/Boundary.cpp \
-    sph/forces/Damage.cpp \
-    sph/forces/Yielding.cpp \
     sph/initial/Distribution.cpp \
     sph/initial/Initial.cpp \
     sph/timestepping/TimeStepping.cpp \
@@ -52,6 +50,8 @@ SOURCES += \
     system/Settings.cpp \
     physics/Eos.cpp \
     physics/TimeFormat.cpp \
+    physics/Damage.cpp \
+    physics/Yielding.cpp \
     post/Components.cpp
 
 HEADERS += \
@@ -90,6 +90,8 @@ HEADERS += \
     physics/Eos.h \
     physics/TimeFormat.h \
     physics/Integrals.h \
+    physics/Yielding.h \
+    physics/Damage.h \
     problem/Problem.h \
     sph/kernel/Kernel.h \
     sph/initial/Distribution.h \
@@ -118,7 +120,6 @@ HEADERS += \
     sph/forces/StressForce.h \
     solvers/DensityIndependentSolver.h \
     solvers/EntropySolver.h \
-    quantities/QuantityKey.h \
     solvers/Accumulator.h \
     solvers/SharedAccumulator.h \
     objects/containers/StaticArray.h \
@@ -126,8 +127,6 @@ HEADERS += \
     quantities/Material.h \
     sph/forces/CentripetalForce.h \
     sph/forces/Factory.h \
-    sph/forces/Damage.h \
-    sph/forces/Yielding.h \
     solvers/SolverFactory.h \
     objects/wrappers/AlignedStorage.h \
     solvers/Module.h \
@@ -146,4 +145,5 @@ HEADERS += \
     system/ArrayStats.h \
     system/Statistics.h \
     system/FloatStats.h \
-    objects/wrappers/UniquePtr.h
+    objects/wrappers/UniquePtr.h \
+    quantities/QuantityIds.h

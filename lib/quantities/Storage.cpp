@@ -8,11 +8,13 @@ NAMESPACE_SPH_BEGIN
 
 Storage::Storage() = default;
 
-Storage::~Storage() = default;
-
 Storage::Storage(const BodySettings& settings) {
-    materials.push(Material(settings));
+    Material mat;
+    mat.eos = Factory::getEos(settings);
+    materials.push(std::move(mat));
 }
+
+Storage::~Storage() = default;
 
 Storage::Storage(Storage&& other)
     : quantities(std::move(other.quantities))
@@ -24,20 +26,32 @@ Storage& Storage::operator=(Storage&& other) {
     return *this;
 }
 
-Material& Storage::getMaterial(const Size particleIdx) {
+/*Material& Storage::getMaterial(const Size particleIdx) {
     ASSERT(!materials.empty());
     /// \todo profile and possibly optimize (cache matIdxs array)
-    Array<Size>& matIdxs = this->getValue<Size>(QuantityKey::MATERIAL_IDX);
+    Array<Size>& matIdxs = this->getValue<Size>(QuantityIds::MATERIAL_IDX);
     return materials[matIdxs[particleIdx]];
+}*/
+
+Size Storage::getQuantityCnt() const {
+    return quantities.size();
+}
+
+Size Storage::getParticleCnt() const {
+    if (quantities.empty()) {
+        return 0;
+    } else {
+        return quantities.begin()->second.size();
+    }
 }
 
 void Storage::merge(Storage&& other) {
     // must contain the same quantities
     ASSERT(this->getQuantityCnt() == other.getQuantityCnt());
     // as material id is an index to array, we have to increase indices before the merge
-    if (this->has(QuantityKey::MATERIAL_IDX)) {
-        ASSERT(other.has(QuantityKey::MATERIAL_IDX));
-        Array<Size>& matIdxs = other.getValue<Size>(QuantityKey::MATERIAL_IDX);
+    if (this->has(QuantityIds::MATERIAL_IDX)) {
+        ASSERT(other.has(QuantityIds::MATERIAL_IDX));
+        Array<Size>& matIdxs = other.getValue<Size>(QuantityIds::MATERIAL_IDX);
         for (Size& id : matIdxs) {
             id += this->materials.size();
         }
@@ -50,7 +64,7 @@ void Storage::merge(Storage&& other) {
 }
 
 void Storage::init() {
-    iterate<VisitorEnum::HIGHEST_DERIVATIVES>(*this, [](auto&& dv) {
+    iterate<VisitorEnum::HIGHEST_DERIVATIVES>(*this, [](const QuantityIds, auto&& dv) {
         using TValue = typename std::decay_t<decltype(dv)>::Type;
         dv.fill(TValue(0._f));
     });
@@ -77,5 +91,9 @@ void Storage::swap(Storage& other, const Flags<VisitorEnum> flags) {
     }
 }
 
+void Storage::removeAll() {
+    quantities.clear();
+    materials.clear();
+}
 
 NAMESPACE_SPH_END

@@ -18,7 +18,7 @@ class OrthoPane : public wxPanel, public Abstract::Renderer {
 private:
     std::shared_ptr<Storage> storage;
     BufferedArray<Size> displayedIdxs;
-    QuantityKey quantity = QuantityKey::POSITIONS;
+    QuantityIds quantity = QuantityIds::POSITIONS;
     Array<Vector> positions;
     BufferedArray<Color> colors;
     Palette palette;
@@ -35,7 +35,7 @@ public:
 
     virtual void draw(const std::shared_ptr<Storage>& storage) override;
 
-    virtual void setQuantity(const QuantityKey key) override;
+    virtual void setQuantity(const QuantityIds key) override;
 
 private:
     void onPaint(wxPaintEvent& evt);

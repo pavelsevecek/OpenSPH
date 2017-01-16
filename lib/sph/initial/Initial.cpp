@@ -3,6 +3,7 @@
 #include "physics/Eos.h"
 #include "quantities/Quantity.h"
 #include "quantities/Storage.h"
+#include "quantities/Material.h"
 #include "solvers/AbstractSolver.h"
 #include "solvers/SolverFactory.h"
 #include "sph/initial/Distribution.h"
@@ -36,11 +37,11 @@ void InitialConditions::addBody(const Abstract::Domain& domain,
     Array<Vector> positions = distribution->generate(n, domain);
     N = positions.size();
     ASSERT(N > 0);
-    body.emplace<Vector, OrderEnum::SECOND_ORDER>(QuantityKey::POSITIONS, std::move(positions));
+    body.emplace<Vector, OrderEnum::SECOND_ORDER>(QuantityIds::POSITIONS, std::move(positions));
 
     // Set particle velocitites
     ArrayView<Vector> r, v, dv;
-    tie(r, v, dv) = body.getAll<Vector>(QuantityKey::POSITIONS);
+    tie(r, v, dv) = body.getAll<Vector>(QuantityIds::POSITIONS);
     for (Size i = 0; i < N; ++i) {
         v[i] += velocity + cross(r[i], angularVelocity);
     }
@@ -50,7 +51,7 @@ void InitialConditions::addBody(const Abstract::Domain& domain,
     const Float rho0 = bodySettings.get<Float>(BodySettingsIds::DENSITY);
     const Float totalM = domain.getVolume() * rho0; // m = rho * V
     ASSERT(totalM > 0._f);
-    body.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityKey::MASSES, totalM / N);
+    body.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityIds::MASSES, totalM / N);
 
     solver->initialize(body, bodySettings);
     if (storage->getQuantityCnt() == 0) {

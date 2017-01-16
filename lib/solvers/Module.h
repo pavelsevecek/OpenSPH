@@ -96,21 +96,21 @@ public:
         : children(modules...) {}
 
     INLINE void updateModules(Storage& storage) {
-        forEachIf<HasUpdate>(children, [&storage](auto& module) { module.update(storage); });
+        forEachIf<HasUpdate>(children, [&storage](auto& module) INL { module.update(storage); });
     }
 
     INLINE void accumulateModules(const Size i, const Size j, const Vector& grad) {
         forEachIf<HasAccumulate>(
-            children, [i, j, &grad, this](auto& module) { module.accumulate(i, j, grad); });
+            children, [i, j, &grad, this](auto& module) INL { module.accumulate(i, j, grad); });
     }
 
     INLINE void integrateModules(Storage& storage) {
-        forEachIf<HasIntegrate>(children, [&storage](auto& module) { module.integrate(storage); });
+        forEachIf<HasIntegrate>(children, [&storage](auto& module) INL { module.integrate(storage); });
     }
 
     INLINE void initializeModules(Storage& storage, const BodySettings& settings) const {
         forEachIf<HasInitialize>(
-            children, [&storage, &settings](auto& module) { module.initialize(storage, settings); });
+            children, [&storage, &settings](auto& module) INL { module.initialize(storage, settings); });
     }
 };
 

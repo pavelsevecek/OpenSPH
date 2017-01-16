@@ -38,9 +38,13 @@ enum class VisitorEnum {
     /// higher-order quantities).
     ALL_VALUES = 1 << 4,
 
+    /// Iterate over quantity values for 1st order quantities and over values and 1st derivatives of 2nd order
+    /// quantities. Zero order quantities are skipped.
+    DEPENDENT_VALUES = 1 << 5,
+
     /// Iterates over all 1st order and 2nd order quantities, passes their 1st and 2nd derivatives as
     /// parameters, respectively.
-    HIGHEST_DERIVATIVES = 1 << 5,
+    HIGHEST_DERIVATIVES = 1 << 6,
 };
 
 
@@ -124,7 +128,7 @@ namespace Detail {
         virtual std::unique_ptr<PlaceHolder> clone(const Flags<VisitorEnum> flags) const override {
             Array<TValue> cv =
                 conditionalClone(v, flags.hasAny(VisitorEnum::ZERO_ORDER, VisitorEnum::ALL_BUFFERS));
-            return std::make_unique<Holder>(std::move(cv));
+            return std::make_unique<Holder>(std::move(cv), range);
         }
 
         virtual void clamp() override {
@@ -191,8 +195,10 @@ namespace Detail {
         virtual void swap(PlaceHolder* other, Flags<VisitorEnum> flags) override {
             ASSERT((dynamic_cast<Holder<TValue, OrderEnum::FIRST_ORDER>*>(other)));
             auto holder = static_cast<Holder<TValue, OrderEnum::FIRST_ORDER>*>(other);
-            this->conditionalSwap(
-                this->v, holder->v, flags.hasAny(VisitorEnum::ZERO_ORDER, VisitorEnum::ALL_BUFFERS));
+            this->conditionalSwap(this->v,
+                holder->v,
+                flags.hasAny(
+                    VisitorEnum::ZERO_ORDER, VisitorEnum::ALL_BUFFERS, VisitorEnum::DEPENDENT_VALUES));
             this->conditionalSwap(this->dv,
                 holder->dv,
                 flags.hasAny(
@@ -248,10 +254,14 @@ namespace Detail {
         virtual void swap(PlaceHolder* other, Flags<VisitorEnum> flags) override {
             ASSERT((dynamic_cast<Holder<TValue, OrderEnum::SECOND_ORDER>*>(other)));
             auto holder = static_cast<Holder<TValue, OrderEnum::SECOND_ORDER>*>(other);
-            this->conditionalSwap(
-                this->v, holder->v, flags.hasAny(VisitorEnum::ZERO_ORDER, VisitorEnum::ALL_BUFFERS));
-            this->conditionalSwap(
-                this->dv, holder->dv, flags.hasAny(VisitorEnum::FIRST_ORDER, VisitorEnum::ALL_BUFFERS));
+            this->conditionalSwap(this->v,
+                holder->v,
+                flags.hasAny(
+                    VisitorEnum::ZERO_ORDER, VisitorEnum::ALL_BUFFERS, VisitorEnum::DEPENDENT_VALUES));
+            this->conditionalSwap(this->dv,
+                holder->dv,
+                flags.hasAny(
+                    VisitorEnum::FIRST_ORDER, VisitorEnum::ALL_BUFFERS, VisitorEnum::DEPENDENT_VALUES));
             this->conditionalSwap(d2v,
                 holder->d2v,
                 flags.hasAny(
@@ -281,13 +291,15 @@ namespace Detail {
 class Quantity : public Noncopyable {
 private:
     std::unique_ptr<Detail::PlaceHolder> data;
-    Range range = Range::unbounded();
-    //Float referenceValue = 0.f;
+    Float minValue = 0.f;
 
 public:
     Quantity() = default;
 
-    Quantity(Quantity&& other) { std::swap(data, other.data); }
+    Quantity(Quantity&& other) {
+        std::swap(data, other.data);
+        minValue = other.minValue;
+    }
 
     /// Creates a quantity given number of particles and default value of the quantity. All values are set to
     /// the default value. If the type is 1st-order or 2nd-order, derivatives arrays resized to the same size
@@ -298,20 +310,26 @@ public:
     /// \param range Optional parameter, used to set bounds for the quantity. By default, quantity is
     ///              unbounded.
     template <typename TValue, OrderEnum TOrder>
-    void emplace(const TValue& defaultValue, const int size, const Range& range = Range::unbounded()) {
+    void emplace(const TValue& defaultValue,
+        const int size,
+        const Range& range = Range::unbounded(),
+        const Float minimal = 0.f) {
         using Holder = Detail::Holder<TValue, TOrder>;
         data = std::make_unique<Holder>(defaultValue, size, range);
+        minValue = minimal;
     }
 
     /// Creates a quantity from an array of values. All derivatives are set to zero.
     template <typename TValue, OrderEnum TOrder>
-    void emplace(Array<TValue>&& values, const Range& range = Range::unbounded()) {
+    void emplace(Array<TValue>&& values, const Range& range = Range::unbounded(), const Float minimal = 0.f) {
         using Holder = Detail::Holder<TValue, TOrder>;
         data = std::make_unique<Holder>(std::move(values), range);
+        minValue = minimal;
     }
 
     Quantity& operator=(Quantity&& other) {
         std::swap(data, other.data);
+        minValue = other.minValue;
         return *this;
     }
 
@@ -329,6 +347,7 @@ public:
         ASSERT(data);
         Quantity cloned;
         cloned.data = this->data->clone(flags);
+        cloned.minValue = this->minValue;
         return cloned;
     }
 
@@ -338,10 +357,13 @@ public:
         data->clamp();
     }
 
+    Float& getMinimalValue() { return minValue; }
+
     /// Swap quantity (or selected part of it) with other quantity.
     void swap(Quantity& other, const Flags<VisitorEnum> flags) {
         ASSERT(data);
         data->swap(other.data.get(), flags);
+        std::swap(minValue, other.minValue);
     }
 
     /// Returns the size of the quantity (number of particles)

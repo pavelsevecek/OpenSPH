@@ -3,7 +3,7 @@
 #include "objects/containers/Array.h"
 #include "objects/wrappers/NonOwningPtr.h"
 #include "quantities/Quantity.h"
-#include "quantities/QuantityKey.h"
+#include "quantities/QuantityIds.h"
 #include <map>
 
 NAMESPACE_SPH_BEGIN
@@ -21,31 +21,29 @@ using BodySettings = Settings<BodySettingsIds>;
 class Storage : public Noncopyable {
 private:
     /// Stored quantities (array of arrays). All arrays must be the same size at all times.
-    std::map<QuantityKey, Quantity> quantities;
+    std::map<QuantityIds, Quantity> quantities;
 
-    /// Holds materials of particles. Each particle can (in theory) have a different material. Use method
-    /// getMaterial to obtain material for given particle.
+    /// Holds materials of particles. Each particle can (in theory) have a different material.
     Array<Material> materials;
 
 public:
     Storage();
 
-    ~Storage();
-
-    /// Create storage from body settings. This determines material of all particles in the storage. Particles
-    /// keep the material when two storages are merged.
+    /// Initialize a storage with a material.
     Storage(const BodySettings& settings);
+
+    ~Storage();
 
     Storage(Storage&& other);
 
     Storage& operator=(Storage&& other);
 
     /// Checks if the storage contains quantity with given key. Type or order of unit is not specified.
-    bool has(const QuantityKey key) const { return quantities.find(key) != quantities.end(); }
+    bool has(const QuantityIds key) const { return quantities.find(key) != quantities.end(); }
 
     /// Checks if the storage contains quantity with given key, value type and order.
     template <typename TValue, OrderEnum TOrder>
-    bool has(const QuantityKey key) const {
+    bool has(const QuantityIds key) const {
         auto iter = quantities.find(key);
         if (iter == quantities.end()) {
             return false;
@@ -56,7 +54,7 @@ public:
 
     /// Retrieves quantity with given key from the storage. Quantity must be already stored, checked by
     /// assert.
-    Quantity& getQuantity(const QuantityKey key) {
+    Quantity& getQuantity(const QuantityIds key) {
         auto iter = quantities.find(key);
         ASSERT(iter != quantities.end());
         return iter->second;
@@ -67,7 +65,7 @@ public:
     /// check whether the quantity is stored, use has() method.
     /// \return Array of references to Arrays, containing quantity values and all derivatives.
     template <typename TValue>
-    auto getAll(const QuantityKey key) {
+    auto getAll(const QuantityIds key) {
         Quantity& q = this->getQuantity(key);
         ASSERT(q.getValueEnum() == GetValueEnum<TValue>::type);
         return q.getBuffers<TValue>();
@@ -77,7 +75,7 @@ public:
     /// be of type TValue, checked by assert. Quantity must already exist in the storage, checked by assert.
     /// \return Array reference containing quantity values.
     template <typename TValue>
-    Array<TValue>& getValue(const QuantityKey key) {
+    Array<TValue>& getValue(const QuantityIds key) {
         Quantity& q = this->getQuantity(key);
         ASSERT(q.getValueEnum() == GetValueEnum<TValue>::type);
         return q.getValue<TValue>();
@@ -88,7 +86,7 @@ public:
     /// first or second order, checked by assert.
     /// \return Array reference containing quantity derivatives.
     template <typename TValue>
-    Array<TValue>& getDt(const QuantityKey key) {
+    Array<TValue>& getDt(const QuantityIds key) {
         Quantity& q = this->getQuantity(key);
         ASSERT(q.getValueEnum() == GetValueEnum<TValue>::type);
         return q.getDt<TValue>();
@@ -97,7 +95,7 @@ public:
     /// Retrieves an array of quantities from the key. The type of all quantities must be the same and equal
     /// to TValue, checked by assert.
     template <typename TValue, typename... TArgs>
-    auto getValues(const QuantityKey first, const QuantityKey second, const TArgs... others) {
+    auto getValues(const QuantityIds first, const QuantityIds second, const TArgs... others) {
         return tie(getValue<TValue>(first), getValue<TValue>(second), getValue<TValue>(others)...);
     }
 
@@ -112,11 +110,14 @@ public:
     /// \param range Optional parameter specifying lower and upper bound of the quantity. Bound are enforced
     ///              by timestepping algorithm. By default, quantities are unbounded.
     template <typename TValue, OrderEnum TOrder>
-    void emplace(const QuantityKey key, const TValue& defaultValue, const Range& range = Range::unbounded()) {
+    void emplace(const QuantityIds key,
+        const TValue& defaultValue,
+        const Range& range = Range::unbounded(),
+        const Float minimal = 0._f) {
         const Size particleCnt = getParticleCnt();
         ASSERT(particleCnt);
         Quantity q;
-        q.emplace<TValue, TOrder>(defaultValue, particleCnt, range);
+        q.emplace<TValue, TOrder>(defaultValue, particleCnt, range, minimal);
         quantities[key] = std::move(q);
     }
 
@@ -125,83 +126,70 @@ public:
     /// with the same key. If this is the first quantity inserted into the storage, it sets
     /// the number of particles; all quantities added after that must have the same size.
     template <typename TValue, OrderEnum TOrder>
-    void emplace(const QuantityKey key, Array<TValue>&& values, const Range range = Range::unbounded()) {
+    void emplace(const QuantityIds key,
+        Array<TValue>&& values,
+        const Range range = Range::unbounded(),
+        const Float minimal = 0._f) {
         Quantity q;
-        q.emplace<TValue, TOrder>(std::move(values), range);
+        q.emplace<TValue, TOrder>(std::move(values), range, minimal);
         UNUSED_IN_RELEASE(const Size size = q.size();)
         quantities[key] = std::move(q);
         if (quantities.size() == 1) {
             // set material ids; we have only one material, so set everything to zero
             if (!materials.empty()) {
-                this->emplace<Size, OrderEnum::ZERO_ORDER>(QuantityKey::MATERIAL_IDX, 0);
+                this->emplace<Size, OrderEnum::ZERO_ORDER>(QuantityIds::MATERIAL_IDX, 0);
             }
         } else {
             ASSERT(size == getParticleCnt()); // size must match sizes of other quantities
         }
     }
 
-    /// Creates a quantity in the storage, given a functor. This functor is called for every particle, takes
-    /// position of the particle (Vector) and index of the particle (int) as argument, and returns quantity
-    /// value for given particle. This can only be used if particle positions (QuantityKey::R) already exists
-    /// in the storage. Derivatives of the quantity are set to zero. Can be used to override existing quantity
-    /// with the same key.
-    template <typename TValue, OrderEnum TOrder, typename TFunctor>
-    void emplaceWithFunctor(const QuantityKey key,
-        TFunctor&& functor,
-        const Range range = Range::unbounded()) {
-        Array<Vector>& r = this->getValue<Vector>(QuantityKey::POSITIONS);
-        Array<TValue> values(r.size());
-        for (Size i = 0; i < r.size(); ++i) {
-            values[i] = functor(r[i], i);
-        }
-        this->emplace<TValue, TOrder>(key, std::move(values), range);
-    }
+    /* struct WithFunctorTag {};
+
+     /// Creates a quantity in the storage, given a functor. This functor is called for every particle, takes
+     /// position of the particle (Vector) and index of the particle (int) as argument, and returns quantity
+     /// value for given particle. This can only be used if particle positions (QuantityIds::R) already exists
+     /// in the storage. Derivatives of the quantity are set to zero. Can be used to override existing
+     quantity
+     /// with the same key.
+     template <typename TValue, OrderEnum TOrder, typename TFunctor>
+     void emplace(const QuantityIds key,
+         WithFunctorTag,
+         TFunctor&& functor,
+         const Range range = Range::unbounded()) {
+         Array<Vector>& r = this->getValue<Vector>(QuantityIds::POSITIONS);
+         Array<TValue> values(r.size());
+         for (Size i = 0; i < r.size(); ++i) {
+             values[i] = functor(r[i], i);
+         }
+         this->emplace<TValue, TOrder>(key, std::move(values), range);
+     }*/
+
+    ArrayView<Material> getMaterials() { return materials; }
 
     /// Returns the number of stored quantities.
-    Size getQuantityCnt() const { return quantities.size(); }
+    Size getQuantityCnt() const;
 
     /// Returns the number of particles. The number of particle is always the same for all quantities.
-    Size getParticleCnt() {
-        if (quantities.empty()) {
-            return 0;
-        } else {
-            return quantities.begin()->second.size();
-        }
-    }
-
-    /// Returns the material of given particle.
-    Material& getMaterial(const Size particleIdx);
-
-    /// Assigns materials to particles. Particle positions (QuantityKey::R) must already be stored, checked by
-    /// assert. This will override previously assigned materials. Selector is a functor taking particle
-    /// position and its index and must return index into the array of materials.
-    /*template <typename TSelector>
-    void setMaterial(Array<Material>&& mats, TSelector&& selector) {
-        ASSERT((this->has<Vector, OrderEnum::SECOND_ORDER>(QuantityKey::POSITIONS)));
-        this->materials = std::move(mats);
-        ArrayView<Vector> r = this->getValue<Vector>(QuantityKey::POSITIONS);
-        if (!this->has(QuantityKey::MATERIAL_IDX)) {
-            this->emplace<Size, OrderEnum::ZERO_ORDER>(QuantityKey::MATERIAL_IDX, 0);
-        }
-        Array<Size>& matIdxs = this->getValue<Size>(QuantityKey::MATERIAL_IDX);
-        matIdxs.resize(r.size());
-        for (Size i = 0; i < r.size(); ++i) {
-            matIdxs[i] = selector(r[i], i);
-        }
-    }*/
+    Size getParticleCnt() const;
 
     /// Returns iterator at the beginning of quantity map. Dereferencing the iterator yields
-    /// std::pair<QuantityKey, Quantity>.
+    /// std::pair<QuantityIds, Quantity>.
+    /// \todo remove
     auto begin() { return quantities.begin(); }
 
     /// Returns iterator at the past-to-end of quantity map. Dereferencing the iterator yields
-    /// std::pair<QuantityKey, Quantity>.
+    /// std::pair<QuantityIds, Quantity>.
     auto end() { return quantities.end(); }
 
     void merge(Storage&& other);
 
     /// Clears all highest level derivatives of quantities
     void init();
+
+    /// Removes all particles with all quantities (including materials) from the storage. The storage is left
+    /// is a state as if it was default-constructed.
+    void removeAll();
 
     /// Clones specified buffers of the storage. Cloned (sub)set of buffers is given by flags. Cloned storage
     /// will have the same number of quantities and the order and types of quantities will match; if some
@@ -212,6 +200,7 @@ public:
     /// least one quantity, checked by assert.
     void resize(const Size newParticleCnt);
 
+    /// Swap quantities or given subset of quantities between two storages.
     void swap(Storage& other, const Flags<VisitorEnum> flags);
 };
 

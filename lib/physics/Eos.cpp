@@ -6,7 +6,7 @@ NAMESPACE_SPH_BEGIN
 IdealGasEos::IdealGasEos(const Float gamma)
     : gamma(gamma) {}
 
-Tuple<Float, Float> IdealGasEos::getPressure(const Float rho, const Float u) const {
+Tuple<Float, Float> IdealGasEos::evaluate(const Float rho, const Float u) const {
     const Float p = (gamma - 1._f) * u * rho;
     return { p, sqrt(gamma * p / rho) };
 }
@@ -32,7 +32,7 @@ TillotsonEos::TillotsonEos(const BodySettings& settings)
     , alpha(settings.get<Float>(BodySettingsIds::TILLOTSON_ALPHA))
     , beta(settings.get<Float>(BodySettingsIds::TILLOTSON_BETA)) {}
 
-Tuple<Float, Float> TillotsonEos::getPressure(const Float rho, const Float u) const {
+Tuple<Float, Float> TillotsonEos::evaluate(const Float rho, const Float u) const {
     const Float eta = rho / rho0;
     const Float mu = eta - 1._f;
     const Float denom = u / (u0 * eta * eta) + 1._f;
@@ -80,7 +80,7 @@ MurnaghanEos::MurnaghanEos(const BodySettings& settings)
     : rho0(settings.get<Float>(BodySettingsIds::DENSITY))
     , A(settings.get<Float>(BodySettingsIds::BULK_MODULUS)) {}
 
-Tuple<Float, Float> MurnaghanEos::getPressure(const Float rho, const Float UNUSED(u)) const {
+Tuple<Float, Float> MurnaghanEos::evaluate(const Float rho, const Float UNUSED(u)) const {
     const Float cs = sqrt(A / rho0);
     const Float p = sqr(cs) * (rho - rho0);
     return { p, cs };

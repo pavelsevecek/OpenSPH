@@ -29,9 +29,9 @@ public:
     void update(Storage& storage) {
         ArrayView<const Vector> dv;
         ArrayView<const Float> u;
-        tie(r, v, dv) = storage.getAll<Vector>(QuantityKey::POSITIONS);
+        tie(r, v, dv) = storage.getAll<Vector>(QuantityIds::POSITIONS);
         // sound speed must be computed by the solver using AV
-        tie(rho, cs) = storage.getValues<Float>(QuantityKey::DENSITY, QuantityKey::SOUND_SPEED);
+        tie(rho, cs) = storage.getValues<Float>(QuantityIds::DENSITY, QuantityIds::SOUND_SPEED);
     }
 
     INLINE Float operator()(const int i, const int j) {

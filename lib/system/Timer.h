@@ -16,13 +16,13 @@ enum class TimerFlags { PERIODIC = 1 << 0, START_EXPIRED = 1 << 1 };
 
 class TimerThread;
 
-enum class TimerUnit { MILLISECOND, MICROSECOND };
+enum class TimerUnit { SECOND, MILLISECOND, MICROSECOND };
 
 /// Basic time-measuring tool. Starts automatically when constructed.
 class Timer : public Observable {
 protected:
     using TTimePoint = std::chrono::time_point<std::chrono::system_clock>;
-    using TClock     = std::chrono::system_clock;
+    using TClock = std::chrono::system_clock;
 
     TTimePoint started;
     int64_t interval;
@@ -39,8 +39,8 @@ public:
     /// Create timer with given exporation duration and on-timer-expired callback. The callback is executed
     /// only once by default, or periodically if PERIODIC flag is passed.
     Timer(const int64_t interval,
-          const std::function<void(void)>& callback,
-          const Flags<TimerFlags> flags = EMPTY_FLAGS);
+        const std::function<void(void)>& callback,
+        const Flags<TimerFlags> flags = EMPTY_FLAGS);
 
     /// Reset elapsed duration to zero.
     void restart() { started = TClock::now(); }
@@ -49,6 +49,8 @@ public:
     template <TimerUnit TUnit>
     int64_t elapsed() const {
         switch (TUnit) {
+        case TimerUnit::SECOND:
+            return std::chrono::duration_cast<std::chrono::seconds>(TClock::now() - started).count();
         case TimerUnit::MILLISECOND:
             return std::chrono::duration_cast<std::chrono::milliseconds>(TClock::now() - started).count();
         case TimerUnit::MICROSECOND:

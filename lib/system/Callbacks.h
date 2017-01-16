@@ -11,7 +11,12 @@ NAMESPACE_SPH_BEGIN
 namespace Abstract {
     class Callbacks : public Polymorphic {
     public:
-        virtual void onTimeStep(const std::shared_ptr<Storage>& storage) = 0;
+        /// Called every timestep.
+        /// \param progress Value betweeen 0 and 1 indicating current progress of the run.
+        virtual void onTimeStep(const float progress, const std::shared_ptr<Storage>& storage) = 0;
+
+        /// Returns whether current run should be aborted or not. Can be called any time.
+        virtual bool shouldAbortRun() const = 0;
     };
 }
 

@@ -270,13 +270,13 @@ public:
 
     /// Implicit conversion to one of stored values. Performs a compile-time check that the type is contained
     /// in Variant, and runtime check that the variant currently holds value of given type.
-    template <typename T>
+    template <typename T, typename = std::enable_if_t<!std::is_same<std::decay_t<T>, Variant>::value>>
     operator T&() {
         return get<T>();
     }
 
     /// Const version of conversion operator.
-    template <typename T>
+    template <typename T, typename = std::enable_if_t<!std::is_same<std::decay_t<T>, Variant>::value>>
     operator const T&() const {
         return get<T>();
     }

@@ -8,7 +8,7 @@
 #include "objects/containers/Array.h"
 #include "objects/wrappers/Range.h"
 #include "objects/wrappers/Variant.h"
-#include "quantities/QuantityKey.h"
+#include "quantities/QuantityIds.h"
 #include <initializer_list>
 #include <map>
 #include <string>
@@ -49,22 +49,34 @@ public:
         return *this;
     }
 
+    /// Saves a value into the settings. Any previous value of the same ID is overriden.
     template <typename TValue>
-    void set(TEnum idx, TValue&& value) {
+    void set(const TEnum idx, TValue&& value) {
         using StoreType = ConvertToSize<TValue>;
         entries[idx].value = StoreType(std::forward<TValue>(value));
     }
 
+    /// Returns a value of given type from the settings. Value must be stored in settings and must have
+    /// corresponding type, checked by assert.
     template <typename TValue>
-    TValue get(TEnum idx) const {
+    TValue get(const TEnum idx) const {
         typename std::map<TEnum, Entry>::const_iterator iter = entries.find(idx);
         ASSERT(iter != entries.end());
-        /// \todo can be cast here as we no longer return optional
         using StoreType = ConvertToSize<TValue>;
         const StoreType& value = iter->second.value.template get<StoreType>();
         return TValue(value);
     }
 
+    /// Copies a value stored in this settings to another settings object. Value of the same ID stored in
+    /// destination object is overriden. Value of given ID must be stored in this settings, checked by assert.
+    /// Works independently of value's type.
+    void copyValueTo(const TEnum idx, Settings& dest) const {
+        typename std::map<TEnum, Entry>::const_iterator iter = entries.find(idx);
+        ASSERT(iter != entries.end());
+        dest.entries[idx].value = iter->second.value;
+    }
+
+    /// Saves all values stored in settings into file.
     void saveToFile(const std::string& path) const;
 
     /// \todo split settings and descriptors? Settings actual object with values, descriptors global object
@@ -181,7 +193,10 @@ enum class YieldingEnum {
     NONE,
 
     /// Von Mises criterion
-    VON_MISES
+    VON_MISES,
+
+    /// Drucker-Prager pressure dependent yielding stress
+    DRUCKER_PRAGER3
 };
 
 enum class DamageEnum {
@@ -193,6 +208,18 @@ enum class DamageEnum {
 
     /// Grady-Kipp model of fragmentation using tensor damage
     TENSOR_GRADY_KIPP
+};
+
+enum class LoggerEnum {
+    /// Do not log anything
+    NO_LOGGER,
+
+    /// Print log to standard output
+    STD_OUT,
+
+    /// Print log to file
+    FILE
+    /// \todo print using callback to gui application
 };
 
 /// Settings relevant for whole run of the simulation
@@ -208,6 +235,12 @@ enum class GlobalSettingsIds {
 
     /// Path where all output files (dumps, logs, ...) will be written
     RUN_OUTPUT_PATH,
+
+    /// Selected logger of a run, see LoggerEnum
+    RUN_LOGGER,
+
+    /// Path of a file where the log is printed, used only when selected logger is LoggerEnum::FILE
+    RUN_LOGGER_FILE,
 
     /// Index of SPH Kernel, see KernelEnum
     SPH_KERNEL,
@@ -303,7 +336,9 @@ const Settings<GlobalSettingsIds> GLOBAL_SETTINGS = {
     { GlobalSettingsIds::RUN_NAME,                      "run.name",                 std::string("unnamed run") },
     { GlobalSettingsIds::RUN_OUTPUT_STEP,               "run.output.step",          100 },
     { GlobalSettingsIds::RUN_OUTPUT_NAME,               "run.output.name",          std::string("out_%d.txt") },
-    { GlobalSettingsIds::RUN_OUTPUT_PATH,               "run.output.path",          std::string("out") }, /// \todo Variant somehow doesnt handle empty strings
+    { GlobalSettingsIds::RUN_OUTPUT_PATH,               "run.output.path",          std::string("out") },
+    { GlobalSettingsIds::RUN_LOGGER,                    "run.logger",               int(LoggerEnum::STD_OUT) },
+    { GlobalSettingsIds::RUN_LOGGER_FILE,               "run.logger.file",          std::string("log.txt") },
 
     /// Physical model
     { GlobalSettingsIds::MODEL_FORCE_GRAD_P,            "model.force.grad_p",       true },
@@ -398,8 +433,9 @@ enum class BodySettingsIds {
     /// Allowed range of density. Densities of all particles all clamped to fit in the range.
     DENSITY_RANGE,
 
-    /// Reference density used to determine value of timestep. Should be set to lowest reasonable value.
-    DENSITY_REF,
+    /// Estimated minimal value of density. This value is NOT used to clamp densities, but for
+    /// determining error of timestepping.
+    DENSITY_MIN,
 
     /// Initial specific internal energy
     ENERGY,
@@ -407,17 +443,26 @@ enum class BodySettingsIds {
     /// Allowed range of specific internal energy.
     ENERGY_RANGE,
 
+    /// Estimated minimal value of energy used to determine timestepping error.
+    ENERGY_MIN,
+
     /// Initial values of the deviatoric stress tensor
     STRESS_TENSOR,
+
+    /// Estimated minial value of stress tensor components used to determined timestepping error.
+    STRESS_TENSOR_MIN,
 
     /// Initial damage of the body.
     DAMAGE,
 
+    /// Allowed range of damage.
+    DAMAGE_RANGE,
+
+    /// Estimate minimal value of damage used to determine timestepping error.
+    DAMAGE_MIN,
+
     /// Adiabatic index used by some equations of state (such as ideal gas)
     ADIABATIC_INDEX,
-
-    /// Allowed range of damage
-    DAMAGE_RANGE,
 
     /// Bulk modulus of the material
     BULK_MODULUS,
@@ -448,8 +493,21 @@ enum class BodySettingsIds {
 
     SHEAR_MODULUS,
 
+    YOUNG_MODULUS,
+
     /// Elasticity limit of the von Mises yielding criterion
     ELASTICITY_LIMIT,
+
+    MELT_ENERGY,
+
+    /// Cohesion, yield strength at zero pressure
+    COHESION,
+
+    /// Coefficient of friction for undamaged material
+    INTERNAL_FRICTION,
+
+    /// Coefficient of friction for fully damaged material
+    DRY_FRICTION,
 
     /// Speed of crack growth, in units of local sound speed.
     RAYLEIGH_SOUND_SPEED,
@@ -490,18 +548,28 @@ const Settings<BodySettingsIds> BODY_SETTINGS = {
     { BodySettingsIds::TILLOTSON_ENERGY_IV,     "eos.tillotson.energy_iv",      4.72e6_f },
     { BodySettingsIds::TILLOTSON_ENERGY_CV,     "eos.tillotson.energy_cv",      1.82e7_f },
 
+    /// Yielding & Damage
+    { BodySettingsIds::ELASTICITY_LIMIT,        "rheology.elasticity_limit",    3.5e9_f },
+    { BodySettingsIds::MELT_ENERGY,             "rheology.melt_energy",         3.4e6_f },
+    { BodySettingsIds::COHESION,                "rheology.cohesion",            9.e7_f },
+    { BodySettingsIds::INTERNAL_FRICTION,       "rheology.internal_friction",   2._f },
+    { BodySettingsIds::DRY_FRICTION,            "rheology.dry_friction",        0.8_f },
+
     /// Material properties
     { BodySettingsIds::DENSITY,                 "material.density",             2700._f },
     { BodySettingsIds::DENSITY_RANGE,           "material.density.range",       Range(10._f, Extended::infinity()) },
-    { BodySettingsIds::DENSITY_REF,             "material.density.ref",         1000._f },
-    { BodySettingsIds::ENERGY,                  "material.energy",              10._f },
-    { BodySettingsIds::ENERGY_RANGE,            "material.energy.range",        Range(10._f, Extended::infinity()) },
+    { BodySettingsIds::DENSITY_MIN,             "material.density.min",         50._f },
+    { BodySettingsIds::ENERGY,                  "material.energy",              0._f },
+    { BodySettingsIds::ENERGY_RANGE,            "material.energy.range",        Range(0._f, Extended::infinity()) },
+    { BodySettingsIds::ENERGY_MIN,              "material.energy.min",          1e-3_f },
     { BodySettingsIds::DAMAGE,                  "material.damage",              0._f },
     { BodySettingsIds::DAMAGE_RANGE,            "material.damage.range",        Range(0.f, 1._f) },
+    { BodySettingsIds::DAMAGE_MIN,              "material.damage.min",          0.03_f },
     { BodySettingsIds::STRESS_TENSOR,           "material.stress_tensor",       TracelessTensor(0._f) },
+    { BodySettingsIds::STRESS_TENSOR_MIN,       "material.stress_tensor.min",   1e5_f },
     { BodySettingsIds::BULK_MODULUS,            "material.bulk_modulus",        2.67e10_f },
     { BodySettingsIds::SHEAR_MODULUS,           "material.shear_modulus",       2.27e10_f },
-    { BodySettingsIds::ELASTICITY_LIMIT,        "material.elasticity_limit",    3.5e9_f },
+    { BodySettingsIds::YOUNG_MODULUS,           "material.young_modulus",       5.7e10_f },
     { BodySettingsIds::RAYLEIGH_SOUND_SPEED,    "material.rayleigh_speed",      0.4_f },
     { BodySettingsIds::WEIBULL_COEFFICIENT,     "material.weibull_coefficient", 4.e35_f },
     { BodySettingsIds::WEIBULL_EXPONENT,        "material.weibull_exponent",    9._f },

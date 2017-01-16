@@ -9,7 +9,7 @@
 #include "objects/containers/ArrayUtils.h"
 #include "objects/finders/AbstractFinder.h"
 #include "quantities/Iterate.h"
-#include "quantities/QuantityKey.h"
+#include "quantities/QuantityIds.h"
 #include "solvers/AbstractSolver.h"
 #include "sph/av/Standard.h"
 #include "sph/boundary/Boundary.h"
@@ -43,9 +43,9 @@ public:
         ArrayView<Float> m, rho, drho;
         {
             PROFILE_SCOPE("ContinuitySolver::compute (getters)")
-            tie(r, v, dv) = storage.getAll<Vector>(QuantityKey::POSITIONS);
-            tie(rho, drho) = storage.getAll<Float>(QuantityKey::DENSITY);
-            m = storage.getValue<Float>(QuantityKey::MASSES);
+            tie(r, v, dv) = storage.getAll<Vector>(QuantityIds::POSITIONS);
+            tie(rho, drho) = storage.getAll<Float>(QuantityIds::DENSITY);
+            m = storage.getValue<Float>(QuantityIds::MASSES);
             // Check that quantities are valid
             ASSERT(areAllMatching(dv, [](const Vector v) { return v == Vector(0._f); }));
             ASSERT(areAllMatching(rho, [](const Float v) { return v > 0._f; }));
@@ -106,9 +106,10 @@ public:
     }
 
     virtual void initialize(Storage& storage, const BodySettings& settings) const override {
-        storage.emplace<Float, OrderEnum::FIRST_ORDER>(QuantityKey::DENSITY,
+        storage.emplace<Float, OrderEnum::FIRST_ORDER>(QuantityIds::DENSITY,
             settings.get<Float>(BodySettingsIds::DENSITY),
-            settings.get<Range>(BodySettingsIds::DENSITY_RANGE));
+            settings.get<Range>(BodySettingsIds::DENSITY_RANGE),
+            settings.get<Float>(BodySettingsIds::DENSITY_MIN));
         this->initializeModules(storage, settings);
     }
 };

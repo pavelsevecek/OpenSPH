@@ -1,7 +1,7 @@
-#include "sph/forces/Damage.h"
+#include "physics/Damage.h"
 #include "catch.hpp"
 #include "objects/containers/ArrayUtils.h"
-#include "sph/forces/Yielding.h"
+#include "physics/Yielding.h"
 #include "sph/initial/Distribution.h"
 #include "system/ArrayStats.h"
 
@@ -18,14 +18,14 @@ TEST_CASE("Distribute flaws", "[damage]") {
     SphericalDomain domain(Vector(0._f), 1._f);
     Array<Vector> r = distribution.generate(9000, domain);
     const int N = r.size();
-    storage.emplace<Vector, OrderEnum::SECOND_ORDER>(QuantityKey::POSITIONS, std::move(r));
+    storage.emplace<Vector, OrderEnum::SECOND_ORDER>(QuantityIds::POSITIONS, std::move(r));
     const Float rho0 = bodySettings.get<Float>(BodySettingsIds::DENSITY);
-    storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityKey::DENSITY, rho0);
-    storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityKey::MASSES, rho0 * domain.getVolume() / N);
+    storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityIds::DENSITY, rho0);
+    storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityIds::MASSES, rho0 * domain.getVolume() / N);
     model.initialize(storage, bodySettings);
 
     // check that all particles have at least one flaw
-    ArrayView<Size> n_flaws = storage.getValue<Size>(QuantityKey::N_FLAWS);
+    ArrayView<Size> n_flaws = storage.getValue<Size>(QuantityIds::N_FLAWS);
     REQUIRE(areAllMatching(n_flaws, [N](const int n) { return n >= 1 && n <= N; }));
 
     // check that the total number of flaws
@@ -37,9 +37,9 @@ TEST_CASE("Distribute flaws", "[damage]") {
     const Float m_weibull = bodySettings.get<Float>(BodySettingsIds::WEIBULL_EXPONENT);
     REQUIRE(Range(9._f * N, 11._f * N).contains(n_total));
 
-    ArrayStats<Float> mStats(storage.getValue<Float>(QuantityKey::M_ZERO));
-    ArrayStats<Float> growthStats(storage.getValue<Float>(QuantityKey::EXPLICIT_GROWTH));
-    ArrayStats<Float> epsStats(storage.getValue<Float>(QuantityKey::EPS_MIN));
+    ArrayStats<Float> mStats(storage.getValue<Float>(QuantityIds::M_ZERO));
+    ArrayStats<Float> growthStats(storage.getValue<Float>(QuantityIds::EXPLICIT_GROWTH));
+    ArrayStats<Float> epsStats(storage.getValue<Float>(QuantityIds::EPS_MIN));
     REQUIRE(mStats.min() == 1._f);
     REQUIRE(mStats.max() > m_weibull);
     REQUIRE(almostEqual(mStats.average(), m_weibull, 0.5_f));

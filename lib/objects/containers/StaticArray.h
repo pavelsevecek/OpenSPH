@@ -196,4 +196,9 @@ StaticArray<T0&, sizeof...(TArgs) + 1> tie(T0& t0, TArgs&... rest) {
     return StaticArray<T0&, sizeof...(TArgs) + 1>({ t0, rest... });
 }
 
+template<typename T, Size N, typename TFunctor>
+decltype(auto) apply(StaticArray<T, N>&, TFunctor&&) {
+    NOT_IMPLEMENTED;
+}
+
 NAMESPACE_SPH_END

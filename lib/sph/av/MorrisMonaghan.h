@@ -10,6 +10,7 @@
 #include "solvers/Accumulator.h"
 #include "solvers/Module.h"
 #include "system/Settings.h"
+#include "quantities/Material.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -24,13 +25,13 @@ private:
 public:
     MorrisMonaghanAV(const GlobalSettings&)
         : Module<Divv>(divv)
-        , divv(QuantityKey::VELOCITY_DIVERGENCE) {}
+        , divv(QuantityIds::VELOCITY_DIVERGENCE) {}
 
     void initialize(Storage& storage, const BodySettings& settings) const {
-        storage.emplace<Float, OrderEnum::FIRST_ORDER>(QuantityKey::AV_ALPHA,
+        storage.emplace<Float, OrderEnum::FIRST_ORDER>(QuantityIds::AV_ALPHA,
             settings.get<Float>(BodySettingsIds::AV_ALPHA),
             settings.get<Range>(BodySettingsIds::AV_ALPHA_RANGE));
-        storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityKey::AV_BETA,
+        storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityIds::AV_BETA,
             settings.get<Float>(BodySettingsIds::AV_BETA),
             settings.get<Range>(BodySettingsIds::AV_BETA_RANGE));
         this->initializeModules(storage, settings);
@@ -38,11 +39,11 @@ public:
 
     void update(Storage& storage) {
         ArrayView<Vector> dv;
-        tie(r, v, dv) = storage.getAll<Vector>(QuantityKey::POSITIONS);
-        tie(alpha, dalpha) = storage.getAll<Float>(QuantityKey::AV_ALPHA);
-        tie(beta, dbeta) = storage.getAll<Float>(QuantityKey::AV_BETA);
-        cs = storage.getValue<Float>(QuantityKey::SOUND_SPEED);
-        rho = storage.getValue<Float>(QuantityKey::DENSITY);
+        tie(r, v, dv) = storage.getAll<Vector>(QuantityIds::POSITIONS);
+        tie(alpha, dalpha) = storage.getAll<Float>(QuantityIds::AV_ALPHA);
+        tie(beta, dbeta) = storage.getAll<Float>(QuantityIds::AV_BETA);
+        cs = storage.getValue<Float>(QuantityIds::SOUND_SPEED);
+        rho = storage.getValue<Float>(QuantityIds::DENSITY);
         // always keep beta = 2*alpha
         for (Size i = 0; i < alpha.size(); ++i) {
             beta[i] = 2._f * alpha[i];
@@ -55,8 +56,9 @@ public:
     }
 
     INLINE void integrate(Storage& storage) {
+        MaterialAccessor material(storage);
         for (Size i = 0; i < storage.getParticleCnt(); ++i) {
-            const Range bounds = storage.getMaterial(i).alphaRange;
+            const Range bounds = material.getParam<Range>(BodySettingsIds::AV_ALPHA_RANGE, i);
             const Float tau = r[i][H] / (eps * cs[i]);
             const Float decayTerm = -(alpha[i] - Float(bounds.lower())) / tau;
             const Float sourceTerm = max(-(Float(bounds.upper()) - alpha[i]) * divv[i], 0._f);

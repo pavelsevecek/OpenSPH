@@ -1,85 +1,41 @@
 #pragma once
 
-#include "gui/Renderer.h"
 #include "gui/Settings.h"
-#include "objects/Object.h"
-#include <wx/combobox.h>
-#include <wx/panel.h>
+#include "objects/wrappers/NonOwningPtr.h"
+#include <wx/frame.h>
+
+class wxComboBox;
+class wxGauge;
 
 NAMESPACE_SPH_BEGIN
 
-enum class ControlIds { BUTTON_START, QUANTITY_BOX };
+namespace Abstract {
+    class Renderer;
+}
+class Storage;
 
-class Window : public wxFrame {
+class Window : public wxFrame, public Observable {
 private:
     Abstract::Renderer* renderer;
     wxComboBox* quantityBox;
+    wxGauge* gauge;
+    bool abortRun = false;
+    std::function<void(void)> onRestart;
 
 public:
-    Window(const std::shared_ptr<Storage>& storage, const GuiSettings& settings)
-        : wxFrame(nullptr,
-                  wxID_ANY,
-                  settings.get<std::string>(GuiSettingsIds::WINDOW_TITLE).c_str(),
-                  wxDefaultPosition,
-                  wxSize(800, 600)) {
-        wxBoxSizer* sizer   = new wxBoxSizer(wxVERTICAL);
-        wxBoxSizer* toolbar = new wxBoxSizer(wxHORIZONTAL);
-        toolbar->Add(new wxButton(this, int(ControlIds::BUTTON_START), "Start"));
-        wxString quantities[] = { "Velocity", "Density", "Pressure", "Damage" };
-        const int quantityCnt = storage->has(QuantityKey::DAMAGE) ? 4 : 3;
-        quantityBox           = new wxComboBox(this,
-                                     int(ControlIds::QUANTITY_BOX),
-                                     "",
-                                     wxDefaultPosition,
-                                     wxDefaultSize,
-                                     quantityCnt,
-                                     quantities,
-                                     wxCB_SIMPLE | wxCB_READONLY);
-        this->Connect(wxEVT_COMBOBOX, wxCommandEventHandler(Window::onComboBox));
-        quantityBox->SetSelection(0);
-        toolbar->Add(quantityBox);
-        //    this->Connect(wxEVT_BUTTON, wxCommandEventHandler(MyApp::OnButton), nullptr, window);
-        sizer->Add(toolbar);
+    /// \todo implement restart run without this callback, need to separate ui and run control
+    Window(const std::shared_ptr<Storage>& storage, const GuiSettings& settings, const std::function<void(void)>& onRestart);
 
-        switch (GUI_SETTINGS.get<RendererEnum>(GuiSettingsIds::RENDERER)) {
-        case RendererEnum::OPENGL: {
-            CustomGlPane* pane =
-                new CustomGlPane(this, { WX_GL_RGBA, WX_GL_DOUBLEBUFFER, WX_GL_DEPTH_SIZE, 16, 0 });
-            sizer->Add(pane, 1, wxEXPAND);
-            renderer = pane;
-            break;
-        }
-        case RendererEnum::ORTHO:
-            OrthoPane* pane = new OrthoPane(this, storage, settings);
-            sizer->Add(pane, 1, wxEXPAND);
-            renderer = pane;
-            break;
-        }
+    Abstract::Renderer* getRenderer();
 
-        this->SetSizer(sizer);
-    }
+    bool shouldAbortRun() const { return abortRun; }
 
-    Abstract::Renderer* getRenderer() { return renderer; }
+    void setProgress(const float progress);
 
 private:
-    void onComboBox(wxCommandEvent& evt) {
-        const int idx = quantityBox->GetSelection();
-        switch (idx) {
-        case 0:
-            renderer->setQuantity(QuantityKey::POSITIONS);
-            break;
-        case 1:
-            renderer->setQuantity(QuantityKey::DENSITY);
-            break;
-        case 2:
-            renderer->setQuantity(QuantityKey::PRESSURE);
-            break;
-        case 3:
-            renderer->setQuantity(QuantityKey::DAMAGE);
-            break;
-        }
-        evt.Skip();
-    }
+    void onComboBox(wxCommandEvent& evt);
+
+    void onButton(wxCommandEvent& evt);
 };
 
 NAMESPACE_SPH_END

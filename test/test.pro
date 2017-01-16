@@ -46,6 +46,7 @@ SOURCES += \
     ../lib/physics/test/TimeFormat.cpp \
     ../lib/physics/test/Eos.cpp \
     ../lib/physics/test/Integrals.cpp \
+    ../lib/physics/test/Damage.cpp \
     ../lib/geometry/test/Vector.cpp \
     ../lib/geometry/test/Indices.cpp \
     ../lib/geometry/test/Multipole.cpp \
@@ -74,7 +75,6 @@ SOURCES += \
     ../lib/sph/initial/test/Initial.cpp \
     ../lib/sph/initial/test/Distribution.cpp \
     ../lib/sph/kernel/test/Kernel.cpp \
-    ../lib/sph/forces/test/Damage.cpp \
     ../lib/sph/av/test/Balsara.cpp \
     ../lib/sph/boundary/test/Boundary.cpp \
     ../lib/system/test/Settings.cpp \
@@ -90,7 +90,10 @@ SOURCES += \
     ../lib/quantities/test/QuantityHelpers.cpp \
     ../lib/solvers/test/ContinuitySolver.cpp \
     ../lib/solvers/test/Module.cpp \
-    ../lib/post/test/Components.cpp
+    ../lib/post/test/Components.cpp \
+    ../lib/physics/test/Yielding.cpp \
+    ../lib/quantities/test/Material.cpp \
+    ../lib/solvers/test/Accumulator.cpp
 
 
 HEADERS += \

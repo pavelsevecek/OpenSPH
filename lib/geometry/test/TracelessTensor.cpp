@@ -23,6 +23,26 @@ TEST_CASE("TracelessTensor construction", "[tracelesstensor]") {
     REQUIRE(t2(2, 0) == 3._f);
     REQUIRE(t2(2, 1) == 4._f);
     REQUIRE(t2(2, 2) == -3._f);
+
+    REQUIRE(t2[0] == Vector(1._f, 2._f, 3._f));
+    REQUIRE(t2[1] == Vector(2._f, 2._f, 4._f));
+    REQUIRE(t2[2] == Vector(3._f, 4._f, -3._f));
+
+    Tensor t3(Vector(1._f, 3._f, -4._f), Vector(1.5_f, -5._f, 2._f));
+    TracelessTensor t4(t3);
+    REQUIRE(t4(0, 0) == 1._f);
+    REQUIRE(t4(1, 1) == 3._f);
+    REQUIRE(t4(2, 2) == -4._f);
+    REQUIRE(t4(0, 1) == 1.5_f);
+    REQUIRE(t4(1, 0) == 1.5_f);
+    REQUIRE(t4(0, 2) == -5._f);
+    REQUIRE(t4(2, 0) == -5._f);
+    REQUIRE(t4(1, 2) == 2._f);
+    REQUIRE(t4(2, 1) == 2._f);
+
+    REQUIRE(t4[0] == Vector(1._f, 1.5_f, -5._f));
+    REQUIRE(t4[1] == Vector(1.5_f, 3._f, 2._f));
+    REQUIRE(t4[2] == Vector(-5._f, 2._f, -4._f));
 }
 
 TEST_CASE("TracelessTensor copy", "[tracelesstensor]") {

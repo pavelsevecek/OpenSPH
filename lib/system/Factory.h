@@ -40,6 +40,8 @@ public:
 
     static std::unique_ptr<Abstract::Domain> getDomain(const GlobalSettings& settings);
 
+    static std::unique_ptr<Abstract::Logger> getLogger(const GlobalSettings& settings);
+
     template <int d>
     static LutKernel<d> getKernel(const GlobalSettings& settings) {
         const KernelEnum id = settings.get<KernelEnum>(GlobalSettingsIds::SPH_KERNEL);

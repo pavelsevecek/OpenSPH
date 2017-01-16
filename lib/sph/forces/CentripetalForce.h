@@ -18,7 +18,7 @@ public:
 
     INLINE virtual void integrate(Storage& storage) override {
         ArrayView<Vector> v;
-        tie(r, v, dv) = storage.getAll<Vector>(QuantityKey::POSITIONS);
+        tie(r, v, dv) = storage.getAll<Vector>(QuantityIds::POSITIONS);
         // centripetal force is independent on particle relative position
         for (int i=0; i<r.size(); ++i) {
             const Float unitZ = Vector(0._f, 0._f, 1._f);

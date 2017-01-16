@@ -1,9 +1,9 @@
 #pragma once
 
 #include "sph/av/Factory.h"
-#include "sph/forces/Damage.h"
+#include "physics/Damage.h"
 #include "sph/forces/StressForce.h"
-#include "sph/forces/Yielding.h"
+#include "physics/Yielding.h"
 #include "system/Settings.h"
 
 NAMESPACE_SPH_BEGIN
@@ -16,7 +16,7 @@ INLINE decltype(auto) dispatchYielding(const GlobalSettings& settings, TVisitor&
     case YieldingEnum::NONE:
         return visitor.template visit<DummyYielding>(settings, std::forward<TArgs>(args)...);
     case YieldingEnum::VON_MISES:
-        return visitor.template visit<VonMisesYielding>(settings, std::forward<TArgs>(args)...);
+        return visitor.template visit<VonMises>(settings, std::forward<TArgs>(args)...);
     default:
         NOT_IMPLEMENTED;
     }

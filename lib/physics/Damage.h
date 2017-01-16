@@ -43,7 +43,7 @@ public:
 
     void initialize(Storage& storage, const BodySettings& settings) const;
 
-    void update(Storage& storage) { damage = storage.getValue<Float>(QuantityKey::DAMAGE); }
+    void update(Storage& storage) { damage = storage.getValue<Float>(QuantityIds::DAMAGE); }
 
     void integrate(Storage& storage);
 

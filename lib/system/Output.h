@@ -44,10 +44,10 @@ namespace Abstract {
 class TextOutput : public Abstract::Output {
 private:
     std::string runName;
-    Array<QuantityKey> columns;
+    Array<QuantityIds> columns;
 
 public:
-    TextOutput(const std::string& fileMask, const std::string& runName, Array<QuantityKey>&& columns);
+    TextOutput(const std::string& fileMask, const std::string& runName, Array<QuantityIds>&& columns);
 
     virtual std::string dump(Storage& storage, const Float time) override;
 
@@ -62,7 +62,7 @@ private:
 public:
     GnuplotOutput(const std::string& fileMask,
         const std::string& runName,
-        Array<QuantityKey>&& columns,
+        Array<QuantityIds>&& columns,
         const std::string& scriptPath)
         : TextOutput(fileMask, runName, std::move(columns))
         , scriptPath(scriptPath) {}

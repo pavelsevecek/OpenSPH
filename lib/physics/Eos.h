@@ -16,7 +16,7 @@ namespace Abstract {
     class Eos : public Polymorphic {
     public:
         /// Computes pressure and local sound speed from given density rho and specific internal energy u.
-        virtual Tuple<Float, Float> getPressure(const Float rho, const Float u) const = 0;
+        virtual Tuple<Float, Float> evaluate(const Float rho, const Float u) const = 0;
 
         /// Inverted function; computes specific internal energy u from given density rho and pressure p.
         virtual Float getInternalEnergy(const Float rho, const Float p) const = 0;
@@ -31,7 +31,7 @@ private:
 public:
     IdealGasEos(const Float gamma);
 
-    virtual Tuple<Float, Float> getPressure(const Float rho, const Float u) const override;
+    virtual Tuple<Float, Float> evaluate(const Float rho, const Float u) const override;
 
     virtual Float getInternalEnergy(const Float rho, const Float p) const override;
 
@@ -55,7 +55,7 @@ private:
 public:
     TillotsonEos(const BodySettings& settings);
 
-    virtual Tuple<Float, Float> getPressure(const Float rho, const Float u) const override;
+    virtual Tuple<Float, Float> evaluate(const Float rho, const Float u) const override;
 
     virtual Float getInternalEnergy(const Float UNUSED(rho), const Float UNUSED(p)) const override {
         NOT_IMPLEMENTED;
@@ -71,7 +71,7 @@ private:
 public:
     MurnaghanEos(const BodySettings& settings);
 
-    virtual Tuple<Float, Float> getPressure(const Float rho, const Float u) const override;
+    virtual Tuple<Float, Float> evaluate(const Float rho, const Float u) const override;
 
     virtual Float getInternalEnergy(const Float UNUSED(rho), const Float UNUSED(p)) const override {
         NOT_IMPLEMENTED;

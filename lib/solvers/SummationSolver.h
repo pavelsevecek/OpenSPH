@@ -4,7 +4,7 @@
 /// sevecek at sirrah.troja.mff.cuni.cz
 
 #include "objects/Object.h"
-#include "quantities/QuantityKey.h"
+#include "quantities/QuantityIds.h"
 #include "solvers/AbstractSolver.h"
 #include "solvers/Accumulator.h"
 #include "sph/av/Standard.h"
@@ -45,8 +45,8 @@ public:
         PROFILE_SCOPE("SummationSolver::compute (getters)");
 
         // fetch quantities from storage
-        tie(r, v, dv) = storage.getAll<Vector>(QuantityKey::POSITIONS);
-        tie(rho, m) = storage.getValues<Float>(QuantityKey::DENSITY, QuantityKey::MASSES);
+        tie(r, v, dv) = storage.getAll<Vector>(QuantityIds::POSITIONS);
+        tie(rho, m) = storage.getValues<Float>(QuantityIds::DENSITY, QuantityIds::MASSES);
         ASSERT(areAllMatching(dv, [](const Vector v) { return v == Vector(0._f); }));
         this->updateModules(storage);
 
@@ -119,10 +119,10 @@ public:
     }
 
     virtual void initialize(Storage& storage, const BodySettings& settings) const override {
-        storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityKey::DENSITY,
+        storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityIds::DENSITY,
             settings.get<Float>(BodySettingsIds::DENSITY),
             settings.get<Range>(BodySettingsIds::DENSITY_RANGE));
-        storage.emplace<Float, OrderEnum::FIRST_ORDER>(QuantityKey::ENERGY,
+        storage.emplace<Float, OrderEnum::FIRST_ORDER>(QuantityIds::ENERGY,
             settings.get<Float>(BodySettingsIds::ENERGY),
             settings.get<Range>(BodySettingsIds::ENERGY_RANGE));
         this->initializeModules(storage, settings);

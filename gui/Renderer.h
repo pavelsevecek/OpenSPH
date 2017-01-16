@@ -1,17 +1,16 @@
 #pragma once
 
 #include "gui/Common.h"
-#include "objects/wrappers/NonOwningPtr.h"
 #include "quantities/Storage.h"
 
 NAMESPACE_SPH_BEGIN
 
 namespace Abstract {
-    class Renderer : public Observable {
+    class Renderer : public Polymorphic {
     public:
         virtual void draw(const std::shared_ptr<Storage>& storage) = 0;
 
-        virtual void setQuantity(const QuantityKey key) = 0;
+        virtual void setQuantity(const QuantityIds key) = 0;
     };
 }
 

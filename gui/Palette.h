@@ -2,7 +2,7 @@
 
 #include "gui/Color.h"
 #include "objects/containers/Array.h"
-#include "quantities/QuantityKey.h"
+#include "quantities/QuantityIds.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -53,20 +53,22 @@ public:
     }
 
     /// Default palette for given quantity
-    static Palette forQuantity(const QuantityKey key, const Range range) {
+    static Palette forQuantity(const QuantityIds key, const Range range) {
         const Float x0 = Float(range.lower());
         const Float dx = Float(range.size());
         switch (key) {
-        case QuantityKey::PRESSURE:
+        case QuantityIds::PRESSURE:
             return Palette({ { x0, Color(0.f, 0.f, 0.2f) }, { x0 + dx, Color(1.f, 0.2f, 0.2f) } });
-        case QuantityKey::DENSITY:
+        case QuantityIds::DEVIATORIC_STRESS:
             return Palette({ { x0, Color(0.f, 0.f, 0.2f) }, { x0 + dx, Color(1.f, 0.2f, 0.2f) } });
-        case QuantityKey::POSITIONS: // velocity
+        case QuantityIds::DENSITY:
+            return Palette({ { x0, Color(0.f, 0.f, 0.2f) }, { x0 + dx, Color(1.f, 0.2f, 0.2f) } });
+        case QuantityIds::POSITIONS: // velocity
             return Palette({ { x0, Color(0.0f, 0.0f, 0.2f) },
                              { x0 + 0.2f * dx, Color(0.0f, 0.0f, 1.0f) },
                              { x0 + 0.5f * dx, Color(1.0f, 0.0f, 0.2f) },
                              { x0 + dx, Color(1.0f, 1.0f, 0.2f) } });
-        case QuantityKey::DAMAGE:
+        case QuantityIds::DAMAGE:
             return Palette({ { x0, Color(0.1f, 0.1f, 0.1f) }, { x0 + dx, Color(0.9f, 0.9f, 0.9f) } });
         default:
             NOT_IMPLEMENTED;

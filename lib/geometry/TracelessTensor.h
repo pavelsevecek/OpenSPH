@@ -43,7 +43,7 @@ public:
     /// Construct traceless tensor using other tensor (not traceless in general). "Tracelessness" of the
     /// tensor is checked by assert.
     INLINE explicit TracelessTensor(const Tensor& other) {
-        ASSERT(other.trace() <= 1.e-5_f * norm(other.diagonal()));
+        ASSERT(other.trace() <= 1.e-4_f * norm(other.diagonal()) + EPS);
         m = other.diagonal();
         const Vector off = other.offDiagonal();
         m[M01] = off[0];

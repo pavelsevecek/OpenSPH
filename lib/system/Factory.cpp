@@ -34,6 +34,8 @@ std::unique_ptr<Abstract::TimeStepping> Factory::getTimestepping(const GlobalSet
         return std::make_unique<PredictorCorrector>(storage, settings);
     case TimesteppingEnum::BULIRSCH_STOER:
         return std::make_unique<BulirschStoer>(storage, settings);
+    case TimesteppingEnum::RUNGE_KUTTA:
+        return std::make_unique<RungeKutta>(storage, settings);
     default:
         NOT_IMPLEMENTED;
     }
@@ -115,5 +117,18 @@ std::unique_ptr<Abstract::BoundaryConditions> Factory::getBoundaryConditions(con
     }
 }
 
+std::unique_ptr<Abstract::Logger> Factory::getLogger(const GlobalSettings& settings) {
+    const LoggerEnum id = settings.get<LoggerEnum>(GlobalSettingsIds::RUN_LOGGER);
+    switch (id) {
+    case LoggerEnum::NO_LOGGER:
+        return std::make_unique<DummyLogger>();
+    case LoggerEnum::STD_OUT:
+        return std::make_unique<StdOutLogger>();
+    case LoggerEnum::FILE:
+        return std::make_unique<FileLogger>(settings.get<std::string>(GlobalSettingsIds::RUN_LOGGER_FILE));
+    default:
+        NOT_IMPLEMENTED;
+    }
+}
 
 NAMESPACE_SPH_END

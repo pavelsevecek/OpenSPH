@@ -37,6 +37,8 @@ enum class GuiSettingsIds {
 
     PALETTE_PRESSURE,
 
+    PALETTE_STRESS,
+
     PALETTE_DAMAGE
 
 };
@@ -51,7 +53,8 @@ const Settings<GuiSettingsIds> GUI_SETTINGS = {
     { GuiSettingsIds::WINDOW_TITLE,     "window.title",     std::string("SPH") },
     { GuiSettingsIds::PALETTE_DENSITY,  "palette.density",  Range(1000._f, 3000._f) },
     { GuiSettingsIds::PALETTE_VELOCITY, "palette.velocity", Range(0._f, 1._f) },
-    { GuiSettingsIds::PALETTE_PRESSURE, "palette.pressure", Range(-1000._f, 1.e7_f) },
+    { GuiSettingsIds::PALETTE_PRESSURE, "palette.pressure", Range(-1000._f, 1.e10_f) },
+    { GuiSettingsIds::PALETTE_STRESS,   "palette.stress",   Range(0._f, 1.e10_f) },
     { GuiSettingsIds::PALETTE_DAMAGE,   "palette.damage",   Range(0._f, 1._f) },
 };
 // clang-format on

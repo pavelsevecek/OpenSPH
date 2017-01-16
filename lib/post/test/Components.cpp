@@ -18,7 +18,7 @@ TEST_CASE("Components simple", "[components]") {
 
 TEST_CASE("Component initconds", "[components]") {
     BodySettings bodySettings = BODY_SETTINGS;
-    std::shared_ptr<Storage> storage = std::make_shared<Storage>(bodySettings);
+    std::shared_ptr<Storage> storage = std::make_shared<Storage>();
     InitialConditions conds(storage, GLOBAL_SETTINGS);
     bodySettings.set<int>(BodySettingsIds::PARTICLE_COUNT, 1000);
     conds.addBody(SphericalDomain(Vector(0, 0, 0), 1._f), bodySettings);
@@ -26,7 +26,7 @@ TEST_CASE("Component initconds", "[components]") {
     conds.addBody(SphericalDomain(Vector(5, 2, 0), 1._f), bodySettings);
     conds.addBody(SphericalDomain(Vector(5, 2.5_f, 0), 1._f), bodySettings);
 
-    ArrayView<Vector> r = storage->getValue<Vector>(QuantityKey::POSITIONS);
+    ArrayView<Vector> r = storage->getValue<Vector>(QuantityIds::POSITIONS);
     Array<Size> components;
     const Size numComponents = findComponents(r, GLOBAL_SETTINGS, components);
     REQUIRE(numComponents == 3);

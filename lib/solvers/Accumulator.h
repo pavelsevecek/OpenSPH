@@ -17,12 +17,12 @@ private:
 
     Array<Value> values;
     TAccumulate functor;
-    Optional<QuantityKey> key = NOTHING;
+    Optional<QuantityIds> key = NOTHING;
 
 public:
     Accumulator() = default;
 
-    Accumulator(const QuantityKey key)
+    Accumulator(const QuantityIds key)
         : key(key) {}
 
     Accumulator(Accumulator&& other)
@@ -46,8 +46,7 @@ public:
     }
 
     void integrate(Storage& storage) {
-        if (key) {
-            ASSERT((storage.has<Value, OrderEnum::ZERO_ORDER>(key.get())));
+        if (key && storage.has<Value, OrderEnum::ZERO_ORDER>(key.get())) {
             Array<Value>& quantity = storage.getValue<Value>(key.get());
             quantity.swap(values);
         }
@@ -97,8 +96,8 @@ public:
     using Type = Float;
 
     void update(Storage& storage) {
-        tie(m, rho) = storage.getValues<Float>(QuantityKey::MASSES, QuantityKey::DENSITY);
-        v = storage.getDt<Vector>(QuantityKey::POSITIONS);
+        tie(m, rho) = storage.getValues<Float>(QuantityIds::MASSES, QuantityIds::DENSITY);
+        v = storage.getDt<Vector>(QuantityIds::POSITIONS);
     }
 
     INLINE Tuple<Float, Float> operator()(const int i, const int j, const Vector& grad) const {
@@ -120,8 +119,8 @@ public:
     using Type = Vector;
 
     void update(Storage& storage) {
-        tie(m, rho) = storage.getValues<Float>(QuantityKey::MASSES, QuantityKey::DENSITY);
-        v = storage.getDt<Vector>(QuantityKey::POSITIONS);
+        tie(m, rho) = storage.getValues<Float>(QuantityIds::MASSES, QuantityIds::DENSITY);
+        v = storage.getDt<Vector>(QuantityIds::POSITIONS);
     }
 
     INLINE Tuple<Vector, Vector> operator()(const int i, const int j, const Vector& grad) const {
@@ -142,8 +141,8 @@ public:
     using Type = Float;
 
     void update(Storage& storage) {
-        m = storage.getValue<Float>(QuantityKey::MASSES);
-        v = storage.getAll<Vector>(QuantityKey::POSITIONS)[1];
+        m = storage.getValue<Float>(QuantityIds::MASSES);
+        v = storage.getAll<Vector>(QuantityIds::POSITIONS)[1];
     }
 
     INLINE Tuple<Float, Float> operator()(const int i, const int j, const Vector& grad) const {
@@ -164,8 +163,8 @@ public:
     using Type = Tensor;
 
     void update(Storage& storage) {
-        m = storage.getValue<Float>(QuantityKey::MASSES);
-        v = storage.getAll<Vector>(QuantityKey::POSITIONS)[1];
+        m = storage.getValue<Float>(QuantityIds::MASSES);
+        v = storage.getAll<Vector>(QuantityIds::POSITIONS)[1];
     }
 
     INLINE Tuple<Tensor, Tensor> operator()(const int i, const int j, const Vector& grad) const {
@@ -187,7 +186,7 @@ private:
 public:
     using Type = Vector;
 
-    void update(Storage& storage) { r = storage.getValue<Vector>(QuantityKey::POSITIONS); }
+    void update(Storage& storage) { r = storage.getValue<Vector>(QuantityIds::POSITIONS); }
 
     INLINE Tuple<Vector, Vector> operator()(const int i, const int j, const Vector& UNUSED(grad)) const {
         const Vector dr = r[j] - r[i];
@@ -217,9 +216,9 @@ public:
     using Type = Tensor;
 
     void update(Storage& storage) {
-        m = storage.getValue<Float>(QuantityKey::MASSES);
-        r = storage.getValue<Vector>(QuantityKey::POSITIONS);
-        rho = storage.getValue<Float>(QuantityKey::DENSITY);
+        m = storage.getValue<Float>(QuantityIds::MASSES);
+        r = storage.getValue<Vector>(QuantityIds::POSITIONS);
+        rho = storage.getValue<Float>(QuantityIds::DENSITY);
     }
 
     INLINE Tuple<Tensor, Tensor> operator()(const int i, const int j, const Vector& grad) const {

@@ -14,14 +14,14 @@ void setupBalsara(Storage& storage, BalsaraSwitch<StandardAV>& balsaraAv, TFunct
     const Size N = 10000;
     SphericalDomain domain(Vector(0._f), 1._f);
     storage.emplace<Vector, OrderEnum::SECOND_ORDER>(
-        QuantityKey::POSITIONS, distribution.generate(N, domain));
+        QuantityIds::POSITIONS, distribution.generate(N, domain));
     balsaraAv.initialize(storage, BODY_SETTINGS);
-    storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityKey::DENSITY, 100._f);
+    storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityIds::DENSITY, 100._f);
     storage.emplace<Float, OrderEnum::ZERO_ORDER>(
-        QuantityKey::MASSES, 100._f * domain.getVolume() / storage.getParticleCnt());
-    storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityKey::SOUND_SPEED, 1.e-4_f);
+        QuantityIds::MASSES, 100._f * domain.getVolume() / storage.getParticleCnt());
+    storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityIds::SOUND_SPEED, 1.e-4_f);
     ArrayView<Vector> r, v, dv;
-    tie(r, v, dv) = storage.getAll<Vector>(QuantityKey::POSITIONS);
+    tie(r, v, dv) = storage.getAll<Vector>(QuantityIds::POSITIONS);
     for (Size i = 0; i < r.size(); ++i) {
         v[i] = functor(r[i]);
     }
@@ -61,9 +61,9 @@ TEST_CASE("Balsara shear flow", "[av]") {
     std::unique_ptr<Abstract::Finder> finder = Factory::getFinder(GLOBAL_SETTINGS);
     ArrayView<Vector> r, rotv;
     ArrayView<Float> divv;
-    r = storage.getValue<Vector>(QuantityKey::POSITIONS);
-    divv = storage.getValue<Float>(QuantityKey::VELOCITY_DIVERGENCE);
-    rotv = storage.getValue<Vector>(QuantityKey::VELOCITY_ROTATION);
+    r = storage.getValue<Vector>(QuantityIds::POSITIONS);
+    divv = storage.getValue<Float>(QuantityIds::VELOCITY_DIVERGENCE);
+    rotv = storage.getValue<Vector>(QuantityIds::VELOCITY_ROTATION);
     finder->build(r);
     LutKernel<3> kernel = Factory::getKernel<3>(GLOBAL_SETTINGS);
     StdOutLogger logger;
@@ -123,9 +123,9 @@ TEST_CASE("Balsara divergent flow", "[av]") {
     ArrayView<Vector> r;
     ArrayView<Float> divv;
     ArrayView<Vector> rotv;
-    r = storage.getValue<Vector>(QuantityKey::POSITIONS);
-    divv = storage.getValue<Float>(QuantityKey::VELOCITY_DIVERGENCE);
-    rotv = storage.getValue<Vector>(QuantityKey::VELOCITY_ROTATION);
+    r = storage.getValue<Vector>(QuantityIds::POSITIONS);
+    divv = storage.getValue<Float>(QuantityIds::VELOCITY_DIVERGENCE);
+    rotv = storage.getValue<Vector>(QuantityIds::VELOCITY_ROTATION);
     StdOutLogger logger;
     for (Size i = 0; i < divv.size(); ++i) {
         // particles on boundary have different velocity divergence, check only particles inside
