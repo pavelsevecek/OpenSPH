@@ -99,8 +99,8 @@ public:
             FrequentStatsFormat format;
             format.print(*logger, stats);
 
-            AvgDeviatoricStress avgds;
-            logger->write("ds = ", avgds.get(*storage));
+            /*AvgDeviatoricStress avgds;
+            logger->write("ds = ", avgds.get(*storage));*/
         }
         logger->write("Run ended after ", runTimer.elapsed<TimerUnit::SECOND>(), "s.");
     }

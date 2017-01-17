@@ -95,7 +95,7 @@ public:
         // set derivative of density and smoothing length
         for (Size i = 0; i < drho.size(); ++i) {
             drho[i] = -rhoDivv[i];
-            v[i][H] = r[i][H] / rho[i] * rhoDivv[i];
+            v[i][H] = r[i][H] / (D * rho[i]) * rhoDivv[i];
             dv[i][H] = 0._f;
         }
         this->integrateModules(storage);

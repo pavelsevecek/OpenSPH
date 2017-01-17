@@ -15,7 +15,7 @@ public:
 };
 
 
-template<typename TEnum>
+template <typename TEnum>
 class Settings;
 enum class BodySettingsIds;
 using BodySettings = Settings<BodySettingsIds>;
@@ -37,10 +37,10 @@ public:
             return TracelessTensor::null();
         }
         const Float inv = 0.5_f * ddot(s, s) / sqr(yieldingStress[i]) + EPS;
-            ASSERT(isReal(inv) && inv > 0._f);
-            const TracelessTensor s_red = s * min(sqrt(1._f / (3._f * inv)), 1._f);
-            ASSERT(isReal(s_red));
-            return s_red;
+        ASSERT(isReal(inv) && inv > 0._f);
+        const TracelessTensor s_red = s * min(sqrt(1._f / (3._f * inv)), 1._f);
+        ASSERT(isReal(s_red));
+        return s_red;
     }
 };
 

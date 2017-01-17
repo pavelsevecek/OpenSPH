@@ -59,13 +59,13 @@ TEST_CASE("Sod", "[sod]") {
     globalSettings.set(GlobalSettingsIds::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::PREDICTOR_CORRECTOR);
     globalSettings.set(GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP, 1.e-5_f);
     globalSettings.set(GlobalSettingsIds::TIMESTEPPING_MAX_TIMESTEP, 1.e-1_f);
-    globalSettings.set(GlobalSettingsIds::TIMESTEPPING_COURANT, 0.1_f);
+    globalSettings.set(GlobalSettingsIds::TIMESTEPPING_COURANT, 0.5_f);
     globalSettings.set(GlobalSettingsIds::TIMESTEPPING_ADAPTIVE, true);
     globalSettings.set(GlobalSettingsIds::SOLVER_TYPE, SolverEnum::CONTINUITY_SOLVER);
     globalSettings.set(GlobalSettingsIds::MODEL_FORCE_GRAD_P, true);
     globalSettings.set(GlobalSettingsIds::MODEL_FORCE_DIV_S, false);
     // Number of SPH particles
-    const int N = 600;
+    const int N = 400;
     // Material properties
     Settings<BodySettingsIds> bodySettings = BODY_SETTINGS;
     bodySettings.set(BodySettingsIds::PARTICLE_COUNT, N);

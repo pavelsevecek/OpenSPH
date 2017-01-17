@@ -24,7 +24,7 @@ Float AdaptiveTimeStep::get(Storage& storage, const Float maxStep, FrequentStats
             using T = decltype(absv);
             const Float minValue = quantity.getMinimalValue();
             ASSERT(minValue > 0._f); // some nonzero minimal value must be set for all quantities
-            if (norm(absdv) < EPS) {
+            if (norm(absv) < minValue) {
                 continue;
             }
             const auto value = factor * (absv + T(minValue)) / (absdv + T(EPS));
@@ -53,7 +53,8 @@ Float AdaptiveTimeStep::get(Storage& storage, const Float maxStep, FrequentStats
     cachedSteps.clear();
     for (Size i = 0; i < r.size(); ++i) {
         const Float value = courant * r[i][H] / cs[i];
-        ASSERT(isReal(value) && value > 0._f && value < INFTY);
+        l
+                ASSERT(isReal(value) && value > 0._f && value < INFTY);
         cachedSteps.push(value);
     }
     Float minStepCourant = cachedSteps.empty() ? INFTY : minOfArray(cachedSteps);

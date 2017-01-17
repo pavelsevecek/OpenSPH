@@ -93,9 +93,11 @@ SOURCES += \
     ../lib/post/test/Components.cpp \
     ../lib/physics/test/Yielding.cpp \
     ../lib/quantities/test/Material.cpp \
-    ../lib/solvers/test/Accumulator.cpp
+    ../lib/solvers/test/Accumulator.cpp \
+    ../lib/geometry/test/Domain.cpp
 
 
 HEADERS += \
     utils/Utils.h \
-    utils/RecordType.h
+    utils/RecordType.h \
+    ../lib/sph/forces/StressForce.h

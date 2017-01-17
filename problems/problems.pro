@@ -4,7 +4,7 @@ CONFIG -= app_bundle
 CONFIG -= qt
 
 QMAKE_CXXFLAGS += -msse4.1 -Wall -Werror -std=c++14 -pthread
-QMAKE_CXX = g++
+QMAKE_CXX = clang++
 
 INCLUDEPATH += ../lib ../../external/Catch/include
 DEPENDPATH += . ../lib
@@ -33,7 +33,8 @@ CONFIG(debug, debug|profile|assert|release) {
 
 SOURCES += \
     main.cpp \
-    sod/Sod.cpp
+    sod/Sod.cpp \
+    wave/SoundWave.cpp
 
 HEADERS += \  
     sod/solution.h

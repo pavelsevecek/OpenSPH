@@ -48,9 +48,9 @@ TEST_CASE("Adaptive Timestep", "[timestepping]") {
     REQUIRE(almostEqual(step3, factor * 3._f, 1.e-3_f));
     REQUIRE(stats.get<QuantityIds>(FrequentStatsIds::TIMESTEP_CRITERION) == QuantityIds::ENERGY);
 
-    storage.getQuantity(QuantityIds::ENERGY).getMinimalValue() = 16._f;
+    storage.getQuantity(QuantityIds::ENERGY).getMinimalValue() = 8._f;
     const Float step4 = getter.get(storage, INFTY, stats);
-    REQUIRE(almostEqual(step4, factor * 7._f, 1.e-3_f)); // (12+16)/4
+    REQUIRE(almostEqual(step4, factor * 5._f, 1.e-3_f)); // (12+8)/4
 }
 
 TEST_CASE("MinOfArray", "[timestepping]") {

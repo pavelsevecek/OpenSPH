@@ -268,10 +268,12 @@ INLINE StaticArray<Float, 3> findEigenvalues(const Tensor& t) {
     const Float r = -t.invariant<3>() / pow<3>(n);
 
     const Float a = q - p * p / 3._f;
-    ASSERT(a < 0._f);
     const Float b = (2._f * pow<3>(p) - 9._f * p * q + 27._f * r) / 27._f;
     const Float aCub = pow<3>(a) / 27._f;
-    ASSERT(0.25_f * b * b + aCub < 0._f);
+    if (0.25_f * b * b + aCub >= 0._f) {
+         return { 0._f, 0._f, 0._f };
+    }
+    ASSERT(a < 0._f);
     const Float t1 = 2._f * sqrt(-a / 3._f);
     const Float phi = acos(-0.5_f * b / sqrt(-aCub));
     const Vector v(phi / 3._f, (phi + 2 * PI) / 3._f, (phi + 4 * PI) / 3._f);

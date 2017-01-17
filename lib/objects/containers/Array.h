@@ -297,7 +297,7 @@ public:
     template<typename TStream>
     friend TStream& operator<<(TStream& stream, const Array& array) {
         for (const T& t : array) {
-            stream << t << ", ";
+            stream << t << std::endl;
         }
         return stream;
     }

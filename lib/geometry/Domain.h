@@ -56,13 +56,14 @@ namespace Abstract {
         virtual void getDistanceToBoundary(ArrayView<const Vector> vs, Array<Float>& distances) const = 0;
 
         /// Projects vectors outside of the domain onto its boundary. Vectors inside the domain are untouched.
+        /// Function does not affect 4th component of vectors.
         /// \param vs Array of vectors we want to project
         /// \param indices Optional array of indices. If passed, only selected vectors will be projected. All
         ///        vectors are projected by default.
         virtual void project(ArrayView<Vector> vs, Optional<ArrayView<Size>> indices = NOTHING) const = 0;
 
         /// Inverts positions of vectors with a respect to the boundary. Projected vectors shall have the same
-        /// distance to the boundary as the input vectors.
+        /// distance to the boundary as the input vectors. Function does not affect 4th component of vectors.
         /// \param vs Array of vectors we want to invert
         /// \param indices Optional array of indices. If passed, only selected vectors will be inverted. All
         ///        vectors are inverted by default.
@@ -122,7 +123,9 @@ public:
         Float radius = sqrt(radiusSqr);
         auto impl = [this, radius](Vector& v) {
             if (!isInsideImpl(v)) {
+                const Float h = v[H];
                 v = getNormalized(v - this->center) * radius + this->center;
+                v[H] = h;
             }
         };
         if (indices) {
@@ -142,15 +145,17 @@ public:
             Float length;
             Vector normalized;
             tieToTuple(normalized, length) = getNormalizedWithLength(v - this->center);
-            return v + 2._f * (radius - length) * normalized;
+            const Float h = v[H];
+            v = v + 2._f * (radius - length) * normalized;
+            v[H] = h;
         };
         if (indices) {
             for (Size i : indices.get()) {
-                vs[i] = impl(vs[i]);
+                impl(vs[i]);
             }
         } else {
             for (Vector& v : vs) {
-                v = impl(v);
+                impl(v);
             }
         }
     }
@@ -194,15 +199,36 @@ public:
         }
     }
 
-    virtual void getDistanceToBoundary(ArrayView<const Vector> UNUSED(vs),
-        Array<Float>& UNUSED(distances)) const override {
-        NOT_IMPLEMENTED;
+    virtual void getDistanceToBoundary(ArrayView<const Vector> vs, Array<Float>& distances) const override {
+        distances.clear();
+        for (const Vector& v : vs) {
+            const Vector d1 = v - box.lower();
+            const Vector d2 = box.upper() - v;
+            // we cannot just select min element of abs, we need signed distance
+            Float minDist = INFTY, minAbsDist = INFTY;
+            for (int i = 0; i < 3; ++i) {
+                Float dist = abs(d1[i]);
+                if (dist < minAbsDist) {
+                    minAbsDist = dist;
+                    minDist = d1[i];
+                }
+                dist = abs(d2[i]);
+                if (dist < minAbsDist) {
+                    minAbsDist = dist;
+                    minDist = d2[i];
+                }
+            }
+            ASSERT(minDist < INFTY);
+            distances.push(minDist);
+        }
     }
 
     virtual void project(ArrayView<Vector> vs, Optional<ArrayView<Size>> indices = NOTHING) const override {
         auto impl = [this](Vector& v) {
             if (!box.contains(v)) {
+                const Float h = v[H];
                 v = box.clamp(v);
+                v[H] = h;
             }
         };
         if (indices) {
@@ -216,9 +242,52 @@ public:
         }
     }
 
-    virtual void invert(ArrayView<Vector> UNUSED(vs),
-        Optional<ArrayView<Size>> UNUSED(indices) = NOTHING) const override {
-        NOT_IMPLEMENTED;
+    virtual void invert(ArrayView<Vector> vs, Optional<ArrayView<Size>> indices = NOTHING) const override {
+        auto impl = [this](Vector& v) {
+            const Vector d1 = v - box.lower();
+            const Vector d2 = box.upper() - v;
+            // find closest face
+            Float minAbsDist = INFTY;
+            Vector delta;
+            if (abs(d1[X]) < minAbsDist) {
+                minAbsDist = abs(d1[X]);
+                delta = Vector(-2._f * d1[X], 0._f, 0._f);
+            }
+            if (abs(d1[Y]) < minAbsDist) {
+                minAbsDist = abs(d1[Y]);
+                delta = Vector(0._f, -2._f * d1[Y], 0._f);
+            }
+            if (abs(d1[Z]) < minAbsDist) {
+                minAbsDist = abs(d1[Z]);
+                delta = Vector(0._f, 0._f, -2._f * d1[Z]);
+            }
+
+            if (abs(d2[X]) < minAbsDist) {
+                minAbsDist = abs(d2[X]);
+                delta = Vector(2._f * d2[X], 0._f, 0._f);
+            }
+            if (abs(d2[Y]) < minAbsDist) {
+                minAbsDist = abs(d2[Y]);
+                delta = Vector(0._f, 2._f * d2[Y], 0._f);
+            }
+            if (abs(d2[Z]) < minAbsDist) {
+                minAbsDist = abs(d2[Z]);
+                delta = Vector(0._f, 0._f, 2._f * d2[Z]);
+            }
+            ASSERT(delta[H] == 0._f);
+            v += delta;
+
+        };
+
+        if (indices) {
+            for (Size i : indices.get()) {
+                impl(vs[i]);
+            }
+        } else {
+            for (Vector& v : vs) {
+                impl(v);
+            }
+        }
     }
 };
 
@@ -234,6 +303,7 @@ public:
     CylindricalDomain(const Vector& center, const Float radius, const Float height, const bool includeBases)
         : Abstract::Domain(center, sqrt(sqr(radius) + sqr(height)))
         , radiusSqr(radius * radius)
+        , height(height)
         , includeBases(includeBases) {}
 
     virtual Float getVolume() const override { return PI * radiusSqr * height; }
@@ -278,8 +348,10 @@ public:
         Float radius = sqrt(radiusSqr);
         auto impl = [this, radius](Vector& v) {
             if (!isInsideImpl(v)) {
+                const Float h = v[H];
                 v = getNormalized(Vector(v[X], v[Y], this->center[Z]) - this->center) * radius +
                     Vector(this->center[X], this->center[Y], v[Z]);
+                v[H] = h;
             }
         };
         ASSERT(!includeBases); // including bases not implemented
@@ -301,16 +373,18 @@ public:
             Vector normalized;
             tieToTuple(normalized, length) =
                 getNormalizedWithLength(Vector(v[X], v[Y], this->center[Z]) - this->center);
-            return v + 2._f * (radius - length) * normalized;
+            const Float h = v[H];
+            v = v + 2._f * (radius - length) * normalized;
+            v[H] = h;
         };
         ASSERT(!includeBases); // including bases not implemented
         if (indices) {
             for (Size i : indices.get()) {
-                vs[i] = impl(vs[i]);
+                impl(vs[i]);
             }
         } else {
             for (Vector& v : vs) {
-                v = impl(v);
+                impl(v);
             }
         }
     }

@@ -45,11 +45,11 @@ bool MyApp::OnInit() {
     globalSettings.set(GlobalSettingsIds::TIMESTEPPING_MAX_TIMESTEP, 1.e-1_f);
     globalSettings.set(GlobalSettingsIds::MODEL_FORCE_DIV_S, true);
     globalSettings.set(GlobalSettingsIds::SPH_FINDER, FinderEnum::VOXEL);
-    globalSettings.set(GlobalSettingsIds::RUN_OUTPUT_STEP, 10);
-    //globalSettings.set(GlobalSettingsIds::MODEL_DAMAGE, DamageEnum::SCALAR_GRADY_KIPP);
+    globalSettings.set(GlobalSettingsIds::RUN_OUTPUT_STEP, 100);
+    globalSettings.set(GlobalSettingsIds::MODEL_DAMAGE, DamageEnum::SCALAR_GRADY_KIPP);
     globalSettings.set(GlobalSettingsIds::MODEL_YIELDING, YieldingEnum::VON_MISES);
     Problem* p = new Problem(globalSettings);
-    p->timeRange = Range(0._f, 0.1_f);
+    p->timeRange = Range(0._f, 10._f);
     std::string outputDir = "out/" + globalSettings.get<std::string>(GlobalSettingsIds::RUN_OUTPUT_NAME);
     p->output = std::make_unique<TextOutput>(outputDir,
         globalSettings.get<std::string>(GlobalSettingsIds::RUN_NAME),
