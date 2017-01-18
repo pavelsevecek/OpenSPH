@@ -38,7 +38,7 @@ struct GhostFunctor {
             }
             // trick: approximate normal by connection particle and its ghost
             const Vector deltaR = r[idx] - r[ghostIdxs[i]];
-            if (getLength(deltaR) == 0._f) {
+            /*if (getLength(deltaR) == 0._f) {
                 // ghost lie on top of the particle, approximate inverted vector by finite differences
                 // (imprecise)
                 /// \todo we should avoid this case altogether
@@ -51,11 +51,10 @@ struct GhostFunctor {
                 const Vector diff = getNormalized(vgSum[0] - rg);
                 // scale to correct length
                 v.push(diff * length);
-            } else {
-                const Vector normal = getNormalized(deltaR);
-                const Float perp = dot(normal, v[idx]);
-                v.push(v[idx] - 2._f * normal * perp);
-            }
+            } else {*/
+            const Vector normal = getNormalized(deltaR);
+            const Float perp = dot(normal, v[idx]);
+            v.push(v[idx] - 2._f * normal * perp);
         }
     }
 };
@@ -123,23 +122,26 @@ void DomainProjecting::apply(Storage& storage) {
             v[i] = Vector(0._f);
         }
         break;
-    case ProjectingOptions::ZERO_PERPENDICULAR:
-        projectVelocity(r, v);
-        for (Size i : outside) {
-            v[i] = 0.5_f * (v[i] + vproj[idx] - r[i]);
-        }
-        break;
-    case ProjectingOptions::REFLECT:
-        projectVelocity(r, v);
-        for (Size i : outside) {
-            // subtract the original position and we have projected velocities! Yay!)
-            v[i] = vproj[idx] - r[i];
-        }
-        break;
+    default:
+        NOT_IMPLEMENTED;
     }
+    /* case ProjectingOptions::ZERO_PERPENDICULAR:
+         projectVelocity(r, v);
+         for (Size i : outside) {
+             v[i] = 0.5_f * (v[i] + vproj[idx] - r[i]);
+         }
+         break;
+     case ProjectingOptions::REFLECT:
+         projectVelocity(r, v);
+         for (Size i : outside) {
+             // subtract the original position and we have projected velocities! Yay!)
+             v[i] = vproj[idx] - r[i];
+         }
+         break;
+     }*/
 }
 
-void DomainProjecting::projectVelocity(ArrayView<const Vector> r, ArrayView<const Vector> v) {
+/*void DomainProjecting::projectVelocity(ArrayView<const Vector> r, ArrayView<const Vector> v) {
     /// \todo implement using normal to the boundary
     for (Size i : outside) {
         // sum up position and velocity
@@ -147,7 +149,7 @@ void DomainProjecting::projectVelocity(ArrayView<const Vector> r, ArrayView<cons
     }
     // invert the sum
     domain->invert(vproj);
-}
+}*/
 
 Projection1D::Projection1D(const Range& domain)
     : domain(domain) {}
@@ -163,12 +165,12 @@ void Projection1D::apply(Storage& storage) {
     // To get fixed boundary conditions at ends, we need to null all derivatives of first few and last few
     // particles. Number of particles depends on smoothing length.
     iterate<VisitorEnum::FIRST_ORDER>(storage, [](const QuantityIds UNUSED(id), auto&& UNUSED(v), auto&& dv) {
-            using Type = typename std::decay_t<decltype(dv)>::Type;
-            const Size s = dv.size();
-            for (Size i : { 0u, 1u, 2u, 3u, 4u, s - 4, s - 3, s - 2, s - 1 }) {
-                dv[i] = Type(0._f);
-            }
-        });
+        using Type = typename std::decay_t<decltype(dv)>::Type;
+        const Size s = dv.size();
+        for (Size i : { 0u, 1u, 2u, 3u, 4u, s - 4, s - 3, s - 2, s - 1 }) {
+            dv[i] = Type(0._f);
+        }
+    });
     iterate<VisitorEnum::SECOND_ORDER>(
         storage, [](const QuantityIds UNUSED(id), auto&& UNUSED(v), auto&& dv, auto&& d2v) {
             using Type = typename std::decay_t<decltype(dv)>::Type;

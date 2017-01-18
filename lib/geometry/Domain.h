@@ -62,12 +62,28 @@ namespace Abstract {
         ///        vectors are projected by default.
         virtual void project(ArrayView<Vector> vs, Optional<ArrayView<Size>> indices = NOTHING) const = 0;
 
-        /// Inverts positions of vectors with a respect to the boundary. Projected vectors shall have the same
-        /// distance to the boundary as the input vectors. Function does not affect 4th component of vectors.
-        /// \param vs Array of vectors we want to invert
-        /// \param indices Optional array of indices. If passed, only selected vectors will be inverted. All
-        ///        vectors are inverted by default.
-        virtual void invert(ArrayView<Vector> vs, Optional<ArrayView<Size>> indices = NOTHING) const = 0;
+        struct Ghost {
+            Vector v; ///< Position of the ghost
+            Size idx; ///< Index into the original array of vectors
+        };
+
+        /// Duplicates vectors located close to the boundary, placing the symmetrically to the other side.
+        /// Distance of the copy (ghost) to the boundary shall be the same as the source vector. One vector
+        /// can create multiple ghosts.
+        /// \param vs Array containing vectors creating ghosts.
+        /// \param ghosts Output parameter containing created ghosts, stored as pairs (position of ghost and
+        ///        index of source vector). Array is cleared by the function.
+        /// \param radius Dimensionless distance to the boundary necessary for creating a ghost. A ghost is
+        ///        created for vector v if it is closer than radius * v[H]. Vector must be inside, outside
+        ///        vectors are ignored.
+        /// \param eps Minimal dimensionless distance of ghost from the source vector. When vector is too
+        ///        close to the boundary, the ghost would be too close or even on top of the source vector;
+        ///        implementation must place the ghost so that it is outside of the domain and at least
+        ///        eps * v[H] from the vector. Must be strictly lower than radius, checked by assert.
+        virtual void addGhosts(ArrayView<const Vector> vs,
+            Array<Ghost>& ghosts,
+            const Float radius = 2._f,
+            const Float eps = 0.05_f) const = 0;
 
         /// \todo function for transforming block [0, 1]^d into the domain?
     };
@@ -139,23 +155,27 @@ public:
         }
     }
 
-    virtual void invert(ArrayView<Vector> vs, Optional<ArrayView<Size>> indices = NOTHING) const override {
-        Float radius = sqrt(radiusSqr);
-        auto impl = [this, radius](Vector& v) {
+    virtual void addGhosts(ArrayView<const Vector> vs,
+        Array<Ghost>& ghosts,
+        const Float eta,
+        const Float eps) const override {
+        ASSERT(eps < eta);
+        ghosts.clear();
+        const Float radius = sqrt(radiusSqr);
+        // iterate using indices as the array can reallocate during the loop
+        for (Size i = 0; i < vs.size(); ++i) {
+            if (!isInsideImpl(vs[i])) {
+                continue;
+            }
             Float length;
             Vector normalized;
-            tieToTuple(normalized, length) = getNormalizedWithLength(v - this->center);
-            const Float h = v[H];
-            v = v + 2._f * (radius - length) * normalized;
-            v[H] = h;
-        };
-        if (indices) {
-            for (Size i : indices.get()) {
-                impl(vs[i]);
-            }
-        } else {
-            for (Vector& v : vs) {
-                impl(v);
+            tieToTuple(normalized, length) = getNormalizedWithLength(vs[i] - this->center);
+            const Float h = vs[i][H];
+            const Float diff = radius - length;
+            if (diff < h * eta) {
+                Vector v = vs[i] + max(eps * h, 2._f * diff) * normalized;
+                v[H] = h;
+                ghosts.push(Ghost{ v, i });
             }
         }
     }
@@ -242,50 +262,50 @@ public:
         }
     }
 
-    virtual void invert(ArrayView<Vector> vs, Optional<ArrayView<Size>> indices = NOTHING) const override {
-        auto impl = [this](Vector& v) {
-            const Vector d1 = v - box.lower();
-            const Vector d2 = box.upper() - v;
-            // find closest face
-            Float minAbsDist = INFTY;
-            Vector delta;
-            if (abs(d1[X]) < minAbsDist) {
-                minAbsDist = abs(d1[X]);
-                delta = Vector(-2._f * d1[X], 0._f, 0._f);
+    virtual void addGhosts(ArrayView<const Vector> vs,
+        Array<Ghost>& ghosts,
+        const Float eta,
+        const Float eps) const override {
+        ASSERT(eps < eta);
+        ghosts.clear();
+        for (Size i = 0; i < vs.size(); ++i) {
+            if (!box.contains(vs[i])) {
+                continue;
             }
-            if (abs(d1[Y]) < minAbsDist) {
-                minAbsDist = abs(d1[Y]);
-                delta = Vector(0._f, -2._f * d1[Y], 0._f);
+            const Float h = vs[i][H];
+            const Vector d1 = max(vs[i] - box.lower(), Vector(eps * h));
+            const Vector d2 = max(box.upper() - vs[i], Vector(eps * h));
+            // each face for the box can potentially create a ghost
+            if (d1[X] < eta * h) {
+                Vector v = vs[i] - Vector(2._f * d1[X], 0._f, 0._f);
+                v[H] = h;
+                ghosts.push(Ghost{ v, i });
             }
-            if (abs(d1[Z]) < minAbsDist) {
-                minAbsDist = abs(d1[Z]);
-                delta = Vector(0._f, 0._f, -2._f * d1[Z]);
+            if (d1[Y] < eta * h) {
+                Vector v = vs[i] - Vector(0._f, 2._f * d1[Y], 0._f);
+                v[H] = h;
+                ghosts.push(Ghost{ v, i });
+            }
+            if (d1[Z] < eta * h) {
+                Vector v = vs[i] - Vector(0._f, 0._f, 2._f * d1[Z]);
+                v[H] = h;
+                ghosts.push(Ghost{ v, i });
             }
 
-            if (abs(d2[X]) < minAbsDist) {
-                minAbsDist = abs(d2[X]);
-                delta = Vector(2._f * d2[X], 0._f, 0._f);
+            if (d2[X] < eta * h) {
+                Vector v = vs[i] + Vector(2._f * d2[X], 0._f, 0._f);
+                v[H] = h;
+                ghosts.push(Ghost{ v, i });
             }
-            if (abs(d2[Y]) < minAbsDist) {
-                minAbsDist = abs(d2[Y]);
-                delta = Vector(0._f, 2._f * d2[Y], 0._f);
+            if (d2[Y] < eta * h) {
+                Vector v = vs[i] + Vector(0._f, 2._f * d2[Y], 0._f);
+                v[H] = h;
+                ghosts.push(Ghost{ v, i });
             }
-            if (abs(d2[Z]) < minAbsDist) {
-                minAbsDist = abs(d2[Z]);
-                delta = Vector(0._f, 0._f, 2._f * d2[Z]);
-            }
-            ASSERT(delta[H] == 0._f);
-            v += delta;
-
-        };
-
-        if (indices) {
-            for (Size i : indices.get()) {
-                impl(vs[i]);
-            }
-        } else {
-            for (Vector& v : vs) {
-                impl(v);
+            if (d2[Z] < eta * h) {
+                Vector v = vs[i] + Vector(0._f, 0._f, 2._f * d2[Z]);
+                v[H] = h;
+                ghosts.push(Ghost{ v, i });
             }
         }
     }
@@ -366,25 +386,37 @@ public:
         }
     }
 
-    virtual void invert(ArrayView<Vector> vs, Optional<ArrayView<Size>> indices = NOTHING) const override {
+    virtual void addGhosts(ArrayView<const Vector> vs,
+        Array<Ghost>& ghosts,
+        const Float eta,
+        const Float eps) const override {
+        ASSERT(eps < eta);
         Float radius = sqrt(radiusSqr);
-        auto impl = [this, radius](Vector& v) {
+        for (Size i = 0; i < vs.size(); ++i) {
+            if (!isInsideImpl(vs[i])) {
+                continue;
+            }
             Float length;
             Vector normalized;
             tieToTuple(normalized, length) =
-                getNormalizedWithLength(Vector(v[X], v[Y], this->center[Z]) - this->center);
-            const Float h = v[H];
-            v = v + 2._f * (radius - length) * normalized;
-            v[H] = h;
-        };
-        ASSERT(!includeBases); // including bases not implemented
-        if (indices) {
-            for (Size i : indices.get()) {
-                impl(vs[i]);
+                getNormalizedWithLength(Vector(vs[i][X], vs[i][Y], this->center[Z]) - this->center);
+            const Float h = vs[i][H];
+            ASSERT(radius - length >= 0._f);
+            Float diff = max(eps * h, radius - length);
+            if (diff < h * eta) {
+                Vector v = vs[i] + 2._f * diff * normalized;
+                v[H] = h;
+                ghosts.push(Ghost{ v, i });
             }
-        } else {
-            for (Vector& v : vs) {
-                impl(v);
+            if (includeBases) {
+                diff = 0.5_f * height - (vs[i][Z] - this->center[Z]);
+                if (diff < h * eta) {
+                    ghosts.push(Ghost{ vs[i] + Vector(0._f, 0._f, 2._f * diff), i });
+                }
+                diff = 0.5_f * height - (this->center[Z] - vs[i][Z]);
+                if (diff < h * eta) {
+                    ghosts.push(Ghost{ vs[i] - Vector(0._f, 0._f, 2._f * diff), i });
+                }
             }
         }
     }
