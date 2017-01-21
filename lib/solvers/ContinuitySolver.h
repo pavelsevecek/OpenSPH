@@ -18,11 +18,12 @@
 #include "system/Factory.h"
 #include "system/Profiler.h"
 #include "system/Settings.h"
+#include "thread/Pool.h"
 
 NAMESPACE_SPH_BEGIN
 
 template <typename Force, int D>
-class ContinuitySolver : public SolverBase<D>, Module<Force, RhoDivv> {
+class ContinuitySolver : public SolverBase<D>, Module<Force, RhoDivv, RhoGradv> {
 private:
     Force force;
 
@@ -31,11 +32,20 @@ private:
     /// \todo SharedAccumulator
     RhoDivv rhoDivv;
 
+    /// \todo sharedaccumulator
+    RhoGradv rhoGradv;
+
+    Float minH;
+
+    ThreadPool pool;
+
 public:
     ContinuitySolver(const GlobalSettings& settings)
         : SolverBase<D>(settings)
-        , Module<Force, RhoDivv>(force, rhoDivv)
-        , force(settings) {}
+        , Module<Force, RhoDivv, RhoGradv>(force, rhoDivv, rhoGradv)
+        , force(settings) {
+        minH = settings.get<Float>(GlobalSettingsIds::SPH_SMOOTHING_LENGTH_MIN);
+    }
 
     virtual void integrate(Storage& storage) override {
         const Size size = storage.getParticleCnt();
@@ -52,7 +62,7 @@ public:
 
             // clamp smoothing length
             for (Float& h : componentAdapter(r, H)) {
-                h = max(h, 1.e-12_f);
+                h = max(h, minH);
             }
         }
         {
@@ -65,6 +75,8 @@ public:
         }
         // we symmetrize kernel by averaging smoothing lenghts
         SymH<dim> w(this->kernel);
+        /// \todo for parallelization we need array of neighbours for each thread
+        /// + figure out how to do parallelization correctly, hm ...
         for (Size i = 0; i < size; ++i) {
             // Find all neighbours within kernel support. Since we are only searching for particles with
             // smaller h, we know that symmetrized lengths (h_i + h_j)/2 will be ALWAYS smaller or equal to
@@ -93,9 +105,20 @@ public:
         }
 
         // set derivative of density and smoothing length
+        ArrayView<TracelessTensor> s;
+        if (storage.has(QuantityIds::DEVIATORIC_STRESS)) {
+            s = storage.getValue<TracelessTensor>(QuantityIds::DEVIATORIC_STRESS);
+        }
         for (Size i = 0; i < drho.size(); ++i) {
-            drho[i] = -rhoDivv[i];
-            v[i][H] = r[i][H] / (D * rho[i]) * rhoDivv[i];
+            Float divv;
+            if (s && ddot(s[i], s[i]) > EPS) {
+                // nonzero stress tensor
+                divv = rhoGradv[i].trace();
+            } else {
+                divv = rhoDivv[i];
+            }
+            drho[i] = -divv;
+            v[i][H] = r[i][H] / (D * rho[i]) * divv;
             dv[i][H] = 0._f;
         }
         this->integrateModules(storage);

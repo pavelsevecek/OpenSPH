@@ -50,9 +50,7 @@
 
 
 
-
 NAMESPACE_SPH_BEGIN
-
 
 /// Returns a random vector. Components of integral types range from -5 to 5, for floating point types the range is -0.5 to 0.5.
 INLINE Vector randomVector() {

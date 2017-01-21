@@ -41,6 +41,7 @@ TEST_CASE("Grad v", "[accumulator]") {
     tie(r, v, dv) = storage.getAll<Vector>(QuantityIds::POSITIONS);
     // density = 1, therefore total mass = volume, therefore mass per particle = volume / N
     storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityIds::MASSES, sphereVolume(1._f) / r.size());
+    storage.emplace<Size, OrderEnum::ZERO_ORDER>(QuantityIds::FLAG, 0);
     RhoGradv rhoGradv;
 
     // sanity check that const velocity = zero gradient

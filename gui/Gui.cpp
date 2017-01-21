@@ -21,15 +21,16 @@ NAMESPACE_SPH_BEGIN
 
 void MyApp::initialConditions(const GlobalSettings& globalSettings, const std::shared_ptr<Storage>& storage) {
     auto bodySettings = BODY_SETTINGS;
-    bodySettings.set(BodySettingsIds::ENERGY, 0._f); /// \todo ok? shouldn't it be 1.e2_f);
-    bodySettings.set(BodySettingsIds::PARTICLE_COUNT, 10000);
+    bodySettings.set(BodySettingsIds::ENERGY, 1.e2_f);
+    bodySettings.set(BodySettingsIds::PARTICLE_COUNT, 1000);
     bodySettings.set(BodySettingsIds::EOS, EosEnum::TILLOTSON);
     InitialConditions conds(storage, globalSettings);
 
     SphericalDomain domain1(Vector(0._f), 5e3_f); // D = 10km
     conds.addBody(domain1, bodySettings);
 
-    SphericalDomain domain2(Vector(3785.5_f, 3639.1_f, 0._f), 146.43_f); // D = 280m
+//    SphericalDomain domain2(Vector(4785.5_f, 3639.1_f, 0._f), 146.43_f); // D = 280m
+    SphericalDomain domain2(Vector(3785.5093557306_f, 3639.0771274993_f, 0._f), 146.4322282313_f);
     bodySettings.set(BodySettingsIds::PARTICLE_COUNT, 100);
     conds.addBody(domain2, bodySettings, Vector(-5.e3_f, 0._f, 0._f)); // 5km/s
 }
@@ -65,8 +66,8 @@ bool MyApp::OnInit() {
 
     GuiSettings guiSettings = GUI_SETTINGS;
     guiSettings.set<Float>(GuiSettingsIds::VIEW_FOV, 1.e4_f);
-    guiSettings.set<Float>(GuiSettingsIds::PARTICLE_RADIUS, 0.5_f);
-    guiSettings.set<Float>(GuiSettingsIds::ORTHO_CUTOFF, 1.e3_f);
+    guiSettings.set<Float>(GuiSettingsIds::PARTICLE_RADIUS, 0.3_f);
+    guiSettings.set<Float>(GuiSettingsIds::ORTHO_CUTOFF, 5.e2_f);
     window = new Window(p->storage, guiSettings, [globalSettings, p, this]() {
         this->worker.join();
         p->storage->removeAll();

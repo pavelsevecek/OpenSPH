@@ -4,6 +4,7 @@
 #include "objects/finders/AbstractFinder.h"
 #include "objects/wrappers/Range.h"
 #include "quantities/QuantityIds.h"
+#include "quantities/Iterate.h"
 #include "solvers/AbstractSolver.h"
 #include "solvers/SolverFactory.h"
 #include "sph/boundary/Boundary.h"
@@ -73,16 +74,13 @@ public:
 
         Timer runTimer;
         FrequentStats stats;
-        for (Float& t : rangeAdapter(timeRange, timeStepping->getTimeStep())) {
+        for (Float t (timeRange.lower()); timeRange.upper() > t; t += timeStepping->getTimeStep()) {
             if (callbacks) {
                 callbacks->onTimeStep(Float((Extended(t) - timeRange.lower()) / timeRange.size()), storage);
                 if (callbacks->shouldAbortRun()) {
                     break;
                 }
             }
-
-            const Float dt = timeStepping->getTimeStep();
-            t += dt;
 
             // Dump output
             if (output && (i % outputEvery == 0)) {

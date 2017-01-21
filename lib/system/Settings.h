@@ -257,6 +257,9 @@ enum class GlobalSettingsIds {
     /// Artificial viscosity beta coefficient
     SPH_AV_BETA,
 
+    /// Minimal value of smoothing length
+    SPH_SMOOTHING_LENGTH_MIN,
+
     /// Use force from pressure gradient in the model
     MODEL_FORCE_GRAD_P,
 
@@ -328,6 +331,9 @@ enum class GlobalSettingsIds {
 
     /// (Vector) size of a block domain
     DOMAIN_SIZE,
+
+    /// Minimal distance between a particle and its ghost, in units of smoothing length.
+    DOMAIN_GHOST_MIN_DIST
 };
 
 // clang-format off
@@ -358,6 +364,7 @@ const Settings<GlobalSettingsIds> GLOBAL_SETTINGS = {
     { GlobalSettingsIds::SPH_KERNEL_ETA,                "sph.kernel.eta",           1.5_f },
     { GlobalSettingsIds::SPH_AV_ALPHA,                  "sph.av.alpha",             1.5_f },
     { GlobalSettingsIds::SPH_AV_BETA,                   "sph.av.beta",              3._f },
+    { GlobalSettingsIds::SPH_SMOOTHING_LENGTH_MIN,      "sph.smoothing_length.min", 1e-5_f },
     { GlobalSettingsIds::SPH_FINDER,                    "sph.finder",               int(FinderEnum::KD_TREE) },
 
     /// Timestepping parameters
@@ -374,6 +381,7 @@ const Settings<GlobalSettingsIds> GLOBAL_SETTINGS = {
     /// Computational domain and boundary conditions
     { GlobalSettingsIds::DOMAIN_TYPE,                   "domain.type",              int(DomainEnum::NONE) },
     { GlobalSettingsIds::DOMAIN_BOUNDARY,               "domain.boundary",          int(BoundaryEnum::NONE) },
+    { GlobalSettingsIds::DOMAIN_GHOST_MIN_DIST,         "domain.ghosts.min_dist",   0.1_f },
     { GlobalSettingsIds::DOMAIN_CENTER,                 "domain.center",            Vector(0._f) },
     { GlobalSettingsIds::DOMAIN_RADIUS,                 "domain.radius",            1._f },
     { GlobalSettingsIds::DOMAIN_HEIGHT,                 "domain.height",            1._f },

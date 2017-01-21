@@ -23,201 +23,81 @@ namespace Abstract {
         /// \return Output array of vertices. The total number of vertices can slightly differ from n.
         /// \note This method is expected to be called once at the beginning of the run, so we can
         ///       return allocated array without worrying about performance costs here.
-        virtual Array<Vector> generate(const int n, const Domain& domain) const = 0;
+        virtual Array<Vector> generate(const Size n, const Domain& domain) const = 0;
     };
 }
 
 /// Generating random positions withing the domain.
 class RandomDistribution : public Abstract::Distribution {
 public:
-    virtual Array<Vector> generate(const int n, const Abstract::Domain& domain) const override;
+    virtual Array<Vector> generate(const Size n, const Abstract::Domain& domain) const override;
 };
 
 
 /// Cubic close packing
 class CubicPacking : public Abstract::Distribution {
 public:
-    virtual Array<Vector> generate(const int n, const Abstract::Domain& domain) const override;
+    virtual Array<Vector> generate(const Size n, const Abstract::Domain& domain) const override;
 };
 
 
 /// Hexagonal close packing
 class HexagonalPacking : public Abstract::Distribution {
 public:
-    enum class Sorting {
-        UNSORTED, ///< Particles will be created in layers, meaning two particles close in space are not
-                  /// necessarily close in memory.
-        SORTED,   ///< Particles are sorted using its Morton code, particles close in space are also close in
-                  /// memory.
+    enum class Options {
+        SORTED = 1 << 0, ///< Particles are sorted using its Morton code, particles close in space are also
+                         /// close in  memory. By default, particles are sorted along x axis, secondary
+                         /// along y and z axes.
+        CENTER = 1 << 1, ///< Move particle lattice so that their center of mass matches center of domain.
+                         /// This assumes all particles have the same mass. Note that with this options,
+                         /// generated particles does not have to be strictly inside given domain.
     };
 
-    HexagonalPacking(const Sorting sorting = Sorting::UNSORTED);
+    HexagonalPacking(const Flags<Options> flags = Options::CENTER);
 
-    virtual Array<Vector> generate(const int n, const Abstract::Domain& domain) const override;
+    virtual Array<Vector> generate(const Size n, const Abstract::Domain& domain) const override;
 
 private:
-    Sorting sorting;
+    Flags<Options> flags;
 };
+
+
+/// Distribution with given particle density. Particles are placed using algorithm by Diehl et al. (2012).
+/*class NonUniformDistribution : public Abstract::Distribution {
+private:
+    using DensityFunc = std::function<Float(const Vector& position)>;
+    DensityFunc particleDensity;
+    Float error;
+
+public:
+    /// Constructs a distribution using function returning expected particle density at given position.
+    /// Function does not have to be normalized, only a relative number of particles at different places is
+    /// relevant.
+    /// \param error Allowed relative error in number of generated particles. Lower value generates number of
+    ///              particles closer to required value, but takes longer to compute.
+    NonUniformDistribution(const DensityFunc& particleDensity, const Float error);
+
+    /// Returns generated particle distribution. Smoothing lengths correspond to particle density given in the
+    /// constructor (as h ~ n^(-1/3) )
+    virtual Array<Vector> generate(const Size n, const Abstract::Domain& domain) const override;
+};*/
 
 
 /// Generates particles uniformly on a line in x direction, for testing purposes. Uses only center and radius
 /// of the domain.
 class LinearDistribution : public Abstract::Distribution {
 public:
-    virtual Array<Vector> generate(const int n, const Abstract::Domain& domain) const override {
+    virtual Array<Vector> generate(const Size n, const Abstract::Domain& domain) const override {
         const Float center = domain.getCenter()[X];
         const Float radius = domain.getBoundingRadius();
         Array<Vector> vs(0, n);
         const Float dx = 2._f * radius / (n - 1);
-        for (int i = 0; i < n; ++i) {
+        for (Size i = 0; i < n; ++i) {
             const Float x = center - radius + (2._f * radius * i) / (n - 1);
             vs.push(Vector(x, 0._f, 0._f, 1.5_f * dx)); // smoothing length = interparticle distance
         }
         return vs;
     }
 };
-/*
-template <typename T, int d>
-class Nonuniform : public AbstractDistribution {
-private:
-    const float KERNEL_RADIUS = 1.7f;
-    const float SMALL         = 0.1f;
-
-    const float NEIGHBOUR_ERROR = 0.2f;
-    const bool UNIFORM          = false;
-    const bool MOVE_PARTICLES   = true;
-
-    const int dim        = 2;
-    const float strength = 0.1f;
-
-    const float allowedError = 20.f;
-    float drop               = 100.f;
-    const int iterNum        = 50;
-
-    const Length<T> projectRadius;
-    const int projectCnt;
-    const Angle<T> angle;
-
-
-public:
-    Nonuniform(const T projectRadius, const int projectCnt, const Angle<T> angle)
-        : projectRadius(projectRadius)
-        , projectCnt(projectCnt)
-        , angle(angle) {}
-
-    virtual int generateSphere(const int n, const T radius, Array<Vector>& vecs) override {
-
-        const Volume<T> projectVolume(sphereVolume(projectRadius));
-        const NumberDensity<T> projectDensity = T(projectCnt) / projectVolume;
-        const Volume<T> targetVolume(sphereVolume(radius));
-
-        const auto center = Vector<Length<T>, d>::spherical(radius, angle.value(Units::SI<T>));
-
-        // prescribed particle density
-        // parameter drop is determined by total number of particles in target
-        auto lambda = [&](const Vector<Length<T>, d>& v) {
-            return projectDensity / (1.f + drop * (v - center).getSqrLength() / (radius * radius));
-        };
-
-        Integrator<float, d> mc(radius.value());
-        int cnt = 0;
-        float particleCount;
-        for (particleCount = mc.integrate(lambda); abs(particleCount - n) > allowedError;) {
-            const float ratio = particleCount / n;
-            drop *= ratio;
-            std::cout << "ratio = " << ratio << "  drop = " << drop << " particle count  " <<
-particleCount
-                      << std::endl;
-            particleCount = mc.integrate(lambda);
-            if (cnt++ > 100) { // break potential infinite loop
-                break;
-            }
-        }
-        const int N = round(particleCount); // final particle count of the target
-
-        HaltonQrng<T> halton;
-        auto rng = makeSphericalRng(Vector(0.f), radius.value(), halton, lambda);
-
-        // generate initial particle positions
-        vecs.forAll([&rng](Vector<Length<T>, d>& v) { v = 1._m * rng.rand(); });
-
-        KdTree tree(vecs);     // TODO: makeKdTree
-        Array<int> neighbours(0, N); // empty array of maximal size N
-        const float correction = strength / (1.f + SMALL);
-
-
-        float average    = 0.f;
-        float averageSqr = 0.f;
-        int count;
-        for (int k = 0; k < iterNum; ++k) {
-            // gradually decrease the strength of particle dislocation
-            const float converg = 1.f / sqrt(float(k + 1));
-            std::cout << k << std::endl;
-
-            // statistics
-            average    = 0.f;
-            averageSqr = 0.f;
-            count      = 0;
-            // reconstruct K-d tree to allow for variable topology of particles
-            tree.rebuildTree();
-
-            // for all particles ...
-            for (int i = 0; i < N; ++i) {
-                Vector<Length<T>, d> delta(0._m);
-                const NumberDensity<T> n = lambda(vecs[i]); // average particle density
-                // average interparticle distance at given point
-                const Length<T> neighbourRadius = KERNEL_RADIUS / root<d>(n);
-                neighbours.resize(0);
-                tree.findNeighbours(vecs[i], neighbourRadius, neighbours, NEIGHBOUR_ERROR);
-
-                // TODO: find a way to add ghosts
-                // create ghosts for particles near the boundary
-                // Vector<float, d> mirror;
-                // if (vecs[i].getSqrLength() > radius - neighbourRadius) {
-                //    mirror = vecs[i].sphericalInversion(Vector<float, d>(0.f), radius);
-                //    neighbours.push(&mirror);
-                //}
-                for (int j = 0; j < neighbours.getSize(); ++j) {
-                    const int k = neighbours[j];
-                    const Vector diff = vecs[k] - vecs[i];
-                    const float lengthSqr = diff.getSqrLength();
-                    // average kernel radius to allow for the gradient of particle density
-                    const float h = KERNEL_RADIUS * (0.5f / root<d>(lambda(vecs[i])) +
-                                                     0.5f / root<d>(lambda(vecs[k])));
-                    if (lengthSqr > h * h || lengthSqr == 0) {
-                        continue;
-                    }
-                    const float hSqrInv = 1.f / (h * h);
-                    const float length  = diff.getLength();
-                    average += length / h;
-                    averageSqr += sqr(length) / sqr(h);
-                    count++;
-                    const Vector diffUnit = diff / length;
-                    const float t =
-                        converg * h * (strength / (SMALL + diff.getSqrLength() * hSqrInv) - correction);
-                    if (MOVE_PARTICLES) {
-                        delta += diffUnit * min(t, h); // clamp the dislocation to particle distance
-                    }
-                }
-                vecs[i] = vecs[i] - delta;
-                // project particles outside of the sphere to the boundary
-                if (vecs[i].getSqrLength() > radius * radius) {
-                    vecs[i] = radius * vecs[i].getNormalized();
-                }
-            }
-            average /= count;
-            averageSqr /= count;
-        }
-        // print statistics
-        std::cout << std::endl
-                  << "average = " << average << ", variance = " << averageSqr - average * average
-                  << std::endl;
-
-
-        return N;
-    }
-};
-*/
-
 
 NAMESPACE_SPH_END

@@ -9,9 +9,7 @@ using namespace Sph;
 
 
 TEST_CASE("Distribute flaws", "[damage]") {
-    DummyYielding yielding;
-    ScalarDamage model(GLOBAL_SETTINGS,
-        [&yielding](const TracelessTensor& s, const int i) { return yielding.reduce(s, i); });
+    ScalarDamage model(GLOBAL_SETTINGS);
     BodySettings bodySettings(BODY_SETTINGS);
     Storage storage(bodySettings);
     HexagonalPacking distribution;

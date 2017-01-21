@@ -158,11 +158,12 @@ public:
     INLINE Float gradImpl(const Float qSqr) const {
         const Float q = sqrt(qSqr);
         if (q == 0._f) {
-            return 0._f;
+            // gradient of kernel is 0 at q = 0, but here we divide by q,
+            // the expression grad/q has a finite limit for q->0
+            return -3._f * normalization[D - 1];
         }
         if (q < 1._f) {
-            return (1._f / q) * normalization[D - 1] *
-                   (-0.75_f * pow<2>(2._f - q) + 3._f * pow<2>(1._f - q));
+            return (1._f / q) * normalization[D - 1] * (-0.75_f * pow<2>(2._f - q) + 3._f * pow<2>(1._f - q));
         }
         if (q < 2._f) {
             return (1._f / q) * normalization[D - 1] * (-0.75f * pow<2>(2.f - q));
@@ -187,8 +188,8 @@ public:
         const Float q = sqrt(qSqr);
         ASSERT(q >= 0);
         if (q < 0.5_f) {
-            return normalization[D - 1] * (pow<4>(2.5_f - q) - 5._f * pow<4>(1.5_f - q) +
-                                              10._f * pow<4>(0.5_f - q));
+            return normalization[D - 1] *
+                   (pow<4>(2.5_f - q) - 5._f * pow<4>(1.5_f - q) + 10._f * pow<4>(0.5_f - q));
         }
         if (q < 1.5_f) {
             return normalization[D - 1] * (pow<4>(2.5_f - q) - 5._f * pow<4>(1.5_f - q));
@@ -207,8 +208,7 @@ public:
         }
         if (q < 0.5_f) {
             return (1._f / q) * normalization[D - 1] *
-                   (-4._f * pow<3>(2.5_f - q) + 20._f * pow<3>(1.5_f - q) -
-                       40._f * pow<3>(0.5_f - q));
+                   (-4._f * pow<3>(2.5_f - q) + 20._f * pow<3>(1.5_f - q) - 40._f * pow<3>(0.5_f - q));
         }
         if (q < 1.5_f) {
             return (1._f / q) * normalization[D - 1] *
@@ -230,8 +230,7 @@ public:
         const Float q = sqrt(qSqr);
         const Float alpha = 1._f / 3._f;
         const Float beta = 1._f + 6._f * sqr(alpha) - 12._f * pow<3>(alpha);
-        const Float normalization =
-            8._f / (PI * (6.4_f * pow<5>(alpha) - 16._f * pow<6>(alpha) + 1._f));
+        const Float normalization = 8._f / (PI * (6.4_f * pow<5>(alpha) - 16._f * pow<6>(alpha) + 1._f));
         if (q < alpha) {
             return normalization * ((-12._f * alpha + 18._f * sqr(alpha)) * q + beta);
         } else if (q < 0.5_f) {
@@ -276,9 +275,13 @@ public:
     SymH(const LutKernel<D>& kernel)
         : kernel(kernel) {}
 
-    INLINE Float value(const Vector& r1, const Vector& r2) const { return kernel.value(r1 - r2, 0.5_f * (r1[H] + r2[H])); }
+    INLINE Float value(const Vector& r1, const Vector& r2) const {
+        return kernel.value(r1 - r2, 0.5_f * (r1[H] + r2[H]));
+    }
 
-    INLINE Vector grad(const Vector& r1, const Vector& r2) const { return kernel.grad(r1 - r2, 0.5_f * (r1[H] + r2[H])); }
+    INLINE Vector grad(const Vector& r1, const Vector& r2) const {
+        return kernel.grad(r1 - r2, 0.5_f * (r1[H] + r2[H]));
+    }
 };
 
 

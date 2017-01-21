@@ -41,7 +41,8 @@ enum class QuantityIds {
     AV_ALPHA,            ///< Coefficient alpha of the artificial viscosity
     AV_BETA,             ///< Coefficient beta of the artificial viscosity
 
-    /// Materials
+    /// Particle flags & Materials
+    FLAG,         ///< ID of original body, used to implement discontinuities between bodies in SPH
     MATERIAL_IDX, ///< Material ID
 
     /// Debugging & Other

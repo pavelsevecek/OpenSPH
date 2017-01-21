@@ -19,6 +19,7 @@ class InitialConditions : public Noncopyable {
 private:
     std::shared_ptr<Storage> storage;
     std::unique_ptr<Abstract::Solver> solver;
+    Size bodyIndex = 0;
 
 public:
     InitialConditions(const std::shared_ptr<Storage> storage, const GlobalSettings& globalSettings);

@@ -18,6 +18,7 @@ TEST_CASE("Components simple", "[components]") {
 
 TEST_CASE("Component initconds", "[components]") {
     BodySettings bodySettings = BODY_SETTINGS;
+    bodySettings.set(BodySettingsIds::INITIAL_DISTRIBUTION, DistributionEnum::CUBIC);
     std::shared_ptr<Storage> storage = std::make_shared<Storage>();
     InitialConditions conds(storage, GLOBAL_SETTINGS);
     bodySettings.set<int>(BodySettingsIds::PARTICLE_COUNT, 1000);

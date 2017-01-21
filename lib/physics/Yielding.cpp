@@ -10,15 +10,37 @@ void VonMises::initialize(Storage& storage, const BodySettings& settings) const 
 }
 
 void VonMises::update(Storage& storage) {
-    yieldingStress.clear();
     MaterialAccessor material(storage);
     ArrayView<Float> u = storage.getValue<Float>(QuantityIds::ENERGY);
+    ArrayView<TracelessTensor> S = storage.getValue<TracelessTensor>(QuantityIds::DEVIATORIC_STRESS);
+    ArrayView<Float> D;
+    if (storage.has(QuantityIds::DAMAGE)) {
+        D = storage.getValue<Float>(QuantityIds::DAMAGE);
+    }
+
     for (Size i = 0; i < storage.getParticleCnt(); ++i) {
+        // compute yielding stress
         const Float limit = material.getParam<Float>(BodySettingsIds::ELASTICITY_LIMIT, i);
         const Float y =
             limit * max(1.f - u[i] / material.getParam<Float>(BodySettingsIds::MELT_ENERGY, i), 0._f);
         ASSERT(limit > 0._f);
-        yieldingStress.push(y);
+
+        // apply reduction to stress tensor
+        if (y < EPS) {
+            S[i] = TracelessTensor::null();
+            continue;
+        }
+        TracelessTensor s;
+        if (D) {
+            const Float d = pow<3>(D[i]);
+            s = (1._f - d) * S[i];
+        } else {
+            s = S[i];
+        }
+        const Float inv = 0.5_f * ddot(s, s) / sqr(y) + EPS;
+        ASSERT(isReal(inv) && inv > 0._f);
+        S[i] = S[i] * min(sqrt(1._f / (3._f * inv)), 1._f);
+        ASSERT(isReal(S[i]));
     }
 }
 

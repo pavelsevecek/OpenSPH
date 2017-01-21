@@ -4,8 +4,8 @@ CONFIG -= app_bundle qt
 QMAKE_CXXFLAGS += -Wall -Wextra -Werror -msse4.1 -std=c++14 -pthread
 #QMAKE_CXXFLAGS_RELEASE -= -O2
 #QMAKE_CXXFLAGS_RELEASE += -Os
-QMAKE_CXXFLAGS_DEBUG += -fsanitize=undefined-trap -fsanitize-undefined-trap-on-error  # -ftime-report
-QMAKE_CXX = clang++
+#QMAKE_CXXFLAGS_DEBUG += -fsanitize=undefined-trap -fsanitize-undefined-trap-on-error  # -ftime-report
+QMAKE_CXX = g++
 
 
 
@@ -146,4 +146,7 @@ HEADERS += \
     system/Statistics.h \
     system/FloatStats.h \
     objects/wrappers/UniquePtr.h \
-    quantities/QuantityIds.h
+    quantities/QuantityIds.h \
+    thread/Pool.h \
+    thread/ConcurrentQueue.h \
+    thread/ThreadLocal.h

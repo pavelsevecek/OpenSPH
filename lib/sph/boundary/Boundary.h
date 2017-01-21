@@ -13,7 +13,7 @@
 
 NAMESPACE_SPH_BEGIN
 
-template<typename TEnum>
+template <typename TEnum>
 class Settings;
 
 enum class GlobalSettingsIds;
@@ -35,10 +35,11 @@ class GhostParticles : public Abstract::BoundaryConditions {
 private:
     std::unique_ptr<Abstract::Domain> domain;
     // index where the ghost particles begin (they are always stored successively)
-    Array<Size> ghostIdxs;
-    Array<Size> idxs;
+    Array<Abstract::Domain::Ghost> ghosts;
+    Array<Size> ghostIdxs; // indices of ghost particles in the storage
     Array<Float> distances;
     Float searchRadius;
+    Float minimalDist;
 
 public:
     GhostParticles(std::unique_ptr<Abstract::Domain>&& domain, const GlobalSettings& settings);

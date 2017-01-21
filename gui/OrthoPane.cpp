@@ -130,7 +130,7 @@ void OrthoPane::update() {
     case QuantityIds::DEVIATORIC_STRESS: {
         ArrayView<TracelessTensor> s = storage->getValue<TracelessTensor>(QuantityIds::DEVIATORIC_STRESS);
         for (Size i = 0; i < s.size(); ++i) {
-            colors->push(palette(ddot(s[i], s[i])));
+            colors->push(palette(sqrt(ddot(s[i], s[i]))));
         }
         break;
     }

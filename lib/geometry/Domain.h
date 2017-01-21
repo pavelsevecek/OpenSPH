@@ -63,8 +63,8 @@ namespace Abstract {
         virtual void project(ArrayView<Vector> vs, Optional<ArrayView<Size>> indices = NOTHING) const = 0;
 
         struct Ghost {
-            Vector v; ///< Position of the ghost
-            Size idx; ///< Index into the original array of vectors
+            Vector position; ///< Position of the ghost
+            Size index;      ///< Index into the original array of vectors
         };
 
         /// Duplicates vectors located close to the boundary, placing the symmetrically to the other side.
@@ -72,7 +72,7 @@ namespace Abstract {
         /// can create multiple ghosts.
         /// \param vs Array containing vectors creating ghosts.
         /// \param ghosts Output parameter containing created ghosts, stored as pairs (position of ghost and
-        ///        index of source vector). Array is cleared by the function.
+        ///        index of source vector). Array must be cleared by the function!
         /// \param radius Dimensionless distance to the boundary necessary for creating a ghost. A ghost is
         ///        created for vector v if it is closer than radius * v[H]. Vector must be inside, outside
         ///        vectors are ignored.
@@ -186,6 +186,7 @@ private:
 
 
 /// Block aligned with coordinate axes, defined by its center and length of each side.
+/// \todo create extra ghosts in the corners?
 class BlockDomain : public Abstract::Domain {
 private:
     Box box;
@@ -390,6 +391,7 @@ public:
         Array<Ghost>& ghosts,
         const Float eta,
         const Float eps) const override {
+        ghosts.clear();
         ASSERT(eps < eta);
         Float radius = sqrt(radiusSqr);
         for (Size i = 0; i < vs.size(); ++i) {

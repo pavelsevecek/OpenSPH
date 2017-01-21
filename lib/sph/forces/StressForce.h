@@ -19,6 +19,7 @@ private:
     ArrayView<Float> p, rho, du, u, m, cs;
     ArrayView<Vector> v, dv;
     ArrayView<TracelessTensor> s, ds;
+    ArrayView<Size> bodyIdxs;
 
     enum class Options {
         USE_GRAD_P = 1 << 0,
@@ -34,7 +35,7 @@ public:
     StressForce(const GlobalSettings& settings)
         : Module<Yielding, Damage, AV, RhoDivv, RhoGradv>(yielding, damage, av, rhoDivv, rhoGradv)
         , rhoGradv(QuantityIds::RHO_GRAD_V)
-        , damage(settings, [this](const TracelessTensor& s, const Size i) { return yielding.reduce(s, i); })
+        , damage(settings)
         , av(settings) {
         flags.setIf(Options::USE_GRAD_P, settings.get<bool>(GlobalSettingsIds::MODEL_FORCE_GRAD_P));
         flags.setIf(Options::USE_DIV_S, settings.get<bool>(GlobalSettingsIds::MODEL_FORCE_DIV_S));
@@ -63,6 +64,7 @@ public:
         if (flags.has(Options::USE_DIV_S)) {
             tie(s, ds) = storage.getAll<TracelessTensor>(QuantityIds::DEVIATORIC_STRESS);
         }
+        bodyIdxs = storage.getValue<Size>(QuantityIds::FLAG);
         this->updateModules(storage);
     }
 
@@ -79,7 +81,8 @@ public:
             du[i] += m[j] * heating;
             du[j] += m[i] * heating;
         }
-        if (flags.has(Options::USE_DIV_S)) {
+        if (flags.has(Options::USE_DIV_S) && bodyIdxs[i] == bodyIdxs[j]) {
+            // apply stress only if particles belong to the same body
             f += (reduce(s[i], i) * rhoInvSqri + reduce(s[j], i) * rhoInvSqrj) * grad;
         }
         dv[i] += m[j] * f;
@@ -147,10 +150,7 @@ private:
     INLINE auto reduce(const Float pi, const Size idx) const { return damage.reduce(pi, idx); }
 
     INLINE auto reduce(const TracelessTensor& si, const Size idx) const {
-        // first apply damage
-        auto si_dmg = damage.reduce(si, idx);
-        // then apply yielding using reduced stress
-        return yielding.reduce(si_dmg, idx);
+        return damage.reduce(si, idx);
     }
 };
 

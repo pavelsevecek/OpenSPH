@@ -593,19 +593,19 @@ INLINE Tuple<Vector, Float> getNormalizedWithLength(const Vector& v) {
 
 
 /// Component-wise minimum
-template<>
+template <>
 INLINE Vector min(const Vector& v1, const Vector& v2) {
     return _mm_min_ps(v1.sse(), v2.sse());
 }
 
 /// Component-wise maximum
-template<>
+template <>
 INLINE Vector max(const Vector& v1, const Vector& v2) {
     return _mm_max_ps(v1.sse(), v2.sse());
 }
 
 /// Component-wise clamping
-template<>
+template <>
 INLINE Vector clamp(const Vector& v, const Vector& v1, const Vector& v2) {
     return max(v1, min(v, v2));
 }
@@ -655,7 +655,7 @@ INLINE Vector sqrtInv(const Vector& v) {
     return _mm_rsqrt_ss(v.sse());
 }
 
-template<>
+template <>
 INLINE bool isReal(const Vector& v) {
     /// \todo optimize using SSE intrinsics
     return isReal(v[0]) && isReal(v[1]) && isReal(v[2]);

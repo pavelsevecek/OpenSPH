@@ -1,9 +1,9 @@
 #include "sph/initial/Initial.h"
 #include "geometry/Domain.h"
 #include "physics/Eos.h"
+#include "quantities/Material.h"
 #include "quantities/Quantity.h"
 #include "quantities/Storage.h"
-#include "quantities/Material.h"
 #include "solvers/AbstractSolver.h"
 #include "solvers/SolverFactory.h"
 #include "sph/initial/Distribution.h"
@@ -53,7 +53,13 @@ void InitialConditions::addBody(const Abstract::Domain& domain,
     ASSERT(totalM > 0._f);
     body.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityIds::MASSES, totalM / N);
 
+    // Mark particles of this body
+    body.emplace<Size, OrderEnum::ZERO_ORDER>(QuantityIds::FLAG, bodyIndex);
+    bodyIndex++;
+
+    // Initialize all quantities needed by the solver
     solver->initialize(body, bodySettings);
+
     if (storage->getQuantityCnt() == 0) {
         // this is a first body, simply assign storage
         *storage = std::move(body);

@@ -9,18 +9,36 @@
 
 NAMESPACE_SPH_BEGIN
 
-/// Object for integrating a generic scalar function.
+/// Integrate a one-dimensional function using Simpson's rule
+template <typename TFunctor>
+INLINE Float integrate(const Range range, TFunctor functor) {
+    const Size N = 1000;
+    const Float h = range.size() / N;
+    double result = functor((Float)range.lower()) + functor((Float)range.upper());
+    for (Size j = 1; j < N; ++j) {
+        const Float x = (Float)range.lower() + j * h;
+        if (j % 2 == 0) {
+            result += 2._f * functor(x);
+        } else {
+            result += 4._f * functor(x);
+        }
+    }
+    return Float(result * h / 3._f);
+}
+
+
+/// Object for integrating a generic three-dimensional scalar function.
 template <typename TRng = UniformRng, typename TInternal = double>
 class Integrator : public Noncopyable {
 private:
     Float radius;
     TRng rng;
-    Abstract::Domain* domain;
+    Abstract::Domain& domain;
     static constexpr uint chunk = 100;
 
 public:
     /// Constructs an integrator given domain of integration.
-    Integrator(Abstract::Domain* domain)
+    Integrator(Abstract::Domain& domain)
         : domain(domain) {}
 
     /// Integrate a function.
@@ -35,8 +53,8 @@ public:
         Size n = 0;
         StaticArray<Vector, chunk> buffer;
         Array<Size> inside;
-        Vector center = domain->getCenter();
-        Float radius = domain->getBoundingRadius();
+        Vector center = domain.getCenter();
+        Float radius = domain.getBoundingRadius();
         while (true) {
             for (Size i = 0; i < chunk; ++i) {
                 // dimensionless vector
@@ -46,7 +64,7 @@ public:
                 buffer[i] = v;
             }
             inside.clear();
-            domain->getSubset(buffer, inside, SubsetType::INSIDE);
+            domain.getSubset(buffer, inside, SubsetType::INSIDE);
             for (Size i : inside) {
                 const double x = (double)f(buffer[i]);
                 sum += x;
@@ -55,7 +73,7 @@ public:
             }
             const double m = double(n);
             if (m * sumSqr - sum * sum < m * m * errorSqr * sumSqr) {
-                return Float(sum / m) * domain->getVolume();
+                return Float(sum / m) * domain.getVolume();
             }
         }
     }

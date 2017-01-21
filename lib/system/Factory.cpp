@@ -59,7 +59,7 @@ std::unique_ptr<Abstract::Distribution> Factory::getDistribution(const BodySetti
     const DistributionEnum id = settings.get<DistributionEnum>(BodySettingsIds::INITIAL_DISTRIBUTION);
     switch (id) {
     case DistributionEnum::HEXAGONAL:
-        return std::make_unique<HexagonalPacking>();
+        return std::make_unique<HexagonalPacking>(HexagonalPacking::Options::CENTER);
     case DistributionEnum::CUBIC:
         return std::make_unique<CubicPacking>();
     case DistributionEnum::RANDOM:

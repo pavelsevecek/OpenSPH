@@ -6,11 +6,8 @@
 NAMESPACE_SPH_BEGIN
 
 
-ScalarDamage::ScalarDamage(const GlobalSettings& settings,
-    const Yielding& yielding,
-    const ExplicitFlaws options)
-    : yielding(yielding)
-    , options(options) {
+ScalarDamage::ScalarDamage(const GlobalSettings& settings, const ExplicitFlaws options)
+    : options(options) {
     kernelRadius = Factory::getKernel<3>(settings).radius();
 }
 
@@ -100,10 +97,10 @@ void ScalarDamage::integrate(Storage& storage) {
     ArrayView<Float> ddamage = storage.getAll<Float>(QuantityIds::DAMAGE)[1];
     MaterialAccessor material(storage);
     for (Size i = 0; i < p.size(); ++i) {
-        Tensor sigma = yielding(reduce(s[i], i), i) - reduce(p[i], i) * Tensor::identity();
-        float sig1, sig2, sig3;
+        Tensor sigma = reduce(s[i], i) - reduce(p[i], i) * Tensor::identity();
+        Float sig1, sig2, sig3;
         tie(sig1, sig2, sig3) = findEigenvalues(sigma);
-        float sigMax = max(sig1, sig2, sig3);
+        const Float sigMax = max(sig1, sig2, sig3);
         const Float young = material.getParam<Float>(BodySettingsIds::YOUNG_MODULUS, i);
         const Float young_red = reduce(young, i);
         const Float strain = sigMax / young_red;

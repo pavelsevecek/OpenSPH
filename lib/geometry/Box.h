@@ -10,7 +10,7 @@
 NAMESPACE_SPH_BEGIN
 
 /// Helper object defining three-dimensional interval (box).
-class Box  {
+class Box {
 private:
     Vector minBound;
     Vector maxBound;
@@ -86,6 +86,12 @@ public:
                 }
             }
         }
+    }
+
+    template <typename TStream>
+    friend TStream& operator<<(TStream& stream, const Box& box) {
+        stream << box.lower() << box.upper();
+        return stream;
     }
 };
 

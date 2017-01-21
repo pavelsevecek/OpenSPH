@@ -154,10 +154,12 @@ public:
 using RhoDivv = Accumulator<RhoDivvImpl>;
 
 /// Strain rate tensor (symmetrized velocity gradient) multiplied by density
+/// \todo rename to describe we only accumulate particles belonging to the same body
 class RhoGradvImpl {
 private:
     ArrayView<const Float> m;
     ArrayView<const Vector> v;
+    ArrayView<const Size> idxs;
 
 public:
     using Type = Tensor;
@@ -165,9 +167,15 @@ public:
     void update(Storage& storage) {
         m = storage.getValue<Float>(QuantityIds::MASSES);
         v = storage.getAll<Vector>(QuantityIds::POSITIONS)[1];
+        idxs = storage.getValue<Size>(QuantityIds::FLAG);
     }
 
     INLINE Tuple<Tensor, Tensor> operator()(const int i, const int j, const Vector& grad) const {
+        if (idxs[i] != idxs[j]) {
+            /// \todo optimize, instead of returning zero, solve this directly on accumulators/modules
+            /// (somehow)
+            return { Tensor::null(), Tensor::null() };
+        }
         const Tensor gradv = outer(v[j] - v[i], grad);
         ASSERT(isReal(gradv));
         return { m[j] * gradv, m[i] * gradv };

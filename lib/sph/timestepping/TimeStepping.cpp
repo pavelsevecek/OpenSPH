@@ -75,6 +75,16 @@ void PredictorCorrector::stepImpl(Abstract::Solver& solver) {
     SCOPE_STOP;
     // compute derivative
     solver.integrate(*this->storage);
+
+
+/*    iterate<VisitorEnum::HIGHEST_DERIVATIVES>(*storage, [](const QuantityIds id, auto&& dv) {
+        std::cout << "Quantity " << id << std::endl;
+        for (Size i = 0; i < dv.size(); ++i) {
+            std::cout << i << "  |  " << dv[i] << std::endl;
+        }
+    });*/
+
+
     PROFILE_NEXT("PredictorCorrector::step   Corrections");
     // make corrections
     // clang-format off

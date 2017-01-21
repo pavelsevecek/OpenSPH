@@ -1,9 +1,11 @@
 #include "sph/initial/Distribution.h"
 #include "catch.hpp"
 #include "objects/containers/ArrayUtils.h"
+#include "system/ArrayStats.h"
 #include "system/Factory.h"
 #include "system/Logger.h"
-#include "system/ArrayStats.h"
+#include "system/Output.h"
+#include "utils/Utils.h"
 
 using namespace Sph;
 
@@ -21,9 +23,22 @@ TEST_CASE("HexaPacking", "[initconds]") {
     testDistribution(&packing);
 }
 
+/*TEST_CASE("HexaPacking Benz&Asphaug", "[initconds]") {
+    HexagonalPacking packing;
+    SphericalDomain domain(Vector(0._f), 100._f);
+    StdOutLogger logger;
+    Array<Vector> r = packing.generate(100, domain);
+    logger.write("Particles = ", r.size());
+
+    TextOutput output("particles_%d.txt", "test", Array<QuantityIds>{ QuantityIds::POSITIONS });
+    Storage storage;
+    storage.emplace<Vector, OrderEnum::ZERO_ORDER>(QuantityIds::POSITIONS, std::move(r));
+    output.dump(storage, 0._f);
+}*/
+
 TEST_CASE("HexaPacking sorted", "[initconds]") {
-    HexagonalPacking sorted(HexagonalPacking::Sorting::SORTED);
-    HexagonalPacking unsorted(HexagonalPacking::Sorting::UNSORTED);
+    HexagonalPacking sorted(HexagonalPacking::Options::SORTED);
+    HexagonalPacking unsorted(EMPTY_FLAGS);
 
     BlockDomain domain(Vector(-3._f), Vector(2._f));
     Array<Vector> r_sort = sorted.generate(1000, domain);

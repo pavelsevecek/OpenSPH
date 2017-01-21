@@ -7,21 +7,22 @@ NAMESPACE_SPH_BEGIN
 GhostParticles::GhostParticles(std::unique_ptr<Abstract::Domain>&& domain, const GlobalSettings& settings)
     : domain(std::move(domain)) {
     searchRadius = Factory::getKernel<3>(settings).radius();
+    minimalDist = settings.get<Float>(GlobalSettingsIds::DOMAIN_GHOST_MIN_DIST);
 }
 
 
 /// Functor copying quantities on ghost particles. Vector quantities are copied symmetrically with a respect
 /// to the boundary.
 struct GhostFunctor {
-    Array<Size>& idxs;
+    Array<Abstract::Domain::Ghost>& ghosts;
     Array<Size>& ghostIdxs;
     Abstract::Domain& domain;
 
     /// Generic operator, simply copies value onto the ghost
     template <typename T>
     void operator()(Array<T>& v, Array<Vector>& UNUSED(r)) {
-        for (Size i : idxs) {
-            auto ghost = v[i];
+        for (auto& g : ghosts) {
+            auto ghost = v[g.index];
             v.push(ghost);
         }
     }
@@ -29,15 +30,14 @@ struct GhostFunctor {
     /// Specialization for vectors, copies parallel component of the vector along the boundary and inverts
     /// perpendicular component.
     void operator()(Array<Vector>& v, Array<Vector>& r) {
-        for (Size i = 0; i < idxs.size(); ++i) {
-            const Size idx = idxs[i];
-            Float length = getLength(v[idx]);
+        for (auto& g : ghosts) {
+            Float length = getLength(v[g.index]);
             if (length == 0._f) {
                 v.push(Vector(0._f)); // simply copy zero vector
                 continue;
             }
-            // trick: approximate normal by connection particle and its ghost
-            const Vector deltaR = r[idx] - r[ghostIdxs[i]];
+            const Vector deltaR = r[g.index] - g.position; // offset between particle and its ghost
+            ASSERT(getLength(deltaR) > 0.f);
             /*if (getLength(deltaR) == 0._f) {
                 // ghost lie on top of the particle, approximate inverted vector by finite differences
                 // (imprecise)
@@ -53,8 +53,9 @@ struct GhostFunctor {
                 v.push(diff * length);
             } else {*/
             const Vector normal = getNormalized(deltaR);
-            const Float perp = dot(normal, v[idx]);
-            v.push(v[idx] - 2._f * normal * perp);
+            const Float perp = dot(normal, v[g.index]);
+            // mirror vector by copying parallel component and inverting perpendicular component
+            v.push(v[g.index] - 2._f * normal * perp);
         }
     }
 };
@@ -70,35 +71,20 @@ void GhostParticles::apply(Storage& storage) {
     Array<Vector>& r = storage.getValue<Vector>(QuantityIds::POSITIONS);
 
     // project particles outside of the domain on the boundary
-    /// \todo this will place particles on top of each other, we should probably separate them a little
     domain->project(r);
 
-    // find particles close to the boundary
-    idxs.clear();
-    domain->getDistanceToBoundary(r, distances);
-    for (Size i = 0; i < r.size(); ++i) {
-        if (distances[i] < r[i][H] * searchRadius) {
-            // close to boundary, needs a ghost particle
-            idxs.push(i);
-        }
-    }
+    // find particles close to boundary and create necessary ghosts
+    domain->addGhosts(r, ghosts, searchRadius, minimalDist);
+
     ghostIdxs.clear();
-    for (Size i = r.size(); i < r.size() + idxs.size(); ++i) {
-        ghostIdxs.push(i);
+    const Size ghostStartIdx = r.size();
+    for (Size i = 0; i < ghosts.size(); ++i) {
+        ghostIdxs.push(ghostStartIdx + i);
+        r.push(ghosts[i].position);
     }
 
-    // create ghost particles:
-    // 1) simply copy positions of particles
-    for (Size i : idxs) {
-        // we cannot push r[i] directly, as it can invalidate the reference!
-        const Vector ghost = r[i];
-        r.push(ghost);
-    }
-    // 2) invert created vectors with a respect to the boundary
-    domain->invert(r, ghostIdxs.getView());
-
-    // 3) copy all quantities on ghosts
-    GhostFunctor functor{ idxs, ghostIdxs, *domain };
+    // copy all quantities on ghosts
+    GhostFunctor functor{ ghosts, ghostIdxs, *domain };
     iterateWithPositions(storage, functor);
 }
 
@@ -115,7 +101,7 @@ void DomainProjecting::apply(Storage& storage) {
     domain->getSubset(r, outside, SubsetType::OUTSIDE);
     domain->project(r, outside.getView());
     vproj.clear();
-    Size idx = 0;
+    // Size idx = 0;
     switch (options) {
     case ProjectingOptions::ZERO_VELOCITY:
         for (Size i : outside) {

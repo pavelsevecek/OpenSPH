@@ -14,15 +14,15 @@ Size expandBits(Size v) {
 
 Size morton(const Vector& v) {
     const Vector u = v * 1024._f;
-    const Size x = u[X];
-    const Size y = u[Y];
-    const Size z = u[Z];
+    const int x = u[X];
+    const int y = u[Y];
+    const int z = u[Z];
     ASSERT(x >= 0 && x <= 1023);
     ASSERT(y >= 0 && y <= 1023);
     ASSERT(z >= 0 && z <= 1023);
-    const Size xx = expandBits(x);
-    const Size yy = expandBits(y);
-    const Size zz = expandBits(z);
+    const int xx = expandBits(x);
+    const int yy = expandBits(y);
+    const int zz = expandBits(z);
     return xx * 4 + yy * 2 + zz;
 }
 

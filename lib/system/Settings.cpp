@@ -12,13 +12,13 @@ void Settings<TEnum>::saveToFile(const std::string& path) const {
         ofs << std::setw(30) << std::left << entry.name << " = ";
         switch (entry.value.getTypeIdx()) {
         case BOOL:
-            ofs << (bool)entry.value;
+            ofs << entry.value.template get<bool>();
             break;
         case INT:
-            ofs << (int)entry.value;
+            ofs << entry.value.template get<int>();
             break;
         case FLOAT:
-            ofs << (Float)entry.value;
+            ofs << entry.value.template get<Float>();
             break;
         case RANGE:
             ofs << entry.value.template get<Range>();

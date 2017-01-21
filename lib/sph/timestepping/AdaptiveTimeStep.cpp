@@ -53,8 +53,7 @@ Float AdaptiveTimeStep::get(Storage& storage, const Float maxStep, FrequentStats
     cachedSteps.clear();
     for (Size i = 0; i < r.size(); ++i) {
         const Float value = courant * r[i][H] / cs[i];
-        l
-                ASSERT(isReal(value) && value > 0._f && value < INFTY);
+        ASSERT(isReal(value) && value > 0._f && value < INFTY);
         cachedSteps.push(value);
     }
     Float minStepCourant = cachedSteps.empty() ? INFTY : minOfArray(cachedSteps);

@@ -1,20 +1,29 @@
 #include "math/Integrator.h"
 #include "catch.hpp"
+#include <iostream>
 
 using namespace Sph;
 
-TEST_CASE("Integrators", "[integrators]") {
+TEST_CASE("Simpson's rule", "[integrators]") {
+    const Float two = integrate(Range(0._f, PI), [](const Float x) { return Sph::sin(x); });
+    REQUIRE(almostEqual(two, 2._f));
+
+    const Float log11 = integrate(Range(0._f, 10._f), [](const Float x) { return 1._f / (1._f + x); });
+    REQUIRE(almostEqual(log11, log(11._f)));
+}
+
+TEST_CASE("MC Integrator", "[integrators]") {
     const Float targetError = 1.e-3_f;
 
     // Area of circle / volume of sphere
     SphericalDomain sphere(Vector(0._f), 1._f);
-    Integrator<> int1(&sphere);
+    Integrator<> int1(sphere);
     Float result = int1.integrate([](const Vector& UNUSED(v)) -> Float { return 1._f; }, targetError);
     REQUIRE(almostEqual(result, sphereVolume(1._f), targetError));
 
     // Block [0,1]^d, linear function in each component
     BlockDomain block(Vector(0.5_f), Vector(1._f));
-    Integrator<> int2(&block);
+    Integrator<> int2(block);
     result = int2.integrate([](const Vector& v) { return dot(v, Vector(1._f)); }, targetError);
     REQUIRE(almostEqual(result, 3 * 0.5_f, 2._f * targetError));
 
@@ -26,5 +35,4 @@ TEST_CASE("Integrators", "[integrators]") {
     REQUIRE(almostEqual(result,
                               (E<float> - 1.f) / E<float> * PI<float>,
                               2.f * targetError));*/
-
 }

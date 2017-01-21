@@ -10,8 +10,6 @@ class Storage;
 class DummyYielding {
 public:
     void update(Storage& UNUSED(storage)) {}
-
-    INLINE TracelessTensor reduce(const TracelessTensor& s, const int UNUSED(i)) const { return s; }
 };
 
 
@@ -20,34 +18,21 @@ class Settings;
 enum class BodySettingsIds;
 using BodySettings = Settings<BodySettingsIds>;
 
+/// \todo this is hardcoded for scalar damage, generalize (merge together yielding and fragmentation)
 class VonMises {
 private:
-    // cached values of elasticity limit
-    Array<Float> yieldingStress;
-
 public:
     void initialize(Storage& storage, const BodySettings& settings) const;
 
     void update(Storage& storage);
-
-    /// \param s Deviatoric stress tensor of i-th particle, reduced by fragmentation model if applied.
-    INLINE TracelessTensor reduce(const TracelessTensor& s, const int i) const {
-        ASSERT(yieldingStress[i] >= 0);
-        if (yieldingStress[i] < EPS) {
-            return TracelessTensor::null();
-        }
-        const Float inv = 0.5_f * ddot(s, s) / sqr(yieldingStress[i]) + EPS;
-        ASSERT(isReal(inv) && inv > 0._f);
-        const TracelessTensor s_red = s * min(sqrt(1._f / (3._f * inv)), 1._f);
-        ASSERT(isReal(s_red));
-        return s_red;
-    }
 };
 
 
 /// Collins et al. (2004)
 class DruckerPrager {
 private:
+    /// \todo Fix implementation according to von Mises
+
     Array<Float> yieldingStress;
 
 public:

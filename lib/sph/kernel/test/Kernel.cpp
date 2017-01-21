@@ -1,6 +1,7 @@
 #include "sph/kernel/Kernel.h"
 #include "catch.hpp"
 #include "math/Integrator.h"
+#include <iostream>
 
 using namespace Sph;
 
@@ -17,7 +18,7 @@ void testKernel(const TKernel& kernel, TTest&& test) {
     // normalization
     const Float targetError = 1.e-3_f;
     SphericalDomain domain(Vector(0._f), kernel.radius());
-    Integrator<> in(&domain);
+    Integrator<> in(domain);
     Float norm = in.integrate([&](const Vector& v) { return kernel.value(v, 1._f); }, targetError);
     REQUIRE(almostEqual(norm, 1._f, 3._f * targetError));
 
@@ -47,7 +48,6 @@ void testKernel(const TKernel& kernel, TTest&& test) {
 TEST_CASE("M4 kernel", "[kernel]") {
     CubicSpline<3> m4;
 
-
     testKernel<3>(m4, [](auto&& kernel) {
         REQUIRE(kernel.radius() == 2._f);
         Float norm = 1. / PI;
@@ -55,9 +55,37 @@ TEST_CASE("M4 kernel", "[kernel]") {
         // specific points from kernel
         REQUIRE(kernel.valueImpl(0._f) == norm);
         REQUIRE(almostEqual(kernel.valueImpl(1._f), 0.25_f * norm));
-        REQUIRE(kernel.gradImpl(0._f) == 0._f);
         REQUIRE(almostEqual(kernel.gradImpl(1._f), -0.75_f * norm));
     });
+
+    CubicSpline<1> m4_1d;
+    // 1D norm
+    const Float norm1 = integrate(Range(0._f, 2._f), [&](const Float x){
+        return m4_1d.valueImpl(sqr(x));
+    });
+    LutKernel<1> lut(m4_1d);
+    const Float norm2 = integrate(Range(0._f, 2._f), [&](const Float x){
+        return lut.valueImpl(sqr(x));
+    });
+    // we only integrate 1/2 of the 1D kernel (support is [-2, 2])
+    REQUIRE(almostEqual(norm1, 0.5_f));
+    REQUIRE(almostEqual(norm2, 0.5_f));
+
+    const Float grad1 = integrate(Range(0._f, 2._f), [&](const Float x){
+        return x * m4_1d.gradImpl(sqr(x));
+    });
+    const Float grad2 = integrate(Range(0._f, 2._f), [&](const Float x){
+        return x * lut.gradImpl(sqr(x));
+    });
+    const Float grad12 = integrate(Range(0._f, 1._f), [&](const Float x){
+        return x * lut.gradImpl(sqr(x));
+    });
+    const Float grad22 = integrate(Range(1._f, 2._f), [&](const Float x){
+        return x * lut.gradImpl(sqr(x));
+    });
+    REQUIRE(almostEqual(grad1, -2._f / 3._f));
+    REQUIRE(almostEqual(grad12, -0.5_f));
+    REQUIRE(almostEqual(grad22, -1._f / 6._f));
 }
 
 

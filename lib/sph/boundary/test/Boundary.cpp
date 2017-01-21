@@ -43,29 +43,35 @@ public:
         }
     }
 
-    virtual void invert(ArrayView<Vector> vs, Optional<ArrayView<Size>> indices = NOTHING) const override {
-        if (indices) {
-            for (Size i : indices.get()) {
-                vs[i][X] *= -1;
+    virtual void addGhosts(ArrayView<const Vector> vs,
+        Array<Ghost>& ghosts,
+        const Float radius,
+        const Float eps) const override {
+        ghosts.clear();
+        Size idx = 0;
+        for (const Vector& v : vs) {
+            if (abs(v[X]) < radius * v[H]) {
+                Vector ghost(-max(v[X], eps * v[H]), v[Y], v[Z]);
+                ghosts.push(Ghost{ ghost, idx });
             }
-        } else {
-            for (Vector& v : vs) {
-                v[X] *= -1;
-            }
+            idx++;
         }
     }
 };
 
 TEST_CASE("GhostParticles wall", "[boundary]") {
     // default kernel = M4, radius = 2
-    GhostParticles boundaryConditions(std::make_unique<WallDomain>(), GLOBAL_SETTINGS);
+    const Float minDist = 0.1_f; // minimal distance of ghost
+    GlobalSettings settings = GLOBAL_SETTINGS;
+    settings.set(GlobalSettingsIds::DOMAIN_GHOST_MIN_DIST, minDist);
+    GhostParticles boundaryConditions(std::make_unique<WallDomain>(), settings);
     Storage storage;
     // Create few particles. Particles with x < 2 will create corresponding ghost particle.
     storage.emplace<Vector, OrderEnum::SECOND_ORDER>(QuantityIds::POSITIONS,
         Array<Vector>{ Vector(1.5_f, 1._f, 3._f, 1._f), // has ghost
             Vector(0.5_f, 2._f, -1._f, 1._f),           // has ghost
             Vector(-1._f, 2._f, 1._f, 1._f),            // negative - will be projected, + ghost
-            Vector(0._f, 0._f, 0._f, 1._f),             // has ghost
+            Vector(0._f, 0._f, 0._f, 1._f),             // lies on the boundary, has ghost
             Vector(5._f, 1._f, 1._f, 1._f),             // does not have ghost
             Vector(1._f, 1._f, 1._f, 1._f),             // has ghost
             Vector(2.5_f, 0._f, 5._f, 1._f) });         // does not have ghost
@@ -85,8 +91,8 @@ TEST_CASE("GhostParticles wall", "[boundary]") {
     REQUIRE(makeArray(r.size(), v.size(), dv.size()) == makeArray(12u, 12u, 12u));
     REQUIRE(r[7] == Vector(-1.5_f, 1._f, 3._f));
     REQUIRE(r[8] == Vector(-0.5_f, 2._f, -1._f));
-    REQUIRE(r[9] == Vector(0._f, 2._f, 1._f));
-    REQUIRE(r[10] == Vector(0._f, 0._f, 0._f));
+    REQUIRE(r[9] == Vector(-minDist, 2._f, 1._f));
+    REQUIRE(r[10] == Vector(-minDist, 0._f, 0._f));
     REQUIRE(r[11] == Vector(-1._f, 1._f, 1._f));
 
     REQUIRE(almostEqual(v[7], Vector(1._f, 1._f, 1._f), 1.e-3_f));

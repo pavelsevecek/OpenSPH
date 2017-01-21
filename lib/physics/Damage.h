@@ -2,15 +2,14 @@
 
 #include "geometry/Vector.h"
 #include "objects/containers/ArrayView.h"
-#include "system/Settings.h"
 #include "quantities/Storage.h"
+#include "system/Settings.h"
 
 NAMESPACE_SPH_BEGIN
 
-class DummyDamage  {
+class DummyDamage {
 public:
-    DummyDamage(const GlobalSettings& UNUSED(settings),
-        const std::function<TracelessTensor(const TracelessTensor&, const int)>&) {}
+    DummyDamage(const GlobalSettings& UNUSED(settings)) {}
 
     INLINE Float reduce(const Float p, const int UNUSED(i)) const { return p; }
 
@@ -25,21 +24,16 @@ enum class ExplicitFlaws {
 };
 
 /// Scalar damage describing fragmentation of the body according to Grady-Kipp model (Grady and Kipp, 1980)
-class ScalarDamage  {
+class ScalarDamage {
 private:
     // here d actually contains third root of damage
     ArrayView<Float> damage;
     Float kernelRadius;
 
-    using Yielding = std::function<TracelessTensor(const TracelessTensor&, const int)>;
-    Yielding yielding;
-
     ExplicitFlaws options;
 
 public:
-    ScalarDamage(const GlobalSettings& settings,
-        const Yielding& yielding,
-        const ExplicitFlaws options = ExplicitFlaws::UNIFORM);
+    ScalarDamage(const GlobalSettings& settings, const ExplicitFlaws options = ExplicitFlaws::UNIFORM);
 
     void initialize(Storage& storage, const BodySettings& settings) const;
 
