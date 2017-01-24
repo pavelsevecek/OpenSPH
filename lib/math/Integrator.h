@@ -33,12 +33,12 @@ class Integrator : public Noncopyable {
 private:
     Float radius;
     TRng rng;
-    Abstract::Domain& domain;
+    const Abstract::Domain& domain;
     static constexpr uint chunk = 100;
 
 public:
     /// Constructs an integrator given domain of integration.
-    Integrator(Abstract::Domain& domain)
+    Integrator(const Abstract::Domain& domain)
         : domain(domain) {}
 
     /// Integrate a function.

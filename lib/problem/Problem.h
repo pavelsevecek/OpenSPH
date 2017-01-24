@@ -97,8 +97,16 @@ public:
             FrequentStatsFormat format;
             format.print(*logger, stats);
 
+            logger->write("p[0] = ", storage->getValue<Float>(QuantityIds::PRESSURE)[0]);
+            logger->write("cs[0] = ", storage->getValue<Float>(QuantityIds::SOUND_SPEED)[0]);
+            logger->write("u[0] = ", storage->getValue<Float>(QuantityIds::ENERGY)[0]);
+            logger->write("rho[0] = ", storage->getValue<Float>(QuantityIds::DENSITY)[0]);
+
             /*AvgDeviatoricStress avgds;
             logger->write("ds = ", avgds.get(*storage));*/
+            if (i==100) {
+                break;
+            }
         }
         logger->write("Run ended after ", runTimer.elapsed<TimerUnit::SECOND>(), "s.");
     }

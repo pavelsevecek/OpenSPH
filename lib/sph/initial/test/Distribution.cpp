@@ -91,6 +91,12 @@ TEST_CASE("RandomDistribution", "[initconds]") {
     // 100 points inside block [0,1]^d, approx. distance is 100^(-1/d)
 }
 
+TEST_CASE("DiehlEtAlDistribution", "[initconds]") {
+    // Diehl et al. (2012) algorithm, using uniform particle density
+    DiehlEtAlDistribution diehl([](const Vector&) { return 1._f; });
+    testDistribution(&diehl);
+}
+
 TEST_CASE("LinearDistribution", "[initconds]") {
     LinearDistribution linear;
     SphericalDomain domain(Vector(0.5_f), 0.5_f);

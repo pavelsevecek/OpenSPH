@@ -41,7 +41,7 @@ void OrthoPane::onPaint(wxPaintEvent& UNUSED(evt)) {
         memoryDc.SetPen(pen);
         const Vector& r = positions[idx];
         memoryDc.DrawCircle(wxPoint(center.x + r[X] * fov, dc.GetSize().y - (center.y + r[Y] * fov) - 1),
-            max(r[H] * fov * radius, 1.f));
+            max(float(r[H]) * fov * radius, 1.f));
     }
     dc.DrawBitmap(bitmap, wxPoint(0, 0));
 
@@ -49,12 +49,11 @@ void OrthoPane::onPaint(wxPaintEvent& UNUSED(evt)) {
 }
 
 void OrthoPane::drawPalette(wxPaintDC& dc) {
-    const Range range = palette.range();
     const int size = 201;
     wxPoint origin(dc.GetSize().x - 50, size + 30);
     wxPen pen = dc.GetPen();
     for (int i = 0; i < size; ++i) {
-        const float value(range.size() * float(i) / (size - 1) + range.lower());
+        const float value = palette.getInterpolatedValue(float(i) / (size - 1));
         wxColour color = palette(value);
         pen.SetColour(color);
         dc.SetPen(pen);
@@ -62,7 +61,7 @@ void OrthoPane::drawPalette(wxPaintDC& dc) {
         if (i % 50 == 0) {
             dc.SetTextForeground(Color::white());
             std::stringstream ss;
-            ss << std::setprecision(3) << value;
+            ss << std::setprecision(1) << std::scientific << value;
             const std::string text = ss.str();
             wxSize extent = dc.GetTextExtent(text);
             dc.DrawText(text, wxPoint(origin.x - 50, origin.y - i - (extent.y >> 1)));

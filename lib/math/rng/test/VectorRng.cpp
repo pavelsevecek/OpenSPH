@@ -41,12 +41,12 @@ TEST_CASE("VectorRng", "[vectorrng]") {
 TEST_CASE("VectorPdfRng", "[vectorrng]") {
     /// uniform RNG inside the box
     Box box1(Vector(2.5), Vector(3.7));
-    auto rng1 = makeVectorPdfRng(box1, UniformRng());
+    VectorPdfRng<UniformRng> rng1(box1);
     testVectorRng(rng1, Vector(2.5), Vector(3.7), Vector(3.1), Vector(1.44 * 0.0833));
 
     /// Linear PDF in one dimension, constant in rest
     Box box2(Vector(0.), Vector(1.));
-    auto rng2 = makeVectorPdfRng(box2, UniformRng(), [](const Vector& v) { return v[X]; });
+    VectorPdfRng<UniformRng> rng2(box2, [](const Vector& v) { return v[X]; });
     testVectorRng(rng2,
                   Vector(0., 0., 0.),
                   Vector(1., 1., 1.),

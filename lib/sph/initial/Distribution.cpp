@@ -1,5 +1,6 @@
-#include "sph/initial//Distribution.h"
+#include "sph/initial/Distribution.h"
 #include "math/Morton.h"
+#include "objects/finders/Voxel.h"
 #include "system/Profiler.h"
 
 NAMESPACE_SPH_BEGIN
@@ -9,8 +10,7 @@ Array<Vector> RandomDistribution::generate(const Size n, const Abstract::Domain&
     const Vector radius(domain.getBoundingRadius());
     const Box bounds(center - radius, center + radius);
 
-    auto boxRng = makeVectorPdfRng(
-        bounds, HaltonQrng(), [](const Vector&) { return 1._f; }, [](const Vector&) { return 1._f; });
+    VectorPdfRng<HaltonQrng> boxRng(bounds);
     Array<Vector> vecs(0, n);
     // use homogeneous smoothing lenghs regardless of actual spatial variability of particle concentration
     const Float volume = domain.getVolume();
@@ -119,12 +119,19 @@ Array<Vector> HexagonalPacking::generate(const Size n, const Abstract::Domain& d
     return vecs;
 }
 
-/*
-NonUniformDistribution::NonUniformDistribution(const NonUniformDistribution::DensityFunc& particleDensity, const Float error)
-    : particleDensity(particleDensity)
-    , error(error) {}*/
 
-/*Array<Vector> NonUniformDistribution::generate(const Size n, const Abstract::Domain& domain) const {
+DiehlEtAlDistribution::DiehlEtAlDistribution(const DiehlEtAlDistribution::DensityFunc& particleDensity,
+    const Float error,
+    const Size numOfIters,
+    const Float strength,
+    const Float small)
+    : particleDensity(particleDensity)
+    , error(error)
+    , numOfIters(numOfIters)
+    , strength(strength)
+    , small(small) {}
+
+Array<Vector> DiehlEtAlDistribution::generate(const Size n, const Abstract::Domain& domain) const {
     // Renormalize particle density so that integral matches expected particle count
     Float multiplier = 1._f;
     auto actDensity = [this, &multiplier](const Vector& v) { return multiplier * particleDensity(v); };
@@ -133,93 +140,84 @@ NonUniformDistribution::NonUniformDistribution(const NonUniformDistribution::Den
     Size cnt = 0;
     Float particleCnt;
     for (particleCnt = mc.integrate(actDensity); abs(particleCnt - n) > error;) {
-        const Float ratio = n / max(particleCnt, 1.f);
+        const Float ratio = n / max(particleCnt, 1._f);
         multiplier *= ratio;
-        particleCount = mc.integrate(lambda);
+        particleCnt = mc.integrate(actDensity);
         if (cnt++ > 100) { // break potential infinite loop
             break;
         }
     }
-    const Size N = Size(particleCount); // final particle count of the target
+    const Size N = Size(particleCnt); // final particle count of the target
 
-    HaltonQrng rng
+    Box boundingBox(domain.getCenter() - Vector(domain.getBoundingRadius()),
+        domain.getCenter() + Vector(domain.getBoundingRadius()));
+    VectorPdfRng<HaltonQrng> rng(boundingBox, actDensity);
 
     // generate initial particle positions
-    vecs.forAll([&rng](Vector<Length<T>, d>& v) { v = 1._m * rng.rand(); });
+    Array<Vector> vecs;
+    for (Size i = 0; i < N; ++i) {
+        Vector v = rng();
+        const Float n = actDensity(v);
+        const Float h = 1._f / root<3>(n);
+        v[H] = h;
+        vecs.push(v);
+    }
 
-    KdTree tree(vecs);           // TODO: makeKdTree
-    Array<int> neighbours(0, N); // empty array of maximal size N
-    const float correction = strength / (1.f + SMALL);
+    VoxelFinder finder;
+    Array<NeighbourRecord> neighs;
+    finder.build(vecs);
 
+    const Float correction = strength / (1.f + small);
+    // radius of search, does not have to be equal to radius of used SPH kernel
+    const Float kernelRadius = 2._f;
 
-    float average = 0.f;
-    float averageSqr = 0.f;
-    int count;
-    for (int k = 0; k < iterNum; ++k) {
+    for (Size k = 0; k < numOfIters; ++k) {
         // gradually decrease the strength of particle dislocation
-        const float converg = 1.f / sqrt(float(k + 1));
-        std::cout << k << std::endl;
+        const Float converg = 1._f / sqrt(Float(k + 1));
 
-        // statistics
-        average = 0.f;
-        averageSqr = 0.f;
-        count = 0;
-        // reconstruct K-d tree to allow for variable topology of particles
-        tree.rebuildTree();
+        // reconstruct finder to allow for variable topology of particles
+        finder.rebuild();
 
         // for all particles ...
-        for (int i = 0; i < N; ++i) {
-            Vector<Length<T>, d> delta(0._m);
-            const NumberDensity<T> n = lambda(vecs[i]); // average particle density
+        for (Size i = 0; i < N; ++i) {
+            Vector delta(0._f);
+            const Float n = actDensity(vecs[i]); // average particle density
             // average interparticle distance at given point
-            const Length<T> neighbourRadius = KERNEL_RADIUS / root<d>(n);
-            neighbours.resize(0);
-            tree.findNeighbours(vecs[i], neighbourRadius, neighbours, NEIGHBOUR_ERROR);
+            const Float neighbourRadius = kernelRadius / root<3>(n);
+            finder.findNeighbours(i, neighbourRadius, neighs, EMPTY_FLAGS, 1.e-3_f);
 
-            // TODO: find a way to add ghosts
+            /// \todo find a way to add ghosts
             // create ghosts for particles near the boundary
             // Vector<float, d> mirror;
             // if (vecs[i].getSqrLength() > radius - neighbourRadius) {
             //    mirror = vecs[i].sphericalInversion(Vector<float, d>(0.f), radius);
             //    neighbours.push(&mirror);
             //}
-            for (int j = 0; j < neighbours.getSize(); ++j) {
-                const int k = neighbours[j];
+            for (Size j = 0; j < neighs.size(); ++j) {
+                const Size k = neighs[j].index;
                 const Vector diff = vecs[k] - vecs[i];
-                const float lengthSqr = diff.getSqrLength();
+                const Float lengthSqr = getSqrLength(diff);
                 // average kernel radius to allow for the gradient of particle density
-                const float h =
-                    KERNEL_RADIUS * (0.5f / root<d>(lambda(vecs[i])) + 0.5f / root<d>(lambda(vecs[k])));
+                const Float h = kernelRadius *
+                                (0.5f / root<3>(actDensity(vecs[i])) + 0.5f / root<3>(actDensity(vecs[k])));
                 if (lengthSqr > h * h || lengthSqr == 0) {
                     continue;
                 }
-                const float hSqrInv = 1.f / (h * h);
-                const float length = diff.getLength();
-                average += length / h;
-                averageSqr += sqr(length) / sqr(h);
-                count++;
+                const Float hSqrInv = 1.f / (h * h);
+                const Float length = getLength(diff);
+                ASSERT(length != 0._f);
                 const Vector diffUnit = diff / length;
-                const float t =
-                    converg * h * (strength / (SMALL + diff.getSqrLength() * hSqrInv) - correction);
-                if (MOVE_PARTICLES) {
-                    delta += diffUnit * min(t, h); // clamp the dislocation to particle distance
-                }
+                const Float t =
+                    converg * h * (strength / (small + getSqrLength(diff) * hSqrInv) - correction);
+                delta += diffUnit * min(t, h); // clamp the dislocation to particle distance
             }
             vecs[i] = vecs[i] - delta;
-            // project particles outside of the sphere to the boundary
-            if (vecs[i].getSqrLength() > radius * radius) {
-                vecs[i] = radius * vecs[i].getNormalized();
-            }
         }
-        average /= count;
-        averageSqr /= count;
+        // project particles outside of the domain to the boundary
+        domain.project(vecs);
     }
-    // print statistics
-    std::cout << std::endl
-              << "average = " << average << ", variance = " << averageSqr - average * average << std::endl;
 
-
-    return N;
-}*/
+    return vecs;
+}
 
 NAMESPACE_SPH_END

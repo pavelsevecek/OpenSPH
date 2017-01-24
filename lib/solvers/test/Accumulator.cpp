@@ -25,7 +25,7 @@ void accumulate(Storage& storage, ArrayView<Vector> r, TAccumulator& accumulator
             Size j = n.index;
             // all particles have same h, so we dont have to symmetrize
             ASSERT(r[i][H] == r[j][H]);
-            ASSERT(getLength(r[i] - r[j]) < kernel.radius() * r[i][H]);
+            ASSERT(getLength(r[i] - r[j]) <= kernel.radius() * r[i][H]);
             accumulator.template accumulate(i, j, kernel.grad(r[i]-r[j], r[i][H]));
         }
     }

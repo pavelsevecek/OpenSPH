@@ -8,9 +8,9 @@ NAMESPACE_SPH_BEGIN
 
 class Color  {
 private:
-    Vector data;
+    BasicVector<float> data;
 
-    Color(const Vector& data)
+    Color(const BasicVector<float>& data)
         : data(data) {}
 
 public:

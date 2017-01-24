@@ -30,10 +30,15 @@ public:
         : data(_mm_set_epi32(l, k, j, i)) {}
 
     /// Constructs indices by casting components of vectors to ints
-    INLINE explicit Indices(const Vector& v) {
+    INLINE explicit Indices(const BasicVector<float>& v) {
         /// \todo without rounding mode?
         _MM_SET_ROUNDING_MODE(_MM_ROUND_DOWN);
         data = _mm_cvtps_epi32(v.sse());
+    }
+
+    INLINE explicit Indices(const BasicVector<double>& v) {
+        /// \todo optimize
+        *this = Indices(v[0], v[1], v[2], v[3]);
     }
 
     INLINE Indices(const Indices& other)
@@ -44,7 +49,12 @@ public:
         return *this;
     }
 
-    INLINE operator Vector() const { return Vector(_mm_cvtepi32_ps(data)); }
+    INLINE operator BasicVector<float>() const { return BasicVector<float>(_mm_cvtepi32_ps(data)); }
+
+    INLINE operator BasicVector<double>() const {
+        /// \todo optimize
+        return BasicVector<double>((*this)[0], (*this)[1], (*this)[2], (*this)[3]);
+    }
 
     INLINE int& operator[](const int idx) {
         ASSERT(unsigned(idx) < 4);

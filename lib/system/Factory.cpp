@@ -64,8 +64,8 @@ std::unique_ptr<Abstract::Distribution> Factory::getDistribution(const BodySetti
         return std::make_unique<CubicPacking>();
     case DistributionEnum::RANDOM:
         return std::make_unique<RandomDistribution>();
-    /*case DistributionEnum::DIEHL_ET_AL:
-        return std::make_unique<DiehlDistribution>();*/
+    case DistributionEnum::DIEHL_ET_AL:
+        return std::make_unique<DiehlEtAlDistribution>([](const Vector&) { return 1._f; });
     case DistributionEnum::LINEAR:
         return std::make_unique<LinearDistribution>();
     default:

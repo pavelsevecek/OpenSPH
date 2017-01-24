@@ -50,6 +50,8 @@ public:
             return CubicSpline<d>();
         case KernelEnum::FOURTH_ORDER_SPLINE:
             return FourthOrderSpline<d>();
+        case KernelEnum::GAUSSIAN:
+            return Gaussian<d>();
         case KernelEnum::CORE_TRIANGLE:
             ASSERT(d == 3);
             return CoreTriangle();

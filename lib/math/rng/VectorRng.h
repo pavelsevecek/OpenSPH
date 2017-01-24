@@ -8,7 +8,7 @@
 
 NAMESPACE_SPH_BEGIN
 
-/// Wrapper for generating random d-dimensional vectors. Takes RNG as template parameter, and can either keep
+/// Wrapper for generating random vectors. Takes RNG as template parameter, and can either keep
 /// reference to other RNG object, or create RNG object of its own.
 template <typename TScalarRng>
 class VectorRng : public Noncopyable {
@@ -36,101 +36,72 @@ public:
 
     Vector operator()() { return Vector(rngImpl(0), rngImpl(1), rngImpl(2)); }
 
-    Float getAdditional(const int i) {
-        ASSERT(i >= 3); // first 3 indices taken by vector
+    /// Generates additional random numbers, can be viewed as extension of vector to more dimensions.
+    /// \param i Index of dimension, must be at least 3 as first three dimensions belong to the vector.
+    Float getAdditional(const Size i) {
+        ASSERT(i >= 3);
         return rngImpl(i);
     }
 };
 
 /// Generic generator of random vectors using sampling with given PDF.
-/// PDF must have units such that \int pdf(x) jacobian(x) dV = dimensionless, however it does NOT have to be
-/// normalized (integral does not have to be 1)
+/// PDF does NOT have to be normalized (integral does not have to be 1).
 /// \todo make jacobian work, create few basic coordinate systems
-template <typename TScalarRng, typename TPdf, typename TJacobian>
+template <typename TScalarRng>
 class VectorPdfRng : public Noncopyable {
-    static_assert(!std::is_reference<TPdf>::value, "Cannot use with reference Pdf");
-    static_assert(!std::is_reference<TJacobian>::value, "Cannot use with reference Jacobian");
-
 private:
     Box box;
-    TPdf pdf;
-    TJacobian jac;
     VectorRng<TScalarRng> vectorRng;
+    std::function<Float(const Vector&)> pdf;
+    std::function<Float(const Vector&)> jacobian;
     Float maxPdf;
 
 public:
     /// Construct a random vector generator.
-    /// Cannot be used directly unless template parameters are explicitly specified.
-    /// Use makeVectorRng if the type is unknown (lambdas)
     /// \param box bounds for minimal and maximal random values
-    /// \param rng underlying uniform random-number generator.
-    ///            Must implement T operator()(int component).
-    /// \param lambda used pdf. Must return PdfType, does NOT have to be normalized. Default is uniform
-    /// sampling.
-    /// \param jacobian used jacobian if other coordinate system is used. Default is cartesian system.
+    /// \param pdf Used PDF. Default value means uniform sampling. Does not have to be normalized, but must
+    /// return strictly non-negative values.
+    /// \param jacobian Used Jacobian if other coordinate system is to be used. Default is cartesian system.
+    /// \param maximalPdf Maximal value of given PDF. By default, the value is estimated from the function
+    /// itself.
     VectorPdfRng(const Box& box,
-                 TScalarRng&& rng,
-                 TPdf&& lambda        = [](const Vector&) { return 1._f; },
-                 TJacobian&& jacobian = [](const Vector&) { return 1._f; })
+        const std::function<Float(const Vector&)>& pdf = [](const Vector&) { return 1._f; },
+        const std::function<Float(const Vector&)>& jacobian = [](const Vector&) { return 1._f; },
+        const Float maximalPdf = 0._f)
         : box(box)
-        , pdf(std::move(lambda))
-        , jac(std::move(jacobian))
-        , vectorRng(std::forward<TScalarRng>(rng)) {
-        // step for finding pdf maximum
-        // TODO: should depend on jacobian
-        const Vector delta = 0.05_f * box.size();
-        maxPdf             = 0._f;
-        /// \todo jacobian
-        box.iterate(delta, [this](const Vector& v) { maxPdf = max(maxPdf, pdf(v) * jac(v)); });
+        , pdf(pdf)
+        , jacobian(jacobian)
+        , maxPdf(maximalPdf) {
+        if (maxPdf == 0._f) {
+            // step for finding pdf maximum
+            /// \todo should depend on jacobian
+            const Vector delta = 0.05_f * box.size();
+            /// \todo jacobian
+            box.iterate(delta,
+                [&](const Vector& v) { this->maxPdf = max(this->maxPdf, this->pdf(v) * this->jacobian(v)); });
+        }
     }
 
     VectorPdfRng(VectorPdfRng&& other)
         : box(std::move(other.box))
-        , pdf(std::move(other.pdf))
-        , jac(std::move(other.jac))
         , vectorRng(std::move(other.vectorRng))
+        , pdf(std::move(other.pdf))
+        , jacobian(std::move(other.jacobian))
         , maxPdf(other.maxPdf) {}
-
 
     Vector operator()() {
         ASSERT(getLength(box.size()) > 0._f);
-        while (true) {
-            Vector v     = vectorRng() * box.size() + box.lower();
-            const auto p = vectorRng.getAdditional(4) * maxPdf;
-            if (p < pdf(v) * jac(v)) {
+        for (Size i = 0; i < 1000; ++i) {
+            Vector v = vectorRng() * box.size() + box.lower();
+            const Float p = vectorRng.getAdditional(4) * maxPdf;
+            if (p < pdf(v) * jacobian(v)) {
                 return v;
             }
         }
+        ASSERT(false && "Couldn't generate vector in 1000 iterations");
+        return Vector(0._f);
     }
 };
-
-
-template <typename TRng, typename TPdf, typename TJacobian>
-auto makeVectorPdfRng(const Box& box,
-                      TRng&& rng,
-                      TPdf&& lambda        = [](const Vector&) { return 1._f; },
-                      TJacobian&& jacobian = [](const Vector&) { return 1._f; }) {
-    return VectorPdfRng<TRng, TPdf, TJacobian>(box,
-                                               std::forward<TRng>(rng),
-                                               std::forward<TPdf>(lambda),
-                                               std::forward<TJacobian>(jacobian));
-}
-
-
-template <typename TRng, typename TPdf>
-auto makeVectorPdfRng(const Box& box, TRng&& rng, TPdf&& lambda = [](const Vector&) { return 1._f; }) {
-    return makeVectorPdfRng(box,
-                            std::forward<TRng>(rng),
-                            std::forward<TPdf>(lambda),
-                            [](const Vector&) { return 1._f; });
-}
-
-template <typename TRng>
-auto makeVectorPdfRng(const Box& box, TRng&& rng) {
-    return makeVectorPdfRng(box, std::forward<TRng>(rng), [](const Vector&) {
-        return 1._f;
-    });
-}
 
 
 NAMESPACE_SPH_END

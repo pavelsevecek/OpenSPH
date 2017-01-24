@@ -22,17 +22,20 @@ NAMESPACE_SPH_BEGIN
 void MyApp::initialConditions(const GlobalSettings& globalSettings, const std::shared_ptr<Storage>& storage) {
     auto bodySettings = BODY_SETTINGS;
     bodySettings.set(BodySettingsIds::ENERGY, 1.e2_f);
-    bodySettings.set(BodySettingsIds::PARTICLE_COUNT, 1000);
+    bodySettings.set(BodySettingsIds::PARTICLE_COUNT, 50);
     bodySettings.set(BodySettingsIds::EOS, EosEnum::TILLOTSON);
     InitialConditions conds(storage, globalSettings);
 
+    StdOutLogger logger;
     SphericalDomain domain1(Vector(0._f), 5e3_f); // D = 10km
     conds.addBody(domain1, bodySettings);
+    logger.write("Particles of target: ", storage->getParticleCnt());
 
 //    SphericalDomain domain2(Vector(4785.5_f, 3639.1_f, 0._f), 146.43_f); // D = 280m
     SphericalDomain domain2(Vector(3785.5093557306_f, 3639.0771274993_f, 0._f), 146.4322282313_f);
-    bodySettings.set(BodySettingsIds::PARTICLE_COUNT, 100);
+    bodySettings.set(BodySettingsIds::PARTICLE_COUNT, 5);
     conds.addBody(domain2, bodySettings, Vector(-5.e3_f, 0._f, 0._f)); // 5km/s
+    logger.write("Particles in total: ", storage->getParticleCnt());
 }
 
 bool MyApp::OnInit() {
@@ -42,7 +45,7 @@ bool MyApp::OnInit() {
     globalSettings.set(GlobalSettingsIds::DOMAIN_TYPE, DomainEnum::SPHERICAL);*/
     globalSettings.set(GlobalSettingsIds::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::PREDICTOR_CORRECTOR);
     globalSettings.set(GlobalSettingsIds::TIMESTEPPING_ADAPTIVE, true);
-    globalSettings.set(GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP, 1.e-4_f);
+    globalSettings.set(GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP, 0._f); // 1.e-4_f);
     globalSettings.set(GlobalSettingsIds::TIMESTEPPING_MAX_TIMESTEP, 1.e-1_f);
     globalSettings.set(GlobalSettingsIds::MODEL_FORCE_DIV_S, true);
     globalSettings.set(GlobalSettingsIds::SPH_FINDER, FinderEnum::VOXEL);

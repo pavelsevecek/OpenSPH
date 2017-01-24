@@ -26,6 +26,12 @@ TEST_CASE("Vector construction", "[vector]") {
     for (int i = 0; i < 3; ++i) {
         REQUIRE(v4[i] == 3._f);
     }
+
+    Vector v5(5._f, 4._f, 3._f, 2._f);
+    REQUIRE(v5[0] == 5._f);
+    REQUIRE(v5[1] == 4._f);
+    REQUIRE(v5[2] == 3._f);
+    REQUIRE(v5[3] == 2._f);
 }
 
 TEST_CASE("Vector binary operators", "[vector]") {
@@ -88,6 +94,22 @@ TEST_CASE("Vector length", "[vector]") {
     REQUIRE(getLength(v2) == Sph::sqrt(3._f));
 }
 
+TEST_CASE("Vector normalization", "[vector]") {
+    Vector v1(3._f, 4._f, 5._f);
+    const Float length = getLength(v1);
+    Vector nv1 = getNormalized(v1);
+    REQUIRE(nv1[0] == 3._f / length);
+    REQUIRE(nv1[1] == 4._f / length);
+    REQUIRE(nv1[2] == 5._f / length);
+    REQUIRE(nv1 == v1 / length);
+
+    Float l;
+    Vector nv2;
+    tieToTuple(nv2, l) = getNormalizedWithLength(v1);
+    REQUIRE(l == length);
+    REQUIRE(nv2 == nv1);
+}
+
 TEST_CASE("Vector products", "[vector]") {
     // dot product
     Vector v1(1._f, 2._f, 3._f);
@@ -99,6 +121,18 @@ TEST_CASE("Vector products", "[vector]") {
     Vector expected(27._f, 6._f, -13._f);
     REQUIRE(cross(v1, v2) == expected);
     REQUIRE(cross(v2, v1) == -expected);
+
+    const int nRounds = 10;
+    for (int i = 0; i < nRounds; ++i) {
+        const Vector v1 = randomVector();
+        const Vector v2 = randomVector();
+        // cross product is perpendicular to both vectors
+        const Vector c = cross(v1, v2);
+        const float dot1 = dot(c, v1);
+        const float dot2 = dot(c, v2);
+        REQUIRE(abs(dot1) <= EPS);
+        REQUIRE(abs(dot2) <= EPS);
+    }
 }
 
 TEST_CASE("Vector utilities", "[vector]") {
@@ -120,21 +154,6 @@ TEST_CASE("Vector inequalities", "[vectors]") {
 
         // Cauchy-Schwarz inequality
         REQUIRE(abs(dot(v1, v2)) <= getLength(v1) * getLength(v2));
-    }
-}
-
-TEST_CASE("Vector product", "[vectors]") {
-    // for d=3 only
-    const int nRounds = 10;
-    for (int i = 0; i < nRounds; ++i) {
-        const Vector v1 = randomVector();
-        const Vector v2 = randomVector();
-        // cross product is perpendicular to both vectors
-        const Vector c = cross(v1, v2);
-        const float dot1 = dot(c, v1);
-        const float dot2 = dot(c, v2);
-        REQUIRE(abs(dot1) <= EPS);
-        REQUIRE(abs(dot2) <= EPS);
     }
 }
 

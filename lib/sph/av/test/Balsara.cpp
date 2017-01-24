@@ -160,7 +160,7 @@ TEST_CASE("Balsara divergent flow", "[av]") {
             const Size j = n.index;
             const Float orig = standardAv(i, j);
             const Float reduced = balsaraAv(i, j);
-            if (!almostEqual(reduced, orig)) {
+            if (!almostEqual(reduced, orig, 1.e-6_f)) {
                 logger.write("Balsara changed AV in divergent flow! ", reduced, " / ", orig);
                 logger.write("particle: i = ", i);
                 logger.write("          divv = ", divv[i], " & ", divv[j]);

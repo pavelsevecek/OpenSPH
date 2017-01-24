@@ -2,6 +2,7 @@
 #include "quantities/Iterate.h"
 #include "solvers/AbstractSolver.h"
 #include "system/Profiler.h"
+#include <iostream>
 
 NAMESPACE_SPH_BEGIN
 
@@ -76,15 +77,6 @@ void PredictorCorrector::stepImpl(Abstract::Solver& solver) {
     // compute derivative
     solver.integrate(*this->storage);
 
-
-/*    iterate<VisitorEnum::HIGHEST_DERIVATIVES>(*storage, [](const QuantityIds id, auto&& dv) {
-        std::cout << "Quantity " << id << std::endl;
-        for (Size i = 0; i < dv.size(); ++i) {
-            std::cout << i << "  |  " << dv[i] << std::endl;
-        }
-    });*/
-
-
     PROFILE_NEXT("PredictorCorrector::step   Corrections");
     // make corrections
     // clang-format off
@@ -109,6 +101,23 @@ void PredictorCorrector::stepImpl(Abstract::Solver& solver) {
         q.second.clamp();
     }
     // clang-format on
+
+/*    iterate<VisitorEnum::HIGHEST_DERIVATIVES>(*storage, [](const QuantityIds id, auto&& dv) {
+        std::cout << "Quantity " << id << std::endl;
+        for (Size i = 0; i < dv.size(); ++i) {
+            std::cout << i << "  |  " << dv[i] << std::endl;
+        }
+    });*/
+    /*ArrayView<TracelessTensor> s, ds;
+    tie(s, ds) = storage->getAll<TracelessTensor>(QuantityIds::DEVIATORIC_STRESS);
+    for (Size i =0;i<s.size() ;++i) {
+        std::cout << i << s[i] << std::endl << ds[i] << std::endl;
+    }*/
+    /*ArrayView<Float> D, dD;
+    tie(D, dD) = storage->getAll<Float>(QuantityIds::DAMAGE);
+    for (Size i =0;i<D.size() ;++i) {
+        std::cout << i << D[i] << dD[i] << std::endl;
+    }*/
 }
 
 

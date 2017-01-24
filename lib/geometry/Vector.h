@@ -408,6 +408,12 @@ public:
         return *(reinterpret_cast<double*>(&data) + i);
     }
 
+    template <int i>
+    INLINE const __m128d& sse() const {
+        static_assert(unsigned(i) < 2, "Invalid index");
+        return data[i];
+    }
+
     /// Copy operator
     INLINE BasicVector& operator=(const BasicVector& v) {
         data[0] = v.data[0];
@@ -503,39 +509,15 @@ public:
 
     INLINE friend bool operator!=(const BasicVector& v1, const BasicVector& v2) { return !(v1 == v2); }
 
-    INLINE auto dot(const BasicVector& other) const {
-        /// \todo optimize
-        return this->get<0>() * other.get<0>() + this->get<1>() * other.get<1>() +
-               this->get<2>() * other.get<2>();
-        /*const __m128d first  = _mm_dp_pd(data[0], other.data[0], 0x31);
-        const __m128d second = _mm_dp_pd(data[1], other.data[1], 0x21);
-        return *(const double*)(&first) + *(const double*)(&second);*/
-    }
-
-    /// \todo optimize
-    INLINE auto cross(const BasicVector& other) const {
-        return BasicVector(this->get<1>() * other.get<2>() - this->get<2>() * other.get<1>(),
-            this->get<2>() * other.get<0>() - this->get<0>() * other.get<2>(),
-            this->get<0>() * other.get<1>() - this->get<1>() * other.get<0>());
-    }
-
-    /// Component-wise minimum
-    INLINE BasicVector min(const BasicVector& other) const {
-        return BasicVector(_mm_min_pd(data[0], other.data[0]), _mm_min_pd(data[1], other.data[1]));
-    }
-
-    /// Component-wise maximum
-    INLINE BasicVector max(const BasicVector& other) const {
-        return BasicVector(_mm_max_pd(data[0], other.data[0]), _mm_max_pd(data[1], other.data[1]));
-    }
-
     /// Output to stream
     template <typename TStream>
     friend TStream& operator<<(TStream& stream, const BasicVector& v) {
         constexpr int digits = 6;
+        stream << std::setprecision(digits);
         for (int i = 0; i < 3; ++i) {
-            stream << std::setprecision(digits) << v[i];
+            stream << std::setw(15) << v[i];
         }
+        return stream;
     }
 };
 #endif
@@ -547,17 +529,28 @@ using Vector = BasicVector<Float>;
 /// Vector utils
 
 /// Generic dot product between two vectors.
-INLINE Float dot(const Vector& v1, const Vector& v2) {
+INLINE float dot(const BasicVector<float>& v1, const BasicVector<float>& v2) {
     constexpr int d = 3;
     return _mm_cvtss_f32(_mm_dp_ps(v1.sse(), v2.sse(), (1 << (d + 4)) - 0x0F));
 }
 
+INLINE double dot(const BasicVector<double>& v1, const BasicVector<double>& v2) {
+    /// \todo optimize
+    return v1[X] * v2[X] + v1[Y] * v2[Y] + v1[Z] * v2[Z];
+}
+
 /// Cross product between two vectors.
-INLINE Vector cross(const Vector& v1, const Vector& v2) {
+INLINE BasicVector<float> cross(const BasicVector<float>& v1, const BasicVector<float>& v2) {
     return _mm_sub_ps(_mm_mul_ps(_mm_shuffle_ps(v1.sse(), v1.sse(), _MM_SHUFFLE(3, 0, 2, 1)),
                           _mm_shuffle_ps(v2.sse(), v2.sse(), _MM_SHUFFLE(3, 1, 0, 2))),
         _mm_mul_ps(_mm_shuffle_ps(v1.sse(), v1.sse(), _MM_SHUFFLE(3, 1, 0, 2)),
             _mm_shuffle_ps(v2.sse(), v2.sse(), _MM_SHUFFLE(3, 0, 2, 1))));
+}
+
+INLINE BasicVector<double> cross(const BasicVector<double>& v1, const BasicVector<double>& v2) {
+    /// \todo optimize
+    return BasicVector<double>(
+        v1[Y] * v2[Z] - v1[Z] * v2[Y], v1[Z] * v2[X] - v1[X] * v2[Z], v1[X] * v2[Y] - v1[Y] * v2[X]);
 }
 
 /// Returns squared length of the vector. Faster than simply getting length as there is no need to compute
@@ -594,15 +587,26 @@ INLINE Tuple<Vector, Float> getNormalizedWithLength(const Vector& v) {
 
 /// Component-wise minimum
 template <>
-INLINE Vector min(const Vector& v1, const Vector& v2) {
+INLINE BasicVector<float> min(const BasicVector<float>& v1, const BasicVector<float>& v2) {
     return _mm_min_ps(v1.sse(), v2.sse());
+}
+
+template <>
+INLINE BasicVector<double> min(const BasicVector<double>& v1, const BasicVector<double>& v2) {
+    return { _mm_min_pd(v1.sse<0>(), v2.sse<0>()), _mm_min_pd(v1.sse<1>(), v2.sse<1>()) };
 }
 
 /// Component-wise maximum
 template <>
-INLINE Vector max(const Vector& v1, const Vector& v2) {
+INLINE BasicVector<float> max(const BasicVector<float>& v1, const BasicVector<float>& v2) {
     return _mm_max_ps(v1.sse(), v2.sse());
 }
+
+template <>
+INLINE BasicVector<double> max(const BasicVector<double>& v1, const BasicVector<double>& v2) {
+    return { _mm_max_pd(v1.sse<0>(), v2.sse<0>()), _mm_max_pd(v1.sse<1>(), v2.sse<1>()) };
+}
+
 
 /// Component-wise clamping
 template <>
@@ -645,15 +649,22 @@ INLINE Float minElement(const Vector& v) {
 
 /// Computes vector of absolute values.
 template <>
-INLINE auto abs(const Vector& v) {
-    return Vector(_mm_andnot_ps(_mm_set1_ps(-0.f), v.sse()));
+INLINE auto abs(const BasicVector<float>& v) {
+    return BasicVector<float>(_mm_andnot_ps(_mm_set1_ps(-0.f), v.sse()));
 }
 
-/// Computes vector of inverse squared roots.
 template <>
+INLINE auto abs(const BasicVector<double>& v) {
+    return BasicVector<double>(
+        _mm_andnot_pd(_mm_set1_pd(-0.), v.sse<0>()), _mm_andnot_pd(_mm_set1_pd(-0.), v.sse<1>()));
+}
+
+
+/// Computes vector of inverse squared roots.
+/*template <>
 INLINE Vector sqrtInv(const Vector& v) {
     return _mm_rsqrt_ss(v.sse());
-}
+}*/
 
 template <>
 INLINE bool isReal(const Vector& v) {

@@ -94,6 +94,9 @@ enum class KernelEnum {
     /// M5 B-spline (piecewise 4th-order polynomial)
     FOURTH_ORDER_SPLINE,
 
+    /// Gaussian function
+    GAUSSIAN,
+
     /// Core Triangle (CT) kernel by Read et al. (2010)
     CORE_TRIANGLE
 };
@@ -373,7 +376,7 @@ const Settings<GlobalSettingsIds> GLOBAL_SETTINGS = {
     { GlobalSettingsIds::TIMESTEPPING_MAX_TIMESTEP,     "timestep.max_step",        0.1_f /*s*/}, /// \todo units necessary in settings!!!
     { GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP, "timestep.initial",         0.03_f },
     { GlobalSettingsIds::TIMESTEPPING_ADAPTIVE,         "timestep.adaptive",        false },
-    { GlobalSettingsIds::TIMESTEPPING_ADAPTIVE_FACTOR,  "timestep.adaptive.factor", 0.1_f },
+    { GlobalSettingsIds::TIMESTEPPING_ADAPTIVE_FACTOR,  "timestep.adaptive.factor", 0.2_f },
 
     /// Selected coordinate system, rotation of bodies
     { GlobalSettingsIds::FRAME_ANGULAR_FREQUENCY,       "frame.angular_frequency",  0._f },
@@ -569,7 +572,7 @@ const Settings<BodySettingsIds> BODY_SETTINGS = {
     { BodySettingsIds::DENSITY_MIN,             "material.density.min",         50._f },
     { BodySettingsIds::ENERGY,                  "material.energy",              0._f },
     { BodySettingsIds::ENERGY_RANGE,            "material.energy.range",        Range(0._f, Extended::infinity()) },
-    { BodySettingsIds::ENERGY_MIN,              "material.energy.min",          1e-3_f },
+    { BodySettingsIds::ENERGY_MIN,              "material.energy.min",          1._f },
     { BodySettingsIds::DAMAGE,                  "material.damage",              0._f },
     { BodySettingsIds::DAMAGE_RANGE,            "material.damage.range",        Range(0.f, 1._f) },
     { BodySettingsIds::DAMAGE_MIN,              "material.damage.min",          0.03_f },

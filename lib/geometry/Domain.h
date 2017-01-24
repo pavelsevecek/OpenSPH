@@ -53,6 +53,7 @@ namespace Abstract {
         /// number means the particle is lying outside of the domain.
         /// \param vs Input array of partices.
         /// \param distances Output array, will be resized to the size of particle array and cleared.
+        /// \todo currently not used, remove?
         virtual void getDistanceToBoundary(ArrayView<const Vector> vs, Array<Float>& distances) const = 0;
 
         /// Projects vectors outside of the domain onto its boundary. Vectors inside the domain are untouched.
@@ -358,7 +359,7 @@ public:
             const Float dist = radius - getLength(Vector(v[X], v[Y], this->center[Z]) - this->center);
             if (includeBases) {
                 /// \todo properly implement includeBases
-                distances.push(min(dist, abs(0.5_f * height - (v[Z] - this->center[Z]))));
+                distances.push(min(dist, abs(0.5_f * height - abs(v[Z] - this->center[Z]))));
             } else {
                 distances.push(dist);
             }
@@ -425,9 +426,156 @@ public:
 
 private:
     INLINE bool isInsideImpl(const Vector& v) const {
-        return getSqrLength(Vector(v[X], v[Y], this->center[Z]) - center) < radiusSqr &&
-               sqr(v[Z] - this->center[Z]) < sqr(0.5_f * height);
+        return getSqrLength(Vector(v[X], v[Y], this->center[Z]) - center) <= radiusSqr &&
+               sqr(v[Z] - this->center[Z]) <= sqr(0.5_f * height);
     }
+};
+
+
+/// Similar to cylindrical domain, but bases are hexagons instead of circles. Hexagons are oriented so that
+/// two sides are parallel with x-axis.
+class HexagonalDomain : public Abstract::Domain {
+private:
+    Float outerRadiusSqr; // bounding radius of the base
+    Float innerRadiusSqr;
+    Float height;
+    bool includeBases;
+
+public:
+    HexagonalDomain(const Vector& center, const Float radius, const Float height, const bool includeBases)
+        : Abstract::Domain(center, sqrt(sqr(radius) + sqr(height)))
+        , outerRadiusSqr(radius * radius)
+        , innerRadiusSqr(0.75_f * outerRadiusSqr)
+        , height(height)
+        , includeBases(includeBases) {}
+
+    virtual Float getVolume() const override {
+        // 6 equilateral triangles
+        return 1.5_f * sqrt(3) * outerRadiusSqr;
+    }
+
+    virtual bool isInside(const Vector& v) const override { return this->isInsideImpl(v); }
+
+    virtual void getSubset(ArrayView<const Vector> vs,
+        Array<Size>& output,
+        const SubsetType type) const override {
+        switch (type) {
+        case SubsetType::OUTSIDE:
+            for (Size i = 0; i < vs.size(); ++i) {
+                if (!isInsideImpl(vs[i])) {
+                    output.push(i);
+                }
+            }
+            break;
+        case SubsetType::INSIDE:
+            for (Size i = 0; i < vs.size(); ++i) {
+                if (isInsideImpl(vs[i])) {
+                    output.push(i);
+                }
+            }
+        }
+    }
+
+    virtual void getDistanceToBoundary(ArrayView<const Vector>, Array<Float>&) const override {
+        NOT_IMPLEMENTED;
+    }
+
+    virtual void project(ArrayView<Vector> vs, Optional<ArrayView<Size>> indices = NOTHING) const override {
+        Float radius = sqrt(outerRadiusSqr);
+        auto impl = [this, radius](Vector& v) {
+            if (!isInsideImpl(v)) {
+                // find triangle
+                const Float phi = atan2(v[Y], v[X]);
+                const Float r = * radius * hexagon(phi);
+                const Vector u = r * getNormalized(Vector(v[X], v[Y], 0._f));
+                v = Vector(u[X], u[Y], v[Z], v[H]);
+            }
+        };
+        ASSERT(!includeBases); // including bases not implemented
+        if (indices) {
+            for (Size i : indices.get()) {
+                impl(vs[i]);
+            }
+        } else {
+            for (Vector& v : vs) {
+                impl(v);
+            }
+        }
+    }
+
+    virtual void addGhosts(ArrayView<const Vector> vs,
+        Array<Ghost>& ghosts,
+        const Float eta,
+        const Float eps) const override {
+        ghosts.clear();
+        ASSERT(eps < eta);
+        Float radius = sqrt(outerRadiusSqr);
+        for (Size i = 0; i < vs.size(); ++i) {
+            if (!isInsideImpl(vs[i])) {
+                continue;
+            }
+            Float length;
+            Vector normalized;
+            tieToTuple(normalized, length) =
+                getNormalizedWithLength(Vector(vs[i][X], vs[i][Y], this->center[Z]) - this->center);
+            const Float h = vs[i][H];
+            ASSERT(radius - length >= 0._f);
+            Float diff = max(eps * h, radius - length);
+            if (diff < h * eta) {
+                Vector v = vs[i] + 2._f * diff * normalized;
+                v[H] = h;
+                ghosts.push(Ghost{ v, i });
+            }
+            if (includeBases) {
+                diff = 0.5_f * height - (vs[i][Z] - this->center[Z]);
+                if (diff < h * eta) {
+                    ghosts.push(Ghost{ vs[i] + Vector(0._f, 0._f, 2._f * diff), i });
+                }
+                diff = 0.5_f * height - (this->center[Z] - vs[i][Z]);
+                if (diff < h * eta) {
+                    ghosts.push(Ghost{ vs[i] - Vector(0._f, 0._f, 2._f * diff), i });
+                }
+            }
+        }
+    }
+
+private:
+    INLINE bool isInsideImpl(const Vector& v) const {
+        if (sqr(v[Z] - this->center[Z]) > sqr(0.5_f * height)) {
+            return false;
+        }
+        const Float sqrLength = getSqrLength(v);
+        if (sqrLength > outerRadiusSqr) {
+            return false;
+        }
+        if (sqrLength <= innerRadiusSqr) {
+            return true;
+        }
+        const Float phi = atan2(v[Y], v[X]);
+        return getSqrLength(Vector(v[X], v[Y], 0._f)) <= sqr(hexagon(phi));
+        /*
+
+        const Float radius = sqrt(outerRadiusSqr);
+        const Vector v1(radius, 0._f, 0._f);                                //   v3 ___ v2
+        const Vector v2(0.5_f * radius, 0.5_f * sqrt(3._f) * radius, 0._f); // -v1 // \\ v1
+        const Vector v3(-0.5_f * radius, v2[Y], 0._f);                      // -v2 \\_// -v3
+        const Vector u(v[X], v[Y], 0._f);
+        return isInsidePartial(u, v1, v2) || isInsidePartial(u, v2, v3) || isInsidePartial(u, v3, -v1);*/
+    }
+
+    /// Polar plot of hexagon
+    INLINE Float hexagon(const Float phi) {
+        return 0.5_f * SQRT_3 * 1._f / sin(phi - PI / 3._f * (floor(phi / (PI / 3._f)) - 1._f));
+    }
+
+    /// Checks if vector u is inside an double-triangle with sides v1, v2 and -v1,-v2
+    /*INLINE bool isInsidePartial(const Vector& u, const Vector& v1, const Vector& v2) const {
+        const Float den = (dot(v2, v2) * dot(v1, v1) - dot(v2, v1) * dot(v2, v1));
+        ASSERT(den != 0._f);
+        const Float a = (dot(v1, v1) * dot(v2, u) - dot(v2, v1) * dot(v1, u)) / den;
+        const Float b = (dot(v2, v2) * dot(v1, u) - dot(v2, v1) * dot(v2, u)) / den;
+        return (a * b >= 0 && abs(a + b) <= 1._f);
+    }*/
 };
 
 

@@ -63,11 +63,14 @@ private:
 
 
 /// Distribution with given particle density. Particles are placed using algorithm by Diehl et al. (2012).
-/*class NonUniformDistribution : public Abstract::Distribution {
+class DiehlEtAlDistribution : public Abstract::Distribution {
 private:
     using DensityFunc = std::function<Float(const Vector& position)>;
     DensityFunc particleDensity;
     Float error;
+    Size numOfIters;
+    Float strength;
+    Float small;
 
 public:
     /// Constructs a distribution using function returning expected particle density at given position.
@@ -75,12 +78,23 @@ public:
     /// relevant.
     /// \param error Allowed relative error in number of generated particles. Lower value generates number of
     ///              particles closer to required value, but takes longer to compute.
-    NonUniformDistribution(const DensityFunc& particleDensity, const Float error);
+    /// \param numOfIters Number of iterations. For zero, distribution of particles is simply random, higher
+    ///                   values lead to more evenly distributed particles (less discrepancy), but also take
+    ///                   longer to compute.
+    /// \param strenth Magnitude of repulsive force between particles that iteratively moves the to their
+    ///                final locations. Larger values mean faster convergence but less stable particle grid.
+    /// \param small Normalization value to prevent division by zero for overlapping particles. Keep default,
+    ///              only for testing.
+    DiehlEtAlDistribution(const DensityFunc& particleDensity,
+        const Float error = 10,
+        const Size numOfIters = 50,
+        const Float strenth = 0.1_f,
+        const Float small = 0.1_f);
 
     /// Returns generated particle distribution. Smoothing lengths correspond to particle density given in the
     /// constructor (as h ~ n^(-1/3) )
     virtual Array<Vector> generate(const Size n, const Abstract::Domain& domain) const override;
-};*/
+};
 
 
 /// Generates particles uniformly on a line in x direction, for testing purposes. Uses only center and radius

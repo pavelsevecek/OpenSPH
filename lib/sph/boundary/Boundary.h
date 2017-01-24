@@ -44,7 +44,17 @@ private:
 public:
     GhostParticles(std::unique_ptr<Abstract::Domain>&& domain, const GlobalSettings& settings);
 
+    /// \todo we hold indices into the storage we get from parameter. There is no guarantee the storage is the
+    /// same each time and that it wasn't changed. Think of a better way of doing this, possibly by creating
+    /// helper quantity (index of source particle for ghosts and something like -1 for regular particles.
     virtual void apply(Storage& storage) override;
+
+
+    /// Removes all ghost particles from the storage. This does not have to be called before apply, ghosts are
+    /// removed and added automatically.
+    /// \todo Currently needs to be called before data output as ghosts would be saved together with "regular"
+    ///       particles. This shouldn't happen, ghosts should be removed automatically.
+    void removeGhosts(Storage& storage);
 };
 
 

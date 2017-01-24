@@ -13,7 +13,7 @@ NAMESPACE_SPH_BEGIN
 /// All derived class must implement method <code>value</code> and
 /// <code>grad</code>. Both function take SQUARED value of dimensionless distance q as a parameter. Function
 /// value returns the kernel value, grad returns gradient DIVIDED BY q.
-template <class TDerived, int D>
+template <typename TDerived, Size D>
 class Kernel : public Noncopyable {
 private:
     const TDerived* kernel;
@@ -43,7 +43,7 @@ public:
 
 
 /// A look-up table approximation of the kernel. Can be constructed from any SPH kernel.
-template <int D>
+template <Size D>
 class LutKernel : public Kernel<LutKernel<D>, D> {
 private:
     static constexpr int NEntries = 40000;
@@ -104,9 +104,9 @@ public:
         }
         // linear interpolation of stored values
         const Float floatIdx = Float(NEntries) * qSqr * radInvSqr;
-        const int idx1 = Size(floatIdx);
+        const Size idx1 = Size(floatIdx);
         ASSERT(idx1 < NEntries);
-        const int idx2 = idx1 + 1;
+        const Size idx2 = idx1 + 1;
         const Float ratio = floatIdx - Float(idx1);
 
         return values[idx1] * (1._f - ratio) + (idx2 < NEntries ? values[idx2] : 0._f) * ratio;
@@ -131,7 +131,7 @@ public:
 
 
 /// A cubic spline (M4) kernel
-template <int D>
+template <Size D>
 class CubicSpline : public Kernel<CubicSpline<D>, D> {
 private:
     const Float normalization[3] = { 2._f / 3._f, 10._f / (7._f * PI), 1._f / PI };
@@ -173,7 +173,7 @@ public:
 };
 
 /// A fourth-order spline (M5) kernel
-template <int D>
+template <Size D>
 class FourthOrderSpline : public Kernel<FourthOrderSpline<D>, D> {
 private:
     const Float normalization[3] = { 1._f / 24._f, 96._f / (1199._f * PI), 1._f / (20._f * PI) };
@@ -204,7 +204,7 @@ public:
     INLINE Float gradImpl(const Float qSqr) const {
         const Float q = sqrt(qSqr);
         if (q == 0._f) {
-            return 0._f;
+            return -30._f * normalization[D - 1];
         }
         if (q < 0.5_f) {
             return (1._f / q) * normalization[D - 1] *
@@ -244,6 +244,35 @@ public:
 
     INLINE Float gradImpl(const Float UNUSED(qSqr)) const { NOT_IMPLEMENTED; }
 };
+
+/// Gaussian kernel, clamped to zero at radius 5 (the error is therefore about exp(-5^2) = 10^-11).
+template <Size D>
+class Gaussian : public Kernel<Gaussian<D>, D> {
+private:
+    const Float normalization[3] = { 1._f / sqrt(PI), 1._f / PI, 1._f / (PI * sqrt(PI)) };
+
+public:
+    INLINE Float radius() const { return 5._f; }
+
+    INLINE Float valueImpl(const Float qSqr) const {
+        if (qSqr >= sqr(radius())) {
+            return 0._f;
+        }
+        return normalization[D - 1] * exp(-qSqr);
+    }
+
+    INLINE Float gradImpl(const Float qSqr) const {
+        if (qSqr >= sqr(radius())) {
+            return 0._f;
+        }
+        if (qSqr == 0._f) {
+            return -2._f * normalization[D - 1];
+        }
+        const Float q = sqrt(qSqr);
+        return normalization[D - 1] / q * exp(-qSqr) * (-2._f * q);
+    }
+};
+
 
 /// Symmetrization of the kernel with a respect to different smoothing lenths
 /// Two possibilities - Symmetrized kernel W_ij = 0.5(W_i + W_j)

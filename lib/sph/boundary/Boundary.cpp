@@ -62,21 +62,15 @@ struct GhostFunctor {
 
 void GhostParticles::apply(Storage& storage) {
     // remove previous ghost particles
-    iterate<VisitorEnum::ALL_BUFFERS>(storage, [this](auto&& v) {
-        // remove from highest index so that lower indices are unchanged
-        for (int i = ghostIdxs.size() - 1; i >= 0; --i) {
-            v.remove(ghostIdxs[i]);
-        }
-    });
-    Array<Vector>& r = storage.getValue<Vector>(QuantityIds::POSITIONS);
+    removeGhosts(storage);
 
     // project particles outside of the domain on the boundary
+    Array<Vector>& r = storage.getValue<Vector>(QuantityIds::POSITIONS);
     domain->project(r);
 
     // find particles close to boundary and create necessary ghosts
     domain->addGhosts(r, ghosts, searchRadius, minimalDist);
 
-    ghostIdxs.clear();
     const Size ghostStartIdx = r.size();
     for (Size i = 0; i < ghosts.size(); ++i) {
         ghostIdxs.push(ghostStartIdx + i);
@@ -86,6 +80,17 @@ void GhostParticles::apply(Storage& storage) {
     // copy all quantities on ghosts
     GhostFunctor functor{ ghosts, ghostIdxs, *domain };
     iterateWithPositions(storage, functor);
+}
+
+void GhostParticles::removeGhosts(Storage& storage) {
+    iterate<VisitorEnum::ALL_BUFFERS>(storage, [this](auto&& v) {
+        // remove from highest index so that lower indices are unchanged
+        for (int i = ghostIdxs.size() - 1; i >= 0; --i) {
+            v.remove(ghostIdxs[i]);
+        }
+    });
+    ghostIdxs.clear();
+    ghosts.clear();
 }
 
 

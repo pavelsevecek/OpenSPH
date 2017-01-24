@@ -127,7 +127,8 @@ INLINE T pow(const T f, const T e) {
 
 
 /// Return a squared root of a value.
-INLINE Float sqrt(const Float f) {
+template<typename T>
+INLINE T sqrt(const T f) {
     ASSERT(f >= 0._f);
     return std::sqrt(f);
 }
@@ -284,6 +285,8 @@ constexpr Float PI = 3.14159265358979323846264338327950288419716939937510582097_
 constexpr Float PI_INV = 1._f / PI;
 
 constexpr Float E = 2.718281828459045235360287471352662497757247093699959574967_f;
+
+constexpr Float SQRT_3 = 1.732050807568877293527446341505872366942805253810380628055_f;
 
 
 /// Computes a volume of a sphere given its radius.
