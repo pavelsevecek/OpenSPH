@@ -30,9 +30,9 @@ public:
 
     INLINE Float average() const { return Float(sum / weight); }
 
-    INLINE Extended min() const { return rangeValue.lower(); }
+    INLINE Float min() const { return rangeValue.lower(); }
 
-    INLINE Extended max() const { return rangeValue.upper(); }
+    INLINE Float max() const { return rangeValue.upper(); }
 
     INLINE Range range() const { return rangeValue; }
 

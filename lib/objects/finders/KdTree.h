@@ -35,7 +35,7 @@ public:
         if (refRank > (*rankH)[idx]) {
             return getSqrLength(v - storage[idx]);
         } else {
-            return INFTY;
+            return LARGE;
         }
     }
 

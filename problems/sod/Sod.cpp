@@ -71,8 +71,8 @@ TEST_CASE("Sod", "[sod]") {
     bodySettings.set(BodySettingsIds::PARTICLE_COUNT, N);
     bodySettings.set(BodySettingsIds::INITIAL_DISTRIBUTION, DistributionEnum::LINEAR);
     bodySettings.set(BodySettingsIds::ADIABATIC_INDEX, 1.4_f);
-    bodySettings.set(BodySettingsIds::DENSITY_RANGE, Range(0.05_f, Extended::infinity()));
-    bodySettings.set(BodySettingsIds::ENERGY_RANGE, Range(0.05_f, Extended::infinity()));
+    bodySettings.set(BodySettingsIds::DENSITY_RANGE, Range(0.05_f, INFTY));
+    bodySettings.set(BodySettingsIds::ENERGY_RANGE, Range(0.05_f, INFTY));
     bodySettings.set(BodySettingsIds::DENSITY, 1._f);
     bodySettings.set(BodySettingsIds::DENSITY_MIN, 0.1_f);
     bodySettings.set(BodySettingsIds::ENERGY, 2.5_f);

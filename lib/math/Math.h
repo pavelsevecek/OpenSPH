@@ -28,8 +28,13 @@ struct Eps<double> {
 
 constexpr Float EPS = Eps<Float>::value;
 
-/// Large value (compared with 1)
-constexpr Float INFTY = 1.e20f;
+/// Large value (compared with 1). It's safe to do basic arithmetic operations (multiply by 2, for example)
+/// without worying about float overflow.
+constexpr Float LARGE = 1.e20f;
+
+/// Largest value representable by float/double. Any increase (multiplication by 2, for example) will cause
+/// float overflow! Use carefully, maily for comparisons.
+constexpr Float INFTY = std::numeric_limits<Float>::max();
 
 
 /// Minimum & Maximum value
@@ -127,7 +132,7 @@ INLINE T pow(const T f, const T e) {
 
 
 /// Return a squared root of a value.
-template<typename T>
+template <typename T>
 INLINE T sqrt(const T f) {
     ASSERT(f >= 0._f);
     return std::sqrt(f);

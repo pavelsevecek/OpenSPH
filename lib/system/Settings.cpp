@@ -115,9 +115,9 @@ bool Settings<TEnum>::setValueByType(Entry& entry, const Size typeIdx, const std
         if (ss.fail()) {
             return false;
         }
-        Extended lower, upper;
+        Float lower, upper;
         if (s1 == "-infinity") {
-            lower = -Extended::infinity();
+            lower = -INFTY;
         } else {
             ss.clear();
             ss.str(s1);
@@ -126,7 +126,7 @@ bool Settings<TEnum>::setValueByType(Entry& entry, const Size typeIdx, const std
             lower = value;
         }
         if (s2 == "infinity") {
-            upper = Extended::infinity();
+            upper = INFTY;
         } else {
             ss.clear();
             ss.str(s2);

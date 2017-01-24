@@ -50,10 +50,10 @@ Array<Size> getCummulativeSFD(Storage& storage,
         volumes[components[i]] += m[i] / rho[i];
     }
     Range range = params ? params->range : [&]() {
-        Extended minVolume(Extended::infinity()), maxVolume(-Extended::infinity());
+        Float minVolume = INFTY, maxVolume = -INFTY;
         for (Float v : volumes) {
-            minVolume = min(minVolume, Extended(v));
-            maxVolume = max(maxVolume, Extended(v));
+            minVolume = min(minVolume, v);
+            maxVolume = max(maxVolume, v);
         }
         return Range(minVolume, maxVolume);
     }();
@@ -63,7 +63,7 @@ Array<Size> getCummulativeSFD(Storage& storage,
     histogram.fill(0);
     ASSERT(binCnt > 0);
     for (Float v : volumes) {
-        const Size idx = (binCnt - 1) * Float((Extended(v) - range.lower()) / range.size());
+        const Size idx = (binCnt - 1) * (v - range.lower()) / range.size();
         histogram[idx]++;
     }
     /// \todo check histogram, if some bins are "oversampled", increase bin cnt

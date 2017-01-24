@@ -5,27 +5,26 @@
 /// sevecek at sirrah.troja.mff.cuni.cz
 
 #include "math/Math.h"
-#include "objects/wrappers/Extended.h"
 
 NAMESPACE_SPH_BEGIN
 
-/// Object defining 1D interval. Can also represent one sided [x, infty] or [-infty, x], or even "zero" sided
+/// Object defining 1D interval. Can also represent one sided [x, infty] or [-infty, x], or even unbounded
 /// [-infty, infty] intervals.
 class Range {
 private:
-    Extended minBound;
-    Extended maxBound;
+    Float minBound;
+    Float maxBound;
 
 public:
     /// Default construction of an empty interval. Any contains() call will return false, extending the
     /// interval will result in zero-size interval containing the inserted value.
     INLINE Range()
-        : minBound(Extended::infinity())
-        , maxBound(-Extended::infinity()) {}
+        : minBound(INFTY)
+        , maxBound(-INFTY) {}
 
-    /// Constructs the interval given its lower and upper bound. You can use Extended::infinity() to create
-    /// unbounded interval.
-    INLINE Range(const Extended& lower, const Extended& upper)
+    /// Constructs the interval given its lower and upper bound. You can use INFTY and -INFTY to create
+    /// one-sided or unbounded intervals.
+    INLINE Range(const Float& lower, const Float& upper)
         : minBound(lower)
         , maxBound(upper) {
         ASSERT(lower <= upper);
@@ -37,30 +36,29 @@ public:
 
     /// Extends the interval to contain given value. If the value is already inside the interval, nothing
     /// changes.
-    INLINE void extend(const Extended& value) {
-        minBound = min(minBound, Extended(value));
-        maxBound = max(maxBound, Extended(value));
+    INLINE void extend(const Float& value) {
+        minBound = min(minBound, value);
+        maxBound = max(maxBound, value);
     }
 
     /// Checks whether value is inside the interval.
-    INLINE bool contains(const Extended& value) const { return minBound <= value && value <= maxBound; }
+    INLINE bool contains(const Float& value) const { return minBound <= value && value <= maxBound; }
 
     /// Clamps the given value by the interval.
     INLINE Float clamp(const Float& value) const {
         ASSERT(minBound <= maxBound);
-        const Extended result = max(minBound, min(Extended(value), maxBound));
-        ASSERT(result.isFinite());
-        return result.get();
+        const Float result = max(minBound, min(value, maxBound));
+        return result;
     }
 
     /// Returns lower bound of the interval.
-    INLINE const Extended& lower() const { return minBound; }
+    INLINE Float lower() const { return minBound; }
 
     /// Returns upper bound of the interval.
-    INLINE const Extended& upper() const { return maxBound; }
+    INLINE Float upper() const { return maxBound; }
 
     /// Returns the size of the interval.
-    INLINE Extended size() const { return maxBound - minBound; }
+    INLINE Float size() const { return maxBound - minBound; }
 
     /// Comparison operator; true if and only if both bounds are equal.
     INLINE bool operator==(const Range& other) const {
@@ -70,13 +68,31 @@ public:
     /// Negation of comparison operator
     INLINE bool operator!=(const Range& other) const { return !(*this == other); }
 
-    static Range unbounded() { return Range(-Extended::infinity(), Extended::infinity()); }
+    static Range unbounded() { return Range(-INFTY, INFTY); }
 
     template <typename TStream>
     friend TStream& operator<<(TStream& stream, const Range& range) {
-        stream << range.lower() << " " << range.upper();
+        stream << Printer{ range.lower() } << Printer{ range.upper() };
         return stream;
     }
+
+private:
+    // wrapper over float printing "infinity/-infinity" instead of value itself
+    struct Printer {
+        Float value;
+
+        template<typename TStream>
+        friend TStream& operator<<(TStream& stream, const Printer w) {
+            if (w.value == INFTY) {
+                stream << "infinity";
+            } else if (w.value == -INFTY) {
+                stream << "-infinity";
+            } else {
+                stream << w.value;
+            }
+            return stream;
+        }
+    };
 };
 
 
@@ -134,9 +150,9 @@ public:
         : range(range)
         , step(std::forward<TStep>(step)) {}
 
-    INLINE RangeIterator<TStep> begin() { return RangeIterator<TStep>(range.lower().get(), step); }
+    INLINE RangeIterator<TStep> begin() { return RangeIterator<TStep>(range.lower(), step); }
 
-    INLINE RangeIterator<TStep> end() { return RangeIterator<TStep>(range.upper().get(), step); }
+    INLINE RangeIterator<TStep> end() { return RangeIterator<TStep>(range.upper(), step); }
 };
 
 template <typename TStep>

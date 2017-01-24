@@ -434,6 +434,7 @@ private:
 
 /// Similar to cylindrical domain, but bases are hexagons instead of circles. Hexagons are oriented so that
 /// two sides are parallel with x-axis.
+/// \todo could be easily generalized to any polygon, currently not needed though
 class HexagonalDomain : public Abstract::Domain {
 private:
     Float outerRadiusSqr; // bounding radius of the base
@@ -486,7 +487,7 @@ public:
             if (!isInsideImpl(v)) {
                 // find triangle
                 const Float phi = atan2(v[Y], v[X]);
-                const Float r = * radius * hexagon(phi);
+                const Float r = radius * hexagon(phi);
                 const Vector u = r * getNormalized(Vector(v[X], v[Y], 0._f));
                 v = Vector(u[X], u[Y], v[Z], v[H]);
             }
@@ -509,6 +510,7 @@ public:
         const Float eps) const override {
         ghosts.clear();
         ASSERT(eps < eta);
+        /// \todo almost identical to cylinder domain, remove duplication
         Float radius = sqrt(outerRadiusSqr);
         for (Size i = 0; i < vs.size(); ++i) {
             if (!isInsideImpl(vs[i])) {
@@ -520,7 +522,9 @@ public:
                 getNormalizedWithLength(Vector(vs[i][X], vs[i][Y], this->center[Z]) - this->center);
             const Float h = vs[i][H];
             ASSERT(radius - length >= 0._f);
-            Float diff = max(eps * h, radius - length);
+            const Float phi = atan2(vs[i][Y], vs[i][X]);
+            const Float r = radius * hexagon(phi);
+            Float diff = max(eps * h, r - length);
             if (diff < h * eta) {
                 Vector v = vs[i] + 2._f * diff * normalized;
                 v[H] = h;
@@ -553,29 +557,12 @@ private:
         }
         const Float phi = atan2(v[Y], v[X]);
         return getSqrLength(Vector(v[X], v[Y], 0._f)) <= sqr(hexagon(phi));
-        /*
-
-        const Float radius = sqrt(outerRadiusSqr);
-        const Vector v1(radius, 0._f, 0._f);                                //   v3 ___ v2
-        const Vector v2(0.5_f * radius, 0.5_f * sqrt(3._f) * radius, 0._f); // -v1 // \\ v1
-        const Vector v3(-0.5_f * radius, v2[Y], 0._f);                      // -v2 \\_// -v3
-        const Vector u(v[X], v[Y], 0._f);
-        return isInsidePartial(u, v1, v2) || isInsidePartial(u, v2, v3) || isInsidePartial(u, v3, -v1);*/
     }
 
     /// Polar plot of hexagon
-    INLINE Float hexagon(const Float phi) {
+    INLINE Float hexagon(const Float phi) const {
         return 0.5_f * SQRT_3 * 1._f / sin(phi - PI / 3._f * (floor(phi / (PI / 3._f)) - 1._f));
     }
-
-    /// Checks if vector u is inside an double-triangle with sides v1, v2 and -v1,-v2
-    /*INLINE bool isInsidePartial(const Vector& u, const Vector& v1, const Vector& v2) const {
-        const Float den = (dot(v2, v2) * dot(v1, v1) - dot(v2, v1) * dot(v2, v1));
-        ASSERT(den != 0._f);
-        const Float a = (dot(v1, v1) * dot(v2, u) - dot(v2, v1) * dot(v1, u)) / den;
-        const Float b = (dot(v2, v2) * dot(v1, u) - dot(v2, v1) * dot(v2, u)) / den;
-        return (a * b >= 0 && abs(a + b) <= 1._f);
-    }*/
 };
 
 

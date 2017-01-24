@@ -568,10 +568,10 @@ const Settings<BodySettingsIds> BODY_SETTINGS = {
 
     /// Material properties
     { BodySettingsIds::DENSITY,                 "material.density",             2700._f },
-    { BodySettingsIds::DENSITY_RANGE,           "material.density.range",       Range(10._f, Extended::infinity()) },
+    { BodySettingsIds::DENSITY_RANGE,           "material.density.range",       Range(10._f, INFTY) },
     { BodySettingsIds::DENSITY_MIN,             "material.density.min",         50._f },
     { BodySettingsIds::ENERGY,                  "material.energy",              0._f },
-    { BodySettingsIds::ENERGY_RANGE,            "material.energy.range",        Range(0._f, Extended::infinity()) },
+    { BodySettingsIds::ENERGY_RANGE,            "material.energy.range",        Range(0._f, INFTY) },
     { BodySettingsIds::ENERGY_MIN,              "material.energy.min",          1._f },
     { BodySettingsIds::DAMAGE,                  "material.damage",              0._f },
     { BodySettingsIds::DAMAGE_RANGE,            "material.damage.range",        Range(0.f, 1._f) },

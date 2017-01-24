@@ -76,7 +76,7 @@ public:
         FrequentStats stats;
         for (Float t (timeRange.lower()); timeRange.upper() > t; t += timeStepping->getTimeStep()) {
             if (callbacks) {
-                callbacks->onTimeStep(Float((Extended(t) - timeRange.lower()) / timeRange.size()), storage);
+                callbacks->onTimeStep((t - timeRange.lower()) / timeRange.size(), storage);
                 if (callbacks->shouldAbortRun()) {
                     break;
                 }

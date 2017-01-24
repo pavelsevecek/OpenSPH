@@ -64,7 +64,7 @@ public:
 
     /// Returns an average value of float stats of given idx. Statistic with given idx must be stored in the
     /// object and must be of type FloatStats.
-    Extended average(const TEnum idx) const {
+    Float average(const TEnum idx) const {
         FloatStats stats = get<FloatStats>(idx);
         return stats.average();
     }

@@ -49,7 +49,6 @@ public:
     /// helper quantity (index of source particle for ghosts and something like -1 for regular particles.
     virtual void apply(Storage& storage) override;
 
-
     /// Removes all ghost particles from the storage. This does not have to be called before apply, ghosts are
     /// removed and added automatically.
     /// \todo Currently needs to be called before data output as ghosts would be saved together with "regular"

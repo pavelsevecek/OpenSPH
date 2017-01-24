@@ -140,7 +140,6 @@ HEADERS += \
     objects/containers/LookupMap.h \
     sph/timestepping/AdaptiveTimeStep.h \
     post/Components.h \
-    objects/wrappers/Extended.h \
     math/Morton.h \
     system/ArrayStats.h \
     system/Statistics.h \

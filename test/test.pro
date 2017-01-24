@@ -59,7 +59,6 @@ SOURCES += \
     ../lib/objects/wrappers/test/NonOwningPtr.cpp \
     ../lib/objects/wrappers/test/Any.cpp \
     ../lib/objects/wrappers/test/VectorizedArray.cpp \
-    ../lib/objects/wrappers/test/Extended.cpp \
     ../lib/objects/wrappers/test/AlignedStorage.cpp \
     ../lib/objects/wrappers/test/Flags.cpp \
     ../lib/objects/containers/test/Array.cpp \

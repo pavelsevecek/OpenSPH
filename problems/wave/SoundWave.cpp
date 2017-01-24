@@ -28,12 +28,12 @@ TEST_CASE("StressForce Soundwave", "[stressforce]") {
     bodySettings.set(BodySettingsIds::PARTICLE_COUNT, 10000);
     bodySettings.set(BodySettingsIds::DENSITY, 1000._f);
     bodySettings.set(BodySettingsIds::DENSITY_MIN, 1._f);
-    bodySettings.set(BodySettingsIds::DENSITY_RANGE, Range(10._f, Extended::infinity()));
+    bodySettings.set(BodySettingsIds::DENSITY_RANGE, Range(10._f, INFTY));
     const Float u0 = 1.e4_f;
     bodySettings.set(BodySettingsIds::ENERGY, u0);
-    bodySettings.set(BodySettingsIds::ENERGY_RANGE, Range(10._f, Extended::infinity()));
+    bodySettings.set(BodySettingsIds::ENERGY_RANGE, Range(10._f, INFTY));
     bodySettings.set(BodySettingsIds::ENERGY_MIN, 1._f);
-    //conds.addBody(BlockDomain(Vector(0._f), Vector(1._f, 1._f, 20._f)), bodySettings);
+    // conds.addBody(BlockDomain(Vector(0._f), Vector(1._f, 1._f, 20._f)), bodySettings);
     conds.addBody(CylindricalDomain(Vector(0._f), 0.5_f, 20._f, true), bodySettings);
     p.timeStepping = Factory::getTimestepping(settings, p.storage);
     p.output = std::make_unique<GnuplotOutput>("out_%d.txt",
