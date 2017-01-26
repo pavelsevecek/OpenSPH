@@ -70,7 +70,7 @@ void testHomogeneousField(TArgs&&... args) {
     ArrayView<const Vector> r, v, dv;
     tie(r, v, dv) = storage->getAll<Vector>(QuantityIds::POSITIONS);
     TTimestepping timestepping(storage, std::forward<TArgs>(args)...);
-    FrequentStats stats;
+    Statistics stats;
     Size n = 0;
     StdOutLogger logger;
     bool allMatching = true;
@@ -107,7 +107,7 @@ void testHarmonicOscillator(TArgs&&... args) {
     ArrayView<const Vector> r, v, dv;
     tie(r, v, dv) = storage->getAll<Vector>(QuantityIds::POSITIONS);
     TTimestepping timestepping(storage, std::forward<TArgs>(args)...);
-    FrequentStats stats;
+    Statistics stats;
     Size n = 0;
     StdOutLogger logger;
     bool allMatching = true;
@@ -146,7 +146,7 @@ void testGyroscopicMotion(TArgs&&... args) {
     // z component is parallel, should move with constant velocity
 
     TTimestepping timestepping(storage, std::forward<TArgs>(args)...);
-    FrequentStats stats;
+    Statistics stats;
     Size n = 0;
     StdOutLogger logger;
     bool allMatching = true;
@@ -173,7 +173,7 @@ void testGyroscopicMotion(TArgs&&... args) {
 }
 
 TEST_CASE("EulerExplicit", "[timestepping]") {
-    Settings<GlobalSettingsIds> settings(GLOBAL_SETTINGS);
+    GlobalSettings settings;
     settings.set(GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP, timeStep);
     testHomogeneousField<EulerExplicit>(settings);
     testHarmonicOscillator<EulerExplicit>(settings);
@@ -181,7 +181,7 @@ TEST_CASE("EulerExplicit", "[timestepping]") {
 }
 
 TEST_CASE("PredictorCorrector", "[timestepping]") {
-    Settings<GlobalSettingsIds> settings(GLOBAL_SETTINGS);
+    GlobalSettings settings;
     settings.set(GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP, timeStep);
     testHomogeneousField<PredictorCorrector>(settings);
     testHarmonicOscillator<PredictorCorrector>(settings);

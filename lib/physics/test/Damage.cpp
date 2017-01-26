@@ -4,13 +4,14 @@
 #include "physics/Yielding.h"
 #include "sph/initial/Distribution.h"
 #include "system/ArrayStats.h"
+#include "geometry/Domain.h"
 
 using namespace Sph;
 
 
 TEST_CASE("Distribute flaws", "[damage]") {
-    ScalarDamage model(GLOBAL_SETTINGS);
-    BodySettings bodySettings(BODY_SETTINGS);
+    ScalarDamage model(GlobalSettings::getDefaults());
+    BodySettings bodySettings;
     Storage storage(bodySettings);
     HexagonalPacking distribution;
     SphericalDomain domain(Vector(0._f), 1._f);

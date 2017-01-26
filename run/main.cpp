@@ -7,7 +7,7 @@
 using namespace Sph;
 
 int main() {
-    GlobalSettings globalSettings = GLOBAL_SETTINGS;
+    GlobalSettings globalSettings;
     globalSettings.set(GlobalSettingsIds::DOMAIN_TYPE, DomainEnum::SPHERICAL);
     globalSettings.set(GlobalSettingsIds::TIMESTEPPING_ADAPTIVE, true);
     globalSettings.set(GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP, 1.e-6_f);
@@ -25,7 +25,7 @@ int main() {
                                      globalSettings.get<std::string>(GlobalSettingsIds::RUN_NAME),
                                      Array<QuantityIds>{ QuantityIds::POSITIONS, QuantityIds::DEVIATORIC_STRESS });
 
-    auto bodySettings = BODY_SETTINGS;
+    BodySettings bodySettings;
     bodySettings.set(BodySettingsIds::ENERGY, 1.e2_f);
     bodySettings.set(BodySettingsIds::PARTICLE_COUNT, 10000);
     bodySettings.set(BodySettingsIds::EOS, EosEnum::TILLOTSON);

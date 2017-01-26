@@ -9,7 +9,7 @@ template <typename TGlobalSettingsOverride, typename TBodySettingsOverride>
 static void continuitySolverRun(benchmark::State& state,
     TGlobalSettingsOverride gso,
     TBodySettingsOverride bso) {
-    GlobalSettings globalSettings = GLOBAL_SETTINGS;
+    GlobalSettings globalSettings;
     globalSettings.set(GlobalSettingsIds::DOMAIN_TYPE, DomainEnum::SPHERICAL);
     globalSettings.set(GlobalSettingsIds::TIMESTEPPING_ADAPTIVE, false);
     globalSettings.set(GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP, 1.e-6_f);
@@ -21,7 +21,7 @@ static void continuitySolverRun(benchmark::State& state,
     p->timeRange = Range(0._f, 3e-6f);
     p->timeStepping = Factory::getTimestepping(globalSettings, p->storage);
 
-    auto bodySettings = BODY_SETTINGS;
+    BodySettings bodySettings;
     bodySettings.set(BodySettingsIds::ENERGY, 1.e-6_f);
     bodySettings.set(BodySettingsIds::PARTICLE_COUNT, 1000);
     bodySettings.set(BodySettingsIds::EOS, EosEnum::TILLOTSON);
@@ -39,13 +39,13 @@ static void continuitySolverRun(benchmark::State& state,
 }
 
 static void baselineRun(benchmark::State& state) {
-    continuitySolverRun(state, [](GlobalSettings&){}, [](BodySettings&){});
+    continuitySolverRun(state, [](GlobalSettings&) {}, [](BodySettings&) {});
 }
 BENCHMARK(baselineRun);
 
 static void sortedRun(benchmark::State& state) {
-    continuitySolverRun(state, [](GlobalSettings&){}, [](BodySettings& bs){
-        bs.set(BodySettingsIds::PARTICLE_SORTING, true);
-    });
+    continuitySolverRun(state,
+        [](GlobalSettings&) {},
+        [](BodySettings& bs) { bs.set(BodySettingsIds::PARTICLE_SORTING, true); });
 }
 BENCHMARK(sortedRun);

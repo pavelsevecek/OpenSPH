@@ -7,7 +7,7 @@ using namespace Sph;
 
 
 TEST_CASE("EosAccessor", "[material]") {
-    BodySettings settings(BODY_SETTINGS);
+    BodySettings settings;
     settings.set(BodySettingsIds::EOS, EosEnum::IDEAL_GAS);
     Storage storage(settings);
     storage.emplace<Float, OrderEnum::FIRST_ORDER>(QuantityIds::DENSITY, Array<Float>{ 5._f });
@@ -31,11 +31,11 @@ TEST_CASE("EosAccessor", "[material]") {
 }
 
 TEST_CASE("MaterialAccessor", "[material]") {
-    Storage storage(BODY_SETTINGS);
+    Storage storage(BodySettings::getDefaults());
     storage.emplace<Float, OrderEnum::FIRST_ORDER>(QuantityIds::ENERGY, Array<Float>{1._f, 1._f});
     MaterialAccessor(storage).setParams(BodySettingsIds::YOUNG_MODULUS, 5._f);
 
-    Storage storage2(BODY_SETTINGS);
+    Storage storage2(BodySettings::getDefaults());
     storage2.emplace<Float, OrderEnum::FIRST_ORDER>(QuantityIds::ENERGY, Array<Float>{2._f, 2._f, 2._f});
     MaterialAccessor(storage2).setParams(BodySettingsIds::YOUNG_MODULUS, 8._f);
 

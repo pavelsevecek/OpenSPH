@@ -5,15 +5,15 @@
 /// sevecek at sirrah.troja.mff.cuni.cz
 
 #include "geometry/Box.h"
-#include "math/Integrator.h"
-#include "math/rng/VectorRng.h"
 #include "objects/containers/Array.h"
-#include "objects/finders/KdTree.h"
+#include "objects/wrappers/Flags.h"
 
 NAMESPACE_SPH_BEGIN
 
 
 namespace Abstract {
+    class Domain;
+
     class Distribution : public Polymorphic {
     public:
         /// Base class for generating vertices with specific distribution. Also generates corresponding
@@ -101,17 +101,7 @@ public:
 /// of the domain.
 class LinearDistribution : public Abstract::Distribution {
 public:
-    virtual Array<Vector> generate(const Size n, const Abstract::Domain& domain) const override {
-        const Float center = domain.getCenter()[X];
-        const Float radius = domain.getBoundingRadius();
-        Array<Vector> vs(0, n);
-        const Float dx = 2._f * radius / (n - 1);
-        for (Size i = 0; i < n; ++i) {
-            const Float x = center - radius + (2._f * radius * i) / (n - 1);
-            vs.push(Vector(x, 0._f, 0._f, 1.5_f * dx)); // smoothing length = interparticle distance
-        }
-        return vs;
-    }
+    virtual Array<Vector> generate(const Size n, const Abstract::Domain& domain) const override;
 };
 
 NAMESPACE_SPH_END

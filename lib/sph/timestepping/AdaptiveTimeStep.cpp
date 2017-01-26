@@ -8,7 +8,7 @@ AdaptiveTimeStep::AdaptiveTimeStep(const GlobalSettings& settings) {
     courant = settings.get<Float>(GlobalSettingsIds::TIMESTEPPING_COURANT);
 }
 
-Float AdaptiveTimeStep::get(Storage& storage, const Float maxStep, FrequentStats& stats) {
+Float AdaptiveTimeStep::get(Storage& storage, const Float maxStep, Statistics& stats) {
     PROFILE_SCOPE("TimeStep::get");
     cachedSteps.reserve(storage.getParticleCnt());
     StaticArray<Float, 16> minTimeSteps(EMPTY_ARRAY);
@@ -85,8 +85,8 @@ Float AdaptiveTimeStep::get(Storage& storage, const Float maxStep, FrequentStats
         flag = QuantityIds::MAXIMUM_VALUE;
     }
 
-    stats.set(FrequentStatsIds::TIMESTEP_VALUE, minStep);
-    stats.set(FrequentStatsIds::TIMESTEP_CRITERION, flag);
+    stats.set(StatisticsIds::TIMESTEP_VALUE, minStep);
+    stats.set(StatisticsIds::TIMESTEP_CRITERION, flag);
 
     return minStep;
 }

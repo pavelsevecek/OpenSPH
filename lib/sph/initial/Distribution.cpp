@@ -1,5 +1,8 @@
 #include "sph/initial/Distribution.h"
 #include "math/Morton.h"
+#include "math/rng/VectorRng.h"
+#include "geometry/Domain.h"
+#include "math/Integrator.h"
 #include "objects/finders/Voxel.h"
 #include "system/Profiler.h"
 
@@ -62,7 +65,7 @@ Array<Vector> HexagonalPacking::generate(const Size n, const Abstract::Domain& d
 
     // interparticle distance based on density
     const Float h = 1._f / root<3>(particleDensity);
-    const Float dx = 1._f * h;
+    const Float dx = 1.075_f * h;
     const Float dy = sqrt(3._f) * 0.5_f * dx;
     const Float dz = sqrt(6._f) / 3._f * dx;
 
@@ -218,6 +221,18 @@ Array<Vector> DiehlEtAlDistribution::generate(const Size n, const Abstract::Doma
     }
 
     return vecs;
+}
+
+Array<Vector> LinearDistribution::generate(const Size n, const Abstract::Domain& domain) const {
+    const Float center = domain.getCenter()[X];
+    const Float radius = domain.getBoundingRadius();
+    Array<Vector> vs(0, n);
+    const Float dx = 2._f * radius / (n - 1);
+    for (Size i = 0; i < n; ++i) {
+        const Float x = center - radius + (2._f * radius * i) / (n - 1);
+        vs.push(Vector(x, 0._f, 0._f, 1.5_f * dx)); // smoothing length = interparticle distance
+    }
+    return vs;
 }
 
 NAMESPACE_SPH_END

@@ -29,7 +29,7 @@ public:
     /// \param storage Storage containing all physical quantities from which the time step is determined.
     ///                Must contain at least positions of particles and sound speed, checked by assert.
     /// \param maxStep Maximal allowed time-step.
-    Float get(Storage& storage, const Float maxStep, FrequentStats& stats);
+    Float get(Storage& storage, const Float maxStep, Statistics& stats);
 
 private:
     template <typename TArray>

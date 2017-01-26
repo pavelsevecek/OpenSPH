@@ -13,8 +13,10 @@
 
 NAMESPACE_SPH_BEGIN
 
-/// \todo very similar to settings, maybe put to common base
-template <typename TEnum>
+enum class StatisticsIds;
+
+/// Object holding various statistics about current run. Values are set or accumulated by each component of
+/// the running problem (timestepping, solver, ...).
 class Statistics {
 private:
     enum Types { BOOL, INT, FLOAT, FLOAT_STATS, RANGE, VECTOR };
@@ -22,28 +24,28 @@ private:
     using Value = Variant<bool, int, Float, FloatStats, Range, QuantityIds>;
 
     struct Entry {
-        TEnum id;
+        StatisticsIds id;
         std::string name;
         Value value;
     };
 
-    std::map<TEnum, Entry> entries;
+    std::map<StatisticsIds, Entry> entries;
 
 public:
     Statistics() = default;
 
-    bool has(const TEnum idx) { return entries.find(idx) != entries.end(); }
+    bool has(const StatisticsIds idx) { return entries.find(idx) != entries.end(); }
 
     /// Sets new values of a statistic. If the statistic is not stored in the object, the statistic is created
     /// using default constructor before assigning new value into it.
     template <typename TValue>
-    void set(const TEnum idx, TValue&& value) {
+    void set(const StatisticsIds idx, TValue&& value) {
         entries[idx].value = std::forward<TValue>(value);
     }
 
     /// Accumulate a value into float stats of given idx. Value does not have to be stored. If there is no
     /// value of given idx, it is created with default constructor prior to accumulating.
-    void accumulate(const TEnum idx, const Float value) {
+    void accumulate(const StatisticsIds idx, const Float value) {
         Value& entry = entries[idx].value;
         if (entry.getTypeIdx() == -1) {
             // not initialized
@@ -55,8 +57,8 @@ public:
     /// Returns value of a statistic. The value must be stored in the object and must have type TValue,
     /// checked by assert.
     template <typename TValue>
-    TValue get(const TEnum idx) const {
-        typename std::map<TEnum, Entry>::const_iterator iter = entries.find(idx);
+    TValue get(const StatisticsIds idx) const {
+        typename std::map<StatisticsIds, Entry>::const_iterator iter = entries.find(idx);
         ASSERT(iter != entries.end());
         const TValue& value = iter->second.value.template get<TValue>();
         return value;
@@ -64,14 +66,14 @@ public:
 
     /// Returns an average value of float stats of given idx. Statistic with given idx must be stored in the
     /// object and must be of type FloatStats.
-    Float average(const TEnum idx) const {
+    Float average(const StatisticsIds idx) const {
         FloatStats stats = get<FloatStats>(idx);
         return stats.average();
     }
 };
 
 /// List of values that are computed and displayed every timestep
-enum class FrequentStatsIds {
+enum class StatisticsIds {
     /// Current number of output, indexed from 0
     INDEX,
 
@@ -90,7 +92,7 @@ enum class FrequentStatsIds {
     /// Number of neighbours (min, max, mean)
     NEIGHBOUR_COUNT,
 };
-using FrequentStats = Statistics<FrequentStatsIds>;
+
 
 /// List of values computed infrequently, at given times or every X timesteps. Mainly values that takes some
 /// time to compute and computing them every timestep would add unnecessary overhead.
@@ -116,29 +118,27 @@ enum class SparseStatsIds {
     /// Number of components (a.k.a separated bodies).
     COMPONENT_COUNT,
 };
-using SparseStats = Statistics<SparseStatsIds>;
+
 
 
 namespace Abstract {
-    template <typename TEnum>
     class StatisticFormat {
     public:
-        virtual void print(Abstract::Logger& logger, const Statistics<TEnum>& statistics) const = 0;
+        virtual void print(Abstract::Logger& logger, const Statistics& statistics) const = 0;
     };
 }
 
-class FrequentStatsFormat : public Abstract::StatisticFormat<FrequentStatsIds> {
+class FrequentStatsFormat : public Abstract::StatisticFormat {
 public:
-    virtual void print(Abstract::Logger& logger,
-        const Statistics<FrequentStatsIds>& statistics) const override {
+    virtual void print(Abstract::Logger& logger, const Statistics& statistics) const override {
         logger.write("Output #",
-            statistics.get<int>(FrequentStatsIds::INDEX),
+            statistics.get<int>(StatisticsIds::INDEX),
             "  time = ",
-            statistics.get<Float>(FrequentStatsIds::TIME));
+            statistics.get<Float>(StatisticsIds::TIME));
         logger.write(" - timestep: dt = ",
-            statistics.get<Float>(FrequentStatsIds::TIMESTEP_VALUE),
+            statistics.get<Float>(StatisticsIds::TIMESTEP_VALUE),
             " (set by ",
-            getTimeStepCriterion(statistics.get<QuantityIds>(FrequentStatsIds::TIMESTEP_CRITERION)),
+            getTimeStepCriterion(statistics.get<QuantityIds>(StatisticsIds::TIMESTEP_CRITERION)),
             ")");
         logger.write("");
     }
@@ -157,6 +157,8 @@ private:
         }
     }
 };
+
+
 
 
 NAMESPACE_SPH_END

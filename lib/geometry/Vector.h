@@ -45,6 +45,7 @@ static_assert(IsVector<BasicVector<float>>, "Static test failed");
 template <typename T>
 class BasicVector;
 
+
 /// 3-dimensional vector, float precision
 template <>
 class BasicVector<float> {
@@ -667,9 +668,26 @@ INLINE Vector sqrtInv(const Vector& v) {
 }*/
 
 template <>
-INLINE bool isReal(const Vector& v) {
+INLINE bool isReal(const BasicVector<float>& v) {
     /// \todo optimize using SSE intrinsics
     return isReal(v[0]) && isReal(v[1]) && isReal(v[2]);
+}
+
+template <>
+INLINE bool isReal(const BasicVector<double>& v) {
+    /// \todo optimize using SSE intrinsics
+    return isReal(v[0]) && isReal(v[1]) && isReal(v[2]);
+}
+
+/// Casts vector components to another precision. Casting vectors is only possible by using this function to
+/// avoid problems with contructor/conversion operator ambiguity.
+template <typename T1, typename T2>
+INLINE BasicVector<T1> vectorCast(const BasicVector<T2>& v) {
+    return BasicVector<T1>(v[X], v[Y], v[Z], v[H]);
+}
+template<>
+INLINE BasicVector<Float> vectorCast(const BasicVector<Float>& v) {
+    return v;
 }
 
 /// Cosine applied to all components of the vector.
@@ -677,7 +695,6 @@ INLINE Vector cos(const Vector& v) {
     /// \todo return _mm_cos_ps(v.sse());
     return Vector(cos(v[X]), cos(v[Y]), cos(v[Z]));
 }
-
 
 /// Construct a vector from spherical coordinates. The angle has generally different
 /// type to allow using units with dimensions.

@@ -13,10 +13,10 @@ using namespace Sph;
 
 template <typename TAccumulator>
 void accumulate(Storage& storage, ArrayView<Vector> r, TAccumulator& accumulator) {
-    KdTree finder;
+    VoxelFinder finder;
     finder.build(r);
     Array<NeighbourRecord> neighs;
-    LutKernel<3> kernel = Factory::getKernel<3>(GLOBAL_SETTINGS);
+    LutKernel<3> kernel = Factory::getKernel<3>(GlobalSettings::getDefaults());
 
     accumulator.template update(storage);
     for (Size i = 0; i < r.size(); ++i) {

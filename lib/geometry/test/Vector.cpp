@@ -176,3 +176,15 @@ TEST_CASE("Vector abs", "[vector]") {
     REQUIRE(abs(Vector(0._f)) == Vector(0._f));
     REQUIRE(abs(Vector(5._f, 5._f, -1._f)) == Vector(5._f, 5._f, 1._f));
 }
+
+TEST_CASE("Vector cast", "[vector]") {
+    BasicVector<float> vf(1.f, 2.f, 3.f, 4.f);
+    BasicVector<double> dv = vectorCast<double>(vf);
+    REQUIRE(dv == BasicVector<double>(1., 2., 3., 4.));
+
+    BasicVector<float> vf2 = vectorCast<float>(dv);
+    REQUIRE(vf2 == BasicVector<float>(1.f, 2.f, 3.f, 4.f));
+
+    BasicVector<float> vf3 = vectorCast<float>(vf2); // casting on the same precision
+    REQUIRE(vf3 == BasicVector<float>(1.f, 2.f, 3.f, 4.f));
+}

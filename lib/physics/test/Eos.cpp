@@ -7,7 +7,7 @@ using namespace Sph;
 TEST_CASE("Ideal gas", "[eos]") {}
 
 TEST_CASE("Tillotson", "[eos]") {
-    Settings<BodySettingsIds> settings(BODY_SETTINGS);
+    BodySettings settings;
     settings.set(BodySettingsIds::DENSITY, 2.7_f);
     settings.set(BodySettingsIds::TILLOTSON_SUBLIMATION, 1.e5_f);
     TillotsonEos eos(settings);

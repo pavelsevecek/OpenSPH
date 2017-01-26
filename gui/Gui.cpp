@@ -20,7 +20,7 @@ IMPLEMENT_APP(Sph::MyApp)
 NAMESPACE_SPH_BEGIN
 
 void MyApp::initialConditions(const GlobalSettings& globalSettings, const std::shared_ptr<Storage>& storage) {
-    auto bodySettings = BODY_SETTINGS;
+    BodySettings bodySettings;
     bodySettings.set(BodySettingsIds::ENERGY, 1.e2_f);
     bodySettings.set(BodySettingsIds::PARTICLE_COUNT, 50);
     bodySettings.set(BodySettingsIds::EOS, EosEnum::TILLOTSON);
@@ -39,7 +39,7 @@ void MyApp::initialConditions(const GlobalSettings& globalSettings, const std::s
 }
 
 bool MyApp::OnInit() {
-    auto globalSettings = GLOBAL_SETTINGS;
+    GlobalSettings globalSettings;
     /*globalSettings.set(GlobalSettingsIds::DOMAIN_BOUNDARY, BoundaryEnum::GHOST_PARTICLES);
     globalSettings.set(GlobalSettingsIds::DOMAIN_RADIUS, 2.5_f);
     globalSettings.set(GlobalSettingsIds::DOMAIN_TYPE, DomainEnum::SPHERICAL);*/

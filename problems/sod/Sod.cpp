@@ -45,7 +45,7 @@ Array<Vector> sodDistribution(const int N, Float dx, const Float eta) {
 
 TEST_CASE("Sod", "[sod]") {
     // Global settings of the problem
-    Settings<GlobalSettingsIds> globalSettings = GLOBAL_SETTINGS;
+    GlobalSettings globalSettings;
     globalSettings.set(GlobalSettingsIds::RUN_NAME, std::string("Sod Shock Tube Problem"));
     globalSettings.set(GlobalSettingsIds::RUN_OUTPUT_STEP, 1);
     globalSettings.set(GlobalSettingsIds::DOMAIN_TYPE, DomainEnum::SPHERICAL);
@@ -67,7 +67,7 @@ TEST_CASE("Sod", "[sod]") {
     // Number of SPH particles
     const int N = 400;
     // Material properties
-    Settings<BodySettingsIds> bodySettings = BODY_SETTINGS;
+    BodySettings bodySettings;
     bodySettings.set(BodySettingsIds::PARTICLE_COUNT, N);
     bodySettings.set(BodySettingsIds::INITIAL_DISTRIBUTION, DistributionEnum::LINEAR);
     bodySettings.set(BodySettingsIds::ADIABATIC_INDEX, 1.4_f);

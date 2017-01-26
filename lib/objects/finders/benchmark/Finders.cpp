@@ -4,6 +4,7 @@
 #include "objects/finders/Voxel.h"
 #include "objects/finders/LinkedList.h"
 #include "sph/initial/Distribution.h"
+#include "geometry/Domain.h"
 
 using namespace Sph;
 

@@ -8,7 +8,7 @@ using namespace Sph;
 
 
 TEST_CASE("StressForce Soundwave", "[stressforce]") {
-    GlobalSettings settings = GLOBAL_SETTINGS;
+    GlobalSettings settings;
     settings.set(GlobalSettingsIds::DOMAIN_BOUNDARY, BoundaryEnum::GHOST_PARTICLES);
     /*settings.set(GlobalSettingsIds::DOMAIN_TYPE, DomainEnum::BLOCK);
     settings.set(GlobalSettingsIds::DOMAIN_SIZE, Vector(1._f, 1._f, 20.05_f));*/
@@ -24,7 +24,7 @@ TEST_CASE("StressForce Soundwave", "[stressforce]") {
     Problem p(settings);
     InitialConditions conds(p.storage, settings);
 
-    BodySettings bodySettings = BODY_SETTINGS;
+    BodySettings bodySettings;
     bodySettings.set(BodySettingsIds::PARTICLE_COUNT, 10000);
     bodySettings.set(BodySettingsIds::DENSITY, 1000._f);
     bodySettings.set(BodySettingsIds::DENSITY_MIN, 1._f);

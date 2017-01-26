@@ -1,6 +1,8 @@
 #include "sph/initial/Distribution.h"
 #include "catch.hpp"
+#include "geometry/Domain.h"
 #include "objects/containers/ArrayUtils.h"
+#include "objects/finders/AbstractFinder.h"
 #include "system/ArrayStats.h"
 #include "system/Factory.h"
 #include "system/Logger.h"
@@ -12,29 +14,33 @@ using namespace Sph;
 void testDistribution(Abstract::Distribution* distribution) {
     BlockDomain domain(Vector(-3._f), Vector(2._f));
     Array<Vector> values = distribution->generate(1000, domain);
+    // distribution generates approximately 1000 particles
     REQUIRE(values.size() > 900);
     REQUIRE(values.size() < 1100);
+
+    // all particles are inside prescribed domain
     bool allInside = areAllMatching(values, [&](const Vector& v) { return domain.isInside(v); });
     REQUIRE(allInside);
+
+    // if we split the cube to octants, each of them will have approximately the same number of particles.
+    StaticArray<Size, 8> octants;
+    octants.fill(0);
+    for (Vector& v : values) {
+        const Vector idx = v + Vector(4._f);
+        const Size octantIdx =
+            4._f * clamp(idx[X], 0._f, 1._f) + 2._f * clamp(idx[Y], 0._f, 1._f) + clamp(idx[Z], 0._f, 1._f);
+        octants[octantIdx]++;
+    }
+    for (Size o : octants) {
+        REQUIRE(o >= 100);
+        REQUIRE(o <= 150);
+    }
 }
 
 TEST_CASE("HexaPacking", "[initconds]") {
     HexagonalPacking packing;
     testDistribution(&packing);
 }
-
-/*TEST_CASE("HexaPacking Benz&Asphaug", "[initconds]") {
-    HexagonalPacking packing;
-    SphericalDomain domain(Vector(0._f), 100._f);
-    StdOutLogger logger;
-    Array<Vector> r = packing.generate(100, domain);
-    logger.write("Particles = ", r.size());
-
-    TextOutput output("particles_%d.txt", "test", Array<QuantityIds>{ QuantityIds::POSITIONS });
-    Storage storage;
-    storage.emplace<Vector, OrderEnum::ZERO_ORDER>(QuantityIds::POSITIONS, std::move(r));
-    output.dump(storage, 0._f);
-}*/
 
 TEST_CASE("HexaPacking sorted", "[initconds]") {
     HexagonalPacking sorted(HexagonalPacking::Options::SORTED);
@@ -46,9 +52,9 @@ TEST_CASE("HexaPacking sorted", "[initconds]") {
     ASSERT(r_sort.size() == r_unsort.size());
 
 
-    std::unique_ptr<Abstract::Finder> finder_sort = Factory::getFinder(GLOBAL_SETTINGS);
+    std::unique_ptr<Abstract::Finder> finder_sort = Factory::getFinder(GlobalSettings::getDefaults());
     finder_sort->build(r_sort);
-    std::unique_ptr<Abstract::Finder> finder_unsort = Factory::getFinder(GLOBAL_SETTINGS);
+    std::unique_ptr<Abstract::Finder> finder_unsort = Factory::getFinder(GlobalSettings::getDefaults());
     finder_unsort->build(r_unsort);
 
     // find maximum distance of neighbouring particles in memory

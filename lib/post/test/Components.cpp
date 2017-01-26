@@ -11,16 +11,16 @@ using namespace Sph;
 TEST_CASE("Components simple", "[components]") {
     Array<Vector> ar{ Vector(0, 0, 0, 1), Vector(5, 0, 0, 1), Vector(0, 4, 0, 1), Vector(0, 3, 0, 1) };
     Array<Size> components;
-    Size numComponents = findComponents(ar, GLOBAL_SETTINGS, components);
+    Size numComponents = findComponents(ar, GlobalSettings::getDefaults(), components);
     REQUIRE(numComponents == 3);
     REQUIRE(components == Array<Size>({ 0, 1, 2, 2 }));
 }
 
 TEST_CASE("Component initconds", "[components]") {
-    BodySettings bodySettings = BODY_SETTINGS;
+    BodySettings bodySettings;
     bodySettings.set(BodySettingsIds::INITIAL_DISTRIBUTION, DistributionEnum::CUBIC);
     std::shared_ptr<Storage> storage = std::make_shared<Storage>();
-    InitialConditions conds(storage, GLOBAL_SETTINGS);
+    InitialConditions conds(storage, GlobalSettings::getDefaults());
     bodySettings.set<int>(BodySettingsIds::PARTICLE_COUNT, 1000);
     conds.addBody(SphericalDomain(Vector(0, 0, 0), 1._f), bodySettings);
     conds.addBody(SphericalDomain(Vector(-6, 4, 0), 1._f), bodySettings);
@@ -29,7 +29,7 @@ TEST_CASE("Component initconds", "[components]") {
 
     ArrayView<Vector> r = storage->getValue<Vector>(QuantityIds::POSITIONS);
     Array<Size> components;
-    const Size numComponents = findComponents(r, GLOBAL_SETTINGS, components);
+    const Size numComponents = findComponents(r, GlobalSettings::getDefaults(), components);
     REQUIRE(numComponents == 3);
     REQUIRE(components.size() > 0); // sanity check
 

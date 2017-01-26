@@ -12,10 +12,16 @@
 #include <initializer_list>
 #include <map>
 #include <string>
+#include <memory>
 
 NAMESPACE_SPH_BEGIN
 
+/// Tag for initialization of empty settings object.
+struct EmptySettingsTag {};
 
+const EmptySettingsTag EMPTY_SETTINGS;
+
+/// Generic object containing various settings and parameters of the run.
 template <typename TEnum>
 class Settings {
 private:
@@ -31,8 +37,14 @@ private:
 
     std::map<TEnum, Entry> entries;
 
+    static std::unique_ptr<Settings> instance;
+
 public:
-    Settings() = default;
+    /// Initialize settings by settings all value to their defaults.
+    Settings();
+
+    /// Initialize empty settings object.
+    Settings(EmptySettingsTag);
 
     Settings(std::initializer_list<Entry> list) {
         for (auto&& entry : list) {
@@ -82,6 +94,9 @@ public:
     /// \todo split settings and descriptors? Settings actual object with values, descriptors global object
     /// with ids, names and default values.
     bool loadFromFile(const std::string& path, const Settings& descriptors);
+
+    /// Returns a reference to object containing default values of all settings.
+    static Settings& getDefaults();
 
 private:
     bool setValueByType(Entry& entry, const Size typeIdx, const std::string& str);
@@ -245,6 +260,9 @@ enum class GlobalSettingsIds {
     /// Path of a file where the log is printed, used only when selected logger is LoggerEnum::FILE
     RUN_LOGGER_FILE,
 
+    /// Frequency of statistics evaluation.
+    RUN_STATISTICS_STEP,
+
     /// Index of SPH Kernel, see KernelEnum
     SPH_KERNEL,
 
@@ -338,59 +356,6 @@ enum class GlobalSettingsIds {
     /// Minimal distance between a particle and its ghost, in units of smoothing length.
     DOMAIN_GHOST_MIN_DIST
 };
-
-// clang-format off
-const Settings<GlobalSettingsIds> GLOBAL_SETTINGS = {
-    /// Parameters of the run
-    { GlobalSettingsIds::RUN_NAME,                      "run.name",                 std::string("unnamed run") },
-    { GlobalSettingsIds::RUN_OUTPUT_STEP,               "run.output.step",          100 },
-    { GlobalSettingsIds::RUN_OUTPUT_NAME,               "run.output.name",          std::string("out_%d.txt") },
-    { GlobalSettingsIds::RUN_OUTPUT_PATH,               "run.output.path",          std::string("out") },
-    { GlobalSettingsIds::RUN_LOGGER,                    "run.logger",               int(LoggerEnum::STD_OUT) },
-    { GlobalSettingsIds::RUN_LOGGER_FILE,               "run.logger.file",          std::string("log.txt") },
-
-    /// Physical model
-    { GlobalSettingsIds::MODEL_FORCE_GRAD_P,            "model.force.grad_p",       true },
-    { GlobalSettingsIds::MODEL_FORCE_DIV_S,             "model.force.div_s",        true },
-    { GlobalSettingsIds::MODEL_FORCE_CENTRIPETAL,       "model.force.centripetal",  false },
-    { GlobalSettingsIds::MODEL_FORCE_GRAVITY,           "model.force.gravity",      false },
-    { GlobalSettingsIds::MODEL_AV_TYPE,                 "model.av.type",            int(ArtificialViscosityEnum::STANDARD) },
-    { GlobalSettingsIds::MODEL_AV_BALSARA_SWITCH,       "model.av.balsara_switch",  false },
-    { GlobalSettingsIds::MODEL_YIELDING,                "model.yielding",           int(YieldingEnum::NONE) },
-    { GlobalSettingsIds::MODEL_DAMAGE,                  "model.damage",             int(DamageEnum::NONE) },
-
-    /// SPH solvers
-    { GlobalSettingsIds::SOLVER_TYPE,                   "solver.type",              int(SolverEnum::CONTINUITY_SOLVER) },
-
-    /// Global SPH parameters
-    { GlobalSettingsIds::SPH_KERNEL,                    "sph.kernel",               int(KernelEnum::CUBIC_SPLINE) },
-    { GlobalSettingsIds::SPH_KERNEL_ETA,                "sph.kernel.eta",           1.5_f },
-    { GlobalSettingsIds::SPH_AV_ALPHA,                  "sph.av.alpha",             1.5_f },
-    { GlobalSettingsIds::SPH_AV_BETA,                   "sph.av.beta",              3._f },
-    { GlobalSettingsIds::SPH_SMOOTHING_LENGTH_MIN,      "sph.smoothing_length.min", 1e-5_f },
-    { GlobalSettingsIds::SPH_FINDER,                    "sph.finder",               int(FinderEnum::KD_TREE) },
-
-    /// Timestepping parameters
-    { GlobalSettingsIds::TIMESTEPPING_INTEGRATOR,       "timestep.integrator",      int(TimesteppingEnum::EULER_EXPLICIT) },
-    { GlobalSettingsIds::TIMESTEPPING_COURANT,          "timestep.courant",         1._f },
-    { GlobalSettingsIds::TIMESTEPPING_MAX_TIMESTEP,     "timestep.max_step",        0.1_f /*s*/}, /// \todo units necessary in settings!!!
-    { GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP, "timestep.initial",         0.03_f },
-    { GlobalSettingsIds::TIMESTEPPING_ADAPTIVE,         "timestep.adaptive",        false },
-    { GlobalSettingsIds::TIMESTEPPING_ADAPTIVE_FACTOR,  "timestep.adaptive.factor", 0.2_f },
-
-    /// Selected coordinate system, rotation of bodies
-    { GlobalSettingsIds::FRAME_ANGULAR_FREQUENCY,       "frame.angular_frequency",  0._f },
-
-    /// Computational domain and boundary conditions
-    { GlobalSettingsIds::DOMAIN_TYPE,                   "domain.type",              int(DomainEnum::NONE) },
-    { GlobalSettingsIds::DOMAIN_BOUNDARY,               "domain.boundary",          int(BoundaryEnum::NONE) },
-    { GlobalSettingsIds::DOMAIN_GHOST_MIN_DIST,         "domain.ghosts.min_dist",   0.1_f },
-    { GlobalSettingsIds::DOMAIN_CENTER,                 "domain.center",            Vector(0._f) },
-    { GlobalSettingsIds::DOMAIN_RADIUS,                 "domain.radius",            1._f },
-    { GlobalSettingsIds::DOMAIN_HEIGHT,                 "domain.height",            1._f },
-    { GlobalSettingsIds::DOMAIN_SIZE,                   "domain.size",              Vector(1._f) },
-};
-// clang-format on
 
 
 enum class DistributionEnum {
@@ -544,57 +509,6 @@ enum class BodySettingsIds {
     /// Lower and upper bound of the alpha coefficient, used only for time-dependent artificial viscosity.
     AV_BETA_RANGE,
 };
-
-// clang-format off
-const Settings<BodySettingsIds> BODY_SETTINGS = {
-    /// Equation of state
-    { BodySettingsIds::EOS,                     "eos",                          int(EosEnum::IDEAL_GAS) },
-    { BodySettingsIds::ADIABATIC_INDEX,         "eos.adiabatic_index",          1.4_f },
-    { BodySettingsIds::TILLOTSON_SMALL_A,       "eos.tillotson.small_a",        0.5_f },
-    { BodySettingsIds::TILLOTSON_SMALL_B,       "eos.tillotson.small_b",        1.5_f },
-    { BodySettingsIds::TILLOTSON_ALPHA,         "eos.tillotson.alpha",          5._f },
-    { BodySettingsIds::TILLOTSON_BETA,          "eos.tillotson.beta",           5._f },
-    { BodySettingsIds::TILLOTSON_NONLINEAR_B,   "eos.tillotson.nonlinear_b",    2.67e10_f },
-    { BodySettingsIds::TILLOTSON_SUBLIMATION,   "eos.tillotson.sublimation",    4.87e8_f },
-    { BodySettingsIds::TILLOTSON_ENERGY_IV,     "eos.tillotson.energy_iv",      4.72e6_f },
-    { BodySettingsIds::TILLOTSON_ENERGY_CV,     "eos.tillotson.energy_cv",      1.82e7_f },
-
-    /// Yielding & Damage
-    { BodySettingsIds::ELASTICITY_LIMIT,        "rheology.elasticity_limit",    3.5e9_f },
-    { BodySettingsIds::MELT_ENERGY,             "rheology.melt_energy",         3.4e6_f },
-    { BodySettingsIds::COHESION,                "rheology.cohesion",            9.e7_f },
-    { BodySettingsIds::INTERNAL_FRICTION,       "rheology.internal_friction",   2._f },
-    { BodySettingsIds::DRY_FRICTION,            "rheology.dry_friction",        0.8_f },
-
-    /// Material properties
-    { BodySettingsIds::DENSITY,                 "material.density",             2700._f },
-    { BodySettingsIds::DENSITY_RANGE,           "material.density.range",       Range(10._f, INFTY) },
-    { BodySettingsIds::DENSITY_MIN,             "material.density.min",         50._f },
-    { BodySettingsIds::ENERGY,                  "material.energy",              0._f },
-    { BodySettingsIds::ENERGY_RANGE,            "material.energy.range",        Range(0._f, INFTY) },
-    { BodySettingsIds::ENERGY_MIN,              "material.energy.min",          1._f },
-    { BodySettingsIds::DAMAGE,                  "material.damage",              0._f },
-    { BodySettingsIds::DAMAGE_RANGE,            "material.damage.range",        Range(0.f, 1._f) },
-    { BodySettingsIds::DAMAGE_MIN,              "material.damage.min",          0.03_f },
-    { BodySettingsIds::STRESS_TENSOR,           "material.stress_tensor",       TracelessTensor(0._f) },
-    { BodySettingsIds::STRESS_TENSOR_MIN,       "material.stress_tensor.min",   1e5_f },
-    { BodySettingsIds::BULK_MODULUS,            "material.bulk_modulus",        2.67e10_f },
-    { BodySettingsIds::SHEAR_MODULUS,           "material.shear_modulus",       2.27e10_f },
-    { BodySettingsIds::YOUNG_MODULUS,           "material.young_modulus",       5.7e10_f },
-    { BodySettingsIds::RAYLEIGH_SOUND_SPEED,    "material.rayleigh_speed",      0.4_f },
-    { BodySettingsIds::WEIBULL_COEFFICIENT,     "material.weibull_coefficient", 4.e35_f },
-    { BodySettingsIds::WEIBULL_EXPONENT,        "material.weibull_exponent",    9._f },
-
-    /// SPH parameters specific for the body
-    { BodySettingsIds::INITIAL_DISTRIBUTION,    "sph.initial_distribution",     int(DistributionEnum::HEXAGONAL) },
-    { BodySettingsIds::PARTICLE_SORTING,        "sph.particle_sorting",         false },
-    { BodySettingsIds::PARTICLE_COUNT,          "sph.particle_count",           10000 },
-    { BodySettingsIds::AV_ALPHA,                "av.alpha",                     1.5_f },
-    { BodySettingsIds::AV_ALPHA_RANGE,          "av.alpha.range",               Range(0.05_f, 1.5_f) },
-    { BodySettingsIds::AV_BETA,                 "av.beta",                      3._f },
-    { BodySettingsIds::AV_ALPHA_RANGE,          "av.beta.range",                Range(0.1_f, 3._f) },
-};
-// clang-format on
 
 using GlobalSettings = Settings<GlobalSettingsIds>;
 using BodySettings = Settings<BodySettingsIds>;

@@ -9,7 +9,7 @@ const struct EmptyArray {
 } EMPTY_ARRAY;
 
 template <typename T, int N, typename TCounter = Size>
-class StaticArray  {
+class StaticArray {
 private:
     AlignedStorage<T> data[N];
     TCounter actSize;
@@ -93,6 +93,13 @@ public:
             cloned.push(data[i].get());
         }
         return cloned;
+    }
+
+    /// Assigns a value to all constructed elements of the array. Does not resize the array.
+    void fill(const T& value) {
+        for (TCounter i = 0; i < actSize; ++i) {
+            data[i].get() = value;
+        }
     }
 
     INLINE T& operator[](const TCounter idx) noexcept {
@@ -196,7 +203,7 @@ StaticArray<T0&, sizeof...(TArgs) + 1> tie(T0& t0, TArgs&... rest) {
     return StaticArray<T0&, sizeof...(TArgs) + 1>({ t0, rest... });
 }
 
-template<typename T, Size N, typename TFunctor>
+template <typename T, Size N, typename TFunctor>
 decltype(auto) apply(StaticArray<T, N>&, TFunctor&&) {
     NOT_IMPLEMENTED;
 }

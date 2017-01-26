@@ -3,111 +3,58 @@
 #include "objects/containers/ArrayView.h"
 #include "quantities/QuantityIds.h"
 #include "quantities/Storage.h"
+#include "system/Settings.h"
 #include <memory>
 
 NAMESPACE_SPH_BEGIN
 
-namespace Abstract {
-    template <typename TValue>
-    class Integral : public Polymorphic {
-    public:
-        virtual TValue get(Storage& storage) const = 0;
 
-        virtual Float getVariance(Storage& storage) const = 0;
-    };
-}
+/// Class computing integrals of motion, average/minimal/maximal values of quantities, etc.
+/// For non-inertial reference frame, all relevant values are evaluated in the inertial reference frame,
+/// meaning even for zero particle velocities (in the non-inertial frame of the run), the resulting momentum
+/// or angular momentum can be nonzero.
+/// \todo automatically exclude ghost particles?
+class Integrals {
+private:
+    Vector omega{ 0._f };
 
-class TotalMomentum : public Abstract::Integral<Vector> {
 public:
-    virtual Vector get(Storage& storage) const override {
-        Vector total(0._f);
-        ArrayView<const Vector> rs, vs, dvs;
-        tie(rs, vs, dvs) = storage.getAll<Vector>(QuantityIds::POSITIONS);
-        ArrayView<const Float> ms = storage.getValue<Float>(QuantityIds::MASSES);
-        for (Size i = 0; i < vs.size(); ++i) {
-            total += ms[i] * vs[i];
-        }
-        return total;
-    }
+    /// Default construction assumes inertial reference frame.
+    Integrals();
 
-    virtual Float getVariance(Storage& storage) const override {
-        Vector total(0._f);
-        Float totalSqr = 0._f;
-        ArrayView<const Vector> rs, vs, dvs;
-        tie(rs, vs, dvs) = storage.getAll<Vector>(QuantityIds::POSITIONS);
-        ArrayView<const Float> ms = storage.getValue<Float>(QuantityIds::MASSES);
-        for (Size i = 0; i < vs.size(); ++i) {
-            const Vector p = ms[i] * vs[i];
-            total += p;
-            totalSqr += getSqrLength(p);
-        }
-        return totalSqr - getSqrLength(total);
-    }
+    Integrals(const GlobalSettings& settings);
+
+    /// Computes the total mass of all SPH particles. Storage must contains particle masses, of course;
+    /// checked by assert.
+    /// \note Total mass is always conserved automatically as particles do not change their mass. This is
+    /// therefore only useful as a sanity check, or potentially if a solver with variable particle masses gets
+    /// implemented.
+    Float getTotalMass(Storage& storage) const;
+
+    /// Computes total momentum of all SPH particles with a respect to the center of reference frame.
+    /// Storage must contain at least particle masses and particle positions with velocities, checked by
+    /// assert.
+    Vector getTotalMomentum(Storage& storage) const;
+
+    /// Computes total angular momentum of all SPH particles with a respect to the center of reference frame.
+    /// Storage must contain at least particle masses and particle positions with velocities, checked by
+    /// assert.
+    Vector getTotalAngularMomentum(Storage& storage) const;
+
+    /// Returns the total energy of all particles. This is simply of sum of total kinetic energy and total
+    /// internal energy.
+    /// \todo this has to be generalized if some external potential is used.
+    Float getTotalEnergy(Storage& storage) const;
+
+    /// Returns the total kinetic energy of all particles. Storage must contain at least particle masses and
+    /// particle positions with velocities, checked by assert.
+    Float getTotalKineticEnergy(Storage& storage) const;
+
+    /// Returns the total internal energy of all particles. Storage must contain at least particle masses and
+    /// specific internal energy. If used solver works with other independent quantity (energy density, total
+    /// energy, specific entropy), specific energy must be derived before the function is called.
+    Float getTotalInternalEnergy(Storage& storage) const;
 };
 
-
-class TotalAngularMomentum : public Abstract::Integral<Vector> {
-public:
-    virtual Vector get(Storage& storage) const override {
-        Vector total(0._f);
-        ArrayView<const Vector> rs, vs, dvs;
-        tie(rs, vs, dvs) = storage.getAll<Vector>(QuantityIds::POSITIONS);
-        ArrayView<const Float> ms = storage.getValue<Float>(QuantityIds::MASSES);
-        for (Size i = 0; i < vs.size(); ++i) {
-            total += ms[i] * cross(rs[i], vs[i]);
-        }
-        return total;
-    }
-
-    virtual Float getVariance(Storage& storage) const override {
-        Vector total(0._f);
-        Float totalSqr = 0._f;
-        ArrayView<const Vector> rs, vs, dvs;
-        tie(rs, vs, dvs) = storage.getAll<Vector>(QuantityIds::POSITIONS);
-        ArrayView<const Float> ms = storage.getValue<Float>(QuantityIds::MASSES);
-        for (Size i = 0; i < vs.size(); ++i) {
-            const Vector p = ms[i] * cross(rs[i], vs[i]);
-            total += p;
-            totalSqr += getSqrLength(p);
-        }
-        return totalSqr - getSqrLength(total);
-    }
-};
-
-class TotalEnergy : public Abstract::Integral<Float> {
-public:
-    virtual Float get(Storage& storage) const override {
-        Float total = 0._f;
-        ArrayView<const Vector> r, v, dv;
-        tie(r, v, dv) = storage.getAll<Vector>(QuantityIds::POSITIONS);
-        ArrayView<const Float> u = storage.getValue<Float>(QuantityIds::ENERGY);
-        ArrayView<const Float> m = storage.getValue<Float>(QuantityIds::MASSES);
-        for (Size i = 0; i < v.size(); ++i) {
-            total += 0.5_f * m[i] * getSqrLength(v[i]) + m[i] * u[i];
-        }
-        return total;
-    }
-
-    virtual Float getVariance(Storage&) const override {
-        NOT_IMPLEMENTED;
-    }
-};
-
-// debugging
-class AvgDeviatoricStress : public Abstract::Integral<TracelessTensor> {
-public:
-    virtual TracelessTensor get(Storage& storage) const override {
-        TracelessTensor avg = 0.f;
-        ArrayView<const TracelessTensor> ds = storage.getAll<TracelessTensor>(QuantityIds::DEVIATORIC_STRESS)[1];
-        for (Size i = 0; i < ds.size(); ++i) {
-            avg += ds[i];
-        }
-        return avg / ds.size();
-    }
-
-    virtual Float getVariance(Storage&) const override {
-        NOT_IMPLEMENTED;
-    }
-};
 
 NAMESPACE_SPH_END

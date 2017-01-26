@@ -9,34 +9,30 @@
 using namespace Sph;
 
 TEST_CASE("Initial conditions", "[initial]") {
-    Settings<BodySettingsIds> bodySettings(BODY_SETTINGS);
+    BodySettings bodySettings;
     bodySettings.set(BodySettingsIds::PARTICLE_COUNT, 100);
     BlockDomain domain(Vector(0._f), Vector(1._f));
     std::shared_ptr<Storage> storage = std::make_shared<Storage>();
-    InitialConditions conds(storage, GLOBAL_SETTINGS);
+    InitialConditions conds(storage, GlobalSettings::getDefaults());
     conds.addBody(domain, bodySettings);
 
     const Size size = storage->getValue<Vector>(QuantityIds::POSITIONS).size();
     REQUIRE((size >= 80 && size <= 120));
-    iterate<VisitorEnum::ALL_BUFFERS>(*storage, [size](auto&& array) {
-        REQUIRE(array.size() == size);
-    });
+    iterate<VisitorEnum::ALL_BUFFERS>(*storage, [size](auto&& array) { REQUIRE(array.size() == size); });
 
     ArrayView<Float> rhos, us, drhos, dus;
     tie(rhos, drhos) = storage->getAll<Float>(QuantityIds::DENSITY);
     tie(us, dus) = storage->getAll<Float>(QuantityIds::ENERGY);
-    bool result = areAllMatching(rhos, [&](const Float f) {
-        return f == bodySettings.get<Float>(BodySettingsIds::DENSITY);
-    });
+    bool result = areAllMatching(
+        rhos, [&](const Float f) { return f == bodySettings.get<Float>(BodySettingsIds::DENSITY); });
     REQUIRE(result);
 
     result = areAllMatching(drhos, [](const Float f) {
         return f == 0._f; // zero density derivative
     });
     REQUIRE(result);
-    result = areAllMatching(us, [&](const Float f) {
-        return f ==  bodySettings.get<Float>(BodySettingsIds::ENERGY);
-    });
+    result = areAllMatching(
+        us, [&](const Float f) { return f == bodySettings.get<Float>(BodySettingsIds::ENERGY); });
     REQUIRE(result);
     result = areAllMatching(dus, [](const Float f) {
         return f == 0._f; // zero energy derivative
@@ -53,8 +49,8 @@ TEST_CASE("Initial conditions", "[initial]") {
 
 TEST_CASE("Initial velocity", "[initial]") {
     std::shared_ptr<Storage> storage = std::make_shared<Storage>();
-    InitialConditions conds(storage, GLOBAL_SETTINGS);
-    BodySettings bodySettings = BODY_SETTINGS;
+    InitialConditions conds(storage, GlobalSettings::getDefaults());
+    BodySettings bodySettings;
     bodySettings.set<Float>(BodySettingsIds::DENSITY, 1._f);
     conds.addBody(SphericalDomain(Vector(0._f), 1._f), bodySettings, Vector(2._f, 1._f, -1._f));
     bodySettings.set<Float>(BodySettingsIds::DENSITY, 2._f);
@@ -81,9 +77,11 @@ TEST_CASE("Initial velocity", "[initial]") {
 
 TEST_CASE("Initial rotation", "[initial]") {
     std::shared_ptr<Storage> storage = std::make_shared<Storage>();
-    InitialConditions conds(storage, GLOBAL_SETTINGS);
-    conds.addBody(
-        SphericalDomain(Vector(0._f), 1._f), BODY_SETTINGS, Vector(0._f), Vector(1._f, 3._f, -2._f));
+    InitialConditions conds(storage, GlobalSettings::getDefaults());
+    conds.addBody(SphericalDomain(Vector(0._f), 1._f),
+        BodySettings::getDefaults(),
+        Vector(0._f),
+        Vector(1._f, 3._f, -2._f));
     ArrayView<Vector> r, v, dv;
     tie(r, v, dv) = storage->getAll<Vector>(QuantityIds::POSITIONS);
 

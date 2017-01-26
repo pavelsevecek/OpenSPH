@@ -48,7 +48,7 @@ namespace Abstract {
 
         INLINE Float getTimeStep() const { return dt; }
 
-        void step(Abstract::Solver& solver, FrequentStats& stats) {
+        void step(Abstract::Solver& solver, Statistics& stats) {
             this->stepImpl(solver);
             // update time step
             if (adaptiveStep) {

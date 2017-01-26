@@ -34,14 +34,14 @@ TEST_CASE("Settings copyValueTo", "[settings]") {
 }
 
 TEST_CASE("Settings save/load", "[settings]") {
-    Settings<GlobalSettingsIds> settings(GLOBAL_SETTINGS); // needed to copy names
+    GlobalSettings settings;
     settings.set(GlobalSettingsIds::DOMAIN_CENTER, Vector(1._f, 2._f, 3._f));
     settings.set(GlobalSettingsIds::DOMAIN_RADIUS, 3.5_f);
     settings.set(GlobalSettingsIds::RUN_NAME, std::string("test"));
     settings.saveToFile("tmp.sph");
 
     Settings<GlobalSettingsIds> loadedSettings;
-    REQUIRE(loadedSettings.loadFromFile("tmp.sph", GLOBAL_SETTINGS));
+    REQUIRE(loadedSettings.loadFromFile("tmp.sph", GlobalSettings::getDefaults()));
     const Vector center = loadedSettings.get<Vector>(GlobalSettingsIds::DOMAIN_CENTER);
     REQUIRE(center == Vector(1._f, 2._f, 3._f));
     const Float radius = loadedSettings.get<Float>(GlobalSettingsIds::DOMAIN_RADIUS);

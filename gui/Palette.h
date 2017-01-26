@@ -40,6 +40,8 @@ private:
             } else {
                 palette = value;
             }
+        default:
+            NOT_IMPLEMENTED;
         }
         ASSERT(isReal(palette));
         return palette;

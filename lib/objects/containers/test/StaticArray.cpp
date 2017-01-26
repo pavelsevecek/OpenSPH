@@ -129,6 +129,15 @@ TEST_CASE("StaticArray resize", "[staticarray]") {
     REQUIRE(ar.size() == 1);
 }
 
+TEST_CASE("StaticArray fill", "[staticarray]") {
+    StaticArray<RecordType, 3> ar;
+    ar.fill(RecordType(2));
+    for (Size i = 0; i < 3; ++i) {
+        REQUIRE(ar[i].value == 2);
+        REQUIRE(ar[i].wasCopyAssigned);
+    }
+}
+
 TEST_CASE("StaticArray references", "[staticarray]") {
     RecordType::resetStats();
     RecordType r1(5), r2(3);
@@ -149,7 +158,7 @@ TEST_CASE("StaticArray references", "[staticarray]") {
 
 TEST_CASE("StaticArray move references", "[staticarray]") {
     RecordType r1(5), r2(10);
-    StaticArray<RecordType&, 2> ar1{r1, r2};
+    StaticArray<RecordType&, 2> ar1{ r1, r2 };
     RecordType r3, r4;
     tie(r3, r4) = std::move(ar1);
     REQUIRE(!r1.wasMoved);

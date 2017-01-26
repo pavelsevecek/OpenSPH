@@ -64,7 +64,7 @@ TEST_CASE("Indices conversion", "[indices]") {
     REQUIRE(i[1] == 2);
     REQUIRE(i[2] == 5);
 
-    Vector v2(i);
+    Vector v2 = i;
     REQUIRE(v2 == Vector(1._f, 2._f, 5._f));
 }
 

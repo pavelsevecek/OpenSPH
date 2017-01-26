@@ -9,13 +9,13 @@ using namespace Sph;
 
 TEST_CASE("VonMises", "[yielding]") {
     VonMises vonMises;
-    Storage storage(BODY_SETTINGS);
+    Storage storage(BodySettings::getDefaults());
     Array<Float> energy(10);
     energy.fill(0._f);
     storage.emplace<Float, OrderEnum::FIRST_ORDER>(QuantityIds::ENERGY, std::move(energy));
     MaterialAccessor material(storage);
     material.setParams(BodySettingsIds::MELT_ENERGY, 100._f);
-    material.setParams(BodySettingsIds::ELASTICITY_LIMIT, BODY_SETTINGS);
+    material.setParams(BodySettingsIds::ELASTICITY_LIMIT, BodySettings::getDefaults());
 
     TracelessTensor stress(Vector(1._f, 2._f, 3._f), Vector(2._f, 2._f, 4._f), Vector(3._f, 4._f, -3._f));
     storage.emplace<TracelessTensor, OrderEnum::ZERO_ORDER>(QuantityIds::DEVIATORIC_STRESS, stress);

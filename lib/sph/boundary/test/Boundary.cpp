@@ -62,7 +62,7 @@ public:
 TEST_CASE("GhostParticles wall", "[boundary]") {
     // default kernel = M4, radius = 2
     const Float minDist = 0.1_f; // minimal distance of ghost
-    GlobalSettings settings = GLOBAL_SETTINGS;
+    GlobalSettings settings;
     settings.set(GlobalSettingsIds::DOMAIN_GHOST_MIN_DIST, minDist);
     GhostParticles boundaryConditions(std::make_unique<WallDomain>(), settings);
     Storage storage;
@@ -136,7 +136,8 @@ TEST_CASE("GhostParticles Sphere", "[boundary]") {
     }
 
     const Size ghostIdx = r.size();
-    GhostParticles boundaryConditions(std::make_unique<SphericalDomain>(Vector(0._f), 2._f), GLOBAL_SETTINGS);
+    GhostParticles boundaryConditions(
+        std::make_unique<SphericalDomain>(Vector(0._f), 2._f), GlobalSettings::getDefaults());
     boundaryConditions.apply(storage);
     tie(r, v, dv) = storage.getAll<Vector>(QuantityIds::POSITIONS);
     REQUIRE(r.size() == 2 * ghostIdx); // ghost for each particle
@@ -194,7 +195,8 @@ TEST_CASE("GhostParticles Sphere Projection", "[boundary]") {
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityIds::POSITIONS);
     const Size ghostIdx = r.size();
     const Size halfSize = ghostIdx >> 1;
-    GhostParticles boundaryConditions(std::make_unique<SphericalDomain>(Vector(0._f), 2._f), GLOBAL_SETTINGS);
+    GhostParticles boundaryConditions(
+        std::make_unique<SphericalDomain>(Vector(0._f), 2._f), GlobalSettings::getDefaults());
     boundaryConditions.apply(storage);
     r = storage.getValue<Vector>(QuantityIds::POSITIONS);
     REQUIRE(r.size() == halfSize * 3); // only layer with r=1.9 creates ghost particles
@@ -223,7 +225,8 @@ TEST_CASE("GhostParticles empty", "[boundary]") {
     Array<Vector> particles;
     particles.push(Vector(1._f, 0._f, 0._f, 0.1_f));
     storage.emplace<Vector, OrderEnum::SECOND_ORDER>(QuantityIds::POSITIONS, std::move(particles));
-    GhostParticles boundaryConditions(std::make_unique<SphericalDomain>(Vector(0._f), 2._f), GLOBAL_SETTINGS);
+    GhostParticles boundaryConditions(
+        std::make_unique<SphericalDomain>(Vector(0._f), 2._f), GlobalSettings::getDefaults());
     boundaryConditions.apply(storage);
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityIds::POSITIONS);
     REQUIRE(r.size() == 1);

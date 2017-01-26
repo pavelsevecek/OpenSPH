@@ -52,7 +52,9 @@ SOURCES += \
     physics/TimeFormat.cpp \
     physics/Damage.cpp \
     physics/Yielding.cpp \
-    post/Components.cpp
+    post/Components.cpp \
+    geometry/Domain.cpp \
+    physics/Integrals.cpp
 
 HEADERS += \
     core/Globals.h \
@@ -148,4 +150,5 @@ HEADERS += \
     quantities/QuantityIds.h \
     thread/Pool.h \
     thread/ConcurrentQueue.h \
-    thread/ThreadLocal.h
+    thread/ThreadLocal.h \
+    objects/wrappers/Value.h

@@ -73,7 +73,7 @@ public:
         logger->write("Running:");
 
         Timer runTimer;
-        FrequentStats stats;
+        Statistics stats;
         for (Float t (timeRange.lower()); timeRange.upper() > t; t += timeStepping->getTimeStep()) {
             if (callbacks) {
                 callbacks->onTimeStep((t - timeRange.lower()) / timeRange.size(), storage);
@@ -92,8 +92,8 @@ public:
             timeStepping->step(*solver, stats);
 
             // Log
-            stats.set(FrequentStatsIds::TIME, t);
-            stats.set(FrequentStatsIds::INDEX, (int)i);
+            stats.set(StatisticsIds::TIME, t);
+            stats.set(StatisticsIds::INDEX, (int)i);
             FrequentStatsFormat format;
             format.print(*logger, stats);
 
