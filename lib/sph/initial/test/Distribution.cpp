@@ -25,20 +25,23 @@ void testDistribution(Abstract::Distribution* distribution) {
     // if we split the cube to octants, each of them will have approximately the same number of particles.
     StaticArray<Size, 8> octants;
     octants.fill(0);
+    StdOutLogger logger;
     for (Vector& v : values) {
         const Vector idx = v + Vector(4._f);
+        logger.write(int(idx[X]), ' ', int(idx[Y]), ' ', int(idx[Z]));
         const Size octantIdx =
-            4._f * clamp(idx[X], 0._f, 1._f) + 2._f * clamp(idx[Y], 0._f, 1._f) + clamp(idx[Z], 0._f, 1._f);
+            4 * clamp(int(idx[X]), 0, 1) + 2._f * clamp(int(idx[Y]), 0, 1) + clamp(int(idx[Z]), 0, 1);
         octants[octantIdx]++;
     }
+    const Size n = values.size();
     for (Size o : octants) {
-        REQUIRE(o >= 100);
-        REQUIRE(o <= 150);
+        REQUIRE(o >= n - 25);
+        REQUIRE(o <= n + 25);
     }
 }
 
 TEST_CASE("HexaPacking", "[initconds]") {
-    HexagonalPacking packing;
+    HexagonalPacking packing(EMPTY_FLAGS);
     testDistribution(&packing);
 }
 

@@ -65,7 +65,7 @@ Array<Vector> HexagonalPacking::generate(const Size n, const Abstract::Domain& d
 
     // interparticle distance based on density
     const Float h = 1._f / root<3>(particleDensity);
-    const Float dx = 1.075_f * h;
+    const Float dx = 1.1_f * h;
     const Float dy = sqrt(3._f) * 0.5_f * dx;
     const Float dz = sqrt(6._f) / 3._f * dx;
 
