@@ -127,6 +127,8 @@ public:
         return *this;
     }
 
+    INLINE Tensor operator-() const { return Tensor(-diag, -off); }
+
     INLINE bool operator==(const Tensor& other) const { return diag == other.diag && off == other.off; }
 
     INLINE bool operator!=(const Tensor& other) const { return diag != other.diag || off != other.off; }
@@ -232,13 +234,13 @@ INLINE Float minElement(const Tensor& t) {
 }
 
 /// Component-wise minimum of two tensors.
-template<>
+template <>
 INLINE Tensor min(const Tensor& t1, const Tensor& t2) {
     return Tensor(min(t1.diagonal(), t2.diagonal()), min(t1.offDiagonal(), t2.offDiagonal()));
 }
 
 /// Component-wise maximum of two tensors.
-template<>
+template <>
 INLINE Tensor max(const Tensor& t1, const Tensor& t2) {
     return Tensor(max(t1.diagonal(), t2.diagonal()), max(t1.offDiagonal(), t2.offDiagonal()));
 }
@@ -283,7 +285,7 @@ INLINE StaticArray<Float, 3> findEigenvalues(const Tensor& t) {
     const Float b = (2._f * pow<3>(p) - 9._f * p * q + 27._f * r) / 27._f;
     const Float aCub = pow<3>(a) / 27._f;
     if (0.25_f * b * b + aCub >= 0._f) {
-         return { 0._f, 0._f, 0._f };
+        return { 0._f, 0._f, 0._f };
     }
     ASSERT(a < 0._f);
     const Float t1 = 2._f * sqrt(-a / 3._f);

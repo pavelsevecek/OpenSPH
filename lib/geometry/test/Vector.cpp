@@ -1,5 +1,6 @@
 #include "geometry/Vector.h"
 #include "catch.hpp"
+#include "utils/Approx.h"
 #include "utils/Utils.h"
 
 using namespace Sph;
@@ -138,7 +139,7 @@ TEST_CASE("Vector products", "[vector]") {
 TEST_CASE("Vector utilities", "[vector]") {
     // spherical coordinates
     Vector v = spherical(Sph::sqrt(2._f), PI / 2._f, PI / 4._f);
-    REQUIRE(almostEqual(v, Vector(1._f, 1._f, 0._f), EPS));
+    REQUIRE(v == approx(Vector(1._f, 1._f, 0._f)));
 }
 
 TEST_CASE("Vector inequalities", "[vectors]") {
@@ -187,4 +188,20 @@ TEST_CASE("Vector cast", "[vector]") {
 
     BasicVector<float> vf3 = vectorCast<float>(vf2); // casting on the same precision
     REQUIRE(vf3 == BasicVector<float>(1.f, 2.f, 3.f, 4.f));
+}
+
+TEST_CASE("Vector almostEqual", "[vector]") {
+    REQUIRE(almostEqual(Vector(1._f, 2._f, 3._f), Vector(1._f, 2._f, 3._f)));
+    REQUIRE_FALSE(almostEqual(Vector(1._f, 2._f, 3._f), Vector(1._f, -2._f, 3._f)));
+    REQUIRE_FALSE(almostEqual(Vector(1._f, 2._f, 3._f), Vector(1._f, 2._f, 2.9_f)));
+    REQUIRE(almostEqual(Vector(1._f, 2._f, 3._f), Vector(1._f, 2._f, 2.9_f), 0.1_f));
+
+    REQUIRE(almostEqual(Vector(1.e10_f), Vector(1.1e10_f), 0.1_f));
+    REQUIRE_FALSE(almostEqual(Vector(1.e10_f), Vector(1.1e10_f), 0.01_f));
+    REQUIRE(almostEqual(Vector(1.e12_f, -2.e12_f, 0.5_f), Vector(1.e12_f, -2.e12_f, 10._f), EPS));
+    REQUIRE_FALSE(almostEqual(Vector(1.e12_f, -2.e12_f, 0.5_f), Vector(1.e12_f, -2.e12_f, 10._f), 1e-12_f));
+
+    REQUIRE(almostEqual(Vector(1.e-10_f), Vector(1.1e-10_f), 0.1_f));
+    REQUIRE_FALSE(almostEqual(Vector(1.e-10_f), Vector(1.1e-10_f), 0.01_f));
+    REQUIRE(almostEqual(Vector(1.e-12_f, -2.e-12_f, 0._f), Vector(1.e-12_f, 1.e-18_f - 2.e-12_f, 0._f), EPS));
 }

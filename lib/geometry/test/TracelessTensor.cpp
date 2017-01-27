@@ -79,6 +79,7 @@ TEST_CASE("TracelessTensor operation", "[tracelesstensor]") {
     REQUIRE(t2 / t1 == TracelessTensor(Vector(-1._f, 0._f, 1._f / 3._f),
                            Vector(0._f, -1._f, 0.25_f),
                            Vector(1._f / 3._f, 0.25f, -1._f)));
+    REQUIRE(-t1 == TracelessTensor(Vector(-1._f, -2._f, -3._f), Vector(-2._f,-2._f, -4._f), Vector(-3._f, -4._f, 3._f)));
 }
 
 
@@ -139,4 +140,22 @@ TEST_CASE("TracelessTensor abs", "[tracelesstensor]") {
     TracelessTensor t1(Vector(1._f, -2._f, 1._f), Vector(-2._f, -2._f, 4._f), Vector(1._f, 4._f, 1._f));
     Tensor abst1(Vector(1._f, 2._f, 1._f), Vector(2._f, 2._f, 4._f), Vector(1._f, 4._f, 1._f));
     REQUIRE(abs(t1) == abst1);
+}
+
+TEST_CASE("TracelessTensor almostEqual", "[tracelesstensor]") {
+    auto testTensor = [](TracelessTensor& t){
+        REQUIRE(almostEqual(t, t));
+        REQUIRE_FALSE(almostEqual(t, -t));
+        REQUIRE(almostEqual(t, (1._f + EPS)*t));
+        REQUIRE_FALSE(almostEqual(t, 1.1_f * t));
+        REQUIRE(almostEqual(t, 1.1_f * t, 0.1_f));
+        REQUIRE_FALSE(almostEqual(t, 1.1_f * t, 0.02_f));
+    };
+
+    TracelessTensor t1(Vector(1._f, -2._f, 1._f), Vector(-2._f, -2._f, 4._f), Vector(1._f, 4._f, 1._f));
+    testTensor(t1);
+    TracelessTensor t2 = 1.e10_f * t1;
+    testTensor(t2);
+    TracelessTensor t3 = 1.e-12_f * t1;
+    testTensor(t3);
 }

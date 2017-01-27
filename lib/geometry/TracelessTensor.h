@@ -180,6 +180,8 @@ public:
         return *this;
     }
 
+    INLINE TracelessTensor operator-() const { return TracelessTensor(-m, -m12); }
+
     INLINE bool operator==(const TracelessTensor& other) const { return m == other.m && m12 == other.m12; }
 
     INLINE friend bool operator==(const TracelessTensor& t1, const Tensor& t2) {
@@ -251,13 +253,13 @@ INLINE TracelessTensor sqrtInv(const TracelessTensor&) {
 }
 
 /// Component-wise minimum of two tensors.
-template<>
+template <>
 INLINE TracelessTensor min(const TracelessTensor& t1, const TracelessTensor& t2) {
     return TracelessTensor(min(t1.m, t2.m), min(t1.m12, t2.m12));
 }
 
 /// Component-wise maximum of two tensors.
-template<>
+template <>
 INLINE TracelessTensor max(const TracelessTensor& t1, const TracelessTensor& t2) {
     return TracelessTensor(max(t1.m, t2.m), max(t1.m12, t2.m12));
 }
