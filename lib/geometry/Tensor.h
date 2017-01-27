@@ -231,6 +231,18 @@ INLINE Float minElement(const Tensor& t) {
     return min(minElement(t.diagonal()), minElement(t.offDiagonal()));
 }
 
+/// Component-wise minimum of two tensors.
+template<>
+INLINE Tensor min(const Tensor& t1, const Tensor& t2) {
+    return Tensor(min(t1.diagonal(), t2.diagonal()), min(t1.offDiagonal(), t2.offDiagonal()));
+}
+
+/// Component-wise maximum of two tensors.
+template<>
+INLINE Tensor max(const Tensor& t1, const Tensor& t2) {
+    return Tensor(max(t1.diagonal(), t2.diagonal()), max(t1.offDiagonal(), t2.offDiagonal()));
+}
+
 /// Clamping all components by range.
 template <>
 INLINE Tensor clamp(const Tensor& t, const Range& range) {

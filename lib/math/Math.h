@@ -302,7 +302,7 @@ INLINE Float sphereVolume(const Float radius) {
 /// Checks if two values are equal to some given accuracy.
 /// \note We use <= rather than < on purpose as EPS for integral types is zero.
 INLINE auto almostEqual(const Float& f1, const Float& f2, const Float& eps = EPS) {
-    return abs(f1 - f2) <= eps;
+    return abs(f1 - f2) <= eps * max(abs(f1), abs(f2));
 }
 
 

@@ -2,6 +2,7 @@
 #include "catch.hpp"
 #include "objects/containers/Array.h"
 #include "utils/Utils.h"
+#include "utils/Approx.h"
 
 using namespace Sph;
 
@@ -44,8 +45,7 @@ TEST_CASE("Tensor operations", "[tensor]") {
     REQUIRE(t1 / 2._f == Tensor(Vector(1._f, 0.5_f, -0.5_f), Vector(1._f, 1.5_f, -2._f)));
 
     REQUIRE(t1 * t2 == Tensor(Vector(2._f, 2._f, -3._f), Vector(-2._f, -6._f, 12._f)));
-    REQUIRE(
-        almostEqual(t1 / t2, Tensor(Vector(2._f, 0.5_f, -1._f / 3._f), Vector(-2._f, -1.5_f, 4._f / 3._f))));
+    REQUIRE(t1 / t2 == approx(Tensor(Vector(2._f, 0.5_f, -1._f / 3._f), Vector(-2._f, -1.5_f, 4._f / 3._f))));
 }
 
 TEST_CASE("Tensor apply", "[tensor]") {

@@ -8,7 +8,7 @@ QMAKE_CXXFLAGS += -msse4.1 -Wall -Wextra -Werror -std=c++14 -pthread
 #QMAKE_CXXFLAGS_RELEASE -= -O2
 #QMAKE_CXXFLAGS_RELEASE += -Os
 #QMAKE_CXXFLAGS_DEBUG += -fsanitize=undefined-trap -fsanitize-undefined-trap-on-error
-QMAKE_CXX = g++
+QMAKE_CXX = clang++
 
 CONFIG(release, debug|profile|assert|release) {
   message( "SPH TESTS --- Building for Release" )
@@ -94,10 +94,12 @@ SOURCES += \
     ../lib/quantities/test/Material.cpp \
     ../lib/solvers/test/Accumulator.cpp \
     ../lib/geometry/test/Domain.cpp \
-    ../lib/thread/test/Pool.cpp
+    ../lib/thread/test/Pool.cpp \
+    utils/Approx.cpp
 
 
 HEADERS += \
     utils/Utils.h \
     utils/RecordType.h \
-    ../lib/sph/forces/StressForce.h
+    ../lib/sph/forces/StressForce.h \
+    utils/Approx.h

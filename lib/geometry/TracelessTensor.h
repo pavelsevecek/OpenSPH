@@ -16,6 +16,10 @@ class TracelessTensor {
     template <typename T>
     friend T sqrtInv(const T& t);
     template <typename T>
+    friend constexpr T min(const T& t1, const T& t2);
+    template <typename T>
+    friend constexpr T max(const T& t1, const T& t2);
+    template <typename T>
     friend T clamp(const T& t, const Range& range);
 
 private:
@@ -200,11 +204,11 @@ public:
 
 /// Traceless tensor utils
 
-/*    /// Checks if two tensors are equal to some given accuracy.
-    INLINE bool almostEqual(const TracelessTensor& t1, const TracelessTensor& t2, const Float eps = EPS) {
-        return almostEqual(t1.diagonal(), t2.diagonal(), eps) &&
-               almostEqual(t1.offDiagonal(), t2.offDiagonal(), eps);
-    }*/
+/// Checks if two tensors are equal to some given accuracy.
+INLINE bool almostEqual(const TracelessTensor& t1, const TracelessTensor& t2, const Float eps = EPS) {
+    return almostEqual(t1.diagonal(), t2.diagonal(), eps) &&
+           almostEqual(t1.offDiagonal(), t2.offDiagonal(), eps);
+}
 
 /// Arbitrary norm of the tensor.
 /// \todo Use some well-defined norm instead? (spectral norm, L1 or L2 norm, ...)
@@ -244,6 +248,18 @@ INLINE auto abs(const TracelessTensor& t) {
 template <>
 INLINE TracelessTensor sqrtInv(const TracelessTensor&) {
     NOT_IMPLEMENTED
+}
+
+/// Component-wise minimum of two tensors.
+template<>
+INLINE TracelessTensor min(const TracelessTensor& t1, const TracelessTensor& t2) {
+    return TracelessTensor(min(t1.m, t2.m), min(t1.m12, t2.m12));
+}
+
+/// Component-wise maximum of two tensors.
+template<>
+INLINE TracelessTensor max(const TracelessTensor& t1, const TracelessTensor& t2) {
+    return TracelessTensor(max(t1.m, t2.m), max(t1.m12, t2.m12));
 }
 
 template <>

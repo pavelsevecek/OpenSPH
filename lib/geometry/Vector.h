@@ -622,7 +622,7 @@ INLINE Vector clamp(const Vector& v, const Range& range) {
 
 /// Checks if two vectors are equal to some given accuracy.
 INLINE bool almostEqual(const Vector& v1, const Vector& v2, const Float eps = EPS) {
-    return getSqrLength(v1 - v2) <= sqr(eps);
+    return getSqrLength(v1 - v2) <= sqr(eps) * max(getSqrLength(v1), getSqrLength(v2));
 }
 
 /// Returns norm of a vector, i.e. its (approximative) length

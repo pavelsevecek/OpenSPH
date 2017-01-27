@@ -6,7 +6,7 @@ NAMESPACE_SPH_BEGIN
 
 template <typename TEnum>
 Settings<TEnum>::Settings()
-    : Settings(*Settings::instance) {}
+    : Settings(Settings::getDefaults()) {}
 
 template <typename TEnum>
 Settings<TEnum>::Settings(EmptySettingsTag) {}
@@ -186,13 +186,6 @@ bool Settings<TEnum>::setValueByType(Entry& entry, const Size typeIdx, const std
     }
 }
 
-template <typename TEnum>
-Settings<TEnum>& Settings<TEnum>::getDefaults() {
-    ASSERT(instance != nullptr);
-    return *instance;
-}
-
-
 // Explicit instantiation
 template class Settings<BodySettingsIds>;
 template class Settings<GlobalSettingsIds>;
@@ -305,5 +298,12 @@ std::unique_ptr<BodySettings> BodySettings::instance (new BodySettings {
     { BodySettingsIds::AV_ALPHA_RANGE,          "av.beta.range",                Range(0.1_f, 3._f) },
 });
 // clang-format on
+
+
+template <typename TEnum>
+Settings<TEnum>& Settings<TEnum>::getDefaults() {
+    ASSERT(instance != nullptr);
+    return *instance;
+}
 
 NAMESPACE_SPH_END
