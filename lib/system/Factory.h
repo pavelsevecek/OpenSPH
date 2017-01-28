@@ -17,6 +17,7 @@ namespace Abstract {
     class Domain;
     class Finder;
     class TimeStepping;
+    class TimeStepCriterion;
     class BoundaryConditions;
 }
 
@@ -28,8 +29,10 @@ class Factory : public Noncopyable {
 public:
     static std::unique_ptr<Abstract::Eos> getEos(const BodySettings& settings);
 
-    static std::unique_ptr<Abstract::TimeStepping> getTimestepping(const GlobalSettings& settings,
+    static std::unique_ptr<Abstract::TimeStepping> getTimeStepping(const GlobalSettings& settings,
         const std::shared_ptr<Storage>& storage);
+
+    static std::unique_ptr<Abstract::TimeStepCriterion> getTimeStepCriterion(const GlobalSettings& settings);
 
     static std::unique_ptr<Abstract::Finder> getFinder(const GlobalSettings& settings);
 

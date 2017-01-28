@@ -5,9 +5,10 @@
 #include "objects/finders/AbstractFinder.h"
 #include "system/ArrayStats.h"
 #include "system/Factory.h"
-#include "system/Logger.h"
 #include "system/Output.h"
 #include "utils/Utils.h"
+#include "utils/Approx.h"
+#include "utils/SequenceTest.h"
 
 using namespace Sph;
 
@@ -25,24 +26,54 @@ void testDistribution(Abstract::Distribution* distribution) {
     // if we split the cube to octants, each of them will have approximately the same number of particles.
     StaticArray<Size, 8> octants;
     octants.fill(0);
-    StdOutLogger logger;
     for (Vector& v : values) {
         const Vector idx = v + Vector(4._f);
-        logger.write(int(idx[X]), ' ', int(idx[Y]), ' ', int(idx[Z]));
         const Size octantIdx =
             4 * clamp(int(idx[X]), 0, 1) + 2._f * clamp(int(idx[Y]), 0, 1) + clamp(int(idx[Z]), 0, 1);
         octants[octantIdx]++;
     }
     const Size n = values.size();
     for (Size o : octants) {
-        REQUIRE(o >= n - 25);
-        REQUIRE(o <= n + 25);
+        REQUIRE(o >= n / 8 - 25);
+        REQUIRE(o <= n / 8 + 25);
     }
 }
 
-TEST_CASE("HexaPacking", "[initconds]") {
+TEST_CASE("HexaPacking common", "[initconds]") {
     HexagonalPacking packing(EMPTY_FLAGS);
     testDistribution(&packing);
+}
+
+TEST_CASE("HexaPacking grid", "[initconds]") {
+    // test that within 1.5h of each particle, there are 12 neighbours in the same distance.
+    HexagonalPacking packing(EMPTY_FLAGS);
+    SphericalDomain domain(Vector(0._f), 2._f);
+    Array<Vector> r = packing.generate(1000, domain);
+    std::unique_ptr<Abstract::Finder> finder = Factory::getFinder(GlobalSettings::getDefaults());
+    finder->build(r);
+    Array<NeighbourRecord> neighs;
+    auto test = [&](const Size i) {
+        if (getLength(r[i]) > 1.3_f) {
+            // skip particles close to boundary, they don't necessarily have 12 neighbours
+            return SUCCESS;
+        }
+        finder->findNeighbours(i, 1.5_f * r[i][H], neighs, EMPTY_FLAGS);
+        if (neighs.size() != 13) { // 12 + i-th particle itself
+            return makeFailed("Invalid number of neighbours: \n", neighs.size(), " == 13");
+        }
+        const Float expectedDist = r[i][H]; // note that dist does not have to be exactly h, only approximately
+        for (auto& n : neighs) {
+            if (n.index == i) {
+                continue;
+            }
+            const Float dist = getLength(r[i] - r[n.index]);
+            if (dist != approx(expectedDist, 0.1_f)) {
+                return makeFailed("Invalid distance to neighbours: \n", dist, " == ", expectedDist);
+            }
+        }
+        return SUCCESS;
+    };
+    REQUIRE_SEQUENCE(test, 0, r.size());
 }
 
 TEST_CASE("HexaPacking sorted", "[initconds]") {
@@ -110,15 +141,12 @@ TEST_CASE("LinearDistribution", "[initconds]") {
     LinearDistribution linear;
     SphericalDomain domain(Vector(0.5_f), 0.5_f);
     Array<Vector> values = linear.generate(101, domain);
-    REQUIRE(values.size() == 101);
-    bool equal = true;
-    StdOutLogger logger;
-    for (int i = 0; i <= 100; ++i) {
-        if (!almostEqual(values[i], Vector(i / 100._f, 0._f, 0._f), 1.e-5_f)) {
-            logger.write(values[i], " == ", Vector(i / 100._f, 0._f, 0._f));
-            break;
-            equal = false;
+    REQUIRE(values.size() == 101);    
+    auto test = [&](const Size i) {
+        if (values[i] != approx(Vector(i / 100._f, 0._f, 0._f), 1.e-5_f)) {
+            return makeFailed(values[i], " == ", Vector(i / 100._f, 0._f, 0._f));
         }
-    }
-    REQUIRE(equal);
+        return SUCCESS;
+    };
+    REQUIRE_SEQUENCE(test, 0, 100);
 }

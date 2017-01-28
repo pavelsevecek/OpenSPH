@@ -8,26 +8,39 @@
 #include "solvers/SolverFactory.h"
 #include "sph/initial/Initial.h"
 #include "sph/timestepping/TimeStepping.h"
+#include "system/Statistics.h"
+#include "utils/Approx.h"
 
 using namespace Sph;
 
 
-TEST_CASE("ContinuitySolver", "[solvers]") {
-    GlobalSettings globalSettings;
-    globalSettings.set(GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP, 1.e-2_f);
-    globalSettings.set(GlobalSettingsIds::SPH_FINDER, int(FinderEnum::BRUTE_FORCE));
-    globalSettings.set(GlobalSettingsIds::MODEL_FORCE_DIV_S, false);
-    auto solver = getSolver(globalSettings);
+GlobalSettings getGlobalSettings(SolverEnum id) {
+    GlobalSettings settings;
+    settings.set(GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP, 1.e-3f);
+    settings.set(GlobalSettingsIds::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::COURANT);
+    settings.set(GlobalSettingsIds::SOLVER_TYPE, id);
+    return settings;
+}
 
-    // set initial energy to nonzero value, to get some pressure
+/// Creates a sphere with ideal gas and non-zero pressure.
+std::shared_ptr<Storage> makeGassBall(const GlobalSettings& globalSettings) {
     BodySettings bodySettings;
     bodySettings.set(BodySettingsIds::PARTICLE_COUNT, 100);
     bodySettings.set(BodySettingsIds::ENERGY, 1.e-4_f);
-    bodySettings.set(BodySettingsIds::EOS, EosEnum::TILLOTSON);
-    BlockDomain domain(Vector(0._f), Vector(1._f));
+    bodySettings.set(BodySettingsIds::EOS, EosEnum::IDEAL_GAS);
+    SphericalDomain domain(Vector(0._f), 1._f);
     std::shared_ptr<Storage> storage = std::make_shared<Storage>();
     InitialConditions conds(storage, globalSettings);
     conds.addBody(domain, bodySettings);
+    return storage;
+}
+
+TEST_CASE("ContinuitySolver", "[solvers]") {
+    GlobalSettings globalSettings = getGlobalSettings(SolverEnum::CONTINUITY_SOLVER);
+    auto solver = getSolver(globalSettings);
+
+    std::shared_ptr<Storage> storage = makeGassBall(globalSettings);
+
 
     Statistics stats;
     EulerExplicit timestepping(storage, globalSettings);
@@ -38,18 +51,18 @@ TEST_CASE("ContinuitySolver", "[solvers]") {
     const Vector angmom0 = integrals.getTotalAngularMomentum(*storage);
     REQUIRE(mom0 == Vector(0._f));
     REQUIRE(angmom0 == Vector(0._f));
-    for (float t = 0._f; t < 1._f; t += timestepping.getTimeStep()) {
+    for (Float t = 0._f; t < 1._f; t += timestepping.getTimeStep()) {
         timestepping.step(*solver, stats);
     }
     const Vector mom1 = integrals.getTotalMomentum(*storage);
     const Vector angmom1 = integrals.getTotalAngularMomentum(*storage);
 
-    REQUIRE(almostEqual(mom1, Vector(0._f)));
-    REQUIRE(almostEqual(angmom1, Vector(0._f)));
+    REQUIRE(mom1 == approx(Vector(0._f), 1.e-4_f));
+    REQUIRE(angmom1 == approx(Vector(0._f), 1.e-4_f));
 
     // check that particles gained some velocity
     Float totV = 0._f;
-    for (Vector& v : storage->getAll<Vector>(QuantityIds::POSITIONS)[1]) {
+    for (Vector& v : storage->getDt<Vector>(QuantityIds::POSITIONS)) {
         totV += getLength(v);
     }
     REQUIRE(totV > 0._f);

@@ -118,6 +118,9 @@ public:
     /// Current size of the array (number of constructed elements). Can be between 0 and N.
     INLINE TCounter size() const { return actSize; }
 
+    /// Return true if the array is empty. Depends only on number of constructed elements, not allocated size.
+    INLINE bool empty() const { return actSize == 0; }
+
     /// Inserts a value to the end of the array using copy/move constructor. The current size of the array
     /// must be less than N, checked by assert.
     template <typename U, typename = std::enable_if_t<std::is_constructible<StorageType, U>::value>>

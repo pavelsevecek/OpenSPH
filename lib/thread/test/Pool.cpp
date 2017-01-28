@@ -33,11 +33,15 @@ TEST_CASE("ThreadLocal", "[thread]") {
         value += i;
     });
     uint64_t sum = 0;
-    partialSum.forEach([&sum](auto&& value) {
+    const uint64_t expectedSum = 4999950000;
+    const Size threadCnt = pool.getThreadCnt();
+    const uint64_t sumPerThread = expectedSum / threadCnt;
+
+    partialSum.forEach([&sum, sumPerThread](auto&& value) {
         // this can be very noisy, so lets be generous
-        REQUIRE(value >= 700000000);
-        REQUIRE(value <= 2000000000);
+        REQUIRE(value >= sumPerThread / 2);
+        REQUIRE(value <= sumPerThread * 2);
         sum += value;
     });
-    REQUIRE(sum == 4999950000);
+    REQUIRE(sum == expectedSum);
 }

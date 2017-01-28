@@ -6,7 +6,8 @@
 #include "sph/initial/Distribution.h"
 #include "sph/kernel/Kernel.h"
 #include "system/Factory.h"
-#include "system/Logger.h"
+#include "utils/Approx.h"
+#include "utils/SequenceTest.h"
 
 using namespace Sph;
 
@@ -26,7 +27,7 @@ void accumulate(Storage& storage, ArrayView<Vector> r, TAccumulator& accumulator
             // all particles have same h, so we dont have to symmetrize
             ASSERT(r[i][H] == r[j][H]);
             ASSERT(getLength(r[i] - r[j]) <= kernel.radius() * r[i][H]);
-            accumulator.template accumulate(i, j, kernel.grad(r[i]-r[j], r[i][H]));
+            accumulator.template accumulate(i, j, kernel.grad(r[i] - r[j], r[i][H]));
         }
     }
 }
@@ -49,45 +50,51 @@ TEST_CASE("Grad v", "[accumulator]") {
         v[i] = Vector(2._f, 3._f, -1._f);
     }
     accumulate(storage, r, rhoGradv);
-    StdOutLogger logger;
-    bool allMatching = true;
     REQUIRE(v.size() > 70);
-    for (Size i = 0; i < v.size(); ++i) {
+
+    auto test1 = [&](const Size i) {
         // here we ALWAYS subtract two equal values, so the result should be zero EXACTLY
         if (rhoGradv[i] != Tensor(0._f)) {
-            logger.write("Invalid grad v");
-            logger.write("r = ", r[i]);
-            logger.write("grad v = ", rhoGradv[i]);
-            logger.write("expected = ", Tensor::null());
-            allMatching = false;
-            break;
+            return makeFailed(
+                "Invalid grad v"
+                "\n r = ",
+                r[i],
+                "\n grad v = ",
+                rhoGradv[i],
+                "\n expected = ",
+                Tensor::null());
         }
-    }
-    REQUIRE(allMatching);
+        return SUCCESS;
+    };
+    REQUIRE_SEQUENCE(test1, 0, v.size());
 
     // some non-trivial velocity field
     for (Size i = 0; i < v.size(); ++i) {
         v[i] = Vector(r[i][0] * sqr(r[i][1]), r[i][0] + 0.5_f * r[i][2], sin(r[i][2]));
     }
     accumulate(storage, r, rhoGradv);
-    allMatching = true;
-    for (Size i = 0; i < v.size(); ++i) {
+
+    auto test2 = [&](const Size i) {
         if (getLength(r[i]) > 1._f - 2._f * r[i][H]) {
-            continue;
+            // skip test by reporting success
+            return SUCCESS;
         }
         // gradient of velocity field
         const Float x = r[i][X];
         const Float y = r[i][Y];
         const Float z = r[i][Z];
         Tensor expected(Vector(sqr(y), 0._f, cos(z)), Vector(0.5_f * (1._f + 2._f * x * y), 0._f, 0.25_f));
-        if (!almostEqual(rhoGradv[i], expected, 3.e-2_f)) {
-            logger.write("Invalid grad v");
-            logger.write("r = ", r[i]);
-            logger.write("grad v = ", rhoGradv[i]);
-            logger.write("expected = ", expected);
-            allMatching = false;
-            break;
+        if (rhoGradv[i] == approx(expected, 1.e-2_f)) {
+            return makeFailed(
+                "Invalid grad v"
+                "\n r = ",
+                r[i],
+                "\n grad v = ",
+                rhoGradv[i],
+                "\n expected = ",
+                expected);
         }
-    }
-    REQUIRE(allMatching);
+        return SUCCESS;
+    };
+    REQUIRE_SEQUENCE(test2, 0, v.size());
 }

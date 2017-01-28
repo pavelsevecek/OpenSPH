@@ -46,7 +46,7 @@ public:
 template <Size D>
 class LutKernel : public Kernel<LutKernel<D>, D> {
 private:
-    static constexpr int NEntries = 40000;
+    static constexpr Size NEntries = 40000;
 
     /*struct {
         Float values[NEntries + 4096 / sizeof(Float)];
@@ -58,6 +58,7 @@ private:
 
     Float rad = 0._f;
     Float radInvSqr;
+    Float qSqrToIdx;
 
 public:
     LutKernel() = default;
@@ -75,27 +76,19 @@ public:
 
         ASSERT(rad > 0._f);
         radInvSqr = 1._f / (rad * rad);
+        qSqrToIdx = Float(NEntries) * radInvSqr;
         for (Size i = 0; i < NEntries; ++i) {
-            const Float q = Float(i) / Float(NEntries) * sqr(rad);
-            values[i] = source.valueImpl(q);
-            grads[i] = source.gradImpl(q);
+            const Float qSqr = Float(i) / qSqrToIdx;
+            values[i] = source.valueImpl(qSqr);
+            grads[i] = source.gradImpl(qSqr);
         }
         /// \todo re-normalize?
     }
 
-    LutKernel& operator=(LutKernel&& other) {
-        std::swap(values, other.values);
-        std::swap(grads, other.grads);
-        rad = other.rad;
-        radInvSqr = other.radInvSqr;
-        return *this;
-    }
-
-    INLINE bool isInit() const { return rad > 0.f; }
+    INLINE bool isInit() const { return rad > 0._f; }
 
     INLINE Float radius() const { return rad; }
 
-    // template <bool TApprox = false>
     INLINE Float valueImpl(const Float qSqr) const {
         ASSERT(qSqr >= 0.f);
         if (qSqr >= sqr(rad)) {
@@ -103,27 +96,28 @@ public:
             return 0._f;
         }
         // linear interpolation of stored values
-        const Float floatIdx = Float(NEntries) * qSqr * radInvSqr;
+        const Float floatIdx = qSqrToIdx * qSqr;
         const Size idx1 = Size(floatIdx);
         ASSERT(idx1 < NEntries);
         const Size idx2 = idx1 + 1;
         const Float ratio = floatIdx - Float(idx1);
+        ASSERT(ratio >= 0._f && ratio < 1._f);
 
         return values[idx1] * (1._f - ratio) + (idx2 < NEntries ? values[idx2] : 0._f) * ratio;
     }
 
-    // template <bool TApprox = false>
     INLINE Float gradImpl(const Float qSqr) const {
         ASSERT(qSqr >= 0._f);
         if (qSqr >= sqr(rad)) {
             // outside of kernel support
             return 0._f;
         }
-        const Float floatIdx = Float(NEntries) * qSqr * radInvSqr;
+        const Float floatIdx = qSqrToIdx * qSqr;
         const Size idx1 = Size(floatIdx);
         ASSERT(unsigned(idx1) < unsigned(NEntries));
         const Size idx2 = idx1 + 1;
         const Float ratio = floatIdx - Float(idx1);
+        ASSERT(ratio >= 0._f && ratio < 1._f);
 
         return grads[idx1] * (1._f - ratio) + (idx2 < NEntries ? grads[idx2] : 0._f) * ratio;
     }

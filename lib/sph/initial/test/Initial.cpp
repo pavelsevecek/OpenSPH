@@ -4,7 +4,8 @@
 #include "objects/containers/ArrayUtils.h"
 #include "quantities/Iterate.h"
 #include "quantities/Storage.h"
-#include "system/Logger.h"
+#include "utils/Approx.h"
+#include "utils/SequenceTest.h"
 
 using namespace Sph;
 
@@ -44,7 +45,7 @@ TEST_CASE("Initial conditions", "[initial]") {
     for (Float m : ms) {
         totalM += m;
     }
-    REQUIRE(almostEqual(totalM, 2700._f * domain.getVolume()));
+    REQUIRE(totalM == approx(2700._f * domain.getVolume()));
 }
 
 TEST_CASE("Initial velocity", "[initial]") {
@@ -58,21 +59,16 @@ TEST_CASE("Initial velocity", "[initial]") {
     ArrayView<Float> rho = storage->getValue<Float>(QuantityIds::DENSITY);
     ArrayView<Vector> v = storage->getAll<Vector>(QuantityIds::POSITIONS)[1];
 
-    StdOutLogger logger;
-    bool allMatching = true;
-    for (Size i = 0; i < v.size(); ++i) {
+    auto test = [&](const Size i) {
         if (rho[i] == 1._f && v[i] != Vector(2._f, 1._f, -1._f)) {
-            allMatching = false;
-            logger.write("Invalid velocity: ", v[i]);
-            break;
+            return makeFailed("Invalid velocity: ", v[i]);
         }
         if (rho[i] == 2._f && v[i] != Vector(0._f, 0._f, 1._f)) {
-            allMatching = false;
-            logger.write("Invalid velocity: ", v[i]);
-            break;
+            return makeFailed("Invalid velocity: ", v[i]);
         }
-    }
-    REQUIRE(allMatching);
+        return SUCCESS;
+    };
+    REQUIRE_SEQUENCE(test, 0, v.size());
 }
 
 TEST_CASE("Initial rotation", "[initial]") {
@@ -89,21 +85,16 @@ TEST_CASE("Initial rotation", "[initial]") {
     float magnitude;
     tieToTuple(axis, magnitude) = getNormalizedWithLength(Vector(1._f, 3._f, -2._f));
 
-    bool allMatching = true;
-    StdOutLogger logger;
-    for (Size i = 0; i < r.size(); ++i) {
+    auto test = [&](const Size i) {
         const Float distFromAxis = getLength(r[i] - axis * dot(r[i], axis));
-        if (!almostEqual(getLength(v[i]), distFromAxis * magnitude)) {
-            allMatching = false;
-            logger.write(
-                "Invalid angular velocity magnitude: ", getLength(v[i]), " / ", distFromAxis * magnitude);
-            break;
+        if (getLength(v[i]) != approx(distFromAxis * magnitude)) {
+            return makeFailed(
+                "Invalid angular velocity magnitude: \n", getLength(v[i]), " == ", distFromAxis * magnitude);
         }
-        if (!almostEqual(dot(v[i], axis), 0._f)) {
-            allMatching = false;
-            logger.write("Invalid angular velocity vector: ", v[i], " / ", axis);
-            break;
+        if (dot(v[i], axis) != approx(0._f)) {
+            return makeFailed("Invalid angular velocity vector: \n", v[i], " == ", axis);
         }
-    }
-    REQUIRE(allMatching);
+        return SUCCESS;
+    };
+    REQUIRE_SEQUENCE(test, 0, r.size());
 }

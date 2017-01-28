@@ -58,6 +58,10 @@ TEST_CASE("Indices comparison", "[indices]") {
 
 TEST_CASE("Indices conversion", "[indices]") {
     Vector v(1.5_f, 2.4_f, 5._f);
+
+    /// \todo get rid of necessity to call Indices::init
+    Indices::init();
+
     Indices i(v);
 
     REQUIRE(i[0] == 1);

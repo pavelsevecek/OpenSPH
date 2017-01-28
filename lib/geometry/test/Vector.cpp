@@ -201,7 +201,7 @@ TEST_CASE("Vector almostEqual", "[vector]") {
     REQUIRE(almostEqual(Vector(1.e12_f, -2.e12_f, 0.5_f), Vector(1.e12_f, -2.e12_f, 10._f), EPS));
     REQUIRE_FALSE(almostEqual(Vector(1.e12_f, -2.e12_f, 0.5_f), Vector(1.e12_f, -2.e12_f, 10._f), 1e-12_f));
 
-    REQUIRE(almostEqual(Vector(1.e-10_f), Vector(1.1e-10_f), 0.1_f));
-    REQUIRE_FALSE(almostEqual(Vector(1.e-10_f), Vector(1.1e-10_f), 0.01_f));
-    REQUIRE(almostEqual(Vector(1.e-12_f, -2.e-12_f, 0._f), Vector(1.e-12_f, 1.e-18_f - 2.e-12_f, 0._f), EPS));
+    REQUIRE(almostEqual(Vector(1.e-10_f), Vector(1.1e-10_f), 1.e-6_f));
+    REQUIRE_FALSE(almostEqual(Vector(1.e-10_f), Vector(1.1e-10_f), 1.e-15_f));
+    REQUIRE(almostEqual(Vector(1.e-12_f, -2.e-12_f, 0._f), Vector(1.e-12_f, 1.e-18_f - 2.e-12_f, 0._f)));
 }

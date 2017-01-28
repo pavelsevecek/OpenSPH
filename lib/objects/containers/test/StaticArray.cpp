@@ -8,6 +8,7 @@ TEST_CASE("StaticArray Construction", "[staticarray]") {
     StaticArray<RecordType, 3> ar1;
     REQUIRE(ar1.maxSize() == 3);
     REQUIRE(ar1.size() == 3);
+    REQUIRE_FALSE(ar1.empty());
     for (int i = 0; i < 3; ++i) {
         REQUIRE(ar1[i].wasDefaultConstructed);
     }
@@ -15,6 +16,7 @@ TEST_CASE("StaticArray Construction", "[staticarray]") {
     StaticArray<RecordType, 3> ar2(EMPTY_ARRAY);
     REQUIRE(ar2.maxSize() == 3);
     REQUIRE(ar2.size() == 0);
+    REQUIRE(ar2.empty());
 }
 
 TEST_CASE("StaticArray Construct from initializer list", "[staticarray]") {

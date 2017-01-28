@@ -44,7 +44,6 @@ bool MyApp::OnInit() {
     globalSettings.set(GlobalSettingsIds::DOMAIN_RADIUS, 2.5_f);
     globalSettings.set(GlobalSettingsIds::DOMAIN_TYPE, DomainEnum::SPHERICAL);*/
     globalSettings.set(GlobalSettingsIds::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::PREDICTOR_CORRECTOR);
-    globalSettings.set(GlobalSettingsIds::TIMESTEPPING_ADAPTIVE, true);
     globalSettings.set(GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP, 0._f); // 1.e-4_f);
     globalSettings.set(GlobalSettingsIds::TIMESTEPPING_MAX_TIMESTEP, 1.e-1_f);
     globalSettings.set(GlobalSettingsIds::MODEL_FORCE_DIV_S, true);
@@ -65,7 +64,7 @@ bool MyApp::OnInit() {
             QuantityIds::RHO_GRAD_V });
 
     initialConditions(globalSettings, p->storage);
-    p->timeStepping = Factory::getTimestepping(globalSettings, p->storage);
+    p->timeStepping = Factory::getTimeStepping(globalSettings, p->storage);
 
     GuiSettings guiSettings = GUI_SETTINGS;
     guiSettings.set<Float>(GuiSettingsIds::VIEW_FOV, 1.e4_f);

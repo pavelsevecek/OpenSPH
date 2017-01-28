@@ -1,6 +1,7 @@
 #include "physics/Eos.h"
 #include "catch.hpp"
 #include "objects/containers/Array.h"
+#include "utils/Approx.h"
 
 using namespace Sph;
 
@@ -15,30 +16,30 @@ TEST_CASE("Tillotson", "[eos]") {
     Float p, cs;
 
     tieToTuple(p, cs) = eos.evaluate(2.7_f, 1.e5_f);
-    REQUIRE(almostEqual(p, 337500._f));
-    REQUIRE(almostEqual(cs, 99444.4453_f, 1.e-1_f));
+    REQUIRE(p == approx(337500._f));
+    REQUIRE(cs == approx(99444.4453_f));
 
     tieToTuple(p, cs) = eos.evaluate(2.0_f, 1.e5_f);
-    REQUIRE(almostEqual(p, -5.12736563e9_f, 1.e3_f));
-    REQUIRE(almostEqual(cs, 54744.2812_f, 1.e-1_f));
+    REQUIRE(p == approx(-5.12736563e9_f));
+    REQUIRE(cs == approx(54744.2812_f));
 
     tieToTuple(p, cs) = eos.evaluate(2.0_f, 1.e10_f);
-    REQUIRE(almostEqual(p, 9.34812365e9_f, 1.e3_f));
-    REQUIRE(almostEqual(cs, 67291.1719_f, 1e-1_f));
+    REQUIRE(p == approx(9.34812365e9_f));
+    REQUIRE(cs == approx(67291.1719_f));
 
     tieToTuple(p, cs) = eos.evaluate(2.8_f, 1.e10_f);
-    REQUIRE(almostEqual(p, 1.50259651e10, 1.e3_f));
-    REQUIRE(almostEqual(cs, 135296.312_f, 1e-1_f));
+    REQUIRE(p == approx(1.50259651e10));
+    REQUIRE(cs == approx(135296.312_f));
 
     tieToTuple(p, cs) = eos.evaluate(2.6_f, 1.e7_f);
-    REQUIRE(almostEqual(p, -883133952._f, 1.e3_f));
-    REQUIRE(almostEqual(cs, 88856.2188_f, 1e-1_f));
+    REQUIRE(p == approx(-883133952._f));
+    REQUIRE(cs == approx(88856.2188_f));
 
     tieToTuple(p, cs) = eos.evaluate(2.7_f, 1.e7_f);
-    REQUIRE(almostEqual(p, 13900990._f, 1.e3_f));
-    REQUIRE(almostEqual(cs, 99483.1953_f, 1e-1_f));
+    REQUIRE(p == approx(13900990._f));
+    REQUIRE(cs == approx(99483.1953_f));
 
     tieToTuple(p, cs) = eos.evaluate(2.8_f, 1.e7_f);
-    REQUIRE(almostEqual(p, 1.03996064e9_f, 1.e3_f));
-    REQUIRE(almostEqual(cs, 103983.867_f, 1e-1_f));
+    REQUIRE(p == approx(1.03996064e9_f));
+    REQUIRE(cs == approx(103983.867_f));
 }

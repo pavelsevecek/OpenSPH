@@ -3,7 +3,9 @@
 
 NAMESPACE_SPH_BEGIN
 
-VoxelFinder::VoxelFinder() = default;
+VoxelFinder::VoxelFinder() {
+    Indices::init();
+}
 
 VoxelFinder::~VoxelFinder() = default;
 

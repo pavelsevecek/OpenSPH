@@ -2,6 +2,7 @@
 #include "catch.hpp"
 #include "geometry/Domain.h"
 #include "sph/initial/Initial.h"
+#include "utils/Approx.h"
 
 using namespace Sph;
 
@@ -15,10 +16,10 @@ TEST_CASE("Total mass", "[integrals]") {
     conds.addBody(SphericalDomain(Vector(0._f), 3._f), settings);
     Integrals integrals;
 
-    REQUIRE(almostEqual(integrals.getTotalMass(*storage), 10._f * sphereVolume(3._f), 1.e-3_f));
+    REQUIRE(integrals.getTotalMass(*storage) == approx(10._f * sphereVolume(3._f), 1.e-3_f));
 
     conds.addBody(BlockDomain(Vector(0._f), Vector(2._f)), settings);
-    REQUIRE(almostEqual(integrals.getTotalMass(*storage), 10._f * (sphereVolume(3._f) + 8._f), 1.e-3_f));
+    REQUIRE(integrals.getTotalMass(*storage) == approx(10._f * (sphereVolume(3._f) + 8._f), 1.e-3_f));
 }
 
 TEST_CASE("Total Momentum Simple", "[integrals]") {
@@ -55,7 +56,8 @@ TEST_CASE("Total Momentum Body", "[integrals]") {
     BodySettings settings;
     const Float rho0 = 5._f;
     settings.set(BodySettingsIds::DENSITY, rho0);
-    settings.set(BodySettingsIds::PARTICLE_COUNT, 100000); // we need lot of particles to reasonable approximate sphere
+    settings.set(
+        BodySettingsIds::PARTICLE_COUNT, 100000); // we need lot of particles to reasonable approximate sphere
 
     const Float radius = 3._f;
     const Float omega = 4._f;
@@ -66,15 +68,14 @@ TEST_CASE("Total Momentum Body", "[integrals]") {
 
     Integrals integrals;
     const Float totalMass = sphereVolume(radius) * rho0;
-    REQUIRE(
-        almostEqual(integrals.getTotalMomentum(*storage), Vector(0.2_f, 0._f, -0.1_f) * totalMass, 5._f));
+    REQUIRE(integrals.getTotalMomentum(*storage) == approx(Vector(0.2_f, 0._f, -0.1_f) * totalMass, 1.e-3_f));
 
     // angular momentum of homogeneous sphere = 2/5 * M * r^2 * omega
     const Float expected = 2._f / 5._f * totalMass * sqr(radius) * 4._f;
     /// \todo use positive sign? omega x r or r x omega (basically convention only)
     const Vector angMom = integrals.getTotalAngularMomentum(*storage);
     /// \todo this is very imprecise, is it to be expected?
-    REQUIRE(almostEqual(angMom, Vector(0._f, 0._f, -expected), 5._f));
+    REQUIRE(angMom == approx(Vector(0._f, 0._f, -expected), 1.e-2_f));
 }
 
 TEST_CASE("Total Energy Simple", "[integrals]") {
@@ -110,7 +111,7 @@ TEST_CASE("Total Energy Body", "[integrals]") {
 
     Integrals integrals;
     const Float totalMass = sphereVolume(3._f) * rho0;
-    REQUIRE(almostEqual(integrals.getTotalKineticEnergy(*storage), 15._f * totalMass, 1.e-3_f));
-    REQUIRE(almostEqual(integrals.getTotalInternalEnergy(*storage), 20._f * totalMass, 1.e-3_f));
-    REQUIRE(almostEqual(integrals.getTotalEnergy(*storage), 35._f * totalMass, 1.e-3_f));
+    REQUIRE(integrals.getTotalKineticEnergy(*storage) == approx(15._f * totalMass));
+    REQUIRE(integrals.getTotalInternalEnergy(*storage) == approx(20._f * totalMass));
+    REQUIRE(integrals.getTotalEnergy(*storage) == approx(35._f * totalMass));
 }

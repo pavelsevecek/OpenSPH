@@ -3,6 +3,8 @@
 /// Helper wrapper that allows to check whether two values are equal to some given accuracy.
 /// This is more or less stolen from Catch unit-testing framework, with overloaded consturctors for vectors
 /// and tensors.
+/// Pavel Sevecek 2017
+/// sevecek at sirrah.troja.mff.cuni.cz
 
 #include "geometry/TracelessTensor.h"
 
@@ -42,7 +44,7 @@ public:
 
     template <typename TStream>
     friend TStream& operator<<(TStream& stream, const Approx& approx) {
-        stream << "~" << approx.value;
+        stream << "~" << approx.value << " (eps = " << approx.epsilon << ")";
         return stream;
     }
 };

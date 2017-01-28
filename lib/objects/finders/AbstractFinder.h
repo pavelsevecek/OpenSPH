@@ -14,6 +14,10 @@ NAMESPACE_SPH_BEGIN
 struct NeighbourRecord {
     Size index;
     Float distanceSqr;
+
+    bool operator !=(const NeighbourRecord& other) const {
+        return index != other.index || distanceSqr != other.distanceSqr;
+    }
 };
 
 enum class FinderFlags {
@@ -48,8 +52,6 @@ namespace Abstract {
         /// \param neighbours List of neighbours, as indices to the array
         /// \param error Approximate solution
         /// \return The number of neighbours.
-
-
         virtual Size findNeighbours(const Size index,
             const Float radius,
             Array<NeighbourRecord>& neighbours,

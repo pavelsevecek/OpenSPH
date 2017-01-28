@@ -5,7 +5,8 @@
 #include "objects/finders/AbstractFinder.h"
 #include "sph/av/Standard.h"
 #include "sph/initial/Distribution.h"
-#include "system/Logger.h"
+#include "utils/Approx.h"
+#include "utils/SequenceTest.h"
 
 using namespace Sph;
 
@@ -57,7 +58,7 @@ TEST_CASE("Balsara shear flow", "[av]") {
     // check that artificial viscosity is non-zero and that it drops to zero after applying Balsara switch
     StandardAV standardAv(GlobalSettings::getDefaults());
     standardAv.update(storage);
-    bool allMatching = true;
+
     double origSum = 0., reducedSum = 0.;
     std::unique_ptr<Abstract::Finder> finder = Factory::getFinder(GlobalSettings::getDefaults());
     ArrayView<Vector> r, rotv;
@@ -67,14 +68,11 @@ TEST_CASE("Balsara shear flow", "[av]") {
     rotv = storage.getValue<Vector>(QuantityIds::VELOCITY_ROTATION);
     finder->build(r);
     LutKernel<3> kernel = Factory::getKernel<3>(GlobalSettings::getDefaults());
-    StdOutLogger logger;
     Array<NeighbourRecord> neighs;
-    for (Size i = 0; i < r.size(); ++i) {
+
+    auto test = [&](const Size i) {
         if (getLength(r[i]) >= 0.7_f) {
-            continue;
-        }
-        if (!allMatching) {
-            break;
+            return SUCCESS;
         }
         finder->findNeighbours(i, r[i][H] * kernel.radius(), neighs, FinderFlags::FIND_ONLY_SMALLER_H);
         for (NeighbourRecord& n : neighs) {
@@ -82,26 +80,26 @@ TEST_CASE("Balsara shear flow", "[av]") {
             const Float orig = standardAv(i, j);
             const Float reduced = balsaraAv(i, j);
             if (reduced > orig) {
-                logger.write("Balsara increased AV!");
-                allMatching = false;
-                break;
+                return makeFailed("Balsara increased AV!");
             }
-            if (orig > EPS && reduced > 1.e-3_f * orig) {
-                logger.write("Balsara didn't reduce AV!");
-                logger.write("particle: i = ", i);
-                logger.write("          r = ", r[i], " & ", r[j]);
-                logger.write("          orig = ", orig, ", reduced = ", reduced);
-                logger.write("          divv = ", divv[i], " & ", divv[j]);
-                logger.write("          rotv = ", rotv[i], " & ", rotv[j]);
-                logger.write("Balsara factor: ", balsaraAv.getFactor(i), " & ", balsaraAv.getFactor(j));
-                allMatching = false;
-                break;
+            if (orig > 1.e-5_f && reduced > 1.e-3_f * orig) {
+                // clang-format off
+                return makeFailed("Balsara didn't reduce AV!",
+                                  "\n AV_orig = ", orig, ", AV_reduced = ", reduced,
+                                  "\n (r_i, r_j): ", r[i], ", ", r[j],
+                                  "\n (divv_i, divv_j): ", divv[i], ", ", divv[j],
+                                  "\n (rotv_i, divv_j): ", rotv[i], ", ", rotv[j],
+                                  "\n (f_i, f_j): ", balsaraAv.getFactor(i), ", ", balsaraAv.getFactor(j));
+                // clang-format on
             }
             origSum += orig;
             reducedSum += reduced;
         }
-    }
-    REQUIRE(allMatching);
+        return SUCCESS;
+    };
+
+    REQUIRE_SEQUENCE(test, 0, r.size());
+
     REQUIRE(origSum > 1e-2);
     REQUIRE(reducedSum < 1.e-5);
 }
@@ -118,7 +116,6 @@ TEST_CASE("Balsara divergent flow", "[av]") {
     // check that Balsara does not affect artificial viscosity
     StandardAV standardAv(GlobalSettings::getDefaults());
     standardAv.update(storage);
-    bool allMatching = true;
     double origSum = 0., reducedSum = 0.;
     std::unique_ptr<Abstract::Finder> finder = Factory::getFinder(GlobalSettings::getDefaults());
     ArrayView<Vector> r;
@@ -127,54 +124,53 @@ TEST_CASE("Balsara divergent flow", "[av]") {
     r = storage.getValue<Vector>(QuantityIds::POSITIONS);
     divv = storage.getValue<Float>(QuantityIds::VELOCITY_DIVERGENCE);
     rotv = storage.getValue<Vector>(QuantityIds::VELOCITY_ROTATION);
-    StdOutLogger logger;
-    for (Size i = 0; i < divv.size(); ++i) {
+
+    auto test1 = [&](const Size i) {
         // particles on boundary have different velocity divergence, check only particles inside
         if (getLength(r[i]) < 0.7_f) {
-            if (!almostEqual(divv[i], -3._f, 0.1_f)) {
-                logger.write("Incorrect velocity divergence: ", divv[i], " / -3");
-                logger.write("particle: r = ", r[i]);
-                allMatching = false;
-                break;
+            if (divv[i] != approx(-3._f, 0.03_f)) {
+                return makeFailed(
+                    "Incorrect velocity divergence: \n", divv[i], " == -3", "\n particle: r = ", r[i]);
             }
-            if (!almostEqual(rotv[i], Vector(0._f), 0.1_f)) {
-                logger.write("Incorrect velocity rotation: ", rotv[i], " / Vector(0.f) ");
-                logger.write("particle: r = ", r[i]);
-                allMatching = false;
-                break;
+            if (rotv[i] != approx(Vector(0._f), 0.1_f)) {
+                return makeFailed("Incorrect velocity rotation: \n",
+                    rotv[i],
+                    " == Vector(0.f) ",
+                    "\n particle: r = ",
+                    r[i]);
             }
         }
-    }
+        return SUCCESS;
+    };
+    REQUIRE_SEQUENCE(test1, 0, divv.size());
 
     finder->build(r);
     LutKernel<3> kernel = Factory::getKernel<3>(GlobalSettings::getDefaults());
     Array<NeighbourRecord> neighs;
-    for (Size i = 0; i < r.size(); ++i) {
+    auto test2 = [&](const Size i) {
         if (getLength(r[i]) >= 0.7_f) {
-            continue;
+            return SUCCESS;
         }
         finder->findNeighbours(i, r[i][H] * kernel.radius(), neighs, FinderFlags::FIND_ONLY_SMALLER_H);
         for (NeighbourRecord& n : neighs) {
-            if (!allMatching) {
-                break;
-            }
             const Size j = n.index;
             const Float orig = standardAv(i, j);
             const Float reduced = balsaraAv(i, j);
-            if (!almostEqual(reduced, orig, 1.e-6_f)) {
-                logger.write("Balsara changed AV in divergent flow! ", reduced, " / ", orig);
-                logger.write("particle: i = ", i);
-                logger.write("          divv = ", divv[i], " & ", divv[j]);
-                logger.write("          rotv = ", rotv[i], " & ", rotv[j]);
-                logger.write("Balsara factor: ", balsaraAv.getFactor(i), " & ", balsaraAv.getFactor(j));
-                allMatching = false;
-                break;
+            if (reduced != approx(orig, 1.e-6_f)) {
+                // clang-format off
+                return makeFailed("Balsara changed AV in divergent flow! \n",
+                                  "AV_orig = ", orig, ", AV_reduced = ", reduced,
+                                  "\n (divv_i, divv_j): ", divv[i], ", ", divv[j],
+                                  "\n (rotv_i, divv_j): ", rotv[i], ", ", rotv[j],
+                                  "\n (f_i, f_j): ", balsaraAv.getFactor(i), ", ", balsaraAv.getFactor(j));
+                // clang-format on
             }
             origSum += orig;
             reducedSum += reduced;
         }
-    }
-    REQUIRE(allMatching);
+        return SUCCESS;
+    };
+    REQUIRE_SEQUENCE(test2, 0, r.size());
     REQUIRE(origSum > 1e-2);
     REQUIRE(almostEqual(origSum, reducedSum, 1.e-5_f));
 }

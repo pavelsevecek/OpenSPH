@@ -1,45 +1,47 @@
 #include "catch.hpp"
+#include "geometry/Domain.h"
 #include "objects/containers/ArrayUtils.h"
+#include "objects/finders/BruteForce.h"
 #include "objects/finders/KdTree.h"
 #include "objects/finders/LinkedList.h"
 #include "objects/finders/Voxel.h"
 #include "objects/wrappers/Range.h"
 #include "sph/initial/Distribution.h"
-#include "geometry/Domain.h"
+#include "utils/Approx.h"
+#include "utils/SequenceTest.h"
 
 using namespace Sph;
 
-void testFinder(Abstract::Finder& finder) {
+void testFinder(Abstract::Finder& finder, Flags<FinderFlags> flags) {
     HexagonalPacking distr;
     SphericalDomain domain(Vector(0._f), 2._f);
-    Array<Vector> storage = distr.generate(50, domain);
+    Array<Vector> storage = distr.generate(2000, domain);
 
     finder.build(storage);
 
     Array<NeighbourRecord> treeNeighs;
-    Size nTree = finder.findNeighbours(25, 1.5_f, treeNeighs);
+    Array<NeighbourRecord> bfNeighs;
+    const Float radius = 0.7_f;
 
-    /// checksum - count by bruteforce number of neighbours
+    Array<Size> testIdxs{ 42, 68, 400, 1501, 19995 };
+    for (Size refIdx : testIdxs) {
+        Size nTree = finder.findNeighbours(refIdx, radius, treeNeighs, flags);
 
-    Array<Size> bfNeighs;
+        BruteForceFinder bf;
+        bf.build(storage);
+        const Size nBf = bf.findNeighbours(refIdx, radius, bfNeighs, flags);
 
-    for (Size i = 0; i < storage.size(); ++i) {
-        if (getSqrLength(storage[25] - storage[i]) <= sqr(1.5_f)) {
-            bfNeighs.push(i);
-        }
-    }
+        REQUIRE(nTree == nBf);
 
-    REQUIRE(nTree == bfNeighs.size());
+        // sort both indices and check pair by pair
+        std::sort(treeNeighs.begin(), treeNeighs.end(), [](NeighbourRecord n1, NeighbourRecord n2) {
+            return n1.index < n2.index;
+        });
+        std::sort(bfNeighs.begin(), bfNeighs.end(), [](NeighbourRecord n1, NeighbourRecord n2) {
+            return n1.index < n2.index;
+        });
 
-    // sort both indices and check pair by pair
-    std::sort(treeNeighs.begin(), treeNeighs.end(), [](NeighbourRecord n1, NeighbourRecord n2) {
-        return n1.index < n2.index;
-    });
-    std::sort(bfNeighs.begin(), bfNeighs.end());
-
-    for (Size i = 0; i < nTree; ++i) {
-        REQUIRE(bfNeighs[i] == treeNeighs[i].index);
-        REQUIRE(treeNeighs[i].distanceSqr == getSqrLength(storage[treeNeighs[i].index] - storage[25]));
+        REQUIRE((bfNeighs == treeNeighs));
     }
 }
 
@@ -67,7 +69,8 @@ void testFinderSmallerH(Abstract::Finder& finder) {
 
 TEST_CASE("KdTree", "[finders]") {
     KdTree finder;
-    testFinder(finder);
+    testFinder(finder, EMPTY_FLAGS);
+    testFinder(finder, FinderFlags::FIND_ONLY_SMALLER_H);
     testFinderSmallerH(finder);
 }
 
@@ -79,6 +82,7 @@ TEST_CASE("KdTree", "[finders]") {
 
 TEST_CASE("VoxelFinder", "[finders]") {
     VoxelFinder finder;
-    testFinder(finder);
+    testFinder(finder, EMPTY_FLAGS);
+    testFinder(finder, FinderFlags::FIND_ONLY_SMALLER_H);
     testFinderSmallerH(finder);
 }

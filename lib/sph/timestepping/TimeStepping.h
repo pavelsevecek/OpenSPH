@@ -6,15 +6,24 @@
 
 #include "geometry/Vector.h"
 #include "objects/containers/Array.h"
-#include "quantities/Storage.h"
-#include "sph/timestepping/AdaptiveTimeStep.h"
 #include <memory>
 
 NAMESPACE_SPH_BEGIN
 
 namespace Abstract {
     class Solver;
+    class TimeStepCriterion;
 }
+/// \todo move forward declarations to common header
+enum class GlobalSettingsIds;
+template<typename TEnum>
+class Settings;
+using GlobalSettings = Settings<GlobalSettingsIds>;
+
+class Storage;
+class Statistics;
+
+
 
 /// Base object providing integration in time for all quantities.
 ///
@@ -34,27 +43,16 @@ namespace Abstract {
         std::shared_ptr<Storage> storage;
         Float dt;
         Float maxdt;
-        Optional<AdaptiveTimeStep> adaptiveStep;
+        std::unique_ptr<Abstract::TimeStepCriterion> adaptiveStep;
 
     public:
-        TimeStepping(const std::shared_ptr<Storage>& storage, const GlobalSettings& settings)
-            : storage(storage) {
-            dt = settings.get<Float>(GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP);
-            maxdt = settings.get<Float>(GlobalSettingsIds::TIMESTEPPING_MAX_TIMESTEP);
-            if (settings.get<bool>(GlobalSettingsIds::TIMESTEPPING_ADAPTIVE)) {
-                adaptiveStep.emplace(settings);
-            }
-        }
+        TimeStepping(const std::shared_ptr<Storage>& storage, const GlobalSettings& settings);
+
+        virtual ~TimeStepping();
 
         INLINE Float getTimeStep() const { return dt; }
 
-        void step(Abstract::Solver& solver, Statistics& stats) {
-            this->stepImpl(solver);
-            // update time step
-            if (adaptiveStep) {
-                this->dt = adaptiveStep->get(*storage, this->maxdt, stats);
-            }
-        }
+        void step(Abstract::Solver& solver, Statistics& stats);
 
     protected:
         virtual void stepImpl(Abstract::Solver& solver) = 0;
@@ -73,7 +71,7 @@ public:
 
 class PredictorCorrector : public Abstract::TimeStepping {
 private:
-    Storage predictions;
+    std::unique_ptr<Storage> predictions;
 
 public:
     PredictorCorrector(const std::shared_ptr<Storage>& storage, const GlobalSettings& settings);
@@ -93,7 +91,7 @@ protected:
 
 class RungeKutta : public Abstract::TimeStepping {
 private:
-    Storage k1, k2, k3, k4;
+    std::unique_ptr<Storage> k1, k2, k3, k4;
 
 public:
     RungeKutta(const std::shared_ptr<Storage>& storage, const GlobalSettings& settings);

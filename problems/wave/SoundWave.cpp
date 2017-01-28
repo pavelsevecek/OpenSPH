@@ -17,7 +17,6 @@ TEST_CASE("StressForce Soundwave", "[stressforce]") {
     settings.set(GlobalSettingsIds::DOMAIN_RADIUS, 0.5_f);
     settings.set(GlobalSettingsIds::SPH_FINDER, FinderEnum::VOXEL);
     settings.set(GlobalSettingsIds::MODEL_FORCE_DIV_S, false);
-    settings.set(GlobalSettingsIds::TIMESTEPPING_ADAPTIVE, true);
     settings.set(GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP, 1.e-6_f);
     settings.set(GlobalSettingsIds::TIMESTEPPING_MAX_TIMESTEP, 1.e-4_f);
     settings.set(GlobalSettingsIds::RUN_OUTPUT_STEP, 1);
@@ -35,7 +34,7 @@ TEST_CASE("StressForce Soundwave", "[stressforce]") {
     bodySettings.set(BodySettingsIds::ENERGY_MIN, 1._f);
     // conds.addBody(BlockDomain(Vector(0._f), Vector(1._f, 1._f, 20._f)), bodySettings);
     conds.addBody(CylindricalDomain(Vector(0._f), 0.5_f, 20._f, true), bodySettings);
-    p.timeStepping = Factory::getTimestepping(settings, p.storage);
+    p.timeStepping = Factory::getTimeStepping(settings, p.storage);
     p.output = std::make_unique<GnuplotOutput>("out_%d.txt",
         "wave",
         Array<QuantityIds>{

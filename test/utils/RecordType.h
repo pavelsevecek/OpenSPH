@@ -1,5 +1,8 @@
 #pragma once
 
+/// Pavel Sevecek 2016
+/// sevecek at sirrah.troja.mff.cuni.cz
+
 #include "objects/Object.h"
 
 NAMESPACE_SPH_BEGIN

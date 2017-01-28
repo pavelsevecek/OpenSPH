@@ -210,7 +210,7 @@ std::unique_ptr<GlobalSettings> GlobalSettings::instance (new GlobalSettings {
     { GlobalSettingsIds::MODEL_FORCE_GRAVITY,           "model.force.gravity",      false },
     { GlobalSettingsIds::MODEL_AV_TYPE,                 "model.av.type",            int(ArtificialViscosityEnum::STANDARD) },
     { GlobalSettingsIds::MODEL_AV_BALSARA_SWITCH,       "model.av.balsara_switch",  false },
-    { GlobalSettingsIds::MODEL_YIELDING,                "model.yielding",           int(YieldingEnum::NONE) },
+    { GlobalSettingsIds::MODEL_YIELDING,                "model.yielding",           int(YieldingEnum::VON_MISES) },
     { GlobalSettingsIds::MODEL_DAMAGE,                  "model.damage",             int(DamageEnum::NONE) },
 
     /// SPH solvers
@@ -222,14 +222,14 @@ std::unique_ptr<GlobalSettings> GlobalSettings::instance (new GlobalSettings {
     { GlobalSettingsIds::SPH_AV_ALPHA,                  "sph.av.alpha",             1.5_f },
     { GlobalSettingsIds::SPH_AV_BETA,                   "sph.av.beta",              3._f },
     { GlobalSettingsIds::SPH_SMOOTHING_LENGTH_MIN,      "sph.smoothing_length.min", 1e-5_f },
-    { GlobalSettingsIds::SPH_FINDER,                    "sph.finder",               int(FinderEnum::KD_TREE) },
+    { GlobalSettingsIds::SPH_FINDER,                    "sph.finder",               int(FinderEnum::VOXEL) },
 
     /// Timestepping parameters
-    { GlobalSettingsIds::TIMESTEPPING_INTEGRATOR,       "timestep.integrator",      int(TimesteppingEnum::EULER_EXPLICIT) },
+    { GlobalSettingsIds::TIMESTEPPING_INTEGRATOR,       "timestep.integrator",      int(TimesteppingEnum::PREDICTOR_CORRECTOR) },
     { GlobalSettingsIds::TIMESTEPPING_COURANT,          "timestep.courant",         1._f },
     { GlobalSettingsIds::TIMESTEPPING_MAX_TIMESTEP,     "timestep.max_step",        0.1_f /*s*/}, /// \todo units necessary in settings!!!
     { GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP, "timestep.initial",         0.03_f },
-    { GlobalSettingsIds::TIMESTEPPING_ADAPTIVE,         "timestep.adaptive",        false },
+    { GlobalSettingsIds::TIMESTEPPING_CRITERION,        "timestep.criterion",       int(TimeStepCriterionEnum::ALL) },
     { GlobalSettingsIds::TIMESTEPPING_ADAPTIVE_FACTOR,  "timestep.adaptive.factor", 0.2_f },
 
     /// Selected coordinate system, rotation of bodies

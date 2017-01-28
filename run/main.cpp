@@ -9,7 +9,6 @@ using namespace Sph;
 int main() {
     GlobalSettings globalSettings;
     globalSettings.set(GlobalSettingsIds::DOMAIN_TYPE, DomainEnum::SPHERICAL);
-    globalSettings.set(GlobalSettingsIds::TIMESTEPPING_ADAPTIVE, true);
     globalSettings.set(GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP, 1.e-6_f);
     globalSettings.set(GlobalSettingsIds::TIMESTEPPING_MAX_TIMESTEP, 1.e-1_f);
     globalSettings.set(GlobalSettingsIds::MODEL_FORCE_DIV_S, true);
@@ -19,7 +18,7 @@ int main() {
     globalSettings.set(GlobalSettingsIds::MODEL_YIELDING, YieldingEnum::VON_MISES);*/
     Problem* p      = new Problem(globalSettings);
     p->timeRange    = Range(0._f, 1._f);
-    p->timeStepping = Factory::getTimestepping(globalSettings, p->storage);
+    p->timeStepping = Factory::getTimeStepping(globalSettings, p->storage);
     p->output =
         std::make_unique<TextOutput>(globalSettings.get<std::string>(GlobalSettingsIds::RUN_OUTPUT_NAME),
                                      globalSettings.get<std::string>(GlobalSettingsIds::RUN_NAME),

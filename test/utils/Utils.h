@@ -1,5 +1,8 @@
 #pragma once
 
+/// Pavel Sevecek 2017
+/// sevecek at sirrah.troja.mff.cuni.cz
+
 #include "catch.hpp"
 #include "geometry/Vector.h"
 #include "math/rng/Rng.h"

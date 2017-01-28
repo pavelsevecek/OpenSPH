@@ -39,7 +39,6 @@ SOURCES += \
     sph/initial/Distribution.cpp \
     sph/initial/Initial.cpp \
     sph/timestepping/TimeStepping.cpp \
-    sph/timestepping/AdaptiveTimeStep.cpp \
     objects/finders/Voxel.cpp \
     system/Logger.cpp \
     system/Output.cpp \
@@ -53,7 +52,8 @@ SOURCES += \
     physics/Yielding.cpp \
     post/Components.cpp \
     geometry/Domain.cpp \
-    physics/Integrals.cpp
+    physics/Integrals.cpp \
+    sph/timestepping/TimeStepCriterion.cpp
 
 HEADERS += \
     core/Globals.h \
@@ -139,7 +139,6 @@ HEADERS += \
     objects/finders/AbstractFinder.h \
     geometry/Box.h \
     objects/containers/LookupMap.h \
-    sph/timestepping/AdaptiveTimeStep.h \
     post/Components.h \
     math/Morton.h \
     system/ArrayStats.h \
@@ -150,4 +149,7 @@ HEADERS += \
     thread/Pool.h \
     thread/ConcurrentQueue.h \
     thread/ThreadLocal.h \
-    objects/wrappers/Value.h
+    objects/wrappers/Value.h \
+    objects/wrappers/Expected.h \
+    objects/wrappers/Outcome.h \
+    sph/timestepping/TimeStepCriterion.h

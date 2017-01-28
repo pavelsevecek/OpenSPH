@@ -73,7 +73,6 @@ Array<Vector> HexagonalPacking::generate(const Size n, const Abstract::Domain& d
     const Vector radius(domain.getBoundingRadius());
     const Box box(center - radius, center + radius);
 
-    /// \todo generalize to 1 and 2 dim
     Array<Vector> vecs;
     const Float deltaX = 0.5_f * dx;
     const Float deltaY = sqrt(3._f) / 6._f * dx;

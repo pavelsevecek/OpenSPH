@@ -94,6 +94,11 @@ INLINE constexpr T sqr(const T& f) {
     return f * f;
 }
 
+INLINE constexpr bool isPower2(const Size n) {
+    ASSERT(n > 0);
+    return (n & (n - 1)) == 0;
+}
+
 
 /*template <typename T>
 INLINE T pow(const T f, const T e) {
@@ -302,7 +307,7 @@ INLINE Float sphereVolume(const Float radius) {
 /// Checks if two values are equal to some given accuracy.
 /// \note We use <= rather than < on purpose as EPS for integral types is zero.
 INLINE auto almostEqual(const Float& f1, const Float& f2, const Float& eps = EPS) {
-    return abs(f1 - f2) <= eps * max(abs(f1), abs(f2));
+    return abs(f1 - f2) <= eps * (1._f + max(abs(f1), abs(f2)));
 }
 
 

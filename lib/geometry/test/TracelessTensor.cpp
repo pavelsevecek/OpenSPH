@@ -156,6 +156,4 @@ TEST_CASE("TracelessTensor almostEqual", "[tracelesstensor]") {
     testTensor(t1);
     TracelessTensor t2 = 1.e10_f * t1;
     testTensor(t2);
-    TracelessTensor t3 = 1.e-12_f * t1;
-    testTensor(t3);
 }

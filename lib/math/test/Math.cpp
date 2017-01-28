@@ -34,4 +34,21 @@ TEST_CASE("Math", "[math]") {
     REQUIRE(clamp(-1, 2, 4) == 2);
     REQUIRE(clamp(3, 2, 4) == 3);
     REQUIRE(clamp(5, 2, 4) == 4);
+
+    REQUIRE(isPower2(2));
+    REQUIRE(isPower2(4));
+    REQUIRE(isPower2(32));
+    REQUIRE_FALSE(isPower2(31));
+    REQUIRE_FALSE(isPower2(33));
+    REQUIRE_FALSE(isPower2(7));
+}
+
+TEST_CASE("Rounding mode", "[math]") {
+    // this is a little sandbox, doesn't really belong to tests
+    REQUIRE(int(5.3f) == 5);
+    REQUIRE(int(5.7f) == 5);
+    REQUIRE(int(5.95f) == 5);
+    REQUIRE(int(-5.3f) == -5);
+    REQUIRE(int(-5.5f) == -5);
+    REQUIRE(int(-5.8f) == -5);
 }

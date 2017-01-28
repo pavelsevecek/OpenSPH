@@ -130,6 +130,4 @@ TEST_CASE("Tensor almostEqual", "[tensor]") {
     testTensor(t1);
     Tensor t2 = 1.e10_f * t1;
     testTensor(t2);
-    Tensor t3 = 1.e-12_f * t1;
-    testTensor(t3);
 }

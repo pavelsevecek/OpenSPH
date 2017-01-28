@@ -6,6 +6,8 @@
 #include "physics/Eos.h"
 #include "sph/boundary/Boundary.h"
 #include "sph/initial/Distribution.h"
+#include "system/Logger.h"
+#include "sph/timestepping/TimeStepCriterion.h"
 #include "sph/timestepping/TimeStepping.h"
 
 NAMESPACE_SPH_BEGIN
@@ -24,7 +26,7 @@ std::unique_ptr<Abstract::Eos> Factory::getEos(const BodySettings& settings) {
     }
 }
 
-std::unique_ptr<Abstract::TimeStepping> Factory::getTimestepping(const GlobalSettings& settings,
+std::unique_ptr<Abstract::TimeStepping> Factory::getTimeStepping(const GlobalSettings& settings,
     const std::shared_ptr<Storage>& storage) {
     const TimesteppingEnum id = settings.get<TimesteppingEnum>(GlobalSettingsIds::TIMESTEPPING_INTEGRATOR);
     switch (id) {
@@ -38,6 +40,25 @@ std::unique_ptr<Abstract::TimeStepping> Factory::getTimestepping(const GlobalSet
         return std::make_unique<RungeKutta>(storage, settings);
     default:
         NOT_IMPLEMENTED;
+    }
+}
+
+std::unique_ptr<Abstract::TimeStepCriterion> Factory::getTimeStepCriterion(const GlobalSettings& settings) {
+    const Size flags = settings.get<int>(GlobalSettingsIds::TIMESTEPPING_CRITERION);
+    if (flags == 0) {
+        // no criterion
+        return nullptr;
+    }
+    switch (flags) {
+    case Size(TimeStepCriterionEnum::COURANT):
+        return std::make_unique<CourantCriterion>(settings);
+    case Size(TimeStepCriterionEnum::DERIVATIVES):
+        return std::make_unique<DerivativeCriterion>(settings);
+    case Size(TimeStepCriterionEnum::ACCELERATION):
+        return std::make_unique<AccelerationCriterion>();
+    default:
+        ASSERT(!isPower2(flags)); // multiple criteria, assert in case we add another criterion
+        return std::make_unique<MultiCriterion>(settings);
     }
 }
 

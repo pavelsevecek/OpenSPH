@@ -11,8 +11,8 @@
 #include "quantities/QuantityIds.h"
 #include <initializer_list>
 #include <map>
-#include <string>
 #include <memory>
+#include <string>
 
 NAMESPACE_SPH_BEGIN
 
@@ -133,6 +133,23 @@ enum class TimesteppingEnum {
     BULIRSCH_STOER
 };
 
+enum class TimeStepCriterionEnum {
+    /// Constant time step, determined by initial value
+    NONE = 0,
+
+    /// Time step determined using CFL condition
+    COURANT = 1 << 1,
+
+    /// Time step computed by limiting value-to-derivative ratio of quantiites.
+    DERIVATIVES = 1 << 2,
+
+    /// Time step computed from ratio of acceleration and smoothing length.
+    ACCELERATION = 1 << 3,
+
+    /// Value for using all criteria.
+    ALL = COURANT | DERIVATIVES | ACCELERATION,
+};
+
 enum class FinderEnum {
     /// Brute-force search by going through each pair of particles (O(N^2) complexity)
     BRUTE_FORCE,
@@ -237,6 +254,7 @@ enum class LoggerEnum {
 
     /// Print log to file
     FILE
+
     /// \todo print using callback to gui application
 };
 
@@ -325,8 +343,9 @@ enum class GlobalSettingsIds {
     /// Initial value of time step (relative to the maximal time step)
     TIMESTEPPING_INITIAL_TIMESTEP,
 
-    /// Constant / adaptive time step
-    TIMESTEPPING_ADAPTIVE,
+    /// Criterion used to determine value of time step. More criteria may be compined, in which case the
+    /// smallest time step of all is selected.
+    TIMESTEPPING_CRITERION,
 
     /// Multiplicative factor k in timestep computation; dt = k * v / dv
     TIMESTEPPING_ADAPTIVE_FACTOR,

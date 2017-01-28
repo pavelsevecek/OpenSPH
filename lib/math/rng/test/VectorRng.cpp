@@ -1,27 +1,28 @@
 #include "math/rng/VectorRng.h"
 #include "catch.hpp"
-#include "math/Math.h"
 #include "geometry/Box.h"
+#include "math/Math.h"
+#include "utils/Approx.h"
 
 using namespace Sph;
 
 template <typename TVectorRng>
 void testVectorRng(TVectorRng&& rng,
-                   Vector expectedMin,
-                   Vector expectedMax,
-                   Vector expectedMean,
-                   Vector expectedVariance) {
-    Vector sum(0.);
-    Vector sumSqr(0.);
-    Vector minValues(1000.);
-    Vector maxValues(-1000.);
+    Vector expectedMin,
+    Vector expectedMax,
+    Vector expectedMean,
+    Vector expectedVariance) {
+    Vector sum(0._f);
+    Vector sumSqr(0._f);
+    Vector minValues(INFTY);
+    Vector maxValues(-INFTY);
 
-    int N       = 100000;
+    int N = 100000;
     double norm = 1. / double(N);
     for (int i = 0; i < N; ++i) {
         Vector values = rng();
-        minValues     = min(minValues, values);
-        maxValues     = max(maxValues, values);
+        minValues = min(minValues, values);
+        maxValues = max(maxValues, values);
         sum += values;
         sumSqr += sqr(values);
     }
@@ -29,8 +30,8 @@ void testVectorRng(TVectorRng&& rng,
     for (int i = 0; i < 3; ++i) {
         REQUIRE(minValues[i] >= expectedMin[i]);
         REQUIRE(maxValues[i] <= expectedMax[i]);
-        REQUIRE(almostEqual(mean[i], expectedMean[i], 1.e-2));
-        REQUIRE(almostEqual(sumSqr[i] * norm - sqr(mean[i]), expectedVariance[i], 1.e-2));
+        REQUIRE(mean[i] == approx(expectedMean[i], 1.e-2));
+        REQUIRE(sumSqr[i] * norm - sqr(mean[i]) == approx(expectedVariance[i], 1.e-2));
     }
 }
 
@@ -48,8 +49,8 @@ TEST_CASE("VectorPdfRng", "[vectorrng]") {
     Box box2(Vector(0.), Vector(1.));
     VectorPdfRng<UniformRng> rng2(box2, [](const Vector& v) { return v[X]; });
     testVectorRng(rng2,
-                  Vector(0., 0., 0.),
-                  Vector(1., 1., 1.),
-                  Vector(0.6666, 0.5, 0.5),
-                  Vector(0.0555, 0.0833, 0.0833));
+        Vector(0., 0., 0.),
+        Vector(1., 1., 1.),
+        Vector(0.6666, 0.5, 0.5),
+        Vector(0.0555, 0.0833, 0.0833));
 }

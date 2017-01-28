@@ -14,6 +14,7 @@
 #include "system/Callbacks.h"
 #include "system/Logger.h"
 #include "system/Output.h"
+#include "system/Statistics.h"
 #include "physics/Integrals.h"
 #include <iostream>
 

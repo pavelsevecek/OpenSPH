@@ -29,8 +29,8 @@ TEST_CASE("Approx float", "[approx]") {
     // test small values
     REQUIRE(3.e-12_f == approx(3.01e-12_f, 1.e-2_f));
     REQUIRE(3.e-12_f == approx(2.99e-12_f, 1.e-2_f));
-    REQUIRE(3.e-12_f != approx(3.01e-12_f, 1.e-4_f));
-    REQUIRE(3.e-12_f != approx(2.99e-12_f, 1.e-4_f));
+    REQUIRE(3.e-12_f != approx(0._f, 1.e-12_f));
+    REQUIRE(3.e-12_f != approx(0._f, 1.e-12_f));
 }
 
 // these are more or less checked by almostEqual test of vector, so test here just few basic cases

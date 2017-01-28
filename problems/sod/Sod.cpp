@@ -60,7 +60,7 @@ TEST_CASE("Sod", "[sod]") {
     globalSettings.set(GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP, 1.e-5_f);
     globalSettings.set(GlobalSettingsIds::TIMESTEPPING_MAX_TIMESTEP, 1.e-1_f);
     globalSettings.set(GlobalSettingsIds::TIMESTEPPING_COURANT, 0.5_f);
-    globalSettings.set(GlobalSettingsIds::TIMESTEPPING_ADAPTIVE, true);
+    globalSettings.set(GlobalSettingsIds::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::COURANT);
     globalSettings.set(GlobalSettingsIds::SOLVER_TYPE, SolverEnum::CONTINUITY_SOLVER);
     globalSettings.set(GlobalSettingsIds::MODEL_FORCE_GRAD_P, true);
     globalSettings.set(GlobalSettingsIds::MODEL_FORCE_DIV_S, false);
@@ -159,7 +159,7 @@ TEST_CASE("Sod", "[sod]") {
     }
 
     // 6) setup used timestepping algorithm (this needs to be done after all quantities are allocated)
-    sod.timeStepping = Factory::getTimestepping(globalSettings, sod.storage);
+    sod.timeStepping = Factory::getTimeStepping(globalSettings, sod.storage);
 
     // 7) run the main loop
     sod.run();

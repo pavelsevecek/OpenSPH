@@ -58,7 +58,7 @@ private:
 
 
 public:
-    LinkedList() = default;
+    LinkedList() { Indices::init(); }
 
     virtual Size findNeighbours(const Size index,
         const Float radius,
@@ -77,8 +77,7 @@ public:
             }
         }
         for (uint i = 0; i < 3; ++i) {
-            while (
-                Size(upper[i]) < upperBounds.size() - 1 && bounds.upper()[i] <= upperBounds[upper[i]][i]) {
+            while (Size(upper[i]) < upperBounds.size() - 1 && bounds.upper()[i] <= upperBounds[upper[i]][i]) {
                 upper[i]++;
             }
         }
@@ -107,9 +106,8 @@ public:
 protected:
     virtual void rebuildImpl() override {
         for (uint i = 0; i < 3; ++i) {
-            sortedIndices.shuffle(i, [this, i](Size idx1, Size idx2) {
-                return this->values[idx1][i] < this->values[idx2][i];
-            });
+            sortedIndices.shuffle(
+                i, [this, i](Size idx1, Size idx2) { return this->values[idx1][i] < this->values[idx2][i]; });
         }
         /// extra dimension - sort smoothing length
         sortedIndices.shuffle(

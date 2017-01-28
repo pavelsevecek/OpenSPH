@@ -86,7 +86,7 @@ private:
         : storage(std::move(other)) {}
 
 public:
-    VectorOrder() = default;
+    VectorOrder();
 
     VectorOrder(VectorOrder&& other)
         : storage(std::move(other.storage)) {}

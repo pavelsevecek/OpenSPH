@@ -2,8 +2,9 @@
 #include "catch.hpp"
 #include "math/rng/VectorRng.h"
 #include "objects/containers/ArrayUtils.h"
-#include "system/Logger.h"
 #include "system/Settings.h"
+#include "utils/Approx.h"
+#include "utils/SequenceTest.h"
 
 using namespace Sph;
 
@@ -95,9 +96,9 @@ TEST_CASE("GhostParticles wall", "[boundary]") {
     REQUIRE(r[10] == Vector(-minDist, 0._f, 0._f));
     REQUIRE(r[11] == Vector(-1._f, 1._f, 1._f));
 
-    REQUIRE(almostEqual(v[7], Vector(1._f, 1._f, 1._f), 1.e-3_f));
-    REQUIRE(almostEqual(v[8], Vector(0._f, 2._f, 1._f), 1.e-3_f));
-    REQUIRE(almostEqual(v[9], Vector(-1._f, 0._f, -3._f), 1.e-3_f));
+    REQUIRE(v[7] == approx(Vector(1._f, 1._f, 1._f), 1.e-3_f));
+    REQUIRE(v[8] == approx(Vector(0._f, 2._f, 1._f), 1.e-3_f));
+    REQUIRE(v[9] == approx(Vector(-1._f, 0._f, -3._f), 1.e-3_f));
 
     ArrayView<Float> rho = storage.getValue<Float>(QuantityIds::DENSITY);
     REQUIRE(rho[7] == 3._f);
@@ -111,7 +112,7 @@ TEST_CASE("GhostParticles wall", "[boundary]") {
     tie(r, v, dv) = storage.getAll<Vector>(QuantityIds::POSITIONS);
     REQUIRE(makeArray(r.size(), v.size(), dv.size()) == makeArray(12u, 12u, 12u));
     REQUIRE(r[7] == Vector(-1.5_f, 1._f, 3._f));
-    REQUIRE(almostEqual(v[7], Vector(1._f, 1._f, 1._f), 1.e-3_f));
+    REQUIRE(v[7] == approx(Vector(1._f, 1._f, 1._f), 1.e-3_f));
     rho = storage.getValue<Float>(QuantityIds::DENSITY);
     REQUIRE(rho[7] == 3._f);
 }
@@ -141,40 +142,32 @@ TEST_CASE("GhostParticles Sphere", "[boundary]") {
     boundaryConditions.apply(storage);
     tie(r, v, dv) = storage.getAll<Vector>(QuantityIds::POSITIONS);
     REQUIRE(r.size() == 2 * ghostIdx); // ghost for each particle
-    bool allSymmetric = true;
-    StdOutLogger logger;
-    for (Size i = 0; i < ghostIdx; ++i) {
+
+    auto test = [&](const Size i) {
         Vector normalized;
         Float length;
         tieToTuple(normalized, length) = getNormalizedWithLength(r[ghostIdx + i]);
-        if (!almostEqual(length, 2.1_f)) {
-            logger.write("Incorrect position of ghost: " + std::to_string(length));
-            allSymmetric = false;
-            break;
+        if (length != approx(2.1_f)) {
+            return makeFailed("Incorrect position of ghost: ", length);
         }
-        if (!almostEqual(normalized, getNormalized(r[i]))) {
-            logger.write("Incorrect position of ghost: ", normalized);
-            allSymmetric = false;
-            break;
+        if (normalized != approx(getNormalized(r[i]))) {
+            return makeFailed("Incorrect position of ghost: ", normalized);
         }
         // check that velocities are symmetric == their perpendicular component is inverted
         const Float vPerp = dot(v[i], normalized);
         const Float vgPerp = dot(v[ghostIdx + i], normalized);
-        if (!almostEqual(vPerp, -vgPerp, 1.e-5_f)) {
-            logger.write("Perpendicular component not inverted: ", vPerp, "  ", vgPerp);
-            allSymmetric = false;
-            break;
+        if (vPerp != approx(-vgPerp, 1.e-5_f)) {
+            return makeFailed("Perpendicular component not inverted: ", vPerp, "  ", vgPerp);
         }
         // parallel component should be equal
         const Vector vPar = v[i] - normalized * dot(v[i], normalized);
         const Vector vgPar = v[ghostIdx + i] - normalized * dot(v[ghostIdx + i], normalized);
-        if (!almostEqual(vPar, vgPar, 1.e-5_f)) {
-            logger.write("Parallel component not copied: ", vPar, "  ", vgPar);
-            allSymmetric = false;
-            break;
+        if (vPar != approx(vgPar, 1.e-5_f)) {
+            return makeFailed("Parallel component not copied: ", vPar, "  ", vgPar);
         }
-    }
-    REQUIRE(allSymmetric);
+        return SUCCESS;
+    };
+    REQUIRE_SEQUENCE(test, 0, ghostIdx);
 }
 
 TEST_CASE("GhostParticles Sphere Projection", "[boundary]") {
@@ -200,24 +193,20 @@ TEST_CASE("GhostParticles Sphere Projection", "[boundary]") {
     boundaryConditions.apply(storage);
     r = storage.getValue<Vector>(QuantityIds::POSITIONS);
     REQUIRE(r.size() == halfSize * 3); // only layer with r=1.9 creates ghost particles
-    bool allMatching = true;
-    StdOutLogger logger;
-    for (Size i = 0; i < ghostIdx; ++i) {
+
+    auto test = [&](const Size i) {
         if (i % 2 == 0) {
-            if (!almostEqual(getLength(r[i]), 1.9_f)) {
-                logger.write("Invalid particle position: ", getLength(r[i]), " / 1.9");
-                allMatching = false;
-                break;
+            if (getLength(r[i]) != approx(1.9_f)) {
+                return makeFailed("Invalid particle position: ", getLength(r[i]), " / 1.9");
             }
         } else {
-            if (!almostEqual(getLength(r[i]), 0.9_f)) {
-                logger.write("Invalid particle position: ", getLength(r[i]), " / 0.9");
-                allMatching = false;
-                break;
+            if (getLength(r[i]) != approx(0.9_f)) {
+                return makeFailed("Invalid particle position: ", getLength(r[i]), " / 0.9");
             }
         }
-    }
-    REQUIRE(allMatching);
+        return SUCCESS;
+    };
+    REQUIRE_SEQUENCE(test, 0, ghostIdx);
 }
 
 TEST_CASE("GhostParticles empty", "[boundary]") {
