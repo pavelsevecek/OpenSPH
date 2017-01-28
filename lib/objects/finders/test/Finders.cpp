@@ -15,23 +15,24 @@ using namespace Sph;
 void testFinder(Abstract::Finder& finder, Flags<FinderFlags> flags) {
     HexagonalPacking distr;
     SphericalDomain domain(Vector(0._f), 2._f);
-    Array<Vector> storage = distr.generate(2000, domain);
-
+    Array<Vector> storage = distr.generate(1000, domain);
     finder.build(storage);
+
+    BruteForceFinder bf;
+    bf.build(storage);
 
     Array<NeighbourRecord> treeNeighs;
     Array<NeighbourRecord> bfNeighs;
     const Float radius = 0.7_f;
 
-    Array<Size> testIdxs{ 42, 68, 400, 1501, 19995 };
-    for (Size refIdx : testIdxs) {
-        Size nTree = finder.findNeighbours(refIdx, radius, treeNeighs, flags);
 
-        BruteForceFinder bf;
-        bf.build(storage);
+    auto test = [&](const Size refIdx) {
+        const Size nTree = finder.findNeighbours(refIdx, radius, treeNeighs, flags);
         const Size nBf = bf.findNeighbours(refIdx, radius, bfNeighs, flags);
 
-        REQUIRE(nTree == nBf);
+        if (nTree != nBf) {
+            return makeFailed("Invalid number of neighbours:\n", nTree, " == ", nBf);
+        }
 
         // sort both indices and check pair by pair
         std::sort(treeNeighs.begin(), treeNeighs.end(), [](NeighbourRecord n1, NeighbourRecord n2) {
@@ -41,8 +42,12 @@ void testFinder(Abstract::Finder& finder, Flags<FinderFlags> flags) {
             return n1.index < n2.index;
         });
 
-        REQUIRE((bfNeighs == treeNeighs));
-    }
+        if (!(bfNeighs == treeNeighs)) {
+            return makeFailed("Different neighbours found");
+        }
+        return SUCCESS;
+    };
+    REQUIRE_SEQUENCE(test, 0, storage.size());
 }
 
 void testFinderSmallerH(Abstract::Finder& finder) {

@@ -19,7 +19,7 @@ public:
         : storage(pow<3>(n))
         , boundingBox(box)
         , dimensionSize(n) {
-        fixSingularBox();
+        extendBox();
     }
 
     void update(const Box& box) {
@@ -27,10 +27,10 @@ public:
         for (Array<Size>& ar : storage) {
             ar.clear();
         }
-        fixSingularBox();
+        extendBox();
     }
 
-    bool empty() const { return storage.empty(); }
+    INLINE bool empty() const { return storage.empty(); }
 
     LookupMap& operator=(LookupMap&& other) {
         storage = std::move(other.storage);
@@ -64,19 +64,17 @@ public:
     INLINE Indices map(const Vector& v) const {
         ASSERT(boundingBox.size()[X] > 0._f && boundingBox.size()[Y] > 0._f && boundingBox.size()[Z] > 0._f);
         ASSERT(dimensionSize >= 2);
-        Vector idxs = (v - boundingBox.lower()) / (boundingBox.size()) * (dimensionSize - 1);
+        Vector idxs = (v - boundingBox.lower()) / (boundingBox.size()) * dimensionSize;
+        ASSERT(idxs[X] >= 0 && idxs[Y] >= 0 && idxs[Z] >= 0);
         ASSERT(idxs[X] < dimensionSize && idxs[Y] < dimensionSize && idxs[Z] < dimensionSize);
         return Indices(idxs);
     }
 
 private:
-    void fixSingularBox() {
-        for (uint dim = 0; dim < 3; ++dim) {
-            if (boundingBox.size()[dim] == 0._f) {
-                boundingBox.lower()[dim] -= EPS;
-                boundingBox.upper()[dim] += EPS;
-            }
-        }
+    // extends the bounding box by EPS in each dimension so we don't have to deal with particles lying on the boundary.
+    void extendBox() {
+        boundingBox.extend(boundingBox.upper() + Vector(EPS));
+        boundingBox.extend(boundingBox.lower() - Vector(EPS));
     }
 };
 

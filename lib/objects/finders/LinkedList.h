@@ -104,21 +104,20 @@ public:
     }
 
 protected:
-    virtual void rebuildImpl() override {
+    virtual void rebuildImpl(ArrayView<const Vector> points) override {
         for (uint i = 0; i < 3; ++i) {
-            sortedIndices.shuffle(
-                i, [this, i](Size idx1, Size idx2) { return this->values[idx1][i] < this->values[idx2][i]; });
+            sortedIndices.shuffle(i, [&](Size idx1, Size idx2) { return points[idx1][i] < points[idx2][i]; });
         }
         /// extra dimension - sort smoothing length
         sortedIndices.shuffle(
-            H, [this](Size idx1, Size idx2) { return this->values[idx1][H] < this->values[idx2][H]; });
+            H, [&](Size idx1, Size idx2) { return points[idx1][H] < points[idx2][H]; });
         rank = sortedIndices.getInverted();
         map = LookupMap(cellCnt);
         lowerBounds.fill(Vector(INFTY));
         upperBounds.fill(Vector(-INFTY));
         const Float cellCntSqrInv = 1._f / sqr(cellCnt);
 
-        for (Size idx = 0; idx < this->values.size(); ++idx) {
+        for (Size idx = 0; idx < points.size(); ++idx) {
             const Indices multiIdx(Vector(rank[idx]) * cellCntSqrInv);
             Size& cell = map(multiIdx);
             linkedList[idx] = cell;
@@ -126,22 +125,22 @@ protected:
             /// \todo optimize using multiindices
             for (uint i = 0; i < 3; ++i) {
                 Float& lb = lowerBounds[multiIdx[i]][i];
-                lb = min(lb, this->values[idx][i]);
+                lb = min(lb, points[idx][i]);
                 Float& ub = upperBounds[multiIdx[i]][i];
-                ub = max(ub, this->values[idx][i]);
+                ub = max(ub, points[idx][i]);
             }
         }
     }
 
-    virtual void buildImpl(ArrayView<const Vector> values) override {
-        sortedIndices = VectorOrder(values.size());
-        rank = VectorOrder(values.size());
-        linkedList.resize(values.size());
-        cellCnt = cbrt(values.size()) + 1;
+    virtual void buildImpl(ArrayView<const Vector> points) override {
+        sortedIndices = VectorOrder(points.size());
+        rank = VectorOrder(points.size());
+        linkedList.resize(points.size());
+        cellCnt = cbrt(points.size()) + 1;
 
         lowerBounds.resize(cellCnt);
         upperBounds.resize(cellCnt);
-        rebuildImpl();
+        rebuildImpl(points);
     }
 };
 

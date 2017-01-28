@@ -9,7 +9,10 @@ NAMESPACE_SPH_BEGIN
 
 class BruteForceFinder : public Abstract::Finder {
 protected:
+    // no need to implement these for brute force
     virtual void buildImpl(ArrayView<const Vector> UNUSED(values)) override {}
+
+    virtual void rebuildImpl(ArrayView<const Vector> UNUSED(values)) override {}
 
 public:
     BruteForceFinder() = default;

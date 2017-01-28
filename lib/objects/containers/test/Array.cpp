@@ -1,6 +1,6 @@
 #include "objects/containers/Array.h"
-#include "utils/RecordType.h"
 #include "catch.hpp"
+#include "utils/RecordType.h"
 
 using namespace Sph;
 
@@ -32,7 +32,7 @@ TEST_CASE("Array Resize", "[array]") {
     ar.resize(3);
     REQUIRE(RecordType::constructedNum == 3);
     REQUIRE(ar.size() == 3);
-    for (int i=0; i<3; ++i) {
+    for (int i = 0; i < 3; ++i) {
         REQUIRE(ar[i].wasDefaultConstructed);
     }
     ar.resize(5);
@@ -68,28 +68,67 @@ TEST_CASE("Array Push & Pop", "[array]") {
 }
 
 TEST_CASE("PushAll", "[array]") {
-    Array<int> ar1{1, 2, 3};
-    Array<int> ar2{4, 5, 6, 7};
+    Array<int> ar1{ 1, 2, 3 };
+    Array<int> ar2{ 4, 5, 6, 7 };
     ar1.pushAll(ar2.cbegin(), ar2.cend());
     REQUIRE(ar1.size() == 7);
-    for (int i=0; i < 7; ++i) {
-        REQUIRE(ar1[i] == i+1);
+    for (int i = 0; i < 7; ++i) {
+        REQUIRE(ar1[i] == i + 1);
     }
 }
 
 TEST_CASE("Array Remove by index", "[array]") {
-    Array<int> ar{1, 5, 3, 6, 2, 3};
+    Array<int> ar{ 1, 5, 3, 6, 2, 3 };
     ar.remove(0);
-    REQUIRE(ar == Array<int>({5, 3, 6, 2, 3}));
+    REQUIRE(ar == Array<int>({ 5, 3, 6, 2, 3 }));
     ar.remove(ar.size() - 1);
-    REQUIRE(ar == Array<int>({5, 3, 6, 2}));
+    REQUIRE(ar == Array<int>({ 5, 3, 6, 2 }));
     ar.remove(2);
-    REQUIRE(ar == Array<int>({5, 3, 2}));
+    REQUIRE(ar == Array<int>({ 5, 3, 2 }));
+}
+
+TEST_CASE("Array iterators", "[array]") {
+    Array<int> empty{};
+    REQUIRE(empty.begin() == empty.end());
+
+    Array<int> ar{ 1, 5, 3, 6, 2, 3 };
+    REQUIRE(*ar.begin() == 1);
+    REQUIRE(*(ar.end() - 1) == 3);
+
+    Size idx = 0;
+    for (int i : ar) {
+        REQUIRE(i == ar[idx]);
+        idx++;
+    }
+    REQUIRE(idx == 6);
+
+    for (int& i : ar) {
+        i = -1;
+    }
+    REQUIRE(ar == Array<int>({ -1, -1, -1, -1, -1, -1 }));
+}
+
+TEST_CASE("Array std::sort", "[array]") {
+    Array<int> ar{ 1, 5, 3, 6, 2, 3 };
+    std::sort(ar.begin(), ar.end());
+    REQUIRE(ar == Array<int>({ 1, 2, 3, 3, 5, 6 }));
+
+    std::sort(ar.begin(), ar.end(), [](int i1, int i2) {
+        // some dummy comparator, replace even numbers with twice the value
+        if (i1 % 2 == 0) {
+            i1 *= 2;
+        }
+        if (i2 % 2 == 0) {
+            i2 *= 2;
+        }
+        return i1 < i2;
+    });
+    REQUIRE(ar == Array<int>({ 1, 3, 3, 2, 5, 6 }));
 }
 
 TEST_CASE("Array References", "[array]") {
     int a, b, c;
-    Array<int&> ar{a, b, c};
+    Array<int&> ar{ a, b, c };
     ar[0] = 5;
     ar[1] = 3;
     ar[2] = 1;
@@ -104,9 +143,7 @@ TEST_CASE("Array References", "[array]") {
     REQUIRE(b == 2);
     REQUIRE(c == 2);
 
-    auto getter = [](){
-        return Array<int>{1, 5, 9 };
-    };
+    auto getter = []() { return Array<int>{ 1, 5, 9 }; };
     ar = getter();
     REQUIRE(a == 1);
     REQUIRE(b == 5);

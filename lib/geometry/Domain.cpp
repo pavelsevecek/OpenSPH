@@ -106,7 +106,7 @@ BlockDomain::BlockDomain(const Vector& center, const Vector& edges)
     , box(center - 0.5_f * edges, center + 0.5_f * edges) {}
 
 Float BlockDomain::getVolume() const {
-    return box.getVolume();
+    return box.volume();
 }
 
 bool BlockDomain::isInside(const Vector& v) const {

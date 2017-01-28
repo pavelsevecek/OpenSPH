@@ -15,7 +15,7 @@ struct NeighbourRecord {
     Size index;
     Float distanceSqr;
 
-    bool operator !=(const NeighbourRecord& other) const {
+    bool operator!=(const NeighbourRecord& other) const {
         return index != other.index || distanceSqr != other.distanceSqr;
     }
 };
@@ -34,16 +34,26 @@ namespace Abstract {
         ArrayView<const Vector> values;
         Order rankH;
 
-        virtual void buildImpl(ArrayView<const Vector> values) = 0;
+        /// Build finder from set of vectors. This must be called before findNeighbours, can be called more
+        /// than once.
+        virtual void buildImpl(ArrayView<const Vector> points) = 0;
 
-        virtual void rebuildImpl() {}
+        /// Rebuild the finder. Can be called only if buildImpl has been called at least once, it can be
+        /// therefore a 'lightweight' implementation of build, without allocations etc.
+        virtual void rebuildImpl(ArrayView<const Vector> points) = 0;
 
     public:
         /// Constructs the struct with an array of vectors
-        void build(ArrayView<const Vector> values) {
-            this->values = values;
+        void build(ArrayView<const Vector> points) {
+            values = points;
             makeRankH();
-            buildImpl(values);
+            this->buildImpl(values);
+        }
+
+        /// Updates the structure when the position change.
+        void rebuild() {
+            makeRankH();
+            this->rebuildImpl(values);
         }
 
         /// Finds all points within given radius from a point.
@@ -58,15 +68,9 @@ namespace Abstract {
             Flags<FinderFlags> flags = EMPTY_FLAGS,
             const Float error = 0._f) const = 0;
 
-        /// Updates the structure when the position change.
-        void rebuild() {
-            makeRankH();
-            rebuildImpl();
-        }
-
     private:
         void makeRankH() {
-            Order tmp(this->values.size());
+            Order tmp(values.size());
             // sort by smoothing length
             tmp.shuffle([this](const Size i1, const Size i2) { return values[i1][H] < values[i2][H]; });
 // invert to get rank in H
@@ -74,8 +78,8 @@ namespace Abstract {
 #ifdef DEBUG
             Float lastH = 0._f;
             for (Size i = 0; i < tmp.size(); ++i) {
-                ASSERT(this->values[tmp[i]][H] >= lastH);
-                lastH = this->values[tmp[i]][H];
+                ASSERT(values[tmp[i]][H] >= lastH);
+                lastH = values[tmp[i]][H];
             }
 #endif
             rankH = tmp.getInverted();

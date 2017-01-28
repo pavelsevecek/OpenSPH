@@ -70,6 +70,7 @@ SOURCES += \
     ../lib/objects/finders/test/BruteForce.cpp \
     ../lib/objects/finders/test/Finders.cpp \
     ../lib/sph/timestepping/test/TimeStepping.cpp \
+    ../lib/sph/timestepping/test/TimeStepCriterion.cpp \
     ../lib/sph/initial/test/Initial.cpp \
     ../lib/sph/initial/test/Distribution.cpp \
     ../lib/sph/kernel/test/Kernel.cpp \
@@ -96,7 +97,7 @@ SOURCES += \
     ../lib/thread/test/Pool.cpp \
     utils/Approx.cpp \
     utils/SequenceTest.cpp \
-    ../lib/sph/timestepping/test/TimeStepCriterion.cpp
+    ../lib/geometry/test/Box.cpp
 
 
 HEADERS += \

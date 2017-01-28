@@ -10,6 +10,9 @@
 
 NAMESPACE_SPH_BEGIN
 
+// #define NO_ROUNDING_MODE
+
+
 /// Helper object for storing three (possibly four) int or bool values.
 class Indices {
 private:
@@ -29,8 +32,13 @@ public:
     INLINE Indices(const int i, const int j, const int k, const int l = 0)
         : data(_mm_set_epi32(l, k, j, i)) {}
 
-    /// Constructs indices by casting components of vectors to ints
+/// Constructs indices by casting components of vectors to ints
+#ifndef NO_ROUNDING_MODE
     INLINE explicit Indices(const BasicVector<float>& v) { data = _mm_cvtps_epi32(v.sse()); }
+#else
+    INLINE explicit Indices(const BasicVector<float>& v)
+        : Indices(int(v[X]), int(v[Y]), int(v[Z]), int(v[H])) {}
+#endif
 
     INLINE explicit Indices(const BasicVector<double>& v) {
         /// \todo optimize
@@ -41,14 +49,24 @@ public:
         : data(other.data) {}
 
     /// Must be called once before Indices are used
-    INLINE static void init() { _MM_SET_ROUNDING_MODE(_MM_ROUND_TOWARD_ZERO); }
+    INLINE static void init() {
+#ifndef NO_ROUNDING_MODE
+        _MM_SET_ROUNDING_MODE(_MM_ROUND_DOWN);
+#endif
+    }
 
     INLINE Indices& operator=(const Indices& other) {
         data = other.data;
         return *this;
     }
 
+#ifndef NO_ROUNDING_MODE
     INLINE operator BasicVector<float>() const { return BasicVector<float>(_mm_cvtepi32_ps(data)); }
+#else
+    INLINE operator BasicVector<float>() const {
+        return BasicVector<float>((*this)[0], (*this)[1], (*this)[2], (*this)[3]);
+    }
+#endif
 
     INLINE operator BasicVector<double>() const {
         /// \todo optimize
@@ -98,6 +116,10 @@ INLINE Indices max(const Indices i1, const Indices i2) {
 
 INLINE Indices min(const Indices i1, const Indices i2) {
     return i1.min(i2);
+}
+
+INLINE bool all(const Indices& i) {
+    return i[0] && i[1] && i[2];
 }
 
 /*/// Returns a content of array of vectors, where each component is given by index.

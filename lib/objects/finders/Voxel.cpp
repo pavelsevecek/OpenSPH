@@ -9,12 +9,12 @@ VoxelFinder::VoxelFinder() {
 
 VoxelFinder::~VoxelFinder() = default;
 
-void VoxelFinder::buildImpl(ArrayView<const Vector> newValues) {
+void VoxelFinder::buildImpl(ArrayView<const Vector> points) {
     // number of voxels, free parameter
-    const Size lutSize = root<3>(newValues.size()) + 1;
+    const Size lutSize = root<3>(points.size()) + 1;
     // find bounding box
     Box boundingBox;
-    for (const Vector& v : newValues) {
+    for (const Vector& v : points) {
         boundingBox.extend(v);
     }
     if (lut.empty()) {
@@ -23,10 +23,14 @@ void VoxelFinder::buildImpl(ArrayView<const Vector> newValues) {
         lut.update(boundingBox);
     }
     // put particles into voxels
-    for (Size i = 0; i < newValues.size(); ++i) {
-        Indices idxs = lut.map(newValues[i]);
+    for (Size i = 0; i < points.size(); ++i) {
+        Indices idxs = lut.map(points[i]);
         lut(idxs).push(i);
     }
+}
+
+void VoxelFinder::rebuildImpl(ArrayView<const Vector> points) {
+    buildImpl(points);
 }
 
 Size VoxelFinder::findNeighbours(const Size index,

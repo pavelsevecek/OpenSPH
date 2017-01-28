@@ -15,7 +15,9 @@ class VoxelFinder : public Abstract::Finder {
 protected:
     LookupMap lut;
 
-    virtual void buildImpl(ArrayView<const Vector> values) override;
+    virtual void buildImpl(ArrayView<const Vector> points) override;
+
+    virtual void rebuildImpl(ArrayView<const Vector> points) override;
 
 public:
     VoxelFinder();
@@ -29,7 +31,6 @@ public:
         const Float error = 0._f) const override;
 
     /// Updates the structure when the position change.
-    virtual void rebuild() {}
 };
 
 NAMESPACE_SPH_END
