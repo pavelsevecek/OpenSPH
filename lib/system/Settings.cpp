@@ -5,13 +5,6 @@
 NAMESPACE_SPH_BEGIN
 
 template <typename TEnum>
-Settings<TEnum>::Settings()
-    : Settings(Settings::getDefaults()) {}
-
-template <typename TEnum>
-Settings<TEnum>::Settings(EmptySettingsTag) {}
-
-template <typename TEnum>
 void Settings<TEnum>::saveToFile(const std::string& path) const {
     std::ofstream ofs(path);
     for (auto& e : entries) {
@@ -298,12 +291,5 @@ std::unique_ptr<BodySettings> BodySettings::instance (new BodySettings {
     { BodySettingsIds::AV_ALPHA_RANGE,          "av.beta.range",                Range(0.1_f, 3._f) },
 });
 // clang-format on
-
-
-template <typename TEnum>
-Settings<TEnum>& Settings<TEnum>::getDefaults() {
-    ASSERT(instance != nullptr);
-    return *instance;
-}
 
 NAMESPACE_SPH_END

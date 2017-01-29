@@ -45,7 +45,7 @@ Window::Window(const std::shared_ptr<Storage>& storage,
 
     sizer->Add(toolbar);
 
-    switch (GUI_SETTINGS.get<RendererEnum>(GuiSettingsIds::RENDERER)) {
+    switch (GuiSettings::getDefaults().get<RendererEnum>(GuiSettingsIds::RENDERER)) {
     case RendererEnum::OPENGL: {
         CustomGlPane* pane =
             new CustomGlPane(this, { WX_GL_RGBA, WX_GL_DOUBLEBUFFER, WX_GL_DEPTH_SIZE, 16, 0 });

@@ -37,7 +37,8 @@ SOURCES += \
     Gui.cpp \
     GlPane.cpp \
     OrthoPane.cpp \
-    Window.cpp
+    Window.cpp \
+    Settings.cpp
 
 HEADERS += \
     Gui.h \

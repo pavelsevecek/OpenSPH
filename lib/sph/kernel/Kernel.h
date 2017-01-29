@@ -15,14 +15,8 @@ NAMESPACE_SPH_BEGIN
 /// value returns the kernel value, grad returns gradient DIVIDED BY q.
 template <typename TDerived, Size D>
 class Kernel : public Noncopyable {
-private:
-    const TDerived* kernel;
-
 public:
-    Kernel() {
-        // static polymorphism to avoid calling (slow) virtual functions
-        kernel = static_cast<TDerived*>(this);
-    }
+    Kernel() = default;
 
     /// Value of kernel at given point
     /// this should be called only once for a pair of particles as there is expensive division
@@ -31,13 +25,18 @@ public:
     INLINE Float value(const Vector& r, const Float h) const {
         ASSERT(h > 0._f);
         const Float hInv = 1._f / h;
-        return pow<D>(hInv) * kernel->valueImpl(getSqrLength(r) * sqr(hInv));
+        return pow<D>(hInv) * impl().valueImpl(getSqrLength(r) * sqr(hInv));
     }
 
     INLINE Vector grad(const Vector& r, const Float h) const {
         ASSERT(h > 0._f);
         const Float hInv = 1._f / h;
-        return r * pow<D + 2>(hInv) * kernel->gradImpl(getSqrLength(r) * sqr(hInv));
+        return r * pow<D + 2>(hInv) * impl().gradImpl(getSqrLength(r) * sqr(hInv));
+    }
+
+private:
+    const TDerived& impl() const {
+        return static_cast<const TDerived&>(*this);
     }
 };
 
@@ -91,6 +90,7 @@ public:
 
     INLINE Float valueImpl(const Float qSqr) const {
         ASSERT(qSqr >= 0.f);
+        ASSERT(isInit());
         if (qSqr >= sqr(rad)) {
             // outside of kernel support
             return 0._f;
@@ -108,6 +108,7 @@ public:
 
     INLINE Float gradImpl(const Float qSqr) const {
         ASSERT(qSqr >= 0._f);
+        ASSERT(isInit());
         if (qSqr >= sqr(rad)) {
             // outside of kernel support
             return 0._f;

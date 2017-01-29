@@ -56,5 +56,37 @@ public:
     Float getTotalInternalEnergy(Storage& storage) const;
 };
 
+/// Class computing other non-physical statistics of SPH simulations.
+/// \note These functions generally take longer to compute, they are not part of the solver to avoid
+/// unnecessary overhead.
+/// \todo move to separate file
+/// \todo better name
+class Diagnostics {
+private:
+    GlobalSettings settings;
+
+public:
+    Diagnostics(const GlobalSettings& settings);
+
+    /// Returns the number of separate bodies SPH particles form. Two bodies are considered separate if each
+    /// pair of particles from different bodies is further than h * kernel.radius.
+    /// \todo this should account for symmetrized smoothing lenghts.
+    Size getNumberOfComponents(Storage& storage) const;
+
+    struct Pair {
+        Size i1, i2;
+    };
+    /// Returns the list of particles forming pairs, i.e. particles on top of each other or very close. If
+    /// the array is not empty, this is a sign of pairing instability or multi-valued velocity field, both
+    /// unwanted artefacts in SPH simulations.
+    /// This might occur because of numerical instability, possibly due to time step being too high, or due to
+    /// division by very small number in evolution equations. If the pairing instability occurs regardless,
+    /// try choosing different parameter SPH_KERNEL_ETA (should be aroung 1.5), or by choosing different SPH
+    /// kernel.
+    /// \param limit Maximal distance of two particles forming a pair in units of smoothing length.
+    /// \returns Detected pairs of particles given by their indices in the array, in no particular order.
+    Array<Pair> getParticlePairs(Storage& storage, const Float limit = 1.e-2_f) const;
+};
+
 
 NAMESPACE_SPH_END

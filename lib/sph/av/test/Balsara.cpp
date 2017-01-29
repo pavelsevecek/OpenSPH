@@ -125,25 +125,6 @@ TEST_CASE("Balsara divergent flow", "[av]") {
     divv = storage.getValue<Float>(QuantityIds::VELOCITY_DIVERGENCE);
     rotv = storage.getValue<Vector>(QuantityIds::VELOCITY_ROTATION);
 
-    auto test1 = [&](const Size i) {
-        // particles on boundary have different velocity divergence, check only particles inside
-        if (getLength(r[i]) < 0.7_f) {
-            if (divv[i] != approx(-3._f, 0.03_f)) {
-                return makeFailed(
-                    "Incorrect velocity divergence: \n", divv[i], " == -3", "\n particle: r = ", r[i]);
-            }
-            if (rotv[i] != approx(Vector(0._f), 0.1_f)) {
-                return makeFailed("Incorrect velocity rotation: \n",
-                    rotv[i],
-                    " == Vector(0.f) ",
-                    "\n particle: r = ",
-                    r[i]);
-            }
-        }
-        return SUCCESS;
-    };
-    REQUIRE_SEQUENCE(test1, 0, divv.size());
-
     finder->build(r);
     LutKernel<3> kernel = Factory::getKernel<3>(GlobalSettings::getDefaults());
     Array<NeighbourRecord> neighs;

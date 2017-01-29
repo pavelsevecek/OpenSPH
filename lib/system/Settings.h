@@ -41,10 +41,11 @@ private:
 
 public:
     /// Initialize settings by settings all value to their defaults.
-    Settings();
+    Settings()
+        : Settings(Settings::getDefaults()) {}
 
     /// Initialize empty settings object.
-    Settings(EmptySettingsTag);
+    Settings(EmptySettingsTag) {}
 
     Settings(std::initializer_list<Entry> list) {
         for (auto&& entry : list) {
@@ -96,7 +97,10 @@ public:
     bool loadFromFile(const std::string& path, const Settings& descriptors);
 
     /// Returns a reference to object containing default values of all settings.
-    static Settings& getDefaults();
+    static const Settings& getDefaults() {
+        ASSERT(instance != nullptr);
+        return *instance;
+    }
 
 private:
     bool setValueByType(Entry& entry, const Size typeIdx, const std::string& str);

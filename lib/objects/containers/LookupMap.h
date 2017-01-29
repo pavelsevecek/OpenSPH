@@ -73,8 +73,9 @@ public:
 private:
     // extends the bounding box by EPS in each dimension so we don't have to deal with particles lying on the boundary.
     void extendBox() {
-        boundingBox.extend(boundingBox.upper() + Vector(EPS));
-        boundingBox.extend(boundingBox.lower() - Vector(EPS));
+        const Vector extension = max(EPS * boundingBox.size(), Vector(EPS));
+        boundingBox.extend(boundingBox.upper() + extension);
+        boundingBox.extend(boundingBox.lower() - extension);
     }
 };
 

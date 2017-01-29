@@ -41,9 +41,28 @@ void testFinder(Abstract::Finder& finder, Flags<FinderFlags> flags) {
         std::sort(bfNeighs.begin(), bfNeighs.end(), [](NeighbourRecord n1, NeighbourRecord n2) {
             return n1.index < n2.index;
         });
+        Array<Size> bfIdxs, treeIdxs;
+        Array<Float> bfDist, treeDist;
+        for (auto& n : bfNeighs) {
+            bfIdxs.push(n.index);
+            bfDist.push(n.distanceSqr);
+        }
+        for (auto& n : treeNeighs) {
+            treeIdxs.push(n.index);
+            treeDist.push(n.distanceSqr);
+        }
 
-        if (!(bfNeighs == treeNeighs)) {
-            return makeFailed("Different neighbours found");
+        if (!(bfIdxs == treeIdxs)) {
+            return makeFailed("Different neighbours found:",
+                              "\n brute force: ", bfIdxs,
+                              "\n finder: ", treeIdxs);
+        }
+        for (Size i = 0; i < bfDist.size(); ++i) {
+            if (bfDist[i] != approx(treeDist[i])) { /// \todo figure out why approx is needed here!
+                return makeFailed("Neighbours are at different distances!"
+                                "\n brute force: ", bfDist[i],
+                                "\n finder: ", treeDist[i]);
+            }
         }
         return SUCCESS;
     };

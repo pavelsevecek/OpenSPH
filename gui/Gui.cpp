@@ -3,7 +3,6 @@
 #include "gui/GuiCallbacks.h"
 #include "gui/OrthoPane.h"
 #include "gui/Settings.h"
-#include "gui/Settings.h"
 #include "gui/Window.h"
 #include "physics/Constants.h"
 #include "problem/Problem.h"
@@ -66,7 +65,7 @@ bool MyApp::OnInit() {
     initialConditions(globalSettings, p->storage);
     p->timeStepping = Factory::getTimeStepping(globalSettings, p->storage);
 
-    GuiSettings guiSettings = GUI_SETTINGS;
+    GuiSettings guiSettings;
     guiSettings.set<Float>(GuiSettingsIds::VIEW_FOV, 1.e4_f);
     guiSettings.set<Float>(GuiSettingsIds::PARTICLE_RADIUS, 0.3_f);
     guiSettings.set<Float>(GuiSettingsIds::ORTHO_CUTOFF, 5.e2_f);

@@ -120,7 +120,7 @@ TEST_CASE("Tensor almostEqual", "[tensor]") {
     auto testTensor = [](Tensor& t) {
         REQUIRE(almostEqual(t, t));
         REQUIRE_FALSE(almostEqual(t, -t));
-        REQUIRE(almostEqual(t, (1._f + EPS) * t));
+        REQUIRE(almostEqual(t, (1._f + EPS) * t, 2._f * EPS));
         REQUIRE_FALSE(almostEqual(t, 1.1_f * t));
         REQUIRE(almostEqual(t, 1.1_f * t, 0.1_f));
         REQUIRE_FALSE(almostEqual(t, 1.1_f * t, 0.02_f));

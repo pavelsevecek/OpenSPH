@@ -131,7 +131,7 @@ MultiCriterion::MultiCriterion(const GlobalSettings& settings)
 Tuple<Float, QuantityIds> MultiCriterion::compute(Storage& storage, const Float maxStep) {
     ASSERT(!criteria.empty());
     Float minStep = INFTY;
-    QuantityIds minId;
+    QuantityIds minId = QuantityIds::MATERIAL_IDX;
     for (auto& crit : criteria) {
         Float step;
         QuantityIds id;

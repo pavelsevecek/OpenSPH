@@ -125,15 +125,17 @@ TEST_CASE("Gaussian kernel", "[kernel]") {
 TEST_CASE("Lut kernel", "[kernel]") {
     // test that LUT is moveable
     LutKernel<3> lut(CubicSpline<3>{});
-    const Float value = lut.valueImpl(1.2_f);
-    const Float grad= lut.gradImpl(0.8_f);
+    const Float value = lut.value(Vector(1.2_f, 0._f, 0._f), 0.9_f);
+    const Vector grad = lut.grad(Vector(0.8_f, 0._f, 0._f), 1.5_f);
 
     LutKernel<3> lut2 = std::move(lut);
-    REQUIRE(lut2.valueImpl(1.2_f) == value);
-    REQUIRE(lut2.gradImpl(0.8_f) == grad);
+    REQUIRE(lut2.value(Vector(1.2_f, 0._f, 0._f), 0.9_f) == value);
+    REQUIRE(lut2.grad(Vector(0.8_f, 0._f, 0._f), 1.5_f) == grad);
+    REQUIRE(lut2.radius() == 2._f);
 
     LutKernel<3> lut3;
     lut3 = std::move(lut2);
-    REQUIRE(lut3.valueImpl(1.2_f) == value);
-    REQUIRE(lut3.gradImpl(0.8_f) == grad);
+    REQUIRE(lut3.value(Vector(1.2_f, 0._f, 0._f), 0.9_f) == value);
+    REQUIRE(lut3.grad(Vector(0.8_f, 0._f, 0._f), 1.5_f) == grad);
+    REQUIRE(lut3.radius() == 2._f);
 }

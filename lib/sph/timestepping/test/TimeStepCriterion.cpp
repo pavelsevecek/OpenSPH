@@ -8,7 +8,7 @@
 
 using namespace Sph;
 
-Storage getStorage() {
+static Storage getStorage() {
     Storage storage(BodySettings::getDefaults());
     HexagonalPacking distribution;
     storage.emplace<Vector, OrderEnum::SECOND_ORDER>(
