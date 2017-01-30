@@ -1,20 +1,12 @@
 #pragma once
 
 #include "objects/containers/Array.h"
-#include "objects/wrappers/NonOwningPtr.h"
 #include "quantities/Quantity.h"
 #include "quantities/QuantityIds.h"
+#include "objects/ForwardDecl.h"
 #include <map>
 
 NAMESPACE_SPH_BEGIN
-
-
-struct Material;
-
-enum class BodySettingsIds;
-template <typename TEnum>
-class Settings;
-using BodySettings = Settings<BodySettingsIds>;
 
 /// Base object for storing scalar, vector and tensor quantities of SPH particles. Other parts of the code
 /// simply point to stored arrays using ArrayView.

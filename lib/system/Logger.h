@@ -5,9 +5,9 @@
 /// sevecek at sirrah.troja.mff.cuni.cz
 
 #include "objects/Object.h"
-#include <fstream>
 #include <memory>
 #include <set>
+#include <fstream>
 #include <sstream>
 #include <string>
 

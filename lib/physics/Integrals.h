@@ -1,9 +1,8 @@
 #pragma once
 
-#include "objects/containers/ArrayView.h"
-#include "quantities/QuantityIds.h"
-#include "quantities/Storage.h"
+#include "objects/containers/Array.h"
 #include "system/Settings.h"
+#include "objects/ForwardDecl.h"
 #include <memory>
 
 NAMESPACE_SPH_BEGIN

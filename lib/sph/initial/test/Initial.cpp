@@ -6,6 +6,7 @@
 #include "quantities/Storage.h"
 #include "utils/Approx.h"
 #include "utils/SequenceTest.h"
+#include "system/Settings.h"
 
 using namespace Sph;
 

@@ -5,14 +5,10 @@
 /// sevecek at sirrah.troja.mff.cuni.cz
 
 #include "geometry/TracelessTensor.h"
-#include "objects/containers/Array.h"
 #include "objects/wrappers/Range.h"
 #include "objects/wrappers/Variant.h"
 #include "quantities/QuantityIds.h"
-#include <initializer_list>
 #include <map>
-#include <memory>
-#include <string>
 
 NAMESPACE_SPH_BEGIN
 
@@ -267,8 +263,8 @@ enum class GlobalSettingsIds {
     /// Custom name of the run
     RUN_NAME,
 
-    /// Frequency of dumping data to disk in number of timesteps
-    RUN_OUTPUT_STEP,
+    /// Time interval of dumping data to disk.
+    RUN_OUTPUT_INTERVAL,
 
     /// File name of the output file (including extension), where %d is a placeholder for output number.
     RUN_OUTPUT_NAME,

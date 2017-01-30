@@ -5,7 +5,6 @@
 /// sevecek at sirrah.troja.mff.cuni.cz
 
 #include "geometry/Vector.h"
-#include "system/Profiler.h"
 
 NAMESPACE_SPH_BEGIN
 

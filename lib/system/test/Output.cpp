@@ -1,5 +1,6 @@
 #include "system/Output.h"
 #include "catch.hpp"
+#include <fstream>
 #include <thread>
 
 using namespace Sph;

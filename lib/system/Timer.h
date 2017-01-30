@@ -21,10 +21,10 @@ enum class TimerUnit { SECOND, MILLISECOND, MICROSECOND };
 /// Basic time-measuring tool. Starts automatically when constructed.
 class Timer : public Observable {
 protected:
-    using TTimePoint = std::chrono::time_point<std::chrono::system_clock>;
-    using TClock = std::chrono::system_clock;
+    using TimePoint = std::chrono::time_point<std::chrono::system_clock>;
+    using Clock = std::chrono::system_clock;
 
-    TTimePoint started;
+    TimePoint started;
     int64_t interval;
     Flags<TimerFlags> flags;
 
@@ -43,18 +43,18 @@ public:
         const Flags<TimerFlags> flags = EMPTY_FLAGS);
 
     /// Reset elapsed duration to zero.
-    void restart() { started = TClock::now(); }
+    void restart() { started = Clock::now(); }
 
     /// Returns elapsed time in timer units. Does not reset the timer.
     template <TimerUnit TUnit>
     int64_t elapsed() const {
         switch (TUnit) {
         case TimerUnit::SECOND:
-            return std::chrono::duration_cast<std::chrono::seconds>(TClock::now() - started).count();
+            return std::chrono::duration_cast<std::chrono::seconds>(Clock::now() - started).count();
         case TimerUnit::MILLISECOND:
-            return std::chrono::duration_cast<std::chrono::milliseconds>(TClock::now() - started).count();
+            return std::chrono::duration_cast<std::chrono::milliseconds>(Clock::now() - started).count();
         case TimerUnit::MICROSECOND:
-            return std::chrono::duration_cast<std::chrono::microseconds>(TClock::now() - started).count();
+            return std::chrono::duration_cast<std::chrono::microseconds>(Clock::now() - started).count();
         }
     }
 
@@ -67,12 +67,12 @@ public:
 /// Simple extension of Timer allowing to pause and continue timer.
 class StoppableTimer : public Timer {
 protected:
-    TTimePoint stopped;
+    TimePoint stopped;
     bool isStopped = false;
 
     auto elapsedImpl() const {
         if (!isStopped) {
-            return TClock::now() - started;
+            return Clock::now() - started;
         } else {
             return stopped - started;
         }
@@ -83,7 +83,7 @@ public:
     void stop() {
         if (!isStopped) {
             isStopped = true;
-            stopped = TClock::now();
+            stopped = Clock::now();
         }
     }
 
@@ -92,7 +92,7 @@ public:
         if (isStopped) {
             isStopped = false;
             // advance started by stopped duration to report correct elapsed time of the timer
-            started += TClock::now() - stopped;
+            started += Clock::now() - stopped;
         }
     }
 

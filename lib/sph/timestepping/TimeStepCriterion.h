@@ -1,20 +1,9 @@
 #pragma once
 
 #include "objects/containers/Array.h"
+#include "objects/ForwardDecl.h"
 
 NAMESPACE_SPH_BEGIN
-
-// forward decl
-
-class Storage;
-enum class QuantityIds;
-
-template <typename TEnum>
-class Settings;
-enum class GlobalSettingsIds;
-
-using GlobalSettings = Settings<GlobalSettingsIds>;
-
 
 namespace Abstract {
 

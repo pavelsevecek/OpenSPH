@@ -15,6 +15,12 @@ enum class SubsetType {
     OUTSIDE, ///< Marks all vectors outside of the domain
 };
 
+
+struct Ghost {
+    Vector position; ///< Position of the ghost
+    Size index;      ///< Index into the original array of vectors
+};
+
 namespace Abstract {
     /// Base class for computational domains.
     class Domain : public Polymorphic {
@@ -62,11 +68,6 @@ namespace Abstract {
         /// \param indices Optional array of indices. If passed, only selected vectors will be projected. All
         ///        vectors are projected by default.
         virtual void project(ArrayView<Vector> vs, Optional<ArrayView<Size>> indices = NOTHING) const = 0;
-
-        struct Ghost {
-            Vector position; ///< Position of the ghost
-            Size index;      ///< Index into the original array of vectors
-        };
 
         /// Duplicates vectors located close to the boundary, placing the symmetrically to the other side.
         /// Distance of the copy (ghost) to the boundary shall be the same as the source vector. One vector

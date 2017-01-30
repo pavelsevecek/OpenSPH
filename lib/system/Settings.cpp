@@ -189,7 +189,7 @@ template<>
 std::unique_ptr<GlobalSettings> GlobalSettings::instance (new GlobalSettings {
     /// Parameters of the run
     { GlobalSettingsIds::RUN_NAME,                      "run.name",                 std::string("unnamed run") },
-    { GlobalSettingsIds::RUN_OUTPUT_STEP,               "run.output.step",          100 },
+    { GlobalSettingsIds::RUN_OUTPUT_INTERVAL,           "run.output.interval",      0.01_f },
     { GlobalSettingsIds::RUN_OUTPUT_NAME,               "run.output.name",          std::string("out_%d.txt") },
     { GlobalSettingsIds::RUN_OUTPUT_PATH,               "run.output.path",          std::string("out") },
     { GlobalSettingsIds::RUN_LOGGER,                    "run.logger",               int(LoggerEnum::STD_OUT) },

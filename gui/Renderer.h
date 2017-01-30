@@ -2,6 +2,7 @@
 
 #include "gui/Common.h"
 #include "quantities/Storage.h"
+#include <memory>
 
 NAMESPACE_SPH_BEGIN
 

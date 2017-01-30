@@ -2,6 +2,7 @@
 #include "catch.hpp"
 #include "quantities/Storage.h"
 #include "solvers/AbstractSolver.h"
+#include "system/Settings.h"
 #include "system/Statistics.h"
 #include "utils/Approx.h"
 #include "utils/SequenceTest.h"

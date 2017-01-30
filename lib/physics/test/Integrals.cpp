@@ -3,6 +3,7 @@
 #include "geometry/Domain.h"
 #include "sph/initial/Initial.h"
 #include "utils/Approx.h"
+#include "quantities/Storage.h"
 
 using namespace Sph;
 

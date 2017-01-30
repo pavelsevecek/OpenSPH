@@ -53,7 +53,11 @@ SOURCES += \
     post/Components.cpp \
     geometry/Domain.cpp \
     physics/Integrals.cpp \
-    sph/timestepping/TimeStepCriterion.cpp
+    sph/timestepping/TimeStepCriterion.cpp \
+    objects/finders/KdTree.cpp \
+    system/Statistics.cpp \
+    solvers/AbstractSolver.cpp \
+    problem/Problem.cpp
 
 HEADERS += \
     core/Globals.h \
@@ -152,4 +156,5 @@ HEADERS += \
     objects/wrappers/Value.h \
     objects/wrappers/Expected.h \
     objects/wrappers/Outcome.h \
-    sph/timestepping/TimeStepCriterion.h
+    sph/timestepping/TimeStepCriterion.h \
+    objects/ForwardDecl.h

@@ -17,7 +17,7 @@ using namespace Sph;
 
 static GlobalSettings getGlobalSettings(SolverEnum id) {
     GlobalSettings settings;
-    settings.set(GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP, 1.e-3_f);
+    settings.set(GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP, 5.e-4_f);
     settings.set(GlobalSettingsIds::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::NONE);
     settings.set(GlobalSettingsIds::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::EULER_EXPLICIT);
     settings.set(GlobalSettingsIds::MODEL_YIELDING, YieldingEnum::NONE);
@@ -119,6 +119,6 @@ TEST_CASE("ContinuitySolver gass ball", "[solvers]") {
     const Float en1 = integrals.getTotalEnergy(*storage);
 
     REQUIRE(mom1 == approx(mom0, 5.e-2_f));
-    REQUIRE(angmom1 == approx(angmom0, 5.e-2_f));
+    REQUIRE(angmom1 == approx(angmom0, 1.e-1_f));
     REQUIRE(en1 == approx(en0, 5.e-2_f));
 }

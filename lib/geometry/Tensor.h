@@ -67,7 +67,15 @@ public:
     /// Returns a given element of the matrix.
     INLINE Float& operator()(const int rowIdx, const int colIdx) {
         if (rowIdx == colIdx) {
-            // diagonal
+            return diag[rowIdx];
+        } else {
+            return off[rowIdx + colIdx - 1];
+        }
+    }
+
+    /// Returns a given element of the matrix, const version.
+    INLINE Float operator()(const int rowIdx, const int colIdx) const {
+        if (rowIdx == colIdx) {
             return diag[rowIdx];
         } else {
             return off[rowIdx + colIdx - 1];

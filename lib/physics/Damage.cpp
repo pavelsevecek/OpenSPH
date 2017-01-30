@@ -2,6 +2,7 @@
 #include "math/rng/Rng.h"
 #include "quantities/Material.h"
 #include "system/Factory.h"
+#include "quantities/Storage.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -87,6 +88,8 @@ void ScalarDamage::initialize(Storage& storage, const BodySettings& settings) co
         }
     }
 }
+
+void ScalarDamage::update(Storage& storage) { damage = storage.getValue<Float>(QuantityIds::DAMAGE); }
 
 void ScalarDamage::integrate(Storage& storage) {
     ArrayView<TracelessTensor> s = storage.getValue<TracelessTensor>(QuantityIds::DEVIATORIC_STRESS);

@@ -1,5 +1,6 @@
 #include "physics/Eos.h"
 #include "physics/Constants.h"
+#include "system/Settings.h"
 
 NAMESPACE_SPH_BEGIN
 

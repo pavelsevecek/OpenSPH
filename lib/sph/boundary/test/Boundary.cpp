@@ -5,6 +5,8 @@
 #include "system/Settings.h"
 #include "utils/Approx.h"
 #include "utils/SequenceTest.h"
+#include "quantities/Storage.h"
+#include "geometry/Domain.h"
 
 using namespace Sph;
 

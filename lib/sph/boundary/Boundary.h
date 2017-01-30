@@ -4,25 +4,17 @@
 /// Pavel Sevecek 2016
 /// sevecek at sirrah.troja.mff.cuni.cz
 
-#include "geometry/Domain.h"
 #include "objects/wrappers/Range.h"
-#include "quantities/Storage.h"
+#include "objects/containers/Array.h"
+#include "objects/ForwardDecl.h"
 #include <memory>
 
-/// \todo create some reasonable interface
-
 NAMESPACE_SPH_BEGIN
-
-template <typename TEnum>
-class Settings;
-
-enum class GlobalSettingsIds;
-using GlobalSettings = Settings<GlobalSettingsIds>;
-
 
 namespace Abstract {
     class BoundaryConditions : public Polymorphic {
     public:
+        /// Applies boundary conditions on particles. Called every step after derivatives are computed.
         virtual void apply(Storage& storage) = 0;
     };
 }
@@ -35,7 +27,7 @@ class GhostParticles : public Abstract::BoundaryConditions {
 private:
     std::unique_ptr<Abstract::Domain> domain;
     // index where the ghost particles begin (they are always stored successively)
-    Array<Abstract::Domain::Ghost> ghosts;
+    Array<Ghost> ghosts;
     Array<Size> ghostIdxs; // indices of ghost particles in the storage
     Array<Float> distances;
     Float searchRadius;

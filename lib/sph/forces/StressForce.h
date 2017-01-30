@@ -5,7 +5,6 @@
 #include "quantities/Storage.h"
 #include "solvers/Accumulator.h"
 #include "solvers/Module.h"
-#include "system/Profiler.h"
 
 NAMESPACE_SPH_BEGIN
 

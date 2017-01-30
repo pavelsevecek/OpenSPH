@@ -1,4 +1,5 @@
 ﻿#include "system/Output.h"
+#include <fstream>
 
 NAMESPACE_SPH_BEGIN
 
@@ -90,6 +91,89 @@ std::string GnuplotOutput::dump(Storage& storage, const Float time) {
     const int returned = system(command.c_str());
     (void)returned;
     return fileName;
+}
+
+BinaryOutput::BinaryOutput(const std::string& fileMask, const std::string& runName)
+    : Abstract::Output(fileMask)
+    , runName(runName) {}
+
+struct StoreBuffers {
+    template <typename Value>
+    void visit(std::ofstream& ofs, Quantity& q) {}
+};
+
+template <typename TValue, typename TStoreValue>
+static void storeBuffers(Quantity& q, TStoreValue&& storeValue) {
+    StaticArray<Array<TValue>&, 3> buffers = q.getBuffers<TValue>();
+    switch (q.getOrderEnum()) {
+    case OrderEnum::ZERO_ORDER:
+    case OrderEnum::FIRST_ORDER:
+        for (Size i = 0; i < q.size(); ++i) {
+            storeValue(buffers[0][i]);
+        }
+        break;
+    case OrderEnum::SECOND_ORDER:
+        for (Size i = 0; i < q.size(); ++i) {
+            storeValue(buffers[0][i]); // store value
+        }
+        for (Size i = 0; i < q.size(); ++i) {
+            storeValue(buffers[1][i]); // store derivative
+        }
+    default:
+        STOP;
+    }
+}
+
+std::string BinaryOutput::dump(Storage& storage, const Float time) {
+    const std::string fileName = getFileName();
+    std::ofstream ofs(fileName);
+    // file format identifie
+    ofs << "SPH" << time << storage.getParticleCnt() << storage.getQuantityCnt();
+    // storage dump
+    for (auto& i : storage) {
+        // first 3 values: quantity ID, order (number of derivatives), type
+        Quantity& q = i.second;
+        ofs << Size(i.first) << Size(q.getOrderEnum()) << Size(q.getValueEnum());
+        switch (q.getValueEnum()) {
+        case ValueEnum::INDEX:
+            storeBuffers<Size>(q, [&ofs](const Size idx) { ofs << idx; });
+            break;
+        case ValueEnum::SCALAR:
+            storeBuffers<Float>(q, [&ofs](const Float f) { ofs << f; });
+            break;
+        /// \todo storing smoothing length?
+        case ValueEnum::VECTOR:
+            storeBuffers<Vector>(q, [&ofs](const Vector& v) { ofs << v[X] << v[Y] << v[Z]; });
+            break;
+        case ValueEnum::TENSOR:
+            storeBuffers<Tensor>(q, [&ofs](const Tensor& t) {
+                ofs << t(0, 0) << t(1, 1) << t(2, 2) << t(0, 1) << t(0, 2) << t(1, 2);
+            });
+            break;
+        case ValueEnum::TRACELESS_TENSOR:
+            storeBuffers<TracelessTensor>(q, [&ofs](const TracelessTensor& t) {
+                ofs << t(0, 0) << t(1, 1) << t(0, 1) << t(0, 2) << t(1, 2);
+            });
+            break;
+        }
+    }
+    ofs.close();
+    return fileName;
+}
+
+Outcome BinaryOutput::load(const std::string& path, Storage& storage) {
+    storage.removeAll();
+    std::ifstream ifs(path);
+    char identifier[4];
+    ifs.read(identifier, 4);
+    if (std::string(identifier) != "SPH") {
+        return "Invalid file format";
+    }
+    Float time;
+    Size particleCnt, quantityCnt;
+    ifs >> time >> particleCnt >> quantityCnt;
+    ifs.close();
+    return true;
 }
 
 NAMESPACE_SPH_END

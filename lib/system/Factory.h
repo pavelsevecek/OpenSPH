@@ -19,6 +19,7 @@ namespace Abstract {
     class TimeStepping;
     class TimeStepCriterion;
     class BoundaryConditions;
+    class Logger;
 }
 
 

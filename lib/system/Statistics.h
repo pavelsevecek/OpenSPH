@@ -8,12 +8,10 @@
 #include "objects/wrappers/Variant.h"
 #include "quantities/QuantityIds.h"
 #include "system/FloatStats.h"
-#include "system/Logger.h"
+#include "objects/ForwardDecl.h"
 #include <map>
 
 NAMESPACE_SPH_BEGIN
-
-enum class StatisticsIds;
 
 /// Object holding various statistics about current run. Values are set or accumulated by each component of
 /// the running problem (timestepping, solver, ...).
@@ -130,32 +128,10 @@ namespace Abstract {
 
 class FrequentStatsFormat : public Abstract::StatisticFormat {
 public:
-    virtual void print(Abstract::Logger& logger, const Statistics& statistics) const override {
-        logger.write("Output #",
-            statistics.get<int>(StatisticsIds::INDEX),
-            "  time = ",
-            statistics.get<Float>(StatisticsIds::TIME));
-        logger.write(" - timestep: dt = ",
-            statistics.get<Float>(StatisticsIds::TIMESTEP_VALUE),
-            " (set by ",
-            getTimeStepCriterion(statistics.get<QuantityIds>(StatisticsIds::TIMESTEP_CRITERION)),
-            ")");
-        logger.write("");
-    }
+    virtual void print(Abstract::Logger& logger, const Statistics& statistics) const override;
 
 private:
-    std::string getTimeStepCriterion(const QuantityIds key) const {
-        switch (key) {
-        case QuantityIds::SOUND_SPEED:
-            return "CFL condition";
-        case QuantityIds::POSITIONS:
-            return "Acceleration";
-        case QuantityIds::MATERIAL_IDX: // default value, only displayed when adaptive timestep is turned off
-            return "Default value";
-        default:
-            return getQuantityName(key);
-        }
-    }
+    std::string getTimeStepCriterion(const QuantityIds key) const;
 };
 
 

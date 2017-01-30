@@ -1,7 +1,7 @@
 #pragma once
 
 #include "quantities/Storage.h"
-#include <fstream>
+#include "objects/wrappers/Outcome.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -24,8 +24,9 @@ namespace Abstract {
         /// Saves data from particle storage into the file. Returns the filename of the dump.
         virtual std::string dump(Storage& storage, const Float time) = 0;
 
-        /// Loads data from the file into the storage. Can be used to continue simulation from saved snapshot.
-        virtual void load(const std::string& path, Storage& storage) = 0;
+        /// Loads data from the file into the storage. This will remove any data previously stored in storage.
+        /// Can be used to continue simulation from saved snapshot.
+        virtual Outcome load(const std::string& path, Storage& storage) = 0;
 
     protected:
         std::string getFileName() const {
@@ -51,7 +52,7 @@ public:
 
     virtual std::string dump(Storage& storage, const Float time) override;
 
-    virtual void load(const std::string& UNUSED(path), Storage& UNUSED(storage)) override { NOT_IMPLEMENTED; }
+    virtual Outcome load(const std::string& UNUSED(path), Storage& UNUSED(storage)) override { NOT_IMPLEMENTED; }
 };
 
 /// Extension of text output that runs given gnuplot script on dumped text data.
@@ -68,6 +69,20 @@ public:
         , scriptPath(scriptPath) {}
 
     virtual std::string dump(Storage& storage, const Float time) override;
+};
+
+
+/// Output saving data to binary data without loss of precision.
+class BinaryOutput : public Abstract::Output {
+private:
+    std::string runName;
+
+public:
+    BinaryOutput(const std::string& fileMask, const std::string& runName);
+
+    virtual std::string dump(Storage& storage, const Float time) override;
+
+    virtual Outcome load(const std::string& path, Storage& storage) override;
 };
 
 

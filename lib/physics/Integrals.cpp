@@ -1,6 +1,7 @@
 #include "physics/Integrals.h"
 #include "post/Components.h"
 #include "system/Factory.h"
+#include "quantities/Storage.h"
 
 NAMESPACE_SPH_BEGIN
 

@@ -36,7 +36,9 @@ public:
 
     /// Constructs object given error message.
     INLINE Outcome(const std::string& error)
-        : e(error) {}
+        : e(error) {
+        ASSERT(!e.empty());
+    }
 
     /// Checks whether the object contains success, i.e. no error is stored.
     INLINE bool success() const { return e.empty(); }

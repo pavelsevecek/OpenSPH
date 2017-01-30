@@ -1,4 +1,5 @@
 #include "solvers/SolverFactory.h"
+#include "geometry/Domain.h"
 #include "solvers/ContinuitySolver.h"
 #include "solvers/DensityIndependentSolver.h"
 #include "solvers/SummationSolver.h"
@@ -6,7 +7,7 @@
 
 NAMESPACE_SPH_BEGIN
 
-class ForceVisitor  {
+class ForceVisitor {
 public:
     template <typename Force>
     std::unique_ptr<Abstract::Solver> visit(const GlobalSettings& settings) const {

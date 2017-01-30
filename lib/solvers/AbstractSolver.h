@@ -1,21 +1,15 @@
 #pragma once
 
-#include "objects/Object.h"
-#include "quantities/Storage.h"
+#include "objects/ForwardDecl.h"
 #include "sph/kernel/Kernel.h"
-#include "system/Factory.h"
-#include "system/Profiler.h"
-#include "system/Settings.h"
+#include "objects/containers/Array.h"
 #include <memory>
 
 NAMESPACE_SPH_BEGIN
 
 namespace Abstract {
-    class Domain;
-    class Finder;
     class BoundaryConditions;
 }
-struct NeighbourRecord;
 
 namespace Abstract {
     class Solver : public Polymorphic {
@@ -34,7 +28,7 @@ namespace Abstract {
 
 /// Extended base class for solvers (templated class, cannot be used directly in methods as templated virtual
 /// methods do not exist)
-template <int D>
+template <Size D>
 class SolverBase : public Abstract::Solver {
 protected:
     std::unique_ptr<Abstract::Finder> finder;
@@ -47,13 +41,9 @@ protected:
     LutKernel<D> kernel;
 
 public:
-    SolverBase(const GlobalSettings& settings) {
-        finder = Factory::getFinder(settings);
-        kernel = Factory::getKernel<D>(settings);
+    SolverBase(const GlobalSettings& settings);
 
-        std::unique_ptr<Abstract::Domain> domain = Factory::getDomain(settings);
-        boundary = Factory::getBoundaryConditions(settings, std::move(domain));
-    }
+    ~SolverBase();
 };
 
 NAMESPACE_SPH_END

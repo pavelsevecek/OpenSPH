@@ -9,9 +9,9 @@ Timer::Timer(const int64_t interval, const Flags<TimerFlags> flags)
     , flags(flags) {
     if (flags.has(TimerFlags::START_EXPIRED)) {
         std::chrono::milliseconds ms(interval);
-        started = TClock::now() - ms;
+        started = Clock::now() - ms;
     } else {
-        started = TClock::now();
+        started = Clock::now();
     }
 }
 

@@ -3,6 +3,10 @@
 #include "sph/initial/Initial.h"
 #include "system/Factory.h"
 #include "system/Output.h"
+#include "system/Logger.h"
+#include "sph/timestepping/TimeStepping.h"
+#include "geometry/Domain.h"
+#include "system/Profiler.h"
 
 using namespace Sph;
 
@@ -13,7 +17,6 @@ int main() {
     globalSettings.set(GlobalSettingsIds::TIMESTEPPING_MAX_TIMESTEP, 1.e-1_f);
     globalSettings.set(GlobalSettingsIds::MODEL_FORCE_DIV_S, true);
     globalSettings.set(GlobalSettingsIds::SPH_FINDER, FinderEnum::VOXEL);
-    globalSettings.set(GlobalSettingsIds::RUN_OUTPUT_STEP, 1);
     /*globalSettings.set(GlobalSettingsIds::MODEL_DAMAGE, DamageEnum::SCALAR_GRADY_KIPP);
     globalSettings.set(GlobalSettingsIds::MODEL_YIELDING, YieldingEnum::VON_MISES);*/
     Problem* p      = new Problem(globalSettings);

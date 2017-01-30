@@ -3,6 +3,10 @@
 #include "problem/Problem.h"
 #include "sph/initial/Initial.h"
 #include "system/Settings.h"
+#include "system/Factory.h"
+#include "system/Output.h"
+#include "system/Logger.h"
+#include "sph/timestepping/TimeStepping.h"
 
 using namespace Sph;
 
@@ -19,7 +23,6 @@ TEST_CASE("StressForce Soundwave", "[stressforce]") {
     settings.set(GlobalSettingsIds::MODEL_FORCE_DIV_S, false);
     settings.set(GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP, 1.e-6_f);
     settings.set(GlobalSettingsIds::TIMESTEPPING_MAX_TIMESTEP, 1.e-4_f);
-    settings.set(GlobalSettingsIds::RUN_OUTPUT_STEP, 1);
     Problem p(settings);
     InitialConditions conds(p.storage, settings);
 

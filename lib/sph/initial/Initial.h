@@ -1,7 +1,7 @@
 #pragma once
 
 #include "objects/containers/ArrayView.h"
-#include "system/Settings.h"
+#include "objects/ForwardDecl.h"
 #include <memory>
 
 /// Generating initial conditions
@@ -9,11 +9,6 @@
 
 NAMESPACE_SPH_BEGIN
 
-namespace Abstract {
-    class Solver;
-    class Domain;
-}
-class Storage;
 
 class InitialConditions : public Noncopyable {
 private:

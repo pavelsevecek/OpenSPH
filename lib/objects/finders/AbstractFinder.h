@@ -5,7 +5,7 @@
 /// sevecek at sirrah.troja.mff.cuni.cz
 
 #include "geometry/Vector.h"
-#include "objects/containers/Array.h"
+#include "objects/containers/ArrayView.h"
 #include "objects/finders/Order.h"
 #include "objects/wrappers/Flags.h"
 

@@ -367,7 +367,7 @@ public:
     }
 
     /// Returns the size of the quantity (number of particles)
-    int size() const {
+    Size size() const {
         if (!data) {
             return 0;
         }

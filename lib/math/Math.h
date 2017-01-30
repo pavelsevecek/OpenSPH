@@ -25,6 +25,10 @@ template <>
 struct Eps<double> {
     constexpr static double value = 1.e-12f;
 };
+template <>
+struct Eps<__float128> {
+    constexpr static __float128 value = 1.e-18f;
+};
 
 constexpr Float EPS = Eps<Float>::value;
 

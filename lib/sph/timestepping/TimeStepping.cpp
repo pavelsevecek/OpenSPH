@@ -1,7 +1,7 @@
 #include "sph/timestepping/TimeStepping.h"
-#include "sph/timestepping/TimeStepCriterion.h"
 #include "quantities/Iterate.h"
 #include "solvers/AbstractSolver.h"
+#include "sph/timestepping/TimeStepCriterion.h"
 #include "system/Factory.h"
 #include "system/Profiler.h"
 #include "system/Statistics.h"
@@ -28,7 +28,6 @@ void Abstract::TimeStepping::step(Abstract::Solver& solver, Statistics& stats) {
         stats.set(StatisticsIds::TIMESTEP_CRITERION, criterion);
     }
 }
-
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -76,6 +75,8 @@ PredictorCorrector::PredictorCorrector(const std::shared_ptr<Storage>& storage,
     predictions = std::make_unique<Storage>(storage->clone(VisitorEnum::HIGHEST_DERIVATIVES));
     storage->init(); // clear derivatives before using them in step method
 }
+
+PredictorCorrector::~PredictorCorrector() = default;
 
 void PredictorCorrector::stepImpl(Abstract::Solver& solver) {
     const Float dt2 = 0.5_f * sqr(this->dt);
@@ -166,6 +167,8 @@ RungeKutta::RungeKutta(const std::shared_ptr<Storage>& storage, const GlobalSett
     k4 = std::make_unique<Storage>(storage->clone(VisitorEnum::ALL_BUFFERS));
     storage->init(); // clear derivatives before using them in step method
 }
+
+RungeKutta::~RungeKutta() = default;
 
 void RungeKutta::integrateAndAdvance(Abstract::Solver& solver, Storage& k, const float m, const float n) {
     solver.integrate(k);

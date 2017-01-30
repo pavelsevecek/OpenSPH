@@ -1,38 +1,19 @@
 #pragma once
 
-#include "objects/containers/Tuple.h"
-#include "objects/finders/AbstractFinder.h"
+#include "objects/ForwardDecl.h"
 #include "objects/wrappers/Range.h"
-#include "quantities/QuantityIds.h"
-#include "quantities/Iterate.h"
-#include "solvers/AbstractSolver.h"
-#include "solvers/SolverFactory.h"
-#include "sph/boundary/Boundary.h"
-#include "sph/initial/Distribution.h"
-#include "sph/kernel/Kernel.h"
-#include "sph/timestepping/TimeStepping.h"
-#include "system/Callbacks.h"
-#include "system/Logger.h"
-#include "system/Output.h"
-#include "system/Statistics.h"
-#include "physics/Integrals.h"
-#include <iostream>
-
+#include <memory>
 
 NAMESPACE_SPH_BEGIN
 
-
-/// class DomainEnforce ?
-///  initial distribution of particles ~ domain
-///  nothing
-///  ghost particles
-///  hard domain (setting positions without interactions)
-///  periodic conditions
-
+namespace Abstract {
+class Output;
+class Callbacks;
+}
 
 class Problem : public Noncopyable {
 private:
-    int outputEvery;
+    Float outputInterval;
 
     /// Logging
     std::unique_ptr<Abstract::Logger> logger;
@@ -61,56 +42,11 @@ public:
 
     /// initialize problem by constructing solver
     Problem(const GlobalSettings& settings,
-        const std::shared_ptr<Storage> storage = std::make_shared<Storage>())
-        : storage(storage) {
-        solver = getSolver(settings);
-        outputEvery = settings.get<int>(GlobalSettingsIds::RUN_OUTPUT_STEP);
-        logger = Factory::getLogger(settings);
-    }
+        const std::shared_ptr<Storage> storage = std::make_shared<Storage>());
 
-    void run() {
-        Size i = 0;
+    ~Problem();
 
-        logger->write("Running:");
-
-        Timer runTimer;
-        Statistics stats;
-        for (Float t (timeRange.lower()); timeRange.upper() > t; t += timeStepping->getTimeStep()) {
-            if (callbacks) {
-                callbacks->onTimeStep((t - timeRange.lower()) / timeRange.size(), storage);
-                if (callbacks->shouldAbortRun()) {
-                    break;
-                }
-            }
-
-            // Dump output
-            if (output && (i % outputEvery == 0)) {
-                output->dump(*storage, t);
-            }
-            i++;
-
-            // Make time step
-            timeStepping->step(*solver, stats);
-
-            // Log
-            stats.set(StatisticsIds::TIME, t);
-            stats.set(StatisticsIds::INDEX, (int)i);
-            FrequentStatsFormat format;
-            format.print(*logger, stats);
-
-            logger->write("p[0] = ", storage->getValue<Float>(QuantityIds::PRESSURE)[0]);
-            logger->write("cs[0] = ", storage->getValue<Float>(QuantityIds::SOUND_SPEED)[0]);
-            logger->write("u[0] = ", storage->getValue<Float>(QuantityIds::ENERGY)[0]);
-            logger->write("rho[0] = ", storage->getValue<Float>(QuantityIds::DENSITY)[0]);
-
-            /*AvgDeviatoricStress avgds;
-            logger->write("ds = ", avgds.get(*storage));*/
-            if (i==100) {
-                break;
-            }
-        }
-        logger->write("Run ended after ", runTimer.elapsed<TimerUnit::SECOND>(), "s.");
-    }
+    void run();
 };
 
 NAMESPACE_SPH_END

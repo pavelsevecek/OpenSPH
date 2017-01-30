@@ -2,6 +2,7 @@
 #include "catch.hpp"
 #include "objects/containers/Array.h"
 #include "utils/Approx.h"
+#include "system/Settings.h"
 
 using namespace Sph;
 

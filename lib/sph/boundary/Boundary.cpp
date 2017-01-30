@@ -1,6 +1,7 @@
 #include "sph/boundary/Boundary.h"
 #include "quantities/Iterate.h"
 #include "system/Factory.h"
+#include "geometry/Domain.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -14,7 +15,7 @@ GhostParticles::GhostParticles(std::unique_ptr<Abstract::Domain>&& domain, const
 /// Functor copying quantities on ghost particles. Vector quantities are copied symmetrically with a respect
 /// to the boundary.
 struct GhostFunctor {
-    Array<Abstract::Domain::Ghost>& ghosts;
+    Array<Ghost>& ghosts;
     Array<Size>& ghostIdxs;
     Abstract::Domain& domain;
 

@@ -1,4 +1,5 @@
 #include "catch.hpp"
+#include "geometry/Domain.h"
 #include "physics/Damage.h"
 #include "physics/Eos.h"
 #include "physics/Yielding.h"
@@ -9,7 +10,9 @@
 #include "sph/forces/StressForce.h"
 #include "sph/initial/Initial.h"
 #include "system/Factory.h"
+#include "system/Output.h"
 #include "system/Settings.h"
+#include "sph/timestepping/TimeStepping.h"
 
 using namespace Sph;
 
@@ -47,7 +50,6 @@ TEST_CASE("Sod", "[sod]") {
     // Global settings of the problem
     GlobalSettings globalSettings;
     globalSettings.set(GlobalSettingsIds::RUN_NAME, std::string("Sod Shock Tube Problem"));
-    globalSettings.set(GlobalSettingsIds::RUN_OUTPUT_STEP, 1);
     globalSettings.set(GlobalSettingsIds::DOMAIN_TYPE, DomainEnum::SPHERICAL);
     globalSettings.set(GlobalSettingsIds::DOMAIN_CENTER, Vector(0.5_f));
     globalSettings.set(GlobalSettingsIds::DOMAIN_RADIUS, 0.5_f);

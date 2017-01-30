@@ -3,9 +3,11 @@
 #include "geometry/Domain.h"
 #include "objects/containers/ArrayUtils.h"
 #include "physics/Yielding.h"
+#include "quantities/Storage.h"
 #include "sph/initial/Distribution.h"
 #include "sph/initial/Initial.h"
 #include "system/ArrayStats.h"
+#include "system/Settings.h"
 #include "utils/Approx.h"
 
 using namespace Sph;

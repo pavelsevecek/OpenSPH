@@ -5,25 +5,11 @@
 /// sevecek at sirrah.troja.mff.cuni.cz
 
 #include "geometry/Vector.h"
+#include "objects/ForwardDecl.h"
 #include "objects/containers/Array.h"
 #include <memory>
 
 NAMESPACE_SPH_BEGIN
-
-namespace Abstract {
-    class Solver;
-    class TimeStepCriterion;
-}
-/// \todo move forward declarations to common header
-enum class GlobalSettingsIds;
-template<typename TEnum>
-class Settings;
-using GlobalSettings = Settings<GlobalSettingsIds>;
-
-class Storage;
-class Statistics;
-
-
 
 /// Base object providing integration in time for all quantities.
 ///
@@ -76,6 +62,8 @@ private:
 public:
     PredictorCorrector(const std::shared_ptr<Storage>& storage, const GlobalSettings& settings);
 
+    ~PredictorCorrector();
+
 protected:
     virtual void stepImpl(Abstract::Solver& solver) override;
 };
@@ -95,6 +83,8 @@ private:
 
 public:
     RungeKutta(const std::shared_ptr<Storage>& storage, const GlobalSettings& settings);
+
+    ~RungeKutta();
 
 protected:
     virtual void stepImpl(Abstract::Solver& solver) override;

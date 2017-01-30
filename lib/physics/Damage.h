@@ -2,8 +2,8 @@
 
 #include "geometry/Vector.h"
 #include "objects/containers/ArrayView.h"
-#include "quantities/Storage.h"
-#include "system/Settings.h"
+#include "geometry/TracelessTensor.h"
+#include "objects/ForwardDecl.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -37,7 +37,7 @@ public:
 
     void initialize(Storage& storage, const BodySettings& settings) const;
 
-    void update(Storage& storage) { damage = storage.getValue<Float>(QuantityIds::DAMAGE); }
+    void update(Storage& storage);
 
     void integrate(Storage& storage);
 

@@ -6,7 +6,7 @@
 
 #include "objects/containers/Array.h"
 #include "objects/containers/Tuple.h"
-#include "system/Settings.h"
+#include "objects/ForwardDecl.h"
 
 NAMESPACE_SPH_BEGIN
 
