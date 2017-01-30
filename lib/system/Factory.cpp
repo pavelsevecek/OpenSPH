@@ -6,9 +6,9 @@
 #include "physics/Eos.h"
 #include "sph/boundary/Boundary.h"
 #include "sph/initial/Distribution.h"
-#include "system/Logger.h"
 #include "sph/timestepping/TimeStepCriterion.h"
 #include "sph/timestepping/TimeStepping.h"
+#include "system/Logger.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -124,9 +124,13 @@ std::unique_ptr<Abstract::BoundaryConditions> Factory::getBoundaryConditions(con
     case BoundaryEnum::GHOST_PARTICLES:
         ASSERT(domain != nullptr);
         return std::make_unique<GhostParticles>(std::move(domain), settings);
-    case BoundaryEnum::DOMAIN_PROJECTING:
-        ASSERT(domain != nullptr);
-        return std::make_unique<DomainProjecting>(std::move(domain), ProjectingOptions::ZERO_PERPENDICULAR);
+    case BoundaryEnum::FROZEN_PARTICLES:
+        if (domain) {
+            const Float radius = settings.get<Float>(GlobalSettingsIds::DOMAIN_FROZEN_DIST);
+            return std::make_unique<FrozenParticles>(std::move(domain), radius);
+        } else {
+            return std::make_unique<FrozenParticles>();
+        }
     case BoundaryEnum::PROJECT_1D: {
         ASSERT(domain != nullptr);
         const Vector center = domain->getCenter();

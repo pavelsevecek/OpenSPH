@@ -232,6 +232,7 @@ std::unique_ptr<GlobalSettings> GlobalSettings::instance (new GlobalSettings {
     { GlobalSettingsIds::DOMAIN_TYPE,                   "domain.type",              int(DomainEnum::NONE) },
     { GlobalSettingsIds::DOMAIN_BOUNDARY,               "domain.boundary",          int(BoundaryEnum::NONE) },
     { GlobalSettingsIds::DOMAIN_GHOST_MIN_DIST,         "domain.ghosts.min_dist",   0.1_f },
+    { GlobalSettingsIds::DOMAIN_FROZEN_DIST,            "domain.frozen_dist",       2.5_f }, /// \todo this should really be the kernel radius
     { GlobalSettingsIds::DOMAIN_CENTER,                 "domain.center",            Vector(0._f) },
     { GlobalSettingsIds::DOMAIN_RADIUS,                 "domain.radius",            1._f },
     { GlobalSettingsIds::DOMAIN_HEIGHT,                 "domain.height",            1._f },

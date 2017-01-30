@@ -171,8 +171,8 @@ enum class BoundaryEnum {
     /// Do not use any boundary conditions (= vacuum conditions)
     NONE,
 
-    /// Project outside particles onto the boundary
-    DOMAIN_PROJECTING,
+    /// Highest derivatives of all particles close to the boundary are set to zero.
+    FROZEN_PARTICLES,
 
     /// Create ghosts to keep particles inside domain
     GHOST_PARTICLES,
@@ -373,7 +373,10 @@ enum class GlobalSettingsIds {
     DOMAIN_SIZE,
 
     /// Minimal distance between a particle and its ghost, in units of smoothing length.
-    DOMAIN_GHOST_MIN_DIST
+    DOMAIN_GHOST_MIN_DIST,
+
+    /// Distance to the boundary in units of smoothing length under which the particles are frozen.
+    DOMAIN_FROZEN_DIST,
 };
 
 

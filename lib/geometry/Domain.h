@@ -56,10 +56,10 @@ namespace Abstract {
             const SubsetType type) const = 0;
 
         /// Returns distances of particles lying close to the boundary. The distances are signed, negative
-        /// number means the particle is lying outside of the domain.
+        /// number means the particle is lying outside of the domain. Distances can be computed with small
+        /// error to simplify implementation.
         /// \param vs Input array of partices.
         /// \param distances Output array, will be resized to the size of particle array and cleared.
-        /// \todo currently not used, remove?
         virtual void getDistanceToBoundary(ArrayView<const Vector> vs, Array<Float>& distances) const = 0;
 
         /// Projects vectors outside of the domain onto its boundary. Vectors inside the domain are untouched.

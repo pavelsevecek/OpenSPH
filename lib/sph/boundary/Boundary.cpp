@@ -1,9 +1,13 @@
 #include "sph/boundary/Boundary.h"
+#include "geometry/Domain.h"
 #include "quantities/Iterate.h"
 #include "system/Factory.h"
-#include "geometry/Domain.h"
 
 NAMESPACE_SPH_BEGIN
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/// GhostParticles implementation
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 GhostParticles::GhostParticles(std::unique_ptr<Abstract::Domain>&& domain, const GlobalSettings& settings)
     : domain(std::move(domain)) {
@@ -39,20 +43,6 @@ struct GhostFunctor {
             }
             const Vector deltaR = r[g.index] - g.position; // offset between particle and its ghost
             ASSERT(getLength(deltaR) > 0.f);
-            /*if (getLength(deltaR) == 0._f) {
-                // ghost lie on top of the particle, approximate inverted vector by finite differences
-                // (imprecise)
-                /// \todo we should avoid this case altogether
-                const Float eps = 1.e-3_f * domain.getBoundingRadius();
-                const Vector unit = v[idx] / length;
-                StaticArray<Vector, 1> vgSum{ r[idx] + unit * eps };
-                domain.invert(vgSum);
-                const Vector rg = r[ghostIdxs[i]];
-                // get direction of inverted vector as difference inverted(r) and inverted(r + v)
-                const Vector diff = getNormalized(vgSum[0] - rg);
-                // scale to correct length
-                v.push(diff * length);
-            } else {*/
             const Vector normal = getNormalized(deltaR);
             const Float perp = dot(normal, v[g.index]);
             // mirror vector by copying parallel component and inverting perpendicular component
@@ -94,54 +84,70 @@ void GhostParticles::removeGhosts(Storage& storage) {
     ghosts.clear();
 }
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/// FrozenParticles implementation
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-DomainProjecting::DomainProjecting(std::unique_ptr<Abstract::Domain>&& domain,
-    const ProjectingOptions options)
+FrozenParticles::FrozenParticles() = default;
+
+FrozenParticles::~FrozenParticles() = default;
+
+FrozenParticles::FrozenParticles(std::unique_ptr<Abstract::Domain>&& domain, const Float radius)
     : domain(std::move(domain))
-    , options(options) {}
+    , radius(radius) {}
 
-void DomainProjecting::apply(Storage& storage) {
-    ArrayView<Vector> r, v, dv;
-    tie(r, v, dv) = storage.getAll<Vector>(QuantityIds::POSITIONS);
-    // check which particles are outside of the domain
-    domain->getSubset(r, outside, SubsetType::OUTSIDE);
-    domain->project(r, outside.getView());
-    vproj.clear();
-    // Size idx = 0;
-    switch (options) {
-    case ProjectingOptions::ZERO_VELOCITY:
-        for (Size i : outside) {
-            v[i] = Vector(0._f);
-        }
-        break;
-    default:
-        NOT_IMPLEMENTED;
-    }
-    /* case ProjectingOptions::ZERO_PERPENDICULAR:
-         projectVelocity(r, v);
-         for (Size i : outside) {
-             v[i] = 0.5_f * (v[i] + vproj[idx] - r[i]);
-         }
-         break;
-     case ProjectingOptions::REFLECT:
-         projectVelocity(r, v);
-         for (Size i : outside) {
-             // subtract the original position and we have projected velocities! Yay!)
-             v[i] = vproj[idx] - r[i];
-         }
-         break;
-     }*/
+/// Adds body ID particles of which shall be frozen by boundary conditions.
+void FrozenParticles::freeze(const Size flag) {
+    frozen.insert(flag);
 }
 
-/*void DomainProjecting::projectVelocity(ArrayView<const Vector> r, ArrayView<const Vector> v) {
-    /// \todo implement using normal to the boundary
-    for (Size i : outside) {
-        // sum up position and velocity
-        vproj.push(r[i] + v[i]);
+/// Remove a body from the list of frozen bodies. If the body is not on the list, nothing happens.
+void FrozenParticles::thaw(const Size flag) {
+    frozen.erase(flag);
+}
+
+void FrozenParticles::apply(Storage& storage) {
+    ArrayView<Vector> r, v, dv;
+    tie(r, v, dv) = storage.getAll<Vector>(QuantityIds::POSITIONS);
+
+    idxs.clear();
+    if (domain) {
+        // project particles outside of the domain onto the boundary
+        domain->getSubset(r, idxs, SubsetType::OUTSIDE);
+        domain->project(r, idxs.getView());
+
+        // freeze particles close to the boundary
+        idxs.clear();
+        domain->getDistanceToBoundary(r, distances);
+        for (Size i = 0; i < r.size(); ++i) {
+            if (distances[i] < radius * r[i][H]) {
+                idxs.push(i);
+            }
+        }
     }
-    // invert the sum
-    domain->invert(vproj);
-}*/
+
+    // find all frozen particles by their body flag
+    ArrayView<Size> flags = storage.getValue<Size>(QuantityIds::FLAG);
+    for (Size i = 0; i < r.size(); ++i) {
+        if (frozen.find(flags[i]) != frozen.end()) {
+            idxs.push(i); // this might add particles already frozen by boundary, but it doesn't matter
+        }
+    }
+
+    // set all highest derivatives of flagged particles to zero
+    iterate<VisitorEnum::HIGHEST_DERIVATIVES>(storage, [this](QuantityIds, auto&& d2f) {
+        using T = typename std::decay_t<decltype(d2f)>::Type;
+        for (Size i : idxs) {
+            d2f[i] = T(0._f);
+        }
+    });
+}
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/// Projection1D implementation
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 
 Projection1D::Projection1D(const Range& domain)
     : domain(domain) {}

@@ -4,10 +4,11 @@
 /// Pavel Sevecek 2016
 /// sevecek at sirrah.troja.mff.cuni.cz
 
-#include "objects/wrappers/Range.h"
-#include "objects/containers/Array.h"
 #include "objects/ForwardDecl.h"
+#include "objects/containers/Array.h"
+#include "objects/wrappers/Range.h"
 #include <memory>
+#include <set>
 
 NAMESPACE_SPH_BEGIN
 
@@ -49,41 +50,40 @@ public:
 };
 
 
-enum class ProjectingOptions {
-    ZERO_VELOCITY,      ///< velocities of particles outside of domain are set to zero
-    ZERO_PERPENDICULAR, ///< sets perpendicular component of the velocity to zero, parallel remains the same
-    REFLECT,            ///< particles 'bounce off' the boundary, the perpendicular component of the velocity
-                        ///  changes sign
-};
-
-/// Boundary condition that simply projects all particles outside of the domain to its boundary. Should not be
-/// used as main boundary condition in SPH run due to very high gradients created at the boundary. It can be
-/// useful as auxiliary tool for setting up initial conditions, for example.
-class DomainProjecting : public Abstract::BoundaryConditions {
+/// Boundary condition that nulls all highest derivates of particles close to the boundary and/or particles of
+/// given body or list of bodies. This will cause the particles to keep quantity values given by their initial
+/// conditions and move with initial velocity. The 'frozen' particles affect other particles normally and
+/// contribute to all integrals, such as total mometum or energy.
+class FrozenParticles : public Abstract::BoundaryConditions {
 private:
     std::unique_ptr<Abstract::Domain> domain;
-    Array<Size> outside;
-    Array<Vector> vproj;
-    ProjectingOptions options;
+    Float radius;
+
+    std::set<Size> frozen;
+
+    Array<Float> distances;
+    Array<Size> idxs;
 
 public:
-    DomainProjecting(std::unique_ptr<Abstract::Domain>&& domain, const ProjectingOptions options);
+    /// Constructs boundary conditions with no particles frozen. These can be later added using freeze
+    /// function.
+    FrozenParticles();
+
+    ~FrozenParticles();
+
+    /// Constructs boundary conditions given domain and search radius (in units of smoothing length) up to
+    /// which the particles will be frozen.
+    FrozenParticles(std::unique_ptr<Abstract::Domain>&& domain, const Float radius);
+
+    /// Adds body ID particles of which shall be frozen by boundary conditions.
+    void freeze(const Size flag);
+
+    /// Remove a body from the list of frozen bodies. If the body is not on the list, nothing happens.
+    void thaw(const Size flag);
 
     virtual void apply(Storage& storage) override;
-
-private:
-    void projectVelocity(ArrayView<const Vector> r, ArrayView<const Vector> v);
 };
 
-
-/// Zeros out all highest-order derivatives of all particles with given index. This is completely independent
-/// of domain.
-class FixedBody : public Abstract::BoundaryConditions {
-public:
-    FixedBody(const int matId);
-
-    virtual void apply(Storage& storage) override;
-};
 
 /// Boundary condition moving all particles passed through the domain to the other side of the domain.
 class PeriodicDomain : public Abstract::BoundaryConditions {

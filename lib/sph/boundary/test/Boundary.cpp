@@ -1,12 +1,13 @@
 #include "sph/boundary/Boundary.h"
 #include "catch.hpp"
+#include "geometry/Domain.h"
 #include "math/rng/VectorRng.h"
 #include "objects/containers/ArrayUtils.h"
+#include "quantities/Storage.h"
+#include "sph/initial/Initial.h"
 #include "system/Settings.h"
 #include "utils/Approx.h"
 #include "utils/SequenceTest.h"
-#include "quantities/Storage.h"
-#include "geometry/Domain.h"
 
 using namespace Sph;
 
@@ -222,4 +223,156 @@ TEST_CASE("GhostParticles empty", "[boundary]") {
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityIds::POSITIONS);
     REQUIRE(r.size() == 1);
     REQUIRE(r[0] == Vector(1._f, 0._f, 0._f));
+}
+
+TEST_CASE("FrozenParticles by flag", "[boundary]") {
+    std::shared_ptr<Storage> storage = std::make_shared<Storage>();
+    InitialConditions conds(storage, GlobalSettings::getDefaults());
+    BodySettings settings;
+    settings.set(BodySettingsIds::PARTICLE_COUNT, 100);
+    conds.addBody(SphericalDomain(Vector(0._f), 1._f), settings);
+    const Size size0 = storage->getParticleCnt();
+    conds.addBody(SphericalDomain(Vector(3._f, 0._f, 0._f), 1._f), settings);
+
+    ArrayView<Vector> r, v, dv;
+    tie(r, v, dv) = storage->getAll<Vector>(QuantityIds::POSITIONS);
+    ArrayView<Float> u, du;
+    tie(u, du) = storage->getAll<Float>(QuantityIds::ENERGY);
+    // fill with some nonzero derivatives
+    const Vector v0 = Vector(5._f, 3._f, 1._f);
+    const Vector dv0 = Vector(3._f, 3._f, -1._f);
+    const Float du0 = 12._f;
+    auto setup = [&] {
+        for (Size i = 0; i < r.size(); ++i) {
+            v[i] = v0;
+            dv[i] = dv0;
+            du[i] = du0;
+        }
+    };
+
+    setup();
+    FrozenParticles boundaryConditions;
+    boundaryConditions.freeze(1);
+    boundaryConditions.apply(*storage);
+
+    auto test1 = [&](const Size i) {
+        if (i < size0 && (v[i] != v0 || dv[i] != dv0 || du[i] != du0)) {
+            // clang-format off
+            return makeFailed("Incorrect particles frozen: "
+                              "\n v: ", v[i], " == ", v0,
+                              "\n dv: ", dv[i], " == ", dv0,
+                              "\n du: ", du[i], " == ", du0);
+            // clang-format on
+        }
+        if (i >= size0 && (v[i] != v0 || dv[i] != Vector(0._f) || du[i] != 0._f)) {
+            // clang-format off
+            return makeFailed("Particles didn't freeze correctly:\n "
+                              "\n v: ", v[i], " == ", v0,
+                              "\n dv: ", dv[i], " == ", Vector(0._f),
+                              "\n du: ", du[i], " == ", 0._f);
+            // clang-format on
+        }
+        return SUCCESS;
+    };
+    REQUIRE_SEQUENCE(test1, 0, r.size());
+
+    boundaryConditions.freeze(0);
+    setup();
+    boundaryConditions.apply(*storage);
+    auto test2 = [&](const Size i) {
+        if (v[i] != v0 || dv[i] != Vector(0._f) || du[i] != 0._f) {
+            // clang-format off
+            return makeFailed("Nonzero derivatives after freezing:\n "
+                              "\n v: ", v[i], " == ", v0,
+                              "\n dv: ", dv[i], " == ", Vector(0._f),
+                              "\n du: ", du[i], " == ", 0._f);
+            // clang-format on
+        }
+        return SUCCESS;
+    };
+    REQUIRE_SEQUENCE(test2, 0, r.size());
+
+    boundaryConditions.thaw(1);
+    setup();
+    boundaryConditions.apply(*storage);
+    auto test3 = [&](const Size i) {
+        if (i >= size0 && (v[i] != v0 || dv[i] != dv0 || du[i] != du0)) {
+            // clang-format off
+            return makeFailed("Incorrect particles frozen:\n "
+                              "\n v: ", v[i], " == ", v0,
+                              "\n dv: ", dv[i], " == ", dv0,
+                              "\n du: ", du[i], " == ", du0);
+            // clang-format on
+        }
+        if (i < size0 && (v[i] != v0 || dv[i] != Vector(0._f) || du[i] != 0._f)) {
+            // clang-format off
+            return makeFailed("Particles didn't freeze correctly:\n "
+                              "\n v: ", v[i], " == ", v0,
+                              "\n dv: ", dv[i], " == ", Vector(0._f),
+                              "\n du: ", du[i], " == ", 0._f);
+            // clang-format on
+        }
+        return SUCCESS;
+    };
+    REQUIRE_SEQUENCE(test3, 0, r.size());
+}
+
+TEST_CASE("FrozenParticles by distance", "[boundary]") {
+    std::shared_ptr<Storage> storage = std::make_shared<Storage>();
+    InitialConditions conds(storage, GlobalSettings::getDefaults());
+    BodySettings settings;
+    settings.set(BodySettingsIds::PARTICLE_COUNT, 1000);
+    conds.addBody(SphericalDomain(Vector(0._f), 1.5_f), settings);
+    const Float radius = 2._f;
+    FrozenParticles boundaryConditions(std::make_unique<SphericalDomain>(Vector(0._f), 1._f), radius);
+
+    ArrayView<Vector> r, v, dv;
+    tie(r, v, dv) = storage->getAll<Vector>(QuantityIds::POSITIONS);
+    const Float h = r[0][H];
+    ArrayView<Float> u, du;
+    tie(u, du) = storage->getAll<Float>(QuantityIds::ENERGY);
+    // fill with some nonzero derivatives
+    const Vector v0 = Vector(5._f, 3._f, 1._f);
+    const Vector dv0 = Vector(3._f, 3._f, -1._f);
+    const Float du0 = 12._f;
+    for (Size i = 0; i < r.size(); ++i) {
+        v[i] = v0;
+        dv[i] = dv0;
+        du[i] = du0;
+    }
+
+    boundaryConditions.apply(*storage);
+    REQUIRE(storage->getParticleCnt() == r.size()); // sanity check that we don't add or lose particles
+
+    auto test = [&](const Size i) {
+        const Float dist = getLength(r[i]);
+        if (dist > 1._f + EPS) {
+            return makeFailed("Particle not projected inside the domain:\n dist = ", dist);
+        }
+        if (dist > 1._f - radius * h) {
+            // should be frozen
+            if (v[i] != v0 || dv[i] != Vector(0._f) || du[i] != 0._f) {
+                // clang-format off
+                return makeFailed("Particles didn't freeze correctly:\n "
+                                  "\n v: ", v[i], " == ", v0,
+                                  "\n dv: ", dv[i], " == ", Vector(0._f),
+                                  "\n du: ", du[i], " == ", 0._f);
+                // clang-format on
+            } else {
+                return SUCCESS;
+            }
+        } else {
+            if (v[i] != v0 || dv[i] != dv0 || du[i] != du0) {
+                // clang-format off
+                return makeFailed("Incorrect particles frozen: "
+                                  "\n v: ", v[i], " == ", v0,
+                                  "\n dv: ", dv[i], " == ", dv0,
+                                  "\n du: ", du[i], " == ", du0);
+                // clang-format on
+            } else {
+                return SUCCESS;
+            }
+        }
+    };
+    REQUIRE_SEQUENCE(test, 0, r.size());
 }
