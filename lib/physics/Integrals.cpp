@@ -77,6 +77,18 @@ Float Integrals::getTotalInternalEnergy(Storage& storage) const {
     return Float(total);
 }
 
+Vector Integrals::getCenterOfMass(Storage& storage, const Optional<Size> bodyId) const {
+    Vector com(0._f);
+    Float totalMass = 0._f;
+    ArrayView<const Float> m = storage.getValue<Float>(QuantityIds::MASSES);
+    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityIds::POSITIONS);
+    for (Size i = 0; i < r.size(); ++i) {
+        totalMass += m;
+        com += m * r;
+    }
+    return com / totalMass;
+}
+
 
 Diagnostics::Diagnostics(const GlobalSettings& settings)
     : settings(settings) {}

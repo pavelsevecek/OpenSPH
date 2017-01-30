@@ -54,6 +54,10 @@ public:
     /// specific internal energy. If used solver works with other independent quantity (energy density, total
     /// energy, specific entropy), specific energy must be derived before the function is called.
     Float getTotalInternalEnergy(Storage& storage) const;
+
+    /// Computes the center of mass of all particles, or optionally center of mass of particles
+    /// belonging to body of given ID. The center is evaluated with a respect to reference frame.
+    Vector getCenterOfMass(Storage& storage, const Optional<Size> bodyId = NOTHING) const;
 };
 
 /// Class computing other non-physical statistics of SPH simulations.
