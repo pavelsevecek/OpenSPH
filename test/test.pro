@@ -47,11 +47,14 @@ SOURCES += \
     ../lib/physics/test/Eos.cpp \
     ../lib/physics/test/Integrals.cpp \
     ../lib/physics/test/Damage.cpp \
+    ../lib/physics/test/Yielding.cpp \
     ../lib/geometry/test/Vector.cpp \
     ../lib/geometry/test/Indices.cpp \
     ../lib/geometry/test/Multipole.cpp \
     ../lib/geometry/test/TracelessTensor.cpp \
     ../lib/geometry/test/Tensor.cpp \
+    ../lib/geometry/test/Box.cpp \
+    ../lib/geometry/test/Domain.cpp \
     ../lib/objects/wrappers/test/Optional.cpp \
     ../lib/objects/wrappers/test/Variant.cpp \
     ../lib/objects/wrappers/test/Iterators.cpp \
@@ -87,17 +90,14 @@ SOURCES += \
     ../lib/quantities/test/Storage.cpp \
     ../lib/quantities/test/Iterate.cpp \
     ../lib/quantities/test/QuantityHelpers.cpp \
+    ../lib/quantities/test/Material.cpp \
     ../lib/solvers/test/ContinuitySolver.cpp \
     ../lib/solvers/test/Module.cpp \
-    ../lib/post/test/Components.cpp \
-    ../lib/physics/test/Yielding.cpp \
-    ../lib/quantities/test/Material.cpp \
     ../lib/solvers/test/Accumulator.cpp \
-    ../lib/geometry/test/Domain.cpp \
+    ../lib/post/test/Components.cpp \
     ../lib/thread/test/Pool.cpp \
     utils/Approx.cpp \
     utils/SequenceTest.cpp \
-    ../lib/geometry/test/Box.cpp
 
 
 HEADERS += \

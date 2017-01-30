@@ -117,6 +117,25 @@ TEST_CASE("Total Energy Body", "[integrals]") {
     REQUIRE(integrals.getTotalEnergy(*storage) == approx(35._f * totalMass));
 }
 
+TEST_CASE("Center of Mass", "[integrals]") {
+    std::shared_ptr<Storage> storage = std::make_shared<Storage>();
+    InitialConditions conds(storage, GlobalSettings::getDefaults());
+    BodySettings settings;
+    settings.set(BodySettingsIds::DENSITY, 1000._f);
+    const Vector r1 (-1._f, 5._f, -2._f);
+    conds.addBody(BlockDomain(r1, Vector(1._f)), settings);
+    settings.set(BodySettingsIds::DENSITY, 500._f);
+    const Vector r2(5._f, 3._f, 1._f);
+    conds.addBody(BlockDomain(r2, Vector(2._f)), settings);
+
+    Integrals integrals;
+    REQUIRE(integrals.getCenterOfMass(*storage, 0) == approx(r1));
+    REQUIRE(integrals.getCenterOfMass(*storage, 1) == approx(r2));
+
+    // second body is 8x bigger in volume, but half the density -> 4x more massive
+    REQUIRE(integrals.getCenterOfMass(*storage) == approx((r1 + 4._f * r2) / 5._f));
+}
+
 TEST_CASE("Pairing", "[diagnostics]") {
     std::shared_ptr<Storage> storage = std::make_shared<Storage>();
     InitialConditions conds(storage, GlobalSettings::getDefaults());

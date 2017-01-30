@@ -1,7 +1,7 @@
 #include "physics/Integrals.h"
 #include "post/Components.h"
-#include "system/Factory.h"
 #include "quantities/Storage.h"
+#include "system/Factory.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -83,9 +83,22 @@ Vector Integrals::getCenterOfMass(Storage& storage, const Optional<Size> bodyId)
     Float totalMass = 0._f;
     ArrayView<const Float> m = storage.getValue<Float>(QuantityIds::MASSES);
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityIds::POSITIONS);
-    for (Size i = 0; i < r.size(); ++i) {
-        totalMass += m;
-        com += m * r;
+    auto accumulate = [&](const Size i) {
+        totalMass += m[i];
+        com += m[i] * r[i];
+    };
+
+    if (bodyId) {
+        ArrayView<const Size> ids = storage.getValue<Size>(QuantityIds::FLAG);
+        for (Size i = 0; i < r.size(); ++i) {
+            if (ids[i] == bodyId.get()) {
+                accumulate(i);
+            }
+        }
+    } else {
+        for (Size i = 0; i < r.size(); ++i) {
+            accumulate(i);
+        }
     }
     return com / totalMass;
 }

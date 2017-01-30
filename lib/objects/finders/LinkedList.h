@@ -12,7 +12,6 @@ private:
     VectorOrder sortedIndices;
     VectorOrder rank;
 
-
     class LookupMap : public Noncopyable {
     private:
         Array<Size> storage;
@@ -55,7 +54,6 @@ private:
     Array<Vector> lowerBounds;
     Array<Vector> upperBounds;
     Array<Size> linkedList;
-
 
 public:
     LinkedList() { Indices::init(); }
@@ -109,8 +107,7 @@ protected:
             sortedIndices.shuffle(i, [&](Size idx1, Size idx2) { return points[idx1][i] < points[idx2][i]; });
         }
         /// extra dimension - sort smoothing length
-        sortedIndices.shuffle(
-            H, [&](Size idx1, Size idx2) { return points[idx1][H] < points[idx2][H]; });
+        sortedIndices.shuffle(H, [&](Size idx1, Size idx2) { return points[idx1][H] < points[idx2][H]; });
         rank = sortedIndices.getInverted();
         map = LookupMap(cellCnt);
         lowerBounds.fill(Vector(INFTY));
@@ -122,6 +119,7 @@ protected:
             Size& cell = map(multiIdx);
             linkedList[idx] = cell;
             cell = idx;
+
             /// \todo optimize using multiindices
             for (uint i = 0; i < 3; ++i) {
                 Float& lb = lowerBounds[multiIdx[i]][i];
