@@ -1,4 +1,5 @@
 #include "gui/Gui.h"
+#include "geometry/Domain.h"
 #include "gui/GlPane.h"
 #include "gui/GuiCallbacks.h"
 #include "gui/OrthoPane.h"
@@ -7,11 +8,10 @@
 #include "physics/Constants.h"
 #include "problem/Problem.h"
 #include "sph/initial/Initial.h"
+#include "sph/timestepping/TimeStepping.h"
 #include "system/Factory.h"
 #include "system/Logger.h"
 #include "system/Output.h"
-#include "sph/timestepping/TimeStepping.h"
-#include "geometry/Domain.h"
 
 #include <wx/glcanvas.h>
 #include <wx/sizer.h>
@@ -24,9 +24,10 @@ NAMESPACE_SPH_BEGIN
 
 void MyApp::initialConditions(const GlobalSettings& globalSettings, const std::shared_ptr<Storage>& storage) {
     BodySettings bodySettings;
-    bodySettings.set(BodySettingsIds::ENERGY, 1.e2_f);
-    bodySettings.set(BodySettingsIds::PARTICLE_COUNT, 50);
+    bodySettings.set(BodySettingsIds::ENERGY, 1._f);
+    bodySettings.set(BodySettingsIds::PARTICLE_COUNT, 100000);
     bodySettings.set(BodySettingsIds::EOS, EosEnum::TILLOTSON);
+    bodySettings.set(BodySettingsIds::STRESS_TENSOR_MIN, 1.e10_f);
     InitialConditions conds(storage, globalSettings);
 
     StdOutLogger logger;
@@ -34,9 +35,9 @@ void MyApp::initialConditions(const GlobalSettings& globalSettings, const std::s
     conds.addBody(domain1, bodySettings);
     logger.write("Particles of target: ", storage->getParticleCnt());
 
-//    SphericalDomain domain2(Vector(4785.5_f, 3639.1_f, 0._f), 146.43_f); // D = 280m
+    //    SphericalDomain domain2(Vector(4785.5_f, 3639.1_f, 0._f), 146.43_f); // D = 280m
     SphericalDomain domain2(Vector(3785.5093557306_f, 3639.0771274993_f, 0._f), 146.4322282313_f);
-    bodySettings.set(BodySettingsIds::PARTICLE_COUNT, 5);
+    bodySettings.set(BodySettingsIds::PARTICLE_COUNT, 100);
     conds.addBody(domain2, bodySettings, Vector(-5.e3_f, 0._f, 0._f)); // 5km/s
     logger.write("Particles in total: ", storage->getParticleCnt());
 }
@@ -47,7 +48,7 @@ bool MyApp::OnInit() {
     globalSettings.set(GlobalSettingsIds::DOMAIN_RADIUS, 2.5_f);
     globalSettings.set(GlobalSettingsIds::DOMAIN_TYPE, DomainEnum::SPHERICAL);*/
     globalSettings.set(GlobalSettingsIds::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::PREDICTOR_CORRECTOR);
-    globalSettings.set(GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP, 0._f); // 1.e-4_f);
+    globalSettings.set(GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP, 1.e-5_f);
     globalSettings.set(GlobalSettingsIds::TIMESTEPPING_MAX_TIMESTEP, 1.e-1_f);
     globalSettings.set(GlobalSettingsIds::MODEL_FORCE_DIV_S, true);
     globalSettings.set(GlobalSettingsIds::SPH_FINDER, FinderEnum::VOXEL);

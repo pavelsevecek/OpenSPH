@@ -16,8 +16,10 @@
 #include "sph/forces/StressForce.h"
 #include "sph/kernel/Kernel.h"
 #include "system/Factory.h"
+#include "system/FloatStats.h"
 #include "system/Profiler.h"
 #include "system/Settings.h"
+#include "system/Statistics.h"
 #include "thread/Pool.h"
 
 NAMESPACE_SPH_BEGIN
@@ -47,7 +49,7 @@ public:
         minH = settings.get<Float>(GlobalSettingsIds::SPH_SMOOTHING_LENGTH_MIN);
     }
 
-    virtual void integrate(Storage& storage) override {
+    virtual void integrate(Storage& storage, Statistics& stats) override {
         const Size size = storage.getParticleCnt();
         ArrayView<Vector> r, v, dv;
         ArrayView<Float> m, rho, drho;
@@ -77,12 +79,14 @@ public:
         SymH<dim> w(this->kernel);
         /// \todo for parallelization we need array of neighbours for each thread
         /// + figure out how to do parallelization correctly, hm ...
+        FloatStats neighbourStats;
         for (Size i = 0; i < size; ++i) {
             // Find all neighbours within kernel support. Since we are only searching for particles with
             // smaller h, we know that symmetrized lengths (h_i + h_j)/2 will be ALWAYS smaller or equal to
             // h_i, and we thus never "miss" a particle.
-            this->finder->findNeighbours(
+            const Size neighCnt = this->finder->findNeighbours(
                 i, r[i][H] * this->kernel.radius(), this->neighs, FinderFlags::FIND_ONLY_SMALLER_H);
+            neighbourStats.accumulate(neighCnt);
             // iterate over neighbours
             PROFILE_SCOPE("ContinuitySolver::compute (iterate)")
             for (const auto& neigh : this->neighs) {
@@ -124,6 +128,7 @@ public:
             PROFILE_SCOPE("ContinuitySolver::compute (boundary)")
             this->boundary->apply(storage);
         }
+        stats.set(StatisticsIds::NEIGHBOUR_COUNT, neighbourStats);
     }
 
     virtual void initialize(Storage& storage, const BodySettings& settings) const override {

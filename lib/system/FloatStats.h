@@ -42,6 +42,7 @@ public:
     friend TStream& operator<<(TStream& stream, const FloatStats& stats) {
         stream << "average = " << stats.average() << "  (min = " << stats.min() << ", max = " << stats.max()
                << ")";
+        return stream;
     }
 };
 

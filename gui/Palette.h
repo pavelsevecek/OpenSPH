@@ -30,7 +30,7 @@ private:
             palette = value;
             break;
         case PaletteScale::LOGARITHMIC:
-            palette = log10(value + EPS);
+            palette = log10(value + Eps<float>::value);
             break;
         case PaletteScale::HYBRID:
             if (value > 1.f) {
@@ -40,6 +40,7 @@ private:
             } else {
                 palette = value;
             }
+            break;
         default:
             NOT_IMPLEMENTED;
         }

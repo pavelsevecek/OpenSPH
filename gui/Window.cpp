@@ -3,8 +3,8 @@
 #include "gui/OrthoPane.h"
 #include <wx/button.h>
 #include <wx/combobox.h>
-#include <wx/sizer.h>
 #include <wx/gauge.h>
+#include <wx/sizer.h>
 
 NAMESPACE_SPH_BEGIN
 
@@ -18,6 +18,7 @@ Window::Window(const std::shared_ptr<Storage>& storage,
           settings.get<std::string>(GuiSettingsIds::WINDOW_TITLE).c_str(),
           wxDefaultPosition,
           wxSize(800, 600))
+    , storage(storage)
     , onRestart(onRestart) {
     wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
     wxBoxSizer* toolbar = new wxBoxSizer(wxHORIZONTAL);
@@ -104,6 +105,7 @@ void Window::onComboBox(wxCommandEvent& evt) {
         renderer->setQuantity(QuantityIds::DAMAGE);
         break;
     }
+    renderer->draw(storage);
     evt.Skip();
 }
 

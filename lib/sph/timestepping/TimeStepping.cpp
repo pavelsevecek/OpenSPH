@@ -19,7 +19,7 @@ Abstract::TimeStepping::TimeStepping(const std::shared_ptr<Storage>& storage, co
 Abstract::TimeStepping::~TimeStepping() = default;
 
 void Abstract::TimeStepping::step(Abstract::Solver& solver, Statistics& stats) {
-    this->stepImpl(solver);
+    this->stepImpl(solver, stats);
     // update time step
     if (adaptiveStep) {
         QuantityIds criterion;
@@ -34,13 +34,13 @@ void Abstract::TimeStepping::step(Abstract::Solver& solver, Statistics& stats) {
 /// EulerExplicit implementation
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void EulerExplicit::stepImpl(Abstract::Solver& solver) {
+void EulerExplicit::stepImpl(Abstract::Solver& solver, Statistics& stats) {
     MEASURE_SCOPE("EulerExplicit::step");
     // clear derivatives from previous timestep
     this->storage->init();
 
     // compute derivatives
-    solver.integrate(*this->storage);
+    solver.integrate(*this->storage, stats);
 
     PROFILE_SCOPE("EulerExplicit::step")
     // advance all 2nd-order quantities by current timestep, first values, then 1st derivatives
@@ -78,7 +78,7 @@ PredictorCorrector::PredictorCorrector(const std::shared_ptr<Storage>& storage,
 
 PredictorCorrector::~PredictorCorrector() = default;
 
-void PredictorCorrector::stepImpl(Abstract::Solver& solver) {
+void PredictorCorrector::stepImpl(Abstract::Solver& solver, Statistics& stats) {
     const Float dt2 = 0.5_f * sqr(this->dt);
 
     PROFILE_SCOPE("PredictorCorrector::step   Predictions")
@@ -108,7 +108,7 @@ void PredictorCorrector::stepImpl(Abstract::Solver& solver) {
     this->storage->init();
     SCOPE_STOP;
     // compute derivative
-    solver.integrate(*this->storage);
+    solver.integrate(*this->storage, stats);
 
     PROFILE_NEXT("PredictorCorrector::step   Corrections");
     // make corrections
@@ -170,8 +170,12 @@ RungeKutta::RungeKutta(const std::shared_ptr<Storage>& storage, const GlobalSett
 
 RungeKutta::~RungeKutta() = default;
 
-void RungeKutta::integrateAndAdvance(Abstract::Solver& solver, Storage& k, const float m, const float n) {
-    solver.integrate(k);
+void RungeKutta::integrateAndAdvance(Abstract::Solver& solver,
+    Statistics& stats,
+    Storage& k,
+    const float m,
+    const float n) {
+    solver.integrate(k, stats);
     iteratePair<VisitorEnum::FIRST_ORDER>(k, *this->storage, [&](auto& kv, auto& kdv, auto& v, auto&) {
         for (Size i = 0; i < v.size(); ++i) {
             kv[i] += kdv[i] * m * this->dt;
@@ -189,29 +193,29 @@ void RungeKutta::integrateAndAdvance(Abstract::Solver& solver, Storage& k, const
         });
 }
 
-void RungeKutta::stepImpl(Abstract::Solver& solver) {
+void RungeKutta::stepImpl(Abstract::Solver& solver, Statistics& stats) {
     k1->init();
     k2->init();
     k3->init();
     k4->init();
 
-    solver.integrate(*k1);
-    integrateAndAdvance(solver, *k1, 0.5_f, 1._f / 6._f);
+    solver.integrate(*k1, stats);
+    integrateAndAdvance(solver, stats, *k1, 0.5_f, 1._f / 6._f);
     // swap values of 1st order quantities and both values and 1st derivatives of 2nd order quantities
     k1->swap(*k2, VisitorEnum::DEPENDENT_VALUES);
 
     /// \todo derivatives of storage (original, not k1, ..., k4) are never used
     // compute k2 derivatives based on values computes in previous integration
-    solver.integrate(*k2);
+    solver.integrate(*k2, stats);
     /// \todo at this point, I no longer need k1, we just need 2 auxiliary buffers
-    integrateAndAdvance(solver, *k2, 0.5_f, 1._f / 3._f);
+    integrateAndAdvance(solver, stats, *k2, 0.5_f, 1._f / 3._f);
     k2->swap(*k3, VisitorEnum::DEPENDENT_VALUES);
 
-    solver.integrate(*k3);
-    integrateAndAdvance(solver, *k3, 0.5_f, 1._f / 3._f);
+    solver.integrate(*k3, stats);
+    integrateAndAdvance(solver, stats, *k3, 0.5_f, 1._f / 3._f);
     k3->swap(*k4, VisitorEnum::DEPENDENT_VALUES);
 
-    solver.integrate(*k4);
+    solver.integrate(*k4, stats);
 
     iteratePair<VisitorEnum::FIRST_ORDER>(*this->storage, *k4, [this](auto& v, auto&, auto&, auto& kdv) {
         for (Size i = 0; i < v.size(); ++i) {

@@ -16,6 +16,7 @@ class Storage;
 
 class Window : public wxFrame, public Observable {
 private:
+    std::shared_ptr<Storage> storage;
     Abstract::Renderer* renderer;
     wxComboBox* quantityBox;
     wxGauge* gauge;
@@ -24,7 +25,9 @@ private:
 
 public:
     /// \todo implement restart run without this callback, need to separate ui and run control
-    Window(const std::shared_ptr<Storage>& storage, const GuiSettings& settings, const std::function<void(void)>& onRestart);
+    Window(const std::shared_ptr<Storage>& storage,
+        const GuiSettings& settings,
+        const std::function<void(void)>& onRestart);
 
     Abstract::Renderer* getRenderer();
 

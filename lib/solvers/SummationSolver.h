@@ -37,7 +37,7 @@ public:
         eta = settings.get<Float>(GlobalSettingsIds::SPH_KERNEL_ETA);
     }
 
-    virtual void integrate(Storage& storage) override {
+    virtual void integrate(Storage& storage, Statistics& UNUSED(stats)) override {
         const int size = storage.getParticleCnt();
 
         ArrayView<Vector> r, v, dv;

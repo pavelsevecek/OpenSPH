@@ -41,7 +41,7 @@ namespace Abstract {
         void step(Abstract::Solver& solver, Statistics& stats);
 
     protected:
-        virtual void stepImpl(Abstract::Solver& solver) = 0;
+        virtual void stepImpl(Abstract::Solver& solver, Statistics& stats) = 0;
     };
 }
 
@@ -51,7 +51,7 @@ public:
     explicit EulerExplicit(const std::shared_ptr<Storage>& storage, const GlobalSettings& settings)
         : Abstract::TimeStepping(storage, settings) {}
 
-    virtual void stepImpl(Abstract::Solver& solver) override;
+    virtual void stepImpl(Abstract::Solver& solver, Statistics& stats) override;
 };
 
 
@@ -65,7 +65,7 @@ public:
     ~PredictorCorrector();
 
 protected:
-    virtual void stepImpl(Abstract::Solver& solver) override;
+    virtual void stepImpl(Abstract::Solver& solver, Statistics& stats) override;
 };
 
 class LeapFrog : public Abstract::TimeStepping {
@@ -74,7 +74,9 @@ public:
         : Abstract::TimeStepping(storage, settings) {}
 
 protected:
-    virtual void stepImpl(Abstract::Solver& UNUSED(solver)) override {}
+    virtual void stepImpl(Abstract::Solver& UNUSED(solver), Statistics& UNUSED(stats)) override {
+        NOT_IMPLEMENTED;
+    }
 };
 
 class RungeKutta : public Abstract::TimeStepping {
@@ -87,9 +89,13 @@ public:
     ~RungeKutta();
 
 protected:
-    virtual void stepImpl(Abstract::Solver& solver) override;
+    virtual void stepImpl(Abstract::Solver& solver, Statistics& stats) override;
 
-    void integrateAndAdvance(Abstract::Solver& solver, Storage& k, const float m, const float n);
+    void integrateAndAdvance(Abstract::Solver& solver,
+        Statistics& stats,
+        Storage& k,
+        const float m,
+        const float n);
 };
 
 
@@ -99,7 +105,9 @@ public:
         : Abstract::TimeStepping(storage, settings) {}
 
 protected:
-    virtual void stepImpl(Abstract::Solver& UNUSED(solver)) override {}
+    virtual void stepImpl(Abstract::Solver& UNUSED(solver), Statistics& UNUSED(stats)) override {
+        NOT_IMPLEMENTED
+    }
 };
 
 NAMESPACE_SPH_END

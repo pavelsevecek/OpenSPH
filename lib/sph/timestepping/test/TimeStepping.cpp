@@ -15,7 +15,7 @@ struct HomogeneousField : public Abstract::Solver {
 
     HomogeneousField() = default;
 
-    virtual void integrate(Storage& storage) override {
+    virtual void integrate(Storage& storage, Statistics&) override {
         ArrayView<Vector> r, v, dv;
         tie(r, v, dv) = storage.getAll<Vector>(QuantityIds::POSITIONS);
         for (Size i = 0; i < r.size(); ++i) {
@@ -31,7 +31,7 @@ struct HarmonicOscillator : public Abstract::Solver {
 
     HarmonicOscillator() = default;
 
-    virtual void integrate(Storage& storage) override {
+    virtual void integrate(Storage& storage, Statistics&) override {
         ArrayView<Vector> r, v, dv;
         tie(r, v, dv) = storage.getAll<Vector>(QuantityIds::POSITIONS);
         Float omega = 2._f * PI / period;
@@ -48,7 +48,7 @@ struct LorentzForce : public Abstract::Solver {
 
     LorentzForce() = default;
 
-    virtual void integrate(Storage& storage) override {
+    virtual void integrate(Storage& storage, Statistics&) override {
         ArrayView<Vector> r, v, dv;
         tie(r, v, dv) = storage.getAll<Vector>(QuantityIds::POSITIONS);
         for (Size i = 0; i < r.size(); ++i) {

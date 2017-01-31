@@ -1,21 +1,20 @@
 #include "problem/Problem.h"
+#include "solvers/AbstractSolver.h"
 #include "solvers/SolverFactory.h"
+#include "sph/timestepping/TimeStepping.h"
+#include "system/Callbacks.h"
 #include "system/Factory.h"
 #include "system/Logger.h"
-#include "system/Timer.h"
-#include "system/Statistics.h"
-#include "system/Callbacks.h"
 #include "system/Output.h"
-#include "solvers/AbstractSolver.h"
-#include "sph/timestepping/TimeStepping.h"
+#include "system/Statistics.h"
+#include "system/Timer.h"
 
 NAMESPACE_SPH_BEGIN
 
-Problem::Problem(const GlobalSettings& settings,
-    const std::shared_ptr<Storage> storage)
+Problem::Problem(const GlobalSettings& settings, const std::shared_ptr<Storage> storage)
     : storage(storage) {
     solver = getSolver(settings);
-    outputInterval = settings.get<int>(GlobalSettingsIds::RUN_OUTPUT_INTERVAL);
+    outputInterval = settings.get<Float>(GlobalSettingsIds::RUN_OUTPUT_INTERVAL);
     logger = Factory::getLogger(settings);
 }
 
@@ -28,7 +27,7 @@ void Problem::run() {
 
     Timer runTimer;
     Statistics stats;
-    for (Float t (timeRange.lower()); timeRange.upper() > t; t += timeStepping->getTimeStep()) {
+    for (Float t(timeRange.lower()); timeRange.upper() > t; t += timeStepping->getTimeStep()) {
         if (callbacks) {
             callbacks->onTimeStep((t - timeRange.lower()) / timeRange.size(), storage);
             if (callbacks->shouldAbortRun()) {
