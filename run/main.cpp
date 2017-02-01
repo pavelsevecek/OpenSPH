@@ -1,11 +1,11 @@
+#include "geometry/Domain.h"
 #include "physics/Eos.h"
 #include "problem/Problem.h"
 #include "sph/initial/Initial.h"
-#include "system/Factory.h"
-#include "system/Output.h"
-#include "system/Logger.h"
 #include "sph/timestepping/TimeStepping.h"
-#include "geometry/Domain.h"
+#include "system/Factory.h"
+#include "system/Logger.h"
+#include "system/Output.h"
 #include "system/Profiler.h"
 
 using namespace Sph;
@@ -17,15 +17,15 @@ int main() {
     globalSettings.set(GlobalSettingsIds::TIMESTEPPING_MAX_TIMESTEP, 1.e-1_f);
     globalSettings.set(GlobalSettingsIds::MODEL_FORCE_DIV_S, true);
     globalSettings.set(GlobalSettingsIds::SPH_FINDER, FinderEnum::VOXEL);
+    globalSettings.set(GlobalSettingsIds::RUN_TIME_RANGE, Range(0._f, 1._f));
     /*globalSettings.set(GlobalSettingsIds::MODEL_DAMAGE, DamageEnum::SCALAR_GRADY_KIPP);
     globalSettings.set(GlobalSettingsIds::MODEL_YIELDING, YieldingEnum::VON_MISES);*/
-    Problem* p      = new Problem(globalSettings);
-    p->timeRange    = Range(0._f, 1._f);
-    p->timeStepping = Factory::getTimeStepping(globalSettings, p->storage);
+    Problem* p = new Problem(globalSettings, std::make_shared<Storage>());
     p->output =
         std::make_unique<TextOutput>(globalSettings.get<std::string>(GlobalSettingsIds::RUN_OUTPUT_NAME),
                                      globalSettings.get<std::string>(GlobalSettingsIds::RUN_NAME),
-                                     Array<QuantityIds>{ QuantityIds::POSITIONS, QuantityIds::DEVIATORIC_STRESS });
+                                     Array<QuantityIds>{ QuantityIds::POSITIONS,
+                                                         QuantityIds::DEVIATORIC_STRESS });
 
     BodySettings bodySettings;
     bodySettings.set(BodySettingsIds::ENERGY, 1.e2_f);

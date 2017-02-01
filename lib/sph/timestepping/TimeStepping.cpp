@@ -21,12 +21,12 @@ Abstract::TimeStepping::~TimeStepping() = default;
 void Abstract::TimeStepping::step(Abstract::Solver& solver, Statistics& stats) {
     this->stepImpl(solver, stats);
     // update time step
+    QuantityIds criterion = QuantityIds::INITIAL_VALUE;
     if (adaptiveStep) {
-        QuantityIds criterion;
         tieToTuple(dt, criterion) = adaptiveStep->compute(*storage, maxdt);
-        stats.set(StatisticsIds::TIMESTEP_VALUE, dt);
-        stats.set(StatisticsIds::TIMESTEP_CRITERION, criterion);
     }
+    stats.set(StatisticsIds::TIMESTEP_VALUE, dt);
+    stats.set(StatisticsIds::TIMESTEP_CRITERION, criterion);
 }
 
 

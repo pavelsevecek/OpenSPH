@@ -2,11 +2,11 @@
 #include "geometry/Domain.h"
 #include "problem/Problem.h"
 #include "sph/initial/Initial.h"
-#include "system/Settings.h"
-#include "system/Factory.h"
-#include "system/Output.h"
-#include "system/Logger.h"
 #include "sph/timestepping/TimeStepping.h"
+#include "system/Factory.h"
+#include "system/Logger.h"
+#include "system/Output.h"
+#include "system/Settings.h"
 
 using namespace Sph;
 
@@ -23,7 +23,7 @@ TEST_CASE("StressForce Soundwave", "[stressforce]") {
     settings.set(GlobalSettingsIds::MODEL_FORCE_DIV_S, false);
     settings.set(GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP, 1.e-6_f);
     settings.set(GlobalSettingsIds::TIMESTEPPING_MAX_TIMESTEP, 1.e-4_f);
-    Problem p(settings);
+    Problem p(settings, std::make_shared<Storage>());
     InitialConditions conds(p.storage, settings);
 
     BodySettings bodySettings;
@@ -37,14 +37,12 @@ TEST_CASE("StressForce Soundwave", "[stressforce]") {
     bodySettings.set(BodySettingsIds::ENERGY_MIN, 1._f);
     // conds.addBody(BlockDomain(Vector(0._f), Vector(1._f, 1._f, 20._f)), bodySettings);
     conds.addBody(CylindricalDomain(Vector(0._f), 0.5_f, 20._f, true), bodySettings);
-    p.timeStepping = Factory::getTimeStepping(settings, p.storage);
     p.output = std::make_unique<GnuplotOutput>("out_%d.txt",
         "wave",
         Array<QuantityIds>{
             QuantityIds::POSITIONS, QuantityIds::DENSITY, QuantityIds::PRESSURE, QuantityIds::ENERGY },
         "wave.plt");
 
-    p.timeRange = Range(0._f, 0.1_f);
     StdOutLogger logger;
 
     const Float gamma = bodySettings.get<Float>(BodySettingsIds::ADIABATIC_INDEX);

@@ -9,10 +9,10 @@
 #include "solvers/SummationSolver.h"
 #include "sph/forces/StressForce.h"
 #include "sph/initial/Initial.h"
+#include "sph/timestepping/TimeStepping.h"
 #include "system/Factory.h"
 #include "system/Output.h"
 #include "system/Settings.h"
-#include "sph/timestepping/TimeStepping.h"
 
 using namespace Sph;
 
@@ -50,6 +50,7 @@ TEST_CASE("Sod", "[sod]") {
     // Global settings of the problem
     GlobalSettings globalSettings;
     globalSettings.set(GlobalSettingsIds::RUN_NAME, std::string("Sod Shock Tube Problem"));
+    globalSettings.set(GlobalSettingsIds::RUN_TIME_RANGE, Range(0._f, 0.5_f));
     globalSettings.set(GlobalSettingsIds::DOMAIN_TYPE, DomainEnum::SPHERICAL);
     globalSettings.set(GlobalSettingsIds::DOMAIN_CENTER, Vector(0.5_f));
     globalSettings.set(GlobalSettingsIds::DOMAIN_RADIUS, 0.5_f);
@@ -81,16 +82,13 @@ TEST_CASE("Sod", "[sod]") {
     bodySettings.set(BodySettingsIds::ENERGY_MIN, 0.1_f);
 
     // Construct solver used in Sod shock tube
-    Problem sod(globalSettings);
+    Problem sod(globalSettings, std::make_shared<Storage>());
     InitialConditions initialConditions(sod.storage, globalSettings);
     initialConditions.addBody(SphericalDomain(Vector(0.5_f), 0.5_f), bodySettings);
     sod.solver = std::make_unique<ContinuitySolver<StressForce<DummyYielding, DummyDamage, StandardAV>, 1>>(
         globalSettings);
     /// \todo hack, recreate solver with 1 dimension
     // sod.solver = std::make_unique<DensityIndependentSolver<1>>(globalSettings);
-
-    // Solving to t = 0.5
-    sod.timeRange = Range(0._f, 0.5_f);
 
     // Output routines
     std::string outputDir = "sod/" + globalSettings.get<std::string>(GlobalSettingsIds::RUN_OUTPUT_NAME);
@@ -160,9 +158,6 @@ TEST_CASE("Sod", "[sod]") {
         }
     }
 
-    // 6) setup used timestepping algorithm (this needs to be done after all quantities are allocated)
-    sod.timeStepping = Factory::getTimeStepping(globalSettings, sod.storage);
-
-    // 7) run the main loop
+    // 6) run the main loop
     sod.run();
 }

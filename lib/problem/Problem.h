@@ -2,21 +2,32 @@
 
 #include "objects/ForwardDecl.h"
 #include "objects/wrappers/Range.h"
+#include "system/Settings.h"
 #include <memory>
 
 NAMESPACE_SPH_BEGIN
 
 namespace Abstract {
-class Output;
-class Callbacks;
+    class Output;
+    class Callbacks;
 }
 
 class Problem : public Noncopyable {
 private:
-    Float outputInterval;
+    GlobalSettings settings;
 
     /// Logging
     std::unique_ptr<Abstract::Logger> logger;
+
+    /// Timestepping
+    std::unique_ptr<Abstract::TimeStepping> timeStepping;
+
+    /// \todo other ending conditions beside time?
+    /// options:
+    /// - wallclock time
+    /// - number of timesteps
+    /// - min/max/mean/median of given quantity reaches certain value
+    /// - ...
 
 public:
     /// Data output
@@ -24,14 +35,6 @@ public:
 
     /// GUI callbacks
     std::unique_ptr<Abstract::Callbacks> callbacks;
-
-    /// Timestepping
-    std::unique_ptr<Abstract::TimeStepping> timeStepping;
-
-
-    /// Time range of the simulations
-    /// \todo other conditions? For example pressure-limited simulations?
-    Range timeRange;
 
     /// Stores all SPH particles
     std::shared_ptr<Storage> storage;
@@ -41,8 +44,7 @@ public:
 
 
     /// initialize problem by constructing solver
-    Problem(const GlobalSettings& settings,
-        const std::shared_ptr<Storage> storage = std::make_shared<Storage>());
+    Problem(const GlobalSettings& settings, const std::shared_ptr<Storage> storage);
 
     ~Problem();
 

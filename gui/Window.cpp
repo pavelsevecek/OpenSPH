@@ -25,8 +25,8 @@ Window::Window(const std::shared_ptr<Storage>& storage,
     toolbar->Add(new wxButton(this, int(ControlIds::BUTTON_START), "Start"));
     toolbar->Add(new wxButton(this, int(ControlIds::BUTTON_STOP), "Stop"));
     this->Connect(wxEVT_BUTTON, wxCommandEventHandler(Window::onButton));
-    wxString quantities[] = { "Velocity", "Density", "Pressure", "Stress", "Damage" };
-    const int quantityCnt = storage->has(QuantityIds::DAMAGE) ? 5 : 4;
+    wxString quantities[] = { "Velocity", "Density", "Pressure", "Energy", "Stress", "Damage" };
+    const int quantityCnt = storage->has(QuantityIds::DAMAGE) ? 6 : 5;
     quantityBox = new wxComboBox(this,
         int(ControlIds::QUANTITY_BOX),
         "",
@@ -99,9 +99,12 @@ void Window::onComboBox(wxCommandEvent& evt) {
         renderer->setQuantity(QuantityIds::PRESSURE);
         break;
     case 3:
-        renderer->setQuantity(QuantityIds::DEVIATORIC_STRESS);
+        renderer->setQuantity(QuantityIds::ENERGY);
         break;
     case 4:
+        renderer->setQuantity(QuantityIds::DEVIATORIC_STRESS);
+        break;
+    case 5:
         renderer->setQuantity(QuantityIds::DAMAGE);
         break;
     }

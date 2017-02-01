@@ -96,6 +96,7 @@ SOURCES += \
     ../lib/solvers/test/Accumulator.cpp \
     ../lib/post/test/Components.cpp \
     ../lib/thread/test/Pool.cpp \
+    ../lib/problem/test/Problem.cpp \
     utils/Approx.cpp \
     utils/SequenceTest.cpp \
 

@@ -37,6 +37,8 @@ enum class GuiSettingsIds {
 
     PALETTE_PRESSURE,
 
+    PALETTE_ENERGY,
+
     PALETTE_STRESS,
 
     PALETTE_DAMAGE

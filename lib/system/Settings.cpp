@@ -189,12 +189,14 @@ template<>
 std::unique_ptr<GlobalSettings> GlobalSettings::instance (new GlobalSettings {
     /// Parameters of the run
     { GlobalSettingsIds::RUN_NAME,                      "run.name",                 std::string("unnamed run") },
-    { GlobalSettingsIds::RUN_OUTPUT_INTERVAL,           "run.output.interval",      0.01_f },
+    { GlobalSettingsIds::RUN_OUTPUT_TYPE,               "run.output.type",          int(OutputEnum::TEXT_FILE) },
+    { GlobalSettingsIds::RUN_OUTPUT_INTERVAL,           "run.output.interval",      0.1_f },
     { GlobalSettingsIds::RUN_OUTPUT_NAME,               "run.output.name",          std::string("out_%d.txt") },
     { GlobalSettingsIds::RUN_OUTPUT_PATH,               "run.output.path",          std::string("out") },
     { GlobalSettingsIds::RUN_LOGGER,                    "run.logger",               int(LoggerEnum::STD_OUT) },
     { GlobalSettingsIds::RUN_LOGGER_FILE,               "run.logger.file",          std::string("log.txt") },
     { GlobalSettingsIds::RUN_STATISTICS_STEP,           "run.statistics_step",      100 },
+    { GlobalSettingsIds::RUN_TIME_RANGE,                "run.time_range",           Range(0._f, 10._f) },
 
     /// Physical model
     { GlobalSettingsIds::MODEL_FORCE_GRAD_P,            "model.force.grad_p",       true },

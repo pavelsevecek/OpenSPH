@@ -48,7 +48,8 @@ enum class QuantityIds {
     /// Debugging & Other
     RHO_GRAD_V,
     RHO_DIV_V,
-    MAXIMUM_VALUE ///< Placeholder, used in timestepping settings
+    MAXIMUM_VALUE, ///< Placeholder, used in timestepping settings
+    INITIAL_VALUE
 };
 
 INLINE std::string getQuantityName(const QuantityIds key) {
@@ -73,12 +74,14 @@ INLINE std::string getQuantityName(const QuantityIds key) {
         return "rho grad v";
     case QuantityIds::MAXIMUM_VALUE:
         return "Max. value";
+    case QuantityIds::INITIAL_VALUE:
+        return "Init. value";
     default:
         NOT_IMPLEMENTED;
     }
 }
 
-template<typename TStream>
+template <typename TStream>
 INLINE TStream& operator<<(TStream& stream, const QuantityIds key) {
     stream << getQuantityName(key);
     return stream;

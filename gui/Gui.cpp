@@ -24,8 +24,9 @@ NAMESPACE_SPH_BEGIN
 
 void MyApp::initialConditions(const GlobalSettings& globalSettings, const std::shared_ptr<Storage>& storage) {
     BodySettings bodySettings;
-    bodySettings.set(BodySettingsIds::ENERGY, 1._f);
-    bodySettings.set(BodySettingsIds::PARTICLE_COUNT, 100000);
+    bodySettings.set(BodySettingsIds::ENERGY, 0._f);
+    bodySettings.set(BodySettingsIds::ENERGY_RANGE, Range(0._f, INFTY));
+    bodySettings.set(BodySettingsIds::PARTICLE_COUNT, 10000);
     bodySettings.set(BodySettingsIds::EOS, EosEnum::TILLOTSON);
     bodySettings.set(BodySettingsIds::STRESS_TENSOR_MIN, 1.e10_f);
     InitialConditions conds(storage, globalSettings);
@@ -36,7 +37,8 @@ void MyApp::initialConditions(const GlobalSettings& globalSettings, const std::s
     logger.write("Particles of target: ", storage->getParticleCnt());
 
     //    SphericalDomain domain2(Vector(4785.5_f, 3639.1_f, 0._f), 146.43_f); // D = 280m
-    SphericalDomain domain2(Vector(3785.5093557306_f, 3639.0771274993_f, 0._f), 146.4322282313_f);
+    SphericalDomain domain2(Vector(3997.45_f, 3726.87_f, 0._f), 270.585_f);
+
     bodySettings.set(BodySettingsIds::PARTICLE_COUNT, 100);
     conds.addBody(domain2, bodySettings, Vector(-5.e3_f, 0._f, 0._f)); // 5km/s
     logger.write("Particles in total: ", storage->getParticleCnt());
@@ -52,10 +54,10 @@ bool MyApp::OnInit() {
     globalSettings.set(GlobalSettingsIds::TIMESTEPPING_MAX_TIMESTEP, 1.e-1_f);
     globalSettings.set(GlobalSettingsIds::MODEL_FORCE_DIV_S, true);
     globalSettings.set(GlobalSettingsIds::SPH_FINDER, FinderEnum::VOXEL);
+    globalSettings.set(GlobalSettingsIds::MODEL_AV_TYPE, ArtificialViscosityEnum::STANDARD);
     globalSettings.set(GlobalSettingsIds::MODEL_DAMAGE, DamageEnum::SCALAR_GRADY_KIPP);
     globalSettings.set(GlobalSettingsIds::MODEL_YIELDING, YieldingEnum::VON_MISES);
-    Problem* p = new Problem(globalSettings);
-    p->timeRange = Range(0._f, 10._f);
+    Problem* p = new Problem(globalSettings, std::make_shared<Storage>());
     std::string outputDir = "out/" + globalSettings.get<std::string>(GlobalSettingsIds::RUN_OUTPUT_NAME);
     p->output = std::make_unique<TextOutput>(outputDir,
         globalSettings.get<std::string>(GlobalSettingsIds::RUN_NAME),
@@ -63,11 +65,11 @@ bool MyApp::OnInit() {
             QuantityIds::DENSITY,
             QuantityIds::PRESSURE,
             QuantityIds::ENERGY,
-            QuantityIds::DEVIATORIC_STRESS,
-            QuantityIds::RHO_GRAD_V });
+            QuantityIds::DAMAGE });
+    // QuantityIds::DEVIATORIC_STRESS,
+    // QuantityIds::RHO_GRAD_V });
 
     initialConditions(globalSettings, p->storage);
-    p->timeStepping = Factory::getTimeStepping(globalSettings, p->storage);
 
     GuiSettings guiSettings;
     guiSettings.set<Float>(GuiSettingsIds::VIEW_FOV, 1.e4_f);

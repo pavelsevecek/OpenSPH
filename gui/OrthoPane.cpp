@@ -156,6 +156,9 @@ void OrthoPane::setQuantity(const QuantityIds key) {
     case QuantityIds::PRESSURE:
         range = settings.get<Range>(GuiSettingsIds::PALETTE_PRESSURE);
         break;
+    case QuantityIds::ENERGY:
+        range = settings.get<Range>(GuiSettingsIds::PALETTE_ENERGY);
+        break;
     case QuantityIds::DEVIATORIC_STRESS:
         range = settings.get<Range>(GuiSettingsIds::PALETTE_STRESS);
         break;

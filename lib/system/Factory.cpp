@@ -145,7 +145,7 @@ std::unique_ptr<Abstract::BoundaryConditions> Factory::getBoundaryConditions(con
 std::unique_ptr<Abstract::Logger> Factory::getLogger(const GlobalSettings& settings) {
     const LoggerEnum id = settings.get<LoggerEnum>(GlobalSettingsIds::RUN_LOGGER);
     switch (id) {
-    case LoggerEnum::NO_LOGGER:
+    case LoggerEnum::NONE:
         return std::make_unique<DummyLogger>();
     case LoggerEnum::STD_OUT:
         return std::make_unique<StdOutLogger>();

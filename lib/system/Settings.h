@@ -38,10 +38,12 @@ private:
 public:
     /// Initialize settings by settings all value to their defaults.
     Settings()
-        : Settings(Settings::getDefaults()) {}
+        : Settings(Settings::getDefaults()) {
+    }
 
     /// Initialize empty settings object.
-    Settings(EmptySettingsTag) {}
+    Settings(EmptySettingsTag) {
+    }
 
     Settings(std::initializer_list<Entry> list) {
         for (auto&& entry : list) {
@@ -247,7 +249,7 @@ enum class DamageEnum {
 
 enum class LoggerEnum {
     /// Do not log anything
-    NO_LOGGER,
+    NONE,
 
     /// Print log to standard output
     STD_OUT,
@@ -258,10 +260,25 @@ enum class LoggerEnum {
     /// \todo print using callback to gui application
 };
 
+enum class OutputEnum {
+    /// No output
+    NONE,
+
+    /// Save output data into formatted human-readable text file
+    TEXT_FILE,
+
+    /// Save output data into binary file. This data dump is lossless and can be use to restart run from saved
+    /// snapshot.
+    BINARY_FILE,
+};
+
 /// Settings relevant for whole run of the simulation
 enum class GlobalSettingsIds {
     /// Custom name of the run
     RUN_NAME,
+
+    /// Selected format of the output file, see OutputEnum
+    RUN_OUTPUT_TYPE,
 
     /// Time interval of dumping data to disk.
     RUN_OUTPUT_INTERVAL,
@@ -278,8 +295,11 @@ enum class GlobalSettingsIds {
     /// Path of a file where the log is printed, used only when selected logger is LoggerEnum::FILE
     RUN_LOGGER_FILE,
 
-    /// Frequency of statistics evaluation.
+    /// Frequency of statistics evaluation
     RUN_STATISTICS_STEP,
+
+    /// Starting time and ending time of the run. Run does not necessarily have to start at t = 0.
+    RUN_TIME_RANGE,
 
     /// Index of SPH Kernel, see KernelEnum
     SPH_KERNEL,

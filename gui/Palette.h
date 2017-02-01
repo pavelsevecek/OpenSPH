@@ -139,6 +139,13 @@ public:
                                { x0 + sqrt(dx), Color(1.f, 1.f, 0.2f) },
                                { x0 + dx, Color(0.5f, 0.f, 0.f) } },
                 PaletteScale::HYBRID);
+        case QuantityIds::ENERGY:
+            return Palette({ { x0, Color(0.1f, 0.1f, 0.1) },
+                               { x0 + 0.001f * dx, Color(0.f, 0.f, 1.f) },
+                               { x0 + 0.01f * dx, Color(1.f, 0.f, 0.f) },
+                               { x0 + 0.1f * dx, Color(1.0f, 0.6f, 0.4f) },
+                               { x0 + dx, Color(1.f, 1.f, 0.f) } },
+                PaletteScale::LOGARITHMIC);
         case QuantityIds::DEVIATORIC_STRESS:
             return Palette({ { x0, Color(0.f, 0.f, 0.2f) },
                                { x0 + sqrt(dx), Color(1.f, 1.f, 0.2f) },

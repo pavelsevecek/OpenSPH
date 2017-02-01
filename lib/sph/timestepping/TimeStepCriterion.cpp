@@ -98,9 +98,11 @@ Tuple<Float, QuantityIds> CourantCriterion::compute(Storage& storage, const Floa
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityIds::POSITIONS);
     ArrayView<const Float> cs = storage.getValue<Float>(QuantityIds::SOUND_SPEED);
     for (Size i = 0; i < r.size(); ++i) {
-        const Float value = courant * r[i][H] / cs[i];
-        ASSERT(isReal(value) && value > 0._f && value < INFTY);
-        totalMinStep = min(totalMinStep, value);
+        if (cs[i] > 0._f) {
+            const Float value = courant * r[i][H] / cs[i];
+            ASSERT(isReal(value) && value > 0._f && value < INFTY);
+            totalMinStep = min(totalMinStep, value);
+        }
     }
     if (totalMinStep > maxStep) {
         return { maxStep, QuantityIds::MAXIMUM_VALUE };
@@ -116,7 +118,8 @@ Tuple<Float, QuantityIds> CourantCriterion::compute(Storage& storage, const Floa
 
 MultiCriterion::MultiCriterion(const GlobalSettings& settings)
     : criteria(EMPTY_ARRAY) {
-    const Flags<TimeStepCriterionEnum> flags{ TimeStepCriterionEnum(settings.get<int>(GlobalSettingsIds::TIMESTEPPING_CRITERION)) };
+    const Flags<TimeStepCriterionEnum> flags{ TimeStepCriterionEnum(
+        settings.get<int>(GlobalSettingsIds::TIMESTEPPING_CRITERION)) };
     if (flags.has(TimeStepCriterionEnum::COURANT)) {
         criteria.push(std::make_unique<CourantCriterion>(settings));
     }
