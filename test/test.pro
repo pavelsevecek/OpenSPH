@@ -98,7 +98,7 @@ SOURCES += \
     ../lib/thread/test/Pool.cpp \
     ../lib/problem/test/Problem.cpp \
     utils/Approx.cpp \
-    utils/SequenceTest.cpp \
+    utils/SequenceTest.cpp
 
 
 HEADERS += \
