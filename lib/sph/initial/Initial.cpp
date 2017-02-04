@@ -22,43 +22,22 @@ InitialConditions::InitialConditions(const std::shared_ptr<Storage> storage,
 InitialConditions::~InitialConditions() = default;
 
 void InitialConditions::addBody(const Abstract::Domain& domain,
-    const BodySettings& bodySettings,
+    const BodySettings& settings,
     const Vector& velocity,
     const Vector& angularVelocity) {
-    Storage body(bodySettings);
+    Storage body(settings);
     Size N; // Final number of particles
     PROFILE_SCOPE("InitialConditions::addBody");
+    std::unique_ptr<Abstract::Distribution> distribution = Factory::getDistribution(settings);
+    const Size n = settings.get<int>(BodySettingsIds::PARTICLE_COUNT);
 
-    // generate particle positions
-    std::unique_ptr<Abstract::Distribution> distribution = Factory::getDistribution(bodySettings);
-
-    const Size n = bodySettings.get<int>(BodySettingsIds::PARTICLE_COUNT);
     // Generate positions of particles
     Array<Vector> positions = distribution->generate(n, domain);
     N = positions.size();
     ASSERT(N > 0);
     body.emplace<Vector, OrderEnum::SECOND_ORDER>(QuantityIds::POSITIONS, std::move(positions));
 
-    // Set particle velocitites
-    ArrayView<Vector> r, v, dv;
-    tie(r, v, dv) = body.getAll<Vector>(QuantityIds::POSITIONS);
-    for (Size i = 0; i < N; ++i) {
-        v[i] += velocity + cross(r[i], angularVelocity);
-    }
-
-    // Set masses of particles, assuming all particles have the same mass
-    /// \todo this has to be generalized when using nonuniform particle destribution
-    const Float rho0 = bodySettings.get<Float>(BodySettingsIds::DENSITY);
-    const Float totalM = domain.getVolume() * rho0; // m = rho * V
-    ASSERT(totalM > 0._f);
-    body.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityIds::MASSES, totalM / N);
-
-    // Mark particles of this body
-    body.emplace<Size, OrderEnum::ZERO_ORDER>(QuantityIds::FLAG, bodyIndex);
-    bodyIndex++;
-
-    // Initialize all quantities needed by the solver
-    solver->initialize(body, bodySettings);
+    setQuantities(body, settings, domain.getVolume(), velocity, angularVelocity);
 
     if (storage->getQuantityCnt() == 0) {
         // this is a first body, simply assign storage
@@ -67,6 +46,81 @@ void InitialConditions::addBody(const Abstract::Domain& domain,
         // more than one body, merge storages
         storage->merge(std::move(body));
     }
+}
+
+void InitialConditions::addHeterogeneousBody(const Body& environment, ArrayView<const Body> bodies) {
+    PROFILE_SCOPE("InitialConditions::addHeterogeneousBody");
+    std::unique_ptr<Abstract::Distribution> distribution = Factory::getDistribution(environment.settings);
+    const Size n = environment.settings.get<int>(BodySettingsIds::PARTICLE_COUNT);
+
+    // Generate positions of ALL particles
+    Array<Vector> positions = distribution->generate(n, environment.domain);
+    // Create particle storage per body
+    Storage environmentStorage(environment.settings);
+    Array<Storage> bodyStorages;
+    for (const Body& body : bodies) {
+        bodyStorages.push(Storage(body.settings));
+    }
+    // Assign particles to bodies
+    Array<Vector> pos_env;
+    Array<Array<Vector>> pos_bodies(bodies.size());
+    auto assign = [&](const Vector& p) {
+        for (Size i = 0; i < bodies.size(); ++i) {
+            if (bodies[i].domain.isInside(p)) {
+                pos_bodies[i].push(p);
+                return true;
+            }
+        }
+        return false;
+    };
+    for (const Vector& p : positions) {
+        if (!assign(p)) {
+            pos_env.push(p);
+        }
+    }
+
+    // Initialize storages
+    Float environmentVolume = environment.domain.getVolume();
+    for (Size i = 0; i < bodyStorages.size(); ++i) {
+        bodyStorages[i].emplace<Vector, OrderEnum::SECOND_ORDER>(
+            QuantityIds::POSITIONS, std::move(pos_bodies[i]));
+        const Float volume = bodies[i].domain.getVolume();
+        setQuantities(
+            bodyStorages[i], bodies[i].settings, volume, bodies[i].velocity, bodies[i].angularVelocity);
+        environmentVolume -= volume;
+    }
+    ASSERT(environmentVolume >= 0._f);
+    environmentStorage.emplace<Vector, OrderEnum::SECOND_ORDER>(QuantityIds::POSITIONS, std::move(pos_env));
+    setQuantities(environmentStorage,
+        environment.settings,
+        environmentVolume,
+        environment.velocity,
+        environment.angularVelocity);
+}
+
+void InitialConditions::setQuantities(Storage& storage,
+    const BodySettings& settings,
+    const Float volume,
+    const Vector& velocity,
+    const Vector& angularVelocity) {
+    ArrayView<Vector> r, v, dv;
+    tie(r, v, dv) = storage.getAll<Vector>(QuantityIds::POSITIONS);
+    for (Size i = 0; i < r.size(); ++i) {
+        v[i] += velocity + cross(r[i], angularVelocity);
+    }
+    // Set masses of particles, assuming all particles have the same mass
+    /// \todo this has to be generalized when using nonuniform particle destribution
+    const Float rho0 = settings.get<Float>(BodySettingsIds::DENSITY);
+    const Float totalM = volume * rho0; // m = rho * V
+    ASSERT(totalM > 0._f);
+    storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityIds::MASSES, totalM / r.size());
+
+    // Mark particles of this body
+    storage.emplace<Size, OrderEnum::ZERO_ORDER>(QuantityIds::FLAG, bodyIndex);
+    bodyIndex++;
+
+    // Initialize all quantities needed by the solver
+    solver->initialize(storage, settings);
 }
 
 

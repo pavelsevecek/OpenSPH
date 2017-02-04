@@ -15,38 +15,41 @@ class Observable;
 /// Smart pointer that references object without taking ownership and without a need for that object to be
 /// referenced by std::shared_ptr. It is always initialized to nullptr and when the referenced object is
 /// destroyed, this pointer (and all other non-owning pointers referencing the object) are set to nullptr.
-template <typename T>
-class NonOwningPtr  {
+template <typename Type>
+class NonOwningPtr {
     template <typename>
     friend class NonOwningPtr;
     friend class Observable;
 
-    static_assert(std::is_base_of<Observable, T>::value,
-                  "Non-owning pointer can be only used for Observable types.");
+    static_assert(std::is_base_of<Observable, Type>::value,
+        "Non-owning pointer can be only used for Observable types.");
 
 private:
-    T* ptr = nullptr;
+    Type* ptr = nullptr;
     std::shared_ptr<bool> valid;
 
-    INLINE bool isValid() const { return valid && *valid; }
+    INLINE bool isValid() const {
+        return valid && *valid;
+    }
 
 public:
     NonOwningPtr() = default;
 
-    NonOwningPtr(const std::nullptr_t&) {}
+    NonOwningPtr(const std::nullptr_t&) {
+    }
 
     /// Copy constructor from other non-owning pointer, adds a reference to parent observable.
-    template <typename T2, typename = std::enable_if_t<std::is_convertible<T2*, T*>::value>>
-    NonOwningPtr(const NonOwningPtr<T2>& other)
+    template <typename T, typename = std::enable_if_t<std::is_convertible<T*, Type*>::value>>
+    NonOwningPtr(const NonOwningPtr<T>& other)
         : ptr(other.ptr) {
         this->valid = other.valid;
     }
 
     /// Copy constructor from pointer to other observable type, adds a reference to parent observable.
-    template <typename T2,
-              typename = std::enable_if_t<std::is_base_of<Observable, T2>::value &&
-                                          std::is_convertible<T2*, T*>::value>>
-    NonOwningPtr(T2* other)
+    template <typename T,
+        typename =
+            std::enable_if_t<std::is_base_of<Observable, T>::value && std::is_convertible<T*, Type*>::value>>
+    NonOwningPtr(T* other)
         : ptr(other) {
         this->valid = other->valid;
     }
@@ -59,36 +62,36 @@ public:
     }
 
     /// Copy assignment from pointer to other observable type, adds a reference to parent observable.
-    template <typename T2,
-              typename = std::enable_if_t<std::is_base_of<Observable, T2>::value &&
-                                          std::is_convertible<T2*, T*>::value>>
-    NonOwningPtr& operator=(T2* parent) {
-        this->ptr   = parent;
+    template <typename T,
+        typename =
+            std::enable_if_t<std::is_base_of<Observable, T>::value && std::is_convertible<T*, Type*>::value>>
+    NonOwningPtr& operator=(T* parent) {
+        this->ptr = parent;
         this->valid = parent->valid;
         return *this;
     }
 
-    template <typename T2, typename = std::enable_if_t<std::is_convertible<T2*, T*>::value>>
-    NonOwningPtr& operator=(const NonOwningPtr<T2>& other) {
-        this->ptr   = other.ptr;
+    template <typename T, typename = std::enable_if_t<std::is_convertible<T*, Type*>::value>>
+    NonOwningPtr& operator=(const NonOwningPtr<T>& other) {
+        this->ptr = other.ptr;
         this->valid = other.valid;
         return *this;
     }
 
     /// Implicit conversion to other non-owning pointers
-    template <typename T2, typename = std::enable_if_t<std::is_convertible<T*, T2*>::value>>
-    operator NonOwningPtr<T2>() {
-        return NonOwningPtr<T2>(static_cast<T2*>(this->ptr));
+    template <typename T, typename = std::enable_if_t<std::is_convertible<Type*, T*>::value>>
+    operator NonOwningPtr<T>() {
+        return NonOwningPtr<T>(static_cast<T*>(this->ptr));
     }
 
     /// Implicit conversion to other non-owning pointers, const version.
-    template <typename T2, typename = std::enable_if_t<std::is_convertible<T*, T2*>::value>>
-    operator const NonOwningPtr<T2>() const {
-        return NonOwningPtr<T2>(static_cast<T2*>(this->ptr));
+    template <typename T, typename = std::enable_if_t<std::is_convertible<Type*, T*>::value>>
+    operator const NonOwningPtr<T>() const {
+        return NonOwningPtr<T>(static_cast<T*>(this->ptr));
     }
 
     /// Returns stored resource. If the pointer is no longer valid, returns nullptr.
-    INLINE T* get() {
+    INLINE Type* get() {
         if (this->isValid()) {
             return this->ptr;
         }
@@ -96,26 +99,30 @@ public:
     }
 
     /// Returns stored resource, const version. If the pointer is no longer valid, returns nullptr.
-    INLINE const T* get() const {
+    INLINE const Type* get() const {
         if (this->isValid()) {
             return this->ptr;
         }
         return nullptr;
     }
 
-    INLINE T* operator->() {
+    INLINE Type* operator->() {
         ASSERT(this->isValid());
         return this->ptr;
     }
 
-    INLINE const T* operator->() const {
+    INLINE const Type* operator->() const {
         ASSERT(this->isValid());
         return this->ptr;
     }
 
-    INLINE bool operator!() const { return !this->isValid(); }
+    INLINE bool operator!() const {
+        return !this->isValid();
+    }
 
-    INLINE explicit operator bool() const { return this->isValid(); }
+    INLINE explicit operator bool() const {
+        return this->isValid();
+    }
 };
 
 template <typename T1, typename T2>
@@ -148,13 +155,19 @@ protected:
     std::shared_ptr<bool> valid;
 
 public:
-    Observable() { valid = std::make_shared<bool>(true); }
+    Observable() {
+        valid = std::make_shared<bool>(true);
+    }
 
-    ~Observable() { *valid = false; }
+    ~Observable() {
+        *valid = false;
+    }
 
     /// Returns the number of non-owning pointers referencing this observable. This object itself does NOT
     /// count as a reference.
-    int getReferenceCnt() const { return valid.use_count() - 1; }
+    int getReferenceCnt() const {
+        return valid.use_count() - 1;
+    }
 };
 
 NAMESPACE_SPH_END

@@ -157,4 +157,5 @@ HEADERS += \
     objects/wrappers/Expected.h \
     objects/wrappers/Outcome.h \
     sph/timestepping/TimeStepCriterion.h \
-    objects/ForwardDecl.h
+    objects/ForwardDecl.h \
+    objects/wrappers/ObserverPtr.h

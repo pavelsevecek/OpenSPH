@@ -96,7 +96,6 @@ public:
     virtual Array<Vector> generate(const Size n, const Abstract::Domain& domain) const override;
 };
 
-
 /// Generates particles uniformly on a line in x direction, for testing purposes. Uses only center and radius
 /// of the domain.
 class LinearDistribution : public Abstract::Distribution {
