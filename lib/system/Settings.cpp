@@ -1,4 +1,5 @@
 #include "system/Settings.h"
+#include "objects/wrappers/Outcome.h"
 #include <fstream>
 #include <regex>
 
@@ -44,14 +45,13 @@ void Settings<TEnum>::saveToFile(const std::string& path) const {
 }
 
 template <typename TEnum>
-bool Settings<TEnum>::loadFromFile(const std::string& path, const Settings& descriptors) {
+Outcome Settings<TEnum>::loadFromFile(const std::string& path, const Settings& descriptors) {
     std::ifstream ifs(path);
     std::string line;
     while (std::getline(ifs, line, '\n')) {
         std::string::size_type idx = line.find("=");
         if (idx == std::string::npos) {
-            // didn't find '=', invalid format of the file
-            return false;
+            return "Invalid format of the file, didn't find separating '='";
         }
         std::string key = line.substr(0, idx);
         std::string value = line.substr(idx + 1);
@@ -63,14 +63,18 @@ bool Settings<TEnum>::loadFromFile(const std::string& path, const Settings& desc
             }
         }
         // find the key in decriptor settings
+        bool found = false;
         for (auto&& e : descriptors.entries) {
             if (e.second.name == trimmedKey) {
                 if (!setValueByType(this->entries[e.second.id], e.second.value.getTypeIdx(), value)) {
-                    /// \todo logger
-                    /// std::cout << "failed loading " << trimmedKey << std::endl;
-                    return false;
+                    return "Invalid value of key " + trimmedKey + ": " + value;
                 }
+                found = true;
+                break;
             }
+        }
+        if (!found) {
+            return "Key " + trimmedKey + " was not find in settings";
         }
     }
     ifs.close();

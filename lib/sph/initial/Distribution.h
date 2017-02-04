@@ -14,10 +14,10 @@ NAMESPACE_SPH_BEGIN
 namespace Abstract {
     class Domain;
 
+    /// Base class for generating vertices with specific distribution. Also generates corresponding
+    /// smoothing lengths and save them as fourth component of the vector.
     class Distribution : public Polymorphic {
     public:
-        /// Base class for generating vertices with specific distribution. Also generates corresponding
-        /// smoothing lengths and save them as fourth component of the vector.
         /// \param n Expected number of generated vertices.
         /// \param domain Computational domain where the vertices are distributed
         /// \return Output array of vertices. The total number of vertices can slightly differ from n.
@@ -57,8 +57,18 @@ public:
 
     virtual Array<Vector> generate(const Size n, const Abstract::Domain& domain) const override;
 
+    /// Returns the distance between two successive grid layers in z direction. Refers to the last generated
+    /// distributions, the distribution keeps state.
+    Float getLayerHeight();
+
+    /// Generates another particle layer using the same domain and particle density.
+    void generateLayer(Abstract::Domain& domain) const;
+
 private:
     Flags<Options> flags;
+
+    mutable Float cachedHeight = 0._f;
+    mutable Size cachedIdx = 0;
 };
 
 

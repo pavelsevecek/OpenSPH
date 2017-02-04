@@ -22,6 +22,20 @@ OrthoPane::OrthoPane(wxWindow* parent, const std::shared_ptr<Storage>& storage, 
 
 OrthoPane::~OrthoPane() = default;
 
+
+wxPoint OrthoPane::project(const OrthoEnum projection, const wxSize size, const Vector& r) {
+    switch (projection) {
+    case OrthoEnum::XY:
+        return wxPoint(center.x + r[X] * fov, size.y - (center.y + r[Y] * fov) - 1);
+    case OrthoEnum::XZ:
+        return wxPoint(center.x + r[X] * fov, size.y - (center.y + r[Z] * fov) - 1);
+    case OrthoEnum::YZ:
+        return wxPoint(center.x + r[Y] * fov, size.y - (center.y + r[Z] * fov) - 1);
+    default:
+        NOT_IMPLEMENTED;
+    }
+}
+
 void OrthoPane::onPaint(wxPaintEvent& UNUSED(evt)) {
     MEASURE_SCOPE("OrthoPane::onPaint");
     // called from main thread
@@ -31,6 +45,7 @@ void OrthoPane::onPaint(wxPaintEvent& UNUSED(evt)) {
     memoryDc.SetBrush(*wxBLACK_BRUSH);
     memoryDc.DrawRectangle(wxPoint(0, 0), dc.GetSize());
     const float radius = settings.get<Float>(GuiSettingsIds::PARTICLE_RADIUS);
+    const OrthoEnum projection = settings.get<OrthoEnum>(GuiSettingsIds::ORTHO_PROJECTION);
     wxBrush brush(*wxBLACK_BRUSH);
     wxPen pen(*wxBLACK_PEN);
     for (Size i = 0; i < displayedIdxs.second().size(); ++i) {
@@ -40,8 +55,7 @@ void OrthoPane::onPaint(wxPaintEvent& UNUSED(evt)) {
         memoryDc.SetBrush(brush);
         memoryDc.SetPen(pen);
         const Vector& r = positions[idx];
-        memoryDc.DrawCircle(wxPoint(center.x + r[X] * fov, dc.GetSize().y - (center.y + r[Y] * fov) - 1),
-            max(float(r[H]) * fov * radius, 1.f));
+        memoryDc.DrawCircle(project(projection, dc.GetSize(), r), max(float(r[H]) * fov * radius, 1.f));
     }
     dc.DrawBitmap(bitmap, wxPoint(0, 0));
 

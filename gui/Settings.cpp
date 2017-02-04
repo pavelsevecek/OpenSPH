@@ -11,6 +11,7 @@ std::unique_ptr<GuiSettings> GuiSettings::instance (new GuiSettings {
     { GuiSettingsIds::RENDERER,         "renderer",         int(RendererEnum::ORTHO) },
     { GuiSettingsIds::PARTICLE_RADIUS,  "particle_radius",  0.5_f },
     { GuiSettingsIds::ORTHO_CUTOFF,     "ortho.cutoff",     0.1_f },
+    { GuiSettingsIds::ORTHO_PROJECTION, "ortho.projection", int(OrthoEnum::XY) },
     { GuiSettingsIds::VIEW_CENTER,      "view.center",      Vector(0._f) },
     { GuiSettingsIds::VIEW_FOV,         "view.fov",         1._f },
     { GuiSettingsIds::WINDOW_TITLE,     "window.title",     std::string("SPH") },

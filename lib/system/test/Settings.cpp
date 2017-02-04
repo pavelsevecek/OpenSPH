@@ -1,5 +1,7 @@
 #include "system/Settings.h"
 #include "catch.hpp"
+#include "objects/wrappers/Outcome.h"
+#include "system/Logger.h"
 
 using namespace Sph;
 
@@ -41,7 +43,11 @@ TEST_CASE("Settings save/load", "[settings]") {
     settings.saveToFile("tmp.sph");
 
     Settings<GlobalSettingsIds> loadedSettings;
-    REQUIRE(loadedSettings.loadFromFile("tmp.sph", GlobalSettings::getDefaults()));
+    const Outcome result = loadedSettings.loadFromFile("tmp.sph", GlobalSettings::getDefaults());
+    if (!result) {
+        StdOutLogger().write(result.error());
+    }
+    REQUIRE(result);
     const Vector center = loadedSettings.get<Vector>(GlobalSettingsIds::DOMAIN_CENTER);
     REQUIRE(center == Vector(1._f, 2._f, 3._f));
     const Float radius = loadedSettings.get<Float>(GlobalSettingsIds::DOMAIN_RADIUS);

@@ -49,6 +49,8 @@ private:
     void drawPalette(wxPaintDC& dc);
 
     void update();
+
+    wxPoint project(const OrthoEnum projection, const wxSize size, const Vector& r);
 };
 
 NAMESPACE_SPH_END

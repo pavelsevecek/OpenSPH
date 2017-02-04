@@ -5,6 +5,7 @@
 /// sevecek at sirrah.troja.mff.cuni.cz
 
 #include "math/Math.h"
+#include <iomanip>
 
 NAMESPACE_SPH_BEGIN
 
@@ -20,7 +21,8 @@ public:
     /// interval will result in zero-size interval containing the inserted value.
     INLINE Range()
         : minBound(INFTY)
-        , maxBound(-INFTY) {}
+        , maxBound(-INFTY) {
+    }
 
     /// Constructs the interval given its lower and upper bound. You can use INFTY and -INFTY to create
     /// one-sided or unbounded intervals.
@@ -32,7 +34,8 @@ public:
 
     INLINE Range(const Range& other)
         : minBound(other.minBound)
-        , maxBound(other.maxBound) {}
+        , maxBound(other.maxBound) {
+    }
 
     /// Extends the interval to contain given value. If the value is already inside the interval, nothing
     /// changes.
@@ -42,7 +45,9 @@ public:
     }
 
     /// Checks whether value is inside the interval.
-    INLINE bool contains(const Float& value) const { return minBound <= value && value <= maxBound; }
+    INLINE bool contains(const Float& value) const {
+        return minBound <= value && value <= maxBound;
+    }
 
     /// Clamps the given value by the interval.
     INLINE Float clamp(const Float& value) const {
@@ -52,13 +57,19 @@ public:
     }
 
     /// Returns lower bound of the interval.
-    INLINE Float lower() const { return minBound; }
+    INLINE Float lower() const {
+        return minBound;
+    }
 
     /// Returns upper bound of the interval.
-    INLINE Float upper() const { return maxBound; }
+    INLINE Float upper() const {
+        return maxBound;
+    }
 
     /// Returns the size of the interval.
-    INLINE Float size() const { return maxBound - minBound; }
+    INLINE Float size() const {
+        return maxBound - minBound;
+    }
 
     /// Comparison operator; true if and only if both bounds are equal.
     INLINE bool operator==(const Range& other) const {
@@ -66,9 +77,13 @@ public:
     }
 
     /// Negation of comparison operator
-    INLINE bool operator!=(const Range& other) const { return !(*this == other); }
+    INLINE bool operator!=(const Range& other) const {
+        return !(*this == other);
+    }
 
-    static Range unbounded() { return Range(-INFTY, INFTY); }
+    static Range unbounded() {
+        return Range(-INFTY, INFTY);
+    }
 
     template <typename TStream>
     friend TStream& operator<<(TStream& stream, const Range& range) {
@@ -81,8 +96,9 @@ private:
     struct Printer {
         Float value;
 
-        template<typename TStream>
+        template <typename TStream>
         friend TStream& operator<<(TStream& stream, const Printer w) {
+            stream << std::setw(15);
             if (w.value == INFTY) {
                 stream << "infinity";
             } else if (w.value == -INFTY) {
@@ -122,16 +138,21 @@ private:
 public:
     RangeIterator(const Float value, TStep step)
         : value(value)
-        , step(std::forward<TStep>(step)) {}
+        , step(std::forward<TStep>(step)) {
+    }
 
     INLINE RangeIterator& operator++() {
         value += step;
         return *this;
     }
 
-    INLINE Float& operator*() { return value; }
+    INLINE Float& operator*() {
+        return value;
+    }
 
-    INLINE const Float& operator*() const { return value; }
+    INLINE const Float& operator*() const {
+        return value;
+    }
 
     bool operator!=(const RangeIterator& other) {
         // hack: this is actually used as < operator in range-based for loops
@@ -148,11 +169,16 @@ private:
 public:
     RangeAdapter(const Range& range, TStep&& step)
         : range(range)
-        , step(std::forward<TStep>(step)) {}
+        , step(std::forward<TStep>(step)) {
+    }
 
-    INLINE RangeIterator<TStep> begin() { return RangeIterator<TStep>(range.lower(), step); }
+    INLINE RangeIterator<TStep> begin() {
+        return RangeIterator<TStep>(range.lower(), step);
+    }
 
-    INLINE RangeIterator<TStep> end() { return RangeIterator<TStep>(range.upper(), step); }
+    INLINE RangeIterator<TStep> end() {
+        return RangeIterator<TStep>(range.upper(), step);
+    }
 };
 
 template <typename TStep>

@@ -76,6 +76,7 @@ bool MyApp::OnInit() {
     guiSettings.set<Float>(GuiSettingsIds::PARTICLE_RADIUS, 0.3_f);
     guiSettings.set<Float>(GuiSettingsIds::ORTHO_CUTOFF, 5.e2_f);
     window = new Window(p->storage, guiSettings, [globalSettings, p, this]() {
+        ASSERT(this->worker.joinable());
         this->worker.join();
         p->storage->removeAll();
         this->initialConditions(globalSettings, p->storage);

@@ -1,12 +1,18 @@
 #include "sph/initial/Distribution.h"
-#include "math/Morton.h"
-#include "math/rng/VectorRng.h"
 #include "geometry/Domain.h"
 #include "math/Integrator.h"
+#include "math/Morton.h"
+#include "math/rng/VectorRng.h"
 #include "objects/finders/Voxel.h"
+#include "objects/wrappers/Optional.h"
 #include "system/Profiler.h"
 
 NAMESPACE_SPH_BEGIN
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/// RandomDistribution implementation
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 Array<Vector> RandomDistribution::generate(const Size n, const Abstract::Domain& domain) const {
     const Vector center(domain.getCenter());
@@ -30,6 +36,10 @@ Array<Vector> RandomDistribution::generate(const Size n, const Abstract::Domain&
     return vecs;
 }
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/// CubicPacking implementation
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 Array<Vector> CubicPacking::generate(const Size n, const Abstract::Domain& domain) const {
     PROFILE_SCOPE("CubicPacking::generate")
     ASSERT(n > 0);
@@ -38,6 +48,7 @@ Array<Vector> CubicPacking::generate(const Size n, const Abstract::Domain& domai
 
     // interparticle distance based on density
     const Float h = 1._f / root<3>(particleDensity);
+    ASSERT(isReal(h));
 
     const Vector center(domain.getCenter());
     const Vector radius(domain.getBoundingRadius() + h);
@@ -54,8 +65,13 @@ Array<Vector> CubicPacking::generate(const Size n, const Abstract::Domain& domai
     return vecs;
 }
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/// HexagonalPacking implementation
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 HexagonalPacking::HexagonalPacking(const Flags<Options> flags)
-    : flags(flags) {}
+    : flags(flags) {
+}
 
 Array<Vector> HexagonalPacking::generate(const Size n, const Abstract::Domain& domain) const {
     PROFILE_SCOPE("HexagonalPacking::generate")
@@ -76,24 +92,22 @@ Array<Vector> HexagonalPacking::generate(const Size n, const Abstract::Domain& d
     Array<Vector> vecs;
     const Float deltaX = 0.5_f * dx;
     const Float deltaY = sqrt(3._f) / 6._f * dx;
-    Float lastY = 0._f;
-    box.iterateWithIndices(
-        Vector(dx, dy, dz), [&lastY, deltaX, deltaY, &vecs, &domain, h](Indices&& idxs, Vector&& v) {
-            if (idxs[2] % 2 == 0) {
-                if (idxs[1] % 2 == 1) {
-                    v[X] += deltaX;
-                }
-            } else {
-                if (idxs[1] % 2 == 0) {
-                    v[X] += deltaX;
-                }
-                v[Y] += deltaY;
+    box.iterateWithIndices(Vector(dx, dy, dz), [&](Indices&& idxs, Vector&& v) {
+        if (idxs[2] % 2 == 0) {
+            if (idxs[1] % 2 == 1) {
+                v[X] += deltaX;
             }
-            if (domain.isInside(v)) {
-                v[H] = h;
-                vecs.push(std::move(v));
+        } else {
+            if (idxs[1] % 2 == 0) {
+                v[X] += deltaX;
             }
-        });
+            v[Y] += deltaY;
+        }
+        if (domain.isInside(v)) {
+            v[H] = h;
+            vecs.push(std::move(v));
+        }
+    });
     if (flags.has(Options::SORTED)) {
         // sort by Morton code
         std::sort(vecs.begin(), vecs.end(), [&box](Vector& v1, Vector& v2) {
@@ -121,6 +135,9 @@ Array<Vector> HexagonalPacking::generate(const Size n, const Abstract::Domain& d
     return vecs;
 }
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/// DiehlEtAlDistribution implementation
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 DiehlEtAlDistribution::DiehlEtAlDistribution(const DiehlEtAlDistribution::DensityFunc& particleDensity,
     const Float error,
@@ -131,7 +148,8 @@ DiehlEtAlDistribution::DiehlEtAlDistribution(const DiehlEtAlDistribution::Densit
     , error(error)
     , numOfIters(numOfIters)
     , strength(strength)
-    , small(small) {}
+    , small(small) {
+}
 
 Array<Vector> DiehlEtAlDistribution::generate(const Size n, const Abstract::Domain& domain) const {
     // Renormalize particle density so that integral matches expected particle count
@@ -221,6 +239,10 @@ Array<Vector> DiehlEtAlDistribution::generate(const Size n, const Abstract::Doma
 
     return vecs;
 }
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/// LinearDistribution implementation
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 Array<Vector> LinearDistribution::generate(const Size n, const Abstract::Domain& domain) const {
     const Float center = domain.getCenter()[X];

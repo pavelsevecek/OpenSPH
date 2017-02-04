@@ -12,6 +12,8 @@
 
 NAMESPACE_SPH_BEGIN
 
+class Outcome;
+
 /// Tag for initialization of empty settings object.
 struct EmptySettingsTag {};
 
@@ -92,7 +94,7 @@ public:
 
     /// \todo split settings and descriptors? Settings actual object with values, descriptors global object
     /// with ids, names and default values.
-    bool loadFromFile(const std::string& path, const Settings& descriptors);
+    Outcome loadFromFile(const std::string& path, const Settings& descriptors);
 
     /// Returns a reference to object containing default values of all settings.
     static const Settings& getDefaults() {

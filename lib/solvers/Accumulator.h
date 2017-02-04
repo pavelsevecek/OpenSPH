@@ -23,11 +23,13 @@ public:
     Accumulator() = default;
 
     Accumulator(const QuantityIds key)
-        : key(key) {}
+        : key(key) {
+    }
 
     Accumulator(Accumulator&& other)
         : values(std::move(other.values))
-        , functor(std::move(other.functor)) {}
+        , functor(std::move(other.functor)) {
+    }
 
     void update(Storage& storage) {
         values.resize(storage.getParticleCnt());
@@ -52,11 +54,17 @@ public:
         }
     }
 
-    INLINE operator Array<Value>&() { return values; }
+    INLINE operator Array<Value>&() {
+        return values;
+    }
 
-    INLINE operator const Array<Value>&() const { return values; }
+    INLINE operator const Array<Value>&() const {
+        return values;
+    }
 
-    INLINE Value& operator[](const int idx) { return values[idx]; }
+    INLINE Value& operator[](const int idx) {
+        return values[idx];
+    }
 };
 
 /// Base class for all object owning accumulators. Template parameter pack shall contain types of all
@@ -71,7 +79,8 @@ public:
 
     /// Constructor taking references to arrays there the accumulated values are stored
     AccumulatorOwner(Accumulator<TAccumulate>&... accumulators)
-        : accumulators(accumulators...) {}
+        : accumulators(accumulators...) {
+    }
 
     /// Return a reference to array given by accumulator type.
     template <typename TFunctor>
@@ -190,17 +199,20 @@ using RhoGradv = Accumulator<RhoGradvImpl>;
 class SurfaceNormalImpl {
 private:
     ArrayView<const Vector> r;
+    ArrayView<const Size> flag;
 
 public:
     using Type = Vector;
 
-    void update(Storage& storage) { r = storage.getValue<Vector>(QuantityIds::POSITIONS); }
+    void update(Storage& storage) {
+        r = storage.getValue<Vector>(QuantityIds::POSITIONS);
+        flag = storage.getValue<Size>(QuantityIds::FLAG);
+    }
 
     INLINE Tuple<Vector, Vector> operator()(const int i, const int j, const Vector& UNUSED(grad)) const {
         const Vector dr = r[j] - r[i];
         const Float length = getLength(dr);
-        /// \todo don't count particles of different materials
-        if (length == 0) {
+        if (flag[i] != flag[j] || length == 0._f) {
             return { Vector(0._f), Vector(0._f) };
         }
         const Vector normalized = dr / length;

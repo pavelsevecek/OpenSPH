@@ -12,6 +12,10 @@ enum class RendererEnum {
     OPENGL
 };
 
+enum class OrthoEnum { XY, XZ, YZ };
+
+/// \todo generic ortho projection (x,y,z) -> (u,v)
+
 enum class GuiSettingsIds {
     /// Selected renderer
     RENDERER,
@@ -28,6 +32,8 @@ enum class GuiSettingsIds {
     /// Max z-coordinate of particle to be displayed by ortho renderer
     ORTHO_CUTOFF,
 
+    ORTHO_PROJECTION,
+
     /// Title of the window appearing on taskbar
     WINDOW_TITLE,
 
@@ -42,7 +48,6 @@ enum class GuiSettingsIds {
     PALETTE_STRESS,
 
     PALETTE_DAMAGE
-
 };
 
 using GuiSettings = Settings<GuiSettingsIds>;

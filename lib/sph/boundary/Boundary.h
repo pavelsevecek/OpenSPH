@@ -85,6 +85,14 @@ public:
 };
 
 
+/// Boundary conditions creating particles with given velocity on one end of the domain and removing them on
+/// the other side, while keeping particles inside the domain using either ghost particles or by freezing
+/// them. This is fine-tuned for simulations of a meteorite passing through athmosphere.
+class WindTunnel : public Abstract::BoundaryConditions {
+private:
+public:
+};
+
 /// Boundary condition moving all particles passed through the domain to the other side of the domain.
 class PeriodicDomain : public Abstract::BoundaryConditions {
     /// \todo modify Finder to search periodically in domain. That should be the whole trick
