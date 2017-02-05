@@ -9,9 +9,42 @@
 
 NAMESPACE_SPH_BEGIN
 
+
+template <typename TContainer>
+class ReverseWrapper {
+private:
+    TContainer container;
+
+public:
+    template <typename T>
+    ReverseWrapper(T&& container)
+        : container(std::forward<T>(container)) {
+    }
+
+    /// Returns iterator pointing to the last element in container.
+    auto begin() {
+        return reverseIterator(container.end() - 1);
+    }
+
+    /// Returns iterator pointiing to one before the first element.
+    auto end() {
+        return reverseIterator(container.begin() - 1);
+    }
+
+    auto size() const {
+        return container.size();
+    }
+};
+
+template <typename TContainer>
+ReverseWrapper<TContainer> reverse(TContainer&& container) {
+    return ReverseWrapper<TContainer>(std::forward<TContainer>(container));
+}
+
+
 /// Provides iterator over selected component of vector array.
 template <typename TIterator>
-struct ComponentIterator  {
+struct ComponentIterator {
     TIterator iterator;
     int component;
 
@@ -22,11 +55,16 @@ struct ComponentIterator  {
 
     ComponentIterator(const TIterator& iterator, const int component)
         : iterator(iterator)
-        , component(component) {}
+        , component(component) {
+    }
 
-    const RawT& operator*() const { return (*iterator)[component]; }
+    const RawT& operator*() const {
+        return (*iterator)[component];
+    }
 
-    RawT& operator*() { return (*iterator)[component]; }
+    RawT& operator*() {
+        return (*iterator)[component];
+    }
 
     ComponentIterator& operator++() {
         ++iterator;
@@ -48,32 +86,53 @@ struct ComponentIterator  {
     }
 
 
-    ComponentIterator operator+(const int n) const { return ComponentIterator(iterator+n, component); }
-    ComponentIterator operator-(const int n) const { return ComponentIterator(iterator-n, component); }
-    void operator+=(const int n) { iterator += n; }
-    void operator-=(const int n) { iterator -= n; }
+    ComponentIterator operator+(const int n) const {
+        return ComponentIterator(iterator + n, component);
+    }
+    ComponentIterator operator-(const int n) const {
+        return ComponentIterator(iterator - n, component);
+    }
+    void operator+=(const int n) {
+        iterator += n;
+    }
+    void operator-=(const int n) {
+        iterator -= n;
+    }
 
-    Size operator-(const ComponentIterator& other) const { return iterator - other.iterator; }
-    bool operator<(const ComponentIterator& other) const { return iterator < other.iterator; }
-    bool operator>(const ComponentIterator& other) const { return iterator > other.iterator; }
-    bool operator<=(const ComponentIterator& other) const { return iterator <= other.iterator; }
-    bool operator>=(const ComponentIterator& other) const { return iterator >= other.iterator; }
-    bool operator==(const ComponentIterator& other) { return iterator == other.iterator; }
-    bool operator!=(const ComponentIterator& other) { return iterator != other.iterator; }
+    Size operator-(const ComponentIterator& other) const {
+        return iterator - other.iterator;
+    }
+    bool operator<(const ComponentIterator& other) const {
+        return iterator < other.iterator;
+    }
+    bool operator>(const ComponentIterator& other) const {
+        return iterator > other.iterator;
+    }
+    bool operator<=(const ComponentIterator& other) const {
+        return iterator <= other.iterator;
+    }
+    bool operator>=(const ComponentIterator& other) const {
+        return iterator >= other.iterator;
+    }
+    bool operator==(const ComponentIterator& other) {
+        return iterator == other.iterator;
+    }
+    bool operator!=(const ComponentIterator& other) {
+        return iterator != other.iterator;
+    }
 
 
     using iterator_category = std::random_access_iterator_tag;
-    using value_type        = RawT;
-    using difference_type   = Size;
-    using pointer           = RawT*;
-    using reference         = RawT&;
-
+    using value_type = RawT;
+    using difference_type = Size;
+    using pointer = RawT*;
+    using reference = RawT&;
 };
 
 
 /// Wrapper for iterating over given component of vector array
 template <typename TBuffer>
-struct VectorComponentAdapter  {
+struct VectorComponentAdapter {
     TBuffer data;
     const int component;
 
@@ -81,11 +140,16 @@ struct VectorComponentAdapter  {
 
     VectorComponentAdapter(TBuffer&& data, const int component)
         : data(std::forward<TBuffer>(data))
-        , component(component) {}
+        , component(component) {
+    }
 
-    auto begin() { return ComponentIterator<TIterator>(data.begin(), component); }
+    auto begin() {
+        return ComponentIterator<TIterator>(data.begin(), component);
+    }
 
-    auto end() { return ComponentIterator<TIterator>(data.end(), component); }
+    auto end() {
+        return ComponentIterator<TIterator>(data.end(), component);
+    }
 };
 
 

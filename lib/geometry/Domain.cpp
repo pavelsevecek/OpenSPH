@@ -7,11 +7,16 @@ NAMESPACE_SPH_BEGIN
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 SphericalDomain::SphericalDomain(const Vector& center, const Float& radius)
-    : Abstract::Domain(center, radius)
-    , radiusSqr(radius * radius) {}
+    : Abstract::Domain(center)
+    , radius(radius) {}
 
 Float SphericalDomain::getVolume() const {
-    return sphereVolume(this->maxRadius);
+    return sphereVolume(radius);
+}
+
+Box SphericalDomain::getBoundingBox() const {
+    const Vector r(radius);
+    return Box(this->center - r, this->center + r);
 }
 
 bool SphericalDomain::isInside(const Vector& v) const {
@@ -43,7 +48,6 @@ void SphericalDomain::getSubset(ArrayView<const Vector> vs,
 
 void SphericalDomain::getDistanceToBoundary(ArrayView<const Vector> vs, Array<Float>& distances) const {
     distances.clear();
-    Float radius = sqrt(radiusSqr);
     for (const Vector& v : vs) {
         const Float dist = radius - getLength(v - this->center);
         distances.push(dist);
@@ -51,8 +55,7 @@ void SphericalDomain::getDistanceToBoundary(ArrayView<const Vector> vs, Array<Fl
 }
 
 void SphericalDomain::project(ArrayView<Vector> vs, Optional<ArrayView<Size>> indices) const {
-    Float radius = sqrt(radiusSqr);
-    auto impl = [this, radius](Vector& v) {
+    auto impl = [this](Vector& v) {
         if (!isInsideImpl(v)) {
             const Float h = v[H];
             v = getNormalized(v - this->center) * radius + this->center;
@@ -76,7 +79,6 @@ void SphericalDomain::addGhosts(ArrayView<const Vector> vs,
     const Float eps) const {
     ASSERT(eps < eta);
     ghosts.clear();
-    const Float radius = sqrt(radiusSqr);
     // iterate using indices as the array can reallocate during the loop
     for (Size i = 0; i < vs.size(); ++i) {
         if (!isInsideImpl(vs[i])) {
@@ -102,11 +104,15 @@ void SphericalDomain::addGhosts(ArrayView<const Vector> vs,
 
 
 BlockDomain::BlockDomain(const Vector& center, const Vector& edges)
-    : Abstract::Domain(center, 0.5_f * getLength(edges))
+    : Abstract::Domain(center)
     , box(center - 0.5_f * edges, center + 0.5_f * edges) {}
 
 Float BlockDomain::getVolume() const {
     return box.volume();
+}
+
+Box BlockDomain::getBoundingBox() const {
+    return box;
 }
 
 bool BlockDomain::isInside(const Vector& v) const {
@@ -231,13 +237,18 @@ CylindricalDomain::CylindricalDomain(const Vector& center,
     const Float radius,
     const Float height,
     const bool includeBases)
-    : Abstract::Domain(center, sqrt(sqr(radius) + sqr(height)))
-    , radiusSqr(radius * radius)
+    : Abstract::Domain(center)
+    , radius(radius)
     , height(height)
     , includeBases(includeBases) {}
 
 Float CylindricalDomain::getVolume() const {
-    return PI * radiusSqr * height;
+    return PI * sqr(radius) * height;
+}
+
+Box CylindricalDomain::getBoundingBox() const {
+    const Vector sides(radius, radius, 0.5_f * height);
+    return Box(this->center - sides, this->center + sides);
 }
 
 bool CylindricalDomain::isInside(const Vector& v) const {
@@ -266,7 +277,6 @@ void CylindricalDomain::getSubset(ArrayView<const Vector> vs,
 
 void CylindricalDomain::getDistanceToBoundary(ArrayView<const Vector> vs, Array<Float>& distances) const {
     distances.clear();
-    Float radius = sqrt(radiusSqr);
     for (const Vector& v : vs) {
         const Float dist = radius - getLength(Vector(v[X], v[Y], this->center[Z]) - this->center);
         if (includeBases) {
@@ -279,16 +289,17 @@ void CylindricalDomain::getDistanceToBoundary(ArrayView<const Vector> vs, Array<
 }
 
 void CylindricalDomain::project(ArrayView<Vector> vs, Optional<ArrayView<Size>> indices) const {
-    Float radius = sqrt(radiusSqr);
-    auto impl = [this, radius](Vector& v) {
+    auto impl = [this](Vector& v) {
         if (!isInsideImpl(v)) {
             const Float h = v[H];
             v = getNormalized(Vector(v[X], v[Y], this->center[Z]) - this->center) * radius +
                 Vector(this->center[X], this->center[Y], v[Z]);
+            if (includeBases) {
+                v[Z] = clamp(v[Z], this->center[Z] - 0.5_f * height, this->center[Z] + 0.5_f * height);
+            }
             v[H] = h;
         }
     };
-    ASSERT(!includeBases); // including bases not implemented
     if (indices) {
         for (Size i : indices.get()) {
             impl(vs[i]);
@@ -306,7 +317,6 @@ void CylindricalDomain::addGhosts(ArrayView<const Vector> vs,
     const Float eps) const {
     ghosts.clear();
     ASSERT(eps < eta);
-    Float radius = sqrt(radiusSqr);
     for (Size i = 0; i < vs.size(); ++i) {
         if (!isInsideImpl(vs[i])) {
             continue;
@@ -345,15 +355,20 @@ HexagonalDomain::HexagonalDomain(const Vector& center,
     const Float radius,
     const Float height,
     const bool includeBases)
-    : Abstract::Domain(center, sqrt(sqr(radius) + sqr(height)))
-    , outerRadiusSqr(radius * radius)
-    , innerRadiusSqr(0.75_f * outerRadiusSqr)
+    : Abstract::Domain(center)
+    , outerRadius(radius)
+    , innerRadius(sqrt(0.75_f) * outerRadius)
     , height(height)
     , includeBases(includeBases) {}
 
 Float HexagonalDomain::getVolume() const {
     // 6 equilateral triangles
-    return 1.5_f * sqrt(3) * outerRadiusSqr;
+    return 1.5_f * sqrt(3) * sqr(outerRadius);
+}
+
+Box HexagonalDomain::getBoundingBox() const {
+    const Vector sides(outerRadius, outerRadius, 0.5_f * height);
+    return Box(this->center - sides, this->center + sides);
 }
 
 bool HexagonalDomain::isInside(const Vector& v) const {
@@ -385,17 +400,18 @@ void HexagonalDomain::getDistanceToBoundary(ArrayView<const Vector>, Array<Float
 }
 
 void HexagonalDomain::project(ArrayView<Vector> vs, Optional<ArrayView<Size>> indices) const {
-    Float radius = sqrt(outerRadiusSqr);
-    auto impl = [this, radius](Vector& v) {
+    auto impl = [this](Vector& v) {
         if (!isInsideImpl(v)) {
             // find triangle
             const Float phi = atan2(v[Y], v[X]);
-            const Float r = radius * hexagon(phi);
+            const Float r = outerRadius * hexagon(phi);
             const Vector u = r * getNormalized(Vector(v[X], v[Y], 0._f));
             v = Vector(u[X], u[Y], v[Z], v[H]);
+            if (includeBases) {
+                v[Z] = clamp(v[Z], this->center[Z] - 0.5_f * height, this->center[Z] + 0.5_f * height);
+            }
         }
     };
-    ASSERT(!includeBases); // including bases not implemented
     if (indices) {
         for (Size i : indices.get()) {
             impl(vs[i]);
@@ -414,7 +430,6 @@ void HexagonalDomain::addGhosts(ArrayView<const Vector> vs,
     ghosts.clear();
     ASSERT(eps < eta);
     /// \todo almost identical to cylinder domain, remove duplication
-    Float radius = sqrt(outerRadiusSqr);
     for (Size i = 0; i < vs.size(); ++i) {
         if (!isInsideImpl(vs[i])) {
             continue;
@@ -424,9 +439,9 @@ void HexagonalDomain::addGhosts(ArrayView<const Vector> vs,
         tieToTuple(normalized, length) =
             getNormalizedWithLength(Vector(vs[i][X], vs[i][Y], this->center[Z]) - this->center);
         const Float h = vs[i][H];
-        ASSERT(radius - length >= 0._f);
+        ASSERT(outerRadius - length >= 0._f);
         const Float phi = atan2(vs[i][Y], vs[i][X]);
-        const Float r = radius * hexagon(phi);
+        const Float r = outerRadius * hexagon(phi);
         Float diff = max(eps * h, r - length);
         if (diff < h * eta) {
             Vector v = vs[i] + 2._f * diff * normalized;

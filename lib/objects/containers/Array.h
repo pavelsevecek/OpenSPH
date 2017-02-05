@@ -22,6 +22,7 @@ private:
 
 public:
     using Type = T;
+    using Counter = TCounter;
 
     Array() = default;
 
@@ -156,9 +157,13 @@ public:
         }
     }
 
-    INLINE TCounter size() const { return this->actSize; }
+    INLINE TCounter size() const {
+        return this->actSize;
+    }
 
-    INLINE bool empty() const { return this->actSize == 0; }
+    INLINE bool empty() const {
+        return this->actSize == 0;
+    }
 
     /// Resize the array. All stored values (within interval [0, newSize-1]) are preserved.
     void resize(const TCounter newSize) {
@@ -275,7 +280,9 @@ public:
     }
 
     /// Implicit conversion to arrayview.
-    INLINE operator ArrayView<T, TCounter>() { return ArrayView<T, TCounter>(data, actSize); }
+    INLINE operator ArrayView<T, TCounter>() {
+        return ArrayView<T, TCounter>(data, actSize);
+    }
 
     /// Implicit conversion to arrayview, const version.
     INLINE operator ArrayView<const T, TCounter>() const {
@@ -283,18 +290,24 @@ public:
     }
 
     /// Explicit conversion to arrayview
-    ArrayView<T, TCounter> getView() { return ArrayView<T, TCounter>(data, actSize); }
+    ArrayView<T, TCounter> getView() {
+        return ArrayView<T, TCounter>(data, actSize);
+    }
 
     /// Explicit conversion to arrayview, const version
-    ArrayView<const T, TCounter> getView() const { return ArrayView<const T, TCounter>(data, actSize); }
+    ArrayView<const T, TCounter> getView() const {
+        return ArrayView<const T, TCounter>(data, actSize);
+    }
 
     /// Comparison operator, comparings array element-by-element. If arrays differ in number of
     /// constructed
     /// elements, the comparison always returns false; allocated size does not play role here.
-    bool operator==(const Array& other) const { return getView() == other.getView(); }
+    bool operator==(const Array& other) const {
+        return getView() == other.getView();
+    }
 
     /// Prints content of array to stream. Stored values must have overloaded << operator.
-    template<typename TStream>
+    template <typename TStream>
     friend TStream& operator<<(TStream& stream, const Array& array) {
         for (const T& t : array) {
             stream << t << std::endl;

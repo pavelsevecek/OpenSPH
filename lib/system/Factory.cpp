@@ -133,9 +133,8 @@ std::unique_ptr<Abstract::BoundaryConditions> Factory::getBoundaryConditions(con
         }
     case BoundaryEnum::PROJECT_1D: {
         ASSERT(domain != nullptr);
-        const Vector center = domain->getCenter();
-        const Float radius = domain->getBoundingRadius();
-        return std::make_unique<Projection1D>(Range(center[0] - radius, center[0] + radius));
+        const Box box = domain->getBoundingBox();
+        return std::make_unique<Projection1D>(Range(box.lower()[X], box.upper()[X]));
     }
     default:
         NOT_IMPLEMENTED;

@@ -26,21 +26,19 @@ namespace Abstract {
     class Domain : public Polymorphic {
     protected:
         Vector center;
-        Float maxRadius;
 
     public:
-        /// Constructs the domain given its center point and a radius of a sphere containing the whole domain
-        Domain(const Vector& center, const Float& maxRadius)
-            : center(center)
-            , maxRadius(maxRadius) {
-            ASSERT(maxRadius > 0._f);
-        }
+        /// Constructs the domain given its center point.
+        Domain(const Vector& center)
+            : center(center) {}
 
         /// Returns the center of the domain
-        virtual Vector getCenter() const { return this->center; }
+        virtual Vector getCenter() const {
+            return this->center;
+        }
 
-        /// Returns the bounding radius of the domain
-        virtual Float getBoundingRadius() const { return this->maxRadius; }
+        /// Returns the bounding box of the domain
+        virtual Box getBoundingBox() const = 0;
 
         /// Returns the total d-dimensional volume of the domain
         virtual Float getVolume() const = 0;
@@ -94,12 +92,14 @@ namespace Abstract {
 /// Spherical domain, defined by the center of sphere and its radius.
 class SphericalDomain : public Abstract::Domain {
 private:
-    Float radiusSqr;
+    Float radius;
 
 public:
     SphericalDomain(const Vector& center, const Float& radius);
 
     virtual Float getVolume() const override;
+
+    virtual Box getBoundingBox() const override;
 
     virtual bool isInside(const Vector& v) const override;
 
@@ -117,7 +117,9 @@ public:
         const Float eps) const override;
 
 private:
-    INLINE bool isInsideImpl(const Vector& v) const { return getSqrLength(v - this->center) < radiusSqr; }
+    INLINE bool isInsideImpl(const Vector& v) const {
+        return getSqrLength(v - this->center) <= sqr(radius);
+    }
 };
 
 
@@ -131,6 +133,8 @@ public:
     BlockDomain(const Vector& center, const Vector& edges);
 
     virtual Float getVolume() const override;
+
+    virtual Box getBoundingBox() const override;
 
     virtual bool isInside(const Vector& v) const override;
 
@@ -152,7 +156,7 @@ public:
 /// Cylinder aligned with z-axis, optionally including bases (can be either open or close cylinder).
 class CylindricalDomain : public Abstract::Domain {
 private:
-    Float radiusSqr; // radius of the base
+    Float radius;
     Float height;
     bool includeBases;
 
@@ -160,6 +164,8 @@ public:
     CylindricalDomain(const Vector& center, const Float radius, const Float height, const bool includeBases);
 
     virtual Float getVolume() const override;
+
+    virtual Box getBoundingBox() const override;
 
     virtual bool isInside(const Vector& v) const override;
 
@@ -178,7 +184,7 @@ public:
 
 private:
     INLINE bool isInsideImpl(const Vector& v) const {
-        return getSqrLength(Vector(v[X], v[Y], this->center[Z]) - center) <= radiusSqr &&
+        return getSqrLength(Vector(v[X], v[Y], this->center[Z]) - center) <= sqr(radius) &&
                sqr(v[Z] - this->center[Z]) <= sqr(0.5_f * height);
     }
 };
@@ -189,8 +195,8 @@ private:
 /// \todo could be easily generalized to any polygon, currently not needed though
 class HexagonalDomain : public Abstract::Domain {
 private:
-    Float outerRadiusSqr; // bounding radius of the base
-    Float innerRadiusSqr;
+    Float outerRadius; // bounding radius of the base
+    Float innerRadius;
     Float height;
     bool includeBases;
 
@@ -198,6 +204,8 @@ public:
     HexagonalDomain(const Vector& center, const Float radius, const Float height, const bool includeBases);
 
     virtual Float getVolume() const override;
+
+    virtual Box getBoundingBox() const override;
 
     virtual bool isInside(const Vector& v) const override;
 
@@ -220,10 +228,10 @@ private:
             return false;
         }
         const Float sqrLength = getSqrLength(v);
-        if (sqrLength > outerRadiusSqr) {
+        if (sqrLength > sqr(outerRadius)) {
             return false;
         }
-        if (sqrLength <= innerRadiusSqr) {
+        if (sqrLength <= sqr(innerRadius)) {
             return true;
         }
         const Float phi = atan2(v[Y], v[X]);

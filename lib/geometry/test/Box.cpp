@@ -16,6 +16,7 @@ TEST_CASE("Box default construction", "[box]") {
     box.extend(v);
     REQUIRE(box.lower() == v);
     REQUIRE(box.upper() == v);
+    REQUIRE(box.center() == v);
     REQUIRE(box.size() == Vector(0._f));
     REQUIRE(box.volume() == 0._f);
     REQUIRE(box.contains(v));
@@ -28,6 +29,7 @@ TEST_CASE("Box bound construction", "[box]") {
     Box box1(Vector(1._f, 0._f, 2._f), Vector(3._f, 0._f, 5._f));
     REQUIRE(box1.lower() == Vector(1._f, 0._f, 2._f));
     REQUIRE(box1.upper() == Vector(3._f, 0._f, 5._f));
+    REQUIRE(box1.center() == Vector(2._f, 0._f, 3.5_f));
     REQUIRE(box1.size() == Vector(2._f, 0._f, 3._f));
     REQUIRE(box1.volume() == 0._f);
 
@@ -38,6 +40,7 @@ TEST_CASE("Box bound construction", "[box]") {
     Box box2(Vector(-1._f), Vector(4._f));
     REQUIRE(box2.lower() == Vector(-1._f));
     REQUIRE(box2.upper() == Vector(4._f));
+    REQUIRE(box2.center() == Vector(1.5_f));
     REQUIRE(box2.size() == Vector(5._f));
     REQUIRE(box2.volume() == 125._f);
     REQUIRE(box2.contains(Vector(0._f)));
@@ -54,12 +57,15 @@ TEST_CASE("Box extend", "[box]") {
     box.extend(Vector(-1.f, 0._f, 0._f));
     REQUIRE(box.lower() == Vector(-1._f, 0._f, 0._f));
     REQUIRE(box.upper() == Vector(0._f, 0._f, 0._f));
+    REQUIRE(box.center() == Vector(-0.5_f, 0._f, 0._f));
     box.extend(Vector(0._f, 2._f, 0._f));
     REQUIRE(box.lower() == Vector(-1._f, 0._f, 0._f));
     REQUIRE(box.upper() == Vector(0._f, 2._f, 0._f));
+    REQUIRE(box.center() == Vector(-0.5_f, 1._f, 0._f));
     box.extend(Vector(3._f, -4._f, 6._f));
     REQUIRE(box.lower() == Vector(-1._f, -4._f, 0._f));
     REQUIRE(box.upper() == Vector(3._f, 2._f, 6._f));
+    REQUIRE(box.center() == Vector(1._f, -1._f, 3._f));
 }
 
 TEST_CASE("Box clamp", "[box]") {

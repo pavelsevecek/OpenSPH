@@ -61,27 +61,22 @@ public:
         return minBound;
     }
 
-    /*/// Returns lower bounds of the box.
-    INLINE Vector& lower() {
-        ASSERT(isValid());
-        return minBound;
-    }*/
-
     /// Returns upper bounds of the box
     INLINE const Vector& upper() const {
         ASSERT(isValid());
         return maxBound;
     }
 
-    /*INLINE Vector& upper() {
-        ASSERT(isValid());
-        return maxBound;
-    }*/
-
     /// Returns box dimensions.
     INLINE Vector size() const {
         ASSERT(isValid());
         return maxBound - minBound;
+    }
+
+    /// Returns the center of the box.
+    INLINE Vector center() const {
+        ASSERT(isValid());
+        return 0.5_f * (minBound + maxBound);
     }
 
     /// Returns the volume of the box.
@@ -108,7 +103,7 @@ public:
     template <typename TFunctor>
     void iterateWithIndices(const Vector& step, TFunctor&& functor) const {
         ASSERT(isValid());
-        int i = 0, j = 0, k = 0;
+        Size i = 0, j = 0, k = 0;
         for (Float z = minBound[Z]; z <= maxBound[Z]; z += step[Z], k++) {
             i = 0;
             j = 0;
@@ -129,7 +124,9 @@ public:
     }
 
 private:
-    bool isValid() const { return minElement(maxBound - minBound) >= 0._f; }
+    bool isValid() const {
+        return minElement(maxBound - minBound) >= 0._f;
+    }
 };
 
 

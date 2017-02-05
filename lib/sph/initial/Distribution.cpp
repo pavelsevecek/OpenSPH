@@ -15,10 +15,7 @@ NAMESPACE_SPH_BEGIN
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 Array<Vector> RandomDistribution::generate(const Size n, const Abstract::Domain& domain) const {
-    const Vector center(domain.getCenter());
-    const Vector radius(domain.getBoundingRadius());
-    const Box bounds(center - radius, center + radius);
-
+    const Box bounds = domain.getBoundingBox();
     VectorPdfRng<HaltonQrng> boxRng(bounds);
     Array<Vector> vecs(0, n);
     // use homogeneous smoothing lenghs regardless of actual spatial variability of particle concentration
@@ -50,13 +47,11 @@ Array<Vector> CubicPacking::generate(const Size n, const Abstract::Domain& domai
     const Float h = 1._f / root<3>(particleDensity);
     ASSERT(isReal(h));
 
-    const Vector center(domain.getCenter());
-    const Vector radius(domain.getBoundingRadius() + h);
-    const Box box(center - radius, center + radius);
-
-    Array<Vector> vecs(0, 2 * n); /// \todo better estimate of how many we need to allocate, or
-                                  /// reallocation like std::vector
-    box.iterate(Vector(h, h, h), [&vecs, &domain, h](Vector&& v) {
+    const Box boundingBox = domain.getBoundingBox();
+    const Vector step(h);
+    const Box box(boundingBox.lower() + 0.5_f * step, boundingBox.upper());
+    Array<Vector> vecs;
+    box.iterate(step, [&vecs, &domain, h](Vector&& v) {
         if (domain.isInside(v)) {
             v[H] = h;
             vecs.push(std::move(v));
@@ -85,14 +80,13 @@ Array<Vector> HexagonalPacking::generate(const Size n, const Abstract::Domain& d
     const Float dy = sqrt(3._f) * 0.5_f * dx;
     const Float dz = sqrt(6._f) / 3._f * dx;
 
-    const Vector center(domain.getCenter());
-    const Vector radius(domain.getBoundingRadius());
-    const Box box(center - radius, center + radius);
-
+    const Box boundingBox = domain.getBoundingBox();
+    const Vector step(dx, dy, dz);
+    const Box box(boundingBox.lower() + 0.5_f * step, boundingBox.upper());
     Array<Vector> vecs;
     const Float deltaX = 0.5_f * dx;
     const Float deltaY = sqrt(3._f) / 6._f * dx;
-    box.iterateWithIndices(Vector(dx, dy, dz), [&](Indices&& idxs, Vector&& v) {
+    box.iterateWithIndices(step, [&](Indices&& idxs, Vector&& v) {
         if (idxs[2] % 2 == 0) {
             if (idxs[1] % 2 == 1) {
                 v[X] += deltaX;
@@ -169,8 +163,7 @@ Array<Vector> DiehlEtAlDistribution::generate(const Size n, const Abstract::Doma
     }
     const Size N = Size(particleCnt); // final particle count of the target
 
-    Box boundingBox(domain.getCenter() - Vector(domain.getBoundingRadius()),
-        domain.getCenter() + Vector(domain.getBoundingRadius()));
+    Box boundingBox = domain.getBoundingBox();
     VectorPdfRng<HaltonQrng> rng(boundingBox, actDensity);
 
     // generate initial particle positions
@@ -246,7 +239,7 @@ Array<Vector> DiehlEtAlDistribution::generate(const Size n, const Abstract::Doma
 
 Array<Vector> LinearDistribution::generate(const Size n, const Abstract::Domain& domain) const {
     const Float center = domain.getCenter()[X];
-    const Float radius = domain.getBoundingRadius();
+    const Float radius = 0.5_f * domain.getBoundingBox().size()[X];
     Array<Vector> vs(0, n);
     const Float dx = 2._f * radius / (n - 1);
     for (Size i = 0; i < n; ++i) {

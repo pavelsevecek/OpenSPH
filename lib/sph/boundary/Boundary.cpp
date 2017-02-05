@@ -1,5 +1,6 @@
 #include "sph/boundary/Boundary.h"
 #include "geometry/Domain.h"
+#include "objects/wrappers/Iterators.h"
 #include "quantities/Iterate.h"
 #include "system/Factory.h"
 
@@ -94,7 +95,8 @@ FrozenParticles::~FrozenParticles() = default;
 
 FrozenParticles::FrozenParticles(std::unique_ptr<Abstract::Domain>&& domain, const Float radius)
     : domain(std::move(domain))
-    , radius(radius) {}
+    , radius(radius) {
+}
 
 /// Adds body ID particles of which shall be frozen by boundary conditions.
 void FrozenParticles::freeze(const Size flag) {
@@ -126,11 +128,13 @@ void FrozenParticles::apply(Storage& storage) {
         }
     }
 
-    // find all frozen particles by their body flag
-    ArrayView<Size> flags = storage.getValue<Size>(QuantityIds::FLAG);
-    for (Size i = 0; i < r.size(); ++i) {
-        if (frozen.find(flags[i]) != frozen.end()) {
-            idxs.push(i); // this might add particles already frozen by boundary, but it doesn't matter
+    if (!frozen.empty()) {
+        // find all frozen particles by their body flag
+        ArrayView<Size> flags = storage.getValue<Size>(QuantityIds::FLAG);
+        for (Size i = 0; i < r.size(); ++i) {
+            if (frozen.find(flags[i]) != frozen.end()) {
+                idxs.push(i); // this might add particles already frozen by boundary, but it doesn't matter
+            }
         }
     }
 
@@ -143,6 +147,67 @@ void FrozenParticles::apply(Storage& storage) {
     });
 }
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/// WindTunnel implementation
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+WindTunnel::WindTunnel(std::unique_ptr<Abstract::Domain>&& domain, const Float radius)
+    : FrozenParticles(std::move(domain), radius) {
+}
+
+void WindTunnel::apply(Storage& storage) {
+    // clear derivatives of particles close to boundary
+    FrozenParticles::apply(storage);
+
+    // remove particles outside of the domain
+    Array<Size> toRemove;
+    Array<Vector>& r = storage.getValue<Vector>(QuantityIds::POSITIONS);
+    for (Size i = 0; i < r.size(); ++i) {
+        if (!this->domain->isInside(r[i])) {
+            toRemove.push(i);
+        }
+    }
+    iterate<VisitorEnum::ALL_BUFFERS>(storage, [&toRemove](auto&& v) {
+        for (Size idx : reverse(toRemove)) { // iterate in reverse to remove higher indices first
+            v.remove(idx);
+        }
+    });
+
+    // find z positions of upper two layers of particles
+    Float z1 = -INFTY, z2 = -INFTY;
+    for (Size i = 0; i < r.size(); ++i) {
+        if (r[i][Z] > z1) {
+            z2 = z1;
+            z1 = r[i][Z];
+        }
+    }
+    ASSERT(z2 > -INFTY && z1 > z2 + 0.1_f * r[0][H]);
+    const Float dz = z1 - z2;
+    if (z1 + 2._f * dz < this->domain->getBoundingBox().upper()[Z]) {
+        // find indices of upper two layers
+        Array<Size> idxs;
+        const Size size = r.size();
+        for (Size i = 0; i < size; ++i) {
+            if (r[i][Z] >= z2) {
+                idxs.push(i);
+            }
+        }
+        ASSERT(!idxs.empty());
+        // copy all quantities
+        iterate<VisitorEnum::ALL_BUFFERS>(storage, [&idxs](auto&& v) {
+            for (Size i : idxs) {
+                auto cloned = v[i];
+                v.push(cloned);
+            }
+        });
+        // move created particles by 2dz
+        const Vector offset(0._f, 0._f, 2._f * dz);
+        for (Size i = size; i < r.size(); ++i) {
+            r[i] += offset;
+        }
+    }
+}
+
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// Projection1D implementation
@@ -150,7 +215,8 @@ void FrozenParticles::apply(Storage& storage) {
 
 
 Projection1D::Projection1D(const Range& domain)
-    : domain(domain) {}
+    : domain(domain) {
+}
 
 void Projection1D::apply(Storage& storage) {
     ArrayView<Vector> dv;

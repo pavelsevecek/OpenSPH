@@ -39,7 +39,8 @@ private:
 public:
     /// Constructs an integrator given domain of integration.
     Integrator(const Abstract::Domain& domain)
-        : domain(domain) {}
+        : domain(domain) {
+    }
 
     /// Integrate a function.
     /// \param f Functor with a Vector parameter, returning the integral as a scalar value
@@ -53,14 +54,13 @@ public:
         Size n = 0;
         StaticArray<Vector, chunk> buffer;
         Array<Size> inside;
-        Vector center = domain.getCenter();
-        Float radius = domain.getBoundingRadius();
+        Box box = domain.getBoundingBox();
         while (true) {
             for (Size i = 0; i < chunk; ++i) {
                 // dimensionless vector
                 const Vector q(rng(0), rng(1), rng(2));
-                // vector with units and properly scaled and moved
-                const Vector v = radius * (2._f * q - Vector(1._f)) + center;
+                // vector properly scaled and moved
+                const Vector v = box.lower() + q * box.size();
                 buffer[i] = v;
             }
             inside.clear();

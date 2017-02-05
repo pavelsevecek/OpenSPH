@@ -158,3 +158,21 @@ TEST_CASE("TracelessTensor almostEqual", "[tracelesstensor]") {
     TracelessTensor t2 = 1.e10_f * t1;
     testTensor(t2);
 }
+
+TEST_CASE("TracelessTensor equality", "[tracelesstensor]") {
+    TracelessTensor t1(Vector(1._f, -2._f, 1._f), Vector(-2._f, -2._f, 4._f), Vector(1._f, 4._f, 1._f));
+    Tensor t2(Vector(1._f, -2._f, 1._f), Vector(-2._f, 1._f, 4._f));
+    Tensor t3(Vector(1._f, -2._f, 1._f), Vector(-2._f, 1._f, 5._f));
+    Tensor t4(Vector(1._f, -2.5_f, 1._f), Vector(-2._f, 1._f, 4._f));
+
+    REQUIRE(t1 == t1);
+    REQUIRE_FALSE(t1 != t1);
+    REQUIRE(t1 == t2);
+    REQUIRE_FALSE(t1 != t2);
+    REQUIRE(t2 == t1);
+    REQUIRE_FALSE(t2 != t1);
+    REQUIRE(t1 != t3);
+    REQUIRE(t1 != t4);
+    REQUIRE(t3 != t1);
+    REQUIRE(t4 != t1);
+}

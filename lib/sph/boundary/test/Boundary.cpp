@@ -4,6 +4,7 @@
 #include "math/rng/VectorRng.h"
 #include "objects/containers/ArrayUtils.h"
 #include "quantities/Storage.h"
+#include "sph/initial/Distribution.h"
 #include "sph/initial/Initial.h"
 #include "system/Settings.h"
 #include "utils/Approx.h"
@@ -16,11 +17,20 @@ using namespace Sph;
 class WallDomain : public Abstract::Domain {
 public:
     WallDomain()
-        : Abstract::Domain(Vector(0._f), 1._f) {}
+        : Abstract::Domain(Vector(0._f)) {
+    }
 
-    virtual Float getVolume() const override { NOT_IMPLEMENTED; }
+    virtual Float getVolume() const override {
+        NOT_IMPLEMENTED;
+    }
 
-    virtual bool isInside(const Vector& UNUSED(v)) const override { NOT_IMPLEMENTED; }
+    virtual Box getBoundingBox() const override {
+        NOT_IMPLEMENTED;
+    }
+
+    virtual bool isInside(const Vector& UNUSED(v)) const override {
+        NOT_IMPLEMENTED;
+    }
 
     virtual void getSubset(ArrayView<const Vector> UNUSED(vs),
         Array<Size>& UNUSED(output),
@@ -373,6 +383,44 @@ TEST_CASE("FrozenParticles by distance", "[boundary]") {
                 return SUCCESS;
             }
         }
+    };
+    REQUIRE_SEQUENCE(test, 0, r.size());
+}
+
+TEST_CASE("WindTunnel generating particles", "[boundary]") {
+    CylindricalDomain domain(Vector(0._f, 0._f, 2._f), 1._f, 4._f, true); // z in [0, 4]
+    Storage storage1;
+    HexagonalPacking distribution(EMPTY_FLAGS);
+    storage1.emplace<Vector, OrderEnum::SECOND_ORDER>(
+        QuantityIds::POSITIONS, distribution.generate(1000, domain));
+    Storage storage2; // will contain subset of particles with z in [0, 2]
+    Array<Vector> r2;
+    Array<Vector>& r_ref = storage1.getValue<Vector>(QuantityIds::POSITIONS);
+    for (Size i = 0; i < r_ref.size(); ++i) {
+        if (r_ref[i][Z] < 2._f) {
+            r2.push(r_ref[i]);
+        }
+    }
+    storage2.emplace<Vector, OrderEnum::SECOND_ORDER>(QuantityIds::POSITIONS, std::move(r2));
+    WindTunnel boundary(std::make_unique<CylindricalDomain>(domain), 2._f);
+    const Size size1 = r_ref.size();
+    boundary.apply(storage1); // whole domain filled with particles, no particle should be added nor remoted
+    REQUIRE(r_ref.size() == size1);
+
+    const Size size2 = storage2.getParticleCnt();
+    REQUIRE(size2 > 400); // sanity check
+    boundary.apply(storage2);
+    Array<Vector>& r = storage2.getValue<Vector>(QuantityIds::POSITIONS);
+    REQUIRE(r.size() > size2); // particles have been added
+    REQUIRE(r.size() < r_ref.size());
+    // sort both arrays lexicographically so that particles with same indices match
+    std::sort(r.begin(), r.end(), [](Vector v1, Vector v2) { return lexicographicalLess(v1, v2); });
+    std::sort(r_ref.begin(), r_ref.end(), [](Vector v1, Vector v2) { return lexicographicalLess(v1, v2); });
+    auto test = [&](const Size i) {
+        if (r[i] != approx(r_ref[i])) {
+            return makeFailed("Invalid positions: \n", r[i], " == ", r_ref[i]);
+        }
+        return SUCCESS;
     };
     REQUIRE_SEQUENCE(test, 0, r.size());
 }

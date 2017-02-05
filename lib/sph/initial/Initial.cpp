@@ -26,15 +26,13 @@ void InitialConditions::addBody(const Abstract::Domain& domain,
     const Vector& velocity,
     const Vector& angularVelocity) {
     Storage body(settings);
-    Size N; // Final number of particles
     PROFILE_SCOPE("InitialConditions::addBody");
     std::unique_ptr<Abstract::Distribution> distribution = Factory::getDistribution(settings);
     const Size n = settings.get<int>(BodySettingsIds::PARTICLE_COUNT);
 
     // Generate positions of particles
     Array<Vector> positions = distribution->generate(n, domain);
-    N = positions.size();
-    ASSERT(N > 0);
+    ASSERT(positions.size() > 0);
     body.emplace<Vector, OrderEnum::SECOND_ORDER>(QuantityIds::POSITIONS, std::move(positions));
 
     setQuantities(body, settings, domain.getVolume(), velocity, angularVelocity);
@@ -96,6 +94,17 @@ void InitialConditions::addHeterogeneousBody(const Body& environment, ArrayView<
         environmentVolume,
         environment.velocity,
         environment.angularVelocity);
+    // merge all storages
+    if (storage->getQuantityCnt() == 0) {
+        // this is a first body, simply assign storage
+        *storage = std::move(environmentStorage);
+    } else {
+        // more than one body, merge storages
+        storage->merge(std::move(environmentStorage));
+    }
+    for (Storage& body : bodyStorages) {
+        storage->merge(std::move(body));
+    }
 }
 
 void InitialConditions::setQuantities(Storage& storage,

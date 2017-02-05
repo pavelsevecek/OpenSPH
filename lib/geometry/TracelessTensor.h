@@ -109,10 +109,14 @@ public:
     }
 
     /// Returns diagonal of the matrix
-    INLINE Vector diagonal() const { return Vector(m[M00], m[M11], -m[M00] - m[M11]); }
+    INLINE Vector diagonal() const {
+        return Vector(m[M00], m[M11], -m[M00] - m[M11]);
+    }
 
     /// Returns off-diagonal elements of the matrix
-    INLINE Vector offDiagonal() const { return Vector(m[M01], m[M02], m12); }
+    INLINE Vector offDiagonal() const {
+        return Vector(m[M01], m[M02], m12);
+    }
 
     /// Returns a given element of the matrix.
     INLINE Float operator()(const int rowIdx, const int colIdx) const {
@@ -180,9 +184,13 @@ public:
         return *this;
     }
 
-    INLINE TracelessTensor operator-() const { return TracelessTensor(-m, -m12); }
+    INLINE TracelessTensor operator-() const {
+        return TracelessTensor(-m, -m12);
+    }
 
-    INLINE bool operator==(const TracelessTensor& other) const { return m == other.m && m12 == other.m12; }
+    INLINE bool operator==(const TracelessTensor& other) const {
+        return m == other.m && m12 == other.m12;
+    }
 
     INLINE friend bool operator==(const TracelessTensor& t1, const Tensor& t2) {
         return t1.diagonal() == t2.diagonal() && t1.offDiagonal() == t2.offDiagonal();
@@ -192,9 +200,22 @@ public:
         return t1.diagonal() == t2.diagonal() && t1.offDiagonal() == t2.offDiagonal();
     }
 
+    INLINE bool operator!=(const TracelessTensor& other) const {
+        return m != other.m || m12 != other.m12;
+    }
+
+    INLINE friend bool operator!=(const TracelessTensor& t1, const Tensor& t2) {
+        return t1.diagonal() != t2.diagonal() || t1.offDiagonal() != t2.offDiagonal();
+    }
+
+    INLINE friend bool operator!=(const Tensor& t1, const TracelessTensor& t2) {
+        return t1.diagonal() != t2.diagonal() || t1.offDiagonal() != t2.offDiagonal();
+    }
 
     /// Returns a tensor with all zeros.
-    INLINE static TracelessTensor null() { return TracelessTensor(0._f); }
+    INLINE static TracelessTensor null() {
+        return TracelessTensor(0._f);
+    }
 
     template <typename TStream>
     friend TStream& operator<<(TStream& stream, const TracelessTensor& t) {

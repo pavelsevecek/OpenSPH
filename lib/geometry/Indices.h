@@ -34,7 +34,9 @@ public:
 
 /// Constructs indices by casting components of vectors to ints
 #ifndef NO_ROUNDING_MODE
-    INLINE explicit Indices(const BasicVector<float>& v) { data = _mm_cvtps_epi32(v.sse()); }
+    INLINE explicit Indices(const BasicVector<float>& v) {
+        data = _mm_cvtps_epi32(v.sse());
+    }
 #else
     INLINE explicit Indices(const BasicVector<float>& v)
         : Indices(int(v[X]), int(v[Y]), int(v[Z]), int(v[H])) {}
@@ -61,7 +63,9 @@ public:
     }
 
 #ifndef NO_ROUNDING_MODE
-    INLINE operator BasicVector<float>() const { return BasicVector<float>(_mm_cvtepi32_ps(data)); }
+    INLINE operator BasicVector<float>() const {
+        return BasicVector<float>(_mm_cvtepi32_ps(data));
+    }
 #else
     INLINE operator BasicVector<float>() const {
         return BasicVector<float>((*this)[0], (*this)[1], (*this)[2], (*this)[3]);
@@ -83,23 +87,37 @@ public:
         return *(reinterpret_cast<const int*>(&data) + idx);
     }
 
-    INLINE Indices operator==(const Indices& other) const { return _mm_cmpeq_epi32(data, other.data); }
+    INLINE Indices operator==(const Indices& other) const {
+        return _mm_cmpeq_epi32(data, other.data);
+    }
 
     INLINE Indices operator!=(const Indices& other) {
         return _mm_xor_si128(_mm_cmpeq_epi32(data, other.data), _mm_set1_epi32(-1));
     }
 
-    INLINE Indices operator>(const Indices& other) const { return _mm_cmpgt_epi32(data, other.data); }
+    INLINE Indices operator>(const Indices& other) const {
+        return _mm_cmpgt_epi32(data, other.data);
+    }
 
-    INLINE Indices operator<(const Indices& other) const { return _mm_cmplt_epi32(data, other.data); }
+    INLINE Indices operator<(const Indices& other) const {
+        return _mm_cmplt_epi32(data, other.data);
+    }
 
-    INLINE Indices operator+(const Indices& other) const { return _mm_add_epi32(data, other.data); }
+    INLINE Indices operator+(const Indices& other) const {
+        return _mm_add_epi32(data, other.data);
+    }
 
-    INLINE Indices operator-(const Indices& other) const { return _mm_sub_epi32(data, other.data); }
+    INLINE Indices operator-(const Indices& other) const {
+        return _mm_sub_epi32(data, other.data);
+    }
 
-    INLINE Indices max(const Indices& other) const { return _mm_max_epi32(data, other.data); }
+    INLINE Indices max(const Indices& other) const {
+        return _mm_max_epi32(data, other.data);
+    }
 
-    INLINE Indices min(const Indices& other) const { return _mm_min_epi32(data, other.data); }
+    INLINE Indices min(const Indices& other) const {
+        return _mm_min_epi32(data, other.data);
+    }
 
     template <typename TStream>
     friend TStream& operator<<(TStream& stream, const Indices& idxs) {

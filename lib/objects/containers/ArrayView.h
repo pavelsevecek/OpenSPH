@@ -56,16 +56,28 @@ public:
         return *data;
     }
 #ifdef DEBUG
-    Iterator operator+(const TCounter n) const { return Iterator(data + n, begin, end); }
-    Iterator operator-(const TCounter n) const { return Iterator(data - n, begin, end); }
+    Iterator operator+(const TCounter n) const {
+        return Iterator(data + n, begin, end);
+    }
+    Iterator operator-(const TCounter n) const {
+        return Iterator(data - n, begin, end);
+    }
 #else
-    Iterator operator+(const TCounter n) const { return Iterator(data + n); }
-    Iterator operator-(const TCounter n) const { return Iterator(data - n); }
+    Iterator operator+(const TCounter n) const {
+        return Iterator(data + n);
+    }
+    Iterator operator-(const TCounter n) const {
+        return Iterator(data - n);
+    }
 #endif
-    void operator+=(const TCounter n) { data += n; }
-    void operator-=(const TCounter n) { data -= n; }
+    void operator+=(const TCounter n) {
+        data += n;
+    }
+    void operator-=(const TCounter n) {
+        data -= n;
+    }
     Iterator& operator++() {
-        (*this) += 1;
+        ++data;
         return *this;
     }
     Iterator operator++(int) {
@@ -74,7 +86,7 @@ public:
         return tmp;
     }
     Iterator& operator--() {
-        (*this) -= 1;
+        --data;
         return *this;
     }
     Iterator operator--(int) {
@@ -82,13 +94,28 @@ public:
         operator--();
         return tmp;
     }
-    Size operator-(const Iterator& iter) const { return data - iter.data; }
-    bool operator<(const Iterator& iter) const { return data < iter.data; }
-    bool operator>(const Iterator& iter) const { return data > iter.data; }
-    bool operator<=(const Iterator& iter) const { return data <= iter.data; }
-    bool operator>=(const Iterator& iter) const { return data >= iter.data; }
-    bool operator==(const Iterator& iter) const { return data == iter.data; }
-    bool operator!=(const Iterator& iter) const { return data != iter.data; }
+    Size operator-(const Iterator& iter) const {
+        ASSERT(data >= iter.data);
+        return data - iter.data;
+    }
+    bool operator<(const Iterator& iter) const {
+        return data < iter.data;
+    }
+    bool operator>(const Iterator& iter) const {
+        return data > iter.data;
+    }
+    bool operator<=(const Iterator& iter) const {
+        return data <= iter.data;
+    }
+    bool operator>=(const Iterator& iter) const {
+        return data >= iter.data;
+    }
+    bool operator==(const Iterator& iter) const {
+        return data == iter.data;
+    }
+    bool operator!=(const Iterator& iter) const {
+        return data != iter.data;
+    }
 
 
     using iterator_category = std::random_access_iterator_tag;
@@ -97,6 +124,55 @@ public:
     using pointer = T*;
     using reference = T&;
 };
+
+/// Reverse iterator.
+template <typename T, typename TCounter = Size>
+class ReverseIterator {
+protected:
+    Iterator<T, Size> iter;
+
+public:
+    ReverseIterator() = default;
+
+    ReverseIterator(Iterator<T, Size> iter)
+        : iter(iter) {}
+
+    decltype(auto) operator*() const {
+        return *iter;
+    }
+    decltype(auto) operator*() {
+        return *iter;
+    }
+    ReverseIterator& operator++() {
+        --iter;
+        return *this;
+    }
+    ReverseIterator operator++(int) {
+        ReverseIterator tmp(*this);
+        operator++();
+        return tmp;
+    }
+    ReverseIterator& operator--() {
+        ++iter;
+        return *this;
+    }
+    ReverseIterator operator--(int) {
+        ReverseIterator tmp(*this);
+        operator--();
+        return tmp;
+    }
+    bool operator==(const ReverseIterator& other) const {
+        return iter == other.iter;
+    }
+    bool operator!=(const ReverseIterator& other) const {
+        return iter != other.iter;
+    }
+};
+
+template <typename T, typename TCounter>
+ReverseIterator<T, TCounter> reverseIterator(const Iterator<T, TCounter> iter) {
+    return ReverseIterator<T, TCounter>(iter);
+}
 
 
 /// Object providing safe access to continuous memory of data, useful to write generic code that can be used
@@ -116,10 +192,6 @@ public:
     ArrayView(StorageType* data, TCounter size)
         : data(data)
         , actSize(size) {}
-
-    /*ArrayView(std::initializer_list<StorageType> list)
-        : data(&*list.begin())
-        , actSize(list.size()) {}*/
 
     ArrayView(const ArrayView& other)
         : data(other.data)
@@ -150,7 +222,9 @@ public:
     }
 
     /// Implicit conversion to const version
-    operator ArrayView<const T, TCounter>() { return ArrayView<const T, TCounter>(data, actSize); }
+    operator ArrayView<const T, TCounter>() {
+        return ArrayView<const T, TCounter>(data, actSize);
+    }
 
     Iterator<StorageType, TCounter> begin() {
         return Iterator<StorageType, TCounter>(data, data, data + actSize);
@@ -178,9 +252,13 @@ public:
         return data[idx];
     }
 
-    INLINE TCounter size() const { return this->actSize; }
+    INLINE TCounter size() const {
+        return this->actSize;
+    }
 
-    INLINE bool empty() const { return this->actSize == 0; }
+    INLINE bool empty() const {
+        return this->actSize == 0;
+    }
 
     /// Returns a subset of the arrayview.
     INLINE ArrayView subset(const TCounter start, const TCounter length) {
@@ -188,9 +266,13 @@ public:
         return ArrayView(data + start, length);
     }
 
-    INLINE bool operator!() const { return data == nullptr; }
+    INLINE bool operator!() const {
+        return data == nullptr;
+    }
 
-    INLINE explicit operator bool() const { return data != nullptr; }
+    INLINE explicit operator bool() const {
+        return data != nullptr;
+    }
 
     /// Comparison operator, comparings arrayviews element-by-element.
     bool operator==(const ArrayView& other) const {

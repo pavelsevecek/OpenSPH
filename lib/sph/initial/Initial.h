@@ -33,7 +33,7 @@ public:
         const Vector& angularVelocity = Vector(0._f));
 
     struct Body {
-        Abstract::Domain& domain;
+        const Abstract::Domain& domain;
         BodySettings& settings;
         Vector velocity;
         Vector angularVelocity;

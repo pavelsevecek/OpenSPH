@@ -98,7 +98,9 @@ public:
     }
 
     /// Returns the data as SSE vector.
-    INLINE const __m128& sse() const { return data; }
+    INLINE const __m128& sse() const {
+        return data;
+    }
 
     /// Copy operator
     INLINE BasicVector& operator=(const BasicVector& v) {
@@ -177,7 +179,9 @@ public:
         return (_mm_movemask_ps(_mm_cmpeq_ps(v1.data, v2.data)) & mask) == mask;
     }
 
-    INLINE friend bool operator!=(const BasicVector& v1, const BasicVector& v2) { return !(v1 == v2); }
+    INLINE friend bool operator!=(const BasicVector& v1, const BasicVector& v2) {
+        return !(v1 == v2);
+    }
 
     template <typename TStream>
     friend TStream& operator<<(TStream& stream, const BasicVector& v) {
@@ -322,7 +326,9 @@ public:
         return v1[X] == v2[X] && v1[Y] == v2[Y] && v1[Z] == v2[Z];
     }
 
-    INLINE friend bool operator!=(const BasicVector& v1, const BasicVector& v2) { return !(v1 == v2); }
+    INLINE friend bool operator!=(const BasicVector& v1, const BasicVector& v2) {
+        return !(v1 == v2);
+    }
 
     INLINE auto dot(const BasicVector& other) const {
         /// \todo optimize
@@ -508,7 +514,9 @@ public:
         return (r1 & mask1) == mask1 && (r2 & mask2) == mask2;
     }
 
-    INLINE friend bool operator!=(const BasicVector& v1, const BasicVector& v2) { return !(v1 == v2); }
+    INLINE friend bool operator!=(const BasicVector& v1, const BasicVector& v2) {
+        return !(v1 == v2);
+    }
 
     /// Output to stream
     template <typename TStream>
@@ -685,7 +693,7 @@ template <typename T1, typename T2>
 INLINE BasicVector<T1> vectorCast(const BasicVector<T2>& v) {
     return BasicVector<T1>(v[X], v[Y], v[Z], v[H]);
 }
-template<>
+template <>
 INLINE BasicVector<Float> vectorCast(const BasicVector<Float>& v) {
     return v;
 }
@@ -716,6 +724,23 @@ INLINE Vector sphericalInversion(const Vector& v, const Vector& center, const Fl
     const Vector diff = v - center;
     const Float lSqr = getSqrLength(diff);
     return center + diff * radius * radius / lSqr;
+}
+
+/// Compares components of two vectors lexicographically, primary component is z.
+INLINE bool lexicographicalLess(const Vector& v1, const Vector& v2) {
+    if (v1[Z] < v2[Z]) {
+        return true;
+    } else if (v1[Z] > v2[Z]) {
+        return false;
+    } else if (v1[Y] < v2[Y]) {
+        return true;
+    } else if (v1[Y] > v2[Y]) {
+        return false;
+    } else if (v1[X] < v2[X]) {
+        return true;
+    } else {
+        return false;
+    }
 }
 
 NAMESPACE_SPH_END

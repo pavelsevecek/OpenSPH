@@ -83,10 +83,14 @@ public:
     }
 
     /// Returns the diagonal part of the tensor
-    INLINE const Vector& diagonal() const { return diag; }
+    INLINE const Vector& diagonal() const {
+        return diag;
+    }
 
     /// Returns the off-diagonal elements of the tensor
-    INLINE const Vector& offDiagonal() const { return off; }
+    INLINE const Vector& offDiagonal() const {
+        return off;
+    }
 
     /// Applies the tensor on given vector
     INLINE Vector operator*(const Vector& v) const {
@@ -97,9 +101,13 @@ public:
     }
 
     /// Multiplies a tensor by a scalar
-    INLINE friend Tensor operator*(const Tensor& t, const Float v) { return Tensor(t.diag * v, t.off * v); }
+    INLINE friend Tensor operator*(const Tensor& t, const Float v) {
+        return Tensor(t.diag * v, t.off * v);
+    }
 
-    INLINE friend Tensor operator*(const Float v, const Tensor& t) { return Tensor(t.diag * v, t.off * v); }
+    INLINE friend Tensor operator*(const Float v, const Tensor& t) {
+        return Tensor(t.diag * v, t.off * v);
+    }
 
     /// Multiplies a tensor by another tensor, element-wise. Not a matrix multiplication!
     INLINE friend Tensor operator*(const Tensor& t1, const Tensor& t2) {
@@ -107,7 +115,9 @@ public:
     }
 
     /// Divides a tensor by a scalar
-    INLINE friend Tensor operator/(const Tensor& t, const Float v) { return Tensor(t.diag / v, t.off / v); }
+    INLINE friend Tensor operator/(const Tensor& t, const Float v) {
+        return Tensor(t.diag / v, t.off / v);
+    }
 
     /// Divides a tensor by another tensor, element-wise.
     INLINE friend Tensor operator/(const Tensor& t1, const Tensor& t2) {
@@ -135,17 +145,27 @@ public:
         return *this;
     }
 
-    INLINE Tensor operator-() const { return Tensor(-diag, -off); }
+    INLINE Tensor operator-() const {
+        return Tensor(-diag, -off);
+    }
 
-    INLINE bool operator==(const Tensor& other) const { return diag == other.diag && off == other.off; }
+    INLINE bool operator==(const Tensor& other) const {
+        return diag == other.diag && off == other.off;
+    }
 
-    INLINE bool operator!=(const Tensor& other) const { return diag != other.diag || off != other.off; }
+    INLINE bool operator!=(const Tensor& other) const {
+        return diag != other.diag || off != other.off;
+    }
 
     /// Returns an identity tensor.
-    INLINE static Tensor identity() { return Tensor(Vector(1._f, 1._f, 1._f), Vector(0._f, 0._f, 0._f)); }
+    INLINE static Tensor identity() {
+        return Tensor(Vector(1._f, 1._f, 1._f), Vector(0._f, 0._f, 0._f));
+    }
 
     /// Returns a tensor with all zeros.
-    INLINE static Tensor null() { return Tensor(Vector(0._f), Vector(0._f)); }
+    INLINE static Tensor null() {
+        return Tensor(Vector(0._f), Vector(0._f));
+    }
 
     /// Returns the determinant of the tensor
     INLINE Float determinant() const {
@@ -154,7 +174,9 @@ public:
     }
 
     /// Return the trace of the tensor
-    INLINE Float trace() const { return dot(diag, Vector(1._f)); }
+    INLINE Float trace() const {
+        return dot(diag, Vector(1._f));
+    }
 
     /// Returns n-th invariant of the tensor (1<=n<=3)
     template <int n>

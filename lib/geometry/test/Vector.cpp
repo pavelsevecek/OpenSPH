@@ -205,3 +205,12 @@ TEST_CASE("Vector almostEqual", "[vector]") {
     REQUIRE_FALSE(almostEqual(Vector(1.e-10_f), Vector(1.1e-10_f), 1.e-15_f));
     REQUIRE(almostEqual(Vector(1.e-12_f, -2.e-12_f, 0._f), Vector(1.e-12_f, 1.e-18_f - 2.e-12_f, 0._f)));
 }
+
+TEST_CASE("Vector lexicographicalLess", "[vector]") {
+    REQUIRE(lexicographicalLess(Vector(5._f, 3._f, 1._f), Vector(2._f, 1._f, 2._f)));
+    REQUIRE_FALSE(lexicographicalLess(Vector(5._f, 3._f, 1._f), Vector(2._f, 1._f, 0.5_f)));
+    REQUIRE(lexicographicalLess(Vector(5._f, 0._f, 1._f), Vector(2._f, 1._f, 1._f)));
+    REQUIRE_FALSE(lexicographicalLess(Vector(5._f, 3._f, 1._f), Vector(2._f, 1._f, 1._f)));
+    REQUIRE(lexicographicalLess(Vector(1._f, 3._f, 1._f), Vector(2._f, 3._f, 1._f)));
+    REQUIRE_FALSE(lexicographicalLess(Vector(5._f, 3._f, 1._f), Vector(2._f, 3._f, 1._f)));
+}

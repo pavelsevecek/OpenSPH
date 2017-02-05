@@ -1,6 +1,6 @@
 #include "objects/wrappers/Iterators.h"
-#include "objects/containers/Array.h"
 #include "catch.hpp"
+#include "objects/containers/Array.h"
 #include <algorithm>
 
 using namespace Sph;
@@ -28,4 +28,27 @@ TEST_CASE("ComponentIterator", "[iterators]") {
     REQUIRE(data[0] == Vector(0.f, 1.f, 0.f));
     REQUIRE(data[1] == Vector(1.f, 1.f, 1.f));
     REQUIRE(data[2] == Vector(2.f, 1.f, 2.f));
+}
+
+TEST_CASE("ReverseWrapper", "[iterators]") {
+    Array<Size> data;
+    auto empty = reverse(data);
+    REQUIRE(empty.begin() == empty.end());
+    REQUIRE(empty.size() == 0);
+
+    data = Array<Size>{ 1, 2, 3, 4, 5 };
+    auto wrapper = reverse(data);
+    REQUIRE(wrapper.size() == 5);
+    auto iter = wrapper.begin();
+    REQUIRE(*iter == 5);
+    ++iter;
+    REQUIRE(*iter == 4);
+    ++iter;
+    REQUIRE(*iter == 3);
+    ++iter;
+    REQUIRE(*iter == 2);
+    ++iter;
+    REQUIRE(*iter == 1);
+    ++iter;
+    REQUIRE(iter == wrapper.end());
 }

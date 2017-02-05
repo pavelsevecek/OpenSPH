@@ -55,7 +55,7 @@ public:
 /// conditions and move with initial velocity. The 'frozen' particles affect other particles normally and
 /// contribute to all integrals, such as total mometum or energy.
 class FrozenParticles : public Abstract::BoundaryConditions {
-private:
+protected:
     std::unique_ptr<Abstract::Domain> domain;
     Float radius;
 
@@ -88,9 +88,11 @@ public:
 /// Boundary conditions creating particles with given velocity on one end of the domain and removing them on
 /// the other side, while keeping particles inside the domain using either ghost particles or by freezing
 /// them. This is fine-tuned for simulations of a meteorite passing through athmosphere.
-class WindTunnel : public Abstract::BoundaryConditions {
-private:
+class WindTunnel : public FrozenParticles {
 public:
+    WindTunnel(std::unique_ptr<Abstract::Domain>&& domain, const Float radius);
+
+    virtual void apply(Storage& storage) override;
 };
 
 /// Boundary condition moving all particles passed through the domain to the other side of the domain.

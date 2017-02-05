@@ -2,13 +2,13 @@ AlignAfterOpenBracket: DontAlign
 #AlignConsecutiveAssignments: true
 #AlignConsecutiveDeclarations: true
 AlignEscapedNewlinesLeft: false
-AlignOperands:   false
+#AlignOperands:   true
 AlignTrailingComments: true
 AllowAllParametersOfDeclarationOnNextLine: false
 AccessModifierOffset: -4
 AllowShortBlocksOnASingleLine: false
 AllowShortCaseLabelsOnASingleLine: false
-AllowShortFunctionsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: Empty
 AllowShortIfStatementsOnASingleLine: false
 AllowShortLoopsOnASingleLine: false
 AlwaysBreakAfterDefinitionReturnType: None
