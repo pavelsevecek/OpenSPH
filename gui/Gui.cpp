@@ -1,7 +1,9 @@
 #include "gui/Gui.h"
 #include "geometry/Domain.h"
+#include "gui/Collision.h"
 #include "gui/GlPane.h"
 #include "gui/GuiCallbacks.h"
+#include "gui/Meteoroid.h"
 #include "gui/OrthoPane.h"
 #include "gui/Settings.h"
 #include "gui/Window.h"
@@ -22,7 +24,8 @@ IMPLEMENT_APP(Sph::MyApp)
 
 NAMESPACE_SPH_BEGIN
 
-void MyApp::initialConditions(const GlobalSettings& globalSettings, const std::shared_ptr<Storage>& storage) {
+/*void MyApp::initialConditions(const GlobalSettings& globalSettings, const std::shared_ptr<Storage>& storage)
+{
     BodySettings bodySettings;
     bodySettings.set(BodySettingsIds::ENERGY, 0._f);
     bodySettings.set(BodySettingsIds::ENERGY_RANGE, Range(0._f, INFTY));
@@ -42,21 +45,18 @@ void MyApp::initialConditions(const GlobalSettings& globalSettings, const std::s
     bodySettings.set(BodySettingsIds::PARTICLE_COUNT, 100);
     conds.addBody(domain2, bodySettings, Vector(-5.e3_f, 0._f, 0._f)); // 5km/s
     logger.write("Particles in total: ", storage->getParticleCnt());
-}
+}*/
 
 bool MyApp::OnInit() {
-    GlobalSettings globalSettings;
-    /*globalSettings.set(GlobalSettingsIds::DOMAIN_BOUNDARY, BoundaryEnum::GHOST_PARTICLES);
-    globalSettings.set(GlobalSettingsIds::DOMAIN_RADIUS, 2.5_f);
-    globalSettings.set(GlobalSettingsIds::DOMAIN_TYPE, DomainEnum::SPHERICAL);*/
-    globalSettings.set(GlobalSettingsIds::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::PREDICTOR_CORRECTOR);
-    globalSettings.set(GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP, 1.e-5_f);
-    globalSettings.set(GlobalSettingsIds::TIMESTEPPING_MAX_TIMESTEP, 1.e-1_f);
-    globalSettings.set(GlobalSettingsIds::MODEL_FORCE_DIV_S, true);
-    globalSettings.set(GlobalSettingsIds::SPH_FINDER, FinderEnum::VOXEL);
-    globalSettings.set(GlobalSettingsIds::MODEL_AV_TYPE, ArtificialViscosityEnum::STANDARD);
-    globalSettings.set(GlobalSettingsIds::MODEL_DAMAGE, DamageEnum::SCALAR_GRADY_KIPP);
-    globalSettings.set(GlobalSettingsIds::MODEL_YIELDING, YieldingEnum::VON_MISES);
+    /*GlobalSettings globalSettings;
+    globalSettings.set(GlobalSettingsIds::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::PREDICTOR_CORRECTOR)
+        .set(GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP, 1.e-5_f)
+        .set(GlobalSettingsIds::TIMESTEPPING_MAX_TIMESTEP, 1.e-1_f)
+        .set(GlobalSettingsIds::MODEL_FORCE_DIV_S, true)
+        .set(GlobalSettingsIds::SPH_FINDER, FinderEnum::VOXEL)
+        .set(GlobalSettingsIds::MODEL_AV_TYPE, ArtificialViscosityEnum::STANDARD)
+        .set(GlobalSettingsIds::MODEL_DAMAGE, DamageEnum::SCALAR_GRADY_KIPP)
+        .set(GlobalSettingsIds::MODEL_YIELDING, YieldingEnum::VON_MISES);
     Problem* p = new Problem(globalSettings, std::make_shared<Storage>());
     std::string outputDir = "out/" + globalSettings.get<std::string>(GlobalSettingsIds::RUN_OUTPUT_NAME);
     p->output = std::make_unique<TextOutput>(outputDir,
@@ -72,23 +72,33 @@ bool MyApp::OnInit() {
     initialConditions(globalSettings, p->storage);
 
     GuiSettings guiSettings;
-    guiSettings.set<Float>(GuiSettingsIds::VIEW_FOV, 1.e4_f);
-    guiSettings.set<Float>(GuiSettingsIds::PARTICLE_RADIUS, 0.3_f);
-    guiSettings.set<Float>(GuiSettingsIds::ORTHO_CUTOFF, 5.e2_f);
-    window = new Window(p->storage, guiSettings, [globalSettings, p, this]() {
+    guiSettings.set(GuiSettingsIds::VIEW_FOV, 1.e4_f)
+        .set(GuiSettingsIds::PARTICLE_RADIUS, 0.3_f)
+        .set(GuiSettingsIds::ORTHO_CUTOFF, INFTY) // 5.e2_f)
+        .set(GuiSettingsIds::ORTHO_PROJECTION, OrthoEnum::XZ);*/
+
+
+    MeteoroidEntry setup;
+
+
+    p = setup.getProblem();
+    GuiSettings guiSettings = setup.getGuiSettings();
+    window = new Window(p->storage, guiSettings, [this, setup]() {
         ASSERT(this->worker.joinable());
         this->worker.join();
         p->storage->removeAll();
-        this->initialConditions(globalSettings, p->storage);
-        this->worker = std::thread([&p]() { p->run(); });
+        setup.initialConditions(p->storage);
+        this->worker = std::thread([this]() { p->run(); });
     });
     window->SetAutoLayout(true);
     window->Show();
 
     p->callbacks = std::make_unique<GuiCallbacks>(window);
-    worker = std::thread([&p]() { p->run(); });
+    worker = std::thread([this]() { p->run(); });
     return true;
 }
+
+MyApp::MyApp() = default;
 
 MyApp::~MyApp() {
     worker.join();

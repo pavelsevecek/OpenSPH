@@ -78,9 +78,15 @@ std::unique_ptr<Abstract::Finder> Factory::getFinder(const GlobalSettings& setti
 
 std::unique_ptr<Abstract::Distribution> Factory::getDistribution(const BodySettings& settings) {
     const DistributionEnum id = settings.get<DistributionEnum>(BodySettingsIds::INITIAL_DISTRIBUTION);
+    const bool center = settings.get<bool>(BodySettingsIds::CENTER_PARTICLES);
+    const bool sort = settings.get<bool>(BodySettingsIds::PARTICLE_SORTING);
     switch (id) {
-    case DistributionEnum::HEXAGONAL:
-        return std::make_unique<HexagonalPacking>(HexagonalPacking::Options::CENTER);
+    case DistributionEnum::HEXAGONAL: {
+        Flags<HexagonalPacking::Options> flags;
+        flags.setIf(HexagonalPacking::Options::CENTER, center);
+        flags.setIf(HexagonalPacking::Options::SORTED, sort);
+        return std::make_unique<HexagonalPacking>(flags);
+    }
     case DistributionEnum::CUBIC:
         return std::make_unique<CubicPacking>();
     case DistributionEnum::RANDOM:
@@ -106,7 +112,7 @@ std::unique_ptr<Abstract::Domain> Factory::getDomain(const GlobalSettings& setti
         return std::make_unique<CylindricalDomain>(center,
             settings.get<Float>(GlobalSettingsIds::DOMAIN_RADIUS),
             settings.get<Float>(GlobalSettingsIds::DOMAIN_HEIGHT),
-            false);
+            true);
     case DomainEnum::SPHERICAL:
         return std::make_unique<SphericalDomain>(
             center, settings.get<Float>(GlobalSettingsIds::DOMAIN_RADIUS));
@@ -131,6 +137,11 @@ std::unique_ptr<Abstract::BoundaryConditions> Factory::getBoundaryConditions(con
         } else {
             return std::make_unique<FrozenParticles>();
         }
+    case BoundaryEnum::WIND_TUNNEL: {
+        ASSERT(domain != nullptr);
+        const Float radius = settings.get<Float>(GlobalSettingsIds::DOMAIN_FROZEN_DIST);
+        return std::make_unique<WindTunnel>(std::move(domain), radius);
+    }
     case BoundaryEnum::PROJECT_1D: {
         ASSERT(domain != nullptr);
         const Box box = domain->getBoundingBox();

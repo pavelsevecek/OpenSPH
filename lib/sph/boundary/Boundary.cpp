@@ -95,8 +95,7 @@ FrozenParticles::~FrozenParticles() = default;
 
 FrozenParticles::FrozenParticles(std::unique_ptr<Abstract::Domain>&& domain, const Float radius)
     : domain(std::move(domain))
-    , radius(radius) {
-}
+    , radius(radius) {}
 
 /// Adds body ID particles of which shall be frozen by boundary conditions.
 void FrozenParticles::freeze(const Size flag) {
@@ -152,8 +151,7 @@ void FrozenParticles::apply(Storage& storage) {
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 WindTunnel::WindTunnel(std::unique_ptr<Abstract::Domain>&& domain, const Float radius)
-    : FrozenParticles(std::move(domain), radius) {
-}
+    : FrozenParticles(std::move(domain), radius) {}
 
 void WindTunnel::apply(Storage& storage) {
     // clear derivatives of particles close to boundary
@@ -206,6 +204,7 @@ void WindTunnel::apply(Storage& storage) {
             r[i] += offset;
         }
     }
+    ASSERT(storage.isValid());
 }
 
 
@@ -215,8 +214,7 @@ void WindTunnel::apply(Storage& storage) {
 
 
 Projection1D::Projection1D(const Range& domain)
-    : domain(domain) {
-}
+    : domain(domain) {}
 
 void Projection1D::apply(Storage& storage) {
     ArrayView<Vector> dv;

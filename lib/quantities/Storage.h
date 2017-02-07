@@ -1,9 +1,9 @@
 #pragma once
 
+#include "objects/ForwardDecl.h"
 #include "objects/containers/Array.h"
 #include "quantities/Quantity.h"
 #include "quantities/QuantityIds.h"
-#include "objects/ForwardDecl.h"
 #include <map>
 
 NAMESPACE_SPH_BEGIN
@@ -31,7 +31,9 @@ public:
     Storage& operator=(Storage&& other);
 
     /// Checks if the storage contains quantity with given key. Type or order of unit is not specified.
-    bool has(const QuantityIds key) const { return quantities.find(key) != quantities.end(); }
+    bool has(const QuantityIds key) const {
+        return quantities.find(key) != quantities.end();
+    }
 
     /// Checks if the storage contains quantity with given key, value type and order.
     template <typename TValue, OrderEnum TOrder>
@@ -157,7 +159,9 @@ public:
          this->emplace<TValue, TOrder>(key, std::move(values), range);
      }*/
 
-    ArrayView<Material> getMaterials() { return materials; }
+    ArrayView<Material> getMaterials() {
+        return materials;
+    }
 
     /// Returns the number of stored quantities.
     Size getQuantityCnt() const;
@@ -168,11 +172,15 @@ public:
     /// Returns iterator at the beginning of quantity map. Dereferencing the iterator yields
     /// std::pair<QuantityIds, Quantity>.
     /// \todo remove
-    auto begin() { return quantities.begin(); }
+    auto begin() {
+        return quantities.begin();
+    }
 
     /// Returns iterator at the past-to-end of quantity map. Dereferencing the iterator yields
     /// std::pair<QuantityIds, Quantity>.
-    auto end() { return quantities.end(); }
+    auto end() {
+        return quantities.end();
+    }
 
     void merge(Storage&& other);
 
@@ -194,6 +202,10 @@ public:
 
     /// Swap quantities or given subset of quantities between two storages.
     void swap(Storage& other, const Flags<VisitorEnum> flags);
+
+    /// Checks whether the storage is in valid state, that is whether all quantities have the same number of
+    /// values.
+    bool isValid() const;
 };
 
 NAMESPACE_SPH_END

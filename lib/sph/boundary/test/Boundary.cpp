@@ -17,8 +17,7 @@ using namespace Sph;
 class WallDomain : public Abstract::Domain {
 public:
     WallDomain()
-        : Abstract::Domain(Vector(0._f)) {
-    }
+        : Abstract::Domain(Vector(0._f)) {}
 
     virtual Float getVolume() const override {
         NOT_IMPLEMENTED;
@@ -402,6 +401,9 @@ TEST_CASE("WindTunnel generating particles", "[boundary]") {
         }
     }
     storage2.emplace<Vector, OrderEnum::SECOND_ORDER>(QuantityIds::POSITIONS, std::move(r2));
+    // some other quantities for a ride
+    storage2.emplace<Float, OrderEnum::FIRST_ORDER>(QuantityIds::DENSITY, 5._f);
+    storage2.emplace<Size, OrderEnum::ZERO_ORDER>(QuantityIds::MATERIAL_IDX, 5);
     WindTunnel boundary(std::make_unique<CylindricalDomain>(domain), 2._f);
     const Size size1 = r_ref.size();
     boundary.apply(storage1); // whole domain filled with particles, no particle should be added nor remoted
@@ -410,6 +412,7 @@ TEST_CASE("WindTunnel generating particles", "[boundary]") {
     const Size size2 = storage2.getParticleCnt();
     REQUIRE(size2 > 400); // sanity check
     boundary.apply(storage2);
+    REQUIRE(storage2.isValid());
     Array<Vector>& r = storage2.getValue<Vector>(QuantityIds::POSITIONS);
     REQUIRE(r.size() > size2); // particles have been added
     REQUIRE(r.size() < r_ref.size());

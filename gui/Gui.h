@@ -11,6 +11,7 @@ NAMESPACE_SPH_BEGIN
 namespace Abstract {
     class Renderer;
 }
+class Problem;
 class Window;
 class Storage;
 
@@ -23,12 +24,12 @@ class MyApp : public wxApp {
 private:
     Window* window;
     std::thread worker;
-
-    void initialConditions(const GlobalSettings& globalSettings, const std::shared_ptr<Storage>& storage);
+    std::unique_ptr<Problem> p;
 
     virtual bool OnInit();
 
 public:
+    MyApp();
     ~MyApp();
 };
 

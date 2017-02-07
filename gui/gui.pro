@@ -50,4 +50,6 @@ HEADERS += \
     Settings.h \
     Palette.h \
     Color.h \
-    GuiCallbacks.h
+    GuiCallbacks.h \
+    Collision.h \
+    Meteoroid.h

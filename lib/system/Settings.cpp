@@ -291,6 +291,7 @@ std::unique_ptr<BodySettings> BodySettings::instance (new BodySettings {
 
     /// SPH parameters specific for the body
     { BodySettingsIds::INITIAL_DISTRIBUTION,    "sph.initial_distribution",     int(DistributionEnum::HEXAGONAL) },
+    { BodySettingsIds::CENTER_PARTICLES,        "sph.center_particles",         true },
     { BodySettingsIds::PARTICLE_SORTING,        "sph.particle_sorting",         false },
     { BodySettingsIds::PARTICLE_COUNT,          "sph.particle_count",           10000 },
     { BodySettingsIds::AV_ALPHA,                "av.alpha",                     1.5_f },

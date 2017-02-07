@@ -87,8 +87,20 @@ void Storage::resize(const Size newParticleCnt) {
 void Storage::swap(Storage& other, const Flags<VisitorEnum> flags) {
     ASSERT(this->getQuantityCnt() == other.getQuantityCnt());
     for (auto i1 = quantities.begin(), i2 = other.quantities.begin(); i1 != quantities.end(); ++i1, ++i2) {
+        ASSERT(i1->second.size() == i2->second.size());
         i1->second.swap(i2->second, flags);
     }
+}
+
+bool Storage::isValid() const {
+    const Size cnt = this->getParticleCnt();
+    bool valid = true;
+    iterate<VisitorEnum::ALL_BUFFERS>(const_cast<Storage&>(*this), [cnt, &valid](auto&& buffer) {
+        if (buffer.size() != cnt) {
+            valid = false;
+        }
+    });
+    return valid;
 }
 
 void Storage::removeAll() {

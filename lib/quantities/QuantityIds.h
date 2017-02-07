@@ -79,6 +79,12 @@ INLINE std::string getQuantityName(const QuantityIds key) {
         return "Max. value";
     case QuantityIds::INITIAL_VALUE:
         return "Init. value";
+    case QuantityIds::NEIGHBOUR_CNT:
+        return "Neigh. cnt";
+    case QuantityIds::MATERIAL_IDX:
+        return "Mat. idx";
+    case QuantityIds::FLAG:
+        return "Flag";
     default:
         NOT_IMPLEMENTED;
     }

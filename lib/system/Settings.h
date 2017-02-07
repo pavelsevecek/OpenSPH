@@ -61,10 +61,12 @@ public:
     }
 
     /// Saves a value into the settings. Any previous value of the same ID is overriden.
+    /// \returns Reference to the settings object, allowing to queue multiple set functions.
     template <typename TValue>
-    void set(const TEnum idx, TValue&& value) {
+    Settings& set(const TEnum idx, TValue&& value) {
         using StoreType = ConvertToSize<TValue>;
         entries[idx].value = StoreType(std::forward<TValue>(value));
+        return *this;
     }
 
     /// Returns a value of given type from the settings. Value must be stored in settings and must have
@@ -178,6 +180,9 @@ enum class BoundaryEnum {
 
     /// Create ghosts to keep particles inside domain
     GHOST_PARTICLES,
+
+    /// Extension of Frozen Particles, pushing particles inside the domain and removing them on the other end.
+    WIND_TUNNEL,
 
     /// Periodic boundary conditions
     PERIODIC,
@@ -445,6 +450,11 @@ enum class BodySettingsIds {
 
     /// Initial distribution of SPH particles within the domain, see DistributionEnum for options.
     INITIAL_DISTRIBUTION,
+
+    /// If true, generated particles will be moved so that their center of mass corresponds to the center of
+    /// selected domain. Note that this will potentially move some particles outside of the domain, which can
+    /// clash with boundary conditions.
+    CENTER_PARTICLES,
 
     /// If true, particles are sorted using Morton code, preserving locality in memory.
     PARTICLE_SORTING,

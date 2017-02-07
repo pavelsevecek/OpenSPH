@@ -10,7 +10,7 @@ TEST_CASE("Iterate", "[iterate]") {
     storage.resize(5);
     storage.emplace<Vector, OrderEnum::FIRST_ORDER>(QuantityIds::DENSITY, Vector(1._f));
     storage.emplace<Tensor, OrderEnum::FIRST_ORDER>(QuantityIds::DEVIATORIC_STRESS, Tensor(3._f));
-    storage.emplace<TracelessTensor, OrderEnum::ZERO_ORDER>(QuantityIds::AV_BETA, TracelessTensor(6._f));
+    storage.emplace<TracelessTensor, OrderEnum::ZERO_ORDER>(QuantityIds::ENERGY, TracelessTensor(6._f));
 
     int cnt = 0;
     iterate<VisitorEnum::ALL_BUFFERS>(storage, [&cnt](auto&& UNUSED(v)) { cnt++; });

@@ -116,9 +116,24 @@ void OrthoPane::draw(const std::shared_ptr<Storage>& newStorage) {
     storage = newStorage;
     displayedIdxs->clear();
     const Float cutoff = settings.get<Float>(GuiSettingsIds::ORTHO_CUTOFF);
+    const OrthoEnum projection = settings.get<OrthoEnum>(GuiSettingsIds::ORTHO_PROJECTION);
     for (Size i = 0; i < positions.size(); ++i) {
-        if (abs(positions[i][Z]) < cutoff) {
-            displayedIdxs->push(i);
+        switch (projection) {
+        case OrthoEnum::XY:
+            if (abs(positions[i][Z]) < cutoff) {
+                displayedIdxs->push(i);
+            }
+            break;
+        case OrthoEnum::XZ:
+            if (abs(positions[i][Y]) < cutoff) {
+                displayedIdxs->push(i);
+            }
+            break;
+        case OrthoEnum::YZ:
+            if (abs(positions[i][X]) < cutoff) {
+                displayedIdxs->push(i);
+            }
+            break;
         }
     }
     update();

@@ -53,6 +53,7 @@ public:
     }
 
     virtual void integrate(Storage& storage, Statistics& stats) override {
+        ASSERT(storage.isValid());
         const Size size = storage.getParticleCnt();
         ArrayView<Vector> r, v, dv;
         ArrayView<Float> m, rho, drho;
@@ -148,15 +149,15 @@ public:
             dv[i][H] = 0._f;
         }
         this->integrateModules(storage);
-        if (this->boundary) {
-            PROFILE_SCOPE("ContinuitySolver::compute (boundary)")
-            this->boundary->apply(storage);
-        }
         Means neighMeans;
         for (Size i = 0; i < size; ++i) {
             neighMeans.accumulate(neighCnts[i]);
         }
         stats.set(StatisticsIds::NEIGHBOUR_COUNT, neighMeans);
+        if (this->boundary) {
+            PROFILE_SCOPE("ContinuitySolver::compute (boundary)")
+            this->boundary->apply(storage);
+        }
     }
 
     virtual void initialize(Storage& storage, const BodySettings& settings) const override {
