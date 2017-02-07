@@ -40,12 +40,10 @@ private:
 public:
     /// Initialize settings by settings all value to their defaults.
     Settings()
-        : Settings(Settings::getDefaults()) {
-    }
+        : Settings(Settings::getDefaults()) {}
 
     /// Initialize empty settings object.
-    Settings(EmptySettingsTag) {
-    }
+    Settings(EmptySettingsTag) {}
 
     Settings(std::initializer_list<Entry> list) {
         for (auto&& entry : list) {
@@ -311,6 +309,10 @@ enum class GlobalSettingsIds {
 
     /// Eta-factor between smoothing length and particle concentration (h = eta * n^(-1/d) )
     SPH_KERNEL_ETA,
+
+    /// Minimum and maximum number of neighbours SPH solver tries to enforce. Note that the solver cannot
+    /// guarantee the actual number of neighbours will be within the range.
+    SPH_NEIGHBOUR_RANGE,
 
     /// Artificial viscosity alpha coefficient
     SPH_AV_ALPHA,

@@ -13,7 +13,7 @@ void FrequentStatsFormat::print(Abstract::Logger& logger, const Statistics& stat
         " (set by ",
         getTimeStepCriterion(statistics.get<QuantityIds>(StatisticsIds::TIMESTEP_CRITERION)),
         ")");
-    logger.write(" - neigbours: ", statistics.get<FloatStats>(StatisticsIds::NEIGHBOUR_COUNT));
+    logger.write(" - neigbours: ", statistics.get<Means>(StatisticsIds::NEIGHBOUR_COUNT));
     logger.write("");
 }
 

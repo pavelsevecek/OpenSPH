@@ -6,6 +6,7 @@
 /// Pavel Sevecek 2016
 /// sevecek at sirrah.troja.mff.cuni.cz
 
+#include "math/Means.h"
 #include "objects/containers/ArrayUtils.h"
 #include "objects/finders/AbstractFinder.h"
 #include "quantities/Iterate.h"
@@ -16,7 +17,6 @@
 #include "sph/forces/StressForce.h"
 #include "sph/kernel/Kernel.h"
 #include "system/Factory.h"
-#include "system/FloatStats.h"
 #include "system/Profiler.h"
 #include "system/Settings.h"
 #include "system/Statistics.h"
@@ -39,6 +39,8 @@ private:
 
     Float minH;
 
+    Range neighRange;
+
     ThreadPool pool;
 
 public:
@@ -47,6 +49,7 @@ public:
         , Module<Force, RhoDivv, RhoGradv>(force, rhoDivv, rhoGradv)
         , force(settings) {
         minH = settings.get<Float>(GlobalSettingsIds::SPH_SMOOTHING_LENGTH_MIN);
+        neighRange = settings.get<Range>(GlobalSettingsIds::SPH_NEIGHBOUR_RANGE);
     }
 
     virtual void integrate(Storage& storage, Statistics& stats) override {
@@ -67,6 +70,9 @@ public:
                 h = max(h, minH);
             }
         }
+        Array<Size>& neighCnts = storage.getValue<Size>(QuantityIds::NEIGHBOUR_CNT);
+        neighCnts.fill(0);
+
         {
             PROFILE_SCOPE("ContinuitySolver::compute (updateModules)")
             this->updateModules(storage);
@@ -79,18 +85,18 @@ public:
         SymH<dim> w(this->kernel);
         /// \todo for parallelization we need array of neighbours for each thread
         /// + figure out how to do parallelization correctly, hm ...
-        FloatStats neighbourStats;
         for (Size i = 0; i < size; ++i) {
             // Find all neighbours within kernel support. Since we are only searching for particles with
             // smaller h, we know that symmetrized lengths (h_i + h_j)/2 will be ALWAYS smaller or equal to
             // h_i, and we thus never "miss" a particle.
             const Size neighCnt = this->finder->findNeighbours(
                 i, r[i][H] * this->kernel.radius(), this->neighs, FinderFlags::FIND_ONLY_SMALLER_H);
-            neighbourStats.accumulate(neighCnt);
+            neighCnts[i] += neighCnt;
             // iterate over neighbours
             PROFILE_SCOPE("ContinuitySolver::compute (iterate)")
             for (const auto& neigh : this->neighs) {
                 const Size j = neigh.index;
+                neighCnts[j]++;
                 // actual smoothing length
                 const Float hbar = 0.5_f * (r[i][H] + r[j][H]);
                 ASSERT(hbar > EPS && hbar <= r[i][H]);
@@ -111,6 +117,10 @@ public:
         if (storage.has(QuantityIds::DEVIATORIC_STRESS)) {
             s = storage.getValue<TracelessTensor>(QuantityIds::DEVIATORIC_STRESS);
         }
+        Float divv_max = 0._f;
+        for (Size i = 0; i < size; ++i) {
+            divv_max = max(divv_max, rhoDivv[i]);
+        }
         for (Size i = 0; i < drho.size(); ++i) {
             Float divv;
             if (s && ddot(s[i], s[i]) > EPS) {
@@ -120,7 +130,21 @@ public:
                 divv = rhoDivv[i];
             }
             drho[i] = -divv;
+
             v[i][H] = r[i][H] / (D * rho[i]) * divv;
+            if (neighCnts[i] > neighRange.upper()) {
+                const Float vh_max = -r[i][H] / (D * rho[i]) * abs(divv_max);
+                const Float weight1 = exp(neighCnts[i] - neighRange.upper());
+                const Float weight2 = 1._f / weight1;
+                ASSERT(isReal(weight2));
+                v[i][H] = (weight1 * vh_max + weight2 * v[i][H]) / (weight1 + weight2);
+            } else if (neighCnts[i] < neighRange.lower()) {
+                const Float vh_max = r[i][H] / (D * rho[i]) * abs(divv_max);
+                const Float weight1 = exp(neighRange.lower() - neighCnts[i]);
+                const Float weight2 = 1._f / weight1;
+                ASSERT(isReal(weight2));
+                v[i][H] = (weight1 * vh_max + weight2 * v[i][H]) / (weight1 + weight2);
+            }
             dv[i][H] = 0._f;
         }
         this->integrateModules(storage);
@@ -128,7 +152,11 @@ public:
             PROFILE_SCOPE("ContinuitySolver::compute (boundary)")
             this->boundary->apply(storage);
         }
-        stats.set(StatisticsIds::NEIGHBOUR_COUNT, neighbourStats);
+        Means neighMeans;
+        for (Size i = 0; i < size; ++i) {
+            neighMeans.accumulate(neighCnts[i]);
+        }
+        stats.set(StatisticsIds::NEIGHBOUR_COUNT, neighMeans);
     }
 
     virtual void initialize(Storage& storage, const BodySettings& settings) const override {
@@ -136,6 +164,7 @@ public:
             settings.get<Float>(BodySettingsIds::DENSITY),
             settings.get<Range>(BodySettingsIds::DENSITY_RANGE),
             settings.get<Float>(BodySettingsIds::DENSITY_MIN));
+        storage.emplace<Size, OrderEnum::ZERO_ORDER>(QuantityIds::NEIGHBOUR_CNT, 0);
         this->initializeModules(storage, settings);
     }
 };

@@ -14,7 +14,7 @@ TEST_CASE("Statistics set/get", "[statistics]") {
     stats.accumulate(StatisticsIds::NEIGHBOUR_COUNT, 7._f);
     stats.accumulate(StatisticsIds::NEIGHBOUR_COUNT, 6._f);
     REQUIRE(stats.has(StatisticsIds::NEIGHBOUR_COUNT));
-    FloatStats f = stats.get<FloatStats>(StatisticsIds::NEIGHBOUR_COUNT);
+    Means f = stats.get<Means>(StatisticsIds::NEIGHBOUR_COUNT);
     REQUIRE(f.max() == 7._f);
     REQUIRE(f.min() == 2._f);
     REQUIRE(f.average() == 5._f);

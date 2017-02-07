@@ -4,11 +4,11 @@
 /// Pavel Sevecek 2017
 /// sevecek at sirrah.troja.mff.cuni.cz
 
+#include "math/Means.h"
+#include "objects/ForwardDecl.h"
 #include "objects/wrappers/Range.h"
 #include "objects/wrappers/Variant.h"
 #include "quantities/QuantityIds.h"
-#include "system/FloatStats.h"
-#include "objects/ForwardDecl.h"
 #include <map>
 
 NAMESPACE_SPH_BEGIN
@@ -17,9 +17,9 @@ NAMESPACE_SPH_BEGIN
 /// the running problem (timestepping, solver, ...).
 class Statistics {
 private:
-    enum Types { BOOL, INT, FLOAT, FLOAT_STATS, RANGE, VECTOR };
+    enum Types { BOOL, INT, FLOAT, MEANS, RANGE, VECTOR };
 
-    using Value = Variant<bool, int, Float, FloatStats, Range, QuantityIds>;
+    using Value = Variant<bool, int, Float, Means, Range, QuantityIds>;
 
     struct Entry {
         StatisticsIds id;
@@ -32,7 +32,9 @@ private:
 public:
     Statistics() = default;
 
-    bool has(const StatisticsIds idx) { return entries.find(idx) != entries.end(); }
+    bool has(const StatisticsIds idx) {
+        return entries.find(idx) != entries.end();
+    }
 
     /// Sets new values of a statistic. If the statistic is not stored in the object, the statistic is created
     /// using default constructor before assigning new value into it.
@@ -41,15 +43,15 @@ public:
         entries[idx].value = std::forward<TValue>(value);
     }
 
-    /// Accumulate a value into float stats of given idx. Value does not have to be stored. If there is no
+    /// Accumulate a value into means of given idx. Value does not have to be stored. If there is no
     /// value of given idx, it is created with default constructor prior to accumulating.
     void accumulate(const StatisticsIds idx, const Float value) {
         Value& entry = entries[idx].value;
         if (entry.getTypeIdx() == -1) {
             // not initialized
-            entry.template emplace<FloatStats>();
+            entry.template emplace<Means>();
         }
-        entry.template get<FloatStats>().accumulate(value);
+        entry.template get<Means>().accumulate(value);
     }
 
     /// Returns value of a statistic. The value must be stored in the object and must have type TValue,
@@ -64,10 +66,10 @@ public:
 
     /// Returns an average value of float stats of given idx. Statistic with given idx must be stored in the
     /// object and must be of type FloatStats.
-    Float average(const StatisticsIds idx) const {
+    /*Float average(const StatisticsIds idx) const {
         FloatStats stats = get<FloatStats>(idx);
         return stats.average();
-    }
+    }*/
 };
 
 /// List of values that are computed and displayed every timestep
@@ -118,7 +120,6 @@ enum class SparseStatsIds {
 };
 
 
-
 namespace Abstract {
     class StatisticFormat {
     public:
@@ -133,8 +134,6 @@ public:
 private:
     std::string getTimeStepCriterion(const QuantityIds key) const;
 };
-
-
 
 
 NAMESPACE_SPH_END

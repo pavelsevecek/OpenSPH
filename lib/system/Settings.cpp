@@ -218,6 +218,7 @@ std::unique_ptr<GlobalSettings> GlobalSettings::instance (new GlobalSettings {
     /// Global SPH parameters
     { GlobalSettingsIds::SPH_KERNEL,                    "sph.kernel",               int(KernelEnum::CUBIC_SPLINE) },
     { GlobalSettingsIds::SPH_KERNEL_ETA,                "sph.kernel.eta",           1.5_f },
+    { GlobalSettingsIds::SPH_NEIGHBOUR_RANGE,           "sph.neighbour_range",      Range(25._f, 100._f) },
     { GlobalSettingsIds::SPH_AV_ALPHA,                  "sph.av.alpha",             1.5_f },
     { GlobalSettingsIds::SPH_AV_BETA,                   "sph.av.beta",              3._f },
     { GlobalSettingsIds::SPH_SMOOTHING_LENGTH_MIN,      "sph.smoothing_length.min", 1e-5_f },

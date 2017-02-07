@@ -147,7 +147,6 @@ HEADERS += \
     math/Morton.h \
     system/ArrayStats.h \
     system/Statistics.h \
-    system/FloatStats.h \
     objects/wrappers/UniquePtr.h \
     quantities/QuantityIds.h \
     thread/Pool.h \
@@ -158,4 +157,5 @@ HEADERS += \
     objects/wrappers/Outcome.h \
     sph/timestepping/TimeStepCriterion.h \
     objects/ForwardDecl.h \
-    objects/wrappers/ObserverPtr.h
+    objects/wrappers/ObserverPtr.h \
+    math/Means.h

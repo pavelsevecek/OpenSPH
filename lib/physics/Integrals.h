@@ -1,8 +1,9 @@
 #pragma once
 
+#include "math/Means.h"
+#include "objects/ForwardDecl.h"
 #include "objects/containers/Array.h"
 #include "system/Settings.h"
-#include "objects/ForwardDecl.h"
 #include <memory>
 
 NAMESPACE_SPH_BEGIN
@@ -57,6 +58,16 @@ public:
     /// Computes the center of mass of all particles, or optionally center of mass of particles
     /// belonging to body of given ID. The center is evaluated with a respect to reference frame.
     Vector getCenterOfMass(Storage& storage, const Optional<Size> bodyId = NOTHING) const;
+
+    /// Returns means of given scalar quantity. By default means are computed from all
+    /// particles, optionally only from particles of given body. Storage must contain quantity of given ID,
+    /// checked by assert.
+    Means getQuantityMeans(Storage& storage,
+        const QuantityIds id,
+        const Optional<Size> bodyId = NOTHING) const;
+
+    /// Returns the quantity value value of given particle.
+    Float getQuantityValue(Storage& storage, const QuantityIds id, const Size idx) const;
 };
 
 /// Class computing other non-physical statistics of SPH simulations.

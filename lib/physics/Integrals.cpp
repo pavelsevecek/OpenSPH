@@ -103,6 +103,26 @@ Vector Integrals::getCenterOfMass(Storage& storage, const Optional<Size> bodyId)
     return com / totalMass;
 }
 
+Means Integrals::getQuantityMeans(Storage& storage, const QuantityIds id, const Optional<Size> bodyId) const {
+    ASSERT(storage.has(id));
+    Means means;
+    ArrayView<const Float> q = storage.getValue<Float>(id);
+    ASSERT(!q.empty());
+    if (bodyId) {
+        ArrayView<const Size> ids = storage.getValue<Size>(QuantityIds::FLAG);
+        for (Size i = 0; i < q.size(); ++i) {
+            if (ids[i] == bodyId.get()) {
+                means.accumulate(q[i]);
+            }
+        }
+    } else {
+        for (Size i = 0; i < q.size(); ++i) {
+            means.accumulate(q[i]);
+        }
+    }
+    return means;
+}
+
 
 Diagnostics::Diagnostics(const GlobalSettings& settings)
     : settings(settings) {}
