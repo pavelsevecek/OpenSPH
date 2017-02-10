@@ -31,6 +31,7 @@ public:
         return *this;
     }
 
+
     template <typename TStream>
     friend TStream& operator<<(TStream& stream, const Value& value) {
         forValue(value, [&stream](auto& v) { stream << v; });

@@ -97,7 +97,7 @@ void ScalarDamage::integrate(Storage& storage) {
     tie(p, eps_min, m_zero, growth) = storage.getValues<Float>(
         QuantityIds::PRESSURE, QuantityIds::EPS_MIN, QuantityIds::M_ZERO, QuantityIds::EXPLICIT_GROWTH);
     ArrayView<Size> n_flaws = storage.getValue<Size>(QuantityIds::N_FLAWS);
-    ArrayView<Float> ddamage = storage.getAll<Float>(QuantityIds::DAMAGE)[1];
+    ArrayView<Float> ddamage = storage.getDt<Float>(QuantityIds::DAMAGE);
     MaterialAccessor material(storage);
     for (Size i = 0; i < p.size(); ++i) {
         Tensor sigma = reduce(s[i], i) - reduce(p[i], i) * Tensor::identity();

@@ -146,7 +146,9 @@ public:
 
 private:
     /// \todo possibly precompute damage / yielding
-    INLINE auto reduce(const Float pi, const Size idx) const { return damage.reduce(pi, idx); }
+    INLINE auto reduce(const Float pi, const Size idx) const {
+        return damage.reduce(pi, idx);
+    }
 
     INLINE auto reduce(const TracelessTensor& si, const Size idx) const {
         return damage.reduce(si, idx);

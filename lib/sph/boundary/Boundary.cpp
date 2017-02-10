@@ -172,38 +172,38 @@ void WindTunnel::apply(Storage& storage) {
     });
 
     // find z positions of upper two layers of particles
-    Float z1 = -INFTY, z2 = -INFTY;
-    for (Size i = 0; i < r.size(); ++i) {
-        if (r[i][Z] > z1) {
-            z2 = z1;
-            z1 = r[i][Z];
-        }
-    }
-    ASSERT(z2 > -INFTY && z1 > z2 + 0.1_f * r[0][H]);
-    const Float dz = z1 - z2;
-    if (z1 + 2._f * dz < this->domain->getBoundingBox().upper()[Z]) {
-        // find indices of upper two layers
-        Array<Size> idxs;
-        const Size size = r.size();
-        for (Size i = 0; i < size; ++i) {
-            if (r[i][Z] >= z2) {
-                idxs.push(i);
-            }
-        }
-        ASSERT(!idxs.empty());
-        // copy all quantities
-        iterate<VisitorEnum::ALL_BUFFERS>(storage, [&idxs](auto&& v) {
-            for (Size i : idxs) {
-                auto cloned = v[i];
-                v.push(cloned);
-            }
-        });
-        // move created particles by 2dz
-        const Vector offset(0._f, 0._f, 2._f * dz);
-        for (Size i = size; i < r.size(); ++i) {
-            r[i] += offset;
-        }
-    }
+    /* Float z1 = -INFTY, z2 = -INFTY;
+     for (Size i = 0; i < r.size(); ++i) {
+         if (r[i][Z] > z1) {
+             z2 = z1;
+             z1 = r[i][Z];
+         }
+     }
+     ASSERT(z2 > -INFTY && z1 > z2 + 0.1_f * r[0][H]);
+     const Float dz = z1 - z2;
+     if (z1 + 2._f * dz < this->domain->getBoundingBox().upper()[Z]) {
+         // find indices of upper two layers
+         Array<Size> idxs;
+         const Size size = r.size();
+         for (Size i = 0; i < size; ++i) {
+             if (r[i][Z] >= z2) {
+                 idxs.push(i);
+             }
+         }
+         ASSERT(!idxs.empty());
+         // copy all quantities
+         iterate<VisitorEnum::ALL_BUFFERS>(storage, [&idxs](auto&& v) {
+             for (Size i : idxs) {
+                 auto cloned = v[i];
+                 v.push(cloned);
+             }
+         });
+         // move created particles by 2dz
+         const Vector offset(0._f, 0._f, 2._f * dz);
+         for (Size i = size; i < r.size(); ++i) {
+             r[i] += offset;
+         }
+     }*/
     ASSERT(storage.isValid());
 }
 

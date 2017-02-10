@@ -121,9 +121,13 @@ namespace Detail {
             v.fill(value);
         }
 
-        virtual OrderEnum getOrderEnum() const override { return OrderEnum::ZERO_ORDER; }
+        virtual OrderEnum getOrderEnum() const override {
+            return OrderEnum::ZERO_ORDER;
+        }
 
-        virtual ValueEnum getValueEnum() const override { return GetValueEnum<TValue>::type; }
+        virtual ValueEnum getValueEnum() const override {
+            return GetValueEnum<TValue>::type;
+        }
 
         virtual std::unique_ptr<PlaceHolder> clone(const Flags<VisitorEnum> flags) const override {
             Array<TValue> cv =
@@ -146,11 +150,17 @@ namespace Detail {
             conditionalSwap(v, holder->v, flags.hasAny(VisitorEnum::ZERO_ORDER, VisitorEnum::ALL_BUFFERS));
         }
 
-        virtual int size() const override { return v.size(); }
+        virtual int size() const override {
+            return v.size();
+        }
 
-        virtual StaticArray<Array<TValue>&, 3> getBuffers() override { return { this->v }; }
+        virtual StaticArray<Array<TValue>&, 3> getBuffers() override {
+            return { this->v };
+        }
 
-        Array<TValue>& getValue() { return v; }
+        Array<TValue>& getValue() {
+            return v;
+        }
     };
 
     /// Holder for first-order quantities, contains also derivative of the quantity. The derivative can be
@@ -179,9 +189,13 @@ namespace Detail {
             dv.fill(TValue(0._f));
         }
 
-        virtual OrderEnum getOrderEnum() const override { return OrderEnum::FIRST_ORDER; }
+        virtual OrderEnum getOrderEnum() const override {
+            return OrderEnum::FIRST_ORDER;
+        }
 
-        virtual ValueEnum getValueEnum() const override { return GetValueEnum<TValue>::type; }
+        virtual ValueEnum getValueEnum() const override {
+            return GetValueEnum<TValue>::type;
+        }
 
         virtual std::unique_ptr<PlaceHolder> clone(const Flags<VisitorEnum> flags) const override {
             Array<TValue> cv = this->conditionalClone(
@@ -205,9 +219,13 @@ namespace Detail {
                     VisitorEnum::FIRST_ORDER, VisitorEnum::HIGHEST_DERIVATIVES, VisitorEnum::ALL_BUFFERS));
         }
 
-        virtual StaticArray<Array<TValue>&, 3> getBuffers() override { return { this->v, this->dv }; }
+        virtual StaticArray<Array<TValue>&, 3> getBuffers() override {
+            return { this->v, this->dv };
+        }
 
-        Array<TValue>& getDerivative() { return dv; }
+        Array<TValue>& getDerivative() {
+            return dv;
+        }
     };
 
     /// Holder for second-order quantities, contains also second derivative of the quantity. The second
@@ -236,9 +254,13 @@ namespace Detail {
             d2v.fill(TValue(0._f));
         }
 
-        virtual OrderEnum getOrderEnum() const final { return OrderEnum::SECOND_ORDER; }
+        virtual OrderEnum getOrderEnum() const final {
+            return OrderEnum::SECOND_ORDER;
+        }
 
-        virtual ValueEnum getValueEnum() const final { return GetValueEnum<TValue>::type; }
+        virtual ValueEnum getValueEnum() const final {
+            return GetValueEnum<TValue>::type;
+        }
 
         virtual std::unique_ptr<PlaceHolder> clone(const Flags<VisitorEnum> flags) const override {
             Array<TValue> cv = this->conditionalClone(
@@ -272,7 +294,9 @@ namespace Detail {
             return { this->v, this->dv, this->d2v };
         }
 
-        Array<TValue>& get2ndDerivative() { return d2v; }
+        Array<TValue>& get2ndDerivative() {
+            return d2v;
+        }
     };
 }
 
@@ -357,7 +381,9 @@ public:
         data->clamp();
     }
 
-    Float& getMinimalValue() { return minValue; }
+    Float& getMinimalValue() {
+        return minValue;
+    }
 
     /// Swap quantity (or selected part of it) with other quantity.
     void swap(Quantity& other, const Flags<VisitorEnum> flags) {

@@ -1,4 +1,5 @@
 #include "problem/Problem.h"
+#include "physics/Integrals.h"
 #include "solvers/AbstractSolver.h"
 #include "solvers/SolverFactory.h"
 #include "sph/timestepping/TimeStepping.h"
@@ -33,6 +34,8 @@ void Problem::run() {
     logger->write("Running:");
     Timer runTimer;
     Statistics stats;
+    // ArrayView<Float> energy = storage->getValue<Float>(QuantityIds::ENERGY);
+    FileLogger fileLogger("totalEnergy.txt");
     for (Float t = timeRange.lower(); t < timeRange.upper(); t += timeStepping->getTimeStep()) {
         if (callbacks) {
             callbacks->onTimeStep((t - timeRange.lower()) / timeRange.size(), storage);
@@ -56,6 +59,16 @@ void Problem::run() {
         FrequentStatsFormat format;
         format.print(*logger, stats);
 
+        TotalEnergy en;
+        TotalKineticEnergy kinEn;
+        TotalInternalEnergy intEn;
+        fileLogger.write(t,
+            "   ",
+            en.evaluate(*storage),
+            "   ",
+            kinEn.evaluate(*storage),
+            "   ",
+            intEn.evaluate(*storage));
         i++;
     }
     logger->write("Run ended after ", runTimer.elapsed<TimerUnit::SECOND>(), "s.");

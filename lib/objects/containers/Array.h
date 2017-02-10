@@ -328,4 +328,17 @@ Array<T0&> tieToArray(T0& t0, TArgs&... rest) {
     return Array<T0&>{ t0, rest... };
 }
 
+
+/// Performs deep-copy of array elements, resizing array if needed. This is only way to copy elements, as for
+/// Array objet deep-copying of elements is forbidden as it is rarely needed and deleting copy constructor
+/// helps us avoid accidental deep-copy, for example when passing array as an argument of function.
+template <typename T, typename TCounter>
+void copyArray(Array<T, TCounter>& lhs, const Array<T, TCounter>& rhs) {
+    lhs.resize(rhs.size());
+    for (TCounter i = 0; i < rhs.size(); ++i) {
+        lhs[i] = rhs[i];
+    }
+}
+
+
 NAMESPACE_SPH_END

@@ -35,21 +35,25 @@ CONFIG(debug, debug|profile|assert|release) {
 
 SOURCES += \
     Gui.cpp \
-    GlPane.cpp \
-    OrthoPane.cpp \
-    Window.cpp \
+    windows/GlPane.cpp \
+    windows/OrthoPane.cpp \
+    windows/Window.cpp \
     Settings.cpp
 
 HEADERS += \
     Gui.h \
-    OrthoPane.h \
-    GlPane.h \
+    windows/OrthoPane.h \
+    windows/GlPane.h \
     Common.h \
     Renderer.h \
-    Window.h \
+    windows/Window.h \
     Settings.h \
-    Palette.h \
-    Color.h \
+    objects/Palette.h \
+    objects/Color.h \
     GuiCallbacks.h \
-    Collision.h \
-    Meteoroid.h
+    problems/Collision.h \
+    problems/Meteoroid.h \
+    objects/Camera.h \
+    objects/Point.h \
+    Factory.h \
+    objects/Element.h

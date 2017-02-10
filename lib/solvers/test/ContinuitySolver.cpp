@@ -63,10 +63,13 @@ TEST_CASE("ContinuitySolver gass ball", "[solvers]") {
     const Float h = r[0][H];
 
     // check integrals of motion
-    Integrals integrals;
-    const Vector mom0 = integrals.getTotalMomentum(*storage);
-    const Vector angmom0 = integrals.getTotalAngularMomentum(*storage);
-    const Float en0 = integrals.getTotalEnergy(*storage);
+
+    TotalMomentum momentum;
+    TotalAngularMomentum angularMomentum;
+    TotalEnergy energy;
+    const Vector mom0 = momentum.evaluate(*storage);
+    const Vector angmom0 = angularMomentum.evaluate(*storage);
+    const Float en0 = energy.evaluate(*storage);
     REQUIRE(mom0 == Vector(0._f));
     REQUIRE(angmom0 == Vector(0._f));
     REQUIRE(en0 == approx(rho0 * u0 * sphereVolume(1._f)));
@@ -114,11 +117,7 @@ TEST_CASE("ContinuitySolver gass ball", "[solvers]") {
     };
     REQUIRE_SEQUENCE(test, 0, r.size());
 
-    const Vector mom1 = integrals.getTotalMomentum(*storage);
-    const Vector angmom1 = integrals.getTotalAngularMomentum(*storage);
-    const Float en1 = integrals.getTotalEnergy(*storage);
-
-    REQUIRE(mom1 == approx(mom0, 5.e-2_f));
-    REQUIRE(angmom1 == approx(angmom0, 1.e-1_f));
-    REQUIRE(en1 == approx(en0, 5.e-2_f));
+    REQUIRE(momentum.evaluate(*storage) == approx(mom0, 5.e-2_f));
+    REQUIRE(angularMomentum.evaluate(*storage) == approx(angmom0, 1.e-1_f));
+    REQUIRE(energy.evaluate(*storage) == approx(en0, 5.e-2_f));
 }

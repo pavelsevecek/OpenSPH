@@ -3,71 +3,146 @@
 #include "math/Means.h"
 #include "objects/ForwardDecl.h"
 #include "objects/containers/Array.h"
+#include "objects/wrappers/Value.h"
 #include "system/Settings.h"
 #include <memory>
 
 NAMESPACE_SPH_BEGIN
 
 
-/// Class computing integrals of motion, average/minimal/maximal values of quantities, etc.
-/// For non-inertial reference frame, all relevant values are evaluated in the inertial reference frame,
-/// meaning even for zero particle velocities (in the non-inertial frame of the run), the resulting momentum
-/// or angular momentum can be nonzero.
+/// Object computing integral quantities and diagnostics of the run.
 /// \todo automatically exclude ghost particles?
-class Integrals {
+namespace Abstract {
+
+    template <typename Type>
+    class Integral {
+    public:
+        /// Computes the integral quantity using particles in the storage.
+        virtual Type evaluate(Storage& storage) const = 0;
+    };
+}
+
+
+/// Computes the total mass of all SPH particles. Storage must contains particle masses, of course;
+/// checked by assert.
+/// \note Total mass is always conserved automatically as particles do not change their mass. This is
+/// therefore only useful as a sanity check, or potentially if a solver with variable particle masses
+/// gets implemented.
+class TotalMass : public Abstract::Integral<Float> {
+public:
+    virtual Float evaluate(Storage& storage) const override;
+};
+
+/// Computes total momentum of all SPH particles with a respect to the center of reference frame.
+/// Storage must contain at least particle masses and particle positions with velocities, checked by
+/// assert.
+class TotalMomentum : public Abstract::Integral<Vector> {
 private:
-    Vector omega{ 0._f };
+    Vector omega;
 
 public:
-    /// Default construction assumes inertial reference frame.
-    Integrals();
+    TotalMomentum(const Float omega = 0._f);
 
-    Integrals(const GlobalSettings& settings);
+    virtual Vector evaluate(Storage& storage) const override;
+};
 
-    /// Computes the total mass of all SPH particles. Storage must contains particle masses, of course;
-    /// checked by assert.
-    /// \note Total mass is always conserved automatically as particles do not change their mass. This is
-    /// therefore only useful as a sanity check, or potentially if a solver with variable particle masses gets
-    /// implemented.
-    Float getTotalMass(Storage& storage) const;
+/// Computes total angular momentum of all SPH particles with a respect to the center of reference
+/// frame. Storage must contain at least particle masses and particle positions with velocities, checked by
+/// assert.
+class TotalAngularMomentum : public Abstract::Integral<Vector> {
+private:
+    Vector omega;
 
-    /// Computes total momentum of all SPH particles with a respect to the center of reference frame.
-    /// Storage must contain at least particle masses and particle positions with velocities, checked by
-    /// assert.
-    Vector getTotalMomentum(Storage& storage) const;
+public:
+    TotalAngularMomentum(const Float omega = 0._f);
 
-    /// Computes total angular momentum of all SPH particles with a respect to the center of reference frame.
-    /// Storage must contain at least particle masses and particle positions with velocities, checked by
-    /// assert.
-    Vector getTotalAngularMomentum(Storage& storage) const;
+    virtual Vector evaluate(Storage& storage) const override;
+};
 
-    /// Returns the total energy of all particles. This is simply of sum of total kinetic energy and total
-    /// internal energy.
-    /// \todo this has to be generalized if some external potential is used.
-    Float getTotalEnergy(Storage& storage) const;
+/// Returns the total kinetic energy of all particles. Storage must contain at least particle masses
+/// and particle positions with velocities, checked by assert.
+class TotalKineticEnergy : public Abstract::Integral<Float> {
+private:
+    Vector omega;
 
-    /// Returns the total kinetic energy of all particles. Storage must contain at least particle masses and
-    /// particle positions with velocities, checked by assert.
-    Float getTotalKineticEnergy(Storage& storage) const;
+public:
+    TotalKineticEnergy(const Float omega = 0._f);
 
-    /// Returns the total internal energy of all particles. Storage must contain at least particle masses and
-    /// specific internal energy. If used solver works with other independent quantity (energy density, total
-    /// energy, specific entropy), specific energy must be derived before the function is called.
-    Float getTotalInternalEnergy(Storage& storage) const;
+    virtual Float evaluate(Storage& storage) const override;
+};
 
-    /// Computes the center of mass of all particles, or optionally center of mass of particles
-    /// belonging to body of given ID. The center is evaluated with a respect to reference frame.
-    Vector getCenterOfMass(Storage& storage, const Optional<Size> bodyId = NOTHING) const;
+/// Returns the total internal energy of all particles. Storage must contain at least particle masses
+/// and specific internal energy. If used solver works with other independent quantity (energy density, total
+/// energy, specific entropy), specific energy must be derived before the function is called.
+class TotalInternalEnergy : public Abstract::Integral<Float> {
+public:
+    virtual Float evaluate(Storage& storage) const override;
+};
 
-    /// Returns means of given scalar quantity. By default means are computed from all
-    /// particles, optionally only from particles of given body. Storage must contain quantity of given ID,
-    /// checked by assert.
-    Means getQuantityMeans(Storage& storage,
-        const QuantityIds id,
-        const Optional<Size> bodyId = NOTHING) const;
+/// Returns the total energy of all particles. This is simply of sum of total kinetic energy and total
+/// internal energy.
+/// \todo this has to be generalized if some external potential is used.
+class TotalEnergy : public Abstract::Integral<Float> {
+private:
+    Vector omega;
 
-    /// Returns the quantity value value of given particle.
-    Float getQuantityValue(Storage& storage, const QuantityIds id, const Size idx) const;
+public:
+    TotalEnergy(const Float omega = 0._f);
+
+    virtual Float evaluate(Storage& storage) const override;
+};
+
+/// Computes the center of mass of all particles, or optionally center of mass of particles
+/// belonging to body of given ID. The center is evaluated with a respect to reference frame.
+class CenterOfMass : public Abstract::Integral<Vector> {
+private:
+    Optional<Size> bodyId;
+
+public:
+    CenterOfMass(const Optional<Size> bodyId = NOTHING);
+
+    virtual Vector evaluate(Storage& storage) const override;
+};
+
+/// Returns means of given scalar quantity. By default means are computed from all particles, optionally only
+/// from particles of given body. Storage must contain quantity of given ID, checked by assert.
+class QuantityMeans : public Abstract::Integral<Means> {
+private:
+    QuantityIds id;
+    Optional<Size> bodyId;
+
+public:
+    QuantityMeans(const QuantityIds id, const Optional<Size> bodyId = NOTHING);
+
+    virtual Means evaluate(Storage& storage) const override;
+};
+
+/// Returns the quantity value value of given particle. Currently available only for scalar quantities.
+class QuantityValue : public Abstract::Integral<Float> {
+private:
+    QuantityIds id;
+    Size idx;
+
+public:
+    QuantityValue(const QuantityIds id, const Size particleIdx);
+
+    virtual Float evaluate(Storage& storage) const override;
+};
+
+/// Helper class, used for storing multiple instances in container.
+class IntegralWrapper : public Abstract::Integral<Value> {
+private:
+    std::function<Value(Storage&)> impl;
+
+public:
+    template <typename Type>
+    IntegralWrapper(std::unique_ptr<Abstract::Integral<Type>>&& integral) {
+        impl = [getter = std::move(integral)](Storage & storage) {
+            return getter->evaluate(storage);
+        };
+    }
+
+    virtual Value evaluate(Storage& storage) const override;
 };
 
 /// Class computing other non-physical statistics of SPH simulations.
@@ -82,7 +157,8 @@ private:
 public:
     Diagnostics(const GlobalSettings& settings);
 
-    /// Returns the number of separate bodies SPH particles form. Two bodies are considered separate if each
+    /// Returns the number of separate bodies SPH particles form. Two bodies are considered separate if
+    /// each
     /// pair of particles from different bodies is further than h * kernel.radius.
     /// \todo this should account for symmetrized smoothing lenghts.
     Size getNumberOfComponents(Storage& storage) const;
@@ -93,9 +169,12 @@ public:
     /// Returns the list of particles forming pairs, i.e. particles on top of each other or very close. If
     /// the array is not empty, this is a sign of pairing instability or multi-valued velocity field, both
     /// unwanted artefacts in SPH simulations.
-    /// This might occur because of numerical instability, possibly due to time step being too high, or due to
-    /// division by very small number in evolution equations. If the pairing instability occurs regardless,
-    /// try choosing different parameter SPH_KERNEL_ETA (should be aroung 1.5), or by choosing different SPH
+    /// This might occur because of numerical instability, possibly due to time step being too high, or
+    /// due to
+    /// division by very small number in evolution equations. If the pairing instability occurs
+    /// regardless,
+    /// try choosing different parameter SPH_KERNEL_ETA (should be aroung 1.5), or by choosing different
+    /// SPH
     /// kernel.
     /// \param limit Maximal distance of two particles forming a pair in units of smoothing length.
     /// \returns Detected pairs of particles given by their indices in the array, in no particular order.

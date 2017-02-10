@@ -5,14 +5,8 @@
 
 NAMESPACE_SPH_BEGIN
 
-Integrals::Integrals() = default;
 
-Integrals::Integrals(const GlobalSettings& settings) {
-    const Float freq = settings.get<Float>(GlobalSettingsIds::FRAME_ANGULAR_FREQUENCY);
-    omega = Vector(0._f, 0._f, 1._f) * freq;
-}
-
-Float Integrals::getTotalMass(Storage& storage) const {
+Float TotalMass::evaluate(Storage& storage) const {
     Float total(0._f);
     ArrayView<const Float> m = storage.getValue<Float>(QuantityIds::MASSES);
     ASSERT(!m.empty());
@@ -23,7 +17,11 @@ Float Integrals::getTotalMass(Storage& storage) const {
     return total;
 }
 
-Vector Integrals::getTotalMomentum(Storage& storage) const {
+TotalMomentum::TotalMomentum(const Float omega)
+    : omega(0._f, 0._f, omega) {}
+
+
+Vector TotalMomentum::evaluate(Storage& storage) const {
     BasicVector<double> total(0.); // compute in double precision to avoid round-off error during accumulation
     ArrayView<const Vector> r, v, dv;
     tie(r, v, dv) = storage.getAll<Vector>(QuantityIds::POSITIONS);
@@ -36,7 +34,10 @@ Vector Integrals::getTotalMomentum(Storage& storage) const {
     return vectorCast<Float>(total);
 }
 
-Vector Integrals::getTotalAngularMomentum(Storage& storage) const {
+TotalAngularMomentum::TotalAngularMomentum(const Float omega)
+    : omega(0._f, 0._f, omega) {}
+
+Vector TotalAngularMomentum::evaluate(Storage& storage) const {
     BasicVector<double> total(0.);
     ArrayView<const Vector> r, v, dv;
     tie(r, v, dv) = storage.getAll<Vector>(QuantityIds::POSITIONS);
@@ -49,11 +50,27 @@ Vector Integrals::getTotalAngularMomentum(Storage& storage) const {
     return vectorCast<Float>(total);
 }
 
-Float Integrals::getTotalEnergy(Storage& storage) const {
-    return getTotalKineticEnergy(storage) + getTotalInternalEnergy(storage);
+TotalEnergy::TotalEnergy(const Float omega)
+    : omega(0._f, 0._f, omega) {}
+
+Float TotalEnergy::evaluate(Storage& storage) const {
+    double total = 0.;
+    ArrayView<const Vector> r, v, dv;
+    tie(r, v, dv) = storage.getAll<Vector>(QuantityIds::POSITIONS);
+    ArrayView<const Float> m = storage.getValue<Float>(QuantityIds::MASSES);
+    ArrayView<const Float> u = storage.getValue<Float>(QuantityIds::ENERGY);
+    for (Size i = 0; i < v.size(); ++i) {
+        ASSERT(!v.empty());
+        total += 0.5 * m[i] * getSqrLength(v[i]) + m[i] * u[i];
+    }
+    ASSERT(isReal(total));
+    return Float(total);
 }
 
-Float Integrals::getTotalKineticEnergy(Storage& storage) const {
+TotalKineticEnergy::TotalKineticEnergy(const Float omega)
+    : omega(0._f, 0._f, omega) {}
+
+Float TotalKineticEnergy::evaluate(Storage& storage) const {
     double total = 0.;
     ArrayView<const Vector> r, v, dv;
     tie(r, v, dv) = storage.getAll<Vector>(QuantityIds::POSITIONS);
@@ -66,7 +83,7 @@ Float Integrals::getTotalKineticEnergy(Storage& storage) const {
     return Float(total);
 }
 
-Float Integrals::getTotalInternalEnergy(Storage& storage) const {
+Float TotalInternalEnergy::evaluate(Storage& storage) const {
     double total = 0.;
     ArrayView<const Float> u = storage.getValue<Float>(QuantityIds::ENERGY);
     ArrayView<const Float> m = storage.getValue<Float>(QuantityIds::MASSES);
@@ -78,7 +95,10 @@ Float Integrals::getTotalInternalEnergy(Storage& storage) const {
     return Float(total);
 }
 
-Vector Integrals::getCenterOfMass(Storage& storage, const Optional<Size> bodyId) const {
+CenterOfMass::CenterOfMass(const Optional<Size> bodyId)
+    : bodyId(bodyId) {}
+
+Vector CenterOfMass::evaluate(Storage& storage) const {
     Vector com(0._f);
     Float totalMass = 0._f;
     ArrayView<const Float> m = storage.getValue<Float>(QuantityIds::MASSES);
@@ -103,7 +123,7 @@ Vector Integrals::getCenterOfMass(Storage& storage, const Optional<Size> bodyId)
     return com / totalMass;
 }
 
-Means Integrals::getQuantityMeans(Storage& storage, const QuantityIds id, const Optional<Size> bodyId) const {
+Means QuantityMeans::evaluate(Storage& storage) const {
     ASSERT(storage.has(id));
     Means means;
     ArrayView<const Float> q = storage.getValue<Float>(id);
@@ -121,6 +141,10 @@ Means Integrals::getQuantityMeans(Storage& storage, const QuantityIds id, const 
         }
     }
     return means;
+}
+
+Value IntegralWrapper::evaluate(Storage& storage) const {
+    return impl(storage);
 }
 
 

@@ -1,11 +1,10 @@
 #pragma once
 
-#include "gui/GlPane.h"
 #include "gui/Gui.h"
 #include "gui/Renderer.h"
+#include "gui/windows/Window.h"
 #include "objects/wrappers/NonOwningPtr.h"
 #include "system/Callbacks.h"
-#include "gui/Window.h"
 
 NAMESPACE_SPH_BEGIN
 

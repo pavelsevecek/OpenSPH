@@ -1,12 +1,12 @@
 #include "gui/Gui.h"
 #include "geometry/Domain.h"
-#include "gui/Collision.h"
-#include "gui/GlPane.h"
 #include "gui/GuiCallbacks.h"
-#include "gui/Meteoroid.h"
-#include "gui/OrthoPane.h"
 #include "gui/Settings.h"
-#include "gui/Window.h"
+#include "gui/problems/Collision.h"
+#include "gui/problems/Meteoroid.h"
+#include "gui/windows/GlPane.h"
+#include "gui/windows/OrthoPane.h"
+#include "gui/windows/Window.h"
 #include "physics/Constants.h"
 #include "problem/Problem.h"
 #include "sph/initial/Initial.h"
@@ -79,7 +79,7 @@ bool MyApp::OnInit() {
 
 
     MeteoroidEntry setup;
-
+    // AsteroidCollision setup;
 
     p = setup.getProblem();
     GuiSettings guiSettings = setup.getGuiSettings();
