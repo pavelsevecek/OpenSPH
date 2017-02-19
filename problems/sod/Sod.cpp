@@ -92,11 +92,9 @@ TEST_CASE("Sod", "[sod]") {
 
     // Output routines
     std::string outputDir = "sod/" + globalSettings.get<std::string>(GlobalSettingsIds::RUN_OUTPUT_NAME);
-    sod.output = std::make_unique<GnuplotOutput>(outputDir,
-        globalSettings.get<std::string>(GlobalSettingsIds::RUN_NAME),
-        Array<QuantityIds>{
-            QuantityIds::POSITIONS, QuantityIds::DENSITY, QuantityIds::PRESSURE, QuantityIds::ENERGY },
-        "sod.plt");
+    sod.output = std::make_unique<GnuplotOutput>(
+        outputDir, globalSettings.get<std::string>(GlobalSettingsIds::RUN_NAME), "sod.plt");
+
 
     // Setup initial conditions of Sod Shock Tube:
     // sod.storage = std::make_shared<Storage>();

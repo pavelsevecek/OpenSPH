@@ -78,8 +78,8 @@ bool MyApp::OnInit() {
         .set(GuiSettingsIds::ORTHO_PROJECTION, OrthoEnum::XZ);*/
 
 
-    MeteoroidEntry setup;
-    // AsteroidCollision setup;
+    // MeteoroidEntry setup;
+    AsteroidCollision setup;
 
     p = setup.getProblem();
     GuiSettings guiSettings = setup.getGuiSettings();

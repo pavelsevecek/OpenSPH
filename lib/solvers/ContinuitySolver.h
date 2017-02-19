@@ -124,28 +124,28 @@ public:
         }
         for (Size i = 0; i < drho.size(); ++i) {
             Float divv;
-            if (s && ddot(s[i], s[i]) > EPS) {
+            /*if (s && ddot(s[i], s[i]) > EPS) {
                 // nonzero stress tensor
                 divv = rhoGradv[i].trace();
-            } else {
-                divv = rhoDivv[i];
-            }
-            drho[i] = -divv;
+            } else {*/
+            divv = rhoDivv[i];
+            // 11           }
+            drho[i] = -rho[i] * divv;
 
-            v[i][H] = r[i][H] / (D * rho[i]) * divv;
-            if (neighCnts[i] > neighRange.upper()) {
-                const Float vh_max = -r[i][H] / (D * rho[i]) * abs(divv_max);
-                const Float weight1 = exp(neighCnts[i] - neighRange.upper());
+            v[i][H] = r[i][H] / D * divv;
+            /*if (neighCnts[i] > neighRange.upper()) {
+                const Float vh_max = -r[i][H] / (D)*abs(divv_max);
+                const Float weight1 = exp(0.2_f * (neighCnts[i] - neighRange.upper()));
                 const Float weight2 = 1._f / weight1;
                 ASSERT(isReal(weight2));
                 v[i][H] = (weight1 * vh_max + weight2 * v[i][H]) / (weight1 + weight2);
             } else if (neighCnts[i] < neighRange.lower()) {
-                const Float vh_max = r[i][H] / (D * rho[i]) * abs(divv_max);
-                const Float weight1 = exp(neighRange.lower() - neighCnts[i]);
+                const Float vh_max = r[i][H] / (D)*abs(divv_max);
+                const Float weight1 = exp(0.2_f * (neighRange.lower() - neighCnts[i]));
                 const Float weight2 = 1._f / weight1;
                 ASSERT(isReal(weight2));
                 v[i][H] = (weight1 * vh_max + weight2 * v[i][H]) / (weight1 + weight2);
-            }
+            }*/
             dv[i][H] = 0._f;
         }
         this->integrateModules(storage);

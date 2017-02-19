@@ -129,16 +129,30 @@ public:
     virtual Float evaluate(Storage& storage) const override;
 };
 
+/// Generic scalar integral given by user-defined function. This is simply a wrapper of std::function that can
+/// be used in IntegralWrapper.
+class QuantityExpression : public Abstract::Integral<Float> {
+private:
+    std::function<Float(Storage& storage)> function;
+
+public:
+    template <typename TFunctor>
+    QuantityExpression(TFunctor&& functor)
+        : function(std::forward<TFunctor>(functor)) {}
+
+    virtual Float evaluate(Storage& storage) const override;
+};
+
 /// Helper class, used for storing multiple instances in container.
 class IntegralWrapper : public Abstract::Integral<Value> {
 private:
     std::function<Value(Storage&)> impl;
 
 public:
-    template <typename Type>
-    IntegralWrapper(std::unique_ptr<Abstract::Integral<Type>>&& integral) {
+    template <typename TIntegral, typename = std::enable_if_t<!std::is_lvalue_reference<TIntegral>::value>>
+    IntegralWrapper(TIntegral&& integral) {
         impl = [getter = std::move(integral)](Storage & storage) {
-            return getter->evaluate(storage);
+            return getter.evaluate(storage);
         };
     }
 

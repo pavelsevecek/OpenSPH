@@ -123,6 +123,10 @@ Vector CenterOfMass::evaluate(Storage& storage) const {
     return com / totalMass;
 }
 
+QuantityMeans::QuantityMeans(const QuantityIds id, const Optional<Size> bodyId)
+    : id(id)
+    , bodyId(bodyId) {}
+
 Means QuantityMeans::evaluate(Storage& storage) const {
     ASSERT(storage.has(id));
     Means means;
@@ -141,6 +145,10 @@ Means QuantityMeans::evaluate(Storage& storage) const {
         }
     }
     return means;
+}
+
+Float QuantityExpression::evaluate(Storage& storage) const {
+    return function(storage);
 }
 
 Value IntegralWrapper::evaluate(Storage& storage) const {

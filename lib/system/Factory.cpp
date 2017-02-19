@@ -85,7 +85,7 @@ std::unique_ptr<Abstract::Distribution> Factory::getDistribution(const BodySetti
         Flags<HexagonalPacking::Options> flags;
         flags.setIf(HexagonalPacking::Options::CENTER, center);
         flags.setIf(HexagonalPacking::Options::SORTED, sort);
-        return std::make_unique<HexagonalPacking>(flags);
+        return std::make_unique<HexagonalPacking>(HexagonalPacking::Options::SPH5_COMPATIBILITY); // flags);
     }
     case DistributionEnum::CUBIC:
         return std::make_unique<CubicPacking>();

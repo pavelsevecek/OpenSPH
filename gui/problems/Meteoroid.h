@@ -49,10 +49,8 @@ struct MeteoroidEntry {
             .set(GlobalSettingsIds::DOMAIN_HEIGHT, 2._f);
         std::unique_ptr<Problem> p = std::make_unique<Problem>(globalSettings, std::make_shared<Storage>());
         std::string outputDir = "out/" + globalSettings.get<std::string>(GlobalSettingsIds::RUN_OUTPUT_NAME);
-        p->output = std::make_unique<TextOutput>(outputDir,
-            globalSettings.get<std::string>(GlobalSettingsIds::RUN_NAME),
-            Array<QuantityIds>{
-                QuantityIds::POSITIONS, QuantityIds::DENSITY, QuantityIds::PRESSURE, QuantityIds::ENERGY });
+        p->output = std::make_unique<TextOutput>(
+            outputDir, globalSettings.get<std::string>(GlobalSettingsIds::RUN_NAME));
 
         initialConditions(p->storage);
         return p;

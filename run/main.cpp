@@ -23,9 +23,7 @@ int main() {
     Problem* p = new Problem(globalSettings, std::make_shared<Storage>());
     p->output =
         std::make_unique<TextOutput>(globalSettings.get<std::string>(GlobalSettingsIds::RUN_OUTPUT_NAME),
-                                     globalSettings.get<std::string>(GlobalSettingsIds::RUN_NAME),
-                                     Array<QuantityIds>{ QuantityIds::POSITIONS,
-                                                         QuantityIds::DEVIATORIC_STRESS });
+            globalSettings.get<std::string>(GlobalSettingsIds::RUN_NAME));
 
     BodySettings bodySettings;
     bodySettings.set(BodySettingsIds::ENERGY, 1.e2_f);

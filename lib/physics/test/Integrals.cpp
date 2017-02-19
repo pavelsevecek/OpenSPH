@@ -132,6 +132,18 @@ TEST_CASE("Center of Mass", "[integrals]") {
     REQUIRE(CenterOfMass().evaluate(*storage) == approx((r1 + 4._f * r2) / 5._f));
 }
 
+TEST_CASE("IntegralWrapper", "[integrals]") {
+    Storage storage;
+    storage.emplace<Vector, OrderEnum::SECOND_ORDER>(
+        QuantityIds::POSITIONS, Array<Vector>{ Vector(1._f, 0._f, 0._f), Vector(0._f, 2._f, 0._f) });
+    storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityIds::MASSES, 1._f);
+    storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityIds::ENERGY, 0._f);
+    IntegralWrapper w1 = TotalEnergy(0._f);
+    IntegralWrapper w2 = TotalMomentum(0._f);
+    Value v1 = w1.evaluate(storage);
+    Value v2 = w2.evaluate(storage);
+}
+
 TEST_CASE("Pairing", "[diagnostics]") {
     std::shared_ptr<Storage> storage = std::make_shared<Storage>();
     InitialConditions conds(storage, GlobalSettings::getDefaults());

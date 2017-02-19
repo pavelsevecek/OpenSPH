@@ -16,25 +16,35 @@ NAMESPACE_SPH_BEGIN
 
 class Value {
 private:
-    Variant<Size, Float, Vector, Tensor, TracelessTensor, Means> value;
+    Variant<Size, Float, Vector, Tensor, TracelessTensor, Means> storage;
 
 public:
     Value() = default;
 
     template <typename T>
     Value(T&& value)
-        : value(std::forward<T>(value)) {}
+        : storage(std::forward<T>(value)) {}
 
     template <typename T>
     Value& operator=(T&& rhs) {
-        value = std::forward<T>(rhs);
+        storage = std::forward<T>(rhs);
         return *this;
     }
 
+    template <typename T>
+    T& get() {
+        return storage.get<T>();
+    }
+
+    template <typename T>
+    const T& get() const {
+        return storage.get<T>();
+    }
 
     template <typename TStream>
     friend TStream& operator<<(TStream& stream, const Value& value) {
-        forValue(value, [&stream](auto& v) { stream << v; });
+        forValue(value.storage, [&stream](const auto& v) { stream << v; });
+        return stream;
     }
 };
 

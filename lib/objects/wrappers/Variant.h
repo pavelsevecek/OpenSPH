@@ -45,6 +45,9 @@ public:
     }
 };
 
+/// Type intended to use as first parameter of variant, representing empty variant.
+class Monostate {};
+
 /// Helper visitors creating, deleting or modifying Variant
 namespace VariantHelpers {
 
@@ -156,7 +159,9 @@ private:
 public:
     Variant() = default;
 
-    ~Variant() { destroy(); }
+    ~Variant() {
+        destroy();
+    }
 
     /// Construct variant from value of stored type
     template <typename T, typename = std::enable_if_t<!std::is_same<std::decay_t<T>, Variant>::value>>
@@ -247,7 +252,9 @@ public:
     }
 
     /// Returns index of type currently stored in variant. If no value is currently stored, returns -1.
-    int getTypeIdx() const { return typeIdx; }
+    int getTypeIdx() const {
+        return typeIdx;
+    }
 
     /// Returns the stored value. Performs a compile-time check that the type is contained in Variant, and
     /// runtime check that the variant currently holds value of given type.

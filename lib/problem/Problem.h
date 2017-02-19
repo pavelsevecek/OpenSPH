@@ -2,6 +2,7 @@
 
 #include "objects/ForwardDecl.h"
 #include "objects/wrappers/Range.h"
+#include "physics/Integrals.h"
 #include "system/Settings.h"
 #include <memory>
 
@@ -13,7 +14,7 @@ namespace Abstract {
 }
 
 class Problem : public Noncopyable {
-private:
+protected:
     GlobalSettings settings;
 
     /// Logging
@@ -28,6 +29,8 @@ private:
     /// - number of timesteps
     /// - min/max/mean/median of given quantity reaches certain value
     /// - ...
+
+    Array<IntegralWrapper> integrals;
 
 public:
     /// Data output
@@ -49,6 +52,10 @@ public:
     ~Problem();
 
     void run();
+
+protected:
+    /// Prepares the run, sets all initial conditions, creates logger, output, ...
+    // virtual void setup() = 0;
 };
 
 NAMESPACE_SPH_END

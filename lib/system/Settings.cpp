@@ -201,6 +201,8 @@ std::unique_ptr<GlobalSettings> GlobalSettings::instance (new GlobalSettings {
     { GlobalSettingsIds::RUN_LOGGER_FILE,               "run.logger.file",          std::string("log.txt") },
     { GlobalSettingsIds::RUN_STATISTICS_STEP,           "run.statistics_step",      100 },
     { GlobalSettingsIds::RUN_TIME_RANGE,                "run.time_range",           Range(0._f, 10._f) },
+    { GlobalSettingsIds::RUN_TIMESTEP_CNT,              "run.timestep_cnt",         0 },
+    { GlobalSettingsIds::RUN_WALLCLOCK_TIME,            "run.wallclock_time",       0._f} ,
 
     /// Physical model
     { GlobalSettingsIds::MODEL_FORCE_GRAD_P,            "model.force.grad_p",       true },
@@ -218,7 +220,8 @@ std::unique_ptr<GlobalSettings> GlobalSettings::instance (new GlobalSettings {
     /// Global SPH parameters
     { GlobalSettingsIds::SPH_KERNEL,                    "sph.kernel",               int(KernelEnum::CUBIC_SPLINE) },
     { GlobalSettingsIds::SPH_KERNEL_ETA,                "sph.kernel.eta",           1.5_f },
-    { GlobalSettingsIds::SPH_NEIGHBOUR_RANGE,           "sph.neighbour_range",      Range(25._f, 100._f) },
+    { GlobalSettingsIds::SPH_NEIGHBOUR_RANGE,           "sph.neighbour.range",      Range(25._f, 100._f) },
+    { GlobalSettingsIds::SPH_NEIGHBOUR_ENFORCING,       "sph.neighbour.enforcing",  0.2_f },
     { GlobalSettingsIds::SPH_AV_ALPHA,                  "sph.av.alpha",             1.5_f },
     { GlobalSettingsIds::SPH_AV_BETA,                   "sph.av.beta",              3._f },
     { GlobalSettingsIds::SPH_SMOOTHING_LENGTH_MIN,      "sph.smoothing_length.min", 1e-5_f },
@@ -281,7 +284,7 @@ std::unique_ptr<BodySettings> BodySettings::instance (new BodySettings {
     { BodySettingsIds::DAMAGE_RANGE,            "material.damage.range",        Range(0.f, 1._f) },
     { BodySettingsIds::DAMAGE_MIN,              "material.damage.min",          0.03_f },
     { BodySettingsIds::STRESS_TENSOR,           "material.stress_tensor",       TracelessTensor(0._f) },
-    { BodySettingsIds::STRESS_TENSOR_MIN,       "material.stress_tensor.min",   1e5_f },
+    { BodySettingsIds::STRESS_TENSOR_MIN,       "material.stress_tensor.min",   1.e5_f },
     { BodySettingsIds::BULK_MODULUS,            "material.bulk_modulus",        2.67e10_f },
     { BodySettingsIds::SHEAR_MODULUS,           "material.shear_modulus",       2.27e10_f },
     { BodySettingsIds::YOUNG_MODULUS,           "material.young_modulus",       5.7e10_f },

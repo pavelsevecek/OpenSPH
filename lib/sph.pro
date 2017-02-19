@@ -158,4 +158,6 @@ HEADERS += \
     sph/timestepping/TimeStepCriterion.h \
     objects/ForwardDecl.h \
     objects/wrappers/ObserverPtr.h \
-    math/Means.h
+    math/Means.h \
+    system/Element.h \
+    quantities/Slice.h

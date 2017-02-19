@@ -23,13 +23,11 @@ public:
     Accumulator() = default;
 
     Accumulator(const QuantityIds key)
-        : key(key) {
-    }
+        : key(key) {}
 
     Accumulator(Accumulator&& other)
         : values(std::move(other.values))
-        , functor(std::move(other.functor)) {
-    }
+        , functor(std::move(other.functor)) {}
 
     void update(Storage& storage) {
         values.resize(storage.getParticleCnt());
@@ -79,8 +77,7 @@ public:
 
     /// Constructor taking references to arrays there the accumulated values are stored
     AccumulatorOwner(Accumulator<TAccumulate>&... accumulators)
-        : accumulators(accumulators...) {
-    }
+        : accumulators(accumulators...) {}
 
     /// Return a reference to array given by accumulator type.
     template <typename TFunctor>
@@ -145,6 +142,7 @@ class RhoDivvImpl {
 private:
     ArrayView<const Float> m;
     ArrayView<const Vector> v;
+    ArrayView<const Float> rho;
 
 public:
     using Type = Float;
@@ -152,12 +150,13 @@ public:
     void update(Storage& storage) {
         m = storage.getValue<Float>(QuantityIds::MASSES);
         v = storage.getAll<Vector>(QuantityIds::POSITIONS)[1];
+        rho = storage.getValue<Float>(QuantityIds::DENSITY);
     }
 
     INLINE Tuple<Float, Float> operator()(const int i, const int j, const Vector& grad) const {
         const Float delta = dot(v[j] - v[i], grad);
         ASSERT(isReal(delta));
-        return { m[j] * delta, m[i] * delta };
+        return { m[j] / rho[j] * delta, m[i] / rho[i] * delta };
     }
 };
 using RhoDivv = Accumulator<RhoDivvImpl>;

@@ -69,21 +69,22 @@ public:
 
     INLINE void accumulate(const Size i, const Size j, const Vector& grad) {
         Vector f(0._f);
-        const Float rhoInvSqri = 1._f / sqr(rho[i]);
-        const Float rhoInvSqrj = 1._f / sqr(rho[j]);
+        // const Float rhoInvSqri = 1._f / sqr(rho[i]);
+        // const Float rhoInvSqrj = 1._f / sqr(rho[j]);
         if (flags.has(Options::USE_GRAD_P)) {
             /// \todo measure if these branches have any effect on performance
             const auto avij = av(i, j);
-            f -= (reduce(p[i], i) * rhoInvSqri + reduce(p[j], i) * rhoInvSqrj + avij) * grad;
+            // f -= (reduce(p[i], i) * rhoInvSqri + reduce(p[j], i) * rhoInvSqrj + avij) * grad;
+            f -= ((reduce(p[i], i) + reduce(p[j], j)) / (rho[i] * rho[j]) + avij) * grad;
             // account for shock heating
             const Float heating = 0.5_f * avij * dot(v[i] - v[j], grad);
             du[i] += m[j] * heating;
             du[j] += m[i] * heating;
         }
-        if (flags.has(Options::USE_DIV_S) && bodyIdxs[i] == bodyIdxs[j]) {
-            // apply stress only if particles belong to the same body
-            f += (reduce(s[i], i) * rhoInvSqri + reduce(s[j], i) * rhoInvSqrj) * grad;
-        }
+        /* if (flags.has(Options::USE_DIV_S) && bodyIdxs[i] == bodyIdxs[j]) {
+             // apply stress only if particles belong to the same body
+             f += (reduce(s[i], i) * rhoInvSqri + reduce(s[j], i) * rhoInvSqrj) * grad;
+         }*/
         dv[i] += m[j] * f;
         dv[j] -= m[i] * f;
         // internal energy is computed at the end using accumulated values
@@ -91,14 +92,14 @@ public:
     }
 
     void integrate(Storage& storage) {
-        MaterialAccessor material(storage);
+        // MaterialAccessor material(storage);
         for (Size i = 0; i < du.size(); ++i) {
             /// \todo check correct sign
-            const Float rhoInvSqr = 1._f / sqr(rho[i]);
+            // const Float rhoInvSqr = 1._f / sqr(rho[i]);
             if (flags.has(Options::USE_GRAD_P)) {
-                du[i] -= reduce(p[i], i) * rhoInvSqr * rhoDivv[i];
+                du[i] -= reduce(p[i], i) / rho[i] * rhoDivv[i];
             }
-            if (flags.has(Options::USE_DIV_S)) {
+            /*if (flags.has(Options::USE_DIV_S)) {
                 du[i] += rhoInvSqr * ddot(reduce(s[i], i), rhoGradv[i]);
 
                 // compute derivatives of the stress tensor
@@ -108,7 +109,7 @@ public:
                 ds[i] += TracelessTensor(
                     2._f * mu / rho[i] * (rhoGradv[i] - Tensor::identity() * rhoGradv[i].trace() / 3._f));
                 ASSERT(isReal(ds[i]));
-            }
+            }*/
             ASSERT(isReal(du[i]));
         }
         this->integrateModules(storage);

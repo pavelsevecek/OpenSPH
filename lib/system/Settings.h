@@ -306,6 +306,15 @@ enum class GlobalSettingsIds {
     /// Starting time and ending time of the run. Run does not necessarily have to start at t = 0.
     RUN_TIME_RANGE,
 
+    /// Maximum number of timesteps after which run ends. 0 means run duration is not limited by number of
+    /// timesteps. Note that if adaptive timestepping is used, run can end at different times for
+    /// different initial conditions. This condition should only be used for debugging purposes.
+    RUN_TIMESTEP_CNT,
+
+    /// Maximum duration of the run in milliseconds, measured in real-world time. 0 means run duration is not
+    /// limited by this value.
+    RUN_WALLCLOCK_TIME,
+
     /// Index of SPH Kernel, see KernelEnum
     SPH_KERNEL,
 
@@ -318,6 +327,11 @@ enum class GlobalSettingsIds {
     /// Minimum and maximum number of neighbours SPH solver tries to enforce. Note that the solver cannot
     /// guarantee the actual number of neighbours will be within the range.
     SPH_NEIGHBOUR_RANGE,
+
+    /// Strength of enforcing neighbour number. Higher value makes enforcing more strict (number of neighbours
+    /// gets into required range faster), but also makes code less stable. Can be a negative number,  -INFTY
+    /// technically disables enforcing altogether.
+    SPH_NEIGHBOUR_ENFORCING,
 
     /// Artificial viscosity alpha coefficient
     SPH_AV_ALPHA,

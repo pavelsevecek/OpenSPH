@@ -51,6 +51,9 @@ public:
         CENTER = 1 << 1, ///< Move particle lattice so that their center of mass matches center of domain.
                          /// This assumes all particles have the same mass. Note that with this options,
                          /// generated particles does not have to be strictly inside given domain.
+        SPH5_COMPATIBILITY = 1 << 2 ///< Generates the grid to match code SPH5 for 1-1 comparison. Not that
+                                    /// this will generate significantly more particles than requested
+        ///(approximately by factor 1.4).
     };
 
     HexagonalPacking(const Flags<Options> flags = Options::CENTER);

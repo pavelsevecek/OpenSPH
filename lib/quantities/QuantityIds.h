@@ -100,6 +100,8 @@ INLINE std::string getDerivativeName(const QuantityIds key) {
     switch (key) {
     case QuantityIds::POSITIONS:
         return "Velocity";
+    case QuantityIds::DEVIATORIC_STRESS:
+        return "[debug] dS/dt";
     default:
         NOT_IMPLEMENTED;
     }

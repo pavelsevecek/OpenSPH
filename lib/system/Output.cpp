@@ -3,78 +3,51 @@
 
 NAMESPACE_SPH_BEGIN
 
-static void printHeader(std::ofstream& ofs, const QuantityIds key, Quantity& q) {
-    auto printHeaderImpl = [&q, &ofs](const std::string& name) {
-        switch (q.getValueEnum()) {
-        case ValueEnum::SCALAR:
-        case ValueEnum::INDEX:
-            ofs << std::setw(15) << name;
-            break;
-        case ValueEnum::VECTOR:
-            ofs << std::setw(15) << (name + " [x]") << std::setw(15) << (name + " [y]") << std::setw(15)
-                << (name + " [z]");
-            break;
-        case ValueEnum::TENSOR:
-            ofs << std::setw(15) << (name + " [xx]") << std::setw(15) << (name + " [yy]") << std::setw(15)
-                << (name + " [zz]") << std::setw(15) << (name + " [xy]") << std::setw(15) << (name + " [xz]")
-                << std::setw(15) << (name + " [yz]");
-            break;
-        case ValueEnum::TRACELESS_TENSOR:
-            ofs << std::setw(15) << (name + " [xx]") << std::setw(15) << (name + " [yy]") << std::setw(15)
-                << (name + " [xy]") << std::setw(15) << (name + " [xz]") << std::setw(15) << (name + " [yz]");
-            break;
-        default:
-            NOT_IMPLEMENTED;
-        }
-    };
-    switch (q.getOrderEnum()) {
-    case OrderEnum::SECOND_ORDER:
-        printHeaderImpl(getQuantityName(key));
-        printHeaderImpl(getDerivativeName(key));
+static void printHeader(std::ofstream& ofs, const std::string& name, const ValueEnum type) {
+    switch (type) {
+    case ValueEnum::SCALAR:
+    case ValueEnum::INDEX:
+        ofs << std::setw(15) << name;
         break;
-    case OrderEnum::FIRST_ORDER:
-    case OrderEnum::ZERO_ORDER:
-        printHeaderImpl(getQuantityName(key));
+    case ValueEnum::VECTOR:
+        ofs << std::setw(15) << (name + " [x]") << std::setw(15) << (name + " [y]") << std::setw(15)
+            << (name + " [z]");
+        break;
+    case ValueEnum::TENSOR:
+        ofs << std::setw(15) << (name + " [xx]") << std::setw(15) << (name + " [yy]") << std::setw(15)
+            << (name + " [zz]") << std::setw(15) << (name + " [xy]") << std::setw(15) << (name + " [xz]")
+            << std::setw(15) << (name + " [yz]");
+        break;
+    case ValueEnum::TRACELESS_TENSOR:
+        ofs << std::setw(15) << (name + " [xx]") << std::setw(15) << (name + " [yy]") << std::setw(15)
+            << (name + " [xy]") << std::setw(15) << (name + " [xz]") << std::setw(15) << (name + " [yz]");
         break;
     default:
-        STOP;
+        NOT_IMPLEMENTED;
     }
 }
 
-TextOutput::TextOutput(const std::string& fileMask, const std::string& runName, Array<QuantityIds>&& columns)
+TextOutput::TextOutput(const std::string& fileMask, const std::string& runName)
     : Abstract::Output(fileMask)
-    , runName(runName)
-    , columns(std::move(columns)) {}
-
-struct LinePrinter {
-    template <typename TValue>
-    void visit(Quantity& q, const Size i, std::ofstream& ofs) {
-        if (q.getOrderEnum() == OrderEnum::SECOND_ORDER) {
-            ofs << std::setprecision(6) << std::setw(15) << q.getValue<TValue>()[i] << std::setw(15)
-                << q.getDt<TValue>()[i];
-        } else {
-            ofs << std::setprecision(6) << std::setw(15) << q.getValue<TValue>()[i];
-        }
-    }
-};
+    , runName(runName) {}
 
 std::string TextOutput::dump(Storage& storage, const Float time) {
+    ASSERT(!elements.empty() && "nothing to dump");
     const std::string fileName = getFileName();
     std::ofstream ofs(fileName);
     // print description
     ofs << "# Run: " << runName << std::endl;
     ofs << "# SPH dump, time = " << time << std::endl;
     ofs << "# ";
-    for (QuantityIds key : columns) {
-        printHeader(ofs, key, storage.getQuantity(key));
+    for (auto& element : elements) {
+        printHeader(ofs, element->getName(), element->getType());
     }
     ofs << std::endl;
 
     // print data lines, starting with second-order quantities
     for (Size i = 0; i < storage.getParticleCnt(); ++i) {
-        for (QuantityIds key : columns) {
-            Quantity& q = storage.getQuantity(key);
-            dispatch(q.getValueEnum(), LinePrinter(), q, i, ofs);
+        for (auto& element : elements) {
+            ofs << std::setw(15) << element->evaluate(storage, i);
         }
         ofs << std::endl;
     }
@@ -125,6 +98,7 @@ static void storeBuffers(Quantity& q, TStoreValue&& storeValue) {
 }
 
 std::string BinaryOutput::dump(Storage& storage, const Float time) {
+    ASSERT(!elements.empty() && "nothing to dump");
     const std::string fileName = getFileName();
     std::ofstream ofs(fileName);
     // file format identifie

@@ -1,7 +1,8 @@
 #pragma once
 
-#include "quantities/Storage.h"
 #include "objects/wrappers/Outcome.h"
+#include "quantities/Storage.h"
+#include "system/Element.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -12,6 +13,7 @@ namespace Abstract {
     protected:
         int dumpNum = 0; // number of saved files
         std::string fileMask;
+        Array<std::unique_ptr<Abstract::Element>> elements;
 
     public:
         /// Constructs output given the file name of the output. The name must contain '%d', which will be
@@ -19,6 +21,11 @@ namespace Abstract {
         Output(const std::string& fileMask)
             : fileMask(fileMask) {
             ASSERT(fileMask.find("%d") != std::string::npos);
+        }
+
+        /// Adds an element to output.
+        void add(std::unique_ptr<Abstract::Element>&& element) {
+            elements.push(std::move(element));
         }
 
         /// Saves data from particle storage into the file. Returns the filename of the dump.
@@ -45,14 +52,15 @@ namespace Abstract {
 class TextOutput : public Abstract::Output {
 private:
     std::string runName;
-    Array<QuantityIds> columns;
 
 public:
-    TextOutput(const std::string& fileMask, const std::string& runName, Array<QuantityIds>&& columns);
+    TextOutput(const std::string& fileMask, const std::string& runName);
 
     virtual std::string dump(Storage& storage, const Float time) override;
 
-    virtual Outcome load(const std::string& UNUSED(path), Storage& UNUSED(storage)) override { NOT_IMPLEMENTED; }
+    virtual Outcome load(const std::string& UNUSED(path), Storage& UNUSED(storage)) override {
+        NOT_IMPLEMENTED;
+    }
 };
 
 /// Extension of text output that runs given gnuplot script on dumped text data.
@@ -61,11 +69,8 @@ private:
     std::string scriptPath;
 
 public:
-    GnuplotOutput(const std::string& fileMask,
-        const std::string& runName,
-        Array<QuantityIds>&& columns,
-        const std::string& scriptPath)
-        : TextOutput(fileMask, runName, std::move(columns))
+    GnuplotOutput(const std::string& fileMask, const std::string& runName, const std::string& scriptPath)
+        : TextOutput(fileMask, runName)
         , scriptPath(scriptPath) {}
 
     virtual std::string dump(Storage& storage, const Float time) override;

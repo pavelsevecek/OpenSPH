@@ -64,8 +64,11 @@ Array<Vector> CubicPacking::generate(const Size n, const Abstract::Domain& domai
 /// HexagonalPacking implementation
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-HexagonalPacking::HexagonalPacking(const Flags<Options> flags)
-    : flags(flags) {
+HexagonalPacking::HexagonalPacking(const Flags<Options> f)
+    : flags(f) {
+    if (flags.has(Options::SPH5_COMPATIBILITY)) {
+        flags.set(Options::CENTER);
+    }
 }
 
 Array<Vector> HexagonalPacking::generate(const Size n, const Abstract::Domain& domain) const {
@@ -76,13 +79,15 @@ Array<Vector> HexagonalPacking::generate(const Size n, const Abstract::Domain& d
 
     // interparticle distance based on density
     const Float h = 1._f / root<3>(particleDensity);
-    const Float dx = 1.1_f * h;
+    const Float dx = (flags.has(Options::SPH5_COMPATIBILITY) ? 1._f : 1.1_f) * h;
     const Float dy = sqrt(3._f) * 0.5_f * dx;
     const Float dz = sqrt(6._f) / 3._f * dx;
 
     const Box boundingBox = domain.getBoundingBox();
     const Vector step(dx, dy, dz);
-    const Box box(boundingBox.lower() + 0.5_f * step, boundingBox.upper());
+    const Box box = flags.has(Options::SPH5_COMPATIBILITY)
+                        ? boundingBox
+                        : Box(boundingBox.lower() + 0.5_f * step, boundingBox.upper());
     Array<Vector> vecs;
     const Float deltaX = 0.5_f * dx;
     const Float deltaY = sqrt(3._f) / 6._f * dx;
@@ -142,8 +147,7 @@ DiehlEtAlDistribution::DiehlEtAlDistribution(const DiehlEtAlDistribution::Densit
     , error(error)
     , numOfIters(numOfIters)
     , strength(strength)
-    , small(small) {
-}
+    , small(small) {}
 
 Array<Vector> DiehlEtAlDistribution::generate(const Size n, const Abstract::Domain& domain) const {
     // Renormalize particle density so that integral matches expected particle count
