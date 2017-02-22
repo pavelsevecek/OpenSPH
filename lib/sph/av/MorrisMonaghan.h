@@ -28,10 +28,10 @@ public:
         , divv(QuantityIds::VELOCITY_DIVERGENCE) {}
 
     void initialize(Storage& storage, const BodySettings& settings) const {
-        storage.emplace<Float, OrderEnum::FIRST_ORDER>(QuantityIds::AV_ALPHA,
+        storage.insert<Float, OrderEnum::FIRST_ORDER>(QuantityIds::AV_ALPHA,
             settings.get<Float>(BodySettingsIds::AV_ALPHA),
             settings.get<Range>(BodySettingsIds::AV_ALPHA_RANGE));
-        storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityIds::AV_BETA,
+        storage.insert<Float, OrderEnum::ZERO_ORDER>(QuantityIds::AV_BETA,
             settings.get<Float>(BodySettingsIds::AV_BETA),
             settings.get<Range>(BodySettingsIds::AV_BETA_RANGE));
         this->initializeModules(storage, settings);

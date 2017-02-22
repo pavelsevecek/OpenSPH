@@ -21,10 +21,10 @@ TEST_CASE("Distribute flaws", "[damage]") {
     SphericalDomain domain(Vector(0._f), 1._f);
     Array<Vector> r = distribution.generate(9000, domain);
     const int N = r.size();
-    storage.emplace<Vector, OrderEnum::SECOND_ORDER>(QuantityIds::POSITIONS, std::move(r));
+    storage.insert<Vector, OrderEnum::SECOND_ORDER>(QuantityIds::POSITIONS, std::move(r));
     const Float rho0 = bodySettings.get<Float>(BodySettingsIds::DENSITY);
-    storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityIds::DENSITY, rho0);
-    storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityIds::MASSES, rho0 * domain.getVolume() / N);
+    storage.insert<Float, OrderEnum::ZERO_ORDER>(QuantityIds::DENSITY, rho0);
+    storage.insert<Float, OrderEnum::ZERO_ORDER>(QuantityIds::MASSES, rho0 * domain.getVolume() / N);
     model.initialize(storage, bodySettings);
 
     // check that all particles have at least one flaw

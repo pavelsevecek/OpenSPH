@@ -26,14 +26,14 @@ TEST_CASE("Total mass", "[integrals]") {
 TEST_CASE("Total Momentum Simple", "[integrals]") {
     Storage storage;
     // two particles, perpendicular but moving in the same direction
-    storage.emplace<Vector, OrderEnum::SECOND_ORDER>(
+    storage.insert<Vector, OrderEnum::SECOND_ORDER>(
         QuantityIds::POSITIONS, Array<Vector>{ Vector(1._f, 0._f, 0._f), Vector(0._f, 2._f, 0._f) });
     ArrayView<Vector> r, v, dv;
     tie(r, v, dv) = storage.getAll<Vector>(QuantityIds::POSITIONS);
     v[0] = Vector(0._f, 2._f, 0._f);
     v[1] = Vector(0._f, 3._f, 0._f);
 
-    storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityIds::MASSES, Array<Float>{ 5._f, 7._f });
+    storage.insert<Float, OrderEnum::ZERO_ORDER>(QuantityIds::MASSES, Array<Float>{ 5._f, 7._f });
 
     // integrals in inertial frame
     TotalMomentum momentum;
@@ -80,7 +80,7 @@ TEST_CASE("Total Momentum Body", "[integrals]") {
 
 TEST_CASE("Total Energy Simple", "[integrals]") {
     Storage storage;
-    storage.emplace<Vector, OrderEnum::SECOND_ORDER>( // positions are irrelevant here ...
+    storage.insert<Vector, OrderEnum::SECOND_ORDER>( // positions are irrelevant here ...
         QuantityIds::POSITIONS,
         Array<Vector>{ Vector(1._f, 0._f, 0._f), Vector(0._f, 2._f, 0._f) });
     ArrayView<Vector> r, v, dv;
@@ -88,8 +88,8 @@ TEST_CASE("Total Energy Simple", "[integrals]") {
     v[0] = Vector(0._f, 2._f, 0._f);
     v[1] = Vector(0._f, 3._f, 0._f);
 
-    storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityIds::MASSES, Array<Float>{ 5._f, 7._f });
-    storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityIds::ENERGY, Array<Float>{ 3._f, 4._f });
+    storage.insert<Float, OrderEnum::ZERO_ORDER>(QuantityIds::MASSES, Array<Float>{ 5._f, 7._f });
+    storage.insert<Float, OrderEnum::ZERO_ORDER>(QuantityIds::ENERGY, Array<Float>{ 3._f, 4._f });
 
     REQUIRE(TotalKineticEnergy().evaluate(storage) == 41.5_f);
     REQUIRE(TotalInternalEnergy().evaluate(storage) == 43._f);
@@ -134,10 +134,10 @@ TEST_CASE("Center of Mass", "[integrals]") {
 
 TEST_CASE("IntegralWrapper", "[integrals]") {
     Storage storage;
-    storage.emplace<Vector, OrderEnum::SECOND_ORDER>(
+    storage.insert<Vector, OrderEnum::SECOND_ORDER>(
         QuantityIds::POSITIONS, Array<Vector>{ Vector(1._f, 0._f, 0._f), Vector(0._f, 2._f, 0._f) });
-    storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityIds::MASSES, 1._f);
-    storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityIds::ENERGY, 0._f);
+    storage.insert<Float, OrderEnum::ZERO_ORDER>(QuantityIds::MASSES, 1._f);
+    storage.insert<Float, OrderEnum::ZERO_ORDER>(QuantityIds::ENERGY, 0._f);
     IntegralWrapper w1 = TotalEnergy(0._f);
     IntegralWrapper w2 = TotalMomentum(0._f);
     Value v1 = w1.evaluate(storage);

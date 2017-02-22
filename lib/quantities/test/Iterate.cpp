@@ -6,11 +6,11 @@ using namespace Sph;
 
 TEST_CASE("Iterate", "[iterate]") {
     Storage storage;
-    storage.emplace<Float, OrderEnum::SECOND_ORDER>(QuantityIds::POSITIONS, makeArray(5._f));
+    storage.insert<Float, OrderEnum::SECOND_ORDER>(QuantityIds::POSITIONS, makeArray(5._f));
     storage.resize(5);
-    storage.emplace<Vector, OrderEnum::FIRST_ORDER>(QuantityIds::DENSITY, Vector(1._f));
-    storage.emplace<Tensor, OrderEnum::FIRST_ORDER>(QuantityIds::DEVIATORIC_STRESS, Tensor(3._f));
-    storage.emplace<TracelessTensor, OrderEnum::ZERO_ORDER>(QuantityIds::ENERGY, TracelessTensor(6._f));
+    storage.insert<Vector, OrderEnum::FIRST_ORDER>(QuantityIds::DENSITY, Vector(1._f));
+    storage.insert<Tensor, OrderEnum::FIRST_ORDER>(QuantityIds::DEVIATORIC_STRESS, Tensor(3._f));
+    storage.insert<TracelessTensor, OrderEnum::ZERO_ORDER>(QuantityIds::ENERGY, TracelessTensor(6._f));
 
     int cnt = 0;
     iterate<VisitorEnum::ALL_BUFFERS>(storage, [&cnt](auto&& UNUSED(v)) { cnt++; });
@@ -35,10 +35,10 @@ TEST_CASE("Iterate", "[iterate]") {
 
 /*TEST_CASE("IterateCustom", "[iterate]") {
     Storage storage;
-    storage.emplace<Float, OrderEnum::SECOND_ORDER>(QuantityIds::POSITIONS, makeArray(5._f));
+    storage.insert<Float, OrderEnum::SECOND_ORDER>(QuantityIds::POSITIONS, makeArray(5._f));
     storage.resize<VisitorEnum::ALL_BUFFERS>(5);
-    storage.emplace<Vector, OrderEnum::FIRST_ORDER>(QuantityIds::DENSITY, Vector(1._f));
-    storage.emplace<Tensor, OrderEnum::FIRST_ORDER>(QuantityIds::DEVIATORIC_STRESS, Tensor(3._f));
+    storage.insert<Vector, OrderEnum::FIRST_ORDER>(QuantityIds::DENSITY, Vector(1._f));
+    storage.insert<Tensor, OrderEnum::FIRST_ORDER>(QuantityIds::DEVIATORIC_STRESS, Tensor(3._f));
 
     int i = 0;
     iterateCustom<VisitorEnum::ALL_VALUES>(

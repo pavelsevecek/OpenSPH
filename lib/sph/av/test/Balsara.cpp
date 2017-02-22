@@ -15,13 +15,13 @@ void setupBalsara(Storage& storage, BalsaraSwitch<StandardAV>& balsaraAv, TFunct
     HexagonalPacking distribution;
     const Size N = 10000;
     SphericalDomain domain(Vector(0._f), 1._f);
-    storage.emplace<Vector, OrderEnum::SECOND_ORDER>(
+    storage.insert<Vector, OrderEnum::SECOND_ORDER>(
         QuantityIds::POSITIONS, distribution.generate(N, domain));
     balsaraAv.initialize(storage, BodySettings::getDefaults());
-    storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityIds::DENSITY, 100._f);
-    storage.emplace<Float, OrderEnum::ZERO_ORDER>(
+    storage.insert<Float, OrderEnum::ZERO_ORDER>(QuantityIds::DENSITY, 100._f);
+    storage.insert<Float, OrderEnum::ZERO_ORDER>(
         QuantityIds::MASSES, 100._f * domain.getVolume() / storage.getParticleCnt());
-    storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityIds::SOUND_SPEED, 1.e-4_f);
+    storage.insert<Float, OrderEnum::ZERO_ORDER>(QuantityIds::SOUND_SPEED, 1.e-4_f);
     ArrayView<Vector> r, v, dv;
     tie(r, v, dv) = storage.getAll<Vector>(QuantityIds::POSITIONS);
     for (Size i = 0; i < r.size(); ++i) {

@@ -19,6 +19,9 @@ struct Material : public Noncopyable {
     /// example ...
     std::unique_ptr<Abstract::Eos> eos;
 
+    /// Minimal values used in timestepping. Do not affect values of quantities themselves.
+    std::map<QuantityIds, Float> minimals;
+
     Material();
 
     Material(Material&& other) = default;
@@ -40,11 +43,16 @@ public:
     /// Sets a parameter associated for all particles by copying value from settings.
     void setParams(const BodySettingsIds paramIdx, const BodySettings& settings);
 
-    template<typename TValue>
+    template <typename TValue>
     void setParams(const BodySettingsIds paramIdx, const TValue& value) {
         for (Material& mat : materials) {
             mat.params.set(paramIdx, value); // cannot move here if we have >1 material
         }
+    }
+
+    Float& minimal(const QuantityIds id, const Size particleIdx) {
+        Material& mat = materials[matIdxs[particleIdx]];
+        return mat.minimals[id];
     }
 
     /// Returns a parameter associated with given particle.

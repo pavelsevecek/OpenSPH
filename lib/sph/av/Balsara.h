@@ -37,8 +37,8 @@ public:
 
     void initialize(Storage& storage, const BodySettings& settings) {
         /// \todo set initial values of rot v and div v
-        storage.emplace<Vector, OrderEnum::ZERO_ORDER>(QuantityIds::VELOCITY_ROTATION, Vector(0._f));
-        storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityIds::VELOCITY_DIVERGENCE, 0._f);
+        storage.insert<Vector, OrderEnum::ZERO_ORDER>(QuantityIds::VELOCITY_ROTATION, Vector(0._f));
+        storage.insert<Float, OrderEnum::ZERO_ORDER>(QuantityIds::VELOCITY_DIVERGENCE, 0._f);
         this->initializeModules(storage, settings);
     }
 

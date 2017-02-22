@@ -80,7 +80,7 @@ TEST_CASE("GhostParticles wall", "[boundary]") {
     GhostParticles boundaryConditions(std::make_unique<WallDomain>(), settings);
     Storage storage;
     // Create few particles. Particles with x < 2 will create corresponding ghost particle.
-    storage.emplace<Vector, OrderEnum::SECOND_ORDER>(QuantityIds::POSITIONS,
+    storage.insert<Vector, OrderEnum::SECOND_ORDER>(QuantityIds::POSITIONS,
         Array<Vector>{ Vector(1.5_f, 1._f, 3._f, 1._f), // has ghost
             Vector(0.5_f, 2._f, -1._f, 1._f),           // has ghost
             Vector(-1._f, 2._f, 1._f, 1._f),            // negative - will be projected, + ghost
@@ -96,7 +96,7 @@ TEST_CASE("GhostParticles wall", "[boundary]") {
     v[1] = Vector(0._f, 2._f, 1._f);
     v[2] = Vector(1._f, 0._f, -3._f);
     // add scalar quantity, should be simply copied onto ghosts
-    storage.emplace<Float, OrderEnum::FIRST_ORDER>(
+    storage.insert<Float, OrderEnum::FIRST_ORDER>(
         QuantityIds::DENSITY, Array<Float>{ 3._f, 5._f, 2._f, 1._f, 3._f, 4._f, 10._f });
 
     boundaryConditions.apply(storage);
@@ -139,7 +139,7 @@ TEST_CASE("GhostParticles Sphere", "[boundary]") {
             particles.push(v);
         }
     }
-    storage.emplace<Vector, OrderEnum::SECOND_ORDER>(QuantityIds::POSITIONS, std::move(particles));
+    storage.insert<Vector, OrderEnum::SECOND_ORDER>(QuantityIds::POSITIONS, std::move(particles));
     ArrayView<Vector> r, v, dv;
     tie(r, v, dv) = storage.getAll<Vector>(QuantityIds::POSITIONS);
     VectorRng<UniformRng> rng;
@@ -196,7 +196,7 @@ TEST_CASE("GhostParticles Sphere Projection", "[boundary]") {
             particles.push(v);
         }
     }
-    storage.emplace<Vector, OrderEnum::SECOND_ORDER>(QuantityIds::POSITIONS, std::move(particles));
+    storage.insert<Vector, OrderEnum::SECOND_ORDER>(QuantityIds::POSITIONS, std::move(particles));
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityIds::POSITIONS);
     const Size ghostIdx = r.size();
     const Size halfSize = ghostIdx >> 1;
@@ -225,7 +225,7 @@ TEST_CASE("GhostParticles empty", "[boundary]") {
     Storage storage;
     Array<Vector> particles;
     particles.push(Vector(1._f, 0._f, 0._f, 0.1_f));
-    storage.emplace<Vector, OrderEnum::SECOND_ORDER>(QuantityIds::POSITIONS, std::move(particles));
+    storage.insert<Vector, OrderEnum::SECOND_ORDER>(QuantityIds::POSITIONS, std::move(particles));
     GhostParticles boundaryConditions(
         std::make_unique<SphericalDomain>(Vector(0._f), 2._f), GlobalSettings::getDefaults());
     boundaryConditions.apply(storage);
@@ -390,7 +390,7 @@ TEST_CASE("WindTunnel generating particles", "[boundary]") {
     CylindricalDomain domain(Vector(0._f, 0._f, 2._f), 1._f, 4._f, true); // z in [0, 4]
     Storage storage1;
     HexagonalPacking distribution(EMPTY_FLAGS);
-    storage1.emplace<Vector, OrderEnum::SECOND_ORDER>(
+    storage1.insert<Vector, OrderEnum::SECOND_ORDER>(
         QuantityIds::POSITIONS, distribution.generate(1000, domain));
     Storage storage2; // will contain subset of particles with z in [0, 2]
     Array<Vector> r2;
@@ -400,10 +400,10 @@ TEST_CASE("WindTunnel generating particles", "[boundary]") {
             r2.push(r_ref[i]);
         }
     }
-    storage2.emplace<Vector, OrderEnum::SECOND_ORDER>(QuantityIds::POSITIONS, std::move(r2));
+    storage2.insert<Vector, OrderEnum::SECOND_ORDER>(QuantityIds::POSITIONS, std::move(r2));
     // some other quantities for a ride
-    storage2.emplace<Float, OrderEnum::FIRST_ORDER>(QuantityIds::DENSITY, 5._f);
-    storage2.emplace<Size, OrderEnum::ZERO_ORDER>(QuantityIds::MATERIAL_IDX, 5);
+    storage2.insert<Float, OrderEnum::FIRST_ORDER>(QuantityIds::DENSITY, 5._f);
+    storage2.insert<Size, OrderEnum::ZERO_ORDER>(QuantityIds::MATERIAL_IDX, 5);
     WindTunnel boundary(std::make_unique<CylindricalDomain>(domain), 2._f);
     const Size size1 = r_ref.size();
     boundary.apply(storage1); // whole domain filled with particles, no particle should be added nor remoted

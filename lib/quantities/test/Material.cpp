@@ -10,13 +10,13 @@ TEST_CASE("EosAccessor", "[material]") {
     BodySettings settings;
     settings.set(BodySettingsIds::EOS, EosEnum::IDEAL_GAS);
     Storage storage(settings);
-    storage.emplace<Float, OrderEnum::FIRST_ORDER>(QuantityIds::DENSITY, Array<Float>{ 5._f });
-    storage.emplace<Float, OrderEnum::FIRST_ORDER>(QuantityIds::ENERGY, Array<Float>{ 3._f });
+    storage.insert<Float, OrderEnum::FIRST_ORDER>(QuantityIds::DENSITY, Array<Float>{ 5._f });
+    storage.insert<Float, OrderEnum::FIRST_ORDER>(QuantityIds::ENERGY, Array<Float>{ 3._f });
 
     settings.set(BodySettingsIds::EOS, EosEnum::MURNAGHAN);
     Storage storage2(settings);
-    storage2.emplace<Float, OrderEnum::FIRST_ORDER>(QuantityIds::DENSITY, Array<Float>{ 9._f });
-    storage2.emplace<Float, OrderEnum::FIRST_ORDER>(QuantityIds::ENERGY, Array<Float>{ 6._f });
+    storage2.insert<Float, OrderEnum::FIRST_ORDER>(QuantityIds::DENSITY, Array<Float>{ 9._f });
+    storage2.insert<Float, OrderEnum::FIRST_ORDER>(QuantityIds::ENERGY, Array<Float>{ 6._f });
 
     storage.merge(std::move(storage2));
     ArrayView<Material> materials = storage.getMaterials();
@@ -32,11 +32,11 @@ TEST_CASE("EosAccessor", "[material]") {
 
 TEST_CASE("MaterialAccessor", "[material]") {
     Storage storage(BodySettings::getDefaults());
-    storage.emplace<Float, OrderEnum::FIRST_ORDER>(QuantityIds::ENERGY, Array<Float>{1._f, 1._f});
+    storage.insert<Float, OrderEnum::FIRST_ORDER>(QuantityIds::ENERGY, Array<Float>{ 1._f, 1._f });
     MaterialAccessor(storage).setParams(BodySettingsIds::YOUNG_MODULUS, 5._f);
 
     Storage storage2(BodySettings::getDefaults());
-    storage2.emplace<Float, OrderEnum::FIRST_ORDER>(QuantityIds::ENERGY, Array<Float>{2._f, 2._f, 2._f});
+    storage2.insert<Float, OrderEnum::FIRST_ORDER>(QuantityIds::ENERGY, Array<Float>{ 2._f, 2._f, 2._f });
     MaterialAccessor(storage2).setParams(BodySettingsIds::YOUNG_MODULUS, 8._f);
 
     storage.merge(std::move(storage2));

@@ -1,5 +1,6 @@
 #include "sph/timestepping/TimeStepCriterion.h"
 #include "quantities/Iterate.h"
+#include "quantities/Material.h"
 #include "system/Logger.h"
 #include "system/Profiler.h"
 #include "system/Settings.h"
@@ -25,7 +26,6 @@ Tuple<Float, AllCriterionIds> DerivativeCriterion::compute(Storage& storage,
 
     iterate<VisitorEnum::FIRST_ORDER>(storage, [&](const QuantityIds id, auto&& v, auto&& dv) {
         ASSERT(v.size() == dv.size());
-        Quantity& quantity = storage.getQuantity(id);
         Float minStep = INFTY;
         using T = typename std::decay_t<decltype(v)>::Type;
         struct {
@@ -37,7 +37,7 @@ Tuple<Float, AllCriterionIds> DerivativeCriterion::compute(Storage& storage,
         for (Size i = 0; i < v.size(); ++i) {
             const auto absdv = abs(dv[i]);
             const auto absv = abs(v[i]);
-            const Float minValue = quantity.getMinimalValue();
+            const Float minValue = MaterialAccessor(storage).minimal(id, i);
             ASSERT(minValue > 0._f); // some nonzero minimal value must be set for all quantities
             if (norm(absv) < 2._f * minValue) {
                 continue;

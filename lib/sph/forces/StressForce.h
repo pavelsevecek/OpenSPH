@@ -116,10 +116,11 @@ public:
     }
 
     void initialize(Storage& storage, const BodySettings& settings) const {
-        storage.emplace<Float, OrderEnum::FIRST_ORDER>(QuantityIds::ENERGY,
+        storage.insert<Float, OrderEnum::FIRST_ORDER>(QuantityIds::ENERGY,
             settings.get<Float>(BodySettingsIds::ENERGY),
-            settings.get<Range>(BodySettingsIds::ENERGY_RANGE),
-            settings.get<Float>(BodySettingsIds::ENERGY_MIN));
+            settings.get<Range>(BodySettingsIds::ENERGY_RANGE));
+        MaterialAccessor(storage).minimal(QuantityIds::ENERGY, 0) =
+            settings.get<Float>(BodySettingsIds::ENERGY_MIN);
         if (flags.has(Options::USE_GRAD_P)) {
             // Compute pressure using equation of state
             std::unique_ptr<Abstract::Eos> eos = Factory::getEos(settings);
@@ -130,15 +131,16 @@ public:
             for (Size i = 0; i < n; ++i) {
                 tieToTuple(p[i], cs[i]) = eos->evaluate(rho0, u0);
             }
-            storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityIds::PRESSURE, std::move(p));
-            storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityIds::SOUND_SPEED, std::move(cs));
+            storage.insert<Float, OrderEnum::ZERO_ORDER>(QuantityIds::PRESSURE, std::move(p));
+            storage.insert<Float, OrderEnum::ZERO_ORDER>(QuantityIds::SOUND_SPEED, std::move(cs));
         }
         if (flags.has(Options::USE_DIV_S)) {
-            storage.emplace<TracelessTensor, OrderEnum::FIRST_ORDER>(QuantityIds::DEVIATORIC_STRESS,
+            storage.insert<TracelessTensor, OrderEnum::FIRST_ORDER>(QuantityIds::DEVIATORIC_STRESS,
                 settings.get<TracelessTensor>(BodySettingsIds::STRESS_TENSOR),
-                Range::unbounded(),
-                settings.get<Float>(BodySettingsIds::STRESS_TENSOR_MIN));
-            storage.emplace<Tensor, OrderEnum::ZERO_ORDER>(QuantityIds::RHO_GRAD_V, Tensor::null());
+                Range::unbounded());
+            MaterialAccessor(storage).minimal(QuantityIds::DEVIATORIC_STRESS, 0) =
+                settings.get<Float>(BodySettingsIds::STRESS_TENSOR_MIN);
+            storage.insert<Tensor, OrderEnum::ZERO_ORDER>(QuantityIds::RHO_GRAD_V, Tensor::null());
             MaterialAccessor material(storage);
             material.setParams(BodySettingsIds::SHEAR_MODULUS, settings);
         }

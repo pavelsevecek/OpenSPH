@@ -315,14 +315,12 @@ namespace Detail {
 class Quantity : public Noncopyable {
 private:
     std::unique_ptr<Detail::PlaceHolder> data;
-    Float minValue = 0.f;
 
 public:
     Quantity() = default;
 
     Quantity(Quantity&& other) {
         std::swap(data, other.data);
-        minValue = other.minValue;
     }
 
     /// Creates a quantity given number of particles and default value of the quantity. All values are set to
@@ -334,26 +332,20 @@ public:
     /// \param range Optional parameter, used to set bounds for the quantity. By default, quantity is
     ///              unbounded.
     template <typename TValue, OrderEnum TOrder>
-    void emplace(const TValue& defaultValue,
-        const int size,
-        const Range& range = Range::unbounded(),
-        const Float minimal = 0.f) {
+    void insert(const TValue& defaultValue, const int size, const Range& range = Range::unbounded()) {
         using Holder = Detail::Holder<TValue, TOrder>;
         data = std::make_unique<Holder>(defaultValue, size, range);
-        minValue = minimal;
     }
 
     /// Creates a quantity from an array of values. All derivatives are set to zero.
     template <typename TValue, OrderEnum TOrder>
-    void emplace(Array<TValue>&& values, const Range& range = Range::unbounded(), const Float minimal = 0.f) {
+    void insert(Array<TValue>&& values, const Range& range = Range::unbounded()) {
         using Holder = Detail::Holder<TValue, TOrder>;
         data = std::make_unique<Holder>(std::move(values), range);
-        minValue = minimal;
     }
 
     Quantity& operator=(Quantity&& other) {
         std::swap(data, other.data);
-        minValue = other.minValue;
         return *this;
     }
 
@@ -371,7 +363,6 @@ public:
         ASSERT(data);
         Quantity cloned;
         cloned.data = this->data->clone(flags);
-        cloned.minValue = this->minValue;
         return cloned;
     }
 
@@ -381,15 +372,10 @@ public:
         data->clamp();
     }
 
-    Float& getMinimalValue() {
-        return minValue;
-    }
-
     /// Swap quantity (or selected part of it) with other quantity.
     void swap(Quantity& other, const Flags<VisitorEnum> flags) {
         ASSERT(data);
         data->swap(other.data.get(), flags);
-        std::swap(minValue, other.minValue);
     }
 
     /// Returns the size of the quantity (number of particles)

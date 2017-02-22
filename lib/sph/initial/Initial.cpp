@@ -33,7 +33,7 @@ void InitialConditions::addBody(const Abstract::Domain& domain,
     // Generate positions of particles
     Array<Vector> positions = distribution->generate(n, domain);
     ASSERT(positions.size() > 0);
-    body.emplace<Vector, OrderEnum::SECOND_ORDER>(QuantityIds::POSITIONS, std::move(positions));
+    body.insert<Vector, OrderEnum::SECOND_ORDER>(QuantityIds::POSITIONS, std::move(positions));
 
     setQuantities(body, settings, domain.getVolume(), velocity, angularVelocity);
 
@@ -80,7 +80,7 @@ void InitialConditions::addHeterogeneousBody(const Body& environment, ArrayView<
     // Initialize storages
     Float environmentVolume = environment.domain.getVolume();
     for (Size i = 0; i < bodyStorages.size(); ++i) {
-        bodyStorages[i].emplace<Vector, OrderEnum::SECOND_ORDER>(
+        bodyStorages[i].insert<Vector, OrderEnum::SECOND_ORDER>(
             QuantityIds::POSITIONS, std::move(pos_bodies[i]));
         const Float volume = bodies[i].domain.getVolume();
         setQuantities(
@@ -88,7 +88,7 @@ void InitialConditions::addHeterogeneousBody(const Body& environment, ArrayView<
         environmentVolume -= volume;
     }
     ASSERT(environmentVolume >= 0._f);
-    environmentStorage.emplace<Vector, OrderEnum::SECOND_ORDER>(QuantityIds::POSITIONS, std::move(pos_env));
+    environmentStorage.insert<Vector, OrderEnum::SECOND_ORDER>(QuantityIds::POSITIONS, std::move(pos_env));
     setQuantities(environmentStorage,
         environment.settings,
         environmentVolume,
@@ -122,10 +122,10 @@ void InitialConditions::setQuantities(Storage& storage,
     const Float rho0 = settings.get<Float>(BodySettingsIds::DENSITY);
     const Float totalM = volume * rho0; // m = rho * V
     ASSERT(totalM > 0._f);
-    storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityIds::MASSES, totalM / r.size());
+    storage.insert<Float, OrderEnum::ZERO_ORDER>(QuantityIds::MASSES, totalM / r.size());
 
     // Mark particles of this body
-    storage.emplace<Size, OrderEnum::ZERO_ORDER>(QuantityIds::FLAG, bodyIndex);
+    storage.insert<Size, OrderEnum::ZERO_ORDER>(QuantityIds::FLAG, bodyIndex);
     bodyIndex++;
 
     // Initialize all quantities needed by the solver

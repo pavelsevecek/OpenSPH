@@ -70,7 +70,7 @@ void testHomogeneousField(TArgs&&... args) {
     HomogeneousField solver;
 
     std::shared_ptr<Storage> storage = std::make_shared<Storage>();
-    storage->emplace<Vector, OrderEnum::SECOND_ORDER>(
+    storage->insert<Vector, OrderEnum::SECOND_ORDER>(
         QuantityIds::POSITIONS, Array<Vector>{ Vector(0._f, 0._f, 0._f) });
 
     ArrayView<const Vector> r, v, dv;
@@ -101,7 +101,7 @@ void testHarmonicOscillator(TArgs&&... args) {
     HarmonicOscillator solver;
 
     std::shared_ptr<Storage> storage = std::make_shared<Storage>();
-    storage->emplace<Vector, OrderEnum::SECOND_ORDER>(
+    storage->insert<Vector, OrderEnum::SECOND_ORDER>(
         QuantityIds::POSITIONS, Array<Vector>{ Vector(1._f, 0._f, 0._f) });
 
     ArrayView<const Vector> r, v, dv;
@@ -132,7 +132,7 @@ void testGyroscopicMotion(TArgs&&... args) {
     LorentzForce solver;
 
     std::shared_ptr<Storage> storage = std::make_shared<Storage>();
-    storage->emplace<Vector, OrderEnum::SECOND_ORDER>(
+    storage->insert<Vector, OrderEnum::SECOND_ORDER>(
         QuantityIds::POSITIONS, Array<Vector>{ Vector(1._f, 0._f, 0._f) });
 
     ArrayView<Vector> r, v, dv;

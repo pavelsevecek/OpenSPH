@@ -1,6 +1,7 @@
 #include "sph/timestepping/TimeStepCriterion.h"
 #include "catch.hpp"
 #include "geometry/Domain.h"
+#include "quantities/Material.h"
 #include "quantities/Storage.h"
 #include "sph/initial/Distribution.h"
 #include "system/Settings.h"
@@ -11,12 +12,13 @@ using namespace Sph;
 static Storage getStorage() {
     Storage storage(BodySettings::getDefaults());
     HexagonalPacking distribution;
-    storage.emplace<Vector, OrderEnum::SECOND_ORDER>(
+    storage.insert<Vector, OrderEnum::SECOND_ORDER>(
         QuantityIds::POSITIONS, distribution.generate(100, BlockDomain(Vector(0._f), Vector(100._f))));
-    storage.emplace<Float, OrderEnum::FIRST_ORDER>(QuantityIds::ENERGY, 0._f, Range::unbounded(), EPS);
+    storage.insert<Float, OrderEnum::FIRST_ORDER>(QuantityIds::ENERGY, 0._f, Range::unbounded());
+    MaterialAccessor(storage).minimal(QuantityIds::ENERGY, 0) = EPS;
 
     const Float cs = 5._f;
-    storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityIds::SOUND_SPEED, cs);
+    storage.insert<Float, OrderEnum::ZERO_ORDER>(QuantityIds::SOUND_SPEED, cs);
     return storage;
 }
 
@@ -66,7 +68,7 @@ TEST_CASE("Derivative Criterion", "[timestepping]") {
     REQUIRE(step == approx(factor * 3._f, 1.e-3_f));
     REQUIRE(id == QuantityIds::ENERGY);
 
-    storage.getQuantity(QuantityIds::ENERGY).getMinimalValue() = 8._f;
+    MaterialAccessor(storage).minimal(QuantityIds::ENERGY, 0) = 8._f;
     tieToTuple(step, id) = criterion.compute(storage, INFTY);
     REQUIRE(step == approx(factor * 5._f, 1.e-3_f)); // (12+8)/4
     REQUIRE(id == QuantityIds::ENERGY);

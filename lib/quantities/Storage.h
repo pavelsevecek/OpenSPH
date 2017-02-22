@@ -103,61 +103,42 @@ public:
     ///                     storage, the value is unused.
     /// \param range Optional parameter specifying lower and upper bound of the quantity. Bound are enforced
     ///              by timestepping algorithm. By default, quantities are unbounded.
+    /// \returns Reference to the inserted quantity.
     template <typename TValue, OrderEnum TOrder>
-    void emplace(const QuantityIds key,
+    Quantity& insert(const QuantityIds key,
         const TValue& defaultValue,
-        const Range& range = Range::unbounded(),
-        const Float minimal = 0._f) {
+        const Range& range = Range::unbounded()) {
         const Size particleCnt = getParticleCnt();
         ASSERT(particleCnt);
+        ASSERT(materials.size() == 1);
         Quantity q;
-        q.emplace<TValue, TOrder>(defaultValue, particleCnt, range, minimal);
+        q.insert<TValue, TOrder>(defaultValue, particleCnt, range);
         quantities[key] = std::move(q);
+        return quantities[key];
     }
 
     /// Creates a quantity in the storage, given array of values. The size of the array must match the number
     /// of particles. Derivatives of the quantity are set to zero. Can be used to override existing quantity
     /// with the same key. If this is the first quantity inserted into the storage, it sets
     /// the number of particles; all quantities added after that must have the same size.
+    /// \returns Reference to the inserted quantity.
     template <typename TValue, OrderEnum TOrder>
-    void emplace(const QuantityIds key,
-        Array<TValue>&& values,
-        const Range range = Range::unbounded(),
-        const Float minimal = 0._f) {
+    Quantity& insert(const QuantityIds key, Array<TValue>&& values, const Range range = Range::unbounded()) {
+        ASSERT(materials.size() <= 1);
         Quantity q;
-        q.emplace<TValue, TOrder>(std::move(values), range, minimal);
+        q.insert<TValue, TOrder>(std::move(values), range);
         UNUSED_IN_RELEASE(const Size size = q.size();)
         quantities[key] = std::move(q);
         if (quantities.size() == 1) {
             // set material ids; we have only one material, so set everything to zero
             if (!materials.empty()) {
-                this->emplace<Size, OrderEnum::ZERO_ORDER>(QuantityIds::MATERIAL_IDX, 0);
+                this->insert<Size, OrderEnum::ZERO_ORDER>(QuantityIds::MATERIAL_IDX, 0);
             }
         } else {
             ASSERT(size == getParticleCnt()); // size must match sizes of other quantities
         }
+        return quantities[key];
     }
-
-    /* struct WithFunctorTag {};
-
-     /// Creates a quantity in the storage, given a functor. This functor is called for every particle, takes
-     /// position of the particle (Vector) and index of the particle (int) as argument, and returns quantity
-     /// value for given particle. This can only be used if particle positions (QuantityIds::R) already exists
-     /// in the storage. Derivatives of the quantity are set to zero. Can be used to override existing
-     quantity
-     /// with the same key.
-     template <typename TValue, OrderEnum TOrder, typename TFunctor>
-     void emplace(const QuantityIds key,
-         WithFunctorTag,
-         TFunctor&& functor,
-         const Range range = Range::unbounded()) {
-         Array<Vector>& r = this->getValue<Vector>(QuantityIds::POSITIONS);
-         Array<TValue> values(r.size());
-         for (Size i = 0; i < r.size(); ++i) {
-             values[i] = functor(r[i], i);
-         }
-         this->emplace<TValue, TOrder>(key, std::move(values), range);
-     }*/
 
     ArrayView<Material> getMaterials() {
         return materials;

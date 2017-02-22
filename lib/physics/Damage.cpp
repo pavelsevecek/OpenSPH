@@ -1,8 +1,8 @@
 #include "physics/Damage.h"
 #include "math/rng/Rng.h"
 #include "quantities/Material.h"
-#include "system/Factory.h"
 #include "quantities/Storage.h"
+#include "system/Factory.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -13,14 +13,15 @@ ScalarDamage::ScalarDamage(const GlobalSettings& settings, const ExplicitFlaws o
 }
 
 void ScalarDamage::initialize(Storage& storage, const BodySettings& settings) const {
-    storage.emplace<Float, OrderEnum::FIRST_ORDER>(QuantityIds::DAMAGE,
+    storage.insert<Float, OrderEnum::FIRST_ORDER>(QuantityIds::DAMAGE,
         settings.get<Float>(BodySettingsIds::DAMAGE),
-        settings.get<Range>(BodySettingsIds::DAMAGE_RANGE),
-        settings.get<Float>(BodySettingsIds::DAMAGE_MIN));
-    storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityIds::EPS_MIN, 0._f);
-    storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityIds::M_ZERO, 0._f);
-    storage.emplace<Float, OrderEnum::ZERO_ORDER>(QuantityIds::EXPLICIT_GROWTH, 0._f);
-    storage.emplace<Size, OrderEnum::ZERO_ORDER>(QuantityIds::N_FLAWS, 0);
+        settings.get<Range>(BodySettingsIds::DAMAGE_RANGE));
+    MaterialAccessor(storage).minimal(QuantityIds::DAMAGE, 0) =
+        settings.get<Float>(BodySettingsIds::DAMAGE_MIN);
+    storage.insert<Float, OrderEnum::ZERO_ORDER>(QuantityIds::EPS_MIN, 0._f);
+    storage.insert<Float, OrderEnum::ZERO_ORDER>(QuantityIds::M_ZERO, 0._f);
+    storage.insert<Float, OrderEnum::ZERO_ORDER>(QuantityIds::EXPLICIT_GROWTH, 0._f);
+    storage.insert<Size, OrderEnum::ZERO_ORDER>(QuantityIds::N_FLAWS, 0);
     ArrayView<Float> rho, m, eps_min, m_zero, growth;
     tie(rho, m, eps_min, m_zero, growth) = storage.getValues<Float>(QuantityIds::DENSITY,
         QuantityIds::MASSES,
@@ -89,7 +90,9 @@ void ScalarDamage::initialize(Storage& storage, const BodySettings& settings) co
     }
 }
 
-void ScalarDamage::update(Storage& storage) { damage = storage.getValue<Float>(QuantityIds::DAMAGE); }
+void ScalarDamage::update(Storage& storage) {
+    damage = storage.getValue<Float>(QuantityIds::DAMAGE);
+}
 
 void ScalarDamage::integrate(Storage& storage) {
     ArrayView<TracelessTensor> s = storage.getValue<TracelessTensor>(QuantityIds::DEVIATORIC_STRESS);
