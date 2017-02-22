@@ -48,12 +48,12 @@ void OrthoPane::onPaint(wxPaintEvent& UNUSED(evt)) {
         const float radius = camera->projectedSize(p.position, scale * p.position[H]).get();
         memoryDc.DrawCircle(camera->project(p.position).get(), radius);
     }
+    drawPalette(memoryDc);
     dc.DrawBitmap(bitmap, wxPoint(0, 0));
-
-    drawPalette(dc);
+    // memoryDc.
 }
 
-void OrthoPane::drawPalette(wxPaintDC& dc) {
+void OrthoPane::drawPalette(wxDC& dc) {
     const int size = 201;
     wxPoint origin(dc.GetSize().x - 50, size + 30);
     wxPen pen = dc.GetPen();
@@ -66,6 +66,9 @@ void OrthoPane::drawPalette(wxPaintDC& dc) {
         dc.DrawLine(wxPoint(origin.x, origin.y - i), wxPoint(origin.x + 30, origin.y - i));
         if (i % 50 == 0) {
             dc.SetTextForeground(Color::white());
+            /*wxFont font;
+            font.SetTextSize()
+            dc.SetFont(wxFont);*/
             std::stringstream ss;
             ss << std::setprecision(1) << std::scientific << value;
             const std::string text = ss.str();

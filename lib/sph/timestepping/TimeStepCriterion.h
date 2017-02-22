@@ -4,6 +4,7 @@
 #include "objects/ForwardDecl.h"
 #include "objects/containers/Array.h"
 #include "objects/wrappers/Value.h"
+#include "quantities/QuantityIds.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -14,6 +15,29 @@ enum class CriterionIds {
     ACCELERATION = 103   ///< Timestep is constrained by acceleration condition
 };
 using AllCriterionIds = ExtendEnum<CriterionIds, QuantityIds>;
+
+/// \todo remove AllCriterionIds, instead use CriterionIds::DERIVATIVE and save relevant quantity to
+/// Statistics
+template <typename TStream>
+TStream& operator<<(TStream& stream, AllCriterionIds id) {
+    switch ((CriterionIds)id) {
+    case CriterionIds::CFL_CONDITION:
+        stream << "CFL condition";
+        break;
+    case CriterionIds::ACCELERATION:
+        stream << "Acceleration";
+        break;
+    case CriterionIds::MAXIMAL_VALUE:
+        stream << "Maximal value";
+        break;
+    case CriterionIds::INITIAL_VALUE:
+        stream << "Default value";
+        break;
+    default:
+        stream << getQuantityName(id);
+    }
+    return stream;
+}
 
 namespace Abstract {
 

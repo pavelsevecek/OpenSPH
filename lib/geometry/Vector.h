@@ -521,7 +521,7 @@ public:
     /// Output to stream
     template <typename TStream>
     friend TStream& operator<<(TStream& stream, const BasicVector& v) {
-        constexpr int digits = 6;
+        constexpr int digits = 12;
         stream << std::setprecision(digits);
         for (int i = 0; i < 3; ++i) {
             stream << std::setw(15) << v[i];

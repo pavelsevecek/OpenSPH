@@ -19,6 +19,7 @@ public:
     virtual void onTimeStep(const float progress, const std::shared_ptr<Storage>& storage) override {
         /// \todo limit refreshing to some reasonable frame rate?
         if (window) {
+            /// \todo this is still not thread safe, window can be destroyed while executing these function.
             window->setProgress(progress);
             window->getRenderer()->draw(storage);
         }

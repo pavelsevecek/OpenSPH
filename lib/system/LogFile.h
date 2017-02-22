@@ -35,26 +35,10 @@ public:
         logger->write(" - timestep: dt = ",
             statistics.get<Float>(StatisticsIds::TIMESTEP_VALUE),
             " (set by ",
-            getTimeStepCriterion(statistics.get<AllCriterionIds>(StatisticsIds::TIMESTEP_CRITERION)),
+            statistics.get<AllCriterionIds>(StatisticsIds::TIMESTEP_CRITERION),
             ")");
         logger->write(" - neigbours: ", statistics.get<Means>(StatisticsIds::NEIGHBOUR_COUNT));
         logger->write("");
-    }
-
-private:
-    INLINE std::string getTimeStepCriterion(const AllCriterionIds id) const {
-        switch ((CriterionIds)id) {
-        case CriterionIds::CFL_CONDITION:
-            return "CFL condition";
-        case CriterionIds::ACCELERATION:
-            return "Acceleration";
-        case CriterionIds::MAXIMAL_VALUE:
-            return "Maximal value";
-        case CriterionIds::INITIAL_VALUE:
-            return "Default value";
-        default:
-            return getQuantityName(id);
-        }
     }
 };
 

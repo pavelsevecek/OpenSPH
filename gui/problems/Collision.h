@@ -165,7 +165,7 @@ struct AsteroidCollision {
         //    SphericalDomain domain2(Vector(4785.5_f, 3639.1_f, 0._f), 146.43_f); // D = 280m
         SphericalDomain domain2(Vector(5097.45_f, 3726.87_f, 0._f), 270.585_f);
 
-        bodySettings.set(BodySettingsIds::PARTICLE_COUNT, 100);
+        bodySettings.set(BodySettingsIds::PARTICLE_COUNT, 100).set(BodySettingsIds::STRESS_TENSOR_MIN, LARGE);
         conds.addBody(domain2, bodySettings, Vector(-5.e3_f, 0._f, 0._f)); // 5km/s
         logger.write("Particles of projectile: ", storage->getParticleCnt() - n1);
     }
@@ -175,7 +175,7 @@ struct AsteroidCollision {
             .set(GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP, 5.e-3_f)
             .set(GlobalSettingsIds::TIMESTEPPING_MAX_TIMESTEP, 0.01_f)
             .set(GlobalSettingsIds::RUN_OUTPUT_INTERVAL, 0._f)
-            .set(GlobalSettingsIds::RUN_TIMESTEP_CNT, 10000)
+            //.set(GlobalSettingsIds::RUN_TIMESTEP_CNT, 10000)
             .set(GlobalSettingsIds::MODEL_FORCE_DIV_S, true)
             .set(GlobalSettingsIds::SPH_FINDER, FinderEnum::VOXEL)
             .set(GlobalSettingsIds::MODEL_AV_TYPE, ArtificialViscosityEnum::STANDARD)

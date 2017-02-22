@@ -60,9 +60,7 @@ public:
     /// is computed to keep the trace zero.
     INLINE explicit TracelessTensor(const Float value)
         : m(value)
-        , m12(value) {
-        ASSERT(value == 0._f); // currently only allowed to set components to zero
-    }
+        , m12(value) {}
 
     /// Initialize tensor given 5 independent components.
     INLINE TracelessTensor(const Float xx, const Float yy, const Float xy, const Float xz, const Float yz)

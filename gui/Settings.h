@@ -37,8 +37,15 @@ enum class GuiSettingsIds {
     /// Title of the window appearing on taskbar
     WINDOW_TITLE,
 
-    /// Saves rendered images of the run to disk
-    SAVE_IMAGES,
+    /// If true, rendered images are saved to disk
+    IMAGES_SAVE,
+
+    /// Path of the directory where rendered images are saved
+    IMAGES_PATH,
+
+    /// Time interval (in run time) of image saving. Note that images do not have to be saved exactly in
+    /// specified times, as time step of the run is generally different than this value.
+    IMAGES_TIMESTEP,
 
     PALETTE_DENSITY,
 

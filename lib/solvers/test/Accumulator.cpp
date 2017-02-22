@@ -60,9 +60,11 @@ TEST_CASE("Div v of position vectors", "[accumulator]") {
             return SUCCESS;
         }
         if (rhoDivv[i] != approx(3._f, 0.03_f)) {
+            // clang-format off
             return makeFailed("Incorrect velocity divergence: \n",
                               "divv: ", rhoDivv[i], " == -3", "\n particle: r = ", r[i]);
-            }
+            // clang-format on
+        }
         return SUCCESS;
     };
     REQUIRE_SEQUENCE(test1, 0, r.size());

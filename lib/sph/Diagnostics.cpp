@@ -25,6 +25,18 @@ Array<ParticlePairing::Pair> ParticlePairing::getPairs(Storage& storage) const {
     return pairs;
 }
 
+Outcome ParticlePairing::check(Storage& storage) {
+    Array<Pair> pairs = getPairs(storage);
+    if (!pairs.empty()) {
+        std::string message = "Particle pairs found: \n";
+        for (Pair& p : pairs) {
+            message += " - particles " + std::to_string(p.i1) + " and " + std::to_string(p.i2) + "\n";
+        }
+        return message;
+    }
+    return SUCCESS;
+}
+
 Outcome SmoothingDiscontinuity::check(Storage& storage) {
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityIds::POSITIONS);
     KdTree finder;
@@ -40,14 +52,14 @@ Outcome SmoothingDiscontinuity::check(Storage& storage) {
         for (auto& n : neighs) {
             const Size j = n.index;
             if (abs(r[i][H] - r[j][H]) > limit * (r[i][H] + r[j][H])) {
-                pairs.push(Pair{ i, j.index });
+                pairs.push(Pair{ i, j });
             }
         }
     }
     if (!pairs.empty()) {
-        std::string message = "Discontinuity in smoothing lenghs found: \n";
+        std::string message = "Discontinuity in smoothing lengths found: \n";
         for (Pair& p : pairs) {
-            message += " - particles " + std::to_string(p.i1) + " and " + std::to_string(p.i2);
+            message += " - particles " + std::to_string(p.i1) + " and " + std::to_string(p.i2) + "\n";
         }
         return message;
     }

@@ -110,7 +110,6 @@ public:
         const Range& range = Range::unbounded()) {
         const Size particleCnt = getParticleCnt();
         ASSERT(particleCnt);
-        ASSERT(materials.size() == 1);
         Quantity q;
         q.insert<TValue, TOrder>(defaultValue, particleCnt, range);
         quantities[key] = std::move(q);
@@ -124,7 +123,6 @@ public:
     /// \returns Reference to the inserted quantity.
     template <typename TValue, OrderEnum TOrder>
     Quantity& insert(const QuantityIds key, Array<TValue>&& values, const Range range = Range::unbounded()) {
-        ASSERT(materials.size() <= 1);
         Quantity q;
         q.insert<TValue, TOrder>(std::move(values), range);
         UNUSED_IN_RELEASE(const Size size = q.size();)

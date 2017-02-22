@@ -4,10 +4,11 @@
 /// Pavel Sevecek 2016
 /// sevecek at sirrah.troja.mff.cuni.cz
 
-#include "objects/Object.h"
+#include "core/Globals.h"
+#include <fstream>
+#include <iomanip>
 #include <memory>
 #include <set>
-#include <fstream>
 #include <sstream>
 #include <string>
 
@@ -35,7 +36,7 @@ namespace Abstract {
     private:
         template <typename T0, typename... TArgs>
         void writeImpl(std::stringstream& ss, T0&& first, TArgs&&... rest) {
-            ss << first;
+            ss << std::setprecision(PRECISION) << std::scientific << first;
             writeImpl(ss, std::forward<TArgs>(rest)...);
         }
         void writeImpl(std::stringstream& UNUSED(ss)) {}
@@ -57,9 +58,13 @@ public:
     FileLogger(const std::string& path)
         : stream(path, std::ofstream::out) {}
 
-    ~FileLogger() { stream.close(); }
+    ~FileLogger() {
+        stream.close();
+    }
 
-    virtual void writeString(const std::string& s) override { stream << s; }
+    virtual void writeString(const std::string& s) override {
+        stream << s;
+    }
 };
 
 /// Class holding multiple loggers and writing messages to all of them. The objects is the owner of loggers.
@@ -68,9 +73,13 @@ private:
     std::set<std::unique_ptr<Abstract::Logger>> loggers;
 
 public:
-    int getLoggerCnt() const { return loggers.size(); }
+    int getLoggerCnt() const {
+        return loggers.size();
+    }
 
-    void add(std::unique_ptr<Abstract::Logger>&& logger) { loggers.insert(std::move(logger)); }
+    void add(std::unique_ptr<Abstract::Logger>&& logger) {
+        loggers.insert(std::move(logger));
+    }
 
     virtual void writeString(const std::string& s) override {
         for (auto& l : loggers) {

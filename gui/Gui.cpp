@@ -98,7 +98,9 @@ bool MyApp::OnInit() {
     return true;
 }
 
-MyApp::MyApp() = default;
+MyApp::MyApp() {
+    wxInitAllImageHandlers();
+}
 
 MyApp::~MyApp() {
     worker.join();

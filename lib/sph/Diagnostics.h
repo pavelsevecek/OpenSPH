@@ -44,28 +44,20 @@ public:
     Array<Pair> getPairs(Storage& storage) const;
 
     /// Checks for particle pairs, returns SUCCESS if no pair is found.
-    virtual Outcome check(Storage& storage) override {
-        Array<Pair> pairs = getPairs(storage);
-        if (!pairs.empty()) {
-            std::string message = "Particle pairs found: \n";
-            for (Pair& p : pairs) {
-                message += " - particles " + std::to_string(p.i1) + " and " + std::to_string(p.i2);
-            }
-            return message;
-        }
-        return SUCCESS;
-    }
+    virtual Outcome check(Storage& storage) override;
 };
 
 /// Checks for large differences of smoothing length between neighbouring particles
 class SmoothingDiscontinuity : public Abstract::Diagnostics {
+    Float radius;
     Float limit;
 
 public:
-    /// Limit relative difference defining the discontinuity. If for smoothing lengths h[i] and h[j]:
-    /// abs(h[i] - h[j]) > limit * (h[i] + h[j]), an error is reported.
-    SmoothingDiscontinuity(const Float limit = 0.5_f)
-        : limit(limit) {}
+    /// \param limit Limit of relative difference defining the discontinuity. If smoothing lengths h[i] and
+    /// h[j] satisfy inequality abs(h[i] - h[j]) > limit * (h[i] + h[j]), an error is reported.
+    SmoothingDiscontinuity(const Float radius, const Float limit = 0.5_f)
+        : radius(radius)
+        , limit(limit) {}
 
     virtual Outcome check(Storage& storage) override;
 };

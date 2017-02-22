@@ -38,7 +38,7 @@ TEST_CASE("Courant Criterion", "[timestepping]") {
     const Float h = r[0][H]; // all hs are the same
     const Float expected = courantNumber * h / cs[0];
     REQUIRE(expected == approx(step));
-    REQUIRE(id == QuantityIds::SOUND_SPEED);
+    REQUIRE(id == CriterionIds::CFL_CONDITION);
 
     // get timestep limited by max value
     tieToTuple(step, id) = cfl.compute(storage, 1.e-3_f);
@@ -94,7 +94,7 @@ TEST_CASE("Acceleration Criterion", "[timestepping]") {
     const Float h = r[0][H];
     const Float expected4 = sqr(h) / sqr(0.2_f);
     REQUIRE(pow<4>(step) == approx(expected4));
-    REQUIRE(id == QuantityIds::POSITIONS);
+    REQUIRE(id == CriterionIds::ACCELERATION);
 
     tieToTuple(step, id) = criterion.compute(storage, EPS);
     REQUIRE(step == EPS);

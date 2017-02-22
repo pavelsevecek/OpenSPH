@@ -39,6 +39,9 @@ private:
     Point lastMousePosition;
     wxTimer* refreshTimer;
 
+    /*Movie movie;
+
+    myBitmap.SaveFile("name", wxBITMAP_TYPE_PNG);*/
     std::mutex mutex;
 
 public:
@@ -59,7 +62,7 @@ private:
 
     void onTimer(wxTimerEvent& evt);
 
-    void drawPalette(wxPaintDC& dc);
+    void drawPalette(wxDC& dc);
 
     void update();
 };

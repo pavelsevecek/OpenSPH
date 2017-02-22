@@ -39,7 +39,7 @@ Tuple<Float, AllCriterionIds> DerivativeCriterion::compute(Storage& storage,
             const auto absv = abs(v[i]);
             const Float minValue = MaterialAccessor(storage).minimal(id, i);
             ASSERT(minValue > 0._f); // some nonzero minimal value must be set for all quantities
-            if (norm(absv) < 2._f * minValue) {
+            if (norm(absv) < minValue) {
                 continue;
             }
             using TAbs = decltype(absv);
