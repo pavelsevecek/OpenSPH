@@ -1,9 +1,19 @@
 #pragma once
 
-#include "objects/containers/Array.h"
+#include "objects/ExtendEnum.h"
 #include "objects/ForwardDecl.h"
+#include "objects/containers/Array.h"
+#include "objects/wrappers/Value.h"
 
 NAMESPACE_SPH_BEGIN
+
+enum class CriterionIds {
+    INITIAL_VALUE = 100, ///< Timestep is not computed, using given initial value
+    MAXIMAL_VALUE = 101, ///< Timestep is given by selected maximal value
+    CFL_CONDITION = 102, ///< Timestep is computed using CFL condition
+    ACCELERATION = 103   ///< Timestep is constrained by acceleration condition
+};
+using AllCriterionIds = ExtendEnum<CriterionIds, QuantityIds>;
 
 namespace Abstract {
 
@@ -13,8 +23,11 @@ namespace Abstract {
         /// Returns the current time step.
         /// \param storage Storage containing all physical quantities from which the time step is determined.
         /// \param maxStep Maximal allowed time step.
+        /// \param stats Optional parameter used to save statistics of the criterion.
         /// \returns Tuple, containing computed time step and ID of quantity that determined the value.
-        virtual Tuple<Float, QuantityIds> compute(Storage& storage, const Float maxStep) = 0;
+        virtual Tuple<Float, AllCriterionIds> compute(Storage& storage,
+            const Float maxStep,
+            Optional<Statistics&> stats = NOTHING) = 0;
     };
 }
 
@@ -29,13 +42,17 @@ private:
 public:
     DerivativeCriterion(const GlobalSettings& settings);
 
-    virtual Tuple<Float, QuantityIds> compute(Storage& storage, const Float maxStep) override;
+    virtual Tuple<Float, AllCriterionIds> compute(Storage& storage,
+        const Float maxStep,
+        Optional<Statistics&> stats = NOTHING) override;
 };
 
 /// Criterion settings time step based on computed acceleration of particles.
 class AccelerationCriterion : public Abstract::TimeStepCriterion {
 public:
-    virtual Tuple<Float, QuantityIds> compute(Storage& storage, const Float maxStep) override;
+    virtual Tuple<Float, AllCriterionIds> compute(Storage& storage,
+        const Float maxStep,
+        Optional<Statistics&> stats = NOTHING) override;
 };
 
 /// Time step based on CFL criterion.
@@ -47,7 +64,9 @@ public:
     CourantCriterion(const GlobalSettings& settings);
 
     /// Storage must contain at least positions of particles and sound speed, checked by assert.
-    virtual Tuple<Float, QuantityIds> compute(Storage& storage, const Float maxStep) override;
+    virtual Tuple<Float, AllCriterionIds> compute(Storage& storage,
+        const Float maxStep,
+        Optional<Statistics&> stats = NOTHING) override;
 };
 
 
@@ -59,7 +78,9 @@ private:
 public:
     MultiCriterion(const GlobalSettings& settings);
 
-    virtual Tuple<Float, QuantityIds> compute(Storage& storage, const Float maxStep) override;
+    virtual Tuple<Float, AllCriterionIds> compute(Storage& storage,
+        const Float maxStep,
+        Optional<Statistics&> stats = NOTHING) override;
 };
 
 NAMESPACE_SPH_END

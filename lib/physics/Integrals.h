@@ -108,11 +108,15 @@ public:
 /// from particles of given body. Storage must contain quantity of given ID, checked by assert.
 class QuantityMeans : public Abstract::Integral<Means> {
 private:
-    QuantityIds id;
+    Variant<QuantityIds, std::function<Float(const Size i)>> quantity;
     Optional<Size> bodyId;
 
 public:
+    /// Computes mean of quantity values.
     QuantityMeans(const QuantityIds id, const Optional<Size> bodyId = NOTHING);
+
+    /// Computes mean of user-defined function.
+    QuantityMeans(const std::function<Float(const Size i)>& func, const Optional<Size> bodyId = NOTHING);
 
     virtual Means evaluate(Storage& storage) const override;
 };
@@ -129,19 +133,6 @@ public:
     virtual Float evaluate(Storage& storage) const override;
 };
 
-/// Generic scalar integral given by user-defined function. This is simply a wrapper of std::function that can
-/// be used in IntegralWrapper.
-class QuantityExpression : public Abstract::Integral<Float> {
-private:
-    std::function<Float(Storage& storage)> function;
-
-public:
-    template <typename TFunctor>
-    QuantityExpression(TFunctor&& functor)
-        : function(std::forward<TFunctor>(functor)) {}
-
-    virtual Float evaluate(Storage& storage) const override;
-};
 
 /// Helper class, used for storing multiple instances in container.
 class IntegralWrapper : public Abstract::Integral<Value> {

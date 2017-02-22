@@ -11,6 +11,7 @@ NAMESPACE_SPH_BEGIN
 namespace Abstract {
     class Output;
     class Callbacks;
+    class LogFile;
 }
 
 class Problem : public Noncopyable {
@@ -18,7 +19,8 @@ protected:
     GlobalSettings settings;
 
     /// Logging
-    std::unique_ptr<Abstract::Logger> logger;
+    std::shared_ptr<Abstract::Logger> logger;
+
 
     /// Timestepping
     std::unique_ptr<Abstract::TimeStepping> timeStepping;
@@ -44,6 +46,8 @@ public:
 
     /// Implements computations of quantities and their temporal evolution
     std::unique_ptr<Abstract::Solver> solver;
+
+    Array<std::unique_ptr<Abstract::LogFile>> logs;
 
 
     /// initialize problem by constructing solver

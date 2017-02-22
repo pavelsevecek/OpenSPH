@@ -1,7 +1,9 @@
 #include "sph/timestepping/TimeStepCriterion.h"
 #include "quantities/Iterate.h"
+#include "system/Logger.h"
 #include "system/Profiler.h"
 #include "system/Settings.h"
+#include "system/Statistics.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -14,31 +16,50 @@ DerivativeCriterion::DerivativeCriterion(const GlobalSettings& settings) {
     factor = settings.get<Float>(GlobalSettingsIds::TIMESTEPPING_ADAPTIVE_FACTOR);
 }
 
-Tuple<Float, QuantityIds> DerivativeCriterion::compute(Storage& storage, const Float maxStep) {
+Tuple<Float, AllCriterionIds> DerivativeCriterion::compute(Storage& storage,
+    const Float maxStep,
+    Optional<Statistics&> stats) {
     PROFILE_SCOPE("DerivativeCriterion::compute");
     Float totalMinStep = INFTY;
-    QuantityIds minId = QuantityIds::MATERIAL_IDX;
+    AllCriterionIds minId = CriterionIds::INITIAL_VALUE;
 
     iterate<VisitorEnum::FIRST_ORDER>(storage, [&](const QuantityIds id, auto&& v, auto&& dv) {
         ASSERT(v.size() == dv.size());
         Quantity& quantity = storage.getQuantity(id);
         Float minStep = INFTY;
+        using T = typename std::decay_t<decltype(v)>::Type;
+        struct {
+            T value = T(0._f);
+            T derivative = T(0._f);
+            Size particleIdx = 0;
+        } limit;
+
         for (Size i = 0; i < v.size(); ++i) {
             const auto absdv = abs(dv[i]);
             const auto absv = abs(v[i]);
-            using T = decltype(absv);
             const Float minValue = quantity.getMinimalValue();
             ASSERT(minValue > 0._f); // some nonzero minimal value must be set for all quantities
-            if (norm(absv) < minValue) {
+            if (norm(absv) < 2._f * minValue) {
                 continue;
             }
-            const auto value = factor * (absv + T(minValue)) / (absdv + T(EPS));
+            using TAbs = decltype(absv);
+            const auto value = factor * (absv + TAbs(minValue)) / (absdv + TAbs(EPS));
             ASSERT(isReal(value));
-            minStep = min(minStep, minElement(value));
+            const Float e = minElement(value);
+            if (e < minStep) {
+                minStep = e;
+                limit = { v[i], dv[i], i };
+            }
         }
         if (minStep < totalMinStep) {
             totalMinStep = minStep;
             minId = id;
+            if (stats) {
+                stats->set(StatisticsIds::LIMITING_QUANTITY, id);
+                stats->set(StatisticsIds::LIMITING_PARTICLE_IDX, int(limit.particleIdx));
+                stats->set(StatisticsIds::LIMITING_VALUE, Value(limit.value));
+                stats->set(StatisticsIds::LIMITING_DERIVATIVE, Value(limit.derivative));
+            }
         }
     });
     // make sure only 2nd order quanity is positions, they are handled by Acceleration criterion
@@ -48,7 +69,7 @@ Tuple<Float, QuantityIds> DerivativeCriterion::compute(Storage& storage, const F
 
     if (totalMinStep > maxStep) {
         totalMinStep = maxStep;
-        minId = QuantityIds::MAXIMUM_VALUE;
+        minId = CriterionIds::MAXIMAL_VALUE;
     }
     return { totalMinStep, minId };
 }
@@ -59,7 +80,9 @@ Tuple<Float, QuantityIds> DerivativeCriterion::compute(Storage& storage, const F
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-Tuple<Float, QuantityIds> AccelerationCriterion::compute(Storage& storage, const Float maxStep) {
+Tuple<Float, AllCriterionIds> AccelerationCriterion::compute(Storage& storage,
+    const Float maxStep,
+    Optional<Statistics&> UNUSED(stats)) {
     PROFILE_SCOPE("AccelerationCriterion::compute");
     Float totalMinStep = INFTY;
     ArrayView<const Vector> r, v, dv;
@@ -73,9 +96,9 @@ Tuple<Float, QuantityIds> AccelerationCriterion::compute(Storage& storage, const
         }
     }
     if (totalMinStep > maxStep) {
-        return { maxStep, QuantityIds::MAXIMUM_VALUE };
+        return { maxStep, CriterionIds::MAXIMAL_VALUE };
     } else {
-        return { totalMinStep, QuantityIds::POSITIONS };
+        return { totalMinStep, CriterionIds::ACCELERATION };
     }
 }
 
@@ -90,7 +113,9 @@ CourantCriterion::CourantCriterion(const GlobalSettings& settings) {
 }
 
 
-Tuple<Float, QuantityIds> CourantCriterion::compute(Storage& storage, const Float maxStep) {
+Tuple<Float, AllCriterionIds> CourantCriterion::compute(Storage& storage,
+    const Float maxStep,
+    Optional<Statistics&> UNUSED(stats)) {
     PROFILE_SCOPE("CourantCriterion::compute");
     Float totalMinStep = INFTY;
 
@@ -105,9 +130,9 @@ Tuple<Float, QuantityIds> CourantCriterion::compute(Storage& storage, const Floa
         }
     }
     if (totalMinStep > maxStep) {
-        return { maxStep, QuantityIds::MAXIMUM_VALUE };
+        return { maxStep, CriterionIds::MAXIMAL_VALUE };
     } else {
-        return { totalMinStep, QuantityIds::SOUND_SPEED };
+        return { totalMinStep, CriterionIds::CFL_CONDITION };
     }
 }
 
@@ -131,14 +156,21 @@ MultiCriterion::MultiCriterion(const GlobalSettings& settings)
     }
 }
 
-Tuple<Float, QuantityIds> MultiCriterion::compute(Storage& storage, const Float maxStep) {
+Tuple<Float, AllCriterionIds> MultiCriterion::compute(Storage& storage,
+    const Float maxStep,
+    Optional<Statistics&> stats) {
     ASSERT(!criteria.empty());
     Float minStep = INFTY;
-    QuantityIds minId = QuantityIds::MATERIAL_IDX;
+    AllCriterionIds minId = CriterionIds::INITIAL_VALUE;
     for (auto& crit : criteria) {
         Float step;
         QuantityIds id;
-        tieToTuple(step, id) = crit->compute(storage, maxStep);
+        /// \todo proper copying of optional reference
+        Optional<Statistics&> statsClone;
+        if (stats) {
+            statsClone.emplace(stats.get());
+        }
+        tieToTuple(step, id) = crit->compute(storage, maxStep, std::move(statsClone));
         if (step < minStep) {
             minStep = step;
             minId = id;

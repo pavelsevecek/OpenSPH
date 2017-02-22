@@ -124,12 +124,12 @@ public:
         }
         for (Size i = 0; i < drho.size(); ++i) {
             Float divv;
-            /*if (s && ddot(s[i], s[i]) > EPS) {
+            if (s && ddot(s[i], s[i]) > EPS) {
                 // nonzero stress tensor
                 divv = rhoGradv[i].trace();
-            } else {*/
-            divv = rhoDivv[i];
-            // 11           }
+            } else {
+                divv = rhoDivv[i];
+            }
             drho[i] = -rho[i] * divv;
 
             v[i][H] = r[i][H] / D * divv;

@@ -1,10 +1,10 @@
 #include "sph/timestepping/TimeStepCriterion.h"
 #include "catch.hpp"
+#include "geometry/Domain.h"
 #include "quantities/Storage.h"
 #include "sph/initial/Distribution.h"
-#include "geometry/Domain.h"
-#include "utils/Approx.h"
 #include "system/Settings.h"
+#include "utils/Approx.h"
 
 using namespace Sph;
 
@@ -22,12 +22,13 @@ static Storage getStorage() {
 
 TEST_CASE("Courant Criterion", "[timestepping]") {
     CourantCriterion cfl(GlobalSettings::getDefaults());
-    const Float courantNumber = GlobalSettings::getDefaults().get<Float>(GlobalSettingsIds::TIMESTEPPING_COURANT);
+    const Float courantNumber =
+        GlobalSettings::getDefaults().get<Float>(GlobalSettingsIds::TIMESTEPPING_COURANT);
 
     Storage storage = getStorage();
 
     Float step;
-    QuantityIds id;
+    AllCriterionIds id;
     tieToTuple(step, id) = cfl.compute(storage, INFTY);
 
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityIds::POSITIONS);
@@ -40,7 +41,7 @@ TEST_CASE("Courant Criterion", "[timestepping]") {
     // get timestep limited by max value
     tieToTuple(step, id) = cfl.compute(storage, 1.e-3_f);
     REQUIRE(step == 1.e-3_f);
-    REQUIRE(id == QuantityIds::MAXIMUM_VALUE);
+    REQUIRE(id == CriterionIds::MAXIMAL_VALUE);
 }
 
 TEST_CASE("Derivative Criterion", "[timestepping]") {
@@ -56,11 +57,12 @@ TEST_CASE("Derivative Criterion", "[timestepping]") {
         f = 4._f; // du/dt = 4
     }
     Float step;
-    QuantityIds id;
+    AllCriterionIds id;
     tieToTuple(step, id) = criterion.compute(storage, INFTY);
 
     // this is quite imprecise due to approximative sqrt, but it doesn't really matter for timestep estimation
-    const Float factor = GlobalSettings::getDefaults().get<Float>(GlobalSettingsIds::TIMESTEPPING_ADAPTIVE_FACTOR);
+    const Float factor =
+        GlobalSettings::getDefaults().get<Float>(GlobalSettingsIds::TIMESTEPPING_ADAPTIVE_FACTOR);
     REQUIRE(step == approx(factor * 3._f, 1.e-3_f));
     REQUIRE(id == QuantityIds::ENERGY);
 
@@ -71,7 +73,7 @@ TEST_CASE("Derivative Criterion", "[timestepping]") {
 
     tieToTuple(step, id) = criterion.compute(storage, 0.1_f);
     REQUIRE(step == 0.1_f);
-    REQUIRE(id == QuantityIds::MAXIMUM_VALUE);
+    REQUIRE(id == CriterionIds::MAXIMAL_VALUE);
 }
 
 TEST_CASE("Acceleration Criterion", "[timestepping]") {
@@ -80,12 +82,12 @@ TEST_CASE("Acceleration Criterion", "[timestepping]") {
 
     ArrayView<Vector> r, v, dv;
     tie(r, v, dv) = storage.getAll<Vector>(QuantityIds::POSITIONS);
-    for (Size i =0;i<r.size(); ++i) {
+    for (Size i = 0; i < r.size(); ++i) {
         dv[i] = Vector(0.2_f, 0._f, 0._f);
     }
 
     Float step;
-    QuantityIds id;
+    AllCriterionIds id;
     tieToTuple(step, id) = criterion.compute(storage, INFTY);
     const Float h = r[0][H];
     const Float expected4 = sqr(h) / sqr(0.2_f);
@@ -94,7 +96,7 @@ TEST_CASE("Acceleration Criterion", "[timestepping]") {
 
     tieToTuple(step, id) = criterion.compute(storage, EPS);
     REQUIRE(step == EPS);
-    REQUIRE(id == QuantityIds::MAXIMUM_VALUE);
+    REQUIRE(id == CriterionIds::MAXIMAL_VALUE);
 }
 
 /// \todo test multicriterion

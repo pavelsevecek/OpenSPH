@@ -83,7 +83,7 @@ bool MyApp::OnInit() {
 
     p = setup.getProblem();
     GuiSettings guiSettings = setup.getGuiSettings();
-    window = new Window(p->storage, guiSettings, [this, setup]() {
+    window = new Window(p->storage, guiSettings, [this, setup]() mutable {
         ASSERT(this->worker.joinable());
         this->worker.join();
         p->storage->removeAll();

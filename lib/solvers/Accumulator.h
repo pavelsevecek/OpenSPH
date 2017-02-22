@@ -167,6 +167,7 @@ class RhoGradvImpl {
 private:
     ArrayView<const Float> m;
     ArrayView<const Vector> v;
+    ArrayView<const Float> rho;
     ArrayView<const Size> idxs;
 
 public:
@@ -176,6 +177,7 @@ public:
         m = storage.getValue<Float>(QuantityIds::MASSES);
         v = storage.getAll<Vector>(QuantityIds::POSITIONS)[1];
         idxs = storage.getValue<Size>(QuantityIds::FLAG);
+        rho = storage.getValue<Float>(QuantityIds::DENSITY);
     }
 
     INLINE Tuple<Tensor, Tensor> operator()(const int i, const int j, const Vector& grad) const {
@@ -186,7 +188,7 @@ public:
         }
         const Tensor gradv = outer(v[j] - v[i], grad);
         ASSERT(isReal(gradv));
-        return { m[j] * gradv, m[i] * gradv };
+        return { m[j] / rho[j] * gradv, m[i] / rho[i] * gradv };
     }
 };
 using RhoGradv = Accumulator<RhoGradvImpl>;

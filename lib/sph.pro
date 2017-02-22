@@ -160,4 +160,6 @@ HEADERS += \
     objects/wrappers/ObserverPtr.h \
     math/Means.h \
     system/Element.h \
-    quantities/Slice.h
+    quantities/Slice.h \
+    objects/ExtendEnum.h \
+    system/LogFile.h

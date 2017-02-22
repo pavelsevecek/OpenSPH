@@ -43,7 +43,7 @@ public:
 
     template <typename TStream>
     friend TStream& operator<<(TStream& stream, const Value& value) {
-        forValue(value.storage, [&stream](const auto& v) { stream << v; });
+        forValue(value.storage, [&stream](const auto& v) { stream << std::setw(15) << v; });
         return stream;
     }
 };

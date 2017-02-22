@@ -74,11 +74,17 @@ TEST_CASE("TracelessTensor operation", "[tracelesstensor]") {
     REQUIRE(t1 - t2 ==
             TracelessTensor(Vector(2._f, 2._f, 2._f), Vector(2._f, 4._f, 3._f), Vector(2._f, 3._f, -6._f)));
 
-    REQUIRE(t1 * t2 ==
+    /*REQUIRE(t1 * t2 ==
             TracelessTensor(Vector(-1._f, 0._f, 3._f), Vector(0._f, -4._f, 4._f), Vector(3._f, 4._f, -9._f)));
     REQUIRE(t2 / t1 == TracelessTensor(Vector(-1._f, 0._f, 1._f / 3._f),
                            Vector(0._f, -1._f, 0.25_f),
-                           Vector(1._f / 3._f, 0.25f, -1._f)));
+                           Vector(1._f / 3._f, 0.25f, -1._f)));*/
+    REQUIRE(t1 * 2._f ==
+            TracelessTensor(Vector(2._f, 4._f, 6._f), Vector(4._f, 4._f, 8._f), Vector(6._f, 8._f, -6._f)));
+    REQUIRE(2._f * t1 ==
+            TracelessTensor(Vector(2._f, 4._f, 6._f), Vector(4._f, 4._f, 8._f), Vector(6._f, 8._f, -6._f)));
+    REQUIRE(t1 / 0.5_f ==
+            TracelessTensor(Vector(2._f, 4._f, 6._f), Vector(4._f, 4._f, 8._f), Vector(6._f, 8._f, -6._f)));
     REQUIRE(-t1 == TracelessTensor(
                        Vector(-1._f, -2._f, -3._f), Vector(-2._f, -2._f, -4._f), Vector(-3._f, -4._f, 3._f)));
 }

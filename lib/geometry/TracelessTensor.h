@@ -47,7 +47,8 @@ public:
     /// Construct traceless tensor using other tensor (not traceless in general). "Tracelessness" of the
     /// tensor is checked by assert.
     INLINE explicit TracelessTensor(const Tensor& other) {
-        ASSERT(other.trace() <= 1.e-3_f * max(other.diagonal()[X], other.diagonal()[Y], other.diagonal()[Z]));
+        ASSERT(abs(other.trace()) <=
+               1.e-3_f * max(other.diagonal()[X], other.diagonal()[Y], other.diagonal()[Z]));
         m = other.diagonal();
         const Vector off = other.offDiagonal();
         m[M01] = off[0];
@@ -57,9 +58,11 @@ public:
 
     /// Initialize all components of the tensor to given value, excluding last element of the diagonal, which
     /// is computed to keep the trace zero.
-    INLINE TracelessTensor(const Float value)
+    INLINE explicit TracelessTensor(const Float value)
         : m(value)
-        , m12(value) {}
+        , m12(value) {
+        ASSERT(value == 0._f); // currently only allowed to set components to zero
+    }
 
     /// Initialize tensor given 5 independent components.
     INLINE TracelessTensor(const Float xx, const Float yy, const Float xy, const Float xz, const Float yz)
@@ -72,7 +75,7 @@ public:
         ASSERT(v0[1] == v1[0]);
         ASSERT(v0[2] == v2[0]);
         ASSERT(v1[2] == v2[1]);
-        ASSERT(v0[0] + v1[1] + v2[2] < EPS * (norm(v1) + norm(v1) + norm(v2)));
+        ASSERT(abs(v0[0] + v1[1] + v2[2]) < EPS * (norm(v0) + norm(v1) + norm(v2)));
         m = Vector(v0[0], v1[1], v0[1], v0[2]);
         m12 = v1[2];
     }
@@ -155,14 +158,22 @@ public:
     }
 
     /// Multiplies a tensor by another tensor, element-wise. Not a matrix multiplication!
-    INLINE friend TracelessTensor operator*(const TracelessTensor& t1, const TracelessTensor& t2) {
-        return TracelessTensor(t1.m * t2.m, t1.m12 * t2.m12);
+    /* INLINE friend TracelessTensor operator*(const TracelessTensor& t1, const TracelessTensor& t2) {
+         return TracelessTensor(t1.m * t2.m, t1.m12 * t2.m12);
+     }
+
+     /// Divides a tensor by another tensor, element-wise.
+     INLINE friend TracelessTensor operator/(const TracelessTensor& t1, const TracelessTensor& t2) {
+         return TracelessTensor(t1.m / t2.m, t1.m12 / t2.m12);
+     }*/
+
+    /// Divides a tensor by a scalar
+    INLINE friend TracelessTensor operator/(const TracelessTensor& t, const Float v) {
+        return TracelessTensor(t.m / v, t.m12 / v);
     }
 
-    /// Divides a tensor by another tensor, element-wise.
-    INLINE friend TracelessTensor operator/(const TracelessTensor& t1, const TracelessTensor& t2) {
-        return TracelessTensor(t1.m / t2.m, t1.m12 / t2.m12);
-    }
+    /// \note product of two traceless tensor is NOT generally a traceless tensor
+
 
     INLINE friend TracelessTensor operator+(const TracelessTensor& t1, const TracelessTensor& t2) {
         return TracelessTensor(t1.m + t2.m, t1.m12 + t2.m12);

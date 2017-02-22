@@ -8,7 +8,7 @@ using namespace Sph;
 
 TEST_CASE("Ideal gas", "[eos]") {}
 
-TEST_CASE("Tillotson", "[eos]") {
+TEST_CASE("Tillotson values", "[eos]") {
     BodySettings settings;
     settings.set(BodySettingsIds::DENSITY, 2.7_f);
     settings.set(BodySettingsIds::TILLOTSON_SUBLIMATION, 1.e5_f);
@@ -43,4 +43,10 @@ TEST_CASE("Tillotson", "[eos]") {
     tieToTuple(p, cs) = eos.evaluate(2.8_f, 1.e7_f);
     REQUIRE(p == approx(1.03996064e9_f, 1.e-6_f));
     REQUIRE(cs == approx(103983.867_f, 1.e-6_f));
+}
+
+TEST_CASE("Tillotson continuous", "[eos]") {
+    // test that EoS is a continuous function of p and u
+    /// \todo Tillotson eos(BodySettings::getDefaults());
+
 }

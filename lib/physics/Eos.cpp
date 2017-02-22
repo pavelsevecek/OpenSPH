@@ -52,10 +52,9 @@ Tuple<Float, Float> TillotsonEos::evaluate(const Float rho, const Float u) const
     const Float alphaExp = exp(-alpha * sqr(rhoExp));
     const Float pe = a * rho * u + (b * rho * u / denom + A * mu * betaExp) * alphaExp;
     dpdu = a * rho + alphaExp * b * rho / sqr(denom);
-    dpdrho =
-        a * u + alphaExp * (b * u * (3._f * denom - 2._f) / sqr(denom)) +
-        alphaExp * (b * u * rho / denom) * rho0 * (2._f * alpha * rhoExp) / sqr(rho) +
-        alphaExp * A * betaExp * (1._f / rho0 + rho0 * mu / sqr(rho) * (2._f * alpha * rhoExp + beta));
+    dpdrho = a * u + alphaExp * (b * u * (3._f * denom - 2._f) / sqr(denom)) +
+             alphaExp * (b * u * rho / denom) * rho0 * (2._f * alpha * rhoExp) / sqr(rho) +
+             alphaExp * A * betaExp * (1._f / rho0 + rho0 * mu / sqr(rho) * (2._f * alpha * rhoExp + beta));
     const Float cse = dpdrho + dpdu * pe / (rho * rho);
     ASSERT(isReal(cse));
 

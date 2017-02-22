@@ -37,6 +37,9 @@ enum class GuiSettingsIds {
     /// Title of the window appearing on taskbar
     WINDOW_TITLE,
 
+    /// Saves rendered images of the run to disk
+    SAVE_IMAGES,
+
     PALETTE_DENSITY,
 
     PALETTE_VELOCITY,

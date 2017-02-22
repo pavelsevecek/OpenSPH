@@ -7,6 +7,7 @@
 #include "math/Means.h"
 #include "objects/ForwardDecl.h"
 #include "objects/wrappers/Range.h"
+#include "objects/wrappers/Value.h"
 #include "objects/wrappers/Variant.h"
 #include "quantities/QuantityIds.h"
 #include <map>
@@ -17,14 +18,14 @@ NAMESPACE_SPH_BEGIN
 /// the running problem (timestepping, solver, ...).
 class Statistics {
 private:
-    enum Types { BOOL, INT, FLOAT, MEANS, RANGE, VECTOR };
+    enum Types { BOOL, INT, FLOAT, MEANS, VALUE, RANGE };
 
-    using Value = Variant<bool, int, Float, Means, Range, QuantityIds>;
+    using ValueType = Variant<bool, int, Float, Means, Value, Range>;
 
     struct Entry {
         StatisticsIds id;
         std::string name;
-        Value value;
+        ValueType value;
     };
 
     std::map<StatisticsIds, Entry> entries;
@@ -32,7 +33,7 @@ private:
 public:
     Statistics() = default;
 
-    bool has(const StatisticsIds idx) {
+    bool has(const StatisticsIds idx) const {
         return entries.find(idx) != entries.end();
     }
 
@@ -40,13 +41,14 @@ public:
     /// using default constructor before assigning new value into it.
     template <typename TValue>
     void set(const StatisticsIds idx, TValue&& value) {
-        entries[idx].value = std::forward<TValue>(value);
+        using StoreType = ConvertToSize<TValue>;
+        entries[idx].value = StoreType(std::forward<TValue>(value));
     }
 
     /// Accumulate a value into means of given idx. Value does not have to be stored. If there is no
     /// value of given idx, it is created with default constructor prior to accumulating.
     void accumulate(const StatisticsIds idx, const Float value) {
-        Value& entry = entries[idx].value;
+        ValueType& entry = entries[idx].value;
         if (entry.getTypeIdx() == -1) {
             // not initialized
             entry.template emplace<Means>();
@@ -60,16 +62,10 @@ public:
     TValue get(const StatisticsIds idx) const {
         typename std::map<StatisticsIds, Entry>::const_iterator iter = entries.find(idx);
         ASSERT(iter != entries.end());
-        const TValue& value = iter->second.value.template get<TValue>();
-        return value;
+        using StoreType = ConvertToSize<TValue>;
+        const StoreType& value = iter->second.value.template get<StoreType>();
+        return TValue(value);
     }
-
-    /// Returns an average value of float stats of given idx. Statistic with given idx must be stored in the
-    /// object and must be of type FloatStats.
-    /*Float average(const StatisticsIds idx) const {
-        FloatStats stats = get<FloatStats>(idx);
-        return stats.average();
-    }*/
 };
 
 /// List of values that are computed and displayed every timestep
@@ -85,6 +81,14 @@ enum class StatisticsIds {
 
     /// Key of quantity that currently limits the timestep
     TIMESTEP_CRITERION,
+
+    LIMITING_PARTICLE_IDX,
+
+    LIMITING_VALUE,
+
+    LIMITING_DERIVATIVE,
+
+    LIMITING_QUANTITY,
 
     /// Total number of particles in the run
     PARTICLE_COUNT,
@@ -118,22 +122,5 @@ enum class SparseStatsIds {
     /// Number of components (a.k.a separated bodies).
     COMPONENT_COUNT,
 };
-
-
-namespace Abstract {
-    class StatisticFormat {
-    public:
-        virtual void print(Abstract::Logger& logger, const Statistics& statistics) const = 0;
-    };
-}
-
-class FrequentStatsFormat : public Abstract::StatisticFormat {
-public:
-    virtual void print(Abstract::Logger& logger, const Statistics& statistics) const override;
-
-private:
-    std::string getTimeStepCriterion(const QuantityIds key) const;
-};
-
 
 NAMESPACE_SPH_END

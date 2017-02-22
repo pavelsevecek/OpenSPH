@@ -81,10 +81,10 @@ public:
             du[i] += m[j] * heating;
             du[j] += m[i] * heating;
         }
-        /* if (flags.has(Options::USE_DIV_S) && bodyIdxs[i] == bodyIdxs[j]) {
-             // apply stress only if particles belong to the same body
-             f += (reduce(s[i], i) * rhoInvSqri + reduce(s[j], i) * rhoInvSqrj) * grad;
-         }*/
+        if (flags.has(Options::USE_DIV_S) && bodyIdxs[i] == bodyIdxs[j]) {
+            // apply stress only if particles belong to the same body
+            f += (reduce(s[i], i) + reduce(s[j], i)) / (rho[i] * rho[j]) * grad;
+        }
         dv[i] += m[j] * f;
         dv[j] -= m[i] * f;
         // internal energy is computed at the end using accumulated values
@@ -92,24 +92,24 @@ public:
     }
 
     void integrate(Storage& storage) {
-        // MaterialAccessor material(storage);
+        MaterialAccessor material(storage);
         for (Size i = 0; i < du.size(); ++i) {
             /// \todo check correct sign
             // const Float rhoInvSqr = 1._f / sqr(rho[i]);
             if (flags.has(Options::USE_GRAD_P)) {
                 du[i] -= reduce(p[i], i) / rho[i] * rhoDivv[i];
             }
-            /*if (flags.has(Options::USE_DIV_S)) {
-                du[i] += rhoInvSqr * ddot(reduce(s[i], i), rhoGradv[i]);
+            if (flags.has(Options::USE_DIV_S)) {
+                du[i] += 1._f / rho[i] * ddot(reduce(s[i], i), rhoGradv[i]);
 
                 // compute derivatives of the stress tensor
                 /// \todo rotation rate tensor?
                 const Float mu = material.getParam<Float>(BodySettingsIds::SHEAR_MODULUS, i);
                 /// \todo how to enforce that this expression is traceless tensor?
                 ds[i] += TracelessTensor(
-                    2._f * mu / rho[i] * (rhoGradv[i] - Tensor::identity() * rhoGradv[i].trace() / 3._f));
+                    2._f * mu * (rhoGradv[i] - Tensor::identity() * rhoGradv[i].trace() / 3._f));
                 ASSERT(isReal(ds[i]));
-            }*/
+            }
             ASSERT(isReal(du[i]));
         }
         this->integrateModules(storage);

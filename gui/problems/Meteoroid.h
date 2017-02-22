@@ -23,7 +23,7 @@ struct MeteoroidEntry {
         bodySettings.set(BodySettingsIds::ENERGY, IdealGasEos(1.4_f).getInternalEnergy(1._f, 1.e5_f));
         bodySettings.set(BodySettingsIds::ENERGY_RANGE, Range(0._f, INFTY));
         bodySettings.set(BodySettingsIds::PARTICLE_COUNT, 10000);
-        bodySettings.set(BodySettingsIds::EOS, EosEnum::IDEAL_GAS);
+        bodySettings.set(BodySettingsIds::EOS, EosEnum::TILLOTSON);
         bodySettings.set(BodySettingsIds::SHEAR_MODULUS, 0._f);
         InitialConditions conds(storage, globalSettings);
 

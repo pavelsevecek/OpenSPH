@@ -124,31 +124,40 @@ Vector CenterOfMass::evaluate(Storage& storage) const {
 }
 
 QuantityMeans::QuantityMeans(const QuantityIds id, const Optional<Size> bodyId)
-    : id(id)
+    : quantity(id)
+    , bodyId(bodyId) {}
+
+QuantityMeans::QuantityMeans(const std::function<Float(const Size i)>& func, const Optional<Size> bodyId)
+    : quantity(func)
     , bodyId(bodyId) {}
 
 Means QuantityMeans::evaluate(Storage& storage) const {
-    ASSERT(storage.has(id));
     Means means;
-    ArrayView<const Float> q = storage.getValue<Float>(id);
-    ASSERT(!q.empty());
-    if (bodyId) {
-        ArrayView<const Size> ids = storage.getValue<Size>(QuantityIds::FLAG);
-        for (Size i = 0; i < q.size(); ++i) {
-            if (ids[i] == bodyId.get()) {
-                means.accumulate(q[i]);
+    auto accumulate = [&](const auto& getter) {
+        const Size size = storage.getParticleCnt();
+        if (bodyId) {
+            ArrayView<const Size> ids = storage.getValue<Size>(QuantityIds::FLAG);
+            for (Size i = 0; i < size; ++i) {
+                if (ids[i] == bodyId.get()) {
+                    means.accumulate(getter(i));
+                }
+            }
+        } else {
+            for (Size i = 0; i < size; ++i) {
+                means.accumulate(getter(i));
             }
         }
+    };
+    if (quantity.getTypeIdx() == 0) {
+        const QuantityIds id = quantity.get<QuantityIds>();
+        ASSERT(storage.has(id));
+        ArrayView<const Float> q = storage.getValue<Float>(id);
+        accumulate([&](const Size i) { return q[i]; });
     } else {
-        for (Size i = 0; i < q.size(); ++i) {
-            means.accumulate(q[i]);
-        }
+        ASSERT(quantity.getTypeIdx() == 1);
+        accumulate(quantity.get<std::function<Float(const Size i)>>());
     }
     return means;
-}
-
-Float QuantityExpression::evaluate(Storage& storage) const {
-    return function(storage);
 }
 
 Value IntegralWrapper::evaluate(Storage& storage) const {

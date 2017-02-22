@@ -29,7 +29,7 @@ public:
         , off(off) {}
 
     /// Initialize all components of the tensor to given value.
-    INLINE Tensor(const Float value)
+    INLINE explicit Tensor(const Float value)
         : diag(value)
         , off(value) {}
 
