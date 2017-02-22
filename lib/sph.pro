@@ -57,7 +57,8 @@ SOURCES += \
     objects/finders/KdTree.cpp \
     system/Statistics.cpp \
     solvers/AbstractSolver.cpp \
-    problem/Problem.cpp
+    problem/Problem.cpp \
+    sph/Diagnostics.cpp
 
 HEADERS += \
     core/Globals.h \
@@ -162,4 +163,5 @@ HEADERS += \
     system/Element.h \
     quantities/Slice.h \
     objects/ExtendEnum.h \
-    system/LogFile.h
+    system/LogFile.h \
+    sph/Diagnostics.h

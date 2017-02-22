@@ -32,8 +32,6 @@ protected:
     /// - min/max/mean/median of given quantity reaches certain value
     /// - ...
 
-    Array<IntegralWrapper> integrals;
-
 public:
     /// Data output
     std::unique_ptr<Abstract::Output> output;

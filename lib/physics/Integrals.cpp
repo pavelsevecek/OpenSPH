@@ -160,41 +160,4 @@ Means QuantityMeans::evaluate(Storage& storage) const {
     return means;
 }
 
-Value IntegralWrapper::evaluate(Storage& storage) const {
-    return impl(storage);
-}
-
-
-Diagnostics::Diagnostics(const GlobalSettings& settings)
-    : settings(settings) {}
-
-
-Size Diagnostics::getNumberOfComponents(Storage& storage) const {
-    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityIds::POSITIONS);
-    Array<Size> indices;
-    return findComponents(r, settings, indices);
-}
-
-Array<Diagnostics::Pair> Diagnostics::getParticlePairs(Storage& storage, const Float limit) const {
-    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityIds::POSITIONS);
-    std::unique_ptr<Abstract::Finder> finder = Factory::getFinder(settings);
-    finder->build(r);
-    const Float radius = Factory::getKernel<3>(settings).radius();
-
-    Array<Diagnostics::Pair> pairs;
-    Array<NeighbourRecord> neighs;
-
-    /// \todo symmetrized h
-    for (Size i = 0; i < r.size(); ++i) {
-        // only smaller h to go through each pair only once
-        finder->findNeighbours(i, r[i][H] * radius, neighs, FinderFlags::FIND_ONLY_SMALLER_H);
-        for (auto& n : neighs) {
-            if (getSqrLength(r[i] - r[n.index]) < sqr(limit * r[i][H])) {
-                pairs.push(Diagnostics::Pair{ i, n.index });
-            }
-        }
-    }
-    return pairs;
-}
-
 NAMESPACE_SPH_END
