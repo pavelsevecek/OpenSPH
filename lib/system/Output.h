@@ -6,25 +6,47 @@
 
 NAMESPACE_SPH_BEGIN
 
+class OutputFile {
+private:
+    mutable Size dumpNum = 0;
+    std::string pathMask;
+
+public:
+    OutputFile() = default;
+
+    OutputFile(const std::string& pathMask)
+        : pathMask(pathMask) {
+        ASSERT(pathMask.find("%d", 0) != std::string::npos);
+    }
+
+    /// Returns path to the next output file, incrementing the internal counter
+    std::string getNextPath() const {
+        std::string path = pathMask;
+        std::string::size_type n = pathMask.find("%d", 0);
+        std::ostringstream ss;
+        ss << std::setw(4) << std::setfill('0') << dumpNum;
+        path.replace(n, 2, ss.str());
+        dumpNum++;
+        return path;
+    }
+};
+
 /// Interface for saving quantities of SPH particles to a file. Saves all values in the storage, and also 1st
 /// derivatives for 2nd-order quantities.
 namespace Abstract {
     class Output : public Polymorphic {
     protected:
-        int dumpNum = 0; // number of saved files
-        std::string fileMask;
-        Array<std::unique_ptr<Abstract::Element>> elements;
+        OutputFile paths;
+        Array<std::unique_ptr<Abstract::Column>> elements;
 
     public:
         /// Constructs output given the file name of the output. The name must contain '%d', which will be
         /// replaced by the dump number, starting from 0.
         Output(const std::string& fileMask)
-            : fileMask(fileMask) {
-            ASSERT(fileMask.find("%d") != std::string::npos);
-        }
+            : paths(fileMask) {}
 
         /// Adds an element to output.
-        void add(std::unique_ptr<Abstract::Element>&& element) {
+        void add(std::unique_ptr<Abstract::Column>&& element) {
             elements.push(std::move(element));
         }
 
@@ -34,17 +56,6 @@ namespace Abstract {
         /// Loads data from the file into the storage. This will remove any data previously stored in storage.
         /// Can be used to continue simulation from saved snapshot.
         virtual Outcome load(const std::string& path, Storage& storage) = 0;
-
-    protected:
-        std::string getFileName() const {
-            std::string name = fileMask;
-            std::string::size_type n = fileMask.find("%d", 0);
-            ASSERT(n != std::string::npos);
-            std::ostringstream ss;
-            ss << std::setw(4) << std::setfill('0') << dumpNum;
-            name.replace(n, 2, ss.str());
-            return name;
-        }
     };
 }
 

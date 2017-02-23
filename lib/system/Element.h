@@ -11,7 +11,7 @@
 NAMESPACE_SPH_BEGIN
 
 namespace Abstract {
-    class Element : public Polymorphic {
+    class Column : public Polymorphic {
     public:
         virtual Value evaluate(Storage& storage, const Size particleIdx) const = 0;
 
@@ -22,12 +22,12 @@ namespace Abstract {
 }
 
 template <typename TValue>
-class ValueElement : public Abstract::Element {
+class ValueColumn : public Abstract::Column {
 private:
     QuantityIds id;
 
 public:
-    ValueElement(const QuantityIds id)
+    ValueColumn(const QuantityIds id)
         : id(id) {}
 
     virtual Value evaluate(Storage& storage, const Size particleIdx) const override {
@@ -45,12 +45,12 @@ public:
 };
 
 template <typename TValue>
-class DerivativeElement : public Abstract::Element {
+class DerivativeColumn : public Abstract::Column {
 private:
     QuantityIds id;
 
 public:
-    DerivativeElement(const QuantityIds id)
+    DerivativeColumn(const QuantityIds id)
         : id(id) {}
 
     virtual Value evaluate(Storage& storage, const Size particleIdx) const override {
@@ -68,12 +68,12 @@ public:
 };
 
 template <typename TValue>
-class SecondDerivativeElement : public Abstract::Element {
+class SecondDerivativeColumn : public Abstract::Column {
 private:
     QuantityIds id;
 
 public:
-    SecondDerivativeElement(const QuantityIds id)
+    SecondDerivativeColumn(const QuantityIds id)
         : id(id) {}
 
     virtual Value evaluate(Storage& storage, const Size particleIdx) const override {
@@ -90,7 +90,7 @@ public:
     }
 };
 
-class SmoothingLengthElement : public Abstract::Element {
+class SmoothingLengthColumn : public Abstract::Column {
 public:
     virtual Value evaluate(Storage& storage, const Size particleIdx) const override {
         ArrayView<const Vector> value = storage.getValue<Vector>(QuantityIds::POSITIONS);
@@ -106,7 +106,7 @@ public:
     }
 };
 
-class ParticleNumberElement : public Abstract::Element {
+class ParticleNumberColumn : public Abstract::Column {
     virtual Value evaluate(Storage& UNUSED(storage), const Size particleIdx) const override {
         return particleIdx;
     }
@@ -122,21 +122,21 @@ class ParticleNumberElement : public Abstract::Element {
 
 namespace Factory {
     template <typename TValue>
-    INLINE std::unique_ptr<Abstract::Element> getValueElement(const QuantityIds id) {
-        return std::make_unique<ValueElement<TValue>>(id);
+    INLINE std::unique_ptr<Abstract::Column> getValueColumn(const QuantityIds id) {
+        return std::make_unique<ValueColumn<TValue>>(id);
     }
 
     template <typename TValue>
-    INLINE std::unique_ptr<Abstract::Element> getDerivativeElement(const QuantityIds id) {
-        return std::make_unique<DerivativeElement<TValue>>(id);
+    INLINE std::unique_ptr<Abstract::Column> getDerivativeColumn(const QuantityIds id) {
+        return std::make_unique<DerivativeColumn<TValue>>(id);
     }
 
-    INLINE std::unique_ptr<Abstract::Element> getVelocityElement() {
-        return getDerivativeElement<Vector>(QuantityIds::POSITIONS);
+    INLINE std::unique_ptr<Abstract::Column> getVelocityColumn() {
+        return getDerivativeColumn<Vector>(QuantityIds::POSITIONS);
     }
 
-    INLINE std::unique_ptr<Abstract::Element> getSmoothingLengthElement() {
-        return std::make_unique<SmoothingLengthElement>();
+    INLINE std::unique_ptr<Abstract::Column> getSmoothingLengthColumn() {
+        return std::make_unique<SmoothingLengthColumn>();
     }
 }
 

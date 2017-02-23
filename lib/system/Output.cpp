@@ -33,7 +33,7 @@ TextOutput::TextOutput(const std::string& fileMask, const std::string& runName)
 
 std::string TextOutput::dump(Storage& storage, const Float time) {
     ASSERT(!elements.empty() && "nothing to dump");
-    const std::string fileName = getFileName();
+    const std::string fileName = paths.getNextPath();
     std::ofstream ofs(fileName);
     // print description
     ofs << "# Run: " << runName << std::endl;
@@ -52,7 +52,6 @@ std::string TextOutput::dump(Storage& storage, const Float time) {
         ofs << std::endl;
     }
     ofs.close();
-    this->dumpNum++;
     return fileName;
 }
 
@@ -99,7 +98,7 @@ static void storeBuffers(Quantity& q, TStoreValue&& storeValue) {
 
 std::string BinaryOutput::dump(Storage& storage, const Float time) {
     ASSERT(!elements.empty() && "nothing to dump");
-    const std::string fileName = getFileName();
+    const std::string fileName = paths.getNextPath();
     std::ofstream ofs(fileName);
     // file format identifie
     ofs << "SPH" << time << storage.getParticleCnt() << storage.getQuantityCnt();

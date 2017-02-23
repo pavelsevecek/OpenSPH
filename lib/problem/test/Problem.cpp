@@ -18,12 +18,11 @@ private:
 public:
     DummyCallbacks(Size& stepIdx, const Size abortAfterStep = 1000)
         : stepIdx(stepIdx)
-        , abortAfterStep(abortAfterStep) {
-    }
+        , abortAfterStep(abortAfterStep) {}
 
 
-    virtual void onTimeStep(const float UNUSED(progress),
-        const std::shared_ptr<Storage>& UNUSED(storage)) override {
+    virtual void onTimeStep(const std::shared_ptr<Storage>& UNUSED(storage),
+        const Statistics& UNUSED(stats)) override {
         stepIdx++;
     }
 
@@ -40,8 +39,7 @@ private:
 public:
     DummyOutput(Array<Float>& outputTimes)
         : Abstract::Output("%d")
-        , outputTimes(outputTimes) {
-    }
+        , outputTimes(outputTimes) {}
 
     virtual std::string dump(Storage& UNUSED(storage), const Float time) override {
         outputTimes.push(time);

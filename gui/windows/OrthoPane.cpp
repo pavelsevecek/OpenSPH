@@ -1,6 +1,8 @@
 #include "gui/windows/OrthoPane.h"
 #include "gui/Factory.h"
 #include "gui/Settings.h"
+#include "gui/objects/Bitmap.h"
+#include "gui/objects/Bitmap.h"
 #include "system/Profiler.h"
 #include <wx/dcclient.h>
 
@@ -27,7 +29,7 @@ void OrthoPane::onPaint(wxPaintEvent& UNUSED(evt)) {
     MEASURE_SCOPE("OrthoPane::onPaint");
     // called from main thread
     wxPaintDC dc(this);
-    wxBitmap bitmap(dc.GetSize());
+    bitmap.Create(dc.GetSize(), 24);
     wxMemoryDC memoryDc(bitmap);
     if (particlesUpdated) {
         std::unique_lock<std::mutex> lock(mutex);
@@ -50,7 +52,6 @@ void OrthoPane::onPaint(wxPaintEvent& UNUSED(evt)) {
     }
     drawPalette(memoryDc);
     dc.DrawBitmap(bitmap, wxPoint(0, 0));
-    // memoryDc.
 }
 
 void OrthoPane::drawPalette(wxDC& dc) {
@@ -110,6 +111,10 @@ void OrthoPane::draw(const std::shared_ptr<Storage>& newStorage) {
     storage = newStorage;
     mutex.unlock();
     update();
+}
+
+Bitmap OrthoPane::getRender() const {
+    return bitmap;
 }
 
 void OrthoPane::update() {

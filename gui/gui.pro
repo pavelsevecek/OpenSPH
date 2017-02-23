@@ -38,7 +38,8 @@ SOURCES += \
     windows/GlPane.cpp \
     windows/OrthoPane.cpp \
     windows/Window.cpp \
-    Settings.cpp
+    Settings.cpp \
+    MainLoop.cpp
 
 HEADERS += \
     Gui.h \
@@ -56,4 +57,7 @@ HEADERS += \
     objects/Camera.h \
     objects/Point.h \
     Factory.h \
-    objects/Element.h
+    objects/Element.h \
+    objects/Movie.h \
+    objects/Bitmap.h \
+    MainLoop.h

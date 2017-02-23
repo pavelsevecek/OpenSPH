@@ -1,8 +1,10 @@
 #pragma once
 
+#include "gui/MainLoop.h"
 #include "objects/Object.h"
 #include "wx/wx.h"
 #include <thread>
+
 
 class wxFrame;
 
@@ -27,6 +29,8 @@ private:
     std::unique_ptr<Problem> p;
 
     virtual bool OnInit();
+
+    void processEvents(MainLoopEvent& evt);
 
 public:
     MyApp();

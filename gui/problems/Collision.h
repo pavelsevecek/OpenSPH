@@ -56,11 +56,11 @@ public:
         , energy(QuantityIds::ENERGY, 1)
         , density(QuantityIds::DENSITY, 1) {}
 
-    virtual void write(Storage& storage, const Statistics& statistics) override {
+    virtual void write(Storage& storage, const Statistics& stats) override {
         Means sm = stress.evaluate(storage);
         Means dsm = dtStress.evaluate(storage);
         /// \todo get rid of these spaces
-        this->logger->write(statistics.get<Float>(StatisticsIds::TIME),
+        this->logger->write(stats.get<Float>(StatisticsIds::TIME),
             "   ",
             sm.average(),
             "   ",
@@ -94,8 +94,8 @@ public:
     EnergyLogFile(const std::string& path)
         : Abstract::LogFile(std::make_shared<FileLogger>(path)) {}
 
-    virtual void write(Storage& storage, const Statistics& statistics) override {
-        this->logger->write(statistics.get<Float>(StatisticsIds::TIME),
+    virtual void write(Storage& storage, const Statistics& stats) override {
+        this->logger->write(stats.get<Float>(StatisticsIds::TIME),
             "   ",
             en.evaluate(storage),
             "   ",
@@ -110,16 +110,16 @@ public:
     TimestepLogFile(const std::string& path)
         : Abstract::LogFile(std::make_shared<FileLogger>(path)) {}
 
-    virtual void write(Storage& UNUSED(storage), const Statistics& statistics) override {
-        if (!statistics.has(StatisticsIds::LIMITING_PARTICLE_IDX)) {
+    virtual void write(Storage& UNUSED(storage), const Statistics& stats) override {
+        if (!stats.has(StatisticsIds::LIMITING_PARTICLE_IDX)) {
             return;
         }
-        const Float t = statistics.get<Float>(StatisticsIds::TIME);
-        const Float dt = statistics.get<Float>(StatisticsIds::TIMESTEP_VALUE);
-        const QuantityIds id = statistics.get<QuantityIds>(StatisticsIds::LIMITING_QUANTITY);
-        const int idx = statistics.get<int>(StatisticsIds::LIMITING_PARTICLE_IDX);
-        const Value value = statistics.get<Value>(StatisticsIds::LIMITING_VALUE);
-        const Value derivative = statistics.get<Value>(StatisticsIds::LIMITING_DERIVATIVE);
+        const Float t = stats.get<Float>(StatisticsIds::TIME);
+        const Float dt = stats.get<Float>(StatisticsIds::TIMESTEP_VALUE);
+        const QuantityIds id = stats.get<QuantityIds>(StatisticsIds::LIMITING_QUANTITY);
+        const int idx = stats.get<int>(StatisticsIds::LIMITING_PARTICLE_IDX);
+        const Value value = stats.get<Value>(StatisticsIds::LIMITING_VALUE);
+        const Value derivative = stats.get<Value>(StatisticsIds::LIMITING_DERIVATIVE);
         this->logger->write(t, " ", dt, " ", id, " ", idx, " ", value, " ", derivative);
     }
 };
@@ -132,8 +132,8 @@ public:
         : Abstract::LogFile(std::make_shared<FileLogger>(path))
         , stepLogger("dt" + path) {}
 
-    virtual void write(Storage& storage, const Statistics& statistics) override {
-        const Float t = statistics.get<Float>(StatisticsIds::TIME);
+    virtual void write(Storage& storage, const Statistics& stats) override {
+        const Float t = stats.get<Float>(StatisticsIds::TIME);
         const Tensor smin(1.e5_f);
         ArrayView<TracelessTensor> s, ds;
         tie(s, ds) = storage.getAll<TracelessTensor>(QuantityIds::DEVIATORIC_STRESS);
@@ -187,10 +187,10 @@ struct AsteroidCollision {
         std::string outputDir = "out/" + globalSettings.get<std::string>(GlobalSettingsIds::RUN_OUTPUT_NAME);
         p->output = std::make_unique<TextOutput>(
             outputDir, globalSettings.get<std::string>(GlobalSettingsIds::RUN_NAME));
-        p->output->add(std::make_unique<ParticleNumberElement>());
-        p->output->add(Factory::getValueElement<Vector>(QuantityIds::POSITIONS));
-        p->output->add(Factory::getValueElement<TracelessTensor>(QuantityIds::DEVIATORIC_STRESS));
-        p->output->add(Factory::getDerivativeElement<TracelessTensor>(QuantityIds::DEVIATORIC_STRESS));
+        p->output->add(std::make_unique<ParticleNumberColumn>());
+        p->output->add(Factory::getValueColumn<Vector>(QuantityIds::POSITIONS));
+        p->output->add(Factory::getValueColumn<TracelessTensor>(QuantityIds::DEVIATORIC_STRESS));
+        p->output->add(Factory::getDerivativeColumn<TracelessTensor>(QuantityIds::DEVIATORIC_STRESS));
         // Array<QuantityIds>{
         // QuantityIds::POSITIONS, QuantityIds::DENSITY, QuantityIds::PRESSURE, QuantityIds::ENERGY });
         //  QuantityIds::DAMAGE });
@@ -213,7 +213,9 @@ struct AsteroidCollision {
         guiSettings.set(GuiSettingsIds::VIEW_FOV, 1.e4_f)
             .set(GuiSettingsIds::PARTICLE_RADIUS, 0.3_f)
             .set(GuiSettingsIds::ORTHO_CUTOFF, 5.e2_f)
-            .set(GuiSettingsIds::ORTHO_PROJECTION, OrthoEnum::XY);
+            .set(GuiSettingsIds::ORTHO_PROJECTION, OrthoEnum::XY)
+            .set(GuiSettingsIds::IMAGES_SAVE, true)
+            .set(GuiSettingsIds::IMAGES_TIMESTEP, 0.01_f);
         return guiSettings;
     }
 };

@@ -1,6 +1,8 @@
 #include "gui/windows/Window.h"
+#include "gui/MainLoop.h"
 #include "gui/windows/GlPane.h"
 #include "gui/windows/OrthoPane.h"
+#include "system/LogFile.h"
 #include <wx/button.h>
 #include <wx/combobox.h>
 #include <wx/gauge.h>

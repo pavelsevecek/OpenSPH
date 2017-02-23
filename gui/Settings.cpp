@@ -17,6 +17,7 @@ std::unique_ptr<GuiSettings> GuiSettings::instance (new GuiSettings {
     { GuiSettingsIds::WINDOW_TITLE,     "window.title",     std::string("SPH") },
     { GuiSettingsIds::IMAGES_SAVE,      "images.save",      false },
     { GuiSettingsIds::IMAGES_PATH,      "images.path",      std::string("imgs/") },
+    { GuiSettingsIds::IMAGES_NAME,      "images.name",      std::string("img_%d.png") },
     { GuiSettingsIds::IMAGES_TIMESTEP,  "images.time_step", 0.1_f },
     { GuiSettingsIds::PALETTE_DENSITY,  "palette.density",  Range(2000._f, 3000._f) },
     { GuiSettingsIds::PALETTE_VELOCITY, "palette.velocity", Range(0._f, 1._f) },

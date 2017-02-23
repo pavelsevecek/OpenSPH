@@ -40,8 +40,11 @@ enum class GuiSettingsIds {
     /// If true, rendered images are saved to disk
     IMAGES_SAVE,
 
-    /// Path of the directory where rendered images are saved
+    /// Path of directory where the rendered images will be saved.
     IMAGES_PATH,
+
+    /// Mask of the image names, having %d where the output number will be placed.
+    IMAGES_NAME,
 
     /// Time interval (in run time) of image saving. Note that images do not have to be saved exactly in
     /// specified times, as time step of the run is generally different than this value.

@@ -1,20 +1,21 @@
 #pragma once
 
-#include "wx/glcanvas.h"
-#include "wx/timer.h"
-#include "wx/wx.h"
-
 #include "gui/Common.h"
 #include "gui/Renderer.h"
+#include "objects/Bitmap.h"
 #include "objects/containers/BufferedArray.h"
+
 #include <thread>
+#include <wx/glcanvas.h>
+#include <wx/timer.h>
+#include <wx/wx.h>
 
 class GLUquadric;
 
 NAMESPACE_SPH_BEGIN
 
 /// Unit sphere
-class VisualSphere  {
+class VisualSphere {
 private:
     Array<Vector> vertices;
     Array<Vector> normals;
@@ -24,10 +25,10 @@ public:
     VisualSphere(const Size latitudeSegments, const Size longitudeSegments);
 
     void push(const Vector& center,
-              const float radius,
-              Array<Vector>& vs,
-              Array<Vector>& ns,
-              Array<Size>& is) const;
+        const float radius,
+        Array<Vector>& vs,
+        Array<Vector>& ns,
+        Array<Size>& is) const;
 };
 
 class CustomGlPane : public wxGLCanvas, public Abstract::Renderer {
@@ -66,15 +67,19 @@ public:
 
     virtual void draw(const std::shared_ptr<Storage>& storage) override;
 
+    virtual Bitmap getRender() const override {
+        NOT_IMPLEMENTED;
+    }
+
     virtual void setQuantity(const QuantityIds key) override;
 
     void drawSphere(const Vector& position,
-                    const float radius,
-                    const int latitudeSegments,
-                    const int longitudeSegments,
-                    Array<Vector>& vertices,
-                    Array<Vector>& normals,
-                    Array<int>& indices);
+        const float radius,
+        const int latitudeSegments,
+        const int longitudeSegments,
+        Array<Vector>& vertices,
+        Array<Vector>& normals,
+        Array<int>& indices);
 };
 
 NAMESPACE_SPH_END

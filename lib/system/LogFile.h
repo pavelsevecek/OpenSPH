@@ -17,7 +17,7 @@ namespace Abstract {
         LogFile(const std::shared_ptr<Abstract::Logger>& logger)
             : logger(logger) {}
 
-        virtual void write(Storage& storage, const Statistics& statistics) = 0;
+        virtual void write(Storage& storage, const Statistics& stats) = 0;
     };
 }
 
@@ -27,17 +27,17 @@ public:
     CommonStatsLog(const std::shared_ptr<Abstract::Logger>& logger)
         : Abstract::LogFile(logger) {}
 
-    virtual void write(Storage& UNUSED(storage), const Statistics& statistics) {
+    virtual void write(Storage& UNUSED(storage), const Statistics& stats) {
         logger->write("Output #",
-            statistics.get<int>(StatisticsIds::INDEX),
+            stats.get<int>(StatisticsIds::INDEX),
             "  time = ",
-            statistics.get<Float>(StatisticsIds::TIME));
+            stats.get<Float>(StatisticsIds::TIME));
         logger->write(" - timestep: dt = ",
-            statistics.get<Float>(StatisticsIds::TIMESTEP_VALUE),
+            stats.get<Float>(StatisticsIds::TIMESTEP_VALUE),
             " (set by ",
-            statistics.get<AllCriterionIds>(StatisticsIds::TIMESTEP_CRITERION),
+            stats.get<AllCriterionIds>(StatisticsIds::TIMESTEP_CRITERION),
             ")");
-        logger->write(" - neigbours: ", statistics.get<Means>(StatisticsIds::NEIGHBOUR_COUNT));
+        logger->write(" - neigbours: ", stats.get<Means>(StatisticsIds::NEIGHBOUR_COUNT));
         logger->write("");
     }
 };

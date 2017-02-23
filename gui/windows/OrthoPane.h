@@ -38,10 +38,8 @@ private:
     GuiSettings settings;
     Point lastMousePosition;
     wxTimer* refreshTimer;
+    wxBitmap bitmap;
 
-    /*Movie movie;
-
-    myBitmap.SaveFile("name", wxBITMAP_TYPE_PNG);*/
     std::mutex mutex;
 
 public:
@@ -50,6 +48,8 @@ public:
     ~OrthoPane();
 
     virtual void draw(const std::shared_ptr<Storage>& storage) override;
+
+    virtual Bitmap getRender() const override;
 
     virtual void setQuantity(const QuantityIds key) override;
 

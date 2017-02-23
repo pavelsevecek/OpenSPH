@@ -62,12 +62,6 @@ void Problem::run() {
 
     for (Float t = timeRange.lower(); t < timeRange.upper() && !condition(runTimer, i);
          t += timeStepping->getTimeStep()) {
-        if (callbacks) {
-            callbacks->onTimeStep((t - timeRange.lower()) / timeRange.size(), storage);
-            if (callbacks->shouldAbortRun()) {
-                break;
-            }
-        }
 
         // dump output
         if (output && t >= nextOutput) {
@@ -84,6 +78,12 @@ void Problem::run() {
 
         for (auto& log : logs) {
             log->write(*storage, stats);
+        }
+        if (callbacks) {
+            callbacks->onTimeStep(storage, stats);
+            if (callbacks->shouldAbortRun()) {
+                break;
+            }
         }
 
         i++;
