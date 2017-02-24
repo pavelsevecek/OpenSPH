@@ -36,7 +36,7 @@ Size findComponents(ArrayView<const Vector> vertices, const GlobalSettings& sett
     return componentIdx;
 }
 
-Array<Size> getCummulativeSFD(Storage& storage,
+Array<Size> getDifferentialSFD(Storage& storage,
     const GlobalSettings& settings,
     Optional<HistogramParams> params) {
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityIds::POSITIONS);
@@ -69,10 +69,6 @@ Array<Size> getCummulativeSFD(Storage& storage,
     /// \todo check histogram, if some bins are "oversampled", increase bin cnt
 
     /// \todo diameters, not volumes
-    // sum up histogram
-    for (Size i = 0; i < histogram.size() - 1; ++i) {
-        histogram[i + 1] += histogram[i];
-    }
     // how to return range? That's not containted in histogram
     return histogram;
 }

@@ -109,7 +109,7 @@ void CustomGlPane::onTimer(wxTimerEvent& evt) {
     }
 }
 
-void CustomGlPane::draw(const std::shared_ptr<Storage>& storage) {
+void CustomGlPane::draw(const std::shared_ptr<Storage>& storage, const Statistics&) {
     cached.positions.clear();
     Array<Vector>& newPositions = storage->getValue<Vector>(QuantityIds::POSITIONS);
     cached.positions.pushAll(newPositions);

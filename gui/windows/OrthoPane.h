@@ -39,6 +39,7 @@ private:
     Point lastMousePosition;
     wxTimer* refreshTimer;
     wxBitmap bitmap;
+    float time = 0.f;
 
     std::mutex mutex;
 
@@ -47,7 +48,7 @@ public:
 
     ~OrthoPane();
 
-    virtual void draw(const std::shared_ptr<Storage>& storage) override;
+    virtual void draw(const std::shared_ptr<Storage>& storage, const Statistics& stats) override;
 
     virtual Bitmap getRender() const override;
 

@@ -65,7 +65,7 @@ public:
 
     void onTimer(wxTimerEvent& evt);
 
-    virtual void draw(const std::shared_ptr<Storage>& storage) override;
+    virtual void draw(const std::shared_ptr<Storage>& storage, const Statistics& stats) override;
 
     virtual Bitmap getRender() const override {
         NOT_IMPLEMENTED;

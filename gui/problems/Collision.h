@@ -152,8 +152,9 @@ struct AsteroidCollision {
         BodySettings bodySettings;
         bodySettings.set(BodySettingsIds::ENERGY, 1._f)
             .set(BodySettingsIds::ENERGY_RANGE, Range(1._f, INFTY))
-            .set(BodySettingsIds::PARTICLE_COUNT, 1000)
-            .set(BodySettingsIds::EOS, EosEnum::TILLOTSON);
+            .set(BodySettingsIds::PARTICLE_COUNT, 100000)
+            .set(BodySettingsIds::EOS, EosEnum::TILLOTSON)
+            .set(BodySettingsIds::STRESS_TENSOR_MIN, 1.e7_f);
         InitialConditions conds(storage, globalSettings);
 
         StdOutLogger logger;
@@ -174,15 +175,14 @@ struct AsteroidCollision {
         globalSettings.set(GlobalSettingsIds::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::PREDICTOR_CORRECTOR)
             .set(GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP, 5.e-3_f)
             .set(GlobalSettingsIds::TIMESTEPPING_MAX_TIMESTEP, 0.01_f)
-            .set(GlobalSettingsIds::RUN_OUTPUT_INTERVAL, 0._f)
-            //.set(GlobalSettingsIds::RUN_TIMESTEP_CNT, 10000)
+            .set(GlobalSettingsIds::RUN_OUTPUT_INTERVAL, 0.1_f)
             .set(GlobalSettingsIds::MODEL_FORCE_DIV_S, true)
             .set(GlobalSettingsIds::SPH_FINDER, FinderEnum::VOXEL)
             .set(GlobalSettingsIds::MODEL_AV_TYPE, ArtificialViscosityEnum::STANDARD)
             .set(GlobalSettingsIds::SPH_AV_ALPHA, 1.5_f)
             .set(GlobalSettingsIds::SPH_AV_BETA, 3._f)
-            .set(GlobalSettingsIds::MODEL_DAMAGE, DamageEnum::NONE) // DamageEnum::SCALAR_GRADY_KIPP)
-            .set(GlobalSettingsIds::MODEL_YIELDING, YieldingEnum::VON_MISES); // YieldingEnum::VON_MISES);
+            .set(GlobalSettingsIds::MODEL_DAMAGE, DamageEnum::SCALAR_GRADY_KIPP)
+            .set(GlobalSettingsIds::MODEL_YIELDING, YieldingEnum::VON_MISES);
         std::unique_ptr<Problem> p = std::make_unique<Problem>(globalSettings, std::make_shared<Storage>());
         std::string outputDir = "out/" + globalSettings.get<std::string>(GlobalSettingsIds::RUN_OUTPUT_NAME);
         p->output = std::make_unique<TextOutput>(
@@ -201,21 +201,22 @@ struct AsteroidCollision {
 
         initialConditions(p->storage);
 
-        p->logs.push(std::make_unique<ImpactorLogFile>(*p->storage, "stress.txt"));
-        p->logs.push(std::make_unique<EnergyLogFile>("energy.txt"));
-        p->logs.push(std::make_unique<TimestepLogFile>("timestep.txt"));
-        p->logs.push(std::make_unique<Stress1456>("s_1456.txt"));
+        /* p->logs.push(std::make_unique<ImpactorLogFile>(*p->storage, "stress.txt"));
+         p->logs.push(std::make_unique<EnergyLogFile>("energy.txt"));
+         p->logs.push(std::make_unique<TimestepLogFile>("timestep.txt"));
+         p->logs.push(std::make_unique<Stress1456>("s_1456.txt"));*/
         return p;
     }
 
     GuiSettings getGuiSettings() const {
         GuiSettings guiSettings;
-        guiSettings.set(GuiSettingsIds::VIEW_FOV, 1.e4_f)
+        guiSettings.set(GuiSettingsIds::VIEW_FOV, 5.e3_f)
+            .set(GuiSettingsIds::VIEW_CENTER, Vector(320, 200, 0._f))
             .set(GuiSettingsIds::PARTICLE_RADIUS, 0.3_f)
             .set(GuiSettingsIds::ORTHO_CUTOFF, 5.e2_f)
             .set(GuiSettingsIds::ORTHO_PROJECTION, OrthoEnum::XY)
             .set(GuiSettingsIds::IMAGES_SAVE, true)
-            .set(GuiSettingsIds::IMAGES_TIMESTEP, 0.01_f);
+            .set(GuiSettingsIds::IMAGES_TIMESTEP, 0.02_f);
         return guiSettings;
     }
 };

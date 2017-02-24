@@ -30,7 +30,7 @@ public:
             float progress = (t - timeRange.lower()) / timeRange.size();
             window->setProgress(progress);
             Abstract::Renderer* renderer = window->getRenderer();
-            renderer->draw(storage);
+            renderer->draw(storage, stats);
             movie.onTimeStep(t);
         }
     }

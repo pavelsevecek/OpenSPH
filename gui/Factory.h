@@ -29,8 +29,8 @@ namespace Factory {
             NOT_IMPLEMENTED;
         }
         const Point size(640, 480);
-        const Point center(320, 240);
-        return std::make_unique<OrthoCamera>(size, center, data);
+        const Vector center(settings.get<Vector>(GuiSettingsIds::VIEW_CENTER));
+        return std::make_unique<OrthoCamera>(size, Point(int(center[X]), int(center[Y])), data);
     }
 
     static std::unique_ptr<Abstract::Element> getElement(Storage& storage,

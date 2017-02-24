@@ -69,6 +69,9 @@ namespace Detail {
         /// derivatives.
         virtual void clamp() = 0;
 
+        /// \todo remote together with clamp
+        virtual Range getRange() const = 0;
+
         /// Returns size of the stored arrays (=number of particles).
         virtual int size() const = 0;
     };
@@ -142,6 +145,10 @@ namespace Detail {
             for (TValue& x : v) {
                 x = Sph::clamp(x, range);
             }
+        }
+
+        virtual Range getRange() const override {
+            return range;
         }
 
         virtual void swap(PlaceHolder* other, Flags<VisitorEnum> flags) override {
@@ -370,6 +377,11 @@ public:
     void clamp() {
         ASSERT(data);
         data->clamp();
+    }
+
+    Range getRange() const {
+        ASSERT(data);
+        return data->getRange();
     }
 
     /// Swap quantity (or selected part of it) with other quantity.

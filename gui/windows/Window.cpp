@@ -10,7 +10,7 @@
 
 NAMESPACE_SPH_BEGIN
 
-enum class ControlIds { BUTTON_START, BUTTON_STOP, QUANTITY_BOX };
+enum class ControlIds { BUTTON_START, BUTTON_PAUSE, BUTTON_STOP, QUANTITY_BOX };
 
 Window::Window(const std::shared_ptr<Storage>& storage,
     const GuiSettings& settings,
@@ -25,6 +25,7 @@ Window::Window(const std::shared_ptr<Storage>& storage,
     wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
     wxBoxSizer* toolbar = new wxBoxSizer(wxHORIZONTAL);
     toolbar->Add(new wxButton(this, int(ControlIds::BUTTON_START), "Start"));
+    toolbar->Add(new wxButton(this, int(ControlIds::BUTTON_PAUSE), "Pause"));
     toolbar->Add(new wxButton(this, int(ControlIds::BUTTON_STOP), "Stop"));
     this->Connect(wxEVT_BUTTON, wxCommandEventHandler(Window::onButton));
     wxString quantities[] = { "Velocity", "Density", "Pressure", "Energy", "Stress", "Damage" };
@@ -80,6 +81,7 @@ void Window::onButton(wxCommandEvent& evt) {
         abortRun = false;
         onRestart();
         break;
+    case int(ControlIds::BUTTON_PAUSE):
     case int(ControlIds::BUTTON_STOP):
         abortRun = true;
         break;
@@ -110,7 +112,6 @@ void Window::onComboBox(wxCommandEvent& evt) {
         renderer->setQuantity(QuantityIds::DAMAGE);
         break;
     }
-    renderer->draw(storage);
     evt.Skip();
 }
 

@@ -12,7 +12,7 @@ namespace Abstract {
     class Renderer : public Polymorphic {
     public:
         /// Updates and displays rendered image using current settings.
-        virtual void draw(const std::shared_ptr<Storage>& storage) = 0;
+        virtual void draw(const std::shared_ptr<Storage>& storage, const Statistics& stats) = 0;
 
         /// Returns rendered image as bitmap.
         virtual Bitmap getRender() const = 0;

@@ -4,6 +4,7 @@
 #include "gui/objects/Bitmap.h"
 #include "gui/objects/Bitmap.h"
 #include "system/Profiler.h"
+#include "system/Statistics.h"
 #include <wx/dcclient.h>
 
 NAMESPACE_SPH_BEGIN
@@ -52,6 +53,7 @@ void OrthoPane::onPaint(wxPaintEvent& UNUSED(evt)) {
     }
     drawPalette(memoryDc);
     dc.DrawBitmap(bitmap, wxPoint(0, 0));
+    dc.DrawText(("t = " + std::to_string(time) + "s").c_str(), wxPoint(0, 0));
 }
 
 void OrthoPane::drawPalette(wxDC& dc) {
@@ -67,14 +69,13 @@ void OrthoPane::drawPalette(wxDC& dc) {
         dc.DrawLine(wxPoint(origin.x, origin.y - i), wxPoint(origin.x + 30, origin.y - i));
         if (i % 50 == 0) {
             dc.SetTextForeground(Color::white());
-            /*wxFont font;
-            font.SetTextSize()
-            dc.SetFont(wxFont);*/
+            wxFont font(10, wxFONTFAMILY_MODERN, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL);
+            dc.SetFont(font);
             std::stringstream ss;
             ss << std::setprecision(1) << std::scientific << value;
             const std::string text = ss.str();
             wxSize extent = dc.GetTextExtent(text);
-            dc.DrawText(text, wxPoint(origin.x - 50, origin.y - i - (extent.y >> 1)));
+            dc.DrawText(text, wxPoint(origin.x - 60, origin.y - i - (extent.y >> 1)));
         }
     }
 }
@@ -104,11 +105,12 @@ void OrthoPane::onTimer(wxTimerEvent& evt) {
     evt.Skip();
 }
 
-void OrthoPane::draw(const std::shared_ptr<Storage>& newStorage) {
+void OrthoPane::draw(const std::shared_ptr<Storage>& newStorage, const Statistics& stats) {
     MEASURE_SCOPE("OrthoPane::draw");
     // called from worker thread, cannot touch wx stuff here
     mutex.lock();
     storage = newStorage;
+    time = stats.get<Float>(StatisticsIds::TIME);
     mutex.unlock();
     update();
 }

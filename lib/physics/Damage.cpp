@@ -95,12 +95,14 @@ void ScalarDamage::update(Storage& storage) {
 }
 
 void ScalarDamage::integrate(Storage& storage) {
-    ArrayView<TracelessTensor> s = storage.getValue<TracelessTensor>(QuantityIds::DEVIATORIC_STRESS);
+    ArrayView<TracelessTensor> s, ds;
+    tie(s, ds) = storage.getAll<TracelessTensor>(QuantityIds::DEVIATORIC_STRESS);
     ArrayView<Float> p, eps_min, m_zero, growth;
     tie(p, eps_min, m_zero, growth) = storage.getValues<Float>(
         QuantityIds::PRESSURE, QuantityIds::EPS_MIN, QuantityIds::M_ZERO, QuantityIds::EXPLICIT_GROWTH);
     ArrayView<Size> n_flaws = storage.getValue<Size>(QuantityIds::N_FLAWS);
-    ArrayView<Float> ddamage = storage.getDt<Float>(QuantityIds::DAMAGE);
+    ArrayView<Float> damage, ddamage;
+    tie(damage, ddamage) = storage.getAll<Float>(QuantityIds::DAMAGE);
     MaterialAccessor material(storage);
     for (Size i = 0; i < p.size(); ++i) {
         Tensor sigma = reduce(s[i], i) - reduce(p[i], i) * Tensor::identity();
@@ -115,6 +117,14 @@ void ScalarDamage::integrate(Storage& storage) {
             continue;
         }
         ddamage[i] = growth[i] * root<3>(min(std::pow(ratio, m_zero[i]), Float(n_flaws[i])));
+
+        // if damage is already on max value, set stress to zero to avoid limiting timestep by non-existent
+        // stresses
+        const Range range = storage.getQuantity(QuantityIds::DAMAGE).getRange();
+        if (almostEqual(damage[i], range.upper())) {
+            s[i] = TracelessTensor::null();
+            ds[i] = TracelessTensor::null();
+        }
     }
 }
 
