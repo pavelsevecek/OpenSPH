@@ -49,6 +49,7 @@ enum class QuantityIds {
     MATERIAL_IDX, ///< Material ID
 
     /// Debugging & Other
+    ACCELERATION,
     RHO_GRAD_V,
     RHO_DIV_V,
 };

@@ -294,6 +294,9 @@ enum class GlobalSettingsIds {
     /// Path where all output files (dumps, logs, ...) will be written
     RUN_OUTPUT_PATH,
 
+    /// Number of threads used by the code. If 0, all available threads are used.
+    RUN_THREAD_CNT,
+
     /// Selected logger of a run, see LoggerEnum
     RUN_LOGGER,
 

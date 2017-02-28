@@ -34,7 +34,8 @@ public:
         }
     }
 
-    /// Return a value for current thread. This thread must belong the the thread pool given in constructor, checked by assert.
+    /// Return a value for current thread. This thread must belong the the thread pool given in constructor,
+    /// checked by assert.
     Type& get() {
         const Optional<Size> idx = pool.getThreadIdx();
         ASSERT(idx && idx.get() < values.size());
@@ -49,12 +50,33 @@ public:
     }
 
     /// Enumerate all thread-local storages and pass them into the argument of given functor.
-    template<typename TFunctor>
+    template <typename TFunctor>
     void forEach(TFunctor&& functor) {
-        for (auto& value :values) {
+        for (auto& value : values) {
             functor(value.get());
         }
     }
 };
+
+/// Overload of parallelFor that passes thread-local storage into the functor. Function split range into
+/// sub-ranges and passes beginning and end of each subrange to functors.
+template <typename Type, typename TFunctor>
+INLINE void parallelFor(ThreadPool& pool,
+    ThreadLocal<Type>& storage,
+    const Size from,
+    const Size to,
+    TFunctor&& functor) {
+    const Size threadCnt = pool.getThreadCnt();
+    const Size size = int(to) - int(from);
+    for (Size i = 0; i < threadCnt; ++i) {
+        Size n1 = i * size / threadCnt;
+        Size n2 = (i + 1) * size / threadCnt;
+        pool.submit([n1, n2, &storage, &functor] {
+            Type& tls = storage.get();
+            functor(n1, n2, tls);
+        });
+    }
+    pool.waitForAll();
+}
 
 NAMESPACE_SPH_END

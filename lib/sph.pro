@@ -164,4 +164,7 @@ HEADERS += \
     quantities/Slice.h \
     objects/ExtendEnum.h \
     system/LogFile.h \
-    sph/Diagnostics.h
+    sph/Diagnostics.h \
+    solvers/PressureForce.h \
+    solvers/sphsolver.h \
+    system/filesystem.h

@@ -197,6 +197,7 @@ std::unique_ptr<GlobalSettings> GlobalSettings::instance (new GlobalSettings {
     { GlobalSettingsIds::RUN_OUTPUT_INTERVAL,           "run.output.interval",      0.1_f },
     { GlobalSettingsIds::RUN_OUTPUT_NAME,               "run.output.name",          std::string("out_%d.txt") },
     { GlobalSettingsIds::RUN_OUTPUT_PATH,               "run.output.path",          std::string("out") },
+    { GlobalSettingsIds::RUN_THREAD_CNT,                "run.thread_cnt",           0 },
     { GlobalSettingsIds::RUN_LOGGER,                    "run.logger",               int(LoggerEnum::STD_OUT) },
     { GlobalSettingsIds::RUN_LOGGER_FILE,               "run.logger.file",          std::string("log.txt") },
     { GlobalSettingsIds::RUN_STATISTICS_STEP,           "run.statistics_step",      100 },

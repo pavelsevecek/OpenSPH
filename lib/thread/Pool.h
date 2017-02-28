@@ -94,7 +94,9 @@ public:
 
     /// Returns the number of threads used by this thread pool. Note that this number is constant during the
     /// lifetime of thread pool.
-    Size getThreadCnt() const { return threads.size(); }
+    Size getThreadCnt() const {
+        return threads.size();
+    }
 };
 
 
@@ -104,7 +106,7 @@ public:
 template <typename TFunctor>
 INLINE void parallelFor(ThreadPool& pool, const Size from, const Size to, TFunctor&& functor) {
     for (Size i = from; i < to; ++i) {
-        pool.submit([ i, f = std::forward<TFunctor>(functor) ] { f(i); });
+        pool.submit([i, &functor] { functor(i); });
     }
     pool.waitForAll();
 }
