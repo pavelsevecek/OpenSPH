@@ -31,13 +31,14 @@ public:
         logger->write("Output #",
             stats.get<int>(StatisticsIds::INDEX),
             "  time = ",
-            stats.get<Float>(StatisticsIds::TIME));
+            stats.get<Float>(StatisticsIds::TOTAL_TIME));
         logger->write(" - timestep: dt = ",
             stats.get<Float>(StatisticsIds::TIMESTEP_VALUE),
             " (set by ",
             stats.get<AllCriterionIds>(StatisticsIds::TIMESTEP_CRITERION),
             ")");
         logger->write(" - neigbours: ", stats.get<Means>(StatisticsIds::NEIGHBOUR_COUNT));
+        logger->write(" - time spent: ", stats.get<int>(StatisticsIds::TIMESTEP_ELAPSED), "ms");
         logger->write("");
     }
 };

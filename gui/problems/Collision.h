@@ -60,7 +60,7 @@ public:
         Means sm = stress.evaluate(storage);
         Means dsm = dtStress.evaluate(storage);
         /// \todo get rid of these spaces
-        this->logger->write(stats.get<Float>(StatisticsIds::TIME),
+        this->logger->write(stats.get<Float>(StatisticsIds::TOTAL_TIME),
             "   ",
             sm.average(),
             "   ",
@@ -95,7 +95,7 @@ public:
         : Abstract::LogFile(std::make_shared<FileLogger>(path)) {}
 
     virtual void write(Storage& storage, const Statistics& stats) override {
-        this->logger->write(stats.get<Float>(StatisticsIds::TIME),
+        this->logger->write(stats.get<Float>(StatisticsIds::TOTAL_TIME),
             "   ",
             en.evaluate(storage),
             "   ",
@@ -114,7 +114,7 @@ public:
         if (!stats.has(StatisticsIds::LIMITING_PARTICLE_IDX)) {
             return;
         }
-        const Float t = stats.get<Float>(StatisticsIds::TIME);
+        const Float t = stats.get<Float>(StatisticsIds::TOTAL_TIME);
         const Float dt = stats.get<Float>(StatisticsIds::TIMESTEP_VALUE);
         const QuantityIds id = stats.get<QuantityIds>(StatisticsIds::LIMITING_QUANTITY);
         const int idx = stats.get<int>(StatisticsIds::LIMITING_PARTICLE_IDX);
@@ -133,7 +133,7 @@ public:
         , stepLogger("dt" + path) {}
 
     virtual void write(Storage& storage, const Statistics& stats) override {
-        const Float t = stats.get<Float>(StatisticsIds::TIME);
+        const Float t = stats.get<Float>(StatisticsIds::TOTAL_TIME);
         const Tensor smin(1.e5_f);
         ArrayView<TracelessTensor> s, ds;
         tie(s, ds) = storage.getAll<TracelessTensor>(QuantityIds::DEVIATORIC_STRESS);
@@ -201,10 +201,10 @@ struct AsteroidCollision {
 
         initialConditions(p->storage);
 
-        /* p->logs.push(std::make_unique<ImpactorLogFile>(*p->storage, "stress.txt"));
-         p->logs.push(std::make_unique<EnergyLogFile>("energy.txt"));
-         p->logs.push(std::make_unique<TimestepLogFile>("timestep.txt"));
-         p->logs.push(std::make_unique<Stress1456>("s_1456.txt"));*/
+        /* p->logs.push(std::make_unique<ImpactorLogFile>(*p->storage, "stress.txt"));*/
+        p->logs.push(std::make_unique<EnergyLogFile>("energy.txt"));
+        /*p->logs.push(std::make_unique<TimestepLogFile>("timestep.txt"));
+        p->logs.push(std::make_unique<Stress1456>("s_1456.txt"));*/
         return p;
     }
 

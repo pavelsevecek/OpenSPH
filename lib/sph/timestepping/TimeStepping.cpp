@@ -19,6 +19,7 @@ Abstract::TimeStepping::TimeStepping(const std::shared_ptr<Storage>& storage, co
 Abstract::TimeStepping::~TimeStepping() = default;
 
 void Abstract::TimeStepping::step(Abstract::Solver& solver, Statistics& stats) {
+    Timer timer;
     this->stepImpl(solver, stats);
     // update time step
     AllCriterionIds criterion = CriterionIds::INITIAL_VALUE;
@@ -27,6 +28,7 @@ void Abstract::TimeStepping::step(Abstract::Solver& solver, Statistics& stats) {
     }
     stats.set(StatisticsIds::TIMESTEP_VALUE, dt);
     stats.set(StatisticsIds::TIMESTEP_CRITERION, criterion);
+    stats.set(StatisticsIds::TIMESTEP_ELAPSED, int(timer.elapsed<TimerUnit::MILLISECOND>()));
 }
 
 

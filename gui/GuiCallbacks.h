@@ -26,7 +26,7 @@ public:
         /// \todo limit refreshing to some reasonable frame rate?
         if (window) {
             /// \todo this is still not thread safe, window can be destroyed while executing these function.
-            const float t = stats.get<Float>(StatisticsIds::TIME);
+            const float t = stats.get<Float>(StatisticsIds::TOTAL_TIME);
             float progress = (t - timeRange.lower()) / timeRange.size();
             window->setProgress(progress);
             Abstract::Renderer* renderer = window->getRenderer();

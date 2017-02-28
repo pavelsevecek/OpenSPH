@@ -110,7 +110,7 @@ void OrthoPane::draw(const std::shared_ptr<Storage>& newStorage, const Statistic
     // called from worker thread, cannot touch wx stuff here
     mutex.lock();
     storage = newStorage;
-    time = stats.get<Float>(StatisticsIds::TIME);
+    time = stats.get<Float>(StatisticsIds::TOTAL_TIME);
     mutex.unlock();
     update();
 }

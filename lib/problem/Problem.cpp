@@ -73,7 +73,7 @@ void Problem::run() {
         timeStepping->step(*solver, stats);
 
         // log
-        stats.set(StatisticsIds::TIME, t);
+        stats.set(StatisticsIds::TOTAL_TIME, t);
         stats.set(StatisticsIds::INDEX, (int)i);
 
         for (auto& log : logs) {
