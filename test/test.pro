@@ -99,7 +99,8 @@ SOURCES += \
     ../lib/problem/test/Problem.cpp \
     utils/Approx.cpp \
     utils/SequenceTest.cpp \
-    ../lib/sph/test/Diagnostics.cpp
+    ../lib/sph/test/Diagnostics.cpp \
+    ../lib/physics/test/Units.cpp
 
 
 HEADERS += \

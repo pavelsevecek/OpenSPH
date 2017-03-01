@@ -18,6 +18,8 @@ namespace Constants {
 
     /// Gravitational constant
     const Float gravity = 6.67408e-11; // m^3 kg^-1 s^-2
+
+    const Float astronomicalUnit = 149597870700; // m
 }
 
 NAMESPACE_SPH_END
