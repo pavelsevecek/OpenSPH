@@ -11,7 +11,7 @@ TEST_CASE("Dumping data", "[output]") {
     storage.insert<Vector, OrderEnum::SECOND_ORDER>(
         QuantityIds::POSITIONS, makeArray(Vector(0._f), Vector(1._f), Vector(2._f)));
     storage.insert<Float, OrderEnum::FIRST_ORDER>(QuantityIds::DENSITY, 5._f);
-    TextOutput output("tmp%d.out", "Output");
+    TextOutput output("tmp%d.out", "Output", EMPTY_FLAGS);
     output.add(Factory::getValueColumn<Float>(QuantityIds::DENSITY));
     output.add(Factory::getValueColumn<Vector>(QuantityIds::POSITIONS));
     output.add(Factory::getVelocityColumn());

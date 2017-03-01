@@ -27,9 +27,10 @@ static void printHeader(std::ofstream& ofs, const std::string& name, const Value
     }
 }
 
-TextOutput::TextOutput(const std::string& fileMask, const std::string& runName)
+TextOutput::TextOutput(const std::string& fileMask, const std::string& runName, const Flags<Options> flags)
     : Abstract::Output(fileMask)
-    , runName(runName) {}
+    , runName(runName)
+    , flags(flags) {}
 
 std::string TextOutput::dump(Storage& storage, const Float time) {
     ASSERT(!elements.empty() && "nothing to dump");
@@ -47,7 +48,12 @@ std::string TextOutput::dump(Storage& storage, const Float time) {
     // print data lines, starting with second-order quantities
     for (Size i = 0; i < storage.getParticleCnt(); ++i) {
         for (auto& element : elements) {
-            ofs << std::setw(15) << element->evaluate(storage, i);
+            // write one extra space to be sure numbers won't merge
+            if (flags.has(Options::SCIENTIFIC)) {
+                ofs << std::setw(15) << std::scientific << element->evaluate(storage, i) << " ";
+            } else {
+                ofs << std::setw(15) << element->evaluate(storage, i) << " ";
+            }
         }
         ofs << std::endl;
     }

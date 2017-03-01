@@ -155,11 +155,14 @@ struct AsteroidCollision {
             .set(BodySettingsIds::PARTICLE_COUNT, 100000)
             .set(BodySettingsIds::EOS, EosEnum::TILLOTSON)
             .set(BodySettingsIds::STRESS_TENSOR_MIN, 1.e7_f);
+        bodySettings.saveToFile("target.sph");
+
         InitialConditions conds(storage, globalSettings);
 
         StdOutLogger logger;
         SphericalDomain domain1(Vector(0._f), 5e3_f); // D = 10km
         conds.addBody(domain1, bodySettings);
+        /// \todo save also problem-specific settings: position of impactor, radius, ...
         logger.write("Particles of target: ", storage->getParticleCnt());
         const Size n1 = storage->getParticleCnt();
 
@@ -167,6 +170,7 @@ struct AsteroidCollision {
         SphericalDomain domain2(Vector(5097.45_f, 3726.87_f, 0._f), 270.585_f);
 
         bodySettings.set(BodySettingsIds::PARTICLE_COUNT, 100).set(BodySettingsIds::STRESS_TENSOR_MIN, LARGE);
+        bodySettings.saveToFile("impactor.sph");
         conds.addBody(domain2, bodySettings, Vector(-5.e3_f, 0._f, 0._f)); // 5km/s
         logger.write("Particles of projectile: ", storage->getParticleCnt() - n1);
     }
@@ -183,14 +187,21 @@ struct AsteroidCollision {
             .set(GlobalSettingsIds::SPH_AV_BETA, 3._f)
             .set(GlobalSettingsIds::MODEL_DAMAGE, DamageEnum::SCALAR_GRADY_KIPP)
             .set(GlobalSettingsIds::MODEL_YIELDING, YieldingEnum::VON_MISES);
+        globalSettings.saveToFile("code.sph");
         std::unique_ptr<Problem> p = std::make_unique<Problem>(globalSettings, std::make_shared<Storage>());
         std::string outputDir = "out/" + globalSettings.get<std::string>(GlobalSettingsIds::RUN_OUTPUT_NAME);
-        p->output = std::make_unique<TextOutput>(
-            outputDir, globalSettings.get<std::string>(GlobalSettingsIds::RUN_NAME));
+        p->output = std::make_unique<TextOutput>(outputDir,
+            globalSettings.get<std::string>(GlobalSettingsIds::RUN_NAME),
+            TextOutput::Options::SCIENTIFIC);
         p->output->add(std::make_unique<ParticleNumberColumn>());
         p->output->add(Factory::getValueColumn<Vector>(QuantityIds::POSITIONS));
+        p->output->add(Factory::getDerivativeColumn<Vector>(QuantityIds::POSITIONS));
+        p->output->add(Factory::getSmoothingLengthColumn());
+        p->output->add(Factory::getValueColumn<Float>(QuantityIds::DENSITY));
+        p->output->add(Factory::getValueColumn<Float>(QuantityIds::PRESSURE));
+        p->output->add(Factory::getValueColumn<Float>(QuantityIds::ENERGY));
+        p->output->add(Factory::getValueColumn<Float>(QuantityIds::DAMAGE));
         p->output->add(Factory::getValueColumn<TracelessTensor>(QuantityIds::DEVIATORIC_STRESS));
-        p->output->add(Factory::getDerivativeColumn<TracelessTensor>(QuantityIds::DEVIATORIC_STRESS));
         // Array<QuantityIds>{
         // QuantityIds::POSITIONS, QuantityIds::DENSITY, QuantityIds::PRESSURE, QuantityIds::ENERGY });
         //  QuantityIds::DAMAGE });

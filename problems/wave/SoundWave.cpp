@@ -37,7 +37,8 @@ TEST_CASE("StressForce Soundwave", "[stressforce]") {
     bodySettings.set(BodySettingsIds::ENERGY_MIN, 1._f);
     // conds.addBody(BlockDomain(Vector(0._f), Vector(1._f, 1._f, 20._f)), bodySettings);
     conds.addBody(CylindricalDomain(Vector(0._f), 0.5_f, 20._f, true), bodySettings);
-    p.output = std::make_unique<GnuplotOutput>("out_%d.txt", "wave", "wave.plt");
+    p.output =
+        std::make_unique<GnuplotOutput>("out_%d.txt", "wave", "wave.plt", GnuplotOutput::Options::SCIENTIFIC);
 
     StdOutLogger logger;
 

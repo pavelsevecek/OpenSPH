@@ -61,11 +61,17 @@ namespace Abstract {
 
 /// Output saving data to text (human readable) file.
 class TextOutput : public Abstract::Output {
+public:
+    enum class Options {
+        SCIENTIFIC = 1 << 0, ///< Writes all numbers in scientific format
+    };
+
 private:
     std::string runName;
+    Flags<Options> flags;
 
 public:
-    TextOutput(const std::string& fileMask, const std::string& runName);
+    TextOutput(const std::string& fileMask, const std::string& runName, const Flags<Options> flags);
 
     virtual std::string dump(Storage& storage, const Float time) override;
 
@@ -80,8 +86,11 @@ private:
     std::string scriptPath;
 
 public:
-    GnuplotOutput(const std::string& fileMask, const std::string& runName, const std::string& scriptPath)
-        : TextOutput(fileMask, runName)
+    GnuplotOutput(const std::string& fileMask,
+        const std::string& runName,
+        const std::string& scriptPath,
+        const Flags<Options> flags)
+        : TextOutput(fileMask, runName, flags)
         , scriptPath(scriptPath) {}
 
     virtual std::string dump(Storage& storage, const Float time) override;

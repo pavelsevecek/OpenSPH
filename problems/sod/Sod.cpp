@@ -92,8 +92,10 @@ TEST_CASE("Sod", "[sod]") {
 
     // Output routines
     std::string outputDir = "sod/" + globalSettings.get<std::string>(GlobalSettingsIds::RUN_OUTPUT_NAME);
-    sod.output = std::make_unique<GnuplotOutput>(
-        outputDir, globalSettings.get<std::string>(GlobalSettingsIds::RUN_NAME), "sod.plt");
+    sod.output = std::make_unique<GnuplotOutput>(outputDir,
+        globalSettings.get<std::string>(GlobalSettingsIds::RUN_NAME),
+        "sod.plt",
+        GnuplotOutput::Options::SCIENTIFIC);
 
 
     // Setup initial conditions of Sod Shock Tube:
