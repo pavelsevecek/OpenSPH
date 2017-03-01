@@ -188,7 +188,7 @@ public:
         constexpr int digits = 6;
         stream << std::setprecision(digits);
         for (int i = 0; i < 3; ++i) {
-            stream << std::setw(15) << v[i];
+            stream << std::setw(20) << v[i];
         }
         return stream;
     }
@@ -524,7 +524,7 @@ public:
         constexpr int digits = 12;
         stream << std::setprecision(digits);
         for (int i = 0; i < 3; ++i) {
-            stream << std::setw(15) << v[i];
+            stream << std::setw(20) << v[i];
         }
         return stream;
     }

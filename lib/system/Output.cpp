@@ -7,20 +7,20 @@ static void printHeader(std::ofstream& ofs, const std::string& name, const Value
     switch (type) {
     case ValueEnum::SCALAR:
     case ValueEnum::INDEX:
-        ofs << std::setw(15) << name;
+        ofs << std::setw(20) << name;
         break;
     case ValueEnum::VECTOR:
-        ofs << std::setw(15) << (name + " [x]") << std::setw(15) << (name + " [y]") << std::setw(15)
+        ofs << std::setw(20) << (name + " [x]") << std::setw(20) << (name + " [y]") << std::setw(20)
             << (name + " [z]");
         break;
     case ValueEnum::TENSOR:
-        ofs << std::setw(15) << (name + " [xx]") << std::setw(15) << (name + " [yy]") << std::setw(15)
-            << (name + " [zz]") << std::setw(15) << (name + " [xy]") << std::setw(15) << (name + " [xz]")
-            << std::setw(15) << (name + " [yz]");
+        ofs << std::setw(20) << (name + " [xx]") << std::setw(20) << (name + " [yy]") << std::setw(20)
+            << (name + " [zz]") << std::setw(20) << (name + " [xy]") << std::setw(20) << (name + " [xz]")
+            << std::setw(20) << (name + " [yz]");
         break;
     case ValueEnum::TRACELESS_TENSOR:
-        ofs << std::setw(15) << (name + " [xx]") << std::setw(15) << (name + " [yy]") << std::setw(15)
-            << (name + " [xy]") << std::setw(15) << (name + " [xz]") << std::setw(15) << (name + " [yz]");
+        ofs << std::setw(20) << (name + " [xx]") << std::setw(20) << (name + " [yy]") << std::setw(20)
+            << (name + " [xy]") << std::setw(20) << (name + " [xz]") << std::setw(20) << (name + " [yz]");
         break;
     default:
         NOT_IMPLEMENTED;
@@ -50,9 +50,9 @@ std::string TextOutput::dump(Storage& storage, const Float time) {
         for (auto& element : elements) {
             // write one extra space to be sure numbers won't merge
             if (flags.has(Options::SCIENTIFIC)) {
-                ofs << std::setw(15) << std::scientific << element->evaluate(storage, i) << " ";
+                ofs << std::scientific << std::setprecision(PRECISION) << element->evaluate(storage, i);
             } else {
-                ofs << std::setw(15) << element->evaluate(storage, i) << " ";
+                ofs << std::setprecision(PRECISION) << element->evaluate(storage, i);
             }
         }
         ofs << std::endl;

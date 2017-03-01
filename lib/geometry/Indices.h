@@ -122,7 +122,7 @@ public:
     template <typename TStream>
     friend TStream& operator<<(TStream& stream, const Indices& idxs) {
         for (int i = 0; i < 3; ++i) {
-            stream << std::setw(15) << idxs[i];
+            stream << std::setw(20) << idxs[i];
         }
         return stream;
     }

@@ -98,7 +98,7 @@ private:
 
         template <typename TStream>
         friend TStream& operator<<(TStream& stream, const Printer w) {
-            stream << std::setw(15);
+            stream << std::setw(20);
             if (w.value == INFTY) {
                 stream << "infinity";
             } else if (w.value == -INFTY) {
