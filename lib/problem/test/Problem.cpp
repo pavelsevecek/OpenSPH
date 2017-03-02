@@ -14,11 +14,13 @@ class DummyCallbacks : public Abstract::Callbacks {
 private:
     Size& stepIdx;
     Size abortAfterStep;
+    bool& runEnded;
 
 public:
-    DummyCallbacks(Size& stepIdx, const Size abortAfterStep = 1000)
+    DummyCallbacks(Size& stepIdx, bool& runEnded, const Size abortAfterStep = 1000)
         : stepIdx(stepIdx)
-        , abortAfterStep(abortAfterStep) {}
+        , abortAfterStep(abortAfterStep)
+        , runEnded(runEnded) {}
 
 
     virtual void onTimeStep(const std::shared_ptr<Storage>& UNUSED(storage),
@@ -26,7 +28,11 @@ public:
         stepIdx++;
     }
 
-    /// Returns whether current run should be aborted or not. Can be called any time.
+    virtual void onRunEnd(const std::shared_ptr<Storage>& UNUSED(storage),
+        const Statistics& UNUSED(stats)) override {
+        runEnded = true;
+    }
+
     virtual bool shouldAbortRun() const override {
         return (stepIdx >= abortAfterStep);
     }
@@ -69,14 +75,16 @@ static std::unique_ptr<Problem> setupProblem() {
 TEST_CASE("Problem run", "[problem]") {
     std::unique_ptr<Problem> problem = setupProblem();
     Size stepIdx = 0;
+    bool runEnded = false;
     /// \todo insert custom timestepping and custom logger and test they are properly called
-    problem->callbacks = std::make_unique<DummyCallbacks>(stepIdx);
+    problem->callbacks = std::make_unique<DummyCallbacks>(stepIdx, runEnded);
     Array<Float> outputTimes;
     problem->output = std::make_unique<DummyOutput>(outputTimes);
 
     REQUIRE(stepIdx == 0);
     problem->run();
     REQUIRE(stepIdx == 10);
+    REQUIRE(runEnded);
     REQUIRE(outputTimes.size() == 4);
     Size i = 0;
     for (Float t : outputTimes) {
@@ -88,9 +96,11 @@ TEST_CASE("Problem run", "[problem]") {
 TEST_CASE("Problem abort", "[problem]") {
     std::unique_ptr<Problem> problem = setupProblem();
     Size stepIdx = 0;
-    problem->callbacks = std::make_unique<DummyCallbacks>(stepIdx, 6);
+    bool runEnded = false;
+    problem->callbacks = std::make_unique<DummyCallbacks>(stepIdx, runEnded, 6);
     problem->run();
     REQUIRE(stepIdx == 6);
+    REQUIRE(runEnded);
 }
 
 TEST_CASE("Problem run twice", "[problem]") {

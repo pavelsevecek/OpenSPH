@@ -6,10 +6,10 @@ UnitSystem UnitSystem::codeUnits = UnitSystem::SI();
 
 Unit::Unit(const Float value, const UnitSystem& system, const Dimensions& dimensions)
     : data(value / (system.conversion(dimensions) / UnitSystem::code().conversion(dimensions)))
-    , dimensions(dimensions) {}
+    , dims(dimensions) {}
 
 Float Unit::value(const UnitSystem& system) const {
-    return data * (system.conversion(dimensions) / UnitSystem::code().conversion(dimensions));
+    return data * (system.conversion(dims) / UnitSystem::code().conversion(dims));
 }
 
 NAMESPACE_SPH_END

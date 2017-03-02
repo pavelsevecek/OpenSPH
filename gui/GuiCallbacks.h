@@ -6,6 +6,7 @@
 #include "gui/windows/Window.h"
 #include "objects/wrappers/NonOwningPtr.h"
 #include "system/Callbacks.h"
+#include "system/Io.h"
 #include "system/Statistics.h"
 
 NAMESPACE_SPH_BEGIN
@@ -33,6 +34,14 @@ public:
             renderer->draw(storage, stats);
             movie.onTimeStep(t);
         }
+    }
+
+    virtual void onRunEnd(const std::shared_ptr<Storage>& storage, const Statistics& stats) override {
+        const float t = stats.get<Float>(StatisticsIds::TOTAL_TIME);
+        sendMail("pavel@sirrah.troja.mff.cuni.cz",
+            "pavel",
+            "Run ended",
+            "Run successfully ended after " + std::to_string(t) + "s. ");
     }
 
     virtual bool shouldAbortRun() const override {

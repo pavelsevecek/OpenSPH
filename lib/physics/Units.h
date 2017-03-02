@@ -12,6 +12,8 @@ NAMESPACE_SPH_BEGIN
 
 static constexpr int DIMENSION_CNT = 7;
 
+/// \todo so far last 4 dimensions are not being used at all, possibly remove, unnecessary overhead
+
 struct Dimensions {
 private:
     // let's hope nobody will use higher power than 127 ...
@@ -34,6 +36,11 @@ public:
 
     Dimensions(const Dimensions& other)
         : dims(other.dims.clone()) {}
+
+    Dimensions& operator=(const Dimensions& other) {
+        dims = other.dims.clone();
+        return *this;
+    }
 
     int8_t operator[](const Size idx) const {
         return dims[idx];
@@ -70,7 +77,8 @@ public:
         stream << print("kg", dimensions[MASS]) << print("m", dimensions[LENGTH])
                << print("s", dimensions[TIME]) << print("C", dimensions[CHARGE])
                << print("K", dimensions[TEMPERATURE]) << print("cd", dimensions[INTENSITY])
-               << print("rad", dimensions[INTENSITY]);
+               << print("rad", dimensions[ANGLE]);
+        return stream;
     }
 
 
@@ -134,7 +142,7 @@ private:
 /// - code units, actual system of units used within the run. This does not affect input nor output values, at
 ///   least not directly, selected system of units can affect the output precision, though.
 /// - output units, unit system to which all output quantities are transformed.
-class UnitSystem : public Noncopyable {
+class UnitSystem {
 private:
     StaticArray<Float, DIMENSION_CNT> values;
 
@@ -151,6 +159,14 @@ public:
         Float angle = 1._f)
         : values{ mass, length, time, charge, temperature, intensity, angle } {}
 
+    UnitSystem(const UnitSystem& other)
+        : values(other.values.clone()) {}
+
+    UnitSystem& operator=(const UnitSystem& other) {
+        values = other.values.clone();
+        return *this;
+    }
+
     static UnitSystem SI() {
         return UnitSystem();
     }
@@ -159,6 +175,11 @@ public:
         return UnitSystem(0.001_f, 0.01_f, 1._f, 3.336e-10_f);
     }
 
+    /// Returns the reference to internal code units. Can be used to change units to something other than SI.
+    /// \note This is a global state of the program. Changing the value will invalidate all currently existing
+    /// unit objects as their values still refer to the old system of units. Internal system of units should
+    /// only be called at the startup of the program before any other parameter is set. It should never be
+    /// changed during or even after the run.
     static UnitSystem& code() {
         return codeUnits;
     }
@@ -182,11 +203,11 @@ public:
 class Unit {
 private:
     Float data;
-    Dimensions dimensions;
+    Dimensions dims;
 
     Unit(const Float value, const Dimensions& dimensions)
         : data(value)
-        , dimensions(dimensions) {}
+        , dims(dimensions) {}
 
 public:
     /// Default constructor, does not initialize value. Unit must be set by assign operator to avoid undefined
@@ -196,62 +217,68 @@ public:
     /// Constructs unit given value and unit system.
     Unit(const Float data, const UnitSystem& system, const Dimensions& dimensions);
 
-    /// Assigns value of other unit. All dimensions of both units must match, checked by assert.
+    /// Assigns value and dimensions of other unit.
     Unit& operator=(const Unit& other) {
-        ASSERT(dimensions == other.dimensions);
         data = other.data;
+        dims = other.dims;
         return *this;
     }
 
+    /// Returns the value for given unit system.
     Float value(const UnitSystem& system) const;
+
+    /// Returns the dimensions of the unit.
+    const Dimensions& dimensions() const {
+        return dims;
+    }
 
     /// Returns true if and only if both values and dimensions of both units match.
     bool operator==(const Unit& other) {
-        return data == other.data && dimensions == other.dimensions;
+        return data == other.data && dims == other.dims;
     }
 
     INLINE friend bool dimensionsMatch(const Unit& u1, const Unit& u2) {
-        return u1.dimensions == u2.dimensions;
+        return u1.dims == u2.dims;
     }
 
     INLINE friend Unit operator+(const Unit& u1, const Unit& u2) {
-        ASSERT(u1.dimensions == u2.dimensions);
-        return { u1.data + u2.data, u1.dimensions };
+        ASSERT(u1.dims == u2.dims);
+        return { u1.data + u2.data, u1.dims };
     }
 
     INLINE friend Unit operator-(const Unit& u1, const Unit& u2) {
-        ASSERT(u1.dimensions == u2.dimensions);
-        return { u1.data - u2.data, u1.dimensions };
+        ASSERT(u1.dims == u2.dims);
+        return { u1.data - u2.data, u1.dims };
     }
 
     INLINE friend Unit operator*(const Unit& u, const Float f) {
-        return { u.data * f, u.dimensions };
+        return { u.data * f, u.dims };
     }
 
     INLINE friend Unit operator*(const Float f, const Unit& u) {
-        return { u.data * f, u.dimensions };
+        return { u.data * f, u.dims };
     }
 
     INLINE friend Unit operator*(const Unit& u1, const Unit& u2) {
-        return { u1.data * u2.data, u1.dimensions + u2.dimensions };
+        return { u1.data * u2.data, u1.dims + u2.dims };
     }
 
     INLINE friend Unit operator/(const Unit& u, const Float f) {
-        return { u.data / f, u.dimensions };
+        return { u.data / f, u.dims };
     }
 
     INLINE friend Unit operator/(const Unit& u1, const Unit& u2) {
-        return { u1.data / u2.data, u1.dimensions - u2.dimensions };
+        return { u1.data / u2.data, u1.dims - u2.dims };
     }
 
     template <typename TStream>
     friend TStream& operator<<(TStream& stream, const Unit& unit) {
         /// \todo this should use custom output units, not SI
-        const Float conversion = UnitSystem::codeUnits.conversion(unit.dimensions);
+        const Float conversion = UnitSystem::codeUnits.conversion(unit.dims);
         if (conversion != 1._f) {
-            stream << unit.data << " [" << 1._f / conversion << unit.dimensions << "]";
+            stream << unit.data << " [" << 1._f / conversion << unit.dims << "]";
         } else {
-            stream << unit.data << " [" << unit.dimensions << "]";
+            stream << unit.data << " [" << unit.dims << "]";
         }
         return stream;
     }

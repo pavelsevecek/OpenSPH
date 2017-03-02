@@ -4,6 +4,7 @@
 /// Pavel Sevecek 2016
 /// sevecek at sirrah.troja.mff.cuni.cz
 
+#include "core/Assert.h"
 #include "core/Globals.h"
 #include "core/Traits.h"
 #include <algorithm>
@@ -99,7 +100,7 @@ INLINE constexpr T sqr(const T& f) {
 }
 
 INLINE constexpr bool isPower2(const Size n) {
-    ASSERT(n > 0);
+    CONSTEXPR_ASSERT(n > 0);
     return (n & (n - 1)) == 0;
 }
 

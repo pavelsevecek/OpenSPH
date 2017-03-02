@@ -59,7 +59,8 @@ SOURCES += \
     solvers/AbstractSolver.cpp \
     problem/Problem.cpp \
     sph/Diagnostics.cpp \
-    physics/Units.cpp
+    physics/Units.cpp \
+    core/Assert.cpp
 
 HEADERS += \
     core/Globals.h \
@@ -166,4 +167,6 @@ HEADERS += \
     objects/ExtendEnum.h \
     system/LogFile.h \
     sph/Diagnostics.h \
-    physics/Units.h
+    physics/Units.h \
+    system/Io.h \
+    core/Assert.h
