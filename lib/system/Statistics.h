@@ -9,6 +9,7 @@
 #include "objects/wrappers/Range.h"
 #include "objects/wrappers/Value.h"
 #include "objects/wrappers/Variant.h"
+#include "physics/Units.h"
 #include "quantities/QuantityIds.h"
 #include <map>
 
@@ -18,9 +19,9 @@ NAMESPACE_SPH_BEGIN
 /// the running problem (timestepping, solver, ...).
 class Statistics {
 private:
-    enum Types { BOOL, INT, FLOAT, MEANS, VALUE, RANGE };
+    enum Types { BOOL, INT, FLOAT, MEANS, VALUE, UNIT, RANGE };
 
-    using ValueType = Variant<bool, int, Float, Means, Value, Range>;
+    using ValueType = Variant<bool, int, Float, Means, Value, Unit, Range>;
 
     struct Entry {
         StatisticsIds id;
@@ -98,32 +99,6 @@ enum class StatisticsIds {
 
     /// Number of neighbours (min, max, mean)
     NEIGHBOUR_COUNT,
-};
-
-
-/// List of values computed infrequently, at given times or every X timesteps. Mainly values that takes some
-/// time to compute and computing them every timestep would add unnecessary overhead.
-enum class SparseStatsIds {
-    /// Time of this output
-    TIME,
-
-    /// Total momentum of all particles, with a respect to reference frame
-    TOTAL_MOMENTUM,
-
-    /// Total momentum of all particles, with a respect to reference frame
-    TOTAL_ANGULAR_MOMENTUM,
-
-    /// Total kinetic energy of all particles, with a respect to reference frame
-    TOTAL_KINETIC_ENERGY,
-
-    /// Total internal energy of all particles (doesn't depend on reference frame)
-    TOTAL_INTERNAL_ENERGY,
-
-    /// Total energy (kinetic + internal) of all particles, with a respect to reference frame
-    TOTAL_ENERGY,
-
-    /// Number of components (a.k.a separated bodies).
-    COMPONENT_COUNT,
 };
 
 NAMESPACE_SPH_END

@@ -197,35 +197,42 @@ public:
     }
 };
 
-/// Base class holding a value and unit of physical quantity.
-/// Provides dimensional analysis and conversions between unit systems.
-/// Note that this adds significant overhead, both CPU-wise and memory-wise.
-class Unit {
+/// Base template holding a value and unit of physical quantity. Can hold value of any type as long as the
+/// type has overloaded operators necessary for unit arithmetics. The template provides dimensional analysis
+/// and conversions between unit systems. Note that this adds significant overhead, both CPU-wise and
+/// memory-wise, so it shouldn't be used as storage type of physical quantities within the solver.
+template <typename Type>
+class BasicUnit {
 private:
-    Float data;
+    Type data;
     Dimensions dims;
 
-    Unit(const Float value, const Dimensions& dimensions)
+    BasicUnit(const Type& value, const Dimensions& dimensions)
         : data(value)
         , dims(dimensions) {}
 
 public:
     /// Default constructor, does not initialize value. Unit must be set by assign operator to avoid undefined
     /// behavior.
-    Unit() = default;
+    BasicUnit() = default;
 
     /// Constructs unit given value and unit system.
-    Unit(const Float data, const UnitSystem& system, const Dimensions& dimensions);
+    BasicUnit(const Type value, const UnitSystem& system, const Dimensions& dimensions)
+        : data(value / (system.conversion(dimensions) / UnitSystem::code().conversion(dimensions)))
+        , dims(dimensions) {}
 
     /// Assigns value and dimensions of other unit.
-    Unit& operator=(const Unit& other) {
+    BasicUnit& operator=(const BasicUnit& other) {
         data = other.data;
         dims = other.dims;
         return *this;
     }
 
     /// Returns the value for given unit system.
-    Float value(const UnitSystem& system) const;
+    Float value(const UnitSystem& system) const {
+        return data * (system.conversion(dims) / UnitSystem::code().conversion(dims));
+    }
+
 
     /// Returns the dimensions of the unit.
     const Dimensions& dimensions() const {
@@ -233,46 +240,46 @@ public:
     }
 
     /// Returns true if and only if both values and dimensions of both units match.
-    bool operator==(const Unit& other) {
+    bool operator==(const BasicUnit& other) {
         return data == other.data && dims == other.dims;
     }
 
-    INLINE friend bool dimensionsMatch(const Unit& u1, const Unit& u2) {
+    INLINE friend bool dimensionsMatch(const BasicUnit& u1, const BasicUnit& u2) {
         return u1.dims == u2.dims;
     }
 
-    INLINE friend Unit operator+(const Unit& u1, const Unit& u2) {
+    INLINE friend BasicUnit operator+(const BasicUnit& u1, const BasicUnit& u2) {
         ASSERT(u1.dims == u2.dims);
         return { u1.data + u2.data, u1.dims };
     }
 
-    INLINE friend Unit operator-(const Unit& u1, const Unit& u2) {
+    INLINE friend BasicUnit operator-(const BasicUnit& u1, const BasicUnit& u2) {
         ASSERT(u1.dims == u2.dims);
         return { u1.data - u2.data, u1.dims };
     }
 
-    INLINE friend Unit operator*(const Unit& u, const Float f) {
+    INLINE friend BasicUnit operator*(const BasicUnit& u, const Type f) {
         return { u.data * f, u.dims };
     }
 
-    INLINE friend Unit operator*(const Float f, const Unit& u) {
+    INLINE friend BasicUnit operator*(const Type f, const BasicUnit& u) {
         return { u.data * f, u.dims };
     }
 
-    INLINE friend Unit operator*(const Unit& u1, const Unit& u2) {
+    INLINE friend BasicUnit operator*(const BasicUnit& u1, const BasicUnit& u2) {
         return { u1.data * u2.data, u1.dims + u2.dims };
     }
 
-    INLINE friend Unit operator/(const Unit& u, const Float f) {
+    INLINE friend BasicUnit operator/(const BasicUnit& u, const Type f) {
         return { u.data / f, u.dims };
     }
 
-    INLINE friend Unit operator/(const Unit& u1, const Unit& u2) {
+    INLINE friend BasicUnit operator/(const BasicUnit& u1, const BasicUnit& u2) {
         return { u1.data / u2.data, u1.dims - u2.dims };
     }
 
     template <typename TStream>
-    friend TStream& operator<<(TStream& stream, const Unit& unit) {
+    friend TStream& operator<<(TStream& stream, const BasicUnit& unit) {
         /// \todo this should use custom output units, not SI
         const Float conversion = UnitSystem::codeUnits.conversion(unit.dims);
         if (conversion != 1._f) {
@@ -283,6 +290,12 @@ public:
         return stream;
     }
 };
+
+/// Aliases
+
+using Unit = BasicUnit<Float>;
+using UnitRange = BasicUnit<Range>;
+using UnitVector = BasicUnit<Vector>;
 
 /// Unit literals
 

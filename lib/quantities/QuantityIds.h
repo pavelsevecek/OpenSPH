@@ -4,7 +4,7 @@
 /// Pavel Sevecek 2016
 /// sevecek at sirrah.troja.mff.cuni.cz
 
-#include "objects/Object.h"
+#include "core/Assert.h"
 
 NAMESPACE_SPH_BEGIN
 
