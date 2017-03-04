@@ -3,6 +3,7 @@
 #include "quantities/Material.h"
 #include "quantities/Storage.h"
 #include "system/Factory.h"
+#include "system/Logger.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -62,7 +63,11 @@ void ScalarDamage::initialize(Storage& storage, const BodySettings& settings) co
     const Float denom = 1._f / (std::pow(k_weibull, 1._f / m_weibull) * std::pow(V, 1.f / m_weibull));
     ASSERT(isReal(denom) && denom > 0.f);
     Array<Float> eps_max(size);
-    BenzAsphaugRng rng(1234); /// \todo generalize random number generator
+    /// \todo random number generator must be shared for all bodies, but should not be global; repeated runs
+    /// MUST have the same flaw distribution
+    /// RNG can be stored in InitialConditions and passed to objects (in some InitialConditionContext struct),
+    /// this is just a temporary fix!!!
+    static BenzAsphaugRng rng(1234);
     Size flawedCnt = 0, p = 1;
     while (flawedCnt < size) {
         const Size i = Size(rng() * size);
@@ -110,7 +115,8 @@ void ScalarDamage::integrate(Storage& storage) {
         tie(sig1, sig2, sig3) = findEigenvalues(sigma);
         const Float sigMax = max(sig1, sig2, sig3);
         const Float young = material.getParam<Float>(BodySettingsIds::YOUNG_MODULUS, i);
-        const Float young_red = reduce(young, i);
+        // young is always positive, but damages only modifies negative values
+        const Float young_red = -reduce(-young, i);
         const Float strain = sigMax / young_red;
         const Float ratio = strain / eps_min[i];
         if (ratio <= 1._f) {
