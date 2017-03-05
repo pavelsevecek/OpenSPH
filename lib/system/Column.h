@@ -21,6 +21,7 @@ namespace Abstract {
     };
 }
 
+/// Returns values of given quantity as stored in storage.
 template <typename TValue>
 class ValueColumn : public Abstract::Column {
 private:
@@ -44,6 +45,8 @@ public:
     }
 };
 
+/// Returns first derivatives of given quantity as stored in storage. Quantity must contain derivative,
+/// checked by assert.
 template <typename TValue>
 class DerivativeColumn : public Abstract::Column {
 private:
@@ -67,6 +70,8 @@ public:
     }
 };
 
+/// Returns second derivatives of given quantity as stored in storage. Quantity must contain second
+/// derivative, checked by assert.
 template <typename TValue>
 class SecondDerivativeColumn : public Abstract::Column {
 private:
@@ -90,6 +95,7 @@ public:
     }
 };
 
+/// Returns smoothing lengths of particles
 class SmoothingLengthColumn : public Abstract::Column {
 public:
     virtual Value evaluate(Storage& storage, const Size particleIdx) const override {
@@ -106,6 +112,26 @@ public:
     }
 };
 
+/// Prints actual values of scalar damage, as damage is stored in storage as third roots.
+/// Can be used for both scalar and tensor damage.
+template <typename TValue>
+class DamageColumn : public Abstract::Column {
+public:
+    virtual Value evaluate(Storage& storage, const Size particleIdx) const override {
+        ArrayView<const TValue> value = storage.getValue<TValue>(QuantityIds::DAMAGE);
+        return pow<3>(value[particleIdx]);
+    }
+
+    virtual std::string getName() const override {
+        return "Damage";
+    }
+
+    virtual ValueEnum getType() const override {
+        return ValueEnum::SCALAR;
+    }
+};
+
+/// Helper column printing particle numbers.
 class ParticleNumberColumn : public Abstract::Column {
     virtual Value evaluate(Storage& UNUSED(storage), const Size particleIdx) const override {
         return particleIdx;

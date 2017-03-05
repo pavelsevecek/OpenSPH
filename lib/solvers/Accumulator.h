@@ -168,6 +168,7 @@ private:
     ArrayView<const Float> m;
     ArrayView<const Vector> v;
     ArrayView<const Float> rho;
+    ArrayView<const Float> dmg, reducing;
     ArrayView<const Size> idxs;
 
 public:
@@ -178,10 +179,14 @@ public:
         v = storage.getAll<Vector>(QuantityIds::POSITIONS)[1];
         idxs = storage.getValue<Size>(QuantityIds::FLAG);
         rho = storage.getValue<Float>(QuantityIds::DENSITY);
+        dmg = storage.getValue<Float>(QuantityIds::DAMAGE);
+        reducing = storage.getValue<Float>(QuantityIds::YIELDING_REDUCE);
     }
 
     INLINE Tuple<Tensor, Tensor> operator()(const int i, const int j, const Vector& grad) const {
-        if (idxs[i] != idxs[j]) {
+        const Float redi = (1._f - pow<3>(dmg[i])) * reducing[i];
+        const Float redj = (1._f - pow<3>(dmg[j])) * reducing[j];
+        if (idxs[i] != idxs[j] || redi < EPS || redj < EPS) {
             /// \todo optimize, instead of returning zero, solve this directly on accumulators/modules
             /// (somehow)
             return { Tensor::null(), Tensor::null() };

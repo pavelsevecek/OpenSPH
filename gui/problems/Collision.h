@@ -136,11 +136,10 @@ public:
         const Float t = stats.get<Float>(StatisticsIds::TOTAL_TIME);
         const Tensor smin(1.e5_f);
         ArrayView<TracelessTensor> s, ds;
-        ArrayView<Float> dmg;
+        ArrayView<Float> D, dD;
         tie(s, ds) = storage.getAll<TracelessTensor>(QuantityIds::DEVIATORIC_STRESS);
-        dmg = storage.getValue<Float>(QuantityIds::DAMAGE);
-        this->logger->write(t, " ", s[1456], " ", dmg[1456]);
-        stepLogger.write(t, " ", 0.2_f * (abs(s[1456]) + smin) / abs(ds[1456]));
+        tie(D, dD) = storage.getAll<Float>(QuantityIds::DAMAGE);
+        this->logger->write(t, " ", s[1456], " ", D[1456], " ", dD[1456]);
     }
 };
 
@@ -154,7 +153,7 @@ struct AsteroidCollision {
         BodySettings bodySettings;
         bodySettings.set(BodySettingsIds::ENERGY, 1._f)
             .set(BodySettingsIds::ENERGY_RANGE, Range(1._f, INFTY))
-            .set(BodySettingsIds::PARTICLE_COUNT, 100'000)
+            .set(BodySettingsIds::PARTICLE_COUNT, 100000)
             .set(BodySettingsIds::EOS, EosEnum::TILLOTSON)
             .set(BodySettingsIds::STRESS_TENSOR_MIN, 1.e7_f);
         bodySettings.saveToFile("target.sph");
@@ -217,7 +216,7 @@ struct AsteroidCollision {
         /* p->logs.push(std::make_unique<ImpactorLogFile>(*p->storage, "stress.txt"));*/
         p->logs.push(std::make_unique<EnergyLogFile>("energy.txt"));
         /*p->logs.push(std::make_unique<TimestepLogFile>("timestep.txt"));*/
-        //     p->logs.push(std::make_unique<Stress1456>("s_1456.txt"));
+        p->logs.push(std::make_unique<Stress1456>("s_1456.txt"));
         return p;
     }
 

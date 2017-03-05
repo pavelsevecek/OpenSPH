@@ -160,8 +160,8 @@ HEADERS += \
     objects/ForwardDecl.h \
     objects/wrappers/ObserverPtr.h \
     math/Means.h \
-    system/Element.h \
     quantities/Slice.h \
     objects/ExtendEnum.h \
     system/LogFile.h \
-    sph/Diagnostics.h
+    sph/Diagnostics.h \
+    system/Column.h

@@ -34,6 +34,7 @@ enum class QuantityIds {
                          /// mean lower activation strain rate of a flaw. Used only for testing purposes, by
                          /// default activation strain rates are automatically computed from Weibull
                          /// distribution.
+    YIELDING_REDUCE,
 
     /// Artificial velocity
     VELOCITY_DIVERGENCE, ///< Velocity divergence
