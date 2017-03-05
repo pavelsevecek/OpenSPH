@@ -82,4 +82,6 @@ public:
     Tuple<Float, Float> evaluate(const Size particleIdx) const;
 };
 
+class RheologyAccessor {};
+
 NAMESPACE_SPH_END

@@ -38,7 +38,7 @@ SOURCES += \
     sph/boundary/Boundary.cpp \
     sph/initial/Distribution.cpp \
     sph/initial/Initial.cpp \
-    sph/timestepping/TimeStepping.cpp \
+    timestepping/TimeStepping.cpp \
     objects/finders/Voxel.cpp \
     system/Logger.cpp \
     system/Output.cpp \
@@ -53,16 +53,79 @@ SOURCES += \
     post/Components.cpp \
     geometry/Domain.cpp \
     physics/Integrals.cpp \
-    sph/timestepping/TimeStepCriterion.cpp \
+    timestepping/TimeStepCriterion.cpp \
     objects/finders/KdTree.cpp \
     system/Statistics.cpp \
     solvers/AbstractSolver.cpp \
     problem/Problem.cpp \
-    sph/Diagnostics.cpp
+    sph/Diagnostics.cpp \
+    geometry/test/Box.cpp \
+    geometry/test/Domain.cpp \
+    geometry/test/Indices.cpp \
+    geometry/test/Multipole.cpp \
+    geometry/test/Tensor.cpp \
+    geometry/test/TracelessTensor.cpp \
+    geometry/test/Vector.cpp \
+    math/rng/test/Rng.cpp \
+    math/rng/test/VectorRng.cpp \
+    math/test/Integrator.cpp \
+    math/test/Math.cpp \
+    math/test/Morton.cpp \
+    objects/containers/test/Array.cpp \
+    objects/containers/test/ArrayUtils.cpp \
+    objects/containers/test/BufferedArray.cpp \
+    objects/containers/test/StaticArray.cpp \
+    objects/containers/test/Tuple.cpp \
+    objects/finders/benchmark/Finders.cpp \
+    objects/finders/test/BruteForce.cpp \
+    objects/finders/test/Finders.cpp \
+    objects/finders/test/Order.cpp \
+    objects/wrappers/test/AlignedStorage.cpp \
+    objects/wrappers/test/Any.cpp \
+    objects/wrappers/test/Flags.cpp \
+    objects/wrappers/test/Iterators.cpp \
+    objects/wrappers/test/NonOwningPtr.cpp \
+    objects/wrappers/test/Optional.cpp \
+    objects/wrappers/test/Range.cpp \
+    objects/wrappers/test/Variant.cpp \
+    objects/wrappers/test/VectorizedArray.cpp \
+    physics/test/Damage.cpp \
+    physics/test/Eos.cpp \
+    physics/test/Integrals.cpp \
+    physics/test/TimeFormat.cpp \
+    physics/test/Yielding.cpp \
+    post/test/Components.cpp \
+    problem/test/Problem.cpp \
+    quantities/test/Iterate.cpp \
+    quantities/test/Material.cpp \
+    quantities/test/Quantity.cpp \
+    quantities/test/QuantityHelpers.cpp \
+    quantities/test/Storage.cpp \
+    solvers/benchmark/ContinuitySolver.cpp \
+    solvers/test/Accumulator.cpp \
+    solvers/test/ContinuitySolver.cpp \
+    solvers/test/Module.cpp \
+    sph/av/test/Balsara.cpp \
+    sph/boundary/test/Boundary.cpp \
+    sph/initial/test/Distribution.cpp \
+    sph/initial/test/Initial.cpp \
+    sph/kernel/test/Kernel.cpp \
+    sph/test/Diagnostics.cpp \
+    system/test/ArrayStats.cpp \
+    system/test/CallbackList.cpp \
+    system/test/Output.cpp \
+    system/test/Profiler.cpp \
+    system/test/Settings.cpp \
+    system/test/Statistics.cpp \
+    system/test/Timer.cpp \
+    thread/test/Pool.cpp \
+    timestepping/test/TimeStepCriterion.cpp \
+    timestepping/test/TimeStepping.cpp
 
 HEADERS += \
-    core/Globals.h \
-    core/Traits.h \
+    commmon/Globals.h \
+    commmon/Traits.h \
+    commmon/ForwardDecl.h \
     geometry/Domain.h \
     geometry/Indices.h \
     geometry/Vector.h \
@@ -101,7 +164,7 @@ HEADERS += \
     problem/Problem.h \
     sph/kernel/Kernel.h \
     sph/initial/Distribution.h \
-    sph/timestepping/TimeStepping.h \
+    timestepping/TimeStepping.h \
     sph/av/Standard.h \
     sph/boundary/Boundary.h \
     system/Callbacks.h \
@@ -156,8 +219,7 @@ HEADERS += \
     objects/wrappers/Value.h \
     objects/wrappers/Expected.h \
     objects/wrappers/Outcome.h \
-    sph/timestepping/TimeStepCriterion.h \
-    objects/ForwardDecl.h \
+    timestepping/TimeStepCriterion.h \
     objects/wrappers/ObserverPtr.h \
     math/Means.h \
     system/Element.h \
@@ -166,5 +228,10 @@ HEADERS += \
     system/LogFile.h \
     sph/Diagnostics.h \
     solvers/PressureForce.h \
-    solvers/sphsolver.h \
-    system/filesystem.h
+    system/filesystem.h \
+    solvers/SphSolver.h \
+    solvers/PhysicalStorage.h \
+    common/ForwardDecl.h \
+    common/Globals.h \
+    common/Traits.h \
+    system/FileSystem.h

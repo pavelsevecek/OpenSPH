@@ -1,6 +1,6 @@
 #pragma once
 
-#include "objects/ForwardDecl.h"
+#include "common/ForwardDecl.h"
 #include "objects/containers/Array.h"
 #include "quantities/Quantity.h"
 #include "quantities/QuantityIds.h"
@@ -16,7 +16,7 @@ private:
     std::map<QuantityIds, Quantity> quantities;
 
     /// Holds materials of particles. Each particle can (in theory) have a different material.
-    Array<Material> materials;
+    Array<std::unique_ptr<Abstract::Material>> materials;
 
 public:
     Storage();
@@ -59,7 +59,7 @@ public:
     /// check whether the quantity is stored, use has() method.
     /// \return Array of references to Arrays, containing quantity values and all derivatives.
     template <typename TValue>
-    auto getAll(const QuantityIds key) {
+    StaticArray<Array<TValue>&, 3> getAll(const QuantityIds key) {
         Quantity& q = this->getQuantity(key);
         ASSERT(q.getValueEnum() == GetValueEnum<TValue>::type);
         return q.getBuffers<TValue>();

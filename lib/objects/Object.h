@@ -5,8 +5,8 @@
 /// sevecek at sirrah.troja.mff.cuni.cz
 
 #include <cassert>
-#include <utility>
 #include <stdint.h>
+#include <utility>
 
 #define NAMESPACE_SPH_BEGIN namespace Sph {
 #define NAMESPACE_SPH_END }
@@ -68,7 +68,7 @@ public:
     Noncopyable& operator=(Noncopyable&&) = default;
 };
 
-class Polymorphic  {
+class Polymorphic {
 public:
     virtual ~Polymorphic() {}
 };
@@ -84,7 +84,7 @@ namespace Detail {
         }
     };
     template <std::size_t N>
-    struct StaticForType<N, N>  {
+    struct StaticForType<N, N> {
         template <typename TVisitor>
         INLINE static void action(TVisitor&& visitor) {
             visitor.template visit<N>();
@@ -124,5 +124,12 @@ template <std::size_t N, typename TValue, typename... TOthers>
 INLINE decltype(auto) selectNth(TValue&& value, TOthers&&... others) {
     return Detail::SelectNthType<0, N>::action(std::forward<TValue>(value), std::forward<TOthers>(others)...);
 }
+
+/// Aliases for consistent notation
+template <typename T>
+using UniquePtr = std::unique_ptr<T>;
+
+template <typename T>
+using SharedPtr = std::shared_ptr<T>;
 
 NAMESPACE_SPH_END
