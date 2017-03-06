@@ -10,7 +10,7 @@
 #include "solvers/Accumulator.h"
 #include "solvers/Module.h"
 #include "system/Settings.h"
-#include "quantities/Material.h"
+#include "quantities/AbstractMaterial.h"
 
 NAMESPACE_SPH_BEGIN
 

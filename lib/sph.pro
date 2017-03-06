@@ -33,7 +33,6 @@ SOURCES += \
     solvers/SolverFactory.cpp \
     math/rng/Rng.cpp \
     math/Morton.cpp \
-    quantities/Material.cpp \
     quantities/Storage.cpp \
     sph/boundary/Boundary.cpp \
     sph/initial/Distribution.cpp \
@@ -120,7 +119,8 @@ SOURCES += \
     system/test/Timer.cpp \
     thread/test/Pool.cpp \
     timestepping/test/TimeStepCriterion.cpp \
-    timestepping/test/TimeStepping.cpp
+    timestepping/test/TimeStepping.cpp \
+    quantities/AbstractMaterial.cpp
 
 HEADERS += \
     commmon/Globals.h \
@@ -193,7 +193,6 @@ HEADERS += \
     solvers/SharedAccumulator.h \
     objects/containers/StaticArray.h \
     sph/av/Factory.h \
-    quantities/Material.h \
     sph/forces/CentripetalForce.h \
     sph/forces/Factory.h \
     solvers/SolverFactory.h \
@@ -234,4 +233,7 @@ HEADERS += \
     common/ForwardDecl.h \
     common/Globals.h \
     common/Traits.h \
-    system/FileSystem.h
+    system/FileSystem.h \
+    system/Io.h \
+    sph/material.h \
+    quantities/AbstractMaterial.h

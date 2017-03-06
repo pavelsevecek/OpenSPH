@@ -31,7 +31,7 @@ private:
         /// storage; one module can use multiple buffers (acceleration and energy derivative) and multiple
         /// modules can write into same buffer (different terms in equation of motion).
         /// Modules are evaluated consecutively (within one thread), so this is thread-safe.
-        ModuleHolder modules;
+        Array<std::shared_ptr<Abstract::Derivative>> derivatives;
 
         /// Cached array of neighbours, to avoid allocation every step
         Array<NeighbourRecord> neighs;
@@ -73,18 +73,16 @@ private:
     ///     SphStorage!
     /// Modified<Storage>->getValue, getValues, getAll
     ///
-    Array<Abstract::Solver> solvers;
-
     ThreadPool pool;
-
-    PhysicalStorage physicalStorage;
 
     std::unique_ptr<Abstract::Formulation> formulation;
 
     std::unique_ptr<Abstract::Finder> finder;
 
 public:
-    SphSolver() {}
+    SphSolver() {
+        storage.forEach([this](ThreadData& data) { formulation.registerThread(data.derivatives) })
+    }
 
     virtual void integrate(Storage& storage, Statistics& stats) override {
         ArrayView<Vector> r = storage.getValue<Vector>(QuantityIds::POSITIONS);

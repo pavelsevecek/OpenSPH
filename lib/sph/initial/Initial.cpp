@@ -1,7 +1,7 @@
 #include "sph/initial/Initial.h"
 #include "geometry/Domain.h"
 #include "physics/Eos.h"
-#include "quantities/Material.h"
+#include "quantities/AbstractMaterial.h"
 #include "quantities/Quantity.h"
 #include "quantities/Storage.h"
 #include "solvers/AbstractSolver.h"

@@ -1,7 +1,7 @@
 #include "sph/timestepping/TimeStepCriterion.h"
 #include "catch.hpp"
 #include "geometry/Domain.h"
-#include "quantities/Material.h"
+#include "quantities/AbstractMaterial.h"
 #include "quantities/Storage.h"
 #include "sph/initial/Distribution.h"
 #include "system/Settings.h"

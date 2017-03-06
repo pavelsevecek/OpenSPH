@@ -1,6 +1,6 @@
 #pragma once
 
-#include "quantities/Material.h"
+#include "quantities/AbstractMaterial.h"
 #include "solvers/AbstractSolver.h"
 #include "solvers/Accumulator.h"
 

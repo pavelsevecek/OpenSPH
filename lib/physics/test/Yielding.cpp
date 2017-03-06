@@ -1,6 +1,6 @@
 #include "physics/Yielding.h"
 #include "catch.hpp"
-#include "quantities/Material.h"
+#include "quantities/AbstractMaterial.h"
 #include "quantities/Storage.h"
 #include "system/Settings.h"
 

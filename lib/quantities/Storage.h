@@ -8,8 +8,7 @@
 
 NAMESPACE_SPH_BEGIN
 
-/// Base object for storing scalar, vector and tensor quantities of SPH particles. Other parts of the code
-/// simply point to stored arrays using ArrayView.
+/// Base object for storing scalar, vector and tensor quantities of SPH particles.
 class Storage : public Noncopyable {
 private:
     /// Stored quantities (array of arrays). All arrays must be the same size at all times.
@@ -48,7 +47,7 @@ public:
 
     /// Retrieves quantity with given key from the storage. Quantity must be already stored, checked by
     /// assert.
-    Quantity& getQuantity(const QuantityIds key) {
+    virtual Quantity& getQuantity(const QuantityIds key) {
         auto iter = quantities.find(key);
         ASSERT(iter != quantities.end());
         return iter->second;
@@ -138,9 +137,9 @@ public:
         return quantities[key];
     }
 
-    ArrayView<Material> getMaterials() {
-        return materials;
-    }
+    /// Returns view that can iterate over indices of particles belonging to given material.
+    /// \todo supr
+    SubsetView<Size> getMaterialView(const Size matId);
 
     /// Returns the number of stored quantities.
     Size getQuantityCnt() const;

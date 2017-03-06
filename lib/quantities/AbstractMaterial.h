@@ -1,35 +1,60 @@
 #pragma once
 
-#include "objects/wrappers/Range.h"
+#include "objects/wrappers/Iterators.h"
 #include "system/Settings.h"
+
 
 NAMESPACE_SPH_BEGIN
 
-namespace Abstract {
-    class Eos;
-}
 class Storage;
+
+// name?
+/// View of given material, can iterate over particles of given material id
+class MaterialView {
+private:
+    ArrayView<Size> matIds;
+    Size id;
+
+public:
+    auto begin() {
+        return makeSubsetIterator(
+            matIds.begin(), matIds.end(), [id](const Size matId) { return id == matId; });
+    }
+
+    auto end() {
+        return makeSubsetIterator(matIds.end(), matIds.end(), [id](const Size matId) { return id == matId; });
+    }
+};
 
 /// Material settings and functions specific for one material. Contains all parameters needed during runtime
 /// that can differ for individual materials.
-struct Material : public Noncopyable {
-    BodySettings params;
+namespace Abstract {
+    struct Material : public Polymorphic {
+        /// Creating storage:
+        /// Storage(std::unique_ptr<Abstract::MAterial>&& mat) {
 
-    /// \todo this is very problem-specific, we don't need any eos when only gravity is considered, for
-    /// example ...
-    std::unique_ptr<Abstract::Eos> eos;
+        Size id; /// MatId of this material in the storage. One material can only belong to one storage.
 
-    /// Minimal values used in timestepping. Do not affect values of quantities themselves.
-    std::map<QuantityIds, Float> minimals;
+        /// per-material parameters
+        BodySettings params;
 
-    Material();
+        /// minimal values used in timestepping, do not affect values of quantities themselves.
+        std::map<QuantityIds, Float> minimals;
 
-    Material(Material&& other) = default;
 
-    ~Material();
+        /// Initialize all quantities and material parameters. Called once every step before loop.
+        virtual void initialize(Sequence, Storage& storage) = 0;
 
-    Material& operator=(Material&& other) = default;
-};
+        /// Called after derivatives are computed.
+        virtual void finalize(Storage& storage) = 0;
+
+        /// Returns values of quantity from the material. If the material does not affect the quantity in any
+        /// way, simply returns the quantity as stored in storage. Can only be called between calls of \ref
+        /// initialize and \ref finalize each step.
+        /// \todo move modifier here
+        virtual Quantity& getValue(const QuantityIds& key) = 0;
+    };
+}
 
 /// Object providing access to material parameters of individual particles.
 class MaterialAccessor {
@@ -67,21 +92,5 @@ public:
     }
 };
 
-
-/// Object providing accessor to equation of state individual particles.
-class EosAccessor {
-private:
-    ArrayView<Size> matIdxs;
-    ArrayView<Material> materials;
-    ArrayView<Float> rho, u;
-
-public:
-    EosAccessor(Storage& storage);
-
-    /// Returns a pressure and sound speed from an equation of state for given particle.
-    Tuple<Float, Float> evaluate(const Size particleIdx) const;
-};
-
-class RheologyAccessor {};
 
 NAMESPACE_SPH_END

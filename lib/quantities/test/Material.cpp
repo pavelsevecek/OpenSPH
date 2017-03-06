@@ -1,4 +1,4 @@
-#include "quantities/Material.h"
+#include "quantities/AbstractMaterial.h"
 #include "catch.hpp"
 #include "physics/Eos.h"
 #include "quantities/Storage.h"

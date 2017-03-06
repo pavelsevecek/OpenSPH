@@ -1,7 +1,7 @@
 #pragma once
 
 #include "objects/wrappers/Flags.h"
-#include "quantities/Material.h"
+#include "quantities/AbstractMaterial.h"
 #include "quantities/Storage.h"
 #include "solvers/Accumulator.h"
 #include "solvers/Module.h"

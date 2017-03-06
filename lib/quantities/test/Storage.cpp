@@ -2,7 +2,7 @@
 #include "catch.hpp"
 #include "physics/Eos.h"
 #include "quantities/Iterate.h"
-#include "quantities/Material.h"
+#include "quantities/AbstractMaterial.h"
 #include "system/Factory.h"
 #include "system/Settings.h"
 
