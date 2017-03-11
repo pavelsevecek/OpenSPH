@@ -29,6 +29,7 @@ void VonMises::update(Storage& storage) {
 
         // apply reduction to stress tensor
         if (y < EPS) {
+            reducing[i] = 0._f;
             S[i] = TracelessTensor::null();
             continue;
         }

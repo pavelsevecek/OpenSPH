@@ -343,5 +343,13 @@ INLINE bool isReal(const T& value) {
     return !std::isnan(value) && !std::isinf(value);
 }
 
+/// Compares two objects of the same time component-wise. Returns object containing components 0 or 1,
+/// depending whether components of the first objects are smaller than components of the second object.
+/// \note The return type can be generally different if the mask cannot be represented using type T.
+template <typename T>
+INLINE constexpr auto less(const T& v1, const T& v2) {
+    return v1 < v2;
+}
+
 
 NAMESPACE_SPH_END

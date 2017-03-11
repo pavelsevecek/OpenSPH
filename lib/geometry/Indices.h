@@ -4,8 +4,8 @@
 /// Pavel Sevecek 2016
 /// sevecek at sirrah.troja.mff.cuni.cz
 
+#include "geometry/Vector.h"
 #include "objects/Object.h"
-#include "objects/containers/ArrayView.h"
 #include <functional>
 
 NAMESPACE_SPH_BEGIN

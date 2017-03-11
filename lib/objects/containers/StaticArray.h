@@ -29,7 +29,9 @@ public:
 
     /// Initialize empty array, corresponding to static stack. All N elements are allocated, but none is
     /// constructed and size of the static array is zero.
-    StaticArray(const EmptyArray&) { actSize = 0; }
+    StaticArray(const EmptyArray&) {
+        actSize = 0;
+    }
 
     /// Initialize from initializer list. The size of the list must be smaller or equal to N. All N elements
     /// are all allocated, elements are constructed from initializer list using copy constructor.
@@ -113,13 +115,19 @@ public:
     }
 
     /// Maximum allowed size of the array.
-    INLINE constexpr TCounter maxSize() const noexcept { return N; }
+    INLINE constexpr TCounter maxSize() const noexcept {
+        return N;
+    }
 
     /// Current size of the array (number of constructed elements). Can be between 0 and N.
-    INLINE TCounter size() const { return actSize; }
+    INLINE TCounter size() const {
+        return actSize;
+    }
 
     /// Return true if the array is empty. Depends only on number of constructed elements, not allocated size.
-    INLINE bool empty() const { return actSize == 0; }
+    INLINE bool empty() const {
+        return actSize == 0;
+    }
 
     /// Inserts a value to the end of the array using copy/move constructor. The current size of the array
     /// must be less than N, checked by assert.
@@ -182,14 +190,22 @@ public:
         return Iterator<const StorageType>(rawData() + actSize, rawData(), rawData() + actSize);
     }
 
-    operator ArrayView<T>() { return ArrayView<T>(rawData(), actSize); }
+    operator ArrayView<T>() {
+        return ArrayView<T>(rawData(), actSize);
+    }
 
-    operator ArrayView<const T>() const { return ArrayView<const T>(rawData(), actSize); }
+    operator ArrayView<const T>() const {
+        return ArrayView<const T>(rawData(), actSize);
+    }
 
 private:
-    INLINE StorageType* rawData() { return reinterpret_cast<StorageType*>(data); }
+    INLINE StorageType* rawData() {
+        return reinterpret_cast<StorageType*>(data);
+    }
 
-    INLINE const StorageType* rawData() const { return reinterpret_cast<const StorageType*>(data); }
+    INLINE const StorageType* rawData() const {
+        return reinterpret_cast<const StorageType*>(data);
+    }
 };
 
 /// Creates a static array from a list of parameters. All parameters must have the same type. Both the
@@ -210,5 +226,9 @@ template <typename T, Size N, typename TFunctor>
 decltype(auto) apply(StaticArray<T, N>&, TFunctor&&) {
     NOT_IMPLEMENTED;
 }
+
+/// Alias for array holding two elements of the same type.
+template <typename T>
+using Pair = StaticArray<T, 2>;
 
 NAMESPACE_SPH_END

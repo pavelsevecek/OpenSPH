@@ -5,6 +5,7 @@
 /// sevecek at sirrah.troja.mff.cuni.cz
 
 #include "math/Math.h"
+#include "objects/containers/StaticArray.h"
 #include <iomanip>
 
 NAMESPACE_SPH_BEGIN
@@ -21,8 +22,7 @@ public:
     /// interval will result in zero-size interval containing the inserted value.
     INLINE Range()
         : minBound(INFTY)
-        , maxBound(-INFTY) {
-    }
+        , maxBound(-INFTY) {}
 
     /// Constructs the interval given its lower and upper bound. You can use INFTY and -INFTY to create
     /// one-sided or unbounded intervals.
@@ -34,8 +34,7 @@ public:
 
     INLINE Range(const Range& other)
         : minBound(other.minBound)
-        , maxBound(other.maxBound) {
-    }
+        , maxBound(other.maxBound) {}
 
     /// Extends the interval to contain given value. If the value is already inside the interval, nothing
     /// changes.
@@ -52,8 +51,7 @@ public:
     /// Clamps the given value by the interval.
     INLINE Float clamp(const Float& value) const {
         ASSERT(minBound <= maxBound);
-        const Float result = max(minBound, min(value, maxBound));
-        return result;
+        return max(minBound, min(value, maxBound));
     }
 
     /// Returns lower bound of the interval.
@@ -115,15 +113,20 @@ private:
 /// Overload of clamp method using range instead of lower and upper bound as values.
 /// Can be used by other Floats by specializing the method
 template <typename T>
-INLINE T clamp(const T& v, const Range& range);
-
-template <>
-INLINE Float clamp(const Float& v, const Range& range) {
+INLINE T clamp(const T& v, const Range& range) {
     return range.clamp(v);
 }
-template <>
-INLINE Size clamp(const Size& v, const Range& range) {
-    return range.clamp(v);
+
+/// Returns clamped values of object. For components that were clamped by the range, corresponding components
+/// in the second parameter are set to zero. Other components are unchanged.
+/// The intended use case is for clamping values of time-dependent quantities; the derivatives must also be
+/// clamped to avoid instabilities of timestepping algorithm.
+template <typename T>
+INLINE Pair<T> clampWithDerivative(const T& v, const T& dv, const Range& range) {
+    const T lower = less(T(range.lower()), v);
+    const T upper = less(v, T(range.upper()));
+    /// \todo optimize
+    return { clamp(v, range), dv * lower * upper };
 }
 
 
@@ -138,8 +141,7 @@ private:
 public:
     RangeIterator(const Float value, TStep step)
         : value(value)
-        , step(std::forward<TStep>(step)) {
-    }
+        , step(std::forward<TStep>(step)) {}
 
     INLINE RangeIterator& operator++() {
         value += step;
@@ -169,8 +171,7 @@ private:
 public:
     RangeAdapter(const Range& range, TStep&& step)
         : range(range)
-        , step(std::forward<TStep>(step)) {
-    }
+        , step(std::forward<TStep>(step)) {}
 
     INLINE RangeIterator<TStep> begin() {
         return RangeIterator<TStep>(range.lower(), step);

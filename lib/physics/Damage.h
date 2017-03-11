@@ -1,19 +1,27 @@
 #pragma once
 
-#include "geometry/Vector.h"
-#include "objects/containers/ArrayView.h"
 #include "geometry/TracelessTensor.h"
+#include "geometry/Vector.h"
 #include "objects/ForwardDecl.h"
+#include "objects/containers/ArrayView.h"
+#include "system/Logger.h"
+#include "system/Statistics.h"
 
 NAMESPACE_SPH_BEGIN
 
 class DummyDamage {
 public:
+    Statistics* stats;
+
     DummyDamage(const GlobalSettings& UNUSED(settings)) {}
 
-    INLINE Float reduce(const Float p, const int UNUSED(i)) const { return p; }
+    INLINE Float reduce(const Float p, const int UNUSED(i)) const {
+        return p;
+    }
 
-    INLINE TracelessTensor reduce(const TracelessTensor& s, const int UNUSED(i)) const { return s; }
+    INLINE TracelessTensor reduce(const TracelessTensor& s, const int UNUSED(i)) const {
+        return s;
+    }
 };
 
 
@@ -31,8 +39,11 @@ private:
     Float kernelRadius;
 
     ExplicitFlaws options;
+    FileLogger logger;
+
 
 public:
+    Statistics* stats = nullptr;
     ScalarDamage(const GlobalSettings& settings, const ExplicitFlaws options = ExplicitFlaws::UNIFORM);
 
     void initialize(Storage& storage, const BodySettings& settings) const;

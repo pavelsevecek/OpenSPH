@@ -1,5 +1,6 @@
 #include "objects/wrappers/Iterators.h"
 #include "catch.hpp"
+#include "geometry/Vector.h"
 #include "objects/containers/Array.h"
 #include <algorithm>
 

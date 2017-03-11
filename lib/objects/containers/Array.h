@@ -4,8 +4,9 @@
 /// Pavel Sevecek 2015
 /// sevecek at sirrah.troja.mff.cuni.cz
 
+#include "math/Math.h"
 #include "objects/containers/ArrayView.h"
-#include "objects/containers/StaticArray.h"
+#include <limits>
 
 NAMESPACE_SPH_BEGIN
 

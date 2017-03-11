@@ -143,6 +143,19 @@ public:
     }
 };
 
+class Particle1493 : public Abstract::LogFile {
+public:
+    Particle1493(const std::string& path)
+        : Abstract::LogFile(std::make_shared<FileLogger>(path)) {}
+
+    virtual void write(Storage& storage, const Statistics& stats) override {
+        const Float t = stats.get<Float>(StatisticsIds::TOTAL_TIME);
+        ArrayView<Vector> r = storage.getValue<Vector>(QuantityIds::POSITIONS);
+        ArrayView<Float> cs = storage.getValue<Float>(QuantityIds::SOUND_SPEED);
+        this->logger->write(t, " ", r[1493][H], "  ", cs[1493]);
+    }
+};
+
 /// \todo problems should be setup by inheriting Abstract::Problem. This interface should have something
 /// like
 /// setGlobalSettings, and setInitialConditions = 0.
@@ -155,7 +168,7 @@ struct AsteroidCollision {
             .set(BodySettingsIds::ENERGY_RANGE, Range(1._f, INFTY))
             .set(BodySettingsIds::PARTICLE_COUNT, 100000)
             .set(BodySettingsIds::EOS, EosEnum::TILLOTSON)
-            .set(BodySettingsIds::STRESS_TENSOR_MIN, 1.e7_f);
+            .set(BodySettingsIds::STRESS_TENSOR_MIN, 1.e6_f);
         bodySettings.saveToFile("target.sph");
 
         InitialConditions conds(storage, globalSettings);
@@ -168,7 +181,7 @@ struct AsteroidCollision {
         const Size n1 = storage->getParticleCnt();
 
         //    SphericalDomain domain2(Vector(4785.5_f, 3639.1_f, 0._f), 146.43_f); // D = 280m
-        SphericalDomain domain2(Vector(5097.45_f, 3726.87_f, 0._f), 270.585_f);
+        SphericalDomain domain2(Vector(5097.4509902022_f, 3726.8662269290_f, 0._f), 270.5847632732_f);
 
         bodySettings.set(BodySettingsIds::PARTICLE_COUNT, 100).set(BodySettingsIds::STRESS_TENSOR_MIN, LARGE);
         bodySettings.saveToFile("impactor.sph");
@@ -178,7 +191,7 @@ struct AsteroidCollision {
 
     std::unique_ptr<Problem> getProblem() {
         globalSettings.set(GlobalSettingsIds::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::PREDICTOR_CORRECTOR)
-            .set(GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP, 5.e-3_f)
+            .set(GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP, 0.01_f)
             .set(GlobalSettingsIds::TIMESTEPPING_MAX_TIMESTEP, 0.01_f)
             .set(GlobalSettingsIds::RUN_OUTPUT_INTERVAL, 0.1_f)
             .set(GlobalSettingsIds::MODEL_FORCE_DIV_S, true)
@@ -201,8 +214,8 @@ struct AsteroidCollision {
         p->output->add(Factory::getValueColumn<Float>(QuantityIds::DENSITY));
         p->output->add(Factory::getValueColumn<Float>(QuantityIds::PRESSURE));
         p->output->add(Factory::getValueColumn<Float>(QuantityIds::ENERGY));
-        p->output->add(Factory::getValueColumn<Float>(QuantityIds::DAMAGE));
-        p->output->add(Factory::getValueColumn<TracelessTensor>(QuantityIds::DEVIATORIC_STRESS));
+        // p->output->add(Factory::getValueColumn<Float>(QuantityIds::DAMAGE));
+        // p->output->add(Factory::getValueColumn<TracelessTensor>(QuantityIds::DEVIATORIC_STRESS));
         // Array<QuantityIds>{
         // QuantityIds::POSITIONS, QuantityIds::DENSITY, QuantityIds::PRESSURE, QuantityIds::ENERGY });
         //  QuantityIds::DAMAGE });
@@ -215,8 +228,9 @@ struct AsteroidCollision {
 
         /* p->logs.push(std::make_unique<ImpactorLogFile>(*p->storage, "stress.txt"));*/
         p->logs.push(std::make_unique<EnergyLogFile>("energy.txt"));
-        /*p->logs.push(std::make_unique<TimestepLogFile>("timestep.txt"));*/
-        p->logs.push(std::make_unique<Stress1456>("s_1456.txt"));
+        p->logs.push(std::make_unique<TimestepLogFile>("timestep.txt"));
+        // p->logs.push(std::make_unique<Particle1493>("dt_1453.txt"));
+        // p->logs.push(std::make_unique<Stress1456>("s_1456.txt"));
         return p;
     }
 

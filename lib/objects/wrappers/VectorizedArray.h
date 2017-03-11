@@ -1,5 +1,6 @@
 #pragma once
 
+#include "geometry/Vector.h"
 #include "objects/containers/Array.h"
 #include "objects/wrappers/AlignedStorage.h"
 
@@ -25,13 +26,21 @@ public:
         storage.get().maxSize = storage.get().actSize;
     }
 
-    Array<Vector>& get() { return storage.get(); }
+    Array<Vector>& get() {
+        return storage.get();
+    }
 
-    const Array<Vector>& get() const { return storage.get(); }
+    const Array<Vector>& get() const {
+        return storage.get();
+    }
 
-    Array<Vector>* operator->() { return &storage.get(); }
+    Array<Vector>* operator->() {
+        return &storage.get();
+    }
 
-    const Array<Vector>* operator->() const { return &storage.get(); }
+    const Array<Vector>* operator->() const {
+        return &storage.get();
+    }
 };
 
 NAMESPACE_SPH_END

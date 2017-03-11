@@ -60,6 +60,7 @@ void Problem::run() {
         settings.get<int>(GlobalSettingsIds::RUN_TIMESTEP_CNT));
     Statistics stats;
 
+    stats.set(StatisticsIds::TOTAL_TIME, timeRange.lower());
     for (Float t = timeRange.lower(); t < timeRange.upper() && !condition(runTimer, i);
          t += timeStepping->getTimeStep()) {
 

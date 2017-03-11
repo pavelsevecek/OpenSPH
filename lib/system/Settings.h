@@ -380,10 +380,13 @@ enum class GlobalSettingsIds {
     /// Courant number
     TIMESTEPPING_COURANT,
 
-    /// Upper limit of the time step
+    /// Upper limit of the time step. The timestep is guaranteed to never exceed this value for any timestep
+    /// criterion. The lowest possible timestep is not set, timestep can be any positive value.
     TIMESTEPPING_MAX_TIMESTEP,
 
-    /// Initial value of time step (relative to the maximal time step)
+    /// Initial value of time step. If dynamic timestep is disabled, the run will keep the initial timestep
+    /// for the whole duration. Some timestepping algorithms might not use the initial timestep and directly
+    /// compute new value of timestep, in which case this parameter has no effect.
     TIMESTEPPING_INITIAL_TIMESTEP,
 
     /// Criterion used to determine value of time step. More criteria may be compined, in which case the

@@ -214,3 +214,23 @@ TEST_CASE("Vector lexicographicalLess", "[vector]") {
     REQUIRE(lexicographicalLess(Vector(1._f, 3._f, 1._f), Vector(2._f, 3._f, 1._f)));
     REQUIRE_FALSE(lexicographicalLess(Vector(5._f, 3._f, 1._f), Vector(2._f, 3._f, 1._f)));
 }
+
+TEST_CASE("Vector less", "[vector]") {
+    Vector v1(2._f, 3._f, 6._f);
+    Vector v2(3._f, 3._f, 3._f);
+    REQUIRE(less(v1, v2) == Vector(1._f, 0._f, 0.f));
+
+    Vector v3(2._f, 5._f, -1._f, 1._f);
+    Vector v4(3._f, 6._f, -2._f, -3._f);
+    REQUIRE(less(v3, v4) == Vector(1._f, 1._f, 0._f, 0._f));
+}
+
+/// \todo also test tensors
+TEST_CASE("Vector clampWithDerivative", "[vector]") {
+    Vector v(-1._f, 3._f, 6._f);
+    Vector dv(20._f, 21._f, 22._f);
+    Range r(0._f, 4._f);
+    tie(v, dv) = clampWithDerivative(v, dv, r);
+    REQUIRE(v == Vector(0._f, 3._f, 4._f));
+    REQUIRE(dv == Vector(0._f, 21._f, 0._f));
+}

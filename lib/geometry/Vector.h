@@ -624,6 +624,7 @@ INLINE Vector clamp(const Vector& v, const Vector& v1, const Vector& v2) {
 }
 
 /// Clamping all components by range.
+template <>
 INLINE Vector clamp(const Vector& v, const Range& range) {
     return Vector(range.clamp(v[0]), range.clamp(v[1]), range.clamp(v[2]), range.clamp(v[3]));
 }
@@ -686,6 +687,13 @@ INLINE bool isReal(const BasicVector<double>& v) {
     /// \todo optimize using SSE intrinsics
     return isReal(v[0]) && isReal(v[1]) && isReal(v[2]);
 }
+
+template <>
+INLINE auto less(const Vector& v1, const Vector& v2) {
+    /// \todo optimize
+    return Vector(Float(v1[X] < v2[X]), Float(v1[Y] < v2[Y]), Float(v1[Z] < v2[Z]), Float(v1[H] < v2[H]));
+}
+
 
 /// Casts vector components to another precision. Casting vectors is only possible by using this function to
 /// avoid problems with contructor/conversion operator ambiguity.

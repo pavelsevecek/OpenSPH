@@ -5,6 +5,7 @@
 #include "quantities/Storage.h"
 #include "solvers/Accumulator.h"
 #include "solvers/Module.h"
+#include "system/Statistics.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -19,6 +20,7 @@ private:
     ArrayView<Vector> v, dv;
     ArrayView<TracelessTensor> s, ds;
     ArrayView<Size> bodyIdxs;
+    ArrayView<Float> vonmises, D;
 
     enum class Options {
         USE_GRAD_P = 1 << 0,
@@ -30,12 +32,17 @@ private:
     Yielding yielding;
     AV av;
 
+    FileLogger energy959;
+
 public:
+    Statistics* stats;
+
     StressForce(const GlobalSettings& settings)
         : Module<Yielding, Damage, AV, RhoDivv, RhoGradv>(yielding, damage, av, rhoDivv, rhoGradv)
         , rhoGradv(QuantityIds::RHO_GRAD_V)
         , damage(settings)
-        , av(settings) {
+        , av(settings)
+        , energy959("energy959.txt") {
         flags.setIf(Options::USE_GRAD_P, settings.get<bool>(GlobalSettingsIds::MODEL_FORCE_GRAD_P));
         flags.setIf(Options::USE_DIV_S, settings.get<bool>(GlobalSettingsIds::MODEL_FORCE_DIV_S));
         // cannot use stress tensor without pressure
@@ -64,6 +71,10 @@ public:
             tie(s, ds) = storage.getAll<TracelessTensor>(QuantityIds::DEVIATORIC_STRESS);
         }
         bodyIdxs = storage.getValue<Size>(QuantityIds::FLAG);
+
+        vonmises = storage.getValue<Float>(QuantityIds::YIELDING_REDUCE);
+        D = storage.getValue<Float>(QuantityIds::DAMAGE);
+        damage.stats = stats;
         this->updateModules(storage);
     }
 
@@ -81,7 +92,9 @@ public:
             du[i] += m[j] * heating;
             du[j] += m[i] * heating;
         }
-        if (flags.has(Options::USE_DIV_S) && bodyIdxs[i] == bodyIdxs[j]) {
+        const Float redi = vonmises[i] * (1._f - pow<3>(D[i]));
+        const Float redj = vonmises[j] * (1._f - pow<3>(D[j]));
+        if (flags.has(Options::USE_DIV_S) && bodyIdxs[i] == bodyIdxs[j] && redi != 0.f && redj != 0.f) {
             // apply stress only if particles belong to the same body
             f += (reduce(s[i], i) + reduce(s[j], i)) / (rho[i] * rho[j]) * grad;
         }
@@ -112,6 +125,13 @@ public:
             }
             ASSERT(isReal(du[i]));
         }
+        /*const Float t = stats->get<Float>(StatisticsIds::TOTAL_TIME);
+        ArrayView<Vector> r = storage.getValue<Vector>(QuantityIds::POSITIONS);*/
+        /*  const Size j = 959;
+          energy959.write(
+              t, "    ", u[j], "    ", du[j], "   ", r[j][H], "   ", reduce(p[j], j) / rho[j] * rhoDivv[j]);*/
+        //"   ",
+        // 1._f / rho[j] * ddot(reduce(s[j], j), rhoGradv[j]));
         this->integrateModules(storage);
     }
 

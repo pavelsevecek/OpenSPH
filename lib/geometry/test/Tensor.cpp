@@ -131,3 +131,9 @@ TEST_CASE("Tensor almostEqual", "[tensor]") {
     Tensor t2 = 1.e10_f * t1;
     testTensor(t2);
 }
+
+TEST_CASE("Tensor less", "[tensor]") {
+    Tensor t1(Vector(2._f, 1._f, -1._f), Vector(2._f, 0._f, -4._f));
+    Tensor t2(Vector(3._f, 1._f, 0._f), Vector(5._f, -1._f, -2._f));
+    REQUIRE(less(t1, t2) == Tensor(Vector(1._f, 0._f, 1._f), Vector(1._f, 0._f, 1._f)));
+}
