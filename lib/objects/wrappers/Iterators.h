@@ -4,8 +4,8 @@
 /// Pavel Sevecek 2016
 /// sevecek at sirrah.troja.mff.cuni.cz
 
-#include "core/Assert.h"
-#include "core/Traits.h"
+#include "common/Assert.h"
+#include "common/Traits.h"
 #include "objects/containers/Tuple.h"
 #include <iterator>
 
@@ -447,5 +447,78 @@ TupleAdapter<TElement, TContainers...> iterateTuple(TContainers&&... containers)
     return TupleAdapter<TElement, TContainers...>(std::forward<TContainers>(containers)...);
 }
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/// SubsetIterator
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+/// Allows to iterate over a given subset of a container, given by condition functor.
+template <typename TIterator, typename TCondition>
+class SubsetIterator {
+private:
+    TIterator iterator;
+    TIterator end;
+    TCondition condition;
+
+public:
+    SubsetIterator(const TIterator& iterator, const TIterator& end, TCondition&& condition)
+        : iterator(iterator)
+        , end(end)
+        , condition(std::forward<TCondition>(condition)) {
+        // move to first element of the subset
+        while (iterator != end && !conditions(*iterator)) {
+            ++iterator;
+        }
+    }
+
+    SubsetIterator& operator++() {
+        do {
+            ++iterator;
+        } while (iterator != end && !conditions(*iterator));
+        return *this;
+    }
+
+    bool operator==(const SubsetIterator& other) {
+        return iterator == other.iterator;
+    }
+
+    bool operator!=(const SubsetIterator& other) {
+        return iterator != other.iterator;
+    }
+};
+
+/// \todo test
+template <typename TIterator, typename TCondition>
+auto makeSubsetIterator(const TIterator& iterator, const TIterator& end, TCondition&& condition) {
+    return SubsetIterator<TIterator, TCondition>(iterator, end, std::forward<TCondition>(condition));
+}
+
+/// Non-owning view to access and iterate over subset of container
+template <typename TContainer, typename TCondition>
+class SubsetAdapter {
+private:
+    TContainer container;
+    TCondition condition;
+
+public:
+    SubsetAdapter(TContainer&& container, TCondition&& condition)
+        : container(std::forward<TContainer>(container))
+        , condition(std::forward<TCondition>(condition)) {}
+
+    auto begin() {
+        return makeSubsetIterator(container.begin(), container.end(), condition);
+    }
+
+    auto end() {
+        return makeSubsetIterator(container.end(), container.end(), condition);
+    }
+};
+
+/// \todo test
+template <typename TContainer, typename TCondition>
+auto subset(TContainer&& container, TCondition&& condition) {
+    return SubsetAdapter<TContainer, TCondition>(
+        std::forward<TContainer>(container), std::forward<TCondition>(condition));
+}
 
 NAMESPACE_SPH_END

@@ -120,7 +120,8 @@ SOURCES += \
     thread/test/Pool.cpp \
     timestepping/test/TimeStepCriterion.cpp \
     timestepping/test/TimeStepping.cpp \
-    quantities/AbstractMaterial.cpp
+    quantities/AbstractMaterial.cpp \
+    common/Assert.cpp
 
 HEADERS += \
     commmon/Globals.h \
@@ -235,4 +236,6 @@ HEADERS += \
     system/FileSystem.h \
     system/Io.h \
     quantities/AbstractMaterial.h \
-    sph/Material.h
+    sph/Material.h \
+    common/Assert.h \
+    common/Assert.h
