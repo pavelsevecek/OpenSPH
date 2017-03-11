@@ -3,9 +3,9 @@
 /// Pavel Sevecek 2017
 /// sevecek ar sirrah.troja.mff.cuni.cz
 
-#include "objects/Object.h"
-#include <string>
+#include "core/Assert.h"
 #include <sstream>
+#include <string>
 
 NAMESPACE_SPH_BEGIN
 
@@ -41,13 +41,19 @@ public:
     }
 
     /// Checks whether the object contains success, i.e. no error is stored.
-    INLINE bool success() const { return e.empty(); }
+    INLINE bool success() const {
+        return e.empty();
+    }
 
     /// Conversion to bool, returning true if no error is stored.
-    INLINE operator bool() const { return success(); }
+    INLINE operator bool() const {
+        return success();
+    }
 
     /// Inversion operator
-    INLINE bool operator!() const { return !success(); }
+    INLINE bool operator!() const {
+        return !success();
+    }
 
     /// Returns the error message. If the object contains success (no error), asserts.
     INLINE const std::string& error() const {

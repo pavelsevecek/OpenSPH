@@ -19,6 +19,7 @@ Problem::Problem(const GlobalSettings& settings, const std::shared_ptr<Storage> 
     solver = getSolver(settings);
     logger = Factory::getLogger(settings);
     logs.push(std::make_unique<CommonStatsLog>(logger));
+    callbacks = std::make_unique<NullCallbacks>();
 }
 
 Problem::~Problem() = default;
@@ -60,7 +61,7 @@ void Problem::run() {
         settings.get<int>(GlobalSettingsIds::RUN_TIMESTEP_CNT));
     Statistics stats;
 
-    stats.set(StatisticsIds::TOTAL_TIME, timeRange.lower());
+    Outcome result = SUCCESS;
     for (Float t = timeRange.lower(); t < timeRange.upper() && !condition(runTimer, i);
          t += timeStepping->getTimeStep()) {
 
@@ -80,16 +81,19 @@ void Problem::run() {
         for (auto& log : logs) {
             log->write(*storage, stats);
         }
-        if (callbacks) {
-            callbacks->onTimeStep(storage, stats);
-            if (callbacks->shouldAbortRun()) {
-                break;
-            }
+        callbacks->onTimeStep(storage, stats);
+        if (callbacks->shouldAbortRun()) {
+            result = "Aborted by user";
+            break;
         }
-
         i++;
     }
     logger->write("Run ended after ", runTimer.elapsed<TimerUnit::SECOND>(), "s.");
+    if (result) {
+        callbacks->onRunEnd(storage, stats);
+    } else {
+        logger->write(result.error());
+    }
 }
 
 NAMESPACE_SPH_END

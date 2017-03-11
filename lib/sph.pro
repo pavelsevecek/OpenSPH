@@ -58,7 +58,8 @@ SOURCES += \
     system/Statistics.cpp \
     solvers/AbstractSolver.cpp \
     problem/Problem.cpp \
-    sph/Diagnostics.cpp
+    sph/Diagnostics.cpp \
+    core/Assert.cpp
 
 HEADERS += \
     core/Globals.h \
@@ -164,4 +165,5 @@ HEADERS += \
     objects/ExtendEnum.h \
     system/LogFile.h \
     sph/Diagnostics.h \
-    system/Column.h
+    system/Io.h \
+    core/Assert.h

@@ -4,7 +4,7 @@
 /// Pavel Sevecek 2016
 /// sevecek at sirrah.troja.mff.cuni.cz
 
-#include "objects/Object.h"
+#include "core/Assert.h"
 #include <memory>
 
 NAMESPACE_SPH_BEGIN
@@ -15,6 +15,11 @@ class Observable;
 /// Smart pointer that references object without taking ownership and without a need for that object to be
 /// referenced by std::shared_ptr. It is always initialized to nullptr and when the referenced object is
 /// destroyed, this pointer (and all other non-owning pointers referencing the object) are set to nullptr.
+///
+/// Note that using this object is not entirely thread-safe; referenced object may be destroyed while using
+/// member functions through NonOwningPtr on different thread, even though user checked for non-null pointer
+/// beforehand. If possible, use standard combination std::shared_ptr + std::weak_ptr. NonOwningPtr can still
+/// come in handy in cases where std::shared_ptr cannot be used, for example for objects managed by wxWidgets.
 template <typename Type>
 class NonOwningPtr {
     template <typename>
@@ -35,8 +40,7 @@ private:
 public:
     NonOwningPtr() = default;
 
-    NonOwningPtr(const std::nullptr_t&) {
-    }
+    NonOwningPtr(const std::nullptr_t&) {}
 
     /// Copy constructor from other non-owning pointer, adds a reference to parent observable.
     template <typename T, typename = std::enable_if_t<std::is_convertible<T*, Type*>::value>>

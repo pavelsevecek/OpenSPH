@@ -4,6 +4,7 @@
 /// Pavel Sevecek 2016
 /// sevecek at sirrah.troja.mff.cuni.cz
 
+#include "core/Assert.h"
 #include "core/Traits.h"
 #include "objects/containers/Tuple.h"
 #include <iterator>

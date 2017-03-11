@@ -4,34 +4,14 @@
 /// Pavel Sevecek 2016
 /// sevecek at sirrah.troja.mff.cuni.cz
 
-#include <cassert>
-#include <utility>
 #include <stdint.h>
+#include <utility>
 
 #define NAMESPACE_SPH_BEGIN namespace Sph {
 #define NAMESPACE_SPH_END }
 
 NAMESPACE_SPH_BEGIN
 
-// #define DEBUG
-// #define PROFILE
-
-#ifdef DEBUG
-#define ASSERT(x) assert(x)
-#else
-#define ASSERT(x)
-#endif
-
-/// Helper macro marking missing implementation
-#define NOT_IMPLEMENTED                                                                                      \
-    ASSERT(false && "not implemented");                                                                      \
-    throw std::exception();
-
-/// Helper macro marking code that should never be executed (default branch of switch where there is finite
-/// number of options, for example)
-#define STOP                                                                                                 \
-    ASSERT(false && "stop");                                                                                 \
-    throw std::exception();
 
 /// Force inline for gcc
 #ifdef DEBUG
@@ -68,7 +48,7 @@ public:
     Noncopyable& operator=(Noncopyable&&) = default;
 };
 
-class Polymorphic  {
+class Polymorphic {
 public:
     virtual ~Polymorphic() {}
 };
@@ -84,7 +64,7 @@ namespace Detail {
         }
     };
     template <std::size_t N>
-    struct StaticForType<N, N>  {
+    struct StaticForType<N, N> {
         template <typename TVisitor>
         INLINE static void action(TVisitor&& visitor) {
             visitor.template visit<N>();
