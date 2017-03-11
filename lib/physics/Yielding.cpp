@@ -7,11 +7,13 @@ NAMESPACE_SPH_BEGIN
 void VonMises::initialize(Storage& storage, const BodySettings& settings) const {
     MaterialAccessor(storage).setParams(BodySettingsIds::ELASTICITY_LIMIT, settings);
     MaterialAccessor(storage).setParams(BodySettingsIds::MELT_ENERGY, settings);
+    storage.insert<Float, OrderEnum::ZERO_ORDER>(QuantityIds::YIELDING_REDUCE, 1._f);
 }
 
 void VonMises::update(Storage& storage) {
     MaterialAccessor material(storage);
     ArrayView<Float> u = storage.getValue<Float>(QuantityIds::ENERGY);
+    ArrayView<Float> reducing = storage.getValue<Float>(QuantityIds::YIELDING_REDUCE);
     ArrayView<TracelessTensor> S = storage.getValue<TracelessTensor>(QuantityIds::DEVIATORIC_STRESS);
     ArrayView<Float> D;
     if (storage.has(QuantityIds::DAMAGE)) {
@@ -27,6 +29,7 @@ void VonMises::update(Storage& storage) {
 
         // apply reduction to stress tensor
         if (y < EPS) {
+            reducing[i] = 0._f;
             S[i] = TracelessTensor::null();
             continue;
         }
@@ -39,7 +42,10 @@ void VonMises::update(Storage& storage) {
         }
         const Float inv = 0.5_f * ddot(s, s) / sqr(y) + EPS;
         ASSERT(isReal(inv) && inv > 0._f);
-        S[i] = S[i] * min(sqrt(1._f / (3._f * inv)), 1._f);
+        const Float red = min(sqrt(1._f / (3._f * inv)), 1._f);
+        ASSERT(red >= 0._f && red <= 1._f);
+        reducing[i] = red;
+        S[i] = S[i] * red;
         ASSERT(isReal(S[i]));
     }
 }

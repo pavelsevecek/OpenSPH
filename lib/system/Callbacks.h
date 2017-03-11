@@ -17,9 +17,23 @@ namespace Abstract {
         /// Called every timestep.
         virtual void onTimeStep(const std::shared_ptr<Storage>& storage, const Statistics& stats) = 0;
 
+        /// Called after run ends. Does not get called if run is aborted.
+        virtual void onRunEnd(const std::shared_ptr<Storage>& storage, const Statistics& stats) = 0;
+
         /// Returns whether current run should be aborted or not. Can be called any time.
         virtual bool shouldAbortRun() const = 0;
     };
 }
+
+class NullCallbacks : public Abstract::Callbacks {
+public:
+    virtual void onTimeStep(const std::shared_ptr<Storage>&, const Statistics&) override {}
+
+    virtual void onRunEnd(const std::shared_ptr<Storage>&, const Statistics&) override {}
+
+    virtual bool shouldAbortRun() const override {
+        return false;
+    }
+};
 
 NAMESPACE_SPH_END

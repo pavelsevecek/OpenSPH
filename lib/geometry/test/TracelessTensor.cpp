@@ -182,3 +182,21 @@ TEST_CASE("TracelessTensor equality", "[tracelesstensor]") {
     REQUIRE(t3 != t1);
     REQUIRE(t4 != t1);
 }
+
+TEST_CASE("TracelessTensor clamp", "[tracelesstensor]") {
+    TracelessTensor t1(Vector(0._f, -2._f, 1._f), Vector(-2._f, 0._f, 4._f), Vector(1._f, 4._f, 0._f));
+    // off diagonal components are clamped normally
+    const Range r(-1._f, 1._f);
+    TracelessTensor expected1(Vector(0._f, -1._f, 1._f), Vector(-1._f, 0._f, 1._f), Vector(1._f, 1._f, 0._f));
+    REQUIRE(clamp(t1, r) == expected1);
+
+    // diagonal components are clamped and the trace is subtracted from result
+    TracelessTensor t2(Vector(1._f, -2._f, 3._f), Vector(-2._f, -6._f, 4._f), Vector(3._f, 4._f, 5._f));
+    Tensor expected2(Vector(1._f, -1._f, 1._f), Vector(-1._f, 1._f, 1._f));
+    REQUIRE(clamp(t2, r) == TracelessTensor(expected2 - Tensor::identity() * expected2.trace() / 3._f));
+}
+
+TEST_CASE("TracelessTensor less", "[tracelesstensor]") {
+    TracelessTensor t1(Vector(1._f, 2._f, 3._f), Vector(2._f, 2._f, 4._f), Vector(3._f, 4._f, -3._f));
+    TracelessTensor t2(Vector(5._f, 4._f, 2._f), Vector(4._f, -7._f, 9._f), Vector(2._f, 9._f, 2._f));
+}

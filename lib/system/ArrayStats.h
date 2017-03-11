@@ -1,8 +1,9 @@
 #pragma once
 
-#include "system/Logger.h"
-#include "objects/containers/ArrayView.h"
 #include "objects/containers/Array.h"
+#include "objects/containers/ArrayView.h"
+#include "objects/wrappers/Range.h"
+#include "system/Logger.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -33,15 +34,25 @@ public:
         medianValue = cloned[mid];
     }
 
-    INLINE Type min() const { return minValue; }
+    INLINE Type min() const {
+        return minValue;
+    }
 
-    INLINE Type max() const { return maxValue; }
+    INLINE Type max() const {
+        return maxValue;
+    }
 
-    INLINE Range range() const { return Range(Float(minValue), Float(maxValue)); }
+    INLINE Range range() const {
+        return Range(Float(minValue), Float(maxValue));
+    }
 
-    INLINE Type average() const { return averageValue; }
+    INLINE Type average() const {
+        return averageValue;
+    }
 
-    INLINE Type median() const { return medianValue; }
+    INLINE Type median() const {
+        return medianValue;
+    }
 
     void write(Abstract::Logger& logger) {
         logger.write("Min = " + std::to_string(min()) + "; Max = " + std::to_string(max()) + "; Mean = " +

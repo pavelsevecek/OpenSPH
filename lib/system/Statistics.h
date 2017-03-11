@@ -74,10 +74,13 @@ enum class StatisticsIds {
     INDEX,
 
     /// Current time of the simulation
-    TIME,
+    TOTAL_TIME,
 
     /// Current value of timestep
     TIMESTEP_VALUE,
+
+    /// Wallclock time spend on computing last timestep
+    TIMESTEP_ELAPSED,
 
     /// Key of quantity that currently limits the timestep
     TIMESTEP_CRITERION,

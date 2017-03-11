@@ -4,6 +4,7 @@
 /// Pavel Sevecek 2016
 /// sevecek at sirrah.troja.mff.cuni.cz
 
+#include "core/Assert.h"
 #include "objects/Object.h"
 
 NAMESPACE_SPH_BEGIN
@@ -34,6 +35,7 @@ enum class QuantityIds {
                          /// mean lower activation strain rate of a flaw. Used only for testing purposes, by
                          /// default activation strain rates are automatically computed from Weibull
                          /// distribution.
+    YIELDING_REDUCE,
 
     /// Artificial velocity
     VELOCITY_DIVERGENCE, ///< Velocity divergence

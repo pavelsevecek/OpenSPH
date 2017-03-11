@@ -6,6 +6,7 @@
 
 #include "common/Globals.h"
 #include "math/Math.h"
+#include "objects/containers/StaticArray.h"
 #include <iomanip>
 
 NAMESPACE_SPH_BEGIN
@@ -51,8 +52,7 @@ public:
     /// Clamps the given value by the interval.
     INLINE Float clamp(const Float& value) const {
         ASSERT(minBound <= maxBound);
-        const Float result = max(minBound, min(value, maxBound));
-        return result;
+        return max(minBound, min(value, maxBound));
     }
 
     /// Returns lower bound of the interval.
@@ -97,7 +97,7 @@ private:
 
         template <typename TStream>
         friend TStream& operator<<(TStream& stream, const Printer w) {
-            stream << std::setw(15);
+            stream << std::setw(20);
             if (w.value == INFTY) {
                 stream << "infinity";
             } else if (w.value == -INFTY) {
@@ -114,15 +114,20 @@ private:
 /// Overload of clamp method using range instead of lower and upper bound as values.
 /// Can be used by other Floats by specializing the method
 template <typename T>
-INLINE T clamp(const T& v, const Range& range);
-
-template <>
-INLINE Float clamp(const Float& v, const Range& range) {
+INLINE T clamp(const T& v, const Range& range) {
     return range.clamp(v);
 }
-template <>
-INLINE Size clamp(const Size& v, const Range& range) {
-    return range.clamp(v);
+
+/// Returns clamped values of object. For components that were clamped by the range, corresponding components
+/// in the second parameter are set to zero. Other components are unchanged.
+/// The intended use case is for clamping values of time-dependent quantities; the derivatives must also be
+/// clamped to avoid instabilities of timestepping algorithm.
+template <typename T>
+INLINE Pair<T> clampWithDerivative(const T& v, const T& dv, const Range& range) {
+    const T lower = less(T(range.lower()), v);
+    const T upper = less(v, T(range.upper()));
+    /// \todo optimize
+    return { clamp(v, range), dv * lower * upper };
 }
 
 

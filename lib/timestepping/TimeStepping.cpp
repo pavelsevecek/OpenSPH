@@ -19,6 +19,7 @@ Abstract::TimeStepping::TimeStepping(const std::shared_ptr<Storage>& storage, co
 Abstract::TimeStepping::~TimeStepping() = default;
 
 void Abstract::TimeStepping::step(Abstract::Solver& solver, Statistics& stats) {
+    Timer timer;
     this->stepImpl(solver, stats);
     // update time step
     AllCriterionIds criterion = CriterionIds::INITIAL_VALUE;
@@ -27,6 +28,7 @@ void Abstract::TimeStepping::step(Abstract::Solver& solver, Statistics& stats) {
     }
     stats.set(StatisticsIds::TIMESTEP_VALUE, dt);
     stats.set(StatisticsIds::TIMESTEP_CRITERION, criterion);
+    stats.set(StatisticsIds::TIMESTEP_ELAPSED, int(timer.elapsed<TimerUnit::MILLISECOND>()));
 }
 
 
@@ -116,9 +118,11 @@ void PredictorCorrector::stepImpl(Abstract::Solver& solver, Statistics& stats) {
     iteratePair<VisitorEnum::SECOND_ORDER>(*this->storage, *this->predictions,
         [this, dt2](auto& pv, auto& pdv, auto& pd2v, auto& UNUSED(cv), auto& UNUSED(cdv), auto& cd2v) {
         ASSERT(pv.size() == pd2v.size());
+        constexpr Float a = 1._f / 3._f;
+        constexpr Float b = 0.5_f;
         for (Size i = 0; i < pv.size(); ++i) {
-            pv[i] -= 0.333333_f * (cd2v[i] - pd2v[i]) * dt2;
-            pdv[i] -= 0.5_f * (cd2v[i] - pd2v[i]) * this->dt;
+            pv[i] -= a * (cd2v[i] - pd2v[i]) * dt2;
+            pdv[i] -= b * (cd2v[i] - pd2v[i]) * this->dt;
         }
     });
     iteratePair<VisitorEnum::FIRST_ORDER>(*this->storage, *this->predictions,

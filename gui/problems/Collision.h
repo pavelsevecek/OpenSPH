@@ -60,7 +60,7 @@ public:
         Means sm = stress.evaluate(storage);
         Means dsm = dtStress.evaluate(storage);
         /// \todo get rid of these spaces
-        this->logger->write(stats.get<Float>(StatisticsIds::TIME),
+        this->logger->write(stats.get<Float>(StatisticsIds::TOTAL_TIME),
             "   ",
             sm.average(),
             "   ",
@@ -95,7 +95,7 @@ public:
         : Abstract::LogFile(std::make_shared<FileLogger>(path)) {}
 
     virtual void write(Storage& storage, const Statistics& stats) override {
-        this->logger->write(stats.get<Float>(StatisticsIds::TIME),
+        this->logger->write(stats.get<Float>(StatisticsIds::TOTAL_TIME),
             "   ",
             en.evaluate(storage),
             "   ",
@@ -114,7 +114,7 @@ public:
         if (!stats.has(StatisticsIds::LIMITING_PARTICLE_IDX)) {
             return;
         }
-        const Float t = stats.get<Float>(StatisticsIds::TIME);
+        const Float t = stats.get<Float>(StatisticsIds::TOTAL_TIME);
         const Float dt = stats.get<Float>(StatisticsIds::TIMESTEP_VALUE);
         const QuantityIds id = stats.get<QuantityIds>(StatisticsIds::LIMITING_QUANTITY);
         const int idx = stats.get<int>(StatisticsIds::LIMITING_PARTICLE_IDX);
@@ -133,12 +133,26 @@ public:
         , stepLogger("dt" + path) {}
 
     virtual void write(Storage& storage, const Statistics& stats) override {
-        const Float t = stats.get<Float>(StatisticsIds::TIME);
+        const Float t = stats.get<Float>(StatisticsIds::TOTAL_TIME);
         const Tensor smin(1.e5_f);
         ArrayView<TracelessTensor> s, ds;
+        ArrayView<Float> D, dD;
         tie(s, ds) = storage.getAll<TracelessTensor>(QuantityIds::DEVIATORIC_STRESS);
-        this->logger->write(t, " ", s[1456]);
-        stepLogger.write(t, " ", 0.2_f * (abs(s[1456]) + smin) / abs(ds[1456]));
+        tie(D, dD) = storage.getAll<Float>(QuantityIds::DAMAGE);
+        this->logger->write(t, " ", s[1456], " ", D[1456], " ", dD[1456]);
+    }
+};
+
+class Particle1493 : public Abstract::LogFile {
+public:
+    Particle1493(const std::string& path)
+        : Abstract::LogFile(std::make_shared<FileLogger>(path)) {}
+
+    virtual void write(Storage& storage, const Statistics& stats) override {
+        const Float t = stats.get<Float>(StatisticsIds::TOTAL_TIME);
+        ArrayView<Vector> r = storage.getValue<Vector>(QuantityIds::POSITIONS);
+        ArrayView<Float> cs = storage.getValue<Float>(QuantityIds::SOUND_SPEED);
+        this->logger->write(t, " ", r[1493][H], "  ", cs[1493]);
     }
 };
 
@@ -154,26 +168,30 @@ struct AsteroidCollision {
             .set(BodySettingsIds::ENERGY_RANGE, Range(1._f, INFTY))
             .set(BodySettingsIds::PARTICLE_COUNT, 100000)
             .set(BodySettingsIds::EOS, EosEnum::TILLOTSON)
-            .set(BodySettingsIds::STRESS_TENSOR_MIN, 1.e7_f);
+            .set(BodySettingsIds::STRESS_TENSOR_MIN, 1.e6_f);
+        bodySettings.saveToFile("target.sph");
+
         InitialConditions conds(storage, globalSettings);
 
         StdOutLogger logger;
         SphericalDomain domain1(Vector(0._f), 5e3_f); // D = 10km
         conds.addBody(domain1, bodySettings);
+        /// \todo save also problem-specific settings: position of impactor, radius, ...
         logger.write("Particles of target: ", storage->getParticleCnt());
         const Size n1 = storage->getParticleCnt();
 
         //    SphericalDomain domain2(Vector(4785.5_f, 3639.1_f, 0._f), 146.43_f); // D = 280m
-        SphericalDomain domain2(Vector(5097.45_f, 3726.87_f, 0._f), 270.585_f);
+        SphericalDomain domain2(Vector(5097.4509902022_f, 3726.8662269290_f, 0._f), 270.5847632732_f);
 
         bodySettings.set(BodySettingsIds::PARTICLE_COUNT, 100).set(BodySettingsIds::STRESS_TENSOR_MIN, LARGE);
+        bodySettings.saveToFile("impactor.sph");
         conds.addBody(domain2, bodySettings, Vector(-5.e3_f, 0._f, 0._f)); // 5km/s
         logger.write("Particles of projectile: ", storage->getParticleCnt() - n1);
     }
 
     std::unique_ptr<Problem> getProblem() {
         globalSettings.set(GlobalSettingsIds::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::PREDICTOR_CORRECTOR)
-            .set(GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP, 5.e-3_f)
+            .set(GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP, 0.01_f)
             .set(GlobalSettingsIds::TIMESTEPPING_MAX_TIMESTEP, 0.01_f)
             .set(GlobalSettingsIds::RUN_OUTPUT_INTERVAL, 0.1_f)
             .set(GlobalSettingsIds::MODEL_FORCE_DIV_S, true)
@@ -183,14 +201,21 @@ struct AsteroidCollision {
             .set(GlobalSettingsIds::SPH_AV_BETA, 3._f)
             .set(GlobalSettingsIds::MODEL_DAMAGE, DamageEnum::SCALAR_GRADY_KIPP)
             .set(GlobalSettingsIds::MODEL_YIELDING, YieldingEnum::VON_MISES);
+        globalSettings.saveToFile("code.sph");
         std::unique_ptr<Problem> p = std::make_unique<Problem>(globalSettings, std::make_shared<Storage>());
         std::string outputDir = "out/" + globalSettings.get<std::string>(GlobalSettingsIds::RUN_OUTPUT_NAME);
-        p->output = std::make_unique<TextOutput>(
-            outputDir, globalSettings.get<std::string>(GlobalSettingsIds::RUN_NAME));
+        p->output = std::make_unique<TextOutput>(outputDir,
+            globalSettings.get<std::string>(GlobalSettingsIds::RUN_NAME),
+            TextOutput::Options::SCIENTIFIC);
         p->output->add(std::make_unique<ParticleNumberColumn>());
         p->output->add(Factory::getValueColumn<Vector>(QuantityIds::POSITIONS));
+        p->output->add(Factory::getDerivativeColumn<Vector>(QuantityIds::POSITIONS));
+        p->output->add(Factory::getSmoothingLengthColumn());
+        p->output->add(Factory::getValueColumn<Float>(QuantityIds::DENSITY));
+        p->output->add(Factory::getValueColumn<Float>(QuantityIds::PRESSURE));
+        p->output->add(Factory::getValueColumn<Float>(QuantityIds::ENERGY));
+        p->output->add(Factory::getValueColumn<Float>(QuantityIds::DAMAGE));
         p->output->add(Factory::getValueColumn<TracelessTensor>(QuantityIds::DEVIATORIC_STRESS));
-        p->output->add(Factory::getDerivativeColumn<TracelessTensor>(QuantityIds::DEVIATORIC_STRESS));
         // Array<QuantityIds>{
         // QuantityIds::POSITIONS, QuantityIds::DENSITY, QuantityIds::PRESSURE, QuantityIds::ENERGY });
         //  QuantityIds::DAMAGE });
@@ -201,10 +226,11 @@ struct AsteroidCollision {
 
         initialConditions(p->storage);
 
-        /* p->logs.push(std::make_unique<ImpactorLogFile>(*p->storage, "stress.txt"));
-         p->logs.push(std::make_unique<EnergyLogFile>("energy.txt"));
-         p->logs.push(std::make_unique<TimestepLogFile>("timestep.txt"));
-         p->logs.push(std::make_unique<Stress1456>("s_1456.txt"));*/
+        /* p->logs.push(std::make_unique<ImpactorLogFile>(*p->storage, "stress.txt"));*/
+        p->logs.push(std::make_unique<EnergyLogFile>("energy.txt"));
+        p->logs.push(std::make_unique<TimestepLogFile>("timestep.txt"));
+        // p->logs.push(std::make_unique<Particle1493>("dt_1453.txt"));
+        // p->logs.push(std::make_unique<Stress1456>("s_1456.txt"));
         return p;
     }
 

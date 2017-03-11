@@ -4,20 +4,200 @@
 /// Pavel Sevecek 2016
 /// sevecek at sirrah.troja.mff.cuni.cz
 
-#include "geometry/Vector.h"
-#include "objects/containers/ArrayView.h"
+#include "core/Assert.h"
+#include "core/Traits.h"
+#include "objects/containers/Tuple.h"
+#include <iterator>
 
 NAMESPACE_SPH_BEGIN
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/// Iterator
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+
+/// Simple (forward) iterator over continuous array of objects of type T. Can be used with STL algorithms.
+template <typename T, typename TCounter = Size>
+class Iterator {
+    template <typename, typename>
+    friend class Array;
+    template <typename, int, typename>
+    friend class StaticArray;
+    template <typename, typename>
+    friend class ArrayView;
+
+protected:
+    using TValue = typename UnwrapReferenceType<T>::Type;
+
+    T* data;
+#ifdef DEBUG
+    const T *begin, *end;
+#endif
+
+#ifndef DEBUG
+    Iterator(T* data)
+        : data(data) {}
+#endif
+
+    Iterator(T* data, const T* UNUSED_IN_RELEASE(begin), const T* UNUSED_IN_RELEASE(end))
+        : data(data)
+#ifdef DEBUG
+        , begin(begin)
+        , end(end)
+#endif
+    {
+    }
+
+
+public:
+    Iterator() = default;
+
+    const TValue& operator*() const {
+        ASSERT(data >= begin);
+        ASSERT(data < end);
+        return *data;
+    }
+    TValue& operator*() {
+        ASSERT(data >= begin);
+        ASSERT(data < end);
+        return *data;
+    }
+#ifdef DEBUG
+    Iterator operator+(const TCounter n) const {
+        return Iterator(data + n, begin, end);
+    }
+    Iterator operator-(const TCounter n) const {
+        return Iterator(data - n, begin, end);
+    }
+#else
+    Iterator operator+(const TCounter n) const {
+        return Iterator(data + n);
+    }
+    Iterator operator-(const TCounter n) const {
+        return Iterator(data - n);
+    }
+#endif
+    void operator+=(const TCounter n) {
+        data += n;
+    }
+    void operator-=(const TCounter n) {
+        data -= n;
+    }
+    Iterator& operator++() {
+        ++data;
+        return *this;
+    }
+    Iterator operator++(int) {
+        Iterator tmp(*this);
+        operator++();
+        return tmp;
+    }
+    Iterator& operator--() {
+        --data;
+        return *this;
+    }
+    Iterator operator--(int) {
+        Iterator tmp(*this);
+        operator--();
+        return tmp;
+    }
+    Size operator-(const Iterator& iter) const {
+        ASSERT(data >= iter.data);
+        return data - iter.data;
+    }
+    bool operator<(const Iterator& iter) const {
+        return data < iter.data;
+    }
+    bool operator>(const Iterator& iter) const {
+        return data > iter.data;
+    }
+    bool operator<=(const Iterator& iter) const {
+        return data <= iter.data;
+    }
+    bool operator>=(const Iterator& iter) const {
+        return data >= iter.data;
+    }
+    bool operator==(const Iterator& iter) const {
+        return data == iter.data;
+    }
+    bool operator!=(const Iterator& iter) const {
+        return data != iter.data;
+    }
+
+
+    using iterator_category = std::random_access_iterator_tag;
+    using value_type = T;
+    using difference_type = Size;
+    using pointer = T*;
+    using reference = T&;
+};
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/// ReverseIterator
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+/// Generic reverse iterator over continuous array of objects of type T.
+template <typename T, typename TCounter = Size>
+class ReverseIterator {
+protected:
+    Iterator<T, Size> iter;
+
+public:
+    ReverseIterator() = default;
+
+    ReverseIterator(Iterator<T, Size> iter)
+        : iter(iter) {}
+
+    decltype(auto) operator*() const {
+        return *iter;
+    }
+    decltype(auto) operator*() {
+        return *iter;
+    }
+    ReverseIterator& operator++() {
+        --iter;
+        return *this;
+    }
+    ReverseIterator operator++(int) {
+        ReverseIterator tmp(*this);
+        operator++();
+        return tmp;
+    }
+    ReverseIterator& operator--() {
+        ++iter;
+        return *this;
+    }
+    ReverseIterator operator--(int) {
+        ReverseIterator tmp(*this);
+        operator--();
+        return tmp;
+    }
+    bool operator==(const ReverseIterator& other) const {
+        return iter == other.iter;
+    }
+    bool operator!=(const ReverseIterator& other) const {
+        return iter != other.iter;
+    }
+};
+
+/// Creates reverse iterator by wrapping forward iterator, utilizes type deduction.
+template <typename T, typename TCounter>
+ReverseIterator<T, TCounter> reverseIterator(const Iterator<T, TCounter> iter) {
+    return ReverseIterator<T, TCounter>(iter);
+}
+
+
+/// Wrapper of generic container allowing to iterate over its elements in reverse order. The wrapper can hold
+/// l-value reference, or the container can be moved into the wrapper.
 template <typename TContainer>
-class ReverseWrapper {
+class ReverseAdapter {
 private:
     TContainer container;
 
 public:
     template <typename T>
-    ReverseWrapper(T&& container)
+    ReverseAdapter(T&& container)
         : container(std::forward<T>(container)) {}
 
     /// Returns iterator pointing to the last element in container.
@@ -35,14 +215,25 @@ public:
     }
 };
 
+/// Creates the ReverseAdapter over given container, utilizing type deduction.
+/// To iterate over elements of container in reverse order, use
+/// \code
+/// for (T& value : reverse(container)) {
+///    // do something with value
+/// }
+/// \endcode
 template <typename TContainer>
-ReverseWrapper<TContainer> reverse(TContainer&& container) {
-    return ReverseWrapper<TContainer>(std::forward<TContainer>(container));
+ReverseAdapter<TContainer> reverse(TContainer&& container) {
+    return ReverseAdapter<TContainer>(std::forward<TContainer>(container));
 }
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/// ComponentIterator
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-/// Provides iterator over selected component of vector array. Has all the typedefs and member functions to be
-/// used with stl functions such as std::sort
+
+/// Provides iterator over selected component of vector array or any iterable container holding vectors. Can
+/// be used in STL algorithms, namely in std::sort.
 template <typename TIterator>
 class ComponentIterator {
 private:
@@ -122,7 +313,6 @@ public:
         return iterator != other.iterator;
     }
 
-
     using iterator_category = std::random_access_iterator_tag;
     using value_type = RawT;
     using difference_type = Size;
@@ -131,7 +321,7 @@ public:
 };
 
 
-/// Wrapper of a container, providing functions \ref begin and \ref that return ComponentIterators.
+/// Wraps a vector container, providing means to iterate over given component of vector elements.
 template <typename TBuffer>
 struct VectorComponentAdapter {
     TBuffer data;
@@ -152,79 +342,110 @@ struct VectorComponentAdapter {
     }
 };
 
-
+/// Returns the VectorComponentAdapter, utilizing type deduction. Indended usage is:
+/// \code
+/// Array<Vector> array(20);
+/// for (Float& value : componentAdapter(value, 0)) {
+///    value = 5; // set x-components of vectors to 5
+/// }
+/// \endcode
 template <typename TBuffer>
-auto componentAdapter(TBuffer&& buffer, const int component) {
+auto componentAdapter(TBuffer&& buffer, const Size component) {
     return VectorComponentAdapter<TBuffer>(std::forward<TBuffer>(buffer), component);
 }
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/// TupleIterator
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-/// Allows to iterate over a given subset of array.
-template <typename TIterator, typename TCondition>
-class SubsetIterator {
+/// Holds multiple iterators, advancing all of them at the same time. Has only the necessary functions to use
+/// in range-based for loops.
+template <typename TElement, typename... TIterator>
+class TupleIterator {
 private:
-    TIterator iterator;
-    TIterator end;
-    TCondition condition;
+    Tuple<TIterator...> iterators;
 
 public:
-    SubsetIterator(const TIterator& iterator, const TIterator& end, TCondition&& condition)
-        : iterator(iterator)
-        , end(end)
-        , condition(std::forward<TCondition>(condition)) {
-        // move to first element of the subset
-        while (iterator != end && !conditions(*iterator)) {
-            ++iterator;
-        }
-    }
+    TupleIterator(const TIterator&... iters)
+        : iterators(iters...) {}
 
-    SubsetIterator& operator++() {
-        do {
-            ++iterator;
-        } while (iterator != end && !conditions(*iterator));
+    TupleIterator& operator++() {
+        forEach(iterators, [](auto& iter) { ++iter; });
         return *this;
     }
 
-    bool operator==(const SubsetIterator& other) {
-        return iterator == other.iterator;
+    TElement operator*() {
+        return apply(iterators, [](auto&... values) -> TElement { return { *values... }; });
     }
 
-    bool operator!=(const SubsetIterator& other) {
-        return iterator != other.iterator;
+    const TElement operator*() const {
+        return apply(iterators, [](const auto&... values) -> TElement { return { *values... }; });
+    }
+
+    bool operator==(const TupleIterator& other) const {
+        // all iterators have the same range, so we can simply compare first one
+        return iterators.template get<0>() != other.iterators.template get<0>();
+    }
+
+    bool operator!=(const TupleIterator& other) const {
+        // all iterators have the same range, so we can simply compare first one
+        return iterators.template get<0>() != other.iterators.template get<0>();
     }
 };
 
-/// \todo test
-template <typename TIterator, typename TCondition>
-auto makeSubsetIterator(const TIterator& iterator, const TIterator& end, TCondition&& condition) {
-    return SubsetIterator<TIterator, TCondition>(iterator, end, std::forward<TCondition>(condition));
+/// Creates TupleIterator from individual iterators, utilizing type deduction.
+template <typename TElement, typename... TIterators>
+TupleIterator<TElement, TIterators...> makeTupleIterator(const TIterators&... iterators) {
+    return TupleIterator<TElement, TIterators...>(iterators...);
 }
 
-/// Non-owning view to access and iterate over subset of container
-template <typename T, typename TCondition, typename TCounter = Size>
-class SubsetView {
+/// Wraps any number of containers, providing means to iterate over all of them at the same time. This can
+/// only be used for containers of the same size.
+template <typename TElement, typename... TContainers>
+class TupleAdapter {
 private:
-    ArrayView<T, TCounter> view;
-    TCondition condition;
+    Tuple<TContainers...> tuple;
 
 public:
-    template <typename TContainer>
-    SubsetView(ArrayView<T, TCounter> view, TCondition&& condition)
-        : view(view)
-        , condition(std::forward<TCondition>(condition)) {}
+    TupleAdapter(TContainers&&... containers)
+        : tuple(std::forward<TContainers>(containers)...) {
+        ASSERT(tuple.size() > 1);
+#ifdef DEBUG
+        // check that all containers are of the same size
+        const Size size0 = tuple.template get<0>().size();
+        forEach(tuple, [size0](auto& container) { ASSERT(container.size() == size0); });
+#endif
+    }
 
     auto begin() {
-        return makeSubsetIterator(view.begin(), view.end(), condition);
+        return apply(
+            tuple, [](auto&... containers) { return makeTupleIterator<TElement>(containers.begin()...); });
+    }
+
+    auto begin() const {
+        return apply(tuple,
+            [](const auto&... containers) { return makeTupleIterator<TElement>(containers.begin()...); });
     }
 
     auto end() {
-        return makeSubsetIterator(view.begin(), view.end(), condition);
+        return apply(
+            tuple, [](auto&... containers) { return makeTupleIterator<TElement>(containers.end()...); });
+    }
+
+    auto end() const {
+        return apply(tuple,
+            [](const auto&... containers) { return makeTupleIterator<TElement>(containers.end()...); });
+    }
+
+    Size size() const {
+        return tuple.template get<0>().size();
     }
 };
 
-template <typename T, typename TCondition, typename TCounter>
-auto makeSubsetView(ArrayView<T, TCounter> view, TCondition&& condition) {
-    return SubsetView<T, TCondition, TCounter>(view, condition);
+template <typename TElement, typename... TContainers>
+TupleAdapter<TElement, TContainers...> iterateTuple(TContainers&&... containers) {
+    return TupleAdapter<TElement, TContainers...>(std::forward<TContainers>(containers)...);
 }
+
 
 NAMESPACE_SPH_END

@@ -21,6 +21,8 @@ class TracelessTensor {
     friend constexpr T max(const T& t1, const T& t2);
     template <typename T>
     friend T clamp(const T& t, const Range& range);
+    template <typename T>
+    friend constexpr auto less(const T& t1, const T& t2);
 
 private:
     // 5 independent components: 4 in vector, 1 in float
@@ -227,8 +229,8 @@ public:
 
     template <typename TStream>
     friend TStream& operator<<(TStream& stream, const TracelessTensor& t) {
-        stream << std::setprecision(6) << std::setw(15) << t(0, 0) << std::setw(15) << t(1, 1)
-               << std::setw(15) << t(0, 1) << std::setw(15) << t(0, 2) << std::setw(15) << t(1, 2);
+        stream << std::setprecision(6) << std::setw(20) << t(0, 0) << std::setw(20) << t(1, 1)
+               << std::setw(20) << t(0, 1) << std::setw(20) << t(0, 2) << std::setw(20) << t(1, 2);
         return stream;
     }
 };
@@ -293,16 +295,36 @@ INLINE TracelessTensor max(const TracelessTensor& t1, const TracelessTensor& t2)
     return TracelessTensor(max(t1.m, t2.m), max(t1.m12, t2.m12));
 }
 
+
+template <>
+INLINE auto less(const TracelessTensor& t1, const TracelessTensor& t2) {
+    return Tensor(less(t1.diagonal(), t2.diagonal()), less(t1.offDiagonal(), t2.offDiagonal()));
+}
+
+/// Clamps components of the traceless tensor. To preserve invariant (zero trace), the components are clamped
+/// and the trace of the clamped tensor is subtracted from the result. Diagonal components of the traceless
+/// tensor can therefore be changed even if they lie within the range.
+/// For exact clamping of tensor components, the traceless tensor must be explicitly casted to Tensor.
 template <>
 INLINE TracelessTensor clamp(const TracelessTensor& t, const Range& range) {
-    return TracelessTensor(clamp(t.m, range), clamp(t.m12, range));
+    const Tensor clamped(clamp(t.diagonal(), range), clamp(t.offDiagonal(), range));
+    return TracelessTensor(clamped - Tensor::identity() * clamped.trace() / 3._f);
+}
+
+template <>
+INLINE Pair<TracelessTensor> clampWithDerivative(const TracelessTensor& v,
+    const TracelessTensor& dv,
+    const Range& range) {
+    const Tensor lower = less(Tensor(range.lower()), Tensor(v));
+    const Tensor upper = less(Tensor(v), Tensor(range.upper()));
+    /// \todo optimize
+    return { clamp(v, range), TracelessTensor(dv * lower * upper) };
 }
 
 template <>
 INLINE bool isReal(const TracelessTensor& t) {
     return isReal(t.diagonal()) && isReal(t.offDiagonal());
 }
-
 
 /// Double-dot product t1 : t2 = sum_ij t1_ij t2_ij
 INLINE Float ddot(const TracelessTensor& t1, const Tensor& t2) {

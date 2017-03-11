@@ -286,6 +286,11 @@ INLINE bool isReal(const Tensor& t) {
     return isReal(t.diagonal()) && isReal(t.offDiagonal());
 }
 
+template <>
+INLINE auto less(const Tensor& t1, const Tensor& t2) {
+    return Tensor(less(t1.diagonal(), t2.diagonal()), less(t1.offDiagonal(), t2.offDiagonal()));
+}
+
 
 /// Double-dot product t1 : t2 = sum_ij t1_ij t2_ij
 INLINE Float ddot(const Tensor& t1, const Tensor& t2) {

@@ -4,6 +4,7 @@
 #include "sph/initial/Initial.h"
 #include "sph/timestepping/TimeStepping.h"
 #include "system/Factory.h"
+#include "system/Io.h"
 #include "system/Logger.h"
 #include "system/Output.h"
 #include "system/Profiler.h"
@@ -23,7 +24,8 @@ int main() {
     Problem* p = new Problem(globalSettings, std::make_shared<Storage>());
     p->output =
         std::make_unique<TextOutput>(globalSettings.get<std::string>(GlobalSettingsIds::RUN_OUTPUT_NAME),
-            globalSettings.get<std::string>(GlobalSettingsIds::RUN_NAME));
+            globalSettings.get<std::string>(GlobalSettingsIds::RUN_NAME),
+            TextOutput::Options::SCIENTIFIC);
 
     BodySettings bodySettings;
     bodySettings.set(BodySettingsIds::ENERGY, 1.e2_f);
@@ -37,10 +39,16 @@ int main() {
     /*SphericalDomain domain2(Vector(6.e2_f, 1.35e2_f, 0._f), 20._f);
     bodySettings.set(BodySettingsIds::PARTICLE_COUNT, 100);
     conds.addBody(domain2, bodySettings, Vector(-5.e3_f, 0._f, 0._f));*/
-    p->run();
+    // p->run();
 
     StdOutLogger logger;
     Profiler::getInstance()->printStatistics(logger);
 
+    if (!sendMail("sevecek@sirrah.troja.mff.cuni.cz",
+            "pavel.sevecek@gmail.com",
+            "run ended",
+            "run has ended, yo")) {
+        logger.write("Cannot send mail");
+    }
     return 0;
 }

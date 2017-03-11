@@ -1,5 +1,6 @@
 #pragma once
 
+#include "geometry/Vector.h"
 #include "objects/ForwardDecl.h"
 #include "objects/containers/ArrayView.h"
 #include <memory>

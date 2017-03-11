@@ -53,6 +53,7 @@ public:
     }
 
     virtual void integrate(Storage& storage, Statistics& stats) override {
+        force.stats = &stats;
         ASSERT(storage.isValid());
         const Size size = storage.getParticleCnt();
         ArrayView<Vector> r, v, dv;
@@ -118,13 +119,23 @@ public:
         if (storage.has(QuantityIds::DEVIATORIC_STRESS)) {
             s = storage.getValue<TracelessTensor>(QuantityIds::DEVIATORIC_STRESS);
         }
+        ArrayView<Float> dmg;
+        if (storage.has(QuantityIds::DAMAGE)) {
+            dmg = storage.getValue<Float>(QuantityIds::DAMAGE);
+        }
+        ArrayView<Float> reducing;
+        if (storage.has(QuantityIds::YIELDING_REDUCE)) {
+            reducing = storage.getValue<Float>(QuantityIds::YIELDING_REDUCE);
+        }
         Float divv_max = 0._f;
         for (Size i = 0; i < size; ++i) {
             divv_max = max(divv_max, rhoDivv[i]);
         }
+        ArrayView<Size> flag = storage.getValue<Size>(QuantityIds::FLAG);
         for (Size i = 0; i < drho.size(); ++i) {
             Float divv;
-            if (s && ddot(s[i], s[i]) > EPS) {
+            const Float red = dmg ? 1.f - pow<3>(dmg[i]) : 1.f;
+            if (s && red * reducing[i] != 0._f) {
                 // nonzero stress tensor
                 divv = rhoGradv[i].trace();
             } else {
@@ -132,8 +143,14 @@ public:
             }
             drho[i] = -rho[i] * divv;
 
-            v[i][H] = r[i][H] / D * divv;
-            if (neighCnts[i] > neighRange.upper()) {
+            if (flag[i] == 0) {
+                // undamaged target
+                v[i][H] = r[i][H] / D * divv;
+            } else {
+                // damaged target or impactor
+                v[i][H] = r[i][H] / D * rhoDivv[i];
+            }
+            /*if (neighCnts[i] > neighRange.upper()) {
                 const Float vh_max = -r[i][H] / (D)*abs(divv_max);
                 const Float weight1 = exp(0.2_f * (neighCnts[i] - neighRange.upper()));
                 const Float weight2 = 1._f / weight1;
@@ -145,7 +162,7 @@ public:
                 const Float weight2 = 1._f / weight1;
                 ASSERT(isReal(weight2));
                 v[i][H] = (weight1 * vh_max + weight2 * v[i][H]) / (weight1 + weight2);
-            }
+            }*/
             dv[i][H] = 0._f;
         }
         this->integrateModules(storage);

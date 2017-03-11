@@ -149,7 +149,7 @@ public:
 
     void update(Storage& storage) {
         m = storage.getValue<Float>(QuantityIds::MASSES);
-        v = storage.getAll<Vector>(QuantityIds::POSITIONS)[1];
+        v = storage.getDt<Vector>(QuantityIds::POSITIONS);
         rho = storage.getValue<Float>(QuantityIds::DENSITY);
     }
 
@@ -168,6 +168,7 @@ private:
     ArrayView<const Float> m;
     ArrayView<const Vector> v;
     ArrayView<const Float> rho;
+    ArrayView<const Float> dmg, reducing;
     ArrayView<const Size> idxs;
 
 public:
@@ -178,10 +179,21 @@ public:
         v = storage.getAll<Vector>(QuantityIds::POSITIONS)[1];
         idxs = storage.getValue<Size>(QuantityIds::FLAG);
         rho = storage.getValue<Float>(QuantityIds::DENSITY);
+        if (storage.has(QuantityIds::DAMAGE)) {
+            dmg = storage.getValue<Float>(QuantityIds::DAMAGE);
+        }
+        if (storage.has(QuantityIds::YIELDING_REDUCE)) {
+            reducing = storage.getValue<Float>(QuantityIds::YIELDING_REDUCE);
+        }
     }
 
     INLINE Tuple<Tensor, Tensor> operator()(const int i, const int j, const Vector& grad) const {
-        if (idxs[i] != idxs[j]) {
+        Float redi = reducing[i], redj = reducing[j];
+        if (dmg) {
+            redi *= (1._f - pow<3>(dmg[i]));
+            redj *= (1._f - pow<3>(dmg[j]));
+        }
+        if (idxs[i] != idxs[j] || redi == 0._f || redj == 0._f) {
             /// \todo optimize, instead of returning zero, solve this directly on accumulators/modules
             /// (somehow)
             return { Tensor::null(), Tensor::null() };

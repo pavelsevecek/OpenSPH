@@ -1,5 +1,6 @@
 #include "objects/wrappers/Iterators.h"
 #include "catch.hpp"
+#include "geometry/Vector.h"
 #include "objects/containers/Array.h"
 #include <algorithm>
 
@@ -30,7 +31,7 @@ TEST_CASE("ComponentIterator", "[iterators]") {
     REQUIRE(data[2] == Vector(2.f, 1.f, 2.f));
 }
 
-TEST_CASE("ReverseWrapper", "[iterators]") {
+TEST_CASE("ReverseAdapter", "[iterators]") {
     Array<Size> data;
     auto empty = reverse(data);
     REQUIRE(empty.begin() == empty.end());
@@ -51,4 +52,30 @@ TEST_CASE("ReverseWrapper", "[iterators]") {
     REQUIRE(*iter == 1);
     ++iter;
     REQUIRE(iter == wrapper.end());
+}
+
+TEST_CASE("TupleAdapter", "[iterators]") {
+    Array<float> floats{ 1.f, 2.f, 3.f, 4.f };
+    Array<int> ints{ 1, 2, 3, 4 };
+    Array<char> chars{ 'a', 'b', 'c', 'd' };
+
+    struct Element {
+        float& f;
+        int& i;
+        char ch;
+    };
+    Size cnt = 1;
+    for (Element e : iterateTuple<Element>(floats, ints, chars)) {
+        REQUIRE(e.f == float(cnt));
+        REQUIRE(e.i == cnt);
+        REQUIRE(e.ch == 'a' + char(cnt - 1));
+        e.f = 6.f;
+        e.i = 7;
+        cnt++;
+    };
+    REQUIRE(cnt == 5);
+    REQUIRE(floats == Array<float>({ 6.f, 6.f, 6.f, 6.f }));
+    REQUIRE(ints == Array<int>({ 7, 7, 7, 7 }));
+
+    REQUIRE_THROWS(iterateTuple<Element>(Array<int>{ 5 }, Array<float>{ 3.f, 4.f }));
 }

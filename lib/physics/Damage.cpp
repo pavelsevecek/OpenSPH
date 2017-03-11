@@ -3,12 +3,14 @@
 #include "quantities/Material.h"
 #include "quantities/Storage.h"
 #include "system/Factory.h"
+#include "system/Logger.h"
 
 NAMESPACE_SPH_BEGIN
 
 
 ScalarDamage::ScalarDamage(const GlobalSettings& settings, const ExplicitFlaws options)
-    : options(options) {
+    : options(options)
+    , logger("dm959.txt") {
     kernelRadius = Factory::getKernel<3>(settings).radius();
 }
 
@@ -62,7 +64,11 @@ void ScalarDamage::initialize(Storage& storage, const BodySettings& settings) co
     const Float denom = 1._f / (std::pow(k_weibull, 1._f / m_weibull) * std::pow(V, 1.f / m_weibull));
     ASSERT(isReal(denom) && denom > 0.f);
     Array<Float> eps_max(size);
-    BenzAsphaugRng rng(1234); /// \todo generalize random number generator
+    /// \todo random number generator must be shared for all bodies, but should not be global; repeated runs
+    /// MUST have the same flaw distribution
+    /// RNG can be stored in InitialConditions and passed to objects (in some InitialConditionContext struct),
+    /// this is just a temporary fix!!!
+    static BenzAsphaugRng rng(1234);
     Size flawedCnt = 0, p = 1;
     while (flawedCnt < size) {
         const Size i = Size(rng() * size);
@@ -105,26 +111,29 @@ void ScalarDamage::integrate(Storage& storage) {
     tie(damage, ddamage) = storage.getAll<Float>(QuantityIds::DAMAGE);
     MaterialAccessor material(storage);
     for (Size i = 0; i < p.size(); ++i) {
-        Tensor sigma = reduce(s[i], i) - reduce(p[i], i) * Tensor::identity();
+        // if damage is already on max value, set stress to zero to avoid limiting timestep by non-existent
+        // stresses
+        const Range range = storage.getQuantity(QuantityIds::DAMAGE).getRange();
+        if (damage[i] == range.upper()) {
+            // s[i] = TracelessTensor::null();
+            ds[i] = TracelessTensor::null();
+            // continue;
+        }
+        const Tensor sigma = reduce(s[i], i) - reduce(p[i], i) * Tensor::identity();
         Float sig1, sig2, sig3;
         tie(sig1, sig2, sig3) = findEigenvalues(sigma);
         const Float sigMax = max(sig1, sig2, sig3);
         const Float young = material.getParam<Float>(BodySettingsIds::YOUNG_MODULUS, i);
-        const Float young_red = reduce(young, i);
+        // young is always positive, but damages only modifies negative values
+        const Float young_red = max(-reduce(-young, i), 1.e-20_f);
         const Float strain = sigMax / young_red;
         const Float ratio = strain / eps_min[i];
+        ASSERT(isReal(ratio));
         if (ratio <= 1._f) {
             continue;
         }
         ddamage[i] = growth[i] * root<3>(min(std::pow(ratio, m_zero[i]), Float(n_flaws[i])));
-
-        // if damage is already on max value, set stress to zero to avoid limiting timestep by non-existent
-        // stresses
-        const Range range = storage.getQuantity(QuantityIds::DAMAGE).getRange();
-        if (almostEqual(damage[i], range.upper())) {
-            s[i] = TracelessTensor::null();
-            ds[i] = TracelessTensor::null();
-        }
+        ASSERT(ddamage[i] >= 0.f);
     }
 }
 

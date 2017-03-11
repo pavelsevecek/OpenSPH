@@ -4,6 +4,7 @@
 /// Pavel Sevecek 2016
 /// sevecek at sirrah.troja.mff.cuni.cz
 
+#include "core/Assert.h"
 #include "core/Globals.h"
 #include "core/Traits.h"
 #include <algorithm>
@@ -99,7 +100,7 @@ INLINE constexpr T sqr(const T& f) {
 }
 
 INLINE constexpr bool isPower2(const Size n) {
-    ASSERT(n > 0);
+    CONSTEXPR_ASSERT(n > 0);
     return (n & (n - 1)) == 0;
 }
 
@@ -341,6 +342,14 @@ INLINE Float minElement(const T& value) {
 template <typename T>
 INLINE bool isReal(const T& value) {
     return !std::isnan(value) && !std::isinf(value);
+}
+
+/// Compares two objects of the same time component-wise. Returns object containing components 0 or 1,
+/// depending whether components of the first objects are smaller than components of the second object.
+/// \note The return type can be generally different if the mask cannot be represented using type T.
+template <typename T>
+INLINE constexpr auto less(const T& v1, const T& v2) {
+    return v1 < v2;
 }
 
 

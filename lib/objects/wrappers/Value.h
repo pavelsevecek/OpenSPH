@@ -6,9 +6,9 @@
 #include "system/Logger.h"
 
 /// Convenient object for storing a single value of different types: scalar, vector, tensor, means or integer.
-/// This is indended mainly for logging and output routines, as the object provides generic way to store
-/// different types and print stored values. There is no need no need to pass types as template arguments, so
-/// the object Value is a suitable return value or parameter of virtual functions.
+/// This is intended mainly for logging and output routines, as the object provides generic way to store
+/// different types and print stored values. There is no need to pass types as template arguments, so the
+/// object Value is a suitable return value or parameter of virtual functions (that cannot be templated).
 /// Pavel Sevecek 2017
 /// sevecek at sirrah.troja.mff.cuni.cz
 
@@ -43,7 +43,7 @@ public:
 
     template <typename TStream>
     friend TStream& operator<<(TStream& stream, const Value& value) {
-        forValue(value.storage, [&stream](const auto& v) { stream << std::setw(15) << v; });
+        forValue(value.storage, [&stream](const auto& v) { stream << std::setw(20) << v; });
         return stream;
     }
 };
