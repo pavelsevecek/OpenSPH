@@ -214,8 +214,8 @@ struct AsteroidCollision {
         p->output->add(Factory::getValueColumn<Float>(QuantityIds::DENSITY));
         p->output->add(Factory::getValueColumn<Float>(QuantityIds::PRESSURE));
         p->output->add(Factory::getValueColumn<Float>(QuantityIds::ENERGY));
-        // p->output->add(Factory::getValueColumn<Float>(QuantityIds::DAMAGE));
-        // p->output->add(Factory::getValueColumn<TracelessTensor>(QuantityIds::DEVIATORIC_STRESS));
+        p->output->add(Factory::getValueColumn<Float>(QuantityIds::DAMAGE));
+        p->output->add(Factory::getValueColumn<TracelessTensor>(QuantityIds::DEVIATORIC_STRESS));
         // Array<QuantityIds>{
         // QuantityIds::POSITIONS, QuantityIds::DENSITY, QuantityIds::PRESSURE, QuantityIds::ENERGY });
         //  QuantityIds::DAMAGE });

@@ -115,9 +115,9 @@ void ScalarDamage::integrate(Storage& storage) {
         // stresses
         const Range range = storage.getQuantity(QuantityIds::DAMAGE).getRange();
         if (damage[i] == range.upper()) {
-            s[i] = TracelessTensor::null();
+            // s[i] = TracelessTensor::null();
             ds[i] = TracelessTensor::null();
-            continue;
+            // continue;
         }
         const Tensor sigma = reduce(s[i], i) - reduce(p[i], i) * Tensor::identity();
         Float sig1, sig2, sig3;
@@ -125,27 +125,10 @@ void ScalarDamage::integrate(Storage& storage) {
         const Float sigMax = max(sig1, sig2, sig3);
         const Float young = material.getParam<Float>(BodySettingsIds::YOUNG_MODULUS, i);
         // young is always positive, but damages only modifies negative values
-        const Float young_red = -reduce(-young, i);
+        const Float young_red = max(-reduce(-young, i), 1.e-20_f);
         const Float strain = sigMax / young_red;
         const Float ratio = strain / eps_min[i];
         ASSERT(isReal(ratio));
-        /*     if (i == 959) {
-                 logger.write(stats->get<Float>(StatisticsIds::TOTAL_TIME),
-                     " ",
-                     sig1,
-                     " ",
-                     sig2,
-                     " ",
-                     sig3,
-                     " ",
-                     1._f - pow<3>(damage[i]),
-                     " ",
-                     eps_min[i],
-                     " ",
-                     ratio,
-                     " ",
-                     young * (1._f - pow<3>(damage[i])));
-             }*/
         if (ratio <= 1._f) {
             continue;
         }
