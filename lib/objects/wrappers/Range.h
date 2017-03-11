@@ -4,6 +4,7 @@
 /// Pavel Sevecek 2016
 /// sevecek at sirrah.troja.mff.cuni.cz
 
+#include "common/Globals.h"
 #include "math/Math.h"
 #include <iomanip>
 
@@ -21,8 +22,7 @@ public:
     /// interval will result in zero-size interval containing the inserted value.
     INLINE Range()
         : minBound(INFTY)
-        , maxBound(-INFTY) {
-    }
+        , maxBound(-INFTY) {}
 
     /// Constructs the interval given its lower and upper bound. You can use INFTY and -INFTY to create
     /// one-sided or unbounded intervals.
@@ -34,8 +34,7 @@ public:
 
     INLINE Range(const Range& other)
         : minBound(other.minBound)
-        , maxBound(other.maxBound) {
-    }
+        , maxBound(other.maxBound) {}
 
     /// Extends the interval to contain given value. If the value is already inside the interval, nothing
     /// changes.
@@ -138,8 +137,7 @@ private:
 public:
     RangeIterator(const Float value, TStep step)
         : value(value)
-        , step(std::forward<TStep>(step)) {
-    }
+        , step(std::forward<TStep>(step)) {}
 
     INLINE RangeIterator& operator++() {
         value += step;
@@ -169,8 +167,7 @@ private:
 public:
     RangeAdapter(const Range& range, TStep&& step)
         : range(range)
-        , step(std::forward<TStep>(step)) {
-    }
+        , step(std::forward<TStep>(step)) {}
 
     INLINE RangeIterator<TStep> begin() {
         return RangeIterator<TStep>(range.lower(), step);

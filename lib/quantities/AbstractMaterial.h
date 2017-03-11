@@ -3,19 +3,34 @@
 #include "objects/wrappers/Iterators.h"
 #include "system/Settings.h"
 
-
 NAMESPACE_SPH_BEGIN
 
-class Storage;
-
-// name?
-/// View of given material, can iterate over particles of given material id
+/// Non-owning view of given material. Provides access to the material and iterators over indices of particles
+/// with given material.
 class MaterialView {
 private:
     ArrayView<Size> matIds;
+    Abstract::Material* material;
     Size id;
 
 public:
+    MaterialView(Abstract::Material* material, ArrayView<Size> matIds, const Size id)
+        : material(material)
+        , matIds(matIds)
+        , id(id) {
+        ASSERT(material != nullptr);
+    }
+
+    /// Implicit conversion to the material.
+    operator Abstract::Material&() {
+        return *material;
+    }
+
+    /// Returns the stored material.
+    Abstract::Material& material() {
+        return *material;
+    }
+
     auto begin() {
         return makeSubsetIterator(
             matIds.begin(), matIds.end(), [id](const Size matId) { return id == matId; });
@@ -29,12 +44,7 @@ public:
 /// Material settings and functions specific for one material. Contains all parameters needed during runtime
 /// that can differ for individual materials.
 namespace Abstract {
-    struct Material : public Polymorphic {
-        /// Creating storage:
-        /// Storage(std::unique_ptr<Abstract::MAterial>&& mat) {
-
-        Size id; /// MatId of this material in the storage. One material can only belong to one storage.
-
+    class Material : public Polymorphic {
         /// per-material parameters
         BodySettings params;
 
@@ -48,11 +58,11 @@ namespace Abstract {
         /// Called after derivatives are computed.
         virtual void finalize(Storage& storage) = 0;
 
-        /// Returns values of quantity from the material. If the material does not affect the quantity in any
-        /// way, simply returns the quantity as stored in storage. Can only be called between calls of \ref
+        /// Returns physical values of quantity. If the material does not affect the quantity in any way,
+        /// simply returns the quantity as stored in storage. Can only be called between calls of \ref
         /// initialize and \ref finalize each step.
         /// \todo move modifier here
-        virtual Quantity& getValue(const QuantityIds& key) = 0;
+        virtual Quantity& getValue(Storage& storage, const QuantityIds key) = 0;
     };
 }
 

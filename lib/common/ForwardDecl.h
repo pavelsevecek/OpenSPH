@@ -7,7 +7,6 @@ NAMESPACE_SPH_BEGIN
 class Storage;
 class Quantity;
 enum class QuantityIds;
-struct Material;
 class Statistics;
 enum class StatisticsIds;
 
@@ -21,6 +20,7 @@ using GlobalSettings = Settings<GlobalSettingsIds>;
 using BodySettings = Settings<BodySettingsIds>;
 
 namespace Abstract {
+    class Material;
     class Finder;
     class Logger;
     class Domain;
@@ -30,6 +30,7 @@ namespace Abstract {
 }
 struct Ghost;
 struct NeighbourRecord;
+class MaterialView;
 
 
 NAMESPACE_SPH_END

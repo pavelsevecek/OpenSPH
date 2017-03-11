@@ -8,6 +8,11 @@
 
 NAMESPACE_SPH_BEGIN
 
+class MaterialView;
+namespace Abstract {
+    class Material;
+}
+
 /// Base object for storing scalar, vector and tensor quantities of SPH particles.
 class Storage : public Noncopyable {
 private:
@@ -21,7 +26,7 @@ public:
     Storage();
 
     /// Initialize a storage with a material.
-    Storage(const BodySettings& settings);
+    Storage(std::unique_ptr<Abstract::Material>&& material);
 
     ~Storage();
 
@@ -66,12 +71,22 @@ public:
 
     /// Retrieves a quantity values from the storage, given its key and value type. The stored quantity must
     /// be of type TValue, checked by assert. Quantity must already exist in the storage, checked by assert.
-    /// \return Array reference containing quantity values.
+    /// Note that values of quantity are returned as stored and need not have physical meaning; physical
+    /// values of quantity might be modified by material (rheology, damage model, ...). To get physical values
+    /// of quantity for use in equations, use \ref getPhysicalValue.
+    /// \return Array reference containing stored quantity values.
     template <typename TValue>
     Array<TValue>& getValue(const QuantityIds key) {
         Quantity& q = this->getQuantity(key);
         ASSERT(q.getValueEnum() == GetValueEnum<TValue>::type);
         return q.getValue<TValue>();
+    }
+
+    /// Returns the physical values of given quantity.
+    template <typename TValue>
+    Array<TValue>& getPhysicalValue(const QuantityIds key) {
+        ArrayView<Size> matIds = this->getValue<Size>(QuantityIds::MATERIAL_IDX);
+        return materials[matIds]->getValue(*this, key);
     }
 
     /// Retrieves a quantity derivative from the storage, given its key and value type. The stored quantity
@@ -138,8 +153,11 @@ public:
     }
 
     /// Returns view that can iterate over indices of particles belonging to given material.
-    /// \todo supr
-    SubsetView<Size> getMaterialView(const Size matId);
+    MaterialView getMaterial(const Size matId);
+
+    /// Return the number of materials in the storage. Material indices from 0 to (getMaterialCnt() - 1) are
+    /// valid input for \ref getMaterialView function.
+    Size getMaterialCnt() const;
 
     /// Returns the number of stored quantities.
     Size getQuantityCnt() const;

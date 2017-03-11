@@ -222,7 +222,6 @@ HEADERS += \
     objects/wrappers/ObserverPtr.h \
     math/Means.h \
     system/Element.h \
-    quantities/Slice.h \
     objects/ExtendEnum.h \
     system/LogFile.h \
     sph/Diagnostics.h \
@@ -235,5 +234,5 @@ HEADERS += \
     common/Traits.h \
     system/FileSystem.h \
     system/Io.h \
-    sph/material.h \
-    quantities/AbstractMaterial.h
+    quantities/AbstractMaterial.h \
+    sph/Material.h

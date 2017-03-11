@@ -1,7 +1,7 @@
 #include "quantities/Storage.h"
 #include "physics/Eos.h"
+#include "quantities/AbstractMaterial.h"
 #include "quantities/Iterate.h"
-#include "quantities/Material.h"
 #include "system/Factory.h"
 
 NAMESPACE_SPH_BEGIN
@@ -26,12 +26,15 @@ Storage& Storage::operator=(Storage&& other) {
     return *this;
 }
 
-/*Material& Storage::getMaterial(const Size particleIdx) {
-    ASSERT(!materials.empty());
-    /// \todo profile and possibly optimize (cache matIdxs array)
-    Array<Size>& matIdxs = this->getValue<Size>(QuantityIds::MATERIAL_IDX);
-    return materials[matIdxs[particleIdx]];
-}*/
+MaterialView Storage::getMaterial(const Size matId) {
+    ASSERT(this->has(QuantityIds::MATERIAL_IDX));
+    return MaterialView(materials[matId], this->getValue<Size>(QuantityIds::MATERIAL_IDX), matId);
+}
+
+
+Size Storage::getMaterialCnt() const {
+    return materials.size();
+}
 
 Size Storage::getQuantityCnt() const {
     return quantities.size();
