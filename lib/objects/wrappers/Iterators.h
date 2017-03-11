@@ -5,11 +5,17 @@
 /// sevecek at sirrah.troja.mff.cuni.cz
 
 #include "core/Traits.h"
+#include "objects/containers/Tuple.h"
 #include <iterator>
 
 NAMESPACE_SPH_BEGIN
 
-/// Simple (forward) iterator. Can be used with STL algorithms.
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/// Iterator
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+/// Simple (forward) iterator over continuous array of objects of type T. Can be used with STL algorithms.
 template <typename T, typename TCounter = Size>
 class Iterator {
     template <typename, typename>
@@ -125,7 +131,12 @@ public:
     using reference = T&;
 };
 
-/// Reverse iterator.
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/// ReverseIterator
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+/// Generic reverse iterator over continuous array of objects of type T.
 template <typename T, typename TCounter = Size>
 class ReverseIterator {
 protected:
@@ -169,19 +180,23 @@ public:
     }
 };
 
+/// Creates reverse iterator by wrapping forward iterator, utilizes type deduction.
 template <typename T, typename TCounter>
 ReverseIterator<T, TCounter> reverseIterator(const Iterator<T, TCounter> iter) {
     return ReverseIterator<T, TCounter>(iter);
 }
 
+
+/// Wrapper of generic container allowing to iterate over its elements in reverse order. The wrapper can hold
+/// l-value reference, or the container can be moved into the wrapper.
 template <typename TContainer>
-class ReverseWrapper {
+class ReverseAdapter {
 private:
     TContainer container;
 
 public:
     template <typename T>
-    ReverseWrapper(T&& container)
+    ReverseAdapter(T&& container)
         : container(std::forward<T>(container)) {}
 
     /// Returns iterator pointing to the last element in container.
@@ -199,17 +214,29 @@ public:
     }
 };
 
+/// Creates the ReverseAdapter over given container, utilizing type deduction.
+/// To iterate over elements of container in reverse order, use
+/// \code
+/// for (T& value : reverse(container)) {
+///    // do something with value
+/// }
+/// \endcode
 template <typename TContainer>
-ReverseWrapper<TContainer> reverse(TContainer&& container) {
-    return ReverseWrapper<TContainer>(std::forward<TContainer>(container));
+ReverseAdapter<TContainer> reverse(TContainer&& container) {
+    return ReverseAdapter<TContainer>(std::forward<TContainer>(container));
 }
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/// ComponentIterator
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-/// Provides iterator over selected component of vector array.
+
+/// Provides iterator over selected component of vector array or any iterable container holding vectors. Can
+/// be used in STL algorithms, namely in std::sort.
 template <typename TIterator>
 struct ComponentIterator {
     TIterator iterator;
-    int component;
+    Size component;
 
     using T = decltype((*std::declval<TIterator>())[std::declval<Size>()]);
     using RawT = std::decay_t<T>;
@@ -291,11 +318,11 @@ struct ComponentIterator {
 };
 
 
-/// Wrapper for iterating over given component of vector array
+/// Wraps a vector container, providing means to iterate over given component of vector elements.
 template <typename TBuffer>
 struct VectorComponentAdapter {
     TBuffer data;
-    const int component;
+    const Size component;
 
     using TIterator = decltype(std::declval<TBuffer>().begin());
 
@@ -312,10 +339,110 @@ struct VectorComponentAdapter {
     }
 };
 
-
+/// Returns the VectorComponentAdapter, utilizing type deduction. Indended usage is:
+/// \code
+/// Array<Vector> array(20);
+/// for (Float& value : componentAdapter(value, 0)) {
+///    value = 5; // set x-components of vectors to 5
+/// }
+/// \endcode
 template <typename TBuffer>
-auto componentAdapter(TBuffer&& buffer, const int component) {
+auto componentAdapter(TBuffer&& buffer, const Size component) {
     return VectorComponentAdapter<TBuffer>(std::forward<TBuffer>(buffer), component);
 }
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/// TupleIterator
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/// Holds multiple iterators, advancing all of them at the same time. Has only the necessary functions to use
+/// in range-based for loops.
+template <typename TElement, typename... TIterator>
+class TupleIterator {
+private:
+    Tuple<TIterator...> iterators;
+
+public:
+    TupleIterator(const TIterator&... iters)
+        : iterators(iters...) {}
+
+    TupleIterator& operator++() {
+        forEach(iterators, [](auto& iter) { ++iter; });
+        return *this;
+    }
+
+    TElement operator*() {
+        return apply(iterators, [](auto&... values) -> TElement { return { *values... }; });
+    }
+
+    const TElement operator*() const {
+        return apply(iterators, [](const auto&... values) -> TElement { return { *values... }; });
+    }
+
+    bool operator==(const TupleIterator& other) const {
+        // all iterators have the same range, so we can simply compare first one
+        return iterators.template get<0>() != other.iterators.template get<0>();
+    }
+
+    bool operator!=(const TupleIterator& other) const {
+        // all iterators have the same range, so we can simply compare first one
+        return iterators.template get<0>() != other.iterators.template get<0>();
+    }
+};
+
+/// Creates TupleIterator from individual iterators, utilizing type deduction.
+template <typename TElement, typename... TIterators>
+TupleIterator<TElement, TIterators...> makeTupleIterator(const TIterators&... iterators) {
+    return TupleIterator<TElement, TIterators...>(iterators...);
+}
+
+/// Wraps any number of containers, providing means to iterate over all of them at the same time. This can
+/// only be used for containers of the same size.
+template <typename TElement, typename... TContainers>
+class TupleAdapter {
+private:
+    Tuple<TContainers...> tuple;
+
+public:
+    TupleAdapter(TContainers&&... containers)
+        : tuple(std::forward<TContainers>(containers)...) {
+        ASSERT(tuple.size() > 1);
+#ifdef DEBUG
+        // check that all containers are of the same size
+        const Size size0 = tuple.template get<0>().size();
+        forEach(tuple, [size0](auto& container) { ASSERT(container.size() == size0); });
+#endif
+    }
+
+    auto begin() {
+        return apply(
+            tuple, [](auto&... containers) { return makeTupleIterator<TElement>(containers.begin()...); });
+    }
+
+    auto begin() const {
+        return apply(tuple,
+            [](const auto&... containers) { return makeTupleIterator<TElement>(containers.begin()...); });
+    }
+
+    auto end() {
+        return apply(
+            tuple, [](auto&... containers) { return makeTupleIterator<TElement>(containers.end()...); });
+    }
+
+    auto end() const {
+        return apply(tuple,
+            [](const auto&... containers) { return makeTupleIterator<TElement>(containers.end()...); });
+    }
+
+    Size size() const {
+        return tuple.template get<0>().size();
+    }
+};
+
+template <typename TElement, typename... TContainers>
+TupleAdapter<TElement, TContainers...> iterateTuple(TContainers&&... containers) {
+    return TupleAdapter<TElement, TContainers...>(std::forward<TContainers>(containers)...);
+}
+
 
 NAMESPACE_SPH_END
