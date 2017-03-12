@@ -4,7 +4,7 @@
 /// Pavel Sevecek
 /// sevecek at sirrah.troja.mff.cuni.cz
 
-#include "core/Globals.h"
+#include "common/Globals.h"
 #include "gui/MainLoop.h"
 #include "gui/Renderer.h"
 #include "gui/Settings.h"

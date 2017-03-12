@@ -5,7 +5,7 @@
 /// sevecek at sirrah.troja.mff.cuni.cz
 
 #include "geometry/Vector.h"
-#include "objects/ForwardDecl.h"
+#include "common/ForwardDecl.h"
 #include "objects/containers/Array.h"
 #include <memory>
 

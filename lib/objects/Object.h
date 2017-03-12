@@ -105,11 +105,4 @@ INLINE decltype(auto) selectNth(TValue&& value, TOthers&&... others) {
     return Detail::SelectNthType<0, N>::action(std::forward<TValue>(value), std::forward<TOthers>(others)...);
 }
 
-/// Aliases for consistent notation
-template <typename T>
-using UniquePtr = std::unique_ptr<T>;
-
-template <typename T>
-using SharedPtr = std::shared_ptr<T>;
-
 NAMESPACE_SPH_END

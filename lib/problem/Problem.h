@@ -1,6 +1,6 @@
 #pragma once
 
-#include "objects/ForwardDecl.h"
+#include "common/ForwardDecl.h"
 #include "objects/wrappers/Range.h"
 #include "physics/Integrals.h"
 #include "system/Settings.h"

@@ -84,13 +84,13 @@ template <typename TValue, typename TStoreValue>
 static void storeBuffers(Quantity& q, TStoreValue&& storeValue) {
     StaticArray<Array<TValue>&, 3> buffers = q.getBuffers<TValue>();
     switch (q.getOrderEnum()) {
-    case OrderEnum::ZERO_ORDER:
-    case OrderEnum::FIRST_ORDER:
+    case OrderEnum::ZERO:
+    case OrderEnum::FIRST:
         for (Size i = 0; i < q.size(); ++i) {
             storeValue(buffers[0][i]);
         }
         break;
-    case OrderEnum::SECOND_ORDER:
+    case OrderEnum::SECOND:
         for (Size i = 0; i < q.size(); ++i) {
             storeValue(buffers[0][i]); // store value
         }

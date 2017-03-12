@@ -5,30 +5,30 @@
 
 NAMESPACE_SPH_BEGIN
 
-/// Non-owning view of given material. Provides access to the material and iterators over indices of particles
-/// with given material.
-class MaterialView {
+class Storage;
+
+namespace Abstract {
+    class Material;
+}
+
+/// Non-owning view of particles having the same material, providing means to iterate over particle indices in
+/// storage.
+class MaterialSequence {
 private:
-    ArrayView<Size> matIds;
     Abstract::Material* material;
+    ArrayView<Size> matIds;
     Size id;
 
 public:
-    MaterialView(Abstract::Material* material, ArrayView<Size> matIds, const Size id)
+    MaterialSequence(Abstract::Material* material, ArrayView<Size> matIds, const Size id)
         : material(material)
         , matIds(matIds)
         , id(id) {
         ASSERT(material != nullptr);
     }
 
-    /// Implicit conversion to the material.
-    operator Abstract::Material&() {
-        return *material;
-    }
-
-    /// Returns the stored material.
     Abstract::Material& material() {
-        return *material;
+        return material;
     }
 
     auto begin() {
@@ -45,62 +45,46 @@ public:
 /// that can differ for individual materials.
 namespace Abstract {
     class Material : public Polymorphic {
+    private:
         /// per-material parameters
         BodySettings params;
 
         /// minimal values used in timestepping, do not affect values of quantities themselves.
         std::map<QuantityIds, Float> minimals;
 
+        /// Allowed range of quantities.
+        std::map<QuantityIds, Range> ranges;
+
+    public:
+        void setParams(const BodySettingsIds paramIdx, const BodySettings& settings) {
+            settings.copyValueTo(paramIdx, params);
+        }
+
+        template <typename TValue>
+        void setParams(const BodySettingsIds paramIdx, TValue&& value) {
+            params.set(paramIdx, value); // cannot move here if we have >1 material
+        }
+
+        /// Returns a parameter associated with given particle.
+        template <typename TValue>
+        TValue getParam(const BodySettingsIds paramIdx) const {
+            return params.get<TValue>(paramIdx);
+        }
+
+        Float& minimal(const QuantityIds id) {
+            minimals[id];
+        }
+
+        Range& range(const QuantityIds id) {
+            ranges[id];
+        }
 
         /// Initialize all quantities and material parameters. Called once every step before loop.
-        virtual void initialize(Sequence, Storage& storage) = 0;
+        virtual void initialize(Storage& storage, const MaterialSequence sequence) = 0;
 
         /// Called after derivatives are computed.
-        virtual void finalize(Storage& storage) = 0;
-
-        /// Returns physical values of quantity. If the material does not affect the quantity in any way,
-        /// simply returns the quantity as stored in storage. Can only be called between calls of \ref
-        /// initialize and \ref finalize each step.
-        /// \todo move modifier here
-        virtual Quantity& getValue(Storage& storage, const QuantityIds key) = 0;
+        virtual void finalize(Storage& storage, const MaterialSequence sequence) = 0;
     };
 }
-
-/// Object providing access to material parameters of individual particles.
-class MaterialAccessor {
-private:
-    ArrayView<Size> matIdxs;
-    ArrayView<Material> materials;
-
-public:
-    MaterialAccessor(Storage& storage);
-
-    /// Sets a parameter associated for all particles by copying value from settings.
-    void setParams(const BodySettingsIds paramIdx, const BodySettings& settings);
-
-    template <typename TValue>
-    void setParams(const BodySettingsIds paramIdx, const TValue& value) {
-        for (Material& mat : materials) {
-            mat.params.set(paramIdx, value); // cannot move here if we have >1 material
-        }
-    }
-
-    Float& minimal(const QuantityIds id, const Size particleIdx) {
-        Material& mat = materials[matIdxs[particleIdx]];
-        return mat.minimals[id];
-    }
-
-    /// Returns a parameter associated with given particle.
-    /// \todo values are saved in variant, so there is no overhead in calling Variant::get<TValue>, however
-    /// the parameter lookup in map can be potentially expensive (although it is O(log N)), we can potentially
-    /// cache iterators for fast access to parameters. We usually want to access only one or two material
-    /// parameters anyway.
-    template <typename TValue>
-    TValue getParam(const BodySettingsIds paramIdx, const Size particleIdx) const {
-        const Material& mat = materials[matIdxs[particleIdx]];
-        return mat.params.get<TValue>(paramIdx);
-    }
-};
-
 
 NAMESPACE_SPH_END

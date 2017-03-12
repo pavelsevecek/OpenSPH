@@ -4,8 +4,8 @@
 /// Pavel Sevecek 2016
 /// sevecek at sirrah.troja.mff.cuni.cz
 
+#include "common/ForwardDecl.h"
 #include "geometry/Vector.h"
-#include "objects/ForwardDecl.h"
 #include "objects/containers/Array.h"
 #include "objects/wrappers/Range.h"
 #include <memory>

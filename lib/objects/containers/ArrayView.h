@@ -4,8 +4,8 @@
 /// Pavel Sevecek 2016
 /// sevecek at sirrah.troja.mff.cuni.cz
 
-#include "core/Assert.h"
-#include "core/Traits.h"
+#include "common/Assert.h"
+#include "common/Traits.h"
 #include "objects/wrappers/Iterators.h"
 
 NAMESPACE_SPH_BEGIN

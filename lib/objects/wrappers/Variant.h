@@ -4,7 +4,8 @@
 /// Pavel Sevecek 2016
 /// sevecek at sirrah.troja.mff.cuni.cz
 
-#include "core/Traits.h"
+#include "common/Assert.h"
+#include "common/Globals.h"
 #include "math/Math.h"
 #include "objects/wrappers/Optional.h"
 
@@ -46,7 +47,11 @@ public:
 };
 
 /// Type intended to use as first parameter of variant, representing empty variant.
-class Monostate {};
+struct EmptyVariant {};
+
+/// Constant used for initializing empty variant
+const EmptyVariant EMPTY_VARIANT;
+
 
 /// Helper visitors creating, deleting or modifying Variant
 namespace VariantHelpers {
@@ -115,6 +120,17 @@ namespace VariantHelpers {
             }
         }
     };
+
+    /// Swaps content of two variants.
+    template <typename... TArgs>
+    struct Swap {
+        AlignedUnion<TArgs...>& storage;
+
+        template <typename T, typename TOther>
+        void visit(TOther&& other) {
+            std::swap(storage.template get<T>(), other.template get<T>());
+        }
+    };
 }
 
 /// Iterates through types of variant until idx-th type is found, and executes given TVisitor, passing
@@ -122,7 +138,7 @@ namespace VariantHelpers {
 template <typename T0, typename... TArgs>
 struct VariantIterator {
     template <typename TVisitor, typename... Ts>
-    static void visit(int idx, TVisitor&& visitor, Ts&&... args) {
+    static void visit(Size idx, TVisitor&& visitor, Ts&&... args) {
         if (idx == 0) {
             visitor.template visit<T0>(std::forward<Ts>(args)...);
         } else {
@@ -135,34 +151,31 @@ struct VariantIterator {
 template <typename T0>
 struct VariantIterator<T0> {
     template <typename TVisitor, typename... Ts>
-    static void visit(int UNUSED_IN_RELEASE(idx), TVisitor&& visitor, Ts&&... args) {
+    static void visit(Size UNUSED_IN_RELEASE(idx), TVisitor&& visitor, Ts&&... args) {
         ASSERT(idx == 0);
         visitor.template visit<T0>(std::forward<Ts>(args)...);
     }
 };
 
 
-/// Variant, an implementation of type-safe union.
+/// Variant, an implementation of type-safe union, similar to std::variant or boost::variant.
+///
+/// The object is intentionally missing default constructor, to guarantee there is always a valid value stored
+/// in the variant. 'Empty' variant can be created by adding \ref EmptyVariant to the list of type and
+/// initializing the variant with EMPTY_VARIANT constant. Alternatively, use Optional<Variant<...>> for
+/// variant that need not have a value stored.
 template <typename... TArgs>
 class Variant {
 private:
     AlignedUnion<TArgs...> storage;
-    int typeIdx = -1;
+    Size typeIdx;
 
     void destroy() {
-        if (typeIdx != -1) {
-            VariantHelpers::Delete<TArgs...> deleter{ storage };
-            VariantIterator<TArgs...>::visit(typeIdx, deleter);
-        }
+        VariantHelpers::Delete<TArgs...> deleter{ storage };
+        VariantIterator<TArgs...>::visit(typeIdx, deleter);
     }
 
 public:
-    Variant() = default;
-
-    ~Variant() {
-        destroy();
-    }
-
     /// Construct variant from value of stored type
     template <typename T, typename = std::enable_if_t<!std::is_same<std::decay_t<T>, Variant>::value>>
     Variant(T&& value) {
@@ -183,6 +196,10 @@ public:
         VariantHelpers::CopyMoveCreate<TArgs...> creator{ storage };
         VariantIterator<TArgs...>::visit(other.typeIdx, creator, std::move(other));
         std::swap(typeIdx, other.typeIdx);
+    }
+
+    ~Variant() {
+        destroy();
     }
 
     /// Universal copy/move operator with type of rhs being one of stored types. Valid type is checked by
@@ -222,9 +239,8 @@ public:
     }
 
     /// Moves another variant into this. If the type of the currently stored value is the same as type in
-    /// rhs, the move operator is utilized, otherwise the current value (if there is one) is destroyed and a
-    /// new value is created using move constructor. Type index of the rhs variant is set to 'uninitialized'
-    /// (-1) to indicate the value has been moved and is no longer usable.
+    /// rhs, the move operator is utilized, otherwise the current value is destroyed and a new value is
+    /// created using move constructor.
     Variant& operator=(Variant&& other) {
         if (typeIdx != other.typeIdx) {
             destroy();
@@ -235,8 +251,15 @@ public:
             VariantIterator<TArgs...>::visit(other.typeIdx, assigner, std::move(other));
         }
         typeIdx = other.typeIdx;
-        other.typeIdx = -1;
         return *this;
+    }
+
+    /// Swaps value stored in the variant with value of different variant. Both variants must hold the value
+    /// of the same type, checked by assert.
+    void swap(Variant& other) {
+        ASSERT(typeIdx == other.typeIdx);
+        VariantHelpers::Swap<TArgs...> swapper{ storage };
+        VariantIterator<TArgs...>::visit(typeIdx, swapper, other);
     }
 
     /// Creates a value of type T in place. Type T must be one of variant types. Any previously stored value
@@ -244,15 +267,15 @@ public:
     template <typename T, typename... Ts>
     void emplace(Ts&&... args) {
         using RawT = std::decay_t<T>;
-        constexpr int idx = getTypeIndex<RawT, TArgs...>;
+        constexpr Size idx = getTypeIndex<RawT, TArgs...>;
         static_assert(idx != -1, "Type must be listed in Variant");
         destroy();
         storage.template emplace<RawT>(std::forward<Ts>(args)...);
         typeIdx = idx;
     }
 
-    /// Returns index of type currently stored in variant. If no value is currently stored, returns -1.
-    int getTypeIdx() const {
+    /// Returns index of type currently stored in variant.
+    INLINE Size getTypeIdx() const {
         return typeIdx;
     }
 
@@ -260,7 +283,7 @@ public:
     /// runtime check that the variant currently holds value of given type.
     template <typename T>
     INLINE T& get() {
-        constexpr int idx = getTypeIndex<T, TArgs...>;
+        constexpr Size idx = getTypeIndex<T, TArgs...>;
         static_assert(idx != -1, "Cannot convert variant to this type");
         ASSERT(typeIdx == idx);
         return storage.template get<T>();
@@ -269,7 +292,7 @@ public:
     /// Returns the stored value, const version.
     template <typename T>
     INLINE const T& get() const {
-        constexpr int idx = getTypeIndex<T, TArgs...>;
+        constexpr Size idx = getTypeIndex<T, TArgs...>;
         static_assert(idx != -1, "Cannot convert variant to this type");
         ASSERT(typeIdx == idx);
         return storage.template get<T>();
@@ -292,7 +315,7 @@ public:
     /// the value is currently not stored in variant.
     template <typename T>
     Optional<T> tryGet() const {
-        constexpr int idx = getTypeIndex<T, TArgs...>;
+        constexpr Size idx = getTypeIndex<T, TArgs...>;
         static_assert(idx != -1, "Cannot convert variant to this type");
         if (typeIdx != getTypeIndex<T, TArgs...>) {
             return NOTHING;
@@ -344,5 +367,12 @@ INLINE decltype(auto) forValue(const Variant<TArgs...>& variant, TFunctor&& func
     return Detail::ForCurrentType<0, TArgs...>::action(variant, std::forward<TFunctor>(functor));
 }
 
-
 NAMESPACE_SPH_END
+
+/// Overload of std::swap for Sph::Variant.
+namespace std {
+    template <typename... TArgs>
+    void swap(Sph::Variant<TArgs...>& v1, Sph::Variant<TArgs...>& v2) {
+        v1.swap(v2);
+    }
+}

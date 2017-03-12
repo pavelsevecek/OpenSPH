@@ -14,10 +14,10 @@ using namespace Sph;
 static Storage getStorage() {
     Storage storage;
     HexagonalPacking distribution;
-    storage.insert<Vector, OrderEnum::SECOND_ORDER>(
+    storage.insert<Vector, OrderEnum::SECOND>(
         QuantityIds::POSITIONS, distribution.generate(10000, SphericalDomain(Vector(0._f), 1._f)));
     // density = 1, therefore total mass = volume, therefore mass per particle = volume / N
-    storage.insert<Float, OrderEnum::ZERO_ORDER>(
+    storage.insert<Float, OrderEnum::ZERO>(
         QuantityIds::MASSES, sphereVolume(1._f) / storage.getParticleCnt());
     REQUIRE(storage.getParticleCnt() > 9000); // sanity check
     return storage;
@@ -72,7 +72,7 @@ TEST_CASE("Div v of position vectors", "[accumulator]") {
 
 TEST_CASE("Grad v of const field", "[accumulator]") {
     Storage storage = getStorage();
-    storage.insert<Size, OrderEnum::ZERO_ORDER>(QuantityIds::FLAG, 0);
+    storage.insert<Size, OrderEnum::ZERO>(QuantityIds::FLAG, 0);
     RhoGradv rhoGradv;
 
     ArrayView<Vector> r, v, dv;
@@ -100,7 +100,7 @@ TEST_CASE("Grad v of const field", "[accumulator]") {
 
 TEST_CASE("Grad v of position vector", "[accumulator]") {
     Storage storage = getStorage();
-    storage.insert<Size, OrderEnum::ZERO_ORDER>(QuantityIds::FLAG, 0);
+    storage.insert<Size, OrderEnum::ZERO>(QuantityIds::FLAG, 0);
     RhoGradv rhoGradv;
 
     ArrayView<Vector> r, v, dv;
@@ -131,7 +131,7 @@ TEST_CASE("Grad v of position vector", "[accumulator]") {
 
 TEST_CASE("Grad v of non-trivial field", "[accumulator]") {
     Storage storage = getStorage();
-    storage.insert<Size, OrderEnum::ZERO_ORDER>(QuantityIds::FLAG, 0);
+    storage.insert<Size, OrderEnum::ZERO>(QuantityIds::FLAG, 0);
     RhoGradv rhoGradv;
 
     ArrayView<Vector> r, v, dv;

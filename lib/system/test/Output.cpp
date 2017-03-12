@@ -8,9 +8,9 @@ using namespace Sph;
 
 TEST_CASE("Dumping data", "[output]") {
     Storage storage;
-    storage.insert<Vector, OrderEnum::SECOND_ORDER>(
+    storage.insert<Vector, OrderEnum::SECOND>(
         QuantityIds::POSITIONS, makeArray(Vector(0._f), Vector(1._f), Vector(2._f)));
-    storage.insert<Float, OrderEnum::FIRST_ORDER>(QuantityIds::DENSITY, 5._f);
+    storage.insert<Float, OrderEnum::FIRST>(QuantityIds::DENSITY, 5._f);
     TextOutput output("tmp%d.out", "Output", EMPTY_FLAGS);
     output.add(Factory::getValueColumn<Float>(QuantityIds::DENSITY));
     output.add(Factory::getValueColumn<Vector>(QuantityIds::POSITIONS));

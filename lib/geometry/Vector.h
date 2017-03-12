@@ -4,8 +4,8 @@
 /// Pavel Sevecek 2015
 /// sevecek at sirrah.troja.mff.cuni.cz
 
-#include "core/Globals.h"
-#include "core/Traits.h"
+#include "common/Globals.h"
+#include "common/Traits.h"
 #include "objects/containers/Tuple.h"
 #include "objects/wrappers/Range.h"
 #include <immintrin.h>

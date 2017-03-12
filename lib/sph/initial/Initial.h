@@ -1,7 +1,7 @@
 #pragma once
 
+#include "common/ForwardDecl.h"
 #include "geometry/Vector.h"
-#include "objects/ForwardDecl.h"
 #include "objects/containers/ArrayView.h"
 #include <memory>
 

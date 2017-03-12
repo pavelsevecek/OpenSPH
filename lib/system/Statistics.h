@@ -5,7 +5,7 @@
 /// sevecek at sirrah.troja.mff.cuni.cz
 
 #include "math/Means.h"
-#include "objects/ForwardDecl.h"
+#include "common/ForwardDecl.h"
 #include "objects/wrappers/Range.h"
 #include "objects/wrappers/Value.h"
 #include "objects/wrappers/Variant.h"

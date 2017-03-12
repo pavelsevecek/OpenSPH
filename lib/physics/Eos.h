@@ -4,9 +4,10 @@
 /// Pavel Sevecek 2016
 /// sevecek at sirrah.troja.mff.cuni.cz
 
+#include "common/ForwardDecl.h"
+#include "common/Globals.h"
 #include "objects/containers/Array.h"
-#include "objects/containers/Tuple.h"
-#include "objects/ForwardDecl.h"
+#include "objects/containers/StaticArray.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -16,7 +17,7 @@ namespace Abstract {
     class Eos : public Polymorphic {
     public:
         /// Computes pressure and local sound speed from given density rho and specific internal energy u.
-        virtual Tuple<Float, Float> evaluate(const Float rho, const Float u) const = 0;
+        virtual Pair<Float> evaluate(const Float rho, const Float u) const = 0;
 
         /// Inverted function; computes specific internal energy u from given density rho and pressure p.
         virtual Float getInternalEnergy(const Float rho, const Float p) const = 0;
@@ -31,7 +32,7 @@ private:
 public:
     IdealGasEos(const Float gamma);
 
-    virtual Tuple<Float, Float> evaluate(const Float rho, const Float u) const override;
+    virtual Pair<Float> evaluate(const Float rho, const Float u) const override;
 
     virtual Float getInternalEnergy(const Float rho, const Float p) const override;
 
@@ -55,7 +56,7 @@ private:
 public:
     TillotsonEos(const BodySettings& settings);
 
-    virtual Tuple<Float, Float> evaluate(const Float rho, const Float u) const override;
+    virtual Pair<Float> evaluate(const Float rho, const Float u) const override;
 
     virtual Float getInternalEnergy(const Float UNUSED(rho), const Float UNUSED(p)) const override {
         NOT_IMPLEMENTED;
@@ -71,7 +72,7 @@ private:
 public:
     MurnaghanEos(const BodySettings& settings);
 
-    virtual Tuple<Float, Float> evaluate(const Float rho, const Float u) const override;
+    virtual Pair<Float> evaluate(const Float rho, const Float u) const override;
 
     virtual Float getInternalEnergy(const Float UNUSED(rho), const Float UNUSED(p)) const override {
         NOT_IMPLEMENTED;

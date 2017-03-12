@@ -8,7 +8,6 @@
 
 NAMESPACE_SPH_BEGIN
 
-class MaterialView;
 namespace Abstract {
     class Material;
 }
@@ -66,7 +65,7 @@ public:
     StaticArray<Array<TValue>&, 3> getAll(const QuantityIds key) {
         Quantity& q = this->getQuantity(key);
         ASSERT(q.getValueEnum() == GetValueEnum<TValue>::type);
-        return q.getBuffers<TValue>();
+        return q.getAll<TValue>();
     }
 
     /// Retrieves a quantity values from the storage, given its key and value type. The stored quantity must
@@ -85,8 +84,16 @@ public:
     /// Returns the physical values of given quantity.
     template <typename TValue>
     Array<TValue>& getPhysicalValue(const QuantityIds key) {
-        ArrayView<Size> matIds = this->getValue<Size>(QuantityIds::MATERIAL_IDX);
-        return materials[matIds]->getValue(*this, key);
+        Quantity& q = this->getQuantity(key);
+        ASSERT(q.getValueEnum() == GetValueEnum<TValue>::type);
+        return q.getPhysicalValue<TValue>();
+    }
+
+    template <typename TValue>
+    Array<TValue>& getModification(const QuantityIds key) {
+        Quantity& q = this->getQuantity(key);
+        ASSERT(q.getValueEnum() == GetValueEnum<TValue>::type);
+        return q.getModification<TValue>();
     }
 
     /// Retrieves a quantity derivative from the storage, given its key and value type. The stored quantity
@@ -118,15 +125,11 @@ public:
     /// \param range Optional parameter specifying lower and upper bound of the quantity. Bound are enforced
     ///              by timestepping algorithm. By default, quantities are unbounded.
     /// \returns Reference to the inserted quantity.
-    template <typename TValue, OrderEnum TOrder>
-    Quantity& insert(const QuantityIds key,
-        const TValue& defaultValue,
-        const Range& range = Range::unbounded()) {
+    template <typename TValue>
+    Quantity& insert(const QuantityIds key, const OrderEnum order, const TValue& defaultValue) {
         const Size particleCnt = getParticleCnt();
         ASSERT(particleCnt);
-        Quantity q;
-        q.insert<TValue, TOrder>(defaultValue, particleCnt, range);
-        quantities[key] = std::move(q);
+        quantities[key] = Quantity(order, defaultValue, particleCnt);
         return quantities[key];
     }
 
@@ -135,16 +138,15 @@ public:
     /// with the same key. If this is the first quantity inserted into the storage, it sets
     /// the number of particles; all quantities added after that must have the same size.
     /// \returns Reference to the inserted quantity.
-    template <typename TValue, OrderEnum TOrder>
-    Quantity& insert(const QuantityIds key, Array<TValue>&& values, const Range range = Range::unbounded()) {
-        Quantity q;
-        q.insert<TValue, TOrder>(std::move(values), range);
+    template <typename TValue>
+    Quantity& insert(const QuantityIds key, const OrderEnum order, Array<TValue>&& values) {
+        Quantity q(order, std::move(values));
         UNUSED_IN_RELEASE(const Size size = q.size();)
         quantities[key] = std::move(q);
         if (quantities.size() == 1) {
             // set material ids; we have only one material, so set everything to zero
             if (!materials.empty()) {
-                this->insert<Size, OrderEnum::ZERO_ORDER>(QuantityIds::MATERIAL_IDX, 0);
+                this->insert<Size>(QuantityIds::MATERIAL_IDX, OrderEnum::ZERO, 0);
             }
         } else {
             ASSERT(size == getParticleCnt()); // size must match sizes of other quantities
@@ -153,7 +155,7 @@ public:
     }
 
     /// Returns view that can iterate over indices of particles belonging to given material.
-    MaterialView getMaterial(const Size matId);
+    MaterialSequence getMaterial(const Size matId);
 
     /// Return the number of materials in the storage. Material indices from 0 to (getMaterialCnt() - 1) are
     /// valid input for \ref getMaterialView function.

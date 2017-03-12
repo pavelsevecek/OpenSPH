@@ -140,7 +140,7 @@ public:
         const Float uMin = settings.get<Float>(BodySettingsIds::ENERGY_MIN);
         const Float qMin = rhoMin * uMin;
         ASSERT(qRange.lower() > 0._f && "Cannot use DISPH with zero specific energy");
-        storage.insert<Float, OrderEnum::FIRST_ORDER>(QuantityIds::ENERGY_DENSITY, q0, qRange);
+        storage.insert<Float, OrderEnum::FIRST>(QuantityIds::ENERGY_DENSITY, q0, qRange);
         MaterialAccessor(storage).minimal(QuantityIds::ENERGY_DENSITY, 0) = qMin;
 
         // energy per particle
@@ -149,15 +149,15 @@ public:
             e[i] *= u0;
         }
         /// \todo range and min value for energy per particle
-        storage.insert<Float, OrderEnum::FIRST_ORDER>(QuantityIds::ENERGY_PER_PARTICLE, std::move(e));
+        storage.insert<Float, OrderEnum::FIRST>(QuantityIds::ENERGY_PER_PARTICLE, std::move(e));
 
         // setup quantities used 'outside' of the solver
-        storage.insert<Float, OrderEnum::ZERO_ORDER>(QuantityIds::DENSITY, rho0);
-        storage.insert<Float, OrderEnum::ZERO_ORDER>(QuantityIds::ENERGY, u0);
+        storage.insert<Float, OrderEnum::ZERO>(QuantityIds::DENSITY, rho0);
+        storage.insert<Float, OrderEnum::ZERO>(QuantityIds::ENERGY, u0);
         Float p0, cs0;
         tieToTuple(p0, cs0) = EosAccessor(storage).evaluate(0);
-        storage.insert<Float, OrderEnum::ZERO_ORDER>(QuantityIds::SOUND_SPEED, cs0);
-        storage.insert<Float, OrderEnum::ZERO_ORDER>(QuantityIds::PRESSURE, p0);
+        storage.insert<Float, OrderEnum::ZERO>(QuantityIds::SOUND_SPEED, cs0);
+        storage.insert<Float, OrderEnum::ZERO>(QuantityIds::PRESSURE, p0);
     }
 };
 

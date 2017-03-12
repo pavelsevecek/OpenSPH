@@ -1,29 +1,31 @@
 #include "physics/Damage.h"
 #include "math/rng/Rng.h"
-#include "quantities/Material.h"
+#include "quantities/AbstractMaterial.h"
 #include "quantities/Storage.h"
 #include "system/Factory.h"
 #include "system/Logger.h"
 
 NAMESPACE_SPH_BEGIN
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/// ScalarDamage implementation
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 ScalarDamage::ScalarDamage(const GlobalSettings& settings, const ExplicitFlaws options)
-    : options(options)
-    , logger("dm959.txt") {
+    : options(options) {
     kernelRadius = Factory::getKernel<3>(settings).radius();
 }
 
-void ScalarDamage::initialize(Storage& storage, const BodySettings& settings) const {
-    storage.insert<Float, OrderEnum::FIRST_ORDER>(QuantityIds::DAMAGE,
+void ScalarDamage::create(Storage& storage, const BodySettings& settings) const {
+    storage.insert<Float, OrderEnum::FIRST>(QuantityIds::DAMAGE,
         settings.get<Float>(BodySettingsIds::DAMAGE),
         settings.get<Range>(BodySettingsIds::DAMAGE_RANGE));
     MaterialAccessor(storage).minimal(QuantityIds::DAMAGE, 0) =
         settings.get<Float>(BodySettingsIds::DAMAGE_MIN);
-    storage.insert<Float, OrderEnum::ZERO_ORDER>(QuantityIds::EPS_MIN, 0._f);
-    storage.insert<Float, OrderEnum::ZERO_ORDER>(QuantityIds::M_ZERO, 0._f);
-    storage.insert<Float, OrderEnum::ZERO_ORDER>(QuantityIds::EXPLICIT_GROWTH, 0._f);
-    storage.insert<Size, OrderEnum::ZERO_ORDER>(QuantityIds::N_FLAWS, 0);
+    storage.insert<Float>(QuantityIds::EPS_MIN, OrderEnum::ZERO, 0._f);
+    storage.insert<Float>(QuantityIds::M_ZERO, OrderEnum::ZERO, 0._f);
+    storage.insert<Float>(QuantityIds::EXPLICIT_GROWTH, OrderEnum::ZERO, 0._f);
+    storage.insert<Size>(QuantityIds::N_FLAWS, OrderEnum::ZERO, 0);
     ArrayView<Float> rho, m, eps_min, m_zero, growth;
     tie(rho, m, eps_min, m_zero, growth) = storage.getValues<Float>(QuantityIds::DENSITY,
         QuantityIds::MASSES,
@@ -96,11 +98,25 @@ void ScalarDamage::initialize(Storage& storage, const BodySettings& settings) co
     }
 }
 
-void ScalarDamage::update(Storage& storage) {
-    damage = storage.getValue<Float>(QuantityIds::DAMAGE);
+void ScalarDamage::reduce(Storage& storage, const MaterialSequence sequence) {
+    ArrayView<Float> damage = storage.getValue<Float>(QuantityIds::DAMAGE);
+    // we can reduce pressure in place as the original value can be computed from equation of state
+    ArrayView<Float> p = storage.getValue<Float>(QuantityIds::PRESSURE);
+    // stress tensor is evolved in time, so we need to keep unchanged value; create modified value
+    ArrayView<TracelessTensor> s = storage.getModification<TracelessTensor>(QuantityIds::DEVIATORIC_STRESS);
+
+    for (Size i : sequence) {
+        const Float d = pow<3>(damage[i]);
+        // pressure is reduced only for negative values
+        if (p[i] < 0._f) {
+            p = (1._f - d) * p[i];
+        }
+        // stress is reduced for both positive and negative values
+        s[i] = (1._f - d) * s[i];
+    }
 }
 
-void ScalarDamage::integrate(Storage& storage) {
+void ScalarDamage::integrate(Storage& storage, const MaterialSequence sequence) {
     ArrayView<TracelessTensor> s, ds;
     tie(s, ds) = storage.getAll<TracelessTensor>(QuantityIds::DEVIATORIC_STRESS);
     ArrayView<Float> p, eps_min, m_zero, growth;
@@ -109,8 +125,8 @@ void ScalarDamage::integrate(Storage& storage) {
     ArrayView<Size> n_flaws = storage.getValue<Size>(QuantityIds::N_FLAWS);
     ArrayView<Float> damage, ddamage;
     tie(damage, ddamage) = storage.getAll<Float>(QuantityIds::DAMAGE);
-    MaterialAccessor material(storage);
-    for (Size i = 0; i < p.size(); ++i) {
+    Abstract::Material& material = sequence.material();
+    for (Size i : sequence) {
         // if damage is already on max value, set stress to zero to avoid limiting timestep by non-existent
         // stresses
         const Range range = storage.getQuantity(QuantityIds::DAMAGE).getRange();
@@ -123,7 +139,7 @@ void ScalarDamage::integrate(Storage& storage) {
         Float sig1, sig2, sig3;
         tie(sig1, sig2, sig3) = findEigenvalues(sigma);
         const Float sigMax = max(sig1, sig2, sig3);
-        const Float young = material.getParam<Float>(BodySettingsIds::YOUNG_MODULUS, i);
+        const Float young = material.getParam<Float>(BodySettingsIds::YOUNG_MODULUS);
         // young is always positive, but damages only modifies negative values
         const Float young_red = max(-reduce(-young, i), 1.e-20_f);
         const Float strain = sigMax / young_red;

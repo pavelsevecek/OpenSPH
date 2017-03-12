@@ -3,8 +3,8 @@
 /// Pavel Sevecek 2016
 /// sevecek at sirrah.troja.mff.cuni.cz
 
-#include "core/Traits.h"
-#include "core/Assert.h"
+#include "common/Traits.h"
+#include "common/Assert.h"
 #include "objects/wrappers/AlignedStorage.h"
 #include <functional>
 #include <type_traits>

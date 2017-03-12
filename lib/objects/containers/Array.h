@@ -11,6 +11,9 @@
 NAMESPACE_SPH_BEGIN
 
 template <typename T, typename TCounter = Size>
+class CopyableArray;
+
+template <typename T, typename TCounter = Size>
 class Array : public Noncopyable {
     friend class VectorizedArray; // needs to explicitly set actSize
 private:
@@ -86,6 +89,18 @@ public:
         std::swap(this->maxSize, other.maxSize);
         std::swap(this->actSize, other.actSize);
         return *this;
+    }
+
+    /// Performs deep-copy of array elements, resizing array if needed. This is only way to copy elements, as
+    /// for Array object deep-copying of elements is forbidden as it is rarely needed and deleting copy
+    /// constructor helps us avoid accidental deep-copy, for example when passing array as an argument of
+    /// function.
+    Array& operator=(const CopyableArray<T, TCounter>& other) {
+        Array& rhs = other;
+        this->resize(rhs.size());
+        for (TCounter i = 0; i < rhs.size(); ++i) {
+            data[i] = rhs[i];
+        }
     }
 
     /// For l-value references assign each value (does not actually move anything). Works only for arrays of
@@ -317,6 +332,25 @@ public:
     }
 };
 
+template <typename T, typename TCounter>
+class CopyableArray {
+private:
+    const Array<T, TCounter>& array;
+
+public:
+    CopyableArray(const Array<T, TCounter>& array)
+        : array(array) {}
+
+    operator const Array<T, TCounter>&() {
+        return array;
+    }
+};
+
+template <typename T, typename TCounter>
+INLINE CopyableArray<T, TCounter> copyable(const Array<T, TCounter>& array) {
+    return CopyableArray<T, TCounter>(array);
+}
+
 /// Creates an array from a list of parameters.
 template <typename T0, typename... TArgs>
 Array<std::decay_t<T0>> makeArray(T0&& t0, TArgs&&... rest) {
@@ -330,16 +364,12 @@ Array<T0&> tieToArray(T0& t0, TArgs&... rest) {
 }
 
 
-/// Performs deep-copy of array elements, resizing array if needed. This is only way to copy elements, as for
-/// Array objet deep-copying of elements is forbidden as it is rarely needed and deleting copy constructor
-/// helps us avoid accidental deep-copy, for example when passing array as an argument of function.
-template <typename T, typename TCounter>
-void copyArray(Array<T, TCounter>& lhs, const Array<T, TCounter>& rhs) {
-    lhs.resize(rhs.size());
-    for (TCounter i = 0; i < rhs.size(); ++i) {
-        lhs[i] = rhs[i];
+NAMESPACE_SPH_END
+
+/// Overload of std::swap for Sph::Array.
+namespace std {
+    template <typename T, typename TCounter>
+    void swap(Sph::Array<T, TCounter>& ar1, Sph::Array<T, TCounter>& ar2) {
+        ar1.swap(ar2);
     }
 }
-
-
-NAMESPACE_SPH_END

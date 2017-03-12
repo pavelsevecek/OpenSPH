@@ -4,7 +4,7 @@
 /// Pavel Sevecek 2016
 /// sevecek at sirrah.troja.mff.cuni.cz
 
-#include "core/Globals.h"
+#include "common/Globals.h"
 #include "math/Math.h"
 #include "objects/Object.h"
 #include <string>

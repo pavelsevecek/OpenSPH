@@ -166,7 +166,9 @@ TEST_CASE("Variant emplace", "[variant]") {
         RecordType r;
 
         Dummy(int i, float f, RecordType&& r)
-            : i(i), f(f), r(std::move(r)) {}
+            : i(i)
+            , f(f)
+            , r(std::move(r)) {}
     };
 
     Variant<RecordType, Dummy> variant1;
@@ -185,6 +187,22 @@ TEST_CASE("Variant emplace", "[variant]") {
     REQUIRE(d.f == 6.f);
     REQUIRE(d.r.wasMoveConstructed);
     REQUIRE(d.r.value == 7);
+}
+
+TEST_CASE("Variant swap", "[variant]") {
+    Variant<int, RecordType> variant1(RecordType(5));
+    Variant<int, RecordType> variant2(RecordType(3));
+    REQUIRE_FALSE(variant1.get<RecordType>().wasSwapped);
+
+    std::swap(variant1, variant2);
+
+    REQUIRE(variant1.getTypeIdx() == 1);
+    REQUIRE(variant1.get<RecordType>().value == 3);
+    REQUIRE(variant1.get<RecordType>().wasSwapped);
+    REQUIRE(variant2.getTypeIdx() == 1);
+    REQUIRE(variant2.get<RecordType>().value == 5);
+    REQUIRE(variant2.get<RecordType>().wasSwapped);
+    /// \todo test assert when swapping different types
 }
 
 TEST_CASE("Variant empty string", "[variant]") {
@@ -218,7 +236,7 @@ TEST_CASE("Variant forValue", "[variant]") {
         int operator()(const float) {
             return 3;
         }
-        int operator()(const double){
+        int operator()(const double) {
             return 4;
         }
     } dispatcher;

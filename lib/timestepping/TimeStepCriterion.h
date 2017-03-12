@@ -1,7 +1,7 @@
 #pragma once
 
 #include "objects/ExtendEnum.h"
-#include "objects/ForwardDecl.h"
+#include "common/ForwardDecl.h"
 #include "objects/containers/Array.h"
 #include "objects/wrappers/Value.h"
 #include "quantities/QuantityIds.h"

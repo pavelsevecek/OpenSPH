@@ -1,29 +1,24 @@
 #pragma once
 
+#include "common/ForwardDecl.h"
 #include "geometry/TracelessTensor.h"
 #include "geometry/Vector.h"
-#include "objects/ForwardDecl.h"
 #include "objects/containers/ArrayView.h"
-#include "system/Logger.h"
-#include "system/Statistics.h"
 
 NAMESPACE_SPH_BEGIN
 
-class DummyDamage {
-public:
-    Statistics* stats;
+namespace Abstract {
+    class Damage : public Polymorphic {
+        /// Sets up all the necessary quantities in the storage given material settings.
+        virtual void setFlaws(Storage& storage, const BodySettings& settings) const = 0;
 
-    DummyDamage(const GlobalSettings& UNUSED(settings)) {}
+        /// Computes modified values of pressure and stress tensor due to fragmentation.
+        virtual void reduce(Storage& storage, const MaterialSequence sequence) = 0;
 
-    INLINE Float reduce(const Float p, const int UNUSED(i)) const {
-        return p;
-    }
-
-    INLINE TracelessTensor reduce(const TracelessTensor& s, const int UNUSED(i)) const {
-        return s;
-    }
-};
-
+        /// Compute damage derivatives
+        virtual void integrate(Storage& storage, const MaterialSequence sequence) = 0;
+    };
+}
 
 enum class ExplicitFlaws {
     UNIFORM,  ///< Distribute flaws uniformly (to random particles), see Benz & Asphaug (1994), Sec. 3.3.1
@@ -32,42 +27,30 @@ enum class ExplicitFlaws {
 };
 
 /// Scalar damage describing fragmentation of the body according to Grady-Kipp model (Grady and Kipp, 1980)
-class ScalarDamage {
+class ScalarDamage : public Abstract::Damage {
 private:
-    // here d actually contains third root of damage
-    ArrayView<Float> damage;
     Float kernelRadius;
 
     ExplicitFlaws options;
-    FileLogger logger;
-
 
 public:
-    Statistics* stats = nullptr;
     ScalarDamage(const GlobalSettings& settings, const ExplicitFlaws options = ExplicitFlaws::UNIFORM);
 
-    void initialize(Storage& storage, const BodySettings& settings) const;
+    virtual void setFlaws(Storage& storage, const BodySettings& settings) const override;
 
-    void update(Storage& storage);
+    virtual void reduce(Storage& storage, const MaterialSequence sequence) override;
 
-    void integrate(Storage& storage);
+    virtual void integrate(Storage& storage, const MaterialSequence sequence) override;
+};
 
+class TensorDamage : public Abstract::Damage {
+private:
+public:
+    virtual void setFlaws(Storage& storage, const BodySettings& settings) const override;
 
-    /// Reduce pressure
-    INLINE Float reduce(const Float p, const int i) const {
-        const Float d = pow<3>(damage[i]);
-        if (p < 0._f) {
-            return (1._f - d) * p;
-        } else {
-            return p;
-        }
-    }
+    virtual void reduce(Storage& storage, const MaterialSequence sequence) override;
 
-    /// Reduce deviatoric stress tensor
-    INLINE TracelessTensor reduce(const TracelessTensor& s, const int i) const {
-        const Float d = pow<3>(damage[i]);
-        return (1._f - d) * s;
-    }
+    virtual void integrate(Storage& storage, const MaterialSequence sequence) override;
 };
 
 NAMESPACE_SPH_END

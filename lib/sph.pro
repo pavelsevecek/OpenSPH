@@ -45,82 +45,20 @@ SOURCES += \
     system/Factory.cpp \
     system/Profiler.cpp \
     system/Settings.cpp \
+    system/Statistics.cpp \
     physics/Eos.cpp \
     physics/TimeFormat.cpp \
     physics/Damage.cpp \
-    physics/Yielding.cpp \
+    physics/Rheology.cpp \
     post/Components.cpp \
     geometry/Domain.cpp \
     physics/Integrals.cpp \
     timestepping/TimeStepCriterion.cpp \
     objects/finders/KdTree.cpp \
-    system/Statistics.cpp \
     solvers/AbstractSolver.cpp \
     problem/Problem.cpp \
     sph/Diagnostics.cpp \
-    geometry/test/Box.cpp \
-    geometry/test/Domain.cpp \
-    geometry/test/Indices.cpp \
-    geometry/test/Multipole.cpp \
-    geometry/test/Tensor.cpp \
-    geometry/test/TracelessTensor.cpp \
-    geometry/test/Vector.cpp \
-    math/rng/test/Rng.cpp \
-    math/rng/test/VectorRng.cpp \
-    math/test/Integrator.cpp \
-    math/test/Math.cpp \
-    math/test/Morton.cpp \
-    objects/containers/test/Array.cpp \
-    objects/containers/test/ArrayUtils.cpp \
-    objects/containers/test/BufferedArray.cpp \
-    objects/containers/test/StaticArray.cpp \
-    objects/containers/test/Tuple.cpp \
     objects/finders/benchmark/Finders.cpp \
-    objects/finders/test/BruteForce.cpp \
-    objects/finders/test/Finders.cpp \
-    objects/finders/test/Order.cpp \
-    objects/wrappers/test/AlignedStorage.cpp \
-    objects/wrappers/test/Any.cpp \
-    objects/wrappers/test/Flags.cpp \
-    objects/wrappers/test/Iterators.cpp \
-    objects/wrappers/test/NonOwningPtr.cpp \
-    objects/wrappers/test/Optional.cpp \
-    objects/wrappers/test/Range.cpp \
-    objects/wrappers/test/Variant.cpp \
-    objects/wrappers/test/VectorizedArray.cpp \
-    physics/test/Damage.cpp \
-    physics/test/Eos.cpp \
-    physics/test/Integrals.cpp \
-    physics/test/TimeFormat.cpp \
-    physics/test/Yielding.cpp \
-    post/test/Components.cpp \
-    problem/test/Problem.cpp \
-    quantities/test/Iterate.cpp \
-    quantities/test/Material.cpp \
-    quantities/test/Quantity.cpp \
-    quantities/test/QuantityHelpers.cpp \
-    quantities/test/Storage.cpp \
-    solvers/benchmark/ContinuitySolver.cpp \
-    solvers/test/Accumulator.cpp \
-    solvers/test/ContinuitySolver.cpp \
-    solvers/test/Module.cpp \
-    sph/av/test/Balsara.cpp \
-    sph/boundary/test/Boundary.cpp \
-    sph/initial/test/Distribution.cpp \
-    sph/initial/test/Initial.cpp \
-    sph/kernel/test/Kernel.cpp \
-    sph/test/Diagnostics.cpp \
-    system/test/ArrayStats.cpp \
-    system/test/CallbackList.cpp \
-    system/test/Output.cpp \
-    system/test/Profiler.cpp \
-    system/test/Settings.cpp \
-    system/test/Statistics.cpp \
-    system/test/Timer.cpp \
-    thread/test/Pool.cpp \
-    timestepping/test/TimeStepCriterion.cpp \
-    timestepping/test/TimeStepping.cpp \
-    quantities/AbstractMaterial.cpp \
     common/Assert.cpp
 
 HEADERS += \
@@ -160,8 +98,6 @@ HEADERS += \
     physics/Eos.h \
     physics/TimeFormat.h \
     physics/Integrals.h \
-    physics/Yielding.h \
-    physics/Damage.h \
     problem/Problem.h \
     sph/kernel/Kernel.h \
     sph/initial/Distribution.h \
@@ -198,7 +134,6 @@ HEADERS += \
     sph/forces/Factory.h \
     solvers/SolverFactory.h \
     objects/wrappers/AlignedStorage.h \
-    solvers/Module.h \
     sph/initial/Initial.h \
     geometry/Multipole.h \
     objects/finders/LinkedList.h \
@@ -238,4 +173,6 @@ HEADERS += \
     quantities/AbstractMaterial.h \
     sph/Material.h \
     common/Assert.h \
-    common/Assert.h
+    common/Assert.h \
+    physics/Damage.h \
+    physics/Rheology.h

@@ -46,7 +46,7 @@ public:
     }
 
     void integrate(Storage& storage) {
-        if (key && storage.has<Value, OrderEnum::ZERO_ORDER>(key.get())) {
+        if (key && storage.has<Value, OrderEnum::ZERO>(key.get())) {
             Array<Value>& quantity = storage.getValue<Value>(key.get());
             quantity.swap(values);
         }

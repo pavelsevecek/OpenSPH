@@ -3,7 +3,7 @@
 /// Pavel Sevecek 2016
 /// sevecek at sirrah.troja.mff.cuni.cz
 
-#include "core/Traits.h"
+#include "common/Traits.h"
 
 NAMESPACE_SPH_BEGIN
 

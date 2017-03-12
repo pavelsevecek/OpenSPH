@@ -1,4 +1,4 @@
-#include "core/Assert.h"
+#include "common/Assert.h"
 
 NAMESPACE_SPH_BEGIN
 

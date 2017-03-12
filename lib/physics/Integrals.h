@@ -1,7 +1,7 @@
 #pragma once
 
 #include "math/Means.h"
-#include "objects/ForwardDecl.h"
+#include "common/ForwardDecl.h"
 #include "objects/containers/Array.h"
 #include "objects/wrappers/Value.h"
 #include "system/Settings.h"

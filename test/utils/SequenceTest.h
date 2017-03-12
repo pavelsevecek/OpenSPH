@@ -1,7 +1,7 @@
 #pragma once
 
 #include "objects/wrappers/Outcome.h"
-#include "core/Globals.h"
+#include "common/Globals.h"
 
 /// Pavel Sevecek 2017
 /// sevecek at sirrah.troja.mff.cuni.cz

@@ -178,12 +178,12 @@ public:
     }
 
     virtual void initialize(Storage& storage, const BodySettings& settings) const override {
-        storage.insert<Float, OrderEnum::FIRST_ORDER>(QuantityIds::DENSITY,
+        storage.insert<Float, OrderEnum::FIRST>(QuantityIds::DENSITY,
             settings.get<Float>(BodySettingsIds::DENSITY),
             settings.get<Range>(BodySettingsIds::DENSITY_RANGE));
         MaterialAccessor(storage).minimal(QuantityIds::DENSITY, 0) =
             settings.get<Float>(BodySettingsIds::DENSITY_MIN);
-        storage.insert<Size, OrderEnum::ZERO_ORDER>(QuantityIds::NEIGHBOUR_CNT, 0);
+        storage.insert<Size, OrderEnum::ZERO>(QuantityIds::NEIGHBOUR_CNT, 0);
         this->initializeModules(storage, settings);
     }
 };

@@ -15,6 +15,7 @@ struct RecordType {
     bool wasCopyAssigned = false;
     bool wasDefaultConstructed = false;
     bool wasValueConstructed = false;
+    bool wasSwapped = false;
 
     static int constructedNum;
     static int destructedNum;
@@ -24,7 +25,9 @@ struct RecordType {
         destructedNum = 0;
     }
 
-    static int existingNum() { return constructedNum - destructedNum; }
+    static int existingNum() {
+        return constructedNum - destructedNum;
+    }
 
     int value = -1;
 
@@ -33,7 +36,9 @@ struct RecordType {
         constructedNum++;
     }
 
-    ~RecordType() { destructedNum++; }
+    ~RecordType() {
+        destructedNum++;
+    }
 
     RecordType(const int value)
         : value(value) {
@@ -67,7 +72,9 @@ struct RecordType {
         return *this;
     }
 
-    bool operator==(const RecordType& other) const { return value == other.value; }
+    bool operator==(const RecordType& other) const {
+        return value == other.value;
+    }
 };
 
 template <typename T>
@@ -80,3 +87,11 @@ struct IsRecordType<RecordType> {
 };
 
 NAMESPACE_SPH_END
+
+namespace std {
+    void swap(Sph::RecordType& r1, Sph::RecordType& r2) {
+        swap(r1.value, r2.value);
+        r1.wasSwapped = true;
+        r2.wasSwapped = true;
+    }
+}

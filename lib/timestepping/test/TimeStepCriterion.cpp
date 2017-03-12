@@ -12,13 +12,13 @@ using namespace Sph;
 static Storage getStorage() {
     Storage storage(BodySettings::getDefaults());
     HexagonalPacking distribution;
-    storage.insert<Vector, OrderEnum::SECOND_ORDER>(
+    storage.insert<Vector, OrderEnum::SECOND>(
         QuantityIds::POSITIONS, distribution.generate(100, BlockDomain(Vector(0._f), Vector(100._f))));
-    storage.insert<Float, OrderEnum::FIRST_ORDER>(QuantityIds::ENERGY, 0._f, Range::unbounded());
+    storage.insert<Float, OrderEnum::FIRST>(QuantityIds::ENERGY, 0._f, Range::unbounded());
     MaterialAccessor(storage).minimal(QuantityIds::ENERGY, 0) = EPS;
 
     const Float cs = 5._f;
-    storage.insert<Float, OrderEnum::ZERO_ORDER>(QuantityIds::SOUND_SPEED, cs);
+    storage.insert<Float, OrderEnum::ZERO>(QuantityIds::SOUND_SPEED, cs);
     return storage;
 }
 

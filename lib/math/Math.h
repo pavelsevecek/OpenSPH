@@ -4,9 +4,9 @@
 /// Pavel Sevecek 2016
 /// sevecek at sirrah.troja.mff.cuni.cz
 
-#include "core/Assert.h"
-#include "core/Globals.h"
-#include "core/Traits.h"
+#include "common/Assert.h"
+#include "common/Globals.h"
+#include "common/Traits.h"
 #include <algorithm>
 #include <cstring>
 #include <math.h>

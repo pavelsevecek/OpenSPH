@@ -3,7 +3,7 @@
 /// Pavel Sevecek 2017
 /// sevecek ar sirrah.troja.mff.cuni.cz
 
-#include "core/Assert.h"
+#include "common/Assert.h"
 #include <sstream>
 #include <string>
 

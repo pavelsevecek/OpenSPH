@@ -4,7 +4,7 @@
 /// Pavel Sevecek 2016
 /// sevecek at sirrah.troja.mff.cuni.cz
 
-#include "core/Globals.h"
+#include "common/Globals.h"
 #include <type_traits>
 
 NAMESPACE_SPH_BEGIN
@@ -88,9 +88,13 @@ public:
     ReferenceWrapper(T& ref)
         : data(std::addressof(ref)) {}
 
-    INLINE operator T&() noexcept { return *data; }
+    INLINE operator T&() noexcept {
+        return *data;
+    }
 
-    INLINE operator const T&() const noexcept { return *data; }
+    INLINE operator const T&() const noexcept {
+        return *data;
+    }
 };
 
 

@@ -1,6 +1,6 @@
 #define CATCH_CONFIG_RUNNER
 #include "catch.hpp"
-#include "core/Assert.h"
+#include "common/Assert.h"
 
 int main(int argc, char* argv[]) {
     Sph::Assert::isTest = true;

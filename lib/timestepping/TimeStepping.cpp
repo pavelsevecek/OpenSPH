@@ -1,10 +1,10 @@
-#include "sph/timestepping/TimeStepping.h"
+#include "timestepping/TimeStepping.h"
 #include "quantities/Iterate.h"
 #include "solvers/AbstractSolver.h"
-#include "sph/timestepping/TimeStepCriterion.h"
 #include "system/Factory.h"
 #include "system/Profiler.h"
 #include "system/Statistics.h"
+#include "timestepping/TimeStepCriterion.h"
 
 NAMESPACE_SPH_BEGIN
 

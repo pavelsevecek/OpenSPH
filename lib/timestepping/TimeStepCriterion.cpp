@@ -64,7 +64,7 @@ Tuple<Float, AllCriterionIds> DerivativeCriterion::compute(Storage& storage,
     });
     // make sure only 2nd order quanity is positions, they are handled by Acceleration criterion
     ASSERT(std::count_if(storage.begin(), storage.end(), [](auto&& pair) {
-        return pair.second.getOrderEnum() == OrderEnum::SECOND_ORDER;
+        return pair.second.getOrderEnum() == OrderEnum::SECOND;
     }) == 1);
 
     if (totalMinStep > maxStep) {

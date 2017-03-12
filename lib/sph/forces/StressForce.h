@@ -4,7 +4,6 @@
 #include "quantities/AbstractMaterial.h"
 #include "quantities/Storage.h"
 #include "solvers/Accumulator.h"
-#include "solvers/Module.h"
 #include "system/Statistics.h"
 
 NAMESPACE_SPH_BEGIN
@@ -136,7 +135,7 @@ public:
     }
 
     void initialize(Storage& storage, const BodySettings& settings) const {
-        storage.insert<Float, OrderEnum::FIRST_ORDER>(QuantityIds::ENERGY,
+        storage.insert<Float, OrderEnum::FIRST>(QuantityIds::ENERGY,
             settings.get<Float>(BodySettingsIds::ENERGY),
             settings.get<Range>(BodySettingsIds::ENERGY_RANGE));
         MaterialAccessor(storage).minimal(QuantityIds::ENERGY, 0) =
@@ -151,16 +150,16 @@ public:
             for (Size i = 0; i < n; ++i) {
                 tieToTuple(p[i], cs[i]) = eos->evaluate(rho0, u0);
             }
-            storage.insert<Float, OrderEnum::ZERO_ORDER>(QuantityIds::PRESSURE, std::move(p));
-            storage.insert<Float, OrderEnum::ZERO_ORDER>(QuantityIds::SOUND_SPEED, std::move(cs));
+            storage.insert<Float, OrderEnum::ZERO>(QuantityIds::PRESSURE, std::move(p));
+            storage.insert<Float, OrderEnum::ZERO>(QuantityIds::SOUND_SPEED, std::move(cs));
         }
         if (flags.has(Options::USE_DIV_S)) {
-            storage.insert<TracelessTensor, OrderEnum::FIRST_ORDER>(QuantityIds::DEVIATORIC_STRESS,
+            storage.insert<TracelessTensor, OrderEnum::FIRST>(QuantityIds::DEVIATORIC_STRESS,
                 settings.get<TracelessTensor>(BodySettingsIds::STRESS_TENSOR),
                 Range::unbounded());
             MaterialAccessor(storage).minimal(QuantityIds::DEVIATORIC_STRESS, 0) =
                 settings.get<Float>(BodySettingsIds::STRESS_TENSOR_MIN);
-            storage.insert<Tensor, OrderEnum::ZERO_ORDER>(QuantityIds::RHO_GRAD_V, Tensor::null());
+            storage.insert<Tensor, OrderEnum::ZERO>(QuantityIds::RHO_GRAD_V, Tensor::null());
             MaterialAccessor material(storage);
             material.setParams(BodySettingsIds::SHEAR_MODULUS, settings);
         }

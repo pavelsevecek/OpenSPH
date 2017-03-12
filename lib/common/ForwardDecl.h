@@ -30,7 +30,7 @@ namespace Abstract {
 }
 struct Ghost;
 struct NeighbourRecord;
-class MaterialView;
+class MaterialSequence;
 
 
 NAMESPACE_SPH_END

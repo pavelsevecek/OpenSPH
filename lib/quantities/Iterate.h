@@ -68,7 +68,7 @@ template <typename TFunctor>
 struct StorageVisitor<VisitorEnum::ZERO_ORDER, TFunctor> {
     template <typename TValue>
     void visit(Quantity& q, const QuantityIds id, TFunctor&& functor) {
-        if (q.getOrderEnum() != OrderEnum::ZERO_ORDER) {
+        if (q.getOrderEnum() != OrderEnum::ZERO) {
             return;
         }
         functor(id, q.getValue<TValue>());
@@ -78,10 +78,10 @@ template <typename TFunctor>
 struct StoragePairVisitor<VisitorEnum::ZERO_ORDER, TFunctor> {
     template <typename TValue>
     void visit(Quantity& q1, Quantity& q2, TFunctor&& functor) {
-        if (q1.getOrderEnum() != OrderEnum::ZERO_ORDER) {
+        if (q1.getOrderEnum() != OrderEnum::ZERO) {
             return;
         }
-        ASSERT(q2.getOrderEnum() == OrderEnum::ZERO_ORDER);
+        ASSERT(q2.getOrderEnum() == OrderEnum::ZERO);
         functor(q1.getValue<TValue>(), q2.getValue<TValue>());
     }
 };
@@ -93,7 +93,7 @@ template <typename TFunctor>
 struct StorageVisitor<VisitorEnum::FIRST_ORDER, TFunctor> {
     template <typename TValue>
     void visit(Quantity& q, const QuantityIds id, TFunctor&& functor) {
-        if (q.getOrderEnum() != OrderEnum::FIRST_ORDER) {
+        if (q.getOrderEnum() != OrderEnum::FIRST) {
             return;
         }
         /// \todo no dynamic_cast necessary here, maybe use two versions of cast, safe/checked and
@@ -105,10 +105,10 @@ template <typename TFunctor>
 struct StoragePairVisitor<VisitorEnum::FIRST_ORDER, TFunctor> {
     template <typename TValue>
     void visit(Quantity& q1, Quantity& q2, TFunctor&& functor) {
-        if (q1.getOrderEnum() != OrderEnum::FIRST_ORDER) {
+        if (q1.getOrderEnum() != OrderEnum::FIRST) {
             return;
         }
-        ASSERT(q2.getOrderEnum() == OrderEnum::FIRST_ORDER);
+        ASSERT(q2.getOrderEnum() == OrderEnum::FIRST);
         functor(q1.getValue<TValue>(), q1.getDt<TValue>(), q2.getValue<TValue>(), q2.getDt<TValue>());
     }
 };
@@ -119,7 +119,7 @@ template <typename TFunctor>
 struct StorageVisitor<VisitorEnum::SECOND_ORDER, TFunctor> {
     template <typename TValue>
     void visit(Quantity& q, const QuantityIds id, TFunctor&& functor) {
-        if (q.getOrderEnum() != OrderEnum::SECOND_ORDER) {
+        if (q.getOrderEnum() != OrderEnum::SECOND) {
             return;
         }
         functor(id, q.getValue<TValue>(), q.getDt<TValue>(), q.getD2t<TValue>());
@@ -129,10 +129,10 @@ template <typename TFunctor>
 struct StoragePairVisitor<VisitorEnum::SECOND_ORDER, TFunctor> {
     template <typename TValue>
     void visit(Quantity& q1, Quantity& q2, TFunctor&& functor) {
-        if (q1.getOrderEnum() != OrderEnum::SECOND_ORDER) {
+        if (q1.getOrderEnum() != OrderEnum::SECOND) {
             return;
         }
-        ASSERT(q2.getOrderEnum() == OrderEnum::SECOND_ORDER);
+        ASSERT(q2.getOrderEnum() == OrderEnum::SECOND);
         functor(q1.getValue<TValue>(),
             q1.getDt<TValue>(),
             q1.getD2t<TValue>(),
@@ -151,9 +151,9 @@ struct StorageVisitor<VisitorEnum::HIGHEST_DERIVATIVES, TFunctor> {
     template <typename TValue>
     void visit(Quantity& q, const QuantityIds id, TFunctor&& functor) {
         const OrderEnum order = q.getOrderEnum();
-        if (order == OrderEnum::FIRST_ORDER) {
+        if (order == OrderEnum::FIRST) {
             functor(id, q.getDt<TValue>());
-        } else if (order == OrderEnum::SECOND_ORDER) {
+        } else if (order == OrderEnum::SECOND) {
             functor(id, q.getD2t<TValue>());
         }
     }
@@ -164,9 +164,9 @@ struct StoragePairVisitor<VisitorEnum::HIGHEST_DERIVATIVES, TFunctor> {
     void visit(Quantity& q1, Quantity& q2, TFunctor&& functor) {
         const OrderEnum order1 = q1.getOrderEnum();
         ASSERT(order1 == q2.getOrderEnum());
-        if (order1 == OrderEnum::FIRST_ORDER) {
+        if (order1 == OrderEnum::FIRST) {
             functor(q1.getDt<TValue>(), q2.getDt<TValue>());
-        } else if (order1 == OrderEnum::SECOND_ORDER) {
+        } else if (order1 == OrderEnum::SECOND) {
             functor(q1.getD2t<TValue>(), q2.getD2t<TValue>());
         }
     }

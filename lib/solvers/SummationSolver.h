@@ -119,10 +119,10 @@ public:
     }
 
     virtual void initialize(Storage& storage, const BodySettings& settings) const override {
-        storage.insert<Float, OrderEnum::ZERO_ORDER>(QuantityIds::DENSITY,
+        storage.insert<Float, OrderEnum::ZERO>(QuantityIds::DENSITY,
             settings.get<Float>(BodySettingsIds::DENSITY),
             settings.get<Range>(BodySettingsIds::DENSITY_RANGE));
-        storage.insert<Float, OrderEnum::FIRST_ORDER>(QuantityIds::ENERGY,
+        storage.insert<Float, OrderEnum::FIRST>(QuantityIds::ENERGY,
             settings.get<Float>(BodySettingsIds::ENERGY),
             settings.get<Range>(BodySettingsIds::ENERGY_RANGE));
         this->initializeModules(storage, settings);

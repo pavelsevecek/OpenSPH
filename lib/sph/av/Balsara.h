@@ -7,7 +7,6 @@
 
 #include "quantities/Storage.h"
 #include "solvers/Accumulator.h"
-#include "solvers/Module.h"
 #include "system/Settings.h"
 
 NAMESPACE_SPH_BEGIN
@@ -37,8 +36,8 @@ public:
 
     void initialize(Storage& storage, const BodySettings& settings) {
         /// \todo set initial values of rot v and div v
-        storage.insert<Vector, OrderEnum::ZERO_ORDER>(QuantityIds::VELOCITY_ROTATION, Vector(0._f));
-        storage.insert<Float, OrderEnum::ZERO_ORDER>(QuantityIds::VELOCITY_DIVERGENCE, 0._f);
+        storage.insert<Vector, OrderEnum::ZERO>(QuantityIds::VELOCITY_ROTATION, Vector(0._f));
+        storage.insert<Float, OrderEnum::ZERO>(QuantityIds::VELOCITY_DIVERGENCE, 0._f);
         this->initializeModules(storage, settings);
     }
 
@@ -52,7 +51,9 @@ public:
         this->accumulateModules(i, j, grad);
     }
 
-    INLINE void integrate(Storage& storage) { this->integrateModules(storage); }
+    INLINE void integrate(Storage& storage) {
+        this->integrateModules(storage);
+    }
 
     /// Returns the artificial viscosity Pi_ij after applying Balsara switch. Needs to be multiplied by kernel
     /// gradient to get the final force due to AV.

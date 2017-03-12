@@ -1,6 +1,6 @@
 #pragma once
 
-#include "objects/ForwardDecl.h"
+#include "common/ForwardDecl.h"
 #include "objects/containers/Array.h"
 #include "sph/kernel/Kernel.h"
 #include <memory>

@@ -4,7 +4,7 @@
 /// Pavel Sevecek 2016
 /// sevecek at sirrah.troja.mff.cuni.cz
 
-#include "core/Traits.h"
+#include "common/Traits.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -29,16 +29,22 @@ namespace Detail {
         using ReturnType = std::conditional_t<std::is_rvalue_reference<TValue>::value, TValue&&, TValue&>;
 
         /// Return r-value reference if TValue is an r-value reference, otherwise returns l-value reference.
-        INLINE constexpr ReturnType get() { return static_cast<ReturnType>(value); }
+        INLINE constexpr ReturnType get() {
+            return static_cast<ReturnType>(value);
+        }
 
         /// Return const r-value reference if TValue is an r-value reference, otherwise returns const l-value
         /// reference.
         /// \todo Does this make any sense? What's the point of const r-value reference?
-        INLINE constexpr const TValue& get() const { return value; }
+        INLINE constexpr const TValue& get() const {
+            return value;
+        }
 
         /// 'Forwards' the value out of tuple, i.e. returns l-value reference for l-values and r-value
         /// reference otherwise.
-        INLINE constexpr TValue&& forward() { return std::forward<TValue>(value); }
+        INLINE constexpr TValue&& forward() {
+            return std::forward<TValue>(value);
+        }
     };
 
     template <typename TSequence, typename... TArgs>
@@ -258,12 +264,18 @@ public:
     }
 
     /// Returns the number of elements in tuple.
-    INLINE static constexpr std::size_t size() noexcept { return sizeof...(TArgs); }
+    INLINE static constexpr std::size_t size() noexcept {
+        return sizeof...(TArgs);
+    }
 
     /// \todo Generalize operator to allow comparing tuples of different types.
-    INLINE constexpr bool operator==(const Tuple& other) const { return Impl::isEqual(other, Sequence()); }
+    INLINE constexpr bool operator==(const Tuple& other) const {
+        return Impl::isEqual(other, Sequence());
+    }
 
-    INLINE constexpr bool operator!=(const Tuple& other) const { return !Impl::isEqual(other, Sequence()); }
+    INLINE constexpr bool operator!=(const Tuple& other) const {
+        return !Impl::isEqual(other, Sequence());
+    }
 };
 
 template <typename... TArgs>

@@ -3,7 +3,7 @@
 #include "sph/av/Factory.h"
 #include "physics/Damage.h"
 #include "sph/forces/StressForce.h"
-#include "physics/Yielding.h"
+#include "physics/Rheology.h"
 #include "system/Settings.h"
 
 NAMESPACE_SPH_BEGIN
