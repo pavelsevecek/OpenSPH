@@ -12,10 +12,15 @@ NAMESPACE_SPH_BEGIN
 
 
 namespace Abstract {
-    class Derivative {
+    /// Derivative accumulated by summing up neighbouring particles. If solver is parallelized, each thread
+    /// has its own derivatives that are summed after the solver loop.
+    class Derivative : public Polymorphic {
     public:
-        // sets up arrayviews
-        virtual void update(Storage& input, Storage& results) = 0;
+        /// Initialize derivative before iterating over neighbours.
+        /// \param input Storage containing all the input quantities from which derivatives are computed.
+        ///              This storage is shared for all threads.
+        /// \param results Thread-local storage where the computed derivatives are saved.
+        virtual void initialize(const Storage& input, Storage& results) = 0;
 
         virtual void sum(const Size idx,
             ArrayView<const NeighbourRecord> neighs,
@@ -24,29 +29,13 @@ namespace Abstract {
 }
 
 
-class DerivativeHolder {
-private:
-    Array<std::unique_ptr<Abstract::Derivative>> values;
-
-public:
-    template <typename TDerivative>
-    void require() {
-        for (auto& v : values) {
-            if (dynamic_cast<TDerivative*>(v.get())) {
-                return;
-            }
-        }
-        values.push(std::make_unique<TDerivative>());
-    }
-};
-
 class PressureGradient : public Abstract::Derivative {
 private:
     ArrayView<const Float> p, rho, m;
     ArrayView<Vector> dv; // this is threadlocal
 
 public:
-    virtual void update(Storage& input, Storage& results) override {
+    virtual void initialize(Storage& input, Storage& results) override {
         tie(p, rho, m) =
             input.getValues<Float>(QuantityIds::PRESSURE, QuantityIds::DENSITY, QuantityIds::MASS);
         dv = results.getAll<Vector>(QuantityIds::POSITIONS)[2];
@@ -69,7 +58,7 @@ private:
     ArrayView<Float> divv; // this is threadlocal
 
 public:
-    virtual void update(Storage& input, Storage& results) override {
+    virtual void initialize(Storage& input, Storage& results) override {
         tie(rho, m) = input.getValues<Float>(QuantityIds::DENSITY, QuantityIds::MASS);
         v = input.getDt<Vector>(QuantityIds::POSITIONS);
         divv = results.getValue<Float>(QuantityIds::VELOCITY_DIVERGENCE);
@@ -82,22 +71,6 @@ public:
             divv[i] += m[j] / rho[j] * proj;
             divv[j] += m[i] / rho[i] * proj;
         }
-    }
-};
-
-class PressureForce {
-private:
-public:
-    // sets up the force for single thread, will be called multiple times
-    virtual void initializeThread(DerivativeHolder& derivatives) override {
-        derivatives.require<PressureGradient>();
-        derivatives.require<VelocityDivergence>();
-    }
-
-    void integrate() {
-        e = p[i] / rho[i] * divv[i];
-        du[i] += m[i] * e;
-        du[j] += m[j] * e;
     }
 };
 

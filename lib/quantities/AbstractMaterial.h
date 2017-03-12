@@ -15,20 +15,26 @@ namespace Abstract {
 /// storage.
 class MaterialSequence {
 private:
-    Abstract::Material* material;
+    Abstract::Material* mat;
     ArrayView<Size> matIds;
     Size id;
 
 public:
     MaterialSequence(Abstract::Material* material, ArrayView<Size> matIds, const Size id)
-        : material(material)
+        : mat(material)
         , matIds(matIds)
         , id(id) {
         ASSERT(material != nullptr);
     }
 
+    /// Returns reference to the material of the particles.
     Abstract::Material& material() {
-        return material;
+        return mat;
+    }
+
+    /// Implicit conversion to the material.
+    operator Abstract::Material&() {
+        return mat;
     }
 
     auto begin() {

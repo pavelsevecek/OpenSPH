@@ -167,18 +167,6 @@ public:
     /// Returns the number of particles. The number of particle is always the same for all quantities.
     Size getParticleCnt() const;
 
-    /// Returns iterator at the beginning of quantity map. Dereferencing the iterator yields
-    /// std::pair<QuantityIds, Quantity>.
-    /// \todo remove
-    auto begin() {
-        return quantities.begin();
-    }
-
-    /// Returns iterator at the past-to-end of quantity map. Dereferencing the iterator yields
-    /// std::pair<QuantityIds, Quantity>.
-    auto end() {
-        return quantities.end();
-    }
 
     void merge(Storage&& other);
 

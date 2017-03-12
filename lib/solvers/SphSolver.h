@@ -12,10 +12,8 @@ private:
     Array<std::unique_ptr<Abstract::Force>> forces;
 
 public:
-    void create(PhysicalStorage& storage, const GlobalSettings& settings) {
+    void create(Storage& storage, const GlobalSettings& settings) {
         if (settings.get<DamageEnum>(GlobalSettingsIds::MODEL_DAMAGE) != DamageEnum::NONE) {
-            storage.addModifier(Factory::getRheology(bodySettings?));
-            modifikator jen pro nejake castice ? jak eos ? do materialu !!
         }
     }
 };
@@ -36,8 +34,21 @@ private:
         /// Cached array of neighbours, to avoid allocation every step
         Array<NeighbourRecord> neighs;
 
-        /// Cachced array of gradients
+        /// Cached array of gradients
         Array<Vector> grads;
+
+
+        /// Adds derivative if not already present. If the derivative is already stored, new one is NOT
+        /// created, even if settings are different.
+        template <typename TDerivative>
+        void addDerivative(const GlobalSettings& settings) {
+            for (auto& d : derivatives) {
+                if (typeid(d.get()) == typeid(TDerivative*)) {
+                    return;
+                }
+            }
+            values.push(std::make_shared<TDerivative>(settings));
+        }
     };
 
     /// Thread-local data
@@ -87,11 +98,14 @@ public:
     virtual void integrate(Storage& storage, Statistics& stats) override {
         ArrayView<Vector> r = storage.getValue<Vector>(QuantityIds::POSITIONS);
 
-        /// (re)build neighbour-finding structure
+        // (re)build neighbour-finding structure
         finder->build(r);
 
-        ///
-        physicalStorage.initialize(storage);
+        // initialize all materials (compute pressure, apply yielding and damage, ...)
+        for (Size i = 0; i < storage.getMaterialCnt(); ++i) {
+            Abstract::Material& material = storage.getMaterial(i);
+            material.initialize(storage, stats);
+        }
 
         for (auto& solver : solvers) {
             storage.forEach([this](ThreadData& data) { solvers.initializeThread(data.derivatives) })

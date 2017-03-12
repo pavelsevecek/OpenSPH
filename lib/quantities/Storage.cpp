@@ -26,11 +26,10 @@ Storage& Storage::operator=(Storage&& other) {
     return *this;
 }
 
-MaterialView Storage::getMaterial(const Size matId) {
+MaterialSequence Storage::getMaterial(const Size matId) {
     ASSERT(this->has(QuantityIds::MATERIAL_IDX));
-    return MaterialView(materials[matId], this->getValue<Size>(QuantityIds::MATERIAL_IDX), matId);
+    return MaterialSequence(materials[matId].get(), this->getValue<Size>(QuantityIds::MATERIAL_IDX), matId);
 }
-
 
 Size Storage::getMaterialCnt() const {
     return materials.size();

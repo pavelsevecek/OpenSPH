@@ -161,7 +161,6 @@ HEADERS += \
     objects/ExtendEnum.h \
     system/LogFile.h \
     sph/Diagnostics.h \
-    solvers/PressureForce.h \
     system/filesystem.h \
     solvers/SphSolver.h \
     solvers/PhysicalStorage.h \
@@ -175,4 +174,6 @@ HEADERS += \
     common/Assert.h \
     common/Assert.h \
     physics/Damage.h \
-    physics/Rheology.h
+    physics/Rheology.h \
+    solvers/Derivative.h \
+    solvers/equationterm.h
