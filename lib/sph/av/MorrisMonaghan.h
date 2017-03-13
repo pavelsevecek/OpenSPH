@@ -8,7 +8,7 @@
 
 #include "quantities/AbstractMaterial.h"
 #include "quantities/Storage.h"
-#include "solvers/Derivative.h"
+#include "solvers/EquationTerm.h"
 #include "system/Settings.h"
 
 NAMESPACE_SPH_BEGIN
