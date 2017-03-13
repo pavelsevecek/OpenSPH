@@ -23,7 +23,7 @@ class SphSolver : public Abstract::Solver {
 private:
     struct ThreadData {
         /// Storage for all temporary data accumulated in main loop of the solver
-        Storage accumulated;
+        Array<Quantity> accumulated;
 
         /// Holds all modules that are evaluated in the loop. Modules save data to the \ref accumulated
         /// storage; one module can use multiple buffers (acceleration and energy derivative) and multiple

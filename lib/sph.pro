@@ -176,4 +176,4 @@ HEADERS += \
     physics/Damage.h \
     physics/Rheology.h \
     solvers/Derivative.h \
-    solvers/equationterm.h
+    solvers/EquationTerm.h

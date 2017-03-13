@@ -8,7 +8,7 @@
 
 #include "quantities/AbstractMaterial.h"
 #include "quantities/Storage.h"
-#include "solvers/Accumulator.h"
+#include "solvers/Derivative.h"
 #include "system/Settings.h"
 
 NAMESPACE_SPH_BEGIN
@@ -24,7 +24,9 @@ public:
     MorrisMonaghanAV(const GlobalSettings&) {
         class Term : public Abstract::Derivative {
 
-            virtual void initialize(Storage& storage) override {}
+            virtual void initialize(Storage& storage) override {
+                NOT_IMPLEMENTED;
+            }
 
             virtual void sum() override {
                 const Vector dr = r[i] - r[j];
