@@ -13,10 +13,10 @@ namespace Abstract {
 
 /// Computes acceleration from pressure gradient and corresponding increment of internal energy.
 class PressureForce : public Abstract::EquationTerm {
-private:
-public:
-    // sets up the force for single thread, will be called multiple times
-    virtual void initializeThread(DerivativeHolder& derivatives) override {
+    Fi private : public :
+                 // sets up the force for single thread, will be called multiple times
+                 virtual void
+                 initializeThread(DerivativeHolder& derivatives) override {
         derivatives.require<PressureGradient>();
         derivatives.require<VelocityDivergence>();
     }

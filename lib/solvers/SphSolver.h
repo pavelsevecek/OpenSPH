@@ -1,7 +1,7 @@
 #pragma once
 
 #include "solvers/AbstractSolver.h"
-#include "solvers/PressureForce.h"
+#include "solvers/Derivative.h"
 #include "thread/ThreadLocal.h"
 
 NAMESPACE_SPH_BEGIN

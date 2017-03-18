@@ -177,4 +177,4 @@ HEADERS += \
     physics/Rheology.h \
     solvers/Derivative.h \
     solvers/equationterm.h \
-    objects/wrappers/finally.h
+    objects/wrappers/Finally.h
