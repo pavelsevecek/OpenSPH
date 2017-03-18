@@ -3,7 +3,6 @@
 #include "common/ForwardDecl.h"
 #include "objects/containers/Array.h"
 #include "quantities/Quantity.h"
-#include "quantities/QuantityIds.h"
 #include <map>
 
 NAMESPACE_SPH_BEGIN

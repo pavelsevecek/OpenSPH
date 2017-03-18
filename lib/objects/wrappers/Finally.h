@@ -6,41 +6,24 @@
 
 NAMESPACE_SPH_BEGIN
 
+template <typename TFunctor>
 class Finally {
-protected:
-    std::function<void()> functor;
+private:
+    TFunctor functor;
 
 public:
-    /// Constructs empty finally, holds no functor.
-    Finally()
-        : functor(nullptr) {}
-
-    template <typename TFunctor>
     Finally(TFunctor&& functor)
         : functor(std::forward<TFunctor>(functor)) {}
 
-    /// Move constructor, transfers ownership of the functor.
-    Finally(Finally&& other)
-        : functor(std::move(other.functor)) {
-        other.functor = nullptr;
-    }
-
-    Finally& operator=(Finally&& other) {
-        std::swap(functor, other.functor);
-        return *this;
-    }
-
     ~Finally() {
-        if (functor) {
-            functor();
-        }
+        functor();
     }
 };
 
 /// Returns Finally object utilizing type deduction
 template <typename TFunctor>
-Finally finally(TFunctor&& functor) {
-    return Finally<TFunctor>(std::forward<TFunctor>(functor));
+Finally<TFunctor> finally(TFunctor&& functor) {
+    return Finally<TFunctor>(std::forward<TFinally>(functor));
 }
 
 NAMESPACE_SPH_END

@@ -8,10 +8,9 @@ NAMESPACE_SPH_BEGIN
 
 Storage::Storage() = default;
 
-Storage::Storage(const BodySettings& settings) {
-    Material mat;
-    mat.eos = Factory::getEos(settings);
-    materials.push(std::move(mat));
+Storage::Storage(std::unique_ptr<Abstract::Material>&& material) {
+    /// \todo we cannot create material here, some quantities (positions, density, ...) MUST already be stored
+    materials.push(std::move(material));
 }
 
 Storage::~Storage() = default;

@@ -49,11 +49,6 @@ enum class QuantityIds {
     /// Particle flags & Materials
     FLAG,         ///< ID of original body, used to implement discontinuities between bodies in SPH
     MATERIAL_IDX, ///< Material ID
-
-    /// Debugging & Other
-    ACCELERATION,
-    RHO_GRAD_V,
-    RHO_DIV_V,
 };
 
 INLINE std::string getQuantityName(const QuantityIds key) {
