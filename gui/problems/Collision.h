@@ -166,7 +166,7 @@ struct AsteroidCollision {
         BodySettings bodySettings;
         bodySettings.set(BodySettingsIds::ENERGY, 1._f)
             .set(BodySettingsIds::ENERGY_RANGE, Range(1._f, INFTY))
-            .set(BodySettingsIds::PARTICLE_COUNT, 1000)
+            .set(BodySettingsIds::PARTICLE_COUNT, 100000)
             .set(BodySettingsIds::EOS, EosEnum::TILLOTSON)
             .set(BodySettingsIds::STRESS_TENSOR_MIN, 1.e5_f)
             .set(BodySettingsIds::DAMAGE_RANGE, Range(0._f, 1._f));
@@ -192,10 +192,10 @@ struct AsteroidCollision {
 
     std::unique_ptr<Problem> getProblem() {
         globalSettings.set(GlobalSettingsIds::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::PREDICTOR_CORRECTOR)
-            .set(GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP, 0.001_f)
-            .set(GlobalSettingsIds::TIMESTEPPING_MAX_TIMESTEP, 0.001_f)
+            .set(GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP, 0.01_f)
+            .set(GlobalSettingsIds::TIMESTEPPING_MAX_TIMESTEP, 0.1_f)
             .set(GlobalSettingsIds::RUN_TIME_RANGE, Range(0._f, 1._f))
-            .set(GlobalSettingsIds::RUN_OUTPUT_INTERVAL, 0.01_f)
+            .set(GlobalSettingsIds::RUN_OUTPUT_INTERVAL, 0.1_f)
             .set(GlobalSettingsIds::MODEL_FORCE_DIV_S, true)
             .set(GlobalSettingsIds::SPH_FINDER, FinderEnum::VOXEL)
             .set(GlobalSettingsIds::MODEL_AV_TYPE, ArtificialViscosityEnum::STANDARD)

@@ -50,7 +50,7 @@ public:
     }
 
     /// Returns a row of the matrix.
-    INLINE Vector operator[](const int idx) const {
+    INLINE Vector operator[](const Size idx) const {
         ASSERT(unsigned(idx) < 3);
         switch (idx) {
         case 0:
@@ -65,7 +65,7 @@ public:
     }
 
     /// Returns a given element of the matrix.
-    INLINE Float& operator()(const int rowIdx, const int colIdx) {
+    INLINE Float& operator()(const Size rowIdx, const Size colIdx) {
         if (rowIdx == colIdx) {
             return diag[rowIdx];
         } else {
@@ -74,7 +74,7 @@ public:
     }
 
     /// Returns a given element of the matrix, const version.
-    INLINE Float operator()(const int rowIdx, const int colIdx) const {
+    INLINE Float operator()(const Size rowIdx, const Size colIdx) const {
         if (rowIdx == colIdx) {
             return diag[rowIdx];
         } else {
