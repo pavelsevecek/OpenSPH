@@ -166,9 +166,10 @@ struct AsteroidCollision {
         BodySettings bodySettings;
         bodySettings.set(BodySettingsIds::ENERGY, 1._f)
             .set(BodySettingsIds::ENERGY_RANGE, Range(1._f, INFTY))
-            .set(BodySettingsIds::PARTICLE_COUNT, 100000)
+            .set(BodySettingsIds::PARTICLE_COUNT, 1000)
             .set(BodySettingsIds::EOS, EosEnum::TILLOTSON)
-            .set(BodySettingsIds::STRESS_TENSOR_MIN, 1.e6_f);
+            .set(BodySettingsIds::STRESS_TENSOR_MIN, 1.e5_f)
+            .set(BodySettingsIds::DAMAGE_RANGE, Range(0._f, 1._f));
         bodySettings.saveToFile("target.sph");
 
         InitialConditions conds(storage, globalSettings);
@@ -191,9 +192,10 @@ struct AsteroidCollision {
 
     std::unique_ptr<Problem> getProblem() {
         globalSettings.set(GlobalSettingsIds::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::PREDICTOR_CORRECTOR)
-            .set(GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP, 0.01_f)
-            .set(GlobalSettingsIds::TIMESTEPPING_MAX_TIMESTEP, 0.01_f)
-            .set(GlobalSettingsIds::RUN_OUTPUT_INTERVAL, 0.1_f)
+            .set(GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP, 0.001_f)
+            .set(GlobalSettingsIds::TIMESTEPPING_MAX_TIMESTEP, 0.001_f)
+            .set(GlobalSettingsIds::RUN_TIME_RANGE, Range(0._f, 1._f))
+            .set(GlobalSettingsIds::RUN_OUTPUT_INTERVAL, 0.01_f)
             .set(GlobalSettingsIds::MODEL_FORCE_DIV_S, true)
             .set(GlobalSettingsIds::SPH_FINDER, FinderEnum::VOXEL)
             .set(GlobalSettingsIds::MODEL_AV_TYPE, ArtificialViscosityEnum::STANDARD)
@@ -216,6 +218,10 @@ struct AsteroidCollision {
         p->output->add(Factory::getValueColumn<Float>(QuantityIds::ENERGY));
         p->output->add(Factory::getValueColumn<Float>(QuantityIds::DAMAGE));
         p->output->add(Factory::getValueColumn<TracelessTensor>(QuantityIds::DEVIATORIC_STRESS));
+        p->output->add(Factory::getValueColumn<Float>(QuantityIds::SOUND_SPEED));
+        p->output->add(Factory::getValueColumn<Float>(QuantityIds::HEATING));
+        p->output->add(Factory::getValueColumn<Size>(QuantityIds::FLAG));
+        p->output->add(std::make_unique<SecondDerivativeColumn<Vector>>(QuantityIds::POSITIONS));
         // Array<QuantityIds>{
         // QuantityIds::POSITIONS, QuantityIds::DENSITY, QuantityIds::PRESSURE, QuantityIds::ENERGY });
         //  QuantityIds::DAMAGE });
@@ -231,6 +237,22 @@ struct AsteroidCollision {
         p->logs.push(std::make_unique<TimestepLogFile>("timestep.txt"));
         // p->logs.push(std::make_unique<Particle1493>("dt_1453.txt"));
         // p->logs.push(std::make_unique<Stress1456>("s_1456.txt"));
+
+        /* ArrayView<TracelessTensor> stress =
+             p->storage->getValue<TracelessTensor>(QuantityIds::DEVIATORIC_STRESS);
+         for (auto i : iterateWithIndex(stress)) {
+             i.value() = TracelessTensor(1.e6_f, 2.e6_f, 3.e6_f, -1.e6_f, -2.e6_f);
+             i.value() = Float(i.index() + 1) * i.value();
+         }
+         ArrayView<Float> damage, energy;
+         tie(damage, energy) = p->storage->getValues<Float>(QuantityIds::DAMAGE, QuantityIds::ENERGY);
+         for (Float& d : damage) {
+             d = 0.5_f;
+         }
+         for (auto i : iterateWithIndex(energy)) {
+             i.value() = Float(i.index() + 1) * 1.e3_f;
+         }*/
+
         return p;
     }
 

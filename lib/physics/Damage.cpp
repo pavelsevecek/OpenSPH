@@ -115,9 +115,9 @@ void ScalarDamage::integrate(Storage& storage) {
         // stresses
         const Range range = storage.getQuantity(QuantityIds::DAMAGE).getRange();
         if (damage[i] == range.upper()) {
-            // s[i] = TracelessTensor::null();
+            s[i] = TracelessTensor::null();
             ds[i] = TracelessTensor::null();
-            // continue;
+            continue;
         }
         const Tensor sigma = reduce(s[i], i) - reduce(p[i], i) * Tensor::identity();
         Float sig1, sig2, sig3;
@@ -133,7 +133,19 @@ void ScalarDamage::integrate(Storage& storage) {
             continue;
         }
         ddamage[i] = growth[i] * root<3>(min(std::pow(ratio, m_zero[i]), Float(n_flaws[i])));
-        ASSERT(ddamage[i] >= 0.f);
+        /*      if (i == 1450) {
+                  StdOutLogger logger;
+                  logger.write("growth = ", growth[i]);
+                  logger.write("nflaws = ", n_flaws[i]);
+                  logger.write("m_zero = ", m_zero[i]);
+                  logger.write("eps_min  = ", eps_min[i]);
+                  logger.write("young  = ", young_red);
+                  logger.write("sigMax  = ", sigMax);
+                  logger.write("dD/dt  = ", ddamage[i]);
+                  logger.write("S = ", s[i]);
+                  exit(0);
+              }*/
+        ASSERT(ddamage[i] >= 0._f);
     }
 }
 

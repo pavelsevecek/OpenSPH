@@ -103,6 +103,13 @@ void PredictorCorrector::stepImpl(Abstract::Solver& solver, Statistics& stats) {
     for (auto& q : *this->storage) {
         q.second.clamp();
     }
+    ArrayView<Float> damage, ddamage;
+    tie(damage, ddamage) = storage->getAll<Float>(QuantityIds::DAMAGE);
+    for (Size i = 0; i < damage.size(); ++i) {
+        if (damage[i] >= 1._f) {
+            ddamage[i] = 0._f;
+        }
+    }
     // save derivatives from predictions
     this->storage->swap(*predictions, VisitorEnum::HIGHEST_DERIVATIVES);
 
@@ -136,6 +143,12 @@ void PredictorCorrector::stepImpl(Abstract::Solver& solver, Statistics& stats) {
     /// \todo better
     for (auto& q : *this->storage) {
         q.second.clamp();
+    }
+    tie(damage, ddamage) = storage->getAll<Float>(QuantityIds::DAMAGE);
+    for (Size i = 0; i < damage.size(); ++i) {
+        if (damage[i] >= 1._f) {
+            ddamage[i] = 0._f;
+        }
     }
     // clang-format on
 

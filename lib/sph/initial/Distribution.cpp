@@ -5,6 +5,7 @@
 #include "math/rng/VectorRng.h"
 #include "objects/finders/Voxel.h"
 #include "objects/wrappers/Optional.h"
+#include "system/Logger.h"
 #include "system/Profiler.h"
 
 NAMESPACE_SPH_BEGIN
@@ -77,8 +78,14 @@ Array<Vector> HexagonalPacking::generate(const Size n, const Abstract::Domain& d
     const Float volume = domain.getVolume();
     const Float particleDensity = Float(n) / volume;
 
+    StdOutLogger logger;
+    logger.write("n = ", n);
+    logger.write("volume = ", volume);
+
+
     // interparticle distance based on density
     const Float h = 1._f / root<3>(particleDensity);
+    logger.write("h = ", h);
     const Float dx = (flags.has(Options::SPH5_COMPATIBILITY) ? 1._f : 1.1_f) * h;
     const Float dy = sqrt(3._f) * 0.5_f * dx;
     const Float dz = sqrt(6._f) / 3._f * dx;

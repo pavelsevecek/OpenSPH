@@ -205,6 +205,104 @@ ReverseWrapper<TContainer> reverse(TContainer&& container) {
 }
 
 
+template <typename TValue>
+class ElementWithIndex {
+private:
+    TValue data;
+    Size idx;
+
+public:
+    ElementWithIndex(TValue&& value, const Size index)
+        : data(std::forward<TValue>(value))
+        , idx(index) {}
+
+    INLINE TValue& value() {
+        return data;
+    }
+
+    INLINE const TValue& value() const {
+        return data;
+    }
+
+    INLINE operator TValue&() {
+        return value();
+    }
+
+    INLINE operator const TValue&() const {
+        return value();
+    }
+
+    INLINE Size index() const {
+        return idx;
+    }
+};
+
+template <typename TValue>
+ElementWithIndex<TValue> makeElementWithIndex(TValue&& value, const Size index) {
+    return ElementWithIndex<TValue>(std::forward<TValue>(value), index);
+}
+
+/// Wrapper of iterator keeping also an index of current element.
+template <typename TIterator>
+class IteratorWithIndex {
+private:
+    TIterator iterator;
+    Size index;
+
+public:
+    IteratorWithIndex(const TIterator iterator, const Size index)
+        : iterator(iterator)
+        , index(index) {}
+
+    auto operator*() {
+        return makeElementWithIndex(*iterator, index);
+    }
+
+    const auto operator*() const {
+        return makeElementWithIndex(*iterator, index);
+    }
+
+    IteratorWithIndex& operator++() {
+        ++iterator;
+        ++index;
+        return *this;
+    }
+
+    bool operator!=(const IteratorWithIndex& other) const {
+        return iterator != other.iterator;
+    }
+};
+
+template <typename TIterator>
+IteratorWithIndex<TIterator> makeIteratorWithIndex(TIterator&& iterator, const Size index) {
+    return IteratorWithIndex<TIterator>(std::forward<TIterator>(iterator), index);
+}
+
+
+template <typename TContainer>
+class IndexAdapter {
+private:
+    TContainer container;
+
+public:
+    IndexAdapter(TContainer&& container)
+        : container(std::forward<TContainer>(container)) {}
+
+    auto begin() {
+        return makeIteratorWithIndex(container.begin(), 0);
+    }
+
+    auto end() {
+        return makeIteratorWithIndex(container.end(), container.size());
+    }
+};
+
+template <typename TContainer>
+IndexAdapter<TContainer> iterateWithIndex(TContainer&& container) {
+    return IndexAdapter<TContainer>(std::forward<TContainer>(container));
+}
+
+
 /// Provides iterator over selected component of vector array.
 template <typename TIterator>
 struct ComponentIterator {

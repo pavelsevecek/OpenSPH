@@ -207,7 +207,8 @@ using RhoGradv = Accumulator<RhoGradvImpl>;
 
 
 /// Average direction of neighbouring particles. This results to zero vector to order O(h^2) for particles
-/// inside a body and to nonzero vector to boundary particles. Direction of the vector is an approximation of
+/// inside a body and to nonzero vector to boundary particles. Direction of the vector is an approximation
+/// of
 /// surface (inward) normal.
 class SurfaceNormalImpl {
 private:
@@ -235,7 +236,8 @@ public:
 using SurfaceNormal = Accumulator<SurfaceNormalImpl>;
 
 /// Correction tensor ensuring conversion of total angular momentum to the first order.
-/// The accumulated value is an inversion of the correction C_ij, applied as multiplicative factor on velocity
+/// The accumulated value is an inversion of the correction C_ij, applied as multiplicative factor on
+/// velocity
 /// gradient.
 /// \todo They use slightly different SPH equations, check that it's ok
 /// \todo It is really symmetric tensor?

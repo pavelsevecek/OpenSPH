@@ -164,4 +164,6 @@ HEADERS += \
     objects/ExtendEnum.h \
     system/LogFile.h \
     sph/Diagnostics.h \
-    system/Column.h
+    system/Column.h \
+    objects/wrappers/Finally.h \
+    geometry/AntisymmetricTensor.h

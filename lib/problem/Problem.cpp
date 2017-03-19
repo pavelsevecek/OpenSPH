@@ -59,8 +59,7 @@ void Problem::run() {
     EndingCondition condition(settings.get<Float>(GlobalSettingsIds::RUN_WALLCLOCK_TIME),
         settings.get<int>(GlobalSettingsIds::RUN_TIMESTEP_CNT));
     Statistics stats;
-
-    stats.set(StatisticsIds::TOTAL_TIME, timeRange.lower());
+    stats.set(StatisticsIds::TOTAL_TIME, 0._f);
     for (Float t = timeRange.lower(); t < timeRange.upper() && !condition(runTimer, i);
          t += timeStepping->getTimeStep()) {
 
@@ -86,7 +85,9 @@ void Problem::run() {
                 break;
             }
         }
-
+        /*   if (t > 0.02_f) {
+               exit(0);
+           }*/
         i++;
     }
     logger->write("Run ended after ", runTimer.elapsed<TimerUnit::SECOND>(), "s.");

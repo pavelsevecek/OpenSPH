@@ -37,7 +37,7 @@ namespace Abstract {
     class Output : public Polymorphic {
     protected:
         OutputFile paths;
-        Array<std::unique_ptr<Abstract::Column>> elements;
+        Array<std::unique_ptr<Abstract::Column>> columns;
 
     public:
         /// Constructs output given the file name of the output. The name must contain '%d', which will be
@@ -47,7 +47,7 @@ namespace Abstract {
 
         /// Adds an element to output.
         void add(std::unique_ptr<Abstract::Column>&& element) {
-            elements.push(std::move(element));
+            columns.push(std::move(element));
         }
 
         /// Saves data from particle storage into the file. Returns the filename of the dump.
@@ -75,9 +75,7 @@ public:
 
     virtual std::string dump(Storage& storage, const Float time) override;
 
-    virtual Outcome load(const std::string& UNUSED(path), Storage& UNUSED(storage)) override {
-        NOT_IMPLEMENTED;
-    }
+    virtual Outcome load(const std::string& path, Storage& storage) override;
 };
 
 /// Extension of text output that runs given gnuplot script on dumped text data.

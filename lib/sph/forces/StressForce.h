@@ -5,6 +5,7 @@
 #include "quantities/Storage.h"
 #include "solvers/Accumulator.h"
 #include "solvers/Module.h"
+#include "system/Logger.h"
 #include "system/Statistics.h"
 
 NAMESPACE_SPH_BEGIN
@@ -17,10 +18,10 @@ private:
     RhoDivv rhoDivv;
     RhoGradv rhoGradv;
     ArrayView<Float> p, rho, du, u, m, cs;
-    ArrayView<Vector> v, dv;
+    ArrayView<Vector> r, v, dv;
     ArrayView<TracelessTensor> s, ds;
     ArrayView<Size> bodyIdxs;
-    ArrayView<Float> vonmises, D;
+    ArrayView<Float> vonmises, D, q;
 
     enum class Options {
         USE_GRAD_P = 1 << 0,
@@ -33,6 +34,8 @@ private:
     AV av;
 
     FileLogger energy959;
+
+    Array<Float> fp, fs, fav, rsum;
 
 public:
     Statistics* stats;
@@ -56,7 +59,6 @@ public:
     void update(Storage& storage) {
         tie(rho, m) = storage.getValues<Float>(QuantityIds::DENSITY, QuantityIds::MASSES);
         tie(u, du) = storage.getAll<Float>(QuantityIds::ENERGY);
-        ArrayView<Vector> r;
         tie(r, v, dv) = storage.getAll<Vector>(QuantityIds::POSITIONS);
         if (flags.has(Options::USE_GRAD_P)) {
             p = storage.getValue<Float>(QuantityIds::PRESSURE);
@@ -73,7 +75,23 @@ public:
         bodyIdxs = storage.getValue<Size>(QuantityIds::FLAG);
 
         vonmises = storage.getValue<Float>(QuantityIds::YIELDING_REDUCE);
-        D = storage.getValue<Float>(QuantityIds::DAMAGE);
+        q = storage.getValue<Float>(QuantityIds::HEATING);
+        for (Size i = 0; i < q.size(); ++i) {
+            q[i] = 0._f;
+        }
+        fp.resize(r.size());
+        fs.resize(r.size());
+        fav.resize(r.size());
+        rsum.resize(r.size());
+
+        fp.fill(0._f);
+        fs.fill(0._f);
+        fav.fill(0._f);
+        rsum.fill(0._f);
+
+        if (storage.has(QuantityIds::DAMAGE)) {
+            D = storage.getValue<Float>(QuantityIds::DAMAGE);
+        }
         damage.stats = stats;
         this->updateModules(storage);
     }
@@ -87,19 +105,58 @@ public:
             const auto avij = av(i, j);
             // f -= (reduce(p[i], i) * rhoInvSqri + reduce(p[j], i) * rhoInvSqrj + avij) * grad;
             f -= ((reduce(p[i], i) + reduce(p[j], j)) / (rho[i] * rho[j]) + avij) * grad;
+
+            fp[i] -= m[j] * ((reduce(p[i], i) + reduce(p[j], j)) / (rho[i] * rho[j])) * grad[X];
+            fp[j] += m[i] * ((reduce(p[i], i) + reduce(p[j], j)) / (rho[i] * rho[j])) * grad[X];
+
+            fav[i] -= m[j] * avij * grad[X];
+            fav[j] += m[i] * avij * grad[X];
+
+            /*  if ((stats->get<Float>(StatisticsIds::TOTAL_TIME) > 0.0095) && (i == 145 || j == 145)) {
+                  StdOutLogger logger;
+                  logger.write("grad = ",
+                      i,
+                      "  ",
+                      j,
+                      "  ",
+                      m[j] * ((reduce(p[i], i) + reduce(p[j], j)) / (rho[i] * rho[j])) * grad[X],
+                      " ",
+                      grad[X],
+                      " ",
+                      r[i][X] - r[j][X],
+                      " ",
+                      u[i],
+                      " ",
+                      u[j]);
+              }*/
             // account for shock heating
-            const Float heating = 0.5_f * avij * dot(v[i] - v[j], grad);
-            du[i] += m[j] * heating;
-            du[j] += m[i] * heating;
+            const Float heating = avij * dot(v[i] - v[j], grad);
+            q[i] += m[j] * heating;
+            q[j] += m[i] * heating;
         }
-        const Float redi = vonmises[i] * (1._f - pow<3>(D[i]));
-        const Float redj = vonmises[j] * (1._f - pow<3>(D[j]));
+        Float redi = vonmises[i];
+        Float redj = vonmises[j];
+        if (D) {
+            redi *= (1._f - pow<3>(D[i]));
+            redj *= (1._f - pow<3>(D[j]));
+        }
         if (flags.has(Options::USE_DIV_S) && bodyIdxs[i] == bodyIdxs[j] && redi != 0.f && redj != 0.f) {
             // apply stress only if particles belong to the same body
-            f += (reduce(s[i], i) + reduce(s[j], i)) / (rho[i] * rho[j]) * grad;
+            /*   if (i == 1184 && j == 1350) {
+                   StdOutLogger logger;
+                   logger.write("div s  = ", (reduce(s[i], i) + reduce(s[j], j)) / (rho[i] * rho[j]));
+               }*/
+            f += (reduce(s[i], i) + reduce(s[j], j)) / (rho[i] * rho[j]) * grad;
+
+            fs[i] += m[j] * ((reduce(s[i], i) + reduce(s[j], j)) / (rho[i] * rho[j]) * grad)[X];
+            fs[j] -= m[i] * ((reduce(s[i], i) + reduce(s[j], j)) / (rho[i] * rho[j]) * grad)[X];
         }
         dv[i] += m[j] * f;
         dv[j] -= m[i] * f;
+
+        const Float r2 = r[i][X] - r[j][X]; // getSqrLength(r[i] - r[j]);
+        rsum[i] += m[j] * r2;
+        rsum[j] -= m[i] * r2;
         // internal energy is computed at the end using accumulated values
         this->accumulateModules(i, j, grad);
     }
@@ -112,6 +169,7 @@ public:
             if (flags.has(Options::USE_GRAD_P)) {
                 du[i] -= reduce(p[i], i) / rho[i] * rhoDivv[i];
             }
+            du[i] += 0.5_f * q[i]; // heating
             if (flags.has(Options::USE_DIV_S)) {
                 du[i] += 1._f / rho[i] * ddot(reduce(s[i], i), rhoGradv[i]);
 
@@ -121,6 +179,11 @@ public:
                 /// \todo how to enforce that this expression is traceless tensor?
                 ds[i] += TracelessTensor(
                     2._f * mu * (rhoGradv[i] - Tensor::identity() * rhoGradv[i].trace() / 3._f));
+
+                /*if (i == 1450) {
+                    StdOutLogger().write("ds(1450) = ", ds[i]);
+                    StdOutLogger().write("stress(1450) = ", s[i]);
+                }*/
                 ASSERT(isReal(ds[i]));
             }
             ASSERT(isReal(du[i]));
@@ -132,6 +195,31 @@ public:
               t, "    ", u[j], "    ", du[j], "   ", r[j][H], "   ", reduce(p[j], j) / rho[j] * rhoDivv[j]);*/
         //"   ",
         // 1._f / rho[j] * ddot(reduce(s[j], j), rhoGradv[j]));
+
+        /*   const Size j = 145;
+           StdOutLogger logger;
+           logger.write(stats->get<Float>(StatisticsIds::TOTAL_TIME),
+               "  ",
+               dv[j],
+               " ",
+               fp[j],
+               " ",
+               fav[j],
+               " ",
+               fs[j],
+               " ",
+               rho[j],
+               " ",
+               rsum[j],
+               " ",
+               u[j],
+               " ",
+               du[j],
+               "  dv145");
+
+           if ((stats->get<Float>(StatisticsIds::TOTAL_TIME) > 0.0095)) {
+               exit(0);
+           }*/
         this->integrateModules(storage);
     }
 
@@ -164,6 +252,8 @@ public:
             MaterialAccessor material(storage);
             material.setParams(BodySettingsIds::SHEAR_MODULUS, settings);
         }
+        storage.insert<Float, OrderEnum::ZERO_ORDER>(QuantityIds::HEATING, 0._f);
+
         this->initializeModules(storage, settings);
     }
 

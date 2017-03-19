@@ -7,13 +7,18 @@
 #include "objects/wrappers/Value.h"
 #include "quantities/QuantityIds.h"
 #include "quantities/Storage.h"
+#include "system/Statistics.h"
 
 NAMESPACE_SPH_BEGIN
 
 namespace Abstract {
     class Column : public Polymorphic {
     public:
+        /// Returns the value of the output column for given particle.
         virtual Value evaluate(Storage& storage, const Size particleIdx) const = 0;
+
+        /// Reads the value of the column and saves it into the storage, if possible.
+        virtual void accumulate(Storage& storage, const Value value, const Size particleIdx) const = 0;
 
         virtual std::string getName() const = 0;
 
@@ -34,6 +39,12 @@ public:
     virtual Value evaluate(Storage& storage, const Size particleIdx) const override {
         ArrayView<const TValue> value = storage.getValue<TValue>(id);
         return value[particleIdx];
+    }
+
+    virtual void accumulate(Storage& storage, const Value value, const Size particleIdx) const override {
+        Array<TValue>& array = storage.getValue<TValue>(id);
+        array.resize(particleIdx + 1); /// \todo must also resize derivaties, or avoid resizing
+        array[particleIdx] = value.get<TValue>();
     }
 
     virtual std::string getName() const override {
@@ -61,6 +72,12 @@ public:
         return value[particleIdx];
     }
 
+    virtual void accumulate(Storage& storage, const Value value, const Size particleIdx) const override {
+        Array<TValue>& array = storage.getDt<TValue>(id);
+        array.resize(particleIdx + 1);
+        array[particleIdx] = value.get<TValue>();
+    }
+
     virtual std::string getName() const override {
         return getDerivativeName(id);
     }
@@ -86,8 +103,14 @@ public:
         return value[particleIdx];
     }
 
+    virtual void accumulate(Storage& storage, const Value value, const Size particleIdx) const override {
+        Array<TValue>& array = storage.getAll<TValue>(id)[2];
+        array.resize(particleIdx + 1);
+        array[particleIdx] = value.get<TValue>();
+    }
+
     virtual std::string getName() const override {
-        NOT_IMPLEMENTED; // currently never used
+        return getSecondDerivativeName(id);
     }
 
     virtual ValueEnum getType() const override {
@@ -101,6 +124,12 @@ public:
     virtual Value evaluate(Storage& storage, const Size particleIdx) const override {
         ArrayView<const Vector> value = storage.getValue<Vector>(QuantityIds::POSITIONS);
         return value[particleIdx][H];
+    }
+
+    virtual void accumulate(Storage& storage, const Value value, const Size particleIdx) const override {
+        Array<Vector>& array = storage.getValue<Vector>(QuantityIds::POSITIONS);
+        array.resize(particleIdx + 1);
+        array[particleIdx][H] = value.get<Float>();
     }
 
     virtual std::string getName() const override {
@@ -122,6 +151,12 @@ public:
         return pow<3>(value[particleIdx]);
     }
 
+    virtual void accumulate(Storage& storage, const Value value, const Size particleIdx) const override {
+        Array<TValue>& array = storage.getValue<TValue>(QuantityIds::DAMAGE);
+        array.resize(particleIdx + 1);
+        array[particleIdx] = root<3>(value.get<TValue>());
+    }
+
     virtual std::string getName() const override {
         return "Damage";
     }
@@ -133,8 +168,13 @@ public:
 
 /// Helper column printing particle numbers.
 class ParticleNumberColumn : public Abstract::Column {
+public:
     virtual Value evaluate(Storage& UNUSED(storage), const Size particleIdx) const override {
         return particleIdx;
+    }
+
+    virtual void accumulate(Storage&, const Value, const Size) const override {
+        // do nothing
     }
 
     virtual std::string getName() const override {
@@ -143,6 +183,32 @@ class ParticleNumberColumn : public Abstract::Column {
 
     virtual ValueEnum getType() const override {
         return ValueEnum::INDEX;
+    }
+};
+
+/// Helper column printing current run time. This value is the same for every particle.
+class TimeColumn : public Abstract::Column {
+private:
+    Statistics* stats;
+
+public:
+    TimeColumn(Statistics* stats)
+        : stats(stats) {}
+
+    virtual Value evaluate(Storage& UNUSED(storage), const Size UNUSED(particleIdx)) const override {
+        return stats->get<Float>(StatisticsIds::TOTAL_TIME);
+    }
+
+    virtual void accumulate(Storage&, const Value, const Size) const override {
+        // do nothing
+    }
+
+    virtual std::string getName() const override {
+        return "Time";
+    }
+
+    virtual ValueEnum getType() const override {
+        return ValueEnum::SCALAR;
     }
 };
 

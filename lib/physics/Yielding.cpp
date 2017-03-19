@@ -1,4 +1,5 @@
 #include "physics/Yielding.h"
+#include "objects/wrappers/Finally.h"
 #include "quantities/Material.h"
 #include "quantities/Storage.h"
 
@@ -23,8 +24,9 @@ void VonMises::update(Storage& storage) {
     for (Size i = 0; i < storage.getParticleCnt(); ++i) {
         // compute yielding stress
         const Float limit = material.getParam<Float>(BodySettingsIds::ELASTICITY_LIMIT, i);
-        const Float y =
-            limit * max(1.f - u[i] / material.getParam<Float>(BodySettingsIds::MELT_ENERGY, i), 0._f);
+        const Float u0 = material.getParam<Float>(BodySettingsIds::MELT_ENERGY, i);
+        const Float unorm = u[i] / u0;
+        const Float y = unorm < 1.e-5 ? limit : limit * max(1.f - unorm, 0._f);
         ASSERT(limit > 0._f);
 
         // apply reduction to stress tensor
@@ -46,6 +48,7 @@ void VonMises::update(Storage& storage) {
         ASSERT(red >= 0._f && red <= 1._f);
         reducing[i] = red;
         S[i] = S[i] * red;
+
         ASSERT(isReal(S[i]));
     }
 }

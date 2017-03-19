@@ -33,32 +33,52 @@ TextOutput::TextOutput(const std::string& fileMask, const std::string& runName, 
     , flags(flags) {}
 
 std::string TextOutput::dump(Storage& storage, const Float time) {
-    ASSERT(!elements.empty() && "nothing to dump");
+    ASSERT(!columns.empty() && "nothing to dump");
     const std::string fileName = paths.getNextPath();
     std::ofstream ofs(fileName);
     // print description
     ofs << "# Run: " << runName << std::endl;
     ofs << "# SPH dump, time = " << time << std::endl;
     ofs << "# ";
-    for (auto& element : elements) {
-        printHeader(ofs, element->getName(), element->getType());
+    for (auto& column : columns) {
+        printHeader(ofs, column->getName(), column->getType());
     }
     ofs << std::endl;
+    ofs << "# " << std::endl;
+    ofs << "# " << std::endl;
 
     // print data lines, starting with second-order quantities
     for (Size i = 0; i < storage.getParticleCnt(); ++i) {
-        for (auto& element : elements) {
+        for (auto& column : columns) {
             // write one extra space to be sure numbers won't merge
             if (flags.has(Options::SCIENTIFIC)) {
-                ofs << std::scientific << std::setprecision(PRECISION) << element->evaluate(storage, i);
+                ofs << std::scientific << std::setprecision(PRECISION) << column->evaluate(storage, i);
             } else {
-                ofs << std::setprecision(PRECISION) << element->evaluate(storage, i);
+                ofs << std::setprecision(PRECISION) << column->evaluate(storage, i);
             }
         }
         ofs << std::endl;
     }
     ofs.close();
     return fileName;
+}
+
+Outcome TextOutput::load(const std::string& path, Storage& storage) {
+    std::ifstream ifs(path);
+    std::string line;
+    storage.removeAll();
+    while (std::getline(ifs, line)) {
+        if (line[0] == '#') { // comment
+            continue;
+        }
+        std::stringstream ss(line);
+        Size i = 0;
+        for (auto& column : columns) {
+            column->accumulate(storage, 5._f, i);
+        }
+    }
+    ifs.close();
+    return true;
 }
 
 std::string GnuplotOutput::dump(Storage& storage, const Float time) {
@@ -103,7 +123,7 @@ static void storeBuffers(Quantity& q, TStoreValue&& storeValue) {
 }
 
 std::string BinaryOutput::dump(Storage& storage, const Float time) {
-    ASSERT(!elements.empty() && "nothing to dump");
+    ASSERT(!columns.empty() && "nothing to dump");
     const std::string fileName = paths.getNextPath();
     std::ofstream ofs(fileName);
     // file format identifie

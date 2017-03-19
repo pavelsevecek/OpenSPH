@@ -52,6 +52,7 @@ enum class QuantityIds {
     /// Debugging & Other
     RHO_GRAD_V,
     RHO_DIV_V,
+    HEATING
 };
 
 INLINE std::string getQuantityName(const QuantityIds key) {
@@ -78,6 +79,8 @@ INLINE std::string getQuantityName(const QuantityIds key) {
         return "Neigh. cnt";
     case QuantityIds::MATERIAL_IDX:
         return "Mat. idx";
+    case QuantityIds::HEATING:
+        return "Heating";
     case QuantityIds::FLAG:
         return "Flag";
     default:
@@ -101,5 +104,15 @@ INLINE std::string getDerivativeName(const QuantityIds key) {
         NOT_IMPLEMENTED;
     }
 }
+
+INLINE std::string getSecondDerivativeName(const QuantityIds key) {
+    switch (key) {
+    case QuantityIds::POSITIONS:
+        return "Acceleration";
+    default:
+        NOT_IMPLEMENTED;
+    }
+}
+
 
 NAMESPACE_SPH_END

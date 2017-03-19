@@ -91,14 +91,12 @@ public:
             // Find all neighbours within kernel support. Since we are only searching for particles with
             // smaller h, we know that symmetrized lengths (h_i + h_j)/2 will be ALWAYS smaller or equal to
             // h_i, and we thus never "miss" a particle.
-            const Size neighCnt = this->finder->findNeighbours(
+            this->finder->findNeighbours(
                 i, r[i][H] * this->kernel.radius(), this->neighs, FinderFlags::FIND_ONLY_SMALLER_H);
-            neighCnts[i] += neighCnt;
             // iterate over neighbours
             PROFILE_SCOPE("ContinuitySolver::compute (iterate)")
             for (const auto& neigh : this->neighs) {
                 const Size j = neigh.index;
-                neighCnts[j]++;
                 // actual smoothing length
                 const Float hbar = 0.5_f * (r[i][H] + r[j][H]);
                 ASSERT(hbar > EPS && hbar <= r[i][H]);
@@ -106,6 +104,8 @@ public:
                     // aren't actual neighbours
                     continue;
                 }
+                neighCnts[j]++;
+                neighCnts[i]++;
                 // compute gradient of kernel W_ij
                 const Vector grad = w.grad(r[i], r[j]);
                 ASSERT(isReal(grad) && dot(grad, r[i] - r[j]) < 0._f);
@@ -142,12 +142,11 @@ public:
                 divv = rhoDivv[i];
             }
             drho[i] = -rho[i] * divv;
-
             if (flag[i] == 0) {
-                // undamaged target
+                // target
                 v[i][H] = r[i][H] / D * divv;
             } else {
-                // damaged target or impactor
+                // impactor
                 v[i][H] = r[i][H] / D * rhoDivv[i];
             }
             /*if (neighCnts[i] > neighRange.upper()) {

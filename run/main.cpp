@@ -1,8 +1,8 @@
 #include "geometry/Domain.h"
 #include "physics/Eos.h"
 #include "problem/Problem.h"
+#include "quantities/Storage.h"
 #include "sph/initial/Initial.h"
-#include "sph/timestepping/TimeStepping.h"
 #include "system/Factory.h"
 #include "system/Logger.h"
 #include "system/Output.h"
@@ -11,37 +11,29 @@
 using namespace Sph;
 
 int main() {
-    GlobalSettings globalSettings;
-    globalSettings.set(GlobalSettingsIds::DOMAIN_TYPE, DomainEnum::SPHERICAL);
-    globalSettings.set(GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP, 1.e-6_f);
-    globalSettings.set(GlobalSettingsIds::TIMESTEPPING_MAX_TIMESTEP, 1.e-1_f);
-    globalSettings.set(GlobalSettingsIds::MODEL_FORCE_DIV_S, true);
-    globalSettings.set(GlobalSettingsIds::SPH_FINDER, FinderEnum::VOXEL);
-    globalSettings.set(GlobalSettingsIds::RUN_TIME_RANGE, Range(0._f, 1._f));
-    /*globalSettings.set(GlobalSettingsIds::MODEL_DAMAGE, DamageEnum::SCALAR_GRADY_KIPP);
-    globalSettings.set(GlobalSettingsIds::MODEL_YIELDING, YieldingEnum::VON_MISES);*/
-    Problem* p = new Problem(globalSettings, std::make_shared<Storage>());
-    p->output =
-        std::make_unique<TextOutput>(globalSettings.get<std::string>(GlobalSettingsIds::RUN_OUTPUT_NAME),
-            globalSettings.get<std::string>(GlobalSettingsIds::RUN_NAME),
-            TextOutput::Options::SCIENTIFIC);
+    Storage sph5;
+    sph5.insert<Vector, OrderEnum::SECOND_ORDER>(QuantityIds::POSITIONS, Array<Vector>{});
+    sph5.insert<Float, OrderEnum::FIRST_ORDER>(QuantityIds::DAMAGE, 0._f);
+    sph5.insert<Float, OrderEnum::FIRST_ORDER>(QuantityIds::ENERGY, 0._f);
+    sph5.insert<Float, OrderEnum::ZERO_ORDER>(QuantityIds::PRESSURE, 0._f);
+    sph5.insert<Float, OrderEnum::ZERO_ORDER>(QuantityIds::SOUND_SPEED, 0._f);
+    sph5.insert<Float, OrderEnum::ZERO_ORDER>(QuantityIds::HEATING, 0._f);
 
-    BodySettings bodySettings;
-    bodySettings.set(BodySettingsIds::ENERGY, 1.e2_f);
-    bodySettings.set(BodySettingsIds::PARTICLE_COUNT, 10000);
-    bodySettings.set(BodySettingsIds::EOS, EosEnum::TILLOTSON);
-    InitialConditions conds(p->storage, globalSettings);
+    TextOutput dump("%d", "", EMPTY_FLAGS);
+    Statistics stats;
+    dump.add(std::make_unique<ParticleNumberColumn>());
+    dump.add(std::make_unique<TimeColumn>(&stats));
+    dump.add(std::make_unique<SmoothingLengthColumn>());
+    dump.add(std::make_unique<ValueColumn<Vector>>(QuantityIds::POSITIONS));
+    dump.add(std::make_unique<DerivativeColumn<Vector>>(QuantityIds::POSITIONS));
+    dump.add(std::make_unique<ValueColumn<Float>>(QuantityIds::DAMAGE));
+    dump.add(std::make_unique<ValueColumn<Float>>(QuantityIds::ENERGY));
+    dump.add(std::make_unique<ValueColumn<Float>>(QuantityIds::PRESSURE));
+    dump.add(std::make_unique<ValueColumn<Float>>(QuantityIds::SOUND_SPEED));
+    dump.add(std::make_unique<ValueColumn<Float>>(QuantityIds::HEATING));
 
-    SphericalDomain domain1(Vector(0._f), 5e2_f); // D = 1km
-    conds.addBody(domain1, bodySettings);
+    dump.load("", sph5);
 
-    /*SphericalDomain domain2(Vector(6.e2_f, 1.35e2_f, 0._f), 20._f);
-    bodySettings.set(BodySettingsIds::PARTICLE_COUNT, 100);
-    conds.addBody(domain2, bodySettings, Vector(-5.e3_f, 0._f, 0._f));*/
-    p->run();
-
-    StdOutLogger logger;
-    Profiler::getInstance()->printStatistics(logger);
 
     return 0;
 }

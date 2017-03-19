@@ -204,14 +204,14 @@ namespace Detail {
             return GetValueEnum<TValue>::type;
         }
 
-        virtual void clamp() override {
+        /*virtual void clamp() override {
             if (this->range == Range::unbounded()) {
                 return;
             }
             for (Size i = 0; i < this->v.size(); ++i) {
                 tie(this->v[i], this->dv[i]) = clampWithDerivative(this->v[i], this->dv[i], this->range);
             }
-        }
+        }*/
 
         virtual std::unique_ptr<PlaceHolder> clone(const Flags<VisitorEnum> flags) const override {
             Array<TValue> cv = this->conditionalClone(
@@ -278,14 +278,15 @@ namespace Detail {
             return GetValueEnum<TValue>::type;
         }
 
-        virtual void clamp() override {
+        /*virtual void clamp() override {
             if (this->range == Range::unbounded()) {
                 return;
             }
             for (Size i = 0; i < this->v.size(); ++i) {
-                tie(this->v[i], this->d2v[i]) = clampWithDerivative(this->v[i], this->d2v[i], this->range);
+                //tie(this->v[i], this->d2v[i]) = clampWithDerivative(this->v[i], this->d2v[i], this->range);
+                this
             }
-        }
+        }*/
 
         virtual std::unique_ptr<PlaceHolder> clone(const Flags<VisitorEnum> flags) const override {
             Array<TValue> cv = this->conditionalClone(
