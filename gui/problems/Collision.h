@@ -194,7 +194,7 @@ struct AsteroidCollision {
         globalSettings.set(GlobalSettingsIds::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::PREDICTOR_CORRECTOR)
             .set(GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP, 0.01_f)
             .set(GlobalSettingsIds::TIMESTEPPING_MAX_TIMESTEP, 0.1_f)
-            .set(GlobalSettingsIds::RUN_TIME_RANGE, Range(0._f, 1._f))
+            .set(GlobalSettingsIds::RUN_TIME_RANGE, Range(0._f, 10._f))
             .set(GlobalSettingsIds::RUN_OUTPUT_INTERVAL, 0.1_f)
             .set(GlobalSettingsIds::MODEL_FORCE_DIV_S, true)
             .set(GlobalSettingsIds::SPH_FINDER, FinderEnum::VOXEL)
