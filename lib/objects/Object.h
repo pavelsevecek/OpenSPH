@@ -32,6 +32,12 @@ NAMESPACE_SPH_BEGIN
 #define UNUSED_IN_RELEASE(x)
 #endif
 
+#ifdef CPP17
+#define FALLTHROUGH [[fallthrough]];
+#else
+#define FALLTHROUGH
+#endif
+
 namespace Abstract {}
 
 /// Object with deleted copy constructor and copy operator

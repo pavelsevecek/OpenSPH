@@ -46,13 +46,6 @@ public:
     }
 };
 
-/// Type intended to use as first parameter of variant, representing empty variant.
-struct EmptyVariant {};
-
-/// Constant used for initializing empty variant
-const EmptyVariant EMPTY_VARIANT;
-
-
 /// Helper visitors creating, deleting or modifying Variant
 namespace VariantHelpers {
 
@@ -85,12 +78,15 @@ namespace VariantHelpers {
         AlignedUnion<TArgs...>& storage;
 
         template <typename T, typename TOther>
+        void visit(const TOther& other) {
+            storage.template emplace<T>(other.template get<T>());
+        }
+
+        template <typename T,
+            typename TOther,
+            typename = std::enable_if_t<!std::is_lvalue_reference<TOther>::value>>
         void visit(TOther&& other) {
-            if (std::is_lvalue_reference<TOther>::value) {
-                storage.template emplace<T>(other.template get<T>());
-            } else {
-                storage.template emplace<T>(std::move(other.template get<T>()));
-            }
+            storage.template emplace<T>(std::move(other.template get<T>()));
         }
     };
 
@@ -112,12 +108,15 @@ namespace VariantHelpers {
         AlignedUnion<TArgs...>& storage;
 
         template <typename T, typename TOther>
+        void visit(const TOther& other) {
+            storage.template get<T>() = other.template get<T>();
+        }
+
+        template <typename T,
+            typename TOther,
+            typename = std::enable_if_t<!std::is_lvalue_reference<TOther>::value>>
         void visit(TOther&& other) {
-            if (std::is_lvalue_reference<TOther>::value) {
-                storage.template get<T>() = other.template get<T>();
-            } else {
-                storage.template get<T>() = std::move(other.template get<T>());
-            }
+            storage.template get<T>() = std::move(other.template get<T>());
         }
     };
 
@@ -355,7 +354,6 @@ namespace Detail {
 /// \return Value returned by the functor.
 template <typename TFunctor, typename... TArgs>
 INLINE decltype(auto) forValue(Variant<TArgs...>& variant, TFunctor&& functor) {
-    ASSERT(variant.template getTypeIdx() != -1);
     return Detail::ForCurrentType<0, TArgs...>::action(variant, std::forward<TFunctor>(functor));
 }
 
@@ -363,7 +361,6 @@ INLINE decltype(auto) forValue(Variant<TArgs...>& variant, TFunctor&& functor) {
 /// reference.
 template <typename TFunctor, typename... TArgs>
 INLINE decltype(auto) forValue(const Variant<TArgs...>& variant, TFunctor&& functor) {
-    ASSERT(variant.template getTypeIdx() != -1);
     return Detail::ForCurrentType<0, TArgs...>::action(variant, std::forward<TFunctor>(functor));
 }
 

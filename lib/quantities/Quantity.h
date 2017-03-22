@@ -65,6 +65,9 @@ namespace Detail {
 
         OrderEnum order;
 
+        Holder(const OrderEnum order)
+            : order(order) {}
+
     public:
         Holder(const OrderEnum order, const TValue& defaultValue, const Size size)
             : order(order) {
@@ -175,12 +178,12 @@ namespace Detail {
         }
 
     private:
-        void initDerivative(const Size size) {
+        void initDerivatives(const Size size) {
             switch (order) {
             case OrderEnum::SECOND:
                 d2v_dt2.resize(size);
                 d2v_dt2.fill(TValue(0._f));
-                [[fallthrough]];
+                FALLTHROUGH;
             case OrderEnum::FIRST:
                 dv_dt.resize(size);
                 dv_dt.fill(TValue(0._f));
@@ -225,6 +228,11 @@ namespace Detail {
                 break;
             }
         }
+
+        template <typename TFunctor>
+        void visit(Holder& other, const Flags<VisitorEnum> flags, TFunctor&& functor) const {
+            visit(other, flags, functor);
+        }
     };
 }
 
@@ -243,10 +251,14 @@ namespace Detail {
 class Quantity : public Noncopyable {
 private:
     template <typename... TArgs>
-    using HolderVariant = Variant<Detail::Holder<TArgs...>>;
+    using HolderVariant = Variant<Detail::Holder<TArgs>...>;
 
     // Types must be in same order as in ValueEnum!
-    HolderVariant<Float, Vector, Tensor, TracelessTensor, Size> data;
+    using Holder = HolderVariant<Float, Vector, Tensor, TracelessTensor, Size>;
+    Holder data;
+
+    Quantity(Holder&& holder)
+        : data(std::move(holder)) {}
 
 public:
     /// Creates a quantity given number of particles and default value of the quantity. All values are set to
@@ -272,8 +284,8 @@ public:
     }
 
     Quantity clone(const Flags<VisitorEnum> flags) const {
-        auto cloned = forValue(data, [flags](auto& holder) { return holder.clone(flags); });
-        return { std::move(cloned) };
+        Holder cloned = forValue(data, [flags](auto& holder) -> Holder { return holder.clone(flags); });
+        return cloned;
     }
 
     /// Swap quantity (or selected part of it) with other quantity.
@@ -374,9 +386,3 @@ private:
 };
 
 NAMESPACE_SPH_END
-
-namespace std {
-    void swap(Quantity& q1, Quantity& q2) {
-        q1.swap(q2);
-    }
-}

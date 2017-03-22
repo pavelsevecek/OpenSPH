@@ -2,6 +2,8 @@
 
 #include "objects/containers/StaticArray.h"
 #include "objects/wrappers/Outcome.h"
+#include <memory>
+#include <stdio.h>
 
 NAMESPACE_SPH_BEGIN
 
@@ -40,7 +42,8 @@ inline std::string getGitCommit(const std::string& pathToGitRoot) {
     StaticArray<char, 128> buffer;
     std::string command = "cd " + pathToGitRoot + " && git rev-parse HEAD";
     std::string result;
-    std::unique_ptr<FILE> pipe(popen(command, "r"), pclose);
+    /// \todo unique_ptr with deleter
+    std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(command.c_str(), "r"), pclose);
     if (!pipe) {
         return "";
     }

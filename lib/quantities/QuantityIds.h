@@ -69,8 +69,6 @@ INLINE std::string getQuantityName(const QuantityIds key) {
         return "Stress";
     case QuantityIds::DAMAGE:
         return "Damage";
-    case QuantityIds::RHO_GRAD_V:
-        return "rho grad v";
     case QuantityIds::NEIGHBOUR_CNT:
         return "Neigh. cnt";
     case QuantityIds::MATERIAL_IDX:
