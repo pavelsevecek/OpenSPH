@@ -111,14 +111,6 @@ void ScalarDamage::integrate(Storage& storage) {
     tie(damage, ddamage) = storage.getAll<Float>(QuantityIds::DAMAGE);
     MaterialAccessor material(storage);
     for (Size i = 0; i < p.size(); ++i) {
-        // if damage is already on max value, set stress to zero to avoid limiting timestep by non-existent
-        // stresses
-        const Range range = storage.getQuantity(QuantityIds::DAMAGE).getRange();
-        if (damage[i] == range.upper()) {
-            s[i] = TracelessTensor::null();
-            ds[i] = TracelessTensor::null();
-            continue;
-        }
         const Tensor sigma = reduce(s[i], i) - reduce(p[i], i) * Tensor::identity();
         Float sig1, sig2, sig3;
         tie(sig1, sig2, sig3) = findEigenvalues(sigma);

@@ -41,7 +41,7 @@ public:
 
     StressForce(const GlobalSettings& settings)
         : Module<Yielding, Damage, AV, RhoDivv, RhoGradv>(yielding, damage, av, rhoDivv, rhoGradv)
-        , rhoGradv(QuantityIds::RHO_GRAD_V)
+        , rhoGradv() // QuantityIds::RHO_GRAD_V)
         , damage(settings)
         , av(settings)
         , energy959("energy959.txt") {
@@ -90,11 +90,40 @@ public:
         Vector f(0._f);
         // const Float rhoInvSqri = 1._f / sqr(rho[i]);
         // const Float rhoInvSqrj = 1._f / sqr(rho[j]);
+
+        // const Float t = stats->get<Float>(StatisticsIds::TOTAL_TIME);
+
         if (flags.has(Options::USE_GRAD_P)) {
             /// \todo measure if these branches have any effect on performance
             const auto avij = av(i, j);
             // f -= (reduce(p[i], i) * rhoInvSqri + reduce(p[j], i) * rhoInvSqrj + avij) * grad;
             f -= ((reduce(p[i], i) + reduce(p[j], j)) / (rho[i] * rho[j]) + avij) * grad;
+
+
+            /*   if (t > 0.008_f) {
+                    StdOutLogger logger;
+                    if (i == 10 || j == 10) {
+                        logger.write(t,
+                            "  ",
+                            i,
+                            "  ",
+                            j,
+                            "  ",
+                            reduce(p[i], i),
+                            "  ",
+                            reduce(p[j], j),
+                            "  ",
+                            rho[i],
+                            "  ",
+                            rho[j],
+                            "  ",
+                            q[i],
+                            "  ",
+                            q[j]);
+
+                    }
+                }*/
+
 
             // account for shock heating
             const Float heating = avij * dot(v[i] - v[j], grad);
@@ -111,6 +140,7 @@ public:
             // apply stress only if particles belong to the same body
             f += (reduce(s[i], i) + reduce(s[j], j)) / (rho[i] * rho[j]) * grad;
         }
+
         dv[i] += m[j] * f;
         dv[j] -= m[i] * f;
 
@@ -141,7 +171,6 @@ public:
             }
             ASSERT(isReal(du[i]));
         }
-
         this->integrateModules(storage);
     }
 

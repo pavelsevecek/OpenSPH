@@ -26,6 +26,14 @@ void Abstract::TimeStepping::step(Abstract::Solver& solver, Statistics& stats) {
     if (adaptiveStep) {
         tieToTuple(dt, criterion) = adaptiveStep->compute(*storage, maxdt, stats);
     }
+    StdOutLogger logger;
+    logger.write(stats.get<Float>(StatisticsIds::TOTAL_TIME),
+        dt,
+        " by ",
+        criterion,
+        ", ",
+        stats.get<int>(StatisticsIds::LIMITING_PARTICLE_IDX),
+        "   xxxtimestep");
     stats.set(StatisticsIds::TIMESTEP_VALUE, dt);
     stats.set(StatisticsIds::TIMESTEP_CRITERION, criterion);
     stats.set(StatisticsIds::TIMESTEP_ELAPSED, int(timer.elapsed<TimerUnit::MILLISECOND>()));
@@ -84,6 +92,17 @@ void PredictorCorrector::stepImpl(Abstract::Solver& solver, Statistics& stats) {
     const Float dt2 = 0.5_f * sqr(this->dt);
 
     PROFILE_SCOPE("PredictorCorrector::step   Predictions")
+
+    StdOutLogger logger;
+    ArrayView<Float> rho, drho;
+    tie(rho, drho) = storage->getAll<Float>(QuantityIds::DENSITY);
+
+    const Float t = stats.get<Float>(StatisticsIds::TOTAL_TIME);
+    if (t > 0.008_f) {
+        logger.write("rho dt = ", this->dt);
+        logger.write("rho start = ", rho[10], drho[10]);
+    }
+
     // make prediction using old derivatives (simple euler)
     iterate<VisitorEnum::SECOND_ORDER>(
         *this->storage, [this, dt2](const QuantityIds UNUSED(id), auto& v, auto& dv, auto& d2v) {
@@ -98,6 +117,9 @@ void PredictorCorrector::stepImpl(Abstract::Solver& solver, Statistics& stats) {
                 v[i] += dv[i] * this->dt;
             }
         });
+    if (t > 0.008_f) {
+        logger.write("rho predicted = ", rho[10], drho[10]);
+    }
     // clamp quantities
     /// \todo better
     for (auto& q : *this->storage) {
@@ -112,13 +134,16 @@ void PredictorCorrector::stepImpl(Abstract::Solver& solver, Statistics& stats) {
     }
     // save derivatives from predictions
     this->storage->swap(*predictions, VisitorEnum::HIGHEST_DERIVATIVES);
+    tie(rho, drho) = storage->getAll<Float>(QuantityIds::DENSITY);
 
     // clear derivatives
     this->storage->init();
     SCOPE_STOP;
     // compute derivative
     solver.integrate(*this->storage, stats);
-
+    if (t > 0.008_f) {
+        logger.write("rho computed = ", rho[10], drho[10]);
+    }
     PROFILE_NEXT("PredictorCorrector::step   Corrections");
     // make corrections
     // clang-format off
@@ -139,35 +164,25 @@ void PredictorCorrector::stepImpl(Abstract::Solver& solver, Statistics& stats) {
             pv[i] -= 0.5_f * (cdv[i] - pdv[i]) * this->dt;
         }
     });
+    if (t > 0.008_f) {
+        logger.write("rho corrected = ", rho[10], drho[10], predictions->getDt<Float>(QuantityIds::DENSITY)[10],"\n");
+    }
     // clamp quantities
     /// \todo better
     for (auto& q : *this->storage) {
         q.second.clamp();
     }
     tie(damage, ddamage) = storage->getAll<Float>(QuantityIds::DAMAGE);
+    ArrayView<TracelessTensor> s, ds;
+    tie(s, ds) = storage->getAll<TracelessTensor>(QuantityIds::DEVIATORIC_STRESS);
     for (Size i = 0; i < damage.size(); ++i) {
         if (damage[i] >= 1._f) {
             ddamage[i] = 0._f;
+            s[i] = TracelessTensor::null();
+            ds[i] = TracelessTensor::null();
         }
     }
     // clang-format on
-
-    /*    iterate<VisitorEnum::HIGHEST_DERIVATIVES>(*storage, [](const QuantityIds id, auto&& dv) {
-            std::cout << "Quantity " << id << std::endl;
-            for (Size i = 0; i < dv.size(); ++i) {
-                std::cout << i << "  |  " << dv[i] << std::endl;
-            }
-        });*/
-    /*ArrayView<TracelessTensor> s, ds;
-    tie(s, ds) = storage->getAll<TracelessTensor>(QuantityIds::DEVIATORIC_STRESS);
-    for (Size i =0;i<s.size() ;++i) {
-        std::cout << i << s[i] << std::endl << ds[i] << std::endl;
-    }*/
-    /*ArrayView<Float> D, dD;
-    tie(D, dD) = storage->getAll<Float>(QuantityIds::DAMAGE);
-    for (Size i =0;i<D.size() ;++i) {
-        std::cout << i << D[i] << dD[i] << std::endl;
-    }*/
 }
 
 

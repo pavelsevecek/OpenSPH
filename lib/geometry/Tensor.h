@@ -291,6 +291,10 @@ INLINE auto less(const Tensor& t1, const Tensor& t2) {
     return Tensor(less(t1.diagonal(), t2.diagonal()), less(t1.offDiagonal(), t2.offDiagonal()));
 }
 
+template <>
+INLINE Array<Float> getComponents(const Tensor& t) {
+    return { t(0, 0), t(1, 1), t(2, 2), t(0, 1), t(0, 2), t(1, 2) };
+}
 
 /// Double-dot product t1 : t2 = sum_ij t1_ij t2_ij
 INLINE Float ddot(const Tensor& t1, const Tensor& t2) {

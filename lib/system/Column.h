@@ -212,24 +212,5 @@ public:
     }
 };
 
-namespace Factory {
-    template <typename TValue>
-    INLINE std::unique_ptr<Abstract::Column> getValueColumn(const QuantityIds id) {
-        return std::make_unique<ValueColumn<TValue>>(id);
-    }
-
-    template <typename TValue>
-    INLINE std::unique_ptr<Abstract::Column> getDerivativeColumn(const QuantityIds id) {
-        return std::make_unique<DerivativeColumn<TValue>>(id);
-    }
-
-    INLINE std::unique_ptr<Abstract::Column> getVelocityColumn() {
-        return getDerivativeColumn<Vector>(QuantityIds::POSITIONS);
-    }
-
-    INLINE std::unique_ptr<Abstract::Column> getSmoothingLengthColumn() {
-        return std::make_unique<SmoothingLengthColumn>();
-    }
-}
 
 NAMESPACE_SPH_END

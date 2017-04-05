@@ -69,12 +69,13 @@ void Problem::run() {
             nextOutput += outputInterval;
         }
 
-        // make time step
-        timeStepping->step(*solver, stats);
-
         // log
         stats.set(StatisticsIds::TOTAL_TIME, t);
         stats.set(StatisticsIds::INDEX, (int)i);
+
+        // make time step
+        timeStepping->step(*solver, stats);
+
 
         for (auto& log : logs) {
             log->write(*storage, stats);
@@ -85,9 +86,6 @@ void Problem::run() {
                 break;
             }
         }
-        /*   if (t > 0.02_f) {
-               exit(0);
-           }*/
         i++;
     }
     logger->write("Run ended after ", runTimer.elapsed<TimerUnit::SECOND>(), "s.");

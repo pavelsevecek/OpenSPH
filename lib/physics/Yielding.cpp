@@ -21,6 +21,7 @@ void VonMises::update(Storage& storage) {
         D = storage.getValue<Float>(QuantityIds::DAMAGE);
     }
 
+    constexpr Float eps = 1.e-15_f;
     for (Size i = 0; i < storage.getParticleCnt(); ++i) {
         // compute yielding stress
         const Float limit = material.getParam<Float>(BodySettingsIds::ELASTICITY_LIMIT, i);
@@ -30,7 +31,7 @@ void VonMises::update(Storage& storage) {
         ASSERT(limit > 0._f);
 
         // apply reduction to stress tensor
-        if (y < EPS) {
+        if (y < eps) {
             reducing[i] = 0._f;
             S[i] = TracelessTensor::null();
             continue;
@@ -38,11 +39,12 @@ void VonMises::update(Storage& storage) {
         TracelessTensor s;
         if (D) {
             const Float d = pow<3>(D[i]);
-            s = (1._f - d) * S[i];
+            s = (1._f - d) * S[i] + TracelessTensor(eps);
         } else {
-            s = S[i];
+            s = S[i] + TracelessTensor(eps);
         }
-        const Float inv = 0.5_f * ddot(s, s) / sqr(y) + EPS;
+        s = s / y + TracelessTensor(eps);
+        const Float inv = 0.5_f * ddot(s, s) + eps;
         ASSERT(isReal(inv) && inv > 0._f);
         const Float red = min(sqrt(1._f / (3._f * inv)), 1._f);
         ASSERT(red >= 0._f && red <= 1._f);

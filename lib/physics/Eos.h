@@ -4,9 +4,9 @@
 /// Pavel Sevecek 2016
 /// sevecek at sirrah.troja.mff.cuni.cz
 
+#include "objects/ForwardDecl.h"
 #include "objects/containers/Array.h"
 #include "objects/containers/Tuple.h"
-#include "objects/ForwardDecl.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -62,7 +62,8 @@ public:
     }
 };
 
-/// Murnaghan equation of state. Pressure is computed from density only (does not depend on energy).
+/// Murnaghan equation of state, describing simplified solid matter. Pressure is computed from density only
+/// (does not depend on energy).
 class MurnaghanEos : public Abstract::Eos {
 private:
     Float rho0;

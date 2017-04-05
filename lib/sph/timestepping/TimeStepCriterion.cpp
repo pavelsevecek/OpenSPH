@@ -39,16 +39,19 @@ Tuple<Float, AllCriterionIds> DerivativeCriterion::compute(Storage& storage,
             const auto absv = abs(v[i]);
             const Float minValue = MaterialAccessor(storage).minimal(id, i);
             ASSERT(minValue > 0._f); // some nonzero minimal value must be set for all quantities
-            if (norm(absv) < minValue) {
-                continue;
-            }
-            using TAbs = decltype(absv);
-            const auto value = factor * (absv + TAbs(minValue)) / (absdv + TAbs(EPS));
-            ASSERT(isReal(value));
-            const Float e = minElement(value);
-            if (e < minStep) {
-                minStep = e;
-                limit = { v[i], dv[i], i };
+            Array<Float> vs = getComponents(absv);
+            Array<Float> dvs = getComponents(absdv);
+            ASSERT(vs.size() == dvs.size());
+            for (Size j = 0; j < vs.size(); ++j) {
+                if (abs(vs[j]) < 2._f * minValue) {
+                    continue;
+                }
+                const Float value = factor * (vs[j] + minValue) / (dvs[j] + EPS);
+                ASSERT(isReal(value));
+                if (value < minStep) {
+                    minStep = value;
+                    limit = { v[i], dv[i], i };
+                }
             }
         }
         if (minStep < totalMinStep) {

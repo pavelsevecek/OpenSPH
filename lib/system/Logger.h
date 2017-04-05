@@ -39,6 +39,11 @@ namespace Abstract {
             ss << std::setprecision(PRECISION) << std::scientific << first;
             writeImpl(ss, std::forward<TArgs>(rest)...);
         }
+        template <typename... TArgs>
+        void writeImpl(std::stringstream& ss, const Float first, TArgs&&... rest) {
+            ss << std::setprecision(PRECISION) << std::scientific << std::setw(25) << first;
+            writeImpl(ss, std::forward<TArgs>(rest)...);
+        }
         void writeImpl(std::stringstream& UNUSED(ss)) {}
     };
 }

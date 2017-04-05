@@ -166,4 +166,5 @@ HEADERS += \
     sph/Diagnostics.h \
     system/Column.h \
     objects/wrappers/Finally.h \
-    geometry/AntisymmetricTensor.h
+    geometry/AntisymmetricTensor.h \
+    math/Generic.h

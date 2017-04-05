@@ -5,8 +5,9 @@
 /// sevecek at sirrah.troja.mff.cuni.cz
 
 #include <cassert>
-#include <utility>
+//#include <iostream> /// \todo remove iostream from this header!
 #include <stdint.h>
+#include <utility>
 
 #define NAMESPACE_SPH_BEGIN namespace Sph {
 #define NAMESPACE_SPH_END }
@@ -16,8 +17,16 @@ NAMESPACE_SPH_BEGIN
 // #define DEBUG
 // #define PROFILE
 
+/*constexpr inline void assertImpl(const bool condition, const char* text, const int line, const char* file) {
+    if (!condition) {
+        std::cout << "Assert fired at line " << line << " of " << file << ": " << std::endl;
+        std::cout << text << std::endl;
+    }
+    assert(condition);
+}*/
+
 #ifdef DEBUG
-#define ASSERT(x) assert(x)
+#define ASSERT(x) assert(x) // assertImpl(bool(x), #x, __LINE__, __FILE__)
 #else
 #define ASSERT(x)
 #endif
@@ -68,7 +77,7 @@ public:
     Noncopyable& operator=(Noncopyable&&) = default;
 };
 
-class Polymorphic  {
+class Polymorphic {
 public:
     virtual ~Polymorphic() {}
 };
@@ -84,7 +93,7 @@ namespace Detail {
         }
     };
     template <std::size_t N>
-    struct StaticForType<N, N>  {
+    struct StaticForType<N, N> {
         template <typename TVisitor>
         INLINE static void action(TVisitor&& visitor) {
             visitor.template visit<N>();

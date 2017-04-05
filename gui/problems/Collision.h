@@ -166,7 +166,7 @@ struct AsteroidCollision {
         BodySettings bodySettings;
         bodySettings.set(BodySettingsIds::ENERGY, 1._f)
             .set(BodySettingsIds::ENERGY_RANGE, Range(1._f, INFTY))
-            .set(BodySettingsIds::PARTICLE_COUNT, 100000)
+            .set(BodySettingsIds::PARTICLE_COUNT, 100'000)
             .set(BodySettingsIds::EOS, EosEnum::TILLOTSON)
             .set(BodySettingsIds::STRESS_TENSOR_MIN, 1.e5_f)
             .set(BodySettingsIds::DAMAGE_RANGE, Range(0._f, 1._f));
@@ -184,7 +184,10 @@ struct AsteroidCollision {
         //    SphericalDomain domain2(Vector(4785.5_f, 3639.1_f, 0._f), 146.43_f); // D = 280m
         SphericalDomain domain2(Vector(5097.4509902022_f, 3726.8662269290_f, 0._f), 270.5847632732_f);
 
-        bodySettings.set(BodySettingsIds::PARTICLE_COUNT, 100).set(BodySettingsIds::STRESS_TENSOR_MIN, LARGE);
+        // disable timestep limitating by damage and stress derivatives in impactor
+        bodySettings.set(BodySettingsIds::PARTICLE_COUNT, 100)
+            .set(BodySettingsIds::STRESS_TENSOR_MIN, LARGE)
+            .set(BodySettingsIds::DAMAGE_MIN, LARGE);
         bodySettings.saveToFile("impactor.sph");
         conds.addBody(domain2, bodySettings, Vector(-5.e3_f, 0._f, 0._f)); // 5km/s
         logger.write("Particles of projectile: ", storage->getParticleCnt() - n1);
@@ -193,7 +196,7 @@ struct AsteroidCollision {
     std::unique_ptr<Problem> getProblem() {
         globalSettings.set(GlobalSettingsIds::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::PREDICTOR_CORRECTOR)
             .set(GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP, 0.01_f)
-            .set(GlobalSettingsIds::TIMESTEPPING_MAX_TIMESTEP, 0.1_f)
+            .set(GlobalSettingsIds::TIMESTEPPING_MAX_TIMESTEP, 0.01_f)
             .set(GlobalSettingsIds::RUN_TIME_RANGE, Range(0._f, 10._f))
             .set(GlobalSettingsIds::RUN_OUTPUT_INTERVAL, 0.1_f)
             .set(GlobalSettingsIds::MODEL_FORCE_DIV_S, true)
@@ -210,18 +213,22 @@ struct AsteroidCollision {
             globalSettings.get<std::string>(GlobalSettingsIds::RUN_NAME),
             TextOutput::Options::SCIENTIFIC);
         p->output->add(std::make_unique<ParticleNumberColumn>());
-        p->output->add(Factory::getValueColumn<Vector>(QuantityIds::POSITIONS));
-        p->output->add(Factory::getDerivativeColumn<Vector>(QuantityIds::POSITIONS));
-        p->output->add(Factory::getSmoothingLengthColumn());
-        p->output->add(Factory::getValueColumn<Float>(QuantityIds::DENSITY));
-        p->output->add(Factory::getValueColumn<Float>(QuantityIds::PRESSURE));
-        p->output->add(Factory::getValueColumn<Float>(QuantityIds::ENERGY));
-        p->output->add(Factory::getValueColumn<Float>(QuantityIds::DAMAGE));
-        p->output->add(Factory::getValueColumn<TracelessTensor>(QuantityIds::DEVIATORIC_STRESS));
-        p->output->add(Factory::getValueColumn<Float>(QuantityIds::SOUND_SPEED));
-        p->output->add(Factory::getValueColumn<Float>(QuantityIds::HEATING));
-        p->output->add(Factory::getValueColumn<Size>(QuantityIds::FLAG));
+        p->output->add(std::make_unique<ValueColumn<Vector>>(QuantityIds::POSITIONS));
+        p->output->add(std::make_unique<DerivativeColumn<Vector>>(QuantityIds::POSITIONS));
+        p->output->add(std::make_unique<SmoothingLengthColumn>());
+        p->output->add(std::make_unique<ValueColumn<Float>>(QuantityIds::DENSITY));
+        p->output->add(std::make_unique<ValueColumn<Float>>(QuantityIds::PRESSURE));
+        p->output->add(std::make_unique<ValueColumn<Float>>(QuantityIds::ENERGY));
+        /// \todo this output is for comparison with SPH5, we really should use DamageColumn to get the actual
+        /// value of the damage
+        /// After refactoring, the column should directly output physical quantities if present.
+        p->output->add(std::make_unique<ValueColumn<Float>>(QuantityIds::DAMAGE));
+        p->output->add(std::make_unique<ValueColumn<TracelessTensor>>(QuantityIds::DEVIATORIC_STRESS));
+        p->output->add(std::make_unique<ValueColumn<Float>>(QuantityIds::SOUND_SPEED));
+        p->output->add(std::make_unique<ValueColumn<Float>>(QuantityIds::HEATING));
+        p->output->add(std::make_unique<ValueColumn<Size>>(QuantityIds::FLAG));
         p->output->add(std::make_unique<SecondDerivativeColumn<Vector>>(QuantityIds::POSITIONS));
+        p->output->add(std::make_unique<ValueColumn<Size>>(QuantityIds::NEIGHBOUR_CNT));
         // Array<QuantityIds>{
         // QuantityIds::POSITIONS, QuantityIds::DENSITY, QuantityIds::PRESSURE, QuantityIds::ENERGY });
         //  QuantityIds::DAMAGE });

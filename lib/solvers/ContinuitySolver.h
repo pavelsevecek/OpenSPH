@@ -131,24 +131,25 @@ public:
         for (Size i = 0; i < size; ++i) {
             divv_max = max(divv_max, rhoDivv[i]);
         }
-        ArrayView<Size> flag = storage.getValue<Size>(QuantityIds::FLAG);
+        // ArrayView<Size> flag = storage.getValue<Size>(QuantityIds::FLAG);
         for (Size i = 0; i < drho.size(); ++i) {
-            Float divv;
+            /*Float divv;
             const Float red = dmg ? 1.f - pow<3>(dmg[i]) : 1.f;
             if (s && red * reducing[i] != 0._f) {
                 // nonzero stress tensor
                 divv = rhoGradv[i].trace();
             } else {
                 divv = rhoDivv[i];
-            }
-            drho[i] = -rho[i] * divv;
-            if (flag[i] == 0) {
+            }*/
+            drho[i] = -rho[i] * rhoDivv[i]; // divv;
+            v[i][H] = 0._f;
+            /*if (flag[i] == 0) {
                 // target
                 v[i][H] = r[i][H] / D * divv;
             } else {
                 // impactor
                 v[i][H] = r[i][H] / D * rhoDivv[i];
-            }
+            }*/
             /*if (neighCnts[i] > neighRange.upper()) {
                 const Float vh_max = -r[i][H] / (D)*abs(divv_max);
                 const Float weight1 = exp(0.2_f * (neighCnts[i] - neighRange.upper()));

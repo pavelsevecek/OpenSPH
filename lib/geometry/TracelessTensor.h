@@ -229,8 +229,8 @@ public:
 
     template <typename TStream>
     friend TStream& operator<<(TStream& stream, const TracelessTensor& t) {
-        stream << std::setprecision(6) << std::setw(20) << t(0, 0) << std::setw(20) << t(1, 1)
-               << std::setw(20) << t(0, 1) << std::setw(20) << t(0, 2) << std::setw(20) << t(1, 2);
+        stream << std::setprecision(6) << std::setw(25) << t(0, 0) << std::setw(25) << t(1, 1)
+               << std::setw(25) << t(0, 1) << std::setw(25) << t(0, 2) << std::setw(25) << t(1, 2);
         return stream;
     }
 };
@@ -337,6 +337,11 @@ INLINE Float ddot(const Tensor& t1, const TracelessTensor& t2) {
 
 INLINE Float ddot(const TracelessTensor& t1, const TracelessTensor& t2) {
     return dot(t1.diagonal(), t2.diagonal()) + 2._f * dot(t1.offDiagonal(), t2.offDiagonal());
+}
+
+template <>
+INLINE Array<Float> getComponents(const TracelessTensor& t) {
+    return { t(0, 0), t(1, 1), t(2, 2), t(0, 1), t(0, 2), t(1, 2) };
 }
 
 NAMESPACE_SPH_END

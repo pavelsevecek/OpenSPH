@@ -6,6 +6,7 @@
 
 #include "core/Globals.h"
 #include "core/Traits.h"
+#include "math/Generic.h"
 #include "objects/containers/Tuple.h"
 #include "objects/wrappers/Range.h"
 #include <immintrin.h>
@@ -188,7 +189,7 @@ public:
         constexpr int digits = 6;
         stream << std::setprecision(digits);
         for (int i = 0; i < 3; ++i) {
-            stream << std::setw(20) << v[i];
+            stream << std::setw(25) << v[i];
         }
         return stream;
     }
@@ -355,7 +356,7 @@ public:
 
     template <typename TStream>
     friend TStream& operator<<(TStream& stream, const BasicVector& v) {
-        constexpr int digits = 12;
+        constexpr int digits = PRECISION;
         for (int i = 0; i < 3; ++i) {
             stream << std::setprecision(digits) << v[i];
         }
@@ -521,10 +522,10 @@ public:
     /// Output to stream
     template <typename TStream>
     friend TStream& operator<<(TStream& stream, const BasicVector& v) {
-        constexpr int digits = 12;
+        constexpr int digits = PRECISION;
         stream << std::setprecision(digits);
         for (int i = 0; i < 3; ++i) {
-            stream << std::setw(20) << v[i];
+            stream << std::setw(25) << v[i];
         }
         return stream;
     }
@@ -692,6 +693,11 @@ template <>
 INLINE auto less(const Vector& v1, const Vector& v2) {
     /// \todo optimize
     return Vector(Float(v1[X] < v2[X]), Float(v1[Y] < v2[Y]), Float(v1[Z] < v2[Z]), Float(v1[H] < v2[H]));
+}
+
+template <>
+INLINE Array<Float> getComponents<Vector>(const Vector& v) {
+    return { v[X], v[Y], v[Z] };
 }
 
 

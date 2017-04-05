@@ -7,20 +7,20 @@ static void printHeader(std::ofstream& ofs, const std::string& name, const Value
     switch (type) {
     case ValueEnum::SCALAR:
     case ValueEnum::INDEX:
-        ofs << std::setw(20) << name;
+        ofs << std::setw(25) << name;
         break;
     case ValueEnum::VECTOR:
-        ofs << std::setw(20) << (name + " [x]") << std::setw(20) << (name + " [y]") << std::setw(20)
+        ofs << std::setw(25) << (name + " [x]") << std::setw(25) << (name + " [y]") << std::setw(25)
             << (name + " [z]");
         break;
     case ValueEnum::TENSOR:
-        ofs << std::setw(20) << (name + " [xx]") << std::setw(20) << (name + " [yy]") << std::setw(20)
-            << (name + " [zz]") << std::setw(20) << (name + " [xy]") << std::setw(20) << (name + " [xz]")
-            << std::setw(20) << (name + " [yz]");
+        ofs << std::setw(25) << (name + " [xx]") << std::setw(25) << (name + " [yy]") << std::setw(25)
+            << (name + " [zz]") << std::setw(25) << (name + " [xy]") << std::setw(25) << (name + " [xz]")
+            << std::setw(25) << (name + " [yz]");
         break;
     case ValueEnum::TRACELESS_TENSOR:
-        ofs << std::setw(20) << (name + " [xx]") << std::setw(20) << (name + " [yy]") << std::setw(20)
-            << (name + " [xy]") << std::setw(20) << (name + " [xz]") << std::setw(20) << (name + " [yz]");
+        ofs << std::setw(25) << (name + " [xx]") << std::setw(25) << (name + " [yy]") << std::setw(25)
+            << (name + " [xy]") << std::setw(25) << (name + " [xz]") << std::setw(25) << (name + " [yz]");
         break;
     default:
         NOT_IMPLEMENTED;

@@ -12,9 +12,9 @@ TEST_CASE("Dumping data", "[output]") {
         QuantityIds::POSITIONS, makeArray(Vector(0._f), Vector(1._f), Vector(2._f)));
     storage.insert<Float, OrderEnum::FIRST_ORDER>(QuantityIds::DENSITY, 5._f);
     TextOutput output("tmp%d.out", "Output", EMPTY_FLAGS);
-    output.add(Factory::getValueColumn<Float>(QuantityIds::DENSITY));
-    output.add(Factory::getValueColumn<Vector>(QuantityIds::POSITIONS));
-    output.add(Factory::getVelocityColumn());
+    output.add(std::make_unique<ValueColumn<Float>>(QuantityIds::DENSITY));
+    output.add(std::make_unique<ValueColumn<Vector>>(QuantityIds::POSITIONS));
+    output.add(std::make_unique<DerivativeColumn<Vector>>(QuantityIds::POSITIONS));
     output.dump(storage, 0);
 
     std::string expected = R"(# Run: Output
