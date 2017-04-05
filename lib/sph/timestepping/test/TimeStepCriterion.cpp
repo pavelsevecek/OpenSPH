@@ -68,9 +68,9 @@ TEST_CASE("Derivative Criterion", "[timestepping]") {
     REQUIRE(step == approx(factor * 3._f, 1.e-3_f));
     REQUIRE(id == QuantityIds::ENERGY);
 
-    MaterialAccessor(storage).minimal(QuantityIds::ENERGY, 0) = 8._f;
+    MaterialAccessor(storage).minimal(QuantityIds::ENERGY, 0) = 4._f;
     tieToTuple(step, id) = criterion.compute(storage, INFTY);
-    REQUIRE(step == approx(factor * 5._f, 1.e-3_f)); // (12+8)/4
+    REQUIRE(step == approx(factor * 4._f, 1.e-3_f)); // (12+4)/4
     REQUIRE(id == QuantityIds::ENERGY);
 
     tieToTuple(step, id) = criterion.compute(storage, 0.1_f);

@@ -34,6 +34,7 @@ TensorFunctor<TTensor> makeTensorFunctor(Array<TTensor>& view) {
     return TensorFunctor<TTensor>(view);
 }
 
+/// Helper log file computing average values of quantities in impactor.
 /// \todo we cache ArrayViews, this wont work if we will change number of particles during the run
 class ImpactorLogFile : public Abstract::LogFile {
 private:
@@ -59,31 +60,21 @@ public:
     virtual void write(Storage& storage, const Statistics& stats) override {
         Means sm = stress.evaluate(storage);
         Means dsm = dtStress.evaluate(storage);
-        /// \todo get rid of these spaces
         this->logger->write(stats.get<Float>(StatisticsIds::TOTAL_TIME),
-            "   ",
             sm.average(),
-            "   ",
             dsm.average(),
-            "   ",
             gradv.evaluate(storage).average(),
-            "   ",
             energy.evaluate(storage).average(),
-            "   ",
             pressure.evaluate(storage).average(),
-            "  ",
             density.evaluate(storage).average(),
-            "  ",
             sm.min(),
-            "  ",
             sm.max(),
-            "  ",
             dsm.min(),
-            "  ",
             dsm.max());
     }
 };
 
+/// Log file monitoring energy conservation in the run.
 class EnergyLogFile : public Abstract::LogFile {
 private:
     TotalEnergy en;
@@ -96,15 +87,13 @@ public:
 
     virtual void write(Storage& storage, const Statistics& stats) override {
         this->logger->write(stats.get<Float>(StatisticsIds::TOTAL_TIME),
-            "   ",
             en.evaluate(storage),
-            "   ",
             kinEn.evaluate(storage),
-            "   ",
             intEn.evaluate(storage));
     }
 };
 
+/// Log file monitoring time step and limiting particlt.
 class TimestepLogFile : public Abstract::LogFile {
 public:
     TimestepLogFile(const std::string& path)
@@ -120,41 +109,10 @@ public:
         const int idx = stats.get<int>(StatisticsIds::LIMITING_PARTICLE_IDX);
         const Value value = stats.get<Value>(StatisticsIds::LIMITING_VALUE);
         const Value derivative = stats.get<Value>(StatisticsIds::LIMITING_DERIVATIVE);
-        this->logger->write(t, " ", dt, " ", id, " ", idx, " ", value, " ", derivative);
+        this->logger->write(t, dt, id, idx, value, derivative);
     }
 };
 
-class Stress1456 : public Abstract::LogFile {
-    FileLogger stepLogger;
-
-public:
-    Stress1456(const std::string& path)
-        : Abstract::LogFile(std::make_shared<FileLogger>(path))
-        , stepLogger("dt" + path) {}
-
-    virtual void write(Storage& storage, const Statistics& stats) override {
-        const Float t = stats.get<Float>(StatisticsIds::TOTAL_TIME);
-        const Tensor smin(1.e5_f);
-        ArrayView<TracelessTensor> s, ds;
-        ArrayView<Float> D, dD;
-        tie(s, ds) = storage.getAll<TracelessTensor>(QuantityIds::DEVIATORIC_STRESS);
-        tie(D, dD) = storage.getAll<Float>(QuantityIds::DAMAGE);
-        this->logger->write(t, " ", s[1456], " ", D[1456], " ", dD[1456]);
-    }
-};
-
-class Particle1493 : public Abstract::LogFile {
-public:
-    Particle1493(const std::string& path)
-        : Abstract::LogFile(std::make_shared<FileLogger>(path)) {}
-
-    virtual void write(Storage& storage, const Statistics& stats) override {
-        const Float t = stats.get<Float>(StatisticsIds::TOTAL_TIME);
-        ArrayView<Vector> r = storage.getValue<Vector>(QuantityIds::POSITIONS);
-        ArrayView<Float> cs = storage.getValue<Float>(QuantityIds::SOUND_SPEED);
-        this->logger->write(t, " ", r[1493][H], "  ", cs[1493]);
-    }
-};
 
 /// \todo problems should be setup by inheriting Abstract::Problem. This interface should have something
 /// like
@@ -174,6 +132,7 @@ struct AsteroidCollision {
 
         InitialConditions conds(storage, globalSettings);
 
+        /// \todo this should be a logger associated with the problem, not necessarily StdOut
         StdOutLogger logger;
         SphericalDomain domain1(Vector(0._f), 5e3_f); // D = 10km
         conds.addBody(domain1, bodySettings);
@@ -181,7 +140,6 @@ struct AsteroidCollision {
         logger.write("Particles of target: ", storage->getParticleCnt());
         const Size n1 = storage->getParticleCnt();
 
-        //    SphericalDomain domain2(Vector(4785.5_f, 3639.1_f, 0._f), 146.43_f); // D = 280m
         SphericalDomain domain2(Vector(5097.4509902022_f, 3726.8662269290_f, 0._f), 270.5847632732_f);
 
         // disable timestep limitating by damage and stress derivatives in impactor
@@ -229,36 +187,11 @@ struct AsteroidCollision {
         p->output->add(std::make_unique<ValueColumn<Size>>(QuantityIds::FLAG));
         p->output->add(std::make_unique<SecondDerivativeColumn<Vector>>(QuantityIds::POSITIONS));
         p->output->add(std::make_unique<ValueColumn<Size>>(QuantityIds::NEIGHBOUR_CNT));
-        // Array<QuantityIds>{
-        // QuantityIds::POSITIONS, QuantityIds::DENSITY, QuantityIds::PRESSURE, QuantityIds::ENERGY });
-        //  QuantityIds::DAMAGE });
-        // QuantityIds::DEVIATORIC_STRESS,
-        // QuantityIds::RHO_GRAD_V });
-
-        // ArrayView<Float> energy = storage->getValue<Float>(QuantityIds::ENERGY);
 
         initialConditions(p->storage);
 
-        /* p->logs.push(std::make_unique<ImpactorLogFile>(*p->storage, "stress.txt"));*/
         p->logs.push(std::make_unique<EnergyLogFile>("energy.txt"));
         p->logs.push(std::make_unique<TimestepLogFile>("timestep.txt"));
-        // p->logs.push(std::make_unique<Particle1493>("dt_1453.txt"));
-        // p->logs.push(std::make_unique<Stress1456>("s_1456.txt"));
-
-        /* ArrayView<TracelessTensor> stress =
-             p->storage->getValue<TracelessTensor>(QuantityIds::DEVIATORIC_STRESS);
-         for (auto i : iterateWithIndex(stress)) {
-             i.value() = TracelessTensor(1.e6_f, 2.e6_f, 3.e6_f, -1.e6_f, -2.e6_f);
-             i.value() = Float(i.index() + 1) * i.value();
-         }
-         ArrayView<Float> damage, energy;
-         tie(damage, energy) = p->storage->getValues<Float>(QuantityIds::DAMAGE, QuantityIds::ENERGY);
-         for (Float& d : damage) {
-             d = 0.5_f;
-         }
-         for (auto i : iterateWithIndex(energy)) {
-             i.value() = Float(i.index() + 1) * 1.e3_f;
-         }*/
 
         return p;
     }

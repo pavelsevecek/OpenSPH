@@ -13,6 +13,7 @@ TEST_CASE("VonMises", "[yielding]") {
     Array<Float> energy(10);
     energy.fill(0._f);
     storage.insert<Float, OrderEnum::FIRST_ORDER>(QuantityIds::ENERGY, std::move(energy));
+    storage.insert<Float, OrderEnum::ZERO_ORDER>(QuantityIds::YIELDING_REDUCE, 0._f);
     MaterialAccessor material(storage);
     material.setParams(BodySettingsIds::MELT_ENERGY, 100._f);
     material.setParams(BodySettingsIds::ELASTICITY_LIMIT, BodySettings::getDefaults());

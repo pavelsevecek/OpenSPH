@@ -36,7 +36,9 @@ namespace Abstract {
 
         virtual ~TimeStepping();
 
-        INLINE Float getTimeStep() const { return dt; }
+        INLINE Float getTimeStep() const {
+            return dt;
+        }
 
         void step(Abstract::Solver& solver, Statistics& stats);
 
@@ -45,7 +47,7 @@ namespace Abstract {
     };
 }
 
-
+/// Simple Euler first-order timestepping.
 class EulerExplicit : public Abstract::TimeStepping {
 public:
     explicit EulerExplicit(const std::shared_ptr<Storage>& storage, const GlobalSettings& settings)
@@ -54,7 +56,7 @@ public:
     virtual void stepImpl(Abstract::Solver& solver, Statistics& stats) override;
 };
 
-
+/// Predictor-corrector second-order timestepping
 class PredictorCorrector : public Abstract::TimeStepping {
 private:
     std::unique_ptr<Storage> predictions;

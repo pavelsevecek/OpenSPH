@@ -91,39 +91,11 @@ public:
         // const Float rhoInvSqri = 1._f / sqr(rho[i]);
         // const Float rhoInvSqrj = 1._f / sqr(rho[j]);
 
-        // const Float t = stats->get<Float>(StatisticsIds::TOTAL_TIME);
-
         if (flags.has(Options::USE_GRAD_P)) {
             /// \todo measure if these branches have any effect on performance
             const auto avij = av(i, j);
             // f -= (reduce(p[i], i) * rhoInvSqri + reduce(p[j], i) * rhoInvSqrj + avij) * grad;
             f -= ((reduce(p[i], i) + reduce(p[j], j)) / (rho[i] * rho[j]) + avij) * grad;
-
-
-            /*   if (t > 0.008_f) {
-                    StdOutLogger logger;
-                    if (i == 10 || j == 10) {
-                        logger.write(t,
-                            "  ",
-                            i,
-                            "  ",
-                            j,
-                            "  ",
-                            reduce(p[i], i),
-                            "  ",
-                            reduce(p[j], j),
-                            "  ",
-                            rho[i],
-                            "  ",
-                            rho[j],
-                            "  ",
-                            q[i],
-                            "  ",
-                            q[j]);
-
-                    }
-                }*/
-
 
             // account for shock heating
             const Float heating = avij * dot(v[i] - v[j], grad);

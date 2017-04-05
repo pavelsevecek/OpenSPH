@@ -125,18 +125,6 @@ void ScalarDamage::integrate(Storage& storage) {
             continue;
         }
         ddamage[i] = growth[i] * root<3>(min(std::pow(ratio, m_zero[i]), Float(n_flaws[i])));
-        /*      if (i == 1450) {
-                  StdOutLogger logger;
-                  logger.write("growth = ", growth[i]);
-                  logger.write("nflaws = ", n_flaws[i]);
-                  logger.write("m_zero = ", m_zero[i]);
-                  logger.write("eps_min  = ", eps_min[i]);
-                  logger.write("young  = ", young_red);
-                  logger.write("sigMax  = ", sigMax);
-                  logger.write("dD/dt  = ", ddamage[i]);
-                  logger.write("S = ", s[i]);
-                  exit(0);
-              }*/
         ASSERT(ddamage[i] >= 0._f);
     }
 }

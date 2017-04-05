@@ -1,6 +1,7 @@
 #pragma once
 
 #include "geometry/TracelessTensor.h"
+#include "objects/ForwardDecl.h"
 #include "objects/containers/Array.h"
 
 NAMESPACE_SPH_BEGIN
@@ -9,14 +10,10 @@ class Storage;
 
 class DummyYielding {
 public:
+    void initialize(Storage& storage, const BodySettings& settings) const;
+
     void update(Storage& UNUSED(storage)) {}
 };
-
-
-template <typename TEnum>
-class Settings;
-enum class BodySettingsIds;
-using BodySettings = Settings<BodySettingsIds>;
 
 /// \todo this is hardcoded for scalar damage, generalize (merge together yielding and fragmentation)
 class VonMises {

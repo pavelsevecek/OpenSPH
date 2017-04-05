@@ -16,6 +16,7 @@ static Storage getStorage() {
     HexagonalPacking distribution;
     storage.insert<Vector, OrderEnum::SECOND_ORDER>(
         QuantityIds::POSITIONS, distribution.generate(10000, SphericalDomain(Vector(0._f), 1._f)));
+    storage.insert<Float, OrderEnum::ZERO_ORDER>(QuantityIds::DENSITY, 1._f);
     // density = 1, therefore total mass = volume, therefore mass per particle = volume / N
     storage.insert<Float, OrderEnum::ZERO_ORDER>(
         QuantityIds::MASSES, sphereVolume(1._f) / storage.getParticleCnt());

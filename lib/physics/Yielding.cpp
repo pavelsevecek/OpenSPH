@@ -5,6 +5,10 @@
 
 NAMESPACE_SPH_BEGIN
 
+void DummyYielding::initialize(Storage& storage, const BodySettings& UNUSED(settings)) const {
+    storage.insert<Float, OrderEnum::ZERO_ORDER>(QuantityIds::YIELDING_REDUCE, 1._f);
+}
+
 void VonMises::initialize(Storage& storage, const BodySettings& settings) const {
     MaterialAccessor(storage).setParams(BodySettingsIds::ELASTICITY_LIMIT, settings);
     MaterialAccessor(storage).setParams(BodySettingsIds::MELT_ENERGY, settings);

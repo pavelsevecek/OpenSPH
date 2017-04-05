@@ -188,7 +188,11 @@ public:
     }
 
     INLINE Tuple<Tensor, Tensor> operator()(const int i, const int j, const Vector& grad) const {
-        Float redi = reducing[i], redj = reducing[j];
+        Float redi = 1._f, redj = 1._f;
+        if (reducing) {
+            redi = reducing[i];
+            redj = reducing[j];
+        }
         if (dmg) {
             redi *= (1._f - pow<3>(dmg[i]));
             redj *= (1._f - pow<3>(dmg[j]));
