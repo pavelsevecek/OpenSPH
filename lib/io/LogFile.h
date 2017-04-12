@@ -1,9 +1,9 @@
 #pragma once
 
+#include "io/Logger.h"
 #include "quantities/QuantityIds.h"
-#include "timestepping/TimeStepCriterion.h"
-#include "system/Logger.h"
 #include "system/Statistics.h"
+#include "timestepping/TimeStepCriterion.h"
 #include <memory>
 
 NAMESPACE_SPH_BEGIN

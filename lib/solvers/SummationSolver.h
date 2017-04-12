@@ -18,7 +18,7 @@ NAMESPACE_SPH_BEGIN
 
 /// Uses density and specific energy as independent variables. Density is solved by direct summation, using
 /// self-consistent solution with smoothing length. Energy is evolved using energy equation.
-template <typename Force, int D>
+/*template <typename Force, int D>
 class SummationSolver : public SolverBase<D>, Module<Force> {
 private:
     Array<Float> accumulatedRho;
@@ -128,5 +128,5 @@ public:
         this->initializeModules(storage, settings);
     }
 };
-
+*/
 NAMESPACE_SPH_END

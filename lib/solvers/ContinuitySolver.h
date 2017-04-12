@@ -23,7 +23,7 @@
 #include "thread/Pool.h"
 
 NAMESPACE_SPH_BEGIN
-
+/*
 template <typename Force, int D>
 class ContinuitySolver : public SolverBase<D>, Module<Force, RhoDivv, RhoGradv> {
 private:
@@ -150,19 +150,7 @@ public:
                 // damaged target or impactor
                 v[i][H] = r[i][H] / D * rhoDivv[i];
             }
-            /*if (neighCnts[i] > neighRange.upper()) {
-                const Float vh_max = -r[i][H] / (D)*abs(divv_max);
-                const Float weight1 = exp(0.2_f * (neighCnts[i] - neighRange.upper()));
-                const Float weight2 = 1._f / weight1;
-                ASSERT(isReal(weight2));
-                v[i][H] = (weight1 * vh_max + weight2 * v[i][H]) / (weight1 + weight2);
-            } else if (neighCnts[i] < neighRange.lower()) {
-                const Float vh_max = r[i][H] / (D)*abs(divv_max);
-                const Float weight1 = exp(0.2_f * (neighRange.lower() - neighCnts[i]));
-                const Float weight2 = 1._f / weight1;
-                ASSERT(isReal(weight2));
-                v[i][H] = (weight1 * vh_max + weight2 * v[i][H]) / (weight1 + weight2);
-            }*/
+
             dv[i][H] = 0._f;
         }
         this->integrateModules(storage);
@@ -186,6 +174,6 @@ public:
         storage.insert<Size, OrderEnum::ZERO>(QuantityIds::NEIGHBOUR_CNT, 0);
         this->initializeModules(storage, settings);
     }
-};
+};*/
 
 NAMESPACE_SPH_END

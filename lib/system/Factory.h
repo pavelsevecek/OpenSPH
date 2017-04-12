@@ -13,13 +13,18 @@ NAMESPACE_SPH_BEGIN
 // forward declarations
 namespace Abstract {
     class Eos;
+    class Rheology;
+    class Damage;
     class Distribution;
     class Domain;
     class Finder;
     class TimeStepping;
     class TimeStepCriterion;
     class BoundaryConditions;
+    class Material;
     class Logger;
+    class Output;
+    class Rng;
 }
 
 
@@ -28,6 +33,10 @@ class Storage;
 /// Class providing construction of objects from enums. Contain only static member functions.
 namespace Factory {
     std::unique_ptr<Abstract::Eos> getEos(const BodySettings& settings);
+
+    std::unique_ptr<Abstract::Rheology> getRheology(const BodySettings& settings);
+
+    std::unique_ptr<Abstract::Damage> getDamage(const BodySettings& settings);
 
     std::unique_ptr<Abstract::TimeStepping> getTimeStepping(const GlobalSettings& settings,
         const std::shared_ptr<Storage>& storage);
@@ -43,7 +52,11 @@ namespace Factory {
 
     std::unique_ptr<Abstract::Domain> getDomain(const GlobalSettings& settings);
 
+    std::unique_ptr<Abstract::Material> getMaterial(const BodySettings& settings);
+
     std::unique_ptr<Abstract::Logger> getLogger(const GlobalSettings& settings);
+
+    std::unique_ptr<Abstract::Rng> getRng(const GlobalSettings& settings);
 
     template <int d>
     LutKernel<d> getKernel(const GlobalSettings& settings) {

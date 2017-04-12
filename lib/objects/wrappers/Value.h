@@ -3,7 +3,6 @@
 #include "geometry/TracelessTensor.h"
 #include "math/Means.h"
 #include "objects/wrappers/Variant.h"
-#include "system/Logger.h"
 
 /// Convenient object for storing a single value of different types: scalar, vector, tensor, means or integer.
 /// This is intended mainly for logging and output routines, as the object provides generic way to store

@@ -54,5 +54,4 @@ inline std::string getGitCommit(const std::string& pathToGitRoot) {
     return result;
 }
 
-
 NAMESPACE_SPH_END

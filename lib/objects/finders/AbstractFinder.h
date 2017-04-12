@@ -75,7 +75,7 @@ namespace Abstract {
             tmp.shuffle([this](const Size i1, const Size i2) { return values[i1][H] < values[i2][H]; });
 // invert to get rank in H
 /// \todo avoid allocation here
-#ifdef DEBUG
+#ifdef SPH_DEBUG
             Float lastH = 0._f;
             for (Size i = 0; i < tmp.size(); ++i) {
                 ASSERT(values[tmp[i]][H] >= lastH);

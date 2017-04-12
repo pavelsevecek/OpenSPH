@@ -1,4 +1,4 @@
-﻿#include "system/Output.h"
+﻿#include "io/Output.h"
 #include <fstream>
 
 NAMESPACE_SPH_BEGIN
@@ -82,7 +82,7 @@ struct StoreBuffers {
 
 template <typename TValue, typename TStoreValue>
 static void storeBuffers(Quantity& q, TStoreValue&& storeValue) {
-    StaticArray<Array<TValue>&, 3> buffers = q.getBuffers<TValue>();
+    StaticArray<Array<TValue>&, 3> buffers = q.getAll<TValue>();
     switch (q.getOrderEnum()) {
     case OrderEnum::ZERO:
     case OrderEnum::FIRST:
@@ -109,10 +109,10 @@ std::string BinaryOutput::dump(Storage& storage, const Float time) {
     // file format identifie
     ofs << "SPH" << time << storage.getParticleCnt() << storage.getQuantityCnt();
     // storage dump
-    for (auto& i : storage) {
+    for (auto i : storage.getQuantities()) {
         // first 3 values: quantity ID, order (number of derivatives), type
-        Quantity& q = i.second;
-        ofs << Size(i.first) << Size(q.getOrderEnum()) << Size(q.getValueEnum());
+        Quantity& q = i.quantity;
+        ofs << Size(i.id) << Size(q.getOrderEnum()) << Size(q.getValueEnum());
         switch (q.getValueEnum()) {
         case ValueEnum::INDEX:
             storeBuffers<Size>(q, [&ofs](const Size idx) { ofs << idx; });

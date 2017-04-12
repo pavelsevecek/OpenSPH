@@ -1,18 +1,32 @@
 #include "physics/Rheology.h"
+#include "physics/Damage.h"
 #include "quantities/AbstractMaterial.h"
 #include "quantities/Storage.h"
 
 NAMESPACE_SPH_BEGIN
 
-void VonMisesRheology::create(Storage& storage, const BodySettings& settings) const {
-    MaterialAccessor(storage).setParams(BodySettingsIds::ELASTICITY_LIMIT, settings);
-    MaterialAccessor(storage).setParams(BodySettingsIds::MELT_ENERGY, settings);
-    storage.insert<Float, OrderEnum::ZERO>(QuantityIds::YIELDING_REDUCE, 1._f);
+VonMisesRheology::VonMisesRheology(std::unique_ptr<Abstract::Damage>&& damage)
+    : damage(std::move(damage)) {
+    if (this->damage == nullptr) {
+        this->damage = std::make_unique<NullDamage>();
+    }
 }
 
-void VonMisesRheology::initialize(Storage& storage) {
-    damage->reduce(storage);
-    MaterialAccessor material(storage);
+VonMisesRheology::~VonMisesRheology() = default;
+
+void VonMisesRheology::create(Storage& storage, const BodySettings& settings) const {
+    ASSERT(storage.getMaterialCnt() == 1);
+    MaterialSequence mat = storage.getMaterial(0);
+    /// \todo we can just copy whoe settings instead of copying value by value
+    mat->setParams(BodySettingsIds::ELASTICITY_LIMIT, settings);
+    mat->setParams(BodySettingsIds::MELT_ENERGY, settings);
+    storage.insert<Float>(QuantityIds::YIELDING_REDUCE, OrderEnum::ZERO, 1._f);
+
+    damage->setFlaws(storage, settings);
+}
+
+void VonMisesRheology::initialize(Storage& storage, const MaterialSequence material) {
+    damage->reduce(storage, material);
     ArrayView<Float> u = storage.getValue<Float>(QuantityIds::ENERGY);
     ArrayView<Float> reducing = storage.getValue<Float>(QuantityIds::YIELDING_REDUCE);
     ArrayView<TracelessTensor> S = storage.getValue<TracelessTensor>(QuantityIds::DEVIATORIC_STRESS);
@@ -21,11 +35,12 @@ void VonMisesRheology::initialize(Storage& storage) {
         D = storage.getValue<Float>(QuantityIds::DAMAGE);
     }
 
-    for (Size i = 0; i < storage.getParticleCnt(); ++i) {
+    const Float limit = material->getParam<Float>(BodySettingsIds::ELASTICITY_LIMIT);
+    const Float u_melt = material->getParam<Float>(BodySettingsIds::MELT_ENERGY);
+    for (Size i : material) {
         // compute yielding stress
-        const Float limit = material.getParam<Float>(BodySettingsIds::ELASTICITY_LIMIT, i);
-        const Float y =
-            limit * max(1.f - u[i] / material.getParam<Float>(BodySettingsIds::MELT_ENERGY, i), 0._f);
+
+        const Float y = limit * max(1.f - u[i] / u_melt, 0._f);
         ASSERT(limit > 0._f);
 
         // apply reduction to stress tensor
@@ -51,21 +66,45 @@ void VonMisesRheology::initialize(Storage& storage) {
     }
 }
 
-void DruckerPrager::update(Storage& storage) {
+void VonMisesRheology::integrate(Storage& storage, const MaterialSequence material) {
+    damage->integrate(storage, material);
+}
+
+DruckerPragerRheology::DruckerPragerRheology(std::unique_ptr<Abstract::Damage>&& damage)
+    : damage(std::move(damage)) {
+    if (this->damage == nullptr) {
+        this->damage = std::make_unique<NullDamage>();
+    }
+}
+
+DruckerPragerRheology::~DruckerPragerRheology() = default;
+
+void DruckerPragerRheology::create(Storage& storage, const BodySettings& settings) const {
+    ASSERT(storage.getMaterialCnt() == 1);
+    /// \todo implement, this is copy+paste of von mises
+    MaterialSequence mat = storage.getMaterial(0);
+    /// \todo we can just copy whoe settings instead of copying value by value
+    mat->setParams(BodySettingsIds::ELASTICITY_LIMIT, settings);
+    mat->setParams(BodySettingsIds::MELT_ENERGY, settings);
+    storage.insert<Float>(QuantityIds::YIELDING_REDUCE, OrderEnum::ZERO, 1._f);
+
+    damage->setFlaws(storage, settings);
+}
+
+void DruckerPragerRheology::initialize(Storage& storage, const MaterialSequence material) {
     yieldingStress.clear();
     /// ArrayView<Float> u = storage.getValue<Float>(QuantityIds::ENERGY); \todo dependence on melt energy
     ArrayView<Float> p = storage.getValue<Float>(QuantityIds::PRESSURE);
     ArrayView<Float> D = storage.getValue<Float>(QuantityIds::DAMAGE);
-    MaterialAccessor material(storage);
-    for (Size i = 0; i < storage.getParticleCnt(); ++i) {
-        const Float Y_0 = material.getParam<Float>(BodySettingsIds::COHESION, i);
-        const Float mu_i = material.getParam<Float>(BodySettingsIds::INTERNAL_FRICTION, i);
-        const Float Y_M = material.getParam<Float>(BodySettingsIds::ELASTICITY_LIMIT, i);
+    for (Size i : material) {
+        const Float Y_0 = material->getParam<Float>(BodySettingsIds::COHESION);
+        const Float mu_i = material->getParam<Float>(BodySettingsIds::INTERNAL_FRICTION);
+        const Float Y_M = material->getParam<Float>(BodySettingsIds::ELASTICITY_LIMIT);
         // const Float u_melt = storage.getParam<Float>(BodySettingsIds::MELT_ENERGY);
         const Float Y_i = Y_0 + mu_i * p[i] / (1._f + mu_i * p[i] / (Y_M - Y_0));
         ASSERT(Y_i >= 0);
 
-        const Float mu_d = material.getParam<Float>(BodySettingsIds::DRY_FRICTION, i);
+        const Float mu_d = material->getParam<Float>(BodySettingsIds::DRY_FRICTION);
         const Float Y_d = mu_d * p[i];
         if (Y_d > Y_i) {
             // at pressures above Y_i, the shear strength follows the same pressure dependence regardless
@@ -79,5 +118,8 @@ void DruckerPrager::update(Storage& storage) {
     }
 }
 
+void DruckerPragerRheology::integrate(Storage& storage, const MaterialSequence material) {
+    damage->integrate(storage, material);
+}
 
 NAMESPACE_SPH_END

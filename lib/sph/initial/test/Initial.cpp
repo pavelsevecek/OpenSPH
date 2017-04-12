@@ -116,7 +116,7 @@ TEST_CASE("Initial addHeterogeneousBody single", "[initial]") {
     conds2.addBody(domain, bodySettings);
     REQUIRE(storage1->getQuantityCnt() == storage2->getQuantityCnt());
     REQUIRE(storage1->getParticleCnt() == storage2->getParticleCnt());
-    REQUIRE(storage1->getMaterials().size() == storage2->getMaterials().size());
+    REQUIRE(storage1->getMaterialCnt() == storage2->getMaterialCnt());
     iteratePair<VisitorEnum::ALL_BUFFERS>(*storage1, *storage2, [&](auto&& v1, auto&& v2) {
         auto test = [&](const Size i) {
             if (v1[i] != v2[i]) {
@@ -149,7 +149,7 @@ TEST_CASE("Initial addHeterogeneousBody multiple", "[initial]") {
 
     conds.addHeterogeneousBody(environment, Array<InitialConditions::Body>{ body1, body2 });
     REQUIRE(storage->getParticleCnt() == 1000);
-    REQUIRE(storage->getMaterials().size() == 3);
+    REQUIRE(storage->getMaterialCnt() == 3);
     ArrayView<Size> matId = storage->getValue<Size>(QuantityIds::MATERIAL_IDX);
     ArrayView<Size> flag = storage->getValue<Size>(QuantityIds::FLAG);
     ArrayView<Vector> r, v, dv;

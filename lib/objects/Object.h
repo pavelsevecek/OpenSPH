@@ -14,7 +14,7 @@ NAMESPACE_SPH_BEGIN
 
 
 /// Force inline for gcc
-#ifdef DEBUG
+#ifdef SPH_DEBUG
 #define INLINE inline
 #define INL
 #else
@@ -26,13 +26,13 @@ NAMESPACE_SPH_BEGIN
 
 #define UNUSED(x)
 
-#ifdef DEBUG
+#ifdef SPH_DEBUG
 #define UNUSED_IN_RELEASE(x) x
 #else
 #define UNUSED_IN_RELEASE(x)
 #endif
 
-#ifdef CPP17
+#ifdef SPH_CPP17
 #define FALLTHROUGH [[fallthrough]];
 #else
 #define FALLTHROUGH

@@ -16,18 +16,18 @@ CONFIG(release, debug|profile|assert|release) {
 
 CONFIG(profile, debug|profile|assert|release) {
   message( "SPH TESTS --- Building for Profile" )
-  DEFINES += PROFILE
+  DEFINES += SPH_PROFILE
 }
 
 CONFIG(assert, debug|profile|assert|release) {
   message( "SPH TESTS --- Building for Assert" )
-  DEFINES += DEBUG PROFILE
+  DEFINES += SPH_DEBUG SPH_PROFILE
   QMAKE_CXXFLAGS += -O2
 }
 
 CONFIG(debug, debug|profile|assert|release) {
   message( "SPH TESTS --- Building for Debug" )
-  DEFINES += DEBUG PROFILE
+  DEFINES += SPH_DEBUG SPH_PROFILE
 }
 
 
@@ -72,8 +72,8 @@ SOURCES += \
     ../lib/objects/finders/test/Order.cpp \
     ../lib/objects/finders/test/BruteForce.cpp \
     ../lib/objects/finders/test/Finders.cpp \
-    ../lib/sph/timestepping/test/TimeStepping.cpp \
-    ../lib/sph/timestepping/test/TimeStepCriterion.cpp \
+    ../lib/timestepping/test/TimeStepping.cpp \
+    ../lib/timestepping/test/TimeStepCriterion.cpp \
     ../lib/sph/initial/test/Initial.cpp \
     ../lib/sph/initial/test/Distribution.cpp \
     ../lib/sph/kernel/test/Kernel.cpp \
@@ -82,7 +82,7 @@ SOURCES += \
     ../lib/system/test/Settings.cpp \
     ../lib/system/test/Timer.cpp \
     ../lib/system/test/Profiler.cpp \
-    ../lib/system/test/Output.cpp \
+    ../lib/io/test/Output.cpp \
     ../lib/system/test/CallbackList.cpp \
     ../lib/system/test/ArrayStats.cpp \
     ../lib/system/test/Statistics.cpp \
@@ -100,7 +100,8 @@ SOURCES += \
     utils/Approx.cpp \
     utils/SequenceTest.cpp \
     ../lib/sph/test/Diagnostics.cpp \
-    ../lib/objects/wrappers/test/Finally.cpp
+    ../lib/objects/wrappers/test/Finally.cpp \
+    ../lib/io/test/Logger.cpp
 
 
 HEADERS += \

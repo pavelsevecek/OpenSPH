@@ -10,6 +10,15 @@
 
 NAMESPACE_SPH_BEGIN
 
+namespace Abstract {
+    class Rng;
+}
+
+/// \todo possibly generalize, allowing to create generic context as needed by components of the run
+struct InitialContext {
+    std::unique_ptr<Abstract::Rng> rng;
+};
+
 /// All particles created in one run should be created using the same InitialConditions object. If multiple
 /// objects are used, quantity FLAG must be manually updated to be unique for each body in the simulation.
 class InitialConditions : public Noncopyable {
@@ -17,6 +26,8 @@ private:
     std::shared_ptr<Storage> storage;
     std::unique_ptr<Abstract::Solver> solver;
     Size bodyIndex = 0;
+
+    InitialContext context;
 
 public:
     InitialConditions(const std::shared_ptr<Storage> storage, const GlobalSettings& globalSettings);
@@ -30,6 +41,13 @@ public:
     /// \todo generalize for entropy solver
     void addBody(const Abstract::Domain& domain,
         const BodySettings& bodySettings,
+        const Vector& velocity = Vector(0._f),
+        const Vector& angularVelocity = Vector(0._f));
+
+    /// Overload with custom material.
+    void addBody(const Abstract::Domain& domain,
+        const BodySettings& bodySettings,
+        std::unique_ptr<Abstract::Material>&& material,
         const Vector& velocity = Vector(0._f),
         const Vector& angularVelocity = Vector(0._f));
 

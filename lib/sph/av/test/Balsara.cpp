@@ -10,7 +10,7 @@
 
 using namespace Sph;
 
-template <typename TFunctor>
+/*template <typename TFunctor>
 void setupBalsara(Storage& storage, BalsaraSwitch<StandardAV>& balsaraAv, TFunctor&& functor) {
     HexagonalPacking distribution;
     const Size N = 10000;
@@ -155,3 +155,4 @@ TEST_CASE("Balsara divergent flow", "[av]") {
     REQUIRE(origSum > 1e-2);
     REQUIRE(almostEqual(origSum, reducedSum, 1.e-5_f));
 }
+*/

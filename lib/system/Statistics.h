@@ -4,8 +4,8 @@
 /// Pavel Sevecek 2017
 /// sevecek at sirrah.troja.mff.cuni.cz
 
-#include "math/Means.h"
 #include "common/ForwardDecl.h"
+#include "math/Means.h"
 #include "objects/wrappers/Range.h"
 #include "objects/wrappers/Value.h"
 #include "objects/wrappers/Variant.h"
@@ -49,10 +49,6 @@ public:
     /// value of given idx, it is created with default constructor prior to accumulating.
     void accumulate(const StatisticsIds idx, const Float value) {
         ValueType& entry = entries[idx].value;
-        if (entry.getTypeIdx() == -1) {
-            // not initialized
-            entry.template emplace<Means>();
-        }
         entry.template get<Means>().accumulate(value);
     }
 

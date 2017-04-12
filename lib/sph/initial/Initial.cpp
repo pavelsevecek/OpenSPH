@@ -1,5 +1,6 @@
 #include "sph/initial/Initial.h"
 #include "geometry/Domain.h"
+#include "math/rng/Rng.h"
 #include "physics/Eos.h"
 #include "quantities/AbstractMaterial.h"
 #include "quantities/Quantity.h"
@@ -14,18 +15,31 @@ NAMESPACE_SPH_BEGIN
 
 InitialConditions::InitialConditions(const std::shared_ptr<Storage> storage,
     const GlobalSettings& globalSettings)
-    : storage(storage)
-    , solver(getSolver(globalSettings)) {
+    : storage(storage) {
     ASSERT(storage != nullptr);
+    ASSERT(solver != nullptr);
+
+    context.rng = Factory::getRng(globalSettings);
 }
 
 InitialConditions::~InitialConditions() = default;
+
 
 void InitialConditions::addBody(const Abstract::Domain& domain,
     const BodySettings& settings,
     const Vector& velocity,
     const Vector& angularVelocity) {
-    Storage body(settings);
+    std::unique_ptr<Abstract::Material> material = Factory::getMaterial(settings);
+    this->addBody(domain, settings, std::move(material), velocity, angularVelocity);
+}
+
+void InitialConditions::addBody(const Abstract::Domain& domain,
+    const BodySettings& settings,
+    std::unique_ptr<Abstract::Material>&& material,
+    const Vector& velocity,
+    const Vector& angularVelocity) {
+
+    Storage body(std::move(material));
     PROFILE_SCOPE("InitialConditions::addBody");
     std::unique_ptr<Abstract::Distribution> distribution = Factory::getDistribution(settings);
     const Size n = settings.get<int>(BodySettingsIds::PARTICLE_COUNT);
@@ -33,7 +47,7 @@ void InitialConditions::addBody(const Abstract::Domain& domain,
     // Generate positions of particles
     Array<Vector> positions = distribution->generate(n, domain);
     ASSERT(positions.size() > 0);
-    body.insert<Vector, OrderEnum::SECOND>(QuantityIds::POSITIONS, std::move(positions));
+    body.insert<Vector>(QuantityIds::POSITIONS, OrderEnum::SECOND, std::move(positions));
 
     setQuantities(body, settings, domain.getVolume(), velocity, angularVelocity);
 
@@ -54,10 +68,10 @@ void InitialConditions::addHeterogeneousBody(const Body& environment, ArrayView<
     // Generate positions of ALL particles
     Array<Vector> positions = distribution->generate(n, environment.domain);
     // Create particle storage per body
-    Storage environmentStorage(environment.settings);
+    Storage environmentStorage(Factory::getMaterial(environment.settings));
     Array<Storage> bodyStorages;
     for (const Body& body : bodies) {
-        bodyStorages.push(Storage(body.settings));
+        bodyStorages.push(Storage(Factory::getMaterial(body.settings)));
     }
     // Assign particles to bodies
     Array<Vector> pos_env;
@@ -80,15 +94,14 @@ void InitialConditions::addHeterogeneousBody(const Body& environment, ArrayView<
     // Initialize storages
     Float environmentVolume = environment.domain.getVolume();
     for (Size i = 0; i < bodyStorages.size(); ++i) {
-        bodyStorages[i].insert<Vector, OrderEnum::SECOND>(
-            QuantityIds::POSITIONS, std::move(pos_bodies[i]));
+        bodyStorages[i].insert<Vector>(QuantityIds::POSITIONS, OrderEnum::SECOND, std::move(pos_bodies[i]));
         const Float volume = bodies[i].domain.getVolume();
         setQuantities(
             bodyStorages[i], bodies[i].settings, volume, bodies[i].velocity, bodies[i].angularVelocity);
         environmentVolume -= volume;
     }
     ASSERT(environmentVolume >= 0._f);
-    environmentStorage.insert<Vector, OrderEnum::SECOND>(QuantityIds::POSITIONS, std::move(pos_env));
+    environmentStorage.insert<Vector>(QuantityIds::POSITIONS, OrderEnum::SECOND, std::move(pos_env));
     setQuantities(environmentStorage,
         environment.settings,
         environmentVolume,
@@ -122,14 +135,14 @@ void InitialConditions::setQuantities(Storage& storage,
     const Float rho0 = settings.get<Float>(BodySettingsIds::DENSITY);
     const Float totalM = volume * rho0; // m = rho * V
     ASSERT(totalM > 0._f);
-    storage.insert<Float, OrderEnum::ZERO>(QuantityIds::MASSES, totalM / r.size());
+    storage.insert<Float>(QuantityIds::MASSES, OrderEnum::ZERO, totalM / r.size());
 
     // Mark particles of this body
-    storage.insert<Size, OrderEnum::ZERO>(QuantityIds::FLAG, bodyIndex);
+    storage.insert<Size>(QuantityIds::FLAG, OrderEnum::ZERO, bodyIndex);
     bodyIndex++;
 
     // Initialize all quantities needed by the solver
-    solver->initialize(storage, settings);
+    solver->create(storage, settings);
 }
 
 

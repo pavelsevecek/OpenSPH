@@ -14,7 +14,7 @@ using namespace Sph;
 
 
 TEST_CASE("Distribute flaws", "[damage]") {
-    ScalarDamage model(GlobalSettings::getDefaults());
+    ScalarDamage model(2._f);
     BodySettings bodySettings;
     Storage storage(bodySettings);
     HexagonalPacking distribution;

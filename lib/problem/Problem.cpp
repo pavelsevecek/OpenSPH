@@ -1,28 +1,16 @@
 #include "problem/Problem.h"
+#include "io/LogFile.h"
+#include "io/Logger.h"
+#include "io/Output.h"
 #include "physics/Integrals.h"
 #include "solvers/AbstractSolver.h"
-#include "solvers/SolverFactory.h"
-#include "sph/timestepping/TimeStepping.h"
 #include "system/Callbacks.h"
 #include "system/Factory.h"
-#include "system/LogFile.h"
-#include "system/Logger.h"
-#include "system/Output.h"
 #include "system/Statistics.h"
 #include "system/Timer.h"
+#include "timestepping/TimeStepping.h"
 
 NAMESPACE_SPH_BEGIN
-
-Problem::Problem(const GlobalSettings& settings, const std::shared_ptr<Storage> storage)
-    : settings(settings)
-    , storage(storage) {
-    solver = getSolver(settings);
-    logger = Factory::getLogger(settings);
-    logs.push(std::make_unique<CommonStatsLog>(logger));
-    callbacks = std::make_unique<NullCallbacks>();
-}
-
-Problem::~Problem() = default;
 
 struct EndingCondition {
 private:
@@ -45,13 +33,18 @@ public:
     }
 };
 
-void Problem::run() {
+Abstract::Problem::Problem() = default;
+
+Abstract::Problem::~Problem() = default;
+
+void Abstract::Problem::run() {
     Size i = 0;
     // fetch parameters of run from settings
     const Float outputInterval = settings.get<Float>(GlobalSettingsIds::RUN_OUTPUT_INTERVAL);
     const Range timeRange = settings.get<Range>(GlobalSettingsIds::RUN_TIME_RANGE);
-    // construct timestepping object
-    timeStepping = Factory::getTimeStepping(settings, storage);
+
+    // set uninitilized variables
+    setNullToDefaults();
 
     // run main loop
     Float nextOutput = outputInterval;
@@ -78,7 +71,7 @@ void Problem::run() {
         stats.set(StatisticsIds::TOTAL_TIME, t);
         stats.set(StatisticsIds::INDEX, (int)i);
 
-        for (auto& log : logs) {
+        for (auto& log : logFiles) {
             log->write(*storage, stats);
         }
         callbacks->onTimeStep(storage, stats);
@@ -93,6 +86,23 @@ void Problem::run() {
         callbacks->onRunEnd(storage, stats);
     } else {
         logger->write(result.error());
+    }
+}
+
+void Abstract::Problem::setNullToDefaults() {
+    ASSERT(storage != nullptr);
+    ASSERT(solver != nullptr);
+    if (!logger) {
+        logger = Factory::getLogger(settings);
+    }
+    if (!output) {
+        output = std::make_unique<NullOutput>();
+    }
+    if (!callbacks) {
+        callbacks = std::make_unique<NullCallbacks>();
+    }
+    if (!timeStepping) {
+        timeStepping = Factory::getTimeStepping(settings, storage);
     }
 }
 

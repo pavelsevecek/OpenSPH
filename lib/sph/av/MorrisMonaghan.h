@@ -13,26 +13,44 @@
 
 NAMESPACE_SPH_BEGIN
 
-
+/*
 class MorrisMonaghanAV : public Abstract::EquationTerm {
 private:
-    ArrayView<Float> alpha, beta, dalpha, dbeta, cs, rho;
-    ArrayView<Vector> r, v;
-    const Float eps = 0.1_f;
+    class Derivative : public Abstract::Derivative {
+    private:
+        ArrayView<const Float> alpha, beta, dalpha, dbeta, cs, rho;
+        ArrayView<const Vector> r, v;
+        ArrayView<Vector> dv;
+        ArrayView<Float> du;
+        const Float eps = 0.1_f;
 
-public:
-    MorrisMonaghanAV(const GlobalSettings&) {
-        class Term : public Abstract::Derivative {
-
-            virtual void initialize(Storage& storage) override {
-                NOT_IMPLEMENTED;
+    public:
+        virtual void initialize(const Storage& input, Accumulated& results) override {
+            ArrayView<const Vector> dummy;
+            tie(r, v, dummy) = storage.getAll<Vector>(QuantityIds::POSITIONS);
+            tie(alpha, dalpha) = storage.getAll<Float>(QuantityIds::AV_ALPHA);
+            tie(beta, dbeta) = storage.getAll<Float>(QuantityIds::AV_BETA);
+            cs = storage.getValue<Float>(QuantityIds::SOUND_SPEED);
+            rho = storage.getValue<Float>(QuantityIds::DENSITY);
+            /// \todo we ALWAYS accumulate highest derivatives, maybe AccumulatedIds is not needed, we can do
+            /// that automatically
+            dv = results.getValue<Vector>(AccumulatedIds::ACCELERATION);
+            du = results.getValue<Float>(AccumulatedIds::ENERGY);
+            // always keep beta = 2*alpha
+            for (Size i = 0; i < alpha.size(); ++i) {
+                beta[i] = 2._f * alpha[i];
             }
+        }
 
-            virtual void sum() override {
+        virtual void compute(const Size i,
+            ArrayView<const NeighbourRecord> neighs,
+            ArrayView<const Vector> grads) override {
+            for (Size k = 0; k < neighs.size(); ++k) {
+                const Size j = neighs[k].index;
                 const Vector dr = r[i] - r[j];
                 const Float dvdr = dot(v[i] - v[j], dr);
                 if (dvdr >= 0._f) {
-                    return 0._f;
+                    continue;
                 }
                 const Float hbar = 0.5_f * (r[i][H] + r[j][H]);
                 const Float csbar = 0.5_f * (cs[i] + cs[j]);
@@ -45,15 +63,17 @@ public:
                 dv[i] += m[j] * Pi * grads[i];
                 dv[j] -= m[i] * Pi * grads[i];
 
-                const Float heating = Pi * dot(v[i] - v[j], grads[i]);
+                const Float heating = Pi * dot(v[i] - v[j], grads[k]);
                 dv[i] += m[j] * heating;
                 dv[j] += m[i] * heating;
             }
-        };
+        }
+    };
 
-        solver.addDerivative(std::unique_ptr<Term>());
-        solver.addDerivative(std::unique_ptr<Divv>());
+    virtual void setDerivatives(DerivativeHolder& derivatives) override {
+        derivatives.addDerivative<Term>();
     }
+
 
     void initialize(Storage& storage, const BodySettings& settings) const {
         storage.insert<Float, OrderEnum::FIRST>(QuantityIds::AV_ALPHA,
@@ -95,5 +115,5 @@ public:
     }
 };
 
-
+*/
 NAMESPACE_SPH_END

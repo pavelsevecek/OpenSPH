@@ -1,4 +1,4 @@
-#include "sph/timestepping/TimeStepping.h"
+#include "timestepping/TimeStepping.h"
 #include "catch.hpp"
 #include "quantities/Storage.h"
 #include "solvers/AbstractSolver.h"
@@ -23,7 +23,9 @@ struct HomogeneousField : public Abstract::Solver {
         }
     }
 
-    virtual void initialize(Storage&, const BodySettings&) const override { NOT_IMPLEMENTED; }
+    virtual void create(Storage&, const BodySettings&) const override {
+        NOT_IMPLEMENTED;
+    }
 };
 
 struct HarmonicOscillator : public Abstract::Solver {
@@ -40,7 +42,9 @@ struct HarmonicOscillator : public Abstract::Solver {
         }
     }
 
-    virtual void initialize(Storage&, const BodySettings&) const override { NOT_IMPLEMENTED; }
+    virtual void create(Storage&, const BodySettings&) const override {
+        NOT_IMPLEMENTED;
+    }
 };
 
 struct LorentzForce : public Abstract::Solver {
@@ -56,7 +60,9 @@ struct LorentzForce : public Abstract::Solver {
         }
     }
 
-    virtual void initialize(Storage&, const BodySettings&) const override { NOT_IMPLEMENTED; }
+    virtual void create(Storage&, const BodySettings&) const override {
+        NOT_IMPLEMENTED;
+    }
 };
 
 const Float timeStep = 0.01_f;
@@ -70,8 +76,8 @@ void testHomogeneousField(TArgs&&... args) {
     HomogeneousField solver;
 
     std::shared_ptr<Storage> storage = std::make_shared<Storage>();
-    storage->insert<Vector, OrderEnum::SECOND>(
-        QuantityIds::POSITIONS, Array<Vector>{ Vector(0._f, 0._f, 0._f) });
+    storage->insert<Vector>(
+        QuantityIds::POSITIONS, OrderEnum::SECOND, Array<Vector>{ Vector(0._f, 0._f, 0._f) });
 
     ArrayView<const Vector> r, v, dv;
     tie(r, v, dv) = storage->getAll<Vector>(QuantityIds::POSITIONS);
@@ -101,8 +107,8 @@ void testHarmonicOscillator(TArgs&&... args) {
     HarmonicOscillator solver;
 
     std::shared_ptr<Storage> storage = std::make_shared<Storage>();
-    storage->insert<Vector, OrderEnum::SECOND>(
-        QuantityIds::POSITIONS, Array<Vector>{ Vector(1._f, 0._f, 0._f) });
+    storage->insert<Vector>(
+        QuantityIds::POSITIONS, OrderEnum::SECOND, Array<Vector>{ Vector(1._f, 0._f, 0._f) });
 
     ArrayView<const Vector> r, v, dv;
     tie(r, v, dv) = storage->getAll<Vector>(QuantityIds::POSITIONS);
@@ -132,8 +138,8 @@ void testGyroscopicMotion(TArgs&&... args) {
     LorentzForce solver;
 
     std::shared_ptr<Storage> storage = std::make_shared<Storage>();
-    storage->insert<Vector, OrderEnum::SECOND>(
-        QuantityIds::POSITIONS, Array<Vector>{ Vector(1._f, 0._f, 0._f) });
+    storage->insert<Vector>(
+        QuantityIds::POSITIONS, OrderEnum::SECOND, Array<Vector>{ Vector(1._f, 0._f, 0._f) });
 
     ArrayView<Vector> r, v, dv;
     tie(r, v, dv) = storage->getAll<Vector>(QuantityIds::POSITIONS);

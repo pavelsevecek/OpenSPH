@@ -18,13 +18,17 @@ private:
     std::uniform_real_distribution<Float> dist;
 
 public:
-    UniformRng(const int seed = 1234) { mt = std::mt19937_64(seed); }
+    UniformRng(const int seed = 1234) {
+        mt = std::mt19937_64(seed);
+    }
 
     UniformRng(UniformRng&& other)
         : mt(other.mt)
         , dist(other.dist) {}
 
-    Float operator()(const int UNUSED(s) = 0) { return dist(mt); }
+    Float operator()(const int UNUSED(s) = 0) {
+        return dist(mt);
+    }
 };
 
 
@@ -75,5 +79,28 @@ public:
     Float operator()(const int s);
 };
 
+
+namespace Abstract {
+    /// Polymorphic holder allowing to store any RNG.
+    class Rng : public Polymorphic {
+    public:
+        /// Generates a random number.
+        virtual Float operator()(const int s = 0) = 0;
+    };
+}
+template <typename TRng>
+class RngWrapper : public Abstract::Rng {
+private:
+    TRng rng;
+
+public:
+    template <typename... TArgs>
+    RngWrapper(TArgs&&... args)
+        : rng(std::forward<TArgs>(args)...) {}
+
+    virtual Float operator()(const int s) override {
+        return rng(s);
+    }
+};
 
 NAMESPACE_SPH_END

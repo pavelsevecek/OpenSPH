@@ -14,18 +14,18 @@ CONFIG(release, debug|profile|assert|release) {
 
 CONFIG(profile, debug|profile|assert|release) {
   message( "SPH LIB --- Building for Profile" )
-  DEFINES += PROFILE
+  DEFINES += SPH_PROFILE
 }
 
 CONFIG(assert, debug|profile|assert|release) {
   message( "SPH LIB --- Building for Assert" )
-  DEFINES += DEBUG PROFILE
+  DEFINES += SPH_DEBUG SPH_PROFILE
   QMAKE_CXXFLAGS += -O2
 }
 
 CONFIG(debug, debug|profile|assert|release) {
   message( "SPH LIB --- Building for Debug" )
-  DEFINES += DEBUG PROFILE
+  DEFINES += SPH_DEBUG SPH_PROFILE
 }
 
 
@@ -39,8 +39,8 @@ SOURCES += \
     sph/initial/Initial.cpp \
     timestepping/TimeStepping.cpp \
     objects/finders/Voxel.cpp \
-    system/Logger.cpp \
-    system/Output.cpp \
+    io/Logger.cpp \
+    io/Output.cpp \
     system/Timer.cpp \
     system/Factory.cpp \
     system/Profiler.cpp \
@@ -58,8 +58,9 @@ SOURCES += \
     solvers/AbstractSolver.cpp \
     problem/Problem.cpp \
     sph/Diagnostics.cpp \
-    objects/finders/benchmark/Finders.cpp \
-    common/Assert.cpp
+    common/Assert.cpp \
+    io/filesystem.cpp \
+    sph/Material.cpp
 
 HEADERS += \
     commmon/Globals.h \
@@ -106,12 +107,13 @@ HEADERS += \
     sph/boundary/Boundary.h \
     system/Callbacks.h \
     system/Factory.h \
-    system/Logger.h \
     system/Settings.h \
     system/Timer.h \
     system/Profiler.h \
     system/CallbackList.h \
-    system/Output.h \
+    io/Logger.h \
+    io/Output.h \
+    io/LogFile.h \
     quantities/Iterate.h \
     quantities/Storage.h \
     quantities/Quantity.h \
@@ -131,7 +133,6 @@ HEADERS += \
     objects/containers/StaticArray.h \
     sph/av/Factory.h \
     sph/forces/CentripetalForce.h \
-    sph/forces/Factory.h \
     solvers/SolverFactory.h \
     objects/wrappers/AlignedStorage.h \
     sph/initial/Initial.h \
@@ -159,7 +160,6 @@ HEADERS += \
     math/Means.h \
     system/Element.h \
     objects/ExtendEnum.h \
-    system/LogFile.h \
     sph/Diagnostics.h \
     system/filesystem.h \
     solvers/SphSolver.h \
@@ -168,7 +168,6 @@ HEADERS += \
     common/Globals.h \
     common/Traits.h \
     system/FileSystem.h \
-    system/Io.h \
     quantities/AbstractMaterial.h \
     sph/Material.h \
     common/Assert.h \
@@ -178,4 +177,7 @@ HEADERS += \
     solvers/Derivative.h \
     solvers/EquationTerm.h \
     objects/wrappers/Finally.h \
-    solvers/accumulated.h
+    system/Platform.h \
+    io/FileSystem.h \
+    objects/containers/ArrayMap.h \
+    solvers/Accumulated.h

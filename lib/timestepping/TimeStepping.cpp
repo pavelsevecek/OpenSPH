@@ -1,4 +1,5 @@
 #include "timestepping/TimeStepping.h"
+#include "quantities/AbstractMaterial.h"
 #include "quantities/Iterate.h"
 #include "solvers/AbstractSolver.h"
 #include "system/Factory.h"
@@ -31,7 +32,6 @@ void Abstract::TimeStepping::step(Abstract::Solver& solver, Statistics& stats) {
     stats.set(StatisticsIds::TIMESTEP_ELAPSED, int(timer.elapsed<TimerUnit::MILLISECOND>()));
 }
 
-
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// EulerExplicit implementation
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -47,23 +47,21 @@ void EulerExplicit::stepImpl(Abstract::Solver& solver, Statistics& stats) {
     PROFILE_SCOPE("EulerExplicit::step")
     // advance all 2nd-order quantities by current timestep, first values, then 1st derivatives
     iterate<VisitorEnum::SECOND_ORDER>(
-        *this->storage, [this](const QuantityIds UNUSED(id), auto& v, auto& dv, auto& d2v) {
+        *this->storage, [this](const QuantityIds id, auto& v, auto& dv, auto& d2v) {
+            ArrayView<Size> matIds = storage->getValue<Size>(QuantityIds::MATERIAL_IDX);
             for (Size i = 0; i < v.size(); ++i) {
                 dv[i] += d2v[i] * this->dt;
                 v[i] += dv[i] * this->dt;
+                clamp(v[i], storage->getMaterial(matIds[i])->range(id));
             }
         });
-    iterate<VisitorEnum::FIRST_ORDER>(
-        *this->storage, [this](const QuantityIds UNUSED(id), auto& v, auto& dv) {
-            for (Size i = 0; i < v.size(); ++i) {
-                v[i] += dv[i] * this->dt;
-            }
-        });
-    // clamp quantities
-    /// \todo better
-    for (auto& q : *this->storage) {
-        q.second.clamp();
-    }
+    iterate<VisitorEnum::FIRST_ORDER>(*this->storage, [this](const QuantityIds id, auto& v, auto& dv) {
+        ArrayView<Size> matIds = storage->getValue<Size>(QuantityIds::MATERIAL_IDX);
+        for (Size i = 0; i < v.size(); ++i) {
+            v[i] += dv[i] * this->dt;
+            clamp(v[i], storage->getMaterial(matIds[i])->range(id));
+        }
+    });
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -86,23 +84,21 @@ void PredictorCorrector::stepImpl(Abstract::Solver& solver, Statistics& stats) {
     PROFILE_SCOPE("PredictorCorrector::step   Predictions")
     // make prediction using old derivatives (simple euler)
     iterate<VisitorEnum::SECOND_ORDER>(
-        *this->storage, [this, dt2](const QuantityIds UNUSED(id), auto& v, auto& dv, auto& d2v) {
+        *this->storage, [this, dt2](const QuantityIds id, auto& v, auto& dv, auto& d2v) {
+            ArrayView<Size> matIds = storage->getValue<Size>(QuantityIds::MATERIAL_IDX);
             for (Size i = 0; i < v.size(); ++i) {
                 v[i] += dv[i] * this->dt + d2v[i] * dt2;
                 dv[i] += d2v[i] * this->dt;
+                clamp(v[i], storage->getMaterial(matIds[i])->range(id));
             }
         });
-    iterate<VisitorEnum::FIRST_ORDER>(
-        *this->storage, [this](const QuantityIds UNUSED(id), auto& v, auto& dv) {
-            for (Size i = 0; i < v.size(); ++i) {
-                v[i] += dv[i] * this->dt;
-            }
-        });
-    // clamp quantities
-    /// \todo better
-    for (auto& q : *this->storage) {
-        q.second.clamp();
-    }
+    iterate<VisitorEnum::FIRST_ORDER>(*this->storage, [this](const QuantityIds id, auto& v, auto& dv) {
+        ArrayView<Size> matIds = storage->getValue<Size>(QuantityIds::MATERIAL_IDX);
+        for (Size i = 0; i < v.size(); ++i) {
+            v[i] += dv[i] * this->dt;
+            clamp(v[i], storage->getMaterial(matIds[i])->range(id));
+        }
+    });
     // save derivatives from predictions
     this->storage->swap(*predictions, VisitorEnum::HIGHEST_DERIVATIVES);
 
@@ -116,45 +112,27 @@ void PredictorCorrector::stepImpl(Abstract::Solver& solver, Statistics& stats) {
     // make corrections
     // clang-format off
     iteratePair<VisitorEnum::SECOND_ORDER>(*this->storage, *this->predictions,
-        [this, dt2](auto& pv, auto& pdv, auto& pd2v, auto& UNUSED(cv), auto& UNUSED(cdv), auto& cd2v) {
+        [this, dt2](const QuantityIds id, auto& pv, auto& pdv, auto& pd2v, auto& UNUSED(cv), auto& UNUSED(cdv), auto& cd2v) {
         ASSERT(pv.size() == pd2v.size());
         constexpr Float a = 1._f / 3._f;
         constexpr Float b = 0.5_f;
+        ArrayView<Size> matIds = storage->getValue<Size>(QuantityIds::MATERIAL_IDX);
         for (Size i = 0; i < pv.size(); ++i) {
             pv[i] -= a * (cd2v[i] - pd2v[i]) * dt2;
             pdv[i] -= b * (cd2v[i] - pd2v[i]) * this->dt;
+                clamp(pv[i], storage->getMaterial(matIds[i])->range(id));
         }
     });
     iteratePair<VisitorEnum::FIRST_ORDER>(*this->storage, *this->predictions,
-        [this](auto& pv, auto& pdv, auto& UNUSED(cv), auto& cdv) {
+        [this](const QuantityIds id, auto& pv, auto& pdv, auto& UNUSED(cv), auto& cdv) {
         ASSERT(pv.size() == pdv.size());
+        ArrayView<Size> matIds = storage->getValue<Size>(QuantityIds::MATERIAL_IDX);
         for (Size i = 0; i < pv.size(); ++i) {
             pv[i] -= 0.5_f * (cdv[i] - pdv[i]) * this->dt;
+            clamp(pv[i], storage->getMaterial(matIds[i])->range(id));
         }
     });
-    // clamp quantities
-    /// \todo better
-    for (auto& q : *this->storage) {
-        q.second.clamp();
-    }
     // clang-format on
-
-    /*    iterate<VisitorEnum::HIGHEST_DERIVATIVES>(*storage, [](const QuantityIds id, auto&& dv) {
-            std::cout << "Quantity " << id << std::endl;
-            for (Size i = 0; i < dv.size(); ++i) {
-                std::cout << i << "  |  " << dv[i] << std::endl;
-            }
-        });*/
-    /*ArrayView<TracelessTensor> s, ds;
-    tie(s, ds) = storage->getAll<TracelessTensor>(QuantityIds::DEVIATORIC_STRESS);
-    for (Size i =0;i<s.size() ;++i) {
-        std::cout << i << s[i] << std::endl << ds[i] << std::endl;
-    }*/
-    /*ArrayView<Float> D, dD;
-    tie(D, dD) = storage->getAll<Float>(QuantityIds::DAMAGE);
-    for (Size i =0;i<D.size() ;++i) {
-        std::cout << i << D[i] << dD[i] << std::endl;
-    }*/
 }
 
 
@@ -180,14 +158,16 @@ void RungeKutta::integrateAndAdvance(Abstract::Solver& solver,
     const float m,
     const float n) {
     solver.integrate(k, stats);
-    iteratePair<VisitorEnum::FIRST_ORDER>(k, *this->storage, [&](auto& kv, auto& kdv, auto& v, auto&) {
-        for (Size i = 0; i < v.size(); ++i) {
-            kv[i] += kdv[i] * m * this->dt;
-            v[i] += kdv[i] * n * this->dt;
-        }
-    });
-    iteratePair<VisitorEnum::SECOND_ORDER>(
-        k, *this->storage, [&](auto& kv, auto& kdv, auto& kd2v, auto& v, auto& dv, auto&) {
+    iteratePair<VisitorEnum::FIRST_ORDER>(
+        k, *this->storage, [&](const QuantityIds UNUSED(id), auto& kv, auto& kdv, auto& v, auto&) {
+            for (Size i = 0; i < v.size(); ++i) {
+                kv[i] += kdv[i] * m * this->dt;
+                v[i] += kdv[i] * n * this->dt;
+            }
+        });
+    iteratePair<VisitorEnum::SECOND_ORDER>(k,
+        *this->storage,
+        [&](const QuantityIds UNUSED(id), auto& kv, auto& kdv, auto& kd2v, auto& v, auto& dv, auto&) {
             for (Size i = 0; i < v.size(); ++i) {
                 kv[i] += kdv[i] * m * this->dt;
                 kdv[i] += kd2v[i] * m * this->dt;
@@ -221,13 +201,15 @@ void RungeKutta::stepImpl(Abstract::Solver& solver, Statistics& stats) {
 
     solver.integrate(*k4, stats);
 
-    iteratePair<VisitorEnum::FIRST_ORDER>(*this->storage, *k4, [this](auto& v, auto&, auto&, auto& kdv) {
-        for (Size i = 0; i < v.size(); ++i) {
-            v[i] += this->dt / 6.f * kdv[i];
-        }
-    });
-    iteratePair<VisitorEnum::SECOND_ORDER>(
-        *this->storage, *k4, [this](auto& v, auto& dv, auto&, auto&, auto& kdv, auto& kd2v) {
+    iteratePair<VisitorEnum::FIRST_ORDER>(
+        *this->storage, *k4, [this](const QuantityIds UNUSED(id), auto& v, auto&, auto&, auto& kdv) {
+            for (Size i = 0; i < v.size(); ++i) {
+                v[i] += this->dt / 6.f * kdv[i];
+            }
+        });
+    iteratePair<VisitorEnum::SECOND_ORDER>(*this->storage,
+        *k4,
+        [this](const QuantityIds UNUSED(id), auto& v, auto& dv, auto&, auto&, auto& kdv, auto& kd2v) {
             for (Size i = 0; i < v.size(); ++i) {
                 dv[i] += this->dt / 6.f * kd2v[i];
                 v[i] += this->dt / 6.f * kdv[i];

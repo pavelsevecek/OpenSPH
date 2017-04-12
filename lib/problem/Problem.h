@@ -12,52 +12,59 @@ namespace Abstract {
     class Output;
     class Callbacks;
     class LogFile;
+    class Solver;
 }
 
-class Problem : public Noncopyable {
-protected:
-    GlobalSettings settings;
+/// Defines the interface for a run. Each problem must implement methods \ref setUp and \ref tearDown,
+/// settings up initial conditions for the run and closing down the run, respectivelly.
+///
+/// Implementation can set up all member variables to any given value. If any variable is left uninitialized,
+/// it will be initialized to a default value as specified by global settings. Only particle storage MUST be
+/// initialized by the setUp function.
+namespace Abstract {
+    class Problem : public Noncopyable {
+    protected:
+        GlobalSettings settings;
 
-    /// Logging
-    std::shared_ptr<Abstract::Logger> logger;
+        /// Data output
+        std::unique_ptr<Abstract::Output> output;
 
+        /// GUI callbacks
+        std::unique_ptr<Abstract::Callbacks> callbacks;
 
-    /// Timestepping
-    std::unique_ptr<Abstract::TimeStepping> timeStepping;
+        /// Logging
+        std::shared_ptr<Abstract::Logger> logger;
 
-    /// \todo other ending conditions beside time?
-    /// options:
-    /// - wallclock time
-    /// - number of timesteps
-    /// - min/max/mean/median of given quantity reaches certain value
-    /// - ...
+        /// Stores all SPH particles
+        std::shared_ptr<Storage> storage;
 
-public:
-    /// Data output
-    std::unique_ptr<Abstract::Output> output;
+        /// Timestepping
+        std::unique_ptr<Abstract::TimeStepping> timeStepping;
 
-    /// GUI callbacks
-    std::unique_ptr<Abstract::Callbacks> callbacks;
+        /// Solver
+        std::unique_ptr<Abstract::Solver> solver;
 
-    /// Stores all SPH particles
-    std::shared_ptr<Storage> storage;
+        /// Logging files
+        Array<std::unique_ptr<Abstract::LogFile>> logFiles;
 
-    /// Implements computations of quantities and their temporal evolution
-    std::unique_ptr<Abstract::Solver> solver;
+    public:
+        Problem();
 
-    Array<std::unique_ptr<Abstract::LogFile>> logs;
+        ~Problem();
 
+        /// Starts the run
+        void run();
 
-    /// initialize problem by constructing solver
-    Problem(const GlobalSettings& settings, const std::shared_ptr<Storage> storage);
+    protected:
+        /// Prepares the run, sets all initial conditions, creates logger, output, ...
+        virtual void setUp() = 0;
 
-    ~Problem();
+        /// Called after the run, saves all necessary data, logs run statistics, ...
+        virtual void tearDown() = 0;
 
-    void run();
-
-protected:
-    /// Prepares the run, sets all initial conditions, creates logger, output, ...
-    // virtual void setup() = 0;
-};
+    private:
+        void setNullToDefaults();
+    };
+}
 
 NAMESPACE_SPH_END

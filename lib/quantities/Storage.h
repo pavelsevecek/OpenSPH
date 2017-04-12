@@ -3,6 +3,7 @@
 #include "common/ForwardDecl.h"
 #include "objects/containers/Array.h"
 #include "quantities/Quantity.h"
+#include "quantities/QuantityIds.h"
 #include <map>
 
 NAMESPACE_SPH_BEGIN
@@ -11,8 +12,58 @@ namespace Abstract {
     class Material;
 }
 
+struct StorageElement {
+    QuantityIds id;
+    Quantity& quantity;
+};
+
+class StorageIterator {
+private:
+    using Iterator = std::map<QuantityIds, Quantity>::iterator;
+
+    Iterator iter;
+
+public:
+    StorageIterator(const Iterator iterator)
+        : iter(iterator) {}
+
+    StorageIterator& operator++() {
+        ++iter;
+        return *this;
+    }
+
+    StorageElement operator*() {
+        return { iter->first, iter->second };
+    }
+
+    bool operator!=(const StorageIterator& other) const {
+        return iter != other.iter;
+    }
+};
+
+/// Helper class for iterating over individual quantities of the storage.
+class StorageSequence {
+private:
+    Storage& storage;
+
+public:
+    StorageSequence(Storage& storage);
+
+    /// Returns iterator pointing to the beginning of the quantity storage. Dereferencing the iterator yields
+    /// StorageElement, holding the quantity ID and the reference to the quantity.
+    StorageIterator begin();
+
+    /// Returns iterator pointing to the one-past-the-end element of the quantity storage.
+    StorageIterator end();
+
+    /// Returns the number of quantities.
+    Size size() const;
+};
+
 /// Base object for storing scalar, vector and tensor quantities of SPH particles.
 class Storage : public Noncopyable {
+    friend class StorageSequence;
+
 private:
     /// Stored quantities (array of arrays). All arrays must be the same size at all times.
     std::map<QuantityIds, Quantity> quantities;
@@ -80,6 +131,13 @@ public:
         return q.getValue<TValue>();
     }
 
+    /// Retrieves a quantity values from the storage, given its key and value type, const version.
+    /// \todo test
+    template <typename TValue>
+    const Array<TValue>& getValue(const QuantityIds key) const {
+        return const_cast<Storage*>(this)->getValue<TValue>(key);
+    }
+
     /// Returns the physical values of given quantity.
     template <typename TValue>
     Array<TValue>& getPhysicalValue(const QuantityIds key) {
@@ -106,10 +164,50 @@ public:
         return q.getDt<TValue>();
     }
 
+    /// Retrieves a quantity derivative from the storage, given its key and value type, const version.
+    template <typename TValue>
+    const Array<TValue>& getDt(const QuantityIds key) const {
+        return const_cast<Storage*>(this)->getDt<TValue>(key);
+    }
+
+    /// Retrieves a quantity second derivative from the storage, given its key and value type. The stored
+    /// quantity must be of type TValue, checked by assert. Quantity must already exist in the storage and
+    /// must be second order, checked by assert.
+    /// \return Array reference containing quantity second derivatives.
+    template <typename TValue>
+    Array<TValue>& getD2t(const QuantityIds key) {
+        Quantity& q = this->getQuantity(key);
+        ASSERT(q.getValueEnum() == GetValueEnum<TValue>::type);
+        return q.getD2t<TValue>();
+    }
+
+    template <typename TValue>
+    Array<TValue>& getHighestDerivative(const QuantityIds key) {
+        Quantity& q = this->getQuantity(key);
+        ASSERT(q.getValueEnum() == GetValueEnum<TValue>::type);
+        switch (q.getOrderEnum()) {
+        case OrderEnum::ZERO:
+            return q.getValue<TValue>();
+        case OrderEnum::FIRST:
+            return q.getDt<TValue>();
+        case OrderEnum::SECOND:
+            return q.getD2t<TValue>();
+        default:
+            NOT_IMPLEMENTED;
+        }
+    }
+
     /// Retrieves an array of quantities from the key. The type of all quantities must be the same and equal
     /// to TValue, checked by assert.
     template <typename TValue, typename... TArgs>
     auto getValues(const QuantityIds first, const QuantityIds second, const TArgs... others) {
+        return tie(getValue<TValue>(first), getValue<TValue>(second), getValue<TValue>(others)...);
+    }
+
+    /// Retrieves an array of quantities from the key, const version.
+    template <typename TValue, typename... TArgs>
+    auto getValues(const QuantityIds first, const QuantityIds second, const TArgs... others) const {
+        // better not const_cast here as we are deducing return type
         return tie(getValue<TValue>(first), getValue<TValue>(second), getValue<TValue>(others)...);
     }
 
@@ -156,6 +254,9 @@ public:
     /// Returns view that can iterate over indices of particles belonging to given material.
     MaterialSequence getMaterial(const Size matId);
 
+    /// Returns the sequence of quantities.
+    StorageSequence getQuantities();
+
     /// Return the number of materials in the storage. Material indices from 0 to (getMaterialCnt() - 1) are
     /// valid input for \ref getMaterialView function.
     Size getMaterialCnt() const;
@@ -165,7 +266,6 @@ public:
 
     /// Returns the number of particles. The number of particle is always the same for all quantities.
     Size getParticleCnt() const;
-
 
     void merge(Storage&& other);
 

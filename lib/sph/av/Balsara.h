@@ -6,17 +6,23 @@
 /// sevecek at sirrah.troja.mff.cuni.cz
 
 #include "quantities/Storage.h"
-#include "solvers/Accumulator.h"
+#include "solvers/EquationTerm.h"
 #include "system/Settings.h"
 
 NAMESPACE_SPH_BEGIN
 
-template <typename AV>
-class BalsaraSwitch : public Module<AV, Rotv, Divv> {
+/*class BalsaraSwitch : public Abstract::EquationTerm {
 private:
-    ArrayView<Float> cs;
-    ArrayView<Vector> r;
-    AV av;
+    class Term : public Abstract::Derivative {
+    private:
+        ArrayView<Float> cs;
+        ArrayView<Vector> r;
+
+    public:
+        virtual void initialize(const Storage& input, Accumulated& output) {
+            cs = input.getValue <
+        }
+    };
     // accumulator, compute new values of div v and rot v in each time step
     Rotv accumulatedRotV;
     Divv accumulatedDivV; /// \todo divv can be possibly shared with Morris & Monaghan AV
@@ -55,20 +61,22 @@ public:
         this->integrateModules(storage);
     }
 
-    /// Returns the artificial viscosity Pi_ij after applying Balsara switch. Needs to be multiplied by kernel
+    /// Returns the artificial viscosity Pi_ij after applying Balsara switch. Needs to be multiplied by
+    /// kernel
     /// gradient to get the final force due to AV.
     INLINE Float operator()(const Size i, const Size j) {
         return 0.5_f * (getFactor(i) + getFactor(j)) * av(i, j);
     }
 
-    /// Returns the Balsara factor for i-th particle. Mainly for testing purposes, operator() applies Balsara
+    /// Returns the Balsara factor for i-th particle. Mainly for testing purposes, operator() applies
+    /// Balsara
     /// switch with no need to explicitly call getFactor by the user.
     INLINE Float getFactor(const Size i) {
         const Float dv = abs(divv[i]);
         const Float rv = getLength(rotv[i]);
         return dv / (dv + rv + eps * cs[i] / r[i][H]);
     }
-};
+};*/
 
 
 NAMESPACE_SPH_END

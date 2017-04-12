@@ -1,9 +1,9 @@
 #pragma once
 
+#include "io/Logger.h"
 #include "objects/containers/Array.h"
 #include "objects/containers/ArrayView.h"
 #include "objects/wrappers/Range.h"
-#include "system/Logger.h"
 
 NAMESPACE_SPH_BEGIN
 

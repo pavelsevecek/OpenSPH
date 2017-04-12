@@ -1,7 +1,7 @@
 #include "system/Settings.h"
 #include "catch.hpp"
+#include "io/Logger.h"
 #include "objects/wrappers/Outcome.h"
-#include "system/Logger.h"
 
 using namespace Sph;
 

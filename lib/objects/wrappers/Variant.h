@@ -158,11 +158,6 @@ struct VariantIterator<T0> {
 
 
 /// Variant, an implementation of type-safe union, similar to std::variant or boost::variant.
-///
-/// The object is intentionally missing default constructor, to guarantee there is always a valid value stored
-/// in the variant. 'Empty' variant can be created by adding \ref EmptyVariant to the list of type and
-/// initializing the variant with EMPTY_VARIANT constant. Alternatively, use Optional<Variant<...>> for
-/// variant that need not have a value stored.
 template <typename... TArgs>
 class Variant {
 private:
@@ -174,7 +169,17 @@ private:
         VariantIterator<TArgs...>::visit(typeIdx, deleter);
     }
 
+    static_assert(sizeof...(TArgs) >= 1, "Must have at least 1 variant");
+
 public:
+    /// Default constructor, constructs the object of type listed first in the type list using its default
+    /// constructor. The default constructor must exist.
+    Variant() {
+        using T = SelectType<0, TArgs...>;
+        storage.template emplace<T>();
+        typeIdx = 0;
+    }
+
     /// Construct variant from value of stored type
     template <typename T, typename = std::enable_if_t<!std::is_same<std::decay_t<T>, Variant>::value>>
     Variant(T&& value) {
@@ -266,7 +271,7 @@ public:
     template <typename T, typename... Ts>
     void emplace(Ts&&... args) {
         using RawT = std::decay_t<T>;
-        constexpr Size idx = getTypeIndex<RawT, TArgs...>;
+        constexpr int idx = getTypeIndex<RawT, TArgs...>;
         static_assert(idx != -1, "Type must be listed in Variant");
         destroy();
         storage.template emplace<RawT>(std::forward<Ts>(args)...);
@@ -278,11 +283,18 @@ public:
         return typeIdx;
     }
 
+    /// \todo test
+    template <typename T>
+    INLINE bool has() const {
+        constexpr int idx = getTypeIndex<T, TArgs...>;
+        return typeIdx == idx;
+    }
+
     /// Returns the stored value. Performs a compile-time check that the type is contained in Variant, and
     /// runtime check that the variant currently holds value of given type.
     template <typename T>
     INLINE T& get() {
-        constexpr Size idx = getTypeIndex<T, TArgs...>;
+        constexpr int idx = getTypeIndex<T, TArgs...>;
         static_assert(idx != -1, "Cannot convert variant to this type");
         ASSERT(typeIdx == idx);
         return storage.template get<T>();
@@ -291,7 +303,7 @@ public:
     /// Returns the stored value, const version.
     template <typename T>
     INLINE const T& get() const {
-        constexpr Size idx = getTypeIndex<T, TArgs...>;
+        constexpr int idx = getTypeIndex<T, TArgs...>;
         static_assert(idx != -1, "Cannot convert variant to this type");
         ASSERT(typeIdx == idx);
         return storage.template get<T>();
@@ -314,7 +326,7 @@ public:
     /// the value is currently not stored in variant.
     template <typename T>
     Optional<T> tryGet() const {
-        constexpr Size idx = getTypeIndex<T, TArgs...>;
+        constexpr int idx = getTypeIndex<T, TArgs...>;
         static_assert(idx != -1, "Cannot convert variant to this type");
         if (typeIdx != getTypeIndex<T, TArgs...>) {
             return NOTHING;
@@ -326,21 +338,35 @@ public:
 
 namespace Detail {
     template <Size N, typename T0, typename... TArgs>
-    struct ForCurrentType {
+    struct ForValue {
         template <typename TVariant, typename TFunctor>
-        static decltype(auto) action(TVariant&& variant, TFunctor&& functor) {
+        INLINE static decltype(auto) action(TVariant&& variant, TFunctor&& functor) {
             if (variant.template getTypeIdx() == N) {
                 return functor(variant.template get<T0>());
             } else {
-                return ForCurrentType<N + 1, TArgs...>::action(
+                return ForValue<N + 1, TArgs...>::action(
                     std::forward<TVariant>(variant), std::forward<TFunctor>(functor));
             }
         }
     };
-    template <Size N, typename T0>
-    struct ForCurrentType<N, T0> {
+
+    // specialization for NothingType, does not call the functor
+    template <Size N, typename... TArgs>
+    struct ForValue<N, NothingType, TArgs...> {
         template <typename TVariant, typename TFunctor>
-        static decltype(auto) action(TVariant&& variant, TFunctor&& functor) {
+        INLINE static decltype(auto) action(TVariant&& variant, TFunctor&& functor) {
+            if (variant.template getTypeIdx() != N) {
+                return ForValue<N + 1, TArgs...>::action(
+                    std::forward<TVariant>(variant), std::forward<TFunctor>(functor));
+            }
+            STOP;
+        }
+    };
+
+    template <Size N, typename T0>
+    struct ForValue<N, T0> {
+        template <typename TVariant, typename TFunctor>
+        INLINE static decltype(auto) action(TVariant&& variant, TFunctor&& functor) {
             return functor(variant.template get<T0>());
         }
     };
@@ -349,19 +375,22 @@ namespace Detail {
 /// Executes a functor passing current value stored in variant as its parameter. The functor must either have
 /// templated operator() (i.e. generic lambda), or have an overloaded operator for each type contained in
 /// variant.
+/// If the variant contains type NothingType, the functor not called for this type. This allows to call
+/// generic functions, defined on other types while keeping NothingType as a special value representing an
+/// empty variant.
 /// \param variant Variant, must contain a value (checked by assert).
 /// \param functor Executed functor, takes one parameter - value obtained from Variant.
 /// \return Value returned by the functor.
 template <typename TFunctor, typename... TArgs>
 INLINE decltype(auto) forValue(Variant<TArgs...>& variant, TFunctor&& functor) {
-    return Detail::ForCurrentType<0, TArgs...>::action(variant, std::forward<TFunctor>(functor));
+    return Detail::ForValue<0, TArgs...>::action(variant, std::forward<TFunctor>(functor));
 }
 
 /// Executes a functor passing current value stored in variant as its parameter. Overload for const l-value
 /// reference.
 template <typename TFunctor, typename... TArgs>
 INLINE decltype(auto) forValue(const Variant<TArgs...>& variant, TFunctor&& functor) {
-    return Detail::ForCurrentType<0, TArgs...>::action(variant, std::forward<TFunctor>(functor));
+    return Detail::ForValue<0, TArgs...>::action(variant, std::forward<TFunctor>(functor));
 }
 
 NAMESPACE_SPH_END

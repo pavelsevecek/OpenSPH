@@ -1,19 +1,17 @@
 #pragma once
 
+#include "common/ForwardDecl.h"
 #include "geometry/TracelessTensor.h"
 #include "objects/containers/Array.h"
 
 NAMESPACE_SPH_BEGIN
-
-class Storage;
-
 
 namespace Abstract {
     class Damage;
 
     class Rheology : public Polymorphic {
     public:
-        virtual void create(Storage& storage, const BodySettings& settings) = 0;
+        virtual void create(Storage& storage, const BodySettings& settings) const = 0;
 
         virtual void initialize(Storage& storage, const MaterialSequence sequence) = 0;
 
@@ -28,11 +26,15 @@ private:
     std::unique_ptr<Abstract::Damage> damage;
 
 public:
-    virtual void create(Storage& storage, const BodySettings& settings) override;
+    VonMisesRheology(std::unique_ptr<Abstract::Damage>&& damage);
 
-    virtual void initialize(Storage& storage, const MaterialSequence sequence) override;
+    ~VonMisesRheology();
 
-    virtual void integrate(Storage& storage, const MaterialSequence sequence) override;
+    virtual void create(Storage& storage, const BodySettings& settings) const override;
+
+    virtual void initialize(Storage& storage, const MaterialSequence material) override;
+
+    virtual void integrate(Storage& storage, const MaterialSequence material) override;
 };
 
 
@@ -46,9 +48,15 @@ private:
     Array<Float> yieldingStress;
 
 public:
-    virtual void initialize(Storage& storage, const MaterialSequence sequence) override;
+    DruckerPragerRheology(std::unique_ptr<Abstract::Damage>&& damage);
 
-    virtual void integrate(Storage& storage, const MaterialSequence sequence) override;
+    ~DruckerPragerRheology();
+
+    virtual void create(Storage& storage, const BodySettings& settings) const override;
+
+    virtual void initialize(Storage& storage, const MaterialSequence material) override;
+
+    virtual void integrate(Storage& storage, const MaterialSequence material) override;
 
     /// \todo code duplication
     INLINE TracelessTensor reduce(const TracelessTensor& s, const int i) const {

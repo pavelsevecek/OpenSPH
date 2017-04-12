@@ -9,6 +9,7 @@ NAMESPACE_SPH_BEGIN
 
 namespace Abstract {
     class Damage : public Polymorphic {
+    public:
         /// Sets up all the necessary quantities in the storage given material settings.
         virtual void setFlaws(Storage& storage, const BodySettings& settings) const = 0;
 
@@ -34,13 +35,13 @@ private:
     ExplicitFlaws options;
 
 public:
-    ScalarDamage(const GlobalSettings& settings, const ExplicitFlaws options = ExplicitFlaws::UNIFORM);
+    ScalarDamage(const Float kernelRadius, const ExplicitFlaws options = ExplicitFlaws::UNIFORM);
 
     virtual void setFlaws(Storage& storage, const BodySettings& settings) const override;
 
-    virtual void reduce(Storage& storage, const MaterialSequence sequence) override;
+    virtual void reduce(Storage& storage, const MaterialSequence material) override;
 
-    virtual void integrate(Storage& storage, const MaterialSequence sequence) override;
+    virtual void integrate(Storage& storage, const MaterialSequence material) override;
 };
 
 class TensorDamage : public Abstract::Damage {
@@ -48,9 +49,18 @@ private:
 public:
     virtual void setFlaws(Storage& storage, const BodySettings& settings) const override;
 
-    virtual void reduce(Storage& storage, const MaterialSequence sequence) override;
+    virtual void reduce(Storage& storage, const MaterialSequence material) override;
 
-    virtual void integrate(Storage& storage, const MaterialSequence sequence) override;
+    virtual void integrate(Storage& storage, const MaterialSequence material) override;
+};
+
+class NullDamage : public Abstract::Damage {
+public:
+    virtual void setFlaws(Storage& storage, const BodySettings& settings) const override;
+
+    virtual void reduce(Storage& storage, const MaterialSequence material) override;
+
+    virtual void integrate(Storage& storage, const MaterialSequence material) override;
 };
 
 NAMESPACE_SPH_END

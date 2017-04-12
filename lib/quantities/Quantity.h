@@ -77,8 +77,8 @@ namespace Detail {
         }
 
         Holder(const OrderEnum order, Array<TValue>&& values)
-            : order(order)
-            , v(std::move(values)) {
+            : v(std::move(values))
+            , order(order) {
             initDerivatives(v.size());
         }
 
@@ -141,6 +141,8 @@ namespace Detail {
                 return { v, dv_dt };
             case OrderEnum::SECOND:
                 return { v, dv_dt, d2v_dt2 };
+            default:
+                NOT_IMPLEMENTED;
             }
         }
 
@@ -152,6 +154,8 @@ namespace Detail {
                 return { getPhysicalValue(), dv_dt };
             case OrderEnum::SECOND:
                 return { getPhysicalValue(), dv_dt, d2v_dt2 };
+            default:
+                NOT_IMPLEMENTED;
             }
         }
 
@@ -243,7 +247,7 @@ namespace Detail {
 /// within. There are several methods, however, that allow to access the information indirectly:
 /// 1) cast<Type, TemporalEnum>; returns holder of quantity (see above) IF the type and temporal enum in
 ///                              template parameters match the ones of the holder.
-/// 2) getBuffers<Type>; returns all arrays (values and derivatives) stored in the holder IF the template type
+/// 2) getAll<Type>; returns all arrays (values and derivatives) stored in the holder IF the template type
 ///                      matches the holder type.
 /// Beside accessing values through cast<> method, you can also use functions in QuantityCast namespace that
 /// allow to access values or given derivative. The system is the same, though; we try to get
@@ -251,7 +255,7 @@ namespace Detail {
 class Quantity : public Noncopyable {
 private:
     template <typename... TArgs>
-    using HolderVariant = Variant<Detail::Holder<TArgs>...>;
+    using HolderVariant = Variant<NothingType, Detail::Holder<TArgs>...>;
 
     // Types must be in same order as in ValueEnum!
     using Holder = HolderVariant<Float, Vector, Tensor, TracelessTensor, Size>;
@@ -261,6 +265,10 @@ private:
         : data(std::move(holder)) {}
 
 public:
+    /// Constructs an empty quantity. Calling any member functions will cause assert, quantity can be then
+    /// created using move constructor. The default constructor allows using Quantity in STL containers.
+    Quantity() = default;
+
     /// Creates a quantity given number of particles and default value of the quantity. All values are set to
     /// the default value. If the type is 1st-order or 2nd-order, derivatives arrays resized to the same size
     /// as the array of values and set to zero.
@@ -371,6 +379,19 @@ public:
     template <typename TValue>
     StaticArray<Array<TValue>&, 3> getPhysicalAll() {
         return get<TValue>().getPhysicalAll();
+    }
+
+    /// Iterates through the quantity values using given integer sequence and clamps the visited values to
+    /// given range.
+    /// \todo clamp derivatives as well
+    template <typename TIndexSequence>
+    void clamp(const TIndexSequence& sequence, const Range range) {
+        forValue(data, [&sequence, range](auto& v) {
+            auto values = v.getValue();
+            for (Size idx : sequence) {
+                clamp(values[idx], range);
+            }
+        });
     }
 
 private:

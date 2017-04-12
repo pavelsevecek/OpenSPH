@@ -26,14 +26,15 @@ TEST_CASE("Total mass", "[integrals]") {
 TEST_CASE("Total Momentum Simple", "[integrals]") {
     Storage storage;
     // two particles, perpendicular but moving in the same direction
-    storage.insert<Vector, OrderEnum::SECOND>(
-        QuantityIds::POSITIONS, Array<Vector>{ Vector(1._f, 0._f, 0._f), Vector(0._f, 2._f, 0._f) });
+    storage.insert<Vector>(QuantityIds::POSITIONS,
+        OrderEnum::SECOND,
+        Array<Vector>{ Vector(1._f, 0._f, 0._f), Vector(0._f, 2._f, 0._f) });
     ArrayView<Vector> r, v, dv;
     tie(r, v, dv) = storage.getAll<Vector>(QuantityIds::POSITIONS);
     v[0] = Vector(0._f, 2._f, 0._f);
     v[1] = Vector(0._f, 3._f, 0._f);
 
-    storage.insert<Float, OrderEnum::ZERO>(QuantityIds::MASSES, Array<Float>{ 5._f, 7._f });
+    storage.insert<Float>(QuantityIds::MASSES, OrderEnum::ZERO, Array<Float>{ 5._f, 7._f });
 
     // integrals in inertial frame
     TotalMomentum momentum;
@@ -80,16 +81,17 @@ TEST_CASE("Total Momentum Body", "[integrals]") {
 
 TEST_CASE("Total Energy Simple", "[integrals]") {
     Storage storage;
-    storage.insert<Vector, OrderEnum::SECOND>( // positions are irrelevant here ...
+    storage.insert<Vector>( // positions are irrelevant here ...
         QuantityIds::POSITIONS,
+        OrderEnum::SECOND,
         Array<Vector>{ Vector(1._f, 0._f, 0._f), Vector(0._f, 2._f, 0._f) });
     ArrayView<Vector> r, v, dv;
     tie(r, v, dv) = storage.getAll<Vector>(QuantityIds::POSITIONS);
     v[0] = Vector(0._f, 2._f, 0._f);
     v[1] = Vector(0._f, 3._f, 0._f);
 
-    storage.insert<Float, OrderEnum::ZERO>(QuantityIds::MASSES, Array<Float>{ 5._f, 7._f });
-    storage.insert<Float, OrderEnum::ZERO>(QuantityIds::ENERGY, Array<Float>{ 3._f, 4._f });
+    storage.insert<Float>(QuantityIds::MASSES, OrderEnum::ZERO, Array<Float>{ 5._f, 7._f });
+    storage.insert<Float>(QuantityIds::ENERGY, OrderEnum::ZERO, Array<Float>{ 3._f, 4._f });
 
     REQUIRE(TotalKineticEnergy().evaluate(storage) == 41.5_f);
     REQUIRE(TotalInternalEnergy().evaluate(storage) == 43._f);

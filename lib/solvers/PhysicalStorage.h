@@ -55,7 +55,7 @@ private:
         /// Called in the constructor of solver
         void
         addModifier(std::unique_ptr<Abstract::Modifier>&& modifier) {
-#ifdef DEBUG
+#ifdef SPH_DEBUG
         // check we are not already modifying the quantity
         QuantityIds id = modifier->modifies();
         for (auto& m : modifiers) {

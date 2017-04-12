@@ -95,12 +95,14 @@ public:
     /// for Array object deep-copying of elements is forbidden as it is rarely needed and deleting copy
     /// constructor helps us avoid accidental deep-copy, for example when passing array as an argument of
     /// function.
+    /// \todo test
     Array& operator=(const CopyableArray<T, TCounter>& other) {
-        Array& rhs = other;
+        const Array& rhs = other;
         this->resize(rhs.size());
         for (TCounter i = 0; i < rhs.size(); ++i) {
             data[i] = rhs[i];
         }
+        return *this;
     }
 
     /// For l-value references assign each value (does not actually move anything). Works only for arrays of
@@ -128,27 +130,27 @@ public:
     }
 
     INLINE Iterator<StorageType, TCounter> begin() {
-        return Iterator<StorageType>(data, data, data + actSize);
+        return Iterator<StorageType, TCounter>(data, data, data + actSize);
     }
 
     INLINE Iterator<const StorageType, TCounter> begin() const {
-        return Iterator<const StorageType>(data, data, data + actSize);
+        return Iterator<const StorageType, TCounter>(data, data, data + actSize);
     }
 
     INLINE Iterator<const StorageType, TCounter> cbegin() const {
-        return Iterator<const StorageType>(data, data, data + actSize);
+        return Iterator<const StorageType, TCounter>(data, data, data + actSize);
     }
 
     INLINE Iterator<StorageType, TCounter> end() {
-        return Iterator<StorageType>(data + actSize, data, data + actSize);
+        return Iterator<StorageType, TCounter>(data + actSize, data, data + actSize);
     }
 
     INLINE Iterator<const StorageType, TCounter> end() const {
-        return Iterator<const StorageType>(data + actSize, data, data + actSize);
+        return Iterator<const StorageType, TCounter>(data + actSize, data, data + actSize);
     }
 
     INLINE Iterator<const StorageType, TCounter> cend() const {
-        return Iterator<const StorageType>(data + actSize, data, data + actSize);
+        return Iterator<const StorageType, TCounter>(data + actSize, data, data + actSize);
     }
 
     INLINE T& operator[](const TCounter idx) {
@@ -341,11 +343,12 @@ public:
     CopyableArray(const Array<T, TCounter>& array)
         : array(array) {}
 
-    operator const Array<T, TCounter>&() {
+    operator const Array<T, TCounter>&() const {
         return array;
     }
 };
 
+/// \todo test
 template <typename T, typename TCounter>
 INLINE CopyableArray<T, TCounter> copyable(const Array<T, TCounter>& array) {
     return CopyableArray<T, TCounter>(array);

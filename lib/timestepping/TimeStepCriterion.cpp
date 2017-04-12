@@ -1,7 +1,7 @@
-#include "sph/timestepping/TimeStepCriterion.h"
-#include "quantities/Iterate.h"
+#include "timestepping/TimeStepCriterion.h"
+#include "io/Logger.h"
 #include "quantities/AbstractMaterial.h"
-#include "system/Logger.h"
+#include "quantities/Iterate.h"
 #include "system/Profiler.h"
 #include "system/Settings.h"
 #include "system/Statistics.h"
@@ -33,11 +33,11 @@ Tuple<Float, AllCriterionIds> DerivativeCriterion::compute(Storage& storage,
             T derivative = T(0._f);
             Size particleIdx = 0;
         } limit;
-
+        ArrayView<Size> matIdxs = storage.getValue<Size>(QuantityIds::MATERIAL_IDX);
         for (Size i = 0; i < v.size(); ++i) {
             const auto absdv = abs(dv[i]);
             const auto absv = abs(v[i]);
-            const Float minValue = MaterialAccessor(storage).minimal(id, i);
+            const Float minValue = storage.getMaterial(matIdxs[i])->minimal(id);
             ASSERT(minValue > 0._f); // some nonzero minimal value must be set for all quantities
             if (norm(absv) < minValue) {
                 continue;
@@ -62,10 +62,16 @@ Tuple<Float, AllCriterionIds> DerivativeCriterion::compute(Storage& storage,
             }
         }
     });
-    // make sure only 2nd order quanity is positions, they are handled by Acceleration criterion
-    ASSERT(std::count_if(storage.begin(), storage.end(), [](auto&& pair) {
-        return pair.second.getOrderEnum() == OrderEnum::SECOND;
-    }) == 1);
+// make sure only 2nd order quanity is positions, they are handled by Acceleration criterion
+#ifdef SPH_DEBUG
+    Size cnt = 0;
+    for (auto q : storage.getQuantities()) {
+        if (q.quantity.getOrderEnum() == OrderEnum::SECOND) {
+            cnt++;
+        }
+    }
+    ASSERT(cnt == 1);
+#endif
 
     if (totalMinStep > maxStep) {
         totalMinStep = maxStep;

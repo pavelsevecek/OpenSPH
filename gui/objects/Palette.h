@@ -62,7 +62,7 @@ public:
     Palette(Array<Point>&& controlPoints, const PaletteScale scale)
         : points(std::move(controlPoints))
         , scale(scale) {
-#ifdef DEBUG
+#ifdef SPH_DEBUG
         ASSERT(points.size() >= 2);
         if (scale == PaletteScale::LOGARITHMIC) {
             ASSERT(points[0].value >= 0.f);

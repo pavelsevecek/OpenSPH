@@ -1,8 +1,9 @@
-#include "sph/timestepping/TimeStepCriterion.h"
+#include "timestepping/TimeStepCriterion.h"
 #include "catch.hpp"
 #include "geometry/Domain.h"
 #include "quantities/AbstractMaterial.h"
 #include "quantities/Storage.h"
+#include "sph/Material.h"
 #include "sph/initial/Distribution.h"
 #include "system/Settings.h"
 #include "utils/Approx.h"
@@ -10,15 +11,16 @@
 using namespace Sph;
 
 static Storage getStorage() {
-    Storage storage(BodySettings::getDefaults());
+    Storage storage(getDefaultMaterial());
     HexagonalPacking distribution;
-    storage.insert<Vector, OrderEnum::SECOND>(
-        QuantityIds::POSITIONS, distribution.generate(100, BlockDomain(Vector(0._f), Vector(100._f))));
-    storage.insert<Float, OrderEnum::FIRST>(QuantityIds::ENERGY, 0._f, Range::unbounded());
+    storage.insert<Vector>(QuantityIds::POSITIONS,
+        OrderEnum::SECOND,
+        distribution.generate(100, BlockDomain(Vector(0._f), Vector(100._f))));
+    storage.insert<Float, >(QuantityIds::ENERGY, OrderEnum::FIRST, 0._f, Range::unbounded());
     MaterialAccessor(storage).minimal(QuantityIds::ENERGY, 0) = EPS;
 
     const Float cs = 5._f;
-    storage.insert<Float, OrderEnum::ZERO>(QuantityIds::SOUND_SPEED, cs);
+    storage.insert<Float>(QuantityIds::SOUND_SPEED, OrderEnum::ZERO, cs);
     return storage;
 }
 

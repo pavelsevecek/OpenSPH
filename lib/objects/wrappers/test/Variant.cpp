@@ -5,32 +5,38 @@
 using namespace Sph;
 
 
-TEST_CASE("Variant constructor", "[variant]") {
+TEST_CASE("Variant default constructor", "[variant]") {
     RecordType::resetStats();
     Variant<int, float, RecordType> variant1;
-    REQUIRE(variant1.getTypeIdx() == -1);
-    REQUIRE(!variant1.tryGet<int>());
+    REQUIRE(variant1.getTypeIdx() == 0);
+    REQUIRE(variant1.tryGet<int>());
     REQUIRE(!variant1.tryGet<float>());
     REQUIRE(!variant1.tryGet<RecordType>());
     REQUIRE(RecordType::constructedNum == 0);
 
-    Variant<int, float> variant2(3.14f);
-    REQUIRE(variant2.getTypeIdx() == 1);
-    REQUIRE((float)variant2 == 3.14f);
-    REQUIRE(!variant2.tryGet<int>());
+    Variant<RecordType, int> variant2;
+    REQUIRE(variant2.tryGet<RecordType>());
+    REQUIRE(RecordType::constructedNum == 1);
+}
 
-    Variant<RecordType> variant3(RecordType(5));
-    RecordType& r1 = variant3;
+TEST_CASE("Variant value construct", "[variant]") {
+    Variant<int, float> variant1(3.14f);
+    REQUIRE(variant1.getTypeIdx() == 1);
+    REQUIRE((float)variant1 == 3.14f);
+    REQUIRE(!variant1.tryGet<int>());
+
+    Variant<RecordType> variant2(RecordType(5));
+    RecordType& r1 = variant2;
     REQUIRE(r1.wasMoveConstructed);
     REQUIRE(r1.value == 5);
 
     RecordType r2(3);
-    Variant<RecordType> variant4(r2);
-    RecordType& r3 = variant4;
+    Variant<RecordType> variant3(r2);
+    RecordType& r3 = variant3;
     REQUIRE(r3.wasCopyConstructed);
     REQUIRE(r3.value == 3);
     RecordType::resetStats();
-    variant4.~Variant();
+    variant3.~Variant();
     REQUIRE(RecordType::destructedNum == 1);
 }
 

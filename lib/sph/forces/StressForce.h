@@ -7,7 +7,7 @@
 #include "system/Statistics.h"
 
 NAMESPACE_SPH_BEGIN
-
+/*
 /// Object computing acceleration of particles and increase of internal energy due to divergence of the stress
 /// tensor. When no stress tensor is used in the model, only pressure gradient is computed.
 template <typename Yielding, typename Damage, typename AV>
@@ -124,13 +124,7 @@ public:
             }
             ASSERT(isReal(du[i]));
         }
-        /*const Float t = stats->get<Float>(StatisticsIds::TOTAL_TIME);
-        ArrayView<Vector> r = storage.getValue<Vector>(QuantityIds::POSITIONS);*/
-        /*  const Size j = 959;
-          energy959.write(
-              t, "    ", u[j], "    ", du[j], "   ", r[j][H], "   ", reduce(p[j], j) / rho[j] * rhoDivv[j]);*/
-        //"   ",
-        // 1._f / rho[j] * ddot(reduce(s[j], j), rhoGradv[j]));
+
         this->integrateModules(storage);
     }
 
@@ -176,5 +170,5 @@ private:
         return damage.reduce(si, idx);
     }
 };
-
+*/
 NAMESPACE_SPH_END

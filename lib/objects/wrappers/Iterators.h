@@ -19,38 +19,29 @@ NAMESPACE_SPH_BEGIN
 /// Simple (forward) iterator over continuous array of objects of type T. Can be used with STL algorithms.
 template <typename T, typename TCounter = Size>
 class Iterator {
-    template <typename, typename>
-    friend class Array;
-    template <typename, int, typename>
-    friend class StaticArray;
-    template <typename, typename>
-    friend class ArrayView;
-
 protected:
     using TValue = typename UnwrapReferenceType<T>::Type;
 
     T* data;
-#ifdef DEBUG
+#ifdef SPH_DEBUG
     const T *begin, *end;
 #endif
 
-#ifndef DEBUG
-    Iterator(T* data)
-        : data(data) {}
-#endif
+    /*#ifndef SPH_DEBUG
+        Iterator(T* data)
+            : data(data) {}
+    #endif*/
+public:
+    Iterator() = default;
 
     Iterator(T* data, const T* UNUSED_IN_RELEASE(begin), const T* UNUSED_IN_RELEASE(end))
         : data(data)
-#ifdef DEBUG
+#ifdef SPH_DEBUG
         , begin(begin)
         , end(end)
 #endif
     {
     }
-
-
-public:
-    Iterator() = default;
 
     const TValue& operator*() const {
         ASSERT(data >= begin);
@@ -62,7 +53,7 @@ public:
         ASSERT(data < end);
         return *data;
     }
-#ifdef DEBUG
+#ifdef SPH_DEBUG
     Iterator operator+(const TCounter n) const {
         return Iterator(data + n, begin, end);
     }
@@ -456,40 +447,50 @@ TupleAdapter<TElement, TContainers...> iterateTuple(TContainers&&... containers)
 template <typename TIterator, typename TCondition>
 class SubsetIterator {
 private:
-    TIterator iterator;
+    TIterator iter;
     TIterator end;
     TCondition condition;
 
 public:
     SubsetIterator(const TIterator& iterator, const TIterator& end, TCondition&& condition)
-        : iterator(iterator)
+        : iter(iterator)
         , end(end)
         , condition(std::forward<TCondition>(condition)) {
         // move to first element of the subset
-        while (iterator != end && !conditions(*iterator)) {
-            ++iterator;
+        while (iter != end && !condition(*iter)) {
+            ++iter;
         }
     }
 
-    SubsetIterator& operator++() {
+    INLINE SubsetIterator& operator++() {
         do {
-            ++iterator;
-        } while (iterator != end && !conditions(*iterator));
+            ++iter;
+        } while (iter != end && !condition(*iter));
         return *this;
     }
 
-    bool operator==(const SubsetIterator& other) {
-        return iterator == other.iterator;
+    INLINE decltype(auto) operator*() {
+        ASSERT(iter != end);
+        return *iter;
     }
 
-    bool operator!=(const SubsetIterator& other) {
-        return iterator != other.iterator;
+    INLINE decltype(auto) operator*() const {
+        ASSERT(iter != end);
+        return *iter;
+    }
+
+    INLINE bool operator==(const SubsetIterator& other) {
+        return iter == other.iter;
+    }
+
+    INLINE bool operator!=(const SubsetIterator& other) {
+        return iter != other.iter;
     }
 };
 
 /// \todo test
 template <typename TIterator, typename TCondition>
-auto makeSubsetIterator(const TIterator& iterator, const TIterator& end, TCondition&& condition) {
+INLINE auto makeSubsetIterator(const TIterator& iterator, const TIterator& end, TCondition&& condition) {
     return SubsetIterator<TIterator, TCondition>(iterator, end, std::forward<TCondition>(condition));
 }
 

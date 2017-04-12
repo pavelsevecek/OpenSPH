@@ -10,6 +10,8 @@ NAMESPACE_SPH_BEGIN
 /// energy density (q) and internal energy of i-th particle (U). Otherwise, the solver is similar to
 /// SummationSolver; the energy density is computed using direct summation by self-consistent solution with
 /// smoothing length. Works only for ideal gas EoS!
+
+/*
 template <int D>
 class DensityIndependentSolver : public SolverBase<D> {
     static constexpr int dim = D;
@@ -69,9 +71,8 @@ public:
 
         this->finder->build(r);
         SymH<dim> w(this->kernel);
-        MaterialAccessor material(storage);
 
-        PROFILE_NEXT("DensityIndependentSolver::compute (main cycle)")
+        PROFILE_NEXT("DensityIndependentSolver::compute (main cycle)");
         for (int i = 0; i < size; ++i) {
             this->finder->findNeighbours(i,
                 r[i][H] * this->kernel.radius(),
@@ -160,5 +161,5 @@ public:
         storage.insert<Float, OrderEnum::ZERO>(QuantityIds::PRESSURE, p0);
     }
 };
-
+*/
 NAMESPACE_SPH_END

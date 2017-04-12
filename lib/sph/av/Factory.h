@@ -6,7 +6,7 @@
 #include "sph/av/Standard.h"
 
 NAMESPACE_SPH_BEGIN
-
+/*
 class DummyAV  {
 public:
     DummyAV(const GlobalSettings& UNUSED(settings)) {}
@@ -50,5 +50,5 @@ INLINE decltype(auto) dispatchAV(const GlobalSettings& settings, TVisitor&& visi
         }
     }
 }
-
+*/
 NAMESPACE_SPH_END

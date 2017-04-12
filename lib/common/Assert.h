@@ -25,7 +25,7 @@ struct Assert {
     static void check(const bool condition, const char* message);
 };
 
-#ifdef DEBUG
+#ifdef SPH_DEBUG
 #define ASSERT(x) Assert::check(bool(x), #x)
 #define CONSTEXPR_ASSERT(x) assert(x)
 #else

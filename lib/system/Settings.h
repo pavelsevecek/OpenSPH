@@ -238,7 +238,7 @@ enum class YieldingEnum {
     VON_MISES,
 
     /// Drucker-Prager pressure dependent yielding stress
-    DRUCKER_PRAGER3
+    DRUCKER_PRAGER
 };
 
 enum class DamageEnum {
@@ -275,6 +275,17 @@ enum class OutputEnum {
     /// Save output data into binary file. This data dump is lossless and can be use to restart run from saved
     /// snapshot.
     BINARY_FILE,
+};
+
+enum class RngEnum {
+    /// Mersenne Twister PRNG from Standard library
+    UNIFORM,
+
+    /// Halton QRNG
+    HALTON,
+
+    /// Same RNG as used in SPH5, used for 1-1 comparison
+    BENZ_ASPHAUG
 };
 
 /// Settings relevant for whole run of the simulation
@@ -317,6 +328,12 @@ enum class GlobalSettingsIds {
     /// Maximum duration of the run in milliseconds, measured in real-world time. 0 means run duration is not
     /// limited by this value.
     RUN_WALLCLOCK_TIME,
+
+    /// Selected random-number generator used within the run.
+    RUN_RNG,
+
+    /// Seed for the random-number generator
+    RUN_RNG_SEED,
 
     /// Index of SPH Kernel, see KernelEnum
     SPH_KERNEL,
@@ -364,12 +381,6 @@ enum class GlobalSettingsIds {
     /// Whether to use balsara switch for computing artificial viscosity dissipation. If no artificial
     /// viscosity is used, the value has no effect.
     MODEL_AV_BALSARA_SWITCH,
-
-    /// Type of material yielding
-    MODEL_YIELDING,
-
-    /// Selected fragmentation model
-    MODEL_DAMAGE,
 
     /// Selected solver for computing derivatives of physical variables.
     SOLVER_TYPE,
@@ -448,6 +459,9 @@ enum class DistributionEnum {
 
 
 enum class EosEnum {
+    /// No equation of stats
+    NONE,
+
     /// Equation of state for ideal gas
     IDEAL_GAS,
 
@@ -460,7 +474,6 @@ enum class EosEnum {
     /// ANEOS given by look-up table
     ANEOS
 };
-
 
 /// Settings of a single body / gas phase / ...
 /// Combines material parameters and numerical parameters of the SPH method specific for one body.
@@ -542,6 +555,10 @@ enum class BodySettingsIds {
 
     /// Specific energy of complete vaporization
     TILLOTSON_ENERGY_CV,
+
+    RHEOLOGY_YIELDING,
+
+    RHEOLOGY_DAMAGE,
 
     SHEAR_MODULUS,
 

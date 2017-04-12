@@ -110,5 +110,18 @@ public:
     virtual Outcome load(const std::string& path, Storage& storage) override;
 };
 
+class NullOutput : public Abstract::Output {
+public:
+    NullOutput()
+        : Abstract::Output("%d") {}
+
+    virtual std::string dump(Storage& UNUSED(storage), const Float UNUSED(time)) override {
+        return "";
+    }
+
+    virtual Outcome load(const std::string& UNUSED(path), Storage& UNUSED(storage)) override {
+        return true;
+    }
+};
 
 NAMESPACE_SPH_END

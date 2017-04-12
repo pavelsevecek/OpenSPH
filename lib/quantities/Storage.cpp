@@ -6,6 +6,23 @@
 
 NAMESPACE_SPH_BEGIN
 
+
+StorageSequence::StorageSequence(Storage& storage)
+    : storage(storage) {}
+
+StorageIterator StorageSequence::begin() {
+    return storage.quantities.begin();
+}
+
+StorageIterator StorageSequence::end() {
+    return storage.quantities.end();
+}
+
+Size StorageSequence::size() const {
+    return storage.getQuantityCnt();
+}
+
+
 Storage::Storage() = default;
 
 Storage::Storage(std::unique_ptr<Abstract::Material>&& material) {
@@ -28,6 +45,10 @@ Storage& Storage::operator=(Storage&& other) {
 MaterialSequence Storage::getMaterial(const Size matId) {
     ASSERT(this->has(QuantityIds::MATERIAL_IDX));
     return MaterialSequence(materials[matId].get(), this->getValue<Size>(QuantityIds::MATERIAL_IDX), matId);
+}
+
+StorageSequence Storage::getQuantities() {
+    return *this;
 }
 
 Size Storage::getMaterialCnt() const {

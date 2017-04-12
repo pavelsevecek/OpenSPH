@@ -203,7 +203,9 @@ std::unique_ptr<GlobalSettings> GlobalSettings::instance (new GlobalSettings {
     { GlobalSettingsIds::RUN_STATISTICS_STEP,           "run.statistics_step",      100 },
     { GlobalSettingsIds::RUN_TIME_RANGE,                "run.time_range",           Range(0._f, 10._f) },
     { GlobalSettingsIds::RUN_TIMESTEP_CNT,              "run.timestep_cnt",         0 },
-    { GlobalSettingsIds::RUN_WALLCLOCK_TIME,            "run.wallclock_time",       0._f} ,
+    { GlobalSettingsIds::RUN_WALLCLOCK_TIME,            "run.wallclock_time",       0._f },
+    { GlobalSettingsIds::RUN_RNG,                       "run.rng",                  int(RngEnum::BENZ_ASPHAUG) },
+    { GlobalSettingsIds::RUN_RNG_SEED,                  "run.rng.seed",             1234 },
 
     /// Physical model
     { GlobalSettingsIds::MODEL_FORCE_GRAD_P,            "model.force.grad_p",       true },
@@ -212,8 +214,6 @@ std::unique_ptr<GlobalSettings> GlobalSettings::instance (new GlobalSettings {
     { GlobalSettingsIds::MODEL_FORCE_GRAVITY,           "model.force.gravity",      false },
     { GlobalSettingsIds::MODEL_AV_TYPE,                 "model.av.type",            int(ArtificialViscosityEnum::STANDARD) },
     { GlobalSettingsIds::MODEL_AV_BALSARA_SWITCH,       "model.av.balsara_switch",  false },
-    { GlobalSettingsIds::MODEL_YIELDING,                "model.yielding",           int(YieldingEnum::VON_MISES) },
-    { GlobalSettingsIds::MODEL_DAMAGE,                  "model.damage",             int(DamageEnum::NONE) },
 
     /// SPH solvers
     { GlobalSettingsIds::SOLVER_TYPE,                   "solver.type",              int(SolverEnum::CONTINUITY_SOLVER) },
@@ -268,11 +268,13 @@ std::unique_ptr<BodySettings> BodySettings::instance (new BodySettings {
     { BodySettingsIds::TILLOTSON_ENERGY_CV,     "eos.tillotson.energy_cv",      1.82e7_f },
 
     /// Yielding & Damage
-    { BodySettingsIds::ELASTICITY_LIMIT,        "rheology.elasticity_limit",    3.5e9_f },
-    { BodySettingsIds::MELT_ENERGY,             "rheology.melt_energy",         3.4e6_f },
-    { BodySettingsIds::COHESION,                "rheology.cohesion",            9.e7_f },
-    { BodySettingsIds::INTERNAL_FRICTION,       "rheology.internal_friction",   2._f },
-    { BodySettingsIds::DRY_FRICTION,            "rheology.dry_friction",        0.8_f },
+    { BodySettingsIds::RHEOLOGY_YIELDING,  "rheology.yielding",           int(YieldingEnum::VON_MISES) },
+    { BodySettingsIds::RHEOLOGY_DAMAGE,    "rheology.damage",             int(DamageEnum::NONE) },
+    { BodySettingsIds::ELASTICITY_LIMIT,   "rheology.elasticity_limit",   3.5e9_f },
+    { BodySettingsIds::MELT_ENERGY,        "rheology.melt_energy",        3.4e6_f },
+    { BodySettingsIds::COHESION,           "rheology.cohesion",           9.e7_f },
+    { BodySettingsIds::INTERNAL_FRICTION,  "rheology.internal_friction",  2._f },
+    { BodySettingsIds::DRY_FRICTION,       "rheology.dry_friction",       0.8_f },
 
     /// Material properties
     { BodySettingsIds::DENSITY,                 "material.density",             2700._f },

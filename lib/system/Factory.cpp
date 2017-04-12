@@ -1,14 +1,18 @@
 #include "system/Factory.h"
 #include "geometry/Domain.h"
+#include "io/Logger.h"
+#include "math/rng/Rng.h"
 #include "objects/finders/BruteForce.h"
 #include "objects/finders/KdTree.h"
 #include "objects/finders/Voxel.h"
+#include "physics/Damage.h"
 #include "physics/Eos.h"
+#include "physics/Rheology.h"
+#include "sph/Material.h"
 #include "sph/boundary/Boundary.h"
 #include "sph/initial/Distribution.h"
-#include "sph/timestepping/TimeStepCriterion.h"
-#include "sph/timestepping/TimeStepping.h"
-#include "system/Logger.h"
+#include "timestepping/TimeStepCriterion.h"
+#include "timestepping/TimeStepping.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -21,6 +25,35 @@ std::unique_ptr<Abstract::Eos> Factory::getEos(const BodySettings& settings) {
         return std::make_unique<TillotsonEos>(settings);
     case EosEnum::MURNAGHAN:
         return std::make_unique<MurnaghanEos>(settings);
+    default:
+        NOT_IMPLEMENTED;
+    }
+}
+
+std::unique_ptr<Abstract::Rheology> Factory::getRheology(const BodySettings& settings) {
+    const YieldingEnum id = settings.get<YieldingEnum>(BodySettingsIds::RHEOLOGY_YIELDING);
+    switch (id) {
+    case YieldingEnum::NONE:
+        return nullptr;
+    case YieldingEnum::VON_MISES:
+        return std::make_unique<VonMisesRheology>(Factory::getDamage(settings));
+    case YieldingEnum::DRUCKER_PRAGER:
+        return std::make_unique<DruckerPragerRheology>(Factory::getDamage(settings));
+    default:
+        NOT_IMPLEMENTED;
+    }
+}
+
+std::unique_ptr<Abstract::Damage> Factory::getDamage(const BodySettings& settings) {
+    const DamageEnum id = settings.get<DamageEnum>(BodySettingsIds::RHEOLOGY_DAMAGE);
+    switch (id) {
+    case DamageEnum::NONE:
+        return nullptr;
+    case DamageEnum::SCALAR_GRADY_KIPP:
+        /// \todo  where to get kernel radius from??
+        return std::make_unique<ScalarDamage>(2._f);
+    case DamageEnum::TENSOR_GRADY_KIPP:
+        return std::make_unique<TensorDamage>();
     default:
         NOT_IMPLEMENTED;
     }
@@ -152,6 +185,26 @@ std::unique_ptr<Abstract::BoundaryConditions> Factory::getBoundaryConditions(con
     }
 }
 
+std::unique_ptr<Abstract::Material> Factory::getMaterial(const BodySettings& settings) {
+    const YieldingEnum yieldId = settings.get<YieldingEnum>(BodySettingsIds::RHEOLOGY_YIELDING);
+    const EosEnum eosId = settings.get<EosEnum>(BodySettingsIds::EOS);
+    switch (yieldId) {
+    case YieldingEnum::DRUCKER_PRAGER:
+    case YieldingEnum::VON_MISES:
+        return std::make_unique<SolidMaterial>(Factory::getEos(settings), Factory::getRheology(settings));
+    case YieldingEnum::NONE:
+        switch (eosId) {
+        case EosEnum::NONE:
+            return std::make_unique<NullMaterial>();
+        default:
+            return std::make_unique<EosMaterial>(Factory::getEos(settings));
+        }
+
+    default:
+        NOT_IMPLEMENTED;
+    }
+}
+
 std::unique_ptr<Abstract::Logger> Factory::getLogger(const GlobalSettings& settings) {
     const LoggerEnum id = settings.get<LoggerEnum>(GlobalSettingsIds::RUN_LOGGER);
     switch (id) {
@@ -161,6 +214,21 @@ std::unique_ptr<Abstract::Logger> Factory::getLogger(const GlobalSettings& setti
         return std::make_unique<StdOutLogger>();
     case LoggerEnum::FILE:
         return std::make_unique<FileLogger>(settings.get<std::string>(GlobalSettingsIds::RUN_LOGGER_FILE));
+    default:
+        NOT_IMPLEMENTED;
+    }
+}
+
+std::unique_ptr<Abstract::Rng> Factory::getRng(const GlobalSettings& settings) {
+    const RngEnum id = settings.get<RngEnum>(GlobalSettingsIds::RUN_RNG);
+    const int seed = settings.get<int>(GlobalSettingsIds::RUN_RNG_SEED);
+    switch (id) {
+    case RngEnum::UNIFORM:
+        return std::make_unique<RngWrapper<UniformRng>>(seed);
+    case RngEnum::HALTON:
+        return std::make_unique<RngWrapper<HaltonQrng>>();
+    case RngEnum::BENZ_ASPHAUG:
+        return std::make_unique<RngWrapper<BenzAsphaugRng>>(seed);
     default:
         NOT_IMPLEMENTED;
     }

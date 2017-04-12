@@ -1,8 +1,8 @@
 #pragma once
 
 #include "solvers/AbstractSolver.h"
+#include "solvers/Accumulated.h"
 #include "solvers/Derivative.h"
-#include "solvers/accumulated.h"
 #include "thread/ThreadLocal.h"
 
 NAMESPACE_SPH_BEGIN
@@ -21,39 +21,41 @@ public:
 
 
 /// Computes derivatives
-class SphSolver : public Abstract::Solver {
+class StandardSolver : public Abstract::Solver {
 private:
     struct ThreadData {
         Accumulated accumulated;
 
-        /// Holds all modules that are evaluated in the loop. Modules save data to the \ref accumulated
-        /// storage; one module can use multiple buffers (acceleration and energy derivative) and multiple
-        /// modules can write into same buffer (different terms in equation of motion).
-        /// Modules are evaluated consecutively (within one thread), so this is thread-safe.
-        Array<std::shared_ptr<Abstract::Derivative>> derivatives;
+        DerivativeStorage derivatives;
 
         /// Cached array of neighbours, to avoid allocation every step
         Array<NeighbourRecord> neighs;
 
         /// Cached array of gradients
         Array<Vector> grads;
-
-
-        /// Adds derivative if not already present. If the derivative is already stored, new one is NOT
-        /// created, even if settings are different.
-        template <typename TDerivative>
-        void addDerivative(const GlobalSettings& settings) {
-            for (auto& d : derivatives) {
-                if (typeid(d.get()) == typeid(TDerivative*)) {
-                    return;
-                }
-            }
-            values.push(std::make_shared<TDerivative>(settings));
-        }
     };
 
     /// Thread-local data
     ThreadLocal<ThreadData> threadData;
+
+    void beforeLoop() {
+        threadData.forEach([](ThreadData& data) {
+            data.neighs.clear();
+            data.grads.clear();
+        });
+    }
+
+    void afterLoop() {
+        // sum up thread local accumulated values
+        Accumulated* first = nullptr;
+        threadData.forEach([&first](ThreadData& data) {
+            if (!first) {
+                first = &data.accumulated;
+            } else {
+                first->sum(data.accumulated);
+            }
+        });
+    }
 
     /// Solvers computing quantities. Solvers can register modules in thread-local storage, and use
     /// accumulated values to compute derivatives.

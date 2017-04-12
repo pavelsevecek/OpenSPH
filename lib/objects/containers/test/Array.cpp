@@ -159,6 +159,6 @@ TEST_CASE("Array References", "[array]") {
 TEST_CASE("CopyArray", "[array]") {
     Array<int> ar1{ 1, 2, 3 };
     Array<int> ar2{ 5, 6, 7, 8, 9 };
-    copyArray(ar1, ar2);
+    ar1 = copyable(ar2);
     REQUIRE(ar1 == ar2);
 }

@@ -1,8 +1,8 @@
 #include "quantities/Storage.h"
 #include "catch.hpp"
 #include "physics/Eos.h"
-#include "quantities/Iterate.h"
 #include "quantities/AbstractMaterial.h"
+#include "quantities/Iterate.h"
 #include "system/Factory.h"
 #include "system/Settings.h"
 
@@ -13,13 +13,13 @@ TEST_CASE("Storage resize", "[storage]") {
     REQUIRE(storage.getQuantityCnt() == 0);
     REQUIRE(storage.getParticleCnt() == 0);
 
-    storage.insert<Size, OrderEnum::ZERO>(QuantityIds::MATERIAL_IDX, Array<Size>{ 0 });
+    storage.insert<Size>(QuantityIds::MATERIAL_IDX, OrderEnum::ZERO, Array<Size>{ 0 });
     storage.resize(5);
-    storage.insert<Float, OrderEnum::FIRST>(QuantityIds::DENSITY, 3._f);
+    storage.insert<Float>(QuantityIds::DENSITY, OrderEnum::FIRST, 3._f);
     REQUIRE(storage.getQuantityCnt() == 2);
     REQUIRE(storage.getParticleCnt() == 5);
 
-    storage.insert<Vector, OrderEnum::SECOND>(QuantityIds::MASSES, Vector(5._f));
+    storage.insert<Vector>(QuantityIds::MASSES, OrderEnum::SECOND, Vector(5._f));
     REQUIRE(storage.getQuantityCnt() == 3);
     REQUIRE(storage.has(QuantityIds::DENSITY));
     REQUIRE(storage.has(QuantityIds::MASSES));
@@ -55,11 +55,11 @@ TEST_CASE("Storage resize", "[storage]") {
 
 TEST_CASE("Clone storages", "[storage]") {
     Storage storage;
-    storage.insert<Float, OrderEnum::ZERO>(QuantityIds::MATERIAL_IDX, Array<Float>{ 0 });
+    storage.insert<Float>(QuantityIds::MATERIAL_IDX, OrderEnum::ZERO, Array<Float>{ 0 });
     storage.resize(5);
-    storage.insert<Float, OrderEnum::SECOND>(QuantityIds::POSITIONS, 4._f);
-    storage.insert<Float, OrderEnum::ZERO>(QuantityIds::MASSES, 1._f);
-    storage.insert<Float, OrderEnum::FIRST>(QuantityIds::DENSITY, 3._f);
+    storage.insert<Float>(QuantityIds::POSITIONS, OrderEnum::SECOND, 4._f);
+    storage.insert<Float>(QuantityIds::MASSES, OrderEnum::ZERO, 1._f);
+    storage.insert<Float>(QuantityIds::DENSITY, OrderEnum::FIRST, 3._f);
 
 
     auto rs = storage.getAll<Float>(QuantityIds::POSITIONS);
@@ -118,10 +118,10 @@ TEST_CASE("Clone storages", "[storage]") {
 
 TEST_CASE("Storage merge", "[storage]") {
     Storage storage1;
-    storage1.insert<Float, OrderEnum::FIRST>(QuantityIds::DENSITY, Array<Float>{ 0._f, 1._f });
+    storage1.insert<Float>(QuantityIds::DENSITY, OrderEnum::FIRST, Array<Float>{ 0._f, 1._f });
 
     Storage storage2;
-    storage2.insert<Float, OrderEnum::FIRST>(QuantityIds::DENSITY, Array<Float>{ 2._f, 3._f });
+    storage2.insert<Float>(QuantityIds::DENSITY, OrderEnum::FIRST, Array<Float>{ 2._f, 3._f });
     storage1.merge(std::move(storage2));
 
     REQUIRE(storage1.getQuantityCnt() == 1);

@@ -9,44 +9,46 @@ namespace Abstract {
     class Rheology;
 }
 
+class NullMaterial : public Abstract::Material {
+public:
+    virtual void initialize(Storage& UNUSED(storage), const MaterialSequence UNUSED(sequence)) override {}
+
+    virtual void finalize(Storage& UNUSED(storage), const MaterialSequence UNUSED(sequence)) override {}
+};
+
 /// Material holding equation of state
 class EosMaterial : public Abstract::Material {
 private:
     std::unique_ptr<Abstract::Eos> eos;
+    ArrayView<Float> rho, u, p, cs;
 
 public:
-    EosMaterial(std::unique_ptr<Abstract::Eos>&& eos)
-        : eos(std::move(eos)) {}
+    EosMaterial(std::unique_ptr<Abstract::Eos>&& eos);
 
-    virtual void initialize(Storage& storage, const MaterialSequence sequence) override {
-        tie(rho, u) = storage.getValues<Float>(QuantityIds::DENSITY, QuantityIds::ENERGY);
-        for (Size matIdx : sequence) {
-            /// \todo now we can easily pass sequence into the EoS and iterate inside, to avoid calling
-            /// virtual function (and we could also optimize with SSE)
-            eos->evaluate(rho[i], u[i]);
-        }
+    virtual void initialize(Storage& storage, const MaterialSequence sequence) override;
+
+    virtual void finalize(Storage& UNUSED(storage), const MaterialSequence UNUSED(sequence)) override {
+        // nothing
     }
-
-    virtual void finalize(Storage& UNUSED(storage)) override {}
 };
 
-
-/// Solid material is a generalization of material with equation of state, also having rheology that modifies
+/// Solid material is a generalization of material with equation of state, also having rheology that
+/// modifies
 /// pressure and stress tensor.
 class SolidMaterial : public EosMaterial {
 private:
     std::unique_ptr<Abstract::Rheology> rheology;
 
 public:
-    virtual void initialize(Storage& storage) override {
-        EosMaterial::initialize(storage);
-        rheology->initialize(storage);
-    }
+    SolidMaterial(std::unique_ptr<Abstract::Eos>&& eos, std::unique_ptr<Abstract::Rheology>&& rheology);
 
-    virtual void finalize(Storage& storage) override {
-        rheology->integrate(storage);
-    }
-}
+    virtual void initialize(Storage& storage, const MaterialSequence sequence) override;
+
+    virtual void finalize(Storage& storage, const MaterialSequence sequence) override;
+};
+
+/// Returns material using default settings.
+std::unique_ptr<Abstract::Material> getDefaultMaterial();
 
 
 NAMESPACE_SPH_END
