@@ -169,4 +169,6 @@ HEADERS += \
     sph/Diagnostics.h \
     physics/Units.h \
     system/Io.h \
-    core/Assert.h
+    core/Assert.h \
+    objects/containers/Bimap.h \
+    objects/containers/string.h

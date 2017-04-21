@@ -7,6 +7,7 @@
 #include "geometry/TracelessTensor.h"
 #include "objects/wrappers/Range.h"
 #include "objects/wrappers/Variant.h"
+#include "physics/Units.h"
 #include "quantities/QuantityIds.h"
 #include <map>
 
@@ -25,7 +26,17 @@ class Settings {
 private:
     enum Types { BOOL, INT, FLOAT, RANGE, STRING, VECTOR, TENSOR, TRACELESS_TENSOR };
 
-    using Value = Variant<bool, int, Float, Range, std::string, Vector, Tensor, TracelessTensor>;
+    using Value = Variant<bool,
+        int,
+        Float,
+        Range,
+        std::string,
+        Vector,
+        Tensor,
+        TracelessTensor,
+        Unit,
+        UnitRange,
+        UnitVector>;
 
     struct Entry {
         TEnum id;

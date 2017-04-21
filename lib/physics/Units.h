@@ -5,6 +5,7 @@
 /// sevecek at sirrah.troja.mff.cuni.cz
 
 #include "core/Globals.h"
+#include "objects/containers/Bimap.h"
 #include "objects/containers/StaticArray.h"
 
 NAMESPACE_SPH_BEGIN
@@ -229,10 +230,9 @@ public:
     }
 
     /// Returns the value for given unit system.
-    Float value(const UnitSystem& system) const {
+    Type value(const UnitSystem& system) const {
         return data * (system.conversion(dims) / UnitSystem::code().conversion(dims));
     }
-
 
     /// Returns the dimensions of the unit.
     const Dimensions& dimensions() const {
@@ -333,6 +333,18 @@ INLINE Unit operator"" _kg(const long double value) {
 }
 INLINE Unit operator"" _g(const long double value) {
     return Unit(1.e-3_f * value, UnitSystem::SI(), Dimensions::mass());
+}
+
+class UnitParser {
+private:
+    Bimap<Unit, std::string> list;
+
+    UnitParser();
+
+public:
+    Expected<Unit> fromString(const std::string& s);
+
+    std::string toString(const Unit& u);
 }
 
 
