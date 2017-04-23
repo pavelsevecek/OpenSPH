@@ -1,6 +1,7 @@
 #include "objects/containers/Array.h"
 #include "catch.hpp"
 #include "utils/RecordType.h"
+#include "utils/Utils.h"
 
 using namespace Sph;
 
@@ -8,6 +9,7 @@ TEST_CASE("Array Construction", "[array]") {
     RecordType::resetStats();
     // default construction
     Array<float> ar1;
+    REQUIRE(ar1.size() == 0);
     REQUIRE(RecordType::constructedNum == 0);
 
     // initializer list construction
@@ -25,10 +27,45 @@ TEST_CASE("Array Construction", "[array]") {
     REQUIRE(ar2.size() == 0);
 }
 
+TEST_CASE("Array Random access", "[array]") {
+    Array<float> ar{ 1.f, 2.f, 2.5f, 3.6f };
+    REQUIRE_ASSERT(ar[-1]);
+    REQUIRE_ASSERT(ar[4]);
+    REQUIRE(ar[2] == 2.5f);
+    ar[2] = 1.f;
+    REQUIRE(ar == makeArray(1.f, 2.f, 1.f, 3.6f));
+}
+
+TEST_CASE("Array Reserve", "[array]") {
+    RecordType::resetStats();
+    Array<RecordType> ar;
+    REQUIRE_ASSERT(ar.reserve(-1));
+    REQUIRE_NOTHROW(ar.reserve(5));
+    ar = { RecordType(5), RecordType(2) };
+    REQUIRE(ar[0].wasCopyConstructed);
+    REQUIRE(ar[1].wasCopyConstructed);
+    REQUIRE(ar.size() == 2);
+    ar.reserve(5); // moves old array into larger one
+    REQUIRE(ar[0].value == 5);
+    REQUIRE(ar[0].wasMoveConstructed);
+    REQUIRE(ar[1].value == 2);
+    REQUIRE(ar[1].wasMoveConstructed);
+    REQUIRE(ar.size() == 2);
+    REQUIRE(RecordType::destructedNum == 4); // 2 temporaries, 2 old values
+
+    Size constructed = RecordType::constructedNum;
+    ar.reserve(4);
+    REQUIRE(RecordType::constructedNum == constructed);
+    REQUIRE(RecordType::destructedNum == 4);
+    REQUIRE(ar.size() == 2);
+}
+
 TEST_CASE("Array Resize", "[array]") {
     RecordType::resetStats();
     Array<RecordType> ar;
     REQUIRE(ar.size() == 0);
+    REQUIRE_NOTHROW(ar.resize(0));
+    REQUIRE_ASSERT(ar.resize(-1));
     ar.resize(3);
     REQUIRE(RecordType::constructedNum == 3);
     REQUIRE(ar.size() == 3);
@@ -52,22 +89,36 @@ TEST_CASE("Array Push & Pop", "[array]") {
     ar.push(RecordType(5));
     REQUIRE(RecordType::existingNum() == 1);
     REQUIRE(ar.size() == 1);
-    ar.push(RecordType(3));
-    REQUIRE(RecordType::existingNum() == 2);
+    REQUIRE(ar[0].wasDefaultConstructed);
+    REQUIRE(ar[0].wasMoveAssigned);
+
+    RecordType r(3);
+    ar.push(r);
+    REQUIRE(RecordType::existingNum() == 3);
     REQUIRE(ar.size() == 2);
     REQUIRE(ar[0].value == 5);
     REQUIRE(ar[1].value == 3);
+    REQUIRE(ar[1].wasDefaultConstructed);
+    REQUIRE(ar[1].wasCopyAssigned);
 
     REQUIRE(ar.pop().value == 3);
-    REQUIRE(RecordType::existingNum() == 1);
+    REQUIRE(RecordType::existingNum() == 2);
     REQUIRE(ar.size() == 1);
 
     REQUIRE(ar.pop().value == 5);
-    REQUIRE(RecordType::existingNum() == 0);
+    REQUIRE(RecordType::existingNum() == 1);
     REQUIRE(ar.size() == 0);
+    REQUIRE_ASSERT(ar.pop());
+
+    ar.push(RecordType(8)); // push into allocated array
+    REQUIRE(RecordType::existingNum() == 2);
+    REQUIRE(ar.size() == 1);
+    REQUIRE(ar[0].wasDefaultConstructed);
+    REQUIRE(ar[0].wasMoveAssigned);
+    REQUIRE(ar[0].value == 8);
 }
 
-TEST_CASE("PushAll", "[array]") {
+TEST_CASE("Array PushAll", "[array]") {
     Array<int> ar1{ 1, 2, 3 };
     Array<int> ar2{ 4, 5, 6, 7 };
     ar1.pushAll(ar2.cbegin(), ar2.cend());
@@ -75,6 +126,31 @@ TEST_CASE("PushAll", "[array]") {
     for (int i = 0; i < 7; ++i) {
         REQUIRE(ar1[i] == i + 1);
     }
+}
+
+TEST_CASE("Array EmplaceBack", "[array]") {
+    RecordType::resetStats();
+    Array<RecordType> ar;
+    ar.emplaceBack(RecordType(7));
+    REQUIRE(RecordType::existingNum() == 1);
+    REQUIRE(ar.size() == 1);
+    REQUIRE(ar[0].wasMoveConstructed);
+    REQUIRE(ar[0].value == 7);
+
+    RecordType r(5);
+    ar.emplaceBack(r);
+    REQUIRE(RecordType::existingNum() == 3);
+    REQUIRE(ar.size() == 2);
+    REQUIRE(ar[1].wasCopyConstructed);
+    REQUIRE(ar[0].value == 7);
+    REQUIRE(ar[1].value == 5);
+
+    ar.clear();
+    ar.emplaceBack(RecordType(3));
+    REQUIRE(RecordType::existingNum() == 2);
+    REQUIRE(ar.size() == 1);
+    REQUIRE(ar[0].wasMoveConstructed);
+    REQUIRE(ar[0].value == 3);
 }
 
 TEST_CASE("Array Remove by index", "[array]") {
@@ -85,6 +161,8 @@ TEST_CASE("Array Remove by index", "[array]") {
     REQUIRE(ar == Array<int>({ 5, 3, 6, 2 }));
     ar.remove(2);
     REQUIRE(ar == Array<int>({ 5, 3, 2 }));
+    REQUIRE_ASSERT(ar.remove(4));
+    REQUIRE_ASSERT(ar.remove(-1));
 }
 
 TEST_CASE("Array iterators", "[array]") {

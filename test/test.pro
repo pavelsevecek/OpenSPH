@@ -92,17 +92,18 @@ SOURCES += \
     ../lib/quantities/test/QuantityHelpers.cpp \
     ../lib/quantities/test/Material.cpp \
     ../lib/solvers/test/ContinuitySolver.cpp \
-    ../lib/solvers/test/Module.cpp \
     ../lib/solvers/test/Accumulator.cpp \
     ../lib/post/test/Components.cpp \
     ../lib/thread/test/Pool.cpp \
-    ../lib/problem/test/Problem.cpp \
+    ../lib/run/test/Run.cpp \
     utils/Approx.cpp \
     utils/SequenceTest.cpp \
     ../lib/sph/test/Diagnostics.cpp \
     ../lib/objects/wrappers/test/Finally.cpp \
-    ../lib/io/test/Logger.cpp
-
+    ../lib/io/test/Logger.cpp \
+    ../lib/solvers/test/EquationTerm.cpp \
+    ../lib/solvers/test/Accumulated.cpp \
+    ../lib/solvers/test/Derivative.cpp
 
 HEADERS += \
     utils/Utils.h \

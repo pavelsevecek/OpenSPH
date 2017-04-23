@@ -5,7 +5,6 @@
 /// Pavel Sevecek 2016
 /// sevecek at sirrah.troja.mff.cuni.cz
 
-#include "quantities/Storage.h"
 #include "solvers/EquationTerm.h"
 #include "system/Settings.h"
 
@@ -37,19 +36,19 @@ public:
     BalsaraSwitch(TArgs&&... args)
         : Module<AV, Rotv, Divv>(av, accumulatedRotV, accumulatedDivV)
         , av(std::forward<TArgs>(args)...)
-        , accumulatedRotV(QuantityIds::VELOCITY_ROTATION)
-        , accumulatedDivV(QuantityIds::VELOCITY_DIVERGENCE) {}
+        , accumulatedRotV(QuantityId::VELOCITY_ROTATION)
+        , accumulatedDivV(QuantityId::VELOCITY_DIVERGENCE) {}
 
     void initialize(Storage& storage, const BodySettings& settings) {
         /// \todo set initial values of rot v and div v
-        storage.insert<Vector, OrderEnum::ZERO>(QuantityIds::VELOCITY_ROTATION, Vector(0._f));
-        storage.insert<Float, OrderEnum::ZERO>(QuantityIds::VELOCITY_DIVERGENCE, 0._f);
+        storage.insert<Vector, OrderEnum::ZERO>(QuantityId::VELOCITY_ROTATION, Vector(0._f));
+        storage.insert<Float, OrderEnum::ZERO>(QuantityId::VELOCITY_DIVERGENCE, 0._f);
         this->initializeModules(storage, settings);
     }
 
     void update(Storage& storage) {
-        tie(cs, divv) = storage.getValues<Float>(QuantityIds::SOUND_SPEED, QuantityIds::VELOCITY_DIVERGENCE);
-        tie(r, rotv) = storage.getValues<Vector>(QuantityIds::POSITIONS, QuantityIds::VELOCITY_ROTATION);
+        tie(cs, divv) = storage.getValues<Float>(QuantityId::SOUND_SPEED, QuantityId::VELOCITY_DIVERGENCE);
+        tie(r, rotv) = storage.getValues<Vector>(QuantityId::POSITIONS, QuantityId::VELOCITY_ROTATION);
         this->updateModules(storage);
     }
 

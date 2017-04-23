@@ -11,22 +11,22 @@ class wxFrame;
 NAMESPACE_SPH_BEGIN
 
 namespace Abstract {
+    class Run;
     class Renderer;
 }
-class Problem;
 class Window;
 class Storage;
 
 template <typename TEnum>
 class Settings;
-enum class GlobalSettingsIds;
-using GlobalSettings = Settings<GlobalSettingsIds>;
+enum class RunSettingsId;
+using RunSettings = Settings<RunSettingsId>;
 
 class MyApp : public wxApp {
 private:
     Window* window;
     std::thread worker;
-    std::unique_ptr<Problem> p;
+    std::unique_ptr<Abstract::Run> run;
 
     virtual bool OnInit();
 

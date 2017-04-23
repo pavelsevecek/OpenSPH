@@ -4,7 +4,7 @@
 
 NAMESPACE_SPH_BEGIN
 
-Size findComponents(ArrayView<const Vector> vertices, const GlobalSettings& settings, Array<Size>& indices) {
+Size findComponents(ArrayView<const Vector> vertices, const RunSettings& settings, Array<Size>& indices) {
     indices.resize(vertices.size());
     const Size unassigned = std::numeric_limits<Size>::max();
     indices.fill(unassigned);
@@ -37,15 +37,15 @@ Size findComponents(ArrayView<const Vector> vertices, const GlobalSettings& sett
 }
 
 Array<Size> getDifferentialSFD(Storage& storage,
-    const GlobalSettings& settings,
+    const RunSettings& settings,
     Optional<HistogramParams> params) {
-    ArrayView<Vector> r = storage.getValue<Vector>(QuantityIds::POSITIONS);
+    ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
     Array<Size> components;
     const Size numComponents = findComponents(r, settings, components);
     Array<Float> volumes(numComponents);
     volumes.fill(0._f);
     ArrayView<Float> rho, m;
-    tie(rho, m) = storage.getValues<Float>(QuantityIds::DENSITY, QuantityIds::MASSES);
+    tie(rho, m) = storage.getValues<Float>(QuantityId::DENSITY, QuantityId::MASSES);
     for (Size i = 0; i < r.size(); ++i) {
         volumes[components[i]] += m[i] / rho[i];
     }

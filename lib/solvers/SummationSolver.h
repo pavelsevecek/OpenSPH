@@ -30,11 +30,11 @@ private:
     static constexpr int dim = D;
 
 public:
-    SummationSolver(const GlobalSettings& settings)
+    SummationSolver(const RunSettings& settings)
         : SolverBase<D>(settings)
         , Module<Force>(force)
         , force(settings) {
-        eta = settings.get<Float>(GlobalSettingsIds::SPH_KERNEL_ETA);
+        eta = settings.get<Float>(RunSettingsId::SPH_KERNEL_ETA);
     }
 
     virtual void integrate(Storage& storage, Statistics& UNUSED(stats)) override {
@@ -45,8 +45,8 @@ public:
         PROFILE_SCOPE("SummationSolver::compute (getters)");
 
         // fetch quantities from storage
-        tie(r, v, dv) = storage.getAll<Vector>(QuantityIds::POSITIONS);
-        tie(rho, m) = storage.getValues<Float>(QuantityIds::DENSITY, QuantityIds::MASSES);
+        tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
+        tie(rho, m) = storage.getValues<Float>(QuantityId::DENSITY, QuantityId::MASSES);
         ASSERT(areAllMatching(dv, [](const Vector v) { return v == Vector(0._f); }));
         this->updateModules(storage);
 
@@ -119,12 +119,12 @@ public:
     }
 
     virtual void initialize(Storage& storage, const BodySettings& settings) const override {
-        storage.insert<Float, OrderEnum::ZERO>(QuantityIds::DENSITY,
-            settings.get<Float>(BodySettingsIds::DENSITY),
-            settings.get<Range>(BodySettingsIds::DENSITY_RANGE));
-        storage.insert<Float, OrderEnum::FIRST>(QuantityIds::ENERGY,
-            settings.get<Float>(BodySettingsIds::ENERGY),
-            settings.get<Range>(BodySettingsIds::ENERGY_RANGE));
+        storage.insert<Float, OrderEnum::ZERO>(QuantityId::DENSITY,
+            settings.get<Float>(BodySettingsId::DENSITY),
+            settings.get<Range>(BodySettingsId::DENSITY_RANGE));
+        storage.insert<Float, OrderEnum::FIRST>(QuantityId::ENERGY,
+            settings.get<Float>(BodySettingsId::ENERGY),
+            settings.get<Range>(BodySettingsId::ENERGY_RANGE));
         this->initializeModules(storage, settings);
     }
 };

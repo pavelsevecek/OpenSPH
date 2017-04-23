@@ -14,11 +14,11 @@ using namespace Sph;
 static Storage getStorage() {
     Storage storage;
     HexagonalPacking distribution;
-    storage.insert<Vector, OrderEnum::SECOND>(
-        QuantityIds::POSITIONS, distribution.generate(10000, SphericalDomain(Vector(0._f), 1._f)));
+    storage.insert<Vector>(QuantityId::POSITIONS,
+        OrderEnum::SECOND,
+        distribution.generate(10000, SphericalDomain(Vector(0._f), 1._f)));
     // density = 1, therefore total mass = volume, therefore mass per particle = volume / N
-    storage.insert<Float, OrderEnum::ZERO>(
-        QuantityIds::MASSES, sphereVolume(1._f) / storage.getParticleCnt());
+    storage.insert<Float>(QuantityId::MASSES, OrderEnum::ZERO, sphereVolume(1._f) / storage.getParticleCnt());
     REQUIRE(storage.getParticleCnt() > 9000); // sanity check
     return storage;
 }
@@ -28,7 +28,7 @@ void accumulate(Storage& storage, ArrayView<Vector> r, TAccumulator& accumulator
     VoxelFinder finder;
     finder.build(r);
     Array<NeighbourRecord> neighs;
-    LutKernel<3> kernel = Factory::getKernel<3>(GlobalSettings::getDefaults());
+    LutKernel<3> kernel = Factory::getKernel<3>(RunSettings::getDefaults());
 
     accumulator.template update(storage);
     for (Size i = 0; i < r.size(); ++i) {
@@ -43,40 +43,13 @@ void accumulate(Storage& storage, ArrayView<Vector> r, TAccumulator& accumulator
     }
 }
 
-TEST_CASE("Div v of position vectors", "[accumulator]") {
-    Storage storage = getStorage();
-    RhoDivv rhoDivv;
-    ArrayView<Vector> r, v, dv;
-    tie(r, v, dv) = storage.getAll<Vector>(QuantityIds::POSITIONS);
-    // check that div r = 3
-    for (Size i = 0; i < v.size(); ++i) {
-        v[i] = r[i];
-    }
-    accumulate(storage, r, rhoDivv);
-
-    auto test1 = [&](const Size i) {
-        // particles on boundary have different velocity divergence, check only particles inside
-        if (getLength(r[i]) > 0.7_f) {
-            return SUCCESS;
-        }
-        if (rhoDivv[i] != approx(3._f, 0.03_f)) {
-            // clang-format off
-            return makeFailed("Incorrect velocity divergence: \n",
-                              "divv: ", rhoDivv[i], " == -3", "\n particle: r = ", r[i]);
-            // clang-format on
-        }
-        return SUCCESS;
-    };
-    REQUIRE_SEQUENCE(test1, 0, r.size());
-}
-
 TEST_CASE("Grad v of const field", "[accumulator]") {
     Storage storage = getStorage();
-    storage.insert<Size, OrderEnum::ZERO>(QuantityIds::FLAG, 0);
+    storage.insert<Size>(QuantityId::FLAG, OrderEnum::ZERO, 0);
     RhoGradv rhoGradv;
 
     ArrayView<Vector> r, v, dv;
-    tie(r, v, dv) = storage.getAll<Vector>(QuantityIds::POSITIONS);
+    tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
     // sanity check that const velocity = zero gradient
     for (Size i = 0; i < v.size(); ++i) {
         v[i] = Vector(2._f, 3._f, -1._f);
@@ -100,11 +73,11 @@ TEST_CASE("Grad v of const field", "[accumulator]") {
 
 TEST_CASE("Grad v of position vector", "[accumulator]") {
     Storage storage = getStorage();
-    storage.insert<Size, OrderEnum::ZERO>(QuantityIds::FLAG, 0);
+    storage.insert<Size>(QuantityId::FLAG, OrderEnum::ZERO, 0);
     RhoGradv rhoGradv;
 
     ArrayView<Vector> r, v, dv;
-    tie(r, v, dv) = storage.getAll<Vector>(QuantityIds::POSITIONS);
+    tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
     // check that grad r = identity
     for (Size i = 0; i < v.size(); ++i) {
         v[i] = r[i];
@@ -131,11 +104,11 @@ TEST_CASE("Grad v of position vector", "[accumulator]") {
 
 TEST_CASE("Grad v of non-trivial field", "[accumulator]") {
     Storage storage = getStorage();
-    storage.insert<Size, OrderEnum::ZERO>(QuantityIds::FLAG, 0);
+    storage.insert<Size>(QuantityId::FLAG, OrderEnum::ZERO, 0);
     RhoGradv rhoGradv;
 
     ArrayView<Vector> r, v, dv;
-    tie(r, v, dv) = storage.getAll<Vector>(QuantityIds::POSITIONS);
+    tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
     for (Size i = 0; i < v.size(); ++i) {
         v[i] = Vector(r[i][0] * sqr(r[i][1]), r[i][0] + 0.5_f * r[i][2], sin(r[i][2]));
     }

@@ -65,7 +65,7 @@ TEST_CASE("HexaPacking grid", "[initial]") {
     HexagonalPacking packing(EMPTY_FLAGS);
     SphericalDomain domain(Vector(0._f), 2._f);
     Array<Vector> r = packing.generate(1000, domain);
-    std::unique_ptr<Abstract::Finder> finder = Factory::getFinder(GlobalSettings::getDefaults());
+    std::unique_ptr<Abstract::Finder> finder = Factory::getFinder(RunSettings::getDefaults());
     finder->build(r);
     Array<NeighbourRecord> neighs;
     auto test = [&](const Size i) {
@@ -103,9 +103,9 @@ TEST_CASE("HexaPacking sorted", "[initial]") {
     ASSERT(r_sort.size() == r_unsort.size());
 
 
-    std::unique_ptr<Abstract::Finder> finder_sort = Factory::getFinder(GlobalSettings::getDefaults());
+    std::unique_ptr<Abstract::Finder> finder_sort = Factory::getFinder(RunSettings::getDefaults());
     finder_sort->build(r_sort);
-    std::unique_ptr<Abstract::Finder> finder_unsort = Factory::getFinder(GlobalSettings::getDefaults());
+    std::unique_ptr<Abstract::Finder> finder_unsort = Factory::getFinder(RunSettings::getDefaults());
     finder_unsort->build(r_unsort);
 
     // find maximum distance of neighbouring particles in memory

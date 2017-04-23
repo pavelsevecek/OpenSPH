@@ -132,11 +132,11 @@ public:
     }
 
     /// Default palette for given quantity
-    static Palette forQuantity(const QuantityIds key, const Range range) {
+    static Palette forQuantity(const QuantityId key, const Range range) {
         const float x0 = Float(range.lower());
         const float dx = Float(range.size());
         switch (key) {
-        case QuantityIds::PRESSURE:
+        case QuantityId::PRESSURE:
             return Palette({ { x0, Color(0.3f, 0.3f, 0.8f) },
                                { -1.f, Color(0.f, 0.f, 0.2f) },
                                { 0.f, Color(0.2f, 0.2f, 0.2f) },
@@ -144,31 +144,31 @@ public:
                                { x0 + sqrt(dx), Color(1.f, 1.f, 0.2f) },
                                { x0 + dx, Color(0.5f, 0.f, 0.f) } },
                 PaletteScale::HYBRID);
-        case QuantityIds::ENERGY:
+        case QuantityId::ENERGY:
             return Palette({ { x0, Color(0.1f, 0.1f, 0.1) },
                                { x0 + 0.001f * dx, Color(0.f, 0.f, 1.f) },
                                { x0 + 0.01f * dx, Color(1.f, 0.f, 0.f) },
                                { x0 + 0.1f * dx, Color(1.0f, 0.6f, 0.4f) },
                                { x0 + dx, Color(1.f, 1.f, 0.f) } },
                 PaletteScale::LOGARITHMIC);
-        case QuantityIds::DEVIATORIC_STRESS:
+        case QuantityId::DEVIATORIC_STRESS:
             return Palette({ { x0, Color(0.f, 0.f, 0.2f) },
                                { x0 + sqrt(dx), Color(1.f, 1.f, 0.2f) },
                                { x0 + dx, Color(0.5f, 0.f, 0.f) } },
                 PaletteScale::LOGARITHMIC);
-        case QuantityIds::DENSITY:
+        case QuantityId::DENSITY:
             return Palette({ { x0, Color(0.f, 0.f, 0.2f) },
                                { x0 + 0.5f * dx, Color(1.f, 1.f, 0.2f) },
                                { x0 + dx, Color(0.5f, 0.f, 0.f) } },
                 PaletteScale::LINEAR);
-        case QuantityIds::POSITIONS: // velocity
+        case QuantityId::POSITIONS: // velocity
             return Palette({ { x0, Color(0.5f, 0.5f, 0.5f) },
                                { x0 + 0.001f * dx, Color(0.0f, 0.0f, 0.2f) },
                                { x0 + 0.01f * dx, Color(0.0f, 0.0f, 1.0f) },
                                { x0 + 0.1f * dx, Color(1.0f, 0.0f, 0.2f) },
                                { x0 + dx, Color(1.0f, 1.0f, 0.2f) } },
                 PaletteScale::LOGARITHMIC);
-        case QuantityIds::DAMAGE:
+        case QuantityId::DAMAGE:
             return Palette({ { x0, Color(0.1f, 0.1f, 0.1f) }, { x0 + dx, Color(0.9f, 0.9f, 0.9f) } },
                 PaletteScale::LINEAR);
         default:

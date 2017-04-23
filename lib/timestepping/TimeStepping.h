@@ -32,7 +32,7 @@ namespace Abstract {
         std::unique_ptr<Abstract::TimeStepCriterion> adaptiveStep;
 
     public:
-        TimeStepping(const std::shared_ptr<Storage>& storage, const GlobalSettings& settings);
+        TimeStepping(const std::shared_ptr<Storage>& storage, const RunSettings& settings);
 
         virtual ~TimeStepping();
 
@@ -48,7 +48,7 @@ namespace Abstract {
 
 class EulerExplicit : public Abstract::TimeStepping {
 public:
-    explicit EulerExplicit(const std::shared_ptr<Storage>& storage, const GlobalSettings& settings)
+    explicit EulerExplicit(const std::shared_ptr<Storage>& storage, const RunSettings& settings)
         : Abstract::TimeStepping(storage, settings) {}
 
     virtual void stepImpl(Abstract::Solver& solver, Statistics& stats) override;
@@ -60,7 +60,7 @@ private:
     std::unique_ptr<Storage> predictions;
 
 public:
-    PredictorCorrector(const std::shared_ptr<Storage>& storage, const GlobalSettings& settings);
+    PredictorCorrector(const std::shared_ptr<Storage>& storage, const RunSettings& settings);
 
     ~PredictorCorrector();
 
@@ -70,7 +70,7 @@ protected:
 
 class LeapFrog : public Abstract::TimeStepping {
 public:
-    LeapFrog(const std::shared_ptr<Storage>& storage, const GlobalSettings& settings)
+    LeapFrog(const std::shared_ptr<Storage>& storage, const RunSettings& settings)
         : Abstract::TimeStepping(storage, settings) {}
 
 protected:
@@ -84,7 +84,7 @@ private:
     std::unique_ptr<Storage> k1, k2, k3, k4;
 
 public:
-    RungeKutta(const std::shared_ptr<Storage>& storage, const GlobalSettings& settings);
+    RungeKutta(const std::shared_ptr<Storage>& storage, const RunSettings& settings);
 
     ~RungeKutta();
 
@@ -101,7 +101,7 @@ protected:
 
 class BulirschStoer : public Abstract::TimeStepping {
 public:
-    BulirschStoer(const std::shared_ptr<Storage>& storage, const GlobalSettings& settings)
+    BulirschStoer(const std::shared_ptr<Storage>& storage, const RunSettings& settings)
         : Abstract::TimeStepping(storage, settings) {}
 
 protected:

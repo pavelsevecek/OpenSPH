@@ -11,7 +11,7 @@ class Storage;
 /// \return Array of indices from 0 to n-1, where n is the number of components. In the array, i-th index
 ///         corresponds to component to which i-th particle belongs.
 /// \todo generalize particle connectivity, for example do not count damaged particles.
-Size findComponents(ArrayView<const Vector> vertices, const GlobalSettings& settings, Array<Size>& indices);
+Size findComponents(ArrayView<const Vector> vertices, const RunSettings& settings, Array<Size>& indices);
 
 struct HistogramParams {
     Range range; ///< Range of values from which the histogram is constructed.
@@ -24,7 +24,7 @@ struct HistogramParams {
 ///        is given by the minimum and maximum value and the bin count is selected as a compromise between
 ///        number of values per bin and histogram resolution.
 Array<Size> getCummulativeSFD(Storage& storage,
-    const GlobalSettings& settings,
+    const RunSettings& settings,
     Optional<HistogramParams> params = NOTHING);
 
 NAMESPACE_SPH_END

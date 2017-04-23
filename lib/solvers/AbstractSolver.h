@@ -8,7 +8,7 @@
 NAMESPACE_SPH_BEGIN
 
 namespace Abstract {
-    class BoundaryConditions;
+    class Material;
 }
 
 namespace Abstract {
@@ -23,7 +23,7 @@ namespace Abstract {
         /// Initialize all quantities needed by the solver in the storage. When called, storage must already
         /// contain particle positions and their masses. All remaining quantities must be created by the
         /// solver.
-        virtual void create(Storage& storage, const BodySettings& settings) const = 0;
+        virtual void create(Storage& storage, Abstract::Material& material) const = 0;
     };
 }
 

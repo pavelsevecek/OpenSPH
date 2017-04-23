@@ -8,42 +8,81 @@
 
 #include "physics/Eos.h"
 #include "quantities/Storage.h"
-#include "system/Factory.h"
+#include "solvers/EquationTerm.h"
 #include "system/Settings.h"
 
 NAMESPACE_SPH_BEGIN
 
-class StandardAV  {
+class StandardAV : public Abstract::EquationTerm {
 private:
     Float alpha, beta;
-    ArrayView<const Vector> r, v;
-    ArrayView<Float> rho, cs;
-    const Float eps = 1.e-2_f;
+
+    class StandardAVDerivative : public Abstract::Derivative {
+    private:
+        ArrayView<const Vector> r, v;
+        ArrayView<const Float> rho, cs, m;
+        ArrayView<Vector> dv;
+        const Float eps = 1.e-2_f;
+        Float alpha, beta;
+
+    public:
+        StandardAVDerivative(const Float alpha, const Float beta)
+            : alpha(alpha)
+            , beta(beta) {}
+
+        virtual void create(Accumulated& results) override {
+            results.insert<Vector>(QuantityId::POSITIONS);
+        }
+
+        virtual void initialize(const Storage& input, Accumulated& results) override {
+            ArrayView<const Vector> dummy;
+            tie(r, v, dummy) = input.getAll<Vector>(QuantityId::POSITIONS);
+            // sound speed must be computed by the solver using AV
+            tie(rho, cs, m) =
+                input.getValues<Float>(QuantityId::DENSITY, QuantityId::SOUND_SPEED, QuantityId::MASSES);
+            dv = results.getValue<Vector>(QuantityId::POSITIONS);
+        }
+
+        virtual void compute(const Size i,
+            ArrayView<const Size> neighs,
+            ArrayView<const Vector> grads) override {
+            ASSERT(neighs.size() == grads.size());
+            for (Size k = 0; k < neighs.size(); ++k) {
+                const Size j = neighs[k];
+                const Float dvdr = dot(v[i] - v[j], r[i] - r[j]);
+                if (dvdr >= 0._f) {
+                    continue;
+                }
+                const Float hbar = 0.5_f * (r[i][H] + r[j][H]);
+                const Float rhobar = 0.5_f * (rho[i] + rho[j]);
+                const Float csbar = 0.5_f * (cs[i] + cs[j]);
+                const Float mu = hbar * dvdr / (getSqrLength(r[i] - r[j]) + eps * sqr(hbar));
+                const Vector Pi = 1._f / rhobar * (-alpha * csbar * mu + beta * sqr(mu)) * grads[k];
+                ASSERT(isReal(Pi));
+                /// \todo check sign
+                dv[i] += m[j] * Pi;
+                dv[j] -= m[i] * Pi;
+
+                TODO("missing heating");
+            }
+        }
+    };
 
 public:
-    StandardAV(const GlobalSettings& settings) {
-        alpha = settings.get<Float>(GlobalSettingsIds::SPH_AV_ALPHA);
-        beta = settings.get<Float>(GlobalSettingsIds::SPH_AV_BETA);
+    StandardAV(const RunSettings& settings) {
+        alpha = settings.get<Float>(RunSettingsId::SPH_AV_ALPHA);
+        beta = settings.get<Float>(RunSettingsId::SPH_AV_BETA);
     }
 
-    void update(Storage& storage) {
-        ArrayView<const Vector> dv;
-        ArrayView<const Float> u;
-        tie(r, v, dv) = storage.getAll<Vector>(QuantityIds::POSITIONS);
-        // sound speed must be computed by the solver using AV
-        tie(rho, cs) = storage.getValues<Float>(QuantityIds::DENSITY, QuantityIds::SOUND_SPEED);
+    virtual void setDerivatives(DerivativeHolder& derivatives) override {
+        derivatives.require<StandardAVDerivative>(alpha, beta);
     }
 
-    INLINE Float operator()(const int i, const int j) {
-        const Float dvdr = dot(v[i] - v[j], r[i] - r[j]);
-        if (dvdr >= 0._f) {
-            return 0._f;
-        }
-        const Float hbar = 0.5_f * (r[i][H] + r[j][H]);
-        const Float rhobar = 0.5_f * (rho[i] + rho[j]);
-        const Float csbar = 0.5_f * (cs[i] + cs[j]);
-        const Float mu = hbar * dvdr / (getSqrLength(r[i] - r[j]) + eps * sqr(hbar));
-        return 1._f / rhobar * (-alpha * csbar * mu + beta * sqr(mu));
+    virtual void finalize(Storage& UNUSED(storage)) override {}
+
+    virtual void create(Storage& UNUSED_IN_RELEASE(storage),
+        Abstract::Material& UNUSED(material)) const override {
+        ASSERT(storage.has(QuantityId::SOUND_SPEED)); // doesn't make sense to use AV without pressure
     }
 };
 

@@ -25,10 +25,10 @@ namespace Abstract {
 template <typename TValue>
 class ValueColumn : public Abstract::Column {
 private:
-    QuantityIds id;
+    QuantityId id;
 
 public:
-    ValueColumn(const QuantityIds id)
+    ValueColumn(const QuantityId id)
         : id(id) {}
 
     virtual Value evaluate(Storage& storage, const Size particleIdx) const override {
@@ -50,10 +50,10 @@ public:
 template <typename TValue>
 class DerivativeColumn : public Abstract::Column {
 private:
-    QuantityIds id;
+    QuantityId id;
 
 public:
-    DerivativeColumn(const QuantityIds id)
+    DerivativeColumn(const QuantityId id)
         : id(id) {}
 
     virtual Value evaluate(Storage& storage, const Size particleIdx) const override {
@@ -75,10 +75,10 @@ public:
 template <typename TValue>
 class SecondDerivativeColumn : public Abstract::Column {
 private:
-    QuantityIds id;
+    QuantityId id;
 
 public:
-    SecondDerivativeColumn(const QuantityIds id)
+    SecondDerivativeColumn(const QuantityId id)
         : id(id) {}
 
     virtual Value evaluate(Storage& storage, const Size particleIdx) const override {
@@ -99,7 +99,7 @@ public:
 class SmoothingLengthColumn : public Abstract::Column {
 public:
     virtual Value evaluate(Storage& storage, const Size particleIdx) const override {
-        ArrayView<const Vector> value = storage.getValue<Vector>(QuantityIds::POSITIONS);
+        ArrayView<const Vector> value = storage.getValue<Vector>(QuantityId::POSITIONS);
         return value[particleIdx][H];
     }
 
@@ -118,7 +118,7 @@ template <typename TValue>
 class DamageColumn : public Abstract::Column {
 public:
     virtual Value evaluate(Storage& storage, const Size particleIdx) const override {
-        ArrayView<const TValue> value = storage.getValue<TValue>(QuantityIds::DAMAGE);
+        ArrayView<const TValue> value = storage.getValue<TValue>(QuantityId::DAMAGE);
         return pow<3>(value[particleIdx]);
     }
 
@@ -148,17 +148,17 @@ class ParticleNumberColumn : public Abstract::Column {
 
 namespace Factory {
     template <typename TValue>
-    INLINE std::unique_ptr<Abstract::Column> getValueColumn(const QuantityIds id) {
+    INLINE std::unique_ptr<Abstract::Column> getValueColumn(const QuantityId id) {
         return std::make_unique<ValueColumn<TValue>>(id);
     }
 
     template <typename TValue>
-    INLINE std::unique_ptr<Abstract::Column> getDerivativeColumn(const QuantityIds id) {
+    INLINE std::unique_ptr<Abstract::Column> getDerivativeColumn(const QuantityId id) {
         return std::make_unique<DerivativeColumn<TValue>>(id);
     }
 
     INLINE std::unique_ptr<Abstract::Column> getVelocityColumn() {
-        return getDerivativeColumn<Vector>(QuantityIds::POSITIONS);
+        return getDerivativeColumn<Vector>(QuantityId::POSITIONS);
     }
 
     INLINE std::unique_ptr<Abstract::Column> getSmoothingLengthColumn() {

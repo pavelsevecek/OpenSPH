@@ -11,12 +11,14 @@ namespace Abstract {
 
     class Rheology : public Polymorphic {
     public:
+        /// Creates all the necessary quantities and material parameters needed by the rheology.
         virtual void create(Storage& storage, const BodySettings& settings) const = 0;
 
-        virtual void initialize(Storage& storage, const MaterialSequence sequence) = 0;
+        /// Evaluates the stress tensor reduction factors. Called before iteration over particle pairs.
+        virtual void initialize(Storage& storage, const MaterialView sequence) = 0;
 
         /// Computes derivatives of the time-dependent quantities of the rheological model.
-        virtual void integrate(Storage& storage, const MaterialSequence sequence) = 0;
+        virtual void integrate(Storage& storage, const MaterialView sequence) = 0;
     };
 }
 
@@ -26,15 +28,20 @@ private:
     std::unique_ptr<Abstract::Damage> damage;
 
 public:
+    /// Constructs a rheology with no fragmentation model. Stress tensor is only modified by von Mises
+    /// criterion, yielding strength does not depend on damage.
+    VonMisesRheology();
+
+    /// Constructs a rheology with given fragmentation model
     VonMisesRheology(std::unique_ptr<Abstract::Damage>&& damage);
 
     ~VonMisesRheology();
 
     virtual void create(Storage& storage, const BodySettings& settings) const override;
 
-    virtual void initialize(Storage& storage, const MaterialSequence material) override;
+    virtual void initialize(Storage& storage, const MaterialView material) override;
 
-    virtual void integrate(Storage& storage, const MaterialSequence material) override;
+    virtual void integrate(Storage& storage, const MaterialView material) override;
 };
 
 
@@ -54,9 +61,9 @@ public:
 
     virtual void create(Storage& storage, const BodySettings& settings) const override;
 
-    virtual void initialize(Storage& storage, const MaterialSequence material) override;
+    virtual void initialize(Storage& storage, const MaterialView material) override;
 
-    virtual void integrate(Storage& storage, const MaterialSequence material) override;
+    virtual void integrate(Storage& storage, const MaterialView material) override;
 
     /// \todo code duplication
     INLINE TracelessTensor reduce(const TracelessTensor& s, const int i) const {

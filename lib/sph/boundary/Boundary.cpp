@@ -10,10 +10,10 @@ NAMESPACE_SPH_BEGIN
 /// GhostParticles implementation
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-GhostParticles::GhostParticles(std::unique_ptr<Abstract::Domain>&& domain, const GlobalSettings& settings)
+GhostParticles::GhostParticles(std::unique_ptr<Abstract::Domain>&& domain, const RunSettings& settings)
     : domain(std::move(domain)) {
     searchRadius = Factory::getKernel<3>(settings).radius();
-    minimalDist = settings.get<Float>(GlobalSettingsIds::DOMAIN_GHOST_MIN_DIST);
+    minimalDist = settings.get<Float>(RunSettingsId::DOMAIN_GHOST_MIN_DIST);
 }
 
 
@@ -57,7 +57,7 @@ void GhostParticles::apply(Storage& storage) {
     removeGhosts(storage);
 
     // project particles outside of the domain on the boundary
-    Array<Vector>& r = storage.getValue<Vector>(QuantityIds::POSITIONS);
+    Array<Vector>& r = storage.getValue<Vector>(QuantityId::POSITIONS);
     domain->project(r);
 
     // find particles close to boundary and create necessary ghosts
@@ -109,7 +109,7 @@ void FrozenParticles::thaw(const Size flag) {
 
 void FrozenParticles::apply(Storage& storage) {
     ArrayView<Vector> r, v, dv;
-    tie(r, v, dv) = storage.getAll<Vector>(QuantityIds::POSITIONS);
+    tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
 
     idxs.clear();
     if (domain) {
@@ -129,7 +129,7 @@ void FrozenParticles::apply(Storage& storage) {
 
     if (!frozen.empty()) {
         // find all frozen particles by their body flag
-        ArrayView<Size> flags = storage.getValue<Size>(QuantityIds::FLAG);
+        ArrayView<Size> flags = storage.getValue<Size>(QuantityId::FLAG);
         for (Size i = 0; i < r.size(); ++i) {
             if (frozen.find(flags[i]) != frozen.end()) {
                 idxs.push(i); // this might add particles already frozen by boundary, but it doesn't matter
@@ -138,7 +138,7 @@ void FrozenParticles::apply(Storage& storage) {
     }
 
     // set all highest derivatives of flagged particles to zero
-    iterate<VisitorEnum::HIGHEST_DERIVATIVES>(storage, [this](QuantityIds, auto&& d2f) {
+    iterate<VisitorEnum::HIGHEST_DERIVATIVES>(storage, [this](QuantityId, auto&& d2f) {
         using T = typename std::decay_t<decltype(d2f)>::Type;
         for (Size i : idxs) {
             d2f[i] = T(0._f);
@@ -159,7 +159,7 @@ void WindTunnel::apply(Storage& storage) {
 
     // remove particles outside of the domain
     Array<Size> toRemove;
-    Array<Vector>& r = storage.getValue<Vector>(QuantityIds::POSITIONS);
+    Array<Vector>& r = storage.getValue<Vector>(QuantityId::POSITIONS);
     for (Size i = 0; i < r.size(); ++i) {
         if (!this->domain->isInside(r[i])) {
             toRemove.push(i);
@@ -218,7 +218,7 @@ Projection1D::Projection1D(const Range& domain)
 
 void Projection1D::apply(Storage& storage) {
     ArrayView<Vector> dv;
-    tie(r, v, dv) = storage.getAll<Vector>(QuantityIds::POSITIONS);
+    tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
     for (Size i = 0; i < r.size(); ++i) {
         // throw away y and z, keep h
         r[i] = Vector(domain.clamp(r[i][0]), 0._f, 0._f, r[i][H]);
@@ -226,7 +226,7 @@ void Projection1D::apply(Storage& storage) {
     }
     // To get fixed boundary conditions at ends, we need to null all derivatives of first few and last few
     // particles. Number of particles depends on smoothing length.
-    iterate<VisitorEnum::FIRST_ORDER>(storage, [](const QuantityIds UNUSED(id), auto&& UNUSED(v), auto&& dv) {
+    iterate<VisitorEnum::FIRST_ORDER>(storage, [](const QuantityId UNUSED(id), auto&& UNUSED(v), auto&& dv) {
         using Type = typename std::decay_t<decltype(dv)>::Type;
         const Size s = dv.size();
         for (Size i : { 0u, 1u, 2u, 3u, 4u, s - 4, s - 3, s - 2, s - 1 }) {
@@ -234,7 +234,7 @@ void Projection1D::apply(Storage& storage) {
         }
     });
     iterate<VisitorEnum::SECOND_ORDER>(
-        storage, [](const QuantityIds UNUSED(id), auto&& UNUSED(v), auto&& dv, auto&& d2v) {
+        storage, [](const QuantityId UNUSED(id), auto&& UNUSED(v), auto&& dv, auto&& d2v) {
             using Type = typename std::decay_t<decltype(dv)>::Type;
             const Size s = dv.size();
             for (Size i : { 0u, 1u, 2u, 3u, 4u, s - 4, s - 3, s - 2, s - 1 }) {

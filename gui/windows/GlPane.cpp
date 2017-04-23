@@ -111,11 +111,11 @@ void CustomGlPane::onTimer(wxTimerEvent& evt) {
 
 void CustomGlPane::draw(const std::shared_ptr<Storage>& storage, const Statistics&) {
     cached.positions.clear();
-    Array<Vector>& newPositions = storage->getValue<Vector>(QuantityIds::POSITIONS);
+    Array<Vector>& newPositions = storage->getValue<Vector>(QuantityId::POSITIONS);
     cached.positions.pushAll(newPositions);
 }
 
-void CustomGlPane::setQuantity(const QuantityIds UNUSED(key)) {
+void CustomGlPane::setQuantity(const QuantityId UNUSED(key)) {
     NOT_IMPLEMENTED;
 }
 

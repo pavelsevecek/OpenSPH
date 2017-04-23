@@ -40,7 +40,6 @@ TEST_CASE("IsPower", "[math]") {
     REQUIRE(isPower2(2));
     REQUIRE(isPower2(4));
     REQUIRE(isPower2(32));
-    REQUIRE_THROWS(isPower2(-1));
     REQUIRE_FALSE(isPower2(31));
     REQUIRE_FALSE(isPower2(33));
     REQUIRE_FALSE(isPower2(7));
@@ -49,7 +48,7 @@ TEST_CASE("IsPower", "[math]") {
 TEST_CASE("Less", "[math]") {
     REQUIRE(less(1.f, 2.f) == 1.f);
     REQUIRE(less(2.f, 2.f) == 0.f);
-    REQUIRE(less(3.f, 2.f) == 1.f);
+    REQUIRE(less(3.f, 2.f) == 0.f);
 }
 
 TEST_CASE("Rounding mode", "[math]") {

@@ -19,7 +19,7 @@ OrthoPane::OrthoPane(wxWindow* parent, const std::shared_ptr<Storage>& storage, 
     this->Connect(wxEVT_MOUSEWHEEL, wxMouseEventHandler(OrthoPane::onMouseWheel));
     this->Connect(wxEVT_TIMER, wxTimerEventHandler(OrthoPane::onTimer));
     camera = Factory::getCamera(settings);
-    setQuantity(QuantityIds::POSITIONS);
+    setQuantity(QuantityId::POSITIONS);
     refreshTimer = new wxTimer(this, 1); /// \todo check that timer is destroyed
     refreshTimer->Start(50);
 }
@@ -40,7 +40,7 @@ void OrthoPane::onPaint(wxPaintEvent& UNUSED(evt)) {
     }
     memoryDc.SetBrush(*wxBLACK_BRUSH);
     memoryDc.DrawRectangle(wxPoint(0, 0), dc.GetSize());
-    const float scale = settings.get<Float>(GuiSettingsIds::PARTICLE_RADIUS);
+    const float scale = settings.get<Float>(GuiSettingsId::PARTICLE_RADIUS);
     wxBrush brush(*wxBLACK_BRUSH);
     wxPen pen(*wxBLACK_PEN);
     for (Particle& p : particles.second()) {
@@ -110,7 +110,7 @@ void OrthoPane::draw(const std::shared_ptr<Storage>& newStorage, const Statistic
     // called from worker thread, cannot touch wx stuff here
     mutex.lock();
     storage = newStorage;
-    time = stats.get<Float>(StatisticsIds::TOTAL_TIME);
+    time = stats.get<Float>(StatisticsId::TOTAL_TIME);
     mutex.unlock();
     update();
 }
@@ -123,7 +123,7 @@ void OrthoPane::update() {
     MEASURE_SCOPE("OrthoPane::update");
     ASSERT(storage);
     std::unique_lock<std::mutex> lock(mutex);
-    ArrayView<Vector> r = storage->getValue<Vector>(QuantityIds::POSITIONS);
+    ArrayView<Vector> r = storage->getValue<Vector>(QuantityId::POSITIONS);
     particles->clear();
     element = Factory::getElement(*storage, settings, quantity);
     for (Size i = 0; i < r.size(); ++i) {
@@ -137,7 +137,7 @@ void OrthoPane::update() {
     particlesUpdated = true;
 }
 
-void OrthoPane::setQuantity(const QuantityIds key) {
+void OrthoPane::setQuantity(const QuantityId key) {
     quantity = key;
     update();
     this->Refresh();

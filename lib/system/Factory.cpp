@@ -8,6 +8,7 @@
 #include "physics/Damage.h"
 #include "physics/Eos.h"
 #include "physics/Rheology.h"
+#include "solvers/ContinuitySolver.h"
 #include "sph/Material.h"
 #include "sph/boundary/Boundary.h"
 #include "sph/initial/Distribution.h"
@@ -17,10 +18,10 @@
 NAMESPACE_SPH_BEGIN
 
 std::unique_ptr<Abstract::Eos> Factory::getEos(const BodySettings& settings) {
-    const EosEnum id = settings.get<EosEnum>(BodySettingsIds::EOS);
+    const EosEnum id = settings.get<EosEnum>(BodySettingsId::EOS);
     switch (id) {
     case EosEnum::IDEAL_GAS:
-        return std::make_unique<IdealGasEos>(settings.get<Float>(BodySettingsIds::ADIABATIC_INDEX));
+        return std::make_unique<IdealGasEos>(settings.get<Float>(BodySettingsId::ADIABATIC_INDEX));
     case EosEnum::TILLOTSON:
         return std::make_unique<TillotsonEos>(settings);
     case EosEnum::MURNAGHAN:
@@ -31,7 +32,7 @@ std::unique_ptr<Abstract::Eos> Factory::getEos(const BodySettings& settings) {
 }
 
 std::unique_ptr<Abstract::Rheology> Factory::getRheology(const BodySettings& settings) {
-    const YieldingEnum id = settings.get<YieldingEnum>(BodySettingsIds::RHEOLOGY_YIELDING);
+    const YieldingEnum id = settings.get<YieldingEnum>(BodySettingsId::RHEOLOGY_YIELDING);
     switch (id) {
     case YieldingEnum::NONE:
         return nullptr;
@@ -45,10 +46,10 @@ std::unique_ptr<Abstract::Rheology> Factory::getRheology(const BodySettings& set
 }
 
 std::unique_ptr<Abstract::Damage> Factory::getDamage(const BodySettings& settings) {
-    const DamageEnum id = settings.get<DamageEnum>(BodySettingsIds::RHEOLOGY_DAMAGE);
+    const DamageEnum id = settings.get<DamageEnum>(BodySettingsId::RHEOLOGY_DAMAGE);
     switch (id) {
     case DamageEnum::NONE:
-        return nullptr;
+        return std::make_unique<NullDamage>();
     case DamageEnum::SCALAR_GRADY_KIPP:
         /// \todo  where to get kernel radius from??
         return std::make_unique<ScalarDamage>(2._f);
@@ -59,9 +60,9 @@ std::unique_ptr<Abstract::Damage> Factory::getDamage(const BodySettings& setting
     }
 }
 
-std::unique_ptr<Abstract::TimeStepping> Factory::getTimeStepping(const GlobalSettings& settings,
+std::unique_ptr<Abstract::TimeStepping> Factory::getTimeStepping(const RunSettings& settings,
     const std::shared_ptr<Storage>& storage) {
-    const TimesteppingEnum id = settings.get<TimesteppingEnum>(GlobalSettingsIds::TIMESTEPPING_INTEGRATOR);
+    const TimesteppingEnum id = settings.get<TimesteppingEnum>(RunSettingsId::TIMESTEPPING_INTEGRATOR);
     switch (id) {
     case TimesteppingEnum::EULER_EXPLICIT:
         return std::make_unique<EulerExplicit>(storage, settings);
@@ -76,8 +77,8 @@ std::unique_ptr<Abstract::TimeStepping> Factory::getTimeStepping(const GlobalSet
     }
 }
 
-std::unique_ptr<Abstract::TimeStepCriterion> Factory::getTimeStepCriterion(const GlobalSettings& settings) {
-    const Size flags = settings.get<int>(GlobalSettingsIds::TIMESTEPPING_CRITERION);
+std::unique_ptr<Abstract::TimeStepCriterion> Factory::getTimeStepCriterion(const RunSettings& settings) {
+    const Size flags = settings.get<int>(RunSettingsId::TIMESTEPPING_CRITERION);
     if (flags == 0) {
         // no criterion
         return nullptr;
@@ -95,8 +96,8 @@ std::unique_ptr<Abstract::TimeStepCriterion> Factory::getTimeStepCriterion(const
     }
 }
 
-std::unique_ptr<Abstract::Finder> Factory::getFinder(const GlobalSettings& settings) {
-    const FinderEnum id = settings.get<FinderEnum>(GlobalSettingsIds::SPH_FINDER);
+std::unique_ptr<Abstract::Finder> Factory::getFinder(const RunSettings& settings) {
+    const FinderEnum id = settings.get<FinderEnum>(RunSettingsId::SPH_FINDER);
     switch (id) {
     case FinderEnum::BRUTE_FORCE:
         return std::make_unique<BruteForceFinder>();
@@ -110,15 +111,17 @@ std::unique_ptr<Abstract::Finder> Factory::getFinder(const GlobalSettings& setti
 }
 
 std::unique_ptr<Abstract::Distribution> Factory::getDistribution(const BodySettings& settings) {
-    const DistributionEnum id = settings.get<DistributionEnum>(BodySettingsIds::INITIAL_DISTRIBUTION);
-    const bool center = settings.get<bool>(BodySettingsIds::CENTER_PARTICLES);
-    const bool sort = settings.get<bool>(BodySettingsIds::PARTICLE_SORTING);
+    const DistributionEnum id = settings.get<DistributionEnum>(BodySettingsId::INITIAL_DISTRIBUTION);
+    const bool center = settings.get<bool>(BodySettingsId::CENTER_PARTICLES);
+    const bool sort = settings.get<bool>(BodySettingsId::PARTICLE_SORTING);
+    const bool sph5mode = settings.get<bool>(BodySettingsId::DISTRIBUTE_MODE_SPH5);
     switch (id) {
     case DistributionEnum::HEXAGONAL: {
         Flags<HexagonalPacking::Options> flags;
-        flags.setIf(HexagonalPacking::Options::CENTER, center);
+        flags.setIf(HexagonalPacking::Options::CENTER, center || sph5mode);
         flags.setIf(HexagonalPacking::Options::SORTED, sort);
-        return std::make_unique<HexagonalPacking>(HexagonalPacking::Options::SPH5_COMPATIBILITY); // flags);
+        flags.setIf(HexagonalPacking::Options::SPH5_COMPATIBILITY, sph5mode);
+        return std::make_unique<HexagonalPacking>(flags);
     }
     case DistributionEnum::CUBIC:
         return std::make_unique<CubicPacking>();
@@ -133,30 +136,39 @@ std::unique_ptr<Abstract::Distribution> Factory::getDistribution(const BodySetti
     }
 }
 
-std::unique_ptr<Abstract::Domain> Factory::getDomain(const GlobalSettings& settings) {
-    const DomainEnum id = settings.get<DomainEnum>(GlobalSettingsIds::DOMAIN_TYPE);
-    const Vector center = settings.get<Vector>(GlobalSettingsIds::DOMAIN_CENTER);
+std::unique_ptr<Abstract::Solver> Factory::getSolver(const RunSettings& settings) {
+    const SolverEnum id = settings.get<SolverEnum>(RunSettingsId::SOLVER_TYPE);
     switch (id) {
-    case DomainEnum::NONE:
-        return nullptr;
-    case DomainEnum::BLOCK:
-        return std::make_unique<BlockDomain>(center, settings.get<Vector>(GlobalSettingsIds::DOMAIN_SIZE));
-    case DomainEnum::CYLINDER:
-        return std::make_unique<CylindricalDomain>(center,
-            settings.get<Float>(GlobalSettingsIds::DOMAIN_RADIUS),
-            settings.get<Float>(GlobalSettingsIds::DOMAIN_HEIGHT),
-            true);
-    case DomainEnum::SPHERICAL:
-        return std::make_unique<SphericalDomain>(
-            center, settings.get<Float>(GlobalSettingsIds::DOMAIN_RADIUS));
+    case SolverEnum::CONTINUITY_SOLVER:
+        return std::make_unique<ContinuitySolver>(settings);
     default:
         NOT_IMPLEMENTED;
     }
 }
 
-std::unique_ptr<Abstract::BoundaryConditions> Factory::getBoundaryConditions(const GlobalSettings& settings,
+std::unique_ptr<Abstract::Domain> Factory::getDomain(const RunSettings& settings) {
+    const DomainEnum id = settings.get<DomainEnum>(RunSettingsId::DOMAIN_TYPE);
+    const Vector center = settings.get<Vector>(RunSettingsId::DOMAIN_CENTER);
+    switch (id) {
+    case DomainEnum::NONE:
+        return nullptr;
+    case DomainEnum::BLOCK:
+        return std::make_unique<BlockDomain>(center, settings.get<Vector>(RunSettingsId::DOMAIN_SIZE));
+    case DomainEnum::CYLINDER:
+        return std::make_unique<CylindricalDomain>(center,
+            settings.get<Float>(RunSettingsId::DOMAIN_RADIUS),
+            settings.get<Float>(RunSettingsId::DOMAIN_HEIGHT),
+            true);
+    case DomainEnum::SPHERICAL:
+        return std::make_unique<SphericalDomain>(center, settings.get<Float>(RunSettingsId::DOMAIN_RADIUS));
+    default:
+        NOT_IMPLEMENTED;
+    }
+}
+
+std::unique_ptr<Abstract::BoundaryConditions> Factory::getBoundaryConditions(const RunSettings& settings,
     std::unique_ptr<Abstract::Domain>&& domain) {
-    const BoundaryEnum id = settings.get<BoundaryEnum>(GlobalSettingsIds::DOMAIN_BOUNDARY);
+    const BoundaryEnum id = settings.get<BoundaryEnum>(RunSettingsId::DOMAIN_BOUNDARY);
     switch (id) {
     case BoundaryEnum::NONE:
         return nullptr;
@@ -165,14 +177,14 @@ std::unique_ptr<Abstract::BoundaryConditions> Factory::getBoundaryConditions(con
         return std::make_unique<GhostParticles>(std::move(domain), settings);
     case BoundaryEnum::FROZEN_PARTICLES:
         if (domain) {
-            const Float radius = settings.get<Float>(GlobalSettingsIds::DOMAIN_FROZEN_DIST);
+            const Float radius = settings.get<Float>(RunSettingsId::DOMAIN_FROZEN_DIST);
             return std::make_unique<FrozenParticles>(std::move(domain), radius);
         } else {
             return std::make_unique<FrozenParticles>();
         }
     case BoundaryEnum::WIND_TUNNEL: {
         ASSERT(domain != nullptr);
-        const Float radius = settings.get<Float>(GlobalSettingsIds::DOMAIN_FROZEN_DIST);
+        const Float radius = settings.get<Float>(RunSettingsId::DOMAIN_FROZEN_DIST);
         return std::make_unique<WindTunnel>(std::move(domain), radius);
     }
     case BoundaryEnum::PROJECT_1D: {
@@ -186,18 +198,19 @@ std::unique_ptr<Abstract::BoundaryConditions> Factory::getBoundaryConditions(con
 }
 
 std::unique_ptr<Abstract::Material> Factory::getMaterial(const BodySettings& settings) {
-    const YieldingEnum yieldId = settings.get<YieldingEnum>(BodySettingsIds::RHEOLOGY_YIELDING);
-    const EosEnum eosId = settings.get<EosEnum>(BodySettingsIds::EOS);
+    const YieldingEnum yieldId = settings.get<YieldingEnum>(BodySettingsId::RHEOLOGY_YIELDING);
+    const EosEnum eosId = settings.get<EosEnum>(BodySettingsId::EOS);
     switch (yieldId) {
     case YieldingEnum::DRUCKER_PRAGER:
     case YieldingEnum::VON_MISES:
-        return std::make_unique<SolidMaterial>(Factory::getEos(settings), Factory::getRheology(settings));
+        return std::make_unique<SolidMaterial>(
+            settings, Factory::getEos(settings), Factory::getRheology(settings));
     case YieldingEnum::NONE:
         switch (eosId) {
         case EosEnum::NONE:
-            return std::make_unique<NullMaterial>();
+            return std::make_unique<NullMaterial>(settings);
         default:
-            return std::make_unique<EosMaterial>(Factory::getEos(settings));
+            return std::make_unique<EosMaterial>(settings, Factory::getEos(settings));
         }
 
     default:
@@ -205,23 +218,23 @@ std::unique_ptr<Abstract::Material> Factory::getMaterial(const BodySettings& set
     }
 }
 
-std::unique_ptr<Abstract::Logger> Factory::getLogger(const GlobalSettings& settings) {
-    const LoggerEnum id = settings.get<LoggerEnum>(GlobalSettingsIds::RUN_LOGGER);
+std::unique_ptr<Abstract::Logger> Factory::getLogger(const RunSettings& settings) {
+    const LoggerEnum id = settings.get<LoggerEnum>(RunSettingsId::RUN_LOGGER);
     switch (id) {
     case LoggerEnum::NONE:
         return std::make_unique<DummyLogger>();
     case LoggerEnum::STD_OUT:
         return std::make_unique<StdOutLogger>();
     case LoggerEnum::FILE:
-        return std::make_unique<FileLogger>(settings.get<std::string>(GlobalSettingsIds::RUN_LOGGER_FILE));
+        return std::make_unique<FileLogger>(settings.get<std::string>(RunSettingsId::RUN_LOGGER_FILE));
     default:
         NOT_IMPLEMENTED;
     }
 }
 
-std::unique_ptr<Abstract::Rng> Factory::getRng(const GlobalSettings& settings) {
-    const RngEnum id = settings.get<RngEnum>(GlobalSettingsIds::RUN_RNG);
-    const int seed = settings.get<int>(GlobalSettingsIds::RUN_RNG_SEED);
+std::unique_ptr<Abstract::Rng> Factory::getRng(const RunSettings& settings) {
+    const RngEnum id = settings.get<RngEnum>(RunSettingsId::RUN_RNG);
+    const int seed = settings.get<int>(RunSettingsId::RUN_RNG_SEED);
     switch (id) {
     case RngEnum::UNIFORM:
         return std::make_unique<RngWrapper<UniformRng>>(seed);

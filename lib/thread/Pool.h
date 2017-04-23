@@ -8,6 +8,7 @@
 #include "thread/ConcurrentQueue.h"
 #include <atomic>
 #include <condition_variable>
+#include <queue>
 #include <thread>
 
 NAMESPACE_SPH_BEGIN
@@ -17,67 +18,91 @@ private:
     Array<std::unique_ptr<std::thread>> threads;
 
     using Task = std::function<void(void)>;
-    ConcurrentQueue<Task> tasks;
+    std::queue<Task> tasks;
 
-    std::condition_variable needTask;
-    std::condition_variable emptyQueue;
-    std::mutex mutex;
+    std::condition_variable taskVar;
+    std::mutex taskMutex;
+    std::condition_variable waitVar;
+    std::mutex waitMutex;
 
     std::atomic<bool> stop;
+    std::atomic<int> tasksLeft;
 
 public:
     /// Initialize thread pool given the number of threads to use. By default, all available threads are used.
-    ThreadPool(const Size numThreads = std::thread::hardware_concurrency())
-        : threads(numThreads) {
-        // start all threads
-        auto loop = [this]() {
-            Optional<Task> task = NOTHING;
-            while (!stop) {
-                if (task) {
-                    task.get()();
-                    task = tasks.pop();
-                } else {
-                    std::unique_lock<std::mutex> lock(mutex);
-                    // notify that we have no tasks to process
-                    emptyQueue.notify_one();
-                    // wait till another task is submitted
-                    needTask.wait(lock, [this, &task] { return stop || (task = tasks.pop()); });
+    ThreadPool(const Size numThreads = 0)
+        : threads(numThreads == 0 ? std::thread::hardware_concurrency() : numThreads) {
+        ASSERT(!threads.empty());
+        auto loop = [this] {
+            while (true) {
+                Task task;
+                {
+                    std::unique_lock<std::mutex> lock(taskMutex);
+                    if (stop) {
+                        return;
+                    }
+
+                    // Wait for a job if we don't have any.
+                    taskVar.wait(lock, [this] { return tasks.size() > 0 || stop; });
+
+                    if (stop) {
+                        return;
+                    }
+
+                    // Get job from the queue
+                    task = tasks.front();
+                    tasks.pop();
                 }
+
+                task();
+                {
+                    std::lock_guard<std::mutex> lock(waitMutex);
+                    --tasksLeft;
+                }
+                waitVar.notify_one();
             }
         };
         stop = false;
-        for (Size i = 0; i < numThreads; ++i) {
-            threads[i] = std::make_unique<std::thread>(loop);
+        tasksLeft = 0;
+        for (auto& t : threads) {
+            t = std::make_unique<std::thread>(loop);
         }
     }
 
     ~ThreadPool() {
         waitForAll();
-        std::unique_lock<std::mutex> lock(mutex);
         stop = true;
-        lock.unlock();
-        needTask.notify_all();
-        for (Size i = 0; i < threads.size(); ++i) {
-            threads[i]->join();
+        taskVar.notify_all();
+
+        for (auto& t : threads) {
+            if (t->joinable()) {
+                t->join();
+            }
         }
-        ASSERT(tasks.empty());
     }
 
     /// Submits a task into the thread pool. The task will be executed asynchronously once tasks submitted
     /// before it are completed.
     template <typename TFunctor>
     void submit(TFunctor&& functor) {
-        std::unique_lock<std::mutex> lock(mutex);
-        tasks.push(std::forward<TFunctor>(functor));
-        needTask.notify_one();
+        {
+            std::unique_lock<std::mutex> lock(taskMutex);
+            tasks.emplace(std::forward<TFunctor>(functor));
+        }
+        {
+            std::unique_lock<std::mutex> lock(waitMutex);
+            ++tasksLeft;
+        }
+        taskVar.notify_one();
     }
 
     /// Blocks until all submitted tasks has been finished.
     void waitForAll() {
-        std::unique_lock<std::mutex> lock(mutex);
-        if (!tasks.empty()) {
-            emptyQueue.wait(lock, [this] { return tasks.empty(); });
+        std::unique_lock<std::mutex> lock(waitMutex);
+        if (tasksLeft > 0) {
+            waitVar.wait(lock, [this] { return tasksLeft == 0; });
         }
+        ASSERT(tasks.empty() && tasksLeft == 0);
     }
 
     /// Returns the index of this thread, or NOTHING if this thread was not invoked by the thread pool.
@@ -96,6 +121,12 @@ public:
     /// lifetime of thread pool.
     Size getThreadCnt() const {
         return threads.size();
+    }
+
+    /// Returns the number of unfinished tasks, including both tasks currently running and tasks waiting in
+    /// processing queue.
+    Size remainingTaskCnt() {
+        return tasksLeft;
     }
 };
 

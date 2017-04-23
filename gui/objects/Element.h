@@ -43,7 +43,7 @@ private:
     Palette palette;
 
 public:
-    TypedElement(Storage& storage, const QuantityIds id, const Range range)
+    TypedElement(Storage& storage, const QuantityId id, const Range range)
         : palette(Palette::forQuantity(id, range)) {
         values = storage.getValue<Type>(id);
     }
@@ -65,8 +65,8 @@ private:
 
 public:
     VelocityElement(Storage& storage, const Range range)
-        : palette(Palette::forQuantity(QuantityIds::POSITIONS, range)) {
-        values = storage.getDt<Vector>(QuantityIds::POSITIONS);
+        : palette(Palette::forQuantity(QuantityId::POSITIONS, range)) {
+        values = storage.getDt<Vector>(QuantityId::POSITIONS);
     }
 
     virtual Color eval(const Size idx) const override {

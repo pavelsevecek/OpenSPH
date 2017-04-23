@@ -22,50 +22,51 @@ private:
 
     using ValueType = Variant<bool, int, Float, Means, Value, Range>;
 
-    struct Entry {
-        StatisticsIds id;
-        std::string name;
-        ValueType value;
-    };
-
-    std::map<StatisticsIds, Entry> entries;
+    std::map<StatisticsId, ValueType> entries;
 
 public:
     Statistics() = default;
 
-    bool has(const StatisticsIds idx) const {
+    bool has(const StatisticsId idx) const {
         return entries.find(idx) != entries.end();
     }
 
     /// Sets new values of a statistic. If the statistic is not stored in the object, the statistic is created
     /// using default constructor before assigning new value into it.
     template <typename TValue>
-    void set(const StatisticsIds idx, TValue&& value) {
+    void set(const StatisticsId idx, TValue&& value) {
         using StoreType = ConvertToSize<TValue>;
-        entries[idx].value = StoreType(std::forward<TValue>(value));
+        entries[idx] = StoreType(std::forward<TValue>(value));
     }
 
     /// Accumulate a value into means of given idx. Value does not have to be stored. If there is no
     /// value of given idx, it is created with default constructor prior to accumulating.
-    void accumulate(const StatisticsIds idx, const Float value) {
-        ValueType& entry = entries[idx].value;
-        entry.template get<Means>().accumulate(value);
+    void accumulate(const StatisticsId idx, const Float value) {
+        auto iter = entries.find(idx);
+        if (iter != entries.end()) {
+            ValueType& entry = iter->second;
+            entry.template get<Means>().accumulate(value);
+        } else {
+            Means means;
+            means.accumulate(value);
+            entries.insert({ idx, means });
+        }
     }
 
     /// Returns value of a statistic. The value must be stored in the object and must have type TValue,
     /// checked by assert.
     template <typename TValue>
-    TValue get(const StatisticsIds idx) const {
-        typename std::map<StatisticsIds, Entry>::const_iterator iter = entries.find(idx);
+    TValue get(const StatisticsId idx) const {
+        auto iter = entries.find(idx);
         ASSERT(iter != entries.end());
         using StoreType = ConvertToSize<TValue>;
-        const StoreType& value = iter->second.value.template get<StoreType>();
+        const StoreType& value = iter->second.template get<StoreType>();
         return TValue(value);
     }
 };
 
 /// List of values that are computed and displayed every timestep
-enum class StatisticsIds {
+enum class StatisticsId {
     /// Current number of output, indexed from 0
     INDEX,
 

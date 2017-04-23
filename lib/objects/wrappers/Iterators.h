@@ -27,10 +27,10 @@ protected:
     const T *begin, *end;
 #endif
 
-    /*#ifndef SPH_DEBUG
-        Iterator(T* data)
-            : data(data) {}
-    #endif*/
+#ifndef SPH_DEBUG
+    Iterator(T* data)
+        : data(data) {}
+#endif
 public:
     Iterator() = default;
 
@@ -44,15 +44,22 @@ public:
     }
 
     const TValue& operator*() const {
-        ASSERT(data >= begin);
-        ASSERT(data < end);
+        ASSERT(data >= begin && data < end);
         return *data;
     }
     TValue& operator*() {
-        ASSERT(data >= begin);
-        ASSERT(data < end);
+        ASSERT(data >= begin && data < end);
         return *data;
     }
+    T* operator->() {
+        ASSERT(data >= begin && data < end);
+        return data;
+    }
+    const T* operator->() const {
+        ASSERT(data >= begin && data < end);
+        return data;
+    }
+
 #ifdef SPH_DEBUG
     Iterator operator+(const TCounter n) const {
         return Iterator(data + n, begin, end);
@@ -401,7 +408,7 @@ public:
     TupleAdapter(TContainers&&... containers)
         : tuple(std::forward<TContainers>(containers)...) {
         ASSERT(tuple.size() > 1);
-#ifdef DEBUG
+#ifdef SPH_DEBUG
         // check that all containers are of the same size
         const Size size0 = tuple.template get<0>().size();
         forEach(tuple, [size0](auto& container) { ASSERT(container.size() == size0); });
@@ -521,5 +528,57 @@ auto subset(TContainer&& container, TCondition&& condition) {
     return SubsetAdapter<TContainer, TCondition>(
         std::forward<TContainer>(container), std::forward<TCondition>(condition));
 }
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/// IndexIterator
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+class IndexIterator {
+private:
+    Size idx;
+
+public:
+    IndexIterator(const Size idx)
+        : idx(idx) {}
+
+    Size operator*() const {
+        return idx;
+    }
+
+    IndexIterator& operator++() {
+        ++idx;
+        return *this;
+    }
+
+    bool operator!=(const IndexIterator other) const {
+        return idx != other.idx;
+    }
+};
+
+class IndexSequence {
+private:
+    Size from;
+    Size to;
+
+public:
+    IndexSequence(const Size from, const Size to)
+        : from(from)
+        , to(to) {
+        ASSERT(from <= to);
+    }
+
+    IndexIterator begin() const {
+        return IndexIterator(from);
+    }
+
+    IndexIterator end() const {
+        return IndexIterator(to);
+    }
+
+    Size size() const {
+        return to - from;
+    }
+};
 
 NAMESPACE_SPH_END

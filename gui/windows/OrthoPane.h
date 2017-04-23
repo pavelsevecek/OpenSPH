@@ -30,7 +30,7 @@ private:
         Color color;
     };
     BufferedArray<Particle> particles;
-    QuantityIds quantity = QuantityIds::POSITIONS;
+    QuantityId quantity = QuantityId::POSITIONS;
     bool particlesUpdated = false;
 
     std::unique_ptr<Abstract::Camera> camera;
@@ -52,7 +52,7 @@ public:
 
     virtual Bitmap getRender() const override;
 
-    virtual void setQuantity(const QuantityIds key) override;
+    virtual void setQuantity(const QuantityId key) override;
 
 private:
     void onPaint(wxPaintEvent& evt);

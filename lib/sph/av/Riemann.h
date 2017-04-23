@@ -17,15 +17,15 @@ private:
     ArrayView<Float> cs, rho;
 
 public:
-    RiemannAV(const GlobalSettings& settings) {
-        alpha = settings.get<Float>(GlobalSettingsIds::SPH_AV_ALPHA);
+    RiemannAV(const RunSettings& settings) {
+        alpha = settings.get<Float>(RunSettingsId::SPH_AV_ALPHA);
     }
 
     void update(Storage& storage) {
         ArrayView<Vector> dv;
-        tie(r, v, dv) = storage.getAll<Vector>(QuantityIds::POSITIONS);
-        cs = storage.getValue<Float>(QuantityIds::SOUND_SPEED);
-        rho = storage.getValue<Float>(QuantityIds::SOUND_SPEED);
+        tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
+        cs = storage.getValue<Float>(QuantityId::SOUND_SPEED);
+        rho = storage.getValue<Float>(QuantityId::SOUND_SPEED);
     }
 
     INLINE Float operator()(const int i, const int j) {

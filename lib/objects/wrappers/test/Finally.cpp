@@ -12,7 +12,7 @@ TEST_CASE("Finally", "[finally]") {
     REQUIRE(a == 5);
 }
 
-TEST_CASE("Finally move", "[finally]") {
+/*TEST_CASE("Finally move", "[finally]") {
     int a = 0;
     {
         Finally f1;
@@ -32,3 +32,4 @@ TEST_CASE("Finally move", "[finally]") {
     }
     REQUIRE(a == 5);
 }
+*/

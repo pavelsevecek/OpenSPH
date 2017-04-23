@@ -11,6 +11,10 @@ namespace Abstract {
 
 class NullMaterial : public Abstract::Material {
 public:
+    NullMaterial(const BodySettings& body);
+
+    virtual void create(Storage& UNUSED(storage)) const override {}
+
     virtual void initialize(Storage& UNUSED(storage), const MaterialSequence UNUSED(sequence)) override {}
 
     virtual void finalize(Storage& UNUSED(storage), const MaterialSequence UNUSED(sequence)) override {}
@@ -23,7 +27,15 @@ private:
     ArrayView<Float> rho, u, p, cs;
 
 public:
-    EosMaterial(std::unique_ptr<Abstract::Eos>&& eos);
+    EosMaterial(const BodySettings& body, std::unique_ptr<Abstract::Eos>&& eos);
+
+    /// Evaluate holded equation of state.
+    /// \param rho Density of particle in code units.
+    /// \param u Specific energy of particle in code units
+    /// \returns Computed pressure and sound speed as pair.
+    Pair<Float> evaluate(const Float rho, const Float u) const;
+
+    virtual void create(Storage& storage) const override;
 
     virtual void initialize(Storage& storage, const MaterialSequence sequence) override;
 
@@ -40,7 +52,11 @@ private:
     std::unique_ptr<Abstract::Rheology> rheology;
 
 public:
-    SolidMaterial(std::unique_ptr<Abstract::Eos>&& eos, std::unique_ptr<Abstract::Rheology>&& rheology);
+    SolidMaterial(const BodySettings& body,
+        std::unique_ptr<Abstract::Eos>&& eos,
+        std::unique_ptr<Abstract::Rheology>&& rheology);
+
+    virtual void create(Storage& storage) const override;
 
     virtual void initialize(Storage& storage, const MaterialSequence sequence) override;
 

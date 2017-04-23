@@ -2,7 +2,6 @@
 #include "gui/MainLoop.h"
 #include "gui/windows/GlPane.h"
 #include "gui/windows/OrthoPane.h"
-#include "system/LogFile.h"
 #include <wx/button.h>
 #include <wx/combobox.h>
 #include <wx/gauge.h>
@@ -12,16 +11,13 @@ NAMESPACE_SPH_BEGIN
 
 enum class ControlIds { BUTTON_START, BUTTON_PAUSE, BUTTON_STOP, QUANTITY_BOX };
 
-Window::Window(const std::shared_ptr<Storage>& storage,
-    const GuiSettings& settings,
-    const std::function<void(void)>& onRestart)
+Window::Window(const std::shared_ptr<Storage>& storage, const GuiSettings& settings)
     : wxFrame(nullptr,
           wxID_ANY,
-          settings.get<std::string>(GuiSettingsIds::WINDOW_TITLE).c_str(),
+          settings.get<std::string>(GuiSettingsId::WINDOW_TITLE).c_str(),
           wxDefaultPosition,
           wxSize(800, 600))
-    , storage(storage)
-    , onRestart(onRestart) {
+    , storage(storage) {
     wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
     wxBoxSizer* toolbar = new wxBoxSizer(wxHORIZONTAL);
     toolbar->Add(new wxButton(this, int(ControlIds::BUTTON_START), "Start"));
@@ -29,7 +25,7 @@ Window::Window(const std::shared_ptr<Storage>& storage,
     toolbar->Add(new wxButton(this, int(ControlIds::BUTTON_STOP), "Stop"));
     this->Connect(wxEVT_BUTTON, wxCommandEventHandler(Window::onButton));
     wxString quantities[] = { "Velocity", "Density", "Pressure", "Energy", "Stress", "Damage" };
-    const int quantityCnt = storage->has(QuantityIds::DAMAGE) ? 6 : 5;
+    const int quantityCnt = storage->has(QuantityId::DAMAGE) ? 6 : 5;
     quantityBox = new wxComboBox(this,
         int(ControlIds::QUANTITY_BOX),
         "",
@@ -49,7 +45,7 @@ Window::Window(const std::shared_ptr<Storage>& storage,
 
     sizer->Add(toolbar);
 
-    switch (GuiSettings::getDefaults().get<RendererEnum>(GuiSettingsIds::RENDERER)) {
+    switch (settings.get<RendererEnum>(GuiSettingsId::RENDERER)) {
     case RendererEnum::OPENGL: {
         CustomGlPane* pane =
             new CustomGlPane(this, { WX_GL_RGBA, WX_GL_DOUBLEBUFFER, WX_GL_DEPTH_SIZE, 16, 0 });
@@ -79,7 +75,6 @@ void Window::onButton(wxCommandEvent& evt) {
     switch (evt.GetId()) {
     case int(ControlIds::BUTTON_START):
         abortRun = false;
-        onRestart();
         break;
     case int(ControlIds::BUTTON_PAUSE):
     case int(ControlIds::BUTTON_STOP):
@@ -94,22 +89,22 @@ void Window::onComboBox(wxCommandEvent& evt) {
     const int idx = quantityBox->GetSelection();
     switch (idx) {
     case 0:
-        renderer->setQuantity(QuantityIds::POSITIONS);
+        renderer->setQuantity(QuantityId::POSITIONS);
         break;
     case 1:
-        renderer->setQuantity(QuantityIds::DENSITY);
+        renderer->setQuantity(QuantityId::DENSITY);
         break;
     case 2:
-        renderer->setQuantity(QuantityIds::PRESSURE);
+        renderer->setQuantity(QuantityId::PRESSURE);
         break;
     case 3:
-        renderer->setQuantity(QuantityIds::ENERGY);
+        renderer->setQuantity(QuantityId::ENERGY);
         break;
     case 4:
-        renderer->setQuantity(QuantityIds::DEVIATORIC_STRESS);
+        renderer->setQuantity(QuantityId::DEVIATORIC_STRESS);
         break;
     case 5:
-        renderer->setQuantity(QuantityIds::DAMAGE);
+        renderer->setQuantity(QuantityId::DAMAGE);
         break;
     }
     evt.Skip();

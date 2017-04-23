@@ -10,8 +10,8 @@ TEST_CASE("Ideal gas", "[eos]") {}
 
 TEST_CASE("Tillotson values", "[eos]") {
     BodySettings settings;
-    settings.set(BodySettingsIds::DENSITY, 2.7_f);
-    settings.set(BodySettingsIds::TILLOTSON_SUBLIMATION, 1.e5_f);
+    settings.set(BodySettingsId::DENSITY, 2.7_f);
+    settings.set(BodySettingsId::TILLOTSON_SUBLIMATION, 1.e5_f);
     TillotsonEos eos(settings);
 
     Float p, cs;

@@ -6,18 +6,18 @@ NAMESPACE_SPH_BEGIN
 
 class Storage;
 class Quantity;
-enum class QuantityIds;
+enum class QuantityId;
 class Statistics;
-enum class StatisticsIds;
+enum class StatisticsId;
 
 template <typename TEnum>
 class Settings;
 
-enum class BodySettingsIds;
-enum class GlobalSettingsIds;
+enum class BodySettingsId;
+enum class RunSettingsId;
 
-using GlobalSettings = Settings<GlobalSettingsIds>;
-using BodySettings = Settings<BodySettingsIds>;
+using RunSettings = Settings<RunSettingsId>;
+using BodySettings = Settings<BodySettingsId>;
 
 namespace Abstract {
     class Material;
@@ -30,7 +30,7 @@ namespace Abstract {
 }
 struct Ghost;
 struct NeighbourRecord;
-class MaterialSequence;
+class MaterialView;
 
 
 NAMESPACE_SPH_END

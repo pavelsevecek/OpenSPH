@@ -26,7 +26,6 @@ Size StorageSequence::size() const {
 Storage::Storage() = default;
 
 Storage::Storage(std::unique_ptr<Abstract::Material>&& material) {
-    /// \todo we cannot create material here, some quantities (positions, density, ...) MUST already be stored
     materials.push(std::move(material));
 }
 
@@ -42,9 +41,19 @@ Storage& Storage::operator=(Storage&& other) {
     return *this;
 }
 
-MaterialSequence Storage::getMaterial(const Size matId) {
-    ASSERT(this->has(QuantityIds::MATERIAL_IDX));
-    return MaterialSequence(materials[matId].get(), this->getValue<Size>(QuantityIds::MATERIAL_IDX), matId);
+MaterialView Storage::getMaterial(const Size matId) {
+    ASSERT(this->has(QuantityId::MATERIAL_IDX));
+    return MaterialView(materials[matId].get(), this->getValue<Size>(QuantityId::MATERIAL_IDX), matId);
+}
+
+MaterialView Storage::getMaterialOfParticle(const Size particleIdx) {
+    ASSERT(this->has(QuantityId::MATERIAL_IDX));
+    ArrayView<Size> matIdxs = this->getValue<Size>(QuantityId::MATERIAL_IDX);
+    return this->getMaterial(matIdxs[particleIdx]);
+}
+
+Range Storage::getRange(const QuantityId id, const Size matIdx) const {
+    return materials[matIdx]->range(id);
 }
 
 StorageSequence Storage::getQuantities() {
@@ -71,9 +80,9 @@ void Storage::merge(Storage&& other) {
     // must contain the same quantities
     ASSERT(this->getQuantityCnt() == other.getQuantityCnt());
     // as material id is an index to array, we have to increase indices before the merge
-    if (this->has(QuantityIds::MATERIAL_IDX)) {
-        ASSERT(other.has(QuantityIds::MATERIAL_IDX));
-        Array<Size>& matIdxs = other.getValue<Size>(QuantityIds::MATERIAL_IDX);
+    if (this->has(QuantityId::MATERIAL_IDX)) {
+        ASSERT(other.has(QuantityId::MATERIAL_IDX));
+        Array<Size>& matIdxs = other.getValue<Size>(QuantityId::MATERIAL_IDX);
         for (Size& id : matIdxs) {
             id += this->materials.size();
         }
@@ -86,7 +95,7 @@ void Storage::merge(Storage&& other) {
 }
 
 void Storage::init() {
-    iterate<VisitorEnum::HIGHEST_DERIVATIVES>(*this, [](const QuantityIds, auto&& dv) {
+    iterate<VisitorEnum::HIGHEST_DERIVATIVES>(*this, [](const QuantityId, auto&& dv) {
         using TValue = typename std::decay_t<decltype(dv)>::Type;
         dv.fill(TValue(0._f));
     });

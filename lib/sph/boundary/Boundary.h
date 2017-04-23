@@ -36,7 +36,7 @@ private:
     Float minimalDist;
 
 public:
-    GhostParticles(std::unique_ptr<Abstract::Domain>&& domain, const GlobalSettings& settings);
+    GhostParticles(std::unique_ptr<Abstract::Domain>&& domain, const RunSettings& settings);
 
     /// \todo we hold indices into the storage we get from parameter. There is no guarantee the storage is the
     /// same each time and that it wasn't changed. Think of a better way of doing this, possibly by creating

@@ -14,6 +14,7 @@ NAMESPACE_SPH_BEGIN
 namespace Abstract {
     class Eos;
     class Rheology;
+    class Solver;
     class Damage;
     class Distribution;
     class Domain;
@@ -38,29 +39,31 @@ namespace Factory {
 
     std::unique_ptr<Abstract::Damage> getDamage(const BodySettings& settings);
 
-    std::unique_ptr<Abstract::TimeStepping> getTimeStepping(const GlobalSettings& settings,
+    std::unique_ptr<Abstract::TimeStepping> getTimeStepping(const RunSettings& settings,
         const std::shared_ptr<Storage>& storage);
 
-    std::unique_ptr<Abstract::TimeStepCriterion> getTimeStepCriterion(const GlobalSettings& settings);
+    std::unique_ptr<Abstract::TimeStepCriterion> getTimeStepCriterion(const RunSettings& settings);
 
-    std::unique_ptr<Abstract::Finder> getFinder(const GlobalSettings& settings);
+    std::unique_ptr<Abstract::Finder> getFinder(const RunSettings& settings);
 
     std::unique_ptr<Abstract::Distribution> getDistribution(const BodySettings& settings);
 
-    std::unique_ptr<Abstract::BoundaryConditions> getBoundaryConditions(const GlobalSettings& settings,
+    std::unique_ptr<Abstract::Solver> getSolver(const RunSettings& settings);
+
+    std::unique_ptr<Abstract::BoundaryConditions> getBoundaryConditions(const RunSettings& settings,
         std::unique_ptr<Abstract::Domain>&& domain);
 
-    std::unique_ptr<Abstract::Domain> getDomain(const GlobalSettings& settings);
+    std::unique_ptr<Abstract::Domain> getDomain(const RunSettings& settings);
 
     std::unique_ptr<Abstract::Material> getMaterial(const BodySettings& settings);
 
-    std::unique_ptr<Abstract::Logger> getLogger(const GlobalSettings& settings);
+    std::unique_ptr<Abstract::Logger> getLogger(const RunSettings& settings);
 
-    std::unique_ptr<Abstract::Rng> getRng(const GlobalSettings& settings);
+    std::unique_ptr<Abstract::Rng> getRng(const RunSettings& settings);
 
     template <int d>
-    LutKernel<d> getKernel(const GlobalSettings& settings) {
-        const KernelEnum id = settings.get<KernelEnum>(GlobalSettingsIds::SPH_KERNEL);
+    LutKernel<d> getKernel(const RunSettings& settings) {
+        const KernelEnum id = settings.get<KernelEnum>(RunSettingsId::SPH_KERNEL);
         switch (id) {
         case KernelEnum::CUBIC_SPLINE:
             return CubicSpline<d>();

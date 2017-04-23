@@ -1,14 +1,42 @@
 #include "common/Assert.h"
+#include "io/Logger.h"
+#include "system/Platform.h"
+#include <signal.h>
 
 NAMESPACE_SPH_BEGIN
 
 bool Assert::isTest = false;
+bool Assert::breakOnFail = true;
 
-void Assert::check(const bool condition, const char* message) {
+void Assert::check(const bool condition, const char* message, const char* func, const int line) {
+    if (condition) {
+        return;
+    }
+    if (breakOnFail) {
+        StdOutLogger logger;
+        logger.write("===========================================================");
+        logger.write("Assert fired at ", func, " on line ", line);
+        logger.write("Condition: ", message);
+        logger.write("===========================================================");
+        if (isDebuggerPresent()) {
+            raise(SIGTRAP);
+        }
+    }
     if (!isTest) {
         assert(condition);
-    } else if (!condition) {
+    } else {
         throw Exception(message);
+    }
+}
+
+void Assert::todo(const char* message, const char* func, const int line) {
+    StdOutLogger logger;
+    logger.write("===========================================================");
+    logger.write("Missing implementation at ", func, " on line ", line);
+    logger.write(message);
+    logger.write("===========================================================");
+    if (isDebuggerPresent()) {
+        raise(SIGTRAP);
     }
 }
 

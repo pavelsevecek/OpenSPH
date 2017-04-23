@@ -1,18 +1,18 @@
 #include "catch.hpp"
 #include "geometry/Domain.h"
-#include "physics/Rheology.h"
+#include "io/Output.h"
 #include "physics/Eos.h"
 #include "physics/Rheology.h"
-#include "problem/Problem.h"
+#include "physics/Rheology.h"
+#include "run/Run.h"
 #include "solvers/ContinuitySolver.h"
 #include "solvers/DensityIndependentSolver.h"
 #include "solvers/SummationSolver.h"
 #include "sph/forces/StressForce.h"
 #include "sph/initial/Initial.h"
-#include "sph/timestepping/TimeStepping.h"
 #include "system/Factory.h"
-#include "system/Output.h"
 #include "system/Settings.h"
+#include "timestepping/TimeStepping.h"
 
 using namespace Sph;
 
@@ -46,118 +46,120 @@ Array<Vector> sodDistribution(const int N, Float dx, const Float eta) {
     return x;
 }
 
-TEST_CASE("Sod", "[sod]") {
-    // Global settings of the problem
-    GlobalSettings globalSettings;
-    globalSettings.set(GlobalSettingsIds::RUN_NAME, std::string("Sod Shock Tube Problem"));
-    globalSettings.set(GlobalSettingsIds::RUN_TIME_RANGE, Range(0._f, 0.5_f));
-    globalSettings.set(GlobalSettingsIds::DOMAIN_TYPE, DomainEnum::SPHERICAL);
-    globalSettings.set(GlobalSettingsIds::DOMAIN_CENTER, Vector(0.5_f));
-    globalSettings.set(GlobalSettingsIds::DOMAIN_RADIUS, 0.5_f);
-    globalSettings.set(GlobalSettingsIds::DOMAIN_BOUNDARY, BoundaryEnum::PROJECT_1D);
-    globalSettings.set(GlobalSettingsIds::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::EULER_EXPLICIT);
-    globalSettings.set(GlobalSettingsIds::SPH_AV_ALPHA, 1.0_f);
-    globalSettings.set(GlobalSettingsIds::SPH_AV_BETA, 2.0_f);
-    globalSettings.set(GlobalSettingsIds::SPH_KERNEL_ETA, 1.5_f);
-    globalSettings.set(GlobalSettingsIds::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::PREDICTOR_CORRECTOR);
-    globalSettings.set(GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP, 1.e-5_f);
-    globalSettings.set(GlobalSettingsIds::TIMESTEPPING_MAX_TIMESTEP, 1.e-1_f);
-    globalSettings.set(GlobalSettingsIds::TIMESTEPPING_COURANT, 0.5_f);
-    globalSettings.set(GlobalSettingsIds::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::COURANT);
-    globalSettings.set(GlobalSettingsIds::SOLVER_TYPE, SolverEnum::CONTINUITY_SOLVER);
-    globalSettings.set(GlobalSettingsIds::MODEL_FORCE_GRAD_P, true);
-    globalSettings.set(GlobalSettingsIds::MODEL_FORCE_DIV_S, false);
-    // Number of SPH particles
-    const int N = 400;
-    // Material properties
-    BodySettings bodySettings;
-    bodySettings.set(BodySettingsIds::PARTICLE_COUNT, N);
-    bodySettings.set(BodySettingsIds::INITIAL_DISTRIBUTION, DistributionEnum::LINEAR);
-    bodySettings.set(BodySettingsIds::ADIABATIC_INDEX, 1.4_f);
-    bodySettings.set(BodySettingsIds::DENSITY_RANGE, Range(0.05_f, INFTY));
-    bodySettings.set(BodySettingsIds::ENERGY_RANGE, Range(0.05_f, INFTY));
-    bodySettings.set(BodySettingsIds::DENSITY, 1._f);
-    bodySettings.set(BodySettingsIds::DENSITY_MIN, 0.1_f);
-    bodySettings.set(BodySettingsIds::ENERGY, 2.5_f);
-    bodySettings.set(BodySettingsIds::ENERGY_MIN, 0.1_f);
-
-    // Construct solver used in Sod shock tube
-    Problem sod(globalSettings, std::make_shared<Storage>());
-    InitialConditions initialConditions(sod.storage, globalSettings);
-    initialConditions.addBody(SphericalDomain(Vector(0.5_f), 0.5_f), bodySettings);
-    sod.solver = std::make_unique<ContinuitySolver<StressForce<DummyYielding, DummyDamage, StandardAV>, 1>>(
-        globalSettings);
-    /// \todo hack, recreate solver with 1 dimension
-    // sod.solver = std::make_unique<DensityIndependentSolver<1>>(globalSettings);
-
-    // Output routines
-    std::string outputDir = "sod/" + globalSettings.get<std::string>(GlobalSettingsIds::RUN_OUTPUT_NAME);
-    sod.output = std::make_unique<GnuplotOutput>(outputDir,
-        globalSettings.get<std::string>(GlobalSettingsIds::RUN_NAME),
-        "sod.plt",
-        GnuplotOutput::Options::SCIENTIFIC);
-
-
-    // Setup initial conditions of Sod Shock Tube:
-    // sod.storage = std::make_shared<Storage>();
-    Storage& storage = *sod.storage;
-    // 1) setup initial positions, with different spacing in each region
-    const Float eta = globalSettings.get<Float>(GlobalSettingsIds::SPH_KERNEL_ETA);
-    storage.getValue<Vector>(QuantityIds::POSITIONS) = sodDistribution(N, 1._f / N, eta);
-
-    // 2) setup initial pressure and masses of particles
-    ArrayView<Vector> r;
-    ArrayView<Float> p, m;
-    r = storage.getValue<Vector>(QuantityIds::POSITIONS);
-    tie(p, m) = storage.getValues<Float>(QuantityIds::PRESSURE, QuantityIds::MASSES);
-    for (Size i = 0; i < N; ++i) {
-        p[i] = smoothingFunc(r[i][0], 1._f, 0.1_f);
-        // mass = 1/N *integral density * dx
-        m[i] = 0.5_f * (1._f + 0.125_f) / N;
+class Run : public Abstract::Run {
+public:
+    Run() {
+        // Global settings of the problem
+        this->settings.set(RunSettingsId::RUN_NAME, std::string("Sod Shock Tube Problem"))
+            .set(RunSettingsId::RUN_TIME_RANGE, Range(0._f, 0.5_f))
+            .set(RunSettingsId::DOMAIN_TYPE, DomainEnum::SPHERICAL)
+            .set(RunSettingsId::DOMAIN_CENTER, Vector(0.5_f))
+            .set(RunSettingsId::DOMAIN_RADIUS, 0.5_f)
+            .set(RunSettingsId::DOMAIN_BOUNDARY, BoundaryEnum::PROJECT_1D)
+            .set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::EULER_EXPLICIT)
+            .set(RunSettingsId::SPH_AV_ALPHA, 1.0_f)
+            .set(RunSettingsId::SPH_AV_BETA, 2.0_f)
+            .set(RunSettingsId::SPH_KERNEL_ETA, 1.5_f)
+            .set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::PREDICTOR_CORRECTOR)
+            .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 1.e-5_f)
+            .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 1.e-1_f)
+            .set(RunSettingsId::TIMESTEPPING_COURANT, 0.5_f)
+            .set(RunSettingsId::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::COURANT)
+            .set(RunSettingsId::SOLVER_TYPE, SolverEnum::CONTINUITY_SOLVER)
+            .set(RunSettingsId::MODEL_FORCE_GRAD_P, true)
+            .set(RunSettingsId::MODEL_FORCE_DIV_S, false);
     }
 
-    // 3) setup density to be consistent with masses
-    std::unique_ptr<Abstract::Finder> finder = Factory::getFinder(globalSettings);
-    finder->build(storage.getValue<Vector>(QuantityIds::POSITIONS));
-    LutKernel<1> kernel = Factory::getKernel<1>(globalSettings);
-    Array<NeighbourRecord> neighs;
-    ArrayView<Float> rho = storage.getValue<Float>(QuantityIds::DENSITY);
-    for (Size i = 0; i < N; ++i) {
-        if (r[i][X] < 0.15_f) {
-            rho[i] = 1._f;
-        } else if (r[i][X] > 0.85_f) {
-            rho[i] = 0.125_f;
-        } else {
-            finder->findNeighbours(i, r[i][H] * kernel.radius(), neighs);
-            rho[i] = 0._f;
-            for (Size n = 0; n < neighs.size(); ++n) {
-                const Size j = neighs[n].index;
-                rho[i] += m[j] * kernel.value(r[i] - r[j], r[i][H]);
+private:
+    virtual void setUp() override {
+        // Number of SPH particles
+        const int N = 400;
+        // Material properties
+        BodySettings bodySettings;
+        bodySettings.set(BodySettingsId::PARTICLE_COUNT, N);
+        bodySettings.set(BodySettingsId::INITIAL_DISTRIBUTION, DistributionEnum::LINEAR);
+        bodySettings.set(BodySettingsId::ADIABATIC_INDEX, 1.4_f);
+        bodySettings.set(BodySettingsId::DENSITY_RANGE, Range(0.05_f, INFTY));
+        bodySettings.set(BodySettingsId::ENERGY_RANGE, Range(0.05_f, INFTY));
+        bodySettings.set(BodySettingsId::DENSITY, 1._f);
+        bodySettings.set(BodySettingsId::DENSITY_MIN, 0.1_f);
+        bodySettings.set(BodySettingsId::ENERGY, 2.5_f);
+        bodySettings.set(BodySettingsId::ENERGY_MIN, 0.1_f);
+
+        InitialConditions initialConditions(*storage, this->settings);
+        initialConditions.addBody(SphericalDomain(Vector(0.5_f), 0.5_f), bodySettings);
+
+        std::string outputDir = "sod/" + this->settings.get<std::string>(RunSettingsId::RUN_OUTPUT_NAME);
+        this->output = std::make_unique<GnuplotOutput>(outputDir,
+            this->settings.get<std::string>(RunSettingsId::RUN_NAME),
+            "sod.plt",
+            GnuplotOutput::Options::SCIENTIFIC);
+
+        // 1) setup initial positions, with different spacing in each region
+        const Float eta = this->settings.get<Float>(RunSettingsId::SPH_KERNEL_ETA);
+        this->storage->getValue<Vector>(QuantityId::POSITIONS) = sodDistribution(N, 1._f / N, eta);
+
+        // 2) setup initial pressure and masses of particles
+        ArrayView<Vector> r;
+        ArrayView<Float> p, m;
+        r = storage->getValue<Vector>(QuantityId::POSITIONS);
+        tie(p, m) = storage->getValues<Float>(QuantityId::PRESSURE, QuantityId::MASSES);
+        for (Size i = 0; i < N; ++i) {
+            p[i] = smoothingFunc(r[i][0], 1._f, 0.1_f);
+            // mass = 1/N *integral density * dx
+            m[i] = 0.5_f * (1._f + 0.125_f) / N;
+        }
+
+        // 3) setup density to be consistent with masses
+        std::unique_ptr<Abstract::Finder> finder = Factory::getFinder(this->settings);
+        finder->build(storage->getValue<Vector>(QuantityId::POSITIONS));
+        LutKernel<1> kernel = Factory::getKernel<1>(settings);
+        Array<NeighbourRecord> neighs;
+        ArrayView<Float> rho = storage->getValue<Float>(QuantityId::DENSITY);
+        for (Size i = 0; i < N; ++i) {
+            if (r[i][X] < 0.15_f) {
+                rho[i] = 1._f;
+            } else if (r[i][X] > 0.85_f) {
+                rho[i] = 0.125_f;
+            } else {
+                finder->findNeighbours(i, r[i][H] * kernel.radius(), neighs);
+                rho[i] = 0._f;
+                for (Size n = 0; n < neighs.size(); ++n) {
+                    const Size j = neighs[n].index;
+                    rho[i] += m[j] * kernel.value(r[i] - r[j], r[i][H]);
+                }
+            }
+        }
+
+        // 4) compute internal energy using equation of state
+        std::unique_ptr<Abstract::Eos> eos = Factory::getEos(bodySettings);
+        ArrayView<Float> u = storage->getValue<Float>(QuantityId::ENERGY);
+        for (Size i = 0; i < N; ++i) {
+            u[i] = eos->getInternalEnergy(
+                smoothingFunc(r[i][0], 1._f, 0.125_f), smoothingFunc(r[i][0], 1._f, 0.1_f));
+        }
+
+        // 5) compute energy per particle and energy density if we are using DISPH
+        /// \todo this should be somehow computed automatically
+        if (settings.get<SolverEnum>(RunSettingsId::SOLVER_TYPE) == SolverEnum::DENSITY_INDEPENDENT) {
+            ArrayView<Float> q, e;
+            tie(q, e) =
+                storage->getValues<Float>(QuantityId::ENERGY_DENSITY, QuantityId::ENERGY_PER_PARTICLE);
+            for (Size i = 0; i < N; ++i) {
+                // update 'internal' quantities in case 'external' quantities (density, specific energy, ...)
+                // have
+                // been changed outside of the solver.
+                q[i] = rho[i] * u[i];
+                e[i] = m[i] * u[i];
             }
         }
     }
 
-    // 4) compute internal energy using equation of state
-    std::unique_ptr<Abstract::Eos> eos = Factory::getEos(bodySettings);
-    ArrayView<Float> u = storage.getValue<Float>(QuantityIds::ENERGY);
-    for (Size i = 0; i < N; ++i) {
-        u[i] = eos->getInternalEnergy(
-            smoothingFunc(r[i][0], 1._f, 0.125_f), smoothingFunc(r[i][0], 1._f, 0.1_f));
-    }
 
-    // 5) compute energy per particle and energy density if we are using DISPH
-    /// \todo this should be somehow computed automatically
-    if (globalSettings.get<SolverEnum>(GlobalSettingsIds::SOLVER_TYPE) == SolverEnum::DENSITY_INDEPENDENT) {
-        ArrayView<Float> q, e;
-        tie(q, e) = storage.getValues<Float>(QuantityIds::ENERGY_DENSITY, QuantityIds::ENERGY_PER_PARTICLE);
-        for (Size i = 0; i < N; ++i) {
-            // update 'internal' quantities in case 'external' quantities (density, specific energy, ...) have
-            // been changed outside of the solver.
-            q[i] = rho[i] * u[i];
-            e[i] = m[i] * u[i];
-        }
-    }
+    virtual void tearDown() override {}
+};
 
-    // 6) run the main loop
-    sod.run();
+TEST_CASE("Sod", "[sod]") {
+    Run run;
+    run.run();
 }

@@ -8,10 +8,10 @@ NAMESPACE_SPH_BEGIN
 
 namespace Factory {
     static std::unique_ptr<Abstract::Camera> getCamera(const GuiSettings& settings) {
-        OrthoEnum id = settings.get<OrthoEnum>(GuiSettingsIds::ORTHO_PROJECTION);
+        OrthoEnum id = settings.get<OrthoEnum>(GuiSettingsId::ORTHO_PROJECTION);
         OrthoCameraData data;
-        data.fov = 240.f / settings.get<Float>(GuiSettingsIds::VIEW_FOV);
-        data.cutoff = settings.get<Float>(GuiSettingsIds::ORTHO_CUTOFF);
+        data.fov = 240.f / settings.get<Float>(GuiSettingsId::VIEW_FOV);
+        data.cutoff = settings.get<Float>(GuiSettingsId::ORTHO_CUTOFF);
         switch (id) {
         case OrthoEnum::XY:
             data.u = Vector(1._f, 0._f, 0._f);
@@ -29,32 +29,32 @@ namespace Factory {
             NOT_IMPLEMENTED;
         }
         const Point size(640, 480);
-        const Vector center(settings.get<Vector>(GuiSettingsIds::VIEW_CENTER));
+        const Vector center(settings.get<Vector>(GuiSettingsId::VIEW_CENTER));
         return std::make_unique<OrthoCamera>(size, Point(int(center[X]), int(center[Y])), data);
     }
 
     static std::unique_ptr<Abstract::Element> getElement(Storage& storage,
         const GuiSettings& settings,
-        const QuantityIds id) {
+        const QuantityId id) {
         Range range;
         switch (id) {
-        case QuantityIds::POSITIONS:
-            range = settings.get<Range>(GuiSettingsIds::PALETTE_VELOCITY);
+        case QuantityId::POSITIONS:
+            range = settings.get<Range>(GuiSettingsId::PALETTE_VELOCITY);
             return std::make_unique<VelocityElement>(storage, range);
-        case QuantityIds::DEVIATORIC_STRESS:
-            range = settings.get<Range>(GuiSettingsIds::PALETTE_STRESS);
+        case QuantityId::DEVIATORIC_STRESS:
+            range = settings.get<Range>(GuiSettingsId::PALETTE_STRESS);
             return std::make_unique<TypedElement<TracelessTensor>>(storage, id, range);
-        case QuantityIds::DENSITY:
-            range = settings.get<Range>(GuiSettingsIds::PALETTE_DENSITY);
+        case QuantityId::DENSITY:
+            range = settings.get<Range>(GuiSettingsId::PALETTE_DENSITY);
             break;
-        case QuantityIds::PRESSURE:
-            range = settings.get<Range>(GuiSettingsIds::PALETTE_PRESSURE);
+        case QuantityId::PRESSURE:
+            range = settings.get<Range>(GuiSettingsId::PALETTE_PRESSURE);
             break;
-        case QuantityIds::ENERGY:
-            range = settings.get<Range>(GuiSettingsIds::PALETTE_ENERGY);
+        case QuantityId::ENERGY:
+            range = settings.get<Range>(GuiSettingsId::PALETTE_ENERGY);
             break;
-        case QuantityIds::DAMAGE:
-            range = settings.get<Range>(GuiSettingsIds::PALETTE_DAMAGE);
+        case QuantityId::DAMAGE:
+            range = settings.get<Range>(GuiSettingsId::PALETTE_DAMAGE);
             break;
         default:
             NOT_IMPLEMENTED;

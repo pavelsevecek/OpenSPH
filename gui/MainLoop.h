@@ -8,8 +8,6 @@
 #include <functional>
 #include <wx/event.h>
 
-#include "system/LogFile.h"
-
 namespace Sph {
     class MainLoopEvent;
 }

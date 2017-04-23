@@ -15,7 +15,9 @@
     TEST_CASE(name, description)
 
 #define INTERNAL_CATCH_TEMPLATE_TEST_CASE_SECTION(Tn)                                                        \
-    SECTION(#Tn) { INTERNAL_CATCH_UNIQUE_NAME(____C_A_T_C_H____T_E_M_P_L_A_TE____T_E_S_T____)<Tn>(); }
+    SECTION(#Tn) {                                                                                           \
+        INTERNAL_CATCH_UNIQUE_NAME(____C_A_T_C_H____T_E_M_P_L_A_TE____T_E_S_T____)<Tn>();                    \
+    }
 
 #define INTERNAL_CATCH_TEMPLATE_TEST_CASE_DEFN(T)                                                            \
     template <typename T>                                                                                    \
@@ -52,15 +54,21 @@
     INTERNAL_CATCH_TEMPLATE_TEST_CASE_DEFN(T)
 
 
+#define REQUIRE_ASSERT(func)                                                                                 \
+    {                                                                                                        \
+        Sph::Assert::ScopedBreakDisabler disabler;                                                           \
+        REQUIRE_THROWS(func);                                                                                \
+    }
 
 NAMESPACE_SPH_BEGIN
 
-/// Returns a random vector. Components of integral types range from -5 to 5, for floating point types the range is -0.5 to 0.5.
+/// Returns a random vector. Components of integral types range from -5 to 5, for floating point types the
+/// range is -0.5 to 0.5.
 INLINE Vector randomVector() {
     const Float range = 1._f;
     static UniformRng rng;
     Vector v;
-    for (int i=0; i<3; ++i) {
+    for (int i = 0; i < 3; ++i) {
         v[i] = Float(range * (rng() - 0.5_f));
     }
     return v;

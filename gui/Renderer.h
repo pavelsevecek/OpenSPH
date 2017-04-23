@@ -18,7 +18,7 @@ namespace Abstract {
         virtual Bitmap getRender() const = 0;
 
         /// Changes the quantity used as color scale.
-        virtual void setQuantity(const QuantityIds key) = 0;
+        virtual void setQuantity(const QuantityId key) = 0;
     };
 }
 

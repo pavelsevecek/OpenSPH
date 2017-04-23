@@ -77,7 +77,9 @@ BinaryOutput::BinaryOutput(const std::string& fileMask, const std::string& runNa
 
 struct StoreBuffers {
     template <typename Value>
-    void visit(std::ofstream& ofs, Quantity& q) {}
+    void visit(std::ofstream&, Quantity&) {
+        NOT_IMPLEMENTED;
+    }
 };
 
 template <typename TValue, typename TStoreValue>
@@ -120,7 +122,6 @@ std::string BinaryOutput::dump(Storage& storage, const Float time) {
         case ValueEnum::SCALAR:
             storeBuffers<Float>(q, [&ofs](const Float f) { ofs << f; });
             break;
-        /// \todo storing smoothing length?
         case ValueEnum::VECTOR:
             storeBuffers<Vector>(q, [&ofs](const Vector& v) { ofs << v[X] << v[Y] << v[Z]; });
             break;

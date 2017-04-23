@@ -146,6 +146,19 @@ namespace Detail {
             }
         }
 
+        INLINE StaticArray<const Array<TValue>&, 3> getAll() const {
+            switch (order) {
+            case OrderEnum::ZERO:
+                return { v };
+            case OrderEnum::FIRST:
+                return { v, dv_dt };
+            case OrderEnum::SECOND:
+                return { v, dv_dt, d2v_dt2 };
+            default:
+                NOT_IMPLEMENTED;
+            }
+        }
+
         INLINE StaticArray<Array<TValue>&, 3> getPhysicalAll() {
             switch (order) {
             case OrderEnum::ZERO:
@@ -159,18 +172,18 @@ namespace Detail {
             }
         }
 
-        INLINE Array<TValue>& getModification() {
+        INLINE StaticArray<Array<TValue>&, 2> modify() {
             if (pv.size() != v.size()) {
                 // lazy initialization
                 pv = copyable(v);
             }
-            return pv;
+            return { v, pv };
         }
 
         /// Clones the quantity, optionally selecting arrays to clone; returns them as unique_ptr.
         Holder clone(const Flags<VisitorEnum> flags) const {
             Holder cloned(order);
-            visit(cloned, flags, [](const Array<TValue>& array, Array<TValue>& clonedArray) {
+            visitConst(cloned, flags, [](const Array<TValue>& array, Array<TValue>& clonedArray) {
                 clonedArray = array.clone();
             });
             return cloned;
@@ -178,7 +191,7 @@ namespace Detail {
 
         /// Swaps arrays in two quantities, optionally selecting arrays to swap.
         void swap(Holder& other, Flags<VisitorEnum> flags) {
-            visit(other, flags, [](Array<TValue>& ar1, Array<TValue>& ar2) { ar1.swap(ar2); });
+            visitMutable(other, flags, [](Array<TValue>& ar1, Array<TValue>& ar2) { ar1.swap(ar2); });
         }
 
     private:
@@ -198,10 +211,8 @@ namespace Detail {
         }
 
         template <typename TFunctor>
-        void visit(Holder& other, const Flags<VisitorEnum> flags, TFunctor&& functor) {
+        void visitMutable(Holder& other, const Flags<VisitorEnum> flags, TFunctor&& functor) {
             if (flags.hasAny(VisitorEnum::ZERO_ORDER,
-                    VisitorEnum::FIRST_ORDER,
-                    VisitorEnum::SECOND_ORDER,
                     VisitorEnum::ALL_BUFFERS,
                     VisitorEnum::ALL_VALUES,
                     VisitorEnum::DEPENDENT_VALUES)) {
@@ -234,8 +245,8 @@ namespace Detail {
         }
 
         template <typename TFunctor>
-        void visit(Holder& other, const Flags<VisitorEnum> flags, TFunctor&& functor) const {
-            visit(other, flags, functor);
+        void visitConst(Holder& other, const Flags<VisitorEnum> flags, TFunctor&& functor) const {
+            const_cast<Holder*>(this)->visitMutable(other, flags, std::forward<TFunctor>(functor));
         }
     };
 }
@@ -288,7 +299,8 @@ public:
     }
 
     ValueEnum getValueEnum() const {
-        return ValueEnum(data.getTypeIdx());
+        ASSERT(data.getTypeIdx() != 0);
+        return ValueEnum(data.getTypeIdx() - 1);
     }
 
     Quantity clone(const Flags<VisitorEnum> flags) const {
@@ -298,6 +310,7 @@ public:
 
     /// Swap quantity (or selected part of it) with other quantity.
     void swap(Quantity& other, const Flags<VisitorEnum> flags) {
+        ASSERT(this->getValueEnum() == other.getValueEnum());
         forValue(data, [flags, &other](auto& holder) {
             using Type = std::decay_t<decltype(holder)>;
             return holder.swap(other.data.get<Type>(), flags);
@@ -336,8 +349,8 @@ public:
     }
 
     template <typename TValue>
-    INLINE Array<TValue>& getModification() {
-        return get<TValue>().getModification();
+    INLINE StaticArray<Array<TValue>&, 2> modify() {
+        return get<TValue>().modify();
     }
 
     /// Returns a reference to array of first derivatives of quantity. The type of the quantity must match the
@@ -377,6 +390,11 @@ public:
     }
 
     template <typename TValue>
+    StaticArray<const Array<TValue>&, 3> getAll() const {
+        return get<TValue>().getAll();
+    }
+
+    template <typename TValue>
     StaticArray<Array<TValue>&, 3> getPhysicalAll() {
         return get<TValue>().getPhysicalAll();
     }
@@ -387,9 +405,9 @@ public:
     template <typename TIndexSequence>
     void clamp(const TIndexSequence& sequence, const Range range) {
         forValue(data, [&sequence, range](auto& v) {
-            auto values = v.getValue();
+            auto& values = v.getValue();
             for (Size idx : sequence) {
-                clamp(values[idx], range);
+                values[idx] = Sph::clamp(values[idx], range);
             }
         });
     }

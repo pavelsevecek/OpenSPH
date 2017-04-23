@@ -10,7 +10,7 @@
 NAMESPACE_SPH_BEGIN
 
 /// Unique ID of basic quantities of SPH particles
-enum class QuantityIds {
+enum class QuantityId {
     /// Common quantities
     POSITIONS,   ///< Positions (velocities, accelerations) of particles, always a vector quantity,
     MASSES,      ///< Paricles masses, always a scalar quantity.
@@ -37,11 +37,19 @@ enum class QuantityIds {
                          /// distribution.
     YIELDING_REDUCE,
 
+    /// Intermediate quantities
+    VELOCITY_GRADIENT,           ///< Velocity gradient
+    VELOCITY_DIVERGENCE,         ///< Velocity divergence
+    VELOCITY_ROTATION,           ///< Velocity rotation
+    STRENGTH_VELOCITY_GRADIENT,  ///< Gradient computed by summing up particles with non-zero stress tensor
+                                 /// from the same body and strengthless particles (from any body). Used to
+                                 /// implement the 'spring interaction'.
+    ANGULAR_MOMENTUM_CORRECTION, ///< Correction tensor used to improve conservation of total angular
+                                 /// momentum.
+
     /// Artificial velocity
-    VELOCITY_DIVERGENCE, ///< Velocity divergence
-    VELOCITY_ROTATION,   ///< Velocity rotation
-    AV_ALPHA,            ///< Coefficient alpha of the artificial viscosity
-    AV_BETA,             ///< Coefficient beta of the artificial viscosity
+    AV_ALPHA, ///< Coefficient alpha of the artificial viscosity
+    AV_BETA,  ///< Coefficient beta of the artificial viscosity
 
     /// SPH statistics
     NEIGHBOUR_CNT, ///< Number of neighbouring particles (in radius h * kernel.radius)
@@ -51,29 +59,29 @@ enum class QuantityIds {
     MATERIAL_IDX, ///< Material ID
 };
 
-INLINE std::string getQuantityName(const QuantityIds key) {
+INLINE std::string getQuantityName(const QuantityId key) {
     switch (key) {
-    case QuantityIds::POSITIONS:
+    case QuantityId::POSITIONS:
         return "Position";
-    case QuantityIds::MASSES:
+    case QuantityId::MASSES:
         return "Particle mass";
-    case QuantityIds::PRESSURE:
+    case QuantityId::PRESSURE:
         return "Pressure";
-    case QuantityIds::DENSITY:
+    case QuantityId::DENSITY:
         return "Density";
-    case QuantityIds::ENERGY:
+    case QuantityId::ENERGY:
         return "Spec. energy";
-    case QuantityIds::SOUND_SPEED:
+    case QuantityId::SOUND_SPEED:
         return "Sound speed";
-    case QuantityIds::DEVIATORIC_STRESS:
+    case QuantityId::DEVIATORIC_STRESS:
         return "Stress";
-    case QuantityIds::DAMAGE:
+    case QuantityId::DAMAGE:
         return "Damage";
-    case QuantityIds::NEIGHBOUR_CNT:
+    case QuantityId::NEIGHBOUR_CNT:
         return "Neigh. cnt";
-    case QuantityIds::MATERIAL_IDX:
+    case QuantityId::MATERIAL_IDX:
         return "Mat. idx";
-    case QuantityIds::FLAG:
+    case QuantityId::FLAG:
         return "Flag";
     default:
         NOT_IMPLEMENTED;
@@ -81,16 +89,16 @@ INLINE std::string getQuantityName(const QuantityIds key) {
 }
 
 template <typename TStream>
-INLINE TStream& operator<<(TStream& stream, const QuantityIds key) {
+INLINE TStream& operator<<(TStream& stream, const QuantityId key) {
     stream << getQuantityName(key);
     return stream;
 }
 
-INLINE std::string getDerivativeName(const QuantityIds key) {
+INLINE std::string getDerivativeName(const QuantityId key) {
     switch (key) {
-    case QuantityIds::POSITIONS:
+    case QuantityId::POSITIONS:
         return "Velocity";
-    case QuantityIds::DEVIATORIC_STRESS:
+    case QuantityId::DEVIATORIC_STRESS:
         return "[debug] dS/dt";
     default:
         NOT_IMPLEMENTED;

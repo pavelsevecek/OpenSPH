@@ -5,7 +5,7 @@
 NAMESPACE_SPH_BEGIN
 
 Array<ParticlePairing::Pair> ParticlePairing::getPairs(Storage& storage) const {
-    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityIds::POSITIONS);
+    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
     KdTree finder;
     finder.build(r);
 
@@ -38,7 +38,7 @@ Outcome ParticlePairing::check(Storage& storage) {
 }
 
 Outcome SmoothingDiscontinuity::check(Storage& storage) {
-    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityIds::POSITIONS);
+    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
     KdTree finder;
     finder.build(r);
     Array<NeighbourRecord> neighs;

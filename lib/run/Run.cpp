@@ -1,4 +1,4 @@
-#include "problem/Problem.h"
+#include "run/Run.h"
 #include "io/LogFile.h"
 #include "io/Logger.h"
 #include "io/Output.h"
@@ -33,15 +33,15 @@ public:
     }
 };
 
-Abstract::Problem::Problem() = default;
+Abstract::Run::Run() = default;
 
-Abstract::Problem::~Problem() = default;
+Abstract::Run::~Run() = default;
 
-void Abstract::Problem::run() {
+void Abstract::Run::run() {
     Size i = 0;
     // fetch parameters of run from settings
-    const Float outputInterval = settings.get<Float>(GlobalSettingsIds::RUN_OUTPUT_INTERVAL);
-    const Range timeRange = settings.get<Range>(GlobalSettingsIds::RUN_TIME_RANGE);
+    const Float outputInterval = settings.get<Float>(RunSettingsId::RUN_OUTPUT_INTERVAL);
+    const Range timeRange = settings.get<Range>(RunSettingsId::RUN_TIME_RANGE);
 
     // set uninitilized variables
     setNullToDefaults();
@@ -50,8 +50,8 @@ void Abstract::Problem::run() {
     Float nextOutput = outputInterval;
     logger->write("Running:");
     Timer runTimer;
-    EndingCondition condition(settings.get<Float>(GlobalSettingsIds::RUN_WALLCLOCK_TIME),
-        settings.get<int>(GlobalSettingsIds::RUN_TIMESTEP_CNT));
+    EndingCondition condition(settings.get<Float>(RunSettingsId::RUN_WALLCLOCK_TIME),
+        settings.get<int>(RunSettingsId::RUN_TIMESTEP_CNT));
     Statistics stats;
 
     Outcome result = SUCCESS;
@@ -68,13 +68,13 @@ void Abstract::Problem::run() {
         timeStepping->step(*solver, stats);
 
         // log
-        stats.set(StatisticsIds::TOTAL_TIME, t);
-        stats.set(StatisticsIds::INDEX, (int)i);
+        stats.set(StatisticsId::TOTAL_TIME, t);
+        stats.set(StatisticsId::INDEX, (int)i);
 
         for (auto& log : logFiles) {
             log->write(*storage, stats);
         }
-        callbacks->onTimeStep(storage, stats);
+        callbacks->onTimeStep(storage, stats, timeRange);
         if (callbacks->shouldAbortRun()) {
             result = "Aborted by user";
             break;
@@ -89,7 +89,7 @@ void Abstract::Problem::run() {
     }
 }
 
-void Abstract::Problem::setNullToDefaults() {
+void Abstract::Run::setNullToDefaults() {
     ASSERT(storage != nullptr);
     ASSERT(solver != nullptr);
     if (!logger) {

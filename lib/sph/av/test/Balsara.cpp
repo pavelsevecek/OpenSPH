@@ -16,23 +16,23 @@ void setupBalsara(Storage& storage, BalsaraSwitch<StandardAV>& balsaraAv, TFunct
     const Size N = 10000;
     SphericalDomain domain(Vector(0._f), 1._f);
     storage.insert<Vector, OrderEnum::SECOND>(
-        QuantityIds::POSITIONS, distribution.generate(N, domain));
+        QuantityId::POSITIONS, distribution.generate(N, domain));
     balsaraAv.initialize(storage, BodySettings::getDefaults());
-    storage.insert<Float, OrderEnum::ZERO>(QuantityIds::DENSITY, 100._f);
+    storage.insert<Float, OrderEnum::ZERO>(QuantityId::DENSITY, 100._f);
     storage.insert<Float, OrderEnum::ZERO>(
-        QuantityIds::MASSES, 100._f * domain.getVolume() / storage.getParticleCnt());
-    storage.insert<Float, OrderEnum::ZERO>(QuantityIds::SOUND_SPEED, 1.e-4_f);
+        QuantityId::MASSES, 100._f * domain.getVolume() / storage.getParticleCnt());
+    storage.insert<Float, OrderEnum::ZERO>(QuantityId::SOUND_SPEED, 1.e-4_f);
     ArrayView<Vector> r, v, dv;
-    tie(r, v, dv) = storage.getAll<Vector>(QuantityIds::POSITIONS);
+    tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
     for (Size i = 0; i < r.size(); ++i) {
         v[i] = functor(r[i]);
     }
 
     // compute velocity divergence and rotation
     balsaraAv.update(storage);
-    std::unique_ptr<Abstract::Finder> finder = Factory::getFinder(GlobalSettings::getDefaults());
+    std::unique_ptr<Abstract::Finder> finder = Factory::getFinder(RunSettings::getDefaults());
     finder->build(r);
-    LutKernel<3> kernel = Factory::getKernel<3>(GlobalSettings::getDefaults());
+    LutKernel<3> kernel = Factory::getKernel<3>(RunSettings::getDefaults());
     Array<NeighbourRecord> neighs;
     for (Size i = 0; i < r.size(); ++i) {
         finder->findNeighbours(i, r[i][H] * kernel.radius(), neighs, FinderFlags::FIND_ONLY_SMALLER_H);
@@ -47,7 +47,7 @@ void setupBalsara(Storage& storage, BalsaraSwitch<StandardAV>& balsaraAv, TFunct
 }
 
 TEST_CASE("Balsara shear flow", "[av]") {
-    BalsaraSwitch<StandardAV> balsaraAv(GlobalSettings::getDefaults());
+    BalsaraSwitch<StandardAV> balsaraAv(RunSettings::getDefaults());
     Storage storage;
     setupBalsara(storage, balsaraAv, [](const Vector& r) {
         // spin-up particles with some differential rotation
@@ -56,18 +56,18 @@ TEST_CASE("Balsara shear flow", "[av]") {
     });
 
     // check that artificial viscosity is non-zero and that it drops to zero after applying Balsara switch
-    StandardAV standardAv(GlobalSettings::getDefaults());
+    StandardAV standardAv(RunSettings::getDefaults());
     standardAv.update(storage);
 
     double origSum = 0., reducedSum = 0.;
-    std::unique_ptr<Abstract::Finder> finder = Factory::getFinder(GlobalSettings::getDefaults());
+    std::unique_ptr<Abstract::Finder> finder = Factory::getFinder(RunSettings::getDefaults());
     ArrayView<Vector> r, rotv;
     ArrayView<Float> divv;
-    r = storage.getValue<Vector>(QuantityIds::POSITIONS);
-    divv = storage.getValue<Float>(QuantityIds::VELOCITY_DIVERGENCE);
-    rotv = storage.getValue<Vector>(QuantityIds::VELOCITY_ROTATION);
+    r = storage.getValue<Vector>(QuantityId::POSITIONS);
+    divv = storage.getValue<Float>(QuantityId::VELOCITY_DIVERGENCE);
+    rotv = storage.getValue<Vector>(QuantityId::VELOCITY_ROTATION);
     finder->build(r);
-    LutKernel<3> kernel = Factory::getKernel<3>(GlobalSettings::getDefaults());
+    LutKernel<3> kernel = Factory::getKernel<3>(RunSettings::getDefaults());
     Array<NeighbourRecord> neighs;
 
     auto test = [&](const Size i) {
@@ -106,7 +106,7 @@ TEST_CASE("Balsara shear flow", "[av]") {
 
 
 TEST_CASE("Balsara divergent flow", "[av]") {
-    BalsaraSwitch<StandardAV> balsaraAv(GlobalSettings::getDefaults());
+    BalsaraSwitch<StandardAV> balsaraAv(RunSettings::getDefaults());
     Storage storage;
     setupBalsara(storage, balsaraAv, [](const Vector& r) {
         // inward motion with no rotation
@@ -114,19 +114,19 @@ TEST_CASE("Balsara divergent flow", "[av]") {
     });
 
     // check that Balsara does not affect artificial viscosity
-    StandardAV standardAv(GlobalSettings::getDefaults());
+    StandardAV standardAv(RunSettings::getDefaults());
     standardAv.update(storage);
     double origSum = 0., reducedSum = 0.;
-    std::unique_ptr<Abstract::Finder> finder = Factory::getFinder(GlobalSettings::getDefaults());
+    std::unique_ptr<Abstract::Finder> finder = Factory::getFinder(RunSettings::getDefaults());
     ArrayView<Vector> r;
     ArrayView<Float> divv;
     ArrayView<Vector> rotv;
-    r = storage.getValue<Vector>(QuantityIds::POSITIONS);
-    divv = storage.getValue<Float>(QuantityIds::VELOCITY_DIVERGENCE);
-    rotv = storage.getValue<Vector>(QuantityIds::VELOCITY_ROTATION);
+    r = storage.getValue<Vector>(QuantityId::POSITIONS);
+    divv = storage.getValue<Float>(QuantityId::VELOCITY_DIVERGENCE);
+    rotv = storage.getValue<Vector>(QuantityId::VELOCITY_ROTATION);
 
     finder->build(r);
-    LutKernel<3> kernel = Factory::getKernel<3>(GlobalSettings::getDefaults());
+    LutKernel<3> kernel = Factory::getKernel<3>(RunSettings::getDefaults());
     Array<NeighbourRecord> neighs;
     auto test2 = [&](const Size i) {
         if (getLength(r[i]) >= 0.7_f) {

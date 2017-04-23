@@ -11,15 +11,15 @@ NAMESPACE_SPH_BEGIN
 
 template <typename U, typename T, typename TFunctor, typename TComparator>
 Iterator<T> findByComparator(ArrayView<T> container,
-                             TFunctor&& functor,
-                             const U defaultValue,
-                             TComparator&& comparator) {
-    U maxValue          = defaultValue;
+    TFunctor&& functor,
+    const U defaultValue,
+    TComparator&& comparator) {
+    U maxValue = defaultValue;
     Iterator<T> maxIter = container.begin();
     for (Iterator<T> iter = container.begin(); iter != container.end(); ++iter) {
         U value = functor(*iter);
         if (comparator(value, maxValue)) {
-            maxIter  = iter;
+            maxIter = iter;
             maxValue = value;
         }
     }
@@ -28,31 +28,31 @@ Iterator<T> findByComparator(ArrayView<T> container,
 
 template <typename U, typename T, typename TFunctor>
 Iterator<T> findByMaximum(ArrayView<T> container, TFunctor&& functor) {
-    return findByComparator<U>(container,
-                               std::forward<TFunctor>(functor),
-                               U(-INFTY),
-                               [](const U& v1, const U& v2) { return v1 > v2; });
+    return findByComparator<U>(
+        container, std::forward<TFunctor>(functor), U(-INFTY), [](const U& v1, const U& v2) {
+            return v1 > v2;
+        });
 }
 
 
 template <typename U, typename T, typename TFunctor>
 Iterator<T> findByMinimum(ArrayView<T> container, TFunctor&& functor) {
-    return findByComparator<U>(container,
-                               std::forward<TFunctor>(functor),
-                               U(INFTY),
-                               [](const U& v1, const U& v2) { return v1 < v2; });
+    return findByComparator<U>(
+        container, std::forward<TFunctor>(functor), U(INFTY), [](const U& v1, const U& v2) {
+            return v1 < v2;
+        });
 }
 
 /// Returns first the lower iterator
 /// \todo ignore same iterator (inner = outer?) flag?
 template <typename U, typename T, typename TFunctor, typename TComparator>
 Tuple<Iterator<T>, Iterator<T>> findPairByComparator(ArrayView<T> container,
-                                                     TFunctor&& functor,
-                                                     const U defaultValue,
-                                                     TComparator&& comparator) {
+    TFunctor&& functor,
+    const U defaultValue,
+    TComparator&& comparator) {
     Iterator<T> maxOuterIter = container.begin();
     Iterator<T> maxInnerIter = container.end();
-    U maxValue               = defaultValue;
+    U maxValue = defaultValue;
     for (Iterator<T> outerIter = container.begin(); outerIter != container.end(); ++outerIter) {
         for (Iterator<T> innerIter = container.begin(); innerIter != container.end(); ++innerIter) {
             if (outerIter == innerIter) {
@@ -62,7 +62,7 @@ Tuple<Iterator<T>, Iterator<T>> findPairByComparator(ArrayView<T> container,
             if (comparator(value, maxValue)) {
                 maxOuterIter = outerIter;
                 maxInnerIter = innerIter;
-                maxValue     = value;
+                maxValue = value;
             }
         }
     }
@@ -72,24 +72,24 @@ Tuple<Iterator<T>, Iterator<T>> findPairByComparator(ArrayView<T> container,
 
 template <typename U, typename T, typename TFunctor>
 Tuple<Iterator<T>, Iterator<T>> findPairByMaximum(ArrayView<T> container, TFunctor&& functor) {
-    return findPairByComparator<U>(container,
-                                   std::forward<TFunctor>(functor),
-                                   U(-INFTY),
-                                   [](const U& v1, const U& v2) { return v1 > v2; });
+    return findPairByComparator<U>(
+        container, std::forward<TFunctor>(functor), U(-INFTY), [](const U& v1, const U& v2) {
+            return v1 > v2;
+        });
 }
 
 template <typename U, typename T, typename TFunctor>
 Tuple<Iterator<T>, Iterator<T>> findPairByMinimum(ArrayView<T> container, TFunctor&& functor) {
-    return findPairByComparator<U>(container,
-                                   std::forward<TFunctor>(functor),
-                                   U(INFTY),
-                                   [](const U& v1, const U& v2) { return v1 < v2; });
+    return findPairByComparator<U>(
+        container, std::forward<TFunctor>(functor), U(INFTY), [](const U& v1, const U& v2) {
+            return v1 < v2;
+        });
 }
 
 template <typename TStorage, typename TFunctor>
 int getCountMatching(const TStorage& container, TFunctor&& functor) {
     int cnt = 0;
-    for (auto&& t : container) {
+    for (const auto& t : container) {
         if (functor(t)) {
             cnt++;
         }
@@ -99,7 +99,7 @@ int getCountMatching(const TStorage& container, TFunctor&& functor) {
 
 template <typename TStorage, typename TFunctor>
 bool areAllMatching(const TStorage& container, TFunctor&& functor) {
-    for (auto&& t : container) {
+    for (const auto& t : container) {
         if (!functor(t)) {
             return false;
         }
@@ -109,13 +109,12 @@ bool areAllMatching(const TStorage& container, TFunctor&& functor) {
 
 template <typename TStorage, typename TFunctor>
 bool isAnyMatching(const TStorage& container, TFunctor&& functor) {
-    for (auto&& t : container) {
+    for (const auto& t : container) {
         if (functor(t)) {
             return true;
         }
     }
     return false;
 }
-
 
 NAMESPACE_SPH_END

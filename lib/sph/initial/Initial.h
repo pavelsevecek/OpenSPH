@@ -23,14 +23,18 @@ struct InitialContext {
 /// objects are used, quantity FLAG must be manually updated to be unique for each body in the simulation.
 class InitialConditions : public Noncopyable {
 private:
-    std::shared_ptr<Storage> storage;
+    Storage& storage;
     std::unique_ptr<Abstract::Solver> solver;
     Size bodyIndex = 0;
 
     InitialContext context;
 
 public:
-    InitialConditions(const std::shared_ptr<Storage> storage, const GlobalSettings& globalSettings);
+    InitialConditions(Storage& storage, const RunSettings& settings);
+
+    InitialConditions(Storage& storage,
+        std::unique_ptr<Abstract::Solver>&& solver,
+        const RunSettings& settings);
 
     ~InitialConditions();
 
@@ -46,16 +50,31 @@ public:
 
     /// Overload with custom material.
     void addBody(const Abstract::Domain& domain,
-        const BodySettings& bodySettings,
         std::unique_ptr<Abstract::Material>&& material,
         const Vector& velocity = Vector(0._f),
         const Vector& angularVelocity = Vector(0._f));
 
     struct Body {
-        const Abstract::Domain& domain;
-        BodySettings& settings;
+        std::unique_ptr<Abstract::Domain> domain;
+        std::unique_ptr<Abstract::Material> material;
         Vector velocity;
         Vector angularVelocity;
+
+        Body();
+
+        Body(std::unique_ptr<Abstract::Domain>&& domain,
+            std::unique_ptr<Abstract::Material>&& material,
+            const Vector& velocity = Vector(0._f),
+            const Vector& angularVelocity = Vector(0._f));
+
+        Body(std::unique_ptr<Abstract::Domain>&& domain,
+            const BodySettings& settings,
+            const Vector& velocity = Vector(0._f),
+            const Vector& angularVelocity = Vector(0._f));
+
+        Body(Body&& other);
+
+        ~Body();
     };
 
     /// Creates particles composed of different materials.
@@ -68,11 +87,11 @@ public:
     ///               in
     ///               settings is irrelevant), they simply override particles created by environment body.
     ///               If multiple bodies overlap, particles are assigned to body listed first in the array.
-    void addHeterogeneousBody(const Body& environment, ArrayView<const Body> bodies);
+    void addHeterogeneousBody(Body&& environment, ArrayView<Body> bodies);
 
 private:
     void setQuantities(Storage& storage,
-        const BodySettings& settings,
+        Abstract::Material& material,
         const Float volume,
         const Vector& velocity,
         const Vector& angularVelocity);

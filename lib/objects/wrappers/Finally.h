@@ -23,7 +23,7 @@ public:
 /// Returns Finally object utilizing type deduction
 template <typename TFunctor>
 Finally<TFunctor> finally(TFunctor&& functor) {
-    return Finally<TFunctor>(std::forward<TFinally>(functor));
+    return Finally<TFunctor>(std::forward<TFunctor>(functor));
 }
 
 NAMESPACE_SPH_END

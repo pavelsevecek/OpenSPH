@@ -22,6 +22,9 @@ private:
     TCounter actSize = 0;
 
 public:
+    using Type = T;
+    using Counter = TCounter;
+
     ArrayView()
         : data(nullptr) {}
 
@@ -121,6 +124,15 @@ public:
             }
         }
         return true;
+    }
+
+    /// Prints content of arrayview to stream. Stored values must have overloaded << operator.
+    template <typename TStream>
+    friend TStream& operator<<(TStream& stream, const ArrayView& array) {
+        for (const T& t : array) {
+            stream << t << std::endl;
+        }
+        return stream;
     }
 };
 

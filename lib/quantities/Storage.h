@@ -13,13 +13,13 @@ namespace Abstract {
 }
 
 struct StorageElement {
-    QuantityIds id;
+    QuantityId id;
     Quantity& quantity;
 };
 
 class StorageIterator {
 private:
-    using Iterator = std::map<QuantityIds, Quantity>::iterator;
+    using Iterator = std::map<QuantityId, Quantity>::iterator;
 
     Iterator iter;
 
@@ -66,7 +66,7 @@ class Storage : public Noncopyable {
 
 private:
     /// Stored quantities (array of arrays). All arrays must be the same size at all times.
-    std::map<QuantityIds, Quantity> quantities;
+    std::map<QuantityId, Quantity> quantities;
 
     /// Holds materials of particles. Each particle can (in theory) have a different material.
     Array<std::unique_ptr<Abstract::Material>> materials;
@@ -84,13 +84,13 @@ public:
     Storage& operator=(Storage&& other);
 
     /// Checks if the storage contains quantity with given key. Type or order of unit is not specified.
-    bool has(const QuantityIds key) const {
+    bool has(const QuantityId key) const {
         return quantities.find(key) != quantities.end();
     }
 
     /// Checks if the storage contains quantity with given key, value type and order.
     template <typename TValue, OrderEnum TOrder>
-    bool has(const QuantityIds key) const {
+    bool has(const QuantityId key) const {
         auto iter = quantities.find(key);
         if (iter == quantities.end()) {
             return false;
@@ -101,7 +101,14 @@ public:
 
     /// Retrieves quantity with given key from the storage. Quantity must be already stored, checked by
     /// assert.
-    virtual Quantity& getQuantity(const QuantityIds key) {
+    Quantity& getQuantity(const QuantityId key) {
+        auto iter = quantities.find(key);
+        ASSERT(iter != quantities.end());
+        return iter->second;
+    }
+
+    /// Retrieves quantity with given key from the storage, const version.
+    const Quantity& getQuantity(const QuantityId key) const {
         auto iter = quantities.find(key);
         ASSERT(iter != quantities.end());
         return iter->second;
@@ -112,8 +119,15 @@ public:
     /// check whether the quantity is stored, use has() method.
     /// \return Array of references to Arrays, containing quantity values and all derivatives.
     template <typename TValue>
-    StaticArray<Array<TValue>&, 3> getAll(const QuantityIds key) {
+    StaticArray<Array<TValue>&, 3> getAll(const QuantityId key) {
         Quantity& q = this->getQuantity(key);
+        ASSERT(q.getValueEnum() == GetValueEnum<TValue>::type);
+        return q.getAll<TValue>();
+    }
+
+    template <typename TValue>
+    StaticArray<const Array<TValue>&, 3> getAll(const QuantityId key) const {
+        const Quantity& q = this->getQuantity(key);
         ASSERT(q.getValueEnum() == GetValueEnum<TValue>::type);
         return q.getAll<TValue>();
     }
@@ -125,7 +139,7 @@ public:
     /// of quantity for use in equations, use \ref getPhysicalValue.
     /// \return Array reference containing stored quantity values.
     template <typename TValue>
-    Array<TValue>& getValue(const QuantityIds key) {
+    Array<TValue>& getValue(const QuantityId key) {
         Quantity& q = this->getQuantity(key);
         ASSERT(q.getValueEnum() == GetValueEnum<TValue>::type);
         return q.getValue<TValue>();
@@ -134,23 +148,36 @@ public:
     /// Retrieves a quantity values from the storage, given its key and value type, const version.
     /// \todo test
     template <typename TValue>
-    const Array<TValue>& getValue(const QuantityIds key) const {
+    const Array<TValue>& getValue(const QuantityId key) const {
         return const_cast<Storage*>(this)->getValue<TValue>(key);
     }
 
     /// Returns the physical values of given quantity.
     template <typename TValue>
-    Array<TValue>& getPhysicalValue(const QuantityIds key) {
+    Array<TValue>& getPhysicalValue(const QuantityId key) {
         Quantity& q = this->getQuantity(key);
         ASSERT(q.getValueEnum() == GetValueEnum<TValue>::type);
         return q.getPhysicalValue<TValue>();
     }
 
     template <typename TValue>
-    Array<TValue>& getModification(const QuantityIds key) {
+    const Array<TValue>& getPhysicalValue(const QuantityId key) const {
+        return const_cast<Storage*>(this)->getPhysicalValue<TValue>(key);
+    }
+
+    /// Returns all buffers, using physical values instead of stored values.
+    template <typename TValue>
+    StaticArray<Array<TValue>&, 3> getPhysicalAll(const QuantityId key) {
         Quantity& q = this->getQuantity(key);
         ASSERT(q.getValueEnum() == GetValueEnum<TValue>::type);
-        return q.getModification<TValue>();
+        return q.getPhysicalAll<TValue>();
+    }
+
+    template <typename TValue>
+    StaticArray<Array<TValue>&, 2> modify(const QuantityId key) {
+        Quantity& q = this->getQuantity(key);
+        ASSERT(q.getValueEnum() == GetValueEnum<TValue>::type);
+        return q.modify<TValue>();
     }
 
     /// Retrieves a quantity derivative from the storage, given its key and value type. The stored quantity
@@ -158,7 +185,7 @@ public:
     /// first or second order, checked by assert.
     /// \return Array reference containing quantity derivatives.
     template <typename TValue>
-    Array<TValue>& getDt(const QuantityIds key) {
+    Array<TValue>& getDt(const QuantityId key) {
         Quantity& q = this->getQuantity(key);
         ASSERT(q.getValueEnum() == GetValueEnum<TValue>::type);
         return q.getDt<TValue>();
@@ -166,7 +193,7 @@ public:
 
     /// Retrieves a quantity derivative from the storage, given its key and value type, const version.
     template <typename TValue>
-    const Array<TValue>& getDt(const QuantityIds key) const {
+    const Array<TValue>& getDt(const QuantityId key) const {
         return const_cast<Storage*>(this)->getDt<TValue>(key);
     }
 
@@ -175,14 +202,14 @@ public:
     /// must be second order, checked by assert.
     /// \return Array reference containing quantity second derivatives.
     template <typename TValue>
-    Array<TValue>& getD2t(const QuantityIds key) {
+    Array<TValue>& getD2t(const QuantityId key) {
         Quantity& q = this->getQuantity(key);
         ASSERT(q.getValueEnum() == GetValueEnum<TValue>::type);
         return q.getD2t<TValue>();
     }
 
     template <typename TValue>
-    Array<TValue>& getHighestDerivative(const QuantityIds key) {
+    Array<TValue>& getHighestDerivative(const QuantityId key) {
         Quantity& q = this->getQuantity(key);
         ASSERT(q.getValueEnum() == GetValueEnum<TValue>::type);
         switch (q.getOrderEnum()) {
@@ -200,20 +227,21 @@ public:
     /// Retrieves an array of quantities from the key. The type of all quantities must be the same and equal
     /// to TValue, checked by assert.
     template <typename TValue, typename... TArgs>
-    auto getValues(const QuantityIds first, const QuantityIds second, const TArgs... others) {
+    auto getValues(const QuantityId first, const QuantityId second, const TArgs... others) {
         return tie(getValue<TValue>(first), getValue<TValue>(second), getValue<TValue>(others)...);
     }
 
     /// Retrieves an array of quantities from the key, const version.
     template <typename TValue, typename... TArgs>
-    auto getValues(const QuantityIds first, const QuantityIds second, const TArgs... others) const {
+    auto getValues(const QuantityId first, const QuantityId second, const TArgs... others) const {
         // better not const_cast here as we are deducing return type
         return tie(getValue<TValue>(first), getValue<TValue>(second), getValue<TValue>(others)...);
     }
 
     /// Creates a quantity in the storage, given its key, value type and order. Quantity is resized and filled
     /// with default value. This cannot be used to set number of particles, the size of the quantity is set to
-    /// match current particle number. Can be used to override existing quantity with the same key.
+    /// match current particle number. Cannot be used if there already is a quantity with the same key,
+    /// checked by assert.
     /// \tparam TValue Type of the quantity. Can be scalar, vector, tensor or traceless tensor.
     /// \tparam TOrder Order (number of derivatives) associated with the quantity.
     /// \param key Unique key of the quantity.
@@ -223,7 +251,8 @@ public:
     ///              by timestepping algorithm. By default, quantities are unbounded.
     /// \returns Reference to the inserted quantity.
     template <typename TValue>
-    Quantity& insert(const QuantityIds key, const OrderEnum order, const TValue& defaultValue) {
+    Quantity& insert(const QuantityId key, const OrderEnum order, const TValue& defaultValue) {
+        ASSERT(!this->has(key));
         const Size particleCnt = getParticleCnt();
         ASSERT(particleCnt);
         quantities[key] = Quantity(order, defaultValue, particleCnt);
@@ -231,19 +260,20 @@ public:
     }
 
     /// Creates a quantity in the storage, given array of values. The size of the array must match the number
-    /// of particles. Derivatives of the quantity are set to zero. Can be used to override existing quantity
-    /// with the same key. If this is the first quantity inserted into the storage, it sets
-    /// the number of particles; all quantities added after that must have the same size.
+    /// of particles. Derivatives of the quantity are set to zero. Cannot be used if there already is a
+    /// quantity with the same key, checked by assert. If this is the first quantity inserted into the
+    /// storage, it sets the number of particles; all quantities added after that must have the same size.
     /// \returns Reference to the inserted quantity.
     template <typename TValue>
-    Quantity& insert(const QuantityIds key, const OrderEnum order, Array<TValue>&& values) {
+    Quantity& insert(const QuantityId key, const OrderEnum order, Array<TValue>&& values) {
+        ASSERT(!this->has(key));
         Quantity q(order, std::move(values));
         UNUSED_IN_RELEASE(const Size size = q.size();)
         quantities[key] = std::move(q);
         if (quantities.size() == 1) {
             // set material ids; we have only one material, so set everything to zero
             if (!materials.empty()) {
-                this->insert<Size>(QuantityIds::MATERIAL_IDX, OrderEnum::ZERO, 0);
+                this->insert<Size>(QuantityId::MATERIAL_IDX, OrderEnum::ZERO, 0);
             }
         } else {
             ASSERT(size == getParticleCnt()); // size must match sizes of other quantities
@@ -252,7 +282,19 @@ public:
     }
 
     /// Returns view that can iterate over indices of particles belonging to given material.
-    MaterialSequence getMaterial(const Size matId);
+    /// \param matIdx Index of given material in storage. Materials are stored in unspecified order; to get
+    ///               material of given particle, use \ref getMaterialOfParticle.
+    MaterialView getMaterial(const Size matIdx);
+
+    /// Retursn material view for material of given particle.
+    MaterialView getMaterialOfParticle(const Size particleIdx);
+
+    /// Returns the bounding range of given quantity. Provides an easy access to the material range without
+    /// construcing intermediate object of \ref MaterialView, otherwise this function is equivalent to:
+    /// \code
+    /// getMaterial(matIdx)->range(id)
+    /// \endcode
+    Range getRange(const QuantityId id, const Size matIdx) const;
 
     /// Returns the sequence of quantities.
     StorageSequence getQuantities();

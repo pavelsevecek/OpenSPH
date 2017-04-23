@@ -8,33 +8,33 @@
 using namespace Sph;
 
 TEST_CASE("Total mass", "[integrals]") {
-    std::shared_ptr<Storage> storage = std::make_shared<Storage>();
-    InitialConditions conds(storage, GlobalSettings::getDefaults());
+    Storage storage;
+    InitialConditions conds(storage, RunSettings::getDefaults());
     BodySettings settings;
-    settings.set(BodySettingsIds::DENSITY, 10._f);
-    settings.set(BodySettingsIds::PARTICLE_COUNT, 100);
+    settings.set(BodySettingsId::DENSITY, 10._f);
+    settings.set(BodySettingsId::PARTICLE_COUNT, 100);
 
     conds.addBody(SphericalDomain(Vector(0._f), 3._f), settings);
     TotalMass mass;
 
-    REQUIRE(mass.evaluate(*storage) == approx(10._f * sphereVolume(3._f), 1.e-3_f));
+    REQUIRE(mass.evaluate(storage) == approx(10._f * sphereVolume(3._f), 1.e-3_f));
 
     conds.addBody(BlockDomain(Vector(0._f), Vector(2._f)), settings);
-    REQUIRE(mass.evaluate(*storage) == approx(10._f * (sphereVolume(3._f) + 8._f), 1.e-3_f));
+    REQUIRE(mass.evaluate(storage) == approx(10._f * (sphereVolume(3._f) + 8._f), 1.e-3_f));
 }
 
 TEST_CASE("Total Momentum Simple", "[integrals]") {
     Storage storage;
     // two particles, perpendicular but moving in the same direction
-    storage.insert<Vector>(QuantityIds::POSITIONS,
+    storage.insert<Vector>(QuantityId::POSITIONS,
         OrderEnum::SECOND,
         Array<Vector>{ Vector(1._f, 0._f, 0._f), Vector(0._f, 2._f, 0._f) });
     ArrayView<Vector> r, v, dv;
-    tie(r, v, dv) = storage.getAll<Vector>(QuantityIds::POSITIONS);
+    tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
     v[0] = Vector(0._f, 2._f, 0._f);
     v[1] = Vector(0._f, 3._f, 0._f);
 
-    storage.insert<Float>(QuantityIds::MASSES, OrderEnum::ZERO, Array<Float>{ 5._f, 7._f });
+    storage.insert<Float>(QuantityId::MASSES, OrderEnum::ZERO, Array<Float>{ 5._f, 7._f });
 
     // integrals in inertial frame
     TotalMomentum momentum;
@@ -52,13 +52,13 @@ TEST_CASE("Total Momentum Simple", "[integrals]") {
 }
 
 TEST_CASE("Total Momentum Body", "[integrals]") {
-    std::shared_ptr<Storage> storage = std::make_shared<Storage>();
-    InitialConditions conds(storage, GlobalSettings::getDefaults());
+    Storage storage;
+    InitialConditions conds(storage, RunSettings::getDefaults());
     BodySettings settings;
     const Float rho0 = 5._f;
-    settings.set(BodySettingsIds::DENSITY, rho0);
+    settings.set(BodySettingsId::DENSITY, rho0);
     settings.set(
-        BodySettingsIds::PARTICLE_COUNT, 100000); // we need lot of particles to reasonable approximate sphere
+        BodySettingsId::PARTICLE_COUNT, 100000); // we need lot of particles to reasonable approximate sphere
 
     const Float radius = 3._f;
     const Float omega = 4._f;
@@ -69,12 +69,12 @@ TEST_CASE("Total Momentum Body", "[integrals]") {
 
     TotalMomentum momentum;
     const Float totalMass = sphereVolume(radius) * rho0;
-    REQUIRE(momentum.evaluate(*storage) == approx(Vector(0.2_f, 0._f, -0.1_f) * totalMass, 1.e-3_f));
+    REQUIRE(momentum.evaluate(storage) == approx(Vector(0.2_f, 0._f, -0.1_f) * totalMass, 1.e-3_f));
 
     // angular momentum of homogeneous sphere = 2/5 * M * r^2 * omega
     const Float expected = 2._f / 5._f * totalMass * sqr(radius) * 4._f;
     /// \todo use positive sign? omega x r or r x omega (basically convention only)
-    const Vector angMom = TotalAngularMomentum().evaluate(*storage);
+    const Vector angMom = TotalAngularMomentum().evaluate(storage);
     /// \todo this is very imprecise, is it to be expected?
     REQUIRE(angMom == approx(Vector(0._f, 0._f, -expected), 1.e-2_f));
 }
@@ -82,16 +82,16 @@ TEST_CASE("Total Momentum Body", "[integrals]") {
 TEST_CASE("Total Energy Simple", "[integrals]") {
     Storage storage;
     storage.insert<Vector>( // positions are irrelevant here ...
-        QuantityIds::POSITIONS,
+        QuantityId::POSITIONS,
         OrderEnum::SECOND,
         Array<Vector>{ Vector(1._f, 0._f, 0._f), Vector(0._f, 2._f, 0._f) });
     ArrayView<Vector> r, v, dv;
-    tie(r, v, dv) = storage.getAll<Vector>(QuantityIds::POSITIONS);
+    tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
     v[0] = Vector(0._f, 2._f, 0._f);
     v[1] = Vector(0._f, 3._f, 0._f);
 
-    storage.insert<Float>(QuantityIds::MASSES, OrderEnum::ZERO, Array<Float>{ 5._f, 7._f });
-    storage.insert<Float>(QuantityIds::ENERGY, OrderEnum::ZERO, Array<Float>{ 3._f, 4._f });
+    storage.insert<Float>(QuantityId::MASSES, OrderEnum::ZERO, Array<Float>{ 5._f, 7._f });
+    storage.insert<Float>(QuantityId::ENERGY, OrderEnum::ZERO, Array<Float>{ 3._f, 4._f });
 
     REQUIRE(TotalKineticEnergy().evaluate(storage) == 41.5_f);
     REQUIRE(TotalInternalEnergy().evaluate(storage) == 43._f);
@@ -100,36 +100,36 @@ TEST_CASE("Total Energy Simple", "[integrals]") {
 
 
 TEST_CASE("Total Energy Body", "[integrals]") {
-    std::shared_ptr<Storage> storage = std::make_shared<Storage>();
-    InitialConditions conds(storage, GlobalSettings::getDefaults());
+    Storage storage;
+    InitialConditions conds(storage, RunSettings::getDefaults());
     BodySettings settings;
     const Float rho0 = 5._f;
-    settings.set(BodySettingsIds::DENSITY, rho0);
-    settings.set(BodySettingsIds::ENERGY, 20._f); // specific energy = energy per MASS
-    settings.set(BodySettingsIds::PARTICLE_COUNT, 100);
+    settings.set(BodySettingsId::DENSITY, rho0);
+    settings.set(BodySettingsId::ENERGY, 20._f); // specific energy = energy per MASS
+    settings.set(BodySettingsId::PARTICLE_COUNT, 100);
 
     conds.addBody(SphericalDomain(Vector(0._f), 3._f), settings, Vector(5._f, 1._f, -2._f));
 
     const Float totalMass = sphereVolume(3._f) * rho0;
-    REQUIRE(TotalKineticEnergy().evaluate(*storage) == approx(15._f * totalMass));
-    REQUIRE(TotalInternalEnergy().evaluate(*storage) == approx(20._f * totalMass));
-    REQUIRE(TotalEnergy().evaluate(*storage) == approx(35._f * totalMass));
+    REQUIRE(TotalKineticEnergy().evaluate(storage) == approx(15._f * totalMass));
+    REQUIRE(TotalInternalEnergy().evaluate(storage) == approx(20._f * totalMass));
+    REQUIRE(TotalEnergy().evaluate(storage) == approx(35._f * totalMass));
 }
 
 TEST_CASE("Center of Mass", "[integrals]") {
-    std::shared_ptr<Storage> storage = std::make_shared<Storage>();
-    InitialConditions conds(storage, GlobalSettings::getDefaults());
+    Storage storage;
+    InitialConditions conds(storage, RunSettings::getDefaults());
     BodySettings settings;
-    settings.set(BodySettingsIds::DENSITY, 1000._f);
+    settings.set(BodySettingsId::DENSITY, 1000._f);
     const Vector r1(-1._f, 5._f, -2._f);
     conds.addBody(BlockDomain(r1, Vector(1._f)), settings);
-    settings.set(BodySettingsIds::DENSITY, 500._f);
+    settings.set(BodySettingsId::DENSITY, 500._f);
     const Vector r2(5._f, 3._f, 1._f);
     conds.addBody(BlockDomain(r2, Vector(2._f)), settings);
 
-    REQUIRE(CenterOfMass(0).evaluate(*storage) == approx(r1));
-    REQUIRE(CenterOfMass(1).evaluate(*storage) == approx(r2));
+    REQUIRE(CenterOfMass(0).evaluate(storage) == approx(r1, 1.e-6_f));
+    REQUIRE(CenterOfMass(1).evaluate(storage) == approx(r2, 1.e-6_f));
 
     // second body is 8x bigger in volume, but half the density -> 4x more massive
-    REQUIRE(CenterOfMass().evaluate(*storage) == approx((r1 + 4._f * r2) / 5._f));
+    REQUIRE(CenterOfMass().evaluate(storage) == approx((r1 + 4._f * r2) / 5._f, 1.e-6_f));
 }

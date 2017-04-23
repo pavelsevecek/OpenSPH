@@ -89,7 +89,8 @@ struct IsRecordType<RecordType> {
 NAMESPACE_SPH_END
 
 namespace std {
-    void swap(Sph::RecordType& r1, Sph::RecordType& r2) {
+    template <>
+    inline void swap(Sph::RecordType& r1, Sph::RecordType& r2) {
         swap(r1.value, r2.value);
         r1.wasSwapped = true;
         r2.wasSwapped = true;

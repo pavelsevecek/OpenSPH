@@ -2,6 +2,7 @@
 #include "catch.hpp"
 #include "geometry/Vector.h"
 #include "objects/containers/Array.h"
+#include "utils/Utils.h"
 #include <algorithm>
 
 using namespace Sph;
@@ -77,5 +78,29 @@ TEST_CASE("TupleAdapter", "[iterators]") {
     REQUIRE(floats == Array<float>({ 6.f, 6.f, 6.f, 6.f }));
     REQUIRE(ints == Array<int>({ 7, 7, 7, 7 }));
 
-    REQUIRE_THROWS(iterateTuple<Element>(Array<int>{ 5 }, Array<float>{ 3.f, 4.f }));
+    REQUIRE_ASSERT(iterateTuple<Element>(Array<int>{ 5 }, Array<float>{ 3.f, 4.f }));
+}
+
+TEST_CASE("SubsetIterator", "[iterators]") {
+    Array<int> values{ 2, 5, 4, 8, 3, -1, 2, 1 };
+    Array<int> visited;
+    for (float v : subset(values, [](int f) { return f % 2 == 0; })) {
+        visited.push(v);
+    }
+    REQUIRE(visited == makeArray(2, 4, 8, 2));
+
+    auto emptySubset = subset(values, [](int) { return false; });
+    REQUIRE(emptySubset.begin() == emptySubset.end());
+
+    auto oddNumbers = subset(values, [](int f) { return f % 2 == 1; });
+    REQUIRE(*oddNumbers.begin() == 5);
+}
+
+TEST_CASE("IndexSequence", "[iterators]") {
+    Size idx = 0;
+    for (Size i : IndexSequence(0, 5)) {
+        REQUIRE(i == idx);
+        idx++;
+    }
+    REQUIRE(idx == 5);
 }

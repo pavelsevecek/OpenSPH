@@ -30,7 +30,6 @@ CONFIG(debug, debug|profile|assert|release) {
 
 
 SOURCES += \
-    solvers/SolverFactory.cpp \
     math/rng/Rng.cpp \
     math/Morton.cpp \
     quantities/Storage.cpp \
@@ -56,11 +55,12 @@ SOURCES += \
     timestepping/TimeStepCriterion.cpp \
     objects/finders/KdTree.cpp \
     solvers/AbstractSolver.cpp \
-    problem/Problem.cpp \
+    run/Run.cpp \
     sph/Diagnostics.cpp \
     common/Assert.cpp \
     io/filesystem.cpp \
-    sph/Material.cpp
+    sph/Material.cpp \
+    system/Platform.cpp
 
 HEADERS += \
     commmon/Globals.h \
@@ -99,7 +99,6 @@ HEADERS += \
     physics/Eos.h \
     physics/TimeFormat.h \
     physics/Integrals.h \
-    problem/Problem.h \
     sph/kernel/Kernel.h \
     sph/initial/Distribution.h \
     timestepping/TimeStepping.h \
@@ -131,9 +130,7 @@ HEADERS += \
     solvers/Accumulator.h \
     solvers/SharedAccumulator.h \
     objects/containers/StaticArray.h \
-    sph/av/Factory.h \
     sph/forces/CentripetalForce.h \
-    solvers/SolverFactory.h \
     objects/wrappers/AlignedStorage.h \
     sph/initial/Initial.h \
     geometry/Multipole.h \
@@ -159,10 +156,8 @@ HEADERS += \
     objects/wrappers/ObserverPtr.h \
     math/Means.h \
     system/Element.h \
-    objects/ExtendEnum.h \
     sph/Diagnostics.h \
     system/filesystem.h \
-    solvers/SphSolver.h \
     solvers/PhysicalStorage.h \
     common/ForwardDecl.h \
     common/Globals.h \
@@ -180,4 +175,7 @@ HEADERS += \
     system/Platform.h \
     io/FileSystem.h \
     objects/containers/ArrayMap.h \
-    solvers/Accumulated.h
+    solvers/Accumulated.h \
+    run/Run.h \
+    solvers/GenericSolver.h \
+    objects/containers/PerElementWrapper.h

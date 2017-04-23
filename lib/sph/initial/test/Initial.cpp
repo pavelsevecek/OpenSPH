@@ -12,22 +12,22 @@ using namespace Sph;
 
 TEST_CASE("Initial addBody", "[initial]") {
     BodySettings bodySettings;
-    bodySettings.set(BodySettingsIds::PARTICLE_COUNT, 100);
+    bodySettings.set(BodySettingsId::PARTICLE_COUNT, 100);
     BlockDomain domain(Vector(0._f), Vector(1._f));
-    std::shared_ptr<Storage> storage = std::make_shared<Storage>();
-    InitialConditions conds(storage, GlobalSettings::getDefaults());
+    Storage storage;
+    InitialConditions conds(storage, RunSettings::getDefaults());
     conds.addBody(domain, bodySettings);
 
-    const Size size = storage->getValue<Vector>(QuantityIds::POSITIONS).size();
+    const Size size = storage.getValue<Vector>(QuantityId::POSITIONS).size();
     REQUIRE(size >= 80);
     REQUIRE(size <= 120);
-    iterate<VisitorEnum::ALL_BUFFERS>(*storage, [size](auto&& array) { REQUIRE(array.size() == size); });
+    iterate<VisitorEnum::ALL_BUFFERS>(storage, [size](auto&& array) { REQUIRE(array.size() == size); });
 
     ArrayView<Float> rhos, us, drhos, dus;
-    tie(rhos, drhos) = storage->getAll<Float>(QuantityIds::DENSITY);
-    tie(us, dus) = storage->getAll<Float>(QuantityIds::ENERGY);
+    tie(rhos, drhos) = storage.getAll<Float>(QuantityId::DENSITY);
+    tie(us, dus) = storage.getAll<Float>(QuantityId::ENERGY);
     bool result = areAllMatching(
-        rhos, [&](const Float f) { return f == bodySettings.get<Float>(BodySettingsIds::DENSITY); });
+        rhos, [&](const Float f) { return f == bodySettings.get<Float>(BodySettingsId::DENSITY); });
     REQUIRE(result);
 
     result = areAllMatching(drhos, [](const Float f) {
@@ -35,14 +35,14 @@ TEST_CASE("Initial addBody", "[initial]") {
     });
     REQUIRE(result);
     result = areAllMatching(
-        us, [&](const Float f) { return f == bodySettings.get<Float>(BodySettingsIds::ENERGY); });
+        us, [&](const Float f) { return f == bodySettings.get<Float>(BodySettingsId::ENERGY); });
     REQUIRE(result);
     result = areAllMatching(dus, [](const Float f) {
         return f == 0._f; // zero energy derivative
     });
     REQUIRE(result);
 
-    ArrayView<Float> ms = storage->getValue<Float>(QuantityIds::MASSES);
+    ArrayView<Float> ms = storage.getValue<Float>(QuantityId::MASSES);
     float totalM = 0._f;
     for (Float m : ms) {
         totalM += m;
@@ -51,15 +51,15 @@ TEST_CASE("Initial addBody", "[initial]") {
 }
 
 TEST_CASE("Initial velocity", "[initial]") {
-    std::shared_ptr<Storage> storage = std::make_shared<Storage>();
-    InitialConditions conds(storage, GlobalSettings::getDefaults());
+    Storage storage;
+    InitialConditions conds(storage, RunSettings::getDefaults());
     BodySettings bodySettings;
-    bodySettings.set<Float>(BodySettingsIds::DENSITY, 1._f);
+    bodySettings.set<Float>(BodySettingsId::DENSITY, 1._f);
     conds.addBody(SphericalDomain(Vector(0._f), 1._f), bodySettings, Vector(2._f, 1._f, -1._f));
-    bodySettings.set<Float>(BodySettingsIds::DENSITY, 2._f);
+    bodySettings.set<Float>(BodySettingsId::DENSITY, 2._f);
     conds.addBody(SphericalDomain(Vector(0._f), 1._f), bodySettings, Vector(0._f, 0._f, 1._f));
-    ArrayView<Float> rho = storage->getValue<Float>(QuantityIds::DENSITY);
-    ArrayView<Vector> v = storage->getAll<Vector>(QuantityIds::POSITIONS)[1];
+    ArrayView<Float> rho = storage.getValue<Float>(QuantityId::DENSITY);
+    ArrayView<Vector> v = storage.getAll<Vector>(QuantityId::POSITIONS)[1];
 
     auto test = [&](const Size i) {
         if (rho[i] == 1._f && v[i] != Vector(2._f, 1._f, -1._f)) {
@@ -74,14 +74,14 @@ TEST_CASE("Initial velocity", "[initial]") {
 }
 
 TEST_CASE("Initial rotation", "[initial]") {
-    std::shared_ptr<Storage> storage = std::make_shared<Storage>();
-    InitialConditions conds(storage, GlobalSettings::getDefaults());
+    Storage storage;
+    InitialConditions conds(storage, RunSettings::getDefaults());
     conds.addBody(SphericalDomain(Vector(0._f), 1._f),
         BodySettings::getDefaults(),
         Vector(0._f),
         Vector(1._f, 3._f, -2._f));
     ArrayView<Vector> r, v, dv;
-    tie(r, v, dv) = storage->getAll<Vector>(QuantityIds::POSITIONS);
+    tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
 
     Vector axis;
     float magnitude;
@@ -103,21 +103,22 @@ TEST_CASE("Initial rotation", "[initial]") {
 
 TEST_CASE("Initial addHeterogeneousBody single", "[initial]") {
     BodySettings bodySettings;
-    bodySettings.set(BodySettingsIds::PARTICLE_COUNT, 1000);
-    BlockDomain domain(Vector(0._f), Vector(1._f));
-    std::shared_ptr<Storage> storage1 = std::make_shared<Storage>();
-    InitialConditions conds1(storage1, GlobalSettings::getDefaults());
+    bodySettings.set(BodySettingsId::PARTICLE_COUNT, 1000);
+    std::unique_ptr<BlockDomain> domain = std::make_unique<BlockDomain>(Vector(0._f), Vector(1._f));
+    Storage storage1;
+    InitialConditions conds1(storage1, RunSettings::getDefaults());
 
-    InitialConditions::Body body1{ domain, bodySettings, Vector(0._f), Vector(0._f) };
-    conds1.addHeterogeneousBody(body1, {}); // this should be equal to addBody
+    InitialConditions::Body body1(std::move(domain), bodySettings, Vector(0._f), Vector(0._f));
+    conds1.addHeterogeneousBody(std::move(body1), {}); // this should be equal to addBody
 
-    std::shared_ptr<Storage> storage2 = std::make_shared<Storage>();
-    InitialConditions conds2(storage2, GlobalSettings::getDefaults());
-    conds2.addBody(domain, bodySettings);
-    REQUIRE(storage1->getQuantityCnt() == storage2->getQuantityCnt());
-    REQUIRE(storage1->getParticleCnt() == storage2->getParticleCnt());
-    REQUIRE(storage1->getMaterialCnt() == storage2->getMaterialCnt());
-    iteratePair<VisitorEnum::ALL_BUFFERS>(*storage1, *storage2, [&](auto&& v1, auto&& v2) {
+    Storage storage2;
+    InitialConditions conds2(storage2, RunSettings::getDefaults());
+    BlockDomain domain2(Vector(0._f), Vector(1._f));
+    conds2.addBody(domain2, bodySettings);
+    REQUIRE(storage1.getQuantityCnt() == storage2.getQuantityCnt());
+    REQUIRE(storage1.getParticleCnt() == storage2.getParticleCnt());
+    REQUIRE(storage1.getMaterialCnt() == storage2.getMaterialCnt());
+    iteratePair<VisitorEnum::ALL_BUFFERS>(storage1, storage2, [&](auto&& v1, auto&& v2) {
         auto test = [&](const Size i) {
             if (v1[i] != v2[i]) {
                 return makeFailed("Different values: ", v1[i], " == ", v2[i]);
@@ -131,37 +132,47 @@ TEST_CASE("Initial addHeterogeneousBody single", "[initial]") {
 
 TEST_CASE("Initial addHeterogeneousBody multiple", "[initial]") {
     BodySettings bodySettings;
-    bodySettings.set(BodySettingsIds::PARTICLE_COUNT, 1000);
+    bodySettings.set(BodySettingsId::PARTICLE_COUNT, 1000);
     // random to make sure we generate exactly 1000
-    bodySettings.set(BodySettingsIds::INITIAL_DISTRIBUTION, DistributionEnum::RANDOM);
-    GlobalSettings settings;
-    std::shared_ptr<Storage> storage = std::make_shared<Storage>();
-    InitialConditions conds(storage, GlobalSettings::getDefaults());
+    bodySettings.set(BodySettingsId::INITIAL_DISTRIBUTION, DistributionEnum::RANDOM);
+    RunSettings settings;
+    Storage storage;
+    InitialConditions conds(storage, RunSettings::getDefaults());
 
-    BlockDomain domain(Vector(0._f), Vector(10._f)); // [-5, 5]
-    InitialConditions::Body environment{ domain, bodySettings, Vector(0._f), Vector(0._f) };
+    std::unique_ptr<BlockDomain> domain =
+        std::make_unique<BlockDomain>(Vector(0._f), Vector(10._f)); // [-5, 5]
+    InitialConditions::Body environment(std::move(domain), bodySettings);
     const Vector v1(1._f, 2._f, 3._f);
-    SphericalDomain domain1(Vector(3._f, 3._f, 2._f), 2._f);
-    InitialConditions::Body body1{ domain1, bodySettings, v1, Vector(0._f) };
+    std::unique_ptr<SphericalDomain> domain1 =
+        std::make_unique<SphericalDomain>(Vector(3._f, 3._f, 2._f), 2._f);
+    InitialConditions::Body body1(std::move(domain1), bodySettings, v1);
     const Vector v2(5._f, -1._f, 3._f);
-    SphericalDomain domain2(Vector(-2._f, -2._f, -1._f), 2._f);
-    InitialConditions::Body body2{ domain2, bodySettings, v2, Vector(0._f) };
+    std::unique_ptr<SphericalDomain> domain2 =
+        std::make_unique<SphericalDomain>(Vector(-2._f, -2._f, -1._f), 2._f);
+    InitialConditions::Body body2(std::move(domain2), bodySettings, v2);
 
-    conds.addHeterogeneousBody(environment, Array<InitialConditions::Body>{ body1, body2 });
-    REQUIRE(storage->getParticleCnt() == 1000);
-    REQUIRE(storage->getMaterialCnt() == 3);
-    ArrayView<Size> matId = storage->getValue<Size>(QuantityIds::MATERIAL_IDX);
-    ArrayView<Size> flag = storage->getValue<Size>(QuantityIds::FLAG);
+    Array<InitialConditions::Body> bodies;
+    bodies.emplaceBack(std::move(body1));
+    bodies.emplaceBack(std::move(body2));
+    conds.addHeterogeneousBody(std::move(environment), bodies);
+    REQUIRE(storage.getParticleCnt() == 1000);
+    REQUIRE(storage.getMaterialCnt() == 3);
+    ArrayView<Size> matId = storage.getValue<Size>(QuantityId::MATERIAL_IDX);
+    ArrayView<Size> flag = storage.getValue<Size>(QuantityId::FLAG);
     ArrayView<Vector> r, v, dv;
-    tie(r, v, dv) = storage->getAll<Vector>(QuantityIds::POSITIONS);
+    tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
     Size particlesBody1 = 0;
     Size particlesBody2 = 0;
+
+    // domains were moved away ...
+    SphericalDomain dom1 = SphericalDomain(Vector(3._f, 3._f, 2._f), 2._f);
+    SphericalDomain dom2 = SphericalDomain(Vector(-2._f, -2._f, -1._f), 2._f);
     auto test = [&](const Size i) {
-        if (domain1.isInside(r[i])) {
+        if (dom1.isInside(r[i])) {
             particlesBody1++;
             return matId[i] == 1 && flag[i] == 0 && v[i] == v1;
         }
-        if (domain2.isInside(r[i])) {
+        if (dom2.isInside(r[i])) {
             particlesBody2++;
             return matId[i] == 2 && flag[i] == 1 && v[i] == v2;
         }

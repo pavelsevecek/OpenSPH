@@ -24,7 +24,7 @@ struct StoragePairVisitor;
 template <typename TFunctor>
 struct StorageVisitor<VisitorEnum::ALL_VALUES, TFunctor> {
     template <typename TValue>
-    void visit(Quantity& q, const QuantityIds id, TFunctor&& functor) {
+    void visit(Quantity& q, const QuantityId id, TFunctor&& functor) {
         functor(id, q.getValue<TValue>());
     }
 };
@@ -42,7 +42,7 @@ struct StoragePairVisitor<VisitorEnum::ALL_VALUES, TFunctor> {
 template <typename TFunctor>
 struct StorageVisitor<VisitorEnum::ALL_BUFFERS, TFunctor> {
     template <typename TValue>
-    void visit(Quantity& q, const QuantityIds UNUSED(id), TFunctor&& functor) {
+    void visit(Quantity& q, const QuantityId UNUSED(id), TFunctor&& functor) {
         for (auto& i : q.getAll<TValue>()) {
             functor(i);
         }
@@ -51,7 +51,7 @@ struct StorageVisitor<VisitorEnum::ALL_BUFFERS, TFunctor> {
 template <typename TFunctor>
 struct StoragePairVisitor<VisitorEnum::ALL_BUFFERS, TFunctor> {
     template <typename TValue>
-    void visit(Quantity& q1, Quantity& q2, const QuantityIds UNUSED(id), TFunctor&& functor) {
+    void visit(Quantity& q1, Quantity& q2, const QuantityId UNUSED(id), TFunctor&& functor) {
         auto values1 = q1.template getAll<TValue>();
         auto values2 = q2.template getAll<TValue>();
         ASSERT(values1.size() == values2.size());
@@ -67,7 +67,7 @@ struct StoragePairVisitor<VisitorEnum::ALL_BUFFERS, TFunctor> {
 template <typename TFunctor>
 struct StorageVisitor<VisitorEnum::ZERO_ORDER, TFunctor> {
     template <typename TValue>
-    void visit(Quantity& q, const QuantityIds id, TFunctor&& functor) {
+    void visit(Quantity& q, const QuantityId id, TFunctor&& functor) {
         if (q.getOrderEnum() != OrderEnum::ZERO) {
             return;
         }
@@ -77,7 +77,7 @@ struct StorageVisitor<VisitorEnum::ZERO_ORDER, TFunctor> {
 template <typename TFunctor>
 struct StoragePairVisitor<VisitorEnum::ZERO_ORDER, TFunctor> {
     template <typename TValue>
-    void visit(Quantity& q1, Quantity& q2, const QuantityIds id, TFunctor&& functor) {
+    void visit(Quantity& q1, Quantity& q2, const QuantityId id, TFunctor&& functor) {
         if (q1.getOrderEnum() != OrderEnum::ZERO) {
             return;
         }
@@ -92,19 +92,17 @@ struct StoragePairVisitor<VisitorEnum::ZERO_ORDER, TFunctor> {
 template <typename TFunctor>
 struct StorageVisitor<VisitorEnum::FIRST_ORDER, TFunctor> {
     template <typename TValue>
-    void visit(Quantity& q, const QuantityIds id, TFunctor&& functor) {
+    void visit(Quantity& q, const QuantityId id, TFunctor&& functor) {
         if (q.getOrderEnum() != OrderEnum::FIRST) {
             return;
         }
-        /// \todo no dynamic_cast necessary here, maybe use two versions of cast, safe/checked and
-        /// unsafe/unchecked
         functor(id, q.getValue<TValue>(), q.getDt<TValue>());
     }
 };
 template <typename TFunctor>
 struct StoragePairVisitor<VisitorEnum::FIRST_ORDER, TFunctor> {
     template <typename TValue>
-    void visit(Quantity& q1, Quantity& q2, const QuantityIds id, TFunctor&& functor) {
+    void visit(Quantity& q1, Quantity& q2, const QuantityId id, TFunctor&& functor) {
         if (q1.getOrderEnum() != OrderEnum::FIRST) {
             return;
         }
@@ -118,7 +116,7 @@ struct StoragePairVisitor<VisitorEnum::FIRST_ORDER, TFunctor> {
 template <typename TFunctor>
 struct StorageVisitor<VisitorEnum::SECOND_ORDER, TFunctor> {
     template <typename TValue>
-    void visit(Quantity& q, const QuantityIds id, TFunctor&& functor) {
+    void visit(Quantity& q, const QuantityId id, TFunctor&& functor) {
         if (q.getOrderEnum() != OrderEnum::SECOND) {
             return;
         }
@@ -128,7 +126,7 @@ struct StorageVisitor<VisitorEnum::SECOND_ORDER, TFunctor> {
 template <typename TFunctor>
 struct StoragePairVisitor<VisitorEnum::SECOND_ORDER, TFunctor> {
     template <typename TValue>
-    void visit(Quantity& q1, Quantity& q2, const QuantityIds id, TFunctor&& functor) {
+    void visit(Quantity& q1, Quantity& q2, const QuantityId id, TFunctor&& functor) {
         if (q1.getOrderEnum() != OrderEnum::SECOND) {
             return;
         }
@@ -150,7 +148,7 @@ struct StoragePairVisitor<VisitorEnum::SECOND_ORDER, TFunctor> {
 template <typename TFunctor>
 struct StorageVisitor<VisitorEnum::HIGHEST_DERIVATIVES, TFunctor> {
     template <typename TValue>
-    void visit(Quantity& q, const QuantityIds id, TFunctor&& functor) {
+    void visit(Quantity& q, const QuantityId id, TFunctor&& functor) {
         const OrderEnum order = q.getOrderEnum();
         if (order == OrderEnum::FIRST) {
             functor(id, q.getDt<TValue>());
@@ -188,8 +186,8 @@ void iterate(Storage& storage, TFunctor&& functor) {
 template <typename TFunctor>
 struct StorageVisitorWithPositions {
     template <typename TValue>
-    void visit(Quantity& q, Array<Vector>& r, QuantityIds key, TFunctor&& functor) {
-        if (key == QuantityIds::POSITIONS) {
+    void visit(Quantity& q, Array<Vector>& r, QuantityId key, TFunctor&& functor) {
+        if (key == QuantityId::POSITIONS) {
             // exclude positions
             auto buffers = q.getAll<TValue>();
             functor(buffers[1], r);
@@ -206,7 +204,7 @@ struct StorageVisitorWithPositions {
 /// positions as arguments. Storage must already contain positions, checked by assert.
 template <typename TFunctor>
 void iterateWithPositions(Storage& storage, TFunctor&& functor) {
-    Array<Vector>& r = storage.getValue<Vector>(QuantityIds::POSITIONS);
+    Array<Vector>& r = storage.getValue<Vector>(QuantityId::POSITIONS);
     StorageVisitorWithPositions<TFunctor> visitor;
     for (auto q : storage.getQuantities()) {
         dispatch(q.quantity.getValueEnum(), visitor, q.quantity, r, q.id, std::forward<TFunctor>(functor));

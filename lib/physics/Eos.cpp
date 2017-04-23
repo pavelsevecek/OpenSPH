@@ -22,16 +22,16 @@ Float IdealGasEos::getTemperature(const Float u) const {
 
 
 TillotsonEos::TillotsonEos(const BodySettings& settings)
-    : u0(settings.get<Float>(BodySettingsIds::TILLOTSON_SUBLIMATION))
-    , uiv(settings.get<Float>(BodySettingsIds::TILLOTSON_ENERGY_IV))
-    , ucv(settings.get<Float>(BodySettingsIds::TILLOTSON_ENERGY_CV))
-    , a(settings.get<Float>(BodySettingsIds::TILLOTSON_SMALL_A))
-    , b(settings.get<Float>(BodySettingsIds::TILLOTSON_SMALL_B))
-    , rho0(settings.get<Float>(BodySettingsIds::DENSITY))
-    , A(settings.get<Float>(BodySettingsIds::BULK_MODULUS))
-    , B(settings.get<Float>(BodySettingsIds::TILLOTSON_NONLINEAR_B))
-    , alpha(settings.get<Float>(BodySettingsIds::TILLOTSON_ALPHA))
-    , beta(settings.get<Float>(BodySettingsIds::TILLOTSON_BETA)) {}
+    : u0(settings.get<Float>(BodySettingsId::TILLOTSON_SUBLIMATION))
+    , uiv(settings.get<Float>(BodySettingsId::TILLOTSON_ENERGY_IV))
+    , ucv(settings.get<Float>(BodySettingsId::TILLOTSON_ENERGY_CV))
+    , a(settings.get<Float>(BodySettingsId::TILLOTSON_SMALL_A))
+    , b(settings.get<Float>(BodySettingsId::TILLOTSON_SMALL_B))
+    , rho0(settings.get<Float>(BodySettingsId::DENSITY))
+    , A(settings.get<Float>(BodySettingsId::BULK_MODULUS))
+    , B(settings.get<Float>(BodySettingsId::TILLOTSON_NONLINEAR_B))
+    , alpha(settings.get<Float>(BodySettingsId::TILLOTSON_ALPHA))
+    , beta(settings.get<Float>(BodySettingsId::TILLOTSON_BETA)) {}
 
 Pair<Float> TillotsonEos::evaluate(const Float rho, const Float u) const {
     const Float eta = rho / rho0;
@@ -77,8 +77,8 @@ Pair<Float> TillotsonEos::evaluate(const Float rho, const Float u) const {
 
 
 MurnaghanEos::MurnaghanEos(const BodySettings& settings)
-    : rho0(settings.get<Float>(BodySettingsIds::DENSITY))
-    , A(settings.get<Float>(BodySettingsIds::BULK_MODULUS)) {}
+    : rho0(settings.get<Float>(BodySettingsId::DENSITY))
+    , A(settings.get<Float>(BodySettingsId::BULK_MODULUS)) {}
 
 Pair<Float> MurnaghanEos::evaluate(const Float rho, const Float UNUSED(u)) const {
     const Float cs = sqrt(A / rho0);

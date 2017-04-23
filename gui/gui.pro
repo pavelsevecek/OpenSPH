@@ -39,7 +39,8 @@ SOURCES += \
     windows/OrthoPane.cpp \
     windows/Window.cpp \
     Settings.cpp \
-    MainLoop.cpp
+    MainLoop.cpp \
+    problems/Collision.cpp
 
 HEADERS += \
     Gui.h \
@@ -60,4 +61,5 @@ HEADERS += \
     objects/Element.h \
     objects/Movie.h \
     objects/Bitmap.h \
-    MainLoop.h
+    MainLoop.h \
+    problems/GuiRun.h

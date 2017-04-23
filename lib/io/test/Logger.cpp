@@ -1,6 +1,7 @@
-#include "system/Logger.h"
+#include "io/Logger.h"
 #include "catch.hpp"
 #include "io/FileSystem.h"
+#include "utils/Utils.h"
 #include <regex>
 #include <thread>
 
@@ -13,7 +14,7 @@ TEST_CASE("StdOutLogger", "[logger]") {
 TEST_CASE("FileLogger", "[logger]") {
     {
         FileLogger logger("log1.txt");
-        REQUIRE_THROWS(FileLogger("log1.txt")); // file is locked and cannot be used by other logger
+        REQUIRE_ASSERT(FileLogger("log1.txt")); // file is locked and cannot be used by other logger
         logger.write("first line");
     }
     std::string content = readFile("log1.txt");

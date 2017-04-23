@@ -8,15 +8,15 @@
 using namespace Sph;
 
 TEST_CASE("Pairing", "[diagnostics]") {
-    std::shared_ptr<Storage> storage = std::make_shared<Storage>();
-    InitialConditions conds(storage, GlobalSettings::getDefaults());
+    Storage storage;
+    InitialConditions conds(storage, RunSettings::getDefaults());
     BodySettings settings;
-    settings.set(BodySettingsIds::PARTICLE_COUNT, 100);
+    settings.set(BodySettingsId::PARTICLE_COUNT, 100);
     conds.addBody(SphericalDomain(Vector(0._f), 3._f), settings);
-    Array<Vector>& r = storage->getValue<Vector>(QuantityIds::POSITIONS);
+    Array<Vector>& r = storage.getValue<Vector>(QuantityId::POSITIONS);
 
     ParticlePairing diag(2, 1.e-1_f);
-    REQUIRE(diag.getPairs(*storage).empty());
+    REQUIRE(diag.getPairs(storage).empty());
 
     const Size n = r.size();
     r.push(r[55]); // -> pair n, 55
@@ -24,7 +24,7 @@ TEST_CASE("Pairing", "[diagnostics]") {
     r.push(r[12]); // -> pair n+2, 12
 
     diag = ParticlePairing(2, 1.e-2_f);
-    Array<ParticlePairing::Pair> pairs = diag.getPairs(*storage);
+    Array<ParticlePairing::Pair> pairs = diag.getPairs(storage);
     REQUIRE(pairs.size() == 3);
     std::sort(pairs.begin(), pairs.end(), [](auto&& p1, auto&& p2) {
         // sort by lower indices

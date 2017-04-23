@@ -2,7 +2,7 @@
 #include "io/Logger.h"
 #include "io/Output.h"
 #include "physics/Eos.h"
-#include "problem/Problem.h"
+#include "run/Run.h"
 #include "sph/initial/Initial.h"
 #include "system/Factory.h"
 #include "system/Profiler.h"
@@ -11,40 +11,37 @@
 using namespace Sph;
 
 
-class Problem : public Abstract::Problem {
+class Run : public Abstract::Run {
 public:
-    Problem() {
-        this->settings.set(GlobalSettingsIds::DOMAIN_TYPE, DomainEnum::SPHERICAL)
-            .set(GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP, 1.e-6_f)
-            .set(GlobalSettingsIds::TIMESTEPPING_MAX_TIMESTEP, 1.e-1_f)
-            .set(GlobalSettingsIds::MODEL_FORCE_DIV_S, true)
-            .set(GlobalSettingsIds::SPH_FINDER, FinderEnum::VOXEL)
-            .set(GlobalSettingsIds::RUN_TIME_RANGE, Range(0._f, 1._f));
-        /*globalSettings.set(GlobalSettingsIds::MODEL_DAMAGE, DamageEnum::SCALAR_GRADY_KIPP);
-        globalSettings.set(GlobalSettingsIds::MODEL_YIELDING, YieldingEnum::VON_MISES);*/
+    Run() {
+        settings.set(RunSettingsId::DOMAIN_TYPE, DomainEnum::SPHERICAL)
+            .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 1.e-6_f)
+            .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 1.e-1_f)
+            .set(RunSettingsId::MODEL_FORCE_DIV_S, true)
+            .set(RunSettingsId::SPH_FINDER, FinderEnum::VOXEL)
+            .set(RunSettingsId::RUN_TIME_RANGE, Range(0._f, 1._f));
     }
 
 protected:
     virtual void setUp() override {
-        this->output =
-            std::make_unique<TextOutput>(this->settings.get<std::string>(GlobalSettingsIds::RUN_OUTPUT_NAME),
-                this->settings.get<std::string>(GlobalSettingsIds::RUN_NAME),
-                TextOutput::Options::SCIENTIFIC);
-        this->output->add(std::make_unique<ValueColumn<Vector>>(QuantityIds::POSITIONS));
+        output = std::make_unique<TextOutput>(settings.get<std::string>(RunSettingsId::RUN_OUTPUT_NAME),
+            settings.get<std::string>(RunSettingsId::RUN_NAME),
+            TextOutput::Options::SCIENTIFIC);
+        output->add(std::make_unique<ValueColumn<Vector>>(QuantityId::POSITIONS));
 
-        this->storage = std::make_shared<Storage>();
+        storage = std::make_shared<Storage>();
 
         BodySettings bodySettings;
-        bodySettings.set(BodySettingsIds::ENERGY, 1.e2_f);
-        bodySettings.set(BodySettingsIds::PARTICLE_COUNT, 10000);
-        bodySettings.set(BodySettingsIds::EOS, EosEnum::TILLOTSON);
-        InitialConditions conds(this->storage, this->settings);
+        bodySettings.set(BodySettingsId::ENERGY, 1.e2_f);
+        bodySettings.set(BodySettingsId::PARTICLE_COUNT, 10000);
+        bodySettings.set(BodySettingsId::EOS, EosEnum::TILLOTSON);
+        InitialConditions conds(*storage, settings);
 
         SphericalDomain domain1(Vector(0._f), 5e2_f); // D = 1km
         conds.addBody(domain1, bodySettings);
 
         SphericalDomain domain2(Vector(6.e2_f, 1.35e2_f, 0._f), 20._f);
-        bodySettings.set(BodySettingsIds::PARTICLE_COUNT, 100);
+        bodySettings.set(BodySettingsId::PARTICLE_COUNT, 100);
         conds.addBody(domain2, bodySettings, Vector(-5.e3_f, 0._f, 0._f));
     }
 
@@ -56,7 +53,7 @@ protected:
 
 
 int main() {
-    Problem problem;
-    problem.run();
+    Run run;
+    run.run();
     return 0;
 }

@@ -8,7 +8,7 @@ NAMESPACE_SPH_BEGIN
 
 Float TotalMass::evaluate(Storage& storage) const {
     Float total(0._f);
-    ArrayView<const Float> m = storage.getValue<Float>(QuantityIds::MASSES);
+    ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASSES);
     ASSERT(!m.empty());
     for (Size i = 0; i < m.size(); ++i) {
         total += m[i];
@@ -24,8 +24,8 @@ TotalMomentum::TotalMomentum(const Float omega)
 Vector TotalMomentum::evaluate(Storage& storage) const {
     BasicVector<double> total(0.); // compute in double precision to avoid round-off error during accumulation
     ArrayView<const Vector> r, v, dv;
-    tie(r, v, dv) = storage.getAll<Vector>(QuantityIds::POSITIONS);
-    ArrayView<const Float> m = storage.getValue<Float>(QuantityIds::MASSES);
+    tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
+    ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASSES);
     ASSERT(!v.empty());
     for (Size i = 0; i < v.size(); ++i) {
         total += vectorCast<double>(m[i] * (v[i] + cross(omega, r[i])));
@@ -40,8 +40,8 @@ TotalAngularMomentum::TotalAngularMomentum(const Float omega)
 Vector TotalAngularMomentum::evaluate(Storage& storage) const {
     BasicVector<double> total(0.);
     ArrayView<const Vector> r, v, dv;
-    tie(r, v, dv) = storage.getAll<Vector>(QuantityIds::POSITIONS);
-    ArrayView<const Float> m = storage.getValue<Float>(QuantityIds::MASSES);
+    tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
+    ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASSES);
     ASSERT(!v.empty());
     for (Size i = 0; i < v.size(); ++i) {
         total += vectorCast<double>(m[i] * cross(r[i], (v[i] + cross(omega, r[i]))));
@@ -56,9 +56,9 @@ TotalEnergy::TotalEnergy(const Float omega)
 Float TotalEnergy::evaluate(Storage& storage) const {
     double total = 0.;
     ArrayView<const Vector> r, v, dv;
-    tie(r, v, dv) = storage.getAll<Vector>(QuantityIds::POSITIONS);
-    ArrayView<const Float> m = storage.getValue<Float>(QuantityIds::MASSES);
-    ArrayView<const Float> u = storage.getValue<Float>(QuantityIds::ENERGY);
+    tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
+    ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASSES);
+    ArrayView<const Float> u = storage.getValue<Float>(QuantityId::ENERGY);
     for (Size i = 0; i < v.size(); ++i) {
         ASSERT(!v.empty());
         total += 0.5 * m[i] * getSqrLength(v[i]) + m[i] * u[i];
@@ -73,8 +73,8 @@ TotalKineticEnergy::TotalKineticEnergy(const Float omega)
 Float TotalKineticEnergy::evaluate(Storage& storage) const {
     double total = 0.;
     ArrayView<const Vector> r, v, dv;
-    tie(r, v, dv) = storage.getAll<Vector>(QuantityIds::POSITIONS);
-    ArrayView<const Float> m = storage.getValue<Float>(QuantityIds::MASSES);
+    tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
+    ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASSES);
     for (Size i = 0; i < v.size(); ++i) {
         ASSERT(!v.empty());
         total += 0.5 * m[i] * getSqrLength(v[i]);
@@ -85,8 +85,8 @@ Float TotalKineticEnergy::evaluate(Storage& storage) const {
 
 Float TotalInternalEnergy::evaluate(Storage& storage) const {
     double total = 0.;
-    ArrayView<const Float> u = storage.getValue<Float>(QuantityIds::ENERGY);
-    ArrayView<const Float> m = storage.getValue<Float>(QuantityIds::MASSES);
+    ArrayView<const Float> u = storage.getValue<Float>(QuantityId::ENERGY);
+    ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASSES);
     ASSERT(!m.empty());
     for (Size i = 0; i < m.size(); ++i) {
         total += double(m[i] * u[i]);
@@ -101,15 +101,15 @@ CenterOfMass::CenterOfMass(const Optional<Size> bodyId)
 Vector CenterOfMass::evaluate(Storage& storage) const {
     Vector com(0._f);
     Float totalMass = 0._f;
-    ArrayView<const Float> m = storage.getValue<Float>(QuantityIds::MASSES);
-    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityIds::POSITIONS);
+    ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASSES);
+    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
     auto accumulate = [&](const Size i) {
         totalMass += m[i];
         com += m[i] * r[i];
     };
 
     if (bodyId) {
-        ArrayView<const Size> ids = storage.getValue<Size>(QuantityIds::FLAG);
+        ArrayView<const Size> ids = storage.getValue<Size>(QuantityId::FLAG);
         for (Size i = 0; i < r.size(); ++i) {
             if (ids[i] == bodyId.get()) {
                 accumulate(i);
@@ -123,7 +123,7 @@ Vector CenterOfMass::evaluate(Storage& storage) const {
     return com / totalMass;
 }
 
-QuantityMeans::QuantityMeans(const QuantityIds id, const Optional<Size> bodyId)
+QuantityMeans::QuantityMeans(const QuantityId id, const Optional<Size> bodyId)
     : quantity(id)
     , bodyId(bodyId) {}
 
@@ -136,7 +136,7 @@ Means QuantityMeans::evaluate(Storage& storage) const {
     auto accumulate = [&](const auto& getter) {
         const Size size = storage.getParticleCnt();
         if (bodyId) {
-            ArrayView<const Size> ids = storage.getValue<Size>(QuantityIds::FLAG);
+            ArrayView<const Size> ids = storage.getValue<Size>(QuantityId::FLAG);
             for (Size i = 0; i < size; ++i) {
                 if (ids[i] == bodyId.get()) {
                     means.accumulate(getter(i));
@@ -149,7 +149,7 @@ Means QuantityMeans::evaluate(Storage& storage) const {
         }
     };
     if (quantity.getTypeIdx() == 0) {
-        const QuantityIds id = quantity.get<QuantityIds>();
+        const QuantityId id = quantity.get<QuantityId>();
         ASSERT(storage.has(id));
         ArrayView<const Float> q = storage.getValue<Float>(id);
         accumulate([&](const Size i) { return q[i]; });

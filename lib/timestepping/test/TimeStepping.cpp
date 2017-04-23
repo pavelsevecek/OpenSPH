@@ -2,6 +2,7 @@
 #include "catch.hpp"
 #include "quantities/Storage.h"
 #include "solvers/AbstractSolver.h"
+#include "sph/Material.h"
 #include "system/Settings.h"
 #include "system/Statistics.h"
 #include "utils/Approx.h"
@@ -17,13 +18,13 @@ struct HomogeneousField : public Abstract::Solver {
 
     virtual void integrate(Storage& storage, Statistics&) override {
         ArrayView<Vector> r, v, dv;
-        tie(r, v, dv) = storage.getAll<Vector>(QuantityIds::POSITIONS);
+        tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
         for (Size i = 0; i < r.size(); ++i) {
             dv[i] = g;
         }
     }
 
-    virtual void create(Storage&, const BodySettings&) const override {
+    virtual void create(Storage&, Abstract::Material&) const override {
         NOT_IMPLEMENTED;
     }
 };
@@ -35,14 +36,14 @@ struct HarmonicOscillator : public Abstract::Solver {
 
     virtual void integrate(Storage& storage, Statistics&) override {
         ArrayView<Vector> r, v, dv;
-        tie(r, v, dv) = storage.getAll<Vector>(QuantityIds::POSITIONS);
+        tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
         Float omega = 2._f * PI / period;
         for (Size i = 0; i < r.size(); ++i) {
             dv[i] = -sqr(omega) * r[i];
         }
     }
 
-    virtual void create(Storage&, const BodySettings&) const override {
+    virtual void create(Storage&, Abstract::Material&) const override {
         NOT_IMPLEMENTED;
     }
 };
@@ -54,13 +55,13 @@ struct LorentzForce : public Abstract::Solver {
 
     virtual void integrate(Storage& storage, Statistics&) override {
         ArrayView<Vector> r, v, dv;
-        tie(r, v, dv) = storage.getAll<Vector>(QuantityIds::POSITIONS);
+        tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
         for (Size i = 0; i < r.size(); ++i) {
             dv[i] = cross(v[i], B);
         }
     }
 
-    virtual void create(Storage&, const BodySettings&) const override {
+    virtual void create(Storage&, Abstract::Material&) const override {
         NOT_IMPLEMENTED;
     }
 };
@@ -75,12 +76,12 @@ template <typename TTimestepping, typename... TArgs>
 void testHomogeneousField(TArgs&&... args) {
     HomogeneousField solver;
 
-    std::shared_ptr<Storage> storage = std::make_shared<Storage>();
+    std::shared_ptr<Storage> storage = std::make_shared<Storage>(getDefaultMaterial());
     storage->insert<Vector>(
-        QuantityIds::POSITIONS, OrderEnum::SECOND, Array<Vector>{ Vector(0._f, 0._f, 0._f) });
+        QuantityId::POSITIONS, OrderEnum::SECOND, Array<Vector>{ Vector(0._f, 0._f, 0._f) });
 
     ArrayView<const Vector> r, v, dv;
-    tie(r, v, dv) = storage->getAll<Vector>(QuantityIds::POSITIONS);
+    tie(r, v, dv) = storage->getAll<Vector>(QuantityId::POSITIONS);
     TTimestepping timestepping(storage, std::forward<TArgs>(args)...);
     Statistics stats;
     Size n = 0;
@@ -106,12 +107,12 @@ template <typename TTimestepping, typename... TArgs>
 void testHarmonicOscillator(TArgs&&... args) {
     HarmonicOscillator solver;
 
-    std::shared_ptr<Storage> storage = std::make_shared<Storage>();
+    std::shared_ptr<Storage> storage = std::make_shared<Storage>(getDefaultMaterial());
     storage->insert<Vector>(
-        QuantityIds::POSITIONS, OrderEnum::SECOND, Array<Vector>{ Vector(1._f, 0._f, 0._f) });
+        QuantityId::POSITIONS, OrderEnum::SECOND, Array<Vector>{ Vector(1._f, 0._f, 0._f) });
 
     ArrayView<const Vector> r, v, dv;
-    tie(r, v, dv) = storage->getAll<Vector>(QuantityIds::POSITIONS);
+    tie(r, v, dv) = storage->getAll<Vector>(QuantityId::POSITIONS);
     TTimestepping timestepping(storage, std::forward<TArgs>(args)...);
     Statistics stats;
     Size n = 0;
@@ -137,12 +138,12 @@ template <typename TTimestepping, typename... TArgs>
 void testGyroscopicMotion(TArgs&&... args) {
     LorentzForce solver;
 
-    std::shared_ptr<Storage> storage = std::make_shared<Storage>();
+    std::shared_ptr<Storage> storage = std::make_shared<Storage>(getDefaultMaterial());
     storage->insert<Vector>(
-        QuantityIds::POSITIONS, OrderEnum::SECOND, Array<Vector>{ Vector(1._f, 0._f, 0._f) });
+        QuantityId::POSITIONS, OrderEnum::SECOND, Array<Vector>{ Vector(1._f, 0._f, 0._f) });
 
     ArrayView<Vector> r, v, dv;
-    tie(r, v, dv) = storage->getAll<Vector>(QuantityIds::POSITIONS);
+    tie(r, v, dv) = storage->getAll<Vector>(QuantityId::POSITIONS);
     v[0] = Vector(0._f, -1._f, 0.5_f);
     // y component is perpendicular, should oscilate with cyclotron frequency, in this case omega_C = B
     // z component is parallel, should move with constant velocity
@@ -168,18 +169,18 @@ void testGyroscopicMotion(TArgs&&... args) {
 }
 
 TEST_CASE("EulerExplicit", "[timestepping]") {
-    GlobalSettings settings;
-    settings.set(GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP, timeStep);
-    settings.set(GlobalSettingsIds::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::NONE);
+    RunSettings settings;
+    settings.set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, timeStep);
+    settings.set(RunSettingsId::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::NONE);
     testHomogeneousField<EulerExplicit>(settings);
     testHarmonicOscillator<EulerExplicit>(settings);
     testGyroscopicMotion<EulerExplicit>(settings);
 }
 
 TEST_CASE("PredictorCorrector", "[timestepping]") {
-    GlobalSettings settings;
-    settings.set(GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP, timeStep);
-    settings.set(GlobalSettingsIds::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::NONE);
+    RunSettings settings;
+    settings.set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, timeStep);
+    settings.set(RunSettingsId::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::NONE);
     testHomogeneousField<PredictorCorrector>(settings);
     testHarmonicOscillator<PredictorCorrector>(settings);
     testGyroscopicMotion<PredictorCorrector>(settings);
@@ -190,9 +191,9 @@ TEST_CASE("PredictorCorrector", "[timestepping]") {
 
 
 /*TEST_CASE("RungeKutta", "[timestepping]") {
-    Settings<GlobalSettingsIds> settings(GLOBAL_SETTINGS);
-    settings.set(GlobalSettingsIds::TIMESTEPPING_INITIAL_TIMESTEP, timeStep);
-    settings.set(GlobalSettingsIds::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::NONE);
+    Settings<RunSettingsId> settings(GLOBAL_SETTINGS);
+    settings.set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, timeStep);
+    settings.set(RunSettingsId::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::NONE);
     testHarmonicOscillator<RungeKutta>(settings);
     testGyroscopicMotion<RungeKutta>(settings);
 }*/

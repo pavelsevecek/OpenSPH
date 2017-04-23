@@ -9,7 +9,7 @@
 #include "gui/Renderer.h"
 #include "gui/Settings.h"
 #include "gui/objects/Bitmap.h"
-#include "system/Output.h"
+#include "io/Output.h"
 #include <wx/image.h>
 
 NAMESPACE_SPH_BEGIN
@@ -24,11 +24,11 @@ private:
 
 public:
     Movie(const GuiSettings& settings, Abstract::Renderer* renderer)
-        : outputStep(settings.get<Float>(GuiSettingsIds::IMAGES_TIMESTEP))
+        : outputStep(settings.get<Float>(GuiSettingsId::IMAGES_TIMESTEP))
         , renderer(renderer) {
-        enabled = settings.get<bool>(GuiSettingsIds::IMAGES_SAVE);
-        const std::string directory = settings.get<std::string>(GuiSettingsIds::IMAGES_PATH);
-        const std::string name = settings.get<std::string>(GuiSettingsIds::IMAGES_NAME);
+        enabled = settings.get<bool>(GuiSettingsId::IMAGES_SAVE);
+        const std::string directory = settings.get<std::string>(GuiSettingsId::IMAGES_PATH);
+        const std::string name = settings.get<std::string>(GuiSettingsId::IMAGES_NAME);
         paths = OutputFile(directory + name);
         static bool first = true;
         if (first) {

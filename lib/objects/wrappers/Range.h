@@ -80,6 +80,10 @@ public:
         return !(*this == other);
     }
 
+    INLINE bool isEmpty() const {
+        return minBound > maxBound;
+    }
+
     static Range unbounded() {
         return Range(-INFTY, INFTY);
     }

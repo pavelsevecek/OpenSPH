@@ -83,7 +83,7 @@ Size VoxelFinder::findNeighbours(const Size index,
                 for (Size i : lut(Indices(x, y, z))) {
                     const Float distSqr = getSqrLength(values[i] - values[index]);
                     if (rankH[i] < refRank && distSqr < sqr(radius)) {
-                        neighbours.push(NeighbourRecord{ i, distSqr });
+                        neighbours.emplaceBack(NeighbourRecord{ i, distSqr });
                     }
                 }
             }

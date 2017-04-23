@@ -97,10 +97,7 @@ public:
     Outcome loadFromFile(const std::string& path, const Settings& descriptors);
 
     /// Returns a reference to object containing default values of all settings.
-    static const Settings& getDefaults() {
-        ASSERT(instance != nullptr);
-        return *instance;
-    }
+    static const Settings& getDefaults();
 
 private:
     bool setValueByType(Entry& entry, const Size typeIdx, const std::string& str);
@@ -289,7 +286,7 @@ enum class RngEnum {
 };
 
 /// Settings relevant for whole run of the simulation
-enum class GlobalSettingsIds {
+enum class RunSettingsId {
     /// Custom name of the run
     RUN_NAME,
 
@@ -307,6 +304,11 @@ enum class GlobalSettingsIds {
 
     /// Number of threads used by the code. If 0, all available threads are used.
     RUN_THREAD_CNT,
+
+    /// Number of particles processed by one thread in a single batch. Lower number can help to distribute
+    /// tasks between threads more evenly, higher number means faster processing of particles within single
+    /// thread.
+    RUN_THREAD_GRANULARITY,
 
     /// Selected logger of a run, see LoggerEnum
     RUN_LOGGER,
@@ -341,6 +343,11 @@ enum class GlobalSettingsIds {
     /// Structure for searching nearest neighbours of particles
     SPH_FINDER,
 
+    /// If true, the kernel gradient will be corrected for each particle to improve conservation of total
+    /// angular momentum. This comes at the cost of higher memory consumption and slower evaluation of SPH
+    /// derivatives.
+    SPH_CONSERVE_ANGULAR_MOMENTUM,
+
     /// Eta-factor between smoothing length and particle concentration (h = eta * n^(-1/d) )
     SPH_KERNEL_ETA,
 
@@ -349,7 +356,7 @@ enum class GlobalSettingsIds {
     SPH_NEIGHBOUR_RANGE,
 
     /// Strength of enforcing neighbour number. Higher value makes enforcing more strict (number of neighbours
-    /// gets into required range faster), but also makes code less stable. Can be a negative number,  -INFTY
+    /// gets into required range faster), but also makes code less stable. Can be a negative number, -INFTY
     /// technically disables enforcing altogether.
     SPH_NEIGHBOUR_ENFORCING,
 
@@ -477,7 +484,7 @@ enum class EosEnum {
 
 /// Settings of a single body / gas phase / ...
 /// Combines material parameters and numerical parameters of the SPH method specific for one body.
-enum class BodySettingsIds {
+enum class BodySettingsId {
     /// Equation of state for this material, see EosEnum for options.
     EOS,
 
@@ -491,6 +498,11 @@ enum class BodySettingsIds {
 
     /// If true, particles are sorted using Morton code, preserving locality in memory.
     PARTICLE_SORTING,
+
+    /// Turns on 'SPH5 compatibility' mode when generating particle positions. This allows 1-1 comparison of
+    /// generated arrays, but results in too many generated particles (by about factor 1.4). The option also
+    /// implies CENTER_PARTICLES.
+    DISTRIBUTE_MODE_SPH5,
 
     /// Density at zero pressure
     DENSITY,
@@ -603,7 +615,7 @@ enum class BodySettingsIds {
     AV_BETA_RANGE,
 };
 
-using GlobalSettings = Settings<GlobalSettingsIds>;
-using BodySettings = Settings<BodySettingsIds>;
+using RunSettings = Settings<RunSettingsId>;
+using BodySettings = Settings<BodySettingsId>;
 
 NAMESPACE_SPH_END

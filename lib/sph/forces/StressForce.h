@@ -36,14 +36,14 @@ private:
 public:
     Statistics* stats;
 
-    StressForce(const GlobalSettings& settings)
+    StressForce(const RunSettings& settings)
         : Module<Yielding, Damage, AV, RhoDivv, RhoGradv>(yielding, damage, av, rhoDivv, rhoGradv)
-        , rhoGradv(QuantityIds::RHO_GRAD_V)
+        , rhoGradv(QuantityId::RHO_GRAD_V)
         , damage(settings)
         , av(settings)
         , energy959("energy959.txt") {
-        flags.setIf(Options::USE_GRAD_P, settings.get<bool>(GlobalSettingsIds::MODEL_FORCE_GRAD_P));
-        flags.setIf(Options::USE_DIV_S, settings.get<bool>(GlobalSettingsIds::MODEL_FORCE_DIV_S));
+        flags.setIf(Options::USE_GRAD_P, settings.get<bool>(RunSettingsId::MODEL_FORCE_GRAD_P));
+        flags.setIf(Options::USE_DIV_S, settings.get<bool>(RunSettingsId::MODEL_FORCE_DIV_S));
         // cannot use stress tensor without pressure
         ASSERT(!(flags.has(Options::USE_DIV_S) && !flags.has(Options::USE_GRAD_P)));
     }
@@ -53,13 +53,13 @@ public:
     StressForce(StressForce&& other) = default;
 
     void update(Storage& storage) {
-        tie(rho, m) = storage.getValues<Float>(QuantityIds::DENSITY, QuantityIds::MASSES);
-        tie(u, du) = storage.getAll<Float>(QuantityIds::ENERGY);
+        tie(rho, m) = storage.getValues<Float>(QuantityId::DENSITY, QuantityId::MASSES);
+        tie(u, du) = storage.getAll<Float>(QuantityId::ENERGY);
         ArrayView<Vector> r;
-        tie(r, v, dv) = storage.getAll<Vector>(QuantityIds::POSITIONS);
+        tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
         if (flags.has(Options::USE_GRAD_P)) {
-            p = storage.getValue<Float>(QuantityIds::PRESSURE);
-            cs = storage.getValue<Float>(QuantityIds::SOUND_SPEED);
+            p = storage.getValue<Float>(QuantityId::PRESSURE);
+            cs = storage.getValue<Float>(QuantityId::SOUND_SPEED);
             // compute new values of pressure and sound speed
             EosAccessor eos(storage);
             for (Size i = 0; i < r.size(); ++i) {
@@ -67,12 +67,12 @@ public:
             }
         }
         if (flags.has(Options::USE_DIV_S)) {
-            tie(s, ds) = storage.getAll<TracelessTensor>(QuantityIds::DEVIATORIC_STRESS);
+            tie(s, ds) = storage.getAll<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
         }
-        bodyIdxs = storage.getValue<Size>(QuantityIds::FLAG);
+        bodyIdxs = storage.getValue<Size>(QuantityId::FLAG);
 
-        vonmises = storage.getValue<Float>(QuantityIds::YIELDING_REDUCE);
-        D = storage.getValue<Float>(QuantityIds::DAMAGE);
+        vonmises = storage.getValue<Float>(QuantityId::YIELDING_REDUCE);
+        D = storage.getValue<Float>(QuantityId::DAMAGE);
         damage.stats = stats;
         this->updateModules(storage);
     }
@@ -116,7 +116,7 @@ public:
 
                 // compute derivatives of the stress tensor
                 /// \todo rotation rate tensor?
-                const Float mu = material.getParam<Float>(BodySettingsIds::SHEAR_MODULUS, i);
+                const Float mu = material.getParam<Float>(BodySettingsId::SHEAR_MODULUS, i);
                 /// \todo how to enforce that this expression is traceless tensor?
                 ds[i] += TracelessTensor(
                     2._f * mu * (rhoGradv[i] - Tensor::identity() * rhoGradv[i].trace() / 3._f));
@@ -129,33 +129,33 @@ public:
     }
 
     void initialize(Storage& storage, const BodySettings& settings) const {
-        storage.insert<Float, OrderEnum::FIRST>(QuantityIds::ENERGY,
-            settings.get<Float>(BodySettingsIds::ENERGY),
-            settings.get<Range>(BodySettingsIds::ENERGY_RANGE));
-        MaterialAccessor(storage).minimal(QuantityIds::ENERGY, 0) =
-            settings.get<Float>(BodySettingsIds::ENERGY_MIN);
+        storage.insert<Float, OrderEnum::FIRST>(QuantityId::ENERGY,
+            settings.get<Float>(BodySettingsId::ENERGY),
+            settings.get<Range>(BodySettingsId::ENERGY_RANGE));
+        MaterialAccessor(storage).minimal(QuantityId::ENERGY, 0) =
+            settings.get<Float>(BodySettingsId::ENERGY_MIN);
         if (flags.has(Options::USE_GRAD_P)) {
             // Compute pressure using equation of state
             std::unique_ptr<Abstract::Eos> eos = Factory::getEos(settings);
-            const Float rho0 = settings.get<Float>(BodySettingsIds::DENSITY);
-            const Float u0 = settings.get<Float>(BodySettingsIds::ENERGY);
+            const Float rho0 = settings.get<Float>(BodySettingsId::DENSITY);
+            const Float u0 = settings.get<Float>(BodySettingsId::ENERGY);
             const Size n = storage.getParticleCnt();
             Array<Float> p(n), cs(n);
             for (Size i = 0; i < n; ++i) {
                 tieToTuple(p[i], cs[i]) = eos->evaluate(rho0, u0);
             }
-            storage.insert<Float, OrderEnum::ZERO>(QuantityIds::PRESSURE, std::move(p));
-            storage.insert<Float, OrderEnum::ZERO>(QuantityIds::SOUND_SPEED, std::move(cs));
+            storage.insert<Float, OrderEnum::ZERO>(QuantityId::PRESSURE, std::move(p));
+            storage.insert<Float, OrderEnum::ZERO>(QuantityId::SOUND_SPEED, std::move(cs));
         }
         if (flags.has(Options::USE_DIV_S)) {
-            storage.insert<TracelessTensor, OrderEnum::FIRST>(QuantityIds::DEVIATORIC_STRESS,
-                settings.get<TracelessTensor>(BodySettingsIds::STRESS_TENSOR),
+            storage.insert<TracelessTensor, OrderEnum::FIRST>(QuantityId::DEVIATORIC_STRESS,
+                settings.get<TracelessTensor>(BodySettingsId::STRESS_TENSOR),
                 Range::unbounded());
-            MaterialAccessor(storage).minimal(QuantityIds::DEVIATORIC_STRESS, 0) =
-                settings.get<Float>(BodySettingsIds::STRESS_TENSOR_MIN);
-            storage.insert<Tensor, OrderEnum::ZERO>(QuantityIds::RHO_GRAD_V, Tensor::null());
+            MaterialAccessor(storage).minimal(QuantityId::DEVIATORIC_STRESS, 0) =
+                settings.get<Float>(BodySettingsId::STRESS_TENSOR_MIN);
+            storage.insert<Tensor, OrderEnum::ZERO>(QuantityId::RHO_GRAD_V, Tensor::null());
             MaterialAccessor material(storage);
-            material.setParams(BodySettingsIds::SHEAR_MODULUS, settings);
+            material.setParams(BodySettingsId::SHEAR_MODULUS, settings);
         }
         this->initializeModules(storage, settings);
     }

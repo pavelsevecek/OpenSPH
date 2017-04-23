@@ -6,23 +6,37 @@
 /// Pavel Sevecek 2016
 /// sevecek at sirrah.troja.mff.cuni.cz
 
-#include "math/Means.h"
-#include "objects/containers/ArrayUtils.h"
-#include "objects/finders/AbstractFinder.h"
-#include "quantities/Iterate.h"
-#include "quantities/QuantityIds.h"
-#include "solvers/AbstractSolver.h"
+#include "solvers/GenericSolver.h"
 #include "sph/av/Standard.h"
-#include "sph/boundary/Boundary.h"
-#include "sph/forces/StressForce.h"
-#include "sph/kernel/Kernel.h"
-#include "system/Factory.h"
-#include "system/Profiler.h"
-#include "system/Settings.h"
-#include "system/Statistics.h"
-#include "thread/Pool.h"
 
 NAMESPACE_SPH_BEGIN
+
+class ContinuitySolver : public GenericSolver {
+public:
+    ContinuitySolver(const RunSettings& settings)
+        : GenericSolver(settings, this->getEquations(settings)) {}
+
+    EquationHolder getEquations(const RunSettings& settings) {
+        EquationHolder equations;
+        /// \todo test that all possible combination (pressure, stress, AV, ...) work and dont assert
+        if (settings.get<bool>(RunSettingsId::MODEL_FORCE_GRAD_P)) {
+            equations += makeTerm<PressureForce>();
+        }
+        if (settings.get<bool>(RunSettingsId::MODEL_FORCE_DIV_S)) {
+            equations += makeTerm<StressForce>(settings);
+        }
+        equations += makeTerm<StandardAV>(settings);
+
+        // Density evolution - Continuity equation
+        equations += makeTerm<ContinuityEquation>();
+
+        // Adaptivity of smoothing length
+        equations += makeTerm<AdaptiveSmoothingLength>(settings);
+
+        return equations;
+    }
+};
+
 /*
 template <typename Force, int D>
 class ContinuitySolver : public SolverBase<D>, Module<Force, RhoDivv, RhoGradv> {
@@ -44,12 +58,12 @@ private:
     ThreadPool pool;
 
 public:
-    ContinuitySolver(const GlobalSettings& settings)
+    ContinuitySolver(const RunSettings& settings)
         : SolverBase<D>(settings)
         , Module<Force, RhoDivv, RhoGradv>(force, rhoDivv, rhoGradv)
         , force(settings) {
-        minH = settings.get<Float>(GlobalSettingsIds::SPH_SMOOTHING_LENGTH_MIN);
-        neighRange = settings.get<Range>(GlobalSettingsIds::SPH_NEIGHBOUR_RANGE);
+        minH = settings.get<Float>(RunSettingsId::SPH_SMOOTHING_LENGTH_MIN);
+        neighRange = settings.get<Range>(RunSettingsId::SPH_NEIGHBOUR_RANGE);
     }
 
     virtual void integrate(Storage& storage, Statistics& stats) override {
@@ -60,9 +74,9 @@ public:
         ArrayView<Float> m, rho, drho;
         {
             PROFILE_SCOPE("ContinuitySolver::compute (getters)")
-            tie(r, v, dv) = storage.getAll<Vector>(QuantityIds::POSITIONS);
-            tie(rho, drho) = storage.getAll<Float>(QuantityIds::DENSITY);
-            m = storage.getValue<Float>(QuantityIds::MASSES);
+            tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
+            tie(rho, drho) = storage.getAll<Float>(QuantityId::DENSITY);
+            m = storage.getValue<Float>(QuantityId::MASSES);
             // Check that quantities are valid
             ASSERT(areAllMatching(dv, [](const Vector v) { return v == Vector(0._f); }));
             ASSERT(areAllMatching(rho, [](const Float v) { return v > 0._f; }));
@@ -72,7 +86,7 @@ public:
                 h = max(h, minH);
             }
         }
-        Array<Size>& neighCnts = storage.getValue<Size>(QuantityIds::NEIGHBOUR_CNT);
+        Array<Size>& neighCnts = storage.getValue<Size>(QuantityId::NEIGHBOUR_CNT);
         neighCnts.fill(0);
 
         {
@@ -116,22 +130,22 @@ public:
 
         // set derivative of density and smoothing length
         ArrayView<TracelessTensor> s;
-        if (storage.has(QuantityIds::DEVIATORIC_STRESS)) {
-            s = storage.getValue<TracelessTensor>(QuantityIds::DEVIATORIC_STRESS);
+        if (storage.has(QuantityId::DEVIATORIC_STRESS)) {
+            s = storage.getValue<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
         }
         ArrayView<Float> dmg;
-        if (storage.has(QuantityIds::DAMAGE)) {
-            dmg = storage.getValue<Float>(QuantityIds::DAMAGE);
+        if (storage.has(QuantityId::DAMAGE)) {
+            dmg = storage.getValue<Float>(QuantityId::DAMAGE);
         }
         ArrayView<Float> reducing;
-        if (storage.has(QuantityIds::YIELDING_REDUCE)) {
-            reducing = storage.getValue<Float>(QuantityIds::YIELDING_REDUCE);
+        if (storage.has(QuantityId::YIELDING_REDUCE)) {
+            reducing = storage.getValue<Float>(QuantityId::YIELDING_REDUCE);
         }
         Float divv_max = 0._f;
         for (Size i = 0; i < size; ++i) {
             divv_max = max(divv_max, rhoDivv[i]);
         }
-        ArrayView<Size> flag = storage.getValue<Size>(QuantityIds::FLAG);
+        ArrayView<Size> flag = storage.getValue<Size>(QuantityId::FLAG);
         for (Size i = 0; i < drho.size(); ++i) {
             Float divv;
             const Float red = dmg ? 1.f - pow<3>(dmg[i]) : 1.f;
@@ -158,7 +172,7 @@ public:
         for (Size i = 0; i < size; ++i) {
             neighMeans.accumulate(neighCnts[i]);
         }
-        stats.set(StatisticsIds::NEIGHBOUR_COUNT, neighMeans);
+        stats.set(StatisticsId::NEIGHBOUR_COUNT, neighMeans);
         if (this->boundary) {
             PROFILE_SCOPE("ContinuitySolver::compute (boundary)")
             this->boundary->apply(storage);
@@ -166,12 +180,12 @@ public:
     }
 
     virtual void initialize(Storage& storage, const BodySettings& settings) const override {
-        storage.insert<Float, OrderEnum::FIRST>(QuantityIds::DENSITY,
-            settings.get<Float>(BodySettingsIds::DENSITY),
-            settings.get<Range>(BodySettingsIds::DENSITY_RANGE));
-        MaterialAccessor(storage).minimal(QuantityIds::DENSITY, 0) =
-            settings.get<Float>(BodySettingsIds::DENSITY_MIN);
-        storage.insert<Size, OrderEnum::ZERO>(QuantityIds::NEIGHBOUR_CNT, 0);
+        storage.insert<Float, OrderEnum::FIRST>(QuantityId::DENSITY,
+            settings.get<Float>(BodySettingsId::DENSITY),
+            settings.get<Range>(BodySettingsId::DENSITY_RANGE));
+        MaterialAccessor(storage).minimal(QuantityId::DENSITY, 0) =
+            settings.get<Float>(BodySettingsId::DENSITY_MIN);
+        storage.insert<Size, OrderEnum::ZERO>(QuantityId::NEIGHBOUR_CNT, 0);
         this->initializeModules(storage, settings);
     }
 };*/

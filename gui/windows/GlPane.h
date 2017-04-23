@@ -71,7 +71,7 @@ public:
         NOT_IMPLEMENTED;
     }
 
-    virtual void setQuantity(const QuantityIds key) override;
+    virtual void setQuantity(const QuantityId key) override;
 
     void drawSphere(const Vector& position,
         const float radius,

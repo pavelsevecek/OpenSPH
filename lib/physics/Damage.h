@@ -14,10 +14,10 @@ namespace Abstract {
         virtual void setFlaws(Storage& storage, const BodySettings& settings) const = 0;
 
         /// Computes modified values of pressure and stress tensor due to fragmentation.
-        virtual void reduce(Storage& storage, const MaterialSequence sequence) = 0;
+        virtual void reduce(Storage& storage, const MaterialView sequence) = 0;
 
         /// Compute damage derivatives
-        virtual void integrate(Storage& storage, const MaterialSequence sequence) = 0;
+        virtual void integrate(Storage& storage, const MaterialView sequence) = 0;
     };
 }
 
@@ -39,9 +39,9 @@ public:
 
     virtual void setFlaws(Storage& storage, const BodySettings& settings) const override;
 
-    virtual void reduce(Storage& storage, const MaterialSequence material) override;
+    virtual void reduce(Storage& storage, const MaterialView material) override;
 
-    virtual void integrate(Storage& storage, const MaterialSequence material) override;
+    virtual void integrate(Storage& storage, const MaterialView material) override;
 };
 
 class TensorDamage : public Abstract::Damage {
@@ -49,18 +49,18 @@ private:
 public:
     virtual void setFlaws(Storage& storage, const BodySettings& settings) const override;
 
-    virtual void reduce(Storage& storage, const MaterialSequence material) override;
+    virtual void reduce(Storage& storage, const MaterialView material) override;
 
-    virtual void integrate(Storage& storage, const MaterialSequence material) override;
+    virtual void integrate(Storage& storage, const MaterialView material) override;
 };
 
 class NullDamage : public Abstract::Damage {
 public:
     virtual void setFlaws(Storage& storage, const BodySettings& settings) const override;
 
-    virtual void reduce(Storage& storage, const MaterialSequence material) override;
+    virtual void reduce(Storage& storage, const MaterialView material) override;
 
-    virtual void integrate(Storage& storage, const MaterialSequence material) override;
+    virtual void integrate(Storage& storage, const MaterialView material) override;
 };
 
 NAMESPACE_SPH_END

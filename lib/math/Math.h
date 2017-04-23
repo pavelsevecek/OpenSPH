@@ -99,8 +99,8 @@ INLINE constexpr T sqr(const T& f) {
     return f * f;
 }
 
+/// Returns true if given n is a power of 2. N must at least 1, function does not check the input.
 INLINE constexpr bool isPower2(const Size n) {
-    CONSTEXPR_ASSERT(n > 0);
     return (n & (n - 1)) == 0;
 }
 
@@ -349,7 +349,7 @@ INLINE bool isReal(const T& value) {
 /// \note The return type can be generally different if the mask cannot be represented using type T.
 template <typename T>
 INLINE constexpr auto less(const T& v1, const T& v2) {
-    return v1 < v2;
+    return v1 < v2 ? T(1) : T(0);
 }
 
 

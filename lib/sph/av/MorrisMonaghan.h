@@ -27,11 +27,11 @@ private:
     public:
         virtual void initialize(const Storage& input, Accumulated& results) override {
             ArrayView<const Vector> dummy;
-            tie(r, v, dummy) = storage.getAll<Vector>(QuantityIds::POSITIONS);
-            tie(alpha, dalpha) = storage.getAll<Float>(QuantityIds::AV_ALPHA);
-            tie(beta, dbeta) = storage.getAll<Float>(QuantityIds::AV_BETA);
-            cs = storage.getValue<Float>(QuantityIds::SOUND_SPEED);
-            rho = storage.getValue<Float>(QuantityIds::DENSITY);
+            tie(r, v, dummy) = storage.getAll<Vector>(QuantityId::POSITIONS);
+            tie(alpha, dalpha) = storage.getAll<Float>(QuantityId::AV_ALPHA);
+            tie(beta, dbeta) = storage.getAll<Float>(QuantityId::AV_BETA);
+            cs = storage.getValue<Float>(QuantityId::SOUND_SPEED);
+            rho = storage.getValue<Float>(QuantityId::DENSITY);
             /// \todo we ALWAYS accumulate highest derivatives, maybe AccumulatedIds is not needed, we can do
             /// that automatically
             dv = results.getValue<Vector>(AccumulatedIds::ACCELERATION);
@@ -76,22 +76,22 @@ private:
 
 
     void initialize(Storage& storage, const BodySettings& settings) const {
-        storage.insert<Float, OrderEnum::FIRST>(QuantityIds::AV_ALPHA,
-            settings.get<Float>(BodySettingsIds::AV_ALPHA),
-            settings.get<Range>(BodySettingsIds::AV_ALPHA_RANGE));
-        storage.insert<Float, OrderEnum::ZERO>(QuantityIds::AV_BETA,
-            settings.get<Float>(BodySettingsIds::AV_BETA),
-            settings.get<Range>(BodySettingsIds::AV_BETA_RANGE));
+        storage.insert<Float, OrderEnum::FIRST>(QuantityId::AV_ALPHA,
+            settings.get<Float>(BodySettingsId::AV_ALPHA),
+            settings.get<Range>(BodySettingsId::AV_ALPHA_RANGE));
+        storage.insert<Float, OrderEnum::ZERO>(QuantityId::AV_BETA,
+            settings.get<Float>(BodySettingsId::AV_BETA),
+            settings.get<Range>(BodySettingsId::AV_BETA_RANGE));
         this->initializeModules(storage, settings);
     }
 
     virtual void initialize(Storage& storage) override {
         ArrayView<Vector> dv;
-        tie(r, v, dv) = storage.getAll<Vector>(QuantityIds::POSITIONS);
-        tie(alpha, dalpha) = storage.getAll<Float>(QuantityIds::AV_ALPHA);
-        tie(beta, dbeta) = storage.getAll<Float>(QuantityIds::AV_BETA);
-        cs = storage.getValue<Float>(QuantityIds::SOUND_SPEED);
-        rho = storage.getValue<Float>(QuantityIds::DENSITY);
+        tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
+        tie(alpha, dalpha) = storage.getAll<Float>(QuantityId::AV_ALPHA);
+        tie(beta, dbeta) = storage.getAll<Float>(QuantityId::AV_BETA);
+        cs = storage.getValue<Float>(QuantityId::SOUND_SPEED);
+        rho = storage.getValue<Float>(QuantityId::DENSITY);
         // always keep beta = 2*alpha
         for (Size i = 0; i < alpha.size(); ++i) {
             beta[i] = 2._f * alpha[i];
@@ -106,7 +106,7 @@ private:
     INLINE virtual void finalize(Storage& storage) override {
         MaterialAccessor material(storage);
         for (Size i = 0; i < storage.getParticleCnt(); ++i) {
-            const Range bounds = material.getParam<Range>(BodySettingsIds::AV_ALPHA_RANGE, i);
+            const Range bounds = material.getParam<Range>(BodySettingsId::AV_ALPHA_RANGE, i);
             const Float tau = r[i][H] / (eps * cs[i]);
             const Float decayTerm = -(alpha[i] - Float(bounds.lower())) / tau;
             const Float sourceTerm = max(-(Float(bounds.upper()) - alpha[i]) * divv[i], 0._f);

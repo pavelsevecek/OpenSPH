@@ -185,6 +185,8 @@ public:
 
     /// Resize the array. All stored values (within interval [0, newSize-1]) are preserved.
     void resize(const TCounter newSize) {
+        // check suspiciously high values
+        ASSERT(newSize < (std::numeric_limits<TCounter>::max() >> 1));
         if (newSize <= maxSize) {
             // enough elements is already allocated
             if (newSize >= actSize) {
@@ -225,6 +227,7 @@ public:
     }
 
     void reserve(const TCounter newMaxSize) {
+        ASSERT(newMaxSize < (std::numeric_limits<TCounter>::max() >> 1));
         if (newMaxSize > maxSize) {
             const TCounter actNewSize = max(2 * maxSize, newMaxSize);
             Array newArray(0, actNewSize);
@@ -232,6 +235,7 @@ public:
             for (TCounter i = 0; i < actSize; ++i) {
                 new (newArray.data + i) StorageType(std::move(this->data[i]));
             }
+            newArray.actSize = actSize;
             // move the array into this
             *this = std::move(newArray);
         }
@@ -261,6 +265,14 @@ public:
         for (Iterator<T> iter = other.begin(); iter != other.end(); ++iter) {
             push(std::move(*iter));
         }
+    }
+
+    template <typename U>
+    void emplaceBack(U&& u) {
+        reserve(this->actSize + 1);
+        ASSERT(this->maxSize > this->actSize);
+        new (this->data + this->actSize) StorageType(std::forward<U>(u));
+        this->actSize++;
     }
 
     /// Removes the last element from the array and return its value. Asserts if the array is empty.

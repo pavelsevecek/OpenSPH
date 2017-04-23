@@ -7,13 +7,13 @@
 #include "gui/windows/GlPane.h"
 #include "gui/windows/OrthoPane.h"
 #include "gui/windows/Window.h"
+#include "io/Logger.h"
+#include "io/Output.h"
 #include "physics/Constants.h"
-#include "problem/Problem.h"
+#include "run/Run.h"
 #include "sph/initial/Initial.h"
-#include "sph/timestepping/TimeStepping.h"
 #include "system/Factory.h"
-#include "system/Logger.h"
-#include "system/Output.h"
+#include "timestepping/TimeStepping.h"
 
 #include <wx/glcanvas.h>
 #include <wx/sizer.h>
@@ -26,23 +26,8 @@ NAMESPACE_SPH_BEGIN
 
 
 bool MyApp::OnInit() {
-    // MeteoroidEntry setup;
-    AsteroidCollision setup;
-
-    p = setup.getProblem();
-    GuiSettings guiSettings = setup.getGuiSettings();
-    window = new Window(p->storage, guiSettings, [this, setup]() mutable {
-        ASSERT(this->worker.joinable());
-        this->worker.join();
-        p->storage->removeAll();
-        setup.initialConditions(p->storage);
-        this->worker = std::thread([this]() { p->run(); });
-    });
-    window->SetAutoLayout(true);
-    window->Show();
-
-    p->callbacks = std::make_unique<GuiCallbacks>(window, setup.globalSettings, guiSettings);
-    worker = std::thread([this]() { p->run(); });
+    run = std::make_unique<AsteroidCollision>();
+    worker = std::thread([this]() { run->run(); });
 
     Connect(MAIN_LOOP_TYPE, MainLoopEventHandler(MyApp::processEvents));
     return true;

@@ -1,6 +1,5 @@
 #pragma once
 
-#include "objects/ExtendEnum.h"
 #include "common/ForwardDecl.h"
 #include "objects/containers/Array.h"
 #include "objects/wrappers/Value.h"
@@ -8,33 +7,36 @@
 
 NAMESPACE_SPH_BEGIN
 
-enum class CriterionIds {
-    INITIAL_VALUE = 100, ///< Timestep is not computed, using given initial value
-    MAXIMAL_VALUE = 101, ///< Timestep is given by selected maximal value
-    CFL_CONDITION = 102, ///< Timestep is computed using CFL condition
-    ACCELERATION = 103   ///< Timestep is constrained by acceleration condition
+enum class CriterionId {
+    INITIAL_VALUE, ///< Timestep is not computed, using given initial value
+    MAXIMAL_VALUE, ///< Timestep given by selected maximal value
+    DERIVATIVE,    ///< Timestep based on value-to-derivative ratio
+    CFL_CONDITION, ///< Timestep computed using CFL condition
+    ACCELERATION   ///< Timestep constrained by acceleration condition
 };
-using AllCriterionIds = ExtendEnum<CriterionIds, QuantityIds>;
 
-/// \todo remove AllCriterionIds, instead use CriterionIds::DERIVATIVE and save relevant quantity to
+/// \todo remove CriterionId, instead use CriterionId::DERIVATIVE and save relevant quantity to
 /// Statistics
 template <typename TStream>
-TStream& operator<<(TStream& stream, AllCriterionIds id) {
-    switch ((CriterionIds)id) {
-    case CriterionIds::CFL_CONDITION:
+TStream& operator<<(TStream& stream, const CriterionId id) {
+    switch (id) {
+    case CriterionId::CFL_CONDITION:
         stream << "CFL condition";
         break;
-    case CriterionIds::ACCELERATION:
+    case CriterionId::ACCELERATION:
         stream << "Acceleration";
         break;
-    case CriterionIds::MAXIMAL_VALUE:
+    case CriterionId::DERIVATIVE:
+        stream << "Derivative";
+        break;
+    case CriterionId::MAXIMAL_VALUE:
         stream << "Maximal value";
         break;
-    case CriterionIds::INITIAL_VALUE:
+    case CriterionId::INITIAL_VALUE:
         stream << "Default value";
         break;
     default:
-        stream << getQuantityName(id);
+        NOT_IMPLEMENTED;
     }
     return stream;
 }
@@ -49,7 +51,7 @@ namespace Abstract {
         /// \param maxStep Maximal allowed time step.
         /// \param stats Optional parameter used to save statistics of the criterion.
         /// \returns Tuple, containing computed time step and ID of quantity that determined the value.
-        virtual Tuple<Float, AllCriterionIds> compute(Storage& storage,
+        virtual Tuple<Float, CriterionId> compute(Storage& storage,
             const Float maxStep,
             Optional<Statistics&> stats = NOTHING) = 0;
     };
@@ -64,9 +66,9 @@ private:
     Float factor;
 
 public:
-    DerivativeCriterion(const GlobalSettings& settings);
+    DerivativeCriterion(const RunSettings& settings);
 
-    virtual Tuple<Float, AllCriterionIds> compute(Storage& storage,
+    virtual Tuple<Float, CriterionId> compute(Storage& storage,
         const Float maxStep,
         Optional<Statistics&> stats = NOTHING) override;
 };
@@ -74,7 +76,7 @@ public:
 /// Criterion settings time step based on computed acceleration of particles.
 class AccelerationCriterion : public Abstract::TimeStepCriterion {
 public:
-    virtual Tuple<Float, AllCriterionIds> compute(Storage& storage,
+    virtual Tuple<Float, CriterionId> compute(Storage& storage,
         const Float maxStep,
         Optional<Statistics&> stats = NOTHING) override;
 };
@@ -85,10 +87,10 @@ private:
     Float courant;
 
 public:
-    CourantCriterion(const GlobalSettings& settings);
+    CourantCriterion(const RunSettings& settings);
 
     /// Storage must contain at least positions of particles and sound speed, checked by assert.
-    virtual Tuple<Float, AllCriterionIds> compute(Storage& storage,
+    virtual Tuple<Float, CriterionId> compute(Storage& storage,
         const Float maxStep,
         Optional<Statistics&> stats = NOTHING) override;
 };
@@ -100,9 +102,9 @@ private:
     StaticArray<std::unique_ptr<Abstract::TimeStepCriterion>, 3> criteria;
 
 public:
-    MultiCriterion(const GlobalSettings& settings);
+    MultiCriterion(const RunSettings& settings);
 
-    virtual Tuple<Float, AllCriterionIds> compute(Storage& storage,
+    virtual Tuple<Float, CriterionId> compute(Storage& storage,
         const Float maxStep,
         Optional<Statistics&> stats = NOTHING) override;
 };

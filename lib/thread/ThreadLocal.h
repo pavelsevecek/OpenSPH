@@ -65,12 +65,12 @@ INLINE void parallelFor(ThreadPool& pool,
     ThreadLocal<Type>& storage,
     const Size from,
     const Size to,
+    const Size granularity,
     TFunctor&& functor) {
-    const Size threadCnt = pool.getThreadCnt();
-    const Size size = int(to) - int(from);
-    for (Size i = 0; i < threadCnt; ++i) {
-        Size n1 = i * size / threadCnt;
-        Size n2 = (i + 1) * size / threadCnt;
+    ASSERT(from <= to);
+    for (Size i = from; i < to; i += granularity) {
+        const Size n1 = i;
+        const Size n2 = min(i + granularity, to);
         pool.submit([n1, n2, &storage, &functor] {
             Type& tls = storage.get();
             functor(n1, n2, tls);

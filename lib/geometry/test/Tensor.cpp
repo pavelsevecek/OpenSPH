@@ -64,6 +64,7 @@ TEST_CASE("Tensor algebra", "[tensor]") {
     const Float detInv = 1._f / 26._f;
     Tensor inv(detInv * Vector(3._f, 1._f, -1._f), detInv * Vector(-9._f, -7._f, -5._f));
     REQUIRE(t.inverse() == approx(inv));
+    REQUIRE_ASSERT(Tensor::null().inverse());
 
     Tensor t2(Vector(5._f, 3._f, -3._f), Vector(0._f));
     StaticArray<Float, 3> eigens = findEigenvalues(t2);

@@ -199,7 +199,7 @@ public:
     Variant(Variant&& other) {
         VariantHelpers::CopyMoveCreate<TArgs...> creator{ storage };
         VariantIterator<TArgs...>::visit(other.typeIdx, creator, std::move(other));
-        std::swap(typeIdx, other.typeIdx);
+        typeIdx = other.typeIdx;
     }
 
     ~Variant() {
@@ -325,7 +325,18 @@ public:
     /// Returns the stored value in the variant. Safer than implicit conversion as it returns NOTHING in case
     /// the value is currently not stored in variant.
     template <typename T>
-    Optional<T> tryGet() const {
+    Optional<T&> tryGet() {
+        constexpr int idx = getTypeIndex<T, TArgs...>;
+        static_assert(idx != -1, "Cannot convert variant to this type");
+        if (typeIdx != getTypeIndex<T, TArgs...>) {
+            return NOTHING;
+        }
+        return storage.template get<T>();
+    }
+
+    /// Returns the stored value in the variant, const version
+    template <typename T>
+    Optional<const T&> tryGet() const {
         constexpr int idx = getTypeIndex<T, TArgs...>;
         static_assert(idx != -1, "Cannot convert variant to this type");
         if (typeIdx != getTypeIndex<T, TArgs...>) {

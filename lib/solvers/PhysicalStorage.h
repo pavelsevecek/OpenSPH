@@ -27,18 +27,18 @@ namespace Abstract {
         /// Modify the quantity, called once before the solver loop.
         virtual void initialize(Storage& storage) = 0;
 
-        virtual bool modifies(const QuantityIds key) const = 0;
+        virtual bool modifies(const QuantityId key) const = 0;
 
         /// Returns the modified value of the quantity
         template <typename TValue>
-        Array<TValue>& getModifiedValue(const QuantityIds& id) {
+        Array<TValue>& getModifiedValue(const QuantityId& id) {
             Quantity& modified = modify(id);
             return modified.getValue<TValue>();
         }
 
     private:
         /// Implementation shall return zero-order quantity, containing modified values.
-        virtual Quantity& modify(const QuantityIds key) = 0;
+        virtual Quantity& modify(const QuantityId key) = 0;
     };
 }
 
@@ -57,7 +57,7 @@ private:
         addModifier(std::unique_ptr<Abstract::Modifier>&& modifier) {
 #ifdef SPH_DEBUG
         // check we are not already modifying the quantity
-        QuantityIds id = modifier->modifies();
+        QuantityId id = modifier->modifies();
         for (auto& m : modifiers) {
             ASSERT(!m.modifies(key));
         }
@@ -74,7 +74,7 @@ private:
     }
 
     template <typename TValue>
-    Array<TValue>& getValue(const QuantityIds& key) {
+    Array<TValue>& getValue(const QuantityId& key) {
         for (auto& m : modifiers) {
             if (m.modifies(key)) {
                 return m->getModifiedValue();
@@ -85,12 +85,12 @@ private:
     }
 
     template <typename TValue, typename... TArgs>
-    auto getValues(const QuantityIds first, const QuantityIds second, const TArgs... others) {
+    auto getValues(const QuantityId first, const QuantityId second, const TArgs... others) {
         return tie(getValue<TValue>(first), getValue<TValue>(second), getValue<TValue>(others)...);
     }
 
     template <typename TValue>
-    StaticArray<Array<TValue>&, 3> getAll(const QuantityIds key) {
+    StaticArray<Array<TValue>&, 3> getAll(const QuantityId key) {
         StaticArray<Array<TValue>&, 3> buffers = storage->getAll<TValue>(key);
         // replace the value with modified value
         switch (buffers.size()) {

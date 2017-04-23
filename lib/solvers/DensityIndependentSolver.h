@@ -26,8 +26,8 @@ private:
         using Type = Float;
 
         void update(Storage& storage) {
-            e = storage.getValue<Float>(QuantityIds::ENERGY_DENSITY);
-            v = storage.getAll<Vector>(QuantityIds::POSITIONS)[1];
+            e = storage.getValue<Float>(QuantityId::ENERGY_DENSITY);
+            v = storage.getAll<Vector>(QuantityId::POSITIONS)[1];
         }
 
         INLINE Tuple<Float, Float> operator()(const int i, const int j, const Vector& grad) const {
@@ -39,7 +39,7 @@ private:
     Accumulator<UDivv> udivv;
 
 public:
-    DensityIndependentSolver(const GlobalSettings& settings)
+    DensityIndependentSolver(const RunSettings& settings)
         : SolverBase<D>(settings) {}
 
     virtual void integrate(Storage& storage, Statistics& UNUSED(stats)) override {
@@ -50,14 +50,14 @@ public:
         PROFILE_SCOPE("DensityIndependentSolver::integrate (getters)");
 
         // fetch quantities from storage
-        tie(r, v, dv) = storage.getAll<Vector>(QuantityIds::POSITIONS);
-        tie(e, de) = storage.getAll<Float>(QuantityIds::ENERGY_PER_PARTICLE);
-        tie(q, dq) = storage.getAll<Float>(QuantityIds::ENERGY_DENSITY);
-        tie(rho, m, p, u, cs) = storage.getValues<Float>(QuantityIds::DENSITY,
-            QuantityIds::MASSES,
-            QuantityIds::PRESSURE,
-            QuantityIds::ENERGY,
-            QuantityIds::SOUND_SPEED);
+        tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
+        tie(e, de) = storage.getAll<Float>(QuantityId::ENERGY_PER_PARTICLE);
+        tie(q, dq) = storage.getAll<Float>(QuantityId::ENERGY_DENSITY);
+        tie(rho, m, p, u, cs) = storage.getValues<Float>(QuantityId::DENSITY,
+            QuantityId::MASSES,
+            QuantityId::PRESSURE,
+            QuantityId::ENERGY,
+            QuantityId::SOUND_SPEED);
         ASSERT(areAllMatching(dv, [](const Vector v) { return v == Vector(0._f); }));
 
         udivv.update(storage);
@@ -94,7 +94,7 @@ public:
 
                 const Vector f = e[i] * e[j] * (1._f / q[i] + 1._f / q[j]) * grad;
                 ASSERT(isReal(f));
-                const Float gamma = material.getParam<Float>(BodySettingsIds::ADIABATIC_INDEX, i);
+                const Float gamma = material.getParam<Float>(BodySettingsId::ADIABATIC_INDEX, i);
                 ASSERT(gamma > 1._f);
                 dv[i] -= (gamma - 1._f) / m[i] * f;
                 dv[j] += (gamma - 1._f) / m[j] * f;
@@ -109,7 +109,7 @@ public:
         for (int i = 0; i < size; ++i) {
             dq[i] = udivv[i];
 
-            const Float gamma = material.getParam<Float>(BodySettingsIds::ADIABATIC_INDEX, i);
+            const Float gamma = material.getParam<Float>(BodySettingsId::ADIABATIC_INDEX, i);
             de[i] = (gamma - 1._f) * e[i] / q[i] * udivv[i];
             /// \todo smoothing length
             v[i][H] = 0._f;
@@ -128,37 +128,37 @@ public:
     }
 
     virtual void initialize(Storage& storage, const BodySettings& settings) const override {
-        ASSERT(settings.get<EosEnum>(BodySettingsIds::EOS) == EosEnum::IDEAL_GAS);
+        ASSERT(settings.get<EosEnum>(BodySettingsId::EOS) == EosEnum::IDEAL_GAS);
         // energy density = specific energy * density
-        const Float rho0 = settings.get<Float>(BodySettingsIds::DENSITY);
-        const Float u0 = settings.get<Float>(BodySettingsIds::ENERGY);
+        const Float rho0 = settings.get<Float>(BodySettingsId::DENSITY);
+        const Float u0 = settings.get<Float>(BodySettingsId::ENERGY);
         const Float q0 = rho0 * u0;
         ASSERT(q0 > 0._f && "Cannot use DISPH with zero specific energy");
-        const Range rhoRange = settings.get<Range>(BodySettingsIds::DENSITY_RANGE);
-        const Range uRange = settings.get<Range>(BodySettingsIds::ENERGY_RANGE);
+        const Range rhoRange = settings.get<Range>(BodySettingsId::DENSITY_RANGE);
+        const Range uRange = settings.get<Range>(BodySettingsId::ENERGY_RANGE);
         const Range qRange(rhoRange.lower() * uRange.lower(), rhoRange.upper() * uRange.upper());
-        const Float rhoMin = settings.get<Float>(BodySettingsIds::DENSITY_MIN);
-        const Float uMin = settings.get<Float>(BodySettingsIds::ENERGY_MIN);
+        const Float rhoMin = settings.get<Float>(BodySettingsId::DENSITY_MIN);
+        const Float uMin = settings.get<Float>(BodySettingsId::ENERGY_MIN);
         const Float qMin = rhoMin * uMin;
         ASSERT(qRange.lower() > 0._f && "Cannot use DISPH with zero specific energy");
-        storage.insert<Float, OrderEnum::FIRST>(QuantityIds::ENERGY_DENSITY, q0, qRange);
-        MaterialAccessor(storage).minimal(QuantityIds::ENERGY_DENSITY, 0) = qMin;
+        storage.insert<Float, OrderEnum::FIRST>(QuantityId::ENERGY_DENSITY, q0, qRange);
+        MaterialAccessor(storage).minimal(QuantityId::ENERGY_DENSITY, 0) = qMin;
 
         // energy per particle
-        Array<Float> e = storage.getValue<Float>(QuantityIds::MASSES).clone();
+        Array<Float> e = storage.getValue<Float>(QuantityId::MASSES).clone();
         for (Size i = 0; i < e.size(); ++i) {
             e[i] *= u0;
         }
         /// \todo range and min value for energy per particle
-        storage.insert<Float, OrderEnum::FIRST>(QuantityIds::ENERGY_PER_PARTICLE, std::move(e));
+        storage.insert<Float, OrderEnum::FIRST>(QuantityId::ENERGY_PER_PARTICLE, std::move(e));
 
         // setup quantities used 'outside' of the solver
-        storage.insert<Float, OrderEnum::ZERO>(QuantityIds::DENSITY, rho0);
-        storage.insert<Float, OrderEnum::ZERO>(QuantityIds::ENERGY, u0);
+        storage.insert<Float, OrderEnum::ZERO>(QuantityId::DENSITY, rho0);
+        storage.insert<Float, OrderEnum::ZERO>(QuantityId::ENERGY, u0);
         Float p0, cs0;
         tieToTuple(p0, cs0) = EosAccessor(storage).evaluate(0);
-        storage.insert<Float, OrderEnum::ZERO>(QuantityIds::SOUND_SPEED, cs0);
-        storage.insert<Float, OrderEnum::ZERO>(QuantityIds::PRESSURE, p0);
+        storage.insert<Float, OrderEnum::ZERO>(QuantityId::SOUND_SPEED, cs0);
+        storage.insert<Float, OrderEnum::ZERO>(QuantityId::PRESSURE, p0);
     }
 };
 */

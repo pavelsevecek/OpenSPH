@@ -21,17 +21,15 @@ private:
     wxComboBox* quantityBox;
     wxGauge* gauge;
     bool abortRun = false;
-    std::function<void(void)> onRestart;
 
 public:
-    /// \todo implement restart run without this callback, need to separate ui and run control
-    Window(const std::shared_ptr<Storage>& storage,
-        const GuiSettings& settings,
-        const std::function<void(void)>& onRestart);
+    Window(const std::shared_ptr<Storage>& storage, const GuiSettings& guiSettings);
 
     Abstract::Renderer* getRenderer();
 
-    bool shouldAbortRun() const { return abortRun; }
+    bool shouldAbortRun() const {
+        return abortRun;
+    }
 
     void setProgress(const float progress);
 

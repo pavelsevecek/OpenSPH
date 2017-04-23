@@ -6,12 +6,34 @@
 
 NAMESPACE_SPH_BEGIN
 
-EosMaterial::EosMaterial(std::unique_ptr<Abstract::Eos>&& eos)
-    : eos(std::move(eos)) {}
+NullMaterial::NullMaterial(const BodySettings& body)
+    : Abstract::Material(body) {}
+
+EosMaterial::EosMaterial(const BodySettings& body, std::unique_ptr<Abstract::Eos>&& eos)
+    : Abstract::Material(body)
+    , eos(std::move(eos)) {
+    ASSERT(this->eos);
+}
+
+Pair<Float> EosMaterial::evaluate(const Float rho, const Float u) const {
+    return eos->evaluate(rho, u);
+}
+
+void EosMaterial::create(Storage& storage) const {
+    const Float rho0 = this->getParam<Float>(BodySettingsId::DENSITY);
+    const Float u0 = this->getParam<Float>(BodySettingsId::ENERGY);
+    const Size n = storage.getParticleCnt();
+    Array<Float> p(n), cs(n);
+    for (Size i = 0; i < n; ++i) {
+        tie(p[i], cs[i]) = eos->evaluate(rho0, u0);
+    }
+    storage.insert<Float>(QuantityId::PRESSURE, OrderEnum::ZERO, std::move(p));
+    storage.insert<Float>(QuantityId::SOUND_SPEED, OrderEnum::ZERO, std::move(cs));
+}
 
 void EosMaterial::initialize(Storage& storage, const MaterialSequence sequence) {
     tie(rho, u, p, cs) = storage.getValues<Float>(
-        QuantityIds::DENSITY, QuantityIds::ENERGY, QuantityIds::PRESSURE, QuantityIds::SOUND_SPEED);
+        QuantityId::DENSITY, QuantityId::ENERGY, QuantityId::PRESSURE, QuantityId::SOUND_SPEED);
     for (Size i : sequence) {
         /// \todo now we can easily pass sequence into the EoS and iterate inside, to avoid calling
         /// virtual function (and we could also optimize with SSE)
@@ -19,18 +41,25 @@ void EosMaterial::initialize(Storage& storage, const MaterialSequence sequence) 
     }
 }
 
-SolidMaterial::SolidMaterial(std::unique_ptr<Abstract::Eos>&& eos,
+SolidMaterial::SolidMaterial(const BodySettings& body,
+    std::unique_ptr<Abstract::Eos>&& eos,
     std::unique_ptr<Abstract::Rheology>&& rheology)
-    : EosMaterial(std::move(eos))
+    : EosMaterial(body, std::move(eos))
     , rheology(std::move(rheology)) {}
+
+void SolidMaterial::create(Storage& storage) const {
+    EosMaterial::create(storage);
+    rheology->create(storage, params);
+}
 
 void SolidMaterial::initialize(Storage& storage, const MaterialSequence sequence) {
     EosMaterial::initialize(storage, sequence);
-    rheology->initialize(storage, sequence);
+    rheology->initialize(storage, MaterialView(this, sequence, sequence.getId()));
 }
 
 void SolidMaterial::finalize(Storage& storage, const MaterialSequence sequence) {
-    rheology->integrate(storage, sequence);
+    EosMaterial::finalize(storage, sequence);
+    rheology->integrate(storage, MaterialView(this, sequence, sequence.getId()));
 }
 
 std::unique_ptr<Abstract::Material> getDefaultMaterial() {

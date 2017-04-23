@@ -12,13 +12,13 @@ private:
     Float omega;
 
 public:
-    CentripetalForce(const GlobalSettings& settings) {
-        omega = settings.get<Float>(GlobalSettingsIds::FRAME_ANGULAR_FREQUENCY);
+    CentripetalForce(const RunSettings& settings) {
+        omega = settings.get<Float>(RunSettingsId::FRAME_ANGULAR_FREQUENCY);
     }
 
     INLINE virtual void integrate(Storage& storage) override {
         ArrayView<Vector> v;
-        tie(r, v, dv) = storage.getAll<Vector>(QuantityIds::POSITIONS);
+        tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
         // centripetal force is independent on particle relative position
         for (int i=0; i<r.size(); ++i) {
             const Float unitZ = Vector(0._f, 0._f, 1._f);

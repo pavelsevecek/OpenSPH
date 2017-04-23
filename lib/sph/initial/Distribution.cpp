@@ -65,11 +65,7 @@ Array<Vector> CubicPacking::generate(const Size n, const Abstract::Domain& domai
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 HexagonalPacking::HexagonalPacking(const Flags<Options> f)
-    : flags(f) {
-    if (flags.has(Options::SPH5_COMPATIBILITY)) {
-        flags.set(Options::CENTER);
-    }
-}
+    : flags(f) {}
 
 Array<Vector> HexagonalPacking::generate(const Size n, const Abstract::Domain& domain) const {
     PROFILE_SCOPE("HexagonalPacking::generate")

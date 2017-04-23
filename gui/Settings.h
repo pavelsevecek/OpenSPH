@@ -16,7 +16,7 @@ enum class OrthoEnum { XY, XZ, YZ };
 
 /// \todo generic ortho projection (x,y,z) -> (u,v)
 
-enum class GuiSettingsIds {
+enum class GuiSettingsId {
     /// Selected renderer
     RENDERER,
 
@@ -63,6 +63,6 @@ enum class GuiSettingsIds {
     PALETTE_DAMAGE
 };
 
-using GuiSettings = Settings<GuiSettingsIds>;
+using GuiSettings = Settings<GuiSettingsId>;
 
 NAMESPACE_SPH_END

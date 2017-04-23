@@ -1,6 +1,7 @@
 #include "objects/wrappers/Variant.h"
 #include "catch.hpp"
 #include "utils/RecordType.h"
+#include "utils/Utils.h"
 
 using namespace Sph;
 
@@ -16,6 +17,7 @@ TEST_CASE("Variant default constructor", "[variant]") {
 
     Variant<RecordType, int> variant2;
     REQUIRE(variant2.tryGet<RecordType>());
+    REQUIRE(variant2.get<RecordType>().wasDefaultConstructed);
     REQUIRE(RecordType::constructedNum == 1);
 }
 
@@ -54,11 +56,11 @@ TEST_CASE("Variant move construct", "[variant]") {
     RecordType& r1 = variant1;
     Variant<RecordType, float> variant2(std::move(variant1));
     REQUIRE(variant2.getTypeIdx() == 0);
+    REQUIRE(variant1.getTypeIdx() == 0); // move does not change type
     RecordType& r2 = variant2;
     REQUIRE(r2.wasMoveConstructed);
     REQUIRE(r2.value == 5);
     REQUIRE(r1.wasMoved);
-    REQUIRE(variant1.getTypeIdx() == -1);
 }
 
 TEST_CASE("Variant assignemt", "[variant]") {
@@ -129,6 +131,7 @@ TEST_CASE("Variant move", "[variant]") {
     Variant<int, RecordType> variant2;
     variant2 = std::move(variant1);
     REQUIRE(variant2.getTypeIdx() == 1);
+    REQUIRE(variant1.getTypeIdx() == 1);
     RecordType& r2 = variant2;
     REQUIRE(r2.wasMoveConstructed);
     REQUIRE(r2.value == 5);
@@ -155,7 +158,7 @@ TEST_CASE("Variant move", "[variant]") {
 
 TEST_CASE("Variant get", "[variant]") {
     Variant<int, float> variant1;
-    REQUIRE(!variant1.tryGet<int>());
+    REQUIRE(variant1.tryGet<int>());
     REQUIRE(!variant1.tryGet<float>());
     variant1 = 20;
     REQUIRE(variant1.get<int>() == 20);
@@ -208,7 +211,10 @@ TEST_CASE("Variant swap", "[variant]") {
     REQUIRE(variant2.getTypeIdx() == 1);
     REQUIRE(variant2.get<RecordType>().value == 5);
     REQUIRE(variant2.get<RecordType>().wasSwapped);
-    /// \todo test assert when swapping different types
+
+    variant1 = 6;
+    variant2 = RecordType(5);
+    REQUIRE_ASSERT(std::swap(variant1, variant2));
 }
 
 TEST_CASE("Variant empty string", "[variant]") {

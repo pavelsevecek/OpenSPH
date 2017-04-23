@@ -280,7 +280,6 @@ void CylindricalDomain::getDistanceToBoundary(ArrayView<const Vector> vs, Array<
     for (const Vector& v : vs) {
         const Float dist = radius - getLength(Vector(v[X], v[Y], this->center[Z]) - this->center);
         if (includeBases) {
-            /// \todo properly implement includeBases
             distances.push(min(dist, abs(0.5_f * height - abs(v[Z] - this->center[Z]))));
         } else {
             distances.push(dist);

@@ -17,12 +17,12 @@ private:
 
     Array<Value> values;
     TAccumulate functor;
-    Optional<QuantityIds> key = NOTHING;
+    Optional<QuantityId> key = NOTHING;
 
 public:
     Accumulator() = default;
 
-    Accumulator(const QuantityIds key)
+    Accumulator(const QuantityId key)
         : key(key) {}
 
     Accumulator(Accumulator&& other)
@@ -102,8 +102,8 @@ public:
     using Type = Float;
 
     void update(Storage& storage) {
-        tie(m, rho) = storage.getValues<Float>(QuantityIds::MASSES, QuantityIds::DENSITY);
-        v = storage.getDt<Vector>(QuantityIds::POSITIONS);
+        tie(m, rho) = storage.getValues<Float>(QuantityId::MASSES, QuantityId::DENSITY);
+        v = storage.getDt<Vector>(QuantityId::POSITIONS);
     }
 
     INLINE Tuple<Float, Float> operator()(const int i, const int j, const Vector& grad) const {
@@ -125,8 +125,8 @@ public:
     using Type = Vector;
 
     void update(Storage& storage) {
-        tie(m, rho) = storage.getValues<Float>(QuantityIds::MASSES, QuantityIds::DENSITY);
-        v = storage.getDt<Vector>(QuantityIds::POSITIONS);
+        tie(m, rho) = storage.getValues<Float>(QuantityId::MASSES, QuantityId::DENSITY);
+        v = storage.getDt<Vector>(QuantityId::POSITIONS);
     }
 
     INLINE Tuple<Vector, Vector> operator()(const int i, const int j, const Vector& grad) const {
@@ -148,9 +148,9 @@ public:
     using Type = Float;
 
     void update(Storage& storage) {
-        m = storage.getValue<Float>(QuantityIds::MASSES);
-        v = storage.getDt<Vector>(QuantityIds::POSITIONS);
-        rho = storage.getValue<Float>(QuantityIds::DENSITY);
+        m = storage.getValue<Float>(QuantityId::MASSES);
+        v = storage.getDt<Vector>(QuantityId::POSITIONS);
+        rho = storage.getValue<Float>(QuantityId::DENSITY);
     }
 
     INLINE Tuple<Float, Float> operator()(const int i, const int j, const Vector& grad) const {
@@ -175,15 +175,15 @@ public:
     using Type = Tensor;
 
     void update(Storage& storage) {
-        m = storage.getValue<Float>(QuantityIds::MASSES);
-        v = storage.getAll<Vector>(QuantityIds::POSITIONS)[1];
-        idxs = storage.getValue<Size>(QuantityIds::FLAG);
-        rho = storage.getValue<Float>(QuantityIds::DENSITY);
-        if (storage.has(QuantityIds::DAMAGE)) {
-            dmg = storage.getValue<Float>(QuantityIds::DAMAGE);
+        m = storage.getValue<Float>(QuantityId::MASSES);
+        v = storage.getAll<Vector>(QuantityId::POSITIONS)[1];
+        idxs = storage.getValue<Size>(QuantityId::FLAG);
+        rho = storage.getValue<Float>(QuantityId::DENSITY);
+        if (storage.has(QuantityId::DAMAGE)) {
+            dmg = storage.getValue<Float>(QuantityId::DAMAGE);
         }
-        if (storage.has(QuantityIds::YIELDING_REDUCE)) {
-            reducing = storage.getValue<Float>(QuantityIds::YIELDING_REDUCE);
+        if (storage.has(QuantityId::YIELDING_REDUCE)) {
+            reducing = storage.getValue<Float>(QuantityId::YIELDING_REDUCE);
         }
     }
 
@@ -218,8 +218,8 @@ public:
     using Type = Vector;
 
     void update(Storage& storage) {
-        r = storage.getValue<Vector>(QuantityIds::POSITIONS);
-        flag = storage.getValue<Size>(QuantityIds::FLAG);
+        r = storage.getValue<Vector>(QuantityId::POSITIONS);
+        flag = storage.getValue<Size>(QuantityId::FLAG);
     }
 
     INLINE Tuple<Vector, Vector> operator()(const int i, const int j, const Vector& UNUSED(grad)) const {
@@ -236,6 +236,7 @@ using SurfaceNormal = Accumulator<SurfaceNormalImpl>;
 
 /// Correction tensor ensuring conversion of total angular momentum to the first order.
 /// The accumulated value is an inversion of the correction C_ij, applied as multiplicative factor on velocity
+/// Schafer et al. 2007
 /// gradient.
 /// \todo They use slightly different SPH equations, check that it's ok
 /// \todo It is really symmetric tensor?
@@ -249,9 +250,9 @@ public:
     using Type = Tensor;
 
     void update(Storage& storage) {
-        m = storage.getValue<Float>(QuantityIds::MASSES);
-        r = storage.getValue<Vector>(QuantityIds::POSITIONS);
-        rho = storage.getValue<Float>(QuantityIds::DENSITY);
+        m = storage.getValue<Float>(QuantityId::MASSES);
+        r = storage.getValue<Vector>(QuantityId::POSITIONS);
+        rho = storage.getValue<Float>(QuantityId::DENSITY);
     }
 
     INLINE Tuple<Tensor, Tensor> operator()(const int i, const int j, const Vector& grad) const {

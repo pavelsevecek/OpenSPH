@@ -53,15 +53,17 @@ void testFinder(Abstract::Finder& finder, Flags<FinderFlags> flags) {
         }
 
         if (!(bfIdxs == treeIdxs)) {
-            return makeFailed("Different neighbours found:",
-                              "\n brute force: ", bfIdxs,
-                              "\n finder: ", treeIdxs);
+            return makeFailed(
+                "Different neighbours found:", "\n brute force: ", bfIdxs, "\n finder: ", treeIdxs);
         }
         for (Size i = 0; i < bfDist.size(); ++i) {
             if (bfDist[i] != approx(treeDist[i])) { /// \todo figure out why approx is needed here!
-                return makeFailed("Neighbours are at different distances!"
-                                "\n brute force: ", bfDist[i],
-                                "\n finder: ", treeDist[i]);
+                return makeFailed(
+                    "Neighbours are at different distances!"
+                    "\n brute force: ",
+                    bfDist[i],
+                    "\n finder: ",
+                    treeDist[i]);
             }
         }
         return SUCCESS;
@@ -72,7 +74,7 @@ void testFinder(Abstract::Finder& finder, Flags<FinderFlags> flags) {
 void testFinderSmallerH(Abstract::Finder& finder) {
     Array<Vector> storage(0, 10);
     for (int i = 0; i < 10; ++i) {
-        storage.push(Vector(i, 0, 0, i)); // points on line with increasing H
+        storage.push(Vector(i, 0, 0, i + 1)); // points on line with increasing H
     }
 
     finder.build(storage);

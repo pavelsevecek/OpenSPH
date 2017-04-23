@@ -108,12 +108,12 @@ public:
 /// from particles of given body. Storage must contain quantity of given ID, checked by assert.
 class QuantityMeans : public Abstract::Integral<Means> {
 private:
-    Variant<QuantityIds, std::function<Float(const Size i)>> quantity;
+    Variant<QuantityId, std::function<Float(const Size i)>> quantity;
     Optional<Size> bodyId;
 
 public:
     /// Computes mean of quantity values.
-    QuantityMeans(const QuantityIds id, const Optional<Size> bodyId = NOTHING);
+    QuantityMeans(const QuantityId id, const Optional<Size> bodyId = NOTHING);
 
     /// Computes mean of user-defined function.
     QuantityMeans(const std::function<Float(const Size i)>& func, const Optional<Size> bodyId = NOTHING);
@@ -124,11 +124,11 @@ public:
 /// Returns the quantity value value of given particle. Currently available only for scalar quantities.
 class QuantityValue : public Abstract::Integral<Float> {
 private:
-    QuantityIds id;
+    QuantityId id;
     Size idx;
 
 public:
-    QuantityValue(const QuantityIds id, const Size particleIdx);
+    QuantityValue(const QuantityId id, const Size particleIdx);
 
     virtual Float evaluate(Storage& storage) const override;
 };

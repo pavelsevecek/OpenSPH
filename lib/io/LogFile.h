@@ -21,7 +21,6 @@ namespace Abstract {
     };
 }
 
-/// Shows some basic statistics of the run.
 class CommonStatsLog : public Abstract::LogFile {
 public:
     CommonStatsLog(const std::shared_ptr<Abstract::Logger>& logger)
@@ -29,18 +28,21 @@ public:
 
     virtual void write(Storage& UNUSED(storage), const Statistics& stats) {
         logger->write("Output #",
-            stats.get<int>(StatisticsIds::INDEX),
+            stats.get<int>(StatisticsId::INDEX),
             "  time = ",
-            stats.get<Float>(StatisticsIds::TOTAL_TIME));
-        logger->write(" - timestep: dt = ",
-            stats.get<Float>(StatisticsIds::TIMESTEP_VALUE),
-            " (set by ",
-            stats.get<AllCriterionIds>(StatisticsIds::TIMESTEP_CRITERION),
-            ")");
-        logger->write(" - neigbours: ", stats.get<Means>(StatisticsIds::NEIGHBOUR_COUNT));
-        logger->write(" - time spent: ", stats.get<int>(StatisticsIds::TIMESTEP_ELAPSED), "ms");
+            stats.get<Float>(StatisticsId::TOTAL_TIME));
+        CriterionId id = stats.get<CriterionId>(StatisticsId::TIMESTEP_CRITERION);
+        std::stringstream ss;
+        if (id == CriterionId::DERIVATIVE) {
+            ss << stats.get<QuantityId>(StatisticsId::LIMITING_QUANTITY);
+        } else {
+            ss << id;
+        }
+        logger->write(
+            " - timestep: dt = ", stats.get<Float>(StatisticsId::TIMESTEP_VALUE), " (set by ", ss.str(), ")");
+        logger->write(" - neigbours: ", stats.get<Means>(StatisticsId::NEIGHBOUR_COUNT));
+        logger->write(" - time spent: ", stats.get<int>(StatisticsId::TIMESTEP_ELAPSED), "ms");
         logger->write("");
     }
 };
-
 NAMESPACE_SPH_END

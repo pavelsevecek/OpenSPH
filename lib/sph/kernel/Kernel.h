@@ -83,9 +83,13 @@ public:
         /// \todo re-normalize?
     }
 
-    INLINE bool isInit() const { return rad > 0._f; }
+    INLINE bool isInit() const {
+        return rad > 0._f;
+    }
 
-    INLINE Float radius() const { return rad; }
+    INLINE Float radius() const {
+        return rad;
+    }
 
     INLINE Float valueImpl(const Float qSqr) const {
         ASSERT(qSqr >= 0.f);
@@ -133,7 +137,9 @@ private:
 public:
     CubicSpline() = default;
 
-    INLINE Float radius() const { return 2._f; }
+    INLINE Float radius() const {
+        return 2._f;
+    }
 
     // template <bool TApprox = false>
     INLINE Float valueImpl(const Float qSqr) const {
@@ -175,7 +181,9 @@ private:
 public:
     FourthOrderSpline() = default;
 
-    INLINE Float radius() const { return 2.5_f; }
+    INLINE Float radius() const {
+        return 2.5_f;
+    }
 
     // template <bool TApprox = false>
     INLINE Float valueImpl(const Float qSqr) const {
@@ -218,7 +226,9 @@ public:
 /// Kernel proposed by Read et al. (2010) with improved stability. Only for 3 dimensions.
 class CoreTriangle : public Kernel<CoreTriangle, 3> {
 public:
-    INLINE Float radius() const { return 1._f; }
+    INLINE Float radius() const {
+        return 1._f;
+    }
 
     INLINE Float valueImpl(const Float qSqr) const {
         const Float q = sqrt(qSqr);
@@ -236,7 +246,9 @@ public:
         }
     }
 
-    INLINE Float gradImpl(const Float UNUSED(qSqr)) const { NOT_IMPLEMENTED; }
+    INLINE Float gradImpl(const Float UNUSED(qSqr)) const {
+        NOT_IMPLEMENTED;
+    }
 };
 
 /// Gaussian kernel, clamped to zero at radius 5 (the error is therefore about exp(-5^2) = 10^-11).
@@ -246,7 +258,9 @@ private:
     const Float normalization[3] = { 1._f / sqrt(PI), 1._f / PI, 1._f / (PI * sqrt(PI)) };
 
 public:
-    INLINE Float radius() const { return 5._f; }
+    INLINE Float radius() const {
+        return 5._f;
+    }
 
     INLINE Float valueImpl(const Float qSqr) const {
         if (qSqr >= sqr(radius())) {
@@ -271,14 +285,15 @@ public:
 /// Symmetrization of the kernel with a respect to different smoothing lenths
 /// Two possibilities - Symmetrized kernel W_ij = 0.5(W_i + W_j)
 ///                   - Symmetrized smoothing length h_ij = 0.5(h_i + h_j)
-template <int D>
-class SymW {
+template <typename TKernel>
+class SymmetrizeValues {
 private:
-    const LutKernel<D>& kernel;
+    TKernel kernel;
 
 public:
-    SymW(const LutKernel<D>& kernel)
-        : kernel(kernel) {}
+    template <typename... TArgs>
+    SymmetrizeValues(TArgs&&... args)
+        : kernel(std::forward<TArgs>(args)...) {}
 
     INLINE Float value(const Vector& r1, const Vector& r2) const {
         return 0.5_f * (kernel.value(r1 - r2, r1[H]) + kernel.value(r1 - r2, r2[H]));
@@ -287,16 +302,21 @@ public:
     INLINE Vector grad(const Vector& r1, const Vector& r2) const {
         return 0.5_f * (kernel.grad(r1 - r2, r1[H]) + kernel.grad(r1 - r2, r2[H]));
     }
+
+    INLINE Float radius() const {
+        return kernel.radius();
+    }
 };
 
-template <int D>
-class SymH {
+template <typename TKernel>
+class SymmetrizeSmoothingLengths {
 private:
-    const LutKernel<D>& kernel;
+    TKernel kernel;
 
 public:
-    SymH(const LutKernel<D>& kernel)
-        : kernel(kernel) {}
+    template <typename... TArgs>
+    SymmetrizeSmoothingLengths(TArgs&&... args)
+        : kernel(std::forward<TArgs>(args)...) {}
 
     INLINE Float value(const Vector& r1, const Vector& r2) const {
         return kernel.value(r1 - r2, 0.5_f * (r1[H] + r2[H]));
@@ -304,6 +324,10 @@ public:
 
     INLINE Vector grad(const Vector& r1, const Vector& r2) const {
         return kernel.grad(r1 - r2, 0.5_f * (r1[H] + r2[H]));
+    }
+
+    INLINE Float radius() const {
+        return kernel.radius();
     }
 };
 

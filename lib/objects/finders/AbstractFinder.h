@@ -76,7 +76,7 @@ namespace Abstract {
 // invert to get rank in H
 /// \todo avoid allocation here
 #ifdef SPH_DEBUG
-            Float lastH = 0._f;
+            Float lastH = EPS;
             for (Size i = 0; i < tmp.size(); ++i) {
                 ASSERT(values[tmp[i]][H] >= lastH);
                 lastH = values[tmp[i]][H];
