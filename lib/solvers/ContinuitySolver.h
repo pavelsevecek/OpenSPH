@@ -16,6 +16,7 @@ public:
     ContinuitySolver(const RunSettings& settings)
         : GenericSolver(settings, this->getEquations(settings)) {}
 
+private:
     EquationHolder getEquations(const RunSettings& settings) {
         EquationHolder equations;
         /// \todo test that all possible combination (pressure, stress, AV, ...) work and dont assert
