@@ -17,6 +17,11 @@ namespace Abstract {
         /// once for each thread at the beginning of the run.
         virtual void setDerivatives(DerivativeHolder& storage) = 0;
 
+        /// Initialize all the derivatives and/or quantity values before derivatives are computed. Called at
+        /// the beginning of every time step. Note that derivatives need not be zeroed out manually, this is
+        /// already done by timestepping (for derivatives of quantities) and solver (for accumulated values).
+        virtual void initialize(Storage& storage) = 0;
+
         /// Computes all the derivatives and/or quantity values based on accumulated derivatives. Called every
         /// time step after derivatives are evaluated and saved to storage.
         virtual void finalize(Storage& storage) = 0;
@@ -27,44 +32,43 @@ namespace Abstract {
     };
 }
 
+class PressureGradient : public Abstract::Derivative {
+private:
+    ArrayView<const Float> p, rho, m;
+    ArrayView<Vector> dv;
+
+public:
+    virtual void create(Accumulated& results) override {
+        results.insert<Vector>(QuantityId::POSITIONS);
+    }
+
+    virtual void initialize(const Storage& input, Accumulated& results) override {
+        tie(p, rho, m) =
+            input.getValues<Float>(QuantityId::PRESSURE, QuantityId::DENSITY, QuantityId::MASSES);
+        dv = results.getValue<Vector>(QuantityId::POSITIONS);
+    }
+
+    virtual void compute(const Size i, ArrayView<const Size> neighs, ArrayView<const Vector> grads) override {
+        ASSERT(neighs.size() == grads.size());
+        for (Size k = 0; k < neighs.size(); ++k) {
+            const Size j = neighs[k];
+            const Vector f = (p[i] + p[j]) / (rho[i] * rho[j]) * grads[k];
+            ASSERT(isReal(f));
+            dv[i] += m[j] * f;
+            dv[j] -= m[i] * f;
+        }
+    }
+};
+
 /// Computes acceleration from pressure gradient and corresponding derivative of internal energy.
 class PressureForce : public Abstract::EquationTerm {
-private:
-    class PressureGradient : public Abstract::Derivative {
-    private:
-        ArrayView<const Float> p, rho, m;
-        ArrayView<Vector> dv;
-
-    public:
-        virtual void create(Accumulated& results) override {
-            results.insert<Vector>(QuantityId::POSITIONS);
-        }
-
-        virtual void initialize(const Storage& input, Accumulated& results) override {
-            tie(p, rho, m) =
-                input.getValues<Float>(QuantityId::PRESSURE, QuantityId::DENSITY, QuantityId::MASSES);
-            dv = results.getValue<Vector>(QuantityId::POSITIONS);
-        }
-
-        virtual void compute(const Size i,
-            ArrayView<const Size> neighs,
-            ArrayView<const Vector> grads) override {
-            ASSERT(neighs.size() == grads.size());
-            for (Size k = 0; k < neighs.size(); ++k) {
-                const Size j = neighs[k];
-                const Vector f = (p[i] + p[j]) / (rho[i] * rho[j]) * grads[k];
-                ASSERT(isReal(f));
-                dv[i] += m[j] * f;
-                dv[j] -= m[i] * f;
-            }
-        }
-    };
-
 public:
     virtual void setDerivatives(DerivativeHolder& derivatives) override {
         derivatives.require<PressureGradient>();
         derivatives.require<VelocityDivergence>();
     }
+
+    virtual void initialize(Storage& UNUSED(storage)) override {}
 
     virtual void finalize(Storage& storage) override {
         ArrayView<const Float> divv = storage.getValue<Float>(QuantityId::VELOCITY_DIVERGENCE);
@@ -94,43 +98,45 @@ public:
     }
 };
 
-class StressForce : public Abstract::EquationTerm {
+class StressDivergence : public Abstract::Derivative {
+private:
+    ArrayView<const Float> rho, m;
+    ArrayView<const TracelessTensor> s;
+    ArrayView<Vector> dv;
+
+public:
+    virtual void create(Accumulated& results) override {
+        results.insert<Vector>(QuantityId::POSITIONS);
+    }
+
+    virtual void initialize(const Storage& input, Accumulated& results) override {
+        tie(rho, m) = input.getValues<Float>(QuantityId::DENSITY, QuantityId::MASSES);
+        s = input.getPhysicalValue<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
+        dv = results.getValue<Vector>(QuantityId::POSITIONS);
+    }
+
+    virtual void compute(const Size i, ArrayView<const Size> neighs, ArrayView<const Vector> grads) override {
+        ASSERT(neighs.size() == grads.size());
+        for (Size k = 0; k < neighs.size(); ++k) {
+            const Size j = neighs[k];
+            const Vector f = (s[i] + s[j]) / (rho[i] * rho[j]) * grads[k];
+            ASSERT(isReal(f));
+            dv[i] += m[j] * f;
+            dv[j] -= m[i] * f;
+        }
+    }
+};
+
+/// Computes acceleration from stress divergence. The stress is evolved as a first-order quantity,
+/// using Hooke's law as constitutive equation. This represents solid bodies, for fluids use \ref
+/// NavierStokesForce.
+/// \todo add PressureForce together with this, it doesn't make sense to use stress force and NOT pressure.
+class SolidStressForce : public Abstract::EquationTerm {
 private:
     bool conserveAngularMomentum;
 
-    class StressDivergence : public Abstract::Derivative {
-    private:
-        ArrayView<const Float> rho, m;
-        ArrayView<const TracelessTensor> s;
-        ArrayView<Vector> dv;
-
-    public:
-        virtual void create(Accumulated& results) override {
-            results.insert<Vector>(QuantityId::POSITIONS);
-        }
-
-        virtual void initialize(const Storage& input, Accumulated& results) override {
-            tie(rho, m) = input.getValues<Float>(QuantityId::DENSITY, QuantityId::MASSES);
-            s = input.getPhysicalValue<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
-            dv = results.getValue<Vector>(QuantityId::POSITIONS);
-        }
-
-        virtual void compute(const Size i,
-            ArrayView<const Size> neighs,
-            ArrayView<const Vector> grads) override {
-            ASSERT(neighs.size() == grads.size());
-            for (Size k = 0; k < neighs.size(); ++k) {
-                const Size j = neighs[k];
-                const Vector f = (s[i] + s[j]) / (rho[i] * rho[j]) * grads[k];
-                ASSERT(isReal(f));
-                dv[i] += m[j] * f;
-                dv[j] -= m[i] * f;
-            }
-        }
-    };
-
 public:
-    StressForce(const RunSettings& settings) {
+    SolidStressForce(const RunSettings& settings) {
         conserveAngularMomentum = settings.get<bool>(RunSettingsId::SPH_CONSERVE_ANGULAR_MOMENTUM);
     }
 
@@ -143,6 +149,8 @@ public:
             derivatives.require<StrengthVelocityGradient<NoCorrection>>();
         }
     }
+
+    virtual void initialize(Storage& UNUSED(storage)) override {}
 
     virtual void finalize(Storage& storage) override {
         ArrayView<Float> rho = storage.getValue<Float>(QuantityId::DENSITY);
@@ -157,8 +165,8 @@ public:
             for (Size i : material.sequence()) {
                 du[i] += 1._f / rho[i] * ddot(s[i], gradv[i]);
                 /// \todo rotation rate tensor?
-                ds[i] +=
-                    TracelessTensor(2._f * mu * (gradv[i] - Tensor::identity() * gradv[i].trace() / 3._f));
+                TracelessTensor dev(gradv[i] - Tensor::identity() * gradv[i].trace() / 3._f);
+                ds[i] += 2._f * mu * dev;
                 ASSERT(isReal(du[i]) && isReal(ds[i]));
             }
         }
@@ -181,11 +189,53 @@ public:
     }
 };
 
+class NavierStokesForce : public Abstract::EquationTerm {
+public:
+    virtual void setDerivatives(DerivativeHolder& derivatives) override {
+        derivatives.require<StressDivergence>();
+        derivatives.require<VelocityGradient>(); // do don't need to do 'hacks' with gradient for fluids
+    }
+
+    virtual void initialize(Storage&) override {
+        TODO("implement");
+    }
+
+    virtual void finalize(Storage& storage) override {
+        ArrayView<Float> rho = storage.getValue<Float>(QuantityId::DENSITY);
+        ArrayView<TracelessTensor> s, ds;
+        tie(s, ds) = storage.getPhysicalAll<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
+        ArrayView<Float> du = storage.getDt<Float>(QuantityId::ENERGY);
+        ArrayView<Tensor> gradv = storage.getValue<Tensor>(QuantityId::STRENGTH_VELOCITY_GRADIENT);
+
+        for (Size matIdx = 0; matIdx < storage.getMaterialCnt(); ++matIdx) {
+            MaterialView material = storage.getMaterial(matIdx);
+            const Float mu = material->getParam<Float>(BodySettingsId::SHEAR_MODULUS);
+            for (Size i : material.sequence()) {
+                du[i] += 1._f / rho[i] * ddot(s[i], gradv[i]);
+                /// \todo rotation rate tensor?
+                TracelessTensor dev(gradv[i] - Tensor::identity() * gradv[i].trace() / 3._f);
+                ds[i] += 2._f * mu * dev;
+                ASSERT(isReal(du[i]) && isReal(ds[i]));
+            }
+        }
+    }
+
+    virtual void create(Storage& storage, Abstract::Material& material) const override {
+        ASSERT(storage.has(QuantityId::ENERGY) && storage.has(QuantityId::PRESSURE));
+        storage.insert<TracelessTensor>(QuantityId::DEVIATORIC_STRESS,
+            OrderEnum::ZERO,
+            material.getParam<TracelessTensor>(BodySettingsId::STRESS_TENSOR));
+    }
+};
+
+
 class ContinuityEquation : public Abstract::EquationTerm {
 public:
     virtual void setDerivatives(DerivativeHolder& derivatives) override {
         derivatives.require<VelocityDivergence>();
     }
+
+    virtual void initialize(Storage& UNUSED(storage)) override {}
 
     virtual void finalize(Storage& storage) override {
         ArrayView<const Float> divv = storage.getValue<Float>(QuantityId::VELOCITY_DIVERGENCE);
@@ -233,6 +283,10 @@ public:
 
     virtual void setDerivatives(DerivativeHolder& derivatives) override {
         derivatives.require<VelocityDivergence>();
+    }
+
+    virtual void initialize(Storage& UNUSED(storage)) override {
+        // ASSERT(areAllMatching())
     }
 
     virtual void finalize(Storage& storage) override {
@@ -304,6 +358,8 @@ private:
         derivatives.require<NeighbourCountImpl>();
     }
 
+    virtual void initialize(Storage& UNUSED(storage)) override {}
+
     virtual void finalize(Storage& UNUSED(storage)) override {}
 
     virtual void create(Storage& UNUSED(storage), Abstract::Material& UNUSED(material)) const override {}
@@ -314,11 +370,37 @@ class EquationHolder {
 private:
     Array<std::unique_ptr<Abstract::EquationTerm>> terms;
 
-public:
-    EquationHolder() = default;
+    struct {
+        Array<QuantityId> quantities;
+        bool check;
+    } solved;
 
-    EquationHolder(std::unique_ptr<Abstract::EquationTerm>&& term) {
+public:
+    enum class Options {
+        CHECK_SOLVED_QUANTITIES = 1 << 0,
+    };
+
+    EquationHolder(const Flags<Options> flags = EMPTY_FLAGS) {
+        solved.check = flags.has(Options::CHECK_SOLVED_QUANTITIES);
+    }
+
+    EquationHolder(std::unique_ptr<Abstract::EquationTerm>&& term, const Flags<Options> flags = EMPTY_FLAGS)
+        : EquationHolder(flags) {
         terms.push(std::move(term));
+    }
+
+    /// Adds a quantity to the list of quantities being solved. Useful to keep a list of solved quantities and
+    /// to check that all quantities evoloved by timestepping have their derivatives computed.
+    /// \return Reference to itself
+    template <typename... TArgs>
+    EquationHolder& solve(const QuantityId id, const TArgs... others) {
+        ASSERT(solved.check);
+        solved.quantities.push(id);
+        return solve(others...);
+    }
+
+    EquationHolder& solve() {
+        return *this;
     }
 
     EquationHolder& operator+=(EquationHolder&& other) {
@@ -335,6 +417,25 @@ public:
     void setupThread(DerivativeHolder& derivatives) const {
         for (auto& t : terms) {
             t->setDerivatives(derivatives);
+        }
+    }
+
+    void initialize(Storage& storage) {
+#ifdef SPH_DEBUG
+        if (solved.check) {
+            // check that all evolved quantities are being solved
+            /// \todo maybe throw exception here? Do the checking also for release?
+            /// \todo this doesn't count quantities solved by materials (damage)
+            for (StorageElement e : storage.getQuantities()) {
+                if (e.quantity.getOrderEnum() != OrderEnum::ZERO) {
+                    ASSERT(std::find(solved.quantities.begin(), solved.quantities.end(), e.id) !=
+                           solved.quantities.end());
+                }
+            }
+        }
+#endif
+        for (auto& t : terms) {
+            t->initialize(storage);
         }
     }
 

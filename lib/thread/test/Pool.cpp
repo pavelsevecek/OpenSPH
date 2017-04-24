@@ -9,6 +9,7 @@ using namespace Sph;
 
 TEST_CASE("Submit task", "[thread]") {
     ThreadPool pool;
+    REQUIRE(pool.getThreadCnt() == std::thread::hardware_concurrency());
     std::atomic<uint64_t> sum;
     sum = 0;
     for (Size i = 0; i <= 100; ++i) {
@@ -17,6 +18,13 @@ TEST_CASE("Submit task", "[thread]") {
     pool.waitForAll();
     REQUIRE(sum == 5050);
     REQUIRE(pool.remainingTaskCnt() == 0);
+}
+
+TEST_CASE("Pool thread count", "[thread]") {
+    ThreadPool pool1(0);
+    REQUIRE(pool1.getThreadCnt() == std::thread::hardware_concurrency());
+    ThreadPool pool2(5);
+    REQUIRE(pool2.getThreadCnt() == 5);
 }
 
 TEST_CASE("Submit task from different thread", "[thread]") {

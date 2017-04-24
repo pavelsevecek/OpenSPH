@@ -92,7 +92,6 @@ SOURCES += \
     ../lib/quantities/test/QuantityHelpers.cpp \
     ../lib/quantities/test/Material.cpp \
     ../lib/solvers/test/ContinuitySolver.cpp \
-    ../lib/solvers/test/Accumulator.cpp \
     ../lib/post/test/Components.cpp \
     ../lib/thread/test/Pool.cpp \
     ../lib/run/test/Run.cpp \
@@ -103,11 +102,14 @@ SOURCES += \
     ../lib/io/test/Logger.cpp \
     ../lib/solvers/test/EquationTerm.cpp \
     ../lib/solvers/test/Accumulated.cpp \
-    ../lib/solvers/test/Derivative.cpp
+    ../lib/solvers/test/Derivative.cpp \
+    ../lib/sph/av/test/Standard.cpp \
+    utils/Setup.cpp
 
 HEADERS += \
     utils/Utils.h \
     utils/RecordType.h \
     ../lib/sph/forces/StressForce.h \
     utils/Approx.h \
-    utils/SequenceTest.h
+    utils/SequenceTest.h \
+    utils/Setup.h

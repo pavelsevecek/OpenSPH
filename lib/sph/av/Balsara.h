@@ -10,72 +10,67 @@
 
 NAMESPACE_SPH_BEGIN
 
-/*class BalsaraSwitch : public Abstract::EquationTerm {
-private:
-    class Term : public Abstract::Derivative {
+/// Balsara switch can wrap any equation term as long as they define Derivative with operator()(i, j).
+template <typename AV>
+class BalsaraSwitch : public Abstract::EquationTerm {
+    class Derivative : public Abstract::Derivative {
     private:
-        ArrayView<Float> cs;
-        ArrayView<Vector> r;
+        ArrayView<const Float> m;
+        ArrayView<const Float> cs;
+        ArrayView<const Vector> r;
+        ArrayView<const Float> divv;
+        ArrayView<const Vector> rotv;
+        ArrayView<Vector> dv;
+        typename AV::Derivative av;
+        const Float eps = 1.e-4_f;
 
     public:
-        virtual void initialize(const Storage& input, Accumulated& output) {
-            cs = input.getValue <
+        virtual void initialize(const Storage& input, Accumulated& results) {
+            m = input.getValue<Float>(QuantityId::MASSES);
+            r = input.getValue<Vector>(QuantityId::POSITIONS);
+            cs = input.getValue<Float>(QuantityId::SOUND_SPEED);
+            divv = input.getValue<Float>(QuantityId::VELOCITY_DIVERGENCE);
+            rotv = input.getValue<Vector>(QuantityId::VELOCITY_ROTATION);
+            dv = results.getValue<Vector>(QuantityId::POSITIONS);
+            av.template initialize(input, results);
+        }
+
+        virtual void compute(const Size i, ArrayView<const Size> neighs, ArrayView<const Vector> grads) {
+            ASSERT(neighs.size() == grads.size());
+            for (Size k = 0; k < neighs.size(); ++k) {
+                const Size j = neighs[k];
+                const Vector f = 0.5_f * (factor(i) + factor(j)) * av(i, j) * grads[k];
+                ASSERT(isReal(f));
+                dv[i] += m[j] * f;
+                dv[j] -= m[i] * f;
+                TODO("Add heating");
+            }
+        }
+
+    private:
+        INLINE Float factor(const Size i) {
+            const Float dv = abs(divv[i]);
+            const Float rv = getLength(rotv[i]);
+            return dv / (dv + rv + eps * cs[i] / r[i][H]);
         }
     };
-    // accumulator, compute new values of div v and rot v in each time step
-    Rotv accumulatedRotV;
-    Divv accumulatedDivV; /// \todo divv can be possibly shared with Morris & Monaghan AV
 
-    // values of div v and rot v computed previous time step
-    ArrayView<Float> divv;
-    ArrayView<Vector> rotv;
-    const Float eps = 1.e-4_f;
+    AV av;
 
 public:
-    template <typename... TArgs>
-    BalsaraSwitch(TArgs&&... args)
-        : Module<AV, Rotv, Divv>(av, accumulatedRotV, accumulatedDivV)
-        , av(std::forward<TArgs>(args)...)
-        , accumulatedRotV(QuantityId::VELOCITY_ROTATION)
-        , accumulatedDivV(QuantityId::VELOCITY_DIVERGENCE) {}
-
-    void initialize(Storage& storage, const BodySettings& settings) {
-        /// \todo set initial values of rot v and div v
-        storage.insert<Vector, OrderEnum::ZERO>(QuantityId::VELOCITY_ROTATION, Vector(0._f));
-        storage.insert<Float, OrderEnum::ZERO>(QuantityId::VELOCITY_DIVERGENCE, 0._f);
-        this->initializeModules(storage, settings);
+    virtual void setDerivatives(DerivativeHolder& derivatives) override {
+        derivatives.require<VelocityDivergence>();
+        derivatives.require<VelocityRotation>();
+        av.setDerivatives(derivatives);
     }
 
-    void update(Storage& storage) {
-        tie(cs, divv) = storage.getValues<Float>(QuantityId::SOUND_SPEED, QuantityId::VELOCITY_DIVERGENCE);
-        tie(r, rotv) = storage.getValues<Vector>(QuantityId::POSITIONS, QuantityId::VELOCITY_ROTATION);
-        this->updateModules(storage);
+    virtual void finalize(Storage& storage) override {
+        av.finalize(storage);
     }
 
-    INLINE void accumulate(const Size i, const Size j, const Vector& grad) {
-        this->accumulateModules(i, j, grad);
+    virtual void create(Storage& storage, Abstract::Material& material) const override {
+        av.create(storage, material);
     }
-
-    INLINE void integrate(Storage& storage) {
-        this->integrateModules(storage);
-    }
-
-    /// Returns the artificial viscosity Pi_ij after applying Balsara switch. Needs to be multiplied by
-    /// kernel
-    /// gradient to get the final force due to AV.
-    INLINE Float operator()(const Size i, const Size j) {
-        return 0.5_f * (getFactor(i) + getFactor(j)) * av(i, j);
-    }
-
-    /// Returns the Balsara factor for i-th particle. Mainly for testing purposes, operator() applies
-    /// Balsara
-    /// switch with no need to explicitly call getFactor by the user.
-    INLINE Float getFactor(const Size i) {
-        const Float dv = abs(divv[i]);
-        const Float rv = getLength(rotv[i]);
-        return dv / (dv + rv + eps * cs[i] / r[i][H]);
-    }
-};*/
-
+};
 
 NAMESPACE_SPH_END

@@ -65,6 +65,9 @@ public:
             material->initialize(storage, material.sequence());
         }
 
+        // initialize all equation terms (applies dependencies between quantities)
+        equations.initialize(storage);
+
         // initialize accumulate storages & derivatives
         this->beforeLoop(storage);
 

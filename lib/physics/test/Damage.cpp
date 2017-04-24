@@ -67,3 +67,5 @@ TEST_CASE("Fracture growth", "[damage]") {
 
     /// \todo check that if the strain if below eps_min, damage wont increase
 }
+
+TEST_CASE("Damage stress modification", "[damage]") {}

@@ -15,8 +15,7 @@ void setupBalsara(Storage& storage, BalsaraSwitch<StandardAV>& balsaraAv, TFunct
     HexagonalPacking distribution;
     const Size N = 10000;
     SphericalDomain domain(Vector(0._f), 1._f);
-    storage.insert<Vector, OrderEnum::SECOND>(
-        QuantityId::POSITIONS, distribution.generate(N, domain));
+    storage.insert<Vector, OrderEnum::SECOND>(QuantityId::POSITIONS, distribution.generate(N, domain));
     balsaraAv.initialize(storage, BodySettings::getDefaults());
     storage.insert<Float, OrderEnum::ZERO>(QuantityId::DENSITY, 100._f);
     storage.insert<Float, OrderEnum::ZERO>(

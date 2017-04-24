@@ -7,6 +7,7 @@
 #include "sph/initial/Distribution.h"
 #include "utils/Approx.h"
 #include "utils/SequenceTest.h"
+#include "utils/Setup.h"
 
 #include "io/Logger.h"
 
@@ -39,19 +40,9 @@ struct TestDerivative : public Abstract::Derivative {
 bool TestDerivative::initialized = false;
 bool TestDerivative::created = false;
 
-struct TestEquation : public Abstract::EquationTerm {
-    virtual void setDerivatives(DerivativeHolder& derivatives) override {
-        derivatives.require<TestDerivative>();
-    }
-
-    virtual void finalize(Storage& UNUSED(storage)) override {}
-
-    virtual void create(Storage& UNUSED(storage), Abstract::Material& UNUSED(material)) const override {}
-};
-
 TEST_CASE("Setting derivatives", "[equationterm]") {
     TestDerivative::initialized = false;
-    TestEquation eq;
+    Tests::DerivativeWrapper<TestDerivative> eq;
     DerivativeHolder derivatives;
     eq.setDerivatives(derivatives);
     Storage storage;
@@ -65,24 +56,11 @@ TEST_CASE("Setting derivatives", "[equationterm]") {
     REQUIRE(TestDerivative::initialized);
 }
 
-static Storage getStorage(const Size particleCnt) {
-    Storage storage(std::make_unique<NullMaterial>(BodySettings::getDefaults()));
-    HexagonalPacking distribution;
-    storage.insert<Vector>(QuantityId::POSITIONS,
-        OrderEnum::SECOND,
-        distribution.generate(particleCnt, SphericalDomain(Vector(0._f), 1._f)));
-    storage.insert<Float>(QuantityId::DENSITY, OrderEnum::FIRST, 1._f);
-    // density = 1, therefore total mass = volume, therefore mass per particle = volume / N
-    storage.insert<Float>(QuantityId::MASSES, OrderEnum::ZERO, sphereVolume(1._f) / storage.getParticleCnt());
-    REQUIRE(storage.getParticleCnt() > 0.9f * particleCnt); // sanity check
-    return storage;
-}
-
 TEST_CASE("TestEquation", "[equationterm]") {
-    Storage storage = getStorage(10);
+    Storage storage = Tests::getStorage(10);
     const Size N = storage.getParticleCnt();
     Statistics stats;
-    EquationHolder equations(std::make_unique<TestEquation>());
+    EquationHolder equations(std::make_unique<Tests::DerivativeWrapper<TestDerivative>>());
     GenericSolver solver(RunSettings::getDefaults(), std::move(equations));
     solver.create(storage, storage.getMaterial(0));
     solver.integrate(storage, stats);
@@ -94,7 +72,7 @@ TEST_CASE("TestEquation", "[equationterm]") {
 }
 
 TEST_CASE("NeighbourCountTerm", "[equationterm]") {
-    Storage storage = getStorage(10000);
+    Storage storage = Tests::getStorage(10000);
     const Size N = storage.getParticleCnt();
     Statistics stats;
     EquationHolder equations;
@@ -126,20 +104,10 @@ TEST_CASE("NeighbourCountTerm", "[equationterm]") {
 
 TEST_CASE("Div v of position vectors", "[equationterm]") {
     // test case checking that div r = 3
+    Storage storage = Tests::getStorage(10000);
+    Tests::computeField<VelocityDivergence>(storage, [](const Vector& r) { return r; });
 
-    Storage storage = getStorage(10000);
-    EquationHolder equations;
-    equations += makeTerm<ContinuityEquation>(); // some term including velocity divergence
-    ArrayView<Vector> r, v, dv;
-    tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
-    for (Size i = 0; i < v.size(); ++i) {
-        v[i] = r[i];
-    }
-    GenericSolver solver(RunSettings::getDefaults(), std::move(equations));
-    solver.create(storage, storage.getMaterial(0));
-    Statistics stats;
-    solver.integrate(storage, stats);
-
+    ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
     ArrayView<Float> divv = storage.getValue<Float>(QuantityId::VELOCITY_DIVERGENCE);
     REQUIRE(divv.size() == r.size());
 
@@ -152,6 +120,84 @@ TEST_CASE("Div v of position vectors", "[equationterm]") {
             // clang-format off
             return makeFailed("Incorrect velocity divergence: \n",
                               "divv: ", divv[i], " == -3", "\n particle: r = ", r[i]);
+            // clang-format on
+        }
+        return SUCCESS;
+    };
+    REQUIRE_SEQUENCE(test, 0, r.size());
+}
+
+
+TEST_CASE("Grad v of const field", "[equationterm]") {
+    Storage storage = Tests::getStorage(10000);
+    Tests::computeField<VelocityGradient>(storage, [](const Vector&) { return Vector(2._f, 3._f, -1._f); });
+
+    ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
+    ArrayView<Tensor> gradv = storage.getValue<Tensor>(QuantityId::VELOCITY_GRADIENT);
+    auto test = [&](const Size i) {
+        // here we ALWAYS subtract two equal values, so the result should be zero EXACTLY
+        if (gradv[i] != Tensor(0._f)) {
+            // clang-format off
+            return makeFailed("Invalid grad v"
+                              "\n r = ", r[i],
+                              "\n grad v = ", gradv[i],
+                              "\n expected = ", Tensor::null());
+            // clang-format on
+        }
+        return SUCCESS;
+    };
+    REQUIRE_SEQUENCE(test, 0, gradv.size());
+}
+
+
+TEST_CASE("Grad v of position vector", "[accumulator]") {
+    Storage storage = Tests::getStorage(10000);
+    Tests::computeField<VelocityGradient>(storage, [](const Vector& r) { return r; });
+
+    ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
+    ArrayView<Tensor> gradv = storage.getValue<Tensor>(QuantityId::VELOCITY_GRADIENT);
+    auto test = [&](const Size i) {
+        if (getLength(r[i]) > 0.7_f) {
+            return SUCCESS;
+        }
+        if (gradv[i] != approx(Tensor::identity(), 0.05_f)) {
+            // clang-format off
+            return makeFailed("Invalid grad v"
+                              "\n r = ", r[i],
+                              "\n grad v = ", gradv[i],
+                              "\n expected = ", Tensor::identity());
+            // clang-format on
+        }
+        return SUCCESS;
+    };
+    REQUIRE_SEQUENCE(test, 0, r.size());
+}
+
+
+TEST_CASE("Grad v of non-trivial field", "[accumulator]") {
+    Storage storage = Tests::getStorage(10000);
+    Tests::computeField<VelocityGradient>(storage, [](const Vector& r) { //
+        return Vector(r[0] * sqr(r[1]), r[0] + 0.5_f * r[2], sin(r[2]));
+    });
+
+    ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
+    ArrayView<Tensor> gradv = storage.getValue<Tensor>(QuantityId::VELOCITY_GRADIENT);
+    auto test = [&](const Size i) {
+        if (getLength(r[i]) > 0.7_f) {
+            // skip test by reporting success
+            return SUCCESS;
+        }
+        // gradient of velocity field
+        const Float x = r[i][X];
+        const Float y = r[i][Y];
+        const Float z = r[i][Z];
+        Tensor expected(Vector(sqr(y), 0._f, cos(z)), Vector(0.5_f * (1._f + 2._f * x * y), 0._f, 0.25_f));
+        if (gradv[i] != approx(expected, 0.05_f)) {
+            // clang-format off
+            return makeFailed("Invalid grad v"
+                              "\n r = ", r[i],
+                              "\n grad v = ", gradv[i],
+                              "\n expected = ", expected);
             // clang-format on
         }
         return SUCCESS;

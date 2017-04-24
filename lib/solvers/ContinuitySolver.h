@@ -20,15 +20,16 @@ public:
         EquationHolder equations;
         /// \todo test that all possible combination (pressure, stress, AV, ...) work and dont assert
         if (settings.get<bool>(RunSettingsId::MODEL_FORCE_GRAD_P)) {
-            equations += makeTerm<PressureForce>();
+            equations.solve(QuantityId::POSITIONS, QuantityId::ENERGY) += makeTerm<PressureForce>();
         }
         if (settings.get<bool>(RunSettingsId::MODEL_FORCE_DIV_S)) {
-            equations += makeTerm<StressForce>(settings);
+            equations.solve(QuantityId::POSITIONS, QuantityId::ENERGY) +=
+                makeTerm<SolidStressForce>(settings);
         }
-        equations += makeTerm<StandardAV>(settings);
+        equations.solve(QuantityId::POSITIONS, QuantityId::ENERGY) += makeTerm<StandardAV>(settings);
 
         // Density evolution - Continuity equation
-        equations += makeTerm<ContinuityEquation>();
+        equations.solve(QuantityId::DENSITY) += makeTerm<ContinuityEquation>();
 
         // Adaptivity of smoothing length
         equations += makeTerm<AdaptiveSmoothingLength>(settings);

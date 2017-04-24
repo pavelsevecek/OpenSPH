@@ -70,7 +70,7 @@ namespace Detail {
 
     template <typename T0, typename... TArgs>
     INLINE void printArgs(std::stringstream& ss, T0&& t0, TArgs&&... args) {
-        ss << t0;
+        ss << t0 << " ";
         printArgs(ss, std::forward<TArgs>(args)...);
     }
 }
@@ -81,8 +81,22 @@ template <typename... TArgs>
 INLINE Outcome makeFailed(TArgs&&... args) {
     std::stringstream ss;
     Detail::printArgs(ss, std::forward<TArgs>(args)...);
+    ASSERT(!ss.str().empty());
     return Outcome(ss.str());
 }
 
+/// Constructs outcome object given the condition. If condition equals false, print error message using
+/// argument list.
+template <typename... TArgs>
+INLINE Outcome makeOutcome(const bool condition, TArgs&&... args) {
+    if (condition) {
+        return SUCCESS;
+    } else {
+        std::stringstream ss;
+        Detail::printArgs(ss, std::forward<TArgs>(args)...);
+        ASSERT(!ss.str().empty());
+        return Outcome(ss.str());
+    }
+}
 
 NAMESPACE_SPH_END

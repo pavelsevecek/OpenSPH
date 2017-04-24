@@ -34,29 +34,10 @@ public:
         : threads(numThreads == 0 ? std::thread::hardware_concurrency() : numThreads) {
         ASSERT(!threads.empty());
         auto loop = [this] {
-            while (true) {
-                Task task;
-                {
-                    std::unique_lock<std::mutex> lock(taskMutex);
-                    if (stop) {
-                        return;
-                    }
-
-                    // Wait for a job if we don't have any.
-                    taskVar.wait(lock, [this] { return tasks.size() > 0 || stop; });
-
-                    if (stop) {
-                        return;
-                    }
-
-                    // Get job from the queue
-                    task = tasks.front();
-                    tasks.pop();
-                }
-
-                task();
-                {
-                    std::lock_guard<std::mutex> lock(waitMutex);
+            while (!stop) {
+                Optional<Task> task = getNextTask();
+                if (task) {
+                    task.get()();
                     --tasksLeft;
                 }
                 waitVar.notify_one();
@@ -127,6 +108,22 @@ public:
     /// processing queue.
     Size remainingTaskCnt() {
         return tasksLeft;
+    }
+
+private:
+    Optional<Task> getNextTask() {
+        std::unique_lock<std::mutex> lock(taskMutex);
+
+        // wait till a task is available
+        taskVar.wait(lock, [this] { return tasks.size() || stop; });
+        // execute task
+        if (!stop && !tasks.empty()) {
+            Task task = tasks.front();
+            tasks.pop();
+            return task;
+        } else {
+            return NOTHING;
+        }
     }
 };
 
