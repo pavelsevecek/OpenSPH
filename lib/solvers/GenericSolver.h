@@ -12,7 +12,7 @@ NAMESPACE_SPH_BEGIN
 
 /// Computes derivatives
 class GenericSolver : public Abstract::Solver {
-private:
+protected:
     struct ThreadData {
         DerivativeHolder derivatives;
 
@@ -117,13 +117,13 @@ public:
         equations.create(storage, material);
     }
 
-private:
-    void beforeLoop(Storage& storage) {
+protected:
+    virtual void beforeLoop(Storage& storage) {
         // clear thread local storages
         threadData.forEach([&storage](ThreadData& data) { data.derivatives.initialize(storage); });
     }
 
-    void afterLoop(Storage& storage, Statistics& stats) {
+    virtual void afterLoop(Storage& storage, Statistics& stats) {
         // sum up thread local accumulated values
         Accumulated* first = nullptr;
         threadData.forEach([this, &first](ThreadData& data) {
@@ -146,6 +146,10 @@ private:
             neighs.accumulate(neighCnts[i]);
         }
         stats.set(StatisticsId::NEIGHBOUR_COUNT, neighs);
+
+        // Apply boundary conditions
+        /// \todo add boundary equation as equation term
+        boundary->apply(storage);
     }
 };
 
