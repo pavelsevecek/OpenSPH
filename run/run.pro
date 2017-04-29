@@ -11,7 +11,8 @@ QMAKE_CXX = g++
 #QMAKE_CXXFLAGS_RELEASE += -Os
 DEPENDPATH += . ../lib
 INCLUDEPATH += ../lib
-LIBS += ../lib/libsph.a
+PRE_TARGETDEPS += ../lib/liblib.a
+LIBS += ../lib/liblib.a
 
 
 CONFIG(release, debug|profile|assert|release) {

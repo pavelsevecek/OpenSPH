@@ -14,7 +14,7 @@ void Assert::check(const bool condition,
     const char* file,
     const char* func,
     const int line,
-    const std::string& text) {
+    const char* text) {
     if (condition) {
         return;
     }
@@ -23,7 +23,7 @@ void Assert::check(const bool condition,
         logger.write("=============================================================================");
         logger.write("Assert fired in file ", file, ", executing function ", func, " on line ", line);
         logger.write("Condition: ", message);
-        if (!text.empty()) {
+        if (strlen(text) != 0) {
             logger.write("Assert parameters: ", text);
         }
         logger.write("=============================================================================");
@@ -36,14 +36,6 @@ void Assert::check(const bool condition,
     } else {
         throw Exception(message);
     }
-}
-
-void Assert::check(const bool condition,
-    const char* message,
-    const char* file,
-    const char* func,
-    const int line) {
-    check(condition, message, file, func, line, "");
 }
 
 void Assert::todo(const char* message, const char* func, const int line) {

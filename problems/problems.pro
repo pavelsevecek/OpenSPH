@@ -8,7 +8,8 @@ QMAKE_CXX = g++
 
 INCLUDEPATH += ../lib ../../external/Catch/include
 DEPENDPATH += . ../lib
-LIBS += ../lib/libsph.a
+PRE_TARGETDEPS += ../lib/liblib.a
+LIBS += ../lib/liblib.a
 
 
 CONFIG(release, debug|profile|assert|release) {

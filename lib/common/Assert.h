@@ -2,21 +2,7 @@
 
 #include "common/Globals.h"
 #include <exception>
-
-// forward-declare std::string
-
-namespace std {
-    template <class Char>
-    struct char_traits;
-
-    template <typename T>
-    class allocator;
-
-    template <typename Char, typename Traits, typename Allocator>
-    class basic_string;
-
-    typedef basic_string<char, char_traits<char>, allocator<char>> string;
-}
+#include <sstream>
 
 NAMESPACE_SPH_BEGIN
 
@@ -49,18 +35,33 @@ struct Assert {
         }
     };
 
+    template <typename T0, typename... TArgs>
+    static void stringify(std::stringstream& ss, T0&& t0, TArgs&&... rest) {
+        ss << t0;
+        stringify(ss, std::forward<TArgs>(rest)...);
+    }
+
+    static void stringify(std::stringstream& UNUSED(ss)) {}
+
+    template <typename T0, typename... TArgs>
     static void check(const bool condition,
         const char* message,
         const char* file,
         const char* func,
         const int line,
-        const std::string& params);
+        T0&& t0,
+        TArgs&&... args) {
+        std::stringstream ss;
+        stringify(ss, std::forward<T0>(t0), std::forward<TArgs>(args)...);
+        check(condition, message, file, func, line, ss.str().c_str());
+    }
 
     static void check(const bool condition,
         const char* message,
         const char* file,
         const char* func,
-        const int line);
+        const int line,
+        const char* params = "");
 
     static void todo(const char* message, const char* func, const int line);
 };

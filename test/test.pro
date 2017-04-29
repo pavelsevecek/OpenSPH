@@ -33,7 +33,8 @@ CONFIG(debug, debug|profile|assert|release) {
 
 INCLUDEPATH += ../lib ../../external/Catch/include
 DEPENDPATH += . ../lib
-LIBS += ../lib/libsph.a
+LIBS += ../lib/liblib.a
+PRE_TARGETDEPS += ../lib/liblib.a
 
 SOURCES += \
     main.cpp \
