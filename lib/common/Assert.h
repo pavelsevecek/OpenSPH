@@ -1,8 +1,22 @@
 #pragma once
 
-#include "objects/Object.h"
-#include <cassert>
+#include "common/Globals.h"
 #include <exception>
+
+// forward-declare std::string
+
+namespace std {
+    template <class Char>
+    struct char_traits;
+
+    template <typename T>
+    class allocator;
+
+    template <typename Char, typename Traits, typename Allocator>
+    class basic_string;
+
+    typedef basic_string<char, char_traits<char>, allocator<char>> string;
+}
 
 NAMESPACE_SPH_BEGIN
 
@@ -35,7 +49,18 @@ struct Assert {
         }
     };
 
-    static void check(const bool condition, const char* message, const char* func, const int line);
+    static void check(const bool condition,
+        const char* message,
+        const char* file,
+        const char* func,
+        const int line,
+        const std::string& params);
+
+    static void check(const bool condition,
+        const char* message,
+        const char* file,
+        const char* func,
+        const int line);
 
     static void todo(const char* message, const char* func, const int line);
 };
@@ -43,7 +68,7 @@ struct Assert {
 #define TODO(x) Assert::todo(x, __FUNCTION__, __LINE__);
 
 #ifdef SPH_DEBUG
-#define ASSERT(x) Assert::check(bool(x), #x, __FUNCTION__, __LINE__)
+#define ASSERT(x, ...) Assert::check(bool(x), #x, __FILE__, __FUNCTION__, __LINE__, ##__VA_ARGS__)
 #define CONSTEXPR_ASSERT(x) assert(x)
 #else
 #define ASSERT(x, ...)

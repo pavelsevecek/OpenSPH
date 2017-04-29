@@ -1,5 +1,6 @@
 #include "io/Output.h"
 #include "catch.hpp"
+#include "io/Column.h"
 #include <fstream>
 #include <thread>
 
@@ -12,9 +13,9 @@ TEST_CASE("Dumping data", "[output]") {
         QuantityId::POSITIONS, OrderEnum::SECOND, makeArray(Vector(0._f), Vector(1._f), Vector(2._f)));
     storage.insert<Float>(QuantityId::DENSITY, OrderEnum::FIRST, 5._f);
     TextOutput output("tmp%d.out", "Output", EMPTY_FLAGS);
-    output.add(Factory::getValueColumn<Float>(QuantityId::DENSITY));
-    output.add(Factory::getValueColumn<Vector>(QuantityId::POSITIONS));
-    output.add(Factory::getVelocityColumn());
+    output.add(std::make_unique<ValueColumn<Float>>(QuantityId::DENSITY));
+    output.add(std::make_unique<ValueColumn<Vector>>(QuantityId::POSITIONS));
+    output.add(std::make_unique<DerivativeColumn<Vector>>(QuantityId::POSITIONS));
     output.dump(storage, 0);
 
     std::string expected = R"(# Run: Output

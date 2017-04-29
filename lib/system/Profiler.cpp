@@ -1,7 +1,6 @@
 #include "system/Profiler.h"
 #include "io/Logger.h"
 #include <algorithm>
-#include <iomanip>
 
 NAMESPACE_SPH_BEGIN
 

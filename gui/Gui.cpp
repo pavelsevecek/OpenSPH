@@ -5,8 +5,8 @@
 #include "gui/problems/Collision.h"
 #include "gui/problems/Meteoroid.h"
 #include "gui/windows/GlPane.h"
+#include "gui/windows/MainWindow.h"
 #include "gui/windows/OrthoPane.h"
-#include "gui/windows/Window.h"
 #include "io/Logger.h"
 #include "io/Output.h"
 #include "physics/Constants.h"
@@ -20,28 +20,27 @@
 #include <wx/wx.h>
 
 
-IMPLEMENT_APP(Sph::MyApp)
+IMPLEMENT_APP(Sph::App)
 
 NAMESPACE_SPH_BEGIN
 
+bool App::OnInit() {
+    model = std::make_shared<Controller>();
 
-bool MyApp::OnInit() {
-    run = std::make_unique<AsteroidCollision>();
-    worker = std::thread([this]() { run->run(); });
-
-    Connect(MAIN_LOOP_TYPE, MainLoopEventHandler(MyApp::processEvents));
+    // connect event handler
+    Connect(MAIN_LOOP_TYPE, MainLoopEventHandler(App::processEvents));
     return true;
 }
 
-void MyApp::processEvents(MainLoopEvent& evt) {
+void App::processEvents(MainLoopEvent& evt) {
     evt.execute();
     evt.Skip();
 }
 
-MyApp::MyApp() {}
+App::App() {}
 
-MyApp::~MyApp() {
-    worker.join();
+App::~App() {
+    model->quit();
 }
 
 NAMESPACE_SPH_END

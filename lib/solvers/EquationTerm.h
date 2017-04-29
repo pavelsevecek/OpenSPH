@@ -15,7 +15,7 @@ namespace Abstract {
         /// Sets derivatives required by this term. The derivatives are then automatically evaluated by the
         /// solver, the equation term can access the result in \ref finalize function. This function is called
         /// once for each thread at the beginning of the run.
-        virtual void setDerivatives(DerivativeHolder& storage) = 0;
+        virtual void setDerivatives(DerivativeHolder& derivatives) = 0;
 
         /// Initialize all the derivatives and/or quantity values before derivatives are computed. Called at
         /// the beginning of every time step. Note that derivatives need not be zeroed out manually, this is
@@ -54,8 +54,8 @@ public:
             const Size j = neighs[k];
             const Vector f = (p[i] + p[j]) / (rho[i] * rho[j]) * grads[k];
             ASSERT(isReal(f));
-            dv[i] += m[j] * f;
-            dv[j] -= m[i] * f;
+            dv[i] -= m[j] * f;
+            dv[j] += m[i] * f;
         }
     }
 };
@@ -78,23 +78,21 @@ public:
         ArrayView<Float> du = storage.getDt<Float>(QuantityId::ENERGY);
 
         for (Size i = 0; i < du.size(); ++i) {
-            du[i] += p[i] / rho[i] * divv[i];
+            du[i] -= p[i] / rho[i] * divv[i];
         }
     }
 
     virtual void create(Storage& storage, Abstract::Material& material) const override {
-        ASSERT(dynamic_cast<EosMaterial*>(&material));
-        // pressure and sound speed are created by EoS
-        ASSERT(storage.has(QuantityId::PRESSURE) && storage.has(QuantityId::SOUND_SPEED));
-        if (storage.has(QuantityId::ENERGY)) {
-            // check that there is no direct summation solver for energy
-            ASSERT(storage.getQuantity(QuantityId::ENERGY).getOrderEnum() == OrderEnum::FIRST);
-        } else {
-            storage.insert<Float>(
-                QuantityId::ENERGY, OrderEnum::FIRST, material.getParam<Float>(BodySettingsId::ENERGY));
+        if (!dynamic_cast<EosMaterial*>(&material)) {
+            throw InvalidSetup("PressureForce needs to be used with EosMaterial or derived");
         }
+        const Float u0 = material.getParam<Float>(BodySettingsId::ENERGY);
+        storage.insert<Float>(QuantityId::ENERGY, OrderEnum::FIRST, u0);
         ASSERT(storage.getMaterialCnt() == 1);
         material.minimal(QuantityId::ENERGY) = material.getParam<Float>(BodySettingsId::ENERGY_MIN);
+        material.range(QuantityId::ENERGY) = material.getParam<Range>(BodySettingsId::ENERGY_RANGE);
+        // need to create quantity for velocity divergence so that we can save it to storage later
+        storage.insert<Float>(QuantityId::VELOCITY_DIVERGENCE, OrderEnum::ZERO, 0._f);
     }
 };
 
@@ -180,12 +178,13 @@ public:
     }
 
     virtual void create(Storage& storage, Abstract::Material& material) const override {
-        ASSERT(storage.has(QuantityId::ENERGY) && storage.has(QuantityId::PRESSURE));
         storage.insert<TracelessTensor>(QuantityId::DEVIATORIC_STRESS,
             OrderEnum::FIRST,
             material.getParam<TracelessTensor>(BodySettingsId::STRESS_TENSOR));
         material.minimal(QuantityId::DEVIATORIC_STRESS) =
             material.getParam<Float>(BodySettingsId::STRESS_TENSOR_MIN);
+
+        storage.insert<Tensor>(QuantityId::STRENGTH_VELOCITY_GRADIENT, OrderEnum::ZERO, Tensor::null());
     }
 };
 
@@ -228,6 +227,31 @@ public:
     }
 };
 
+class CentripetalForce : public Abstract::EquationTerm {
+private:
+    Float omega;
+
+public:
+    CentripetalForce(const RunSettings& settings) {
+        omega = settings.get<Float>(RunSettingsId::FRAME_ANGULAR_FREQUENCY);
+    }
+
+    virtual void setDerivatives(DerivativeHolder& UNUSED(derivatives)) override {}
+
+    virtual void initialize(Storage& UNUSED(storage)) override {}
+
+    virtual void finalize(Storage& storage) override {
+        ArrayView<Vector> r, v, dv;
+        tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
+        const Vector unitZ = Vector(0._f, 0._f, 1._f);
+        for (Size i = 0; i < r.size(); ++i) {
+            dv[i] += omega * (r[i] - unitZ * dot(r[i], unitZ));
+            // no energy term - energy is not generally conserved when external force is used
+        }
+    }
+
+    virtual void create(Storage& UNUSED(storage), Abstract::Material& UNUSED(material)) const override {}
+};
 
 class ContinuityEquation : public Abstract::EquationTerm {
 public:
@@ -250,12 +274,12 @@ public:
         if (storage.has(QuantityId::DENSITY)) {
             ASSERT(storage.getQuantity(QuantityId::DENSITY).getOrderEnum() == OrderEnum::FIRST);
         } else {
-            /// \todo there is no check that we use two different density solvers
-            /// If some other equation already inserted density, it doesn't necessarily mean that it's the
-            /// solver for density, and even if it is, it doesn't mean that these two are incompatible.
-            /// For example we can have multiple acceleration terms, different heating sources etc.
-            storage.insert<Float>(
-                QuantityId::DENSITY, OrderEnum::FIRST, material.getParam<Float>(BodySettingsId::DENSITY));
+            /// \todo there is no check that we use two different density solvers. If some other equation
+            /// already inserted density, it doesn't necessarily mean that it's the solver for density, and
+            /// even if it is, it doesn't mean that these two are incompatible. For example we can have
+            /// multiple acceleration terms, different heating sources etc.
+            const Float rho0 = material.getParam<Float>(BodySettingsId::DENSITY);
+            storage.insert<Float>(QuantityId::DENSITY, OrderEnum::FIRST, rho0);
         }
         material.minimal(QuantityId::DENSITY) = material.getParam<Float>(BodySettingsId::DENSITY_MIN);
         material.range(QuantityId::DENSITY) = material.getParam<Range>(BodySettingsId::DENSITY_RANGE);
@@ -285,8 +309,12 @@ public:
         derivatives.require<VelocityDivergence>();
     }
 
-    virtual void initialize(Storage& UNUSED(storage)) override {
-        // ASSERT(areAllMatching())
+    virtual void initialize(Storage& storage) override {
+        ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
+        // clamp smoothing lengths
+        for (Size i = 0; i < r.size(); ++i) {
+            r[i][H] = max(r[i][H], minimal);
+        }
     }
 
     virtual void finalize(Storage& storage) override {
@@ -296,8 +324,7 @@ public:
         ArrayView<Vector> r, v, dv;
         tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
         for (Size i = 0; i < r.size(); ++i) {
-            /// \todo clamp should really be BEFORE the loop
-            r[i][H] = max(r[i][H], minimal);
+            // 'continuity equation' for smoothing lengths
             v[i][H] = r[i][H] / dimensions * divv[i];
 
             /// \todo generalize for grad v
@@ -370,37 +397,11 @@ class EquationHolder {
 private:
     Array<std::unique_ptr<Abstract::EquationTerm>> terms;
 
-    struct {
-        Array<QuantityId> quantities;
-        bool check;
-    } solved;
-
 public:
-    enum class Options {
-        CHECK_SOLVED_QUANTITIES = 1 << 0,
-    };
+    EquationHolder() = default;
 
-    EquationHolder(const Flags<Options> flags = EMPTY_FLAGS) {
-        solved.check = flags.has(Options::CHECK_SOLVED_QUANTITIES);
-    }
-
-    EquationHolder(std::unique_ptr<Abstract::EquationTerm>&& term, const Flags<Options> flags = EMPTY_FLAGS)
-        : EquationHolder(flags) {
+    EquationHolder(std::unique_ptr<Abstract::EquationTerm>&& term) {
         terms.push(std::move(term));
-    }
-
-    /// Adds a quantity to the list of quantities being solved. Useful to keep a list of solved quantities and
-    /// to check that all quantities evoloved by timestepping have their derivatives computed.
-    /// \return Reference to itself
-    template <typename... TArgs>
-    EquationHolder& solve(const QuantityId id, const TArgs... others) {
-        ASSERT(solved.check);
-        solved.quantities.push(id);
-        return solve(others...);
-    }
-
-    EquationHolder& solve() {
-        return *this;
     }
 
     EquationHolder& operator+=(EquationHolder&& other) {
@@ -421,19 +422,6 @@ public:
     }
 
     void initialize(Storage& storage) {
-#ifdef SPH_DEBUG
-        if (solved.check) {
-            // check that all evolved quantities are being solved
-            /// \todo maybe throw exception here? Do the checking also for release?
-            /// \todo this doesn't count quantities solved by materials (damage)
-            for (StorageElement e : storage.getQuantities()) {
-                if (e.quantity.getOrderEnum() != OrderEnum::ZERO) {
-                    ASSERT(std::find(solved.quantities.begin(), solved.quantities.end(), e.id) !=
-                           solved.quantities.end());
-                }
-            }
-        }
-#endif
         for (auto& t : terms) {
             t->initialize(storage);
         }

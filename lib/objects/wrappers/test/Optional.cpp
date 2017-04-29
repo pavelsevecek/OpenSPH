@@ -1,6 +1,6 @@
 #include "objects/wrappers/Optional.h"
-#include "objects/containers/Array.h"
 #include "catch.hpp"
+#include "objects/containers/Array.h"
 #include "utils/RecordType.h"
 
 using namespace Sph;
@@ -121,8 +121,8 @@ TEST_CASE("Optional emplace", "[optional]") {
 
 TEST_CASE("Optional get", "[optional]") {
     Optional<RecordType> o1(5);
-    REQUIRE(o1.get().value == 5);
-    o1.get() = RecordType(3);
+    REQUIRE(o1.value().value == 5);
+    o1.value() = RecordType(3);
     REQUIRE(o1->value == 3);
 }
 

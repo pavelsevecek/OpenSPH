@@ -175,11 +175,11 @@ void InitialConditions::setQuantities(Storage& storage,
     storage.insert<Size>(QuantityId::FLAG, OrderEnum::ZERO, bodyIndex);
     bodyIndex++;
 
-    // Initialize material
-    material.create(storage);
-
     // Initialize all quantities needed by the solver
     solver->create(storage, material);
+
+    // Initialize material (we need density and energy for that)
+    material.create(storage);
 }
 
 

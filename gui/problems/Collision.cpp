@@ -2,60 +2,39 @@
 #include "geometry/Domain.h"
 #include "gui/GuiCallbacks.h"
 #include "gui/Settings.h"
+#include "io/Column.h"
 #include "io/Logger.h"
 #include "io/Output.h"
 #include "sph/initial/Initial.h"
 
 NAMESPACE_SPH_BEGIN
 
-AsteroidCollision::AsteroidCollision() {
+AsteroidCollision::AsteroidCollision(Controller* model)
+    : model(model) {
     settings.set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::PREDICTOR_CORRECTOR)
         .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 0.01_f)
         .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 0.01_f)
         .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 0.1_f)
-        .set(RunSettingsId::MODEL_FORCE_DIV_S, true)
+        .set(RunSettingsId::MODEL_FORCE_SOLID_STRESS, true)
         .set(RunSettingsId::SPH_FINDER, FinderEnum::VOXEL)
         .set(RunSettingsId::MODEL_AV_TYPE, ArtificialViscosityEnum::STANDARD)
         .set(RunSettingsId::SPH_AV_ALPHA, 1.5_f)
         .set(RunSettingsId::SPH_AV_BETA, 3._f);
     settings.saveToFile("code.sph");
-
-    storage = std::make_shared<Storage>();
-    GuiSettings gui = this->getGuiSettings();
-    window = new Window(storage, gui /*, [this, setup]() mutable {
-        ASSERT(this->worker.joinable());
-        this->worker.join();
-        p->storage->removeAll();
-        setup.initialConditions(p->storage);
-        this->worker = std::thread([this]() { p->run(); });
-    }*/);
-    window->SetAutoLayout(true);
-    window->Show();
 }
 
-GuiSettings AsteroidCollision::getGuiSettings() const {
-    GuiSettings guiSettings;
-    guiSettings.set(GuiSettingsId::VIEW_FOV, 5.e3_f)
-        .set(GuiSettingsId::VIEW_CENTER, Vector(320, 200, 0._f))
-        .set(GuiSettingsId::PARTICLE_RADIUS, 0.3_f)
-        .set(GuiSettingsId::ORTHO_CUTOFF, 5.e2_f)
-        .set(GuiSettingsId::ORTHO_PROJECTION, OrthoEnum::XY)
-        .set(GuiSettingsId::IMAGES_SAVE, true)
-        .set(GuiSettingsId::IMAGES_TIMESTEP, 0.02_f);
-    return guiSettings;
-}
-
-void AsteroidCollision::setUp() {
+std::shared_ptr<Storage> AsteroidCollision::setUp() {
     BodySettings bodySettings;
     bodySettings.set(BodySettingsId::ENERGY, 1._f)
         .set(BodySettingsId::ENERGY_RANGE, Range(1._f, INFTY))
-        .set(BodySettingsId::PARTICLE_COUNT, 100000)
+        .set(BodySettingsId::PARTICLE_COUNT, 1000)
         .set(BodySettingsId::EOS, EosEnum::TILLOTSON)
         .set(BodySettingsId::STRESS_TENSOR_MIN, 1.e6_f)
         .set(BodySettingsId::RHEOLOGY_DAMAGE, DamageEnum::SCALAR_GRADY_KIPP)
         .set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::VON_MISES);
     bodySettings.saveToFile("target.sph");
 
+    storage = std::make_shared<Storage>();
     InitialConditions conds(*storage, settings);
 
     StdOutLogger logger;
@@ -77,19 +56,21 @@ void AsteroidCollision::setUp() {
     output = std::make_unique<TextOutput>(
         outputDir, settings.get<std::string>(RunSettingsId::RUN_NAME), TextOutput::Options::SCIENTIFIC);
     output->add(std::make_unique<ParticleNumberColumn>());
-    output->add(Factory::getValueColumn<Vector>(QuantityId::POSITIONS));
-    output->add(Factory::getDerivativeColumn<Vector>(QuantityId::POSITIONS));
-    output->add(Factory::getSmoothingLengthColumn());
-    output->add(Factory::getValueColumn<Float>(QuantityId::DENSITY));
-    output->add(Factory::getValueColumn<Float>(QuantityId::PRESSURE));
-    output->add(Factory::getValueColumn<Float>(QuantityId::ENERGY));
-    output->add(Factory::getValueColumn<Float>(QuantityId::DAMAGE));
-    output->add(Factory::getValueColumn<TracelessTensor>(QuantityId::DEVIATORIC_STRESS));
+    output->add(std::make_unique<ValueColumn<Vector>>(QuantityId::POSITIONS));
+    output->add(std::make_unique<DerivativeColumn<Vector>>(QuantityId::POSITIONS));
+    output->add(std::make_unique<SmoothingLengthColumn>());
+    output->add(std::make_unique<ValueColumn<Float>>(QuantityId::DENSITY));
+    output->add(std::make_unique<ValueColumn<Float>>(QuantityId::PRESSURE));
+    output->add(std::make_unique<ValueColumn<Float>>(QuantityId::ENERGY));
+    output->add(std::make_unique<ValueColumn<Float>>(QuantityId::DAMAGE));
+    output->add(std::make_unique<ValueColumn<TracelessTensor>>(QuantityId::DEVIATORIC_STRESS));
 
     logFiles.push(std::make_unique<EnergyLogFile>("energy.txt"));
     logFiles.push(std::make_unique<TimestepLogFile>("timestep.txt"));
 
-    callbacks = std::make_unique<GuiCallbacks>(window, this->getGuiSettings());
+    callbacks = std::make_unique<GuiCallbacks>(model);
+
+    return storage;
 }
 
 NAMESPACE_SPH_END

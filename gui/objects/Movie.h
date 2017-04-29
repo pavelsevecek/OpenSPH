@@ -5,52 +5,53 @@
 /// sevecek at sirrah.troja.mff.cuni.cz
 
 #include "common/Globals.h"
-#include "gui/MainLoop.h"
 #include "gui/Renderer.h"
-#include "gui/Settings.h"
-#include "gui/objects/Bitmap.h"
 #include "io/Output.h"
-#include <wx/image.h>
+#include <memory>
 
 NAMESPACE_SPH_BEGIN
 
-class Movie {
+namespace Abstract {
+    class Renderer;
+    class Element;
+}
+enum class GuiSettingsId;
+using GuiSettings = Settings<GuiSettingsId>;
+
+class Movie : public std::enable_shared_from_this<Movie> {
 private:
+    /// time step (framerate) of the movie
     Float outputStep;
     Float nextOutput;
-    bool enabled;
+
+    /// file names of the images
     OutputFile paths;
-    Abstract::Renderer* renderer;
+
+    /// enable/disable image saving
+    bool enabled;
+
+    /// renderer
+    std::unique_ptr<Abstract::Renderer> renderer;
+    RenderParams params;
+
+    /// elements to render and save to disk
+    Array<std::unique_ptr<Abstract::Element>> elements;
+
 
 public:
-    Movie(const GuiSettings& settings, Abstract::Renderer* renderer)
-        : outputStep(settings.get<Float>(GuiSettingsId::IMAGES_TIMESTEP))
-        , renderer(renderer) {
-        enabled = settings.get<bool>(GuiSettingsId::IMAGES_SAVE);
-        const std::string directory = settings.get<std::string>(GuiSettingsId::IMAGES_PATH);
-        const std::string name = settings.get<std::string>(GuiSettingsId::IMAGES_NAME);
-        paths = OutputFile(directory + name);
-        static bool first = true;
-        if (first) {
-            wxInitAllImageHandlers();
-            first = false;
-        }
-        nextOutput = outputStep;
-    }
+    Movie(const GuiSettings& settings,
+        std::unique_ptr<Abstract::Renderer>&& renderer,
+        const RenderParams& params,
+        Array<std::unique_ptr<Abstract::Element>>&& elements);
 
-    // gui callbacks?
-    void onTimeStep(const Float time) {
-        if (time < nextOutput || !enabled) {
-            return;
-        }
-        Bitmap bitmap = renderer->getRender();
-        executeOnMainThread([this, bitmap] { bitmap.saveToFile(paths.getNextPath()); });
-        nextOutput += outputStep;
-    }
+    ~Movie();
 
-    void setEnabled(const bool enable = true) {
-        enabled = enable;
-    }
+    /// Called every time step, saves the images every IMAGES_TIMESTEP. If the time since the last frame is
+    /// less than the required framerate, function does nothing. Can be called from any thread; if called from
+    /// non-main thread, function is non-blocking, the images are rendered and saved later in main thread.
+    void onTimeStep(const std::shared_ptr<Storage>& storage, Statistics& stats);
+
+    void setEnabled(const bool enable = true);
 };
 
 NAMESPACE_SPH_END

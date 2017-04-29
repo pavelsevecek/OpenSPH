@@ -7,7 +7,6 @@
 #include "common/Globals.h"
 #include "math/Math.h"
 #include "objects/containers/StaticArray.h"
-#include <iomanip>
 
 NAMESPACE_SPH_BEGIN
 
@@ -88,30 +87,7 @@ public:
         return Range(-INFTY, INFTY);
     }
 
-    template <typename TStream>
-    friend TStream& operator<<(TStream& stream, const Range& range) {
-        stream << Printer{ range.lower() } << Printer{ range.upper() };
-        return stream;
-    }
-
-private:
-    // wrapper over float printing "infinity/-infinity" instead of value itself
-    struct Printer {
-        Float value;
-
-        template <typename TStream>
-        friend TStream& operator<<(TStream& stream, const Printer w) {
-            stream << std::setw(20);
-            if (w.value == INFTY) {
-                stream << "infinity";
-            } else if (w.value == -INFTY) {
-                stream << "-infinity";
-            } else {
-                stream << w.value;
-            }
-            return stream;
-        }
-    };
+    friend std::ostream& operator<<(std::ostream& stream, const Range& range);
 };
 
 

@@ -71,7 +71,7 @@ TEST_CASE("GetThreadIdx", "[thread]") {
     pool.submit([&pool] {
         const Optional<Size> idx = pool.getThreadIdx();
         REQUIRE(idx);
-        REQUIRE((idx.get() == 0 || idx.get() == 1));
+        REQUIRE((idx.value() == 0 || idx.value() == 1));
     });
 }
 
@@ -119,7 +119,7 @@ TEST_CASE("ThreadLocal parallelFor", "[thread]") {
     ThreadLocal<Array<Size>> partial(pool, N);
     partial.forEach([](Array<Size>& value) { value.fill(0); });
 
-    std::atomic_int executeCnt;
+    std::atomic<int> executeCnt;
     executeCnt = 0;
     parallelFor(pool, partial, 0, N, 1, [&executeCnt](Size n1, Size n2, Array<Size>& value) {
         executeCnt++;

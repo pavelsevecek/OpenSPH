@@ -330,10 +330,14 @@ public:
     }
 
     /// Comparison operator, comparings array element-by-element. If arrays differ in number of
-    /// constructed
-    /// elements, the comparison always returns false; allocated size does not play role here.
+    /// constructed elements, the comparison always returns false; allocated size does not play role here.
     bool operator==(const Array& other) const {
         return getView() == other.getView();
+    }
+
+    /// Inequality operator
+    bool operator!=(const Array& other) const {
+        return getView() != other.getView();
     }
 
     /// Prints content of array to stream. Stored values must have overloaded << operator.

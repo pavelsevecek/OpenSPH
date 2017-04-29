@@ -1,8 +1,8 @@
 #pragma once
 
-#include "quantities/AbstractMaterial.h"
-#include "solvers/AbstractSolver.h"
-#include "solvers/Accumulator.h"
+#include "solvers/EquationTerm.h"
+#include "solvers/GenericSolver.h"
+#include "sph/av/Standard.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -11,138 +11,87 @@ NAMESPACE_SPH_BEGIN
 /// SummationSolver; the energy density is computed using direct summation by self-consistent solution with
 /// smoothing length. Works only for ideal gas EoS!
 
-/*
-template <int D>
-class DensityIndependentSolver : public SolverBase<D> {
-    static constexpr int dim = D;
-
+class DensityIndependentPressureForce : public Abstract::EquationTerm {
 private:
-    class UDivv {
+    class Derivative : public Abstract::Derivative {
     private:
-        ArrayView<const Float> e;
-        ArrayView<const Vector> v;
+        ArrayView<const Size> matIdxs;
+        ArrayView<const Float> q, U, m;
+        ArrayView<const Vector> r, v;
+        ArrayView<Vector> dv;
+        ArrayView<Float> dU;
+        Float gamma;
 
     public:
-        using Type = Float;
-
-        void update(Storage& storage) {
-            e = storage.getValue<Float>(QuantityId::ENERGY_DENSITY);
-            v = storage.getAll<Vector>(QuantityId::POSITIONS)[1];
+        virtual void create(Accumulated& results) override {
+            results.insert<Float>(QuantityId::ENERGY_PER_PARTICLE);
         }
 
-        INLINE Tuple<Float, Float> operator()(const int i, const int j, const Vector& grad) const {
-            const Float delta = dot(v[j] - v[i], grad);
-            ASSERT(isReal(delta));
-            return { e[j] * delta, e[i] * delta };
-        }
-    };
-    Accumulator<UDivv> udivv;
+        virtual void initialize(const Storage& input, Accumulated& results) override {
+            matIdxs = input.getValue<Size>(QuantityId::MATERIAL_IDX);
+            tie(m, q, U) = input.getValues<Float>(
+                QuantityId::MASSES, QuantityId::ENERGY_DENSITY, QuantityId::ENERGY_PER_PARTICLE);
+            ArrayView<const Vector> dummy;
+            tie(r, v, dummy) = input.getAll<Vector>(QuantityId::POSITIONS);
 
-public:
-    DensityIndependentSolver(const RunSettings& settings)
-        : SolverBase<D>(settings) {}
-
-    virtual void integrate(Storage& storage, Statistics& UNUSED(stats)) override {
-        const int size = storage.getParticleCnt();
-
-        ArrayView<Vector> r, v, dv;
-        ArrayView<Float> e, de, q, dq, rho, m, p, u, cs;
-        PROFILE_SCOPE("DensityIndependentSolver::integrate (getters)");
-
-        // fetch quantities from storage
-        tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
-        tie(e, de) = storage.getAll<Float>(QuantityId::ENERGY_PER_PARTICLE);
-        tie(q, dq) = storage.getAll<Float>(QuantityId::ENERGY_DENSITY);
-        tie(rho, m, p, u, cs) = storage.getValues<Float>(QuantityId::DENSITY,
-            QuantityId::MASSES,
-            QuantityId::PRESSURE,
-            QuantityId::ENERGY,
-            QuantityId::SOUND_SPEED);
-        ASSERT(areAllMatching(dv, [](const Vector v) { return v == Vector(0._f); }));
-
-        udivv.update(storage);
-
-        PROFILE_NEXT("DensityIndependentSolver::integrate (init)");
-        // clamp smoothing length
-        /// \todo generalize clamping, min / max values
-        for (Float& h : componentAdapter(r, H)) {
-            h = max(h, 1.e-12_f);
+            dv = results.getValue<Vector>(QuantityId::POSITIONS);
+            dU = results.getValue<Float>(QuantityId::ENERGY_PER_PARTICLE);
+            /// \todo here we assume all particles have the same adiabatic index, as in Saitoh & Makino.
+            /// DISPH would need to be generalized for particles with different gamma.
+            gamma = input.getMaterial(0)->getParam<Float>(BodySettingsId::ADIABATIC_INDEX);
+            ASSERT(gamma > 1._f);
         }
 
-        this->finder->build(r);
-        SymH<dim> w(this->kernel);
-
-        PROFILE_NEXT("DensityIndependentSolver::compute (main cycle)");
-        for (int i = 0; i < size; ++i) {
-            this->finder->findNeighbours(i,
-                r[i][H] * this->kernel.radius(),
-                this->neighs,
-                FinderFlags::FIND_ONLY_SMALLER_H | FinderFlags::PARALLELIZE);
-            // iterate over neighbours
-            for (const auto& neigh : this->neighs) {
-                const int j = neigh.index;
-                // actual smoothing length
-                const Float hbar = 0.5_f * (r[i][H] + r[j][H]);
-                ASSERT(hbar > EPS && hbar <= r[i][H]);
-                if (getSqrLength(r[i] - r[j]) > sqr(this->kernel.radius() * hbar)) {
-                    // aren't actual neighbours
-                    continue;
-                }
-                // compute gradient of kernel W_ij
-                const Vector grad = w.grad(r[i], r[j]);
-                ASSERT(dot(grad, r[i] - r[j]) <= 0._f);
-
-                const Vector f = e[i] * e[j] * (1._f / q[i] + 1._f / q[j]) * grad;
+        virtual void compute(const Size i,
+            ArrayView<const Size> neighs,
+            ArrayView<const Vector> grads) override {
+            ASSERT(neighs.size() == grads.size());
+            for (Size k = 0; k < neighs.size(); ++k) {
+                const Size j = neighs[k];
+                const Vector f = (gamma - 1._f) * U[i] * U[j] * (1._f / q[i] + 1._f / q[j]) * grads[k];
                 ASSERT(isReal(f));
-                const Float gamma = material.getParam<Float>(BodySettingsId::ADIABATIC_INDEX, i);
-                ASSERT(gamma > 1._f);
-                dv[i] -= (gamma - 1._f) / m[i] * f;
-                dv[j] += (gamma - 1._f) / m[j] * f;
-                ASSERT(isReal(dv[i]));
-                ASSERT(isReal(dv[j]));
+                dv[i] -= f / m[i];
+                dv[j] += f / m[j];
+                /// \todo possible optimization, acceleration could be multiplied by factor (gamma-1)/m_i
+                /// could be after the loop
 
-                udivv.accumulate(i, j, grad);
+                const Float e = (gamma - 1._f) * U[i] * U[j] * dot(v[i] - v[k], grads[k]);
+                dU[i] += e / q[i];
+                dU[j] += e / q[j];
             }
         }
+    };
 
-        EosAccessor eos(storage);
-        for (int i = 0; i < size; ++i) {
-            dq[i] = udivv[i];
-
-            const Float gamma = material.getParam<Float>(BodySettingsId::ADIABATIC_INDEX, i);
-            de[i] = (gamma - 1._f) * e[i] / q[i] * udivv[i];
-            /// \todo smoothing length
-            v[i][H] = 0._f;
-            dv[i][H] = 0._f;
-
-            // compute 'external' physical quantities
-            u[i] = e[i] / m[i];
-            rho[i] = q[i] / u[i];
-
-            tieToTuple(p[i], cs[i]) = eos.evaluate(i);
-        }
-        // Apply boundary conditions
-        if (this->boundary) {
-            this->boundary->apply(storage);
-        }
+public:
+    virtual void setDerivatives(DerivativeHolder& derivatives) override {
+        derivatives.require<Derivative>();
     }
 
-    virtual void initialize(Storage& storage, const BodySettings& settings) const override {
-        ASSERT(settings.get<EosEnum>(BodySettingsId::EOS) == EosEnum::IDEAL_GAS);
+    virtual void initialize(Storage& UNUSED(storage)) override {}
+
+    virtual void finalize(Storage& UNUSED(storage)) override {}
+
+    virtual void create(Storage& storage, Abstract::Material& material) const override {
         // energy density = specific energy * density
-        const Float rho0 = settings.get<Float>(BodySettingsId::DENSITY);
-        const Float u0 = settings.get<Float>(BodySettingsId::ENERGY);
+        const Float rho0 = material.getParam<Float>(BodySettingsId::DENSITY);
+        const Float u0 = material.getParam<Float>(BodySettingsId::ENERGY);
         const Float q0 = rho0 * u0;
+        /// \todo replace asserts with exceptions for incorrect setup of solver!!!
         ASSERT(q0 > 0._f && "Cannot use DISPH with zero specific energy");
-        const Range rhoRange = settings.get<Range>(BodySettingsId::DENSITY_RANGE);
-        const Range uRange = settings.get<Range>(BodySettingsId::ENERGY_RANGE);
+
+        const Range rhoRange = material.getParam<Range>(BodySettingsId::DENSITY_RANGE);
+        const Range uRange = material.getParam<Range>(BodySettingsId::ENERGY_RANGE);
         const Range qRange(rhoRange.lower() * uRange.lower(), rhoRange.upper() * uRange.upper());
-        const Float rhoMin = settings.get<Float>(BodySettingsId::DENSITY_MIN);
-        const Float uMin = settings.get<Float>(BodySettingsId::ENERGY_MIN);
+        material.range(QuantityId::ENERGY_DENSITY) = qRange;
+
+        const Float rhoMin = material.getParam<Float>(BodySettingsId::DENSITY_MIN);
+        const Float uMin = material.getParam<Float>(BodySettingsId::ENERGY_MIN);
         const Float qMin = rhoMin * uMin;
         ASSERT(qRange.lower() > 0._f && "Cannot use DISPH with zero specific energy");
-        storage.insert<Float, OrderEnum::FIRST>(QuantityId::ENERGY_DENSITY, q0, qRange);
-        MaterialAccessor(storage).minimal(QuantityId::ENERGY_DENSITY, 0) = qMin;
+        material.minimal(QuantityId::ENERGY_DENSITY) = qMin;
+
+        // energy density is computed by direct sum, hence zero order
+        storage.insert<Float>(QuantityId::ENERGY_DENSITY, OrderEnum::ZERO, q0);
 
         // energy per particle
         Array<Float> e = storage.getValue<Float>(QuantityId::MASSES).clone();
@@ -150,16 +99,91 @@ public:
             e[i] *= u0;
         }
         /// \todo range and min value for energy per particle
-        storage.insert<Float, OrderEnum::FIRST>(QuantityId::ENERGY_PER_PARTICLE, std::move(e));
+        storage.insert<Float>(QuantityId::ENERGY_PER_PARTICLE, OrderEnum::FIRST, std::move(e));
 
-        // setup quantities used 'outside' of the solver
-        storage.insert<Float, OrderEnum::ZERO>(QuantityId::DENSITY, rho0);
-        storage.insert<Float, OrderEnum::ZERO>(QuantityId::ENERGY, u0);
+        // Setup quantities with straighforward physical representation, used to output results of the solver
+        // and for comparison with other solvers. Internal quantities of the solvers (energy per particle,
+        // etc.) are always converted to the 'common' quantities after the loop.
+        storage.insert<Float>(QuantityId::DENSITY, OrderEnum::ZERO, rho0);
+        storage.insert<Float>(QuantityId::ENERGY, OrderEnum::ZERO, u0);
+
+        EosMaterial& eos = dynamic_cast<EosMaterial&>(material);
         Float p0, cs0;
-        tieToTuple(p0, cs0) = EosAccessor(storage).evaluate(0);
-        storage.insert<Float, OrderEnum::ZERO>(QuantityId::SOUND_SPEED, cs0);
-        storage.insert<Float, OrderEnum::ZERO>(QuantityId::PRESSURE, p0);
+        tie(p0, cs0) = eos.evaluate(rho0, u0);
+        storage.insert<Float>(QuantityId::SOUND_SPEED, OrderEnum::ZERO, cs0);
+        storage.insert<Float>(QuantityId::PRESSURE, OrderEnum::ZERO, p0);
     }
 };
-*/
+
+class DensityIndependentSolver : public GenericSolver {
+private:
+    LutKernel<DIMENSIONS> energyKernel;
+    Array<Float> q;
+
+public:
+    DensityIndependentSolver(const RunSettings& settings)
+        : GenericSolver(settings, getEquations(settings)) {
+        energyKernel = Factory::getKernel<DIMENSIONS>(settings);
+    }
+
+    virtual void create(Storage& storage, Abstract::Material& material) const override {
+        storage.insert<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO, 0);
+        storage.insert<Float>(
+            QuantityId::DENSITY, OrderEnum::ZERO, material.getParam<Float>(BodySettingsId::DENSITY));
+        material.minimal(QuantityId::DENSITY) = material.getParam<Float>(BodySettingsId::DENSITY_MIN);
+        material.range(QuantityId::DENSITY) = material.getParam<Range>(BodySettingsId::DENSITY_RANGE);
+        equations.create(storage, material);
+    }
+
+private:
+    EquationHolder getEquations(const RunSettings& settings) {
+        EquationHolder equations;
+        equations += makeTerm<DensityIndependentPressureForce>();
+        equations += makeTerm<StandardAV>(settings);
+
+        return equations;
+    }
+
+    virtual void beforeLoop(Storage& storage, Statistics& stats) override {
+        GenericSolver::beforeLoop(storage, stats);
+        ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
+        ArrayView<Float> U = storage.getValue<Float>(QuantityId::ENERGY_PER_PARTICLE);
+
+        q.fill(EPS);
+        auto functor = [this, r, U](const Size n1, const Size n2, ThreadData& data) {
+            for (Size i = n1; i < n2; ++i) {
+                // find all neighbours
+                finder->findNeighbours(i, r[i][H] * kernel.radius(), data.neighs, EMPTY_FLAGS);
+                q[i] = 0._f;
+                for (auto& n : data.neighs) {
+                    const int j = n.index;
+                    /// \todo can this be generally different kernel than the one used for derivatives?
+                    q[i] += U[j] * energyKernel.value(r[i] - r[j], r[i][H]);
+                }
+            }
+        };
+        /// \todo this should also be self-consistently solved with smoothing length (as SummationSolver)
+        parallelFor(pool, threadData, 0, r.size(), granularity, functor);
+
+        // save computed values
+        std::swap(storage.getValue<Float>(QuantityId::ENERGY_DENSITY), q);
+    }
+
+    virtual void afterLoop(Storage& storage, Statistics& statistics) override {
+        GenericSolver::afterLoop(storage, statistics);
+        // compute dependent quantities
+        ArrayView<Float> q, U, rho, m, u;
+        tie(q, U, rho, m, u) = storage.getValues<Float>(QuantityId::ENERGY_DENSITY,
+            QuantityId::ENERGY_PER_PARTICLE,
+            QuantityId::DENSITY,
+            QuantityId::MASSES,
+            QuantityId::ENERGY);
+        for (Size i = 0; i < u.size(); ++i) {
+            u[i] = U[i] / m[i];
+            ASSERT(u[i] > 0._f);
+            rho[i] = q[i] / u[i];
+        }
+    }
+};
+
 NAMESPACE_SPH_END

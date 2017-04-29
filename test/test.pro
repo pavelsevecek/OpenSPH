@@ -59,7 +59,6 @@ SOURCES += \
     ../lib/objects/wrappers/test/Variant.cpp \
     ../lib/objects/wrappers/test/Iterators.cpp \
     ../lib/objects/wrappers/test/Range.cpp \
-    ../lib/objects/wrappers/test/NonOwningPtr.cpp \
     ../lib/objects/wrappers/test/Any.cpp \
     ../lib/objects/wrappers/test/VectorizedArray.cpp \
     ../lib/objects/wrappers/test/AlignedStorage.cpp \
@@ -83,7 +82,6 @@ SOURCES += \
     ../lib/system/test/Timer.cpp \
     ../lib/system/test/Profiler.cpp \
     ../lib/io/test/Output.cpp \
-    ../lib/system/test/CallbackList.cpp \
     ../lib/system/test/ArrayStats.cpp \
     ../lib/system/test/Statistics.cpp \
     ../lib/quantities/test/Quantity.cpp \
@@ -104,7 +102,10 @@ SOURCES += \
     ../lib/solvers/test/Accumulated.cpp \
     ../lib/solvers/test/Derivative.cpp \
     ../lib/sph/av/test/Standard.cpp \
-    utils/Setup.cpp
+    utils/Setup.cpp \
+    ../lib/thread/test/AtomicFloat.cpp \
+    ../lib/solvers/test/DensityIndependentSolver.cpp \
+    ../lib/thread/test/CheckFunction.cpp
 
 HEADERS += \
     utils/Utils.h \

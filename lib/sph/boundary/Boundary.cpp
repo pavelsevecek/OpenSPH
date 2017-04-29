@@ -52,7 +52,7 @@ struct GhostFunctor {
     }
 };
 
-void GhostParticles::apply(Storage& storage) {
+void GhostParticles::initialize(Storage& storage) {
     // remove previous ghost particles
     removeGhosts(storage);
 
@@ -107,7 +107,7 @@ void FrozenParticles::thaw(const Size flag) {
     frozen.erase(flag);
 }
 
-void FrozenParticles::apply(Storage& storage) {
+void FrozenParticles::finalize(Storage& storage) {
     ArrayView<Vector> r, v, dv;
     tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
 
@@ -153,9 +153,9 @@ void FrozenParticles::apply(Storage& storage) {
 WindTunnel::WindTunnel(std::unique_ptr<Abstract::Domain>&& domain, const Float radius)
     : FrozenParticles(std::move(domain), radius) {}
 
-void WindTunnel::apply(Storage& storage) {
+void WindTunnel::finalize(Storage& storage) {
     // clear derivatives of particles close to boundary
-    FrozenParticles::apply(storage);
+    FrozenParticles::finalize(storage);
 
     // remove particles outside of the domain
     Array<Size> toRemove;
@@ -216,7 +216,7 @@ void WindTunnel::apply(Storage& storage) {
 Projection1D::Projection1D(const Range& domain)
     : domain(domain) {}
 
-void Projection1D::apply(Storage& storage) {
+void Projection1D::finalize(Storage& storage) {
     ArrayView<Vector> dv;
     tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
     for (Size i = 0; i < r.size(); ++i) {

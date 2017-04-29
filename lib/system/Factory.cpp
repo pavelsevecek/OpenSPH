@@ -9,6 +9,8 @@
 #include "physics/Eos.h"
 #include "physics/Rheology.h"
 #include "solvers/ContinuitySolver.h"
+#include "solvers/DensityIndependentSolver.h"
+#include "solvers/SummationSolver.h"
 #include "sph/Material.h"
 #include "sph/boundary/Boundary.h"
 #include "sph/initial/Distribution.h"
@@ -141,6 +143,10 @@ std::unique_ptr<Abstract::Solver> Factory::getSolver(const RunSettings& settings
     switch (id) {
     case SolverEnum::CONTINUITY_SOLVER:
         return std::make_unique<ContinuitySolver>(settings);
+    case SolverEnum::SUMMATION_SOLVER:
+        return std::make_unique<SummationSolver>(settings);
+    case SolverEnum::DENSITY_INDEPENDENT:
+        return std::make_unique<DensityIndependentSolver>(settings);
     default:
         NOT_IMPLEMENTED;
     }

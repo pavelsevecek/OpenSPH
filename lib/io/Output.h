@@ -2,7 +2,6 @@
 
 #include "objects/wrappers/Outcome.h"
 #include "quantities/Storage.h"
-#include "system/Column.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -14,26 +13,17 @@ private:
 public:
     OutputFile() = default;
 
-    OutputFile(const std::string& pathMask)
-        : pathMask(pathMask) {
-        ASSERT(pathMask.find("%d", 0) != std::string::npos);
-    }
+    OutputFile(const std::string& pathMask);
 
     /// Returns path to the next output file, incrementing the internal counter
-    std::string getNextPath() const {
-        std::string path = pathMask;
-        std::string::size_type n = pathMask.find("%d", 0);
-        std::ostringstream ss;
-        ss << std::setw(4) << std::setfill('0') << dumpNum;
-        path.replace(n, 2, ss.str());
-        dumpNum++;
-        return path;
-    }
+    std::string getNextPath() const;
 };
 
 /// Interface for saving quantities of SPH particles to a file. Saves all values in the storage, and also 1st
 /// derivatives for 2nd-order quantities.
 namespace Abstract {
+    class Column;
+
     class Output : public Polymorphic {
     protected:
         OutputFile paths;
@@ -42,13 +32,12 @@ namespace Abstract {
     public:
         /// Constructs output given the file name of the output. The name must contain '%d', which will be
         /// replaced by the dump number, starting from 0.
-        Output(const std::string& fileMask)
-            : paths(fileMask) {}
+        Output(const std::string& fileMask);
+
+        ~Output();
 
         /// Adds an element to output.
-        void add(std::unique_ptr<Abstract::Column>&& element) {
-            elements.push(std::move(element));
-        }
+        void add(std::unique_ptr<Abstract::Column>&& element);
 
         /// Saves data from particle storage into the file. Returns the filename of the dump.
         virtual std::string dump(Storage& storage, const Float time) = 0;

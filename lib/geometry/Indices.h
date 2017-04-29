@@ -119,8 +119,7 @@ public:
         return _mm_min_epi32(data, other.data);
     }
 
-    template <typename TStream>
-    friend TStream& operator<<(TStream& stream, const Indices& idxs) {
+    friend std::ostream& operator<<(std::ostream& stream, const Indices& idxs) {
         for (int i = 0; i < 3; ++i) {
             stream << std::setw(20) << idxs[i];
         }

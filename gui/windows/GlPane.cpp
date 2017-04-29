@@ -12,7 +12,7 @@
 NAMESPACE_SPH_BEGIN
 
 enum { ID_REPAINT = 1, ID_RELOAD = 2 };
-
+/*
 VisualSphere::VisualSphere(const Size latitudeSegments, const Size longitudeSegments) {
     const float dlon = 2 * PI / float(longitudeSegments) + EPS;
     const float dlat = PI / float(latitudeSegments) + EPS;
@@ -145,7 +145,7 @@ void CustomGlPane::resized(wxSizeEvent& evt) {
     evt.Skip();
 }
 
-/** Inits the OpenGL viewport for drawing in 3D. */
+
 void CustomGlPane::prepare3DViewport(int topleft_x, int topleft_y, int bottomrigth_x, int bottomrigth_y) {
 
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f); // Black Background
@@ -224,5 +224,5 @@ void CustomGlPane::render(wxPaintEvent& UNUSED(evt)) {
     glFlush();
     SwapBuffers();
 }
-
+*/
 NAMESPACE_SPH_END

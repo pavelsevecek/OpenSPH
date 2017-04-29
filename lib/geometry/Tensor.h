@@ -218,8 +218,7 @@ public:
     static Tensor Scale(const Float s);
     static Tensor TRS(const Vector& t, const Vector& r, const Vector& s);
 
-    template <typename TStream>
-    friend TStream& operator<<(TStream& stream, const Tensor& t) {
+    friend std::ostream& operator<<(std::ostream& stream, const Tensor& t) {
         stream << t.diagonal() << t.offDiagonal();
         return stream;
     }

@@ -6,6 +6,7 @@
 
 #include "objects/Object.h"
 #include <functional>
+#include <memory>
 #include <wx/event.h>
 
 namespace Sph {
@@ -18,8 +19,8 @@ typedef void (wxEvtHandler::*MainLoopEventFunction)(Sph::MainLoopEvent&);
 
 NAMESPACE_SPH_BEGIN
 
-/// Custom event holding callback. Application must handle this event using MainLoopEventFunction and execute
-/// callback using MainLoopEvent::execute().
+/// Custom event holding a callback. Application must handle this event using MainLoopEventFunction and
+/// execute callback using MainLoopEvent::execute().
 class MainLoopEvent : public wxCommandEvent {
 private:
     std::function<void()> callback;
@@ -42,7 +43,20 @@ public:
     }
 };
 
-/// Post function to main thread.
+/// Posts a callback to be executed on main thread. The function does not wait for the callback to be
+/// executed. The callback is executed by wxWidget framework; that means the event loop must be running and
+/// there must be an event handler executing the callback.
 void executeOnMainThread(const std::function<void()>& function);
+
+/// Executes a callback in main thread, passing a shared pointer to given object as its argument. The callback
+/// is only executed if the object referenced by the shared pointer is not expired, otherwise it is ignored.
+template <typename Type, typename TFunctor>
+void executeOnMainThread(const std::shared_ptr<Type>& ptr, TFunctor functor) {
+    executeOnMainThread([ weakPtr = std::weak_ptr<Type>(ptr), f = std::move(functor) ] {
+        if (auto ptr = weakPtr.lock()) {
+            f(ptr);
+        }
+    });
+}
 
 NAMESPACE_SPH_END

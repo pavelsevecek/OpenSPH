@@ -63,7 +63,7 @@ void SphericalDomain::project(ArrayView<Vector> vs, Optional<ArrayView<Size>> in
         }
     };
     if (indices) {
-        for (Size i : indices.get()) {
+        for (Size i : indices.value()) {
             impl(vs[i]);
         }
     } else {
@@ -170,7 +170,7 @@ void BlockDomain::project(ArrayView<Vector> vs, Optional<ArrayView<Size>> indice
         }
     };
     if (indices) {
-        for (Size i : indices.get()) {
+        for (Size i : indices.value()) {
             impl(vs[i]);
         }
     } else {
@@ -300,7 +300,7 @@ void CylindricalDomain::project(ArrayView<Vector> vs, Optional<ArrayView<Size>> 
         }
     };
     if (indices) {
-        for (Size i : indices.get()) {
+        for (Size i : indices.value()) {
             impl(vs[i]);
         }
     } else {
@@ -412,7 +412,7 @@ void HexagonalDomain::project(ArrayView<Vector> vs, Optional<ArrayView<Size>> in
         }
     };
     if (indices) {
-        for (Size i : indices.get()) {
+        for (Size i : indices.value()) {
             impl(vs[i]);
         }
     } else {

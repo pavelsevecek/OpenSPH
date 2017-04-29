@@ -26,6 +26,10 @@ enum class GuiSettingsId {
     /// View field of view (zoom)
     VIEW_FOV,
 
+    VIEW_WIDTH,
+
+    VIEW_HEIGHT,
+
     /// Displayed radius of particle in units of smoothing length
     PARTICLE_RADIUS,
 
@@ -36,6 +40,14 @@ enum class GuiSettingsId {
 
     /// Title of the window appearing on taskbar
     WINDOW_TITLE,
+
+    WINDOW_WIDTH,
+
+    WINDOW_HEIGHT,
+
+    RENDER_WIDTH,
+
+    RENDER_HEIGHT,
 
     /// If true, rendered images are saved to disk
     IMAGES_SAVE,
@@ -60,7 +72,9 @@ enum class GuiSettingsId {
 
     PALETTE_STRESS,
 
-    PALETTE_DAMAGE
+    PALETTE_DAMAGE,
+
+    PALETTE_VELOCITY_DIVERGENCE,
 };
 
 using GuiSettings = Settings<GuiSettingsId>;

@@ -60,7 +60,11 @@ SOURCES += \
     common/Assert.cpp \
     io/filesystem.cpp \
     sph/Material.cpp \
-    system/Platform.cpp
+    system/Platform.cpp \
+    thread/CheckFunction.cpp \
+    quantities/QuantityIds.cpp \
+    objects/wrappers/Range.cpp \
+    objects/containers/stringutils.cpp
 
 HEADERS += \
     commmon/Globals.h \
@@ -109,7 +113,6 @@ HEADERS += \
     system/Settings.h \
     system/Timer.h \
     system/Profiler.h \
-    system/CallbackList.h \
     io/Logger.h \
     io/Output.h \
     io/LogFile.h \
@@ -128,7 +131,6 @@ HEADERS += \
     solvers/DensityIndependentSolver.h \
     solvers/EntropySolver.h \
     solvers/Accumulator.h \
-    solvers/SharedAccumulator.h \
     objects/containers/StaticArray.h \
     sph/forces/CentripetalForce.h \
     objects/wrappers/AlignedStorage.h \
@@ -178,4 +180,10 @@ HEADERS += \
     solvers/Accumulated.h \
     run/Run.h \
     solvers/GenericSolver.h \
-    objects/containers/PerElementWrapper.h
+    objects/containers/PerElementWrapper.h \
+    thread/AtomicFloat.h \
+    thread/CheckFunction.h \
+    objects/Exceptions.h \
+    system/Column.h \
+    objects/containers/StringUtils.h \
+    io/Column.h

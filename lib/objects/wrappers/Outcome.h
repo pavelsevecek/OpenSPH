@@ -5,7 +5,6 @@
 
 #include "common/Assert.h"
 #include <sstream>
-#include <string>
 
 NAMESPACE_SPH_BEGIN
 
@@ -70,7 +69,7 @@ namespace Detail {
 
     template <typename T0, typename... TArgs>
     INLINE void printArgs(std::stringstream& ss, T0&& t0, TArgs&&... args) {
-        ss << t0 << " ";
+        ss << t0;
         printArgs(ss, std::forward<TArgs>(args)...);
     }
 }

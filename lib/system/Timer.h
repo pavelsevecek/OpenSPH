@@ -6,8 +6,9 @@
 
 #include "objects/containers/Array.h"
 #include "objects/wrappers/Flags.h"
-#include "objects/wrappers/NonOwningPtr.h"
+#include <atomic>
 #include <chrono>
+#include <mutex>
 #include <thread>
 
 NAMESPACE_SPH_BEGIN
@@ -19,7 +20,7 @@ class TimerThread;
 enum class TimerUnit { SECOND, MILLISECOND, MICROSECOND };
 
 /// Basic time-measuring tool. Starts automatically when constructed.
-class Timer : public Observable {
+class Timer {
 protected:
     using TimePoint = std::chrono::time_point<std::chrono::system_clock>;
     using Clock = std::chrono::system_clock;
@@ -36,14 +37,10 @@ public:
     /// different units, but you can explicitly specify units in elapsed() method.
     Timer(const int64_t interval = 0, const Flags<TimerFlags> flags = EMPTY_FLAGS);
 
-    /// Create timer with given exporation duration and on-timer-expired callback. The callback is executed
-    /// only once by default, or periodically if PERIODIC flag is passed.
-    Timer(const int64_t interval,
-        const std::function<void(void)>& callback,
-        const Flags<TimerFlags> flags = EMPTY_FLAGS);
-
     /// Reset elapsed duration to zero.
-    void restart() { started = Clock::now(); }
+    void restart() {
+        started = Clock::now();
+    }
 
     /// Returns elapsed time in timer units. Does not reset the timer.
     template <TimerUnit TUnit>
@@ -59,10 +56,21 @@ public:
     }
 
     /// Checks if the interval has already passed.
-    bool isExpired() const { return elapsed<TimerUnit::MILLISECOND>() >= interval; }
+    bool isExpired() const {
+        return elapsed<TimerUnit::MILLISECOND>() >= interval;
+    }
 
-    bool isPeriodic() const { return flags.has(TimerFlags::PERIODIC); }
+    bool isPeriodic() const {
+        return flags.has(TimerFlags::PERIODIC);
+    }
 };
+
+/// Create timer with given interval and callback when time interval is finished. The callback is executed
+/// only once by default, or periodically if PERIODIC flag is passed.
+std::shared_ptr<Timer> makeTimer(const int64_t interval,
+    const std::function<void(void)>& callback,
+    const Flags<TimerFlags> flags = EMPTY_FLAGS);
+
 
 /// Simple extension of Timer allowing to pause and continue timer.
 class StoppableTimer : public Timer {
@@ -110,46 +118,31 @@ public:
 
 class TimerThread : public Noncopyable {
 private:
-    static TimerThread* instance;
+    static std::unique_ptr<TimerThread> instance;
     std::thread thread;
+    std::atomic<bool> closingDown;
 
     struct TimerEntry {
-        NonOwningPtr<Timer> timer;
-        std::function<void(void)> callback;
+        std::weak_ptr<Timer> timer;
+        std::function<void()> callback;
     };
 
     Array<TimerEntry> entries;
-
-    void runLoop();
+    std::mutex mutex;
 
 public:
-    TimerThread() = default;
+    TimerThread();
 
-    ~TimerThread() {
-        if (thread.joinable()) {
-            thread.join();
-        }
-    }
+    ~TimerThread();
 
-    static TimerThread* getInstance() {
-        if (!instance) {
-            instance = new TimerThread();
-        }
-        return instance;
-    }
+    static TimerThread* getInstance();
 
-    /// Starts the timer loop (if it isn't already running)
-    void run() {
-        if (thread.joinable()) {
-            // already running
-            return;
-        }
-        thread = std::thread([this]() { this->runLoop(); });
-    }
+    void registerTimer(const std::shared_ptr<Timer>& timer, const std::function<void(void)>& callback);
 
-    void registerTimer(Timer* timer, const std::function<void(void)>& callback) {
-        entries.push(TimerEntry{ timer, callback });
-    }
+private:
+    void runLoop();
+
+    void removeEntry(TimerEntry& entry);
 };
 
 NAMESPACE_SPH_END

@@ -66,8 +66,7 @@ public:
         return !(*this > value);
     }
 
-    template <typename TStream>
-    friend TStream& operator<<(TStream& stream, const PerElementWrapper& wrapper) {
+    friend std::ostream& operator<<(std::ostream& stream, const PerElementWrapper& wrapper) {
         stream << wrapper.container;
         return stream;
     }

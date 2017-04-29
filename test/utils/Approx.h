@@ -31,26 +31,31 @@ public:
         return almostEqual(lhs, rhs.value, rhs.epsilon);
     }
 
-    INLINE friend bool operator==(const Approx& lhs, const Type& rhs) { return operator==(rhs, lhs); }
+    INLINE friend bool operator==(const Approx& lhs, const Type& rhs) {
+        return operator==(rhs, lhs);
+    }
 
-    INLINE friend bool operator!=(const Type& lhs, const Approx& rhs) { return !operator==(lhs, rhs); }
+    INLINE friend bool operator!=(const Type& lhs, const Approx& rhs) {
+        return !operator==(lhs, rhs);
+    }
 
-    INLINE friend bool operator!=(const Approx& lhs, const Type& rhs) { return !operator==(rhs, lhs); }
+    INLINE friend bool operator!=(const Approx& lhs, const Type& rhs) {
+        return !operator==(rhs, lhs);
+    }
 
     INLINE Approx& setEpsilon(const Float newEps) {
         epsilon = newEps;
         return *this;
     }
 
-    template <typename TStream>
-    friend TStream& operator<<(TStream& stream, const Approx& approx) {
+    friend std::ostream& operator<<(std::ostream& stream, const Approx& approx) {
         stream << "~" << approx.value << " (eps = " << approx.epsilon << ")";
         return stream;
     }
 };
 
 /// We have to wait till c++17 for type deduction in constructors ...
-template<typename Type>
+template <typename Type>
 Approx<Type> approx(const Type& value, const Float eps = EPS) {
     return Approx<Type>(value).setEpsilon(eps);
 }

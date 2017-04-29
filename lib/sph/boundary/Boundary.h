@@ -8,16 +8,20 @@
 #include "geometry/Vector.h"
 #include "objects/containers/Array.h"
 #include "objects/wrappers/Range.h"
+#include "solvers/EquationTerm.h"
 #include <memory>
 #include <set>
 
 NAMESPACE_SPH_BEGIN
 
 namespace Abstract {
-    class BoundaryConditions : public Polymorphic {
+    /// Base object for boundary conditions; all boundary conditions are essentially equation terms, but they
+    /// do not create any quantities nor they compute derivatives.
+    class BoundaryConditions : public EquationTerm {
     public:
-        /// Applies boundary conditions on particles. Called every step after derivatives are computed.
-        virtual void apply(Storage& storage) = 0;
+        virtual void setDerivatives(DerivativeHolder&) override {}
+
+        virtual void create(Storage&, Abstract::Material&) const override {}
     };
 }
 
@@ -41,7 +45,9 @@ public:
     /// \todo we hold indices into the storage we get from parameter. There is no guarantee the storage is the
     /// same each time and that it wasn't changed. Think of a better way of doing this, possibly by creating
     /// helper quantity (index of source particle for ghosts and something like -1 for regular particles.
-    virtual void apply(Storage& storage) override;
+    virtual void initialize(Storage& storage) override;
+
+    virtual void finalize(Storage& UNUSED(storage)) override {}
 
     /// Removes all ghost particles from the storage. This does not have to be called before apply, ghosts are
     /// removed and added automatically.
@@ -82,7 +88,9 @@ public:
     /// Remove a body from the list of frozen bodies. If the body is not on the list, nothing happens.
     void thaw(const Size flag);
 
-    virtual void apply(Storage& storage) override;
+    virtual void initialize(Storage& UNUSED(storage)) override {}
+
+    virtual void finalize(Storage& storage) override;
 };
 
 
@@ -93,7 +101,9 @@ class WindTunnel : public FrozenParticles {
 public:
     WindTunnel(std::unique_ptr<Abstract::Domain>&& domain, const Float radius);
 
-    virtual void apply(Storage& storage) override;
+    virtual void initialize(Storage& UNUSED(storage)) override {}
+
+    virtual void finalize(Storage& storage) override;
 };
 
 /// Boundary condition moving all particles passed through the domain to the other side of the domain.
@@ -112,7 +122,9 @@ public:
     /// Constructs using range as 1D domain
     Projection1D(const Range& domain);
 
-    virtual void apply(Storage& storage) override;
+    virtual void initialize(Storage& UNUSED(storage)) override {}
+
+    virtual void finalize(Storage& storage) override;
 };
 
 

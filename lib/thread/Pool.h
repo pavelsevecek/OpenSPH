@@ -37,7 +37,8 @@ public:
             while (!stop) {
                 Optional<Task> task = getNextTask();
                 if (task) {
-                    task.get()();
+                    task.value()();
+                    std::unique_lock<std::mutex> lock(waitMutex);
                     --tasksLeft;
                 }
                 waitVar.notify_one();

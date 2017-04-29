@@ -1,7 +1,7 @@
 #pragma once
 
-#include "objects/wrappers/Outcome.h"
 #include "common/Globals.h"
+#include "objects/wrappers/Outcome.h"
 
 /// Pavel Sevecek 2017
 /// sevecek at sirrah.troja.mff.cuni.cz
@@ -34,8 +34,7 @@ public:
         return true;
     }
 
-    template <typename TStream>
-    friend TStream& operator<<(TStream& stream, const SequenceTest& sequence) {
+    friend std::ostream& operator<<(std::ostream& stream, const SequenceTest& sequence) {
         if (sequence.result) {
             stream << "All tests in sequence passed" << std::endl;
             return stream;
@@ -45,14 +44,15 @@ public:
         return stream;
     }
 
-    const Outcome& outcome() const { return result; }
+    const Outcome& outcome() const {
+        return result;
+    }
 };
 
 
 /// We have to return and compare custom types; if we returned true or false, Catch wouldn't print our report.
 struct SequenceSuccessful {
-    template <typename TStream>
-    friend TStream& operator<<(TStream& stream, const SequenceSuccessful&) {
+    friend std::ostream& operator<<(std::ostream& stream, const SequenceSuccessful&) {
         stream << "Sequence Test:";
         return stream;
     }

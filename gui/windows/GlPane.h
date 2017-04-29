@@ -31,7 +31,7 @@ public:
         Array<Size>& is) const;
 };
 
-class CustomGlPane : public wxGLCanvas, public Abstract::Renderer {
+/*class CustomGlPane : public wxGLCanvas, public Abstract::Renderer {
 private:
     std::unique_ptr<wxGLContext> context;
     float rotate = 0.f;
@@ -80,6 +80,6 @@ public:
         Array<Vector>& vertices,
         Array<Vector>& normals,
         Array<int>& indices);
-};
+};*/
 
 NAMESPACE_SPH_END

@@ -168,6 +168,61 @@ void testGyroscopicMotion(TArgs&&... args) {
     REQUIRE_SEQUENCE(test, 0, testCnt);
 }
 
+struct ClampSolver : public Abstract::Solver {
+    enum class Direction { INCREASING, DECREASING } direction;
+    Range range;
+
+    ClampSolver(const Direction direction, const Range range)
+        : direction(direction)
+        , range(range) {}
+
+    virtual void integrate(Storage& storage, Statistics&) override {
+        ArrayView<Float> u, du;
+        tie(u, du) = storage.getAll<Float>(QuantityId::ENERGY);
+        for (Size i = 0; i < du.size(); ++i) {
+            if (direction == Direction::INCREASING) {
+                du[i] = 1._f;
+            } else {
+                du[i] = -1._f;
+            }
+            // check that energy never goes out of allowed range
+            REQUIRE(range.contains(u[i]));
+        }
+    }
+
+    virtual void create(Storage&, Abstract::Material&) const override {
+        NOT_IMPLEMENTED;
+    }
+};
+
+template <typename TTimestepping>
+void testClamping() {
+    std::shared_ptr<Storage> storage = std::make_shared<Storage>(getDefaultMaterial());
+    storage->insert<Vector>(
+        QuantityId::POSITIONS, OrderEnum::SECOND, Array<Vector>{ Vector(1._f, 0._f, 0._f) });
+    storage->insert<Float>(QuantityId::ENERGY, OrderEnum::FIRST, 5._f);
+    const Range range(3._f, 7._f);
+    storage->getMaterial(0)->range(QuantityId::ENERGY) = range;
+
+    RunSettings settings;
+    settings.set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 1._f);
+    settings.set(RunSettingsId::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::NONE);
+    TTimestepping timestepping(storage, settings);
+    Statistics stats;
+    ClampSolver solver1(ClampSolver::Direction::INCREASING, range);
+    for (Size i = 0; i < 6; ++i) {
+        timestepping.step(solver1, stats);
+    }
+    ArrayView<const Float> u = storage->getValue<Float>(QuantityId::ENERGY);
+    ASSERT(u[0] == range.upper());
+
+    ClampSolver solver2(ClampSolver::Direction::DECREASING, range);
+    for (Size i = 0; i < 6; ++i) {
+        timestepping.step(solver2, stats);
+    }
+    ASSERT(u[0] == range.lower());
+}
+
 TEST_CASE("EulerExplicit", "[timestepping]") {
     RunSettings settings;
     settings.set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, timeStep);
@@ -175,6 +230,7 @@ TEST_CASE("EulerExplicit", "[timestepping]") {
     testHomogeneousField<EulerExplicit>(settings);
     testHarmonicOscillator<EulerExplicit>(settings);
     testGyroscopicMotion<EulerExplicit>(settings);
+    testClamping<EulerExplicit>();
 }
 
 TEST_CASE("PredictorCorrector", "[timestepping]") {
@@ -184,6 +240,7 @@ TEST_CASE("PredictorCorrector", "[timestepping]") {
     testHomogeneousField<PredictorCorrector>(settings);
     testHarmonicOscillator<PredictorCorrector>(settings);
     testGyroscopicMotion<PredictorCorrector>(settings);
+    testClamping<PredictorCorrector>();
 }
 
 /// \todo test timestepping of other quantities (first order and sanity check that zero-order quantities

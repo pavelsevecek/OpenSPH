@@ -6,7 +6,6 @@
 
 #include "common/Globals.h"
 #include "math/Math.h"
-#include "objects/Object.h"
 #include <string>
 
 NAMESPACE_SPH_BEGIN
@@ -19,7 +18,7 @@ enum class JulianDateFormat {
 };
 
 /// Helper class for transforming Julian date to calendar date
-class DateFormat  {
+class DateFormat {
 private:
     Float time;
     std::string outputFormat;

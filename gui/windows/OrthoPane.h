@@ -2,59 +2,68 @@
 
 #include "gui/Renderer.h"
 #include "gui/Settings.h"
+#include "gui/objects/Bitmap.h"
 #include "gui/objects/Palette.h"
 #include "gui/objects/Point.h"
 #include "objects/containers/ArrayView.h"
 #include "objects/containers/BufferedArray.h"
 
+#include <mutex>
 #include <wx/panel.h>
-#include <wx/timer.h>
 #include <wx/wx.h>
 
-#include <mutex>
+class wxTimer;
 
 NAMESPACE_SPH_BEGIN
 
 class Storage;
+class Controller;
+
 namespace Abstract {
     class Camera;
     class Element;
 }
 
-class OrthoPane : public wxPanel, public Abstract::Renderer {
+
+class OrthoRenderer : public Abstract::Renderer {
+public:
+    /// Can only be called from main thread
+    virtual Bitmap render(const Storage& storage,
+        Abstract::Element& element,
+        const RenderParams& params,
+        Statistics& stats) const override;
+
 private:
-    std::shared_ptr<Storage> storage;
+    void drawPalette(wxDC& dc, const Palette& palette) const;
+};
 
-    struct Particle {
-        Vector position;
-        Color color;
-    };
-    BufferedArray<Particle> particles;
-    QuantityId quantity = QuantityId::POSITIONS;
-    bool particlesUpdated = false;
+class OrthoPane : public wxPanel {
+private:
+    Controller* model;
 
-    std::unique_ptr<Abstract::Camera> camera;
-    std::unique_ptr<Abstract::Element> element;
-    GuiSettings settings;
-    Point lastMousePosition;
-    wxTimer* refreshTimer;
-    wxBitmap bitmap;
-    float time = 0.f;
+    /// Cached mouse position when dragging the window
+    struct {
+        Point position;
+    } dragging;
 
-    std::mutex mutex;
+    /// Timer for refreshing window
+    std::unique_ptr<wxTimer> refreshTimer;
+
+    /// Current camera of the view. The object is shared with parent model.
+    std::shared_ptr<Abstract::Camera> camera;
 
 public:
-    OrthoPane(wxWindow* parent, const std::shared_ptr<Storage>& storage, const GuiSettings& settings);
+    OrthoPane(wxWindow* parent, Controller* model);
 
     ~OrthoPane();
 
-    virtual void draw(const std::shared_ptr<Storage>& storage, const Statistics& stats) override;
-
-    virtual Bitmap getRender() const override;
-
-    virtual void setQuantity(const QuantityId key) override;
+    /// Changes displayed element. Must be executed from the main thread
+    void setElement(std::unique_ptr<Abstract::Element>&& newElement);
 
 private:
+    void requestUpdate();
+
+    /// wx event handlers
     void onPaint(wxPaintEvent& evt);
 
     void onMouseMotion(wxMouseEvent& evt);
@@ -62,10 +71,6 @@ private:
     void onMouseWheel(wxMouseEvent& evt);
 
     void onTimer(wxTimerEvent& evt);
-
-    void drawPalette(wxDC& dc);
-
-    void update();
 };
 
 NAMESPACE_SPH_END

@@ -4,6 +4,7 @@
 /// Pavel Sevecek 2017
 /// sevecek at sirrah.troja.mff.cuni.cz
 
+#include "common/Assert.h"
 #include "objects/Object.h"
 #include <wx/bitmap.h>
 
@@ -14,11 +15,23 @@ private:
     wxBitmap impl;
 
 public:
+    Bitmap() = default;
+
     Bitmap(const wxBitmap& bitmap)
         : impl(bitmap) {}
 
+    operator wxBitmap&() {
+        ASSERT(impl.IsOk());
+        return impl;
+    }
+
     void saveToFile(const std::string& path) const {
-        impl.SaveFile(path, wxBITMAP_TYPE_PNG);
+        ASSERT(impl.IsOk());
+        impl.SaveFile(path.c_str(), wxBITMAP_TYPE_PNG);
+    }
+
+    bool isOk() const {
+        return impl.IsOk();
     }
 };
 

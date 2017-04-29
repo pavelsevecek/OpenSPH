@@ -8,6 +8,28 @@
 
 NAMESPACE_SPH_BEGIN
 
+std::ostream& operator<<(std::ostream& stream, const CriterionId id) {
+    switch (id) {
+    case CriterionId::CFL_CONDITION:
+        stream << "CFL condition";
+        break;
+    case CriterionId::ACCELERATION:
+        stream << "Acceleration";
+        break;
+    case CriterionId::DERIVATIVE:
+        stream << "Derivative";
+        break;
+    case CriterionId::MAXIMAL_VALUE:
+        stream << "Maximal value";
+        break;
+    case CriterionId::INITIAL_VALUE:
+        stream << "Default value";
+        break;
+    default:
+        NOT_IMPLEMENTED;
+    }
+    return stream;
+}
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// DerivativeCriterion implementation
@@ -149,8 +171,8 @@ Tuple<Float, CriterionId> CourantCriterion::compute(Storage& storage,
 
 MultiCriterion::MultiCriterion(const RunSettings& settings)
     : criteria(EMPTY_ARRAY) {
-    const Flags<TimeStepCriterionEnum> flags{ TimeStepCriterionEnum(
-        settings.get<int>(RunSettingsId::TIMESTEPPING_CRITERION)) };
+    const Flags<TimeStepCriterionEnum> flags =
+        Flags<TimeStepCriterionEnum>::fromValue(settings.get<int>(RunSettingsId::TIMESTEPPING_CRITERION));
     if (flags.has(TimeStepCriterionEnum::COURANT)) {
         criteria.push(std::make_unique<CourantCriterion>(settings));
     }
@@ -174,7 +196,7 @@ Tuple<Float, CriterionId> MultiCriterion::compute(Storage& storage,
         /// \todo proper copying of optional reference
         Optional<Statistics&> statsClone;
         if (stats) {
-            statsClone.emplace(stats.get());
+            statsClone.emplace(stats.value());
         }
         tieToTuple(step, id) = crit->compute(storage, maxStep, std::move(statsClone));
         if (step < minStep) {

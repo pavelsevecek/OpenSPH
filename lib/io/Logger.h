@@ -5,13 +5,11 @@
 /// sevecek at sirrah.troja.mff.cuni.cz
 
 #include "common/Globals.h"
+#include "objects/containers/Array.h"
 #include "objects/wrappers/Flags.h"
-#include <fstream>
 #include <iomanip>
 #include <memory>
-#include <set>
 #include <sstream>
-#include <string>
 
 NAMESPACE_SPH_BEGIN
 
@@ -74,7 +72,7 @@ public:
     };
 
 private:
-    std::ofstream stream;
+    std::unique_ptr<std::ofstream> stream;
     std::string path;
     Flags<Options> flags;
 
@@ -89,7 +87,7 @@ public:
 /// Class holding multiple loggers and writing messages to all of them. The objects is the owner of loggers.
 class MultiLogger : public Abstract::Logger {
 private:
-    std::set<std::unique_ptr<Abstract::Logger>> loggers;
+    Array<std::unique_ptr<Abstract::Logger>> loggers;
 
 public:
     int getLoggerCnt() const {
@@ -97,7 +95,7 @@ public:
     }
 
     void add(std::unique_ptr<Abstract::Logger>&& logger) {
-        loggers.insert(std::move(logger));
+        loggers.push(std::move(logger));
     }
 
     virtual void writeString(const std::string& s) override {

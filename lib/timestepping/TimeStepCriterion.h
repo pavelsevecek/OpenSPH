@@ -15,31 +15,7 @@ enum class CriterionId {
     ACCELERATION   ///< Timestep constrained by acceleration condition
 };
 
-/// \todo remove CriterionId, instead use CriterionId::DERIVATIVE and save relevant quantity to
-/// Statistics
-template <typename TStream>
-TStream& operator<<(TStream& stream, const CriterionId id) {
-    switch (id) {
-    case CriterionId::CFL_CONDITION:
-        stream << "CFL condition";
-        break;
-    case CriterionId::ACCELERATION:
-        stream << "Acceleration";
-        break;
-    case CriterionId::DERIVATIVE:
-        stream << "Derivative";
-        break;
-    case CriterionId::MAXIMAL_VALUE:
-        stream << "Maximal value";
-        break;
-    case CriterionId::INITIAL_VALUE:
-        stream << "Default value";
-        break;
-    default:
-        NOT_IMPLEMENTED;
-    }
-    return stream;
-}
+std::ostream& operator<<(std::ostream& stream, const CriterionId id);
 
 namespace Abstract {
 

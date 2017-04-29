@@ -9,15 +9,18 @@ TEST_CASE("Flags constructor", "[flags]") {
     Flags<Enum> flags;
     flags.set(OPT1);
     REQUIRE(flags.has(OPT1));
-    REQUIRE(!flags.has(OPT2));
-    REQUIRE(!flags.has(OPT3));
+    REQUIRE_FALSE(flags.has(OPT2));
+    REQUIRE_FALSE(flags.has(OPT3));
 
     REQUIRE(flags.hasAny(OPT1, OPT2, OPT3));
+    REQUIRE_FALSE(flags.hasAll(OPT1, OPT2, OPT3));
 
     flags.set(OPT3);
     REQUIRE(flags.has(OPT1));
-    REQUIRE(!flags.has(OPT2));
+    REQUIRE_FALSE(flags.has(OPT2));
     REQUIRE(flags.has(OPT3));
+    REQUIRE_FALSE(flags.hasAll(OPT1, OPT2, OPT3));
+    REQUIRE(flags.hasAll(OPT1, OPT3));
 
     flags.unset(OPT1);
     REQUIRE(!flags.has(OPT1));

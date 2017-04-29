@@ -111,7 +111,7 @@ Vector CenterOfMass::evaluate(Storage& storage) const {
     if (bodyId) {
         ArrayView<const Size> ids = storage.getValue<Size>(QuantityId::FLAG);
         for (Size i = 0; i < r.size(); ++i) {
-            if (ids[i] == bodyId.get()) {
+            if (ids[i] == bodyId.value()) {
                 accumulate(i);
             }
         }
@@ -138,7 +138,7 @@ Means QuantityMeans::evaluate(Storage& storage) const {
         if (bodyId) {
             ArrayView<const Size> ids = storage.getValue<Size>(QuantityId::FLAG);
             for (Size i = 0; i < size; ++i) {
-                if (ids[i] == bodyId.get()) {
+                if (ids[i] == bodyId.value()) {
                     means.accumulate(getter(i));
                 }
             }

@@ -38,15 +38,15 @@ public:
     /// checked by assert.
     Type& get() {
         const Optional<Size> idx = pool.getThreadIdx();
-        ASSERT(idx && idx.get() < values.size());
-        return values[idx.get()].get();
+        ASSERT(idx && idx.value() < values.size());
+        return values[idx.value()].get();
     }
 
     /// Return a value for current thread, const version.
     const Type& get() const {
         const Optional<Size> idx = pool.getThreadIdx();
-        ASSERT(idx && idx.get() < values.size());
-        return values[idx.get()].get();
+        ASSERT(idx && idx.value() < values.size());
+        return values[idx.value()].get();
     }
 
     /// Enumerate all thread-local storages and pass them into the argument of given functor.

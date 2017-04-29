@@ -1,10 +1,9 @@
 #pragma once
 
+#include "gui/Controller.h"
 #include "gui/Gui.h"
 #include "gui/Renderer.h"
 #include "gui/objects/Movie.h"
-#include "gui/windows/Window.h"
-#include "objects/wrappers/NonOwningPtr.h"
 #include "system/Callbacks.h"
 #include "system/Statistics.h"
 
@@ -12,36 +11,25 @@ NAMESPACE_SPH_BEGIN
 
 class GuiCallbacks : public Abstract::Callbacks {
 private:
-    NonOwningPtr<Window> window;
-    Movie movie;
+    Controller* model;
 
 public:
-    GuiCallbacks(NonOwningPtr<Window> window, const GuiSettings& gui)
-        : window(window)
-        , movie(gui, window->getRenderer()) {}
+    GuiCallbacks(Controller* model)
+        : model(model) {}
 
-    virtual void onTimeStep(const std::shared_ptr<Storage>& storage,
-        const Statistics& stats,
-        const Range timeRange) override {
-        /// \todo limit refreshing to some reasonable frame rate?
-        if (window) {
-            executeOnMainThread([this, storage, stats, timeRange] {
-                const float t = stats.get<Float>(StatisticsId::TOTAL_TIME);
-                float progress = (t - timeRange.lower()) / timeRange.size();
-                window->setProgress(progress);
-                Abstract::Renderer* renderer = window->getRenderer();
-                renderer->draw(storage, stats);
-                movie.onTimeStep(t);
-            });
-        }
+    virtual void onTimeStep(const std::shared_ptr<Storage>& storage, Statistics& stats) override {
+        model->onTimeStep(storage, stats);
     }
 
-    virtual void onRunEnd(const std::shared_ptr<Storage>& UNUSED(storage), const Statistics& stats) override {
+    virtual void onRunStart(const std::shared_ptr<Storage>& UNUSED(storage),
+        Statistics& UNUSED(stats)) override {}
+
+    virtual void onRunEnd(const std::shared_ptr<Storage>& UNUSED(storage), Statistics& stats) override {
         stats.get<Float>(StatisticsId::TOTAL_TIME);
     }
 
     virtual bool shouldAbortRun() const override {
-        return window->shouldAbortRun();
+        return model->shouldAbortRun();
     }
 };
 

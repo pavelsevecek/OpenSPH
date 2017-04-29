@@ -40,8 +40,7 @@ public:
         return storage.get<T>();
     }
 
-    template <typename TStream>
-    friend TStream& operator<<(TStream& stream, const Value& value) {
+    friend std::ostream& operator<<(std::ostream& stream, const Value& value) {
         forValue(value.storage, [&stream](const auto& v) { stream << std::setw(20) << v; });
         return stream;
     }

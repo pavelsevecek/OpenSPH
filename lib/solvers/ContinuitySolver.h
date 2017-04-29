@@ -20,17 +20,16 @@ private:
     EquationHolder getEquations(const RunSettings& settings) {
         EquationHolder equations;
         /// \todo test that all possible combination (pressure, stress, AV, ...) work and dont assert
-        if (settings.get<bool>(RunSettingsId::MODEL_FORCE_GRAD_P)) {
-            equations.solve(QuantityId::POSITIONS, QuantityId::ENERGY) += makeTerm<PressureForce>();
+        if (settings.get<bool>(RunSettingsId::MODEL_FORCE_PRESSURE_GRADIENT)) {
+            equations += makeTerm<PressureForce>();
         }
-        if (settings.get<bool>(RunSettingsId::MODEL_FORCE_DIV_S)) {
-            equations.solve(QuantityId::POSITIONS, QuantityId::ENERGY) +=
-                makeTerm<SolidStressForce>(settings);
+        if (settings.get<bool>(RunSettingsId::MODEL_FORCE_SOLID_STRESS)) {
+            equations += makeTerm<SolidStressForce>(settings);
         }
-        equations.solve(QuantityId::POSITIONS, QuantityId::ENERGY) += makeTerm<StandardAV>(settings);
+        equations += makeTerm<StandardAV>(settings);
 
         // Density evolution - Continuity equation
-        equations.solve(QuantityId::DENSITY) += makeTerm<ContinuityEquation>();
+        equations += makeTerm<ContinuityEquation>();
 
         // Adaptivity of smoothing length
         equations += makeTerm<AdaptiveSmoothingLength>(settings);

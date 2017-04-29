@@ -54,11 +54,6 @@ public:
     }
 
     virtual void integrate(Storage& storage, Statistics& stats) override {
-        ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
-
-        // (re)build neighbour-finding structure
-        finder->build(r);
-
         // initialize all materials (compute pressure, apply yielding and damage, ...)
         for (Size i = 0; i < storage.getMaterialCnt(); ++i) {
             MaterialView material = storage.getMaterial(i);
@@ -69,7 +64,12 @@ public:
         equations.initialize(storage);
 
         // initialize accumulate storages & derivatives
-        this->beforeLoop(storage);
+        this->beforeLoop(storage, stats);
+
+        // (re)build neighbour-finding structure; this needs to be done after all equations
+        // are initialized in case some of them modify smoothing lengths
+        ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
+        finder->build(r);
 
         // main loop over pairs of interacting particles
         auto functor = [this, r](const Size n1, const Size n2, ThreadData& data) {
@@ -118,7 +118,7 @@ public:
     }
 
 protected:
-    virtual void beforeLoop(Storage& storage) {
+    virtual void beforeLoop(Storage& storage, Statistics& UNUSED(stats)) {
         // clear thread local storages
         threadData.forEach([&storage](ThreadData& data) { data.derivatives.initialize(storage); });
     }
@@ -146,10 +146,6 @@ protected:
             neighs.accumulate(neighCnts[i]);
         }
         stats.set(StatisticsId::NEIGHBOUR_COUNT, neighs);
-
-        // Apply boundary conditions
-        /// \todo add boundary equation as equation term
-        boundary->apply(storage);
     }
 };
 

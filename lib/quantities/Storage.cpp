@@ -41,14 +41,14 @@ Storage& Storage::operator=(Storage&& other) {
     return *this;
 }
 
-MaterialView Storage::getMaterial(const Size matId) {
+MaterialView Storage::getMaterial(const Size matId) const {
     ASSERT(this->has(QuantityId::MATERIAL_IDX));
     return MaterialView(materials[matId].get(), this->getValue<Size>(QuantityId::MATERIAL_IDX), matId);
 }
 
-MaterialView Storage::getMaterialOfParticle(const Size particleIdx) {
+MaterialView Storage::getMaterialOfParticle(const Size particleIdx) const {
     ASSERT(this->has(QuantityId::MATERIAL_IDX));
-    ArrayView<Size> matIdxs = this->getValue<Size>(QuantityId::MATERIAL_IDX);
+    ArrayView<const Size> matIdxs = this->getValue<Size>(QuantityId::MATERIAL_IDX);
     return this->getMaterial(matIdxs[particleIdx]);
 }
 

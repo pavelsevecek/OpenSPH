@@ -214,7 +214,8 @@ void iterateWithPositions(Storage& storage, TFunctor&& functor) {
 /// Iterate over given type of quantities in two storage views and executes functor for each pair.
 template <VisitorEnum Type, typename TFunctor>
 void iteratePair(Storage& storage1, Storage& storage2, TFunctor&& functor) {
-    ASSERT(storage1.getQuantityCnt() == storage2.getQuantityCnt());
+    ASSERT(storage1.getQuantityCnt() == storage2.getQuantityCnt(),
+        std::to_string(storage1.getQuantityCnt()) + " != " + std::to_string(storage2.getQuantityCnt()));
     StoragePairVisitor<Type, TFunctor> visitor;
     struct Element {
         StorageElement e1;

@@ -53,8 +53,7 @@ public:
         return weight;
     }
 
-    template <typename TStream>
-    friend TStream& operator<<(TStream& stream, const Means& stats) {
+    friend std::ostream& operator<<(std::ostream& stream, const Means& stats) {
         stream << "average = " << stats.average() << "  (min = " << stats.min() << ", max = " << stats.max()
                << ")";
         return stream;

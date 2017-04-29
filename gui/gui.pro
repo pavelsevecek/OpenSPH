@@ -37,10 +37,14 @@ SOURCES += \
     Gui.cpp \
     windows/GlPane.cpp \
     windows/OrthoPane.cpp \
-    windows/Window.cpp \
     Settings.cpp \
     MainLoop.cpp \
-    problems/Collision.cpp
+    problems/Collision.cpp \
+    Controller.cpp \
+    windows/MainWindow.cpp \
+    objects/Factory.cpp \
+    objects/Palette.cpp \
+    objects/Movie.cpp
 
 HEADERS += \
     Gui.h \
@@ -48,7 +52,6 @@ HEADERS += \
     windows/GlPane.h \
     Common.h \
     Renderer.h \
-    windows/Window.h \
     Settings.h \
     objects/Palette.h \
     objects/Color.h \
@@ -62,4 +65,6 @@ HEADERS += \
     objects/Movie.h \
     objects/Bitmap.h \
     MainLoop.h \
-    problems/GuiRun.h
+    windows/MainWindow.h \
+    objects/LockedPtr.h \
+    Controller.h

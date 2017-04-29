@@ -31,8 +31,8 @@ std::string DateFormat::get() const {
     daySystem.time          = (1._days).value();*/
 
     const Float timeInDays = time / (60. * 60. * 24.) + 0.5_f;
-    const Float remainder  = timeInDays - floor(timeInDays); // + T(0.5);
-    const int J            = int(timeInDays);
+    const Float remainder = timeInDays - floor(timeInDays); // + T(0.5);
+    const int J = int(timeInDays);
 
     const int f = J + j + (((4 * J + B) / 146097) * 3) / 4 + C;
     const int e = r * f + v;
@@ -69,7 +69,7 @@ std::string DateFormat::get() const {
                 ss << int(remainder * 24 * 60 * 60) % 60;
                 break;
             }
-            output.append(ss.str());
+            output += ss.str();
         } else {
             output += *c;
         }

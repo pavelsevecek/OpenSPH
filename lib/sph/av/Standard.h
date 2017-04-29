@@ -94,10 +94,7 @@ public:
 
     virtual void finalize(Storage& UNUSED(storage)) override {}
 
-    virtual void create(Storage& UNUSED_IN_RELEASE(storage),
-        Abstract::Material& UNUSED(material)) const override {
-        ASSERT(storage.has(QuantityId::SOUND_SPEED)); // doesn't make sense to use AV without pressure
-    }
+    virtual void create(Storage& UNUSED(storage), Abstract::Material& UNUSED(material)) const override {}
 };
 
 

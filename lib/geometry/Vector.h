@@ -12,7 +12,6 @@
 #include <iomanip>
 #include <smmintrin.h>
 
-
 NAMESPACE_SPH_BEGIN
 
 /// Components of the 4D vector. First 3 are simply cartesian coordinates,
@@ -183,8 +182,7 @@ public:
         return !(v1 == v2);
     }
 
-    template <typename TStream>
-    friend TStream& operator<<(TStream& stream, const BasicVector& v) {
+    friend std::ostream& operator<<(std::ostream& stream, const BasicVector& v) {
         constexpr int digits = 6;
         stream << std::setprecision(digits);
         for (int i = 0; i < 3; ++i) {
@@ -353,8 +351,7 @@ public:
         return BasicVector(_mm256_max_pd(data, other.data));
     }
 
-    template <typename TStream>
-    friend TStream& operator<<(TStream& stream, const BasicVector& v) {
+    friend std::ostream& operator<<(std::ostream& stream, const BasicVector& v) {
         constexpr int digits = 12;
         for (int i = 0; i < 3; ++i) {
             stream << std::setprecision(digits) << v[i];
@@ -519,8 +516,7 @@ public:
     }
 
     /// Output to stream
-    template <typename TStream>
-    friend TStream& operator<<(TStream& stream, const BasicVector& v) {
+    friend std::ostream& operator<<(std::ostream& stream, const BasicVector& v) {
         constexpr int digits = 12;
         stream << std::setprecision(digits);
         for (int i = 0; i < 3; ++i) {

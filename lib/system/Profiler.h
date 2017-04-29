@@ -8,7 +8,7 @@ NAMESPACE_SPH_BEGIN
 
 
 /// Timer that reports the measured duration when being destroyed
-struct ScopedTimer  {
+struct ScopedTimer {
 private:
     StoppableTimer impl;
     std::string name;
@@ -21,11 +21,17 @@ public:
         : name(name)
         , callback(callback) {}
 
-    ~ScopedTimer() { callback(name, impl.elapsed<TimerUnit::MICROSECOND>()); }
+    ~ScopedTimer() {
+        callback(name, impl.elapsed<TimerUnit::MICROSECOND>());
+    }
 
-    void stop() { impl.stop(); }
+    void stop() {
+        impl.stop();
+    }
 
-    void resume() { impl.resume(); }
+    void resume() {
+        impl.resume();
+    }
 
     void next(const std::string& newName) {
         callback(name, impl.elapsed<TimerUnit::MICROSECOND>());
@@ -35,9 +41,9 @@ public:
 };
 
 #define MEASURE_SCOPE(name)
-    /*ScopedTimer __timer("", [](const std::string&, const uint64_t time) {
-        std::cout << name << " took " << time / 1000 << " ms" << std::endl;
-    });*/
+/*ScopedTimer __timer("", [](const std::string&, const uint64_t time) {
+    std::cout << name << " took " << time / 1000 << " ms" << std::endl;
+});*/
 
 
 struct ScopeStatistics {
@@ -73,9 +79,8 @@ public:
     /// Creates a new scoped timer of given name. The timer will automatically adds elapsed time to the
     /// profile when being destroyed.
     ScopedTimer makeScopedTimer(const std::string& name) {
-        return ScopedTimer(name, [this](const std::string& n, const uint64_t elapsed) {
-            map[n].time += elapsed;
-        });
+        return ScopedTimer(
+            name, [this](const std::string& n, const uint64_t elapsed) { map[n].time += elapsed; });
     }
 
     /// Returns the array of scope statistics, sorted by elapsed time.
@@ -85,7 +90,9 @@ public:
     void printStatistics(Abstract::Logger& logger) const;
 
     /// Clears all records, mainly for testing purposes
-    void clear() { map.clear(); }
+    void clear() {
+        map.clear();
+    }
 };
 
 #ifdef PROFILE

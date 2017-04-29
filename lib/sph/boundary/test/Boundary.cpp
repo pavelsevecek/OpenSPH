@@ -46,7 +46,7 @@ public:
 
     virtual void project(ArrayView<Vector> vs, Optional<ArrayView<Size>> indices = NOTHING) const override {
         if (indices) {
-            for (Size i : indices.get()) {
+            for (Size i : indices.value()) {
                 vs[i][X] = max(0._f, vs[i][X]);
             }
         } else {
@@ -100,7 +100,7 @@ TEST_CASE("GhostParticles wall", "[boundary]") {
     storage.insert<Float>(
         QuantityId::DENSITY, OrderEnum::FIRST, Array<Float>{ 3._f, 5._f, 2._f, 1._f, 3._f, 4._f, 10._f });
 
-    boundaryConditions.apply(storage);
+    boundaryConditions.initialize(storage);
     tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
     REQUIRE(makeArray(r.size(), v.size(), dv.size()) == makeArray(12u, 12u, 12u));
     REQUIRE(r[7] == Vector(-1.5_f, 1._f, 3._f));
@@ -121,7 +121,7 @@ TEST_CASE("GhostParticles wall", "[boundary]") {
     REQUIRE(rho[11] == 4._f);
 
     // subsequent calls shouldn't change result
-    boundaryConditions.apply(storage);
+    boundaryConditions.initialize(storage);
     tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
     REQUIRE(makeArray(r.size(), v.size(), dv.size()) == makeArray(12u, 12u, 12u));
     REQUIRE(r[7] == Vector(-1.5_f, 1._f, 3._f));
@@ -152,7 +152,7 @@ TEST_CASE("GhostParticles Sphere", "[boundary]") {
     const Size ghostIdx = r.size();
     GhostParticles boundaryConditions(
         std::make_unique<SphericalDomain>(Vector(0._f), 2._f), RunSettings::getDefaults());
-    boundaryConditions.apply(storage);
+    boundaryConditions.initialize(storage);
     tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
     REQUIRE(r.size() == 2 * ghostIdx); // ghost for each particle
 
@@ -203,7 +203,7 @@ TEST_CASE("GhostParticles Sphere Projection", "[boundary]") {
     const Size halfSize = ghostIdx >> 1;
     GhostParticles boundaryConditions(
         std::make_unique<SphericalDomain>(Vector(0._f), 2._f), RunSettings::getDefaults());
-    boundaryConditions.apply(storage);
+    boundaryConditions.initialize(storage);
     r = storage.getValue<Vector>(QuantityId::POSITIONS);
     REQUIRE(r.size() == halfSize * 3); // only layer with r=1.9 creates ghost particles
 
@@ -229,7 +229,7 @@ TEST_CASE("GhostParticles empty", "[boundary]") {
     storage.insert<Vector>(QuantityId::POSITIONS, OrderEnum::SECOND, std::move(particles));
     GhostParticles boundaryConditions(
         std::make_unique<SphericalDomain>(Vector(0._f), 2._f), RunSettings::getDefaults());
-    boundaryConditions.apply(storage);
+    boundaryConditions.initialize(storage);
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
     REQUIRE(r.size() == 1);
     REQUIRE(r[0] == Vector(1._f, 0._f, 0._f));
@@ -263,7 +263,7 @@ TEST_CASE("FrozenParticles by flag", "[boundary]") {
     setup();
     FrozenParticles boundaryConditions;
     boundaryConditions.freeze(1);
-    boundaryConditions.apply(storage);
+    boundaryConditions.finalize(storage);
 
     auto test1 = [&](const Size i) {
         if (i < size0 && (v[i] != v0 || dv[i] != dv0 || du[i] != du0)) {
@@ -288,7 +288,7 @@ TEST_CASE("FrozenParticles by flag", "[boundary]") {
 
     boundaryConditions.freeze(0);
     setup();
-    boundaryConditions.apply(storage);
+    boundaryConditions.finalize(storage);
     auto test2 = [&](const Size i) {
         if (v[i] != v0 || dv[i] != Vector(0._f) || du[i] != 0._f) {
             // clang-format off
@@ -304,7 +304,7 @@ TEST_CASE("FrozenParticles by flag", "[boundary]") {
 
     boundaryConditions.thaw(1);
     setup();
-    boundaryConditions.apply(storage);
+    boundaryConditions.finalize(storage);
     auto test3 = [&](const Size i) {
         if (i >= size0 && (v[i] != v0 || dv[i] != dv0 || du[i] != du0)) {
             // clang-format off
@@ -351,7 +351,7 @@ TEST_CASE("FrozenParticles by distance", "[boundary]") {
         du[i] = du0;
     }
 
-    boundaryConditions.apply(storage);
+    boundaryConditions.finalize(storage);
     REQUIRE(storage.getParticleCnt() == r.size()); // sanity check that we don't add or lose particles
 
     auto test = [&](const Size i) {

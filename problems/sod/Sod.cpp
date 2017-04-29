@@ -3,7 +3,6 @@
 #include "io/Output.h"
 #include "physics/Eos.h"
 #include "physics/Rheology.h"
-#include "physics/Rheology.h"
 #include "run/Run.h"
 #include "solvers/ContinuitySolver.h"
 #include "solvers/DensityIndependentSolver.h"
@@ -66,12 +65,11 @@ public:
             .set(RunSettingsId::TIMESTEPPING_COURANT, 0.5_f)
             .set(RunSettingsId::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::COURANT)
             .set(RunSettingsId::SOLVER_TYPE, SolverEnum::CONTINUITY_SOLVER)
-            .set(RunSettingsId::MODEL_FORCE_GRAD_P, true)
-            .set(RunSettingsId::MODEL_FORCE_DIV_S, false);
+            .set(RunSettingsId::MODEL_FORCE_PRESSURE_GRADIENT, true)
+            .set(RunSettingsId::MODEL_FORCE_SOLID_STRESS, false);
     }
 
-private:
-    virtual void setUp() override {
+    virtual std::shared_ptr<Storage> setUp() override {
         // Number of SPH particles
         const int N = 400;
         // Material properties
@@ -153,13 +151,15 @@ private:
                 e[i] = m[i] * u[i];
             }
         }
+        return storage;
     }
 
-
+protected:
     virtual void tearDown() override {}
 };
 
 TEST_CASE("Sod", "[sod]") {
     Run run;
+    run.setUp();
     run.run();
 }

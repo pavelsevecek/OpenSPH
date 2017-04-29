@@ -370,11 +370,13 @@ enum class RunSettingsId {
     SPH_SMOOTHING_LENGTH_MIN,
 
     /// Use force from pressure gradient in the model
-    MODEL_FORCE_GRAD_P,
+    MODEL_FORCE_PRESSURE_GRADIENT,
 
     /// Use force from stress divergence in the model (must be used together with MODEL_FORCE_GRAD_P). Stress
     /// tensor is then evolved in time using Hooke's equation.
-    MODEL_FORCE_DIV_S,
+    MODEL_FORCE_SOLID_STRESS,
+
+    MODEL_FORCE_NAVIER_STOKES,
 
     /// Use centripetal force given by angular frequency of the coordinate frame in the model
     MODEL_FORCE_CENTRIPETAL,
@@ -394,6 +396,14 @@ enum class RunSettingsId {
 
     /// Number of spatial dimensions of the problem.
     SOLVER_DIMENSIONS,
+
+    /// Maximum number of iterations for self-consistent density computation of summation solver.
+    SUMMATION_MAX_ITERATIONS,
+
+    /// Target relative difference of density in successive iterations. Density computation in summation
+    /// solver is ended when the density changes by less than the delta or the iteration number exceeds
+    /// SOLVER_SUMMATION_MAX_ITERATIONS.
+    SUMMATION_DENSITY_DELTA,
 
     /// Selected timestepping integrator
     TIMESTEPPING_INTEGRATOR,

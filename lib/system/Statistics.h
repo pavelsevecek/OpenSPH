@@ -70,8 +70,12 @@ enum class StatisticsId {
     /// Current number of output, indexed from 0
     INDEX,
 
-    /// Current time of the simulation
+    /// Current time of the simulation in code units. Does not necessarily have to be 0 when run starts.
     TOTAL_TIME,
+
+    /// Progress of the run, always 0 <= progress <= 1, where 0 is the start of the run and 1 is the end of
+    /// the run.
+    RELATIVE_PROGRESS,
 
     /// Current value of timestep
     TIMESTEP_VALUE,
@@ -95,6 +99,9 @@ enum class StatisticsId {
 
     /// Number of neighbours (min, max, mean)
     NEIGHBOUR_COUNT,
+
+    /// Number of iterations used to compute density and smoothing length in summation solver
+    SOLVER_SUMMATION_ITERATIONS
 };
 
 

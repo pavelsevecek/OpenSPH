@@ -38,6 +38,8 @@ NAMESPACE_SPH_BEGIN
 #define FALLTHROUGH
 #endif
 
+#define DEPRECATED __attribute__((deprecated))
+
 namespace Abstract {}
 
 /// Object with deleted copy constructor and copy operator
@@ -58,7 +60,6 @@ class Polymorphic {
 public:
     virtual ~Polymorphic() {}
 };
-
 
 namespace Detail {
     template <std::size_t N1, std::size_t N2>

@@ -15,11 +15,7 @@ namespace Abstract {
     public:
         /// Returns projected position of particle on the image. If the particle is outside of the image
         /// region or is clipped by the projection, returns NOTHING.
-        virtual Optional<Point> project(const Vector& r) const = 0;
-
-        /// Returns projected size at given position in 3D space. This is basically derivative of transform
-        /// function.
-        virtual Optional<float> projectedSize(const Vector& r, const float size) const = 0;
+        virtual Optional<Tuple<Point, float>> project(const Vector& r) const = 0;
 
         /// Zoom the camera.
         /// \param magnitude Relative amount of zooming. Value <1 means zooming out, value >1 means zooming
@@ -58,17 +54,10 @@ public:
         w = cross(u, v);
     }
 
-    virtual Optional<Point> project(const Vector& r) const override {
+    virtual Optional<Tuple<Point, float>> project(const Vector& r) const override {
         if (abs(dot(w, r)) < cutoff) {
-            return Point(center.x + dot(r, u) * fov, imageSize.y - (center.y + dot(r, v) * fov) - 1);
-        } else {
-            return NOTHING;
-        }
-    }
-
-    virtual Optional<float> projectedSize(const Vector& r, const float size) const override {
-        if (abs(dot(w, r)) < cutoff) {
-            return max(fov * size, 1.f);
+            const Point point(center.x + dot(r, u) * fov, imageSize.y - (center.y + dot(r, v) * fov) - 1);
+            return { { point, max(fov * float(r[H]), 1.f) } };
         } else {
             return NOTHING;
         }

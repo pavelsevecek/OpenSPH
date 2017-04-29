@@ -1,88 +1,106 @@
 #pragma once
 
-/// Implementation of floating-point number (float or double, depending on default code precision) 
-/// with atomic operators, defined using compare-exchange.
+/// Implementation of number with atomic operators, defined using compare-exchange. This is mainly intended
+/// for floating-point values (floats and doubles), as atomic operations for integral types are supplied by
+/// the compiler.
 /// Pavel Sevecek 2017
 /// sevecek at sirrah.troja.mff.cuni
 
-#include "objects/Object.h"
+#include "common/Assert.h"
+#include "common/Globals.h"
+#include <atomic>
 
 NAMESPACE_SPH_BEGIN
 
-class AtomicFloat {
+template <typename Type>
+class Atomic {
 private:
-	std::atomic<Float> value;
-	
+    std::atomic<Type> value;
+
 public:
-	AtomicFloat() = default;
-	
-	AtomicFloat(const Float f) {
-		value = f;
-	}
-	
-	AtomicFloat& operator=(const Float f) {
-		atomicOp(f, [](const Float, const Float rhs){
-			return rhs;
-		});
-		return *this;
-	}
-	
-	AtomicFloat& operator+=(const Float f) {
-		atomicOp(f, [](const Float lhs, const Float rhs){
-			return lhs + rhs;
-		});
-		return *this;
-	}
-	
-	AtomicFloat& operator-=(const Float f) {
-		atomicOp(f, [](const Float lhs, const Float rhs){
-			return lhs - rhs;
-		});
-		return *this;
-	}
-	
-	AtomicFloat& operator*=(const Float f) {
-		atomicOp(f, [](const Float lhs, const Float rhs){
-			return lhs * rhs;
-		});
-		return *this;
-	}
-	
-	AtomicFloat& operator/(const Float f) {
-		ASSERT(f != 0._f);
-		atomicOp(f, [](const Float lhs, const Float rhs){
-			return lhs / rhs;
-		});
-		return *this;
-	}
-	
-	Float operator+(const Float f) const {
-		return value.load() + f;
-	}
-	
-	Float operator-(const Float f) const {
-		return value.load() - f;
-	}
-	
-	Float operator*(const Float f) const {
-		return value.load() * f;
-	}
-	
-	Float operator/(const Float f) const {
-		ASSERT(f != 0._f);
-		return value.load() / f;
-	}
+    INLINE Atomic() = default;
+
+    INLINE Atomic(const Type f) {
+        value.store(f);
+    }
+
+    INLINE Atomic(const Atomic& other)
+        : Atomic(other.value.load()) {}
+
+    INLINE Atomic& operator=(const Type f) {
+        value.store(f);
+        return *this;
+    }
+
+    INLINE Atomic& operator+=(const Type f) {
+        atomicOp(f, [](const Type lhs, const Type rhs) { return lhs + rhs; });
+        return *this;
+    }
+
+    INLINE Atomic& operator-=(const Type f) {
+        atomicOp(f, [](const Type lhs, const Type rhs) { return lhs - rhs; });
+        return *this;
+    }
+
+    INLINE Atomic& operator*=(const Type f) {
+        atomicOp(f, [](const Type lhs, const Type rhs) { return lhs * rhs; });
+        return *this;
+    }
+
+    INLINE Atomic& operator/=(const Type f) {
+        ASSERT(f != 0._f);
+        atomicOp(f, [](const Type lhs, const Type rhs) { return lhs / rhs; });
+        return *this;
+    }
+
+    INLINE Type operator+(const Type f) const {
+        return value.load() + f;
+    }
+
+    INLINE Type operator-(const Type f) const {
+        return value.load() - f;
+    }
+
+    INLINE Type operator*(const Type f) const {
+        return value.load() * f;
+    }
+
+    INLINE Type operator/(const Type f) const {
+        ASSERT(f != 0._f);
+        return value.load() / f;
+    }
+
+    INLINE bool operator==(const Type f) const {
+        return value.load() == f;
+    }
+
+    INLINE bool operator!=(const Type f) const {
+        return value.load() != f;
+    }
+
+    INLINE bool operator>(const Type f) const {
+        return value.load() > f;
+    }
+
+    INLINE bool operator<(const Type f) const {
+        return value.load() < f;
+    }
+
+    INLINE friend std::ostream& operator<<(std::ostream& stream, const Atomic& f) {
+        stream << f.value.load();
+        return stream;
+    }
 
 private:
-	template<typename TOp>
-	Float atomicOp(const Float rhs, const TOp& op) {
-		Float lhs       =  value.load();
-		Float desired   =  op(lhs, rhs);
-		while (!value.compare_exchange_weak(lhs, desired)) {
-			desired  =  op(lhs, rhs);
-		}
-		return desired;
-	}
+    template <typename TOp>
+    INLINE Type atomicOp(const Type rhs, const TOp& op) {
+        Type lhs = value.load();
+        Type desired = op(lhs, rhs);
+        while (!value.compare_exchange_weak(lhs, desired)) {
+            desired = op(lhs, rhs);
+        }
+        return desired;
+    }
 };
 
 NAMESPACE_SPH_END

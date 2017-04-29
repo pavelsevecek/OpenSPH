@@ -1,4 +1,5 @@
 #include "system/Settings.h"
+#include "objects/containers/StringUtils.h"
 #include "objects/wrappers/Outcome.h"
 #include <fstream>
 #include <regex>
@@ -7,7 +8,7 @@ NAMESPACE_SPH_BEGIN
 
 template <typename TEnum>
 void Settings<TEnum>::saveToFile(const std::string& path) const {
-    std::ofstream ofs(path);
+    std::ofstream ofs(path.c_str());
     for (auto& e : entries) {
         const Entry& entry = e.second;
         ofs << std::setw(30) << std::left << entry.name << " = ";
@@ -46,22 +47,18 @@ void Settings<TEnum>::saveToFile(const std::string& path) const {
 
 template <typename TEnum>
 Outcome Settings<TEnum>::loadFromFile(const std::string& path, const Settings& descriptors) {
-    std::ifstream ifs(path);
+    std::ifstream ifs(path.c_str());
     std::string line;
     while (std::getline(ifs, line, '\n')) {
-        std::string::size_type idx = line.find("=");
+        const Size idx = line.find("=", 0);
         if (idx == std::string::npos) {
             return "Invalid format of the file, didn't find separating '='";
         }
         std::string key = line.substr(0, idx);
         std::string value = line.substr(idx + 1);
         // throw away spaces from key
-        std::string trimmedKey;
-        for (const char c : key) {
-            if (c != ' ') {
-                trimmedKey.push_back(c);
-            }
-        }
+        std::string trimmedKey = trim(key);
+
         // find the key in decriptor settings
         bool found = false;
         for (auto&& e : descriptors.entries) {
@@ -89,7 +86,7 @@ const Settings<TEnum>& Settings<TEnum>::getDefaults() {
 
 template <typename TEnum>
 bool Settings<TEnum>::setValueByType(Entry& entry, const Size typeIdx, const std::string& str) {
-    std::stringstream ss(str);
+    std::stringstream ss(str.c_str());
     switch (typeIdx) {
     case BOOL: {
         bool b;
@@ -130,7 +127,7 @@ bool Settings<TEnum>::setValueByType(Entry& entry, const Size typeIdx, const std
             lower = -INFTY;
         } else {
             ss.clear();
-            ss.str(s1);
+            ss << s1;
             Float value;
             ss >> value;
             lower = value;
@@ -139,7 +136,7 @@ bool Settings<TEnum>::setValueByType(Entry& entry, const Size typeIdx, const std
             upper = INFTY;
         } else {
             ss.clear();
-            ss.str(s2);
+            ss << s2;
             Float value;
             ss >> value;
             upper = value;
@@ -153,7 +150,7 @@ bool Settings<TEnum>::setValueByType(Entry& entry, const Size typeIdx, const std
     }
     case STRING: {
         // trim leading and trailing spaces
-        const std::string trimmed = std::regex_replace(str, std::regex("^ +| +$|( ) +"), "$1");
+        const std::string trimmed = trim(str);
         ASSERT(!trimmed.empty() && "Variant cannot handle empty strings");
         entry.value = trimmed;
         return true;
@@ -210,15 +207,17 @@ std::unique_ptr<RunSettings> RunSettings::instance (new RunSettings {
     { RunSettingsId::RUN_RNG_SEED,                  "run.rng.seed",             1234 },
 
     /// Physical model
-    { RunSettingsId::MODEL_FORCE_GRAD_P,            "model.force.grad_p",       true },
-    { RunSettingsId::MODEL_FORCE_DIV_S,             "model.force.div_s",        true },
+    { RunSettingsId::MODEL_FORCE_PRESSURE_GRADIENT, "model.force.grad_p",       true },
+    { RunSettingsId::MODEL_FORCE_SOLID_STRESS,      "model.force.div_s",        true },
     { RunSettingsId::MODEL_FORCE_CENTRIPETAL,       "model.force.centripetal",  false },
     { RunSettingsId::MODEL_FORCE_GRAVITY,           "model.force.gravity",      false },
     { RunSettingsId::MODEL_AV_TYPE,                 "model.av.type",            int(ArtificialViscosityEnum::STANDARD) },
     { RunSettingsId::MODEL_AV_BALSARA_SWITCH,       "model.av.balsara_switch",  false },
 
     /// SPH solvers
-    { RunSettingsId::SOLVER_TYPE,                   "solver.type",              int(SolverEnum::CONTINUITY_SOLVER) },
+    { RunSettingsId::SOLVER_TYPE,                   "solver.type",                      int(SolverEnum::CONTINUITY_SOLVER) },
+    { RunSettingsId::SUMMATION_DENSITY_DELTA,       "solver.summation.density_delta",   1.e-3_f },
+    { RunSettingsId::SUMMATION_MAX_ITERATIONS,      "solver.summation.max_iterations",  5 },
 
     /// Global SPH parameters
     { RunSettingsId::SPH_KERNEL,                    "sph.kernel",               int(KernelEnum::CUBIC_SPLINE) },

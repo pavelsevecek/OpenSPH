@@ -4,8 +4,8 @@
 /// Pavel Sevecek 2016
 /// sevecek at sirrah.troja.mff.cuni.cz
 
-#include "common/Assert.h"
-#include "objects/Object.h"
+#include "common/Globals.h"
+#include <string>
 
 NAMESPACE_SPH_BEGIN
 
@@ -59,50 +59,13 @@ enum class QuantityId {
     MATERIAL_IDX, ///< Material ID
 };
 
-INLINE std::string getQuantityName(const QuantityId key) {
-    switch (key) {
-    case QuantityId::POSITIONS:
-        return "Position";
-    case QuantityId::MASSES:
-        return "Particle mass";
-    case QuantityId::PRESSURE:
-        return "Pressure";
-    case QuantityId::DENSITY:
-        return "Density";
-    case QuantityId::ENERGY:
-        return "Spec. energy";
-    case QuantityId::SOUND_SPEED:
-        return "Sound speed";
-    case QuantityId::DEVIATORIC_STRESS:
-        return "Stress";
-    case QuantityId::DAMAGE:
-        return "Damage";
-    case QuantityId::NEIGHBOUR_CNT:
-        return "Neigh. cnt";
-    case QuantityId::MATERIAL_IDX:
-        return "Mat. idx";
-    case QuantityId::FLAG:
-        return "Flag";
-    default:
-        NOT_IMPLEMENTED;
-    }
-}
+std::string getQuantityName(const QuantityId key);
 
-template <typename TStream>
-INLINE TStream& operator<<(TStream& stream, const QuantityId key) {
+INLINE std::ostream& operator<<(std::ostream& stream, const QuantityId key) {
     stream << getQuantityName(key);
     return stream;
 }
 
-INLINE std::string getDerivativeName(const QuantityId key) {
-    switch (key) {
-    case QuantityId::POSITIONS:
-        return "Velocity";
-    case QuantityId::DEVIATORIC_STRESS:
-        return "[debug] dS/dt";
-    default:
-        NOT_IMPLEMENTED;
-    }
-}
+std::string getDerivativeName(const QuantityId key);
 
 NAMESPACE_SPH_END

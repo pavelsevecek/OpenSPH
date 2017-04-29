@@ -92,11 +92,10 @@ public:
         for (Element& e : buffers) {
             forValue(e.buffer, [&e, &storage](auto& buffer) {
                 using T = std::decay_t<decltype(buffer)>;
-                if (!storage.has(e.id)) {
-                    storage.insert<typename T::Type>(e.id, OrderEnum::ZERO, std::move(buffer));
-                } else {
-                    storage.getHighestDerivative<typename T::Type>(e.id) = std::move(buffer);
-                }
+                // storage must already have the quantity, we cannot add quantities during the run because of
+                // timestepping
+                ASSERT(storage.has(e.id), getQuantityName(e.id));
+                storage.getHighestDerivative<typename T::Type>(e.id) = std::move(buffer);
             });
         }
     }

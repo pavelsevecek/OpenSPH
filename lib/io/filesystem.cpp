@@ -13,7 +13,7 @@ bool createDirectory(const std::string& path) {
 }
 
 std::string readFile(const std::string& path) {
-    std::ifstream t(path);
+    std::ifstream t(path.c_str());
     std::stringstream buffer;
     buffer << t.rdbuf();
     return buffer.str();

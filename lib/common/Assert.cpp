@@ -1,6 +1,7 @@
 #include "common/Assert.h"
 #include "io/Logger.h"
 #include "system/Platform.h"
+#include <assert.h>
 #include <signal.h>
 
 NAMESPACE_SPH_BEGIN
@@ -8,16 +9,24 @@ NAMESPACE_SPH_BEGIN
 bool Assert::isTest = false;
 bool Assert::breakOnFail = true;
 
-void Assert::check(const bool condition, const char* message, const char* func, const int line) {
+void Assert::check(const bool condition,
+    const char* message,
+    const char* file,
+    const char* func,
+    const int line,
+    const std::string& text) {
     if (condition) {
         return;
     }
     if (breakOnFail) {
         StdOutLogger logger;
-        logger.write("===========================================================");
-        logger.write("Assert fired at ", func, " on line ", line);
+        logger.write("=============================================================================");
+        logger.write("Assert fired in file ", file, ", executing function ", func, " on line ", line);
         logger.write("Condition: ", message);
-        logger.write("===========================================================");
+        if (!text.empty()) {
+            logger.write("Assert parameters: ", text);
+        }
+        logger.write("=============================================================================");
         if (isDebuggerPresent()) {
             raise(SIGTRAP);
         }
@@ -27,6 +36,14 @@ void Assert::check(const bool condition, const char* message, const char* func, 
     } else {
         throw Exception(message);
     }
+}
+
+void Assert::check(const bool condition,
+    const char* message,
+    const char* file,
+    const char* func,
+    const int line) {
+    check(condition, message, file, func, line, "");
 }
 
 void Assert::todo(const char* message, const char* func, const int line) {

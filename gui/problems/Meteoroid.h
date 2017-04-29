@@ -2,22 +2,22 @@
 
 
 #include "gui/Settings.h"
-#include "gui/problems/GuiRun.h"
 #include "io/Logger.h"
 #include "io/Output.h"
 #include "physics/Eos.h"
 #include "quantities/Storage.h"
+#include "run/Run.h"
 #include "sph/initial/Initial.h"
 
 NAMESPACE_SPH_BEGIN
 
-class MeteoroidEntry : public GuiRun {
+class MeteoroidEntry : public Abstract::Run {
 public:
     MeteoroidEntry() {
         settings.set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::EULER_EXPLICIT)
             .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 1.e-5_f)
             .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 1._f)
-            .set(RunSettingsId::MODEL_FORCE_DIV_S, false)
+            .set(RunSettingsId::MODEL_FORCE_SOLID_STRESS, false)
             .set(RunSettingsId::SPH_FINDER, FinderEnum::VOXEL)
             .set(RunSettingsId::MODEL_AV_TYPE, ArtificialViscosityEnum::STANDARD)
             .set(RunSettingsId::MODEL_AV_BALSARA_SWITCH, false)
@@ -31,7 +31,7 @@ public:
     }
 
 
-    virtual void setUp() override {
+    virtual std::shared_ptr<Storage> setUp() override {
         BodySettings bodySettings;
         bodySettings.set(BodySettingsId::DENSITY, 1._f)
             .set(BodySettingsId::DENSITY_RANGE, Range(1.e-3_f, 1.e3_f))
@@ -48,16 +48,18 @@ public:
         CylindricalDomain domain(Vector(0._f), 1._f, 2._f, true);
         conds.addBody(domain, bodySettings, Vector(0._f, 0._f, -20._f));
         logger.write("Particles of target: ", storage->getParticleCnt());
+
+        return storage;
     }
 
-    virtual GuiSettings getGuiSettings() const override {
-        GuiSettings guiSettings;
-        guiSettings.set(GuiSettingsId::VIEW_FOV, 1.5_f)
-            .set(GuiSettingsId::PARTICLE_RADIUS, 0.3_f)
-            .set(GuiSettingsId::ORTHO_CUTOFF, 0.3_f) // 5.e2_f)
-            .set(GuiSettingsId::ORTHO_PROJECTION, OrthoEnum::XZ);
-        return guiSettings;
-    }
+    /*    virtual GuiSettings getGuiSettings() const override {
+            GuiSettings guiSettings;
+            guiSettings.set(GuiSettingsId::VIEW_FOV, 1.5_f)
+                .set(GuiSettingsId::PARTICLE_RADIUS, 0.3_f)
+                .set(GuiSettingsId::ORTHO_CUTOFF, 0.3_f) // 5.e2_f)
+                .set(GuiSettingsId::ORTHO_PROJECTION, OrthoEnum::XZ);
+            return guiSettings;
+        }*/
 
     virtual void tearDown() override {}
 };

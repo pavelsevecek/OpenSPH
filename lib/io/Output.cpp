@@ -1,9 +1,35 @@
 ﻿#include "io/Output.h"
+#include "io/Column.h"
 #include <fstream>
 
 NAMESPACE_SPH_BEGIN
 
-static void printHeader(std::ofstream& ofs, const std::string& name, const ValueEnum type) {
+OutputFile::OutputFile(const std::string& pathMask)
+    : pathMask(pathMask) {
+    ASSERT(pathMask.find("%d", 0) != std::string::npos);
+}
+
+std::string OutputFile::getNextPath() const {
+    std::string path = pathMask;
+    Size n = pathMask.find("%d", 0);
+    std::ostringstream ss;
+    ss << std::setw(4) << std::setfill('0') << dumpNum;
+    path.replace(n, 2, ss.str());
+    dumpNum++;
+    return path;
+}
+
+Abstract::Output::Output(const std::string& fileMask)
+    : paths(fileMask) {}
+
+Abstract::Output::~Output() = default;
+
+void Abstract::Output::add(std::unique_ptr<Abstract::Column>&& element) {
+    elements.push(std::move(element));
+}
+
+
+static void printHeader(std::ostream& ofs, const std::string& name, const ValueEnum type) {
     switch (type) {
     case ValueEnum::SCALAR:
     case ValueEnum::INDEX:
@@ -77,7 +103,7 @@ BinaryOutput::BinaryOutput(const std::string& fileMask, const std::string& runNa
 
 struct StoreBuffers {
     template <typename Value>
-    void visit(std::ofstream&, Quantity&) {
+    void visit(std::ostream&, Quantity&) {
         NOT_IMPLEMENTED;
     }
 };
@@ -107,7 +133,7 @@ static void storeBuffers(Quantity& q, TStoreValue&& storeValue) {
 std::string BinaryOutput::dump(Storage& storage, const Float time) {
     ASSERT(!elements.empty() && "nothing to dump");
     const std::string fileName = paths.getNextPath();
-    std::ofstream ofs(fileName);
+    std::ofstream ofs(fileName.c_str());
     // file format identifie
     ofs << "SPH" << time << storage.getParticleCnt() << storage.getQuantityCnt();
     // storage dump
@@ -143,7 +169,7 @@ std::string BinaryOutput::dump(Storage& storage, const Float time) {
 
 Outcome BinaryOutput::load(const std::string& path, Storage& storage) {
     storage.removeAll();
-    std::ifstream ifs(path);
+    std::ifstream ifs(path.c_str());
     char identifier[4];
     ifs.read(identifier, 4);
     if (std::string(identifier) != "SPH") {

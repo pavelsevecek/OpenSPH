@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/ForwardDecl.h"
+#include "objects/Exceptions.h"
 #include "objects/containers/Array.h"
 #include "quantities/Quantity.h"
 #include "quantities/QuantityIds.h"
@@ -103,7 +104,7 @@ public:
     /// assert.
     Quantity& getQuantity(const QuantityId key) {
         auto iter = quantities.find(key);
-        ASSERT(iter != quantities.end());
+        ASSERT(iter != quantities.end(), getQuantityName(key));
         return iter->second;
     }
 
@@ -240,22 +241,33 @@ public:
 
     /// Creates a quantity in the storage, given its key, value type and order. Quantity is resized and filled
     /// with default value. This cannot be used to set number of particles, the size of the quantity is set to
-    /// match current particle number. Cannot be used if there already is a quantity with the same key,
-    /// checked by assert.
+    /// match current particle number.
+    /// If a quantity with given key already exists in the storage, function checks that the quantity type is
+    /// the same; if it isn't, InvalidSetup exception is thrown. If the required order of quantity is larger
+    /// than the one currently stored, additional derivatives are created with no assert nor exception,
+    /// otherwise the order is unchanged. Value of the quantity is unchanged, there is no check that the
+    /// current value is the same as the default value given as parameter.
     /// \tparam TValue Type of the quantity. Can be scalar, vector, tensor or traceless tensor.
-    /// \tparam TOrder Order (number of derivatives) associated with the quantity.
     /// \param key Unique key of the quantity.
+    /// \param TOrder Order (number of derivatives) associated with the quantity.
     /// \param defaultValue Value to which quantity is initialized. If the quantity already exists in the
     ///                     storage, the value is unused.
-    /// \param range Optional parameter specifying lower and upper bound of the quantity. Bound are enforced
-    ///              by timestepping algorithm. By default, quantities are unbounded.
     /// \returns Reference to the inserted quantity.
     template <typename TValue>
     Quantity& insert(const QuantityId key, const OrderEnum order, const TValue& defaultValue) {
-        ASSERT(!this->has(key));
-        const Size particleCnt = getParticleCnt();
-        ASSERT(particleCnt);
-        quantities[key] = Quantity(order, defaultValue, particleCnt);
+        if (this->has(key)) {
+            Quantity& q = this->getQuantity(key);
+            if (q.getValueEnum() != GetValueEnum<TValue>::type) {
+                throw InvalidSetup("Inserting quantity already stored with different type");
+            }
+            if (q.getOrderEnum() < order) {
+                q.setOrder(order);
+            }
+        } else {
+            const Size particleCnt = getParticleCnt();
+            ASSERT(particleCnt);
+            quantities[key] = Quantity(order, defaultValue, particleCnt);
+        }
         return quantities[key];
     }
 
@@ -284,10 +296,10 @@ public:
     /// Returns view that can iterate over indices of particles belonging to given material.
     /// \param matIdx Index of given material in storage. Materials are stored in unspecified order; to get
     ///               material of given particle, use \ref getMaterialOfParticle.
-    MaterialView getMaterial(const Size matIdx);
+    MaterialView getMaterial(const Size matIdx) const;
 
     /// Retursn material view for material of given particle.
-    MaterialView getMaterialOfParticle(const Size particleIdx);
+    MaterialView getMaterialOfParticle(const Size particleIdx) const;
 
     /// Returns the bounding range of given quantity. Provides an easy access to the material range without
     /// construcing intermediate object of \ref MaterialView, otherwise this function is equivalent to:

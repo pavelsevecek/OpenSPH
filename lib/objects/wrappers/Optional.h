@@ -3,8 +3,8 @@
 /// Pavel Sevecek 2016
 /// sevecek at sirrah.troja.mff.cuni.cz
 
-#include "common/Traits.h"
 #include "common/Assert.h"
+#include "common/Traits.h"
 #include "objects/wrappers/AlignedStorage.h"
 #include <functional>
 #include <type_traits>
@@ -19,7 +19,7 @@ const NothingType NOTHING;
 /// Wrapper of type value of which may or may not be present. Similar to std::optional comming in c++17.
 /// http://en.cppreference.com/w/cpp/utility/optional
 template <typename Type>
-class Optional  {
+class Optional {
 private:
     using RawType = std::remove_reference_t<Type>;
     using StorageType = typename WrapReferenceType<Type>::Type;
@@ -56,7 +56,7 @@ public:
     Optional(const Optional& other) {
         used = other.used;
         if (used) {
-            storage.emplace(other.get());
+            storage.emplace(other.value());
         }
     }
 
@@ -65,16 +65,20 @@ public:
     Optional(Optional&& other) {
         used = other.used;
         if (used) {
-            storage.emplace(std::forward<Type>(other.get()));
+            storage.emplace(std::forward<Type>(other.value()));
         }
         other.used = false;
     }
 
     /// Construct uninitialized
-    Optional(const NothingType&) { used = false; }
+    Optional(const NothingType&) {
+        used = false;
+    }
 
     /// Destructor
-    ~Optional() { destroy(); }
+    ~Optional() {
+        destroy();
+    }
 
     /// Constructs the uninitialized object from a list of arguments. If the object was previously
     /// initialized, the stored value is destroyed.
@@ -95,7 +99,7 @@ public:
             storage.emplace(t);
             used = true;
         } else {
-            get() = t;
+            value() = t;
         }
         return *this;
     }
@@ -106,7 +110,7 @@ public:
             storage.emplace(std::forward<Type>(t));
             used = true;
         } else {
-            get() = std::forward<Type>(t);
+            value() = std::forward<Type>(t);
         }
         return *this;
     }
@@ -116,10 +120,10 @@ public:
             destroy();
         } else {
             if (!used) {
-                storage.emplace(other.get());
+                storage.emplace(other.value());
                 used = true;
             } else {
-                get() = other.get();
+                value() = other.value();
             }
         }
         return *this;
@@ -130,10 +134,10 @@ public:
             destroy();
         } else {
             if (!used) {
-                storage.emplace(std::move(other.get()));
+                storage.emplace(std::move(other.value()));
                 used = true;
             } else {
-                get() = std::move(other.get());
+                value() = std::move(other.value());
             }
         }
         return *this;
@@ -148,29 +152,42 @@ public:
         return *this;
     }
 
-    INLINE Type& get() {
+    INLINE Type& value() {
         ASSERT(used);
         return storage;
     }
 
-    INLINE const Type& get() const {
+    INLINE const Type& value() const {
         ASSERT(used);
         return storage;
+    }
+
+    template <typename TOther>
+    INLINE const Type& valueOr(const TOther& other) const {
+        if (used) {
+            return storage;
+        } else {
+            return other;
+        }
     }
 
     INLINE const RawType* operator->() const {
         ASSERT(used);
-        return std::addressof(get());
+        return std::addressof(value());
     }
 
     INLINE RawType* operator->() {
         ASSERT(used);
-        return std::addressof(get());
+        return std::addressof(value());
     }
 
-    INLINE explicit operator bool() const { return used; }
+    INLINE explicit operator bool() const {
+        return used;
+    }
 
-    INLINE bool operator!() const { return !used; }
+    INLINE bool operator!() const {
+        return !used;
+    }
 };
 
 template <typename T1, typename T2>
@@ -178,7 +195,7 @@ Optional<T1> optionalCast(const Optional<T2>& opt) {
     if (!opt) {
         return NOTHING;
     }
-    return Optional<T1>(T1(opt.get()));
+    return Optional<T1>(T1(opt.value()));
 }
 
 template <typename T>
@@ -186,7 +203,7 @@ bool operator==(const Optional<T>& opt, const T& t) {
     if (!opt) {
         return false;
     }
-    return opt.get() == t;
+    return opt.value() == t;
 }
 
 
@@ -195,7 +212,7 @@ bool operator==(const T& t, const Optional<T>& opt) {
     if (!opt) {
         return false;
     }
-    return opt.get() == t;
+    return opt.value() == t;
 }
 
 /// Achtung! Even if both optionals are uninitialized, the comparison returns false
@@ -204,7 +221,7 @@ bool operator==(const Optional<T>& opt1, const Optional<T>& opt2) {
     if (!opt1 || !opt2) {
         return false;
     }
-    return opt1.get() == opt2.get();
+    return opt1.value() == opt2.value();
 }
 
 

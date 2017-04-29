@@ -1,67 +1,62 @@
 #include "gui/windows/OrthoPane.h"
+#include "gui/Controller.h"
 #include "gui/Factory.h"
 #include "gui/Settings.h"
 #include "gui/objects/Bitmap.h"
-#include "gui/objects/Bitmap.h"
+#include "gui/objects/Camera.h"
+#include "gui/objects/Element.h"
+#include "gui/objects/LockedPtr.h"
 #include "system/Profiler.h"
 #include "system/Statistics.h"
+#include "thread/CheckFunction.h"
 #include <wx/dcclient.h>
+#include <wx/timer.h>
 
 NAMESPACE_SPH_BEGIN
 
-OrthoPane::OrthoPane(wxWindow* parent, const std::shared_ptr<Storage>& storage, const GuiSettings& settings)
-    : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize)
-    , storage(storage)
-    , settings(settings) {
-    this->SetMinSize(wxSize(640, 480));
-    this->Connect(wxEVT_PAINT, wxPaintEventHandler(OrthoPane::onPaint));
-    this->Connect(wxEVT_MOTION, wxMouseEventHandler(OrthoPane::onMouseMotion));
-    this->Connect(wxEVT_MOUSEWHEEL, wxMouseEventHandler(OrthoPane::onMouseWheel));
-    this->Connect(wxEVT_TIMER, wxTimerEventHandler(OrthoPane::onTimer));
-    camera = Factory::getCamera(settings);
-    setQuantity(QuantityId::POSITIONS);
-    refreshTimer = new wxTimer(this, 1); /// \todo check that timer is destroyed
-    refreshTimer->Start(50);
-}
+Bitmap OrthoRenderer::render(const Storage& storage,
+    Abstract::Element& element,
+    const RenderParams& params,
+    Statistics& stats) const {
+    CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
+    MEASURE_SCOPE("OrthoRenderer::render");
+    const wxSize size(params.size.x, params.size.y);
+    wxBitmap bitmap(size, 24);
+    wxMemoryDC dc(bitmap);
 
-OrthoPane::~OrthoPane() = default;
-
-void OrthoPane::onPaint(wxPaintEvent& UNUSED(evt)) {
-    MEASURE_SCOPE("OrthoPane::onPaint");
-    // called from main thread
-    wxPaintDC dc(this);
-    bitmap.Create(dc.GetSize(), 24);
-    wxMemoryDC memoryDc(bitmap);
-    if (particlesUpdated) {
-        std::unique_lock<std::mutex> lock(mutex);
-        /// \todo maybe just lock the whole functions and don't complicate things with BufferedArray
-        particles.swap();
-        particlesUpdated = false;
-    }
-    memoryDc.SetBrush(*wxBLACK_BRUSH);
-    memoryDc.DrawRectangle(wxPoint(0, 0), dc.GetSize());
-    const float scale = settings.get<Float>(GuiSettingsId::PARTICLE_RADIUS);
+    // draw black background (there is no fill method?)
+    dc.SetBrush(*wxBLACK_BRUSH);
+    dc.DrawRectangle(wxPoint(0, 0), size);
     wxBrush brush(*wxBLACK_BRUSH);
     wxPen pen(*wxBLACK_PEN);
-    for (Particle& p : particles.second()) {
-        brush.SetColour(p.color);
-        pen.SetColour(p.color);
-        memoryDc.SetBrush(brush);
-        memoryDc.SetPen(pen);
-        const float radius = camera->projectedSize(p.position, scale * p.position[H]).get();
-        memoryDc.DrawCircle(camera->project(p.position).get(), radius);
+
+    /// \todo ensure thread safety when getting stuff from storage
+    element.initialize(storage, params.clone);
+    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
+    for (Size i = 0; i < r.size(); ++i) {
+        const Color color = element.eval(i);
+        brush.SetColour(color);
+        pen.SetColour(color);
+        dc.SetBrush(brush);
+        dc.SetPen(pen);
+        const Optional<Tuple<Point, float>> p = params.camera->project(r[i]);
+        if (p) {
+            dc.DrawCircle(p->get<Point>(), p->get<float>() * params.particles.scale);
+        }
     }
-    drawPalette(memoryDc);
-    dc.DrawBitmap(bitmap, wxPoint(0, 0));
+    this->drawPalette(dc, element.getPalette());
+    const Float time = stats.get<Float>(StatisticsId::TOTAL_TIME);
     dc.DrawText(("t = " + std::to_string(time) + "s").c_str(), wxPoint(0, 0));
+
+    dc.SelectObject(wxNullBitmap);
+    return bitmap;
 }
 
-void OrthoPane::drawPalette(wxDC& dc) {
+void OrthoRenderer::drawPalette(wxDC& dc, const Palette& palette) const {
     const int size = 201;
     wxPoint origin(dc.GetSize().x - 50, size + 30);
     wxPen pen = dc.GetPen();
-    for (int i = 0; i < size; ++i) {
-        Palette palette = element->getPalette();
+    for (Size i = 0; i < size; ++i) {
         const float value = palette.getInterpolatedValue(float(i) / (size - 1));
         wxColour color = palette(value);
         pen.SetColour(color);
@@ -73,22 +68,52 @@ void OrthoPane::drawPalette(wxDC& dc) {
             dc.SetFont(font);
             std::stringstream ss;
             ss << std::setprecision(1) << std::scientific << value;
-            const std::string text = ss.str();
+            const wxString text = ss.str();
             wxSize extent = dc.GetTextExtent(text);
             dc.DrawText(text, wxPoint(origin.x - 60, origin.y - i - (extent.y >> 1)));
         }
     }
 }
 
+OrthoPane::OrthoPane(wxWindow* parent, Controller* model)
+    : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize)
+    , model(model) {
+    this->SetMinSize(wxSize(640, 480));
+    this->Connect(wxEVT_PAINT, wxPaintEventHandler(OrthoPane::onPaint));
+    this->Connect(wxEVT_MOTION, wxMouseEventHandler(OrthoPane::onMouseMotion));
+    this->Connect(wxEVT_MOUSEWHEEL, wxMouseEventHandler(OrthoPane::onMouseWheel));
+    this->Connect(wxEVT_TIMER, wxTimerEventHandler(OrthoPane::onTimer));
+
+    refreshTimer = std::make_unique<wxTimer>(this, 1);
+    refreshTimer->Start(50);
+}
+
+OrthoPane::~OrthoPane() = default;
+
+void OrthoPane::setElement(std::unique_ptr<Abstract::Element>&&) {
+    CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
+    // element = std::move(newElement);
+    // this->update()
+}
+
+void OrthoPane::onPaint(wxPaintEvent& UNUSED(evt)) {
+    CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
+    MEASURE_SCOPE("OrthoPane::onPaint");
+    wxPaintDC dc(this);
+    LockedPtr<Bitmap> bitmap = model->getRenderedBitmap();
+    if (bitmap) {
+        dc.DrawBitmap(*bitmap, wxPoint(0, 0));
+    }
+}
+
 void OrthoPane::onMouseMotion(wxMouseEvent& evt) {
     Point position = evt.GetPosition();
-    Point offset;
     if (evt.Dragging()) {
-        offset = Point(position.x - lastMousePosition.x, -(position.y - lastMousePosition.y));
+        Point offset = Point(position.x - dragging.position.x, -(position.y - dragging.position.y));
+        dragging.position = position;
         camera->pan(offset);
         this->Refresh();
     }
-    lastMousePosition = position;
     evt.Skip();
 }
 
@@ -105,7 +130,8 @@ void OrthoPane::onTimer(wxTimerEvent& evt) {
     evt.Skip();
 }
 
-void OrthoPane::draw(const std::shared_ptr<Storage>& newStorage, const Statistics& stats) {
+
+/*void OrthoPane::draw(const std::shared_ptr<Storage>& newStorage, const Statistics& stats) {
     MEASURE_SCOPE("OrthoPane::draw");
     // called from worker thread, cannot touch wx stuff here
     mutex.lock();
@@ -117,9 +143,9 @@ void OrthoPane::draw(const std::shared_ptr<Storage>& newStorage, const Statistic
 
 Bitmap OrthoPane::getRender() const {
     return bitmap;
-}
+}*/
 
-void OrthoPane::update() {
+/*void OrthoPane::update() {
     MEASURE_SCOPE("OrthoPane::update");
     ASSERT(storage);
     std::unique_lock<std::mutex> lock(mutex);
@@ -139,9 +165,11 @@ void OrthoPane::update() {
 
 void OrthoPane::setQuantity(const QuantityId key) {
     quantity = key;
-    update();
+    if (storage) {
+        this->update();
+    }
     this->Refresh();
 }
-
+*/
 
 NAMESPACE_SPH_END

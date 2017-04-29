@@ -47,7 +47,8 @@ TEST_CASE("FileLogger timestamp", "[logger]") {
     std::regex regex("[A-Z][a-z][a-z] [0-3][0-9], [0-2][0-9]:[0-5][0-9]:[0-5][0-9]");
     std::smatch match;
 
-    REQUIRE(std::regex_match(content, match, regex));
+    std::string s = content.c_str();
+    REQUIRE(std::regex_match(s, match, regex));
 }
 
 TEST_CASE("FileLogger Open when writing", "[logger]") {

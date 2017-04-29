@@ -194,6 +194,19 @@ namespace Detail {
             visitMutable(other, flags, [](Array<TValue>& ar1, Array<TValue>& ar2) { ar1.swap(ar2); });
         }
 
+        /// Changes order
+        void setOrder(const OrderEnum newOrder) {
+            ASSERT(Size(newOrder) > Size(order));
+            if (newOrder == OrderEnum::SECOND) {
+                d2v_dt2.resize(v.size());
+                d2v_dt2.fill(TValue(0._f));
+            } else if (newOrder == OrderEnum::FIRST) {
+                dv_dt.resize(v.size());
+                dv_dt.fill(TValue(0._f));
+            }
+            order = newOrder;
+        }
+
     private:
         void initDerivatives(const Size size) {
             switch (order) {
@@ -351,6 +364,10 @@ public:
     template <typename TValue>
     INLINE StaticArray<Array<TValue>&, 2> modify() {
         return get<TValue>().modify();
+    }
+
+    void setOrder(const OrderEnum order) {
+        return forValue(data, [order](auto& holder) INL { return holder.setOrder(order); });
     }
 
     /// Returns a reference to array of first derivatives of quantity. The type of the quantity must match the

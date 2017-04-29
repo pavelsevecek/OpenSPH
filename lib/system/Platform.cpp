@@ -8,10 +8,7 @@
 
 NAMESPACE_SPH_BEGIN
 
-Outcome sendMail(const std::string& to,
-    const std::string& from,
-    const std::string& subject,
-    const std::string& message) {
+Outcome sendMail(const std::string& to, const std::string& from, const std::string& subject, const std::string& message) {
     NOT_IMPLEMENTED; // somehow doesn't work
     FILE* mailpipe = popen("/usr/bin/sendmail -t", "w");
     if (mailpipe == nullptr) {

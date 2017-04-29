@@ -4,10 +4,10 @@
 /// Pavel Sevecek 2017
 /// sevecek at sirrah.troja.mff.cuni.cz
 
-#include "gui/problems/GuiRun.h"
-#include "gui/windows/Window.h"
+#include "gui/windows/MainWindow.h"
 #include "io/LogFile.h"
 #include "quantities/Storage.h"
+#include "run/Run.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -106,50 +106,16 @@ public:
     }
 };
 
-class Stress1456 : public Abstract::LogFile {
-    FileLogger stepLogger;
-
-public:
-    Stress1456(const std::string& path)
-        : Abstract::LogFile(std::make_shared<FileLogger>(path))
-        , stepLogger("dt" + path) {}
-
-    virtual void write(Storage& storage, const Statistics& stats) override {
-        const Float t = stats.get<Float>(StatisticsId::TOTAL_TIME);
-        const Tensor smin(1.e5_f);
-        ArrayView<TracelessTensor> s, ds;
-        ArrayView<Float> D, dD;
-        tie(s, ds) = storage.getAll<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
-        tie(D, dD) = storage.getAll<Float>(QuantityId::DAMAGE);
-        this->logger->write(t, " ", s[1456], " ", D[1456], " ", dD[1456]);
-    }
-};
-
-class Particle1493 : public Abstract::LogFile {
-public:
-    Particle1493(const std::string& path)
-        : Abstract::LogFile(std::make_shared<FileLogger>(path)) {}
-
-    virtual void write(Storage& storage, const Statistics& stats) override {
-        const Float t = stats.get<Float>(StatisticsId::TOTAL_TIME);
-        ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
-        ArrayView<Float> cs = storage.getValue<Float>(QuantityId::SOUND_SPEED);
-        this->logger->write(t, " ", r[1493][H], "  ", cs[1493]);
-    }
-};
-
-class AsteroidCollision : public GuiRun {
+class AsteroidCollision : public Abstract::Run {
 private:
-    Window* window;
+    Controller* model;
 
 public:
-    AsteroidCollision();
+    AsteroidCollision(Controller* model);
 
-    virtual GuiSettings getGuiSettings() const override;
+    virtual std::shared_ptr<Storage> setUp() override;
 
-private:
-    virtual void setUp() override;
-
+protected:
     virtual void tearDown() override {}
 };
 

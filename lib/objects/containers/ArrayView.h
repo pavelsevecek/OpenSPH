@@ -126,9 +126,13 @@ public:
         return true;
     }
 
+    /// Inequality operator
+    bool operator!=(const ArrayView& other) const {
+        return !(*this == other);
+    }
+
     /// Prints content of arrayview to stream. Stored values must have overloaded << operator.
-    template <typename TStream>
-    friend TStream& operator<<(TStream& stream, const ArrayView& array) {
+    friend std::ostream& operator<<(std::ostream& stream, const ArrayView& array) {
         for (const T& t : array) {
             stream << t << std::endl;
         }

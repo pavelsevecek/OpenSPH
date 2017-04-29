@@ -40,6 +40,32 @@ struct TestDerivative : public Abstract::Derivative {
 bool TestDerivative::initialized = false;
 bool TestDerivative::created = false;
 
+struct TestEquation : public Abstract::EquationTerm {
+    enum class Status {
+        STORAGE_CREATED = 1 << 0,
+        DERIVATIVES_SET = 1 << 1,
+        INITIALIZED = 1 << 2,
+        FINALIZED = 1 << 3,
+    };
+    mutable Flags<Status> flags = EMPTY_FLAGS;
+
+    virtual void setDerivatives(DerivativeHolder&) override {
+        flags.set(Status::DERIVATIVES_SET);
+    }
+
+    virtual void initialize(Storage&) override {
+        flags.set(Status::INITIALIZED);
+    }
+
+    virtual void finalize(Storage&) override {
+        flags.set(Status::FINALIZED);
+    }
+
+    virtual void create(Storage&, Abstract::Material&) const override {
+        flags.set(Status::STORAGE_CREATED);
+    }
+};
+
 TEST_CASE("Setting derivatives", "[equationterm]") {
     TestDerivative::initialized = false;
     Tests::DerivativeWrapper<TestDerivative> eq;
@@ -60,10 +86,20 @@ TEST_CASE("TestEquation", "[equationterm]") {
     Storage storage = Tests::getStorage(10);
     const Size N = storage.getParticleCnt();
     Statistics stats;
-    EquationHolder equations(std::make_unique<Tests::DerivativeWrapper<TestDerivative>>());
+    std::unique_ptr<TestEquation> eq = std::make_unique<TestEquation>();
+    TestEquation* eqPtr = eq.get();
+    EquationHolder equations(std::move(eq));
+    equations += makeTerm<Tests::DerivativeWrapper<TestDerivative>>();
+
     GenericSolver solver(RunSettings::getDefaults(), std::move(equations));
+    REQUIRE(eqPtr->flags == TestEquation::Status::DERIVATIVES_SET);
+
     solver.create(storage, storage.getMaterial(0));
+    REQUIRE(eqPtr->flags.has(TestEquation::Status::STORAGE_CREATED));
+    REQUIRE_FALSE(eqPtr->flags.hasAny(TestEquation::Status::INITIALIZED, TestEquation::Status::FINALIZED));
+
     solver.integrate(storage, stats);
+    REQUIRE(eqPtr->flags.hasAll(TestEquation::Status::INITIALIZED, TestEquation::Status::FINALIZED));
 
     ArrayView<Size> cnts = storage.getValue<Size>(QuantityId::FLAG);
     REQUIRE(cnts.size() == 10);

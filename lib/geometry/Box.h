@@ -116,8 +116,7 @@ public:
         }
     }
 
-    template <typename TStream>
-    friend TStream& operator<<(TStream& stream, const Box& box) {
+    friend std::ostream& operator<<(std::ostream& stream, const Box& box) {
         ASSERT(box.isValid());
         stream << box.lower() << box.upper();
         return stream;

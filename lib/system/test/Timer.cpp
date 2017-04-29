@@ -29,12 +29,10 @@ TEST_CASE("Start expired", "[timer]") {
 
 TEST_CASE("Execute Callback", "[timer]") {
     int value = 0;
-    Timer timer(400, [&value](){
-        value = 11;
-    });
+    std::shared_ptr<Timer> timer = makeTimer(400, [&value]() { value = 11; });
     Timer measuringTimer(0);
     while (true) {
-        if (!timer.isExpired()) {
+        if (!timer->isExpired()) {
             REQUIRE(value == 0);
         } else {
             REQUIRE(value == 11);
@@ -42,7 +40,7 @@ TEST_CASE("Execute Callback", "[timer]") {
             break;
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(30));
-    }   
+    }
 }
 
 TEST_CASE("Stoppable timer", "[timer]") {

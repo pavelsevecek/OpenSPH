@@ -19,6 +19,8 @@ static RunSettings getRunSettings(SolverEnum id) {
     settings.set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 5.e-4_f);
     settings.set(RunSettingsId::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::NONE);
     settings.set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::EULER_EXPLICIT);
+    settings.set(RunSettingsId::MODEL_FORCE_SOLID_STRESS, false);
+    settings.set(RunSettingsId::MODEL_FORCE_PRESSURE_GRADIENT, true);
     settings.set(RunSettingsId::SOLVER_TYPE, id);
     return settings;
 }
@@ -36,7 +38,8 @@ static std::shared_ptr<Storage> makeGassBall(const RunSettings& globalSettings,
     bodySettings.set(BodySettingsId::DENSITY_RANGE, Range(EPS, INFTY));
     bodySettings.set(BodySettingsId::DENSITY_MIN, 0.1_f * rho0);
     bodySettings.set(BodySettingsId::EOS, EosEnum::IDEAL_GAS);
-    bodySettings.set(BodySettingsId::SHEAR_MODULUS, 0._f); // effectively turns off stress tensor
+    bodySettings.set(BodySettingsId::RHEOLOGY_DAMAGE, DamageEnum::NONE);
+    bodySettings.set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::NONE);
     SphericalDomain domain(Vector(0._f), 1._f);
     std::shared_ptr<Storage> storage = std::make_shared<Storage>();
     InitialConditions conds(*storage, globalSettings);

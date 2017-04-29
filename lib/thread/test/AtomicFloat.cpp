@@ -1,21 +1,59 @@
-#include "thread/Pool.h"
-#include "catch.hpp"
 #include "thread/AtomicFloat.h"
+#include "catch.hpp"
+#include "thread/Pool.h"
 
 using namespace Sph;
 
 
-TEST_CASE("AtomicFloat", "[thread]") {
+TEST_CASE("AtomicFloat operations", "[thread]") {
+    // just test that the operation are correctly defined (and do not assert nor throw),
+    // this does not test atomicity of operators!
+    REQUIRE_NOTHROW(Atomic<Float> f1;);
+    Atomic<Float> f2 = 2._f;
+    REQUIRE(f2 == 2._f);
+    f2 += 3._f;
+    REQUIRE(f2 == 5._f);
+    f2 -= 4._f;
+    REQUIRE(f2 == 1._f);
+    f2 *= 6._f;
+    REQUIRE(f2 == 6._f);
+    f2 /= 2._f;
+    REQUIRE(f2 == 3._f);
+
+    Atomic<Float> f3;
+    f3 = f2 + 5._f;
+    REQUIRE(f3 == 8._f);
+    f3 = f2 - 1._f;
+    REQUIRE(f3 == 2._f);
+    f3 = f2 * 3._f;
+    REQUIRE(f3 == 9._f);
+    f3 = f2 / 3._f;
+    REQUIRE(f3 == 1._f);
+}
+
+TEST_CASE("AtomicFloat comparison", "[thread]") {
+    Atomic<Float> f1 = 3._f;
+    REQUIRE(f1 == 3._f);
+    REQUIRE_FALSE(f1 == 5._f);
+    REQUIRE(f1 != 4._f);
+    REQUIRE_FALSE(f1 != 3._f);
+    REQUIRE(f1 > 2._f);
+    REQUIRE_FALSE(f1 > 3._f);
+    REQUIRE(f1 < 4._f);
+    REQUIRE_FALSE(f1 < 2._f);
+}
+
+TEST_CASE("AtomicFloat concurrent addition", "[thread]") {
     ThreadPool pool;
-    AtomicFloat atomicSum = 0._f;
+    Atomic<Float> atomicSum = 0._f;
     Float sum = 0;
-    for (Size i = 0; i <= 100000; ++i) {
-        pool.submit([&sum, i] { 
+    for (Size i = 0; i <= 10000; ++i) {
+        pool.submit([&sum, &atomicSum, i] {
             sum += Float(i);
             atomicSum += Float(i);
         });
     }
-    const Float expected = 50005000._f; /// \todo ok for doubles, will this be precise even for floats?
+    const Float expected = 50'005'000._f; /// \todo ok for doubles, will this be precise even for floats?
     pool.waitForAll();
     REQUIRE(atomicSum == expected);
     REQUIRE(sum < expected);
