@@ -189,4 +189,5 @@ HEADERS += \
     objects/containers/StringUtils.h \
     io/Column.h \
     solvers/XSph.h \
-    solvers/GradH
+    solvers/GradH \
+    sph/kernel/GravityKernel.h
