@@ -52,7 +52,9 @@ enum class QuantityId {
     AV_BETA,    ///< Coefficient beta of the artificial viscosity
     AV_BALSARA, ///< Balsara factor
 
-    /// XSPH
+    /// SPH modifications & corrections
+    GRAD_H, ///< Grad-h terms, appear in self-consistent derivation of SPH equatios due to non-uniform
+            ///smoothing lenghts.
     XSPH_VELOCITIES, ///< XSPH corrections to velocity. Only modifies evolution equation for particle
                      /// position, velocity (as an input for velocity divergence, ...) is NOT affected.
 

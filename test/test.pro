@@ -107,7 +107,8 @@ SOURCES += \
     ../lib/thread/test/AtomicFloat.cpp \
     ../lib/solvers/test/DensityIndependentSolver.cpp \
     ../lib/thread/test/CheckFunction.cpp \
-    ../lib/solvers/test/XSph.cpp
+    ../lib/solvers/test/XSph.cpp \
+    ../lib/solvers/test/GradH.cpp
 
 HEADERS += \
     utils/Utils.h \

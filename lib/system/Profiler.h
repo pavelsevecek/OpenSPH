@@ -7,7 +7,8 @@
 NAMESPACE_SPH_BEGIN
 
 
-/// Timer that reports the measured duration when being destroyed
+/// Timer that reports the measured duration when being destroyed. If measured scope is executed by multiple
+/// thread at once, the total time is equal to the sum of all per-thread times.
 struct ScopedTimer {
 private:
     StoppableTimer impl;
@@ -62,7 +63,11 @@ private:
     static std::unique_ptr<Profiler> instance;
 
     struct Duration {
-        uint64_t time = 0; // initialize to zerp
+        std::atomic<uint64_t> time;
+
+        Duration() {
+            time = 0; // initialize to zero
+        }
     };
     // map of profiled scopes, its key being a string = name of the scope
     std::map<std::string, Duration> map;
@@ -79,8 +84,9 @@ public:
     /// Creates a new scoped timer of given name. The timer will automatically adds elapsed time to the
     /// profile when being destroyed.
     ScopedTimer makeScopedTimer(const std::string& name) {
-        return ScopedTimer(
-            name, [this](const std::string& n, const uint64_t elapsed) { map[n].time += elapsed; });
+        return ScopedTimer(name, [this](const std::string& n, const uint64_t elapsed) { //
+            map[n].time += elapsed;
+        });
     }
 
     /// Returns the array of scope statistics, sorted by elapsed time.

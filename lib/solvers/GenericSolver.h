@@ -14,6 +14,7 @@ NAMESPACE_SPH_BEGIN
 class GenericSolver : public Abstract::Solver {
 protected:
     struct ThreadData {
+        /// Holds all derivatives this thread computes
         DerivativeHolder derivatives;
 
         /// Cached array of neighbours, to avoid allocation every step
@@ -26,17 +27,24 @@ protected:
         Array<Vector> grads;
     };
 
+    /// Thread pool used to parallelize the solver, runs the whole time the solver exists.
     ThreadPool pool;
 
+    /// Selected granularity of the parallel processing. The more particles in simulation, the higher the
+    /// value should be to utilize the solver optimally.
     Size granularity;
 
-    /// Thread-local data
+    /// Thread-local structure caching all buffers needed to compute derivatives.
     ThreadLocal<ThreadData> threadData;
 
+    /// Holds all equation terms evaluated by the solver.
     EquationHolder equations;
 
+    /// Structure used to search for neighbouring particles
     std::unique_ptr<Abstract::Finder> finder;
 
+    /// Selected SPH kernel, symmetrized over smoothing lenghs:
+    /// W_ij(r_i - r_j, 0.5(h[i] + h[j])
     SymmetrizeSmoothingLengths<LutKernel<DIMENSIONS>> kernel;
 
 public:

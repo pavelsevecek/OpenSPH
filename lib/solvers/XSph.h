@@ -3,6 +3,8 @@
 /// XSPH correction to velocity, smoothing the velocities over neighbouring particles. This keeps particles
 /// ordered in absence of viscosity.
 /// See Monaghan 1992 (Annu. Rev. Astron. Astrophys. 1992.30:543-74)
+/// Pavel Sevecek 2017
+/// sevecek at sirrah.troja.mff.cuni.cz
 
 #include "solvers/EquationTerm.h"
 #include "sph/kernel/Kernel.h"
