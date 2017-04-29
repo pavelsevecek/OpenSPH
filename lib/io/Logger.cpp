@@ -12,11 +12,13 @@ void StdOutLogger::writeString(const std::string& s) {
 FileLogger::FileLogger(const std::string& path, const Flags<Options> flags)
     : path(path)
     , flags(flags) {
+    stream = std::make_unique<std::ofstream>();
     if (!flags.has(Options::OPEN_WHEN_WRITING)) {
-        stream = std::make_unique<std::ofstream>(
-            path.c_str(), flags.has(Options::APPEND) ? std::ostream::app : std::ostream::out);
-    } else {
-        stream = std::make_unique<std::ofstream>();
+        auto mode = flags.has(Options::APPEND) ? std::ostream::app : std::ostream::out;
+        stream->open(path.c_str(), mode);
+        if (!*stream) {
+            throw IoError("Error opening FileLogger at " + path);
+        }
     }
 }
 
@@ -32,12 +34,10 @@ void FileLogger::writeString(const std::string& s) {
     };
 
     if (flags.has(Options::OPEN_WHEN_WRITING)) {
-        try {
-            stream->open(path.c_str(), std::ostream::app);
+        stream->open(path.c_str(), std::ostream::app);
+        if (*stream) {
             write(s);
             stream->close();
-        } catch (...) {
-            // silence all exceptions
         }
     } else {
         ASSERT(stream->is_open());

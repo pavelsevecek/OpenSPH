@@ -17,6 +17,7 @@ class StandardAV : public Abstract::EquationTerm {
 private:
     Float alpha, beta;
 
+public:
     class Derivative : public Abstract::Derivative {
     private:
         ArrayView<const Vector> r, v;
@@ -57,9 +58,8 @@ private:
                 const Vector Pi = av * grads[k];
                 const Float heating = 0.5_f * av * dot(v[i] - v[j], grads[k]);
                 ASSERT(isReal(heating) && heating >= 0._f);
-                /// \todo check sign
-                dv[i] += m[j] * Pi;
-                dv[j] -= m[i] * Pi;
+                dv[i] -= m[j] * Pi;
+                dv[j] += m[i] * Pi;
 
                 du[i] += m[j] * heating;
                 du[j] += m[i] * heating;
@@ -80,7 +80,7 @@ private:
         }
     };
 
-public:
+
     StandardAV(const RunSettings& settings) {
         alpha = settings.get<Float>(RunSettingsId::SPH_AV_ALPHA);
         beta = settings.get<Float>(RunSettingsId::SPH_AV_BETA);

@@ -23,11 +23,12 @@ TEST_CASE("CheckFunction", "[checkfunction]") {
     REQUIRE_NOTHROW(runOnce());
     REQUIRE_ASSERT(runOnce());
 
-    std::thread t([] { REQUIRE_NOTHROW(reentrant()); });
+    std::thread t = std::thread([] { reentrant(); });
     std::this_thread::sleep_for(std::chrono::milliseconds(25));
     REQUIRE_ASSERT(reentrant());
     t.join();
 
     REQUIRE_NOTHROW(mainThread());
     t = std::thread([] { REQUIRE_ASSERT(mainThread()); });
+    t.join();
 }

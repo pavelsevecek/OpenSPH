@@ -271,16 +271,8 @@ public:
     }
 
     virtual void create(Storage& storage, Abstract::Material& material) const override {
-        if (storage.has(QuantityId::DENSITY)) {
-            ASSERT(storage.getQuantity(QuantityId::DENSITY).getOrderEnum() == OrderEnum::FIRST);
-        } else {
-            /// \todo there is no check that we use two different density solvers. If some other equation
-            /// already inserted density, it doesn't necessarily mean that it's the solver for density, and
-            /// even if it is, it doesn't mean that these two are incompatible. For example we can have
-            /// multiple acceleration terms, different heating sources etc.
-            const Float rho0 = material.getParam<Float>(BodySettingsId::DENSITY);
-            storage.insert<Float>(QuantityId::DENSITY, OrderEnum::FIRST, rho0);
-        }
+        const Float rho0 = material.getParam<Float>(BodySettingsId::DENSITY);
+        storage.insert<Float>(QuantityId::DENSITY, OrderEnum::FIRST, rho0);
         material.minimal(QuantityId::DENSITY) = material.getParam<Float>(BodySettingsId::DENSITY_MIN);
         material.range(QuantityId::DENSITY) = material.getParam<Range>(BodySettingsId::DENSITY_RANGE);
     }
@@ -300,8 +292,14 @@ private:
 public:
     AdaptiveSmoothingLength(const RunSettings& settings, const Size dimensions = DIMENSIONS)
         : dimensions(dimensions) {
-        enforcing.strength = settings.get<Float>(RunSettingsId::SPH_NEIGHBOUR_ENFORCING);
-        enforcing.range = settings.get<Range>(RunSettingsId::SPH_NEIGHBOUR_RANGE);
+        Flags<SmoothingLengthEnum> flags = Flags<SmoothingLengthEnum>::fromValue(
+            settings.get<int>(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH));
+        if (flags.has(SmoothingLengthEnum::SOUND_SPEED_ENFORCING)) {
+            enforcing.strength = settings.get<Float>(RunSettingsId::SPH_NEIGHBOUR_ENFORCING);
+            enforcing.range = settings.get<Range>(RunSettingsId::SPH_NEIGHBOUR_RANGE);
+        } else {
+            enforcing.strength = -INFTY;
+        }
         minimal = settings.get<Float>(RunSettingsId::SPH_SMOOTHING_LENGTH_MIN);
     }
 

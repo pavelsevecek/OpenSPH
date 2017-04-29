@@ -48,8 +48,9 @@ enum class QuantityId {
                                  /// momentum.
 
     /// Artificial velocity
-    AV_ALPHA, ///< Coefficient alpha of the artificial viscosity
-    AV_BETA,  ///< Coefficient beta of the artificial viscosity
+    AV_ALPHA,   ///< Coefficient alpha of the artificial viscosity
+    AV_BETA,    ///< Coefficient beta of the artificial viscosity
+    AV_BALSARA, ///< Balsara factor
 
     /// SPH statistics
     NEIGHBOUR_CNT, ///< Number of neighbouring particles (in radius h * kernel.radius)

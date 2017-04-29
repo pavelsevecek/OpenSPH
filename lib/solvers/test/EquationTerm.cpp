@@ -74,6 +74,7 @@ TEST_CASE("Setting derivatives", "[equationterm]") {
     Storage storage;
     // add some dummy quantity to set particle count
     storage.insert<Size>(QuantityId::DAMAGE, OrderEnum::FIRST, Array<Size>{ 1, 2, 3, 4, 5 });
+    storage.insert<Size>(QuantityId::FLAG, OrderEnum::ZERO, 2);
 
     // initialize, creating buffers and settings up arrayviews for derivatives
     derivatives.initialize(storage);
@@ -141,6 +142,7 @@ TEST_CASE("NeighbourCountTerm", "[equationterm]") {
 TEST_CASE("Div v of position vectors", "[equationterm]") {
     // test case checking that div r = 3
     Storage storage = Tests::getStorage(10000);
+    storage.insert<Float>(QuantityId::VELOCITY_DIVERGENCE, OrderEnum::ZERO, 0._f);
     Tests::computeField<VelocityDivergence>(storage, [](const Vector& r) { return r; });
 
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
@@ -166,6 +168,7 @@ TEST_CASE("Div v of position vectors", "[equationterm]") {
 
 TEST_CASE("Grad v of const field", "[equationterm]") {
     Storage storage = Tests::getStorage(10000);
+    storage.insert<Tensor>(QuantityId::VELOCITY_GRADIENT, OrderEnum::ZERO, Tensor::null());
     Tests::computeField<VelocityGradient>(storage, [](const Vector&) { return Vector(2._f, 3._f, -1._f); });
 
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
@@ -188,6 +191,7 @@ TEST_CASE("Grad v of const field", "[equationterm]") {
 
 TEST_CASE("Grad v of position vector", "[accumulator]") {
     Storage storage = Tests::getStorage(10000);
+    storage.insert<Tensor>(QuantityId::VELOCITY_GRADIENT, OrderEnum::ZERO, Tensor::null());
     Tests::computeField<VelocityGradient>(storage, [](const Vector& r) { return r; });
 
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
@@ -212,6 +216,7 @@ TEST_CASE("Grad v of position vector", "[accumulator]") {
 
 TEST_CASE("Grad v of non-trivial field", "[accumulator]") {
     Storage storage = Tests::getStorage(10000);
+    storage.insert<Tensor>(QuantityId::VELOCITY_GRADIENT, OrderEnum::ZERO, Tensor::null());
     Tests::computeField<VelocityGradient>(storage, [](const Vector& r) { //
         return Vector(r[0] * sqr(r[1]), r[0] + 0.5_f * r[2], sin(r[2]));
     });

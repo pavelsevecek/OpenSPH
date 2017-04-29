@@ -5,7 +5,9 @@
 using namespace Sph;
 
 TEST_CASE("DensityIndependentSolver", "[solvers]") {
-    Storage storage = Tests::getGassStorage(1000);
+    BodySettings settings;
+    settings.set(BodySettingsId::ENERGY_RANGE, Range(1._f, INFTY));
+    Storage storage = Tests::getGassStorage(1000, settings);
     DensityIndependentSolver solver(RunSettings::getDefaults());
     REQUIRE_NOTHROW(solver.create(storage, storage.getMaterial(0)));
     Statistics stats;

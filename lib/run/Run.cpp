@@ -38,7 +38,7 @@ Abstract::Run::Run() = default;
 Abstract::Run::~Run() = default;
 
 void Abstract::Run::run() {
-    ASSERT(storage); //
+    ASSERT(storage);
     Size i = 0;
     // fetch parameters of run from settings
     const Float outputInterval = settings.get<Float>(RunSettingsId::RUN_OUTPUT_INTERVAL);

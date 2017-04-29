@@ -20,7 +20,7 @@ public:
             .set(RunSettingsId::MODEL_FORCE_SOLID_STRESS, false)
             .set(RunSettingsId::SPH_FINDER, FinderEnum::VOXEL)
             .set(RunSettingsId::MODEL_AV_TYPE, ArtificialViscosityEnum::STANDARD)
-            .set(RunSettingsId::MODEL_AV_BALSARA_SWITCH, false)
+            .set(RunSettingsId::MODEL_AV_BALSARA, false)
             .set(RunSettingsId::DOMAIN_BOUNDARY, BoundaryEnum::WIND_TUNNEL)
             .set(RunSettingsId::DOMAIN_TYPE, DomainEnum::CYLINDER)
             .set(RunSettingsId::DOMAIN_RADIUS, 1._f)

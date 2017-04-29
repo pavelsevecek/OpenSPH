@@ -58,12 +58,21 @@ static Accumulated getAccumulated() {
     return ac;
 }
 
+static Storage getStorage() {
+    Storage storage;
+    storage.insert<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO, Array<Size>{ 1 });
+    storage.insert<Float>(QuantityId::DENSITY, OrderEnum::ZERO, 0._f);
+    storage.insert<Vector>(QuantityId::ENERGY, OrderEnum::ZERO, Vector(0._f));
+    storage.insert<Tensor>(QuantityId::POSITIONS, OrderEnum::ZERO, Tensor::null());
+    return storage;
+}
+
 TEST_CASE("Accumulated sum parallelized", "[accumulated]") {
     Accumulated ac1 = getAccumulated();
     Accumulated ac2 = getAccumulated();
     ThreadPool pool;
     ac1.sum(pool, ac2);
-    Storage storage;
+    Storage storage = getStorage();
     ac1.store(storage);
 
     REQUIRE(storage.getQuantityCnt() == 4);
@@ -88,10 +97,8 @@ TEST_CASE("Accumulated store", "[accumulated]") {
     for (Size i = 0; i < 5; ++i) {
         buffer1[i] = i;
     }
-    Storage storage;
-    REQUIRE(storage.getQuantityCnt() == 0);
+    Storage storage = getStorage();
     ac.store(storage);
-    REQUIRE(storage.getQuantityCnt() == 1);
     ArrayView<Size> buffer2 = storage.getValue<Size>(QuantityId::NEIGHBOUR_CNT);
     REQUIRE(buffer2.size() == 5);
     for (Size i = 0; i < 5; ++i) {

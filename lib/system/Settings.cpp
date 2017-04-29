@@ -127,7 +127,7 @@ bool Settings<TEnum>::setValueByType(Entry& entry, const Size typeIdx, const std
             lower = -INFTY;
         } else {
             ss.clear();
-            ss << s1;
+            ss.str(s1);
             Float value;
             ss >> value;
             lower = value;
@@ -136,7 +136,7 @@ bool Settings<TEnum>::setValueByType(Entry& entry, const Size typeIdx, const std
             upper = INFTY;
         } else {
             ss.clear();
-            ss << s2;
+            ss.str(s2);
             Float value;
             ss >> value;
             upper = value;
@@ -212,10 +212,12 @@ std::unique_ptr<RunSettings> RunSettings::instance (new RunSettings {
     { RunSettingsId::MODEL_FORCE_CENTRIPETAL,       "model.force.centripetal",  false },
     { RunSettingsId::MODEL_FORCE_GRAVITY,           "model.force.gravity",      false },
     { RunSettingsId::MODEL_AV_TYPE,                 "model.av.type",            int(ArtificialViscosityEnum::STANDARD) },
-    { RunSettingsId::MODEL_AV_BALSARA_SWITCH,       "model.av.balsara_switch",  false },
+    { RunSettingsId::MODEL_AV_BALSARA,              "model.av.balsara",         false },
+    { RunSettingsId::MODEL_AV_BALSARA_STORE,        "model.av.balsara.store",   false },
 
     /// SPH solvers
     { RunSettingsId::SOLVER_TYPE,                   "solver.type",                      int(SolverEnum::CONTINUITY_SOLVER) },
+    { RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH,     "solver.adaptive_smoothing_length", int(SmoothingLengthEnum::CONTINUITY_EQUATION) },
     { RunSettingsId::SUMMATION_DENSITY_DELTA,       "solver.summation.density_delta",   1.e-3_f },
     { RunSettingsId::SUMMATION_MAX_ITERATIONS,      "solver.summation.max_iterations",  5 },
 

@@ -77,17 +77,21 @@ public:
         const Float u0 = material.getParam<Float>(BodySettingsId::ENERGY);
         const Float q0 = rho0 * u0;
         /// \todo replace asserts with exceptions for incorrect setup of solver!!!
-        ASSERT(q0 > 0._f && "Cannot use DISPH with zero specific energy");
+        if (q0 <= 0._f) {
+            throw InvalidSetup("Cannot use DISPH with zero specific energy");
+        }
 
         const Range rhoRange = material.getParam<Range>(BodySettingsId::DENSITY_RANGE);
         const Range uRange = material.getParam<Range>(BodySettingsId::ENERGY_RANGE);
         const Range qRange(rhoRange.lower() * uRange.lower(), rhoRange.upper() * uRange.upper());
+        if (qRange.lower() <= 0._f) {
+            throw InvalidSetup("Cannot use DISPH with zero specific energy");
+        }
         material.range(QuantityId::ENERGY_DENSITY) = qRange;
 
         const Float rhoMin = material.getParam<Float>(BodySettingsId::DENSITY_MIN);
         const Float uMin = material.getParam<Float>(BodySettingsId::ENERGY_MIN);
         const Float qMin = rhoMin * uMin;
-        ASSERT(qRange.lower() > 0._f && "Cannot use DISPH with zero specific energy");
         material.minimal(QuantityId::ENERGY_DENSITY) = qMin;
 
         // energy density is computed by direct sum, hence zero order
@@ -149,6 +153,7 @@ private:
         ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
         ArrayView<Float> U = storage.getValue<Float>(QuantityId::ENERGY_PER_PARTICLE);
 
+        q.resize(r.size());
         q.fill(EPS);
         auto functor = [this, r, U](const Size n1, const Size n2, ThreadData& data) {
             for (Size i = n1; i < n2; ++i) {
@@ -162,6 +167,7 @@ private:
                 }
             }
         };
+        finder->build(r);
         /// \todo this should also be self-consistently solved with smoothing length (as SummationSolver)
         parallelFor(pool, threadData, 0, r.size(), granularity, functor);
 

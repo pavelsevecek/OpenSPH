@@ -14,12 +14,15 @@ namespace Tests {
     Storage getStorage(const Size particleCnt);
 
     /// Returns a storage with ideal gas particles, having pressure, energy and sound speed.
-    Storage getGassStorage(const Size particleCnt);
+    Storage getGassStorage(const Size particleCnt, BodySettings settings = BodySettings::getDefaults());
 
     /// Computes velocity derivatives for given set of equations. Velocity field is defined by given
     /// lambda.
     template <typename TLambda>
-    void computeField(Storage& storage, EquationHolder&& equations, TLambda&& lambda) {
+    void computeField(Storage& storage,
+        EquationHolder&& equations,
+        TLambda&& lambda,
+        const Size repeatCnt = 1) {
         ArrayView<Vector> r, v, dv;
         tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
         for (Size i = 0; i < v.size(); ++i) {
@@ -28,7 +31,9 @@ namespace Tests {
         GenericSolver solver(RunSettings::getDefaults(), std::move(equations));
         solver.create(storage, storage.getMaterial(0));
         Statistics stats;
-        solver.integrate(storage, stats);
+        for (Size i = 0; i < repeatCnt; ++i) {
+            solver.integrate(storage, stats);
+        }
     }
 
     // Helper equation term using single derivative
@@ -47,10 +52,10 @@ namespace Tests {
 
     /// Computes only a single derivative.
     template <typename TDerivative, typename TLambda>
-    void computeField(Storage& storage, TLambda&& lambda) {
+    void computeField(Storage& storage, TLambda&& lambda, const Size repeatCnt = 1) {
         EquationHolder equations;
         equations += makeTerm<DerivativeWrapper<TDerivative>>();
-        computeField(storage, std::move(equations), std::forward<TLambda>(lambda));
+        computeField(storage, std::move(equations), std::forward<TLambda>(lambda), repeatCnt);
     }
 }
 

@@ -81,6 +81,8 @@ private:
             }
             totalDiff += diff;
         };
+
+        finder->build(r);
         Size iterationIdx = 0;
         for (; iterationIdx < maxIteration; ++iterationIdx) {
             parallelFor(pool, threadData, 0, r.size(), granularity, functor);

@@ -49,6 +49,19 @@ public:
     virtual void writeString(const std::string& s) override;
 };
 
+class IoError : public std::exception {
+private:
+    std::string message;
+
+public:
+    IoError(const std::string& message)
+        : message(message) {}
+
+    virtual const char* what() const noexcept override {
+        return message.c_str();
+    }
+};
+
 /// File output logger
 class FileLogger : public Abstract::Logger {
 public:

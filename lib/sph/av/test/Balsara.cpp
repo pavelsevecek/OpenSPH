@@ -1,12 +1,8 @@
 #include "sph/av/Balsara.h"
 #include "catch.hpp"
-#include "geometry/Domain.h"
-#include "objects/containers/ArrayUtils.h"
-#include "objects/finders/AbstractFinder.h"
 #include "sph/av/Standard.h"
-#include "sph/initial/Distribution.h"
-#include "utils/Approx.h"
 #include "utils/SequenceTest.h"
+#include "utils/Setup.h"
 
 using namespace Sph;
 
@@ -44,11 +40,64 @@ void setupBalsara(Storage& storage, BalsaraSwitch<StandardAV>& balsaraAv, TFunct
     balsaraAv.integrate(storage);
     balsaraAv.update(storage);
 }
-
+*/
 TEST_CASE("Balsara shear flow", "[av]") {
-    BalsaraSwitch<StandardAV> balsaraAv(RunSettings::getDefaults());
-    Storage storage;
-    setupBalsara(storage, balsaraAv, [](const Vector& r) {
+
+    // no switch
+    EquationHolder term1 = makeTerm<StandardAV>(RunSettings::getDefaults());
+    Storage storage1 = Tests::getGassStorage(10000);
+    Tests::computeField(storage1, std::move(term1), [](const Vector& r) {
+        // spin-up particles with some differential rotation
+        const Vector l(r[X], r[Y], 0._f);
+        return cross(Vector(0, 0, 1), l) / (getSqrLength(l) + 1._f);
+    });
+
+    // with switch
+    Storage storage2 = Tests::getGassStorage(10000);
+    EquationHolder term2 = makeTerm<BalsaraSwitch<StandardAV>>(RunSettings::getDefaults());
+    // need to compute twice, first to get velocity divergence and rotation, second to compute AV
+    Tests::computeField(storage2,
+        std::move(term2),
+        [](const Vector& r) {
+            const Vector l(r[X], r[Y], 0._f);
+            return cross(Vector(0, 0, 1), l) / (getSqrLength(l) + 1._f);
+        },
+        2);
+
+    ArrayView<Vector> dv1 = storage1.getD2t<Vector>(QuantityId::POSITIONS);
+    ArrayView<Float> du1 = storage1.getDt<Float>(QuantityId::ENERGY);
+    ArrayView<Vector> dv2 = storage2.getD2t<Vector>(QuantityId::POSITIONS);
+    ArrayView<Float> du2 = storage2.getDt<Float>(QuantityId::ENERGY);
+    ArrayView<Float> divv = storage2.getValue<Float>(QuantityId::VELOCITY_DIVERGENCE);
+    ArrayView<Vector> rotv = storage2.getValue<Vector>(QuantityId::VELOCITY_ROTATION);
+    ArrayView<Vector> r = storage2.getValue<Vector>(QuantityId::POSITIONS);
+
+    auto test = [&](const Size i) {
+        if (getLength(r[i]) >= 0.7_f) {
+            // skip boundary particles
+            return SUCCESS;
+        }
+        if (getLength(dv2[i]) > getLength(dv1[i]) || du2[i] > du1[i]) {
+            return makeFailed("Balsara increased AV");
+        }
+        if (du2[i] > 1.e-3_f * du1[i]) {
+            return makeFailed("Balsara didn't reduce AV heating\n",
+                du1[i],
+                " / ",
+                du2[i],
+                "\n divv = ",
+                divv[i],
+                "\n rotv = ",
+                rotv[i]);
+        }
+        if (getLength(dv1[i]) > 1.e-5_f && getLength(dv2[i]) > 1.e-3_f * getLength(dv1[i])) {
+            return makeFailed("Balsara didn't reduce AV acceleration");
+        }
+        return SUCCESS;
+    };
+    REQUIRE_SEQUENCE(test, 0, dv1.size());
+}
+/*    setupBalsara(storage, balsaraAv, [](const Vector& r) {
         // spin-up particles with some differential rotation
         const Vector l(r[X], r[Y], 0._f);
         return cross(Vector(0, 0, 1), l) / (getSqrLength(l) + 1._f);
@@ -88,7 +137,8 @@ TEST_CASE("Balsara shear flow", "[av]") {
                                   "\n (r_i, r_j): ", r[i], ", ", r[j],
                                   "\n (divv_i, divv_j): ", divv[i], ", ", divv[j],
                                   "\n (rotv_i, divv_j): ", rotv[i], ", ", rotv[j],
-                                  "\n (f_i, f_j): ", balsaraAv.getFactor(i), ", ", balsaraAv.getFactor(j));
+                                  "\n (f_i, f_j): ", balsaraAv.getFactor(i), ", ",
+balsaraAv.getFactor(j));
                 // clang-format on
             }
             origSum += orig;
@@ -142,7 +192,8 @@ TEST_CASE("Balsara divergent flow", "[av]") {
                                   "AV_orig = ", orig, ", AV_reduced = ", reduced,
                                   "\n (divv_i, divv_j): ", divv[i], ", ", divv[j],
                                   "\n (rotv_i, divv_j): ", rotv[i], ", ", rotv[j],
-                                  "\n (f_i, f_j): ", balsaraAv.getFactor(i), ", ", balsaraAv.getFactor(j));
+                                  "\n (f_i, f_j): ", balsaraAv.getFactor(i), ", ",
+balsaraAv.getFactor(j));
                 // clang-format on
             }
             origSum += orig;
@@ -153,5 +204,4 @@ TEST_CASE("Balsara divergent flow", "[av]") {
     REQUIRE_SEQUENCE(test2, 0, r.size());
     REQUIRE(origSum > 1e-2);
     REQUIRE(almostEqual(origSum, reducedSum, 1.e-5_f));
-}
-*/
+}*/

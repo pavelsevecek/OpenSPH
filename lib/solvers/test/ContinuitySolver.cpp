@@ -21,6 +21,8 @@ static RunSettings getRunSettings(SolverEnum id) {
     settings.set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::EULER_EXPLICIT);
     settings.set(RunSettingsId::MODEL_FORCE_SOLID_STRESS, false);
     settings.set(RunSettingsId::MODEL_FORCE_PRESSURE_GRADIENT, true);
+    settings.set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONST);
+    settings.set(RunSettingsId::RUN_THREAD_CNT, 1);
     settings.set(RunSettingsId::SOLVER_TYPE, id);
     return settings;
 }

@@ -249,6 +249,18 @@ enum class DamageEnum {
     TENSOR_GRADY_KIPP
 };
 
+enum class SmoothingLengthEnum {
+    /// Smoothing length is constant and given by initial conditions
+    CONST = 1 << 0,
+
+    /// Smoothing length is evolved using continuity equation
+    CONTINUITY_EQUATION = 1 << 1,
+
+    /// Number of neighbours is kept fixed by adding additional derivatives of smoothing length, scaled by
+    /// local sound speed
+    SOUND_SPEED_ENFORCING = 1 << 2
+};
+
 enum class LoggerEnum {
     /// Do not log anything
     NONE,
@@ -389,10 +401,16 @@ enum class RunSettingsId {
 
     /// Whether to use balsara switch for computing artificial viscosity dissipation. If no artificial
     /// viscosity is used, the value has no effect.
-    MODEL_AV_BALSARA_SWITCH,
+    MODEL_AV_BALSARA,
+
+    /// If true, Balsara factors will be saved as quantity AV_BALSARA. Mainly for debugging purposes.
+    MODEL_AV_BALSARA_STORE,
 
     /// Selected solver for computing derivatives of physical variables.
     SOLVER_TYPE,
+
+    /// Solution for evolutions of the smoothing length
+    ADAPTIVE_SMOOTHING_LENGTH,
 
     /// Number of spatial dimensions of the problem.
     SOLVER_DIMENSIONS,

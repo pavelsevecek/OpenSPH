@@ -32,8 +32,10 @@ private:
         equations += makeTerm<ContinuityEquation>();
 
         // Adaptivity of smoothing length
-        equations += makeTerm<AdaptiveSmoothingLength>(settings);
-
+        if (settings.get<SmoothingLengthEnum>(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH) !=
+            SmoothingLengthEnum::CONST) {
+            equations += makeTerm<AdaptiveSmoothingLength>(settings);
+        }
         return equations;
     }
 };
