@@ -46,7 +46,7 @@ private:
         if (settings.get<bool>(RunSettingsId::MODEL_FORCE_SOLID_STRESS)) {
             equations += makeTerm<SolidStressForce>(settings);
         }
-        equations += makeTerm<StandardAV>(settings);
+        equations += makeTerm<StandardAV>();
 
         // we evolve density and smoothing length ourselves (outside the equation framework)
 

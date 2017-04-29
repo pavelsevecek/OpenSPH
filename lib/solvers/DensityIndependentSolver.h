@@ -63,8 +63,8 @@ private:
     };
 
 public:
-    virtual void setDerivatives(DerivativeHolder& derivatives) override {
-        derivatives.require<Derivative>();
+    virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override {
+        derivatives.require<Derivative>(settings);
     }
 
     virtual void initialize(Storage& UNUSED(storage)) override {}
@@ -140,10 +140,10 @@ public:
     }
 
 private:
-    EquationHolder getEquations(const RunSettings& settings) {
+    EquationHolder getEquations(const RunSettings& UNUSED(settings)) {
         EquationHolder equations;
         equations += makeTerm<DensityIndependentPressureForce>();
-        equations += makeTerm<StandardAV>(settings);
+        equations += makeTerm<StandardAV>();
 
         return equations;
     }

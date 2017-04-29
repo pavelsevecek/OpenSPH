@@ -39,8 +39,8 @@ namespace Tests {
     // Helper equation term using single derivative
     template <typename TDerivative>
     struct DerivativeWrapper : public Abstract::EquationTerm {
-        virtual void setDerivatives(DerivativeHolder& derivatives) override {
-            derivatives.require<TDerivative>();
+        virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override {
+            derivatives.require<TDerivative>(settings);
         }
 
         virtual void initialize(Storage& UNUSED(storage)) override {}

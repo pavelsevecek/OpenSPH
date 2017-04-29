@@ -13,8 +13,9 @@ NAMESPACE_SPH_BEGIN
 
 /// Balsara switch is a template, needs another artificial viscosity as a template parameter. The template
 /// parameter shall be an EquationTerm; Balsara switch then forward all functions (initialize, finalize, ...)
-/// to this base AV. Furthermore, the AV must define a class Derivative with operator()(i, j), returing value
-/// Pi_ij of the artificial viscosity between particles i and j.
+/// to this base AV.
+/// Furthermore, the AV must define a class Derivative with operator()(i, j), preferably force inlined,
+/// returing value Pi_ij of the artificial viscosity between particles i and j.
 template <typename AV>
 class BalsaraSwitch : public Abstract::EquationTerm {
     class Derivative : public Abstract::Derivative {
@@ -30,10 +31,18 @@ class BalsaraSwitch : public Abstract::EquationTerm {
         const Float eps = 1.e-4_f;
 
     public:
+        Derivative(const RunSettings& settings)
+            : av(settings) {}
+
+        virtual void create(Accumulated& results) override {
+            results.insert<Vector>(QuantityId::POSITIONS);
+            results.insert<Float>(QuantityId::ENERGY);
+        }
+
         virtual void initialize(const Storage& input, Accumulated& results) {
             m = input.getValue<Float>(QuantityId::MASSES);
             ArrayView<const Vector> dummy;
-            tie(r, v, dv) = input.getAll<Vector>(QuantityId::POSITIONS);
+            tie(r, v, dummy) = input.getAll<Vector>(QuantityId::POSITIONS);
             cs = input.getValue<Float>(QuantityId::SOUND_SPEED);
             divv = input.getValue<Float>(QuantityId::VELOCITY_DIVERGENCE);
             rotv = input.getValue<Vector>(QuantityId::VELOCITY_ROTATION);
@@ -69,14 +78,14 @@ class BalsaraSwitch : public Abstract::EquationTerm {
 
 public:
     BalsaraSwitch(const RunSettings& settings)
-        : av(settings) {
+        : av(Detail::DerivativeTraits<AV>::make(settings)) {
         storeFactor = settings.get<bool>(RunSettingsId::MODEL_AV_BALSARA_STORE);
     }
 
-    virtual void setDerivatives(DerivativeHolder& derivatives) override {
-        derivatives.require<VelocityDivergence>();
-        derivatives.require<VelocityRotation>();
-        derivatives.require<Derivative>();
+    virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override {
+        derivatives.require<VelocityDivergence>(settings);
+        derivatives.require<VelocityRotation>(settings);
+        derivatives.require<Derivative>(settings);
     }
 
     virtual void initialize(Storage& storage) override {
@@ -87,7 +96,8 @@ public:
         av.finalize(storage);
         if (storeFactor) {
             Accumulated dummy;
-            Derivative derivative;
+            /// \todo is this ok?
+            Derivative derivative(RunSettings::getDefaults());
             derivative.initialize(storage, dummy);
             ArrayView<Float> factor = storage.getValue<Float>(QuantityId::AV_BALSARA);
             for (Size i = 0; i < factor.size(); ++i) {

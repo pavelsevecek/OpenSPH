@@ -15,7 +15,7 @@ namespace Abstract {
         /// Sets derivatives required by this term. The derivatives are then automatically evaluated by the
         /// solver, the equation term can access the result in \ref finalize function. This function is called
         /// once for each thread at the beginning of the run.
-        virtual void setDerivatives(DerivativeHolder& derivatives) = 0;
+        virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) = 0;
 
         /// Initialize all the derivatives and/or quantity values before derivatives are computed. Called at
         /// the beginning of every time step. Note that derivatives need not be zeroed out manually, this is
@@ -63,9 +63,9 @@ public:
 /// Computes acceleration from pressure gradient and corresponding derivative of internal energy.
 class PressureForce : public Abstract::EquationTerm {
 public:
-    virtual void setDerivatives(DerivativeHolder& derivatives) override {
-        derivatives.require<PressureGradient>();
-        derivatives.require<VelocityDivergence>();
+    virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override {
+        derivatives.require<PressureGradient>(settings);
+        derivatives.require<VelocityDivergence>(settings);
     }
 
     virtual void initialize(Storage& UNUSED(storage)) override {}
@@ -138,13 +138,13 @@ public:
         conserveAngularMomentum = settings.get<bool>(RunSettingsId::SPH_CONSERVE_ANGULAR_MOMENTUM);
     }
 
-    virtual void setDerivatives(DerivativeHolder& derivatives) override {
-        derivatives.require<StressDivergence>();
+    virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override {
+        derivatives.require<StressDivergence>(settings);
         using namespace VelocityGradientCorrection;
         if (conserveAngularMomentum) {
-            derivatives.require<StrengthVelocityGradient<ConserveAngularMomentum>>();
+            derivatives.require<StrengthVelocityGradient<ConserveAngularMomentum>>(settings);
         } else {
-            derivatives.require<StrengthVelocityGradient<NoCorrection>>();
+            derivatives.require<StrengthVelocityGradient<NoCorrection>>(settings);
         }
     }
 
@@ -190,9 +190,10 @@ public:
 
 class NavierStokesForce : public Abstract::EquationTerm {
 public:
-    virtual void setDerivatives(DerivativeHolder& derivatives) override {
-        derivatives.require<StressDivergence>();
-        derivatives.require<VelocityGradient>(); // do don't need to do 'hacks' with gradient for fluids
+    virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override {
+        derivatives.require<StressDivergence>(settings);
+        // do don't need to do 'hacks' with gradient for fluids
+        derivatives.require<VelocityGradient>(settings);
     }
 
     virtual void initialize(Storage&) override {
@@ -236,7 +237,8 @@ public:
         omega = settings.get<Float>(RunSettingsId::FRAME_ANGULAR_FREQUENCY);
     }
 
-    virtual void setDerivatives(DerivativeHolder& UNUSED(derivatives)) override {}
+    virtual void setDerivatives(DerivativeHolder& UNUSED(derivatives),
+        const RunSettings& UNUSED(settings)) override {}
 
     virtual void initialize(Storage& UNUSED(storage)) override {}
 
@@ -255,8 +257,8 @@ public:
 
 class ContinuityEquation : public Abstract::EquationTerm {
 public:
-    virtual void setDerivatives(DerivativeHolder& derivatives) override {
-        derivatives.require<VelocityDivergence>();
+    virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override {
+        derivatives.require<VelocityDivergence>(settings);
     }
 
     virtual void initialize(Storage& UNUSED(storage)) override {}
@@ -303,8 +305,8 @@ public:
         minimal = settings.get<Float>(RunSettingsId::SPH_SMOOTHING_LENGTH_MIN);
     }
 
-    virtual void setDerivatives(DerivativeHolder& derivatives) override {
-        derivatives.require<VelocityDivergence>();
+    virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override {
+        derivatives.require<VelocityDivergence>(settings);
     }
 
     virtual void initialize(Storage& storage) override {
@@ -379,8 +381,8 @@ private:
         }
     };
 
-    virtual void setDerivatives(DerivativeHolder& derivatives) override {
-        derivatives.require<NeighbourCountImpl>();
+    virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override {
+        derivatives.require<NeighbourCountImpl>(settings);
     }
 
     virtual void initialize(Storage& UNUSED(storage)) override {}
@@ -413,9 +415,9 @@ public:
         return holder;
     }
 
-    void setupThread(DerivativeHolder& derivatives) const {
+    void setupThread(DerivativeHolder& derivatives, const RunSettings& settings) const {
         for (auto& t : terms) {
-            t->setDerivatives(derivatives);
+            t->setDerivatives(derivatives, settings);
         }
     }
 

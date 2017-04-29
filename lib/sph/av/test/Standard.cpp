@@ -9,7 +9,7 @@
 using namespace Sph;
 
 TEST_CASE("StandardAV divergent", "[av]") {
-    EquationHolder term = makeTerm<StandardAV>(RunSettings::getDefaults());
+    EquationHolder term = makeTerm<StandardAV>();
     Storage storage = Tests::getGassStorage(10000);
     Tests::computeField(storage, std::move(term), [](const Vector& r) {
         // some divergent velocity field
@@ -21,7 +21,7 @@ TEST_CASE("StandardAV divergent", "[av]") {
 }
 
 TEST_CASE("StandardAV shockwave", "[av]") {
-    EquationHolder term = makeTerm<StandardAV>(RunSettings::getDefaults());
+    EquationHolder term = makeTerm<StandardAV>();
     Storage storage = Tests::getGassStorage(10000);
     const Float cs = storage.getValue<Float>(QuantityId::SOUND_SPEED)[0]; // all particles have the same c_s
     REQUIRE(cs > 0._f);

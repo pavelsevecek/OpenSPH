@@ -14,8 +14,12 @@ NAMESPACE_SPH_BEGIN
 
 
 namespace Abstract {
+
     /// Derivative accumulated by summing up neighbouring particles. If solver is parallelized, each thread
     /// has its own derivatives that are summed after the solver loop.
+    /// In order to use derived classes in DerivativeHolder, they must be either default constructible or have
+    /// a constructor <code>Derivative(const RunSettings& settings)</code>; DerivativeHolder will construct
+    /// the derivative using the settings constructor if one is available.
     class Derivative : public Polymorphic {
     public:
         /// Emplace all needed buffers into shared storage. Called only once at the beginning of the run.
@@ -192,6 +196,23 @@ namespace VelocityGradientCorrection {
     };
 }
 
+namespace Detail {
+    template <typename TDerivative, typename TEnabler = void>
+    struct DerivativeTraits {
+        static TDerivative make(const RunSettings& UNUSED(settings)) {
+            // default constructible
+            return TDerivative();
+        }
+    };
+    template <typename TDerivative>
+    struct DerivativeTraits<TDerivative,
+        std::enable_if_t<std::is_constructible<TDerivative, const RunSettings&>::value>> {
+        static TDerivative make(const RunSettings& settings) {
+            // constructible from settings
+            return TDerivative(settings);
+        }
+    };
+}
 
 class DerivativeHolder {
 private:
@@ -205,14 +226,15 @@ private:
 public:
     /// Adds derivative if not already present. If the derivative is already stored, new one is NOT
     /// created, even if settings are different.
-    template <typename TDerivative, typename... TArgs>
-    void require(TArgs&&... args) {
+    template <typename TDerivative>
+    void require(const RunSettings& settings) {
         for (auto& d : derivatives) {
             if (typeid(*d) == typeid(TDerivative)) {
                 return;
             }
         }
-        std::unique_ptr<TDerivative> ptr = std::make_unique<TDerivative>(std::forward<TArgs>(args)...);
+        std::unique_ptr<TDerivative> ptr =
+            std::make_unique<TDerivative>(Detail::DerivativeTraits<TDerivative>::make(settings));
         derivatives.push(std::move(ptr));
     }
 

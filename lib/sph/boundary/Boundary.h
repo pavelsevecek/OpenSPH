@@ -19,7 +19,7 @@ namespace Abstract {
     /// do not create any quantities nor they compute derivatives.
     class BoundaryConditions : public EquationTerm {
     public:
-        virtual void setDerivatives(DerivativeHolder&) override {}
+        virtual void setDerivatives(DerivativeHolder&, const RunSettings&) override {}
 
         virtual void create(Storage&, Abstract::Material&) const override {}
     };

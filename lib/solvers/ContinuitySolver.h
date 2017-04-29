@@ -26,7 +26,7 @@ private:
         if (settings.get<bool>(RunSettingsId::MODEL_FORCE_SOLID_STRESS)) {
             equations += makeTerm<SolidStressForce>(settings);
         }
-        equations += makeTerm<StandardAV>(settings);
+        equations += makeTerm<StandardAV>();
 
         // Density evolution - Continuity equation
         equations += makeTerm<ContinuityEquation>();

@@ -50,7 +50,9 @@ public:
         // add term counting number of neighbours
         equations += makeTerm<NeighbourCountTerm>();
         // initialize all derivatives
-        threadData.forEach([this](ThreadData& data) { equations.setupThread(data.derivatives); });
+        threadData.forEach([this, &settings](ThreadData& data) { //
+            equations.setupThread(data.derivatives, settings);
+        });
     }
 
     virtual void integrate(Storage& storage, Statistics& stats) override {

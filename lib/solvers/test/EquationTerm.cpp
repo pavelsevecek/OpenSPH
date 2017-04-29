@@ -49,7 +49,7 @@ struct TestEquation : public Abstract::EquationTerm {
     };
     mutable Flags<Status> flags = EMPTY_FLAGS;
 
-    virtual void setDerivatives(DerivativeHolder&) override {
+    virtual void setDerivatives(DerivativeHolder&, const RunSettings&) override {
         flags.set(Status::DERIVATIVES_SET);
     }
 
@@ -70,7 +70,7 @@ TEST_CASE("Setting derivatives", "[equationterm]") {
     TestDerivative::initialized = false;
     Tests::DerivativeWrapper<TestDerivative> eq;
     DerivativeHolder derivatives;
-    eq.setDerivatives(derivatives);
+    eq.setDerivatives(derivatives, RunSettings::getDefaults());
     Storage storage;
     // add some dummy quantity to set particle count
     storage.insert<Size>(QuantityId::DAMAGE, OrderEnum::FIRST, Array<Size>{ 1, 2, 3, 4, 5 });

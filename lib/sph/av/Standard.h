@@ -14,9 +14,6 @@
 NAMESPACE_SPH_BEGIN
 
 class StandardAV : public Abstract::EquationTerm {
-private:
-    Float alpha, beta;
-
 public:
     class Derivative : public Abstract::Derivative {
     private:
@@ -28,9 +25,9 @@ public:
         Float alpha, beta;
 
     public:
-        Derivative(const Float alpha, const Float beta)
-            : alpha(alpha)
-            , beta(beta) {}
+        Derivative(const RunSettings& settings)
+            : alpha(settings.get<Float>(RunSettingsId::SPH_AV_ALPHA))
+            , beta(settings.get<Float>(RunSettingsId::SPH_AV_BETA)) {}
 
         virtual void create(Accumulated& results) override {
             results.insert<Vector>(QuantityId::POSITIONS);
@@ -80,14 +77,8 @@ public:
         }
     };
 
-
-    StandardAV(const RunSettings& settings) {
-        alpha = settings.get<Float>(RunSettingsId::SPH_AV_ALPHA);
-        beta = settings.get<Float>(RunSettingsId::SPH_AV_BETA);
-    }
-
-    virtual void setDerivatives(DerivativeHolder& derivatives) override {
-        derivatives.require<Derivative>(alpha, beta);
+    virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override {
+        derivatives.require<Derivative>(settings);
     }
 
     virtual void initialize(Storage& UNUSED(storage)) override {}

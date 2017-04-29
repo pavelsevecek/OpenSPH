@@ -44,7 +44,7 @@ void setupBalsara(Storage& storage, BalsaraSwitch<StandardAV>& balsaraAv, TFunct
 TEST_CASE("Balsara shear flow", "[av]") {
 
     // no switch
-    EquationHolder term1 = makeTerm<StandardAV>(RunSettings::getDefaults());
+    EquationHolder term1 = makeTerm<StandardAV>();
     Storage storage1 = Tests::getGassStorage(10000);
     Tests::computeField(storage1, std::move(term1), [](const Vector& r) {
         // spin-up particles with some differential rotation
@@ -81,17 +81,18 @@ TEST_CASE("Balsara shear flow", "[av]") {
             return makeFailed("Balsara increased AV");
         }
         if (du2[i] > 1.e-3_f * du1[i]) {
+            // clang-format off
             return makeFailed("Balsara didn't reduce AV heating\n",
-                du1[i],
-                " / ",
-                du2[i],
-                "\n divv = ",
-                divv[i],
-                "\n rotv = ",
-                rotv[i]);
+                du1[i], " / ", du2[i],
+                "\n divv = ", divv[i], "\n rotv = ", rotv[i]);
+            // clang-format on
         }
-        if (getLength(dv1[i]) > 1.e-5_f && getLength(dv2[i]) > 1.e-3_f * getLength(dv1[i])) {
-            return makeFailed("Balsara didn't reduce AV acceleration");
+        if (getLength(dv2[i]) > 1.e-2_f * getLength(dv1[i])) {
+            // clang-format off
+            return makeFailed("Balsara didn't reduce AV acceleration\n",
+                              dv1[i], " / ", dv2[i],
+                              "\n divv = ", divv[i], "\n rotv = ", rotv[i]);
+            // clang-format on
         }
         return SUCCESS;
     };
