@@ -220,6 +220,7 @@ std::unique_ptr<RunSettings> RunSettings::instance (new RunSettings {
     { RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH,     "solver.adaptive_smoothing_length", int(SmoothingLengthEnum::CONTINUITY_EQUATION) },
     { RunSettingsId::SUMMATION_DENSITY_DELTA,       "solver.summation.density_delta",   1.e-3_f },
     { RunSettingsId::SUMMATION_MAX_ITERATIONS,      "solver.summation.max_iterations",  5 },
+    { RunSettingsId::XSPH_EPSILON,                  "solver.xsph.epsilon",              1._f },
 
     /// Global SPH parameters
     { RunSettingsId::SPH_KERNEL,                    "sph.kernel",               int(KernelEnum::CUBIC_SPLINE) },

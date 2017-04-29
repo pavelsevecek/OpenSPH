@@ -59,6 +59,8 @@ std::string getQuantityName(const QuantityId key) {
         return "Mat. idx";
     case QuantityId::FLAG:
         return "Flag";
+    case QuantityId::XSPH_VELOCITIES:
+        return "XSPH correction";
     default:
         NOT_IMPLEMENTED;
     }

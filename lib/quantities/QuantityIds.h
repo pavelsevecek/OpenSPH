@@ -52,6 +52,10 @@ enum class QuantityId {
     AV_BETA,    ///< Coefficient beta of the artificial viscosity
     AV_BALSARA, ///< Balsara factor
 
+    /// XSPH
+    XSPH_VELOCITIES, ///< XSPH corrections to velocity. Only modifies evolution equation for particle
+                     /// position, velocity (as an input for velocity divergence, ...) is NOT affected.
+
     /// SPH statistics
     NEIGHBOUR_CNT, ///< Number of neighbouring particles (in radius h * kernel.radius)
 

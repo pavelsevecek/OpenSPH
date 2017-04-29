@@ -277,6 +277,7 @@ public:
         storage.insert<Float>(QuantityId::DENSITY, OrderEnum::FIRST, rho0);
         material.minimal(QuantityId::DENSITY) = material.getParam<Float>(BodySettingsId::DENSITY_MIN);
         material.range(QuantityId::DENSITY) = material.getParam<Range>(BodySettingsId::DENSITY_RANGE);
+        storage.insert<Float>(QuantityId::VELOCITY_DIVERGENCE, OrderEnum::ZERO, 0._f);
     }
 };
 

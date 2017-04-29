@@ -415,6 +415,10 @@ enum class RunSettingsId {
     /// Number of spatial dimensions of the problem.
     SOLVER_DIMENSIONS,
 
+    /// Epsilon-factor of XSPH correction (Monaghan, 1992). Value 0 turns off the correction, epsilon
+    /// shouldn't be larger than 1.
+    XSPH_EPSILON,
+
     /// Maximum number of iterations for self-consistent density computation of summation solver.
     SUMMATION_MAX_ITERATIONS,
 

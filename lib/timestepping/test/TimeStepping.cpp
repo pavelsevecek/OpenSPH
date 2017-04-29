@@ -214,13 +214,13 @@ void testClamping() {
         timestepping.step(solver1, stats);
     }
     ArrayView<const Float> u = storage->getValue<Float>(QuantityId::ENERGY);
-    ASSERT(u[0] == range.upper());
+    REQUIRE(u[0] == range.upper());
 
     ClampSolver solver2(ClampSolver::Direction::DECREASING, range);
     for (Size i = 0; i < 6; ++i) {
         timestepping.step(solver2, stats);
     }
-    ASSERT(u[0] == range.lower());
+    REQUIRE(u[0] == range.lower());
 }
 
 TEST_CASE("EulerExplicit", "[timestepping]") {

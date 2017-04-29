@@ -14,14 +14,17 @@ TEST_CASE("Storage insert", "[storage]") {
     Storage storage;
     REQUIRE_ASSERT(storage.insert<Float>(QuantityId::DENSITY, OrderEnum::FIRST, 1._f));
     storage.insert<Float>(QuantityId::DENSITY, OrderEnum::FIRST, makeArray(1._f, 2._f));
-    REQUIRE(storage.getQuantity(QuantityId::DENSITY).getOrderEnum() == OrderEnum::FIRST);
-    storage.insert<Float>(QuantityId::DENSITY, OrderEnum::ZERO, 1._f);
-    REQUIRE(storage.getQuantity(QuantityId::DENSITY).getOrderEnum() == OrderEnum::FIRST);
-    storage.insert<Float>(QuantityId::DENSITY, OrderEnum::SECOND, 1._f);
-    REQUIRE(storage.getQuantity(QuantityId::DENSITY).getOrderEnum() == OrderEnum::SECOND);
-
-    REQUIRE(storage.getParticleCnt() == 2);
     REQUIRE(storage.getQuantityCnt() == 1);
+    REQUIRE(storage.getQuantity(QuantityId::DENSITY).getOrderEnum() == OrderEnum::FIRST);
+
+    storage.insert<Float>(QuantityId::DENSITY, OrderEnum::ZERO, 1._f);
+    REQUIRE(storage.getQuantityCnt() == 1);
+    REQUIRE(storage.getQuantity(QuantityId::DENSITY).getOrderEnum() == OrderEnum::FIRST);
+
+    storage.insert<Float>(QuantityId::DENSITY, OrderEnum::SECOND, 1._f);
+    REQUIRE(storage.getQuantityCnt() == 1);
+    REQUIRE(storage.getQuantity(QuantityId::DENSITY).getOrderEnum() == OrderEnum::SECOND);
+    REQUIRE(storage.getParticleCnt() == 2);
 
     storage.insert<Vector>(QuantityId::DAMAGE, OrderEnum::SECOND, Vector(3._f));
     REQUIRE(storage.getParticleCnt() == 2);
