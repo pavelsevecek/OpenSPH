@@ -39,8 +39,7 @@ private:
 public:
     /// Constructs an integrator given domain of integration.
     Integrator(const Abstract::Domain& domain)
-        : domain(domain) {
-    }
+        : domain(domain) {}
 
     /// Integrate a function.
     /// \param f Functor with a Vector parameter, returning the integral as a scalar value

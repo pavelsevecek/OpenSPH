@@ -108,7 +108,8 @@ SOURCES += \
     ../lib/solvers/test/DensityIndependentSolver.cpp \
     ../lib/thread/test/CheckFunction.cpp \
     ../lib/solvers/test/XSph.cpp \
-    ../lib/solvers/test/GradH.cpp
+    ../lib/solvers/test/GradH.cpp \
+    ../lib/sph/kernel/test/GravityKernel.cpp
 
 HEADERS += \
     utils/Utils.h \

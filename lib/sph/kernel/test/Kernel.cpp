@@ -72,20 +72,29 @@ TEST_CASE("M4 kernel", "[kernel]") {
 
     CubicSpline<1> m4_1d;
     // 1D norm
-    const Float norm1 = integrate(Range(0._f, 2._f), [&](const Float x) { return m4_1d.valueImpl(sqr(x)); });
+    const Float norm1 = integrate(Range(0._f, 2._f), [&](const Float x) { //
+        return m4_1d.valueImpl(sqr(x));
+    });
     LutKernel<1> lut(m4_1d);
-    const Float norm2 = integrate(Range(0._f, 2._f), [&](const Float x) { return lut.valueImpl(sqr(x)); });
+    const Float norm2 = integrate(Range(0._f, 2._f), [&](const Float x) { //
+        return lut.valueImpl(sqr(x));
+    });
     // we only integrate 1/2 of the 1D kernel (support is [-2, 2])
     REQUIRE(norm1 == approx(0.5_f, 1.e-6_f));
     REQUIRE(norm2 == approx(0.5_f, 1.e-6_f));
 
-    const Float grad1 =
-        integrate(Range(0._f, 2._f), [&](const Float x) { return x * m4_1d.gradImpl(sqr(x)); });
-    const Float grad2 = integrate(Range(0._f, 2._f), [&](const Float x) { return x * lut.gradImpl(sqr(x)); });
-    const Float grad11 =
-        integrate(Range(0._f, 1._f), [&](const Float x) { return x * lut.gradImpl(sqr(x)); });
-    const Float grad12 =
-        integrate(Range(1._f, 2._f), [&](const Float x) { return x * lut.gradImpl(sqr(x)); });
+    const Float grad1 = integrate(Range(0._f, 2._f), [&](const Float x) { //
+        return x * m4_1d.gradImpl(sqr(x));
+    });
+    const Float grad2 = integrate(Range(0._f, 2._f), [&](const Float x) { //
+        return x * lut.gradImpl(sqr(x));
+    });
+    const Float grad11 = integrate(Range(0._f, 1._f), [&](const Float x) { //
+        return x * lut.gradImpl(sqr(x));
+    });
+    const Float grad12 = integrate(Range(1._f, 2._f), [&](const Float x) { //
+        return x * lut.gradImpl(sqr(x));
+    });
     REQUIRE(grad1 == approx(-2._f / 3._f, 1.e-6_f));
     REQUIRE(grad2 == approx(-2._f / 3._f, 1.e-6_f));
     REQUIRE(grad11 == approx(-0.5_f, 1.e-6_f));
@@ -108,10 +117,12 @@ TEST_CASE("M5 kernel", "[kernel]") {
     REQUIRE(almostEqual(norm1, 0.5_f, 1.e-6_f));
     REQUIRE(almostEqual(norm2, 0.5_f, 1.e-6_f));
 
-    const Float grad1 =
-        integrate(Range(0._f, 2.5_f), [&](const Float x) { return x * m5_1d.gradImpl(sqr(x)); });
-    const Float grad2 =
-        integrate(Range(0._f, 2.5_f), [&](const Float x) { return x * lut.gradImpl(sqr(x)); });
+    const Float grad1 = integrate(Range(0._f, 2.5_f), [&](const Float x) { //
+        return x * m5_1d.gradImpl(sqr(x));
+    });
+    const Float grad2 = integrate(Range(0._f, 2.5_f), [&](const Float x) { //
+        return x * lut.gradImpl(sqr(x));
+    });
     REQUIRE(almostEqual(grad1, -115._f / 192._f, 1.e-6_f));
     REQUIRE(almostEqual(grad2, -115._f / 192._f, 1.e-6_f));
 }

@@ -27,24 +27,27 @@ public:
     }
 
     INLINE Float value(const Vector& r, const Float h) const {
-        ASSERT(h > EPS);
+        ASSERT(h >= 0._f);
         const Float hInv = 1._f / h;
         const Float qSqr = getSqrLength(r * hInv);
-        if (qSqr > sqr(close.radius())) {
+        if (qSqr >= sqr(close.radius())) {
             return -1._f / getLength(r);
         } else {
-            return hInv * close.valueImpl(qSqr);
+            // LUT kernel returns 0 for qSqr >= radiusSqr
+            const Float value = close.valueImpl(qSqr);
+            ASSERT(value < 0._f);
+            return hInv * value;
         }
     }
 
     INLINE Vector grad(const Vector& r, const Float h) const {
-        ASSERT(h > EPS);
-        const Float hSqrInv = 1._f / sqr(h);
-        const Float qSqr = getSqrLength(r) * hSqrInv;
-        if (qSqr > sqr(close.radius())) {
+        ASSERT(h >= 0._f);
+        const Float hInv = 1._f / h;
+        const Float qSqr = getSqrLength(r * hInv);
+        if (qSqr >= sqr(close.radius())) {
             return r / pow<3>(getLength(r));
         } else {
-            return hSqrInv * r * close.gradImpl(qSqr);
+            return pow<3>(hInv) * r * close.gradImpl(qSqr);
         }
     }
 };
@@ -61,10 +64,10 @@ public:
     }
 
     INLINE Float valueImpl(const Float qSqr) const {
-        ASSERT(qSqr > 0._f && qSqr <= sqr(radius()));
+        ASSERT(qSqr >= 0._f && qSqr <= sqr(radius()));
         const Float q = sqrt(qSqr);
         if (q < 1._f) {
-            return 2._f / 3._f * qSqr - 3._f / 10._f * pow<3>(q) + 1._f / 10._f * pow<5>(q) - 7._f / 5._f;
+            return 2._f / 3._f * qSqr - 3._f / 10._f * pow<4>(q) + 1._f / 10._f * pow<5>(q) - 7._f / 5._f;
         } else {
             return 4._f / 3._f * qSqr - pow<3>(q) + 3._f / 10._f * pow<2>(qSqr) - 1._f / 30._f * pow<5>(q) -
                    8._f / 5._f + 1._f / (15._f * q);
@@ -72,13 +75,15 @@ public:
     }
 
     INLINE Float gradImpl(const Float qSqr) const {
-        ASSERT(qSqr > 0._f && qSqr <= sqr(radius()));
+        ASSERT(qSqr >= 0._f && qSqr <= sqr(radius()));
         const Float q = sqrt(qSqr);
-        if (q < 1._f) {
-            return 4._f / 3._f * q + 6._f / 5._f * pow<3>(q) + 1._f / 2._f * pow<2>(qSqr);
+        if (q == 0._f) {
+            return 4._f / 3._f;
+        } else if (q < 1._f) {
+            return 1._f / q * (4._f / 3._f * q - 6._f / 5._f * pow<3>(q) + 1._f / 2._f * pow<2>(qSqr));
         } else {
-            return 8._f / 3._f * q - 3._f * qSqr + 6._f / 5._f * pow<3>(q) - 1._f / 6._f * pow<2>(qSqr) -
-                   1._f / (15._f * qSqr);
+            return 1._f / q * (8._f / 3._f * q - 3._f * qSqr + 6._f / 5._f * pow<3>(q) -
+                                  1._f / 6._f * pow<2>(qSqr) - 1._f / (15._f * qSqr));
         }
     }
 };
