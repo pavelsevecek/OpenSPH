@@ -7,8 +7,7 @@
 /// sevecek at sirrah.troja.mff.cuni.cz
 
 #include "solvers/EquationTerm.h"
-#include "sph/kernel/Kernel.h"
-#include "system/Factory.h"
+#include "sph/kernel/KernelFactory.h"
 
 NAMESPACE_SPH_BEGIN
 

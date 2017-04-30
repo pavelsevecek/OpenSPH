@@ -4,7 +4,6 @@
 /// Pavel Sevecek 2016
 /// sevecek at sirrah.troja.mff.cuni.cz
 
-#include "sph/kernel/Kernel.h"
 #include "system/Settings.h"
 #include <memory>
 
@@ -31,7 +30,7 @@ namespace Abstract {
 
 class Storage;
 
-/// Class providing construction of objects from enums. Contain only static member functions.
+/// Class providing a convenient way to construct objects from settings.
 namespace Factory {
     std::unique_ptr<Abstract::Eos> getEos(const BodySettings& settings);
 
@@ -60,24 +59,6 @@ namespace Factory {
     std::unique_ptr<Abstract::Logger> getLogger(const RunSettings& settings);
 
     std::unique_ptr<Abstract::Rng> getRng(const RunSettings& settings);
-
-    template <int d>
-    LutKernel<d> getKernel(const RunSettings& settings) {
-        const KernelEnum id = settings.get<KernelEnum>(RunSettingsId::SPH_KERNEL);
-        switch (id) {
-        case KernelEnum::CUBIC_SPLINE:
-            return CubicSpline<d>();
-        case KernelEnum::FOURTH_ORDER_SPLINE:
-            return FourthOrderSpline<d>();
-        case KernelEnum::GAUSSIAN:
-            return Gaussian<d>();
-        case KernelEnum::CORE_TRIANGLE:
-            ASSERT(d == 3);
-            return CoreTriangle();
-        default:
-            NOT_IMPLEMENTED;
-        }
-    }
 }
 
 

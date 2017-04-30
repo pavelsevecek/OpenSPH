@@ -2,6 +2,7 @@
 #include "geometry/Domain.h"
 #include "objects/wrappers/Iterators.h"
 #include "quantities/Iterate.h"
+#include "sph/kernel/KernelFactory.h"
 #include "system/Factory.h"
 
 NAMESPACE_SPH_BEGIN

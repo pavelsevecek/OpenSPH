@@ -109,7 +109,8 @@ SOURCES += \
     ../lib/thread/test/CheckFunction.cpp \
     ../lib/solvers/test/XSph.cpp \
     ../lib/solvers/test/GradH.cpp \
-    ../lib/sph/kernel/test/GravityKernel.cpp
+    ../lib/sph/kernel/test/GravityKernel.cpp \
+    ../lib/solvers/test/GravitySolver.cpp
 
 HEADERS += \
     utils/Utils.h \

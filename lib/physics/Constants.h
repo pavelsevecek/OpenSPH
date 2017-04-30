@@ -4,7 +4,7 @@
 /// Pavel Sevecek 2016
 /// sevecek at sirrah.troja.mff.cuni.cz
 
-#include "objects/Object.h"
+#include "common/Globals.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -16,8 +16,11 @@ namespace Constants {
     /// Boltzmann constant
     const Float boltzmann = 1.380648e-23_f; // J K^-1
 
-    /// Gravitational constant
-    const Float gravity = 6.67408e-11; // m^3 kg^-1 s^-2
+    /// Gravitational constant (CODATA 2014)
+    const Float gravity = 6.67408e-11_f; // m^3 kg^-1 s^-2
+
+    /// Astronomical unit (exactly)
+    const Float au = 149597870700._f; // m
 }
 
 NAMESPACE_SPH_END

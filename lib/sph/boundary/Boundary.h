@@ -14,6 +14,10 @@
 
 NAMESPACE_SPH_BEGIN
 
+/// \todo boundary conditions CANNOT be just equation terms, they affect computed derivatives (frozen
+/// particles), or added new particles we don't want to touch by other equations.
+/// They must either be equation terms evaluated LAST, or be a separate object
+
 namespace Abstract {
     /// Base object for boundary conditions; all boundary conditions are essentially equation terms, but they
     /// do not create any quantities nor they compute derivatives.

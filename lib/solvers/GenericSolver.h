@@ -4,6 +4,7 @@
 #include "solvers/Accumulated.h"
 #include "solvers/EquationTerm.h"
 #include "sph/Material.h"
+#include "sph/kernel/KernelFactory.h"
 #include "system/Factory.h"
 #include "system/Statistics.h"
 #include "thread/ThreadLocal.h"
@@ -76,12 +77,34 @@ public:
         // initialize accumulate storages & derivatives
         this->beforeLoop(storage, stats);
 
+        // main loop over pairs of interacting particles
+        this->loop(storage);
+
+        // sum up accumulated storage, compute statistics
+        this->afterLoop(storage, stats);
+
+        // integrate all equations
+        equations.finalize(storage);
+
+        // finalize all materials (integrate fragmentation model)
+        for (Size i = 0; i < storage.getMaterialCnt(); ++i) {
+            MaterialView material = storage.getMaterial(i);
+            material->finalize(storage, material.sequence());
+        }
+    }
+
+    virtual void create(Storage& storage, Abstract::Material& material) const override {
+        storage.insert<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO, 0);
+        equations.create(storage, material);
+    }
+
+protected:
+    virtual void loop(Storage& storage) {
         // (re)build neighbour-finding structure; this needs to be done after all equations
         // are initialized in case some of them modify smoothing lengths
         ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
         finder->build(r);
 
-        // main loop over pairs of interacting particles
         auto functor = [this, r](const Size n1, const Size n2, ThreadData& data) {
             for (Size i = n1; i < n2; ++i) {
                 // Find all neighbours within kernel support. Since we are only searching for particles with
@@ -108,26 +131,8 @@ public:
             }
         };
         parallelFor(pool, threadData, 0, r.size(), granularity, functor);
-
-        // sum up accumulated storage, compute statistics
-        this->afterLoop(storage, stats);
-
-        // integrate all equations
-        equations.finalize(storage);
-
-        // finalize all materials (integrate fragmentation model)
-        for (Size i = 0; i < storage.getMaterialCnt(); ++i) {
-            MaterialView material = storage.getMaterial(i);
-            material->finalize(storage, material.sequence());
-        }
     }
 
-    virtual void create(Storage& storage, Abstract::Material& material) const override {
-        storage.insert<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO, 0);
-        equations.create(storage, material);
-    }
-
-protected:
     virtual void beforeLoop(Storage& storage, Statistics& UNUSED(stats)) {
         // clear thread local storages
         threadData.forEach([&storage](ThreadData& data) { data.derivatives.initialize(storage); });

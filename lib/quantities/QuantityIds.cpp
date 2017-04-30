@@ -61,6 +61,10 @@ std::string getQuantityName(const QuantityId key) {
         return "Flag";
     case QuantityId::XSPH_VELOCITIES:
         return "XSPH correction";
+    case QuantityId::GRAD_H:
+        return "Grad-h terms";
+    case QuantityId::GRAVITY_POTENTIAL:
+        return "Grav. potential";
     default:
         NOT_IMPLEMENTED;
     }

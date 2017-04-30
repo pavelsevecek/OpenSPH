@@ -190,4 +190,6 @@ HEADERS += \
     io/Column.h \
     solvers/XSph.h \
     solvers/GradH \
-    sph/kernel/GravityKernel.h
+    sph/kernel/GravityKernel.h \
+    sph/kernel/KernelFactory.h \
+    solvers/GravitySolver.h

@@ -35,7 +35,11 @@ enum class QuantityId {
                          /// mean lower activation strain rate of a flaw. Used only for testing purposes, by
                          /// default activation strain rates are automatically computed from Weibull
                          /// distribution.
-    YIELDING_REDUCE,
+    YIELDING_REDUCE,     ///< Total stress reduction factor due to damage and yielding. Is always scalar.
+
+    /// Gravity
+    GRAVITY_POTENTIAL, ///< Gravitational potential; not needed for solution, but needs to be included to the
+                       /// total energy of the system, otherwise the energy will not be conserved.
 
     /// Intermediate quantities
     VELOCITY_GRADIENT,           ///< Velocity gradient
@@ -54,7 +58,7 @@ enum class QuantityId {
 
     /// SPH modifications & corrections
     GRAD_H, ///< Grad-h terms, appear in self-consistent derivation of SPH equatios due to non-uniform
-            ///smoothing lenghts.
+            /// smoothing lenghts.
     XSPH_VELOCITIES, ///< XSPH corrections to velocity. Only modifies evolution equation for particle
                      /// position, velocity (as an input for velocity divergence, ...) is NOT affected.
 

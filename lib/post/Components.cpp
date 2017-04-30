@@ -1,5 +1,6 @@
 #include "post/Components.h"
 #include "quantities/Storage.h"
+#include "sph/kernel/KernelFactory.h"
 #include "system/Factory.h"
 
 NAMESPACE_SPH_BEGIN

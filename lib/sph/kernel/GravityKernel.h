@@ -18,6 +18,8 @@ private:
     LutKernel<3> close;
 
 public:
+    GravityLutKernel() = default;
+
     template <typename TKernel>
     GravityLutKernel(TKernel&& source)
         : close(std::forward<TKernel>(source)) {}
