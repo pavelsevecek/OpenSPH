@@ -90,7 +90,6 @@ SOURCES += \
     ../lib/quantities/test/Iterate.cpp \
     ../lib/quantities/test/QuantityHelpers.cpp \
     ../lib/quantities/test/Material.cpp \
-    ../lib/solvers/test/ContinuitySolver.cpp \
     ../lib/post/test/Components.cpp \
     ../lib/thread/test/Pool.cpp \
     ../lib/run/test/Run.cpp \
@@ -110,7 +109,8 @@ SOURCES += \
     ../lib/solvers/test/XSph.cpp \
     ../lib/solvers/test/GradH.cpp \
     ../lib/sph/kernel/test/GravityKernel.cpp \
-    ../lib/solvers/test/GravitySolver.cpp
+    ../lib/solvers/test/GravitySolver.cpp \
+    ../lib/solvers/test/Solvers.cpp
 
 HEADERS += \
     utils/Utils.h \

@@ -117,13 +117,13 @@ protected:
                 for (auto& n : data.neighs) {
                     const Size j = n.index;
                     const Float hbar = 0.5_f * (r[i][H] + r[j][H]);
-                    ASSERT(hbar > EPS && hbar <= r[i][H]);
+                    ASSERT(hbar > EPS && hbar <= r[i][H], hbar, r[i][H]);
                     if (getSqrLength(r[i] - r[j]) >= sqr(this->kernel.radius() * hbar)) {
                         // aren't actual neighbours
                         continue;
                     }
                     const Vector gr = kernel.grad(r[i], r[j]);
-                    ASSERT(isReal(gr) && dot(gr, r[i] - r[j]) < 0._f);
+                    ASSERT(isReal(gr) && dot(gr, r[i] - r[j]) < 0._f, gr, r[i] - r[j]);
                     data.grads.emplaceBack(gr);
                     data.idxs.emplaceBack(j);
                 }

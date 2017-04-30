@@ -1,64 +1,42 @@
-#include "solvers/ContinuitySolver.h"
 #include "catch.hpp"
 #include "geometry/Domain.h"
 #include "objects/containers/ArrayUtils.h"
 #include "objects/wrappers/Range.h"
 #include "physics/Constants.h"
 #include "physics/Integrals.h"
+#include "solvers/ContinuitySolver.h"
+#include "solvers/SummationSolver.h"
 #include "sph/initial/Initial.h"
 #include "system/Statistics.h"
 #include "timestepping/TimeStepping.h"
 #include "utils/Approx.h"
 #include "utils/SequenceTest.h"
+#include "utils/Setup.h"
 
 using namespace Sph;
 
 
-static RunSettings getRunSettings(SolverEnum id) {
-    RunSettings settings;
-    settings.set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 5.e-4_f);
-    settings.set(RunSettingsId::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::NONE);
-    settings.set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::EULER_EXPLICIT);
-    settings.set(RunSettingsId::MODEL_FORCE_SOLID_STRESS, false);
-    settings.set(RunSettingsId::MODEL_FORCE_PRESSURE_GRADIENT, true);
-    settings.set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONST);
-    settings.set(RunSettingsId::RUN_THREAD_CNT, 1);
-    settings.set(RunSettingsId::SOLVER_TYPE, id);
-    return settings;
-}
-
-/// Creates a sphere with ideal gas and non-zero pressure.
-static std::shared_ptr<Storage> makeGassBall(const RunSettings& globalSettings,
-    const Float rho0,
-    const Float u0) {
-    BodySettings bodySettings;
-    bodySettings.set(BodySettingsId::PARTICLE_COUNT, 100);
-    bodySettings.set(BodySettingsId::ENERGY, u0);
-    bodySettings.set(BodySettingsId::ENERGY_RANGE, Range(0._f, INFTY));
-    bodySettings.set(BodySettingsId::ENERGY_MIN, 0.1_f * u0);
-    bodySettings.set(BodySettingsId::DENSITY, rho0);
-    bodySettings.set(BodySettingsId::DENSITY_RANGE, Range(EPS, INFTY));
-    bodySettings.set(BodySettingsId::DENSITY_MIN, 0.1_f * rho0);
-    bodySettings.set(BodySettingsId::EOS, EosEnum::IDEAL_GAS);
-    bodySettings.set(BodySettingsId::RHEOLOGY_DAMAGE, DamageEnum::NONE);
-    bodySettings.set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::NONE);
-    SphericalDomain domain(Vector(0._f), 1._f);
-    std::shared_ptr<Storage> storage = std::make_shared<Storage>();
-    InitialConditions conds(*storage, globalSettings);
-    conds.addBody(domain, bodySettings);
-    return storage;
-}
-
 /// Test that a gass sphere will expand and particles gain velocity in direction from center of the ball.
 /// Decrease and internal energy should decrease, smoothing lenghts of all particles should increase.
 /// Momentum, angular momentum and total energy should remain constant.
-TEST_CASE("ContinuitySolver gass ball", "[solvers]") {
-    RunSettings settings = getRunSettings(SolverEnum::CONTINUITY_SOLVER);
-    auto solver = Factory::getSolver(settings);
+template <typename TSolver>
+void solveGassBall() {
+    RunSettings settings;
+    settings.set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 5.e-4_f)
+        .set(RunSettingsId::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::NONE)
+        .set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::EULER_EXPLICIT)
+        .set(RunSettingsId::MODEL_FORCE_SOLID_STRESS, false)
+        .set(RunSettingsId::MODEL_FORCE_PRESSURE_GRADIENT, true)
+        .set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONST)
+        .set(RunSettingsId::RUN_THREAD_GRANULARITY, 10);
+
+    TSolver solver(settings);
 
     const Float rho0 = 10._f;
     const Float u0 = 1.e4_f;
-    std::shared_ptr<Storage> storage = makeGassBall(settings, rho0, u0);
+    std::shared_ptr<Storage> storage =
+        std::make_shared<Storage>(Tests::getGassStorage(200, BodySettings::getDefaults(), 1._f, rho0, u0));
+    solver.create(*storage, storage->getMaterial(0));
 
     ArrayView<Vector> r, v, dv;
     tie(r, v, dv) = storage->getAll<Vector>(QuantityId::POSITIONS);
@@ -80,8 +58,8 @@ TEST_CASE("ContinuitySolver gass ball", "[solvers]") {
     Statistics stats;
     // make few timesteps
     Size stepCnt = 0;
-    for (Float t = 0._f; t < 1._f; t += timestepping.getTimeStep()) {
-        timestepping.step(*solver, stats);
+    for (Float t = 0._f; t < 5.e-2_f; t += timestepping.getTimeStep()) {
+        timestepping.step(solver, stats);
         stepCnt++;
     }
     REQUIRE(stepCnt > 10);
@@ -91,14 +69,11 @@ TEST_CASE("ContinuitySolver gass ball", "[solvers]") {
     tie(u, rho) = storage->getValues<Float>(QuantityId::ENERGY, QuantityId::DENSITY);
 
     auto test = [&](const Size i) {
-        if (u[i] > u0) {
-            return makeFailed("Energy increased: u = ", u[i]);
+        if (u[i] >= 0.9_f * u0) {
+            return makeFailed("Energy did not decrease: u = ", u[i]);
         }
-        if (rho[i] > rho0) {
-            return makeFailed("Density increased: rho = ", rho[i]);
-        }
-        if (r[i][H] < h) {
-            return makeFailed("Smoothing length decreased: rho = ", rho[i]);
+        if (rho[i] >= 0.9_f * rho0) {
+            return makeFailed("Density did not decrease: rho = ", rho[i]);
         }
         if (r[i] == Vector(0._f)) {
             return SUCCESS; // so we don't deal with this singular case
@@ -109,7 +84,7 @@ TEST_CASE("ContinuitySolver gass ball", "[solvers]") {
         // velocity away from center => velocity is in direction of position
         const Vector v_norm = getNormalized(v[i]);
         const Vector r_norm = getNormalized(r[i]);
-        if (v_norm != approx(r_norm, 1.e-2_f)) {
+        if (v_norm != approx(r_norm, 1.e-1_f)) {
             // clang-format off
             return makeFailed("Particle has wrong velocity:\n"
                               "v_norm: ", v_norm, " == ", r_norm);
@@ -122,4 +97,12 @@ TEST_CASE("ContinuitySolver gass ball", "[solvers]") {
     REQUIRE(momentum.evaluate(*storage) == approx(mom0, 5.e-2_f));
     REQUIRE(angularMomentum.evaluate(*storage) == approx(angmom0, 1.e-1_f));
     REQUIRE(energy.evaluate(*storage) == approx(en0, 5.e-2_f));
+}
+
+TEST_CASE("ContinuitySolver gass ball", "[solvers]") {
+    solveGassBall<ContinuitySolver>();
+}
+
+TEST_CASE("SummationSolver gass ball", "[solvers]") {
+    solveGassBall<SummationSolver>();
 }

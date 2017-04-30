@@ -1,8 +1,8 @@
 #pragma once
 
-/// Generic storage and input/output routines of settings.
-/// Pavel Sevecek 2016
-/// sevecek at sirrah.troja.mff.cuni.cz
+/// \file Settings.h
+/// \brief Generic storage and input/output routines of settings.
+/// \author Pavel Sevecek 2016-2017 (sevecek at sirrah.troja.mff.cuni.cz)
 
 #include "geometry/TracelessTensor.h"
 #include "objects/wrappers/Range.h"
@@ -19,7 +19,19 @@ struct EmptySettingsTag {};
 
 const EmptySettingsTag EMPTY_SETTINGS;
 
-/// Generic object containing various settings and parameters of the run.
+/// \brief Generic object containing various settings and parameters of the run.
+///
+/// Settings is a storage containing pairs key-value objects, where key is one of predefined enums. The value
+/// can have multiple types within the same \ref Settings object. Currently following types can be stored:
+/// bool, int, float, std::string, \ref Range, \ref Vector, \ref Tensor, \ref TracelessTensor.
+///
+/// The template cannot be used directly as it is missing default values of parameters; instead
+/// specializations for specific enums should be used. The code defines two specializations:
+///     - \ref BodySettings (specialization with enum \ref BodySettingsId)
+///     - \ref RunSettings (specialization with enum \ref RunSettingsId)
+///
+/// The object can be specialized for other usages, provided static member \ref Settings::instance is created,
+/// see one of existing specializations.
 template <typename TEnum>
 class Settings {
 private:
@@ -37,6 +49,13 @@ private:
 
     static std::unique_ptr<Settings> instance;
 
+    /// Constructs settings from list of key-value pairs.
+    Settings(std::initializer_list<Entry> list) {
+        for (auto&& entry : list) {
+            entries[entry.id] = entry;
+        }
+    }
+
 public:
     /// Initialize settings by settings all value to their defaults.
     Settings()
@@ -44,12 +63,6 @@ public:
 
     /// Initialize empty settings object.
     Settings(EmptySettingsTag) {}
-
-    Settings(std::initializer_list<Entry> list) {
-        for (auto&& entry : list) {
-            entries[entry.id] = entry;
-        }
-    }
 
     /// Assigns a list of settings into the object, erasing all previous entries.
     Settings& operator=(std::initializer_list<Entry> list) {
@@ -61,6 +74,12 @@ public:
     }
 
     /// Saves a value into the settings. Any previous value of the same ID is overriden.
+    /// \tparam TValue Type of the value to be saved. Does not have to be specified, type deduction can be
+    ///                used to determine it. Must be one of types listed in object description, or enum - all
+    ///                enums are explicitly converted into int before saving. Using other types will result in
+    ///                compile error.
+    /// \param idx Key identifying the value. This key can be used to retrive the value later.
+    /// \param value Value being stored into settings.
     /// \returns Reference to the settings object, allowing to queue multiple set functions.
     template <typename TValue>
     Settings& set(const TEnum idx, TValue&& value) {
@@ -71,6 +90,10 @@ public:
 
     /// Returns a value of given type from the settings. Value must be stored in settings and must have
     /// corresponding type, checked by assert.
+    /// \tparam TValue Type of the value we wish to return. This type must match the type of the saved
+    ///                quantity.
+    /// \param idx Key of the value.
+    /// \returns Value correponsing to given key.
     template <typename TValue>
     TValue get(const TEnum idx) const {
         typename std::map<TEnum, Entry>::const_iterator iter = entries.find(idx);
@@ -80,21 +103,17 @@ public:
         return TValue(value);
     }
 
-    /// Copies a value stored in this settings to another settings object. Value of the same ID stored in
-    /// destination object is overriden. Value of given ID must be stored in this settings, checked by assert.
-    /// Works independently of value's type.
-    void copyValueTo(const TEnum idx, Settings& dest) const {
-        typename std::map<TEnum, Entry>::const_iterator iter = entries.find(idx);
-        ASSERT(iter != entries.end());
-        dest.entries[idx].value = iter->second.value;
-    }
-
     /// Saves all values stored in settings into file.
+    /// \param path Path (relative or absolute) to the file. The file will be created, any previous content
+    ///             will be overriden.
     void saveToFile(const std::string& path) const;
 
-    /// \todo split settings and descriptors? Settings actual object with values, descriptors global object
-    /// with ids, names and default values.
-    Outcome loadFromFile(const std::string& path, const Settings& descriptors);
+    /// Loads the settings from file. Previous values stored in settings are removed. The file must have a
+    /// valid settings format.
+    /// \param path Path to the file. The file must exist.
+    /// \returns Successful \ref Outcome if the settings were correctly parsed from the file, otherwise
+    /// returns encountered error.
+    Outcome loadFromFile(const std::string& path);
 
     /// Returns a reference to object containing default values of all settings.
     static const Settings& getDefaults();

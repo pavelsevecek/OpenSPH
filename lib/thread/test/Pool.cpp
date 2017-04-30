@@ -88,7 +88,7 @@ TEST_CASE("WaitForAll", "[thread]") {
         pool.submit([&taskIdx] { std::this_thread::sleep_for(std::chrono::milliseconds(50 * ++taskIdx)); });
     }
     pool.waitForAll();
-    REQUIRE(timer.elapsed<TimerUnit::MILLISECOND>() >= 50 * cnt);
+    REQUIRE(timer.elapsed(TimerUnit::MILLISECOND) >= 50 * cnt);
 }
 
 TEST_CASE("ThreadLocal", "[thread]") {

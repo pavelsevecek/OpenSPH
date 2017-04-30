@@ -58,9 +58,16 @@ private:
         ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
         ArrayView<Float> m = storage.getValue<Float>(QuantityId::MASSES);
 
+        // initialize density estimate
         rho.resize(r.size());
         rho.fill(EPS);
+
+        // initialize smoothing length to current values
         h.resize(r.size());
+        for (Size i = 0; i < r.size(); ++i) {
+            h[i] = r[i][H];
+        }
+
         Atomic<Float> totalDiff = 0._f; // we only sum few numbers, so it does not have to be thread local.
         auto functor = [this, r, m, &totalDiff](const Size n1, const Size n2, ThreadData& data) {
             Float diff = 0._f;
@@ -68,16 +75,19 @@ private:
                 /// \todo do we have to recompute neighbours in every iteration?
                 // find all neighbours
                 finder->findNeighbours(i, h[i] * kernel.radius(), data.neighs, EMPTY_FLAGS);
+                ASSERT(data.neighs.size() > 0, data.neighs.size());
                 // find density and smoothing length by self-consistent solution.
-                const Float rho0 = rho[i]; /// \todo first step has undefined rho
+                const Float rho0 = rho[i];
                 rho[i] = 0._f;
                 for (auto& n : data.neighs) {
                     const int j = n.index;
                     /// \todo can this be generally different kernel than the one used for derivatives?
                     rho[i] += m[j] * densityKernel.value(r[i] - r[j], h[i]);
                 }
+                ASSERT(rho[i] > 0._f, rho[i]);
                 h[i] = eta * root<DIMENSIONS>(m[i] / rho[i]);
-                diff += abs(rho[i] - rho0) / rho0;
+                ASSERT(h[i] > 0._f);
+                diff += abs(rho[i] - rho0) / (rho[i] + rho0);
             }
             totalDiff += diff;
         };
@@ -86,7 +96,8 @@ private:
         Size iterationIdx = 0;
         for (; iterationIdx < maxIteration; ++iterationIdx) {
             parallelFor(pool, threadData, 0, r.size(), granularity, functor);
-            if (totalDiff / r.size() < targetDensityDifference) {
+            const Float diff = totalDiff / r.size();
+            if (diff < targetDensityDifference) {
                 break;
             }
         }

@@ -21,20 +21,6 @@ TEST_CASE("Settings set/get", "[settings]") {
     REQUIRE(range == Range(1._f, 2._f));
 }
 
-TEST_CASE("Settings copyValueTo", "[settings]") {
-    Settings<BodySettingsId> settings1, settings2;
-    settings1.set(BodySettingsId::DENSITY, 100._f);
-    settings1.set(BodySettingsId::PARTICLE_COUNT, 10);
-    settings1.set(BodySettingsId::DAMAGE_RANGE, Range(2._f, 6._f));
-    settings1.set(BodySettingsId::EOS, std::string("string"));
-
-    settings1.copyValueTo(BodySettingsId::DENSITY, settings2);
-    REQUIRE(settings2.get<Float>(BodySettingsId::DENSITY) == 100._f);
-
-    settings1.copyValueTo(BodySettingsId::EOS, settings2);
-    REQUIRE(settings2.get<std::string>(BodySettingsId::EOS) == "string");
-}
-
 TEST_CASE("Settings save/load", "[settings]") {
     RunSettings settings;
     settings.set(RunSettingsId::DOMAIN_CENTER, Vector(1._f, 2._f, 3._f));
@@ -43,7 +29,7 @@ TEST_CASE("Settings save/load", "[settings]") {
     settings.saveToFile("tmp.sph");
 
     Settings<RunSettingsId> loadedSettings;
-    const Outcome result = loadedSettings.loadFromFile("tmp.sph", RunSettings::getDefaults());
+    const Outcome result = loadedSettings.loadFromFile("tmp.sph");
     if (!result) {
         StdOutLogger().write(result.error());
     }

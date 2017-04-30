@@ -29,19 +29,29 @@ public:
         new (&holder) Type(std::forward<TArgs>(rest)...);
     }
 
-    INLINE void destroy() { get().~Type(); }
+    INLINE void destroy() {
+        get().~Type();
+    }
 
     /// Implicit conversion to stored type
-    INLINE constexpr operator Type&() noexcept { return get(); }
+    INLINE constexpr operator Type&() noexcept {
+        return get();
+    }
 
     /// Implicit conversion to stored type, const version
-    INLINE constexpr operator const Type&() const noexcept { return get(); }
+    INLINE constexpr operator const Type&() const noexcept {
+        return get();
+    }
 
     /// Return the reference to the stored value.
-    INLINE constexpr Type& get() noexcept { return reinterpret_cast<Type&>(holder); }
+    INLINE constexpr Type& get() noexcept {
+        return reinterpret_cast<Type&>(holder);
+    }
 
     /// Returns the reference to the stored value, const version.
-    INLINE constexpr const Type& get() const noexcept { return reinterpret_cast<const Type&>(holder); }
+    INLINE constexpr const Type& get() const noexcept {
+        return reinterpret_cast<const Type&>(holder);
+    }
 };
 
 /// Specialization for l-value references, a simple wrapper of ReferenceWrapper with same interface to allow
@@ -63,16 +73,24 @@ public:
     // no need do explicitly destroy reference wrapper
     INLINE void destroy() {}
 
-    INLINE constexpr operator Type&() noexcept { return get(); }
+    INLINE constexpr operator Type&() noexcept {
+        return get();
+    }
 
     /// Implicit conversion to stored type, const version
-    INLINE constexpr operator const Type&() const noexcept { return get(); }
+    INLINE constexpr operator const Type&() const noexcept {
+        return get();
+    }
 
     /// Return the reference to the stored value.
-    INLINE constexpr Type& get() noexcept { return storage; }
+    INLINE constexpr Type& get() noexcept {
+        return storage;
+    }
 
     /// Returns the reference to the stored value, const version.
-    INLINE constexpr const Type& get() const noexcept { return storage; }
+    INLINE constexpr const Type& get() const noexcept {
+        return storage;
+    }
 };
 
 

@@ -46,9 +46,10 @@ void Settings<TEnum>::saveToFile(const std::string& path) const {
 }
 
 template <typename TEnum>
-Outcome Settings<TEnum>::loadFromFile(const std::string& path, const Settings& descriptors) {
+Outcome Settings<TEnum>::loadFromFile(const std::string& path) {
     std::ifstream ifs(path.c_str());
     std::string line;
+    const Settings& descriptors = getDefaults();
     while (std::getline(ifs, line, '\n')) {
         const Size idx = line.find("=", 0);
         if (idx == std::string::npos) {

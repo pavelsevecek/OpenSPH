@@ -23,7 +23,7 @@ public:
         , timestepCnt(timestepCnt) {}
 
     bool operator()(const Timer& timer, const Size timestep) {
-        if (wallclockDuraction > 0._f && timer.elapsed<TimerUnit::MILLISECOND>() > wallclockDuraction) {
+        if (wallclockDuraction > 0._f && timer.elapsed(TimerUnit::MILLISECOND) > wallclockDuraction) {
             return true;
         }
         if (timestepCnt > 0 && timestep >= timestepCnt) {
@@ -90,7 +90,7 @@ void Abstract::Run::run() {
         }
         i++;
     }
-    logger->write("Run ended after ", runTimer.elapsed<TimerUnit::SECOND>(), "s.");
+    logger->write("Run ended after ", runTimer.elapsed(TimerUnit::SECOND), "s.");
     if (result) {
         callbacks->onRunEnd(storage, stats);
     } else {

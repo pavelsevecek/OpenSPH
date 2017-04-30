@@ -10,27 +10,28 @@
 
 NAMESPACE_SPH_BEGIN
 
-/// Dummy term to make sure acceleration is being accumulated
-struct DummyAcceleration : public Abstract::EquationTerm {
-    struct DummyDerivative : public Abstract::Derivative {
-        virtual void create(Accumulated& results) {
-            results.insert<Vector>(QuantityId::POSITIONS);
-        }
-        virtual void initialize(const Storage&, Accumulated&) override {}
-        virtual void compute(const Size, ArrayView<const Size>, ArrayView<const Vector>) override {}
-    };
-
-    virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override {
-        derivatives.require<DummyDerivative>(settings);
-    }
-    virtual void initialize(Storage&) override {}
-    virtual void finalize(Storage&) override {}
-    virtual void create(Storage&, Abstract::Material&) const override {}
-};
 
 class GravitySolver : public GenericSolver {
 private:
     SymmetrizeValues<GravityLutKernel> gravityKernel;
+
+    /// Dummy term to make sure acceleration is being accumulated
+    struct DummyAcceleration : public Abstract::EquationTerm {
+        struct DummyDerivative : public Abstract::Derivative {
+            virtual void create(Accumulated& results) {
+                results.insert<Vector>(QuantityId::POSITIONS);
+            }
+            virtual void initialize(const Storage&, Accumulated&) override {}
+            virtual void compute(const Size, ArrayView<const Size>, ArrayView<const Vector>) override {}
+        };
+
+        virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override {
+            derivatives.require<DummyDerivative>(settings);
+        }
+        virtual void initialize(Storage&) override {}
+        virtual void finalize(Storage&) override {}
+        virtual void create(Storage&, Abstract::Material&) const override {}
+    };
 
 public:
     GravitySolver(const RunSettings& settings, EquationHolder&& equations)

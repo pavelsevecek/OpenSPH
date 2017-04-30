@@ -16,7 +16,9 @@ namespace Tests {
     /// Returns a storage with ideal gas particles, having pressure, energy and sound speed.
     Storage getGassStorage(const Size particleCnt,
         BodySettings settings = BodySettings::getDefaults(),
-        const Float radius = 1._f);
+        const Float radius = 1._f,
+        const Float rho0 = 1._f,
+        const Float u0 = 1._f);
 
     /// Computes velocity derivatives for given set of equations. Velocity field is defined by given
     /// lambda.

@@ -4,26 +4,33 @@
 /// Pavel Sevecek 2016
 /// sevecek at sirrah.troja.mff.cuni.cz
 
-#include "geometry/Vector.h"
 #include "common/ForwardDecl.h"
+#include "geometry/Vector.h"
 #include "objects/containers/Array.h"
 #include <memory>
 
 NAMESPACE_SPH_BEGIN
 
-/// Base object providing integration in time for all quantities.
-///
-/// The integration is done by iterating with discrete time step, using step() method. All derived objects
-/// must implement step() function, which iterates over all independant quantities and advances their values
-/// using temporal derivatives computed by Abstract::Model passed in argument of the method.
-///
-/// The time-stepping object must take care of clearing derivatives, as there can be values from previous
-/// timestep, or some garbage memory when the method is called for the first time. It is also necessary to
-/// clamp all quantities by their minimal/maximal allowed values.
-///
-/// When solver->compute is called, the storage passed as an argument MUST have zero highest order
-/// derivatives.
+
 namespace Abstract {
+    /// \brief Base object providing integration in time for all quantities.
+    ///
+    /// The integration is done by iterating with discrete time step, using \ref step method. All derived
+    /// objects must implement \ref stepImpl function, which iterates over all independant quantities and
+    /// advances their values using temporal derivatives computed by \ref Abstract::Model passed in argument
+    /// of the method. The \ref step function then calls the user-defined \ref stepImpl while also doing more
+    /// legwork, such as saving statistics and computing new value of time step. Function \ref stepImpl can
+    /// also save statistics specific to the implementation to provided \ref Statistics object, but shall not
+    /// compute the time step value. To control time step, see \ref TimeStepCriterion and derived classes.
+    ///
+    /// The time-stepping object must take care of clearing derivatives, as there can be values from previous
+    /// timestep, or some garbage memory when the method is called for the first time. It is also necessary to
+    /// clamp all quantities by their minimal/maximal allowed values. These values can be different for
+    /// different materials; the range of quantity for given \ref Abstract::Material object can be obtained by
+    /// \ref Abstract::Material::range() const function.
+    ///
+    /// Temporal derivatives are computed by calling \ref Abstract::Solver::integrate function. The solver
+    /// assumes the storage already has zeroed highest-order derivatives of all quantities.
     class TimeStepping : public Polymorphic {
     protected:
         std::shared_ptr<Storage> storage;
@@ -36,7 +43,9 @@ namespace Abstract {
 
         virtual ~TimeStepping();
 
-        INLINE Float getTimeStep() const { return dt; }
+        INLINE Float getTimeStep() const {
+            return dt;
+        }
 
         void step(Abstract::Solver& solver, Statistics& stats);
 

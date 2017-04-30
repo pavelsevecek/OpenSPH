@@ -30,19 +30,6 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *************************************************************************/
 
-/** \mainpage nanoflann C++ API documentation
-  *  nanoflann is a C++ header-only library for building KD-Trees, mostly
-  *  optimized for 2D or 3D point clouds.
-  *
-  *  nanoflann does not require compiling or installing, just an
-  *  #include <nanoflann.hpp> in your code.
-  *
-  *  See:
-  *   - <a href="modules.html" >C++ API organized by modules</a>
-  *   - <a href="https://github.com/jlblancoc/nanoflann" >Online README</a>
-  *   - <a href="http://jlblancoc.github.io/nanoflann/" >Doxygen documentation</a>
-  */
-
 #ifndef NANOFLANN_HPP_
 #define NANOFLANN_HPP_
 
@@ -90,15 +77,19 @@ namespace Sph {
 
         inline void init(IndexType* indices_, DistanceType* dists_) {
             indices = indices_;
-            dists   = dists_;
-            count   = 0;
+            dists = dists_;
+            count = 0;
             if (capacity)
                 dists[capacity - 1] = (std::numeric_limits<DistanceType>::max)();
         }
 
-        inline CountType size() const { return count; }
+        inline CountType size() const {
+            return count;
+        }
 
-        inline bool full() const { return count == capacity; }
+        inline bool full() const {
+            return count == capacity;
+        }
 
 
         inline void addPoint(DistanceType dist, IndexType index) {
@@ -111,21 +102,23 @@ namespace Sph {
                 if (dists[i - 1] > dist) {
 #endif
                     if (i < capacity) {
-                        dists[i]   = dists[i - 1];
+                        dists[i] = dists[i - 1];
                         indices[i] = indices[i - 1];
                     }
                 } else
                     break;
             }
             if (i < capacity) {
-                dists[i]   = dist;
+                dists[i] = dist;
                 indices[i] = index;
             }
             if (count < capacity)
                 count++;
         }
 
-        inline DistanceType worstDist() const { return dists[capacity - 1]; }
+        inline DistanceType worstDist() const {
+            return dists[capacity - 1];
+        }
     };
 
 
@@ -147,19 +140,29 @@ namespace Sph {
 
         inline ~RadiusResultSet() {}
 
-        inline void init() { clear(); }
-        inline void clear() { m_indices_dists.clear(); }
+        inline void init() {
+            clear();
+        }
+        inline void clear() {
+            m_indices_dists.clear();
+        }
 
-        inline Size size() const { return m_indices_dists.size(); }
+        inline Size size() const {
+            return m_indices_dists.size();
+        }
 
-        inline bool full() const { return true; }
+        inline bool full() const {
+            return true;
+        }
 
         inline void addPoint(DistanceType dist, IndexType index) {
             if (dist < radius)
                 m_indices_dists.push(NeighbourRecord{ index, dist });
         }
 
-        inline DistanceType worstDist() const { return radius; }
+        inline DistanceType worstDist() const {
+            return radius;
+        }
 
         /** Clears the result set and adjusts the search radius. */
         inline void set_radius_and_clear(const DistanceType r) {
@@ -250,13 +253,13 @@ namespace Sph {
             : data_source(_data_source) {}
 
         inline DistanceType operator()(const T* a,
-                                       const Size b_idx,
-                                       Size size,
-                                       DistanceType worst_dist = -1) const {
+            const Size b_idx,
+            Size size,
+            DistanceType worst_dist = -1) const {
             DistanceType result = DistanceType();
-            const T* last       = a + size;
-            const T* lastgroup  = last - 3;
-            Size d            = 0;
+            const T* last = a + size;
+            const T* lastgroup = last - 3;
+            Size d = 0;
 
             /* Process 4 items with each loop for efficiency. */
             while (a < lastgroup) {
@@ -299,13 +302,13 @@ namespace Sph {
             : data_source(_data_source) {}
 
         inline DistanceType operator()(const T* a,
-                                       const Size b_idx,
-                                       Size size,
-                                       DistanceType worst_dist = -1) const {
+            const Size b_idx,
+            Size size,
+            DistanceType worst_dist = -1) const {
             DistanceType result = DistanceType();
-            const T* last       = a + size;
-            const T* lastgroup  = last - 3;
-            Size d            = 0;
+            const T* last = a + size;
+            const T* lastgroup = last - 3;
+            Size d = 0;
 
             /* Process 4 items with each loop for efficiency. */
             while (a < lastgroup) {
@@ -442,7 +445,7 @@ namespace Sph {
      *
      */
 
-    const Size WORDSIZE  = 16;
+    const Size WORDSIZE = 16;
     const Size BLOCKSIZE = 8192;
 
     class PooledAllocator {
@@ -453,13 +456,13 @@ namespace Sph {
 
 
         Size remaining; /* Number of bytes left in current block of storage. */
-        void* base;       /* Pointer to base of current block of storage. */
-        void* loc;        /* Current location in block to next allocate memory. */
+        void* base;     /* Pointer to base of current block of storage. */
+        void* loc;      /* Current location in block to next allocate memory. */
 
         void internal_init() {
-            remaining    = 0;
-            base         = NULL;
-            usedMemory   = 0;
+            remaining = 0;
+            base = NULL;
+            usedMemory = 0;
             wastedMemory = 0;
         }
 
@@ -470,12 +473,16 @@ namespace Sph {
         /**
             Default constructor. Initializes a new pool.
          */
-        PooledAllocator() { internal_init(); }
+        PooledAllocator() {
+            internal_init();
+        }
 
         /**
          * Destructor. Frees all the memory allocated in this pool.
          */
-        ~PooledAllocator() { free_all(); }
+        ~PooledAllocator() {
+            free_all();
+        }
 
         /** Frees all allocated memory chunks */
         void free_all() {
@@ -507,8 +514,8 @@ namespace Sph {
 
                 /* Allocate new storage. */
                 const Size blocksize = (size + sizeof(void*) + (WORDSIZE - 1) > BLOCKSIZE)
-                                             ? size + sizeof(void*) + (WORDSIZE - 1)
-                                             : BLOCKSIZE;
+                                           ? size + sizeof(void*) + (WORDSIZE - 1)
+                                           : BLOCKSIZE;
 
                 // use the standard C malloc to allocate memory
                 void* m = ::malloc(blocksize);
@@ -519,16 +526,16 @@ namespace Sph {
 
                 /* Fill first word of new block with pointer to previous block. */
                 static_cast<void**>(m)[0] = base;
-                base                      = m;
+                base = m;
 
                 Size shift = 0;
                 // int size_t = (WORDSIZE - ( (((size_t)m) + sizeof(void*)) & (WORDSIZE-1))) & (WORDSIZE-1);
 
                 remaining = blocksize - sizeof(void*) - shift;
-                loc       = (static_cast<char*>(m) + sizeof(void*) + shift);
+                loc = (static_cast<char*>(m) + sizeof(void*) + shift);
             }
             void* rloc = loc;
-            loc        = static_cast<char*>(loc) + size;
+            loc = static_cast<char*>(loc) + size;
             remaining -= size;
 
             usedMemory += size;
@@ -597,10 +604,18 @@ namespace Sph {
         typedef std::ptrdiff_t difference_type;
 
         // iterator support
-        inline iterator begin() { return elems; }
-        inline const_iterator begin() const { return elems; }
-        inline iterator end() { return elems + N; }
-        inline const_iterator end() const { return elems + N; }
+        inline iterator begin() {
+            return elems;
+        }
+        inline const_iterator begin() const {
+            return elems;
+        }
+        inline iterator end() {
+            return elems + N;
+        }
+        inline const_iterator end() const {
+            return elems + N;
+        }
 
 // reverse iterator support
 #if !defined(BOOST_NO_TEMPLATE_PARTIAL_SPECIALIZATION) && !defined(BOOST_MSVC_STD_ITERATOR) &&               \
@@ -622,13 +637,25 @@ namespace Sph {
     typedef std::reverse_iterator<const_iterator, T> const_reverse_iterator;
 #endif
 
-        reverse_iterator rbegin() { return reverse_iterator(end()); }
-        const_reverse_iterator rbegin() const { return const_reverse_iterator(end()); }
-        reverse_iterator rend() { return reverse_iterator(begin()); }
-        const_reverse_iterator rend() const { return const_reverse_iterator(begin()); }
+        reverse_iterator rbegin() {
+            return reverse_iterator(end());
+        }
+        const_reverse_iterator rbegin() const {
+            return const_reverse_iterator(end());
+        }
+        reverse_iterator rend() {
+            return reverse_iterator(begin());
+        }
+        const_reverse_iterator rend() const {
+            return const_reverse_iterator(begin());
+        }
         // operator[]
-        inline reference operator[](size_type i) { return elems[i]; }
-        inline const_reference operator[](size_type i) const { return elems[i]; }
+        inline reference operator[](size_type i) {
+            return elems[i];
+        }
+        inline const_reference operator[](size_type i) const {
+            return elems[i];
+        }
         // at() with range check
         reference at(size_type i) {
             rangecheck(i);
@@ -639,14 +666,28 @@ namespace Sph {
             return elems[i];
         }
         // front() and back()
-        reference front() { return elems[0]; }
-        const_reference front() const { return elems[0]; }
-        reference back() { return elems[N - 1]; }
-        const_reference back() const { return elems[N - 1]; }
+        reference front() {
+            return elems[0];
+        }
+        const_reference front() const {
+            return elems[0];
+        }
+        reference back() {
+            return elems[N - 1];
+        }
+        const_reference back() const {
+            return elems[N - 1];
+        }
         // size is constant
-        static inline size_type size() { return N; }
-        static bool empty() { return false; }
-        static size_type max_size() { return N; }
+        static inline size_type size() {
+            return N;
+        }
+        static bool empty() {
+            return false;
+        }
+        static size_type max_size() {
+            return N;
+        }
         enum { static_size = N };
         /** This method has no effects in this class, but raises an exception if the expected size does not
          * match */
@@ -655,11 +696,17 @@ namespace Sph {
                 throw std::logic_error("Try to change the size of a CArray.");
         }
         // swap (note: linear complexity in N, constant for given instantiation)
-        void swap(CArray<T, N>& y) { std::swap_ranges(begin(), end(), y.begin()); }
+        void swap(CArray<T, N>& y) {
+            std::swap_ranges(begin(), end(), y.begin());
+        }
         // direct access to data (read-only)
-        const T* data() const { return elems; }
+        const T* data() const {
+            return elems;
+        }
         // use array as C array (direct read/write access to data)
-        T* data() { return elems; }
+        T* data() {
+            return elems;
+        }
         // assignment with type conversion
         template <typename T2>
         CArray<T, N>& operator=(const CArray<T2, N>& rhs) {
@@ -669,13 +716,13 @@ namespace Sph {
         // assign one value to all elements
         inline void assign(const T& value) {
             for (Size i = 0; i < N; i++)
-                elems[i]  = value;
+                elems[i] = value;
         }
         // assign (compatible with Array's one) (by JLBC for MRPT)
         void assign(const Size n, const T& value) {
             assert(N == n);
             for (Size i = 0; i < N; i++)
-                elems[i]  = value;
+                elems[i] = value;
         }
 
     private:
@@ -770,7 +817,7 @@ namespace Sph {
 
         Size m_size;                //!< Number of current poins in the dataset
         Size m_size_at_index_build; //!< Number of points in the dataset when the index was built
-        int dim;                      //!< Dimensionality of each data point
+        int dim;                    //!< Dimensionality of each data point
 
 
         /*--------------------- Internal Data Structures --------------------------*/
@@ -830,19 +877,18 @@ namespace Sph {
          * @param inputData Dataset with the input features
          * @param params Basically, the maximum leaf node size
          */
-        KDTreeSingleIndexAdaptor(
-            const int dimensionality,
+        KDTreeSingleIndexAdaptor(const int dimensionality,
             const DatasetAdaptor& inputData,
             const KDTreeSingleIndexAdaptorParams& params = KDTreeSingleIndexAdaptorParams())
             : dataset(inputData)
             , index_params(params)
             , root_node(NULL)
             , distance(inputData) {
-            m_size                = dataset.kdtree_get_point_count();
+            m_size = dataset.kdtree_get_point_count();
             m_size_at_index_build = m_size;
-            dim                   = dimensionality;
+            dim = dimensionality;
             if (DIM > 0)
-                dim         = DIM;
+                dim = DIM;
             m_leaf_max_size = params.leaf_max_size;
 
             // Create a permutable array of indices to the input vectors.
@@ -855,7 +901,7 @@ namespace Sph {
         /** Frees the previously-built index. Automatically called within buildIndex(). */
         void freeIndex() {
             pool.free_all();
-            root_node             = NULL;
+            root_node = NULL;
             m_size_at_index_build = 0;
         }
 
@@ -873,10 +919,14 @@ namespace Sph {
         }
 
         /** Returns number of points in dataset  */
-        Size size() const { return m_size; }
+        Size size() const {
+            return m_size;
+        }
 
         /** Returns the length of each point in the dataset */
-        Size veclen() const { return static_cast<Size>(DIM > 0 ? DIM : dim); }
+        Size veclen() const {
+            return static_cast<Size>(DIM > 0 ? DIM : dim);
+        }
 
         /**
          * Computes the inde memory usage
@@ -927,10 +977,10 @@ namespace Sph {
          * \note nChecks_IGNORED is ignored but kept for compatibility with the original FLANN interface.
          */
         inline void knnSearch(const ElementType* query_point,
-                              const Size num_closest,
-                              IndexType* out_indices,
-                              DistanceType* out_distances_sq,
-                              const int /* nChecks_IGNORED */ = 10) const {
+            const Size num_closest,
+            IndexType* out_indices,
+            DistanceType* out_distances_sq,
+            const int /* nChecks_IGNORED */ = 10) const {
             KNNResultSet<DistanceType, IndexType> resultSet(num_closest);
             resultSet.init(out_indices, out_distances_sq);
             this->findNeighbors(resultSet, query_point, SearchParams());
@@ -951,9 +1001,9 @@ namespace Sph {
          * \return The number of points within the given radius (i.e. indices.size() or dists.size() )
          */
         Size radiusSearch(const Vector& query_point,
-                            const DistanceType& radius,
-                            Array<NeighbourRecord>& IndicesDists,
-                            const SearchParams& searchParams) const {
+            const DistanceType& radius,
+            Array<NeighbourRecord>& IndicesDists,
+            const SearchParams& searchParams) const {
             RadiusResultSet<DistanceType, IndexType> resultSet(radius, IndicesDists);
             const Size nFound = radiusSearchCustomCallback(query_point, resultSet, searchParams);
             if (searchParams.sorted)
@@ -969,8 +1019,8 @@ namespace Sph {
          */
         template <class SEARCH_CALLBACK>
         Size radiusSearchCustomCallback(const Vector& query_point,
-                                          SEARCH_CALLBACK& resultSet,
-                                          const SearchParams& searchParams = SearchParams()) const {
+            SEARCH_CALLBACK& resultSet,
+            const SearchParams& searchParams = SearchParams()) const {
             this->findNeighbors(resultSet, query_point, searchParams);
             return resultSet.size();
         }
@@ -986,7 +1036,7 @@ namespace Sph {
             if (Size(vind.size()) != m_size)
                 vind.resize(m_size);
             for (Size i = 0; i < m_size; i++)
-                vind[i]   = i;
+                vind[i] = i;
         }
 
         /// Helper accessor to the dataset points:
@@ -1055,12 +1105,12 @@ namespace Sph {
             /* If too few exemplars remain, then make this a leaf node. */
             if ((right - left) <= static_cast<IndexType>(m_leaf_max_size)) {
                 node->child1 = node->child2 = NULL; /* Mark as leaf node. */
-                node->node_type.lr.left     = left;
-                node->node_type.lr.right    = right;
+                node->node_type.lr.left = left;
+                node->node_type.lr.right = right;
 
                 // compute bounding-box of leaf points
                 for (int i = 0; i < (DIM > 0 ? DIM : dim); ++i) {
-                    bbox[i].low  = dataset_get(vind[left], i);
+                    bbox[i].low = dataset_get(vind[left], i);
                     bbox[i].high = dataset_get(vind[left], i);
                 }
                 for (IndexType k = left + 1; k < right; ++k) {
@@ -1081,17 +1131,17 @@ namespace Sph {
 
                 BoundingBox left_bbox(bbox);
                 left_bbox[cutfeat].high = cutval;
-                node->child1            = divideTree(left, left + idx, left_bbox);
+                node->child1 = divideTree(left, left + idx, left_bbox);
 
                 BoundingBox right_bbox(bbox);
                 right_bbox[cutfeat].low = cutval;
-                node->child2            = divideTree(left + idx, right, right_bbox);
+                node->child2 = divideTree(left + idx, right, right_bbox);
 
-                node->node_type.sub.divlow  = left_bbox[cutfeat].high;
+                node->node_type.sub.divlow = left_bbox[cutfeat].high;
                 node->node_type.sub.divhigh = right_bbox[cutfeat].low;
 
                 for (int i = 0; i < (DIM > 0 ? DIM : dim); ++i) {
-                    bbox[i].low  = std::min(left_bbox[i].low, right_bbox[i].low);
+                    bbox[i].low = std::min(left_bbox[i].low, right_bbox[i].low);
                     bbox[i].high = std::max(left_bbox[i].high, right_bbox[i].high);
                 }
             }
@@ -1101,10 +1151,10 @@ namespace Sph {
 
 
         void computeMinMax(IndexType* ind,
-                           IndexType count,
-                           int element,
-                           ElementType& min_elem,
-                           ElementType& max_elem) {
+            IndexType count,
+            int element,
+            ElementType& min_elem,
+            ElementType& max_elem) {
             min_elem = dataset_get(ind[0], element);
             max_elem = dataset_get(ind[0], element);
             for (IndexType i = 1; i < count; ++i) {
@@ -1117,13 +1167,13 @@ namespace Sph {
         }
 
         void middleSplit_(IndexType* ind,
-                          IndexType count,
-                          IndexType& index,
-                          int& cutfeat,
-                          DistanceType& cutval,
-                          const BoundingBox& bbox) {
+            IndexType count,
+            IndexType& index,
+            int& cutfeat,
+            DistanceType& cutval,
+            const BoundingBox& bbox) {
             const DistanceType EPS = static_cast<DistanceType>(0.00001);
-            ElementType max_span   = bbox[0].high - bbox[0].low;
+            ElementType max_span = bbox[0].high - bbox[0].low;
             for (int i = 1; i < (DIM > 0 ? DIM : dim); ++i) {
                 ElementType span = bbox[i].high - bbox[i].low;
                 if (span > max_span) {
@@ -1131,7 +1181,7 @@ namespace Sph {
                 }
             }
             ElementType max_spread = -1;
-            cutfeat                = 0;
+            cutfeat = 0;
             for (int i = 0; i < (DIM > 0 ? DIM : dim); ++i) {
                 ElementType span = bbox[i].high - bbox[i].low;
                 if (span > (1 - EPS) * max_span) {
@@ -1140,7 +1190,7 @@ namespace Sph {
                     ElementType spread = max_elem - min_elem;
                     ;
                     if (spread > max_spread) {
-                        cutfeat    = i;
+                        cutfeat = i;
                         max_spread = spread;
                     }
                 }
@@ -1179,13 +1229,13 @@ namespace Sph {
          *  dataset[ind[lim2..count]][cutfeat]>cutval
          */
         void planeSplit(IndexType* ind,
-                        const IndexType count,
-                        int cutfeat,
-                        DistanceType& cutval,
-                        IndexType& lim1,
-                        IndexType& lim2) {
+            const IndexType count,
+            int cutfeat,
+            DistanceType& cutval,
+            IndexType& lim1,
+            IndexType& lim2) {
             /* Move vector indices for left subtree to front of list. */
-            IndexType left  = 0;
+            IndexType left = 0;
             IndexType right = count - 1;
             for (;;) {
                 while (left <= right && dataset_get(ind[left], cutfeat) < cutval)
@@ -1201,7 +1251,7 @@ namespace Sph {
             /* If either list is empty, it means that all remaining features
              * are identical. Split in the middle to maintain a balanced tree.
              */
-            lim1  = left;
+            lim1 = left;
             right = count - 1;
             for (;;) {
                 while (left <= right && dataset_get(ind[left], cutfeat) <= cutval)
@@ -1240,11 +1290,11 @@ namespace Sph {
          */
         template <class RESULTSET>
         void searchLevel(RESULTSET& result_set,
-                         const Vector& vec,
-                         const NodePtr node,
-                         DistanceType mindistsq,
-                         distance_vector_t& dists,
-                         const float epsError) const {
+            const Vector& vec,
+            const NodePtr node,
+            DistanceType mindistsq,
+            distance_vector_t& dists,
+            const float epsError) const {
             /* If this is a leaf node, then do check and return. */
             if ((node->child1 == NULL) && (node->child2 == NULL)) {
                 // count_leaf += (node->lr.right-node->lr.left);  // Removed since was neither used nor
@@ -1252,7 +1302,7 @@ namespace Sph {
                 DistanceType worst_dist = result_set.worstDist();
                 for (IndexType i = node->node_type.lr.left; i < node->node_type.lr.right; ++i) {
                     const IndexType index = vind[i]; // reorder... : i;
-                    DistanceType dist     = distance(vec, index, (DIM > 0 ? DIM : dim));
+                    DistanceType dist = distance(vec, index, (DIM > 0 ? DIM : dim));
                     if (dist < worst_dist) {
                         result_set.addPoint(dist, vind[i]);
                     }
@@ -1261,8 +1311,8 @@ namespace Sph {
             }
 
             /* Which child branch should be taken first? */
-            int idx            = node->node_type.sub.divfeat;
-            ElementType val    = vec[idx];
+            int idx = node->node_type.sub.divfeat;
+            ElementType val = vec[idx];
             DistanceType diff1 = val - node->node_type.sub.divlow;
             DistanceType diff2 = val - node->node_type.sub.divhigh;
 
@@ -1270,21 +1320,21 @@ namespace Sph {
             NodePtr otherChild;
             DistanceType cut_dist;
             if ((diff1 + diff2) < 0) {
-                bestChild  = node->child1;
+                bestChild = node->child1;
                 otherChild = node->child2;
-                cut_dist   = distance.accum_dist(val, node->node_type.sub.divhigh, idx);
+                cut_dist = distance.accum_dist(val, node->node_type.sub.divhigh, idx);
             } else {
-                bestChild  = node->child2;
+                bestChild = node->child2;
                 otherChild = node->child1;
-                cut_dist   = distance.accum_dist(val, node->node_type.sub.divlow, idx);
+                cut_dist = distance.accum_dist(val, node->node_type.sub.divlow, idx);
             }
 
             /* Call recursively to search next level down. */
             searchLevel(result_set, vec, bestChild, mindistsq, dists, epsError);
 
             DistanceType dst = dists[idx];
-            mindistsq        = mindistsq + cut_dist - dst;
-            dists[idx]       = cut_dist;
+            mindistsq = mindistsq + cut_dist - dst;
+            dists[idx] = cut_dist;
             if (mindistsq * epsError <= result_set.worstDist()) {
                 searchLevel(result_set, vec, otherChild, mindistsq, dists, epsError);
             }
@@ -1356,8 +1406,8 @@ namespace Sph {
 
         /// Constructor: takes a const ref to the matrix object with the data points
         KDTreeEigenMatrixAdaptor(const int dimensionality,
-                                 const MatrixType& mat,
-                                 const int leaf_max_size = 10)
+            const MatrixType& mat,
+            const int leaf_max_size = 10)
             : m_data_matrix(mat) {
             const IndexType dims = mat.cols();
             if (dims != dimensionality)
@@ -1374,7 +1424,9 @@ namespace Sph {
         KDTreeEigenMatrixAdaptor(const self_t&);
 
     public:
-        ~KDTreeEigenMatrixAdaptor() { delete index; }
+        ~KDTreeEigenMatrixAdaptor() {
+            delete index;
+        }
 
         const MatrixType& m_data_matrix;
 
@@ -1384,10 +1436,10 @@ namespace Sph {
           * \note nChecks_IGNORED is ignored but kept for compatibility with the original FLANN interface.
           */
         inline void query(const num_t* query_point,
-                          const Size num_closest,
-                          IndexType* out_indices,
-                          num_t* out_distances_sq,
-                          const int /* nChecks_IGNORED */ = 10) const {
+            const Size num_closest,
+            IndexType* out_indices,
+            num_t* out_distances_sq,
+            const int /* nChecks_IGNORED */ = 10) const {
             KNNResultSet<num_t, IndexType> resultSet(num_closest);
             resultSet.init(out_indices, out_distances_sq);
             index->findNeighbors(resultSet, query_point, SearchParams());
@@ -1396,11 +1448,17 @@ namespace Sph {
         /** @name Interface expected by KDTreeSingleIndexAdaptor
           * @{ */
 
-        const self_t& derived() const { return *this; }
-        self_t& derived() { return *this; }
+        const self_t& derived() const {
+            return *this;
+        }
+        self_t& derived() {
+            return *this;
+        }
 
         // Must return the number of data points
-        inline Size kdtree_get_point_count() const { return m_data_matrix.rows(); }
+        inline Size kdtree_get_point_count() const {
+            return m_data_matrix.rows();
+        }
 
         // Returns the L2 distance between the vector "p1[0:size-1]" and the data point with index "idx_p2"
         // stored in the class:

@@ -29,7 +29,7 @@ void Abstract::TimeStepping::step(Abstract::Solver& solver, Statistics& stats) {
     }
     stats.set(StatisticsId::TIMESTEP_VALUE, dt);
     stats.set(StatisticsId::TIMESTEP_CRITERION, criterion);
-    stats.set(StatisticsId::TIMESTEP_ELAPSED, int(timer.elapsed<TimerUnit::MILLISECOND>()));
+    stats.set(StatisticsId::TIMESTEP_ELAPSED, int(timer.elapsed(TimerUnit::MILLISECOND)));
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////

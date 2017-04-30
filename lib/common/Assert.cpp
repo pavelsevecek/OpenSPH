@@ -2,6 +2,7 @@
 #include "io/Logger.h"
 #include "system/Platform.h"
 #include <assert.h>
+#include <mutex>
 #include <signal.h>
 
 NAMESPACE_SPH_BEGIN
@@ -18,6 +19,8 @@ void Assert::check(const bool condition,
     if (condition) {
         return;
     }
+    static std::mutex mutex;
+    std::unique_lock<std::mutex> lock(mutex);
     if (breakOnFail) {
         StdOutLogger logger;
         logger.write("=============================================================================");

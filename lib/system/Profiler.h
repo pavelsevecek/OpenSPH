@@ -1,6 +1,7 @@
 #pragma once
 
 #include "system/Timer.h"
+#include <atomic>
 #include <map>
 #include <memory>
 
@@ -23,7 +24,7 @@ public:
         , callback(callback) {}
 
     ~ScopedTimer() {
-        callback(name, impl.elapsed<TimerUnit::MICROSECOND>());
+        callback(name, impl.elapsed(TimerUnit::MICROSECOND));
     }
 
     void stop() {
@@ -35,7 +36,7 @@ public:
     }
 
     void next(const std::string& newName) {
-        callback(name, impl.elapsed<TimerUnit::MICROSECOND>());
+        callback(name, impl.elapsed(TimerUnit::MICROSECOND));
         impl.restart();
         name = newName;
     }
