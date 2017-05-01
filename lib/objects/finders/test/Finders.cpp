@@ -1,12 +1,15 @@
 #include "catch.hpp"
 #include "geometry/Domain.h"
+#include "io/Logger.h"
 #include "objects/containers/ArrayUtils.h"
 #include "objects/finders/BruteForce.h"
 #include "objects/finders/KdTree.h"
 #include "objects/finders/LinkedList.h"
+#include "objects/finders/Octree.h"
 #include "objects/finders/Voxel.h"
 #include "objects/wrappers/Range.h"
 #include "sph/initial/Distribution.h"
+#include "system/Profiler.h"
 #include "utils/Approx.h"
 #include "utils/SequenceTest.h"
 
@@ -94,10 +97,14 @@ void testFinderSmallerH(Abstract::Finder& finder) {
 }
 
 TEST_CASE("KdTree", "[finders]") {
+    Profiler* profiler = Profiler::getInstance();
+    profiler->clear();
     KdTree finder;
     testFinder(finder, EMPTY_FLAGS);
     testFinder(finder, FinderFlags::FIND_ONLY_SMALLER_H);
     testFinderSmallerH(finder);
+    StdOutLogger logger;
+    profiler->printStatistics(logger);
 }
 
 /*TEST_CASE("LinkedList", "[finders]") {
@@ -107,8 +114,31 @@ TEST_CASE("KdTree", "[finders]") {
 }*/
 
 TEST_CASE("VoxelFinder", "[finders]") {
+    Profiler* profiler = Profiler::getInstance();
+    profiler->clear();
     VoxelFinder finder;
     testFinder(finder, EMPTY_FLAGS);
     testFinder(finder, FinderFlags::FIND_ONLY_SMALLER_H);
     testFinderSmallerH(finder);
+    StdOutLogger logger;
+    profiler->printStatistics(logger);
+}
+
+TEST_CASE("Octree", "[finders]") {
+    Profiler* profiler = Profiler::getInstance();
+    profiler->clear();
+    Octree finder;
+    testFinder(finder, EMPTY_FLAGS);
+    testFinder(finder, FinderFlags::FIND_ONLY_SMALLER_H);
+    testFinderSmallerH(finder);
+    StdOutLogger logger;
+    profiler->printStatistics(logger);
+
+    HexagonalPacking distr;
+    SphericalDomain domain(Vector(0._f), 2._f);
+    Array<Vector> storage = distr.generate(1000, domain);
+    finder.build(storage);
+    Size cnt = 0;
+    finder.enumerateChildren([&cnt](OctreeNode& node) { cnt += node.points.size(); });
+    REQUIRE(cnt == storage.size());
 }

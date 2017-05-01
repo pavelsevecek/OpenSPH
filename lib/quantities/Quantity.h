@@ -1,5 +1,10 @@
 #pragma once
 
+/// \file QuantityId.h
+/// \brief Holder of quantity values and their temporal derivatives
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2017
+
 #include "objects/containers/Array.h"
 #include "objects/wrappers/Flags.h"
 #include "objects/wrappers/Variant.h"

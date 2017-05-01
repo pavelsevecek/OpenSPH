@@ -1,15 +1,15 @@
 #pragma once
 
+/// \file DensityIndependentSolver.h
+/// \brief Density-independent formulation of SPH
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz
+/// \date 2016-2017
+
 #include "solvers/EquationTerm.h"
 #include "solvers/GenericSolver.h"
 #include "sph/av/Standard.h"
 
 NAMESPACE_SPH_BEGIN
-
-/// Uses solver of Saitoh & Makino (2013). Instead of density and specific energy, independent variables are
-/// energy density (q) and internal energy of i-th particle (U). Otherwise, the solver is similar to
-/// SummationSolver; the energy density is computed using direct summation by self-consistent solution with
-/// smoothing length. Works only for ideal gas EoS!
 
 class DensityIndependentPressureForce : public Abstract::EquationTerm {
 private:
@@ -112,6 +112,7 @@ public:
         storage.insert<Float>(QuantityId::ENERGY, OrderEnum::ZERO, u0);
 
         EosMaterial& eos = dynamic_cast<EosMaterial&>(material);
+        ASSERT(dynamic_cast<const IdealGasEos*>(&eos.getEos()));
         Float p0, cs0;
         tie(p0, cs0) = eos.evaluate(rho0, u0);
         storage.insert<Float>(QuantityId::SOUND_SPEED, OrderEnum::ZERO, cs0);
@@ -119,6 +120,15 @@ public:
     }
 };
 
+
+/// \brief Density-independent SPH solver
+///
+/// Uses solver of Saitoh & Makino \cite Saitoh_Makino_2013. Instead of density and specific energy,
+/// independent variables are energy density (q) and internal energy of i-th particle (U). Otherwise, the
+/// solver is similar to \ref SummationSolver; the energy density is computed using direct summation by
+/// self-consistent solution with smoothing length.
+///
+/// \attention Works only for ideal gas EoS!
 class DensityIndependentSolver : public GenericSolver {
 private:
     LutKernel<DIMENSIONS> energyKernel;

@@ -35,6 +35,9 @@ public:
     /// \returns Computed pressure and sound speed as pair.
     Pair<Float> evaluate(const Float rho, const Float u) const;
 
+    /// Returns the equation of state.
+    const Abstract::Eos& getEos() const;
+
     virtual void create(Storage& storage) const override;
 
     virtual void initialize(Storage& storage, const MaterialSequence sequence) override;

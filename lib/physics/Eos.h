@@ -39,7 +39,7 @@ public:
     Float getTemperature(const Float u) const;
 };
 
-/// Tillotson equation of state (Tillotson, 1962)
+/// Tillotson equation of state \cite Tillotson_1962
 class TillotsonEos : public Abstract::Eos {
 private:
     Float u0;
@@ -58,6 +58,7 @@ public:
 
     virtual Pair<Float> evaluate(const Float rho, const Float u) const override;
 
+    /// Currently not implemented.
     virtual Float getInternalEnergy(const Float UNUSED(rho), const Float UNUSED(p)) const override {
         NOT_IMPLEMENTED;
     }
@@ -74,6 +75,7 @@ public:
 
     virtual Pair<Float> evaluate(const Float rho, const Float u) const override;
 
+    /// Currently not implemented.
     virtual Float getInternalEnergy(const Float UNUSED(rho), const Float UNUSED(p)) const override {
         NOT_IMPLEMENTED;
     }

@@ -102,7 +102,7 @@ public:
     }
 };
 
-#ifdef PROFILE
+#ifdef SPH_PROFILE
 #define PROFILE_SCOPE(name)                                                                                  \
     Profiler* __instance = Profiler::getInstance();                                                          \
     ScopedTimer __scopedTimer = __instance->makeScopedTimer(name);

@@ -1,9 +1,10 @@
 #pragma once
 
-/// Implementation of the K-d tree finder using modified Nanoflann code
-/// (https://github.com/jlblancoc/nanoflann)
-/// Pavel Sevecek 2016
-/// sevecek at sirrah.troja.mff.cuni.cz
+/// \file KdTree.h
+/// \brief Implementation of the K-d tree finder using modified Nanoflann code
+///        (https://github.com/jlblancoc/nanoflann)
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2017
 
 #include "objects/finders/AbstractFinder.h"
 

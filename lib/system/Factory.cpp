@@ -4,6 +4,7 @@
 #include "math/rng/Rng.h"
 #include "objects/finders/BruteForce.h"
 #include "objects/finders/KdTree.h"
+#include "objects/finders/Octree.h"
 #include "objects/finders/Voxel.h"
 #include "physics/Damage.h"
 #include "physics/Eos.h"
@@ -105,6 +106,8 @@ std::unique_ptr<Abstract::Finder> Factory::getFinder(const RunSettings& settings
         return std::make_unique<BruteForceFinder>();
     case FinderEnum::KD_TREE:
         return std::make_unique<KdTree>();
+    case FinderEnum::OCTREE:
+        return std::make_unique<Octree>();
     case FinderEnum::VOXEL:
         return std::make_unique<VoxelFinder>();
     default:

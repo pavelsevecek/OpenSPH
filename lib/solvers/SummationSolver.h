@@ -1,7 +1,9 @@
 #pragma once
 
-/// Pavel Sevecek 2017
-/// sevecek at sirrah.troja.mff.cuni.cz
+/// \file SummationSolver.h
+/// \brief Solver using direction summation to compute density and smoothing length.
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2017
 
 #include "solvers/GenericSolver.h"
 #include "thread/AtomicFloat.h"
@@ -15,6 +17,7 @@ private:
     Float eta;
     Size maxIteration;
     Float targetDensityDifference;
+    bool adaptiveH;
     Array<Float> rho, h;
 
     LutKernel<DIMENSIONS> densityKernel;
@@ -23,17 +26,20 @@ public:
     SummationSolver(const RunSettings& settings)
         : GenericSolver(settings, getEquations(settings)) {
         eta = settings.get<Float>(RunSettingsId::SPH_KERNEL_ETA);
-        maxIteration = settings.get<int>(RunSettingsId::SUMMATION_MAX_ITERATIONS);
         targetDensityDifference = settings.get<Float>(RunSettingsId::SUMMATION_DENSITY_DELTA);
         densityKernel = Factory::getKernel<DIMENSIONS>(settings);
+        Flags<SmoothingLengthEnum> flags = Flags<SmoothingLengthEnum>::fromValue(
+            settings.get<int>(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH));
+        adaptiveH = !flags.has(SmoothingLengthEnum::CONST);
+        maxIteration = adaptiveH ? settings.get<int>(RunSettingsId::SUMMATION_MAX_ITERATIONS) : 1;
     }
 
     virtual void create(Storage& storage, Abstract::Material& material) const override {
-        storage.insert<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO, 0);
-        storage.insert<Float>(
-            QuantityId::DENSITY, OrderEnum::ZERO, material.getParam<Float>(BodySettingsId::DENSITY));
+        const Float rho0 = material.getParam<Float>(BodySettingsId::DENSITY);
+        storage.insert<Float>(QuantityId::DENSITY, OrderEnum::ZERO, rho0);
         material.minimal(QuantityId::DENSITY) = material.getParam<Float>(BodySettingsId::DENSITY_MIN);
         material.range(QuantityId::DENSITY) = material.getParam<Range>(BodySettingsId::DENSITY_RANGE);
+        storage.insert<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO, 0);
         equations.create(storage, material);
     }
 
@@ -80,7 +86,7 @@ private:
                 const Float rho0 = rho[i];
                 rho[i] = 0._f;
                 for (auto& n : data.neighs) {
-                    const int j = n.index;
+                    const Size j = n.index;
                     /// \todo can this be generally different kernel than the one used for derivatives?
                     rho[i] += m[j] * densityKernel.value(r[i] - r[j], h[i]);
                 }
@@ -104,8 +110,10 @@ private:
         stats.set(StatisticsId::SOLVER_SUMMATION_ITERATIONS, int(iterationIdx));
         // save computed values
         std::swap(storage.getValue<Float>(QuantityId::DENSITY), rho);
-        for (Size i = 0; i < r.size(); ++i) {
-            r[i][H] = h[i];
+        if (adaptiveH) {
+            for (Size i = 0; i < r.size(); ++i) {
+                r[i][H] = h[i];
+            }
         }
     }
 };

@@ -19,6 +19,10 @@ Pair<Float> EosMaterial::evaluate(const Float rho, const Float u) const {
     return eos->evaluate(rho, u);
 }
 
+const Abstract::Eos& EosMaterial::getEos() const {
+    return *eos;
+}
+
 void EosMaterial::create(Storage& storage) const {
     const Float rho0 = this->getParam<Float>(BodySettingsId::DENSITY);
     const Float u0 = this->getParam<Float>(BodySettingsId::ENERGY);

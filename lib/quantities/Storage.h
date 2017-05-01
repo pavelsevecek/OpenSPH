@@ -1,5 +1,10 @@
 #pragma once
 
+/// \file Storage.h
+/// \brief Container for storing particle quantities and materials.
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2017
+
 #include "common/ForwardDecl.h"
 #include "objects/Exceptions.h"
 #include "objects/containers/Array.h"
@@ -18,6 +23,7 @@ struct StorageElement {
     Quantity& quantity;
 };
 
+/// Helper class for iterating over quantities stored in \ref Storage.
 class StorageIterator {
 private:
     using Iterator = std::map<QuantityId, Quantity>::iterator;
@@ -42,7 +48,8 @@ public:
     }
 };
 
-/// Helper class for iterating over individual quantities of the storage.
+/// Helper class, provides functions \ref begin and \ref end, returning iterators to the first and last
+/// quantity in \ref Storage, respectively.
 class StorageSequence {
 private:
     Storage& storage;
@@ -51,7 +58,7 @@ public:
     StorageSequence(Storage& storage);
 
     /// Returns iterator pointing to the beginning of the quantity storage. Dereferencing the iterator yields
-    /// StorageElement, holding the quantity ID and the reference to the quantity.
+    /// \ref StorageElement, holding the \ref QuantityId and the reference to the \ref Quantity.
     StorageIterator begin();
 
     /// Returns iterator pointing to the one-past-the-end element of the quantity storage.
@@ -61,7 +68,27 @@ public:
     Size size() const;
 };
 
-/// Base object for storing scalar, vector and tensor quantities of SPH particles.
+/// \brief Container storing all quantities used within the simulations.
+///
+/// Storage provides a convenient way to store quantities, iterate over specified subset of quantnties, modify
+/// quantities etc. Every quantity is a \ref Quantity object and is identified by \ref QuantityId key. The
+/// quantities are stored as key-value pairs; for every \ref QuantityId there can be at most one \ref Quantity
+/// stored.
+///
+/// Storage can contain scalar, vector, tensor and integer quantities. Every quantity can also have associated
+/// one or two derivatives. There is no constraint on quantity order or type for given \ref QuantityId, i.e.
+/// as far as \ref Storage object is concerned, one can create a QuantityId::ENERGY tensor quantity with
+/// second derivatives or integer quantity QuantityId::SOUND_SPEED. Different parts of the code require
+/// certain types for some quantities, though. Particle positions, QuantityId::POSITIONS, are mostly assumed
+/// to be vector quantities of second order. Inconsistency of types will cause an assert when encountered.
+///
+/// Storage can hold arbitrary number of materials, objects derived from \ref Abstract::Material. In theory,
+/// every particle can have a different material (different equation of state, different rheology, ...).
+/// The storage can also exist with no material; this is a valid state, useful for situations where no
+/// material is necessary. A storage with material can be created using constructor
+/// Storage(std::unique_ptr<Abstract::Material>&& material). All particles subsequently added into the storage
+/// will have the material passed in the parameter of the constructor. Storage with multiple materials can
+/// then be created by merging the storage with another object, using function \ref merge.
 class Storage : public Noncopyable {
     friend class StorageSequence;
 
@@ -73,6 +100,7 @@ private:
     Array<std::unique_ptr<Abstract::Material>> materials;
 
 public:
+    /// Creates a storage with no material. Any call of \ref getMaterial function will result in assert.
     Storage();
 
     /// Initialize a storage with a material.
@@ -293,12 +321,13 @@ public:
         return quantities[key];
     }
 
-    /// Returns view that can iterate over indices of particles belonging to given material.
+    /// Returns an object containing a reference to given material. The object can also be used to iterate
+    /// over indices of particles belonging to given material.
     /// \param matIdx Index of given material in storage. Materials are stored in unspecified order; to get
     ///               material of given particle, use \ref getMaterialOfParticle.
     MaterialView getMaterial(const Size matIdx) const;
 
-    /// Retursn material view for material of given particle.
+    /// Returns material view for material of given particle.
     MaterialView getMaterialOfParticle(const Size particleIdx) const;
 
     /// Returns the bounding range of given quantity. Provides an easy access to the material range without
@@ -321,9 +350,14 @@ public:
     /// Returns the number of particles. The number of particle is always the same for all quantities.
     Size getParticleCnt() const;
 
+    /// Merges another storage into this object. The passed storage is moved in the process. All materials in
+    /// the merged storage are conserved; particles will keep the materials they had before the merge.
+    /// The function invalidates any reference or \ref ArrayView to quantity values or derivatives. For this
+    /// reason, storages can only be merged when setting up initial conditions or inbetween timesteps, never
+    /// while evaluating solver!
     void merge(Storage&& other);
 
-    /// Clears all highest level derivatives of quantities
+    /// Sets all highest-level derivatives of quantities to zero. Other values are unchanged.
     void init();
 
     /// Removes all particles with all quantities (including materials) from the storage. The storage is left
@@ -343,7 +377,7 @@ public:
     void swap(Storage& other, const Flags<VisitorEnum> flags);
 
     /// Checks whether the storage is in valid state, that is whether all quantities have the same number of
-    /// values.
+    /// particles.
     bool isValid() const;
 };
 

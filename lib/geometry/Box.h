@@ -61,8 +61,20 @@ public:
         return minBound;
     }
 
+    /// Returns lower bounds of the box.
+    INLINE Vector& lower() {
+        ASSERT(isValid());
+        return minBound;
+    }
+
     /// Returns upper bounds of the box
     INLINE const Vector& upper() const {
+        ASSERT(isValid());
+        return maxBound;
+    }
+
+    /// Returns upper bounds of the box
+    INLINE Vector& upper() {
         ASSERT(isValid());
         return maxBound;
     }

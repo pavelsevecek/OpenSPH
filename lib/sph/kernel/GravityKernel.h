@@ -1,8 +1,9 @@
 #pragma once
 
-/// Smoothing kernels for including gravity into SPH
-/// Pavel Sevecek 2017
-/// sevecek at sirrah.troja.mff.cuni.cz
+/// \file GravityKernel.h
+/// \brief Smoothing kernels for including gravity into SPH
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz))
+/// \date 2016-2017
 
 #include "sph/kernel/Kernel.h"
 
@@ -10,8 +11,7 @@ NAMESPACE_SPH_BEGIN
 
 /// Kernel is approximated by LUT for close particles, at larger distances we recover the standard Newtonian
 /// inverse square law.
-/// According to Peter Cossins, PhD thesis, 2010
-
+/// According to P. Cossins, PhD thesis, 2010 \cite Cossins_2010
 class GravityLutKernel {
 private:
     /// Kernel for close particles
