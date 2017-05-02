@@ -1,8 +1,9 @@
 #pragma once
 
-/// Additional functionality for vector computations.
-/// Pavel Sevecek 2016
-/// sevecek at sirrah.troja.mff.cuni.cz
+/// \file Indices.h
+/// \brief Vectorized computations with integral numbers
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2017
 
 #include "geometry/Vector.h"
 #include "objects/Object.h"

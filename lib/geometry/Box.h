@@ -1,7 +1,9 @@
 #pragma once
 
-/// Pavel Sevecek 2016
-/// sevecek at sirrah.troja.mff.cuni.cz
+/// \file Box.h
+/// \brief Object representing a three-dimensional axis-aligned box
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2017
 
 #include "geometry/Indices.h"
 #include "geometry/Vector.h"

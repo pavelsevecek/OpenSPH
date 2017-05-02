@@ -1,8 +1,9 @@
 #pragma once
 
-/// Re-implementation of std::tuple with some additional functionality.
-/// Pavel Sevecek 2016
-/// sevecek at sirrah.troja.mff.cuni.cz
+/// \file Tuple.h
+/// \brief Re-implementation of std::tuple with some additional functionality.
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2017
 
 #include "common/Traits.h"
 

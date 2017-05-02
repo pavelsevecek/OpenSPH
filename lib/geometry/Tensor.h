@@ -1,9 +1,9 @@
 #pragma once
 
-/// Basic algebra for symmetric 2nd order tensors
-/// Pavel Sevecek 2016
-/// sevecek at sirrah.troja.mff.cuni.cz
-
+/// \file Tensor.h
+/// \brief Basic algebra for symmetric 2nd order tensors
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2017
 
 #include "geometry/Vector.h"
 #include "objects/containers/StaticArray.h"

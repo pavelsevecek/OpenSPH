@@ -1,8 +1,9 @@
 #pragma once
 
-/// Generic dynamically allocated resizable storage. Can also be used with STL algorithms
-/// Pavel Sevecek 2015
-/// sevecek at sirrah.troja.mff.cuni.cz
+/// \file Array.h
+/// \brief Generic dynamically allocated resizable storage
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2017
 
 #include "math/Math.h"
 #include "objects/containers/ArrayView.h"
@@ -13,6 +14,7 @@ NAMESPACE_SPH_BEGIN
 template <typename T, typename TCounter = Size>
 class CopyableArray;
 
+/// Generic dynamically allocated resizable storage. Can also be used with STL algorithms.
 template <typename T, typename TCounter = Size>
 class Array : public Noncopyable {
     friend class VectorizedArray; // needs to explicitly set actSize

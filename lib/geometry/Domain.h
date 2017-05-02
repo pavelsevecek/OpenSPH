@@ -1,8 +1,9 @@
 #pragma once
 
-/// Object defining computational domain.
-/// Pavel Sevecek 2016
-/// sevecek at sirrah.troja.mff.cuni.cz
+/// \file Domain.h
+/// \brief Object defining computational domain.
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2017
 
 #include "geometry/Box.h"
 #include "objects/wrappers/Optional.h"

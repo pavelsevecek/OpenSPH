@@ -1,15 +1,15 @@
 #pragma once
 
-/// Base classes useful for iterating and viewing all containers.
-/// Pavel Sevecek 2016
-/// sevecek at sirrah.troja.mff.cuni.cz
+/// \file Array.h
+/// \brief Simple non-owning view of a container
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2017
 
 #include "common/Assert.h"
 #include "common/Traits.h"
 #include "objects/wrappers/Iterators.h"
 
 NAMESPACE_SPH_BEGIN
-
 
 /// Object providing safe access to continuous memory of data, useful to write generic code that can be used
 /// with any kind of storage where the data are stored consecutively in memory.

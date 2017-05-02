@@ -16,21 +16,34 @@ namespace Abstract {
 
     /// \brief Base class of rheological models
     ///
-    /// Shall be only used in \ref SolidMaterial, function do not have to be called directly from the solver.
+    /// Shall be only used in \ref SolidMaterial, functions do not have to be called directly from the solver.
     class Rheology : public Polymorphic {
     public:
-        /// Creates all the necessary quantities and material parameters needed by the rheology.
+        /// Creates all the necessary quantities and material parameters needed by the rheology. The function
+        /// is called by each body added to the simulation.
+        /// \param storage Particle storage, containing particle positions and their masses (optionally also
+        ///                other quantities). Particles belong only to the body being created, other bodies
+        ///                have separate storages.
+        /// \param settings Parameters of the body being created.
         virtual void create(Storage& storage, const BodySettings& settings) const = 0;
 
-        /// Evaluates the stress tensor reduction factors. Called before iteration over particle pairs.
-        virtual void initialize(Storage& storage, const MaterialView sequence) = 0;
+        /// Evaluates the stress tensor reduction factors. Called for every material in the simulation, before
+        /// iteration over particle pairs
+        /// \param storage Storage including all the particles.
+        /// \param material Material properties and sequence of particles with this material. Implementation
+        ///                 should only modify particles with indices in this sequence.
+        virtual void initialize(Storage& storage, const MaterialView material) = 0;
 
-        /// Computes derivatives of the time-dependent quantities of the rheological model.
-        virtual void integrate(Storage& storage, const MaterialView sequence) = 0;
+        /// Computes derivatives of the time-dependent quantities of the rheological model. Called for every
+        /// material in the simulation, after all derivatives are computed.
+        /// \param storage Storage including all the particles.
+        /// \param material Material properties and sequence of particles with this material. Implementation
+        ///                 should only modify particles with indices in this sequence.
+        virtual void integrate(Storage& storage, const MaterialView material) = 0;
     };
 }
 
-
+/// Introduces plastic behavior for stress tensor, using von Mises yield criterion \cite vonMises_1913.
 class VonMisesRheology : public Abstract::Rheology {
 private:
     std::unique_ptr<Abstract::Damage> damage;
@@ -40,7 +53,7 @@ public:
     /// criterion, yielding strength does not depend on damage.
     VonMisesRheology();
 
-    /// Constructs a rheology with given fragmentation model
+    /// Constructs a rheology with given fragmentation model.
     VonMisesRheology(std::unique_ptr<Abstract::Damage>&& damage);
 
     ~VonMisesRheology();
