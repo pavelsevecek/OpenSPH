@@ -2,7 +2,8 @@
 
 /// \file Settings.h
 /// \brief Generic storage and input/output routines of settings.
-/// \author Pavel Sevecek 2016-2017 (sevecek at sirrah.troja.mff.cuni.cz)
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2017
 
 #include "geometry/TracelessTensor.h"
 #include "objects/wrappers/Range.h"

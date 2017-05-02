@@ -1,5 +1,10 @@
 #pragma once
 
+/// \file Profiler.h
+/// \brief Tool to measure time spent in functions and profile the code
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2017
+
 #include "system/Timer.h"
 #include <atomic>
 #include <map>

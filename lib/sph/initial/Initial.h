@@ -1,5 +1,10 @@
 #pragma once
 
+/// \file Initial.h
+/// \brief Generating initial conditions of SPH particles
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2017
+
 #include "common/ForwardDecl.h"
 #include "geometry/Vector.h"
 #include "objects/containers/ArrayView.h"

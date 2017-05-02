@@ -1,5 +1,10 @@
 #pragma once
 
+/// \file Damage.h
+/// \brief Models of fragmentation
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2017
+
 #include "common/ForwardDecl.h"
 #include "geometry/TracelessTensor.h"
 #include "geometry/Vector.h"

@@ -1,10 +1,9 @@
 #pragma once
 
-/// Standard artificial viscosity by Monaghan (1989), using a velocity divergence in linear and quadratic term
-/// as a measure of local (scalar) dissipation. Parameters alpha_AV and beta_AV are constant (in time) and
-/// equal for all particles.
-/// Pavel Sevecek 2016
-/// sevecek at sirrah.troja.mff.cuni.cz
+/// \file Standard.h
+/// \brief Standard SPH artificial viscosity
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2017
 
 #include "physics/Eos.h"
 #include "quantities/Storage.h"
@@ -13,6 +12,9 @@
 
 NAMESPACE_SPH_BEGIN
 
+/// Standard artificial viscosity Monaghan & Gingold \cite Monaghan_Gingold_1983, using a velocity divergence
+/// in linear and quadratic term as a measure of local (scalar) dissipation. Parameters alpha_AV and beta_AV
+/// are constant (in time) and equal for all particles.
 class StandardAV : public Abstract::EquationTerm {
 public:
     class Derivative : public Abstract::Derivative {

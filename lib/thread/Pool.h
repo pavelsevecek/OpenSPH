@@ -1,8 +1,9 @@
 #pragma once
 
-/// Thread pool
-/// Pavel Sevecek 2017
-/// sevecek at sirrah.troja.mff.cuni.cz
+/// \file Pool.h
+/// \brief Simple thread pool with fixed number of threads
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2017
 
 #include "objects/containers/Array.h"
 #include "thread/ConcurrentQueue.h"

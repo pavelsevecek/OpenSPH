@@ -1,8 +1,9 @@
 #pragma once
 
-/// Boundary conditions
-/// Pavel Sevecek 2016
-/// sevecek at sirrah.troja.mff.cuni.cz
+/// \file boundary.h
+/// \brief Boundary conditions
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2017
 
 #include "common/ForwardDecl.h"
 #include "geometry/Vector.h"

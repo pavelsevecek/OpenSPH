@@ -1,8 +1,9 @@
 #pragma once
 
-/// Generic callbacks from the run, useful for GUI extensions.
-/// Pavel Sevecek 2016
-/// sevecek at sirrah.troja.mff.cuni.cz
+/// \file Callbacks.h
+/// \brief Generic callbacks from the run, useful for GUI extensions.
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2017
 
 #include "objects/Object.h"
 

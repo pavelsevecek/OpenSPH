@@ -189,7 +189,7 @@ TEST_CASE("Grad v of const field", "[equationterm]") {
 }
 
 
-TEST_CASE("Grad v of position vector", "[accumulator]") {
+TEST_CASE("Grad v of position vector", "[equationterm]") {
     Storage storage = Tests::getStorage(10000);
     storage.insert<Tensor>(QuantityId::VELOCITY_GRADIENT, OrderEnum::ZERO, Tensor::null());
     Tests::computeField<VelocityGradient>(storage, [](const Vector& r) { return r; });
@@ -214,7 +214,7 @@ TEST_CASE("Grad v of position vector", "[accumulator]") {
 }
 
 
-TEST_CASE("Grad v of non-trivial field", "[accumulator]") {
+TEST_CASE("Grad v of non-trivial field", "[equationterm]") {
     Storage storage = Tests::getStorage(10000);
     storage.insert<Tensor>(QuantityId::VELOCITY_GRADIENT, OrderEnum::ZERO, Tensor::null());
     Tests::computeField<VelocityGradient>(storage, [](const Vector& r) { //

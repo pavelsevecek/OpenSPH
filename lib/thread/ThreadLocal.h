@@ -1,8 +1,9 @@
 #pragma once
 
-/// Thread-local storage
-/// Pavel Sevecek 2017
-/// sevecek@sirrah.troja.mff.cuni.cz
+/// \file ThreadLocal.h
+/// \brief Template for thread-local storage
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2017
 
 #include "objects/wrappers/AlignedStorage.h"
 #include "thread/Pool.h"

@@ -1,8 +1,9 @@
 #pragma once
 
-/// Statistics gathered and periodically displayed during the run.
-/// Pavel Sevecek 2017
-/// sevecek at sirrah.troja.mff.cuni.cz
+/// \file Statistics.h
+/// \brief Statistics gathered and periodically displayed during the run
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2017
 
 #include "common/ForwardDecl.h"
 #include "math/Means.h"

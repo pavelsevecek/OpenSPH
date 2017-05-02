@@ -1,5 +1,10 @@
 #pragma once
 
+/// \file Material.h
+/// \brief SPH-specific implementation of particle material
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2017
+
 #include "quantities/AbstractMaterial.h"
 
 NAMESPACE_SPH_BEGIN

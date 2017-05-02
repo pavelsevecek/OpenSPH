@@ -1,8 +1,9 @@
 #pragma once
 
-/// Creating program components based on values from settings.
-/// Pavel Sevecek 2016
-/// sevecek at sirrah.troja.mff.cuni.cz
+/// \file Factory.h
+/// \brief Creating code components based on values from settings.
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2017
 
 #include "system/Settings.h"
 #include <memory>

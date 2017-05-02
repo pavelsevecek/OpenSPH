@@ -110,7 +110,8 @@ SOURCES += \
     utils/Approx.cpp \
     utils/SequenceTest.cpp \
     utils/Setup.cpp \
-    utils/Utils.cpp
+    utils/Utils.cpp \
+    ../lib/sph/equations/heat/test/HeatDiffusion.cpp
 
 HEADERS += \
     utils/Utils.h \

@@ -1,21 +1,22 @@
 #pragma once
 
-/// Implementation of the Balsara switch (Balsara, 1995), designed to reduce artificial viscosity in shear
-/// flows and avoid numerical issues, such as unphysical transport of angular momentum.
-/// Pavel Sevecek 2016
-/// sevecek at sirrah.troja.mff.cuni.cz
+/// \file Balsara.h
+/// \brief Implementation of the Balsara switch
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2017
 
 #include "sph/equations/EquationTerm.h"
 #include "system/Settings.h"
 
 NAMESPACE_SPH_BEGIN
 
+/// \brief Implementation of the Balsara switch \cite Balsara_1995, designed to reduce artificial viscosity in
+/// shear flows and avoid numerical issues, such as unphysical transport of angular momentum.
 
 /// Balsara switch is a template, needs another artificial viscosity as a template parameter. The template
 /// parameter shall be an EquationTerm; Balsara switch then forward all functions (initialize, finalize, ...)
-/// to this base AV.
-/// Furthermore, the AV must define a class Derivative with operator()(i, j), preferably force inlined,
-/// returing value Pi_ij of the artificial viscosity between particles i and j.
+/// to this base AV. Furthermore, the AV must define a class Derivative with operator()(i, j), preferably
+/// force inlined, returing value Pi_ij of the artificial viscosity between particles i and j.
 template <typename AV>
 class BalsaraSwitch : public Abstract::EquationTerm {
     class Derivative : public Abstract::Derivative {

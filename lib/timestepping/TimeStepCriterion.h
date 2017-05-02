@@ -1,5 +1,10 @@
 #pragma once
 
+/// \file TimeStepCriterion.h
+/// \brief Criteria for computing the time step
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2017
+
 #include "common/ForwardDecl.h"
 #include "objects/containers/Array.h"
 #include "objects/wrappers/Value.h"

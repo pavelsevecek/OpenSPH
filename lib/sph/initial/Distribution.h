@@ -1,8 +1,9 @@
 #pragma once
 
-/// Generating initial conditions of SPH particles
-/// Pavel Sevecek 2016
-/// sevecek at sirrah.troja.mff.cuni.cz
+/// \file Distribution.h
+/// \brief Filling spatial domain with SPH particles
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2017
 
 #include "geometry/Box.h"
 #include "objects/containers/Array.h"

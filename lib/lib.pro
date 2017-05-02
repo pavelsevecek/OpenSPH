@@ -185,4 +185,6 @@ HEADERS += \
     thread/ThreadLocal.h \
     timestepping/AbstractSolver.h \
     timestepping/TimeStepCriterion.h \
-    timestepping/TimeStepping.h
+    timestepping/TimeStepping.h \
+    sph/equations/heat/HeatDiffusion.h \
+    sph/equations/av/Standard.h
