@@ -1,8 +1,8 @@
 #include "utils/Setup.h"
 #include "geometry/Domain.h"
 #include "physics/Eos.h"
-#include "solvers/GenericSolver.h"
 #include "sph/initial/Distribution.h"
+#include "sph/solvers/GenericSolver.h"
 
 NAMESPACE_SPH_BEGIN
 

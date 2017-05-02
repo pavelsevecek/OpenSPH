@@ -8,7 +8,7 @@
 #include "geometry/Vector.h"
 #include "objects/containers/Array.h"
 #include "objects/wrappers/Range.h"
-#include "solvers/EquationTerm.h"
+#include "sph/equations/EquationTerm.h"
 #include <memory>
 #include <set>
 

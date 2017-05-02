@@ -1,5 +1,10 @@
 #pragma once
 
+/// \file QuantityHelpers.h
+/// \brief Conversions for quantity enums
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2017
+
 #include "geometry/TracelessTensor.h"
 
 NAMESPACE_SPH_BEGIN

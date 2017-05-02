@@ -31,165 +31,158 @@ CONFIG(debug, debug|profile|assert|release) {
 
 
 SOURCES += \
-    math/rng/Rng.cpp \
+    common/Assert.cpp \
+    geometry/Domain.cpp \
+    io/Logger.cpp \
+    io/Output.cpp \
+    io/filesystem.cpp \
     math/Morton.cpp \
+    math/rng/Rng.cpp \
+    objects/containers/stringutils.cpp \
+    objects/finders/KdTree.cpp \
+    objects/finders/Voxel.cpp \
+    objects/wrappers/Range.cpp \
+    physics/Damage.cpp \
+    physics/Eos.cpp \
+    physics/Integrals.cpp \
+    physics/Rheology.cpp \
+    physics/TimeFormat.cpp \
+    post/Components.cpp \
+    quantities/QuantityIds.cpp \
     quantities/Storage.cpp \
+    run/Run.cpp \
+    sph/Diagnostics.cpp \
+    sph/Material.cpp \
     sph/boundary/Boundary.cpp \
     sph/initial/Distribution.cpp \
     sph/initial/Initial.cpp \
-    timestepping/TimeStepping.cpp \
-    objects/finders/Voxel.cpp \
-    io/Logger.cpp \
-    io/Output.cpp \
-    system/Timer.cpp \
     system/Factory.cpp \
+    system/Platform.cpp \
     system/Profiler.cpp \
     system/Settings.cpp \
     system/Statistics.cpp \
-    physics/Eos.cpp \
-    physics/TimeFormat.cpp \
-    physics/Damage.cpp \
-    physics/Rheology.cpp \
-    post/Components.cpp \
-    geometry/Domain.cpp \
-    physics/Integrals.cpp \
-    timestepping/TimeStepCriterion.cpp \
-    objects/finders/KdTree.cpp \
-    solvers/AbstractSolver.cpp \
-    run/Run.cpp \
-    sph/Diagnostics.cpp \
-    common/Assert.cpp \
-    io/filesystem.cpp \
-    sph/Material.cpp \
-    system/Platform.cpp \
+    system/Timer.cpp \
     thread/CheckFunction.cpp \
-    quantities/QuantityIds.cpp \
-    objects/wrappers/Range.cpp \
-    objects/containers/stringutils.cpp
+    timestepping/TimeStepCriterion.cpp \
+    timestepping/TimeStepping.cpp
 
 HEADERS += \
+    commmon/ForwardDecl.h \
     commmon/Globals.h \
     commmon/Traits.h \
-    commmon/ForwardDecl.h \
+    common/Assert.h \
+    common/ForwardDecl.h \
+    common/Globals.h \
+    common/Traits.h \
+    geometry/Box.h \
     geometry/Domain.h \
     geometry/Indices.h \
-    geometry/Vector.h \
+    geometry/Multipole.h \
     geometry/Tensor.h \
-    math/Math.h \
+    geometry/TracelessTensor.h \
+    geometry/Vector.h \
+    io/Column.h \
+    io/FileSystem.h \
+    io/LogFile.h \
+    io/Logger.h \
+    io/Output.h \
     math/Integrator.h \
+    math/Math.h \
+    math/Means.h \
+    math/Morton.h \
     math/rng/Rng.h \
     math/rng/VectorRng.h \
+    objects/Exceptions.h \
     objects/Object.h \
     objects/containers/Array.h \
+    objects/containers/ArrayMap.h \
     objects/containers/ArrayUtils.h \
     objects/containers/ArrayView.h \
-    objects/containers/Tuple.h \
     objects/containers/BufferedArray.h \
+    objects/containers/LookupMap.h \
+    objects/containers/PerElementWrapper.h \
+    objects/containers/StaticArray.h \
+    objects/containers/StringUtils.h \
+    objects/containers/Tuple.h \
+    objects/finders/AbstractFinder.h \
     objects/finders/Bruteforce.h \
     objects/finders/KdTree.h \
+    objects/finders/LinkedList.h \
     objects/finders/Linkedlist.h \
     objects/finders/Nanoflann.h \
     objects/finders/Octree.h \
     objects/finders/Order.h \
     objects/finders/PeriodicFinder.h \
+    objects/finders/Voxel.h \
+    objects/wrappers/AlignedStorage.h \
     objects/wrappers/Any.h \
+    objects/wrappers/Expected.h \
+    objects/wrappers/Finally.h \
     objects/wrappers/Flags.h \
     objects/wrappers/Iterators.h \
     objects/wrappers/NonOwningPtr.h \
+    objects/wrappers/ObserverPtr.h \
     objects/wrappers/Optional.h \
+    objects/wrappers/Outcome.h \
     objects/wrappers/Range.h \
+    objects/wrappers/UniquePtr.h \
+    objects/wrappers/Value.h \
     objects/wrappers/Variant.h \
     objects/wrappers/VectorizedArray.h \
     physics/Constants.h \
+    physics/Damage.h \
     physics/Eos.h \
-    physics/TimeFormat.h \
     physics/Integrals.h \
-    sph/kernel/Kernel.h \
-    sph/initial/Distribution.h \
-    timestepping/TimeStepping.h \
-    sph/av/Standard.h \
-    sph/boundary/Boundary.h \
-    system/Callbacks.h \
-    system/Factory.h \
-    system/Settings.h \
-    system/Timer.h \
-    system/Profiler.h \
-    io/Logger.h \
-    io/Output.h \
-    io/LogFile.h \
+    physics/Rheology.h \
+    physics/TimeFormat.h \
+    post/Components.h \
+    quantities/AbstractMaterial.h \
     quantities/Iterate.h \
-    quantities/Storage.h \
     quantities/Quantity.h \
     quantities/QuantityHelpers.h \
-    geometry/TracelessTensor.h \
-    solvers/AbstractSolver.h \
-    solvers/ContinuitySolver.h \
-    solvers/SummationSolver.h \
-    sph/av/Riemann.h \
-    sph/av/MorrisMonaghan.h \
-    sph/av/Balsara.h \
-    sph/forces/StressForce.h \
-    solvers/DensityIndependentSolver.h \
-    solvers/EntropySolver.h \
-    solvers/Accumulator.h \
-    objects/containers/StaticArray.h \
-    sph/forces/CentripetalForce.h \
-    objects/wrappers/AlignedStorage.h \
-    sph/initial/Initial.h \
-    geometry/Multipole.h \
-    objects/finders/LinkedList.h \
-    objects/finders/BruteForce.h \
-    objects/finders/Voxel.h \
-    objects/finders/AbstractFinder.h \
-    geometry/Box.h \
-    objects/containers/LookupMap.h \
-    post/Components.h \
-    math/Morton.h \
-    system/ArrayStats.h \
-    system/Statistics.h \
-    objects/wrappers/UniquePtr.h \
     quantities/QuantityIds.h \
-    thread/Pool.h \
-    thread/ConcurrentQueue.h \
-    thread/ThreadLocal.h \
-    objects/wrappers/Value.h \
-    objects/wrappers/Expected.h \
-    objects/wrappers/Outcome.h \
-    timestepping/TimeStepCriterion.h \
-    objects/wrappers/ObserverPtr.h \
-    math/Means.h \
-    system/Element.h \
-    sph/Diagnostics.h \
-    system/filesystem.h \
-    solvers/PhysicalStorage.h \
-    common/ForwardDecl.h \
-    common/Globals.h \
-    common/Traits.h \
-    system/FileSystem.h \
-    quantities/AbstractMaterial.h \
-    sph/Material.h \
-    common/Assert.h \
-    common/Assert.h \
-    physics/Damage.h \
-    physics/Rheology.h \
-    solvers/Derivative.h \
-    solvers/EquationTerm.h \
-    objects/wrappers/Finally.h \
-    system/Platform.h \
-    io/FileSystem.h \
-    objects/containers/ArrayMap.h \
-    solvers/Accumulated.h \
+    quantities/Storage.h \
     run/Run.h \
-    solvers/GenericSolver.h \
-    objects/containers/PerElementWrapper.h \
+    sph/Diagnostics.h \
+    sph/Material.h \
+    sph/boundary/Boundary.h \
+    sph/equations/Accumulated.h \
+    sph/equations/Derivative.h \
+    sph/equations/EquationTerm.h \
+    sph/equations/GradH.h \
+    sph/equations/XSph.h \
+    sph/equations/av/Balsara.h \
+    sph/equations/av/MorrisMonaghan.h \
+    sph/equations/av/Riemann.h \
+    sph/equationsav/Standard.h \
+    sph/initial/Distribution.h \
+    sph/initial/Initial.h \
+    sph/kernel/GravityKernel.h \
+    sph/kernel/Kernel.h \
+    sph/kernel/KernelFactory.h \
+    sph/solvers/ContinuitySolver.h \
+    sph/solvers/DensityIndependentSolver.h \
+    sph/solvers/EntropySolver.h \
+    sph/solvers/GenericSolver.h \
+    sph/solvers/GravitySolver.h \
+    sph/solvers/SummationSolver.h \
+    system/ArrayStats.h \
+    system/Callbacks.h \
+    system/Column.h \
+    system/Element.h \
+    system/Factory.h \
+    system/FileSystem.h \
+    system/Platform.h \
+    system/Profiler.h \
+    system/Settings.h \
+    system/Statistics.h \
+    system/Timer.h \
+    system/filesystem.h \
     thread/AtomicFloat.h \
     thread/CheckFunction.h \
-    objects/Exceptions.h \
-    system/Column.h \
-    objects/containers/StringUtils.h \
-    io/Column.h \
-    solvers/XSph.h \
-    solvers/GradH \
-    sph/kernel/GravityKernel.h \
-    sph/kernel/KernelFactory.h \
-    solvers/GravitySolver.h
+    thread/ConcurrentQueue.h \
+    thread/Pool.h \
+    thread/ThreadLocal.h \
+    timestepping/AbstractSolver.h \
+    timestepping/TimeStepCriterion.h \
+    timestepping/TimeStepping.h

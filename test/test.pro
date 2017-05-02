@@ -38,84 +38,83 @@ PRE_TARGETDEPS += ../lib/liblib.a
 
 SOURCES += \
     main.cpp \
-    utils/Utils.cpp \
-    ../lib/math/test/Integrator.cpp \
-    ../lib/math/test/Math.cpp \
-    ../lib/math/rng/test/Rng.cpp \
-    ../lib/math/rng/test/VectorRng.cpp \
-    ../lib/math/test/Morton.cpp \
-    ../lib/physics/test/TimeFormat.cpp \
-    ../lib/physics/test/Eos.cpp \
-    ../lib/physics/test/Integrals.cpp \
-    ../lib/physics/test/Damage.cpp \
-    ../lib/physics/test/Yielding.cpp \
-    ../lib/geometry/test/Vector.cpp \
-    ../lib/geometry/test/Indices.cpp \
-    ../lib/geometry/test/Multipole.cpp \
-    ../lib/geometry/test/TracelessTensor.cpp \
-    ../lib/geometry/test/Tensor.cpp \
     ../lib/geometry/test/Box.cpp \
     ../lib/geometry/test/Domain.cpp \
-    ../lib/objects/wrappers/test/Optional.cpp \
-    ../lib/objects/wrappers/test/Variant.cpp \
-    ../lib/objects/wrappers/test/Iterators.cpp \
-    ../lib/objects/wrappers/test/Range.cpp \
-    ../lib/objects/wrappers/test/Any.cpp \
-    ../lib/objects/wrappers/test/VectorizedArray.cpp \
-    ../lib/objects/wrappers/test/AlignedStorage.cpp \
-    ../lib/objects/wrappers/test/Flags.cpp \
+    ../lib/geometry/test/Indices.cpp \
+    ../lib/geometry/test/Multipole.cpp \
+    ../lib/geometry/test/Tensor.cpp \
+    ../lib/geometry/test/TracelessTensor.cpp \
+    ../lib/geometry/test/Vector.cpp \
+    ../lib/io/test/Logger.cpp \
+    ../lib/io/test/Output.cpp \
+    ../lib/math/rng/test/Rng.cpp \
+    ../lib/math/rng/test/VectorRng.cpp \
+    ../lib/math/test/Integrator.cpp \
+    ../lib/math/test/Math.cpp \
+    ../lib/math/test/Morton.cpp \
     ../lib/objects/containers/test/Array.cpp \
     ../lib/objects/containers/test/ArrayUtils.cpp \
     ../lib/objects/containers/test/BufferedArray.cpp \
-    ../lib/objects/containers/test/Tuple.cpp \
     ../lib/objects/containers/test/StaticArray.cpp \
-    ../lib/objects/finders/test/Order.cpp \
+    ../lib/objects/containers/test/Tuple.cpp \
     ../lib/objects/finders/test/BruteForce.cpp \
     ../lib/objects/finders/test/Finders.cpp \
-    ../lib/timestepping/test/TimeStepping.cpp \
-    ../lib/timestepping/test/TimeStepCriterion.cpp \
-    ../lib/sph/initial/test/Initial.cpp \
-    ../lib/sph/initial/test/Distribution.cpp \
-    ../lib/sph/kernel/test/Kernel.cpp \
-    ../lib/sph/av/test/Balsara.cpp \
-    ../lib/sph/boundary/test/Boundary.cpp \
-    ../lib/system/test/Settings.cpp \
-    ../lib/system/test/Timer.cpp \
-    ../lib/system/test/Profiler.cpp \
-    ../lib/io/test/Output.cpp \
-    ../lib/system/test/ArrayStats.cpp \
-    ../lib/system/test/Statistics.cpp \
-    ../lib/quantities/test/Quantity.cpp \
-    ../lib/quantities/test/Storage.cpp \
-    ../lib/quantities/test/Iterate.cpp \
-    ../lib/quantities/test/QuantityHelpers.cpp \
-    ../lib/quantities/test/Material.cpp \
+    ../lib/objects/finders/test/Order.cpp \
+    ../lib/objects/wrappers/test/AlignedStorage.cpp \
+    ../lib/objects/wrappers/test/Any.cpp \
+    ../lib/objects/wrappers/test/Finally.cpp \
+    ../lib/objects/wrappers/test/Flags.cpp \
+    ../lib/objects/wrappers/test/Iterators.cpp \
+    ../lib/objects/wrappers/test/Optional.cpp \
+    ../lib/objects/wrappers/test/Range.cpp \
+    ../lib/objects/wrappers/test/Variant.cpp \
+    ../lib/objects/wrappers/test/VectorizedArray.cpp \
+    ../lib/physics/test/Damage.cpp \
+    ../lib/physics/test/Eos.cpp \
+    ../lib/physics/test/Integrals.cpp \
+    ../lib/physics/test/TimeFormat.cpp \
+    ../lib/physics/test/Yielding.cpp \
     ../lib/post/test/Components.cpp \
-    ../lib/thread/test/Pool.cpp \
+    ../lib/quantities/test/Iterate.cpp \
+    ../lib/quantities/test/Material.cpp \
+    ../lib/quantities/test/Quantity.cpp \
+    ../lib/quantities/test/QuantityHelpers.cpp \
+    ../lib/quantities/test/Storage.cpp \
     ../lib/run/test/Run.cpp \
+    ../lib/sph/boundary/test/Boundary.cpp \
+    ../lib/sph/equations/av/test/Standard.cpp \
+    ../lib/sph/equations/av/test/Balsara.cpp \
+    ../lib/sph/equations/test/Accumulated.cpp \
+    ../lib/sph/equations/test/Derivative.cpp \
+    ../lib/sph/equations/test/EquationTerm.cpp \
+    ../lib/sph/equations/test/GradH.cpp \
+    ../lib/sph/equations/test/XSph.cpp \
+    ../lib/sph/initial/test/Distribution.cpp \
+    ../lib/sph/initial/test/Initial.cpp \
+    ../lib/sph/kernel/test/GravityKernel.cpp \
+    ../lib/sph/kernel/test/Kernel.cpp \
+    ../lib/sph/solvers/test/DensityIndependentSolver.cpp \
+    ../lib/sph/solvers/test/GravitySolver.cpp \
+    ../lib/sph/solvers/test/Solvers.cpp \
+    ../lib/sph/test/Diagnostics.cpp \
+    ../lib/system/test/ArrayStats.cpp \
+    ../lib/system/test/Profiler.cpp \
+    ../lib/system/test/Settings.cpp \
+    ../lib/system/test/Statistics.cpp \
+    ../lib/system/test/Timer.cpp \
+    ../lib/thread/test/AtomicFloat.cpp \
+    ../lib/thread/test/CheckFunction.cpp \
+    ../lib/thread/test/Pool.cpp \
+    ../lib/timestepping/test/TimeStepCriterion.cpp \
+    ../lib/timestepping/test/TimeStepping.cpp \
     utils/Approx.cpp \
     utils/SequenceTest.cpp \
-    ../lib/sph/test/Diagnostics.cpp \
-    ../lib/objects/wrappers/test/Finally.cpp \
-    ../lib/io/test/Logger.cpp \
-    ../lib/solvers/test/EquationTerm.cpp \
-    ../lib/solvers/test/Accumulated.cpp \
-    ../lib/solvers/test/Derivative.cpp \
-    ../lib/sph/av/test/Standard.cpp \
     utils/Setup.cpp \
-    ../lib/thread/test/AtomicFloat.cpp \
-    ../lib/solvers/test/DensityIndependentSolver.cpp \
-    ../lib/thread/test/CheckFunction.cpp \
-    ../lib/solvers/test/XSph.cpp \
-    ../lib/solvers/test/GradH.cpp \
-    ../lib/sph/kernel/test/GravityKernel.cpp \
-    ../lib/solvers/test/GravitySolver.cpp \
-    ../lib/solvers/test/Solvers.cpp
+    utils/Utils.cpp
 
 HEADERS += \
     utils/Utils.h \
     utils/RecordType.h \
-    ../lib/sph/forces/StressForce.h \
     utils/Approx.h \
     utils/SequenceTest.h \
     utils/Setup.h

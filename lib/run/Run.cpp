@@ -3,11 +3,11 @@
 #include "io/Logger.h"
 #include "io/Output.h"
 #include "physics/Integrals.h"
-#include "solvers/AbstractSolver.h"
 #include "system/Callbacks.h"
 #include "system/Factory.h"
 #include "system/Statistics.h"
 #include "system/Timer.h"
+#include "timestepping/AbstractSolver.h"
 #include "timestepping/TimeStepping.h"
 
 NAMESPACE_SPH_BEGIN

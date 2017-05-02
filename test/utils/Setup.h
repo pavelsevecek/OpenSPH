@@ -4,7 +4,7 @@
 /// Pavel Sevecek 2017
 /// sevecek at sirrah.troja.mff.cuni.cz
 
-#include "solvers/GenericSolver.h"
+#include "sph/solvers/GenericSolver.h"
 
 NAMESPACE_SPH_BEGIN
 

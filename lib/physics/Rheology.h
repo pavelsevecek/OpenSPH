@@ -1,5 +1,10 @@
 #pragma once
 
+/// \file Rheology.h
+/// \brief Rheology of materials
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2017
+
 #include "common/ForwardDecl.h"
 #include "geometry/TracelessTensor.h"
 #include "objects/containers/Array.h"
@@ -9,6 +14,9 @@ NAMESPACE_SPH_BEGIN
 namespace Abstract {
     class Damage;
 
+    /// \brief Base class of rheological models
+    ///
+    /// Shall be only used in \ref SolidMaterial, function do not have to be called directly from the solver.
     class Rheology : public Polymorphic {
     public:
         /// Creates all the necessary quantities and material parameters needed by the rheology.
@@ -45,7 +53,7 @@ public:
 };
 
 
-/// Collins et al. (2004)
+/// Pressure dependent failure modes \cite Collins_2004
 class DruckerPragerRheology : public Abstract::Rheology {
 private:
     std::unique_ptr<Abstract::Damage> damage;

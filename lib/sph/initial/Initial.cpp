@@ -5,10 +5,10 @@
 #include "quantities/AbstractMaterial.h"
 #include "quantities/Quantity.h"
 #include "quantities/Storage.h"
-#include "solvers/AbstractSolver.h"
 #include "sph/initial/Distribution.h"
 #include "system/Factory.h"
 #include "system/Profiler.h"
+#include "timestepping/AbstractSolver.h"
 
 NAMESPACE_SPH_BEGIN
 
