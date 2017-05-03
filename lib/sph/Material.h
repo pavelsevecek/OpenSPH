@@ -20,9 +20,9 @@ public:
 
     virtual void create(Storage& UNUSED(storage)) const override {}
 
-    virtual void initialize(Storage& UNUSED(storage), const MaterialSequence UNUSED(sequence)) override {}
+    virtual void initialize(Storage& UNUSED(storage), const IndexSequence UNUSED(sequence)) override {}
 
-    virtual void finalize(Storage& UNUSED(storage), const MaterialSequence UNUSED(sequence)) override {}
+    virtual void finalize(Storage& UNUSED(storage), const IndexSequence UNUSED(sequence)) override {}
 };
 
 /// Material holding equation of state
@@ -45,9 +45,9 @@ public:
 
     virtual void create(Storage& storage) const override;
 
-    virtual void initialize(Storage& storage, const MaterialSequence sequence) override;
+    virtual void initialize(Storage& storage, const IndexSequence sequence) override;
 
-    virtual void finalize(Storage& UNUSED(storage), const MaterialSequence UNUSED(sequence)) override {
+    virtual void finalize(Storage& UNUSED(storage), const IndexSequence UNUSED(sequence)) override {
         // nothing
     }
 };
@@ -66,9 +66,9 @@ public:
 
     virtual void create(Storage& storage) const override;
 
-    virtual void initialize(Storage& storage, const MaterialSequence sequence) override;
+    virtual void initialize(Storage& storage, const IndexSequence sequence) override;
 
-    virtual void finalize(Storage& storage, const MaterialSequence sequence) override;
+    virtual void finalize(Storage& storage, const IndexSequence sequence) override;
 };
 
 /// Returns material using default settings.

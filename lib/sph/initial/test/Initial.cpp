@@ -157,7 +157,6 @@ TEST_CASE("Initial addHeterogeneousBody multiple", "[initial]") {
     conds.addHeterogeneousBody(std::move(environment), bodies);
     REQUIRE(storage.getParticleCnt() == 1000);
     REQUIRE(storage.getMaterialCnt() == 3);
-    ArrayView<Size> matId = storage.getValue<Size>(QuantityId::MATERIAL_IDX);
     ArrayView<Size> flag = storage.getValue<Size>(QuantityId::FLAG);
     ArrayView<Vector> r, v, dv;
     tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
@@ -170,13 +169,13 @@ TEST_CASE("Initial addHeterogeneousBody multiple", "[initial]") {
     auto test = [&](const Size i) {
         if (dom1.isInside(r[i])) {
             particlesBody1++;
-            return matId[i] == 1 && flag[i] == 0 && v[i] == v1;
+            return flag[i] == 0 && v[i] == v1;
         }
         if (dom2.isInside(r[i])) {
             particlesBody2++;
-            return matId[i] == 2 && flag[i] == 1 && v[i] == v2;
+            return flag[i] == 1 && v[i] == v2;
         }
-        return matId[i] == 0 && flag[i] == 2 && v[i] == Vector(0._f);
+        return flag[i] == 2 && v[i] == Vector(0._f);
     };
     REQUIRE_SEQUENCE(test, 0, r.size());
     REQUIRE(particlesBody1 > 30);

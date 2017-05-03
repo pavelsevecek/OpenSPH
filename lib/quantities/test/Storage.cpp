@@ -36,7 +36,7 @@ TEST_CASE("Storage resize", "[storage]") {
     REQUIRE(storage.getQuantityCnt() == 0);
     REQUIRE(storage.getParticleCnt() == 0);
 
-    storage.insert<Size>(QuantityId::MATERIAL_IDX, OrderEnum::ZERO, Array<Size>{ 0 });
+    storage.insert<Size>(QuantityId::FLAG, OrderEnum::ZERO, Array<Size>{ 0 });
     storage.resize(5);
     storage.insert<Float>(QuantityId::DENSITY, OrderEnum::FIRST, 3._f);
     REQUIRE(storage.getQuantityCnt() == 2);
@@ -78,7 +78,7 @@ TEST_CASE("Storage resize", "[storage]") {
 
 TEST_CASE("Clone storages", "[storage]") {
     Storage storage;
-    storage.insert<Float>(QuantityId::MATERIAL_IDX, OrderEnum::ZERO, Array<Float>{ 0 });
+    storage.insert<Float>(QuantityId::FLAG, OrderEnum::ZERO, Array<Float>{ 0 });
     storage.resize(5);
     storage.insert<Float>(QuantityId::POSITIONS, OrderEnum::SECOND, 4._f);
     storage.insert<Float>(QuantityId::MASSES, OrderEnum::ZERO, 1._f);
@@ -156,7 +156,7 @@ TEST_CASE("Storage merge", "[storage]") {
 
 TEST_CASE("Storage init", "[storage]") {
     Storage storage;
-    storage.insert<Float>(QuantityId::MATERIAL_IDX, OrderEnum::ZERO, Array<Float>{ 0 }); // dummy unit
+    storage.insert<Float>(QuantityId::FLAG, OrderEnum::ZERO, Array<Float>{ 0 }); // dummy unit
     storage.resize(3);
     storage.insert<Float>(QuantityId::POSITIONS, OrderEnum::SECOND, 3._f);
     storage.insert<Float>(QuantityId::MASSES, OrderEnum::FIRST, 1._f);
@@ -241,7 +241,7 @@ TEST_CASE("Storage material", "[storage]") {
 
 TEST_CASE("Storage removeAll", "[storage]") {
     Storage storage;
-    storage.insert<Float>(QuantityId::MATERIAL_IDX, OrderEnum::ZERO, Array<Float>{ 0 }); // dummy unit
+    storage.insert<Float>(QuantityId::FLAG, OrderEnum::ZERO, Array<Float>{ 0 }); // dummy unit
     storage.resize(3);
     storage.insert<Float>(QuantityId::POSITIONS, OrderEnum::SECOND, 3._f);
     storage.insert<Float>(QuantityId::MASSES, OrderEnum::FIRST, 1._f);

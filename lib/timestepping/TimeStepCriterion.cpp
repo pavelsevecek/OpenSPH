@@ -42,7 +42,6 @@ DerivativeCriterion::DerivativeCriterion(const RunSettings& settings) {
 Tuple<Float, CriterionId> DerivativeCriterion::compute(Storage& storage,
     const Float maxStep,
     Optional<Statistics&> stats) {
-    PROFILE_SCOPE("DerivativeCriterion::compute");
     Float totalMinStep = INFTY;
     CriterionId minId = CriterionId::INITIAL_VALUE;
 
@@ -55,11 +54,10 @@ Tuple<Float, CriterionId> DerivativeCriterion::compute(Storage& storage,
             T derivative = T(0._f);
             Size particleIdx = 0;
         } limit;
-        ArrayView<Size> matIdxs = storage.getValue<Size>(QuantityId::MATERIAL_IDX);
         for (Size i = 0; i < v.size(); ++i) {
             const auto absdv = abs(dv[i]);
             const auto absv = abs(v[i]);
-            const Float minValue = storage.getMaterial(matIdxs[i])->minimal(id);
+            const Float minValue = storage.getMaterialOfParticle(i)->minimal(id);
             ASSERT(minValue > 0._f); // some nonzero minimal value must be set for all quantities
             if (norm(absv) < minValue) {
                 continue;
@@ -111,7 +109,6 @@ Tuple<Float, CriterionId> DerivativeCriterion::compute(Storage& storage,
 Tuple<Float, CriterionId> AccelerationCriterion::compute(Storage& storage,
     const Float maxStep,
     Optional<Statistics&> UNUSED(stats)) {
-    PROFILE_SCOPE("AccelerationCriterion::compute");
     Float totalMinStep = INFTY;
     ArrayView<const Vector> r, v, dv;
     tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
@@ -144,7 +141,6 @@ CourantCriterion::CourantCriterion(const RunSettings& settings) {
 Tuple<Float, CriterionId> CourantCriterion::compute(Storage& storage,
     const Float maxStep,
     Optional<Statistics&> UNUSED(stats)) {
-    PROFILE_SCOPE("CourantCriterion::compute");
     Float totalMinStep = INFTY;
 
     /// \todo AV contribution?
@@ -187,6 +183,7 @@ MultiCriterion::MultiCriterion(const RunSettings& settings)
 Tuple<Float, CriterionId> MultiCriterion::compute(Storage& storage,
     const Float maxStep,
     Optional<Statistics&> stats) {
+    PROFILE_SCOPE("MultiCriterion::compute");
     ASSERT(!criteria.empty());
     Float minStep = INFTY;
     CriterionId minId = CriterionId::INITIAL_VALUE;

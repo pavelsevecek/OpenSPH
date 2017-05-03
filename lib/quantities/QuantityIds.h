@@ -84,8 +84,7 @@ enum class QuantityId {
 
     /// \name Particle flags & Materials
     ///@{
-    FLAG,         ///< ID of original body, used to implement discontinuities between bodies in SPH
-    MATERIAL_IDX, ///< Material ID
+    FLAG, ///< ID of original body, used to implement discontinuities between bodies in SPH
     ///@}
 };
 

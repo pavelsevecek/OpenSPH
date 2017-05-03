@@ -539,19 +539,19 @@ private:
     Size idx;
 
 public:
-    IndexIterator(const Size idx)
+    INLINE IndexIterator(const Size idx)
         : idx(idx) {}
 
-    Size operator*() const {
+    INLINE Size operator*() const {
         return idx;
     }
 
-    IndexIterator& operator++() {
+    INLINE IndexIterator& operator++() {
         ++idx;
         return *this;
     }
 
-    bool operator!=(const IndexIterator other) const {
+    INLINE bool operator!=(const IndexIterator other) const {
         return idx != other.idx;
     }
 };
@@ -562,21 +562,21 @@ private:
     Size to;
 
 public:
-    IndexSequence(const Size from, const Size to)
+    INLINE IndexSequence(const Size from, const Size to)
         : from(from)
         , to(to) {
         ASSERT(from <= to);
     }
 
-    IndexIterator begin() const {
+    INLINE IndexIterator begin() const {
         return IndexIterator(from);
     }
 
-    IndexIterator end() const {
+    INLINE IndexIterator end() const {
         return IndexIterator(to);
     }
 
-    Size size() const {
+    INLINE Size size() const {
         return to - from;
     }
 };

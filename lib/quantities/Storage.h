@@ -101,6 +101,12 @@ private:
     /// Holds materials of particles. Each particle can (in theory) have a different material.
     Array<std::unique_ptr<Abstract::Material>> materials;
 
+    /// Partitions between the materials. The size of the array matches the size of materials, or it is empty,
+    /// in which case all particles belongs to the same material.
+    /// Particles of the first material are 0..partitions[0], section material partitions[0]..partitions[1],
+    /// etc.
+    Array<Size> partitions;
+
     /// Thread pool for parallelization
     std::shared_ptr<ThreadPool> pool;
 
@@ -315,14 +321,7 @@ public:
         Quantity q(order, std::move(values));
         UNUSED_IN_RELEASE(const Size size = q.size();)
         quantities[key] = std::move(q);
-        if (quantities.size() == 1) {
-            // set material ids; we have only one material, so set everything to zero
-            if (!materials.empty()) {
-                this->insert<Size>(QuantityId::MATERIAL_IDX, OrderEnum::ZERO, 0);
-            }
-        } else {
-            ASSERT(size == getParticleCnt()); // size must match sizes of other quantities
-        }
+        ASSERT(quantities.empty() || size == getParticleCnt()); // size must match sizes of other quantities
         return quantities[key];
     }
 
@@ -388,6 +387,9 @@ public:
     /// Checks whether the storage is in valid state, that is whether all quantities have the same number of
     /// particles.
     bool isValid() const;
+
+private:
+    IndexSequence getMaterialRange(const Size matId) const;
 };
 
 NAMESPACE_SPH_END

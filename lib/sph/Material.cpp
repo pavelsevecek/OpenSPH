@@ -35,7 +35,7 @@ void EosMaterial::create(Storage& storage) const {
     storage.insert<Float>(QuantityId::SOUND_SPEED, OrderEnum::ZERO, std::move(cs));
 }
 
-void EosMaterial::initialize(Storage& storage, const MaterialSequence sequence) {
+void EosMaterial::initialize(Storage& storage, const IndexSequence sequence) {
     tie(rho, u, p, cs) = storage.getValues<Float>(
         QuantityId::DENSITY, QuantityId::ENERGY, QuantityId::PRESSURE, QuantityId::SOUND_SPEED);
     for (Size i : sequence) {
@@ -56,14 +56,14 @@ void SolidMaterial::create(Storage& storage) const {
     rheology->create(storage, params);
 }
 
-void SolidMaterial::initialize(Storage& storage, const MaterialSequence sequence) {
+void SolidMaterial::initialize(Storage& storage, const IndexSequence sequence) {
     EosMaterial::initialize(storage, sequence);
-    rheology->initialize(storage, MaterialView(this, sequence, sequence.getId()));
+    rheology->initialize(storage, MaterialView(this, sequence));
 }
 
-void SolidMaterial::finalize(Storage& storage, const MaterialSequence sequence) {
+void SolidMaterial::finalize(Storage& storage, const IndexSequence sequence) {
     EosMaterial::finalize(storage, sequence);
-    rheology->integrate(storage, MaterialView(this, sequence, sequence.getId()));
+    rheology->integrate(storage, MaterialView(this, sequence));
 }
 
 std::unique_ptr<Abstract::Material> getDefaultMaterial() {

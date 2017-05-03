@@ -15,7 +15,6 @@ class DensityIndependentPressureForce : public Abstract::EquationTerm {
 private:
     class Derivative : public Abstract::Derivative {
     private:
-        ArrayView<const Size> matIdxs;
         ArrayView<const Float> q, U, m;
         ArrayView<const Vector> r, v;
         ArrayView<Vector> dv;
@@ -28,7 +27,6 @@ private:
         }
 
         virtual void initialize(const Storage& input, Accumulated& results) override {
-            matIdxs = input.getValue<Size>(QuantityId::MATERIAL_IDX);
             tie(m, q, U) = input.getValues<Float>(
                 QuantityId::MASSES, QuantityId::ENERGY_DENSITY, QuantityId::ENERGY_PER_PARTICLE);
             ArrayView<const Vector> dummy;

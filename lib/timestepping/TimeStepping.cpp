@@ -48,21 +48,19 @@ void EulerExplicit::stepImpl(Abstract::Solver& solver, Statistics& stats) {
     // advance all 2nd-order quantities by current timestep, first values, then 1st derivatives
     iterate<VisitorEnum::SECOND_ORDER>(
         *this->storage, [this](const QuantityId id, auto& v, auto& dv, auto& d2v) {
-            ArrayView<Size> matIds = storage->getValue<Size>(QuantityId::MATERIAL_IDX);
             for (Size i = 0; i < v.size(); ++i) {
                 dv[i] += d2v[i] * this->dt;
                 v[i] += dv[i] * this->dt;
-                const Range range = storage->getRange(id, matIds[i]);
+                const Range range = storage->getMaterialOfParticle(i)->range(id);
                 if (!range.isEmpty()) {
                     v[i] = clamp(v[i], range);
                 }
             }
         });
     iterate<VisitorEnum::FIRST_ORDER>(*this->storage, [this](const QuantityId id, auto& v, auto& dv) {
-        ArrayView<Size> matIds = storage->getValue<Size>(QuantityId::MATERIAL_IDX);
         for (Size i = 0; i < v.size(); ++i) {
             v[i] += dv[i] * this->dt;
-            const Range range = storage->getRange(id, matIds[i]);
+            const Range range = storage->getMaterialOfParticle(i)->range(id);
             if (!range.isEmpty()) {
                 v[i] = clamp(v[i], range);
             }
@@ -88,21 +86,21 @@ void PredictorCorrector::makePredictions() {
     const Float dt2 = 0.5_f * sqr(this->dt);
     iterate<VisitorEnum::SECOND_ORDER>(
         *this->storage, [this, dt2](const QuantityId id, auto& v, auto& dv, auto& d2v) {
-            ArrayView<Size> matIds = storage->getValue<Size>(QuantityId::MATERIAL_IDX);
+            // ArrayView<Size> matIds = storage->getValue<Size>(QuantityId::FLAG);
             for (Size i = 0; i < v.size(); ++i) {
                 v[i] += dv[i] * this->dt + d2v[i] * dt2;
                 dv[i] += d2v[i] * this->dt;
-                const Range range = storage->getRange(id, matIds[i]);
+                /// \todo this probably wont change that much, we could cache it
+                const Range range = storage->getMaterialOfParticle(i)->range(id);
                 if (!range.isEmpty()) {
                     v[i] = clamp(v[i], range);
                 }
             }
         });
     iterate<VisitorEnum::FIRST_ORDER>(*this->storage, [this](const QuantityId id, auto& v, auto& dv) {
-        ArrayView<Size> matIds = storage->getValue<Size>(QuantityId::MATERIAL_IDX);
         for (Size i = 0; i < v.size(); ++i) {
             v[i] += dv[i] * this->dt;
-            const Range range = storage->getRange(id, matIds[i]);
+            const Range range = storage->getMaterialOfParticle(i)->range(id);
             if (!range.isEmpty()) {
                 v[i] = clamp(v[i], range);
             }
@@ -119,11 +117,10 @@ void PredictorCorrector::makeCorrections() {
         ASSERT(pv.size() == pd2v.size());
         constexpr Float a = 1._f / 3._f;
         constexpr Float b = 0.5_f;
-        ArrayView<Size> matIds = storage->getValue<Size>(QuantityId::MATERIAL_IDX);
         for (Size i = 0; i < pv.size(); ++i) {
             pv[i] -= a * (cd2v[i] - pd2v[i]) * dt2;
             pdv[i] -= b * (cd2v[i] - pd2v[i]) * this->dt;
-            const Range range = storage->getRange(id, matIds[i]);
+            const Range range = storage->getMaterialOfParticle(i)->range(id);
             if (!range.isEmpty()) {
                 pv[i] = clamp(pv[i], range);
             }
@@ -132,10 +129,9 @@ void PredictorCorrector::makeCorrections() {
     iteratePair<VisitorEnum::FIRST_ORDER>(*this->storage, *this->predictions,
         [this](const QuantityId id, auto& pv, auto& pdv, auto& UNUSED(cv), auto& cdv) {
         ASSERT(pv.size() == pdv.size());
-        ArrayView<Size> matIds = storage->getValue<Size>(QuantityId::MATERIAL_IDX);
         for (Size i = 0; i < pv.size(); ++i) {
             pv[i] -= 0.5_f * (cdv[i] - pdv[i]) * this->dt;
-            const Range range = storage->getRange(id, matIds[i]);
+            const Range range = storage->getMaterialOfParticle(i)->range(id);
             if (!range.isEmpty()) {
                 pv[i] = clamp(pv[i], range);
             }

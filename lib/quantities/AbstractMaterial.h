@@ -11,92 +11,52 @@ namespace Abstract {
     class Material;
 }
 
-class MaterialSequence {
-private:
-    ArrayView<const Size> matIds;
-    Size id;
-
-    struct Comparator {
-        const MaterialSequence* that;
-
-        INLINE bool operator()(const Size matId) {
-            return that->id == matId;
-        }
-    };
-
-public:
-    MaterialSequence(ArrayView<const Size> matIds, const Size id)
-        : matIds(matIds)
-        , id(id) {}
-
-    template <typename TIdx>
-    using IdxIterator = SubsetIterator<Iterator<TIdx>, Comparator>;
-
-    IdxIterator<const Size> begin() const {
-        return makeSubsetIterator(matIds.begin(), matIds.end(), Comparator{ this });
-    }
-
-    IdxIterator<const Size> end() const {
-        return makeSubsetIterator(matIds.end(), matIds.end(), Comparator{ this });
-    }
-
-    operator ArrayView<const Size>() const {
-        return matIds;
-    }
-
-    Size getId() const {
-        return id;
-    }
-};
-
 /// Non-owning wrapper of a material and particles with this material. This object serves as a junction
 /// between particle storage and a material. It can be used to access material parameters and member function,
 /// but also provides means to iterate over particle indices in the storage.
 class MaterialView {
 private:
     Abstract::Material* mat;
-    ArrayView<const Size> matIdxs;
-    Size id;
+    IndexSequence seq;
 
 public:
-    MaterialView(Abstract::Material* material, ArrayView<const Size> matIdxs, const Size id)
+    INLINE MaterialView(Abstract::Material* material, IndexSequence seq)
         : mat(material)
-        , matIdxs(matIdxs)
-        , id(id) {
+        , seq(seq) {
         ASSERT(material != nullptr);
     }
 
     /// Returns reference to the material of the particles.
-    Abstract::Material& material() {
+    INLINE Abstract::Material& material() {
         ASSERT(mat != nullptr);
         return *mat;
     }
 
     /// Implicit conversion to the material.
-    operator Abstract::Material&() {
+    INLINE operator Abstract::Material&() {
         ASSERT(mat != nullptr);
         return *mat;
     }
 
     /// Overloaded -> operator for convenient access to material functions.
-    Abstract::Material* operator->() {
+    INLINE Abstract::Material* operator->() {
         return mat;
     }
 
     /// \copydoc Abstract::Material* operator->()
-    const Abstract::Material* operator->() const {
+    INLINE const Abstract::Material* operator->() const {
         return mat;
     }
 
 
     /// Returns iterable index sequence.
-    MaterialSequence sequence() {
-        return MaterialSequence(matIdxs, id);
+    INLINE IndexSequence sequence() {
+        return seq;
     }
 
     /// Returns iterable index sequence, const version.
-    const MaterialSequence sequence() const {
-        return MaterialSequence(matIdxs, id);
+    INLINE const IndexSequence sequence() const {
+        return seq;
     }
 };
 
@@ -160,10 +120,10 @@ namespace Abstract {
         virtual void create(Storage& storage) const = 0;
 
         /// Initialize all quantities and material parameters. Called once every step before loop.
-        virtual void initialize(Storage& storage, const MaterialSequence sequence) = 0;
+        virtual void initialize(Storage& storage, const IndexSequence sequence) = 0;
 
         /// Called after derivatives are computed.
-        virtual void finalize(Storage& storage, const MaterialSequence sequence) = 0;
+        virtual void finalize(Storage& storage, const IndexSequence sequence) = 0;
     };
 }
 

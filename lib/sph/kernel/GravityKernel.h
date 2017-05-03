@@ -32,7 +32,7 @@ public:
         ASSERT(h >= 0._f);
         const Float hInv = 1._f / h;
         const Float qSqr = getSqrLength(r * hInv);
-        if (qSqr >= sqr(close.radius())) {
+        if (qSqr + EPS >= sqr(close.radius())) {
             return -1._f / getLength(r);
         } else {
             // LUT kernel returns 0 for qSqr >= radiusSqr
@@ -46,10 +46,12 @@ public:
         ASSERT(h >= 0._f);
         const Float hInv = 1._f / h;
         const Float qSqr = getSqrLength(r * hInv);
-        if (qSqr >= sqr(close.radius())) {
+        if (qSqr + EPS >= sqr(close.radius())) {
             return r / pow<3>(getLength(r));
         } else {
-            return pow<3>(hInv) * r * close.gradImpl(qSqr);
+            const Float grad = close.gradImpl(qSqr);
+            ASSERT(grad != 0._f);
+            return pow<3>(hInv) * r * grad;
         }
     }
 };

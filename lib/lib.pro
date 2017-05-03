@@ -125,7 +125,6 @@ HEADERS += \
     objects/wrappers/Optional.h \
     objects/wrappers/Outcome.h \
     objects/wrappers/Range.h \
-    objects/wrappers/UniquePtr.h \
     objects/wrappers/Value.h \
     objects/wrappers/Variant.h \
     objects/wrappers/VectorizedArray.h \
@@ -187,4 +186,5 @@ HEADERS += \
     timestepping/TimeStepCriterion.h \
     timestepping/TimeStepping.h \
     sph/equations/heat/HeatDiffusion.h \
-    sph/equations/av/Standard.h
+    sph/equations/av/Standard.h \
+    objects/wrappers/AutoPtr.h
