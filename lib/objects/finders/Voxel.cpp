@@ -10,6 +10,7 @@ VoxelFinder::VoxelFinder() {
 VoxelFinder::~VoxelFinder() = default;
 
 void VoxelFinder::buildImpl(ArrayView<const Vector> points) {
+    PROFILE_SCOPE("VoxelFinder::buildImpl");
     // number of voxels, free parameter
     const Size lutSize = root<3>(points.size()) + 1;
     // find bounding box
@@ -38,7 +39,6 @@ Size VoxelFinder::findNeighbours(const Size index,
     Array<NeighbourRecord>& neighbours,
     Flags<FinderFlags> flags,
     const Float UNUSED(error)) const {
-    PROFILE_SCOPE("VoxelFinder::findNeighbours");
     neighbours.clear();
     const Size refRank =
         (flags.has(FinderFlags::FIND_ONLY_SMALLER_H)) ? this->rankH[index] : this->values.size();

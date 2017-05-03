@@ -41,6 +41,14 @@ Storage& Storage::operator=(Storage&& other) {
     return *this;
 }
 
+void Storage::setThreadPool(const std::shared_ptr<ThreadPool>& threadPool) {
+    pool = threadPool;
+}
+
+std::shared_ptr<ThreadPool> Storage::getThreadPool() const {
+    return pool;
+}
+
 MaterialView Storage::getMaterial(const Size matId) const {
     ASSERT(this->has(QuantityId::MATERIAL_IDX));
     return MaterialView(materials[matId].get(), this->getValue<Size>(QuantityId::MATERIAL_IDX), matId);

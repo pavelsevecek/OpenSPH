@@ -10,6 +10,7 @@
 #include "sph/equations/EquationTerm.h"
 #include "sph/kernel/KernelFactory.h"
 #include "system/Factory.h"
+#include "system/Profiler.h"
 #include "system/Statistics.h"
 #include "thread/ThreadLocal.h"
 #include "timestepping/AbstractSolver.h"
@@ -75,6 +76,7 @@ public:
     virtual void integrate(Storage& storage, Statistics& stats) override {
         // initialize all materials (compute pressure, apply yielding and damage, ...)
         for (Size i = 0; i < storage.getMaterialCnt(); ++i) {
+            PROFILE_SCOPE("GenericSolver initialize materials")
             MaterialView material = storage.getMaterial(i);
             material->initialize(storage, material.sequence());
         }
@@ -96,6 +98,7 @@ public:
 
         // finalize all materials (integrate fragmentation model)
         for (Size i = 0; i < storage.getMaterialCnt(); ++i) {
+            PROFILE_SCOPE("GenericSolver finalize materials")
             MaterialView material = storage.getMaterial(i);
             material->finalize(storage, material.sequence());
         }
@@ -138,25 +141,34 @@ protected:
                 data.derivatives.compute(i, data.idxs, data.grads);
             }
         };
+        PROFILE_SCOPE("GenericSolver main loop");
         parallelFor(pool, threadData, 0, r.size(), granularity, functor);
     }
 
     virtual void beforeLoop(Storage& storage, Statistics& UNUSED(stats)) {
         // clear thread local storages
+        PROFILE_SCOPE("GenericSolver::beforeLoop");
         threadData.forEach([&storage](ThreadData& data) { data.derivatives.initialize(storage); });
     }
 
     virtual void afterLoop(Storage& storage, Statistics& stats) {
-        // sum up thread local accumulated values
         Accumulated* first = nullptr;
-        threadData.forEach([this, &first](ThreadData& data) {
-            if (!first) {
-                first = &data.derivatives.getAccumulated();
-            } else {
-                ASSERT(first != nullptr);
-                first->sum(pool, data.derivatives.getAccumulated());
-            }
-        });
+        {
+            PROFILE_SCOPE("GenericSolver::afterLoop part 1");
+            // sum up thread local accumulated values
+            Array<Accumulated*> threadLocalAccumulated;
+            threadData.forEach([this, &first, &threadLocalAccumulated](ThreadData& data) {
+                if (!first) {
+                    first = &data.derivatives.getAccumulated();
+                } else {
+                    ASSERT(first != nullptr);
+                    threadLocalAccumulated.push(&data.derivatives.getAccumulated());
+                }
+            });
+            ASSERT(first != nullptr);
+            first->sum(pool, threadLocalAccumulated);
+        }
+        PROFILE_SCOPE("GenericSolver::afterLoop part 2");
         ASSERT(first);
         // store them to storage
         first->store(storage);

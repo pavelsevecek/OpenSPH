@@ -83,11 +83,9 @@ PredictorCorrector::PredictorCorrector(const std::shared_ptr<Storage>& storage, 
 
 PredictorCorrector::~PredictorCorrector() = default;
 
-void PredictorCorrector::stepImpl(Abstract::Solver& solver, Statistics& stats) {
+void PredictorCorrector::makePredictions() {
+    PROFILE_SCOPE("PredictorCorrector::predictions")
     const Float dt2 = 0.5_f * sqr(this->dt);
-
-    PROFILE_SCOPE("PredictorCorrector::step   Predictions")
-    // make prediction using old derivatives (simple euler)
     iterate<VisitorEnum::SECOND_ORDER>(
         *this->storage, [this, dt2](const QuantityId id, auto& v, auto& dv, auto& d2v) {
             ArrayView<Size> matIds = storage->getValue<Size>(QuantityId::MATERIAL_IDX);
@@ -110,17 +108,11 @@ void PredictorCorrector::stepImpl(Abstract::Solver& solver, Statistics& stats) {
             }
         }
     });
-    // save derivatives from predictions
-    this->storage->swap(*predictions, VisitorEnum::HIGHEST_DERIVATIVES);
+}
 
-    // clear derivatives
-    this->storage->init();
-    SCOPE_STOP;
-    // compute derivative
-    solver.integrate(*this->storage, stats);
-
-    PROFILE_NEXT("PredictorCorrector::step   Corrections");
-    // make corrections
+void PredictorCorrector::makeCorrections() {
+    PROFILE_SCOPE("PredictorCorrector::step   Corrections");
+    const Float dt2 = 0.5_f * sqr(this->dt);
     // clang-format off
     iteratePair<VisitorEnum::SECOND_ORDER>(*this->storage, *this->predictions,
         [this, dt2](const QuantityId id, auto& pv, auto& pdv, auto& pd2v, auto& UNUSED(cv), auto& UNUSED(cdv), auto& cd2v) {
@@ -150,6 +142,19 @@ void PredictorCorrector::stepImpl(Abstract::Solver& solver, Statistics& stats) {
         }
     });
     // clang-format on
+}
+
+void PredictorCorrector::stepImpl(Abstract::Solver& solver, Statistics& stats) {
+    // make predictions
+    this->makePredictions();
+    // save derivatives from predictions
+    this->storage->swap(*predictions, VisitorEnum::HIGHEST_DERIVATIVES);
+    // clear derivatives
+    this->storage->init();
+    // compute derivative
+    solver.integrate(*this->storage, stats);
+    // make corrections
+    this->makeCorrections();
 }
 
 

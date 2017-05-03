@@ -11,9 +11,11 @@
 #include "quantities/Quantity.h"
 #include "quantities/QuantityIds.h"
 #include <map>
+#include <memory>
 
 NAMESPACE_SPH_BEGIN
 
+class ThreadPool;
 namespace Abstract {
     class Material;
 }
@@ -98,6 +100,9 @@ private:
 
     /// Holds materials of particles. Each particle can (in theory) have a different material.
     Array<std::unique_ptr<Abstract::Material>> materials;
+
+    /// Thread pool for parallelization
+    std::shared_ptr<ThreadPool> pool;
 
 public:
     /// Creates a storage with no material. Any call of \ref getMaterial function will result in assert.
@@ -320,6 +325,10 @@ public:
         }
         return quantities[key];
     }
+
+    void setThreadPool(const std::shared_ptr<ThreadPool>& pool);
+
+    std::shared_ptr<ThreadPool> getThreadPool() const;
 
     /// Returns an object containing a reference to given material. The object can also be used to iterate
     /// over indices of particles belonging to given material.

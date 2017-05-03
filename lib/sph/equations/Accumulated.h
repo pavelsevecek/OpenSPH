@@ -66,23 +66,23 @@ public:
         STOP;
     }
 
-    /// Sums values of two storages. Storages must have the same number of buffers and the matching buffers
-    /// must have the same type and same size.
-    /// \todo optimize, sum all at once instead of by pairs
-    void sum(const Accumulated& other) {
-        ASSERT(buffers.size() == other.buffers.size());
+    /// Sums values of a list of storages. Storages must have the same number of buffers and the matching
+    /// buffers must have the same type and same size.
+    void sum(ArrayView<Accumulated*> others) {
         for (Element& e : buffers) {
-            sumBuffer(e.buffer, e.id, other);
+            forValue(e.buffer, [this, &e, &others](auto& buffer) INL { //
+                this->sumBuffer(buffer, e.id, others);
+            });
         }
     }
 
     /// Sums values, concurently over different quantities
-    void sum(ThreadPool& pool, const Accumulated& other) {
-        ASSERT(buffers.size() == other.buffers.size());
-        parallelFor(pool, 0, buffers.size(), [this, &other](Size i) INL {
-            ASSERT(i < buffers.size());
-            sumBuffer(buffers[i].buffer, buffers[i].id, other);
-        });
+    void sum(ThreadPool& pool, ArrayView<Accumulated*> others) {
+        for (Element& e : buffers) {
+            forValue(e.buffer, [this, &pool, &e, &others](auto& buffer) INL { //
+                this->sumBuffer(pool, buffer, e.id, others);
+            });
+        }
     }
 
     /// Stores accumulated values to corresponding quantities. If there is no quantity with corresponding key
@@ -105,19 +105,48 @@ public:
     }
 
 private:
-    void sumBuffer(Buffer& b, const QuantityId id, const Accumulated& other) {
-        forValue(b, [id, &other](auto& buffer1) {
-            using T = std::decay_t<decltype(buffer1)>;
-            auto iter = std::find_if(
-                other.buffers.begin(), other.buffers.end(), [id](const Element& e) { return e.id == id; });
-            ASSERT(iter != other.buffers.end());
-            const T& buffer2 = iter->buffer;
-            ASSERT(buffer1.size() == buffer2.size());
-            for (Size j = 0; j < buffer1.size(); ++j) {
-                buffer1[j] += buffer2[j];
+    template <typename Type>
+    Array<Iterator<const Type>> getBufferIterators(const QuantityId id, ArrayView<Accumulated*> others) {
+        Array<Iterator<const Type>> iterators;
+        for (Accumulated* other : others) {
+            auto iter = std::find_if(other->buffers.begin(), other->buffers.end(), [id](const Element& e) { //
+                return e.id == id;
+            });
+            ASSERT(iter != other->buffers.end());
+            const Array<Type>& buffer2 = iter->buffer;
+            iterators.push(buffer2.begin());
+        }
+        return iterators;
+    }
+
+    template <typename Type>
+    void sumBuffer(Array<Type>& buffer1, const QuantityId id, ArrayView<Accumulated*> others) {
+        Array<Iterator<const Type>> iterators = this->getBufferIterators<Type>(id, others);
+        for (Size i = 0; i < buffer1.size(); ++i) {
+            Type sum = Type(0._f);
+            for (Iterator<const Type>& iter : iterators) {
+                sum += *iter;
+                ++iter;
             }
+            buffer1[i] += sum;
+        }
+    }
+
+    template <typename Type>
+    void sumBuffer(ThreadPool& pool,
+        Array<Type>& buffer1,
+        const QuantityId id,
+        ArrayView<Accumulated*> others) {
+        Array<Iterator<const Type>> iterators = this->getBufferIterators<Type>(id, others);
+        parallelFor(pool, 0, buffer1.size(), 100, [&iterators, &buffer1](const Size i) {
+            Type sum = Type(0._f);
+            for (Iterator<const Type> iter : iterators) {
+                sum += *(iter + i);
+            }
+            buffer1[i] += sum;
         });
     }
 };
+
 
 NAMESPACE_SPH_END

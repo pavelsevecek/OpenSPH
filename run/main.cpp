@@ -33,7 +33,7 @@ public:
             .set(RunSettingsId::SPH_FINDER, FinderEnum::VOXEL)
 
             // Time range for the run; the run will end after 1s
-            .set(RunSettingsId::RUN_TIME_RANGE, Range(0._f, 1._f));
+            .set(RunSettingsId::RUN_TIME_RANGE, Range(0._f, 1.7e-2_f));
     }
 
     virtual std::shared_ptr<Storage> setUp() override {

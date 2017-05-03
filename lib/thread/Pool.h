@@ -141,4 +141,22 @@ INLINE void parallelFor(ThreadPool& pool, const Size from, const Size to, TFunct
     pool.waitForAll();
 }
 
+template <typename TFunctor>
+INLINE void parallelFor(ThreadPool& pool,
+    const Size from,
+    const Size to,
+    const Size granularity,
+    TFunctor&& functor) {
+    for (Size i = from; i < to; i += granularity) {
+        const Size n1 = i;
+        const Size n2 = min(i + granularity, to);
+        pool.submit([n1, n2, &functor] {
+            for (Size i = n1; i < n2; ++i) {
+                functor(i);
+            }
+        });
+    }
+    pool.waitForAll();
+}
+
 NAMESPACE_SPH_END

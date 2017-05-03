@@ -15,8 +15,8 @@ TEST_CASE("M4 gravity kernel", "[kernel]") {
 
     REQUIRE_NOTHROW(kernel.grad(Vector(1._f, 0._f, 0._f), 1._f));
     REQUIRE(kernel.grad(Vector(0._f), 1._f) == Vector(0._f));
-    REQUIRE(kernel.grad(Vector(0._f, 0._f, 5._f), 1._f) == Vector(0._f, 0._f, 0.04_f));
-    REQUIRE(kernel.grad(Vector(0._f, 0._f, 5._f), EPS) == Vector(0._f, 0._f, 0.04_f));
+    REQUIRE(kernel.grad(Vector(0._f, 0._f, 5._f), 1._f) == approx(Vector(0._f, 0._f, 0.04_f)));
+    REQUIRE(kernel.grad(Vector(0._f, 0._f, 5._f), EPS) == approx(Vector(0._f, 0._f, 0.04_f)));
 
     // check that value = int grad dx
 

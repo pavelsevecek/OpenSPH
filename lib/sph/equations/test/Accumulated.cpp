@@ -32,7 +32,7 @@ TEST_CASE("Accumulated sum simple", "[accumulated]") {
         buffer2[i] = 5 - i;
     }
 
-    ac1.sum(ac2);
+    ac1.sum(Array<Accumulated*>{ &ac2 });
     REQUIRE(perElement(buffer1) == 5);
 }
 
@@ -71,7 +71,7 @@ TEST_CASE("Accumulated sum parallelized", "[accumulated]") {
     Accumulated ac1 = getAccumulated();
     Accumulated ac2 = getAccumulated();
     ThreadPool pool;
-    ac1.sum(pool, ac2);
+    ac1.sum(pool, Array<Accumulated*>{ &ac2 });
     Storage storage = getStorage();
     ac1.store(storage);
 

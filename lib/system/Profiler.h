@@ -111,9 +111,9 @@ public:
 #define PROFILE_SCOPE(name)                                                                                  \
     Profiler* __instance = Profiler::getInstance();                                                          \
     ScopedTimer __scopedTimer = __instance->makeScopedTimer(name);
-#define PROFILE_NEXT(name) __scopedTimer.next(name);
-#define SCOPE_STOP __scopedTimer.stop()
-#define SCOPE_RESUME __scopedTimer.resume()
+//#define PROFILE_NEXT(name) __scopedTimer.next(name);
+//#define SCOPE_STOP __scopedTimer.stop()
+//#define SCOPE_RESUME __scopedTimer.resume()
 #else
 #define PROFILE_SCOPE(name)
 #define SCOPE_STOP

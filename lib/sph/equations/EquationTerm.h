@@ -7,6 +7,7 @@
 
 #include "sph/Material.h"
 #include "sph/equations/Derivative.h"
+#include "system/Profiler.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -429,12 +430,14 @@ public:
     }
 
     void initialize(Storage& storage) {
+        PROFILE_SCOPE("EquationHolder::initialize");
         for (auto& t : terms) {
             t->initialize(storage);
         }
     }
 
     void finalize(Storage& storage) {
+        PROFILE_SCOPE("EquationHolder::finalize");
         for (auto& t : terms) {
             t->finalize(storage);
         }

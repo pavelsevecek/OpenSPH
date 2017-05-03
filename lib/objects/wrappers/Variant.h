@@ -286,7 +286,7 @@ public:
     /// \todo test
     template <typename T>
     INLINE bool has() const {
-        constexpr int idx = getTypeIndex<T, TArgs...>;
+        constexpr int idx = getTypeIndex<std::decay_t<T>, TArgs...>;
         return typeIdx == idx;
     }
 
@@ -294,7 +294,7 @@ public:
     /// runtime check that the variant currently holds value of given type.
     template <typename T>
     INLINE T& get() {
-        constexpr int idx = getTypeIndex<T, TArgs...>;
+        constexpr int idx = getTypeIndex<std::decay_t<T>, TArgs...>;
         static_assert(idx != -1, "Cannot convert variant to this type");
         ASSERT(typeIdx == idx);
         return storage.template get<T>();
@@ -303,7 +303,7 @@ public:
     /// Returns the stored value, const version.
     template <typename T>
     INLINE const T& get() const {
-        constexpr int idx = getTypeIndex<T, TArgs...>;
+        constexpr int idx = getTypeIndex<std::decay_t<T>, TArgs...>;
         static_assert(idx != -1, "Cannot convert variant to this type");
         ASSERT(typeIdx == idx);
         return storage.template get<T>();
@@ -326,9 +326,9 @@ public:
     /// the value is currently not stored in variant.
     template <typename T>
     Optional<T&> tryGet() {
-        constexpr int idx = getTypeIndex<T, TArgs...>;
+        constexpr int idx = getTypeIndex<std::decay_t<T>, TArgs...>;
         static_assert(idx != -1, "Cannot convert variant to this type");
-        if (typeIdx != getTypeIndex<T, TArgs...>) {
+        if (typeIdx != getTypeIndex<std::decay_t<T>, TArgs...>) {
             return NOTHING;
         }
         return storage.template get<T>();
@@ -337,9 +337,9 @@ public:
     /// Returns the stored value in the variant, const version
     template <typename T>
     Optional<const T&> tryGet() const {
-        constexpr int idx = getTypeIndex<T, TArgs...>;
+        constexpr int idx = getTypeIndex<std::decay_t<T>, TArgs...>;
         static_assert(idx != -1, "Cannot convert variant to this type");
-        if (typeIdx != getTypeIndex<T, TArgs...>) {
+        if (typeIdx != getTypeIndex<std::decay_t<T>, TArgs...>) {
             return NOTHING;
         }
         return storage.template get<T>();

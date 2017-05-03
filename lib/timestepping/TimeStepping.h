@@ -75,6 +75,10 @@ public:
 
 protected:
     virtual void stepImpl(Abstract::Solver& solver, Statistics& stats) override;
+
+    void makePredictions();
+
+    void makeCorrections();
 };
 
 class LeapFrog : public Abstract::TimeStepping {
