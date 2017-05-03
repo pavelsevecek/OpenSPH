@@ -96,8 +96,7 @@ void Abstract::Run::run() {
     } else {
         logger->write(result.error());
     }
-    logFiles.clear();
-    this->tearDown();
+    this->tearDownInternal();
 }
 
 void Abstract::Run::setNullToDefaults() {
@@ -117,6 +116,17 @@ void Abstract::Run::setNullToDefaults() {
     if (!callbacks) {
         callbacks = std::make_unique<NullCallbacks>();
     }
+}
+
+void Abstract::Run::tearDownInternal() {
+    logFiles.clear();
+    this->tearDown();
+    output.reset();
+    callbacks.reset();
+    logger.reset();
+    timeStepping.reset();
+    solver.reset();
+    // keep storage so that we can access particle data after render ends
 }
 
 NAMESPACE_SPH_END

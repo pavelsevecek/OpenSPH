@@ -1,5 +1,10 @@
 #pragma once
 
+/// \file Run.h
+/// \brief Basic interface defining a single run
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2017
+
 #include "common/ForwardDecl.h"
 #include "objects/wrappers/Range.h"
 #include "physics/Integrals.h"
@@ -22,6 +27,9 @@ namespace Abstract {
 /// it will be initialized to a default value as specified by run settings. Only particle storage MUST be
 /// initialized by the \ref setUp function. User must call \ref setUp before calling \ref run. After run ends,
 /// function \ref setUp must be called again before another run can be started.
+///
+/// \attention Implementation of \ref setUp function must either create a new storage or clear any previous
+/// quantities stored in it. Other member variables do not have to be initialized nor cleared.
 ///
 /// Run is started up using \ref run member function. The function is blocking and ends when run is finished.
 /// The function can be called from any thread, but cannot be executed from multiple threads simultaneously.
@@ -70,6 +78,8 @@ namespace Abstract {
 
     private:
         void setNullToDefaults();
+
+        void tearDownInternal();
     };
 }
 

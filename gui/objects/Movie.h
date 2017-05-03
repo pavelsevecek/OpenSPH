@@ -1,12 +1,14 @@
 #pragma once
 
-/// Periodically saves rendered images to disk
-/// Pavel Sevecek
-/// sevecek at sirrah.troja.mff.cuni.cz
+/// \file Movie.h
+/// \brief Periodically saves rendered images to disk
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2017
 
 #include "common/Globals.h"
 #include "gui/Renderer.h"
 #include "io/Output.h"
+#include <condition_variable>
 #include <memory>
 
 NAMESPACE_SPH_BEGIN
@@ -34,9 +36,11 @@ private:
     std::unique_ptr<Abstract::Renderer> renderer;
     RenderParams params;
 
-    /// elements to render and save to disk
+    /// elements to rende1r and save to disk
     Array<std::unique_ptr<Abstract::Element>> elements;
 
+    std::condition_variable waitVar;
+    std::mutex waitMutex;
 
 public:
     Movie(const GuiSettings& settings,
@@ -47,8 +51,8 @@ public:
     ~Movie();
 
     /// Called every time step, saves the images every IMAGES_TIMESTEP. If the time since the last frame is
-    /// less than the required framerate, function does nothing. Can be called from any thread; if called from
-    /// non-main thread, function is non-blocking, the images are rendered and saved later in main thread.
+    /// less than the required framerate, function does nothing. Can be called from any thread; the function
+    /// is blocking, waits until all images are saved.
     void onTimeStep(const std::shared_ptr<Storage>& storage, Statistics& stats);
 
     void setEnabled(const bool enable = true);

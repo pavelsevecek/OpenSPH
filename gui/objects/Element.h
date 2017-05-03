@@ -1,8 +1,9 @@
 #pragma once
 
-/// Object converting quantity values of particles into colors.
-/// Pavel Sevecek 2017
-/// sevecek at sirrah.troja.mff.cuni.cz
+/// \file Element.h
+/// \brief Object converting quantity values of particles into colors.
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2017
 
 
 #include "gui/objects/Palette.h"
@@ -11,13 +12,23 @@
 
 NAMESPACE_SPH_BEGIN
 
+/// Source data used for element drawing
+enum class ElementSource {
+    /// Necessary data are cached withing the array and can be safely accessed during the run
+    CACHE_ARRAYS,
+    /// Element only saves a references to the storage, which can be invalidated during the run. Can be only
+    /// used for drawing inbetween timesteps or after run ends.
+    POINTER_TO_STORAGE
+
+};
+
 namespace Abstract {
     class Element : public Polymorphic {
     public:
         /// Initialize the element before by getting necessary quantities from storage. Must be called before
         /// \ref eval is called, every time step as ArrayViews taken from storage might be invalidated.
         /// \param storage Particle storage containing source data to be drawn.
-        virtual void initialize(const Storage& storage, const bool clone) = 0;
+        virtual void initialize(const Storage& storage, const ElementSource source) = 0;
 
         /// Returns the color of idx-th particle.
         virtual Color eval(const Size idx) const = 0;
@@ -61,8 +72,8 @@ public:
         : id(id)
         , palette(Palette::forQuantity(id, range)) {}
 
-    virtual void initialize(const Storage& storage, const bool clone) override {
-        if (clone) {
+    virtual void initialize(const Storage& storage, const ElementSource source) override {
+        if (source == ElementSource::CACHE_ARRAYS) {
             cached = copyable(storage.getValue<Type>(id));
             values = cached;
         } else {
@@ -95,8 +106,8 @@ public:
     VelocityElement(const Range range)
         : palette(Palette::forQuantity(QuantityId::POSITIONS, range)) {}
 
-    virtual void initialize(const Storage& storage, const bool clone) override {
-        if (clone) {
+    virtual void initialize(const Storage& storage, const ElementSource source) override {
+        if (source == ElementSource::CACHE_ARRAYS) {
             cached = copyable(storage.getDt<Vector>(QuantityId::POSITIONS));
             values = cached;
         } else {

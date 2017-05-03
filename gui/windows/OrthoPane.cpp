@@ -14,7 +14,7 @@
 
 NAMESPACE_SPH_BEGIN
 
-Bitmap OrthoRenderer::render(const Storage& storage,
+Bitmap OrthoRenderer::render(ArrayView<const Vector> r,
     Abstract::Element& element,
     const RenderParams& params,
     Statistics& stats) const {
@@ -29,10 +29,6 @@ Bitmap OrthoRenderer::render(const Storage& storage,
     dc.DrawRectangle(wxPoint(0, 0), size);
     wxBrush brush(*wxBLACK_BRUSH);
     wxPen pen(*wxBLACK_PEN);
-
-    /// \todo ensure thread safety when getting stuff from storage
-    element.initialize(storage, params.clone);
-    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
     for (Size i = 0; i < r.size(); ++i) {
         const Color color = element.eval(i);
         brush.SetColour(color);
@@ -41,7 +37,8 @@ Bitmap OrthoRenderer::render(const Storage& storage,
         dc.SetPen(pen);
         const Optional<Tuple<Point, float>> p = params.camera->project(r[i]);
         if (p) {
-            dc.DrawCircle(p->get<Point>(), p->get<float>() * params.particles.scale);
+            const int size = max(int(p->get<float>() * params.particles.scale), 1);
+            dc.DrawCircle(p->get<Point>(), size);
         }
     }
     this->drawPalette(dc, element.getPalette());
@@ -75,9 +72,10 @@ void OrthoRenderer::drawPalette(wxDC& dc, const Palette& palette) const {
     }
 }
 
-OrthoPane::OrthoPane(wxWindow* parent, Controller* model)
+OrthoPane::OrthoPane(wxWindow* parent, Controller* controller)
     : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize)
-    , model(model) {
+    , controller(controller)
+    , camera(controller->getCamera()) {
     this->SetMinSize(wxSize(640, 480));
     this->Connect(wxEVT_PAINT, wxPaintEventHandler(OrthoPane::onPaint));
     this->Connect(wxEVT_MOTION, wxMouseEventHandler(OrthoPane::onMouseMotion));
@@ -100,9 +98,9 @@ void OrthoPane::onPaint(wxPaintEvent& UNUSED(evt)) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
     MEASURE_SCOPE("OrthoPane::onPaint");
     wxPaintDC dc(this);
-    LockedPtr<Bitmap> bitmap = model->getRenderedBitmap();
-    if (bitmap) {
-        dc.DrawBitmap(*bitmap, wxPoint(0, 0));
+    Bitmap bitmap = controller->getRenderedBitmap();
+    if (bitmap.isOk()) { // not empty
+        dc.DrawBitmap(bitmap, wxPoint(0, 0));
     }
 }
 
@@ -110,16 +108,18 @@ void OrthoPane::onMouseMotion(wxMouseEvent& evt) {
     Point position = evt.GetPosition();
     if (evt.Dragging()) {
         Point offset = Point(position.x - dragging.position.x, -(position.y - dragging.position.y));
-        dragging.position = position;
+        ASSERT(camera);
         camera->pan(offset);
         this->Refresh();
     }
+    dragging.position = position;
     evt.Skip();
 }
 
 void OrthoPane::onMouseWheel(wxMouseEvent& evt) {
     const float spin = evt.GetWheelRotation();
     const float amount = (spin > 0.f) ? 1.2f : 1.f / 1.2f;
+    ASSERT(camera);
     camera->zoom(amount);
     this->Refresh();
     evt.Skip();

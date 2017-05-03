@@ -48,18 +48,24 @@ void Movie::onTimeStep(const std::shared_ptr<Storage>& storage, Statistics& stat
     const std::string path = paths.getNextPath();
     for (auto& e : elements) {
         std::string actPath = replace(path, "%e", escapeElementName(e->name()));
+        e->initialize(*storage, ElementSource::POINTER_TO_STORAGE);
         /// \todo how about the lifetime of stats? Should be probably shared_ptr as well ...
-        auto functor = [actPath, storage, &e, &stats](const std::shared_ptr<Movie>& self) {
+        auto functor = [this, actPath, storage, &e, &stats] {
             // if the callback gets executed, it means the object is still alive and it's save to touch
             // the e directly
-            Bitmap bitmap = self->renderer->render(*storage, *e, self->params, stats);
+            std::unique_lock<std::mutex> lock(waitMutex);
+            ArrayView<const Vector> positions = storage->getValue<Vector>(QuantityId::POSITIONS);
+            Bitmap bitmap = renderer->render(positions, *e, params, stats);
             bitmap.saveToFile(actPath);
+            waitVar.notify_one();
         };
         if (isMainThread()) {
-            functor(this->shared_from_this());
+            functor();
         } else {
             // wxWidgets don't like when we draw into DC from different thread
-            executeOnMainThread(this->shared_from_this(), functor);
+            std::unique_lock<std::mutex> lock(waitMutex);
+            executeOnMainThread(functor);
+            waitVar.wait(lock);
         }
     }
     nextOutput += outputStep;

@@ -28,7 +28,7 @@ namespace Abstract {
 class OrthoRenderer : public Abstract::Renderer {
 public:
     /// Can only be called from main thread
-    virtual Bitmap render(const Storage& storage,
+    virtual Bitmap render(ArrayView<const Vector> positions,
         Abstract::Element& element,
         const RenderParams& params,
         Statistics& stats) const override;
@@ -39,7 +39,7 @@ private:
 
 class OrthoPane : public wxPanel {
 private:
-    Controller* model;
+    Controller* controller;
 
     /// Cached mouse position when dragging the window
     struct {
@@ -53,7 +53,7 @@ private:
     std::shared_ptr<Abstract::Camera> camera;
 
 public:
-    OrthoPane(wxWindow* parent, Controller* model);
+    OrthoPane(wxWindow* parent, Controller* controller);
 
     ~OrthoPane();
 

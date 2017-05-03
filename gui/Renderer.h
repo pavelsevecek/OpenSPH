@@ -38,14 +38,13 @@ namespace Abstract {
     public:
         /// Draws particles into the bitmap. Implementation shall be callable from any thread, but does not
         /// have to be thread-safe (never will be executed from multiple threads at once)
-        /// \param storage Particle storage, including particle positions and quantities necessary for the
-        ///                element being drawn.
-        /// \param element Data-to-color conversion object for particles
+        /// \param positions Particle positions, must match the particles in element.
+        /// \param element Data-to-color conversion object for particles. Must be already initialized!
         /// \param params Parameters of the render
         /// \param stats Input-output parameter, contains run statistics that can be included in the render
         ///              (run time, timestep, ...), renderers can also output some statistics of their own
         ///              (time used in rendering, framerate, ...)
-        virtual Bitmap render(const Storage& storage,
+        virtual Bitmap render(ArrayView<const Vector> positions,
             Abstract::Element& element,
             const RenderParams& params,
             Statistics& stats) const = 0;

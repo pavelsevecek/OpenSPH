@@ -44,15 +44,17 @@ private:
         /// Current element used for drawing particles.
         std::unique_ptr<Abstract::Element> element;
 
+        /// Cached positions of particles for visualization.
+        Array<Vector> cached;
+
+        /// Copy of statistics when the element was initialized
+        std::unique_ptr<Statistics> stats;
+
         /// Current camera of the view
         std::shared_ptr<Abstract::Camera> camera;
 
         /// Rendered used for rendering the view
         std::unique_ptr<Abstract::Renderer> renderer;
-
-        /// Cached bitmap with rendered view.
-        std::shared_ptr<Bitmap> bitmap;
-        std::mutex bitmapMutex;
 
         /// CV for waiting till main thread events are processed
         std::mutex mainThreadMutex;
@@ -93,9 +95,11 @@ public:
     /// Returns a list of quantities that can be displayed.
     Array<QuantityId> getElementList(const Storage& storage) const;
 
-    /// \todo this forbids repainting the bitmap when moving around in window, useless. Instead only cache
-    /// quantities in onTImeStep
-    LockedPtr<Bitmap> getRenderedBitmap();
+    /// Renders a bitmap of current view. Can only be called from main thread.
+    Bitmap getRenderedBitmap();
+
+    /// Returns the camera of the view
+    std::shared_ptr<Abstract::Camera> getCamera();
 
     /// Returns the settings object.
     GuiSettings& getGuiSettings();

@@ -60,7 +60,7 @@ public:
             .set(BodySettingsId::ENERGY, 1.e2_f)
 
             // Number of particles in the body
-            .set(BodySettingsId::PARTICLE_COUNT, 100000)
+            .set(BodySettingsId::PARTICLE_COUNT, 1'000'000)
 
             // Equation of state
             .set(BodySettingsId::EOS, EosEnum::TILLOTSON);

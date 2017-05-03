@@ -24,19 +24,18 @@ Controller::Controller() {
         .set(GuiSettingsId::ORTHO_CUTOFF, 5.e2_f)
         .set(GuiSettingsId::ORTHO_PROJECTION, OrthoEnum::XY)
         .set(GuiSettingsId::IMAGES_SAVE, true)
-        .set(GuiSettingsId::IMAGES_TIMESTEP, 0.02_f);
+        .set(GuiSettingsId::IMAGES_TIMESTEP, 0.2_f);
+
+    // create objects for drawing particles
+    Point size(gui.get<int>(GuiSettingsId::VIEW_WIDTH), gui.get<int>(GuiSettingsId::VIEW_HEIGHT));
+    vis.renderer = std::make_unique<OrthoRenderer>();
+    vis.camera = Factory::getCamera(gui);
+    vis.element = std::make_unique<VelocityElement>(gui.get<Range>(GuiSettingsId::PALETTE_VELOCITY));
 
     // create main frame of the application
     window = new MainWindow(this, gui);
     window->SetAutoLayout(true);
     window->Show();
-
-    // create objects for drawing particles
-    Point size(gui.get<int>(GuiSettingsId::VIEW_WIDTH), gui.get<int>(GuiSettingsId::VIEW_HEIGHT));
-    vis.bitmap = std::make_shared<Bitmap>(wxBitmap(wxSize(size.x, size.y), 24));
-    vis.renderer = std::make_unique<OrthoRenderer>();
-    vis.camera = Factory::getCamera(gui);
-    vis.element = std::make_unique<VelocityElement>(gui.get<Range>(GuiSettingsId::PALETTE_VELOCITY));
 
     // update the status
     status = Status::RUNNING;
@@ -49,7 +48,7 @@ Controller::Controller() {
 Controller::~Controller() = default;
 
 bool Controller::Vis::isInitialized() {
-    return bitmap && bitmap->isOk() && renderer && camera && element;
+    return renderer && camera && element && stats;
 }
 
 void Controller::start() {
@@ -88,11 +87,21 @@ void Controller::stop(const bool waitForFinish) {
 }
 
 void Controller::quit() {
+    if (status == Status::QUITTING) {
+        // already quitting
+        return;
+    }
     CHECK_FUNCTION(CheckFunction::ONCE | CheckFunction::MAIN_THREAD);
 
     // set status so that other threads know to quit
     status = Status::QUITTING;
 
+    // unpause run
+    continueVar.notify_one();
+
+    wxTheApp->ProcessPendingEvents();
+
+    // wait for the run to finish
     if (sph.thread.joinable()) {
         sph.thread.join();
     }
@@ -108,6 +117,9 @@ void Controller::quit() {
 }
 
 void Controller::onTimeStep(const std::shared_ptr<Storage>& storage, Statistics& stats) {
+    if (status == Status::QUITTING) {
+        return;
+    }
     // update run progress
     const float progress = stats.get<Float>(StatisticsId::RELATIVE_PROGRESS);
     executeOnMainThread(this->shared_from_this(), [progress](const std::shared_ptr<Controller>& self) { //
@@ -118,7 +130,7 @@ void Controller::onTimeStep(const std::shared_ptr<Storage>& storage, Statistics&
     ASSERT(movie);
     movie->onTimeStep(storage, stats);
 
-    // update the rendered view
+    // update the data for rendering
     this->redraw(*storage, stats);
 
     // pause if we are supposed to
@@ -166,8 +178,25 @@ Array<QuantityId> Controller::getElementList(const Storage& storage) const {
     return available;
 }
 
-LockedPtr<Bitmap> Controller::getRenderedBitmap() {
-    return LockedPtr<Bitmap>(vis.bitmap, vis.bitmapMutex);
+Bitmap Controller::getRenderedBitmap() {
+    CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
+    RenderParams params;
+    params.camera = vis.camera;
+    params.particles.scale = gui.get<Float>(GuiSettingsId::PARTICLE_RADIUS);
+    params.size = Point(gui.get<int>(GuiSettingsId::VIEW_WIDTH), gui.get<int>(GuiSettingsId::VIEW_HEIGHT));
+    if (!vis.isInitialized()) {
+        // not initialized yet, return empty bitmap
+        return wxNullBitmap;
+    } else {
+        Bitmap bitmap = vis.renderer->render(vis.cached, *vis.element, params, *vis.stats);
+        ASSERT(bitmap.isOk());
+        return bitmap;
+    }
+}
+
+std::shared_ptr<Abstract::Camera> Controller::getCamera() {
+    ASSERT(vis.camera);
+    return vis.camera;
 }
 
 std::shared_ptr<Movie> Controller::createMovie(const Storage& storage) {
@@ -193,18 +222,12 @@ std::shared_ptr<Movie> Controller::createMovie(const Storage& storage) {
 void Controller::redraw(const Storage& storage, Statistics& stats) {
     CHECK_FUNCTION(CheckFunction::NON_REENRANT);
     auto functor = [&storage, &stats, this] { //
-        RenderParams params;
-        params.camera = vis.camera;
-        params.particles.scale = gui.get<Float>(GuiSettingsId::PARTICLE_RADIUS);
-        params.size =
-            Point(gui.get<int>(GuiSettingsId::VIEW_WIDTH), gui.get<int>(GuiSettingsId::VIEW_HEIGHT));
         // this lock makes sure we don't execute notify_one before getting to wait
         std::unique_lock<std::mutex> lock(vis.mainThreadMutex);
-        {
-            std::unique_lock<std::mutex> lock(vis.bitmapMutex);
-            ASSERT(vis.isInitialized());
-            *vis.bitmap = vis.renderer->render(storage, *vis.element, params, stats);
-        }
+        vis.stats = std::make_unique<Statistics>(stats);
+        vis.cached = copyable(storage.getValue<Vector>(QuantityId::POSITIONS));
+        ASSERT(vis.isInitialized());
+        vis.element->initialize(storage, ElementSource::CACHE_ARRAYS);
         window->Refresh();
         vis.mainThreadVar.notify_one();
     };
@@ -221,8 +244,13 @@ void Controller::run() {
     sph.thread = std::thread([this] {
         // create storage and set up initial conditions
         std::shared_ptr<Storage> storage = sph.run->setUp();
+        // draw initial positions of particles
+        /// \todo generalize stats
+        Statistics stats;
+        stats.set(StatisticsId::TOTAL_TIME, 0._f);
+        this->redraw(*storage, stats);
         // set up animation object
-        movie = createMovie(*storage);
+        movie = this->createMovie(*storage);
         // run the simulation
         sph.run->run();
     });

@@ -17,7 +17,7 @@ std::unique_ptr<GuiSettings> GuiSettings::instance (new GuiSettings {
     { GuiSettingsId::ORTHO_PROJECTION, "ortho.projection", int(OrthoEnum::XY) },
     { GuiSettingsId::VIEW_CENTER,      "view.center",      Vector(0._f) },
     { GuiSettingsId::VIEW_FOV,         "view.fov",         1._f },
-    { GuiSettingsId::VIEW_WIDTH,       "view.width",       600 },
+    { GuiSettingsId::VIEW_WIDTH,       "view.width",       800 },
     { GuiSettingsId::VIEW_HEIGHT,      "view.height",      600 },
 
     /// Window settings

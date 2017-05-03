@@ -19,7 +19,8 @@ AsteroidCollision::AsteroidCollision(Controller* model)
         .set(RunSettingsId::SPH_FINDER, FinderEnum::VOXEL)
         .set(RunSettingsId::MODEL_AV_TYPE, ArtificialViscosityEnum::STANDARD)
         .set(RunSettingsId::SPH_AV_ALPHA, 1.5_f)
-        .set(RunSettingsId::SPH_AV_BETA, 3._f);
+        .set(RunSettingsId::SPH_AV_BETA, 3._f)
+        .set(RunSettingsId::RUN_THREAD_GRANULARITY, 1000);
     settings.saveToFile("code.sph");
 }
 
@@ -27,7 +28,7 @@ std::shared_ptr<Storage> AsteroidCollision::setUp() {
     BodySettings bodySettings;
     bodySettings.set(BodySettingsId::ENERGY, 1._f)
         .set(BodySettingsId::ENERGY_RANGE, Range(1._f, INFTY))
-        .set(BodySettingsId::PARTICLE_COUNT, 1000)
+        .set(BodySettingsId::PARTICLE_COUNT, 100000)
         .set(BodySettingsId::EOS, EosEnum::TILLOTSON)
         .set(BodySettingsId::STRESS_TENSOR_MIN, 1.e6_f)
         .set(BodySettingsId::RHEOLOGY_DAMAGE, DamageEnum::SCALAR_GRADY_KIPP)
