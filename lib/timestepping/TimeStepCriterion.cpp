@@ -5,6 +5,7 @@
 #include "system/Profiler.h"
 #include "system/Settings.h"
 #include "system/Statistics.h"
+#include "thread/AtomicFloat.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -47,38 +48,58 @@ Tuple<Float, CriterionId> DerivativeCriterion::compute(Storage& storage,
 
     iterate<VisitorEnum::FIRST_ORDER>(storage, [&](const QuantityId id, auto&& v, auto&& dv) {
         ASSERT(v.size() == dv.size());
-        Float minStep = INFTY;
         using T = typename std::decay_t<decltype(v)>::Type;
-        struct {
+        struct Tl {
+            Float minStep = INFTY;
             T value = T(0._f);
             T derivative = T(0._f);
             Size particleIdx = 0;
-        } limit;
-        for (Size i = 0; i < v.size(); ++i) {
-            const auto absdv = abs(dv[i]);
-            const auto absv = abs(v[i]);
-            const Float minValue = storage.getMaterialOfParticle(i)->minimal(id);
-            ASSERT(minValue > 0._f); // some nonzero minimal value must be set for all quantities
-            if (norm(absv) < minValue) {
-                continue;
+
+            INLINE void add(const Float step, const T v, const T dv, const Float idx) {
+                if (step < minStep) {
+                    minStep = step;
+                    value = v;
+                    derivative = dv;
+                    particleIdx = idx;
+                }
             }
-            using TAbs = decltype(absv);
-            const auto value = factor * (absv + TAbs(minValue)) / (absdv + TAbs(EPS));
-            ASSERT(isReal(value));
-            const Float e = minElement(value);
-            if (e < minStep) {
-                minStep = e;
-                limit = { v[i], dv[i], i };
+        };
+        auto functor = [&](const Size n1, const Size n2, Tl& tl) {
+            for (Size i = n1; i < n2; ++i) {
+                const auto absdv = abs(dv[i]);
+                const auto absv = abs(v[i]);
+                const Float minValue = storage.getMaterialOfParticle(i)->minimal(id);
+                ASSERT(minValue > 0._f); // some nonzero minimal value must be set for all quantities
+                if (norm(absv) < minValue) {
+                    continue;
+                }
+                using TAbs = decltype(absv);
+                const auto value = factor * (absv + TAbs(minValue)) / (absdv + TAbs(EPS));
+                ASSERT(isReal(value));
+                const Float e = minElement(value);
+                tl.add(e, v[i], dv[i], i);
             }
+        };
+        Tl result;
+        if (auto pool = storage.getThreadPool()) {
+            ThreadLocal<Tl> tls(*pool);
+            parallelFor(*pool, tls, 0, v.size(), 1000, functor);
+            // get min step from thread-local results
+            tls.forEach([&result](Tl& tl) { //
+                result.add(tl.minStep, tl.value, tl.derivative, tl.particleIdx);
+            });
+        } else {
+            functor(0, v.size(), result);
         }
-        if (minStep < totalMinStep) {
-            totalMinStep = minStep;
+        // save statistics
+        if (result.minStep < totalMinStep) {
+            totalMinStep = result.minStep;
             minId = CriterionId::DERIVATIVE;
             if (stats) {
                 stats->set(StatisticsId::LIMITING_QUANTITY, id);
-                stats->set(StatisticsId::LIMITING_PARTICLE_IDX, int(limit.particleIdx));
-                stats->set(StatisticsId::LIMITING_VALUE, Value(limit.value));
-                stats->set(StatisticsId::LIMITING_DERIVATIVE, Value(limit.derivative));
+                stats->set(StatisticsId::LIMITING_PARTICLE_IDX, int(result.particleIdx));
+                stats->set(StatisticsId::LIMITING_VALUE, Value(result.value));
+                stats->set(StatisticsId::LIMITING_DERIVATIVE, Value(result.derivative));
             }
         }
     });
@@ -109,21 +130,34 @@ Tuple<Float, CriterionId> DerivativeCriterion::compute(Storage& storage,
 Tuple<Float, CriterionId> AccelerationCriterion::compute(Storage& storage,
     const Float maxStep,
     Optional<Statistics&> UNUSED(stats)) {
-    Float totalMinStep = INFTY;
     ArrayView<const Vector> r, v, dv;
     tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
-    for (Size i = 0; i < r.size(); ++i) {
-        const Float dvNorm = getSqrLength(dv[i]);
-        if (dvNorm > EPS) {
-            const Float step = root<4>(sqr(r[i][H]) / dvNorm);
-            ASSERT(isReal(step) && step > 0._f && step < INFTY);
-            totalMinStep = min(totalMinStep, step);
+    struct Tl {
+        Float minStep = INFTY;
+    };
+
+    auto functor = [&](const Size n1, const Size n2, Tl& tl) {
+        for (Size i = n1; i < n2; ++i) {
+            const Float dvNorm = getSqrLength(dv[i]);
+            if (dvNorm > EPS) {
+                const Float step = root<4>(sqr(r[i][H]) / dvNorm);
+                ASSERT(isReal(step) && step > 0._f && step < INFTY);
+                tl.minStep = min(tl.minStep, step);
+            }
         }
+    };
+    Tl result;
+    if (auto pool = storage.getThreadPool()) {
+        ThreadLocal<Tl> tls(*pool);
+        parallelFor(*pool, tls, 0, r.size(), 1000, functor);
+        tls.forEach([&result](Tl& tl) { result.minStep = min(result.minStep, tl.minStep); });
+    } else {
+        functor(0, r.size(), result);
     }
-    if (totalMinStep > maxStep) {
+    if (result.minStep > maxStep) {
         return { maxStep, CriterionId::MAXIMAL_VALUE };
     } else {
-        return { totalMinStep, CriterionId::ACCELERATION };
+        return { result.minStep, CriterionId::ACCELERATION };
     }
 }
 
@@ -141,22 +175,35 @@ CourantCriterion::CourantCriterion(const RunSettings& settings) {
 Tuple<Float, CriterionId> CourantCriterion::compute(Storage& storage,
     const Float maxStep,
     Optional<Statistics&> UNUSED(stats)) {
-    Float totalMinStep = INFTY;
 
     /// \todo AV contribution?
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
     ArrayView<const Float> cs = storage.getValue<Float>(QuantityId::SOUND_SPEED);
-    for (Size i = 0; i < r.size(); ++i) {
-        if (cs[i] > 0._f) {
-            const Float value = courant * r[i][H] / cs[i];
-            ASSERT(isReal(value) && value > 0._f && value < INFTY);
-            totalMinStep = min(totalMinStep, value);
+    struct Tl {
+        Float minStep = INFTY;
+    };
+
+    auto functor = [&](const Size n1, const Size n2, Tl& tl) {
+        for (Size i = n1; i < n2; ++i) {
+            if (cs[i] > 0._f) {
+                const Float value = courant * r[i][H] / cs[i];
+                ASSERT(isReal(value) && value > 0._f && value < INFTY);
+                tl.minStep = min(tl.minStep, value);
+            }
         }
+    };
+    Tl result;
+    if (auto pool = storage.getThreadPool()) {
+        ThreadLocal<Tl> tls(*pool);
+        parallelFor(*pool, tls, 0, r.size(), 1000, functor);
+        tls.forEach([&result](Tl& tl) { result.minStep = min(result.minStep, tl.minStep); });
+    } else {
+        functor(0, r.size(), result);
     }
-    if (totalMinStep > maxStep) {
+    if (result.minStep > maxStep) {
         return { maxStep, CriterionId::MAXIMAL_VALUE };
     } else {
-        return { totalMinStep, CriterionId::CFL_CONDITION };
+        return { result.minStep, CriterionId::CFL_CONDITION };
     }
 }
 

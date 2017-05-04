@@ -150,11 +150,7 @@ INLINE void parallelFor(ThreadPool& pool,
     for (Size i = from; i < to; i += granularity) {
         const Size n1 = i;
         const Size n2 = min(i + granularity, to);
-        pool.submit([n1, n2, &functor] {
-            for (Size i = n1; i < n2; ++i) {
-                functor(i);
-            }
-        });
+        pool.submit([n1, n2, &functor] { functor(n1, n2); });
     }
     pool.waitForAll();
 }

@@ -126,6 +126,7 @@ void OrthoPane::onMouseWheel(wxMouseEvent& evt) {
 }
 
 void OrthoPane::onTimer(wxTimerEvent& evt) {
+    wxYield();
     this->Refresh();
     evt.Skip();
 }

@@ -38,7 +38,7 @@ protected:
     };
 
     /// Thread pool used to parallelize the solver, runs the whole time the solver exists.
-    ThreadPool pool;
+    std::shared_ptr<ThreadPool> pool;
 
     /// Selected granularity of the parallel processing. The more particles in simulation, the higher the
     /// value should be to utilize the solver optimally.
@@ -54,13 +54,13 @@ protected:
     std::unique_ptr<Abstract::Finder> finder;
 
     /// Selected SPH kernel, symmetrized over smoothing lenghs:
-    /// W_ij(r_i - r_j, 0.5(h[i] + h[j])
+    /// \f$ W_ij(r_i - r_j, 0.5(h[i] + h[j]) \f$
     SymmetrizeSmoothingLengths<LutKernel<DIMENSIONS>> kernel;
 
 public:
     GenericSolver(const RunSettings& settings, EquationHolder&& eqs)
-        : pool(settings.get<int>(RunSettingsId::RUN_THREAD_CNT))
-        , threadData(pool) {
+        : pool(std::make_shared<ThreadPool>(settings.get<int>(RunSettingsId::RUN_THREAD_CNT)))
+        , threadData(*pool) {
         kernel = Factory::getKernel<DIMENSIONS>(settings);
         finder = Factory::getFinder(settings);
         granularity = settings.get<int>(RunSettingsId::RUN_THREAD_GRANULARITY);
@@ -74,6 +74,9 @@ public:
     }
 
     virtual void integrate(Storage& storage, Statistics& stats) override {
+        /// \todo move elsewhere
+        storage.setThreadPool(pool);
+
         // initialize all materials (compute pressure, apply yielding and damage, ...)
         for (Size i = 0; i < storage.getMaterialCnt(); ++i) {
             PROFILE_SCOPE("GenericSolver initialize materials")
@@ -142,7 +145,7 @@ protected:
             }
         };
         PROFILE_SCOPE("GenericSolver main loop");
-        parallelFor(pool, threadData, 0, r.size(), granularity, functor);
+        parallelFor(*pool, threadData, 0, r.size(), granularity, functor);
     }
 
     virtual void beforeLoop(Storage& storage, Statistics& UNUSED(stats)) {
@@ -154,7 +157,6 @@ protected:
     virtual void afterLoop(Storage& storage, Statistics& stats) {
         Accumulated* first = nullptr;
         {
-            PROFILE_SCOPE("GenericSolver::afterLoop part 1");
             // sum up thread local accumulated values
             Array<Accumulated*> threadLocalAccumulated;
             threadData.forEach([this, &first, &threadLocalAccumulated](ThreadData& data) {
@@ -166,7 +168,8 @@ protected:
                 }
             });
             ASSERT(first != nullptr);
-            first->sum(pool, threadLocalAccumulated);
+            PROFILE_SCOPE("GenericSolver::afterLoop part 1");
+            first->sum(*pool, threadLocalAccumulated);
         }
         PROFILE_SCOPE("GenericSolver::afterLoop part 2");
         ASSERT(first);

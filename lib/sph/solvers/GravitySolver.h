@@ -74,7 +74,7 @@ protected:
                 data.derivatives.compute(i, data.idxs, data.grads);
             }
         };
-        parallelFor(pool, threadData, 0, r.size(), granularity, functor);
+        parallelFor(*pool, threadData, 0, r.size(), granularity, functor);
     }
 };
 

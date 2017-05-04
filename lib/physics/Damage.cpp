@@ -106,16 +106,19 @@ void ScalarDamage::reduce(Storage& storage, const MaterialView material) {
     ArrayView<TracelessTensor> s, s_dmg;
     tie(s, s_dmg) = storage.modify<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
 
-    for (Size i : material.sequence()) {
-        const Float d = pow<3>(damage[i]);
-        // pressure is reduced only for negative values
-        /// \todo could be vectorized, maybe
-        if (p[i] < 0._f) {
-            p[i] = (1._f - d) * p[i];
+    IndexSequence seq = material.sequence();
+    storage.parallelFor(*seq.begin(), *seq.end(), [&](const Size n1, const Size n2) INL {
+        for (Size i = n1; i < n2; ++i) {
+            const Float d = pow<3>(damage[i]);
+            // pressure is reduced only for negative values
+            /// \todo could be vectorized, maybe
+            if (p[i] < 0._f) {
+                p[i] = (1._f - d) * p[i];
+            }
+            // stress is reduced for both positive and negative values
+            s_dmg[i] = (1._f - d) * s[i];
         }
-        // stress is reduced for both positive and negative values
-        s_dmg[i] = (1._f - d) * s[i];
-    }
+    });
 }
 
 void ScalarDamage::integrate(Storage& storage, const MaterialView material) {
@@ -129,31 +132,36 @@ void ScalarDamage::integrate(Storage& storage, const MaterialView material) {
     ArrayView<Size> n_flaws = storage.getValue<Size>(QuantityId::N_FLAWS);
     ArrayView<Float> damage, ddamage;
     tie(damage, ddamage) = storage.getAll<Float>(QuantityId::DAMAGE);
-    for (Size i : material.sequence()) {
-        // if damage is already on max value, set stress to zero to avoid limiting timestep by non-existent
-        // stresses
-        const Range range = material->range(QuantityId::DAMAGE);
-        if (damage[i] == range.upper()) {
-            // s[i] = TracelessTensor::null();
-            ds[i] = TracelessTensor::null();
-            // continue;
+
+    IndexSequence seq = material.sequence();
+    storage.parallelFor(*seq.begin(), *seq.end(), [&](const Size n1, const Size n2) {
+        for (Size i = n1; i < n2; ++i) {
+            // if damage is already on max value, set stress to zero to avoid limiting timestep by
+            // non-existent
+            // stresses
+            const Range range = material->range(QuantityId::DAMAGE);
+            if (damage[i] == range.upper()) {
+                // s[i] = TracelessTensor::null();
+                ds[i] = TracelessTensor::null();
+                // continue;
+            }
+            const Tensor sigma = s[i] - p[i] * Tensor::identity();
+            Float sig1, sig2, sig3;
+            tie(sig1, sig2, sig3) = findEigenvalues(sigma);
+            const Float sigMax = max(sig1, sig2, sig3);
+            const Float young = material->getParam<Float>(BodySettingsId::YOUNG_MODULUS);
+            // we need to assume reduces Young modulus here, hence 1-D factor
+            const Float young_red = max((1 - damage[i]) * young, 1.e-20_f);
+            const Float strain = sigMax / young_red;
+            const Float ratio = strain / eps_min[i];
+            ASSERT(isReal(ratio));
+            if (ratio <= 1._f) {
+                continue;
+            }
+            ddamage[i] = growth[i] * root<3>(min(std::pow(ratio, m_zero[i]), Float(n_flaws[i])));
+            ASSERT(ddamage[i] >= 0.f);
         }
-        const Tensor sigma = s[i] - p[i] * Tensor::identity();
-        Float sig1, sig2, sig3;
-        tie(sig1, sig2, sig3) = findEigenvalues(sigma);
-        const Float sigMax = max(sig1, sig2, sig3);
-        const Float young = material->getParam<Float>(BodySettingsId::YOUNG_MODULUS);
-        // we need to assume reduces Young modulus here, hence 1-D factor
-        const Float young_red = max((1 - damage[i]) * young, 1.e-20_f);
-        const Float strain = sigMax / young_red;
-        const Float ratio = strain / eps_min[i];
-        ASSERT(isReal(ratio));
-        if (ratio <= 1._f) {
-            continue;
-        }
-        ddamage[i] = growth[i] * root<3>(min(std::pow(ratio, m_zero[i]), Float(n_flaws[i])));
-        ASSERT(ddamage[i] >= 0.f);
-    }
+    });
 }
 
 void TensorDamage::setFlaws(Storage& UNUSED(storage), const BodySettings& UNUSED(settings)) const {

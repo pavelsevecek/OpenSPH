@@ -177,7 +177,7 @@ private:
         };
         finder->build(r);
         /// \todo this should also be self-consistently solved with smoothing length (as SummationSolver)
-        parallelFor(pool, threadData, 0, r.size(), granularity, functor);
+        parallelFor(*pool, threadData, 0, r.size(), granularity, functor);
 
         // save computed values
         std::swap(storage.getValue<Float>(QuantityId::ENERGY_DENSITY), q);

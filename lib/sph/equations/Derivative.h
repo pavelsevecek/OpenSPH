@@ -10,6 +10,7 @@
 #include "objects/finders/AbstractFinder.h"
 #include "quantities/Storage.h"
 #include "sph/equations/Accumulated.h"
+#include "system/Profiler.h"
 #include "system/Settings.h"
 #include <map>
 
@@ -244,6 +245,7 @@ public:
     /// Initialize derivatives before loop
     void initialize(const Storage& input) {
         if (accumulated.getBufferCnt() == 0) {
+            //   PROFILE_SCOPE("DerivativeHolder create");
             // lazy buffer creation
             /// \todo this will be called every time if derivatives do not create any buffers,
             /// does it really matter?
@@ -251,9 +253,12 @@ public:
                 deriv->create(accumulated);
             }
         }
-        // initialize buffers first, possibly resizing then and invalidating previously stored arrayviews
         accumulated.initialize(input.getParticleCnt());
+        // initialize buffers first, possibly resizing then and invalidating previously stored arrayviews
+
+        // PROFILE_SCOPE("DerivativeHolder initialize accumulated");
         for (auto& deriv : derivatives) {
+            //     PROFILE_SCOPE("DerivativeHolder initialize derivatvies");
             // then get the arrayviews for derivatives
             deriv->initialize(input, accumulated);
         }

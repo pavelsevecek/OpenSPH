@@ -47,10 +47,6 @@ void Storage::setThreadPool(const std::shared_ptr<ThreadPool>& threadPool) {
     pool = threadPool;
 }
 
-std::shared_ptr<ThreadPool> Storage::getThreadPool() const {
-    return pool;
-}
-
 IndexSequence Storage::getMaterialRange(const Size matId) const {
     if (partitions.empty()) {
         ASSERT(matId == 0);

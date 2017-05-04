@@ -84,9 +84,11 @@ public:
             storage.getValues<Float>(QuantityId::PRESSURE, QuantityId::DENSITY, QuantityId::MASSES);
         ArrayView<Float> du = storage.getDt<Float>(QuantityId::ENERGY);
 
-        for (Size i = 0; i < du.size(); ++i) {
-            du[i] -= p[i] / rho[i] * divv[i];
-        }
+        storage.parallelFor(0, du.size(), [&](const Size n1, const Size n2) INL {
+            for (Size i = n1; i < n2; ++i) {
+                du[i] -= p[i] / rho[i] * divv[i];
+            }
+        });
     }
 
     virtual void create(Storage& storage, Abstract::Material& material) const override {
@@ -135,7 +137,8 @@ public:
 /// Computes acceleration from stress divergence. The stress is evolved as a first-order quantity,
 /// using Hooke's law as constitutive equation. This represents solid bodies, for fluids use \ref
 /// NavierStokesForce.
-/// \todo add PressureForce together with this, it doesn't make sense to use stress force and NOT pressure.
+/// \todo add PressureForce together with this, it doesn't make sense to use stress force and NOT
+/// pressure.
 class SolidStressForce : public Abstract::EquationTerm {
 private:
     bool conserveAngularMomentum;
@@ -167,20 +170,25 @@ public:
         for (Size matIdx = 0; matIdx < storage.getMaterialCnt(); ++matIdx) {
             MaterialView material = storage.getMaterial(matIdx);
             const Float mu = material->getParam<Float>(BodySettingsId::SHEAR_MODULUS);
-            for (Size i : material.sequence()) {
-                du[i] += 1._f / rho[i] * ddot(s[i], gradv[i]);
-                /// \todo rotation rate tensor?
-                TracelessTensor dev(gradv[i] - Tensor::identity() * gradv[i].trace() / 3._f);
-                ds[i] += 2._f * mu * dev;
-                ASSERT(isReal(du[i]) && isReal(ds[i]));
-            }
+            IndexSequence seq = material.sequence();
+            storage.parallelFor(*seq.begin(), *seq.end(), [&](const Size n1, const Size n2) INL {
+                for (Size i = n1; i < n2; ++i) {
+                    du[i] += 1._f / rho[i] * ddot(s[i], gradv[i]);
+                    /// \todo rotation rate tensor?
+                    TracelessTensor dev(gradv[i] - Tensor::identity() * gradv[i].trace() / 3._f);
+                    ds[i] += 2._f * mu * dev;
+                    ASSERT(isReal(du[i]) && isReal(ds[i]));
+                }
+            });
         }
         if (conserveAngularMomentum) {
             /// \todo here we assume only this equation term uses the correction
             ArrayView<Tensor> C = storage.getValue<Tensor>(QuantityId::ANGULAR_MOMENTUM_CORRECTION);
-            for (Size i = 0; i < C.size(); ++i) {
-                C[i] = C[i].inverse();
-            }
+            storage.parallelFor(0, C.size(), [&C](const Size n1, const Size n2) INL {
+                for (Size i = n1; i < n2; ++i) {
+                    C[i] = C[i].inverse();
+                }
+            });
         }
     }
 
@@ -214,6 +222,7 @@ public:
         ArrayView<Float> du = storage.getDt<Float>(QuantityId::ENERGY);
         ArrayView<Tensor> gradv = storage.getValue<Tensor>(QuantityId::STRENGTH_VELOCITY_GRADIENT);
 
+        TODO("parallelize");
         for (Size matIdx = 0; matIdx < storage.getMaterialCnt(); ++matIdx) {
             MaterialView material = storage.getMaterial(matIdx);
             const Float mu = material->getParam<Float>(BodySettingsId::SHEAR_MODULUS);
@@ -253,6 +262,7 @@ public:
         ArrayView<Vector> r, v, dv;
         tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
         const Vector unitZ = Vector(0._f, 0._f, 1._f);
+        TODO("parallelize");
         for (Size i = 0; i < r.size(); ++i) {
             dv[i] += omega * (r[i] - unitZ * dot(r[i], unitZ));
             // no energy term - energy is not generally conserved when external force is used
@@ -274,9 +284,11 @@ public:
         ArrayView<const Float> divv = storage.getValue<Float>(QuantityId::VELOCITY_DIVERGENCE);
         ArrayView<Float> rho, drho;
         tie(rho, drho) = storage.getAll<Float>(QuantityId::DENSITY);
-        for (Size i = 0; i < rho.size(); ++i) {
-            drho[i] = -rho[i] * divv[i];
-        }
+        storage.parallelFor(0, rho.size(), [&](const Size n1, const Size n2) INL {
+            for (Size i = n1; i < n2; ++i) {
+                drho[i] = -rho[i] * divv[i];
+            }
+        });
     }
 
     virtual void create(Storage& storage, Abstract::Material& material) const override {
@@ -331,32 +343,34 @@ public:
         ArrayView<const Size> neighCnt = storage.getValue<Size>(QuantityId::NEIGHBOUR_CNT);
         ArrayView<Vector> r, v, dv;
         tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
-        for (Size i = 0; i < r.size(); ++i) {
-            // 'continuity equation' for smoothing lengths
-            v[i][H] = r[i][H] / dimensions * divv[i];
+        storage.parallelFor(0, r.size(), [&](const Size n1, const Size n2) INL {
+            for (Size i = n1; i < n2; ++i) {
+                // 'continuity equation' for smoothing lengths
+                v[i][H] = r[i][H] / dimensions * divv[i];
 
-            /// \todo generalize for grad v
-            // no acceleration of smoothing lengths (we evolve h as first-order quantity)
-            dv[i][H] = 0._f;
+                /// \todo generalize for grad v
+                // no acceleration of smoothing lengths (we evolve h as first-order quantity)
+                dv[i][H] = 0._f;
 
-            if (enforcing.strength > -1.e2_f) {
-                // check upper limit of neighbour count
-                const Float dn1 = neighCnt[i] - enforcing.range.upper();
-                ASSERT(dn1 < r.size());
-                if (dn1 > 0._f) {
-                    // sound speed is used to add correct dimensions to the term
-                    v[i][H] -= exp(enforcing.strength * dn1) * cs[i];
-                    continue;
+                if (enforcing.strength > -1.e2_f) {
+                    // check upper limit of neighbour count
+                    const Float dn1 = neighCnt[i] - enforcing.range.upper();
+                    ASSERT(dn1 < r.size());
+                    if (dn1 > 0._f) {
+                        // sound speed is used to add correct dimensions to the term
+                        v[i][H] -= exp(enforcing.strength * dn1) * cs[i];
+                        continue;
+                    }
+                    // check lower limit of neighbour count
+                    const Float dn2 = enforcing.range.lower() - neighCnt[i];
+                    ASSERT(dn2 < r.size());
+                    if (dn2 > 0._f) {
+                        v[i][H] += exp(enforcing.strength * dn2) * cs[i];
+                    }
                 }
-                // check lower limit of neighbour count
-                const Float dn2 = enforcing.range.lower() - neighCnt[i];
-                ASSERT(dn2 < r.size());
-                if (dn2 > 0._f) {
-                    v[i][H] += exp(enforcing.strength * dn2) * cs[i];
-                }
+                ASSERT(isReal(v[i]));
             }
-            ASSERT(isReal(v[i]));
-        }
+        });
     }
 
     virtual void create(Storage& UNUSED(storage), Abstract::Material& UNUSED(material)) const override {}

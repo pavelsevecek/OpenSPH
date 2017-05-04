@@ -33,33 +33,35 @@ void VonMisesRheology::initialize(Storage& storage, const MaterialView material)
 
     const Float limit = material->getParam<Float>(BodySettingsId::ELASTICITY_LIMIT);
     const Float u_melt = material->getParam<Float>(BodySettingsId::MELT_ENERGY);
-    for (Size i : material.sequence()) {
+    IndexSequence seq = material.sequence();
+    storage.parallelFor(*seq.begin(), *seq.end(), [&](const Size n1, const Size n2) INL {
         // compute yielding stress
+        for (Size i = n1; i < n2; ++i) {
+            const Float y = limit * max(1.f - u[i] / u_melt, 0._f);
+            ASSERT(limit > 0._f);
 
-        const Float y = limit * max(1.f - u[i] / u_melt, 0._f);
-        ASSERT(limit > 0._f);
-
-        // apply reduction to stress tensor
-        if (y < EPS) {
-            reducing[i] = 0._f;
-            S[i] = TracelessTensor::null();
-            continue;
+            // apply reduction to stress tensor
+            if (y < EPS) {
+                reducing[i] = 0._f;
+                S[i] = TracelessTensor::null();
+                continue;
+            }
+            TracelessTensor s;
+            if (D) {
+                const Float d = pow<3>(D[i]);
+                s = (1._f - d) * S[i];
+            } else {
+                s = S[i];
+            }
+            const Float inv = 0.5_f * ddot(s, s) / sqr(y) + EPS;
+            ASSERT(isReal(inv) && inv > 0._f);
+            const Float red = min(sqrt(1._f / (3._f * inv)), 1._f);
+            ASSERT(red >= 0._f && red <= 1._f);
+            reducing[i] = red;
+            S[i] = S[i] * red;
+            ASSERT(isReal(S[i]));
         }
-        TracelessTensor s;
-        if (D) {
-            const Float d = pow<3>(D[i]);
-            s = (1._f - d) * S[i];
-        } else {
-            s = S[i];
-        }
-        const Float inv = 0.5_f * ddot(s, s) / sqr(y) + EPS;
-        ASSERT(isReal(inv) && inv > 0._f);
-        const Float red = min(sqrt(1._f / (3._f * inv)), 1._f);
-        ASSERT(red >= 0._f && red <= 1._f);
-        reducing[i] = red;
-        S[i] = S[i] * red;
-        ASSERT(isReal(S[i]));
-    }
+    });
 }
 
 void VonMisesRheology::integrate(Storage& storage, const MaterialView material) {

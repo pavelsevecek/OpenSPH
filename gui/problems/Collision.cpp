@@ -28,7 +28,7 @@ std::shared_ptr<Storage> AsteroidCollision::setUp() {
     BodySettings bodySettings;
     bodySettings.set(BodySettingsId::ENERGY, 1._f)
         .set(BodySettingsId::ENERGY_RANGE, Range(1._f, INFTY))
-        .set(BodySettingsId::PARTICLE_COUNT, 100000)
+        .set(BodySettingsId::PARTICLE_COUNT, 1'000'000)
         .set(BodySettingsId::EOS, EosEnum::TILLOTSON)
         .set(BodySettingsId::STRESS_TENSOR_MIN, 1.e6_f)
         .set(BodySettingsId::RHEOLOGY_DAMAGE, DamageEnum::SCALAR_GRADY_KIPP)
