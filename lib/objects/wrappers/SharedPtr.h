@@ -28,6 +28,10 @@ namespace Detail {
             return cnt;
         }
 
+        INLINE int getUseCount() const {
+            return useCnt;
+        }
+
         INLINE int increaseWeakCnt() {
             const int cnt = ++weakCnt;
             ASSERT(cnt > 0);
@@ -113,15 +117,22 @@ public:
         }
     }
 
+    SharedPtr(const SharedPtr& other)
+        : ptr(other.ptr) {
+        this->copyBlock(other);
+    }
+
     template <typename T2>
     SharedPtr(const SharedPtr<T2>& other)
         : ptr(other.ptr) {
-        if (other.block) {
-            ASSERT(ptr != nullptr);
-            block = other.block;
-            block->increaseUseCnt();
-            block->increaseWeakCnt();
-        }
+        this->copyBlock(other);
+    }
+
+    SharedPtr(SharedPtr&& other)
+        : ptr(other.ptr)
+        , block(other.block) {
+        other.ptr = nullptr;
+        other.block = nullptr;
     }
 
     template <typename T2>
@@ -140,37 +151,43 @@ public:
         : ptr(nullptr)
         , block(nullptr) {}
 
-    template <typename T2>
-    SharedPtr& operator=(const SharedPtr<T2>& other) {
+    SharedPtr& operator=(const SharedPtr& other) {
         ptr = other.ptr;
-        if (other.block) {
-            ASSERT(ptr != nullptr);
-            block = other.block;
-            block->increaseUseCnt();
-            block->increaseWeakCnt();
-        }
+        this->copyBlock(other);
         return *this;
     }
 
     template <typename T2>
-    SharedPtr& operator=(SharedPtr<T2>&& other) {
+    SharedPtr& operator=(const SharedPtr<T2>& other) {
+        ptr = other.ptr;
+        this->copyBlock(other);
+        return *this;
+    }
+
+    SharedPtr& operator=(SharedPtr&& other) {
         std::swap(ptr, other.ptr);
         std::swap(block, other.block);
         return *this;
     }
 
+    template <typename T2>
+    SharedPtr& operator=(SharedPtr<T2>&& other) {
+        this->reset();
+        ptr = other.ptr;
+        block = other.block;
+        other.ptr = nullptr;
+        other.block = nullptr;
+        return *this;
+    }
+
     SharedPtr& operator=(std::nullptr_t) {
         this->reset();
+        return *this;
     }
 
     ~SharedPtr() {
         this->reset();
     }
-
-    /*INLINE T* operator->() {
-        ASSERT(ptr);
-        return ptr;
-    }*/
 
     INLINE T* operator->() const {
         ASSERT(ptr);
@@ -182,17 +199,16 @@ public:
         return *ptr;
     }
 
-    /*INLINE const T& operator*() const {
-        ASSERT(ptr);
-        return *ptr;
-    }*/
-
     INLINE explicit operator bool() const {
         return ptr != nullptr;
     }
 
     INLINE bool operator!() const {
         return ptr == nullptr;
+    }
+
+    INLINE T* get() const {
+        return ptr;
     }
 
     INLINE void reset() {
@@ -202,6 +218,25 @@ public:
             block = nullptr;
         }
         ptr = nullptr;
+    }
+
+    INLINE Size getUseCount() {
+        if (!block) {
+            return 0;
+        } else {
+            return block->getUseCount();
+        }
+    }
+
+private:
+    template <typename T2>
+    INLINE void copyBlock(const SharedPtr<T2>& other) {
+        if (other.block) {
+            ASSERT(ptr != nullptr);
+            block = other.block;
+            block->increaseUseCnt();
+            block->increaseWeakCnt();
+        }
     }
 };
 
@@ -235,6 +270,21 @@ public:
     WeakPtr()
         : block(nullptr) {}
 
+    WeakPtr(const WeakPtr& other)
+        : block(other.block) {
+        if (block) {
+            block->increaseWeakCnt();
+        }
+    }
+
+    template <typename T2>
+    WeakPtr(const WeakPtr<T2>& other)
+        : block(other.block) {
+        if (block) {
+            block->increaseWeakCnt();
+        }
+    }
+
     template <typename T2>
     WeakPtr(const SharedPtr<T2>& ptr)
         : block(ptr.block) {
@@ -243,8 +293,35 @@ public:
         }
     }
 
+    WeakPtr(std::nullptr_t)
+        : block(nullptr) {}
+
     ~WeakPtr() {
         this->reset();
+    }
+
+    WeakPtr& operator=(const WeakPtr& other) {
+        this->reset();
+        block = other.block;
+        if (block) {
+            block->increaseWeakCnt();
+        }
+        return *this;
+    }
+
+    template <typename T2>
+    WeakPtr& operator=(const WeakPtr<T2>& other) {
+        this->reset();
+        block = other.block;
+        if (block) {
+            block->increaseWeakCnt();
+        }
+        return *this;
+    }
+
+    WeakPtr& operator=(std::nullptr_t) {
+        this->reset();
+        return *this;
     }
 
     SharedPtr<T> lock() {
@@ -252,17 +329,25 @@ public:
             SharedPtr<T> ptr;
             ptr.block = block;
             ptr.ptr = static_cast<T*>(block->getPtr());
-            block->increaseUseCnt();
+            block->increaseWeakCnt();
             return ptr;
         } else {
             return nullptr;
         }
     }
 
-    void reset() {
+    INLINE void reset() {
         if (block) {
             block->decreaseWeakCnt();
             block = nullptr;
+        }
+    }
+
+    INLINE Size getUseCount() {
+        if (!block) {
+            return 0;
+        } else {
+            return block->getUseCount();
         }
     }
 };
