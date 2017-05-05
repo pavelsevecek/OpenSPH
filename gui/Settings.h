@@ -30,6 +30,8 @@ enum class GuiSettingsId {
 
     VIEW_HEIGHT,
 
+    VIEW_MAX_FRAMERATE,
+
     /// Displayed radius of particle in units of smoothing length
     PARTICLE_RADIUS,
 
@@ -74,7 +76,7 @@ enum class GuiSettingsId {
 
     PALETTE_DAMAGE,
 
-    PALETTE_VELOCITY_DIVERGENCE,
+    PALETTE_DIVV,
 };
 
 using GuiSettings = Settings<GuiSettingsId>;

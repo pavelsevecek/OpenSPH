@@ -15,7 +15,7 @@ NAMESPACE_SPH_BEGIN
 enum class ControlIds { QUANTITY_BOX };
 
 MainWindow::MainWindow(Controller* parent, const GuiSettings& settings)
-    : parent(parent) {
+    : controller(parent) {
     // create the frame
     std::string title = settings.get<std::string>(GuiSettingsId::WINDOW_TITLE);
     wxSize size(
@@ -50,7 +50,7 @@ MainWindow::MainWindow(Controller* parent, const GuiSettings& settings)
 
     sizer->Add(toolbar);
 
-    pane = new OrthoPane(this, parent);
+    pane = new OrthoPane(this, parent, settings);
     sizer->Add(pane, 1, wxEXPAND);
 
     this->SetSizer(sizer);
@@ -64,30 +64,29 @@ void MainWindow::setProgress(const float progress) {
     gauge->SetValue(int(progress * 1000.f));
 }
 
-void MainWindow::setElementList(ArrayView<std::string> elements) {
+void MainWindow::setElementList(Array<SharedPtr<Abstract::Element>>&& elements) {
+    elementList = std::move(elements);
     wxArrayString items;
-    for (std::string& s : elements) {
-        items.Add(s.c_str());
+    for (auto& e : elementList) {
+        items.Add(e->name().c_str());
     }
     quantityBox->Set(items);
+    quantityBox->SetSelection(0);
 }
 
 void MainWindow::onClose(wxCloseEvent& evt) {
     // veto the event, we will close the window ourselves
-    if (!parent->isQuitting()) {
+    if (!controller->isQuitting()) {
         evt.Veto();
-        parent->quit();
+        controller->quit();
     }
     // don't wait till it's closed so that we don't block the main thread
 }
 
-void MainWindow::onComboBox(wxCommandEvent& evt) {
-    evt.Skip();
-    /*const int idx = quantityBox->GetSelection();
-    Array<QuantityId> list = parent->getElementList();
-    ASSERT(unsigned(idx) < unsigned(list.size()));
-    AutoPtr<Abstract::Element> element = Factory::getElement(list[idx]);*/
-    // pane->set evt.Skip();
+void MainWindow::onComboBox(wxCommandEvent& UNUSED(evt)) {
+    const int idx = quantityBox->GetSelection();
+    SharedPtr<Abstract::Element> element = elementList[idx];
+    controller->setElement(std::move(element));
 }
 
 NAMESPACE_SPH_END

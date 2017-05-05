@@ -2,6 +2,7 @@
 #include "gui/MainLoop.h"
 #include "gui/Settings.h"
 #include "gui/objects/Bitmap.h"
+#include "gui/objects/Camera.h"
 #include "gui/objects/Element.h"
 #include "objects/containers/StringUtils.h"
 #include "system/Statistics.h"
@@ -14,11 +15,13 @@ NAMESPACE_SPH_BEGIN
 
 Movie::Movie(const GuiSettings& settings,
     AutoPtr<Abstract::Renderer>&& renderer,
-    const RenderParams& params,
-    Array<AutoPtr<Abstract::Element>>&& elements)
+    AutoPtr<Abstract::Camera>&& camera,
+    Array<SharedPtr<Abstract::Element>>&& elements,
+    const RenderParams& params)
     : renderer(std::move(renderer))
-    , params(params)
-    , elements(std::move(elements)) {
+    , camera(std::move(camera))
+    , elements(std::move(elements))
+    , params(params) {
     enabled = settings.get<bool>(GuiSettingsId::IMAGES_SAVE);
     outputStep = settings.get<Float>(GuiSettingsId::IMAGES_TIMESTEP);
     const std::string directory = settings.get<std::string>(GuiSettingsId::IMAGES_PATH);
@@ -55,7 +58,7 @@ void Movie::onTimeStep(const SharedPtr<Storage>& storage, Statistics& stats) {
             // the e directly
             std::unique_lock<std::mutex> lock(waitMutex);
             ArrayView<const Vector> positions = storage->getValue<Vector>(QuantityId::POSITIONS);
-            Bitmap bitmap = renderer->render(positions, *e, params, stats);
+            Bitmap bitmap = renderer->render(positions, *e, *camera, params, stats);
             bitmap.saveToFile(actPath);
             waitVar.notify_one();
         };

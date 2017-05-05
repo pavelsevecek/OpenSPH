@@ -15,6 +15,7 @@ NAMESPACE_SPH_BEGIN
 
 Bitmap OrthoRenderer::render(ArrayView<const Vector> r,
     Abstract::Element& element,
+    Abstract::Camera& camera,
     const RenderParams& params,
     Statistics& stats) const {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
@@ -34,7 +35,7 @@ Bitmap OrthoRenderer::render(ArrayView<const Vector> r,
         pen.SetColour(color);
         dc.SetBrush(brush);
         dc.SetPen(pen);
-        const Optional<Tuple<Point, float>> p = params.camera->project(r[i]);
+        const Optional<Tuple<Point, float>> p = camera.project(r[i]);
         if (p) {
             const int size = max(int(p->get<float>() * params.particles.scale), 1);
             dc.DrawCircle(p->get<Point>(), size);
@@ -71,39 +72,31 @@ void OrthoRenderer::drawPalette(wxDC& dc, const Palette& palette) const {
     }
 }
 
-OrthoPane::OrthoPane(wxWindow* parent, Controller* controller)
+OrthoPane::OrthoPane(wxWindow* parent, Controller* controller, const GuiSettings& gui)
     : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize)
-    , controller(controller)
-    , camera(controller->getCamera()) {
+    , controller(controller) {
     this->SetMinSize(wxSize(640, 480));
     this->Connect(wxEVT_PAINT, wxPaintEventHandler(OrthoPane::onPaint));
     this->Connect(wxEVT_MOTION, wxMouseEventHandler(OrthoPane::onMouseMotion));
     this->Connect(wxEVT_MOUSEWHEEL, wxMouseEventHandler(OrthoPane::onMouseWheel));
-    this->Connect(wxEVT_TIMER, wxTimerEventHandler(OrthoPane::onTimer));
 
-    refreshTimer = makeAuto<wxTimer>(this, 1);
-    refreshTimer->Start(50);
+    camera = Factory::getCamera(gui);
 }
 
 OrthoPane::~OrthoPane() = default;
-
-void OrthoPane::setElement(AutoPtr<Abstract::Element>&&) {
-    CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
-    // element = std::move(newElement);
-    // this->update()
-}
 
 void OrthoPane::onPaint(wxPaintEvent& UNUSED(evt)) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
     MEASURE_SCOPE("OrthoPane::onPaint");
     wxPaintDC dc(this);
-    Bitmap bitmap = controller->getRenderedBitmap();
+    Bitmap bitmap = controller->getRenderedBitmap(*camera);
     if (bitmap.isOk()) { // not empty
         dc.DrawBitmap(bitmap, wxPoint(0, 0));
     }
 }
 
 void OrthoPane::onMouseMotion(wxMouseEvent& evt) {
+    CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
     Point position = evt.GetPosition();
     if (evt.Dragging()) {
         Point offset = Point(position.x - dragging.position.x, -(position.y - dragging.position.y));
@@ -116,6 +109,7 @@ void OrthoPane::onMouseMotion(wxMouseEvent& evt) {
 }
 
 void OrthoPane::onMouseWheel(wxMouseEvent& evt) {
+    CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
     const float spin = evt.GetWheelRotation();
     const float amount = (spin > 0.f) ? 1.2f : 1.f / 1.2f;
     ASSERT(camera);
@@ -123,53 +117,5 @@ void OrthoPane::onMouseWheel(wxMouseEvent& evt) {
     this->Refresh();
     evt.Skip();
 }
-
-void OrthoPane::onTimer(wxTimerEvent& evt) {
-    wxYield();
-    this->Refresh();
-    evt.Skip();
-}
-
-
-/*void OrthoPane::draw(const SharedPtr<Storage>& newStorage, const Statistics& stats) {
-    MEASURE_SCOPE("OrthoPane::draw");
-    // called from worker thread, cannot touch wx stuff here
-    mutex.lock();
-    storage = newStorage;
-    time = stats.get<Float>(StatisticsId::TOTAL_TIME);
-    mutex.unlock();
-    update();
-}
-
-Bitmap OrthoPane::getRender() const {
-    return bitmap;
-}*/
-
-/*void OrthoPane::update() {
-    MEASURE_SCOPE("OrthoPane::update");
-    ASSERT(storage);
-    std::unique_lock<std::mutex> lock(mutex);
-    ArrayView<Vector> r = storage->getValue<Vector>(QuantityId::POSITIONS);
-    particles->clear();
-    element = Factory::getElement(*storage, settings, quantity);
-    for (Size i = 0; i < r.size(); ++i) {
-        Optional<Point> point = camera->project(r[i]);
-        if (!point) {
-            continue;
-        }
-        Particle p{ r[i], element->eval(i) };
-        particles->push(p);
-    }
-    particlesUpdated = true;
-}
-
-void OrthoPane::setQuantity(const QuantityId key) {
-    quantity = key;
-    if (storage) {
-        this->update();
-    }
-    this->Refresh();
-}
-*/
 
 NAMESPACE_SPH_END

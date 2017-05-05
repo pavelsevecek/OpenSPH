@@ -8,6 +8,7 @@
 #include "gui/windows/OrthoPane.h"
 #include "problems/Collision.h"
 #include "run/Run.h"
+#include "system/Timer.h"
 #include "thread/CheckFunction.h"
 
 NAMESPACE_SPH_BEGIN
@@ -27,10 +28,7 @@ Controller::Controller() {
         .set(GuiSettingsId::IMAGES_TIMESTEP, 0.2_f);
 
     // create objects for drawing particles
-    Point size(gui.get<int>(GuiSettingsId::VIEW_WIDTH), gui.get<int>(GuiSettingsId::VIEW_HEIGHT));
-    vis.renderer = makeAuto<OrthoRenderer>();
-    vis.camera = Factory::getCamera(gui);
-    vis.element = makeAuto<VelocityElement>(gui.get<Range>(GuiSettingsId::PALETTE_VELOCITY));
+    vis.initialize(gui);
 
     // create main frame of the application
     window = new MainWindow(this, gui);
@@ -47,8 +45,14 @@ Controller::Controller() {
 
 Controller::~Controller() = default;
 
+void Controller::Vis::initialize(const GuiSettings& gui) {
+    renderer = makeAuto<OrthoRenderer>();
+    element = makeAuto<VelocityElement>(gui.get<Range>(GuiSettingsId::PALETTE_VELOCITY));
+    timer = makeAuto<Timer>(gui.get<int>(GuiSettingsId::VIEW_MAX_FRAMERATE), TimerFlags::START_EXPIRED);
+}
+
 bool Controller::Vis::isInitialized() {
-    return renderer && camera && element && stats;
+    return renderer && stats && element;
 }
 
 void Controller::start() {
@@ -129,7 +133,10 @@ void Controller::onTimeStep(const SharedPtr<Storage>& storage, Statistics& stats
     movie->onTimeStep(storage, stats);
 
     // update the data for rendering
-    this->redraw(*storage, stats);
+    if (vis.timer->isExpired()) {
+        this->redraw(*storage, stats);
+        vis.timer->restart();
+    }
 
     // pause if we are supposed to
     if (status == Status::PAUSED) {
@@ -150,7 +157,7 @@ bool Controller::isQuitting() const {
     return status == Status::QUITTING;
 }
 
-Array<QuantityId> Controller::getElementList(const Storage& storage) const {
+Array<SharedPtr<Abstract::Element>> Controller::getElementList(const Storage& storage) const {
     // there is no difference between 'physical' quantities we wish to see (density, energy, ...) and
     // other 'internal' quantities (activation strains, yield reduction, ...) in particle storage,
     // we have to provide a list of elements ourselves
@@ -167,54 +174,46 @@ Array<QuantityId> Controller::getElementList(const Storage& storage) const {
         QuantityId::AV_ALPHA,
         QuantityId::VELOCITY_DIVERGENCE
     };
-    Array<QuantityId> available;
+    Array<SharedPtr<Abstract::Element>> elements;
     for (QuantityId id : all) {
         if (storage.has(id)) {
-            available.push(id);
+            elements.push(Factory::getElement(gui, id));
         }
     }
-    return available;
+    return elements;
 }
 
-Bitmap Controller::getRenderedBitmap() {
+Bitmap Controller::getRenderedBitmap(Abstract::Camera& camera) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
     RenderParams params;
-    params.camera = vis.camera;
     params.particles.scale = gui.get<Float>(GuiSettingsId::PARTICLE_RADIUS);
     params.size = Point(gui.get<int>(GuiSettingsId::VIEW_WIDTH), gui.get<int>(GuiSettingsId::VIEW_HEIGHT));
     if (!vis.isInitialized()) {
         // not initialized yet, return empty bitmap
         return wxNullBitmap;
     } else {
-        Bitmap bitmap = vis.renderer->render(vis.cached, *vis.element, params, *vis.stats);
+        Bitmap bitmap = vis.renderer->render(vis.cached, *vis.element, camera, params, *vis.stats);
         ASSERT(bitmap.isOk());
         return bitmap;
     }
 }
 
-SharedPtr<Abstract::Camera> Controller::getCamera() {
-    ASSERT(vis.camera);
-    return vis.camera;
+void Controller::setElement(const SharedPtr<Abstract::Element>& newElement) {
+    CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
+    vis.element = newElement;
 }
 
 SharedPtr<Movie> Controller::createMovie(const Storage& storage) {
     ASSERT(sph.run);
-    Array<AutoPtr<Abstract::Element>> elements;
-    Array<QuantityId> availableIds = this->getElementList(storage);
-    for (QuantityId id : availableIds) {
-        elements.emplaceBack(Factory::getElement(gui, id));
-    }
-
     RenderParams params;
-    params.camera = Factory::getCamera(gui);
     params.particles.scale = gui.get<Float>(GuiSettingsId::PARTICLE_RADIUS);
     params.size.x = gui.get<int>(GuiSettingsId::RENDER_WIDTH);
     params.size.y = gui.get<int>(GuiSettingsId::RENDER_HEIGHT);
 
     /// \todo currently hardcoded for ortho render
     AutoPtr<OrthoRenderer> renderer = makeAuto<OrthoRenderer>();
-
-    return makeShared<Movie>(gui, std::move(renderer), params, std::move(elements));
+    auto elements = this->getElementList(storage);
+    return makeShared<Movie>(gui, std::move(renderer), Factory::getCamera(gui), std::move(elements), params);
 }
 
 void Controller::redraw(const Storage& storage, Statistics& stats) {
@@ -243,6 +242,7 @@ void Controller::run() {
         // create storage and set up initial conditions
         SharedPtr<Storage> storage = sph.run->setUp();
         // draw initial positions of particles
+        window->setElementList(this->getElementList(*storage));
         /// \todo generalize stats
         Statistics stats;
         stats.set(StatisticsId::TOTAL_TIME, 0._f);

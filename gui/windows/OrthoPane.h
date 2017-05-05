@@ -30,6 +30,7 @@ public:
     /// Can only be called from main thread
     virtual Bitmap render(ArrayView<const Vector> positions,
         Abstract::Element& element,
+        Abstract::Camera& camera,
         const RenderParams& params,
         Statistics& stats) const override;
 
@@ -46,31 +47,21 @@ private:
         Point position;
     } dragging;
 
-    /// Timer for refreshing window
-    AutoPtr<wxTimer> refreshTimer;
-
     /// Current camera of the view. The object is shared with parent model.
-    SharedPtr<Abstract::Camera> camera;
+    AutoPtr<Abstract::Camera> camera;
 
 public:
-    OrthoPane(wxWindow* parent, Controller* controller);
+    OrthoPane(wxWindow* parent, Controller* controller, const GuiSettings& gui);
 
     ~OrthoPane();
 
-    /// Changes displayed element. Must be executed from the main thread
-    void setElement(AutoPtr<Abstract::Element>&& newElement);
-
 private:
-    void requestUpdate();
-
     /// wx event handlers
     void onPaint(wxPaintEvent& evt);
 
     void onMouseMotion(wxMouseEvent& evt);
 
     void onMouseWheel(wxMouseEvent& evt);
-
-    void onTimer(wxTimerEvent& evt);
 };
 
 NAMESPACE_SPH_END

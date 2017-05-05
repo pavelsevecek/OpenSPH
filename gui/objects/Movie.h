@@ -34,10 +34,14 @@ private:
 
     /// renderer
     AutoPtr<Abstract::Renderer> renderer;
-    RenderParams params;
+
+    /// camera
+    AutoPtr<Abstract::Camera> camera;
 
     /// elements to rende1r and save to disk
-    Array<AutoPtr<Abstract::Element>> elements;
+    Array<SharedPtr<Abstract::Element>> elements;
+
+    RenderParams params;
 
     std::condition_variable waitVar;
     std::mutex waitMutex;
@@ -45,8 +49,9 @@ private:
 public:
     Movie(const GuiSettings& settings,
         AutoPtr<Abstract::Renderer>&& renderer,
-        const RenderParams& params,
-        Array<AutoPtr<Abstract::Element>>&& elements);
+        AutoPtr<Abstract::Camera>&& camera,
+        Array<SharedPtr<Abstract::Element>>&& elements,
+        const RenderParams& params);
 
     ~Movie();
 

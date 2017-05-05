@@ -16,9 +16,6 @@ namespace Abstract {
 /// Partially overlaps with GuiSettings, but it's better to have render specific settings in one struct than
 /// one huge catch-all settings.
 struct RenderParams {
-    /// Camera used for rendering
-    SharedPtr<Abstract::Camera> camera;
-
     /// Resolution of the produced bitmap
     Point size = Point(640, 480);
 
@@ -46,6 +43,7 @@ namespace Abstract {
         ///              (time used in rendering, framerate, ...)
         virtual Bitmap render(ArrayView<const Vector> positions,
             Abstract::Element& element,
+            Abstract::Camera& camera,
             const RenderParams& params,
             Statistics& stats) const = 0;
     };

@@ -1,6 +1,8 @@
 #pragma once
 
 #include "gui/Settings.h"
+#include "objects/containers/Array.h"
+#include "objects/wrappers/SharedPtr.h"
 #include <wx/frame.h>
 
 class wxComboBox;
@@ -10,6 +12,7 @@ NAMESPACE_SPH_BEGIN
 
 namespace Abstract {
     class Renderer;
+    class Element;
 }
 class WindowCommandEvent;
 class MainWindow;
@@ -22,7 +25,7 @@ class OrthoPane;
 class MainWindow : public wxFrame {
 private:
     /// Parent control object
-    Controller* parent;
+    Controller* controller;
 
     /// Drawing pane
     /// \todo used some virtual base class instead of directly orthopane
@@ -32,12 +35,14 @@ private:
     wxComboBox* quantityBox;
     wxGauge* gauge;
 
+    Array<SharedPtr<Abstract::Element>> elementList;
+
 public:
-    MainWindow(Controller* parent, const GuiSettings& guiSettings);
+    MainWindow(Controller* controller, const GuiSettings& guiSettings);
 
     void setProgress(const float progress);
 
-    void setElementList(ArrayView<std::string> elements);
+    void setElementList(Array<SharedPtr<Abstract::Element>>&& elements);
 
 private:
     /// wx event handlers

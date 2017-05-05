@@ -12,13 +12,14 @@ AutoPtr<GuiSettings> GuiSettings::instance (new GuiSettings {
     { GuiSettingsId::RENDER_HEIGHT,    "render.height",    600 },
 
     /// Particle visualization
-    { GuiSettingsId::PARTICLE_RADIUS,  "particle_radius",  0.5_f },
-    { GuiSettingsId::ORTHO_CUTOFF,     "ortho.cutoff",     0.1_f },
-    { GuiSettingsId::ORTHO_PROJECTION, "ortho.projection", int(OrthoEnum::XY) },
-    { GuiSettingsId::VIEW_CENTER,      "view.center",      Vector(0._f) },
-    { GuiSettingsId::VIEW_FOV,         "view.fov",         1._f },
-    { GuiSettingsId::VIEW_WIDTH,       "view.width",       800 },
-    { GuiSettingsId::VIEW_HEIGHT,      "view.height",      600 },
+    { GuiSettingsId::PARTICLE_RADIUS,       "particle_radius",      0.5_f },
+    { GuiSettingsId::ORTHO_CUTOFF,          "ortho.cutoff",         0.1_f },
+    { GuiSettingsId::ORTHO_PROJECTION,      "ortho.projection",     int(OrthoEnum::XY) },
+    { GuiSettingsId::VIEW_CENTER,           "view.center",          Vector(0._f) },
+    { GuiSettingsId::VIEW_FOV,              "view.fov",             1._f },
+    { GuiSettingsId::VIEW_WIDTH,            "view.width",           800 },
+    { GuiSettingsId::VIEW_HEIGHT,           "view.height",          600 },
+    { GuiSettingsId::VIEW_MAX_FRAMERATE,    "view.max_framerate",   100 }, // ms
 
     /// Window settings
     { GuiSettingsId::WINDOW_TITLE,     "window.title",     std::string("SPH") },
@@ -38,7 +39,7 @@ AutoPtr<GuiSettings> GuiSettings::instance (new GuiSettings {
     { GuiSettingsId::PALETTE_ENERGY,   "palette.energy",   Range(0._f, 1.e6_f) },
     { GuiSettingsId::PALETTE_STRESS,   "palette.stress",   Range(0._f, 1.e10_f) },
     { GuiSettingsId::PALETTE_DAMAGE,   "palette.damage",   Range(0._f, 1._f) },
-    { GuiSettingsId::PALETTE_VELOCITY_DIVERGENCE, "palette.velocity_divergence", Range(-2._f, 2._f) },
+    { GuiSettingsId::PALETTE_DIVV,     "palette.divv",     Range(-0.1_f, 0.1_f) },
 });
 // clang-format on
 

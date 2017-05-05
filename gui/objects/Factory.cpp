@@ -53,7 +53,7 @@ AutoPtr<Abstract::Element> Factory::getElement(const GuiSettings& settings, cons
         range = settings.get<Range>(GuiSettingsId::PALETTE_DAMAGE);
         break;
     case QuantityId::VELOCITY_DIVERGENCE:
-        range = settings.get<Range>(GuiSettingsId::PALETTE_VELOCITY_DIVERGENCE);
+        range = settings.get<Range>(GuiSettingsId::PALETTE_DIVV);
         break;
     default:
         NOT_IMPLEMENTED;

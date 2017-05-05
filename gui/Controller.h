@@ -13,6 +13,7 @@ class Movie;
 class Storage;
 class Statistics;
 class Bitmap;
+class Timer;
 namespace Abstract {
     class Run;
     class Renderer;
@@ -41,24 +42,26 @@ private:
     SharedPtr<Movie> movie;
 
     struct Vis {
-        /// Current element used for drawing particles.
-        AutoPtr<Abstract::Element> element;
-
         /// Cached positions of particles for visualization.
         Array<Vector> cached;
 
         /// Copy of statistics when the element was initialized
         AutoPtr<Statistics> stats;
 
-        /// Current camera of the view
-        SharedPtr<Abstract::Camera> camera;
-
         /// Rendered used for rendering the view
         AutoPtr<Abstract::Renderer> renderer;
+
+        /// Currently selected element
+        SharedPtr<Abstract::Element> element;
 
         /// CV for waiting till main thread events are processed
         std::mutex mainThreadMutex;
         std::condition_variable mainThreadVar;
+
+        /// Timer controlling refreshing rate of the view
+        AutoPtr<Timer> timer;
+
+        void initialize(const GuiSettings& settings);
 
         bool isInitialized();
     } vis;
@@ -93,13 +96,12 @@ public:
     bool isQuitting() const;
 
     /// Returns a list of quantities that can be displayed.
-    Array<QuantityId> getElementList(const Storage& storage) const;
+    Array<SharedPtr<Abstract::Element>> getElementList(const Storage& storage) const;
 
     /// Renders a bitmap of current view. Can only be called from main thread.
-    Bitmap getRenderedBitmap();
+    Bitmap getRenderedBitmap(Abstract::Camera& camera);
 
-    /// Returns the camera of the view
-    SharedPtr<Abstract::Camera> getCamera();
+    void setElement(const SharedPtr<Abstract::Element>& newElement);
 
     /// Returns the settings object.
     GuiSettings& getGuiSettings();
