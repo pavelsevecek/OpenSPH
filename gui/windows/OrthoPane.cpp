@@ -5,7 +5,6 @@
 #include "gui/objects/Bitmap.h"
 #include "gui/objects/Camera.h"
 #include "gui/objects/Element.h"
-#include "gui/objects/LockedPtr.h"
 #include "system/Profiler.h"
 #include "system/Statistics.h"
 #include "thread/CheckFunction.h"
@@ -82,13 +81,13 @@ OrthoPane::OrthoPane(wxWindow* parent, Controller* controller)
     this->Connect(wxEVT_MOUSEWHEEL, wxMouseEventHandler(OrthoPane::onMouseWheel));
     this->Connect(wxEVT_TIMER, wxTimerEventHandler(OrthoPane::onTimer));
 
-    refreshTimer = std::make_unique<wxTimer>(this, 1);
+    refreshTimer = makeAuto<wxTimer>(this, 1);
     refreshTimer->Start(50);
 }
 
 OrthoPane::~OrthoPane() = default;
 
-void OrthoPane::setElement(std::unique_ptr<Abstract::Element>&&) {
+void OrthoPane::setElement(AutoPtr<Abstract::Element>&&) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
     // element = std::move(newElement);
     // this->update()
@@ -132,7 +131,7 @@ void OrthoPane::onTimer(wxTimerEvent& evt) {
 }
 
 
-/*void OrthoPane::draw(const std::shared_ptr<Storage>& newStorage, const Statistics& stats) {
+/*void OrthoPane::draw(const SharedPtr<Storage>& newStorage, const Statistics& stats) {
     MEASURE_SCOPE("OrthoPane::draw");
     // called from worker thread, cannot touch wx stuff here
     mutex.lock();

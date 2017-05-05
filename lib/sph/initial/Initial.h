@@ -8,10 +8,7 @@
 #include "common/ForwardDecl.h"
 #include "geometry/Vector.h"
 #include "objects/containers/ArrayView.h"
-#include <memory>
-
-/// Generating initial conditions
-
+#include "objects/wrappers/AutoPtr.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -21,7 +18,7 @@ namespace Abstract {
 
 /// \todo possibly generalize, allowing to create generic context as needed by components of the run
 struct InitialContext {
-    std::unique_ptr<Abstract::Rng> rng;
+    AutoPtr<Abstract::Rng> rng;
 };
 
 /// All particles created in one run should be created using the same InitialConditions object. If multiple
@@ -29,7 +26,7 @@ struct InitialContext {
 class InitialConditions : public Noncopyable {
 private:
     Storage& storage;
-    std::unique_ptr<Abstract::Solver> solver;
+    AutoPtr<Abstract::Solver> solver;
     Size bodyIndex = 0;
 
     InitialContext context;
@@ -37,9 +34,7 @@ private:
 public:
     InitialConditions(Storage& storage, const RunSettings& settings);
 
-    InitialConditions(Storage& storage,
-        std::unique_ptr<Abstract::Solver>&& solver,
-        const RunSettings& settings);
+    InitialConditions(Storage& storage, AutoPtr<Abstract::Solver>&& solver, const RunSettings& settings);
 
     ~InitialConditions();
 
@@ -55,24 +50,24 @@ public:
 
     /// Overload with custom material.
     void addBody(const Abstract::Domain& domain,
-        std::unique_ptr<Abstract::Material>&& material,
+        AutoPtr<Abstract::Material>&& material,
         const Vector& velocity = Vector(0._f),
         const Vector& angularVelocity = Vector(0._f));
 
     struct Body {
-        std::unique_ptr<Abstract::Domain> domain;
-        std::unique_ptr<Abstract::Material> material;
+        AutoPtr<Abstract::Domain> domain;
+        AutoPtr<Abstract::Material> material;
         Vector velocity;
         Vector angularVelocity;
 
         Body();
 
-        Body(std::unique_ptr<Abstract::Domain>&& domain,
-            std::unique_ptr<Abstract::Material>&& material,
+        Body(AutoPtr<Abstract::Domain>&& domain,
+            AutoPtr<Abstract::Material>&& material,
             const Vector& velocity = Vector(0._f),
             const Vector& angularVelocity = Vector(0._f));
 
-        Body(std::unique_ptr<Abstract::Domain>&& domain,
+        Body(AutoPtr<Abstract::Domain>&& domain,
             const BodySettings& settings,
             const Vector& velocity = Vector(0._f),
             const Vector& angularVelocity = Vector(0._f));

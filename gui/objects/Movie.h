@@ -9,7 +9,7 @@
 #include "gui/Renderer.h"
 #include "io/Output.h"
 #include <condition_variable>
-#include <memory>
+
 
 NAMESPACE_SPH_BEGIN
 
@@ -33,27 +33,27 @@ private:
     bool enabled;
 
     /// renderer
-    std::unique_ptr<Abstract::Renderer> renderer;
+    AutoPtr<Abstract::Renderer> renderer;
     RenderParams params;
 
     /// elements to rende1r and save to disk
-    Array<std::unique_ptr<Abstract::Element>> elements;
+    Array<AutoPtr<Abstract::Element>> elements;
 
     std::condition_variable waitVar;
     std::mutex waitMutex;
 
 public:
     Movie(const GuiSettings& settings,
-        std::unique_ptr<Abstract::Renderer>&& renderer,
+        AutoPtr<Abstract::Renderer>&& renderer,
         const RenderParams& params,
-        Array<std::unique_ptr<Abstract::Element>>&& elements);
+        Array<AutoPtr<Abstract::Element>>&& elements);
 
     ~Movie();
 
     /// Called every time step, saves the images every IMAGES_TIMESTEP. If the time since the last frame is
     /// less than the required framerate, function does nothing. Can be called from any thread; the function
     /// is blocking, waits until all images are saved.
-    void onTimeStep(const std::shared_ptr<Storage>& storage, Statistics& stats);
+    void onTimeStep(const SharedPtr<Storage>& storage, Statistics& stats);
 
     void setEnabled(const bool enable = true);
 };

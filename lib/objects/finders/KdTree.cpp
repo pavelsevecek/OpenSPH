@@ -58,7 +58,7 @@ KdTree::~KdTree() = default;
 
 void KdTree::buildImpl(ArrayView<const Vector> points) {
     PROFILE_SCOPE("KdTree::buildImpl")
-    impl = std::make_unique<KdTree::Impl>(points, this->rankH);
+    impl = makeAuto<KdTree::Impl>(points, this->rankH);
 }
 
 void KdTree::rebuildImpl(ArrayView<const Vector> points) {

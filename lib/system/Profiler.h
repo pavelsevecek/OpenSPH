@@ -8,7 +8,7 @@
 #include "system/Timer.h"
 #include <atomic>
 #include <map>
-#include <memory>
+
 
 NAMESPACE_SPH_BEGIN
 
@@ -66,7 +66,7 @@ namespace Abstract {
 /// Profiler object implemented as singleton.
 class Profiler : public Noncopyable {
 private:
-    static std::unique_ptr<Profiler> instance;
+    static AutoPtr<Profiler> instance;
 
     struct Duration {
         std::atomic<uint64_t> time;
@@ -82,7 +82,7 @@ private:
 public:
     static Profiler* getInstance() {
         if (!instance) {
-            instance = std::make_unique<Profiler>();
+            instance = makeAuto<Profiler>();
         }
         return instance.get();
     }

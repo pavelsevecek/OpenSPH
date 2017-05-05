@@ -4,9 +4,9 @@
 /// Pavel Sevecek
 /// sevecek at sirrah.troja.mff.cuni.cz
 
-#include "objects/Object.h"
+#include "objects/wrappers/SharedPtr.h"
 #include <functional>
-#include <memory>
+
 #include <wx/event.h>
 
 namespace Sph {
@@ -51,8 +51,8 @@ void executeOnMainThread(const std::function<void()>& function);
 /// Executes a callback in main thread, passing a shared pointer to given object as its argument. The callback
 /// is only executed if the object referenced by the shared pointer is not expired, otherwise it is ignored.
 template <typename Type, typename TFunctor>
-void executeOnMainThread(const std::shared_ptr<Type>& ptr, TFunctor functor) {
-    executeOnMainThread([ weakPtr = std::weak_ptr<Type>(ptr), f = std::move(functor) ] {
+void executeOnMainThread(const SharedPtr<Type>& ptr, TFunctor functor) {
+    executeOnMainThread([ weakPtr = WeakPtr<Type>(ptr), f = std::move(functor) ] {
         if (auto ptr = weakPtr.lock()) {
             f(ptr);
         }

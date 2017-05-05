@@ -22,7 +22,7 @@ settings.set(RunSettingsId::SPH_FINDER, FinderEnum::VOXEL);
 settings.set(RunSettingsId::MODEL_FORCE_DIV_S, false);
 settings.set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 1.e-6_f);
 settings.set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 1.e-4_f);
-Problem p(settings, std::make_shared<Storage>());
+Problem p(settings, makeShared<Storage>());
 InitialConditions conds(p.storage, settings);
 
 BodySettings bodySettings;
@@ -37,7 +37,7 @@ bodySettings.set(BodySettingsId::ENERGY_MIN, 1._f);
 // conds.addBody(BlockDomain(Vector(0._f), Vector(1._f, 1._f, 20._f)), bodySettings);
 conds.addBody(CylindricalDomain(Vector(0._f), 0.5_f, 20._f, true), bodySettings);
 p.output =
-    std::make_unique<GnuplotOutput>("out_%d.txt", "wave", "wave.plt", GnuplotOutput::Options::SCIENTIFIC);
+    makeAuto<GnuplotOutput>("out_%d.txt", "wave", "wave.plt", GnuplotOutput::Options::SCIENTIFIC);
 
 StdOutLogger logger;
 

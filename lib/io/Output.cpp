@@ -24,7 +24,7 @@ Abstract::Output::Output(const std::string& fileMask)
 
 Abstract::Output::~Output() = default;
 
-void Abstract::Output::add(std::unique_ptr<Abstract::Column>&& element) {
+void Abstract::Output::add(AutoPtr<Abstract::Column>&& element) {
     elements.push(std::move(element));
 }
 

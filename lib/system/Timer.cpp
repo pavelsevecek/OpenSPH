@@ -1,23 +1,22 @@
 #include "system/Timer.h"
+#include "objects/wrappers/Lockable.h"
 #include <atomic>
-#include <mutex>
 #include <thread>
 
 NAMESPACE_SPH_BEGIN
 
 class TimerThread : public Noncopyable {
 private:
-    static std::unique_ptr<TimerThread> instance;
+    static AutoPtr<TimerThread> instance;
     std::thread thread;
     std::atomic<bool> closingDown;
 
     struct TimerEntry {
-        std::weak_ptr<Timer> timer;
+        WeakPtr<Timer> timer;
         std::function<void()> callback;
     };
 
-    Array<TimerEntry> entries;
-    std::mutex mutex;
+    Lockable<Array<TimerEntry>> entries;
 
 public:
     TimerThread();
@@ -26,7 +25,7 @@ public:
 
     static TimerThread* getInstance();
 
-    void registerTimer(const std::shared_ptr<Timer>& timer, const std::function<void(void)>& callback);
+    void registerTimer(const SharedPtr<Timer>& timer, const std::function<void(void)>& callback);
 
 private:
     void runLoop();
@@ -34,7 +33,7 @@ private:
     void removeEntry(TimerEntry& entry);
 };
 
-std::unique_ptr<TimerThread> TimerThread::instance = nullptr;
+AutoPtr<TimerThread> TimerThread::instance = nullptr;
 
 Timer::Timer(const int64_t interval, const Flags<TimerFlags> flags)
     : interval(interval)
@@ -91,10 +90,10 @@ int64_t StoppableTimer::elapsed(const TimerUnit unit) const {
 }
 
 
-std::shared_ptr<Timer> makeTimer(const int64_t interval,
+SharedPtr<Timer> makeTimer(const int64_t interval,
     const std::function<void(void)>& callback,
     const Flags<TimerFlags> flags) {
-    std::shared_ptr<Timer> timer = std::make_shared<Timer>(interval, flags);
+    SharedPtr<Timer> timer = makeShared<Timer>(interval, flags);
     TimerThread* instance = TimerThread::getInstance();
     instance->registerTimer(timer, callback);
     return timer;
@@ -113,15 +112,13 @@ TimerThread::~TimerThread() {
 
 TimerThread* TimerThread::getInstance() {
     if (!instance) {
-        instance = std::make_unique<TimerThread>();
+        instance = makeAuto<TimerThread>();
     }
     return instance.get();
 }
 
-void TimerThread::registerTimer(const std::shared_ptr<Timer>& timer,
-    const std::function<void(void)>& callback) {
-    std::unique_lock<std::mutex> lock(mutex);
-    entries.push(TimerEntry{ timer, callback });
+void TimerThread::registerTimer(const SharedPtr<Timer>& timer, const std::function<void(void)>& callback) {
+    entries->push(TimerEntry{ timer, callback });
 }
 
 
@@ -129,8 +126,8 @@ void TimerThread::runLoop() {
     Array<TimerEntry> copies;
     while (!closingDown) {
         {
-            std::unique_lock<std::mutex> lock(mutex);
-            copies = copyable(entries);
+            auto ptr = entries.lock();
+            copies = copyable(*ptr);
         }
         for (TimerEntry& entry : copies) {
             // if the timer is expired (and still exists)
@@ -156,11 +153,6 @@ void TimerThread::runLoop() {
 void TimerThread::removeEntry(TimerEntry& entry) {
     /// \todo proper removing
     entry.timer.reset();
-    /*std::unique_lock<std::mutex> lock(mutex);
-    auto iter = std::find_if(entries.begin(), entries.end(), [&entry](TimerEntry& t) { //
-        return t.timer == entry.timer;
-    });
-    entries.remove(iter - entries.begin());*/
 }
 
 NAMESPACE_SPH_END

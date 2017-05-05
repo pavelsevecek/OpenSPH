@@ -86,7 +86,7 @@ void MainWindow::onComboBox(wxCommandEvent& evt) {
     /*const int idx = quantityBox->GetSelection();
     Array<QuantityId> list = parent->getElementList();
     ASSERT(unsigned(idx) < unsigned(list.size()));
-    std::unique_ptr<Abstract::Element> element = Factory::getElement(list[idx]);*/
+    AutoPtr<Abstract::Element> element = Factory::getElement(list[idx]);*/
     // pane->set evt.Skip();
 }
 

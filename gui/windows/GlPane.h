@@ -33,7 +33,7 @@ public:
 
 /*class CustomGlPane : public wxGLCanvas, public Abstract::Renderer {
 private:
-    std::unique_ptr<wxGLContext> context;
+    AutoPtr<wxGLContext> context;
     float rotate = 0.f;
     wxTimer* repaintTimer;
     wxTimer* reloadTimer;
@@ -65,7 +65,7 @@ public:
 
     void onTimer(wxTimerEvent& evt);
 
-    virtual void draw(const std::shared_ptr<Storage>& storage, const Statistics& stats) override;
+    virtual void draw(const SharedPtr<Storage>& storage, const Statistics& stats) override;
 
     virtual Bitmap getRender() const override {
         NOT_IMPLEMENTED;

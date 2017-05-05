@@ -1,14 +1,18 @@
 #include "system/Platform.h"
 #include "objects/containers/StaticArray.h"
+#include "objects/wrappers/Finally.h"
 #include <fcntl.h>
-#include <memory>
+
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
 NAMESPACE_SPH_BEGIN
 
-Outcome sendMail(const std::string& to, const std::string& from, const std::string& subject, const std::string& message) {
+Outcome sendMail(const std::string& to,
+    const std::string& from,
+    const std::string& subject,
+    const std::string& message) {
     NOT_IMPLEMENTED; // somehow doesn't work
     FILE* mailpipe = popen("/usr/bin/sendmail -t", "w");
     if (mailpipe == nullptr) {
@@ -40,13 +44,13 @@ std::string getGitCommit(const std::string& pathToGitRoot) {
     StaticArray<char, 128> buffer;
     std::string command = "cd " + pathToGitRoot + " && git rev-parse HEAD";
     std::string result;
-    /// \todo unique_ptr with deleter
-    std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(command.c_str(), "r"), pclose);
+    FILE* pipe = popen(command.c_str(), "r");
+    auto f = finally([pipe] { pclose(pipe); });
     if (!pipe) {
         return "";
     }
-    while (!feof(pipe.get())) {
-        if (fgets(&buffer[0], 128, pipe.get()) != NULL)
+    while (!feof(pipe)) {
+        if (fgets(&buffer[0], 128, pipe) != NULL)
             result += &buffer[0];
     }
     return result;

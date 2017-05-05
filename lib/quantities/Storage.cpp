@@ -25,7 +25,7 @@ Size StorageSequence::size() const {
 
 Storage::Storage() = default;
 
-Storage::Storage(std::unique_ptr<Abstract::Material>&& material) {
+Storage::Storage(AutoPtr<Abstract::Material>&& material) {
     materials.push(std::move(material));
 }
 
@@ -43,7 +43,7 @@ Storage& Storage::operator=(Storage&& other) {
     return *this;
 }
 
-void Storage::setThreadPool(const std::shared_ptr<ThreadPool>& threadPool) {
+void Storage::setThreadPool(const SharedPtr<ThreadPool>& threadPool) {
     pool = threadPool;
 }
 

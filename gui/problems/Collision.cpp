@@ -24,7 +24,7 @@ AsteroidCollision::AsteroidCollision(Controller* model)
     settings.saveToFile("code.sph");
 }
 
-std::shared_ptr<Storage> AsteroidCollision::setUp() {
+SharedPtr<Storage> AsteroidCollision::setUp() {
     BodySettings bodySettings;
     bodySettings.set(BodySettingsId::ENERGY, 1._f)
         .set(BodySettingsId::ENERGY_RANGE, Range(1._f, INFTY))
@@ -35,7 +35,7 @@ std::shared_ptr<Storage> AsteroidCollision::setUp() {
         .set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::VON_MISES);
     bodySettings.saveToFile("target.sph");
 
-    storage = std::make_shared<Storage>();
+    storage = makeShared<Storage>();
     InitialConditions conds(*storage, settings);
 
     StdOutLogger logger;
@@ -54,22 +54,22 @@ std::shared_ptr<Storage> AsteroidCollision::setUp() {
     logger.write("Particles of projectile: ", storage->getParticleCnt() - n1);
 
     std::string outputDir = "out/" + settings.get<std::string>(RunSettingsId::RUN_OUTPUT_NAME);
-    output = std::make_unique<TextOutput>(
+    output = makeAuto<TextOutput>(
         outputDir, settings.get<std::string>(RunSettingsId::RUN_NAME), TextOutput::Options::SCIENTIFIC);
-    output->add(std::make_unique<ParticleNumberColumn>());
-    output->add(std::make_unique<ValueColumn<Vector>>(QuantityId::POSITIONS));
-    output->add(std::make_unique<DerivativeColumn<Vector>>(QuantityId::POSITIONS));
-    output->add(std::make_unique<SmoothingLengthColumn>());
-    output->add(std::make_unique<ValueColumn<Float>>(QuantityId::DENSITY));
-    output->add(std::make_unique<ValueColumn<Float>>(QuantityId::PRESSURE));
-    output->add(std::make_unique<ValueColumn<Float>>(QuantityId::ENERGY));
-    output->add(std::make_unique<ValueColumn<Float>>(QuantityId::DAMAGE));
-    output->add(std::make_unique<ValueColumn<TracelessTensor>>(QuantityId::DEVIATORIC_STRESS));
+    output->add(makeAuto<ParticleNumberColumn>());
+    output->add(makeAuto<ValueColumn<Vector>>(QuantityId::POSITIONS));
+    output->add(makeAuto<DerivativeColumn<Vector>>(QuantityId::POSITIONS));
+    output->add(makeAuto<SmoothingLengthColumn>());
+    output->add(makeAuto<ValueColumn<Float>>(QuantityId::DENSITY));
+    output->add(makeAuto<ValueColumn<Float>>(QuantityId::PRESSURE));
+    output->add(makeAuto<ValueColumn<Float>>(QuantityId::ENERGY));
+    output->add(makeAuto<ValueColumn<Float>>(QuantityId::DAMAGE));
+    output->add(makeAuto<ValueColumn<TracelessTensor>>(QuantityId::DEVIATORIC_STRESS));
 
-    logFiles.push(std::make_unique<EnergyLogFile>("energy.txt"));
-    logFiles.push(std::make_unique<TimestepLogFile>("timestep.txt"));
+    logFiles.push(makeAuto<EnergyLogFile>("energy.txt"));
+    logFiles.push(makeAuto<TimestepLogFile>("timestep.txt"));
 
-    callbacks = std::make_unique<GuiCallbacks>(model);
+    callbacks = makeAuto<GuiCallbacks>(model);
 
     return storage;
 }

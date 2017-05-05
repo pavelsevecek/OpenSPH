@@ -24,15 +24,15 @@ public:
         , runEnded(runEnded) {}
 
 
-    virtual void onTimeStep(const std::shared_ptr<Storage>& UNUSED(storage),
+    virtual void onTimeStep(const SharedPtr<Storage>& UNUSED(storage),
         Statistics& UNUSED(stats)) override {
         stepIdx++;
     }
 
-    virtual void onRunStart(const std::shared_ptr<Storage>& UNUSED(storage),
+    virtual void onRunStart(const SharedPtr<Storage>& UNUSED(storage),
         Statistics& UNUSED(stats)) override {}
 
-    virtual void onRunEnd(const std::shared_ptr<Storage>& UNUSED(storage),
+    virtual void onRunEnd(const SharedPtr<Storage>& UNUSED(storage),
         Statistics& UNUSED(stats)) override {
         runEnded = true;
     }
@@ -79,8 +79,8 @@ public:
         settings.set(RunSettingsId::RUN_LOGGER, LoggerEnum::NONE);
     }
 
-    virtual std::shared_ptr<Storage> setUp() override {
-        storage = std::make_shared<Storage>();
+    virtual SharedPtr<Storage> setUp() override {
+        storage = makeShared<Storage>();
         InitialConditions conds(*storage, settings);
         BodySettings bodySettings;
         bodySettings.set(BodySettingsId::PARTICLE_COUNT, 10);
@@ -89,9 +89,9 @@ public:
         runEnded = false;
 
         /// \todo insert custom timestepping and custom logger and test they are properly called
-        this->callbacks = std::make_unique<DummyCallbacks>(stepIdx, runEnded, terminateAfterOutput);
+        this->callbacks = makeAuto<DummyCallbacks>(stepIdx, runEnded, terminateAfterOutput);
         outputTimes.clear();
-        this->output = std::make_unique<DummyOutput>(outputTimes);
+        this->output = makeAuto<DummyOutput>(outputTimes);
         return storage;
     }
 

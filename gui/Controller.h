@@ -1,8 +1,8 @@
 #pragma once
 
 #include "gui/Settings.h"
-#include "gui/objects/LockedPtr.h"
 #include "objects/containers/Array.h"
+#include "objects/wrappers/SharedPtr.h"
 #include <condition_variable>
 #include <thread>
 
@@ -21,7 +21,7 @@ namespace Abstract {
 }
 
 
-class Controller : public std::enable_shared_from_this<Controller> {
+class Controller {
 private:
     /// Main frame of the application
     MainWindow* window;
@@ -34,27 +34,27 @@ private:
         std::thread thread;
 
         /// SPH simulation
-        std::unique_ptr<Abstract::Run> run;
+        AutoPtr<Abstract::Run> run;
     } sph;
 
     /// Object for saving image snapshots of the simulations
-    std::shared_ptr<Movie> movie;
+    SharedPtr<Movie> movie;
 
     struct Vis {
         /// Current element used for drawing particles.
-        std::unique_ptr<Abstract::Element> element;
+        AutoPtr<Abstract::Element> element;
 
         /// Cached positions of particles for visualization.
         Array<Vector> cached;
 
         /// Copy of statistics when the element was initialized
-        std::unique_ptr<Statistics> stats;
+        AutoPtr<Statistics> stats;
 
         /// Current camera of the view
-        std::shared_ptr<Abstract::Camera> camera;
+        SharedPtr<Abstract::Camera> camera;
 
         /// Rendered used for rendering the view
-        std::unique_ptr<Abstract::Renderer> renderer;
+        AutoPtr<Abstract::Renderer> renderer;
 
         /// CV for waiting till main thread events are processed
         std::mutex mainThreadMutex;
@@ -82,7 +82,7 @@ public:
     ~Controller();
 
     /// Called every time step.
-    void onTimeStep(const std::shared_ptr<Storage>& storage, Statistics& stats);
+    void onTimeStep(const SharedPtr<Storage>& storage, Statistics& stats);
 
     /// \section Run queries
 
@@ -99,7 +99,7 @@ public:
     Bitmap getRenderedBitmap();
 
     /// Returns the camera of the view
-    std::shared_ptr<Abstract::Camera> getCamera();
+    SharedPtr<Abstract::Camera> getCamera();
 
     /// Returns the settings object.
     GuiSettings& getGuiSettings();
@@ -125,7 +125,7 @@ public:
     void quit();
 
 private:
-    std::shared_ptr<Movie> createMovie(const Storage& storage);
+    SharedPtr<Movie> createMovie(const Storage& storage);
 
     void redraw(const Storage& storage, Statistics& stats);
 

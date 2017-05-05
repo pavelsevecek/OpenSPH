@@ -3,7 +3,7 @@
 #include "gui/Common.h"
 #include "gui/objects/Point.h"
 #include "quantities/Storage.h"
-#include <memory>
+
 
 NAMESPACE_SPH_BEGIN
 
@@ -17,7 +17,7 @@ namespace Abstract {
 /// one huge catch-all settings.
 struct RenderParams {
     /// Camera used for rendering
-    std::shared_ptr<Abstract::Camera> camera;
+    SharedPtr<Abstract::Camera> camera;
 
     /// Resolution of the produced bitmap
     Point size = Point(640, 480);

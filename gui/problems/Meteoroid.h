@@ -26,12 +26,12 @@ public:
             .set(RunSettingsId::DOMAIN_RADIUS, 1._f)
             .set(RunSettingsId::DOMAIN_HEIGHT, 2._f);
         std::string outputDir = "out/" + settings.get<std::string>(RunSettingsId::RUN_OUTPUT_NAME);
-        output = std::make_unique<TextOutput>(
+        output = makeAuto<TextOutput>(
             outputDir, settings.get<std::string>(RunSettingsId::RUN_NAME), TextOutput::Options::SCIENTIFIC);
     }
 
 
-    virtual std::shared_ptr<Storage> setUp() override {
+    virtual SharedPtr<Storage> setUp() override {
         BodySettings bodySettings;
         bodySettings.set(BodySettingsId::DENSITY, 1._f)
             .set(BodySettingsId::DENSITY_RANGE, Range(1.e-3_f, 1.e3_f))

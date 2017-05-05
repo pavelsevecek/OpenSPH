@@ -225,7 +225,7 @@ private:
     /// storage; one module can use multiple buffers (acceleration and energy derivative) and multiple
     /// modules can write into same buffer (different terms in equation of motion).
     /// Modules are evaluated consecutively (within one thread), so this is thread-safe.
-    Array<std::unique_ptr<Abstract::Derivative>> derivatives;
+    Array<AutoPtr<Abstract::Derivative>> derivatives;
 
 public:
     /// Adds derivative if not already present. If the derivative is already stored, new one is NOT
@@ -237,8 +237,8 @@ public:
                 return;
             }
         }
-        std::unique_ptr<TDerivative> ptr =
-            std::make_unique<TDerivative>(Detail::DerivativeTraits<TDerivative>::make(settings));
+        AutoPtr<TDerivative> ptr =
+            makeAuto<TDerivative>(Detail::DerivativeTraits<TDerivative>::make(settings));
         derivatives.push(std::move(ptr));
     }
 

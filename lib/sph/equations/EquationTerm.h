@@ -417,12 +417,12 @@ private:
 /// Syntactic suggar
 class EquationHolder {
 private:
-    Array<std::unique_ptr<Abstract::EquationTerm>> terms;
+    Array<AutoPtr<Abstract::EquationTerm>> terms;
 
 public:
     EquationHolder() = default;
 
-    EquationHolder(std::unique_ptr<Abstract::EquationTerm>&& term) {
+    EquationHolder(AutoPtr<Abstract::EquationTerm>&& term) {
         terms.push(std::move(term));
     }
 
@@ -466,7 +466,7 @@ public:
 
 template <typename Term, typename... TArgs>
 INLINE EquationHolder makeTerm(TArgs&&... args) {
-    return EquationHolder(std::make_unique<Term>(std::forward<TArgs>(args)...));
+    return EquationHolder(makeAuto<Term>(std::forward<TArgs>(args)...));
 }
 
 NAMESPACE_SPH_END

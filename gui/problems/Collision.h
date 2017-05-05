@@ -43,7 +43,7 @@ private:
 
 public:
     ImpactorLogFile(Storage& storage, const std::string& path)
-        : Abstract::LogFile(std::make_shared<FileLogger>(path))
+        : Abstract::LogFile(makeShared<FileLogger>(path))
         , stress(makeTensorFunctor(storage.getValue<TracelessTensor>(QuantityId::DEVIATORIC_STRESS)), 1)
         , dtStress(makeTensorFunctor(storage.getDt<TracelessTensor>(QuantityId::DEVIATORIC_STRESS)), 1)
         , pressure(QuantityId::PRESSURE, 1)
@@ -74,7 +74,7 @@ private:
 
 public:
     EnergyLogFile(const std::string& path)
-        : Abstract::LogFile(std::make_shared<FileLogger>(path)) {}
+        : Abstract::LogFile(makeShared<FileLogger>(path)) {}
 
     virtual void write(Storage& storage, const Statistics& stats) override {
         this->logger->write(stats.get<Float>(StatisticsId::TOTAL_TIME),
@@ -90,7 +90,7 @@ public:
 class TimestepLogFile : public Abstract::LogFile {
 public:
     TimestepLogFile(const std::string& path)
-        : Abstract::LogFile(std::make_shared<FileLogger>(path)) {}
+        : Abstract::LogFile(makeShared<FileLogger>(path)) {}
 
     virtual void write(Storage& UNUSED(storage), const Statistics& stats) override {
         if (!stats.has(StatisticsId::LIMITING_PARTICLE_IDX)) {
@@ -113,7 +113,7 @@ private:
 public:
     AsteroidCollision(Controller* model);
 
-    virtual std::shared_ptr<Storage> setUp() override;
+    virtual SharedPtr<Storage> setUp() override;
 
 protected:
     virtual void tearDown() override {}

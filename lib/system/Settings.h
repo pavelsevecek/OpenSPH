@@ -6,6 +6,7 @@
 /// \date 2016-2017
 
 #include "geometry/TracelessTensor.h"
+#include "objects/wrappers/AutoPtr.h"
 #include "objects/wrappers/Range.h"
 #include "objects/wrappers/Variant.h"
 #include "quantities/QuantityIds.h"
@@ -48,7 +49,7 @@ private:
 
     std::map<TEnum, Entry> entries;
 
-    static std::unique_ptr<Settings> instance;
+    static AutoPtr<Settings> instance;
 
     /// Constructs settings from list of key-value pairs.
     Settings(std::initializer_list<Entry> list) {

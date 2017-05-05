@@ -28,11 +28,11 @@ public:
 /// Material holding equation of state
 class EosMaterial : public Abstract::Material {
 private:
-    std::unique_ptr<Abstract::Eos> eos;
+    AutoPtr<Abstract::Eos> eos;
     ArrayView<Float> rho, u, p, cs;
 
 public:
-    EosMaterial(const BodySettings& body, std::unique_ptr<Abstract::Eos>&& eos);
+    EosMaterial(const BodySettings& body, AutoPtr<Abstract::Eos>&& eos);
 
     /// Evaluate holded equation of state.
     /// \param rho Density of particle in code units.
@@ -57,12 +57,12 @@ public:
 /// pressure and stress tensor.
 class SolidMaterial : public EosMaterial {
 private:
-    std::unique_ptr<Abstract::Rheology> rheology;
+    AutoPtr<Abstract::Rheology> rheology;
 
 public:
     SolidMaterial(const BodySettings& body,
-        std::unique_ptr<Abstract::Eos>&& eos,
-        std::unique_ptr<Abstract::Rheology>&& rheology);
+        AutoPtr<Abstract::Eos>&& eos,
+        AutoPtr<Abstract::Rheology>&& rheology);
 
     virtual void create(Storage& storage) const override;
 
@@ -72,7 +72,7 @@ public:
 };
 
 /// Returns material using default settings.
-std::unique_ptr<Abstract::Material> getDefaultMaterial();
+AutoPtr<Abstract::Material> getDefaultMaterial();
 
 
 NAMESPACE_SPH_END

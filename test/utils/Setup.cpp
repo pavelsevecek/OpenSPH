@@ -10,7 +10,7 @@ namespace Tests {
     Storage getStorage(const Size particleCnt) {
         BodySettings settings;
         settings.set(BodySettingsId::DENSITY, 1._f);
-        Storage storage(std::make_unique<NullMaterial>(settings));
+        Storage storage(makeAuto<NullMaterial>(settings));
         HexagonalPacking distribution;
         SphericalDomain domain(Vector(0._f), 1._f);
         storage.insert<Vector>(
@@ -36,7 +36,7 @@ namespace Tests {
             .set(BodySettingsId::EOS, EosEnum::IDEAL_GAS)
             .set(BodySettingsId::RHEOLOGY_DAMAGE, DamageEnum::NONE)
             .set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::NONE);
-        Storage storage(std::make_unique<EosMaterial>(settings, Factory::getEos(settings)));
+        Storage storage(makeAuto<EosMaterial>(settings, Factory::getEos(settings)));
         HexagonalPacking distribution;
         SphericalDomain domain(Vector(0._f), radius);
         storage.insert<Vector>(

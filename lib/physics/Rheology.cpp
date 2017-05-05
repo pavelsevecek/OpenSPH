@@ -6,9 +6,9 @@
 NAMESPACE_SPH_BEGIN
 
 VonMisesRheology::VonMisesRheology()
-    : VonMisesRheology(std::make_unique<NullDamage>()) {}
+    : VonMisesRheology(makeAuto<NullDamage>()) {}
 
-VonMisesRheology::VonMisesRheology(std::unique_ptr<Abstract::Damage>&& damage)
+VonMisesRheology::VonMisesRheology(AutoPtr<Abstract::Damage>&& damage)
     : damage(std::move(damage)) {
     ASSERT(this->damage != nullptr);
 }
@@ -68,10 +68,10 @@ void VonMisesRheology::integrate(Storage& storage, const MaterialView material) 
     damage->integrate(storage, material);
 }
 
-DruckerPragerRheology::DruckerPragerRheology(std::unique_ptr<Abstract::Damage>&& damage)
+DruckerPragerRheology::DruckerPragerRheology(AutoPtr<Abstract::Damage>&& damage)
     : damage(std::move(damage)) {
     if (this->damage == nullptr) {
-        this->damage = std::make_unique<NullDamage>();
+        this->damage = makeAuto<NullDamage>();
     }
 }
 

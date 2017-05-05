@@ -9,7 +9,7 @@ NAMESPACE_SPH_BEGIN
 NullMaterial::NullMaterial(const BodySettings& body)
     : Abstract::Material(body) {}
 
-EosMaterial::EosMaterial(const BodySettings& body, std::unique_ptr<Abstract::Eos>&& eos)
+EosMaterial::EosMaterial(const BodySettings& body, AutoPtr<Abstract::Eos>&& eos)
     : Abstract::Material(body)
     , eos(std::move(eos)) {
     ASSERT(this->eos);
@@ -48,8 +48,8 @@ void EosMaterial::initialize(Storage& storage, const IndexSequence sequence) {
 }
 
 SolidMaterial::SolidMaterial(const BodySettings& body,
-    std::unique_ptr<Abstract::Eos>&& eos,
-    std::unique_ptr<Abstract::Rheology>&& rheology)
+    AutoPtr<Abstract::Eos>&& eos,
+    AutoPtr<Abstract::Rheology>&& rheology)
     : EosMaterial(body, std::move(eos))
     , rheology(std::move(rheology)) {}
 
@@ -68,7 +68,7 @@ void SolidMaterial::finalize(Storage& storage, const IndexSequence sequence) {
     rheology->integrate(storage, MaterialView(this, sequence));
 }
 
-std::unique_ptr<Abstract::Material> getDefaultMaterial() {
+AutoPtr<Abstract::Material> getDefaultMaterial() {
     return Factory::getMaterial(BodySettings::getDefaults());
 }
 

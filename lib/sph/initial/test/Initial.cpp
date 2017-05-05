@@ -104,7 +104,7 @@ TEST_CASE("Initial rotation", "[initial]") {
 TEST_CASE("Initial addHeterogeneousBody single", "[initial]") {
     BodySettings bodySettings;
     bodySettings.set(BodySettingsId::PARTICLE_COUNT, 1000);
-    std::unique_ptr<BlockDomain> domain = std::make_unique<BlockDomain>(Vector(0._f), Vector(1._f));
+    AutoPtr<BlockDomain> domain = makeAuto<BlockDomain>(Vector(0._f), Vector(1._f));
     Storage storage1;
     InitialConditions conds1(storage1, RunSettings::getDefaults());
 
@@ -139,16 +139,16 @@ TEST_CASE("Initial addHeterogeneousBody multiple", "[initial]") {
     Storage storage;
     InitialConditions conds(storage, RunSettings::getDefaults());
 
-    std::unique_ptr<BlockDomain> domain =
-        std::make_unique<BlockDomain>(Vector(0._f), Vector(10._f)); // [-5, 5]
+    AutoPtr<BlockDomain> domain =
+        makeAuto<BlockDomain>(Vector(0._f), Vector(10._f)); // [-5, 5]
     InitialConditions::Body environment(std::move(domain), bodySettings);
     const Vector v1(1._f, 2._f, 3._f);
-    std::unique_ptr<SphericalDomain> domain1 =
-        std::make_unique<SphericalDomain>(Vector(3._f, 3._f, 2._f), 2._f);
+    AutoPtr<SphericalDomain> domain1 =
+        makeAuto<SphericalDomain>(Vector(3._f, 3._f, 2._f), 2._f);
     InitialConditions::Body body1(std::move(domain1), bodySettings, v1);
     const Vector v2(5._f, -1._f, 3._f);
-    std::unique_ptr<SphericalDomain> domain2 =
-        std::make_unique<SphericalDomain>(Vector(-2._f, -2._f, -1._f), 2._f);
+    AutoPtr<SphericalDomain> domain2 =
+        makeAuto<SphericalDomain>(Vector(-2._f, -2._f, -1._f), 2._f);
     InitialConditions::Body body2(std::move(domain2), bodySettings, v2);
 
     Array<InitialConditions::Body> bodies;

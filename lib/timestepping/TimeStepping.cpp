@@ -10,7 +10,7 @@
 NAMESPACE_SPH_BEGIN
 
 
-Abstract::TimeStepping::TimeStepping(const std::shared_ptr<Storage>& storage, const RunSettings& settings)
+Abstract::TimeStepping::TimeStepping(const SharedPtr<Storage>& storage, const RunSettings& settings)
     : storage(storage) {
     dt = settings.get<Float>(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP);
     maxdt = settings.get<Float>(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP);
@@ -72,10 +72,10 @@ void EulerExplicit::stepImpl(Abstract::Solver& solver, Statistics& stats) {
 /// PredictorCorrector implementation
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-PredictorCorrector::PredictorCorrector(const std::shared_ptr<Storage>& storage, const RunSettings& settings)
+PredictorCorrector::PredictorCorrector(const SharedPtr<Storage>& storage, const RunSettings& settings)
     : Abstract::TimeStepping(storage, settings) {
     ASSERT(storage->getQuantityCnt() > 0); // quantities must already been emplaced
-    predictions = std::make_unique<Storage>(storage->clone(VisitorEnum::HIGHEST_DERIVATIVES));
+    predictions = makeAuto<Storage>(storage->clone(VisitorEnum::HIGHEST_DERIVATIVES));
     storage->init(); // clear derivatives before using them in step method
 }
 
@@ -171,13 +171,13 @@ void PredictorCorrector::stepImpl(Abstract::Solver& solver, Statistics& stats) {
 /// RungeKutta implementation
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-RungeKutta::RungeKutta(const std::shared_ptr<Storage>& storage, const RunSettings& settings)
+RungeKutta::RungeKutta(const SharedPtr<Storage>& storage, const RunSettings& settings)
     : Abstract::TimeStepping(storage, settings) {
     ASSERT(storage->getQuantityCnt() > 0); // quantities must already been emplaced
-    k1 = std::make_unique<Storage>(storage->clone(VisitorEnum::ALL_BUFFERS));
-    k2 = std::make_unique<Storage>(storage->clone(VisitorEnum::ALL_BUFFERS));
-    k3 = std::make_unique<Storage>(storage->clone(VisitorEnum::ALL_BUFFERS));
-    k4 = std::make_unique<Storage>(storage->clone(VisitorEnum::ALL_BUFFERS));
+    k1 = makeAuto<Storage>(storage->clone(VisitorEnum::ALL_BUFFERS));
+    k2 = makeAuto<Storage>(storage->clone(VisitorEnum::ALL_BUFFERS));
+    k3 = makeAuto<Storage>(storage->clone(VisitorEnum::ALL_BUFFERS));
+    k4 = makeAuto<Storage>(storage->clone(VisitorEnum::ALL_BUFFERS));
     storage->init(); // clear derivatives before using them in step method
 }
 

@@ -5,7 +5,7 @@
 #include "objects/containers/Array.h"
 #include "objects/wrappers/Value.h"
 #include "system/Settings.h"
-#include <memory>
+
 
 NAMESPACE_SPH_BEGIN
 

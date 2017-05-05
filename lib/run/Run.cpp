@@ -46,7 +46,7 @@ void Abstract::Run::run() {
 
     // add printing of run progress
     /// \todo now log files need to be cleared in setUp, avoid that
-    logFiles.push(std::make_unique<CommonStatsLog>(Factory::getLogger(settings)));
+    logFiles.push(makeAuto<CommonStatsLog>(Factory::getLogger(settings)));
 
     // set uninitilized variables
     setNullToDefaults();
@@ -111,10 +111,10 @@ void Abstract::Run::setNullToDefaults() {
         timeStepping = Factory::getTimeStepping(settings, storage);
     }
     if (!output) {
-        output = std::make_unique<NullOutput>();
+        output = makeAuto<NullOutput>();
     }
     if (!callbacks) {
-        callbacks = std::make_unique<NullCallbacks>();
+        callbacks = makeAuto<NullCallbacks>();
     }
 }
 

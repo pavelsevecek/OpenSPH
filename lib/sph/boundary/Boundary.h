@@ -10,7 +10,7 @@
 #include "objects/containers/Array.h"
 #include "objects/wrappers/Range.h"
 #include "sph/equations/EquationTerm.h"
-#include <memory>
+
 #include <set>
 
 NAMESPACE_SPH_BEGIN
@@ -36,7 +36,7 @@ namespace Abstract {
 /// due to discontinuity.
 class GhostParticles : public Abstract::BoundaryConditions {
 private:
-    std::unique_ptr<Abstract::Domain> domain;
+    AutoPtr<Abstract::Domain> domain;
     // index where the ghost particles begin (they are always stored successively)
     Array<Ghost> ghosts;
     Array<Size> ghostIdxs; // indices of ghost particles in the storage
@@ -45,7 +45,7 @@ private:
     Float minimalDist;
 
 public:
-    GhostParticles(std::unique_ptr<Abstract::Domain>&& domain, const RunSettings& settings);
+    GhostParticles(AutoPtr<Abstract::Domain>&& domain, const RunSettings& settings);
 
     /// \todo we hold indices into the storage we get from parameter. There is no guarantee the storage is the
     /// same each time and that it wasn't changed. Think of a better way of doing this, possibly by creating
@@ -68,7 +68,7 @@ public:
 /// contribute to all integrals, such as total mometum or energy.
 class FrozenParticles : public Abstract::BoundaryConditions {
 protected:
-    std::unique_ptr<Abstract::Domain> domain;
+    AutoPtr<Abstract::Domain> domain;
     Float radius;
 
     std::set<Size> frozen;
@@ -85,7 +85,7 @@ public:
 
     /// Constructs boundary conditions given domain and search radius (in units of smoothing length) up to
     /// which the particles will be frozen.
-    FrozenParticles(std::unique_ptr<Abstract::Domain>&& domain, const Float radius);
+    FrozenParticles(AutoPtr<Abstract::Domain>&& domain, const Float radius);
 
     /// Adds body ID particles of which shall be frozen by boundary conditions.
     void freeze(const Size flag);
@@ -104,7 +104,7 @@ public:
 /// them. This is fine-tuned for simulations of a meteorite passing through athmosphere.
 class WindTunnel : public FrozenParticles {
 public:
-    WindTunnel(std::unique_ptr<Abstract::Domain>&& domain, const Float radius);
+    WindTunnel(AutoPtr<Abstract::Domain>&& domain, const Float radius);
 
     virtual void initialize(Storage& UNUSED(storage)) override {}
 

@@ -13,7 +13,7 @@
 NAMESPACE_SPH_BEGIN
 
 InitialConditions::InitialConditions(Storage& storage,
-    std::unique_ptr<Abstract::Solver>&& solver,
+    AutoPtr<Abstract::Solver>&& solver,
     const RunSettings& settings)
     : storage(storage)
     , solver(std::move(solver)) {
@@ -30,12 +30,12 @@ void InitialConditions::addBody(const Abstract::Domain& domain,
     const BodySettings& settings,
     const Vector& velocity,
     const Vector& angularVelocity) {
-    std::unique_ptr<Abstract::Material> material = Factory::getMaterial(settings);
+    AutoPtr<Abstract::Material> material = Factory::getMaterial(settings);
     this->addBody(domain, std::move(material), velocity, angularVelocity);
 }
 
 void InitialConditions::addBody(const Abstract::Domain& domain,
-    std::unique_ptr<Abstract::Material>&& material,
+    AutoPtr<Abstract::Material>&& material,
     const Vector& velocity,
     const Vector& angularVelocity) {
 
@@ -43,7 +43,7 @@ void InitialConditions::addBody(const Abstract::Domain& domain,
     Storage body(std::move(material));
 
     PROFILE_SCOPE("InitialConditions::addBody");
-    std::unique_ptr<Abstract::Distribution> distribution = Factory::getDistribution(mat.getParams());
+    AutoPtr<Abstract::Distribution> distribution = Factory::getDistribution(mat.getParams());
     const Size n = mat.getParam<int>(BodySettingsId::PARTICLE_COUNT);
 
     // Generate positions of particles
@@ -62,8 +62,8 @@ void InitialConditions::addBody(const Abstract::Domain& domain,
     }
 }
 
-InitialConditions::Body::Body(std::unique_ptr<Abstract::Domain>&& domain,
-    std::unique_ptr<Abstract::Material>&& material,
+InitialConditions::Body::Body(AutoPtr<Abstract::Domain>&& domain,
+    AutoPtr<Abstract::Material>&& material,
     const Vector& velocity,
     const Vector& angularVelocity)
     : domain(std::move(domain))
@@ -71,7 +71,7 @@ InitialConditions::Body::Body(std::unique_ptr<Abstract::Domain>&& domain,
     , velocity(velocity)
     , angularVelocity(angularVelocity) {}
 
-InitialConditions::Body::Body(std::unique_ptr<Abstract::Domain>&& domain,
+InitialConditions::Body::Body(AutoPtr<Abstract::Domain>&& domain,
     const BodySettings& settings,
     const Vector& velocity,
     const Vector& angularVelocity)
@@ -92,7 +92,7 @@ InitialConditions::Body::~Body() = default;
 
 void InitialConditions::addHeterogeneousBody(Body&& environment, ArrayView<Body> bodies) {
     PROFILE_SCOPE("InitialConditions::addHeterogeneousBody");
-    std::unique_ptr<Abstract::Distribution> distribution =
+    AutoPtr<Abstract::Distribution> distribution =
         Factory::getDistribution(environment.material->getParams());
     const Size n = environment.material->getParam<int>(BodySettingsId::PARTICLE_COUNT);
 

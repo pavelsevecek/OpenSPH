@@ -6,7 +6,8 @@
 /// \date 2016-2017
 
 #include "objects/containers/Array.h"
-#include "thread/ConcurrentQueue.h"
+#include "objects/wrappers/AutoPtr.h"
+#include "objects/wrappers/Optional.h"
 #include <atomic>
 #include <condition_variable>
 #include <queue>
@@ -16,7 +17,7 @@ NAMESPACE_SPH_BEGIN
 
 class ThreadPool : public Noncopyable {
 private:
-    Array<std::unique_ptr<std::thread>> threads;
+    Array<AutoPtr<std::thread>> threads;
 
     using Task = std::function<void(void)>;
     std::queue<Task> tasks;
@@ -48,7 +49,7 @@ public:
         stop = false;
         tasksLeft = 0;
         for (auto& t : threads) {
-            t = std::make_unique<std::thread>(loop);
+            t = makeAuto<std::thread>(loop);
         }
     }
 

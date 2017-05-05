@@ -77,7 +77,7 @@ TEST_CASE("GhostParticles wall", "[boundary]") {
     const Float minDist = 0.1_f; // minimal distance of ghost
     RunSettings settings;
     settings.set(RunSettingsId::DOMAIN_GHOST_MIN_DIST, minDist);
-    GhostParticles boundaryConditions(std::make_unique<WallDomain>(), settings);
+    GhostParticles boundaryConditions(makeAuto<WallDomain>(), settings);
     Storage storage;
     // Create few particles. Particles with x < 2 will create corresponding ghost particle.
     storage.insert<Vector>(QuantityId::POSITIONS,
@@ -151,7 +151,7 @@ TEST_CASE("GhostParticles Sphere", "[boundary]") {
 
     const Size ghostIdx = r.size();
     GhostParticles boundaryConditions(
-        std::make_unique<SphericalDomain>(Vector(0._f), 2._f), RunSettings::getDefaults());
+        makeAuto<SphericalDomain>(Vector(0._f), 2._f), RunSettings::getDefaults());
     boundaryConditions.initialize(storage);
     tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
     REQUIRE(r.size() == 2 * ghostIdx); // ghost for each particle
@@ -202,7 +202,7 @@ TEST_CASE("GhostParticles Sphere Projection", "[boundary]") {
     const Size ghostIdx = r.size();
     const Size halfSize = ghostIdx >> 1;
     GhostParticles boundaryConditions(
-        std::make_unique<SphericalDomain>(Vector(0._f), 2._f), RunSettings::getDefaults());
+        makeAuto<SphericalDomain>(Vector(0._f), 2._f), RunSettings::getDefaults());
     boundaryConditions.initialize(storage);
     r = storage.getValue<Vector>(QuantityId::POSITIONS);
     REQUIRE(r.size() == halfSize * 3); // only layer with r=1.9 creates ghost particles
@@ -228,7 +228,7 @@ TEST_CASE("GhostParticles empty", "[boundary]") {
     particles.push(Vector(1._f, 0._f, 0._f, 0.1_f));
     storage.insert<Vector>(QuantityId::POSITIONS, OrderEnum::SECOND, std::move(particles));
     GhostParticles boundaryConditions(
-        std::make_unique<SphericalDomain>(Vector(0._f), 2._f), RunSettings::getDefaults());
+        makeAuto<SphericalDomain>(Vector(0._f), 2._f), RunSettings::getDefaults());
     boundaryConditions.initialize(storage);
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
     REQUIRE(r.size() == 1);
@@ -334,7 +334,7 @@ TEST_CASE("FrozenParticles by distance", "[boundary]") {
     settings.set(BodySettingsId::PARTICLE_COUNT, 1000);
     conds.addBody(SphericalDomain(Vector(0._f), 1.5_f), settings);
     const Float radius = 2._f;
-    FrozenParticles boundaryConditions(std::make_unique<SphericalDomain>(Vector(0._f), 1._f), radius);
+    FrozenParticles boundaryConditions(makeAuto<SphericalDomain>(Vector(0._f), 1._f), radius);
 
     ArrayView<Vector> r, v, dv;
     tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
@@ -406,7 +406,7 @@ TEST_CASE("WindTunnel generating particles", "[boundary]") {
     // some other quantities for a ride
     storage2.insert<Float>(QuantityId::DENSITY, OrderEnum::FIRST, 5._f);
     storage2.insert<Size>(QuantityId::MATERIAL_IDX, OrderEnum::ZERO, 5);
-    WindTunnel boundary(std::make_unique<CylindricalDomain>(domain), 2._f);
+    WindTunnel boundary(makeAuto<CylindricalDomain>(domain), 2._f);
     const Size size1 = r_ref.size();
     boundary.apply(storage1); // whole domain filled with particles, no particle should be added nor remoted
     REQUIRE(r_ref.size() == size1);

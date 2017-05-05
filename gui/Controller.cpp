@@ -28,9 +28,9 @@ Controller::Controller() {
 
     // create objects for drawing particles
     Point size(gui.get<int>(GuiSettingsId::VIEW_WIDTH), gui.get<int>(GuiSettingsId::VIEW_HEIGHT));
-    vis.renderer = std::make_unique<OrthoRenderer>();
+    vis.renderer = makeAuto<OrthoRenderer>();
     vis.camera = Factory::getCamera(gui);
-    vis.element = std::make_unique<VelocityElement>(gui.get<Range>(GuiSettingsId::PALETTE_VELOCITY));
+    vis.element = makeAuto<VelocityElement>(gui.get<Range>(GuiSettingsId::PALETTE_VELOCITY));
 
     // create main frame of the application
     window = new MainWindow(this, gui);
@@ -41,7 +41,7 @@ Controller::Controller() {
     status = Status::RUNNING;
 
     // create and start the run
-    sph.run = std::make_unique<AsteroidCollision>(this);
+    sph.run = makeAuto<AsteroidCollision>(this);
     this->run();
 }
 
@@ -116,15 +116,13 @@ void Controller::quit() {
     wxYield();
 }
 
-void Controller::onTimeStep(const std::shared_ptr<Storage>& storage, Statistics& stats) {
+void Controller::onTimeStep(const SharedPtr<Storage>& storage, Statistics& stats) {
     if (status == Status::QUITTING) {
         return;
     }
     // update run progress
     const float progress = stats.get<Float>(StatisticsId::RELATIVE_PROGRESS);
-    executeOnMainThread(this->shared_from_this(), [progress](const std::shared_ptr<Controller>& self) { //
-        self->window->setProgress(progress);
-    });
+    executeOnMainThread([this, progress] { window->setProgress(progress); });
 
     // check current time and possibly save images
     ASSERT(movie);
@@ -194,14 +192,14 @@ Bitmap Controller::getRenderedBitmap() {
     }
 }
 
-std::shared_ptr<Abstract::Camera> Controller::getCamera() {
+SharedPtr<Abstract::Camera> Controller::getCamera() {
     ASSERT(vis.camera);
     return vis.camera;
 }
 
-std::shared_ptr<Movie> Controller::createMovie(const Storage& storage) {
+SharedPtr<Movie> Controller::createMovie(const Storage& storage) {
     ASSERT(sph.run);
-    Array<std::unique_ptr<Abstract::Element>> elements;
+    Array<AutoPtr<Abstract::Element>> elements;
     Array<QuantityId> availableIds = this->getElementList(storage);
     for (QuantityId id : availableIds) {
         elements.emplaceBack(Factory::getElement(gui, id));
@@ -214,9 +212,9 @@ std::shared_ptr<Movie> Controller::createMovie(const Storage& storage) {
     params.size.y = gui.get<int>(GuiSettingsId::RENDER_HEIGHT);
 
     /// \todo currently hardcoded for ortho render
-    std::unique_ptr<OrthoRenderer> renderer = std::make_unique<OrthoRenderer>();
+    AutoPtr<OrthoRenderer> renderer = makeAuto<OrthoRenderer>();
 
-    return std::make_shared<Movie>(gui, std::move(renderer), params, std::move(elements));
+    return makeShared<Movie>(gui, std::move(renderer), params, std::move(elements));
 }
 
 void Controller::redraw(const Storage& storage, Statistics& stats) {
@@ -224,7 +222,7 @@ void Controller::redraw(const Storage& storage, Statistics& stats) {
     auto functor = [&storage, &stats, this] { //
         // this lock makes sure we don't execute notify_one before getting to wait
         std::unique_lock<std::mutex> lock(vis.mainThreadMutex);
-        vis.stats = std::make_unique<Statistics>(stats);
+        vis.stats = makeAuto<Statistics>(stats);
         vis.cached = copyable(storage.getValue<Vector>(QuantityId::POSITIONS));
         ASSERT(vis.isInitialized());
         vis.element->initialize(storage, ElementSource::CACHE_ARRAYS);
@@ -243,7 +241,7 @@ void Controller::redraw(const Storage& storage, Statistics& stats) {
 void Controller::run() {
     sph.thread = std::thread([this] {
         // create storage and set up initial conditions
-        std::shared_ptr<Storage> storage = sph.run->setUp();
+        SharedPtr<Storage> storage = sph.run->setUp();
         // draw initial positions of particles
         /// \todo generalize stats
         Statistics stats;

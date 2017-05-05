@@ -7,8 +7,9 @@
 
 #include "objects/containers/Array.h"
 #include "objects/wrappers/Flags.h"
+#include "objects/wrappers/SharedPtr.h"
 #include <chrono>
-#include <memory>
+#include <functional>
 
 NAMESPACE_SPH_BEGIN
 
@@ -59,7 +60,7 @@ public:
 
 /// Creates timer with given interval and callback when time interval is finished. The callback is executed
 /// only once by default, or periodically if \ref TimerFlags::PERIODIC flag is passed.
-std::shared_ptr<Timer> makeTimer(const int64_t interval,
+SharedPtr<Timer> makeTimer(const int64_t interval,
     const std::function<void(void)>& callback,
     const Flags<TimerFlags> flags = EMPTY_FLAGS);
 

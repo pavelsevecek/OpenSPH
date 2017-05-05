@@ -10,7 +10,7 @@ Size findComponents(ArrayView<const Vector> vertices, const RunSettings& setting
     const Size unassigned = std::numeric_limits<Size>::max();
     indices.fill(unassigned);
     Size componentIdx = 0;
-    std::unique_ptr<Abstract::Finder> finder = Factory::getFinder(settings);
+    AutoPtr<Abstract::Finder> finder = Factory::getFinder(settings);
     finder->build(vertices);
     const Float radius = Factory::getKernel<3>(settings).radius();
 

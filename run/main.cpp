@@ -36,20 +36,20 @@ public:
             .set(RunSettingsId::RUN_TIME_RANGE, Range(0._f, 1.9e-2_f));
     }
 
-    virtual std::shared_ptr<Storage> setUp() override {
+    virtual SharedPtr<Storage> setUp() override {
         // Sets initial coditions of the run
 
         const std::string outputName = settings.get<std::string>(RunSettingsId::RUN_OUTPUT_NAME);
         const std::string runName = settings.get<std::string>(RunSettingsId::RUN_NAME);
         // Creates output files - save as text
-        output = std::make_unique<TextOutput>(outputName, runName, TextOutput::Options::SCIENTIFIC);
+        output = makeAuto<TextOutput>(outputName, runName, TextOutput::Options::SCIENTIFIC);
 
         // Defines columns in the output file
-        output->add(std::make_unique<ParticleNumberColumn>());                     // number of particles
-        output->add(std::make_unique<ValueColumn<Vector>>(QuantityId::POSITIONS)); // particle positions
+        output->add(makeAuto<ParticleNumberColumn>());                     // number of particles
+        output->add(makeAuto<ValueColumn<Vector>>(QuantityId::POSITIONS)); // particle positions
 
         // Creates particle storage
-        storage = std::make_shared<Storage>();
+        storage = makeShared<Storage>();
         InitialConditions conds(*storage, settings);
 
         // Set up material parameters of the bodies; see BodySettingsId enum for all options

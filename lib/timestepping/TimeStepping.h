@@ -7,7 +7,7 @@
 #include "common/ForwardDecl.h"
 #include "geometry/Vector.h"
 #include "objects/containers/Array.h"
-#include <memory>
+#include "objects/wrappers/SharedPtr.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -33,13 +33,13 @@ namespace Abstract {
     /// assumes the storage already has zeroed highest-order derivatives of all quantities.
     class TimeStepping : public Polymorphic {
     protected:
-        std::shared_ptr<Storage> storage;
+        SharedPtr<Storage> storage;
         Float dt;
         Float maxdt;
-        std::unique_ptr<Abstract::TimeStepCriterion> adaptiveStep;
+        AutoPtr<Abstract::TimeStepCriterion> adaptiveStep;
 
     public:
-        TimeStepping(const std::shared_ptr<Storage>& storage, const RunSettings& settings);
+        TimeStepping(const SharedPtr<Storage>& storage, const RunSettings& settings);
 
         virtual ~TimeStepping();
 
@@ -57,7 +57,7 @@ namespace Abstract {
 
 class EulerExplicit : public Abstract::TimeStepping {
 public:
-    explicit EulerExplicit(const std::shared_ptr<Storage>& storage, const RunSettings& settings)
+    explicit EulerExplicit(const SharedPtr<Storage>& storage, const RunSettings& settings)
         : Abstract::TimeStepping(storage, settings) {}
 
     virtual void stepImpl(Abstract::Solver& solver, Statistics& stats) override;
@@ -66,10 +66,10 @@ public:
 
 class PredictorCorrector : public Abstract::TimeStepping {
 private:
-    std::unique_ptr<Storage> predictions;
+    AutoPtr<Storage> predictions;
 
 public:
-    PredictorCorrector(const std::shared_ptr<Storage>& storage, const RunSettings& settings);
+    PredictorCorrector(const SharedPtr<Storage>& storage, const RunSettings& settings);
 
     ~PredictorCorrector();
 
@@ -83,7 +83,7 @@ protected:
 
 class LeapFrog : public Abstract::TimeStepping {
 public:
-    LeapFrog(const std::shared_ptr<Storage>& storage, const RunSettings& settings)
+    LeapFrog(const SharedPtr<Storage>& storage, const RunSettings& settings)
         : Abstract::TimeStepping(storage, settings) {}
 
 protected:
@@ -94,10 +94,10 @@ protected:
 
 class RungeKutta : public Abstract::TimeStepping {
 private:
-    std::unique_ptr<Storage> k1, k2, k3, k4;
+    AutoPtr<Storage> k1, k2, k3, k4;
 
 public:
-    RungeKutta(const std::shared_ptr<Storage>& storage, const RunSettings& settings);
+    RungeKutta(const SharedPtr<Storage>& storage, const RunSettings& settings);
 
     ~RungeKutta();
 
@@ -114,7 +114,7 @@ protected:
 
 class BulirschStoer : public Abstract::TimeStepping {
 public:
-    BulirschStoer(const std::shared_ptr<Storage>& storage, const RunSettings& settings)
+    BulirschStoer(const SharedPtr<Storage>& storage, const RunSettings& settings)
         : Abstract::TimeStepping(storage, settings) {}
 
 protected:

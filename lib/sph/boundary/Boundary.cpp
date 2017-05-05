@@ -11,7 +11,7 @@ NAMESPACE_SPH_BEGIN
 /// GhostParticles implementation
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-GhostParticles::GhostParticles(std::unique_ptr<Abstract::Domain>&& domain, const RunSettings& settings)
+GhostParticles::GhostParticles(AutoPtr<Abstract::Domain>&& domain, const RunSettings& settings)
     : domain(std::move(domain)) {
     searchRadius = Factory::getKernel<3>(settings).radius();
     minimalDist = settings.get<Float>(RunSettingsId::DOMAIN_GHOST_MIN_DIST);
@@ -94,7 +94,7 @@ FrozenParticles::FrozenParticles() = default;
 
 FrozenParticles::~FrozenParticles() = default;
 
-FrozenParticles::FrozenParticles(std::unique_ptr<Abstract::Domain>&& domain, const Float radius)
+FrozenParticles::FrozenParticles(AutoPtr<Abstract::Domain>&& domain, const Float radius)
     : domain(std::move(domain))
     , radius(radius) {}
 
@@ -151,7 +151,7 @@ void FrozenParticles::finalize(Storage& storage) {
 /// WindTunnel implementation
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-WindTunnel::WindTunnel(std::unique_ptr<Abstract::Domain>&& domain, const Float radius)
+WindTunnel::WindTunnel(AutoPtr<Abstract::Domain>&& domain, const Float radius)
     : FrozenParticles(std::move(domain), radius) {}
 
 void WindTunnel::finalize(Storage& storage) {

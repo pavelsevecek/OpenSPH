@@ -4,7 +4,7 @@
 
 NAMESPACE_SPH_BEGIN
 
-std::unique_ptr<Profiler> Profiler::instance;
+AutoPtr<Profiler> Profiler::instance;
 
 Array<ScopeStatistics> Profiler::getStatistics() const {
     Array<ScopeStatistics> stats;

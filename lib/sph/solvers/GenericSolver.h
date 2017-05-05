@@ -38,7 +38,7 @@ protected:
     };
 
     /// Thread pool used to parallelize the solver, runs the whole time the solver exists.
-    std::shared_ptr<ThreadPool> pool;
+    SharedPtr<ThreadPool> pool;
 
     /// Selected granularity of the parallel processing. The more particles in simulation, the higher the
     /// value should be to utilize the solver optimally.
@@ -51,7 +51,7 @@ protected:
     EquationHolder equations;
 
     /// Structure used to search for neighbouring particles
-    std::unique_ptr<Abstract::Finder> finder;
+    AutoPtr<Abstract::Finder> finder;
 
     /// Selected SPH kernel, symmetrized over smoothing lenghs:
     /// \f$ W_ij(r_i - r_j, 0.5(h[i] + h[j]) \f$
@@ -59,7 +59,7 @@ protected:
 
 public:
     GenericSolver(const RunSettings& settings, EquationHolder&& eqs)
-        : pool(std::make_shared<ThreadPool>(settings.get<int>(RunSettingsId::RUN_THREAD_CNT)))
+        : pool(makeShared<ThreadPool>(settings.get<int>(RunSettingsId::RUN_THREAD_CNT)))
         , threadData(*pool) {
         kernel = Factory::getKernel<DIMENSIONS>(settings);
         finder = Factory::getFinder(settings);

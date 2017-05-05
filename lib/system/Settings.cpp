@@ -189,7 +189,7 @@ bool Settings<TEnum>::setValueByType(Entry& entry, const Size typeIdx, const std
 
 // clang-format off
 template<>
-std::unique_ptr<RunSettings> RunSettings::instance (new RunSettings {
+AutoPtr<RunSettings> RunSettings::instance (new RunSettings {
     /// Parameters of the run
     { RunSettingsId::RUN_NAME,                      "run.name",                 std::string("unnamed run") },
     { RunSettingsId::RUN_OUTPUT_TYPE,               "run.output.type",          int(OutputEnum::TEXT_FILE) },
@@ -260,7 +260,7 @@ std::unique_ptr<RunSettings> RunSettings::instance (new RunSettings {
 
 // clang-format off
 template<>
-std::unique_ptr<BodySettings> BodySettings::instance (new BodySettings {
+AutoPtr<BodySettings> BodySettings::instance (new BodySettings {
     /// Equation of state
     { BodySettingsId::EOS,                     "eos",                          int(EosEnum::IDEAL_GAS) },
     { BodySettingsId::ADIABATIC_INDEX,         "eos.adiabatic_index",          1.4_f },

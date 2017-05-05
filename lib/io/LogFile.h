@@ -1,20 +1,20 @@
 #pragma once
 
 #include "io/Logger.h"
+#include "objects/wrappers/SharedPtr.h"
 #include "quantities/QuantityIds.h"
 #include "system/Statistics.h"
 #include "timestepping/TimeStepCriterion.h"
-#include <memory>
 
 NAMESPACE_SPH_BEGIN
 
 namespace Abstract {
     class LogFile : public Polymorphic {
     protected:
-        std::shared_ptr<Abstract::Logger> logger;
+        SharedPtr<Abstract::Logger> logger;
 
     public:
-        LogFile(const std::shared_ptr<Abstract::Logger>& logger)
+        LogFile(const SharedPtr<Abstract::Logger>& logger)
             : logger(logger) {}
 
         virtual void write(Storage& storage, const Statistics& stats) = 0;
@@ -23,7 +23,7 @@ namespace Abstract {
 
 class CommonStatsLog : public Abstract::LogFile {
 public:
-    CommonStatsLog(const std::shared_ptr<Abstract::Logger>& logger)
+    CommonStatsLog(const SharedPtr<Abstract::Logger>& logger)
         : Abstract::LogFile(logger) {}
 
     virtual void write(Storage& UNUSED(storage), const Statistics& stats) {

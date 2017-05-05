@@ -111,7 +111,9 @@ SOURCES += \
     utils/SequenceTest.cpp \
     utils/Setup.cpp \
     utils/Utils.cpp \
-    ../lib/sph/equations/heat/test/HeatDiffusion.cpp
+    ../lib/sph/equations/heat/test/HeatDiffusion.cpp \
+    ../lib/objects/wrappers/test/AutoPtr.cpp \
+    ../lib/objects/wrappers/test/Lockable.cpp
 
 HEADERS += \
     utils/Utils.h \

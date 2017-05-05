@@ -12,7 +12,7 @@ class Controller;
 
 class App : public wxApp {
 private:
-    std::shared_ptr<Controller> model;
+    SharedPtr<Controller> model;
 
 public:
     App();

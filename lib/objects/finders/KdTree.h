@@ -7,13 +7,14 @@
 /// \date 2016-2017
 
 #include "objects/finders/AbstractFinder.h"
+#include "objects/wrappers/AutoPtr.h"
 
 NAMESPACE_SPH_BEGIN
 
 class KdTree : public Abstract::Finder {
 private:
     struct Impl;
-    std::unique_ptr<Impl> impl;
+    AutoPtr<Impl> impl;
 
 protected:
     virtual void buildImpl(ArrayView<const Vector> points) override;

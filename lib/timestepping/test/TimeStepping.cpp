@@ -76,7 +76,7 @@ template <typename TTimestepping, typename... TArgs>
 void testHomogeneousField(TArgs&&... args) {
     HomogeneousField solver;
 
-    std::shared_ptr<Storage> storage = std::make_shared<Storage>(getDefaultMaterial());
+    SharedPtr<Storage> storage = makeShared<Storage>(getDefaultMaterial());
     storage->insert<Vector>(
         QuantityId::POSITIONS, OrderEnum::SECOND, Array<Vector>{ Vector(0._f, 0._f, 0._f) });
 
@@ -107,7 +107,7 @@ template <typename TTimestepping, typename... TArgs>
 void testHarmonicOscillator(TArgs&&... args) {
     HarmonicOscillator solver;
 
-    std::shared_ptr<Storage> storage = std::make_shared<Storage>(getDefaultMaterial());
+    SharedPtr<Storage> storage = makeShared<Storage>(getDefaultMaterial());
     storage->insert<Vector>(
         QuantityId::POSITIONS, OrderEnum::SECOND, Array<Vector>{ Vector(1._f, 0._f, 0._f) });
 
@@ -138,7 +138,7 @@ template <typename TTimestepping, typename... TArgs>
 void testGyroscopicMotion(TArgs&&... args) {
     LorentzForce solver;
 
-    std::shared_ptr<Storage> storage = std::make_shared<Storage>(getDefaultMaterial());
+    SharedPtr<Storage> storage = makeShared<Storage>(getDefaultMaterial());
     storage->insert<Vector>(
         QuantityId::POSITIONS, OrderEnum::SECOND, Array<Vector>{ Vector(1._f, 0._f, 0._f) });
 
@@ -197,7 +197,7 @@ struct ClampSolver : public Abstract::Solver {
 
 template <typename TTimestepping>
 void testClamping() {
-    std::shared_ptr<Storage> storage = std::make_shared<Storage>(getDefaultMaterial());
+    SharedPtr<Storage> storage = makeShared<Storage>(getDefaultMaterial());
     storage->insert<Vector>(
         QuantityId::POSITIONS, OrderEnum::SECOND, Array<Vector>{ Vector(1._f, 0._f, 0._f) });
     storage->insert<Float>(QuantityId::ENERGY, OrderEnum::FIRST, 5._f);

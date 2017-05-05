@@ -29,7 +29,7 @@ TEST_CASE("Start expired", "[timer]") {
 
 TEST_CASE("Execute Callback", "[timer]") {
     int value = 0;
-    std::shared_ptr<Timer> timer = makeTimer(400, [&value]() { value = 11; });
+    SharedPtr<Timer> timer = makeTimer(400, [&value]() { value = 11; });
     Timer measuringTimer(0);
     while (true) {
         if (!timer->isExpired()) {

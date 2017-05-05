@@ -12,7 +12,7 @@ void StdOutLogger::writeString(const std::string& s) {
 FileLogger::FileLogger(const std::string& path, const Flags<Options> flags)
     : path(path)
     , flags(flags) {
-    stream = std::make_unique<std::ofstream>();
+    stream = makeAuto<std::ofstream>();
     if (!flags.has(Options::OPEN_WHEN_WRITING)) {
         auto mode = flags.has(Options::APPEND) ? std::ostream::app : std::ostream::out;
         stream->open(path.c_str(), mode);

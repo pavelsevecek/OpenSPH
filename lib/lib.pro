@@ -179,7 +179,6 @@ HEADERS += \
     system/filesystem.h \
     thread/AtomicFloat.h \
     thread/CheckFunction.h \
-    thread/ConcurrentQueue.h \
     thread/Pool.h \
     thread/ThreadLocal.h \
     timestepping/AbstractSolver.h \
@@ -187,4 +186,6 @@ HEADERS += \
     timestepping/TimeStepping.h \
     sph/equations/heat/HeatDiffusion.h \
     sph/equations/av/Standard.h \
-    objects/wrappers/AutoPtr.h
+    objects/wrappers/AutoPtr.h \
+    objects/wrappers/SharedPtr.h \
+    objects/wrappers/Lockable.h

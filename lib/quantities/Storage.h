@@ -8,12 +8,13 @@
 #include "common/ForwardDecl.h"
 #include "objects/Exceptions.h"
 #include "objects/containers/Array.h"
+#include "objects/wrappers/SharedPtr.h"
 #include "quantities/Quantity.h"
 #include "quantities/QuantityIds.h"
 #include "thread/Pool.h"
 #include "thread/ThreadLocal.h"
 #include <map>
-#include <memory>
+
 
 NAMESPACE_SPH_BEGIN
 
@@ -89,7 +90,7 @@ public:
 /// every particle can have a different material (different equation of state, different rheology, ...).
 /// The storage can also exist with no material; this is a valid state, useful for situations where no
 /// material is necessary. A storage with material can be created using constructor
-/// Storage(std::unique_ptr<Abstract::Material>&& material). All particles subsequently added into the storage
+/// Storage(AutoPtr<Abstract::Material>&& material). All particles subsequently added into the storage
 /// will have the material passed in the parameter of the constructor. Storage with multiple materials can
 /// then be created by merging the storage with another object, using function \ref merge.
 class Storage : public Noncopyable {
@@ -100,7 +101,7 @@ private:
     std::map<QuantityId, Quantity> quantities;
 
     /// Holds materials of particles. Each particle can (in theory) have a different material.
-    Array<std::unique_ptr<Abstract::Material>> materials;
+    Array<AutoPtr<Abstract::Material>> materials;
 
     /// Partitions between the materials. The size of the array matches the size of materials, or it is empty,
     /// in which case all particles belongs to the same material.
@@ -109,14 +110,14 @@ private:
     Array<Size> partitions;
 
     /// Thread pool for parallelization
-    std::shared_ptr<ThreadPool> pool;
+    SharedPtr<ThreadPool> pool;
 
 public:
     /// Creates a storage with no material. Any call of \ref getMaterial function will result in assert.
     Storage();
 
     /// Initialize a storage with a material.
-    Storage(std::unique_ptr<Abstract::Material>&& material);
+    Storage(AutoPtr<Abstract::Material>&& material);
 
     ~Storage();
 
@@ -326,9 +327,9 @@ public:
         return quantities[key];
     }
 
-    void setThreadPool(const std::shared_ptr<ThreadPool>& pool);
+    void setThreadPool(const SharedPtr<ThreadPool>& pool);
 
-    std::shared_ptr<ThreadPool> getThreadPool() const {
+    SharedPtr<ThreadPool> getThreadPool() const {
         return pool;
     }
 

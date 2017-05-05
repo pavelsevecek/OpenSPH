@@ -68,7 +68,7 @@ public:
             .set(RunSettingsId::MODEL_FORCE_SOLID_STRESS, false);
     }
 
-    virtual std::shared_ptr<Storage> setUp() override {
+    virtual SharedPtr<Storage> setUp() override {
         // Number of SPH particles
         const int N = 400;
         // Material properties
@@ -87,7 +87,7 @@ public:
         initialConditions.addBody(SphericalDomain(Vector(0.5_f), 0.5_f), bodySettings);
 
         std::string outputDir = "sod/" + this->settings.get<std::string>(RunSettingsId::RUN_OUTPUT_NAME);
-        this->output = std::make_unique<GnuplotOutput>(outputDir,
+        this->output = makeAuto<GnuplotOutput>(outputDir,
             this->settings.get<std::string>(RunSettingsId::RUN_NAME),
             "sod.plt",
             GnuplotOutput::Options::SCIENTIFIC);
@@ -108,7 +108,7 @@ public:
         }
 
         // 3) setup density to be consistent with masses
-        std::unique_ptr<Abstract::Finder> finder = Factory::getFinder(this->settings);
+        AutoPtr<Abstract::Finder> finder = Factory::getFinder(this->settings);
         finder->build(storage->getValue<Vector>(QuantityId::POSITIONS));
         LutKernel<1> kernel = Factory::getKernel<1>(settings);
         Array<NeighbourRecord> neighs;
@@ -129,7 +129,7 @@ public:
         }
 
         // 4) compute internal energy using equation of state
-        std::unique_ptr<Abstract::Eos> eos = Factory::getEos(bodySettings);
+        AutoPtr<Abstract::Eos> eos = Factory::getEos(bodySettings);
         ArrayView<Float> u = storage->getValue<Float>(QuantityId::ENERGY);
         for (Size i = 0; i < N; ++i) {
             u[i] = eos->getInternalEnergy(

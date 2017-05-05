@@ -47,10 +47,10 @@ private:
     } dragging;
 
     /// Timer for refreshing window
-    std::unique_ptr<wxTimer> refreshTimer;
+    AutoPtr<wxTimer> refreshTimer;
 
     /// Current camera of the view. The object is shared with parent model.
-    std::shared_ptr<Abstract::Camera> camera;
+    SharedPtr<Abstract::Camera> camera;
 
 public:
     OrthoPane(wxWindow* parent, Controller* controller);
@@ -58,7 +58,7 @@ public:
     ~OrthoPane();
 
     /// Changes displayed element. Must be executed from the main thread
-    void setElement(std::unique_ptr<Abstract::Element>&& newElement);
+    void setElement(AutoPtr<Abstract::Element>&& newElement);
 
 private:
     void requestUpdate();

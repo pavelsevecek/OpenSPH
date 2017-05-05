@@ -27,7 +27,7 @@ namespace Abstract {
     class Output : public Polymorphic {
     protected:
         OutputFile paths;
-        Array<std::unique_ptr<Abstract::Column>> elements;
+        Array<AutoPtr<Abstract::Column>> elements;
 
     public:
         /// Constructs output given the file name of the output. The name must contain '%d', which will be
@@ -37,7 +37,7 @@ namespace Abstract {
         ~Output();
 
         /// Adds an element to output.
-        void add(std::unique_ptr<Abstract::Column>&& element);
+        void add(AutoPtr<Abstract::Column>&& element);
 
         /// Saves data from particle storage into the file. Returns the filename of the dump.
         virtual std::string dump(Storage& storage, const Float time) = 0;

@@ -17,14 +17,14 @@ public:
     GuiCallbacks(Controller* model)
         : model(model) {}
 
-    virtual void onTimeStep(const std::shared_ptr<Storage>& storage, Statistics& stats) override {
+    virtual void onTimeStep(const SharedPtr<Storage>& storage, Statistics& stats) override {
         model->onTimeStep(storage, stats);
     }
 
-    virtual void onRunStart(const std::shared_ptr<Storage>& UNUSED(storage),
+    virtual void onRunStart(const SharedPtr<Storage>& UNUSED(storage),
         Statistics& UNUSED(stats)) override {}
 
-    virtual void onRunEnd(const std::shared_ptr<Storage>& UNUSED(storage), Statistics& stats) override {
+    virtual void onRunEnd(const SharedPtr<Storage>& UNUSED(storage), Statistics& stats) override {
         stats.get<Float>(StatisticsId::TOTAL_TIME);
     }
 

@@ -25,7 +25,7 @@ IMPLEMENT_APP(Sph::App)
 NAMESPACE_SPH_BEGIN
 
 bool App::OnInit() {
-    model = std::make_shared<Controller>();
+    model = makeShared<Controller>();
 
     // connect event handler
     Connect(MAIN_LOOP_TYPE, MainLoopEventHandler(App::processEvents));

@@ -5,8 +5,8 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2017
 
+#include "objects/wrappers/SharedPtr.h"
 #include "system/Settings.h"
-#include <memory>
 
 NAMESPACE_SPH_BEGIN
 
@@ -33,33 +33,33 @@ class Storage;
 
 /// Class providing a convenient way to construct objects from settings.
 namespace Factory {
-    std::unique_ptr<Abstract::Eos> getEos(const BodySettings& settings);
+    AutoPtr<Abstract::Eos> getEos(const BodySettings& settings);
 
-    std::unique_ptr<Abstract::Rheology> getRheology(const BodySettings& settings);
+    AutoPtr<Abstract::Rheology> getRheology(const BodySettings& settings);
 
-    std::unique_ptr<Abstract::Damage> getDamage(const BodySettings& settings);
+    AutoPtr<Abstract::Damage> getDamage(const BodySettings& settings);
 
-    std::unique_ptr<Abstract::TimeStepping> getTimeStepping(const RunSettings& settings,
-        const std::shared_ptr<Storage>& storage);
+    AutoPtr<Abstract::TimeStepping> getTimeStepping(const RunSettings& settings,
+        const SharedPtr<Storage>& storage);
 
-    std::unique_ptr<Abstract::TimeStepCriterion> getTimeStepCriterion(const RunSettings& settings);
+    AutoPtr<Abstract::TimeStepCriterion> getTimeStepCriterion(const RunSettings& settings);
 
-    std::unique_ptr<Abstract::Finder> getFinder(const RunSettings& settings);
+    AutoPtr<Abstract::Finder> getFinder(const RunSettings& settings);
 
-    std::unique_ptr<Abstract::Distribution> getDistribution(const BodySettings& settings);
+    AutoPtr<Abstract::Distribution> getDistribution(const BodySettings& settings);
 
-    std::unique_ptr<Abstract::Solver> getSolver(const RunSettings& settings);
+    AutoPtr<Abstract::Solver> getSolver(const RunSettings& settings);
 
-    std::unique_ptr<Abstract::BoundaryConditions> getBoundaryConditions(const RunSettings& settings,
-        std::unique_ptr<Abstract::Domain>&& domain);
+    AutoPtr<Abstract::BoundaryConditions> getBoundaryConditions(const RunSettings& settings,
+        AutoPtr<Abstract::Domain>&& domain);
 
-    std::unique_ptr<Abstract::Domain> getDomain(const RunSettings& settings);
+    AutoPtr<Abstract::Domain> getDomain(const RunSettings& settings);
 
-    std::unique_ptr<Abstract::Material> getMaterial(const BodySettings& settings);
+    AutoPtr<Abstract::Material> getMaterial(const BodySettings& settings);
 
-    std::unique_ptr<Abstract::Logger> getLogger(const RunSettings& settings);
+    AutoPtr<Abstract::Logger> getLogger(const RunSettings& settings);
 
-    std::unique_ptr<Abstract::Rng> getRng(const RunSettings& settings);
+    AutoPtr<Abstract::Rng> getRng(const RunSettings& settings);
 }
 
 

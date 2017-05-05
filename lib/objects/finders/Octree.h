@@ -15,7 +15,7 @@ NAMESPACE_SPH_BEGIN
 constexpr Size MAX_CHILDREN_PER_LEAF = 1;
 
 struct OctreeNode {
-    StaticArray<std::unique_ptr<OctreeNode>, 8> children;
+    StaticArray<AutoPtr<OctreeNode>, 8> children;
     Box voxel;
     Array<Size> points;
     bool isLeaf = false;
@@ -37,7 +37,7 @@ struct OctreeNode {
 class Octree : public Abstract::Finder {
 private:
     Box box;
-    std::unique_ptr<OctreeNode> root;
+    AutoPtr<OctreeNode> root;
 
 protected:
     virtual void buildImpl(ArrayView<const Vector> points) override {
@@ -140,8 +140,8 @@ private:
     }
 
     template <typename TIdxs>
-    std::unique_ptr<OctreeNode> makeNode(const Box& voxel, ArrayView<const Vector> points, TIdxs&& idxs) {
-        std::unique_ptr<OctreeNode> node = std::make_unique<OctreeNode>();
+    AutoPtr<OctreeNode> makeNode(const Box& voxel, ArrayView<const Vector> points, TIdxs&& idxs) {
+        AutoPtr<OctreeNode> node = makeAuto<OctreeNode>();
         node->voxel = voxel;
         if (idxs.size() <= MAX_CHILDREN_PER_LEAF) {
             node->setPoints(std::forward<TIdxs>(idxs));

@@ -7,9 +7,10 @@
 
 #include "common/ForwardDecl.h"
 #include "objects/wrappers/Range.h"
+#include "objects/wrappers/SharedPtr.h"
 #include "physics/Integrals.h"
 #include "system/Settings.h"
-#include <memory>
+
 
 NAMESPACE_SPH_BEGIN
 
@@ -40,25 +41,25 @@ namespace Abstract {
         RunSettings settings;
 
         /// Data output
-        std::unique_ptr<Abstract::Output> output;
+        AutoPtr<Abstract::Output> output;
 
         /// GUI callbacks
-        std::unique_ptr<Abstract::Callbacks> callbacks;
+        AutoPtr<Abstract::Callbacks> callbacks;
 
         /// Logging
-        std::shared_ptr<Abstract::Logger> logger;
+        AutoPtr<Abstract::Logger> logger;
 
         /// Stores all SPH particles
-        std::shared_ptr<Storage> storage;
+        SharedPtr<Storage> storage;
 
         /// Timestepping
-        std::unique_ptr<Abstract::TimeStepping> timeStepping;
+        AutoPtr<Abstract::TimeStepping> timeStepping;
 
         /// Solver
-        std::unique_ptr<Abstract::Solver> solver;
+        AutoPtr<Abstract::Solver> solver;
 
         /// Logging files
-        Array<std::unique_ptr<Abstract::LogFile>> logFiles;
+        Array<AutoPtr<Abstract::LogFile>> logFiles;
 
     public:
         Run();
@@ -66,7 +67,7 @@ namespace Abstract {
         ~Run();
 
         /// Prepares the run, sets all initial conditions, creates logger, output, ...
-        virtual std::shared_ptr<Storage> setUp() = 0;
+        virtual SharedPtr<Storage> setUp() = 0;
 
         /// Starts the run
         void run();

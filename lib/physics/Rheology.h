@@ -8,6 +8,7 @@
 #include "common/ForwardDecl.h"
 #include "geometry/TracelessTensor.h"
 #include "objects/containers/Array.h"
+#include "objects/wrappers/AutoPtr.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -46,7 +47,7 @@ namespace Abstract {
 /// Introduces plastic behavior for stress tensor, using von Mises yield criterion \cite vonMises_1913.
 class VonMisesRheology : public Abstract::Rheology {
 private:
-    std::unique_ptr<Abstract::Damage> damage;
+    AutoPtr<Abstract::Damage> damage;
 
 public:
     /// Constructs a rheology with no fragmentation model. Stress tensor is only modified by von Mises
@@ -54,7 +55,7 @@ public:
     VonMisesRheology();
 
     /// Constructs a rheology with given fragmentation model.
-    VonMisesRheology(std::unique_ptr<Abstract::Damage>&& damage);
+    VonMisesRheology(AutoPtr<Abstract::Damage>&& damage);
 
     ~VonMisesRheology();
 
@@ -69,14 +70,14 @@ public:
 /// Pressure dependent failure modes \cite Collins_2004
 class DruckerPragerRheology : public Abstract::Rheology {
 private:
-    std::unique_ptr<Abstract::Damage> damage;
+    AutoPtr<Abstract::Damage> damage;
 
     /// \todo Fix implementation according to von Mises
 
     Array<Float> yieldingStress;
 
 public:
-    DruckerPragerRheology(std::unique_ptr<Abstract::Damage>&& damage);
+    DruckerPragerRheology(AutoPtr<Abstract::Damage>&& damage);
 
     ~DruckerPragerRheology();
 

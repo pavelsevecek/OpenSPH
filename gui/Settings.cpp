@@ -5,7 +5,7 @@ NAMESPACE_SPH_BEGIN
 
 // clang-format off
 template<>
-std::unique_ptr<GuiSettings> GuiSettings::instance (new GuiSettings {
+AutoPtr<GuiSettings> GuiSettings::instance (new GuiSettings {
     /// Renderer
     { GuiSettingsId::RENDERER,         "renderer",         int(RendererEnum::ORTHO) },
     { GuiSettingsId::RENDER_WIDTH,     "render.width",     800 },

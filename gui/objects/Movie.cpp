@@ -13,9 +13,9 @@
 NAMESPACE_SPH_BEGIN
 
 Movie::Movie(const GuiSettings& settings,
-    std::unique_ptr<Abstract::Renderer>&& renderer,
+    AutoPtr<Abstract::Renderer>&& renderer,
     const RenderParams& params,
-    Array<std::unique_ptr<Abstract::Element>>&& elements)
+    Array<AutoPtr<Abstract::Element>>&& elements)
     : renderer(std::move(renderer))
     , params(params)
     , elements(std::move(elements)) {
@@ -41,7 +41,7 @@ INLINE std::string escapeElementName(const std::string& name) {
 }
 
 
-void Movie::onTimeStep(const std::shared_ptr<Storage>& storage, Statistics& stats) {
+void Movie::onTimeStep(const SharedPtr<Storage>& storage, Statistics& stats) {
     if (stats.get<Float>(StatisticsId::TOTAL_TIME) < nextOutput || !enabled) {
         return;
     }

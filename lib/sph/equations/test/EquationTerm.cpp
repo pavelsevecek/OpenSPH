@@ -87,7 +87,7 @@ TEST_CASE("TestEquation", "[equationterm]") {
     Storage storage = Tests::getStorage(10);
     const Size N = storage.getParticleCnt();
     Statistics stats;
-    std::unique_ptr<TestEquation> eq = std::make_unique<TestEquation>();
+    AutoPtr<TestEquation> eq = makeAuto<TestEquation>();
     TestEquation* eqPtr = eq.get();
     EquationHolder equations(std::move(eq));
     equations += makeTerm<Tests::DerivativeWrapper<TestDerivative>>();

@@ -217,13 +217,13 @@ MultiCriterion::MultiCriterion(const RunSettings& settings)
     const Flags<TimeStepCriterionEnum> flags =
         Flags<TimeStepCriterionEnum>::fromValue(settings.get<int>(RunSettingsId::TIMESTEPPING_CRITERION));
     if (flags.has(TimeStepCriterionEnum::COURANT)) {
-        criteria.push(std::make_unique<CourantCriterion>(settings));
+        criteria.push(makeAuto<CourantCriterion>(settings));
     }
     if (flags.has(TimeStepCriterionEnum::DERIVATIVES)) {
-        criteria.push(std::make_unique<DerivativeCriterion>(settings));
+        criteria.push(makeAuto<DerivativeCriterion>(settings));
     }
     if (flags.has(TimeStepCriterionEnum::ACCELERATION)) {
-        criteria.push(std::make_unique<AccelerationCriterion>());
+        criteria.push(makeAuto<AccelerationCriterion>());
     }
 }
 

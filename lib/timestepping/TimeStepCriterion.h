@@ -7,6 +7,7 @@
 
 #include "common/ForwardDecl.h"
 #include "objects/containers/Array.h"
+#include "objects/wrappers/AutoPtr.h"
 #include "objects/wrappers/Value.h"
 #include "quantities/QuantityIds.h"
 
@@ -80,7 +81,7 @@ public:
 /// Helper "virtual" criterion, wrapping multiple criteria under Abstract::AdaptiveTimeStep interface.
 class MultiCriterion : public Abstract::TimeStepCriterion {
 private:
-    StaticArray<std::unique_ptr<Abstract::TimeStepCriterion>, 3> criteria;
+    StaticArray<AutoPtr<Abstract::TimeStepCriterion>, 3> criteria;
 
 public:
     MultiCriterion(const RunSettings& settings);

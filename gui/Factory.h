@@ -10,9 +10,9 @@ namespace Abstract {
 }
 
 namespace Factory {
-    std::unique_ptr<Abstract::Camera> getCamera(const GuiSettings& settings);
+    AutoPtr<Abstract::Camera> getCamera(const GuiSettings& settings);
 
-    std::unique_ptr<Abstract::Element> getElement(const GuiSettings& settings, const QuantityId id);
+    AutoPtr<Abstract::Element> getElement(const GuiSettings& settings, const QuantityId id);
 }
 
 NAMESPACE_SPH_END

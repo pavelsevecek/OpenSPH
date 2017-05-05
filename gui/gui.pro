@@ -67,5 +67,4 @@ HEADERS += \
     objects/Bitmap.h \
     MainLoop.h \
     windows/MainWindow.h \
-    objects/LockedPtr.h \
     Controller.h

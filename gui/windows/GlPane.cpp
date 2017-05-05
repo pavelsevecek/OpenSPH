@@ -109,7 +109,7 @@ void CustomGlPane::onTimer(wxTimerEvent& evt) {
     }
 }
 
-void CustomGlPane::draw(const std::shared_ptr<Storage>& storage, const Statistics&) {
+void CustomGlPane::draw(const SharedPtr<Storage>& storage, const Statistics&) {
     cached.positions.clear();
     Array<Vector>& newPositions = storage->getValue<Vector>(QuantityId::POSITIONS);
     cached.positions.pushAll(newPositions);
@@ -122,7 +122,7 @@ void CustomGlPane::setQuantity(const QuantityId UNUSED(key)) {
 CustomGlPane::CustomGlPane(wxFrame* parent, Array<int> args)
     : wxGLCanvas(parent, wxID_ANY, &args[0], wxDefaultPosition, wxDefaultSize, wxFULL_REPAINT_ON_RESIZE)
     , sphere(7, 9) {
-    context = std::make_unique<wxGLContext>(this);
+    context = makeAuto<wxGLContext>(this);
 
 
     // To avoid flashing on MSW
