@@ -87,6 +87,16 @@ TEST_CASE("SharedPtr from AutoPtr", "[sharedptr]") {
     REQUIRE(s1->wasValueConstructed);
 }
 
+TEST_CASE("SharedPtr copy assign", "[sharedptr]") {
+    RecordType::resetStats();
+    SharedPtr<RecordType> s1(new RecordType(1));
+    SharedPtr<RecordType> s2(new RecordType(2));
+    s1 = s2;
+    REQUIRE(RecordType::destructedNum == 1);
+    REQUIRE(s1->value == 2);
+    REQUIRE(s1.getUseCount() == 2);
+}
+
 TEST_CASE("SharedPtr move assign", "[sharedptr]") {
     RecordType::resetStats();
     {

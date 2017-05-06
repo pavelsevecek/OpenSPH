@@ -152,6 +152,7 @@ public:
         , block(nullptr) {}
 
     SharedPtr& operator=(const SharedPtr& other) {
+        this->reset();
         ptr = other.ptr;
         this->copyBlock(other);
         return *this;
@@ -159,6 +160,7 @@ public:
 
     template <typename T2>
     SharedPtr& operator=(const SharedPtr<T2>& other) {
+        this->reset();
         ptr = other.ptr;
         this->copyBlock(other);
         return *this;
@@ -236,6 +238,8 @@ private:
             block = other.block;
             block->increaseUseCnt();
             block->increaseWeakCnt();
+        } else {
+            block = nullptr;
         }
     }
 };
