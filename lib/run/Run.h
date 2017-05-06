@@ -11,7 +11,6 @@
 #include "physics/Integrals.h"
 #include "system/Settings.h"
 
-
 NAMESPACE_SPH_BEGIN
 
 namespace Abstract {
@@ -67,10 +66,12 @@ namespace Abstract {
         ~Run();
 
         /// Prepares the run, sets all initial conditions, creates logger, output, ...
-        virtual SharedPtr<Storage> setUp() = 0;
+        virtual void setUp() = 0;
 
         /// Starts the run
         void run();
+
+        SharedPtr<Storage> getStorage() const;
 
     protected:
         /// Called after the run, saves all necessary data, logs run statistics, etc. Is called at the end of

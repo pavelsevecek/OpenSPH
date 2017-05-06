@@ -59,7 +59,7 @@ void Abstract::Run::run() {
         settings.get<int>(RunSettingsId::RUN_TIMESTEP_CNT));
     Statistics stats;
 
-    callbacks->onRunStart(storage, stats);
+    callbacks->onRunStart(*storage, stats);
     Outcome result = SUCCESS;
     for (Float t = timeRange.lower(); t < timeRange.upper() && !condition(runTimer, i);
          t += timeStepping->getTimeStep()) {
@@ -83,7 +83,7 @@ void Abstract::Run::run() {
         for (auto& log : logFiles) {
             log->write(*storage, stats);
         }
-        callbacks->onTimeStep(storage, stats);
+        callbacks->onTimeStep(*storage, stats);
         if (callbacks->shouldAbortRun()) {
             result = "Aborted by user";
             break;
@@ -92,11 +92,15 @@ void Abstract::Run::run() {
     }
     logger->write("Run ended after ", runTimer.elapsed(TimerUnit::SECOND), "s.");
     if (result) {
-        callbacks->onRunEnd(storage, stats);
+        callbacks->onRunEnd(*storage, stats);
     } else {
         logger->write(result.error());
     }
     this->tearDownInternal();
+}
+
+SharedPtr<Storage> Abstract::Run::getStorage() const {
+    return storage;
 }
 
 void Abstract::Run::setNullToDefaults() {

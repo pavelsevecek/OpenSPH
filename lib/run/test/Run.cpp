@@ -24,16 +24,13 @@ public:
         , runEnded(runEnded) {}
 
 
-    virtual void onTimeStep(const SharedPtr<Storage>& UNUSED(storage),
-        Statistics& UNUSED(stats)) override {
+    virtual void onTimeStep(const Storage& UNUSED(storage), Statistics& UNUSED(stats)) override {
         stepIdx++;
     }
 
-    virtual void onRunStart(const SharedPtr<Storage>& UNUSED(storage),
-        Statistics& UNUSED(stats)) override {}
+    virtual void onRunStart(const Storage& UNUSED(storage), Statistics& UNUSED(stats)) override {}
 
-    virtual void onRunEnd(const SharedPtr<Storage>& UNUSED(storage),
-        Statistics& UNUSED(stats)) override {
+    virtual void onRunEnd(const Storage& UNUSED(storage), Statistics& UNUSED(stats)) override {
         runEnded = true;
     }
 
@@ -79,7 +76,7 @@ public:
         settings.set(RunSettingsId::RUN_LOGGER, LoggerEnum::NONE);
     }
 
-    virtual SharedPtr<Storage> setUp() override {
+    virtual void setUp() override {
         storage = makeShared<Storage>();
         InitialConditions conds(*storage, settings);
         BodySettings bodySettings;
@@ -92,7 +89,6 @@ public:
         this->callbacks = makeAuto<DummyCallbacks>(stepIdx, runEnded, terminateAfterOutput);
         outputTimes.clear();
         this->output = makeAuto<DummyOutput>(outputTimes);
-        return storage;
     }
 
 protected:

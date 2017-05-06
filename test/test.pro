@@ -113,8 +113,8 @@ SOURCES += \
     utils/Utils.cpp \
     ../lib/sph/equations/heat/test/HeatDiffusion.cpp \
     ../lib/objects/wrappers/test/AutoPtr.cpp \
-    ../lib/objects/wrappers/test/Lockable.cpp \
-    ../lib/objects/wrappers/test/SharedPtr.cpp
+    ../lib/objects/wrappers/test/SharedPtr.cpp \
+    ../lib/objects/wrappers/test/LockingPtr.cpp
 
 HEADERS += \
     utils/Utils.h \

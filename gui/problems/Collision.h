@@ -113,7 +113,7 @@ private:
 public:
     AsteroidCollision(Controller* model);
 
-    virtual SharedPtr<Storage> setUp() override;
+    virtual void setUp() override;
 
 protected:
     virtual void tearDown() override {}

@@ -85,7 +85,7 @@ public:
     ~Controller();
 
     /// Called every time step.
-    void onTimeStep(const SharedPtr<Storage>& storage, Statistics& stats);
+    void onTimeStep(const Storage& storage, Statistics& stats);
 
     /// \section Run queries
 

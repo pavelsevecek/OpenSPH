@@ -82,12 +82,12 @@ public:
     }
 
     INLINE T& operator[](const TCounter idx) {
-        ASSERT(unsigned(idx) < unsigned(actSize));
+        ASSERT(unsigned(idx) < unsigned(actSize), idx, actSize);
         return data[idx];
     }
 
     INLINE const T& operator[](const TCounter idx) const {
-        ASSERT(unsigned(idx) < unsigned(actSize));
+        ASSERT(unsigned(idx) < unsigned(actSize), idx, actSize);
         return data[idx];
     }
 

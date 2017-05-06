@@ -24,7 +24,7 @@ AsteroidCollision::AsteroidCollision(Controller* model)
     settings.saveToFile("code.sph");
 }
 
-SharedPtr<Storage> AsteroidCollision::setUp() {
+void AsteroidCollision::setUp() {
     BodySettings bodySettings;
     bodySettings.set(BodySettingsId::ENERGY, 1._f)
         .set(BodySettingsId::ENERGY_RANGE, Range(1._f, INFTY))
@@ -70,8 +70,6 @@ SharedPtr<Storage> AsteroidCollision::setUp() {
     logFiles.push(makeAuto<TimestepLogFile>("timestep.txt"));
 
     callbacks = makeAuto<GuiCallbacks>(model);
-
-    return storage;
 }
 
 NAMESPACE_SPH_END

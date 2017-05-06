@@ -68,7 +68,7 @@ public:
             .set(RunSettingsId::MODEL_FORCE_SOLID_STRESS, false);
     }
 
-    virtual SharedPtr<Storage> setUp() override {
+    virtual void setUp() override {
         // Number of SPH particles
         const int N = 400;
         // Material properties
@@ -150,7 +150,6 @@ public:
                 e[i] = m[i] * u[i];
             }
         }
-        return storage;
     }
 
 protected:

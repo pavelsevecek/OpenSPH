@@ -188,4 +188,4 @@ HEADERS += \
     sph/equations/av/Standard.h \
     objects/wrappers/AutoPtr.h \
     objects/wrappers/SharedPtr.h \
-    objects/wrappers/Lockable.h
+    objects/wrappers/LockingPtr.h

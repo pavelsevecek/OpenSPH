@@ -148,9 +148,9 @@ Palette Palette::forQuantity(const QuantityId key, const Range range) {
             { { x0, Color(0.1f, 0.1f, 0.1f) }, { x0 + dx, Color(0.9f, 0.9f, 0.9f) } }, PaletteScale::LINEAR);
     case QuantityId::VELOCITY_DIVERGENCE:
         return Palette({ { x0, Color(0.3f, 0.3f, 0.8f) },
-                           { -1e-2f, Color(0.f, 0.f, 0.2f) },
+                           { -1.e-2f, Color(0.f, 0.f, 0.2f) },
                            { 0.f, Color(0.2f, 0.2f, 0.2f) },
-                           { 1e-2f, Color(0.8f, 0.8f, 0.8f) },
+                           { 1.e-2f, Color(0.8f, 0.8f, 0.8f) },
                            { x0 + dx, Color(1.0f, 0.6f, 0.f) } },
             PaletteScale::HYBRID);
     default:

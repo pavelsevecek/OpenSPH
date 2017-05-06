@@ -2,7 +2,7 @@
 #include "catch.hpp"
 #include "io/Column.h"
 #include <fstream>
-#include <thread>
+
 
 using namespace Sph;
 

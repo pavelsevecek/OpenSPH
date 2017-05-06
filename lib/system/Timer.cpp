@@ -1,5 +1,5 @@
 #include "system/Timer.h"
-#include "objects/wrappers/Lockable.h"
+#include "objects/wrappers/LockingPtr.h"
 #include <atomic>
 #include <thread>
 
@@ -16,7 +16,7 @@ private:
         std::function<void()> callback;
     };
 
-    Lockable<Array<TimerEntry>> entries;
+    LockingPtr<Array<TimerEntry>> entries;
 
 public:
     TimerThread();
@@ -101,6 +101,7 @@ SharedPtr<Timer> makeTimer(const int64_t interval,
 
 TimerThread::TimerThread() {
     closingDown = false;
+    entries = makeLocking<Array<TimerEntry>>();
     thread = std::thread([this]() { this->runLoop(); });
 }
 
@@ -126,8 +127,8 @@ void TimerThread::runLoop() {
     Array<TimerEntry> copies;
     while (!closingDown) {
         {
-            auto ptr = entries.lock();
-            copies = copyable(*ptr);
+            auto proxy = entries.lock();
+            copies = copyable(*proxy);
         }
         for (TimerEntry& entry : copies) {
             // if the timer is expired (and still exists)

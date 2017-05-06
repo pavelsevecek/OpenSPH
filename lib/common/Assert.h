@@ -38,6 +38,9 @@ struct Assert {
     template <typename T0, typename... TArgs>
     static void stringify(std::stringstream& ss, T0&& t0, TArgs&&... rest) {
         ss << t0;
+        if (sizeof...(TArgs) > 0) {
+            ss << " ,";
+        }
         stringify(ss, std::forward<TArgs>(rest)...);
     }
 
@@ -51,9 +54,13 @@ struct Assert {
         const int line,
         T0&& t0,
         TArgs&&... args) {
-        std::stringstream ss;
-        stringify(ss, std::forward<T0>(t0), std::forward<TArgs>(args)...);
-        check(condition, message, file, func, line, ss.str().c_str());
+        if (!condition) {
+            std::stringstream ss;
+            stringify(ss, std::forward<T0>(t0), std::forward<TArgs>(args)...);
+            check(condition, message, file, func, line, ss.str().c_str());
+        } else {
+            check(condition, message, file, func, line, "");
+        }
     }
 
     static void check(const bool condition,

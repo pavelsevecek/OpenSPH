@@ -31,7 +31,7 @@ public:
     }
 
 
-    virtual SharedPtr<Storage> setUp() override {
+    virtual void setUp() override {
         BodySettings bodySettings;
         bodySettings.set(BodySettingsId::DENSITY, 1._f)
             .set(BodySettingsId::DENSITY_RANGE, Range(1.e-3_f, 1.e3_f))
@@ -48,8 +48,6 @@ public:
         CylindricalDomain domain(Vector(0._f), 1._f, 2._f, true);
         conds.addBody(domain, bodySettings, Vector(0._f, 0._f, -20._f));
         logger.write("Particles of target: ", storage->getParticleCnt());
-
-        return storage;
     }
 
     /*    virtual GuiSettings getGuiSettings() const override {

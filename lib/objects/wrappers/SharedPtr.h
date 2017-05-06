@@ -98,10 +98,16 @@ class SharedPtr {
     friend class SharedPtr;
     template <typename>
     friend class WeakPtr;
+    template <typename>
+    friend class LockingPtr;
 
-private:
+protected:
     T* ptr;
     Detail::ControlBlockHolder* block;
+
+    explicit SharedPtr(T* ptr, Detail::ControlBlockHolder* block)
+        : ptr(ptr)
+        , block(block) {}
 
 public:
     SharedPtr()

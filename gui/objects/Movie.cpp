@@ -44,20 +44,19 @@ INLINE std::string escapeElementName(const std::string& name) {
 }
 
 
-void Movie::onTimeStep(const SharedPtr<Storage>& storage, Statistics& stats) {
+void Movie::onTimeStep(const Storage& storage, Statistics& stats) {
     if (stats.get<Float>(StatisticsId::TOTAL_TIME) < nextOutput || !enabled) {
         return;
     }
     const std::string path = paths.getNextPath();
     for (auto& e : elements) {
         std::string actPath = replace(path, "%e", escapeElementName(e->name()));
-        e->initialize(*storage, ElementSource::POINTER_TO_STORAGE);
-        /// \todo how about the lifetime of stats? Should be probably shared_ptr as well ...
-        auto functor = [this, actPath, storage, &e, &stats] {
+        e->initialize(storage, ElementSource::POINTER_TO_STORAGE);
+        auto functor = [this, actPath, &storage, &e, &stats] {
             // if the callback gets executed, it means the object is still alive and it's save to touch
             // the e directly
             std::unique_lock<std::mutex> lock(waitMutex);
-            ArrayView<const Vector> positions = storage->getValue<Vector>(QuantityId::POSITIONS);
+            ArrayView<const Vector> positions = storage.getValue<Vector>(QuantityId::POSITIONS);
             Bitmap bitmap = renderer->render(positions, *e, *camera, params, stats);
             bitmap.saveToFile(actPath);
             waitVar.notify_one();

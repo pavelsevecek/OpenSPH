@@ -36,7 +36,7 @@ public:
             .set(RunSettingsId::RUN_TIME_RANGE, Range(0._f, 1.9e-2_f));
     }
 
-    virtual SharedPtr<Storage> setUp() override {
+    virtual void setUp() override {
         // Sets initial coditions of the run
 
         const std::string outputName = settings.get<std::string>(RunSettingsId::RUN_OUTPUT_NAME);
@@ -78,8 +78,6 @@ public:
 
         // Impactor with v_imp = (-5km/s, 0, 0)
         conds.addBody(domain2, body, Vector(-5.e3_f, 0._f, 0._f));
-
-        return storage;
     }
 
 protected:

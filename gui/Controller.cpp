@@ -120,7 +120,7 @@ void Controller::quit() {
     wxYield();
 }
 
-void Controller::onTimeStep(const SharedPtr<Storage>& storage, Statistics& stats) {
+void Controller::onTimeStep(const Storage& storage, Statistics& stats) {
     if (status == Status::QUITTING) {
         return;
     }
@@ -134,7 +134,7 @@ void Controller::onTimeStep(const SharedPtr<Storage>& storage, Statistics& stats
 
     // update the data for rendering
     if (vis.timer->isExpired()) {
-        this->redraw(*storage, stats);
+        this->redraw(storage, stats);
         vis.timer->restart();
     }
 
@@ -240,7 +240,8 @@ void Controller::redraw(const Storage& storage, Statistics& stats) {
 void Controller::run() {
     sph.thread = std::thread([this] {
         // create storage and set up initial conditions
-        SharedPtr<Storage> storage = sph.run->setUp();
+        sph.run->setUp();
+        SharedPtr<Storage> storage = sph.run->getStorage();
         // draw initial positions of particles
         window->setElementList(this->getElementList(*storage));
         /// \todo generalize stats

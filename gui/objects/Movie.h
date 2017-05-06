@@ -58,7 +58,7 @@ public:
     /// Called every time step, saves the images every IMAGES_TIMESTEP. If the time since the last frame is
     /// less than the required framerate, function does nothing. Can be called from any thread; the function
     /// is blocking, waits until all images are saved.
-    void onTimeStep(const SharedPtr<Storage>& storage, Statistics& stats);
+    void onTimeStep(const Storage& storage, Statistics& stats);
 
     void setEnabled(const bool enable = true);
 };
