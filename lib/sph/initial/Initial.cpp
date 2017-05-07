@@ -179,7 +179,7 @@ void InitialConditions::setQuantities(Storage& storage,
     solver->create(storage, material);
 
     // Initialize material (we need density and energy for that)
-    material.create(storage);
+    material.create(storage, initialContext);
 }
 
 
