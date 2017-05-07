@@ -1,15 +1,15 @@
 #pragma once
 
-/// Logging routines of the run.
-/// Pavel Sevecek 2016
-/// sevecek at sirrah.troja.mff.cuni.cz
+/// \file Logger.h
+/// \brief Logging routines of the run.
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2017
 
 #include "common/Globals.h"
 #include "objects/containers/Array.h"
 #include "objects/wrappers/AutoPtr.h"
 #include "objects/wrappers/Flags.h"
 #include <iomanip>
-#include <sstream>
 
 NAMESPACE_SPH_BEGIN
 

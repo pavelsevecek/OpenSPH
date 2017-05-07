@@ -1,8 +1,9 @@
 #pragma once
 
-/// Basic math routines used within the code. Use "" functions instead of std:: ones, for consistency.
-/// Pavel Sevecek 2016
-/// sevecek at sirrah.troja.mff.cuni.cz
+/// \file Math.h
+/// \brief Basic math routines used within the code.
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2017
 
 #include "common/Assert.h"
 #include "common/Globals.h"

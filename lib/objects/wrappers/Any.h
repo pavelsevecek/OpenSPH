@@ -1,11 +1,16 @@
 #pragma once
 
+/// \file Any.h
+/// \brief Object that can store value of any type
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2017
+
 #include "objects/wrappers/AutoPtr.h"
 #include "objects/wrappers/Optional.h"
 
 NAMESPACE_SPH_BEGIN
 
-/// Type-safe object that can store value of any type.
+/// Type-safe object that can store value of any type, similar to std::any.
 class Any {
 private:
     class AbstractHolder : public Polymorphic {

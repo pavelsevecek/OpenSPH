@@ -70,14 +70,17 @@ Tuple<Float, CriterionId> DerivativeCriterion::compute(Storage& storage,
                 const auto absv = abs(v[i]);
                 const Float minValue = storage.getMaterialOfParticle(i)->minimal(id);
                 ASSERT(minValue > 0._f); // some nonzero minimal value must be set for all quantities
-                if (norm(absv) < minValue) {
-                    continue;
+                 Array<Float> vs = getComponents(absv);
+                 Array<Float> dvs = getComponents(absdv);
+                 ASSERT(vs.size() == dvs.size());
+                for (Size j = 0; j < vs.size(); ++j) {
+                     if (abs(vs[j]) < 2._f * minValue) {
+                     continue;
                 }
-                using TAbs = decltype(absv);
-                const auto value = factor * (absv + TAbs(minValue)) / (absdv + TAbs(EPS));
+                const Float value = factor * (vs[j] + minValue) / (dvs[j] + EPS);
                 ASSERT(isReal(value));
-                const Float e = minElement(value);
-                tl.add(e, v[i], dv[i], i);
+tl.add(value, v[i], dv[i], i);
+                }
             }
         };
         Tl result;

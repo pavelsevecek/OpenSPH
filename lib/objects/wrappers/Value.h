@@ -1,5 +1,10 @@
 #pragma once
 
+/// \file Value.h
+/// \brief Object holding a single values of various types
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2017
+
 #include "geometry/TracelessTensor.h"
 #include "math/Means.h"
 #include "objects/wrappers/Variant.h"

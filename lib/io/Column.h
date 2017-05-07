@@ -1,19 +1,38 @@
 #pragma once
 
-/// Object for printing quantity values into output.
-/// Pavel Sevecek 2017
-/// sevecek at sirrah.troja.mff.cuni.cz
+/// \file Column.h
+/// \brief Object for printing quantity values into output
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2017
 
 #include "objects/wrappers/Value.h"
 #include "quantities/QuantityIds.h"
 #include "quantities/Storage.h"
+#include "system/Statistics.h"
 
 NAMESPACE_SPH_BEGIN
 
 namespace Abstract {
+    /// \brief Base class for conversion of quantities into the output data. 
+
+    /// When TextOutput is selected, this represents a single column of values in the file, 
+    /// hence the name.
+    /// Ordinarily, we need to store the quantity values and their derivatives directly,
+    /// derived classes ValueColumn and DerivativeColumn can be used for this purpose.
+    /// Other implementations can be used to store values that are not directly saved in any quantity,
+    /// such as smoothing lenghts (stored as 4th component of the position vectors), or actual
+    /// values of stress tensor (quantity contains undamaged values).
+    /// The class can also be used to save arbitrary data, such as particle index, current 
+    /// time of the simulation, etc. This can be useful when using the output files in additional
+    /// scripts, for example when creating plots in Gnuplot.
+    /// \todo There should also be a conversion from code units to user-selected output units
     class Column : public Polymorphic {
     public:
-        virtual Value evaluate(Storage& storage, const Size particleIdx) const = 0;
+        /// Returns the value of the output column for given particle.
+        virtual Value evaluate(const Storage& storage, const Statistics& stats, const Size particleIdx) const = 0;
+
+        /// Reads the value of the column and saves it into the storage, if possible.
+        virtual void accumulate(Storage& storage, const Value value, const Size particleIdx) const = 0;
 
         virtual std::string getName() const = 0;
 
@@ -31,9 +50,15 @@ public:
     ValueColumn(const QuantityId id)
         : id(id) {}
 
-    virtual Value evaluate(Storage& storage, const Size particleIdx) const override {
+    virtual Value evaluate(const Storage& storage, const Statistics& UNUSED(stats), const Size particleIdx) const override {
         ArrayView<const TValue> value = storage.getValue<TValue>(id);
         return value[particleIdx];
+    }
+
+    virtual void accumulate(Storage& storage, const Value value, const Size particleIdx) const override {
+        Array<TValue>& array = storage.getValue<TValue>(id);
+        array.resize(particleIdx + 1); /// \todo must also resize derivaties, or avoid resizing
+        array[particleIdx] = value.get<TValue>();
     }
 
     virtual std::string getName() const override {
@@ -56,9 +81,15 @@ public:
     DerivativeColumn(const QuantityId id)
         : id(id) {}
 
-    virtual Value evaluate(Storage& storage, const Size particleIdx) const override {
+    virtual Value evaluate(const Storage& storage, const Statistics& UNUSED(stats),const Size particleIdx) const override {
         ArrayView<const TValue> value = storage.getDt<TValue>(id);
         return value[particleIdx];
+    }
+
+    virtual void accumulate(Storage& storage, const Value value, const Size particleIdx) const override {
+        Array<TValue>& array = storage.getDt<TValue>(id);
+        array.resize(particleIdx + 1);
+        array[particleIdx] = value.get<TValue>();
     }
 
     virtual std::string getName() const override {
@@ -81,9 +112,15 @@ public:
     SecondDerivativeColumn(const QuantityId id)
         : id(id) {}
 
-    virtual Value evaluate(Storage& storage, const Size particleIdx) const override {
+    virtual Value evaluate(const Storage& storage, const Statistics& UNUSED(stats), const Size particleIdx) const override {
         ArrayView<const TValue> value = storage.getAll<TValue>(id)[2];
         return value[particleIdx];
+    }
+
+    virtual void accumulate(Storage& storage, const Value value, const Size particleIdx) const override {
+        Array<TValue>& array = storage.getD2t<TValue>(id);
+        array.resize(particleIdx + 1);
+        array[particleIdx] = value.get<TValue>();
     }
 
     virtual std::string getName() const override {
@@ -98,9 +135,15 @@ public:
 /// Returns smoothing lengths of particles
 class SmoothingLengthColumn : public Abstract::Column {
 public:
-    virtual Value evaluate(Storage& storage, const Size particleIdx) const override {
+    virtual Value evaluate(const Storage& storage,const Statistics& UNUSED(stats), const Size particleIdx) const override {
         ArrayView<const Vector> value = storage.getValue<Vector>(QuantityId::POSITIONS);
         return value[particleIdx][H];
+    }
+
+    virtual void accumulate(Storage& storage, const Value value, const Size particleIdx) const override {
+        Array<Vector>& array = storage.getValue<Vector>(QuantityIds::POSITIONS);
+        array.resize(particleIdx + 1);
+        array[particleIdx][H] = value.get<Float>();
     }
 
     virtual std::string getName() const override {
@@ -117,9 +160,15 @@ public:
 template <typename TValue>
 class DamageColumn : public Abstract::Column {
 public:
-    virtual Value evaluate(Storage& storage, const Size particleIdx) const override {
+    virtual Value evaluate(const Storage& storage, const Statistics& UNUSED(stats),const Size particleIdx) const override {
         ArrayView<const TValue> value = storage.getValue<TValue>(QuantityId::DAMAGE);
         return pow<3>(value[particleIdx]);
+    }
+
+    virtual void accumulate(Storage& storage, const Value value, const Size particleIdx) const override {
+        Array<TValue>& array = storage.getValue<TValue>(QuantityIds::DAMAGE);
+        array.resize(particleIdx + 1);
+        array[particleIdx] = root<3>(value.get<TValue>());
     }
 
     virtual std::string getName() const override {
@@ -133,8 +182,13 @@ public:
 
 /// Helper column printing particle numbers.
 class ParticleNumberColumn : public Abstract::Column {
+public:
     virtual Value evaluate(Storage& UNUSED(storage), const Size particleIdx) const override {
         return particleIdx;
+    }
+
+    virtual void accumulate(Storage&, const Value, const Size) const override {
+        // do nothing
     }
 
     virtual std::string getName() const override {
@@ -145,5 +199,27 @@ class ParticleNumberColumn : public Abstract::Column {
         return ValueEnum::INDEX;
     }
 };
+
+/// Helper column printing current run time. This value is the same for every particle.
+class TimeColumn : public Abstract::Column {
+
+public:
+    virtual Value evaluate(Storage& UNUSED(storage), const Statistics& stats,const Size UNUSED(particleIdx)) const override {
+        return stats->get<Float>(StatisticsIds::TOTAL_TIME);
+    }
+
+    virtual void accumulate(Storage&, const Value, const Size) const override {
+        // do nothing
+    }
+
+    virtual std::string getName() const override {
+        return "Time";
+    }
+
+    virtual ValueEnum getType() const override {
+        return ValueEnum::SCALAR;
+    }
+};
+
 
 NAMESPACE_SPH_END

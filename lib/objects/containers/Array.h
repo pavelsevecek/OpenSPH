@@ -269,11 +269,12 @@ public:
         }
     }
 
-    template <typename U>
-    void emplaceBack(U&& u) {
+    /// Constructs a new element at the end of the array in place, using the provided arguments.
+    template <typename... TArgs>
+    void emplaceBack(TArgs&&... args) {
         reserve(this->actSize + 1);
         ASSERT(this->maxSize > this->actSize);
-        new (this->data + this->actSize) StorageType(std::forward<U>(u));
+        new (this->data + this->actSize) StorageType(std::forward<TArgs>(args)...);
         this->actSize++;
     }
 

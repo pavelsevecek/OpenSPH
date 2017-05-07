@@ -125,7 +125,7 @@ void Storage::init() {
     });
 }
 
-Storage Storage::clone(const Flags<VisitorEnum> flags) const {
+Storage Storage::clone(const Flags<VisitorEnum> flags, const bool cloneMaterials) const {
     Storage cloned;
     for (const auto& q : quantities) {
         cloned.quantities[q.first] = q.second.clone(flags);

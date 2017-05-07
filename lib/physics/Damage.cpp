@@ -98,10 +98,11 @@ void ScalarDamage::setFlaws(Storage& storage, const BodySettings& settings) cons
     }
 }
 
-void ScalarDamage::reduce(Storage& storage, const MaterialView material) {
+void ScalarDamage::reduce(Storage& storage, const Flags<DamageFlag> flags, const MaterialView sequence) {
     ArrayView<Float> damage = storage.getValue<Float>(QuantityId::DAMAGE);
     // we can reduce pressure in place as the original value can be computed from equation of state
     ArrayView<Float> p = storage.getValue<Float>(QuantityId::PRESSURE);
+	ArrayView<Float> reduce = storage.getValue<Float>(QuantityId::REDUCE);
     // stress tensor is evolved in time, so we need to keep unchanged value; create modified value
     ArrayView<TracelessTensor> s, s_dmg;
     tie(s, s_dmg) = storage.modify<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
@@ -112,18 +113,26 @@ void ScalarDamage::reduce(Storage& storage, const MaterialView material) {
             const Float d = pow<3>(damage[i]);
             // pressure is reduced only for negative values
             /// \todo could be vectorized, maybe
+			if (flags.has(DamageFlags::PRESSURE)) {
             if (p[i] < 0._f) {
                 p[i] = (1._f - d) * p[i];
             }
+			}
             // stress is reduced for both positive and negative values
-            s_dmg[i] = (1._f - d) * s[i];
+            if (flags.has(DamageFlags::STRESS_TENSOR)) {
+				s_dmg[i] = (1._f - d) * s[i];
+			}
+			if (flags.has(DamageFlags::REDUCTION_FACTOR)) {
+				reduce[i] = (1._f - d) * reduce[i];
+			}
         }
     });
 }
 
 void ScalarDamage::integrate(Storage& storage, const MaterialView material) {
-    ArrayView<TracelessTensor> s, ds;
-    s = storage.getPhysicalValue<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
+    ArrayView<TracelessTensor> s, s_dmg, ds;
+    s_dmg = storage.getPhysicalValue<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
+    s = storage.getValue<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
     ds = storage.getDt<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
     ArrayView<Float> p, eps_min, m_zero, growth;
     tie(eps_min, m_zero, growth) =
@@ -137,21 +146,28 @@ void ScalarDamage::integrate(Storage& storage, const MaterialView material) {
     storage.parallelFor(*seq.begin(), *seq.end(), [&](const Size n1, const Size n2) {
         for (Size i = n1; i < n2; ++i) {
             // if damage is already on max value, set stress to zero to avoid limiting timestep by
-            // non-existent
-            // stresses
+            // non-existent stresses
             const Range range = material->range(QuantityId::DAMAGE);
-            if (damage[i] == range.upper()) {
-                // s[i] = TracelessTensor::null();
-                ds[i] = TracelessTensor::null();
-                // continue;
+            /// \todo skip if the stress tensor is already fully damaged?
+            /// \todo can we set S derivatives to zero? This will break PC timestepping for stress tensor
+            /// but all physics depend on damaged values, anyway
+            if (damage[i] >= range.upper()) {
+               // we CANNOT set derivative of damage to zero!
+               ddamage[i] = LARGE; /// \todo is this ok?
+               // we set damage derivative to large value, so that it is larger than the derivative from prediction,
+               // therefore damage will INCREASE in corrections, but will be immediately clamped to 1 TOGETHER WITH DERIVATIVES,
+               // time step is computed afterwards, so it should be ok.
+               s[i] = TracelessTensor::null();
+               ds[i] = TracelessTensor::null(); /// \todo this is the derivative used for computing time step
+               continue;
             }
-            const Tensor sigma = s[i] - p[i] * Tensor::identity();
+            const Tensor sigma = s_dmg[i] - p[i] * Tensor::identity();
             Float sig1, sig2, sig3;
             tie(sig1, sig2, sig3) = findEigenvalues(sigma);
             const Float sigMax = max(sig1, sig2, sig3);
             const Float young = material->getParam<Float>(BodySettingsId::YOUNG_MODULUS);
             // we need to assume reduces Young modulus here, hence 1-D factor
-            const Float young_red = max((1 - damage[i]) * young, 1.e-20_f);
+            const Float young_red = max((1._f - pow<3>(damage[i])) * young, 1.e-20_f);
             const Float strain = sigMax / young_red;
             const Float ratio = strain / eps_min[i];
             ASSERT(isReal(ratio));

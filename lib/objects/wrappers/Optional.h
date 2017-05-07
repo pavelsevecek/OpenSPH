@@ -1,7 +1,8 @@
 #pragma once
 
-/// Pavel Sevecek 2016
-/// sevecek at sirrah.troja.mff.cuni.cz
+/// \file Optional.h
+/// \brief Wrapper of type value of which may or may not be present
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 
 #include "common/Assert.h"
 #include "common/Traits.h"

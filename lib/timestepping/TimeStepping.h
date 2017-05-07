@@ -1,8 +1,9 @@
 #pragma once
 
-/// Algorithms for temporal evolution of the physical model.
-/// Pavel Sevecek 2016
-/// sevecek at sirrah.troja.mff.cuni.cz
+/// \file TimeStepping.h
+/// \brief Algorithms for temporal evolution of the physical model.
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2017
 
 #include "common/ForwardDecl.h"
 #include "geometry/Vector.h"
@@ -54,7 +55,7 @@ namespace Abstract {
     };
 }
 
-
+/// Simple Euler first-order timestepping.
 class EulerExplicit : public Abstract::TimeStepping {
 public:
     explicit EulerExplicit(const SharedPtr<Storage>& storage, const RunSettings& settings)
@@ -63,7 +64,7 @@ public:
     virtual void stepImpl(Abstract::Solver& solver, Statistics& stats) override;
 };
 
-
+/// Predictor-corrector second-order timestepping
 class PredictorCorrector : public Abstract::TimeStepping {
 private:
     AutoPtr<Storage> predictions;

@@ -1,8 +1,9 @@
 #pragma once
 
-/// Definitions of physical constaints (in SI units).
-/// Pavel Sevecek 2016
-/// sevecek at sirrah.troja.mff.cuni.cz
+/// \file Constants.h
+/// \brief Definitions of physical constaints (in SI units).
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2017
 
 #include "common/Globals.h"
 

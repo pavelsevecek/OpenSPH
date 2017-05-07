@@ -1,8 +1,9 @@
 #pragma once
 
-/// Equations of state.
-/// Pavel Sevecek 2016
-/// sevecek at sirrah.troja.mff.cuni.cz
+/// \file Eos.h
+/// \brief Equations of state
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2017
 
 #include "common/ForwardDecl.h"
 #include "common/Globals.h"

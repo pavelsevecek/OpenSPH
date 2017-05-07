@@ -1,5 +1,10 @@
 #pragma once
 
+/// \file AbstractMaterial.h
+/// \brief Base class for all particle materials
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2017
+
 #include "objects/wrappers/Iterators.h"
 #include "system/Settings.h"
 
@@ -92,24 +97,29 @@ namespace Abstract {
             return params.get<TValue>(paramIdx);
         }
 
+        /// Returns settings containing material parameters
         INLINE const BodySettings& getParams() const {
             return params;
         }
 
+        /// Returns a reference value for given quantity
         INLINE Float& minimal(const QuantityId id) {
             return minimals[id];
         }
 
+        /// \copydoc Float& minimal(const QuantityId id)
         INLINE Float minimal(const QuantityId id) const {
             auto iter = minimals.find(id);
             ASSERT(iter != minimals.end());
             return iter->second;
         }
 
+        /// Returns range of allowed values for given quantity
         INLINE Range& range(const QuantityId id) {
             return ranges[id];
         }
 
+        /// \copydoc Range& range(const QuantityId id)
         INLINE const Range& range(const QuantityId id) const {
             auto iter = ranges.find(id);
             ASSERT(iter != ranges.end());

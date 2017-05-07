@@ -1,9 +1,9 @@
 #pragma once
 
-/// Date and time routines.
-/// Pavel Sevecek 2016
-/// sevecek at sirrah.troja.mff.cuni.cz
-
+/// \file TimeFormat.h
+/// \brief Date and time routines
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2017
 #include "common/Globals.h"
 #include "math/Math.h"
 #include <string>
@@ -12,9 +12,9 @@ NAMESPACE_SPH_BEGIN
 
 /// Input format of Julian date
 enum class JulianDateFormat {
-    JD,  /// (ordinary) Julian date, number of days since noon January 1, 4713 BC
-    RJD, /// reduced Julian date, equals to JD - 2.400.000,0
-    MJD  /// modified Julian date, equals to JD - 2.400.000,5
+    JD,  ///< (ordinary) Julian date, number of days since noon January 1, 4713 BC
+    RJD, ///< reduced Julian date, equals to JD - 2.400.000,0
+    MJD  ///< modified Julian date, equals to JD - 2.400.000,5
 };
 
 /// Helper class for transforming Julian date to calendar date

@@ -29,13 +29,15 @@ private:
         }
         if (settings.get<bool>(RunSettingsId::MODEL_FORCE_SOLID_STRESS)) {
             equations += makeTerm<SolidStressForce>(settings);
-        }
+			equations += makeTerm<ContinuityEquation<true>>();
+        } else {
+			equations += makeTerm<ContinuityEquation<false>>();
+		}
+		
+		// artificial viscosity
         equations += makeTerm<StandardAV>();
 
-        // Density evolution - Continuity equation
-        equations += makeTerm<ContinuityEquation>();
-
-        // Adaptivity of smoothing length
+        // adaptivity of smoothing length
         if (settings.get<SmoothingLengthEnum>(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH) !=
             SmoothingLengthEnum::CONST) {
             equations += makeTerm<AdaptiveSmoothingLength>(settings);
@@ -145,7 +147,7 @@ public:
             dmg = storage.getValue<Float>(QuantityId::DAMAGE);
         }
         ArrayView<Float> reducing;
-        if (storage.has(QuantityId::YIELDING_REDUCE)) {
+        if (storage.has(QuantityId::STRESS_REDUCE)) {
             reducing = storage.getValue<Float>(QuantityId::YIELDING_REDUCE);
         }
         Float divv_max = 0._f;

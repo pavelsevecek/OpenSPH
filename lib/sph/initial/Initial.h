@@ -16,13 +16,19 @@ namespace Abstract {
     class Rng;
 }
 
+/// Shared data used when creating all bodies in the simulation
 /// \todo possibly generalize, allowing to create generic context as needed by components of the run
 struct InitialContext {
+    /// Random number generator
     AutoPtr<Abstract::Rng> rng;
 };
 
+/// \brief Object for adding one or more bodies with given material into Storage
+/// It should only be constructed on stack, set up needed bodies and destroy it.
+/// As it holds a reference to the storage, it is unsafe to store InitialConditions and create
+/// additional bodies during the run
 /// All particles created in one run should be created using the same InitialConditions object. If multiple
-/// objects are used, quantity FLAG must be manually updated to be unique for each body in the simulation.
+/// objects are used, quantity QuantityId::FLAG must be manually updated to be unique for each body in the simulation.
 class InitialConditions : public Noncopyable {
 private:
     Storage& storage;
@@ -48,6 +54,7 @@ public:
         const Vector& velocity = Vector(0._f),
         const Vector& angularVelocity = Vector(0._f));
 
+    /// \copydoc addBody
     /// Overload with custom material.
     void addBody(const Abstract::Domain& domain,
         AutoPtr<Abstract::Material>&& material,

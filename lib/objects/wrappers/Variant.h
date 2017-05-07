@@ -1,8 +1,8 @@
 #pragma once
 
-/// Object capable of storing values of different time, having only one value (and one type) in any moment.
-/// Pavel Sevecek 2016
-/// sevecek at sirrah.troja.mff.cuni.cz
+/// \file Variant.h
+/// \brief Object capable of storing values of different time, having only one value (and one type) in any moment.
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 
 #include "common/Assert.h"
 #include "common/Globals.h"

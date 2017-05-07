@@ -44,6 +44,7 @@ namespace Abstract {
     };
 }
 
+namespace Detail {
 template <typename Type, QuantityId Id, typename TDerived>
 class VelocityTemplate : public Abstract::Derivative {
 private:
@@ -72,21 +73,22 @@ public:
         }
     }
 };
+}
 
 struct VelocityDivergence
-    : public VelocityTemplate<Float, QuantityId::VELOCITY_DIVERGENCE, VelocityDivergence> {
+    : public Detail::VelocityTemplate<Float, QuantityId::VELOCITY_DIVERGENCE, VelocityDivergence> {
     INLINE static Float func(const Vector& dv, const Vector& grad) {
         return dot(dv, grad);
     }
 };
 
-struct VelocityGradient : public VelocityTemplate<Tensor, QuantityId::VELOCITY_GRADIENT, VelocityGradient> {
+struct VelocityGradient : public Detail::VelocityTemplate<Tensor, QuantityId::VELOCITY_GRADIENT, VelocityGradient> {
     INLINE static Tensor func(const Vector& dv, const Vector& grad) {
         return outer(dv, grad);
     }
 };
 
-struct VelocityRotation : public VelocityTemplate<Vector, QuantityId::VELOCITY_ROTATION, VelocityRotation> {
+struct VelocityRotation : public Detail::VelocityTemplate<Vector, QuantityId::VELOCITY_ROTATION, VelocityRotation> {
     INLINE static Vector func(const Vector& dv, const Vector& grad) {
         return cross(dv, grad);
     }
@@ -108,7 +110,7 @@ private:
     ArrayView<const Float> rho, m;
     ArrayView<const Vector> v;
     ArrayView<const Size> idxs;
-    ArrayView<const TracelessTensor> s;
+    ArrayView<const Float> reduce;
     ArrayView<Tensor> deriv;
     TCorrection correction;
 
@@ -121,7 +123,7 @@ public:
         tie(rho, m) = input.getValues<Float>(QuantityId::DENSITY, QuantityId::MASSES);
         v = input.getDt<Vector>(QuantityId::POSITIONS);
         idxs = input.getValue<Size>(QuantityId::FLAG);
-        s = input.getPhysicalValue<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
+        reduce = input.getValue<Float>(QuantityId::STRESS_REDUC);
         deriv = results.getValue<Tensor>(QuantityId::STRENGTH_VELOCITY_GRADIENT);
         correction.initialize(input);
     }
@@ -134,12 +136,20 @@ public:
             /// density (and smoothing length) is evolved using this derivative or velocity divergence
             /// depending on damage status, it would be better to but this heuristics directly into the
             /// derivative, if possible
-            if (idxs[i] != idxs[j] || s[i] == TracelessTensor::null() || s[j] == TracelessTensor::null()) {
+            if (idxs[i] != idxs[j] || reduce[i] == 0._f || reduce[j] == 0._f) {
                 continue;
             }
             const Vector dv = v[j] - v[i];
-            deriv[i] += m[j] / rho[j] * outer(dv, correction(i, grads[k]));
-            deriv[j] += m[i] / rho[i] * outer(dv, correction(j, grads[k]));
+            if (std::is_same<TCorrection, VelocityGradientCorrection::NoCorrection>::value) {
+                // optimization, avoid computing outer product twice
+                const Tensor t = outer(dv, grads[k]);
+                ASSERT(isReal(t));
+                deriv[i] += m[j] / rho[j] * t
+                deriv[j] += m[i] / rho[i] * t;
+            } else {
+                deriv[i] += m[j] / rho[j] * outer(dv, correction(i, grads[k]));
+                deriv[j] += m[i] / rho[i] * outer(dv, correction(j, grads[k]));
+            }
         }
     }
 };

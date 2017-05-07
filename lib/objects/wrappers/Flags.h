@@ -1,8 +1,9 @@
 #pragma once
 
-/// Wrapper over enum allowing setting (and querying) individual bits of the stored value.
-/// Pavel Sevecek 2016
-/// sevecek at sirrah.troja.mff.cuni.cz
+/// \file Flags.h
+/// \brief Wrapper over enum allowing setting (and querying) individual bits of the stored value.
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2017
 
 #include "common/Assert.h"
 #include "math/Math.h"

@@ -1,17 +1,21 @@
 #pragma once
 
-/// Pavel Sevecek 2016
-/// sevecek at sirrah.troja.mff.cuni.cz
+/// \file AlignedStorage.h
+/// \brief Base class for utility wrappers (Optional, Variant, ...)
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2017
 
 #include "common/Traits.h"
 
 NAMESPACE_SPH_BEGIN
 
 
-/// Simple wrapper of type that sidesteps default construction. Objects can be therefore
-/// default-constructed even if the underlying type does not have default constructor.
-/// Stored object can be later constructed by calling <code>emplace</code> method. Note that when constructed,
-/// it has to be later destroyed by explicitly calling <code>destroy</code> method, this is not done
+/// \brief Simple block of memory on stack with size and alignment given by template type
+
+/// AlignedStorage can be used to construct an object on stack while sidestepping default construction. 
+/// Objects can be therefore default-constructed even if the underlying type does not have default constructor.
+/// Stored object can be later constructed by calling \ref emplace method. Note that when constructed,
+/// it has to be later destroyed by explicitly calling \ref destroy method, this is not done
 /// automatically! This object does NO checks when the stored value is accessed, or whether it is
 /// constructed multiple times. This is left to the user.
 template <typename Type>

@@ -1,6 +1,6 @@
 #pragma once
 
-/// \file QuantityId.h
+/// \file Quantity.h
 /// \brief Holder of quantity values and their temporal derivatives
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2017

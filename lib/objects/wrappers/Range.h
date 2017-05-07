@@ -1,8 +1,9 @@
 #pragma once
 
-/// Routines for working with intervals.
-/// Pavel Sevecek 2016
-/// sevecek at sirrah.troja.mff.cuni.cz
+/// \file Range.h
+/// \brief Object representing interval of real values
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2017
 
 #include "common/Globals.h"
 #include "math/Math.h"
@@ -98,16 +99,20 @@ INLINE T clamp(const T& v, const Range& range) {
     return range.clamp(v);
 }
 
-/// Returns clamped values of object. For components that were clamped by the range, corresponding components
-/// in the second parameter are set to zero. Other components are unchanged.
-/// The intended use case is for clamping values of time-dependent quantities; the derivatives must also be
-/// clamped to avoid instabilities of timestepping algorithm.
-template <typename T>
-INLINE Pair<T> clampWithDerivative(const T& v, const T& dv, const Range& range) {
-    const T lower = less(T(range.lower()), v);
-    const T upper = less(v, T(range.upper()));
-    /// \todo optimize
-    return { clamp(v, range), dv * lower * upper };
+
+
+/// Returns clamped values and the value of derivative. The function is specialized for floats,
+/// returning zero derivative if the value is outside range.
+/// \todo clamp derivatives for all types? So far we don't clamp non-scalar quantities anyway ...
+template<typename T>
+INLINE Pair<T> clampWithDerivative(const T&, const T&, const Range&) {
+    NOT_IMLEMENTED;
+}
+
+template<>
+INLINE Pair<Float> clampWithDerivative<Float>(const Float& v, const Float& dv, const Range& range) {
+    const bool zeroDeriv = (v >= range.upper() && dv > 0._f) || (v <= range.lower() && dv < 0._f);
+    return { clamp(v, range), zeroDeriv ? 0._f : dv };
 }
 
 
