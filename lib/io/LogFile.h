@@ -27,7 +27,7 @@ namespace Abstract {
             : counter(0)
             , interval(interval)
             , logger(std::move(logger)) {
-            ASSERT(logger);
+            ASSERT(this->logger);
             ASSERT(interval > 0);
         }
 
