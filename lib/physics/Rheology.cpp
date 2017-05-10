@@ -15,20 +15,22 @@ VonMisesRheology::VonMisesRheology(AutoPtr<Abstract::Damage>&& damage)
 
 VonMisesRheology::~VonMisesRheology() = default;
 
-void VonMisesRheology::create(Storage& storage, const BodySettings& settings) const {
+void VonMisesRheology::create(Storage& storage,
+    const BodySettings& settings,
+    const MaterialInitialContext& context) const {
     ASSERT(storage.getMaterialCnt() == 1);
-    storage.insert<Float>(QuantityId::YIELDING_REDUCE, OrderEnum::ZERO, 1._f);
-    damage->setFlaws(storage, settings);
+    storage.insert<Float>(QuantityId::STRESS_REDUCING, OrderEnum::ZERO, 1._f);
+    damage->setFlaws(storage, settings, context);
 }
 
-void VonMisesRheology::initialize(Storage& storage, const MaterialView material) {    
+void VonMisesRheology::initialize(Storage& storage, const MaterialView material) {
     ArrayView<Float> u = storage.getValue<Float>(QuantityId::ENERGY);
-    ArrayView<Float> reducing = storage.getValue<Float>(QuantityId::YIELDING_REDUCE);
+    ArrayView<Float> reducing = storage.getValue<Float>(QuantityId::STRESS_REDUCING);
 
     // reduce stress tensor by damage
     damage->reduce(storage, DamageFlag::PRESSURE | DamageFlag::STRESS_TENSOR, material);
     ArrayView<TracelessTensor> S, S_dmg;
-    tie(S, S_dmg) = storage.getValue<TracelessTensor>(QuantityId::DEVIATORIC_STRESS)
+    tie(S, S_dmg) = storage.modify<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
 
     const Float limit = material->getParam<Float>(BodySettingsId::ELASTICITY_LIMIT);
     const Float u_melt = material->getParam<Float>(BodySettingsId::MELT_ENERGY);
@@ -37,7 +39,7 @@ void VonMisesRheology::initialize(Storage& storage, const MaterialView material)
     storage.parallelFor(*seq.begin(), *seq.end(), [&](const Size n1, const Size n2) INL {
         // compute yielding stress
         for (Size i = n1; i < n2; ++i) {
-            const Float unorm = u[i] / u0;
+            const Float unorm = u[i] / u_melt;
             const Float y = unorm < 1.e-5_f ? limit : limit * max(1.f - unorm, 0._f);
             ASSERT(limit > 0._f);
 
@@ -48,14 +50,14 @@ void VonMisesRheology::initialize(Storage& storage, const MaterialView material)
                 continue;
             }
             // compute second invariant using damaged stress tensor
-            const TracelessTensor s = S_dmg[i]  + TracelessTensor(eps)
+            const TracelessTensor s = S_dmg[i] + TracelessTensor(eps);
             const TracelessTensor sy = s / y + TracelessTensor(eps);
             const Float inv = 0.5_f * ddot(sy, sy) + eps;
             ASSERT(isReal(inv) && inv > 0._f);
             const Float red = min(sqrt(1._f / (3._f * inv)), 1._f);
             ASSERT(red >= 0._f && red <= 1._f);
             reducing[i] = red;
-             
+
             // apply yield reduction in place
             S[i] = S[i] * red;
             ASSERT(isReal(S[i]));
@@ -63,7 +65,7 @@ void VonMisesRheology::initialize(Storage& storage, const MaterialView material)
     });
 
     // now we have to compute new values of damage stress tensor
-    damage->reduce(storage, damage->reduce(storage, DamageFlag::STRESS_TENSOR |DamageFlag::REDUCTION_FACTOR , material);material);
+    damage->reduce(storage, DamageFlag::STRESS_TENSOR | DamageFlag::REDUCTION_FACTOR, material);
 }
 
 void VonMisesRheology::integrate(Storage& storage, const MaterialView material) {
@@ -79,11 +81,13 @@ DruckerPragerRheology::DruckerPragerRheology(AutoPtr<Abstract::Damage>&& damage)
 
 DruckerPragerRheology::~DruckerPragerRheology() = default;
 
-void DruckerPragerRheology::create(Storage& storage, const BodySettings& settings) const {
+void DruckerPragerRheology::create(Storage& storage,
+    const BodySettings& settings,
+    const MaterialInitialContext& context) const {
     ASSERT(storage.getMaterialCnt() == 1);
     /// \todo implement, this is copy+paste of von mises
-    storage.insert<Float>(QuantityId::YIELDING_REDUCE, OrderEnum::ZERO, 1._f);
-    damage->setFlaws(storage, settings);
+    storage.insert<Float>(QuantityId::STRESS_REDUCING, OrderEnum::ZERO, 1._f);
+    damage->setFlaws(storage, settings, context);
 }
 
 void DruckerPragerRheology::initialize(Storage& storage, const MaterialView material) {
@@ -116,5 +120,17 @@ void DruckerPragerRheology::initialize(Storage& storage, const MaterialView mate
 void DruckerPragerRheology::integrate(Storage& storage, const MaterialView material) {
     damage->integrate(storage, material);
 }
+
+
+void ElasticRheology::create(Storage& storage,
+    const BodySettings& UNUSED(settings),
+    const MaterialInitialContext& UNUSED(context)) const {
+    ASSERT(storage.getMaterialCnt() == 1);
+    storage.insert<Float>(QuantityId::STRESS_REDUCING, OrderEnum::ZERO, 1._f);
+}
+
+void ElasticRheology::initialize(Storage& UNUSED(storage), const MaterialView UNUSED(material)) {}
+
+void ElasticRheology::integrate(Storage& UNUSED(storage), const MaterialView UNUSED(material)) {}
 
 NAMESPACE_SPH_END

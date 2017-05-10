@@ -45,34 +45,36 @@ namespace Abstract {
 }
 
 namespace Detail {
-template <typename Type, QuantityId Id, typename TDerived>
-class VelocityTemplate : public Abstract::Derivative {
-private:
-    ArrayView<const Float> rho, m;
-    ArrayView<const Vector> v;
-    ArrayView<Type> deriv;
+    template <typename Type, QuantityId Id, typename TDerived>
+    class VelocityTemplate : public Abstract::Derivative {
+    private:
+        ArrayView<const Float> rho, m;
+        ArrayView<const Vector> v;
+        ArrayView<Type> deriv;
 
-public:
-    virtual void create(Accumulated& results) override {
-        results.insert<Type>(Id);
-    }
-
-    virtual void initialize(const Storage& input, Accumulated& results) override {
-        tie(rho, m) = input.getValues<Float>(QuantityId::DENSITY, QuantityId::MASSES);
-        v = input.getDt<Vector>(QuantityId::POSITIONS);
-        deriv = results.getValue<Type>(Id);
-    }
-
-    virtual void compute(const Size i, ArrayView<const Size> neighs, ArrayView<const Vector> grads) override {
-        ASSERT(neighs.size() == grads.size());
-        for (Size k = 0; k < neighs.size(); ++k) {
-            const Size j = neighs[k];
-            const auto dv = TDerived::func(v[j] - v[i], grads[k]);
-            deriv[i] += m[j] / rho[j] * dv;
-            deriv[j] += m[i] / rho[i] * dv;
+    public:
+        virtual void create(Accumulated& results) override {
+            results.insert<Type>(Id);
         }
-    }
-};
+
+        virtual void initialize(const Storage& input, Accumulated& results) override {
+            tie(rho, m) = input.getValues<Float>(QuantityId::DENSITY, QuantityId::MASSES);
+            v = input.getDt<Vector>(QuantityId::POSITIONS);
+            deriv = results.getValue<Type>(Id);
+        }
+
+        virtual void compute(const Size i,
+            ArrayView<const Size> neighs,
+            ArrayView<const Vector> grads) override {
+            ASSERT(neighs.size() == grads.size());
+            for (Size k = 0; k < neighs.size(); ++k) {
+                const Size j = neighs[k];
+                const auto dv = TDerived::func(v[j] - v[i], grads[k]);
+                deriv[i] += m[j] / rho[j] * dv;
+                deriv[j] += m[i] / rho[i] * dv;
+            }
+        }
+    };
 }
 
 struct VelocityDivergence
@@ -82,13 +84,15 @@ struct VelocityDivergence
     }
 };
 
-struct VelocityGradient : public Detail::VelocityTemplate<Tensor, QuantityId::VELOCITY_GRADIENT, VelocityGradient> {
+struct VelocityGradient
+    : public Detail::VelocityTemplate<Tensor, QuantityId::VELOCITY_GRADIENT, VelocityGradient> {
     INLINE static Tensor func(const Vector& dv, const Vector& grad) {
         return outer(dv, grad);
     }
 };
 
-struct VelocityRotation : public Detail::VelocityTemplate<Vector, QuantityId::VELOCITY_ROTATION, VelocityRotation> {
+struct VelocityRotation
+    : public Detail::VelocityTemplate<Vector, QuantityId::VELOCITY_ROTATION, VelocityRotation> {
     INLINE static Vector func(const Vector& dv, const Vector& grad) {
         return cross(dv, grad);
     }
@@ -123,7 +127,7 @@ public:
         tie(rho, m) = input.getValues<Float>(QuantityId::DENSITY, QuantityId::MASSES);
         v = input.getDt<Vector>(QuantityId::POSITIONS);
         idxs = input.getValue<Size>(QuantityId::FLAG);
-        reduce = input.getValue<Float>(QuantityId::STRESS_REDUC);
+        reduce = input.getValue<Float>(QuantityId::STRESS_REDUCING);
         deriv = results.getValue<Tensor>(QuantityId::STRENGTH_VELOCITY_GRADIENT);
         correction.initialize(input);
     }
@@ -144,7 +148,7 @@ public:
                 // optimization, avoid computing outer product twice
                 const Tensor t = outer(dv, grads[k]);
                 ASSERT(isReal(t));
-                deriv[i] += m[j] / rho[j] * t
+                deriv[i] += m[j] / rho[j] * t;
                 deriv[j] += m[i] / rho[i] * t;
             } else {
                 deriv[i] += m[j] / rho[j] * outer(dv, correction(i, grads[k]));

@@ -37,7 +37,7 @@ std::string getQuantityName(const QuantityId key) {
         return "Number of flaws";
     case QuantityId::FLAW_ACTIVATION_IDX:
         return "Flaw activation idx";
-    case QuantityId::YIELDING_REDUCE:
+    case QuantityId::STRESS_REDUCING:
         return "Yielding reduce";
     case QuantityId::VELOCITY_GRADIENT:
         return "grad v";

@@ -121,7 +121,7 @@ public:
     virtual void initialize(const Storage& input, Accumulated& results) override {
         tie(rho, m) = input.getValues<Float>(QuantityId::DENSITY, QuantityId::MASSES);
         s = input.getPhysicalValue<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
-        reduce = input.getValue<Float>(QuantityId::REDUCE);
+        reduce = input.getValue<Float>(QuantityId::STRESS_REDUCING);
         flag = input.getValue<Size>(QuantityId::FLAG);
         dv = results.getValue<Vector>(QuantityId::POSITIONS);
     }
@@ -130,7 +130,7 @@ public:
         ASSERT(neighs.size() == grads.size());
         for (Size k = 0; k < neighs.size(); ++k) {
             const Size j = neighs[k];
-            if (flag[i] != flag[j] || reduce == 0._f || reduce == 0._f) {
+            if (flag[i] != flag[j] || reduce[i] == 0._f || reduce[j] == 0._f) {
                 continue;
             }
             const Vector f = (s[i] + s[j]) / (rho[i] * rho[j]) * grads[k];
@@ -282,18 +282,21 @@ public:
 enum class DensityEvolution {
     FLUID, ///< All particles contribute to the density derivative
     SOLID, ///< Only particles from the same body OR fully damaged particles contribute
-}
+};
 
-/// Equation for evolution of density. Solver must use either this equation or some custom density computation,
-/// such as direct summation (see SummationSolver) or SPH formulation without density (see DensityIndependentSolver).
-template<DensityEvolution Evol>
+/// Equation for evolution of density. Solver must use either this equation or some custom density
+/// computation,
+/// such as direct summation (see SummationSolver) or SPH formulation without density (see
+/// DensityIndependentSolver).
+template <DensityEvolution Evol>
 class ContinuityEquation : public Abstract::EquationTerm {
 public:
     virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override {
         derivatives.require<VelocityDivergence>(settings);
-		if (Evol == DensityEvolution::SOLID) {
-			derivatives.require<SolidVelocityGradient>(settings);
-		}
+        if (Evol == DensityEvolution::SOLID) {
+            using namespace VelocityGradientCorrection;
+            derivatives.require<StrengthVelocityGradient<NoCorrection>>(settings);
+        }
     }
 
     virtual void initialize(Storage& UNUSED(storage)) override {}
@@ -302,26 +305,25 @@ public:
         ArrayView<const Float> divv = storage.getValue<Float>(QuantityId::VELOCITY_DIVERGENCE);
         ArrayView<Float> rho, drho;
         tie(rho, drho) = storage.getAll<Float>(QuantityId::DENSITY);
-		if (Evol == DensityEvolution::SOLID) {
-			ArrayView<const Float> reduce = storage.getValue<Float>(QuantityId::REDUCING);
-			ArrayView<const Tensor> gradv = storage.getValue<Tensor>(QuantityId::SOLID_VELOCITY_DIVERGENCE);
-        storage.parallelFor(0, rho.size(), [&](const Size n1, const Size n2) INL {
-            for (Size i = n1; i < n2; ++i) {
-				if (reduce[i] != 0._f) {
-					drho[i] = -rho[i] * gradv[i].trace();
-				} else {
-					drho[i] = -rho[i] * divv[i];
-				}
-            }
-        });
-		} else {
-			storage.parallelFor(0, rho.size(), [&](const Size n1, const Size n2) INL {
-            for (Size i = n1; i < n2; ++i) {
-                drho[i] = -rho[i] * divv[i];
-            }
-        });
-		}
-			
+        if (Evol == DensityEvolution::SOLID) {
+            ArrayView<const Float> reduce = storage.getValue<Float>(QuantityId::STRESS_REDUCING);
+            ArrayView<const Tensor> gradv = storage.getValue<Tensor>(QuantityId::STRENGTH_VELOCITY_GRADIENT);
+            storage.parallelFor(0, rho.size(), [&](const Size n1, const Size n2) INL {
+                for (Size i = n1; i < n2; ++i) {
+                    if (reduce[i] != 0._f) {
+                        drho[i] = -rho[i] * gradv[i].trace();
+                    } else {
+                        drho[i] = -rho[i] * divv[i];
+                    }
+                }
+            });
+        } else {
+            storage.parallelFor(0, rho.size(), [&](const Size n1, const Size n2) INL {
+                for (Size i = n1; i < n2; ++i) {
+                    drho[i] = -rho[i] * divv[i];
+                }
+            });
+        }
     }
 
     virtual void create(Storage& storage, Abstract::Material& material) const override {
@@ -348,7 +350,8 @@ public:
         : dimensions(dimensions) {
         Flags<SmoothingLengthEnum> flags = Flags<SmoothingLengthEnum>::fromValue(
             settings.get<int>(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH));
-        if (flags.has(SmoothingLengthEnum::SOUND_SPEED_ENFORCING)) {
+        (void)flags;
+        if (false) { // flags.has(SmoothingLengthEnum::SOUND_SPEED_ENFORCING)) {
             enforcing.strength = settings.get<Float>(RunSettingsId::SPH_NEIGHBOUR_ENFORCING);
             enforcing.range = settings.get<Range>(RunSettingsId::SPH_NEIGHBOUR_RANGE);
         } else {
@@ -455,7 +458,9 @@ public:
     EquationHolder() = default;
 
     EquationHolder(AutoPtr<Abstract::EquationTerm>&& term) {
-        terms.push(std::move(term));
+        if (term != nullptr) {
+            terms.push(std::move(term));
+        }
     }
 
     EquationHolder& operator+=(EquationHolder&& other) {

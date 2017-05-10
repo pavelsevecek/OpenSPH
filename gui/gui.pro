@@ -10,7 +10,7 @@ LIBS += `wx-config --libs --gl-libs`
 LIBS += -lGL -lGLU -lGLEW
 LIBS += ../lib/liblib.a
 
-QMAKE_CXXFLAGS += -Wall -Werror -msse4.1 -std=c++14 `wx-config --libs --cxxflags --gl-libs`
+QMAKE_CXXFLAGS += -Wall -Werror -msse4.1 -std=c++14 `wx-config --libs all --cxxflags --gl-libs`
 QMAKE_CXX = g++
 
 
@@ -45,7 +45,8 @@ SOURCES += \
     windows/MainWindow.cpp \
     objects/Factory.cpp \
     objects/Palette.cpp \
-    objects/Movie.cpp
+    objects/Movie.cpp \
+    problems/Rotation.cpp
 
 HEADERS += \
     Gui.h \
@@ -67,4 +68,6 @@ HEADERS += \
     objects/Bitmap.h \
     MainLoop.h \
     windows/MainWindow.h \
-    Controller.h
+    Controller.h \
+    problems/Rotation.h \
+    windows/PlotView.h

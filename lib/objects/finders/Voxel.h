@@ -1,11 +1,12 @@
 #pragma once
 
-/// Simple algorithm for finding nearest neighbours using spatial partitioning of particles
-/// Pavel Sevecek 2016
-/// sevecek at sirrah.troja.mff.cuni.cz
+/// \file Voxel.h
+/// \brief Simple algorithm for finding nearest neighbours using spatial partitioning of particles
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz))
+/// \date 2016-2017
 
-#include "objects/finders/AbstractFinder.h"
 #include "objects/containers/LookupMap.h"
+#include "objects/finders/AbstractFinder.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -29,8 +30,6 @@ public:
         Array<NeighbourRecord>& neighbours,
         Flags<FinderFlags> flags = EMPTY_FLAGS,
         const Float error = 0._f) const override;
-
-    /// Updates the structure when the position change.
 };
 
 NAMESPACE_SPH_END

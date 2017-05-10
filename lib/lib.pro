@@ -35,7 +35,6 @@ SOURCES += \
     geometry/Domain.cpp \
     io/Logger.cpp \
     io/Output.cpp \
-    io/filesystem.cpp \
     math/Morton.cpp \
     math/rng/Rng.cpp \
     objects/containers/stringutils.cpp \
@@ -64,7 +63,8 @@ SOURCES += \
     system/Timer.cpp \
     thread/CheckFunction.cpp \
     timestepping/TimeStepCriterion.cpp \
-    timestepping/TimeStepping.cpp
+    timestepping/TimeStepping.cpp \
+    io/FileSystem.cpp
 
 HEADERS += \
     commmon/ForwardDecl.h \
@@ -188,4 +188,7 @@ HEADERS += \
     sph/equations/av/Standard.h \
     objects/wrappers/AutoPtr.h \
     objects/wrappers/SharedPtr.h \
-    objects/wrappers/LockingPtr.h
+    objects/wrappers/LockingPtr.h \
+    geometry/Generic.h \
+    post/Plot.h \
+    gravity/BarnesHut.h

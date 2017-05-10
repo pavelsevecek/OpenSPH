@@ -41,7 +41,7 @@ enum class QuantityId {
                          /// mean lower activation strain rate of a flaw. Used only for testing purposes, by
                          /// default activation strain rates are automatically computed from Weibull
                          /// distribution.
-    YIELDING_REDUCE,     ///< Total stress reduction factor due to damage and yielding. Is always scalar.
+    STRESS_REDUCING,     ///< Total stress reduction factor due to damage and yielding. Is always scalar.
     ///@}
 
     /// \name Gravity

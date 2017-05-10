@@ -1,4 +1,4 @@
-#include "gui/problems/Collision.h"
+#include "gui/problems/Rotation.h"
 #include "geometry/Domain.h"
 #include "gui/GuiCallbacks.h"
 #include "gui/Settings.h"
@@ -10,13 +10,13 @@
 
 NAMESPACE_SPH_BEGIN
 
-AsteroidCollision::AsteroidCollision(Controller* model)
+AsteroidRotation::AsteroidRotation(Controller* model)
     : model(model) {
     settings.set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::PREDICTOR_CORRECTOR)
         .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 0.01_f)
-        .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 0.01_f)
-        .set(RunSettingsId::RUN_TIME_RANGE, Range(0._f, 10._f))
-        .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 0.1_f)
+        .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 100._f)
+        .set(RunSettingsId::RUN_TIME_RANGE, Range(0._f, 100000._f))
+        .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 100._f)
         .set(RunSettingsId::MODEL_FORCE_SOLID_STRESS, true)
         .set(RunSettingsId::SPH_FINDER, FinderEnum::VOXEL)
         .set(RunSettingsId::MODEL_AV_TYPE, ArtificialViscosityEnum::STANDARD)
@@ -26,14 +26,14 @@ AsteroidCollision::AsteroidCollision(Controller* model)
     settings.saveToFile("code.sph");
 }
 
-void AsteroidCollision::setUp() {
+void AsteroidRotation::setUp() {
     BodySettings bodySettings;
-    bodySettings.set(BodySettingsId::ENERGY, 1._f)
+    bodySettings.set(BodySettingsId::ENERGY, 0._f)
         .set(BodySettingsId::ENERGY_RANGE, Range(1._f, INFTY))
-        .set(BodySettingsId::PARTICLE_COUNT, 100'000)
+        .set(BodySettingsId::PARTICLE_COUNT, 100000)
         .set(BodySettingsId::EOS, EosEnum::TILLOTSON)
         .set(BodySettingsId::STRESS_TENSOR_MIN, 1.e5_f)
-        .set(BodySettingsId::RHEOLOGY_DAMAGE, DamageEnum::SCALAR_GRADY_KIPP)
+        .set(BodySettingsId::RHEOLOGY_DAMAGE, DamageEnum::NONE)
         .set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::VON_MISES)
         .set(BodySettingsId::DISTRIBUTE_MODE_SPH5, true);
     bodySettings.saveToFile("target.sph");
@@ -43,20 +43,10 @@ void AsteroidCollision::setUp() {
 
     StdOutLogger logger;
     SphericalDomain domain1(Vector(0._f), 5e3_f); // D = 10km
-    conds.addBody(domain1, bodySettings);
-    /// \todo save also problem-specific settings: position of impactor, radius, ...
+    const Float P = 2._f * 3600._f;
+    conds.addBody(domain1, bodySettings, Vector(0._f), Vector(0._f, 0._f, 2._f * PI / P));
+
     logger.write("Particles of target: ", storage->getParticleCnt());
-    const Size n1 = storage->getParticleCnt();
-
-    //    SphericalDomain domain2(Vector(4785.5_f, 3639.1_f, 0._f), 146.43_f); // D = 280m
-    SphericalDomain domain2(Vector(5097.4509902022_f, 3726.8662269290_f, 0._f), 270.5847632732_f);
-
-    bodySettings.set(BodySettingsId::PARTICLE_COUNT, 100)
-        .set(BodySettingsId::STRESS_TENSOR_MIN, LARGE)
-        .set(BodySettingsId::DAMAGE_MIN, LARGE);
-    bodySettings.saveToFile("impactor.sph");
-    conds.addBody(domain2, bodySettings, Vector(-5.e3_f, 0._f, 0._f)); // 5km/s
-    logger.write("Particles of projectile: ", storage->getParticleCnt() - n1);
 
     std::string outputDir = "out/" + settings.get<std::string>(RunSettingsId::RUN_OUTPUT_NAME);
     output = makeAuto<TextOutput>(
@@ -71,13 +61,12 @@ void AsteroidCollision::setUp() {
     output->add(makeAuto<ValueColumn<Float>>(QuantityId::DAMAGE));
     output->add(makeAuto<ValueColumn<TracelessTensor>>(QuantityId::DEVIATORIC_STRESS));
 
-    logFiles.push(makeAuto<EnergyLogFile>("energy.txt"));
-    logFiles.push(makeAuto<TimestepLogFile>("timestep.txt"));
+    logFiles.push(makeAuto<IntegralsLog>("integrals.txt"));
 
     callbacks = makeAuto<GuiCallbacks>(model);
 }
 
-void AsteroidCollision::tearDown() {
+void AsteroidRotation::tearDown() {
     Profiler* profiler = Profiler::getInstance();
     profiler->printStatistics(*logger);
 }

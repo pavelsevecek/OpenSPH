@@ -20,7 +20,7 @@ NAMESPACE_SPH_BEGIN
 
 class Value {
 private:
-    Variant<Size, Float, Vector, Tensor, TracelessTensor, Means> storage;
+    Variant<Size, Float, Vector, Tensor, TracelessTensor, MinMaxMean> storage;
 
 public:
     Value() = default;

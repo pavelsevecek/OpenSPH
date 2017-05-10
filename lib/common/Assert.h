@@ -58,8 +58,6 @@ struct Assert {
             std::stringstream ss;
             stringify(ss, std::forward<T0>(t0), std::forward<TArgs>(args)...);
             check(condition, message, file, func, line, ss.str().c_str());
-        } else {
-            check(condition, message, file, func, line, "");
         }
     }
 

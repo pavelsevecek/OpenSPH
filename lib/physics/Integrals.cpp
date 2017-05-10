@@ -131,8 +131,8 @@ QuantityMeans::QuantityMeans(const std::function<Float(const Size i)>& func, con
     : quantity(func)
     , bodyId(bodyId) {}
 
-Means QuantityMeans::evaluate(Storage& storage) const {
-    Means means;
+MinMaxMean QuantityMeans::evaluate(Storage& storage) const {
+    MinMaxMean means;
     auto accumulate = [&](const auto& getter) {
         const Size size = storage.getParticleCnt();
         if (bodyId) {

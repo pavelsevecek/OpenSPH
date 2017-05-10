@@ -51,14 +51,14 @@ public:
         , density(QuantityId::DENSITY, 1) {}
 
     virtual void write(Storage& storage, const Statistics& stats) override {
-        Means sm = stress.evaluate(storage);
-        Means dsm = dtStress.evaluate(storage);
+        MinMaxMean sm = stress.evaluate(storage);
+        MinMaxMean dsm = dtStress.evaluate(storage);
         this->logger->write(stats.get<Float>(StatisticsId::TOTAL_TIME),
-            sm.average(),
-            dsm.average(),
-            energy.evaluate(storage).average(),
-            pressure.evaluate(storage).average(),
-            density.evaluate(storage).average(),
+            sm.mean(),
+            dsm.mean(),
+            energy.evaluate(storage).mean(),
+            pressure.evaluate(storage).mean(),
+            density.evaluate(storage).mean(),
             sm.min(),
             sm.max(),
             dsm.min(),
@@ -116,7 +116,7 @@ public:
     virtual void setUp() override;
 
 protected:
-    virtual void tearDown() override {}
+    virtual void tearDown() override;
 };
 
 NAMESPACE_SPH_END

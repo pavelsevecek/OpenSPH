@@ -5,6 +5,7 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2017
 
+#include "math/rng/Rng.h"
 #include "objects/wrappers/Iterators.h"
 #include "system/Settings.h"
 
@@ -63,6 +64,14 @@ public:
     INLINE const IndexSequence sequence() const {
         return seq;
     }
+};
+
+
+/// Shared data used when creating all bodies in the simulation
+/// \todo possibly generalize, allowing to create generic context as needed by components of the run
+struct MaterialInitialContext {
+    /// Random number generator
+    AutoPtr<Abstract::Rng> rng;
 };
 
 /// Material settings and functions specific for one material. Contains all parameters needed during runtime
@@ -127,7 +136,7 @@ namespace Abstract {
         }
 
         /// Create all quantities needed by the material.
-        virtual void create(Storage& storage) const = 0;
+        virtual void create(Storage& storage, const MaterialInitialContext& context) const = 0;
 
         /// Initialize all quantities and material parameters. Called once every step before loop.
         virtual void initialize(Storage& storage, const IndexSequence sequence) = 0;

@@ -21,7 +21,7 @@ class Statistics {
 private:
     enum Types { BOOL, INT, FLOAT, MEANS, VALUE, RANGE };
 
-    using ValueType = Variant<bool, int, Float, Means, Value, Range>;
+    using ValueType = Variant<bool, int, Float, MinMaxMean, Value, Range>;
 
     std::map<StatisticsId, ValueType> entries;
 
@@ -46,9 +46,9 @@ public:
         auto iter = entries.find(idx);
         if (iter != entries.end()) {
             ValueType& entry = iter->second;
-            entry.template get<Means>().accumulate(value);
+            entry.template get<MinMaxMean>().accumulate(value);
         } else {
-            Means means;
+            MinMaxMean means;
             means.accumulate(value);
             entries.insert({ idx, means });
         }

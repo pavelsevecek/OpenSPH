@@ -6,6 +6,7 @@
 #include <wx/frame.h>
 
 class wxComboBox;
+class wxBoxSizer;
 class wxGauge;
 
 NAMESPACE_SPH_BEGIN
@@ -45,6 +46,8 @@ public:
     void setElementList(Array<SharedPtr<Abstract::Element>>&& elements);
 
 private:
+    wxBoxSizer* createToolbar(Controller* parent);
+
     /// wx event handlers
 
     void onComboBox(wxCommandEvent& evt);

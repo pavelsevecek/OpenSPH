@@ -177,7 +177,7 @@ protected:
         first->store(storage);
 
         // compute neighbour statistics
-        Means neighs;
+        MinMaxMean neighs;
         ArrayView<Size> neighCnts = storage.getValue<Size>(QuantityId::NEIGHBOUR_CNT);
         const Size size = storage.getParticleCnt();
         for (Size i = 0; i < size; ++i) {

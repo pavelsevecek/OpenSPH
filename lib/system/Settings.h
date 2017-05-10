@@ -402,6 +402,9 @@ enum class RunSettingsId {
     /// Minimal value of smoothing length
     SPH_SMOOTHING_LENGTH_MIN,
 
+    /// Opening angle for multipole approximation of gravity
+    GRAVITY_OPENING_ANGLE,
+
     /// Use force from pressure gradient in the model
     MODEL_FORCE_PRESSURE_GRADIENT,
 

@@ -75,7 +75,8 @@ void OrthoRenderer::drawPalette(wxDC& dc, const Palette& palette) const {
 OrthoPane::OrthoPane(wxWindow* parent, Controller* controller, const GuiSettings& gui)
     : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize)
     , controller(controller) {
-    this->SetMinSize(wxSize(640, 480));
+    this->SetMinSize(
+        wxSize(gui.get<int>(GuiSettingsId::RENDER_WIDTH), gui.get<int>(GuiSettingsId::RENDER_HEIGHT)));
     this->Connect(wxEVT_PAINT, wxPaintEventHandler(OrthoPane::onPaint));
     this->Connect(wxEVT_MOTION, wxMouseEventHandler(OrthoPane::onMouseMotion));
     this->Connect(wxEVT_MOUSEWHEEL, wxMouseEventHandler(OrthoPane::onMouseWheel));

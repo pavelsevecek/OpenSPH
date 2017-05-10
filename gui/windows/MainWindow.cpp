@@ -5,10 +5,12 @@
 #include "gui/objects/Element.h"
 #include "gui/windows/GlPane.h"
 #include "gui/windows/OrthoPane.h"
+#include "gui/windows/PlotView.h"
 #include <wx/button.h>
 #include <wx/combobox.h>
 #include <wx/gauge.h>
 #include <wx/sizer.h>
+#include <wx/statline.h>
 
 NAMESPACE_SPH_BEGIN
 
@@ -24,6 +26,28 @@ MainWindow::MainWindow(Controller* parent, const GuiSettings& settings)
 
     // create all components
     wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
+    wxBoxSizer* toolbar = createToolbar(parent);
+    sizer->Add(toolbar);
+
+    wxBoxSizer* mainSizer = new wxBoxSizer(wxHORIZONTAL);
+    pane = new OrthoPane(this, parent, settings);
+    mainSizer->Add(pane, 1, wxEXPAND);
+
+    mainSizer->AddSpacer(5);
+
+    /*PlotView* plot = new PlotView(this, wxSize(390, 250), wxSize(20, 20));
+    mainSizer->Add(plot, 1, wxALIGN_TOP);*/
+
+    sizer->Add(mainSizer);
+
+    this->SetSizer(sizer);
+
+    // connect event handlers
+    Connect(wxEVT_COMBOBOX, wxCommandEventHandler(MainWindow::onComboBox));
+    Connect(wxEVT_CLOSE_WINDOW, wxCloseEventHandler(MainWindow::onClose));
+}
+
+wxBoxSizer* MainWindow::createToolbar(Controller* parent) {
     wxBoxSizer* toolbar = new wxBoxSizer(wxHORIZONTAL);
 
     wxButton* button = new wxButton(this, wxID_ANY, "Start");
@@ -47,17 +71,7 @@ MainWindow::MainWindow(Controller* parent, const GuiSettings& settings)
     gauge->SetMinSize(wxSize(300, -1));
     toolbar->AddSpacer(200);
     toolbar->Add(gauge, 0, wxALIGN_CENTER_VERTICAL);
-
-    sizer->Add(toolbar);
-
-    pane = new OrthoPane(this, parent, settings);
-    sizer->Add(pane, 1, wxEXPAND);
-
-    this->SetSizer(sizer);
-
-    // connect event handlers
-    Connect(wxEVT_COMBOBOX, wxCommandEventHandler(MainWindow::onComboBox));
-    Connect(wxEVT_CLOSE_WINDOW, wxCloseEventHandler(MainWindow::onClose));
+    return toolbar;
 }
 
 void MainWindow::setProgress(const float progress) {

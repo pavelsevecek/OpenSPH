@@ -64,15 +64,6 @@ void Abstract::Run::run() {
     for (Float t = timeRange.lower(); t < timeRange.upper() && !condition(runTimer, i);
          t += timeStepping->getTimeStep()) {
 
-        // dump output
-        if (output && t >= nextOutput) {
-            output->dump(*storage, t);
-            nextOutput += outputInterval;
-        }
-
-        // make time step
-        timeStepping->step(*solver, stats);
-
         // save current statistics
         stats.set(StatisticsId::TOTAL_TIME, t);
         const Float progress = (t - timeRange.lower()) / timeRange.size();
@@ -80,9 +71,21 @@ void Abstract::Run::run() {
         stats.set(StatisticsId::RELATIVE_PROGRESS, progress);
         stats.set(StatisticsId::INDEX, (int)i);
 
+        // dump output
+        if (output && t >= nextOutput) {
+            output->dump(*storage, stats);
+            nextOutput += outputInterval;
+        }
+
+        // make time step
+        timeStepping->step(*solver, stats);
+
+        // logging
         for (auto& log : logFiles) {
             log->write(*storage, stats);
         }
+
+        // callbacks
         callbacks->onTimeStep(*storage, stats);
         if (callbacks->shouldAbortRun()) {
             result = "Aborted by user";

@@ -226,7 +226,7 @@ TEST_CASE("Vector less", "[vector]") {
 }
 
 /// \todo also test tensors
-TEST_CASE("Vector clampWithDerivative", "[vector]") {
+/*TEST_CASE("Vector clampWithDerivative", "[vector]") {
     Vector v(-1._f, 3._f, 6._f);
     Vector dv(20._f, 21._f, 22._f);
     Range r(0._f, 4._f);
@@ -234,3 +234,4 @@ TEST_CASE("Vector clampWithDerivative", "[vector]") {
     REQUIRE(v == Vector(0._f, 3._f, 4._f));
     REQUIRE(dv == Vector(0._f, 21._f, 0._f));
 }
+*/

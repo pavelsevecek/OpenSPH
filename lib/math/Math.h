@@ -6,8 +6,6 @@
 /// \date 2016-2017
 
 #include "common/Assert.h"
-#include "common/Globals.h"
-#include "common/Traits.h"
 #include <algorithm>
 #include <cstring>
 #include <math.h>
@@ -105,43 +103,6 @@ INLINE constexpr bool isPower2(const Size n) {
     return (n & (n - 1)) == 0;
 }
 
-
-/*template <typename T>
-INLINE T pow(const T f, const T e) {
-    return ::pow(f, e);
-}*/
-
-
-/*namespace Detail {
-    // default implementation using (slow) pow function.
-    template <int n>
-    struct GetRoot {
-        // forcing type deduction
-        template <typename T>
-        INLINE static auto value(T&& v) {
-            return pow(v, 1.f / n);
-        }
-    };
-
-    // specialization for square root
-    template <>
-    struct GetRoot<2> {
-        template <typename T>
-        INLINE static auto value(T&& v) {
-            return std::sqrt(v);
-        }
-    };
-    // specialization for cube root
-    template <>
-    struct GetRoot<3> {
-        template <typename T>
-        INLINE static auto value(T&& v) {
-            return std::cbrt(v);
-        }
-    };
-}*/
-
-
 /// Return a squared root of a value.
 template <typename T>
 INLINE T sqrt(const T f) {
@@ -208,6 +169,26 @@ template <>
 INLINE constexpr Float pow<6>(const Float v) {
     return pow<3>(pow<2>(v));
 }
+template <>
+INLINE constexpr Float pow<-1>(const Float v) {
+    return 1._f / v;
+}
+template <>
+INLINE constexpr Float pow<-2>(const Float v) {
+    return 1._f / (v * v);
+}
+template <>
+INLINE constexpr Float pow<-3>(const Float v) {
+    return 1._f / (v * v * v);
+}
+template <>
+INLINE constexpr Float pow<-4>(const Float v) {
+    return 1._f / (pow<2>(pow<2>(v)));
+}
+template <>
+INLINE constexpr Float pow<-5>(const Float v) {
+    return 1._f / (v * pow<2>(pow<2>(v)));
+}
 
 
 /// Power for ints
@@ -246,6 +227,10 @@ INLINE constexpr Size pow<6>(const Size v) {
 
 /// Mathematical functions
 
+template <typename T>
+INLINE T pow(const T value, const T power) {
+    return ::pow(value, power);
+}
 
 template <typename T>
 INLINE T exp(const T f) {
@@ -315,43 +300,5 @@ INLINE Float sphereVolume(const Float radius) {
 INLINE auto almostEqual(const Float& f1, const Float& f2, const Float& eps = EPS) {
     return abs(f1 - f2) <= eps * (1._f + max(abs(f1), abs(f2)));
 }
-
-
-/// Function needed for generic operation with types in quantities. Must be specialized by every object stored
-/// in quantity.
-
-/// Returns a norm, absolute value by default.
-template <typename T>
-INLINE Float norm(const T& value) {
-    return abs(value);
-}
-
-/// Squared value of the norm.
-template <typename T>
-INLINE Float normSqr(const T& value) {
-    return sqr(value);
-}
-
-/// Returns minimum element, simply the value iself by default. This function is intended for vectors and
-/// tensors, function for float is only for writing generic code.
-template <typename T>
-INLINE Float minElement(const T& value) {
-    return value;
-}
-
-/// Checks for nans and infs.
-template <typename T>
-INLINE bool isReal(const T& value) {
-    return !std::isnan(value) && !std::isinf(value);
-}
-
-/// Compares two objects of the same time component-wise. Returns object containing components 0 or 1,
-/// depending whether components of the first objects are smaller than components of the second object.
-/// \note The return type can be generally different if the mask cannot be represented using type T.
-template <typename T>
-INLINE constexpr auto less(const T& v1, const T& v2) {
-    return v1 < v2 ? T(1) : T(0);
-}
-
 
 NAMESPACE_SPH_END

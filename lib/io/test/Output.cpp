@@ -1,6 +1,7 @@
 #include "io/Output.h"
 #include "catch.hpp"
 #include "io/Column.h"
+#include "io/FileSystem.h"
 #include <fstream>
 
 
@@ -16,7 +17,9 @@ TEST_CASE("Dumping data", "[output]") {
     output.add(makeAuto<ValueColumn<Float>>(QuantityId::DENSITY));
     output.add(makeAuto<ValueColumn<Vector>>(QuantityId::POSITIONS));
     output.add(makeAuto<DerivativeColumn<Vector>>(QuantityId::POSITIONS));
-    output.dump(storage, 0);
+    Statistics stats;
+    stats.set(StatisticsId::TOTAL_TIME, 0._f);
+    output.dump(storage, stats);
 
     std::string expected = R"(# Run: Output
 # SPH dump, time = 0
@@ -25,7 +28,6 @@ TEST_CASE("Dumping data", "[output]") {
                    5                   1                   1                   1                   0                   0                   0
                    5                   2                   2                   2                   0                   0                   0
 )";
-    std::ifstream file("tmp0000.out");
-    std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+    std::string content = readFile("tmp0000.out");
     REQUIRE(content == expected);
 }

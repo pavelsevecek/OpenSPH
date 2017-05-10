@@ -3,7 +3,7 @@
 #include "math/rng/Rng.h"
 #include "quantities/AbstractMaterial.h"
 #include "quantities/Storage.h"
-#include "system/Factory.h"
+#include "sph/kernel/KernelFactory.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -15,7 +15,12 @@ ScalarDamage::ScalarDamage(const Float kernelRadius, const ExplicitFlaws options
     : kernelRadius(kernelRadius)
     , options(options) {}
 
-void ScalarDamage::setFlaws(Storage& storage, const BodySettings& settings) const {
+ScalarDamage::ScalarDamage(const RunSettings& settings, const ExplicitFlaws options)
+    : ScalarDamage(Factory::getKernel<3>(settings).radius(), options) {}
+
+void ScalarDamage::setFlaws(Storage& storage,
+    const BodySettings& settings,
+    const MaterialInitialContext& context) const {
     ASSERT(storage.getMaterialCnt() == 1);
     MaterialView material = storage.getMaterial(0);
     storage.insert<Float>(QuantityId::DAMAGE, OrderEnum::FIRST, settings.get<Float>(BodySettingsId::DAMAGE));
@@ -66,14 +71,9 @@ void ScalarDamage::setFlaws(Storage& storage, const BodySettings& settings) cons
     const Float denom = 1._f / (std::pow(k_weibull, 1._f / m_weibull) * std::pow(V, 1.f / m_weibull));
     ASSERT(isReal(denom) && denom > 0.f);
     Array<Float> eps_max(size);
-    /// \todo random number generator must be shared for all bodies, but should not be global; repeated runs
-    /// MUST have the same flaw distribution
-    /// RNG can be stored in InitialConditions and passed to objects (in some InitialConditionContext struct),
-    /// this is just a temporary fix!!!
-    static BenzAsphaugRng rng(1234);
     Size flawedCnt = 0, p = 1;
     while (flawedCnt < size) {
-        const Size i = Size(rng() * size);
+        const Size i = Size(context.rng() * size);
         if (options == ExplicitFlaws::ASSIGNED) {
             p = activationIdx[i];
         }
@@ -98,11 +98,11 @@ void ScalarDamage::setFlaws(Storage& storage, const BodySettings& settings) cons
     }
 }
 
-void ScalarDamage::reduce(Storage& storage, const Flags<DamageFlag> flags, const MaterialView sequence) {
+void ScalarDamage::reduce(Storage& storage, const Flags<DamageFlag> flags, const MaterialView material) {
     ArrayView<Float> damage = storage.getValue<Float>(QuantityId::DAMAGE);
     // we can reduce pressure in place as the original value can be computed from equation of state
     ArrayView<Float> p = storage.getValue<Float>(QuantityId::PRESSURE);
-	ArrayView<Float> reduce = storage.getValue<Float>(QuantityId::REDUCE);
+    ArrayView<Float> reduce = storage.getValue<Float>(QuantityId::STRESS_REDUCING);
     // stress tensor is evolved in time, so we need to keep unchanged value; create modified value
     ArrayView<TracelessTensor> s, s_dmg;
     tie(s, s_dmg) = storage.modify<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
@@ -113,18 +113,18 @@ void ScalarDamage::reduce(Storage& storage, const Flags<DamageFlag> flags, const
             const Float d = pow<3>(damage[i]);
             // pressure is reduced only for negative values
             /// \todo could be vectorized, maybe
-			if (flags.has(DamageFlags::PRESSURE)) {
-            if (p[i] < 0._f) {
-                p[i] = (1._f - d) * p[i];
+            if (flags.has(DamageFlag::PRESSURE)) {
+                if (p[i] < 0._f) {
+                    p[i] = (1._f - d) * p[i];
+                }
             }
-			}
             // stress is reduced for both positive and negative values
-            if (flags.has(DamageFlags::STRESS_TENSOR)) {
-				s_dmg[i] = (1._f - d) * s[i];
-			}
-			if (flags.has(DamageFlags::REDUCTION_FACTOR)) {
-				reduce[i] = (1._f - d) * reduce[i];
-			}
+            if (flags.has(DamageFlag::STRESS_TENSOR)) {
+                s_dmg[i] = (1._f - d) * s[i];
+            }
+            if (flags.has(DamageFlag::REDUCTION_FACTOR)) {
+                reduce[i] = (1._f - d) * reduce[i];
+            }
         }
     });
 }
@@ -152,14 +152,14 @@ void ScalarDamage::integrate(Storage& storage, const MaterialView material) {
             /// \todo can we set S derivatives to zero? This will break PC timestepping for stress tensor
             /// but all physics depend on damaged values, anyway
             if (damage[i] >= range.upper()) {
-               // we CANNOT set derivative of damage to zero!
-               ddamage[i] = LARGE; /// \todo is this ok?
-               // we set damage derivative to large value, so that it is larger than the derivative from prediction,
-               // therefore damage will INCREASE in corrections, but will be immediately clamped to 1 TOGETHER WITH DERIVATIVES,
-               // time step is computed afterwards, so it should be ok.
-               s[i] = TracelessTensor::null();
-               ds[i] = TracelessTensor::null(); /// \todo this is the derivative used for computing time step
-               continue;
+                // we CANNOT set derivative of damage to zero!
+                ddamage[i] = LARGE; /// \todo is this ok?
+                // we set damage derivative to large value, so that it is larger than the derivative from
+                // prediction, therefore damage will INCREASE in corrections, but will be immediately clamped
+                // to 1 TOGETHER WITH DERIVATIVES, time step is computed afterwards, so it should be ok.
+                s[i] = TracelessTensor::null();
+                ds[i] = TracelessTensor::null(); /// \todo this is the derivative used for computing time step
+                continue;
             }
             const Tensor sigma = s_dmg[i] - p[i] * Tensor::identity();
             Float sig1, sig2, sig3;
@@ -180,11 +180,15 @@ void ScalarDamage::integrate(Storage& storage, const MaterialView material) {
     });
 }
 
-void TensorDamage::setFlaws(Storage& UNUSED(storage), const BodySettings& UNUSED(settings)) const {
+void TensorDamage::setFlaws(Storage& UNUSED(storage),
+    const BodySettings& UNUSED(settings),
+    const MaterialInitialContext& UNUSED(context)) const {
     NOT_IMPLEMENTED;
 }
 
-void TensorDamage::reduce(Storage& UNUSED(storage), const MaterialView UNUSED(material)) {
+void TensorDamage::reduce(Storage& UNUSED(storage),
+    const Flags<DamageFlag> UNUSED(flags),
+    const MaterialView UNUSED(material)) {
     NOT_IMPLEMENTED;
 }
 
@@ -192,9 +196,23 @@ void TensorDamage::integrate(Storage& UNUSED(storage), const MaterialView UNUSED
     NOT_IMPLEMENTED;
 }
 
-void NullDamage::setFlaws(Storage& UNUSED(storage), const BodySettings& UNUSED(settings)) const {}
+void NullDamage::setFlaws(Storage& UNUSED(storage),
+    const BodySettings& UNUSED(settings),
+    const MaterialInitialContext& UNUSED(context)) const {}
 
-void NullDamage::reduce(Storage& UNUSED(storage), const MaterialView UNUSED(material)) {}
+void NullDamage::reduce(Storage& storage,
+    const Flags<DamageFlag> UNUSED(flags),
+    const MaterialView material) {
+    ArrayView<TracelessTensor> s, s_dmg;
+    tie(s, s_dmg) = storage.modify<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
+
+    IndexSequence seq = material.sequence();
+    storage.parallelFor(*seq.begin(), *seq.end(), [&](const Size n1, const Size n2) INL {
+        for (Size i = n1; i < n2; ++i) {
+            s_dmg[i] = s[i];
+        }
+    });
+}
 
 void NullDamage::integrate(Storage& UNUSED(storage), const MaterialView UNUSED(material)) {}
 

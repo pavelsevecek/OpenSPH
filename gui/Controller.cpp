@@ -7,6 +7,7 @@
 #include "gui/windows/MainWindow.h"
 #include "gui/windows/OrthoPane.h"
 #include "problems/Collision.h"
+#include "problems/Rotation.h"
 #include "run/Run.h"
 #include "system/Timer.h"
 #include "thread/CheckFunction.h"
@@ -25,7 +26,7 @@ Controller::Controller() {
         .set(GuiSettingsId::ORTHO_CUTOFF, 5.e2_f)
         .set(GuiSettingsId::ORTHO_PROJECTION, OrthoEnum::XY)
         .set(GuiSettingsId::IMAGES_SAVE, true)
-        .set(GuiSettingsId::IMAGES_TIMESTEP, 0.2_f);
+        .set(GuiSettingsId::IMAGES_TIMESTEP, 0.1_f);
 
     // create objects for drawing particles
     vis.initialize(gui);

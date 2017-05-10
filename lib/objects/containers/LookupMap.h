@@ -1,5 +1,10 @@
 #pragma once
 
+/// \file LookupMap.h
+/// \brief Three-dimensional grid containing indices
+/// \author Pavel Sevecek (seevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2017
+
 #include "geometry/Box.h"
 #include "geometry/Vector.h"
 #include "objects/containers/Array.h"
@@ -15,22 +20,26 @@ private:
 public:
     LookupMap() = default;
 
-    LookupMap(const Size n, const Box& box)
+    LookupMap(const Size n)
         : storage(pow<3>(n))
-        , boundingBox(box)
-        , dimensionSize(n) {
-        extendBox();
-    }
+        , dimensionSize(n) {}
 
-    void update(const Box& box) {
-        boundingBox = box;
-        for (Array<Size>& ar : storage) {
-            ar.clear();
+    void update(ArrayView<const Vector> points) {
+        boundingBox = Box();
+        for (const Vector& v : points) {
+            boundingBox.extend(v);
         }
-        extendBox();
+        this->extendBox();
+        // put particles into voxels
+        for (Size i = 0; i < points.size(); ++i) {
+            Indices idxs = this->map(points[i]);
+            (*this)(idxs).push(i);
+        }
     }
 
-    INLINE bool empty() const { return storage.empty(); }
+    INLINE bool empty() const {
+        return storage.empty();
+    }
 
     LookupMap& operator=(LookupMap&& other) {
         storage = std::move(other.storage);
@@ -57,9 +66,13 @@ public:
         return Box(lower, upper);
     }
 
-    INLINE Vector getVoxelSize() const { return boundingBox.size() / dimensionSize; }
+    INLINE Vector getVoxelSize() const {
+        return boundingBox.size() / dimensionSize;
+    }
 
-    INLINE int getDimensionSize() const { return dimensionSize; }
+    INLINE Size getDimensionSize() const {
+        return dimensionSize;
+    }
 
     INLINE Indices map(const Vector& v) const {
         ASSERT(boundingBox.size()[X] > 0._f && boundingBox.size()[Y] > 0._f && boundingBox.size()[Z] > 0._f);
@@ -71,7 +84,8 @@ public:
     }
 
 private:
-    // extends the bounding box by EPS in each dimension so we don't have to deal with particles lying on the boundary.
+    // extends the bounding box by EPS in each dimension so we don't have to deal with particles lying on the
+    // boundary.
     void extendBox() {
         const Vector extension = max(EPS * boundingBox.size(), Vector(EPS));
         boundingBox.extend(boundingBox.upper() + extension);

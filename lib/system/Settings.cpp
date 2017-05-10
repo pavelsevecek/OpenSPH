@@ -234,6 +234,9 @@ AutoPtr<RunSettings> RunSettings::instance (new RunSettings {
     { RunSettingsId::SPH_FINDER,                    "sph.finder",               int(FinderEnum::VOXEL) },
     { RunSettingsId::SPH_CONSERVE_ANGULAR_MOMENTUM, "sph.angular_momentum_correction", false },
 
+    /// Gravity
+    { RunSettingsId::GRAVITY_OPENING_ANGLE,         "gravity.opening_angle",    0.5_f },
+
     /// Timestepping parameters
     { RunSettingsId::TIMESTEPPING_INTEGRATOR,       "timestep.integrator",      int(TimesteppingEnum::PREDICTOR_CORRECTOR) },
     { RunSettingsId::TIMESTEPPING_COURANT,          "timestep.courant",         1._f },

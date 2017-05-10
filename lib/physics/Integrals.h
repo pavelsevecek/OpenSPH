@@ -1,7 +1,7 @@
 #pragma once
 
-#include "math/Means.h"
 #include "common/ForwardDecl.h"
+#include "math/Means.h"
 #include "objects/containers/Array.h"
 #include "objects/wrappers/Value.h"
 #include "system/Settings.h"
@@ -106,7 +106,7 @@ public:
 
 /// Returns means of given scalar quantity. By default means are computed from all particles, optionally only
 /// from particles of given body. Storage must contain quantity of given ID, checked by assert.
-class QuantityMeans : public Abstract::Integral<Means> {
+class QuantityMeans : public Abstract::Integral<MinMaxMean> {
 private:
     Variant<QuantityId, std::function<Float(const Size i)>> quantity;
     Optional<Size> bodyId;
@@ -118,7 +118,7 @@ public:
     /// Computes mean of user-defined function.
     QuantityMeans(const std::function<Float(const Size i)>& func, const Optional<Size> bodyId = NOTHING);
 
-    virtual Means evaluate(Storage& storage) const override;
+    virtual MinMaxMean evaluate(Storage& storage) const override;
 };
 
 /// Returns the quantity value value of given particle. Currently available only for scalar quantities.

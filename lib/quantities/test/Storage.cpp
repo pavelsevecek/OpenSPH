@@ -31,6 +31,22 @@ TEST_CASE("Storage insert", "[storage]") {
     REQUIRE(storage.getQuantityCnt() == 2);
 }
 
+TEST_CASE("Storage modify", "[storage]") {
+    Storage storage;
+    storage.insert<Float>(QuantityId::DENSITY, OrderEnum::ZERO, makeArray(1._f, 2._f));
+    REQUIRE_ASSERT(storage.modify<Float>(QuantityId::POSITIONS));
+    ArrayView<Float> rho, rho_mod;
+    tie(rho, rho_mod) = storage.modify<Float>(QuantityId::DENSITY);
+    REQUIRE(rho == rho_mod);
+    REQUIRE(rho_mod[0] == 1._f);
+    REQUIRE(rho_mod[1] == 2._f);
+    rho_mod[0] = 5._f;
+    rho_mod[1] = 6._f;
+    tie(rho, rho_mod) = storage.modify<Float>(QuantityId::DENSITY);
+    REQUIRE(rho == makeArray(1._f, 2._f));
+    REQUIRE(rho_mod == makeArray(5._f, 6._f));
+}
+
 TEST_CASE("Storage resize", "[storage]") {
     Storage storage;
     REQUIRE(storage.getQuantityCnt() == 0);
@@ -54,27 +70,6 @@ TEST_CASE("Storage resize", "[storage]") {
     REQUIRE(storage.getValue<Vector>(QuantityId::MASSES).size() == 5);
     REQUIRE(storage.getValue<Float>(QuantityId::DENSITY) == Array<Float>({ 3._f, 3._f, 3._f, 3._f, 3._f }));
 }
-
-/*TEST_CASE("Storage emplaceWithFunctor", "[storage]") {
-    Storage storage;
-    Array<Vector> r{ Vector(0._f), Vector(1._f), Vector(2._f), Vector(4._f) };
-    Array<Vector> origR = r.clone();
-    storage.insert<Vector, OrderEnum::SECOND_ORDER>(QuantityId::POSITIONS, std::move(r));
-
-    int idx = 0;
-    storage.emplaceWithFunctor<Vector, OrderEnum::FIRST_ORDER>(
-        QuantityId::MASSES, [&idx, &origR](const Vector& v, const int i) {
-            REQUIRE(v == origR[idx]);
-            REQUIRE(i == idx);
-            idx++;
-
-            return Vector(Float(i), 0._f, 0._f);
-        });
-    REQUIRE(storage.getValue<Vector>(QuantityId::MASSES) == Array<Vector>({ Vector(0._f, 0._f, 0._f),
-                                                                 Vector(1._f, 0._f, 0._f),
-                                                                 Vector(2._f, 0._f, 0._f),
-                                                                 Vector(3._f, 0._f, 0._f) }));
-}*/
 
 TEST_CASE("Clone storages", "[storage]") {
     Storage storage;
@@ -214,29 +209,6 @@ TEST_CASE("Storage material", "[storage]") {
     REQUIRE(getPressure(1) == 4._f);
     REQUIRE(getPressure(2) == 12._f);
     REQUIRE(getPressure(3) == 12._f);
-
-    /// \todo
-    /*Array<Material> mats;
-    Material m1;
-    m1.eos = Factory::getEos(settings);
-    mats.push(std::move(m1));
-
-    settings.set<Float>(BodySettingsId::ADIABATIC_INDEX, 25._f);
-    Material m2;
-    m2.eos = Factory::getEos(settings);
-    mats.push(std::move(m2));*/
-
-    /*storage.setMaterial(std::move(mats), [](const Vector& pos, int) {
-        if (pos[X] > 0._f) {
-            return 0;
-        } else {
-            return 1;
-        }
-    });
-    REQUIRE(pressure(0) == 12._f);
-    REQUIRE(pressure(1) == 24._f);
-    REQUIRE(pressure(2) == 24._f);
-    REQUIRE(pressure(3) == 12._f);*/
 }
 
 TEST_CASE("Storage removeAll", "[storage]") {

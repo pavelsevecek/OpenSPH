@@ -23,7 +23,7 @@ const Abstract::Eos& EosMaterial::getEos() const {
     return *eos;
 }
 
-void EosMaterial::create(Storage& storage) const {
+void EosMaterial::create(Storage& storage, const MaterialInitialContext& UNUSED(context)) const {
     const Float rho0 = this->getParam<Float>(BodySettingsId::DENSITY);
     const Float u0 = this->getParam<Float>(BodySettingsId::ENERGY);
     const Size n = storage.getParticleCnt();
@@ -53,9 +53,9 @@ SolidMaterial::SolidMaterial(const BodySettings& body,
     : EosMaterial(body, std::move(eos))
     , rheology(std::move(rheology)) {}
 
-void SolidMaterial::create(Storage& storage) const {
-    EosMaterial::create(storage);
-    rheology->create(storage, params);
+void SolidMaterial::create(Storage& storage, const MaterialInitialContext& context) const {
+    EosMaterial::create(storage, context);
+    rheology->create(storage, params, context);
 }
 
 void SolidMaterial::initialize(Storage& storage, const IndexSequence sequence) {

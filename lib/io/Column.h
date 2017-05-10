@@ -13,23 +13,25 @@
 NAMESPACE_SPH_BEGIN
 
 namespace Abstract {
-    /// \brief Base class for conversion of quantities into the output data. 
+    /// \brief Base class for conversion of quantities into the output data.
 
-    /// When TextOutput is selected, this represents a single column of values in the file, 
+    /// When TextOutput is selected, this represents a single column of values in the file,
     /// hence the name.
     /// Ordinarily, we need to store the quantity values and their derivatives directly,
     /// derived classes ValueColumn and DerivativeColumn can be used for this purpose.
     /// Other implementations can be used to store values that are not directly saved in any quantity,
     /// such as smoothing lenghts (stored as 4th component of the position vectors), or actual
     /// values of stress tensor (quantity contains undamaged values).
-    /// The class can also be used to save arbitrary data, such as particle index, current 
+    /// The class can also be used to save arbitrary data, such as particle index, current
     /// time of the simulation, etc. This can be useful when using the output files in additional
     /// scripts, for example when creating plots in Gnuplot.
     /// \todo There should also be a conversion from code units to user-selected output units
     class Column : public Polymorphic {
     public:
         /// Returns the value of the output column for given particle.
-        virtual Value evaluate(const Storage& storage, const Statistics& stats, const Size particleIdx) const = 0;
+        virtual Value evaluate(const Storage& storage,
+            const Statistics& stats,
+            const Size particleIdx) const = 0;
 
         /// Reads the value of the column and saves it into the storage, if possible.
         virtual void accumulate(Storage& storage, const Value value, const Size particleIdx) const = 0;
@@ -50,7 +52,9 @@ public:
     ValueColumn(const QuantityId id)
         : id(id) {}
 
-    virtual Value evaluate(const Storage& storage, const Statistics& UNUSED(stats), const Size particleIdx) const override {
+    virtual Value evaluate(const Storage& storage,
+        const Statistics& UNUSED(stats),
+        const Size particleIdx) const override {
         ArrayView<const TValue> value = storage.getValue<TValue>(id);
         return value[particleIdx];
     }
@@ -81,7 +85,9 @@ public:
     DerivativeColumn(const QuantityId id)
         : id(id) {}
 
-    virtual Value evaluate(const Storage& storage, const Statistics& UNUSED(stats),const Size particleIdx) const override {
+    virtual Value evaluate(const Storage& storage,
+        const Statistics& UNUSED(stats),
+        const Size particleIdx) const override {
         ArrayView<const TValue> value = storage.getDt<TValue>(id);
         return value[particleIdx];
     }
@@ -112,7 +118,9 @@ public:
     SecondDerivativeColumn(const QuantityId id)
         : id(id) {}
 
-    virtual Value evaluate(const Storage& storage, const Statistics& UNUSED(stats), const Size particleIdx) const override {
+    virtual Value evaluate(const Storage& storage,
+        const Statistics& UNUSED(stats),
+        const Size particleIdx) const override {
         ArrayView<const TValue> value = storage.getAll<TValue>(id)[2];
         return value[particleIdx];
     }
@@ -135,13 +143,15 @@ public:
 /// Returns smoothing lengths of particles
 class SmoothingLengthColumn : public Abstract::Column {
 public:
-    virtual Value evaluate(const Storage& storage,const Statistics& UNUSED(stats), const Size particleIdx) const override {
+    virtual Value evaluate(const Storage& storage,
+        const Statistics& UNUSED(stats),
+        const Size particleIdx) const override {
         ArrayView<const Vector> value = storage.getValue<Vector>(QuantityId::POSITIONS);
         return value[particleIdx][H];
     }
 
     virtual void accumulate(Storage& storage, const Value value, const Size particleIdx) const override {
-        Array<Vector>& array = storage.getValue<Vector>(QuantityIds::POSITIONS);
+        Array<Vector>& array = storage.getValue<Vector>(QuantityId::POSITIONS);
         array.resize(particleIdx + 1);
         array[particleIdx][H] = value.get<Float>();
     }
@@ -160,13 +170,15 @@ public:
 template <typename TValue>
 class DamageColumn : public Abstract::Column {
 public:
-    virtual Value evaluate(const Storage& storage, const Statistics& UNUSED(stats),const Size particleIdx) const override {
+    virtual Value evaluate(const Storage& storage,
+        const Statistics& UNUSED(stats),
+        const Size particleIdx) const override {
         ArrayView<const TValue> value = storage.getValue<TValue>(QuantityId::DAMAGE);
         return pow<3>(value[particleIdx]);
     }
 
     virtual void accumulate(Storage& storage, const Value value, const Size particleIdx) const override {
-        Array<TValue>& array = storage.getValue<TValue>(QuantityIds::DAMAGE);
+        Array<TValue>& array = storage.getValue<TValue>(QuantityId::DAMAGE);
         array.resize(particleIdx + 1);
         array[particleIdx] = root<3>(value.get<TValue>());
     }
@@ -183,7 +195,9 @@ public:
 /// Helper column printing particle numbers.
 class ParticleNumberColumn : public Abstract::Column {
 public:
-    virtual Value evaluate(Storage& UNUSED(storage), const Size particleIdx) const override {
+    virtual Value evaluate(const Storage& UNUSED(storage),
+        const Statistics& UNUSED(stats),
+        const Size particleIdx) const override {
         return particleIdx;
     }
 
@@ -204,8 +218,10 @@ public:
 class TimeColumn : public Abstract::Column {
 
 public:
-    virtual Value evaluate(Storage& UNUSED(storage), const Statistics& stats,const Size UNUSED(particleIdx)) const override {
-        return stats->get<Float>(StatisticsIds::TOTAL_TIME);
+    virtual Value evaluate(const Storage& UNUSED(storage),
+        const Statistics& stats,
+        const Size UNUSED(particleIdx)) const override {
+        return stats.get<Float>(StatisticsId::TOTAL_TIME);
     }
 
     virtual void accumulate(Storage&, const Value, const Size) const override {

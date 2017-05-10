@@ -26,6 +26,7 @@ namespace Abstract {
     class Logger;
     class Output;
     class Rng;
+    class EquationTerm;
 }
 
 
@@ -33,11 +34,14 @@ class Storage;
 
 /// Class providing a convenient way to construct objects from settings.
 namespace Factory {
+    /// \todo move SPH specific stuff elsewhere
     AutoPtr<Abstract::Eos> getEos(const BodySettings& settings);
 
     AutoPtr<Abstract::Rheology> getRheology(const BodySettings& settings);
 
     AutoPtr<Abstract::Damage> getDamage(const BodySettings& settings);
+
+    AutoPtr<Abstract::EquationTerm> getArtificialViscosity(const RunSettings& settings);
 
     AutoPtr<Abstract::TimeStepping> getTimeStepping(const RunSettings& settings,
         const SharedPtr<Storage>& storage);

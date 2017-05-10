@@ -11,23 +11,12 @@ VoxelFinder::~VoxelFinder() = default;
 
 void VoxelFinder::buildImpl(ArrayView<const Vector> points) {
     PROFILE_SCOPE("VoxelFinder::buildImpl");
-    // number of voxels, free parameter
-    const Size lutSize = root<3>(points.size()) + 1;
-    // find bounding box
-    Box boundingBox;
-    for (const Vector& v : points) {
-        boundingBox.extend(v);
-    }
     if (lut.empty()) {
-        lut = LookupMap(lutSize, boundingBox);
-    } else {
-        lut.update(boundingBox);
+        // number of voxels, free parameter
+        const Size lutSize = root<3>(points.size()) + 1;
+        lut = LookupMap(lutSize);
     }
-    // put particles into voxels
-    for (Size i = 0; i < points.size(); ++i) {
-        Indices idxs = lut.map(points[i]);
-        lut(idxs).push(i);
-    }
+    lut.update(points);
 }
 
 void VoxelFinder::rebuildImpl(ArrayView<const Vector> points) {
