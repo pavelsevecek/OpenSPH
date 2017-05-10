@@ -61,7 +61,7 @@ void AsteroidRotation::setUp() {
     output->add(makeAuto<ValueColumn<Float>>(QuantityId::DAMAGE));
     output->add(makeAuto<ValueColumn<TracelessTensor>>(QuantityId::DEVIATORIC_STRESS));
 
-    logFiles.push(makeAuto<IntegralsLog>("integrals.txt"));
+    logFiles.push(makeAuto<IntegralsLog>("integrals.txt", 1));
 
     callbacks = makeAuto<GuiCallbacks>(model);
 }

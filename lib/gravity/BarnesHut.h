@@ -73,6 +73,8 @@ public:
                     if (cosPhi < cosTheta) {
                         const Vector dr = monopoles[i].r - r;
                         f += G * monopoles[i].m * dr / pow<3>(getLength(r));
+                    } else {
+                        Array<Size>& neighs = lut(idxs);
                     }
                 }
             }

@@ -31,7 +31,13 @@ struct TestDerivative : public Abstract::Derivative {
         initialized = true;
     }
 
-    virtual void compute(const Size idx,
+    virtual void evalSymmetric(const Size idx,
+        ArrayView<const Size> UNUSED(neighs),
+        ArrayView<const Vector> UNUSED(grads)) override {
+        flags[idx]++;
+    }
+
+    virtual void evalAsymmetric(const Size idx,
         ArrayView<const Size> UNUSED(neighs),
         ArrayView<const Vector> UNUSED(grads)) override {
         flags[idx]++;

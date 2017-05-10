@@ -17,7 +17,7 @@ NAMESPACE_SPH_BEGIN
 
 class XSph : public Abstract::EquationTerm {
 private:
-    class Derivative : public Abstract::Derivative {
+    class Derivative : public DerivativeTemplate<Derivative> {
     private:
         /// \todo avoid constructing new kernel for each thread
         SymmetrizeSmoothingLengths<LutKernel<DIMENSIONS>> kernel;
@@ -44,15 +44,16 @@ private:
             tie(r, v, dummy) = input.getAll<Vector>(QuantityId::POSITIONS);
         }
 
-        virtual void compute(const Size i,
-            ArrayView<const Size> neighs,
-            ArrayView<const Vector> UNUSED(grads)) override {
+        template <bool Symmetric>
+        INLINE void eval(const Size i, ArrayView<const Size> neighs, ArrayView<const Vector> UNUSED(grads)) {
             for (Size k = 0; k < neighs.size(); ++k) {
                 const Size j = neighs[k];
                 const Vector f =
                     epsilon * (v[j] - v[i]) / (0.5_f * (rho[i] + rho[j])) * kernel.value(r[i], r[j]);
                 dr[i] += m[j] * f;
-                dr[j] -= m[i] * f;
+                if (Symmetric) {
+                    dr[j] -= m[i] * f;
+                }
             }
         }
     };

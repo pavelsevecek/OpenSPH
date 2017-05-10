@@ -39,7 +39,7 @@ namespace Abstract {
     };
 }
 
-class PressureGradient : public Abstract::Derivative {
+class PressureGradient : public DerivativeTemplate<PressureGradient> {
 private:
     ArrayView<const Float> p, rho, m;
     ArrayView<Vector> dv;
@@ -55,14 +55,17 @@ public:
         dv = results.getValue<Vector>(QuantityId::POSITIONS);
     }
 
-    virtual void compute(const Size i, ArrayView<const Size> neighs, ArrayView<const Vector> grads) override {
+    template <bool Symmetrize>
+    INLINE void eval(const Size i, ArrayView<const Size> neighs, ArrayView<const Vector> grads) {
         ASSERT(neighs.size() == grads.size());
         for (Size k = 0; k < neighs.size(); ++k) {
             const Size j = neighs[k];
             const Vector f = (p[i] + p[j]) / (rho[i] * rho[j]) * grads[k];
             ASSERT(isReal(f));
             dv[i] -= m[j] * f;
-            dv[j] += m[i] * f;
+            if (Symmetrize) {
+                dv[j] += m[i] * f;
+            }
         }
     }
 };
@@ -105,7 +108,7 @@ public:
     }
 };
 
-class StressDivergence : public Abstract::Derivative {
+class StressDivergence : public DerivativeTemplate<StressDivergence> {
 private:
     ArrayView<const Float> rho, m;
     ArrayView<const TracelessTensor> s;
@@ -126,7 +129,8 @@ public:
         dv = results.getValue<Vector>(QuantityId::POSITIONS);
     }
 
-    virtual void compute(const Size i, ArrayView<const Size> neighs, ArrayView<const Vector> grads) override {
+    template <bool Symmetrize>
+    INLINE void eval(const Size i, ArrayView<const Size> neighs, ArrayView<const Vector> grads) {
         ASSERT(neighs.size() == grads.size());
         for (Size k = 0; k < neighs.size(); ++k) {
             const Size j = neighs[k];
@@ -136,7 +140,9 @@ public:
             const Vector f = (s[i] + s[j]) / (rho[i] * rho[j]) * grads[k];
             ASSERT(isReal(f));
             dv[i] += m[j] * f;
-            dv[j] -= m[i] * f;
+            if (Symmetrize) {
+                dv[j] -= m[i] * f;
+            }
         }
     }
 };
@@ -413,7 +419,7 @@ public:
 
 class NeighbourCountTerm : public Abstract::EquationTerm {
 private:
-    class NeighbourCountImpl : public Abstract::Derivative {
+    class NeighbourCountImpl : public DerivativeTemplate<NeighbourCountImpl> {
     private:
         ArrayView<Size> neighCnts;
 
@@ -426,14 +432,17 @@ private:
             neighCnts = results.getValue<Size>(QuantityId::NEIGHBOUR_CNT);
         }
 
-        virtual void compute(const Size i,
+        template <bool Symmetrize>
+        INLINE void eval(const Size i,
             ArrayView<const Size> neighs,
-            ArrayView<const Vector> UNUSED_IN_RELEASE(grads)) override {
+            ArrayView<const Vector> UNUSED_IN_RELEASE(grads)) {
             ASSERT(neighs.size() == grads.size());
             neighCnts[i] += neighs.size();
-            for (Size k = 0; k < neighs.size(); ++k) {
-                const Size j = neighs[k];
-                neighCnts[j]++;
+            if (Symmetrize) {
+                for (Size k = 0; k < neighs.size(); ++k) {
+                    const Size j = neighs[k];
+                    neighCnts[j]++;
+                }
             }
         }
     };

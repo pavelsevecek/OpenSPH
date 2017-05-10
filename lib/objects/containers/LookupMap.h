@@ -30,6 +30,9 @@ public:
             boundingBox.extend(v);
         }
         this->extendBox();
+        for (auto& a : storage) {
+            a.clear();
+        }
         // put particles into voxels
         for (Size i = 0; i < points.size(); ++i) {
             Indices idxs = this->map(points[i]);

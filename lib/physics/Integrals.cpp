@@ -6,7 +6,7 @@
 NAMESPACE_SPH_BEGIN
 
 
-Float TotalMass::evaluate(Storage& storage) const {
+Float TotalMass::evaluate(const Storage& storage) const {
     Float total(0._f);
     ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASSES);
     ASSERT(!m.empty());
@@ -21,7 +21,7 @@ TotalMomentum::TotalMomentum(const Float omega)
     : omega(0._f, 0._f, omega) {}
 
 
-Vector TotalMomentum::evaluate(Storage& storage) const {
+Vector TotalMomentum::evaluate(const Storage& storage) const {
     BasicVector<double> total(0.); // compute in double precision to avoid round-off error during accumulation
     ArrayView<const Vector> r, v, dv;
     tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
@@ -37,7 +37,7 @@ Vector TotalMomentum::evaluate(Storage& storage) const {
 TotalAngularMomentum::TotalAngularMomentum(const Float omega)
     : omega(0._f, 0._f, omega) {}
 
-Vector TotalAngularMomentum::evaluate(Storage& storage) const {
+Vector TotalAngularMomentum::evaluate(const Storage& storage) const {
     BasicVector<double> total(0.);
     ArrayView<const Vector> r, v, dv;
     tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
@@ -53,7 +53,7 @@ Vector TotalAngularMomentum::evaluate(Storage& storage) const {
 TotalEnergy::TotalEnergy(const Float omega)
     : omega(0._f, 0._f, omega) {}
 
-Float TotalEnergy::evaluate(Storage& storage) const {
+Float TotalEnergy::evaluate(const Storage& storage) const {
     double total = 0.;
     ArrayView<const Vector> r, v, dv;
     tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
@@ -70,7 +70,7 @@ Float TotalEnergy::evaluate(Storage& storage) const {
 TotalKineticEnergy::TotalKineticEnergy(const Float omega)
     : omega(0._f, 0._f, omega) {}
 
-Float TotalKineticEnergy::evaluate(Storage& storage) const {
+Float TotalKineticEnergy::evaluate(const Storage& storage) const {
     double total = 0.;
     ArrayView<const Vector> r, v, dv;
     tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
@@ -83,7 +83,7 @@ Float TotalKineticEnergy::evaluate(Storage& storage) const {
     return Float(total);
 }
 
-Float TotalInternalEnergy::evaluate(Storage& storage) const {
+Float TotalInternalEnergy::evaluate(const Storage& storage) const {
     double total = 0.;
     ArrayView<const Float> u = storage.getValue<Float>(QuantityId::ENERGY);
     ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASSES);
@@ -98,7 +98,7 @@ Float TotalInternalEnergy::evaluate(Storage& storage) const {
 CenterOfMass::CenterOfMass(const Optional<Size> bodyId)
     : bodyId(bodyId) {}
 
-Vector CenterOfMass::evaluate(Storage& storage) const {
+Vector CenterOfMass::evaluate(const Storage& storage) const {
     Vector com(0._f);
     Float totalMass = 0._f;
     ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASSES);
@@ -131,7 +131,7 @@ QuantityMeans::QuantityMeans(const std::function<Float(const Size i)>& func, con
     : quantity(func)
     , bodyId(bodyId) {}
 
-MinMaxMean QuantityMeans::evaluate(Storage& storage) const {
+MinMaxMean QuantityMeans::evaluate(const Storage& storage) const {
     MinMaxMean means;
     auto accumulate = [&](const auto& getter) {
         const Size size = storage.getParticleCnt();

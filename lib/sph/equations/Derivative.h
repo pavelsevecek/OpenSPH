@@ -40,13 +40,35 @@ namespace Abstract {
         /// \param idx Index of first interacting particle
         /// \param neighs Array of neighbours of idx-th particle
         /// \param grads Computed gradients of the SPH kernel
-        virtual void compute(const Size idx, ArrayView<const Size> neighs, ArrayView<const Vector> grads) = 0;
+        virtual void evalSymmetric(const Size idx,
+            ArrayView<const Size> neighs,
+            ArrayView<const Vector> grads) = 0;
+
+        virtual void evalAsymmetric(const Size idx,
+            ArrayView<const Size> neighs,
+            ArrayView<const Vector> grads) = 0;
     };
 }
 
+template <typename TDerived>
+class DerivativeTemplate : public Abstract::Derivative {
+public:
+    virtual void evalSymmetric(const Size idx,
+        ArrayView<const Size> neighs,
+        ArrayView<const Vector> grads) override {
+        static_cast<TDerived*>(this)->template eval<true>(idx, neighs, grads);
+    }
+
+    virtual void evalAsymmetric(const Size idx,
+        ArrayView<const Size> neighs,
+        ArrayView<const Vector> grads) override {
+        static_cast<TDerived*>(this)->template eval<false>(idx, neighs, grads);
+    }
+};
+
 namespace Detail {
     template <typename Type, QuantityId Id, typename TDerived>
-    class VelocityTemplate : public Abstract::Derivative {
+    class VelocityTemplate : public DerivativeTemplate<VelocityTemplate<Type, Id, TDerived>> {
     private:
         ArrayView<const Float> rho, m;
         ArrayView<const Vector> v;
@@ -63,15 +85,16 @@ namespace Detail {
             deriv = results.getValue<Type>(Id);
         }
 
-        virtual void compute(const Size i,
-            ArrayView<const Size> neighs,
-            ArrayView<const Vector> grads) override {
+        template <bool Symmetrize>
+        INLINE void eval(const Size i, ArrayView<const Size> neighs, ArrayView<const Vector> grads) {
             ASSERT(neighs.size() == grads.size());
             for (Size k = 0; k < neighs.size(); ++k) {
                 const Size j = neighs[k];
                 const auto dv = TDerived::func(v[j] - v[i], grads[k]);
                 deriv[i] += m[j] / rho[j] * dv;
-                deriv[j] += m[i] / rho[i] * dv;
+                if (Symmetrize) {
+                    deriv[j] += m[i] / rho[i] * dv;
+                }
             }
         }
     };
@@ -109,7 +132,7 @@ namespace VelocityGradientCorrection {
 }
 
 template <typename TCorrection = VelocityGradientCorrection::NoCorrection>
-class StrengthVelocityGradient : public Abstract::Derivative {
+class StrengthVelocityGradient : public DerivativeTemplate<StrengthVelocityGradient<TCorrection>> {
 private:
     ArrayView<const Float> rho, m;
     ArrayView<const Vector> v;
@@ -132,7 +155,8 @@ public:
         correction.initialize(input);
     }
 
-    virtual void compute(const Size i, ArrayView<const Size> neighs, ArrayView<const Vector> grads) override {
+    template <bool Symmetrize>
+    INLINE void eval(const Size i, ArrayView<const Size> neighs, ArrayView<const Vector> grads) {
         ASSERT(neighs.size() == grads.size());
         for (Size k = 0; k < neighs.size(); ++k) {
             const Size j = neighs[k];
@@ -149,10 +173,14 @@ public:
                 const Tensor t = outer(dv, grads[k]);
                 ASSERT(isReal(t));
                 deriv[i] += m[j] / rho[j] * t;
-                deriv[j] += m[i] / rho[i] * t;
+                if (Symmetrize) {
+                    deriv[j] += m[i] / rho[i] * t;
+                }
             } else {
                 deriv[i] += m[j] / rho[j] * outer(dv, correction(i, grads[k]));
-                deriv[j] += m[i] / rho[i] * outer(dv, correction(j, grads[k]));
+                if (Symmetrize) {
+                    deriv[j] += m[i] / rho[i] * outer(dv, correction(j, grads[k]));
+                }
             }
         }
     }
@@ -169,7 +197,7 @@ public:
 /// like we do for any time-dependent quantities.
 ///
 /// See paper 'Collisions between equal-sized ice grain agglomerates' by Schafer et al. (2007).
-class AngularMomentumCorrectionTensor : public Abstract::Derivative {
+class AngularMomentumCorrectionTensor : public DerivativeTemplate<AngularMomentumCorrectionTensor> {
 private:
     ArrayView<const Float> m;
     ArrayView<const Float> rho;
@@ -187,13 +215,16 @@ public:
         C = results.getValue<Tensor>(QuantityId::ANGULAR_MOMENTUM_CORRECTION);
     }
 
-    virtual void compute(const Size i, ArrayView<const Size> neighs, ArrayView<const Vector> grads) override {
+    template <bool Symmetrize>
+    INLINE void eval(const Size i, ArrayView<const Size> neighs, ArrayView<const Vector> grads) {
         ASSERT(neighs.size() == grads.size());
         for (Size k = 0; k < neighs.size(); ++k) {
             const Size j = neighs[k];
             Tensor t = outer(r[j] - r[i], grads[k]); // symmetric in i,j ?
             C[i] += m[j] / rho[j] * t;
-            C[j] += m[i] / rho[i] * t;
+            if (Symmetrize) {
+                C[j] += m[i] / rho[i] * t;
+            }
         }
     }
 };
@@ -278,10 +309,15 @@ public:
         }
     }
 
-    void compute(const Size idx, ArrayView<const Size> neighs, ArrayView<const Vector> grads) {
+    template <bool Symmetrize>
+    void eval(const Size idx, ArrayView<const Size> neighs, ArrayView<const Vector> grads) {
         ASSERT(neighs.size() == grads.size());
         for (auto& deriv : derivatives) {
-            deriv->compute(idx, neighs, grads);
+            if (Symmetrize) {
+                deriv->evalSymmetric(idx, neighs, grads);
+            } else {
+                deriv->evalAsymmetric(idx, neighs, grads);
+            }
         }
     }
 

@@ -141,7 +141,7 @@ protected:
                     data.grads.emplaceBack(gr);
                     data.idxs.emplaceBack(j);
                 }
-                data.derivatives.compute(i, data.idxs, data.grads);
+                data.derivatives.eval<true>(i, data.idxs, data.grads);
             }
         };
         PROFILE_SCOPE("GenericSolver main loop");

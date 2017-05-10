@@ -11,23 +11,47 @@ NAMESPACE_SPH_BEGIN
 
 namespace Abstract {
     class LogFile : public Polymorphic {
+    private:
+        Size counter;
+        Size interval;
+
     protected:
-        SharedPtr<Abstract::Logger> logger;
+        AutoPtr<Abstract::Logger> logger;
 
     public:
-        LogFile(const SharedPtr<Abstract::Logger>& logger)
-            : logger(logger) {}
+        /// Constructs the log file.
+        /// \param logger Logger for the written data. Must not be nullptr.
+        /// \param interval Interval of logs in time steps. Must be a positive value; if interval is 1, the
+        ///                 log is written every time step.
+        LogFile(AutoPtr<Abstract::Logger>&& logger, const Size interval = 1)
+            : counter(0)
+            , interval(interval)
+            , logger(std::move(logger)) {
+            ASSERT(logger);
+            ASSERT(interval > 0);
+        }
 
-        virtual void write(Storage& storage, const Statistics& stats) = 0;
+        /// Writes the log, given data in storage and statistics
+        void write(const Storage& storage, const Statistics& stats) {
+            counter++;
+            if (counter == interval) {
+                this->writeImpl(storage, stats);
+                counter = 0;
+            }
+        }
+
+    protected:
+        virtual void writeImpl(const Storage& storage, const Statistics& stats) = 0;
     };
 }
 
 class CommonStatsLog : public Abstract::LogFile {
 public:
-    CommonStatsLog(const SharedPtr<Abstract::Logger>& logger)
-        : Abstract::LogFile(logger) {}
+    CommonStatsLog(AutoPtr<Abstract::Logger>&& logger)
+        : Abstract::LogFile(std::move(logger), 1) {}
 
-    virtual void write(Storage& UNUSED(storage), const Statistics& stats) {
+protected:
+    virtual void writeImpl(const Storage& UNUSED(storage), const Statistics& stats) {
         logger->write("Output #",
             stats.get<int>(StatisticsId::INDEX),
             "  time = ",
@@ -54,10 +78,11 @@ private:
     TotalAngularMomentum angularMomentum;
 
 public:
-    IntegralsLog(const std::string& path)
-        : Abstract::LogFile(makeShared<FileLogger>(path)) {}
+    IntegralsLog(const std::string& path, const Size interval)
+        : Abstract::LogFile(makeAuto<FileLogger>(path), interval) {}
 
-    virtual void write(Storage& storage, const Statistics& stats) {
+protected:
+    virtual void writeImpl(const Storage& storage, const Statistics& stats) {
         const Float time = stats.get<Float>(StatisticsId::TOTAL_TIME);
         logger->write(time,
             " ",
