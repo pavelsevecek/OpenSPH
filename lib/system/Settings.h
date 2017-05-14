@@ -628,9 +628,13 @@ enum class BodySettingsId {
 
     RHEOLOGY_DAMAGE,
 
+    /// Shear modulus mu (a.k.a Lame's second parameter) of the material
     SHEAR_MODULUS,
 
     YOUNG_MODULUS,
+
+    /// Elastic modulus lambda (a.k.a Lame's first parameter) of the material
+    ELASTIC_MODULUS,
 
     /// Elasticity limit of the von Mises yielding criterion
     ELASTICITY_LIMIT,

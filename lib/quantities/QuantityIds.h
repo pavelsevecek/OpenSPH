@@ -50,6 +50,11 @@ enum class QuantityId {
                        /// total energy of the system, otherwise the energy will not be conserved.
     ///@}
 
+    /// \name Stress-strain analysis
+    ///@{
+    DISPLACEMENT, ///< Displacement vector, a solution of the stress analysis
+    ///@}
+
     /// \name Intermediate quantities
     ///@{
     VELOCITY_GRADIENT,           ///< Velocity gradient

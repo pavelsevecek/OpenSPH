@@ -116,7 +116,10 @@ SOURCES += \
     ../lib/objects/wrappers/test/SharedPtr.cpp \
     ../lib/objects/wrappers/test/LockingPtr.cpp \
     ../lib/math/test/Means.cpp \
-    ../lib/sph/solvers/test/ContinuitySolver.cpp
+    ../lib/sph/solvers/test/ContinuitySolver.cpp \
+    ../lib/math/test/SparseMatrix.cpp \
+    ../lib/sph/equations/test/Potentials.cpp \
+    ../lib/sph/solvers/test/StaticSolver.cpp
 
 HEADERS += \
     utils/Utils.h \

@@ -5,6 +5,7 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2017
 
+#include "physics/Constants.h"
 #include "sph/Material.h"
 #include "sph/equations/Derivative.h"
 #include "system/Profiler.h"
@@ -255,34 +256,6 @@ public:
             OrderEnum::ZERO,
             material.getParam<TracelessTensor>(BodySettingsId::STRESS_TENSOR));
     }
-};
-
-class CentripetalForce : public Abstract::EquationTerm {
-private:
-    Float omega;
-
-public:
-    CentripetalForce(const RunSettings& settings) {
-        omega = settings.get<Float>(RunSettingsId::FRAME_ANGULAR_FREQUENCY);
-    }
-
-    virtual void setDerivatives(DerivativeHolder& UNUSED(derivatives),
-        const RunSettings& UNUSED(settings)) override {}
-
-    virtual void initialize(Storage& UNUSED(storage)) override {}
-
-    virtual void finalize(Storage& storage) override {
-        ArrayView<Vector> r, v, dv;
-        tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
-        const Vector unitZ = Vector(0._f, 0._f, 1._f);
-        TODO("parallelize");
-        for (Size i = 0; i < r.size(); ++i) {
-            dv[i] += omega * (r[i] - unitZ * dot(r[i], unitZ));
-            // no energy term - energy is not generally conserved when external force is used
-        }
-    }
-
-    virtual void create(Storage& UNUSED(storage), Abstract::Material& UNUSED(material)) const override {}
 };
 
 enum class DensityEvolution {

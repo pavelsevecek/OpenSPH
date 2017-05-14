@@ -44,6 +44,11 @@ namespace Abstract {
             ArrayView<const Size> neighs,
             ArrayView<const Vector> grads) = 0;
 
+        /// Compute derivatives from interaction of particle pairs. Only compute derivatives of particle i,
+        /// the function is called for every particle.
+        /// \param idx Index of first interacting particle
+        /// \param neighs Array of neighbours of idx-th particle
+        /// \param grads Computed gradients of the SPH kernel
         virtual void evalAsymmetric(const Size idx,
             ArrayView<const Size> neighs,
             ArrayView<const Vector> grads) = 0;

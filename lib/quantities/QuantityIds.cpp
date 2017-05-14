@@ -53,6 +53,8 @@ std::string getQuantityName(const QuantityId key) {
         return "alpha_AV";
     case QuantityId::AV_BETA:
         return "beta_AV";
+    case QuantityId::DISPLACEMENT:
+        return "Displacement";
     case QuantityId::NEIGHBOUR_CNT:
         return "Neigh. cnt";
     case QuantityId::FLAG:

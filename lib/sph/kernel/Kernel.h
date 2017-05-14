@@ -282,6 +282,27 @@ public:
     }
 };
 
+/// SPH approximation of laplacian, computed from a kernel gradient. Is more stable than directly applying
+/// second derivatives to kernel and has the same error O(h^2).
+/// Can be used to compute laplacian of both scalar and vector quantities.
+/// \param value Scalar or vector value from which we compute the laplacian
+/// \param grad Kernel gradient corresponding to vector dr
+/// \todo check sign! and test
+template <typename T>
+INLINE T laplacian(const T& value, const Vector& grad, const Vector& dr) {
+    ASSERT(getSqrLength(dr) != 0._f, dr);
+    return -2._f * value * dot(dr, grad) / getSqrLength(dr);
+}
+
+/// Second derivative of vector quantity, applying gradient on a divergence. Doesn't make sense for scalar
+/// quantities. See Price 2010 \cite Price_2010
+/// \todo test
+INLINE Vector gradientOfDivergence(const Vector& value, const Vector& grad, const Vector& dr) {
+    const Float rSqr = getSqrLength(dr);
+    const Float f = dot(dr, grad) / rSqr;
+    return -(DIMENSIONS + 2) * dot(value, dr) * dr * f / rSqr + value * f;
+}
+
 
 /// Symmetrization of the kernel with a respect to different smoothing lenths
 /// Two possibilities - Symmetrized kernel W_ij = 0.5(W_i + W_j)
