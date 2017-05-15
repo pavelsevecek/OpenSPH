@@ -9,15 +9,14 @@
 #include "math/Means.h"
 #include "objects/wrappers/Variant.h"
 
-/// Convenient object for storing a single value of different types: scalar, vector, tensor, means or integer.
+NAMESPACE_SPH_BEGIN
+
+/// \brief Convenient object for storing a single value of different types
+///
+/// Object can currently store scalar, vector, tensor, means and integer.
 /// This is intended mainly for logging and output routines, as the object provides generic way to store
 /// different types and print stored values. There is no need to pass types as template arguments, so the
 /// object Value is a suitable return value or parameter of virtual functions (that cannot be templated).
-/// Pavel Sevecek 2017
-/// sevecek at sirrah.troja.mff.cuni.cz
-
-NAMESPACE_SPH_BEGIN
-
 class Value {
 private:
     Variant<Size, Float, Vector, Tensor, TracelessTensor, Means> storage;

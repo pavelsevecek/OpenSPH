@@ -15,12 +15,13 @@ struct SuccessTag {};
 struct FailTag {};
 
 /// Expected-like class that does not contain any value. Either contains "success" (no error), or error
-/// message. Unlike Expected, error message is assumed to be std::string, for simplicity.
-class Outcome {
+/// message. The error message must be default-constructible.
+template<typename TError>
+class BasicOutcome {
 private:
-    std::string e;
+    Optional<TError> e;
 
-    static constexpr auto defaultError = "error";
+    const static TError defaultError = TError();
 
 public:
     /// Constructs object with success (no error)
@@ -32,18 +33,23 @@ public:
 
     /// Constructs object from boolean result; if true, reports success, otherwise reports default error
     /// message.
-    INLINE Outcome(const bool value)
-        : e(value ? "" : defaultError) {}
+    INLINE Outcome(const bool value) {
+		if (value) {
+			e.emplace(defaultError);
+		}
+	}
 
-    /// Constructs object given error message.
-    INLINE Outcome(const std::string& error)
-        : e(error) {
-        ASSERT(!e.empty());
-    }
+    /// Constructs object given error message using copy constructor.
+    INLINE Outcome(const TError& error)
+        : e(error) {}
+		
+	/// Constructs object given error message using move constructor.
+	INLINE Outcome(TError&& error)
+        : e(std::move(error)) {}
 
     /// Checks whether the object contains success, i.e. no error is stored.
     INLINE bool success() const {
-        return e.empty();
+        return bool(e);
     }
 
     /// Conversion to bool, returning true if no error is stored.
@@ -57,14 +63,17 @@ public:
     }
 
     /// Returns the error message. If the object contains success (no error), asserts.
-    INLINE const std::string& error() const {
+    INLINE const TError& error() const {
         ASSERT(!success());
         return e;
     }
 };
+ 
+/// Alias for string error message
+using Outcome = BasicOutcome<std::string>;
 
 /// Global constant for successful outcome
-const Outcome SUCCESS{ SuccessTag{} };
+const SuccessTag SUCCESS;
 
 namespace Detail {
     INLINE void printArgs(std::stringstream&) {}
