@@ -54,8 +54,7 @@ public:
 };
 
 /// Solid material is a generalization of material with equation of state, also having rheology that
-/// modifies
-/// pressure and stress tensor.
+/// modifies pressure and stress tensor.
 class SolidMaterial : public EosMaterial {
 private:
     AutoPtr<Abstract::Rheology> rheology;

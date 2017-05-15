@@ -27,8 +27,23 @@ public:
         const Size refRank =
             (flags.has(FinderFlags::FIND_ONLY_SMALLER_H)) ? this->rankH[index] : this->values.size();
         for (Size i = 0; i < this->values.size(); ++i) {
-            Float distSqr = getSqrLength(this->values[i] - this->values[index]);
+            const Float distSqr = getSqrLength(this->values[i] - this->values[index]);
             if (rankH[i] < refRank && distSqr < sqr(radius)) {
+                neighbours.push(NeighbourRecord{ i, distSqr });
+            }
+        }
+        return neighbours.size();
+    }
+	
+	    virtual Size findNeighbours(const Vector& position,
+                               const Float radius,
+                               Array<NeighbourRecord>& neighbours,
+                               Flags<FinderFlags> flags  = EMPTY_FLAGS,
+                               const Float UNUSED(error) = 0._f) const override {
+        neighbours.clear();
+        for (Size i = 0; i < this->values.size(); ++i) {
+            const Float distSqr = getSqrLength(this->values[i] - position);
+            if (distSqr < sqr(radius)) {
                 neighbours.push(NeighbourRecord{ i, distSqr });
             }
         }

@@ -57,13 +57,20 @@ namespace Abstract {
             this->rebuildImpl(values);
         }
 
-        /// Finds all points within given radius from a point.
+        /// Finds all points within given radius from the point given by index.
         /// \param point
         /// \param radius
         /// \param neighbours List of neighbours, as indices to the array
         /// \param error Approximate solution
         /// \return The number of neighbours.
         virtual Size findNeighbours(const Size index,
+            const Float radius,
+            Array<NeighbourRecord>& neighbours,
+            Flags<FinderFlags> flags = EMPTY_FLAGS,
+            const Float error = 0._f) const = 0;
+		
+        /// Finds all points within given radius from given position. The position may not correspond to any point.
+		virtual Size findNeighbours(const Vector& position,
             const Float radius,
             Array<NeighbourRecord>& neighbours,
             Flags<FinderFlags> flags = EMPTY_FLAGS,

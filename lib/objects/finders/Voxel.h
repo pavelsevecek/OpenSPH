@@ -30,6 +30,19 @@ public:
         Array<NeighbourRecord>& neighbours,
         Flags<FinderFlags> flags = EMPTY_FLAGS,
         const Float error = 0._f) const override;
+		
+	virtual Size findNeighbours(const Vector& position,
+        const Float radius,
+        Array<NeighbourRecord>& neighbours,
+        Flags<FinderFlags> flags = EMPTY_FLAGS,
+        const Float error = 0._f) const override;
+		
+private:
+    Size findNeighboursImpl(const Vector& position, const Size refRank, const Float radius,
+        Array<NeighbourRecord>& neighbours,
+        Flags<FinderFlags> flags,
+        const Float error) const;
+		
 };
 
 NAMESPACE_SPH_END

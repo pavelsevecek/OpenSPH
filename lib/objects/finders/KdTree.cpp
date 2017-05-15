@@ -84,4 +84,18 @@ Size KdTree::findNeighbours(const Size index,
     return impl->kdTree->radiusSearch(values[index], sqr(radius), neighbours, params);
 }
 
+Size KdTree::findNeighbours(const Vector& position,
+    const Float radius,
+    Array<NeighbourRecord>& neighbours,
+    Flags<FinderFlags> flags,
+    const Float error) const  {
+    PROFILE_SCOPE("KdTree::findNeighbours")
+    neighbours.clear();
+    SearchParams params;
+    params.sorted = false;
+    params.eps = error;
+    impl->cloud.refRank = this->values.size();
+    return impl->kdTree->radiusSearch(position, sqr(radius), neighbours, params);
+}
+
 NAMESPACE_SPH_END
