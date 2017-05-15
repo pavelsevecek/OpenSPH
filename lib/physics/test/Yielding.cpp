@@ -19,7 +19,8 @@ TEST_CASE("VonMises reduction", "[yielding]") {
     storage.insert<Float>(QuantityId::ENERGY, OrderEnum::FIRST, std::move(energy));
     MaterialView material = storage.getMaterial(0);
     material->setParam(BodySettingsId::MELT_ENERGY, 100._f);
-    vonMises.create(storage, storage.getMaterial(0)->getParams());
+    MaterialInitialContext context;
+    vonMises.create(storage, storage.getMaterial(0)->getParams(), context);
 
     TracelessTensor stress(Vector(1._f, 2._f, 3._f), Vector(2._f, 2._f, 4._f), Vector(3._f, 4._f, -3._f));
     storage.insert<TracelessTensor>(QuantityId::DEVIATORIC_STRESS, OrderEnum::ZERO, stress);
@@ -43,7 +44,8 @@ TEST_CASE("VonMises repeated", "[yielding]") {
     Array<Float> energy(1);
     energy.fill(0._f);
     storage.insert<Float>(QuantityId::ENERGY, OrderEnum::FIRST, std::move(energy));
-    vonMises.create(storage, settings);
+    MaterialInitialContext context;
+    vonMises.create(storage, settings, context);
 
     TracelessTensor stress(Vector(1._f, 2._f, 3._f), Vector(2._f, 2._f, 4._f), Vector(3._f, 4._f, -3._f));
     storage.insert<TracelessTensor>(QuantityId::DEVIATORIC_STRESS, OrderEnum::ZERO, stress);

@@ -6,6 +6,7 @@
 #include "io/Logger.h"
 #include "io/Output.h"
 #include "sph/initial/Initial.h"
+#include "system/Profiler.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -21,7 +22,7 @@ AsteroidCollision::AsteroidCollision(Controller* model)
         .set(RunSettingsId::MODEL_AV_TYPE, ArtificialViscosityEnum::STANDARD)
         .set(RunSettingsId::SPH_AV_ALPHA, 1.5_f)
         .set(RunSettingsId::SPH_AV_BETA, 3._f)
-        .set(RunSettingsId::RUN_THREAD_GRANULARITY, 1000);
+        .set(RunSettingsId::RUN_THREAD_GRANULARITY, 100);
     settings.saveToFile("code.sph");
 }
 
@@ -29,11 +30,12 @@ void AsteroidCollision::setUp() {
     BodySettings bodySettings;
     bodySettings.set(BodySettingsId::ENERGY, 1._f)
         .set(BodySettingsId::ENERGY_RANGE, Range(1._f, INFTY))
-        .set(BodySettingsId::PARTICLE_COUNT, 10000)
+        .set(BodySettingsId::PARTICLE_COUNT, 100'000)
         .set(BodySettingsId::EOS, EosEnum::TILLOTSON)
         .set(BodySettingsId::STRESS_TENSOR_MIN, 1.e5_f)
         .set(BodySettingsId::RHEOLOGY_DAMAGE, DamageEnum::SCALAR_GRADY_KIPP)
-        .set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::VON_MISES);
+        .set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::VON_MISES)
+        .set(BodySettingsId::DISTRIBUTE_MODE_SPH5, true);
     bodySettings.saveToFile("target.sph");
 
     storage = makeShared<Storage>();
@@ -73,6 +75,11 @@ void AsteroidCollision::setUp() {
     logFiles.push(makeAuto<TimestepLogFile>("timestep.txt"));
 
     callbacks = makeAuto<GuiCallbacks>(model);
+}
+
+void AsteroidCollision::tearDown() {
+    Profiler* profiler = Profiler::getInstance();
+    profiler->printStatistics(*logger);
 }
 
 NAMESPACE_SPH_END

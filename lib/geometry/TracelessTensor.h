@@ -340,7 +340,7 @@ INLINE Float ddot(const TracelessTensor& t1, const TracelessTensor& t2) {
 }
 
 template <>
-INLINE Array<Float> getComponents(const TracelessTensor& t) {
+INLINE StaticArray<Float, 6> getComponents(const TracelessTensor& t) {
     return { t(0, 0), t(1, 1), t(2, 2), t(0, 1), t(0, 2), t(1, 2) };
 }
 

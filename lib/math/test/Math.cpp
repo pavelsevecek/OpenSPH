@@ -45,11 +45,11 @@ TEST_CASE("IsPower", "[math]") {
     REQUIRE_FALSE(isPower2(7));
 }
 
-TEST_CASE("Less", "[math]") {
+/*TEST_CASE("Less", "[math]") {
     REQUIRE(less(1.f, 2.f) == 1.f);
     REQUIRE(less(2.f, 2.f) == 0.f);
     REQUIRE(less(3.f, 2.f) == 0.f);
-}
+}*/
 
 TEST_CASE("Rounding mode", "[math]") {
     // this is a little sandbox, doesn't really belong to tests

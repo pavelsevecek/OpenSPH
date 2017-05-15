@@ -25,7 +25,9 @@ private:
                 results.insert<Vector>(QuantityId::POSITIONS);
             }
             virtual void initialize(const Storage&, Accumulated&) override {}
-            virtual void compute(const Size, ArrayView<const Size>, ArrayView<const Vector>) override {}
+            virtual void evalSymmetric(const Size, ArrayView<const Size>, ArrayView<const Vector>) override {}
+            virtual void evalAsymmetric(const Size, ArrayView<const Size>, ArrayView<const Vector>) override {
+            }
         };
 
         virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override {
@@ -71,7 +73,8 @@ protected:
                     dv[i] -= G * m[j] * gr;
                     dv[j] += G * m[i] * gr;
                 }
-                data.derivatives.compute(i, data.idxs, data.grads);
+                /// \todo asymmetric eval is needed here
+                data.derivatives.eval<true>(i, data.idxs, data.grads);
             }
         };
         parallelFor(*pool, threadData, 0, r.size(), granularity, functor);

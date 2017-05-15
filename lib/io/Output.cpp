@@ -24,8 +24,8 @@ Abstract::Output::Output(const std::string& fileMask)
 
 Abstract::Output::~Output() = default;
 
-void Abstract::Output::add(AutoPtr<Abstract::Column>&& columns) {
-    columns.push(std::move(columns));
+void Abstract::Output::add(AutoPtr<Abstract::Column>&& column) {
+    columns.push(std::move(column));
 }
 
 
@@ -58,28 +58,26 @@ TextOutput::TextOutput(const std::string& fileMask, const std::string& runName, 
     , runName(runName)
     , flags(flags) {}
 
-std::string TextOutput::dump(Storage& storage, const Float time) {
+std::string TextOutput::dump(Storage& storage, const Statistics& stats) {
     ASSERT(!columns.empty(), "No column added to TextOutput");
     const std::string fileName = paths.getNextPath();
     std::ofstream ofs(fileName);
     // print description
     ofs << "# Run: " << runName << std::endl;
-    ofs << "# SPH dump, time = " << time << std::endl;
+    ofs << "# SPH dump, time = " << stats.get<Float>(StatisticsId::TOTAL_TIME) << std::endl;
     ofs << "# ";
     for (auto& column : columns) {
         printHeader(ofs, column->getName(), column->getType());
     }
     ofs << std::endl;
-    ofs << "# " << std::endl;
-
     // print data lines, starting with second-order quantities
     for (Size i = 0; i < storage.getParticleCnt(); ++i) {
         for (auto& column : columns) {
             // write one extra space to be sure numbers won't merge
             if (flags.has(Options::SCIENTIFIC)) {
-                ofs << std::scientific << std::setprecision(PRECISION) << column->evaluate(storage, i);
+                ofs << std::scientific << std::setprecision(PRECISION) << column->evaluate(storage, stats, i);
             } else {
-                ofs << std::setprecision(PRECISION) << column->evaluate(storage, i);
+                ofs << std::setprecision(PRECISION) << column->evaluate(storage, stats, i);
             }
         }
         ofs << std::endl;
@@ -107,9 +105,10 @@ Outcome TextOutput::load(const std::string& path, Storage& storage) {
     return true;
 }
 
-std::string GnuplotOutput::dump(Storage& storage, const Float time) {
-    const std::string fileName = TextOutput::dump(storage, time);
+std::string GnuplotOutput::dump(Storage& storage, const Statistics& stats) {
+    const std::string fileName = TextOutput::dump(storage, stats);
     const std::string nameWithoutExt = fileName.substr(0, fileName.find_last_of("."));
+    const Float time = stats.get<Float>(StatisticsId::TOTAL_TIME);
     const std::string command =
         "gnuplot -e \"filename='" + nameWithoutExt + "'; time=" + std::to_string(time) + "\" " + scriptPath;
     const int returned = system(command.c_str());
@@ -150,11 +149,12 @@ static void storeBuffers(Quantity& q, TStoreValue&& storeValue) {
     }
 }
 
-std::string BinaryOutput::dump(Storage& storage, const Float time) {
+std::string BinaryOutput::dump(Storage& storage, const Statistics& stats) {
     ASSERT(!columns.empty() && "nothing to dump");
     const std::string fileName = paths.getNextPath();
     std::ofstream ofs(fileName.c_str());
     // file format identifie
+    const Float time = stats.get<Float>(StatisticsId::TOTAL_TIME);
     ofs << "SPH" << time << storage.getParticleCnt() << storage.getQuantityCnt();
     // storage dump
     for (auto i : storage.getQuantities()) {

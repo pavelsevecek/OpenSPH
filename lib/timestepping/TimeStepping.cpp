@@ -53,7 +53,7 @@ void EulerExplicit::stepImpl(Abstract::Solver& solver, Statistics& stats) {
             /// \todo optimize gettings range of materials (same in derivativecriterion for minimals)
             const Range range = storage->getMaterialOfParticle(i)->range(id);
             if (!range.isEmpty()) {
-                v[i] = clamp(v[i], range);
+                tie(v[i], dv[i]) = clampWithDerivative(v[i], dv[i], range);
             }
         }
     });
@@ -62,7 +62,7 @@ void EulerExplicit::stepImpl(Abstract::Solver& solver, Statistics& stats) {
             v[i] += dv[i] * this->dt;
             const Range range = storage->getMaterialOfParticle(i)->range(id);
             if (!range.isEmpty()) {
-                v[i] = clamp(v[i], range);
+                tie(v[i], dv[i]) = clampWithDerivative(v[i], dv[i], range);
             }
         }
     });
@@ -93,7 +93,7 @@ void PredictorCorrector::makePredictions() {
                     /// \todo this probably wont change that much, we could cache it
                     const Range range = storage->getMaterialOfParticle(i)->range(id);
                     if (!range.isEmpty()) {
-                        v[i] = clamp(v[i], range);
+                        tie(v[i], dv[i]) = clampWithDerivative(v[i], dv[i], range);
                     }
                 }
             });
@@ -104,7 +104,7 @@ void PredictorCorrector::makePredictions() {
                 v[i] += dv[i] * this->dt;
                 const Range range = storage->getMaterialOfParticle(i)->range(id);
                 if (!range.isEmpty()) {
-                    v[i] = clamp(v[i], range);
+                    tie(v[i], dv[i]) = clampWithDerivative(v[i], dv[i], range);
                 }
             }
         });
@@ -132,7 +132,7 @@ void PredictorCorrector::makeCorrections() {
                     pdv[i] -= b * (cd2v[i] - pd2v[i]) * this->dt;
                     const Range range = storage->getMaterialOfParticle(i)->range(id);
                     if (!range.isEmpty()) {
-                        pv[i] = clamp(pv[i], range);
+                        tie(pv[i], pdv[i]) = clampWithDerivative(pv[i], pdv[i], range);
                     }
                 }
             });
@@ -146,7 +146,7 @@ void PredictorCorrector::makeCorrections() {
                     pv[i] -= 0.5_f * (cdv[i] - pdv[i]) * this->dt;
                     const Range range = storage->getMaterialOfParticle(i)->range(id);
                     if (!range.isEmpty()) {
-                        pv[i] = clamp(pv[i], range);
+                        tie(pv[i], pdv[i]) = clampWithDerivative(pv[i], pdv[i], range);
                     }
                 }
             });

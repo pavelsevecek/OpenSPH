@@ -71,6 +71,12 @@ public:
         return !ptr;
     }
 
+    template <typename... TArgs>
+    INLINE decltype(auto) operator()(TArgs&&... args) const {
+        ASSERT(ptr);
+        return (*ptr)(std::forward<TArgs>(args)...);
+    }
+
     INLINE void reset() {
         delete ptr;
         ptr = nullptr;

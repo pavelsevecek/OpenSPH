@@ -24,7 +24,7 @@ NAMESPACE_SPH_BEGIN
 
 class GradH : public Abstract::EquationTerm {
 private:
-    class Derivative : public Abstract::Derivative {
+    class Derivative : public DerivativeTemplate<Derivative> {
     private:
         /// \todo avoid constructing new kernel for each thread
         LutKernel<DIMENSIONS> kernel;
@@ -47,20 +47,22 @@ private:
             r = input.getValue<Vector>(QuantityId::POSITIONS);
         }
 
-        virtual void compute(const Size i,
-            ArrayView<const Size> neighs,
-            ArrayView<const Vector> UNUSED(grads)) override {
+        template <bool Symmetrize>
+        INLINE void eval(const Size i, ArrayView<const Size> neighs, ArrayView<const Vector> UNUSED(grads)) {
             for (Size k = 0; k < neighs.size(); ++k) {
                 const Size j = neighs[k];
                 const Vector r_ji = r[j] - r[i];
-                const Float h_i = r[i][H];
                 const Float h_j = r[j][H];
-                const Float dWjidh =
-                    -dot(r_ji, kernel.grad(r_ji, h_i)) - DIMENSIONS / h_i * kernel.value(r_ji, h_i);
                 const Float dWijdh =
                     -dot(r_ji, kernel.grad(r_ji, h_j)) - DIMENSIONS / h_j * kernel.value(r_ji, h_j);
                 omega[i] += dWijdh;
-                omega[j] += dWjidh;
+
+                if (Symmetrize) {
+                    const Float h_i = r[i][H];
+                    const Float dWjidh =
+                        -dot(r_ji, kernel.grad(r_ji, h_i)) - DIMENSIONS / h_i * kernel.value(r_ji, h_i);
+                    omega[j] += dWjidh;
+                }
             }
         }
     };

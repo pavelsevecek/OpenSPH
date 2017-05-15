@@ -18,7 +18,8 @@ class NullMaterial : public Abstract::Material {
 public:
     NullMaterial(const BodySettings& body);
 
-    virtual void create(Storage& UNUSED(storage)) const override {}
+    virtual void create(Storage& UNUSED(storage),
+        const MaterialInitialContext& UNUSED(context)) const override {}
 
     virtual void initialize(Storage& UNUSED(storage), const IndexSequence UNUSED(sequence)) override {}
 
@@ -43,7 +44,7 @@ public:
     /// Returns the equation of state.
     const Abstract::Eos& getEos() const;
 
-    virtual void create(Storage& storage) const override;
+    virtual void create(Storage& storage, const MaterialInitialContext& context) const override;
 
     virtual void initialize(Storage& storage, const IndexSequence sequence) override;
 
@@ -63,7 +64,7 @@ public:
         AutoPtr<Abstract::Eos>&& eos,
         AutoPtr<Abstract::Rheology>&& rheology);
 
-    virtual void create(Storage& storage) const override;
+    virtual void create(Storage& storage, const MaterialInitialContext& context) const override;
 
     virtual void initialize(Storage& storage, const IndexSequence sequence) override;
 

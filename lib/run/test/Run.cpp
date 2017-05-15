@@ -5,6 +5,7 @@
 #include "quantities/Storage.h"
 #include "sph/initial/Initial.h"
 #include "system/Callbacks.h"
+#include "system/Statistics.h"
 #include "timestepping/TimeStepping.h"
 #include "utils/Approx.h"
 #include "utils/Utils.h"
@@ -48,8 +49,8 @@ public:
         : Abstract::Output("%d")
         , outputTimes(outputTimes) {}
 
-    virtual std::string dump(Storage& UNUSED(storage), const Float time) override {
-        outputTimes.push(time);
+    virtual std::string dump(Storage& UNUSED(storage), const Statistics& stats) override {
+        outputTimes.push(stats.get<Float>(StatisticsId::TOTAL_TIME));
         return "";
     }
 

@@ -14,10 +14,11 @@ NAMESPACE_SPH_BEGIN
 
 InitialConditions::InitialConditions(Storage& storage,
     AutoPtr<Abstract::Solver>&& solver,
-    const RunSettings& settings)
+    const RunSettings& UNUSED(settings))
     : storage(storage)
     , solver(std::move(solver)) {
-    context.rng = Factory::getRng(settings);
+    /// \todo more general rng (from settings)
+    context.rng = makeAuto<RngWrapper<BenzAsphaugRng>>(1234);
 }
 
 InitialConditions::InitialConditions(Storage& storage, const RunSettings& settings)
@@ -179,7 +180,7 @@ void InitialConditions::setQuantities(Storage& storage,
     solver->create(storage, material);
 
     // Initialize material (we need density and energy for that)
-    material.create(storage, initialContext);
+    material.create(storage, context);
 }
 
 

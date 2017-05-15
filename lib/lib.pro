@@ -2,6 +2,7 @@ TEMPLATE = lib
 CONFIG += c++14 staticLib thread silent
 CONFIG -= app_bundle qt
 CONFIG += staticlib
+INCLUDEPATH += /usr/include/eigen3
 QMAKE_CXXFLAGS += -Wall -Wextra -Werror -msse4.1 -std=c++14 -pthread
 #QMAKE_CXXFLAGS_RELEASE -= -O2
 #QMAKE_CXXFLAGS_RELEASE += -Os
@@ -35,7 +36,6 @@ SOURCES += \
     geometry/Domain.cpp \
     io/Logger.cpp \
     io/Output.cpp \
-    io/filesystem.cpp \
     math/Morton.cpp \
     math/rng/Rng.cpp \
     objects/containers/stringutils.cpp \
@@ -64,7 +64,9 @@ SOURCES += \
     system/Timer.cpp \
     thread/CheckFunction.cpp \
     timestepping/TimeStepCriterion.cpp \
-    timestepping/TimeStepping.cpp
+    timestepping/TimeStepping.cpp \
+    io/FileSystem.cpp \
+    math/SparseMatrix.cpp
 
 HEADERS += \
     commmon/ForwardDecl.h \
@@ -188,4 +190,11 @@ HEADERS += \
     sph/equations/av/Standard.h \
     objects/wrappers/AutoPtr.h \
     objects/wrappers/SharedPtr.h \
-    objects/wrappers/LockingPtr.h
+    objects/wrappers/LockingPtr.h \
+    geometry/Generic.h \
+    post/Plot.h \
+    gravity/BarnesHut.h \
+    math/SparseMatrix.h \
+    sph/equations/Potentials.h \
+    sph/equations/Statics.h \
+    sph/solvers/StaticSolver.h

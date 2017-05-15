@@ -71,9 +71,9 @@ TEST_CASE("Derivative Criterion", "[timestepping]") {
     REQUIRE(id == CriterionId::DERIVATIVE);
     REQUIRE(stats.get<QuantityId>(StatisticsId::LIMITING_QUANTITY) == QuantityId::ENERGY);
 
-    storage.getMaterial(0)->minimal(QuantityId::ENERGY) = 8._f;
+    storage.getMaterial(0)->minimal(QuantityId::ENERGY) = 4._f;
     tieToTuple(step, id) = criterion.compute(storage, INFTY, stats);
-    REQUIRE(step == approx(factor * 5._f, 1.e-3_f)); // (12+8)/4
+    REQUIRE(step == approx(factor * 4._f, 1.e-3_f)); // (12+4)/4
     REQUIRE(id == CriterionId::DERIVATIVE);
     REQUIRE(stats.get<QuantityId>(StatisticsId::LIMITING_QUANTITY) == QuantityId::ENERGY);
 

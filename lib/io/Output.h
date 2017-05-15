@@ -40,7 +40,7 @@ namespace Abstract {
         void add(AutoPtr<Abstract::Column>&& columns);
 
         /// Saves data from particle storage into the file. Returns the filename of the dump.
-        virtual std::string dump(Storage& storage, const Float time) = 0;
+        virtual std::string dump(Storage& storage, const Statistics& stats) = 0;
 
         /// Loads data from the file into the storage. This will remove any data previously stored in storage.
         /// Can be used to continue simulation from saved snapshot.
@@ -62,7 +62,7 @@ private:
 public:
     TextOutput(const std::string& fileMask, const std::string& runName, const Flags<Options> flags);
 
-    virtual std::string dump(Storage& storage, const Float time) override;
+    virtual std::string dump(Storage& storage, const Statistics& stats) override;
 
     virtual Outcome load(const std::string& path, Storage& storage) override;
 };
@@ -80,7 +80,7 @@ public:
         : TextOutput(fileMask, runName, flags)
         , scriptPath(scriptPath) {}
 
-    virtual std::string dump(Storage& storage, const Float time) override;
+    virtual std::string dump(Storage& storage, const Statistics& stats) override;
 };
 
 
@@ -92,7 +92,7 @@ private:
 public:
     BinaryOutput(const std::string& fileMask, const std::string& runName);
 
-    virtual std::string dump(Storage& storage, const Float time) override;
+    virtual std::string dump(Storage& storage, const Statistics& stats) override;
 
     virtual Outcome load(const std::string& path, Storage& storage) override;
 };
@@ -102,7 +102,7 @@ public:
     NullOutput()
         : Abstract::Output("%d") {}
 
-    virtual std::string dump(Storage& UNUSED(storage), const Float UNUSED(time)) override {
+    virtual std::string dump(Storage& UNUSED(storage), const Statistics& UNUSED(stats)) override {
         return "";
     }
 

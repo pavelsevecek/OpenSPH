@@ -17,7 +17,7 @@ NAMESPACE_SPH_BEGIN
 /// are constant (in time) and equal for all particles.
 class StandardAV : public Abstract::EquationTerm {
 public:
-    class Derivative : public Abstract::Derivative {
+    class Derivative : public DerivativeTemplate<Derivative> {
     private:
         ArrayView<const Vector> r, v;
         ArrayView<const Float> rho, cs, m;
@@ -46,9 +46,8 @@ public:
             du = results.getValue<Float>(QuantityId::ENERGY);
         }
 
-        virtual void compute(const Size i,
-            ArrayView<const Size> neighs,
-            ArrayView<const Vector> grads) override {
+        template <bool Symmetrize>
+        INLINE void eval(const Size i, ArrayView<const Size> neighs, ArrayView<const Vector> grads) {
             ASSERT(neighs.size() == grads.size());
             for (Size k = 0; k < neighs.size(); ++k) {
                 const Size j = neighs[k];
@@ -58,10 +57,12 @@ public:
                 const Float heating = 0.5_f * av * dot(v[i] - v[j], grads[k]);
                 ASSERT(isReal(heating) && heating >= 0._f);
                 dv[i] -= m[j] * Pi;
-                dv[j] += m[i] * Pi;
-
                 du[i] += m[j] * heating;
-                du[j] += m[i] * heating;
+
+                if (Symmetrize) {
+                    dv[j] += m[i] * Pi;
+                    du[j] += m[i] * heating;
+                }
             }
         }
 

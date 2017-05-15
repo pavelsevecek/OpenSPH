@@ -43,22 +43,23 @@ private:
 
 public:
     ImpactorLogFile(Storage& storage, const std::string& path)
-        : Abstract::LogFile(makeShared<FileLogger>(path))
+        : Abstract::LogFile(makeAuto<FileLogger>(path))
         , stress(makeTensorFunctor(storage.getValue<TracelessTensor>(QuantityId::DEVIATORIC_STRESS)), 1)
         , dtStress(makeTensorFunctor(storage.getDt<TracelessTensor>(QuantityId::DEVIATORIC_STRESS)), 1)
         , pressure(QuantityId::PRESSURE, 1)
         , energy(QuantityId::ENERGY, 1)
         , density(QuantityId::DENSITY, 1) {}
 
-    virtual void write(Storage& storage, const Statistics& stats) override {
-        Means sm = stress.evaluate(storage);
-        Means dsm = dtStress.evaluate(storage);
+protected:
+    virtual void writeImpl(const Storage& storage, const Statistics& stats) override {
+        MinMaxMean sm = stress.evaluate(storage);
+        MinMaxMean dsm = dtStress.evaluate(storage);
         this->logger->write(stats.get<Float>(StatisticsId::TOTAL_TIME),
-            sm.average(),
-            dsm.average(),
-            energy.evaluate(storage).average(),
-            pressure.evaluate(storage).average(),
-            density.evaluate(storage).average(),
+            sm.mean(),
+            dsm.mean(),
+            energy.evaluate(storage).mean(),
+            pressure.evaluate(storage).mean(),
+            density.evaluate(storage).mean(),
             sm.min(),
             sm.max(),
             dsm.min(),
@@ -74,9 +75,10 @@ private:
 
 public:
     EnergyLogFile(const std::string& path)
-        : Abstract::LogFile(makeShared<FileLogger>(path)) {}
+        : Abstract::LogFile(makeAuto<FileLogger>(path)) {}
 
-    virtual void write(Storage& storage, const Statistics& stats) override {
+protected:
+    virtual void writeImpl(const Storage& storage, const Statistics& stats) override {
         this->logger->write(stats.get<Float>(StatisticsId::TOTAL_TIME),
             "   ",
             en.evaluate(storage),
@@ -90,9 +92,10 @@ public:
 class TimestepLogFile : public Abstract::LogFile {
 public:
     TimestepLogFile(const std::string& path)
-        : Abstract::LogFile(makeShared<FileLogger>(path)) {}
+        : Abstract::LogFile(makeAuto<FileLogger>(path)) {}
 
-    virtual void write(Storage& UNUSED(storage), const Statistics& stats) override {
+protected:
+    virtual void writeImpl(const Storage& UNUSED(storage), const Statistics& stats) override {
         if (!stats.has(StatisticsId::LIMITING_PARTICLE_IDX)) {
             return;
         }
@@ -116,7 +119,7 @@ public:
     virtual void setUp() override;
 
 protected:
-    virtual void tearDown() override {}
+    virtual void tearDown() override;
 };
 
 NAMESPACE_SPH_END

@@ -1,11 +1,12 @@
 #pragma once
 
 #include "sph/equations/EquationTerm.h"
+#include "sph/kernel/Kernel.h"
 
 NAMESPACE_SPH_BEGIN
 
 
-class EnergyLaplacian : public Abstract::Derivative {
+class EnergyLaplacian : public DerivativeTemplate<EnergyLaplacian> {
 private:
     ArrayView<Float> du;
     ArrayView<const Float> u, m, rho;
@@ -24,13 +25,15 @@ public:
         du = results.getValue<Float>(QuantityId::ENERGY);
     }
 
-    virtual void compute(const Size i, ArrayView<const Size> neighs, ArrayView<const Vector> grads) override {
+    template <bool Symmetric>
+    INLINE void eval(const Size i, ArrayView<const Size> neighs, ArrayView<const Vector> grads) {
         for (Size k = 0; k < neighs.size(); ++k) {
             const Size j = neighs[k];
-            const Float laplacian = 2._f * dot(r[j] - r[i], grads[k]) / getSqrLength(r[j] - r[i]);
-            const Float f = (u[j] - u[i]) * laplacian;
+            const Float f = laplacian(u[j] - u[i], r[j] - r[i], grads[k]);
             du[i] -= m[j] / rho[j] * f;
-            du[j] += m[i] / rho[i] * f;
+            if (Symmetric) {
+                du[j] += m[i] / rho[i] * f;
+            }
         }
     }
 };

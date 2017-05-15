@@ -19,7 +19,7 @@ NAMESPACE_SPH_BEGIN
 /// force inlined, returing value Pi_ij of the artificial viscosity between particles i and j.
 template <typename AV>
 class BalsaraSwitch : public Abstract::EquationTerm {
-    class Derivative : public Abstract::Derivative {
+    class Derivative : public DerivativeTemplate<Derivative> {
     private:
         ArrayView<const Float> m;
         ArrayView<const Float> cs;
@@ -52,18 +52,21 @@ class BalsaraSwitch : public Abstract::EquationTerm {
             av.template initialize(input, results);
         }
 
-        virtual void compute(const Size i, ArrayView<const Size> neighs, ArrayView<const Vector> grads) {
+        template <bool Symmetrize>
+        INLINE void eval(const Size i, ArrayView<const Size> neighs, ArrayView<const Vector> grads) {
             ASSERT(neighs.size() == grads.size());
             for (Size k = 0; k < neighs.size(); ++k) {
                 const Size j = neighs[k];
                 const Float Pi = 0.5_f * (factor(i) + factor(j)) * av(i, j);
                 ASSERT(isReal(Pi));
                 dv[i] += m[j] * Pi * grads[k];
-                dv[j] -= m[i] * Pi * grads[k];
-
                 const Float heating = 0.5_f * Pi * dot(v[i] - v[j], grads[k]);
                 du[i] += m[j] * heating;
-                du[j] += m[i] * heating;
+
+                if (Symmetrize) {
+                    dv[j] -= m[i] * Pi * grads[k];
+                    du[j] += m[i] * heating;
+                }
             }
         }
 

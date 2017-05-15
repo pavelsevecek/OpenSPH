@@ -1,19 +1,19 @@
 #pragma once
 
-/// Pavel Sevecek 2016
-/// sevecek at sirrah.troja.mff.cuni.cz
+/// \file Expected.h
+/// \brief Wrapper of type containing either a value or an error message
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2017
 
 #include "objects/wrappers/Variant.h"
 
 NAMESPACE_SPH_BEGIN
 
-/// Wrapper of type that either contains a value of given type, or an error message. If the type of error
-/// message is bool, this is essentially identical to Optional.
-/// Expected is designed as a return type.
+/// \brief Wrapper of type that either contains a value of given type, or an error message.
 ///
-/// When talking about 'expected' value, it means no error has been encounter and Expected contains value of
-/// given type;
-/// 'unexpected' value means that Expected contains an error message.
+/// If the type of error message is bool, this is essentially identical to Optional. Expected is designed as a
+/// return type. When talking about 'expected' value, it means no error has been encounter and Expected
+/// contains value of given type; 'unexpected' value means that Expected contains an error message.
 ///
 /// Inspired by Andrei Alexandrescu - Systematic Error Handling in C++
 /// https://channel9.msdn.com/Shows/Going+Deep/C-and-Beyond-2012-Andrei-Alexandrescu-Systematic-Error-Handling-in-C
@@ -24,42 +24,74 @@ const UnexpectedTag UNEXPECTED;
 template <typename Type, typename Error = std::string>
 class Expected {
 private:
-    Variant<Type, Error> data;
+    /// Wrapper to avoid issues if the value type is the same as the error
+    struct UnexpectedWrapper {
+        Error error;
+    };
+
+    Variant<Type, UnexpectedWrapper> data;
 
 public:
+    /// Construct the expected value using default constructor. Should be avoided if possible, but it is
+    /// defined for convenience.
+    Expected() = default;
+
     /// Constructs an expected value.
     template <typename T, typename = std::enable_if_t<std::is_constructible<Type, T>::value>>
     Expected(T&& value) {
-        data.emplace<Type>(std::forward<T>(value));
+        data.template emplace<Type>(std::forward<T>(value));
     }
 
     /// Constructs an unexpected value.
     template <typename TError, typename = std::enable_if_t<std::is_constructible<Error, TError>::value>>
     Expected(UnexpectedTag, TError&& error) {
-        data.emplace<Error>(std::forward<TError>(error));
+        data.template emplace<UnexpectedWrapper>(UnexpectedWrapper{ std::forward<TError>(error) });
     }
 
     /// Conversion to bool, checking whether object constains expected value.
-    operator bool() const { return isExpected(); }
+    operator bool() const {
+        return isExpected();
+    }
 
     /// Negation operator, returns true if object does NOT contain expected value.
-    bool operator!() const { return !isExpected(); }
+    bool operator!() const {
+        return !isExpected();
+    }
 
     /// Returns the reference to expected value. Object must not contain unexpected value, checked by assert.
-    Type& get() {
+    Type& value() {
         ASSERT(isExpected());
-        return data.get<Type>();
+        return data.template get<Type>();
     }
 
     /// Returns the const reference to expected value. Object must not contain unexpected value, checked by
     /// assert.
-    const Type& get() const {
+    const Type& value() const {
         ASSERT(isExpected());
-        return data.get<Type>();
+        return data.template get<Type>();
+    }
+
+    /// Returns the error message. Object must contain unexpected value, checked by assert.
+    const Error& error() const {
+        ASSERT(!isExpected());
+        return data.template get<UnexpectedWrapper>().error;
+    }
+
+    /// If the object contains an expected value, prints the value into the stream, otherwise print the error
+    /// message.
+    friend std::ostream& operator<<(std::ostream& stream, const Expected& expected) {
+        if (expected) {
+            stream << expected.value();
+        } else {
+            stream << expected.error();
+        }
+        return stream;
     }
 
 private:
-    bool isExpected() const { return data.getTypeIdx() == 0; }
+    bool isExpected() const {
+        return data.getTypeIdx() == 0;
+    }
 };
 
 /// Constructs an unexpected value of given type, given error message as std::string. For other type of error

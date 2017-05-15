@@ -141,7 +141,7 @@ protected:
                     data.grads.emplaceBack(gr);
                     data.idxs.emplaceBack(j);
                 }
-                data.derivatives.compute(i, data.idxs, data.grads);
+                data.derivatives.eval<true>(i, data.idxs, data.grads);
             }
         };
         PROFILE_SCOPE("GenericSolver main loop");
@@ -177,7 +177,7 @@ protected:
         first->store(storage);
 
         // compute neighbour statistics
-        Means neighs;
+        MinMaxMean neighs;
         ArrayView<Size> neighCnts = storage.getValue<Size>(QuantityId::NEIGHBOUR_CNT);
         const Size size = storage.getParticleCnt();
         for (Size i = 0; i < size; ++i) {

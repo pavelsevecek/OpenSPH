@@ -100,16 +100,15 @@ INLINE T clamp(const T& v, const Range& range) {
 }
 
 
-
 /// Returns clamped values and the value of derivative. The function is specialized for floats,
 /// returning zero derivative if the value is outside range.
 /// \todo clamp derivatives for all types? So far we don't clamp non-scalar quantities anyway ...
-template<typename T>
+template <typename T>
 INLINE Pair<T> clampWithDerivative(const T&, const T&, const Range&) {
-    NOT_IMLEMENTED;
+    NOT_IMPLEMENTED;
 }
 
-template<>
+template <>
 INLINE Pair<Float> clampWithDerivative<Float>(const Float& v, const Float& dv, const Range& range) {
     const bool zeroDeriv = (v >= range.upper() && dv > 0._f) || (v <= range.lower() && dv < 0._f);
     return { clamp(v, range), zeroDeriv ? 0._f : dv };

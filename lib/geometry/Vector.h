@@ -6,7 +6,7 @@
 /// \date 2016-2017
 
 #include "common/Globals.h"
-#include "common/Traits.h"
+#include "geometry/Generic.h"
 #include "objects/containers/Tuple.h"
 #include "objects/wrappers/Range.h"
 #include <immintrin.h>
@@ -692,7 +692,7 @@ INLINE auto less(const Vector& v1, const Vector& v2) {
 }
 
 template <>
-INLINE Array<Float> getComponents<Vector>(const Vector& v) {
+INLINE StaticArray<Float, 6> getComponents<Vector>(const Vector& v) {
     return { v[X], v[Y], v[Z] };
 }
 

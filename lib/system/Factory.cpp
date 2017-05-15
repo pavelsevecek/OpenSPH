@@ -11,6 +11,7 @@
 #include "physics/Rheology.h"
 #include "sph/Material.h"
 #include "sph/boundary/Boundary.h"
+#include "sph/equations/av/Balsara.h"
 #include "sph/initial/Distribution.h"
 #include "sph/solvers/ContinuitySolver.h"
 #include "sph/solvers/DensityIndependentSolver.h"
@@ -38,7 +39,7 @@ AutoPtr<Abstract::Rheology> Factory::getRheology(const BodySettings& settings) {
     const YieldingEnum id = settings.get<YieldingEnum>(BodySettingsId::RHEOLOGY_YIELDING);
     switch (id) {
     case YieldingEnum::NONE:
-        return nullptr;
+        return makeAuto<ElasticRheology>();
     case YieldingEnum::VON_MISES:
         return makeAuto<VonMisesRheology>(Factory::getDamage(settings));
     case YieldingEnum::DRUCKER_PRAGER:
@@ -58,6 +59,30 @@ AutoPtr<Abstract::Damage> Factory::getDamage(const BodySettings& settings) {
         return makeAuto<ScalarDamage>(2._f);
     case DamageEnum::TENSOR_GRADY_KIPP:
         return makeAuto<TensorDamage>();
+    default:
+        NOT_IMPLEMENTED;
+    }
+}
+
+template <typename T>
+AutoPtr<Abstract::EquationTerm> makeAV(const RunSettings& settings, const bool balsara) {
+    if (balsara) {
+        return makeAuto<BalsaraSwitch<T>>(settings);
+    } else {
+        return makeAuto<T>();
+    }
+}
+
+AutoPtr<Abstract::EquationTerm> Factory::getArtificialViscosity(const RunSettings& settings) {
+    const ArtificialViscosityEnum id = settings.get<ArtificialViscosityEnum>(RunSettingsId::MODEL_AV_TYPE);
+    const bool balsara = settings.get<bool>(RunSettingsId::MODEL_AV_BALSARA);
+    switch (id) {
+    case ArtificialViscosityEnum::NONE:
+        return nullptr;
+    case ArtificialViscosityEnum::STANDARD:
+        return makeAV<StandardAV>(settings, balsara);
+    /*case ArtificialViscosityEnum::MORRIS_MONAGHAN:
+        reutrn makeAV<MorrisMonaghanAV>();*/
     default:
         NOT_IMPLEMENTED;
     }
@@ -212,8 +237,7 @@ AutoPtr<Abstract::Material> Factory::getMaterial(const BodySettings& settings) {
     switch (yieldId) {
     case YieldingEnum::DRUCKER_PRAGER:
     case YieldingEnum::VON_MISES:
-        return makeAuto<SolidMaterial>(
-            settings, Factory::getEos(settings), Factory::getRheology(settings));
+        return makeAuto<SolidMaterial>(settings, Factory::getEos(settings), Factory::getRheology(settings));
     case YieldingEnum::NONE:
         switch (eosId) {
         case EosEnum::NONE:

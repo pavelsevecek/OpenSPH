@@ -291,7 +291,7 @@ INLINE auto less(const Tensor& t1, const Tensor& t2) {
 }
 
 template <>
-INLINE Array<Float> getComponents(const Tensor& t) {
+INLINE StaticArray<Float, 6> getComponents(const Tensor& t) {
     return { t(0, 0), t(1, 1), t(2, 2), t(0, 1), t(0, 2), t(1, 2) };
 }
 

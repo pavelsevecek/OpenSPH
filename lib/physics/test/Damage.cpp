@@ -1,6 +1,7 @@
 #include "physics/Damage.h"
 #include "catch.hpp"
 #include "geometry/Domain.h"
+#include "math/rng/Rng.h"
 #include "objects/containers/ArrayUtils.h"
 #include "physics/Rheology.h"
 #include "quantities/Storage.h"
@@ -26,7 +27,9 @@ TEST_CASE("Distribute flaws", "[damage]") {
     const Float rho0 = bodySettings.get<Float>(BodySettingsId::DENSITY);
     storage.insert<Float>(QuantityId::DENSITY, OrderEnum::ZERO, rho0);
     storage.insert<Float>(QuantityId::MASSES, OrderEnum::ZERO, rho0 * domain.getVolume() / N);
-    model.setFlaws(storage, bodySettings);
+    MaterialInitialContext context;
+    context.rng = makeAuto<RngWrapper<BenzAsphaugRng>>(1234);
+    model.setFlaws(storage, bodySettings, context);
 
     // check that all particles have at least one flaw
     ArrayView<Size> n_flaws = storage.getValue<Size>(QuantityId::N_FLAWS);
@@ -60,9 +63,12 @@ TEST_CASE("Fracture growth", "[damage]") {
     InitialConditions conds(storage, RunSettings::getDefaults());
     conds.addBody(SphericalDomain(Vector(0._f), 1._f), BodySettings::getDefaults());
 
-    damage.setFlaws(storage, BodySettings::getDefaults());
+    MaterialInitialContext context;
+    context.rng = makeAuto<RngWrapper<BenzAsphaugRng>>(1234);
+    damage.setFlaws(storage, BodySettings::getDefaults(), context);
     MaterialView material = storage.getMaterial(0);
-    REQUIRE_NOTHROW(damage.reduce(storage, material));
+    auto flags = DamageFlag::PRESSURE | DamageFlag::STRESS_TENSOR | DamageFlag::REDUCTION_FACTOR;
+    REQUIRE_NOTHROW(damage.reduce(storage, flags, material));
     REQUIRE_NOTHROW(damage.integrate(storage, material));
 
     /// \todo check that if the strain if below eps_min, damage wont increase

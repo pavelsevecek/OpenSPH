@@ -1,24 +1,26 @@
 #pragma once
 
-#include "math/Means.h"
+/// \file Integrals.h
+/// \brief Integrals of motion and other integral quantities
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2017
+
 #include "common/ForwardDecl.h"
+#include "math/Means.h"
 #include "objects/containers/Array.h"
 #include "objects/wrappers/Value.h"
 #include "system/Settings.h"
 
-
 NAMESPACE_SPH_BEGIN
 
-
-/// Object computing integral quantities and diagnostics of the run.
-/// \todo automatically exclude ghost particles?
 namespace Abstract {
-
+    /// Object computing integral quantities and diagnostics of the run.
+    /// \todo automatically exclude ghost particles?
     template <typename Type>
     class Integral {
     public:
         /// Computes the integral quantity using particles in the storage.
-        virtual Type evaluate(Storage& storage) const = 0;
+        virtual Type evaluate(const Storage& storage) const = 0;
     };
 }
 
@@ -30,7 +32,7 @@ namespace Abstract {
 /// gets implemented.
 class TotalMass : public Abstract::Integral<Float> {
 public:
-    virtual Float evaluate(Storage& storage) const override;
+    virtual Float evaluate(const Storage& storage) const override;
 };
 
 /// Computes total momentum of all SPH particles with a respect to the center of reference frame.
@@ -43,7 +45,7 @@ private:
 public:
     TotalMomentum(const Float omega = 0._f);
 
-    virtual Vector evaluate(Storage& storage) const override;
+    virtual Vector evaluate(const Storage& storage) const override;
 };
 
 /// Computes total angular momentum of all SPH particles with a respect to the center of reference
@@ -56,7 +58,7 @@ private:
 public:
     TotalAngularMomentum(const Float omega = 0._f);
 
-    virtual Vector evaluate(Storage& storage) const override;
+    virtual Vector evaluate(const Storage& storage) const override;
 };
 
 /// Returns the total kinetic energy of all particles. Storage must contain at least particle masses
@@ -68,7 +70,7 @@ private:
 public:
     TotalKineticEnergy(const Float omega = 0._f);
 
-    virtual Float evaluate(Storage& storage) const override;
+    virtual Float evaluate(const Storage& storage) const override;
 };
 
 /// Returns the total internal energy of all particles. Storage must contain at least particle masses
@@ -76,7 +78,7 @@ public:
 /// energy, specific entropy), specific energy must be derived before the function is called.
 class TotalInternalEnergy : public Abstract::Integral<Float> {
 public:
-    virtual Float evaluate(Storage& storage) const override;
+    virtual Float evaluate(const Storage& storage) const override;
 };
 
 /// Returns the total energy of all particles. This is simply of sum of total kinetic energy and total
@@ -89,7 +91,7 @@ private:
 public:
     TotalEnergy(const Float omega = 0._f);
 
-    virtual Float evaluate(Storage& storage) const override;
+    virtual Float evaluate(const Storage& storage) const override;
 };
 
 /// Computes the center of mass of all particles, or optionally center of mass of particles
@@ -101,12 +103,12 @@ private:
 public:
     CenterOfMass(const Optional<Size> bodyId = NOTHING);
 
-    virtual Vector evaluate(Storage& storage) const override;
+    virtual Vector evaluate(const Storage& storage) const override;
 };
 
 /// Returns means of given scalar quantity. By default means are computed from all particles, optionally only
 /// from particles of given body. Storage must contain quantity of given ID, checked by assert.
-class QuantityMeans : public Abstract::Integral<Means> {
+class QuantityMeans : public Abstract::Integral<MinMaxMean> {
 private:
     Variant<QuantityId, std::function<Float(const Size i)>> quantity;
     Optional<Size> bodyId;
@@ -118,7 +120,7 @@ public:
     /// Computes mean of user-defined function.
     QuantityMeans(const std::function<Float(const Size i)>& func, const Optional<Size> bodyId = NOTHING);
 
-    virtual Means evaluate(Storage& storage) const override;
+    virtual MinMaxMean evaluate(const Storage& storage) const override;
 };
 
 /// Returns the quantity value value of given particle. Currently available only for scalar quantities.
@@ -130,7 +132,7 @@ private:
 public:
     QuantityValue(const QuantityId id, const Size particleIdx);
 
-    virtual Float evaluate(Storage& storage) const override;
+    virtual Float evaluate(const Storage& storage) const override;
 };
 
 NAMESPACE_SPH_END

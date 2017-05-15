@@ -234,6 +234,9 @@ AutoPtr<RunSettings> RunSettings::instance (new RunSettings {
     { RunSettingsId::SPH_FINDER,                    "sph.finder",               int(FinderEnum::VOXEL) },
     { RunSettingsId::SPH_CONSERVE_ANGULAR_MOMENTUM, "sph.angular_momentum_correction", false },
 
+    /// Gravity
+    { RunSettingsId::GRAVITY_OPENING_ANGLE,         "gravity.opening_angle",    0.5_f },
+
     /// Timestepping parameters
     { RunSettingsId::TIMESTEPPING_INTEGRATOR,       "timestep.integrator",      int(TimesteppingEnum::PREDICTOR_CORRECTOR) },
     { RunSettingsId::TIMESTEPPING_COURANT,          "timestep.courant",         1._f },
@@ -297,6 +300,7 @@ AutoPtr<BodySettings> BodySettings::instance (new BodySettings {
     { BodySettingsId::BULK_MODULUS,            "material.bulk_modulus",        2.67e10_f },
     { BodySettingsId::SHEAR_MODULUS,           "material.shear_modulus",       2.27e10_f },
     { BodySettingsId::YOUNG_MODULUS,           "material.young_modulus",       5.7e10_f },
+    { BodySettingsId::ELASTIC_MODULUS,         "material.elastic_modulus",     8.e9_f }, /// \todo use the value of Basalt, this one is for quartz from Wiki
     { BodySettingsId::RAYLEIGH_SOUND_SPEED,    "material.rayleigh_speed",      0.4_f },
     { BodySettingsId::WEIBULL_COEFFICIENT,     "material.weibull_coefficient", 4.e35_f },
     { BodySettingsId::WEIBULL_EXPONENT,        "material.weibull_exponent",    9._f },

@@ -12,6 +12,8 @@
 
 NAMESPACE_SPH_BEGIN
 
+struct MaterialInitialContext;
+
 namespace Abstract {
     class Damage;
 
@@ -26,7 +28,10 @@ namespace Abstract {
         ///                other quantities). Particles belong only to the body being created, other bodies
         ///                have separate storages.
         /// \param settings Parameters of the body being created.
-        virtual void create(Storage& storage, const BodySettings& settings) const = 0;
+        /// \param context Shared data for creating all materials in the simulation.
+        virtual void create(Storage& storage,
+            const BodySettings& settings,
+            const MaterialInitialContext& context) const = 0;
 
         /// Evaluates the stress tensor reduction factors. Called for every material in the simulation, before
         /// iteration over particle pairs
@@ -59,7 +64,9 @@ public:
 
     ~VonMisesRheology();
 
-    virtual void create(Storage& storage, const BodySettings& settings) const override;
+    virtual void create(Storage& storage,
+        const BodySettings& settings,
+        const MaterialInitialContext& context) const override;
 
     virtual void initialize(Storage& storage, const MaterialView material) override;
 
@@ -81,7 +88,9 @@ public:
 
     ~DruckerPragerRheology();
 
-    virtual void create(Storage& storage, const BodySettings& settings) const override;
+    virtual void create(Storage& storage,
+        const BodySettings& settings,
+        const MaterialInitialContext& context) const override;
 
     virtual void initialize(Storage& storage, const MaterialView material) override;
 
@@ -100,6 +109,18 @@ public:
             return s_red;
         }
     }
+};
+
+/// Perfectly elastic material, no yielding nor fragmentation
+class ElasticRheology : public Abstract::Rheology {
+public:
+    virtual void create(Storage& storage,
+        const BodySettings& settings,
+        const MaterialInitialContext& context) const override;
+
+    virtual void initialize(Storage& storage, const MaterialView material) override;
+
+    virtual void integrate(Storage& storage, const MaterialView material) override;
 };
 
 NAMESPACE_SPH_END
