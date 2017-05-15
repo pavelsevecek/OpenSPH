@@ -70,6 +70,20 @@ public:
         return neighbours.size();
     }
 
+    virtual Size findNeighbours(const Vector& UNUSED(position),
+        const Float radius,
+        Array<NeighbourRecord>& neighbours,
+        Flags<FinderFlags> UNUSED(flags) = EMPTY_FLAGS,
+        const Float UNUSED(error) = 0._f) const override {
+        PROFILE_SCOPE("Octree::findNeighbours");
+        neighbours.clear();
+        ASSERT(root);
+        const Size refRank = this->values.size();
+        findNeighboursInNode(*root, 0, radius, neighbours, refRank);
+        NOT_IMPLEMENTED;
+        return neighbours.size();
+    }
+
     template <typename TFunctor>
     void enumerateChildren(TFunctor&& functor) const {
         enumerateChildrenNode(*root, std::forward<TFunctor>(functor));

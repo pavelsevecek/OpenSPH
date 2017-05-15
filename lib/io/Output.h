@@ -107,7 +107,7 @@ public:
     }
 
     virtual Outcome load(const std::string& UNUSED(path), Storage& UNUSED(storage)) override {
-        return true;
+        return SUCCESS;
     }
 };
 

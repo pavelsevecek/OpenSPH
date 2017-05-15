@@ -76,7 +76,7 @@ Outcome Settings<TEnum>::loadFromFile(const std::string& path) {
         }
     }
     ifs.close();
-    return true;
+    return SUCCESS;
 }
 
 template <typename TEnum>

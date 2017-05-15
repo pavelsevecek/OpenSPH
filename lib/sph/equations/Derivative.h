@@ -136,6 +136,7 @@ namespace VelocityGradientCorrection {
     };
 }
 
+/// Velocity gradient accumulated only over particles of the same body and only particles with strength.
 template <typename TCorrection = VelocityGradientCorrection::NoCorrection>
 class StrengthVelocityGradient : public DerivativeTemplate<StrengthVelocityGradient<TCorrection>> {
 private:

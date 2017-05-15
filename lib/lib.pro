@@ -197,4 +197,6 @@ HEADERS += \
     math/SparseMatrix.h \
     sph/equations/Potentials.h \
     sph/equations/Statics.h \
-    sph/solvers/StaticSolver.h
+    sph/solvers/StaticSolver.h \
+    objects/finders/BruteForce.h \
+    geometry/AntisymmetricTensor.h

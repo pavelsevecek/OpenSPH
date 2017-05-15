@@ -7,14 +7,13 @@
 
 #include "geometry/TracelessTensor.h"
 #include "objects/wrappers/AutoPtr.h"
+#include "objects/wrappers/Outcome.h"
 #include "objects/wrappers/Range.h"
 #include "objects/wrappers/Variant.h"
 #include "quantities/QuantityIds.h"
 #include <map>
 
 NAMESPACE_SPH_BEGIN
-
-class Outcome;
 
 /// Tag for initialization of empty settings object.
 struct EmptySettingsTag {};

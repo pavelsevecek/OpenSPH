@@ -121,7 +121,8 @@ SOURCES += \
     ../lib/sph/equations/test/Potentials.cpp \
     ../lib/sph/solvers/test/StaticSolver.cpp \
     ../lib/objects/wrappers/test/Expected.cpp \
-    ../lib/objects/wrappers/test/Outcome.cpp
+    ../lib/objects/wrappers/test/Outcome.cpp \
+    ../lib/geometry/test/AntisymmetricTensor.cpp
 
 HEADERS += \
     utils/Utils.h \

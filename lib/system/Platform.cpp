@@ -24,7 +24,7 @@ Outcome sendMail(const std::string& to,
     fwrite(message.c_str(), 1, message.size(), mailpipe);
     fwrite(".\n", 1, 2, mailpipe);
     pclose(mailpipe);
-    return true;
+    return SUCCESS;
 }
 
 /// Shows a notification using 'notify-send' command. The function is non-blocking, the notification
@@ -32,7 +32,7 @@ Outcome sendMail(const std::string& to,
 Outcome showNotification(const std::string& title, const std::string& message) {
     std::string command = "notify-send \"" + title + "\" \"" + message + "\"";
     if (system(command.c_str())) {
-        return true;
+        return SUCCESS;
     } else {
         return "Command failed";
     }

@@ -38,7 +38,7 @@ TEST_CASE("Balsara shear flow", "[av]") {
     ArrayView<Vector> rotv = storage2.getValue<Vector>(QuantityId::VELOCITY_ROTATION);
     ArrayView<Vector> r = storage2.getValue<Vector>(QuantityId::POSITIONS);
 
-    auto test = [&](const Size i) {
+    auto test = [&](const Size i) -> Outcome {
         if (getLength(r[i]) >= 0.7_f) {
             // skip boundary particles
             return SUCCESS;
@@ -86,7 +86,7 @@ TEST_CASE("Balsara divergent flow", "[av]") {
     ArrayView<Vector> rotv = storage2.getValue<Vector>(QuantityId::VELOCITY_ROTATION);
     ArrayView<Vector> r = storage2.getValue<Vector>(QuantityId::POSITIONS);
 
-    auto test = [&](const Size i) {
+    auto test = [&](const Size i) -> Outcome {
         if (getLength(r[i]) >= 0.7_f) {
             return SUCCESS;
         }

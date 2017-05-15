@@ -87,7 +87,7 @@ void testHomogeneousField(TArgs&&... args) {
     Size n = 0;
 
     const Size testCnt = Size(3._f / timeStep);
-    auto test = [&](const Size i) {
+    auto test = [&](const Size i) -> Outcome {
         const Float t = i * timeStep;
         const Vector pos(0.f, 0.f, 0.5 * sqr(t));
         const Vector vel(0.f, 0.f, t);
@@ -118,7 +118,7 @@ void testHarmonicOscillator(TArgs&&... args) {
     Size n = 0;
 
     const Size testCnt = Size(3._f / timeStep);
-    auto test = [&](const Size i) {
+    auto test = [&](const Size i) -> Outcome {
         const Float t = i * timeStep;
         if (r[0] != approx(Vector(cos(2.f * PI * t), 0.f, 0.f), timeStep * 2._f * PI)) {
             return makeFailed(
@@ -152,7 +152,7 @@ void testGyroscopicMotion(TArgs&&... args) {
     Statistics stats;
     Size n = 0;
     const Size testCnt = Size(3._f / timeStep);
-    auto test = [&](const Size i) {
+    auto test = [&](const Size i) -> Outcome {
         const Float t = i * timeStep;
         const Vector pos = Vector(cos(t), -sin(t), 0.5_f * t);
         const Vector vel = Vector(-sin(t), -cos(t), 0.5_f);

@@ -102,7 +102,7 @@ Outcome TextOutput::load(const std::string& path, Storage& storage) {
         }
     }
     ifs.close();
-    return true;
+    return SUCCESS;
 }
 
 std::string GnuplotOutput::dump(Storage& storage, const Statistics& stats) {
@@ -199,7 +199,7 @@ Outcome BinaryOutput::load(const std::string& path, Storage& storage) {
     Size particleCnt, quantityCnt;
     ifs >> time >> particleCnt >> quantityCnt;
     ifs.close();
-    return true;
+    return SUCCESS;
 }
 
 NAMESPACE_SPH_END

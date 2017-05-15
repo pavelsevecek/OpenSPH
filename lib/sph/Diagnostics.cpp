@@ -4,7 +4,7 @@
 
 NAMESPACE_SPH_BEGIN
 
-Array<ParticlePairing::Pair> ParticlePairing::getPairs(Storage& storage) const {
+Array<ParticlePairing::Pair> ParticlePairing::getPairs(const Storage& storage) const {
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
     KdTree finder;
     finder.build(r);
@@ -25,7 +25,7 @@ Array<ParticlePairing::Pair> ParticlePairing::getPairs(Storage& storage) const {
     return pairs;
 }
 
-Outcome ParticlePairing::check(Storage& storage) {
+Outcome ParticlePairing::check(const Storage& storage) {
     Array<Pair> pairs = getPairs(storage);
     if (!pairs.empty()) {
         std::string message = "Particle pairs found: \n";
@@ -37,7 +37,7 @@ Outcome ParticlePairing::check(Storage& storage) {
     return SUCCESS;
 }
 
-Outcome SmoothingDiscontinuity::check(Storage& storage) {
+Outcome SmoothingDiscontinuity::check(const Storage& storage) {
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
     KdTree finder;
     finder.build(r);

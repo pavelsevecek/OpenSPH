@@ -36,7 +36,7 @@ void testKernel(const TKernel& kernel, TTest&& test) {
     LutKernel<d> lut(kernel);
     // check that its values match the precise kernels
     const Size testCnt = Size(kernel.radius() / 0.001_f);
-    auto test1 = [&](const Size i) {
+    auto test1 = [&](const Size i) -> Outcome {
         Float x = i * 0.5001_f;
         // clang-format off
         if (lut.valueImpl(sqr(x)) != approx(kernel.valueImpl(sqr(x)), 1.e-6_f)) {

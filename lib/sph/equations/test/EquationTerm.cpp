@@ -98,7 +98,6 @@ TEST_CASE("EquationHolder operators", "[equationterm]") {
     EquationHolder sum = std::move(eqs) + makeTerm<NeighbourCountTerm>() +
                          makeTerm<AdaptiveSmoothingLength>(RunSettings::getDefaults());
     REQUIRE(sum.getTermCnt() == 3);
-    REQUIRE(eqs.getTermCnt() == 0);
 }
 
 TEST_CASE("TestEquation", "[equationterm]") {
@@ -146,7 +145,7 @@ TEST_CASE("NeighbourCountTerm", "[equationterm]") {
     finder.build(r);
     const Float radius = Factory::getKernel<3>(RunSettings::getDefaults()).radius();
     Array<NeighbourRecord> neighs;
-    auto test = [&](Size i) {
+    auto test = [&](Size i) -> Outcome {
         const Size cnt = finder.findNeighbours(i, r[i][H] * radius, neighs, EMPTY_FLAGS);
         if (cnt != neighCnts[i] + 1) {
             // +1 for the particle itself
@@ -167,7 +166,7 @@ TEST_CASE("Div v of position vectors", "[equationterm]") {
     ArrayView<Float> divv = storage.getValue<Float>(QuantityId::VELOCITY_DIVERGENCE);
     REQUIRE(divv.size() == r.size());
 
-    auto test = [&](const Size i) {
+    auto test = [&](const Size i) -> Outcome {
         // particles on boundary have different velocity divergence, check only particles inside
         if (getLength(r[i]) > 0.7_f) {
             return SUCCESS;
@@ -191,7 +190,7 @@ TEST_CASE("Grad v of const field", "[equationterm]") {
 
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
     ArrayView<Tensor> gradv = storage.getValue<Tensor>(QuantityId::VELOCITY_GRADIENT);
-    auto test = [&](const Size i) {
+    auto test = [&](const Size i) -> Outcome {
         // here we ALWAYS subtract two equal values, so the result should be zero EXACTLY
         if (gradv[i] != Tensor(0._f)) {
             // clang-format off
@@ -214,7 +213,7 @@ TEST_CASE("Grad v of position vector", "[equationterm]") {
 
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
     ArrayView<Tensor> gradv = storage.getValue<Tensor>(QuantityId::VELOCITY_GRADIENT);
-    auto test = [&](const Size i) {
+    auto test = [&](const Size i) -> Outcome {
         if (getLength(r[i]) > 0.7_f) {
             return SUCCESS;
         }
@@ -241,7 +240,7 @@ TEST_CASE("Grad v of non-trivial field", "[equationterm]") {
 
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
     ArrayView<Tensor> gradv = storage.getValue<Tensor>(QuantityId::VELOCITY_GRADIENT);
-    auto test = [&](const Size i) {
+    auto test = [&](const Size i) -> Outcome {
         if (getLength(r[i]) > 0.7_f) {
             // skip test by reporting success
             return SUCCESS;

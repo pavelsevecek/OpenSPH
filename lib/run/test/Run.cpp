@@ -115,7 +115,7 @@ TEST_CASE("Run abort", "[run]") {
     REQUIRE_NOTHROW(run.setUp());
     REQUIRE_NOTHROW(run.run());
     REQUIRE(run.stepIdx == 6);
-    REQUIRE(run.runEnded);
+    REQUIRE_FALSE(run.runEnded); // this is only set if the run ends successfully
 }
 
 TEST_CASE("Run twice", "[run]") {

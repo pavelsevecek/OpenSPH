@@ -20,11 +20,11 @@ TEST_CASE("StaticSolver gravity", "[staticsolver]") {
     EquationHolder equations(std::move(potential));
     StaticSolver solver(settings, std::move(equations));
 
-    Storage storage = Tests::getGassStorage(1000, BodySettings::getDefaults(), 1._f * Constants::au, rho0);
+    Storage storage = Tests::getGassStorage(100, BodySettings::getDefaults(), 1._f * Constants::au, rho0);
     solver.create(storage, storage.getMaterial(0));
 
     Statistics stats;
-    REQUIRE(solver.solve(storage, stats) == SUCCESS);
+    REQUIRE(solver.solve(storage, stats));
 
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
     ArrayView<const Float> p = storage.getValue<Float>(QuantityId::PRESSURE);

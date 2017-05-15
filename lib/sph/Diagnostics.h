@@ -2,7 +2,7 @@
 
 /// \file Diagnostics.h
 /// \brief Looking for problems in SPH simulation and reporting potential errors
-/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz) 
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2017
 
 #include "objects/wrappers/Outcome.h"
@@ -13,17 +13,17 @@ NAMESPACE_SPH_BEGIN
 /// \todo incorporate into EquationTerm / Derivative framework
 
 namespace Abstract {
-	/// Error message of diagnostics
-	class DiagnosticsReport {
-		std::string message;
-		Array<Size> offendingParticles;
-	};
-	
+    /// Error message of diagnostics
+    class DiagnosticsReport {
+        std::string message;
+        Array<Size> offendingParticles;
+    };
+
     /// Base class of diagnostics of the run. Compared to Abstract::Integral, the diagnostics shall return
-    /// boolean result, indicating whether everything is OK an error occured.    
+    /// boolean result, indicating whether everything is OK an error occured.
     class Diagnostics : public Polymorphic {
     public:
-        virtual BasicOutcome<DiagnosticsReport> check(const Storage& storage) = 0;
+        virtual Outcome check(const Storage& storage) = 0;
     };
 }
 
@@ -55,7 +55,7 @@ public:
     Array<Pair> getPairs(const Storage& storage) const;
 
     /// Checks for particle pairs, returns SUCCESS if no pair is found.
-    virtual virtual BasicOutcome<DiagnosticsReport> check(const Storage& storage) override;
+    virtual Outcome check(const Storage& storage) override;
 };
 
 /// Checks for large differences of smoothing length between neighbouring particles
@@ -70,7 +70,7 @@ public:
         : radius(radius)
         , limit(limit) {}
 
-    virtual Outcome check(Storage& storage) override;
+    virtual Outcome check(const Storage& storage) override;
 };
 
 NAMESPACE_SPH_END

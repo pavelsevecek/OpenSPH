@@ -61,7 +61,7 @@ TEST_CASE("Initial velocity", "[initial]") {
     ArrayView<Float> rho = storage.getValue<Float>(QuantityId::DENSITY);
     ArrayView<Vector> v = storage.getAll<Vector>(QuantityId::POSITIONS)[1];
 
-    auto test = [&](const Size i) {
+    auto test = [&](const Size i) -> Outcome {
         if (rho[i] == 1._f && v[i] != Vector(2._f, 1._f, -1._f)) {
             return makeFailed("Invalid velocity: ", v[i]);
         }
@@ -87,7 +87,7 @@ TEST_CASE("Initial rotation", "[initial]") {
     float magnitude;
     tieToTuple(axis, magnitude) = getNormalizedWithLength(Vector(1._f, 3._f, -2._f));
 
-    auto test = [&](const Size i) {
+    auto test = [&](const Size i) -> Outcome {
         const Float distFromAxis = getLength(r[i] - axis * dot(r[i], axis));
         if (getLength(v[i]) != approx(distFromAxis * magnitude, 1.e-6_f)) {
             return makeFailed(
@@ -119,7 +119,7 @@ TEST_CASE("Initial addHeterogeneousBody single", "[initial]") {
     REQUIRE(storage1.getParticleCnt() == storage2.getParticleCnt());
     REQUIRE(storage1.getMaterialCnt() == storage2.getMaterialCnt());
     iteratePair<VisitorEnum::ALL_BUFFERS>(storage1, storage2, [&](auto&& v1, auto&& v2) {
-        auto test = [&](const Size i) {
+        auto test = [&](const Size i) -> Outcome {
             if (v1[i] != v2[i]) {
                 return makeFailed("Different values: ", v1[i], " == ", v2[i]);
             }
@@ -139,16 +139,13 @@ TEST_CASE("Initial addHeterogeneousBody multiple", "[initial]") {
     Storage storage;
     InitialConditions conds(storage, RunSettings::getDefaults());
 
-    AutoPtr<BlockDomain> domain =
-        makeAuto<BlockDomain>(Vector(0._f), Vector(10._f)); // [-5, 5]
+    AutoPtr<BlockDomain> domain = makeAuto<BlockDomain>(Vector(0._f), Vector(10._f)); // [-5, 5]
     InitialConditions::Body environment(std::move(domain), bodySettings);
     const Vector v1(1._f, 2._f, 3._f);
-    AutoPtr<SphericalDomain> domain1 =
-        makeAuto<SphericalDomain>(Vector(3._f, 3._f, 2._f), 2._f);
+    AutoPtr<SphericalDomain> domain1 = makeAuto<SphericalDomain>(Vector(3._f, 3._f, 2._f), 2._f);
     InitialConditions::Body body1(std::move(domain1), bodySettings, v1);
     const Vector v2(5._f, -1._f, 3._f);
-    AutoPtr<SphericalDomain> domain2 =
-        makeAuto<SphericalDomain>(Vector(-2._f, -2._f, -1._f), 2._f);
+    AutoPtr<SphericalDomain> domain2 = makeAuto<SphericalDomain>(Vector(-2._f, -2._f, -1._f), 2._f);
     InitialConditions::Body body2(std::move(domain2), bodySettings, v2);
 
     Array<InitialConditions::Body> bodies;
@@ -166,16 +163,16 @@ TEST_CASE("Initial addHeterogeneousBody multiple", "[initial]") {
     // domains were moved away ...
     SphericalDomain dom1 = SphericalDomain(Vector(3._f, 3._f, 2._f), 2._f);
     SphericalDomain dom2 = SphericalDomain(Vector(-2._f, -2._f, -1._f), 2._f);
-    auto test = [&](const Size i) {
+    auto test = [&](const Size i) -> Outcome {
         if (dom1.isInside(r[i])) {
             particlesBody1++;
-            return flag[i] == 0 && v[i] == v1;
+            return Outcome(flag[i] == 0 && v[i] == v1);
         }
         if (dom2.isInside(r[i])) {
             particlesBody2++;
-            return flag[i] == 1 && v[i] == v2;
+            return Outcome(flag[i] == 1 && v[i] == v2);
         }
-        return flag[i] == 2 && v[i] == Vector(0._f);
+        return Outcome(flag[i] == 2 && v[i] == Vector(0._f));
     };
     REQUIRE_SEQUENCE(test, 0, r.size());
     REQUIRE(particlesBody1 > 30);

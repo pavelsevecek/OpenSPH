@@ -60,6 +60,7 @@ enum class QuantityId {
     VELOCITY_GRADIENT,           ///< Velocity gradient
     VELOCITY_DIVERGENCE,         ///< Velocity divergence
     VELOCITY_ROTATION,           ///< Velocity rotation
+    ROTATION_RATE,               ///< Rotation rate tensor
     STRENGTH_VELOCITY_GRADIENT,  ///< Gradient computed by summing up particles with non-zero stress tensor
                                  /// from the same body and strengthless particles (from any body). Used to
                                  /// implement the 'spring interaction'.

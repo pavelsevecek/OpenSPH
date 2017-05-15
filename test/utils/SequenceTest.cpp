@@ -7,9 +7,9 @@ using namespace Sph;
 
 TEST_CASE("Sequence success", "[sequencetest]") {
     Size testsPerformed = 0;
-    auto test = [&](const Size i) {
+    auto test = [&](const Size i) -> Outcome {
         testsPerformed++;
-        return i > 20;
+        return Outcome(i > 20);
     };
 
     REQUIRE_SEQUENCE(test, 30, 50);
@@ -17,7 +17,7 @@ TEST_CASE("Sequence success", "[sequencetest]") {
 }
 
 TEST_CASE("Sequence fail", "[sequencetests]") {
-    auto test = [&](const Size i) {
+    auto test = [&](const Size i) -> Outcome {
         if (i > 50 && i < 60) {
             return makeFailed("e", i);
         }

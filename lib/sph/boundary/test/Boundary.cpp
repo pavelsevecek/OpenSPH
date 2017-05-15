@@ -156,7 +156,7 @@ TEST_CASE("GhostParticles Sphere", "[boundary]") {
     tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
     REQUIRE(r.size() == 2 * ghostIdx); // ghost for each particle
 
-    auto test = [&](const Size i) {
+    auto test = [&](const Size i) -> Outcome {
         Vector normalized;
         Float length;
         tieToTuple(normalized, length) = getNormalizedWithLength(r[ghostIdx + i]);
@@ -207,7 +207,7 @@ TEST_CASE("GhostParticles Sphere Projection", "[boundary]") {
     r = storage.getValue<Vector>(QuantityId::POSITIONS);
     REQUIRE(r.size() == halfSize * 3); // only layer with r=1.9 creates ghost particles
 
-    auto test = [&](const Size i) {
+    auto test = [&](const Size i) -> Outcome {
         if (i % 2 == 0) {
             if (getLength(r[i]) != approx(1.9_f)) {
                 return makeFailed("Invalid particle position: ", getLength(r[i]), " / 1.9");
@@ -265,7 +265,7 @@ TEST_CASE("FrozenParticles by flag", "[boundary]") {
     boundaryConditions.freeze(1);
     boundaryConditions.finalize(storage);
 
-    auto test1 = [&](const Size i) {
+    auto test1 = [&](const Size i) -> Outcome {
         if (i < size0 && (v[i] != v0 || dv[i] != dv0 || du[i] != du0)) {
             // clang-format off
             return makeFailed("Incorrect particles frozen: "
@@ -289,7 +289,7 @@ TEST_CASE("FrozenParticles by flag", "[boundary]") {
     boundaryConditions.freeze(0);
     setup();
     boundaryConditions.finalize(storage);
-    auto test2 = [&](const Size i) {
+    auto test2 = [&](const Size i) -> Outcome {
         if (v[i] != v0 || dv[i] != Vector(0._f) || du[i] != 0._f) {
             // clang-format off
             return makeFailed("Nonzero derivatives after freezing:\n "
@@ -305,7 +305,7 @@ TEST_CASE("FrozenParticles by flag", "[boundary]") {
     boundaryConditions.thaw(1);
     setup();
     boundaryConditions.finalize(storage);
-    auto test3 = [&](const Size i) {
+    auto test3 = [&](const Size i) -> Outcome {
         if (i >= size0 && (v[i] != v0 || dv[i] != dv0 || du[i] != du0)) {
             // clang-format off
             return makeFailed("Incorrect particles frozen:\n "
@@ -354,7 +354,7 @@ TEST_CASE("FrozenParticles by distance", "[boundary]") {
     boundaryConditions.finalize(storage);
     REQUIRE(storage.getParticleCnt() == r.size()); // sanity check that we don't add or lose particles
 
-    auto test = [&](const Size i) {
+    auto test = [&](const Size i) -> Outcome {
         const Float dist = getLength(r[i]);
         if (dist > 1._f + EPS) {
             return makeFailed("Particle not projected inside the domain:\n dist = ", dist);

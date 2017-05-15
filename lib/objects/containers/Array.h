@@ -262,7 +262,6 @@ public:
         pushAll(other.cbegin(), other.cend());
     }
 
-    /// \todo add tests!
     void pushAll(Array&& other) {
         for (Iterator<T> iter = other.begin(); iter != other.end(); ++iter) {
             push(std::move(*iter));
@@ -290,7 +289,7 @@ public:
     void remove(const TCounter idx) {
         ASSERT(idx < this->actSize);
         for (TCounter i = idx; i < this->actSize - 1; ++i) {
-            this->data[i] = this->data[i + 1];
+            this->data[i] = std::move(this->data[i + 1]);
         }
         resize(this->actSize - 1);
     }

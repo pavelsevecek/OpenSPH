@@ -19,10 +19,10 @@ public:
 
 
     virtual Size findNeighbours(const Size index,
-                               const Float radius,
-                               Array<NeighbourRecord>& neighbours,
-                               Flags<FinderFlags> flags  = EMPTY_FLAGS,
-                               const Float UNUSED(error) = 0._f) const override {
+        const Float radius,
+        Array<NeighbourRecord>& neighbours,
+        Flags<FinderFlags> flags = EMPTY_FLAGS,
+        const Float UNUSED(error) = 0._f) const override {
         neighbours.clear();
         const Size refRank =
             (flags.has(FinderFlags::FIND_ONLY_SMALLER_H)) ? this->rankH[index] : this->values.size();
@@ -34,12 +34,12 @@ public:
         }
         return neighbours.size();
     }
-	
-	    virtual Size findNeighbours(const Vector& position,
-                               const Float radius,
-                               Array<NeighbourRecord>& neighbours,
-                               Flags<FinderFlags> flags  = EMPTY_FLAGS,
-                               const Float UNUSED(error) = 0._f) const override {
+
+    virtual Size findNeighbours(const Vector& position,
+        const Float radius,
+        Array<NeighbourRecord>& neighbours,
+        Flags<FinderFlags> UNUSED(flags) = EMPTY_FLAGS,
+        const Float UNUSED(error) = 0._f) const override {
         neighbours.clear();
         for (Size i = 0; i < this->values.size(); ++i) {
             const Float distSqr = getSqrLength(this->values[i] - position);

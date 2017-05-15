@@ -21,7 +21,9 @@ public:
         : storage(storage)
         , rankH(&rankH) {}
 
-    INLINE int kdtree_get_point_count() const { return storage.size(); }
+    INLINE int kdtree_get_point_count() const {
+        return storage.size();
+    }
 
     INLINE Float kdtree_distance(const Vector& v, const Size idx, int UNUSED(size)) const {
         ASSERT(refRank < std::numeric_limits<Size>::max());
@@ -32,7 +34,9 @@ public:
         }
     }
 
-    INLINE Float kdtree_get_pt(const Size idx, uint n) const { return storage[idx][n]; }
+    INLINE Float kdtree_get_pt(const Size idx, uint n) const {
+        return storage[idx][n];
+    }
 
     template <class BBOX>
     bool kdtree_get_bbox(BBOX& UNUSED(bb)) const {
@@ -70,7 +74,7 @@ Size KdTree::findNeighbours(const Size index,
     const Float radius,
     Array<NeighbourRecord>& neighbours,
     Flags<FinderFlags> flags,
-    const Float error) const  {
+    const Float error) const {
     PROFILE_SCOPE("KdTree::findNeighbours")
     neighbours.clear();
     SearchParams params;
@@ -87,8 +91,8 @@ Size KdTree::findNeighbours(const Size index,
 Size KdTree::findNeighbours(const Vector& position,
     const Float radius,
     Array<NeighbourRecord>& neighbours,
-    Flags<FinderFlags> flags,
-    const Float error) const  {
+    Flags<FinderFlags> UNUSED(flags),
+    const Float error) const {
     PROFILE_SCOPE("KdTree::findNeighbours")
     neighbours.clear();
     SearchParams params;

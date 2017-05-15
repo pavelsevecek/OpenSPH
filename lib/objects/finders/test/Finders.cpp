@@ -27,7 +27,7 @@ void testFinder(Abstract::Finder& finder, Flags<FinderFlags> flags) {
     const Float radius = 0.7_f;
 
 
-    auto test = [&](const Size refIdx) {
+    auto test = [&](const Size refIdx) -> Outcome {
         const Size nTree = finder.findNeighbours(refIdx, radius, treeNeighs, flags);
         const Size nBf = bf.findNeighbours(refIdx, radius, bfNeighs, flags);
 

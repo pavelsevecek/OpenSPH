@@ -40,7 +40,7 @@ void testDistributionForDomain(Abstract::Distribution* distribution, const Abstr
 
     // check that all particles have the same smooting length
     const Float expectedH = root<3>(domain.getVolume() / n);
-    auto test = [&](const Size i) {
+    auto test = [&](const Size i) -> Outcome {
         if (values[i][H] <= 0.8_f * expectedH || values[i][H] >= 1.2_f * expectedH) {
             return makeFailed("Invalid smoothing length: ", values[i][H], " == ", expectedH);
         }
@@ -68,7 +68,7 @@ TEST_CASE("HexaPacking grid", "[initial]") {
     AutoPtr<Abstract::Finder> finder = Factory::getFinder(RunSettings::getDefaults());
     finder->build(r);
     Array<NeighbourRecord> neighs;
-    auto test = [&](const Size i) {
+    auto test = [&](const Size i) -> Outcome {
         if (getLength(r[i]) > 1.3_f) {
             // skip particles close to boundary, they don't necessarily have 12 neighbours
             return SUCCESS;
@@ -162,7 +162,7 @@ TEST_CASE("LinearDistribution", "[initial]") {
     SphericalDomain domain(Vector(0.5_f), 0.5_f);
     Array<Vector> values = linear.generate(101, domain);
     REQUIRE(values.size() == 101);
-    auto test = [&](const Size i) {
+    auto test = [&](const Size i) -> Outcome {
         if (values[i] != approx(Vector(i / 100._f, 0._f, 0._f), 1.e-5_f)) {
             return makeFailed(values[i], " == ", Vector(i / 100._f, 0._f, 0._f));
         }

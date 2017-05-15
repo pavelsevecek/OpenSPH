@@ -1,12 +1,12 @@
 #pragma once
 
-/// \file AntisymmetricTensor.h 
+/// \file AntisymmetricTensor.h
 /// \brief Basic algebra for antisymmetric 2nd order tensors
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2017
 
 
-#include "geometry/Vector.h"
+#include "geometry/Tensor.h"
 #include "objects/containers/StaticArray.h"
 
 NAMESPACE_SPH_BEGIN
@@ -30,29 +30,43 @@ public:
     /// Constructs an antisymmetric tensor from a corresponding pseudovector. Here we use right-hand
     /// convention, same as for cross product.
     explicit AntisymmetricTensor(const PseudoVectorTag, const Vector& v)
-        : u(-v[Z], v[Y], -v[X]) {}
+        : u(v[Z], -v[Y], v[X]) {}
 
     /// Constructs an antisymmetric tensor by setting all components above the diagonal to the same value.
     explicit AntisymmetricTensor(const Float v)
         : u(v) {}
 
     /// Returns the components above diagonal as vector
-    Vector& components() {
+    INLINE Vector& components() {
         return u;
     }
 
     /// Returns the components above diagonal as vector
-    const Vector& components() const {
+    INLINE const Vector& components() const {
         return u;
     }
 
     /// Returns the associated pseudovector.
     Vector pseudovector() const {
-        return Vector(-u[X], u[Y], -u[Z]);
+        return Vector(u[Z], -u[Y], u[X]);
+    }
+
+    /// Returns a row of the matrix
+    INLINE Vector operator[](const Size idx) const {
+        switch (idx) {
+        case 0:
+            return Vector(0._f, u[X], u[Y]);
+        case 1:
+            return Vector(-u[X], 0._f, u[Z]);
+        case 2:
+            return Vector(-u[Y], -u[Z], 0._f);
+        default:
+            STOP;
+        }
     }
 
     /// Returns element on given with given indices.
-    Float operator()(const Size i, const Size j) const {
+    INLINE Float operator()(const Size i, const Size j) const {
         if (i == j) {
             return 0._f;
         } else if (i < j) {
@@ -60,6 +74,28 @@ public:
         } else {
             return -u[i + j - 1];
         }
+    }
+
+    INLINE static AntisymmetricTensor null() {
+        return AntisymmetricTensor(Vector(0._f));
+    }
+
+    INLINE AntisymmetricTensor operator+=(const AntisymmetricTensor& other) {
+        u += other.u;
+        return *this;
+    }
+
+    INLINE AntisymmetricTensor operator-=(const AntisymmetricTensor& other) {
+        u -= other.u;
+        return *this;
+    }
+
+    INLINE AntisymmetricTensor operator-() const {
+        return AntisymmetricTensor(-u);
+    }
+
+    friend bool operator==(const AntisymmetricTensor& t1, const AntisymmetricTensor& t2) {
+        return t1.u == t2.u;
     }
 
     friend AntisymmetricTensor operator+(const AntisymmetricTensor& t1, const AntisymmetricTensor& t2) {
@@ -81,7 +117,22 @@ public:
     friend AntisymmetricTensor operator/(const AntisymmetricTensor& t, const Float v) {
         return AntisymmetricTensor(t.u / v);
     }
+
+    friend std::ostream& operator<<(std::ostream& stream, const AntisymmetricTensor& t) {
+        stream << std::setprecision(6) << std::setw(20) << t.u[X] << std::setw(20) << t.u[Y] << std::setw(20)
+               << t.u[Z];
+        return stream;
+    }
 };
+
+/// ANTISYMMETRIZED outer product of two vectors (simple outer product is not necessarily antisymmetric
+/// matrix).
+INLINE AntisymmetricTensor antisymmetricOuter(const Vector& v1, const Vector& v2) {
+    /// \todo optimize
+    return AntisymmetricTensor(
+        0.5_f *
+        Vector(v1[X] * v2[Y] - v1[Y] * v2[X], v1[X] * v2[Z] - v1[Z] * v2[X], v1[Y] * v2[Z] - v1[Z] * v2[Y]));
+}
 
 
 /// Checks if two tensors are equal to some given accuracy.

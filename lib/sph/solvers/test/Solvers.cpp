@@ -72,7 +72,7 @@ void solveGassBall(Flags<Options> flags) {
     tie(r, v, dv) = storage->getAll<Vector>(QuantityId::POSITIONS);
     tie(u, rho) = storage->getValues<Float>(QuantityId::ENERGY, QuantityId::DENSITY);
 
-    auto test = [&](const Size i) {
+    auto test = [&](const Size i) -> Outcome {
         if (u[i] >= 0.9_f * u0) {
             return makeFailed("Energy did not decrease: u = ", u[i]);
         }

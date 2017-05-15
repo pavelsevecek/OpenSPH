@@ -5,8 +5,7 @@
 /// \author Pavel Sevecek (sevecek ar sirrah.troja.mff.cuni.cz)
 /// \date 2016-2017
 
-#include "common/Assert.h"
-#include <sstream>
+#include "objects/wrappers/Optional.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -14,49 +13,51 @@ struct SuccessTag {};
 
 struct FailTag {};
 
+namespace OutcomeTraits {
+    /// Helper function returning default error of outcome. Error type must either be default constructible,
+    /// or the function must be specialized for given type.
+    template <typename TError>
+    INLINE TError defaultError() {
+        return TError();
+    }
+
+    template <>
+    INLINE std::string defaultError<std::string>() {
+        return "error";
+    }
+}
+
 /// Expected-like class that does not contain any value. Either contains "success" (no error), or error
 /// message. The error message must be default-constructible.
-template<typename TError>
+template <typename TError>
 class BasicOutcome {
 private:
     Optional<TError> e;
 
-    const static TError defaultError = TError();
-
 public:
     /// Constructs object with success (no error)
-    INLINE Outcome(SuccessTag) {}
+    INLINE BasicOutcome(SuccessTag) {}
 
     /// Constructs object with defautl error message.
-    INLINE Outcome(FailTag)
-        : e(defaultError) {}
+    INLINE BasicOutcome(FailTag)
+        : e(OutcomeTraits::defaultError<TError>()) {}
 
     /// Constructs object from boolean result; if true, reports success, otherwise reports default error
     /// message.
-    INLINE Outcome(const bool value) {
-		if (value) {
-			e.emplace(defaultError);
-		}
-	}
-
-    /// Constructs object given error message using copy constructor.
-    INLINE Outcome(const TError& error)
-        : e(error) {}
-		
-	/// Constructs object given error message using move constructor.
-	INLINE Outcome(TError&& error)
-        : e(std::move(error)) {}
-
-    /// Constructs object given error message. Overload for char pointer, it is needed otherwise constructing
-    /// Outcome from char* would call the bool constructor.
-    INLINE Outcome(const char* error)
-        : e(error) {
-        ASSERT(!e.empty());
+    INLINE explicit BasicOutcome(const bool value) {
+        if (!value) {
+            e.emplace(OutcomeTraits::defaultError<TError>());
+        }
     }
+
+    /// Constructs object given error message.
+    template <typename T, typename = std::enable_if_t<std::is_constructible<TError, T>::value>>
+    INLINE BasicOutcome(T&& error)
+        : e(std::forward<T>(error)) {}
 
     /// Checks whether the object contains success, i.e. no error is stored.
     INLINE bool success() const {
-        return bool(e);
+        return !e;
     }
 
     /// Conversion to bool, returning true if no error is stored.
@@ -72,17 +73,17 @@ public:
     /// Returns the error message. If the object contains success (no error), asserts.
     INLINE const TError& error() const {
         ASSERT(!success());
-        return e;
+        return e.value();
     }
 
     /// Compares two outcomes. Outcomes are only considered equal if both are successful or both contain equal
     /// error message.
-    bool operator==(const Outcome& other) const {
+    bool operator==(const BasicOutcome& other) const {
         return e == other.e;
     }
 
     /// Prints "success" or error message into the output stream.
-    friend std::ostream& operator<<(std::ostream& stream, const Outcome& outcome) {
+    friend std::ostream& operator<<(std::ostream& stream, const BasicOutcome& outcome) {
         if (outcome) {
             stream << "success";
         } else {
@@ -91,7 +92,7 @@ public:
         return stream;
     }
 };
- 
+
 /// Alias for string error message
 using Outcome = BasicOutcome<std::string>;
 

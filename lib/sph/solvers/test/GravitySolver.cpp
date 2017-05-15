@@ -18,7 +18,7 @@ TEST_CASE("GravitySolver", "[solvers]") {
     ArrayView<Vector> r, v, dv;
     tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
 
-    auto test = [&](const Size i) {
+    auto test = [&](const Size i) -> Outcome {
         if (getLength(dv[i]) == 0._f) {
             return makeFailed("No acceleration for particle ", i);
         }
