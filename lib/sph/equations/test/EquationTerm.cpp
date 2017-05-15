@@ -89,6 +89,18 @@ TEST_CASE("Setting derivatives", "[equationterm]") {
     REQUIRE(TestDerivative::initialized);
 }
 
+TEST_CASE("EquationHolder operators", "[equationterm]") {
+    EquationHolder eqs;
+    REQUIRE(eqs.getTermCnt() == 0);
+    eqs += makeTerm<PressureForce>();
+    REQUIRE(eqs.getTermCnt() == 1);
+
+    EquationHolder sum = std::move(eqs) + makeTerm<NeighbourCountTerm>() +
+                         makeTerm<AdaptiveSmoothingLength>(RunSettings::getDefaults());
+    REQUIRE(sum.getTermCnt() == 3);
+    REQUIRE(eqs.getTermCnt() == 0);
+}
+
 TEST_CASE("TestEquation", "[equationterm]") {
     Storage storage = Tests::getStorage(10);
     const Size N = storage.getParticleCnt();

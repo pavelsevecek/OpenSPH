@@ -119,7 +119,9 @@ SOURCES += \
     ../lib/sph/solvers/test/ContinuitySolver.cpp \
     ../lib/math/test/SparseMatrix.cpp \
     ../lib/sph/equations/test/Potentials.cpp \
-    ../lib/sph/solvers/test/StaticSolver.cpp
+    ../lib/sph/solvers/test/StaticSolver.cpp \
+    ../lib/objects/wrappers/test/Expected.cpp \
+    ../lib/objects/wrappers/test/Outcome.cpp
 
 HEADERS += \
     utils/Utils.h \

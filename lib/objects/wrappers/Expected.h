@@ -11,9 +11,9 @@ NAMESPACE_SPH_BEGIN
 
 /// \brief Wrapper of type that either contains a value of given type, or an error message.
 ///
-/// If the type of error message is bool, this is essentially identical to Optional. Expected is designed as a
-/// return type. When talking about 'expected' value, it means no error has been encounter and Expected
-/// contains value of given type; 'unexpected' value means that Expected contains an error message.
+/// Expected is designed as a return type. When talking about 'expected' value, it means no error has been
+/// encounter and Expected contains value of given type; 'unexpected' value means that Expected contains an
+/// error message.
 ///
 /// Inspired by Andrei Alexandrescu - Systematic Error Handling in C++
 /// https://channel9.msdn.com/Shows/Going+Deep/C-and-Beyond-2012-Andrei-Alexandrescu-Systematic-Error-Handling-in-C
@@ -29,12 +29,16 @@ private:
         Error error;
     };
 
-    Variant<Type, UnexpectedWrapper> data;
+    // first type is dummy to use the default constructor of variant
+    Variant<NothingType, Type, UnexpectedWrapper> data;
 
 public:
-    /// Construct the expected value using default constructor. Should be avoided if possible, but it is
-    /// defined for convenience.
-    Expected() = default;
+    /// Construct the expected value using default constructor. Should be avoided if possible as Expected is
+    /// mainly designed as a value returned from function, but nevertheless the default constructor is defined
+    /// for convenience.
+    Expected() {
+        data.template emplace<Type>();
+    }
 
     /// Constructs an expected value.
     template <typename T, typename = std::enable_if_t<std::is_constructible<Type, T>::value>>
@@ -49,7 +53,7 @@ public:
     }
 
     /// Conversion to bool, checking whether object constains expected value.
-    operator bool() const {
+    explicit operator bool() const {
         return isExpected();
     }
 
@@ -77,6 +81,19 @@ public:
         return data.template get<UnexpectedWrapper>().error;
     }
 
+    /// Operator -> for convenient access to member variables and functions of expected value. If the object
+    /// contains unexpected, throws an assert.
+    Type* operator->() {
+        ASSERT(isExpected());
+        return &value();
+    }
+
+    /// \copydoc Type* operator->()
+    const Type* operator->() const {
+        ASSERT(isExpected());
+        return &value();
+    }
+
     /// If the object contains an expected value, prints the value into the stream, otherwise print the error
     /// message.
     friend std::ostream& operator<<(std::ostream& stream, const Expected& expected) {
@@ -90,7 +107,7 @@ public:
 
 private:
     bool isExpected() const {
-        return data.getTypeIdx() == 0;
+        return data.getTypeIdx() == 1;
     }
 };
 

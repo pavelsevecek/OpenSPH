@@ -41,13 +41,20 @@ public:
         ASSERT(!e.empty());
     }
 
+    /// Constructs object given error message. Overload for char pointer, it is needed otherwise constructing
+    /// Outcome from char* would call the bool constructor.
+    INLINE Outcome(const char* error)
+        : e(error) {
+        ASSERT(!e.empty());
+    }
+
     /// Checks whether the object contains success, i.e. no error is stored.
     INLINE bool success() const {
         return e.empty();
     }
 
     /// Conversion to bool, returning true if no error is stored.
-    INLINE operator bool() const {
+    INLINE explicit operator bool() const {
         return success();
     }
 
@@ -60,6 +67,22 @@ public:
     INLINE const std::string& error() const {
         ASSERT(!success());
         return e;
+    }
+
+    /// Compares two outcomes. Outcomes are only considered equal if both are successful or both contain equal
+    /// error message.
+    bool operator==(const Outcome& other) const {
+        return e == other.e;
+    }
+
+    /// Prints "success" or error message into the output stream.
+    friend std::ostream& operator<<(std::ostream& stream, const Outcome& outcome) {
+        if (outcome) {
+            stream << "success";
+        } else {
+            stream << outcome.error();
+        }
+        return stream;
     }
 };
 

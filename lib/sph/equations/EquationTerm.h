@@ -450,8 +450,11 @@ public:
         return *this;
     }
 
-    EquationHolder operator+(EquationHolder&& other) {
+    EquationHolder operator+(EquationHolder&& other) & = delete;
+
+    EquationHolder operator+(EquationHolder&& other) && {
         EquationHolder holder;
+        holder += std::move(*this);
         holder += std::move(other);
         return holder;
     }
@@ -480,6 +483,10 @@ public:
         for (auto& t : terms) {
             t->create(storage, material);
         }
+    }
+
+    Size getTermCnt() const {
+        return terms.size();
     }
 };
 

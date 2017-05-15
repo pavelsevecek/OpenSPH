@@ -21,6 +21,8 @@ private:
     ArrayView<Float> p;
     ArrayView<TracelessTensor> s;
 
+    Float lambda, mu;
+
 public:
     virtual void create(Accumulated& results) override {
         results.insert<Float>(QuantityId::PRESSURE);
@@ -32,15 +34,21 @@ public:
         tie(m, rho) = input.getValues<Float>(QuantityId::MASSES, QuantityId::DENSITY);
         p = results.getValue<Float>(QuantityId::PRESSURE);
         s = results.getValue<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
+
+        /// \todo generalize for heterogeneous body
+        Abstract::Material& material = input.getMaterial(0);
+        lambda = material.getParam<Float>(BodySettingsId::ELASTIC_MODULUS);
+        mu = material.getParam<Float>(BodySettingsId::SHEAR_MODULUS);
     }
 
     template <bool Symmetrize>
-    void eval(const Size i, ArrayView<const Size> neighs, ArrayView<const Vector> grads) {
+    INLINE void eval(const Size i, ArrayView<const Size> neighs, ArrayView<const Vector> grads) {
         ASSERT(neighs.size() == grads.size());
         for (Size k = 0; k < neighs.size(); ++k) {
             const Size j = neighs[k];
             /// \todo determine actual discretization of this equation
-            const Tensor sigma = outer(u[j] - u[i], grads[k]);
+            const Tensor epsilon = outer(u[j] - u[i], grads[k]);
+            const Tensor sigma = lambda * epsilon.trace() * Tensor::identity() + 2._f * mu * epsilon;
             const Float tr3 = sigma.trace() / 3._f;
             TracelessTensor ds(sigma - tr3 * Tensor::identity());
             p[i] += m[j] / rho[j] * tr3;
@@ -90,7 +98,7 @@ public:
     ///                  equations are considered parameters of the problem, solver cannot be used to solve
     ///                  other quantities than the total stress tensor.
     StaticSolver(const RunSettings& settings, EquationHolder&& equations)
-        : equationSolver(settings, equations + makeTerm<DisplacementTerm>()) {
+        : equationSolver(settings, std::move(equations) + makeTerm<DisplacementTerm>()) {
         kernel = Factory::getKernel<3>(settings);
         finder = Factory::getFinder(settings);
     }
@@ -107,7 +115,7 @@ public:
         matrix.resize(r.size() * 3);
 
         // The equation we are trying to solve is:
-        // (\lambda + \mu) \nabla \cdot (\nabla u) + \mu \nabla^2 u + f = 0
+        // (\lambda + \mu) \nabla (\nabla \cdot u) + \mu \nabla^2 u + f = 0
         // where \lambda, \mu are Lame's coefficient, u is the displacement vector and f is the external force
 
         ArrayView<Float> m, rho;
@@ -120,7 +128,6 @@ public:
 
         // fill the matrix with values
         for (Size i = 0; i < r.size(); ++i) {
-            /// \todo here we assume all particles have the same smoothing length
             finder->findNeighbours(i, kernel.radius() * r[i][H], neighs, FinderFlags::FIND_ONLY_SMALLER_H);
 
             for (Size k = 0; k < neighs.size(); ++k) {
@@ -135,7 +142,7 @@ public:
                 ASSERT(isReal(lhs));
 
                 Tensor mij = m[j] / rho[j] * lhs * f;
-                Tensor mji = -m[i] / rho[i] * lhs * f;
+                Tensor mji = m[i] / rho[i] * lhs * f;
                 for (Size a = 0; a < 3; ++a) {
                     for (Size b = 0; b < 3; ++b) {
                         matrix.insert(3 * i + a, 3 * i + b, mij(a, b));
@@ -160,7 +167,7 @@ public:
         }
 
         // solve the system of equation for displacement
-        Expected<Array<Float>> a = matrix.solve(b, SparseMatrix::Solver::BI_CG);
+        Expected<Array<Float>> a = matrix.solve(b, SparseMatrix::Solver::LU);
         if (!a) {
             // somehow cannot solve the system of equations, report the error
             return a.error();

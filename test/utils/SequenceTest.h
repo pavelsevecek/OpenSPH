@@ -61,7 +61,7 @@ const SequenceSuccessful SEQUENCE_SUCCESS;
 
 template <typename Test>
 INLINE bool operator==(const SequenceSuccessful, const SequenceTest<Test>& sequence) {
-    return sequence.outcome();
+    return (bool)sequence.outcome();
 }
 
 /// Syntactic suggar to avoid using SEQUENCE_SUCCESS constant.
