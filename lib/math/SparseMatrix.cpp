@@ -20,7 +20,9 @@ public:
         triplets.push(Eigen::Triplet<Float>(i, j, value));
     }
 
-    Expected<Array<Float>> solve(const Array<Float>& values, const SparseMatrix::Solver solver) {
+    Expected<Array<Float>> solve(const Array<Float>& values,
+        const SparseMatrix::Solver solver,
+        const Float tolerance) {
         ASSERT(values.size() == matrix.innerSize());
         // this is takes straigh from Eigen documentation
         // (http://eigen.tuxfamily.org/dox-devel/group__TopicSparseSystems.html)
@@ -36,10 +38,12 @@ public:
 
         Expected<SparseVector> a;
         switch (solver) {
-        case SparseMatrix::Solver::LU:
-            a = solveImpl<Eigen::SparseLU<Eigen::SparseMatrix<Float>, Eigen::COLAMDOrdering<int>>>(b);
+        case SparseMatrix::Solver::LU: {
+            Eigen::SparseLU<Eigen::SparseMatrix<Float>, Eigen::COLAMDOrdering<int>> solver;
+            a = solveImpl(solver, b);
             break;
-        case SparseMatrix::Solver::CG:
+        }
+        case SparseMatrix::Solver::CG: {
 #ifdef SPH_DEBUG
             // check that the matrix is symmetric
             {
@@ -53,12 +57,29 @@ public:
                 }
             }
 #endif
-            a = solveImpl<Eigen::ConjugateGradient<Eigen::SparseMatrix<Float>, Eigen::Lower | Eigen::Upper>>(
-                b);
+            Eigen::ConjugateGradient<Eigen::SparseMatrix<Float>, Eigen::Lower | Eigen::Upper> solver;
+            if (tolerance > 0._f) {
+                solver.setTolerance(tolerance);
+            }
+            a = solveImpl(solver, b);
             break;
-        case SparseMatrix::Solver::BI_CG:
-            a = solveImpl<Eigen::BiCGSTAB<Eigen::SparseMatrix<Float>>>(b);
+        }
+        case SparseMatrix::Solver::LSCG: {
+            Eigen::LeastSquaresConjugateGradient<Eigen::SparseMatrix<Float>> solver;
+            if (tolerance > 0._f) {
+                solver.setTolerance(tolerance);
+            }
+            a = solveImpl(solver, b);
             break;
+        }
+        case SparseMatrix::Solver::BI_CG: {
+            Eigen::BiCGSTAB<Eigen::SparseMatrix<Float>> solver;
+            if (tolerance > 0._f) {
+                solver.setTolerance(tolerance);
+            }
+            a = solveImpl(solver, b);
+            break;
+        }
         default:
             NOT_IMPLEMENTED;
         }
@@ -76,8 +97,7 @@ public:
 
 private:
     template <typename TSolver>
-    Expected<SparseVector> solveImpl(const SparseVector& b) {
-        TSolver solver;
+    Expected<SparseVector> solveImpl(TSolver& solver, const SparseVector& b) {
         solver.compute(matrix);
         if (solver.info() != Eigen::Success) {
             return makeUnexpected<SparseVector>("Decomposition of matrix failed");
@@ -106,8 +126,10 @@ void SparseMatrix::insert(const Size i, const Size j, const Float value) {
     impl->insert(i, j, value);
 }
 
-Expected<Array<Float>> SparseMatrix::solve(const Array<Float>& values, const Solver solver) {
-    return impl->solve(values, solver);
+Expected<Array<Float>> SparseMatrix::solve(const Array<Float>& values,
+    const Solver solver,
+    const Float tolerance) {
+    return impl->solve(values, solver, tolerance);
 }
 
 NAMESPACE_SPH_END

@@ -167,7 +167,7 @@ public:
         }
 
         // solve the system of equation for displacement
-        Expected<Array<Float>> a = matrix.solve(b, SparseMatrix::Solver::LU);
+        Expected<Array<Float>> a = matrix.solve(b, SparseMatrix::Solver::LSCG, 0.1f);
         if (!a) {
             // somehow cannot solve the system of equations, report the error
             return a.error();

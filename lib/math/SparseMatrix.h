@@ -40,13 +40,18 @@ public:
         /// positive-definite matrices!
         CG,
 
+        /// Least-square conjugate gradient, can be used for any matrix
+        LSCG,
+
         /// Bi-conjugate gradient method, can be used for any matrix
         BI_CG,
     };
 
     /// Solvers an equation Ax = b, where A is the sparse matrix and b is given array of values.
     /// \param values Array of values b. The size of the array must be the same as the size of the matrix.
-    Expected<Array<Float>> solve(const Array<Float>& values, const Solver solver);
+    /// \param solver Solver used to solve the system of equations
+    /// \param tolerance Threshold used by the stopping criterion, only used by iterative solvers.
+    Expected<Array<Float>> solve(const Array<Float>& values, const Solver solver, const Float tolerance = 0.);
 };
 
 NAMESPACE_SPH_END

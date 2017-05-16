@@ -23,13 +23,15 @@ void Assert::check(const bool condition,
     std::unique_lock<std::mutex> lock(mutex);
     if (breakOnFail) {
         StdOutLogger logger;
-        logger.write("=============================================================================");
+        logger.write(
+            "=============================================================================================");
         logger.write("Assert fired in file ", file, ", executing function ", func, " on line ", line);
         logger.write("Condition: ", message);
         if (strlen(text) != 0) {
             logger.write("Assert parameters: ", text);
         }
-        logger.write("=============================================================================");
+        logger.write(
+            "=============================================================================================");
         if (isDebuggerPresent()) {
             raise(SIGTRAP);
         }

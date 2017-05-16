@@ -199,4 +199,5 @@ HEADERS += \
     sph/equations/Statics.h \
     sph/solvers/StaticSolver.h \
     objects/finders/BruteForce.h \
-    geometry/AntisymmetricTensor.h
+    geometry/AntisymmetricTensor.h \
+    sph/kernel/Interpolation.h

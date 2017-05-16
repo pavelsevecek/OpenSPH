@@ -29,9 +29,16 @@ private:
     MaterialInitialContext context;
 
 public:
-    InitialConditions(Storage& storage, const RunSettings& settings);
+    /// Constructs object by taking a reference to particle storage. Subsequent calls of \ref addBody function
+    /// fill this storage with particles.
+    /// \param storage Particle storage, must exist at least as long as this object.
+    /// \param solver Solver used to create all the necessary quantities. Also must exist for the duration of
+    ///               this object as it is stored by reference.
+    /// \param settings Run settings
+    InitialConditions(Storage& storage, Abstract::Solver& solver, const RunSettings& settings);
 
-    InitialConditions(Storage& storage, AutoPtr<Abstract::Solver>&& solver, const RunSettings& settings);
+    /// Constructor creating solver from values in settings.
+    InitialConditions(Storage& storage, const RunSettings& settings);
 
     ~InitialConditions();
 

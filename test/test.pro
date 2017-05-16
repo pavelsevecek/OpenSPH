@@ -122,7 +122,8 @@ SOURCES += \
     ../lib/sph/solvers/test/StaticSolver.cpp \
     ../lib/objects/wrappers/test/Expected.cpp \
     ../lib/objects/wrappers/test/Outcome.cpp \
-    ../lib/geometry/test/AntisymmetricTensor.cpp
+    ../lib/geometry/test/AntisymmetricTensor.cpp \
+    ../lib/sph/kernel/test/Interpolation.cpp
 
 HEADERS += \
     utils/Utils.h \

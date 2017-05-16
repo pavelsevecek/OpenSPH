@@ -50,7 +50,7 @@ public:
     /// Construct traceless tensor using other tensor (not traceless in general). "Tracelessness" of the
     /// tensor is checked by assert.
     INLINE explicit TracelessTensor(const Tensor& other) {
-        ASSERT(abs(other.trace()) <= 1.e-3_f * getLength(other.diagonal()));
+        ASSERT(abs(other.trace()) <= 1.e-3_f * getLength(other.diagonal()) + EPS, *this, other);
         m = other.diagonal();
         const Vector off = other.offDiagonal();
         m[M01] = off[0];
@@ -59,7 +59,8 @@ public:
     }
 
     /// Initialize all components of the tensor to given value, excluding last element of the diagonal, which
-    /// is computed to keep the trace zero.
+    /// is computed to keep the trace zero. This constructor is mainly used to create null tensor; for
+    /// non-zero values should be used sparingly.
     INLINE explicit TracelessTensor(const Float value)
         : m(value)
         , m12(value) {}

@@ -12,17 +12,39 @@
 
 NAMESPACE_SPH_BEGIN
 
+/// Solver taking a reference of another solver and forwarding all function, used to convert owning AutoPtr to
+/// non-owning pointer.
+class ForwardingSolver : public Abstract::Solver {
+private:
+    Abstract::Solver& solver;
+
+public:
+    ForwardingSolver(Abstract::Solver& solver)
+        : solver(solver) {}
+
+    virtual void integrate(Storage& storage, Statistics& stats) override {
+        solver.integrate(storage, stats);
+    }
+
+    virtual void create(Storage& storage, Abstract::Material& material) const override {
+        solver.create(storage, material);
+    }
+};
+
 InitialConditions::InitialConditions(Storage& storage,
-    AutoPtr<Abstract::Solver>&& solver,
+    Abstract::Solver& solver,
     const RunSettings& UNUSED(settings))
     : storage(storage)
-    , solver(std::move(solver)) {
+    , solver(makeAuto<ForwardingSolver>(solver)) {
     /// \todo more general rng (from settings)
     context.rng = makeAuto<RngWrapper<BenzAsphaugRng>>(1234);
 }
 
 InitialConditions::InitialConditions(Storage& storage, const RunSettings& settings)
-    : InitialConditions(storage, Factory::getSolver(settings), settings) {}
+    : storage(storage)
+    , solver(Factory::getSolver(settings)) {
+    context.rng = makeAuto<RngWrapper<BenzAsphaugRng>>(1234);
+}
 
 InitialConditions::~InitialConditions() = default;
 

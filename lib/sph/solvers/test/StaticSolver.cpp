@@ -10,9 +10,9 @@
 
 using namespace Sph;
 
-TEST_CASE("StaticSolver gravity", "[staticsolver]") {
+TEST_CASE("StaticSolver gravity vs. pressure", "[staticsolver]") {
     RunSettings settings;
-    const Float rho0 = 1000._f;
+    const Float rho0 = 1._f;
     auto potential = makeExternalForce([rho0](const Vector& pos) {
         const Float r = getLength(pos);
         return -Constants::gravity * rho0 * sphereVolume(r) * pos / pow<3>(r);
@@ -20,7 +20,10 @@ TEST_CASE("StaticSolver gravity", "[staticsolver]") {
     EquationHolder equations(std::move(potential));
     StaticSolver solver(settings, std::move(equations));
 
-    Storage storage = Tests::getGassStorage(100, BodySettings::getDefaults(), 1._f * Constants::au, rho0);
+    BodySettings body;
+    // zero shear modulus to get only pressure without other components of the stress tensor
+    body.set(BodySettingsId::SHEAR_MODULUS, 0._f);
+    Storage storage = Tests::getGassStorage(1000, body, 1._f * Constants::au, rho0);
     solver.create(storage, storage.getMaterial(0));
 
     Statistics stats;
@@ -28,6 +31,35 @@ TEST_CASE("StaticSolver gravity", "[staticsolver]") {
 
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
     ArrayView<const Float> p = storage.getValue<Float>(QuantityId::PRESSURE);
+
+    Float K = 0._f;
+    auto expected = [&](const Float x) { //
+        return K + 2._f / 3._f * PI * Constants::gravity * sqr(rho0) * sqr(x);
+    };
+    // find offset
+    /// \todo this is extra step, we should specify boundary conditions
+    Float offset = 0._f;
+    Size cnt = 0;
+    for (Size i = 0; i < r.size(); ++i) {
+        if (getLength(r[i]) < 0.7_f * Constants::au) {
+            offset += p[i] - expected(getLength(r[i]));
+            cnt++;
+        }
+    }
+    K = offset / cnt;
+
+    auto test = [&](const Size i) -> Outcome { //
+        if (getLength(r[i]) > 0.7_f * Constants::au) {
+            return SUCCESS;
+        }
+        const Float p0 = expected(getLength(r[i]));
+        if (p[i] != approx(p0, 0.05_f)) {
+            return makeFailed("Incorrect pressure: \n", p[i], " == ", p0);
+        }
+        return SUCCESS;
+    };
+
+    REQUIRE_SEQUENCE(test, 0, r.size());
 
     FileLogger logger("p.txt");
     for (Size i = 0; i < r.size(); ++i) {
