@@ -200,4 +200,5 @@ HEADERS += \
     sph/solvers/StaticSolver.h \
     objects/finders/BruteForce.h \
     geometry/AntisymmetricTensor.h \
-    sph/kernel/Interpolation.h
+    sph/kernel/Interpolation.h \
+    sph/equations/Friction.h

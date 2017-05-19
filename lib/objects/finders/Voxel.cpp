@@ -30,7 +30,7 @@ Size VoxelFinder::findNeighbours(const Size index,
     const Float error) const {
     const Size refRank =
         (flags.has(FinderFlags::FIND_ONLY_SMALLER_H)) ? this->rankH[index] : this->values.size();
-    return this->findNeighboursImpl(values[index], refRank, radius, neighbours, flags, error);
+    return this->findNeighboursImpl(values[index], values[index], refRank, radius, neighbours, flags, error);
 }
 
 Size VoxelFinder::findNeighbours(const Vector& position,
@@ -39,18 +39,19 @@ Size VoxelFinder::findNeighbours(const Vector& position,
     Flags<FinderFlags> flags,
     const Float error) const {
     const Size refRank = this->values.size();
-    return this->findNeighboursImpl(position, refRank, radius, neighbours, flags, error);
+    const Vector refPosition = lut.clamp(position);
+    return this->findNeighboursImpl(position, refPosition, refRank, radius, neighbours, flags, error);
 }
 
 Size VoxelFinder::findNeighboursImpl(const Vector& position,
+    const Vector& refPosition,
     const Size refRank,
     const Float radius,
     Array<NeighbourRecord>& neighbours,
     Flags<FinderFlags> UNUSED(flags),
     const Float UNUSED(error)) const {
     neighbours.clear();
-
-    Indices lower = lut.map(position);
+    Indices lower = lut.map(refPosition);
     Indices upper = lower;
     Box voxel = lut.voxel(lower);
     const Vector size = lut.getVoxelSize();

@@ -12,7 +12,7 @@ using namespace Sph;
 
 TEST_CASE("StaticSolver gravity vs. pressure", "[staticsolver]") {
     RunSettings settings;
-    const Float rho0 = 1._f;
+    const Float rho0 = 3000._f;
     auto potential = makeExternalForce([rho0](const Vector& pos) {
         const Float r = getLength(pos);
         return -Constants::gravity * rho0 * sphereVolume(r) * pos / pow<3>(r);

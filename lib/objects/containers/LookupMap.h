@@ -13,8 +13,12 @@ NAMESPACE_SPH_BEGIN
 
 class LookupMap : public Noncopyable {
 private:
+    /// 3d grid of particles (stored as indices)
     Array<Array<Size>> storage;
+
+    Box tightBox;
     Box boundingBox;
+
     Size dimensionSize;
 
 public:
@@ -25,11 +29,11 @@ public:
         , dimensionSize(n) {}
 
     void update(ArrayView<const Vector> points) {
-        boundingBox = Box();
+        tightBox = Box();
         for (const Vector& v : points) {
-            boundingBox.extend(v);
+            tightBox.extend(v);
         }
-        this->extendBox();
+        boundingBox = this->extendBox(tightBox);
         for (auto& a : storage) {
             a.clear();
         }
@@ -42,6 +46,10 @@ public:
 
     INLINE bool empty() const {
         return storage.empty();
+    }
+
+    INLINE Vector clamp(const Vector& pos) const {
+        return tightBox.clamp(pos);
     }
 
     LookupMap& operator=(LookupMap&& other) {
@@ -89,10 +97,12 @@ public:
 private:
     // extends the bounding box by EPS in each dimension so we don't have to deal with particles lying on the
     // boundary.
-    void extendBox() {
-        const Vector extension = max(EPS * boundingBox.size(), Vector(EPS));
-        boundingBox.extend(boundingBox.upper() + extension);
-        boundingBox.extend(boundingBox.lower() - extension);
+    Box extendBox(const Box& box) const {
+        const Vector extension = max(EPS * box.size(), Vector(EPS));
+        Box extendedBox = box;
+        extendedBox.extend(box.upper() + extension);
+        extendedBox.extend(box.lower() - extension);
+        return extendedBox;
     }
 };
 

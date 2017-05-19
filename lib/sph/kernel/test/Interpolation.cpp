@@ -32,6 +32,10 @@ TEST_CASE("Interpolation gassball", "[interpolation]") {
         return SUCCESS;
     };
     REQUIRE_SEQUENCE(test, 0, r.size());
+
+    const Float u_out =
+        interpol.interpolate<Float>(QuantityId::ENERGY, OrderEnum::ZERO, Vector(2._f, 1._f, 0._f));
+    REQUIRE(u_out == 0._f);
 }
 
 TEST_CASE("Interpolate velocity", "[interpolation]") {
@@ -48,7 +52,6 @@ TEST_CASE("Interpolate velocity", "[interpolation]") {
     }
 
     Interpolation interpol(storage);
-
     RandomDistribution dist;
     Array<Vector> points = dist.generate(1000, SphericalDomain(Vector(0._f), 0.7_f));
     auto test = [&](const Size i) -> Outcome {
@@ -61,4 +64,8 @@ TEST_CASE("Interpolate velocity", "[interpolation]") {
         return SUCCESS;
     };
     REQUIRE_SEQUENCE(test, 0, points.size());
+
+    const Vector v_out =
+        interpol.interpolate<Vector>(QuantityId::POSITIONS, OrderEnum::FIRST, Vector(-1._f, 2._f, 1._f));
+    REQUIRE(v_out == Vector(0._f));
 }

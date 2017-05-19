@@ -123,7 +123,8 @@ SOURCES += \
     ../lib/objects/wrappers/test/Expected.cpp \
     ../lib/objects/wrappers/test/Outcome.cpp \
     ../lib/geometry/test/AntisymmetricTensor.cpp \
-    ../lib/sph/kernel/test/Interpolation.cpp
+    ../lib/sph/kernel/test/Interpolation.cpp \
+    ../lib/sph/equations/test/Friction.cpp
 
 HEADERS += \
     utils/Utils.h \

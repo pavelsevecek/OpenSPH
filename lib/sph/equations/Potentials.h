@@ -59,9 +59,8 @@ private:
     Float omega;
 
 public:
-    CentripetalForce(const RunSettings& settings) {
-        omega = settings.get<Float>(RunSettingsId::FRAME_ANGULAR_FREQUENCY);
-    }
+    CentripetalForce(const Float omega)
+        : omega(omega) {}
 
     virtual void setDerivatives(DerivativeHolder& UNUSED(derivatives),
         const RunSettings& UNUSED(settings)) override {}
@@ -96,8 +95,19 @@ public:
     virtual void initialize(Storage& UNUSED(storage)) override {}
 
     virtual void finalize(Storage& storage) override {
-        ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
-        ArrayView<Float> m = storage.getValue<Float>(QuantityId::MASSES);
+        ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
+        ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASSES);
+        Float rmax = 0._f;
+        for (Size i = 0; i < r.size(); ++i) {
+            rmax = max(rmax, getSqrLength(r[i]));
+        }
+        rmax = sqrt(rmax);
+        ASSERT(isReal(rmax));
+
+        // const Size binCnt = r.size() / 10;
+        //        Array<Float> M(binCnt); // M(R)
+
+
         Array<Size> idxs(m.size());
         for (Size i = 0; i < idxs.size(); ++i) {
             idxs[i] = i;
@@ -108,6 +118,7 @@ public:
         });
         // compute mass M within radius r
         Array<Float> M(m.size() + 1);
+        /// \todo replace this staircase function with some smooth spline
         M[0] = 0._f;
         for (Size i = 0; i < idxs.size(); ++i) {
             M[i + 1] = m[idxs[i]] + M[i];

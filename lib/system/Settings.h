@@ -656,6 +656,8 @@ enum class BodySettingsId {
 
     WEIBULL_EXPONENT,
 
+    KINEMATIC_VISCOSITY,
+
     /// Number of SPH particles in the body
     PARTICLE_COUNT,
 

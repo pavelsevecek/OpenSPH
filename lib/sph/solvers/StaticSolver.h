@@ -162,7 +162,7 @@ public:
         Array<Float> b(dv.size() * 3);
         for (Size i = 0; i < dv.size(); ++i) {
             for (Size j = 0; j < 3; ++j) {
-                b[3 * i + j] = dv[i][j];
+                b[3 * i + j] = rho[i] * dv[i][j];
             }
         }
 

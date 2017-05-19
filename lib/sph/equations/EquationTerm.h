@@ -390,6 +390,7 @@ public:
     virtual void create(Storage& UNUSED(storage), Abstract::Material& UNUSED(material)) const override {}
 };
 
+/// Helper term counting the number of neighbours of each particle.
 class NeighbourCountTerm : public Abstract::EquationTerm {
 private:
     class NeighbourCountImpl : public DerivativeTemplate<NeighbourCountImpl> {

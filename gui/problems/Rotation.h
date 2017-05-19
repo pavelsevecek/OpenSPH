@@ -15,14 +15,19 @@ NAMESPACE_SPH_BEGIN
 class AsteroidRotation : public Abstract::Run {
 private:
     Controller* model;
+    Float period;
 
 public:
-    AsteroidRotation(Controller* model);
+    /// \param period Rotational period of asteroid in hours
+    AsteroidRotation(Controller* model, const Float period);
 
     virtual void setUp() override;
 
 protected:
     virtual void tearDown() override;
+
+private:
+    void setInitialStressTensor(Storage& smaller);
 };
 
 NAMESPACE_SPH_END

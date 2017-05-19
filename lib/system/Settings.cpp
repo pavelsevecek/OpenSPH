@@ -304,6 +304,7 @@ AutoPtr<BodySettings> BodySettings::instance (new BodySettings {
     { BodySettingsId::RAYLEIGH_SOUND_SPEED,    "material.rayleigh_speed",      0.4_f },
     { BodySettingsId::WEIBULL_COEFFICIENT,     "material.weibull_coefficient", 4.e35_f },
     { BodySettingsId::WEIBULL_EXPONENT,        "material.weibull_exponent",    9._f },
+    { BodySettingsId::KINEMATIC_VISCOSITY,     "material.kinematic_viscosity", 1.e-6_f }, /// \todo this is a value of water
 
     /// SPH parameters specific for the body
     { BodySettingsId::INITIAL_DISTRIBUTION,    "sph.initial_distribution",     int(DistributionEnum::HEXAGONAL) },

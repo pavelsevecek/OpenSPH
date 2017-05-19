@@ -40,7 +40,7 @@ Controller::Controller() {
     status = Status::RUNNING;
 
     // create and start the run
-    sph.run = makeAuto<AsteroidCollision>(this);
+    sph.run = makeAuto<AsteroidRotation>(this, 2._f);
     this->run();
 }
 
