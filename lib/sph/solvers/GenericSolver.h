@@ -8,6 +8,7 @@
 #include "sph/Material.h"
 #include "sph/equations/Accumulated.h"
 #include "sph/equations/EquationTerm.h"
+#include "sph/equations/HelperTerms.h"
 #include "sph/kernel/KernelFactory.h"
 #include "system/Factory.h"
 #include "system/Profiler.h"

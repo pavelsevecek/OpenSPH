@@ -390,47 +390,6 @@ public:
     virtual void create(Storage& UNUSED(storage), Abstract::Material& UNUSED(material)) const override {}
 };
 
-/// Helper term counting the number of neighbours of each particle.
-class NeighbourCountTerm : public Abstract::EquationTerm {
-private:
-    class NeighbourCountImpl : public DerivativeTemplate<NeighbourCountImpl> {
-    private:
-        ArrayView<Size> neighCnts;
-
-    public:
-        virtual void create(Accumulated& results) override {
-            results.insert<Size>(QuantityId::NEIGHBOUR_CNT);
-        }
-
-        virtual void initialize(const Storage& UNUSED(input), Accumulated& results) override {
-            neighCnts = results.getValue<Size>(QuantityId::NEIGHBOUR_CNT);
-        }
-
-        template <bool Symmetrize>
-        INLINE void eval(const Size i,
-            ArrayView<const Size> neighs,
-            ArrayView<const Vector> UNUSED_IN_RELEASE(grads)) {
-            ASSERT(neighs.size() == grads.size());
-            neighCnts[i] += neighs.size();
-            if (Symmetrize) {
-                for (Size k = 0; k < neighs.size(); ++k) {
-                    const Size j = neighs[k];
-                    neighCnts[j]++;
-                }
-            }
-        }
-    };
-
-    virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override {
-        derivatives.require<NeighbourCountImpl>(settings);
-    }
-
-    virtual void initialize(Storage& UNUSED(storage)) override {}
-
-    virtual void finalize(Storage& UNUSED(storage)) override {}
-
-    virtual void create(Storage& UNUSED(storage), Abstract::Material& UNUSED(material)) const override {}
-};
 
 /// Syntactic suggar
 class EquationHolder {

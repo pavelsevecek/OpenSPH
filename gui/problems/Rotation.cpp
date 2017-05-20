@@ -8,6 +8,7 @@
 #include "sph/equations/Potentials.h"
 #include "sph/initial/Initial.h"
 #include "sph/kernel/Interpolation.h"
+#include "sph/solvers/ContinuitySolver.h"
 #include "sph/solvers/StaticSolver.h"
 #include "system/Profiler.h"
 
@@ -44,7 +45,11 @@ void AsteroidRotation::setUp() {
 
     storage = makeShared<Storage>();
 
-    InitialConditions conds(*storage, settings);
+    EquationHolder externalForces = makeTerm<SphericalGravity>(SphericalGravity::Options::ASSUME_HOMOGENEOUS);
+    externalForces = makeTerm<SurfaceNormal>();
+    solver = makeAuto<ContinuitySolver>(settings, std::move(externalForces));
+
+    InitialConditions conds(*storage, *solver, settings);
 
     StdOutLogger logger;
     SphericalDomain domain1(Vector(0._f), 5e3_f); // D = 10km
@@ -82,7 +87,7 @@ void AsteroidRotation::setUp() {
 void AsteroidRotation::setInitialStressTensor(Storage& smaller) {
     EquationHolder equations;
     equations += makeTerm<CentripetalForce>(2._f * PI / (3600._f * period));
-    equations += makeTerm<SphericalGravity>();
+    equations += makeTerm<SphericalGravity>(SphericalGravity::Options::ASSUME_HOMOGENEOUS);
     StaticSolver staticSolver(settings, std::move(equations));
     staticSolver.create(smaller, smaller.getMaterial(0));
     Statistics stats;

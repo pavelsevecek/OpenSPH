@@ -201,4 +201,5 @@ HEADERS += \
     objects/finders/BruteForce.h \
     geometry/AntisymmetricTensor.h \
     sph/kernel/Interpolation.h \
-    sph/equations/Friction.h
+    sph/equations/Friction.h \
+    sph/equations/HelperTerms.h

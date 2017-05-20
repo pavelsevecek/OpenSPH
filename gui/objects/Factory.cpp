@@ -34,9 +34,11 @@ AutoPtr<Abstract::Camera> Factory::getCamera(const GuiSettings& settings) {
 AutoPtr<Abstract::Element> Factory::getElement(const GuiSettings& settings, const QuantityId id) {
     Range range;
     switch (id) {
-    case QuantityId::POSITIONS:
+    case QuantityId::POSITIONS: // represents velocity element
         range = settings.get<Range>(GuiSettingsId::PALETTE_VELOCITY);
         return makeAuto<VelocityElement>(range);
+    case QuantityId::NEIGHBOUR_CNT: // represent boundary element
+        return makeAuto<BoundaryElement>(BoundaryElement::Detection::NORMAL_BASED, 10);
     case QuantityId::DEVIATORIC_STRESS:
         range = settings.get<Range>(GuiSettingsId::PALETTE_STRESS);
         return makeAuto<TypedElement<TracelessTensor>>(id, range);

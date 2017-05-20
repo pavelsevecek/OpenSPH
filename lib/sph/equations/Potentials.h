@@ -88,7 +88,19 @@ public:
 /// spherically symmetric; the force can be used even for different particle distributions, but may yield
 /// incorrect results.
 class SphericalGravity : public Abstract::EquationTerm {
+private:
+    bool useHomogeneousApprox;
+
 public:
+    enum class Options {
+        ///< Simplifies the computations and makes it more precise, only if density is contant within the body
+        ASSUME_HOMOGENEOUS = 1 << 0,
+    };
+
+    SphericalGravity(const Flags<Options> flags) {
+        useHomogeneousApprox = flags.has(Options::ASSUME_HOMOGENEOUS);
+    }
+
     virtual void setDerivatives(DerivativeHolder& UNUSED(derivatives),
         const RunSettings& UNUSED(settings)) override {}
 
@@ -97,37 +109,42 @@ public:
     virtual void finalize(Storage& storage) override {
         ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
         ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASSES);
-        Float rmax = 0._f;
-        for (Size i = 0; i < r.size(); ++i) {
-            rmax = max(rmax, getSqrLength(r[i]));
-        }
-        rmax = sqrt(rmax);
-        ASSERT(isReal(rmax));
+        /*        Float rmax = 0._f;
+                for (Size i = 0; i < r.size(); ++i) {
+                    rmax = max(rmax, getSqrLength(r[i]));
+                }
+                rmax = sqrt(rmax);
+                ASSERT(isReal(rmax));*/
 
-        // const Size binCnt = r.size() / 10;
-        //        Array<Float> M(binCnt); // M(R)
-
-
-        Array<Size> idxs(m.size());
-        for (Size i = 0; i < idxs.size(); ++i) {
-            idxs[i] = i;
-        }
-        // sort particles by increasing r
-        std::sort(idxs.begin(), idxs.end(), [r](const Size i1, const Size i2) {
-            return getLength(r[i1]) < getLength(r[i2]);
-        });
-        // compute mass M within radius r
-        Array<Float> M(m.size() + 1);
-        /// \todo replace this staircase function with some smooth spline
-        M[0] = 0._f;
-        for (Size i = 0; i < idxs.size(); ++i) {
-            M[i + 1] = m[idxs[i]] + M[i];
-        }
-        // compute acceleration
-        ArrayView<Vector> dv = storage.getD2t<Vector>(QuantityId::POSITIONS);
-        for (Size i = 0; i < dv.size(); ++i) {
-            const Size idx = idxs[i];
-            dv[idx] -= Constants::gravity * M[i] * r[idx] / pow<3>(getLength(r[idx]));
+        if (useHomogeneousApprox) {
+            // compute acceleration
+            ArrayView<Vector> dv = storage.getD2t<Vector>(QuantityId::POSITIONS);
+            const Float rho0 = storage.getMaterial(0)->getParam<Float>(BodySettingsId::DENSITY);
+            for (Size i = 0; i < dv.size(); ++i) {
+                dv[i] -= Constants::gravity * rho0 * sphereVolume(getLength(r[i])) * r[i] /
+                         pow<3>(getLength(r[i]));
+            }
+        } else {
+            Array<Size> idxs(m.size());
+            for (Size i = 0; i < idxs.size(); ++i) {
+                idxs[i] = i;
+            }
+            // sort particles by increasing r
+            std::sort(idxs.begin(), idxs.end(), [r](const Size i1, const Size i2) {
+                return getLength(r[i1]) < getLength(r[i2]);
+            });
+            // compute mass M within radius r
+            Array<Float> M(m.size());
+            /// \todo replace this staircase function with some smooth spline
+            for (Size i = 0; i < idxs.size(); ++i) {
+                M[i] = m[idxs[i]] + (i > 0 ? M[i - 1] : 0._f);
+            }
+            // compute acceleration
+            ArrayView<Vector> dv = storage.getD2t<Vector>(QuantityId::POSITIONS);
+            for (Size i = 0; i < dv.size(); ++i) {
+                const Size idx = idxs[i];
+                dv[idx] -= Constants::gravity * M[i] * r[idx] / pow<3>(getLength(r[idx]));
+            }
         }
     }
 

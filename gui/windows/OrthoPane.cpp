@@ -41,7 +41,10 @@ Bitmap OrthoRenderer::render(ArrayView<const Vector> r,
             dc.DrawCircle(p->get<Point>(), size);
         }
     }
-    this->drawPalette(dc, element.getPalette());
+    Optional<Palette> palette = element.getPalette();
+    if (palette) {
+        this->drawPalette(dc, palette.value());
+    }
     const Float time = stats.get<Float>(StatisticsId::TOTAL_TIME);
     dc.DrawText(("t = " + std::to_string(time) + "s").c_str(), wxPoint(0, 0));
 

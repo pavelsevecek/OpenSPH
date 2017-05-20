@@ -101,6 +101,7 @@ public:
     /// Renders a bitmap of current view. Can only be called from main thread.
     Bitmap getRenderedBitmap(Abstract::Camera& camera);
 
+    /// Sets a new element to be displayed
     void setElement(const SharedPtr<Abstract::Element>& newElement);
 
     /// Returns the settings object.
