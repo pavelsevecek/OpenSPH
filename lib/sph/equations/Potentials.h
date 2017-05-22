@@ -50,16 +50,15 @@ AutoPtr<ExternalForce<TFunctor>> makeExternalForce(TFunctor&& functor) {
     return makeAuto<ExternalForce<TFunctor>>(std::forward<TFunctor>(functor));
 }
 
-/// \brief Centripetal force, assuming the frame is rotation around Z axis.
+/// \brief Centripetal and Coriolis force
 ///
 /// Adds an acceleration due to centripetal force. Internal energy is not modified by this force.
-/// \todo Add Coriolis force -> NonintertialForce
-class CentripetalForce : public Abstract::EquationTerm {
+class NoninertialForce : public Abstract::EquationTerm {
 private:
-    Float omega;
+    Vector omega;
 
 public:
-    CentripetalForce(const Float omega)
+    NoninertialForce(const Vector omega)
         : omega(omega) {}
 
     virtual void setDerivatives(DerivativeHolder& UNUSED(derivatives),
@@ -70,10 +69,9 @@ public:
     virtual void finalize(Storage& storage) override {
         ArrayView<Vector> r, v, dv;
         tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
-        const Vector unitZ = Vector(0._f, 0._f, 1._f);
         /// \todo parallelize
         for (Size i = 0; i < r.size(); ++i) {
-            dv[i] += sqr(omega) * (r[i] - unitZ * dot(r[i], unitZ));
+            dv[i] += 2._f * cross(omega, v[i]) + cross(omega, cross(omega, r[i]));
             // no energy term - energy is not generally conserved when external force is used
         }
     }

@@ -47,10 +47,11 @@ public:
         for (Size k = 0; k < neighs.size(); ++k) {
             const Size j = neighs[k];
             /// \todo determine actual discretization of this equation
-            const Tensor epsilon = outer(u[j] - u[i], grads[k]);
-            const Tensor sigma = lambda * epsilon.trace() * Tensor::identity() + 2._f * mu * epsilon;
+            const SymmetricTensor epsilon = outer(u[j] - u[i], grads[k]);
+            const SymmetricTensor sigma =
+                lambda * epsilon.trace() * SymmetricTensor::identity() + 2._f * mu * epsilon;
             const Float tr3 = sigma.trace() / 3._f;
-            TracelessTensor ds(sigma - tr3 * Tensor::identity());
+            TracelessTensor ds(sigma - tr3 * SymmetricTensor::identity());
             p[i] += m[j] / rho[j] * tr3;
             s[i] += m[j] / rho[j] * ds;
             if (Symmetrize) {
@@ -89,6 +90,8 @@ private:
 
     GenericSolver equationSolver;
 
+    Size boundaryThreshold;
+
     SparseMatrix matrix;
 
 public:
@@ -101,6 +104,8 @@ public:
         : equationSolver(settings, std::move(equations) + makeTerm<DisplacementTerm>()) {
         kernel = Factory::getKernel<3>(settings);
         finder = Factory::getFinder(settings);
+        boundaryThreshold = 20;
+        // settings.get<int>(RunSettingsId::BOUNDARY_THRESHOLD);
     }
 
     /// Computed pressure and deviatoric stress are placed into the storage, overriding previously stored
@@ -111,15 +116,33 @@ public:
         // build the neighbour finding structure
         finder->build(r);
 
+        // compute right-hand side of equations by solving equations for acceleration
+        storage.init();
+        equationSolver.integrate(storage, stats);
+
+        ArrayView<Float> m, rho;
+        tie(m, rho) = storage.getValues<Float>(QuantityId::MASSES, QuantityId::DENSITY);
+        ArrayView<const Vector> dv = storage.getD2t<Vector>(QuantityId::POSITIONS);
+        Array<Float> b(dv.size() * 3);
+        Float b_avg = 0._f;
+        for (Size i = 0; i < dv.size(); ++i) {
+            for (Size j = 0; j < 3; ++j) {
+                const Float x = rho[i] * dv[i][j];
+                b[3 * i + j] = x;
+                b_avg += x;
+            }
+        }
+        b_avg /= dv.size() * 3;
+
+        // get number of neighbours for boundary detection
+        ArrayView<const Size> neighCnts = storage.getValue<Size>(QuantityId::NEIGHBOUR_CNT);
+
         Array<NeighbourRecord> neighs;
         matrix.resize(r.size() * 3);
 
         // The equation we are trying to solve is:
         // (\lambda + \mu) \nabla (\nabla \cdot u) + \mu \nabla^2 u + f = 0
         // where \lambda, \mu are Lame's coefficient, u is the displacement vector and f is the external force
-
-        ArrayView<Float> m, rho;
-        tie(m, rho) = storage.getValues<Float>(QuantityId::MASSES, QuantityId::DENSITY);
 
         ASSERT(storage.getMaterialCnt() == 1); /// \todo generalize for heterogeneous bodies
         Abstract::Material& material = storage.getMaterial(0);
@@ -138,31 +161,28 @@ public:
                 const Vector dr0 = getNormalized(dr);
                 /// \todo check sign
                 ASSERT(isReal(f));
-                Tensor lhs = -5._f * (lambda + mu) * outer(dr0, dr0) + (lambda - mu) * Tensor::identity();
+                SymmetricTensor lhs =
+                    -5._f * (lambda + mu) * outer(dr0, dr0) + (lambda - mu) * SymmetricTensor::identity();
                 ASSERT(isReal(lhs));
 
-                Tensor mij = m[j] / rho[j] * lhs * f;
-                Tensor mji = m[i] / rho[i] * lhs * f;
+                SymmetricTensor mij = m[j] / rho[j] * lhs * f;
+                SymmetricTensor mji = m[i] / rho[i] * lhs * f;
                 for (Size a = 0; a < 3; ++a) {
                     for (Size b = 0; b < 3; ++b) {
-                        matrix.insert(3 * i + a, 3 * i + b, mij(a, b));
+                        if (neighCnts[i] < boundaryThreshold) {
+                            matrix.insert(3 * i + a, 3 * i + b, b_avg * LARGE);
+                        } else {
+                            matrix.insert(3 * i + a, 3 * i + b, mij(a, b));
+                        }
                         matrix.insert(3 * i + a, 3 * j + b, -mij(a, b));
-                        matrix.insert(3 * j + a, 3 * j + b, mji(a, b));
+                        if (neighCnts[j] < boundaryThreshold) {
+                            matrix.insert(3 * j + a, 3 * j + b, b_avg * LARGE);
+                        } else {
+                            matrix.insert(3 * j + a, 3 * j + b, mji(a, b));
+                        }
                         matrix.insert(3 * j + a, 3 * i + b, -mji(a, b));
                     }
                 }
-            }
-        }
-
-        // compute right-hand side of equations by solving equations for acceleration
-        storage.init();
-        equationSolver.integrate(storage, stats);
-
-        ArrayView<const Vector> dv = storage.getD2t<Vector>(QuantityId::POSITIONS);
-        Array<Float> b(dv.size() * 3);
-        for (Size i = 0; i < dv.size(); ++i) {
-            for (Size j = 0; j < 3; ++j) {
-                b[3 * i + j] = rho[i] * dv[i][j];
             }
         }
 
@@ -183,6 +203,13 @@ public:
 
         // compute pressure and deviatoric stress from displacement
         equationSolver.integrate(storage, stats);
+
+        /// \todo saving accumulated to highest-order derivatives doesnt work as we can 'extend' quantities by
+        /// adding more derivatives. The computation of stress tensor here would be broken by adding Hooke's
+        /// law!!
+
+        ASSERT(storage.getQuantity(QuantityId::PRESSURE).getOrderEnum() == OrderEnum::ZERO);
+        ASSERT(storage.getQuantity(QuantityId::DEVIATORIC_STRESS).getOrderEnum() == OrderEnum::ZERO);
 
         return SUCCESS;
     }

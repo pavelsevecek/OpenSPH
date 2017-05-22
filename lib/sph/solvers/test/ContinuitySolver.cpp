@@ -14,7 +14,7 @@ void testSolver(Storage& storage, const RunSettings& settings) {
 TEST_CASE("ContinuitySolver gass", "[solvers]") {
     RunSettings settings;
     settings.set(RunSettingsId::MODEL_FORCE_SOLID_STRESS, false);
-    settings.set(RunSettingsId::MODEL_AV_TYPE, ArtificialViscosityEnum::NONE);
+    settings.set(RunSettingsId::SPH_AV_TYPE, ArtificialViscosityEnum::NONE);
     settings.set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONST);
     BodySettings body;
     body.set(BodySettingsId::RHEOLOGY_DAMAGE, DamageEnum::NONE);
@@ -22,10 +22,10 @@ TEST_CASE("ContinuitySolver gass", "[solvers]") {
     Storage storage = Tests::getGassStorage(100, body, 1._f);
     testSolver(storage, settings);
 
-    settings.set(RunSettingsId::MODEL_AV_TYPE, ArtificialViscosityEnum::STANDARD);
+    settings.set(RunSettingsId::SPH_AV_TYPE, ArtificialViscosityEnum::STANDARD);
     testSolver(storage, settings);
 
-    settings.set(RunSettingsId::MODEL_AV_BALSARA, true);
+    settings.set(RunSettingsId::SPH_AV_BALSARA, true);
     testSolver(storage, settings);
 
     settings.set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONTINUITY_EQUATION);
@@ -40,7 +40,7 @@ TEST_CASE("ContinuitySolver solid", "[solvers]") {
     RunSettings settings;
     settings.set(RunSettingsId::MODEL_FORCE_SOLID_STRESS, true);
     settings.set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONST);
-    settings.set(RunSettingsId::MODEL_AV_TYPE, ArtificialViscosityEnum::NONE);
+    settings.set(RunSettingsId::SPH_AV_TYPE, ArtificialViscosityEnum::NONE);
     BodySettings body;
     body.set(BodySettingsId::RHEOLOGY_DAMAGE, DamageEnum::NONE);
     body.set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::NONE);

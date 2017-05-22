@@ -42,7 +42,6 @@ SOURCES += \
     ../lib/geometry/test/Domain.cpp \
     ../lib/geometry/test/Indices.cpp \
     ../lib/geometry/test/Multipole.cpp \
-    ../lib/geometry/test/Tensor.cpp \
     ../lib/geometry/test/TracelessTensor.cpp \
     ../lib/geometry/test/Vector.cpp \
     ../lib/io/test/Logger.cpp \
@@ -124,7 +123,8 @@ SOURCES += \
     ../lib/objects/wrappers/test/Outcome.cpp \
     ../lib/geometry/test/AntisymmetricTensor.cpp \
     ../lib/sph/kernel/test/Interpolation.cpp \
-    ../lib/sph/equations/test/Friction.cpp
+    ../lib/sph/equations/test/Friction.cpp \
+    ../lib/geometry/test/SymmetricTensor.cpp
 
 HEADERS += \
     utils/Utils.h \

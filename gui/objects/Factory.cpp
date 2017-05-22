@@ -38,7 +38,7 @@ AutoPtr<Abstract::Element> Factory::getElement(const GuiSettings& settings, cons
         range = settings.get<Range>(GuiSettingsId::PALETTE_VELOCITY);
         return makeAuto<VelocityElement>(range);
     case QuantityId::NEIGHBOUR_CNT: // represent boundary element
-        return makeAuto<BoundaryElement>(BoundaryElement::Detection::NORMAL_BASED, 10);
+        return makeAuto<BoundaryElement>(BoundaryElement::Detection::NEIGBOUR_THRESHOLD, 40);
     case QuantityId::DEVIATORIC_STRESS:
         range = settings.get<Range>(GuiSettingsId::PALETTE_STRESS);
         return makeAuto<TypedElement<TracelessTensor>>(id, range);

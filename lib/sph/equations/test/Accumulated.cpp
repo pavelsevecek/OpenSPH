@@ -48,12 +48,12 @@ static Accumulated getAccumulated() {
     ArrayView<Size> buffer1 = getInserted<Size>(ac, QuantityId::NEIGHBOUR_CNT, 5);
     ArrayView<Float> buffer2 = getInserted<Float>(ac, QuantityId::DENSITY, 5);
     ArrayView<Vector> buffer3 = getInserted<Vector>(ac, QuantityId::ENERGY, 5);
-    ArrayView<Tensor> buffer4 = getInserted<Tensor>(ac, QuantityId::POSITIONS, 5);
+    ArrayView<SymmetricTensor> buffer4 = getInserted<SymmetricTensor>(ac, QuantityId::POSITIONS, 5);
     for (Size i = 0; i < 5; ++i) {
         buffer1[i] = 5;
         buffer2[i] = 3._f;
         buffer3[i] = Vector(2._f);
-        buffer4[i] = Tensor(1._f);
+        buffer4[i] = SymmetricTensor(1._f);
     }
     return ac;
 }
@@ -63,7 +63,7 @@ static Storage getStorage() {
     storage.insert<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO, Array<Size>{ 1 });
     storage.insert<Float>(QuantityId::DENSITY, OrderEnum::ZERO, 0._f);
     storage.insert<Vector>(QuantityId::ENERGY, OrderEnum::ZERO, Vector(0._f));
-    storage.insert<Tensor>(QuantityId::POSITIONS, OrderEnum::ZERO, Tensor::null());
+    storage.insert<SymmetricTensor>(QuantityId::POSITIONS, OrderEnum::ZERO, SymmetricTensor::null());
     return storage;
 }
 
@@ -86,9 +86,9 @@ TEST_CASE("Accumulated sum parallelized", "[accumulated]") {
     ArrayView<Vector> buffer3 = storage.getValue<Vector>(QuantityId::ENERGY);
     REQUIRE(buffer3.size() == 5);
     REQUIRE(perElement(buffer3) == Vector(4._f));
-    ArrayView<Tensor> buffer4 = storage.getValue<Tensor>(QuantityId::POSITIONS);
+    ArrayView<SymmetricTensor> buffer4 = storage.getValue<SymmetricTensor>(QuantityId::POSITIONS);
     REQUIRE(buffer4.size() == 5);
-    REQUIRE(perElement(buffer4) == Tensor(2._f));
+    REQUIRE(perElement(buffer4) == SymmetricTensor(2._f));
 }
 
 TEST_CASE("Accumulated store", "[accumulated]") {

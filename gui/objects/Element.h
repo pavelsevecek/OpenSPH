@@ -200,7 +200,7 @@ public:
     }
 
     virtual std::string name() const override {
-        return "Boudary";
+        return "Boundary";
     }
 
 private:
@@ -210,7 +210,7 @@ private:
             ASSERT(neighbours.values);
             return neighbours.values[idx] < neighbours.threshold;
         case Detection::NORMAL_BASED:
-            ASSERT(neighbours.values);
+            ASSERT(normals.values);
             return getLength(normals.values[idx]) > normals.threshold;
         default:
             NOT_IMPLEMENTED;

@@ -24,7 +24,7 @@ AsteroidRotation::AsteroidRotation(Controller* model, const Float period)
         .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 100._f)
         .set(RunSettingsId::MODEL_FORCE_SOLID_STRESS, true)
         .set(RunSettingsId::SPH_FINDER, FinderEnum::VOXEL)
-        .set(RunSettingsId::MODEL_AV_TYPE, ArtificialViscosityEnum::STANDARD)
+        .set(RunSettingsId::SPH_AV_TYPE, ArtificialViscosityEnum::STANDARD)
         .set(RunSettingsId::SPH_AV_ALPHA, 1.5_f)
         .set(RunSettingsId::SPH_AV_BETA, 3._f)
         .set(RunSettingsId::RUN_THREAD_GRANULARITY, 100);
@@ -86,7 +86,7 @@ void AsteroidRotation::setUp() {
 
 void AsteroidRotation::setInitialStressTensor(Storage& smaller) {
     EquationHolder equations;
-    equations += makeTerm<CentripetalForce>(2._f * PI / (3600._f * period));
+    equations += makeTerm<NoninertialForce>(2._f * PI / (3600._f * period) * Vector(0, 0, 1));
     equations += makeTerm<SphericalGravity>(SphericalGravity::Options::ASSUME_HOMOGENEOUS);
     StaticSolver staticSolver(settings, std::move(equations));
     staticSolver.create(smaller, smaller.getMaterial(0));

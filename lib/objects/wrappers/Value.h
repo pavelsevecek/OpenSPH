@@ -19,7 +19,7 @@ NAMESPACE_SPH_BEGIN
 /// object Value is a suitable return value or parameter of virtual functions (that cannot be templated).
 class Value {
 private:
-    Variant<Size, Float, Vector, Tensor, TracelessTensor, MinMaxMean> storage;
+    Variant<Size, Float, Vector, SymmetricTensor, TracelessTensor, MinMaxMean> storage;
 
 public:
     Value() = default;

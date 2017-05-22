@@ -19,7 +19,7 @@ AsteroidCollision::AsteroidCollision(Controller* model)
         .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 0.1_f)
         .set(RunSettingsId::MODEL_FORCE_SOLID_STRESS, true)
         .set(RunSettingsId::SPH_FINDER, FinderEnum::VOXEL)
-        .set(RunSettingsId::MODEL_AV_TYPE, ArtificialViscosityEnum::STANDARD)
+        .set(RunSettingsId::SPH_AV_TYPE, ArtificialViscosityEnum::STANDARD)
         .set(RunSettingsId::SPH_AV_ALPHA, 1.5_f)
         .set(RunSettingsId::SPH_AV_BETA, 3._f)
         .set(RunSettingsId::RUN_THREAD_GRANULARITY, 100);

@@ -66,7 +66,8 @@ SOURCES += \
     timestepping/TimeStepCriterion.cpp \
     timestepping/TimeStepping.cpp \
     io/FileSystem.cpp \
-    math/SparseMatrix.cpp
+    math/SparseMatrix.cpp \
+    geometry/SymmetricTensor.cpp
 
 HEADERS += \
     commmon/ForwardDecl.h \
@@ -80,7 +81,6 @@ HEADERS += \
     geometry/Domain.h \
     geometry/Indices.h \
     geometry/Multipole.h \
-    geometry/Tensor.h \
     geometry/TracelessTensor.h \
     geometry/Vector.h \
     io/Column.h \
@@ -202,4 +202,7 @@ HEADERS += \
     geometry/AntisymmetricTensor.h \
     sph/kernel/Interpolation.h \
     sph/equations/Friction.h \
-    sph/equations/HelperTerms.h
+    sph/equations/HelperTerms.h \
+    sph/equations/av/ArtificialStress.h \
+    math/Matrix.h \
+    geometry/SymmetricTensor.h

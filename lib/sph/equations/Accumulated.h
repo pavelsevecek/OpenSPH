@@ -19,10 +19,11 @@ private:
     template <typename... TArgs>
     using HolderVariant = Variant<Array<TArgs>...>;
 
-    using Buffer = HolderVariant<Size, Float, Vector, TracelessTensor, Tensor>;
+    using Buffer = HolderVariant<Size, Float, Vector, TracelessTensor, SymmetricTensor>;
 
     struct Element {
         QuantityId id;
+        /// \todo OrderEnum order;
         Buffer buffer;
     };
     Array<Element> buffers;

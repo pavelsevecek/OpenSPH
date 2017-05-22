@@ -74,8 +74,8 @@ AutoPtr<Abstract::EquationTerm> makeAV(const RunSettings& settings, const bool b
 }
 
 AutoPtr<Abstract::EquationTerm> Factory::getArtificialViscosity(const RunSettings& settings) {
-    const ArtificialViscosityEnum id = settings.get<ArtificialViscosityEnum>(RunSettingsId::MODEL_AV_TYPE);
-    const bool balsara = settings.get<bool>(RunSettingsId::MODEL_AV_BALSARA);
+    const ArtificialViscosityEnum id = settings.get<ArtificialViscosityEnum>(RunSettingsId::SPH_AV_TYPE);
+    const bool balsara = settings.get<bool>(RunSettingsId::SPH_AV_BALSARA);
     switch (id) {
     case ArtificialViscosityEnum::NONE:
         return nullptr;

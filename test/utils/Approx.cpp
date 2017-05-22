@@ -45,11 +45,11 @@ TEST_CASE("Approx vector", "[approx]") {
 }
 
 TEST_CASE("Approx tensor", "[approx]") {
-    Tensor t1(Vector(1._f, 2._f, 3._f), Vector(-1._f, -2._f, -3._f));
+    SymmetricTensor t1(Vector(1._f, 2._f, 3._f), Vector(-1._f, -2._f, -3._f));
     REQUIRE(t1 == approx(t1));
     REQUIRE(t1 == approx((1._f + EPS) * t1));
-    REQUIRE(t1 != approx(t1 + Tensor::identity() * 0.01_f));
-    REQUIRE(t1 == approx(t1 + Tensor::identity() * 0.01_f, 0.01_f));
+    REQUIRE(t1 != approx(t1 + SymmetricTensor::identity() * 0.01_f));
+    REQUIRE(t1 == approx(t1 + SymmetricTensor::identity() * 0.01_f, 0.01_f));
     REQUIRE(t1 != approx(0.5_f * t1));
     REQUIRE(t1 == approx(0.8_f * t1, 0.4_f));
 }

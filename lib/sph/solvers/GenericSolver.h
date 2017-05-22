@@ -74,6 +74,15 @@ public:
         });
     }
 
+    /// Adds additional equation terms into the solver.
+    virtual void addEquations(const RunSettings& settings, EquationHolder&& eqs) {
+        threadData.forEach([this, &settings, &eqs](ThreadData& data) { //
+            eqs.setupThread(data.derivatives, settings);
+        });
+        /// \todo test
+        equations += std::move(eqs);
+    }
+
     virtual void integrate(Storage& storage, Statistics& stats) override {
         /// \todo move elsewhere
         storage.setThreadPool(pool);

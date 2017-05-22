@@ -6,7 +6,7 @@
 /// \date 2016-2017
 
 
-#include "geometry/Tensor.h"
+#include "geometry/SymmetricTensor.h"
 #include "objects/containers/StaticArray.h"
 
 NAMESPACE_SPH_BEGIN
@@ -156,7 +156,7 @@ INLINE Float normSqr(const AntisymmetricTensor& t) {
 /// Returns the tensor of absolute values. Resulting tensor is necessarily symmetric
 template <>
 INLINE auto abs(const AntisymmetricTensor& t) {
-    return Tensor(Vector(0._f), abs(t.components()));
+    return SymmetricTensor(Vector(0._f), abs(t.components()));
 }
 
 /// Returns the minimal element of the tensor.

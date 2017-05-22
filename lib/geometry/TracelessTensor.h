@@ -5,7 +5,7 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2017
 
-#include "geometry/Tensor.h"
+#include "geometry/SymmetricTensor.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -49,7 +49,7 @@ public:
 
     /// Construct traceless tensor using other tensor (not traceless in general). "Tracelessness" of the
     /// tensor is checked by assert.
-    INLINE explicit TracelessTensor(const Tensor& other) {
+    INLINE explicit TracelessTensor(const SymmetricTensor& other) {
         ASSERT(abs(other.trace()) <= 1.e-3_f * getLength(other.diagonal()) + EPS, *this, other);
         m = other.diagonal();
         const Vector off = other.offDiagonal();
@@ -87,14 +87,14 @@ public:
         return *this;
     }
 
-    INLINE TracelessTensor& operator=(const Tensor& other) {
+    INLINE TracelessTensor& operator=(const SymmetricTensor& other) {
         *this = TracelessTensor(other);
         return *this;
     }
 
     /// Conversion to ordinary Tensor
-    INLINE operator Tensor() const {
-        return Tensor(Vector(m[M00], m[M11], -m[M00] - m[M11]), Vector(m[M01], m[M02], m12));
+    INLINE operator SymmetricTensor() const {
+        return SymmetricTensor(Vector(m[M00], m[M11], -m[M00] - m[M11]), Vector(m[M01], m[M02], m12));
     }
 
     /// Returns a row of the matrix.
@@ -204,11 +204,11 @@ public:
         return m == other.m && m12 == other.m12;
     }
 
-    INLINE friend bool operator==(const TracelessTensor& t1, const Tensor& t2) {
+    INLINE friend bool operator==(const TracelessTensor& t1, const SymmetricTensor& t2) {
         return t1.diagonal() == t2.diagonal() && t1.offDiagonal() == t2.offDiagonal();
     }
 
-    INLINE friend bool operator==(const Tensor& t1, const TracelessTensor& t2) {
+    INLINE friend bool operator==(const SymmetricTensor& t1, const TracelessTensor& t2) {
         return t1.diagonal() == t2.diagonal() && t1.offDiagonal() == t2.offDiagonal();
     }
 
@@ -216,11 +216,11 @@ public:
         return m != other.m || m12 != other.m12;
     }
 
-    INLINE friend bool operator!=(const TracelessTensor& t1, const Tensor& t2) {
+    INLINE friend bool operator!=(const TracelessTensor& t1, const SymmetricTensor& t2) {
         return t1.diagonal() != t2.diagonal() || t1.offDiagonal() != t2.offDiagonal();
     }
 
-    INLINE friend bool operator!=(const Tensor& t1, const TracelessTensor& t2) {
+    INLINE friend bool operator!=(const SymmetricTensor& t1, const TracelessTensor& t2) {
         return t1.diagonal() != t2.diagonal() || t1.offDiagonal() != t2.offDiagonal();
     }
 
@@ -276,7 +276,7 @@ INLINE Float minElement(const TracelessTensor& t) {
 /// trace (unless the tensor has zero diagonal elements).
 template <>
 INLINE auto abs(const TracelessTensor& t) {
-    return Tensor(abs(t.diagonal()), abs(t.offDiagonal()));
+    return SymmetricTensor(abs(t.diagonal()), abs(t.offDiagonal()));
 }
 
 template <>
@@ -299,7 +299,7 @@ INLINE TracelessTensor max(const TracelessTensor& t1, const TracelessTensor& t2)
 
 template <>
 INLINE auto less(const TracelessTensor& t1, const TracelessTensor& t2) {
-    return Tensor(less(t1.diagonal(), t2.diagonal()), less(t1.offDiagonal(), t2.offDiagonal()));
+    return SymmetricTensor(less(t1.diagonal(), t2.diagonal()), less(t1.offDiagonal(), t2.offDiagonal()));
 }
 
 /// Clamps components of the traceless tensor. To preserve invariant (zero trace), the components are clamped
@@ -308,16 +308,16 @@ INLINE auto less(const TracelessTensor& t1, const TracelessTensor& t2) {
 /// For exact clamping of tensor components, the traceless tensor must be explicitly casted to Tensor.
 template <>
 INLINE TracelessTensor clamp(const TracelessTensor& t, const Range& range) {
-    const Tensor clamped(clamp(t.diagonal(), range), clamp(t.offDiagonal(), range));
-    return TracelessTensor(clamped - Tensor::identity() * clamped.trace() / 3._f);
+    const SymmetricTensor clamped(clamp(t.diagonal(), range), clamp(t.offDiagonal(), range));
+    return TracelessTensor(clamped - SymmetricTensor::identity() * clamped.trace() / 3._f);
 }
 
 template <>
 INLINE Pair<TracelessTensor> clampWithDerivative(const TracelessTensor& v,
     const TracelessTensor& dv,
     const Range& range) {
-    const Tensor lower = less(Tensor(range.lower()), Tensor(v));
-    const Tensor upper = less(Tensor(v), Tensor(range.upper()));
+    const SymmetricTensor lower = less(SymmetricTensor(range.lower()), SymmetricTensor(v));
+    const SymmetricTensor upper = less(SymmetricTensor(v), SymmetricTensor(range.upper()));
     /// \todo optimize
     return { clamp(v, range), TracelessTensor(dv * lower * upper) };
 }
@@ -328,11 +328,11 @@ INLINE bool isReal(const TracelessTensor& t) {
 }
 
 /// Double-dot product t1 : t2 = sum_ij t1_ij t2_ij
-INLINE Float ddot(const TracelessTensor& t1, const Tensor& t2) {
+INLINE Float ddot(const TracelessTensor& t1, const SymmetricTensor& t2) {
     return dot(t1.diagonal(), t2.diagonal()) + 2._f * dot(t1.offDiagonal(), t2.offDiagonal());
 }
 
-INLINE Float ddot(const Tensor& t1, const TracelessTensor& t2) {
+INLINE Float ddot(const SymmetricTensor& t1, const TracelessTensor& t2) {
     return dot(t1.diagonal(), t2.diagonal()) + 2._f * dot(t1.offDiagonal(), t2.offDiagonal());
 }
 

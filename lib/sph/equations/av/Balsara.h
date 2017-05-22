@@ -83,7 +83,7 @@ class BalsaraSwitch : public Abstract::EquationTerm {
 public:
     BalsaraSwitch(const RunSettings& settings)
         : av(Detail::DerivativeTraits<AV>::make(settings)) {
-        storeFactor = settings.get<bool>(RunSettingsId::MODEL_AV_BALSARA_STORE);
+        storeFactor = settings.get<bool>(RunSettingsId::SPH_AV_BALSARA_STORE);
     }
 
     virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override {

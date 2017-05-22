@@ -187,19 +187,19 @@ TEST_CASE("Div v of position vectors", "[equationterm]") {
 
 TEST_CASE("Grad v of const field", "[equationterm]") {
     Storage storage = Tests::getStorage(10000);
-    storage.insert<Tensor>(QuantityId::VELOCITY_GRADIENT, OrderEnum::ZERO, Tensor::null());
+    storage.insert<SymmetricTensor>(QuantityId::VELOCITY_GRADIENT, OrderEnum::ZERO, SymmetricTensor::null());
     Tests::computeField<VelocityGradient>(storage, [](const Vector&) { return Vector(2._f, 3._f, -1._f); });
 
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
-    ArrayView<Tensor> gradv = storage.getValue<Tensor>(QuantityId::VELOCITY_GRADIENT);
+    ArrayView<SymmetricTensor> gradv = storage.getValue<SymmetricTensor>(QuantityId::VELOCITY_GRADIENT);
     auto test = [&](const Size i) -> Outcome {
         // here we ALWAYS subtract two equal values, so the result should be zero EXACTLY
-        if (gradv[i] != Tensor(0._f)) {
+        if (gradv[i] != SymmetricTensor::null()) {
             // clang-format off
             return makeFailed("Invalid grad v"
                               "\n r = ", r[i],
                               "\n grad v = ", gradv[i],
-                              "\n expected = ", Tensor::null());
+                              "\n expected = ", SymmetricTensor::null());
             // clang-format on
         }
         return SUCCESS;
@@ -210,21 +210,21 @@ TEST_CASE("Grad v of const field", "[equationterm]") {
 
 TEST_CASE("Grad v of position vector", "[equationterm]") {
     Storage storage = Tests::getStorage(10000);
-    storage.insert<Tensor>(QuantityId::VELOCITY_GRADIENT, OrderEnum::ZERO, Tensor::null());
+    storage.insert<SymmetricTensor>(QuantityId::VELOCITY_GRADIENT, OrderEnum::ZERO, SymmetricTensor::null());
     Tests::computeField<VelocityGradient>(storage, [](const Vector& r) { return r; });
 
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
-    ArrayView<Tensor> gradv = storage.getValue<Tensor>(QuantityId::VELOCITY_GRADIENT);
+    ArrayView<SymmetricTensor> gradv = storage.getValue<SymmetricTensor>(QuantityId::VELOCITY_GRADIENT);
     auto test = [&](const Size i) -> Outcome {
         if (getLength(r[i]) > 0.7_f) {
             return SUCCESS;
         }
-        if (gradv[i] != approx(Tensor::identity(), 0.05_f)) {
+        if (gradv[i] != approx(SymmetricTensor::identity(), 0.05_f)) {
             // clang-format off
             return makeFailed("Invalid grad v"
                               "\n r = ", r[i],
                               "\n grad v = ", gradv[i],
-                              "\n expected = ", Tensor::identity());
+                              "\n expected = ", SymmetricTensor::identity());
             // clang-format on
         }
         return SUCCESS;
@@ -235,13 +235,13 @@ TEST_CASE("Grad v of position vector", "[equationterm]") {
 
 TEST_CASE("Grad v of non-trivial field", "[equationterm]") {
     Storage storage = Tests::getStorage(10000);
-    storage.insert<Tensor>(QuantityId::VELOCITY_GRADIENT, OrderEnum::ZERO, Tensor::null());
+    storage.insert<SymmetricTensor>(QuantityId::VELOCITY_GRADIENT, OrderEnum::ZERO, SymmetricTensor::null());
     Tests::computeField<VelocityGradient>(storage, [](const Vector& r) { //
         return Vector(r[0] * sqr(r[1]), r[0] + 0.5_f * r[2], sin(r[2]));
     });
 
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
-    ArrayView<Tensor> gradv = storage.getValue<Tensor>(QuantityId::VELOCITY_GRADIENT);
+    ArrayView<SymmetricTensor> gradv = storage.getValue<SymmetricTensor>(QuantityId::VELOCITY_GRADIENT);
     auto test = [&](const Size i) -> Outcome {
         if (getLength(r[i]) > 0.7_f) {
             // skip test by reporting success
@@ -251,7 +251,8 @@ TEST_CASE("Grad v of non-trivial field", "[equationterm]") {
         const Float x = r[i][X];
         const Float y = r[i][Y];
         const Float z = r[i][Z];
-        Tensor expected(Vector(sqr(y), 0._f, cos(z)), Vector(0.5_f * (1._f + 2._f * x * y), 0._f, 0.25_f));
+        SymmetricTensor expected(
+            Vector(sqr(y), 0._f, cos(z)), Vector(0.5_f * (1._f + 2._f * x * y), 0._f, 0.25_f));
         if (gradv[i] != approx(expected, 0.05_f)) {
             // clang-format off
             return makeFailed("Invalid grad v"

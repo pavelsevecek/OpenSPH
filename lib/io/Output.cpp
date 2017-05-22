@@ -39,7 +39,7 @@ static void printHeader(std::ostream& ofs, const std::string& name, const ValueE
         ofs << std::setw(20) << (name + " [x]") << std::setw(20) << (name + " [y]") << std::setw(20)
             << (name + " [z]");
         break;
-    case ValueEnum::TENSOR:
+    case ValueEnum::SYMMETRIC_TENSOR:
         ofs << std::setw(20) << (name + " [xx]") << std::setw(20) << (name + " [yy]") << std::setw(20)
             << (name + " [zz]") << std::setw(20) << (name + " [xy]") << std::setw(20) << (name + " [xz]")
             << std::setw(20) << (name + " [yz]");
@@ -171,8 +171,8 @@ std::string BinaryOutput::dump(Storage& storage, const Statistics& stats) {
         case ValueEnum::VECTOR:
             storeBuffers<Vector>(q, [&ofs](const Vector& v) { ofs << v[X] << v[Y] << v[Z]; });
             break;
-        case ValueEnum::TENSOR:
-            storeBuffers<Tensor>(q, [&ofs](const Tensor& t) {
+        case ValueEnum::SYMMETRIC_TENSOR:
+            storeBuffers<SymmetricTensor>(q, [&ofs](const SymmetricTensor& t) {
                 ofs << t(0, 0) << t(1, 1) << t(2, 2) << t(0, 1) << t(0, 2) << t(1, 2);
             });
             break;

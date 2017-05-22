@@ -70,9 +70,12 @@ enum class QuantityId {
 
     /// \name Artificial velocity
     ///@{
-    AV_ALPHA,   ///< Coefficient alpha of the artificial viscosity
-    AV_BETA,    ///< Coefficient beta of the artificial viscosity
-    AV_BALSARA, ///< Balsara factor
+    AV_ALPHA,                     ///< Coefficient alpha of the artificial viscosity
+    AV_BETA,                      ///< Coefficient beta of the artificial viscosity
+    AV_BALSARA,                   ///< Balsara factor
+    ARTIFICIAL_STRESS,            ///< Artificial stress by Monaghan \cite Monaghan_1999
+    INTERPARTICLE_SPACING_KERNEL, ///< Auxiliary quantity needed for evaluating artificial stress
+    DIAGONAL_STRESS,              ///< Eigenvalues of the total stress tensor
     ///@}
 
     /// \name SPH modifications & corrections

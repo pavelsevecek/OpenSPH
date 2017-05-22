@@ -59,10 +59,10 @@ TEST_CASE("StaticSolver gravity vs. pressure", "[staticsolver]") {
         return SUCCESS;
     };
 
-    REQUIRE_SEQUENCE(test, 0, r.size());
-
     FileLogger logger("p.txt");
     for (Size i = 0; i < r.size(); ++i) {
         logger.write(getLength(r[i]), "  ", p[i]);
     }
+
+    REQUIRE_SEQUENCE(test, 0, r.size());
 }

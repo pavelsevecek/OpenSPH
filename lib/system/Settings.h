@@ -38,7 +38,7 @@ class Settings {
 private:
     enum Types { BOOL, INT, FLOAT, RANGE, STRING, VECTOR, TENSOR, TRACELESS_TENSOR };
 
-    using Value = Variant<bool, int, Float, Range, std::string, Vector, Tensor, TracelessTensor>;
+    using Value = Variant<bool, int, Float, Range, std::string, Vector, SymmetricTensor, TracelessTensor>;
 
     struct Entry {
         TEnum id;
@@ -420,14 +420,14 @@ enum class RunSettingsId {
     MODEL_FORCE_GRAVITY,
 
     /// Type of used artificial viscosity.
-    MODEL_AV_TYPE,
+    SPH_AV_TYPE,
 
     /// Whether to use balsara switch for computing artificial viscosity dissipation. If no artificial
     /// viscosity is used, the value has no effect.
-    MODEL_AV_BALSARA,
+    SPH_AV_BALSARA,
 
     /// If true, Balsara factors will be saved as quantity AV_BALSARA. Mainly for debugging purposes.
-    MODEL_AV_BALSARA_STORE,
+    SPH_AV_BALSARA_STORE,
 
     /// Selected solver for computing derivatives of physical variables.
     SOLVER_TYPE,
@@ -441,6 +441,9 @@ enum class RunSettingsId {
     /// Epsilon-factor of XSPH correction (Monaghan, 1992). Value 0 turns off the correction, epsilon
     /// shouldn't be larger than 1.
     XSPH_EPSILON,
+
+    /// Weighting function exponent n in artificial stress term
+    SPH_ARTIFICIAL_STRESS_EXPONENT,
 
     /// Maximum number of iterations for self-consistent density computation of summation solver.
     SUMMATION_MAX_ITERATIONS,
@@ -499,6 +502,9 @@ enum class RunSettingsId {
 
     /// Distance to the boundary in units of smoothing length under which the particles are frozen.
     DOMAIN_FROZEN_DIST,
+
+    /// Threshold for detecting boundary particles. Higher value means more boundary particles.
+    BOUNDARY_THRESHOLD,
 };
 
 
