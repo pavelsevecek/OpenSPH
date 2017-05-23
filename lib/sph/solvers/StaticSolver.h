@@ -79,6 +79,8 @@ public:
     }
 };
 
+#ifdef SPH_USE_EIGEN
+
 /// Solves for total stress tensor sigma. Equations to be solved cannot be specified at the moment, that would
 /// require a lot of extra work and it is not needed at the moment. Will be possibly extended in the future.
 class StaticSolver {
@@ -192,5 +194,7 @@ public:
         equationSolver.create(storage, material);
     }
 };
+
+#endif
 
 NAMESPACE_SPH_END

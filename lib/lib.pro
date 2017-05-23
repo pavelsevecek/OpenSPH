@@ -2,7 +2,11 @@ TEMPLATE = lib
 CONFIG += c++14 staticLib thread silent
 CONFIG -= app_bundle qt
 CONFIG += staticlib
+
+# disable if you don't have eigen
 INCLUDEPATH += /usr/include/eigen3
+DEFINES += SPH_USE_EIGEN
+
 QMAKE_CXXFLAGS += -Wall -Wextra -Werror -msse4.1 -std=c++14 -pthread
 #QMAKE_CXXFLAGS_RELEASE -= -O2
 #QMAKE_CXXFLAGS_RELEASE += -Os
