@@ -5,7 +5,7 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2017
 
-#include "math/Matrix.h"
+#include "geometry/Tensor.h"
 #include "objects/containers/StaticArray.h"
 
 NAMESPACE_SPH_BEGIN
@@ -33,6 +33,14 @@ public:
         : diag(value)
         , off(value) {}
 
+    /// Initialize the symmetric tensor from generic tensor, symmetric property is checked by assert.
+    INLINE explicit SymmetricTensor(const Tensor& tensor)
+        : diag(tensor(0, 0), tensor(1, 1), tensor(2, 2))
+        , off(tensor(0, 1), tensor(0, 2), tensor(1, 2)) {
+        ASSERT(almostEqual(tensor(0, 1), tensor(1, 0)) && almostEqual(tensor(0, 2), tensor(2, 0)) &&
+               almostEqual(tensor(1, 2), tensor(2, 1)));
+    }
+
     /// Construct tensor given three vectors as rows. Matrix represented by the vectors MUST be symmetric,
     /// checked by assert.
     INLINE SymmetricTensor(const Vector& v0, const Vector& v1, const Vector& v2) {
@@ -51,7 +59,7 @@ public:
 
     /// Returns a row of the matrix.
     INLINE Vector operator[](const Size idx) const {
-        ASSERT(unsigned(idx) < 3);
+        ASSERT(idx < 3);
         switch (idx) {
         case 0:
             return Vector(diag[0], off[0], off[1]);
@@ -149,8 +157,8 @@ public:
         return SymmetricTensor(-diag, -off);
     }
 
-    INLINE Matrix toMatrix() const {
-        return Matrix((*this)[0], (*this)[1], (*this)[2]);
+    INLINE explicit operator Tensor() const {
+        return Tensor((*this)[0], (*this)[1], (*this)[2]);
     }
 
     INLINE bool operator==(const SymmetricTensor& other) const {
@@ -218,7 +226,11 @@ public:
     }
 };
 
-// INLINE Tensor transform(const Tensor& t, const Matrix& m){ m * t * m ^ -1 }
+/// Transforms given symmetric tensor by matrix.
+INLINE SymmetricTensor transform(const SymmetricTensor& t, const Tensor& transform) {
+    const Tensor m(t);
+    return SymmetricTensor(transform * m * transform.inverse());
+}
 
 
 /// Tensor utils
@@ -330,6 +342,6 @@ INLINE StaticArray<Float, 3> findEigenvalues(const SymmetricTensor& t) {
 }
 
 /// Computes eigenvectors and corresponding eigenvalues of symmetric matrix.
-StaticArray<Vector, 4> eigenDecomposition(const SymmetricTensor& t);
+Tuple<Tensor, Vector> eigenDecomposition(const SymmetricTensor& t);
 
 NAMESPACE_SPH_END

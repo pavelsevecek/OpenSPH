@@ -124,7 +124,9 @@ SOURCES += \
     ../lib/geometry/test/AntisymmetricTensor.cpp \
     ../lib/sph/kernel/test/Interpolation.cpp \
     ../lib/sph/equations/test/Friction.cpp \
-    ../lib/geometry/test/SymmetricTensor.cpp
+    ../lib/geometry/test/SymmetricTensor.cpp \
+    ../lib/geometry/test/Tensor.cpp \
+    ../lib/sph/equations/av/test/Stress.cpp
 
 HEADERS += \
     utils/Utils.h \

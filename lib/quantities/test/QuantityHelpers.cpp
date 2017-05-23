@@ -4,34 +4,38 @@
 using namespace Sph;
 
 
-template<typename TValue>
+template <typename TValue>
 void executeType(int& a);
 
-template<>
+template <>
 void executeType<Float>(int& a) {
-     a = 1;
+    a = 1;
 }
-template<>
+template <>
 void executeType<Vector>(int& a) {
-     a = 2;
+    a = 2;
 }
-template<>
+template <>
+void executeType<Tensor>(int& a) {
+    a = 3;
+}
+template <>
 void executeType<SymmetricTensor>(int& a) {
-     a = 3;
+    a = 4;
 }
-template<>
+template <>
 void executeType<TracelessTensor>(int& a) {
-     a = 4;
+    a = 5;
 }
-template<>
+template <>
 void executeType<Size>(int& a) {
-     a = 5;
+    a = 6;
 }
 
 
 struct TestVisitor {
-    template<typename TValue>
-    void visit(int& a){
+    template <typename TValue>
+    void visit(int& a) {
         executeType<TValue>(a);
     }
 };
@@ -42,10 +46,12 @@ TEST_CASE("Dispatch", "[quantityhelpers]") {
     REQUIRE(a == 1);
     dispatch(ValueEnum::VECTOR, TestVisitor(), a);
     REQUIRE(a == 2);
-    dispatch(ValueEnum::SYMMETRIC_TENSOR, TestVisitor(), a);
+    dispatch(ValueEnum::TENSOR, TestVisitor(), a);
     REQUIRE(a == 3);
-    dispatch(ValueEnum::TRACELESS_TENSOR, TestVisitor(), a);
+    dispatch(ValueEnum::SYMMETRIC_TENSOR, TestVisitor(), a);
     REQUIRE(a == 4);
-    dispatch(ValueEnum::INDEX, TestVisitor(), a);
+    dispatch(ValueEnum::TRACELESS_TENSOR, TestVisitor(), a);
     REQUIRE(a == 5);
+    dispatch(ValueEnum::INDEX, TestVisitor(), a);
+    REQUIRE(a == 6);
 }

@@ -287,7 +287,7 @@ private:
     using HolderVariant = Variant<NothingType, Detail::Holder<TArgs>...>;
 
     // Types must be in same order as in ValueEnum!
-    using Holder = HolderVariant<Float, Vector, SymmetricTensor, TracelessTensor, Size>;
+    using Holder = HolderVariant<Float, Vector, Tensor, SymmetricTensor, TracelessTensor, Size>;
     Holder data;
 
     Quantity(Holder&& holder)

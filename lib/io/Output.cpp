@@ -171,6 +171,9 @@ std::string BinaryOutput::dump(Storage& storage, const Statistics& stats) {
         case ValueEnum::VECTOR:
             storeBuffers<Vector>(q, [&ofs](const Vector& v) { ofs << v[X] << v[Y] << v[Z]; });
             break;
+        case ValueEnum::TENSOR:
+            storeBuffers<Tensor>(q, [&ofs](const Tensor& t) { ofs << t.row(0) << t.row(1) << t.row(2); });
+            break;
         case ValueEnum::SYMMETRIC_TENSOR:
             storeBuffers<SymmetricTensor>(q, [&ofs](const SymmetricTensor& t) {
                 ofs << t(0, 0) << t(1, 1) << t(2, 2) << t(0, 1) << t(0, 2) << t(1, 2);

@@ -203,6 +203,7 @@ HEADERS += \
     sph/kernel/Interpolation.h \
     sph/equations/Friction.h \
     sph/equations/HelperTerms.h \
-    sph/equations/av/ArtificialStress.h \
     math/Matrix.h \
-    geometry/SymmetricTensor.h
+    geometry/SymmetricTensor.h \
+    geometry/Tensor.h \
+    sph/equations/av/Stress.h
