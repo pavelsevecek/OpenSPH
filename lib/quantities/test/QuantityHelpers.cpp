@@ -16,7 +16,7 @@ void executeType<Vector>(int& a) {
      a = 2;
 }
 template<>
-void executeType<Tensor>(int& a) {
+void executeType<SymmetricTensor>(int& a) {
      a = 3;
 }
 template<>
@@ -42,7 +42,7 @@ TEST_CASE("Dispatch", "[quantityhelpers]") {
     REQUIRE(a == 1);
     dispatch(ValueEnum::VECTOR, TestVisitor(), a);
     REQUIRE(a == 2);
-    dispatch(ValueEnum::TENSOR, TestVisitor(), a);
+    dispatch(ValueEnum::SYMMETRIC_TENSOR, TestVisitor(), a);
     REQUIRE(a == 3);
     dispatch(ValueEnum::TRACELESS_TENSOR, TestVisitor(), a);
     REQUIRE(a == 4);

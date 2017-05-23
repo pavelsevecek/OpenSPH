@@ -28,7 +28,7 @@ TEST_CASE("TracelessTensor construction", "[tracelesstensor]") {
     REQUIRE(t2[1] == Vector(2._f, 2._f, 4._f));
     REQUIRE(t2[2] == Vector(3._f, 4._f, -3._f));
 
-    Tensor t3(Vector(1._f, 3._f, -4._f), Vector(1.5_f, -5._f, 2._f));
+    SymmetricTensor t3(Vector(1._f, 3._f, -4._f), Vector(1.5_f, -5._f, 2._f));
     TracelessTensor t4(t3);
     REQUIRE(t4(0, 0) == 1._f);
     REQUIRE(t4(1, 1) == 3._f);
@@ -53,7 +53,7 @@ TEST_CASE("TracelessTensor copy", "[tracelesstensor]") {
     t3 = t1;
     REQUIRE(t1 == t3);
 
-    Tensor t4 = Tensor(t1);
+    SymmetricTensor t4 = SymmetricTensor(t1);
     REQUIRE(t1 == t4);
 
     TracelessTensor t5(t4);
@@ -112,14 +112,14 @@ TEST_CASE("TracelessTensor double-dot", "[tracelesstensor]") {
     TracelessTensor t2(Vector(-1._f, 0._f, 1._f), Vector(0._f, -2._f, 1._f), Vector(1._f, 1._f, 3._f));
     REQUIRE(ddot(t1, t2) == 0._f);
 
-    Tensor t3(Vector(2._f, -1._f, 0._f), Vector(-1._f, 4._f, 3._f), Vector(0._f, 3._f, -2._f));
+    SymmetricTensor t3(Vector(2._f, -1._f, 0._f), Vector(-1._f, 4._f, 3._f), Vector(0._f, 3._f, -2._f));
     REQUIRE(ddot(t1, t3) == 36._f);
     REQUIRE(ddot(t3, t1) == 36._f);
 }
 
 TEST_CASE("TracelessTensor algebra", "[tracelesstensor]") {
     TracelessTensor t1(5._f);
-    REQUIRE(Tensor(t1).trace() == 0._f);
+    REQUIRE(SymmetricTensor(t1).trace() == 0._f);
 
     /*REQUIRE(t1.maxElement() == 5);
     TracelessTensor t2(Vector(1._f, 2._f, 3._f), Vector(2._f, 2._f, 4._f), Vector(3._f, 4._f, -3._f));
@@ -145,7 +145,7 @@ TEST_CASE("TracelessTensor minElement", "[tracelesstensor]") {
 
 TEST_CASE("TracelessTensor abs", "[tracelesstensor]") {
     TracelessTensor t1(Vector(1._f, -2._f, 1._f), Vector(-2._f, -2._f, 4._f), Vector(1._f, 4._f, 1._f));
-    Tensor abst1(Vector(1._f, 2._f, 1._f), Vector(2._f, 2._f, 4._f), Vector(1._f, 4._f, 1._f));
+    SymmetricTensor abst1(Vector(1._f, 2._f, 1._f), Vector(2._f, 2._f, 4._f), Vector(1._f, 4._f, 1._f));
     REQUIRE(abs(t1) == abst1);
 }
 
@@ -167,9 +167,9 @@ TEST_CASE("TracelessTensor almostEqual", "[tracelesstensor]") {
 
 TEST_CASE("TracelessTensor equality", "[tracelesstensor]") {
     TracelessTensor t1(Vector(1._f, -2._f, 1._f), Vector(-2._f, -2._f, 4._f), Vector(1._f, 4._f, 1._f));
-    Tensor t2(Vector(1._f, -2._f, 1._f), Vector(-2._f, 1._f, 4._f));
-    Tensor t3(Vector(1._f, -2._f, 1._f), Vector(-2._f, 1._f, 5._f));
-    Tensor t4(Vector(1._f, -2.5_f, 1._f), Vector(-2._f, 1._f, 4._f));
+    SymmetricTensor t2(Vector(1._f, -2._f, 1._f), Vector(-2._f, 1._f, 4._f));
+    SymmetricTensor t3(Vector(1._f, -2._f, 1._f), Vector(-2._f, 1._f, 5._f));
+    SymmetricTensor t4(Vector(1._f, -2.5_f, 1._f), Vector(-2._f, 1._f, 4._f));
 
     REQUIRE(t1 == t1);
     REQUIRE_FALSE(t1 != t1);
@@ -192,8 +192,9 @@ TEST_CASE("TracelessTensor clamp", "[tracelesstensor]") {
 
     // diagonal components are clamped and the trace is subtracted from result
     TracelessTensor t2(Vector(1._f, -2._f, 3._f), Vector(-2._f, -6._f, 4._f), Vector(3._f, 4._f, 5._f));
-    Tensor expected2(Vector(1._f, -1._f, 1._f), Vector(-1._f, 1._f, 1._f));
-    REQUIRE(clamp(t2, r) == TracelessTensor(expected2 - Tensor::identity() * expected2.trace() / 3._f));
+    SymmetricTensor expected2(Vector(1._f, -1._f, 1._f), Vector(-1._f, 1._f, 1._f));
+    REQUIRE(
+        clamp(t2, r) == TracelessTensor(expected2 - SymmetricTensor::identity() * expected2.trace() / 3._f));
 }
 
 TEST_CASE("TracelessTensor less", "[tracelesstensor]") {

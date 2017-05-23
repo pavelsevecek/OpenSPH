@@ -20,7 +20,6 @@ public:
 
     /// Value of kernel at given point
     /// this should be called only once for a pair of particles as there is expensive division
-    /// \todo Test this carefully before going any further
     /// \todo Potentially precompute the 3rd power ...
     INLINE Float value(const Vector& r, const Float h) const {
         ASSERT(h > 0._f);

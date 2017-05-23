@@ -161,7 +161,7 @@ void ScalarDamage::integrate(Storage& storage, const MaterialView material) {
                 ds[i] = TracelessTensor::null(); /// \todo this is the derivative used for computing time step
                 continue;
             }
-            const Tensor sigma = s_dmg[i] - p[i] * Tensor::identity();
+            const SymmetricTensor sigma = s_dmg[i] - p[i] * SymmetricTensor::identity();
             Float sig1, sig2, sig3;
             tie(sig1, sig2, sig3) = findEigenvalues(sigma);
             const Float sigMax = max(sig1, sig2, sig3);

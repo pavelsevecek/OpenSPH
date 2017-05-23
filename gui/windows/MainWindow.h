@@ -34,6 +34,7 @@ private:
 
     /// Additional wx controls
     wxComboBox* quantityBox;
+    Size selectedIdx = 0;
     wxGauge* gauge;
 
     Array<SharedPtr<Abstract::Element>> elementList;

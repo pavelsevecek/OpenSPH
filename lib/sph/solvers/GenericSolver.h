@@ -8,6 +8,7 @@
 #include "sph/Material.h"
 #include "sph/equations/Accumulated.h"
 #include "sph/equations/EquationTerm.h"
+#include "sph/equations/HelperTerms.h"
 #include "sph/kernel/KernelFactory.h"
 #include "system/Factory.h"
 #include "system/Profiler.h"
@@ -71,6 +72,15 @@ public:
         threadData.forEach([this, &settings](ThreadData& data) { //
             equations.setupThread(data.derivatives, settings);
         });
+    }
+
+    /// Adds additional equation terms into the solver.
+    virtual void addEquations(const RunSettings& settings, EquationHolder&& eqs) {
+        threadData.forEach([this, &settings, &eqs](ThreadData& data) { //
+            eqs.setupThread(data.derivatives, settings);
+        });
+        /// \todo test
+        equations += std::move(eqs);
     }
 
     virtual void integrate(Storage& storage, Statistics& stats) override {

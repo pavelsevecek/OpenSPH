@@ -1,41 +1,41 @@
 #pragma once
 
-/// \file Tensor.h
+/// \file SymmetricTensor.h
 /// \brief Basic algebra for symmetric 2nd order tensors
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2017
 
-#include "geometry/Vector.h"
+#include "math/Matrix.h"
 #include "objects/containers/StaticArray.h"
 
 NAMESPACE_SPH_BEGIN
 
-class Tensor {
+class SymmetricTensor {
 private:
     Vector diag; // diagonal part
     Vector off;  // over/below diagonal
 
 public:
-    Tensor() = default;
+    SymmetricTensor() = default;
 
-    INLINE Tensor(const Tensor& other)
+    INLINE SymmetricTensor(const SymmetricTensor& other)
         : diag(other.diag)
         , off(other.off) {}
 
     /// Construct tensor given its diagonal vector and a vector of off-diagonal elements (sorted top-bottom
     /// and left-right).
-    INLINE Tensor(const Vector& diag, const Vector& off)
+    INLINE SymmetricTensor(const Vector& diag, const Vector& off)
         : diag(diag)
         , off(off) {}
 
     /// Initialize all components of the tensor to given value.
-    INLINE explicit Tensor(const Float value)
+    INLINE explicit SymmetricTensor(const Float value)
         : diag(value)
         , off(value) {}
 
     /// Construct tensor given three vectors as rows. Matrix represented by the vectors MUST be symmetric,
     /// checked by assert.
-    INLINE Tensor(const Vector& v0, const Vector& v1, const Vector& v2) {
+    INLINE SymmetricTensor(const Vector& v0, const Vector& v1, const Vector& v2) {
         ASSERT(v0[1] == v1[0]);
         ASSERT(v0[2] == v2[0]);
         ASSERT(v1[2] == v2[1]);
@@ -43,7 +43,7 @@ public:
         off = Vector(v0[1], v0[2], v1[2]);
     }
 
-    INLINE Tensor& operator=(const Tensor& other) {
+    INLINE SymmetricTensor& operator=(const SymmetricTensor& other) {
         diag = other.diag;
         off = other.off;
         return *this;
@@ -101,70 +101,74 @@ public:
     }
 
     /// Multiplies a tensor by a scalar
-    INLINE friend Tensor operator*(const Tensor& t, const Float v) {
-        return Tensor(t.diag * v, t.off * v);
+    INLINE friend SymmetricTensor operator*(const SymmetricTensor& t, const Float v) {
+        return SymmetricTensor(t.diag * v, t.off * v);
     }
 
-    INLINE friend Tensor operator*(const Float v, const Tensor& t) {
-        return Tensor(t.diag * v, t.off * v);
+    INLINE friend SymmetricTensor operator*(const Float v, const SymmetricTensor& t) {
+        return SymmetricTensor(t.diag * v, t.off * v);
     }
 
     /// Multiplies a tensor by another tensor, element-wise. Not a matrix multiplication!
-    INLINE friend Tensor operator*(const Tensor& t1, const Tensor& t2) {
-        return Tensor(t1.diag * t2.diag, t1.off * t2.off);
+    INLINE friend SymmetricTensor operator*(const SymmetricTensor& t1, const SymmetricTensor& t2) {
+        return SymmetricTensor(t1.diag * t2.diag, t1.off * t2.off);
     }
 
     /// Divides a tensor by a scalar
-    INLINE friend Tensor operator/(const Tensor& t, const Float v) {
-        return Tensor(t.diag / v, t.off / v);
+    INLINE friend SymmetricTensor operator/(const SymmetricTensor& t, const Float v) {
+        return SymmetricTensor(t.diag / v, t.off / v);
     }
 
     /// Divides a tensor by another tensor, element-wise.
-    INLINE friend Tensor operator/(const Tensor& t1, const Tensor& t2) {
-        return Tensor(t1.diag / t2.diag, t1.off / t2.off);
+    INLINE friend SymmetricTensor operator/(const SymmetricTensor& t1, const SymmetricTensor& t2) {
+        return SymmetricTensor(t1.diag / t2.diag, t1.off / t2.off);
     }
 
     /// Sums up two tensors
-    INLINE friend Tensor operator+(const Tensor& t1, const Tensor& t2) {
-        return Tensor(t1.diag + t2.diag, t1.off + t2.off);
+    INLINE friend SymmetricTensor operator+(const SymmetricTensor& t1, const SymmetricTensor& t2) {
+        return SymmetricTensor(t1.diag + t2.diag, t1.off + t2.off);
     }
 
-    INLINE friend Tensor operator-(const Tensor& t1, const Tensor& t2) {
-        return Tensor(t1.diag - t2.diag, t1.off - t2.off);
+    INLINE friend SymmetricTensor operator-(const SymmetricTensor& t1, const SymmetricTensor& t2) {
+        return SymmetricTensor(t1.diag - t2.diag, t1.off - t2.off);
     }
 
-    INLINE Tensor& operator+=(const Tensor& other) {
+    INLINE SymmetricTensor& operator+=(const SymmetricTensor& other) {
         diag += other.diag;
         off += other.off;
         return *this;
     }
 
-    INLINE Tensor& operator-=(const Tensor& other) {
+    INLINE SymmetricTensor& operator-=(const SymmetricTensor& other) {
         diag -= other.diag;
         off -= other.off;
         return *this;
     }
 
-    INLINE Tensor operator-() const {
-        return Tensor(-diag, -off);
+    INLINE SymmetricTensor operator-() const {
+        return SymmetricTensor(-diag, -off);
     }
 
-    INLINE bool operator==(const Tensor& other) const {
+    INLINE Matrix toMatrix() const {
+        return Matrix((*this)[0], (*this)[1], (*this)[2]);
+    }
+
+    INLINE bool operator==(const SymmetricTensor& other) const {
         return diag == other.diag && off == other.off;
     }
 
-    INLINE bool operator!=(const Tensor& other) const {
+    INLINE bool operator!=(const SymmetricTensor& other) const {
         return diag != other.diag || off != other.off;
     }
 
     /// Returns an identity tensor.
-    INLINE static Tensor identity() {
-        return Tensor(Vector(1._f, 1._f, 1._f), Vector(0._f, 0._f, 0._f));
+    INLINE static SymmetricTensor identity() {
+        return SymmetricTensor(Vector(1._f, 1._f, 1._f), Vector(0._f, 0._f, 0._f));
     }
 
     /// Returns a tensor with all zeros.
-    INLINE static Tensor null() {
-        return Tensor(Vector(0._f), Vector(0._f));
+    INLINE static SymmetricTensor null() {
+        return SymmetricTensor(Vector(0._f), Vector(0._f));
     }
 
     /// Returns the determinant of the tensor
@@ -194,7 +198,7 @@ public:
         }
     }
 
-    INLINE Tensor inverse() const {
+    INLINE SymmetricTensor inverse() const {
         const Float det = determinant();
         ASSERT(det != 0._f);
         Vector invDiag, invOff;
@@ -205,31 +209,23 @@ public:
         invOff[0] = off[1] * off[2] - diag[2] * off[0];
         invOff[1] = off[2] * off[0] - diag[1] * off[1];
         invOff[2] = off[0] * off[1] - diag[0] * off[2];
-        return Tensor(invDiag / det, invOff / det);
+        return SymmetricTensor(invDiag / det, invOff / det);
     }
 
-    static Tensor RotateX(const Float a);
-    static Tensor RotateY(const Float a);
-    static Tensor RotateZ(const Float a);
-    static Tensor RotateEuler(const Float a, const Float b, const Float c);
-    static Tensor RotateAxis(const Vector& axis, const Float a);
-    static Tensor Translate(const Vector& t);
-    static Tensor Scale(const Float x, const Float y, const Float z);
-    static Tensor Scale(const Float s);
-    static Tensor TRS(const Vector& t, const Vector& r, const Vector& s);
-
-    friend std::ostream& operator<<(std::ostream& stream, const Tensor& t) {
+    friend std::ostream& operator<<(std::ostream& stream, const SymmetricTensor& t) {
         stream << t.diagonal() << t.offDiagonal();
         return stream;
     }
 };
+
+// INLINE Tensor transform(const Tensor& t, const Matrix& m){ m * t * m ^ -1 }
 
 
 /// Tensor utils
 
 
 /// Checks if two tensors are equal to some given accuracy.
-INLINE bool almostEqual(const Tensor& t1, const Tensor& t2, const Float eps = EPS) {
+INLINE bool almostEqual(const SymmetricTensor& t1, const SymmetricTensor& t2, const Float eps = EPS) {
     return almostEqual(t1.diagonal(), t2.diagonal(), eps) &&
            almostEqual(t1.offDiagonal(), t2.offDiagonal(), eps);
 }
@@ -237,7 +233,7 @@ INLINE bool almostEqual(const Tensor& t1, const Tensor& t2, const Float eps = EP
 /// Arbitrary norm of the tensor.
 /// \todo Use some well-defined norm instead? (spectral norm, L1 or L2 norm, ...)
 template <>
-INLINE Float norm(const Tensor& t) {
+INLINE Float norm(const SymmetricTensor& t) {
     const Vector v = max(t.diagonal(), t.offDiagonal());
     ASSERT(isReal(v));
     return norm(v);
@@ -245,72 +241,72 @@ INLINE Float norm(const Tensor& t) {
 
 /// Arbitrary squared norm of the tensor
 template <>
-INLINE Float normSqr(const Tensor& t) {
+INLINE Float normSqr(const SymmetricTensor& t) {
     const Vector v = max(t.diagonal(), t.offDiagonal());
     return normSqr(v);
 }
 
 /// Returns the tensor of absolute values
 template <>
-INLINE auto abs(const Tensor& t) {
-    return Tensor(abs(t.diagonal()), abs(t.offDiagonal()));
+INLINE auto abs(const SymmetricTensor& t) {
+    return SymmetricTensor(abs(t.diagonal()), abs(t.offDiagonal()));
 }
 
 /// Returns the minimal element of the tensor.
 template <>
-INLINE Float minElement(const Tensor& t) {
+INLINE Float minElement(const SymmetricTensor& t) {
     return min(minElement(t.diagonal()), minElement(t.offDiagonal()));
 }
 
 /// Component-wise minimum of two tensors.
 template <>
-INLINE Tensor min(const Tensor& t1, const Tensor& t2) {
-    return Tensor(min(t1.diagonal(), t2.diagonal()), min(t1.offDiagonal(), t2.offDiagonal()));
+INLINE SymmetricTensor min(const SymmetricTensor& t1, const SymmetricTensor& t2) {
+    return SymmetricTensor(min(t1.diagonal(), t2.diagonal()), min(t1.offDiagonal(), t2.offDiagonal()));
 }
 
 /// Component-wise maximum of two tensors.
 template <>
-INLINE Tensor max(const Tensor& t1, const Tensor& t2) {
-    return Tensor(max(t1.diagonal(), t2.diagonal()), max(t1.offDiagonal(), t2.offDiagonal()));
+INLINE SymmetricTensor max(const SymmetricTensor& t1, const SymmetricTensor& t2) {
+    return SymmetricTensor(max(t1.diagonal(), t2.diagonal()), max(t1.offDiagonal(), t2.offDiagonal()));
 }
 
 /// Clamping all components by range.
 template <>
-INLINE Tensor clamp(const Tensor& t, const Range& range) {
-    return Tensor(clamp(t.diagonal(), range), clamp(t.offDiagonal(), range));
+INLINE SymmetricTensor clamp(const SymmetricTensor& t, const Range& range) {
+    return SymmetricTensor(clamp(t.diagonal(), range), clamp(t.offDiagonal(), range));
 }
 
 template <>
-INLINE bool isReal(const Tensor& t) {
+INLINE bool isReal(const SymmetricTensor& t) {
     return isReal(t.diagonal()) && isReal(t.offDiagonal());
 }
 
 template <>
-INLINE auto less(const Tensor& t1, const Tensor& t2) {
-    return Tensor(less(t1.diagonal(), t2.diagonal()), less(t1.offDiagonal(), t2.offDiagonal()));
+INLINE auto less(const SymmetricTensor& t1, const SymmetricTensor& t2) {
+    return SymmetricTensor(less(t1.diagonal(), t2.diagonal()), less(t1.offDiagonal(), t2.offDiagonal()));
 }
 
 template <>
-INLINE StaticArray<Float, 6> getComponents(const Tensor& t) {
+INLINE StaticArray<Float, 6> getComponents(const SymmetricTensor& t) {
     return { t(0, 0), t(1, 1), t(2, 2), t(0, 1), t(0, 2), t(1, 2) };
 }
 
 /// Double-dot product t1 : t2 = sum_ij t1_ij t2_ij
-INLINE Float ddot(const Tensor& t1, const Tensor& t2) {
+INLINE Float ddot(const SymmetricTensor& t1, const SymmetricTensor& t2) {
     return dot(t1.diagonal(), t2.diagonal()) + 2._f * dot(t1.offDiagonal(), t2.offDiagonal());
 }
 
 /// SYMMETRIZED outer product of two vectors (simple outer product is not necessarily symmetric matrix).
-INLINE Tensor outer(const Vector& v1, const Vector& v2) {
+INLINE SymmetricTensor outer(const Vector& v1, const Vector& v2) {
     /// \todo optimize
-    return Tensor(v1 * v2,
+    return SymmetricTensor(v1 * v2,
         0.5_f * Vector(v1[0] * v2[1] + v1[1] * v2[0],
                     v1[0] * v2[2] + v1[2] * v2[0],
                     v1[1] * v2[2] + v1[2] * v2[1]));
 }
 
 /// Returns three eigenvalue of symmetric matrix.
-INLINE StaticArray<Float, 3> findEigenvalues(const Tensor& t) {
+INLINE StaticArray<Float, 3> findEigenvalues(const SymmetricTensor& t) {
     const Float n = norm(t);
     if (n < 1.e-12_f) {
         return { 0._f, 0._f, 0._f };
@@ -332,5 +328,8 @@ INLINE StaticArray<Float, 3> findEigenvalues(const Tensor& t) {
     const Vector sig = t1 * cos(v) - Vector(p / 3._f);
     return { sig[0] * n, sig[1] * n, sig[2] * n };
 }
+
+/// Computes eigenvectors and corresponding eigenvalues of symmetric matrix.
+StaticArray<Vector, 4> eigenDecomposition(const SymmetricTensor& t);
 
 NAMESPACE_SPH_END

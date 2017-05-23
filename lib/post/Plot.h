@@ -70,6 +70,11 @@ public:
             functor(x, values[i]);
         }
     }
+
+    /// Compares two plots of the same type
+    bool equals(const Float UNUSED(tolerance)) const {
+        return true;
+    }
 };
 
 template<typename TDerived>

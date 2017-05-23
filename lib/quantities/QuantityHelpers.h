@@ -9,7 +9,7 @@
 
 NAMESPACE_SPH_BEGIN
 
-enum class ValueEnum { SCALAR, VECTOR, TENSOR, TRACELESS_TENSOR, INDEX };
+enum class ValueEnum { SCALAR, VECTOR, SYMMETRIC_TENSOR, TRACELESS_TENSOR, INDEX };
 
 /// Convert type to ValueType enum
 template <typename T>
@@ -23,8 +23,8 @@ struct GetValueEnum<Vector> {
     static constexpr ValueEnum type = ValueEnum::VECTOR;
 };
 template <>
-struct GetValueEnum<Tensor> {
-    static constexpr ValueEnum type = ValueEnum::TENSOR;
+struct GetValueEnum<SymmetricTensor> {
+    static constexpr ValueEnum type = ValueEnum::SYMMETRIC_TENSOR;
 };
 template <>
 struct GetValueEnum<TracelessTensor> {
@@ -47,8 +47,8 @@ struct GetTypeFromEnum<ValueEnum::VECTOR> {
     using Type = Vector;
 };
 template <>
-struct GetTypeFromEnum<ValueEnum::TENSOR> {
-    using Type = Tensor;
+struct GetTypeFromEnum<ValueEnum::SYMMETRIC_TENSOR> {
+    using Type = SymmetricTensor;
 };
 template <>
 struct GetTypeFromEnum<ValueEnum::TRACELESS_TENSOR> {
@@ -69,8 +69,8 @@ auto dispatch(const ValueEnum value, TVisitor&& visitor, TArgs&&... args) {
         return visitor.template visit<Float>(std::forward<TArgs>(args)...);
     case ValueEnum::VECTOR:
         return visitor.template visit<Vector>(std::forward<TArgs>(args)...);
-    case ValueEnum::TENSOR:
-        return visitor.template visit<Tensor>(std::forward<TArgs>(args)...);
+    case ValueEnum::SYMMETRIC_TENSOR:
+        return visitor.template visit<SymmetricTensor>(std::forward<TArgs>(args)...);
     case ValueEnum::TRACELESS_TENSOR:
         return visitor.template visit<TracelessTensor>(std::forward<TArgs>(args)...);
     case ValueEnum::INDEX:

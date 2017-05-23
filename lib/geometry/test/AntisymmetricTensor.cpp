@@ -79,7 +79,7 @@ TEST_CASE("Antisymmetric null", "[antisymmetrictensor]") {
 
 TEST_CASE("Antisymmetric abs", "[antisymmetrictensor]") {
     AntisymmetricTensor t1(Vector(2._f, 1._f, -1._f));
-    Tensor abst1(Vector(0._f), Vector(2._f, 1._f, 1._f));
+    SymmetricTensor abst1(Vector(0._f), Vector(2._f, 1._f, 1._f));
     REQUIRE(abs(t1) == abst1);
 }
 /*

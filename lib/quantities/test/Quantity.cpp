@@ -23,13 +23,13 @@ TEST_CASE("Quantity value construct", "[quantity]") {
     REQUIRE_NOTHROW(q1.getDt<Float>());
     REQUIRE_ASSERT(q1.getD2t<Float>());
 
-    Quantity q2(OrderEnum::SECOND, Tensor(2._f), 2);
+    Quantity q2(OrderEnum::SECOND, SymmetricTensor(2._f), 2);
     REQUIRE(q2.size() == 2);
-    REQUIRE(q2.getValueEnum() == ValueEnum::TENSOR);
+    REQUIRE(q2.getValueEnum() == ValueEnum::SYMMETRIC_TENSOR);
     REQUIRE(q2.getOrderEnum() == OrderEnum::SECOND);
-    REQUIRE_NOTHROW(q2.getValue<Tensor>());
-    REQUIRE_NOTHROW(q2.getDt<Tensor>());
-    REQUIRE_NOTHROW(q2.getD2t<Tensor>());
+    REQUIRE_NOTHROW(q2.getValue<SymmetricTensor>());
+    REQUIRE_NOTHROW(q2.getDt<SymmetricTensor>());
+    REQUIRE_NOTHROW(q2.getD2t<SymmetricTensor>());
     REQUIRE_ASSERT(q2.getValue<Vector>());
 }
 

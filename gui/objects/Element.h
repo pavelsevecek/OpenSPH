@@ -33,8 +33,8 @@ namespace Abstract {
         /// Returns the color of idx-th particle.
         virtual Color eval(const Size idx) const = 0;
 
-        /// Returns recommended palette for drawing this element.
-        virtual Palette getPalette() const = 0;
+        /// Returns recommended palette for drawing this element, or NOTHING in case there is no palette.
+        virtual Optional<Palette> getPalette() const = 0;
 
         /// Returns the name of the element, used when showing the element in the window and as filename
         /// suffix.
@@ -86,7 +86,7 @@ public:
         return palette(Detail::getElementValue(values[idx]));
     }
 
-    virtual Palette getPalette() const override {
+    virtual Optional<Palette> getPalette() const override {
         return palette;
     }
 
@@ -120,12 +120,101 @@ public:
         return palette(Detail::getElementValue(values[idx]));
     }
 
-    virtual Palette getPalette() const override {
+    virtual Optional<Palette> getPalette() const override {
         return palette;
     }
 
     virtual std::string name() const override {
         return "Velocity";
+    }
+};
+
+/// Shows boundary elements
+class BoundaryElement : public Abstract::Element {
+public:
+    enum class Detection {
+        /// Particles with fewer neighbours are considered boundary. Not suitable if number of neighbours is
+        /// enforced by adapting smoothing length. Note that increasing the threshold adds more particles into
+        /// the boundary.
+        NEIGBOUR_THRESHOLD,
+
+        /// Boundary is determined by relative position vectors approximating surface normal. Has higher
+        /// overhead, but does not depend sensitively on number of neighbours. Here, increasing the threshold
+        /// leads to fewer boundary particles.
+        NORMAL_BASED,
+    };
+
+private:
+    Detection detection;
+
+    struct {
+        ArrayView<const Vector> values;
+        Array<Vector> cached;
+        Float threshold;
+    } normals;
+
+    struct {
+        ArrayView<const Size> values;
+        Array<Size> cached;
+        Size threshold;
+    } neighbours;
+
+public:
+    BoundaryElement(const Detection detection, const Float threshold = 15._f)
+        : detection(detection) {
+        if (detection == Detection::NEIGBOUR_THRESHOLD) {
+            neighbours.threshold = Size(threshold);
+        } else {
+            normals.threshold = threshold;
+        }
+    }
+
+    virtual void initialize(const Storage& storage, const ElementSource source) override {
+        if (detection == Detection::NORMAL_BASED) {
+            if (source == ElementSource::CACHE_ARRAYS) {
+                normals.cached = copyable(storage.getValue<Vector>(QuantityId::SURFACE_NORMAL));
+                normals.values = normals.cached;
+            } else {
+                normals.values = storage.getValue<Vector>(QuantityId::SURFACE_NORMAL);
+            }
+        } else {
+            if (source == ElementSource::CACHE_ARRAYS) {
+                neighbours.cached = copyable(storage.getValue<Size>(QuantityId::NEIGHBOUR_CNT));
+                neighbours.values = neighbours.cached;
+            } else {
+                neighbours.values = storage.getValue<Size>(QuantityId::NEIGHBOUR_CNT);
+            }
+        }
+    }
+
+    virtual Color eval(const Size idx) const override {
+        if (isBoundary(idx)) {
+            return Color::red();
+        } else {
+            return Color::gray();
+        }
+    }
+
+    virtual Optional<Palette> getPalette() const override {
+        return NOTHING;
+    }
+
+    virtual std::string name() const override {
+        return "Boundary";
+    }
+
+private:
+    bool isBoundary(const Size idx) const {
+        switch (detection) {
+        case Detection::NEIGBOUR_THRESHOLD:
+            ASSERT(neighbours.values);
+            return neighbours.values[idx] < neighbours.threshold;
+        case Detection::NORMAL_BASED:
+            ASSERT(normals.values);
+            return getLength(normals.values[idx]) > normals.threshold;
+        default:
+            NOT_IMPLEMENTED;
+        }
     }
 };
 

@@ -5,6 +5,7 @@
 #include "quantities/Iterate.h"
 #include "quantities/Storage.h"
 #include "system/Settings.h"
+#include "timestepping/AbstractSolver.h"
 #include "utils/Approx.h"
 #include "utils/SequenceTest.h"
 
@@ -48,6 +49,27 @@ TEST_CASE("Initial addBody", "[initial]") {
         totalM += m;
     }
     REQUIRE(totalM == approx(2700._f * domain.getVolume()));
+}
+
+TEST_CASE("Initial custom solver", "[initial]") {
+    struct Solver : public Abstract::Solver {
+        mutable Size createCalled = 0;
+
+        virtual void integrate(Storage& UNUSED(storage), Statistics& UNUSED(stats)) override {}
+
+        virtual void create(Storage& UNUSED(storage), Abstract::Material& UNUSED(material)) const override {
+            createCalled++;
+        }
+    };
+    Storage storage;
+    Solver solver;
+    InitialConditions initial(storage, solver, RunSettings::getDefaults());
+    REQUIRE(solver.createCalled == 0);
+    BodySettings body;
+    initial.addBody(SphericalDomain(Vector(0._f), 1._f), body);
+    REQUIRE(solver.createCalled == 1);
+    initial.addBody(SphericalDomain(Vector(0._f), 2._f), body);
+    REQUIRE(solver.createCalled == 2);
 }
 
 TEST_CASE("Initial velocity", "[initial]") {

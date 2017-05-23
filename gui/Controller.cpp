@@ -40,7 +40,7 @@ Controller::Controller() {
     status = Status::RUNNING;
 
     // create and start the run
-    sph.run = makeAuto<AsteroidCollision>(this);
+    sph.run = makeAuto<AsteroidRotation>(this, 2._f);
     this->run();
 }
 
@@ -165,7 +165,7 @@ Array<SharedPtr<Abstract::Element>> Controller::getElementList(const Storage& st
     /// \todo should be loaded from a file
     // we only add the element if it is contained in the storage
 
-    Array<QuantityId> all{     //
+    Array<QuantityId> all{
         QuantityId::POSITIONS, // this is translated to velocity element, better solution would be appretiated
         QuantityId::PRESSURE,
         QuantityId::ENERGY,
@@ -173,7 +173,8 @@ Array<SharedPtr<Abstract::Element>> Controller::getElementList(const Storage& st
         QuantityId::DEVIATORIC_STRESS,
         QuantityId::DAMAGE,
         QuantityId::AV_ALPHA,
-        QuantityId::VELOCITY_DIVERGENCE
+        QuantityId::VELOCITY_DIVERGENCE,
+        QuantityId::NEIGHBOUR_CNT,
     };
     Array<SharedPtr<Abstract::Element>> elements;
     for (QuantityId id : all) {

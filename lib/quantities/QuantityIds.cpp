@@ -55,8 +55,6 @@ std::string getQuantityName(const QuantityId key) {
         return "beta_AV";
     case QuantityId::DISPLACEMENT:
         return "Displacement";
-    case QuantityId::NEIGHBOUR_CNT:
-        return "Neigh. cnt";
     case QuantityId::FLAG:
         return "Flag";
     case QuantityId::XSPH_VELOCITIES:
@@ -65,6 +63,10 @@ std::string getQuantityName(const QuantityId key) {
         return "Grad-h terms";
     case QuantityId::GRAVITY_POTENTIAL:
         return "Grav. potential";
+    case QuantityId::NEIGHBOUR_CNT:
+        return "Neigh. cnt";
+    case QuantityId::SURFACE_NORMAL:
+        return "Surf. normal";
     default:
         NOT_IMPLEMENTED;
     }

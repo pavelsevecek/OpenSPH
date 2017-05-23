@@ -179,7 +179,8 @@ public:
         ArrayView<TracelessTensor> s, ds;
         tie(s, ds) = storage.getPhysicalAll<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
         ArrayView<Float> du = storage.getDt<Float>(QuantityId::ENERGY);
-        ArrayView<Tensor> gradv = storage.getValue<Tensor>(QuantityId::STRENGTH_VELOCITY_GRADIENT);
+        ArrayView<SymmetricTensor> gradv =
+            storage.getValue<SymmetricTensor>(QuantityId::STRENGTH_VELOCITY_GRADIENT);
 
         for (Size matIdx = 0; matIdx < storage.getMaterialCnt(); ++matIdx) {
             MaterialView material = storage.getMaterial(matIdx);
@@ -189,7 +190,7 @@ public:
                 for (Size i = n1; i < n2; ++i) {
                     du[i] += 1._f / rho[i] * ddot(s[i], gradv[i]);
                     /// \todo rotation rate tensor?
-                    TracelessTensor dev(gradv[i] - Tensor::identity() * gradv[i].trace() / 3._f);
+                    TracelessTensor dev(gradv[i] - SymmetricTensor::identity() * gradv[i].trace() / 3._f);
                     ds[i] += 2._f * mu * dev;
                     ASSERT(isReal(du[i]) && isReal(ds[i]));
                 }
@@ -197,7 +198,8 @@ public:
         }
         if (conserveAngularMomentum) {
             /// \todo here we assume only this equation term uses the correction
-            ArrayView<Tensor> C = storage.getValue<Tensor>(QuantityId::ANGULAR_MOMENTUM_CORRECTION);
+            ArrayView<SymmetricTensor> C =
+                storage.getValue<SymmetricTensor>(QuantityId::ANGULAR_MOMENTUM_CORRECTION);
             storage.parallelFor(0, C.size(), [&C](const Size n1, const Size n2) INL {
                 for (Size i = n1; i < n2; ++i) {
                     C[i] = C[i].inverse();
@@ -213,7 +215,8 @@ public:
         material.minimal(QuantityId::DEVIATORIC_STRESS) =
             material.getParam<Float>(BodySettingsId::STRESS_TENSOR_MIN);
 
-        storage.insert<Tensor>(QuantityId::STRENGTH_VELOCITY_GRADIENT, OrderEnum::ZERO, Tensor::null());
+        storage.insert<SymmetricTensor>(
+            QuantityId::STRENGTH_VELOCITY_GRADIENT, OrderEnum::ZERO, SymmetricTensor::null());
     }
 };
 
@@ -234,7 +237,8 @@ public:
         ArrayView<TracelessTensor> s, ds;
         tie(s, ds) = storage.getPhysicalAll<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
         ArrayView<Float> du = storage.getDt<Float>(QuantityId::ENERGY);
-        ArrayView<Tensor> gradv = storage.getValue<Tensor>(QuantityId::STRENGTH_VELOCITY_GRADIENT);
+        ArrayView<SymmetricTensor> gradv =
+            storage.getValue<SymmetricTensor>(QuantityId::STRENGTH_VELOCITY_GRADIENT);
 
         TODO("parallelize");
         for (Size matIdx = 0; matIdx < storage.getMaterialCnt(); ++matIdx) {
@@ -243,7 +247,7 @@ public:
             for (Size i : material.sequence()) {
                 du[i] += 1._f / rho[i] * ddot(s[i], gradv[i]);
                 /// \todo rotation rate tensor?
-                TracelessTensor dev(gradv[i] - Tensor::identity() * gradv[i].trace() / 3._f);
+                TracelessTensor dev(gradv[i] - SymmetricTensor::identity() * gradv[i].trace() / 3._f);
                 ds[i] += 2._f * mu * dev;
                 ASSERT(isReal(du[i]) && isReal(ds[i]));
             }
@@ -286,7 +290,8 @@ public:
         tie(rho, drho) = storage.getAll<Float>(QuantityId::DENSITY);
         if (Evol == DensityEvolution::SOLID) {
             ArrayView<const Float> reduce = storage.getValue<Float>(QuantityId::STRESS_REDUCING);
-            ArrayView<const Tensor> gradv = storage.getValue<Tensor>(QuantityId::STRENGTH_VELOCITY_GRADIENT);
+            ArrayView<const SymmetricTensor> gradv =
+                storage.getValue<SymmetricTensor>(QuantityId::STRENGTH_VELOCITY_GRADIENT);
             storage.parallelFor(0, rho.size(), [&](const Size n1, const Size n2) INL {
                 for (Size i = n1; i < n2; ++i) {
                     if (reduce[i] != 0._f) {
@@ -390,46 +395,6 @@ public:
     virtual void create(Storage& UNUSED(storage), Abstract::Material& UNUSED(material)) const override {}
 };
 
-class NeighbourCountTerm : public Abstract::EquationTerm {
-private:
-    class NeighbourCountImpl : public DerivativeTemplate<NeighbourCountImpl> {
-    private:
-        ArrayView<Size> neighCnts;
-
-    public:
-        virtual void create(Accumulated& results) override {
-            results.insert<Size>(QuantityId::NEIGHBOUR_CNT);
-        }
-
-        virtual void initialize(const Storage& UNUSED(input), Accumulated& results) override {
-            neighCnts = results.getValue<Size>(QuantityId::NEIGHBOUR_CNT);
-        }
-
-        template <bool Symmetrize>
-        INLINE void eval(const Size i,
-            ArrayView<const Size> neighs,
-            ArrayView<const Vector> UNUSED_IN_RELEASE(grads)) {
-            ASSERT(neighs.size() == grads.size());
-            neighCnts[i] += neighs.size();
-            if (Symmetrize) {
-                for (Size k = 0; k < neighs.size(); ++k) {
-                    const Size j = neighs[k];
-                    neighCnts[j]++;
-                }
-            }
-        }
-    };
-
-    virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override {
-        derivatives.require<NeighbourCountImpl>(settings);
-    }
-
-    virtual void initialize(Storage& UNUSED(storage)) override {}
-
-    virtual void finalize(Storage& UNUSED(storage)) override {}
-
-    virtual void create(Storage& UNUSED(storage), Abstract::Material& UNUSED(material)) const override {}
-};
 
 /// Syntactic suggar
 class EquationHolder {

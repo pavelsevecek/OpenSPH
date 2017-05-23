@@ -85,7 +85,8 @@ void MainWindow::setElementList(Array<SharedPtr<Abstract::Element>>&& elements) 
         items.Add(e->name().c_str());
     }
     quantityBox->Set(items);
-    quantityBox->SetSelection(0);
+    const Size actSelectedIdx = (selectedIdx < elementList.size()) ? selectedIdx : 0;
+    quantityBox->SetSelection(actSelectedIdx);
 }
 
 void MainWindow::onClose(wxCloseEvent& evt) {
@@ -101,6 +102,7 @@ void MainWindow::onComboBox(wxCommandEvent& UNUSED(evt)) {
     const int idx = quantityBox->GetSelection();
     SharedPtr<Abstract::Element> element = elementList[idx];
     controller->setElement(std::move(element));
+    selectedIdx = idx;
 }
 
 NAMESPACE_SPH_END

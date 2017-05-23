@@ -32,7 +32,7 @@ void Settings<TEnum>::saveToFile(const std::string& path) const {
             ofs << entry.value.template get<Vector>();
             break;
         case TENSOR:
-            ofs << entry.value.template get<Tensor>();
+            ofs << entry.value.template get<SymmetricTensor>();
             break;
         case TRACELESS_TENSOR:
             ofs << entry.value.template get<TracelessTensor>();
@@ -171,7 +171,7 @@ bool Settings<TEnum>::setValueByType(Entry& entry, const Size typeIdx, const std
         if (ss.fail()) {
             return false;
         } else {
-            entry.value = Tensor(Vector(sxx, syy, szz), Vector(sxy, sxz, syz));
+            entry.value = SymmetricTensor(Vector(sxx, syy, szz), Vector(sxy, sxz, syz));
             return true;
         }
     case TRACELESS_TENSOR:
@@ -212,9 +212,6 @@ AutoPtr<RunSettings> RunSettings::instance (new RunSettings {
     { RunSettingsId::MODEL_FORCE_SOLID_STRESS,      "model.force.div_s",        true },
     { RunSettingsId::MODEL_FORCE_CENTRIPETAL,       "model.force.centripetal",  false },
     { RunSettingsId::MODEL_FORCE_GRAVITY,           "model.force.gravity",      false },
-    { RunSettingsId::MODEL_AV_TYPE,                 "model.av.type",            int(ArtificialViscosityEnum::STANDARD) },
-    { RunSettingsId::MODEL_AV_BALSARA,              "model.av.balsara",         false },
-    { RunSettingsId::MODEL_AV_BALSARA_STORE,        "model.av.balsara.store",   false },
 
     /// SPH solvers
     { RunSettingsId::SOLVER_TYPE,                   "solver.type",                      int(SolverEnum::CONTINUITY_SOLVER) },
@@ -230,6 +227,10 @@ AutoPtr<RunSettings> RunSettings::instance (new RunSettings {
     { RunSettingsId::SPH_NEIGHBOUR_ENFORCING,       "sph.neighbour.enforcing",  0.2_f },
     { RunSettingsId::SPH_AV_ALPHA,                  "sph.av.alpha",             1.5_f },
     { RunSettingsId::SPH_AV_BETA,                   "sph.av.beta",              3._f },
+    { RunSettingsId::SPH_AV_TYPE,                   "sph.av.type",              int(ArtificialViscosityEnum::STANDARD) },
+    { RunSettingsId::SPH_AV_BALSARA,                "sph.av.balsara",           false },
+    { RunSettingsId::SPH_AV_BALSARA_STORE,          "sph.av.balsara.store",     false },
+    { RunSettingsId::SPH_ARTIFICIAL_STRESS_EXPONENT,    "sph.artificial_stress_exponent",   4._f },
     { RunSettingsId::SPH_SMOOTHING_LENGTH_MIN,      "sph.smoothing_length.min", 1e-5_f },
     { RunSettingsId::SPH_FINDER,                    "sph.finder",               int(FinderEnum::VOXEL) },
     { RunSettingsId::SPH_CONSERVE_ANGULAR_MOMENTUM, "sph.angular_momentum_correction", false },
@@ -257,6 +258,7 @@ AutoPtr<RunSettings> RunSettings::instance (new RunSettings {
     { RunSettingsId::DOMAIN_RADIUS,                 "domain.radius",            1._f },
     { RunSettingsId::DOMAIN_HEIGHT,                 "domain.height",            1._f },
     { RunSettingsId::DOMAIN_SIZE,                   "domain.size",              Vector(1._f) },
+    { RunSettingsId::BOUNDARY_THRESHOLD,            "boundary.threshold",       40 },
 });
 // clang-format on
 
@@ -304,6 +306,7 @@ AutoPtr<BodySettings> BodySettings::instance (new BodySettings {
     { BodySettingsId::RAYLEIGH_SOUND_SPEED,    "material.rayleigh_speed",      0.4_f },
     { BodySettingsId::WEIBULL_COEFFICIENT,     "material.weibull_coefficient", 4.e35_f },
     { BodySettingsId::WEIBULL_EXPONENT,        "material.weibull_exponent",    9._f },
+    { BodySettingsId::KINEMATIC_VISCOSITY,     "material.kinematic_viscosity", 1.e-6_f }, /// \todo this is a value of water
 
     /// SPH parameters specific for the body
     { BodySettingsId::INITIAL_DISTRIBUTION,    "sph.initial_distribution",     int(DistributionEnum::HEXAGONAL) },

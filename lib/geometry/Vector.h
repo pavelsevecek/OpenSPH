@@ -531,6 +531,9 @@ public:
 
 using Vector = BasicVector<Float>;
 
+/// Make sure the vector is trivially constructible and destructible, needed for fast initialization of arrays
+static_assert(std::is_trivially_default_constructible<Vector>::value, "must be trivially construtible");
+static_assert(std::is_trivially_destructible<Vector>::value, "must be trivially destructible");
 
 /// Vector utils
 

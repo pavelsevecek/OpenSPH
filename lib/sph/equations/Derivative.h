@@ -113,8 +113,8 @@ struct VelocityDivergence
 };
 
 struct VelocityGradient
-    : public Detail::VelocityTemplate<Tensor, QuantityId::VELOCITY_GRADIENT, VelocityGradient> {
-    INLINE static Tensor func(const Vector& dv, const Vector& grad) {
+    : public Detail::VelocityTemplate<SymmetricTensor, QuantityId::VELOCITY_GRADIENT, VelocityGradient> {
+    INLINE static SymmetricTensor func(const Vector& dv, const Vector& grad) {
         return outer(dv, grad);
     }
 };
@@ -144,12 +144,12 @@ private:
     ArrayView<const Vector> v;
     ArrayView<const Size> idxs;
     ArrayView<const Float> reduce;
-    ArrayView<Tensor> deriv;
+    ArrayView<SymmetricTensor> deriv;
     TCorrection correction;
 
 public:
     virtual void create(Accumulated& results) override {
-        results.insert<Tensor>(QuantityId::STRENGTH_VELOCITY_GRADIENT);
+        results.insert<SymmetricTensor>(QuantityId::STRENGTH_VELOCITY_GRADIENT);
     }
 
     virtual void initialize(const Storage& input, Accumulated& results) override {
@@ -157,7 +157,7 @@ public:
         v = input.getDt<Vector>(QuantityId::POSITIONS);
         idxs = input.getValue<Size>(QuantityId::FLAG);
         reduce = input.getValue<Float>(QuantityId::STRESS_REDUCING);
-        deriv = results.getValue<Tensor>(QuantityId::STRENGTH_VELOCITY_GRADIENT);
+        deriv = results.getValue<SymmetricTensor>(QuantityId::STRENGTH_VELOCITY_GRADIENT);
         correction.initialize(input);
     }
 
@@ -176,7 +176,7 @@ public:
             const Vector dv = v[j] - v[i];
             if (std::is_same<TCorrection, VelocityGradientCorrection::NoCorrection>::value) {
                 // optimization, avoid computing outer product twice
-                const Tensor t = outer(dv, grads[k]);
+                const SymmetricTensor t = outer(dv, grads[k]);
                 ASSERT(isReal(t));
                 deriv[i] += m[j] / rho[j] * t;
                 if (Symmetrize) {
@@ -208,17 +208,17 @@ private:
     ArrayView<const Float> m;
     ArrayView<const Float> rho;
     ArrayView<const Vector> r;
-    ArrayView<Tensor> C;
+    ArrayView<SymmetricTensor> C;
 
 public:
     virtual void create(Accumulated& results) override {
-        results.insert<Tensor>(QuantityId::ANGULAR_MOMENTUM_CORRECTION);
+        results.insert<SymmetricTensor>(QuantityId::ANGULAR_MOMENTUM_CORRECTION);
     }
 
     virtual void initialize(const Storage& input, Accumulated& results) override {
         tie(m, rho) = input.getValues<Float>(QuantityId::MASSES, QuantityId::DENSITY);
         r = input.getValue<Vector>(QuantityId::POSITIONS);
-        C = results.getValue<Tensor>(QuantityId::ANGULAR_MOMENTUM_CORRECTION);
+        C = results.getValue<SymmetricTensor>(QuantityId::ANGULAR_MOMENTUM_CORRECTION);
     }
 
     template <bool Symmetrize>
@@ -226,7 +226,7 @@ public:
         ASSERT(neighs.size() == grads.size());
         for (Size k = 0; k < neighs.size(); ++k) {
             const Size j = neighs[k];
-            Tensor t = outer(r[j] - r[i], grads[k]); // symmetric in i,j ?
+            SymmetricTensor t = outer(r[j] - r[i], grads[k]); // symmetric in i,j ?
             C[i] += m[j] / rho[j] * t;
             if (Symmetrize) {
                 C[j] += m[i] / rho[i] * t;
@@ -238,7 +238,7 @@ public:
 namespace VelocityGradientCorrection {
     class ConserveAngularMomentum {
     private:
-        ArrayView<const Tensor> C_inv;
+        ArrayView<const SymmetricTensor> C_inv;
 
     public:
         INLINE Vector operator()(const Size i, const Vector& grad) {
@@ -246,7 +246,7 @@ namespace VelocityGradientCorrection {
         }
 
         void initialize(const Storage& input) {
-            C_inv = input.getValue<Tensor>(QuantityId::ANGULAR_MOMENTUM_CORRECTION);
+            C_inv = input.getValue<SymmetricTensor>(QuantityId::ANGULAR_MOMENTUM_CORRECTION);
         }
     };
 }
