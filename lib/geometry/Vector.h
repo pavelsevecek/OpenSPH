@@ -739,6 +739,12 @@ INLINE Vector sphericalInversion(const Vector& v, const Vector& center, const Fl
     return center + diff * radius * radius / lSqr;
 }
 
+/// Returns the distance of vector from given axis. The axis is assumed to be normalized.
+INLINE Float distance(const Vector& r, const Vector& axis) {
+    ASSERT(almostEqual(getSqrLength(axis), 1._f));
+    return getLength(r - dot(r, axis) * axis);
+}
+
 /// Compares components of two vectors lexicographically, primary component is z.
 INLINE bool lexicographicalLess(const Vector& v1, const Vector& v2) {
     if (v1[Z] < v2[Z]) {

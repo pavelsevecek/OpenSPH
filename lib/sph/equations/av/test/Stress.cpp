@@ -12,16 +12,16 @@ TEST_CASE("StressAV test", "[av]") {
     const Float u0 = 0._f;
     BodySettings body;
     body.set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::NONE);
-    /// \todo this test is HIGHLY sensitive on initial distribution! It fails if we select a different option
-    /// (symmetry along the axes is essenstial)
-    body.set(BodySettingsId::INITIAL_DISTRIBUTION, DistributionEnum::CUBIC);
+    /// \todo this test is HIGHLY sensitive on initial distribution!
+    body.set(BodySettingsId::INITIAL_DISTRIBUTION, DistributionEnum::HEXAGONAL);
     SharedPtr<Storage> storage = makeShared<Storage>(Tests::getSolidStorage(10000, body, 1._f, 1._f, u0));
     const Float cs = storage->getValue<Float>(QuantityId::SOUND_SPEED)[0];
     ArrayView<Vector> r, v, dv;
     tie(r, v, dv) = storage->getAll<Vector>(QuantityId::POSITIONS);
+    const Vector dir = getNormalized(Vector(1._f, 2._f, -5._f)); // some non-trivial direction of motion
     for (Size i = 0; i < r.size(); ++i) {
-        // subsonic flow away from x=0
-        v[i] = Vector(r[i][X] < 0._f ? -0.1_f * cs : 0.1_f * cs, 0._f, 0._f);
+        // subsonic flow along the axis
+        v[i] = dir * (dot(r[i], dir) > 0._f ? 0.1_f * cs : -0.1_f * cs);
     }
     RunSettings settings;
     settings.set(RunSettingsId::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::NONE);
@@ -46,10 +46,10 @@ TEST_CASE("StressAV test", "[av]") {
     ArrayView<SymmetricTensor> as = storage->getValue<SymmetricTensor>(QuantityId::AV_STRESS);
     const Float h = r[0][H];
     auto test1 = [&](const Size i) -> Outcome {
-        if (abs(r[i][X]) < h && s[i] == TracelessTensor::null()) {
+        if (abs(dot(r[i], dir)) < h && s[i] == TracelessTensor::null()) {
             return makeFailed("Zero components of stress tensor in shock front");
         }
-        if (abs(r[i][X]) > 3._f * h && s[i] != TracelessTensor::null()) {
+        if (abs(dot(r[i], dir)) > 3._f * h && s[i] != TracelessTensor::null()) {
             return makeFailed("Non-zero components of stress tensor far from shock front");
         }
         if (as[i] != SymmetricTensor::null()) {
@@ -72,22 +72,25 @@ TEST_CASE("StressAV test", "[av]") {
             // skip boundary layer
             return SUCCESS;
         }
-        if (abs(r[i][X]) < h) {
-            const Float ratio = (abs(dv[i][Y]) + abs(dv[i][Z])) / abs(dv[i][X]);
-            if (ratio > 1.e-3_f) {
-                return makeFailed("Acceleration does not have x direction: ", dv[i], "\n ratio = ", ratio);
+        if (abs(dot(r[i], dir)) < h) {
+            const Float ratio = (abs(distance(dv[i], dir))) / abs(dot(dv[i], dir));
+            if (ratio > 0.2_f) {
+                /// \todo can we achieve better accuracy than this??
+                return makeFailed(
+                    "Acceleration does not have correct direction: ", dv[i], "\n ratio = ", ratio);
             }
             // acceleration should be in the opposite direction than the velocity
-            if (r[i][X] <= 0._f) {
-                if (as[i] == SymmetricTensor::null() || dv[i][X] > -1.e6_f) {
-                    return makeFailed("Incorrect acceleration in x>0: ", dv[i]);
+            if (dot(r[i], dir) <= 0._f) {
+                if (as[i] == SymmetricTensor::null() || dot(dv[i], dir) > -1.e6_f) {
+                    return makeFailed("Incorrect acceleration in dot>0: ", dv[i]);
                 }
-            } else if (r[i][X] > 0._f) {
-                if (as[i] == SymmetricTensor::null() || dv[i][X] < 1.e6_f) {
-                    return makeFailed("Incorrect acceleration in x<0: ", dv[i], "\nr=", r[i], "\nAS=", as[i]);
+            } else if (dot(r[i], dir) > 0._f) {
+                if (as[i] == SymmetricTensor::null() || dot(dv[i], dir) < 1.e6_f) {
+                    return makeFailed(
+                        "Incorrect acceleration in dot<0: ", dv[i], "\nr=", r[i], "\nAS=", as[i]);
                 }
             }
-        } else if (abs(r[i][X]) > 2._f * h && dv[i] != approx(Vector(0._f))) {
+        } else if (abs(dot(r[i], dir)) > 2._f * h && dv[i] != approx(Vector(0._f), 1._f)) {
             return makeFailed("Accelerated where it shouldn't", dv[i]);
         }
         return SUCCESS;
