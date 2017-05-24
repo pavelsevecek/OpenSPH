@@ -92,8 +92,8 @@ public:
         return *this;
     }
 
-    /// Conversion to ordinary Tensor
-    INLINE operator SymmetricTensor() const {
+    /// Conversion to ordinary SymmetricTensor
+    INLINE explicit operator SymmetricTensor() const {
         return SymmetricTensor(Vector(m[M00], m[M11], -m[M00] - m[M11]), Vector(m[M01], m[M02], m12));
     }
 
@@ -319,7 +319,7 @@ INLINE Pair<TracelessTensor> clampWithDerivative(const TracelessTensor& v,
     const SymmetricTensor lower = less(SymmetricTensor(range.lower()), SymmetricTensor(v));
     const SymmetricTensor upper = less(SymmetricTensor(v), SymmetricTensor(range.upper()));
     /// \todo optimize
-    return { clamp(v, range), TracelessTensor(dv * lower * upper) };
+    return { clamp(v, range), TracelessTensor(SymmetricTensor(dv) * lower * upper) };
 }
 
 template <>

@@ -106,7 +106,7 @@ public:
         : equationSolver(settings, std::move(equations) + makeTerm<DisplacementTerm>()) {
         kernel = Factory::getKernel<3>(settings);
         finder = Factory::getFinder(settings);
-        boundaryThreshold = 20;
+        boundaryThreshold = 0; /// \todo 20;
         // settings.get<int>(RunSettingsId::BOUNDARY_THRESHOLD);
     }
 

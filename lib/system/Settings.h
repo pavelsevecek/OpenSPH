@@ -443,7 +443,13 @@ enum class RunSettingsId {
     XSPH_EPSILON,
 
     /// Weighting function exponent n in artificial stress term
-    SPH_ARTIFICIAL_STRESS_EXPONENT,
+    SPH_AV_STRESS_EXPONENT,
+
+    /// Multiplicative factor of the artificial stress term (= strength of the viscosity)
+    SPH_AV_STRESS_FACTOR,
+
+    /// Save initial positions of particles to the output
+    OUTPUT_SAVE_INITIAL_POSITION,
 
     /// Maximum number of iterations for self-consistent density computation of summation solver.
     SUMMATION_MAX_ITERATIONS,

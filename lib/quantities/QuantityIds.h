@@ -73,9 +73,8 @@ enum class QuantityId {
     AV_ALPHA,                     ///< Coefficient alpha of the artificial viscosity
     AV_BETA,                      ///< Coefficient beta of the artificial viscosity
     AV_BALSARA,                   ///< Balsara factor
-    ARTIFICIAL_STRESS,            ///< Artificial stress by Monaghan \cite Monaghan_1999
+    AV_STRESS,                    ///< Artificial stress by Monaghan \cite Monaghan_1999
     INTERPARTICLE_SPACING_KERNEL, ///< Auxiliary quantity needed for evaluating artificial stress
-    DIAGONAL_STRESS,              ///< Eigenvalues of the total stress tensor
     ///@}
 
     /// \name SPH modifications & corrections
@@ -94,7 +93,8 @@ enum class QuantityId {
 
     /// \name Particle flags & Materials
     ///@{
-    FLAG, ///< ID of original body, used to implement discontinuities between bodies in SPH
+    FLAG,             ///< ID of original body, used to implement discontinuities between bodies in SPH
+    INITIAL_POSITION, ///< Initial position of particles, kept constant during the run
     ///@}
 };
 

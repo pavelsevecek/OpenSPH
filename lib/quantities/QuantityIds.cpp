@@ -53,6 +53,10 @@ std::string getQuantityName(const QuantityId key) {
         return "alpha_AV";
     case QuantityId::AV_BETA:
         return "beta_AV";
+    case QuantityId::AV_STRESS:
+        return "Artificial stress";
+    case QuantityId::INTERPARTICLE_SPACING_KERNEL:
+        return "w(Delta p)";
     case QuantityId::DISPLACEMENT:
         return "Displacement";
     case QuantityId::FLAG:

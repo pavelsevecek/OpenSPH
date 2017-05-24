@@ -119,7 +119,7 @@ void Storage::merge(Storage&& other) {
 }
 
 void Storage::init() {
-    iterate<VisitorEnum::HIGHEST_DERIVATIVES>(*this, [](const QuantityId, auto&& dv) {
+    iterate<VisitorEnum::HIGHEST_DERIVATIVES>(*this, [](const QuantityId, auto& dv) {
         using TValue = typename std::decay_t<decltype(dv)>::Type;
         dv.fill(TValue(0._f));
     });
@@ -135,7 +135,7 @@ Storage Storage::clone(const Flags<VisitorEnum> flags) const {
 
 void Storage::resize(const Size newParticleCnt) {
     ASSERT(getQuantityCnt() > 0);
-    iterate<VisitorEnum::ALL_BUFFERS>(*this, [newParticleCnt](auto&& buffer) { //
+    iterate<VisitorEnum::ALL_BUFFERS>(*this, [newParticleCnt](auto& buffer) { //
         buffer.resize(newParticleCnt);
     });
 }

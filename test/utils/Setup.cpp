@@ -12,10 +12,10 @@ namespace Tests {
         BodySettings settings;
         settings.set(BodySettingsId::DENSITY, 1._f);
         Storage storage(makeAuto<NullMaterial>(settings));
-        HexagonalPacking distribution;
+        AutoPtr<Abstract::Distribution> distribution = Factory::getDistribution(settings);
         SphericalDomain domain(Vector(0._f), 1._f);
         storage.insert<Vector>(
-            QuantityId::POSITIONS, OrderEnum::SECOND, distribution.generate(particleCnt, domain));
+            QuantityId::POSITIONS, OrderEnum::SECOND, distribution->generate(particleCnt, domain));
         storage.insert<Float>(QuantityId::DENSITY, OrderEnum::FIRST, 1._f);
         storage.insert<Size>(QuantityId::FLAG, OrderEnum::ZERO, 0);
         // density = 1, therefore total mass = volume, therefore mass per particle = volume / N
@@ -36,10 +36,10 @@ namespace Tests {
             .set(BodySettingsId::RHEOLOGY_DAMAGE, DamageEnum::NONE)
             .set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::NONE);
         Storage storage(makeAuto<EosMaterial>(settings, Factory::getEos(settings)));
-        HexagonalPacking distribution;
+        AutoPtr<Abstract::Distribution> distribution = Factory::getDistribution(settings);
         SphericalDomain domain(Vector(0._f), radius);
         storage.insert<Vector>(
-            QuantityId::POSITIONS, OrderEnum::SECOND, distribution.generate(particleCnt, domain));
+            QuantityId::POSITIONS, OrderEnum::SECOND, distribution->generate(particleCnt, domain));
         storage.insert<Float>(QuantityId::DENSITY, OrderEnum::FIRST, rho0);
         const Float m0 = rho0 * sphereVolume(radius) / storage.getParticleCnt();
         storage.insert<Float>(QuantityId::MASSES, OrderEnum::ZERO, m0);
@@ -61,10 +61,10 @@ namespace Tests {
             .set(BodySettingsId::DENSITY_RANGE, Range(1.e-3_f * rho0, INFTY));
         Storage storage(
             makeAuto<SolidMaterial>(settings, Factory::getEos(settings), Factory::getRheology(settings)));
-        HexagonalPacking distribution;
+        AutoPtr<Abstract::Distribution> distribution = Factory::getDistribution(settings);
         SphericalDomain domain(Vector(0._f), radius);
         storage.insert<Vector>(
-            QuantityId::POSITIONS, OrderEnum::SECOND, distribution.generate(particleCnt, domain));
+            QuantityId::POSITIONS, OrderEnum::SECOND, distribution->generate(particleCnt, domain));
         storage.insert<Float>(QuantityId::DENSITY, OrderEnum::FIRST, rho0);
         const Float m0 = rho0 * sphereVolume(radius) / storage.getParticleCnt();
         storage.insert<Float>(QuantityId::MASSES, OrderEnum::ZERO, m0);

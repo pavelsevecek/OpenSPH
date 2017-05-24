@@ -222,7 +222,7 @@ static void tql2(double V[n][n], double d[n], double e[n]) {
     }
 }
 
-StaticArray<Vector, 4> eigenDecomposition(const SymmetricTensor& t) {
+Tuple<Tensor, Vector> eigenDecomposition(const SymmetricTensor& t) {
     double e[n];
     double d[n];
     double V[n][n];
@@ -233,9 +233,9 @@ StaticArray<Vector, 4> eigenDecomposition(const SymmetricTensor& t) {
     }
     tred2(V, d, e);
     tql2(V, d, e);
-    return { Vector(V[0][0], V[1][0], V[2][0]),
-        Vector(V[0][1], V[1][1], V[2][1]),
-        Vector(V[0][2], V[1][2], V[2][2]),
+    return { Tensor(Vector(V[0][0], V[1][0], V[2][0]),
+                 Vector(V[0][1], V[1][1], V[2][1]),
+                 Vector(V[0][2], V[1][2], V[2][2])),
         Vector(d[0], d[1], d[2]) };
 }
 
