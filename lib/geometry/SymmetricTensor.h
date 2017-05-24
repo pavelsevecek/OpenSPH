@@ -37,8 +37,10 @@ public:
     INLINE explicit SymmetricTensor(const Tensor& tensor)
         : diag(tensor(0, 0), tensor(1, 1), tensor(2, 2))
         , off(tensor(0, 1), tensor(0, 2), tensor(1, 2)) {
-        ASSERT(almostEqual(tensor(0, 1), tensor(1, 0)) && almostEqual(tensor(0, 2), tensor(2, 0)) &&
-               almostEqual(tensor(1, 2), tensor(2, 1)));
+        ASSERT(almostEqual(tensor(0, 1), tensor(1, 0), 1.e-6_f) &&
+                   almostEqual(tensor(0, 2), tensor(2, 0), 1.e-6_f) &&
+                   almostEqual(tensor(1, 2), tensor(2, 1), 1.e-6_f),
+            tensor);
     }
 
     /// Construct tensor given three vectors as rows. Matrix represented by the vectors MUST be symmetric,

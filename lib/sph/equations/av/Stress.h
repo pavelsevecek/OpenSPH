@@ -30,7 +30,7 @@ private:
 
         ArrayView<const Float> wp;
         ArrayView<const SymmetricTensor> as;
-        ArrayView<const Float> m;
+        ArrayView<const Float> m, rho;
         ArrayView<const Vector> r, v;
 
         ArrayView<Vector> dv;
@@ -53,6 +53,7 @@ private:
             wp = input.getValue<Float>(QuantityId::INTERPARTICLE_SPACING_KERNEL);
             as = input.getValue<SymmetricTensor>(QuantityId::AV_STRESS);
             m = input.getValue<Float>(QuantityId::MASSES);
+            rho = input.getValue<Float>(QuantityId::DENSITY);
             ArrayView<const Vector> dummy;
             tie(r, v, dummy) = input.getAll<Vector>(QuantityId::POSITIONS);
 
@@ -70,8 +71,11 @@ private:
                 // weighting function
                 const Float phi = xi * pow(w / wp[i], n);
 
-                const Vector f = phi * as[i] * grads[k];
-                const Float heating = 0.5_f * phi * dot(as[i] * (v[i] - v[j]), grads[k]);
+                // AV term, discretized as stress force (i.e. differently than in \cite Monaghan_1999) for
+                // internally consistent SPH formulation
+                const SymmetricTensor Pi = phi * (as[i] + as[j]) / (rho[i] * rho[j]);
+                const Vector f = Pi * grads[k];
+                const Float heating = 0.5_f * dot(Pi * (v[i] - v[j]), grads[k]);
                 dv[i] += m[j] * f;
                 du[i] += m[j] * heating;
                 if (Symmetrize) {
@@ -97,7 +101,6 @@ public:
         ArrayView<TracelessTensor> s =
             storage.getPhysicalValue<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
         ArrayView<Float> p = storage.getValue<Float>(QuantityId::PRESSURE);
-        ArrayView<Float> rho = storage.getValue<Float>(QuantityId::DENSITY);
 
         /// \todo parallelize
         for (Size i = 0; i < p.size(); ++i) {
@@ -110,7 +113,7 @@ public:
             tieToTuple(matrix, sigma_diag) = eigenDecomposition(sigma);
 
             // for positive values of diagonal stress, compute artificial stress
-            const Vector as_diag = -max(sigma_diag, Vector(0._f)) / sqr(rho[i]);
+            const Vector as_diag = -max(sigma_diag, Vector(0._f));
 
             // transform back to original coordinates
             as[i] = transform(SymmetricTensor(as_diag, Vector(0._f)), matrix.transpose());

@@ -269,18 +269,24 @@ namespace Detail {
     };
 }
 
-/// \todo update documentation
-/// Generic container for storing scalar, vector or tensor quantities. Contains current values of the quantity
-/// and all derivatives (if there is an evolution equation for the quantity, of course).
+/// \brief Generic container for storing scalar, vector or tensor quantity and its derivatives.
+///
+/// Contains current values of the quantity and all derivatives. Any quantity can have first and second
+/// derivatives stored together with quantity values. There is currently no limitation of quatity types and
+/// their order, i.e. it is possible to have index quantities with derivatives.
+///
 /// As the quantity can have data of different types, there is no direct way to access the arrays stored
-/// within. There are several methods, however, that allow to access the information indirectly:
-/// 1) cast<Type, TemporalEnum>; returns holder of quantity (see above) IF the type and temporal enum in
-///                              template parameters match the ones of the holder.
-/// 2) getAll<Type>; returns all arrays (values and derivatives) stored in the holder IF the template type
-///                      matches the holder type.
-/// Beside accessing values through cast<> method, you can also use functions in QuantityCast namespace that
-/// allow to access values or given derivative. The system is the same, though; we try to get
-/// values/derivatives of given type and if they are stored within the quantity, they are returned.
+/// within (like operator [] for \ref Array class, for example). To access the stored values, use on of the
+/// following:
+/// 1. Templated member function getValue, getDt, getD2t
+///    These function returns the reference to stored arrays, provided the template type matches the type of
+///    the stored quantity. This is checked by assert. Type of the quantity can be checked by \ref
+///    getValueEnum
+/// 2. Function getAll; returns all arrays (values and derivatives) stored in the holder if the template type
+///    matches the holder type.
+/// 3. If the quantity is stored in \ref Storage object (which is expected, there is no reason to keep
+///    Quantity outside of \ref Storage), it is possible to enumerate quantity valeus using \ref iterate
+///    function.
 class Quantity : public Noncopyable {
 private:
     template <typename... TArgs>

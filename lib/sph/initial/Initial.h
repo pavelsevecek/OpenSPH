@@ -15,18 +15,36 @@ NAMESPACE_SPH_BEGIN
 
 /// \brief Object for adding one or more bodies with given material into Storage
 ///
-/// It should only be constructed on stack, set up needed bodies and expire. As it holds a reference to the
-/// storage, it is unsafe to store InitialConditions and create additional bodies during the run. All
-/// particles created in one run should be created using the same InitialConditions object. If multiple
-/// objects are used, quantity QuantityId::FLAG must be manually updated to be unique for each body in the
-/// simulation.
+/// The object is intended to only be constructed on stack, set up needed bodies and get destroyed when going
+/// out of scope. As it holds a reference to the storage, it is unsafe to store InitialConditions and create
+/// additional bodies during the run. All particles created in one run should be created using the same
+/// InitialConditions object. If multiple objects are used, quantity QuantityId::FLAG must be manually updated
+/// to be unique for each body in the simulation.
+///
+/// The object possibly changes the storage from destructor, after all bodies have been added. If for whatever
+/// reason we wish to prevent this, the initial condition setup can be explicitly ended by calling \ref
+/// finalize function. After that, no more bodies can be added into the storage.
 class InitialConditions : public Noncopyable {
 private:
+    /// Reference to the storage where all the bodies are saved
     Storage& storage;
+
+    /// Solver used for creating necessary quantities. Does not necessarily have to be the same the solver
+    /// used for the actual run, although it is recommended to make sure all the quantities are set up
+    /// correctly.
     AutoPtr<Abstract::Solver> solver;
+
+    /// Counter incremented every time a body is added, used for setting up FLAG quantity
     Size bodyIndex = 0;
 
+    /// Shared data when creating bodies
     MaterialInitialContext context;
+
+    /// Params used after all bodies are created
+    struct {
+        bool storeInitialPositions = false;
+    } finalization;
+
 
 public:
     /// Constructs object by taking a reference to particle storage. Subsequent calls of \ref addBody function
@@ -83,18 +101,22 @@ public:
     };
 
     /// Creates particles composed of different materials.
-    /// \param environement Base body, domain of which defines the body. No particles are generated outside of
-    ///                     this domain. By default, all particles have the material and velocity given by
-    ///                     this
-    ///                     body.
+    /// \param environment Base body, domain of which defines the body. No particles are generated outside of
+    ///                    this domain. By default, all particles have the material and velocity given by
+    ///                    this body.
     /// \param bodies List of bodies created inside the main environemnt. Each can have different material and
     ///               have different initial velocity. These bodies don't add more particles (particle count
-    ///               in
-    ///               settings is irrelevant), they simply override particles created by environment body.
+    ///               in settings is irrelevant), they simply override particles created by environment body.
     ///               If multiple bodies overlap, particles are assigned to body listed first in the array.
     void addHeterogeneousBody(Body&& environment, ArrayView<Body> bodies);
 
+    /// Ends the initial condition settings. Storage is then no longer used by the object. Does not have to be
+    /// called manually.
+    void finalize();
+
 private:
+    void createCommon(const RunSettings& settings);
+
     void setQuantities(Storage& storage,
         Abstract::Material& material,
         const Float volume,

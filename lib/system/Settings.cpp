@@ -260,6 +260,9 @@ AutoPtr<RunSettings> RunSettings::instance (new RunSettings {
     { RunSettingsId::DOMAIN_HEIGHT,                 "domain.height",            1._f },
     { RunSettingsId::DOMAIN_SIZE,                   "domain.size",              Vector(1._f) },
     { RunSettingsId::BOUNDARY_THRESHOLD,            "boundary.threshold",       40 },
+
+    /// Output of results
+    { RunSettingsId::OUTPUT_SAVE_INITIAL_POSITION,  "output.save_initial_positions", false }
 });
 // clang-format on
 

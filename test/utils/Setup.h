@@ -22,7 +22,7 @@ namespace Tests {
 
     /// Returns a storage with stress tensor.
     Storage getSolidStorage(const Size particleCnt,
-        BodySettings settings,
+        BodySettings settings = BodySettings::getDefaults(),
         const Float radius = 1._f,
         const Float rho0 = 1._f,
         const Float u0 = 1._f);

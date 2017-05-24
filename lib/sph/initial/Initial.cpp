@@ -31,23 +31,35 @@ public:
     }
 };
 
-InitialConditions::InitialConditions(Storage& storage,
-    Abstract::Solver& solver,
-    const RunSettings& UNUSED(settings))
+InitialConditions::InitialConditions(Storage& storage, Abstract::Solver& solver, const RunSettings& settings)
     : storage(storage)
     , solver(makeAuto<ForwardingSolver>(solver)) {
-    /// \todo more general rng (from settings)
-    context.rng = makeAuto<RngWrapper<BenzAsphaugRng>>(1234);
+    this->createCommon(settings);
 }
 
 InitialConditions::InitialConditions(Storage& storage, const RunSettings& settings)
     : storage(storage)
     , solver(Factory::getSolver(settings)) {
-    context.rng = makeAuto<RngWrapper<BenzAsphaugRng>>(1234);
+    this->createCommon(settings);
 }
 
-InitialConditions::~InitialConditions() = default;
+InitialConditions::~InitialConditions() {
+    this->finalize();
+}
 
+void InitialConditions::finalize() {
+    if (finalization.storeInitialPositions) {
+        Array<Vector> cloned = storage.getValue<Vector>(QuantityId::POSITIONS).clone();
+        storage.insert<Vector>(QuantityId::INITIAL_POSITION, OrderEnum::ZERO, std::move(cloned));
+        finalization.storeInitialPositions = false;
+    }
+}
+
+void InitialConditions::createCommon(const RunSettings& settings) {
+    /// \todo more general rng (from settings)
+    context.rng = makeAuto<RngWrapper<BenzAsphaugRng>>(1234);
+    finalization.storeInitialPositions = settings.get<bool>(RunSettingsId::OUTPUT_SAVE_INITIAL_POSITION);
+}
 
 void InitialConditions::addBody(const Abstract::Domain& domain,
     const BodySettings& settings,
