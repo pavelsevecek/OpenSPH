@@ -23,7 +23,7 @@ private:
 
     public:
         virtual void create(Accumulated& results) override {
-            results.insert<Float>(QuantityId::ENERGY_PER_PARTICLE);
+            results.insert<Float>(QuantityId::ENERGY_PER_PARTICLE, OrderEnum::FIRST);
         }
 
         virtual void initialize(const Storage& input, Accumulated& results) override {
@@ -32,8 +32,8 @@ private:
             ArrayView<const Vector> dummy;
             tie(r, v, dummy) = input.getAll<Vector>(QuantityId::POSITIONS);
 
-            dv = results.getValue<Vector>(QuantityId::POSITIONS);
-            dU = results.getValue<Float>(QuantityId::ENERGY_PER_PARTICLE);
+            dv = results.getBuffer<Vector>(QuantityId::POSITIONS, OrderEnum::SECOND);
+            dU = results.getBuffer<Float>(QuantityId::ENERGY_PER_PARTICLE, OrderEnum::FIRST);
             /// \todo here we assume all particles have the same adiabatic index, as in Saitoh & Makino.
             /// DISPH would need to be generalized for particles with different gamma.
             gamma = input.getMaterial(0)->getParam<Float>(BodySettingsId::ADIABATIC_INDEX);

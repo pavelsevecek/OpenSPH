@@ -24,12 +24,12 @@ struct TestDerivative : public Abstract::Derivative {
     ArrayView<Size> flags;
 
     virtual void create(Accumulated& results) override {
-        results.insert<Size>(QuantityId::FLAG);
+        results.insert<Size>(QuantityId::FLAG, OrderEnum::ZERO);
         created = true;
     }
 
     virtual void initialize(const Storage& UNUSED(input), Accumulated& results) override {
-        flags = results.getValue<Size>(QuantityId::FLAG);
+        flags = results.getBuffer<Size>(QuantityId::FLAG, OrderEnum::ZERO);
         initialized = true;
     }
 
@@ -272,7 +272,7 @@ TEST_CASE("StressForce solid impact", "[equationterm]") {
     settings.set(RunSettingsId::MODEL_FORCE_SOLID_STRESS, true);
     EquationHolder eqs;
     eqs += makeTerm<PressureForce>() + makeTerm<SolidStressForce>(settings) + makeTerm<StandardAV>() +
-           makeTerm<ContinuityEquation<DensityEvolution::SOLID>>();
+           makeTerm<ContinuityEquation>(settings);
     GenericSolver solver(settings, std::move(eqs));
 
     InitialConditions initial(storage, solver, settings);

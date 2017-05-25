@@ -44,9 +44,8 @@ private:
         }
 
         virtual void create(Accumulated& results) override {
-            /// \todo must specify order here, or forbit creating more derivatives afterwards
-            results.insert<Vector>(QuantityId::POSITIONS);
-            results.insert<Float>(QuantityId::ENERGY);
+            results.insert<Vector>(QuantityId::POSITIONS, OrderEnum::SECOND);
+            results.insert<Float>(QuantityId::ENERGY, OrderEnum::FIRST);
         }
 
         virtual void initialize(const Storage& input, Accumulated& results) override {
@@ -57,8 +56,8 @@ private:
             ArrayView<const Vector> dummy;
             tie(r, v, dummy) = input.getAll<Vector>(QuantityId::POSITIONS);
 
-            dv = results.getValue<Vector>(QuantityId::POSITIONS);
-            du = results.getValue<Float>(QuantityId::ENERGY);
+            dv = results.getBuffer<Vector>(QuantityId::POSITIONS, OrderEnum::SECOND);
+            du = results.getBuffer<Float>(QuantityId::ENERGY, OrderEnum::FIRST);
         }
 
         template <bool Symmetrize>

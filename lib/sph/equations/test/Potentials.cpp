@@ -23,13 +23,16 @@ TEST_CASE("SphericalGravity consistency", "[equationterm]") {
     ArrayView<const Vector> dv1 = storage.getD2t<Vector>(QuantityId::POSITIONS);
     ArrayView<const Vector> dv2 = expected.getD2t<Vector>(QuantityId::POSITIONS);
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
-    StdOutLogger().write("Temporarily disabled test");
+    /*StdOutLogger().write("Temporarily disabled test");
     if (true) {
         return;
-    }
-    auto test = [&](const Size i) { //
+    }*/
+    auto test = [&](const Size i) -> Outcome { //
+        if (getLength(r[i]) < 0.1_f * Constants::au) {
+            return SUCCESS;
+        }
         /// \todo fix this huge discrepancy
-        return makeOutcome(dv1[i] == approx(dv2[i], 0.5_f), //
+        return makeOutcome(dv1[i] == approx(dv2[i], 0.2_f), //
             "invalid acceleration:\n",
             dv1[i],
             " == ",

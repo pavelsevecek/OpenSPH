@@ -29,10 +29,8 @@ private:
         }
         if (settings.get<bool>(RunSettingsId::MODEL_FORCE_SOLID_STRESS)) {
             equations += makeTerm<SolidStressForce>(settings);
-            equations += makeTerm<ContinuityEquation<DensityEvolution::SOLID>>();
-        } else {
-            equations += makeTerm<ContinuityEquation<DensityEvolution::FLUID>>();
         }
+        equations += makeTerm<ContinuityEquation>(settings);
 
         // artificial viscosity
         equations += EquationHolder(Factory::getArtificialViscosity(settings));

@@ -25,15 +25,16 @@ private:
 
 public:
     virtual void create(Accumulated& results) override {
-        results.insert<Float>(QuantityId::PRESSURE);
-        results.insert<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
+        results.insert<Float>(QuantityId::PRESSURE, OrderEnum::ZERO);
+        results.insert<TracelessTensor>(QuantityId::DEVIATORIC_STRESS, OrderEnum::ZERO);
     }
 
     virtual void initialize(const Storage& input, Accumulated& results) override {
         u = input.getValue<Vector>(QuantityId::DISPLACEMENT);
         tie(m, rho) = input.getValues<Float>(QuantityId::MASSES, QuantityId::DENSITY);
-        p = results.getValue<Float>(QuantityId::PRESSURE);
-        s = results.getValue<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
+
+        p = results.getBuffer<Float>(QuantityId::PRESSURE, OrderEnum::ZERO);
+        s = results.getBuffer<TracelessTensor>(QuantityId::DEVIATORIC_STRESS, OrderEnum::ZERO);
 
         /// \todo generalize for heterogeneous body
         Abstract::Material& material = input.getMaterial(0);
@@ -203,14 +204,6 @@ public:
 
         // compute pressure and deviatoric stress from displacement
         equationSolver.integrate(storage, stats);
-
-        /// \todo saving accumulated to highest-order derivatives doesnt work as we can 'extend' quantities by
-        /// adding more derivatives. The computation of stress tensor here would be broken by adding Hooke's
-        /// law!!
-
-        ASSERT(storage.getQuantity(QuantityId::PRESSURE).getOrderEnum() == OrderEnum::ZERO);
-        ASSERT(storage.getQuantity(QuantityId::DEVIATORIC_STRESS).getOrderEnum() == OrderEnum::ZERO);
-
         return SUCCESS;
     }
 

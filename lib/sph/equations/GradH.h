@@ -38,11 +38,11 @@ private:
             : kernel(Factory::getKernel<DIMENSIONS>(settings)) {}
 
         virtual void create(Accumulated& results) override {
-            results.insert<Float>(QuantityId::GRAD_H);
+            results.insert<Float>(QuantityId::GRAD_H, OrderEnum::ZERO);
         }
 
         virtual void initialize(const Storage& input, Accumulated& results) override {
-            omega = results.getValue<Float>(QuantityId::GRAD_H);
+            omega = results.getBuffer<Float>(QuantityId::GRAD_H, OrderEnum::ZERO);
             rho = input.getValue<Float>(QuantityId::DENSITY);
             r = input.getValue<Vector>(QuantityId::POSITIONS);
         }

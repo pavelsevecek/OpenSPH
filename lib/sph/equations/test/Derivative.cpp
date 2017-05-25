@@ -28,7 +28,7 @@ TEST_CASE("Derivative initialize", "[derivative]") {
     derivatives.initialize(storage);
     Accumulated& ac = derivatives.getAccumulated();
     REQUIRE(ac.getBufferCnt() == 1);
-    ArrayView<Float> divv = ac.getValue<Float>(QuantityId::VELOCITY_DIVERGENCE);
+    ArrayView<Float> divv = ac.getBuffer<Float>(QuantityId::VELOCITY_DIVERGENCE, OrderEnum::ZERO);
     REQUIRE(divv.size() == 3);
     REQUIRE(perElement(divv) == 0._f);
 }

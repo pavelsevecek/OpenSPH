@@ -26,12 +26,13 @@ TEST_CASE("StressAV test", "[av]") {
     RunSettings settings;
     settings.set(RunSettingsId::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::NONE);
     settings.set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 0.1_f * r[0][H] / cs);
+    settings.set(RunSettingsId::MODEL_FORCE_SOLID_STRESS, true);
     EulerExplicit timestepping(storage, settings);
 
     // solver with some basic forces and artificial stress
     EquationHolder eqs;
     eqs += makeTerm<PressureForce>() + makeTerm<SolidStressForce>(settings) +
-           makeTerm<ContinuityEquation<DensityEvolution::SOLID>>() + makeTerm<StressAV>(settings);
+           makeTerm<ContinuityEquation>(settings) + makeTerm<StressAV>(settings);
     GenericSolver solver(settings, std::move(eqs));
     solver.create(*storage, storage->getMaterial(0));
 

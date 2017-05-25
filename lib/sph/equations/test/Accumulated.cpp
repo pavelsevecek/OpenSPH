@@ -8,24 +8,27 @@ using namespace Sph;
 
 TEST_CASE("Accumulated sum simple", "[accumulated]") {
     Accumulated ac1;
-    REQUIRE_ASSERT(ac1.getValue<Size>(QuantityId::NEIGHBOUR_CNT));
+    REQUIRE_ASSERT(ac1.getBuffer<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO));
     REQUIRE(ac1.getBufferCnt() == 0);
-    ac1.insert<Size>(QuantityId::NEIGHBOUR_CNT);
+    ac1.insert<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO);
     REQUIRE(ac1.getBufferCnt() == 1);
     // subsequent calls dont do anything
-    ac1.insert<Size>(QuantityId::NEIGHBOUR_CNT);
+    ac1.insert<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO);
     REQUIRE(ac1.getBufferCnt() == 1);
 
     ac1.initialize(5);
-    ArrayView<Size> buffer1 = ac1.getValue<Size>(QuantityId::NEIGHBOUR_CNT);
+    ArrayView<Size> buffer1 = ac1.getBuffer<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO);
     REQUIRE(buffer1.size() == 5);
-    REQUIRE(ac1.getValue<Size>(QuantityId::NEIGHBOUR_CNT).size() == 5);
+    REQUIRE_NOTHROW(ac1.getBuffer<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO));
+    REQUIRE_ASSERT(ac1.getBuffer<Float>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO));
+    REQUIRE_ASSERT(ac1.getBuffer<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::FIRST));
+    REQUIRE(ac1.getBuffer<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO).size() == 5);
     REQUIRE(ac1.getBufferCnt() == 1);
 
     Accumulated ac2;
-    ac2.insert<Size>(QuantityId::NEIGHBOUR_CNT);
+    ac2.insert<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO);
     ac2.initialize(5);
-    ArrayView<Size> buffer2 = ac2.getValue<Size>(QuantityId::NEIGHBOUR_CNT);
+    ArrayView<Size> buffer2 = ac2.getBuffer<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO);
     REQUIRE(ac2.getBufferCnt() == 1);
     for (Size i = 0; i < 5; ++i) {
         buffer1[i] = i;
@@ -38,9 +41,9 @@ TEST_CASE("Accumulated sum simple", "[accumulated]") {
 
 template <typename TValue>
 ArrayView<TValue> getInserted(Accumulated& ac, const QuantityId id, const Size size) {
-    ac.insert<TValue>(id);
+    ac.insert<TValue>(id, OrderEnum::ZERO);
     ac.initialize(size); // multiple initialization do not matter, it's only a bit inefficient
-    return ac.getValue<TValue>(id);
+    return ac.getBuffer<TValue>(id, OrderEnum::ZERO);
 }
 
 static Accumulated getAccumulated() {
@@ -104,4 +107,27 @@ TEST_CASE("Accumulated store", "[accumulated]") {
     for (Size i = 0; i < 5; ++i) {
         REQUIRE(buffer2[i] == i);
     }
+}
+
+TEST_CASE("Accumulate store second derivative", "[accumulated]") {
+    Accumulated ac;
+    ac.insert<Vector>(QuantityId::POSITIONS, OrderEnum::SECOND);
+    ac.initialize(1);
+    ArrayView<Vector> dv = ac.getBuffer<Vector>(QuantityId::POSITIONS, OrderEnum::SECOND);
+    dv[0] = Vector(5._f);
+
+    Storage storage;
+    storage.insert<Vector>(QuantityId::POSITIONS, OrderEnum::FIRST, makeArray(Vector(0._f)));
+    REQUIRE_ASSERT(ac.store(storage));
+    storage.insert<Vector>(QuantityId::POSITIONS, OrderEnum::SECOND, Vector(0._f));
+    REQUIRE_NOTHROW(ac.store(storage));
+    dv = storage.getD2t<Vector>(QuantityId::POSITIONS);
+    REQUIRE(dv[0] == Vector(5._f));
+}
+
+TEST_CASE("Accumulated insert two orders", "[accumulated]") {
+    Accumulated ac;
+    ac.insert<Vector>(QuantityId::POSITIONS, OrderEnum::SECOND);
+    REQUIRE_ASSERT(ac.insert<Vector>(QuantityId::POSITIONS, OrderEnum::FIRST));
+    REQUIRE_ASSERT(ac.getBuffer<Vector>(QuantityId::POSITIONS, OrderEnum::FIRST));
 }

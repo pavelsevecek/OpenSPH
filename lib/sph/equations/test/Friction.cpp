@@ -10,8 +10,10 @@ using namespace Sph;
 
 TEST_CASE("ImternalFriction", "[friction]") {
     EquationHolder eqs;
-    eqs += makeTerm<InternalFriction>() + makeTerm<ContinuityEquation<DensityEvolution::FLUID>>();
-    GenericSolver solver(RunSettings::getDefaults(), std::move(eqs));
+    RunSettings settings;
+    settings.set(RunSettingsId::MODEL_FORCE_SOLID_STRESS, false);
+    eqs += makeTerm<InternalFriction>() + makeTerm<ContinuityEquation>(settings);
+    GenericSolver solver(settings, std::move(eqs));
 
     Storage storage;
     InitialConditions initial(storage, solver, RunSettings::getDefaults());

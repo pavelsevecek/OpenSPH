@@ -1,16 +1,19 @@
 #pragma once
 
-/// XSPH correction to velocity, smoothing the velocities over neighbouring particles. This keeps particles
-/// ordered in absence of viscosity.
-/// See Monaghan 1992 (Annu. Rev. Astron. Astrophys. 1992.30:543-74)
-/// Pavel Sevecek 2017
-/// sevecek at sirrah.troja.mff.cuni.cz
+/// \file XSph.h
+/// \brief XSPH correction to the integration of particle positions
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2017
 
 #include "sph/equations/EquationTerm.h"
 #include "sph/kernel/KernelFactory.h"
 
 NAMESPACE_SPH_BEGIN
 
+/// \brief XSPH correction that (partially) averages the velocities over neighbouring particles.
+///
+/// This keeps particles ordered in absence of viscosity. See Monaghan 1992 (Annu. Rev. Astron. Astrophys.
+/// 1992.30:543-74)
 /// \todo This implementation is currently not consistent ContinuitySolver; different velocities should also
 /// affect the continuity equations (density derivative). For self-consistent solutions, use XSPH corrected
 /// velocities in continuity equation or use direct summation of density.
@@ -34,11 +37,11 @@ private:
         }
 
         virtual void create(Accumulated& results) override {
-            results.insert<Vector>(QuantityId::XSPH_VELOCITIES);
+            results.insert<Vector>(QuantityId::XSPH_VELOCITIES, OrderEnum::ZERO);
         }
 
         virtual void initialize(const Storage& input, Accumulated& results) override {
-            dr = results.getValue<Vector>(QuantityId::XSPH_VELOCITIES);
+            dr = results.getBuffer<Vector>(QuantityId::XSPH_VELOCITIES, OrderEnum::ZERO);
             tie(rho, m) = input.getValues<Float>(QuantityId::DENSITY, QuantityId::MASSES);
             ArrayView<const Vector> dummy;
             tie(r, v, dummy) = input.getAll<Vector>(QuantityId::POSITIONS);

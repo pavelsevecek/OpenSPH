@@ -47,13 +47,13 @@ private:
 
 public:
     virtual void create(Accumulated& results) override {
-        results.insert<Vector>(QuantityId::POSITIONS);
+        results.insert<Vector>(QuantityId::POSITIONS, OrderEnum::SECOND);
     }
 
     virtual void initialize(const Storage& input, Accumulated& results) override {
         tie(p, rho, m) =
             input.getValues<Float>(QuantityId::PRESSURE, QuantityId::DENSITY, QuantityId::MASSES);
-        dv = results.getValue<Vector>(QuantityId::POSITIONS);
+        dv = results.getBuffer<Vector>(QuantityId::POSITIONS, OrderEnum::SECOND);
     }
 
     template <bool Symmetrize>
@@ -119,7 +119,7 @@ private:
 
 public:
     virtual void create(Accumulated& results) override {
-        results.insert<Vector>(QuantityId::POSITIONS);
+        results.insert<Vector>(QuantityId::POSITIONS, OrderEnum::SECOND);
     }
 
     virtual void initialize(const Storage& input, Accumulated& results) override {
@@ -127,7 +127,7 @@ public:
         s = input.getPhysicalValue<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
         reduce = input.getValue<Float>(QuantityId::STRESS_REDUCING);
         flag = input.getValue<Size>(QuantityId::FLAG);
-        dv = results.getValue<Vector>(QuantityId::POSITIONS);
+        dv = results.getBuffer<Vector>(QuantityId::POSITIONS, OrderEnum::SECOND);
     }
 
     template <bool Symmetrize>
@@ -158,7 +158,7 @@ private:
     bool conserveAngularMomentum;
 
 public:
-    SolidStressForce(const RunSettings& settings) {
+    explicit SolidStressForce(const RunSettings& settings) {
         conserveAngularMomentum = settings.get<bool>(RunSettingsId::SPH_CONSERVE_ANGULAR_MOMENTUM);
     }
 
@@ -262,21 +262,30 @@ public:
     }
 };
 
-enum class DensityEvolution {
-    FLUID, ///< All particles contribute to the density derivative
-    SOLID, ///< Only particles from the same body OR fully damaged particles contribute
-};
-
 /// Equation for evolution of density. Solver must use either this equation or some custom density
-/// computation,
-/// such as direct summation (see SummationSolver) or SPH formulation without density (see
-/// DensityIndependentSolver).
-template <DensityEvolution Evol>
+/// computation, such as direct summation (see SummationSolver) or SPH formulation without solving the density
+/// (see DensityIndependentSolver).
 class ContinuityEquation : public Abstract::EquationTerm {
+private:
+    enum class Options {
+        /// All particles contribute to the density derivative (default option)
+        FLUID = 0,
+
+        /// Only particles from the same body OR fully damaged particles contribute
+        /// \todo possibly allow per-material settings here
+        SOLID = 1 << 0,
+    };
+
+    Flags<Options> flags;
+
 public:
+    explicit ContinuityEquation(const RunSettings& settings) {
+        flags.setIf(Options::SOLID, settings.get<bool>(RunSettingsId::MODEL_FORCE_SOLID_STRESS));
+    }
+
     virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override {
         derivatives.require<VelocityDivergence>(settings);
-        if (Evol == DensityEvolution::SOLID) {
+        if (flags.has(Options::SOLID)) {
             using namespace VelocityGradientCorrection;
             derivatives.require<StrengthVelocityGradient<NoCorrection>>(settings);
         }
@@ -288,7 +297,7 @@ public:
         ArrayView<const Float> divv = storage.getValue<Float>(QuantityId::VELOCITY_DIVERGENCE);
         ArrayView<Float> rho, drho;
         tie(rho, drho) = storage.getAll<Float>(QuantityId::DENSITY);
-        if (Evol == DensityEvolution::SOLID) {
+        if (flags.has(Options::SOLID)) {
             ArrayView<const Float> reduce = storage.getValue<Float>(QuantityId::STRESS_REDUCING);
             ArrayView<const SymmetricTensor> gradv =
                 storage.getValue<SymmetricTensor>(QuantityId::STRENGTH_VELOCITY_GRADIENT);
@@ -330,7 +339,7 @@ private:
     Float minimal;
 
 public:
-    AdaptiveSmoothingLength(const RunSettings& settings, const Size dimensions = DIMENSIONS)
+    explicit AdaptiveSmoothingLength(const RunSettings& settings, const Size dimensions = DIMENSIONS)
         : dimensions(dimensions) {
         Flags<SmoothingLengthEnum> flags = Flags<SmoothingLengthEnum>::fromValue(
             settings.get<int>(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH));

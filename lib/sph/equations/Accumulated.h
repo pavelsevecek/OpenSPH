@@ -1,5 +1,10 @@
 #pragma once
 
+/// \file Accumulated.h
+/// \brief Buffer storing quantity values accumulated by summing over particle pairs
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2017
+
 #include "common/Assert.h"
 #include "geometry/TracelessTensor.h"
 #include "objects/containers/Array.h"
@@ -12,8 +17,7 @@
 NAMESPACE_SPH_BEGIN
 
 /// Storage for accumulating derivatives. Each thread shall own its own Accumulated storage.
-/// Each accumulated buffer is associated with a quantity using QuantityId, buffer is then stored as the
-/// highest derivative.
+/// Each accumulated buffer is associated with a quantity using QuantityId.
 class Accumulated {
 private:
     template <typename... TArgs>
@@ -22,9 +26,9 @@ private:
     using Buffer = HolderVariant<Size, Float, Vector, TracelessTensor, SymmetricTensor>;
 
     struct Element {
-        QuantityId id;
-        /// \todo OrderEnum order;
-        Buffer buffer;
+        QuantityId id;   ///< ID of accumulated quantity, used to stored the quantity into the storage
+        OrderEnum order; ///< order, specifying whether we are accumulating values or derivatives
+        Buffer buffer;   ///< accumulated data
     };
     Array<Element> buffers;
 
@@ -34,14 +38,15 @@ public:
     /// Creates a new storage with given ID. Should be called once for each thread when the solver is
     /// initialized.
     template <typename TValue>
-    void insert(const QuantityId id) {
+    void insert(const QuantityId id, const OrderEnum order) {
         for (Element& e : buffers) {
             if (e.id == id) {
                 // already used
+                ASSERT(e.order == order, "Cannot accumulate both values and derivatives of quantity");
                 return;
             }
         }
-        buffers.push(Element{ id, Array<TValue>() });
+        buffers.push(Element{ id, order, Array<TValue>() });
     }
 
     /// Initialize all storages, resizing them if needed and clearing out all previously accumulated values.
@@ -60,11 +65,16 @@ public:
         }
     }
 
-    /// Misnomer, this value != quantity value, it's actually higest derivative
+    /// Returns the buffer of given quantity and given order.
+    ///
+    /// \note Accumulated can store only one buffer per quantity, so the order is not neccesary to retrive the
+    /// buffer, but it is required to check that we are indeed returning the required order of quantity. It
+    /// also makes the code more readable.
     template <typename TValue>
-    Array<TValue>& getValue(const QuantityId id) {
+    Array<TValue>& getBuffer(const QuantityId id, const OrderEnum UNUSED_IN_RELEASE(order)) {
         for (Element& e : buffers) {
             if (e.id == id) {
+                ASSERT(e.order == order);
                 Array<TValue>& values = e.buffer;
                 ASSERT(!values.empty());
                 return values;
@@ -102,7 +112,8 @@ public:
                 // storage must already have the quantity, we cannot add quantities during the run because of
                 // timestepping
                 ASSERT(storage.has(e.id), getQuantityName(e.id));
-                storage.getHighestDerivative<T>(e.id) = std::move(buffer);
+                ASSERT(Size(storage.getQuantity(e.id).getOrderEnum()) >= Size(e.order));
+                storage.getAll<T>(e.id)[Size(e.order)] = std::move(buffer);
                 buffer.fill(T(0._f));
             });
         }

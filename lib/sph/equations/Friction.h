@@ -18,7 +18,7 @@ private:
 
     public:
         virtual void create(Accumulated& results) override {
-            results.insert<Vector>(QuantityId::POSITIONS);
+            results.insert<Vector>(QuantityId::POSITIONS, OrderEnum::SECOND);
         }
 
         virtual void initialize(const Storage& input, Accumulated& results) override {
@@ -26,7 +26,8 @@ private:
             tie(r, v, dummy) = input.getAll<Vector>(QuantityId::POSITIONS);
             tie(m, rho) = input.getValues<Float>(QuantityId::MASSES, QuantityId::DENSITY);
             nu = input.getMaterial(0)->getParam<Float>(BodySettingsId::KINEMATIC_VISCOSITY);
-            dv = results.getValue<Vector>(QuantityId::POSITIONS);
+
+            dv = results.getBuffer<Vector>(QuantityId::POSITIONS, OrderEnum::SECOND);
         }
 
         template <bool Symmetrize>

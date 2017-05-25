@@ -18,11 +18,11 @@ private:
 
     public:
         virtual void create(Accumulated& results) override {
-            results.insert<Size>(QuantityId::NEIGHBOUR_CNT);
+            results.insert<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO);
         }
 
         virtual void initialize(const Storage& UNUSED(input), Accumulated& results) override {
-            neighCnts = results.getValue<Size>(QuantityId::NEIGHBOUR_CNT);
+            neighCnts = results.getBuffer<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO);
         }
 
         template <bool Symmetrize>
@@ -64,12 +64,12 @@ private:
 
     public:
         virtual void create(Accumulated& results) override {
-            results.insert<Vector>(QuantityId::SURFACE_NORMAL);
+            results.insert<Vector>(QuantityId::SURFACE_NORMAL, OrderEnum::ZERO);
         }
 
         virtual void initialize(const Storage& input, Accumulated& results) override {
             r = input.getValue<Vector>(QuantityId::POSITIONS);
-            n = results.getValue<Vector>(QuantityId::SURFACE_NORMAL);
+            n = results.getBuffer<Vector>(QuantityId::SURFACE_NORMAL, OrderEnum::ZERO);
         }
 
         template <bool Symmetrize>

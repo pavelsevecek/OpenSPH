@@ -15,14 +15,14 @@ private:
 
 public:
     virtual void create(Accumulated& results) override {
-        results.insert<Float>(QuantityId::ENERGY);
+        results.insert<Float>(QuantityId::ENERGY, OrderEnum::FIRST);
     }
 
     virtual void initialize(const Storage& input, Accumulated& results) override {
         tie(u, m, rho, alpha) = input.getValues<Float>(
             QuantityId::ENERGY, QuantityId::MASSES, QuantityId::DENSITY /*, QuantityId::DIFFUSIVITY*/);
         r = input.getValue<Vector>(QuantityId::POSITIONS);
-        du = results.getValue<Float>(QuantityId::ENERGY);
+        du = results.getBuffer<Float>(QuantityId::ENERGY, OrderEnum::FIRST);
     }
 
     template <bool Symmetric>

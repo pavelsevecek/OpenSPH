@@ -81,13 +81,13 @@ namespace Detail {
 
     public:
         virtual void create(Accumulated& results) override {
-            results.insert<Type>(Id);
+            results.insert<Type>(Id, OrderEnum::ZERO);
         }
 
         virtual void initialize(const Storage& input, Accumulated& results) override {
             tie(rho, m) = input.getValues<Float>(QuantityId::DENSITY, QuantityId::MASSES);
             v = input.getDt<Vector>(QuantityId::POSITIONS);
-            deriv = results.getValue<Type>(Id);
+            deriv = results.getBuffer<Type>(Id, OrderEnum::ZERO);
         }
 
         template <bool Symmetrize>
@@ -149,7 +149,7 @@ private:
 
 public:
     virtual void create(Accumulated& results) override {
-        results.insert<SymmetricTensor>(QuantityId::STRENGTH_VELOCITY_GRADIENT);
+        results.insert<SymmetricTensor>(QuantityId::STRENGTH_VELOCITY_GRADIENT, OrderEnum::ZERO);
     }
 
     virtual void initialize(const Storage& input, Accumulated& results) override {
@@ -157,7 +157,9 @@ public:
         v = input.getDt<Vector>(QuantityId::POSITIONS);
         idxs = input.getValue<Size>(QuantityId::FLAG);
         reduce = input.getValue<Float>(QuantityId::STRESS_REDUCING);
-        deriv = results.getValue<SymmetricTensor>(QuantityId::STRENGTH_VELOCITY_GRADIENT);
+
+        deriv = results.getBuffer<SymmetricTensor>(QuantityId::STRENGTH_VELOCITY_GRADIENT, OrderEnum::ZERO);
+
         correction.initialize(input);
     }
 
@@ -212,13 +214,13 @@ private:
 
 public:
     virtual void create(Accumulated& results) override {
-        results.insert<SymmetricTensor>(QuantityId::ANGULAR_MOMENTUM_CORRECTION);
+        results.insert<SymmetricTensor>(QuantityId::ANGULAR_MOMENTUM_CORRECTION, OrderEnum::ZERO);
     }
 
     virtual void initialize(const Storage& input, Accumulated& results) override {
         tie(m, rho) = input.getValues<Float>(QuantityId::MASSES, QuantityId::DENSITY);
         r = input.getValue<Vector>(QuantityId::POSITIONS);
-        C = results.getValue<SymmetricTensor>(QuantityId::ANGULAR_MOMENTUM_CORRECTION);
+        C = results.getBuffer<SymmetricTensor>(QuantityId::ANGULAR_MOMENTUM_CORRECTION, OrderEnum::ZERO);
     }
 
     template <bool Symmetrize>

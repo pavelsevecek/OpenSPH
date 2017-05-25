@@ -22,7 +22,7 @@ private:
     struct DummyAcceleration : public Abstract::EquationTerm {
         struct DummyDerivative : public Abstract::Derivative {
             virtual void create(Accumulated& results) {
-                results.insert<Vector>(QuantityId::POSITIONS);
+                results.insert<Vector>(QuantityId::POSITIONS, OrderEnum::SECOND);
             }
             virtual void initialize(const Storage&, Accumulated&) override {}
             virtual void evalSymmetric(const Size, ArrayView<const Size>, ArrayView<const Vector>) override {}
@@ -52,7 +52,7 @@ protected:
         auto functor = [this, r, m](const Size n1, const Size n2, ThreadData& data) {
             /// \todo avoid getting accumulated storage here
             Accumulated& accumulated = data.derivatives.getAccumulated();
-            ArrayView<Vector> dv = accumulated.getValue<Vector>(QuantityId::POSITIONS);
+            ArrayView<Vector> dv = accumulated.getBuffer<Vector>(QuantityId::POSITIONS, OrderEnum::SECOND);
             const Float G = Constants::gravity;
             for (Size i = n1; i < n2; ++i) {
                 data.grads.clear();

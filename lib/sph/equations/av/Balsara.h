@@ -36,8 +36,8 @@ class BalsaraSwitch : public Abstract::EquationTerm {
             : av(settings) {}
 
         virtual void create(Accumulated& results) override {
-            results.insert<Vector>(QuantityId::POSITIONS);
-            results.insert<Float>(QuantityId::ENERGY);
+            results.insert<Vector>(QuantityId::POSITIONS, OrderEnum::SECOND);
+            results.insert<Float>(QuantityId::ENERGY, OrderEnum::FIRST);
         }
 
         virtual void initialize(const Storage& input, Accumulated& results) {
@@ -47,8 +47,9 @@ class BalsaraSwitch : public Abstract::EquationTerm {
             cs = input.getValue<Float>(QuantityId::SOUND_SPEED);
             divv = input.getValue<Float>(QuantityId::VELOCITY_DIVERGENCE);
             rotv = input.getValue<Vector>(QuantityId::VELOCITY_ROTATION);
-            dv = results.getValue<Vector>(QuantityId::POSITIONS);
-            du = results.getValue<Float>(QuantityId::ENERGY);
+
+            dv = results.getBuffer<Vector>(QuantityId::POSITIONS, OrderEnum::SECOND);
+            du = results.getBuffer<Float>(QuantityId::ENERGY, OrderEnum::FIRST);
             av.template initialize(input, results);
         }
 

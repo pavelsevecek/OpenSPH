@@ -126,7 +126,8 @@ SOURCES += \
     ../lib/sph/equations/test/Friction.cpp \
     ../lib/geometry/test/SymmetricTensor.cpp \
     ../lib/geometry/test/Tensor.cpp \
-    ../lib/sph/equations/av/test/Stress.cpp
+    ../lib/sph/equations/av/test/Stress.cpp \
+    ../lib/sph/solvers/test/Impact.cpp
 
 HEADERS += \
     utils/Utils.h \

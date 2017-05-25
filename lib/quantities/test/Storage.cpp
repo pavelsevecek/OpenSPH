@@ -62,10 +62,10 @@ TEST_CASE("Storage resize", "[storage]") {
     REQUIRE(storage.getQuantityCnt() == 3);
     REQUIRE(storage.has(QuantityId::DENSITY));
     REQUIRE(storage.has(QuantityId::MASSES));
-    REQUIRE(!storage.has(QuantityId::POSITIONS));
-    REQUIRE((storage.has<Float, OrderEnum::FIRST>(QuantityId::DENSITY)));
-    REQUIRE(!(storage.has<Float, OrderEnum::SECOND>(QuantityId::DENSITY)));
-    REQUIRE(!(storage.has<Vector, OrderEnum::FIRST>(QuantityId::DENSITY)));
+    REQUIRE_FALSE(storage.has(QuantityId::POSITIONS));
+    REQUIRE(storage.has<Float>(QuantityId::DENSITY, OrderEnum::FIRST));
+    REQUIRE_FALSE(storage.has<Float>(QuantityId::DENSITY, OrderEnum::SECOND));
+    REQUIRE_FALSE(storage.has<Vector>(QuantityId::DENSITY, OrderEnum::FIRST));
 
     REQUIRE(storage.getValue<Vector>(QuantityId::MASSES).size() == 5);
     REQUIRE(storage.getValue<Float>(QuantityId::DENSITY) == Array<Float>({ 3._f, 3._f, 3._f, 3._f, 3._f }));

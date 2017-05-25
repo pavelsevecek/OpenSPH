@@ -131,14 +131,14 @@ public:
     }
 
     /// Checks if the storage contains quantity with given key, value type and order.
-    template <typename TValue, OrderEnum TOrder>
-    bool has(const QuantityId key) const {
+    template <typename TValue>
+    bool has(const QuantityId key, const OrderEnum order) const {
         auto iter = quantities.find(key);
         if (iter == quantities.end()) {
             return false;
         }
         const Quantity& q = iter->second;
-        return q.getOrderEnum() == TOrder && q.getValueEnum() == GetValueEnum<TValue>::type;
+        return q.getOrderEnum() == order && q.getValueEnum() == GetValueEnum<TValue>::type;
     }
 
     /// Retrieves quantity with given key from the storage. Quantity must be already stored, checked by
