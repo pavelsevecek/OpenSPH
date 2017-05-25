@@ -4,6 +4,8 @@
 
 NAMESPACE_SPH_BEGIN
 
+#ifdef SPH_USE_EIGEN
+
 class SparseMatrix::Impl {
 private:
     Eigen::SparseMatrix<Float> matrix;
@@ -131,5 +133,7 @@ Expected<Array<Float>> SparseMatrix::solve(const Array<Float>& values,
     const Float tolerance) {
     return impl->solve(values, solver, tolerance);
 }
+
+#endif
 
 NAMESPACE_SPH_END

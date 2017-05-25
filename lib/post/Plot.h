@@ -18,7 +18,7 @@ namespace Abstract {
     public:
         virtual Range getRange(const Size coord) const = 0;
 
-        virtual Array<PlotPoint> plot() const = 0;
+        virtual Array<PlotPoint> plot(const Storage& storage) const = 0;
     };
 }
 
@@ -44,7 +44,8 @@ public:
     }
 };
 
-class WeightedPlot : public Polymorphic {
+/// Plot averaging quantities
+class WeightedPlot : public Abstract::Plot {
 protected:
     Array<Float> values;
     Array<Float> weights;
@@ -75,6 +76,59 @@ public:
         return true;
     }
 };
+
+template<typename TDerived>
+class SpatialPlot : public Abstract::Plot {
+protected:
+	QuantityId id;
+
+public:
+    SpatialPlot(const QuantityId id) 
+	: id(id) {}
+	
+	
+	/// here we need a generic type, not just float
+	virtual Array<PlotPoint> plot(const Storage& storage) const override {
+		ArrayView<const Float> quantity = storage.getValue<Float>(id);
+		ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
+		Array<PlotPoint> points;
+		points.reserve(r.size());
+		for (Size i = 0; i < r.size(); ++i) {
+			points.push(PlotPoint{ static_cast<TDerived*>(this)->func(r[i]), quantity[i]});
+		}
+		std::sort(points.begin(), points.end(), [](const PlotPoint& p1, const PlotPoint& p2){
+			return p1.x < p2.x;
+		});
+		return points;
+	}
+};
+
+class AxialDistributionPlot : public SpatialPlot<AxialDistributionPlot> {
+	private:
+	Vector axis;
+	
+	public:
+	AxialDistributionPlot(const Vector& axis, const QuantityId id) : SpatialPlot<AxialDistributionPlot>(id), axis(axis) {}
+	
+	protected:
+	INLINE Float func(const Vector& r) const {
+		return getLength(r - dot(r, axis)*axis);
+	}
+};
+
+
+class SphericalDistributionPlot : public SpatialPlot<SphericalDistributionPlot> {
+	private:
+	Vector axis;
+	
+	public:
+	SphericalDistributionPlot(const QuantityId id) : SpatialPlot<SphericalDistributionPlot>(id), axis(axis) {}
+	
+	protected:
+	INLINE Float func(const Vector& r) const {
+		return getLength(r);
+	}
+}
 
 
 NAMESPACE_SPH_END
