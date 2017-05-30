@@ -49,3 +49,30 @@ TEST_CASE("Tillotson continuous", "[eos]") {
     // test that EoS is a continuous function of p and u
     /// \todo Tillotson eos(BodySettings::getDefaults());
 }
+
+TEST_CASE("Tillotson inverted", "[eos]") {
+    BodySettings settings;
+    settings.set(BodySettingsId::DENSITY, 2.7_f);
+    settings.set(BodySettingsId::TILLOTSON_SUBLIMATION, 1.e8_f);
+    TillotsonEos eos(settings);
+
+    auto test = [&](const Float u0, const Float rho0) {
+        Float p, cs;
+        tie(p, cs) = eos.evaluate(rho0, u0);
+        // Tillotson is highly non-linear, so even if the difference in pressures are of order 10^-6, the
+        // energy can differ significantly more!
+        REQUIRE(eos.getInternalEnergy(rho0, p) == approx(u0, 1.e-2_f));
+    };
+
+    test(1.e7_f, 2.4_f);
+    test(1.e8_f, 2.4_f);
+    test(1.e4_f, 2.4_f);
+
+    test(1.e7_f, 2.7_f);
+    test(1.e8_f, 2.7_f);
+    test(1.e4_f, 2.7_f);
+
+    test(1.e7_f, 3.0_f);
+    test(1.e8_f, 3.0_f);
+    test(1.e4_f, 3.0_f);
+}

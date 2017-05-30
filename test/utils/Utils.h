@@ -1,10 +1,13 @@
 #pragma once
 
-/// Pavel Sevecek 2017
-/// sevecek at sirrah.troja.mff.cuni.cz
+/// \file Utils.h
+/// \brief Additional helper macros and functions for unit testing
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2017
 
 #include "catch.hpp"
 #include "geometry/Vector.h"
+#include "io/Logger.h"
 #include "math/rng/Rng.h"
 
 /// Test cases for testing of multiple types
@@ -24,34 +27,22 @@
     void INTERNAL_CATCH_UNIQUE_NAME(____C_A_T_C_H____T_E_M_P_L_A_TE____T_E_S_T____)()
 
 #define CATCH_TEMPLATE_TEST_CASE_1(name, description, T, T1)                                                 \
-    INTERNAL_CATCH_TEMPLATE_TEST_CASE_DECL(name, description, T) {                                           \
-        INTERNAL_CATCH_TEMPLATE_TEST_CASE_SECTION(T1)                                                        \
-    }                                                                                                        \
-    INTERNAL_CATCH_TEMPLATE_TEST_CASE_DEFN(T)
+    INTERNAL_CATCH_TEMPLATE_TEST_CASE_DECL(name, description, T){ INTERNAL_CATCH_TEMPLATE_TEST_CASE_SECTION( \
+        T1) } INTERNAL_CATCH_TEMPLATE_TEST_CASE_DEFN(T)
 
 #define CATCH_TEMPLATE_TEST_CASE_2(name, description, T, T1, T2)                                             \
-    INTERNAL_CATCH_TEMPLATE_TEST_CASE_DECL(name, description, T) {                                           \
-        INTERNAL_CATCH_TEMPLATE_TEST_CASE_SECTION(T1)                                                        \
-        INTERNAL_CATCH_TEMPLATE_TEST_CASE_SECTION(T2)                                                        \
-    }                                                                                                        \
-    INTERNAL_CATCH_TEMPLATE_TEST_CASE_DEFN(T)
+    INTERNAL_CATCH_TEMPLATE_TEST_CASE_DECL(name, description, T){ INTERNAL_CATCH_TEMPLATE_TEST_CASE_SECTION( \
+        T1) INTERNAL_CATCH_TEMPLATE_TEST_CASE_SECTION(T2) } INTERNAL_CATCH_TEMPLATE_TEST_CASE_DEFN(T)
 
 #define CATCH_TEMPLATE_TEST_CASE_3(name, description, T, T1, T2, T3)                                         \
-    INTERNAL_CATCH_TEMPLATE_TEST_CASE_DECL(name, description, T) {                                           \
-        INTERNAL_CATCH_TEMPLATE_TEST_CASE_SECTION(T1)                                                        \
-        INTERNAL_CATCH_TEMPLATE_TEST_CASE_SECTION(T2)                                                        \
-        INTERNAL_CATCH_TEMPLATE_TEST_CASE_SECTION(T3)                                                        \
-    }                                                                                                        \
-    INTERNAL_CATCH_TEMPLATE_TEST_CASE_DEFN(T)
+    INTERNAL_CATCH_TEMPLATE_TEST_CASE_DECL(name, description, T){ INTERNAL_CATCH_TEMPLATE_TEST_CASE_SECTION( \
+        T1) INTERNAL_CATCH_TEMPLATE_TEST_CASE_SECTION(T2)                                                    \
+            INTERNAL_CATCH_TEMPLATE_TEST_CASE_SECTION(T3) } INTERNAL_CATCH_TEMPLATE_TEST_CASE_DEFN(T)
 
 #define CATCH_TEMPLATE_TEST_CASE_4(name, description, T, T1, T2, T3, T4)                                     \
-    INTERNAL_CATCH_TEMPLATE_TEST_CASE_DECL(name, description, T) {                                           \
-        INTERNAL_CATCH_TEMPLATE_TEST_CASE_SECTION(T1)                                                        \
-        INTERNAL_CATCH_TEMPLATE_TEST_CASE_SECTION(T2)                                                        \
-        INTERNAL_CATCH_TEMPLATE_TEST_CASE_SECTION(T3)                                                        \
-        INTERNAL_CATCH_TEMPLATE_TEST_CASE_SECTION(T4)                                                        \
-    }                                                                                                        \
-    INTERNAL_CATCH_TEMPLATE_TEST_CASE_DEFN(T)
+    INTERNAL_CATCH_TEMPLATE_TEST_CASE_DECL(name, description, T){ INTERNAL_CATCH_TEMPLATE_TEST_CASE_SECTION( \
+        T1) INTERNAL_CATCH_TEMPLATE_TEST_CASE_SECTION(T2) INTERNAL_CATCH_TEMPLATE_TEST_CASE_SECTION(T3)      \
+            INTERNAL_CATCH_TEMPLATE_TEST_CASE_SECTION(T4) } INTERNAL_CATCH_TEMPLATE_TEST_CASE_DEFN(T)
 
 
 #define REQUIRE_ASSERT(func)                                                                                 \
@@ -59,6 +50,14 @@
         Sph::Assert::ScopedBreakDisabler disabler;                                                           \
         REQUIRE_THROWS(func);                                                                                \
     }
+
+#define SKIP_TEST                                                                                            \
+    {                                                                                                        \
+        StdOutLogger logger;                                                                                 \
+        logger.write(" << Test in file ", __FILE__, " on line ", __LINE__, " temporarily disabled");         \
+        return;                                                                                              \
+    }
+
 
 NAMESPACE_SPH_BEGIN
 

@@ -43,7 +43,8 @@ private:
         wxPen pen;
         pen.SetColour(*wxBLUE);
         dc.SetPen(pen);
-        Array<PlotPoint> points = plot->plot();
+        Storage storage;
+        Array<PlotPoint> points = plot->plot(storage);
         const wxSize size = this->GetSize();
         const wxSize plotSize = size - 2 * padding;
         for (Size i = 0; i < points.size() - 1; ++i) {

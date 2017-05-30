@@ -150,8 +150,16 @@ TEST_CASE("RandomDistribution", "[initial]") {
 
 TEST_CASE("DiehlEtAlDistribution", "[initial]") {
     // Diehl et al. (2012) algorithm, using uniform particle density
-    // DiehlEtAlDistribution diehl([](const Vector&) { return 1._f; });
+    DiehlEtAlDistribution diehl([](const Vector&) { return 1._f; });
+
+    Array<Vector> r = diehl.generate(1000, SphericalDomain(Vector(0._f), 1._f));
+    FileLogger logger("diehl.txt");
+    for (Size i = 0; i < r.size(); ++i) {
+        logger.write(r[i]);
+    }
+
     // testDistribution(&diehl);
+    SKIP_TEST;
     /// \todo currently fails on isInside check, probably due to float arithmetic.
     /// Either make sure particles are strictly inside the domain (perhaps using ghost particles)
     /// or add some eps tolerance to isInsideB

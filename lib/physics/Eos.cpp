@@ -1,6 +1,9 @@
 #include "physics/Eos.h"
+#include "math/Roots.h"
 #include "physics/Constants.h"
 #include "system/Settings.h"
+
+#include "io/Logger.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -78,6 +81,18 @@ Pair<Float> TillotsonEos::evaluate(const Float rho, const Float u) const {
     return { p, sqrt(cs) };
 }
 
+Float TillotsonEos::getInternalEnergy(const Float rho, const Float p) const {
+    auto func = [ this, rho, p0 = p ](const Float u) {
+        Float p, cs;
+        tie(p, cs) = this->evaluate(rho, u);
+        StdOutLogger().write("for u = ", u, " we have p = ", p, " and p0 = ", p0);
+        return p0 - p;
+    };
+    /// \todo optimize, find proper upper bound
+    Optional<Float> root = getRoot(func, Range(0._f, u0), 1.e-6_f);
+    ASSERT(root);
+    return root.value();
+}
 
 MurnaghanEos::MurnaghanEos(const BodySettings& settings)
     : rho0(settings.get<Float>(BodySettingsId::DENSITY))

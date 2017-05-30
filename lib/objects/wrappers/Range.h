@@ -65,6 +65,11 @@ public:
         return maxBound;
     }
 
+    /// Returns the center of the interval
+    INLINE Float center() const {
+        return 0.5_f * (minBound + maxBound);
+    }
+
     /// Returns the size of the interval.
     INLINE Float size() const {
         return maxBound - minBound;

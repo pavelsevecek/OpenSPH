@@ -17,11 +17,12 @@ NAMESPACE_SPH_BEGIN
 /// viscosity and any equation of state.
 class ContinuitySolver : public GenericSolver {
 public:
-    ContinuitySolver(const RunSettings& settings, EquationHolder&& additionalEquations = EquationHolder())
-        : GenericSolver(settings, this->getEquations(settings, std::move(additionalEquations))) {}
+    ContinuitySolver(const RunSettings& settings,
+        const EquationHolder& additionalEquations = EquationHolder())
+        : GenericSolver(settings, this->getEquations(settings, additionalEquations)) {}
 
 private:
-    EquationHolder getEquations(const RunSettings& settings, EquationHolder&& additionalEquations) {
+    EquationHolder getEquations(const RunSettings& settings, const EquationHolder& additionalEquations) {
         EquationHolder equations;
         /// \todo test that all possible combination (pressure, stress, AV, ...) work and dont assert
         if (settings.get<bool>(RunSettingsId::MODEL_FORCE_PRESSURE_GRADIENT)) {
@@ -41,7 +42,7 @@ private:
             equations += makeTerm<AdaptiveSmoothingLength>(settings);
         }
 
-        equations += std::move(additionalEquations);
+        equations += additionalEquations;
 
         return equations;
     }

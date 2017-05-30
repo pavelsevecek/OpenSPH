@@ -106,20 +106,19 @@ TEST_CASE("TestEquation", "[equationterm]") {
     Storage storage = Tests::getStorage(10);
     const Size N = storage.getParticleCnt();
     Statistics stats;
-    AutoPtr<TestEquation> eq = makeAuto<TestEquation>();
-    TestEquation* eqPtr = eq.get();
-    EquationHolder equations(std::move(eq));
+    SharedPtr<TestEquation> eq = makeShared<TestEquation>();
+    EquationHolder equations(eq);
     equations += makeTerm<Tests::DerivativeWrapper<TestDerivative>>();
 
     GenericSolver solver(RunSettings::getDefaults(), std::move(equations));
-    REQUIRE(eqPtr->flags == TestEquation::Status::DERIVATIVES_SET);
+    REQUIRE(eq->flags == TestEquation::Status::DERIVATIVES_SET);
 
     solver.create(storage, storage.getMaterial(0));
-    REQUIRE(eqPtr->flags.has(TestEquation::Status::STORAGE_CREATED));
-    REQUIRE_FALSE(eqPtr->flags.hasAny(TestEquation::Status::INITIALIZED, TestEquation::Status::FINALIZED));
+    REQUIRE(eq->flags.has(TestEquation::Status::STORAGE_CREATED));
+    REQUIRE_FALSE(eq->flags.hasAny(TestEquation::Status::INITIALIZED, TestEquation::Status::FINALIZED));
 
     solver.integrate(storage, stats);
-    REQUIRE(eqPtr->flags.hasAll(TestEquation::Status::INITIALIZED, TestEquation::Status::FINALIZED));
+    REQUIRE(eq->flags.hasAll(TestEquation::Status::INITIALIZED, TestEquation::Status::FINALIZED));
 
     ArrayView<Size> cnts = storage.getValue<Size>(QuantityId::FLAG);
     REQUIRE(cnts.size() == 10);

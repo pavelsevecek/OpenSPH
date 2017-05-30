@@ -35,7 +35,7 @@ public:
         }
     }
 
-    virtual Array<PlotPoint> plot() const override {
+    virtual Array<PlotPoint> plot(const Storage&) const override {
         Array<PlotPoint> points;
         for (Float x = 0; x < 2._f * PI; x += 0.1_f) {
             points.push(PlotPoint{ x, sin(x) });
@@ -77,58 +77,56 @@ public:
     }
 };
 
-template<typename TDerived>
+template <typename TDerived>
 class SpatialPlot : public Abstract::Plot {
 protected:
-	QuantityId id;
+    QuantityId id;
 
 public:
-    SpatialPlot(const QuantityId id) 
-	: id(id) {}
-	
-	
-	/// here we need a generic type, not just float
-	virtual Array<PlotPoint> plot(const Storage& storage) const override {
-		ArrayView<const Float> quantity = storage.getValue<Float>(id);
-		ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
-		Array<PlotPoint> points;
-		points.reserve(r.size());
-		for (Size i = 0; i < r.size(); ++i) {
-			points.push(PlotPoint{ static_cast<TDerived*>(this)->func(r[i]), quantity[i]});
-		}
-		std::sort(points.begin(), points.end(), [](const PlotPoint& p1, const PlotPoint& p2){
-			return p1.x < p2.x;
-		});
-		return points;
-	}
+    SpatialPlot(const QuantityId id)
+        : id(id) {}
+
+
+    /// here we need a generic type, not just float
+    virtual Array<PlotPoint> plot(const Storage& storage) const override {
+        ArrayView<const Float> quantity = storage.getValue<Float>(id);
+        ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
+        Array<PlotPoint> points;
+        points.reserve(r.size());
+        for (Size i = 0; i < r.size(); ++i) {
+            points.push(PlotPoint{ static_cast<const TDerived*>(this)->func(r[i]), quantity[i] });
+        }
+        std::sort(points.begin(), points.end(), [](const PlotPoint& p1, const PlotPoint& p2) {
+            return p1.x < p2.x;
+        });
+        return points;
+    }
 };
 
 class AxialDistributionPlot : public SpatialPlot<AxialDistributionPlot> {
-	private:
-	Vector axis;
-	
-	public:
-	AxialDistributionPlot(const Vector& axis, const QuantityId id) : SpatialPlot<AxialDistributionPlot>(id), axis(axis) {}
-	
-	protected:
-	INLINE Float func(const Vector& r) const {
-		return getLength(r - dot(r, axis)*axis);
-	}
+private:
+    Vector axis;
+
+public:
+    AxialDistributionPlot(const Vector& axis, const QuantityId id)
+        : SpatialPlot<AxialDistributionPlot>(id)
+        , axis(axis) {}
+
+    INLINE Float func(const Vector& r) const {
+        return getLength(r - dot(r, axis) * axis);
+    }
 };
 
 
 class SphericalDistributionPlot : public SpatialPlot<SphericalDistributionPlot> {
-	private:
-	Vector axis;
-	
-	public:
-	SphericalDistributionPlot(const QuantityId id) : SpatialPlot<SphericalDistributionPlot>(id), axis(axis) {}
-	
-	protected:
-	INLINE Float func(const Vector& r) const {
-		return getLength(r);
-	}
-}
+public:
+    SphericalDistributionPlot(const QuantityId id)
+        : SpatialPlot<SphericalDistributionPlot>(id) {}
+
+    INLINE Float func(const Vector& r) const {
+        return getLength(r);
+    }
+};
 
 
 NAMESPACE_SPH_END

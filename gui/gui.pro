@@ -10,6 +10,8 @@ LIBS += `wx-config --libs --gl-libs`
 LIBS += -lGL -lGLU -lGLEW
 LIBS += ../lib/liblib.a
 
+DEFINES += SPH_USE_EIGEN
+
 QMAKE_CXXFLAGS += -Wall -Werror -msse4.1 -std=c++14 `wx-config --libs all --cxxflags --gl-libs`
 QMAKE_CXX = g++
 

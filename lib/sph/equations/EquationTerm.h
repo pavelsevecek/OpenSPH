@@ -5,6 +5,7 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2017
 
+#include "objects/wrappers/SharedPtr.h"
 #include "physics/Constants.h"
 #include "sph/Material.h"
 #include "sph/equations/Derivative.h"
@@ -408,30 +409,46 @@ public:
 /// Syntactic suggar
 class EquationHolder {
 private:
-    Array<AutoPtr<Abstract::EquationTerm>> terms;
+    Array<SharedPtr<Abstract::EquationTerm>> terms;
 
 public:
     EquationHolder() = default;
 
-    EquationHolder(AutoPtr<Abstract::EquationTerm>&& term) {
+    EquationHolder(const SharedPtr<Abstract::EquationTerm>& term) {
         if (term != nullptr) {
-            terms.push(std::move(term));
+            terms.push(term);
         }
     }
 
-    EquationHolder& operator+=(EquationHolder&& other) {
-        terms.pushAll(std::move(other.terms));
+    /*EquationHolder(ClonePtr<Abstract::EquationTerm>&& term) {
+        if (term != nullptr) {
+            terms.push(std::move(term));
+        }
+    }*/
+
+    EquationHolder& operator+=(const EquationHolder& other) {
+        terms.pushAll(other.terms);
         return *this;
     }
 
-    EquationHolder operator+(EquationHolder&& other) & = delete;
+    /*EquationHolder& operator+=(EquationHolder&& other) {
+        terms.pushAll(std::move(other.terms));
+        return *this;
+    }*/
 
-    EquationHolder operator+(EquationHolder&& other) && {
+    EquationHolder operator+(const EquationHolder& other) const {
         EquationHolder holder;
-        holder += std::move(*this);
-        holder += std::move(other);
+        holder += *this;
+        holder += other;
         return holder;
     }
+
+    /*EquationHolder operator+(EquationHolder&& other) {
+        EquationHolder holder;
+        holder += *this;
+        holder += std::move(other);
+        return holder;
+    }*/
 
     void setupThread(DerivativeHolder& derivatives, const RunSettings& settings) const {
         for (auto& t : terms) {
@@ -466,7 +483,7 @@ public:
 
 template <typename Term, typename... TArgs>
 INLINE EquationHolder makeTerm(TArgs&&... args) {
-    return EquationHolder(makeAuto<Term>(std::forward<TArgs>(args)...));
+    return EquationHolder(makeShared<Term>(std::forward<TArgs>(args)...));
 }
 
 NAMESPACE_SPH_END

@@ -59,10 +59,7 @@ public:
 
     virtual Pair<Float> evaluate(const Float rho, const Float u) const override;
 
-    /// Currently not implemented.
-    virtual Float getInternalEnergy(const Float UNUSED(rho), const Float UNUSED(p)) const override {
-        NOT_IMPLEMENTED;
-    }
+    virtual Float getInternalEnergy(const Float rho, const Float p) const override;
 };
 
 /// Murnaghan equation of state. Pressure is computed from density only (does not depend on energy).

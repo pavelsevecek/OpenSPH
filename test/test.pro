@@ -5,6 +5,8 @@ CONFIG -= qt
 
 QMAKE_CXXFLAGS += -msse4.1 -Wall -Wextra -Werror -std=c++14 -pthread
 
+DEFINES += SPH_USE_EIGEN
+
 #QMAKE_CXXFLAGS_RELEASE -= -O2
 #QMAKE_CXXFLAGS_RELEASE += -Os
 #QMAKE_CXXFLAGS_DEBUG += -fsanitize=undefined-trap -fsanitize-undefined-trap-on-error
@@ -114,6 +116,7 @@ SOURCES += \
     ../lib/objects/wrappers/test/AutoPtr.cpp \
     ../lib/objects/wrappers/test/SharedPtr.cpp \
     ../lib/objects/wrappers/test/LockingPtr.cpp \
+    ../lib/objects/wrappers/test/ClonePtr.cpp \
     ../lib/math/test/Means.cpp \
     ../lib/sph/solvers/test/ContinuitySolver.cpp \
     ../lib/math/test/SparseMatrix.cpp \
@@ -127,7 +130,8 @@ SOURCES += \
     ../lib/geometry/test/SymmetricTensor.cpp \
     ../lib/geometry/test/Tensor.cpp \
     ../lib/sph/equations/av/test/Stress.cpp \
-    ../lib/sph/solvers/test/Impact.cpp
+    ../lib/sph/solvers/test/Impact.cpp \
+    ../lib/math/test/Roots.cpp
 
 HEADERS += \
     utils/Utils.h \

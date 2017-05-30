@@ -59,13 +59,13 @@ protected:
     SymmetrizeSmoothingLengths<LutKernel<DIMENSIONS>> kernel;
 
 public:
-    GenericSolver(const RunSettings& settings, EquationHolder&& eqs)
+    GenericSolver(const RunSettings& settings, const EquationHolder& eqs)
         : pool(makeShared<ThreadPool>(settings.get<int>(RunSettingsId::RUN_THREAD_CNT)))
         , threadData(*pool) {
         kernel = Factory::getKernel<DIMENSIONS>(settings);
         finder = Factory::getFinder(settings);
         granularity = settings.get<int>(RunSettingsId::RUN_THREAD_GRANULARITY);
-        equations += std::move(eqs);
+        equations += eqs;
         // add term counting number of neighbours
         equations += makeTerm<NeighbourCountTerm>();
         // initialize all derivatives
@@ -75,13 +75,13 @@ public:
     }
 
     /// Adds additional equation terms into the solver.
-    virtual void addEquations(const RunSettings& settings, EquationHolder&& eqs) {
+    /*virtual void addEquations(const RunSettings& settings, const EquationHolder& eqs) {
         threadData.forEach([this, &settings, &eqs](ThreadData& data) { //
             eqs.setupThread(data.derivatives, settings);
         });
         /// \todo test
         equations += std::move(eqs);
-    }
+    }*/
 
     virtual void integrate(Storage& storage, Statistics& stats) override {
         /// \todo move elsewhere

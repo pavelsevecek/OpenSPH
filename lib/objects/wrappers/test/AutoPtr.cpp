@@ -67,14 +67,16 @@ struct Base : public Polymorphic {
     int value = 5;
 };
 
-struct Derived : public Base {
-    static bool destroyed;
-    ~Derived() {
-        destroyed = true;
-    }
-};
+namespace {
+    struct Derived : public Base {
+        static bool destroyed;
+        ~Derived() {
+            destroyed = true;
+        }
+    };
 
-bool Derived::destroyed = false;
+    bool Derived::destroyed = false;
+}
 
 TEST_CASE("AutoPtr cast", "[autoptr]") {
     {
@@ -93,6 +95,19 @@ TEST_CASE("AutoPtr get", "[autoptr]") {
     p1 = AutoPtr<RecordType>(new RecordType(5));
     REQUIRE(p1.get());
     REQUIRE(p1.get()->value == 5);
+}
+
+TEST_CASE("AutoPtr release", "[autoptr]") {
+    RecordType::resetStats();
+    RecordType* r;
+    {
+        AutoPtr<RecordType> p(new RecordType(4));
+        r = p.release();
+        REQUIRE(r->value == 4);
+        REQUIRE_FALSE(p.release());
+    }
+    REQUIRE(r->value == 4);
+    delete r;
 }
 
 TEST_CASE("makeAuto", "[autoptr]") {

@@ -71,7 +71,8 @@ SOURCES += \
     timestepping/TimeStepping.cpp \
     io/FileSystem.cpp \
     math/SparseMatrix.cpp \
-    geometry/SymmetricTensor.cpp
+    geometry/SymmetricTensor.cpp \
+    sph/solvers/StaticSolver.cpp
 
 HEADERS += \
     commmon/ForwardDecl.h \
@@ -210,4 +211,6 @@ HEADERS += \
     math/Matrix.h \
     geometry/SymmetricTensor.h \
     geometry/Tensor.h \
-    sph/equations/av/Stress.h
+    sph/equations/av/Stress.h \
+    objects/wrappers/ClonePtr.h \
+    math/Roots.h

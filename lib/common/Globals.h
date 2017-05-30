@@ -1,8 +1,9 @@
 #pragma once
 
-/// Global parameters of the code.
-/// Pavel Sevecek 2016
-/// sevecek at sirrah.troja.mff.cuni.cz
+/// \file Globals.h
+/// \brief Global parameters of the code
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2017
 
 #include "objects/Object.h"
 
