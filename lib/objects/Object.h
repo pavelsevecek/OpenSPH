@@ -43,8 +43,7 @@ NAMESPACE_SPH_BEGIN
 namespace Abstract {}
 
 /// Object with deleted copy constructor and copy operator
-class Noncopyable {
-public:
+struct Noncopyable {
     Noncopyable() = default;
 
     Noncopyable(const Noncopyable&) = delete;
@@ -56,9 +55,18 @@ public:
     Noncopyable& operator=(Noncopyable&&) = default;
 };
 
-class Polymorphic {
-public:
+/// Base class for all polymorphic objects
+struct Polymorphic {
     virtual ~Polymorphic() {}
+};
+
+/// Base class for object that cannot be constructed on heap using new and cannot be referenced by pointer, 
+/// intended for variables with automatic duration, like RAII wrappers, ...
+class Auto {
+    static void* operator new(size_t)   = delete;
+    static void* operator new[](size_t) = delete; 
+	
+	Auto* operator&() const = delete;
 };
 
 namespace Detail {
