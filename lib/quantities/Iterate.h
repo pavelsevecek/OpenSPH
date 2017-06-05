@@ -1,10 +1,16 @@
 #pragma once
 
+/// \file Iterate.h
+/// \brief Functions for iterating over individual quantities in Storage
+/// \author Pavel Sevecek
+/// \date 2016-2017
+
 #include "quantities/Storage.h"
 
 NAMESPACE_SPH_BEGIN
 
-
+/// \section Visitors of storage quantities
+///
 /// Helper structure allowing to iterate over values/derivatives of quantities in storage. The type of
 /// iteration if selected by template parameter Type; struct need to be specialized for all options and each
 /// one must implement static methods iterate() that iterates over quantities of one storage, and
@@ -214,7 +220,9 @@ void iterateWithPositions(Storage& storage, TFunctor&& functor) {
 /// Iterate over given type of quantities in two storage views and executes functor for each pair.
 template <VisitorEnum Type, typename TFunctor>
 void iteratePair(Storage& storage1, Storage& storage2, TFunctor&& functor) {
-    ASSERT(storage1.getQuantityCnt() == storage2.getQuantityCnt(), storage1.getQuantityCnt(), storage2.getQuantityCnt());
+    ASSERT(storage1.getQuantityCnt() == storage2.getQuantityCnt(),
+        storage1.getQuantityCnt(),
+        storage2.getQuantityCnt());
     StoragePairVisitor<Type, TFunctor> visitor;
     struct Element {
         StorageElement e1;

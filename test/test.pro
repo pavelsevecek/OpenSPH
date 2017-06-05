@@ -6,6 +6,7 @@ CONFIG -= qt
 QMAKE_CXXFLAGS += -msse4.1 -Wall -Wextra -Werror -std=c++14 -pthread
 
 DEFINES += SPH_USE_EIGEN
+LIBS += ../lib/liblib.a
 
 #QMAKE_CXXFLAGS_RELEASE -= -O2
 #QMAKE_CXXFLAGS_RELEASE += -Os
@@ -131,7 +132,8 @@ SOURCES += \
     ../lib/geometry/test/Tensor.cpp \
     ../lib/sph/equations/av/test/Stress.cpp \
     ../lib/sph/solvers/test/Impact.cpp \
-    ../lib/math/test/Roots.cpp
+    ../lib/math/test/Roots.cpp \
+    ../lib/io/test/FileSystem.cpp
 
 HEADERS += \
     utils/Utils.h \

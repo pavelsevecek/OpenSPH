@@ -79,7 +79,7 @@ public:
     /// Compares two outcomes. Outcomes are only considered equal if both are successful or both contain equal
     /// error message.
     bool operator==(const BasicOutcome& other) const {
-        return e == other.e;
+        return (!e && !other.e) || (e == other.e);
     }
 
     /// Prints "success" or error message into the output stream.

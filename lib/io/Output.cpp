@@ -87,19 +87,19 @@ std::string TextOutput::dump(Storage& storage, const Statistics& stats) {
 }
 
 Outcome TextOutput::load(const std::string& path, Storage& storage) {
-    TODO("Test");
     std::ifstream ifs(path);
     std::string line;
     storage.removeAll();
+    Size i = 0;
     while (std::getline(ifs, line)) {
         if (line[0] == '#') { // comment
             continue;
         }
         std::stringstream ss(line);
-        Size i = 0;
         for (auto& column : columns) {
             column->accumulate(storage, 5._f, i);
         }
+        i++;
     }
     ifs.close();
     return SUCCESS;

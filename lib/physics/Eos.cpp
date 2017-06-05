@@ -3,8 +3,6 @@
 #include "physics/Constants.h"
 #include "system/Settings.h"
 
-#include "io/Logger.h"
-
 NAMESPACE_SPH_BEGIN
 
 IdealGasEos::IdealGasEos(const Float gamma)
@@ -85,7 +83,6 @@ Float TillotsonEos::getInternalEnergy(const Float rho, const Float p) const {
     auto func = [ this, rho, p0 = p ](const Float u) {
         Float p, cs;
         tie(p, cs) = this->evaluate(rho, u);
-        StdOutLogger().write("for u = ", u, " we have p = ", p, " and p0 = ", p0);
         return p0 - p;
     };
     /// \todo optimize, find proper upper bound

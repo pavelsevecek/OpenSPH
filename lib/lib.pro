@@ -42,7 +42,6 @@ SOURCES += \
     io/Output.cpp \
     math/Morton.cpp \
     math/rng/Rng.cpp \
-    objects/containers/stringutils.cpp \
     objects/finders/KdTree.cpp \
     objects/finders/Voxel.cpp \
     objects/wrappers/Range.cpp \
@@ -72,7 +71,8 @@ SOURCES += \
     io/FileSystem.cpp \
     math/SparseMatrix.cpp \
     geometry/SymmetricTensor.cpp \
-    sph/solvers/StaticSolver.cpp
+    sph/solvers/StaticSolver.cpp \
+    objects/containers/StringUtils.cpp
 
 HEADERS += \
     commmon/ForwardDecl.h \
@@ -177,13 +177,11 @@ HEADERS += \
     system/Column.h \
     system/Element.h \
     system/Factory.h \
-    system/FileSystem.h \
     system/Platform.h \
     system/Profiler.h \
     system/Settings.h \
     system/Statistics.h \
     system/Timer.h \
-    system/filesystem.h \
     thread/AtomicFloat.h \
     thread/CheckFunction.h \
     thread/Pool.h \
