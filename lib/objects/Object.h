@@ -43,8 +43,7 @@ NAMESPACE_SPH_BEGIN
 namespace Abstract {}
 
 /// Object with deleted copy constructor and copy operator
-class Noncopyable {
-public:
+struct Noncopyable {
     Noncopyable() = default;
 
     Noncopyable(const Noncopyable&) = delete;
@@ -56,10 +55,11 @@ public:
     Noncopyable& operator=(Noncopyable&&) = default;
 };
 
-class Polymorphic {
-public:
+/// Base class for all polymorphic objects
+struct Polymorphic {
     virtual ~Polymorphic() {}
 };
+
 
 namespace Detail {
     template <std::size_t N1, std::size_t N2>

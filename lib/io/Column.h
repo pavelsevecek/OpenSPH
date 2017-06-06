@@ -34,6 +34,10 @@ namespace Abstract {
             const Size particleIdx) const = 0;
 
         /// Reads the value of the column and saves it into the storage, if possible.
+        /// \param storage Particle storage where the value is stored
+        /// \param value Accumulated value, must be the same type as this column. Checked by assert.
+        /// \param particleIdx Index of accumulated particle; if larger than current size of the storage, the
+        ///                    storage is resized accordingly.
         virtual void accumulate(Storage& storage, const Value value, const Size particleIdx) const = 0;
 
         virtual std::string getName() const = 0;

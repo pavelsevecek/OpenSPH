@@ -1,9 +1,9 @@
 #pragma once
 
-/// Random number generators and deterministic sequences with low discrepancy for Monte Carlo and
-/// quasi-Monte Carlo computations
-/// Pavel Sevecek 2015
-/// sevecek at sirrah.troja.mff.cuni.cz
+/// \file Rng.h
+/// \brief Random number generators
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2017
 
 #include "geometry/Box.h"
 #include "objects/containers/Array.h"
