@@ -42,9 +42,6 @@ public:
     Color operator()(const float value) const;
 
     float getInterpolatedValue(const float value) const;
-
-    /// Default palette for given quantity
-    static Palette forQuantity(const QuantityId key, const Range range);
 };
 
 NAMESPACE_SPH_END

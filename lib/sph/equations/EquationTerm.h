@@ -406,7 +406,13 @@ public:
 };
 
 
-/// Syntactic suggar
+/// \brief Container holding equation terms
+///
+/// Holds an array of equation terms. The object also defines operators for adding more equation terms and
+/// functions \ref initialize, \ref finalize and \ref create, calling corresponding functions for all stored
+/// equation terms.
+/// Equation terms are stored as shared pointers and can be thus used in multiple EquationHolders. It is
+/// however not recommended to access the same term concurrently as it can contain a state.
 class EquationHolder {
 private:
     Array<SharedPtr<Abstract::EquationTerm>> terms;
@@ -420,21 +426,10 @@ public:
         }
     }
 
-    /*EquationHolder(ClonePtr<Abstract::EquationTerm>&& term) {
-        if (term != nullptr) {
-            terms.push(std::move(term));
-        }
-    }*/
-
     EquationHolder& operator+=(const EquationHolder& other) {
         terms.pushAll(other.terms);
         return *this;
     }
-
-    /*EquationHolder& operator+=(EquationHolder&& other) {
-        terms.pushAll(std::move(other.terms));
-        return *this;
-    }*/
 
     EquationHolder operator+(const EquationHolder& other) const {
         EquationHolder holder;
@@ -443,19 +438,13 @@ public:
         return holder;
     }
 
-    /*EquationHolder operator+(EquationHolder&& other) {
-        EquationHolder holder;
-        holder += *this;
-        holder += std::move(other);
-        return holder;
-    }*/
-
     void setupThread(DerivativeHolder& derivatives, const RunSettings& settings) const {
         for (auto& t : terms) {
             t->setDerivatives(derivatives, settings);
         }
     }
 
+    /// Calls \ref EquationTerm::initialize for all stored equation terms.
     void initialize(Storage& storage) {
         PROFILE_SCOPE("EquationHolder::initialize");
         for (auto& t : terms) {
@@ -463,6 +452,7 @@ public:
         }
     }
 
+    /// Calls \ref EquationTerm::finalize for all stored equation terms.
     void finalize(Storage& storage) {
         PROFILE_SCOPE("EquationHolder::finalize");
         for (auto& t : terms) {
@@ -470,6 +460,7 @@ public:
         }
     }
 
+    /// Calls \ref EquationTerm::create for all stored equation terms.
     void create(Storage& storage, Abstract::Material& material) const {
         for (auto& t : terms) {
             t->create(storage, material);

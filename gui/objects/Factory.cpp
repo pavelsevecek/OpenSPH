@@ -63,4 +63,70 @@ AutoPtr<Abstract::Element> Factory::getElement(const GuiSettings& settings, cons
     return makeAuto<TypedElement<Float>>(id, range);
 }
 
+Palette Factory::getPalette(const ElementId id, const Range range) {
+    const float x0 = Float(range.lower());
+    const float dx = Float(range.size());
+    if (int(id) >= 0) {
+        QuantityId quantity = QuantityId(id);
+        switch (quantity) {
+        case QuantityId::PRESSURE:
+            ASSERT(x0 < -1.f);
+            return Palette({ { x0, Color(0.3f, 0.3f, 0.8f) },
+                               { -1.f, Color(0.f, 0.f, 0.2f) },
+                               { 0.f, Color(0.2f, 0.2f, 0.2f) },
+                               { 1.f, Color(0.8f, 0.8f, 0.8f) },
+                               { x0 + sqrt(dx), Color(1.f, 1.f, 0.2f) },
+                               { x0 + dx, Color(0.5f, 0.f, 0.f) } },
+                PaletteScale::HYBRID);
+        case QuantityId::ENERGY:
+            return Palette({ { x0, Color(0.7f, 0.7f, 0.7) },
+                               { x0 + 0.001f * dx, Color(0.1f, 0.1f, 1.f) },
+                               { x0 + 0.01f * dx, Color(1.f, 0.f, 0.f) },
+                               { x0 + 0.1f * dx, Color(1.0f, 0.6f, 0.4f) },
+                               { x0 + dx, Color(1.f, 1.f, 0.f) } },
+                PaletteScale::LOGARITHMIC);
+        case QuantityId::DEVIATORIC_STRESS:
+            return Palette({ { x0, Color(0.f, 0.f, 0.2f) },
+                               { x0 + sqrt(dx), Color(1.f, 1.f, 0.2f) },
+                               { x0 + dx, Color(0.5f, 0.f, 0.f) } },
+                PaletteScale::LOGARITHMIC);
+        case QuantityId::DENSITY:
+            return Palette({ { x0, Color(0.f, 0.f, 0.2f) },
+                               { x0 + 0.5f * dx, Color(1.f, 1.f, 0.2f) },
+                               { x0 + dx, Color(0.5f, 0.f, 0.f) } },
+                PaletteScale::LINEAR);
+        case QuantityId::DAMAGE:
+            return Palette({ { x0, Color(0.1f, 0.1f, 0.1f) }, { x0 + dx, Color(0.9f, 0.9f, 0.9f) } },
+                PaletteScale::LINEAR);
+        case QuantityId::VELOCITY_DIVERGENCE:
+            return Palette({ { x0, Color(0.3f, 0.3f, 0.8f) },
+                               { -1.e-2f, Color(0.f, 0.f, 0.2f) },
+                               { 0.f, Color(0.2f, 0.2f, 0.2f) },
+                               { 1.e-2f, Color(0.8f, 0.8f, 0.8f) },
+                               { x0 + dx, Color(1.0f, 0.6f, 0.f) } },
+                PaletteScale::HYBRID);
+        default:
+            NOT_IMPLEMENTED;
+        }
+    } else {
+        switch (id) {
+        case ElementId::VELOCITY:
+            return Palette({ { x0, Color(0.5f, 0.5f, 0.5f) },
+                               { x0 + 0.001f * dx, Color(0.0f, 0.0f, 0.2f) },
+                               { x0 + 0.01f * dx, Color(0.0f, 0.0f, 1.0f) },
+                               { x0 + 0.1f * dx, Color(1.0f, 0.0f, 0.2f) },
+                               { x0 + dx, Color(1.0f, 1.0f, 0.2f) } },
+                PaletteScale::LOGARITHMIC);
+        case ElementId::DIRECTION:
+            ASSERT(range == Range(0._f, 2._f * PI)); // in radians
+            return Palette({ { 0._f, Color(0.1_f, 0.1_f, 1._f) },
+                               { PI, Color(1._f, 0.1_f, 0.1_f) },
+                               { 2._f * PI, Color(0.1_f, 0.1_f, 1._f) } },
+                PaletteScale::LINEAR);
+        default:
+            NOT_IMPLEMENTED;
+        }
+    }
+}
+
 NAMESPACE_SPH_END

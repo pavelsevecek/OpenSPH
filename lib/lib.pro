@@ -213,4 +213,5 @@ HEADERS += \
     geometry/Tensor.h \
     sph/equations/av/Stress.h \
     objects/wrappers/ClonePtr.h \
-    math/Roots.h
+    math/Roots.h \
+    physics/Analytic.h

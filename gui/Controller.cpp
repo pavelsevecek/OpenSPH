@@ -26,7 +26,9 @@ Controller::Controller() {
         .set(GuiSettingsId::ORTHO_CUTOFF, 5.e2_f)
         .set(GuiSettingsId::ORTHO_PROJECTION, OrthoEnum::XY)
         .set(GuiSettingsId::IMAGES_SAVE, true)
-        .set(GuiSettingsId::IMAGES_TIMESTEP, 0.1_f);
+        .set(GuiSettingsId::IMAGES_TIMESTEP, 0.1_f)
+        /// \todo rotation specific
+        .set(GuiSettingsId::PALETTE_ENERGY, Range(0.1_f, 10._f));
 
     // create objects for drawing particles
     vis.initialize(gui);
@@ -40,7 +42,7 @@ Controller::Controller() {
     status = Status::RUNNING;
 
     // create and start the run
-    sph.run = makeAuto<AsteroidRotation>(this, 2._f);
+    sph.run = makeAuto<AsteroidRotation>(this, 6._f);
     this->run();
 }
 
@@ -203,6 +205,16 @@ Bitmap Controller::getRenderedBitmap(Abstract::Camera& camera) {
 void Controller::setElement(const SharedPtr<Abstract::Element>& newElement) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
     vis.element = newElement;
+    if (status != Status::RUNNING) {
+        // we can safely access the storage, otherwise the element will be initialized on next timestep
+        ASSERT(sph.run);
+        SharedPtr<Storage> storage = sph.run->getStorage();
+        if (!storage) {
+            return;
+        }
+        vis.element->initialize(*storage, ElementSource::POINTER_TO_STORAGE);
+        window->Refresh();
+    }
 }
 
 SharedPtr<Movie> Controller::createMovie(const Storage& storage) {

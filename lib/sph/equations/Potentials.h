@@ -5,6 +5,7 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2017
 
+#include "physics/Analytic.h"
 #include "sph/equations/EquationTerm.h"
 
 NAMESPACE_SPH_BEGIN
@@ -118,9 +119,9 @@ public:
             // compute acceleration
             ArrayView<Vector> dv = storage.getD2t<Vector>(QuantityId::POSITIONS);
             const Float rho0 = storage.getMaterial(0)->getParam<Float>(BodySettingsId::DENSITY);
+            Analytic::StaticSphere sphere(INFTY, rho0); // here radius does not matter
             for (Size i = 0; i < dv.size(); ++i) {
-                dv[i] -= Constants::gravity * rho0 * sphereVolume(getLength(r[i])) * r[i] /
-                         pow<3>(getLength(r[i]));
+                dv[i] += sphere.getAcceleration(r[i]);
             }
         } else {
             Array<Size> idxs(m.size());

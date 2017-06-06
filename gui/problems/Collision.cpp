@@ -28,8 +28,8 @@ AsteroidCollision::AsteroidCollision(Controller* model)
 
 void AsteroidCollision::setUp() {
     BodySettings bodySettings;
-    bodySettings.set(BodySettingsId::ENERGY, 1._f)
-        .set(BodySettingsId::ENERGY_RANGE, Range(1._f, INFTY))
+    bodySettings.set(BodySettingsId::ENERGY, 0._f)
+        .set(BodySettingsId::ENERGY_RANGE, Range(0._f, INFTY))
         .set(BodySettingsId::PARTICLE_COUNT, 100'000)
         .set(BodySettingsId::EOS, EosEnum::TILLOTSON)
         .set(BodySettingsId::STRESS_TENSOR_MIN, 1.e5_f)

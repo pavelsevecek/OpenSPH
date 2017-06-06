@@ -3,8 +3,6 @@
 #include "physics/Constants.h"
 #include "system/Settings.h"
 
-#include "io/Logger.h"
-
 NAMESPACE_SPH_BEGIN
 
 IdealGasEos::IdealGasEos(const Float gamma)
@@ -82,16 +80,30 @@ Pair<Float> TillotsonEos::evaluate(const Float rho, const Float u) const {
 }
 
 Float TillotsonEos::getInternalEnergy(const Float rho, const Float p) const {
-    auto func = [ this, rho, p0 = p ](const Float u) {
-        Float p, cs;
-        tie(p, cs) = this->evaluate(rho, u);
-        StdOutLogger().write("for u = ", u, " we have p = ", p, " and p0 = ", p0);
-        return p0 - p;
-    };
-    /// \todo optimize, find proper upper bound
-    Optional<Float> root = getRoot(func, Range(0._f, u0), 1.e-6_f);
-    ASSERT(root);
-    return root.value();
+    // try compressed phase first
+    const Float eta = rho / rho0;
+    const Float mu = eta - 1._f;
+    const Float x = (p - A * mu - B * sqr(mu)) / rho;
+    const Float l = a;
+    const Float m = u0 * sqr(eta) * (a + b) - x;
+    const Float n = -x * u0 * sqr(eta);
+    const Float u = (-m + sqrt(sqr(m) - 4._f * l * n)) / (2._f * l);
+    ASSERT(isReal(u));
+
+    if (rho <= rho0 && u > uiv) {
+        // this is actually in expanded regime, find root
+        auto func = [ this, rho, p0 = p ](const Float u) {
+            Float p, cs;
+            tie(p, cs) = this->evaluate(rho, u);
+            return p0 - p;
+        };
+        /// \todo optimize, find proper upper bound
+        Optional<Float> root = getRoot(func, Range(0._f, u0), EPS);
+        ASSERT(root);
+        return root.value();
+    } else {
+        return u;
+    }
 }
 
 MurnaghanEos::MurnaghanEos(const BodySettings& settings)

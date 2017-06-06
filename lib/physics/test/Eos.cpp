@@ -56,17 +56,18 @@ TEST_CASE("Tillotson inverted", "[eos]") {
     settings.set(BodySettingsId::TILLOTSON_SUBLIMATION, 1.e8_f);
     TillotsonEos eos(settings);
 
-    auto test = [&](const Float u0, const Float rho0) {
+    auto test = [&](const Float u0, const Float rho0, const Float eps = 1.e-6_f) {
         Float p, cs;
         tie(p, cs) = eos.evaluate(rho0, u0);
-        // Tillotson is highly non-linear, so even if the difference in pressures are of order 10^-6, the
-        // energy can differ significantly more!
-        REQUIRE(eos.getInternalEnergy(rho0, p) == approx(u0, 1.e-2_f));
+        REQUIRE(eos.getInternalEnergy(rho0, p) == approx(u0, eps));
     };
 
+    test(0._f, 2.7_f);
+    test(100._f, 2.7_f);
+
+    test(1.e4_f, 2.4_f);
     test(1.e7_f, 2.4_f);
     test(1.e8_f, 2.4_f);
-    test(1.e4_f, 2.4_f);
 
     test(1.e7_f, 2.7_f);
     test(1.e8_f, 2.7_f);

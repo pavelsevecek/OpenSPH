@@ -12,6 +12,8 @@
 
 NAMESPACE_SPH_BEGIN
 
+class EquationHolder;
+
 class AsteroidRotation : public Abstract::Run {
 private:
     Controller* model;
@@ -27,7 +29,7 @@ protected:
     virtual void tearDown() override;
 
 private:
-    void setInitialStressTensor(Storage& smaller);
+    void setInitialStressTensor(Storage& smaller, EquationHolder& equations);
 };
 
 NAMESPACE_SPH_END

@@ -36,7 +36,7 @@ AutoPtr<GuiSettings> GuiSettings::instance (new GuiSettings {
     { GuiSettingsId::PALETTE_DENSITY,  "palette.density",  Range(2000._f, 3000._f) },
     { GuiSettingsId::PALETTE_VELOCITY, "palette.velocity", Range(0._f, 1._f) },
     { GuiSettingsId::PALETTE_PRESSURE, "palette.pressure", Range(-1000._f, 1.e10_f) },
-    { GuiSettingsId::PALETTE_ENERGY,   "palette.energy",   Range(0._f, 1.e6_f) },
+    { GuiSettingsId::PALETTE_ENERGY,   "palette.energy",   Range(1._f, 1.e6_f) },
     { GuiSettingsId::PALETTE_STRESS,   "palette.stress",   Range(0._f, 1.e10_f) },
     { GuiSettingsId::PALETTE_DAMAGE,   "palette.damage",   Range(0._f, 1._f) },
     { GuiSettingsId::PALETTE_DIVV,     "palette.divv",     Range(-0.1_f, 0.1_f) },

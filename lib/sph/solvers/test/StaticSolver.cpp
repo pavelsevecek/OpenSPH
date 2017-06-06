@@ -12,12 +12,40 @@
 
 using namespace Sph;
 
+TEST_CASE("StaticSolver no forces", "[staticsolver]") {
+    // tests that with no external forces, the stress tensor is zero
+    RunSettings settings;
+    StaticSolver solver(settings, EquationHolder());
+    BodySettings body;
+    body.set(BodySettingsId::ENERGY, 0._f);
+    body.set(BodySettingsId::ENERGY_RANGE, Range(0._f, INFTY));
+    Storage storage = Tests::getSolidStorage(1000, body, 1._f * Constants::au, 10._f);
+    solver.create(storage, storage.getMaterial(0));
+
+    Statistics stats;
+    REQUIRE(solver.solve(storage, stats));
+    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
+    ArrayView<const Float> p = storage.getValue<Float>(QuantityId::PRESSURE);
+    ArrayView<const TracelessTensor> s = storage.getValue<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
+    ArrayView<const Float> u = storage.getValue<Float>(QuantityId::ENERGY);
+
+    auto test = [&](const Size i) -> Outcome {
+        if (p[i] != 0._f || s[i] != TracelessTensor(0._f) || u[i] != 0._f) {
+            return makeFailed(
+                "Invalid solutions for r = ", r[i], "\n p = ", p[i], "\n u = ", u[i], "\n s = ", s[i]);
+        }
+        return SUCCESS;
+    };
+    REQUIRE_SEQUENCE(test, 0, r.size());
+}
+
 TEST_CASE("StaticSolver pressure", "[staticsolver]") {
     // tests that in a sphere with gravity and pressure gradient, the pressure distribution follows the
     // analytical result (considering EoS rho = const.)
 
     RunSettings settings;
     const Float rho0 = 300._f;
+    const Float r0 = 1._f * Constants::au;
     EquationHolder equations =
         makeTerm<SphericalGravity>(SphericalGravity::Options::ASSUME_HOMOGENEOUS); //(std::move(potential);
     StaticSolver solver(settings, std::move(equations));
@@ -26,7 +54,7 @@ TEST_CASE("StaticSolver pressure", "[staticsolver]") {
     // body.set(BodySettingsId::INITIAL_DISTRIBUTION, DistributionEnum::DIEHL_ET_AL);
     // zero shear modulus to get only pressure without other components of the stress tensor
     body.set(BodySettingsId::SHEAR_MODULUS, 0._f);
-    Storage storage = Tests::getGassStorage(1000, body, 1._f * Constants::au, rho0);
+    Storage storage = Tests::getGassStorage(1000, body, r0, rho0);
     solver.create(storage, storage.getMaterial(0));
 
     Statistics stats;
@@ -36,15 +64,16 @@ TEST_CASE("StaticSolver pressure", "[staticsolver]") {
     ArrayView<const Float> p = storage.getValue<Float>(QuantityId::PRESSURE);
 
     Float K = 0._f;
+    Analytic::StaticSphere sphere(r0, rho0);
     auto expected = [&](const Float x) { //
-        return K - 2._f / 3._f * PI * Constants::gravity * sqr(rho0) * sqr(x);
+        return K + sphere.getPressure(x);
     };
     // find offset
     /// \todo this is extra step, we should specify boundary conditions
     Float offset = 0._f;
     Size cnt = 0;
     for (Size i = 0; i < r.size(); ++i) {
-        if (getLength(r[i]) < 0.7_f * Constants::au) {
+        if (getLength(r[i]) < 0.7_f * r0) {
             offset += p[i] - expected(getLength(r[i]));
             cnt++;
         }

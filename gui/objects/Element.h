@@ -6,6 +6,7 @@
 /// \date 2016-2017
 
 
+#include "gui/Factory.h"
 #include "gui/objects/Palette.h"
 #include "gui/objects/Point.h"
 #include "quantities/Storage.h"
@@ -42,6 +43,7 @@ namespace Abstract {
     };
 }
 
+
 namespace Detail {
     template <typename Type>
     INLINE float getElementValue(const Type& value) {
@@ -57,6 +59,15 @@ namespace Detail {
     }
 }
 
+/// Special elements that do not directly correspond to quantities, must have strictly negative values.
+/// Function taking ElementId as an argument also acceps QuantityId casted to ElementId, interpreting as
+/// TypedElement with given quantity ID.
+enum class ElementId {
+    VELOCITY = -1,     ///< Particle velocities
+    DIRECTION = -2,    ///< Projected direction of motion
+    DISPLACEMENT = -3, ///< Difference between current positions and initial positions
+};
+
 /// Default element simply converting quantity value to color using defined palette. Vector and tensor
 /// quantities are converted to floats using suitable norm.
 template <typename Type>
@@ -70,7 +81,7 @@ private:
 public:
     TypedElement(const QuantityId id, const Range range)
         : id(id)
-        , palette(Palette::forQuantity(id, range)) {}
+        , palette(Factory::getPalette(ElementId(id), range)) {}
 
     virtual void initialize(const Storage& storage, const ElementSource source) override {
         if (source == ElementSource::CACHE_ARRAYS) {
@@ -90,6 +101,7 @@ public:
         return palette;
     }
 
+
     virtual std::string name() const override {
         return getQuantityName(id);
     }
@@ -104,7 +116,7 @@ private:
 
 public:
     VelocityElement(const Range range)
-        : palette(Palette::forQuantity(QuantityId::POSITIONS, range)) {}
+        : palette(Factory::getPalette(ElementId(QuantityId::POSITIONS), range)) {}
 
     virtual void initialize(const Storage& storage, const ElementSource source) override {
         if (source == ElementSource::CACHE_ARRAYS) {
@@ -128,6 +140,28 @@ public:
         return "Velocity";
     }
 };
+
+/// Shows direction of particle movement in color
+class DirectionElement : public Abstract::Element {
+private:
+    Palette palette;
+    Vector axis;
+
+    ArrayView<const Vector> r, v;
+    struct {
+        Array<Vector> r, v;
+    } cached;
+
+public:
+    DirectionElement(const Vector& axis)
+        : palette(Factory::getPalette(ElementId::DIRECTION, Range(0._f, 2._f * PI)))
+        , axis(axis) {}
+};
+
+
+/// \note This does not have anything in common with QuantityId::DISPLACEMENT; it only depends on particle
+/// positions and have nothing to do with stresses.
+class DisplacementElement : public Abstract::Element {};
 
 /// Shows boundary elements
 class BoundaryElement : public Abstract::Element {

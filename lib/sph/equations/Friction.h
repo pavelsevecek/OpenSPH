@@ -57,4 +57,55 @@ public:
 };
 
 
+class SimpleDamping : public Abstract::EquationTerm {
+private:
+    class Derivative : public DerivativeTemplate<Derivative> {
+        ArrayView<const Vector> r, v;
+        ArrayView<const Float> cs;
+        ArrayView<Vector> dv;
+
+        Float k;
+
+    public:
+        virtual void create(Accumulated& results) override {
+            results.insert<Vector>(QuantityId::POSITIONS, OrderEnum::SECOND);
+        }
+
+        virtual void initialize(const Storage& input, Accumulated& results) override {
+            ArrayView<const Vector> dummy;
+            tie(r, v, dummy) = input.getAll<Vector>(QuantityId::POSITIONS);
+            cs = input.getValue<Float>(QuantityId::SOUND_SPEED);
+
+            /// \todo different coefficient - damping coeff
+            k = input.getMaterial(0)->getParam<Float>(BodySettingsId::KINEMATIC_VISCOSITY);
+            dv = results.getBuffer<Vector>(QuantityId::POSITIONS, OrderEnum::SECOND);
+        }
+
+        template <bool Symmetrize>
+        INLINE void eval(const Size i, ArrayView<const Size> neighs, ArrayView<const Vector> UNUSED(grads)) {
+            for (Size k = 0; k < neighs.size(); ++k) {
+                const Size j = neighs[k];
+                const Float csbar = 0.5_f * (cs[i] + cs[j]);
+                const Vector f = k * (v[i] - v[j]) / csbar;
+                dv[i] -= f;
+                if (Symmetrize) {
+                    dv[j] += f;
+                }
+            }
+        }
+    };
+
+public:
+    virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override {
+        derivatives.require<Derivative>(settings);
+    }
+
+    virtual void initialize(Storage& UNUSED(storage)) override {}
+
+    virtual void finalize(Storage& UNUSED(storage)) override {}
+
+    virtual void create(Storage& UNUSED(storage), Abstract::Material& UNUSED(material)) const override {}
+};
+
+
 NAMESPACE_SPH_END
