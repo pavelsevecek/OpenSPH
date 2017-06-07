@@ -40,6 +40,8 @@ private:
         if (settings.get<SmoothingLengthEnum>(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH) !=
             SmoothingLengthEnum::CONST) {
             equations += makeTerm<AdaptiveSmoothingLength>(settings);
+        } else {
+            equations += makeTerm<ConstSmoothingLength>();
         }
 
         equations += additionalEquations;

@@ -5,6 +5,7 @@
 #include "io/Column.h"
 #include "io/Logger.h"
 #include "io/Output.h"
+#include "quantities/Iterate.h"
 #include "sph/equations/Friction.h"
 #include "sph/equations/Potentials.h"
 #include "sph/initial/Initial.h"
@@ -18,12 +19,13 @@ NAMESPACE_SPH_BEGIN
 AsteroidRotation::AsteroidRotation(Controller* model, const Float period)
     : model(model)
     , period(period) {
-    settings.set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::PREDICTOR_CORRECTOR)
+    settings.set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::EULER_EXPLICIT)
         .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 0.01_f)
-        .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 100._f)
+        .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 0.1_f)
         .set(RunSettingsId::RUN_TIME_RANGE, Range(0._f, 100000._f))
         .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 100._f)
-        .set(RunSettingsId::MODEL_FORCE_SOLID_STRESS, false)
+        .set(RunSettingsId::MODEL_FORCE_SOLID_STRESS, true)
+        .set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONST)
         .set(RunSettingsId::SPH_FINDER, FinderEnum::VOXEL)
         .set(RunSettingsId::SPH_AV_TYPE, ArtificialViscosityEnum::STANDARD)
         .set(RunSettingsId::SPH_AV_ALPHA, 1.5_f)
@@ -32,6 +34,44 @@ AsteroidRotation::AsteroidRotation(Controller* model, const Float period)
     settings.saveToFile("code.sph");
 }
 
+class DisableDerivativesSolver : public ContinuitySolver {
+private:
+    Float delta = 0.3_f;
+
+public:
+    DisableDerivativesSolver(const RunSettings& settings, const EquationHolder& equations)
+        : ContinuitySolver(settings, equations) {}
+
+    virtual void integrate(Storage& storage, Statistics& stats) override {
+        ContinuitySolver::integrate(storage, stats);
+        iterate<VisitorEnum::FIRST_ORDER>(storage, [](const QuantityId id, auto& UNUSED(v), auto& dv) {
+            using Type = typename std::decay_t<decltype(dv)>::Type;
+            if (id == QuantityId::DENSITY) {
+                // dv[i] /= 1._f + delta;
+            } else {
+                for (Size i = 0; i < dv.size(); ++i) {
+                    dv[i] = Type(0._f);
+                }
+            }
+        });
+        iterate<VisitorEnum::SECOND_ORDER>(
+            storage, [this](const QuantityId id, auto& UNUSED(v), auto& dv, auto& d2v) {
+                using Type = typename std::decay_t<decltype(dv)>::Type;
+                if (id == QuantityId::POSITIONS) {
+                    for (Size i = 0; i < dv.size(); ++i) {
+                        dv[i] *= 1._f + delta;
+                        d2v[i] /= 1._f + delta;
+                    }
+                } else {
+                    for (Size i = 0; i < dv.size(); ++i) {
+                        dv[i] = Type(0._f);
+                        d2v[i] = Type(0._f);
+                    }
+                }
+            });
+    }
+};
+
 void AsteroidRotation::setUp() {
     BodySettings bodySettings;
     bodySettings.set(BodySettingsId::ENERGY, 0._f)
@@ -39,8 +79,8 @@ void AsteroidRotation::setUp() {
         .set(BodySettingsId::PARTICLE_COUNT, 10000)
         .set(BodySettingsId::EOS, EosEnum::TILLOTSON)
         .set(BodySettingsId::STRESS_TENSOR_MIN, 1.e5_f)
-        .set(BodySettingsId::RHEOLOGY_DAMAGE, DamageEnum::NONE)
-        .set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::NONE)
+        .set(BodySettingsId::RHEOLOGY_DAMAGE, DamageEnum::SCALAR_GRADY_KIPP)
+        .set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::VON_MISES)
         .set(BodySettingsId::DISTRIBUTE_MODE_SPH5, true)
         .set(BodySettingsId::SHEAR_MODULUS, 0._f);
     //.set(BodySettingsId::KINEMATIC_VISCOSITY, 1._f);
@@ -53,7 +93,8 @@ void AsteroidRotation::setUp() {
     // externalForces += makeTerm<NoninertialForce>(2._f * PI / (3600._f * period) * Vector(0, 0, 1));
     // externalForces += makeTerm<SurfaceNormal>();
     // externalForces += makeTerm<SimpleDamping>();
-    solver = makeAuto<ContinuitySolver>(settings, externalForces);
+
+    solver = makeAuto<DisableDerivativesSolver>(settings, externalForces);
 
     InitialConditions conds(*storage, *solver, settings);
 
@@ -106,12 +147,12 @@ void AsteroidRotation::setInitialStressTensor(Storage& smaller, EquationHolder& 
     ArrayView<Float> u = storage->getValue<Float>(QuantityId::ENERGY);
     // ArrayView<TracelessTensor> s = storage->getValue<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
     // Interpolation interpol(smaller);
-    TillotsonEos eos(smaller.getMaterial(0)->getParams());
+    const Abstract::Eos& eos = dynamic_cast<EosMaterial&>(smaller.getMaterial(0).material()).getEos();
     const Float rho0 = smaller.getMaterial(0)->getParam<Float>(BodySettingsId::DENSITY);
     Analytic::StaticSphere sphere(5.e3_f, rho0);
     for (Size i = 0; i < r.size(); ++i) {
-        // const Float p = sphere.getPressure(getLength(r[i]));
-        u[i] = 0._f; // eos.getInternalEnergy(rho0, p);
+        const Float p = sphere.getPressure(getLength(r[i]));
+        u[i] = eos.getInternalEnergy(rho0, p);
         // interpol.interpolate<Float>(QuantityId::ENERGY, OrderEnum::ZERO, r[i]);
         /*  s[i] =
               TracelessTensor::null(); //

@@ -196,6 +196,18 @@ public:
         return *this;
     }
 
+    INLINE TracelessTensor& operator*=(const Float value) {
+        m *= value;
+        m12 *= value;
+        return *this;
+    }
+
+    INLINE TracelessTensor& operator/=(const Float value) {
+        m /= value;
+        m12 /= value;
+        return *this;
+    }
+
     INLINE TracelessTensor operator-() const {
         return TracelessTensor(-m, -m12);
     }

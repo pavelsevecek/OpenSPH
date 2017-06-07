@@ -155,6 +155,18 @@ public:
         return *this;
     }
 
+    INLINE SymmetricTensor& operator*=(const Float value) {
+        diag *= value;
+        off *= value;
+        return *this;
+    }
+
+    INLINE SymmetricTensor& operator/=(const Float value) {
+        diag /= value;
+        off /= value;
+        return *this;
+    }
+
     INLINE SymmetricTensor operator-() const {
         return SymmetricTensor(-diag, -off);
     }

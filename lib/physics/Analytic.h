@@ -27,7 +27,7 @@ namespace Analytic {
             , rho(rho) {}
 
         /// Return the pressure at given radius r of a sphere self-compressed by gravity.
-        INLINE Float getPressure(const Float r) {
+        INLINE Float getPressure(const Float r) const {
             ASSERT(r <= 1.01_f * r0); // allow a little bit more, due to particle ordering
             if (r > r0) {
                 return 0._f;
@@ -36,8 +36,9 @@ namespace Analytic {
         }
 
         /// Returns the gravitational acceleration at given radius r.
-        INLINE Vector getAcceleration(const Vector& r) {
-            return -Constants::gravity * rho * sphereVolume(getLength(r)) * r / pow<3>(getLength(r));
+        INLINE Vector getAcceleration(const Vector& r) const {
+            const Float l = getLength(r);
+            return -Constants::gravity * rho * sphereVolume(l) * r / pow<3>(l);
         }
     };
 }

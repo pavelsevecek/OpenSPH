@@ -116,7 +116,7 @@ private:
 
 public:
     VelocityElement(const Range range)
-        : palette(Factory::getPalette(ElementId(QuantityId::POSITIONS), range)) {}
+        : palette(Factory::getPalette(ElementId::VELOCITY, range)) {}
 
     virtual void initialize(const Storage& storage, const ElementSource source) override {
         if (source == ElementSource::CACHE_ARRAYS) {

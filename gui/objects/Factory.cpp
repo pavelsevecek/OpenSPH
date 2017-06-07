@@ -31,36 +31,42 @@ AutoPtr<Abstract::Camera> Factory::getCamera(const GuiSettings& settings) {
     return makeAuto<OrthoCamera>(size, Point(int(center[X]), int(center[Y])), data);
 }
 
-AutoPtr<Abstract::Element> Factory::getElement(const GuiSettings& settings, const QuantityId id) {
+AutoPtr<Abstract::Element> Factory::getElement(const GuiSettings& settings, const ElementId id) {
     Range range;
     switch (id) {
-    case QuantityId::POSITIONS: // represents velocity element
+    case ElementId::VELOCITY:
         range = settings.get<Range>(GuiSettingsId::PALETTE_VELOCITY);
         return makeAuto<VelocityElement>(range);
-    case QuantityId::NEIGHBOUR_CNT: // represent boundary element
-        return makeAuto<BoundaryElement>(BoundaryElement::Detection::NEIGBOUR_THRESHOLD, 40);
-    case QuantityId::DEVIATORIC_STRESS:
-        range = settings.get<Range>(GuiSettingsId::PALETTE_STRESS);
-        return makeAuto<TypedElement<TracelessTensor>>(id, range);
-    case QuantityId::DENSITY:
-        range = settings.get<Range>(GuiSettingsId::PALETTE_DENSITY);
-        break;
-    case QuantityId::PRESSURE:
-        range = settings.get<Range>(GuiSettingsId::PALETTE_PRESSURE);
-        break;
-    case QuantityId::ENERGY:
-        range = settings.get<Range>(GuiSettingsId::PALETTE_ENERGY);
-        break;
-    case QuantityId::DAMAGE:
-        range = settings.get<Range>(GuiSettingsId::PALETTE_DAMAGE);
-        break;
-    case QuantityId::VELOCITY_DIVERGENCE:
-        range = settings.get<Range>(GuiSettingsId::PALETTE_DIVV);
-        break;
     default:
-        NOT_IMPLEMENTED;
+        QuantityId quantity = QuantityId(id);
+        ASSERT(int(quantity) >= 0);
+
+        switch (quantity) {
+        case QuantityId::NEIGHBOUR_CNT: // represent boundary element
+            return makeAuto<BoundaryElement>(BoundaryElement::Detection::NEIGBOUR_THRESHOLD, 40);
+        case QuantityId::DEVIATORIC_STRESS:
+            range = settings.get<Range>(GuiSettingsId::PALETTE_STRESS);
+            return makeAuto<TypedElement<TracelessTensor>>(quantity, range);
+        case QuantityId::DENSITY:
+            range = settings.get<Range>(GuiSettingsId::PALETTE_DENSITY);
+            break;
+        case QuantityId::PRESSURE:
+            range = settings.get<Range>(GuiSettingsId::PALETTE_PRESSURE);
+            break;
+        case QuantityId::ENERGY:
+            range = settings.get<Range>(GuiSettingsId::PALETTE_ENERGY);
+            break;
+        case QuantityId::DAMAGE:
+            range = settings.get<Range>(GuiSettingsId::PALETTE_DAMAGE);
+            break;
+        case QuantityId::VELOCITY_DIVERGENCE:
+            range = settings.get<Range>(GuiSettingsId::PALETTE_DIVV);
+            break;
+        default:
+            NOT_IMPLEMENTED;
+        }
+        return makeAuto<TypedElement<Float>>(quantity, range);
     }
-    return makeAuto<TypedElement<Float>>(id, range);
 }
 
 Palette Factory::getPalette(const ElementId id, const Range range) {
@@ -75,7 +81,7 @@ Palette Factory::getPalette(const ElementId id, const Range range) {
                                { -1.f, Color(0.f, 0.f, 0.2f) },
                                { 0.f, Color(0.2f, 0.2f, 0.2f) },
                                { 1.f, Color(0.8f, 0.8f, 0.8f) },
-                               { x0 + sqrt(dx), Color(1.f, 1.f, 0.2f) },
+                               { 1.f + sqrt(dx), Color(1.f, 1.f, 0.2f) },
                                { x0 + dx, Color(0.5f, 0.f, 0.f) } },
                 PaletteScale::HYBRID);
         case QuantityId::ENERGY:

@@ -28,7 +28,8 @@ Controller::Controller() {
         .set(GuiSettingsId::IMAGES_SAVE, true)
         .set(GuiSettingsId::IMAGES_TIMESTEP, 0.1_f)
         /// \todo rotation specific
-        .set(GuiSettingsId::PALETTE_ENERGY, Range(0.1_f, 10._f));
+        .set(GuiSettingsId::PALETTE_ENERGY, Range(0.1_f, 10._f))
+        .set(GuiSettingsId::PALETTE_PRESSURE, Range(-10._f, 1.e4_f));
 
     // create objects for drawing particles
     vis.initialize(gui);
@@ -167,8 +168,7 @@ Array<SharedPtr<Abstract::Element>> Controller::getElementList(const Storage& st
     /// \todo should be loaded from a file
     // we only add the element if it is contained in the storage
 
-    Array<QuantityId> all{
-        QuantityId::POSITIONS, // this is translated to velocity element, better solution would be appretiated
+    Array<QuantityId> quantityElementIds{
         QuantityId::PRESSURE,
         QuantityId::ENERGY,
         QuantityId::DENSITY,
@@ -179,9 +179,10 @@ Array<SharedPtr<Abstract::Element>> Controller::getElementList(const Storage& st
         QuantityId::NEIGHBOUR_CNT,
     };
     Array<SharedPtr<Abstract::Element>> elements;
-    for (QuantityId id : all) {
+    elements.push(Factory::getElement(gui, ElementId::VELOCITY));
+    for (QuantityId id : quantityElementIds) {
         if (storage.has(id)) {
-            elements.push(Factory::getElement(gui, id));
+            elements.push(Factory::getElement(gui, ElementId(id)));
         }
     }
     return elements;

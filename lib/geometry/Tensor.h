@@ -118,6 +118,22 @@ public:
         return *this;
     }
 
+    /// \todo test
+    INLINE Tensor& operator*=(const Float value) {
+        v[0] *= value;
+        v[1] *= value;
+        v[2] *= value;
+        return *this;
+    }
+
+    INLINE Tensor& operator/=(const Float value) {
+        ASSERT(value != 0._f);
+        v[0] /= value;
+        v[1] /= value;
+        v[2] /= value;
+        return *this;
+    }
+
     INLINE bool operator==(const Tensor& other) const {
         return v[0] == other.v[0] && v[1] == other.v[1] && v[2] == other.v[2];
     }

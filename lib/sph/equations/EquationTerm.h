@@ -14,6 +14,7 @@
 NAMESPACE_SPH_BEGIN
 
 namespace Abstract {
+
     /// \brief Represents a term or terms appearing in evolutionary equations.
     ///
     /// Each EquationTerm either directly modifies quantities, or adds quantity derivatives. These terms never
@@ -375,7 +376,11 @@ public:
         storage.parallelFor(0, r.size(), [&](const Size n1, const Size n2) INL {
             for (Size i = n1; i < n2; ++i) {
                 // 'continuity equation' for smoothing lengths
-                v[i][H] = r[i][H] / dimensions * divv[i];
+                if (r[i][H] > 2._f * minimal) {
+                    v[i][H] = r[i][H] / dimensions * divv[i];
+                } else {
+                    v[i][H] = 0._f;
+                }
 
                 /// \todo generalize for grad v
                 // no acceleration of smoothing lengths (we evolve h as first-order quantity)
@@ -400,6 +405,27 @@ public:
                 ASSERT(isReal(v[i]));
             }
         });
+    }
+
+    virtual void create(Storage& UNUSED(storage), Abstract::Material& UNUSED(material)) const override {}
+};
+
+
+/// We have to zero out derivatives arising from arithmetics on position vectors and velocitites
+class ConstSmoothingLength : public Abstract::EquationTerm {
+public:
+    virtual void setDerivatives(DerivativeHolder& UNUSED(derivatives),
+        const RunSettings& UNUSED(settings)) override {}
+
+    virtual void initialize(Storage& UNUSED(storage)) override {}
+
+    virtual void finalize(Storage& storage) override {
+        ArrayView<Vector> r, v, dv;
+        tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
+        for (Size i = 0; i < r.size(); ++i) {
+            v[i][H] = 0._f;
+            dv[i][H] = 0._f;
+        }
     }
 
     virtual void create(Storage& UNUSED(storage), Abstract::Material& UNUSED(material)) const override {}
