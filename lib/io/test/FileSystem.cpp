@@ -21,57 +21,59 @@ static std::string getRandomName() {
 
 class TestFile {
 private:
-    std::string name;
+    Path path;
 
 public:
     TestFile() {
-        name = getRandomName() + ".tmp";
-        std::ofstream ofs(name);
+        path = Path(getRandomName() + ".tmp");
+        std::ofstream ofs(path.native());
     }
 
     ~TestFile() {
-        remove(name.c_str());
+        remove(path.native().c_str());
     }
 
-    operator std::string() const {
-        return name;
+    operator Path() const {
+        return path;
     }
 };
 
 class TestDirectory {
 private:
-    std::string name;
+    Path path;
 
 public:
     TestDirectory() {
-        name = getRandomName();
-        createDirectory(name);
+        path = Path(getRandomName());
+        createDirectory(path);
     }
 
     ~TestDirectory() {
-        removeDirectory(name);
+        removeDirectory(path);
     }
 
-    operator std::string() const {
-        return name;
+    operator Path() const {
+        return path;
     }
 };
 
-TEST_CASE("File exists", "[filesystem]") {
+TEST_CASE("Path exists", "[filesystem]") {
     TestFile file;
-    REQUIRE(fileExists(file));
-    REQUIRE_FALSE(fileExists(std::string(file).substr(0, 8))); // extension is relevant
-    REQUIRE_FALSE(fileExists("dummy"));
+    REQUIRE(pathExists(file));
+    REQUIRE(pathExists(Path(file).makeAbsolute()));
+    REQUIRE_FALSE(pathExists(Path(file).removeExtension())); // extension is relevant
+    REQUIRE_FALSE(pathExists(Path("dummy")));
 }
 
 TEST_CASE("Create and remove directory", "[filesystem]") {
-    REQUIRE(createDirectory("dummyDir") == SUCCESS);
-    REQUIRE(createDirectory("dummyDir") == SUCCESS); // should not fail if the directory already exists
-    REQUIRE_FALSE(createDirectory("dummyDir", EMPTY_FLAGS));
-    REQUIRE(fileExists("dummyDir"));
-    /// \todo REQUIRE(createDirectory("dummyDir1/dummyDir2") == SUCCESS);
+    Path dummyPath("dummyDir");
+    REQUIRE(createDirectory(dummyPath) == SUCCESS);
+    REQUIRE(createDirectory(dummyPath) == SUCCESS); // should not fail if the directory already exists
+    REQUIRE_FALSE(createDirectory(dummyPath, EMPTY_FLAGS));
+    REQUIRE(pathExists(dummyPath));
+    REQUIRE(createDirectory(Path("dummyDir1/dummyDir2")) == SUCCESS);
 
-    REQUIRE(removeDirectory("dummyDir"));
-    REQUIRE_FALSE(fileExists("dummyDir"));
-    /// \todo REQUIRE(removeDirectory("dummyDir1"));
+    REQUIRE(removeDirectory(dummyPath));
+    REQUIRE_FALSE(pathExists(dummyPath));
+    REQUIRE(removeDirectory(Path("dummyDir1")));
 }

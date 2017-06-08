@@ -18,21 +18,21 @@ TEST_CASE("FileLogger", "[logger]") {
         // REQUIRE_THROWS(FileLogger("log1.txt"));
         logger.write("first line");
     }
-    std::string content = readFile("log1.txt");
+    std::string content = readFile(Path("log1.txt"));
     REQUIRE(content == "first line\n");
 
     {
         FileLogger logger("log1.txt", FileLogger::Options::APPEND);
         logger.write("second line");
     }
-    content = readFile("log1.txt");
+    content = readFile(Path("log1.txt"));
     REQUIRE(content == "first line\nsecond line\n");
 
     {
         FileLogger logger("log1.txt");
         logger.write("file cleared");
     }
-    content = readFile("log1.txt");
+    content = readFile(Path("log1.txt"));
     REQUIRE(content == "file cleared\n");
 }
 
@@ -41,7 +41,7 @@ TEST_CASE("FileLogger timestamp", "[logger]") {
         FileLogger logger("log2.txt", FileLogger::Options::ADD_TIMESTAMP);
         logger.write("hello world");
     }
-    std::string content = readFile("log2.txt");
+    std::string content = readFile(Path("log2.txt"));
     REQUIRE(!content.empty());
     REQUIRE(content.find("hello world") != std::string::npos);
 
@@ -57,9 +57,9 @@ TEST_CASE("FileLogger Open when writing", "[logger]") {
     FileLogger logger("log3.txt", FileLogger::Options::OPEN_WHEN_WRITING);
     REQUIRE_NOTHROW(logger.write("first line"));
     std::string content;
-    REQUIRE_NOTHROW(content = readFile("log3.txt"));
+    REQUIRE_NOTHROW(content = readFile(Path("log3.txt")));
     REQUIRE(content == "first line\n");
     REQUIRE_NOTHROW(logger.write("second line"));
-    REQUIRE_NOTHROW(content = readFile("log3.txt"));
+    REQUIRE_NOTHROW(content = readFile(Path("log3.txt")));
     REQUIRE(content == "first line\nsecond line\n");
 }

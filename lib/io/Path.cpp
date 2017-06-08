@@ -90,7 +90,18 @@ Path& Path::replaceExtension(const std::string& newExtension) {
 }
 
 Path& Path::removeExtension() {
-    NOT_IMPLEMENTED;
+    const Path name = this->fileName();
+    if (name.empty() || name.path == "." || name.path == "..") {
+        return *this;
+    }
+    const std::size_t n = name.path.find('.', 1);
+    if (n == std::string::npos) {
+        // no extension, do nothing
+        return *this;
+    } else {
+        path = path.substr(0, path.size() - name.path.size() + n);
+    }
+    return *this;
 }
 
 Path& Path::removeSpecialDirs() {

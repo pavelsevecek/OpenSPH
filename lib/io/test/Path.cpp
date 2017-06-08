@@ -20,6 +20,15 @@ TEST_CASE("Path equality", "[path]") {
     REQUIRE_FALSE(Path("/usr/lib") == Path("/ussr/lib"));
 }
 
+TEST_CASE("Path append", "[path]") {
+    REQUIRE(Path("/usr/local/") / Path("share") == Path("/usr/local/share"));
+    REQUIRE(Path("/usr/local") / Path("share") == Path("/usr/local/share"));
+    REQUIRE(Path() / Path("/usr/local") == Path("/usr/local"));
+    REQUIRE(Path() / Path("usr/local") == Path("usr/local"));
+    REQUIRE(Path("/usr/local") / Path() == Path("/usr/local"));
+    REQUIRE(Path() / Path() == Path());
+}
+
 TEST_CASE("Path isHidden", "[path]") {
     REQUIRE(Path(".gitignore").isHidden());
     REQUIRE(Path("/home/pavel/.gitignore").isHidden());
@@ -62,6 +71,17 @@ TEST_CASE("Path replaceExtension", "[path]") {
     REQUIRE(Path("/usr/file.").replaceExtension("tmp") == Path("/usr/file.tmp"));
     REQUIRE(Path("/usr/.gitignore").replaceExtension("tmp") == Path("/usr/.gitignore.tmp"));
     REQUIRE(Path("/usr/local/..").replaceExtension("tmp") == Path("/usr/local/.."));
+}
+
+TEST_CASE("Path removeExtension", "[path]") {
+    REQUIRE(Path().removeExtension() == Path());
+    REQUIRE(Path("/").removeExtension() == Path("/"));
+    REQUIRE(Path("/usr/.").removeExtension() == Path("/usr/."));
+    REQUIRE(Path("/usr/file").removeExtension() == Path("/usr/file"));
+    REQUIRE(Path("/usr/file.tar.gz").removeExtension() == Path("/usr/file"));
+    REQUIRE(Path("/usr/file.").removeExtension() == Path("/usr/file"));
+    REQUIRE(Path("/usr/.gitignore").removeExtension() == Path("/usr/.gitignore"));
+    REQUIRE(Path("/usr/local/..").removeExtension() == Path("/usr/local/.."));
 }
 
 TEST_CASE("Path removeSpecialDirs", "[path]") {
@@ -112,6 +132,13 @@ TEST_CASE("Path makeRelative", "[path]") {
     REQUIRE(Path("/home/pavel/projects/astro/").makeRelative() == Path("../../.."));
     REQUIRE(Path("file").makeAbsolute().makeRelative() == Path("file"));
     REQUIRE(Path("/home/pavel/test").makeRelative().makeAbsolute() == Path("/home/pavel/test"));
+}
+
+TEST_CASE("Path native", "[path]") {
+    REQUIRE(Path().native() == "");
+    REQUIRE(Path("/").native() == "/");
+    REQUIRE(Path("\\").native() == "/");
+    REQUIRE(Path("/usr\\\\local////test").native() == "/usr/local/test");
 }
 
 TEST_CASE("Current path", "[path]") {

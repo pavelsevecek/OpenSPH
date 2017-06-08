@@ -28,6 +28,6 @@ TEST_CASE("Dumping data", "[output]") {
                    5                   1                   1                   1                   0                   0                   0
                    5                   2                   2                   2                   0                   0                   0
 )";
-    std::string content = readFile("tmp0000.out");
+    std::string content = readFile(Path("tmp0000.out"));
     REQUIRE(content == expected);
 }
