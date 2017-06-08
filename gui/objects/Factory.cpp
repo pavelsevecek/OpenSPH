@@ -37,6 +37,9 @@ AutoPtr<Abstract::Element> Factory::getElement(const GuiSettings& settings, cons
     case ElementId::VELOCITY:
         range = settings.get<Range>(GuiSettingsId::PALETTE_VELOCITY);
         return makeAuto<VelocityElement>(range);
+    case ElementId::ACCELERATION:
+        range = settings.get<Range>(GuiSettingsId::PALETTE_ACCELERATION);
+        return makeAuto<AccelerationElement>(range);
     default:
         QuantityId quantity = QuantityId(id);
         ASSERT(int(quantity) >= 0);
@@ -117,6 +120,13 @@ Palette Factory::getPalette(const ElementId id, const Range range) {
     } else {
         switch (id) {
         case ElementId::VELOCITY:
+            return Palette({ { x0, Color(0.5f, 0.5f, 0.5f) },
+                               { x0 + 0.001f * dx, Color(0.0f, 0.0f, 0.2f) },
+                               { x0 + 0.01f * dx, Color(0.0f, 0.0f, 1.0f) },
+                               { x0 + 0.1f * dx, Color(1.0f, 0.0f, 0.2f) },
+                               { x0 + dx, Color(1.0f, 1.0f, 0.2f) } },
+                PaletteScale::LOGARITHMIC);
+        case ElementId::ACCELERATION:
             return Palette({ { x0, Color(0.5f, 0.5f, 0.5f) },
                                { x0 + 0.001f * dx, Color(0.0f, 0.0f, 0.2f) },
                                { x0 + 0.01f * dx, Color(0.0f, 0.0f, 1.0f) },

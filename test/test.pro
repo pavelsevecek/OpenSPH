@@ -133,7 +133,8 @@ SOURCES += \
     ../lib/sph/equations/av/test/Stress.cpp \
     ../lib/sph/solvers/test/Impact.cpp \
     ../lib/math/test/Roots.cpp \
-    ../lib/io/test/FileSystem.cpp
+    ../lib/io/test/FileSystem.cpp \
+    ../lib/io/test/Path.cpp
 
 HEADERS += \
     utils/Utils.h \

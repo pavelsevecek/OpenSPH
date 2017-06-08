@@ -68,6 +68,8 @@ enum class GuiSettingsId {
 
     PALETTE_VELOCITY,
 
+    PALETTE_ACCELERATION,
+
     PALETTE_PRESSURE,
 
     PALETTE_ENERGY,

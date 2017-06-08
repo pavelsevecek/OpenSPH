@@ -250,20 +250,10 @@ public:
         return q.getD2t<TValue>();
     }
 
+    /// Retrieves a quantity second derivative from the storage, given its key and value type, const version.
     template <typename TValue>
-    Array<TValue>& getHighestDerivative(const QuantityId key) {
-        Quantity& q = this->getQuantity(key);
-        ASSERT(q.getValueEnum() == GetValueEnum<TValue>::type);
-        switch (q.getOrderEnum()) {
-        case OrderEnum::ZERO:
-            return q.getValue<TValue>();
-        case OrderEnum::FIRST:
-            return q.getDt<TValue>();
-        case OrderEnum::SECOND:
-            return q.getD2t<TValue>();
-        default:
-            NOT_IMPLEMENTED;
-        }
+    const Array<TValue>& getD2t(const QuantityId key) const {
+        return const_cast<Storage*>(this)->getD2t<TValue>(key);
     }
 
     /// Retrieves an array of quantities from the key. The type of all quantities must be the same and equal

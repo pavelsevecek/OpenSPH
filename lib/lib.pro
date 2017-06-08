@@ -72,7 +72,8 @@ SOURCES += \
     math/SparseMatrix.cpp \
     geometry/SymmetricTensor.cpp \
     sph/solvers/StaticSolver.cpp \
-    objects/containers/StringUtils.cpp
+    objects/containers/StringUtils.cpp \
+    io/Path.cpp
 
 HEADERS += \
     commmon/ForwardDecl.h \
@@ -212,4 +213,5 @@ HEADERS += \
     sph/equations/av/Stress.h \
     objects/wrappers/ClonePtr.h \
     math/Roots.h \
-    physics/Analytic.h
+    physics/Analytic.h \
+    io/Path.h

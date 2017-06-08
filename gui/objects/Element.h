@@ -64,8 +64,9 @@ namespace Detail {
 /// TypedElement with given quantity ID.
 enum class ElementId {
     VELOCITY = -1,     ///< Particle velocities
-    DIRECTION = -2,    ///< Projected direction of motion
-    DISPLACEMENT = -3, ///< Difference between current positions and initial positions
+    ACCELERATION = -2, ///< Acceleration of particles
+    DIRECTION = -3,    ///< Projected direction of motion
+    DISPLACEMENT = -4  ///< Difference between current positions and initial positions
 };
 
 /// Default element simply converting quantity value to color using defined palette. Vector and tensor
@@ -138,6 +139,39 @@ public:
 
     virtual std::string name() const override {
         return "Velocity";
+    }
+};
+
+class AccelerationElement : public Abstract::Element {
+private:
+    Palette palette;
+    ArrayView<const Vector> values;
+    Array<Vector> cached;
+
+public:
+    AccelerationElement(const Range range)
+        : palette(Factory::getPalette(ElementId::ACCELERATION, range)) {}
+
+    virtual void initialize(const Storage& storage, const ElementSource source) override {
+        if (source == ElementSource::CACHE_ARRAYS) {
+            cached = copyable(storage.getD2t<Vector>(QuantityId::POSITIONS));
+            values = cached;
+        } else {
+            values = storage.getD2t<Vector>(QuantityId::POSITIONS);
+        }
+    }
+
+    virtual Color eval(const Size idx) const override {
+        ASSERT(values);
+        return palette(Detail::getElementValue(values[idx]));
+    }
+
+    virtual Optional<Palette> getPalette() const override {
+        return palette;
+    }
+
+    virtual std::string name() const override {
+        return "Acceleration";
     }
 };
 

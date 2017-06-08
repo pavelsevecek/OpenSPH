@@ -180,6 +180,7 @@ Array<SharedPtr<Abstract::Element>> Controller::getElementList(const Storage& st
     };
     Array<SharedPtr<Abstract::Element>> elements;
     elements.push(Factory::getElement(gui, ElementId::VELOCITY));
+    elements.push(Factory::getElement(gui, ElementId::ACCELERATION));
     for (QuantityId id : quantityElementIds) {
         if (storage.has(id)) {
             elements.push(Factory::getElement(gui, ElementId(id)));
