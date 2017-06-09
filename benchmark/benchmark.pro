@@ -1,5 +1,5 @@
 TEMPLATE = app
-CONFIG += console c++14 thread silent
+CONFIG += c++14 thread silent
 CONFIG -= app_bundle
 CONFIG -= qt
 
@@ -27,9 +27,12 @@ CONFIG(debug, debug|profile|assert|release) {
   DEFINES += DEBUG PROFILE
 }
 
-INCLUDEPATH += ../lib ../../external/benchmark/include
+INCLUDEPATH += . ../lib ..
 DEPENDPATH += . ../lib
-LIBS += ../lib/libsph.a -lbenchmark
+LIBS += ../lib/liblib.a
 SOURCES += main.cpp \
-    ../lib/objects/finders/benchmark/Finders.cpp \
-    ../lib/solvers/benchmark/ContinuitySolver.cpp
+    Benchmark.cpp \
+    TestBenchmark.cpp
+
+HEADERS += \
+    Benchmark.h

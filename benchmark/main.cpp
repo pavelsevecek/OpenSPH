@@ -1,3 +1,7 @@
-#include "benchmark/benchmark_api.h"
+#include "benchmark/Benchmark.h"
 
-BENCHMARK_MAIN();
+int main(int argc, char* argv[]) {
+    Sph::Assert::isTest = true;
+    Sph::Benchmark::Session::getInstance().run(argc, argv);
+    return 0;
+}
