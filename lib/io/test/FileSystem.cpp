@@ -8,8 +8,8 @@
 using namespace Sph;
 
 static std::string getRandomName() {
+    static UniformRng rng(time(NULL));
     static char chars[] = "abcdefghijklmnopqrstuvwxyz0123456789";
-    UniformRng rng(time(NULL));
     std::string name;
     for (Size i = 0; i < 8; ++i) {
         // -1 for terminating zero, -2 is the last indexable position
@@ -24,13 +24,20 @@ private:
     Path path;
 
 public:
-    TestFile() {
-        path = Path(getRandomName() + ".tmp");
+    TestFile(const Path& parentDir = Path()) {
+        path = parentDir / Path(getRandomName() + ".tmp");
         std::ofstream ofs(path.native());
     }
 
+    TestFile(TestFile&& other)
+        : path(std::move(other.path)) {
+        other.path = Path();
+    }
+
     ~TestFile() {
-        remove(path.native().c_str());
+        if (!path.empty()) {
+            removePath(path);
+        }
     }
 
     operator Path() const {
@@ -43,13 +50,13 @@ private:
     Path path;
 
 public:
-    TestDirectory() {
-        path = Path(getRandomName());
+    TestDirectory(const Path& parentDir = Path()) {
+        path = parentDir / Path(getRandomName());
         createDirectory(path);
     }
 
     ~TestDirectory() {
-        removeDirectory(path);
+        removePath(path);
     }
 
     operator Path() const {
@@ -57,12 +64,35 @@ public:
     }
 };
 
-TEST_CASE("Path exists", "[filesystem]") {
+TEST_CASE("PathExists", "[filesystem]") {
     TestFile file;
     REQUIRE(pathExists(file));
     REQUIRE(pathExists(Path(file).makeAbsolute()));
     REQUIRE_FALSE(pathExists(Path(file).removeExtension())); // extension is relevant
     REQUIRE_FALSE(pathExists(Path("dummy")));
+}
+
+TEST_CASE("RemovePath", "[filesystem]") {
+    REQUIRE_FALSE(removePath(Path("")));
+    REQUIRE_FALSE(removePath(Path("fdsafdqfqffqfdq")));
+    TestFile file;
+    REQUIRE(removePath(file));
+}
+
+TEST_CASE("DirectoryIterator", "[filesystem]") {
+    TestDirectory dir;
+    Array<TestFile> files;
+    for (Size i = 0; i < 5; ++i) {
+        files.emplaceBack(dir);
+    }
+    Size found = 0;
+    for (Path path : iterateDirectory(dir)) {
+        REQUIRE(std::find_if(files.begin(), files.end(), [&path, &dir](TestFile& file) {
+            return Path(file) == Path(dir) / path;
+        }) != files.end());
+        found++;
+    }
+    REQUIRE(found == 5);
 }
 
 TEST_CASE("Create and remove directory", "[filesystem]") {
@@ -73,7 +103,8 @@ TEST_CASE("Create and remove directory", "[filesystem]") {
     REQUIRE(pathExists(dummyPath));
     REQUIRE(createDirectory(Path("dummyDir1/dummyDir2")) == SUCCESS);
 
-    REQUIRE(removeDirectory(dummyPath));
+    REQUIRE(removePath(dummyPath));
     REQUIRE_FALSE(pathExists(dummyPath));
-    REQUIRE(removeDirectory(Path("dummyDir1")));
+    REQUIRE_FALSE(removePath(Path("dummyDir1")));
+    //   REQUIRE(removePath(Path("dummyDir1"), RemovePathFlag::RECURSIVE));
 }

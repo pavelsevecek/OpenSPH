@@ -10,8 +10,19 @@
 
 NAMESPACE_SPH_BEGIN
 
+std::string readFile(const Path& path) {
+    std::ifstream t(path.native().c_str());
+    std::stringstream buffer;
+    buffer << t.rdbuf();
+    return buffer.str();
+}
+
+
 bool pathExists(const Path& path) {
     struct stat buffer;
+    if (path.empty()) {
+        return false;
+    }
     return (stat(path.native().c_str(), &buffer) == 0);
 }
 
@@ -60,7 +71,7 @@ Outcome createDirectory(const Path& path, const Flags<CreateDirectoryFlag> flags
     return (Outcome)std::experimental::filesystem::create_directories(path);
 #else
     const Path parentPath = path.parentPath();
-    if (!pathExists(parentPath)) {
+    if (!parentPath.empty() && !pathExists(parentPath)) {
         const Outcome result = createDirectory(parentPath, flags);
         if (!result) {
             return result;
@@ -70,7 +81,7 @@ Outcome createDirectory(const Path& path, const Flags<CreateDirectoryFlag> flags
 #endif
 }
 
-Outcome removeDirectory(const Path& path) {
+Outcome removePath(const Path& path, const Flags<RemovePathFlag> flags) {
 #ifdef SPH_USE_STD_EXPERIMENTAL
     try {
         std::experimental::filesystem::remove_all(path);
@@ -79,16 +90,121 @@ Outcome removeDirectory(const Path& path) {
     }
     return SUCCESS;
 #else
-    ASSERT(!path.empty() && !path.isRoot());
-    return (Outcome)(remove(path.native().c_str()) == 0);
+    if (path.empty()) {
+        return "Attempting to remove an empty path";
+    }
+    if (path.isRoot()) {
+        return "Attemping to remove root. Pls, don't ...";
+    }
+    if (!pathExists(path)) {
+        return "Attemping to remove nonexisting path";
+    }
+    if (flags.has(RemovePathFlag::RECURSIVE)) {
+        for (Path child : iterateDirectory(path)) {
+            removePath(child, flags);
+        }
+    }
+
+    const bool result = (remove(path.native().c_str()) == 0);
+    if (!result) {
+        switch (errno) {
+        case EACCES:
+            return "Write access to the directory containing pathname was not allowed, or one of the "
+                   "directories in the path prefix of pathname did not allow search permission.";
+        case EBUSY:
+            return "Path is currently in use by the system or some process that prevents its removal.On "
+                   "Linux this means pathname is currently used as a mount point or is the root directory of "
+                   "the calling process.";
+        case EFAULT:
+            return "Path points outside your accessible address space.";
+        case EINVAL:
+            return "Path has . as last component.";
+        case ELOOP:
+            return "Too many symbolic links were encountered in resolving pathname.";
+        case ENAMETOOLONG:
+            return "Path was too long.";
+        case ENOENT:
+            return "A directory component in pathname does not exist or is a dangling symbolic link.";
+        case ENOMEM:
+            return "Insufficient kernel memory was available.";
+        case ENOTDIR:
+            return "Path or a component used as a directory in pathname, is not, in fact, a directory.";
+        case ENOTEMPTY:
+            return "Path contains entries other than . and ..; or, pathname has .. as its final component.";
+        case EPERM:
+            return "The directory containing pathname has the sticky bit(S_ISVTX) set and the process's "
+                   "effective user ID is neither the user ID of the file to be deleted nor that of the "
+                   "directory containing it, and the process is not privileged (Linux: does not have the "
+                   "CAP_FOWNER capability).";
+        /*case EPERM:
+            "The file system containing pathname does not support the removal of directories.";*/
+        case EROFS:
+            return "Path refers to a directory on a read-only file system.";
+        default:
+            return "Unknown error";
+        }
+    }
+    return SUCCESS;
 #endif
 }
 
-std::string readFile(const Path& path) {
-    std::ifstream t(path.native().c_str());
-    std::stringstream buffer;
-    buffer << t.rdbuf();
-    return buffer.str();
+DirectoryIterator::DirectoryIterator(DIR* dir)
+    : dir(dir) {
+    if (dir) {
+        // find first file
+        this->operator++();
+    }
+}
+
+DirectoryIterator& DirectoryIterator::operator++() {
+    if (!dir) {
+        return *this;
+    }
+    do {
+        entry = readdir(dir);
+    } while (entry && (**this == Path(".") || **this == Path("..")));
+    return *this;
+}
+
+Path DirectoryIterator::operator*() const {
+    ASSERT(entry);
+    return Path(entry->d_name);
+}
+
+bool DirectoryIterator::operator!=(const DirectoryIterator& other) const {
+    // returns false if both are nullptr to end the loop for nonexisting dirs
+    return (entry || other.entry) && entry != other.entry;
+}
+
+DirectoryAdapter::DirectoryAdapter(const Path& directory) {
+    if (!pathExists(directory)) {
+        dir = nullptr;
+        return;
+    }
+    dir = opendir(directory.native().c_str());
+}
+
+DirectoryAdapter::~DirectoryAdapter() {
+    if (dir) {
+        closedir(dir);
+    }
+}
+
+DirectoryAdapter::DirectoryAdapter(DirectoryAdapter&& other)
+    : dir(other.dir) {
+    other.dir = nullptr;
+}
+
+DirectoryIterator DirectoryAdapter::begin() const {
+    return DirectoryIterator(dir);
+}
+
+DirectoryIterator DirectoryAdapter::end() const {
+    return DirectoryIterator(nullptr);
+}
+
+DirectoryAdapter iterateDirectory(const Path& directory) {
+    return DirectoryAdapter(directory);
 }
 
 NAMESPACE_SPH_END
