@@ -101,7 +101,10 @@ Outcome removePath(const Path& path, const Flags<RemovePathFlag> flags) {
     }
     if (flags.has(RemovePathFlag::RECURSIVE)) {
         for (Path child : iterateDirectory(path)) {
-            removePath(child, flags);
+            Outcome result = removePath(path / child, flags);
+            if (!result) {
+                return result;
+            }
         }
     }
 
@@ -112,36 +115,41 @@ Outcome removePath(const Path& path, const Flags<RemovePathFlag> flags) {
             return "Write access to the directory containing pathname was not allowed, or one of the "
                    "directories in the path prefix of pathname did not allow search permission.";
         case EBUSY:
-            return "Path is currently in use by the system or some process that prevents its removal.On "
+            return "Path " + path.native() +
+                   "is currently in use by the system or some process that prevents its removal.On "
                    "Linux this means pathname is currently used as a mount point or is the root directory of "
                    "the calling process.";
         case EFAULT:
-            return "Path points outside your accessible address space.";
+            return "Path " + path.native() + " points outside your accessible address space.";
         case EINVAL:
-            return "Path has . as last component.";
+            return "Path " + path.native() + " has . as last component.";
         case ELOOP:
-            return "Too many symbolic links were encountered in resolving pathname.";
+            return "Too many symbolic links were encountered in resolving path " + path.native();
         case ENAMETOOLONG:
-            return "Path was too long.";
+            return "Path " + path.native() + " was too long.";
         case ENOENT:
-            return "A directory component in pathname does not exist or is a dangling symbolic link.";
+            return "A directory component in path " + path.native() +
+                   " does not exist or is a dangling symbolic link.";
         case ENOMEM:
             return "Insufficient kernel memory was available.";
         case ENOTDIR:
-            return "Path or a component used as a directory in pathname, is not, in fact, a directory.";
+            return "Path " + path.native() +
+                   " or a component used as a directory in pathname, is not, in fact, a directory.";
         case ENOTEMPTY:
-            return "Path contains entries other than . and ..; or, pathname has .. as its final component.";
+            return "Path " + path.native() +
+                   " contains entries other than . and ..; or, pathname has .. as its final component.";
         case EPERM:
-            return "The directory containing pathname has the sticky bit(S_ISVTX) set and the process's "
+            return "The directory containing path " + path.native() +
+                   " has the sticky bit(S_ISVTX) set and the process's "
                    "effective user ID is neither the user ID of the file to be deleted nor that of the "
                    "directory containing it, and the process is not privileged (Linux: does not have the "
                    "CAP_FOWNER capability).";
         /*case EPERM:
             "The file system containing pathname does not support the removal of directories.";*/
         case EROFS:
-            return "Path refers to a directory on a read-only file system.";
+            return "Path " + path.native() + " refers to a directory on a read-only file system.";
         default:
-            return "Unknown error";
+            return "Unknown error for path " + path.native();
         }
     }
     return SUCCESS;

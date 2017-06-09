@@ -34,9 +34,15 @@ public:
         other.path = Path();
     }
 
+    // Avoid deleting (and possibly asserting on fail) the file in destructor
+    void markDeleted() {
+        path = Path();
+    }
+
     ~TestFile() {
         if (!path.empty()) {
-            removePath(path);
+            Outcome result = removePath(path);
+            ASSERT(result);
         }
     }
 
@@ -56,7 +62,8 @@ public:
     }
 
     ~TestDirectory() {
-        removePath(path);
+        Outcome result = removePath(path, RemovePathFlag::RECURSIVE);
+        ASSERT(result);
     }
 
     operator Path() const {
@@ -77,6 +84,7 @@ TEST_CASE("RemovePath", "[filesystem]") {
     REQUIRE_FALSE(removePath(Path("fdsafdqfqffqfdq")));
     TestFile file;
     REQUIRE(removePath(file));
+    file.markDeleted();
 }
 
 TEST_CASE("DirectoryIterator", "[filesystem]") {
@@ -106,5 +114,5 @@ TEST_CASE("Create and remove directory", "[filesystem]") {
     REQUIRE(removePath(dummyPath));
     REQUIRE_FALSE(pathExists(dummyPath));
     REQUIRE_FALSE(removePath(Path("dummyDir1")));
-    //   REQUIRE(removePath(Path("dummyDir1"), RemovePathFlag::RECURSIVE));
+    REQUIRE(removePath(Path("dummyDir1"), RemovePathFlag::RECURSIVE));
 }
