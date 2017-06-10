@@ -7,11 +7,10 @@ SUBDIRS = lib \
           problems \
           gui \
           test \
-          benchmark
-      
+          bench
 
 run.depends = lib
 problems.depends = lib
 gui.depends = lib
 test.depends = lib
-benchmark.depends = lib
+bench.depends = lib

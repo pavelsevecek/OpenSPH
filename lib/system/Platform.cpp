@@ -1,4 +1,5 @@
 #include "system/Platform.h"
+#include "io/FileSystem.h"
 #include "objects/containers/StaticArray.h"
 #include "objects/wrappers/Finally.h"
 #include <fcntl.h>
@@ -40,9 +41,12 @@ Outcome showNotification(const std::string& title, const std::string& message) {
 
 /// Returns current git commit hash as string. If the git repository is not found or command fails, returns
 /// empty string.
-std::string getGitCommit(const std::string& pathToGitRoot) {
+Expected<std::string> getGitCommit(const Path& pathToGitRoot) {
+    if (!pathExists(pathToGitRoot)) {
+        return makeUnexpected<std::string>("Invalid path");
+    }
     StaticArray<char, 128> buffer;
-    std::string command = "cd " + pathToGitRoot + " && git rev-parse HEAD";
+    std::string command = "cd " + pathToGitRoot.native() + " && git rev-parse HEAD";
     std::string result;
     FILE* pipe = popen(command.c_str(), "r");
     auto f = finally([pipe] { pclose(pipe); });
@@ -50,10 +54,24 @@ std::string getGitCommit(const std::string& pathToGitRoot) {
         return "";
     }
     while (!feof(pipe)) {
-        if (fgets(&buffer[0], 128, pipe) != NULL)
+        if (fgets(&buffer[0], 128, pipe) != NULL) {
             result += &buffer[0];
+        }
     }
-    return result;
+    // remove \n if in the string
+    std::size_t n;
+    if ((n = result.find("\n")) != std::string::npos) {
+        result = result.substr(0, n);
+    }
+    // some sanity checks so that we don't return nonsense
+    if (result.size() != 40) {
+        return makeUnexpected<std::string>(
+            "Returned git SHA has incorrent length (" + std::to_string(result.size()) + ")");
+    } else if (result.find_first_not_of("0123456789abcdef") != std::string::npos) {
+        return makeUnexpected<std::string>("Returned git SHA contains invalid characters");
+    } else {
+        return result;
+    }
 }
 
 bool isDebuggerPresent() {

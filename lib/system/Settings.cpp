@@ -181,6 +181,7 @@ bool Settings<TEnum>::setValueByType(Entry& entry, const Size typeIdx, const std
             return false;
         } else {
             entry.value = TracelessTensor(txx, tyy, txy, txz, tyz);
+            return true;
         }
     default:
         NOT_IMPLEMENTED;

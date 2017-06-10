@@ -32,6 +32,8 @@ NAMESPACE_SPH_BEGIN
 #define UNUSED_IN_RELEASE(x)
 #endif
 
+#define SPH_CPP17
+
 #ifdef SPH_CPP17
 #define FALLTHROUGH [[fallthrough]];
 #else

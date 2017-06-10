@@ -144,6 +144,7 @@ static void storeBuffers(Quantity& q, TStoreValue&& storeValue) {
         for (Size i = 0; i < q.size(); ++i) {
             storeValue(buffers[1][i]); // store derivative
         }
+        break;
     default:
         STOP;
     }

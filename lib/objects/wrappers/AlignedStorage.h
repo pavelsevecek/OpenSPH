@@ -12,12 +12,18 @@ NAMESPACE_SPH_BEGIN
 
 /// \brief Simple block of memory on stack with size and alignment given by template type
 
-/// AlignedStorage can be used to construct an object on stack while sidestepping default construction. 
-/// Objects can be therefore default-constructed even if the underlying type does not have default constructor.
+/// AlignedStorage can be used to construct an object on stack while sidestepping default construction.
+/// Objects can be therefore default-constructed even if the underlying type does not have default
+/// constructor.
 /// Stored object can be later constructed by calling \ref emplace method. Note that when constructed,
 /// it has to be later destroyed by explicitly calling \ref destroy method, this is not done
 /// automatically! This object does NO checks when the stored value is accessed, or whether it is
 /// constructed multiple times. This is left to the user.
+
+// dereferencing type-punned pointer will break strict-aliasing rules
+#pragma GCC diagnostic ignored "-Wstrict-aliasing"
+/// \todo It's weird that GCC issues this warning as we are using __may_alias__ attribute. Perhaps a bug?
+
 template <typename Type>
 class AlignedStorage {
 private:

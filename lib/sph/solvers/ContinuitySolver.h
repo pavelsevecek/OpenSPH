@@ -39,6 +39,7 @@ private:
         // adaptivity of smoothing length
         if (settings.get<SmoothingLengthEnum>(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH) !=
             SmoothingLengthEnum::CONST) {
+            /// \todo add test checking that with ConstSmoothingLength the h will indeed be const
             equations += makeTerm<AdaptiveSmoothingLength>(settings);
         } else {
             equations += makeTerm<ConstSmoothingLength>();

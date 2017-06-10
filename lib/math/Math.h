@@ -251,7 +251,7 @@ INLINE auto abs(const int& f) {
 
 template <>
 INLINE auto abs(const Size& f) {
-    return Size(::abs(f));
+    return Size(f);
 }
 
 template <typename T>

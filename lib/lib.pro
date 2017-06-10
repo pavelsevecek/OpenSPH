@@ -34,7 +34,6 @@ CONFIG(debug, debug|profile|assert|release) {
   DEFINES += SPH_DEBUG SPH_PROFILE
 }
 
-
 SOURCES += \
     common/Assert.cpp \
     geometry/Domain.cpp \
