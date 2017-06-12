@@ -4,6 +4,7 @@
 #include "gui/objects/Bitmap.h"
 #include "gui/objects/Camera.h"
 #include "gui/objects/Element.h"
+#include "io/FileSystem.h"
 #include "objects/containers/StringUtils.h"
 #include "system/Statistics.h"
 #include "thread/CheckFunction.h"
@@ -24,9 +25,9 @@ Movie::Movie(const GuiSettings& settings,
     , params(params) {
     enabled = settings.get<bool>(GuiSettingsId::IMAGES_SAVE);
     outputStep = settings.get<Float>(GuiSettingsId::IMAGES_TIMESTEP);
-    const std::string directory = settings.get<std::string>(GuiSettingsId::IMAGES_PATH);
-    const std::string name = settings.get<std::string>(GuiSettingsId::IMAGES_NAME);
-    paths = OutputFile(directory + name);
+    const Path directory(settings.get<std::string>(GuiSettingsId::IMAGES_PATH));
+    const Path name(settings.get<std::string>(GuiSettingsId::IMAGES_NAME));
+    paths = OutputFile(directory / name);
     static bool first = true;
     if (first) {
         wxInitAllImageHandlers();
@@ -48,9 +49,10 @@ void Movie::onTimeStep(const Storage& storage, Statistics& stats) {
     if (stats.get<Float>(StatisticsId::TOTAL_TIME) < nextOutput || !enabled) {
         return;
     }
-    const std::string path = paths.getNextPath();
+    const Path path = paths.getNextPath();
+    createDirectory(path.parentPath());
     for (auto& e : elements) {
-        std::string actPath = replace(path, "%e", escapeElementName(e->name()));
+        Path actPath(replace(path.native(), "%e", escapeElementName(e->name())));
         e->initialize(storage, ElementSource::POINTER_TO_STORAGE);
         auto functor = [this, actPath, &storage, &e, &stats] {
             // if the callback gets executed, it means the object is still alive and it's save to touch

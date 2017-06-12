@@ -58,7 +58,7 @@ void AsteroidCollision::setUp() {
     conds.addBody(domain2, bodySettings, Vector(-5.e3_f, 0._f, 0._f)); // 5km/s
     logger.write("Particles of projectile: ", storage->getParticleCnt() - n1);
 
-    std::string outputDir = "out/" + settings.get<std::string>(RunSettingsId::RUN_OUTPUT_NAME);
+    Path outputDir = Path("out") / Path(settings.get<std::string>(RunSettingsId::RUN_OUTPUT_NAME));
     output = makeAuto<TextOutput>(
         outputDir, settings.get<std::string>(RunSettingsId::RUN_NAME), TextOutput::Options::SCIENTIFIC);
     output->add(makeAuto<ParticleNumberColumn>());

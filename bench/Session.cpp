@@ -21,24 +21,43 @@ Session& Session::getInstance() {
 }
 
 void Session::registerBenchmark(const SharedPtr<Unit>& benchmark, const std::string& groupName) {
+    for (SharedPtr<Unit>& b : benchmarks) {
+        if (b->getName() == benchmark->getName()) {
+            status = "Benchmark " + b->getName() + " defined more than once";
+            return;
+        }
+    }
     benchmarks.push(benchmark);
     Group& group = this->getGroupByName(groupName);
     group.addBenchmark(benchmark);
 }
 
-Outcome Session::run(int argc, char* argv[]) {
+void Session::run(int argc, char* argv[]) {
     Outcome result = this->parseArgs(argc, argv);
     if (!result) {
-        return result;
+        this->logError(result.error());
+        return;
+    }
+#ifdef SPH_DEBUG
+    this->log("Warning: running benchmark in debugging build");
+#endif
+    if (!status) {
+        this->logError(status.error());
+        return;
     }
     if (params.flags.has(Flag::MAKE_BASELINE)) {
         /// \todo mode these paths to some config
         Expected<std::string> sha = getGitCommit(Path("../../src/"));
         if (!sha) {
-            return "Cannot determine git commit SHA";
+            this->logError("Cannot determine git commit SHA");
+            return;
         }
         this->log("Creating baseline for commit " + sha.value());
-        createDirectory(Path("../../baseline/") / Path(sha.value()));
+        result = createDirectory(Path("../../baseline/") / Path(sha.value()));
+        if (!result) {
+            this->logError(result.error());
+            return;
+        }
     }
 
     for (SharedPtr<Unit>& b : benchmarks) {
@@ -46,12 +65,13 @@ Outcome Session::run(int argc, char* argv[]) {
             Stats stats;
             Size elapsed;
             b->run(stats, elapsed);
-            this->log(b->getName() + " completed in " + std::to_string(elapsed) + " ms");
+            this->log(b->getName() + " completed in " + std::to_string(elapsed) + " ms (" +
+                      std::to_string(stats.count()) + " iterations)");
         } catch (std::exception& e) {
-            return e.what();
+            this->logError("Exception caught in benchmark " + b->getName() + ":\n" + e.what());
+            return;
         }
     }
-    return SUCCESS;
 }
 
 Group& Session::getGroupByName(const std::string& groupName) {
@@ -87,6 +107,10 @@ void Session::log(const std::string& text) {
     if (!params.flags.has(Flag::SILENT)) {
         logger->write(text);
     }
+}
+
+void Session::logError(const std::string& text) {
+    logger->write(text);
 }
 
 Register::Register(const SharedPtr<Unit>& benchmark, const std::string& groupName) {

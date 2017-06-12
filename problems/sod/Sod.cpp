@@ -86,7 +86,7 @@ public:
         InitialConditions initialConditions(*storage, this->settings);
         initialConditions.addBody(SphericalDomain(Vector(0.5_f), 0.5_f), bodySettings);
 
-        std::string outputDir = "sod/" + this->settings.get<std::string>(RunSettingsId::RUN_OUTPUT_NAME);
+        Path outputDir("sod/" + this->settings.get<std::string>(RunSettingsId::RUN_OUTPUT_NAME));
         this->output = makeAuto<GnuplotOutput>(outputDir,
             this->settings.get<std::string>(RunSettingsId::RUN_NAME),
             "sod.plt",

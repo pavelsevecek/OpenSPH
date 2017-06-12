@@ -46,15 +46,15 @@ private:
 
 public:
     DummyOutput(Array<Float>& outputTimes)
-        : Abstract::Output("%d")
+        : Abstract::Output(Path("%d"))
         , outputTimes(outputTimes) {}
 
-    virtual std::string dump(Storage& UNUSED(storage), const Statistics& stats) override {
+    virtual Path dump(Storage& UNUSED(storage), const Statistics& stats) override {
         outputTimes.push(stats.get<Float>(StatisticsId::TOTAL_TIME));
-        return "";
+        return Path();
     }
 
-    virtual Outcome load(const std::string& UNUSED(path), Storage& UNUSED(storage)) override {
+    virtual Outcome load(const Path& UNUSED(path), Storage& UNUSED(storage)) override {
         NOT_IMPLEMENTED;
     }
 };

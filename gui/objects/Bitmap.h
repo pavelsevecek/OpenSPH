@@ -1,10 +1,12 @@
 #pragma once
 
-/// Wrapper of wxBitmap, will be possibly replaced by custom implementation.
-/// Pavel Sevecek 2017
-/// sevecek at sirrah.troja.mff.cuni.cz
+/// \file Bitmap.h
+/// \brief Wrapper of wxBitmap, will be possibly replaced by custom implementation.
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2017
 
 #include "common/Assert.h"
+#include "io/Path.h"
 #include "objects/Object.h"
 #include <wx/bitmap.h>
 
@@ -25,9 +27,9 @@ public:
         return impl;
     }
 
-    void saveToFile(const std::string& path) const {
+    void saveToFile(const Path& path) const {
         ASSERT(impl.IsOk());
-        impl.SaveFile(path.c_str(), wxBITMAP_TYPE_PNG);
+        impl.SaveFile(path.native().c_str(), wxBITMAP_TYPE_PNG);
     }
 
     bool isOk() const {

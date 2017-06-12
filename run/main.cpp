@@ -39,7 +39,7 @@ public:
     virtual void setUp() override {
         // Sets initial coditions of the run
 
-        const std::string outputName = settings.get<std::string>(RunSettingsId::RUN_OUTPUT_NAME);
+        const Path outputName(settings.get<std::string>(RunSettingsId::RUN_OUTPUT_NAME));
         const std::string runName = settings.get<std::string>(RunSettingsId::RUN_NAME);
         // Creates output files - save as text
         output = makeAuto<TextOutput>(outputName, runName, TextOutput::Options::SCIENTIFIC);

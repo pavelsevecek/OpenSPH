@@ -1,5 +1,6 @@
 #pragma once
 
+#include "io/Path.h"
 #include "objects/wrappers/Outcome.h"
 #include "quantities/Storage.h"
 
@@ -8,15 +9,15 @@ NAMESPACE_SPH_BEGIN
 class OutputFile {
 private:
     mutable Size dumpNum = 0;
-    std::string pathMask;
+    Path pathMask;
 
 public:
     OutputFile() = default;
 
-    OutputFile(const std::string& pathMask);
+    OutputFile(const Path& pathMask);
 
-    /// Returns path to the next output file, incrementing the internal counter
-    std::string getNextPath() const;
+    /// Returns path to the next output file, incrementing the internal counter. No file is created by this.
+    Path getNextPath() const;
 };
 
 /// Interface for saving quantities of SPH particles to a file. Saves all values in the storage, and also 1st
@@ -32,7 +33,7 @@ namespace Abstract {
     public:
         /// Constructs output given the file name of the output. The name must contain '%d', which will be
         /// replaced by the dump number, starting from 0.
-        Output(const std::string& fileMask);
+        Output(const Path& fileMask);
 
         ~Output();
 
@@ -40,11 +41,11 @@ namespace Abstract {
         void add(AutoPtr<Abstract::Column>&& columns);
 
         /// Saves data from particle storage into the file. Returns the filename of the dump.
-        virtual std::string dump(Storage& storage, const Statistics& stats) = 0;
+        virtual Path dump(Storage& storage, const Statistics& stats) = 0;
 
         /// Loads data from the file into the storage. This will remove any data previously stored in storage.
         /// Can be used to continue simulation from saved snapshot.
-        virtual Outcome load(const std::string& path, Storage& storage) = 0;
+        virtual Outcome load(const Path& path, Storage& storage) = 0;
     };
 }
 
@@ -60,11 +61,11 @@ private:
     Flags<Options> flags;
 
 public:
-    TextOutput(const std::string& fileMask, const std::string& runName, const Flags<Options> flags);
+    TextOutput(const Path& fileMask, const std::string& runName, const Flags<Options> flags);
 
-    virtual std::string dump(Storage& storage, const Statistics& stats) override;
+    virtual Path dump(Storage& storage, const Statistics& stats) override;
 
-    virtual Outcome load(const std::string& path, Storage& storage) override;
+    virtual Outcome load(const Path& path, Storage& storage) override;
 };
 
 /// Extension of text output that runs given gnuplot script on dumped text data.
@@ -73,14 +74,14 @@ private:
     std::string scriptPath;
 
 public:
-    GnuplotOutput(const std::string& fileMask,
+    GnuplotOutput(const Path& fileMask,
         const std::string& runName,
         const std::string& scriptPath,
         const Flags<Options> flags)
         : TextOutput(fileMask, runName, flags)
         , scriptPath(scriptPath) {}
 
-    virtual std::string dump(Storage& storage, const Statistics& stats) override;
+    virtual Path dump(Storage& storage, const Statistics& stats) override;
 };
 
 
@@ -90,23 +91,23 @@ private:
     std::string runName;
 
 public:
-    BinaryOutput(const std::string& fileMask, const std::string& runName);
+    BinaryOutput(const Path& fileMask, const std::string& runName);
 
-    virtual std::string dump(Storage& storage, const Statistics& stats) override;
+    virtual Path dump(Storage& storage, const Statistics& stats) override;
 
-    virtual Outcome load(const std::string& path, Storage& storage) override;
+    virtual Outcome load(const Path& path, Storage& storage) override;
 };
 
 class NullOutput : public Abstract::Output {
 public:
     NullOutput()
-        : Abstract::Output("%d") {}
+        : Abstract::Output(Path("%d")) {}
 
-    virtual std::string dump(Storage& UNUSED(storage), const Statistics& UNUSED(stats)) override {
-        return "";
+    virtual Path dump(Storage& UNUSED(storage), const Statistics& UNUSED(stats)) override {
+        return Path();
     }
 
-    virtual Outcome load(const std::string& UNUSED(path), Storage& UNUSED(storage)) override {
+    virtual Outcome load(const Path& UNUSED(path), Storage& UNUSED(storage)) override {
         return SUCCESS;
     }
 };

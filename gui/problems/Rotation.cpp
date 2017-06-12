@@ -36,7 +36,7 @@ AsteroidRotation::AsteroidRotation(Controller* model, const Float period)
 
 class DisableDerivativesSolver : public ContinuitySolver {
 private:
-    Float delta = 0.3_f;
+    Float delta = 3._f;
 
 public:
     DisableDerivativesSolver(const RunSettings& settings, const EquationHolder& equations)
@@ -44,10 +44,12 @@ public:
 
     virtual void integrate(Storage& storage, Statistics& stats) override {
         ContinuitySolver::integrate(storage, stats);
-        iterate<VisitorEnum::FIRST_ORDER>(storage, [](const QuantityId id, auto& UNUSED(v), auto& dv) {
+        iterate<VisitorEnum::FIRST_ORDER>(storage, [this](const QuantityId id, auto& UNUSED(v), auto& dv) {
             using Type = typename std::decay_t<decltype(dv)>::Type;
-            if (id == QuantityId::DENSITY) {
-                // dv[i] /= 1._f + delta;
+            if (id == QuantityId::ENERGY) {
+                for (Size i = 0; i < dv.size(); ++i) {
+                    dv[i] /= 1._f + delta;
+                }
             } else {
                 for (Size i = 0; i < dv.size(); ++i) {
                     dv[i] = Type(0._f);
@@ -113,7 +115,7 @@ void AsteroidRotation::setUp() {
 
     logger.write("Particles of target: ", storage->getParticleCnt());
 
-    std::string outputDir = "out/" + settings.get<std::string>(RunSettingsId::RUN_OUTPUT_NAME);
+    Path outputDir = Path("out") / Path(settings.get<std::string>(RunSettingsId::RUN_OUTPUT_NAME));
     output = makeAuto<TextOutput>(
         outputDir, settings.get<std::string>(RunSettingsId::RUN_NAME), TextOutput::Options::SCIENTIFIC);
     output->add(makeAuto<ParticleNumberColumn>());

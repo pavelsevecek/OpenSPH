@@ -1,25 +1,26 @@
 ﻿#include "io/Output.h"
 #include "io/Column.h"
+#include "io/FileSystem.h"
 #include <fstream>
 
 NAMESPACE_SPH_BEGIN
 
-OutputFile::OutputFile(const std::string& pathMask)
+OutputFile::OutputFile(const Path& pathMask)
     : pathMask(pathMask) {
-    ASSERT(pathMask.find("%d", 0) != std::string::npos);
+    ASSERT(pathMask.native().find("%d", 0) != std::string::npos);
 }
 
-std::string OutputFile::getNextPath() const {
-    std::string path = pathMask;
-    Size n = pathMask.find("%d", 0);
+Path OutputFile::getNextPath() const {
+    std::string path = pathMask.native();
+    Size n = path.find("%d", 0);
     std::ostringstream ss;
     ss << std::setw(4) << std::setfill('0') << dumpNum;
     path.replace(n, 2, ss.str());
     dumpNum++;
-    return path;
+    return Path(path);
 }
 
-Abstract::Output::Output(const std::string& fileMask)
+Abstract::Output::Output(const Path& fileMask)
     : paths(fileMask) {}
 
 Abstract::Output::~Output() = default;
@@ -53,15 +54,16 @@ static void printHeader(std::ostream& ofs, const std::string& name, const ValueE
     }
 }
 
-TextOutput::TextOutput(const std::string& fileMask, const std::string& runName, const Flags<Options> flags)
+TextOutput::TextOutput(const Path& fileMask, const std::string& runName, const Flags<Options> flags)
     : Abstract::Output(fileMask)
     , runName(runName)
     , flags(flags) {}
 
-std::string TextOutput::dump(Storage& storage, const Statistics& stats) {
+Path TextOutput::dump(Storage& storage, const Statistics& stats) {
     ASSERT(!columns.empty(), "No column added to TextOutput");
-    const std::string fileName = paths.getNextPath();
-    std::ofstream ofs(fileName);
+    const Path fileName = paths.getNextPath();
+    createDirectory(fileName.parentPath());
+    std::ofstream ofs(fileName.native());
     // print description
     ofs << "# Run: " << runName << std::endl;
     ofs << "# SPH dump, time = " << stats.get<Float>(StatisticsId::TOTAL_TIME) << std::endl;
@@ -86,8 +88,8 @@ std::string TextOutput::dump(Storage& storage, const Statistics& stats) {
     return fileName;
 }
 
-Outcome TextOutput::load(const std::string& path, Storage& storage) {
-    std::ifstream ifs(path);
+Outcome TextOutput::load(const Path& path, Storage& storage) {
+    std::ifstream ifs(path.native());
     std::string line;
     storage.removeAll();
     Size i = 0;
@@ -105,18 +107,18 @@ Outcome TextOutput::load(const std::string& path, Storage& storage) {
     return SUCCESS;
 }
 
-std::string GnuplotOutput::dump(Storage& storage, const Statistics& stats) {
-    const std::string fileName = TextOutput::dump(storage, stats);
-    const std::string nameWithoutExt = fileName.substr(0, fileName.find_last_of("."));
+Path GnuplotOutput::dump(Storage& storage, const Statistics& stats) {
+    const Path path = TextOutput::dump(storage, stats);
+    const Path pathWithoutExt = Path(path).removeExtension();
     const Float time = stats.get<Float>(StatisticsId::TOTAL_TIME);
-    const std::string command =
-        "gnuplot -e \"filename='" + nameWithoutExt + "'; time=" + std::to_string(time) + "\" " + scriptPath;
+    const std::string command = "gnuplot -e \"filename='" + pathWithoutExt.native() +
+                                "'; time=" + std::to_string(time) + "\" " + scriptPath;
     const int returned = system(command.c_str());
     (void)returned;
-    return fileName;
+    return path;
 }
 
-BinaryOutput::BinaryOutput(const std::string& fileMask, const std::string& runName)
+BinaryOutput::BinaryOutput(const Path& fileMask, const std::string& runName)
     : Abstract::Output(fileMask)
     , runName(runName) {}
 
@@ -150,10 +152,10 @@ static void storeBuffers(Quantity& q, TStoreValue&& storeValue) {
     }
 }
 
-std::string BinaryOutput::dump(Storage& storage, const Statistics& stats) {
+Path BinaryOutput::dump(Storage& storage, const Statistics& stats) {
     ASSERT(!columns.empty() && "nothing to dump");
-    const std::string fileName = paths.getNextPath();
-    std::ofstream ofs(fileName.c_str());
+    const Path fileName = paths.getNextPath();
+    std::ofstream ofs(fileName.native());
     // file format identifie
     const Float time = stats.get<Float>(StatisticsId::TOTAL_TIME);
     ofs << "SPH" << time << storage.getParticleCnt() << storage.getQuantityCnt();
@@ -191,9 +193,9 @@ std::string BinaryOutput::dump(Storage& storage, const Statistics& stats) {
     return fileName;
 }
 
-Outcome BinaryOutput::load(const std::string& path, Storage& storage) {
+Outcome BinaryOutput::load(const Path& path, Storage& storage) {
     storage.removeAll();
-    std::ifstream ifs(path.c_str());
+    std::ifstream ifs(path.native());
     char identifier[4];
     ifs.read(identifier, 4);
     if (std::string(identifier) != "SPH") {

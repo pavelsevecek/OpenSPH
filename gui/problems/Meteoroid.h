@@ -25,7 +25,7 @@ public:
             .set(RunSettingsId::DOMAIN_TYPE, DomainEnum::CYLINDER)
             .set(RunSettingsId::DOMAIN_RADIUS, 1._f)
             .set(RunSettingsId::DOMAIN_HEIGHT, 2._f);
-        std::string outputDir = "out/" + settings.get<std::string>(RunSettingsId::RUN_OUTPUT_NAME);
+        Path outputDir = Path("out") / Path(settings.get<std::string>(RunSettingsId::RUN_OUTPUT_NAME));
         output = makeAuto<TextOutput>(
             outputDir, settings.get<std::string>(RunSettingsId::RUN_NAME), TextOutput::Options::SCIENTIFIC);
     }

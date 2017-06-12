@@ -9,9 +9,9 @@
 using namespace Sph;
 
 template <typename TFinder>
-void finderRun(Benchmark::Context& context, TFinder& finder) {
+void finderRun(Benchmark::Context& context, TFinder& finder, const Size particleCnt) {
     HexagonalPacking distribution;
-    Array<Vector> r = distribution.generate(1e4, SphericalDomain(Vector(0._f), 1._f));
+    Array<Vector> r = distribution.generate(particleCnt, SphericalDomain(Vector(0._f), 1._f));
     Array<NeighbourRecord> neighs;
     double distSum = 0.;
     while (context.running()) {
@@ -27,17 +27,17 @@ void finderRun(Benchmark::Context& context, TFinder& finder) {
 
 BENCHMARK("Finder run KdTree", "[finders]", Benchmark::Context& context) {
     KdTree tree;
-    finderRun(context, tree);
+    finderRun(context, tree, 10000);
 }
 
-BENCHMARK("Finder run Boxel", "[finders]", Benchmark::Context& context) {
+BENCHMARK("Finder run Voxel", "[finders]", Benchmark::Context& context) {
     VoxelFinder voxelFiner;
-    finderRun(context, voxelFiner);
+    finderRun(context, voxelFiner, 10000);
 }
 
 BENCHMARK("Finder run BruteForce", "[finders]", Benchmark::Context& context) {
     BruteForceFinder bf;
-    finderRun(context, bf);
+    finderRun(context, bf, 1000);
 }
 
 

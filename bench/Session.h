@@ -63,10 +63,10 @@ struct LimitCondition {
         ITERATION, ///< Benchmark performed given number of iteration
     };
 
-    Type type = Type::VARIANCE;
-    Float variance = 0.02_f; // 2%
+    Type type = Type::ITERATION;
+    Float variance = 0.05_f; // 5%
     Size duration = 500;     // 500ms
-    Size iterationCnt = 100;
+    Size iterationCnt = 5;
 };
 
 
@@ -96,9 +96,11 @@ public:
     /// Whether to keep running or exit
     INLINE bool running() {
         state = this->shouldContinue();
-        iterationCnt++;
-        stats.add(iterationTimer.elapsed(TimerUnit::MILLISECOND));
-        iterationTimer.restart();
+        if (state) {
+            iterationCnt++;
+            stats.add(iterationTimer.elapsed(TimerUnit::MILLISECOND));
+            iterationTimer.restart();
+        }
         return state;
     }
 
@@ -114,7 +116,7 @@ private:
         case LimitCondition::Type::TIME:
             return totalTimer.elapsed(TimerUnit::MILLISECOND) < limit.duration;
         case LimitCondition::Type::VARIANCE:
-            return stats.variance() < limit.variance;
+            return stats.variance() > sqr(limit.variance);
         default:
             NOT_IMPLEMENTED;
         }
@@ -132,7 +134,7 @@ public:
     Unit(const std::string& name, std::function<void(Context&)> func)
         : name(name)
         , func(std::move(func)) {
-        ASSERT(func != nullptr);
+        ASSERT(this->func != nullptr);
     }
 
     const std::string& getName() const {
@@ -208,7 +210,7 @@ public:
     void registerBenchmark(const SharedPtr<Unit>& benchmark, const std::string& groupName);
 
     /// Runs all benchmarks.
-    Outcome run(int argc, char* argv[]);
+    void run(int argc, char* argv[]);
 
     ~Session();
 
@@ -220,7 +222,19 @@ private:
     void printHelp();
 
     void log(const std::string& text);
+
+    void logError(const std::string& text);
 };
+
+class BaselineWriter {
+private:
+    // baseline on number of iterations -> test run also on iterations, measure time
+    // baseline on varince -> test on variance, measure time and iterations?
+    // baseline on time -> test on time, measure iteartiosn
+};
+
+/// \todo param, warning for too fast/too slow units
+/// \todo add comparing benchmarks, running two functions and comparing, instead of comparing against baseline
 
 class Register {
 public:
@@ -236,9 +250,12 @@ public:
 #define BENCHMARK_REGISTER_NAME BENCHMARK_UNIQUE_NAME(REGISTER, __LINE__)
 
 #define BENCHMARK(name, group, ...)                                                                          \
-    void BENCHMARK_FUNCTION_NAME(__VA_ARGS__);                                                               \
-    ::Sph::Benchmark::Register BENCHMARK_REGISTER_NAME(                                                      \
-        makeShared<::Sph::Benchmark::Unit>(name, &BENCHMARK_FUNCTION_NAME), group);                          \
-    void BENCHMARK_FUNCTION_NAME(__VA_ARGS__)
+    static void BENCHMARK_FUNCTION_NAME(__VA_ARGS__);                                                        \
+    namespace {                                                                                              \
+        ::Sph::Benchmark::Register BENCHMARK_REGISTER_NAME(                                                  \
+            makeShared<::Sph::Benchmark::Unit>(name, &BENCHMARK_FUNCTION_NAME),                              \
+            group);                                                                                          \
+    }                                                                                                        \
+    static void BENCHMARK_FUNCTION_NAME(__VA_ARGS__)
 
 NAMESPACE_BENCHMARK_END

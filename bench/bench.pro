@@ -18,24 +18,25 @@ CONFIG(release, debug|profile|assert|release) {
 
 CONFIG(profile, debug|profile|assert|release) {
   message( "SPH BENCHMARK --- Building for Profile" )
-  DEFINES += PROFILE
+  DEFINES += SPH_PROFILE
 }
 
 CONFIG(assert, debug|profile|assert|release) {
   message( "SPH BENCHMARK --- Building for Assert" )
-  DEFINES += DEBUG PROFILE
+  DEFINES += SPH_DEBUG SPH_PROFILE
   QMAKE_CXXFLAGS += -O2
 }
 
 CONFIG(debug, debug|profile|assert|release) {
   message( "SPH BENCHMARK --- Building for Debug" )
-  DEFINES += DEBUG PROFILE
+  DEFINES += SPH_DEBUG SPH_PROFILE
 }
 
 SOURCES += main.cpp \
     Session.cpp \
     examples/TestBenchmark.cpp \
-    ../lib/objects/finders/benchmark/Finders.cpp
+    ../lib/objects/finders/benchmark/Finders.cpp \
+    ../lib/sph/kernel/benchmark/Kernel.cpp
 
 HEADERS += \
     Session.h
