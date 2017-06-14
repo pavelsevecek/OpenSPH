@@ -33,7 +33,7 @@ AutoPtr<GuiSettings> GuiSettings::instance (new GuiSettings {
     { GuiSettingsId::IMAGES_TIMESTEP,  "images.time_step", 0.1_f },
 
     /// Color palettes
-    { GuiSettingsId::PALETTE_DENSITY,       "palette.density",      Range(2000._f, 3000._f) },
+    { GuiSettingsId::PALETTE_DENSITY,       "palette.density",      Range(2650._f, 2750._f) },
     { GuiSettingsId::PALETTE_VELOCITY,      "palette.velocity",     Range(0._f, 1._f) },
     { GuiSettingsId::PALETTE_ACCELERATION,  "palette.acceleration", Range(0._f, 100._f) },
     { GuiSettingsId::PALETTE_PRESSURE,      "palette.pressure",     Range(-1000._f, 1.e10_f) },

@@ -50,7 +50,7 @@ TEST_CASE("Tillotson continuous", "[eos]") {
     /// \todo Tillotson eos(BodySettings::getDefaults());
 }
 
-TEST_CASE("Tillotson inverted", "[eos]") {
+TEST_CASE("Tillotson inverted energy", "[eos]") {
     BodySettings settings;
     settings.set(BodySettingsId::DENSITY, 2.7_f);
     settings.set(BodySettingsId::TILLOTSON_SUBLIMATION, 1.e8_f);
@@ -76,4 +76,31 @@ TEST_CASE("Tillotson inverted", "[eos]") {
     test(1.e7_f, 3.0_f);
     test(1.e8_f, 3.0_f);
     test(1.e4_f, 3.0_f);
+}
+
+TEST_CASE("Tillotson inverted density", "[eos]") {
+    BodySettings settings;
+    settings.set(BodySettingsId::DENSITY, 2.7_f);
+    settings.set(BodySettingsId::TILLOTSON_SUBLIMATION, 1.e8_f);
+    TillotsonEos eos(settings);
+    auto test = [&](const Float u0, const Float rho0, const Float eps = 1.e-6_f) {
+        Float p, cs;
+        tie(p, cs) = eos.evaluate(rho0, u0);
+        REQUIRE(eos.getDensity(p, u0) == approx(rho0, eps));
+    };
+
+    /// \todo the function only works for densities close to rho0
+    test(0._f, 2.7_f);
+    test(100._f, 2.7_f);
+    test(1.e4_f, 2.7_f);
+    test(1.e7_f, 2.7_f);
+    test(1.e8_f, 2.7_f);
+
+    test(1.e4_f, 2.71_f);
+    test(1.e7_f, 2.71_f);
+    test(1.e8_f, 2.71_f);
+
+    test(1.e4_f, 2.69_f);
+    test(1.e7_f, 2.69_f);
+    test(1.e8_f, 2.69_f);
 }

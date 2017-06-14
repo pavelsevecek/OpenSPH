@@ -22,6 +22,9 @@ namespace Abstract {
 
         /// Inverted function; computes specific internal energy u from given density rho and pressure p.
         virtual Float getInternalEnergy(const Float rho, const Float p) const = 0;
+
+        /// Inverted function; computes density from pressure p and internal energy u.
+        virtual Float getDensity(const Float p, const Float u) const = 0;
     };
 }
 
@@ -36,6 +39,8 @@ public:
     virtual Pair<Float> evaluate(const Float rho, const Float u) const override;
 
     virtual Float getInternalEnergy(const Float rho, const Float p) const override;
+
+    virtual Float getDensity(const Float p, const Float u) const override;
 
     Float getTemperature(const Float u) const;
 };
@@ -60,6 +65,9 @@ public:
     virtual Pair<Float> evaluate(const Float rho, const Float u) const override;
 
     virtual Float getInternalEnergy(const Float rho, const Float p) const override;
+
+    /// \todo this is currently fine tuned for getting density in stationary (initial) state
+    virtual Float getDensity(const Float p, const Float u) const override;
 };
 
 /// Murnaghan equation of state. Pressure is computed from density only (does not depend on energy).
@@ -75,6 +83,11 @@ public:
 
     /// Currently not implemented.
     virtual Float getInternalEnergy(const Float UNUSED(rho), const Float UNUSED(p)) const override {
+        NOT_IMPLEMENTED;
+    }
+
+    /// Currently not implemented.
+    virtual Float getDensity(const Float UNUSED(p), const Float UNUSED(u)) const override {
         NOT_IMPLEMENTED;
     }
 };

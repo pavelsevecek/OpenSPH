@@ -44,33 +44,34 @@ public:
 
     virtual void integrate(Storage& storage, Statistics& stats) override {
         ContinuitySolver::integrate(storage, stats);
-        iterate<VisitorEnum::FIRST_ORDER>(storage, [this](const QuantityId id, auto& UNUSED(v), auto& dv) {
-            using Type = typename std::decay_t<decltype(dv)>::Type;
-            if (id == QuantityId::ENERGY) {
-                for (Size i = 0; i < dv.size(); ++i) {
-                    dv[i] /= 1._f + delta;
-                }
-            } else {
-                for (Size i = 0; i < dv.size(); ++i) {
-                    dv[i] = Type(0._f);
-                }
-            }
-        });
-        iterate<VisitorEnum::SECOND_ORDER>(
-            storage, [this](const QuantityId id, auto& UNUSED(v), auto& dv, auto& d2v) {
+        /*    iterate<VisitorEnum::FIRST_ORDER>(storage, [this](const QuantityId id, auto& UNUSED(v), auto&
+           dv) {
                 using Type = typename std::decay_t<decltype(dv)>::Type;
-                if (id == QuantityId::POSITIONS) {
+                if (id == QuantityId::ENERGY) {
                     for (Size i = 0; i < dv.size(); ++i) {
-                        dv[i] *= 1._f + delta;
-                        d2v[i] /= 1._f + delta;
+                        dv[i] /= 1._f + delta;
                     }
                 } else {
                     for (Size i = 0; i < dv.size(); ++i) {
                         dv[i] = Type(0._f);
-                        d2v[i] = Type(0._f);
                     }
                 }
             });
+            iterate<VisitorEnum::SECOND_ORDER>(
+                storage, [this](const QuantityId id, auto& UNUSED(v), auto& dv, auto& d2v) {
+                    using Type = typename std::decay_t<decltype(dv)>::Type;
+                    if (id == QuantityId::POSITIONS) {
+                        for (Size i = 0; i < dv.size(); ++i) {
+                            dv[i] *= 1._f + delta;
+                            d2v[i] /= 1._f + delta;
+                        }
+                    } else {
+                        for (Size i = 0; i < dv.size(); ++i) {
+                            dv[i] = Type(0._f);
+                            d2v[i] = Type(0._f);
+                        }
+                    }
+                });*/
     }
 };
 
@@ -146,15 +147,19 @@ void AsteroidRotation::setInitialStressTensor(Storage& smaller, EquationHolder& 
 
     // Set values of energy and stress in original storage from values computed by static solver
     ArrayView<Vector> r = storage->getValue<Vector>(QuantityId::POSITIONS);
-    ArrayView<Float> u = storage->getValue<Float>(QuantityId::ENERGY);
+    // ArrayView<Float> u = storage->getValue<Float>(QuantityId::ENERGY);
+    ArrayView<Float> rho = storage->getValue<Float>(QuantityId::DENSITY);
     // ArrayView<TracelessTensor> s = storage->getValue<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
     // Interpolation interpol(smaller);
     const Abstract::Eos& eos = dynamic_cast<EosMaterial&>(smaller.getMaterial(0).material()).getEos();
+
     const Float rho0 = smaller.getMaterial(0)->getParam<Float>(BodySettingsId::DENSITY);
+    const Float u0 = smaller.getMaterial(0)->getParam<Float>(BodySettingsId::ENERGY);
     Analytic::StaticSphere sphere(5.e3_f, rho0);
     for (Size i = 0; i < r.size(); ++i) {
         const Float p = sphere.getPressure(getLength(r[i]));
-        u[i] = eos.getInternalEnergy(rho0, p);
+        // u[i] = eos.getInternalEnergy(rho0, p);
+        rho[i] = eos.getDensity(p, u0);
         // interpol.interpolate<Float>(QuantityId::ENERGY, OrderEnum::ZERO, r[i]);
         /*  s[i] =
               TracelessTensor::null(); //

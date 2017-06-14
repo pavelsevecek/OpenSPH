@@ -39,10 +39,11 @@ TEST_CASE("StaticArray move construct", "[staticarray]") {
 }
 
 TEST_CASE("StaticArray destructor", "[staticarray]") {
-    StaticArray<RecordType, 3> ar{ 0, 1, 2 };
-    RecordType::resetStats();
-    REQUIRE(RecordType::destructedNum == 0);
-    ar.~StaticArray<RecordType, 3>();
+    {
+        StaticArray<RecordType, 3> ar{ 0, 1, 2 };
+        RecordType::resetStats();
+        REQUIRE(RecordType::destructedNum == 0);
+    }
     REQUIRE(RecordType::destructedNum == 3);
 }
 

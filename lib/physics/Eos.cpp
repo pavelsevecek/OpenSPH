@@ -17,6 +17,10 @@ Float IdealGasEos::getInternalEnergy(const Float rho, const Float p) const {
     return p / ((gamma - 1._f) * rho);
 }
 
+Float IdealGasEos::getDensity(const Float p, const Float u) const {
+    return p / ((gamma - 1._f) * u);
+}
+
 Float IdealGasEos::getTemperature(const Float u) const {
     return u / Constants::gasConstant;
 }
@@ -104,6 +108,19 @@ Float TillotsonEos::getInternalEnergy(const Float rho, const Float p) const {
     } else {
         return u;
     }
+}
+
+Float TillotsonEos::getDensity(const Float p, const Float u) const {
+    // both phases are highly non-linear in density, no chance of getting an analytic solution ...
+    // so let's find the root
+    auto func = [ this, u, p0 = p ](const Float rho) {
+        Float p, cs;
+        tie(p, cs) = this->evaluate(rho, u);
+        return p0 - p;
+    };
+    Optional<Float> root = getRoot(func, Range(0.95_f * rho0, 1.05 * rho0));
+    ASSERT(root);
+    return root.value();
 }
 
 MurnaghanEos::MurnaghanEos(const BodySettings& settings)
