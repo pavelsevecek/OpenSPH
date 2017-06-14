@@ -168,6 +168,10 @@ Array<SharedPtr<Abstract::Element>> Controller::getElementList(const Storage& st
     /// \todo should be loaded from a file
     // we only add the element if it is contained in the storage
 
+    Array<ElementId> elementIds{
+        ElementId::VELOCITY, ElementId::ACCELERATION, ElementId::DENSITY_PERTURBATION,
+    };
+
     Array<QuantityId> quantityElementIds{
         QuantityId::PRESSURE,
         QuantityId::ENERGY,
@@ -179,8 +183,9 @@ Array<SharedPtr<Abstract::Element>> Controller::getElementList(const Storage& st
         QuantityId::NEIGHBOUR_CNT,
     };
     Array<SharedPtr<Abstract::Element>> elements;
-    elements.push(Factory::getElement(gui, ElementId::VELOCITY));
-    elements.push(Factory::getElement(gui, ElementId::ACCELERATION));
+    for (ElementId id : elementIds) {
+        elements.push(Factory::getElement(gui, id));
+    }
     for (QuantityId id : quantityElementIds) {
         if (storage.has(id)) {
             elements.push(Factory::getElement(gui, ElementId(id)));

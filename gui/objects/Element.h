@@ -9,6 +9,7 @@
 #include "gui/Factory.h"
 #include "gui/objects/Palette.h"
 #include "gui/objects/Point.h"
+#include "quantities/AbstractMaterial.h"
 #include "quantities/Storage.h"
 
 NAMESPACE_SPH_BEGIN
@@ -63,10 +64,11 @@ namespace Detail {
 /// Function taking ElementId as an argument also acceps QuantityId casted to ElementId, interpreting as
 /// TypedElement with given quantity ID.
 enum class ElementId {
-    VELOCITY = -1,     ///< Particle velocities
-    ACCELERATION = -2, ///< Acceleration of particles
-    DIRECTION = -3,    ///< Projected direction of motion
-    DISPLACEMENT = -4  ///< Difference between current positions and initial positions
+    VELOCITY = -1,            ///< Particle velocities
+    ACCELERATION = -2,        ///< Acceleration of particles
+    MOVEMENT_DIRECTION = -3,  ///< Projected direction of motion
+    DISPLACEMENT = -4,        ///< Difference between current positions and initial position
+    DENSITY_PERTURBATION = -5 ///< Relative difference of density and initial density (rho/rho0 - 1)
 };
 
 /// Default element simply converting quantity value to color using defined palette. Vector and tensor
@@ -188,7 +190,7 @@ private:
 
 public:
     DirectionElement(const Vector& axis)
-        : palette(Factory::getPalette(ElementId::DIRECTION, Range(0._f, 2._f * PI)))
+        : palette(Factory::getPalette(ElementId::MOVEMENT_DIRECTION, Range(0._f, 2._f * PI)))
         , axis(axis) {}
 };
 
@@ -196,6 +198,44 @@ public:
 /// \note This does not have anything in common with QuantityId::DISPLACEMENT; it only depends on particle
 /// positions and have nothing to do with stresses.
 class DisplacementElement : public Abstract::Element {};
+
+class DensityPerturbationElement : public Abstract::Element {
+private:
+    Palette palette;
+    ArrayView<const Float> rho;
+    Array<Float> cached;
+    Array<Float> rho0;
+
+public:
+    DensityPerturbationElement(const Range range)
+        : palette(Factory::getPalette(ElementId::DENSITY_PERTURBATION, range)) {}
+
+    virtual void initialize(const Storage& storage, const ElementSource source) override {
+        if (source == ElementSource::CACHE_ARRAYS) {
+            cached = copyable(storage.getValue<Float>(QuantityId::DENSITY));
+            rho = cached;
+        } else {
+            rho = storage.getValue<Float>(QuantityId::DENSITY);
+        }
+        rho0.resize(rho.size());
+        for (Size i = 0; i < rho.size(); ++i) {
+            rho0[i] = storage.getMaterialOfParticle(i)->getParam<Float>(BodySettingsId::DENSITY);
+        }
+    }
+
+    virtual Color eval(const Size idx) const override {
+        ASSERT(rho);
+        return palette(rho[idx] / rho0[idx] - 1.f);
+    }
+
+    virtual Optional<Palette> getPalette() const override {
+        return palette;
+    }
+
+    virtual std::string name() const override {
+        return "Delta Density";
+    }
+};
 
 /// Shows boundary elements
 class BoundaryElement : public Abstract::Element {

@@ -36,7 +36,7 @@ AsteroidRotation::AsteroidRotation(Controller* model, const Float period)
 
 class DisableDerivativesSolver : public ContinuitySolver {
 private:
-    Float delta = 3._f;
+    Float delta = 0.3_f;
 
 public:
     DisableDerivativesSolver(const RunSettings& settings, const EquationHolder& equations)
@@ -44,6 +44,10 @@ public:
 
     virtual void integrate(Storage& storage, Statistics& stats) override {
         ContinuitySolver::integrate(storage, stats);
+        ArrayView<Vector> v = storage.getDt<Vector>(QuantityId::POSITIONS);
+        for (Size i = 0; i < v.size(); ++i) {
+            v[i] /= 1._f + delta;
+        }
         /*    iterate<VisitorEnum::FIRST_ORDER>(storage, [this](const QuantityId id, auto& UNUSED(v), auto&
            dv) {
                 using Type = typename std::decay_t<decltype(dv)>::Type;

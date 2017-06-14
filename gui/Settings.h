@@ -79,6 +79,8 @@ enum class GuiSettingsId {
     PALETTE_DAMAGE,
 
     PALETTE_DIVV,
+
+    PALETTE_DENSITY_PERTURB,
 };
 
 using GuiSettings = Settings<GuiSettingsId>;

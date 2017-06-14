@@ -40,6 +40,9 @@ AutoPtr<Abstract::Element> Factory::getElement(const GuiSettings& settings, cons
     case ElementId::ACCELERATION:
         range = settings.get<Range>(GuiSettingsId::PALETTE_ACCELERATION);
         return makeAuto<AccelerationElement>(range);
+    case ElementId::DENSITY_PERTURBATION:
+        range = settings.get<Range>(GuiSettingsId::PALETTE_DENSITY_PERTURB);
+        return makeAuto<DensityPerturbationElement>(range);
     default:
         QuantityId quantity = QuantityId(id);
         ASSERT(int(quantity) >= 0);
@@ -133,11 +136,16 @@ Palette Factory::getPalette(const ElementId id, const Range range) {
                                { x0 + 0.1f * dx, Color(1.0f, 0.0f, 0.2f) },
                                { x0 + dx, Color(1.0f, 1.0f, 0.2f) } },
                 PaletteScale::LOGARITHMIC);
-        case ElementId::DIRECTION:
-            ASSERT(range == Range(0._f, 2._f * PI)); // in radians
-            return Palette({ { 0._f, Color(0.1_f, 0.1_f, 1._f) },
-                               { PI, Color(1._f, 0.1_f, 0.1_f) },
-                               { 2._f * PI, Color(0.1_f, 0.1_f, 1._f) } },
+        case ElementId::MOVEMENT_DIRECTION:
+            ASSERT(range == Range(0.f, 2.f * PI)); // in radians
+            return Palette({ { 0.f, Color(0.1f, 0.1f, 1.f) },
+                               { PI, Color(1.f, 0.1f, 0.1f) },
+                               { 2.f * PI, Color(0.1f, 0.1f, 1.f) } },
+                PaletteScale::LINEAR);
+        case ElementId::DENSITY_PERTURBATION:
+            return Palette({ { x0, Color(0.1f, 0.1f, 1.f) },
+                               { x0 + 0.5f * dx, Color(0.7f, 0.7f, 0.7f) },
+                               { x0 + dx, Color(1.f, 0.1f, 0.1f) } },
                 PaletteScale::LINEAR);
         default:
             NOT_IMPLEMENTED;
