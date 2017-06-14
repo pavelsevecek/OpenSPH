@@ -56,9 +56,7 @@ public:
                         dv[i] /= 1._f + delta;
                     }
                 } else {
-                    for (Size i = 0; i < dv.size(); ++i) {
-                        dv[i] = Type(0._f);
-                    }
+                    STOP; // no other second-order quantities used so far
                 }
             });
             iterate<VisitorEnum::SECOND_ORDER>(
