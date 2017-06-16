@@ -134,7 +134,8 @@ SOURCES += \
     ../lib/sph/solvers/test/Impact.cpp \
     ../lib/math/test/Roots.cpp \
     ../lib/io/test/FileSystem.cpp \
-    ../lib/io/test/Path.cpp
+    ../lib/io/test/Path.cpp \
+    ../lib/sph/equations/av/test/MorrisMonaghan.cpp
 
 HEADERS += \
     utils/Utils.h \
