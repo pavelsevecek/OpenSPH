@@ -78,7 +78,7 @@ private:
     TotalAngularMomentum angularMomentum;
 
 public:
-    IntegralsLog(const std::string& path, const Size interval)
+    IntegralsLog(const Path& path, const Size interval)
         : Abstract::LogFile(makeAuto<FileLogger>(path), interval) {}
 
 protected:

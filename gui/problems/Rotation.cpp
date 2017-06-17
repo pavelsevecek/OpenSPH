@@ -20,8 +20,8 @@ AsteroidRotation::AsteroidRotation(Controller* model, const Float period)
     : model(model)
     , period(period) {
     settings.set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::EULER_EXPLICIT)
-        .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 0.01_f)
-        .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 0.1_f)
+        .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 0.2_f)
+        .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 0.2_f)
         .set(RunSettingsId::RUN_TIME_RANGE, Range(0._f, 100000._f))
         .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 100._f)
         .set(RunSettingsId::MODEL_FORCE_SOLID_STRESS, true)
@@ -44,10 +44,10 @@ public:
 
     virtual void integrate(Storage& storage, Statistics& stats) override {
         ContinuitySolver::integrate(storage, stats);
-        ArrayView<Vector> v = storage.getDt<Vector>(QuantityId::POSITIONS);
+        /*ArrayView<Vector> v = storage.getDt<Vector>(QuantityId::POSITIONS);
         for (Size i = 0; i < v.size(); ++i) {
             v[i] /= 1._f + delta;
-        }
+        }*/
         /*    iterate<VisitorEnum::FIRST_ORDER>(storage, [this](const QuantityId id, auto& UNUSED(v), auto&
            dv) {
                 using Type = typename std::decay_t<decltype(dv)>::Type;
@@ -83,11 +83,11 @@ void AsteroidRotation::setUp() {
     BodySettings bodySettings;
     bodySettings.set(BodySettingsId::ENERGY, 0._f)
         .set(BodySettingsId::ENERGY_RANGE, Range(0._f, INFTY))
-        .set(BodySettingsId::PARTICLE_COUNT, 10000)
+        .set(BodySettingsId::PARTICLE_COUNT, 100000)
         .set(BodySettingsId::EOS, EosEnum::TILLOTSON)
         .set(BodySettingsId::STRESS_TENSOR_MIN, 1.e5_f)
-        .set(BodySettingsId::RHEOLOGY_DAMAGE, DamageEnum::SCALAR_GRADY_KIPP)
-        .set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::VON_MISES)
+        .set(BodySettingsId::RHEOLOGY_DAMAGE, DamageEnum::NONE)     // SCALAR_GRADY_KIPP)
+        .set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::NONE) // VON_MISES)
         .set(BodySettingsId::DISTRIBUTE_MODE_SPH5, true)
         .set(BodySettingsId::SHEAR_MODULUS, 0._f);
     //.set(BodySettingsId::KINEMATIC_VISCOSITY, 1._f);
@@ -133,7 +133,7 @@ void AsteroidRotation::setUp() {
     output->add(makeAuto<ValueColumn<Float>>(QuantityId::DAMAGE));
     output->add(makeAuto<ValueColumn<TracelessTensor>>(QuantityId::DEVIATORIC_STRESS));
 
-    logFiles.push(makeAuto<IntegralsLog>("integrals.txt", 1));
+    logFiles.push(makeAuto<IntegralsLog>(Path("integrals.txt"), 1));
 
     callbacks = makeAuto<GuiCallbacks>(model);
 }
@@ -151,19 +151,19 @@ void AsteroidRotation::setInitialStressTensor(Storage& smaller, EquationHolder& 
 
     // Set values of energy and stress in original storage from values computed by static solver
     ArrayView<Vector> r = storage->getValue<Vector>(QuantityId::POSITIONS);
-    // ArrayView<Float> u = storage->getValue<Float>(QuantityId::ENERGY);
-    ArrayView<Float> rho = storage->getValue<Float>(QuantityId::DENSITY);
+    ArrayView<Float> u = storage->getValue<Float>(QuantityId::ENERGY);
+    // ArrayView<Float> rho = storage->getValue<Float>(QuantityId::DENSITY);
     // ArrayView<TracelessTensor> s = storage->getValue<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
     // Interpolation interpol(smaller);
     const Abstract::Eos& eos = dynamic_cast<EosMaterial&>(smaller.getMaterial(0).material()).getEos();
 
     const Float rho0 = smaller.getMaterial(0)->getParam<Float>(BodySettingsId::DENSITY);
-    const Float u0 = smaller.getMaterial(0)->getParam<Float>(BodySettingsId::ENERGY);
+    // const Float u0 = smaller.getMaterial(0)->getParam<Float>(BodySettingsId::ENERGY);
     Analytic::StaticSphere sphere(5.e3_f, rho0);
     for (Size i = 0; i < r.size(); ++i) {
         const Float p = sphere.getPressure(getLength(r[i]));
-        // u[i] = eos.getInternalEnergy(rho0, p);
-        rho[i] = eos.getDensity(p, u0);
+        u[i] = eos.getInternalEnergy(rho0, p);
+        // rho[i] = eos.getDensity(p, u0);
         // interpol.interpolate<Float>(QuantityId::ENERGY, OrderEnum::ZERO, r[i]);
         /*  s[i] =
               TracelessTensor::null(); //

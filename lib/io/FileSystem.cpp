@@ -70,6 +70,9 @@ Outcome createDirectory(const Path& path, const Flags<CreateDirectoryFlag> flags
 #ifdef SPH_USE_STD_EXPERIMENTAL
     return (Outcome)std::experimental::filesystem::create_directories(path);
 #else
+    if (path.empty()) {
+        return SUCCESS;
+    }
     const Path parentPath = path.parentPath();
     if (!parentPath.empty() && !pathExists(parentPath)) {
         const Outcome result = createDirectory(parentPath, flags);

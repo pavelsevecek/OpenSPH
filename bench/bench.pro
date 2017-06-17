@@ -39,4 +39,6 @@ SOURCES += main.cpp \
     ../lib/sph/kernel/benchmark/Kernel.cpp
 
 HEADERS += \
-    Session.h
+    Session.h \
+    Stats.h \
+    Common.h

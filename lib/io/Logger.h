@@ -6,6 +6,7 @@
 /// \date 2016-2017
 
 #include "common/Globals.h"
+#include "io/Path.h"
 #include "objects/containers/Array.h"
 #include "objects/wrappers/AutoPtr.h"
 #include "objects/wrappers/Flags.h"
@@ -18,6 +19,10 @@ NAMESPACE_SPH_BEGIN
 /// quantities, use Abstract::Output.
 namespace Abstract {
     class Logger : public Polymorphic, public Noncopyable {
+    private:
+        Size precision = PRECISION;
+        bool scientific = true;
+
     public:
         /// Logs a string message.
         /// \todo different types (log, warning, error, ...) and levels of verbosity
@@ -32,15 +37,84 @@ namespace Abstract {
             this->writeString(ss.str());
         }
 
+        /// Changes the precision of printed numbers. The default value is given by global PRECISION constant.
+        void setPrecision(const Size newPrecision) {
+            precision = newPrecision;
+        }
+
+        /// Sets/unsets scientific notation
+        void setScientific(const bool newScientific) {
+            scientific = newScientific;
+        }
+
     private:
         template <typename T0, typename... TArgs>
         void writeImpl(std::stringstream& ss, T0&& first, TArgs&&... rest) {
-            ss << std::setprecision(PRECISION) << std::scientific << first;
+            ss << std::setprecision(precision);
+            if (scientific) {
+                ss << std::scientific;
+            }
+            ss << first;
             writeImpl(ss, std::forward<TArgs>(rest)...);
         }
         void writeImpl(std::stringstream& UNUSED(ss)) {}
     };
 }
+
+struct Console {
+    enum class Foreground {
+        BLACK = 30,
+        RED = 31,
+        GREEN = 32,
+        YELLOW = 33,
+        BLUE = 34,
+        MAGENTA = 35,
+        CYAN = 36,
+        LIGHT_GRAY = 37,
+        DARK_GRAY = 90,
+        LIGHT_RED = 91,
+        LIGHT_GREEN = 92,
+        LIGHT_YELLOW = 93,
+        LIGHT_BLUE = 94,
+        LIGHT_MAGENTA = 95,
+        LIGHT_CYAN = 96,
+        WHITE = 97,
+        DEFAULT = 39,
+        UNCHANGED = 0,
+    } fg = Foreground::UNCHANGED;
+
+    enum class Background {
+        RED = 41,
+        GREEN = 42,
+        BLUE = 44,
+        DEFAULT = 49,
+        UNCHANGED = 0
+    } bg = Background::UNCHANGED;
+
+    Console(const Foreground fg)
+        : fg(fg) {}
+
+    Console(const Background bg)
+        : bg(bg) {}
+
+    friend std::ostream& operator<<(std::ostream& stream, const Console& mod) {
+        if (mod.bg != Background::UNCHANGED) {
+            stream << "\033[" << int(mod.bg) << "m";
+        }
+        if (mod.fg != Foreground::UNCHANGED) {
+            stream << "\033[" << int(mod.fg) << "m";
+        }
+        return stream;
+    }
+
+    struct ScopedColor {
+        ScopedColor(const Foreground fg);
+        ScopedColor(const Background bg);
+
+        ~ScopedColor();
+    };
+};
+
 
 /// Standard output logger. This is just a wrapper of std::cout with Abstract::Logger interface, it does not
 /// hold any state and can be constructed on spot with no cost. All StdOutLoggers print to the same output.
@@ -86,11 +160,11 @@ public:
 
 private:
     AutoPtr<std::ofstream> stream;
-    std::string path;
+    Path path;
     Flags<Options> flags;
 
 public:
-    FileLogger(const std::string& path, const Flags<Options> flags = EMPTY_FLAGS);
+    FileLogger(const Path& path, const Flags<Options> flags = EMPTY_FLAGS);
 
     ~FileLogger();
 

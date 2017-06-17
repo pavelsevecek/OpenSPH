@@ -5,19 +5,31 @@
 
 NAMESPACE_SPH_BEGIN
 
+Console::ScopedColor::ScopedColor(const Console::Foreground fg) {
+    std::cout << fg;
+}
+Console::ScopedColor::ScopedColor(const Console::Background bg) {
+    std::cout << bg;
+}
+
+Console::ScopedColor::~ScopedColor() {
+    std::cout << Console::Foreground::DEFAULT << Console::Background::DEFAULT;
+}
+
+
 void StdOutLogger::writeString(const std::string& s) {
     std::cout << s << std::flush;
 }
 
-FileLogger::FileLogger(const std::string& path, const Flags<Options> flags)
+FileLogger::FileLogger(const Path& path, const Flags<Options> flags)
     : path(path)
     , flags(flags) {
     stream = makeAuto<std::ofstream>();
     if (!flags.has(Options::OPEN_WHEN_WRITING)) {
         auto mode = flags.has(Options::APPEND) ? std::ostream::app : std::ostream::out;
-        stream->open(path.c_str(), mode);
+        stream->open(path.native(), mode);
         if (!*stream) {
-            throw IoError("Error opening FileLogger at " + path);
+            throw IoError("Error opening FileLogger at " + path.native());
         }
     }
 }
@@ -34,7 +46,7 @@ void FileLogger::writeString(const std::string& s) {
     };
 
     if (flags.has(Options::OPEN_WHEN_WRITING)) {
-        stream->open(path.c_str(), std::ostream::app);
+        stream->open(path.native(), std::ostream::app);
         if (*stream) {
             write(s);
             stream->close();

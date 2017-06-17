@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common/Assert.h"
+#include "objects/containers/Array.h"
 #include <string>
 
 NAMESPACE_SPH_BEGIN
@@ -13,5 +13,8 @@ std::string lowercase(const std::string& s);
 
 /// Replaces first occurence of string with a new string.
 std::string replace(const std::string& source, const std::string& old, const std::string& s);
+
+/// Splits a string into an array of string using given delimiter.
+Array<std::string> split(const std::string& s, const char delimiter);
 
 NAMESPACE_SPH_END

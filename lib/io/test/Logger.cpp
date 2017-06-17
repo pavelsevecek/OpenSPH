@@ -9,11 +9,18 @@ using namespace Sph;
 
 TEST_CASE("StdOutLogger", "[logger]") {
     REQUIRE_NOTHROW(StdOutLogger().write("stdout logger", 123, 4.f, "text"));
+    StdOutLogger().write("default",
+        Console::Foreground::GREEN,
+        "green",
+        Console::Background::RED,
+        "red",
+        Console::Background::DEFAULT,
+        Console::Foreground::DEFAULT);
 }
 
 TEST_CASE("FileLogger", "[logger]") {
     {
-        FileLogger logger("log1.txt");
+        FileLogger logger(Path("log1.txt"));
         // file is locked and cannot be used by other logger
         // REQUIRE_THROWS(FileLogger("log1.txt"));
         logger.write("first line");
@@ -22,14 +29,14 @@ TEST_CASE("FileLogger", "[logger]") {
     REQUIRE(content == "first line\n");
 
     {
-        FileLogger logger("log1.txt", FileLogger::Options::APPEND);
+        FileLogger logger(Path("log1.txt"), FileLogger::Options::APPEND);
         logger.write("second line");
     }
     content = readFile(Path("log1.txt"));
     REQUIRE(content == "first line\nsecond line\n");
 
     {
-        FileLogger logger("log1.txt");
+        FileLogger logger(Path("log1.txt"));
         logger.write("file cleared");
     }
     content = readFile(Path("log1.txt"));
@@ -38,7 +45,7 @@ TEST_CASE("FileLogger", "[logger]") {
 
 TEST_CASE("FileLogger timestamp", "[logger]") {
     {
-        FileLogger logger("log2.txt", FileLogger::Options::ADD_TIMESTAMP);
+        FileLogger logger(Path("log2.txt"), FileLogger::Options::ADD_TIMESTAMP);
         logger.write("hello world");
     }
     std::string content = readFile(Path("log2.txt"));
@@ -53,8 +60,8 @@ TEST_CASE("FileLogger timestamp", "[logger]") {
 }
 
 TEST_CASE("FileLogger Open when writing", "[logger]") {
-    std::remove("log3.txt");
-    FileLogger logger("log3.txt", FileLogger::Options::OPEN_WHEN_WRITING);
+    removePath(Path("log3.txt"));
+    FileLogger logger(Path("log3.txt"), FileLogger::Options::OPEN_WHEN_WRITING);
     REQUIRE_NOTHROW(logger.write("first line"));
     std::string content;
     REQUIRE_NOTHROW(content = readFile(Path("log3.txt")));
