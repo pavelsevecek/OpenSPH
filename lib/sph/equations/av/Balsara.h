@@ -40,7 +40,7 @@ class BalsaraSwitch : public Abstract::EquationTerm {
             results.insert<Float>(QuantityId::ENERGY, OrderEnum::FIRST);
         }
 
-        virtual void initialize(const Storage& input, Accumulated& results) {
+        virtual void initialize(const Storage& input, Accumulated& results) override {
             m = input.getValue<Float>(QuantityId::MASSES);
             ArrayView<const Vector> dummy;
             tie(r, v, dummy) = input.getAll<Vector>(QuantityId::POSITIONS);

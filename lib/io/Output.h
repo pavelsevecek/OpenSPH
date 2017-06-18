@@ -98,6 +98,59 @@ public:
     virtual Outcome load(const Path& path, Storage& storage) override;
 };
 
+struct PkdgravParams {
+    enum class Radius {
+        /// Compute sphere radius using R = h/3 formula
+        FROM_SMOOTHING_LENGTH,
+
+        /// Compute sphere radius so that its mass is equivalent to the mass of SPH particle
+        FROM_DENSITY
+    } radius;
+
+    ///
+    Float vaporThreshold = 1.e6_f;
+};
+
+class PkdgravOutput : public Abstract::Output {
+private:
+    std::string runName;
+    PkdgravParams params;
+
+public:
+    PkdgravOutput(const Path& fileMask, const std::string& runName, const PkdgravParams& params);
+
+    virtual Path dump(Storage& storage, const Statistics& UNUSED(stats)) override {
+        ArrayView<Float> m, rho;
+        tie(m, rho) = storage.getValues<Float>(QuantityId::MASSES, QuantityId::DENSITY);
+        ArrayView<Vector> r, v, dv;
+        tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
+
+        // compute radii
+        Array<Float> radius(r.size());
+        for (Size i = 0; i < r.size(); ++i) {
+            radius[i] = this->getRadius(r[i][H], m[i], rho[i]);
+        }
+        return Path();
+    }
+
+    virtual Outcome load(const Path& UNUSED(path), Storage& UNUSED(storage)) override {
+        NOT_IMPLEMENTED;
+    }
+
+private:
+    INLINE Float getRadius(const Float h, const Float m, const Float rho) const {
+        switch (params.radius) {
+        case PkdgravParams::Radius::FROM_DENSITY:
+            // 4/3 pi r^3 rho = m
+            return cbrt(3._f * m / (4._f * PI * rho));
+        case PkdgravParams::Radius::FROM_SMOOTHING_LENGTH:
+            return h / 3._f;
+        default:
+            NOT_IMPLEMENTED;
+        }
+    }
+};
+
 class NullOutput : public Abstract::Output {
 public:
     NullOutput()

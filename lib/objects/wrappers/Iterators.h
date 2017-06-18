@@ -494,16 +494,18 @@ private:
     TIterator iterator;
     Size index;
 
+    using TValue = decltype(*std::declval<TIterator>());
+
 public:
     IteratorWithIndex(const TIterator iterator, const Size index)
         : iterator(iterator)
         , index(index) {}
 
-    auto operator*() {
+    ElementWithIndex<TValue> operator*() {
         return makeElementWithIndex(*iterator, index);
     }
 
-    const auto operator*() const {
+    ElementWithIndex<const TValue> operator*() const {
         return makeElementWithIndex(*iterator, index);
     }
 

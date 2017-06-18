@@ -114,7 +114,7 @@ Path GnuplotOutput::dump(Storage& storage, const Statistics& stats) {
     const std::string command = "gnuplot -e \"filename='" + pathWithoutExt.native() +
                                 "'; time=" + std::to_string(time) + "\" " + scriptPath;
     const int returned = system(command.c_str());
-    (void)returned;
+    MARK_USED(returned);
     return path;
 }
 

@@ -94,7 +94,7 @@ public:
     INLINE Float valueImpl(const Float qSqr) const {
         ASSERT(qSqr >= 0.f);
         ASSERT(isInit());
-        if (qSqr >= sqr(rad)) {
+        if (SPH_UNLIKELY(qSqr >= sqr(rad))) {
             // outside of kernel support
             return 0._f;
         }
@@ -106,13 +106,13 @@ public:
         const Float ratio = floatIdx - Float(idx1);
         ASSERT(ratio >= 0._f && ratio < 1._f);
 
-        return values[idx1] * (1._f - ratio) + (idx2 < NEntries ? values[idx2] : 0._f) * ratio;
+        return values[idx1] * (1._f - ratio) + (int(idx2 < NEntries) * values[idx2]) * ratio;
     }
 
     INLINE Float gradImpl(const Float qSqr) const {
         ASSERT(qSqr >= 0._f);
         ASSERT(isInit());
-        if (qSqr >= sqr(rad)) {
+        if (SPH_UNLIKELY(qSqr >= sqr(rad))) {
             // outside of kernel support
             return 0._f;
         }
@@ -123,7 +123,7 @@ public:
         const Float ratio = floatIdx - Float(idx1);
         ASSERT(ratio >= 0._f && ratio < 1._f);
 
-        return grads[idx1] * (1._f - ratio) + (idx2 < NEntries ? grads[idx2] : 0._f) * ratio;
+        return grads[idx1] * (1._f - ratio) + (int(idx2 < NEntries) * grads[idx2]) * ratio;
     }
 };
 

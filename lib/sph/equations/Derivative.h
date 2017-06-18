@@ -285,8 +285,9 @@ public:
     /// created, even if settings are different.
     template <typename TDerivative>
     void require(const RunSettings& settings) {
-        for (auto& d : derivatives) {
-            if (typeid(*d) == typeid(TDerivative)) {
+        for (AutoPtr<Abstract::Derivative>& d : derivatives) {
+            Abstract::Derivative& value = *d;
+            if (typeid(value) == typeid(TDerivative)) {
                 return;
             }
         }
