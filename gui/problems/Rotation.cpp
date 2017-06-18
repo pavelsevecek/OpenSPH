@@ -21,7 +21,7 @@ AsteroidRotation::AsteroidRotation(Controller* model, const Float period)
     , period(period) {
     settings.set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::EULER_EXPLICIT)
         .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 0.01_f)
-        .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 0.05_f)
+        .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 0.01_f)
         .set(RunSettingsId::RUN_TIME_RANGE, Range(0._f, 100000._f))
         .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 100._f)
         .set(RunSettingsId::MODEL_FORCE_SOLID_STRESS, true)
@@ -36,7 +36,7 @@ AsteroidRotation::AsteroidRotation(Controller* model, const Float period)
 
 class DisableDerivativesSolver : public ContinuitySolver {
 private:
-    Float delta = 0.3_f;
+    Float delta = 0.1_f;
 
 public:
     DisableDerivativesSolver(const RunSettings& settings, const EquationHolder& equations)
@@ -49,7 +49,7 @@ public:
         for (Size i = 0; i < v.size(); ++i) {
             // gradually decrease the delta
             const Float t = stats.get<Float>(StatisticsId::TOTAL_TIME);
-            v[i] /= 1._f + lerp(delta, 0._f, min(t / 50._f, 1._f));
+            v[i] /= 1._f + lerp(delta, 0._f, min(t / 10._f, 1._f));
         }
     }
 };
@@ -64,8 +64,6 @@ void AsteroidRotation::setUp() {
         .set(BodySettingsId::RHEOLOGY_DAMAGE, DamageEnum::SCALAR_GRADY_KIPP)
         .set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::VON_MISES)
         .set(BodySettingsId::DISTRIBUTE_MODE_SPH5, true);
-    //.set(BodySettingsId::SHEAR_MODULUS, 0._f);
-    //.set(BodySettingsId::KINEMATIC_VISCOSITY, 1._f);
     bodySettings.saveToFile("target.sph");
 
     storage = makeShared<Storage>();
