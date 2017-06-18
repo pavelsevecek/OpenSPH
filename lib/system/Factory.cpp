@@ -258,8 +258,10 @@ AutoPtr<Abstract::Logger> Factory::getLogger(const RunSettings& settings) {
         return makeAuto<DummyLogger>();
     case LoggerEnum::STD_OUT:
         return makeAuto<StdOutLogger>();
-    case LoggerEnum::FILE:
-        return makeAuto<FileLogger>(settings.get<std::string>(RunSettingsId::RUN_LOGGER_FILE));
+    case LoggerEnum::FILE: {
+        const Path path(settings.get<std::string>(RunSettingsId::RUN_LOGGER_FILE));
+        return makeAuto<FileLogger>(path);
+    }
     default:
         NOT_IMPLEMENTED;
     }

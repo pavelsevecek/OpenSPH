@@ -58,6 +58,8 @@ int64_t Timer::elapsed(const TimerUnit unit) const {
         return std::chrono::duration_cast<std::chrono::milliseconds>(Clock::now() - started).count();
     case TimerUnit::MICROSECOND:
         return std::chrono::duration_cast<std::chrono::microseconds>(Clock::now() - started).count();
+    case TimerUnit::NANOSECOND:
+        return std::chrono::duration_cast<std::chrono::nanoseconds>(Clock::now() - started).count();
     default:
         NOT_IMPLEMENTED;
     }

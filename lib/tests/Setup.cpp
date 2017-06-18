@@ -1,4 +1,4 @@
-#include "utils/Setup.h"
+#include "tests/Setup.h"
 #include "geometry/Domain.h"
 #include "physics/Eos.h"
 #include "physics/Rheology.h"

@@ -2,10 +2,9 @@
 #include "catch.hpp"
 #include "physics/Constants.h"
 #include "sph/equations/Potentials.h"
+#include "tests/Setup.h"
 #include "utils/Approx.h"
 #include "utils/SequenceTest.h"
-#include "utils/Setup.h"
-
 
 #include "io/Logger.h"
 #include "physics/Eos.h"
@@ -91,7 +90,7 @@ TEST_CASE("StaticSolver pressure", "[staticsolver]") {
         return SUCCESS;
     };
 
-    FileLogger logger("p.txt");
+    FileLogger logger(Path("p.txt"));
     ArrayView<Size> neighCnts = storage.getValue<Size>(QuantityId::NEIGHBOUR_CNT);
     for (Size i = 0; i < r.size(); ++i) {
         logger.write(getLength(r[i]), "  ", p[i], "  ", neighCnts[i]);

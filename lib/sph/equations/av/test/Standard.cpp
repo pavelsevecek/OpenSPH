@@ -2,9 +2,9 @@
 #include "catch.hpp"
 #include "io/LogFile.h"
 #include "objects/containers/PerElementWrapper.h"
+#include "tests/Setup.h"
 #include "utils/Approx.h"
 #include "utils/SequenceTest.h"
-#include "utils/Setup.h"
 
 using namespace Sph;
 

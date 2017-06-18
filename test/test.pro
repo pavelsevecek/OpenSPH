@@ -111,7 +111,6 @@ SOURCES += \
     ../lib/timestepping/test/TimeStepping.cpp \
     utils/Approx.cpp \
     utils/SequenceTest.cpp \
-    utils/Setup.cpp \
     utils/Utils.cpp \
     ../lib/sph/equations/heat/test/HeatDiffusion.cpp \
     ../lib/objects/wrappers/test/AutoPtr.cpp \
@@ -134,11 +133,12 @@ SOURCES += \
     ../lib/sph/solvers/test/Impact.cpp \
     ../lib/math/test/Roots.cpp \
     ../lib/io/test/FileSystem.cpp \
-    ../lib/io/test/Path.cpp
+    ../lib/io/test/Path.cpp \
+    ../lib/sph/equations/av/test/MorrisMonaghan.cpp \
+    ../lib/objects/containers/test/StringUtils.cpp
 
 HEADERS += \
     utils/Utils.h \
     utils/RecordType.h \
     utils/Approx.h \
-    utils/SequenceTest.h \
-    utils/Setup.h
+    utils/SequenceTest.h

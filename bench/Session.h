@@ -1,122 +1,105 @@
 #pragma once
 
-#include "common/ForwardDecl.h"
+/// \file Session.h
+/// \brief Benchmark
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2017
+
+#include "bench/Common.h"
+#include "bench/Stats.h"
+#include "io/Path.h"
 #include "objects/containers/Array.h"
+#include "objects/containers/StringUtils.h"
+#include "objects/wrappers/Expected.h"
 #include "objects/wrappers/Outcome.h"
-#include "objects/wrappers/Range.h"
 #include "objects/wrappers/SharedPtr.h"
 #include "system/Timer.h"
-
-#define NAMESPACE_BENCHMARK_BEGIN NAMESPACE_SPH_BEGIN namespace Benchmark {
-#define NAMESPACE_BENCHMARK_END                                                                              \
-    }                                                                                                        \
-    NAMESPACE_SPH_END
+#include <fstream>
+#include <map>
 
 NAMESPACE_BENCHMARK_BEGIN
 
-class Stats {
-private:
-    Float sum = 0._f;
-    Float sumSqr = 0._f;
-    Size cnt = 0;
-    Range range;
-
-public:
-    INLINE void add(const Float value) {
-        sum += value;
-        sumSqr += sqr(value);
-        range.extend(value);
-        cnt++;
-    }
-
-    INLINE Float mean() const {
-        ASSERT(cnt != 0);
-        return sum / cnt;
-    }
-
-    INLINE Float variance() const {
-        if (cnt < 2) {
-            return INFTY;
-        }
-        const Float cntInv = 1._f / cnt;
-        return cntInv * (sumSqr * cntInv - sqr(sum * cntInv));
-    }
-
-    INLINE Size count() const {
-        return cnt;
-    }
-
-    INLINE Float min() const {
-        return range.lower();
-    }
-
-    INLINE Float max() const {
-        return range.upper();
-    }
+/// Benchmark mode
+enum class Mode {
+    SIMPLE,               ///< Just run benchmarks and report statistics
+    MAKE_BASELINE,        ///< Store iteration numbers to baseline file
+    RUN_AGAINST_BASELINE, ///< Compare iteration numbers with recorded baseline
 };
 
-/// Specifies the ending condition of the benchmark
-struct LimitCondition {
-    enum class Type {
-        VARIANCE,  ///< Mean variance of iteration gets below the threshold
-        TIME,      ///< Benchmark ran for given duration
-        ITERATION, ///< Benchmark performed given number of iteration
-    };
-
-    Type type = Type::ITERATION;
-    Float variance = 0.05_f; // 5%
-    Size duration = 500;     // 500ms
-    Size iterationCnt = 5;
+struct Target {
+    Mode mode;
+    uint64_t duration;
+    Size iterateCnt;
 };
 
+struct Result {
+    uint64_t duration;
+    Size iterateCnt;
+    Float mean;
+    Float variance;
+    Float min;
+    Float max;
+};
 
+/// Accessible from benchmarks
 class Context {
 private:
+    Target target;
+
     bool state = true;
 
-    Size iterationCnt = 0;
+    Size iterateCnt = 0;
 
-    LimitCondition limit;
-
-    Stats& stats;
+    Timer timer;
 
     Timer iterationTimer;
 
-    Timer totalTimer;
+    Stats stats;
 
     /// Name of the running benchmark
-    std::string& name;
+    std::string name;
 
 public:
-    Context(const LimitCondition limit, Stats& stats, std::string& name)
-        : limit(limit)
-        , stats(stats)
+    Context(const Target target, const std::string& name)
+        : target(target)
+        , timer(target.duration)
         , name(name) {}
 
     /// Whether to keep running or exit
     INLINE bool running() {
         state = this->shouldContinue();
-        if (state) {
-            iterationCnt++;
-            stats.add(iterationTimer.elapsed(TimerUnit::MILLISECOND));
-            iterationTimer.restart();
+        if (iterateCnt == 0) {
+            // restart to discard benchmark setup time
+            timer.restart();
+        } else {
+            stats.add(1.e-3_f * iterationTimer.elapsed(TimerUnit::MICROSECOND));
         }
+        iterationTimer.restart();
+        iterateCnt++;
         return state;
     }
 
-    INLINE Size elapsed() const {
-        return totalTimer.elapsed(TimerUnit::MILLISECOND);
+    INLINE uint64_t elapsed() const {
+        return timer.elapsed(TimerUnit::MILLISECOND);
+    }
+
+    INLINE Size iterationCnt() const {
+        return iterateCnt;
+    }
+
+    INLINE Stats getStats() const {
+        return stats;
     }
 
 private:
     INLINE bool shouldContinue() const {
-        switch (limit.type) {
-        case LimitCondition::Type::ITERATION:
-            return stats.count() < limit.iterationCnt;
-        case LimitCondition::Type::TIME:
-            return totalTimer.elapsed(TimerUnit::MILLISECOND) < limit.duration;
-        case LimitCondition::Type::VARIANCE:
-            return stats.variance() > sqr(limit.variance);
+        switch (target.mode) {
+        case Mode::SIMPLE:
+        case Mode::MAKE_BASELINE:
+            // either not enough time passed, or not enough iterations
+            return iterateCnt < target.iterateCnt || !timer.isExpired();
+        case Mode::RUN_AGAINST_BASELINE:
+            return iterateCnt < target.iterateCnt;
         default:
             NOT_IMPLEMENTED;
         }
@@ -128,24 +111,28 @@ class Unit {
 private:
     std::string name;
 
-    std::function<void(Context&)> func;
+    using Function = void (*)(Context&);
+    Function function;
 
 public:
-    Unit(const std::string& name, std::function<void(Context&)> func)
+    Unit(const std::string& name, const Function func)
         : name(name)
-        , func(std::move(func)) {
-        ASSERT(this->func != nullptr);
+        , function(func) {
+        ASSERT(function != nullptr);
     }
 
     const std::string& getName() const {
         return name;
     }
 
-    Outcome run(Stats& stats, Size& elapsed) {
-        Context context(LimitCondition(), stats, name);
-        func(context);
-        elapsed = context.elapsed();
-        return SUCCESS;
+    Expected<Result> run(const Target target) {
+        Context context(target, name);
+        function(context);
+        uint64_t elapsed = context.elapsed();
+        Stats stats = context.getStats();
+        return Result{
+            elapsed, context.iterationCnt() - 1, stats.mean(), stats.variance(), stats.min(), stats.max()
+        };
     }
 };
 
@@ -169,6 +156,64 @@ public:
     }
 };
 
+template <class T>
+INLINE T&& doNotOptimize(T&& value) {
+#if defined(__clang__)
+    asm volatile("" : : "g"(value) : "memory");
+#else
+    asm volatile("" : : "i,r,m"(value) : "memory");
+#endif
+    return std::forward<T>(value);
+}
+
+// Force the compiler to flush pending writes to global memory. Acts as an effective read/write barrier
+INLINE void clobberMemory() {
+    asm volatile("" : : : "memory");
+}
+
+class Baseline {
+private:
+    std::map<std::string, Result> benchs;
+
+public:
+    Baseline() = default;
+
+    bool parse(const Path& path) {
+        benchs.clear();
+        std::ifstream ifs(path.native());
+        std::string line;
+        while (std::getline(ifs, line)) {
+            std::size_t n = line.find_last_of('/');
+            if (n == std::string::npos) {
+                return false;
+            }
+            const std::string name = trim(line.substr(0, n));
+            Array<std::string> values = split(line.substr(n + 1), ',');
+            if (values.size() != 6) {
+                return false;
+            }
+            Result result;
+            result.duration = std::stoi(values[0]);
+            result.iterateCnt = std::stoi(values[1]);
+            result.mean = std::stof(values[2]);
+            result.variance = std::stof(values[3]);
+            result.min = std::stof(values[4]);
+            result.max = std::stof(values[5]);
+
+            benchs[name] = result;
+        }
+        return true;
+    }
+
+    bool isRecorded(const std::string& name) {
+        return benchs.find(name) != benchs.end();
+    }
+
+    INLINE Result operator[](const std::string& name) {
+        return benchs[name];
+    }
+};
+
 class Session {
 private:
     /// Global instance of the session
@@ -187,7 +232,7 @@ private:
     Outcome status = SUCCESS;
 
     enum class Flag {
-        COMPARE_WITH_BASELINE = 1 << 0, ///< Compare results with baseline
+        RUN_AGAINST_BASELINE = 1 << 0, ///< Compare results with baseline
 
         MAKE_BASELINE = 1 << 1, ///< Record and cache baseline
 
@@ -199,6 +244,19 @@ private:
         std::string group;
 
         Flags<Flag> flags;
+
+        struct {
+            Path path;
+            Size commit = 0;
+        } baseline;
+
+        Target target{ Mode::SIMPLE, 500 /*ms*/, 10 };
+
+        Float confidence = 6._f; // sigma
+
+        /// Maximum allowed duration of single benchmark unit; benchmarks running longer that that will
+        /// generate a warning.
+        uint64_t maxAllowedDuration = 5000 /*ms*/;
     } params;
 
 public:
@@ -221,20 +279,22 @@ private:
 
     void printHelp();
 
-    void log(const std::string& text);
+    void writeBaseline(const std::string& name, const Result& measured);
 
-    void logError(const std::string& text);
-};
+    Path getBaselinePath();
 
-class BaselineWriter {
-private:
-    // baseline on number of iterations -> test run also on iterations, measure time
-    // baseline on varince -> test on variance, measure time and iterations?
-    // baseline on time -> test on time, measure iteartiosn
+    void compareResults(const Result& measured, const Result& baseline);
+
+    template <typename... TArgs>
+    void log(TArgs&&... args);
+
+    template <typename... TArgs>
+    void logError(TArgs&&... args);
 };
 
 /// \todo param, warning for too fast/too slow units
-/// \todo add comparing benchmarks, running two functions and comparing, instead of comparing against baseline
+/// \todo add comparing benchmarks, running two functions and comparing, instead of comparing against
+/// baseline
 
 class Register {
 public:

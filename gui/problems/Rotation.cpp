@@ -21,7 +21,7 @@ AsteroidRotation::AsteroidRotation(Controller* model, const Float period)
     , period(period) {
     settings.set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::EULER_EXPLICIT)
         .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 0.01_f)
-        .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 0.1_f)
+        .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 0.05_f)
         .set(RunSettingsId::RUN_TIME_RANGE, Range(0._f, 100000._f))
         .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 100._f)
         .set(RunSettingsId::MODEL_FORCE_SOLID_STRESS, true)
@@ -44,36 +44,13 @@ public:
 
     virtual void integrate(Storage& storage, Statistics& stats) override {
         ContinuitySolver::integrate(storage, stats);
-        ArrayView<Vector> v = storage.getDt<Vector>(QuantityId::POSITIONS);
+        ArrayView<Vector> r, v, dv;
+        tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
         for (Size i = 0; i < v.size(); ++i) {
-            v[i] /= 1._f + delta;
+            // gradually decrease the delta
+            const Float t = stats.get<Float>(StatisticsId::TOTAL_TIME);
+            v[i] /= 1._f + lerp(delta, 0._f, min(t / 50._f, 1._f));
         }
-        /*    iterate<VisitorEnum::FIRST_ORDER>(storage, [this](const QuantityId id, auto& UNUSED(v), auto&
-           dv) {
-                using Type = typename std::decay_t<decltype(dv)>::Type;
-                if (id == QuantityId::ENERGY) {
-                    for (Size i = 0; i < dv.size(); ++i) {
-                        dv[i] /= 1._f + delta;
-                    }
-                } else {
-                    STOP; // no other second-order quantities used so far
-                }
-            });
-            iterate<VisitorEnum::SECOND_ORDER>(
-                storage, [this](const QuantityId id, auto& UNUSED(v), auto& dv, auto& d2v) {
-                    using Type = typename std::decay_t<decltype(dv)>::Type;
-                    if (id == QuantityId::POSITIONS) {
-                        for (Size i = 0; i < dv.size(); ++i) {
-                            dv[i] *= 1._f + delta;
-                            d2v[i] /= 1._f + delta;
-                        }
-                    } else {
-                        for (Size i = 0; i < dv.size(); ++i) {
-                            dv[i] = Type(0._f);
-                            d2v[i] = Type(0._f);
-                        }
-                    }
-                });*/
     }
 };
 
@@ -81,13 +58,13 @@ void AsteroidRotation::setUp() {
     BodySettings bodySettings;
     bodySettings.set(BodySettingsId::ENERGY, 0._f)
         .set(BodySettingsId::ENERGY_RANGE, Range(0._f, INFTY))
-        .set(BodySettingsId::PARTICLE_COUNT, 10000)
+        .set(BodySettingsId::PARTICLE_COUNT, 100000)
         .set(BodySettingsId::EOS, EosEnum::TILLOTSON)
         .set(BodySettingsId::STRESS_TENSOR_MIN, 1.e5_f)
         .set(BodySettingsId::RHEOLOGY_DAMAGE, DamageEnum::SCALAR_GRADY_KIPP)
         .set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::VON_MISES)
-        .set(BodySettingsId::DISTRIBUTE_MODE_SPH5, true)
-        .set(BodySettingsId::SHEAR_MODULUS, 0._f);
+        .set(BodySettingsId::DISTRIBUTE_MODE_SPH5, true);
+    //.set(BodySettingsId::SHEAR_MODULUS, 0._f);
     //.set(BodySettingsId::KINEMATIC_VISCOSITY, 1._f);
     bodySettings.saveToFile("target.sph");
 
@@ -95,7 +72,7 @@ void AsteroidRotation::setUp() {
 
     EquationHolder externalForces;
     externalForces += makeTerm<SphericalGravity>(SphericalGravity::Options::ASSUME_HOMOGENEOUS);
-    // externalForces += makeTerm<NoninertialForce>(2._f * PI / (3600._f * period) * Vector(0, 0, 1));
+    externalForces += makeTerm<NoninertialForce>(2._f * PI / (3600._f * period) * Vector(0, 0, 1));
     // externalForces += makeTerm<SurfaceNormal>();
     // externalForces += makeTerm<SimpleDamping>();
 
@@ -105,14 +82,14 @@ void AsteroidRotation::setUp() {
 
     StdOutLogger logger;
     SphericalDomain domain1(Vector(0._f), 5e3_f); // D = 10km
-    // const Float P = period * 3600._f;
 
-    conds.addBody(domain1, bodySettings); // , Vector(0._f), Vector(0._f, 0._f, 2._f * PI / P));
+    conds.addBody(domain1, bodySettings);
 
     Storage smaller;
-    bodySettings.set(BodySettingsId::PARTICLE_COUNT, 4000);
+    bodySettings.set(BodySettingsId::PARTICLE_COUNT, 10000);
     InitialConditions conds2(smaller, settings);
-    conds2.addBody(domain1, bodySettings);
+    SphericalDomain domain2(Vector(0._f), 5e3_f);
+    conds2.addBody(domain2, bodySettings);
     this->setInitialStressTensor(smaller, externalForces);
 
 
@@ -131,7 +108,7 @@ void AsteroidRotation::setUp() {
     output->add(makeAuto<ValueColumn<Float>>(QuantityId::DAMAGE));
     output->add(makeAuto<ValueColumn<TracelessTensor>>(QuantityId::DEVIATORIC_STRESS));
 
-    logFiles.push(makeAuto<IntegralsLog>("integrals.txt", 1));
+    logFiles.push(makeAuto<IntegralsLog>(Path("integrals.txt"), 1));
 
     callbacks = makeAuto<GuiCallbacks>(model);
 }
@@ -143,30 +120,19 @@ void AsteroidRotation::setInitialStressTensor(Storage& smaller, EquationHolder& 
     staticSolver.create(smaller, smaller.getMaterial(0));
 
     // Solve initial conditions
-    /*Statistics stats;
+    Statistics stats;
     Outcome result = staticSolver.solve(smaller, stats);
-    ASSERT(result);*/
+    ASSERT(result);
 
     // Set values of energy and stress in original storage from values computed by static solver
     ArrayView<Vector> r = storage->getValue<Vector>(QuantityId::POSITIONS);
-    // ArrayView<Float> u = storage->getValue<Float>(QuantityId::ENERGY);
-    ArrayView<Float> rho = storage->getValue<Float>(QuantityId::DENSITY);
-    // ArrayView<TracelessTensor> s = storage->getValue<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
-    // Interpolation interpol(smaller);
-    const Abstract::Eos& eos = dynamic_cast<EosMaterial&>(smaller.getMaterial(0).material()).getEos();
+    ArrayView<Float> u = storage->getValue<Float>(QuantityId::ENERGY);
+    ArrayView<TracelessTensor> s = storage->getValue<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
 
-    const Float rho0 = smaller.getMaterial(0)->getParam<Float>(BodySettingsId::DENSITY);
-    const Float u0 = smaller.getMaterial(0)->getParam<Float>(BodySettingsId::ENERGY);
-    Analytic::StaticSphere sphere(5.e3_f, rho0);
+    Interpolation interpol(smaller);
     for (Size i = 0; i < r.size(); ++i) {
-        const Float p = sphere.getPressure(getLength(r[i]));
-        // u[i] = eos.getInternalEnergy(rho0, p);
-        rho[i] = eos.getDensity(p, u0);
-        // interpol.interpolate<Float>(QuantityId::ENERGY, OrderEnum::ZERO, r[i]);
-        /*  s[i] =
-              TracelessTensor::null(); //
-           interpol.interpolate<TracelessTensor>(QuantityId::DEVIATORIC_STRESS,*/
-        // OrderEnum::ZERO, r[i]);
+        u[i] = interpol.interpolate<Float>(QuantityId::ENERGY, OrderEnum::ZERO, r[i]);
+        s[i] = interpol.interpolate<TracelessTensor>(QuantityId::DEVIATORIC_STRESS, OrderEnum::ZERO, r[i]);
     }
 }
 

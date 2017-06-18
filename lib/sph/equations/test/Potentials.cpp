@@ -1,10 +1,8 @@
 #include "sph/equations/Potentials.h"
 #include "catch.hpp"
+#include "tests/Setup.h"
 #include "utils/Approx.h"
 #include "utils/SequenceTest.h"
-#include "utils/Setup.h"
-
-#include "io/Logger.h"
 
 using namespace Sph;
 

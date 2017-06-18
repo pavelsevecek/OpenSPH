@@ -152,11 +152,7 @@ TEST_CASE("DiehlEtAlDistribution", "[initial]") {
     // Diehl et al. (2012) algorithm, using uniform particle density
     DiehlEtAlDistribution diehl([](const Vector&) { return 1._f; });
 
-    Array<Vector> r = diehl.generate(1000, SphericalDomain(Vector(0._f), 1._f));
-    FileLogger logger("diehl.txt");
-    for (Size i = 0; i < r.size(); ++i) {
-        logger.write(r[i]);
-    }
+    // Array<Vector> r = diehl.generate(1000, SphericalDomain(Vector(0._f), 1._f));
 
     // testDistribution(&diehl);
     SKIP_TEST;

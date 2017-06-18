@@ -45,11 +45,15 @@
             INTERNAL_CATCH_TEMPLATE_TEST_CASE_SECTION(T4) } INTERNAL_CATCH_TEMPLATE_TEST_CASE_DEFN(T)
 
 
+#ifdef SPH_DEBUG
 #define REQUIRE_ASSERT(func)                                                                                 \
     {                                                                                                        \
         Sph::Assert::ScopedBreakDisabler disabler;                                                           \
         REQUIRE_THROWS((void)func);                                                                          \
     }
+#else
+#define REQUIRE_ASSERT(func)
+#endif
 
 #define SKIP_TEST                                                                                            \
     {                                                                                                        \

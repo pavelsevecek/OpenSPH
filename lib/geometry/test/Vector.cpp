@@ -102,13 +102,13 @@ TEST_CASE("Vector normalization", "[vector]") {
     REQUIRE(nv1[0] == 3._f / length);
     REQUIRE(nv1[1] == 4._f / length);
     REQUIRE(nv1[2] == 5._f / length);
-    REQUIRE(nv1 == v1 / length);
+    REQUIRE(nv1 == approx(v1 / length));
 
     Float l;
     Vector nv2;
     tieToTuple(nv2, l) = getNormalizedWithLength(v1);
-    REQUIRE(l == length);
-    REQUIRE(nv2 == nv1);
+    REQUIRE(l == approx(length));
+    REQUIRE(nv2 == approx(nv1));
 }
 
 TEST_CASE("Vector products", "[vector]") {

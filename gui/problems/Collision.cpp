@@ -71,8 +71,8 @@ void AsteroidCollision::setUp() {
     output->add(makeAuto<ValueColumn<Float>>(QuantityId::DAMAGE));
     output->add(makeAuto<ValueColumn<TracelessTensor>>(QuantityId::DEVIATORIC_STRESS));
 
-    logFiles.push(makeAuto<EnergyLogFile>("energy.txt"));
-    logFiles.push(makeAuto<TimestepLogFile>("timestep.txt"));
+    logFiles.push(makeAuto<EnergyLogFile>(Path("energy.txt")));
+    logFiles.push(makeAuto<TimestepLogFile>(Path("timestep.txt")));
 
     callbacks = makeAuto<GuiCallbacks>(model);
 }

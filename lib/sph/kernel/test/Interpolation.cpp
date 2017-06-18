@@ -2,9 +2,9 @@
 #include "catch.hpp"
 #include "geometry/Domain.h"
 #include "sph/initial/Distribution.h"
+#include "tests/Setup.h"
 #include "utils/Approx.h"
 #include "utils/SequenceTest.h"
-#include "utils/Setup.h"
 
 using namespace Sph;
 

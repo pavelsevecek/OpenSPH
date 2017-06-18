@@ -43,5 +43,18 @@ std::string replace(const std::string& source, const std::string& old, const std
     return replaced;
 }
 
+Array<std::string> split(const std::string& s, const char delimiter) {
+    Array<std::string> parts;
+    std::size_t n1 = -1; // yes, -1, unsigned int overflow is well defined
+    std::size_t n2;
+    while ((n2 = s.find(delimiter, n1 + 1)) != std::string::npos) {
+        parts.push(s.substr(n1 + 1, n2 - n1 - 1));
+        n1 = n2;
+    }
+    // add the last part
+    parts.push(s.substr(n1 + 1));
+    return parts;
+}
+
 
 NAMESPACE_SPH_END

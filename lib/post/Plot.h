@@ -14,46 +14,71 @@ struct PlotPoint {
 };
 
 namespace Abstract {
-    class Plot : public Polymorphic {
-    public:
-        virtual Range getRange(const Size coord) const = 0;
 
-        virtual Array<PlotPoint> plot(const Storage& storage) const = 0;
+    /// \brief Interface for constructing generic plots from quantities stored in storage.
+    ///
+    /// The plot can currently be only 2D, typically showing a quantity dependence on time or on some spatial
+    /// coordinate.
+    class Plot : public Polymorphic {
+    protected:
+        struct {
+            Range x;
+            Range y;
+        } ranges;
+
+    public:
+        Range getRangeX() const {
+            return ranges.x;
+        }
+
+        Range getRangeY() const {
+            return ranges.y;
+        }
+
+        virtual void onTimeStep(const Storage& storage, const Statistics& stats) = 0;
+
+        virtual Array<PlotPoint> plot() const = 0;
     };
 }
 
-class TestPlot : public Abstract::Plot {
+/// \brief Plot of a simple predefined function.
+///
+/// Can be used for comparison between computed numerical results and an analytical solution.
+class FunctionPlot : public Abstract::Plot {
+private:
+    std::function<Float(Float)> func;
+    Size numPoints;
+
 public:
-    virtual Range getRange(const Size coord) const override {
-        switch (coord) {
-        case X:
-            return Range(0._f, 2 * PI);
-        case Y:
-            return Range(-1._f, 1._f);
-        default:
-            STOP;
+    FunctionPlot(const std::function<Float(Float)>& func, const Range rangeX, const Size numPoints)
+        : func(func)
+        , numPoints(numPoints) {
+        ASSERT(func != nullptr);
+        ranges.x = rangeX;
+        Array<PlotPoint> points = this->plot();
+        for (PlotPoint p : points) {
+            ranges.y.extend(p.y);
         }
     }
 
-    virtual Array<PlotPoint> plot(const Storage&) const override {
+    virtual void onTimeStep(const Storage& UNUSED(storage), const Statistics& UNUSED(stats)) override {}
+
+    virtual Array<PlotPoint> plot() const override {
         Array<PlotPoint> points;
-        for (Float x = 0; x < 2._f * PI; x += 0.1_f) {
-            points.push(PlotPoint{ x, sin(x) });
+        for (Float x = ranges.x.lower(); x < ranges.x.upper(); x += ranges.x.size() / numPoints) {
+            points.push(PlotPoint{ x, func(x) });
         }
         return points;
     }
 };
 
 /// Plot averaging quantities
-class WeightedPlot : public Abstract::Plot {
+/*class WeightedPlot : public Abstract::Plot {
 protected:
     Array<Float> values;
     Array<Float> weights;
-    Range range;
 
 public:
-    // virtual void setData(const Storage& storage) {}
-
     virtual void addPoint(const Float x, const Float y, const Float w) {
         if (!range.contains(x)) {
             return;
@@ -75,20 +100,19 @@ public:
     bool equals(const Float UNUSED(tolerance)) const {
         return true;
     }
-};
+};*/
 
 template <typename TDerived>
 class SpatialPlot : public Abstract::Plot {
 protected:
     QuantityId id;
+    Array<PlotPoint> points;
 
 public:
     SpatialPlot(const QuantityId id)
         : id(id) {}
 
-
-    /// here we need a generic type, not just float
-    virtual Array<PlotPoint> plot(const Storage& storage) const override {
+    virtual void onTimeStep(const Storage& storage, const Statistics& UNUSED(stats)) override {
         ArrayView<const Float> quantity = storage.getValue<Float>(id);
         ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
         Array<PlotPoint> points;
@@ -99,7 +123,10 @@ public:
         std::sort(points.begin(), points.end(), [](const PlotPoint& p1, const PlotPoint& p2) {
             return p1.x < p2.x;
         });
-        return points;
+    }
+
+    virtual Array<PlotPoint> plot() const override {
+        return points.clone();
     }
 };
 

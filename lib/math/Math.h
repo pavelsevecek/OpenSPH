@@ -279,6 +279,11 @@ INLINE int sgn(const T val) {
     return (T(0) < val) - (val < T(0));
 }
 
+template <typename T>
+INLINE T lerp(const T v1, const T v2, const Float amount) {
+    return v1 * (1._f - amount) + v2 * amount;
+}
+
 
 /// Mathematical constants
 constexpr Float PI = 3.14159265358979323846264338327950288419716939937510582097_f;

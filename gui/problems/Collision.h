@@ -42,7 +42,7 @@ private:
 
 
 public:
-    ImpactorLogFile(Storage& storage, const std::string& path)
+    ImpactorLogFile(Storage& storage, const Path& path)
         : Abstract::LogFile(makeAuto<FileLogger>(path))
         , stress(makeTensorFunctor(storage.getValue<TracelessTensor>(QuantityId::DEVIATORIC_STRESS)), 1)
         , dtStress(makeTensorFunctor(storage.getDt<TracelessTensor>(QuantityId::DEVIATORIC_STRESS)), 1)
@@ -74,7 +74,7 @@ private:
     TotalInternalEnergy intEn;
 
 public:
-    EnergyLogFile(const std::string& path)
+    EnergyLogFile(const Path& path)
         : Abstract::LogFile(makeAuto<FileLogger>(path)) {}
 
 protected:
@@ -91,7 +91,7 @@ protected:
 
 class TimestepLogFile : public Abstract::LogFile {
 public:
-    TimestepLogFile(const std::string& path)
+    TimestepLogFile(const Path& path)
         : Abstract::LogFile(makeAuto<FileLogger>(path)) {}
 
 protected:

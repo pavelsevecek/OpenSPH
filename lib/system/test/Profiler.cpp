@@ -1,6 +1,6 @@
-// set PROFILE macro so that we can test profiling in release build
-#ifndef PROFILE
-#define PROFILE
+// set SPH_PROFILE macro so that we can test profiling in release build
+#ifndef SPH_PROFILE
+#define SPH_PROFILE
 #endif
 #include "system/Profiler.h"
 #include "catch.hpp"

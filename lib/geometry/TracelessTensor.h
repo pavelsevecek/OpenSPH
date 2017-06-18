@@ -50,12 +50,13 @@ public:
     /// Construct traceless tensor using other tensor (not traceless in general). "Tracelessness" of the
     /// tensor is checked by assert.
     INLINE explicit TracelessTensor(const SymmetricTensor& other) {
-        ASSERT(abs(other.trace()) <= 1.e-3_f * getLength(other.diagonal()) + EPS, *this, other);
         m = other.diagonal();
         const Vector off = other.offDiagonal();
         m[M01] = off[0];
         m[M02] = off[1];
         m12 = off[2];
+        // assert after we set variables to shut up gcc's "maybe uninitialized" warning
+        ASSERT(abs(other.trace()) <= 1.e-3_f * getLength(other.diagonal()) + EPS, *this, other);
     }
 
     /// Initialize all components of the tensor to given value, excluding last element of the diagonal, which

@@ -1,8 +1,6 @@
 #include "sph/equations/heat/HeatDiffusion.h"
 #include "catch.hpp"
-#include "utils/Setup.h"
-
-#include "io/Logger.h"
+#include "tests/Setup.h"
 
 using namespace Sph;
 

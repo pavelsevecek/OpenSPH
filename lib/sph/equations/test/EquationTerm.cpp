@@ -7,9 +7,9 @@
 #include "sph/initial/Distribution.h"
 #include "sph/initial/Initial.h"
 #include "sph/solvers/GenericSolver.h"
+#include "tests/Setup.h"
 #include "utils/Approx.h"
 #include "utils/SequenceTest.h"
-#include "utils/Setup.h"
 
 #include "io/Logger.h"
 

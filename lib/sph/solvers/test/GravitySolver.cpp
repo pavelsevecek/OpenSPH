@@ -1,8 +1,8 @@
 #include "sph/solvers/GravitySolver.h"
 #include "catch.hpp"
+#include "tests/Setup.h"
 #include "utils/Approx.h"
 #include "utils/SequenceTest.h"
-#include "utils/Setup.h"
 
 using namespace Sph;
 

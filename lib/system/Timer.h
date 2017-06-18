@@ -21,7 +21,7 @@ enum class TimerFlags {
     START_EXPIRED = 1 << 1
 };
 
-enum class TimerUnit { SECOND, MILLISECOND, MICROSECOND };
+enum class TimerUnit { SECOND, MILLISECOND, MICROSECOND, NANOSECOND };
 
 /// Basic time-measuring tool. Starts automatically when constructed.
 class Timer {

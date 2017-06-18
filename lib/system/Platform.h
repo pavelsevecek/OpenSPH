@@ -23,9 +23,11 @@ Outcome sendMail(const std::string& to,
 /// disappears on timeout or when user hides it.
 Outcome showNotification(const std::string& title, const std::string& message);
 
-/// Returns current git commit hash as string. If the git repository is not found or command fails, returns
-/// empty string.
-Expected<std::string> getGitCommit(const Path& pathToGitRoot);
+/// Returns git commit hash of the current or older commit as string. If the git repository is not found or
+/// command fails, returns error message
+/// \param pathToGitRoot Path to where the source code is located
+/// \param prev Number of commits into the history. For 0, the current commit is returned.
+Expected<std::string> getGitCommit(const Path& pathToGitRoot, const Size prev = 0);
 
 /// Returns true if the program is running with attached debugger.
 bool isDebuggerPresent();
