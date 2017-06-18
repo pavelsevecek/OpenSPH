@@ -13,6 +13,9 @@ std::string readFile(const Path& path);
 /// Checks if a file exists (or more precisely, if a file is accessible).
 bool pathExists(const Path& path);
 
+/// Returns the size of a file. The file must exist, checked by assert.
+Size fileSize(const Path& path);
+
 enum class CreateDirectoryFlag {
     /// If the named directory already exists, function returns SUCCESS instead of error message
     ALLOW_EXISTING = 1 << 0

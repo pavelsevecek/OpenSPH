@@ -17,13 +17,18 @@ std::string readFile(const Path& path) {
     return buffer.str();
 }
 
-
 bool pathExists(const Path& path) {
     struct stat buffer;
     if (path.empty()) {
         return false;
     }
     return (stat(path.native().c_str(), &buffer) == 0);
+}
+
+Size fileSize(const Path& path) {
+    std::ifstream ifs(path.native(), std::ifstream::ate | std::ifstream::binary);
+    ASSERT(ifs);
+    return ifs.tellg();
 }
 
 namespace {

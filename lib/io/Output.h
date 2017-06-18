@@ -2,6 +2,7 @@
 
 #include "io/Path.h"
 #include "objects/wrappers/Outcome.h"
+#include "physics/Constants.h"
 #include "quantities/Storage.h"
 
 NAMESPACE_SPH_BEGIN
@@ -28,17 +29,11 @@ namespace Abstract {
     class Output : public Polymorphic {
     protected:
         OutputFile paths;
-        Array<AutoPtr<Abstract::Column>> columns;
 
     public:
         /// Constructs output given the file name of the output. The name must contain '%d', which will be
         /// replaced by the dump number, starting from 0.
         Output(const Path& fileMask);
-
-        ~Output();
-
-        /// Adds an element to output.
-        void add(AutoPtr<Abstract::Column>&& columns);
 
         /// Saves data from particle storage into the file. Returns the filename of the dump.
         virtual Path dump(Storage& storage, const Statistics& stats) = 0;
@@ -58,10 +53,20 @@ public:
 
 private:
     std::string runName;
+
+    /// Flags of the output
     Flags<Options> flags;
+
+    /// Value columns saved into the file
+    Array<AutoPtr<Abstract::Column>> columns;
 
 public:
     TextOutput(const Path& fileMask, const std::string& runName, const Flags<Options> flags);
+
+    ~TextOutput();
+
+    /// Adds an element to output.
+    void add(AutoPtr<Abstract::Column>&& columns);
 
     virtual Path dump(Storage& storage, const Statistics& stats) override;
 
@@ -90,6 +95,8 @@ class BinaryOutput : public Abstract::Output {
 private:
     std::string runName;
 
+    static constexpr Size PADDING_SIZE = 228;
+
 public:
     BinaryOutput(const Path& fileMask, const std::string& runName);
 
@@ -99,6 +106,8 @@ public:
 };
 
 struct PkdgravParams {
+
+    /// Conversion formula from SPH particles to hard spheres in pkdgrav
     enum class Radius {
         /// Compute sphere radius using R = h/3 formula
         FROM_SMOOTHING_LENGTH,
@@ -107,31 +116,36 @@ struct PkdgravParams {
         FROM_DENSITY
     } radius;
 
-    ///
+    /// Threshold of internal energy; particles with higher energy are considered a vapor and
+    /// we discard them in the output
     Float vaporThreshold = 1.e6_f;
+
+    /// Color indices of individual bodies in the simulations. The size of the array must be equal (or bigger)
+    /// than the number of bodies in the storage.
+    Array<Size> colors{ 3, 13 };
 };
 
 class PkdgravOutput : public Abstract::Output {
 private:
     std::string runName;
+
     PkdgravParams params;
 
+    /// conversion factors for pkdgrav
+    struct Conversion {
+
+        Float mass = Constants::M_sun;
+
+        Float distance = Constants::au;
+
+        Float velocity = Constants::au * 2._f * PI / (365.25_f * 86400._f);
+
+    } conversion;
+
 public:
-    PkdgravOutput(const Path& fileMask, const std::string& runName, const PkdgravParams& params);
+    PkdgravOutput(const Path& fileMask, const std::string& runName, PkdgravParams&& params);
 
-    virtual Path dump(Storage& storage, const Statistics& UNUSED(stats)) override {
-        ArrayView<Float> m, rho;
-        tie(m, rho) = storage.getValues<Float>(QuantityId::MASSES, QuantityId::DENSITY);
-        ArrayView<Vector> r, v, dv;
-        tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
-
-        // compute radii
-        Array<Float> radius(r.size());
-        for (Size i = 0; i < r.size(); ++i) {
-            radius[i] = this->getRadius(r[i][H], m[i], rho[i]);
-        }
-        return Path();
-    }
+    virtual Path dump(Storage& storage, const Statistics& stats) override;
 
     virtual Outcome load(const Path& UNUSED(path), Storage& UNUSED(storage)) override {
         NOT_IMPLEMENTED;

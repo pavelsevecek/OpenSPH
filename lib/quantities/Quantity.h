@@ -218,7 +218,7 @@ namespace Detail {
             case OrderEnum::SECOND:
                 d2v_dt2.resize(size);
                 d2v_dt2.fill(TValue(0._f));
-                FALLTHROUGH;
+                SPH_FALLTHROUGH;
             case OrderEnum::FIRST:
                 dv_dt.resize(size);
                 dv_dt.fill(TValue(0._f));

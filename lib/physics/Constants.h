@@ -22,6 +22,10 @@ namespace Constants {
 
     /// Astronomical unit (exactly)
     const Float au = 149597870700._f; // m
+
+    /// Solar mass
+    /// http://asa.usno.navy.mil/static/files/2014/Astronomical_Constants_2014.pdf
+    const Float M_sun = 1.9884e30_f; // kg
 }
 
 NAMESPACE_SPH_END

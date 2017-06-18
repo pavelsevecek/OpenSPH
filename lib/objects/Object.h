@@ -46,9 +46,9 @@ NAMESPACE_SPH_BEGIN
 #define SPH_CPP17
 
 #ifdef SPH_CPP17
-#define FALLTHROUGH [[fallthrough]];
+#define SPH_FALLTHROUGH [[fallthrough]];
 #else
-#define FALLTHROUGH
+#define SPH_FALLTHROUGH
 #endif
 
 #define DEPRECATED __attribute__((deprecated))

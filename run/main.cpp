@@ -42,11 +42,14 @@ public:
         const Path outputName(settings.get<std::string>(RunSettingsId::RUN_OUTPUT_NAME));
         const std::string runName = settings.get<std::string>(RunSettingsId::RUN_NAME);
         // Creates output files - save as text
-        output = makeAuto<TextOutput>(outputName, runName, TextOutput::Options::SCIENTIFIC);
+        AutoPtr<TextOutput> textOutput =
+            makeAuto<TextOutput>(outputName, runName, TextOutput::Options::SCIENTIFIC);
 
         // Defines columns in the output file
-        output->add(makeAuto<ParticleNumberColumn>());                     // number of particles
-        output->add(makeAuto<ValueColumn<Vector>>(QuantityId::POSITIONS)); // particle positions
+        textOutput->add(makeAuto<ParticleNumberColumn>());                     // number of particles
+        textOutput->add(makeAuto<ValueColumn<Vector>>(QuantityId::POSITIONS)); // particle positions
+
+        output = std::move(textOutput);
 
         // Creates particle storage
         storage = makeShared<Storage>();

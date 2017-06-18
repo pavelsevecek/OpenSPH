@@ -123,7 +123,8 @@ public:
         return Vector(m[M01], m[M02], m12);
     }
 
-    /// Returns a given element of the matrix.
+    /// Returns a given element of the matrix. Does NOT returns a reference last element of diagonal is always
+    /// computed from others and is not stored in the object.
     INLINE Float operator()(const int rowIdx, const int colIdx) const {
         if (rowIdx == colIdx) {
             // diagonal

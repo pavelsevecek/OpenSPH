@@ -1,6 +1,7 @@
 ﻿#include "io/Output.h"
 #include "io/Column.h"
 #include "io/FileSystem.h"
+#include "io/Serializer.h"
 #include <fstream>
 
 NAMESPACE_SPH_BEGIN
@@ -22,12 +23,6 @@ Path OutputFile::getNextPath() const {
 
 Abstract::Output::Output(const Path& fileMask)
     : paths(fileMask) {}
-
-Abstract::Output::~Output() = default;
-
-void Abstract::Output::add(AutoPtr<Abstract::Column>&& column) {
-    columns.push(std::move(column));
-}
 
 
 static void printHeader(std::ostream& ofs, const std::string& name, const ValueEnum type) {
@@ -58,6 +53,8 @@ TextOutput::TextOutput(const Path& fileMask, const std::string& runName, const F
     : Abstract::Output(fileMask)
     , runName(runName)
     , flags(flags) {}
+
+TextOutput::~TextOutput() = default;
 
 Path TextOutput::dump(Storage& storage, const Statistics& stats) {
     ASSERT(!columns.empty(), "No column added to TextOutput");
@@ -107,6 +104,11 @@ Outcome TextOutput::load(const Path& path, Storage& storage) {
     return SUCCESS;
 }
 
+void TextOutput::add(AutoPtr<Abstract::Column>&& column) {
+    columns.push(std::move(column));
+}
+
+
 Path GnuplotOutput::dump(Storage& storage, const Statistics& stats) {
     const Path path = TextOutput::dump(storage, stats);
     const Path pathWithoutExt = Path(path).removeExtension();
@@ -132,19 +134,23 @@ struct StoreBuffers {
 template <typename TValue, typename TStoreValue>
 static void storeBuffers(Quantity& q, TStoreValue&& storeValue) {
     StaticArray<Array<TValue>&, 3> buffers = q.getAll<TValue>();
+    for (Size i = 0; i < q.size(); ++i) {
+        storeValue(buffers[0][i]);
+    }
     switch (q.getOrderEnum()) {
     case OrderEnum::ZERO:
+        break;
     case OrderEnum::FIRST:
         for (Size i = 0; i < q.size(); ++i) {
-            storeValue(buffers[0][i]);
+            storeValue(buffers[1][i]);
         }
         break;
     case OrderEnum::SECOND:
         for (Size i = 0; i < q.size(); ++i) {
-            storeValue(buffers[0][i]); // store value
+            storeValue(buffers[1][i]);
         }
         for (Size i = 0; i < q.size(); ++i) {
-            storeValue(buffers[1][i]); // store derivative
+            storeValue(buffers[2][i]);
         }
         break;
     default:
@@ -153,59 +159,227 @@ static void storeBuffers(Quantity& q, TStoreValue&& storeValue) {
 }
 
 Path BinaryOutput::dump(Storage& storage, const Statistics& stats) {
-    ASSERT(!columns.empty() && "nothing to dump");
     const Path fileName = paths.getNextPath();
-    std::ofstream ofs(fileName.native());
-    // file format identifie
     const Float time = stats.get<Float>(StatisticsId::TOTAL_TIME);
-    ofs << "SPH" << time << storage.getParticleCnt() << storage.getQuantityCnt();
+
+    Serializer serializer(fileName);
+    // file format identifier
+    // size: 4 + 8 + 8 + 8 = 28
+    serializer.write("SPH", time, storage.getParticleCnt(), storage.getQuantityCnt());
+    // zero bytes until 256 to allow extensions of the header
+    serializer.addPadding(PADDING_SIZE);
+
     // storage dump
     for (auto i : storage.getQuantities()) {
         // first 3 values: quantity ID, order (number of derivatives), type
         Quantity& q = i.quantity;
-        ofs << Size(i.id) << Size(q.getOrderEnum()) << Size(q.getValueEnum());
+        serializer.write(Size(i.id), Size(q.getOrderEnum()), Size(q.getValueEnum()));
         switch (q.getValueEnum()) {
         case ValueEnum::INDEX:
-            storeBuffers<Size>(q, [&ofs](const Size idx) { ofs << idx; });
+            storeBuffers<Size>(q, [&serializer](const Size idx) { serializer.write(idx); });
             break;
         case ValueEnum::SCALAR:
-            storeBuffers<Float>(q, [&ofs](const Float f) { ofs << f; });
+            storeBuffers<Float>(q, [&serializer](const Float f) { serializer.write(f); });
             break;
         case ValueEnum::VECTOR:
-            storeBuffers<Vector>(q, [&ofs](const Vector& v) { ofs << v[X] << v[Y] << v[Z]; });
+            storeBuffers<Vector>(q, [&serializer](const Vector& v) {
+                // store all components to save smoothing lengths; although it is a waste for velocities and
+                // other vector quantities...
+                serializer.write(v[X], v[Y], v[Z], v[H]);
+            });
             break;
         case ValueEnum::TENSOR:
-            storeBuffers<Tensor>(q, [&ofs](const Tensor& t) { ofs << t.row(0) << t.row(1) << t.row(2); });
+            storeBuffers<Tensor>(q, [&serializer](const Tensor& t) {
+                // clang-format off
+                serializer.write(t(0, 0), t(0, 1), t(0, 2), //
+                                 t(1, 0), t(1, 1), t(1, 2), //
+                                 t(2, 0), t(2, 1), t(2, 2));
+                // clang-format on
+            });
             break;
         case ValueEnum::SYMMETRIC_TENSOR:
-            storeBuffers<SymmetricTensor>(q, [&ofs](const SymmetricTensor& t) {
-                ofs << t(0, 0) << t(1, 1) << t(2, 2) << t(0, 1) << t(0, 2) << t(1, 2);
+            storeBuffers<SymmetricTensor>(q, [&serializer](const SymmetricTensor& t) {
+                serializer.write(t(0, 0), t(1, 1), t(2, 2), t(0, 1), t(0, 2), t(1, 2));
             });
             break;
         case ValueEnum::TRACELESS_TENSOR:
-            storeBuffers<TracelessTensor>(q, [&ofs](const TracelessTensor& t) {
-                ofs << t(0, 0) << t(1, 1) << t(0, 1) << t(0, 2) << t(1, 2);
+            storeBuffers<TracelessTensor>(q, [&serializer](const TracelessTensor& t) {
+                serializer.write(t(0, 0), t(1, 1), t(0, 1), t(0, 2), t(1, 2));
             });
             break;
+        default:
+            NOT_IMPLEMENTED;
         }
     }
-    ofs.close();
     return fileName;
 }
 
-Outcome BinaryOutput::load(const Path& path, Storage& storage) {
-    storage.removeAll();
-    std::ifstream ifs(path.native());
-    char identifier[4];
-    ifs.read(identifier, 4);
-    if (std::string(identifier) != "SPH") {
-        return "Invalid file format";
+template <typename TValue, typename TLoadValue>
+static bool loadBuffers(Storage& storage,
+    const QuantityId id,
+    const OrderEnum order,
+    const Size particleCnt,
+    const TLoadValue& loadValue) {
+    Array<TValue> buffer(particleCnt);
+    for (Size i = 0; i < particleCnt; ++i) {
+        if (!loadValue(buffer[i])) {
+            return false;
+        }
     }
+    storage.insert<TValue>(id, order, std::move(buffer));
+    switch (order) {
+    case OrderEnum::ZERO:
+        // already done
+        break;
+    case OrderEnum::FIRST: {
+        ArrayView<TValue> dv = storage.getDt<TValue>(id);
+        for (Size i = 0; i < particleCnt; ++i) {
+            if (!loadValue(dv[i])) {
+                return false;
+            }
+        }
+        break;
+    }
+    case OrderEnum::SECOND: {
+        ArrayView<TValue> dv = storage.getDt<TValue>(id);
+        ArrayView<TValue> d2v = storage.getD2t<TValue>(id);
+        for (Size i = 0; i < particleCnt; ++i) {
+            if (!loadValue(dv[i])) {
+                return false;
+            }
+        }
+        for (Size i = 0; i < particleCnt; ++i) {
+            if (!loadValue(d2v[i])) {
+                return false;
+            }
+        }
+        break;
+    }
+    default:
+        NOT_IMPLEMENTED;
+    }
+    return true;
+}
+
+Outcome BinaryOutput::load(const Path& path, Storage& storage) {
+    /// \todo dump materials!!!
+    storage.removeAll();
+    Deserializer deserializer(path);
+    std::string identifier;
     Float time;
     Size particleCnt, quantityCnt;
-    ifs >> time >> particleCnt >> quantityCnt;
-    ifs.close();
+    if (!deserializer.read(identifier, time, particleCnt, quantityCnt) || identifier != "SPH") {
+        return "Invalid file format";
+    }
+    if (!deserializer.skip(PADDING_SIZE)) {
+        return "Incorrect header size";
+    }
+    QuantityId id;
+    OrderEnum order;
+    ValueEnum value;
+
+    Size loadedQuantities = 0;
+    while (deserializer.read(id, order, value)) {
+        switch (value) {
+        case ValueEnum::INDEX:
+            if (!loadBuffers<Size>(storage, id, order, particleCnt, [&deserializer](Size& idx) {
+                    return deserializer.read(idx);
+                })) {
+                return makeFailed("Failed reading index quantity ", id);
+            };
+            break;
+        case ValueEnum::SCALAR:
+            if (!loadBuffers<Float>(storage, id, order, particleCnt, [&deserializer](Float& f) {
+                    return deserializer.read(f);
+                })) {
+                return makeFailed("Failed reading scalar quantity ", id);
+            };
+            break;
+        case ValueEnum::VECTOR:
+            if (!loadBuffers<Vector>(storage, id, order, particleCnt, [&deserializer](Vector& v) {
+                    return deserializer.read(v[X], v[Y], v[Z], v[H]);
+                })) {
+                return makeFailed("Failed reading vector quantity ", id);
+            }
+            break;
+        case ValueEnum::TENSOR:
+            if (!loadBuffers<Tensor>(storage, id, order, particleCnt, [&deserializer](Tensor& t) {
+                    // clang-format off
+                return deserializer.read(t(0, 0), t(0, 1), t(0, 2), //
+                                         t(1, 0), t(1, 1), t(1, 2), //
+                                         t(2, 0), t(2, 1), t(2, 2));
+                    // clang-format on
+                })) {
+                return makeFailed("Failed reading tensor quantity ", id);
+            }
+            break;
+        case ValueEnum::SYMMETRIC_TENSOR:
+            if (!loadBuffers<SymmetricTensor>(
+                    storage, id, order, particleCnt, [&deserializer](SymmetricTensor& t) {
+                        return deserializer.read(t(0, 0), t(1, 1), t(2, 2), t(0, 1), t(0, 2), t(1, 2));
+                    })) {
+                return makeFailed("Failed reading symmetric tensor quantity ", id);
+            }
+            break;
+        case ValueEnum::TRACELESS_TENSOR:
+            if (!loadBuffers<TracelessTensor>(
+                    storage, id, order, particleCnt, [&deserializer](TracelessTensor& t) {
+                        StaticArray<Float, 5> a;
+                        if (!deserializer.read(a[0], a[1], a[2], a[3], a[4])) {
+                            return false;
+                        }
+                        t = TracelessTensor(a[0], a[1], a[2], a[3], a[4]);
+                        return true;
+                    })) {
+                return makeFailed("Failed reading traceless tensor quantity ", id);
+            }
+            break;
+        default:
+            NOT_IMPLEMENTED;
+        }
+
+        loadedQuantities++;
+    }
+
+    if (loadedQuantities != quantityCnt) {
+        return makeFailed(
+            "Expected ", quantityCnt, " quantities, but ", loadedQuantities, " quantities has been loaded.");
+    }
+
     return SUCCESS;
+}
+
+PkdgravOutput::PkdgravOutput(const Path& fileMask, const std::string& runName, PkdgravParams&& params)
+    : Abstract::Output(fileMask)
+    , runName(runName)
+    , params(std::move(params)) {
+    ASSERT(almostEqual(conversion.velocity, 2.97853e6_f));
+}
+
+Path PkdgravOutput::dump(Storage& storage, const Statistics& UNUSED(stats)) {
+    const Path fileName = paths.getNextPath();
+
+    ArrayView<Float> m, rho, u;
+    tie(m, rho, u) = storage.getValues<Float>(QuantityId::MASSES, QuantityId::DENSITY, QuantityId::ENERGY);
+    ArrayView<Vector> r, v, dv;
+    tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
+    ArrayView<Size> flags = storage.getValue<Size>(QuantityId::FLAG);
+
+    std::ofstream ofs(fileName.native());
+    ofs << std::setw(20) << std::setprecision(PRECISION);
+
+    Size idx = 0;
+    for (Size i = 0; i < r.size(); ++i) {
+        if (u[i] > params.vaporThreshold) {
+            continue;
+        }
+        const Float radius = this->getRadius(r[idx][H], m[idx], rho[idx]);
+        ofs << idx << idx << m[idx] / conversion.mass << radius / conversion.distance
+            << r[idx] / conversion.distance << v[idx] / conversion.velocity
+            << Vector(0._f) /* zero initial rotation */ << params.colors[flags[idx]];
+        idx++;
+    }
+    return fileName;
 }
 
 NAMESPACE_SPH_END

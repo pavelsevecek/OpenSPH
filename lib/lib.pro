@@ -215,4 +215,5 @@ HEADERS += \
     math/Roots.h \
     physics/Analytic.h \
     io/Path.h \
-    tests/Setup.h
+    tests/Setup.h \
+    io/Serializer.h

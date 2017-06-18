@@ -94,17 +94,18 @@ void AsteroidRotation::setUp() {
     logger.write("Particles of target: ", storage->getParticleCnt());
 
     Path outputDir = Path("out") / Path(settings.get<std::string>(RunSettingsId::RUN_OUTPUT_NAME));
-    output = makeAuto<TextOutput>(
+    AutoPtr<TextOutput> textOutput = makeAuto<TextOutput>(
         outputDir, settings.get<std::string>(RunSettingsId::RUN_NAME), TextOutput::Options::SCIENTIFIC);
-    output->add(makeAuto<ParticleNumberColumn>());
-    output->add(makeAuto<ValueColumn<Vector>>(QuantityId::POSITIONS));
-    output->add(makeAuto<DerivativeColumn<Vector>>(QuantityId::POSITIONS));
-    output->add(makeAuto<SmoothingLengthColumn>());
-    output->add(makeAuto<ValueColumn<Float>>(QuantityId::DENSITY));
-    output->add(makeAuto<ValueColumn<Float>>(QuantityId::PRESSURE));
-    output->add(makeAuto<ValueColumn<Float>>(QuantityId::ENERGY));
-    output->add(makeAuto<ValueColumn<Float>>(QuantityId::DAMAGE));
-    output->add(makeAuto<ValueColumn<TracelessTensor>>(QuantityId::DEVIATORIC_STRESS));
+    textOutput->add(makeAuto<ParticleNumberColumn>());
+    textOutput->add(makeAuto<ValueColumn<Vector>>(QuantityId::POSITIONS));
+    textOutput->add(makeAuto<DerivativeColumn<Vector>>(QuantityId::POSITIONS));
+    textOutput->add(makeAuto<SmoothingLengthColumn>());
+    textOutput->add(makeAuto<ValueColumn<Float>>(QuantityId::DENSITY));
+    textOutput->add(makeAuto<ValueColumn<Float>>(QuantityId::PRESSURE));
+    textOutput->add(makeAuto<ValueColumn<Float>>(QuantityId::ENERGY));
+    textOutput->add(makeAuto<ValueColumn<Float>>(QuantityId::DAMAGE));
+    textOutput->add(makeAuto<ValueColumn<TracelessTensor>>(QuantityId::DEVIATORIC_STRESS));
+    output = std::move(textOutput);
 
     logFiles.push(makeAuto<IntegralsLog>(Path("integrals.txt"), 1));
 

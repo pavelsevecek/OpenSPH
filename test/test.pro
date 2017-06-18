@@ -135,7 +135,8 @@ SOURCES += \
     ../lib/io/test/FileSystem.cpp \
     ../lib/io/test/Path.cpp \
     ../lib/sph/equations/av/test/MorrisMonaghan.cpp \
-    ../lib/objects/containers/test/StringUtils.cpp
+    ../lib/objects/containers/test/StringUtils.cpp \
+    ../lib/io/test/Serializer.cpp
 
 HEADERS += \
     utils/Utils.h \
