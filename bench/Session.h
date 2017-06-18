@@ -245,7 +245,10 @@ private:
 
         Flags<Flag> flags;
 
-        Path baseline;
+        struct {
+            Path path;
+            Size commit = 0;
+        } baseline;
 
         Target target{ Mode::SIMPLE, 500 /*ms*/, 10 };
 
@@ -275,6 +278,8 @@ private:
     Outcome parseArgs(int arcs, char* argv[]);
 
     void printHelp();
+
+    void writeBaseline(const std::string& name, const Result& measured);
 
     Path getBaselinePath();
 

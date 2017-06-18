@@ -22,7 +22,7 @@ public:
         , padding(padding) {
         this->SetMaxSize(size);
         Connect(wxEVT_PAINT, wxPaintEventHandler(PlotView::onPaint));
-        plot = makeAuto<TestPlot>();
+        // plot = makeAuto<TestPlot>();
     }
 
 private:
@@ -33,8 +33,8 @@ private:
         dc.SetBrush(brush);
         dc.DrawRectangle(wxPoint(0, 0), this->GetSize());
 
-        const Range rangeX = plot->getRange(X);
-        const Range rangeY = plot->getRange(Y);
+        const Range rangeX = plot->getRangeX();
+        const Range rangeY = plot->getRangeY();
         drawAxes(dc, rangeX, rangeY);
         drawPlot(dc, rangeX, rangeY);
     }
@@ -44,7 +44,7 @@ private:
         pen.SetColour(*wxBLUE);
         dc.SetPen(pen);
         Storage storage;
-        Array<PlotPoint> points = plot->plot(storage);
+        Array<PlotPoint> points = plot->plot();
         const wxSize size = this->GetSize();
         const wxSize plotSize = size - 2 * padding;
         for (Size i = 0; i < points.size() - 1; ++i) {

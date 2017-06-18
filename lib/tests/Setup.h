@@ -1,8 +1,9 @@
 #pragma once
 
-/// Helper functions performing common tasks in unit testings.
-/// Pavel Sevecek 2017
-/// sevecek at sirrah.troja.mff.cuni.cz
+/// \file Setup.h
+/// \brief Helper functions performing common tasks in unit testing and benchmarks
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2017
 
 #include "sph/solvers/GenericSolver.h"
 

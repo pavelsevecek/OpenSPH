@@ -72,7 +72,8 @@ SOURCES += \
     geometry/SymmetricTensor.cpp \
     sph/solvers/StaticSolver.cpp \
     objects/containers/StringUtils.cpp \
-    io/Path.cpp
+    io/Path.cpp \
+    tests/Setup.cpp
 
 HEADERS += \
     commmon/ForwardDecl.h \
@@ -213,4 +214,5 @@ HEADERS += \
     objects/wrappers/ClonePtr.h \
     math/Roots.h \
     physics/Analytic.h \
-    io/Path.h
+    io/Path.h \
+    tests/Setup.h

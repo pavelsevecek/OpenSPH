@@ -1,9 +1,9 @@
 #include "sph/equations/av/Stress.h"
 #include "catch.hpp"
+#include "tests/Setup.h"
 #include "timestepping/TimeStepping.h"
 #include "utils/Approx.h"
 #include "utils/SequenceTest.h"
-#include "utils/Setup.h"
 
 using namespace Sph;
 

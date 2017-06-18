@@ -51,8 +51,8 @@ void Session::run(int argc, char* argv[]) {
     Baseline baseline;
     if (params.flags.has(Flag::MAKE_BASELINE)) {
         params.target.mode = Mode::MAKE_BASELINE;
-        params.baseline = this->getBaselinePath();
-        removePath(params.baseline);
+        params.baseline.path = this->getBaselinePath();
+        removePath(params.baseline.path);
     } else if (params.flags.has(Flag::RUN_AGAINST_BASELINE)) {
         params.target.mode = Mode::RUN_AGAINST_BASELINE;
         if (!baseline.parse(this->getBaselinePath())) {
@@ -78,7 +78,16 @@ void Session::run(int argc, char* argv[]) {
                     this->log(
                         "Warning: benchmark ", b->getName(), " is takes too much time, t = ", act->duration);
                 }
-                if (params.flags.has(Flag::MAKE_BASELINE)) {
+                if (params.flags.has(Flag::RUN_AGAINST_BASELINE)) {
+                    if (baseline.isRecorded(b->getName())) {
+                        Result result = baseline[b->getName()];
+                        ASSERT(result.iterateCnt == act->iterateCnt, result.iterateCnt, act->iterateCnt);
+                        this->log(b->getName() + " ran " + std::to_string(act->iterateCnt) + " iterations");
+                        this->compareResults(act.value(), result);
+                    } else {
+                        this->log(b->getName() + " not recorded in the baseline");
+                    }
+                } else {
                     this->log(b->getName(),
                         " completed in ",
                         act->duration,
@@ -94,26 +103,8 @@ void Session::run(int argc, char* argv[]) {
                         ", max. ",
                         act->max,
                         ")");
-                    FileLogger logger(params.baseline, FileLogger::Options::APPEND);
-                    logger.write(b->getName(),
-                        " / ",
-                        act->duration,
-                        ", ",
-                        act->iterateCnt,
-                        ", ",
-                        act->mean,
-                        ", ",
-                        act->variance,
-                        ", ",
-                        act->min,
-                        ", ",
-                        act->max);
-                } else if (params.flags.has(Flag::RUN_AGAINST_BASELINE)) {
-                    if (baseline.isRecorded(b->getName())) {
-                        Result result = baseline[b->getName()];
-                        ASSERT(result.iterateCnt == act->iterateCnt, result.iterateCnt, act->iterateCnt);
-                        this->log(b->getName() + " ran " + std::to_string(act->iterateCnt) + " iterations");
-                        this->compareResults(act.value(), result);
+                    if (params.flags.has(Flag::MAKE_BASELINE)) {
+                        this->writeBaseline(b->getName(), act.value());
                     }
                 }
             }
@@ -126,13 +117,21 @@ void Session::run(int argc, char* argv[]) {
 
 Path Session::getBaselinePath() {
     /// \todo mode these paths to some config
-    Expected<std::string> sha = getGitCommit(Path("../../src/"));
+    Expected<std::string> sha = getGitCommit(Path("../../src/"), params.baseline.commit);
     if (!sha) {
         this->logError("Cannot determine git commit SHA");
         return Path("");
     }
-    this->log("Creating baseline for commit " + sha.value());
+    this->log("Baseline for commit " + sha.value());
     return Path("../../baseline/") / Path(sha.value());
+}
+
+void Session::writeBaseline(const std::string& name, const Result& measured) {
+    FileLogger logger(params.baseline.path, FileLogger::Options::APPEND);
+    // clang-format off
+    logger.write(name, " / ", measured.duration, ", ", measured.iterateCnt, ", ",
+        measured.mean, ", ", measured.variance, ", ", measured.min, ", ", measured.max);
+    // clang-format on
 }
 
 void Session::compareResults(const Result& measured, const Result& baseline) {
@@ -168,6 +167,10 @@ Outcome Session::parseArgs(int argc, char* argv[]) {
             params.flags.set(Flag::MAKE_BASELINE);
         } else if (arg == "-r") {
             params.flags.set(Flag::RUN_AGAINST_BASELINE);
+            if (i < argc - 1) {
+                params.baseline.commit = std::stoi(argv[i + 1]);
+                i++;
+            }
         }
         if (arg == "--help") {
             this->printHelp();

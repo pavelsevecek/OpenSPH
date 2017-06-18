@@ -41,12 +41,12 @@ Outcome showNotification(const std::string& title, const std::string& message) {
 
 /// Returns current git commit hash as string. If the git repository is not found or command fails, returns
 /// empty string.
-Expected<std::string> getGitCommit(const Path& pathToGitRoot) {
+Expected<std::string> getGitCommit(const Path& pathToGitRoot, const Size prev) {
     if (!pathExists(pathToGitRoot)) {
         return makeUnexpected<std::string>("Invalid path");
     }
     StaticArray<char, 128> buffer;
-    std::string command = "cd " + pathToGitRoot.native() + " && git rev-parse HEAD";
+    std::string command = "cd " + pathToGitRoot.native() + " && git rev-parse HEAD~" + std::to_string(prev);
     std::string result;
     FILE* pipe = popen(command.c_str(), "r");
     auto f = finally([pipe] { pclose(pipe); });

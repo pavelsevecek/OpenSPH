@@ -1,6 +1,6 @@
 #include "sph/solvers/ContinuitySolver.h"
 #include "catch.hpp"
-#include "utils/Setup.h"
+#include "tests/Setup.h"
 
 using namespace Sph;
 

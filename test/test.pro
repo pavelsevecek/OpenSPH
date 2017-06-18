@@ -111,7 +111,6 @@ SOURCES += \
     ../lib/timestepping/test/TimeStepping.cpp \
     utils/Approx.cpp \
     utils/SequenceTest.cpp \
-    utils/Setup.cpp \
     utils/Utils.cpp \
     ../lib/sph/equations/heat/test/HeatDiffusion.cpp \
     ../lib/objects/wrappers/test/AutoPtr.cpp \
@@ -142,5 +141,4 @@ HEADERS += \
     utils/Utils.h \
     utils/RecordType.h \
     utils/Approx.h \
-    utils/SequenceTest.h \
-    utils/Setup.h
+    utils/SequenceTest.h
