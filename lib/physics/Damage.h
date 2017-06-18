@@ -13,7 +13,7 @@
 
 NAMESPACE_SPH_BEGIN
 
-class MaterialInitialContext;
+struct MaterialInitialContext;
 
 enum class DamageFlag {
     PRESSURE = 1 << 0,         ///< Compute damaged values of pressure in place

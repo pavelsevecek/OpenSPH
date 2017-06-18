@@ -117,9 +117,9 @@ private:
     PkdgravParams params;
 
 public:
-    PkdgravOutput(const std::string& fileMask, const std::string& runName, const PkdgravParams& params);
+    PkdgravOutput(const Path& fileMask, const std::string& runName, const PkdgravParams& params);
 
-    virtual std::string dump(Storage& storage, const Statistics& stats) override {
+    virtual Path dump(Storage& storage, const Statistics& UNUSED(stats)) override {
         ArrayView<Float> m, rho;
         tie(m, rho) = storage.getValues<Float>(QuantityId::MASSES, QuantityId::DENSITY);
         ArrayView<Vector> r, v, dv;
@@ -130,9 +130,10 @@ public:
         for (Size i = 0; i < r.size(); ++i) {
             radius[i] = this->getRadius(r[i][H], m[i], rho[i]);
         }
+        return Path();
     }
 
-    virtual Outcome load(const std::string& UNUSED(path), Storage& UNUSED(storage)) override {
+    virtual Outcome load(const Path& UNUSED(path), Storage& UNUSED(storage)) override {
         NOT_IMPLEMENTED;
     }
 

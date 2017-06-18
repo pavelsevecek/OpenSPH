@@ -13,6 +13,15 @@
 NAMESPACE_SPH_BEGIN
 
 
+/// Macros for conditional compilation based on selected compiler
+#ifdef __GNUC__
+#ifdef __clang__
+#define SPH_CLANG
+#else
+#define SPH_GCC
+#endif
+#endif
+
 /// Force inline for gcc
 #ifdef SPH_DEBUG
 #define INLINE inline
@@ -25,6 +34,8 @@ NAMESPACE_SPH_BEGIN
 #define NO_INLINE __attribute__((noinline))
 
 #define UNUSED(x)
+
+#define MARK_USED(x) (void)x
 
 #ifdef SPH_DEBUG
 #define UNUSED_IN_RELEASE(x) x
@@ -41,6 +52,11 @@ NAMESPACE_SPH_BEGIN
 #endif
 
 #define DEPRECATED __attribute__((deprecated))
+
+/// Branch prediction hints
+#define SPH_LIKELY(x) __builtin_expect((x), 1)
+#define SPH_UNLIKELY(x) __builtin_expect((x), 0)
+
 
 namespace Abstract {}
 

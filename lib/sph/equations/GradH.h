@@ -72,9 +72,9 @@ public:
         derivatives.require<Derivative>(settings);
     }
 
-    virtual void initialize(Storage& UNUSED(storage)) {}
+    virtual void initialize(Storage& UNUSED(storage)) override {}
 
-    virtual void finalize(Storage& storage) {
+    virtual void finalize(Storage& storage) override {
         ArrayView<Float> omega = storage.getValue<Float>(QuantityId::GRAD_H);
         ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
         ArrayView<Float> rho = storage.getValue<Float>(QuantityId::DENSITY);

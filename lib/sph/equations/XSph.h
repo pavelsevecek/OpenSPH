@@ -66,7 +66,7 @@ public:
         derivatives.require<Derivative>(settings);
     }
 
-    virtual void initialize(Storage& storage) {
+    virtual void initialize(Storage& storage) override {
         // fix previously modified velocities before computing derivatives
         /// \todo this is not very good solution as it depends on ordering of equation term in the array;
         /// some may already get corrected velocities.
@@ -78,7 +78,7 @@ public:
         }
     }
 
-    virtual void finalize(Storage& storage) {
+    virtual void finalize(Storage& storage) override {
         ArrayView<Vector> v = storage.getDt<Vector>(QuantityId::POSITIONS);
         ArrayView<Vector> dr = storage.getValue<Vector>(QuantityId::XSPH_VELOCITIES);
         for (Size i = 0; i < v.size(); ++i) {

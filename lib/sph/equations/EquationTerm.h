@@ -345,7 +345,7 @@ public:
         : dimensions(dimensions) {
         Flags<SmoothingLengthEnum> flags = Flags<SmoothingLengthEnum>::fromValue(
             settings.get<int>(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH));
-        (void)flags;
+        MARK_USED(flags);
         if (false) { // flags.has(SmoothingLengthEnum::SOUND_SPEED_ENFORCING)) {
             enforcing.strength = settings.get<Float>(RunSettingsId::SPH_NEIGHBOUR_ENFORCING);
             enforcing.range = settings.get<Range>(RunSettingsId::SPH_NEIGHBOUR_RANGE);

@@ -1,4 +1,10 @@
 #include "math/SparseMatrix.h"
+
+/// Disable some warning to compile Eigen with gcc 7.1
+#ifdef SPH_GCC
+#pragma GCC diagnostic ignored "-Wint-in-bool-context"
+#endif
+
 #include <Eigen/IterativeLinearSolvers>
 #include <Eigen/SparseLU>
 

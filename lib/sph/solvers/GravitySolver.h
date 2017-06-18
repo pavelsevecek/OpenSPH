@@ -21,7 +21,7 @@ private:
     /// Dummy term to make sure acceleration is being accumulated
     struct DummyAcceleration : public Abstract::EquationTerm {
         struct DummyDerivative : public Abstract::Derivative {
-            virtual void create(Accumulated& results) {
+            virtual void create(Accumulated& results) override {
                 results.insert<Vector>(QuantityId::POSITIONS, OrderEnum::SECOND);
             }
             virtual void initialize(const Storage&, Accumulated&) override {}

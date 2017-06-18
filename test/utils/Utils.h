@@ -48,7 +48,7 @@
 #define REQUIRE_ASSERT(func)                                                                                 \
     {                                                                                                        \
         Sph::Assert::ScopedBreakDisabler disabler;                                                           \
-        REQUIRE_THROWS(func);                                                                                \
+        REQUIRE_THROWS((void)func);                                                                          \
     }
 
 #define SKIP_TEST                                                                                            \
