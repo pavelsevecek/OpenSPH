@@ -95,7 +95,7 @@ class BinaryOutput : public Abstract::Output {
 private:
     std::string runName;
 
-    static constexpr Size PADDING_SIZE = 228;
+    static constexpr Size PADDING_SIZE = 220;
 
 public:
     BinaryOutput(const Path& fileMask, const std::string& runName);

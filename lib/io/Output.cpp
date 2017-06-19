@@ -127,24 +127,24 @@ BinaryOutput::BinaryOutput(const Path& fileMask, const std::string& runName)
 
 namespace {
     template <typename TValue, typename TStoreValue>
-    void storeBuffers(Quantity& q, TStoreValue&& storeValue) {
+    void storeBuffers(Quantity& q, const IndexSequence& sequence, TStoreValue&& storeValue) {
         StaticArray<Array<TValue>&, 3> buffers = q.getAll<TValue>();
-        for (Size i = 0; i < q.size(); ++i) {
+        for (Size i : sequence) {
             storeValue(buffers[0][i]);
         }
         switch (q.getOrderEnum()) {
         case OrderEnum::ZERO:
             break;
         case OrderEnum::FIRST:
-            for (Size i = 0; i < q.size(); ++i) {
+            for (Size i : sequence) {
                 storeValue(buffers[1][i]);
             }
             break;
         case OrderEnum::SECOND:
-            for (Size i = 0; i < q.size(); ++i) {
+            for (Size i : sequence) {
                 storeValue(buffers[1][i]);
             }
-            for (Size i = 0; i < q.size(); ++i) {
+            for (Size i : sequence) {
                 storeValue(buffers[2][i]);
             }
             break;
@@ -180,63 +180,25 @@ Path BinaryOutput::dump(Storage& storage, const Statistics& stats) {
 
     Serializer serializer(fileName);
     // file format identifier
-    // size: 4 + 8 + 8 + 8 = 28
-    serializer.write("SPH", time, storage.getParticleCnt(), storage.getQuantityCnt());
+    // size: 4 + 8 + 8 + 8 + 8 = 36
+    serializer.write(
+        "SPH", time, storage.getParticleCnt(), storage.getQuantityCnt(), storage.getMaterialCnt());
     // zero bytes until 256 to allow extensions of the header
     serializer.addPadding(PADDING_SIZE);
 
+
+    // quantity information
     Array<QuantityId> cachedIds;
-    // storage dump
     for (auto i : storage.getQuantities()) {
         // first 3 values: quantity ID, order (number of derivatives), type
         Quantity& q = i.quantity;
         cachedIds.push(i.id);
         serializer.write(Size(i.id), Size(q.getOrderEnum()), Size(q.getValueEnum()));
-        switch (q.getValueEnum()) {
-        case ValueEnum::INDEX:
-            storeBuffers<Size>(q, [&serializer](const Size idx) { serializer.write(idx); });
-            break;
-        case ValueEnum::SCALAR:
-            storeBuffers<Float>(q, [&serializer](const Float f) { serializer.write(f); });
-            break;
-        case ValueEnum::VECTOR:
-            storeBuffers<Vector>(q, [&serializer](const Vector& v) {
-                // store all components to save smoothing lengths; although it is a waste for velocities and
-                // other vector quantities...
-                serializer.write(v[X], v[Y], v[Z], v[H]);
-            });
-            break;
-        case ValueEnum::TENSOR:
-            storeBuffers<Tensor>(q, [&serializer](const Tensor& t) {
-                // clang-format off
-                serializer.write(t(0, 0), t(0, 1), t(0, 2), //
-                                 t(1, 0), t(1, 1), t(1, 2), //
-                                 t(2, 0), t(2, 1), t(2, 2));
-                // clang-format on
-            });
-            break;
-        case ValueEnum::SYMMETRIC_TENSOR:
-            storeBuffers<SymmetricTensor>(q, [&serializer](const SymmetricTensor& t) {
-                serializer.write(t(0, 0), t(1, 1), t(2, 2), t(0, 1), t(0, 2), t(1, 2));
-            });
-            break;
-        case ValueEnum::TRACELESS_TENSOR:
-            storeBuffers<TracelessTensor>(q, [&serializer](const TracelessTensor& t) {
-                serializer.write(t(0, 0), t(1, 1), t(0, 1), t(0, 2), t(1, 2));
-            });
-            break;
-        default:
-            NOT_IMPLEMENTED;
-        }
     }
 
     SettingsDispatcher dispatcher{ serializer };
 
-    // dump materials
-    /// \todo this should reflect creating bodies; i.e. dump first material, then all particles of the
-    /// material, then second material etc.
-    /// \todo generalize saving materials, we should make some base class Serializable with member function
-    /// serialize(Serializer& serializer)
+    // dump quantities separated by materials
     for (Size matIdx = 0; matIdx < storage.getMaterialCnt(); ++matIdx) {
         serializer.write("MAT", matIdx);
         MaterialView material = storage.getMaterial(matIdx);
@@ -254,19 +216,67 @@ Path BinaryOutput::dump(Storage& storage, const Statistics& stats) {
             const Float minimal = material->minimal(id);
             serializer.write(range.lower(), range.upper(), minimal);
         }
+
+        // storage dump for given material
+        for (auto i : storage.getQuantities()) {
+            Quantity& q = i.quantity;
+            serializer.write(*material.sequence().begin(), *material.sequence().end());
+            switch (q.getValueEnum()) {
+            case ValueEnum::INDEX:
+                storeBuffers<Size>(
+                    q, material.sequence(), [&serializer](const Size idx) { serializer.write(idx); });
+                break;
+            case ValueEnum::SCALAR:
+                storeBuffers<Float>(
+                    q, material.sequence(), [&serializer](const Float f) { serializer.write(f); });
+                break;
+            case ValueEnum::VECTOR:
+                storeBuffers<Vector>(q, material.sequence(), [&serializer](const Vector& v) {
+                    // store all components to save smoothing lengths; although it is a waste for velocities
+                    // and other vector quantities...
+                    serializer.write(v[X], v[Y], v[Z], v[H]);
+                });
+                break;
+            case ValueEnum::TENSOR:
+                storeBuffers<Tensor>(q, material.sequence(), [&serializer](const Tensor& t) {
+                    // clang-format off
+                    serializer.write(t(0, 0), t(0, 1), t(0, 2), //
+                                     t(1, 0), t(1, 1), t(1, 2), //
+                                     t(2, 0), t(2, 1), t(2, 2));
+                    // clang-format on
+                });
+                break;
+            case ValueEnum::SYMMETRIC_TENSOR:
+                storeBuffers<SymmetricTensor>(
+                    q, material.sequence(), [&serializer](const SymmetricTensor& t) {
+                        serializer.write(t(0, 0), t(1, 1), t(2, 2), t(0, 1), t(0, 2), t(1, 2));
+                    });
+                break;
+            case ValueEnum::TRACELESS_TENSOR:
+                storeBuffers<TracelessTensor>(
+                    q, material.sequence(), [&serializer](const TracelessTensor& t) {
+                        serializer.write(t(0, 0), t(1, 1), t(0, 1), t(0, 2), t(1, 2));
+                    });
+                break;
+            default:
+                NOT_IMPLEMENTED;
+            }
+        }
     }
+
 
     return fileName;
 }
 
 template <typename TValue, typename TLoadValue>
 static bool loadBuffers(Storage& storage,
+    const IndexSequence& sequence,
     const QuantityId id,
     const OrderEnum order,
     const Size particleCnt,
     const TLoadValue& loadValue) {
     Array<TValue> buffer(particleCnt);
-    for (Size i = 0; i < particleCnt; ++i) {
+    for (Size i : sequence) {
         if (!loadValue(buffer[i])) {
             return false;
         }
@@ -278,7 +288,7 @@ static bool loadBuffers(Storage& storage,
         break;
     case OrderEnum::FIRST: {
         ArrayView<TValue> dv = storage.getDt<TValue>(id);
-        for (Size i = 0; i < particleCnt; ++i) {
+        for (Size i : sequence) {
             if (!loadValue(dv[i])) {
                 return false;
             }
@@ -288,12 +298,12 @@ static bool loadBuffers(Storage& storage,
     case OrderEnum::SECOND: {
         ArrayView<TValue> dv = storage.getDt<TValue>(id);
         ArrayView<TValue> d2v = storage.getD2t<TValue>(id);
-        for (Size i = 0; i < particleCnt; ++i) {
+        for (Size i : sequence) {
             if (!loadValue(dv[i])) {
                 return false;
             }
         }
-        for (Size i = 0; i < particleCnt; ++i) {
+        for (Size i : sequence) {
             if (!loadValue(d2v[i])) {
                 return false;
             }
@@ -307,13 +317,12 @@ static bool loadBuffers(Storage& storage,
 }
 
 Outcome BinaryOutput::load(const Path& path, Storage& storage) {
-    /// \todo dump materials!!!
     storage.removeAll();
     Deserializer deserializer(path);
     std::string identifier;
     Float time;
-    Size particleCnt, quantityCnt;
-    if (!deserializer.read(identifier, time, particleCnt, quantityCnt) || identifier != "SPH") {
+    Size particleCnt, quantityCnt, materialCnt;
+    if (!deserializer.read(identifier, time, particleCnt, quantityCnt, materialCnt) || identifier != "SPH") {
         return "Invalid file format";
     }
     if (!deserializer.skip(PADDING_SIZE)) {
@@ -322,9 +331,17 @@ Outcome BinaryOutput::load(const Path& path, Storage& storage) {
     QuantityId id;
     OrderEnum order;
     ValueEnum value;
-
+    if (!deserializer.read(id, order, value)) {
+        return "Failed to read quantity information";
+    }
     Size loadedQuantities = 0;
-    while (deserializer.read(id, order, value)) {
+    Size matIdx;
+    while (deserializer.read(identifier, matIdx)) {
+
+        /// \todo read material
+        /// hm this doesnt work, we need the actual material to be able to continue the run!!
+        NullMaterial material;
+        Storage bodyStorage(material);
         switch (value) {
         case ValueEnum::INDEX:
             if (!loadBuffers<Size>(storage, id, order, particleCnt, [&deserializer](Size& idx) {
@@ -385,7 +402,6 @@ Outcome BinaryOutput::load(const Path& path, Storage& storage) {
 
         loadedQuantities++;
     }
-
     if (loadedQuantities != quantityCnt) {
         return makeFailed(
             "Expected ", quantityCnt, " quantities, but ", loadedQuantities, " quantities has been loaded.");
