@@ -147,6 +147,12 @@ TEST_CASE("Storage merge", "[storage]") {
 
     ArrayView<Float> rho = storage1.getValue<Float>(QuantityId::DENSITY);
     REQUIRE(rho == makeArray(0._f, 1._f, 2._f, 3._f));
+
+    // merge into empty
+    Storage storage3;
+    storage3.merge(std::move(storage1));
+    REQUIRE(storage3.getQuantityCnt() == 1);
+    REQUIRE(storage3.getParticleCnt() == 4);
 }
 
 TEST_CASE("Storage init", "[storage]") {

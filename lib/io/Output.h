@@ -90,7 +90,67 @@ public:
 };
 
 
-/// Output saving data to binary data without loss of precision.
+/// \brief Output saving data to binary data without loss of precision.
+///
+/// \subsection Format specification
+/// File format can store values of type uint64 (called Size hereafter), double (called Float hereafter),
+/// strings encoded as chars with terminating zero and padding (zero bytes). There are no other types
+/// currently used. All other types (Vectors, Tensors, enums, ...) are converted to Floats or Sizes.
+/// The file is divided as follows: header, quantity info, n x [material info, quantity data] where n is the
+/// number of materials.
+///
+/// Header is always 256 bytes, storing the following:
+///  - first 4 bytes are file format identifier "SPH" (including terminating zero)
+///  - time [Float] of the dump (in simulation time)
+///  - total particle count [Size] in the storage (called particleCnt)
+///  - number of quantities [Size] in the storage (called quantityCnt)
+///  - number of materials [Size] (called materialCnt)
+///  - padding until 256th byte (possibly will be used in the future)
+///
+/// Quantity info (summary) follows the header. It consist of quantityCnt triples of values
+///  - ID of quantity [Size casted from QuantityId]
+///  - Order of quantity [Size casted from OrderEnum]
+///  - Value type of quantity [Size casted from ValueEum]
+///
+/// After than there follows material info and quantity data for every stored material. The material info
+/// consist of materialCnt blocks with content:
+///  - block identifier "MAT" (4 bytes with terminating zero)
+///  - number of material [Size] in increasing order (from 0 up to materialCnt-1)
+///  - number of BodySettings entries [Size] of the material (called paramCnt)
+///  - paramCnt times:
+///     . parameter ID [Size casted from BodySettingsId]
+///     . type index of the value type [Size], corresponding to the type in settings variant
+///     . entry value itself. The size of the value depends on its type, identified by the index read
+///       previously. There is currently no upper limit for the entry size; although the largest one used is a
+///       Tensor with 72 bytes, this size can be increased in the future.
+///  - quantityCnt times:
+///     . Quantity ID of n-th quantity [Size casted from QuantityId]
+///     . Range of n-th quantity [2x Float]
+///     . minimal value of n-th quantity [Float] for timestepping
+/// \attention The whole material block can be missing as Storage can exist without a material. This is
+/// indicated by materialCnt == 0, but also by identifier "NOMAT" (6 bytes including terminating zero)
+/// in place of first "MAT" identifier if the file had material block.
+///
+/// The next two numbers [2x Float] are the first and one-past-last index of the particles corresponding to
+/// this material. The first index for the first material is always zero, the second index for the last
+/// material
+/// is the particleCnt. The first index is always equal to the second index of the previous material.
+/// The quantity data are stored immediately afterwards. It consist of quantityCnt blocks. Each block has 1-3
+/// sub-blocks, depending on the order of n-th. Note that the orders and value types of quantities are stored
+/// in the quantity info at the beginning of the file and are not repeated here.
+/// Each sub-block contains directly serialized value and derivatives of n-th quantity, i.e.
+///  - particleCnt times value, representing quantity value of i-th particle
+///  - if quantity is of first or second order, then follows particleCnt times value, representing quantity
+///    first derivative of i-th particle
+///  - if quantity is of second order, then follows particleCnt times values, representing quantity second
+///  derivative of i-th particle.
+/// The size of a single value depends on the value type, i.e. scalar quantities are stored as Floats, Vector
+/// quantities are stored as 4x Float (components X, Y, Z and H), etc.
+/// The file ends immediately after the last quantity is saved.
+///
+/// \todo Possible todos & fixes:
+///   - arbitrary precision: store doubles as floats or halfs and size_t as uint32 or uint16, based on data in
+///   header
 class BinaryOutput : public Abstract::Output {
 private:
     std::string runName;

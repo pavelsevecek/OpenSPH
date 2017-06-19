@@ -1,8 +1,10 @@
 #include "io/Output.h"
 #include "catch.hpp"
+#include "geometry/Domain.h"
 #include "io/Column.h"
 #include "io/FileSystem.h"
 #include "objects/containers/PerElementWrapper.h"
+#include "sph/initial/Initial.h"
 #include <fstream>
 
 using namespace Sph;
@@ -32,7 +34,7 @@ TEST_CASE("TextOutput dump", "[output]") {
     REQUIRE(content == expected);
 }
 
-TEST_CASE("BinaryOutput dump&accumulate", "[output]") {
+TEST_CASE("BinaryOutput dump&accumulate simple", "[output]") {
     Storage storage1;
     Array<Vector> r{ Vector(0._f), Vector(1._f), Vector(2._f) };
     Array<Vector> v{ Vector(-1._f), Vector(-2._f), Vector(-3._f) };
@@ -42,13 +44,13 @@ TEST_CASE("BinaryOutput dump&accumulate", "[output]") {
     storage1.insert<TracelessTensor>(QuantityId::DEVIATORIC_STRESS, OrderEnum::ZERO, TracelessTensor(3._f));
     storage1.insert<SymmetricTensor>(
         QuantityId::ANGULAR_MOMENTUM_CORRECTION, OrderEnum::ZERO, SymmetricTensor(6._f));
-    BinaryOutput output(Path("tmp%d.out"), "Output");
+    BinaryOutput output(Path("simple%d.out"), "Output");
     Statistics stats;
     stats.set(StatisticsId::TOTAL_TIME, 0._f);
     output.dump(storage1, stats);
 
     Storage storage2;
-    REQUIRE(output.load(Path("tmp0000.out"), storage2));
+    REQUIRE(output.load(Path("simple0000.out"), storage2));
     REQUIRE(storage2.getParticleCnt() == 3);
     REQUIRE(storage2.getQuantityCnt() == 4);
 
@@ -64,4 +66,63 @@ TEST_CASE("BinaryOutput dump&accumulate", "[output]") {
     REQUIRE(storage2.getQuantity(QuantityId::ANGULAR_MOMENTUM_CORRECTION).getOrderEnum() == OrderEnum::ZERO);
     REQUIRE(perElement(storage2.getValue<SymmetricTensor>(QuantityId::ANGULAR_MOMENTUM_CORRECTION)) ==
             SymmetricTensor(6._f));
+}
+
+TEST_CASE("BinaryOutput dump&accumulate materials", "[output]") {
+    Storage storage;
+    RunSettings settings;
+    /*settings.set(RunSettingsId::MODEL_FORCE_PRESSURE_GRADIENT, false);
+    settings.set(RunSettingsId::MODEL_FORCE_SOLID_STRESS, false);*/
+    InitialConditions conds(storage, settings);
+    BodySettings body;
+    // for exact number of particles
+    body.set(BodySettingsId::INITIAL_DISTRIBUTION, DistributionEnum::RANDOM);
+    body.set(BodySettingsId::PARTICLE_COUNT, 10);
+    body.set(BodySettingsId::EOS, EosEnum::TILLOTSON);
+    body.set(BodySettingsId::DENSITY_RANGE, Range(4._f, 6._f));
+    body.set(BodySettingsId::DENSITY_MIN, 3._f);
+    conds.addBody(SphericalDomain(Vector(0._f), 2._f), body);
+
+    body.set(BodySettingsId::PARTICLE_COUNT, 20);
+    body.set(BodySettingsId::EOS, EosEnum::IDEAL_GAS);
+    body.set(BodySettingsId::DENSITY_RANGE, Range(1._f, 2._f));
+    body.set(BodySettingsId::DENSITY_MIN, 5._f);
+    conds.addBody(SphericalDomain(Vector(0._f), 1._f), body);
+
+    body.set(BodySettingsId::PARTICLE_COUNT, 5);
+    body.set(BodySettingsId::EOS, EosEnum::MURNAGHAN);
+    body.set(BodySettingsId::DENSITY, 100._f);
+    conds.addBody(SphericalDomain(Vector(0._f), 0.5_f), body);
+
+    /*body.set(BodySettingsId::PARTICLE_COUNT, 15);
+    body.set(BodySettingsId::EOS, EosEnum::NONE);
+    body.set(BodySettingsId::RHEOLOGY_DAMAGE, DamageEnum::NONE);
+    body.set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::NONE);
+    conds.addBody(SphericalDomain(Vector(0._f), 1.5_f), body);*/
+
+    BinaryOutput output(Path("mat%d.out"), "Output");
+    Statistics stats;
+    /// \todo accumulate stats
+    stats.set(StatisticsId::TOTAL_TIME, 0._f);
+    output.dump(storage, stats);
+
+    // sanity check
+    REQUIRE(storage.getMaterialCnt() == 3);
+    REQUIRE(storage.getParticleCnt() == 35);
+    REQUIRE(storage.getQuantityCnt() == 12);
+
+    Storage loaded;
+    REQUIRE(output.load(Path("mat0000.out"), loaded));
+    REQUIRE(loaded.getMaterialCnt() == storage.getMaterialCnt());
+    REQUIRE(loaded.getParticleCnt() == storage.getParticleCnt());
+    REQUIRE(loaded.getQuantityCnt() == storage.getQuantityCnt());
+
+    REQUIRE(loaded.getMaterial(0)->range(QuantityId::DENSITY) == Range(4._f, 6._f));
+    REQUIRE(loaded.getMaterial(0)->minimal(QuantityId::DENSITY) == 3._f);
+    REQUIRE(loaded.getMaterial(0).sequence() == IndexSequence(0, 10));
+    REQUIRE(loaded.getMaterial(1)->range(QuantityId::DENSITY) == Range(1._f, 2._f));
+    REQUIRE(loaded.getMaterial(1)->minimal(QuantityId::DENSITY) == 5._f);
+    REQUIRE(loaded.getMaterial(1).sequence() == IndexSequence(10, 30));
+    REQUIRE(loaded.getMaterial(2)->getParam<Float>(BodySettingsId::DENSITY) == 100._f);
+    REQUIRE(loaded.getMaterial(2).sequence() == IndexSequence(30, 35));
 }

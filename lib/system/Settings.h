@@ -48,6 +48,10 @@ class Settings {
 private:
     enum Types { BOOL, INT, FLOAT, RANGE, STRING, VECTOR, SYMMETRIC_TENSOR, TRACELESS_TENSOR };
 
+    /// Storage type of settings entries. It is possible to add other types to the settings, but always to the
+    /// end of the variant to keep the backwards compatibility of serializer.
+    /// \todo Possibly refactor by using some polymorphic holder (Any-type) rather than variant, this will
+    /// allow to add more types for other Settings specializations (GuiSettings, etc.)
     using Value = Variant<bool, int, Float, Range, std::string, Vector, SymmetricTensor, TracelessTensor>;
 
     struct Entry {

@@ -63,6 +63,29 @@ TEST_CASE("Variant move construct", "[variant]") {
     REQUIRE(r1.wasMoved);
 }
 
+TEST_CASE("Variant index construct", "[variant]") {
+    Variant<int, RecordType, float> variant1(CONSTRUCT_TYPE_IDX, 0);
+    REQUIRE(variant1.getTypeIdx() == 0);
+    Variant<int, RecordType, float> variant2(CONSTRUCT_TYPE_IDX, 1);
+    REQUIRE(variant2.getTypeIdx() == 1);
+    REQUIRE(variant2.get<RecordType>().wasDefaultConstructed);
+    // test some non-scalar type
+    Variant<int, std::string> variant3(CONSTRUCT_TYPE_IDX, 1);
+    REQUIRE(variant3.get<std::string>() == "");
+
+    struct Dummy {
+        std::string s;
+
+        Dummy() {
+            s = "hello";
+        }
+    };
+    Variant<int, std::string, Dummy> variant4(CONSTRUCT_TYPE_IDX, 2);
+    REQUIRE(variant4.get<Dummy>().s == "hello");
+
+    REQUIRE_ASSERT((Variant<int, float>(CONSTRUCT_TYPE_IDX, 2)));
+}
+
 TEST_CASE("Variant assignemt", "[variant]") {
     Variant<int, RecordType> variant1(1);
     variant1 = RecordType(5);

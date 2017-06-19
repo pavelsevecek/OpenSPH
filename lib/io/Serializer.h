@@ -39,7 +39,7 @@ namespace Detail {
     using Serialized = typename SerializedType<T>::Type;
 }
 
-struct Serializer {
+struct Serializer : public Noncopyable {
 private:
     std::ofstream ofs;
     Array<char> buffer;
@@ -94,7 +94,7 @@ private:
     void serializeImpl(Array<char>& UNUSED(bytes)) {}
 };
 
-struct Deserializer {
+struct Deserializer : public Noncopyable {
 private:
     std::ifstream ifs;
     Array<char> buffer;

@@ -3,6 +3,7 @@
 #include "io/FileSystem.h"
 #include "io/Serializer.h"
 #include "quantities/AbstractMaterial.h"
+#include "system/Factory.h"
 #include <fstream>
 
 NAMESPACE_SPH_BEGIN
@@ -126,33 +127,9 @@ BinaryOutput::BinaryOutput(const Path& fileMask, const std::string& runName)
     , runName(runName) {}
 
 namespace {
-    template <typename TValue, typename TStoreValue>
-    void storeBuffers(Quantity& q, const IndexSequence& sequence, TStoreValue&& storeValue) {
-        StaticArray<Array<TValue>&, 3> buffers = q.getAll<TValue>();
-        for (Size i : sequence) {
-            storeValue(buffers[0][i]);
-        }
-        switch (q.getOrderEnum()) {
-        case OrderEnum::ZERO:
-            break;
-        case OrderEnum::FIRST:
-            for (Size i : sequence) {
-                storeValue(buffers[1][i]);
-            }
-            break;
-        case OrderEnum::SECOND:
-            for (Size i : sequence) {
-                storeValue(buffers[1][i]);
-            }
-            for (Size i : sequence) {
-                storeValue(buffers[2][i]);
-            }
-            break;
-        default:
-            STOP;
-        }
-    }
-    struct SettingsDispatcher {
+
+    /// \todo this should be really part of the serializer/deserializer, otherwise it's kinda pointless
+    struct SerializerDispatcher {
         Serializer& serializer;
 
         template <typename T>
@@ -171,6 +148,108 @@ namespace {
         void operator()(const TracelessTensor& t) {
             serializer.write(t(0, 0), t(1, 1), t(0, 1), t(0, 2), t(1, 2));
         }
+        void operator()(const Tensor& t) {
+            serializer.write(t(0, 0), t(0, 1), t(0, 2), t(1, 0), t(1, 1), t(1, 2), t(2, 0), t(2, 1), t(2, 2));
+        }
+    };
+    struct DeserializerDispatcher {
+        Deserializer& deserializer;
+
+        template <typename T>
+        void operator()(T& value) {
+            deserializer.read(value);
+        }
+        void operator()(Range& value) {
+            Float lower, upper;
+            deserializer.read(lower, upper);
+            value = Range(lower, upper);
+        }
+        void operator()(Vector& value) {
+            deserializer.read(value[X], value[Y], value[Z], value[H]);
+        }
+        void operator()(SymmetricTensor& t) {
+            deserializer.read(t(0, 0), t(1, 1), t(2, 2), t(0, 1), t(0, 2), t(1, 2));
+        }
+        void operator()(TracelessTensor& t) {
+            StaticArray<Float, 5> a;
+            deserializer.read(a[0], a[1], a[2], a[3], a[4]);
+            t = TracelessTensor(a[0], a[1], a[2], a[3], a[4]);
+        }
+        void operator()(Tensor& t) {
+            deserializer.read(
+                t(0, 0), t(0, 1), t(0, 2), t(1, 0), t(1, 1), t(1, 2), t(2, 0), t(2, 1), t(2, 2));
+        }
+    };
+
+    struct StoreBuffersVisitor {
+        template <typename TValue>
+        void visit(Quantity& q, Serializer& serializer, const IndexSequence& sequence) {
+            SerializerDispatcher dispatcher{ serializer };
+            StaticArray<Array<TValue>&, 3> buffers = q.getAll<TValue>();
+            for (Size i : sequence) {
+                dispatcher(buffers[0][i]);
+            }
+            switch (q.getOrderEnum()) {
+            case OrderEnum::ZERO:
+                break;
+            case OrderEnum::FIRST:
+                for (Size i : sequence) {
+                    dispatcher(buffers[1][i]);
+                }
+                break;
+            case OrderEnum::SECOND:
+                for (Size i : sequence) {
+                    dispatcher(buffers[1][i]);
+                }
+                for (Size i : sequence) {
+                    dispatcher(buffers[2][i]);
+                }
+                break;
+            default:
+                STOP;
+            }
+        }
+    };
+
+    struct LoadBuffersVisitor {
+        template <typename TValue>
+        void visit(Storage& storage,
+            Deserializer& deserializer,
+            const IndexSequence& sequence,
+            const QuantityId id,
+            const OrderEnum order) {
+            DeserializerDispatcher dispatcher{ deserializer };
+            Array<TValue> buffer(sequence.size());
+            for (Size i : sequence) {
+                dispatcher(buffer[i]);
+            }
+            storage.insert<TValue>(id, order, std::move(buffer));
+            switch (order) {
+            case OrderEnum::ZERO:
+                // already done
+                break;
+            case OrderEnum::FIRST: {
+                ArrayView<TValue> dv = storage.getDt<TValue>(id);
+                for (Size i : sequence) {
+                    dispatcher(dv[i]);
+                }
+                break;
+            }
+            case OrderEnum::SECOND: {
+                ArrayView<TValue> dv = storage.getDt<TValue>(id);
+                ArrayView<TValue> d2v = storage.getD2t<TValue>(id);
+                for (Size i : sequence) {
+                    dispatcher(dv[i]);
+                }
+                for (Size i : sequence) {
+                    dispatcher(d2v[i]);
+                }
+                break;
+            }
+            default:
+                NOT_IMPLEMENTED;
+            }
+        }
     };
 }
 
@@ -186,7 +265,6 @@ Path BinaryOutput::dump(Storage& storage, const Statistics& stats) {
     // zero bytes until 256 to allow extensions of the header
     serializer.addPadding(PADDING_SIZE);
 
-
     // quantity information
     Array<QuantityId> cachedIds;
     for (auto i : storage.getQuantities()) {
@@ -196,124 +274,51 @@ Path BinaryOutput::dump(Storage& storage, const Statistics& stats) {
         serializer.write(Size(i.id), Size(q.getOrderEnum()), Size(q.getValueEnum()));
     }
 
-    SettingsDispatcher dispatcher{ serializer };
-
+    SerializerDispatcher dispatcher{ serializer };
+    const bool hasMaterials = storage.getMaterialCnt() > 0;
     // dump quantities separated by materials
-    for (Size matIdx = 0; matIdx < storage.getMaterialCnt(); ++matIdx) {
-        serializer.write("MAT", matIdx);
-        MaterialView material = storage.getMaterial(matIdx);
-        serializer.write(material->getParams().size());
-        // dump body settings
-        for (auto param : material->getParams()) {
-            serializer.write(param.id);
-            serializer.write(param.value.getTypeIdx());
-            forValue(param.value, dispatcher);
-        }
-        // dump all ranges and minimal values for timestepping
-        serializer.write(cachedIds.size());
-        for (QuantityId id : cachedIds) {
-            const Range range = material->range(id);
-            const Float minimal = material->minimal(id);
-            serializer.write(range.lower(), range.upper(), minimal);
+    for (Size matIdx = 0; matIdx < max(storage.getMaterialCnt(), Size(1)); ++matIdx) {
+        // storage can currently exist without materials, only write material params if we have a material
+        if (hasMaterials) {
+            serializer.write("MAT", matIdx);
+            MaterialView material = storage.getMaterial(matIdx);
+            serializer.write(material->getParams().size());
+            // dump body settings
+            for (auto param : material->getParams()) {
+                serializer.write(param.id);
+                serializer.write(param.value.getTypeIdx());
+                forValue(param.value, dispatcher);
+            }
+            // dump all ranges and minimal values for timestepping
+            for (QuantityId id : cachedIds) {
+                const Range range = material->range(id);
+                const Float minimal = material->minimal(id);
+                serializer.write(id, range.lower(), range.upper(), minimal);
+            }
+        } else {
+            // write that we have no materials
+            serializer.write("NOMAT");
         }
 
         // storage dump for given material
+        IndexSequence sequence = [&] {
+            if (hasMaterials) {
+                MaterialView material = storage.getMaterial(matIdx);
+                return material.sequence();
+            } else {
+                return IndexSequence(0, storage.getParticleCnt());
+            }
+        }();
+        serializer.write(*sequence.begin(), *sequence.end());
+
         for (auto i : storage.getQuantities()) {
             Quantity& q = i.quantity;
-            serializer.write(*material.sequence().begin(), *material.sequence().end());
-            switch (q.getValueEnum()) {
-            case ValueEnum::INDEX:
-                storeBuffers<Size>(
-                    q, material.sequence(), [&serializer](const Size idx) { serializer.write(idx); });
-                break;
-            case ValueEnum::SCALAR:
-                storeBuffers<Float>(
-                    q, material.sequence(), [&serializer](const Float f) { serializer.write(f); });
-                break;
-            case ValueEnum::VECTOR:
-                storeBuffers<Vector>(q, material.sequence(), [&serializer](const Vector& v) {
-                    // store all components to save smoothing lengths; although it is a waste for velocities
-                    // and other vector quantities...
-                    serializer.write(v[X], v[Y], v[Z], v[H]);
-                });
-                break;
-            case ValueEnum::TENSOR:
-                storeBuffers<Tensor>(q, material.sequence(), [&serializer](const Tensor& t) {
-                    // clang-format off
-                    serializer.write(t(0, 0), t(0, 1), t(0, 2), //
-                                     t(1, 0), t(1, 1), t(1, 2), //
-                                     t(2, 0), t(2, 1), t(2, 2));
-                    // clang-format on
-                });
-                break;
-            case ValueEnum::SYMMETRIC_TENSOR:
-                storeBuffers<SymmetricTensor>(
-                    q, material.sequence(), [&serializer](const SymmetricTensor& t) {
-                        serializer.write(t(0, 0), t(1, 1), t(2, 2), t(0, 1), t(0, 2), t(1, 2));
-                    });
-                break;
-            case ValueEnum::TRACELESS_TENSOR:
-                storeBuffers<TracelessTensor>(
-                    q, material.sequence(), [&serializer](const TracelessTensor& t) {
-                        serializer.write(t(0, 0), t(1, 1), t(0, 1), t(0, 2), t(1, 2));
-                    });
-                break;
-            default:
-                NOT_IMPLEMENTED;
-            }
+            StoreBuffersVisitor visitor;
+            dispatch(q.getValueEnum(), visitor, q, serializer, sequence);
         }
     }
-
 
     return fileName;
-}
-
-template <typename TValue, typename TLoadValue>
-static bool loadBuffers(Storage& storage,
-    const IndexSequence& sequence,
-    const QuantityId id,
-    const OrderEnum order,
-    const Size particleCnt,
-    const TLoadValue& loadValue) {
-    Array<TValue> buffer(particleCnt);
-    for (Size i : sequence) {
-        if (!loadValue(buffer[i])) {
-            return false;
-        }
-    }
-    storage.insert<TValue>(id, order, std::move(buffer));
-    switch (order) {
-    case OrderEnum::ZERO:
-        // already done
-        break;
-    case OrderEnum::FIRST: {
-        ArrayView<TValue> dv = storage.getDt<TValue>(id);
-        for (Size i : sequence) {
-            if (!loadValue(dv[i])) {
-                return false;
-            }
-        }
-        break;
-    }
-    case OrderEnum::SECOND: {
-        ArrayView<TValue> dv = storage.getDt<TValue>(id);
-        ArrayView<TValue> d2v = storage.getD2t<TValue>(id);
-        for (Size i : sequence) {
-            if (!loadValue(dv[i])) {
-                return false;
-            }
-        }
-        for (Size i : sequence) {
-            if (!loadValue(d2v[i])) {
-                return false;
-            }
-        }
-        break;
-    }
-    default:
-        NOT_IMPLEMENTED;
-    }
-    return true;
 }
 
 Outcome BinaryOutput::load(const Path& path, Storage& storage) {
@@ -328,83 +333,79 @@ Outcome BinaryOutput::load(const Path& path, Storage& storage) {
     if (!deserializer.skip(PADDING_SIZE)) {
         return "Incorrect header size";
     }
-    QuantityId id;
-    OrderEnum order;
-    ValueEnum value;
-    if (!deserializer.read(id, order, value)) {
-        return "Failed to read quantity information";
-    }
-    Size loadedQuantities = 0;
-    Size matIdx;
-    while (deserializer.read(identifier, matIdx)) {
 
-        /// \todo read material
-        /// hm this doesnt work, we need the actual material to be able to continue the run!!
-        NullMaterial material;
-        Storage bodyStorage(material);
-        switch (value) {
-        case ValueEnum::INDEX:
-            if (!loadBuffers<Size>(storage, id, order, particleCnt, [&deserializer](Size& idx) {
-                    return deserializer.read(idx);
-                })) {
-                return makeFailed("Failed reading index quantity ", id);
-            };
-            break;
-        case ValueEnum::SCALAR:
-            if (!loadBuffers<Float>(storage, id, order, particleCnt, [&deserializer](Float& f) {
-                    return deserializer.read(f);
-                })) {
-                return makeFailed("Failed reading scalar quantity ", id);
-            };
-            break;
-        case ValueEnum::VECTOR:
-            if (!loadBuffers<Vector>(storage, id, order, particleCnt, [&deserializer](Vector& v) {
-                    return deserializer.read(v[X], v[Y], v[Z], v[H]);
-                })) {
-                return makeFailed("Failed reading vector quantity ", id);
+    struct QuantityInfo {
+        QuantityId id;
+        OrderEnum order;
+        ValueEnum value;
+    };
+    Array<QuantityInfo> infos(quantityCnt);
+    for (QuantityInfo& i : infos) {
+        deserializer.read(i.id, i.order, i.value);
+    }
+
+    // Size loadedQuantities = 0;
+    const bool hasMaterials = materialCnt > 0;
+    for (Size matIdx = 0; matIdx < max(materialCnt, Size(1)); ++matIdx) {
+        Storage bodyStorage;
+        if (hasMaterials) {
+            Size matIdxCheck;
+            deserializer.read(identifier, matIdxCheck);
+            ASSERT(identifier == "MAT");
+            ASSERT(matIdxCheck == matIdx);
+            Size matParamCnt;
+            deserializer.read(matParamCnt);
+            BodySettings settings;
+            for (Size i = 0; i < matParamCnt; ++i) {
+                // read body settings
+                BodySettingsId paramId;
+                Size valueId;
+                /// \todo would be much easier if the deserializer just threw an exception instead of checking
+                /// every single read
+                deserializer.read(paramId, valueId);
+                /// \todo this is currently the only way to access Settings variant, refactor if possible
+                SettingsIterator<BodySettingsId>::IteratorValue iteratorValue{ paramId,
+                    { CONSTRUCT_TYPE_IDX, valueId } };
+                forValue(iteratorValue.value, [&deserializer, &settings, paramId](auto& entry) {
+                    DeserializerDispatcher{ deserializer }(entry);
+                    settings.set(paramId, entry);
+                });
             }
-            break;
-        case ValueEnum::TENSOR:
-            if (!loadBuffers<Tensor>(storage, id, order, particleCnt, [&deserializer](Tensor& t) {
-                    // clang-format off
-                return deserializer.read(t(0, 0), t(0, 1), t(0, 2), //
-                                         t(1, 0), t(1, 1), t(1, 2), //
-                                         t(2, 0), t(2, 1), t(2, 2));
-                    // clang-format on
-                })) {
-                return makeFailed("Failed reading tensor quantity ", id);
+
+            // create material based on settings
+            AutoPtr<Abstract::Material> material = Factory::getMaterial(settings);
+            // read all ranges and minimal values for timestepping
+            for (Size i = 0; i < quantityCnt; ++i) {
+                QuantityId id;
+                Float lower, upper, minimal;
+                deserializer.read(id, lower, upper, minimal);
+                /// \todo replace asserts with exceptions
+                ASSERT(id == infos[i].id);
+                if (lower < upper) {
+                    material->range(id) = Range(lower, upper);
+                }
+                material->minimal(id) = minimal;
             }
-            break;
-        case ValueEnum::SYMMETRIC_TENSOR:
-            if (!loadBuffers<SymmetricTensor>(
-                    storage, id, order, particleCnt, [&deserializer](SymmetricTensor& t) {
-                        return deserializer.read(t(0, 0), t(1, 1), t(2, 2), t(0, 1), t(0, 2), t(1, 2));
-                    })) {
-                return makeFailed("Failed reading symmetric tensor quantity ", id);
-            }
-            break;
-        case ValueEnum::TRACELESS_TENSOR:
-            if (!loadBuffers<TracelessTensor>(
-                    storage, id, order, particleCnt, [&deserializer](TracelessTensor& t) {
-                        StaticArray<Float, 5> a;
-                        if (!deserializer.read(a[0], a[1], a[2], a[3], a[4])) {
-                            return false;
-                        }
-                        t = TracelessTensor(a[0], a[1], a[2], a[3], a[4]);
-                        return true;
-                    })) {
-                return makeFailed("Failed reading traceless tensor quantity ", id);
-            }
-            break;
-        default:
-            NOT_IMPLEMENTED;
+            // create storage for this material
+            bodyStorage = Storage(std::move(material));
+        } else {
+            deserializer.read(identifier);
+            ASSERT(identifier == "NOMAT");
         }
 
-        loadedQuantities++;
-    }
-    if (loadedQuantities != quantityCnt) {
-        return makeFailed(
-            "Expected ", quantityCnt, " quantities, but ", loadedQuantities, " quantities has been loaded.");
+        Size from, to;
+        deserializer.read(from, to);
+        LoadBuffersVisitor visitor;
+        for (Size i = 0; i < quantityCnt; ++i) {
+            dispatch(infos[i].value,
+                visitor,
+                bodyStorage,
+                deserializer,
+                IndexSequence(0, to - from),
+                infos[i].id,
+                infos[i].order);
+        }
+        storage.merge(std::move(bodyStorage));
     }
 
     return SUCCESS;

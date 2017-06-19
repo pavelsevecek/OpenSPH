@@ -1,7 +1,8 @@
 #pragma once
 
 /// \file Variant.h
-/// \brief Object capable of storing values of different time, having only one value (and one type) in any moment.
+/// \brief Object capable of storing values of different time, having only one value (and one type) in any
+/// moment.
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 
 #include "common/Assert.h"
@@ -49,15 +50,14 @@ public:
 /// Helper visitors creating, deleting or modifying Variant
 namespace VariantHelpers {
 
-    /// Creates a variant using value type of which can be stored in variant.
+    /// Creates a variant using default constructor
     template <typename... TArgs>
-    struct Create {
+    struct DefaultCreate {
         AlignedUnion<TArgs...>& storage;
 
-        template <typename T, typename TOther>
-        void visit(TOther&& other) {
-            using TRaw = std::decay_t<TOther>;
-            storage.template emplace<TRaw>(std::forward<TOther>(other));
+        template <typename T>
+        void visit() {
+            storage.template emplace<T>();
         }
     };
 
@@ -156,6 +156,9 @@ struct VariantIterator<T0> {
     }
 };
 
+/// Tag for invoking constructor with type index as parameter.
+static constexpr struct ConstructTypeIdxTag {
+} CONSTRUCT_TYPE_IDX;
 
 /// Variant, an implementation of type-safe union, similar to std::variant or boost::variant.
 template <typename... TArgs>
@@ -188,6 +191,14 @@ public:
         static_assert(idx != -1, "Type must be listed in Variant");
         storage.template emplace<RawT>(std::forward<T>(value));
         typeIdx = idx;
+    }
+
+    /// Default-constructs a type with given type index. Useful for (de)serialization of variant.
+    Variant(const ConstructTypeIdxTag, const Size typeIdx)
+        : typeIdx(typeIdx) {
+        ASSERT(typeIdx < sizeof...(TArgs));
+        VariantHelpers::DefaultCreate<TArgs...> creator{ storage };
+        VariantIterator<TArgs...>::visit(typeIdx, creator);
     }
 
     Variant(const Variant& other) {

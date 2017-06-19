@@ -684,6 +684,10 @@ public:
     INLINE Size size() const {
         return to - from;
     }
+
+    INLINE bool operator==(const IndexSequence& other) {
+        return from == other.from && to == other.to;
+    }
 };
 
 NAMESPACE_SPH_END

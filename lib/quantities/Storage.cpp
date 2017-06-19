@@ -97,6 +97,12 @@ Size Storage::getParticleCnt() const {
 }
 
 void Storage::merge(Storage&& other) {
+    // allow merging into empty storage for convenience
+    if (this->getQuantityCnt() == 0) {
+        *this = std::move(other);
+        return;
+    }
+
     // advance partitions
     if (partitions.empty()) {
         partitions.push(this->getParticleCnt());
@@ -107,7 +113,7 @@ void Storage::merge(Storage&& other) {
     for (Size& p : other.partitions) {
         p += this->getParticleCnt();
     }
-    // must contain the same quantities
+    // must have the same quantities
     ASSERT(this->getQuantityCnt() == other.getQuantityCnt());
     // merge all quantities
     iteratePair<VisitorEnum::ALL_BUFFERS>(*this, other, [](auto& ar1, auto& ar2) { //
