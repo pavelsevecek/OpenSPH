@@ -23,7 +23,7 @@ AsteroidCollision::AsteroidCollision(Controller* model)
         .set(RunSettingsId::SPH_AV_ALPHA, 1.5_f)
         .set(RunSettingsId::SPH_AV_BETA, 3._f)
         .set(RunSettingsId::RUN_THREAD_GRANULARITY, 100);
-    settings.saveToFile("code.sph");
+    settings.saveToFile(Path("code.sph"));
 }
 
 void AsteroidCollision::setUp() {
@@ -36,7 +36,7 @@ void AsteroidCollision::setUp() {
         .set(BodySettingsId::RHEOLOGY_DAMAGE, DamageEnum::SCALAR_GRADY_KIPP)
         .set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::VON_MISES)
         .set(BodySettingsId::DISTRIBUTE_MODE_SPH5, true);
-    bodySettings.saveToFile("target.sph");
+    bodySettings.saveToFile(Path("target.sph"));
 
     storage = makeShared<Storage>();
     InitialConditions conds(*storage, settings);
@@ -54,7 +54,7 @@ void AsteroidCollision::setUp() {
     bodySettings.set(BodySettingsId::PARTICLE_COUNT, 100)
         .set(BodySettingsId::STRESS_TENSOR_MIN, LARGE)
         .set(BodySettingsId::DAMAGE_MIN, LARGE);
-    bodySettings.saveToFile("impactor.sph");
+    bodySettings.saveToFile(Path("impactor.sph"));
     conds.addBody(domain2, bodySettings, Vector(-5.e3_f, 0._f, 0._f)); // 5km/s
     logger.write("Particles of projectile: ", storage->getParticleCnt() - n1);
 

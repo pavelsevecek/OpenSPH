@@ -2,6 +2,7 @@
 #include "io/Column.h"
 #include "io/FileSystem.h"
 #include "io/Serializer.h"
+#include "quantities/AbstractMaterial.h"
 #include <fstream>
 
 NAMESPACE_SPH_BEGIN
@@ -124,38 +125,53 @@ BinaryOutput::BinaryOutput(const Path& fileMask, const std::string& runName)
     : Abstract::Output(fileMask)
     , runName(runName) {}
 
-struct StoreBuffers {
-    template <typename Value>
-    void visit(std::ostream&, Quantity&) {
-        NOT_IMPLEMENTED;
+namespace {
+    template <typename TValue, typename TStoreValue>
+    void storeBuffers(Quantity& q, TStoreValue&& storeValue) {
+        StaticArray<Array<TValue>&, 3> buffers = q.getAll<TValue>();
+        for (Size i = 0; i < q.size(); ++i) {
+            storeValue(buffers[0][i]);
+        }
+        switch (q.getOrderEnum()) {
+        case OrderEnum::ZERO:
+            break;
+        case OrderEnum::FIRST:
+            for (Size i = 0; i < q.size(); ++i) {
+                storeValue(buffers[1][i]);
+            }
+            break;
+        case OrderEnum::SECOND:
+            for (Size i = 0; i < q.size(); ++i) {
+                storeValue(buffers[1][i]);
+            }
+            for (Size i = 0; i < q.size(); ++i) {
+                storeValue(buffers[2][i]);
+            }
+            break;
+        default:
+            STOP;
+        }
     }
-};
+    struct SettingsDispatcher {
+        Serializer& serializer;
 
-template <typename TValue, typename TStoreValue>
-static void storeBuffers(Quantity& q, TStoreValue&& storeValue) {
-    StaticArray<Array<TValue>&, 3> buffers = q.getAll<TValue>();
-    for (Size i = 0; i < q.size(); ++i) {
-        storeValue(buffers[0][i]);
-    }
-    switch (q.getOrderEnum()) {
-    case OrderEnum::ZERO:
-        break;
-    case OrderEnum::FIRST:
-        for (Size i = 0; i < q.size(); ++i) {
-            storeValue(buffers[1][i]);
+        template <typename T>
+        void operator()(const T& value) {
+            serializer.write(value);
         }
-        break;
-    case OrderEnum::SECOND:
-        for (Size i = 0; i < q.size(); ++i) {
-            storeValue(buffers[1][i]);
+        void operator()(const Range& value) {
+            serializer.write(value.lower(), value.upper());
         }
-        for (Size i = 0; i < q.size(); ++i) {
-            storeValue(buffers[2][i]);
+        void operator()(const Vector& value) {
+            serializer.write(value[X], value[Y], value[Z], value[H]);
         }
-        break;
-    default:
-        STOP;
-    }
+        void operator()(const SymmetricTensor& t) {
+            serializer.write(t(0, 0), t(1, 1), t(2, 2), t(0, 1), t(0, 2), t(1, 2));
+        }
+        void operator()(const TracelessTensor& t) {
+            serializer.write(t(0, 0), t(1, 1), t(0, 1), t(0, 2), t(1, 2));
+        }
+    };
 }
 
 Path BinaryOutput::dump(Storage& storage, const Statistics& stats) {
@@ -169,10 +185,12 @@ Path BinaryOutput::dump(Storage& storage, const Statistics& stats) {
     // zero bytes until 256 to allow extensions of the header
     serializer.addPadding(PADDING_SIZE);
 
+    Array<QuantityId> cachedIds;
     // storage dump
     for (auto i : storage.getQuantities()) {
         // first 3 values: quantity ID, order (number of derivatives), type
         Quantity& q = i.quantity;
+        cachedIds.push(i.id);
         serializer.write(Size(i.id), Size(q.getOrderEnum()), Size(q.getValueEnum()));
         switch (q.getValueEnum()) {
         case ValueEnum::INDEX:
@@ -211,6 +229,33 @@ Path BinaryOutput::dump(Storage& storage, const Statistics& stats) {
             NOT_IMPLEMENTED;
         }
     }
+
+    SettingsDispatcher dispatcher{ serializer };
+
+    // dump materials
+    /// \todo this should reflect creating bodies; i.e. dump first material, then all particles of the
+    /// material, then second material etc.
+    /// \todo generalize saving materials, we should make some base class Serializable with member function
+    /// serialize(Serializer& serializer)
+    for (Size matIdx = 0; matIdx < storage.getMaterialCnt(); ++matIdx) {
+        serializer.write("MAT", matIdx);
+        MaterialView material = storage.getMaterial(matIdx);
+        serializer.write(material->getParams().size());
+        // dump body settings
+        for (auto param : material->getParams()) {
+            serializer.write(param.id);
+            serializer.write(param.value.getTypeIdx());
+            forValue(param.value, dispatcher);
+        }
+        // dump all ranges and minimal values for timestepping
+        serializer.write(cachedIds.size());
+        for (QuantityId id : cachedIds) {
+            const Range range = material->range(id);
+            const Float minimal = material->minimal(id);
+            serializer.write(range.lower(), range.upper(), minimal);
+        }
+    }
+
     return fileName;
 }
 

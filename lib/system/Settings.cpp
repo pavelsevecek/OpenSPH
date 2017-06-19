@@ -1,4 +1,5 @@
 #include "system/Settings.h"
+#include "io/FileSystem.h"
 #include "objects/containers/StringUtils.h"
 #include "objects/wrappers/Outcome.h"
 #include <fstream>
@@ -7,8 +8,9 @@
 NAMESPACE_SPH_BEGIN
 
 template <typename TEnum>
-void Settings<TEnum>::saveToFile(const std::string& path) const {
-    std::ofstream ofs(path.c_str());
+void Settings<TEnum>::saveToFile(const Path& path) const {
+    createDirectory(path.parentPath());
+    std::ofstream ofs(path.native());
     for (auto& e : entries) {
         const Entry& entry = e.second;
         ofs << std::setw(30) << std::left << entry.name << " = ";
@@ -31,7 +33,7 @@ void Settings<TEnum>::saveToFile(const std::string& path) const {
         case VECTOR:
             ofs << entry.value.template get<Vector>();
             break;
-        case TENSOR:
+        case SYMMETRIC_TENSOR:
             ofs << entry.value.template get<SymmetricTensor>();
             break;
         case TRACELESS_TENSOR:
@@ -46,8 +48,11 @@ void Settings<TEnum>::saveToFile(const std::string& path) const {
 }
 
 template <typename TEnum>
-Outcome Settings<TEnum>::loadFromFile(const std::string& path) {
-    std::ifstream ifs(path.c_str());
+Outcome Settings<TEnum>::loadFromFile(const Path& path) {
+    std::ifstream ifs(path.native());
+    if (!ifs) {
+        return "File " + path.native() + " cannot be opened for reading.";
+    }
     std::string line;
     const Settings& descriptors = getDefaults();
     while (std::getline(ifs, line, '\n')) {
@@ -77,6 +82,21 @@ Outcome Settings<TEnum>::loadFromFile(const std::string& path) {
     }
     ifs.close();
     return SUCCESS;
+}
+
+template <typename TEnum>
+SettingsIterator<TEnum> Settings<TEnum>::begin() const {
+    return SettingsIterator<TEnum>(entries.begin());
+}
+
+template <typename TEnum>
+SettingsIterator<TEnum> Settings<TEnum>::end() const {
+    return SettingsIterator<TEnum>(entries.end());
+}
+
+template <typename TEnum>
+Size Settings<TEnum>::size() const {
+    return entries.size();
 }
 
 template <typename TEnum>
@@ -165,7 +185,7 @@ bool Settings<TEnum>::setValueByType(Entry& entry, const Size typeIdx, const std
             entry.value = Vector(v1, v2, v3);
             return true;
         }
-    case TENSOR:
+    case SYMMETRIC_TENSOR:
         Float sxx, syy, szz, sxy, sxz, syz;
         ss >> sxx >> syy >> szz >> sxy >> sxz >> syz;
         if (ss.fail()) {
@@ -187,6 +207,33 @@ bool Settings<TEnum>::setValueByType(Entry& entry, const Size typeIdx, const std
         NOT_IMPLEMENTED;
     }
 }
+
+
+template <typename TEnum>
+SettingsIterator<TEnum>::SettingsIterator(const Iterator& iter)
+    : iter(iter) {}
+
+template <typename TEnum>
+typename SettingsIterator<TEnum>::IteratorValue SettingsIterator<TEnum>::operator*() const {
+    return { iter->first, iter->second.value };
+}
+
+template <typename TEnum>
+SettingsIterator<TEnum>& SettingsIterator<TEnum>::operator++() {
+    ++iter;
+    return *this;
+}
+
+template <typename TEnum>
+bool SettingsIterator<TEnum>::operator==(const SettingsIterator& other) const {
+    return iter == other.iter;
+}
+
+template <typename TEnum>
+bool SettingsIterator<TEnum>::operator!=(const SettingsIterator& other) const {
+    return iter != other.iter;
+}
+
 
 // clang-format off
 template<>
@@ -329,7 +376,9 @@ AutoPtr<BodySettings> BodySettings::instance (new BodySettings {
 
 // Explicit instantiation
 template class Settings<BodySettingsId>;
-template class Settings<RunSettingsId>;
+template class SettingsIterator<BodySettingsId>;
 
+template class Settings<RunSettingsId>;
+template class SettingsIterator<RunSettingsId>;
 
 NAMESPACE_SPH_END

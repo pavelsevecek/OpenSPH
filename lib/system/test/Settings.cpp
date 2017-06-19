@@ -1,6 +1,6 @@
 #include "system/Settings.h"
 #include "catch.hpp"
-#include "io/Logger.h"
+#include "io/Path.h"
 #include "objects/wrappers/Outcome.h"
 
 using namespace Sph;
@@ -26,13 +26,10 @@ TEST_CASE("Settings save/load", "[settings]") {
     settings.set(RunSettingsId::DOMAIN_CENTER, Vector(1._f, 2._f, 3._f));
     settings.set(RunSettingsId::DOMAIN_RADIUS, 3.5_f);
     settings.set(RunSettingsId::RUN_NAME, std::string("test"));
-    settings.saveToFile("tmp.sph");
+    settings.saveToFile(Path("tmp.sph"));
 
     Settings<RunSettingsId> loadedSettings;
-    const Outcome result = loadedSettings.loadFromFile("tmp.sph");
-    if (!result) {
-        StdOutLogger().write(result.error());
-    }
+    const Outcome result = loadedSettings.loadFromFile(Path("tmp.sph"));
     REQUIRE(result);
     const Vector center = loadedSettings.get<Vector>(RunSettingsId::DOMAIN_CENTER);
     REQUIRE(center == Vector(1._f, 2._f, 3._f));
@@ -40,4 +37,27 @@ TEST_CASE("Settings save/load", "[settings]") {
     REQUIRE(radius == 3.5_f);
     const std::string name = loadedSettings.get<std::string>(RunSettingsId::RUN_NAME);
     REQUIRE(name == "test");
+
+    REQUIRE_FALSE(loadedSettings.loadFromFile(Path("nonexistingFile.sph")));
+}
+
+TEST_CASE("Settings iterator", "[settings]") {
+    RunSettings settings(EMPTY_SETTINGS);
+    settings.set(RunSettingsId::DOMAIN_CENTER, Vector(1._f, 2._f, 3._f));
+    settings.set(RunSettingsId::DOMAIN_RADIUS, 3.5_f);
+    settings.set(RunSettingsId::RUN_NAME, std::string("test"));
+    REQUIRE(settings.size() == 3);
+
+    // Rb tree sorts the entries
+    auto iter = settings.begin();
+    REQUIRE((*iter).id == RunSettingsId::RUN_NAME);
+    REQUIRE((*iter).value.get<std::string>() == std::string("test"));
+    ++iter;
+    REQUIRE((*iter).id == RunSettingsId::DOMAIN_CENTER);
+    REQUIRE((*iter).value.get<Vector>() == Vector(1._f, 2._f, 3._f));
+    ++iter;
+    REQUIRE((*iter).id == RunSettingsId::DOMAIN_RADIUS);
+    REQUIRE((*iter).value.get<Float>() == 3.5_f);
+    ++iter;
+    REQUIRE(iter == settings.end());
 }

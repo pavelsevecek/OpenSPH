@@ -31,7 +31,7 @@ AsteroidRotation::AsteroidRotation(Controller* model, const Float period)
         .set(RunSettingsId::SPH_AV_ALPHA, 1.5_f)
         .set(RunSettingsId::SPH_AV_BETA, 3._f)
         .set(RunSettingsId::RUN_THREAD_GRANULARITY, 100);
-    settings.saveToFile("code.sph");
+    settings.saveToFile(Path("code.sph"));
 }
 
 class DisableDerivativesSolver : public ContinuitySolver {
@@ -64,7 +64,7 @@ void AsteroidRotation::setUp() {
         .set(BodySettingsId::RHEOLOGY_DAMAGE, DamageEnum::SCALAR_GRADY_KIPP)
         .set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::VON_MISES)
         .set(BodySettingsId::DISTRIBUTE_MODE_SPH5, true);
-    bodySettings.saveToFile("target.sph");
+    bodySettings.saveToFile(Path("target.sph"));
 
     storage = makeShared<Storage>();
 

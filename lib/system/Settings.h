@@ -15,10 +15,17 @@
 
 NAMESPACE_SPH_BEGIN
 
+class Path;
+
+template <typename TEnum>
+class SettingsIterator;
+
+
 /// Tag for initialization of empty settings object.
 struct EmptySettingsTag {};
 
 const EmptySettingsTag EMPTY_SETTINGS;
+
 
 /// \brief Generic object containing various settings and parameters of the run.
 ///
@@ -35,8 +42,11 @@ const EmptySettingsTag EMPTY_SETTINGS;
 /// see one of existing specializations.
 template <typename TEnum>
 class Settings {
+    template <typename>
+    friend class SettingsIterator;
+
 private:
-    enum Types { BOOL, INT, FLOAT, RANGE, STRING, VECTOR, TENSOR, TRACELESS_TENSOR };
+    enum Types { BOOL, INT, FLOAT, RANGE, STRING, VECTOR, SYMMETRIC_TENSOR, TRACELESS_TENSOR };
 
     using Value = Variant<bool, int, Float, Range, std::string, Vector, SymmetricTensor, TracelessTensor>;
 
@@ -52,7 +62,7 @@ private:
 
     /// Constructs settings from list of key-value pairs.
     Settings(std::initializer_list<Entry> list) {
-        for (auto&& entry : list) {
+        for (auto& entry : list) {
             entries[entry.id] = entry;
         }
     }
@@ -68,7 +78,7 @@ public:
     /// Assigns a list of settings into the object, erasing all previous entries.
     Settings& operator=(std::initializer_list<Entry> list) {
         entries.clear();
-        for (auto&& entry : list) {
+        for (auto& entry : list) {
             entries[entry.id] = entry;
         }
         return *this;
@@ -107,14 +117,24 @@ public:
     /// Saves all values stored in settings into file.
     /// \param path Path (relative or absolute) to the file. The file will be created, any previous content
     ///             will be overriden.
-    void saveToFile(const std::string& path) const;
+    void saveToFile(const Path& path) const;
 
     /// Loads the settings from file. Previous values stored in settings are removed. The file must have a
     /// valid settings format.
     /// \param path Path to the file. The file must exist.
     /// \returns Successful \ref Outcome if the settings were correctly parsed from the file, otherwise
     /// returns encountered error.
-    Outcome loadFromFile(const std::string& path);
+    Outcome loadFromFile(const Path& path);
+
+    /// Iterator to the first entry of the settings storage.
+    SettingsIterator<TEnum> begin() const;
+
+    /// Iterator to the one-past-end entry the settings storage.
+    SettingsIterator<TEnum> end() const;
+
+    /// Returns the number of entries in the settings. This includes default entries in case the object was
+    /// not constructed with EMPTY_SETTINGS tag.
+    Size size() const;
 
     /// Returns a reference to object containing default values of all settings.
     static const Settings& getDefaults();
@@ -122,6 +142,40 @@ public:
 private:
     bool setValueByType(Entry& entry, const Size typeIdx, const std::string& str);
 };
+
+/// Iterator useful for iterating over all entries in the settings.
+template <typename TEnum>
+class SettingsIterator {
+private:
+    using Iterator = typename std::map<TEnum, typename Settings<TEnum>::Entry>::const_iterator;
+
+    Iterator iter;
+
+public:
+    /// Constructs an iterator from iternal implementation; use Settings::begin and Settings::end.
+    SettingsIterator(const Iterator& iter);
+
+    struct IteratorValue {
+        /// ID of settings entry
+        TEnum id;
+
+        /// Variant holding the value of the entry
+        typename Settings<TEnum>::Value value;
+    };
+
+    /// Dereference the iterator, yielding a pair of entry ID and its value.
+    IteratorValue operator*() const;
+
+    /// Moves to next entry.
+    SettingsIterator& operator++();
+
+    /// Equality operator between settings operators.
+    bool operator==(const SettingsIterator& other) const;
+
+    /// Unequality operator between settings operators.
+    bool operator!=(const SettingsIterator& other) const;
+};
+
 
 enum class KernelEnum {
     /// M4 B-spline (piecewise cubic polynomial)
@@ -299,11 +353,18 @@ enum class OutputEnum {
     NONE,
 
     /// Save output data into formatted human-readable text file
+    /// \todo This is pointless to use as user still has to manually add output columns ...
     TEXT_FILE,
 
+    /// Extension of text file, additionally executing given gnuplot script, generating a plot from every dump
+    GNUPLOT_OUTPUT,
+
     /// Save output data into binary file. This data dump is lossless and can be use to restart run from saved
-    /// snapshot.
+    /// snapshot. Stores values, all derivatives and materials of the storage.
     BINARY_FILE,
+
+    /// Generate a pkdgrav input file.
+    PKDGRAV_INPUT,
 };
 
 enum class RngEnum {
