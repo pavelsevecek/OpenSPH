@@ -4,7 +4,11 @@
 #include "io/Column.h"
 #include "io/FileSystem.h"
 #include "objects/containers/PerElementWrapper.h"
+#include "physics/Eos.h"
+#include "quantities/Iterate.h"
+#include "sph/Material.h"
 #include "sph/initial/Initial.h"
+#include "tests/Setup.h"
 #include <fstream>
 
 using namespace Sph;
@@ -44,7 +48,7 @@ TEST_CASE("BinaryOutput dump&accumulate simple", "[output]") {
     storage1.insert<TracelessTensor>(QuantityId::DEVIATORIC_STRESS, OrderEnum::ZERO, TracelessTensor(3._f));
     storage1.insert<SymmetricTensor>(
         QuantityId::ANGULAR_MOMENTUM_CORRECTION, OrderEnum::ZERO, SymmetricTensor(6._f));
-    BinaryOutput output(Path("simple%d.out"), "Output");
+    BinaryOutput output(Path("simple%d.out"));
     Statistics stats;
     stats.set(StatisticsId::TOTAL_TIME, 0._f);
     output.dump(storage1, stats);
@@ -100,7 +104,7 @@ TEST_CASE("BinaryOutput dump&accumulate materials", "[output]") {
     body.set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::NONE);
     conds.addBody(SphericalDomain(Vector(0._f), 1.5_f), body);*/
 
-    BinaryOutput output(Path("mat%d.out"), "Output");
+    BinaryOutput output(Path("mat%d.out"));
     Statistics stats;
     /// \todo accumulate stats
     stats.set(StatisticsId::TOTAL_TIME, 0._f);
@@ -117,12 +121,41 @@ TEST_CASE("BinaryOutput dump&accumulate materials", "[output]") {
     REQUIRE(loaded.getParticleCnt() == storage.getParticleCnt());
     REQUIRE(loaded.getQuantityCnt() == storage.getQuantityCnt());
 
-    REQUIRE(loaded.getMaterial(0)->range(QuantityId::DENSITY) == Range(4._f, 6._f));
-    REQUIRE(loaded.getMaterial(0)->minimal(QuantityId::DENSITY) == 3._f);
-    REQUIRE(loaded.getMaterial(0).sequence() == IndexSequence(0, 10));
-    REQUIRE(loaded.getMaterial(1)->range(QuantityId::DENSITY) == Range(1._f, 2._f));
-    REQUIRE(loaded.getMaterial(1)->minimal(QuantityId::DENSITY) == 5._f);
-    REQUIRE(loaded.getMaterial(1).sequence() == IndexSequence(10, 30));
-    REQUIRE(loaded.getMaterial(2)->getParam<Float>(BodySettingsId::DENSITY) == 100._f);
-    REQUIRE(loaded.getMaterial(2).sequence() == IndexSequence(30, 35));
+    // absolute match of two storages
+    iteratePair<VisitorEnum::ALL_BUFFERS>(loaded, storage, [](auto& b1, auto& b2) { REQUIRE(b1 == b2); });
+
+    MaterialView mat = loaded.getMaterial(0);
+    REQUIRE(mat->range(QuantityId::DENSITY) == Range(4._f, 6._f));
+    REQUIRE(mat->minimal(QuantityId::DENSITY) == 3._f);
+    REQUIRE(mat.sequence() == IndexSequence(0, 10));
+    EosMaterial* eosMat = dynamic_cast<EosMaterial*>(&mat.material());
+    REQUIRE(dynamic_cast<const TillotsonEos*>(&eosMat->getEos()));
+
+    mat = loaded.getMaterial(1);
+    REQUIRE(mat->range(QuantityId::DENSITY) == Range(1._f, 2._f));
+    REQUIRE(mat->minimal(QuantityId::DENSITY) == 5._f);
+    REQUIRE(mat.sequence() == IndexSequence(10, 30));
+    eosMat = dynamic_cast<EosMaterial*>(&mat.material());
+    REQUIRE(dynamic_cast<const IdealGasEos*>(&eosMat->getEos()));
+
+    mat = loaded.getMaterial(2);
+    REQUIRE(mat->getParam<Float>(BodySettingsId::DENSITY) == 100._f);
+    REQUIRE(mat.sequence() == IndexSequence(30, 35));
+    eosMat = dynamic_cast<EosMaterial*>(&mat.material());
+    REQUIRE(dynamic_cast<const MurnaghanEos*>(&eosMat->getEos()));
+}
+
+TEST_CASE("Pkdgrav output", "[output]") {
+    Storage storage = Tests::getGassStorage(100);
+    storage.insert<Size>(QuantityId::FLAG, OrderEnum::ZERO, 0);
+    PkdgravParams params;
+    PkdgravOutput output(Path("readerik%d.out"), std::move(params));
+    Statistics stats;
+    output.dump(storage, stats);
+    REQUIRE(fileSize(Path("readerik0000.out")) > 0);
+
+    params.vaporThreshold = 0.f;
+    PkdgravOutput output2(Path("readerik2_%d.out"), std::move(params));
+    output2.dump(storage, stats);
+    REQUIRE(fileSize(Path("readerik2_0000.out")) == 0);
 }

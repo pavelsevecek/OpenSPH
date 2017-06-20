@@ -198,6 +198,22 @@ public:
         return ArrayView<const T>(rawData(), actSize);
     }
 
+    bool operator==(const StaticArray& other) const {
+        if (actSize != other.actSize) {
+            return false;
+        }
+        for (TCounter i = 0; i < actSize; ++i) {
+            if (data[i].get() != other.data[i].get()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    bool operator!=(const StaticArray& other) const {
+        return !(*this == other);
+    }
+
 private:
     INLINE StorageType* rawData() {
         return reinterpret_cast<StorageType*>(data);

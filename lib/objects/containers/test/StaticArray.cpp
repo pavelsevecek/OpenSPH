@@ -215,3 +215,36 @@ TEST_CASE("StaticArray iterate", "[staticarray]") {
     REQUIRE(r1.value == 10);
     REQUIRE(r2.value == 20);
 }
+
+template <typename T1, typename T2, typename TEnabler = void>
+struct AreComparable {
+    static constexpr bool value = false;
+};
+template <typename T1, typename T2>
+struct AreComparable<T1, T2, std::void_t<decltype(std::declval<const T1>() == std::declval<const T2>())>> {
+    static constexpr bool value = true;
+};
+
+
+TEST_CASE("StaticArray equality", "[staticarray]") {
+    StaticArray<int, 3> ar1{ 1, 2, 3 };
+    StaticArray<int, 3> ar2(EMPTY_ARRAY);
+    REQUIRE_FALSE(ar1 == ar2);
+    REQUIRE(ar1 != ar2);
+
+    StaticArray<int, 3> ar3{ 1, 2 };
+    REQUIRE_FALSE(ar1 == ar3);
+    REQUIRE(ar1 != ar3);
+
+    StaticArray<int, 3> ar4{ 1, 2, 4 };
+    REQUIRE_FALSE(ar1 == ar4);
+    REQUIRE(ar1 != ar4);
+
+    StaticArray<int, 3> ar5{ 1, 2, 3 };
+    REQUIRE(ar1 == ar5);
+    REQUIRE_FALSE(ar1 != ar5);
+
+    // make sure static arrays of different size are not comparable
+    static_assert(AreComparable<StaticArray<int, 4>, StaticArray<int, 4>>::value, "Must be comparable");
+    static_assert(!AreComparable<StaticArray<int, 4>, StaticArray<int, 3>>::value, "Must not be comparable");
+}

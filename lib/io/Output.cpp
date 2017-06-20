@@ -122,9 +122,6 @@ Path GnuplotOutput::dump(Storage& storage, const Statistics& stats) {
     return path;
 }
 
-BinaryOutput::BinaryOutput(const Path& fileMask, const std::string& runName)
-    : Abstract::Output(fileMask)
-    , runName(runName) {}
 
 namespace {
 
@@ -253,6 +250,9 @@ namespace {
     };
 }
 
+BinaryOutput::BinaryOutput(const Path& fileMask)
+    : Abstract::Output(fileMask) {}
+
 Path BinaryOutput::dump(Storage& storage, const Statistics& stats) {
     const Path fileName = paths.getNextPath();
     const Float time = stats.get<Float>(StatisticsId::TOTAL_TIME);
@@ -321,27 +321,89 @@ Path BinaryOutput::dump(Storage& storage, const Statistics& stats) {
     return fileName;
 }
 
+
+static Expected<Storage> loadMaterial(const Size matIdx,
+    Deserializer& deserializer,
+    ArrayView<QuantityId> ids) {
+    Size matIdxCheck;
+    std::string identifier;
+    deserializer.read(identifier, matIdxCheck);
+    // some consistency checks
+    if (identifier != "MAT") {
+        return makeUnexpected<Storage>("Invalid material identifier, expected MAT, got " + identifier);
+    }
+    if (matIdxCheck != matIdx) {
+        return makeUnexpected<Storage>("Unexpected material index, expected " + std::to_string(matIdx) +
+                                       ", got " + std::to_string(matIdxCheck));
+    }
+
+    Size matParamCnt;
+    deserializer.read(matParamCnt);
+    BodySettings settings;
+    for (Size i = 0; i < matParamCnt; ++i) {
+        // read body settings
+        BodySettingsId paramId;
+        Size valueId;
+        deserializer.read(paramId, valueId);
+        /// \todo this is currently the only way to access Settings variant, refactor if possible
+        SettingsIterator<BodySettingsId>::IteratorValue iteratorValue{ paramId,
+            { CONSTRUCT_TYPE_IDX, valueId } };
+        forValue(iteratorValue.value, [&deserializer, &settings, paramId](auto& entry) {
+            DeserializerDispatcher{ deserializer }(entry);
+            settings.set(paramId, entry);
+        });
+    }
+
+    // create material based on settings
+    AutoPtr<Abstract::Material> material = Factory::getMaterial(settings);
+    // read all ranges and minimal values for timestepping
+    for (Size i = 0; i < ids.size(); ++i) {
+        QuantityId id;
+        Float lower, upper, minimal;
+        deserializer.read(id, lower, upper, minimal);
+        if (id != ids[i]) {
+            return makeUnexpected<Storage>("Unexpected quantityId, expected " + getQuantityName(ids[i]) +
+                                           ", got " + getQuantityName(id));
+        }
+        if (lower < upper) {
+            material->range(id) = Range(lower, upper);
+        }
+        material->minimal(id) = minimal;
+    }
+    // create storage for this material
+    return Storage(std::move(material));
+}
+
+
 Outcome BinaryOutput::load(const Path& path, Storage& storage) {
     storage.removeAll();
     Deserializer deserializer(path);
     std::string identifier;
     Float time;
     Size particleCnt, quantityCnt, materialCnt;
-    if (!deserializer.read(identifier, time, particleCnt, quantityCnt, materialCnt) || identifier != "SPH") {
+    try {
+        deserializer.read(identifier, time, particleCnt, quantityCnt, materialCnt);
+    } catch (SerializerException&) {
         return "Invalid file format";
     }
-    if (!deserializer.skip(PADDING_SIZE)) {
+    if (identifier != "SPH") {
+        return "Invalid format specifier: expected SPH, got " + identifier;
+    }
+    try {
+        deserializer.skip(PADDING_SIZE);
+    } catch (SerializerException&) {
         return "Incorrect header size";
     }
 
-    struct QuantityInfo {
-        QuantityId id;
-        OrderEnum order;
-        ValueEnum value;
-    };
-    Array<QuantityInfo> infos(quantityCnt);
-    for (QuantityInfo& i : infos) {
-        deserializer.read(i.id, i.order, i.value);
+    Array<QuantityId> quantityIds(quantityCnt);
+    Array<OrderEnum> orders(quantityCnt);
+    Array<ValueEnum> valueTypes(quantityCnt);
+    try {
+        for (Size i = 0; i < quantityCnt; ++i) {
+            deserializer.read(quantityIds[i], orders[i], valueTypes[i]);
+        }
+    } catch (SerializerException& e) {
+        return e.what();
     }
 
     // Size loadedQuantities = 0;
@@ -349,61 +411,42 @@ Outcome BinaryOutput::load(const Path& path, Storage& storage) {
     for (Size matIdx = 0; matIdx < max(materialCnt, Size(1)); ++matIdx) {
         Storage bodyStorage;
         if (hasMaterials) {
-            Size matIdxCheck;
-            deserializer.read(identifier, matIdxCheck);
-            ASSERT(identifier == "MAT");
-            ASSERT(matIdxCheck == matIdx);
-            Size matParamCnt;
-            deserializer.read(matParamCnt);
-            BodySettings settings;
-            for (Size i = 0; i < matParamCnt; ++i) {
-                // read body settings
-                BodySettingsId paramId;
-                Size valueId;
-                /// \todo would be much easier if the deserializer just threw an exception instead of checking
-                /// every single read
-                deserializer.read(paramId, valueId);
-                /// \todo this is currently the only way to access Settings variant, refactor if possible
-                SettingsIterator<BodySettingsId>::IteratorValue iteratorValue{ paramId,
-                    { CONSTRUCT_TYPE_IDX, valueId } };
-                forValue(iteratorValue.value, [&deserializer, &settings, paramId](auto& entry) {
-                    DeserializerDispatcher{ deserializer }(entry);
-                    settings.set(paramId, entry);
-                });
-            }
-
-            // create material based on settings
-            AutoPtr<Abstract::Material> material = Factory::getMaterial(settings);
-            // read all ranges and minimal values for timestepping
-            for (Size i = 0; i < quantityCnt; ++i) {
-                QuantityId id;
-                Float lower, upper, minimal;
-                deserializer.read(id, lower, upper, minimal);
-                /// \todo replace asserts with exceptions
-                ASSERT(id == infos[i].id);
-                if (lower < upper) {
-                    material->range(id) = Range(lower, upper);
+            try {
+                Expected<Storage> loadedStorage = loadMaterial(matIdx, deserializer, quantityIds);
+                if (!loadedStorage) {
+                    return loadedStorage.error();
+                } else {
+                    bodyStorage = std::move(loadedStorage.value());
                 }
-                material->minimal(id) = minimal;
+            } catch (SerializerException& e) {
+                return e.what();
             }
-            // create storage for this material
-            bodyStorage = Storage(std::move(material));
         } else {
-            deserializer.read(identifier);
-            ASSERT(identifier == "NOMAT");
+            try {
+                deserializer.read(identifier);
+            } catch (SerializerException& e) {
+                return e.what();
+            }
+            if (identifier != "NOMAT") {
+                return "Unexpected missing material identifier, expected NOMAT, got " + identifier;
+            }
         }
 
-        Size from, to;
-        deserializer.read(from, to);
-        LoadBuffersVisitor visitor;
-        for (Size i = 0; i < quantityCnt; ++i) {
-            dispatch(infos[i].value,
-                visitor,
-                bodyStorage,
-                deserializer,
-                IndexSequence(0, to - from),
-                infos[i].id,
-                infos[i].order);
+        try {
+            Size from, to;
+            deserializer.read(from, to);
+            LoadBuffersVisitor visitor;
+            for (Size i = 0; i < quantityCnt; ++i) {
+                dispatch(valueTypes[i],
+                    visitor,
+                    bodyStorage,
+                    deserializer,
+                    IndexSequence(0, to - from),
+                    quantityIds[i],
+                    orders[i]);
+            }
+        } catch (SerializerException& e) {
+            return e.what();
         }
         storage.merge(std::move(bodyStorage));
     }
@@ -411,11 +454,11 @@ Outcome BinaryOutput::load(const Path& path, Storage& storage) {
     return SUCCESS;
 }
 
-PkdgravOutput::PkdgravOutput(const Path& fileMask, const std::string& runName, PkdgravParams&& params)
+
+PkdgravOutput::PkdgravOutput(const Path& fileMask, PkdgravParams&& params)
     : Abstract::Output(fileMask)
-    , runName(runName)
     , params(std::move(params)) {
-    ASSERT(almostEqual(conversion.velocity, 2.97853e6_f));
+    ASSERT(almostEqual(conversion.velocity, 2.97853e4_f, 1.e-4_f));
 }
 
 Path PkdgravOutput::dump(Storage& storage, const Statistics& UNUSED(stats)) {
@@ -428,7 +471,7 @@ Path PkdgravOutput::dump(Storage& storage, const Statistics& UNUSED(stats)) {
     ArrayView<Size> flags = storage.getValue<Size>(QuantityId::FLAG);
 
     std::ofstream ofs(fileName.native());
-    ofs << std::setw(20) << std::setprecision(PRECISION);
+    ofs << std::setprecision(PRECISION) << std::scientific;
 
     Size idx = 0;
     for (Size i = 0; i < r.size(); ++i) {
@@ -436,9 +479,14 @@ Path PkdgravOutput::dump(Storage& storage, const Statistics& UNUSED(stats)) {
             continue;
         }
         const Float radius = this->getRadius(r[idx][H], m[idx], rho[idx]);
-        ofs << idx << idx << m[idx] / conversion.mass << radius / conversion.distance
-            << r[idx] / conversion.distance << v[idx] / conversion.velocity
-            << Vector(0._f) /* zero initial rotation */ << params.colors[flags[idx]];
+        ofs << std::setw(25) << idx <<                                   //
+            std::setw(25) << idx <<                                      //
+            std::setw(25) << m[idx] / conversion.mass <<                 //
+            std::setw(25) << radius / conversion.distance <<             //
+            std::setw(25) << r[idx] / conversion.distance <<             //
+            std::setw(25) << v[idx] / conversion.velocity <<             //
+            std::setw(25) << Vector(0._f) /* zero initial rotation */ << //
+            std::setw(25) << params.colors[flags[idx]] << std::endl;
         idx++;
     }
     return fileName;

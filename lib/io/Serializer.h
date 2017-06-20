@@ -39,6 +39,7 @@ namespace Detail {
     using Serialized = typename SerializedType<T>::Type;
 }
 
+/// \brief Object providing serialization of primitives into a stream
 struct Serializer : public Noncopyable {
 private:
     std::ofstream ofs;
@@ -94,59 +95,89 @@ private:
     void serializeImpl(Array<char>& UNUSED(bytes)) {}
 };
 
+/// \brief Exception thrown by \ref Deserializer on failure
+class SerializerException : public std::exception {
+private:
+    std::string error;
+    Size position;
+
+public:
+    /// \param error Error message
+    /// \param position Position in the stream where the error appeared
+    SerializerException(const std::string& error, const Size position)
+        : error(error)
+        , position(position) {}
+
+    virtual const char* what() const noexcept override {
+        return error.c_str();
+    }
+};
+
+/// \brief Object for reading serialized primitives from input stream
 struct Deserializer : public Noncopyable {
 private:
     std::ifstream ifs;
     Array<char> buffer;
 
 public:
+    /// Opens a stream associated with given path and prepares the file for deserialization.
     Deserializer(const Path& path)
-        : ifs(path.native(), std::ios::binary) {}
+        : ifs(path.native(), std::ios::binary) {
+        if (!ifs) {
+            this->fail("Cannot open file " + path.native() + " for reading.");
+        }
+    }
 
     /// Deserialize a list of parameters from the binary file.
     /// \return True on success, false if at least one parameter couldn't be read.
     /// \note Strings can be read with fixed length by passing char[], or by reading until first \0 by passing
     ///       std::string parameter.
+    /// \throw SerializerException if reading failed
     template <typename... TArgs>
-    bool read(TArgs&... args) {
+    void read(TArgs&... args) {
         return this->readImpl(args...);
     }
 
-    /// Skip bytes.
-    bool skip(const Size size) {
-        return bool(ifs.seekg(size, ifs.cur));
+    /// Skip a number of bytes in the stream; used to skip unused parameters or padding bytes.
+    void skip(const Size size) {
+        if (!ifs.seekg(size, ifs.cur)) {
+            this->fail("Failed to skip " + std::to_string(size) + " bytes in the stream");
+        }
     }
 
 private:
     template <typename T0, typename... TArgs>
-    bool readImpl(T0& t0, TArgs&... args) {
+    void readImpl(T0& t0, TArgs&... args) {
         static_assert(!std::is_array<T0>::value, "String must be read as std::string");
         using ActType = Detail::Serialized<T0>;
         buffer.resize(sizeof(ActType));
         if (!ifs.read(&buffer[0], sizeof(ActType))) {
-            return false;
+            /// \todo maybe print the name of the primitive?
+            this->fail("Failed to read a primitive of size " + std::to_string(sizeof(ActType)));
         }
         t0 = T0(reinterpret_cast<ActType&>(buffer[0]));
-        return this->readImpl(args...);
+        this->readImpl(args...);
     }
 
     template <typename... TArgs>
-    bool readImpl(std::string& s, TArgs&... args) {
+    void readImpl(std::string& s, TArgs&... args) {
         buffer.clear();
         char c;
         while (ifs.read(&c, 1) && c != '\0') {
             buffer.push(c);
         }
-        if (!ifs) {
-            return false;
-        }
         buffer.push('\0');
         s = &buffer[0];
-        return this->readImpl(args...);
+        if (!ifs) {
+            this->fail("Error while deseralizing string from stream, got: " + s);
+        }
+        this->readImpl(args...);
     }
 
-    bool readImpl() {
-        return true;
+    void readImpl() {}
+
+    void fail(const std::string& error) {
+        throw SerializerException(error, ifs.tellg());
     }
 };
 

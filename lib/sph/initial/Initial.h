@@ -13,6 +13,12 @@
 
 NAMESPACE_SPH_BEGIN
 
+/// \brief Non-owning view of particles belonging to the same body
+///
+/// Object allows to access, modify and setup additional properties of the particles created by \ref
+/// InitialConditions.
+class Body {};
+
 /// \brief Object for adding one or more bodies with given material into Storage
 ///
 /// The object is intended to only be constructed on stack, set up needed bodies and get destroyed when going
@@ -60,10 +66,17 @@ public:
 
     ~InitialConditions();
 
-    /// Creates particles by filling given domain. Particles are created on positions given by distribution in
-    /// bodySettings. Beside positions of particles, the function initialize particle masses, pressure and
-    /// sound speed, assuming both the pressure and sound speed are computed from equation of state. All other
-    /// quantities, including density and energy, must be initialized by solver->initialize
+    /// \brief Creates particles by filling given domain.
+    ///
+    /// Particles are created on positions given by distribution in bodySettings. Beside positions of
+    /// particles, the function initialize particle masses, pressure and sound speed, assuming both the
+    /// pressure and sound speed are computed from equation of state. The function also calls
+    /// Abstract::Solver::create to initialze quantities needed by used solver, either a solver given in
+    /// constructor or a default one based on RunSettings parameters.
+    /// \param domain Spatial domain where the particles are placed. The domain should not overlap a body
+    ///               already added into the storage as that would lead to incorrect density estimating in
+    ///               overlapping regions.
+    /// \param bodySettings Parameters of the body
     /// \todo generalize for entropy solver
     void addBody(const Abstract::Domain& domain,
         const BodySettings& bodySettings,

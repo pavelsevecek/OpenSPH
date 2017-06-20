@@ -70,29 +70,33 @@ void AsteroidRotation::setUp() {
 
     EquationHolder externalForces;
     externalForces += makeTerm<SphericalGravity>(SphericalGravity::Options::ASSUME_HOMOGENEOUS);
-    externalForces += makeTerm<NoninertialForce>(2._f * PI / (3600._f * period) * Vector(0, 0, 1));
-    // externalForces += makeTerm<SurfaceNormal>();
-    // externalForces += makeTerm<SimpleDamping>();
+    const Vector omega = 2._f * PI / (3600._f * period) * Vector(0, 0, 1);
+    externalForces += makeTerm<NoninertialForce>(omega);
 
     solver = makeAuto<DisableDerivativesSolver>(settings, externalForces);
 
     InitialConditions conds(*storage, *solver, settings);
 
-    StdOutLogger logger;
+    // Parent body
     SphericalDomain domain1(Vector(0._f), 5e3_f); // D = 10km
-
     conds.addBody(domain1, bodySettings);
+    logger = Factory::getLogger(settings);
+    logger->write("Particles of target: ", storage->getParticleCnt());
 
+    // Auxiliary storage for computing initial pressure and energy
     Storage smaller;
     bodySettings.set(BodySettingsId::PARTICLE_COUNT, 10000);
     InitialConditions conds2(smaller, settings);
-    SphericalDomain domain2(Vector(0._f), 5e3_f);
-    conds2.addBody(domain2, bodySettings);
+    conds2.addBody(domain1, bodySettings);
     this->setInitialStressTensor(smaller, externalForces);
 
+    // Impactor
+    SphericalDomain domain2(Vector(5097.4509902022_f, 3726.8662269290_f, 0._f), 270.5847632732_f);
+    bodySettings.set(BodySettingsId::PARTICLE_COUNT, 100);
+    conds.addBody(domain2, bodySettings, Vector(0._f), -omega);
 
-    logger.write("Particles of target: ", storage->getParticleCnt());
 
+    // Setup output
     Path outputDir = Path("out") / Path(settings.get<std::string>(RunSettingsId::RUN_OUTPUT_NAME));
     AutoPtr<TextOutput> textOutput = makeAuto<TextOutput>(
         outputDir, settings.get<std::string>(RunSettingsId::RUN_NAME), TextOutput::Options::SCIENTIFIC);

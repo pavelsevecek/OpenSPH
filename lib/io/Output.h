@@ -1,11 +1,14 @@
 #pragma once
 
 #include "io/Path.h"
+#include "objects/wrappers/Expected.h"
 #include "objects/wrappers/Outcome.h"
 #include "physics/Constants.h"
 #include "quantities/Storage.h"
 
 NAMESPACE_SPH_BEGIN
+
+class Deserializer;
 
 class OutputFile {
 private:
@@ -149,20 +152,50 @@ public:
 /// The file ends immediately after the last quantity is saved.
 ///
 /// \todo Possible todos & fixes:
-///   - arbitrary precision: store doubles as floats or halfs and size_t as uint32 or uint16, based on data in
-///   header
+///  - arbitrary precision: store doubles as floats or halfs and size_t as uint32 or uint16, based on data in
+///    header
+///  - deserialized materials are created using Factory::getMaterial from loaded settings. This won't be
+///    correct if the material was created differently, i.e. if the material doesn't match the information in
+///    the settings it holds. This should be enforced somehow.
 class BinaryOutput : public Abstract::Output {
 private:
-    std::string runName;
-
     static constexpr Size PADDING_SIZE = 220;
 
 public:
-    BinaryOutput(const Path& fileMask, const std::string& runName);
+    BinaryOutput(const Path& fileMask);
 
     virtual Path dump(Storage& storage, const Statistics& stats) override;
 
     virtual Outcome load(const Path& path, Storage& storage) override;
+
+    struct Info {
+        /// Number of quantities in the file
+        Size quantityCnt;
+
+        /// Number of particles in the file
+        Size particleCnt;
+
+        /// Number of materials in the file
+        Size materialCnt;
+
+        /// Information about stored quantities
+        struct QuantityInfo {
+
+            /// ID of the quantity
+            QuantityId id;
+
+            /// Order (=number or derivatives)
+            OrderEnum order;
+
+            /// Value type of the quantity
+            ValueEnum value;
+        };
+
+        Array<QuantityInfo> quantityInfo;
+    };
+
+    /// Opens the file and reads header info without reading the rest of the file.
+    Expected<Info> getInfo(const Path& path);
 };
 
 struct PkdgravParams {
@@ -174,7 +207,9 @@ struct PkdgravParams {
 
         /// Compute sphere radius so that its mass is equivalent to the mass of SPH particle
         FROM_DENSITY
-    } radius;
+    };
+
+    Radius radius = Radius::FROM_DENSITY;
 
     /// Threshold of internal energy; particles with higher energy are considered a vapor and
     /// we discard them in the output
@@ -187,8 +222,7 @@ struct PkdgravParams {
 
 class PkdgravOutput : public Abstract::Output {
 private:
-    std::string runName;
-
+    /// Parameters of the SPH->pkdgrav conversion
     PkdgravParams params;
 
     /// conversion factors for pkdgrav
@@ -203,7 +237,7 @@ private:
     } conversion;
 
 public:
-    PkdgravOutput(const Path& fileMask, const std::string& runName, PkdgravParams&& params);
+    PkdgravOutput(const Path& fileMask, PkdgravParams&& params);
 
     virtual Path dump(Storage& storage, const Statistics& stats) override;
 

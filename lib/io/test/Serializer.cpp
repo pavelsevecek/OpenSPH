@@ -19,24 +19,24 @@ TEST_CASE("Serialize", "[serialize]") {
         Size p1;
         int64_t p2;
         int p3;
-        REQUIRE(deserializer.read(p1, p2, p3));
+        REQUIRE_NOTHROW(deserializer.read(p1, p2, p3));
         REQUIRE(p1 == 5);
         REQUIRE(p2 == 5);
         REQUIRE(p3 == 'c');
         float f;
         double d;
-        REQUIRE(deserializer.read(f, d));
+        REQUIRE_NOTHROW(deserializer.read(f, d));
         REQUIRE(f == 3.f);
         REQUIRE(d == 4.);
         std::string s;
-        REQUIRE(deserializer.read(s));
+        REQUIRE_NOTHROW(deserializer.read(s));
         REQUIRE(s == "SPH");
 
-        REQUIRE(deserializer.skip(13));
-        REQUIRE(deserializer.read(s));
+        REQUIRE_NOTHROW(deserializer.skip(13));
+        REQUIRE_NOTHROW(deserializer.read(s));
         REQUIRE(s == "test");
 
-        REQUIRE_FALSE(deserializer.read(p1));
-        REQUIRE_FALSE(deserializer.read(s));
+        REQUIRE_THROWS(deserializer.read(p1));
+        REQUIRE_THROWS(deserializer.read(s));
     }
 }

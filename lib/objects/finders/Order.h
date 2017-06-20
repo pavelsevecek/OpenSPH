@@ -1,8 +1,9 @@
 #pragma once
 
-/// Helper object defining permutation.
-/// Pavel Sevecek 2016
-/// sevecek at sirrah.troja.mff.cuni.cz
+/// \file Order.h
+/// \brief Helper object defining permutation.
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2017
 
 #include "geometry/Indices.h"
 #include "objects/containers/Array.h"
@@ -11,9 +12,10 @@
 
 NAMESPACE_SPH_BEGIN
 
-/// Permutation, i.e. (discrete) invertible function int->int. Simple wrapper of Array<size_t> with convenient
-/// interface that guarantees the object will be always valid permutation. Only way to modify the object is
-/// via <code>shuffle</code> function.
+/// \brief Permutation, i.e. (discrete) invertible function int->int.
+///
+/// Simple wrapper of Array<size_t> with convenient interface that guarantees the object will be always valid
+/// permutation. Only way to modify the object is via <code>shuffle</code> function.
 class Order : public Noncopyable {
 private:
     Array<Size> storage;
@@ -57,7 +59,9 @@ public:
         return inverted;
     }
 
-    Order clone() const { return storage.clone(); }
+    Order clone() const {
+        return storage.clone();
+    }
 
     /// Compose two orders
     Order operator()(const Order& other) const {
@@ -68,11 +72,17 @@ public:
         return composed;
     }
 
-    INLINE Size operator[](const Size idx) const { return storage[idx]; }
+    INLINE Size operator[](const Size idx) const {
+        return storage[idx];
+    }
 
-    INLINE Size size() const { return storage.size(); }
+    INLINE Size size() const {
+        return storage.size();
+    }
 
-    INLINE bool operator==(const Order& other) const { return storage == other.storage; }
+    INLINE bool operator==(const Order& other) const {
+        return storage == other.storage;
+    }
 };
 
 /// Order in each component
@@ -122,7 +132,9 @@ public:
         return inverted;
     }
 
-    INLINE const Indices& operator[](const Size idx) const { return storage[idx]; }
+    INLINE const Indices& operator[](const Size idx) const {
+        return storage[idx];
+    }
 };
 
 NAMESPACE_SPH_END
