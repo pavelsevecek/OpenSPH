@@ -43,7 +43,7 @@ Controller::Controller() {
     status = Status::RUNNING;
 
     // create and start the run
-    sph.run = makeAuto<AsteroidRotation>(this, 6._f);
+    sph.run = makeAuto<AsteroidRotation>(this, 0.5_f);
     this->run();
 }
 
@@ -194,7 +194,7 @@ Array<SharedPtr<Abstract::Element>> Controller::getElementList(const Storage& st
     return elements;
 }
 
-Bitmap Controller::getRenderedBitmap(Abstract::Camera& camera) {
+Bitmap Controller::getRenderedBitmap(const Abstract::Camera& camera) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
     RenderParams params;
     params.particles.scale = gui.get<Float>(GuiSettingsId::PARTICLE_RADIUS);
@@ -206,6 +206,36 @@ Bitmap Controller::getRenderedBitmap(Abstract::Camera& camera) {
         Bitmap bitmap = vis.renderer->render(vis.cached, *vis.element, camera, params, *vis.stats);
         ASSERT(bitmap.isOk());
         return bitmap;
+    }
+}
+
+Optional<Particle> Controller::getIntersectedParticle(const Abstract::Camera& camera, const Point position) {
+    CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
+    const float radius = gui.get<Float>(GuiSettingsId::PARTICLE_RADIUS);
+    const Ray ray = camera.unproject(position);
+    const Vector dir = getNormalized(ray.target - ray.origin);
+
+    Size firstIdx;
+    Float firstT = INFTY;
+
+    for (Size i = 0; i < vis.cached.size(); ++i) {
+        if (!camera.project(vis.cached[i])) {
+            // particle not visible by the camera
+            continue;
+        }
+
+        const Vector r = vis.cached[i] - ray.origin;
+        const Float t = dot(r, dir);
+        const Vector projected = r - t * dir;
+        if (getSqrLength(projected) < sqr(vis.cached[i][H] * radius) && t < firstT) {
+            firstIdx = i;
+            firstT = t;
+        }
+    }
+    if (firstT == INFTY) {
+        return NOTHING;
+    } else {
+        return firstIdx;
     }
 }
 

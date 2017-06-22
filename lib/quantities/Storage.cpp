@@ -22,6 +22,21 @@ Size StorageSequence::size() const {
     return storage.getQuantityCnt();
 }
 
+ConstStorageSequence::ConstStorageSequence(const Storage& storage)
+    : storage(storage) {}
+
+ConstStorageIterator ConstStorageSequence::begin() {
+    return storage.quantities.begin();
+}
+
+ConstStorageIterator ConstStorageSequence::end() {
+    return storage.quantities.end();
+}
+
+Size ConstStorageSequence::size() const {
+    return storage.getQuantityCnt();
+}
+
 
 Storage::Storage() = default;
 
@@ -77,6 +92,10 @@ Range Storage::getRange(const QuantityId id, const Size matIdx) const {
 }
 
 StorageSequence Storage::getQuantities() {
+    return *this;
+}
+
+ConstStorageSequence Storage::getQuantities() const {
     return *this;
 }
 

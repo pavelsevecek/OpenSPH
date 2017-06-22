@@ -80,7 +80,7 @@ public:
         SphericalDomain domain2(Vector(6.e2_f, 1.35e2_f, 0._f), 20._f);
 
         // Impactor with v_imp = (-5km/s, 0, 0)
-        conds.addBody(domain2, body, Vector(-5.e3_f, 0._f, 0._f));
+        conds.addBody(domain2, body).addVelocity(Vector(-5.e3_f, 0._f, 0._f));
     }
 
 protected:

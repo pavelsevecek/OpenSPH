@@ -68,9 +68,10 @@ namespace Abstract {
             Array<NeighbourRecord>& neighbours,
             Flags<FinderFlags> flags = EMPTY_FLAGS,
             const Float error = 0._f) const = 0;
-		
-        /// Finds all points within given radius from given position. The position may not correspond to any point.
-		virtual Size findNeighbours(const Vector& position,
+
+        /// Finds all points within given radius from given position. The position may not correspond to any
+        /// point.
+        virtual Size findNeighbours(const Vector& position,
             const Float radius,
             Array<NeighbourRecord>& neighbours,
             Flags<FinderFlags> flags = EMPTY_FLAGS,
@@ -86,7 +87,7 @@ namespace Abstract {
 #ifdef SPH_DEBUG
             Float lastH = EPS;
             for (Size i = 0; i < tmp.size(); ++i) {
-                ASSERT(values[tmp[i]][H] >= lastH);
+                ASSERT(values[tmp[i]][H] >= lastH, values[tmp[i]][H], lastH);
                 lastH = values[tmp[i]][H];
             }
 #endif

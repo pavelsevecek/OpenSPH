@@ -35,15 +35,10 @@ public:
     /// Constructs array of given size.
     /// \param elementCnt Number of elements to be constructed (using default constructor)
     /// \param allocatedSize Number of allocated elements.
-    explicit Array(const TCounter elementCnt, const TCounter allocatedSize = maxValue)
-        : actSize(elementCnt)
-        , maxSize(allocatedSize) {
-        if (allocatedSize == maxValue) {
-            this->maxSize = actSize;
-        }
-        // allocate maxSize elements
-        this->data = (StorageType*)malloc(this->maxSize * sizeof(StorageType));
-        // emplace size elements
+    explicit Array(const TCounter elementCnt, const TCounter allocatedSize = maxValue) {
+        this->alloc(elementCnt, allocatedSize);
+
+        // emplace elements
         if (!std::is_trivially_default_constructible<T>::value) {
             for (TCounter i = 0; i < actSize; ++i) {
                 new (data + i) StorageType();
@@ -232,7 +227,10 @@ public:
         ASSERT(newMaxSize < (std::numeric_limits<TCounter>::max() >> 1));
         if (newMaxSize > maxSize) {
             const TCounter actNewSize = max(2 * maxSize, newMaxSize);
-            Array newArray(0, actNewSize);
+            Array newArray;
+            // don't use the Array(0, actNewSize) constructor to allow using emplaceBack for types without
+            // default constructor
+            newArray.alloc(0, actNewSize);
             // copy all elements into the new array, using move constructor
             for (TCounter i = 0; i < actSize; ++i) {
                 new (newArray.data + i) StorageType(std::move(this->data[i]));
@@ -349,6 +347,17 @@ public:
             stream << t << std::endl;
         }
         return stream;
+    }
+
+private:
+    void alloc(const TCounter elementCnt, const TCounter allocatedSize) {
+        actSize = elementCnt;
+        maxSize = allocatedSize;
+        if (allocatedSize == maxValue) {
+            this->maxSize = actSize;
+        }
+        // allocate maxSize elements
+        this->data = (StorageType*)malloc(this->maxSize * sizeof(StorageType));
     }
 };
 

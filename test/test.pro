@@ -8,10 +8,6 @@ QMAKE_CXXFLAGS += -msse4.1 -Wall -Wextra -Werror -std=c++14 -pthread
 DEFINES += SPH_USE_EIGEN
 LIBS += ../lib/liblib.a
 
-#QMAKE_CXXFLAGS_RELEASE -= -O2
-#QMAKE_CXXFLAGS_RELEASE += -Os
-#QMAKE_CXXFLAGS_DEBUG += -fsanitize=undefined-trap -fsanitize-undefined-trap-on-error
-QMAKE_CXX = g++
 
 CONFIG(release, debug|profile|assert|release) {
   message( "SPH TESTS --- Building for Release" )
@@ -41,34 +37,50 @@ PRE_TARGETDEPS += ../lib/liblib.a
 
 SOURCES += \
     main.cpp \
+    ../lib/geometry/test/AntisymmetricTensor.cpp \
     ../lib/geometry/test/Box.cpp \
     ../lib/geometry/test/Domain.cpp \
     ../lib/geometry/test/Indices.cpp \
     ../lib/geometry/test/Multipole.cpp \
+    ../lib/geometry/test/SymmetricTensor.cpp \
+    ../lib/geometry/test/Tensor.cpp \
     ../lib/geometry/test/TracelessTensor.cpp \
     ../lib/geometry/test/Vector.cpp \
+    ../lib/io/test/FileSystem.cpp \
     ../lib/io/test/Logger.cpp \
     ../lib/io/test/Output.cpp \
+    ../lib/io/test/Path.cpp \
+    ../lib/io/test/Serializer.cpp \
     ../lib/math/rng/test/Rng.cpp \
     ../lib/math/rng/test/VectorRng.cpp \
     ../lib/math/test/Integrator.cpp \
     ../lib/math/test/Math.cpp \
+    ../lib/math/test/Means.cpp \
     ../lib/math/test/Morton.cpp \
+    ../lib/math/test/Roots.cpp \
+    ../lib/math/test/SparseMatrix.cpp \
     ../lib/objects/containers/test/Array.cpp \
     ../lib/objects/containers/test/ArrayUtils.cpp \
     ../lib/objects/containers/test/BufferedArray.cpp \
     ../lib/objects/containers/test/StaticArray.cpp \
+    ../lib/objects/containers/test/StringUtils.cpp \
     ../lib/objects/containers/test/Tuple.cpp \
     ../lib/objects/finders/test/BruteForce.cpp \
     ../lib/objects/finders/test/Finders.cpp \
     ../lib/objects/finders/test/Order.cpp \
     ../lib/objects/wrappers/test/AlignedStorage.cpp \
     ../lib/objects/wrappers/test/Any.cpp \
+    ../lib/objects/wrappers/test/AutoPtr.cpp \
+    ../lib/objects/wrappers/test/ClonePtr.cpp \
+    ../lib/objects/wrappers/test/Expected.cpp \
     ../lib/objects/wrappers/test/Finally.cpp \
     ../lib/objects/wrappers/test/Flags.cpp \
     ../lib/objects/wrappers/test/Iterators.cpp \
+    ../lib/objects/wrappers/test/LockingPtr.cpp \
     ../lib/objects/wrappers/test/Optional.cpp \
+    ../lib/objects/wrappers/test/Outcome.cpp \
     ../lib/objects/wrappers/test/Range.cpp \
+    ../lib/objects/wrappers/test/SharedPtr.cpp \
     ../lib/objects/wrappers/test/Variant.cpp \
     ../lib/objects/wrappers/test/VectorizedArray.cpp \
     ../lib/physics/test/Damage.cpp \
@@ -84,20 +96,29 @@ SOURCES += \
     ../lib/quantities/test/Storage.cpp \
     ../lib/run/test/Run.cpp \
     ../lib/sph/boundary/test/Boundary.cpp \
-    ../lib/sph/equations/av/test/Standard.cpp \
     ../lib/sph/equations/av/test/Balsara.cpp \
+    ../lib/sph/equations/av/test/MorrisMonaghan.cpp \
+    ../lib/sph/equations/av/test/Standard.cpp \
+    ../lib/sph/equations/av/test/Stress.cpp \
+    ../lib/sph/equations/heat/test/HeatDiffusion.cpp \
     ../lib/sph/equations/test/Accumulated.cpp \
     ../lib/sph/equations/test/Derivative.cpp \
     ../lib/sph/equations/test/EquationTerm.cpp \
+    ../lib/sph/equations/test/Friction.cpp \
     ../lib/sph/equations/test/GradH.cpp \
+    ../lib/sph/equations/test/Potentials.cpp \
     ../lib/sph/equations/test/XSph.cpp \
     ../lib/sph/initial/test/Distribution.cpp \
     ../lib/sph/initial/test/Initial.cpp \
     ../lib/sph/kernel/test/GravityKernel.cpp \
+    ../lib/sph/kernel/test/Interpolation.cpp \
     ../lib/sph/kernel/test/Kernel.cpp \
+    ../lib/sph/solvers/test/ContinuitySolver.cpp \
     ../lib/sph/solvers/test/DensityIndependentSolver.cpp \
     ../lib/sph/solvers/test/GravitySolver.cpp \
+    ../lib/sph/solvers/test/Impact.cpp \
     ../lib/sph/solvers/test/Solvers.cpp \
+    ../lib/sph/solvers/test/StaticSolver.cpp \
     ../lib/sph/test/Diagnostics.cpp \
     ../lib/system/test/ArrayStats.cpp \
     ../lib/system/test/Profiler.cpp \
@@ -111,32 +132,7 @@ SOURCES += \
     ../lib/timestepping/test/TimeStepping.cpp \
     utils/Approx.cpp \
     utils/SequenceTest.cpp \
-    utils/Utils.cpp \
-    ../lib/sph/equations/heat/test/HeatDiffusion.cpp \
-    ../lib/objects/wrappers/test/AutoPtr.cpp \
-    ../lib/objects/wrappers/test/SharedPtr.cpp \
-    ../lib/objects/wrappers/test/LockingPtr.cpp \
-    ../lib/objects/wrappers/test/ClonePtr.cpp \
-    ../lib/math/test/Means.cpp \
-    ../lib/sph/solvers/test/ContinuitySolver.cpp \
-    ../lib/math/test/SparseMatrix.cpp \
-    ../lib/sph/equations/test/Potentials.cpp \
-    ../lib/sph/solvers/test/StaticSolver.cpp \
-    ../lib/objects/wrappers/test/Expected.cpp \
-    ../lib/objects/wrappers/test/Outcome.cpp \
-    ../lib/geometry/test/AntisymmetricTensor.cpp \
-    ../lib/sph/kernel/test/Interpolation.cpp \
-    ../lib/sph/equations/test/Friction.cpp \
-    ../lib/geometry/test/SymmetricTensor.cpp \
-    ../lib/geometry/test/Tensor.cpp \
-    ../lib/sph/equations/av/test/Stress.cpp \
-    ../lib/sph/solvers/test/Impact.cpp \
-    ../lib/math/test/Roots.cpp \
-    ../lib/io/test/FileSystem.cpp \
-    ../lib/io/test/Path.cpp \
-    ../lib/sph/equations/av/test/MorrisMonaghan.cpp \
-    ../lib/objects/containers/test/StringUtils.cpp \
-    ../lib/io/test/Serializer.cpp
+    utils/Utils.cpp
 
 HEADERS += \
     utils/Utils.h \

@@ -42,8 +42,8 @@ namespace Abstract {
         ///              (run time, timestep, ...), renderers can also output some statistics of their own
         ///              (time used in rendering, framerate, ...)
         virtual Bitmap render(ArrayView<const Vector> positions,
-            Abstract::Element& element,
-            Abstract::Camera& camera,
+            const Abstract::Element& element,
+            const Abstract::Camera& camera,
             const RenderParams& params,
             Statistics& stats) const = 0;
     };

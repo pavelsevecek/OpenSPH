@@ -1,6 +1,9 @@
 #include "sph/solvers/ContinuitySolver.h"
 #include "catch.hpp"
 #include "tests/Setup.h"
+#include "timestepping/TimeStepping.h"
+#include "utils/SequenceTest.h"
+#include "utils/Utils.h"
 
 using namespace Sph;
 
@@ -65,4 +68,43 @@ TEST_CASE("ContinuitySolver solid", "[solvers]") {
     settings.set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH,
         int(SmoothingLengthEnum::CONTINUITY_EQUATION) | int(SmoothingLengthEnum::SOUND_SPEED_ENFORCING));
     testSolver(storage, settings);
+}
+
+
+TEST_CASE("Constant smoothing length", "[solvers]") {
+    // there was a bug that smoothing length changed (incorrectly) for SmoothingLengthEnum::CONST
+
+    SharedPtr<Storage> storage = makeShared<Storage>(Tests::getSolidStorage(10000));
+    RunSettings settings;
+    settings.set(RunSettingsId::MODEL_FORCE_SOLID_STRESS, true);
+    settings.set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONST);
+
+    ContinuitySolver solver(settings);
+    solver.create(*storage, storage->getMaterial(0));
+
+    // setup nonzero velocities
+    ArrayView<Vector> v = storage->getDt<Vector>(QuantityId::POSITIONS);
+    for (Size i = 0; i < v.size(); ++i) {
+        while (getLength(v[i]) < EPS) {
+            v[i] = randomVector();
+        }
+    }
+
+    Array<Vector> initialPositions = storage->getValue<Vector>(QuantityId::POSITIONS).clone();
+
+    EulerExplicit timestepping(storage, settings);
+    Statistics stats;
+    timestepping.step(solver, stats);
+    ArrayView<Vector> r = storage->getValue<Vector>(QuantityId::POSITIONS);
+
+    auto test = [&](const Size i) -> Outcome {
+        if (r[i] == initialPositions[i]) {
+            return "Particle didn't move";
+        }
+        if (r[i][H] != initialPositions[i][H]) {
+            return "Smoothing length CHANGED!";
+        }
+        return SUCCESS;
+    };
+    REQUIRE_SEQUENCE(test, 0, r.size());
 }

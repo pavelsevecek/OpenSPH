@@ -7,6 +7,7 @@
 #include "gui/objects/Point.h"
 #include "objects/containers/ArrayView.h"
 #include "objects/containers/BufferedArray.h"
+#include "quantities/Particle.h"
 
 #include <mutex>
 #include <wx/panel.h>
@@ -29,8 +30,8 @@ class OrthoRenderer : public Abstract::Renderer {
 public:
     /// Can only be called from main thread
     virtual Bitmap render(ArrayView<const Vector> positions,
-        Abstract::Element& element,
-        Abstract::Camera& camera,
+        const Abstract::Element& element,
+        const Abstract::Camera& camera,
         const RenderParams& params,
         Statistics& stats) const override;
 
@@ -46,6 +47,10 @@ private:
     struct {
         Point position;
     } dragging;
+
+    struct {
+        Optional<Particle> particle;
+    } selected;
 
     /// Current camera of the view. The object is shared with parent model.
     AutoPtr<Abstract::Camera> camera;

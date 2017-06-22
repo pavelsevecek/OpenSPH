@@ -14,8 +14,8 @@
 NAMESPACE_SPH_BEGIN
 
 Bitmap OrthoRenderer::render(ArrayView<const Vector> r,
-    Abstract::Element& element,
-    Abstract::Camera& camera,
+    const Abstract::Element& element,
+    const Abstract::Camera& camera,
     const RenderParams& params,
     Statistics& stats) const {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
@@ -35,10 +35,10 @@ Bitmap OrthoRenderer::render(ArrayView<const Vector> r,
         pen.SetColour(color);
         dc.SetBrush(brush);
         dc.SetPen(pen);
-        const Optional<Tuple<Point, float>> p = camera.project(r[i]);
+        const Optional<ProjectedPoint> p = camera.project(r[i]);
         if (p) {
-            const int size = max(int(p->get<float>() * params.particles.scale), 1);
-            dc.DrawCircle(p->get<Point>(), size);
+            const int size = max(int(p->radius * params.particles.scale), 1);
+            dc.DrawCircle(p->point, size);
         }
     }
     Optional<Palette> palette = element.getPalette();
@@ -97,6 +97,8 @@ void OrthoPane::onPaint(wxPaintEvent& UNUSED(evt)) {
     if (bitmap.isOk()) { // not empty
         dc.DrawBitmap(bitmap, wxPoint(0, 0));
     }
+    if (selected.particle) {
+    }
 }
 
 void OrthoPane::onMouseMotion(wxMouseEvent& evt) {
@@ -107,6 +109,9 @@ void OrthoPane::onMouseMotion(wxMouseEvent& evt) {
         ASSERT(camera);
         camera->pan(offset);
         this->Refresh();
+    } else {
+        ASSERT(camera);
+        selected.particle = controller->getIntersectedParticle(*camera, position);
     }
     dragging.position = position;
     evt.Skip();

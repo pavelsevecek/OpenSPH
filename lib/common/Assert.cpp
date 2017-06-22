@@ -25,7 +25,7 @@ void Assert::check(const bool condition,
         StdOutLogger logger;
         logger.write(
             "================================================================================================"
-            "========");
+            "==========");
         logger.write("Assert fired in file ", file, ", executing function ", func, " on line ", line);
         logger.write("Condition: ", message);
         if (strlen(text) != 0) {
@@ -33,7 +33,7 @@ void Assert::check(const bool condition,
         }
         logger.write(
             "================================================================================================"
-            "========");
+            "==========");
         if (isDebuggerPresent()) {
             raise(SIGTRAP);
         }

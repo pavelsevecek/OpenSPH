@@ -3,7 +3,7 @@ CONFIG += c++14 staticLib thread silent
 CONFIG -= app_bundle qt
 CONFIG += staticlib
 
-# disable if you don't have eigen
+# disable if you dont have eigen
 INCLUDEPATH += /usr/include/eigen3
 DEFINES += SPH_USE_EIGEN
 
@@ -11,7 +11,6 @@ QMAKE_CXXFLAGS += -Wall -Wextra -Werror -msse4.1 -std=c++14 -pthread
 #QMAKE_CXXFLAGS_RELEASE -= -O2
 #QMAKE_CXXFLAGS_RELEASE += -Os
 #QMAKE_CXXFLAGS_DEBUG += -fsanitize=undefined-trap -fsanitize-undefined-trap-on-error  # -ftime-report
-QMAKE_CXX = g++
 
 
 CONFIG(release, debug|profile|assert|release) {
@@ -37,10 +36,15 @@ CONFIG(debug, debug|profile|assert|release) {
 SOURCES += \
     common/Assert.cpp \
     geometry/Domain.cpp \
+    geometry/SymmetricTensor.cpp \
+    io/FileSystem.cpp \
     io/Logger.cpp \
     io/Output.cpp \
+    io/Path.cpp \
     math/Morton.cpp \
+    math/SparseMatrix.cpp \
     math/rng/Rng.cpp \
+    objects/containers/StringUtils.cpp \
     objects/finders/KdTree.cpp \
     objects/finders/Voxel.cpp \
     objects/wrappers/Range.cpp \
@@ -58,22 +62,17 @@ SOURCES += \
     sph/boundary/Boundary.cpp \
     sph/initial/Distribution.cpp \
     sph/initial/Initial.cpp \
+    sph/solvers/StaticSolver.cpp \
     system/Factory.cpp \
     system/Platform.cpp \
     system/Profiler.cpp \
     system/Settings.cpp \
     system/Statistics.cpp \
     system/Timer.cpp \
+    tests/Setup.cpp \
     thread/CheckFunction.cpp \
     timestepping/TimeStepCriterion.cpp \
-    timestepping/TimeStepping.cpp \
-    io/FileSystem.cpp \
-    math/SparseMatrix.cpp \
-    geometry/SymmetricTensor.cpp \
-    sph/solvers/StaticSolver.cpp \
-    objects/containers/StringUtils.cpp \
-    io/Path.cpp \
-    tests/Setup.cpp
+    timestepping/TimeStepping.cpp
 
 HEADERS += \
     commmon/ForwardDecl.h \
@@ -83,21 +82,31 @@ HEADERS += \
     common/ForwardDecl.h \
     common/Globals.h \
     common/Traits.h \
+    geometry/AntisymmetricTensor.h \
     geometry/Box.h \
     geometry/Domain.h \
+    geometry/Generic.h \
     geometry/Indices.h \
     geometry/Multipole.h \
+    geometry/SymmetricTensor.h \
+    geometry/Tensor.h \
     geometry/TracelessTensor.h \
     geometry/Vector.h \
+    gravity/BarnesHut.h \
     io/Column.h \
     io/FileSystem.h \
     io/LogFile.h \
     io/Logger.h \
     io/Output.h \
+    io/Path.h \
+    io/Serializer.h \
     math/Integrator.h \
     math/Math.h \
+    math/Matrix.h \
     math/Means.h \
     math/Morton.h \
+    math/Roots.h \
+    math/SparseMatrix.h \
     math/rng/Rng.h \
     math/rng/VectorRng.h \
     objects/Exceptions.h \
@@ -113,6 +122,7 @@ HEADERS += \
     objects/containers/StringUtils.h \
     objects/containers/Tuple.h \
     objects/finders/AbstractFinder.h \
+    objects/finders/BruteForce.h \
     objects/finders/Bruteforce.h \
     objects/finders/KdTree.h \
     objects/finders/LinkedList.h \
@@ -124,18 +134,23 @@ HEADERS += \
     objects/finders/Voxel.h \
     objects/wrappers/AlignedStorage.h \
     objects/wrappers/Any.h \
+    objects/wrappers/AutoPtr.h \
+    objects/wrappers/ClonePtr.h \
     objects/wrappers/Expected.h \
     objects/wrappers/Finally.h \
     objects/wrappers/Flags.h \
     objects/wrappers/Iterators.h \
+    objects/wrappers/LockingPtr.h \
     objects/wrappers/NonOwningPtr.h \
     objects/wrappers/ObserverPtr.h \
     objects/wrappers/Optional.h \
     objects/wrappers/Outcome.h \
     objects/wrappers/Range.h \
+    objects/wrappers/SharedPtr.h \
     objects/wrappers/Value.h \
     objects/wrappers/Variant.h \
     objects/wrappers/VectorizedArray.h \
+    physics/Analytic.h \
     physics/Constants.h \
     physics/Damage.h \
     physics/Eos.h \
@@ -143,6 +158,7 @@ HEADERS += \
     physics/Rheology.h \
     physics/TimeFormat.h \
     post/Components.h \
+    post/Plot.h \
     quantities/AbstractMaterial.h \
     quantities/Iterate.h \
     quantities/Quantity.h \
@@ -156,15 +172,23 @@ HEADERS += \
     sph/equations/Accumulated.h \
     sph/equations/Derivative.h \
     sph/equations/EquationTerm.h \
+    sph/equations/Friction.h \
     sph/equations/GradH.h \
+    sph/equations/HelperTerms.h \
+    sph/equations/Potentials.h \
+    sph/equations/Statics.h \
     sph/equations/XSph.h \
     sph/equations/av/Balsara.h \
     sph/equations/av/MorrisMonaghan.h \
     sph/equations/av/Riemann.h \
+    sph/equations/av/Standard.h \
+    sph/equations/av/Stress.h \
+    sph/equations/heat/HeatDiffusion.h \
     sph/equationsav/Standard.h \
     sph/initial/Distribution.h \
     sph/initial/Initial.h \
     sph/kernel/GravityKernel.h \
+    sph/kernel/Interpolation.h \
     sph/kernel/Kernel.h \
     sph/kernel/KernelFactory.h \
     sph/solvers/ContinuitySolver.h \
@@ -172,6 +196,7 @@ HEADERS += \
     sph/solvers/EntropySolver.h \
     sph/solvers/GenericSolver.h \
     sph/solvers/GravitySolver.h \
+    sph/solvers/StaticSolver.h \
     sph/solvers/SummationSolver.h \
     system/ArrayStats.h \
     system/Callbacks.h \
@@ -183,6 +208,7 @@ HEADERS += \
     system/Settings.h \
     system/Statistics.h \
     system/Timer.h \
+    tests/Setup.h \
     thread/AtomicFloat.h \
     thread/CheckFunction.h \
     thread/Pool.h \
@@ -190,30 +216,4 @@ HEADERS += \
     timestepping/AbstractSolver.h \
     timestepping/TimeStepCriterion.h \
     timestepping/TimeStepping.h \
-    sph/equations/heat/HeatDiffusion.h \
-    sph/equations/av/Standard.h \
-    objects/wrappers/AutoPtr.h \
-    objects/wrappers/SharedPtr.h \
-    objects/wrappers/LockingPtr.h \
-    geometry/Generic.h \
-    post/Plot.h \
-    gravity/BarnesHut.h \
-    math/SparseMatrix.h \
-    sph/equations/Potentials.h \
-    sph/equations/Statics.h \
-    sph/solvers/StaticSolver.h \
-    objects/finders/BruteForce.h \
-    geometry/AntisymmetricTensor.h \
-    sph/kernel/Interpolation.h \
-    sph/equations/Friction.h \
-    sph/equations/HelperTerms.h \
-    math/Matrix.h \
-    geometry/SymmetricTensor.h \
-    geometry/Tensor.h \
-    sph/equations/av/Stress.h \
-    objects/wrappers/ClonePtr.h \
-    math/Roots.h \
-    physics/Analytic.h \
-    io/Path.h \
-    tests/Setup.h \
-    io/Serializer.h
+    quantities/Particle.h

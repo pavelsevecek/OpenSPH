@@ -27,6 +27,11 @@ struct StorageElement {
     Quantity& quantity;
 };
 
+struct ConstStorageElement {
+    QuantityId id;
+    const Quantity& quantity;
+};
+
 /// Helper class for iterating over quantities stored in \ref Storage.
 class StorageIterator {
 private:
@@ -52,6 +57,31 @@ public:
     }
 };
 
+/// Helper class for iterating over quantities stored in \ref Storage, const version.
+class ConstStorageIterator {
+private:
+    using Iterator = std::map<QuantityId, Quantity>::const_iterator;
+
+    Iterator iter;
+
+public:
+    ConstStorageIterator(const Iterator iterator)
+        : iter(iterator) {}
+
+    ConstStorageIterator& operator++() {
+        ++iter;
+        return *this;
+    }
+
+    ConstStorageElement operator*() {
+        return { iter->first, iter->second };
+    }
+
+    bool operator!=(const ConstStorageIterator& other) const {
+        return iter != other.iter;
+    }
+};
+
 /// Helper class, provides functions \ref begin and \ref end, returning iterators to the first and last
 /// quantity in \ref Storage, respectively.
 class StorageSequence {
@@ -67,6 +97,26 @@ public:
 
     /// Returns iterator pointing to the one-past-the-end element of the quantity storage.
     StorageIterator end();
+
+    /// Returns the number of quantities.
+    Size size() const;
+};
+
+/// Helper class, provides functions \ref begin and \ref end, returning const iterators to the first and last
+/// quantity in \ref Storage, respectively.
+class ConstStorageSequence {
+private:
+    const Storage& storage;
+
+public:
+    ConstStorageSequence(const Storage& storage);
+
+    /// Returns iterator pointing to the beginning of the quantity storage. Dereferencing the iterator yields
+    /// \ref StorageElement, holding the \ref QuantityId and the reference to the \ref Quantity.
+    ConstStorageIterator begin();
+
+    /// Returns iterator pointing to the one-past-the-end element of the quantity storage.
+    ConstStorageIterator end();
 
     /// Returns the number of quantities.
     Size size() const;
@@ -95,6 +145,7 @@ public:
 /// then be created by merging the storage with another object, using function \ref merge.
 class Storage : public Noncopyable {
     friend class StorageSequence;
+    friend class ConstStorageSequence;
 
 private:
     /// Stored quantities (array of arrays). All arrays must be the same size at all times.
@@ -352,6 +403,9 @@ public:
 
     /// Returns the sequence of quantities.
     StorageSequence getQuantities();
+
+    /// Returns the sequence of quantities, const version.
+    ConstStorageSequence getQuantities() const;
 
     /// Return the number of materials in the storage. Material indices from 0 to (getMaterialCnt() - 1) are
     /// valid input for \ref getMaterialView function.

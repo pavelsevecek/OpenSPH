@@ -17,19 +17,52 @@ NAMESPACE_SPH_BEGIN
 ///
 /// Object allows to access, modify and setup additional properties of the particles created by \ref
 /// InitialConditions.
-class Body {};
+class BodyView {
+private:
+    /// Reference to the storage.
+    Storage& storage;
+
+    /// Index of this body.
+    Size bodyIndex;
+
+public:
+    BodyView(Storage& storage, const Size bodyIndex);
+
+    /// Adds a velocity vector to all particles of the body. If the particles previously had nonzero
+    /// velocities, the velocities are added; the previous velocities are not erased.
+    /// \param v Velocity vector added to all particles.
+    /// \returns Reference to itself.
+    BodyView& addVelocity(const Vector& v);
+
+    /// Predefined types of center point
+    enum class RotationOrigin {
+        FRAME_ORIGIN,   ///< Add angular velocity with respect to origin of coordinates
+        CENTER_OF_MASS, ///< Rotate the body around its center of mass
+    };
+
+    /// Adds an angular velocity to all particles of the body. The new velocities are added to velocities
+    /// previously assigned to the particles.
+    /// \param omega Angular velocity (in radians/s), the direction of the vector is the axis of rotation.
+    /// \param origin Center point of the rotation; can be one of points defined in RotationOrigin enum,
+    ///               or a user-specified vector.
+    /// \returns Reference to itself.
+    BodyView& addRotation(const Vector& omega, const Variant<RotationOrigin, Vector>& origin);
+
+private:
+    Vector getOrigin(const RotationOrigin origin) const;
+};
 
 /// \brief Object for adding one or more bodies with given material into Storage
 ///
-/// The object is intended to only be constructed on stack, set up needed bodies and get destroyed when going
-/// out of scope. As it holds a reference to the storage, it is unsafe to store InitialConditions and create
-/// additional bodies during the run. All particles created in one run should be created using the same
-/// InitialConditions object. If multiple objects are used, quantity QuantityId::FLAG must be manually updated
-/// to be unique for each body in the simulation.
+/// The object is intended to only be constructed on stack, set up needed bodies and get destroyed when
+/// going out of scope. As it holds a reference to the storage, it is unsafe to store InitialConditions and
+/// create additional bodies during the run. All particles created in one run should be created using the same
+/// InitialConditions object. If multiple objects are used, quantity QuantityId::FLAG must be manually
+/// updated to be unique for each body in the simulation.
 ///
-/// The object possibly changes the storage from destructor, after all bodies have been added. If for whatever
-/// reason we wish to prevent this, the initial condition setup can be explicitly ended by calling \ref
-/// finalize function. After that, no more bodies can be added into the storage.
+/// The object possibly changes the storage from destructor, after all bodies have been added. If for
+/// whatever reason we wish to prevent this, the initial condition setup can be explicitly ended by calling
+/// \ref finalize function. After that, no more bodies can be added into the storage.
 class InitialConditions : public Noncopyable {
 private:
     /// Reference to the storage where all the bodies are saved
@@ -53,10 +86,12 @@ private:
 
 
 public:
-    /// Constructs object by taking a reference to particle storage. Subsequent calls of \ref addBody function
+    /// Constructs object by taking a reference to particle storage. Subsequent calls of \ref addBody
+    /// function
     /// fill this storage with particles.
     /// \param storage Particle storage, must exist at least as long as this object.
-    /// \param solver Solver used to create all the necessary quantities. Also must exist for the duration of
+    /// \param solver Solver used to create all the necessary quantities. Also must exist for the duration
+    /// of
     ///               this object as it is stored by reference.
     /// \param settings Run settings
     InitialConditions(Storage& storage, Abstract::Solver& solver, const RunSettings& settings);
@@ -78,63 +113,60 @@ public:
     ///               overlapping regions.
     /// \param bodySettings Parameters of the body
     /// \todo generalize for entropy solver
-    void addBody(const Abstract::Domain& domain,
-        const BodySettings& bodySettings,
-        const Vector& velocity = Vector(0._f),
-        const Vector& angularVelocity = Vector(0._f));
+    BodyView addBody(const Abstract::Domain& domain, const BodySettings& bodySettings);
 
+    /// Adds a body by explicitly specifying its material.
     /// \copydoc addBody
-    /// Overload with custom material.
-    void addBody(const Abstract::Domain& domain,
-        AutoPtr<Abstract::Material>&& material,
-        const Vector& velocity = Vector(0._f),
-        const Vector& angularVelocity = Vector(0._f));
+    BodyView addBody(const Abstract::Domain& domain, AutoPtr<Abstract::Material>&& material);
 
-    struct Body {
+
+    /// Holds data needed to create a single body in \ref addHeterogeneousBody function.
+    struct BodySetup {
         AutoPtr<Abstract::Domain> domain;
         AutoPtr<Abstract::Material> material;
-        Vector velocity;
-        Vector angularVelocity;
 
-        Body();
+        /// Creates a body with undefined domain and material
+        BodySetup();
 
-        Body(AutoPtr<Abstract::Domain>&& domain,
-            AutoPtr<Abstract::Material>&& material,
-            const Vector& velocity = Vector(0._f),
-            const Vector& angularVelocity = Vector(0._f));
+        /// Creates a body by specifying its domain and material
+        BodySetup(AutoPtr<Abstract::Domain>&& domain, AutoPtr<Abstract::Material>&& material);
 
-        Body(AutoPtr<Abstract::Domain>&& domain,
-            const BodySettings& settings,
-            const Vector& velocity = Vector(0._f),
-            const Vector& angularVelocity = Vector(0._f));
+        /// Creates a body by specifying its domain; material is created from parameters in settings
+        BodySetup(AutoPtr<Abstract::Domain>&& domain, const BodySettings& settings);
 
-        Body(Body&& other);
+        /// Move constructor
+        BodySetup(BodySetup&& other);
 
-        ~Body();
+        ~BodySetup();
     };
 
     /// Creates particles composed of different materials.
-    /// \param environment Base body, domain of which defines the body. No particles are generated outside of
-    ///                    this domain. By default, all particles have the material and velocity given by
-    ///                    this body.
-    /// \param bodies List of bodies created inside the main environemnt. Each can have different material and
-    ///               have different initial velocity. These bodies don't add more particles (particle count
-    ///               in settings is irrelevant), they simply override particles created by environment body.
-    ///               If multiple bodies overlap, particles are assigned to body listed first in the array.
-    void addHeterogeneousBody(Body&& environment, ArrayView<Body> bodies);
+    /// \param environment Base body, domain of which defines the body. No particles are generated outside
+    /// of
+    ///                    this domain. By default, all particles have the material given by this body.
+    /// \param bodies List of bodies created inside the main environemnt. Each can have different material
+    /// and
+    ///               have different initial velocity. These bodies don't add more particles (particle
+    ///               count
+    ///               in settings is irrelevant), they simply override particles created by environment
+    ///               body.
+    ///               If multiple bodies overlap, particles are assigned to body listed first in the
+    ///               array.
+    /// \return Array of n+1 BodyViews, where n is the size of \ref bodies parameter. The first one
+    ///         corresponds to the environment, the rest are the bodies inside the environment in the
+    ///         order
+    ///         they were passed in \ref bodies.
+    Array<BodyView> addHeterogeneousBody(BodySetup&& environment, ArrayView<BodySetup> bodies);
 
-    /// Ends the initial condition settings. Storage is then no longer used by the object. Does not have to be
+    /// Ends the initial condition settings. Storage is then no longer used by the object. Does not have
+    /// to be
     /// called manually.
     void finalize();
 
 private:
     void createCommon(const RunSettings& settings);
 
-    void setQuantities(Storage& storage,
-        Abstract::Material& material,
-        const Float volume,
-        const Vector& velocity,
-        const Vector& angularVelocity);
+    void setQuantities(Storage& storage, Abstract::Material& material, const Float volume);
 };
 
 NAMESPACE_SPH_END

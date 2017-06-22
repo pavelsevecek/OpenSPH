@@ -12,8 +12,10 @@ class MainWindow;
 class Movie;
 class Storage;
 class Statistics;
+class Particle;
 class Bitmap;
 class Timer;
+class Point;
 namespace Abstract {
     class Run;
     class Renderer;
@@ -99,7 +101,10 @@ public:
     Array<SharedPtr<Abstract::Element>> getElementList(const Storage& storage) const;
 
     /// Renders a bitmap of current view. Can only be called from main thread.
-    Bitmap getRenderedBitmap(Abstract::Camera& camera);
+    Bitmap getRenderedBitmap(const Abstract::Camera& camera);
+
+    /// Returns the first particle intersected by a ray
+    Optional<Particle> getIntersectedParticle(const Abstract::Camera& camera, const Point position);
 
     /// Sets a new element to be displayed
     void setElement(const SharedPtr<Abstract::Element>& newElement);

@@ -182,16 +182,53 @@ class DirectionElement : public Abstract::Element {
 private:
     Palette palette;
     Vector axis;
+    Vector dir1, dir2;
 
-    ArrayView<const Vector> r, v;
-    struct {
-        Array<Vector> r, v;
-    } cached;
+    ArrayView<const Vector> values;
+    Array<Vector> cached;
 
 public:
     DirectionElement(const Vector& axis)
         : palette(Factory::getPalette(ElementId::MOVEMENT_DIRECTION, Range(0._f, 2._f * PI)))
-        , axis(axis) {}
+        , axis(axis) {
+        ASSERT(almostEqual(getLength(axis), 1._f));
+        // compute 2 perpendicular directions
+        Vector ref;
+        if (almostEqual(axis, Vector(0._f, 0._f, 1._f)) || almostEqual(axis, Vector(0._f, 0._f, -1._f))) {
+            ref = Vector(0._f, 0._f, 1._f);
+        } else {
+            ref = Vector(0._f, 1._f, 0._f);
+        }
+        dir1 = getNormalized(cross(axis, ref));
+        dir2 = cross(axis, dir1);
+        ASSERT(almostEqual(getLength(dir2), 1._f));
+    }
+
+    virtual void initialize(const Storage& storage, const ElementSource source) override {
+        if (source == ElementSource::CACHE_ARRAYS) {
+            cached = copyable(storage.getDt<Vector>(QuantityId::POSITIONS));
+            values = cached;
+        } else {
+            values = storage.getDt<Vector>(QuantityId::POSITIONS);
+        }
+    }
+
+    virtual Color eval(const Size idx) const override {
+        ASSERT(values);
+        const Vector projected = values[idx] - dot(values[idx], axis) * axis;
+        const Float x = dot(projected, dir1);
+        const Float y = dot(projected - x * dir1, dir2);
+        const Float angle = atan2(y, x);
+        return palette(angle);
+    }
+
+    virtual Optional<Palette> getPalette() const override {
+        return palette;
+    }
+
+    virtual std::string name() const override {
+        return "Velocity Y";
+    }
 };
 
 

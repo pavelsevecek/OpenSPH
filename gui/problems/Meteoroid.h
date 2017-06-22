@@ -46,7 +46,7 @@ public:
 
         StdOutLogger logger;
         CylindricalDomain domain(Vector(0._f), 1._f, 2._f, true);
-        conds.addBody(domain, bodySettings, Vector(0._f, 0._f, -20._f));
+        conds.addBody(domain, bodySettings).addVelocity(Vector(0._f, 0._f, -20._f));
         logger.write("Particles of target: ", storage->getParticleCnt());
     }
 

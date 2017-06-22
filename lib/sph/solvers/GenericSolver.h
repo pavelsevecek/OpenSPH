@@ -59,6 +59,9 @@ protected:
     SymmetrizeSmoothingLengths<LutKernel<DIMENSIONS>> kernel;
 
 public:
+    /// \todo we have to somehow enforce either conservation of smoothing length or some EquationTerm that
+    /// will evolve it. Or maybe just move smoothing length to separate quantity to get rid of these issues?
+
     GenericSolver(const RunSettings& settings, const EquationHolder& eqs)
         : pool(makeShared<ThreadPool>(settings.get<int>(RunSettingsId::RUN_THREAD_CNT)))
         , threadData(*pool) {
@@ -73,15 +76,6 @@ public:
             equations.setupThread(data.derivatives, settings);
         });
     }
-
-    /// Adds additional equation terms into the solver.
-    /*virtual void addEquations(const RunSettings& settings, const EquationHolder& eqs) {
-        threadData.forEach([this, &settings, &eqs](ThreadData& data) { //
-            eqs.setupThread(data.derivatives, settings);
-        });
-        /// \todo test
-        equations += std::move(eqs);
-    }*/
 
     virtual void integrate(Storage& storage, Statistics& stats) override {
         /// \todo move elsewhere

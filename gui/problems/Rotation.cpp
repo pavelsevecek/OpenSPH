@@ -36,7 +36,7 @@ AsteroidRotation::AsteroidRotation(Controller* model, const Float period)
 
 class DisableDerivativesSolver : public ContinuitySolver {
 private:
-    Float delta = 0.1_f;
+    Float delta = 0.0_f;
 
 public:
     DisableDerivativesSolver(const RunSettings& settings, const EquationHolder& equations)
@@ -61,16 +61,17 @@ void AsteroidRotation::setUp() {
         .set(BodySettingsId::PARTICLE_COUNT, 100000)
         .set(BodySettingsId::EOS, EosEnum::TILLOTSON)
         .set(BodySettingsId::STRESS_TENSOR_MIN, 1.e5_f)
-        .set(BodySettingsId::RHEOLOGY_DAMAGE, DamageEnum::SCALAR_GRADY_KIPP)
+        .set(BodySettingsId::RHEOLOGY_DAMAGE, DamageEnum::NONE)
         .set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::VON_MISES)
-        .set(BodySettingsId::DISTRIBUTE_MODE_SPH5, true);
+        .set(BodySettingsId::DISTRIBUTE_MODE_SPH5, true)
+        .set(BodySettingsId::SHEAR_MODULUS, 0._f);
     bodySettings.saveToFile(Path("target.sph"));
 
     storage = makeShared<Storage>();
 
     EquationHolder externalForces;
     externalForces += makeTerm<SphericalGravity>(SphericalGravity::Options::ASSUME_HOMOGENEOUS);
-    const Vector omega = 2._f * PI / (3600._f * period) * Vector(0, 0, 1);
+    const Vector omega = 2._f * PI / (3600._f * period) * Vector(0, 1, 0);
     externalForces += makeTerm<NoninertialForce>(omega);
 
     solver = makeAuto<DisableDerivativesSolver>(settings, externalForces);
@@ -84,16 +85,16 @@ void AsteroidRotation::setUp() {
     logger->write("Particles of target: ", storage->getParticleCnt());
 
     // Auxiliary storage for computing initial pressure and energy
-    Storage smaller;
+    /*Storage smaller;
     bodySettings.set(BodySettingsId::PARTICLE_COUNT, 10000);
     InitialConditions conds2(smaller, settings);
     conds2.addBody(domain1, bodySettings);
-    this->setInitialStressTensor(smaller, externalForces);
+    this->setInitialStressTensor(smaller, externalForces);*/
 
     // Impactor
-    SphericalDomain domain2(Vector(5097.4509902022_f, 3726.8662269290_f, 0._f), 270.5847632732_f);
+    /*SphericalDomain domain2(Vector(5097.4509902022_f, 3726.8662269290_f, 0._f), 270.5847632732_f);
     bodySettings.set(BodySettingsId::PARTICLE_COUNT, 100);
-    conds.addBody(domain2, bodySettings, Vector(0._f), -omega);
+    conds.addBody(domain2, bodySettings).addRotation(-omega, BodyView::RotationOrigin::FRAME_ORIGIN);*/
 
 
     // Setup output
@@ -134,8 +135,10 @@ void AsteroidRotation::setInitialStressTensor(Storage& smaller, EquationHolder& 
 
     Interpolation interpol(smaller);
     for (Size i = 0; i < r.size(); ++i) {
-        u[i] = interpol.interpolate<Float>(QuantityId::ENERGY, OrderEnum::ZERO, r[i]);
-        s[i] = interpol.interpolate<TracelessTensor>(QuantityId::DEVIATORIC_STRESS, OrderEnum::ZERO, r[i]);
+        u[i] = 0._f; // interpol.interpolate<Float>(QuantityId::ENERGY, OrderEnum::ZERO, r[i]);
+        s[i] =
+            TracelessTensor::null(); //  interpol.interpolate<TracelessTensor>(QuantityId::DEVIATORIC_STRESS,
+                                     //  OrderEnum::ZERO, r[i]);
     }
 }
 

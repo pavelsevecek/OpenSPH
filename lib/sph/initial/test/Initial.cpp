@@ -77,9 +77,9 @@ TEST_CASE("Initial velocity", "[initial]") {
     InitialConditions conds(storage, RunSettings::getDefaults());
     BodySettings bodySettings;
     bodySettings.set<Float>(BodySettingsId::DENSITY, 1._f);
-    conds.addBody(SphericalDomain(Vector(0._f), 1._f), bodySettings, Vector(2._f, 1._f, -1._f));
+    conds.addBody(SphericalDomain(Vector(0._f), 1._f), bodySettings).addVelocity(Vector(2._f, 1._f, -1._f));
     bodySettings.set<Float>(BodySettingsId::DENSITY, 2._f);
-    conds.addBody(SphericalDomain(Vector(0._f), 1._f), bodySettings, Vector(0._f, 0._f, 1._f));
+    conds.addBody(SphericalDomain(Vector(0._f), 1._f), bodySettings).addVelocity(Vector(0._f, 0._f, 1._f));
     ArrayView<Float> rho = storage.getValue<Float>(QuantityId::DENSITY);
     ArrayView<Vector> v = storage.getAll<Vector>(QuantityId::POSITIONS)[1];
 
@@ -98,10 +98,8 @@ TEST_CASE("Initial velocity", "[initial]") {
 TEST_CASE("Initial rotation", "[initial]") {
     Storage storage;
     InitialConditions conds(storage, RunSettings::getDefaults());
-    conds.addBody(SphericalDomain(Vector(0._f), 1._f),
-        BodySettings::getDefaults(),
-        Vector(0._f),
-        Vector(1._f, 3._f, -2._f));
+    conds.addBody(SphericalDomain(Vector(0._f), 1._f), BodySettings::getDefaults())
+        .addRotation(Vector(1._f, 3._f, -2._f), BodyView::RotationOrigin::FRAME_ORIGIN);
     ArrayView<Vector> r, v, dv;
     tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
 
@@ -130,7 +128,7 @@ TEST_CASE("Initial addHeterogeneousBody single", "[initial]") {
     Storage storage1;
     InitialConditions conds1(storage1, RunSettings::getDefaults());
 
-    InitialConditions::Body body1(std::move(domain), bodySettings, Vector(0._f), Vector(0._f));
+    InitialConditions::BodySetup body1(std::move(domain), bodySettings);
     conds1.addHeterogeneousBody(std::move(body1), {}); // this should be equal to addBody
 
     Storage storage2;
@@ -162,18 +160,25 @@ TEST_CASE("Initial addHeterogeneousBody multiple", "[initial]") {
     InitialConditions conds(storage, RunSettings::getDefaults());
 
     AutoPtr<BlockDomain> domain = makeAuto<BlockDomain>(Vector(0._f), Vector(10._f)); // [-5, 5]
-    InitialConditions::Body environment(std::move(domain), bodySettings);
-    const Vector v1(1._f, 2._f, 3._f);
-    AutoPtr<SphericalDomain> domain1 = makeAuto<SphericalDomain>(Vector(3._f, 3._f, 2._f), 2._f);
-    InitialConditions::Body body1(std::move(domain1), bodySettings, v1);
-    const Vector v2(5._f, -1._f, 3._f);
-    AutoPtr<SphericalDomain> domain2 = makeAuto<SphericalDomain>(Vector(-2._f, -2._f, -1._f), 2._f);
-    InitialConditions::Body body2(std::move(domain2), bodySettings, v2);
+    InitialConditions::BodySetup environment(std::move(domain), bodySettings);
 
-    Array<InitialConditions::Body> bodies;
+    AutoPtr<SphericalDomain> domain1 = makeAuto<SphericalDomain>(Vector(3._f, 3._f, 2._f), 2._f);
+    InitialConditions::BodySetup body1(std::move(domain1), bodySettings);
+
+    AutoPtr<SphericalDomain> domain2 = makeAuto<SphericalDomain>(Vector(-2._f, -2._f, -1._f), 2._f);
+    InitialConditions::BodySetup body2(std::move(domain2), bodySettings);
+
+    Array<InitialConditions::BodySetup> bodies;
     bodies.emplaceBack(std::move(body1));
     bodies.emplaceBack(std::move(body2));
-    conds.addHeterogeneousBody(std::move(environment), bodies);
+
+    Array<BodyView> views = conds.addHeterogeneousBody(std::move(environment), bodies);
+    REQUIRE(views.size() == 3);
+    const Vector v1(1._f, 2._f, 3._f);
+    const Vector v2(5._f, -1._f, 3._f);
+    views[1].addVelocity(v1);
+    views[2].addVelocity(v2);
+
     REQUIRE(storage.getParticleCnt() == 1000);
     REQUIRE(storage.getMaterialCnt() == 3);
     ArrayView<Size> flag = storage.getValue<Size>(QuantityId::FLAG);

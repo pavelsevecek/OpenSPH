@@ -62,10 +62,9 @@ TEST_CASE("Total Momentum Body", "[integrals]") {
 
     const Float radius = 3._f;
     const Float omega = 4._f;
-    conds.addBody(SphericalDomain(Vector(0._f), radius),
-        settings,
-        Vector(0.2_f, 0._f, -0.1_f),
-        Vector(0._f, 0._f, omega));
+    conds.addBody(SphericalDomain(Vector(0._f), radius), settings)
+        .addVelocity(Vector(0.2_f, 0._f, -0.1_f))
+        .addRotation(Vector(0._f, 0._f, omega), BodyView::RotationOrigin::FRAME_ORIGIN);
 
     TotalMomentum momentum;
     const Float totalMass = sphereVolume(radius) * rho0;
@@ -108,7 +107,7 @@ TEST_CASE("Total Energy Body", "[integrals]") {
     settings.set(BodySettingsId::ENERGY, 20._f); // specific energy = energy per MASS
     settings.set(BodySettingsId::PARTICLE_COUNT, 100);
 
-    conds.addBody(SphericalDomain(Vector(0._f), 3._f), settings, Vector(5._f, 1._f, -2._f));
+    conds.addBody(SphericalDomain(Vector(0._f), 3._f), settings).addVelocity(Vector(5._f, 1._f, -2._f));
 
     const Float totalMass = sphereVolume(3._f) * rho0;
     REQUIRE(TotalKineticEnergy().evaluate(storage) == approx(15._f * totalMass));

@@ -40,7 +40,7 @@ namespace Detail {
 }
 
 /// \brief Object providing serialization of primitives into a stream
-struct Serializer : public Noncopyable {
+class Serializer : public Noncopyable {
 private:
     std::ofstream ofs;
     Array<char> buffer;
@@ -114,7 +114,7 @@ public:
 };
 
 /// \brief Object for reading serialized primitives from input stream
-struct Deserializer : public Noncopyable {
+class Deserializer : public Noncopyable {
 private:
     std::ifstream ifs;
     Array<char> buffer;

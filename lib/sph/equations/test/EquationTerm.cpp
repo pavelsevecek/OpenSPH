@@ -264,25 +264,3 @@ TEST_CASE("Grad v of non-trivial field", "[equationterm]") {
     };
     REQUIRE_SEQUENCE(test, 0, r.size());
 }
-
-TEST_CASE("StressForce solid impact", "[equationterm]") {
-    Storage storage;
-    RunSettings settings;
-    settings.set(RunSettingsId::MODEL_FORCE_SOLID_STRESS, true);
-    EquationHolder eqs;
-    eqs += makeTerm<PressureForce>() + makeTerm<SolidStressForce>(settings) + makeTerm<StandardAV>() +
-           makeTerm<ContinuityEquation>(settings);
-    GenericSolver solver(settings, std::move(eqs));
-
-    InitialConditions initial(storage, solver, settings);
-    BodySettings body;
-    body.set(BodySettingsId::PARTICLE_COUNT, 1000);
-    body.set(BodySettingsId::RHEOLOGY_DAMAGE, DamageEnum::SCALAR_GRADY_KIPP);
-    body.set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::VON_MISES);
-    initial.addBody(SphericalDomain(Vector(0._f), 1._f), body);
-    body.set(BodySettingsId::PARTICLE_COUNT, 10);
-    initial.addBody(SphericalDomain(Vector(1.1_f), 0.1_f), body, Vector(-5._f, 0._f, 0._f));
-
-    Statistics stats;
-    solver.integrate(storage, stats);
-}

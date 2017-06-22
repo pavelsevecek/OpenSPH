@@ -55,7 +55,7 @@ void AsteroidCollision::setUp() {
         .set(BodySettingsId::STRESS_TENSOR_MIN, LARGE)
         .set(BodySettingsId::DAMAGE_MIN, LARGE);
     bodySettings.saveToFile(Path("impactor.sph"));
-    conds.addBody(domain2, bodySettings, Vector(-5.e3_f, 0._f, 0._f)); // 5km/s
+    conds.addBody(domain2, bodySettings).addVelocity(Vector(-5.e3_f, 0._f, 0._f)); // 5km/s
     logger.write("Particles of projectile: ", storage->getParticleCnt() - n1);
 
     Path outputDir = Path("out") / Path(settings.get<std::string>(RunSettingsId::RUN_OUTPUT_NAME));
