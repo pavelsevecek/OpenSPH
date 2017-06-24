@@ -2,6 +2,7 @@
 #include "gui/Controller.h"
 #include "gui/Factory.h"
 #include "gui/Settings.h"
+#include "gui/Utils.h"
 #include "gui/objects/Bitmap.h"
 #include "gui/objects/Camera.h"
 #include "gui/objects/Element.h"
@@ -85,14 +86,15 @@ void OrthoRenderer::drawPalette(wxDC& dc, const Palette& palette) const {
         dc.SetPen(pen);
         dc.DrawLine(wxPoint(origin.x, origin.y - i), wxPoint(origin.x + 30, origin.y - i));
         if (i % 50 == 0) {
+            dc.SetPen(*wxWHITE_PEN);
+            dc.DrawLine(wxPoint(origin.x, origin.y - i), wxPoint(origin.x + 6, origin.y - i));
+            dc.DrawLine(wxPoint(origin.x + 24, origin.y - i), wxPoint(origin.x + 30, origin.y - i));
             dc.SetTextForeground(Color::white());
             wxFont font(10, wxFONTFAMILY_MODERN, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL);
             dc.SetFont(font);
-            std::stringstream ss;
-            ss << std::setprecision(1) << std::scientific << value;
-            const wxString text = ss.str();
+            std::wstring text = toPrintableString(value, 1, 1000);
             wxSize extent = dc.GetTextExtent(text);
-            dc.DrawText(text, wxPoint(origin.x - 60, origin.y - i - (extent.y >> 1)));
+            drawTextWithSubscripts(dc, text, wxPoint(origin.x - 80, origin.y - i - (extent.y >> 1)));
         }
     }
 }

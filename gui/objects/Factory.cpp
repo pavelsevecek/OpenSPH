@@ -40,16 +40,18 @@ AutoPtr<Abstract::Element> Factory::getElement(const GuiSettings& settings, cons
     case ElementId::ACCELERATION:
         range = settings.get<Range>(GuiSettingsId::PALETTE_ACCELERATION);
         return makeAuto<AccelerationElement>(range);
+    case ElementId::MOVEMENT_DIRECTION:
+        return makeAuto<DirectionElement>(Vector(0._f, 0._f, 1._f));
     case ElementId::DENSITY_PERTURBATION:
         range = settings.get<Range>(GuiSettingsId::PALETTE_DENSITY_PERTURB);
         return makeAuto<DensityPerturbationElement>(range);
+    case ElementId::BOUNDARY:
+        return makeAuto<BoundaryElement>(BoundaryElement::Detection::NEIGBOUR_THRESHOLD, 40);
     default:
         QuantityId quantity = QuantityId(id);
         ASSERT(int(quantity) >= 0);
 
         switch (quantity) {
-        case QuantityId::NEIGHBOUR_CNT: // represent boundary element
-            return makeAuto<BoundaryElement>(BoundaryElement::Detection::NEIGBOUR_THRESHOLD, 40);
         case QuantityId::DEVIATORIC_STRESS:
             range = settings.get<Range>(GuiSettingsId::PALETTE_STRESS);
             return makeAuto<TypedElement<TracelessTensor>>(quantity, range);
@@ -139,7 +141,11 @@ Palette Factory::getPalette(const ElementId id, const Range range) {
         case ElementId::MOVEMENT_DIRECTION:
             ASSERT(range == Range(0.f, 2.f * PI)); // in radians
             return Palette({ { 0.f, Color(0.1f, 0.1f, 1.f) },
-                               { PI, Color(1.f, 0.1f, 0.1f) },
+                               { PI / 3.f, Color(1.f, 0.1f, 1.f) },
+                               { 2.f * PI / 3.f, Color(1.f, 0.1f, 0.1f) },
+                               { 3.f * PI / 3.f, Color(1.f, 1.f, 0.1f) },
+                               { 4.f * PI / 3.f, Color(0.1f, 1.f, 0.1f) },
+                               { 5.f * PI / 3.f, Color(0.1f, 1.f, 1.f) },
                                { 2.f * PI, Color(0.1f, 0.1f, 1.f) } },
                 PaletteScale::LINEAR);
         case ElementId::DENSITY_PERTURBATION:

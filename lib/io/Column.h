@@ -70,7 +70,7 @@ public:
     }
 
     virtual std::string getName() const override {
-        return getQuantityName(id);
+        return getMetadata(id).quantityName;
     }
 
     virtual ValueEnum getType() const override {
@@ -103,7 +103,7 @@ public:
     }
 
     virtual std::string getName() const override {
-        return getDtName(id);
+        return getMetadata(id).derivativeName;
     }
 
     virtual ValueEnum getType() const override {
@@ -136,7 +136,7 @@ public:
     }
 
     virtual std::string getName() const override {
-        NOT_IMPLEMENTED; // currently never used
+        return getMetadata(id).secondDerivativeName;
     }
 
     virtual ValueEnum getType() const override {

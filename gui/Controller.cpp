@@ -170,7 +170,11 @@ Array<SharedPtr<Abstract::Element>> Controller::getElementList(const Storage& st
     // we only add the element if it is contained in the storage
 
     Array<ElementId> elementIds{
-        ElementId::VELOCITY, ElementId::ACCELERATION, ElementId::DENSITY_PERTURBATION,
+        ElementId::VELOCITY,
+        ElementId::ACCELERATION,
+        ElementId::DENSITY_PERTURBATION,
+        ElementId::MOVEMENT_DIRECTION,
+        ElementId::BOUNDARY,
     };
 
     Array<QuantityId> quantityElementIds{
@@ -181,7 +185,6 @@ Array<SharedPtr<Abstract::Element>> Controller::getElementList(const Storage& st
         QuantityId::DAMAGE,
         QuantityId::AV_ALPHA,
         QuantityId::VELOCITY_DIVERGENCE,
-        QuantityId::NEIGHBOUR_CNT,
     };
     Array<SharedPtr<Abstract::Element>> elements;
     for (ElementId id : elementIds) {

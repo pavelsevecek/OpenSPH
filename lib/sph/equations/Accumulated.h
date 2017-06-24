@@ -111,7 +111,7 @@ public:
                 using T = typename std::decay_t<decltype(buffer)>::Type;
                 // storage must already have the quantity, we cannot add quantities during the run because of
                 // timestepping
-                ASSERT(storage.has(e.id), getQuantityName(e.id));
+                ASSERT(storage.has(e.id), getMetadata(e.id).quantityName);
                 ASSERT(Size(storage.getQuantity(e.id).getOrderEnum()) >= Size(e.order));
                 storage.getAll<T>(e.id)[Size(e.order)] = std::move(buffer);
                 buffer.fill(T(0._f));

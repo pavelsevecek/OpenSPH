@@ -196,7 +196,7 @@ public:
     /// assert.
     Quantity& getQuantity(const QuantityId key) {
         auto iter = quantities.find(key);
-        ASSERT(iter != quantities.end(), getQuantityName(key));
+        ASSERT(iter != quantities.end(), getMetadata(key).quantityName);
         return iter->second;
     }
 

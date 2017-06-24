@@ -20,8 +20,10 @@ namespace Abstract {
     class Solver;
 }
 
-/// Defines the interface for a run. Each run must implement methods \ref setUp and \ref tearDown,
-/// settings up initial conditions for the run and closing down the run, respectively.
+/// \brief Defines the interface for a run.
+///
+/// Each run must implement methods \ref setUp and \ref tearDown, settings up initial conditions for the run
+/// and closing down the run, respectively.
 ///
 /// Implementation can set up all member variables to any given value. If any variable is left uninitialized,
 /// it will be initialized to a default value as specified by run settings. Only particle storage MUST be

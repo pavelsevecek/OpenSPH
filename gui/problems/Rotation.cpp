@@ -63,8 +63,7 @@ void AsteroidRotation::setUp() {
         .set(BodySettingsId::STRESS_TENSOR_MIN, 1.e5_f)
         .set(BodySettingsId::RHEOLOGY_DAMAGE, DamageEnum::NONE)
         .set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::VON_MISES)
-        .set(BodySettingsId::DISTRIBUTE_MODE_SPH5, true)
-        .set(BodySettingsId::SHEAR_MODULUS, 0._f);
+        .set(BodySettingsId::DISTRIBUTE_MODE_SPH5, true);
     bodySettings.saveToFile(Path("target.sph"));
 
     storage = makeShared<Storage>();

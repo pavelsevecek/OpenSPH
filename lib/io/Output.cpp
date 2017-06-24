@@ -362,8 +362,9 @@ static Expected<Storage> loadMaterial(const Size matIdx,
         Float lower, upper, minimal;
         deserializer.read(id, lower, upper, minimal);
         if (id != ids[i]) {
-            return makeUnexpected<Storage>("Unexpected quantityId, expected " + getQuantityName(ids[i]) +
-                                           ", got " + getQuantityName(id));
+            return makeUnexpected<Storage>("Unexpected quantityId, expected " +
+                                           getMetadata(ids[i]).quantityName + ", got " +
+                                           getMetadata(id).quantityName);
         }
         if (lower < upper) {
             material->range(id) = Range(lower, upper);

@@ -73,11 +73,12 @@ namespace Detail {
 /// Function taking ElementId as an argument also acceps QuantityId casted to ElementId, interpreting as
 /// TypedElement with given quantity ID.
 enum class ElementId {
-    VELOCITY = -1,            ///< Particle velocities
-    ACCELERATION = -2,        ///< Acceleration of particles
-    MOVEMENT_DIRECTION = -3,  ///< Projected direction of motion
-    DISPLACEMENT = -4,        ///< Difference between current positions and initial position
-    DENSITY_PERTURBATION = -5 ///< Relative difference of density and initial density (rho/rho0 - 1)
+    VELOCITY = -1,             ///< Particle velocities
+    ACCELERATION = -2,         ///< Acceleration of particles
+    MOVEMENT_DIRECTION = -3,   ///< Projected direction of motion
+    DISPLACEMENT = -4,         ///< Difference between current positions and initial position
+    DENSITY_PERTURBATION = -5, ///< Relative difference of density and initial density (rho/rho0 - 1)
+    BOUNDARY = -6,             ///< Shows boundary particles
 };
 
 /// Default element simply converting quantity value to color using defined palette. Vector and tensor
@@ -125,7 +126,7 @@ public:
 
 
     virtual std::string name() const override {
-        return getQuantityName(id);
+        return getMetadata(id).quantityName;
     }
 };
 
@@ -196,9 +197,9 @@ public:
         // compute 2 perpendicular directions
         Vector ref;
         if (almostEqual(axis, Vector(0._f, 0._f, 1._f)) || almostEqual(axis, Vector(0._f, 0._f, -1._f))) {
-            ref = Vector(0._f, 0._f, 1._f);
-        } else {
             ref = Vector(0._f, 1._f, 0._f);
+        } else {
+            ref = Vector(0._f, 0._f, 1._f);
         }
         dir1 = getNormalized(cross(axis, ref));
         dir2 = cross(axis, dir1);
@@ -223,13 +224,13 @@ public:
         const Vector projected = values[idx] - dot(values[idx], axis) * axis;
         const Float x = dot(projected, dir1);
         const Float y = dot(projected - x * dir1, dir2);
-        const Float angle = atan2(y, x);
+        const Float angle = PI + atan2(y, x);
         return palette(angle);
     }
 
     virtual Optional<Particle> getParticle(const Size idx) const override {
         // return velocity of the particle
-        return Particle(idx).addD2t(QuantityId::POSITIONS, values[idx]);
+        return Particle(idx).addDt(QuantityId::POSITIONS, values[idx]);
     }
 
     virtual Optional<Palette> getPalette() const override {

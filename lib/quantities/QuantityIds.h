@@ -5,7 +5,7 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2017
 
-#include "common/Globals.h"
+#include "QuantityHelpers.h"
 #include <string>
 
 NAMESPACE_SPH_BEGIN
@@ -98,15 +98,46 @@ enum class QuantityId {
     ///@}
 };
 
-std::string getQuantityName(const QuantityId key);
+/// Auxiliary information about quantity that aren't stored directly in \ref Quantity
+struct QuantityMetadata {
 
+    /// Full name of the quantity (i.e. 'Density', 'Deviatoric stress', ...)
+    std::string quantityName;
+
+    /// Name of the 1st derivative. Usually it's just quantityName + 'derivative', but not always (for example
+    /// 'Velocity' instead of 'Position derivative')
+    std::string derivativeName;
+
+    /// Name of the second derivative. Usually it's just quantityName + '2nd derivative'
+    std::string secondDerivativeName;
+
+    /// Short designation of the quantiy (i.e. 'rho', 's', ...)
+    std::string label;
+
+    /// \todo Units & dimensional analysis !
+
+    /// \brief Variable expectedType contains a type the quantity will most likely have.
+    ///
+    /// The code does not assign fixed types to quantities, i.e. it's possible to create a tensor quantity
+    /// QuantityId::DENSITY. This allows to use different modifications of SPH (tensor artificial viscosity,
+    /// etc.), even though most quantities have only one type in any meaningful SPH simulation (density will
+    /// always be scalar, for example).
+    ValueEnum expectedType;
+
+    QuantityMetadata(const std::string& fullName,
+        const std::string& label,
+        const ValueEnum type,
+        const std::string& derivativeName = "",
+        const std::string& secondDerivativeName = "");
+};
+
+/// Returns the quantity information using quantity ID.
+QuantityMetadata getMetadata(const QuantityId key);
+
+/// Print full quantity name into the stream.
 INLINE std::ostream& operator<<(std::ostream& stream, const QuantityId key) {
-    stream << getQuantityName(key);
+    stream << getMetadata(key).quantityName;
     return stream;
 }
-
-std::string getDtName(const QuantityId key);
-
-std::string getD2tName(const QuantityId key);
 
 NAMESPACE_SPH_END

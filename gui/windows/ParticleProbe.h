@@ -84,20 +84,23 @@ private:
 
         // particle position
         const Vector position = particle->getValue(QuantityId::POSITIONS);
-        dc.DrawText("x = " + std::to_string(position[X]), offset + wxSize(0, 1 * config.lineSkip));
-        dc.DrawText("y = " + std::to_string(position[Y]), offset + wxSize(0, 2 * config.lineSkip));
-        dc.DrawText("z = " + std::to_string(position[Z]), offset + wxSize(0, 3 * config.lineSkip));
+        drawTextWithSubscripts(
+            dc, L"x = " + toPrintableString(position[X]), offset + wxSize(0, 1 * config.lineSkip));
+        drawTextWithSubscripts(
+            dc, L"y = " + toPrintableString(position[Y]), offset + wxSize(0, 2 * config.lineSkip));
+        drawTextWithSubscripts(
+            dc, L"z = " + toPrintableString(position[Z]), offset + wxSize(0, 3 * config.lineSkip));
 
         Value velocityValue = particle->getDt(QuantityId::POSITIONS);
         if (velocityValue) {
             const Vector velocity = velocityValue;
             const Size x = canvasSize.x / 2;
             drawTextWithSubscripts(
-                dc, "v_x = " + std::to_string(velocity[X]), offset + wxSize(x, 1 * config.lineSkip));
+                dc, L"v_x = " + toPrintableString(velocity[X]), offset + wxSize(x, 1 * config.lineSkip));
             drawTextWithSubscripts(
-                dc, "v_y = " + std::to_string(velocity[Y]), offset + wxSize(x, 2 * config.lineSkip));
+                dc, L"v_y = " + toPrintableString(velocity[Y]), offset + wxSize(x, 2 * config.lineSkip));
             drawTextWithSubscripts(
-                dc, "v_z = " + std::to_string(velocity[Z]), offset + wxSize(x, 3 * config.lineSkip));
+                dc, L"v_z = " + toPrintableString(velocity[Z]), offset + wxSize(x, 3 * config.lineSkip));
         }
 
         offset.y += 4 * config.lineSkip;
@@ -114,29 +117,26 @@ private:
 
             ASSERT(!data.value.empty());
             const ValueId id = data.value.getType();
+            const std::string label = getMetadata(data.id).label;
+            const std::wstring wlabel(label.begin(), label.end());
             switch (id) {
             case ValueId::FLOAT:
                 /// \todo we should use the name of the element, not quantity
                 /// \todo replace full quantity name with shorter designation (rho, ...)
-                dc.DrawText(
-                    getQuantityName(data.id) + " = " + std::to_string(data.value.get<Float>()), offset);
+                drawTextWithSubscripts(
+                    dc, wlabel + L" = " + toPrintableString(data.value.get<Float>()), offset);
                 offset.y += config.leftSkip;
                 break;
 
             case ValueId::TRACELESS_TENSOR: {
                 const TracelessTensor tensor = data.value;
-                dc.DrawText(getQuantityName(data.id) + "_xx : " + std::to_string(tensor(X, X)),
-                    offset + wxSize(0, 0 * config.lineSkip));
-                dc.DrawText(getQuantityName(data.id) + "_yy : " + std::to_string(tensor(Y, Y)),
-                    offset + wxSize(0, 1 * config.lineSkip));
-                dc.DrawText(getQuantityName(data.id) + "_zz : " + std::to_string(tensor(Z, Z)),
-                    offset + wxSize(0, 2 * config.lineSkip));
-                dc.DrawText(getQuantityName(data.id) + "_xy : " + std::to_string(tensor(X, Y)),
-                    offset + wxSize(0, 3 * config.lineSkip));
-                dc.DrawText(getQuantityName(data.id) + "_xz : " + std::to_string(tensor(X, Z)),
-                    offset + wxSize(0, 4 * config.lineSkip));
-                dc.DrawText(getQuantityName(data.id) + "_yz : " + std::to_string(tensor(Y, X)),
-                    offset + wxSize(0, 5 * config.lineSkip));
+                this->printTensor(dc, tensor, wlabel, offset);
+                offset.y += 6 * config.leftSkip;
+                break;
+            }
+            case ValueId::SYMMETRIC_TENSOR: {
+                const SymmetricTensor tensor = data.value;
+                this->printTensor(dc, tensor, wlabel, offset);
                 offset.y += 6 * config.leftSkip;
                 break;
             }
@@ -146,6 +146,22 @@ private:
                 break;
             }
         }
+    }
+
+    template <typename Type>
+    void printTensor(wxDC& dc, const Type& tensor, const std::wstring& label, const wxPoint offset) const {
+        drawTextWithSubscripts(
+            dc, label + L"_xx = " + toPrintableString(tensor(X, X)), offset + wxSize(0, 0 * config.lineSkip));
+        drawTextWithSubscripts(
+            dc, label + L"_yy = " + toPrintableString(tensor(Y, Y)), offset + wxSize(0, 1 * config.lineSkip));
+        drawTextWithSubscripts(
+            dc, label + L"_zz = " + toPrintableString(tensor(Z, Z)), offset + wxSize(0, 2 * config.lineSkip));
+        drawTextWithSubscripts(
+            dc, label + L"_xy = " + toPrintableString(tensor(X, Y)), offset + wxSize(0, 3 * config.lineSkip));
+        drawTextWithSubscripts(
+            dc, label + L"_xz = " + toPrintableString(tensor(X, Z)), offset + wxSize(0, 4 * config.lineSkip));
+        drawTextWithSubscripts(
+            dc, label + L"_yz = " + toPrintableString(tensor(Y, X)), offset + wxSize(0, 5 * config.lineSkip));
     }
 };
 
