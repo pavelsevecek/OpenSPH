@@ -3,6 +3,7 @@
 #include "gui/Settings.h"
 #include "objects/containers/Array.h"
 #include "objects/wrappers/SharedPtr.h"
+#include "quantities/Particle.h"
 #include <condition_variable>
 #include <thread>
 
@@ -12,7 +13,6 @@ class MainWindow;
 class Movie;
 class Storage;
 class Statistics;
-class Particle;
 class Bitmap;
 class Timer;
 class Point;
@@ -45,7 +45,7 @@ private:
 
     struct Vis {
         /// Cached positions of particles for visualization.
-        Array<Vector> cached;
+        Array<Vector> positions;
 
         /// Copy of statistics when the element was initialized
         AutoPtr<Statistics> stats;
@@ -55,6 +55,12 @@ private:
 
         /// Currently selected element
         SharedPtr<Abstract::Element> element;
+
+        /// Current camera of the view. The object is shared with parent model.
+        SharedPtr<Abstract::Camera> camera;
+
+        /// Currently selected particle.
+        Optional<Particle> selectedParticle;
 
         /// CV for waiting till main thread events are processed
         std::mutex mainThreadMutex;
@@ -97,20 +103,39 @@ public:
     /// Returns true if the application is shutting down.
     bool isQuitting() const;
 
+
+    /// \section Display queries
+
     /// Returns a list of quantities that can be displayed.
     Array<SharedPtr<Abstract::Element>> getElementList(const Storage& storage) const;
 
     /// Renders a bitmap of current view. Can only be called from main thread.
-    Bitmap getRenderedBitmap(const Abstract::Camera& camera);
+    SharedPtr<Bitmap> getRenderedBitmap();
 
-    /// Returns the first particle intersected by a ray
-    Optional<Particle> getIntersectedParticle(const Abstract::Camera& camera, const Point position);
+    /// Returns the camera currently used for the rendering
+    SharedPtr<Abstract::Camera> getCurrentCamera() const;
+
+    /// Returns the particle under given image position.
+    /// \param position Position in image coordinates, corresponding to the latest rendered image.
+    /// \param toleranceEps Relative addition to effective radius of a particle; particles are considered to
+    ///                     be under the point of they are closer than (displayedRadius * (1+toleranceEps)).
+    Optional<Particle> getIntersectedParticle(const Point position, const float toleranceEps = 1.f);
+
+    /// Returns the settings object.
+    GuiSettings& getGuiSettings();
+
+
+    /// \section Display setters
 
     /// Sets a new element to be displayed
     void setElement(const SharedPtr<Abstract::Element>& newElement);
 
-    /// Returns the settings object.
-    GuiSettings& getGuiSettings();
+    /// Sets a selected particle or changes the current selection. The selection only affects the interactive
+    /// view; it can be used by the renderer to highlight a selected particle, and the window can provide
+    /// information about the selected particle.
+    /// \param particle Particle to selected; if NOTHING, the current selection is cleared.
+    void setSelectedParticle(const Optional<Particle>& particle);
+
 
     /// \section Controlling the run
 

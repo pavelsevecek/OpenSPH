@@ -76,14 +76,21 @@ std::string getQuantityName(const QuantityId key) {
     }
 }
 
-std::string getDerivativeName(const QuantityId key) {
+std::string getDtName(const QuantityId key) {
     switch (key) {
     case QuantityId::POSITIONS:
         return "Velocity";
-    case QuantityId::DEVIATORIC_STRESS:
-        return "[debug] dS/dt";
     default:
-        NOT_IMPLEMENTED;
+        return getQuantityName(key) + " derivative";
+    }
+}
+
+std::string getD2tName(const QuantityId key) {
+    switch (key) {
+    case QuantityId::POSITIONS:
+        return "Acceleration";
+    default:
+        return getQuantityName(key) + " 2nd derivative";
     }
 }
 

@@ -105,6 +105,8 @@ INLINE std::ostream& operator<<(std::ostream& stream, const QuantityId key) {
     return stream;
 }
 
-std::string getDerivativeName(const QuantityId key);
+std::string getDtName(const QuantityId key);
+
+std::string getD2tName(const QuantityId key);
 
 NAMESPACE_SPH_END

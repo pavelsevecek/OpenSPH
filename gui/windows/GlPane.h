@@ -1,6 +1,6 @@
 #pragma once
 
-#include "gui/Common.h"
+#include "gui/Utils.h"
 #include "gui/Renderer.h"
 #include "objects/Bitmap.h"
 #include "objects/containers/BufferedArray.h"

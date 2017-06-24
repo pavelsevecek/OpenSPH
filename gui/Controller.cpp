@@ -43,7 +43,7 @@ Controller::Controller() {
     status = Status::RUNNING;
 
     // create and start the run
-    sph.run = makeAuto<AsteroidRotation>(this, 0.5_f);
+    sph.run = makeAuto<AsteroidRotation>(this, 6._f);
     this->run();
 }
 
@@ -53,10 +53,11 @@ void Controller::Vis::initialize(const GuiSettings& gui) {
     renderer = makeAuto<OrthoRenderer>();
     element = makeAuto<VelocityElement>(gui.get<Range>(GuiSettingsId::PALETTE_VELOCITY));
     timer = makeAuto<Timer>(gui.get<int>(GuiSettingsId::VIEW_MAX_FRAMERATE), TimerFlags::START_EXPIRED);
+    camera = Factory::getCamera(gui);
 }
 
 bool Controller::Vis::isInitialized() {
-    return renderer && stats && element;
+    return renderer && stats && element && camera;
 }
 
 void Controller::start() {
@@ -194,48 +195,82 @@ Array<SharedPtr<Abstract::Element>> Controller::getElementList(const Storage& st
     return elements;
 }
 
-Bitmap Controller::getRenderedBitmap(const Abstract::Camera& camera) {
+SharedPtr<Bitmap> Controller::getRenderedBitmap() {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
     RenderParams params;
     params.particles.scale = gui.get<Float>(GuiSettingsId::PARTICLE_RADIUS);
     params.size = Point(gui.get<int>(GuiSettingsId::VIEW_WIDTH), gui.get<int>(GuiSettingsId::VIEW_HEIGHT));
+    if (vis.selectedParticle) {
+        params.selectedParticle = vis.selectedParticle->getIndex();
+    }
+    SharedPtr<Bitmap> bitmap;
     if (!vis.isInitialized()) {
         // not initialized yet, return empty bitmap
-        return wxNullBitmap;
+        bitmap = makeShared<Bitmap>(wxNullBitmap);
     } else {
-        Bitmap bitmap = vis.renderer->render(vis.cached, *vis.element, camera, params, *vis.stats);
-        ASSERT(bitmap.isOk());
-        return bitmap;
+        bitmap = vis.renderer->render(*vis.camera, params, *vis.stats);
+        ASSERT(bitmap->isOk());
     }
+    return bitmap;
 }
 
-Optional<Particle> Controller::getIntersectedParticle(const Abstract::Camera& camera, const Point position) {
+SharedPtr<Abstract::Camera> Controller::getCurrentCamera() const {
+    ASSERT(vis.camera != nullptr);
+    return vis.camera;
+}
+
+Optional<Particle> Controller::getIntersectedParticle(const Point position, const float toleranceEps) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
+
+    if (!vis.element->isInitialized()) {
+        // we have to wait for redraw to get data from storage
+        return NOTHING;
+    }
+
     const float radius = gui.get<Float>(GuiSettingsId::PARTICLE_RADIUS);
-    const Ray ray = camera.unproject(position);
+    const Ray ray = vis.camera->unproject(position);
     const Vector dir = getNormalized(ray.target - ray.origin);
 
-    Size firstIdx;
-    Float firstT = INFTY;
+    struct {
+        float t = -INFTY;
+        Size idx = -1;
+        bool wasHitOutside = true;
+    } first;
 
-    for (Size i = 0; i < vis.cached.size(); ++i) {
-        if (!camera.project(vis.cached[i])) {
+    for (Size i = 0; i < vis.positions.size(); ++i) {
+        Optional<ProjectedPoint> p = vis.camera->project(vis.positions[i]);
+        if (!p) {
             // particle not visible by the camera
             continue;
         }
 
-        const Vector r = vis.cached[i] - ray.origin;
-        const Float t = dot(r, dir);
+        const Vector r = vis.positions[i] - ray.origin;
+        const float t = dot(r, dir);
         const Vector projected = r - t * dir;
-        if (getSqrLength(projected) < sqr(vis.cached[i][H] * radius) && t < firstT) {
-            firstIdx = i;
-            firstT = t;
+        /// \todo this radius computation is actually renderer-specific ...
+        const float radiusSqr = sqr(vis.positions[i][H] * radius);
+        const float distanceSqr = getSqrLength(projected);
+        if (distanceSqr < radiusSqr * sqr(1._f + toleranceEps)) {
+            const bool wasHitOutside = distanceSqr > radiusSqr;
+            // hit candidate, check if it's closer or current candidate was hit outside the actual radius
+            if (t > first.t || (first.wasHitOutside && !wasHitOutside)) {
+                // update the current candidate
+                first.idx = i;
+                first.t = t;
+                first.wasHitOutside = wasHitOutside;
+            }
         }
     }
-    if (firstT == INFTY) {
+    if (int(first.idx) == -1) { /// \todo wait, -INFTY != -inf ?? // (first.t == -INFTY) {
+        // not a single candidate found
         return NOTHING;
     } else {
-        return firstIdx;
+        Optional<Particle> particle = vis.element->getParticle(first.idx);
+        if (particle) {
+            // add position to the particle data
+            particle->addValue(QuantityId::POSITIONS, vis.positions[first.idx]);
+        }
+        return particle;
     }
 }
 
@@ -251,6 +286,17 @@ void Controller::setElement(const SharedPtr<Abstract::Element>& newElement) {
         }
         vis.element->initialize(*storage, ElementSource::POINTER_TO_STORAGE);
         window->Refresh();
+    }
+}
+
+void Controller::setSelectedParticle(const Optional<Particle>& particle) {
+    vis.selectedParticle = particle;
+
+    if (particle) {
+        const Color color = vis.element->eval(particle->getIndex());
+        window->setSelectedParticle(particle.value(), color);
+    } else {
+        window->deselectParticle();
     }
 }
 
@@ -270,12 +316,21 @@ SharedPtr<Movie> Controller::createMovie(const Storage& storage) {
 void Controller::redraw(const Storage& storage, Statistics& stats) {
     CHECK_FUNCTION(CheckFunction::NON_REENRANT);
     auto functor = [&storage, &stats, this] { //
+        CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
+
         // this lock makes sure we don't execute notify_one before getting to wait
         std::unique_lock<std::mutex> lock(vis.mainThreadMutex);
         vis.stats = makeAuto<Statistics>(stats);
-        vis.cached = copyable(storage.getValue<Vector>(QuantityId::POSITIONS));
+        vis.positions = copyable(storage.getValue<Vector>(QuantityId::POSITIONS));
+
+        // initialize the currently selected element
         ASSERT(vis.isInitialized());
         vis.element->initialize(storage, ElementSource::CACHE_ARRAYS);
+
+        // update the renderer with new data
+        vis.renderer->initialize(vis.positions, *vis.element, *vis.camera);
+
+        // repaint the window
         window->Refresh();
         vis.mainThreadVar.notify_one();
     };
@@ -293,14 +348,20 @@ void Controller::run() {
         // create storage and set up initial conditions
         sph.run->setUp();
         SharedPtr<Storage> storage = sph.run->getStorage();
+
+        // fill the combobox with available elements
+        /// \todo can we do this safely from run thread?
+        executeOnMainThread([this, storage] { window->setElementList(this->getElementList(*storage)); });
+
         // draw initial positions of particles
-        window->setElementList(this->getElementList(*storage));
         /// \todo generalize stats
         Statistics stats;
         stats.set(StatisticsId::TOTAL_TIME, 0._f);
         this->redraw(*storage, stats);
+
         // set up animation object
         movie = this->createMovie(*storage);
+
         // run the simulation
         sph.run->run();
     });

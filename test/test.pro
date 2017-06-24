@@ -132,7 +132,9 @@ SOURCES += \
     ../lib/timestepping/test/TimeStepping.cpp \
     utils/Approx.cpp \
     utils/SequenceTest.cpp \
-    utils/Utils.cpp
+    utils/Utils.cpp \
+    ../lib/objects/wrappers/test/Value.cpp \
+    ../lib/quantities/test/Particle.cpp
 
 HEADERS += \
     utils/Utils.h \

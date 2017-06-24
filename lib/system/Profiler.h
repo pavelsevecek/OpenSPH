@@ -5,6 +5,7 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2017
 
+#include "io/Logger.h"
 #include "system/Timer.h"
 #include <atomic>
 #include <map>
@@ -47,10 +48,15 @@ public:
     }
 };
 
+#ifdef SPH_PROFILE
+#define MEASURE_SCOPE(name)                                                                                  \
+    ScopedTimer __timer("", [](const std::string&, const uint64_t time) {                                    \
+        StdOutLogger logger;                                                                                 \
+        logger.write(name, " took ", time / 1000, " ms");                                                    \
+    });
+#else
 #define MEASURE_SCOPE(name)
-/*ScopedTimer __timer("", [](const std::string&, const uint64_t time) {
-    std::cout << name << " took " << time / 1000 << " ms" << std::endl;
-});*/
+#endif
 
 
 struct ScopeStatistics {
@@ -59,9 +65,6 @@ struct ScopeStatistics {
     float relativeTime;
 };
 
-namespace Abstract {
-    class Logger;
-}
 
 /// Profiler object implemented as singleton.
 class Profiler : public Noncopyable {

@@ -20,6 +20,9 @@ class MainWindow;
 class Controller;
 class Storage;
 class OrthoPane;
+class ParticleProbe;
+class Particle;
+class Color;
 
 /// Main frame of the application. Run is coupled with the window; currently there can only be one window and
 /// one run at the same time. Run is ended when user closes the window.
@@ -31,6 +34,8 @@ private:
     /// Drawing pane
     /// \todo used some virtual base class instead of directly orthopane
     OrthoPane* pane;
+
+    ParticleProbe* probe;
 
     /// Additional wx controls
     wxComboBox* quantityBox;
@@ -45,6 +50,10 @@ public:
     void setProgress(const float progress);
 
     void setElementList(Array<SharedPtr<Abstract::Element>>&& elements);
+
+    void setSelectedParticle(const Particle& particle, const Color color);
+
+    void deselectParticle();
 
 private:
     wxBoxSizer* createToolbar(Controller* parent);

@@ -90,7 +90,7 @@ public:
 
     virtual Ray unproject(const Point point) const override {
         const float x = (point.x - center.x) / data.fov;
-        const float y = (point.y - center.y) / data.fov;
+        const float y = ((imageSize.y - point.y - 1) - center.y) / data.fov;
         Ray ray;
         ray.origin = data.u * x + data.v * y;
         ray.target = ray.origin + cached.w;

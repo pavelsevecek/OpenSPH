@@ -40,6 +40,19 @@ public:
         return data + other.data;
     }
 
+    /// Returns a color darker by given factor (in interval [0, 1], where 0 = current color, 1 = black)
+    Color darken(const float amount) const {
+        ASSERT(amount >= 0.f && amount <= 1.f);
+        return (1.f - amount) * data;
+    }
+
+    /// Returns a color brighter by given factor (in interval [0, INFTY], where 0 = current color, 1 = 100%
+    /// more brighter, etc.)
+    Color brighten(const float amount) const {
+        ASSERT(amount >= 0.f);
+        return (1._f + amount) * data;
+    }
+
     static Color red() {
         return Color(1.f, 0.f, 0.f);
     }

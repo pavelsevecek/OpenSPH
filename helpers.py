@@ -35,6 +35,14 @@ def qdump__Sph__SharedPtr(d, value):
     else:
         d.putItem(ptr.dereference())
 
+def qdump__Sph__Optional(d, value):
+    used = value["used"]
+    if used.integer() == 0:
+        d.putValue("NOTHING")
+    else:
+        templateType = d.templateArgument(value.type, 0)
+        x = d.createValue(value.address(), templateType)
+        d.putItem(x)
 
 def qdump__Sph__Array(d, value):  
     actsize = value["actSize"].integer()

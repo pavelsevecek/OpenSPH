@@ -225,7 +225,7 @@ public:
         using RawT = std::decay_t<T>;
         constexpr int idx = getTypeIndex<RawT, TArgs...>;
         static_assert(idx != -1, "Type must be listed in Variant");
-        if (typeIdx != idx) {
+        if (int(typeIdx) != idx) {
             // different type, destroy current and re-create
             destroy();
             storage.template emplace<RawT>(std::forward<T>(value));
@@ -294,11 +294,20 @@ public:
         return typeIdx;
     }
 
+    /// Checks if the variant currently hold value of given type
     /// \todo test
     template <typename T>
     INLINE bool has() const {
         constexpr int idx = getTypeIndex<std::decay_t<T>, TArgs...>;
         return typeIdx == idx;
+    }
+
+    /// Checks if the given type is one of the listed ones. Returns true even for references and
+    /// const/volatile-qualified types.
+    template <typename T>
+    INLINE static constexpr bool canHold() {
+        using RawT = std::decay_t<T>;
+        return getTypeIndex<RawT, TArgs...> != -1;
     }
 
     /// Returns the stored value. Performs a compile-time check that the type is contained in Variant, and

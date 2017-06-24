@@ -59,8 +59,14 @@ void Movie::onTimeStep(const Storage& storage, Statistics& stats) {
             // the e directly
             std::unique_lock<std::mutex> lock(waitMutex);
             ArrayView<const Vector> positions = storage.getValue<Vector>(QuantityId::POSITIONS);
-            Bitmap bitmap = renderer->render(positions, *e, *camera, params, stats);
-            bitmap.saveToFile(actPath);
+
+            // initialize render with new data
+            renderer->initialize(positions, *e, *camera);
+
+            // create the bitmap and save it to file
+            SharedPtr<Bitmap> bitmap = renderer->render(*camera, params, stats);
+            bitmap->saveToFile(actPath);
+
             waitVar.notify_one();
         };
         if (isMainThread()) {

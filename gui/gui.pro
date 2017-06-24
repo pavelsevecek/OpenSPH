@@ -46,13 +46,13 @@ SOURCES += \
     objects/Factory.cpp \
     objects/Palette.cpp \
     objects/Movie.cpp \
-    problems/Rotation.cpp
+    problems/Rotation.cpp \
+    Utils.cpp
 
 HEADERS += \
     Gui.h \
     windows/OrthoPane.h \
     windows/GlPane.h \
-    Common.h \
     Renderer.h \
     Settings.h \
     objects/Palette.h \
@@ -70,4 +70,6 @@ HEADERS += \
     windows/MainWindow.h \
     Controller.h \
     problems/Rotation.h \
-    windows/PlotView.h
+    windows/PlotView.h \
+    windows/ParticleProbe.h \
+    Utils.h

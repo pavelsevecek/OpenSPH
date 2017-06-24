@@ -23,7 +23,7 @@ AutoPtr<GuiSettings> GuiSettings::instance (new GuiSettings {
 
     /// Window settings
     { GuiSettingsId::WINDOW_TITLE,     "window.title",     std::string("SPH") },
-    { GuiSettingsId::WINDOW_WIDTH,     "window.width",     1200 },
+    { GuiSettingsId::WINDOW_WIDTH,     "window.width",     1110 },
     { GuiSettingsId::WINDOW_HEIGHT,    "window.height",    600 },
 
     /// Saved animation frames

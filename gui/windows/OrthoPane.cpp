@@ -13,9 +13,27 @@
 
 NAMESPACE_SPH_BEGIN
 
-Bitmap OrthoRenderer::render(ArrayView<const Vector> r,
+void OrthoRenderer::initialize(ArrayView<const Vector> r,
     const Abstract::Element& element,
-    const Abstract::Camera& camera,
+    const Abstract::Camera& camera) {
+    cached.idxs.clear();
+    cached.positions.clear();
+    cached.colors.clear();
+
+    for (Size i = 0; i < r.size(); ++i) {
+        const Color color = element.eval(i);
+        const Optional<ProjectedPoint> p = camera.project(r[i]);
+        if (p) {
+            cached.idxs.push(i);
+            cached.positions.push(r[i]);
+            cached.colors.push(color);
+        }
+    }
+
+    cached.palette = element.getPalette();
+}
+
+SharedPtr<Bitmap> OrthoRenderer::render(const Abstract::Camera& camera,
     const RenderParams& params,
     Statistics& stats) const {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
@@ -27,29 +45,33 @@ Bitmap OrthoRenderer::render(ArrayView<const Vector> r,
     // draw black background (there is no fill method?)
     dc.SetBrush(*wxBLACK_BRUSH);
     dc.DrawRectangle(wxPoint(0, 0), size);
+
+    // draw particles
     wxBrush brush(*wxBLACK_BRUSH);
     wxPen pen(*wxBLACK_PEN);
-    for (Size i = 0; i < r.size(); ++i) {
-        const Color color = element.eval(i);
-        brush.SetColour(color);
-        pen.SetColour(color);
+    for (Size i = 0; i < cached.positions.size(); ++i) {
+        if (cached.idxs[i] == params.selectedParticle) {
+            brush.SetColour(*wxRED);
+            pen.SetColour(*wxWHITE);
+        } else {
+            brush.SetColour(cached.colors[i]);
+            pen.SetColour(cached.colors[i]);
+        }
         dc.SetBrush(brush);
         dc.SetPen(pen);
-        const Optional<ProjectedPoint> p = camera.project(r[i]);
-        if (p) {
-            const int size = max(int(p->radius * params.particles.scale), 1);
-            dc.DrawCircle(p->point, size);
-        }
+        const Optional<ProjectedPoint> p = camera.project(cached.positions[i]);
+        ASSERT(p); // cached values must be visible by the camera
+        const int size = max(int(p->radius * params.particles.scale), 1);
+        dc.DrawCircle(p->point, size);
     }
-    Optional<Palette> palette = element.getPalette();
-    if (palette) {
-        this->drawPalette(dc, palette.value());
+    if (cached.palette) {
+        this->drawPalette(dc, cached.palette.value());
     }
     const Float time = stats.get<Float>(StatisticsId::TOTAL_TIME);
     dc.DrawText(("t = " + std::to_string(time) + "s").c_str(), wxPoint(0, 0));
 
     dc.SelectObject(wxNullBitmap);
-    return bitmap;
+    return makeShared<Bitmap>(std::move(bitmap));
 }
 
 void OrthoRenderer::drawPalette(wxDC& dc, const Palette& palette) const {
@@ -84,7 +106,7 @@ OrthoPane::OrthoPane(wxWindow* parent, Controller* controller, const GuiSettings
     this->Connect(wxEVT_MOTION, wxMouseEventHandler(OrthoPane::onMouseMotion));
     this->Connect(wxEVT_MOUSEWHEEL, wxMouseEventHandler(OrthoPane::onMouseWheel));
 
-    camera = Factory::getCamera(gui);
+    particle.lastIdx = -1;
 }
 
 OrthoPane::~OrthoPane() = default;
@@ -93,12 +115,15 @@ void OrthoPane::onPaint(wxPaintEvent& UNUSED(evt)) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
     MEASURE_SCOPE("OrthoPane::onPaint");
     wxPaintDC dc(this);
-    Bitmap bitmap = controller->getRenderedBitmap(*camera);
-    if (bitmap.isOk()) { // not empty
-        dc.DrawBitmap(bitmap, wxPoint(0, 0));
+    SharedPtr<Bitmap> bitmap = controller->getRenderedBitmap();
+    if (bitmap->isOk()) { // not empty
+        dc.DrawBitmap(*bitmap, wxPoint(0, 0));
     }
-    if (selected.particle) {
-    }
+    /*if (particle.selected) {
+        dc.DrawText(std::to_string(particle.selected->getIndex()), wxPoint(10, 10));
+    } else {
+        dc.DrawText("no particle", wxPoint(10, 10));
+    }*/
 }
 
 void OrthoPane::onMouseMotion(wxMouseEvent& evt) {
@@ -106,12 +131,18 @@ void OrthoPane::onMouseMotion(wxMouseEvent& evt) {
     Point position = evt.GetPosition();
     if (evt.Dragging()) {
         Point offset = Point(position.x - dragging.position.x, -(position.y - dragging.position.y));
-        ASSERT(camera);
+        SharedPtr<Abstract::Camera> camera = controller->getCurrentCamera();
         camera->pan(offset);
         this->Refresh();
     } else {
-        ASSERT(camera);
-        selected.particle = controller->getIntersectedParticle(*camera, position);
+        SharedPtr<Abstract::Camera> camera = controller->getCurrentCamera();
+        Optional<Particle> selectedParticle = controller->getIntersectedParticle(position);
+        const Size selectedIdx = selectedParticle ? selectedParticle->getIndex() : -1;
+        if (selectedIdx != particle.lastIdx) {
+            particle.lastIdx = selectedIdx;
+            controller->setSelectedParticle(selectedParticle);
+            this->Refresh();
+        }
     }
     dragging.position = position;
     evt.Skip();
@@ -121,7 +152,7 @@ void OrthoPane::onMouseWheel(wxMouseEvent& evt) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
     const float spin = evt.GetWheelRotation();
     const float amount = (spin > 0.f) ? 1.2f : 1.f / 1.2f;
-    ASSERT(camera);
+    SharedPtr<Abstract::Camera> camera = controller->getCurrentCamera();
     camera->zoom(amount);
     this->Refresh();
     evt.Skip();

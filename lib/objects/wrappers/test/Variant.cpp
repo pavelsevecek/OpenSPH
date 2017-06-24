@@ -281,3 +281,14 @@ TEST_CASE("Variant forValue", "[variant]") {
     variant = 3;
     REQUIRE(forValue(variant, dispatcher) == 2);
 }
+
+TEST_CASE("Variant canHold", "[variant]") {
+    using TestVariant = Variant<int, float, RecordType, char*>;
+
+    static_assert(TestVariant::canHold<int>(), "Static test failed");
+    static_assert(TestVariant::canHold<int&>(), "Static test failed");
+    static_assert(TestVariant::canHold<const float>(), "Static test failed");
+    static_assert(TestVariant::canHold<volatile RecordType>(), "Static test failed");
+    static_assert(!TestVariant::canHold<std::string>(), "Static test failed");
+    static_assert(!TestVariant::canHold<void>(), "Static test failed");
+}

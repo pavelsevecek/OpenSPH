@@ -5,7 +5,9 @@
 #include "gui/objects/Element.h"
 #include "gui/windows/GlPane.h"
 #include "gui/windows/OrthoPane.h"
+#include "gui/windows/ParticleProbe.h"
 #include "gui/windows/PlotView.h"
+#include "thread/CheckFunction.h"
 #include <wx/button.h>
 #include <wx/combobox.h>
 #include <wx/gauge.h>
@@ -38,6 +40,9 @@ MainWindow::MainWindow(Controller* parent, const GuiSettings& settings)
     /*PlotView* plot = new PlotView(this, wxSize(390, 250), wxSize(20, 20));
     mainSizer->Add(plot, 1, wxALIGN_TOP);*/
 
+    probe = new ParticleProbe(this, wxSize(300, 200));
+    mainSizer->Add(probe, 1, wxALIGN_TOP);
+
     sizer->Add(mainSizer);
 
     this->SetSizer(sizer);
@@ -48,6 +53,7 @@ MainWindow::MainWindow(Controller* parent, const GuiSettings& settings)
 }
 
 wxBoxSizer* MainWindow::createToolbar(Controller* parent) {
+    CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
     wxBoxSizer* toolbar = new wxBoxSizer(wxHORIZONTAL);
 
     wxButton* button = new wxButton(this, wxID_ANY, "Start");
@@ -75,10 +81,12 @@ wxBoxSizer* MainWindow::createToolbar(Controller* parent) {
 }
 
 void MainWindow::setProgress(const float progress) {
+    CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
     gauge->SetValue(int(progress * 1000.f));
 }
 
 void MainWindow::setElementList(Array<SharedPtr<Abstract::Element>>&& elements) {
+    CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
     elementList = std::move(elements);
     wxArrayString items;
     for (auto& e : elementList) {
@@ -89,7 +97,18 @@ void MainWindow::setElementList(Array<SharedPtr<Abstract::Element>>&& elements) 
     quantityBox->SetSelection(actSelectedIdx);
 }
 
+void MainWindow::setSelectedParticle(const Particle& particle, const Color color) {
+    CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
+    probe->update(particle, color);
+}
+
+void MainWindow::deselectParticle() {
+    CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
+    probe->clear();
+}
+
 void MainWindow::onClose(wxCloseEvent& evt) {
+    CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
     // veto the event, we will close the window ourselves
     if (!controller->isQuitting()) {
         evt.Veto();
@@ -99,6 +118,7 @@ void MainWindow::onClose(wxCloseEvent& evt) {
 }
 
 void MainWindow::onComboBox(wxCommandEvent& UNUSED(evt)) {
+    CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
     const int idx = quantityBox->GetSelection();
     SharedPtr<Abstract::Element> element = elementList[idx];
     controller->setElement(std::move(element));

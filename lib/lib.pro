@@ -72,7 +72,8 @@ SOURCES += \
     tests/Setup.cpp \
     thread/CheckFunction.cpp \
     timestepping/TimeStepCriterion.cpp \
-    timestepping/TimeStepping.cpp
+    timestepping/TimeStepping.cpp \
+    quantities/Particle.cpp
 
 HEADERS += \
     commmon/ForwardDecl.h \

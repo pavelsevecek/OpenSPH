@@ -9,10 +9,13 @@
 #include "gui/Factory.h"
 #include "gui/objects/Palette.h"
 #include "gui/objects/Point.h"
+#include "objects/wrappers/Value.h"
 #include "quantities/AbstractMaterial.h"
-#include "quantities/Storage.h"
+#include "quantities/Particle.h"
 
 NAMESPACE_SPH_BEGIN
+
+class Particle;
 
 /// Source data used for element drawing
 enum class ElementSource {
@@ -32,8 +35,14 @@ namespace Abstract {
         /// \param storage Particle storage containing source data to be drawn.
         virtual void initialize(const Storage& storage, const ElementSource source) = 0;
 
+        /// Checks if the element has been initialized.
+        virtual bool isInitialized() const = 0;
+
         /// Returns the color of idx-th particle.
         virtual Color eval(const Size idx) const = 0;
+
+        /// Returns the original value of the displayed quantity, or NOTHING if no such value exists.
+        virtual Optional<Particle> getParticle(const Size idx) const = 0;
 
         /// Returns recommended palette for drawing this element, or NOTHING in case there is no palette.
         virtual Optional<Palette> getPalette() const = 0;
@@ -75,11 +84,13 @@ enum class ElementId {
 /// quantities are converted to floats using suitable norm.
 template <typename Type>
 class TypedElement : public Abstract::Element {
-private:
+protected:
     QuantityId id;
     Palette palette;
     ArrayView<const Type> values;
     Array<Type> cached;
+
+    TypedElement() = default;
 
 public:
     TypedElement(const QuantityId id, const Range range)
@@ -95,9 +106,17 @@ public:
         }
     }
 
+    virtual bool isInitialized() const override {
+        return !values.empty();
+    }
+
     virtual Color eval(const Size idx) const override {
         ASSERT(values);
         return palette(Detail::getElementValue(values[idx]));
+    }
+
+    virtual Optional<Particle> getParticle(const Size idx) const override {
+        return Particle(id, values[idx], idx);
     }
 
     virtual Optional<Palette> getPalette() const override {
@@ -111,15 +130,11 @@ public:
 };
 
 /// Displays particle velocities.
-class VelocityElement : public Abstract::Element {
-private:
-    Palette palette;
-    ArrayView<const Vector> values;
-    Array<Vector> cached;
-
+class VelocityElement : public TypedElement<Vector> {
 public:
-    VelocityElement(const Range range)
-        : palette(Factory::getPalette(ElementId::VELOCITY, range)) {}
+    VelocityElement(const Range range) {
+        palette = Factory::getPalette(ElementId::VELOCITY, range);
+    }
 
     virtual void initialize(const Storage& storage, const ElementSource source) override {
         if (source == ElementSource::CACHE_ARRAYS) {
@@ -130,13 +145,8 @@ public:
         }
     }
 
-    virtual Color eval(const Size idx) const override {
-        ASSERT(values);
-        return palette(Detail::getElementValue(values[idx]));
-    }
-
-    virtual Optional<Palette> getPalette() const override {
-        return palette;
+    virtual Optional<Particle> getParticle(const Size idx) const override {
+        return Particle(idx).addDt(QuantityId::POSITIONS, values[idx]);
     }
 
     virtual std::string name() const override {
@@ -144,15 +154,11 @@ public:
     }
 };
 
-class AccelerationElement : public Abstract::Element {
-private:
-    Palette palette;
-    ArrayView<const Vector> values;
-    Array<Vector> cached;
-
+class AccelerationElement : public TypedElement<Vector> {
 public:
-    AccelerationElement(const Range range)
-        : palette(Factory::getPalette(ElementId::ACCELERATION, range)) {}
+    AccelerationElement(const Range range) {
+        palette = Factory::getPalette(ElementId::ACCELERATION, range);
+    }
 
     virtual void initialize(const Storage& storage, const ElementSource source) override {
         if (source == ElementSource::CACHE_ARRAYS) {
@@ -163,13 +169,8 @@ public:
         }
     }
 
-    virtual Color eval(const Size idx) const override {
-        ASSERT(values);
-        return palette(Detail::getElementValue(values[idx]));
-    }
-
-    virtual Optional<Palette> getPalette() const override {
-        return palette;
+    virtual Optional<Particle> getParticle(const Size idx) const override {
+        return Particle(idx).addD2t(QuantityId::POSITIONS, values[idx]);
     }
 
     virtual std::string name() const override {
@@ -213,6 +214,10 @@ public:
         }
     }
 
+    virtual bool isInitialized() const override {
+        return !values.empty();
+    }
+
     virtual Color eval(const Size idx) const override {
         ASSERT(values);
         const Vector projected = values[idx] - dot(values[idx], axis) * axis;
@@ -222,12 +227,17 @@ public:
         return palette(angle);
     }
 
+    virtual Optional<Particle> getParticle(const Size idx) const override {
+        // return velocity of the particle
+        return Particle(idx).addD2t(QuantityId::POSITIONS, values[idx]);
+    }
+
     virtual Optional<Palette> getPalette() const override {
         return palette;
     }
 
     virtual std::string name() const override {
-        return "Velocity Y";
+        return "Direction";
     }
 };
 
@@ -260,9 +270,17 @@ public:
         }
     }
 
+    virtual bool isInitialized() const override {
+        return !rho.empty();
+    }
+
     virtual Color eval(const Size idx) const override {
         ASSERT(rho);
         return palette(rho[idx] / rho0[idx] - 1.f);
+    }
+
+    virtual Optional<Particle> getParticle(const Size idx) const override {
+        return Particle(QuantityId::DENSITY, rho[idx] / rho0[idx] - 1.f, idx);
     }
 
     virtual Optional<Palette> getPalette() const override {
@@ -332,12 +350,22 @@ public:
         }
     }
 
+    virtual bool isInitialized() const override {
+        return (detection == Detection::NORMAL_BASED && !normals.values.empty()) ||
+               (detection == Detection::NEIGBOUR_THRESHOLD && !neighbours.values.empty());
+    }
+
     virtual Color eval(const Size idx) const override {
         if (isBoundary(idx)) {
             return Color::red();
         } else {
             return Color::gray();
         }
+    }
+
+    virtual Optional<Particle> getParticle(const Size UNUSED(idx)) const override {
+        // doesn't really make sense to assign some value to boundary
+        return NOTHING;
     }
 
     virtual Optional<Palette> getPalette() const override {

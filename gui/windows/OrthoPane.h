@@ -27,15 +27,33 @@ namespace Abstract {
 
 
 class OrthoRenderer : public Abstract::Renderer {
+private:
+    /// Cached values of visible particles, used for faster drawing.
+    struct {
+        /// Positions of particles
+        Array<Vector> positions;
+
+        /// Indices (in parent storage) of particles
+        Array<Size> idxs;
+
+        /// Colors of particles assigned by the element
+        Array<Color> colors;
+
+        /// Color palette or NOTHING if no palette is drawn
+        Optional<Palette> palette;
+
+    } cached;
+
 public:
-    /// Can only be called from main thread
-    virtual Bitmap render(ArrayView<const Vector> positions,
+    virtual void initialize(ArrayView<const Vector> positions,
         const Abstract::Element& element,
-        const Abstract::Camera& camera,
+        const Abstract::Camera& camera);
+
+    /// Can only be called from main thread
+    virtual SharedPtr<Bitmap> render(const Abstract::Camera& camera,
         const RenderParams& params,
         Statistics& stats) const override;
 
-private:
     void drawPalette(wxDC& dc, const Palette& palette) const;
 };
 
@@ -49,11 +67,8 @@ private:
     } dragging;
 
     struct {
-        Optional<Particle> particle;
-    } selected;
-
-    /// Current camera of the view. The object is shared with parent model.
-    AutoPtr<Abstract::Camera> camera;
+        Size lastIdx;
+    } particle;
 
 public:
     OrthoPane(wxWindow* parent, Controller* controller, const GuiSettings& gui);

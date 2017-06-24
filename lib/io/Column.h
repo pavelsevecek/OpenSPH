@@ -103,7 +103,7 @@ public:
     }
 
     virtual std::string getName() const override {
-        return getDerivativeName(id);
+        return getDtName(id);
     }
 
     virtual ValueEnum getType() const override {
