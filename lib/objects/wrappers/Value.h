@@ -127,15 +127,15 @@ private:
         Float operator()(const T& value) {
             return norm(value);
         }
-
         Float operator()(const Size value) {
             return Float(value);
         }
-
+        Float operator()(const Vector& value) {
+            return getLength(value);
+        }
         Float operator()(const MinMaxMean& value) {
             return value.mean();
         }
-
         Float operator()(const NothingType&) {
             return NAN;
         }

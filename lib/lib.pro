@@ -217,4 +217,5 @@ HEADERS += \
     timestepping/AbstractSolver.h \
     timestepping/TimeStepCriterion.h \
     timestepping/TimeStepping.h \
-    quantities/Particle.h
+    quantities/Particle.h \
+    sph/solvers/AsymmetricSolver.h

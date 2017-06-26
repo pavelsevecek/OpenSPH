@@ -15,8 +15,9 @@ TEST_CASE("Impact", "[impact]]") {
     RunSettings settings;
     settings.set(RunSettingsId::MODEL_FORCE_SOLID_STRESS, true);
     EquationHolder eqs;
+    /// \todo refactor, avoid adding ConstSmootihngLength term
     eqs += makeTerm<PressureForce>() + makeTerm<SolidStressForce>(settings) + makeTerm<StandardAV>() +
-           makeTerm<ContinuityEquation>(settings);
+           makeTerm<ContinuityEquation>(settings) + makeTerm<ConstSmoothingLength>();
     GenericSolver solver(settings, std::move(eqs));
 
     SharedPtr<Storage> storage = makeShared<Storage>();

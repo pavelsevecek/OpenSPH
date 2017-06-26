@@ -8,9 +8,19 @@ struct Particle::Visitor {
     template <typename TValue>
     void visit(const QuantityId id, const Quantity& q, const Size idx) {
         const auto& values = q.getAll<TValue>();
-        data[id].value = values[0][idx];
-        data[id].dt = values[1][idx];
-        data[id].d2t = values[2][idx];
+        switch (q.getOrderEnum()) {
+        case OrderEnum::SECOND:
+            data[id].d2t = values[2][idx];
+            SPH_FALLTHROUGH;
+        case OrderEnum::FIRST:
+            data[id].dt = values[1][idx];
+            SPH_FALLTHROUGH;
+        case OrderEnum::ZERO:
+            data[id].value = values[0][idx];
+            break;
+        default:
+            NOT_IMPLEMENTED;
+        }
     }
 };
 

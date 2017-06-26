@@ -46,7 +46,7 @@ NAMESPACE_SPH_BEGIN
 #define SPH_CPP17
 
 #ifdef SPH_CPP17
-#define SPH_FALLTHROUGH [[fallthrough]];
+#define SPH_FALLTHROUGH [[fallthrough]]
 #else
 #define SPH_FALLTHROUGH
 #endif
