@@ -45,7 +45,6 @@ SOURCES += \
     math/SparseMatrix.cpp \
     math/rng/Rng.cpp \
     objects/containers/StringUtils.cpp \
-    objects/finders/KdTree.cpp \
     objects/finders/Voxel.cpp \
     objects/wrappers/Range.cpp \
     physics/Damage.cpp \
@@ -73,7 +72,8 @@ SOURCES += \
     thread/CheckFunction.cpp \
     timestepping/TimeStepCriterion.cpp \
     timestepping/TimeStepping.cpp \
-    quantities/Particle.cpp
+    quantities/Particle.cpp \
+    post/MarchingCubes.cpp
 
 HEADERS += \
     commmon/ForwardDecl.h \
@@ -125,10 +125,8 @@ HEADERS += \
     objects/finders/AbstractFinder.h \
     objects/finders/BruteForce.h \
     objects/finders/Bruteforce.h \
-    objects/finders/KdTree.h \
     objects/finders/LinkedList.h \
     objects/finders/Linkedlist.h \
-    objects/finders/Nanoflann.h \
     objects/finders/Octree.h \
     objects/finders/Order.h \
     objects/finders/PeriodicFinder.h \
@@ -218,4 +216,6 @@ HEADERS += \
     timestepping/TimeStepCriterion.h \
     timestepping/TimeStepping.h \
     quantities/Particle.h \
-    sph/solvers/AsymmetricSolver.h
+    sph/solvers/AsymmetricSolver.h \
+    objects/finders/KdTree.h \
+    post/MarchingCubes.h

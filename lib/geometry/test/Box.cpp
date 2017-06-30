@@ -105,3 +105,15 @@ TEST_CASE("Box iterateWithIndices", "[box]") {
     REQUIRE(all(idxs[idxs.size() - 1] == Indices(4, 6, 8)));
     REQUIRE(all(idxs[(idxs.size() - 1) >> 1] == Indices(2, 3, 4)));
 }
+
+TEST_CASE("Box split", "[box]") {
+    Box box(Vector(0._f), Vector(2._f, 4._f, 6._f));
+    Box b1, b2;
+    tie(b1, b2) = box.split(X, 0.5_f);
+    REQUIRE(b1 == Box(Vector(0._f), Vector(0.5_f, 4._f, 6._f)));
+    REQUIRE(b2 == Box(Vector(0.5_f), Vector(2._f, 4._f, 6._f)));
+
+    tie(b1, b2) = box.split(Z, 4._f);
+    REQUIRE(b1 == Box(Vector(0._f), Vector(2._f, 4._f, 4._f)));
+    REQUIRE(b2 == Box(Vector(0._f, 0._f, 4._f), Vector(2._f, 4._f, 6._f)));
+}

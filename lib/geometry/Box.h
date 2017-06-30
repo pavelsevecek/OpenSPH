@@ -99,6 +99,25 @@ public:
         return s[X] * s[Y] * s[Z];
     }
 
+    /// Compares two boxes
+    INLINE bool operator==(const Box& other) const {
+        return minBound == other.minBound && maxBound == other.maxBound;
+    }
+
+    /// Splits the box along given coordinate. The splitting plane must pass through the box.
+    /// \param dim Dimension, can be X, Y or Z.
+    /// \param x Coordinate in given dimension used for the split
+    /// \return Two boxes created by the split.
+    INLINE Pair<Box> split(const Size dim, const Float x) const {
+        ASSERT(dim < 3);
+        ASSERT(x >= minBound[dim] && x <= maxBound[dim]);
+        Box b1 = *this, b2 = *this;
+        b1.maxBound[dim] = x;
+        b2.minBound[dim] = x;
+        return { b1, b2 };
+    }
+
+
     /// Execute functor for all possible values of vector (with constant stepping)
     template <typename TFunctor>
     void iterate(const Vector& step, TFunctor&& functor) const {

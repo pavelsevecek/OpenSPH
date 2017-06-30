@@ -657,6 +657,30 @@ INLINE Float minElement(const Vector& v) {
     return min(v[0], v[1], v[2]);
 }
 
+/// Returns the index of the minimum element.
+INLINE Size argMin(const Vector& v) {
+    Size minIdx = 0;
+    if (v[1] < v[minIdx]) {
+        minIdx = 1;
+    }
+    if (v[2] < v[minIdx]) {
+        minIdx = 2;
+    }
+    return minIdx;
+}
+
+/// Returns the index of the maximum element.
+INLINE Size argMax(const Vector& v) {
+    Size maxIdx = 0;
+    if (v[1] > v[maxIdx]) {
+        maxIdx = 1;
+    }
+    if (v[2] > v[maxIdx]) {
+        maxIdx = 2;
+    }
+    return maxIdx;
+}
+
 /// Computes vector of absolute values.
 template <>
 INLINE auto abs(const BasicVector<float>& v) {
