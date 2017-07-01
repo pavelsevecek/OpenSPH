@@ -2,9 +2,11 @@
 
 #include "geometry/Box.h"
 #include "objects/containers/Array.h"
-#include "objects/wrappers/AutoPtr.h"
+#include "objects/wrappers/SharedPtr.h"
 
 NAMESPACE_SPH_BEGIN
+
+class Storage;
 
 class Triangle {
 private:
@@ -74,7 +76,7 @@ private:
     Float surfaceLevel;
 
     /// Field, isosurface of which we want to triangularize
-    AutoPtr<Abstract::ScalarField> field;
+    SharedPtr<Abstract::ScalarField> field;
 
     /// Output array of triangles
     Array<Triangle> triangles;
@@ -90,7 +92,7 @@ private:
 public:
     MarchingCubes(ArrayView<const Vector> r,
         const Float surfaceLevel,
-        AutoPtr<Abstract::ScalarField>&& field);
+        const SharedPtr<Abstract::ScalarField>& field);
 
     /// Adds a triangle mesh representing the boundary of particles inside given bounding box into the
     /// internal triangle buffer.
@@ -111,6 +113,14 @@ private:
     /// Find the interpolated vertex position based on the surface level
     Vector interpolate(const Vector& v1, const Float p1, const Vector& v2, const Float p2) const;
 };
+
+
+/// Returns the triangle mesh of the body surface (or surfaces of bodies).
+/// \param storage Particle storage; must contain particle positions.
+/// \param surfaceLevel (Number) density defining the surface. Higher value is more likely to cause SPH
+///                     particles being separated into smaller groups (droplets), lower value will cause the
+///                     boundary to be "bulgy" rather than smooth
+Array<Triangle> getSurfaceMesh(const Storage& storage, const Float gridResolution, const Float surfaceLevel);
 
 
 NAMESPACE_SPH_END

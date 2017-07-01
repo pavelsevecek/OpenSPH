@@ -7,16 +7,6 @@ void PlyFile::getVerticesAndIndices(ArrayView<const Triangle> triangles,
     Array<Vector>& vertices,
     Array<Size>& indices,
     const Float eps) {
-    if (true) {
-        vertices.resize(3 * triangles.size());
-        indices.resize(3 * triangles.size());
-        for (Size i = 0; i < 3 * triangles.size(); ++i) {
-            indices[i] = i;
-            vertices[i] = triangles[i / 3][i % 3];
-        }
-        return;
-    }
-
     // get order of vertices sorted lexicographically
     Order lexicographicalOrder(triangles.size() * 3);
     lexicographicalOrder.shuffle([&triangles](const Size i1, const Size i2) {

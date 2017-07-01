@@ -1,4 +1,10 @@
 #include "post/MarchingCubes.h"
+#include "objects/finders/AbstractFinder.h"
+//#include "post/Components.h"
+#include "quantities/Storage.h"
+#include "sph/kernel/KernelFactory.h"
+#include "system/Factory.h"
+#include "system/Settings.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -291,10 +297,10 @@ Size MarchingCubes::IDXS2[12] = { 1, 2, 3, 0, 5, 6, 7, 4, 4, 5, 6, 7 };
 
 MarchingCubes::MarchingCubes(ArrayView<const Vector> r,
     const Float surfaceLevel,
-    AutoPtr<Abstract::ScalarField>&& field)
+    const SharedPtr<Abstract::ScalarField>& field)
     : r(r)
     , surfaceLevel(surfaceLevel)
-    , field(std::move(field)) {}
+    , field(field) {}
 
 void MarchingCubes::addComponent(const Box& box, const Float gridResolution) {
     const Vector dr = min(Vector(gridResolution), box.size() * (1._f - EPS));
@@ -369,7 +375,7 @@ void MarchingCubes::intersectCell(Cell& cell) {
         tri[0] = vertices[MC_TRIANGLES[cubeIdx][i + 0]];
         tri[1] = vertices[MC_TRIANGLES[cubeIdx][i + 1]];
         tri[2] = vertices[MC_TRIANGLES[cubeIdx][i + 2]];
-        ASSERT(tri.isValid());
+        // ASSERT(tri.isValid());
         triangles.push(tri);
     }
 }
@@ -392,6 +398,114 @@ INLINE Vector MarchingCubes::interpolate(const Vector& v1,
     Float mu = (p1 - surfaceLevel) / (p1 - p2);
     ASSERT(mu >= 0._f && mu <= 1._f);
     return v1 + mu * (v2 - v1);
+}
+
+
+struct NumberDensityField : public Abstract::ScalarField {
+private:
+    LutKernel<3>& kernel;
+    Abstract::Finder& finder;
+
+    ArrayView<const Vector> r;
+    ArrayView<const Float> m, rho;
+    ArrayView<const Size> flag;
+
+    Array<NeighbourRecord> neighs;
+
+public:
+    Float maxH = 0._f;
+
+    NumberDensityField(const Storage& storage,
+        const ArrayView<const Vector> r,
+        LutKernel<3>& kernel,
+        Abstract::Finder& finder)
+        : kernel(kernel)
+        , finder(finder)
+        , r(r) {
+        tie(m, rho) = storage.getValues<Float>(QuantityId::MASSES, QuantityId::DENSITY);
+        flag = storage.getValue<Size>(QuantityId::FLAG);
+
+        // we have to re-build the tree since we are using different positions (in general)
+        finder.build(r);
+    }
+
+    virtual Float operator()(const Vector& pos) override {
+        ASSERT(maxH > 0._f);
+        finder.findNeighbours(pos, maxH * kernel.radius(), neighs);
+        Float phi = 0._f;
+
+        // find average h of neighbours and the flag of the closest particle
+        Size closestFlag;
+        Float flagDistSqr = INFTY;
+        Float avgH = 0._f;
+        for (NeighbourRecord& n : neighs) {
+            const Size j = n.index;
+            avgH += r[j][H];
+            if (n.distanceSqr < flagDistSqr) {
+                closestFlag = flag[j];
+                flagDistSqr = n.distanceSqr;
+            }
+        }
+        avgH /= neighs.size();
+
+        // interpolate values of neighbours
+        for (NeighbourRecord& n : neighs) {
+            const Size j = n.index;
+            if (flag[j] != closestFlag) {
+                continue;
+            }
+            phi += m[j] / rho[j] * kernel.value(pos - r[j], avgH);
+        }
+        return phi;
+    }
+};
+
+Array<Triangle> getSurfaceMesh(const Storage& storage, const Float gridResolution, const Float surfaceLevel) {
+    // 1. get denoised particle positions
+    // (according to http://www.cc.gatech.edu/~turk/my_papers/sph_surfaces.pdf)
+    const Float lambda = 0.9_f;
+    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
+    Array<Vector> r_bar(r.size());
+    RunSettings settings;
+    LutKernel<3> kernel = Factory::getKernel<3>(settings);
+    AutoPtr<Abstract::Finder> finder = Factory::getFinder(settings);
+
+    finder->build(r);
+    Array<NeighbourRecord> neighs;
+    /// \todo parallelize
+    for (Size i = 0; i < r.size(); ++i) {
+        finder->findNeighbours(i, r[i][H] * kernel.radius(), neighs);
+        Vector wr(0._f);
+        Float wsum = 0._f;
+        for (NeighbourRecord& n : neighs) {
+            const Size j = n.index;
+            const Float w = kernel.value(r[i] - r[j], r[i][H]);
+            wr += w * r[j];
+            wsum += w;
+        }
+        // Eq. (6) from the paper
+        r_bar[i] = (1._f - lambda) * r[i] + lambda * wr / wsum;
+    }
+
+    /// \todo we skip the anisotropy correction for now
+    // 2. find bounding box and maximum h (we need to search neighbours of arbitrary point in space)
+    Box box;
+    Float maxH = 0._f;
+    for (Size i = 0; i < r_bar.size(); ++i) {
+        const Vector dr = Vector(r_bar[i][H] * kernel.radius());
+        box.extend(r_bar[i] + dr);
+        box.extend(r_bar[i] - dr);
+        maxH = max(maxH, r_bar[i][H]);
+    }
+
+    SharedPtr<NumberDensityField> field = makeShared<NumberDensityField>(storage, r_bar, kernel, *finder);
+    MarchingCubes mc(r_bar, surfaceLevel, field);
+
+    // 3. find the surface using marching cubes
+    field->maxH = maxH;
+    mc.addComponent(box, gridResolution);
+
+    return std::move(mc.getTriangles());
 }
 
 

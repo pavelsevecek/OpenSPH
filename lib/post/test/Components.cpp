@@ -11,7 +11,10 @@ using namespace Sph;
 TEST_CASE("Components simple", "[components]") {
     Array<Vector> ar{ Vector(0, 0, 0, 1), Vector(5, 0, 0, 1), Vector(0, 4, 0, 1), Vector(0, 3, 0, 1) };
     Array<Size> components;
-    Size numComponents = findComponents(ar, RunSettings::getDefaults(), components);
+    RunSettings settings;
+    Storage storage;
+    storage.insert<Vector>(QuantityId::POSITIONS, OrderEnum::ZERO, std::move(ar));
+    Size numComponents = findComponents(storage, settings, ComponentConnectivity::ANY, components);
     REQUIRE(numComponents == 3);
     REQUIRE(components == Array<Size>({ 0, 1, 2, 2 }));
 }
@@ -29,7 +32,8 @@ TEST_CASE("Component initconds", "[components]") {
 
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
     Array<Size> components;
-    const Size numComponents = findComponents(r, RunSettings::getDefaults(), components);
+    RunSettings settings;
+    const Size numComponents = findComponents(storage, settings, ComponentConnectivity::ANY, components);
     REQUIRE(numComponents == 3);
     REQUIRE(components.size() > 0); // sanity check
 
