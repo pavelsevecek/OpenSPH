@@ -1,7 +1,7 @@
 #pragma once
 
 #include "gui/Utils.h"
-#include "gui/Renderer.h"
+#include "gui/renderers/AbstractRenderer.h"
 #include "objects/Bitmap.h"
 #include "objects/containers/BufferedArray.h"
 

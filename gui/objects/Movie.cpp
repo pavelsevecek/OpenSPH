@@ -53,15 +53,17 @@ void Movie::onTimeStep(const Storage& storage, Statistics& stats) {
     createDirectory(path.parentPath());
     for (auto& e : elements) {
         Path actPath(replace(path.native(), "%e", escapeElementName(e->name())));
+
+        // initialize the element
         e->initialize(storage, ElementSource::POINTER_TO_STORAGE);
+
+        // initialize render with new data (outside main thread)
+        renderer->initialize(storage, *e, *camera);
+
         auto functor = [this, actPath, &storage, &e, &stats] {
             // if the callback gets executed, it means the object is still alive and it's save to touch
             // the e directly
             std::unique_lock<std::mutex> lock(waitMutex);
-            ArrayView<const Vector> positions = storage.getValue<Vector>(QuantityId::POSITIONS);
-
-            // initialize render with new data
-            renderer->initialize(positions, *e, *camera);
 
             // create the bitmap and save it to file
             SharedPtr<Bitmap> bitmap = renderer->render(*camera, params, stats);

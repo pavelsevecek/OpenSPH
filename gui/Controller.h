@@ -107,7 +107,10 @@ public:
     /// \section Display queries
 
     /// Returns a list of quantities that can be displayed.
-    Array<SharedPtr<Abstract::Element>> getElementList(const Storage& storage) const;
+    /// \param storage Particle storage containing data for the element
+    /// \param forMovie Whether to return list of elements for image output or what interactive preview. Some
+    ///                 elements are skipped when create image files (boundary, ...)
+    Array<SharedPtr<Abstract::Element>> getElementList(const Storage& storage, const bool forMovie) const;
 
     /// Renders a bitmap of current view. Can only be called from main thread.
     SharedPtr<Bitmap> getRenderedBitmap();

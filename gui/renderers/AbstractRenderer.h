@@ -1,5 +1,10 @@
 #pragma once
 
+/// \file AbstractRenderer.h
+/// \brief Base class for renderers
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2017
+
 #include "gui/Utils.h"
 #include "gui/objects/Point.h"
 #include "quantities/Storage.h"
@@ -38,10 +43,10 @@ namespace Abstract {
     class Renderer : public Polymorphic {
     public:
         /// Prepares the objects for rendering and updates its data. Called every time a parameter change.
-        /// \param positions Current positions of particles, must match the particles in element.
+        /// \param storage Storage containing positions of particles, must match the particles in element.
         /// \param element Data-to-color conversion object for particles. Must be already initialized!
         /// \param camera Camera used for rendering.
-        virtual void initialize(ArrayView<const Vector> positions,
+        virtual void initialize(const Storage& storage,
             const Abstract::Element& element,
             const Abstract::Camera& camera) = 0;
 

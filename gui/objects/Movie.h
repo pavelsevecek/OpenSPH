@@ -6,7 +6,7 @@
 /// \date 2016-2017
 
 #include "common/Globals.h"
-#include "gui/Renderer.h"
+#include "gui/renderers/AbstractRenderer.h"
 #include "io/Output.h"
 #include <condition_variable>
 

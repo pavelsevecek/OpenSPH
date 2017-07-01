@@ -18,13 +18,16 @@ public:
     Color(const float r, const float g, const float b)
         : data(r, g, b) {}
 
+    Color(const float gray)
+        : data(gray) {}
+
     Color(const Color& other)
         : data(other.data) {}
 
-    Color(const wxColour& other)
+    explicit Color(const wxColour& other)
         : data(other.Red() / 255.f, other.Green() / 255.f, other.Blue() / 255.f) {}
 
-    operator wxColour() const {
+    explicit operator wxColour() const {
         return wxColour(int(data[0] * 255.f), int(data[1] * 255.f), int(data[2] * 255.f));
     }
 

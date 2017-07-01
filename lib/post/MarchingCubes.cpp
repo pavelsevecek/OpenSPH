@@ -306,10 +306,13 @@ void MarchingCubes::addComponent(const Box& box, const Float gridResolution) {
     const Vector dr = min(Vector(gridResolution), box.size() * (1._f - EPS));
     cached.phi.clear();
     // find values of grid nodes
-    Indices cnts(box.size() / dr);
+    Indices cnts((1._f - EPS) * box.size() / dr);
     ASSERT(cnts[X] >= 1 && cnts[Y] >= 1 && cnts[Z] >= 1);
 
     auto mapping = [&cnts](const Indices& idxs) {
+        ASSERT(idxs[X] >= 0 && idxs[X] <= cnts[X]);
+        ASSERT(idxs[Y] >= 0 && idxs[Y] <= cnts[Y]);
+        ASSERT(idxs[Z] >= 0 && idxs[Z] <= cnts[Z]);
         return idxs[X] + (cnts[X] + 1) * idxs[Y] + (cnts[X] + 1) * (cnts[Y] + 1) * idxs[Z];
     };
     cached.phi.resize((cnts[X] + 1) * (cnts[Y] + 1) * (cnts[Z] + 1));
@@ -375,7 +378,10 @@ void MarchingCubes::intersectCell(Cell& cell) {
         tri[0] = vertices[MC_TRIANGLES[cubeIdx][i + 0]];
         tri[1] = vertices[MC_TRIANGLES[cubeIdx][i + 1]];
         tri[2] = vertices[MC_TRIANGLES[cubeIdx][i + 2]];
-        // ASSERT(tri.isValid());
+        if (!tri.isValid()) {
+            // skip degenerated triangles
+            continue;
+        }
         triangles.push(tri);
     }
 }
@@ -435,7 +441,7 @@ public:
         Float phi = 0._f;
 
         // find average h of neighbours and the flag of the closest particle
-        Size closestFlag;
+        Size closestFlag = 0;
         Float flagDistSqr = INFTY;
         Float avgH = 0._f;
         for (NeighbourRecord& n : neighs) {

@@ -62,9 +62,9 @@ private:
         wxSize canvasSize = dc.GetSize();
 
         // draw background
-        Color backgroundColor = this->GetParent()->GetBackgroundColour();
+        Color backgroundColor = Color(this->GetParent()->GetBackgroundColour());
         wxBrush brush;
-        brush.SetColour(backgroundColor.darken(0.2_f));
+        brush.SetColour(wxColour(backgroundColor.darken(0.2_f)));
         dc.SetBrush(brush);
         dc.DrawRectangle(wxPoint(0, 0), canvasSize);
 
@@ -73,13 +73,13 @@ private:
         }
 
         // draw colored square
-        brush.SetColour(color);
+        brush.SetColour(wxColour(color));
         dc.SetBrush(brush);
         wxPoint offset(config.leftSkip, config.topSkip);
         dc.DrawRectangle(offset, wxSize(15, 15));
 
         // particle index
-        dc.SetTextForeground(Color(0.8f, 0.8f, 0.8f));
+        dc.SetTextForeground(wxColour(Color(0.8f, 0.8f, 0.8f)));
         dc.DrawText("Particle " + std::to_string(particle->getIndex()), wxPoint(24, 4));
 
         // particle position

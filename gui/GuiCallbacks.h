@@ -2,7 +2,6 @@
 
 #include "gui/Controller.h"
 #include "gui/Gui.h"
-#include "gui/Renderer.h"
 #include "gui/objects/Movie.h"
 #include "system/Callbacks.h"
 #include "system/Statistics.h"

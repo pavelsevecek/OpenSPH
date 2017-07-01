@@ -47,7 +47,9 @@ SOURCES += \
     objects/Palette.cpp \
     objects/Movie.cpp \
     problems/Rotation.cpp \
-    Utils.cpp
+    Utils.cpp \
+    renderers/ParticleRenderer.cpp \
+    renderers/SurfaceRenderer.cpp
 
 HEADERS += \
     Gui.h \
@@ -72,4 +74,7 @@ HEADERS += \
     problems/Rotation.h \
     windows/PlotView.h \
     windows/ParticleProbe.h \
-    Utils.h
+    Utils.h \
+    renderers/AbstractRenderer.h \
+    renderers/ParticleRenderer.h \
+    renderers/SurfaceRenderer.h

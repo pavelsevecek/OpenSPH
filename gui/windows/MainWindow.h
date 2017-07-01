@@ -8,6 +8,7 @@
 class wxComboBox;
 class wxBoxSizer;
 class wxGauge;
+class wxCheckBox;
 
 NAMESPACE_SPH_BEGIN
 
@@ -41,6 +42,7 @@ private:
     wxComboBox* quantityBox;
     Size selectedIdx = 0;
     wxGauge* gauge;
+    wxCheckBox* shadingBox;
 
     Array<SharedPtr<Abstract::Element>> elementList;
 

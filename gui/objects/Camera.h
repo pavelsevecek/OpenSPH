@@ -78,7 +78,7 @@ public:
     }
 
     virtual Optional<ProjectedPoint> project(const Vector& r) const override {
-        if (abs(dot(cached.w, r)) < data.cutoff) {
+        if (data.cutoff == 0._f || abs(dot(cached.w, r)) < data.cutoff) {
             const Size x = center.x + dot(r, data.u) * data.fov;
             const Size y = center.y + dot(r, data.v) * data.fov;
             const Point point(x, imageSize.y - y - 1);

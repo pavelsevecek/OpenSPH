@@ -53,10 +53,8 @@ Pair<Float> TillotsonEos::evaluate(const Float rho, const Float u) const {
 
     // expanded phase
     const Float rhoExp = rho0 / rho - 1._f;
-    ASSERT(beta * rhoExp < 70._f);
-    const Float betaExp = exp(-beta * rhoExp);
-    const Float alphaExp = exp(-alpha * sqr(rhoExp));
-    ASSERT(alpha * sqr(rhoExp) < 70._f);
+    const Float betaExp = exp(-min(beta * rhoExp, 70._f));
+    const Float alphaExp = exp(-min(alpha * sqr(rhoExp), 70._f));
     const Float pe = a * rho * u + (b * rho * u / denom + A * mu * betaExp) * alphaExp;
     dpdu = a * rho + alphaExp * b * rho / sqr(denom);
     dpdrho = a * u + alphaExp * (b * u * (3._f * denom - 2._f) / sqr(denom)) +

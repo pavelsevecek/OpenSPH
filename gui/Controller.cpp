@@ -4,6 +4,8 @@
 #include "gui/objects/Camera.h"
 #include "gui/objects/Element.h"
 #include "gui/objects/Movie.h"
+#include "gui/renderers/ParticleRenderer.h"
+#include "gui/renderers/SurfaceRenderer.h"
 #include "gui/windows/MainWindow.h"
 #include "gui/windows/OrthoPane.h"
 #include "problems/Collision.h"
@@ -11,6 +13,7 @@
 #include "run/Run.h"
 #include "system/Timer.h"
 #include "thread/CheckFunction.h"
+#include <wx/app.h>
 
 NAMESPACE_SPH_BEGIN
 
@@ -26,7 +29,7 @@ Controller::Controller() {
         .set(GuiSettingsId::ORTHO_CUTOFF, 5.e2_f)
         .set(GuiSettingsId::ORTHO_PROJECTION, OrthoEnum::XY)
         .set(GuiSettingsId::IMAGES_SAVE, true)
-        .set(GuiSettingsId::IMAGES_TIMESTEP, 10._f)
+        .set(GuiSettingsId::IMAGES_TIMESTEP, 0.01_f)
         /// \todo rotation specific
         .set(GuiSettingsId::PALETTE_ENERGY, Range(0.1_f, 10._f))
         .set(GuiSettingsId::PALETTE_PRESSURE, Range(-10._f, 1.e6_f));
@@ -43,14 +46,14 @@ Controller::Controller() {
     status = Status::RUNNING;
 
     // create and start the run
-    sph.run = makeAuto<AsteroidRotation>(this, 6._f);
+    sph.run = makeAuto<AsteroidCollision>(this); // Rotation>(this, 6._f);
     this->run();
 }
 
 Controller::~Controller() = default;
 
 void Controller::Vis::initialize(const GuiSettings& gui) {
-    renderer = makeAuto<OrthoRenderer>();
+    renderer = makeAuto<ParticleRenderer>(); // makeAuto<SurfaceRenderer>();
     element = makeAuto<VelocityElement>(gui.get<Range>(GuiSettingsId::PALETTE_VELOCITY));
     timer = makeAuto<Timer>(gui.get<int>(GuiSettingsId::VIEW_MAX_FRAMERATE), TimerFlags::START_EXPIRED);
     camera = Factory::getCamera(gui);
@@ -162,7 +165,8 @@ bool Controller::isQuitting() const {
     return status == Status::QUITTING;
 }
 
-Array<SharedPtr<Abstract::Element>> Controller::getElementList(const Storage& storage) const {
+Array<SharedPtr<Abstract::Element>> Controller::getElementList(const Storage& storage,
+    const bool forMovie) const {
     // there is no difference between 'physical' quantities we wish to see (density, energy, ...) and
     // other 'internal' quantities (activation strains, yield reduction, ...) in particle storage,
     // we have to provide a list of elements ourselves
@@ -170,22 +174,25 @@ Array<SharedPtr<Abstract::Element>> Controller::getElementList(const Storage& st
     // we only add the element if it is contained in the storage
 
     Array<ElementId> elementIds{
-        ElementId::VELOCITY,
-        ElementId::ACCELERATION,
-        ElementId::DENSITY_PERTURBATION,
-        ElementId::MOVEMENT_DIRECTION,
-        ElementId::BOUNDARY,
+        ElementId::VELOCITY, ElementId::DENSITY_PERTURBATION,
     };
+    if (!forMovie) {
+        elementIds.push(ElementId::MOVEMENT_DIRECTION);
+        elementIds.push(ElementId::ACCELERATION);
+        elementIds.push(ElementId::BOUNDARY);
+    }
 
     Array<QuantityId> quantityElementIds{
         QuantityId::PRESSURE,
         QuantityId::ENERGY,
-        QuantityId::DENSITY,
         QuantityId::DEVIATORIC_STRESS,
         QuantityId::DAMAGE,
-        QuantityId::AV_ALPHA,
         QuantityId::VELOCITY_DIVERGENCE,
     };
+    if (!forMovie) {
+        quantityElementIds.push(QuantityId::DENSITY);
+        quantityElementIds.push(QuantityId::AV_ALPHA);
+    }
     Array<SharedPtr<Abstract::Element>> elements;
     for (ElementId id : elementIds) {
         elements.push(Factory::getElement(gui, id));
@@ -288,6 +295,7 @@ void Controller::setElement(const SharedPtr<Abstract::Element>& newElement) {
             return;
         }
         vis.element->initialize(*storage, ElementSource::POINTER_TO_STORAGE);
+        vis.renderer->initialize(*storage, *vis.element, *vis.camera);
         window->Refresh();
     }
 }
@@ -331,7 +339,7 @@ void Controller::redraw(const Storage& storage, Statistics& stats) {
         vis.element->initialize(storage, ElementSource::CACHE_ARRAYS);
 
         // update the renderer with new data
-        vis.renderer->initialize(vis.positions, *vis.element, *vis.camera);
+        vis.renderer->initialize(storage, *vis.element, *vis.camera);
 
         // repaint the window
         window->Refresh();
@@ -354,7 +362,9 @@ void Controller::run() {
 
         // fill the combobox with available elements
         /// \todo can we do this safely from run thread?
-        executeOnMainThread([this, storage] { window->setElementList(this->getElementList(*storage)); });
+        executeOnMainThread([this, storage] { //
+            window->setElementList(this->getElementList(*storage, false));
+        });
 
         // draw initial positions of particles
         /// \todo generalize stats
