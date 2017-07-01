@@ -39,7 +39,7 @@ Size findComponents(ArrayView<const Vector> vertices, const RunSettings& setting
     return componentIdx;
 }
 
-struct NumberDensityField : public Abstract::FieldFunction {
+struct NumberDensityField : public Abstract::ScalarField {
 private:
     LutKernel<3>& kernel;
     Abstract::Finder& finder;

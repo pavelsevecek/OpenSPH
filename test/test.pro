@@ -130,11 +130,13 @@ SOURCES += \
     ../lib/thread/test/Pool.cpp \
     ../lib/timestepping/test/TimeStepCriterion.cpp \
     ../lib/timestepping/test/TimeStepping.cpp \
+    ../lib/objects/wrappers/test/Value.cpp \
+    ../lib/quantities/test/Particle.cpp \
     utils/Approx.cpp \
     utils/SequenceTest.cpp \
     utils/Utils.cpp \
-    ../lib/objects/wrappers/test/Value.cpp \
-    ../lib/quantities/test/Particle.cpp
+    ../lib/post/test/MarchingCubes.cpp \
+    ../lib/post/test/MeshFile.cpp
 
 HEADERS += \
     utils/Utils.h \

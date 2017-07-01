@@ -11,7 +11,18 @@ private:
     Vector v[3];
 
 public:
+    Triangle() = default;
+
+    Triangle(const Vector& v1, const Vector& v2, const Vector& v3)
+        : v{ v1, v2, v3 } {
+        ASSERT(isValid());
+    }
+
     INLINE Vector& operator[](const Size idx) {
+        return v[idx];
+    }
+
+    INLINE const Vector& operator[](const Size idx) const {
         return v[idx];
     }
 
@@ -23,6 +34,9 @@ public:
     }
 
     INLINE bool isValid() const {
+        if (!isReal(v[0]) || !isReal(v[1]) || !isReal(v[2])) {
+            return false;
+        }
         const Vector v12 = v[2] - v[1];
         const Vector v02 = v[2] - v[0];
         return sqr(dot(v12, v02)) < (1._f - EPS) * getSqrLength(v12) * getSqrLength(v02);
@@ -46,7 +60,7 @@ public:
 };
 
 namespace Abstract {
-    class FieldFunction : public Polymorphic {
+    class ScalarField : public Polymorphic {
     public:
         /// Returns the value of the scalar field at given position
         virtual Float operator()(const Vector& pos) = 0;
@@ -60,7 +74,7 @@ private:
     Float surfaceLevel;
 
     /// Field, isosurface of which we want to triangularize
-    AutoPtr<Abstract::FieldFunction> field;
+    AutoPtr<Abstract::ScalarField> field;
 
     /// Output array of triangles
     Array<Triangle> triangles;
@@ -73,11 +87,10 @@ private:
     static Size IDXS1[12];
     static Size IDXS2[12];
 
-
 public:
     MarchingCubes(ArrayView<const Vector> r,
         const Float surfaceLevel,
-        AutoPtr<Abstract::FieldFunction>&& field);
+        AutoPtr<Abstract::ScalarField>&& field);
 
     /// Adds a triangle mesh representing the boundary of particles inside given bounding box into the
     /// internal triangle buffer.

@@ -73,7 +73,8 @@ SOURCES += \
     timestepping/TimeStepCriterion.cpp \
     timestepping/TimeStepping.cpp \
     quantities/Particle.cpp \
-    post/MarchingCubes.cpp
+    post/MarchingCubes.cpp \
+    post/MeshFile.cpp
 
 HEADERS += \
     commmon/ForwardDecl.h \
@@ -218,4 +219,5 @@ HEADERS += \
     quantities/Particle.h \
     sph/solvers/AsymmetricSolver.h \
     objects/finders/KdTree.h \
-    post/MarchingCubes.h
+    post/MarchingCubes.h \
+    post/MeshFile.h

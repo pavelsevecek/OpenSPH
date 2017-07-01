@@ -26,4 +26,7 @@ INLINE constexpr Float operator"" _f(const long double v) {
     return Float(v);
 }
 
+/// Rename to something
+constexpr char CODE_NAME[] = "SPH";
+
 NAMESPACE_SPH_END
