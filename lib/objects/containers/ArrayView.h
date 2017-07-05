@@ -11,8 +11,10 @@
 
 NAMESPACE_SPH_BEGIN
 
-/// Object providing safe access to continuous memory of data, useful to write generic code that can be used
-/// with any kind of storage where the data are stored consecutively in memory.
+/// \brief Object providing safe access to continuous memory of data.
+///
+/// Useful to write generic code that can be used with any kind of storage where the data are stored
+/// consecutively in memory. Commonly used containers are implicitly convertible to ArrayView.
 template <typename T, typename TCounter = Size>
 class ArrayView {
 private:

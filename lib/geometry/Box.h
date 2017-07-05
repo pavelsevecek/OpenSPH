@@ -109,6 +109,7 @@ public:
     /// \param x Coordinate in given dimension used for the split
     /// \return Two boxes created by the split.
     INLINE Pair<Box> split(const Size dim, const Float x) const {
+        ASSERT(isValid());
         ASSERT(dim < 3);
         ASSERT(x >= minBound[dim] && x <= maxBound[dim]);
         Box b1 = *this, b2 = *this;

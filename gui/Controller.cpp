@@ -318,9 +318,8 @@ SharedPtr<Movie> Controller::createMovie(const Storage& storage) {
     params.size.x = gui.get<int>(GuiSettingsId::RENDER_WIDTH);
     params.size.y = gui.get<int>(GuiSettingsId::RENDER_HEIGHT);
 
-    /// \todo currently hardcoded for ortho render
-    AutoPtr<OrthoRenderer> renderer = makeAuto<OrthoRenderer>();
-    auto elements = this->getElementList(storage);
+    AutoPtr<ParticleRenderer> renderer = makeAuto<ParticleRenderer>();
+    auto elements = this->getElementList(storage, true);
     return makeShared<Movie>(gui, std::move(renderer), Factory::getCamera(gui), std::move(elements), params);
 }
 

@@ -10,6 +10,11 @@
 
 NAMESPACE_SPH_BEGIN
 
+SurfaceRenderer::SurfaceRenderer(const GuiSettings& settings) {
+    surfaceLevel = settings.get<Float>(GuiSettingsId::SURFACE_LEVEL);
+    surfaceResolution = settings.get<Float>(GuiSettingsId::SURFACE_RESOLUTION);
+}
+
 void SurfaceRenderer::initialize(const Storage& storage,
     const Abstract::Element& UNUSED(element),
     const Abstract::Camera& camera) {
@@ -17,7 +22,7 @@ void SurfaceRenderer::initialize(const Storage& storage,
     cached.triangles.clear();
 
     /// \todo get these values from GuiSettings!
-    Array<Triangle> triangles = getSurfaceMesh(storage, 80, 0.3_f);
+    Array<Triangle> triangles = getSurfaceMesh(storage, surfaceResolution, surfaceLevel);
 
     const Vector n(0._f, 0._f, 1._f);
     for (Triangle& t : triangles) {

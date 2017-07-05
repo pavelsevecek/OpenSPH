@@ -96,6 +96,12 @@ void testFinderSmallerH(Abstract::Finder& finder) {
 
 TEST_CASE("KdTree", "[finders]") {
     KdTree finder;
+    HexagonalPacking distr;
+    SphericalDomain domain(Vector(0._f), 2._f);
+    Array<Vector> storage = distr.generate(1000, domain);
+    finder.build(storage);
+    REQUIRE(finder.sanityCheck());
+
     testFinder(finder, EMPTY_FLAGS);
     testFinder(finder, FinderFlags::FIND_ONLY_SMALLER_H);
     testFinderSmallerH(finder);

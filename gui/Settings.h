@@ -40,6 +40,12 @@ enum class GuiSettingsId {
 
     ORTHO_PROJECTION,
 
+    /// Size of the grid used in MarchingCubes (in code units, not h)
+    SURFACE_RESOLUTION,
+
+    /// Value of iso-surface being constructed; lower value means larget bodies
+    SURFACE_LEVEL,
+
     /// Title of the window appearing on taskbar
     WINDOW_TITLE,
 

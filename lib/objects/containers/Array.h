@@ -151,19 +151,13 @@ public:
     }
 
     INLINE T& operator[](const TCounter idx) {
-        ASSERT(unsigned(idx) < unsigned(actSize));
+        ASSERT(unsigned(idx) < unsigned(actSize), idx, actSize);
         return data[idx];
     }
 
     INLINE const T& operator[](const TCounter idx) const {
-        ASSERT(unsigned(idx) < unsigned(actSize));
+        ASSERT(unsigned(idx) < unsigned(actSize), idx, actSize);
         return data[idx];
-    }
-
-    /// Returns array of references to elements given by a list of indices.
-    template <typename... TArgs>
-    INLINE auto operator()(const TCounter idx1, const TCounter idx2, const TArgs... rest) {
-        return tieToStatic(data[idx1], data[idx2], data[rest]...);
     }
 
     void fill(const T& t) {

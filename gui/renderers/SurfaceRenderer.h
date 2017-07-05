@@ -5,6 +5,7 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2017
 
+#include "gui/Settings.h"
 #include "gui/objects/Bitmap.h"
 #include "gui/objects/Palette.h"
 #include "gui/renderers/AbstractRenderer.h"
@@ -18,6 +19,10 @@ namespace Abstract {
 
 class SurfaceRenderer : public Abstract::Renderer {
 private:
+    /// Parameters of Marching Cubes
+    Float surfaceResolution;
+    Float surfaceLevel;
+
     /// Cached values of visible particles, used for faster drawing.
     struct {
         /// Triangles of the surface
@@ -29,6 +34,8 @@ private:
     } cached;
 
 public:
+    SurfaceRenderer(const GuiSettings& settings);
+
     virtual void initialize(const Storage& storage,
         const Abstract::Element& element,
         const Abstract::Camera& camera);

@@ -106,8 +106,9 @@ Outcome TextOutput::load(const Path& path, Storage& storage) {
     return SUCCESS;
 }
 
-void TextOutput::add(AutoPtr<Abstract::Column>&& column) {
+TextOutput& TextOutput::add(AutoPtr<Abstract::Column>&& column) {
     columns.push(std::move(column));
+    return *this;
 }
 
 

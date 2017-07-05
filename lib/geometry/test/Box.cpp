@@ -111,9 +111,13 @@ TEST_CASE("Box split", "[box]") {
     Box b1, b2;
     tie(b1, b2) = box.split(X, 0.5_f);
     REQUIRE(b1 == Box(Vector(0._f), Vector(0.5_f, 4._f, 6._f)));
-    REQUIRE(b2 == Box(Vector(0.5_f), Vector(2._f, 4._f, 6._f)));
+    REQUIRE(b2 == Box(Vector(0.5_f, 0._f, 0._f), Vector(2._f, 4._f, 6._f)));
 
     tie(b1, b2) = box.split(Z, 4._f);
     REQUIRE(b1 == Box(Vector(0._f), Vector(2._f, 4._f, 4._f)));
     REQUIRE(b2 == Box(Vector(0._f, 0._f, 4._f), Vector(2._f, 4._f, 6._f)));
+
+    REQUIRE_ASSERT(box.split(X, 3._f));
+    REQUIRE_ASSERT(box.split(4, 2._f));
+    REQUIRE_ASSERT(Box().split(X, 0._f));
 }

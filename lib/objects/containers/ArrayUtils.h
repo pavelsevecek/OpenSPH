@@ -1,9 +1,11 @@
 #pragma once
 
-/// Utilities to simplify working with arrays.
-/// Pavel Sevecek 2016
-/// sevecek at sirrah.troja.mff.cuni.cz
+/// \file ArrayUtils.h
+/// \brief Utilities to simplify working with arrays
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2017
 
+#include "math/Math.h"
 #include "objects/containers/ArrayView.h"
 #include "objects/containers/Tuple.h"
 

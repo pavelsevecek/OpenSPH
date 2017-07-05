@@ -138,9 +138,10 @@ struct IsTuple {
 };
 
 
-/// Heterogeneous container capable of storing a fixed number of values. Can store any copy-constructible or
-/// move-constructible type, l-value references and r-value reference. Empty tuples are allowed. Only tuples
-/// of size 1 containing other tuple are forbidden, for simplicity.
+/// \brief Heterogeneous container capable of storing a fixed number of values.
+///
+/// Can store any copy-constructible or move-constructible type, l-value references and r-value reference.
+/// Empty tuples are allowed. Only tuples of size 1 containing other tuple are forbidden, for simplicity.
 template <typename... TArgs>
 class Tuple : public Detail::TupleImpl<std::index_sequence_for<TArgs...>, TArgs...> {
 private:

@@ -13,7 +13,7 @@ NAMESPACE_SPH_BEGIN
 /// \brief Object representing a path on a filesystem
 ///
 /// Can represent both directory and file paths. Object does not check existence or accesibility of the path
-/// in any way.
+/// in any way, only syntactic aspects of the path are considered.
 class Path {
 private:
     std::string path;

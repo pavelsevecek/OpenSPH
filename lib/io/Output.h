@@ -68,8 +68,11 @@ public:
 
     ~TextOutput();
 
-    /// Adds an element to output.
-    void add(AutoPtr<Abstract::Column>&& columns);
+    /// Adds a new column to be saved into the file. By default, the file has no columns, all quantities must
+    /// be explicitly added using this function. The column is added to the right end of the text file.
+    /// \param column New column to save; see \ref Abstract::Column and derived classes
+    /// \return Reference to itself, allowing to queue calls
+    TextOutput& add(AutoPtr<Abstract::Column>&& column);
 
     virtual Path dump(Storage& storage, const Statistics& stats) override;
 
@@ -220,6 +223,12 @@ struct PkdgravParams {
     Array<Size> colors{ 3, 13 };
 };
 
+
+/// Dumps data into a file that can be used as an input for pkdgrav code by Richardson et al.
+/// \cite Richardson_etal_2000
+///
+/// SPH particles are converted into hard spheres, moving with the velocity of the particle and no angular
+/// velocity. Quantities are converted into G=1 units.
 class PkdgravOutput : public Abstract::Output {
 private:
     /// Parameters of the SPH->pkdgrav conversion

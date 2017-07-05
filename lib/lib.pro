@@ -74,7 +74,8 @@ SOURCES += \
     timestepping/TimeStepping.cpp \
     quantities/Particle.cpp \
     post/MarchingCubes.cpp \
-    post/MeshFile.cpp
+    post/MeshFile.cpp \
+    objects/finders/KdTree.cpp
 
 HEADERS += \
     commmon/ForwardDecl.h \
