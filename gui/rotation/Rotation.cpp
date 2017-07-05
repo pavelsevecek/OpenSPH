@@ -1,8 +1,9 @@
-#include "gui/problems/Rotation.h"
+#include "gui/rotation/Rotation.h"
 #include "geometry/Domain.h"
 #include "gui/GuiCallbacks.h"
 #include "gui/Settings.h"
 #include "io/Column.h"
+#include "io/LogFile.h"
 #include "io/Logger.h"
 #include "io/Output.h"
 #include "quantities/Iterate.h"
@@ -13,6 +14,8 @@
 #include "sph/solvers/ContinuitySolver.h"
 #include "sph/solvers/StaticSolver.h"
 #include "system/Profiler.h"
+
+IMPLEMENT_APP(Sph::App);
 
 NAMESPACE_SPH_BEGIN
 

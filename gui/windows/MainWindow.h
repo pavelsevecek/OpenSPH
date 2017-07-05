@@ -13,13 +13,9 @@ class wxCheckBox;
 NAMESPACE_SPH_BEGIN
 
 namespace Abstract {
-    class Renderer;
     class Element;
 }
-class WindowCommandEvent;
-class MainWindow;
 class Controller;
-class Storage;
 class OrthoPane;
 class ParticleProbe;
 class Particle;

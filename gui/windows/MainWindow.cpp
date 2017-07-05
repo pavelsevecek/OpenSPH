@@ -57,7 +57,7 @@ wxBoxSizer* MainWindow::createToolbar(Controller* parent) {
     wxBoxSizer* toolbar = new wxBoxSizer(wxHORIZONTAL);
 
     wxButton* button = new wxButton(this, wxID_ANY, "Start");
-    button->Bind(wxEVT_BUTTON, [parent](wxCommandEvent& UNUSED(evt)) { parent->start(); });
+    button->Bind(wxEVT_BUTTON, [parent](wxCommandEvent& UNUSED(evt)) { parent->restart(); });
     toolbar->Add(button);
 
     button = new wxButton(this, wxID_ANY, "Pause");

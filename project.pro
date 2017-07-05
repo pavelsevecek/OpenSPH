@@ -3,14 +3,19 @@ TEMPLATE = subdirs
 CONFIG += ordered
 
 SUBDIRS = lib \
-          run \
-          problems \
+          cli \
+          cli/problems \
           gui \
+          gui/collision \
+          gui/rotation \
           test \
           bench
 
 run.depends = lib
+cli.depends = lib
 problems.depends = lib
 gui.depends = lib
+collision.depends = lib gui
+rotation.depends = lib gui
 test.depends = lib
 bench.depends = lib

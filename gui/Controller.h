@@ -87,8 +87,9 @@ private:
     std::condition_variable continueVar;
 
 public:
-    /// Initialize the model.
-    Controller();
+    /// Initialize the controller.
+    /// \param gui Parameters of the application; see \ref GuiSettings.
+    Controller(const GuiSettings& gui);
 
     ~Controller();
 
@@ -142,9 +143,15 @@ public:
 
     /// \section Controlling the run
 
+    /// Sets up and starts a new simulation. Must be called before any other run-related functions can be
+    /// called. If a simulation is currently running, it waits until the simulation stops and then starts the
+    /// new simulation.
+    /// \param run New simulation to start
+    void start(AutoPtr<Abstract::Run>&& run);
+
     /// Starts the simulation with current setup. Function does nothing if the simulation is already running.
     /// Can be used to continue paused simulation.
-    void start();
+    void restart();
 
     /// Pause the current simulation. Can only be paused at the beginning of a timestep. The function is not
     /// blocking, it does not wait until the simulation completes the current timestep.

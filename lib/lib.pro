@@ -1,7 +1,6 @@
 TEMPLATE = lib
-CONFIG += c++14 staticLib thread silent
+CONFIG += c++14 staticlib thread silent
 CONFIG -= app_bundle qt
-CONFIG += staticlib
 
 # disable if you dont have eigen
 INCLUDEPATH += /usr/include/eigen3

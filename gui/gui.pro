@@ -1,10 +1,10 @@
-TEMPLATE = app
-CONFIG += c++14 silent
+TEMPLATE = lib
+CONFIG += c++14 staticlib thread silent
 CONFIG -= app_bundle
 CONFIG -= qt
 
 INCLUDEPATH += /usr/include/wx-3.0 ../lib/ ..
-DEPENDPATH += . ../lib ../test
+DEPENDPATH += ../lib ../test
 PRE_TARGETDEPS += ../lib/liblib.a
 LIBS += `wx-config --libs --gl-libs`
 LIBS += -lGL -lGLU -lGLEW
@@ -35,24 +35,20 @@ CONFIG(debug, debug|profile|assert|release) {
 }
 
 SOURCES += \
-    Gui.cpp \
     windows/GlPane.cpp \
     windows/OrthoPane.cpp \
     Settings.cpp \
     MainLoop.cpp \
-    problems/Collision.cpp \
     Controller.cpp \
     windows/MainWindow.cpp \
     objects/Factory.cpp \
     objects/Palette.cpp \
     objects/Movie.cpp \
-    problems/Rotation.cpp \
     Utils.cpp \
     renderers/ParticleRenderer.cpp \
     renderers/SurfaceRenderer.cpp
 
 HEADERS += \
-    Gui.h \
     windows/OrthoPane.h \
     windows/GlPane.h \
     Renderer.h \
@@ -60,8 +56,6 @@ HEADERS += \
     objects/Palette.h \
     objects/Color.h \
     GuiCallbacks.h \
-    problems/Collision.h \
-    problems/Meteoroid.h \
     objects/Camera.h \
     objects/Point.h \
     Factory.h \
@@ -71,7 +65,6 @@ HEADERS += \
     MainLoop.h \
     windows/MainWindow.h \
     Controller.h \
-    problems/Rotation.h \
     windows/PlotView.h \
     windows/ParticleProbe.h \
     Utils.h \

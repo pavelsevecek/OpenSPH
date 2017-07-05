@@ -1,17 +1,118 @@
-#include "gui/problems/Collision.h"
+#include "gui/collision/Collision.h"
 #include "geometry/Domain.h"
 #include "gui/GuiCallbacks.h"
 #include "gui/Settings.h"
 #include "io/Column.h"
+#include "io/LogFile.h"
 #include "io/Logger.h"
 #include "io/Output.h"
 #include "sph/initial/Initial.h"
 #include "system/Profiler.h"
 
+IMPLEMENT_APP(Sph::App);
+
 NAMESPACE_SPH_BEGIN
 
-AsteroidCollision::AsteroidCollision(Controller* model)
-    : model(model) {
+template <typename TTensor>
+class TensorFunctor {
+private:
+    ArrayView<TTensor> v;
+
+public:
+    TensorFunctor(ArrayView<TTensor> view) {
+        v = view;
+    }
+
+    Float operator()(const Size i) {
+        return sqrt(ddot(v[i], v[i]));
+    }
+};
+
+template <typename TTensor>
+TensorFunctor<TTensor> makeTensorFunctor(Array<TTensor>& view) {
+    return TensorFunctor<TTensor>(view);
+}
+
+/// \todo we cache ArrayViews, this wont work if we will change number of particles during the run
+class ImpactorLogFile : public Abstract::LogFile {
+private:
+    QuantityMeans stress;
+    QuantityMeans dtStress;
+    QuantityMeans pressure;
+    QuantityMeans energy;
+    QuantityMeans density;
+
+
+public:
+    ImpactorLogFile(Storage& storage, const Path& path)
+        : Abstract::LogFile(makeAuto<FileLogger>(path))
+        , stress(makeTensorFunctor(storage.getValue<TracelessTensor>(QuantityId::DEVIATORIC_STRESS)), 1)
+        , dtStress(makeTensorFunctor(storage.getDt<TracelessTensor>(QuantityId::DEVIATORIC_STRESS)), 1)
+        , pressure(QuantityId::PRESSURE, 1)
+        , energy(QuantityId::ENERGY, 1)
+        , density(QuantityId::DENSITY, 1) {}
+
+protected:
+    virtual void writeImpl(const Storage& storage, const Statistics& stats) override {
+        MinMaxMean sm = stress.evaluate(storage);
+        MinMaxMean dsm = dtStress.evaluate(storage);
+        this->logger->write(stats.get<Float>(StatisticsId::TOTAL_TIME),
+            sm.mean(),
+            dsm.mean(),
+            energy.evaluate(storage).mean(),
+            pressure.evaluate(storage).mean(),
+            density.evaluate(storage).mean(),
+            sm.min(),
+            sm.max(),
+            dsm.min(),
+            dsm.max());
+    }
+};
+
+class EnergyLogFile : public Abstract::LogFile {
+private:
+    TotalEnergy en;
+    TotalKineticEnergy kinEn;
+    TotalInternalEnergy intEn;
+
+public:
+    EnergyLogFile(const Path& path)
+        : Abstract::LogFile(makeAuto<FileLogger>(path)) {}
+
+protected:
+    virtual void writeImpl(const Storage& storage, const Statistics& stats) override {
+        this->logger->write(stats.get<Float>(StatisticsId::TOTAL_TIME),
+            "   ",
+            en.evaluate(storage),
+            "   ",
+            kinEn.evaluate(storage),
+            "   ",
+            intEn.evaluate(storage));
+    }
+};
+
+class TimestepLogFile : public Abstract::LogFile {
+public:
+    TimestepLogFile(const Path& path)
+        : Abstract::LogFile(makeAuto<FileLogger>(path)) {}
+
+protected:
+    virtual void writeImpl(const Storage& UNUSED(storage), const Statistics& stats) override {
+        if (!stats.has(StatisticsId::LIMITING_PARTICLE_IDX)) {
+            return;
+        }
+        const Float t = stats.get<Float>(StatisticsId::TOTAL_TIME);
+        const Float dt = stats.get<Float>(StatisticsId::TIMESTEP_VALUE);
+        const QuantityId id = stats.get<QuantityId>(StatisticsId::LIMITING_QUANTITY);
+        const int idx = stats.get<int>(StatisticsId::LIMITING_PARTICLE_IDX);
+        const Value value = stats.get<Value>(StatisticsId::LIMITING_VALUE);
+        const Value derivative = stats.get<Value>(StatisticsId::LIMITING_DERIVATIVE);
+        this->logger->write(t, " ", dt, " ", id, " ", idx, " ", value, " ", derivative);
+    }
+};
+
+AsteroidCollision::AsteroidCollision(Controller* controller)
+    : controller(controller) {
     settings.set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::PREDICTOR_CORRECTOR)
         .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 0.01_f)
         .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 0.01_f)
@@ -76,7 +177,7 @@ void AsteroidCollision::setUp() {
     logFiles.push(makeAuto<EnergyLogFile>(Path("energy.txt")));
     logFiles.push(makeAuto<TimestepLogFile>(Path("timestep.txt")));
 
-    callbacks = makeAuto<GuiCallbacks>(model);
+    callbacks = makeAuto<GuiCallbacks>(controller);
 }
 
 void AsteroidCollision::tearDown() {

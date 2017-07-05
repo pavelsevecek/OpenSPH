@@ -8,31 +8,19 @@
 #include "gui/renderers/SurfaceRenderer.h"
 #include "gui/windows/MainWindow.h"
 #include "gui/windows/OrthoPane.h"
-#include "problems/Collision.h"
-#include "problems/Rotation.h"
 #include "run/Run.h"
+#include "system/Statistics.h"
 #include "system/Timer.h"
 #include "thread/CheckFunction.h"
 #include <wx/app.h>
 
 NAMESPACE_SPH_BEGIN
 
-Controller::Controller() {
+Controller::Controller(const GuiSettings& settings) {
     CHECK_FUNCTION(CheckFunction::ONCE);
 
-    /// \todo there should be some settings of the program, specifying which problem to run and loading
-    /// problem-specific GUI settings. However settings like window resolution are problem-independent.
-
-    gui.set(GuiSettingsId::VIEW_FOV, 5.e3_f)
-        .set(GuiSettingsId::VIEW_CENTER, Vector(320, 200, 0._f))
-        .set(GuiSettingsId::PARTICLE_RADIUS, 0.3_f)
-        .set(GuiSettingsId::ORTHO_CUTOFF, 5.e2_f)
-        .set(GuiSettingsId::ORTHO_PROJECTION, OrthoEnum::XY)
-        .set(GuiSettingsId::IMAGES_SAVE, true)
-        .set(GuiSettingsId::IMAGES_TIMESTEP, 0.1_f)
-        /// \todo rotation specific
-        .set(GuiSettingsId::PALETTE_ENERGY, Range(0.1_f, 10._f))
-        .set(GuiSettingsId::PALETTE_PRESSURE, Range(-10._f, 1.e6_f));
+    // copy settings
+    gui = settings;
 
     // create objects for drawing particles
     vis.initialize(gui);
@@ -41,13 +29,6 @@ Controller::Controller() {
     window = new MainWindow(this, gui);
     window->SetAutoLayout(true);
     window->Show();
-
-    // update the status
-    status = Status::RUNNING;
-
-    // create and start the run
-    sph.run = makeAuto<AsteroidCollision>(this); // Rotation>(this, 6._f);
-    this->run();
 }
 
 Controller::~Controller() = default;
@@ -63,7 +44,20 @@ bool Controller::Vis::isInitialized() {
     return renderer && stats && element && camera;
 }
 
-void Controller::start() {
+void Controller::start(AutoPtr<Abstract::Run>&& run) {
+    CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
+    // stop the current one
+    this->stop(true);
+
+    // update the status
+    status = Status::RUNNING;
+
+    // create and start the run
+    sph.run = std::move(run);
+    this->run();
+}
+
+void Controller::restart() {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
     switch (status) {
     case Status::RUNNING:

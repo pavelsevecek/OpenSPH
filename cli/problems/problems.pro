@@ -6,10 +6,10 @@ CONFIG -= qt
 QMAKE_CXXFLAGS += -msse4.1 -Wall -Werror -std=c++14 -pthread
 
 
-INCLUDEPATH += ../lib ../../external/Catch/include
-DEPENDPATH += . ../lib
-PRE_TARGETDEPS += ../lib/liblib.a
-LIBS += ../lib/liblib.a
+INCLUDEPATH += ../../lib ../../../external/Catch/include
+DEPENDPATH += . ../../lib
+PRE_TARGETDEPS += ../../lib/liblib.a
+LIBS += ../../lib/liblib.a
 
 
 CONFIG(release, debug|profile|assert|release) {
