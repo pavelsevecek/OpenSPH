@@ -52,22 +52,6 @@ void KdTree::rebuildImpl(ArrayView<const Vector> points) {
     this->buildImpl(points);
 }
 
-void KdTree::init() {
-    entireBox = Box();
-    idxs.clear();
-    nodes.clear();
-    leafBoxes.clear();
-}
-
-bool KdTree::isSingular(const Size from, const Size to, const Size splitIdx) const {
-    for (Size i = from; i < to; ++i) {
-        if (values[idxs[i]][splitIdx] != values[idxs[to - 1]][splitIdx]) {
-            return false;
-        }
-    }
-    return true;
-}
-
 void KdTree::buildTree(const Size parent,
     const Size from,
     const Size to,
@@ -239,6 +223,22 @@ void KdTree::addInner(const Size parent, const Float splitPosition, const Size s
         ASSERT(parentNode.right == Size(-1));
         parentNode.right = index;
     }
+}
+
+void KdTree::init() {
+    entireBox = Box();
+    idxs.clear();
+    nodes.clear();
+    leafBoxes.clear();
+}
+
+bool KdTree::isSingular(const Size from, const Size to, const Size splitIdx) const {
+    for (Size i = from; i < to; ++i) {
+        if (values[idxs[i]][splitIdx] != values[idxs[to - 1]][splitIdx]) {
+            return false;
+        }
+    }
+    return true;
 }
 
 bool KdTree::checkBoxes(const Size from,
