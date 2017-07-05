@@ -29,7 +29,7 @@ Controller::Controller() {
         .set(GuiSettingsId::ORTHO_CUTOFF, 5.e2_f)
         .set(GuiSettingsId::ORTHO_PROJECTION, OrthoEnum::XY)
         .set(GuiSettingsId::IMAGES_SAVE, true)
-        .set(GuiSettingsId::IMAGES_TIMESTEP, 0.01_f)
+        .set(GuiSettingsId::IMAGES_TIMESTEP, 0.1_f)
         /// \todo rotation specific
         .set(GuiSettingsId::PALETTE_ENERGY, Range(0.1_f, 10._f))
         .set(GuiSettingsId::PALETTE_PRESSURE, Range(-10._f, 1.e6_f));

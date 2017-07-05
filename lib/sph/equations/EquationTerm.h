@@ -73,7 +73,10 @@ public:
     }
 };
 
+/// \brief Equation of motion due to pressure gradient
+///
 /// Computes acceleration from pressure gradient and corresponding derivative of internal energy.
+/// \todo
 class PressureForce : public Abstract::EquationTerm {
 public:
     virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override {
@@ -150,11 +153,31 @@ public:
     }
 };
 
-/// Computes acceleration from stress divergence. The stress is evolved as a first-order quantity,
-/// using Hooke's law as constitutive equation. This represents solid bodies, for fluids use \ref
-/// NavierStokesForce.
-/// \todo add PressureForce together with this, it doesn't make sense to use stress force and NOT
-/// pressure.
+/// \brief Equation of motion for solid body and constitutive equation for the stress tensor (Hooke's law)
+///
+/// The equation computes acceleration from the divergence of the deviatoric stress \f$S\f$. The equation of
+/// motion in the used SPH discretization reads:
+/// \f[
+///  \frac{{\rm d} \vec v_i}{{\rm d} t} = \sum_j m_j \left(\frac{S_i + S_j}{\rho_i \rho_j}\right) \cdot
+///  \nabla W_{ij}\,,
+/// \f]
+/// Corresponding term of energy equation (viscous heating) is also added to the energy derivative:
+/// \f[
+///  \frac{{\rm d} u_i}{{\rm d} t} = \frac{1}{\rho_i} S_i : \nabla \vec v_i \,,
+/// \f]
+/// where \f$\nabla \vec v_i\f$ is the symmetrized velocity gradient.
+///
+/// The stress is evolved as a first-order quantity, using Hooke's law as constitutive equation:
+/// \f[
+///  \frac{{\rm d} S_i}{{\rm d} t} = 2\mu \left( \nabla \vec v - {\bf 1} \, \frac{\nabla \cdot \vec v}{3}
+///  \right)\,,
+/// \f]
+/// where \f$\mu\f$ is the shear modulus and \f$\bf 1\f$ is the identity tensor.
+///
+/// This equation represents solid bodies, for fluids use \ref NavierStokesForce.
+///
+/// \attention The isotropic part of the force is NOT computed, it is necessary to use \ref PressureForce
+/// together with this equation.
 class SolidStressForce : public Abstract::EquationTerm {
 private:
     bool conserveAngularMomentum;
@@ -222,6 +245,9 @@ public:
     }
 };
 
+/// \brief Navier-Stokes equation of motion
+///
+/// \todo
 class NavierStokesForce : public Abstract::EquationTerm {
 public:
     virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override {
@@ -264,9 +290,23 @@ public:
     }
 };
 
-/// Equation for evolution of density. Solver must use either this equation or some custom density
-/// computation, such as direct summation (see SummationSolver) or SPH formulation without solving the density
-/// (see DensityIndependentSolver).
+/// \brief Equation for evolution of density
+///
+/// Provides a first-order evolutionary equation for density, computing the derivative of i-th particle using:
+/// \f[
+///  \frac{{\rm d} \rho_i}{{\rm d} t} = -\rho_i \nabla \cdot \vec v_i \,,
+/// \f]
+/// where \f$\vec v_i\f$ is the velocity of the particle.
+///
+/// The equation has two modes - fluid and solid - differing in the particle set used in the sum of velocity
+/// divergence. The modes are specified by RunSettingsId::MODEL_FORCE_SOLID_STRESS boolean parameter.
+/// For fluid mode, the velocity divergence is computed from all particles, while for solid mode, it only sums
+/// velocities of undamaged particles from the same body, or fully damaged particles. This is needed to
+/// properly handle density derivatives in impact; it is undesirable to get increased density by merely moving
+/// the bodies closer to each other.
+///
+/// Solver must use either this equation or some custom density computation, such as direct summation (see
+/// \ref SummationSolver) or SPH formulation without solving the density (see \ref DensityIndependentSolver).
 class ContinuityEquation : public Abstract::EquationTerm {
 private:
     enum class Options {
@@ -330,6 +370,23 @@ public:
     }
 };
 
+/// \brief Evolutionary equation for the (scalar) smoothing length
+///
+/// The smoothing length is evolved using first-order equation, 'mirroring' changes in density in order to
+/// keep the particle concentration approximately constant. The derivative of smoothing length \f$h\f$ of i-th
+/// particle computed using:
+/// \f[
+///  \frac{{\rm d} h_i}{{\rm d} t} = \frac{h_i}{D} \nabla \cdot \vec v_i \,,
+/// \f]
+/// where \f$D\f$ is the number of spatial dimensions (3 unless specified otherwise) and \f$\vec v_i\f$ is the
+/// velocity of the particle.
+///
+/// It is possible to add additional term into the equation that increases/decreases the smoothing length when
+/// number of neighbours is too low/high. This is done by setting flag
+/// SmoothingLengthEnum::SOUND_SPEED_ENFORCING to settings entry RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH. The
+/// allowed range of neighbours is then controlled by RunSettingsId::SPH_NEIGHBOUR_RANGE. Note that the number
+/// of neighbours is not guaranteed to be in the given range, the actual number of neighbours cannot be
+/// precisely controlled.
 class AdaptiveSmoothingLength : public Abstract::EquationTerm {
 private:
     struct {
@@ -410,8 +467,15 @@ public:
     virtual void create(Storage& UNUSED(storage), Abstract::Material& UNUSED(material)) const override {}
 };
 
-
-/// We have to zero out derivatives arising from arithmetics on position vectors and velocitites
+/// \brief Helper term to keep smoothing length constant during the simulation
+///
+/// The smoothing length is currently stored as the 4th component of the position vectors. Because of that, it
+/// is necessary to either provide an equation evolving smoothing length in time (see \ref
+/// AdaptiveSmoothingLength), or use this equation to set all derivatives of smoothing length to zero.
+///
+/// \attention If neither of these equations are used and the smoothing length is not explicitly handled by
+/// the solver or timestepping, the behavior might by unexpected and possibly leads to errors. This issue will
+/// be resolved in the future.
 class ConstSmoothingLength : public Abstract::EquationTerm {
 public:
     virtual void setDerivatives(DerivativeHolder& UNUSED(derivatives),
