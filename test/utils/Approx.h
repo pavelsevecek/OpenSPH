@@ -1,15 +1,31 @@
 #pragma once
 
-/// Helper wrapper that allows to check whether two values are equal to some given accuracy.
-/// This is more or less stolen from Catch unit-testing framework, with overloaded consturctors for vectors
-/// and tensors.
-/// Pavel Sevecek 2017
-/// sevecek at sirrah.troja.mff.cuni.cz
+/// \file Approx.h
+/// \brief Helper wrapper that allows to check whether two values are equal to some given accuracy.
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2017
 
 #include "geometry/TracelessTensor.h"
 
 NAMESPACE_SPH_BEGIN
 
+namespace Detail {
+    /// Type trait checking whether type T has overloaded operator <<
+    template <typename T, typename TStream, typename TEnabler = void>
+    struct IsPrintable {
+        static constexpr bool value = false;
+    };
+
+    template <typename T, typename TStream>
+    struct IsPrintable<T, TStream, std::void_t<decltype(std::declval<TStream&>() << std::declval<T>())>> {
+        static constexpr bool value = true;
+    };
+
+    static_assert(IsPrintable<float, std::ostream>::value, "float must be printable");
+    static_assert(!IsPrintable<void, std::ostream>::value, "void must not be printable");
+}
+
+/// This is more or less stolen from Catch unit-testing framework.
 template <typename Type>
 class Approx {
 private:

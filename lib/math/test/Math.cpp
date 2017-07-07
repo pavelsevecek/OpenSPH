@@ -34,6 +34,13 @@ TEST_CASE("Math", "[math]") {
     REQUIRE(clamp(-1, 2, 4) == 2);
     REQUIRE(clamp(3, 2, 4) == 3);
     REQUIRE(clamp(5, 2, 4) == 4);
+
+    REQUIRE(isOdd(1));
+    REQUIRE(isOdd(5));
+    REQUIRE(isOdd(-1));
+    REQUIRE_FALSE(isOdd(0));
+    REQUIRE_FALSE(isOdd(2));
+    REQUIRE_FALSE(isOdd(-2));
 }
 
 TEST_CASE("IsPower", "[math]") {

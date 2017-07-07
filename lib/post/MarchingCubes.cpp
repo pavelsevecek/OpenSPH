@@ -305,14 +305,15 @@ MarchingCubes::MarchingCubes(ArrayView<const Vector> r,
 void MarchingCubes::addComponent(const Box& box, const Float gridResolution) {
     const Vector dr = min(Vector(gridResolution), box.size() * (1._f - EPS));
     cached.phi.clear();
-    // find values of grid nodes
-    Indices cnts((1._f - EPS) * box.size() / dr);
+    // multiply by (1 + EPS) to handle case where box size is divisible by dr
+    Indices cnts((1._f + EPS) * box.size() / dr);
     ASSERT(cnts[X] >= 1 && cnts[Y] >= 1 && cnts[Z] >= 1);
 
+    // find values of grid nodes
     auto mapping = [&cnts](const Indices& idxs) {
-        ASSERT(idxs[X] >= 0 && idxs[X] <= cnts[X]);
-        ASSERT(idxs[Y] >= 0 && idxs[Y] <= cnts[Y]);
-        ASSERT(idxs[Z] >= 0 && idxs[Z] <= cnts[Z]);
+        ASSERT(idxs[X] >= 0 && idxs[X] <= cnts[X], idxs[X], cnts[X]);
+        ASSERT(idxs[Y] >= 0 && idxs[Y] <= cnts[Y], idxs[Y], cnts[Y]);
+        ASSERT(idxs[Z] >= 0 && idxs[Z] <= cnts[Z], idxs[Z], idxs[Z]);
         return idxs[X] + (cnts[X] + 1) * idxs[Y] + (cnts[X] + 1) * (cnts[Y] + 1) * idxs[Z];
     };
     cached.phi.resize((cnts[X] + 1) * (cnts[Y] + 1) * (cnts[Z] + 1));

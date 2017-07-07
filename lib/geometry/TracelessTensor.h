@@ -250,6 +250,8 @@ public:
     }
 };
 
+static_assert(sizeof(TracelessTensor) == 6 * sizeof(Float), "Incorrect size of TracelessTensor");
+
 /// Traceless tensor utils
 
 /// Checks if two tensors are equal to some given accuracy.

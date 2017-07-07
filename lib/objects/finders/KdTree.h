@@ -12,7 +12,7 @@ struct KdNode {
     enum class Type { X, Y, Z, LEAF };
     Type type;
 
-    Multipole<4> M;
+    // Multipole<4> M;
 
     KdNode(const Type& type)
         : type(type) {}

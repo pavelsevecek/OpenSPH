@@ -132,6 +132,7 @@ SOURCES += \
     ../lib/timestepping/test/TimeStepping.cpp \
     ../lib/objects/wrappers/test/Value.cpp \
     ../lib/quantities/test/Particle.cpp \
+    ../lib/gravity/test/Moments.cpp \
     utils/Approx.cpp \
     utils/SequenceTest.cpp \
     utils/Utils.cpp \

@@ -238,13 +238,29 @@ StaticArray<T0&, sizeof...(TArgs) + 1> tie(T0& t0, TArgs&... rest) {
     return StaticArray<T0&, sizeof...(TArgs) + 1>({ t0, rest... });
 }
 
-template <typename T, Size N, typename TFunctor>
-decltype(auto) apply(StaticArray<T, N>&, TFunctor&&) {
-    NOT_IMPLEMENTED;
-}
-
 /// Alias for array holding two elements of the same type.
 template <typename T>
 using Pair = StaticArray<T, 2>;
+
+
+/// Container similar to \ref StaticArray, but with constexpr constructors and getters.
+template <typename T, Size N>
+class ConstexprArray {
+private:
+    T data[N];
+
+public:
+    template <typename... TArgs>
+    constexpr ConstexprArray(TArgs&&... args)
+        : data{ std::forward<TArgs>(args)... } {}
+
+    constexpr const T& operator[](const Size idx) const {
+        return data[idx];
+    }
+
+    constexpr T& operator[](const Size idx) {
+        return data[idx];
+    }
+};
 
 NAMESPACE_SPH_END

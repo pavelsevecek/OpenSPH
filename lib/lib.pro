@@ -220,4 +220,5 @@ HEADERS += \
     sph/solvers/AsymmetricSolver.h \
     objects/finders/KdTree.h \
     post/MarchingCubes.h \
-    post/MeshFile.h
+    post/MeshFile.h \
+    gravity/Moments.h

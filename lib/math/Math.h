@@ -42,10 +42,7 @@ constexpr Float INFTY = std::numeric_limits<Float>::max();
 
 
 /// Minimum & Maximum value
-template <typename T>
-INLINE constexpr T max(const T& f1, const T& f2) {
-    return (f1 > f2) ? f1 : f2;
-}
+
 
 template <typename T>
 INLINE constexpr T min(const T& f1, const T& f2) {
@@ -53,18 +50,28 @@ INLINE constexpr T min(const T& f1, const T& f2) {
 }
 
 template <typename T>
-INLINE constexpr T min(const T& f1, const T& f2, const T& f3) {
-    return min(min(f1, f2), f3);
+INLINE constexpr T max(const T& f1, const T& f2) {
+    return (f1 > f2) ? f1 : f2;
 }
 
-template <typename T>
-INLINE constexpr T max(const T& f1, const T& f2, const T& f3) {
-    return max(max(f1, f2), f3);
+template <typename T, typename... TArgs>
+INLINE constexpr T min(const T& f1, const T& f2, const TArgs&... rest) {
+    return min(min(f1, f2), rest...);
+}
+
+template <typename T, typename... TArgs>
+INLINE constexpr T max(const T& f1, const T& f2, const TArgs&... rest) {
+    return max(max(f1, f2), rest...);
 }
 
 template <typename T>
 INLINE constexpr T clamp(const T& f, const T& f1, const T& f2) {
     return max(f1, min(f, f2));
+}
+
+template <typename T>
+INLINE constexpr bool isOdd(const T& f) {
+    return f & 1;
 }
 
 

@@ -15,6 +15,9 @@ using Float = double;
 /// Integral type used to index arrays (by default).
 using Size = uint32_t;
 
+/// Signed integral type, used where negative numbers are necessary. Should match Size.
+using SignedSize = int32_t;
+
 /// Number of spatial dimensions using in the code.
 constexpr int DIMENSIONS = 3;
 
