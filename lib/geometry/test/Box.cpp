@@ -52,7 +52,7 @@ TEST_CASE("Box bound construction", "[box]") {
     REQUIRE_FALSE(box2.contains(Vector(0._f, 4.5_f, 0._f)));
 }
 
-TEST_CASE("Box extend", "[box]") {
+TEST_CASE("Box extend vector", "[box]") {
     Box box(Vector(0._f), Vector(0._f));
     box.extend(Vector(-1.f, 0._f, 0._f));
     REQUIRE(box.lower() == Vector(-1._f, 0._f, 0._f));
@@ -66,6 +66,23 @@ TEST_CASE("Box extend", "[box]") {
     REQUIRE(box.lower() == Vector(-1._f, -4._f, 0._f));
     REQUIRE(box.upper() == Vector(3._f, 2._f, 6._f));
     REQUIRE(box.center() == Vector(1._f, -1._f, 3._f));
+}
+
+TEST_CASE("Box extend box", "[box]") {
+    Box box1;
+    Box box2(Vector(1._f), Vector(3._f));
+    box1.extend(box2);
+    REQUIRE(box1 == box2);
+
+    Box box3(Vector(2._f), Vector(4._f));
+    box1.extend(box3);
+    REQUIRE(box1 == Box(Vector(1._f), Vector(4._f)));
+
+    Box box4(Vector(-1._f, 0._f, 0._f), Vector(5._f, 0._f, 0._f));
+    box1.extend(box4);
+    REQUIRE(box1 == Box(Vector(-1._f, 1._f, 1._f), Vector(5._f, 4._f, 4._f)));
+
+    REQUIRE_ASSERT(box1.extend(Box()));
 }
 
 TEST_CASE("Box clamp", "[box]") {

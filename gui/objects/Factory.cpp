@@ -4,10 +4,10 @@
 
 NAMESPACE_SPH_BEGIN
 
-AutoPtr<Abstract::Camera> Factory::getCamera(const GuiSettings& settings) {
+AutoPtr<Abstract::Camera> Factory::getCamera(const GuiSettings& settings, const Point size) {
     OrthoEnum id = settings.get<OrthoEnum>(GuiSettingsId::ORTHO_PROJECTION);
     OrthoCameraData data;
-    data.fov = 240.f / settings.get<Float>(GuiSettingsId::VIEW_FOV);
+    data.fov = 0.5_f * size.y / settings.get<Float>(GuiSettingsId::VIEW_FOV);
     data.cutoff = settings.get<Float>(GuiSettingsId::ORTHO_CUTOFF);
     switch (id) {
     case OrthoEnum::XY:
@@ -25,8 +25,6 @@ AutoPtr<Abstract::Camera> Factory::getCamera(const GuiSettings& settings) {
     default:
         NOT_IMPLEMENTED;
     }
-    /// \todo generalize resolution
-    const Point size(640, 480);
     const Vector center(settings.get<Vector>(GuiSettingsId::VIEW_CENTER));
     return makeAuto<OrthoCamera>(size, Point(int(center[X]), int(center[Y])), data);
 }

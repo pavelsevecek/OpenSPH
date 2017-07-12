@@ -34,10 +34,17 @@ public:
     }
 
     /// Enlarges the box to contain the vector. If the box already contains given vectors, it is left
-    /// unchanged.
+    /// unchanged. If the box was previously empty, it now contains the given point
     INLINE void extend(const Vector& v) {
         maxBound = max(maxBound, v);
         minBound = min(minBound, v);
+    }
+
+    /// Enlarges the box to contain another box. The other box must be valid, checked by assert.
+    INLINE void extend(const Box& other) {
+        ASSERT(other.isValid());
+        maxBound = max(maxBound, other.upper());
+        minBound = min(minBound, other.lower());
     }
 
     /// Checks if the vector lies inside the box. If the vector lies on the boundary, it is assumed to within

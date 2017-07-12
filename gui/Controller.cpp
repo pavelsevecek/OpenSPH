@@ -37,7 +37,8 @@ void Controller::Vis::initialize(const GuiSettings& gui) {
     renderer = makeAuto<ParticleRenderer>(); // makeAuto<SurfaceRenderer>();
     element = makeAuto<VelocityElement>(gui.get<Range>(GuiSettingsId::PALETTE_VELOCITY));
     timer = makeAuto<Timer>(gui.get<int>(GuiSettingsId::VIEW_MAX_FRAMERATE), TimerFlags::START_EXPIRED);
-    camera = Factory::getCamera(gui);
+    const Point size(gui.get<int>(GuiSettingsId::RENDER_WIDTH), gui.get<int>(GuiSettingsId::RENDER_HEIGHT));
+    camera = Factory::getCamera(gui, size);
 }
 
 bool Controller::Vis::isInitialized() {
@@ -309,12 +310,26 @@ SharedPtr<Movie> Controller::createMovie(const Storage& storage) {
     ASSERT(sph.run);
     RenderParams params;
     params.particles.scale = gui.get<Float>(GuiSettingsId::PARTICLE_RADIUS);
-    params.size.x = gui.get<int>(GuiSettingsId::RENDER_WIDTH);
-    params.size.y = gui.get<int>(GuiSettingsId::RENDER_HEIGHT);
+    params.size.x = gui.get<int>(GuiSettingsId::IMAGES_WIDTH);
+    params.size.y = gui.get<int>(GuiSettingsId::IMAGES_HEIGHT);
 
-    AutoPtr<ParticleRenderer> renderer = makeAuto<ParticleRenderer>();
-    auto elements = this->getElementList(storage, true);
-    return makeShared<Movie>(gui, std::move(renderer), Factory::getCamera(gui), std::move(elements), params);
+    AutoPtr<Abstract::Renderer> renderer;
+    Array<SharedPtr<Abstract::Element>> elements;
+    switch (gui.get<RendererEnum>(GuiSettingsId::IMAGES_RENDERER)) {
+    case RendererEnum::PARTICLE:
+        renderer = makeAuto<ParticleRenderer>();
+        elements = this->getElementList(storage, true);
+        break;
+    case RendererEnum::SURFACE:
+        renderer = makeAuto<SurfaceRenderer>(gui);
+        elements = { makeShared<VelocityElement>(gui.get<Range>(GuiSettingsId::PALETTE_VELOCITY)) };
+        break;
+    default:
+        STOP;
+    }
+    const Point size(gui.get<int>(GuiSettingsId::IMAGES_WIDTH), gui.get<int>(GuiSettingsId::IMAGES_HEIGHT));
+    AutoPtr<Abstract::Camera> camera = Factory::getCamera(gui, size);
+    return makeShared<Movie>(gui, std::move(renderer), std::move(camera), std::move(elements), params);
 }
 
 void Controller::redraw(const Storage& storage, Statistics& stats) {

@@ -65,7 +65,6 @@ SOURCES += \
     ../lib/objects/containers/test/StaticArray.cpp \
     ../lib/objects/containers/test/StringUtils.cpp \
     ../lib/objects/containers/test/Tuple.cpp \
-    ../lib/objects/finders/test/BruteForce.cpp \
     ../lib/objects/finders/test/Finders.cpp \
     ../lib/objects/finders/test/Order.cpp \
     ../lib/objects/wrappers/test/AlignedStorage.cpp \
@@ -133,11 +132,14 @@ SOURCES += \
     ../lib/objects/wrappers/test/Value.cpp \
     ../lib/quantities/test/Particle.cpp \
     ../lib/gravity/test/Moments.cpp \
+    ../lib/gravity/test/BarnesHut.cpp \
     utils/Approx.cpp \
     utils/SequenceTest.cpp \
     utils/Utils.cpp \
     ../lib/post/test/MarchingCubes.cpp \
-    ../lib/post/test/MeshFile.cpp
+    ../lib/post/test/MeshFile.cpp \
+    ../lib/objects/finders/test/BruteForceFinder.cpp \
+    ../lib/gravity/test/BruteForceGravity.cpp
 
 HEADERS += \
     utils/Utils.h \

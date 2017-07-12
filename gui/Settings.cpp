@@ -7,7 +7,7 @@ NAMESPACE_SPH_BEGIN
 template<>
 AutoPtr<GuiSettings> GuiSettings::instance (new GuiSettings {
     /// Renderer
-    { GuiSettingsId::RENDERER,         "renderer",         int(RendererEnum::ORTHO) },
+    { GuiSettingsId::RENDERER,         "renderer",         int(RendererEnum::PARTICLE) },
     { GuiSettingsId::RENDER_WIDTH,     "render.width",     800 },
     { GuiSettingsId::RENDER_HEIGHT,    "render.height",    600 },
 
@@ -15,7 +15,7 @@ AutoPtr<GuiSettings> GuiSettings::instance (new GuiSettings {
     { GuiSettingsId::PARTICLE_RADIUS,       "particle_radius",      0.5_f },
     { GuiSettingsId::ORTHO_CUTOFF,          "ortho.cutoff",         0.1_f },
     { GuiSettingsId::ORTHO_PROJECTION,      "ortho.projection",     int(OrthoEnum::XY) },
-    { GuiSettingsId::SURFACE_RESOLUTION,    "surface.resolution",   100 },  // m
+    { GuiSettingsId::SURFACE_RESOLUTION,    "surface.resolution",   100._f },  // m
     { GuiSettingsId::SURFACE_LEVEL,         "surface.level",        0.3_f },
     { GuiSettingsId::VIEW_CENTER,           "view.center",          Vector(0._f) },
     { GuiSettingsId::VIEW_FOV,              "view.fov",             1._f },
@@ -29,10 +29,13 @@ AutoPtr<GuiSettings> GuiSettings::instance (new GuiSettings {
     { GuiSettingsId::WINDOW_HEIGHT,    "window.height",    600 },
 
     /// Saved animation frames
+    { GuiSettingsId::IMAGES_RENDERER,  "images.renderer",  int(RendererEnum::PARTICLE) },
     { GuiSettingsId::IMAGES_SAVE,      "images.save",      false },
     { GuiSettingsId::IMAGES_PATH,      "images.path",      std::string("imgs/") },
     { GuiSettingsId::IMAGES_NAME,      "images.name",      std::string("img_%e_%d.png") },
     { GuiSettingsId::IMAGES_TIMESTEP,  "images.time_step", 0.1_f },
+    { GuiSettingsId::IMAGES_WIDTH,     "images.width",     800 },
+    { GuiSettingsId::IMAGES_HEIGHT,    "images.height",    600 },
 
     /// Color palettes
     { GuiSettingsId::PALETTE_DENSITY,       "palette.density",      Range(2650._f, 2750._f) },

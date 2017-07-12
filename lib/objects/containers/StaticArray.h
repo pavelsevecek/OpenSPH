@@ -105,12 +105,12 @@ public:
     }
 
     INLINE T& operator[](const TCounter idx) noexcept {
-        ASSERT(idx >= 0 && idx < actSize);
+        ASSERT(idx >= 0 && idx < actSize, idx, actSize);
         return data[idx].get();
     }
 
     INLINE const T& operator[](const TCounter idx) const noexcept {
-        ASSERT(idx >= 0 && idx < actSize);
+        ASSERT(idx >= 0 && idx < actSize, idx, actSize);
         return data[idx].get();
     }
 

@@ -1,12 +1,20 @@
 #pragma once
 
+/// \file BruteForceFinder.h
+/// \brief Object finding nearest neighbours by evaluating all partice pairs
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2017
+
 #include "geometry/Box.h"
 #include "objects/finders/AbstractFinder.h"
 
 NAMESPACE_SPH_BEGIN
 
-/// Search for neighbours by 'brute force', comparing every pair of vectors. Useful for testing other finders.
-
+/// \brief Searches for neighbours by 'brute force', comparing every pair of vectors.
+///
+/// This implementation is not intended for usage in high-performance code, as computing all particle pairs is
+/// too slow. Use other more efficient finders, such as \ref KdTree of \ref VoxelFinder. BruteForceFinder
+/// should be used only for testing and debugging purposes.
 class BruteForceFinder : public Abstract::Finder {
 protected:
     // no need to implement these for brute force
@@ -16,7 +24,6 @@ protected:
 
 public:
     BruteForceFinder() = default;
-
 
     virtual Size findNeighbours(const Size index,
         const Float radius,
@@ -49,7 +56,6 @@ public:
         }
         return neighbours.size();
     }
-
 
     /// Updates the structure when the position change.
     virtual void rebuild() {}

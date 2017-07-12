@@ -9,10 +9,14 @@ namespace Abstract {
     class Element;
 }
 class Palette;
+class Point;
 enum class ElementId;
 
 namespace Factory {
-    AutoPtr<Abstract::Camera> getCamera(const GuiSettings& settings);
+
+    /// Creates a camera
+    /// \param size Resolution of produced image
+    AutoPtr<Abstract::Camera> getCamera(const GuiSettings& settings, const Point size);
 
     AutoPtr<Abstract::Element> getElement(const GuiSettings& settings, const ElementId id);
 

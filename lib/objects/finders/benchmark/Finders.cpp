@@ -1,6 +1,6 @@
 #include "bench/Session.h"
 #include "geometry/Domain.h"
-#include "objects/finders/BruteForce.h"
+#include "objects/finders/BruteForceFinder.h"
 #include "objects/finders/KdTree.h"
 #include "objects/finders/LinkedList.h"
 #include "objects/finders/Voxel.h"

@@ -66,7 +66,9 @@ private:
 };
 
 
-/// Distribution with given particle density. Particles are placed using algorithm by Diehl et al. (2012).
+/// \brief Distribution with given particle density.
+///
+/// Particles are placed using algorithm by Diehl et al. (2012) \cite Diehl_2012
 class DiehlEtAlDistribution : public Abstract::Distribution {
 private:
     using DensityFunc = std::function<Float(const Vector& position)>;

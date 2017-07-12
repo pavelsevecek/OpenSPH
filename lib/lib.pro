@@ -74,7 +74,8 @@ SOURCES += \
     quantities/Particle.cpp \
     post/MarchingCubes.cpp \
     post/MeshFile.cpp \
-    objects/finders/KdTree.cpp
+    objects/finders/KdTree.cpp \
+    gravity/BarnesHut.cpp
 
 HEADERS += \
     commmon/ForwardDecl.h \
@@ -124,8 +125,7 @@ HEADERS += \
     objects/containers/StringUtils.h \
     objects/containers/Tuple.h \
     objects/finders/AbstractFinder.h \
-    objects/finders/BruteForce.h \
-    objects/finders/Bruteforce.h \
+    objects/finders/BruteForceFinder.h \
     objects/finders/LinkedList.h \
     objects/finders/Linkedlist.h \
     objects/finders/Octree.h \
@@ -221,4 +221,7 @@ HEADERS += \
     objects/finders/KdTree.h \
     post/MarchingCubes.h \
     post/MeshFile.h \
-    gravity/Moments.h
+    gravity/Moments.h \
+    gravity/AbstractGravity.h \
+    gravity/BruteForceGravity.h \
+    objects/finders/BruteForceFinder.h

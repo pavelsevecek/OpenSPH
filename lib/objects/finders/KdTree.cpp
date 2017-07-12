@@ -4,21 +4,6 @@
 
 NAMESPACE_SPH_BEGIN
 
-struct InnerNode : public KdNode {
-    float splitPosition;
-
-    Size left;
-    Size right;
-};
-
-struct LeafNode : public KdNode {
-    Size from;
-    Size to;
-
-    /// Index of the node, used for accessing bounding boxes
-    Size leafIdx;
-};
-
 /// Object holding index of the node and squared distance of the bounding box
 struct ProcessedNode {
     /// Index into the nodeStack array. We cannot use pointers because the array might get reallocated.
@@ -44,7 +29,7 @@ void KdTree::buildImpl(ArrayView<const Vector> points) {
         idxs.push(i.index());
     }
 
-    this->buildTree(ROOT_NODE, 0, points.size(), entireBox, 0);
+    this->buildTree(ROOT_PARENT_NODE, 0, points.size(), entireBox, 0);
 }
 
 void KdTree::rebuildImpl(ArrayView<const Vector> points) {
@@ -167,21 +152,20 @@ void KdTree::addLeaf(const Size parent, const Size from, const Size to) {
     ASSERT(node.isLeaf());
 
 #ifdef SPH_DEBUG
-    node.from = node.to = node.leafIdx = -1;
+    node.from = node.to = -1;
 #endif
 
     node.from = from;
     node.to = to;
-    node.leafIdx = leafBoxes.size();
 
     // find the bounding box of the leaf
     Box box;
     for (Size i = from; i < to; ++i) {
         box.extend(values[idxs[i]]);
     }
-    leafBoxes.push(box);
+    node.box = box;
 
-    if (parent == ROOT_NODE) {
+    if (parent == ROOT_PARENT_NODE) {
         return;
     }
     InnerNode& parentNode = (InnerNode&)nodes[parent];
@@ -209,7 +193,9 @@ void KdTree::addInner(const Size parent, const Float splitPosition, const Size s
 
     node.splitPosition = splitPosition;
 
-    if (parent == ROOT_NODE) {
+    node.box = Box(); // will be computed later
+
+    if (parent == ROOT_PARENT_NODE) {
         // no need to set up parents
         return;
     }
@@ -229,7 +215,6 @@ void KdTree::init() {
     entireBox = Box();
     idxs.clear();
     nodes.clear();
-    leafBoxes.clear();
 }
 
 bool KdTree::isSingular(const Size from, const Size to, const Size splitIdx) const {
@@ -279,9 +264,8 @@ Size KdTree::findNeighbours(const Size index,
         if (nodes[node.idx].isLeaf()) {
             // for leaf just add all
             const LeafNode& leaf = (const LeafNode&)nodes[node.idx];
-            const Box& leafBox = leafBoxes[leaf.leafIdx];
             const Float leafDistSqr =
-                getSqrLength(max(Vector(0._f), leafBox.lower() - r0, r0 - leafBox.upper()));
+                getSqrLength(max(Vector(0._f), leaf.box.lower() - r0, r0 - leaf.box.upper()));
             if (leafDistSqr < radiusSqr) {
                 // leaf intersects the sphere
                 for (Size i = leaf.from; i < leaf.to; ++i) {
@@ -371,13 +355,12 @@ bool KdTree::sanityCheck() const {
         } else {
             // check that all points fit inside the bounding box of the leaf
             const LeafNode& leaf = (const LeafNode&)nodes[idx];
-            const Box box = leafBoxes[leaf.leafIdx];
             if (leaf.to - leaf.from <= 1) {
                 // empty leaf?
                 return false;
             }
             for (Size i = leaf.from; i < leaf.to; ++i) {
-                if (!box.contains(values[idxs[i]])) {
+                if (!leaf.box.contains(values[idxs[i]])) {
                     return false;
                 }
                 if (indices.find(i) != indices.end()) {

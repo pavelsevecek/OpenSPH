@@ -298,6 +298,9 @@ namespace Detail {
     };
 }
 
+template <Size... Idxs>
+struct TracelessMultipoleComponent;
+
 template <Size Order>
 class TracelessMultipole {
 private:
@@ -309,6 +312,11 @@ public:
     static constexpr Size ORDER = Order;
 
     template <Size... Idxs>
+    INLINE Float value() const {
+        return TracelessMultipoleComponent<Idxs...>{}.get(*this);
+    }
+
+    template <Size... Idxs>
     INLINE Float& value() {
         static_assert(sizeof...(Idxs) == Order, "Number of indices must match the order");
         const Size idx = Detail::TracelessMultipoleMapping<Idxs...>::value;
@@ -317,11 +325,39 @@ public:
     }
 
     template <Size... Idxs>
-    INLINE Float value() const {
+    INLINE Float valueImpl() const {
         static_assert(sizeof...(Idxs) == Order, "Number of indices must match the order");
         const Size idx = Detail::TracelessMultipoleMapping<Idxs...>::value;
         ASSERT(idx < COMPONENT_CNT, idx);
         return *(&data[0] + idx);
+    }
+
+    INLINE Float operator[](const Size idx) const {
+        ASSERT(idx < COMPONENT_CNT, idx);
+        return data[idx];
+    }
+
+    TracelessMultipole& operator+=(const TracelessMultipole& other) {
+        for (Size i = 0; i < COMPONENT_CNT; ++i) {
+            data[i] += other.data[i];
+        }
+        return *this;
+    }
+
+    bool operator==(const TracelessMultipole& other) const {
+        for (Size i = 0; i < COMPONENT_CNT; ++i) {
+            if (data[i] != other.data[i]) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    friend std::ostream& operator<<(std::ostream& stream, const TracelessMultipole& m) {
+        for (Size i = 0; i < COMPONENT_CNT; ++i) {
+            stream << m.data[i] << " ";
+        }
+        return stream;
     }
 };
 
@@ -331,6 +367,11 @@ private:
     Vector data;
 
 public:
+    TracelessMultipole() = default;
+
+    TracelessMultipole(const Float v)
+        : data(v) {}
+
     static constexpr Size ORDER = 1;
 
     template <Size Idx>
@@ -343,8 +384,27 @@ public:
         return data[Idx];
     }
 
+    INLINE Float operator[](const Size idx) const {
+        ASSERT(idx < 3, idx);
+        return data[idx];
+    }
+
     Vector vector() const {
         return data;
+    }
+
+    TracelessMultipole& operator+=(const TracelessMultipole& other) {
+        data += other.data;
+        return *this;
+    }
+
+    bool operator==(const TracelessMultipole& other) const {
+        return data == other.data;
+    }
+
+    friend std::ostream& operator<<(std::ostream& stream, const TracelessMultipole& m) {
+        stream << m.data;
+        return stream;
     }
 };
 
@@ -355,6 +415,11 @@ private:
     Float data;
 
 public:
+    TracelessMultipole() = default;
+
+    TracelessMultipole(const Float v)
+        : data(v) {}
+
     static constexpr Size ORDER = 0;
 
     INLINE Float& value() {
@@ -364,10 +429,41 @@ public:
     INLINE Float value() const {
         return data;
     }
+
+    INLINE Float operator[](const Size UNUSED_IN_RELEASE(idx)) const {
+        ASSERT(idx == 0);
+        return data;
+    }
+
+    INLINE operator Float() const {
+        return data;
+    }
+
+    TracelessMultipole& operator+=(const TracelessMultipole& other) {
+        data += other.data;
+        return *this;
+    }
+
+    bool operator==(const TracelessMultipole& other) const {
+        return data == other.data;
+    }
 };
 
 
+template <Size N>
+INLINE auto almostEqual(const TracelessMultipole<N>& f1,
+    const TracelessMultipole<N>& f2,
+    const Float& eps = EPS) {
+    for (Size i = 0; i < Detail::tracelessMultipoleComponentCnt(N); ++i) {
+        if (!almostEqual(f1[i], f2[i], eps)) {
+            return false;
+        }
+    }
+    return true;
+}
+
 /// Creates multipole by evaluating given object for each independent component
+
 template <Size N>
 struct MakeTracelessMultipole;
 
@@ -453,25 +549,25 @@ TracelessMultipole<N> makeTracelessMultipole(const TValue& v) {
 template <Size... Idxs>
 struct TracelessMultipoleComponent {
     INLINE static Float get(const TracelessMultipole<sizeof...(Idxs)>& m) {
-        return m.template value<Idxs...>();
+        return m.template valueImpl<Idxs...>();
     }
 };
 template <>
 struct TracelessMultipoleComponent<Z, Z> {
     INLINE static Float get(const TracelessMultipole<2>& m) {
-        return -m.value<X, X>() - m.value<Y, Y>();
+        return -m.valueImpl<X, X>() - m.valueImpl<Y, Y>();
     }
 };
 template <Size I>
 struct TracelessMultipoleComponent<I, Z, Z> {
     INLINE static Float get(const TracelessMultipole<3>& m) {
-        return -m.value<X, X, I>() - m.value<Y, Y, I>();
+        return -m.valueImpl<X, X, I>() - m.valueImpl<Y, Y, I>();
     }
 };
 template <Size I, Size J>
 struct TracelessMultipoleComponent<I, J, Z, Z> {
     INLINE static Float get(const TracelessMultipole<4>& m) {
-        return -m.value<X, X, I, J>() - m.value<Y, Y, I, J>();
+        return -m.valueImpl<X, X, I, J>() - m.valueImpl<Y, Y, I, J>();
     }
 };
 
@@ -605,44 +701,62 @@ namespace MomentOperators {
         return Contraction<TValue>{ v };
     }
 
-    template <Size N, typename TValue1, typename TValue2>
+    template <Size N, Size O1, typename TValue1, typename TValue2>
     struct InnerProduct;
 
     template <typename TValue1, typename TValue2>
-    struct InnerProduct<1, TValue1, TValue2> {
+    struct InnerProduct<1, 2, TValue1, TValue2> {
+        const TValue1& v1;
+        const TValue2& v2;
+
+        template <Size I, Size... Is>
+        INLINE constexpr Float value() const {
+            static_assert(TValue1::ORDER == 2, "Invalid number of indices");
+            static_assert(TValue2::ORDER == sizeof...(Is) + 1, "Invalid number of indices");
+            return v1.template value<0, I>() * v2.template value<0, Is...>() +
+                   v1.template value<1, I>() * v2.template value<1, Is...>() +
+                   v1.template value<2, I>() * v2.template value<2, Is...>();
+        }
+    };
+    template <typename TValue1, typename TValue2>
+    struct InnerProduct<1, 1, TValue1, TValue2> {
         const TValue1& v1;
         const TValue2& v2;
 
         template <Size... Is>
         INLINE constexpr Float value() const {
-            return v1.template value<0, Is...>() * v2.template value<0, Is...>() +
-                   v1.template value<1, Is...>() * v2.template value<1, Is...>() +
-                   v1.template value<2, Is...>() * v2.template value<2, Is...>();
+            static_assert(TValue1::ORDER == 1, "Invalid number of indices");
+            static_assert(TValue2::ORDER == sizeof...(Is) + 1, "Invalid number of indices");
+            return v1.template value<0>() * v2.template value<0, Is...>() +
+                   v1.template value<1>() * v2.template value<1, Is...>() +
+                   v1.template value<2>() * v2.template value<2, Is...>();
         }
     };
 
     template <typename TValue1, typename TValue2>
-    struct InnerProduct<2, TValue1, TValue2> {
+    struct InnerProduct<2, 2, TValue1, TValue2> {
         const TValue1& v1;
         const TValue2& v2;
 
         template <Size... Is>
         INLINE constexpr Float value() const {
-            return v1.template value<0, Is...>() * v2.template value<0, Is...>() +
-                   v1.template value<0, Is...>() * v2.template value<1, Is...>() +
-                   v1.template value<0, Is...>() * v2.template value<2, Is...>() +
-                   v1.template value<1, Is...>() * v2.template value<0, Is...>() +
-                   v1.template value<1, Is...>() * v2.template value<1, Is...>() +
-                   v1.template value<1, Is...>() * v2.template value<2, Is...>() +
-                   v1.template value<2, Is...>() * v2.template value<0, Is...>() +
-                   v1.template value<2, Is...>() * v2.template value<1, Is...>() +
-                   v1.template value<2, Is...>() * v2.template value<2, Is...>();
+            static_assert(TValue1::ORDER == 2, "Invalid number of indices");
+            static_assert(TValue2::ORDER == sizeof...(Is) + 2, "Invalid number of indices");
+            return v1.template value<0, 0>() * v2.template value<0, 0, Is...>() +
+                   v1.template value<0, 1>() * v2.template value<0, 1, Is...>() +
+                   v1.template value<0, 2>() * v2.template value<0, 2, Is...>() +
+                   v1.template value<1, 0>() * v2.template value<1, 0, Is...>() +
+                   v1.template value<1, 1>() * v2.template value<1, 1, Is...>() +
+                   v1.template value<1, 2>() * v2.template value<1, 2, Is...>() +
+                   v1.template value<2, 0>() * v2.template value<2, 0, Is...>() +
+                   v1.template value<2, 1>() * v2.template value<2, 1, Is...>() +
+                   v1.template value<2, 2>() * v2.template value<2, 2, Is...>();
         }
     };
 
     template <Size N, typename TValue1, typename TValue2>
-    InnerProduct<N, TValue1, TValue2> makeInner(const TValue1& v1, const TValue2& v2) {
-        return InnerProduct<N, TValue1, TValue2>{ v1, v2 };
+    InnerProduct<N, TValue1::ORDER, TValue1, TValue2> makeInner(const TValue1& v1, const TValue2& v2) {
+        return InnerProduct<N, TValue1::ORDER, TValue1, TValue2>{ v1, v2 };
     }
 
 
@@ -765,22 +879,59 @@ template <Size N>
 struct MultipoleExpansion {
     TracelessMultipole<N> Qn;
     MultipoleExpansion<N - 1> lower;
+
+    template <Size M>
+    INLINE std::enable_if_t<M != N, TracelessMultipole<M>&> order() {
+        return lower.template order<M>();
+    }
+    template <Size M>
+    INLINE std::enable_if_t<M != N, const TracelessMultipole<M>&> order() const {
+        return lower.template order<M>();
+    }
+    template <Size M>
+    INLINE std::enable_if_t<M == N, TracelessMultipole<M>&> order() {
+        return Qn;
+    }
+    template <Size M>
+    INLINE std::enable_if_t<M == N, const TracelessMultipole<M>&> order() const {
+        return Qn;
+    }
 };
 
 template <>
 struct MultipoleExpansion<0> {
-    Multipole<0> Qn;
+    TracelessMultipole<0> Qn;
+
+    template <Size M>
+    INLINE TracelessMultipole<0>& order() {
+        static_assert(M == 0, "Invalid index");
+        return Qn;
+    }
+
+    template <Size M>
+    INLINE const TracelessMultipole<0>& order() const {
+        static_assert(M == 0, "Invalid index");
+        return Qn;
+    }
 };
 
 
+/*template <Size M, Size N>
+INLINE const TracelessMultipole<M>& getOrder(const MultipoleExpansion<N>& ms) {
+    return getOrder<M>(ms.lower);
+}
 template <Size M, Size N>
-const TracelessMultipole<M>& getOrder(const MultipoleExpansion<N>& ms) {
+INLINE TracelessMultipole<M>& getOrder(MultipoleExpansion<N>& ms) {
     return getOrder<M>(ms.lower);
 }
 template <Size M>
-const TracelessMultipole<M>& getOrder(const MultipoleExpansion<M>& ms) {
+INLINE const TracelessMultipole<M>& getOrder(const MultipoleExpansion<M>& ms) {
     return ms.Qn;
 }
+template <Size M>
+INLINE TracelessMultipole<M>& getOrder(MultipoleExpansion<M>& ms) {
+    return ms.Qn;
+}*/
 /*
 template <>
 class Multipole<3> {

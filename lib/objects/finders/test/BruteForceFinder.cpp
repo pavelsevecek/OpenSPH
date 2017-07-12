@@ -1,10 +1,10 @@
-#include "objects/finders/BruteForce.h"
+#include "objects/finders/BruteForceFinder.h"
 #include "catch.hpp"
 #include "sph/initial/Distribution.h"
 
 using namespace Sph;
 
-TEST_CASE("Bruteforce", "[bruteforce]") {
+TEST_CASE("BruteForceFinder", "[bruteforce]") {
     Array<Vector> storage(0, 10);
     for (int i = 0; i < 10; ++i) {
         storage.push(Vector(i, 0, 0, i + 1)); // points on line with increasing H

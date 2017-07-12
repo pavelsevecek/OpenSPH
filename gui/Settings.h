@@ -5,8 +5,11 @@
 NAMESPACE_SPH_BEGIN
 
 enum class RendererEnum {
-    /// 2D section through 3D domain
-    ORTHO,
+    /// 2D section showing particles as points
+    PARTICLE,
+
+    /// Reconstructed surface of bodies
+    SURFACE,
 
     /// 3D visualization of simulation using OpenGL
     OPENGL
@@ -56,6 +59,12 @@ enum class GuiSettingsId {
     RENDER_WIDTH,
 
     RENDER_HEIGHT,
+
+    IMAGES_RENDERER,
+
+    IMAGES_WIDTH,
+
+    IMAGES_HEIGHT,
 
     /// If true, rendered images are saved to disk
     IMAGES_SAVE,
