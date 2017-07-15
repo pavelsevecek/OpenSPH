@@ -12,6 +12,9 @@ void BarnesHut::build(ArrayView<const Vector> points, ArrayView<const Float> mas
     // build K-d Tree
     kdTree.build(r);
 
+    if (SPH_UNLIKELY(r.empty())) {
+        return;
+    }
     // constructs nodes
     kdTree.iterate<KdTree::Direction::BOTTOM_UP>([this](KdNode& node, KdNode* left, KdNode* right) INL {
         if (node.isLeaf()) {
@@ -27,7 +30,14 @@ void BarnesHut::build(ArrayView<const Vector> points, ArrayView<const Float> mas
 }
 
 Vector BarnesHut::eval(const Size idx) {
-    const Vector r0 = r[idx];
+    return this->evalImpl(r[idx], idx);
+}
+
+Vector BarnesHut::eval(const Vector& r0) {
+    return this->evalImpl(r0, Size(-1));
+}
+
+Vector BarnesHut::evalImpl(const Vector& r0, const Size idx) {
     Vector f(0._f);
     kdTree.iterate<KdTree::Direction::TOP_DOWN>(
         [this, &r0, &f, idx](KdNode& node, KdNode* UNUSED(left), KdNode* UNUSED(right)) {
@@ -66,6 +76,12 @@ Vector BarnesHut::eval(const Size idx) {
 void BarnesHut::buildLeaf(KdNode& node) {
     LeafNode& leaf = (LeafNode&)node;
     if (leaf.size() == 0) {
+        // set to zero to correctly compute mass and com of parent nodes
+        leaf.com = Vector(0._f);
+        leaf.moments.order<0>() = 0._f;
+        leaf.moments.order<1>() = TracelessMultipole<1>(0._f);
+        leaf.moments.order<2>() = TracelessMultipole<2>(0._f);
+        leaf.moments.order<3>() = TracelessMultipole<3>(0._f);
         return;
     }
     // compute the center of gravity (the box is already done)
@@ -76,55 +92,72 @@ void BarnesHut::buildLeaf(KdNode& node) {
         leaf.com += m[j] * r[j];
         m_leaf += m[j];
     }
-    ASSERT(leaf.com != Vector(0._f) && m_leaf > 0._f);
+    ASSERT(m_leaf > 0._f, m_leaf);
     leaf.com /= m_leaf;
+    ASSERT(isReal(leaf.com) && getLength(leaf.com) < LARGE, leaf.com);
 
     // compute gravitational moments from individual particles
     // M0 is a sum of particle masses, M1 is a dipole moment = zero around center of mass
     IndexSequence sequence(leaf.from, leaf.to);
     ASSERT(computeMultipole<0>(r, m, leaf.com, sequence).value() == m_leaf);
     const Multipole<2> m2 = computeMultipole<2>(r, m, leaf.com, sequence);
-    // const Multipole<3> m3 = computeMultipole<3>(r, m, leaf.com, sequence);
+    const Multipole<3> m3 = computeMultipole<3>(r, m, leaf.com, sequence);
 
     // compute traceless tensors to reduce number of independent components
     const TracelessMultipole<2> q2 = computeReducedMultipole(m2);
-    // const TracelessMultipole<3> q3 = computeReducedMultipole(m3);
+    const TracelessMultipole<3> q3 = computeReducedMultipole(m3);
 
     // save the moments to the leaf
     leaf.moments.order<0>() = m_leaf;
     leaf.moments.order<1>() = TracelessMultipole<1>(0._f);
     leaf.moments.order<2>() = q2;
-    // leaf.moments.order<3>() = q3;
+    leaf.moments.order<3>() = q3;
 }
 
 void BarnesHut::buildInner(KdNode& node, KdNode& left, KdNode& right) {
     InnerNode& inner = (InnerNode&)node;
 
     // update bounding box
-    inner.box = Box();
+    inner.box = Box::EMPTY();
     inner.box.extend(left.box);
     inner.box.extend(right.box);
 
     // update center of mass
     const Float ml = left.moments.order<0>();
     const Float mr = right.moments.order<0>();
-    inner.com = ml * left.com + mr * right.com / (ml + mr);
+
+    // check for empty node
+    if (ml + mr == 0._f) {
+        // set to zero to correctly compute sum and com of parent nodes
+        inner.com = Vector(0._f);
+        inner.moments.order<0>() = 0._f;
+        inner.moments.order<1>() = TracelessMultipole<1>(0._f);
+        inner.moments.order<2>() = TracelessMultipole<2>(0._f);
+        inner.moments.order<3>() = TracelessMultipole<3>(0._f);
+        return;
+    }
+
+    inner.com = (ml * left.com + mr * right.com) / (ml + mr);
+    ASSERT(isReal(inner.com) && getLength(inner.com) < LARGE, inner.com);
+
     inner.moments.order<0>() = ml + mr;
 
     // we already computed moments of children nodes, sum up using parallel axis theorem
     Vector d = left.com - inner.com;
     TracelessMultipole<1>& Ml1 = left.moments.order<1>();
     TracelessMultipole<2>& Ml2 = left.moments.order<2>();
-    // TracelessMultipole<3>& Ml3 = left.moments.order<3>();
-    inner.moments.order<1>() = parallelAxisTheorem(Ml1, ml, d);
-    inner.moments.order<2>() = parallelAxisTheorem(Ml2, ml, d);
-    // inner.moments.order<3>() = parallelAxisTheorem(Ml3, Ml2, ml, d);
+    TracelessMultipole<3>& Ml3 = left.moments.order<3>();
+    inner.moments.order<1>() = parallelAxisTheorem(Ml1, ml, -d);
+    inner.moments.order<2>() = parallelAxisTheorem(Ml2, ml, -d);
+    inner.moments.order<3>() = parallelAxisTheorem(Ml3, Ml2, ml, -d);
+
+    d = right.com - inner.com;
     TracelessMultipole<1>& Mr1 = right.moments.order<1>();
     TracelessMultipole<2>& Mr2 = right.moments.order<2>();
-    // TracelessMultipole<3>& Mr3 = right.moments.order<3>();
-    inner.moments.order<1>() += parallelAxisTheorem(Mr1, mr, d);
-    inner.moments.order<2>() += parallelAxisTheorem(Mr2, mr, d);
-    // inner.moments.order<3>() += parallelAxisTheorem(Mr3, Mr2, mr, d);
+    TracelessMultipole<3>& Mr3 = right.moments.order<3>();
+    inner.moments.order<1>() += parallelAxisTheorem(Mr1, mr, -d);
+    inner.moments.order<2>() += parallelAxisTheorem(Mr2, mr, -d);
+    inner.moments.order<3>() += parallelAxisTheorem(Mr3, Mr2, mr, -d);
 }
 
 NAMESPACE_SPH_END

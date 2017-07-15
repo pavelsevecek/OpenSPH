@@ -8,6 +8,7 @@ NAMESPACE_SPH_BEGIN
 
 class Storage;
 
+/// \brief Represents three vertices of the triangle
 class Triangle {
 private:
     Vector v[3];
@@ -45,7 +46,9 @@ public:
     }
 };
 
-
+/// \brief Single cell used in mesh generation.
+///
+/// Defined by eight vertices and corresponding values of the scalar field.
 class Cell {
 private:
     StaticArray<Vector, 8> points;
@@ -62,6 +65,8 @@ public:
 };
 
 namespace Abstract {
+
+    /// Inferface for a generic scalar field, returning a float for given position.:w
     class ScalarField : public Polymorphic {
     public:
         /// Returns the value of the scalar field at given position
@@ -69,6 +74,7 @@ namespace Abstract {
     };
 }
 
+/// \brief Marching cubes algorithm for generation of mesh from iso-surface of given scalar field.
 class MarchingCubes {
 private:
     /// Input values
@@ -90,18 +96,27 @@ private:
     static Size IDXS2[12];
 
 public:
+    /// Constructs the object using given scalar field.
+    /// \param r Particle positions
+    /// \param surfaceLevel Defines of the boundary of SPH particle as implicit function \f$ {\rm Boundary} =
+    ///                     \Phi(\vec r) - {\rm surfaceLevel}\f$, where \f$\Phi\f$ is the scalar field.
+    /// \param field Scalar field used to generate the surface.
     MarchingCubes(ArrayView<const Vector> r,
         const Float surfaceLevel,
         const SharedPtr<Abstract::ScalarField>& field);
 
     /// Adds a triangle mesh representing the boundary of particles inside given bounding box into the
     /// internal triangle buffer.
+    /// \param box Selected bounding box
+    /// \param gridResolution Absolute size of the grid
     void addComponent(const Box& box, const Float gridResolution);
 
+    /// Returns the generated triangles.
     INLINE Array<Triangle>& getTriangles() & {
         return triangles;
     }
 
+    /// \copydoc getTriangles
     INLINE Array<Triangle> getTriangles() && {
         return std::move(triangles);
     }
@@ -117,9 +132,11 @@ private:
 
 /// Returns the triangle mesh of the body surface (or surfaces of bodies).
 /// \param storage Particle storage; must contain particle positions.
+/// \param gridResolution Absolute size of each produced triangle.
 /// \param surfaceLevel (Number) density defining the surface. Higher value is more likely to cause SPH
 ///                     particles being separated into smaller groups (droplets), lower value will cause the
-///                     boundary to be "bulgy" rather than smooth
+///                     boundary to be "bulgy" rather than smooth.
+/// \return Array of generated triangles. Can be empty if no boundary exists.
 Array<Triangle> getSurfaceMesh(const Storage& storage, const Float gridResolution, const Float surfaceLevel);
 
 

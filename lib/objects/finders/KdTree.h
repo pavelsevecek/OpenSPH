@@ -19,7 +19,7 @@ struct KdNode {
     Vector com;
 
     /// Gravitational moments with a respect to the center of mass, using expansion to octupole order.
-    MultipoleExpansion<2> moments;
+    MultipoleExpansion<3> moments;
 
     KdNode(const Type& type)
         : type(type) {}
@@ -84,7 +84,9 @@ private:
 
 public:
     KdTree(const Size leafSize = 20)
-        : leafSize(leafSize) {}
+        : leafSize(leafSize) {
+        ASSERT(leafSize >= 1);
+    }
 
     virtual Size findNeighbours(const Size index,
         const Float radius,
@@ -92,20 +94,11 @@ public:
         Flags<FinderFlags> flags = EMPTY_FLAGS,
         const Float error = 0._f) const override;
 
-    /// Finds all points within given radius from given position. The position may not correspond to any
-    /// point.
     virtual Size findNeighbours(const Vector& position,
         const Float radius,
         Array<NeighbourRecord>& neighbours,
         Flags<FinderFlags> flags = EMPTY_FLAGS,
-        const Float error = 0._f) const override {
-        MARK_USED(position);
-        MARK_USED(radius);
-        MARK_USED(neighbours);
-        MARK_USED(flags);
-        MARK_USED(error);
-        NOT_IMPLEMENTED;
-    }
+        const Float error = 0._f) const override;
 
     enum class Direction {
         TOP_DOWN,  ///< From root to leaves
@@ -162,6 +155,11 @@ protected:
 
 private:
     void init();
+
+    Size findNeighboursImpl(const Vector& position,
+        const Float radius,
+        const Size refRank,
+        Array<NeighbourRecord>& neighbours) const;
 
     void buildTree(const Size parent, const Size from, const Size to, const Box& box, const Size slidingCnt);
 

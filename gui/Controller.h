@@ -27,7 +27,7 @@ namespace Abstract {
 class Controller {
 private:
     /// Main frame of the application
-    MainWindow* window;
+    RawPtr<MainWindow> window;
 
     /// Settings of the GUI application
     GuiSettings gui;

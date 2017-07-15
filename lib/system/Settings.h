@@ -273,6 +273,9 @@ enum class DomainEnum {
     /// Sphere with given radius
     SPHERICAL,
 
+    /// Axis-aligned ellipsoid
+    ELLIPSOIDAL,
+
     /// Block with edge sizes given by vector
     BLOCK,
 

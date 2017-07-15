@@ -26,13 +26,13 @@ class Color;
 class MainWindow : public wxFrame {
 private:
     /// Parent control object
-    Controller* controller;
+    RawPtr<Controller> controller;
 
     /// Drawing pane
     /// \todo used some virtual base class instead of directly orthopane
-    OrthoPane* pane;
+    RawPtr<OrthoPane> pane;
 
-    ParticleProbe* probe;
+    RawPtr<ParticleProbe> probe;
 
     /// Additional wx controls
     wxComboBox* quantityBox;

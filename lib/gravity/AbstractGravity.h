@@ -22,6 +22,10 @@ namespace Abstract {
         /// Evaluates the gravitational acceleration of given particle.
         /// \param idx Index of particle in arrays given in \ref build function
         virtual Vector eval(const Size idx) = 0;
+
+        /// Evaluates the gravitational acceleration at given point. The point must NOT correspond to any
+        /// particle, as this would formally lead to infinite acceleration.
+        virtual Vector eval(const Vector& r0) = 0;
     };
 }
 

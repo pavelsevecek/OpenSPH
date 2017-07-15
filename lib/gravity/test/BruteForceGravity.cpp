@@ -12,7 +12,10 @@ TEST_CASE("BruteForceGravity", "[gravity]") {
     SphericalGravity analytic(SphericalGravity::Options::ASSUME_HOMOGENEOUS);
 
     const Float r0 = 1.e7_f;
-    Storage storage = Tests::getGassStorage(1000, BodySettings::getDefaults(), r0, 100);
+    const Float rho0 = 100.f;
+    BodySettings settings;
+    settings.set(BodySettingsId::DENSITY, rho0);
+    Storage storage = Tests::getGassStorage(1000, settings, r0);
     // compute analytical acceleraion
     analytic.finalize(storage);
 

@@ -38,8 +38,9 @@ void solveGassBall(Flags<Options> flags) {
 
     const Float rho0 = 10._f;
     const Float u0 = 1.e4_f;
-    SharedPtr<Storage> storage =
-        makeShared<Storage>(Tests::getGassStorage(200, BodySettings::getDefaults(), 1._f, rho0, u0));
+    BodySettings body;
+    body.set(BodySettingsId::DENSITY, rho0).set(BodySettingsId::ENERGY, u0);
+    SharedPtr<Storage> storage = makeShared<Storage>(Tests::getGassStorage(200, body, 1._f));
     solver.create(*storage, storage->getMaterial(0));
 
     ArrayView<Vector> r, v, dv;

@@ -181,8 +181,8 @@ void AsteroidCollision::setUp() {
 }
 
 void AsteroidCollision::tearDown() {
-    Profiler* profiler = Profiler::getInstance();
-    profiler->printStatistics(*logger);
+    Profiler& profiler = Profiler::getInstance();
+    profiler.printStatistics(*logger);
 }
 
 NAMESPACE_SPH_END

@@ -5,6 +5,7 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2017
 
+#include "geometry/Domain.h"
 #include "sph/solvers/GenericSolver.h"
 
 NAMESPACE_SPH_BEGIN
@@ -15,18 +16,21 @@ namespace Tests {
     Storage getStorage(const Size particleCnt);
 
     /// Returns a storage with ideal gas particles, having pressure, energy and sound speed.
+    Storage getGassStorage(const Size particleCnt, BodySettings settings, const Abstract::Domain& domain);
+
+    /// Returns a storage with ideal gas particles, filling a spherical domain of given radius.
     Storage getGassStorage(const Size particleCnt,
         BodySettings settings = BodySettings::getDefaults(),
-        const Float radius = 1._f,
-        const Float rho0 = 1._f,
-        const Float u0 = 1._f);
+        const Float radius = 1.f);
+
+    /// Returns a storage with stress tensor.
+    Storage getSolidStorage(const Size particleCnt, BodySettings settings, const Abstract::Domain& domain);
 
     /// Returns a storage with stress tensor.
     Storage getSolidStorage(const Size particleCnt,
         BodySettings settings = BodySettings::getDefaults(),
-        const Float radius = 1._f,
-        const Float rho0 = 1._f,
-        const Float u0 = 1._f);
+        const Float radius = 1._f);
+
 
     /// Computes velocity derivatives for given set of equations. Velocity field is defined by given
     /// lambda.

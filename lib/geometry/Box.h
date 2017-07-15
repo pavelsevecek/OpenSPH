@@ -33,6 +33,11 @@ public:
         ASSERT(isValid());
     }
 
+    /// Syntactic sugar, returns a default-constructed (empty) box
+    static Box EMPTY() {
+        return Box();
+    }
+
     /// Enlarges the box to contain the vector. If the box already contains given vectors, it is left
     /// unchanged. If the box was previously empty, it now contains the given point
     INLINE void extend(const Vector& v) {
@@ -40,11 +45,11 @@ public:
         minBound = min(minBound, v);
     }
 
-    /// Enlarges the box to contain another box. The other box must be valid, checked by assert.
+    /// Enlarges the box to contain another box. The other box can be invalid, this box is then unaffected, no
+    /// assert is issued. If an empty (invalid) box is extended with other empty box, it is still empty.
     INLINE void extend(const Box& other) {
-        ASSERT(other.isValid());
-        maxBound = max(maxBound, other.upper());
-        minBound = min(minBound, other.lower());
+        maxBound = max(maxBound, other.maxBound);
+        minBound = min(minBound, other.minBound);
     }
 
     /// Checks if the vector lies inside the box. If the vector lies on the boundary, it is assumed to within
@@ -157,9 +162,14 @@ public:
         }
     }
 
+    /// Prints the bounds of the box into the stream. The box can be empty, in which case EMPTY is written
+    /// instead of the bounds.
     friend std::ostream& operator<<(std::ostream& stream, const Box& box) {
-        ASSERT(box.isValid());
-        stream << box.lower() << box.upper();
+        if (box == Box::EMPTY()) {
+            stream << "EMPTY";
+        } else {
+            stream << box.lower() << box.upper();
+        }
         return stream;
     }
 

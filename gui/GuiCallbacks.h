@@ -9,11 +9,11 @@ NAMESPACE_SPH_BEGIN
 
 class GuiCallbacks : public Abstract::Callbacks {
 private:
-    Controller* model;
+    RawPtr<Controller> model;
 
 public:
-    GuiCallbacks(Controller* model)
-        : model(model) {}
+    GuiCallbacks(RawPtr<Controller>&& model)
+        : model(std::move(model)) {}
 
     virtual void onTimeStep(const Storage& storage, Statistics& stats) override {
         model->onTimeStep(storage, stats);

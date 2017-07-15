@@ -8,13 +8,15 @@ using namespace Sph;
 
 
 TEST_CASE("SphericalGravity consistency", "[equationterm]") {
+    BodySettings settings;
     const Float rho0 = 100._f;
-    Storage storage = Tests::getGassStorage(1000, BodySettings::getDefaults(), Constants::au, rho0);
+    settings.set(BodySettingsId::DENSITY, rho0);
+    Storage storage = Tests::getGassStorage(1000, settings, Constants::au);
     SphericalGravity gravity1(EMPTY_FLAGS);
     // normally we would have to call create and initialize first, but they are empty for SphericalGravity
     gravity1.finalize(storage);
 
-    Storage expected = Tests::getGassStorage(1000, BodySettings::getDefaults(), Constants::au, rho0);
+    Storage expected = Tests::getGassStorage(1000, settings, Constants::au);
     SphericalGravity gravity2(SphericalGravity::Options::ASSUME_HOMOGENEOUS);
     gravity2.finalize(expected);
 

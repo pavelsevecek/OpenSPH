@@ -91,8 +91,7 @@ public:
     /// fill this storage with particles.
     /// \param storage Particle storage, must exist at least as long as this object.
     /// \param solver Solver used to create all the necessary quantities. Also must exist for the duration
-    /// of
-    ///               this object as it is stored by reference.
+    ///               of this object as it is stored by reference.
     /// \param settings Run settings
     InitialConditions(Storage& storage, Abstract::Solver& solver, const RunSettings& settings);
 

@@ -16,9 +16,10 @@ TEST_CASE("StaticSolver no forces", "[staticsolver]") {
     RunSettings settings;
     StaticSolver solver(settings, EquationHolder());
     BodySettings body;
-    body.set(BodySettingsId::ENERGY, 0._f);
-    body.set(BodySettingsId::ENERGY_RANGE, Range(0._f, INFTY));
-    Storage storage = Tests::getSolidStorage(1000, body, 1._f * Constants::au, 10._f);
+    body.set(BodySettingsId::ENERGY, 0._f)
+        .set(BodySettingsId::ENERGY_RANGE, Range(0._f, INFTY))
+        .set(BodySettingsId::DENSITY, 10._f);
+    Storage storage = Tests::getSolidStorage(1000, body, 1._f * Constants::au);
     solver.create(storage, storage.getMaterial(0));
 
     Statistics stats;
@@ -52,8 +53,8 @@ TEST_CASE("StaticSolver pressure", "[staticsolver]") {
     BodySettings body;
     // body.set(BodySettingsId::INITIAL_DISTRIBUTION, DistributionEnum::DIEHL_ET_AL);
     // zero shear modulus to get only pressure without other components of the stress tensor
-    body.set(BodySettingsId::SHEAR_MODULUS, 0._f);
-    Storage storage = Tests::getGassStorage(1000, body, r0, rho0);
+    body.set(BodySettingsId::SHEAR_MODULUS, 0._f).set(BodySettingsId::DENSITY, rho0);
+    Storage storage = Tests::getGassStorage(1000, body, r0);
     solver.create(storage, storage.getMaterial(0));
 
     Statistics stats;
@@ -104,7 +105,9 @@ TEST_CASE("StaticSolver stationary", "[staticsolver]") {
     // density, energy and stress tensor will be (approximately) zero in the first time step
 
     const Float rho0 = 2700._f;
-    Storage storage = Tests::getSolidStorage(1000, BodySettings::getDefaults(), 1.e5_f, rho0);
+    BodySettings settings;
+    settings.set(BodySettingsId::DENSITY, rho0);
+    Storage storage = Tests::getSolidStorage(1000, settings, 1.e5_f);
 
     /*TillotsonEos eos(BodySettings::getDefaults());
     const Float u0 = BodySettings::getDefaults().get<Float>(BodySettingsId::TILLOTSON_SUBLIMATION);

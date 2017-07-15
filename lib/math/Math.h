@@ -303,7 +303,7 @@ constexpr Float SQRT_3 = 1.73205080756887729352744634150587236694280525381038062
 
 
 /// Computes a volume of a sphere given its radius.
-INLINE Float sphereVolume(const Float radius) {
+INLINE constexpr Float sphereVolume(const Float radius) {
     return 1.3333333333333333333333_f * PI * pow<3>(radius);
 }
 

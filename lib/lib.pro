@@ -224,4 +224,5 @@ HEADERS += \
     gravity/Moments.h \
     gravity/AbstractGravity.h \
     gravity/BruteForceGravity.h \
-    objects/finders/BruteForceFinder.h
+    objects/finders/BruteForceFinder.h \
+    objects/wrappers/RawPtr.h

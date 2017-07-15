@@ -97,6 +97,89 @@ void SphericalDomain::addGhosts(ArrayView<const Vector> vs,
     }
 }
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/// EllipsoidalDomain implementation
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+EllipsoidalDomain::EllipsoidalDomain(const Vector& center, const Vector& axes)
+    : Abstract::Domain(center)
+    , radii(axes) {
+    effectiveRadius = cbrt(radii[X] * radii[Y] * radii[Z]);
+    ASSERT(isReal(effectiveRadius));
+}
+
+Float EllipsoidalDomain::getVolume() const {
+    return sphereVolume(effectiveRadius);
+}
+
+Box EllipsoidalDomain::getBoundingBox() const {
+    return Box(this->center - radii, this->center + radii);
+}
+
+bool EllipsoidalDomain::isInside(const Vector& v) const {
+    return isInsideImpl(v);
+}
+
+void EllipsoidalDomain::getSubset(ArrayView<const Vector> vs,
+    Array<Size>& output,
+    const SubsetType type) const {
+    switch (type) {
+    case SubsetType::OUTSIDE:
+        for (Size i = 0; i < vs.size(); ++i) {
+            if (!isInsideImpl(vs[i])) {
+                output.push(i);
+            }
+        }
+        break;
+    case SubsetType::INSIDE:
+        for (Size i = 0; i < vs.size(); ++i) {
+            if (isInsideImpl(vs[i])) {
+                output.push(i);
+            }
+        }
+        break;
+    default:
+        NOT_IMPLEMENTED;
+    }
+}
+
+void EllipsoidalDomain::getDistanceToBoundary(ArrayView<const Vector> vs, Array<Float>& distances) const {
+    distances.clear();
+    for (const Vector& v : vs) {
+        /// \todo test
+        const Float dist = effectiveRadius * (1.f - getLength((v - this->center) / radii));
+        distances.push(dist);
+    }
+}
+
+void EllipsoidalDomain::project(ArrayView<Vector> vs, Optional<ArrayView<Size>> indices) const {
+    auto impl = [this](Vector& v) {
+        if (!isInsideImpl(v)) {
+            const Float h = v[H];
+            /// \todo test
+            v = getNormalized((v - this->center) / radii) * radii + this->center;
+            v[H] = h;
+        }
+    };
+    if (indices) {
+        for (Size i : indices.value()) {
+            impl(vs[i]);
+        }
+    } else {
+        for (Vector& v : vs) {
+            impl(v);
+        }
+    }
+}
+
+void EllipsoidalDomain::addGhosts(ArrayView<const Vector> UNUSED(vs),
+    Array<Ghost>& ghosts,
+    const Float eta,
+    const Float eps) const {
+    ASSERT(eps < eta);
+    ghosts.clear();
+    NOT_IMPLEMENTED;
+}
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// BlockDomain implementation

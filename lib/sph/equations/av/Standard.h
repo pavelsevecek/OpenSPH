@@ -12,9 +12,24 @@
 
 NAMESPACE_SPH_BEGIN
 
-/// Standard artificial viscosity Monaghan & Gingold \cite Monaghan_Gingold_1983, using a velocity divergence
-/// in linear and quadratic term as a measure of local (scalar) dissipation. Parameters alpha_AV and beta_AV
-/// are constant (in time) and equal for all particles.
+/// \brief Standard artificial viscosity Monaghan & Gingold \cite Monaghan_Gingold_1983.
+///
+/// The artificial viscosity term uses a velocity divergence in linear and quadratic term as a measure of
+/// local (scalar) dissipation. Acceleration due to the term is:
+/// \f[
+///  \frac{{\rm d} \vec v_i}{{\rm d} t} = \sum_j  \frac{m_j}{\bar\rho} \left(-\alpha_{\rm AV} \bar{c_{\rm
+///  s}} \mu + \beta_{\rm AV} \mu^2 \right) \nabla W_{ij}\,,
+/// \f]
+/// where \f$\mu\f$ is defined as:
+/// \f[
+///  \mu = \frac{\bar{h}  (\vec v_i-\vec v_j)\cdot(\vec r_i-\vec r_j)}{ \epsilon \bar{h}^2 \| \vec r_i - \vec
+///  r_j \| }\,.
+/// \f]
+/// A bar over values denodes symmetrization over particle pair, for example \f$\bar{h} = 0.5(h_i + h_j)\f$.
+///
+/// The viscosity only applies in convergent flow (\f$(\vec v_i-\vec v_j)\cdot(\vec r_i-\vec r_j) < 0\f$), it
+/// is zero in divergent flow. Prameters \f$\alpha_{\rm AV}\f$ and \f$\beta_{\rm AV}\f$ are constant (in time)
+/// and equal for all particles.
 class StandardAV : public Abstract::EquationTerm {
 public:
     class Derivative : public DerivativeTemplate<Derivative> {

@@ -26,13 +26,22 @@ public:
     }
 
     virtual Vector eval(const Size idx) override {
+        return this->evalImpl(r[idx], idx);
+    }
+
+    virtual Vector eval(const Vector& r0) override {
+        return this->evalImpl(r0, Size(-1));
+    }
+
+private:
+    INLINE Vector evalImpl(const Vector& r0, const Size idx) {
         ASSERT(r && m);
         Vector a(0._f);
         for (Size i = 0; i < r.size(); ++i) {
             if (i == idx) {
                 continue;
             }
-            const Vector dr = r[i] - r[idx];
+            const Vector dr = r[i] - r0;
             a += m[i] * dr / pow<3>(getLength(dr) + EPS);
         }
         return Constants::gravity * a;

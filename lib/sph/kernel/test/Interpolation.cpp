@@ -11,7 +11,9 @@ using namespace Sph;
 TEST_CASE("Interpolation gassball", "[interpolation]") {
     const Float rho0 = 25._f;
     const Float u0 = 60._f;
-    Storage storage = Tests::getGassStorage(4000, BodySettings::getDefaults(), 1._f, rho0, u0);
+    BodySettings settings;
+    settings.set(BodySettingsId::DENSITY, rho0).set(BodySettingsId::ENERGY, u0);
+    Storage storage = Tests::getGassStorage(4000, settings, 1._f);
     Interpolation interpol(storage);
 
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
@@ -40,7 +42,9 @@ TEST_CASE("Interpolation gassball", "[interpolation]") {
 
 TEST_CASE("Interpolate velocity", "[interpolation]") {
     const Float rho0 = 30._f;
-    Storage storage = Tests::getGassStorage(4000, BodySettings::getDefaults(), 1._f, rho0);
+    BodySettings settings;
+    settings.set(BodySettingsId::DENSITY, rho0);
+    Storage storage = Tests::getGassStorage(4000, settings, 1._f);
     ArrayView<Vector> r, v, dv;
     tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
     auto field = [](const Vector& x) {

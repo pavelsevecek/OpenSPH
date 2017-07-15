@@ -123,6 +123,43 @@ private:
     }
 };
 
+/// Axis aligned ellipsoidal domain, defined by the center of sphere and lengths of three axes.
+class EllipsoidalDomain : public Abstract::Domain {
+private:
+    /// Lengths of axes
+    Vector radii;
+
+    /// Effective radius (radius of a sphere with same volume)
+    Float effectiveRadius;
+
+public:
+    EllipsoidalDomain(const Vector& center, const Vector& axes);
+
+    virtual Float getVolume() const override;
+
+    virtual Box getBoundingBox() const override;
+
+    virtual bool isInside(const Vector& v) const override;
+
+    virtual void getSubset(ArrayView<const Vector> vs,
+        Array<Size>& output,
+        const SubsetType type) const override;
+
+    virtual void getDistanceToBoundary(ArrayView<const Vector> vs, Array<Float>& distances) const override;
+
+    virtual void project(ArrayView<Vector> vs, Optional<ArrayView<Size>> indices = NOTHING) const override;
+
+    virtual void addGhosts(ArrayView<const Vector> vs,
+        Array<Ghost>& ghosts,
+        const Float eta,
+        const Float eps) const override;
+
+private:
+    INLINE bool isInsideImpl(const Vector& v) const {
+        return getSqrLength((v - this->center) / radii) <= 1.f;
+    }
+};
+
 
 /// Block aligned with coordinate axes, defined by its center and length of each side.
 /// \todo create extra ghosts in the corners?

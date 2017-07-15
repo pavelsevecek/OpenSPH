@@ -102,25 +102,35 @@ TEST_CASE("Parallel axis theorem", "[gravity]") {
     const Float m0 = computeMultipole<0>(r, m, Vector(0._f), seq).value();
     Multipole<1> m1 = computeMultipole<1>(r, m, Vector(0._f), seq);
     Multipole<2> m2 = computeMultipole<2>(r, m, Vector(0._f), seq);
-    // Multipole<3> m3 = computeMultipole<3>(r, m, Vector(0._f), seq);
+    Multipole<3> m3 = computeMultipole<3>(r, m, Vector(0._f), seq);
+    Multipole<4> m4 = computeMultipole<4>(r, m, Vector(0._f), seq);
     TracelessMultipole<1> q1 = computeReducedMultipole(m1);
     TracelessMultipole<2> q2 = computeReducedMultipole(m2);
-    //  TracelessMultipole<3> q3 = computeReducedMultipole(m3);
+    TracelessMultipole<3> q3 = computeReducedMultipole(m3);
+    TracelessMultipole<4> q4 = computeReducedMultipole(m4);
 
     const Vector d(2._f, 3._f, -1._f);
     Multipole<1> md1 = computeMultipole<1>(r, m, d, seq);
     Multipole<2> md2 = computeMultipole<2>(r, m, d, seq);
-    //    Multipole<3> md3 = computeMultipole<3>(r, m, d, seq);
+    Multipole<3> md3 = computeMultipole<3>(r, m, d, seq);
+    Multipole<4> md4 = computeMultipole<4>(r, m, d, seq);
     TracelessMultipole<1> qd1 = computeReducedMultipole(md1);
     TracelessMultipole<2> qd2 = computeReducedMultipole(md2);
-    // TracelessMultipole<3> qd3 = computeReducedMultipole(md3);
+    TracelessMultipole<3> qd3 = computeReducedMultipole(md3);
+    TracelessMultipole<4> qd4 = computeReducedMultipole(md4);
 
     // the parameter is d = r - r_new, so to evaluate in d we need to pass -d
     TracelessMultipole<1> qpat1 = parallelAxisTheorem(q1, m0, -d);
     TracelessMultipole<2> qpat2 = parallelAxisTheorem(q2, m0, -d);
-    // TracelessMultipole<3> qpat3 = parallelAxisTheorem(q3, q2, m0, -d);
+    TracelessMultipole<3> qpat3 = parallelAxisTheorem(q3, q2, m0, -d);
+    TracelessMultipole<4> qpat4 = parallelAxisTheorem(q4, q3, q2, m0, -d);
 
     REQUIRE(qd1 == approx(qpat1));
     REQUIRE(qd2 == approx(qpat2));
-    // REQUIRE(qd3 == approx(qpat3));
+    REQUIRE(qd3 == approx(qpat3));
+
+    /// \todo
+    MARK_USED(qpat4);
+    MARK_USED(qd4);
+    // REQUIRE(qd4 == approx(qpat4));
 }

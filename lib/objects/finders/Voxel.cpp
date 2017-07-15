@@ -16,7 +16,9 @@ void VoxelFinder::buildImpl(ArrayView<const Vector> points) {
         const Size lutSize = root<3>(points.size()) + 1;
         lut = LookupMap(lutSize);
     }
-    lut.update(points);
+    if (SPH_LIKELY(!points.empty())) {
+        lut.update(points);
+    }
 }
 
 void VoxelFinder::rebuildImpl(ArrayView<const Vector> points) {
@@ -40,6 +42,9 @@ Size VoxelFinder::findNeighbours(const Vector& position,
     const Float error) const {
     const Size refRank = this->values.size();
     const Vector refPosition = lut.clamp(position);
+    if (SPH_UNLIKELY(values.empty())) {
+        return 0;
+    }
     return this->findNeighboursImpl(position, refPosition, refRank, radius, neighbours, flags, error);
 }
 

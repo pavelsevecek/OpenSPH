@@ -83,11 +83,11 @@ private:
 
 
 public:
-    static Profiler* getInstance() {
+    static Profiler& getInstance() {
         if (!instance) {
             instance = makeAuto<Profiler>();
         }
-        return instance.get();
+        return *instance;
     }
 
     /// Creates a new scoped timer of given name. The timer will automatically adds elapsed time to the
@@ -112,8 +112,8 @@ public:
 
 #ifdef SPH_PROFILE
 #define PROFILE_SCOPE(name)                                                                                  \
-    Profiler* __instance = Profiler::getInstance();                                                          \
-    ScopedTimer __scopedTimer = __instance->makeScopedTimer(name);
+    Profiler& __instance = Profiler::getInstance();                                                          \
+    ScopedTimer __scopedTimer = __instance.makeScopedTimer(name);
 //#define PROFILE_NEXT(name) __scopedTimer.next(name);
 //#define SCOPE_STOP __scopedTimer.stop()
 //#define SCOPE_RESUME __scopedTimer.resume()

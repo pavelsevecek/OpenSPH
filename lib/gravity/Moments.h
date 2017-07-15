@@ -50,9 +50,10 @@ INLINE Float reducedFactor() {
     static_assert(N > 0, "Cannot be used for N == 0");
     static_assert(2 * N - 2 * M > 0, "invalid parameter");
     const SignedSize sign = (isOdd(M) ? -1 : 1);
-    const Float factor =
-        Float(doubleFactorial(2 * N - 2 * M - 1)) / (factorial(M) * doubleFactorial(2 * N - 1));
-    return sign * factor;
+    const Float num = doubleFactorial(2 * N - 2 * M - 1);
+    const Float denom = factorial(M) * doubleFactorial(2 * N - 1);
+    const Float factor = sign * num / denom;
+    return factor;
 }
 
 template <Size N>
@@ -116,7 +117,7 @@ inline TracelessMultipole<0> computeReducedMultipole(const Multipole<0>& m) {
 }
 
 template <Size M, Size N>
-std::enable_if_t<(M < N), TracelessMultipole<M>> computeSimplifiedMultipole(const TracelessMultipole<N>& q,
+std::enable_if_t<(M < N), TracelessMultipole<M>> computeMultipolePotential(const TracelessMultipole<N>& q,
     const Vector& r) {
     static_assert(M <= N, "Incorrect parameters");
     using namespace MomentOperators;
@@ -125,13 +126,13 @@ std::enable_if_t<(M < N), TracelessMultipole<M>> computeSimplifiedMultipole(cons
 }
 
 template <Size M, Size N>
-std::enable_if_t<M == N, TracelessMultipole<M>> computeSimplifiedMultipole(const TracelessMultipole<N>& q,
+std::enable_if_t<M == N, TracelessMultipole<M>> computeMultipolePotential(const TracelessMultipole<N>& q,
     const Vector& UNUSED(r)) {
     return q;
 }
 
 template <Size M, Size N>
-std::enable_if_t<(M > N), TracelessMultipole<M>> computeSimplifiedMultipole(
+std::enable_if_t<(M > N), TracelessMultipole<M>> computeMultipolePotential(
     const TracelessMultipole<N>& UNUSED(q),
     const Vector& UNUSED(r)) {
     return TracelessMultipole<M>(0._f);
@@ -198,15 +199,72 @@ namespace MomentOperators {
         }
     };
 
-    /*struct Term32 {
+    struct Term30 {
+        const TracelessMultipole<3>& Q;
+        const Vector& d;
+
+        template <Size I, Size J, Size K, Size L, Size M>
+        INLINE Float perm() const {
+            const Delta<2> delta;
+            return delta.value<I, J>() * Q.value<K, L, M>() + delta.value<I, K>() * Q.value<J, L, M>() +
+                   delta.value<I, L>() * Q.value<J, K, M>() + delta.value<J, K>() * Q.value<I, L, M>() +
+                   delta.value<J, L>() * Q.value<I, K, M>() + delta.value<K, L>() * Q.value<I, J, M>();
+        }
+
+        template <Size I, Size J, Size K, Size L>
+        INLINE Float value() const {
+            return perm<I, J, K, L, 0>() * d[0] + perm<I, J, K, L, 1>() * d[1] + perm<I, J, K, L, 2>() * d[2];
+        }
+    };
+
+    struct Term31 {
         const TracelessMultipole<2>& Q;
+        const TracelessMultipole<2>& f2;
+
+        const static Delta<2> delta1, delta2;
 
         template <Size I, Size J, Size K, Size L, Size M, Size N>
-        INLINE Float value() const {
-            const Delta<4> delta;
-            return delta.value<I, J, K, M>() * Q.value<L, N>();
+        INLINE Float ddq() const {
+            return delta1.template value<I, J>() * delta2.template value<K, M>() * Q.template value<L, N>();
         }
-    };*/
+
+        template <Size I, Size J, Size K, Size L, Size M, Size N>
+        INLINE Float perm() const {
+#if 0
+            return ddq<I, J, K, L, M, N>() + ddq<I, J, L, K, M, N>() + ddq<I, L, J, K, M, N>() +
+                   ddq<I, L, K, J, M, N>() + ddq<I, K, J, L, M, N>() + ddq<I, K, L, J, M, N>() +
+                   ddq<J, K, L, I, M, N>() + ddq<J, K, I, L, M, N>() + ddq<J, L, I, K, M, N>() +
+                   ddq<J, L, K, I, M, N>() + ddq<K, L, I, J, M, N>() + ddq<K, L, J, I, M, N>();
+#else
+            return ddq<I, J, K, L, M, N>() + ddq<I, L, J, K, M, N>() + ddq<I, K, J, L, M, N>() +
+                   ddq<J, K, L, I, M, N>() + ddq<J, L, I, K, M, N>() + ddq<K, L, I, J, M, N>();
+#endif
+        }
+
+        template <Size I, Size J, Size K, Size L>
+        INLINE Float value() const {
+            return perm<I, J, K, L, 0, 0>() * f2.template value<0, 0>() +
+                   perm<I, J, K, L, 0, 1>() * f2.template value<0, 1>() +
+                   perm<I, J, K, L, 0, 2>() * f2.template value<0, 2>() +
+                   perm<I, J, K, L, 1, 0>() * f2.template value<1, 0>() +
+                   perm<I, J, K, L, 1, 1>() * f2.template value<1, 1>() +
+                   perm<I, J, K, L, 1, 2>() * f2.template value<1, 2>() +
+                   perm<I, J, K, L, 2, 0>() * f2.template value<2, 0>() +
+                   perm<I, J, K, L, 2, 1>() * f2.template value<2, 1>() +
+                   perm<I, J, K, L, 2, 2>() * f2.template value<2, 2>();
+        }
+    };
+
+    struct Term32 {
+        const TracelessMultipole<2>& Q;
+        const TracelessMultipole<2>& f2;
+
+        template <Size I, Size J, Size K, Size L>
+        INLINE Float value() const {
+            return makePermutations(Delta<2>{}, Delta<2>{}).template value<I, J, K, L>() *
+                   makeInner<2>(Q, f2).value() * (-1._f / 5._f);
+        }
+    };
 }
 
 INLINE TracelessMultipole<3> parallelAxisTheorem(const TracelessMultipole<3>& Qijk,
@@ -221,7 +279,7 @@ INLINE TracelessMultipole<3> parallelAxisTheorem(const TracelessMultipole<3>& Qi
 }
 
 
-/*TracelessMultipole<4> parallelAxisTheorem(const TracelessMultipole<4>& Qijkl,
+INLINE TracelessMultipole<4> parallelAxisTheorem(const TracelessMultipole<4>& Qijkl,
     const TracelessMultipole<3>& Qijk,
     const TracelessMultipole<2>& Qij,
     const Float Q,
@@ -230,11 +288,13 @@ INLINE TracelessMultipole<3> parallelAxisTheorem(const TracelessMultipole<3>& Qi
     OuterProduct<1> d1{ d };
     OuterProduct<2> d2{ d };
     OuterProduct<4> d4{ d };
+    const TracelessMultipole<2> f2 = computeReducedMultipole(makeMultipole<2>(d2));
+    const TracelessMultipole<4> f4 = computeReducedMultipole(makeMultipole<4>(d4));
 
-    return makeTracelessMultipole<3>(
-        Qijkl + d4 * Q + makePermutations(Qijk, d1) + makePermutations(Qij, d2) +)
+    return makeTracelessMultipole<4>(
+        Qijkl + f4 * Q + makePermutations(Qijk, d1) + makePermutations(Qij, f2) +
+        (Term30{ Qijk, d } + Term31{ Qij, f2 } + Term32{ Qij, f2 }) * (-2._f / 7._f));
 }
-*/
 
 template <Size N>
 struct GravityEvaluator {
@@ -246,10 +306,10 @@ struct GravityEvaluator {
     template <Size M>
     INLINE void visit() {
         const TracelessMultipole<M>& q = ms.template order<M>();
-        const Float Q0 = computeSimplifiedMultipole<0>(q, dr).value();
-        const Vector Q1 = computeSimplifiedMultipole<1>(q, dr).vector();
+        const Float Q0 = computeMultipolePotential<0>(q, dr).value();
+        const Vector Q1 = computeMultipolePotential<1>(q, dr).vector();
         a += -gamma[M + 1] * dr * Q0 - gamma[M] * Q1;
-        ASSERT(isReal(a));
+        ASSERT(isReal(a), dr, Q0, Q1, gamma);
     }
 };
 
@@ -262,14 +322,29 @@ Vector evaluateGravity(const Vector& dr, const MultipoleExpansion<N>& ms) {
         gamma[i] = greenGamma(i, invDistSqr);
     }
 
-    Vector a(0._f);
-    GravityEvaluator<N> evaluator{ dr, ms, gamma, a };
-    staticFor<0, 2>(evaluator);
-    /*const TracelessMultipole<0>& q = ms.template order<0>();
-    const Float Q0 = computeSimplifiedMultipole<0>(q, dr).value();
-    const Vector Q1 = computeSimplifiedMultipole<1>(q, dr).vector();*/
 
-    /*a = -gamma[1] * dr * Q0 - gamma[0] * Q1;*/
+    /*    GravityEvaluator<N> evaluator{ dr, ms, gamma, a };
+        staticFor<0, 2>(evaluator);*/
+
+    // monopole
+    const TracelessMultipole<0>& q0 = ms.template order<0>();
+    const Float Q00 = computeMultipolePotential<0>(q0, dr).value();
+    const Vector Q01 = computeMultipolePotential<1>(q0, dr).vector();
+    const Vector a0 = -gamma[1] * dr * Q00 - gamma[0] * Q01;
+
+    // dipole
+    /* const TracelessMultipole<1>& q1 = ms.template order<1>();
+     const Float Q10 = computeSimplifiedMultipole<0>(q1, dr).value();
+     const Vector Q11 = computeSimplifiedMultipole<1>(q1, dr).vector();
+     const Vector a1 = -gamma[2] * dr * Q10 - gamma[1] * Q11;*/
+    const Vector a1(0._f);
+
+    // quadrupole
+    const TracelessMultipole<2>& q2 = ms.template order<2>();
+    const Float Q20 = computeMultipolePotential<0>(q2, dr).value();
+    const Vector Q21 = computeMultipolePotential<1>(q2, dr).vector();
+    const Vector a2 = -gamma[3] * dr * Q20 - gamma[2] * Q21;
+    const Vector a = a0 + a1 + a2;
     ASSERT(isReal(a) && getSqrLength(a) > 0._f);
     return a;
 }

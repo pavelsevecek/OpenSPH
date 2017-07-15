@@ -311,6 +311,14 @@ private:
 public:
     static constexpr Size ORDER = Order;
 
+    TracelessMultipole() = default;
+
+    TracelessMultipole(const Float f) {
+        for (Float& v : data) {
+            v = f;
+        }
+    }
+
     template <Size... Idxs>
     INLINE Float value() const {
         return TracelessMultipoleComponent<Idxs...>{}.get(*this);
@@ -653,6 +661,20 @@ namespace MomentOperators {
         }
     };
     template <typename Value1, typename Value2>
+    struct Permutations<3, 1, Value1, Value2> {
+        const Value1& v1;
+        const Value2& v2;
+        static constexpr Size ORDER = 4;
+
+        template <Size I, Size J, Size K, Size L>
+        INLINE constexpr Float value() const {
+            return v1.template value<I, J, K>() * v2.template value<L>() +
+                   v1.template value<I, J, L>() * v2.template value<K>() +
+                   v1.template value<I, K, L>() * v2.template value<J>() +
+                   v1.template value<J, K, L>() * v2.template value<I>();
+        }
+    };
+    template <typename Value1, typename Value2>
     struct Permutations<2, 1, Value1, Value2> {
         const Value1& v1;
         const Value2& v2;
@@ -859,7 +881,7 @@ namespace MomentOperators {
     struct OuterProduct {
         static constexpr Size ORDER = Order;
 
-        const Vector v;
+        const Vector& v;
 
         template <Size I, Size J, Size... Is>
         INLINE constexpr Float value() const {
@@ -1122,6 +1144,19 @@ public:
         return stream;
     }
 };*/
+
+namespace Experimental {
+    template <Size N>
+    class MultipoleBase {
+    protected:
+        static constexpr Size COMPONENT_CNT = (N + 1) * (N + 2) / 2;
+
+        Float data[COMPONENT_CNT];
+
+    public:
+        // inner
+    };
+}
 
 
 NAMESPACE_SPH_END

@@ -33,7 +33,7 @@ MainWindow::MainWindow(Controller* parent, const GuiSettings& settings)
 
     wxBoxSizer* mainSizer = new wxBoxSizer(wxHORIZONTAL);
     pane = new OrthoPane(this, parent, settings);
-    mainSizer->Add(pane, 1, wxEXPAND);
+    mainSizer->Add(pane.get(), 1, wxEXPAND);
 
     mainSizer->AddSpacer(5);
 
@@ -41,7 +41,7 @@ MainWindow::MainWindow(Controller* parent, const GuiSettings& settings)
     mainSizer->Add(plot, 1, wxALIGN_TOP);*/
 
     probe = new ParticleProbe(this, wxSize(300, 200));
-    mainSizer->Add(probe, 1, wxALIGN_TOP);
+    mainSizer->Add(probe.get(), 1, wxALIGN_TOP);
 
     sizer->Add(mainSizer);
 

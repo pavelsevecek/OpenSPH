@@ -13,8 +13,10 @@ TEST_CASE("StressAV test", "[av]") {
     BodySettings body;
     body.set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::NONE);
     /// \todo this test is HIGHLY sensitive on initial distribution!
-    body.set(BodySettingsId::INITIAL_DISTRIBUTION, DistributionEnum::HEXAGONAL);
-    SharedPtr<Storage> storage = makeShared<Storage>(Tests::getSolidStorage(10000, body, 1._f, 1._f, u0));
+    body.set(BodySettingsId::INITIAL_DISTRIBUTION, DistributionEnum::HEXAGONAL)
+        .set(BodySettingsId::DENSITY, 1._f)
+        .set(BodySettingsId::ENERGY, 0._f);
+    SharedPtr<Storage> storage = makeShared<Storage>(Tests::getSolidStorage(10000, body, 1._f));
     const Float cs = storage->getValue<Float>(QuantityId::SOUND_SPEED)[0];
     ArrayView<Vector> r, v, dv;
     tie(r, v, dv) = storage->getAll<Vector>(QuantityId::POSITIONS);

@@ -29,7 +29,9 @@ void KdTree::buildImpl(ArrayView<const Vector> points) {
         idxs.push(i.index());
     }
 
-    this->buildTree(ROOT_PARENT_NODE, 0, points.size(), entireBox, 0);
+    if (SPH_LIKELY(!points.empty())) {
+        this->buildTree(ROOT_PARENT_NODE, 0, points.size(), entireBox, 0);
+    }
 }
 
 void KdTree::rebuildImpl(ArrayView<const Vector> points) {
@@ -51,7 +53,7 @@ void KdTree::buildTree(const Size parent,
     bool slidingMidpoint = false;
     bool degeneratedBox = false;
 
-    if (to - from < leafSize) {
+    if (to - from <= leafSize) {
         // enough points to fit inside one leaf
         this->addLeaf(parent, from, to);
         return;
@@ -242,15 +244,10 @@ bool KdTree::checkBoxes(const Size from,
     return true;
 }
 
-Size KdTree::findNeighbours(const Size index,
+Size KdTree::findNeighboursImpl(const Vector& r0,
     const Float radius,
-    Array<NeighbourRecord>& neighbours,
-    Flags<FinderFlags> flags,
-    const Float UNUSED(error)) const {
-    neighbours.clear();
-    const Size refRank = (flags.has(FinderFlags::FIND_ONLY_SMALLER_H)) ? rankH[index] : values.size();
-
-    const Vector& r0 = values[index];
+    const Size refRank,
+    Array<NeighbourRecord>& neighbours) const {
     const Float radiusSqr = sqr(radius);
     const Vector maxDistSqr = sqr(max(Vector(0._f), entireBox.lower() - r0, r0 - entireBox.upper()));
 
@@ -317,6 +314,30 @@ Size KdTree::findNeighbours(const Size index,
     }
 
     return neighbours.size();
+}
+
+Size KdTree::findNeighbours(const Size index,
+    const Float radius,
+    Array<NeighbourRecord>& neighbours,
+    Flags<FinderFlags> flags,
+    const Float UNUSED(error)) const {
+    neighbours.clear();
+    const Size refRank = (flags.has(FinderFlags::FIND_ONLY_SMALLER_H)) ? rankH[index] : values.size();
+
+    const Vector& r0 = values[index];
+    return this->findNeighboursImpl(r0, radius, refRank, neighbours);
+}
+
+Size KdTree::findNeighbours(const Vector& position,
+    const Float radius,
+    Array<NeighbourRecord>& neighbours,
+    Flags<FinderFlags> UNUSED(flags),
+    const Float UNUSED(error)) const {
+    neighbours.clear();
+    if (SPH_UNLIKELY(values.empty())) {
+        return 0;
+    }
+    return this->findNeighboursImpl(position, radius, values.size(), neighbours);
 }
 
 bool KdTree::sanityCheck() const {

@@ -1,14 +1,16 @@
 #pragma once
 
-/// Simple 2D vector with integer coordinates. Provides conversion from and to wxPoint.
-/// Pavel Sevecek 2017
-/// sevecek at sirrah.troja.mff.cuni.cz
+/// \file Point.h
+/// \brief Simple 2D vector with integer coordinates. Provides conversion from and to wxPoint.
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2017
 
 #include "objects/Object.h"
 #include <wx/gdicmn.h>
 
 NAMESPACE_SPH_BEGIN
 
+/// \brief Two-dimensional point with integral coordinates
 class Point {
 public:
     int x, y;

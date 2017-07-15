@@ -214,6 +214,15 @@ public:
         return !(*this == other);
     }
 
+    /// Prints content of array to stream. Stored values must have overloaded << operator.
+    template <typename TStream>
+    friend TStream& operator<<(TStream& stream, const StaticArray& array) {
+        for (const T& t : array) {
+            stream << t << std::endl;
+        }
+        return stream;
+    }
+
 private:
     INLINE StorageType* rawData() {
         return reinterpret_cast<StorageType*>(data);

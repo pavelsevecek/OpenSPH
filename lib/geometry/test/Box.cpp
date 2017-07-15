@@ -70,19 +70,22 @@ TEST_CASE("Box extend vector", "[box]") {
 
 TEST_CASE("Box extend box", "[box]") {
     Box box1;
+    box1.extend(Box());
+    REQUIRE(box1 == Box::EMPTY());
+
     Box box2(Vector(1._f), Vector(3._f));
     box1.extend(box2);
+    REQUIRE(box1 == box2);
+    box1.extend(Box::EMPTY());
     REQUIRE(box1 == box2);
 
     Box box3(Vector(2._f), Vector(4._f));
     box1.extend(box3);
     REQUIRE(box1 == Box(Vector(1._f), Vector(4._f)));
 
-    Box box4(Vector(-1._f, 0._f, 0._f), Vector(5._f, 0._f, 0._f));
+    Box box4(Vector(-1._f, 2._f, 2._f), Vector(5._f, 2._f, 2._f));
     box1.extend(box4);
     REQUIRE(box1 == Box(Vector(-1._f, 1._f, 1._f), Vector(5._f, 4._f, 4._f)));
-
-    REQUIRE_ASSERT(box1.extend(Box()));
 }
 
 TEST_CASE("Box clamp", "[box]") {
