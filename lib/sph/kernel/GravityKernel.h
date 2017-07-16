@@ -9,9 +9,10 @@
 
 NAMESPACE_SPH_BEGIN
 
-/// Kernel is approximated by LUT for close particles, at larger distances we recover the standard Newtonian
-/// inverse square law.
-/// According to P. Cossins, PhD thesis, 2010 \cite Cossins_2010
+/// \brief Kernel approximated by LUT for close particles
+///
+/// At larger distances, we recover the standard Newtonian inverse square law. Implemented according to P.
+/// Cossins, PhD thesis, 2010 \cite Cossins_2010.
 class GravityLutKernel {
 private:
     /// Kernel for close particles
@@ -56,7 +57,9 @@ public:
     }
 };
 
-/// Gravity smoothing kernels associated with standard SPH kernels
+/// \brief Gravity smoothing kernels associated with standard SPH kernels.
+///
+/// Needs to be specialized for every SPH kernel.
 template <typename TKernel>
 class GravityKernel;
 
@@ -92,5 +95,20 @@ public:
     }
 };
 
+/// \brief Simple N-body kernel, assuming particles are point-like.
+class GravityDeltaKernel {
+public:
+    INLINE Float radius() const {
+        return 0._f;
+    }
+
+    INLINE Float valueImpl(const Float UNUSED(qSqr)) const {
+        STOP; // should never be called as the kernel has zero radius
+    }
+
+    INLINE Float gradImpl(const Float UNUSED(qSqr)) const {
+        STOP; // should never be called as the kernel has zero radius
+    }
+};
 
 NAMESPACE_SPH_END

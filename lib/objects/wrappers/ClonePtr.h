@@ -118,12 +118,13 @@ public:
         ASSERT(ptr);
         return *ptr;
     }
-    T* operator->() const {
+
+    RawPtr<T> operator->() const {
         ASSERT(ptr);
         return ptr.get();
     }
 
-    T* get() const {
+    RawPtr<T> get() const {
         return ptr.get();
     }
 
@@ -145,22 +146,22 @@ public:
 };
 
 template <typename T>
-inline bool operator==(const ClonePtr<T>& ptr, const std::nullptr_t&) {
+INLINE bool operator==(const ClonePtr<T>& ptr, const std::nullptr_t&) {
     return !ptr;
 }
 
 template <typename T>
-inline bool operator==(const std::nullptr_t&, const ClonePtr<T>& ptr) {
+INLINE bool operator==(const std::nullptr_t&, const ClonePtr<T>& ptr) {
     return !ptr;
 }
 
 template <typename T>
-inline bool operator!=(const ClonePtr<T>& ptr, const std::nullptr_t&) {
+INLINE bool operator!=(const ClonePtr<T>& ptr, const std::nullptr_t&) {
     return (bool)ptr;
 }
 
 template <typename T>
-inline bool operator!=(const std::nullptr_t&, const ClonePtr<T>& ptr) {
+INLINE bool operator!=(const std::nullptr_t&, const ClonePtr<T>& ptr) {
     return (bool)ptr;
 }
 

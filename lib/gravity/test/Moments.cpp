@@ -51,7 +51,9 @@ TEST_CASE("Reduced multipole", "[gravity]") {
 
 
 TEST_CASE("Moments computation", "[gravity]") {
-    Storage storage = Tests::getGassStorage(10);
+    BodySettings settings;
+    settings.set(BodySettingsId::DENSITY, 1._f);
+    Storage storage = Tests::getGassStorage(10, settings);
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
     ArrayView<Float> m = storage.getValue<Float>(QuantityId::MASSES);
 
@@ -94,7 +96,9 @@ TEST_CASE("Moments computation", "[gravity]") {
 
 TEST_CASE("Parallel axis theorem", "[gravity]") {
     // check that PAT really gives correct moments
-    Storage storage = Tests::getGassStorage(10);
+    BodySettings settings;
+    settings.set(BodySettingsId::DENSITY, 1._f);
+    Storage storage = Tests::getGassStorage(10, settings);
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
     ArrayView<Float> m = storage.getValue<Float>(QuantityId::MASSES);
 

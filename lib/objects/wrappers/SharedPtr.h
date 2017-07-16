@@ -215,7 +215,7 @@ public:
         return ptr == nullptr;
     }
 
-    INLINE T* get() const {
+    INLINE RawPtr<T> get() const {
         return ptr;
     }
 

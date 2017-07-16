@@ -111,8 +111,8 @@ protected:
     }
 };
 
-AsteroidCollision::AsteroidCollision(Controller* controller)
-    : controller(controller) {
+AsteroidCollision::AsteroidCollision(RawPtr<Controller>&& controller)
+    : controller(std::move(controller)) {
     settings.set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::PREDICTOR_CORRECTOR)
         .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 0.01_f)
         .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 0.01_f)

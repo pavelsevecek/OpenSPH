@@ -160,9 +160,6 @@ private:
     /// etc.
     Array<Size> partitions;
 
-    /// Thread pool for parallelization
-    SharedPtr<ThreadPool> pool;
-
 public:
     /// Creates a storage with no material. Any call of \ref getMaterial function will result in assert.
     Storage();
@@ -368,21 +365,12 @@ public:
         return quantities[key];
     }
 
-    void setThreadPool(const SharedPtr<ThreadPool>& pool);
-
-    SharedPtr<ThreadPool> getThreadPool() const {
-        return pool;
-    }
-
     /// \todo this really shouldn't be inside the storage, instead create some utility function for it.
     template <typename TFunctor>
     void parallelFor(const Size n1, const Size n2, TFunctor&& functor) {
-        if (pool) {
-            const Size granularity = min<Size>(1000, max<Size>((n2 - n1) / pool->getThreadCnt(), 1));
-            Sph::parallelFor(*pool, n1, n2, granularity, std::forward<TFunctor>(functor));
-        } else {
-            functor(n1, n2);
-        }
+        ThreadPool& pool = ThreadPool::getGlobalInstance();
+        const Size granularity = min<Size>(1000, max<Size>((n2 - n1) / pool.getThreadCnt(), 1));
+        Sph::parallelFor(pool, n1, n2, granularity, std::forward<TFunctor>(functor));
     }
 
     /// Returns an object containing a reference to given material. The object can also be used to iterate

@@ -75,7 +75,8 @@ SOURCES += \
     post/MarchingCubes.cpp \
     post/MeshFile.cpp \
     objects/finders/KdTree.cpp \
-    gravity/BarnesHut.cpp
+    gravity/BarnesHut.cpp \
+    thread/Pool.cpp
 
 HEADERS += \
     commmon/ForwardDecl.h \

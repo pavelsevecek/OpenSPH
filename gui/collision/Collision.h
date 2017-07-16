@@ -14,10 +14,10 @@ NAMESPACE_SPH_BEGIN
 
 class AsteroidCollision : public Abstract::Run {
 private:
-    Controller* controller;
+    RawPtr<Controller> controller;
 
 public:
-    AsteroidCollision(Controller* controller);
+    AsteroidCollision(RawPtr<Controller>&& controller);
 
     virtual void setUp() override;
 

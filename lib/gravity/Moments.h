@@ -151,11 +151,11 @@ namespace Detail {
     }
 }
 
-template <Size N>
+template <Size N, typename TSequence>
 Multipole<N> computeMultipole(ArrayView<const Vector> r,
     ArrayView<const Float> m,
     const Vector& r0,
-    const IndexSequence& sequence) {
+    const TSequence& sequence) {
     Multipole<N> moments(0._f);
     for (Size i : sequence) {
         const Vector dr = r[i] - r0;
@@ -296,55 +296,41 @@ INLINE TracelessMultipole<4> parallelAxisTheorem(const TracelessMultipole<4>& Qi
         (Term30{ Qijk, d } + Term31{ Qij, f2 } + Term32{ Qij, f2 }) * (-2._f / 7._f));
 }
 
-template <Size N>
-struct GravityEvaluator {
-    Vector dr;
-    const MultipoleExpansion<N>& ms;
-    const StaticArray<Float, N + 2>& gamma;
-    Vector& a;
-
-    template <Size M>
-    INLINE void visit() {
-        const TracelessMultipole<M>& q = ms.template order<M>();
-        const Float Q0 = computeMultipolePotential<0>(q, dr).value();
-        const Vector Q1 = computeMultipolePotential<1>(q, dr).vector();
-        a += -gamma[M + 1] * dr * Q0 - gamma[M] * Q1;
-        ASSERT(isReal(a), dr, Q0, Q1, gamma);
-    }
-};
-
+template <Size M, Size N>
+INLINE Vector computeMultipoleAcceleration(const MultipoleExpansion<N>& ms,
+    ArrayView<const Float> gamma,
+    const Vector& dr) {
+    const TracelessMultipole<M>& q = ms.template order<M>();
+    const Float Q0 = computeMultipolePotential<0>(q, dr).value();
+    const Vector Q1 = computeMultipolePotential<1>(q, dr).vector();
+    const Vector a = gamma[M + 1] * dr * Q0 + gamma[M] * Q1;
+    ASSERT(isReal(a), dr, Q0, Q1, gamma);
+    return a;
+}
 
 template <Size N>
-Vector evaluateGravity(const Vector& dr, const MultipoleExpansion<N>& ms) {
+Vector evaluateGravity(const Vector& dr, const MultipoleExpansion<N>& ms, const Size maxOrder) {
     StaticArray<Float, N + 2> gamma;
     const Float invDistSqr = 1._f / getSqrLength(dr);
     for (Size i = 0; i < N + 2; ++i) {
         gamma[i] = greenGamma(i, invDistSqr);
     }
 
+    Vector a(0._f);
+    switch (maxOrder) {
+    case 3: // octupole
+        a += computeMultipoleAcceleration<3>(ms, gamma, -dr);
+        SPH_FALLTHROUGH;
+    case 2: // quadrupole
+        a += computeMultipoleAcceleration<2>(ms, gamma, -dr);
+        SPH_FALLTHROUGH;
+    case 0: // monopole
+        a += computeMultipoleAcceleration<0>(ms, gamma, -dr);
+        break;
+    default:
+        NOT_IMPLEMENTED;
+    };
 
-    /*    GravityEvaluator<N> evaluator{ dr, ms, gamma, a };
-        staticFor<0, 2>(evaluator);*/
-
-    // monopole
-    const TracelessMultipole<0>& q0 = ms.template order<0>();
-    const Float Q00 = computeMultipolePotential<0>(q0, dr).value();
-    const Vector Q01 = computeMultipolePotential<1>(q0, dr).vector();
-    const Vector a0 = -gamma[1] * dr * Q00 - gamma[0] * Q01;
-
-    // dipole
-    /* const TracelessMultipole<1>& q1 = ms.template order<1>();
-     const Float Q10 = computeSimplifiedMultipole<0>(q1, dr).value();
-     const Vector Q11 = computeSimplifiedMultipole<1>(q1, dr).vector();
-     const Vector a1 = -gamma[2] * dr * Q10 - gamma[1] * Q11;*/
-    const Vector a1(0._f);
-
-    // quadrupole
-    const TracelessMultipole<2>& q2 = ms.template order<2>();
-    const Float Q20 = computeMultipolePotential<0>(q2, dr).value();
-    const Vector Q21 = computeMultipolePotential<1>(q2, dr).vector();
-    const Vector a2 = -gamma[3] * dr * Q20 - gamma[2] * Q21;
-    const Vector a = a0 + a1 + a2;
     ASSERT(isReal(a) && getSqrLength(a) > 0._f);
     return a;
 }

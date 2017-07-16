@@ -53,9 +53,6 @@ protected:
     SymmetrizeSmoothingLengths<LutKernel<DIMENSIONS>> kernel;
 
 public:
-    /// \todo we have to somehow enforce either conservation of smoothing length or some EquationTerm that
-    /// will evolve it. Or maybe just move smoothing length to separate quantity to get rid of these issues?
-
     AsymmetricSolver(const RunSettings& settings, const EquationHolder& eqs)
         : pool(makeShared<ThreadPool>(settings.get<int>(RunSettingsId::RUN_THREAD_CNT)))
         , threadData(*pool) {
@@ -141,32 +138,15 @@ protected:
     }
 
     virtual void beforeLoop(Storage& storage, Statistics& UNUSED(stats)) {
-        // clear thread local storages
+        // clear thread accumulated
         PROFILE_SCOPE("GenericSolver::beforeLoop");
-        threadData.forEach([&storage](ThreadData& data) { data.derivatives.initialize(storage); });
+        derivatives.initialize(storage);
     }
 
     virtual void afterLoop(Storage& storage, Statistics& stats) {
-        Accumulated* first = nullptr;
-        {
-            // sum up thread local accumulated values
-            Array<Accumulated*> threadLocalAccumulated;
-            threadData.forEach([this, &first, &threadLocalAccumulated](ThreadData& data) {
-                if (!first) {
-                    first = &data.derivatives.getAccumulated();
-                } else {
-                    ASSERT(first != nullptr);
-                    threadLocalAccumulated.push(&data.derivatives.getAccumulated());
-                }
-            });
-            ASSERT(first != nullptr);
-            PROFILE_SCOPE("GenericSolver::afterLoop part 1");
-            first->sum(*pool, threadLocalAccumulated);
-        }
-        PROFILE_SCOPE("GenericSolver::afterLoop part 2");
-        ASSERT(first);
-        // store them to storage
-        first->store(storage);
+        // store accumulated to storage
+        Accumulated& accumulated = derivatives.getAccumulated();
+        accumulated.store(storage);
 
         // compute neighbour statistics
         MinMaxMean neighs;

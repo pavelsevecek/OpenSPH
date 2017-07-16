@@ -174,8 +174,8 @@ void EllipsoidalDomain::project(ArrayView<Vector> vs, Optional<ArrayView<Size>> 
 
 void EllipsoidalDomain::addGhosts(ArrayView<const Vector> UNUSED(vs),
     Array<Ghost>& ghosts,
-    const Float eta,
-    const Float eps) const {
+    const Float UNUSED_IN_RELEASE(eta),
+    const Float UNUSED_IN_RELEASE(eps)) const {
     ASSERT(eps < eta);
     ghosts.clear();
     NOT_IMPLEMENTED;

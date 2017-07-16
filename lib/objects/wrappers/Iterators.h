@@ -640,7 +640,7 @@ auto subset(TContainer&& container, TCondition&& condition) {
 
 
 class IndexIterator {
-private:
+protected:
     Size idx;
 
 public:
@@ -662,7 +662,7 @@ public:
 };
 
 class IndexSequence {
-private:
+protected:
     Size from;
     Size to;
 

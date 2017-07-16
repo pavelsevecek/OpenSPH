@@ -146,14 +146,17 @@ TEST_CASE("BinaryOutput dump&accumulate materials", "[output]") {
 }
 
 TEST_CASE("Pkdgrav output", "[output]") {
-    Storage storage = Tests::getGassStorage(100);
+    BodySettings settings;
+    settings.set(BodySettingsId::ENERGY, 50._f);
+    Storage storage = Tests::getGassStorage(100, settings);
     storage.insert<Size>(QuantityId::FLAG, OrderEnum::ZERO, 0);
-    PkdgravParams params;
-    PkdgravOutput output(Path("readerik%d.out"), std::move(params));
+
+    PkdgravOutput output(Path("readerik%d.out"), PkdgravParams{});
     Statistics stats;
     output.dump(storage, stats);
     REQUIRE(fileSize(Path("readerik0000.out")) > 0);
 
+    PkdgravParams params;
     params.vaporThreshold = 0.f;
     PkdgravOutput output2(Path("readerik2_%d.out"), std::move(params));
     output2.dump(storage, stats);

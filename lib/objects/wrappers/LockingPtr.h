@@ -79,7 +79,7 @@ public:
         friend class LockingPtr;
 
     private:
-        T* ptr;
+        RawPtr<T> ptr;
         std::unique_lock<Detail::LockingControlBlock<T>> lock;
 
         Proxy()
@@ -96,7 +96,7 @@ public:
             : ptr(proxy.ptr)
             , lock(std::move(proxy.lock)) {}
 
-        T* operator->() {
+        RawPtr<T> operator->() {
             ASSERT(ptr != nullptr);
             return ptr;
         }
@@ -106,7 +106,7 @@ public:
             return *ptr;
         }
 
-        T* get() {
+        RawPtr<T> get() {
             return ptr;
         }
 

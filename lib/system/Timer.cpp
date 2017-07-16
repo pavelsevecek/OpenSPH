@@ -23,7 +23,7 @@ public:
 
     ~TimerThread();
 
-    static TimerThread* getInstance();
+    static TimerThread& getInstance();
 
     void registerTimer(const SharedPtr<Timer>& timer, const std::function<void(void)>& callback);
 
@@ -96,8 +96,8 @@ SharedPtr<Timer> makeTimer(const int64_t interval,
     const std::function<void(void)>& callback,
     const Flags<TimerFlags> flags) {
     SharedPtr<Timer> timer = makeShared<Timer>(interval, flags);
-    TimerThread* instance = TimerThread::getInstance();
-    instance->registerTimer(timer, callback);
+    TimerThread& instance = TimerThread::getInstance();
+    instance.registerTimer(timer, callback);
     return timer;
 }
 
@@ -113,11 +113,11 @@ TimerThread::~TimerThread() {
     thread.join();
 }
 
-TimerThread* TimerThread::getInstance() {
+TimerThread& TimerThread::getInstance() {
     if (!instance) {
         instance = makeAuto<TimerThread>();
     }
-    return instance.get();
+    return *instance;
 }
 
 void TimerThread::registerTimer(const SharedPtr<Timer>& timer, const std::function<void(void)>& callback) {

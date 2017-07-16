@@ -58,6 +58,42 @@ struct LeafNode : public KdNode {
     }
 };
 
+/// Index iterator with given mapping (index permutation), returns value mapping[index] when dereferenced,
+class LeafIndexIterator : public IndexIterator {
+private:
+    ArrayView<const Size> mapping;
+
+public:
+    INLINE LeafIndexIterator(const Size idx, ArrayView<const Size> mapping)
+        : IndexIterator(idx)
+        , mapping(mapping) {}
+
+    INLINE Size operator*() const {
+        return mapping[idx];
+    }
+};
+
+/// Helper index sequence to iterate over particle indices of a leaf node.
+class LeafIndexSequence : public IndexSequence {
+private:
+    ArrayView<const Size> mapping;
+
+public:
+    INLINE LeafIndexSequence(const Size from, const Size to, ArrayView<const Size> mapping)
+        : IndexSequence(from, to)
+        , mapping(mapping) {
+        ASSERT(to <= mapping.size());
+    }
+
+    INLINE LeafIndexIterator begin() const {
+        return LeafIndexIterator(from, mapping);
+    }
+
+    INLINE LeafIndexIterator end() const {
+        return LeafIndexIterator(to, mapping);
+    }
+};
+
 
 /// https://www.cs.umd.edu/~mount/Papers/cgc99-smpack.pdf
 class KdTree : public Abstract::Finder {
@@ -140,9 +176,14 @@ public:
         }
     }
 
-    /// Returns the particle index (in storage) for given index of particle in leaves
-    INLINE Size particleIdx(const Size nodeIdx) {
-        return idxs[nodeIdx];
+    /// Returns the node with given index
+    INLINE const KdNode& getNode(const Size nodeIdx) const {
+        return nodes[nodeIdx];
+    }
+
+    /// Returns the sequence of particles indices belonging to given leaf.
+    INLINE LeafIndexSequence getLeafIndices(const LeafNode& leaf) const {
+        return LeafIndexSequence(leaf.from, leaf.to, idxs);
     }
 
     /// Performs some checks of KdTree consistency, returns true if everything is OK

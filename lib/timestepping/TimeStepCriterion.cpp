@@ -84,16 +84,14 @@ Tuple<Float, CriterionId> DerivativeCriterion::compute(Storage& storage,
             }
         };
         Tl result;
-        if (auto pool = storage.getThreadPool()) {
-            ThreadLocal<Tl> tls(*pool);
-            parallelFor(*pool, tls, 0, v.size(), 1000, functor);
-            // get min step from thread-local results
-            tls.forEach([&result](Tl& tl) { //
-                result.add(tl.minStep, tl.value, tl.derivative, tl.particleIdx);
-            });
-        } else {
-            functor(0, v.size(), result);
-        }
+        ThreadPool& pool = ThreadPool::getGlobalInstance();
+        ThreadLocal<Tl> tls(pool);
+        parallelFor(pool, tls, 0, v.size(), 1000, functor);
+        // get min step from thread-local results
+        tls.forEach([&result](Tl& tl) { //
+            result.add(tl.minStep, tl.value, tl.derivative, tl.particleIdx);
+        });
+
         // save statistics
         if (result.minStep < totalMinStep) {
             totalMinStep = result.minStep;
@@ -150,13 +148,11 @@ Tuple<Float, CriterionId> AccelerationCriterion::compute(Storage& storage,
         }
     };
     Tl result;
-    if (auto pool = storage.getThreadPool()) {
-        ThreadLocal<Tl> tls(*pool);
-        parallelFor(*pool, tls, 0, r.size(), 1000, functor);
-        tls.forEach([&result](Tl& tl) { result.minStep = min(result.minStep, tl.minStep); });
-    } else {
-        functor(0, r.size(), result);
-    }
+    ThreadPool& pool = ThreadPool::getGlobalInstance();
+    ThreadLocal<Tl> tls(pool);
+    parallelFor(pool, tls, 0, r.size(), 1000, functor);
+    tls.forEach([&result](Tl& tl) { result.minStep = min(result.minStep, tl.minStep); });
+
     if (result.minStep > maxStep) {
         return { maxStep, CriterionId::MAXIMAL_VALUE };
     } else {
@@ -196,13 +192,11 @@ Tuple<Float, CriterionId> CourantCriterion::compute(Storage& storage,
         }
     };
     Tl result;
-    if (auto pool = storage.getThreadPool()) {
-        ThreadLocal<Tl> tls(*pool);
-        parallelFor(*pool, tls, 0, r.size(), 1000, functor);
-        tls.forEach([&result](Tl& tl) { result.minStep = min(result.minStep, tl.minStep); });
-    } else {
-        functor(0, r.size(), result);
-    }
+    ThreadPool& pool = ThreadPool::getGlobalInstance();
+    ThreadLocal<Tl> tls(pool);
+    parallelFor(pool, tls, 0, r.size(), 1000, functor);
+    tls.forEach([&result](Tl& tl) { result.minStep = min(result.minStep, tl.minStep); });
+
     if (result.minStep > maxStep) {
         return { maxStep, CriterionId::MAXIMAL_VALUE };
     } else {

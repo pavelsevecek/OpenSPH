@@ -19,7 +19,7 @@ IMPLEMENT_APP(Sph::App);
 
 NAMESPACE_SPH_BEGIN
 
-AsteroidRotation::AsteroidRotation(Controller* model, const Float period)
+AsteroidRotation::AsteroidRotation(const RawPtr<Controller> model, const Float period)
     : model(model)
     , period(period) {
     settings.set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::EULER_EXPLICIT)

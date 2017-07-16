@@ -30,40 +30,13 @@ private:
     std::atomic<bool> stop;
     std::atomic<int> tasksLeft;
 
+    static ThreadPool* globalInstance;
+
 public:
     /// Initialize thread pool given the number of threads to use. By default, all available threads are used.
-    ThreadPool(const Size numThreads = 0)
-        : threads(numThreads == 0 ? std::thread::hardware_concurrency() : numThreads) {
-        ASSERT(!threads.empty());
-        auto loop = [this] {
-            while (!stop) {
-                Optional<Task> task = getNextTask();
-                if (task) {
-                    task.value()();
-                    std::unique_lock<std::mutex> lock(waitMutex);
-                    --tasksLeft;
-                }
-                waitVar.notify_one();
-            }
-        };
-        stop = false;
-        tasksLeft = 0;
-        for (auto& t : threads) {
-            t = makeAuto<std::thread>(loop);
-        }
-    }
+    ThreadPool(const Size numThreads = 0);
 
-    ~ThreadPool() {
-        waitForAll();
-        stop = true;
-        taskVar.notify_all();
-
-        for (auto& t : threads) {
-            if (t->joinable()) {
-                t->join();
-            }
-        }
-    }
+    ~ThreadPool();
 
     /// Submits a task into the thread pool. The task will be executed asynchronously once tasks submitted
     /// before it are completed.
@@ -81,25 +54,11 @@ public:
     }
 
     /// Blocks until all submitted tasks has been finished.
-    void waitForAll() {
-        std::unique_lock<std::mutex> lock(waitMutex);
-        if (tasksLeft > 0) {
-            waitVar.wait(lock, [this] { return tasksLeft == 0; });
-        }
-        ASSERT(tasks.empty() && tasksLeft == 0);
-    }
+    void waitForAll();
 
     /// Returns the index of this thread, or NOTHING if this thread was not invoked by the thread pool.
     /// The index is within [0, numThreads-1].
-    Optional<Size> getThreadIdx() const {
-        std::thread::id id = std::this_thread::get_id();
-        for (Size i = 0; i < threads.size(); ++i) {
-            if (threads[i]->get_id() == id) {
-                return i;
-            }
-        }
-        return NOTHING;
-    }
+    Optional<Size> getThreadIdx() const;
 
     /// Returns the number of threads used by this thread pool. Note that this number is constant during the
     /// lifetime of thread pool.
@@ -113,21 +72,11 @@ public:
         return tasksLeft;
     }
 
-private:
-    Optional<Task> getNextTask() {
-        std::unique_lock<std::mutex> lock(taskMutex);
+    /// Returns the global instance of the thread pool. Other instances can be constructed if needed.
+    static ThreadPool& getGlobalInstance();
 
-        // wait till a task is available
-        taskVar.wait(lock, [this] { return tasks.size() || stop; });
-        // execute task
-        if (!stop && !tasks.empty()) {
-            Task task = tasks.front();
-            tasks.pop();
-            return task;
-        } else {
-            return NOTHING;
-        }
-    }
+private:
+    Optional<Task> getNextTask();
 };
 
 

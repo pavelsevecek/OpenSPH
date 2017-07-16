@@ -58,10 +58,6 @@ Storage& Storage::operator=(Storage&& other) {
     return *this;
 }
 
-void Storage::setThreadPool(const SharedPtr<ThreadPool>& threadPool) {
-    pool = threadPool;
-}
-
 IndexSequence Storage::getMaterialRange(const Size matId) const {
     if (partitions.empty()) {
         ASSERT(matId == 0);

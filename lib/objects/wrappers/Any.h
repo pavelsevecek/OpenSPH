@@ -48,13 +48,13 @@ private:
     template <typename Type>
     auto* cast() {
         using RawT = std::decay_t<Type>;
-        return dynamic_cast<Holder<RawT>*>(data.get());
+        return dynamic_cast<Holder<RawT>*>(&*data);
     }
 
     template <typename Type>
     const auto* cast() const {
         using RawT = std::decay_t<Type>;
-        return dynamic_cast<const Holder<RawT>*>(data.get());
+        return dynamic_cast<const Holder<RawT>*>(&*data);
     }
 
 public:

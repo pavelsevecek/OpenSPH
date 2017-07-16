@@ -17,12 +17,12 @@ class EquationHolder;
 
 class AsteroidRotation : public Abstract::Run {
 private:
-    Controller* model;
+    RawPtr<Controller> model;
     Float period;
 
 public:
     /// \param period Rotational period of asteroid in hours
-    AsteroidRotation(Controller* model, const Float period);
+    AsteroidRotation(const RawPtr<Controller> model, const Float period);
 
     virtual void setUp() override;
 

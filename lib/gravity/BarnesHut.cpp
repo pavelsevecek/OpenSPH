@@ -38,16 +38,22 @@ Vector BarnesHut::eval(const Vector& r0) {
 }
 
 Vector BarnesHut::evalImpl(const Vector& r0, const Size idx) {
+    if (SPH_UNLIKELY(r.empty())) {
+        return Vector(0._f);
+    }
     Vector f(0._f);
     kdTree.iterate<KdTree::Direction::TOP_DOWN>(
         [this, &r0, &f, idx](KdNode& node, KdNode* UNUSED(left), KdNode* UNUSED(right)) {
+            if (node.box == Box::EMPTY()) {
+                // no particles in this node, skip
+                return false;
+            }
             const Float boxSizeSqr = getSqrLength(node.box.size());
             const Float boxDistSqr = getSqrLength(node.box.center() - r0);
             ASSERT(isReal(boxDistSqr));
             if (boxSizeSqr / (boxDistSqr + EPS) < thetaSqr) {
                 // small node, use multipole approximation
-                /// \todo check sign
-                f += evaluateGravity(r0 - node.com, node.moments);
+                f += evaluateGravity(r0 - node.com, node.moments, int(order));
 
                 // skip the children
                 return false;
@@ -55,17 +61,17 @@ Vector BarnesHut::evalImpl(const Vector& r0, const Size idx) {
                 // too large box; if inner, recurse into children, otherwise sum each particle of the leaf
                 if (node.isLeaf()) {
                     LeafNode& leaf = (LeafNode&)node;
-                    for (Size i = leaf.from; i < leaf.to; ++i) {
-                        const Size j = kdTree.particleIdx(i);
-                        if (idx == j) {
+                    LeafIndexSequence sequence = kdTree.getLeafIndices(leaf);
+                    for (Size i : sequence) {
+                        if (idx == i) {
                             continue;
                         }
-                        const Vector dr = r[j] - r0;
-                        f += m[j] * dr / pow<3>(getLength(dr));
+                        const Vector dr = r[i] - r0;
+                        f += m[i] * dr / pow<3>(getLength(dr));
                     }
                     return false; // return value doesn't matter here
                 } else {
-                    // continue iwth children
+                    // continue with children
                     return true;
                 }
             }
@@ -87,10 +93,10 @@ void BarnesHut::buildLeaf(KdNode& node) {
     // compute the center of gravity (the box is already done)
     leaf.com = Vector(0._f);
     Float m_leaf = 0._f;
-    for (Size i = leaf.from; i < leaf.to; ++i) {
-        const Size j = kdTree.particleIdx(i);
-        leaf.com += m[j] * r[j];
-        m_leaf += m[j];
+    LeafIndexSequence sequence = kdTree.getLeafIndices(leaf);
+    for (Size i : sequence) {
+        leaf.com += m[i] * r[i];
+        m_leaf += m[i];
     }
     ASSERT(m_leaf > 0._f, m_leaf);
     leaf.com /= m_leaf;
@@ -98,7 +104,6 @@ void BarnesHut::buildLeaf(KdNode& node) {
 
     // compute gravitational moments from individual particles
     // M0 is a sum of particle masses, M1 is a dipole moment = zero around center of mass
-    IndexSequence sequence(leaf.from, leaf.to);
     ASSERT(computeMultipole<0>(r, m, leaf.com, sequence).value() == m_leaf);
     const Multipole<2> m2 = computeMultipole<2>(r, m, leaf.com, sequence);
     const Multipole<3> m3 = computeMultipole<3>(r, m, leaf.com, sequence);
@@ -112,6 +117,10 @@ void BarnesHut::buildLeaf(KdNode& node) {
     leaf.moments.order<1>() = TracelessMultipole<1>(0._f);
     leaf.moments.order<2>() = q2;
     leaf.moments.order<3>() = q3;
+
+    // sanity check
+    ASSERT(leaf.size() > 1 || q2 == TracelessMultipole<2>(0._f));
+    ASSERT(leaf.size() > 1 || q3 == TracelessMultipole<3>(0._f));
 }
 
 void BarnesHut::buildInner(KdNode& node, KdNode& left, KdNode& right) {
@@ -147,17 +156,21 @@ void BarnesHut::buildInner(KdNode& node, KdNode& left, KdNode& right) {
     TracelessMultipole<1>& Ml1 = left.moments.order<1>();
     TracelessMultipole<2>& Ml2 = left.moments.order<2>();
     TracelessMultipole<3>& Ml3 = left.moments.order<3>();
-    inner.moments.order<1>() = parallelAxisTheorem(Ml1, ml, -d);
-    inner.moments.order<2>() = parallelAxisTheorem(Ml2, ml, -d);
-    inner.moments.order<3>() = parallelAxisTheorem(Ml3, Ml2, ml, -d);
+    inner.moments.order<1>() = parallelAxisTheorem(Ml1, ml, d);
+    inner.moments.order<2>() = parallelAxisTheorem(Ml2, ml, d);
+    inner.moments.order<3>() = parallelAxisTheorem(Ml3, Ml2, ml, d);
 
     d = right.com - inner.com;
     TracelessMultipole<1>& Mr1 = right.moments.order<1>();
     TracelessMultipole<2>& Mr2 = right.moments.order<2>();
     TracelessMultipole<3>& Mr3 = right.moments.order<3>();
-    inner.moments.order<1>() += parallelAxisTheorem(Mr1, mr, -d);
-    inner.moments.order<2>() += parallelAxisTheorem(Mr2, mr, -d);
-    inner.moments.order<3>() += parallelAxisTheorem(Mr3, Mr2, mr, -d);
+    inner.moments.order<1>() += parallelAxisTheorem(Mr1, mr, d);
+    inner.moments.order<2>() += parallelAxisTheorem(Mr2, mr, d);
+    inner.moments.order<3>() += parallelAxisTheorem(Mr3, Mr2, mr, d);
+}
+
+MultipoleExpansion<3> BarnesHut::getMoments() const {
+    return kdTree.getNode(0).moments;
 }
 
 NAMESPACE_SPH_END

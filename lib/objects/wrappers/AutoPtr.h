@@ -5,10 +5,11 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2017
 
-#include "common/Assert.h"
+#include "objects/wrappers/RawPtr.h"
 
 NAMESPACE_SPH_BEGIN
 
+/// \brief Wrapper of pointer that deletes the resource from destructor.
 template <typename T>
 class AutoPtr {
     template <typename>
@@ -59,7 +60,7 @@ public:
         return ptr;
     }
 
-    INLINE T* get() const {
+    INLINE RawPtr<T> get() const {
         return ptr;
     }
 

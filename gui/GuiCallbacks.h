@@ -12,8 +12,8 @@ private:
     RawPtr<Controller> model;
 
 public:
-    GuiCallbacks(RawPtr<Controller>&& model)
-        : model(std::move(model)) {}
+    GuiCallbacks(const RawPtr<Controller> model)
+        : model(model) {}
 
     virtual void onTimeStep(const Storage& storage, Statistics& stats) override {
         model->onTimeStep(storage, stats);

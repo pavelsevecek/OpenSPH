@@ -22,7 +22,9 @@ TEST_CASE("StandardAV divergent", "[av]") {
 
 TEST_CASE("StandardAV shockwave", "[av]") {
     EquationHolder term = makeTerm<StandardAV>();
-    Storage storage = Tests::getGassStorage(10000);
+    BodySettings body;
+    body.set(BodySettingsId::DENSITY, 1._f).set(BodySettingsId::ENERGY, 1._f);
+    Storage storage = Tests::getGassStorage(10000, body);
     const Float cs = storage.getValue<Float>(QuantityId::SOUND_SPEED)[0]; // all particles have the same c_s
     REQUIRE(cs > 0._f);
     const Float v0 = 5._f * cs;

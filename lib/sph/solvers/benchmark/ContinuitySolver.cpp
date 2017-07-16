@@ -6,7 +6,9 @@
 using namespace Sph;
 
 BENCHMARK("ContinuitySolver simpler", "[solvers]", Benchmark::Context& context) {
-    Storage storage = Tests::getGassStorage(1000, BodySettings::getDefaults());
+    BodySettings settings;
+    settings.set(BodySettingsId::DENSITY, 100._f).set(BodySettingsId::ENERGY, 10._f);
+    Storage storage = Tests::getGassStorage(1000, settings);
     ContinuitySolver solver(RunSettings::getDefaults());
     solver.create(storage, storage.getMaterial(0));
 

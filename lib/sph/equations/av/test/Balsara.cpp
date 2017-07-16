@@ -11,7 +11,9 @@ TEST_CASE("Balsara shear flow", "[av]") {
 
     // no switch
     EquationHolder term1 = makeTerm<StandardAV>();
-    Storage storage1 = Tests::getGassStorage(10000);
+    BodySettings settings;
+    settings.set(BodySettingsId::DENSITY, 1._f).set(BodySettingsId::ENERGY, 1._f);
+    Storage storage1 = Tests::getGassStorage(10000, settings);
     Tests::computeField(storage1, std::move(term1), [](const Vector& r) {
         // spin-up particles with some differential rotation
         const Vector l(r[X], r[Y], 0._f);
@@ -19,7 +21,7 @@ TEST_CASE("Balsara shear flow", "[av]") {
     });
 
     // with switch
-    Storage storage2 = Tests::getGassStorage(10000);
+    Storage storage2 = Tests::getGassStorage(10000, settings);
     EquationHolder term2 = makeTerm<BalsaraSwitch<StandardAV>>(RunSettings::getDefaults());
     // need to compute twice, first to get velocity divergence and rotation, second to compute AV
     Tests::computeField(storage2,
@@ -69,11 +71,13 @@ TEST_CASE("Balsara divergent flow", "[av]") {
 
     // no switch
     EquationHolder term1 = makeTerm<StandardAV>();
-    Storage storage1 = Tests::getGassStorage(10000);
+    BodySettings settings;
+    settings.set(BodySettingsId::DENSITY, 1._f).set(BodySettingsId::ENERGY, 1._f);
+    Storage storage1 = Tests::getGassStorage(10000, settings);
     Tests::computeField(storage1, std::move(term1), [](const Vector& r) { return -r; });
 
     // with switch
-    Storage storage2 = Tests::getGassStorage(10000);
+    Storage storage2 = Tests::getGassStorage(10000, settings);
     EquationHolder term2 = makeTerm<BalsaraSwitch<StandardAV>>(RunSettings::getDefaults());
     // need to compute twice, first to get velocity divergence and rotation, second to compute AV
     Tests::computeField(storage2, std::move(term2), [](const Vector& r) { return -r; }, 2);

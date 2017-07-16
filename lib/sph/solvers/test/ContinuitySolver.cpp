@@ -20,8 +20,10 @@ TEST_CASE("ContinuitySolver gass", "[solvers]") {
     settings.set(RunSettingsId::SPH_AV_TYPE, ArtificialViscosityEnum::NONE);
     settings.set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONST);
     BodySettings body;
-    body.set(BodySettingsId::RHEOLOGY_DAMAGE, DamageEnum::NONE);
-    body.set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::NONE);
+    body.set(BodySettingsId::DENSITY, 1._f)
+        .set(BodySettingsId::ENERGY, 1._f)
+        .set(BodySettingsId::RHEOLOGY_DAMAGE, DamageEnum::NONE)
+        .set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::NONE);
     Storage storage = Tests::getGassStorage(100, body, 1._f);
     testSolver(storage, settings);
 

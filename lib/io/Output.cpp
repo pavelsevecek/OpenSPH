@@ -481,6 +481,7 @@ Path PkdgravOutput::dump(Storage& storage, const Statistics& UNUSED(stats)) {
             continue;
         }
         const Float radius = this->getRadius(r[idx][H], m[idx], rho[idx]);
+        ASSERT(flags[idx] < params.colors.size(), flags[idx], params.colors.size());
         ofs << std::setw(25) << idx <<                                   //
             std::setw(25) << idx <<                                      //
             std::setw(25) << m[idx] / conversion.mass <<                 //

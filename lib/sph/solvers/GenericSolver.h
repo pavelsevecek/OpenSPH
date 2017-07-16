@@ -78,8 +78,6 @@ public:
     }
 
     virtual void integrate(Storage& storage, Statistics& stats) override {
-        /// \todo move elsewhere
-        storage.setThreadPool(pool);
 
         // initialize all materials (compute pressure, apply yielding and damage, ...)
         for (Size i = 0; i < storage.getMaterialCnt(); ++i) {

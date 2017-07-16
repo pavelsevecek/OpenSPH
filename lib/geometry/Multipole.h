@@ -268,7 +268,7 @@ namespace Detail {
 
     template <Size Second, Size... Idxs>
     struct TracelessMultipoleMappingImpl<X, Second, Idxs...> {
-        static constexpr Size value = MultipoleMapping<Second, Idxs...>::value;
+        static constexpr Size value = TracelessMultipoleMappingImpl<Second, Idxs...>::value;
     };
     template <Size Second, Size... Idxs>
     struct TracelessMultipoleMappingImpl<Y, Second, Idxs...> {
@@ -336,7 +336,7 @@ public:
     INLINE Float valueImpl() const {
         static_assert(sizeof...(Idxs) == Order, "Number of indices must match the order");
         const Size idx = Detail::TracelessMultipoleMapping<Idxs...>::value;
-        ASSERT(idx < COMPONENT_CNT, idx);
+        ASSERT(idx < COMPONENT_CNT, idx, Idxs...);
         return *(&data[0] + idx);
     }
 
@@ -552,28 +552,43 @@ template <Size N, typename TValue>
 TracelessMultipole<N> makeTracelessMultipole(const TValue& v) {
     return MakeTracelessMultipole<N>::make(v);
 }
-
-// computes component from traceless multipole
 template <Size... Idxs>
-struct TracelessMultipoleComponent {
+struct TracelessMultipoleComponentImpl {
     INLINE static Float get(const TracelessMultipole<sizeof...(Idxs)>& m) {
         return m.template valueImpl<Idxs...>();
     }
 };
+template <std::size_t... Idxs, std::size_t... Is>
+constexpr Float expandTracelessMultipoleComponent(const TracelessMultipole<sizeof...(Idxs)>& m,
+    std::index_sequence<Is...>) {
+    constexpr ConstexprArray<Size, sizeof...(Idxs)> ar = sortIndices<Idxs...>();
+    return TracelessMultipoleComponentImpl<ar[Is]...>::get(m);
+}
+
+// computes component from traceless multipole
+template <Size... Idxs>
+struct TracelessMultipoleComponent {
+    using Sequence = std::make_index_sequence<sizeof...(Idxs)>;
+
+    INLINE static Float get(const TracelessMultipole<sizeof...(Idxs)>& m) {
+        return expandTracelessMultipoleComponent<Idxs...>(m, Sequence{});
+    }
+};
+
 template <>
-struct TracelessMultipoleComponent<Z, Z> {
+struct TracelessMultipoleComponentImpl<Z, Z> {
     INLINE static Float get(const TracelessMultipole<2>& m) {
         return -m.valueImpl<X, X>() - m.valueImpl<Y, Y>();
     }
 };
 template <Size I>
-struct TracelessMultipoleComponent<I, Z, Z> {
+struct TracelessMultipoleComponentImpl<I, Z, Z> {
     INLINE static Float get(const TracelessMultipole<3>& m) {
         return -m.valueImpl<X, X, I>() - m.valueImpl<Y, Y, I>();
     }
 };
 template <Size I, Size J>
-struct TracelessMultipoleComponent<I, J, Z, Z> {
+struct TracelessMultipoleComponentImpl<I, J, Z, Z> {
     INLINE static Float get(const TracelessMultipole<4>& m) {
         return -m.valueImpl<X, X, I, J>() - m.valueImpl<Y, Y, I, J>();
     }
@@ -773,6 +788,45 @@ namespace MomentOperators {
                    v1.template value<2, 0>() * v2.template value<2, 0, Is...>() +
                    v1.template value<2, 1>() * v2.template value<2, 1, Is...>() +
                    v1.template value<2, 2>() * v2.template value<2, 2, Is...>();
+        }
+    };
+
+    template <typename TValue1, typename TValue2>
+    struct InnerProduct<3, 3, TValue1, TValue2> {
+        const TValue1& v1;
+        const TValue2& v2;
+
+        template <Size... Is>
+        INLINE constexpr Float value() const {
+            static_assert(TValue1::ORDER == 3, "Invalid number of indices");
+            static_assert(TValue2::ORDER == sizeof...(Is) + 3, "Invalid number of indices");
+            return v1.template value<0, 0, 0>() * v2.template value<0, 0, 0, Is...>() +
+                   v1.template value<0, 0, 1>() * v2.template value<0, 0, 1, Is...>() +
+                   v1.template value<0, 0, 2>() * v2.template value<0, 0, 2, Is...>() +
+                   v1.template value<0, 1, 0>() * v2.template value<0, 1, 0, Is...>() +
+                   v1.template value<0, 1, 1>() * v2.template value<0, 1, 1, Is...>() +
+                   v1.template value<0, 1, 2>() * v2.template value<0, 1, 2, Is...>() +
+                   v1.template value<0, 2, 0>() * v2.template value<0, 2, 0, Is...>() +
+                   v1.template value<0, 2, 1>() * v2.template value<0, 2, 1, Is...>() +
+                   v1.template value<0, 2, 2>() * v2.template value<0, 2, 2, Is...>() +
+                   v1.template value<1, 0, 0>() * v2.template value<1, 0, 0, Is...>() +
+                   v1.template value<1, 0, 1>() * v2.template value<1, 0, 1, Is...>() +
+                   v1.template value<1, 0, 2>() * v2.template value<1, 0, 2, Is...>() +
+                   v1.template value<1, 1, 0>() * v2.template value<1, 1, 0, Is...>() +
+                   v1.template value<1, 1, 1>() * v2.template value<1, 1, 1, Is...>() +
+                   v1.template value<1, 1, 2>() * v2.template value<1, 1, 2, Is...>() +
+                   v1.template value<1, 2, 0>() * v2.template value<1, 2, 0, Is...>() +
+                   v1.template value<1, 2, 1>() * v2.template value<1, 2, 1, Is...>() +
+                   v1.template value<1, 2, 2>() * v2.template value<1, 2, 2, Is...>() +
+                   v1.template value<2, 0, 0>() * v2.template value<2, 0, 0, Is...>() +
+                   v1.template value<2, 0, 1>() * v2.template value<2, 0, 1, Is...>() +
+                   v1.template value<2, 0, 2>() * v2.template value<2, 0, 2, Is...>() +
+                   v1.template value<2, 1, 0>() * v2.template value<2, 1, 0, Is...>() +
+                   v1.template value<2, 1, 1>() * v2.template value<2, 1, 1, Is...>() +
+                   v1.template value<2, 1, 2>() * v2.template value<2, 1, 2, Is...>() +
+                   v1.template value<2, 2, 0>() * v2.template value<2, 2, 0, Is...>() +
+                   v1.template value<2, 2, 1>() * v2.template value<2, 2, 1, Is...>() +
+                   v1.template value<2, 2, 2>() * v2.template value<2, 2, 2, Is...>();
         }
     };
 

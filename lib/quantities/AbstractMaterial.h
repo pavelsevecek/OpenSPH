@@ -22,12 +22,12 @@ namespace Abstract {
 /// but also provides means to iterate over particle indices in the storage.
 class MaterialView {
 private:
-    Abstract::Material* mat;
+    RawPtr<Abstract::Material> mat;
     IndexSequence seq;
 
 public:
-    INLINE MaterialView(Abstract::Material* material, IndexSequence seq)
-        : mat(material)
+    INLINE MaterialView(RawPtr<Abstract::Material>&& material, IndexSequence seq)
+        : mat(std::move(material))
         , seq(seq) {
         ASSERT(material != nullptr);
     }
@@ -45,15 +45,9 @@ public:
     }
 
     /// Overloaded -> operator for convenient access to material functions.
-    INLINE Abstract::Material* operator->() {
+    INLINE RawPtr<Abstract::Material> operator->() const {
         return mat;
     }
-
-    /// \copydoc Abstract::Material* operator->()
-    INLINE const Abstract::Material* operator->() const {
-        return mat;
-    }
-
 
     /// Returns iterable index sequence.
     INLINE IndexSequence sequence() {

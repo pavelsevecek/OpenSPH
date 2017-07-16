@@ -8,6 +8,7 @@ using namespace Sph;
 
 TEST_CASE("MorrisMonaghan sanitycheck", "[av]") {
     BodySettings body;
+    body.set(BodySettingsId::DENSITY, 1._f).set(BodySettingsId::ENERGY, 1._f);
     Storage storage = Tests::getGassStorage(1000, body);
     const Float cs = storage.getValue<Float>(QuantityId::SOUND_SPEED)[0];
 
