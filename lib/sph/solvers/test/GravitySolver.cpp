@@ -9,7 +9,7 @@ using namespace Sph;
 TEST_CASE("GravitySolver", "[solvers]") {
     BodySettings settings;
     settings.set(BodySettingsId::DENSITY, 1._f).set(BodySettingsId::ENERGY, 1._f);
-    Storage storage = Tests::getGassStorage(3000, settings, 100 * Constants::au);
+    Storage storage = Tests::getGassStorage(3000, settings, Constants::au);
     // no SPH equations, just gravity
     GravitySolver solver(RunSettings::getDefaults(), EquationHolder());
     REQUIRE_NOTHROW(solver.create(storage, storage.getMaterial(0)));

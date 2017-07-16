@@ -133,7 +133,7 @@ static void testSimpleAcceleration(const MultipoleOrder order, const Float eps) 
     BarnesHut bh(0.5_f, order, 1);
     bh.build(r, m);
 
-    Vector a = bh.eval(Vector(-10, 10, 0)) / Constants::gravity;
+    Vector a = bh.eval(Vector(-10, 10, 0, 1)) / Constants::gravity;
     Vector expected(0.020169998934707004, -0.007912678499211458, 0);
     REQUIRE(a != expected); // it shouldn't be exactly equal, sanity check
     REQUIRE(a == approx(expected, eps));

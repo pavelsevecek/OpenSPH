@@ -42,16 +42,16 @@ private:
 
         GuiSettings gui;
         gui.set(GuiSettingsId::VIEW_FOV, 7e3_f)
-            .set(GuiSettingsId::VIEW_CENTER, 0.5_f * Vector(1024, 768, 0))
+            .set(GuiSettingsId::VIEW_CENTER, 0.5_f * Vector(800, 600, 0))
             .set(GuiSettingsId::PARTICLE_RADIUS, 0.3_f)
             .set(GuiSettingsId::ORTHO_CUTOFF, 5.e2_f)
             .set(GuiSettingsId::ORTHO_PROJECTION, OrthoEnum::XY)
             .set(GuiSettingsId::IMAGES_SAVE, true)
-            .set(GuiSettingsId::IMAGES_TIMESTEP, 0.01_f)
-            .set(GuiSettingsId::IMAGES_RENDERER, int(RendererEnum::SURFACE))
-            .set(GuiSettingsId::IMAGES_WIDTH, 1024)
-            .set(GuiSettingsId::IMAGES_HEIGHT, 768)
-            .set(GuiSettingsId::ORTHO_CUTOFF, 0._f)
+            .set(GuiSettingsId::IMAGES_TIMESTEP, 0.1_f)
+            //.set(GuiSettingsId::IMAGES_RENDERER, int(RendererEnum::SURFACE))
+            //.set(GuiSettingsId::IMAGES_WIDTH, 1024)
+            //.set(GuiSettingsId::IMAGES_HEIGHT, 768)
+            //.set(GuiSettingsId::ORTHO_CUTOFF, 0._f)
             .set(GuiSettingsId::SURFACE_RESOLUTION, 70._f)
             .set(GuiSettingsId::SURFACE_LEVEL, 0.3_f);
 

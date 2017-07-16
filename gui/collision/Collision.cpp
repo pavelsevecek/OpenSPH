@@ -183,6 +183,10 @@ void AsteroidCollision::setUp() {
 void AsteroidCollision::tearDown() {
     Profiler& profiler = Profiler::getInstance();
     profiler.printStatistics(*logger);
+
+    PkdgravOutput pkdgravOutput(Path("pkdgrav_%d.out"), PkdgravParams{});
+    Statistics stats; /// \todo stats should survive after the run
+    pkdgravOutput.dump(*storage, stats);
 }
 
 NAMESPACE_SPH_END

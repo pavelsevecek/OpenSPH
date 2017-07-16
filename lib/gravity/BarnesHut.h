@@ -2,6 +2,7 @@
 
 #include "gravity/AbstractGravity.h"
 #include "objects/finders/KdTree.h"
+#include "sph/kernel/GravityKernel.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -20,21 +21,33 @@ protected:
     ArrayView<const Vector> r;
     ArrayView<const Float> m;
 
+    /// K-d tree storing gravitational moments
     KdTree kdTree;
+
+    /// Kernel used to evaluate gravity of close particles
+    GravityLutKernel kernel;
 
     /// Opening angle for multipole approximation (in radians)
     Float thetaSqr;
 
+    /// Order of multipole approximation
     MultipoleOrder order;
 
 public:
+    /// Constructs the Barnes-Hut gravity assuming point-like particles (with zero radius).
     /// \param theta Opening angle; lower value means higher precision, but slower computation
     /// \param order Order of multipole approximation
     /// \param leafSize Maximum number of particles in a leaf
-    BarnesHut(const Float theta, const MultipoleOrder order, const Size leafSize = 20)
-        : kdTree(leafSize)
-        , thetaSqr(sqr(theta))
-        , order(order) {}
+    BarnesHut(const Float theta, const MultipoleOrder order, const Size leafSize = 20);
+
+    /// Constructs the Barnes-Hut gravity with given smoothing kernel
+    /// \param theta Opening angle; lower value means higher precision, but slower computation
+    /// \param order Order of multipole approximation
+    /// \param leafSize Maximum number of particles in a leaf
+    BarnesHut(const Float theta,
+        const MultipoleOrder order,
+        GravityLutKernel&& kernel,
+        const Size leafSize = 20);
 
     /// Masses of particles must be strictly positive, otherwise center of mass would be undefined.
     virtual void build(ArrayView<const Vector> r, ArrayView<const Float> m) override;

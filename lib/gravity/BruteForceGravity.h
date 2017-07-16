@@ -7,6 +7,7 @@
 
 #include "gravity/AbstractGravity.h"
 #include "physics/Constants.h"
+#include "sph/kernel/GravityKernel.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -19,7 +20,18 @@ private:
     ArrayView<const Vector> r;
     ArrayView<const Float> m;
 
+    GravityLutKernel kernel;
+
 public:
+    /// Default-construced gravity, assuming point-like particles
+    BruteForceGravity() {
+        ASSERT(kernel.closeRadius() == 0._f);
+    }
+
+    /// Constructs gravity using smoothing kernel
+    BruteForceGravity(GravityLutKernel&& kernel)
+        : kernel(std::move(kernel)) {}
+
     virtual void build(ArrayView<const Vector> points, ArrayView<const Float> masses) override {
         r = points;
         m = masses;
@@ -37,12 +49,12 @@ private:
     INLINE Vector evalImpl(const Vector& r0, const Size idx) {
         ASSERT(r && m);
         Vector a(0._f);
+        ASSERT(r0[H] > 0._f, r0[H]);
         for (Size i = 0; i < r.size(); ++i) {
             if (i == idx) {
                 continue;
             }
-            const Vector dr = r[i] - r0;
-            a += m[i] * dr / pow<3>(getLength(dr) + EPS);
+            a += m[i] * kernel.grad(r[i] - r0, r0[H]);
         }
         return Constants::gravity * a;
     }

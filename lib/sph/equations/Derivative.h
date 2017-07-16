@@ -330,11 +330,11 @@ public:
         }
     }
 
-    Accumulated& getAccumulated() {
+    INLINE Accumulated& getAccumulated() {
         return accumulated;
     }
 
-    Size getDerivativeCnt() const {
+    INLINE Size getDerivativeCnt() const {
         return derivatives.size();
     }
 };
