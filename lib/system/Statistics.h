@@ -40,6 +40,11 @@ public:
         entries[idx] = StoreType(std::forward<TValue>(value));
     }
 
+    /// Increments an integer statistic by given amount
+    void increment(const StatisticsId idx, const Size amount) {
+        entries[idx].get<int>() += amount;
+    }
+
     /// Accumulate a value into means of given idx. Value does not have to be stored. If there is no
     /// value of given idx, it is created with default constructor prior to accumulating.
     void accumulate(const StatisticsId idx, const Float value) {
@@ -101,34 +106,17 @@ enum class StatisticsId {
     /// Number of neighbours (min, max, mean)
     NEIGHBOUR_COUNT,
 
+    /// Number of nodes in used gravity tree
+    GRAVITY_NODE_COUNT,
+
+    /// Number of tree nodes evaluated by pair-wise interacting
+    GRAVITY_PARTICLES_EXACT,
+
+    /// Number of tree nodes evaluated using multipole approximation
+    GRAVITY_PARTICLES_APPROX,
+
     /// Number of iterations used to compute density and smoothing length in summation solver
     SOLVER_SUMMATION_ITERATIONS
-};
-
-
-/// List of values computed infrequently, at given times or every X timesteps. Mainly values that takes some
-/// time to compute and computing them every timestep would add unnecessary overhead.
-enum class SparseStatsIds {
-    /// Time of this output
-    TIME,
-
-    /// Total momentum of all particles, with a respect to reference frame
-    TOTAL_MOMENTUM,
-
-    /// Total momentum of all particles, with a respect to reference frame
-    TOTAL_ANGULAR_MOMENTUM,
-
-    /// Total kinetic energy of all particles, with a respect to reference frame
-    TOTAL_KINETIC_ENERGY,
-
-    /// Total internal energy of all particles (doesn't depend on reference frame)
-    TOTAL_INTERNAL_ENERGY,
-
-    /// Total energy (kinetic + internal) of all particles, with a respect to reference frame
-    TOTAL_ENERGY,
-
-    /// Number of components (a.k.a separated bodies).
-    COMPONENT_COUNT,
 };
 
 NAMESPACE_SPH_END

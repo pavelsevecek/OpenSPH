@@ -7,7 +7,7 @@
 NAMESPACE_SPH_BEGIN
 
 /// Base class for nodes of K-d tree
-struct KdNode {
+struct KdNode : public Noncopyable {
     /// Here X, Y, Z must be 0, 1, 2
     enum class Type { X, Y, Z, LEAF };
     Type type;
@@ -155,14 +155,14 @@ public:
             if (node.isLeaf()) {
                 functor(node, nullptr, nullptr);
             } else {
-                InnerNode& inner = (InnerNode&)node;
+                InnerNode& inner = reinterpret_cast<InnerNode&>(node);
                 if (!functor(inner, &nodes[inner.left], &nodes[inner.right])) {
                     return;
                 }
             }
         }
         if (!node.isLeaf()) {
-            const InnerNode& inner = (const InnerNode&)node;
+            InnerNode& inner = reinterpret_cast<InnerNode&>(node);
             this->iterate<Dir>(functor, inner.left);
             this->iterate<Dir>(functor, inner.right);
         }
@@ -170,7 +170,7 @@ public:
             if (node.isLeaf()) {
                 functor(node, nullptr, nullptr);
             } else {
-                InnerNode& inner = (InnerNode&)node;
+                InnerNode& inner = reinterpret_cast<InnerNode&>(node);
                 functor(inner, &nodes[inner.left], &nodes[inner.right]);
             }
         }
@@ -179,6 +179,11 @@ public:
     /// Returns the node with given index
     INLINE const KdNode& getNode(const Size nodeIdx) const {
         return nodes[nodeIdx];
+    }
+
+    /// Returns the number of nodes in the tree
+    INLINE Size getNodeCnt() const {
+        return nodes.size();
     }
 
     /// Returns the sequence of particles indices belonging to given leaf.

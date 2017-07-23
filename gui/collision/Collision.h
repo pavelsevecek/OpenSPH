@@ -23,6 +23,8 @@ public:
 
 protected:
     virtual void tearDown() override;
+
+    void setupOutput();
 };
 
 class App : public wxApp {

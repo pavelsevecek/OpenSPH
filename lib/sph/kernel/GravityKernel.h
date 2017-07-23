@@ -23,7 +23,12 @@ public:
 
     template <typename TKernel>
     GravityLutKernel(TKernel&& source)
-        : close(std::forward<TKernel>(source)) {}
+        : close(std::forward<TKernel>(source)) {
+        static_assert(!std::is_same<std::decay_t<TKernel>, CubicSpline<3>>::value &&
+                          !std::is_same<std::decay_t<TKernel>, FourthOrderSpline<3>>::value &&
+                          !std::is_same<std::decay_t<TKernel>, Gaussian<3>>::value,
+            "Use GravityKernel to get gravity smoothing kernel associated to SPH kernel");
+    }
 
     INLINE float closeRadius() const {
         return close.radius();

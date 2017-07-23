@@ -37,7 +37,8 @@ SOURCES += main.cpp \
     examples/TestBenchmark.cpp \
     ../lib/objects/finders/benchmark/Finders.cpp \
     ../lib/sph/kernel/benchmark/Kernel.cpp \
-    ../lib/sph/solvers/benchmark/ContinuitySolver.cpp
+    ../lib/sph/solvers/benchmark/ContinuitySolver.cpp \
+    ../lib/gravity/benchmark/Gravity.cpp
 
 HEADERS += \
     Session.h \

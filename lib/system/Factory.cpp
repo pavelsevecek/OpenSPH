@@ -1,5 +1,7 @@
 #include "system/Factory.h"
 #include "geometry/Domain.h"
+#include "gravity/BarnesHut.h"
+#include "gravity/BruteForceGravity.h"
 #include "io/Logger.h"
 #include "math/rng/Rng.h"
 #include "objects/finders/BruteForceFinder.h"
@@ -175,6 +177,31 @@ AutoPtr<Abstract::Solver> Factory::getSolver(const RunSettings& settings) {
         return makeAuto<SummationSolver>(settings);
     case SolverEnum::DENSITY_INDEPENDENT:
         return makeAuto<DensityIndependentSolver>(settings);
+    default:
+        NOT_IMPLEMENTED;
+    }
+}
+
+AutoPtr<Abstract::Gravity> Factory::getGravity(const RunSettings& settings) {
+    const GravityEnum id = settings.get<GravityEnum>(RunSettingsId::GRAVITY_SOLVER);
+    const GravityKernelEnum kernelId = settings.get<GravityKernelEnum>(RunSettingsId::GRAVITY_KERNEL);
+    GravityLutKernel kernel;
+    switch (kernelId) {
+    case GravityKernelEnum::POINT_PARTICLES:
+        // do nothing, keep default-constructed kernel
+        break;
+    case GravityKernelEnum::SPH_KERNEL:
+        kernel = Factory::getGravityKernel(settings);
+        break;
+    }
+
+    const Float theta = settings.get<Float>(RunSettingsId::GRAVITY_OPENING_ANGLE);
+    const MultipoleOrder order = settings.get<MultipoleOrder>(RunSettingsId::GRAVITY_MULTIPOLE_ORDER);
+    switch (id) {
+    case GravityEnum::BRUTE_FORCE:
+        return makeAuto<BruteForceGravity>(std::move(kernel));
+    case GravityEnum::BARNES_HUT:
+        return makeAuto<BarnesHut>(theta, order, std::move(kernel));
     default:
         NOT_IMPLEMENTED;
     }

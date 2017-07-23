@@ -27,59 +27,46 @@ public:
     using Type = T;
     using Counter = TCounter;
 
-    ArrayView()
+    INLINE ArrayView()
         : data(nullptr) {}
 
-    ArrayView(StorageType* data, TCounter size)
+    INLINE ArrayView(StorageType* data, TCounter size)
         : data(data)
         , actSize(size) {}
 
-    ArrayView(const ArrayView& other)
+    INLINE ArrayView(const ArrayView& other)
         : data(other.data)
         , actSize(other.actSize) {}
 
-    /// Move constructor
-    ArrayView(ArrayView&& other) {
-        std::swap(this->data, other.data);
-        std::swap(this->actSize, other.actSize);
-    }
-
     /// Explicitly initialize to nullptr
-    ArrayView(std::nullptr_t)
+    INLINE ArrayView(std::nullptr_t)
         : data(nullptr) {}
 
     /// Copy operator
-    ArrayView& operator=(const ArrayView& other) {
-        this->data = other.data;
-        this->actSize = other.actSize;
-        return *this;
-    }
-
-    /// Move operator
-    ArrayView& operator=(ArrayView&& other) {
+    INLINE ArrayView& operator=(const ArrayView& other) {
         this->data = other.data;
         this->actSize = other.actSize;
         return *this;
     }
 
     /// Implicit conversion to const version
-    operator ArrayView<const T, TCounter>() {
+    INLINE operator ArrayView<const T, TCounter>() {
         return ArrayView<const T, TCounter>(data, actSize);
     }
 
-    Iterator<StorageType, TCounter> begin() {
+    INLINE Iterator<StorageType, TCounter> begin() {
         return Iterator<StorageType, TCounter>(data, data, data + actSize);
     }
 
-    Iterator<const StorageType, TCounter> begin() const {
+    INLINE Iterator<const StorageType, TCounter> begin() const {
         return Iterator<const StorageType, TCounter>(data, data, data + actSize);
     }
 
-    Iterator<StorageType, TCounter> end() {
+    INLINE Iterator<StorageType, TCounter> end() {
         return Iterator<StorageType, TCounter>(data + actSize, data, data + actSize);
     }
 
-    Iterator<const StorageType, TCounter> end() const {
+    INLINE Iterator<const StorageType, TCounter> end() const {
         return Iterator<const StorageType, TCounter>(data + actSize, data, data + actSize);
     }
 

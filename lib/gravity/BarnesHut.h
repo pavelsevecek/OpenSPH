@@ -52,19 +52,21 @@ public:
     /// Masses of particles must be strictly positive, otherwise center of mass would be undefined.
     virtual void build(ArrayView<const Vector> r, ArrayView<const Float> m) override;
 
-    virtual Vector eval(const Size idx) override;
+    virtual Vector eval(const Size idx, Statistics& stats) override;
 
-    virtual Vector eval(const Vector& r0) override;
+    virtual Vector eval(const Vector& r0, Statistics& stats) override;
 
     /// Returns the multipole moments computed from root node.
     MultipoleExpansion<3> getMoments() const;
 
 protected:
-    virtual Vector evalImpl(const Vector& r0, const Size idx);
+    Vector evalImpl(const Vector& r0, const Size idx, Statistics& stats);
 
-    virtual void buildLeaf(KdNode& node);
+    Vector evalExact(LeafNode& node, const Vector& r0, const Size idx);
 
-    virtual void buildInner(KdNode& node, KdNode& left, KdNode& right);
+    void buildLeaf(KdNode& node);
+
+    void buildInner(KdNode& node, KdNode& left, KdNode& right);
 };
 
 

@@ -24,8 +24,9 @@ TEST_CASE("BruteForceGravity", "[gravity]") {
     ArrayView<Float> m = storage.getValue<Float>(QuantityId::MASSES);
     gravity.build(r, m);
 
+    Statistics stats;
     auto test = [&](const Size i) -> Outcome {
-        const Vector a = gravity.eval(i);
+        const Vector a = gravity.eval(i, stats);
         // around origin the relative comparison is very imprecise, just skip
         if (getLength(r[i]) < 0.1 * r0) {
             return SUCCESS;

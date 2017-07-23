@@ -28,17 +28,18 @@ namespace Analytic {
 
         /// Return the pressure at given radius r of a sphere self-compressed by gravity.
         INLINE Float getPressure(const Float r) const {
-            ASSERT(r <= 1.01_f * r0); // allow a little bit more, due to particle ordering
             if (r > r0) {
                 return 0._f;
             }
             return 2._f / 3._f * PI * Constants::gravity * sqr(rho) * (sqr(r0) - sqr(r));
         }
 
-        /// Returns the gravitational acceleration at given radius r.
+        /// Returns the gravitational acceleration at given radius r. The acceleration increases linearily up
+        /// to r0 and then decreases with r^2.
         INLINE Vector getAcceleration(const Vector& r) const {
             const Float l = getLength(r);
-            return -Constants::gravity * rho * sphereVolume(l) * r / pow<3>(l);
+            const Float l0 = min(r0, l);
+            return -Constants::gravity * rho * sphereVolume(l0) * r / pow<3>(l);
         }
     };
 }

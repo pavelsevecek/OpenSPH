@@ -1,6 +1,8 @@
 #include "gravity/BarnesHut.h"
 #include "gravity/Moments.h"
 #include "physics/Constants.h"
+#include "system/Profiler.h"
+#include "system/Statistics.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -48,55 +50,71 @@ void BarnesHut::build(ArrayView<const Vector> points, ArrayView<const Float> mas
     });
 }
 
-Vector BarnesHut::eval(const Size idx) {
-    return this->evalImpl(r[idx], idx);
+Vector BarnesHut::eval(const Size idx, Statistics& stats) {
+    return this->evalImpl(r[idx], idx, stats);
 }
 
-Vector BarnesHut::eval(const Vector& r0) {
-    return this->evalImpl(r0, Size(-1));
+Vector BarnesHut::eval(const Vector& r0, Statistics& stats) {
+    return this->evalImpl(r0, Size(-1), stats);
 }
 
-Vector BarnesHut::evalImpl(const Vector& r0, const Size idx) {
+Vector BarnesHut::evalImpl(const Vector& r0, const Size idx, Statistics& stats) {
     if (SPH_UNLIKELY(r.empty())) {
         return Vector(0._f);
     }
     ASSERT(r0[H] > 0._f, r0[H]);
-    Vector f(0._f);
-    kdTree.iterate<KdTree::Direction::TOP_DOWN>(
-        [this, &r0, &f, idx](KdNode& node, KdNode* UNUSED(left), KdNode* UNUSED(right)) {
-            if (node.box == Box::EMPTY()) {
-                // no particles in this node, skip
-                return false;
-            }
-            const Float boxSizeSqr = getSqrLength(node.box.size());
-            const Float boxDistSqr = getSqrLength(node.box.center() - r0);
-            ASSERT(isReal(boxDistSqr));
-            if (!node.box.contains(r0) && boxSizeSqr / (boxDistSqr + EPS) < thetaSqr) {
-                // small node, use multipole approximation
-                f += evaluateGravity(r0 - node.com, node.moments, int(order));
 
-                // skip the children
-                return false;
+    Vector f(0._f);
+    struct {
+        Size approximated = 0;
+        Size exact = 0;
+    } ns;
+
+    kdTree.iterate<KdTree::Direction::TOP_DOWN>([this, &r0, &f, idx, &ns](KdNode& node, KdNode*, KdNode*) {
+        if (node.box == Box::EMPTY()) {
+            // no particles in this node, skip
+            return false;
+        }
+        const Float boxSizeSqr = getSqrLength(node.box.size());
+        const Float boxDistSqr = getSqrLength(node.box.center() - r0);
+        ASSERT(isReal(boxDistSqr));
+        if (!node.box.contains(r0) && boxSizeSqr / (boxDistSqr + EPS) < thetaSqr) {
+            // small node, use multipole approximation
+            f += evaluateGravity(r0 - node.com, node.moments, int(order));
+            /// \todo compute exact number of particles! this is only valid for unit tests!!
+            ns.approximated += round(node.moments.order<0>().value() / m[0]);
+            // skip the children
+            return false;
+        } else {
+            // too large box; if inner, recurse into children, otherwise sum each particle of the leaf
+            if (node.isLeaf()) {
+                LeafNode& leaf = reinterpret_cast<LeafNode&>(node);
+                this->evalExact(leaf, r0, idx);
+                ns.exact += leaf.size();
+                return false; // return value doesn't matter here
             } else {
-                // too large box; if inner, recurse into children, otherwise sum each particle of the leaf
-                if (node.isLeaf()) {
-                    LeafNode& leaf = (LeafNode&)node;
-                    LeafIndexSequence sequence = kdTree.getLeafIndices(leaf);
-                    for (Size i : sequence) {
-                        if (idx == i) {
-                            continue;
-                        }
-                        ASSERT(r[i][H] > 0._f, r[i][H]);
-                        f += m[i] * kernel.grad(r[i] - r0, r0[H]);
-                    }
-                    return false; // return value doesn't matter here
-                } else {
-                    // continue with children
-                    return true;
-                }
+                // continue with children
+                return true;
             }
-        });
+        }
+    });
+
+    stats.set(StatisticsId::GRAVITY_PARTICLES_EXACT, int(ns.exact));
+    stats.set(StatisticsId::GRAVITY_PARTICLES_APPROX, int(ns.approximated));
     return Constants::gravity * f;
+}
+
+Vector BarnesHut::evalExact(LeafNode& leaf, const Vector& r0, const Size idx) {
+    LeafIndexSequence sequence = kdTree.getLeafIndices(leaf);
+    Vector f(0._f);
+    for (Size i : sequence) {
+        if (idx == i) {
+            continue;
+        }
+        ASSERT(r[i][H] > 0._f, r[i][H]);
+        f += m[i] * kernel.grad(r[i] - r0, r0[H]);
+    }
+    return f;
 }
 
 void BarnesHut::buildLeaf(KdNode& node) {

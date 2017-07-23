@@ -37,11 +37,11 @@ public:
         m = masses;
     }
 
-    virtual Vector eval(const Size idx) override {
+    virtual Vector eval(const Size idx, Statistics& UNUSED(stats)) override {
         return this->evalImpl(r[idx], idx);
     }
 
-    virtual Vector eval(const Vector& r0) override {
+    virtual Vector eval(const Vector& r0, Statistics& UNUSED(stats)) override {
         return this->evalImpl(r0, Size(-1));
     }
 

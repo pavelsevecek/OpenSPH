@@ -311,8 +311,11 @@ INLINE Vector computeMultipoleAcceleration(const MultipoleExpansion<N>& ms,
 template <Size N>
 Vector evaluateGravity(const Vector& dr, const MultipoleExpansion<N>& ms, const Size maxOrder) {
     StaticArray<Float, N + 2> gamma;
+#ifdef SPH_DEBUG
+    gamma.fill(NAN);
+#endif
     const Float invDistSqr = 1._f / getSqrLength(dr);
-    for (Size i = 0; i < N + 2; ++i) {
+    for (Size i = 0; i < maxOrder + 2; ++i) {
         gamma[i] = greenGamma(i, invDistSqr);
     }
 

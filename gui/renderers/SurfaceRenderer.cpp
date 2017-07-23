@@ -52,7 +52,7 @@ SharedPtr<Bitmap> SurfaceRenderer::render(const Abstract::Camera& UNUSED(camera)
     const RenderParams& params,
     Statistics& stats) const {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
-    MEASURE_SCOPE("SurfaceRenderer::render");
+    // MEASURE_SCOPE("SurfaceRenderer::render");
     const wxSize size(params.size.x, params.size.y);
     wxBitmap bitmap(size, 24);
     wxMemoryDC dc(bitmap);

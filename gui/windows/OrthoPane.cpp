@@ -27,7 +27,7 @@ OrthoPane::~OrthoPane() = default;
 
 void OrthoPane::onPaint(wxPaintEvent& UNUSED(evt)) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
-    MEASURE_SCOPE("OrthoPane::onPaint");
+    // MEASURE_SCOPE("OrthoPane::onPaint");
     wxPaintDC dc(this);
     SharedPtr<Bitmap> bitmap = controller->getRenderedBitmap();
     if (bitmap->isOk()) { // not empty

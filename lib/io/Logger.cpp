@@ -21,6 +21,23 @@ void StdOutLogger::writeString(const std::string& s) {
     std::cout << s << std::flush;
 }
 
+
+void StringLogger::writeString(const std::string& s) {
+    ss << s << std::flush;
+}
+
+void StringLogger::clean() {
+    // clear internal storage
+    ss.str(std::string());
+    // reset flags
+    ss.clear();
+}
+
+std::string StringLogger::toString() const {
+    return ss.str();
+}
+
+
 FileLogger::FileLogger(const Path& path, const Flags<Options> flags)
     : path(path)
     , flags(flags) {

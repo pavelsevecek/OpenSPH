@@ -16,6 +16,7 @@ namespace Abstract {
     class Eos;
     class Rheology;
     class Solver;
+    class Gravity;
     class Damage;
     class Distribution;
     class Domain;
@@ -54,6 +55,8 @@ namespace Factory {
     AutoPtr<Abstract::Distribution> getDistribution(const BodySettings& settings);
 
     AutoPtr<Abstract::Solver> getSolver(const RunSettings& settings);
+
+    AutoPtr<Abstract::Gravity> getGravity(const RunSettings& settings);
 
     AutoPtr<Abstract::BoundaryConditions> getBoundaryConditions(const RunSettings& settings,
         AutoPtr<Abstract::Domain>&& domain);

@@ -342,6 +342,22 @@ enum class SmoothingLengthEnum {
     SOUND_SPEED_ENFORCING = 1 << 2
 };
 
+enum class GravityEnum {
+    /// Brute-force summation over all particle pairs (O(N^2) complexity)
+    BRUTE_FORCE,
+
+    /// Use Barnes-Hut algorithm, approximating gravity by multipole expansion (up to octupole order)
+    BARNES_HUT,
+};
+
+enum class GravityKernelEnum {
+    /// Point-like particles with zero radius
+    POINT_PARTICLES,
+
+    /// Use gravity smoothing kernel corresponding to selected SPH kernel
+    SPH_KERNEL,
+};
+
 enum class LoggerEnum {
     /// Do not log anything
     NONE,
@@ -469,8 +485,17 @@ enum class RunSettingsId {
     /// Minimal value of smoothing length
     SPH_SMOOTHING_LENGTH_MIN,
 
+    /// Algorithm to compute gravitational acceleration
+    GRAVITY_SOLVER,
+
     /// Opening angle for multipole approximation of gravity
     GRAVITY_OPENING_ANGLE,
+
+    /// Order of multipole expansion
+    GRAVITY_MULTIPOLE_ORDER,
+
+    /// Gravity smoothing kernel
+    GRAVITY_KERNEL,
 
     /// Use force from pressure gradient in the model
     MODEL_FORCE_PRESSURE_GRADIENT,

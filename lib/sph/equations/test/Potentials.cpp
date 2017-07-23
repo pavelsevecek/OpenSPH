@@ -6,6 +6,24 @@
 
 using namespace Sph;
 
+TEST_CASE("SphericalGravity analytic", "[equationterm]") {
+    const Float r0 = 2._f;
+    const Float rho0 = 5._f;
+    Analytic::StaticSphere sphere(r0, rho0);
+    Vector a;
+    // linear dependence inside the sphere
+    Vector r(0.5_f, 0._f, 0._f);
+    a = sphere.getAcceleration(r) / Constants::gravity;
+    REQUIRE(a == approx(-rho0 * sphereVolume(1._f) * r));
+    r = Vector(1.2_f, 0._f, 0._f);
+    a = sphere.getAcceleration(r) / Constants::gravity;
+    REQUIRE(a == approx(-rho0 * sphereVolume(1._f) * r));
+
+    // inverse square law outside
+    r = Vector(3._f, 1._f, 0._f);
+    a = sphere.getAcceleration(r) / Constants::gravity;
+    REQUIRE(a == approx(-rho0 * sphereVolume(r0) * r / pow<3>(getLength(r))));
+}
 
 TEST_CASE("SphericalGravity consistency", "[equationterm]") {
     BodySettings settings;

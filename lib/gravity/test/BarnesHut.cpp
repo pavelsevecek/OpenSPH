@@ -51,8 +51,9 @@ static void testOpeningAngle(const MultipoleOrder order) {
     bh.build(r, m);
 
     auto test = [&](const Size i) -> Outcome {
-        const Vector a_bf = bf.eval(i);
-        const Vector a_bh = bh.eval(i);
+        Statistics stats;
+        const Vector a_bf = bf.eval(i, stats);
+        const Vector a_bh = bh.eval(i, stats);
         if (a_bf != approx(a_bh)) {
             return makeFailed("Incorrect acceleration: ", a_bh, " == ", a_bf);
         }
@@ -75,7 +76,8 @@ TEST_CASE("BarnesHut empty", "[gravity]") {
     Array<Float> m;
     REQUIRE_NOTHROW(bh.build(r, m));
 
-    REQUIRE(bh.eval(Vector(0._f)) == Vector(0._f));
+    Statistics stats;
+    REQUIRE(bh.eval(Vector(0._f), stats) == Vector(0._f));
 }
 
 static void testMoments(const MultipoleExpansion<3>& moments,
@@ -133,7 +135,8 @@ static void testSimpleAcceleration(const MultipoleOrder order, const Float eps) 
     BarnesHut bh(0.5_f, order, 1);
     bh.build(r, m);
 
-    Vector a = bh.eval(Vector(-10, 10, 0, 1)) / Constants::gravity;
+    Statistics stats;
+    Vector a = bh.eval(Vector(-10, 10, 0, 1), stats) / Constants::gravity;
     Vector expected(0.020169998934707004, -0.007912678499211458, 0);
     REQUIRE(a != expected); // it shouldn't be exactly equal, sanity check
     REQUIRE(a == approx(expected, eps));
@@ -163,9 +166,10 @@ static void testStorageAcceleration(const MultipoleOrder order, const Float eps)
     bf.build(r, m);
     bh.build(r, m);
 
+    Statistics stats;
     auto test = [&](const Size i) -> Outcome {
-        const Vector a_bf = bf.eval(i);
-        const Vector a_bh = bh.eval(i);
+        const Vector a_bf = bf.eval(i, stats);
+        const Vector a_bh = bh.eval(i, stats);
         if (a_bf == a_bh) {
             return makeFailed("Approximative solution is EXACTLY equal to brute force: ", a_bh, " == ", a_bf);
         }
@@ -205,11 +209,12 @@ TEST_CASE("BarnesHut opening angle convergence", "[gravity]") {
     bh4.build(r, m);
     bh8.build(r, m);
 
+    Statistics stats;
     auto test = [&](const Size i) -> Outcome {
-        const Vector a_bf = bf.eval(i);
-        const Vector a_bh2 = bh2.eval(i);
-        const Vector a_bh4 = bh4.eval(i);
-        const Vector a_bh8 = bh8.eval(i);
+        const Vector a_bf = bf.eval(i, stats);
+        const Vector a_bh2 = bh2.eval(i, stats);
+        const Vector a_bh4 = bh4.eval(i, stats);
+        const Vector a_bh8 = bh8.eval(i, stats);
 
         const Float diff2 = getLength(a_bh2 - a_bf);
         const Float diff4 = getLength(a_bh4 - a_bf);

@@ -37,7 +37,7 @@ void Abstract::TimeStepping::step(Abstract::Solver& solver, Statistics& stats) {
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void EulerExplicit::stepImpl(Abstract::Solver& solver, Statistics& stats) {
-    MEASURE_SCOPE("EulerExplicit::step");
+    // MEASURE_SCOPE("EulerExplicit::step");
     // clear derivatives from previous timestep
     storage->init();
 

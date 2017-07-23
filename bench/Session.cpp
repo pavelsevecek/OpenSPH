@@ -62,6 +62,14 @@ void Session::run(int argc, char* argv[]) {
     }
 
     for (SharedPtr<Unit>& b : benchmarks) {
+        if (!params.benchmarksToRun.empty()) {
+            // check if we want to run the benchmark
+            Array<std::string>& names = params.benchmarksToRun;
+            if (std::find(names.begin(), names.end(), b->getName()) == names.end()) {
+                continue;
+            }
+        }
+
         try {
             if (params.flags.has(Flag::RUN_AGAINST_BASELINE)) {
                 if (!baseline.isRecorded(b->getName())) {
@@ -163,6 +171,7 @@ Group& Session::getGroupByName(const std::string& groupName) {
 Outcome Session::parseArgs(int argc, char* argv[]) {
     for (int i = 1; i < argc; ++i) { // first arg is path to the executable
         std::string arg = argv[i];
+        ASSERT(!arg.empty());
         if (arg == "-b") {
             params.flags.set(Flag::MAKE_BASELINE);
         } else if (arg == "-r") {
@@ -171,10 +180,15 @@ Outcome Session::parseArgs(int argc, char* argv[]) {
                 params.baseline.commit = std::stoi(argv[i + 1]);
                 i++;
             }
-        }
-        if (arg == "--help") {
+        } else if (arg == "--help") {
             this->printHelp();
             return ""; // empty error message to quit the program
+        } else if (arg[0] != '-') {
+            // not starting with '-', it must be a name of the benchmark to run
+            if (arg[0] == '\"' && arg[arg.size() - 1] == '\"') {
+                arg = arg.substr(1, arg.size() - 2);
+            }
+            params.benchmarksToRun.push(arg);
         }
     }
     return SUCCESS;

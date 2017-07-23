@@ -116,13 +116,39 @@ struct Console {
 };
 
 
-/// Standard output logger. This is just a wrapper of std::cout with Abstract::Logger interface, it does not
-/// hold any state and can be constructed on spot with no cost. All StdOutLoggers print to the same output.
+/// \brief Standard output logger.
+///
+/// This is just a wrapper of std::cout with Abstract::Logger interface, it does not tructed on spot with no
+/// cost. All StdOutLoggers print to the same output.
 class StdOutLogger : public Abstract::Logger {
 public:
     virtual void writeString(const std::string& s) override;
 };
 
+
+/// \brief Logger writing messages to string stream
+class StringLogger : public Abstract::Logger {
+private:
+    std::stringstream ss;
+
+public:
+    virtual void writeString(const std::string& s) override;
+
+    /// Removes all written messages from the string.
+    void clean();
+
+    /// Returns all written messages as a string. Messages are not erased from the logger by this
+    std::string toString() const;
+};
+
+
+/// Converts all parameters into a string and returns the concatenation, utilizing StringLogger
+template <typename... TArgs>
+INLINE std::string toString(TArgs&&... args) {
+    return StringLogger().write(std::forward<TArgs>(args)...);
+}
+
+/// Exception thrown by FileLogger
 class IoError : public std::exception {
 private:
     std::string message;

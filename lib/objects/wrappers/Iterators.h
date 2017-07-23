@@ -44,82 +44,82 @@ public:
     {
     }
 
-    const TValue& operator*() const {
+    INLINE const TValue& operator*() const {
         ASSERT(data >= begin && data < end);
         return *data;
     }
-    TValue& operator*() {
+    INLINE TValue& operator*() {
         ASSERT(data >= begin && data < end);
         return *data;
     }
-    T* operator->() {
+    INLINE T* operator->() {
         ASSERT(data >= begin && data < end);
         return data;
     }
-    const T* operator->() const {
+    INLINE const T* operator->() const {
         ASSERT(data >= begin && data < end);
         return data;
     }
 
 #ifdef SPH_DEBUG
-    Iterator operator+(const TCounter n) const {
+    INLINE Iterator operator+(const TCounter n) const {
         return Iterator(data + n, begin, end);
     }
-    Iterator operator-(const TCounter n) const {
+    INLINE Iterator operator-(const TCounter n) const {
         return Iterator(data - n, begin, end);
     }
 #else
-    Iterator operator+(const TCounter n) const {
+    INLINE Iterator operator+(const TCounter n) const {
         return Iterator(data + n);
     }
-    Iterator operator-(const TCounter n) const {
+    INLINE Iterator operator-(const TCounter n) const {
         return Iterator(data - n);
     }
 #endif
-    void operator+=(const TCounter n) {
+    INLINE void operator+=(const TCounter n) {
         data += n;
     }
-    void operator-=(const TCounter n) {
+    INLINE void operator-=(const TCounter n) {
         data -= n;
     }
-    Iterator& operator++() {
+    INLINE Iterator& operator++() {
         ++data;
         return *this;
     }
-    Iterator operator++(int) {
+    INLINE Iterator operator++(int) {
         Iterator tmp(*this);
         operator++();
         return tmp;
     }
-    Iterator& operator--() {
+    INLINE Iterator& operator--() {
         --data;
         return *this;
     }
-    Iterator operator--(int) {
+    INLINE Iterator operator--(int) {
         Iterator tmp(*this);
         operator--();
         return tmp;
     }
-    Size operator-(const Iterator& iter) const {
+    INLINE Size operator-(const Iterator& iter) const {
         ASSERT(data >= iter.data);
         return data - iter.data;
     }
-    bool operator<(const Iterator& iter) const {
+    INLINE bool operator<(const Iterator& iter) const {
         return data < iter.data;
     }
-    bool operator>(const Iterator& iter) const {
+    INLINE bool operator>(const Iterator& iter) const {
         return data > iter.data;
     }
-    bool operator<=(const Iterator& iter) const {
+    INLINE bool operator<=(const Iterator& iter) const {
         return data <= iter.data;
     }
-    bool operator>=(const Iterator& iter) const {
+    INLINE bool operator>=(const Iterator& iter) const {
         return data >= iter.data;
     }
-    bool operator==(const Iterator& iter) const {
+    INLINE bool operator==(const Iterator& iter) const {
         return data == iter.data;
     }
-    bool operator!=(const Iterator& iter) const {
+    INLINE bool operator!=(const Iterator& iter) const {
         return data != iter.data;
     }
 

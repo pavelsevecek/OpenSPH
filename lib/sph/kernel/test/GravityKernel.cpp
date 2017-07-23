@@ -6,6 +6,13 @@
 
 using namespace Sph;
 
+TEST_CASE("Default kernel", "[kernel]") {
+    GravityLutKernel kernel;
+    REQUIRE(kernel.closeRadius() == 0._f);
+    REQUIRE(kernel.value(Vector(2._f, 0._f, 0._f), 1._f) == -0.5_f);
+    REQUIRE(kernel.grad(Vector(2._f, 0._f, 0._f), 1._f) == Vector(0.25_f, 0._f, 0._f));
+}
+
 TEST_CASE("M4 gravity kernel", "[kernel]") {
     GravityLutKernel kernel = GravityKernel<CubicSpline<3>>();
     REQUIRE(kernel.value(Vector(1._f, 0._f, 0._f), 0.1_f) < 0._f);

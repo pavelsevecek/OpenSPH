@@ -7,6 +7,7 @@
 
 #include "bench/Common.h"
 #include "bench/Stats.h"
+#include "io/Logger.h"
 #include "io/Path.h"
 #include "objects/containers/Array.h"
 #include "objects/containers/StringUtils.h"
@@ -68,8 +69,8 @@ public:
     /// Whether to keep running or exit
     INLINE bool running() {
         state = this->shouldContinue();
-        if (iterateCnt == 0) {
-            // restart to discard benchmark setup time
+        if (iterateCnt == 2) {
+            // restart to discard benchmark setup time and first few iterations (startup)
             timer.restart();
         } else {
             stats.add(1.e-3_f * iterationTimer.elapsed(TimerUnit::MICROSECOND));
@@ -89,6 +90,13 @@ public:
 
     INLINE Stats getStats() const {
         return stats;
+    }
+
+    /// Writes given message into the logger
+    template <typename... TArgs>
+    INLINE void log(TArgs&&... args) {
+        StdOutLogger logger;
+        logger.write(std::forward<TArgs>(args)...);
     }
 
 private:
@@ -249,6 +257,8 @@ private:
             Path path;
             Size commit = 0;
         } baseline;
+
+        Array<std::string> benchmarksToRun;
 
         Target target{ Mode::SIMPLE, 500 /*ms*/, 10 };
 

@@ -1,17 +1,19 @@
 #include "sph/solvers/GravitySolver.h"
 #include "catch.hpp"
+#include "gravity/BarnesHut.h"
+#include "gravity/BruteForceGravity.h"
 #include "tests/Setup.h"
 #include "utils/Approx.h"
 #include "utils/SequenceTest.h"
 
 using namespace Sph;
 
-TEST_CASE("GravitySolver", "[solvers]") {
+static void testGravity(AutoPtr<Abstract::Gravity>&& gravity) {
     BodySettings settings;
     settings.set(BodySettingsId::DENSITY, 1._f).set(BodySettingsId::ENERGY, 1._f);
     Storage storage = Tests::getGassStorage(3000, settings, Constants::au);
     // no SPH equations, just gravity
-    GravitySolver solver(RunSettings::getDefaults(), EquationHolder());
+    GravitySolver solver(RunSettings::getDefaults(), EquationHolder(), std::move(gravity));
     REQUIRE_NOTHROW(solver.create(storage, storage.getMaterial(0)));
     Statistics stats;
     REQUIRE_NOTHROW(solver.integrate(storage, stats));
@@ -48,4 +50,11 @@ TEST_CASE("GravitySolver", "[solvers]") {
         return SUCCESS;
     };
     REQUIRE_SEQUENCE(test, 0, r.size());
+}
+
+TEST_CASE("GravitySolver", "[solvers]") {
+    testGravity(makeAuto<BruteForceGravity>());
+    testGravity(makeAuto<BruteForceGravity>(GravityKernel<CubicSpline<3>>{}));
+    testGravity(makeAuto<BarnesHut>(0.5_f, MultipoleOrder::QUADRUPOLE));
+    testGravity(makeAuto<BarnesHut>(0.5_f, MultipoleOrder::QUADRUPOLE, GravityKernel<CubicSpline<3>>{}));
 }

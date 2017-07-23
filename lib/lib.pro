@@ -29,7 +29,7 @@ CONFIG(assert, debug|profile|assert|release) {
 
 CONFIG(debug, debug|profile|assert|release) {
   message( "SPH LIB --- Building for Debug" )
-  DEFINES += SPH_DEBUG SPH_PROFILE
+  DEFINES += SPH_PROFILE SPH_DEBUG
 }
 
 SOURCES += \
