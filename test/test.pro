@@ -133,6 +133,7 @@ SOURCES += \
     ../lib/quantities/test/Particle.cpp \
     ../lib/gravity/test/Moments.cpp \
     ../lib/gravity/test/BarnesHut.cpp \
+    ../lib/gravity/test/VoxelGravity.cpp \
     utils/Approx.cpp \
     utils/SequenceTest.cpp \
     utils/Utils.cpp \

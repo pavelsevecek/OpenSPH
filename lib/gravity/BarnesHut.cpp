@@ -1,6 +1,7 @@
 #include "gravity/BarnesHut.h"
 #include "gravity/Moments.h"
 #include "physics/Constants.h"
+#include "quantities/Storage.h"
 #include "system/Profiler.h"
 #include "system/Statistics.h"
 
@@ -8,12 +9,13 @@ NAMESPACE_SPH_BEGIN
 
 BarnesHut::BarnesHut(const Float theta, const MultipoleOrder order, const Size leafSize)
     : kdTree(leafSize)
-    , thetaSqr(sqr(theta))
+    , thetaInv(1.f / theta)
     , order(order) {
     // use default-constructed kernel; it works, because by default LutKernel has zero radius and functions
     // valueImpl and gradImpl are never called.
     // Check by assert to make sure this trick will work
     ASSERT(kernel.closeRadius() == 0._f);
+    ASSERT(theta > 0._f, theta);
 }
 
 BarnesHut::BarnesHut(const Float theta,
@@ -22,13 +24,15 @@ BarnesHut::BarnesHut(const Float theta,
     const Size leafSize)
     : kdTree(leafSize)
     , kernel(std::move(kernel))
-    , thetaSqr(sqr(theta))
-    , order(order) {}
+    , thetaInv(1.f / theta)
+    , order(order) {
+    ASSERT(theta > 0._f, theta);
+}
 
-void BarnesHut::build(ArrayView<const Vector> points, ArrayView<const Float> masses) {
+void BarnesHut::build(const Storage& storage) {
     // save source data
-    r = points;
-    m = masses;
+    r = storage.getValue<Vector>(QuantityId::POSITIONS);
+    m = storage.getValue<Float>(QuantityId::MASSES);
 
     // build K-d Tree
     kdTree.build(r);
@@ -50,27 +54,29 @@ void BarnesHut::build(ArrayView<const Vector> points, ArrayView<const Float> mas
     });
 }
 
-Vector BarnesHut::eval(const Size idx, Statistics& stats) {
-    return this->evalImpl(r[idx], idx, stats);
+void BarnesHut::evalAll(ArrayView<Vector> dv, Statistics& stats) const {
+    for (Size i = 0; i < dv.size(); ++i) {
+        dv[i] = this->evalImpl(r[i], i, stats);
+    }
 }
 
-Vector BarnesHut::eval(const Vector& r0, Statistics& stats) {
+Vector BarnesHut::eval(const Vector& r0, Statistics& stats) const {
     return this->evalImpl(r0, Size(-1), stats);
 }
 
-Vector BarnesHut::evalImpl(const Vector& r0, const Size idx, Statistics& stats) {
+Vector BarnesHut::evalImpl(const Vector& r0, const Size idx, Statistics& UNUSED(stats)) const {
     if (SPH_UNLIKELY(r.empty())) {
         return Vector(0._f);
     }
     ASSERT(r0[H] > 0._f, r0[H]);
 
     Vector f(0._f);
-    struct {
+    /*struct {
         Size approximated = 0;
         Size exact = 0;
-    } ns;
+    } ns;*/
 
-    kdTree.iterate<KdTree::Direction::TOP_DOWN>([this, &r0, &f, idx, &ns](KdNode& node, KdNode*, KdNode*) {
+    auto lambda = [this, &r0, &f, idx](const KdNode& node, const KdNode*, const KdNode*) {
         if (node.box == Box::EMPTY()) {
             // no particles in this node, skip
             return false;
@@ -78,33 +84,36 @@ Vector BarnesHut::evalImpl(const Vector& r0, const Size idx, Statistics& stats) 
         const Float boxSizeSqr = getSqrLength(node.box.size());
         const Float boxDistSqr = getSqrLength(node.box.center() - r0);
         ASSERT(isReal(boxDistSqr));
-        if (!node.box.contains(r0) && boxSizeSqr / (boxDistSqr + EPS) < thetaSqr) {
+        /// \todo
+        if (!node.box.contains(r0) && boxSizeSqr / (boxDistSqr + EPS) < 1.f / sqr(thetaInv)) {
             // small node, use multipole approximation
-            f += evaluateGravity(r0 - node.com, node.moments, int(order));
+            // f += node.moments.order<0>().value() * kernel.grad(r0 - node.com, r0[H]);
+            f += evaluateGravity(r0 - node.com, node.moments, order);
             /// \todo compute exact number of particles! this is only valid for unit tests!!
-            ns.approximated += round(node.moments.order<0>().value() / m[0]);
+            // ns.approximated += round(node.moments.order<0>().value() / m[0]);
             // skip the children
             return false;
         } else {
             // too large box; if inner, recurse into children, otherwise sum each particle of the leaf
             if (node.isLeaf()) {
-                LeafNode& leaf = reinterpret_cast<LeafNode&>(node);
-                this->evalExact(leaf, r0, idx);
-                ns.exact += leaf.size();
+                const LeafNode& leaf = reinterpret_cast<const LeafNode&>(node);
+                f += this->evalExact(leaf, r0, idx);
+                //  ns.exact += leaf.size();
                 return false; // return value doesn't matter here
             } else {
                 // continue with children
                 return true;
             }
         }
-    });
+    };
+    kdTree.iterate<KdTree::Direction::TOP_DOWN>(lambda);
 
-    stats.set(StatisticsId::GRAVITY_PARTICLES_EXACT, int(ns.exact));
-    stats.set(StatisticsId::GRAVITY_PARTICLES_APPROX, int(ns.approximated));
+    /*stats.set(StatisticsId::GRAVITY_PARTICLES_EXACT, int(ns.exact));
+    stats.set(StatisticsId::GRAVITY_PARTICLES_APPROX, int(ns.approximated));*/
     return Constants::gravity * f;
 }
 
-Vector BarnesHut::evalExact(LeafNode& leaf, const Vector& r0, const Size idx) {
+Vector BarnesHut::evalExact(const LeafNode& leaf, const Vector& r0, const Size idx) const {
     LeafIndexSequence sequence = kdTree.getLeafIndices(leaf);
     Vector f(0._f);
     for (Size i : sequence) {
@@ -144,6 +153,11 @@ void BarnesHut::buildLeaf(KdNode& node) {
     ASSERT(m_leaf > 0._f, m_leaf);
     leaf.com /= m_leaf;
     ASSERT(isReal(leaf.com) && getLength(leaf.com) < LARGE, leaf.com);
+
+    // compute opening radius using Eq. (2.36) of Stadel Phd Thesis
+    const Vector r_max = max(leaf.com - leaf.box.lower(), leaf.box.upper() - leaf.com);
+    ASSERT(minElement(r_max) > 0._f, r_max);
+    leaf.r_open = 2._f / sqrt(3._f) * thetaInv * getLength(r_max);
 
     // compute gravitational moments from individual particles
     // M0 is a sum of particle masses, M1 is a dipole moment = zero around center of mass
@@ -192,6 +206,11 @@ void BarnesHut::buildInner(KdNode& node, KdNode& left, KdNode& right) {
 
     inner.com = (ml * left.com + mr * right.com) / (ml + mr);
     ASSERT(isReal(inner.com) && getLength(inner.com) < LARGE, inner.com);
+
+    // compute opening radius
+    const Vector r_max = max(inner.com - inner.box.lower(), inner.box.upper() - inner.com);
+    ASSERT(minElement(r_max) > 0._f, r_max);
+    inner.r_open = 2._f / sqrt(3._f) * thetaInv * getLength(r_max);
 
     inner.moments.order<0>() = ml + mr;
 

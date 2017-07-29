@@ -39,6 +39,18 @@ namespace Abstract {
         /// Creates all quantities needed by the term using given material. Called once for every body in
         /// the simulation.
         virtual void create(Storage& storage, Abstract::Material& material) const = 0;
+
+        /// \brief Fills given arrays with type_info of other EquationTerm objects, specifying compatibility
+        /// with other objects.
+        ///
+        /// This is used as sanity check of the setup. By default, it is assumed that all equation term are
+        /// compatible with each other and may be used together.
+        /// \param demands Types of equation terms that MUST be solved together with this term
+        /// \param forbids Types of equation terms that MUST NOT be solved together with tihs term
+        /// \todo This should be somehow generalized; for example we should only include one arficifial
+        /// viscosity without the need to specify EVERY single AV in 'forbids' list.
+        virtual void requires(Array<std::type_info>& UNUSED(demands),
+            Array<std::type_info>& UNUSED(forbids)) const {}
     };
 }
 
@@ -93,7 +105,7 @@ public:
             storage.getValues<Float>(QuantityId::PRESSURE, QuantityId::DENSITY, QuantityId::MASSES);
         ArrayView<Float> du = storage.getDt<Float>(QuantityId::ENERGY);
 
-        storage.parallelFor(0, du.size(), [&](const Size n1, const Size n2) INL {
+        parallelFor(0, du.size(), [&](const Size n1, const Size n2) INL {
             for (Size i = n1; i < n2; ++i) {
                 du[i] -= p[i] / rho[i] * divv[i];
             }
@@ -211,7 +223,7 @@ public:
             MaterialView material = storage.getMaterial(matIdx);
             const Float mu = material->getParam<Float>(BodySettingsId::SHEAR_MODULUS);
             IndexSequence seq = material.sequence();
-            storage.parallelFor(*seq.begin(), *seq.end(), [&](const Size n1, const Size n2) INL {
+            parallelFor(*seq.begin(), *seq.end(), [&](const Size n1, const Size n2) INL {
                 for (Size i = n1; i < n2; ++i) {
                     du[i] += 1._f / rho[i] * ddot(s[i], gradv[i]);
                     /// \todo rotation rate tensor?
@@ -225,7 +237,7 @@ public:
             /// \todo here we assume only this equation term uses the correction
             ArrayView<SymmetricTensor> C =
                 storage.getValue<SymmetricTensor>(QuantityId::ANGULAR_MOMENTUM_CORRECTION);
-            storage.parallelFor(0, C.size(), [&C](const Size n1, const Size n2) INL {
+            parallelFor(0, C.size(), [&C](const Size n1, const Size n2) INL {
                 for (Size i = n1; i < n2; ++i) {
                     C[i] = C[i].inverse();
                 }
@@ -343,7 +355,7 @@ public:
             ArrayView<const Float> reduce = storage.getValue<Float>(QuantityId::STRESS_REDUCING);
             ArrayView<const SymmetricTensor> gradv =
                 storage.getValue<SymmetricTensor>(QuantityId::STRENGTH_VELOCITY_GRADIENT);
-            storage.parallelFor(0, rho.size(), [&](const Size n1, const Size n2) INL {
+            parallelFor(0, rho.size(), [&](const Size n1, const Size n2) INL {
                 for (Size i = n1; i < n2; ++i) {
                     if (reduce[i] != 0._f) {
                         drho[i] = -rho[i] * gradv[i].trace();
@@ -353,7 +365,7 @@ public:
                 }
             });
         } else {
-            storage.parallelFor(0, rho.size(), [&](const Size n1, const Size n2) INL {
+            parallelFor(0, rho.size(), [&](const Size n1, const Size n2) INL {
                 for (Size i = n1; i < n2; ++i) {
                     drho[i] = -rho[i] * divv[i];
                 }
@@ -430,7 +442,7 @@ public:
         ArrayView<const Size> neighCnt = storage.getValue<Size>(QuantityId::NEIGHBOUR_CNT);
         ArrayView<Vector> r, v, dv;
         tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
-        storage.parallelFor(0, r.size(), [&](const Size n1, const Size n2) INL {
+        parallelFor(0, r.size(), [&](const Size n1, const Size n2) INL {
             for (Size i = n1; i < n2; ++i) {
                 // 'continuity equation' for smoothing lengths
                 if (r[i][H] > 2._f * minimal) {
@@ -528,7 +540,21 @@ public:
         return holder;
     }
 
-    void setupThread(DerivativeHolder& derivatives, const RunSettings& settings) const {
+    /// Checks if the holder contains term of given type.
+    template <typename Term>
+    bool contains() const {
+        static_assert(std::is_base_of<Abstract::EquationTerm, Term>::value, "Can be used only for terms");
+        for (auto& ptr : terms) {
+            Abstract::EquationTerm& term = *ptr;
+            if (typeid(term) == typeid(Term)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /// Calls \ref EquationTerm::setDerivatives for all stored equation terms.
+    void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) const {
         for (auto& t : terms) {
             t->setDerivatives(derivatives, settings);
         }

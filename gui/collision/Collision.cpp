@@ -122,6 +122,9 @@ private:
     /// Used to create the impactor
     SharedPtr<InitialConditions> conds;
 
+    /// Angular frequency
+    Vector omega{ 0._f, 0._f, 2._f * PI / (3._f * 3600._f) };
+
     /// Time when initial dampening phase is ended and impact starts
     Float startTime = 10._f;
 
@@ -144,7 +147,7 @@ public:
         GravitySolver::integrate(storage, stats);
 
         const Float t = stats.get<Float>(StatisticsId::TOTAL_TIME);
-        const Float dt = stats.get<Float>(StatisticsId::TIMESTEP_VALUE);
+        const Float dt = stats.getOr<Float>(StatisticsId::TIMESTEP_VALUE, 0.01_f);
         if (t <= startTime) {
             // damp velocities
             ArrayView<Vector> r, v, dv;
@@ -160,11 +163,26 @@ public:
                 .set(BodySettingsId::DAMAGE_MIN, LARGE);
             SphericalDomain domain2(Vector(5097.4509902022_f, 3726.8662269290_f, 0._f), 270.5847632732_f);
             body.saveToFile(Path("impactor.sph"));
-            conds->addBody(domain2, body).addVelocity(Vector(-5.e3_f, 0._f, 0._f)); // 5km/s
+            conds
+                ->addBody(domain2, body)
+                // velocity 5 km/s
+                .addVelocity(Vector(-5.e3_f, 0._f, 0._f))
+                // flies straight, i.e. add rotation in non-intertial frame
+                .addRotation(-omega, BodyView::RotationOrigin::FRAME_ORIGIN);
+
             // logger.write("Particles of projectile: ", storage->getParticleCnt() - n1);
 
             impactStarted = true;
         }
+        // update the angle
+        Float phi = stats.getOr<Float>(StatisticsId::FRAME_ANGLE, 0._f);
+        phi += getLength(omega) * dt;
+        stats.set(StatisticsId::FRAME_ANGLE, phi);
+        /*        {
+                    PkdgravOutput pkdgravOutput(Path("pkdgrav%d.out"), PkdgravParams{});
+                    pkdgravOutput.dump(storage, stats);
+                }
+                exit(0);*/
     }
 
 private:
@@ -175,7 +193,7 @@ private:
         equations += makeTerm<PressureForce>() + makeTerm<SolidStressForce>(settings);
 
         // noninertial acceleration
-        equations += makeTerm<NoninertialForce>(Vector(0._f, 0._f, 2._f * PI / (6._f * 3600._f)));
+        equations += makeTerm<NoninertialForce>(omega);
 
         // density evolution
         equations += makeTerm<ContinuityEquation>(settings);
@@ -195,7 +213,7 @@ AsteroidCollision::AsteroidCollision(RawPtr<Controller>&& controller)
     settings.set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::PREDICTOR_CORRECTOR)
         .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 0.01_f)
         .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 0.01_f)
-        .set(RunSettingsId::RUN_TIME_RANGE, Range(0._f, 10._f))
+        .set(RunSettingsId::RUN_TIME_RANGE, Range(0._f, 20._f))
         .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 0.1_f)
         .set(RunSettingsId::MODEL_FORCE_SOLID_STRESS, true)
         .set(RunSettingsId::SPH_FINDER, FinderEnum::VOXEL)
@@ -212,7 +230,7 @@ void AsteroidCollision::setUp() {
     BodySettings body;
     body.set(BodySettingsId::ENERGY, 0._f)
         .set(BodySettingsId::ENERGY_RANGE, Range(0._f, INFTY))
-        .set(BodySettingsId::PARTICLE_COUNT, 10'000)
+        .set(BodySettingsId::PARTICLE_COUNT, 100'000)
         .set(BodySettingsId::EOS, EosEnum::TILLOTSON)
         .set(BodySettingsId::STRESS_TENSOR_MIN, 1.e5_f)
         .set(BodySettingsId::RHEOLOGY_DAMAGE, DamageEnum::SCALAR_GRADY_KIPP)

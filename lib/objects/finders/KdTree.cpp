@@ -261,16 +261,18 @@ Size KdTree::findNeighboursImpl(const Vector& r0,
         if (nodes[node.idx].isLeaf()) {
             // for leaf just add all
             const LeafNode& leaf = (const LeafNode&)nodes[node.idx];
-            const Float leafDistSqr =
-                getSqrLength(max(Vector(0._f), leaf.box.lower() - r0, r0 - leaf.box.upper()));
-            if (leafDistSqr < radiusSqr) {
-                // leaf intersects the sphere
-                for (Size i = leaf.from; i < leaf.to; ++i) {
-                    const Size actIndex = idxs[i];
-                    const Float distSqr = getSqrLength(values[actIndex] - r0);
-                    if (rankH[actIndex] < refRank && distSqr < radiusSqr) {
-                        /// \todo order part
-                        neighbours.push(NeighbourRecord{ actIndex, distSqr });
+            if (leaf.size() > 0) {
+                const Float leafDistSqr =
+                    getSqrLength(max(Vector(0._f), leaf.box.lower() - r0, r0 - leaf.box.upper()));
+                if (leafDistSqr < radiusSqr) {
+                    // leaf intersects the sphere
+                    for (Size i = leaf.from; i < leaf.to; ++i) {
+                        const Size actIndex = idxs[i];
+                        const Float distSqr = getSqrLength(values[actIndex] - r0);
+                        if (rankH[actIndex] < refRank && distSqr < radiusSqr) {
+                            /// \todo order part
+                            neighbours.push(NeighbourRecord{ actIndex, distSqr });
+                        }
                     }
                 }
             }

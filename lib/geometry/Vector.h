@@ -657,6 +657,12 @@ INLINE Float minElement(const Vector& v) {
     return min(v[0], v[1], v[2]);
 }
 
+/// Returns maximum element of a vector. Considers only the first 3 component, 4th one is ignored.
+template <>
+INLINE Float maxElement(const Vector& v) {
+    return max(v[0], v[1], v[2]);
+}
+
 /// Returns the index of the minimum element.
 INLINE Size argMin(const Vector& v) {
     Size minIdx = 0;

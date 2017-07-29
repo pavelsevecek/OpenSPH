@@ -83,6 +83,27 @@ TEST_CASE("Array Resize", "[array]") {
     REQUIRE(ar.size() == 0);
 }
 
+TEST_CASE("Array ResizeAndSet", "[array]") {
+    Array<RecordType> ar{ 3, 4, 5 };
+    ar.resizeAndSet(5, RecordType(9));
+    REQUIRE(ar.size() == 5);
+    REQUIRE(ar[0].value == 3);
+    REQUIRE(ar[1].value == 4);
+    REQUIRE(ar[2].value == 5);
+    REQUIRE(ar[3].value == 9);
+    REQUIRE(ar[4].value == 9);
+
+    /// \todo the new element could have been copy-constructed, used assignment instead for convenience (to
+    /// avoid duplicating resize function)
+    REQUIRE(ar[3].wasDefaultConstructed);
+    REQUIRE(ar[3].wasCopyAssigned);
+
+    ar.resizeAndSet(2, RecordType(10));
+    REQUIRE(ar.size() == 2);
+    REQUIRE(ar[0].value == 3);
+    REQUIRE(ar[1].value == 4);
+}
+
 TEST_CASE("Array Push & Pop", "[array]") {
     RecordType::resetStats();
     Array<RecordType> ar;
@@ -165,15 +186,37 @@ TEST_CASE("Array Remove by index", "[array]") {
     REQUIRE_ASSERT(ar.remove(-1));
 }
 
+TEST_CASE("Array clone", "[array]") {
+    Array<RecordType> ar1{ 5, 6, 7 };
+    Array<RecordType> ar2 = ar1.clone();
+    REQUIRE(ar2.size() == ar1.size());
+    REQUIRE(ar2[0].value == ar1[0].value);
+    REQUIRE(ar2[1].value == ar1[1].value);
+    REQUIRE(ar2[2].value == ar1[2].value);
+    for (RecordType& r : ar2) {
+        REQUIRE(r.wasCopyConstructed);
+    }
+
+    // check that it isn't a soft-copy
+    ar1[0].value = 10;
+    REQUIRE(ar2[0].value == 5);
+}
+
 TEST_CASE("Array iterators", "[array]") {
     Array<int> empty{};
     REQUIRE(empty.begin() == empty.end());
+
+    Size idx = 0;
+    for (int i : empty) {
+        idx++;
+    }
+    REQUIRE(idx == 0);
 
     Array<int> ar{ 1, 5, 3, 6, 2, 3 };
     REQUIRE(*ar.begin() == 1);
     REQUIRE(*(ar.end() - 1) == 3);
 
-    Size idx = 0;
+    idx = 0;
     for (int i : ar) {
         REQUIRE(i == ar[idx]);
         idx++;
@@ -235,8 +278,17 @@ TEST_CASE("Array References", "[array]") {
 }
 
 TEST_CASE("CopyArray", "[array]") {
-    Array<int> ar1{ 1, 2, 3 };
-    Array<int> ar2{ 5, 6, 7, 8, 9 };
+    Array<RecordType> ar1{ 1, 2, 3 };
+    Array<RecordType> ar2{ 5, 6, 7, 8 };
+    static_assert(
+        !std::is_assignable<Array<RecordType>&, Array<RecordType>&>::value, "Array must not be copyable");
+
     ar1 = copyable(ar2);
-    REQUIRE(ar1 == ar2);
+    REQUIRE(ar1.size() == ar2.size());
+    for (Size i = 0; i < ar1.size(); ++i) {
+        REQUIRE(ar1[i] == ar2[i]);
+        REQUIRE(ar1[i].wasCopyAssigned);
+    }
+    ar2[0].value = 10;
+    REQUIRE(ar1[0].value == 5);
 }

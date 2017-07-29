@@ -33,7 +33,11 @@ public:
     }
 };
 
-Abstract::Run::Run() = default;
+Abstract::Run::Run() {
+#ifndef SPH_DEBUG
+    ASSERT(false, "Invalid configuration, asserts should be only enabled in debug builds");
+#endif
+}
 
 Abstract::Run::~Run() = default;
 

@@ -86,7 +86,7 @@ void PredictorCorrector::makePredictions() {
     const Float dt2 = 0.5_f * sqr(this->dt);
     iterate<VisitorEnum::SECOND_ORDER>(
         *storage, [this, dt2](const QuantityId id, auto& v, auto& dv, auto& d2v) {
-            storage->parallelFor(0, v.size(), [&](const Size n1, const Size n2) INL {
+            parallelFor(0, v.size(), [&](const Size n1, const Size n2) INL {
                 for (Size i = n1; i < n2; ++i) {
                     v[i] += dv[i] * this->dt + d2v[i] * dt2;
                     dv[i] += d2v[i] * this->dt;
@@ -99,7 +99,7 @@ void PredictorCorrector::makePredictions() {
             });
         });
     iterate<VisitorEnum::FIRST_ORDER>(*storage, [this](const QuantityId id, auto& v, auto& dv) {
-        storage->parallelFor(0, v.size(), [&](const Size n1, const Size n2) INL {
+        parallelFor(0, v.size(), [&](const Size n1, const Size n2) INL {
             for (Size i = n1; i < n2; ++i) {
                 v[i] += dv[i] * this->dt;
                 const Range range = storage->getMaterialOfParticle(i)->range(id);
@@ -126,7 +126,7 @@ void PredictorCorrector::makeCorrections() {
             ASSERT(pv.size() == pd2v.size());
             constexpr Float a = 1._f / 3._f;
             constexpr Float b = 0.5_f;
-            storage->parallelFor(0, pv.size(), [&](const Size n1, const Size n2) {
+            parallelFor(0, pv.size(), [&](const Size n1, const Size n2) {
                 for (Size i = n1; i < n2; ++i) {
                     pv[i] -= a * (cd2v[i] - pd2v[i]) * dt2;
                     pdv[i] -= b * (cd2v[i] - pd2v[i]) * this->dt;
@@ -141,7 +141,7 @@ void PredictorCorrector::makeCorrections() {
         *predictions,
         [this](const QuantityId id, auto& pv, auto& pdv, auto& UNUSED(cv), auto& cdv) {
             ASSERT(pv.size() == pdv.size());
-            storage->parallelFor(0, pv.size(), [&](const Size n1, const Size n2) {
+            parallelFor(0, pv.size(), [&](const Size n1, const Size n2) {
                 for (Size i = n1; i < n2; ++i) {
                     pv[i] -= 0.5_f * (cdv[i] - pdv[i]) * this->dt;
                     const Range range = storage->getMaterialOfParticle(i)->range(id);
@@ -156,12 +156,20 @@ void PredictorCorrector::makeCorrections() {
 void PredictorCorrector::stepImpl(Abstract::Solver& solver, Statistics& stats) {
     // make predictions
     this->makePredictions();
+
     // save derivatives from predictions
     storage->swap(*predictions, VisitorEnum::HIGHEST_DERIVATIVES);
+
     // clear derivatives
     storage->init();
-    // compute derivative
+
+    // compute derivatives
     solver.integrate(*storage, stats);
+
+    // resize the correction storage, needed because solver might add or remove particles
+    ASSERT(storage->getParticleCnt() > 0);
+    predictions->resize(storage->getParticleCnt(), Storage::ResizeFlag::KEEP_EMPTY_UNCHANGED);
+
     // make corrections
     this->makeCorrections();
 }

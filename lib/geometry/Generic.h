@@ -22,6 +22,13 @@ INLINE Float normSqr(const T& value) {
     return sqr(value);
 }
 
+/// Returns maximum element, simply the value iself by default. This function is intended for vectors and
+/// tensors, function for float is only for writing generic code.
+template <typename T>
+INLINE Float maxElement(const T& value) {
+    return value;
+}
+
 /// Returns minimum element, simply the value iself by default. This function is intended for vectors and
 /// tensors, function for float is only for writing generic code.
 template <typename T>

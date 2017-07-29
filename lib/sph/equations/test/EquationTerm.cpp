@@ -102,6 +102,13 @@ TEST_CASE("EquationHolder operators", "[equationterm]") {
     REQUIRE(sum.getTermCnt() == 3);
 }
 
+TEST_CASE("EquationHolder contains", "[equationterm]") {
+    EquationHolder eqs;
+    eqs += makeTerm<PressureForce>();
+    REQUIRE(eqs.contains<PressureForce>());
+    REQUIRE_FALSE(eqs.contains<TestEquation>());
+}
+
 TEST_CASE("TestEquation", "[equationterm]") {
     Storage storage = Tests::getStorage(10);
     const Size N = storage.getParticleCnt();

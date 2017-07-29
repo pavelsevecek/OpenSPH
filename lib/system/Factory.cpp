@@ -2,6 +2,7 @@
 #include "geometry/Domain.h"
 #include "gravity/BarnesHut.h"
 #include "gravity/BruteForceGravity.h"
+#include "gravity/VoxelGravity.h"
 #include "io/Logger.h"
 #include "math/rng/Rng.h"
 #include "objects/finders/BruteForceFinder.h"
@@ -202,6 +203,9 @@ AutoPtr<Abstract::Gravity> Factory::getGravity(const RunSettings& settings) {
         return makeAuto<BruteForceGravity>(std::move(kernel));
     case GravityEnum::BARNES_HUT:
         return makeAuto<BarnesHut>(theta, order, std::move(kernel));
+    case GravityEnum::VOXEL:
+        NOT_IMPLEMENTED;
+    // return makeAuto<VoxelGravity>(theta, order, std::move(kernel));
     default:
         NOT_IMPLEMENTED;
     }

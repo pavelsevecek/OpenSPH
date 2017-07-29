@@ -50,6 +50,7 @@ TEST_CASE("IsPower", "[math]") {
     REQUIRE_FALSE(isPower2(31));
     REQUIRE_FALSE(isPower2(33));
     REQUIRE_FALSE(isPower2(7));
+    REQUIRE_FALSE(isPower2(0));
 }
 
 /*TEST_CASE("Less", "[math]") {

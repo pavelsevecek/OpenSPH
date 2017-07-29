@@ -27,18 +27,12 @@ BodyView& BodyView::addVelocity(const Vector& velocity) {
     return *this;
 }
 
-BodyView& BodyView::addRotation(const Vector& omega, const Variant<RotationOrigin, Vector>& origin) {
+BodyView& BodyView::addRotation(const Vector& omega, const Vector& origin) {
     ArrayView<Vector> r, v, dv;
     tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
     MaterialView material = storage.getMaterial(bodyIndex);
-    Vector actOrigin;
-    if (origin.getTypeIdx() == 0) {
-        actOrigin = this->getOrigin(origin.get<RotationOrigin>());
-    } else {
-        actOrigin = origin.get<Vector>();
-    }
     for (Size i : material.sequence()) {
-        v[i] += cross(r[i] - actOrigin, omega);
+        v[i] += cross(r[i] - origin, omega);
     }
     return *this;
 }
@@ -52,6 +46,10 @@ Vector BodyView::getOrigin(const RotationOrigin origin) const {
     default:
         NOT_IMPLEMENTED;
     }
+}
+
+BodyView& BodyView::addRotation(const Vector& omega, const RotationOrigin origin) {
+    return this->addRotation(omega, this->getOrigin(origin));
 }
 
 

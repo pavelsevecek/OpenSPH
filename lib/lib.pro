@@ -76,7 +76,8 @@ SOURCES += \
     post/MeshFile.cpp \
     objects/finders/KdTree.cpp \
     gravity/BarnesHut.cpp \
-    thread/Pool.cpp
+    thread/Pool.cpp \
+    gravity/VoxelGravity.cpp
 
 HEADERS += \
     commmon/ForwardDecl.h \
@@ -226,4 +227,5 @@ HEADERS += \
     gravity/AbstractGravity.h \
     gravity/BruteForceGravity.h \
     objects/finders/BruteForceFinder.h \
-    objects/wrappers/RawPtr.h
+    objects/wrappers/RawPtr.h \
+    gravity/VoxelGravity.h

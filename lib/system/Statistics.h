@@ -69,11 +69,21 @@ public:
         const StoreType& value = iter->second.template get<StoreType>();
         return TValue(value);
     }
+
+    /// Returns value of a statistic, or a given value if the statistic is not stored.
+    template <typename TValue>
+    TValue getOr(const StatisticsId idx, const TValue& other) const {
+        if (this->has(idx)) {
+            return this->get<TValue>(idx);
+        } else {
+            return other;
+        }
+    }
 };
 
 /// List of values that are computed and displayed every timestep
 enum class StatisticsId {
-    /// Current number of output, indexed from 0
+    /// Current number of time step, indexed from 0
     INDEX,
 
     /// Current time of the simulation in code units. Does not necessarily have to be 0 when run starts.
@@ -83,22 +93,11 @@ enum class StatisticsId {
     /// the run.
     RELATIVE_PROGRESS,
 
-    /// Current value of timestep
+    /// Current value of timestep.
     TIMESTEP_VALUE,
 
     /// Wallclock time spend on computing last timestep
     TIMESTEP_ELAPSED,
-
-    /// Key of quantity that currently limits the timestep
-    TIMESTEP_CRITERION,
-
-    LIMITING_PARTICLE_IDX,
-
-    LIMITING_VALUE,
-
-    LIMITING_DERIVATIVE,
-
-    LIMITING_QUANTITY,
 
     /// Total number of particles in the run
     PARTICLE_COUNT,
@@ -115,8 +114,26 @@ enum class StatisticsId {
     /// Number of tree nodes evaluated using multipole approximation
     GRAVITY_PARTICLES_APPROX,
 
+    /// Current angular position of the non-inertial frame
+    FRAME_ANGLE,
+
     /// Number of iterations used to compute density and smoothing length in summation solver
-    SOLVER_SUMMATION_ITERATIONS
+    SOLVER_SUMMATION_ITERATIONS,
+
+    /// Criterion that currently limits the timestep.
+    TIMESTEP_CRITERION,
+
+    /// Quantity that currently limits the timestep.
+    LIMITING_QUANTITY,
+
+    /// Index of particle that currently limits the timestep.
+    LIMITING_PARTICLE_IDX,
+
+    /// Quantity value of particle that currently limits the timestep.
+    LIMITING_VALUE,
+
+    /// Derivative value of particle that currently limits the timestep.
+    LIMITING_DERIVATIVE,
 };
 
 NAMESPACE_SPH_END

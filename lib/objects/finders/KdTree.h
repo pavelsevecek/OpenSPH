@@ -21,6 +21,10 @@ struct KdNode : public Noncopyable {
     /// Gravitational moments with a respect to the center of mass, using expansion to octupole order.
     MultipoleExpansion<3> moments;
 
+    /// Opening radius of the node; see Eq. (2.36) of Stadel PhD thesis
+    /// \todo can be stored as 4th component of com.
+    Float r_open;
+
     KdNode(const Type& type)
         : type(type) {}
 
@@ -174,6 +178,15 @@ public:
                 functor(inner, &nodes[inner.left], &nodes[inner.right]);
             }
         }
+    }
+
+    /// \copydoc iterate
+    template <Direction Dir, typename TFunctor>
+    void iterate(const TFunctor& functor, const Size nodeIdx = 0) const {
+        // use non-const overload using const_cast, but call the functor with const reference
+        auto actFunctor = [&functor](KdNode& node, KdNode* left, KdNode* right)
+            INL { return functor(addConst(node), left, right); };
+        const_cast<KdTree*>(this)->iterate<Dir>(actFunctor, nodeIdx);
     }
 
     /// Returns the node with given index

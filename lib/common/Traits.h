@@ -207,4 +207,11 @@ static_assert(AnyTrue<true>::value == true, "invalid AnyTrue");
 static_assert(AnyTrue<false>::value == false, "invalid AnyTrue");
 
 
+/// Converts a non-const reference to const one, useful for unit testing to explicitly call a const overload
+/// of a function, or for some hacky tricks with const_cast.
+template <typename T>
+INLINE const T& addConst(T& ref) {
+    return ref;
+}
+
 NAMESPACE_SPH_END

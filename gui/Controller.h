@@ -59,6 +59,10 @@ private:
         /// Current camera of the view. The object is shared with parent model.
         SharedPtr<Abstract::Camera> camera;
 
+        /// Current rotation angle of the view
+        /// \todo this is a little hardcoded for ortho camera and noninternal frame, possibly generalize
+        Float phi = 0.f;
+
         /// Currently selected particle.
         Optional<Particle> selectedParticle;
 

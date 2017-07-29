@@ -18,6 +18,7 @@ class CopyableArray;
 template <typename T, typename TCounter = Size>
 class Array : public Noncopyable {
     friend class VectorizedArray; // needs to explicitly set actSize
+
 private:
     using StorageType = typename WrapReferenceType<T>::Type;
     StorageType* data = nullptr;
@@ -49,9 +50,9 @@ public:
     /// Constructs array from initialized list. Allocate only enough elements to store the list. Elements are
     /// constructed using copy constructor of stored type.
     Array(std::initializer_list<StorageType> list) {
-        this->actSize = list.size();
-        this->maxSize = this->actSize;
-        this->data = (StorageType*)malloc(maxSize * sizeof(StorageType));
+        actSize = list.size();
+        maxSize = actSize;
+        data = (StorageType*)malloc(maxSize * sizeof(StorageType));
         TCounter i = 0;
         for (auto& l : list) {
             new (data + i) StorageType(l);
@@ -61,9 +62,9 @@ public:
 
     /// Move constructor from array of the same type
     Array(Array&& other) {
-        std::swap(this->data, other.data);
-        std::swap(this->maxSize, other.maxSize);
-        std::swap(this->actSize, other.actSize);
+        std::swap(data, other.data);
+        std::swap(maxSize, other.maxSize);
+        std::swap(actSize, other.actSize);
     }
 
     /// Destructor
@@ -82,17 +83,17 @@ public:
 
     /// Move operator
     Array& operator=(Array&& other) {
-        std::swap(this->data, other.data);
-        std::swap(this->maxSize, other.maxSize);
-        std::swap(this->actSize, other.actSize);
+        std::swap(data, other.data);
+        std::swap(maxSize, other.maxSize);
+        std::swap(actSize, other.actSize);
         return *this;
     }
 
-    /// Performs deep-copy of array elements, resizing array if needed. This is only way to copy elements, as
-    /// for Array object deep-copying of elements is forbidden as it is rarely needed and deleting copy
-    /// constructor helps us avoid accidental deep-copy, for example when passing array as an argument of
-    /// function.
-    /// \todo test
+    /// \brief Performs deep-copy of array elements, resizing array if needed.
+    ///
+    /// This is only way to copy elements, as for Array object deep-copying of elements is forbidden as it is
+    /// rarely needed and deleting copy constructor helps us avoid accidental deep-copy, for example when
+    /// passing array as an argument of function.
     Array& operator=(const CopyableArray<T, TCounter>& other) {
         const Array& rhs = other;
         this->resize(rhs.size());
@@ -113,41 +114,16 @@ public:
         return *this;
     }
 
-    /// Copy method -- allow to copy array only with an explicit calling of 'clone' to avoid accidental deep
-    /// copy.
+    /// \brief Performs a deep copy of all elements of the array.
+    ///
+    /// All elements are created using copy-constructor.
     Array clone() const {
-        Array newArray(this->actSize, maxSize);
-        Iterator<StorageType> newIter = newArray.begin();
-        Iterator<const StorageType> thisIter = this->begin();
-        const Iterator<const StorageType> endIter = thisIter + this->actSize;
-        for (; thisIter < endIter; ++thisIter, ++newIter) {
-            *newIter = *thisIter;
+        Array newArray;
+        newArray.reserve(actSize);
+        for (const T& value : *this) {
+            newArray.emplaceBack(value);
         }
         return newArray;
-    }
-
-    INLINE Iterator<StorageType, TCounter> begin() {
-        return Iterator<StorageType, TCounter>(data, data, data + actSize);
-    }
-
-    INLINE Iterator<const StorageType, TCounter> begin() const {
-        return Iterator<const StorageType, TCounter>(data, data, data + actSize);
-    }
-
-    INLINE Iterator<const StorageType, TCounter> cbegin() const {
-        return Iterator<const StorageType, TCounter>(data, data, data + actSize);
-    }
-
-    INLINE Iterator<StorageType, TCounter> end() {
-        return Iterator<StorageType, TCounter>(data + actSize, data, data + actSize);
-    }
-
-    INLINE Iterator<const StorageType, TCounter> end() const {
-        return Iterator<const StorageType, TCounter>(data + actSize, data, data + actSize);
-    }
-
-    INLINE Iterator<const StorageType, TCounter> cend() const {
-        return Iterator<const StorageType, TCounter>(data + actSize, data, data + actSize);
     }
 
     INLINE T& operator[](const TCounter idx) {
@@ -160,6 +136,7 @@ public:
         return data[idx];
     }
 
+    /// \brief Sets all elements of the array to given value.
     void fill(const T& t) {
         for (auto& v : *this) {
             v = t;
@@ -167,14 +144,23 @@ public:
     }
 
     INLINE TCounter size() const {
-        return this->actSize;
+        return actSize;
     }
 
     INLINE bool empty() const {
-        return this->actSize == 0;
+        return actSize == 0;
     }
 
-    /// Resize the array. All stored values (within interval [0, newSize-1]) are preserved.
+    /// \brief Resizes the array to new size.
+    ///
+    /// This potentially allocated more memory than required, to speed up the allocations. If the new size is
+    /// bigger than the current size, new elements are created using default constructor, all currently stored
+    /// values (within interval [0, newSize-1]) are preserved, possibly moved using their move constructor.
+    /// If the new size is lower than the current size, elements at the end of the array are destroyed.
+    /// However, the array is not reallocated, the size is kept for future growth.
+    ///
+    /// \attention This invalidates all references, pointers, iterators, array views, etc. pointed to the
+    /// elements of the array.
     void resize(const TCounter newSize) {
         // check suspiciously high values
         ASSERT(newSize < (std::numeric_limits<TCounter>::max() >> 1));
@@ -203,7 +189,7 @@ public:
             Array newArray(0, actNewSize);
             // copy all elements into the new array, using move constructor
             for (TCounter i = 0; i < actSize; ++i) {
-                new (newArray.data + i) StorageType(std::move(this->data[i]));
+                new (newArray.data + i) StorageType(std::move(data[i]));
             }
             // default-construct new elements
             if (!std::is_trivially_default_constructible<T>::value) {
@@ -214,9 +200,31 @@ public:
             // move the array into this
             *this = std::move(newArray);
         }
-        this->actSize = newSize;
+        actSize = newSize;
     }
 
+    /// \brief Resizes the array to new size and assigns a given value to all newly created elements.
+    ///
+    /// Previously stored elements are not modified, they are possibly moved using their move operator.
+    /// If the new size is lower than the current size, elements at the end are destroyed; the given value is
+    /// then irrelevant.
+    ///
+    /// \attention This invalidates all references, pointers, iterators, array views, etc. pointed to the
+    /// elements of the array.
+    void resizeAndSet(const TCounter newSize, const T& value) {
+        const TCounter currentSize = actSize;
+        this->resize(newSize);
+        for (TCounter i = currentSize; i < actSize; ++i) {
+            (*this)[i] = value;
+        }
+    }
+
+    /// \brief Allocates enough memory to store the given number of elements.
+    ///
+    ///  If enough memory is already allocated, the function does nothing.
+    ///
+    /// \attention This invalidates all references, pointers, iterators, array views, etc. pointed to the
+    /// elements of the array.
     void reserve(const TCounter newMaxSize) {
         ASSERT(newMaxSize < (std::numeric_limits<TCounter>::max() >> 1));
         if (newMaxSize > maxSize) {
@@ -227,7 +235,7 @@ public:
             newArray.alloc(0, actNewSize);
             // copy all elements into the new array, using move constructor
             for (TCounter i = 0; i < actSize; ++i) {
-                new (newArray.data + i) StorageType(std::move(this->data[i]));
+                new (newArray.data + i) StorageType(std::move(data[i]));
             }
             newArray.actSize = actSize;
             // move the array into this
@@ -238,8 +246,8 @@ public:
     /// Adds new element to the end of the array, resizing the array if necessary.
     template <typename U>
     INLINE void push(U&& u) {
-        resize(this->actSize + 1);
-        this->data[this->actSize - 1] = std::forward<U>(u);
+        resize(actSize + 1);
+        data[actSize - 1] = std::forward<U>(u);
     }
 
     template <typename U>
@@ -250,40 +258,43 @@ public:
     }
 
     void pushAll(const Array& other) {
-        //  reserve(actSize + other.size());
+        reserve(actSize + other.size());
         pushAll(other.cbegin(), other.cend());
     }
 
     void pushAll(Array&& other) {
-        for (Iterator<T> iter = other.begin(); iter != other.end(); ++iter) {
-            push(std::move(*iter));
+        reserve(actSize + other.size());
+        for (T& value : other) {
+            push(std::move(value));
         }
     }
 
-    /// Constructs a new element at the end of the array in place, using the provided arguments.
+    /// \brief Constructs a new element at the end of the array in place, using the provided arguments.
     template <typename... TArgs>
     void emplaceBack(TArgs&&... args) {
-        reserve(this->actSize + 1);
-        ASSERT(this->maxSize > this->actSize);
-        new (this->data + this->actSize) StorageType(std::forward<TArgs>(args)...);
-        this->actSize++;
+        reserve(actSize + 1);
+        ASSERT(maxSize > actSize);
+        new (data + actSize) StorageType(std::forward<TArgs>(args)...);
+        actSize++;
     }
 
-    /// Removes the last element from the array and return its value. Asserts if the array is empty.
+    /// \brief Removes the last element from the array and return its value.
+    ///
+    /// Asserts if the array is empty.
     INLINE T pop() {
-        ASSERT(this->actSize > 0);
-        T value = data[this->actSize - 1];
-        resize(this->actSize - 1);
+        ASSERT(actSize > 0);
+        T value = data[actSize - 1];
+        resize(actSize - 1);
         return value;
     }
 
     /// Removes an element with given index from the array.
     void remove(const TCounter idx) {
-        ASSERT(idx < this->actSize);
-        for (TCounter i = idx; i < this->actSize - 1; ++i) {
-            this->data[i] = std::move(this->data[i + 1]);
+        ASSERT(idx < actSize);
+        for (TCounter i = idx; i < actSize - 1; ++i) {
+            data[i] = std::move(data[i + 1]);
         }
-        resize(this->actSize - 1);
+        resize(actSize - 1);
     }
 
     /// Removes all elements from the array, but does NOT release the memory.
@@ -293,14 +304,38 @@ public:
                 data[i].~StorageType();
             }
         }
-        this->actSize = 0;
+        actSize = 0;
     }
 
     /// Swaps content of two arrays
     void swap(Array<T, TCounter>& other) {
-        std::swap(this->data, other.data);
-        std::swap(this->maxSize, other.maxSize);
-        std::swap(this->actSize, other.actSize);
+        std::swap(data, other.data);
+        std::swap(maxSize, other.maxSize);
+        std::swap(actSize, other.actSize);
+    }
+
+    INLINE Iterator<StorageType, TCounter> begin() {
+        return Iterator<StorageType, TCounter>(data, data, data + actSize);
+    }
+
+    INLINE Iterator<const StorageType, TCounter> begin() const {
+        return Iterator<const StorageType, TCounter>(data, data, data + actSize);
+    }
+
+    INLINE Iterator<const StorageType, TCounter> cbegin() const {
+        return Iterator<const StorageType, TCounter>(data, data, data + actSize);
+    }
+
+    INLINE Iterator<StorageType, TCounter> end() {
+        return Iterator<StorageType, TCounter>(data + actSize, data, data + actSize);
+    }
+
+    INLINE Iterator<const StorageType, TCounter> end() const {
+        return Iterator<const StorageType, TCounter>(data + actSize, data, data + actSize);
+    }
+
+    INLINE Iterator<const StorageType, TCounter> cend() const {
+        return Iterator<const StorageType, TCounter>(data + actSize, data, data + actSize);
     }
 
     /// Implicit conversion to arrayview.
@@ -348,10 +383,10 @@ private:
         actSize = elementCnt;
         maxSize = allocatedSize;
         if (allocatedSize == maxValue) {
-            this->maxSize = actSize;
+            maxSize = actSize;
         }
         // allocate maxSize elements
-        this->data = (StorageType*)malloc(this->maxSize * sizeof(StorageType));
+        data = (StorageType*)malloc(maxSize * sizeof(StorageType));
     }
 };
 

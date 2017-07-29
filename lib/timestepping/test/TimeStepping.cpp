@@ -4,6 +4,7 @@
 #include "sph/Material.h"
 #include "system/Settings.h"
 #include "system/Statistics.h"
+#include "tests/Setup.h"
 #include "timestepping/AbstractSolver.h"
 #include "utils/Approx.h"
 #include "utils/SequenceTest.h"
@@ -73,7 +74,7 @@ const Float timeStep = 0.01_f;
 /// particles,
 
 template <typename TTimestepping, typename... TArgs>
-void testHomogeneousField(TArgs&&... args) {
+static void testHomogeneousField(TArgs&&... args) {
     HomogeneousField solver;
 
     SharedPtr<Storage> storage = makeShared<Storage>(getDefaultMaterial());
@@ -104,7 +105,7 @@ void testHomogeneousField(TArgs&&... args) {
 }
 
 template <typename TTimestepping, typename... TArgs>
-void testHarmonicOscillator(TArgs&&... args) {
+static void testHarmonicOscillator(TArgs&&... args) {
     HarmonicOscillator solver;
 
     SharedPtr<Storage> storage = makeShared<Storage>(getDefaultMaterial());
@@ -135,7 +136,7 @@ void testHarmonicOscillator(TArgs&&... args) {
 }
 
 template <typename TTimestepping, typename... TArgs>
-void testGyroscopicMotion(TArgs&&... args) {
+static void testGyroscopicMotion(TArgs&&... args) {
     LorentzForce solver;
 
     SharedPtr<Storage> storage = makeShared<Storage>(getDefaultMaterial());
@@ -196,7 +197,7 @@ struct ClampSolver : public Abstract::Solver {
 };
 
 template <typename TTimestepping>
-void testClamping() {
+static void testClamping() {
     SharedPtr<Storage> storage = makeShared<Storage>(getDefaultMaterial());
     storage->insert<Vector>(
         QuantityId::POSITIONS, OrderEnum::SECOND, Array<Vector>{ Vector(1._f, 0._f, 0._f) });
@@ -223,24 +224,49 @@ void testClamping() {
     REQUIRE(u[0] == range.lower());
 }
 
-TEST_CASE("EulerExplicit", "[timestepping]") {
+class AddingParticlesSolver : public Abstract::Solver {
+public:
+    virtual void integrate(Storage& storage, Statistics& UNUSED(stats)) override {
+        storage.resize(storage.getParticleCnt() + 100);
+    }
+
+    virtual void create(Storage& UNUSED(storage), Abstract::Material& UNUSED(material)) const override {}
+};
+
+
+template <typename TTimestepping>
+static void testAddingParticles(const RunSettings& settings) {
+    // test that solver can add particles during the run without assert/crash
+    SharedPtr<Storage> storage = makeShared<Storage>(Tests::getGassStorage(1000));
+    const Size particleCnt = storage->getParticleCnt();
+
+    TTimestepping timestepping(storage, settings);
+    AddingParticlesSolver solver;
+    Statistics stats;
+    for (Size i = 0; i < 5; ++i) {
+        REQUIRE_NOTHROW(timestepping.step(solver, stats));
+    }
+    REQUIRE(storage->getParticleCnt() == particleCnt + 500);
+}
+
+template <typename TTimestepping>
+static void testAll() {
     RunSettings settings;
     settings.set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, timeStep);
     settings.set(RunSettingsId::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::NONE);
-    testHomogeneousField<EulerExplicit>(settings);
-    testHarmonicOscillator<EulerExplicit>(settings);
-    testGyroscopicMotion<EulerExplicit>(settings);
-    testClamping<EulerExplicit>();
+    testHomogeneousField<TTimestepping>(settings);
+    testHarmonicOscillator<TTimestepping>(settings);
+    testGyroscopicMotion<TTimestepping>(settings);
+    testClamping<TTimestepping>();
+    testAddingParticles<TTimestepping>(settings);
+}
+
+TEST_CASE("EulerExplicit", "[timestepping]") {
+    testAll<EulerExplicit>();
 }
 
 TEST_CASE("PredictorCorrector", "[timestepping]") {
-    RunSettings settings;
-    settings.set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, timeStep);
-    settings.set(RunSettingsId::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::NONE);
-    testHomogeneousField<PredictorCorrector>(settings);
-    testHarmonicOscillator<PredictorCorrector>(settings);
-    testGyroscopicMotion<PredictorCorrector>(settings);
-    testClamping<PredictorCorrector>();
+    testAll<PredictorCorrector>();
 }
 
 /// \todo test timestepping of other quantities (first order and sanity check that zero-order quantities

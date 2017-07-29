@@ -105,9 +105,9 @@ INLINE constexpr T sqr(const T& f) {
     return f * f;
 }
 
-/// Returns true if given n is a power of 2. N must at least 1, function does not check the input.
+/// Returns true if given n is a power of 2. N must at least 1.
 INLINE constexpr bool isPower2(const Size n) {
-    return (n & (n - 1)) == 0;
+    return n >= 1 && (n & (n - 1)) == 0;
 }
 
 /// Return a squared root of a value.

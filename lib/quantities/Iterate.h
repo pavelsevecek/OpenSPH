@@ -178,9 +178,13 @@ struct StoragePairVisitor<VisitorEnum::HIGHEST_DERIVATIVES, TFunctor> {
 };
 
 
-/// Iterate over given type of quantities and executes functor for each. The functor is used for scalars,
-/// vectors and tensors, so it must be a generic lambda or a class with overloaded operator() for each
-/// value type.
+/// \brief Iterate over given type of quantities and executes functor for each.
+///
+/// The functor is used for scalars, vectors and tensors, so it must be a generic lambda or a class with
+/// overloaded operator() for each value type.
+/// \tparam Type Subset of visited quantities, also defines parameters of the functor, see VisitorEnum.
+/// \param storage Storage containing visited quantities
+/// \param functor Functor executed for every quantity or buffer matching the specified criterion
 template <VisitorEnum Type, typename TFunctor>
 void iterate(Storage& storage, TFunctor&& functor) {
     StorageVisitor<Type, TFunctor> visitor;

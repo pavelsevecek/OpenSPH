@@ -67,6 +67,8 @@ public:
 /// Predictor-corrector second-order timestepping
 class PredictorCorrector : public Abstract::TimeStepping {
 private:
+    /// Separate storage holding prediction derivatives. Holds only highest-order derivatives, other buffers
+    /// are empty. Must be kept synchronized with the main storage.
     AutoPtr<Storage> predictions;
 
 public:

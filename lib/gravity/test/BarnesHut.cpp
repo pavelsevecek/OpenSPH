@@ -17,7 +17,7 @@ static Storage getGravityStorage() {
     return Tests::getGassStorage(1000, settings, r0);
 }
 
-static Tuple<Array<Vector>, Array<Float>, Vector> getTestParticles() {
+static Tuple<Storage, Vector> getTestParticles() {
     Array<Vector> r{
         Vector(2, 3, 0, 1),
         Vector(5, 4, 0, 1),
@@ -35,27 +35,33 @@ static Tuple<Array<Vector>, Array<Float>, Vector> getTestParticles() {
     }
     r_com /= r.size();
 
-    return { std::move(r), std::move(m), r_com };
+    Storage storage;
+    storage.insert(QuantityId::POSITIONS, OrderEnum::SECOND, std::move(r));
+    storage.insert(QuantityId::MASSES, OrderEnum::ZERO, std::move(m));
+    return { std::move(storage), r_com };
 }
 
 static void testOpeningAngle(const MultipoleOrder order) {
-    Storage storage = getGravityStorage();
+    Storage storage1 = getGravityStorage();
+    Storage storage2 = storage1.clone(VisitorEnum::ALL_BUFFERS);
 
     // with theta = 0, the BarnetHut should be identical to brute force summing
     BarnesHut bh(0._f, order);
     BruteForceGravity bf;
 
-    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
-    ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASSES);
-    bf.build(r, m);
-    bh.build(r, m);
+    bf.build(storage1);
+    bh.build(storage2);
 
+    ArrayView<Vector> a_bf = storage1.getD2t<Vector>(QuantityId::POSITIONS);
+    ArrayView<Vector> a_bh = storage2.getD2t<Vector>(QuantityId::POSITIONS);
+    Statistics stats;
+    bf.evalAll(a_bf, stats);
+    bh.evalAll(a_bh, stats);
+
+    ArrayView<const Vector> r = storage1.getValue<Vector>(QuantityId::POSITIONS);
     auto test = [&](const Size i) -> Outcome {
-        Statistics stats;
-        const Vector a_bf = bf.eval(i, stats);
-        const Vector a_bh = bh.eval(i, stats);
-        if (a_bf != approx(a_bh)) {
-            return makeFailed("Incorrect acceleration: ", a_bh, " == ", a_bf);
+        if (a_bf[i] != approx(a_bh[i])) {
+            return makeFailed("Incorrect acceleration: ", a_bh[i], " == ", a_bf[i]);
         }
         return SUCCESS;
     };
@@ -72,19 +78,16 @@ TEST_CASE("BarnesHut empty", "[gravity]") {
     // no particles = no acceleration
     BarnesHut bh(0.5_f, MultipoleOrder::OCTUPOLE);
 
-    Array<Vector> r;
-    Array<Float> m;
-    REQUIRE_NOTHROW(bh.build(r, m));
+    Storage storage;
+    REQUIRE_NOTHROW(bh.build(storage));
 
     Statistics stats;
     REQUIRE(bh.eval(Vector(0._f), stats) == Vector(0._f));
 }
 
-static void testMoments(const MultipoleExpansion<3>& moments,
-    ArrayView<const Vector> r,
-    ArrayView<const Float> m,
-    const Vector& r_com) {
-
+static void testMoments(const MultipoleExpansion<3>& moments, const Storage& storage, const Vector& r_com) {
+    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
+    ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASSES);
     IndexSequence seq(0, r.size());
     Multipole<0> m0 = computeMultipole<0>(r, m, r_com, seq);
     Multipole<2> m2 = computeMultipole<2>(r, m, r_com, seq);
@@ -100,40 +103,36 @@ static void testMoments(const MultipoleExpansion<3>& moments,
 
 TEST_CASE("BarnesHut simple moments", "[gravity]") {
     // test that the moments in root node correspond to the moments computed from all particles
-    Array<Vector> r;
-    Array<Float> m;
+    Storage storage;
     Vector r_com;
-    tieToTuple(r, m, r_com) = getTestParticles();
+    tieToTuple(storage, r_com) = getTestParticles();
     BarnesHut bh(0.5_f, MultipoleOrder::OCTUPOLE);
-    bh.build(r, m);
+    bh.build(storage);
 
     MultipoleExpansion<3> moments = bh.getMoments();
-    testMoments(moments, r, m, r_com);
+    testMoments(moments, storage, r_com);
 }
 
 TEST_CASE("BarnesHut storage moments", "[gravity]") {
     // test that the moments in root node correspond to the moments computed from all particles
     Storage storage = getGravityStorage();
 
-    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
-    ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASSES);
     BarnesHut bh(0.5_f, MultipoleOrder::OCTUPOLE);
-    bh.build(r, m);
+    bh.build(storage);
 
     MultipoleExpansion<3> moments = bh.getMoments();
 
     const Vector r_com = CenterOfMass().evaluate(storage);
-    testMoments(moments, r, m, r_com);
+    testMoments(moments, storage, r_com);
 }
 
 static void testSimpleAcceleration(const MultipoleOrder order, const Float eps) {
-    Array<Vector> r;
-    Array<Float> m;
+    Storage storage;
     Vector r_com;
-    tieToTuple(r, m, r_com) = getTestParticles();
+    tieToTuple(storage, r_com) = getTestParticles();
 
     BarnesHut bh(0.5_f, order, 1);
-    bh.build(r, m);
+    bh.build(storage);
 
     Statistics stats;
     Vector a = bh.eval(Vector(-10, 10, 0, 1), stats) / Constants::gravity;
@@ -149,39 +148,41 @@ TEST_CASE("BarnesHut simple acceleration", "[gravity]") {
 }
 
 static void testStorageAcceleration(const MultipoleOrder order, const Float eps) {
-    Storage storage = getGravityStorage();
+    Storage storage1 = getGravityStorage();
 
     BarnesHut bh(0.4_f, order);
     BruteForceGravity bf;
 
-    ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
+    ArrayView<Vector> r = storage1.getValue<Vector>(QuantityId::POSITIONS);
     for (Size i = 0; i < r.size(); ++i) {
         // make ellipsoid
         const Float h = r[i][H];
         r[i] *= Vector(2._f, 0.5_f, 0.1_f);
         r[i][H] = h;
     }
+    Storage storage2 = storage1.clone(VisitorEnum::ALL_BUFFERS);
 
-    ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASSES);
-    bf.build(r, m);
-    bh.build(r, m);
+    bf.build(storage1);
+    bh.build(storage2);
 
+    ArrayView<Vector> a_bf = storage1.getValue<Vector>(QuantityId::POSITIONS);
+    ArrayView<Vector> a_bh = storage2.getValue<Vector>(QuantityId::POSITIONS);
     Statistics stats;
+    bf.evalAll(a_bf, stats);
+    bh.evalAll(a_bh, stats);
     auto test = [&](const Size i) -> Outcome {
-        const Vector a_bf = bf.eval(i, stats);
-        const Vector a_bh = bh.eval(i, stats);
-        if (a_bf == a_bh) {
+        if (a_bf[i] == a_bh[i]) {
             return makeFailed("Approximative solution is EXACTLY equal to brute force: ", a_bh, " == ", a_bf);
         }
-        if (a_bf != approx(a_bh, eps)) {
+        if (a_bf[i] != approx(a_bh[i], eps)) {
             return makeFailed("Incorrect acceleration: ",
-                a_bh,
+                a_bh[i],
                 " == ",
-                a_bf,
+                a_bf[i],
                 "\n eps = ",
                 eps,
                 "\n difference == ",
-                getLength(a_bh - a_bf));
+                getLength(a_bh[i] - a_bf[i]));
         }
         return SUCCESS;
     };
@@ -202,27 +203,29 @@ TEST_CASE("BarnesHut opening angle convergence", "[gravity]") {
     BarnesHut bh4(0.4_f, MultipoleOrder::OCTUPOLE);
     BarnesHut bh2(0.2_f, MultipoleOrder::OCTUPOLE);
     BruteForceGravity bf;
-    ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
-    ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASSES);
-    bf.build(r, m);
-    bh2.build(r, m);
-    bh4.build(r, m);
-    bh8.build(r, m);
+    bf.build(storage);
+    bh2.build(storage);
+    bh4.build(storage);
+    bh8.build(storage);
 
     Statistics stats;
-    auto test = [&](const Size i) -> Outcome {
-        const Vector a_bf = bf.eval(i, stats);
-        const Vector a_bh2 = bh2.eval(i, stats);
-        const Vector a_bh4 = bh4.eval(i, stats);
-        const Vector a_bh8 = bh8.eval(i, stats);
+    Array<Vector> a_bf = storage.getD2t<Vector>(QuantityId::POSITIONS).clone();
+    bf.evalAll(a_bf, stats);
+    Array<Vector> a_bh2 = storage.getD2t<Vector>(QuantityId::POSITIONS).clone();
+    bf.evalAll(a_bh2, stats);
+    Array<Vector> a_bh4 = storage.getD2t<Vector>(QuantityId::POSITIONS).clone();
+    bf.evalAll(a_bh4, stats);
+    Array<Vector> a_bh8 = storage.getD2t<Vector>(QuantityId::POSITIONS).clone();
+    bf.evalAll(a_bh8, stats);
 
-        const Float diff2 = getLength(a_bh2 - a_bf);
-        const Float diff4 = getLength(a_bh4 - a_bf);
-        const Float diff8 = getLength(a_bh8 - a_bf);
+    auto test = [&](const Size i) -> Outcome {
+        const Float diff2 = getLength(a_bh2[i] - a_bf[i]);
+        const Float diff4 = getLength(a_bh4[i] - a_bf[i]);
+        const Float diff8 = getLength(a_bh8[i] - a_bf[i]);
 
         if (diff2 > diff4 || diff4 > diff8) {
             return makeFailed("Bigger error with smaller opening angle: \n Brute force = ",
-                a_bf,
+                a_bf[i],
                 "\n Theta = 0.2, 0.4, 0.8: ",
                 diff2,
                 ", ",
@@ -232,5 +235,5 @@ TEST_CASE("BarnesHut opening angle convergence", "[gravity]") {
         }
         return SUCCESS;
     };
-    REQUIRE_SEQUENCE(test, 0, r.size());
+    REQUIRE_SEQUENCE(test, 0, a_bf.size());
 }

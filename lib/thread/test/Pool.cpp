@@ -3,6 +3,7 @@
 #include "objects/containers/ArrayUtils.h"
 #include "system/Timer.h"
 #include "thread/ThreadLocal.h"
+#include "utils/Utils.h"
 
 using namespace Sph;
 
@@ -89,6 +90,7 @@ TEST_CASE("WaitForAll", "[thread]") {
     }
     pool.waitForAll();
     REQUIRE(timer.elapsed(TimerUnit::MILLISECOND) >= 50 * cnt);
+    REQUIRE_NOTHROW(pool.waitForAll()); // second does nothing
 }
 
 TEST_CASE("ThreadLocal", "[thread]") {
@@ -142,3 +144,13 @@ TEST_CASE("ThreadLocal parallelFor", "[thread]") {
     REQUIRE(areAllMatching(sum, [](const Size v) { return v == 1; }));
     REQUIRE(pool.remainingTaskCnt() == 0);
 }
+
+#ifdef SPH_DEBUG
+TEST_CASE("ParallelFor throw", "[thread]") {
+    ThreadPool pool(2);
+    // throw from worker thread
+    auto lambda = [](Size) { throw Assert::Exception("exception1"); };
+
+    REQUIRE_ASSERT(parallelFor(pool, 1, 2, lambda));
+}
+#endif

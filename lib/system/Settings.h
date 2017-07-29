@@ -348,6 +348,9 @@ enum class GravityEnum {
 
     /// Use Barnes-Hut algorithm, approximating gravity by multipole expansion (up to octupole order)
     BARNES_HUT,
+
+    /// Barnes-Hut, uses spatial grid instead of K-d tree
+    VOXEL,
 };
 
 enum class GravityKernelEnum {

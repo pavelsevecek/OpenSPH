@@ -30,6 +30,9 @@ private:
     std::atomic<bool> stop;
     std::atomic<int> tasksLeft;
 
+    std::exception_ptr caughtException = nullptr;
+    /*std::mutex exceptionMutex;*/
+
     static ThreadPool* globalInstance;
 
 public:
@@ -38,8 +41,9 @@ public:
 
     ~ThreadPool();
 
-    /// Submits a task into the thread pool. The task will be executed asynchronously once tasks submitted
-    /// before it are completed.
+    /// \brief Submits a task into the thread pool.
+    ///
+    /// The task will be executed asynchronously once tasks submitted before it are completed.
     template <typename TFunctor>
     void submit(TFunctor&& functor) {
         {
@@ -60,14 +64,16 @@ public:
     /// The index is within [0, numThreads-1].
     Optional<Size> getThreadIdx() const;
 
-    /// Returns the number of threads used by this thread pool. Note that this number is constant during the
-    /// lifetime of thread pool.
+    /// \brief Returns the number of threads used by this thread pool.
+    ///
+    /// Note that this number is constant during the lifetime of thread pool.
     Size getThreadCnt() const {
         return threads.size();
     }
 
-    /// Returns the number of unfinished tasks, including both tasks currently running and tasks waiting in
-    /// processing queue.
+    /// \brief Returns the number of unfinished tasks.
+    ///
+    /// This includes both tasks currently running and tasks waiting in processing queue.
     Size remainingTaskCnt() {
         return tasksLeft;
     }
@@ -80,9 +86,15 @@ private:
 };
 
 
-/// Executes a functor concurrently. Syntax mimics typical usage of for loop; functor is executed with index
-/// as parameter, starting at 'from' and ending one before 'to', so that total number of executions is
-/// (to-from). The function blocks until parallel for is completed.
+/// \brief Executes a functor concurrently from all available threads.
+///
+/// Syntax mimics typical usage of for loop; functor is executed with index as parameter, starting at 'from'
+/// and ending one before 'to', so that total number of executions is (to-from). The function blocks until
+/// parallel for is completed.
+/// \param pool Thread pool, the functor will be executed on threads managed by this pool.
+/// \param from First processed index.
+/// \param to One-past-last processed index.
+/// \param functor Functor executed (to-from) times in different threads; takes an index as an argument.
 template <typename TFunctor>
 INLINE void parallelFor(ThreadPool& pool, const Size from, const Size to, TFunctor&& functor) {
     for (Size i = from; i < to; ++i) {
@@ -91,6 +103,15 @@ INLINE void parallelFor(ThreadPool& pool, const Size from, const Size to, TFunct
     pool.waitForAll();
 }
 
+/// \brief Executes a functor concurrently with given granularity.
+///
+/// \param pool Thread pool, the functor will be executed on threads managed by this pool.
+/// \param from First processed index.
+/// \param to One-past-last processed index.
+/// \param granularity Number of indices processed by the functor at once. It shall be a positive number less
+///                    than or equal to (to-from).
+/// \param functor Functor executed concurrently, takes two parameters as arguments, defining range of
+///                assigned indices.
 template <typename TFunctor>
 INLINE void parallelFor(ThreadPool& pool,
     const Size from,
@@ -103,6 +124,16 @@ INLINE void parallelFor(ThreadPool& pool,
         pool.submit([n1, n2, &functor] { functor(n1, n2); });
     }
     pool.waitForAll();
+}
+
+/// \brief Executes a functor concurrently, using an empirical formula for granularity.
+///
+/// This overload uses the global instance of the thread pool
+template <typename TFunctor>
+INLINE void parallelFor(const Size from, const Size to, TFunctor&& functor) {
+    ThreadPool& pool = ThreadPool::getGlobalInstance();
+    const Size granularity = min<Size>(1000, max<Size>((to - from) / pool.getThreadCnt(), 1));
+    parallelFor(pool, from, to, granularity, std::forward<TFunctor>(functor));
 }
 
 NAMESPACE_SPH_END

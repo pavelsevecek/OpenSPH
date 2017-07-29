@@ -63,7 +63,7 @@ public:
         // add term counting number of neighbours
         equations += makeTerm<NeighbourCountTerm>();
         // initialize all derivatives
-        equations.setupThread(derivatives, settings);
+        equations.setDerivatives(derivatives, settings);
     }
 
     virtual void integrate(Storage& storage, Statistics& stats) override {

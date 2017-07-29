@@ -204,9 +204,10 @@ public:
         return iter->second;
     }
 
-    /// Retrieves quantity buffers from the storage, given its key and value type. The stored quantity must be
-    /// of type TValue, checked by assert. Quantity must already exist in the storage, checked by assert. To
-    /// check whether the quantity is stored, use has() method.
+    /// \brief Retrieves quantity buffers from the storage, given its key and value type.
+    ///
+    /// The stored quantity must be of type TValue, checked by assert. Quantity must already exist in the
+    /// storage, checked by assert. To check whether the quantity is stored, use has() method.
     /// \return Array of references to Arrays, containing quantity values and all derivatives.
     template <typename TValue>
     StaticArray<Array<TValue>&, 3> getAll(const QuantityId key) {
@@ -222,11 +223,12 @@ public:
         return q.getAll<TValue>();
     }
 
-    /// Retrieves a quantity values from the storage, given its key and value type. The stored quantity must
-    /// be of type TValue, checked by assert. Quantity must already exist in the storage, checked by assert.
-    /// Note that values of quantity are returned as stored and need not have physical meaning; physical
-    /// values of quantity might be modified by material (rheology, damage model, ...). To get physical values
-    /// of quantity for use in equations, use \ref getPhysicalValue.
+    /// \brief Retrieves a quantity values from the storage, given its key and value type.
+    ///
+    /// The stored quantity must be of type TValue, checked by assert. Quantity must already exist in the
+    /// storage, checked by assert. Note that values of quantity are returned as stored and need not have
+    /// physical meaning; physical values of quantity might be modified by material (rheology, damage model,
+    /// ...). To get physical values of quantity for use in equations, use \ref getPhysicalValue.
     /// \return Array reference containing stored quantity values.
     template <typename TValue>
     Array<TValue>& getValue(const QuantityId key) {
@@ -270,9 +272,9 @@ public:
         return q.modify<TValue>();
     }
 
-    /// Retrieves a quantity derivative from the storage, given its key and value type. The stored quantity
-    /// must be of type TValue, checked by assert. Quantity must already exist in the storage and must be
-    /// first or second order, checked by assert.
+    /// \brief Retrieves a quantity derivative from the storage, given its key and value type.
+    /// The stored quantity must be of type TValue, checked by assert. Quantity must already exist in the
+    /// storage and must be first or second order, checked by assert.
     /// \return Array reference containing quantity derivatives.
     template <typename TValue>
     Array<TValue>& getDt(const QuantityId key) {
@@ -287,9 +289,10 @@ public:
         return const_cast<Storage*>(this)->getDt<TValue>(key);
     }
 
-    /// Retrieves a quantity second derivative from the storage, given its key and value type. The stored
-    /// quantity must be of type TValue, checked by assert. Quantity must already exist in the storage and
-    /// must be second order, checked by assert.
+    /// \brief Retrieves a quantity second derivative from the storage, given its key and value type.
+    ///
+    /// The stored quantity must be of type TValue, checked by assert. Quantity must already exist in the
+    /// storage and must be second order, checked by assert.
     /// \return Array reference containing quantity second derivatives.
     template <typename TValue>
     Array<TValue>& getD2t(const QuantityId key) {
@@ -318,9 +321,10 @@ public:
         return tie(getValue<TValue>(first), getValue<TValue>(second), getValue<TValue>(others)...);
     }
 
-    /// Creates a quantity in the storage, given its key, value type and order. Quantity is resized and filled
-    /// with default value. This cannot be used to set number of particles, the size of the quantity is set to
-    /// match current particle number.
+    /// \brief Creates a quantity in the storage, given its key, value type and order.
+    ///
+    /// Quantity is resized and filled with default value. This cannot be used to set number of particles, the
+    /// size of the quantity is set to match current particle number.
     /// If a quantity with given key already exists in the storage, function checks that the quantity type is
     /// the same; if it isn't, InvalidSetup exception is thrown. If the required order of quantity is larger
     /// than the one currently stored, additional derivatives are created with no assert nor exception,
@@ -350,10 +354,12 @@ public:
         return quantities[key];
     }
 
-    /// Creates a quantity in the storage, given array of values. The size of the array must match the number
-    /// of particles. Derivatives of the quantity are set to zero. Cannot be used if there already is a
-    /// quantity with the same key, checked by assert. If this is the first quantity inserted into the
-    /// storage, it sets the number of particles; all quantities added after that must have the same size.
+    /// \brief Creates a quantity in the storage, given array of values.
+    ///
+    /// The size of the array must match the number of particles. Derivatives of the quantity are set to zero.
+    /// Cannot be used if there already is a quantity with the same key, checked by assert. If this is the
+    /// first quantity inserted into the storage, it sets the number of particles; all quantities added after
+    /// that must have the same size.
     /// \returns Reference to the inserted quantity.
     template <typename TValue>
     Quantity& insert(const QuantityId key, const OrderEnum order, Array<TValue>&& values) {
@@ -365,16 +371,9 @@ public:
         return quantities[key];
     }
 
-    /// \todo this really shouldn't be inside the storage, instead create some utility function for it.
-    template <typename TFunctor>
-    void parallelFor(const Size n1, const Size n2, TFunctor&& functor) {
-        ThreadPool& pool = ThreadPool::getGlobalInstance();
-        const Size granularity = min<Size>(1000, max<Size>((n2 - n1) / pool.getThreadCnt(), 1));
-        Sph::parallelFor(pool, n1, n2, granularity, std::forward<TFunctor>(functor));
-    }
-
-    /// Returns an object containing a reference to given material. The object can also be used to iterate
-    /// over indices of particles belonging to given material.
+    /// \brief Returns an object containing a reference to given material.
+    ///
+    /// The object can also be used to iterate over indices of particles belonging to given material.
     /// \param matIdx Index of given material in storage. Materials are stored in unspecified order; to get
     ///               material of given particle, use \ref getMaterialOfParticle.
     MaterialView getMaterial(const Size matIdx) const;
@@ -405,11 +404,12 @@ public:
     /// Returns the number of particles. The number of particle is always the same for all quantities.
     Size getParticleCnt() const;
 
-    /// Merges another storage into this object. The passed storage is moved in the process. All materials in
-    /// the merged storage are conserved; particles will keep the materials they had before the merge.
-    /// The function invalidates any reference or \ref ArrayView to quantity values or derivatives. For this
-    /// reason, storages can only be merged when setting up initial conditions or inbetween timesteps, never
-    /// while evaluating solver!
+    /// \brief Merges another storage into this object.
+    ///
+    /// The passed storage is moved in the process. All materials in the merged storage are conserved;
+    /// particles will keep the materials they had before the merge. The function invalidates any reference or
+    /// \ref ArrayView to quantity values or derivatives. For this reason, storages can only be merged when
+    /// setting up initial conditions or inbetween timesteps, never while evaluating solver!
     void merge(Storage&& other);
 
     /// Sets all highest-level derivatives of quantities to zero. Other values are unchanged.
@@ -419,14 +419,27 @@ public:
     /// is a state as if it was default-constructed.
     void removeAll();
 
-    /// Clones specified buffers of the storage. Cloned (sub)set of buffers is given by flags. Cloned storage
-    /// will have the same number of quantities and the order and types of quantities will match; if some
-    /// buffer is excluded from cloning, it is simply left empty.
+    /// \brief Clones specified buffers of the storage.
+    ///
+    /// Cloned (sub)set of buffers is given by flags. Cloned storage will have the same number of quantities
+    /// and the order and types of quantities will match; if some buffer is excluded from cloning, it is
+    /// simply left empty.
     Storage clone(const Flags<VisitorEnum> flags) const;
 
-    /// Changes number of particles for all quantities stored in the storage. Storage must already contain at
-    /// least one quantity, checked by assert.
-    void resize(const Size newParticleCnt);
+    /// Options for the storage resize
+    enum class ResizeFlag {
+        /// Empty buffers will not be resized to new values.
+        KEEP_EMPTY_UNCHANGED = 1 << 0,
+    };
+
+    /// \brief Changes number of particles for all quantities stored in the storage.
+    ///
+    /// If the new number of particles is larger than the current one, the quantities of the newly created
+    /// particles are set to zero, regardless of the actual initial value. This is true for all quantity
+    /// values and derivatives. Storage must already contain at least one quantity, checked by assert.
+    /// \param newParticleCnt New number of particles.
+    /// \param flags Options of the resizing, see ResizeFlag enum. By default, all quantities are resized.
+    void resize(const Size newParticleCnt, const Flags<ResizeFlag> flags = EMPTY_FLAGS);
 
     /// Swap quantities or given subset of quantities between two storages.
     void swap(Storage& other, const Flags<VisitorEnum> flags);

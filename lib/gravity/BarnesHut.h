@@ -6,13 +6,7 @@
 
 NAMESPACE_SPH_BEGIN
 
-enum class MultipoleOrder {
-    MONOPOLE = 0,
-    QUADRUPOLE = 2,
-    OCTUPOLE = 3,
-    HEXADECAPOLE = 4,
-};
-
+enum class MultipoleOrder;
 
 /// \brief Multipole approximation of distance particle.
 class BarnesHut : public Abstract::Gravity {
@@ -27,8 +21,8 @@ protected:
     /// Kernel used to evaluate gravity of close particles
     GravityLutKernel kernel;
 
-    /// Opening angle for multipole approximation (in radians)
-    Float thetaSqr;
+    /// Inverted value of the opening angle for multipole approximation (in radians)
+    Float thetaInv;
 
     /// Order of multipole approximation
     MultipoleOrder order;
@@ -50,19 +44,19 @@ public:
         const Size leafSize = 20);
 
     /// Masses of particles must be strictly positive, otherwise center of mass would be undefined.
-    virtual void build(ArrayView<const Vector> r, ArrayView<const Float> m) override;
+    virtual void build(const Storage& storage) override;
 
-    virtual Vector eval(const Size idx, Statistics& stats) override;
+    virtual void evalAll(ArrayView<Vector> dv, Statistics& stats) const override;
 
-    virtual Vector eval(const Vector& r0, Statistics& stats) override;
+    virtual Vector eval(const Vector& r0, Statistics& stats) const override;
 
     /// Returns the multipole moments computed from root node.
     MultipoleExpansion<3> getMoments() const;
 
 protected:
-    Vector evalImpl(const Vector& r0, const Size idx, Statistics& stats);
+    Vector evalImpl(const Vector& r0, const Size idx, Statistics& stats) const;
 
-    Vector evalExact(LeafNode& node, const Vector& r0, const Size idx);
+    Vector evalExact(const LeafNode& node, const Vector& r0, const Size idx) const;
 
     void buildLeaf(KdNode& node);
 

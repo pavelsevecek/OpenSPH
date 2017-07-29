@@ -1,10 +1,11 @@
 #pragma once
 
-/// Defines projection transforming 3D particles onto 2D screen
-/// Pavel Sevecek 2017
-/// sevecek at sirrah.troja.mf.cuni.cz
+/// \file Camera.h
+/// \brief Defines projection transforming 3D particles onto 2D screen
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mf.cuni.cz)
+/// \date 2016-2017
 
-#include "geometry/Vector.h"
+#include "geometry/Tensor.h"
 #include "gui/objects/Point.h"
 #include "objects/wrappers/Optional.h"
 
@@ -27,6 +28,8 @@ struct Ray {
 };
 
 namespace Abstract {
+
+    /// \brief Interface defining a camera or view, used by a renderer.
     class Camera : public Polymorphic {
     public:
         /// Returns projected position of particle on the image. If the particle is outside of the image
@@ -36,10 +39,13 @@ namespace Abstract {
         /// Returns a ray in particle coordinates corresponding to given point in the image plane.
         virtual Ray unproject(const Point point) const = 0;
 
-        /// Zoom the camera.
-        /// \param magnitude Relative amount of zooming. Value <1 means zooming out, value >1 means zooming
-        ///                  in.
+        /// Zooms the camera. This shall be equivalent to transforming the view with scaling matrix, alhough
+        /// it can be implemented differently.
+        /// \param magnitude Relative zoom amount, value <1 means zooming out, value >1 means zooming in.
         virtual void zoom(const float magnitude) = 0;
+
+        /// Transforms the current view by given matrix.
+        virtual void transform(const Tensor& matrix) = 0;
 
         /// Moves the camera by relative offset
         virtual void pan(const Point offset) = 0;
@@ -100,6 +106,12 @@ public:
     virtual void zoom(const float magnitude) override {
         ASSERT(magnitude > 0.f);
         data.fov *= magnitude;
+    }
+
+    virtual void transform(const Tensor& matrix) override {
+        data.u = matrix * data.u;
+        data.v = matrix * data.v;
+        cached.w = matrix * cached.w;
     }
 
     virtual void pan(const Point offset) override {

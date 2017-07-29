@@ -43,6 +43,10 @@ enum class GuiSettingsId {
 
     ORTHO_PROJECTION,
 
+    /// If true, the rendered image will be rotated to represent the orientation in inertial frame, otherwise
+    /// the image in non-inertial frame is rendered.
+    ORTHO_ROTATE_FRAME,
+
     /// Size of the grid used in MarchingCubes (in code units, not h)
     SURFACE_RESOLUTION,
 

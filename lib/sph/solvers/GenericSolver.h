@@ -69,11 +69,16 @@ public:
         finder = Factory::getFinder(settings);
         granularity = settings.get<int>(RunSettingsId::RUN_THREAD_GRANULARITY);
         equations += eqs;
+
         // add term counting number of neighbours
         equations += makeTerm<NeighbourCountTerm>();
+
+        // check equations
+        this->sanityCheck();
+
         // initialize all derivatives
         threadData.forEach([this, &settings](ThreadData& data) { //
-            equations.setupThread(data.derivatives, settings);
+            equations.setDerivatives(data.derivatives, settings);
         });
     }
 
@@ -186,6 +191,15 @@ protected:
             neighs.accumulate(neighCnts[i]);
         }
         stats.set(StatisticsId::NEIGHBOUR_COUNT, neighs);
+    }
+
+    void sanityCheck() const {
+        // we must solve smoothing length somehow
+        if (!equations.contains<AdaptiveSmoothingLength>() && !equations.contains<ConstSmoothingLength>()) {
+            throw InvalidSetup(
+                "No solver of smoothing length specified; add either ConstSmootingLength or "
+                "AdaptiveSmootingLength into the list of equations");
+        }
     }
 };
 

@@ -3,7 +3,8 @@
 
 NAMESPACE_SPH_BEGIN
 
-VoxelFinder::VoxelFinder() {
+VoxelFinder::VoxelFinder(const Float relativeCellCnt)
+    : relativeCellCnt(relativeCellCnt) {
     Indices::init();
 }
 
@@ -13,7 +14,7 @@ void VoxelFinder::buildImpl(ArrayView<const Vector> points) {
     PROFILE_SCOPE("VoxelFinder::buildImpl");
     if (lut.empty()) {
         // number of voxels, free parameter
-        const Size lutSize = root<3>(points.size()) + 1;
+        const Size lutSize = Size(relativeCellCnt * root<3>(points.size())) + 1;
         lut = LookupMap(lutSize);
     }
     if (SPH_LIKELY(!points.empty())) {

@@ -194,15 +194,16 @@ public:
     }
 };
 
-/// Correction tensor to improve conservation of total angular momentum. This is only useful from stress
-/// tensor is used in equation of motion, as total angular momentum is conversed by SPH discretization when
-/// only pressure gradient is used.
+/// \brief Correction tensor to improve conservation of total angular momentum.
 ///
-/// The computed tensor C_ij is used to modify the total velocity gradient (and subsequently divergence and
-/// rotation): the summed velocity divergences are multiplied by the inner product of kernel gradient and the
-/// inverse of C_ij. This means that for self-consistent solution we need to do two passes over particle
-/// pairs. However, this is only a numerical correction anyway, so we can use values from previous timestep,
-/// like we do for any time-dependent quantities.
+/// This is only useful when stress tensor is used in equation of motion, as total angular momentum is
+/// conversed by SPH discretization when only pressure gradient is used.
+///
+/// The computed tensor \f$C_{ij}\f$ is used to modify the total velocity gradient (and subsequently
+/// divergence and rotation): the summed velocity divergences are multiplied by the inner product of kernel
+/// gradient and the inverse \f$C_{ij}^{-1}\f$. This means that for self-consistent solution we need to do two
+/// passes over particle pairs. However, this is only a numerical correction anyway, so we can use values from
+/// previous timestep, like we do for any time-dependent quantities.
 ///
 /// See paper 'Collisions between equal-sized ice grain agglomerates' by Schafer et al. (2007).
 class AngularMomentumCorrectionTensor : public DerivativeTemplate<AngularMomentumCorrectionTensor> {
@@ -274,6 +275,7 @@ namespace Detail {
 class DerivativeHolder {
 private:
     Accumulated accumulated;
+
     /// Holds all modules that are evaluated in the loop. Modules save data to the \ref accumulated
     /// storage; one module can use multiple buffers (acceleration and energy derivative) and multiple
     /// modules can write into same buffer (different terms in equation of motion).

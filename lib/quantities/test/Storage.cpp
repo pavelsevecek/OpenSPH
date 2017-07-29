@@ -52,11 +52,18 @@ TEST_CASE("Storage resize", "[storage]") {
     REQUIRE(storage.getQuantityCnt() == 0);
     REQUIRE(storage.getParticleCnt() == 0);
 
-    storage.insert<Size>(QuantityId::FLAG, OrderEnum::ZERO, Array<Size>{ 0 });
+    Quantity& q1 = storage.insert<Size>(QuantityId::FLAG, OrderEnum::ZERO, Array<Size>{ 5 });
     storage.resize(5);
-    storage.insert<Float>(QuantityId::DENSITY, OrderEnum::FIRST, 3._f);
-    REQUIRE(storage.getQuantityCnt() == 2);
     REQUIRE(storage.getParticleCnt() == 5);
+    Array<Size>& flag = q1.getValue<Size>();
+    REQUIRE(flag[0] == 5);
+    for (Size i = 1; i < 5; ++i) {
+        REQUIRE(flag[i] == 0);
+    }
+
+    Quantity& q2 = storage.insert<Float>(QuantityId::DENSITY, OrderEnum::FIRST, 3._f);
+    REQUIRE(storage.getQuantityCnt() == 2);
+    REQUIRE(q2.size() == 5);
 
     storage.insert<Vector>(QuantityId::MASSES, OrderEnum::SECOND, Vector(5._f));
     REQUIRE(storage.getQuantityCnt() == 3);
@@ -69,6 +76,19 @@ TEST_CASE("Storage resize", "[storage]") {
 
     REQUIRE(storage.getValue<Vector>(QuantityId::MASSES).size() == 5);
     REQUIRE(storage.getValue<Float>(QuantityId::DENSITY) == Array<Float>({ 3._f, 3._f, 3._f, 3._f, 3._f }));
+}
+
+TEST_CASE("Storage resize keep empty", "[storage]") {
+    Storage storage;
+    Array<Float> values{ 1._f, 2._f, 3._f };
+    Quantity& q = storage.insert<Float>(QuantityId::DENSITY, OrderEnum::SECOND, std::move(values));
+    q.getValue<Float>().clear();
+    q.getDt<Float>().clear();
+
+    storage.resize(6, Storage::ResizeFlag::KEEP_EMPTY_UNCHANGED);
+    REQUIRE(q.getValue<Float>().empty());
+    REQUIRE(q.getDt<Float>().empty());
+    REQUIRE(q.getD2t<Float>().size() == 6);
 }
 
 TEST_CASE("Clone storages", "[storage]") {

@@ -114,14 +114,14 @@ public:
 #define PROFILE_SCOPE(name)                                                                                  \
     Profiler& __instance = Profiler::getInstance();                                                          \
     ScopedTimer __scopedTimer = __instance.makeScopedTimer(name);
-//#define PROFILE_NEXT(name) __scopedTimer.next(name);
-//#define SCOPE_STOP __scopedTimer.stop()
-//#define SCOPE_RESUME __scopedTimer.resume()
+#define PROFILE(name, what)                                                                                  \
+    {                                                                                                        \
+        PROFILE_SCOPE(name);                                                                                 \
+        what;                                                                                                \
+    }
 #else
 #define PROFILE_SCOPE(name)
-#define SCOPE_STOP
-#define SCOPE_RESUME
-#define PROFILE_NEXT(name)
+#define PROFILE(name, what) what
 #endif
 
 NAMESPACE_SPH_END

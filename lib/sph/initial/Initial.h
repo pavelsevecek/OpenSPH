@@ -43,10 +43,16 @@ public:
     /// Adds an angular velocity to all particles of the body. The new velocities are added to velocities
     /// previously assigned to the particles.
     /// \param omega Angular velocity (in radians/s), the direction of the vector is the axis of rotation.
-    /// \param origin Center point of the rotation; can be one of points defined in RotationOrigin enum,
-    ///               or a user-specified vector.
+    /// \param origin Center point of the rotation, see RotationOrigin enum.
     /// \returns Reference to itself.
-    BodyView& addRotation(const Vector& omega, const Variant<RotationOrigin, Vector>& origin);
+    BodyView& addRotation(const Vector& omega, const RotationOrigin origin);
+
+    /// Adds an angular velocity to all particles of the body. The new velocities are added to velocities
+    /// previously assigned to the particles.
+    /// \param omega Angular velocity (in radians/s), the direction of the vector is the axis of rotation.
+    /// \param origin Vector defining the center point of the rotation.
+    /// \returns Reference to itself.
+    BodyView& addRotation(const Vector& omega, const Vector& origin);
 
 private:
     Vector getOrigin(const RotationOrigin origin) const;

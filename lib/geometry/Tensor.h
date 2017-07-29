@@ -73,6 +73,20 @@ public:
         return inv;
     }
 
+    static Tensor null() {
+        return Tensor(0._f);
+    }
+
+    static Tensor identity() {
+        return Tensor(Vector(1._f, 0._f, 0._f), Vector(0._f, 1._f, 0._f), Vector(0._f, 0._f, 1._f));
+    }
+
+    static Tensor rotateZ(const Float angle) {
+        const Float c = cos(angle);
+        const Float s = sin(angle);
+        return Tensor(Vector(c, -s, 0._f), Vector(s, c, 0._f), Vector(0._f, 0._f, 1._f));
+    }
+
     INLINE Tensor operator+(const Tensor& other) const {
         return Tensor(v[0] + other.v[0], v[1] + other.v[1], v[2] + other.v[2]);
     }

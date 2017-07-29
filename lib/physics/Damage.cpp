@@ -108,7 +108,7 @@ void ScalarDamage::reduce(Storage& storage, const Flags<DamageFlag> flags, const
     tie(s, s_dmg) = storage.modify<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
 
     IndexSequence seq = material.sequence();
-    storage.parallelFor(*seq.begin(), *seq.end(), [&](const Size n1, const Size n2) INL {
+    parallelFor(*seq.begin(), *seq.end(), [&](const Size n1, const Size n2) INL {
         for (Size i = n1; i < n2; ++i) {
             const Float d = pow<3>(damage[i]);
             // pressure is reduced only for negative values
@@ -143,7 +143,7 @@ void ScalarDamage::integrate(Storage& storage, const MaterialView material) {
     tie(damage, ddamage) = storage.getAll<Float>(QuantityId::DAMAGE);
 
     IndexSequence seq = material.sequence();
-    storage.parallelFor(*seq.begin(), *seq.end(), [&](const Size n1, const Size n2) {
+    parallelFor(*seq.begin(), *seq.end(), [&](const Size n1, const Size n2) {
         for (Size i = n1; i < n2; ++i) {
             // if damage is already on max value, set stress to zero to avoid limiting timestep by
             // non-existent stresses
@@ -207,7 +207,7 @@ void NullDamage::reduce(Storage& storage,
     tie(s, s_dmg) = storage.modify<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
 
     IndexSequence seq = material.sequence();
-    storage.parallelFor(*seq.begin(), *seq.end(), [&](const Size n1, const Size n2) INL {
+    parallelFor(*seq.begin(), *seq.end(), [&](const Size n1, const Size n2) INL {
         for (Size i = n1; i < n2; ++i) {
             s_dmg[i] = s[i];
         }

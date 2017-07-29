@@ -10,18 +10,23 @@
 
 NAMESPACE_SPH_BEGIN
 
-class LookupMap;
-
 class VoxelFinder : public Abstract::Finder {
 protected:
     LookupMap lut;
+
+    /// Multiplier of the number of cells
+    Float relativeCellCnt;
 
     virtual void buildImpl(ArrayView<const Vector> points) override;
 
     virtual void rebuildImpl(ArrayView<const Vector> points) override;
 
 public:
-    VoxelFinder();
+    /// \param relativeCellCnt Multiplier of the number of constructed voxels. The actual number scales with
+    ///                        the number points; relative voxel count 1 means that on average, one cell will
+    ///                        contain one particle. Higher value means more cells, therefore less than one
+    ///                        particle per cell, etc.
+    VoxelFinder(const Float relativeCellCnt = 1);
 
     ~VoxelFinder();
 
@@ -36,6 +41,27 @@ public:
         Array<NeighbourRecord>& neighbours,
         Flags<FinderFlags> flags = EMPTY_FLAGS,
         const Float error = 0._f) const override;
+
+    /// Exposed for gravity
+    /// \todo refactor, finder shouldn't know anything about gravity
+
+    template <typename TFunctor>
+    void iterate(const TFunctor& functor) {
+        const Size size = lut.getDimensionSize();
+        for (Size z = 0; z < size; ++z) {
+            for (Size y = 0; y < size; ++y) {
+                for (Size x = 0; x < size; ++x) {
+                    const Indices idxs = Indices(x, y, z);
+                    Array<Size>& particles = lut(idxs);
+                    functor(particles);
+                }
+            }
+        }
+    }
+
+    INLINE Size getDimensionSize() const {
+        return lut.getDimensionSize();
+    }
 
 private:
     Size findNeighboursImpl(const Vector& position,

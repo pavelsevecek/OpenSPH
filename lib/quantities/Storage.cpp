@@ -154,10 +154,13 @@ Storage Storage::clone(const Flags<VisitorEnum> flags) const {
     return cloned;
 }
 
-void Storage::resize(const Size newParticleCnt) {
+void Storage::resize(const Size newParticleCnt, const Flags<ResizeFlag> flags) {
     ASSERT(getQuantityCnt() > 0);
-    iterate<VisitorEnum::ALL_BUFFERS>(*this, [newParticleCnt](auto& buffer) { //
-        buffer.resize(newParticleCnt);
+    iterate<VisitorEnum::ALL_BUFFERS>(*this, [newParticleCnt, flags](auto& buffer) { //
+        if (!flags.has(ResizeFlag::KEEP_EMPTY_UNCHANGED) || !buffer.empty()) {
+            using Type = typename std::decay_t<decltype(buffer)>::Type;
+            buffer.resizeAndSet(newParticleCnt, Type(0._f));
+        }
     });
 }
 

@@ -342,6 +342,14 @@ void Controller::redraw(const Storage& storage, Statistics& stats) {
         vis.stats = makeAuto<Statistics>(stats);
         vis.positions = copyable(storage.getValue<Vector>(QuantityId::POSITIONS));
 
+        // rotate camera in case of non-inertial frame
+        /// \todo this is a little specific, would be better to somehow get it outside of controller
+        if (gui.get<bool>(GuiSettingsId::ORTHO_ROTATE_FRAME) && stats.has(StatisticsId::FRAME_ANGLE)) {
+            const Float phi = stats.get<Float>(StatisticsId::FRAME_ANGLE);
+            vis.camera->transform(Tensor::rotateZ(phi - vis.phi));
+            vis.phi = phi;
+        }
+
         // initialize the currently selected element
         ASSERT(vis.isInitialized());
         vis.element->initialize(storage, ElementSource::CACHE_ARRAYS);

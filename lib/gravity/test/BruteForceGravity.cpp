@@ -18,21 +18,22 @@ TEST_CASE("BruteForceGravity", "[gravity]") {
     Storage storage = Tests::getGassStorage(1000, settings, r0);
     // compute analytical acceleraion
     analytic.finalize(storage);
+    Array<Vector> a = storage.getD2t<Vector>(QuantityId::POSITIONS).clone();
 
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
     ArrayView<Vector> d2v = storage.getD2t<Vector>(QuantityId::POSITIONS);
-    ArrayView<Float> m = storage.getValue<Float>(QuantityId::MASSES);
-    gravity.build(r, m);
+    gravity.build(storage);
 
     Statistics stats;
+    gravity.evalAll(d2v, stats);
+
     auto test = [&](const Size i) -> Outcome {
-        const Vector a = gravity.eval(i, stats);
         // around origin the relative comparison is very imprecise, just skip
         if (getLength(r[i]) < 0.1 * r0) {
             return SUCCESS;
         }
-        if (a != approx(d2v[i], 0.04_f)) {
-            return makeFailed("Incorrect acceleration: ", a, " == ", d2v[i]);
+        if (a[i] != approx(d2v[i], 0.04_f)) {
+            return makeFailed("Incorrect acceleration: ", a[i], " == ", d2v[i]);
         } else {
             return SUCCESS;
         }

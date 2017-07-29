@@ -308,19 +308,27 @@ INLINE Vector computeMultipoleAcceleration(const MultipoleExpansion<N>& ms,
     return a;
 }
 
+
+enum class MultipoleOrder {
+    MONOPOLE = 0,
+    QUADRUPOLE = 2,
+    OCTUPOLE = 3,
+    HEXADECAPOLE = 4,
+};
+
 template <Size N>
-Vector evaluateGravity(const Vector& dr, const MultipoleExpansion<N>& ms, const Size maxOrder) {
+Vector evaluateGravity(const Vector& dr, const MultipoleExpansion<N>& ms, const MultipoleOrder maxOrder) {
     StaticArray<Float, N + 2> gamma;
 #ifdef SPH_DEBUG
     gamma.fill(NAN);
 #endif
     const Float invDistSqr = 1._f / getSqrLength(dr);
-    for (Size i = 0; i < maxOrder + 2; ++i) {
+    for (Size i = 0; i < Size(maxOrder) + 2; ++i) {
         gamma[i] = greenGamma(i, invDistSqr);
     }
 
     Vector a(0._f);
-    switch (maxOrder) {
+    switch (int(maxOrder)) {
     case 3: // octupole
         a += computeMultipoleAcceleration<3>(ms, gamma, -dr);
         SPH_FALLTHROUGH;

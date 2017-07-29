@@ -7,6 +7,7 @@
 
 #include "gravity/AbstractGravity.h"
 #include "physics/Constants.h"
+#include "quantities/Storage.h"
 #include "sph/kernel/GravityKernel.h"
 
 NAMESPACE_SPH_BEGIN
@@ -32,28 +33,33 @@ public:
     BruteForceGravity(GravityLutKernel&& kernel)
         : kernel(std::move(kernel)) {}
 
-    virtual void build(ArrayView<const Vector> points, ArrayView<const Float> masses) override {
-        r = points;
-        m = masses;
+    virtual void build(const Storage& storage) override {
+        r = storage.getValue<Vector>(QuantityId::POSITIONS);
+        m = storage.getValue<Float>(QuantityId::MASSES);
     }
 
-    virtual Vector eval(const Size idx, Statistics& UNUSED(stats)) override {
-        return this->evalImpl(r[idx], idx);
+    virtual void evalAll(ArrayView<Vector> dv, Statistics& UNUSED(stats)) const override {
+        /// \todo parallelize
+        ASSERT(r.size() == dv.size());
+        for (Size i = 0; i < dv.size(); ++i) {
+            dv[i] = this->evalImpl(r[i], i);
+        }
     }
 
-    virtual Vector eval(const Vector& r0, Statistics& UNUSED(stats)) override {
+    virtual Vector eval(const Vector& r0, Statistics& UNUSED(stats)) const override {
         return this->evalImpl(r0, Size(-1));
     }
 
 private:
-    INLINE Vector evalImpl(const Vector& r0, const Size idx) {
+    INLINE Vector evalImpl(const Vector& r0, const Size idx) const {
         ASSERT(r && m);
         Vector a(0._f);
         ASSERT(r0[H] > 0._f, r0[H]);
-        for (Size i = 0; i < r.size(); ++i) {
-            if (i == idx) {
-                continue;
-            }
+        // do 2 for loops to avoid the if
+        for (Size i = 0; i < idx; ++i) {
+            a += m[i] * kernel.grad(r[i] - r0, r0[H]);
+        }
+        for (Size i = idx + 1; i < r.size(); ++i) {
             a += m[i] * kernel.grad(r[i] - r0, r0[H]);
         }
         return Constants::gravity * a;

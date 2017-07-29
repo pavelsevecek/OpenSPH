@@ -25,7 +25,7 @@ protected:
 
     T* data;
 #ifdef SPH_DEBUG
-    const T *begin, *end;
+    const T *begin = nullptr, *end = nullptr;
 #endif
 
 #ifndef SPH_DEBUG
@@ -42,6 +42,7 @@ public:
         , end(end)
 #endif
     {
+        ASSERT(end >= begin, begin, end);
     }
 
     INLINE const TValue& operator*() const {

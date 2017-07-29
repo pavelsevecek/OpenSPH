@@ -11,7 +11,15 @@ ThreadPool::ThreadPool(const Size numThreads)
         while (!stop) {
             Optional<Task> task = getNextTask();
             if (task) {
-                task.value()();
+                // run the task
+                try {
+                    task.value()();
+                } catch (...) {
+                    // store caught exception, replacing the previous one
+                    //   std::unique_lock<std::mutex> lock(exceptionMutex);
+                    caughtException = std::current_exception();
+                }
+
                 std::unique_lock<std::mutex> lock(waitMutex);
                 --tasksLeft;
             }
@@ -43,10 +51,17 @@ void ThreadPool::waitForAll() {
         waitVar.wait(lock, [this] { return tasksLeft == 0; });
     }
     ASSERT(tasks.empty() && tasksLeft == 0);
+    /// \todo find better way to rethrow the exception?
+    if (caughtException) {
+        std::exception_ptr current = caughtException;
+        caughtException = nullptr; // null to avoid throwing it twice
+        std::rethrow_exception(current);
+    }
 }
 
 Optional<Size> ThreadPool::getThreadIdx() const {
     std::thread::id id = std::this_thread::get_id();
+    /// \todo optimize by storing the ids in static thread_local struct
     for (Size i = 0; i < threads.size(); ++i) {
         if (threads[i]->get_id() == id) {
             return i;
