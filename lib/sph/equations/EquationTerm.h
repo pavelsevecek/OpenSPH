@@ -512,9 +512,9 @@ public:
 ///
 /// Holds an array of equation terms. The object also defines operators for adding more equation terms and
 /// functions \ref initialize, \ref finalize and \ref create, calling corresponding functions for all stored
-/// equation terms.
-/// Equation terms are stored as shared pointers and can be thus used in multiple EquationHolders. It is
-/// however not recommended to access the same term concurrently as it can contain a state.
+/// equation terms. Equation terms are stored as shared pointers and can be thus used in multiple
+/// EquationHolders. It is however not recommended to access the same term concurrently as it can contain a
+/// state.
 class EquationHolder {
 private:
     Array<SharedPtr<Abstract::EquationTerm>> terms;
@@ -522,7 +522,7 @@ private:
 public:
     EquationHolder() = default;
 
-    EquationHolder(const SharedPtr<Abstract::EquationTerm>& term) {
+    explicit EquationHolder(const SharedPtr<Abstract::EquationTerm>& term) {
         if (term != nullptr) {
             terms.push(term);
         }

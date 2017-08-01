@@ -46,7 +46,7 @@ static void testOpeningAngle(const MultipoleOrder order) {
     Storage storage2 = storage1.clone(VisitorEnum::ALL_BUFFERS);
 
     // with theta = 0, the BarnetHut should be identical to brute force summing
-    BarnesHut bh(0._f, order);
+    BarnesHut bh(EPS, order);
     BruteForceGravity bf;
 
     bf.build(storage1);

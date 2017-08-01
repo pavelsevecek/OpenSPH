@@ -699,6 +699,12 @@ INLINE auto abs(const BasicVector<double>& v) {
         _mm_andnot_pd(_mm_set1_pd(-0.), v.sse<0>()), _mm_andnot_pd(_mm_set1_pd(-0.), v.sse<1>()));
 }
 
+/// Returns the L1 norm (sum of absolute values) of the vector
+INLINE Float l1Norm(const Vector& v) {
+    const Vector absV = abs(v);
+    return absV[X] + absV[Y] + absV[Z];
+}
+
 
 /// Computes vector of inverse squared roots.
 /*template <>

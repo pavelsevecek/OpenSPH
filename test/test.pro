@@ -46,6 +46,7 @@ SOURCES += \
     ../lib/geometry/test/Tensor.cpp \
     ../lib/geometry/test/TracelessTensor.cpp \
     ../lib/geometry/test/Vector.cpp \
+    ../lib/geometry/test/Sphere.cpp \
     ../lib/io/test/FileSystem.cpp \
     ../lib/io/test/Logger.cpp \
     ../lib/io/test/Output.cpp \

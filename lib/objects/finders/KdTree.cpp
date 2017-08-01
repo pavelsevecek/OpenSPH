@@ -252,7 +252,7 @@ Size KdTree::findNeighboursImpl(const Vector& r0,
     const Vector maxDistSqr = sqr(max(Vector(0._f), entireBox.lower() - r0, r0 - entireBox.upper()));
 
     // L1 norm
-    const Float l1 = abs(maxDistSqr[X]) + abs(maxDistSqr[Y]) + abs(maxDistSqr[Z]);
+    const Float l1 = l1Norm(maxDistSqr);
     ProcessedNode node{ 0, maxDistSqr, l1 };
 
     ASSERT(nodeStack.empty()); // not sure if there can be some nodes from previous search ...

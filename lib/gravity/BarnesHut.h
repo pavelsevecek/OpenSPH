@@ -3,6 +3,7 @@
 #include "gravity/AbstractGravity.h"
 #include "objects/finders/KdTree.h"
 #include "sph/kernel/GravityKernel.h"
+#include <list>
 
 NAMESPACE_SPH_BEGIN
 
@@ -55,6 +56,12 @@ public:
 
 protected:
     Vector evalImpl(const Vector& r0, const Size idx, Statistics& stats) const;
+
+    void evalNode(ArrayView<Vector> dv,
+        const KdNode& node,
+        std::list<Size>& checkList,
+        Array<Size>& particleList,
+        Array<Size>& nodeList) const;
 
     Vector evalExact(const LeafNode& node, const Vector& r0, const Size idx) const;
 

@@ -1,4 +1,5 @@
 #include "gravity/BarnesHut.h"
+#include "geometry/Sphere.h"
 #include "gravity/Moments.h"
 #include "physics/Constants.h"
 #include "quantities/Storage.h"
@@ -55,8 +56,18 @@ void BarnesHut::build(const Storage& storage) {
 }
 
 void BarnesHut::evalAll(ArrayView<Vector> dv, Statistics& stats) const {
-    for (Size i = 0; i < dv.size(); ++i) {
+    /*for (Size i = 0; i < dv.size(); ++i) {
         dv[i] = this->evalImpl(r[i], i, stats);
+    }*/
+    Array<Size> particleList;
+    Array<Size> nodeList;
+    std::list<Size> checkList;
+
+    MARK_USED(stats);
+    this->evalNode(dv, kdTree.getNode(0), checkList, particleList, nodeList);
+
+    for (Size i = 0; i < dv.size(); ++i) {
+        dv[i] *= Constants::gravity;
     }
 }
 
@@ -112,6 +123,87 @@ Vector BarnesHut::evalImpl(const Vector& r0, const Size idx, Statistics& UNUSED(
     stats.set(StatisticsId::GRAVITY_PARTICLES_APPROX, int(ns.approximated));*/
     return Constants::gravity * f;
 }
+
+/// \todo try different containers; we need fast inserting & deletion
+
+void BarnesHut::evalNode(ArrayView<Vector> dv,
+    const KdNode& node,
+    std::list<Size>& checkList,
+    Array<Size>& particleList,
+    Array<Size>& nodeList) const {
+    const Box& box = node.box;
+    // we cannot use range-based for loop before we need the iterator for erasing the element
+    for (auto iter = checkList.begin(); iter != checkList.end();) {
+        const Size i = *iter;
+        const KdNode& n = kdTree.getNode(i);
+        const Sphere openBall(n.com, n.r_open);
+        const IntersectResult intersect = openBall.intersectsBox(box);
+        if (intersect == IntersectResult::SPHERE_CONTAINS_BOX ||
+            (node.isLeaf() && intersect == IntersectResult::INTERESECTION)) {
+            // remove the node from the checklist
+            auto copy = ++iter;
+            checkList.erase(--iter);
+            iter = copy;
+
+            // if leaf, add all particles into the particle interaction list
+            if (node.isLeaf()) {
+                const LeafNode& leaf = reinterpret_cast<const LeafNode&>(node);
+                LeafIndexSequence sequence = kdTree.getLeafIndices(leaf);
+                for (Size j : sequence) {
+                    particleList.push(j);
+                }
+            } else {
+                // add child nodes into the checklist
+                const InnerNode& inner = reinterpret_cast<const InnerNode&>(node);
+                checkList.push_back(inner.left);
+                checkList.push_back(inner.right);
+            }
+            break;
+        } else if (intersect == IntersectResult::NO_INTERSECTION) {
+            // node is outside the opening ball, we can approximate it
+            auto copy = ++iter;
+            checkList.erase(--iter);
+            iter = copy;
+
+            nodeList.push(i);
+            break;
+        }
+
+        ++iter;
+    }
+
+    if (node.isLeaf()) {
+        const LeafNode& leaf = reinterpret_cast<const LeafNode&>(node);
+        // add acceleration to all leaf particles from both interaction lists
+        LeafIndexSequence sequence = kdTree.getLeafIndices(leaf);
+        for (Size i : sequence) {
+            for (Size j : particleList) {
+                if (i == j) {
+                    continue;
+                }
+                ASSERT(r[i][H] > 0._f, r[i][H]);
+                dv[i] += m[i] * kernel.grad(r[i] - r[j], r[i][H]);
+            }
+            for (Size nodeIdx : nodeList) {
+                const KdNode& node = kdTree.getNode(nodeIdx);
+                dv[i] += evaluateGravity(r[i] - node.com, node.moments, order);
+            }
+        }
+    } else {
+        const InnerNode& inner = reinterpret_cast<const InnerNode&>(node);
+        // recurse into child nodes
+        std::list<Size> childCheckList = checkList;
+        childCheckList.push_back(inner.left);
+        Array<Size> childParticleList = particleList.clone();
+        Array<Size> childNodeList = nodeList.clone();
+        /// \todo should we clone interaction lists here?!
+        this->evalNode(dv, kdTree.getNode(inner.left), childCheckList, childParticleList, childNodeList);
+
+        checkList.push_back(inner.right);
+        this->evalNode(dv, kdTree.getNode(inner.right), checkList, particleList, nodeList);
+    }
+}
+
 
 Vector BarnesHut::evalExact(const LeafNode& leaf, const Vector& r0, const Size idx) const {
     LeafIndexSequence sequence = kdTree.getLeafIndices(leaf);

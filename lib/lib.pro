@@ -228,4 +228,5 @@ HEADERS += \
     gravity/BruteForceGravity.h \
     objects/finders/BruteForceFinder.h \
     objects/wrappers/RawPtr.h \
-    gravity/VoxelGravity.h
+    gravity/VoxelGravity.h \
+    geometry/Sphere.h
