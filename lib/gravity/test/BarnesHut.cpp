@@ -14,7 +14,7 @@ static Storage getGravityStorage() {
     const Float rho0 = 100._f;
     BodySettings settings;
     settings.set(BodySettingsId::DENSITY, rho0);
-    return Tests::getGassStorage(1000, settings, r0);
+    return Tests::getGassStorage(30, settings, r0);
 }
 
 static Tuple<Storage, Vector> getTestParticles() {
@@ -74,7 +74,7 @@ TEST_CASE("BarnesHut zero opening angle", "[gravity]") {
     testOpeningAngle(MultipoleOrder::OCTUPOLE);
 }
 
-TEST_CASE("BarnesHut empty", "[gravity]") {
+/*TEST_CASE("BarnesHut empty", "[gravity]") {
     // no particles = no acceleration
     BarnesHut bh(0.5_f, MultipoleOrder::OCTUPOLE);
 
@@ -84,7 +84,7 @@ TEST_CASE("BarnesHut empty", "[gravity]") {
     Statistics stats;
     REQUIRE(bh.eval(Vector(0._f), stats) == Vector(0._f));
 }
-
+*/
 static void testMoments(const MultipoleExpansion<3>& moments, const Storage& storage, const Vector& r_com) {
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
     ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASSES);

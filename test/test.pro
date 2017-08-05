@@ -141,7 +141,8 @@ SOURCES += \
     ../lib/post/test/MarchingCubes.cpp \
     ../lib/post/test/MeshFile.cpp \
     ../lib/objects/finders/test/BruteForceFinder.cpp \
-    ../lib/gravity/test/BruteForceGravity.cpp
+    ../lib/gravity/test/BruteForceGravity.cpp \
+    ../lib/objects/containers/test/List.cpp
 
 HEADERS += \
     utils/Utils.h \

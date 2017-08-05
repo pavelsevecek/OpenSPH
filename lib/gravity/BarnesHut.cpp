@@ -62,6 +62,7 @@ void BarnesHut::evalAll(ArrayView<Vector> dv, Statistics& stats) const {
     Array<Size> particleList;
     Array<Size> nodeList;
     std::list<Size> checkList;
+    checkList.push_back(0);
 
     MARK_USED(stats);
     this->evalNode(dv, kdTree.getNode(0), checkList, particleList, nodeList);
@@ -132,6 +133,7 @@ void BarnesHut::evalNode(ArrayView<Vector> dv,
     Array<Size>& particleList,
     Array<Size>& nodeList) const {
     const Box& box = node.box;
+    std::list<Size>::iterator toRemove;
     // we cannot use range-based for loop before we need the iterator for erasing the element
     for (auto iter = checkList.begin(); iter != checkList.end();) {
         const Size i = *iter;
@@ -158,7 +160,7 @@ void BarnesHut::evalNode(ArrayView<Vector> dv,
                 checkList.push_back(inner.left);
                 checkList.push_back(inner.right);
             }
-            break;
+            continue;
         } else if (intersect == IntersectResult::NO_INTERSECTION) {
             // node is outside the opening ball, we can approximate it
             auto copy = ++iter;
@@ -166,7 +168,7 @@ void BarnesHut::evalNode(ArrayView<Vector> dv,
             iter = copy;
 
             nodeList.push(i);
-            break;
+            continue;
         }
 
         ++iter;
@@ -182,7 +184,7 @@ void BarnesHut::evalNode(ArrayView<Vector> dv,
                     continue;
                 }
                 ASSERT(r[i][H] > 0._f, r[i][H]);
-                dv[i] += m[i] * kernel.grad(r[i] - r[j], r[i][H]);
+                dv[i] += m[i] * kernel.grad(r[j] - r[i], r[i][H]);
             }
             for (Size nodeIdx : nodeList) {
                 const KdNode& node = kdTree.getNode(nodeIdx);

@@ -63,6 +63,10 @@ public:
     INLINE T* get() const {
         return ptr;
     }
+
+    INLINE void swap(RawPtr& other) {
+        std::swap(ptr, other.ptr);
+    }
 };
 
 template <typename T>
@@ -96,3 +100,10 @@ INLINE bool operator!=(const RawPtr<T1> lhs, const RawPtr<T2> rhs) {
 }
 
 NAMESPACE_SPH_END
+
+namespace std {
+    template <typename T>
+    void swap(Sph::RawPtr<T>& p1, Sph::RawPtr<T>& p2) {
+        p1.swap(p2);
+    }
+}

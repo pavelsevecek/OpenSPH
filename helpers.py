@@ -28,6 +28,13 @@ def qdump__Sph__AutoPtr(d, value):
     else:
         d.putItem(ptr.dereference())
 
+def qdump__Sph__RawPtr(d, value):
+    ptr = value["ptr"]
+    if ptr.integer() == 0:
+        d.putValue("nullptr")
+    else:
+        d.putItem(ptr.dereference())
+
 def qdump__Sph__SharedPtr(d, value):
     ptr = value["ptr"]
     if ptr.integer() == 0:
