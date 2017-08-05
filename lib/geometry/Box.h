@@ -111,9 +111,13 @@ public:
         return s[X] * s[Y] * s[Z];
     }
 
-    /// Compares two boxes
+    /// Compares two boxes, return true if box lower and upper bounds are equal.
     INLINE bool operator==(const Box& other) const {
         return minBound == other.minBound && maxBound == other.maxBound;
+    }
+
+    INLINE bool operator!=(const Box& other) const {
+        return minBound != other.minBound || maxBound != other.maxBound;
     }
 
     /// Splits the box along given coordinate. The splitting plane must pass through the box.

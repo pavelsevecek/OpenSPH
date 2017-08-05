@@ -119,4 +119,32 @@ bool isAnyMatching(const TStorage& container, TFunctor&& functor) {
     return false;
 }
 
+/// Returns true if all elements stored in the container are unique, i.e. the container does not store any
+/// value more than once.
+template <typename TStorage>
+bool areElementsUnique(const TStorage& container) {
+    // stupid O(N^2) solution
+    for (auto iter1 = container.begin(); iter1 != container.end(); ++iter1) {
+        for (auto iter2 = iter1; iter2 != container.end(); ++iter2) {
+            if (*iter2 == *iter1 && iter2 != iter1) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+/// Returns true if two containers have at least one element with the same value.
+template <typename TStorage1, typename TStorage2>
+bool haveCommonElements(const TStorage1& c1, const TStorage2& c2) {
+    for (const auto& t1 : c1) {
+        for (const auto& t2 : c2) {
+            if (t1 == t2) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 NAMESPACE_SPH_END

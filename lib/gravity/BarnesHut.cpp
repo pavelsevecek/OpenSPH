@@ -1,6 +1,7 @@
 #include "gravity/BarnesHut.h"
 #include "geometry/Sphere.h"
 #include "gravity/Moments.h"
+#include "objects/containers/ArrayUtils.h"
 #include "physics/Constants.h"
 #include "quantities/Storage.h"
 #include "system/Profiler.h"
@@ -60,12 +61,15 @@ void BarnesHut::evalAll(ArrayView<Vector> dv, Statistics& stats) const {
         dv[i] = this->evalImpl(r[i], i, stats);
     }*/
     Array<Size> particleList;
-    Array<Size> nodeList;
-    std::list<Size> checkList;
-    checkList.push_back(0);
-
     MARK_USED(stats);
-    this->evalNode(dv, kdTree.getNode(0), checkList, particleList, nodeList);
+    const KdNode& root = kdTree.getNode(0);
+    if (SPH_UNLIKELY(root.isLeaf())) {
+        // all particles within one leaf - boring case with only few particles
+        for (Size i = 0; i < dv.size(); ++i) {
+            particleList.push(i);
+        }
+    }
+    this->evalNode(dv, root, {}, std::move(particleList), {});
 
     for (Size i = 0; i < dv.size(); ++i) {
         dv[i] *= Constants::gravity;
@@ -128,25 +132,32 @@ Vector BarnesHut::evalImpl(const Vector& r0, const Size idx, Statistics& UNUSED(
 /// \todo try different containers; we need fast inserting & deletion
 
 void BarnesHut::evalNode(ArrayView<Vector> dv,
-    const KdNode& node,
-    std::list<Size>& checkList,
-    Array<Size>& particleList,
-    Array<Size>& nodeList) const {
-    const Box& box = node.box;
-    std::list<Size>::iterator toRemove;
+    const KdNode& evaluatedNode,
+    List<Size> checkList,
+    Array<Size> particleList,
+    Array<Size> nodeList) const {
+    const Box& box = evaluatedNode.box;
+    if (box == Box::EMPTY()) {
+        //  no partiles in the box, skip
+        ASSERT(evaluatedNode.isLeaf());
+        return;
+    }
+
     // we cannot use range-based for loop before we need the iterator for erasing the element
     for (auto iter = checkList.begin(); iter != checkList.end();) {
+        ASSERT(areElementsUnique(checkList), checkList);
         const Size i = *iter;
-        const KdNode& n = kdTree.getNode(i);
-        const Sphere openBall(n.com, n.r_open);
-        const IntersectResult intersect = openBall.intersectsBox(box);
-        if (intersect == IntersectResult::SPHERE_CONTAINS_BOX ||
-            (node.isLeaf() && intersect == IntersectResult::INTERESECTION)) {
-            // remove the node from the checklist
-            auto copy = ++iter;
-            checkList.erase(--iter);
-            iter = copy;
+        const KdNode& node = kdTree.getNode(i);
+        if (node.box == Box::EMPTY()) {
+            checkList.eraseAndIncrement(iter);
+            continue;
+        }
 
+        const Sphere openBall(node.com, node.r_open);
+        const IntersectResult intersect = openBall.intersectsBox(box);
+
+        if (intersect == IntersectResult::BOX_INSIDE_SPHERE ||
+            (evaluatedNode.isLeaf() && intersect != IntersectResult::BOX_OUTSIDE_SPHERE)) {
             // if leaf, add all particles into the particle interaction list
             if (node.isLeaf()) {
                 const LeafNode& leaf = reinterpret_cast<const LeafNode&>(node);
@@ -154,55 +165,77 @@ void BarnesHut::evalNode(ArrayView<Vector> dv,
                 for (Size j : sequence) {
                     particleList.push(j);
                 }
+                ASSERT(areElementsUnique(particleList), particleList);
             } else {
                 // add child nodes into the checklist
                 const InnerNode& inner = reinterpret_cast<const InnerNode&>(node);
-                checkList.push_back(inner.left);
-                checkList.push_back(inner.right);
+                checkList.pushBack(inner.left);
+                checkList.pushBack(inner.right);
             }
-            continue;
-        } else if (intersect == IntersectResult::NO_INTERSECTION) {
-            // node is outside the opening ball, we can approximate it
-            auto copy = ++iter;
-            checkList.erase(--iter);
-            iter = copy;
+            checkList.eraseAndIncrement(iter);
 
+            continue;
+        } else if (intersect == IntersectResult::BOX_OUTSIDE_SPHERE) {
+            // node is outside the opening ball, we can approximate it; add to the node list
             nodeList.push(i);
+
+            // erase this node from checklist
+            checkList.eraseAndIncrement(iter);
             continue;
         }
-
+        // for leafs we have to move all nodes from the checklist to one of interaction lists
+        ASSERT(!evaluatedNode.isLeaf());
         ++iter;
     }
 
-    if (node.isLeaf()) {
-        const LeafNode& leaf = reinterpret_cast<const LeafNode&>(node);
+    if (evaluatedNode.isLeaf()) {
+        ASSERT(checkList.empty(), checkList); // checklist must be empty, otherwise we forgot something
+        ASSERT(areElementsUnique(particleList), particleList);
+
+        const LeafNode& leaf = reinterpret_cast<const LeafNode&>(evaluatedNode);
         // add acceleration to all leaf particles from both interaction lists
         LeafIndexSequence sequence = kdTree.getLeafIndices(leaf);
+        ASSERT(!haveCommonElements(particleList, sequence));
+        ASSERT(nodeList.size() > 0 || particleList.size() + sequence.size() == dv.size());
         for (Size i : sequence) {
+            // evaluate interactions of all particles from particle list
             for (Size j : particleList) {
+                ASSERT(r[i][H] > 0._f, r[i][H]);
+                dv[i] += m[i] * kernel.grad(r[j] - r[i], r[i][H]);
+            }
+            // evaluate all intra-leaf interactions (leaf itself isn't in the interaction list)
+            for (Size j : sequence) {
                 if (i == j) {
                     continue;
                 }
                 ASSERT(r[i][H] > 0._f, r[i][H]);
                 dv[i] += m[i] * kernel.grad(r[j] - r[i], r[i][H]);
             }
+            ASSERT(areElementsUnique(nodeList), nodeList);
             for (Size nodeIdx : nodeList) {
                 const KdNode& node = kdTree.getNode(nodeIdx);
                 dv[i] += evaluateGravity(r[i] - node.com, node.moments, order);
             }
         }
     } else {
-        const InnerNode& inner = reinterpret_cast<const InnerNode&>(node);
+        const InnerNode& inner = reinterpret_cast<const InnerNode&>(evaluatedNode);
         // recurse into child nodes
-        std::list<Size> childCheckList = checkList;
-        childCheckList.push_back(inner.left);
+        List<Size> childCheckList = checkList.clone();
+        childCheckList.pushBack(inner.right);
         Array<Size> childParticleList = particleList.clone();
         Array<Size> childNodeList = nodeList.clone();
-        /// \todo should we clone interaction lists here?!
-        this->evalNode(dv, kdTree.getNode(inner.left), childCheckList, childParticleList, childNodeList);
+        this->evalNode(dv,
+            kdTree.getNode(inner.left),
+            std::move(childCheckList),
+            std::move(childParticleList),
+            std::move(childNodeList));
 
-        checkList.push_back(inner.right);
-        this->evalNode(dv, kdTree.getNode(inner.right), checkList, particleList, nodeList);
+        checkList.pushBack(inner.left);
+        this->evalNode(dv,
+            kdTree.getNode(inner.right),
+            std::move(checkList),
+            std::move(particleList),
+            std::move(nodeList));
     }
 }
 
@@ -250,7 +283,7 @@ void BarnesHut::buildLeaf(KdNode& node) {
 
     // compute opening radius using Eq. (2.36) of Stadel Phd Thesis
     const Vector r_max = max(leaf.com - leaf.box.lower(), leaf.box.upper() - leaf.com);
-    ASSERT(minElement(r_max) > 0._f, r_max);
+    ASSERT(minElement(r_max) >= 0._f, r_max);
     leaf.r_open = 2._f / sqrt(3._f) * thetaInv * getLength(r_max);
 
     // compute gravitational moments from individual particles
@@ -303,7 +336,7 @@ void BarnesHut::buildInner(KdNode& node, KdNode& left, KdNode& right) {
 
     // compute opening radius
     const Vector r_max = max(inner.com - inner.box.lower(), inner.box.upper() - inner.com);
-    ASSERT(minElement(r_max) > 0._f, r_max);
+    ASSERT(minElement(r_max) >= 0._f, r_max);
     inner.r_open = 2._f / sqrt(3._f) * thetaInv * getLength(r_max);
 
     inner.moments.order<0>() = ml + mr;

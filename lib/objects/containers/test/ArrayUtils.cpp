@@ -1,13 +1,13 @@
-#include "objects/containers/Array.h"
-#include "catch.hpp"
 #include "objects/containers/ArrayUtils.h"
+#include "catch.hpp"
+#include "objects/containers/Array.h"
 
 using namespace Sph;
 
 
 TEST_CASE("Find", "[arrayutils]") {
     Array<float> storage = { -3.f, -2.f, -1.f, 0.f, 1.f, 2.f, 3.f };
-    Iterator<float> i    = findByMinimum<float, float>(storage, [](const float v) { return v; });
+    Iterator<float> i = findByMinimum<float, float>(storage, [](const float v) { return v; });
     REQUIRE(*i == -3.f);
     i = findByMinimum<float, float>(storage, [](const float v) { return -v; });
     REQUIRE(*i == 3.f);
@@ -33,8 +33,18 @@ TEST_CASE("FindPair", "[arrayutils]") {
 
 TEST_CASE("CountMatching", "[arrayutils]") {
     Array<float> storage = { -4.f, -3.f, 0.f, 1.f, 2.f, 10.f, 7.f };
-    int even             = getCountMatching(storage, [](const float v) { return int(v) % 2 == 0; });
+    int even = getCountMatching(storage, [](const float v) { return int(v) % 2 == 0; });
     REQUIRE(even == 4);
     int negative = getCountMatching(storage, [](const float v) { return v < 0; });
     REQUIRE(negative == 2);
+}
+
+TEST_CASE("AreElementsUnique", "[arrayutils]") {
+    Array<int> storage1{ 1, 2, 6, 3, 5 };
+    REQUIRE(areElementsUnique(storage1));
+
+    Array<int> storage2{ 3, 2, 6, 3, 5 };
+    REQUIRE_FALSE(areElementsUnique(storage2));
+
+    REQUIRE(areElementsUnique(Array<int>{}));
 }

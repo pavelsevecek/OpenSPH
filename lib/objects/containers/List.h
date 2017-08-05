@@ -46,13 +46,6 @@ struct ListNode {
             next->prev = prev;
         }
     }
-
-    /// Conversion to const type, needed for const overloads of List member functions.
-    INLINE ListNode<const T>& getConst() {
-        // same types, only differ by const-ness
-        /// \todo is this ok? better solution?
-        return reinterpret_cast<ListNode<const T>&>(*this);
-    }
 };
 
 template <typename T>
@@ -203,7 +196,7 @@ public:
         }
     }
 
-    /// \param Removes an element given by the iterator.
+    /// \brief Removes an element given by the iterator.
     ///
     /// This does not invalidate iterators or pointers to element, except for the iterator to the element
     /// being erased from the list.
@@ -221,6 +214,17 @@ public:
             last = last->prev;
         }
         delete node.get();
+    }
+
+    /// \brief Removes an element given by the iterator and moves the iterator to the next element.
+    ///
+    /// If the removed element is at the end of the list, the iterator will contain nullptr. In any case, the
+    /// iterator is not invalidated after the function is called (unlike after \ref erase). Either it points
+    /// to the next element, or it is nullptr.
+    void eraseAndIncrement(ListIterator<T>& iter) {
+        ListIterator<T> copy = iter;
+        ++iter;
+        erase(copy);
     }
 
     /// Returns the reference to the first element in the list.
@@ -263,7 +267,9 @@ public:
 
     /// Returns a bidirectional iterator pointing to the first element of the list.
     ListIterator<const T> begin() const {
-        return ListIterator<const T>(&first->getConst());
+        // same types, only differ by const-ness
+        /// \todo is this ok? better solution?
+        return ListIterator<const T>(reinterpret_cast<ListNode<const T>*>(first.get()));
     }
 
     /// Returns a bidirectional iterator pointing to the one-past-last element of the list.
@@ -273,6 +279,15 @@ public:
 
     ListIterator<const T> end() const {
         return ListIterator<const T>(nullptr);
+    }
+
+    /// Prints content of the list to stream. Stored values must have overloaded << operator.
+    template <typename TStream>
+    friend TStream& operator<<(TStream& stream, const List& array) {
+        for (const T& t : array) {
+            stream << t << std::endl;
+        }
+        return stream;
     }
 };
 

@@ -328,14 +328,14 @@ Vector evaluateGravity(const Vector& dr, const MultipoleExpansion<N>& ms, const 
     }
 
     Vector a(0._f);
-    switch (int(maxOrder)) {
-    case 3: // octupole
+    switch (maxOrder) {
+    case MultipoleOrder::OCTUPOLE:
         a += computeMultipoleAcceleration<3>(ms, gamma, -dr);
         SPH_FALLTHROUGH;
-    case 2: // quadrupole
+    case MultipoleOrder::QUADRUPOLE:
         a += computeMultipoleAcceleration<2>(ms, gamma, -dr);
         SPH_FALLTHROUGH;
-    case 0: // monopole
+    case MultipoleOrder::MONOPOLE:
         a += computeMultipoleAcceleration<0>(ms, gamma, -dr);
         break;
     default:

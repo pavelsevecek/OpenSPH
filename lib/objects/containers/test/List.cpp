@@ -124,7 +124,19 @@ TEST_CASE("List backward iteration", "[list]") {
     REQUIRE_ASSERT(*iter);
 }
 
-TEST_CASE("List range-based for", "[list]") {
+TEST_CASE("List range-based for empty", "[list]") {
+    List<RecordType> list;
+    Size counter = 0;
+    for (RecordType& e : list) {
+        ++counter;
+    }
+    for (const RecordType& e : addConst(list)) {
+        ++counter;
+    }
+    REQUIRE(counter == 0);
+}
+
+TEST_CASE("List range-based for elements", "[list]") {
     List<RecordType> list({ 1, 2, 3, 4 });
     Size idx = 1;
     for (RecordType& e : list) {
@@ -132,6 +144,12 @@ TEST_CASE("List range-based for", "[list]") {
         ++idx;
     }
     REQUIRE(idx == 5);
+    // const overload
+    for (const RecordType& e : addConst(list)) {
+        REQUIRE(e.value == idx - 4);
+        ++idx;
+    }
+    REQUIRE(idx == 9);
 }
 
 TEST_CASE("List insert", "[list]") {
@@ -178,6 +196,40 @@ TEST_CASE("List erase", "[list]") {
     list.erase(list.begin());
     REQUIRE(list.empty());
     REQUIRE(list.size() == 0);
+
+    // add after the whole list has been erased, to make sure it is in consistent state
+    list.pushBack(5);
+    REQUIRE(list.size() == 1);
+    REQUIRE(list.front().value == 5);
+}
+
+TEST_CASE("List eraseAndIncrement", "[list]") {
+    List<RecordType> list({ 1, 2, 3, 4 });
+    ListIterator<RecordType> iter = list.begin();
+    list.eraseAndIncrement(iter);
+    REQUIRE(list.size() == 3);
+    REQUIRE(list.front().value == 2);
+    REQUIRE(iter->value == 2);
+
+    list.eraseAndIncrement(iter);
+    list.eraseAndIncrement(iter);
+    REQUIRE(list.size() == 1);
+    REQUIRE(iter->value == 4);
+
+    list.eraseAndIncrement(iter);
+    REQUIRE(list.empty());
+    REQUIRE_FALSE(iter);
+}
+
+TEST_CASE("List eraseAndIncrement loop", "[list]") {
+    List<RecordType> list({ 1, 2, 3, 4 });
+    Size counter = 0;
+    for (auto iter = list.begin(); iter != list.end();) {
+        ++counter;
+        list.eraseAndIncrement(iter);
+    }
+    REQUIRE(list.empty());
+    REQUIRE(counter == 4);
 }
 
 TEST_CASE("List clone", "[list]") {
