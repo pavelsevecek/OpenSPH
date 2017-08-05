@@ -37,11 +37,12 @@ private:
         equations += EquationHolder(Factory::getArtificialViscosity(settings));
 
         // adaptivity of smoothing length
-        if (settings.get<SmoothingLengthEnum>(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH) !=
-            SmoothingLengthEnum::CONST) {
-            /// \todo add test checking that with ConstSmoothingLength the h will indeed be const
+        Flags<SmoothingLengthEnum> hflags =
+            settings.getFlags<SmoothingLengthEnum>(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH);
+        if (hflags.has(SmoothingLengthEnum::CONTINUITY_EQUATION)) {
             equations += makeTerm<AdaptiveSmoothingLength>(settings);
         } else {
+            /// \todo add test checking that with ConstSmoothingLength the h will indeed be const
             equations += makeTerm<ConstSmoothingLength>();
         }
 

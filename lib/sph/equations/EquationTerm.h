@@ -498,10 +498,12 @@ public:
     virtual void finalize(Storage& storage) override {
         ArrayView<Vector> r, v, dv;
         tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
-        for (Size i = 0; i < r.size(); ++i) {
-            v[i][H] = 0._f;
-            dv[i][H] = 0._f;
-        }
+        parallelFor(0, r.size(), [&v, &dv](const Size n1, const Size n2) INL {
+            for (Size i = n1; i < n2; ++i) {
+                v[i][H] = 0._f;
+                dv[i][H] = 0._f;
+            }
+        });
     }
 
     virtual void create(Storage& UNUSED(storage), Abstract::Material& UNUSED(material)) const override {}

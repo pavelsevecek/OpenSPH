@@ -44,6 +44,7 @@ namespace Tests {
         for (Size i = 0; i < v.size(); ++i) {
             v[i] = lambda(r[i]);
         }
+        equations += makeTerm<ConstSmoothingLength>();
         GenericSolver solver(RunSettings::getDefaults(), std::move(equations));
         solver.create(storage, storage.getMaterial(0));
         Statistics stats;

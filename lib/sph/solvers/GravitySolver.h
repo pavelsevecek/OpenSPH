@@ -41,27 +41,31 @@ public:
     }
 
 protected:
-    virtual void loop(Storage& storage) override {
+    virtual void loop(Storage& storage, Statistics& stats) override {
         // first, do asymmetric evaluation of gravity
-        ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
+        // ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
 
         // build gravity tree
         PROFILE("Building gravity", gravity->build(storage));
 
         // evaluate gravity for each particle
-        auto functor = [this, r](const Size n1, const Size n2, ThreadData& data) {
+        /*auto functor = [this, r](const Size n1, const Size n2, ThreadData& data) {
             Accumulated& accumulated = data.derivatives.getAccumulated();
             ArrayView<Vector> dv = accumulated.getBuffer<Vector>(QuantityId::POSITIONS, OrderEnum::SECOND);
-            Statistics dummy;
+          Statistics dummy;
             for (Size i = n1; i < n2; ++i) {
-                /// \todo refactor
+                /// \todo refactor using optimized evalAll
                 dv[i] += gravity->eval(r[i], dummy);
             }
-        };
-        PROFILE("Evaluating gravity", parallelFor(*pool, threadData, 0, r.size(), granularity, functor));
+        };*/
+
+        // PROFILE("Evaluating gravity", parallelFor(*pool, threadData, 0, r.size(), granularity, functor));
+        Accumulated& accumulated = threadData.first().derivatives.getAccumulated();
+        ArrayView<Vector> dv = accumulated.getBuffer<Vector>(QuantityId::POSITIONS, OrderEnum::SECOND);
+        gravity->evalAll(dv, stats);
 
         // second, compute SPH derivatives using symmetric evaluation
-        PROFILE("Evaluating SPH", GenericSolver::loop(storage));
+        PROFILE("Evaluating SPH", GenericSolver::loop(storage, stats));
     }
 
     void sanityCheck() const {

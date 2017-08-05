@@ -7,6 +7,7 @@
 
 #include "geometry/TracelessTensor.h"
 #include "objects/wrappers/AutoPtr.h"
+#include "objects/wrappers/Flags.h"
 #include "objects/wrappers/Outcome.h"
 #include "objects/wrappers/Range.h"
 #include "objects/wrappers/Variant.h"
@@ -88,7 +89,9 @@ public:
         return *this;
     }
 
-    /// Saves a value into the settings. Any previous value of the same ID is overriden.
+    /// \brief Saves a value into the settings.
+    ///
+    /// Any previous value of the same ID is overriden.
     /// \tparam TValue Type of the value to be saved. Does not have to be specified, type deduction can be
     ///                used to determine it. Must be one of types listed in object description, or enum - all
     ///                enums are explicitly converted into int before saving. Using other types will result in
@@ -103,8 +106,9 @@ public:
         return *this;
     }
 
-    /// Returns a value of given type from the settings. Value must be stored in settings and must have
-    /// corresponding type, checked by assert.
+    /// \brief Returns a value of given type from the settings.
+    ///
+    /// Value must be stored in settings and must have corresponding type, checked by assert.
     /// \tparam TValue Type of the value we wish to return. This type must match the type of the saved
     ///                quantity.
     /// \param idx Key of the value.
@@ -118,8 +122,20 @@ public:
         return TValue(value);
     }
 
+    /// \brief Returns Flags from underlying value stored in settings.
+    ///
+    /// Syntactic suggar, avoid cumbersome conversion to underlying type and then to Flags.
+    template <typename TValue>
+    Flags<TValue> getFlags(const TEnum idx) const {
+        static_assert(std::is_enum<TValue>::value, "Can be only used for enums");
+        TValue value = this->get<TValue>(idx);
+        return Flags<TValue>::fromValue(std::underlying_type_t<TValue>(value));
+    }
+
+
     /// Saves all values stored in settings into file.
-    /// \param path Path (relative or absolute) to the file. The file will be created, any previous content
+    /// \param path Path (relative or absolute) to the file. The file will be created, any previous
+    /// content
     ///             will be overriden.
     void saveToFile(const Path& path) const;
 

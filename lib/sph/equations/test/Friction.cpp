@@ -8,11 +8,12 @@
 
 using namespace Sph;
 
-TEST_CASE("ImternalFriction", "[friction]") {
+TEST_CASE("InternalFriction", "[friction]") {
     EquationHolder eqs;
     RunSettings settings;
     settings.set(RunSettingsId::MODEL_FORCE_SOLID_STRESS, false);
-    eqs += makeTerm<InternalFriction>() + makeTerm<ContinuityEquation>(settings);
+    eqs += makeTerm<InternalFriction>() + makeTerm<ContinuityEquation>(settings) +
+           makeTerm<ConstSmoothingLength>();
     GenericSolver solver(settings, std::move(eqs));
 
     Storage storage;

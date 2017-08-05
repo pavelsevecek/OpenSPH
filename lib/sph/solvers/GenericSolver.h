@@ -73,9 +73,6 @@ public:
         // add term counting number of neighbours
         equations += makeTerm<NeighbourCountTerm>();
 
-        // check equations
-        this->sanityCheck();
-
         // initialize all derivatives
         threadData.forEach([this, &settings](ThreadData& data) { //
             equations.setDerivatives(data.derivatives, settings);
@@ -83,7 +80,6 @@ public:
     }
 
     virtual void integrate(Storage& storage, Statistics& stats) override {
-
         // initialize all materials (compute pressure, apply yielding and damage, ...)
         for (Size i = 0; i < storage.getMaterialCnt(); ++i) {
             PROFILE_SCOPE("GenericSolver initialize materials")
@@ -98,7 +94,7 @@ public:
         this->beforeLoop(storage, stats);
 
         // main loop over pairs of interacting particles
-        this->loop(storage);
+        this->loop(storage, stats);
 
         // sum up accumulated storage, compute statistics
         this->afterLoop(storage, stats);
@@ -116,11 +112,15 @@ public:
 
     virtual void create(Storage& storage, Abstract::Material& material) const override {
         storage.insert<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO, 0);
+        // check equations
+        this->sanityCheck();
+
+        // create necessary quantities
         equations.create(storage, material);
     }
 
 protected:
-    virtual void loop(Storage& storage) {
+    virtual void loop(Storage& storage, Statistics& UNUSED(stats)) {
         // (re)build neighbour-finding structure; this needs to be done after all equations
         // are initialized in case some of them modify smoothing lengths
         ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
@@ -193,7 +193,7 @@ protected:
         stats.set(StatisticsId::NEIGHBOUR_COUNT, neighs);
     }
 
-    void sanityCheck() const {
+    virtual void sanityCheck() const {
         // we must solve smoothing length somehow
         if (!equations.contains<AdaptiveSmoothingLength>() && !equations.contains<ConstSmoothingLength>()) {
             throw InvalidSetup(

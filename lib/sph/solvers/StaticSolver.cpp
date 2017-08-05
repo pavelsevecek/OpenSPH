@@ -76,7 +76,7 @@ public:
 #ifdef SPH_USE_EIGEN
 
 StaticSolver::StaticSolver(const RunSettings& settings, const EquationHolder& equations)
-    : equationSolver(settings, equations + makeTerm<DisplacementTerm>()) {
+    : equationSolver(settings, equations + makeTerm<DisplacementTerm>() + makeTerm<ConstSmoothingLength>()) {
     kernel = Factory::getKernel<3>(settings);
     finder = Factory::getFinder(settings);
     boundaryThreshold = 18;

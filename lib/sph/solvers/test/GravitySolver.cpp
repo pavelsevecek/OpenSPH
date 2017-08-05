@@ -14,12 +14,12 @@ static void testGravity(AutoPtr<Abstract::Gravity>&& gravity) {
     settings.set(BodySettingsId::DENSITY, 1._f).set(BodySettingsId::ENERGY, 1._f);
     Storage storage = Tests::getGassStorage(3000, settings, Constants::au);
     // no SPH equations, just gravity
-    GravitySolver solver(RunSettings::getDefaults(), EquationHolder(), std::move(gravity));
+    GravitySolver solver(RunSettings::getDefaults(), makeTerm<ConstSmoothingLength>(), std::move(gravity));
     REQUIRE_NOTHROW(solver.create(storage, storage.getMaterial(0)));
     Statistics stats;
     REQUIRE_NOTHROW(solver.integrate(storage, stats));
 
-    // only gravity, no pressure -> gall cloud should collapse, acceleration to the center
+    // only gravity, no pressure -> gass cloud should collapse, acceleration to the center
     ArrayView<Vector> r, v, dv;
     tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
 

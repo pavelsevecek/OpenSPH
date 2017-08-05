@@ -115,7 +115,7 @@ TEST_CASE("TestEquation", "[equationterm]") {
     Statistics stats;
     SharedPtr<TestEquation> eq = makeShared<TestEquation>();
     EquationHolder equations(eq);
-    equations += makeTerm<Tests::DerivativeWrapper<TestDerivative>>();
+    equations += makeTerm<Tests::DerivativeWrapper<TestDerivative>>() + makeTerm<ConstSmoothingLength>();
 
     GenericSolver solver(RunSettings::getDefaults(), std::move(equations));
     REQUIRE(eq->flags == TestEquation::Status::DERIVATIVES_SET);
@@ -138,7 +138,7 @@ TEST_CASE("NeighbourCountTerm", "[equationterm]") {
     const Size N = storage.getParticleCnt();
     Statistics stats;
     EquationHolder equations;
-    equations += makeTerm<NeighbourCountTerm>();
+    equations += makeTerm<NeighbourCountTerm>() + makeTerm<ConstSmoothingLength>();
     GenericSolver solver(RunSettings::getDefaults(), std::move(equations));
     solver.create(storage, storage.getMaterial(0));
 

@@ -57,6 +57,11 @@ public:
             functor(value.get());
         }
     }
+
+    /// Returns the first storage, useful to share data between parallelized and single-threaded code.
+    Type& first() {
+        return values[0].get();
+    }
 };
 
 /// Overload of parallelFor that passes thread-local storage into the functor. Function split range into

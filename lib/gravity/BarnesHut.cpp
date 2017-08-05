@@ -165,7 +165,7 @@ void BarnesHut::evalNode(ArrayView<Vector> dv,
                 for (Size j : sequence) {
                     particleList.push(j);
                 }
-                ASSERT(areElementsUnique(particleList), particleList);
+                // ASSERT(areElementsUnique(particleList), particleList);
             } else {
                 // add child nodes into the checklist
                 const InnerNode& inner = reinterpret_cast<const InnerNode&>(node);
@@ -190,12 +190,12 @@ void BarnesHut::evalNode(ArrayView<Vector> dv,
 
     if (evaluatedNode.isLeaf()) {
         ASSERT(checkList.empty(), checkList); // checklist must be empty, otherwise we forgot something
-        ASSERT(areElementsUnique(particleList), particleList);
+        // ASSERT(areElementsUnique(particleList), particleList);
 
         const LeafNode& leaf = reinterpret_cast<const LeafNode&>(evaluatedNode);
         // add acceleration to all leaf particles from both interaction lists
         LeafIndexSequence sequence = kdTree.getLeafIndices(leaf);
-        ASSERT(!haveCommonElements(particleList, sequence));
+        // ASSERT(!haveCommonElements(particleList, sequence));
         ASSERT(nodeList.size() > 0 || particleList.size() + sequence.size() == dv.size());
         for (Size i : sequence) {
             // evaluate interactions of all particles from particle list

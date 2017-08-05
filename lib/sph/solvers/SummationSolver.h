@@ -116,6 +116,10 @@ private:
             }
         }
     }
+
+    virtual void sanityCheck() const {
+        // we handle smoothing lengths ourselves, bypass the check of equations
+    }
 };
 
 NAMESPACE_SPH_END

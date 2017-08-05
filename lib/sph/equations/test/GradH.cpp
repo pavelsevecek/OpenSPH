@@ -9,8 +9,8 @@ TEST_CASE("GradH", "[solvers]") {
     EquationHolder eqs;
     RunSettings settings;
     settings.set(RunSettingsId::MODEL_FORCE_SOLID_STRESS, false);
-    eqs += makeTerm<PressureForce>() + makeTerm<ContinuityEquation>(settings);
-    eqs += makeTerm<GradH>();
+    eqs += makeTerm<PressureForce>() + makeTerm<ContinuityEquation>(settings) + makeTerm<GradH>() +
+           makeTerm<ConstSmoothingLength>();
     GenericSolver solver(RunSettings::getDefaults(), std::move(eqs));
     REQUIRE_NOTHROW(solver.create(storage, storage.getMaterial(0)));
     Statistics stats;
