@@ -12,7 +12,7 @@ using namespace Sph;
 static void testGravity(AutoPtr<Abstract::Gravity>&& gravity) {
     BodySettings settings;
     settings.set(BodySettingsId::DENSITY, 1._f).set(BodySettingsId::ENERGY, 1._f);
-    Storage storage = Tests::getGassStorage(3000, settings, Constants::au);
+    Storage storage = Tests::getGassStorage(2000, settings, Constants::au);
     // no SPH equations, just gravity
     GravitySolver solver(RunSettings::getDefaults(), makeTerm<ConstSmoothingLength>(), std::move(gravity));
     REQUIRE_NOTHROW(solver.create(storage, storage.getMaterial(0)));

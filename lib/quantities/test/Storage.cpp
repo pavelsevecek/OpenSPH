@@ -175,7 +175,7 @@ TEST_CASE("Storage merge", "[storage]") {
     REQUIRE(storage3.getParticleCnt() == 4);
 }
 
-TEST_CASE("Storage init", "[storage]") {
+TEST_CASE("Storage zeroHighestDerivatives", "[storage]") {
     Storage storage;
     storage.insert<Float>(QuantityId::FLAG, OrderEnum::ZERO, Array<Float>{ 0 }); // dummy unit
     storage.resize(3);
@@ -190,7 +190,7 @@ TEST_CASE("Storage init", "[storage]") {
     REQUIRE(storage.getAll<Float>(QuantityId::POSITIONS)[2] == makeArray(5._f, 5._f, 5._f));
     REQUIRE(storage.getAll<Float>(QuantityId::MASSES)[1] == makeArray(5._f, 5._f, 5._f));
 
-    storage.init();
+    storage.zeroHighestDerivatives();
 
     REQUIRE(storage.getAll<Float>(QuantityId::POSITIONS)[2] == makeArray(0._f, 0._f, 0._f));
     REQUIRE(storage.getAll<Float>(QuantityId::POSITIONS)[1] == makeArray(5._f, 5._f, 5._f));

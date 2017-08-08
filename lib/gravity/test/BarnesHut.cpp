@@ -239,3 +239,43 @@ TEST_CASE("BarnesHut opening angle convergence", "[gravity]") {
     };
     REQUIRE_SEQUENCE(test, 0, a_bf.size());
 }
+
+/// \todo stolen from bruteforce gravity
+TEST_CASE("BarnesHut parallel", "[gravity]") {
+    Storage storage = getGravityStorage();
+
+    BarnesHut gravity(0.5, MultipoleOrder::OCTUPOLE);
+    gravity.build(storage);
+    Array<Vector> dv1 = storage.getD2t<Vector>(QuantityId::POSITIONS).clone();
+    Statistics stats;
+    gravity.evalAll(dv1, stats);
+
+    ThreadPool pool;
+    ThreadLocal<Array<Vector>> dv2s(pool, dv1.size());
+    ThreadLocal<ArrayView<Vector>> dv2Views = dv2s.convert<ArrayView<Vector>>();
+    // initialize TL storages
+    dv2s.forEach([](ArrayView<Vector> dvTl) {
+        for (Size i = 0; i < dvTl.size(); ++i) {
+            dvTl[i] = Vector(0._f);
+        }
+    });
+    // evaluate gravity using parallel implementation
+    gravity.evalAll(pool, dv2Views, stats);
+    // sum thread-local values
+    Array<Vector> sum(dv1.size());
+    sum.fill(Vector(0._f));
+    dv2s.forEach([&sum](ArrayView<Vector> dvTl) {
+        for (Size i = 0; i < dvTl.size(); ++i) {
+            sum[i] += dvTl[i];
+        }
+    });
+
+    // compare with single-threaded result
+    auto test = [&](const Size i) -> Outcome {
+        if (sum[i] != dv1[i]) {
+            return makeFailed("Incorrect acceleration: ", sum[i], " == ", dv1[i]);
+        }
+        return SUCCESS;
+    };
+    REQUIRE_SEQUENCE(test, 0, dv1.size());
+}

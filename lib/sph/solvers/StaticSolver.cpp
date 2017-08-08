@@ -91,7 +91,7 @@ Outcome StaticSolver::solve(Storage& storage, Statistics& stats) {
     finder->build(r);
 
     // compute right-hand side of equations by solving equations for acceleration
-    storage.init();
+    storage.zeroHighestDerivatives();
     equationSolver.integrate(storage, stats);
 
     ArrayView<Float> m, rho;

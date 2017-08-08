@@ -143,6 +143,9 @@ public:
 /// Storage(AutoPtr<Abstract::Material>&& material). All particles subsequently added into the storage
 /// will have the material passed in the parameter of the constructor. Storage with multiple materials can
 /// then be created by merging the storage with another object, using function \ref merge.
+///
+/// Storage is not thread-safe. If used in multithreaded context, any calls of member functions must be
+/// synchonized by the caller.
 class Storage : public Noncopyable {
     friend class StorageSequence;
     friend class ConstStorageSequence;
@@ -413,10 +416,11 @@ public:
     void merge(Storage&& other);
 
     /// Sets all highest-level derivatives of quantities to zero. Other values are unchanged.
-    void init();
+    void zeroHighestDerivatives();
 
-    /// Removes all particles with all quantities (including materials) from the storage. The storage is left
-    /// is a state as if it was default-constructed.
+    /// \brief Removes all particles with all quantities (including materials) from the storage.
+    ///
+    /// The storage is left is a state as if it was default-constructed.
     void removeAll();
 
     /// \brief Clones specified buffers of the storage.

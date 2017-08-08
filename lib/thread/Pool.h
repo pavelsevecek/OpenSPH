@@ -15,24 +15,66 @@
 
 NAMESPACE_SPH_BEGIN
 
+namespace Abstract {
+
+    /// \brief Task to be executed by one of available threads
+    class Task : public Polymorphic {
+    public:
+        /// Executes the task.
+        virtual void operator()() = 0;
+    };
+}
+
+/// \brief Task representing a simple lambda, functor or other callable object.
+template <typename TFunctor>
+class SimpleTask : public Abstract::Task {
+private:
+    TFunctor functor;
+
+public:
+    SimpleTask(TFunctor&& functor)
+        : functor(std::move(functor)) {}
+
+    virtual void operator()() override {
+        functor();
+    }
+};
+
+/// Creates a simple task, utilizing type deduction
+template <typename TFunctor>
+AutoPtr<Abstract::Task> makeTask(TFunctor&& functor) {
+    return makeAuto<SimpleTask<TFunctor>>(std::move(functor));
+}
+
+
+/// \brief Thread pool capable of executing tasks concurrently
 class ThreadPool : public Noncopyable {
 private:
+    /// Threads managed by this pool
     Array<AutoPtr<std::thread>> threads;
 
-    using Task = std::function<void(void)>;
-    std::queue<Task> tasks;
+    /// Queue of waiting tasks.
+    std::queue<AutoPtr<Abstract::Task>> tasks;
 
+    /// Used for synchronization of the task queue
     std::condition_variable taskVar;
     std::mutex taskMutex;
+
+    /// Used for synchronization of task scheduling
     std::condition_variable waitVar;
     std::mutex waitMutex;
 
+    /// Set to true if all tasks should be stopped ASAP
     std::atomic<bool> stop;
+
+    /// Number of unprocessed tasks (either currently processing or waiting).
     std::atomic<int> tasksLeft;
 
+    /// Last caught exception in one of worker threads.
     std::exception_ptr caughtException = nullptr;
-    /*std::mutex exceptionMutex;*/
 
+    /// Global instance of the ThreadPool.
+    /// \note This is not a singleton, another instances can be created if needed.
     static ThreadPool* globalInstance;
 
 public:
@@ -44,18 +86,7 @@ public:
     /// \brief Submits a task into the thread pool.
     ///
     /// The task will be executed asynchronously once tasks submitted before it are completed.
-    template <typename TFunctor>
-    void submit(TFunctor&& functor) {
-        {
-            std::unique_lock<std::mutex> lock(taskMutex);
-            tasks.emplace(std::forward<TFunctor>(functor));
-        }
-        {
-            std::unique_lock<std::mutex> lock(waitMutex);
-            ++tasksLeft;
-        }
-        taskVar.notify_one();
-    }
+    void submit(AutoPtr<Abstract::Task>&& task);
 
     /// Blocks until all submitted tasks has been finished.
     void waitForAll();
@@ -82,7 +113,7 @@ public:
     static ThreadPool& getGlobalInstance();
 
 private:
-    Optional<Task> getNextTask();
+    AutoPtr<Abstract::Task> getNextTask();
 };
 
 
@@ -98,7 +129,7 @@ private:
 template <typename TFunctor>
 INLINE void parallelFor(ThreadPool& pool, const Size from, const Size to, TFunctor&& functor) {
     for (Size i = from; i < to; ++i) {
-        pool.submit([i, &functor] { functor(i); });
+        pool.submit(makeTask([i, &functor] { functor(i); }));
     }
     pool.waitForAll();
 }
@@ -121,7 +152,7 @@ INLINE void parallelFor(ThreadPool& pool,
     for (Size i = from; i < to; i += granularity) {
         const Size n1 = i;
         const Size n2 = min(i + granularity, to);
-        pool.submit([n1, n2, &functor] { functor(n1, n2); });
+        pool.submit(makeTask([n1, n2, &functor] { functor(n1, n2); }));
     }
     pool.waitForAll();
 }

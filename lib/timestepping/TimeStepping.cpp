@@ -39,7 +39,7 @@ void Abstract::TimeStepping::step(Abstract::Solver& solver, Statistics& stats) {
 void EulerExplicit::stepImpl(Abstract::Solver& solver, Statistics& stats) {
     // MEASURE_SCOPE("EulerExplicit::step");
     // clear derivatives from previous timestep
-    storage->init();
+    storage->zeroHighestDerivatives();
 
     // compute derivatives
     solver.integrate(*storage, stats);
@@ -76,7 +76,7 @@ PredictorCorrector::PredictorCorrector(const SharedPtr<Storage>& storage, const 
     : Abstract::TimeStepping(storage, settings) {
     ASSERT(storage->getQuantityCnt() > 0); // quantities must already been emplaced
     predictions = makeAuto<Storage>(storage->clone(VisitorEnum::HIGHEST_DERIVATIVES));
-    storage->init(); // clear derivatives before using them in step method
+    storage->zeroHighestDerivatives(); // clear derivatives before using them in step method
 }
 
 PredictorCorrector::~PredictorCorrector() = default;
@@ -161,7 +161,7 @@ void PredictorCorrector::stepImpl(Abstract::Solver& solver, Statistics& stats) {
     storage->swap(*predictions, VisitorEnum::HIGHEST_DERIVATIVES);
 
     // clear derivatives
-    storage->init();
+    storage->zeroHighestDerivatives();
 
     // compute derivatives
     solver.integrate(*storage, stats);
@@ -186,7 +186,7 @@ RungeKutta::RungeKutta(const SharedPtr<Storage>& storage, const RunSettings& set
     k2 = makeAuto<Storage>(storage->clone(VisitorEnum::ALL_BUFFERS));
     k3 = makeAuto<Storage>(storage->clone(VisitorEnum::ALL_BUFFERS));
     k4 = makeAuto<Storage>(storage->clone(VisitorEnum::ALL_BUFFERS));
-    storage->init(); // clear derivatives before using them in step method
+    storage->zeroHighestDerivatives(); // clear derivatives before using them in step method
 }
 
 RungeKutta::~RungeKutta() = default;
@@ -217,10 +217,10 @@ void RungeKutta::integrateAndAdvance(Abstract::Solver& solver,
 }
 
 void RungeKutta::stepImpl(Abstract::Solver& solver, Statistics& stats) {
-    k1->init();
-    k2->init();
-    k3->init();
-    k4->init();
+    k1->zeroHighestDerivatives();
+    k2->zeroHighestDerivatives();
+    k3->zeroHighestDerivatives();
+    k4->zeroHighestDerivatives();
 
     solver.integrate(*k1, stats);
     integrateAndAdvance(solver, stats, *k1, 0.5_f, 1._f / 6._f);

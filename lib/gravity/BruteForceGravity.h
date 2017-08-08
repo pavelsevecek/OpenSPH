@@ -39,11 +39,22 @@ public:
     }
 
     virtual void evalAll(ArrayView<Vector> dv, Statistics& UNUSED(stats)) const override {
-        /// \todo parallelize
         ASSERT(r.size() == dv.size());
         for (Size i = 0; i < dv.size(); ++i) {
-            dv[i] = this->evalImpl(r[i], i);
+            dv[i] += this->evalImpl(r[i], i);
         }
+    }
+
+    virtual void evalAll(ThreadPool& pool,
+        const ThreadLocal<ArrayView<Vector>>& dv,
+        Statistics& UNUSED(stats)) const override {
+        parallelFor(pool, 0, r.size(), 10, [&dv, this](const Size n1, const Size n2) {
+            ArrayView<Vector> dvTl = dv.get();
+            ASSERT(r.size() == dvTl.size());
+            for (Size i = n1; i < n2; ++i) {
+                dvTl[i] += this->evalImpl(r[i], i);
+            }
+        });
     }
 
     virtual Vector eval(const Vector& r0, Statistics& UNUSED(stats)) const override {

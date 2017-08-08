@@ -4,16 +4,31 @@ NAMESPACE_SPH_BEGIN
 
 ThreadPool* ThreadPool::globalInstance;
 
+struct ThreadContext {
+    /// Owner of this thread
+    const ThreadPool* parentPool = nullptr;
+
+    /// Index of this thread in the parent thread pool (not std::this_thread::get_id() !)
+    Size index = Size(-1);
+};
+
+static thread_local ThreadContext threadLocalContext;
+
 ThreadPool::ThreadPool(const Size numThreads)
     : threads(numThreads == 0 ? std::thread::hardware_concurrency() : numThreads) {
     ASSERT(!threads.empty());
-    auto loop = [this] {
+    auto loop = [this](const Size index) {
+        // setup the thread
+        threadLocalContext.parentPool = this;
+        threadLocalContext.index = index;
+
+        // run the loop
         while (!stop) {
-            Optional<Task> task = getNextTask();
+            AutoPtr<Abstract::Task> task = this->getNextTask();
             if (task) {
                 // run the task
                 try {
-                    task.value()();
+                    (*task)();
                 } catch (...) {
                     // store caught exception, replacing the previous one
                     //   std::unique_lock<std::mutex> lock(exceptionMutex);
@@ -28,8 +43,12 @@ ThreadPool::ThreadPool(const Size numThreads)
     };
     stop = false;
     tasksLeft = 0;
+
+    // start all threads
+    Size index = 0;
     for (auto& t : threads) {
-        t = makeAuto<std::thread>(loop);
+        t = makeAuto<std::thread>(loop, index);
+        ++index;
     }
 }
 
@@ -43,6 +62,18 @@ ThreadPool::~ThreadPool() {
             t->join();
         }
     }
+}
+
+void ThreadPool::submit(AutoPtr<Abstract::Task>&& task) {
+    {
+        std::unique_lock<std::mutex> lock(taskMutex);
+        tasks.emplace(std::move(task));
+    }
+    {
+        std::unique_lock<std::mutex> lock(waitMutex);
+        ++tasksLeft;
+    }
+    taskVar.notify_one();
 }
 
 void ThreadPool::waitForAll() {
@@ -60,14 +91,11 @@ void ThreadPool::waitForAll() {
 }
 
 Optional<Size> ThreadPool::getThreadIdx() const {
-    std::thread::id id = std::this_thread::get_id();
-    /// \todo optimize by storing the ids in static thread_local struct
-    for (Size i = 0; i < threads.size(); ++i) {
-        if (threads[i]->get_id() == id) {
-            return i;
-        }
+    if (threadLocalContext.parentPool != this || threadLocalContext.index == Size(-1)) {
+        // thread either belongs to different ThreadPool or isn't a worker thread
+        return NOTHING;
     }
-    return NOTHING;
+    return threadLocalContext.index;
 }
 
 ThreadPool& ThreadPool::getGlobalInstance() {
@@ -77,18 +105,18 @@ ThreadPool& ThreadPool::getGlobalInstance() {
     return *globalInstance;
 }
 
-Optional<ThreadPool::Task> ThreadPool::getNextTask() {
+AutoPtr<Abstract::Task> ThreadPool::getNextTask() {
     std::unique_lock<std::mutex> lock(taskMutex);
 
     // wait till a task is available
     taskVar.wait(lock, [this] { return tasks.size() || stop; });
     // execute task
     if (!stop && !tasks.empty()) {
-        Task task = tasks.front();
+        AutoPtr<Abstract::Task> task = std::move(tasks.front());
         tasks.pop();
         return task;
     } else {
-        return NOTHING;
+        return nullptr;
     }
 }
 

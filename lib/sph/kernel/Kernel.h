@@ -55,25 +55,27 @@ private:
     Float grads[NEntries];
 
     Float rad = 0._f;
-    Float radInvSqr;
-    Float qSqrToIdx;
+    Float qSqrToIdx = 0.f;
 
 public:
-    LutKernel() = default;
+    LutKernel() {
+        /// \todo initialize, otherwise compiler complains about using uninitialized values
+        qSqrToIdx = NAN;
+        for (Float& v : values) {
+            v = NAN;
+        }
+        for (Float& g : grads) {
+            g = NAN;
+        }
+    }
 
+    /// Constructs LUT kernel given an exact SPH kernel.
     template <typename TKernel>
     LutKernel(TKernel&& source) {
         rad = source.radius();
 
-        // align to page size
-        /// \todo
-        /*values = storage.values;//(Float*)(((uint64_t(storage.values) / 4096) + 1) * 4096);
-        grads = storage.grads; //(Float*)(((uint64_t(storage.grads) / 4096) + 1) * 4096);
-        ASSERT((values - storage.values) * sizeof(Float) <= 4096);
-        ASSERT((grads - storage.grads) * sizeof(Float) <= 4096);*/
-
         ASSERT(rad > 0._f);
-        radInvSqr = 1._f / (rad * rad);
+        const Float radInvSqr = 1._f / (rad * rad);
         qSqrToIdx = Float(NEntries) * radInvSqr;
         for (Size i = 0; i < NEntries; ++i) {
             const Float qSqr = Float(i) / qSqrToIdx;

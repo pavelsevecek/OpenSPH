@@ -139,7 +139,7 @@ void Storage::merge(Storage&& other) {
     partitions.pushAll(std::move(other.partitions));
 }
 
-void Storage::init() {
+void Storage::zeroHighestDerivatives() {
     iterate<VisitorEnum::HIGHEST_DERIVATIVES>(*this, [](const QuantityId, auto& dv) {
         using TValue = typename std::decay_t<decltype(dv)>::Type;
         dv.fill(TValue(0._f));

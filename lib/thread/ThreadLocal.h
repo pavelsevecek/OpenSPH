@@ -10,57 +10,91 @@
 
 NAMESPACE_SPH_BEGIN
 
+/// \brief Template for storing a copy of a value for every thread in given thread pool.
+///
+/// While C++ provides thread_local keyword for creating thread-local storages with static duration,
+/// ThreadLocal template can be used for local variables or (non-static) member variables of classes.
 template <typename Type>
 class ThreadLocal {
+    // befriend other ThreadLocal classes
+    template <typename>
+    friend class ThreadLocal;
+
 private:
-    Array<AlignedStorage<Type>> values;
+    /// Array of thread-local values
+    Array<Type> values;
+
+    /// Thread pool, threads of which correspond to the values
     ThreadPool& pool;
 
 public:
-    /// Constructs a thread-local storage, given thread pool and a list of parameters that are passed into the
-    /// constructor of each storage.
+    /// Constructs a thread-local storage.
+    /// \param pool Thread pool associated with the object.
+    /// \param args List of parameters that are passed into the constructor of each thread-local storage.
     template <typename... TArgs>
     ThreadLocal(ThreadPool& pool, TArgs&&... args)
         : pool(pool) {
-        values.resize(pool.getThreadCnt());
-        for (auto& value : values) {
+        const Size threadCnt = pool.getThreadCnt();
+        values.reserve(threadCnt);
+        for (Size i = 0; i < threadCnt; ++i) {
             // intentionally not forwarded, we cannot move parameters if we have more than one object
-            value.emplace(args...);
+            values.emplaceBack(args...);
         }
     }
 
-    ~ThreadLocal() {
-        for (auto& value : values) {
-            value.destroy();
-        }
-    }
-
-    /// Return a value for current thread. This thread must belong the the thread pool given in constructor,
-    /// checked by assert.
+    /// \brief Return a value for current thread.
+    ///
+    /// This thread must belong the the thread pool given in constructor, checked by assert.
     Type& get() {
         const Optional<Size> idx = pool.getThreadIdx();
         ASSERT(idx && idx.value() < values.size());
-        return values[idx.value()].get();
+        return values[idx.value()];
     }
 
-    /// Return a value for current thread, const version.
+    /// \copydoc get
     const Type& get() const {
         const Optional<Size> idx = pool.getThreadIdx();
         ASSERT(idx && idx.value() < values.size());
-        return values[idx.value()].get();
+        return values[idx.value()];
     }
 
-    /// Enumerate all thread-local storages and pass them into the argument of given functor.
+    /// \brief Enumerate all thread-local storages and pass them into the argument of given functor.
     template <typename TFunctor>
     void forEach(TFunctor&& functor) {
         for (auto& value : values) {
-            functor(value.get());
+            functor(value);
         }
     }
 
-    /// Returns the first storage, useful to share data between parallelized and single-threaded code.
+    /// \brief Creates another ThreadLocal object by converting each thread-local value of this object.
+    ///
+    /// The constructed object can have a different type than this object. The created thread-local values are
+    /// default-constructed and assigned to using the given conversion functor.
+    template <typename TOther, typename TFunctor>
+    ThreadLocal<TOther> convert(TFunctor&& functor) {
+        ThreadLocal<TOther> result(pool);
+        for (Size i = 0; i < result.values.size(); ++i) {
+            result.values[i] = functor(values[i]);
+        }
+        return result;
+    }
+
+    /// \brief Creates another ThreadLocal object by converting each thread-local value of this object.
+    ///
+    /// This overload of the function uses explicit conversion defined by the type.
+    template <typename TOther>
+    ThreadLocal<TOther> convert() {
+        return this->convert<TOther>([](Type& value) -> TOther { return value; });
+    }
+
+    /// \brief Returns the storage corresponding to the first thread in the thread pool.
+    ///
+    /// Can be called from any thread. There is no synchronization, so accessing the storage from the
+    /// associated worker at the same time might cause a race condition. Useful to share data between
+    /// parallelized and single-threaded code without creating auxiliary storage for single-threaded
+    /// usage.
     Type& first() {
-        return values[0].get();
+        return values[0];
     }
 };
 
@@ -77,10 +111,10 @@ INLINE void parallelFor(ThreadPool& pool,
     for (Size i = from; i < to; i += granularity) {
         const Size n1 = i;
         const Size n2 = min(i + granularity, to);
-        pool.submit([n1, n2, &storage, &functor] {
+        pool.submit(makeTask([n1, n2, &storage, &functor] {
             Type& tls = storage.get();
             functor(n1, n2, tls);
-        });
+        }));
     }
     pool.waitForAll();
 }

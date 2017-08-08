@@ -15,6 +15,7 @@ NAMESPACE_SPH_BEGIN
 /// \brief Gravity solver
 class GravitySolver : public GenericSolver {
 private:
+    /// Implementation of gravity used by the solver
     AutoPtr<Abstract::Gravity> gravity;
 
     struct DummyDerivative : public Abstract::Derivative {
@@ -42,27 +43,21 @@ public:
 
 protected:
     virtual void loop(Storage& storage, Statistics& stats) override {
-        // first, do asymmetric evaluation of gravity
-        // ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
+        // first, do asymmetric evaluation of gravity:
 
         // build gravity tree
         PROFILE("Building gravity", gravity->build(storage));
 
-        // evaluate gravity for each particle
-        /*auto functor = [this, r](const Size n1, const Size n2, ThreadData& data) {
+        // initialize thread-local acceleration arrayviews (needed by gravity),
+        // we don't have to sum up the results, this is done by GenericSolver
+        auto converter = [](ThreadData& data) -> ArrayView<Vector> {
             Accumulated& accumulated = data.derivatives.getAccumulated();
-            ArrayView<Vector> dv = accumulated.getBuffer<Vector>(QuantityId::POSITIONS, OrderEnum::SECOND);
-          Statistics dummy;
-            for (Size i = n1; i < n2; ++i) {
-                /// \todo refactor using optimized evalAll
-                dv[i] += gravity->eval(r[i], dummy);
-            }
-        };*/
+            return accumulated.getBuffer<Vector>(QuantityId::POSITIONS, OrderEnum::SECOND);
+        };
+        ThreadLocal<ArrayView<Vector>> dv = threadData.convert<ArrayView<Vector>>(converter);
 
-        // PROFILE("Evaluating gravity", parallelFor(*pool, threadData, 0, r.size(), granularity, functor));
-        Accumulated& accumulated = threadData.first().derivatives.getAccumulated();
-        ArrayView<Vector> dv = accumulated.getBuffer<Vector>(QuantityId::POSITIONS, OrderEnum::SECOND);
-        gravity->evalAll(dv, stats);
+        // evaluate gravity for each particle
+        PROFILE("Evaluating gravity", gravity->evalAll(*pool, dv, stats));
 
         // second, compute SPH derivatives using symmetric evaluation
         PROFILE("Evaluating SPH", GenericSolver::loop(storage, stats));

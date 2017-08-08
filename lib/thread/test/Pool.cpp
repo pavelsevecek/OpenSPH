@@ -14,7 +14,7 @@ TEST_CASE("Submit task", "[thread]") {
     std::atomic<uint64_t> sum;
     sum = 0;
     for (Size i = 0; i <= 100; ++i) {
-        pool.submit([&sum, i] { sum += i; });
+        pool.submit(makeTask([&sum, i] { sum += i; }));
     }
     pool.waitForAll();
     REQUIRE(sum == 5050);
@@ -34,11 +34,11 @@ TEST_CASE("Submit task from different thread", "[thread]") {
     sum1 = sum2 = 0;
     std::thread thread([&sum2, &pool] {
         for (Size i = 0; i <= 100; i += 2) { // even numbers
-            pool.submit([&sum2, i] { sum2 += i; });
+            pool.submit(makeTask([&sum2, i] { sum2 += i; }));
         }
     });
     for (Size i = 1; i <= 100; i += 2) {
-        pool.submit([&sum1, i] { sum1 += i; });
+        pool.submit(makeTask([&sum1, i] { sum1 += i; }));
     }
     thread.join();
     pool.waitForAll();
@@ -49,7 +49,7 @@ TEST_CASE("Submit task from different thread", "[thread]") {
 TEST_CASE("Submit single", "[thread]") {
     ThreadPool pool;
     bool executed = false;
-    pool.submit([&executed] { executed = true; });
+    pool.submit(makeTask([&executed] { executed = true; }));
     pool.waitForAll();
     REQUIRE(pool.remainingTaskCnt() == 0);
     REQUIRE(executed);
@@ -69,11 +69,11 @@ TEST_CASE("GetThreadIdx", "[thread]") {
     REQUIRE(pool.getThreadCnt() == 2);
     REQUIRE_FALSE(pool.getThreadIdx()); // main thread, not within the pool
 
-    pool.submit([&pool] {
+    pool.submit(makeTask([&pool] {
         const Optional<Size> idx = pool.getThreadIdx();
         REQUIRE(idx);
         REQUIRE((idx.value() == 0 || idx.value() == 1));
-    });
+    }));
 }
 
 TEST_CASE("WaitForAll", "[thread]") {
@@ -86,7 +86,8 @@ TEST_CASE("WaitForAll", "[thread]") {
     taskIdx = 0;
     // run tasks with different duration
     for (Size i = 0; i < cnt; ++i) {
-        pool.submit([&taskIdx] { std::this_thread::sleep_for(std::chrono::milliseconds(50 * ++taskIdx)); });
+        pool.submit(
+            makeTask([&taskIdx] { std::this_thread::sleep_for(std::chrono::milliseconds(50 * ++taskIdx)); }));
     }
     pool.waitForAll();
     REQUIRE(timer.elapsed(TimerUnit::MILLISECOND) >= 50 * cnt);

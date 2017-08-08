@@ -49,15 +49,22 @@ public:
 
     virtual void evalAll(ArrayView<Vector> dv, Statistics& stats) const override;
 
+    virtual void evalAll(ThreadPool& pool,
+        const ThreadLocal<ArrayView<Vector>>& dv,
+        Statistics& stats) const override;
+
     virtual Vector eval(const Vector& r0, Statistics& stats) const override;
 
     /// Returns the multipole moments computed from root node.
     MultipoleExpansion<3> getMoments() const;
 
 protected:
+    class NodeTask;
+
     Vector evalImpl(const Vector& r0, const Size idx, Statistics& stats) const;
 
-    void evalNode(ArrayView<Vector> dv,
+    void evalNode(ThreadPool& pool,
+        const ThreadLocal<ArrayView<Vector>>& dv,
         const KdNode& node,
         List<Size> checkList,
         Array<Size> particleList,
