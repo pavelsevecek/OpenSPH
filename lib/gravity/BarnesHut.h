@@ -59,16 +59,42 @@ public:
     MultipoleExpansion<3> getMoments() const;
 
 protected:
-    class NodeTask;
-
+    /// Evaluates the gravity at a single point in space.
     Vector evalImpl(const Vector& r0, const Size idx, Statistics& stats) const;
 
+    /// Helper task for parallelization of treewalk
+    class NodeTask;
+
+    /// Data passed into each node during treewalk
+    struct TreeWalkState {
+        /// Indices of nodes that need to be checked for intersections with opening ball of the evaluated
+        /// node. If the opening ball does not intersect the node box, the node is moved into the node
+        /// interaction list. If the node box is contained within the opening ball, the node is moved into the
+        /// particle interaction list.
+        List<Size> checkList;
+
+        /// Indices of nodes where the exact (pair-wise) gravity solution have to be used.
+        Array<Size> particleList;
+
+        /// Indices of nodes that shall be evaluated using multipole approximation.
+        Array<Size> nodeList;
+
+        /// Clones all lists in the state object
+        TreeWalkState clone() const;
+    };
+
+    /// \brief Performs a recursive treewalk evaluating gravity for all particles.
+    ///
+    /// Treewalk starts at given node and subsequently calls \ref evalNode for children nodes. Function moves
+    /// nodes from checkList into interaction lists and in case the node is a leaf, gravity is computed using
+    /// constructed interaction lists.
+    /// \param pool Thread pool used for parallelization
+    /// \param dv Output thread-local buffer where computed accelerations are stored
+    /// \param node Index of the first node evaluated by the function
     void evalNode(ThreadPool& pool,
         const ThreadLocal<ArrayView<Vector>>& dv,
-        const KdNode& node,
-        List<Size> checkList,
-        Array<Size> particleList,
-        Array<Size> nodeList) const;
+        const Size nodeIdx,
+        TreeWalkState data) const;
 
     Vector evalExact(const LeafNode& node, const Vector& r0, const Size idx) const;
 

@@ -46,7 +46,7 @@ static void testOpeningAngle(const MultipoleOrder order) {
     Storage storage2 = storage1.clone(VisitorEnum::ALL_BUFFERS);
 
     // with theta = 0, the BarnetHut should be identical to brute force summing
-    BarnesHut bh(EPS, order, 3);
+    BarnesHut bh(EPS, order, 5);
     BruteForceGravity bf;
 
     bf.build(storage1);
@@ -106,7 +106,7 @@ TEST_CASE("BarnesHut simple moments", "[gravity]") {
     Storage storage;
     Vector r_com;
     tieToTuple(storage, r_com) = getTestParticles();
-    BarnesHut bh(0.5_f, MultipoleOrder::OCTUPOLE, 3);
+    BarnesHut bh(0.5_f, MultipoleOrder::OCTUPOLE, 5);
     bh.build(storage);
 
     MultipoleExpansion<3> moments = bh.getMoments();
@@ -117,7 +117,7 @@ TEST_CASE("BarnesHut storage moments", "[gravity]") {
     // test that the moments in root node correspond to the moments computed from all particles
     Storage storage = getGravityStorage();
 
-    BarnesHut bh(0.5_f, MultipoleOrder::OCTUPOLE, 3);
+    BarnesHut bh(0.5_f, MultipoleOrder::OCTUPOLE, 5);
     bh.build(storage);
 
     MultipoleExpansion<3> moments = bh.getMoments();

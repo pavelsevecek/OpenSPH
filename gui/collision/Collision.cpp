@@ -170,19 +170,12 @@ public:
                 // flies straight, i.e. add rotation in non-intertial frame
                 .addRotation(-omega, BodyView::RotationOrigin::FRAME_ORIGIN);
 
-            // logger.write("Particles of projectile: ", storage->getParticleCnt() - n1);
-
             impactStarted = true;
         }
         // update the angle
         Float phi = stats.getOr<Float>(StatisticsId::FRAME_ANGLE, 0._f);
         phi += getLength(omega) * dt;
         stats.set(StatisticsId::FRAME_ANGLE, phi);
-        /*        {
-                    PkdgravOutput pkdgravOutput(Path("pkdgrav%d.out"), PkdgravParams{});
-                    pkdgravOutput.dump(storage, stats);
-                }
-                exit(0);*/
     }
 
 private:

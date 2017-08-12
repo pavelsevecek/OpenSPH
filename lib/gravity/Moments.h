@@ -5,14 +5,11 @@
 
 NAMESPACE_SPH_BEGIN
 
-inline Float greenGamma(const Size M, const Float invDistSqr) {
-    if (M == 0) {
-        const Float g0 = -sqrt(invDistSqr);
-        return g0;
-    } else {
-        const Float g_prev = greenGamma(M - 1, invDistSqr);
-        const Float g = -(2._f * M - 1._f) * invDistSqr * g_prev;
-        return g;
+INLINE void computeGreenGamma(ArrayView<Float> gamma, const Vector dr, const Size order) {
+    const Float invDistSqr = 1._f / getSqrLength(dr);
+    gamma[0] = -sqrt(invDistSqr);
+    for (Size i = 1; i < order + 2; ++i) {
+        gamma[i] = -(2._f * i - 1._f) * invDistSqr * gamma[i - 1];
     }
 }
 
@@ -302,7 +299,7 @@ INLINE Vector computeMultipoleAcceleration(const MultipoleExpansion<N>& ms,
     const Vector& dr) {
     const TracelessMultipole<M>& q = ms.template order<M>();
     const Float Q0 = computeMultipolePotential<0>(q, dr).value();
-    const Vector Q1 = computeMultipolePotential<1>(q, dr).vector();
+    const Vector Q1 = (N > 0) ? computeMultipolePotential<1>(q, dr).vector() : Vector(0._f);
     const Vector a = gamma[M + 1] * dr * Q0 + gamma[M] * Q1;
     ASSERT(isReal(a), dr, Q0, Q1, gamma);
     return a;
@@ -322,10 +319,7 @@ Vector evaluateGravity(const Vector& dr, const MultipoleExpansion<N>& ms, const 
 #ifdef SPH_DEBUG
     gamma.fill(NAN);
 #endif
-    const Float invDistSqr = 1._f / getSqrLength(dr);
-    for (Size i = 0; i < Size(maxOrder) + 2; ++i) {
-        gamma[i] = greenGamma(i, invDistSqr);
-    }
+    computeGreenGamma(gamma, dr, Size(maxOrder));
 
     Vector a(0._f);
     switch (maxOrder) {

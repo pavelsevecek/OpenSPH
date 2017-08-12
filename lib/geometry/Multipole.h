@@ -375,9 +375,9 @@ private:
     Vector data;
 
 public:
-    TracelessMultipole() = default;
+    INLINE TracelessMultipole() = default;
 
-    TracelessMultipole(const Float v)
+    INLINE TracelessMultipole(const Float v)
         : data(v) {}
 
     static constexpr Size ORDER = 1;
@@ -425,25 +425,25 @@ private:
 public:
     TracelessMultipole() = default;
 
-    TracelessMultipole(const Float v)
+    constexpr INLINE TracelessMultipole(const Float v)
         : data(v) {}
 
     static constexpr Size ORDER = 0;
 
-    INLINE Float& value() {
+    INLINE constexpr Float& value() {
         return data;
     }
 
-    INLINE Float value() const {
+    INLINE constexpr Float value() const {
         return data;
     }
 
-    INLINE Float operator[](const Size UNUSED_IN_RELEASE(idx)) const {
+    INLINE constexpr Float operator[](const Size UNUSED_IN_RELEASE(idx)) const {
         ASSERT(idx == 0);
         return data;
     }
 
-    INLINE operator Float() const {
+    INLINE constexpr operator Float() const {
         return data;
     }
 
@@ -452,7 +452,7 @@ public:
         return *this;
     }
 
-    bool operator==(const TracelessMultipole& other) const {
+    constexpr bool operator==(const TracelessMultipole& other) const {
         return data == other.data;
     }
 };

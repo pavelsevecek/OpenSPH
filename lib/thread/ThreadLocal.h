@@ -66,6 +66,14 @@ public:
         }
     }
 
+    /// \copydoc forEach
+    template <typename TFunctor>
+    void forEach(TFunctor&& functor) const {
+        for (const auto& value : values) {
+            functor(value);
+        }
+    }
+
     /// \brief Creates another ThreadLocal object by converting each thread-local value of this object.
     ///
     /// The constructed object can have a different type than this object. The created thread-local values are

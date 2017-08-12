@@ -46,7 +46,7 @@ protected:
         // first, do asymmetric evaluation of gravity:
 
         // build gravity tree
-        PROFILE("Building gravity", gravity->build(storage));
+        MEASURE("Building gravity", gravity->build(storage));
 
         // initialize thread-local acceleration arrayviews (needed by gravity),
         // we don't have to sum up the results, this is done by GenericSolver
@@ -57,10 +57,10 @@ protected:
         ThreadLocal<ArrayView<Vector>> dv = threadData.convert<ArrayView<Vector>>(converter);
 
         // evaluate gravity for each particle
-        PROFILE("Evaluating gravity", gravity->evalAll(*pool, dv, stats));
+        MEASURE("Evaluating gravity", gravity->evalAll(*pool, dv, stats));
 
         // second, compute SPH derivatives using symmetric evaluation
-        PROFILE("Evaluating SPH", GenericSolver::loop(storage, stats));
+        MEASURE("Evaluating SPH", GenericSolver::loop(storage, stats));
     }
 
     void sanityCheck() const {

@@ -54,6 +54,11 @@ public:
         StdOutLogger logger;                                                                                 \
         logger.write(name, " took ", time / 1000, " ms");                                                    \
     });
+#define MEASURE(name, what)                                                                                  \
+    {                                                                                                        \
+        MEASURE_SCOPE(name);                                                                                 \
+        what;                                                                                                \
+    }
 #else
 #define MEASURE_SCOPE(name)
 #endif

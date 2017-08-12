@@ -12,19 +12,24 @@ QMAKE_CXXFLAGS += -Wall -Wextra -Werror -msse4.1 -std=c++14 -pthread
 #QMAKE_CXXFLAGS_DEBUG += -fsanitize=undefined-trap -fsanitize-undefined-trap-on-error  # -ftime-report
 
 
+
 CONFIG(release, debug|profile|assert|release) {
   message( "SPH LIB --- Building for Release" )
+  QMAKE_CXXFLAGS += -O4
 }
+
+QMAKE_CXXFLAGS_RELEASE += -fno-inline-small-functions
 
 CONFIG(profile, debug|profile|assert|release) {
   message( "SPH LIB --- Building for Profile" )
   DEFINES += SPH_PROFILE
+  QMAKE_CXXFLAGS += -O4
 }
 
 CONFIG(assert, debug|profile|assert|release) {
   message( "SPH LIB --- Building for Assert" )
   DEFINES += SPH_DEBUG SPH_PROFILE
-  QMAKE_CXXFLAGS += -O2
+  QMAKE_CXXFLAGS += -O3
 }
 
 CONFIG(debug, debug|profile|assert|release) {

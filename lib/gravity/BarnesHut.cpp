@@ -57,34 +57,42 @@ void BarnesHut::build(const Storage& storage) {
 }
 
 void BarnesHut::evalAll(ArrayView<Vector> dv, Statistics& UNUSED(stats)) const {
-    Array<Size> particleList;
+    TreeWalkState data;
     const KdNode& root = kdTree.getNode(0);
     if (SPH_UNLIKELY(root.isLeaf())) {
         // all particles within one leaf - boring case with only few particles
-        for (Size i = 0; i < r.size(); ++i) {
-            particleList.push(i);
-        }
+        data.particleList.push(0);
     }
     // single-threaded overload, created dummy ThreadPool to avoid code duplication
     ThreadPool pool(1);
     ThreadLocal<ArrayView<Vector>> dvTl(pool, dv);
-    pool.submit(makeTask([&] { this->evalNode(pool, dvTl, root, {}, std::move(particleList), {}); }));
+    pool.submit(makeTask([&] { this->evalNode(pool, dvTl, 0, std::move(data)); }));
     pool.waitForAll();
+
+    // set correct units
+    for (Size i = 0; i < dv.size(); ++i) {
+        dv[i] *= Constants::gravity;
+    }
 }
 
 void BarnesHut::evalAll(ThreadPool& pool,
     const ThreadLocal<ArrayView<Vector>>& dv,
     Statistics& UNUSED(stats)) const {
-    Array<Size> particleList;
+    TreeWalkState data;
     const KdNode& root = kdTree.getNode(0);
     if (SPH_UNLIKELY(root.isLeaf())) {
         // all particles within one leaf - boring case with only few particles
-        for (Size i = 0; i < r.size(); ++i) {
-            particleList.push(i);
-        }
+        data.particleList.push(0);
     }
-    pool.submit(makeTask([&] { this->evalNode(pool, dv, root, {}, std::move(particleList), {}); }));
+    pool.submit(makeTask([&] { this->evalNode(pool, dv, 0, std::move(data)); }));
     pool.waitForAll();
+
+    // set correct units
+    dv.forEach([](ArrayView<Vector> dvTl) {
+        for (Size i = 0; i < dvTl.size(); ++i) {
+            dvTl[i] *= Constants::gravity;
+        }
+    });
 }
 
 Vector BarnesHut::eval(const Vector& r0, Statistics& stats) const {
@@ -96,12 +104,7 @@ Vector BarnesHut::evalImpl(const Vector& r0, const Size idx, Statistics& UNUSED(
         return Vector(0._f);
     }
     ASSERT(r0[H] > 0._f, r0[H]);
-
     Vector f(0._f);
-    /*struct {
-        Size approximated = 0;
-        Size exact = 0;
-    } ns;*/
 
     auto lambda = [this, &r0, &f, idx](const KdNode& node, const KdNode*, const KdNode*) {
         if (node.box == Box::EMPTY()) {
@@ -114,10 +117,8 @@ Vector BarnesHut::evalImpl(const Vector& r0, const Size idx, Statistics& UNUSED(
         /// \todo
         if (!node.box.contains(r0) && boxSizeSqr / (boxDistSqr + EPS) < 1.f / sqr(thetaInv)) {
             // small node, use multipole approximation
-            // f += node.moments.order<0>().value() * kernel.grad(r0 - node.com, r0[H]);
             f += evaluateGravity(r0 - node.com, node.moments, order);
-            /// \todo compute exact number of particles! this is only valid for unit tests!!
-            // ns.approximated += round(node.moments.order<0>().value() / m[0]);
+
             // skip the children
             return false;
         } else {
@@ -125,7 +126,6 @@ Vector BarnesHut::evalImpl(const Vector& r0, const Size idx, Statistics& UNUSED(
             if (node.isLeaf()) {
                 const LeafNode& leaf = reinterpret_cast<const LeafNode&>(node);
                 f += this->evalExact(leaf, r0, idx);
-                //  ns.exact += leaf.size();
                 return false; // return value doesn't matter here
             } else {
                 // continue with children
@@ -135,65 +135,70 @@ Vector BarnesHut::evalImpl(const Vector& r0, const Size idx, Statistics& UNUSED(
     };
     kdTree.iterate<KdTree::Direction::TOP_DOWN>(lambda);
 
-    /*stats.set(StatisticsId::GRAVITY_PARTICLES_EXACT, int(ns.exact));
-    stats.set(StatisticsId::GRAVITY_PARTICLES_APPROX, int(ns.approximated));*/
     return Constants::gravity * f;
 }
 
 class BarnesHut::NodeTask : public Abstract::Task {
 private:
-    ThreadPool& pool;
     const BarnesHut& bh;
+    ThreadPool& pool;
     const ThreadLocal<ArrayView<Vector>>& dv;
     Size nodeIdx;
-    List<Size> checkList;
-    Array<Size> particleList;
-    Array<Size> nodeList;
+    BarnesHut::TreeWalkState data;
 
 public:
-    NodeTask(ThreadPool& pool,
-        const BarnesHut& bh,
+    NodeTask(const BarnesHut& bh,
+        ThreadPool& pool,
         const ThreadLocal<ArrayView<Vector>>& dv,
         const Size nodeIdx,
-        List<Size>&& checkList,
-        Array<Size>&& particleList,
-        Array<Size>&& nodeList)
-        : pool(pool)
-        , bh(bh)
+        BarnesHut::TreeWalkState&& data)
+        : bh(bh)
+        , pool(pool)
         , dv(dv)
         , nodeIdx(nodeIdx)
-        , checkList(std::move(checkList))
-        , particleList(std::move(particleList))
-        , nodeList(std::move(nodeList)) {}
+        , data(std::move(data)) {}
 
     virtual void operator()() override {
-        const KdNode& node = bh.kdTree.getNode(nodeIdx);
-        bh.evalNode(pool, dv, node, std::move(checkList), std::move(particleList), std::move(nodeList));
+        bh.evalNode(pool, dv, nodeIdx, std::move(data));
     }
 };
+
+BarnesHut::TreeWalkState BarnesHut::TreeWalkState::clone() const {
+    TreeWalkState cloned;
+    cloned.checkList = checkList.clone();
+    cloned.particleList = particleList.clone();
+    cloned.nodeList = nodeList.clone();
+    return cloned;
+}
 
 /// \todo try different containers; we need fast inserting & deletion
 
 void BarnesHut::evalNode(ThreadPool& pool,
     const ThreadLocal<ArrayView<Vector>>& dv,
-    const KdNode& evaluatedNode,
-    List<Size> checkList,
-    Array<Size> particleList,
-    Array<Size> nodeList) const {
+    const Size evaluatedNodeIdx,
+    TreeWalkState data) const {
+
     ArrayView<Vector> dvTl = dv.get();
+    const KdNode& evaluatedNode = kdTree.getNode(evaluatedNodeIdx);
     const Box& box = evaluatedNode.box;
+
     if (box == Box::EMPTY()) {
         //  no partiles in the box, skip
         ASSERT(evaluatedNode.isLeaf());
         return;
     }
 
-    // we cannot use range-based for loop before we need the iterator for erasing the element
-    for (auto iter = checkList.begin(); iter != checkList.end();) {
-        ASSERT(areElementsUnique(checkList), checkList);
-        const KdNode& node = kdTree.getNode(*iter);
-        if (node.box == Box::EMPTY()) {
-            checkList.eraseAndIncrement(iter);
+    // we cannot use range-based for loop because we need the iterator for erasing the element
+    for (auto iter = data.checkList.begin(); iter != data.checkList.end();) {
+        ASSERT(areElementsUnique(data.checkList), data.checkList);
+
+        const Size idx = *iter;
+        const KdNode& node = kdTree.getNode(idx);
+        if (node.r_open == 0.f) {
+            // either empty node or a single particle in a leaf, just add it to particle list
+            ASSERT(node.isLeaf());
+            data.particleList.push(idx);
+            data.checkList.eraseAndIncrement(iter);
             continue;
         }
 
@@ -202,29 +207,25 @@ void BarnesHut::evalNode(ThreadPool& pool,
 
         if (intersect == IntersectResult::BOX_INSIDE_SPHERE ||
             (evaluatedNode.isLeaf() && intersect != IntersectResult::BOX_OUTSIDE_SPHERE)) {
-            // if leaf, add all particles into the particle interaction list
+            // if leaf, add it into the particle interaction list
             if (node.isLeaf()) {
-                const LeafNode& leaf = reinterpret_cast<const LeafNode&>(node);
-                LeafIndexSequence sequence = kdTree.getLeafIndices(leaf);
-                for (Size j : sequence) {
-                    particleList.push(j);
-                }
-                // ASSERT(areElementsUnique(particleList), particleList);
+                // let's add only nodes with higher indices, the evalution is symmetric anyway
+                data.particleList.push(idx);
             } else {
                 // add child nodes into the checklist
                 const InnerNode& inner = reinterpret_cast<const InnerNode&>(node);
-                checkList.pushBack(inner.left);
-                checkList.pushBack(inner.right);
+                data.checkList.pushBack(inner.left);
+                data.checkList.pushBack(inner.right);
             }
-            checkList.eraseAndIncrement(iter);
+            data.checkList.eraseAndIncrement(iter);
 
             continue;
         } else if (intersect == IntersectResult::BOX_OUTSIDE_SPHERE) {
             // node is outside the opening ball, we can approximate it; add to the node list
-            nodeList.push(*iter);
+            data.nodeList.push(idx);
 
             // erase this node from checklist
-            checkList.eraseAndIncrement(iter);
+            data.checkList.eraseAndIncrement(iter);
             continue;
         }
         // for leafs we have to move all nodes from the checklist to one of interaction lists
@@ -233,58 +234,72 @@ void BarnesHut::evalNode(ThreadPool& pool,
     }
 
     if (evaluatedNode.isLeaf()) {
-        ASSERT(checkList.empty(), checkList); // checklist must be empty, otherwise we forgot something
-        // ASSERT(areElementsUnique(particleList), particleList);
-
+        // checklist must be empty, otherwise we forgot something
+        ASSERT(data.checkList.empty(), data.checkList);
         const LeafNode& leaf = reinterpret_cast<const LeafNode&>(evaluatedNode);
-        // add acceleration to all leaf particles from both interaction lists
-        LeafIndexSequence sequence = kdTree.getLeafIndices(leaf);
-        // ASSERT(!haveCommonElements(particleList, sequence));
-        ASSERT(nodeList.size() > 0 || particleList.size() + sequence.size() == dvTl.size());
-        for (Size i : sequence) {
-            // evaluate interactions of all particles from particle list
-            for (Size j : particleList) {
+
+        // 1) evaluate the particle list:
+
+        // go through all nodes in the list and compute the pair-wise interactions
+        LeafIndexSequence seq1 = kdTree.getLeafIndices(leaf);
+        ASSERT(areElementsUnique(data.particleList), data.particleList);
+        for (Size idx : data.particleList) {
+            ASSERT(idx != evaluatedNodeIdx);
+            // the particle lists do not have to be necessarily symmetric, we have to do each node separately
+            const KdNode& node = kdTree.getNode(idx);
+            ASSERT(node.isLeaf());
+            LeafIndexSequence seq2 = kdTree.getLeafIndices(reinterpret_cast<const LeafNode&>(node));
+            for (Size i : seq1) {
                 ASSERT(r[i][H] > 0._f, r[i][H]);
-                dvTl[i] += m[i] * kernel.grad(r[j] - r[i], r[i][H]);
+                for (Size j : seq2) {
+                    ASSERT(r[j][H] > 0._f, r[j][H]);
+                    const Float hbar = 0.5_f * (r[i][H] + r[j][H]);
+                    const Vector grad = kernel.grad(r[j] - r[i], hbar);
+                    dvTl[i] += m[j] * grad;
+                }
             }
-            // evaluate all intra-leaf interactions (leaf itself isn't in the interaction list)
-            for (Size j : sequence) {
-                if (i == j) {
+        }
+        // evaluate intra-leaf interactions (the leaf itself is not included in the list)
+        for (Size i : seq1) {
+            ASSERT(r[i][H] > 0._f, r[i][H]);
+            for (Size j : seq1) {
+                ASSERT(r[j][H] > 0._f, r[j][H]);
+                if (i >= j) {
+                    // skip, we are doing a symmetric evaluation
                     continue;
                 }
-                ASSERT(r[i][H] > 0._f, r[i][H]);
-                dvTl[i] += m[i] * kernel.grad(r[j] - r[i], r[i][H]);
+                const Float hbar = 0.5_f * (r[i][H] + r[j][H]);
+                const Vector grad = kernel.grad(r[j] - r[i], hbar);
+                dvTl[i] += m[j] * grad;
+                dvTl[j] -= m[i] * grad;
             }
-            ASSERT(areElementsUnique(nodeList), nodeList);
-            for (Size nodeIdx : nodeList) {
-                const KdNode& node = kdTree.getNode(nodeIdx);
+        }
+
+        // 2) evaluate the node list
+        // here we cannot do a symmetric evaluation, so evaluate each particle separately
+        ASSERT(areElementsUnique(data.nodeList), data.nodeList);
+        for (Size idx : data.nodeList) {
+            const KdNode& node = kdTree.getNode(idx);
+
+            for (Size i : seq1) {
                 dvTl[i] += evaluateGravity(r[i] - node.com, node.moments, order);
             }
-            // set correct units
-            dvTl[i] *= Constants::gravity;
         }
+
     } else {
         const InnerNode& inner = reinterpret_cast<const InnerNode&>(evaluatedNode);
         // recurse into child nodes
-        // we evaluate the left one from a different one (possibly), we thus have to clone buffers now so that
-        // the evaluated node has correct lists
-        List<Size> childCheckList = checkList.clone();
-        childCheckList.pushBack(inner.right);
-
-        AutoPtr<NodeTask> task = makeAuto<NodeTask>(
-            pool, *this, dv, inner.left, std::move(childCheckList), particleList.clone(), nodeList.clone());
-
+        // we evaluate the left one from a (possibly) different thread, we thus have to clone buffers now so
+        // that we don't override the lists when evaluating different node (each node has its own lists).
+        TreeWalkState childData = data.clone();
+        childData.checkList.pushBack(inner.right);
+        AutoPtr<NodeTask> task = makeAuto<NodeTask>(*this, pool, dv, inner.left, std::move(childData));
         pool.submit(std::move(task));
 
         // since we go only once through the tree (we never go 'up'), we can simply move the lists into the
-        // right child
-        checkList.pushBack(inner.left);
-        this->evalNode(pool,
-            dv,
-            kdTree.getNode(inner.right),
-            std::move(checkList),
-            std::move(particleList),
-            std::move(nodeList));
+        // right child and modify them for the child node
+        data.checkList.pushBack(inner.left);
+        this->evalNode(pool, dv, inner.right, std::move(data));
     }
 }
 
