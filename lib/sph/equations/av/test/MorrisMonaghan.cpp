@@ -1,7 +1,7 @@
 #include "sph/equations/av/MorrisMonaghan.h"
 #include "catch.hpp"
 #include "tests/Setup.h"
-#include "utils/Approx.h"
+#include "tests/Approx.h"
 #include "utils/SequenceTest.h"
 
 using namespace Sph;

@@ -6,7 +6,7 @@
 #include "system/Statistics.h"
 #include "tests/Setup.h"
 #include "timestepping/AbstractSolver.h"
-#include "utils/Approx.h"
+#include "tests/Approx.h"
 #include "utils/SequenceTest.h"
 
 using namespace Sph;

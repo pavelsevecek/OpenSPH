@@ -18,8 +18,6 @@ CONFIG(release, debug|profile|assert|release) {
   QMAKE_CXXFLAGS += -O4
 }
 
-QMAKE_CXXFLAGS_RELEASE += -fno-inline-small-functions
-
 CONFIG(profile, debug|profile|assert|release) {
   message( "SPH LIB --- Building for Profile" )
   DEFINES += SPH_PROFILE
@@ -29,7 +27,7 @@ CONFIG(profile, debug|profile|assert|release) {
 CONFIG(assert, debug|profile|assert|release) {
   message( "SPH LIB --- Building for Assert" )
   DEFINES += SPH_DEBUG SPH_PROFILE
-  QMAKE_CXXFLAGS += -O3
+  QMAKE_CXXFLAGS += -O4
 }
 
 CONFIG(debug, debug|profile|assert|release) {
@@ -82,7 +80,8 @@ SOURCES += \
     objects/finders/KdTree.cpp \
     gravity/BarnesHut.cpp \
     thread/Pool.cpp \
-    gravity/VoxelGravity.cpp
+    gravity/VoxelGravity.cpp \
+    system/Process.cpp
 
 HEADERS += \
     commmon/ForwardDecl.h \
@@ -235,4 +234,6 @@ HEADERS += \
     objects/wrappers/RawPtr.h \
     gravity/VoxelGravity.h \
     geometry/Sphere.h \
-    objects/containers/List.h
+    objects/containers/List.h \
+    tests/Approx.h \
+    system/Process.h

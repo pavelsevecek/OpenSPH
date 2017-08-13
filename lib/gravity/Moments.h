@@ -5,10 +5,11 @@
 
 NAMESPACE_SPH_BEGIN
 
-INLINE void computeGreenGamma(ArrayView<Float> gamma, const Vector dr, const Size order) {
+template <Size N>
+INLINE void computeGreenGamma(ArrayView<Float> gamma, const Vector dr) {
     const Float invDistSqr = 1._f / getSqrLength(dr);
     gamma[0] = -sqrt(invDistSqr);
-    for (Size i = 1; i < order + 2; ++i) {
+    for (Size i = 1; i < N + 2; ++i) {
         gamma[i] = -(2._f * i - 1._f) * invDistSqr * gamma[i - 1];
     }
 }
@@ -319,7 +320,7 @@ Vector evaluateGravity(const Vector& dr, const MultipoleExpansion<N>& ms, const 
 #ifdef SPH_DEBUG
     gamma.fill(NAN);
 #endif
-    computeGreenGamma(gamma, dr, Size(maxOrder));
+    computeGreenGamma<N>(gamma, dr);
 
     Vector a(0._f);
     switch (maxOrder) {

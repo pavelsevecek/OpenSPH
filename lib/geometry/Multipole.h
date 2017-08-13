@@ -438,7 +438,7 @@ public:
         return data;
     }
 
-    INLINE constexpr Float operator[](const Size UNUSED_IN_RELEASE(idx)) const {
+    INLINE Float operator[](const Size UNUSED_IN_RELEASE(idx)) const {
         ASSERT(idx == 0);
         return data;
     }

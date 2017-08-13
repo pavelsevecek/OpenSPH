@@ -1,4 +1,4 @@
-#include "utils/Approx.h"
+#include "tests/Approx.h"
 #include "catch.hpp"
 
 using namespace Sph;

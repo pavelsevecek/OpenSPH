@@ -5,7 +5,7 @@
 #include "sph/Material.h"
 #include "system/Factory.h"
 #include "system/Settings.h"
-#include "utils/Approx.h"
+#include "tests/Approx.h"
 
 using namespace Sph;
 

@@ -6,7 +6,7 @@
 #include "objects/finders/AbstractFinder.h"
 #include "system/ArrayStats.h"
 #include "system/Factory.h"
-#include "utils/Approx.h"
+#include "tests/Approx.h"
 #include "utils/SequenceTest.h"
 #include "utils/Utils.h"
 

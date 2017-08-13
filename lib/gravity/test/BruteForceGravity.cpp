@@ -2,7 +2,7 @@
 #include "catch.hpp"
 #include "sph/equations/Potentials.h"
 #include "tests/Setup.h"
-#include "utils/Approx.h"
+#include "tests/Approx.h"
 #include "utils/SequenceTest.h"
 
 using namespace Sph;
@@ -57,29 +57,15 @@ TEST_CASE("BruteForceGravity parallel", "[gravity]") {
     gravity.evalAll(dv1, stats);
 
     ThreadPool pool;
-    ThreadLocal<Array<Vector>> dv2s(pool, dv1.size());
-    ThreadLocal<ArrayView<Vector>> dv2Views = dv2s.convert<ArrayView<Vector>>();
-    // initialize TL storages
-    dv2s.forEach([](ArrayView<Vector> dvTl) {
-        for (Size i = 0; i < dvTl.size(); ++i) {
-            dvTl[i] = Vector(0._f);
-        }
-    });
+    Array<Vector> dv2(dv1.size());
+    dv2.fill(Vector(0._f));
     // evaluate gravity using parallel implementation
-    gravity.evalAll(pool, dv2Views, stats);
-    // sum thread-local values
-    Array<Vector> sum(dv1.size());
-    sum.fill(Vector(0._f));
-    dv2s.forEach([&sum](ArrayView<Vector> dvTl) {
-        for (Size i = 0; i < dvTl.size(); ++i) {
-            sum[i] += dvTl[i];
-        }
-    });
+    gravity.evalAll(pool, dv2, stats);
 
     // compare with single-threaded result
     auto test = [&](const Size i) -> Outcome {
-        if (sum[i] != dv1[i]) {
-            return makeFailed("Incorrect acceleration: ", sum[i], " == ", dv1[i]);
+        if (dv2[i] != dv1[i]) {
+            return makeFailed("Incorrect acceleration: ", dv2[i], " == ", dv1[i]);
         }
         return SUCCESS;
     };

@@ -1,7 +1,7 @@
 #include "math/rng/Rng.h"
 #include "catch.hpp"
 #include "math/Math.h"
-#include "utils/Approx.h"
+#include "tests/Approx.h"
 
 using namespace Sph;
 

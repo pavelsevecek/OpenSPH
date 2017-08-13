@@ -10,7 +10,7 @@
 #include "system/Statistics.h"
 #include "tests/Setup.h"
 #include "timestepping/TimeStepping.h"
-#include "utils/Approx.h"
+#include "tests/Approx.h"
 #include "utils/SequenceTest.h"
 
 using namespace Sph;

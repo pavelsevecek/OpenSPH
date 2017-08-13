@@ -142,10 +142,10 @@ SOURCES += \
     ../lib/post/test/MeshFile.cpp \
     ../lib/objects/finders/test/BruteForceFinder.cpp \
     ../lib/gravity/test/BruteForceGravity.cpp \
-    ../lib/objects/containers/test/List.cpp
+    ../lib/objects/containers/test/List.cpp \
+    ../lib/system/test/Process.cpp
 
 HEADERS += \
     utils/Utils.h \
     utils/RecordType.h \
-    utils/Approx.h \
     utils/SequenceTest.h

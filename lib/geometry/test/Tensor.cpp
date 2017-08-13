@@ -1,6 +1,6 @@
 #include "geometry/Tensor.h"
 #include "catch.hpp"
-#include "utils/Approx.h"
+#include "tests/Approx.h"
 #include "utils/Utils.h"
 
 using namespace Sph;

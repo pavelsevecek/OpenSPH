@@ -215,9 +215,26 @@ AsteroidCollision::AsteroidCollision(RawPtr<Controller>&& controller)
         .set(RunSettingsId::SPH_AV_BETA, 3._f)
         .set(RunSettingsId::GRAVITY_SOLVER, GravityEnum::BARNES_HUT)
         .set(RunSettingsId::GRAVITY_OPENING_ANGLE, 0.5_f)
+        .set(RunSettingsId::GRAVITY_LEAF_SIZE, 20)
         .set(RunSettingsId::RUN_THREAD_GRANULARITY, 100);
     settings.saveToFile(Path("code.sph"));
 }
+
+class StatsLog : public CommonStatsLog {
+public:
+    StatsLog(AutoPtr<Abstract::Logger>&& logger)
+        : CommonStatsLog(std::move(logger)) {}
+
+    virtual void writeImpl(const Storage& storage, const Statistics& stats) {
+        CommonStatsLog::writeImpl(storage, stats);
+        const int approximatedNodes = stats.get<int>(StatisticsId::GRAVITY_NODES_APPROX);
+        const int exactNodes = stats.get<int>(StatisticsId::GRAVITY_NODES_EXACT);
+        const Float ratio = Float(approximatedNodes) / (exactNodes + approximatedNodes);
+        const int percent = int(ratio * 100._f);
+        logger->write(" - approximated nodes: ", approximatedNodes, " (", percent, " %)");
+        logger->write(" - exact nodes: ", exactNodes, " (", 100 - percent, " %)");
+    }
+};
 
 void AsteroidCollision::setUp() {
     BodySettings body;
@@ -247,6 +264,9 @@ void AsteroidCollision::setUp() {
     this->setupOutput();
 
     callbacks = makeAuto<GuiCallbacks>(controller);
+
+    // add printing of run progres
+    logFiles.push(makeAuto<StatsLog>(Factory::getLogger(settings)));
 }
 
 void AsteroidCollision::setupOutput() {
@@ -270,11 +290,42 @@ void AsteroidCollision::setupOutput() {
 }
 
 void AsteroidCollision::tearDown() {
-    Profiler& profiler = Profiler::getInstance();
-    profiler.printStatistics(*logger);
+
+    BodySettings body;
+    body.set(BodySettingsId::DENSITY, 100._f)
+        .set(BodySettingsId::ENERGY, 10._f)
+        .set(BodySettingsId::DISTRIBUTE_MODE_SPH5, true);
+    Storage storage2 = Tests::getGassStorage(1000, body, 5.e3_f);
+
+    /*ArrayView<Vector> r1 = storage->getValue<Vector>(QuantityId::POSITIONS);
+    ArrayView<Vector> r2 = storage2.getValue<Vector>(QuantityId::POSITIONS);
+    ASSERT(r1.size() == r2.size());
+    for (Size i = 0; i < r1.size(); ++i) {
+        ASSERT(r1[i] == approx(r2[i], 1.e-6_f), r1[i], r2[i]);
+        ASSERT(r1[i][H] == approx(r2[i][H], 1.e-6_f), r1[i][H], r2[i][H]);
+    }
+
+
+    BarnesHut gravity(0.5_f, MultipoleOrder::OCTUPOLE, Factory::getGravityKernel(settings));
+    gravity.build(storage2);
+    Statistics stats;
+    ArrayView<Vector> dv = storage2.getD2t<Vector>(QuantityId::POSITIONS);
+    logger->write("particle count: ", dv.size());
+    gravity.evalAll(ThreadPool::getGlobalInstance(), dv, stats);
+
+    const int approx = stats.get<int>(StatisticsId::GRAVITY_NODES_APPROX);
+    const int exact = stats.get<int>(StatisticsId::GRAVITY_NODES_EXACT);
+    const int total = stats.get<int>(StatisticsId::GRAVITY_NODE_COUNT);
+    logger->write("approx: ", approx);
+    logger->write("exact: ", exact);
+    logger->write("total: ", total);*/
+
+
+    /*Profiler& profiler = Profiler::getInstance();
+    profiler.printStatistics(*logger);*/
 
     PkdgravOutput pkdgravOutput(Path("pkdgrav_%d.out"), PkdgravParams{});
-    Statistics stats; /// \todo stats should survive after the run
+    Statistics stats;
     pkdgravOutput.dump(*storage, stats);
 }
 

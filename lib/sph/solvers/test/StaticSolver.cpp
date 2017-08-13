@@ -3,7 +3,7 @@
 #include "physics/Constants.h"
 #include "sph/equations/Potentials.h"
 #include "tests/Setup.h"
-#include "utils/Approx.h"
+#include "tests/Approx.h"
 #include "utils/SequenceTest.h"
 
 #include "io/Logger.h"

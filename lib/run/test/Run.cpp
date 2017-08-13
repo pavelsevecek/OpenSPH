@@ -7,7 +7,7 @@
 #include "system/Callbacks.h"
 #include "system/Statistics.h"
 #include "timestepping/TimeStepping.h"
-#include "utils/Approx.h"
+#include "tests/Approx.h"
 #include "utils/Utils.h"
 
 using namespace Sph;

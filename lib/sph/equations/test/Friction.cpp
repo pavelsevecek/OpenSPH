@@ -3,7 +3,7 @@
 #include "geometry/Domain.h"
 #include "sph/initial/Initial.h"
 #include "sph/solvers/GenericSolver.h"
-#include "utils/Approx.h"
+#include "tests/Approx.h"
 #include "utils/SequenceTest.h"
 
 using namespace Sph;

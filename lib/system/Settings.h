@@ -507,8 +507,11 @@ enum class RunSettingsId {
     /// Algorithm to compute gravitational acceleration
     GRAVITY_SOLVER,
 
-    /// Opening angle for multipole approximation of gravity
+    /// Opening angle Theta for multipole approximation of gravity
     GRAVITY_OPENING_ANGLE,
+
+    /// Maximum number of particles in a leaf node.
+    GRAVITY_LEAF_SIZE,
 
     /// Order of multipole expansion
     GRAVITY_MULTIPOLE_ORDER,

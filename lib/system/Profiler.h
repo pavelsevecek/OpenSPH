@@ -61,6 +61,7 @@ public:
     }
 #else
 #define MEASURE_SCOPE(name)
+#define MEASURE(name, what) what
 #endif
 
 

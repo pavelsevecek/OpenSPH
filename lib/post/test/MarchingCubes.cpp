@@ -4,7 +4,7 @@
 #include "post/MeshFile.h"
 #include "quantities/Storage.h"
 #include "sph/initial/Initial.h"
-#include "utils/Approx.h"
+#include "tests/Approx.h"
 #include "utils/SequenceTest.h"
 
 using namespace Sph;

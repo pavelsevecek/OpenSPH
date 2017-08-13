@@ -287,6 +287,7 @@ AutoPtr<RunSettings> RunSettings::instance (new RunSettings {
     /// Gravity
     { RunSettingsId::GRAVITY_SOLVER,                "gravity.solver",           int(GravityEnum::BARNES_HUT) },
     { RunSettingsId::GRAVITY_OPENING_ANGLE,         "gravity.opening_angle",    0.5_f },
+    { RunSettingsId::GRAVITY_LEAF_SIZE,             "gravity.leaf_size",        25 },
     { RunSettingsId::GRAVITY_MULTIPOLE_ORDER,       "gravity.multipole_order",  3 },
     { RunSettingsId::GRAVITY_KERNEL,                "gravity.kernel",           int(GravityKernelEnum::SPH_KERNEL) },
 

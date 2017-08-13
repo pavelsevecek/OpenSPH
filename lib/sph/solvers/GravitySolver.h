@@ -48,13 +48,9 @@ protected:
         // build gravity tree
         MEASURE("Building gravity", gravity->build(storage));
 
-        // initialize thread-local acceleration arrayviews (needed by gravity),
-        // we don't have to sum up the results, this is done by GenericSolver
-        auto converter = [](ThreadData& data) -> ArrayView<Vector> {
-            Accumulated& accumulated = data.derivatives.getAccumulated();
-            return accumulated.getBuffer<Vector>(QuantityId::POSITIONS, OrderEnum::SECOND);
-        };
-        ThreadLocal<ArrayView<Vector>> dv = threadData.convert<ArrayView<Vector>>(converter);
+        ThreadData& data = threadData.first();
+        Accumulated& accumulated = data.derivatives.getAccumulated();
+        ArrayView<Vector> dv = accumulated.getBuffer<Vector>(QuantityId::POSITIONS, OrderEnum::SECOND);
 
         // evaluate gravity for each particle
         MEASURE("Evaluating gravity", gravity->evalAll(*pool, dv, stats));

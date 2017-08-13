@@ -45,14 +45,14 @@ public:
     /// \brief Return a value for current thread.
     ///
     /// This thread must belong the the thread pool given in constructor, checked by assert.
-    Type& get() {
+    INLINE Type& get() {
         const Optional<Size> idx = pool.getThreadIdx();
         ASSERT(idx && idx.value() < values.size());
         return values[idx.value()];
     }
 
     /// \copydoc get
-    const Type& get() const {
+    INLINE const Type& get() const {
         const Optional<Size> idx = pool.getThreadIdx();
         ASSERT(idx && idx.value() < values.size());
         return values[idx.value()];

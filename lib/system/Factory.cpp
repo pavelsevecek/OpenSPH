@@ -194,15 +194,19 @@ AutoPtr<Abstract::Gravity> Factory::getGravity(const RunSettings& settings) {
     case GravityKernelEnum::SPH_KERNEL:
         kernel = Factory::getGravityKernel(settings);
         break;
+    default:
+        NOT_IMPLEMENTED;
     }
 
-    const Float theta = settings.get<Float>(RunSettingsId::GRAVITY_OPENING_ANGLE);
-    const MultipoleOrder order = settings.get<MultipoleOrder>(RunSettingsId::GRAVITY_MULTIPOLE_ORDER);
     switch (id) {
     case GravityEnum::BRUTE_FORCE:
         return makeAuto<BruteForceGravity>(std::move(kernel));
-    case GravityEnum::BARNES_HUT:
-        return makeAuto<BarnesHut>(theta, order, std::move(kernel));
+    case GravityEnum::BARNES_HUT: {
+        const Float theta = settings.get<Float>(RunSettingsId::GRAVITY_OPENING_ANGLE);
+        const MultipoleOrder order = settings.get<MultipoleOrder>(RunSettingsId::GRAVITY_MULTIPOLE_ORDER);
+        const int leafSize = settings.get<int>(RunSettingsId::GRAVITY_LEAF_SIZE);
+        return makeAuto<BarnesHut>(theta, order, std::move(kernel), leafSize);
+    }
     case GravityEnum::VOXEL:
         NOT_IMPLEMENTED;
     // return makeAuto<VoxelGravity>(theta, order, std::move(kernel));

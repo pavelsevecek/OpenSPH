@@ -56,7 +56,7 @@ void BarnesHut::build(const Storage& storage) {
     });
 }
 
-void BarnesHut::evalAll(ArrayView<Vector> dv, Statistics& UNUSED(stats)) const {
+void BarnesHut::evalAll(ArrayView<Vector> dv, Statistics& stats) const {
     TreeWalkState data;
     const KdNode& root = kdTree.getNode(0);
     if (SPH_UNLIKELY(root.isLeaf())) {
@@ -65,9 +65,13 @@ void BarnesHut::evalAll(ArrayView<Vector> dv, Statistics& UNUSED(stats)) const {
     }
     // single-threaded overload, created dummy ThreadPool to avoid code duplication
     ThreadPool pool(1);
-    ThreadLocal<ArrayView<Vector>> dvTl(pool, dv);
-    pool.submit(makeTask([&] { this->evalNode(pool, dvTl, 0, std::move(data)); }));
+    TreeWalkResult result;
+    pool.submit(makeTask([&] { this->evalNode(pool, dv, 0, std::move(data), result); }));
     pool.waitForAll();
+
+    stats.set<int>(StatisticsId::GRAVITY_NODES_APPROX, result.approximatedNodes);
+    stats.set<int>(StatisticsId::GRAVITY_NODES_EXACT, result.exactNodes);
+    stats.set<int>(StatisticsId::GRAVITY_NODE_COUNT, kdTree.getNodeCnt());
 
     // set correct units
     for (Size i = 0; i < dv.size(); ++i) {
@@ -75,24 +79,25 @@ void BarnesHut::evalAll(ArrayView<Vector> dv, Statistics& UNUSED(stats)) const {
     }
 }
 
-void BarnesHut::evalAll(ThreadPool& pool,
-    const ThreadLocal<ArrayView<Vector>>& dv,
-    Statistics& UNUSED(stats)) const {
+void BarnesHut::evalAll(ThreadPool& pool, ArrayView<Vector> dv, Statistics& stats) const {
     TreeWalkState data;
     const KdNode& root = kdTree.getNode(0);
     if (SPH_UNLIKELY(root.isLeaf())) {
         // all particles within one leaf - boring case with only few particles
         data.particleList.push(0);
     }
-    pool.submit(makeTask([&] { this->evalNode(pool, dv, 0, std::move(data)); }));
+    TreeWalkResult result;
+    pool.submit(makeTask([&] { this->evalNode(pool, dv, 0, std::move(data), result); }));
     pool.waitForAll();
 
+    stats.set<int>(StatisticsId::GRAVITY_NODES_APPROX, result.approximatedNodes);
+    stats.set<int>(StatisticsId::GRAVITY_NODES_EXACT, result.exactNodes);
+    stats.set<int>(StatisticsId::GRAVITY_NODE_COUNT, kdTree.getNodeCnt());
+
     // set correct units
-    dv.forEach([](ArrayView<Vector> dvTl) {
-        for (Size i = 0; i < dvTl.size(); ++i) {
-            dvTl[i] *= Constants::gravity;
-        }
-    });
+    for (Size i = 0; i < dv.size(); ++i) {
+        dv[i] *= Constants::gravity;
+    }
 }
 
 Vector BarnesHut::eval(const Vector& r0, Statistics& stats) const {
@@ -142,24 +147,27 @@ class BarnesHut::NodeTask : public Abstract::Task {
 private:
     const BarnesHut& bh;
     ThreadPool& pool;
-    const ThreadLocal<ArrayView<Vector>>& dv;
+    ArrayView<Vector> dv;
     Size nodeIdx;
     BarnesHut::TreeWalkState data;
+    BarnesHut::TreeWalkResult& result;
 
 public:
     NodeTask(const BarnesHut& bh,
         ThreadPool& pool,
-        const ThreadLocal<ArrayView<Vector>>& dv,
+        ArrayView<Vector> dv,
         const Size nodeIdx,
-        BarnesHut::TreeWalkState&& data)
+        BarnesHut::TreeWalkState&& data,
+        BarnesHut::TreeWalkResult& result)
         : bh(bh)
         , pool(pool)
         , dv(dv)
         , nodeIdx(nodeIdx)
-        , data(std::move(data)) {}
+        , data(std::move(data))
+        , result(result) {}
 
     virtual void operator()() override {
-        bh.evalNode(pool, dv, nodeIdx, std::move(data));
+        bh.evalNode(pool, dv, nodeIdx, std::move(data), result);
     }
 };
 
@@ -174,11 +182,11 @@ BarnesHut::TreeWalkState BarnesHut::TreeWalkState::clone() const {
 /// \todo try different containers; we need fast inserting & deletion
 
 void BarnesHut::evalNode(ThreadPool& pool,
-    const ThreadLocal<ArrayView<Vector>>& dv,
+    ArrayView<Vector> dv,
     const Size evaluatedNodeIdx,
-    TreeWalkState data) const {
+    TreeWalkState data,
+    TreeWalkResult& result) const {
 
-    ArrayView<Vector> dvTl = dv.get();
     const KdNode& evaluatedNode = kdTree.getNode(evaluatedNodeIdx);
     const Box& box = evaluatedNode.box;
 
@@ -239,52 +247,12 @@ void BarnesHut::evalNode(ThreadPool& pool,
         const LeafNode& leaf = reinterpret_cast<const LeafNode&>(evaluatedNode);
 
         // 1) evaluate the particle list:
-
-        // go through all nodes in the list and compute the pair-wise interactions
-        LeafIndexSequence seq1 = kdTree.getLeafIndices(leaf);
-        ASSERT(areElementsUnique(data.particleList), data.particleList);
-        for (Size idx : data.particleList) {
-            ASSERT(idx != evaluatedNodeIdx);
-            // the particle lists do not have to be necessarily symmetric, we have to do each node separately
-            const KdNode& node = kdTree.getNode(idx);
-            ASSERT(node.isLeaf());
-            LeafIndexSequence seq2 = kdTree.getLeafIndices(reinterpret_cast<const LeafNode&>(node));
-            for (Size i : seq1) {
-                ASSERT(r[i][H] > 0._f, r[i][H]);
-                for (Size j : seq2) {
-                    ASSERT(r[j][H] > 0._f, r[j][H]);
-                    const Float hbar = 0.5_f * (r[i][H] + r[j][H]);
-                    const Vector grad = kernel.grad(r[j] - r[i], hbar);
-                    dvTl[i] += m[j] * grad;
-                }
-            }
-        }
-        // evaluate intra-leaf interactions (the leaf itself is not included in the list)
-        for (Size i : seq1) {
-            ASSERT(r[i][H] > 0._f, r[i][H]);
-            for (Size j : seq1) {
-                ASSERT(r[j][H] > 0._f, r[j][H]);
-                if (i >= j) {
-                    // skip, we are doing a symmetric evaluation
-                    continue;
-                }
-                const Float hbar = 0.5_f * (r[i][H] + r[j][H]);
-                const Vector grad = kernel.grad(r[j] - r[i], hbar);
-                dvTl[i] += m[j] * grad;
-                dvTl[j] -= m[i] * grad;
-            }
-        }
+        this->evalParticleList(leaf, data.particleList, dv);
+        result.exactNodes += data.particleList.size();
 
         // 2) evaluate the node list
-        // here we cannot do a symmetric evaluation, so evaluate each particle separately
-        ASSERT(areElementsUnique(data.nodeList), data.nodeList);
-        for (Size idx : data.nodeList) {
-            const KdNode& node = kdTree.getNode(idx);
-
-            for (Size i : seq1) {
-                dvTl[i] += evaluateGravity(r[i] - node.com, node.moments, order);
-            }
-        }
+        this->evalNodeList(leaf, data.nodeList, dv);
+        result.approximatedNodes += data.nodeList.size();
 
     } else {
         const InnerNode& inner = reinterpret_cast<const InnerNode&>(evaluatedNode);
@@ -293,16 +261,64 @@ void BarnesHut::evalNode(ThreadPool& pool,
         // that we don't override the lists when evaluating different node (each node has its own lists).
         TreeWalkState childData = data.clone();
         childData.checkList.pushBack(inner.right);
-        AutoPtr<NodeTask> task = makeAuto<NodeTask>(*this, pool, dv, inner.left, std::move(childData));
+        AutoPtr<NodeTask> task =
+            makeAuto<NodeTask>(*this, pool, dv, inner.left, std::move(childData), result);
         pool.submit(std::move(task));
 
         // since we go only once through the tree (we never go 'up'), we can simply move the lists into the
         // right child and modify them for the child node
         data.checkList.pushBack(inner.left);
-        this->evalNode(pool, dv, inner.right, std::move(data));
+        this->evalNode(pool, dv, inner.right, std::move(data), result);
     }
 }
 
+void BarnesHut::evalParticleList(const LeafNode& leaf,
+    ArrayView<Size> particleList,
+    ArrayView<Vector> dv) const {
+    // go through all nodes in the list and compute the pair-wise interactions
+    LeafIndexSequence seq1 = kdTree.getLeafIndices(leaf);
+    ASSERT(areElementsUnique(particleList), particleList);
+    for (Size idx : particleList) {
+        // the particle lists do not have to be necessarily symmetric, we have to do each node separately
+        const KdNode& node = kdTree.getNode(idx);
+        ASSERT(node.isLeaf());
+        LeafIndexSequence seq2 = kdTree.getLeafIndices(reinterpret_cast<const LeafNode&>(node));
+        for (Size i : seq1) {
+            const Float h = r[i][H];
+            ASSERT(h > 0._f, h);
+            for (Size j : seq2) {
+                ASSERT(r[j][H] > 0._f, r[j][H]);
+                const Vector grad = kernel.grad(r[j] - r[i], h);
+                dv[i] += m[j] * grad;
+            }
+        }
+    }
+    // evaluate intra-leaf interactions (the leaf itself is not included in the list)
+    for (Size i : seq1) {
+        const Float h = r[i][H];
+        ASSERT(h > 0._f, h);
+        for (Size j : seq1) {
+            ASSERT(r[j][H] > 0._f, r[j][H]);
+            if (i == j) {
+                // skip, we are doing a symmetric evaluation
+                continue;
+            }
+            const Vector grad = kernel.grad(r[j] - r[i], h);
+            dv[i] += m[j] * grad;
+        }
+    }
+}
+
+void BarnesHut::evalNodeList(const LeafNode& leaf, ArrayView<Size> nodeList, ArrayView<Vector> dv) const {
+    ASSERT(areElementsUnique(nodeList), nodeList);
+    LeafIndexSequence seq1 = kdTree.getLeafIndices(leaf);
+    for (Size idx : nodeList) {
+        const KdNode& node = kdTree.getNode(idx);
+        for (Size i : seq1) {
+            dv[i] += evaluateGravity(r[i] - node.com, node.moments, order);
+        }
+    }
+}
 
 Vector BarnesHut::evalExact(const LeafNode& leaf, const Vector& r0, const Size idx) const {
     LeafIndexSequence sequence = kdTree.getLeafIndices(leaf);

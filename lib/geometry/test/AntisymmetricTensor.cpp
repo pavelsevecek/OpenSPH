@@ -1,7 +1,7 @@
 #include "geometry/AntisymmetricTensor.h"
 #include "catch.hpp"
 #include "objects/containers/Array.h"
-#include "utils/Approx.h"
+#include "tests/Approx.h"
 #include "utils/Utils.h"
 
 using namespace Sph;

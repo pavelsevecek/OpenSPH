@@ -1,7 +1,7 @@
 #include "sph/kernel/GravityKernel.h"
 #include "catch.hpp"
 #include "math/Integrator.h"
-#include "utils/Approx.h"
+#include "tests/Approx.h"
 #include "utils/SequenceTest.h"
 
 using namespace Sph;

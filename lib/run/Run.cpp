@@ -48,10 +48,6 @@ void Abstract::Run::run() {
     const Float outputInterval = settings.get<Float>(RunSettingsId::RUN_OUTPUT_INTERVAL);
     const Range timeRange = settings.get<Range>(RunSettingsId::RUN_TIME_RANGE);
 
-    // add printing of run progress
-    /// \todo now log files need to be cleared in setUp, avoid that
-    logFiles.push(makeAuto<CommonStatsLog>(Factory::getLogger(settings)));
-
     // set uninitilized variables
     setNullToDefaults();
 

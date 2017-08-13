@@ -7,7 +7,7 @@
 #include "sph/initial/Distribution.h"
 #include "system/Settings.h"
 #include "system/Statistics.h"
-#include "utils/Approx.h"
+#include "tests/Approx.h"
 
 using namespace Sph;
 

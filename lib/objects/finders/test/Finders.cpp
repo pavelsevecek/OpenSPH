@@ -8,7 +8,7 @@
 #include "objects/finders/Voxel.h"
 #include "objects/wrappers/Range.h"
 #include "sph/initial/Distribution.h"
-#include "utils/Approx.h"
+#include "tests/Approx.h"
 #include "utils/SequenceTest.h"
 
 using namespace Sph;

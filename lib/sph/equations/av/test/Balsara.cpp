@@ -2,7 +2,7 @@
 #include "catch.hpp"
 #include "sph/equations/av/Standard.h"
 #include "tests/Setup.h"
-#include "utils/Approx.h"
+#include "tests/Approx.h"
 #include "utils/SequenceTest.h"
 
 using namespace Sph;

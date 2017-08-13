@@ -2,7 +2,7 @@
 #include "catch.hpp"
 #include "physics/Integrals.h"
 #include "tests/Setup.h"
-#include "utils/Approx.h"
+#include "tests/Approx.h"
 
 using namespace Sph;
 

@@ -47,8 +47,10 @@ public:
         }
     }
 
-    /// Constructs array from initialized list. Allocate only enough elements to store the list. Elements are
-    /// constructed using copy constructor of stored type.
+    /// \brief Constructs array from initialized list.
+    ///
+    /// Allocate only enough elements to store the list. Elements are constructed using copy constructor of
+    /// stored type.
     Array(std::initializer_list<StorageType> list) {
         actSize = list.size();
         maxSize = actSize;

@@ -45,14 +45,11 @@ public:
         }
     }
 
-    virtual void evalAll(ThreadPool& pool,
-        const ThreadLocal<ArrayView<Vector>>& dv,
-        Statistics& UNUSED(stats)) const override {
+    virtual void evalAll(ThreadPool& pool, ArrayView<Vector> dv, Statistics& UNUSED(stats)) const override {
+        ASSERT(r.size() == dv.size());
         parallelFor(pool, 0, r.size(), 10, [&dv, this](const Size n1, const Size n2) {
-            ArrayView<Vector> dvTl = dv.get();
-            ASSERT(r.size() == dvTl.size());
             for (Size i = n1; i < n2; ++i) {
-                dvTl[i] += this->evalImpl(r[i], i);
+                dv[i] += this->evalImpl(r[i], i);
             }
         });
     }

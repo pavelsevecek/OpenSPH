@@ -10,27 +10,26 @@ using namespace Sph;
 
 static void benchmarkGravity(Abstract::Gravity& gravity, Benchmark::Context& context) {
     BodySettings settings;
-    settings.set(BodySettingsId::DENSITY, 100._f).set(BodySettingsId::ENERGY, 10._f);
-    Storage storage = Tests::getGassStorage(10000, settings);
+    settings.set(BodySettingsId::DENSITY, 100._f)
+        .set(BodySettingsId::ENERGY, 10._f)
+        .set(BodySettingsId::DISTRIBUTE_MODE_SPH5, true);
+    Storage storage = Tests::getGassStorage(1000, settings, 5.e3_f);
 
     /*ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
     ArrayView<Float> m = storage.getValue<Float>(QuantityId::MASSES);*/
     gravity.build(storage);
     Statistics stats;
+    ArrayView<Vector> dv = storage.getD2t<Vector>(QuantityId::POSITIONS);
+    context.log("particle count: ", dv.size());
     while (context.running()) {
-        // MinMaxMen approx, exact;
-        gravity.evalAll(storage.getD2t<Vector>(QuantityId::POSITIONS), stats);
-        /*if (stats.has(StatisticsId::GRAVITY_PARTICLES_EXACT)) {
-           const int approx = stats.get<int>(StatisticsId::GRAVITY_PARTICLES_APPROX);
-            const int exact = stats.get<int>(StatisticsId::GRAVITY_PARTICLES_EXACT);
-            ASSERT(approx + exact == int(r.size()), approx + exact, r.size());
-            /// \todo UNIT TEST !!!!
-            // approx.accumulate();
-            // exact.accumulate();
-        }*/
+        gravity.evalAll(ThreadPool::getGlobalInstance(), dv, stats);
     }
-    //        context.log("approx: ", approx);
-    //        context.log("exact: ", exact);
+    const int approx = stats.get<int>(StatisticsId::GRAVITY_NODES_APPROX);
+    const int exact = stats.get<int>(StatisticsId::GRAVITY_NODES_EXACT);
+    const int total = stats.get<int>(StatisticsId::GRAVITY_NODE_COUNT);
+    context.log("approx: ", approx);
+    context.log("exact: ", exact);
+    context.log("total: ", total);
 }
 
 BENCHMARK("BruteForceGravity", "[gravity]", Benchmark::Context& context) {

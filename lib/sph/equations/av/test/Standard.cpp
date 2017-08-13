@@ -3,7 +3,7 @@
 #include "io/LogFile.h"
 #include "objects/containers/PerElementWrapper.h"
 #include "tests/Setup.h"
-#include "utils/Approx.h"
+#include "tests/Approx.h"
 #include "utils/SequenceTest.h"
 
 using namespace Sph;

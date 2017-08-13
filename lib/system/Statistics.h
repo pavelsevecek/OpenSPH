@@ -109,10 +109,10 @@ enum class StatisticsId {
     GRAVITY_NODE_COUNT,
 
     /// Number of tree nodes evaluated by pair-wise interacting
-    GRAVITY_PARTICLES_EXACT,
+    GRAVITY_NODES_EXACT,
 
     /// Number of tree nodes evaluated using multipole approximation
-    GRAVITY_PARTICLES_APPROX,
+    GRAVITY_NODES_APPROX,
 
     /// Current angular position of the non-inertial frame
     FRAME_ANGLE,
