@@ -7,6 +7,7 @@
 
 #include "io/Path.h"
 #include "objects/containers/Array.h"
+#include <functional>
 
 NAMESPACE_SPH_BEGIN
 

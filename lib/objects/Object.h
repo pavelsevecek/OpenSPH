@@ -1,8 +1,9 @@
 #pragma once
 
-/// Common macros and basic objects.
-/// Pavel Sevecek 2016
-/// sevecek at sirrah.troja.mff.cuni.cz
+/// \file Object.h
+/// \brief Common macros and basic objects.
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2017
 
 #include <stdint.h>
 #include <utility>
@@ -20,6 +21,9 @@ NAMESPACE_SPH_BEGIN
 #else
 #define SPH_GCC
 #endif
+#endif
+#ifdef MPI_VERSION
+#define SPH_MPI
 #endif
 
 /// Force inline for gcc

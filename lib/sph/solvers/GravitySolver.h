@@ -48,6 +48,7 @@ protected:
         // build gravity tree
         MEASURE("Building gravity", gravity->build(storage));
 
+        // get acceleration buffer corresponding to first thread (to save some memory + time)
         ThreadData& data = threadData.first();
         Accumulated& accumulated = data.derivatives.getAccumulated();
         ArrayView<Vector> dv = accumulated.getBuffer<Vector>(QuantityId::POSITIONS, OrderEnum::SECOND);

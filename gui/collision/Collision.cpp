@@ -291,38 +291,8 @@ void AsteroidCollision::setupOutput() {
 
 void AsteroidCollision::tearDown() {
 
-    BodySettings body;
-    body.set(BodySettingsId::DENSITY, 100._f)
-        .set(BodySettingsId::ENERGY, 10._f)
-        .set(BodySettingsId::DISTRIBUTE_MODE_SPH5, true);
-    Storage storage2 = Tests::getGassStorage(1000, body, 5.e3_f);
-
-    /*ArrayView<Vector> r1 = storage->getValue<Vector>(QuantityId::POSITIONS);
-    ArrayView<Vector> r2 = storage2.getValue<Vector>(QuantityId::POSITIONS);
-    ASSERT(r1.size() == r2.size());
-    for (Size i = 0; i < r1.size(); ++i) {
-        ASSERT(r1[i] == approx(r2[i], 1.e-6_f), r1[i], r2[i]);
-        ASSERT(r1[i][H] == approx(r2[i][H], 1.e-6_f), r1[i][H], r2[i][H]);
-    }
-
-
-    BarnesHut gravity(0.5_f, MultipoleOrder::OCTUPOLE, Factory::getGravityKernel(settings));
-    gravity.build(storage2);
-    Statistics stats;
-    ArrayView<Vector> dv = storage2.getD2t<Vector>(QuantityId::POSITIONS);
-    logger->write("particle count: ", dv.size());
-    gravity.evalAll(ThreadPool::getGlobalInstance(), dv, stats);
-
-    const int approx = stats.get<int>(StatisticsId::GRAVITY_NODES_APPROX);
-    const int exact = stats.get<int>(StatisticsId::GRAVITY_NODES_EXACT);
-    const int total = stats.get<int>(StatisticsId::GRAVITY_NODE_COUNT);
-    logger->write("approx: ", approx);
-    logger->write("exact: ", exact);
-    logger->write("total: ", total);*/
-
-
-    /*Profiler& profiler = Profiler::getInstance();
-    profiler.printStatistics(*logger);*/
+    Profiler& profiler = Profiler::getInstance();
+    profiler.printStatistics(*logger);
 
     PkdgravOutput pkdgravOutput(Path("pkdgrav_%d.out"), PkdgravParams{});
     Statistics stats;
