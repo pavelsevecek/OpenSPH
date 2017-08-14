@@ -10,12 +10,12 @@
 #include <atomic>
 #include <map>
 
-
 NAMESPACE_SPH_BEGIN
 
-
-/// Timer that reports the measured duration when being destroyed. If measured scope is executed by multiple
-/// thread at once, the total time is equal to the sum of all per-thread times.
+/// \brief Timer that reports the measured duration when being destroyed.
+///
+/// If measured scope is executed by multiple thread at once, the total time is equal to the sum of all
+/// per-thread times.
 struct ScopedTimer {
 private:
     StoppableTimer impl;
@@ -25,6 +25,10 @@ private:
     OnScopeEnds callback;
 
 public:
+    /// Creates a scoped time.
+    /// \param name User-defined name of the timer.
+    /// \param callback Function called when the timer goes out of scoped. The timer passes its name and
+    ///                 elapsed time as parameters of the function.
     ScopedTimer(const std::string& name, const OnScopeEnds& callback)
         : name(name)
         , callback(callback) {}
@@ -66,9 +70,15 @@ public:
 
 
 struct ScopeStatistics {
+    /// User defined name of the scope
     std::string name;
-    uint64_t totalTime; // time spent in function (in ms)
-    float relativeTime;
+
+    /// Time spent in the scope (in ms)
+    uint64_t totalTime;
+
+    /// Relative time spent in the scope with a respect to all measured scopes. Relative times of all measured
+    /// scoped sum up to 1.
+    Float relativeTime;
 };
 
 

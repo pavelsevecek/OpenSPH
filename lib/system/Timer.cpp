@@ -124,7 +124,6 @@ void TimerThread::registerTimer(const SharedPtr<Timer>& timer, const std::functi
     entries->push(TimerEntry{ timer, callback });
 }
 
-
 void TimerThread::runLoop() {
     Array<TimerEntry> copies;
     while (!closingDown) {

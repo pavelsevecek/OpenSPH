@@ -5,13 +5,15 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2017
 
-#include "objects/geometry/TracelessTensor.h"
 #include "math/Means.h"
+#include "objects/geometry/TracelessTensor.h"
 #include "objects/wrappers/Variant.h"
 
 NAMESPACE_SPH_BEGIN
 
-/// Has to be kept in sync with ValueVariant
+/// \brief Enum representing a value type stored in a Value object.
+///
+/// Has to be kept in sync with ValueVariant defined below.
 enum class ValueId {
     SIZE = 1,
     FLOAT,
@@ -68,8 +70,9 @@ public:
         return *this;
     }
 
-    /// Returns the reference to the stored value given its type. The stored value must indeed have a type T,
-    /// checked by assert.
+    /// \brief Returns the reference to the stored value given its type.
+    ///
+    /// The stored value must indeed have a type T, checked by assert.
     template <typename T, typename = std::enable_if_t<ValueVariant::canHold<T>()>>
     INLINE T& get() {
         return storage.get<T>();

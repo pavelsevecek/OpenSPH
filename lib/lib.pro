@@ -236,4 +236,5 @@ HEADERS += \
     objects/objects/geometry/Sphere.h \
     objects/containers/List.h \
     tests/Approx.h \
-    system/Process.h
+    system/Process.h \
+    objects/wrappers/Function.h

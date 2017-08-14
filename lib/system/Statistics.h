@@ -15,8 +15,10 @@
 
 NAMESPACE_SPH_BEGIN
 
-/// Object holding various statistics about current run. Values are set or accumulated by each component of
-/// the running problem (timestepping, solver, ...).
+/// \brief Object holding various statistics about current run.
+///
+/// Statistics are stored as key-value pairs, the key being StatisticsId enum defined below. Values are set or
+/// accumulated by each component of the running problem (timestepping, solver, ...).
 class Statistics {
 private:
     enum Types { BOOL, INT, FLOAT, MEANS, VALUE, RANGE };
@@ -32,21 +34,27 @@ public:
         return entries.find(idx) != entries.end();
     }
 
-    /// Sets new values of a statistic. If the statistic is not stored in the object, the statistic is created
-    /// using default constructor before assigning new value into it.
+    /// \brief Sets new values of a statistic.
+    ///
+    /// If the statistic is not stored in the object, the statistic is created using default constructor
+    /// before assigning new value into it.
     template <typename TValue>
     void set(const StatisticsId idx, TValue&& value) {
         using StoreType = ConvertToSize<TValue>;
         entries[idx] = StoreType(std::forward<TValue>(value));
     }
 
-    /// Increments an integer statistic by given amount
+    /// \brief Increments an integer statistic by given amount
+    ///
+    /// Syntatic suggar, equivalent to get<int>(idx) += amount.
     void increment(const StatisticsId idx, const Size amount) {
         entries[idx].get<int>() += amount;
     }
 
-    /// Accumulate a value into means of given idx. Value does not have to be stored. If there is no
-    /// value of given idx, it is created with default constructor prior to accumulating.
+    /// \brief Accumulate a value into means of given idx.
+    ///
+    /// Value does not have to be stored. If there is no value of given idx, it is created with default
+    /// constructor prior to accumulating.
     void accumulate(const StatisticsId idx, const Float value) {
         auto iter = entries.find(idx);
         if (iter != entries.end()) {
@@ -59,8 +67,9 @@ public:
         }
     }
 
-    /// Returns value of a statistic. The value must be stored in the object and must have type TValue,
-    /// checked by assert.
+    /// \brief Returns value of a statistic.
+
+    /// The value must be stored in the object and must have type TValue, checked by assert.
     template <typename TValue>
     TValue get(const StatisticsId idx) const {
         auto iter = entries.find(idx);
@@ -70,7 +79,7 @@ public:
         return TValue(value);
     }
 
-    /// Returns value of a statistic, or a given value if the statistic is not stored.
+    /// \brief Returns value of a statistic, or a given value if the statistic is not stored.
     template <typename TValue>
     TValue getOr(const StatisticsId idx, const TValue& other) const {
         if (this->has(idx)) {

@@ -1,8 +1,9 @@
 #pragma once
 
-/// Posting events to be executed on main thread
-/// Pavel Sevecek
-/// sevecek at sirrah.troja.mff.cuni.cz
+/// \file MainLoop.h
+/// \brief Posting events to be executed on main thread
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2017
 
 #include "objects/wrappers/SharedPtr.h"
 #include <functional>
@@ -19,8 +20,10 @@ typedef void (wxEvtHandler::*MainLoopEventFunction)(Sph::MainLoopEvent&);
 
 NAMESPACE_SPH_BEGIN
 
-/// Custom event holding a callback. Application must handle this event using MainLoopEventFunction and
-/// execute callback using MainLoopEvent::execute().
+/// \brief Custom event holding a callback.
+///
+/// Application must handle this event using MainLoopEventFunction and execute callback using
+/// MainLoopEvent::execute().
 class MainLoopEvent : public wxCommandEvent {
 private:
     std::function<void()> callback;
@@ -43,13 +46,17 @@ public:
     }
 };
 
-/// Posts a callback to be executed on main thread. The function does not wait for the callback to be
-/// executed. The callback is executed by wxWidget framework; that means the event loop must be running and
-/// there must be an event handler executing the callback.
+/// \brief Posts a callback to be executed on main thread.
+///
+/// The function does not wait for the callback to be executed. The callback is executed by wxWidget
+/// framework; that means the event loop must be running and there must be an event handler executing the
+/// callback.
 void executeOnMainThread(const std::function<void()>& function);
 
-/// Executes a callback in main thread, passing a shared pointer to given object as its argument. The callback
-/// is only executed if the object referenced by the shared pointer is not expired, otherwise it is ignored.
+/// \brief Executes a callback in main thread, passing a shared pointer to given object as its argument.
+///
+/// The callback is only executed if the object referenced by the shared pointer is not expired, otherwise it
+/// is ignored.
 template <typename Type, typename TFunctor>
 void executeOnMainThread(const SharedPtr<Type>& ptr, TFunctor functor) {
     executeOnMainThread([ weakPtr = WeakPtr<Type>(ptr), f = std::move(functor) ] {

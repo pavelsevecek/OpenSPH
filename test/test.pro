@@ -74,6 +74,7 @@ SOURCES += \
     ../lib/objects/wrappers/test/ClonePtr.cpp \
     ../lib/objects/wrappers/test/Expected.cpp \
     ../lib/objects/wrappers/test/Finally.cpp \
+    ../lib/objects/wrappers/test/Function.cpp \
     ../lib/objects/wrappers/test/Flags.cpp \
     ../lib/objects/wrappers/test/Iterators.cpp \
     ../lib/objects/wrappers/test/LockingPtr.cpp \

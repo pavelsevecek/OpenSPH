@@ -26,17 +26,18 @@ enum class TimerUnit { SECOND, MILLISECOND, MICROSECOND, NANOSECOND };
 /// Basic time-measuring tool. Starts automatically when constructed.
 class Timer {
 protected:
-    using TimePoint = std::chrono::time_point<std::chrono::system_clock>;
     using Clock = std::chrono::system_clock;
+    using TimePoint = std::chrono::time_point<Clock>;
 
     TimePoint started;
     int64_t interval;
     Flags<TimerFlags> flags;
 
 public:
-    /// Creates timer with given expiration duration. Flag \ref TimerFlags::PERIODIC does not do anything in
-    /// this case, user must check for expiration and possibly restart timer, this isn't provided by timer
-    /// constructed this way.
+    /// \brief Creates timer with given expiration duration.
+    ///
+    /// Flag \ref TimerFlags::PERIODIC does not do anything in this case, user must check for expiration and
+    /// possibly restart timer, this isn't provided by timer constructed this way.
     /// \param interval Timer interval in milliseconds. It isn't currently possible to create interval in
     ///                 different units.
     /// \param flags Optional parameters of the timer, see \ref TimerFlags.
@@ -58,8 +59,10 @@ public:
     }
 };
 
-/// Creates timer with given interval and callback when time interval is finished. The callback is executed
-/// only once by default, or periodically if \ref TimerFlags::PERIODIC flag is passed.
+/// \brief Creates timer with given interval and callback when time interval is finished.
+///
+/// The callback is executed only once by default, or periodically if \ref TimerFlags::PERIODIC flag is
+/// passed. If the timer is destroyed before the interval passes, no callback is called.
 SharedPtr<Timer> makeTimer(const int64_t interval,
     const std::function<void(void)>& callback,
     const Flags<TimerFlags> flags = EMPTY_FLAGS);
