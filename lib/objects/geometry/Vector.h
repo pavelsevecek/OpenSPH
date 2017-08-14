@@ -6,7 +6,7 @@
 /// \date 2016-2017
 
 #include "common/Globals.h"
-#include "geometry/Generic.h"
+#include "objects/geometry/Generic.h"
 #include "objects/containers/Tuple.h"
 #include "objects/wrappers/Range.h"
 #include <immintrin.h>

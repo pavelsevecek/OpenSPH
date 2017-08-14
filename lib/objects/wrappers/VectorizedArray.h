@@ -1,6 +1,6 @@
 #pragma once
 
-#include "geometry/Vector.h"
+#include "objects/geometry/Vector.h"
 #include "objects/containers/Array.h"
 #include "objects/wrappers/AlignedStorage.h"
 

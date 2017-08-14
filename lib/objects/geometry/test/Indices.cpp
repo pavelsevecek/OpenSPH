@@ -1,4 +1,4 @@
-#include "geometry/Indices.h"
+#include "objects/geometry/Indices.h"
 #include "catch.hpp"
 #include "utils/Utils.h"
 

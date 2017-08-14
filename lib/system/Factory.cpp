@@ -1,5 +1,5 @@
 #include "system/Factory.h"
-#include "geometry/Domain.h"
+#include "objects/geometry/Domain.h"
 #include "gravity/BarnesHut.h"
 #include "gravity/BruteForceGravity.h"
 #include "gravity/VoxelGravity.h"

@@ -1,5 +1,5 @@
 #include "gravity/BarnesHut.h"
-#include "geometry/Sphere.h"
+#include "objects/geometry/Sphere.h"
 #include "gravity/Moments.h"
 #include "objects/containers/ArrayUtils.h"
 #include "physics/Constants.h"

@@ -1,4 +1,4 @@
-#include "geometry/SymmetricTensor.h"
+#include "objects/geometry/SymmetricTensor.h"
 #include "catch.hpp"
 #include "objects/containers/Array.h"
 #include "tests/Approx.h"

@@ -1,5 +1,5 @@
 #include "math/Morton.h"
-#include "geometry/Box.h"
+#include "objects/geometry/Box.h"
 
 NAMESPACE_SPH_BEGIN
 

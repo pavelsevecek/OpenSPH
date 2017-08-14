@@ -1,5 +1,5 @@
 #include "gui/rotation/Rotation.h"
-#include "geometry/Domain.h"
+#include "objects/geometry/Domain.h"
 #include "gui/GuiCallbacks.h"
 #include "gui/Settings.h"
 #include "io/Column.h"

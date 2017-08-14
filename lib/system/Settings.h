@@ -5,7 +5,7 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2017
 
-#include "geometry/TracelessTensor.h"
+#include "objects/geometry/TracelessTensor.h"
 #include "objects/wrappers/AutoPtr.h"
 #include "objects/wrappers/Flags.h"
 #include "objects/wrappers/Outcome.h"

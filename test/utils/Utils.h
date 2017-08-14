@@ -6,7 +6,7 @@
 /// \date 2016-2017
 
 #include "catch.hpp"
-#include "geometry/Vector.h"
+#include "objects/geometry/Vector.h"
 #include "io/Logger.h"
 #include "math/rng/Rng.h"
 

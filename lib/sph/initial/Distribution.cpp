@@ -1,5 +1,5 @@
 #include "sph/initial/Distribution.h"
-#include "geometry/Domain.h"
+#include "objects/geometry/Domain.h"
 #include "math/Integrator.h"
 #include "math/Morton.h"
 #include "math/rng/VectorRng.h"

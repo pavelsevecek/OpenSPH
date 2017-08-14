@@ -1,6 +1,6 @@
 #pragma once
 
-#include "geometry/Box.h"
+#include "objects/geometry/Box.h"
 #include "objects/finders/AbstractFinder.h"
 #include "objects/wrappers/Iterators.h"
 #include <algorithm>

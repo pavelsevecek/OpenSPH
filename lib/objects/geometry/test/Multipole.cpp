@@ -1,4 +1,4 @@
-#include "geometry/Multipole.h"
+#include "objects/geometry/Multipole.h"
 #include "catch.hpp"
 #include "utils/Utils.h"
 

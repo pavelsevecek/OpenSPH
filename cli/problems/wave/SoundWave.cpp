@@ -1,5 +1,5 @@
 #include "catch.hpp"
-#include "geometry/Domain.h"
+#include "objects/geometry/Domain.h"
 #include "io/Logger.h"
 #include "io/Output.h"
 #include "run/Run.h"

@@ -1,6 +1,6 @@
 #include "sph/initial/Distribution.h"
 #include "catch.hpp"
-#include "geometry/Domain.h"
+#include "objects/geometry/Domain.h"
 #include "io/Output.h"
 #include "objects/containers/ArrayUtils.h"
 #include "objects/finders/AbstractFinder.h"

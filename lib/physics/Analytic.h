@@ -5,7 +5,7 @@
 /// \author Pavel Sevecek
 /// \date 2016-2017
 
-#include "geometry/Vector.h"
+#include "objects/geometry/Vector.h"
 #include "physics/Constants.h"
 
 NAMESPACE_SPH_BEGIN

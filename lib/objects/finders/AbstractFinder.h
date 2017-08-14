@@ -5,7 +5,7 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2017
 
-#include "geometry/Vector.h"
+#include "objects/geometry/Vector.h"
 #include "objects/containers/ArrayView.h"
 #include "objects/finders/Order.h"
 #include "objects/wrappers/Flags.h"

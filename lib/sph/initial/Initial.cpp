@@ -1,5 +1,5 @@
 #include "sph/initial/Initial.h"
-#include "geometry/Domain.h"
+#include "objects/geometry/Domain.h"
 #include "math/rng/Rng.h"
 #include "physics/Eos.h"
 #include "physics/Integrals.h"

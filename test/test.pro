@@ -37,16 +37,16 @@ PRE_TARGETDEPS += ../lib/liblib.a
 
 SOURCES += \
     main.cpp \
-    ../lib/geometry/test/AntisymmetricTensor.cpp \
-    ../lib/geometry/test/Box.cpp \
-    ../lib/geometry/test/Domain.cpp \
-    ../lib/geometry/test/Indices.cpp \
-    ../lib/geometry/test/Multipole.cpp \
-    ../lib/geometry/test/SymmetricTensor.cpp \
-    ../lib/geometry/test/Tensor.cpp \
-    ../lib/geometry/test/TracelessTensor.cpp \
-    ../lib/geometry/test/Vector.cpp \
-    ../lib/geometry/test/Sphere.cpp \
+    ../lib/objects/geometry/test/AntisymmetricTensor.cpp \
+    ../lib/objects/geometry/test/Box.cpp \
+    ../lib/objects/geometry/test/Domain.cpp \
+    ../lib/objects/geometry/test/Indices.cpp \
+    ../lib/objects/geometry/test/Multipole.cpp \
+    ../lib/objects/geometry/test/SymmetricTensor.cpp \
+    ../lib/objects/geometry/test/Tensor.cpp \
+    ../lib/objects/geometry/test/TracelessTensor.cpp \
+    ../lib/objects/geometry/test/Vector.cpp \
+    ../lib/objects/geometry/test/Sphere.cpp \
     ../lib/io/test/FileSystem.cpp \
     ../lib/io/test/Logger.cpp \
     ../lib/io/test/Output.cpp \

@@ -1,4 +1,4 @@
-#include "geometry/Domain.h"
+#include "objects/geometry/Domain.h"
 
 NAMESPACE_SPH_BEGIN
 

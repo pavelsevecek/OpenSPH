@@ -1,4 +1,4 @@
-#include "geometry/Vector.h"
+#include "objects/geometry/Vector.h"
 #include "catch.hpp"
 #include "tests/Approx.h"
 #include "utils/Utils.h"

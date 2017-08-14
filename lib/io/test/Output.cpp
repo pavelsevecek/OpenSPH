@@ -1,6 +1,6 @@
 #include "io/Output.h"
 #include "catch.hpp"
-#include "geometry/Domain.h"
+#include "objects/geometry/Domain.h"
 #include "io/Column.h"
 #include "io/FileSystem.h"
 #include "objects/containers/PerElementWrapper.h"

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "geometry/Box.h"
-#include "geometry/Multipole.h"
+#include "objects/geometry/Box.h"
+#include "objects/geometry/Multipole.h"
 #include "objects/finders/AbstractFinder.h"
 
 NAMESPACE_SPH_BEGIN

@@ -5,7 +5,7 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2017
 
-#include "geometry/Domain.h"
+#include "objects/geometry/Domain.h"
 #include "sph/solvers/GenericSolver.h"
 
 NAMESPACE_SPH_BEGIN

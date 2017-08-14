@@ -4,7 +4,7 @@
 /// Pavel Sevecek 2015
 /// sevecek at sirrah.troja.mff.cuni.cz
 
-#include "geometry/Domain.h"
+#include "objects/geometry/Domain.h"
 #include "math/rng/Rng.h"
 
 NAMESPACE_SPH_BEGIN

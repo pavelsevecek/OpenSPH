@@ -1,4 +1,4 @@
-#include "geometry/Domain.h"
+#include "objects/geometry/Domain.h"
 #include "catch.hpp"
 #include "tests/Approx.h"
 #include "utils/Utils.h"

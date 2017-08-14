@@ -1,4 +1,4 @@
-#include "geometry/SymmetricTensor.h"
+#include "objects/geometry/SymmetricTensor.h"
 
 NAMESPACE_SPH_BEGIN
 

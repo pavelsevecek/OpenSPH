@@ -6,7 +6,7 @@
 /// \date 2016-2017
 
 #include "common/ForwardDecl.h"
-#include "geometry/Vector.h"
+#include "objects/geometry/Vector.h"
 #include "objects/containers/Array.h"
 #include "objects/wrappers/SharedPtr.h"
 

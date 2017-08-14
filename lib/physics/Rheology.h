@@ -6,7 +6,7 @@
 /// \date 2016-2017
 
 #include "common/ForwardDecl.h"
-#include "geometry/TracelessTensor.h"
+#include "objects/geometry/TracelessTensor.h"
 #include "objects/containers/Array.h"
 #include "objects/wrappers/AutoPtr.h"
 

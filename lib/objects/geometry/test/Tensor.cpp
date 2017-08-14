@@ -1,4 +1,4 @@
-#include "geometry/Tensor.h"
+#include "objects/geometry/Tensor.h"
 #include "catch.hpp"
 #include "tests/Approx.h"
 #include "utils/Utils.h"

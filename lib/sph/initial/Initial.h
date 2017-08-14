@@ -6,7 +6,7 @@
 /// \date 2016-2017
 
 #include "common/ForwardDecl.h"
-#include "geometry/Vector.h"
+#include "objects/geometry/Vector.h"
 #include "objects/containers/ArrayView.h"
 #include "objects/wrappers/AutoPtr.h"
 #include "quantities/AbstractMaterial.h"

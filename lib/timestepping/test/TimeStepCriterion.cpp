@@ -1,6 +1,6 @@
 #include "timestepping/TimeStepCriterion.h"
 #include "catch.hpp"
-#include "geometry/Domain.h"
+#include "objects/geometry/Domain.h"
 #include "quantities/AbstractMaterial.h"
 #include "quantities/Storage.h"
 #include "sph/Material.h"

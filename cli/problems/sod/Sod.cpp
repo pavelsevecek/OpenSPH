@@ -1,5 +1,5 @@
 #include "catch.hpp"
-#include "geometry/Domain.h"
+#include "objects/geometry/Domain.h"
 #include "io/Output.h"
 #include "physics/Eos.h"
 #include "physics/Rheology.h"

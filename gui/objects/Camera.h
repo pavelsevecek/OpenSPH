@@ -5,7 +5,7 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mf.cuni.cz)
 /// \date 2016-2017
 
-#include "geometry/Tensor.h"
+#include "objects/geometry/Tensor.h"
 #include "gui/objects/Point.h"
 #include "objects/wrappers/Optional.h"
 

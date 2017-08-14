@@ -1,5 +1,5 @@
 #include "catch.hpp"
-#include "geometry/Domain.h"
+#include "objects/geometry/Domain.h"
 #include "objects/containers/ArrayUtils.h"
 #include "objects/wrappers/Range.h"
 #include "physics/Constants.h"

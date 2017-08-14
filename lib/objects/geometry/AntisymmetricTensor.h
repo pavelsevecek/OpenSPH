@@ -6,7 +6,7 @@
 /// \date 2016-2017
 
 
-#include "geometry/SymmetricTensor.h"
+#include "objects/geometry/SymmetricTensor.h"
 #include "objects/containers/StaticArray.h"
 
 NAMESPACE_SPH_BEGIN

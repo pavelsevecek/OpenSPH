@@ -37,8 +37,8 @@ CONFIG(debug, debug|profile|assert|release) {
 
 SOURCES += \
     common/Assert.cpp \
-    geometry/Domain.cpp \
-    geometry/SymmetricTensor.cpp \
+    objects/geometry/Domain.cpp \
+    objects/geometry/SymmetricTensor.cpp \
     io/FileSystem.cpp \
     io/Logger.cpp \
     io/Output.cpp \
@@ -91,16 +91,16 @@ HEADERS += \
     common/ForwardDecl.h \
     common/Globals.h \
     common/Traits.h \
-    geometry/AntisymmetricTensor.h \
-    geometry/Box.h \
-    geometry/Domain.h \
-    geometry/Generic.h \
-    geometry/Indices.h \
-    geometry/Multipole.h \
-    geometry/SymmetricTensor.h \
-    geometry/Tensor.h \
-    geometry/TracelessTensor.h \
-    geometry/Vector.h \
+    objects/geometry/AntisymmetricTensor.h \
+    objects/geometry/Box.h \
+    objects/geometry/Domagin.h \
+    objects/geometry/Generic.h \
+    objects/geometry/Indices.h \
+    objects/geometry/Multipole.h \
+    objects/geometry/SymmetricTensor.h \
+    objects/geometry/Tensor.h \
+    objects/geometry/TracelessTensor.h \
+    objects/geometry/Vector.h \
     gravity/BarnesHut.h \
     io/Column.h \
     io/FileSystem.h \
@@ -233,7 +233,7 @@ HEADERS += \
     objects/finders/BruteForceFinder.h \
     objects/wrappers/RawPtr.h \
     gravity/VoxelGravity.h \
-    geometry/Sphere.h \
+    objects/objects/geometry/Sphere.h \
     objects/containers/List.h \
     tests/Approx.h \
     system/Process.h

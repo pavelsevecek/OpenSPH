@@ -1,6 +1,6 @@
 #include "sph/initial/Initial.h"
 #include "catch.hpp"
-#include "geometry/Domain.h"
+#include "objects/geometry/Domain.h"
 #include "objects/containers/ArrayUtils.h"
 #include "quantities/Iterate.h"
 #include "quantities/Storage.h"

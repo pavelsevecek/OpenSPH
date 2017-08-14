@@ -1,5 +1,5 @@
 #include "sph/boundary/Boundary.h"
-#include "geometry/Domain.h"
+#include "objects/geometry/Domain.h"
 #include "objects/wrappers/Iterators.h"
 #include "quantities/Iterate.h"
 #include "sph/kernel/KernelFactory.h"

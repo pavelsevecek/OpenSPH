@@ -1,6 +1,6 @@
 #include "post/MarchingCubes.h"
 #include "catch.hpp"
-#include "geometry/Domain.h"
+#include "objects/geometry/Domain.h"
 #include "post/MeshFile.h"
 #include "quantities/Storage.h"
 #include "sph/initial/Initial.h"

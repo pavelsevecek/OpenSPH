@@ -1,5 +1,5 @@
 #include "tests/Setup.h"
-#include "geometry/Domain.h"
+#include "objects/geometry/Domain.h"
 #include "physics/Eos.h"
 #include "physics/Rheology.h"
 #include "sph/initial/Distribution.h"

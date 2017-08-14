@@ -6,7 +6,7 @@
 /// \date 2016-2017
 
 #include "common/Assert.h"
-#include "geometry/TracelessTensor.h"
+#include "objects/geometry/TracelessTensor.h"
 #include "objects/containers/Array.h"
 #include "objects/containers/PerElementWrapper.h"
 #include "objects/wrappers/Variant.h"

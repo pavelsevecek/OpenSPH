@@ -1,6 +1,6 @@
 #pragma once
 
-#include "geometry/Box.h"
+#include "objects/geometry/Box.h"
 #include "objects/containers/Array.h"
 #include "objects/wrappers/SharedPtr.h"
 

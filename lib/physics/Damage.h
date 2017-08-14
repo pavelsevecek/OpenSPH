@@ -6,8 +6,8 @@
 /// \date 2016-2017
 
 #include "common/ForwardDecl.h"
-#include "geometry/TracelessTensor.h"
-#include "geometry/Vector.h"
+#include "objects/geometry/TracelessTensor.h"
+#include "objects/geometry/Vector.h"
 #include "objects/containers/ArrayView.h"
 #include "objects/wrappers/Flags.h"
 

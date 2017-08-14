@@ -1,6 +1,6 @@
 #include "math/rng/VectorRng.h"
 #include "catch.hpp"
-#include "geometry/Box.h"
+#include "objects/geometry/Box.h"
 #include "math/Math.h"
 #include "tests/Approx.h"
 

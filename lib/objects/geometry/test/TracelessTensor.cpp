@@ -1,4 +1,4 @@
-#include "geometry/TracelessTensor.h"
+#include "objects/geometry/TracelessTensor.h"
 #include "catch.hpp"
 #include "objects/containers/Array.h"
 #include "utils/Utils.h"

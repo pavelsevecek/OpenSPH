@@ -1,4 +1,4 @@
-#include "geometry/AntisymmetricTensor.h"
+#include "objects/geometry/AntisymmetricTensor.h"
 #include "catch.hpp"
 #include "objects/containers/Array.h"
 #include "tests/Approx.h"

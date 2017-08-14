@@ -1,6 +1,6 @@
 #pragma once
 
-#include "geometry/Vector.h"
+#include "objects/geometry/Vector.h"
 #include "objects/containers/StaticArray.h"
 
 NAMESPACE_SPH_BEGIN

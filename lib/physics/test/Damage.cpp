@@ -1,6 +1,6 @@
 #include "physics/Damage.h"
 #include "catch.hpp"
-#include "geometry/Domain.h"
+#include "objects/geometry/Domain.h"
 #include "math/rng/Rng.h"
 #include "objects/containers/ArrayUtils.h"
 #include "physics/Rheology.h"

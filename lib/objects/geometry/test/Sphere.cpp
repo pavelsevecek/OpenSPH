@@ -1,4 +1,4 @@
-#include "geometry/Sphere.h"
+#include "objects/geometry/Sphere.h"
 #include "catch.hpp"
 #include "utils/Utils.h"
 

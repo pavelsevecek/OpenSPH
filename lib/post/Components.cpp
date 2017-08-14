@@ -1,5 +1,5 @@
 #include "post/Components.h"
-#include "geometry/Box.h"
+#include "objects/geometry/Box.h"
 #include "post/MarchingCubes.h"
 #include "quantities/Storage.h"
 #include "sph/kernel/KernelFactory.h"

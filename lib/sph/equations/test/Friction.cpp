@@ -1,6 +1,6 @@
 #include "sph/equations/Friction.h"
 #include "catch.hpp"
-#include "geometry/Domain.h"
+#include "objects/geometry/Domain.h"
 #include "sph/initial/Initial.h"
 #include "sph/solvers/GenericSolver.h"
 #include "tests/Approx.h"

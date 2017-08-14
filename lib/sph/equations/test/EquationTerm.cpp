@@ -1,6 +1,6 @@
 #include "sph/equations/EquationTerm.h"
 #include "catch.hpp"
-#include "geometry/Domain.h"
+#include "objects/geometry/Domain.h"
 #include "objects/containers/PerElementWrapper.h"
 #include "objects/finders/Voxel.h"
 #include "sph/equations/av/Standard.h"

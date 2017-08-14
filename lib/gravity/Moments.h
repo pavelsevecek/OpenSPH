@@ -1,6 +1,6 @@
 #pragma once
 
-#include "geometry/Multipole.h"
+#include "objects/geometry/Multipole.h"
 #include "objects/finders/KdTree.h"
 
 NAMESPACE_SPH_BEGIN

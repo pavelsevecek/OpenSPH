@@ -5,8 +5,8 @@
 /// \author Pavel Sevecek (seevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2017
 
-#include "geometry/Box.h"
-#include "geometry/Vector.h"
+#include "objects/geometry/Box.h"
+#include "objects/geometry/Vector.h"
 #include "objects/containers/Array.h"
 
 NAMESPACE_SPH_BEGIN
