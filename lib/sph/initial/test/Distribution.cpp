@@ -1,9 +1,9 @@
 #include "sph/initial/Distribution.h"
 #include "catch.hpp"
-#include "objects/geometry/Domain.h"
 #include "io/Output.h"
 #include "objects/containers/ArrayUtils.h"
 #include "objects/finders/AbstractFinder.h"
+#include "objects/geometry/Domain.h"
 #include "system/ArrayStats.h"
 #include "system/Factory.h"
 #include "tests/Approx.h"
@@ -148,9 +148,9 @@ TEST_CASE("RandomDistribution", "[initial]") {
     // 100 points inside block [0,1]^d, approx. distance is 100^(-1/d)
 }
 
-TEST_CASE("DiehlEtAlDistribution", "[initial]") {
+TEST_CASE("DiehlDistribution", "[initial]") {
     // Diehl et al. (2012) algorithm, using uniform particle density
-    DiehlEtAlDistribution diehl([](const Vector&) { return 1._f; });
+    DiehlDistribution diehl([](const Vector&) { return 1._f; });
 
     // Array<Vector> r = diehl.generate(1000, SphericalDomain(Vector(0._f), 1._f));
 

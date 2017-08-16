@@ -11,6 +11,7 @@
 
 NAMESPACE_SPH_BEGIN
 
+/// \brief Sparse representation of square matrix of arbitrary dimension
 class SparseMatrix {
 private:
     class Impl;
@@ -27,8 +28,9 @@ public:
     /// Changes the size of the matrix, removing all previous entries.
     void resize(const Size n);
 
-    /// Adds a values to given element of the matrix. If there is already a nonzero element, both values are
-    /// summed up.
+    /// \brief Adds a values to given element of the matrix.
+    ///
+    /// If there is already a nonzero element, both values are summed up.
     void insert(const Size i, const Size j, const Float value);
 
     /// Solvers of sparse systems
@@ -51,6 +53,7 @@ public:
     /// \param values Array of values b. The size of the array must be the same as the size of the matrix.
     /// \param solver Solver used to solve the system of equations
     /// \param tolerance Threshold used by the stopping criterion, only used by iterative solvers.
+    /// \return Solution vector or error message
     Expected<Array<Float>> solve(const Array<Float>& values, const Solver solver, const Float tolerance = 0.);
 };
 

@@ -40,8 +40,10 @@ namespace Abstract {
         ///                    storage is resized accordingly.
         virtual void accumulate(Storage& storage, const Value value, const Size particleIdx) const = 0;
 
+        /// Returns a name of the column. The name is printed in the header of the output file.
         virtual std::string getName() const = 0;
 
+        /// Returns the value type of the column.
         virtual ValueEnum getType() const = 0;
     };
 }
@@ -64,6 +66,10 @@ public:
     }
 
     virtual void accumulate(Storage& storage, const Value value, const Size particleIdx) const override {
+        if (!storage.has(id)) {
+            // lazy initialization
+            storage.insert<TValue>(id, OrderEnum::ZERO, TValue(0._f));
+        }
         Array<TValue>& array = storage.getValue<TValue>(id);
         array.resize(particleIdx + 1); /// \todo must also resize derivaties, or avoid resizing
         array[particleIdx] = value.get<TValue>();
@@ -97,6 +103,10 @@ public:
     }
 
     virtual void accumulate(Storage& storage, const Value value, const Size particleIdx) const override {
+        if (!storage.has<TValue>(id, OrderEnum::FIRST)) {
+            // lazy initialization
+            storage.insert<TValue>(id, OrderEnum::FIRST, TValue(0._f));
+        }
         Array<TValue>& array = storage.getDt<TValue>(id);
         array.resize(particleIdx + 1);
         array[particleIdx] = value.get<TValue>();
@@ -130,6 +140,10 @@ public:
     }
 
     virtual void accumulate(Storage& storage, const Value value, const Size particleIdx) const override {
+        if (!storage.has<TValue>(id, OrderEnum::SECOND)) {
+            // lazy initialization
+            storage.insert<TValue>(id, OrderEnum::SECOND, TValue(0._f));
+        }
         Array<TValue>& array = storage.getD2t<TValue>(id);
         array.resize(particleIdx + 1);
         array[particleIdx] = value.get<TValue>();
@@ -155,6 +169,10 @@ public:
     }
 
     virtual void accumulate(Storage& storage, const Value value, const Size particleIdx) const override {
+        if (!storage.has(QuantityId::POSITIONS)) {
+            // lazy initialization
+            storage.insert<Vector>(QuantityId::POSITIONS, OrderEnum::SECOND, Vector(0._f));
+        }
         Array<Vector>& array = storage.getValue<Vector>(QuantityId::POSITIONS);
         array.resize(particleIdx + 1);
         array[particleIdx][H] = value.get<Float>();

@@ -5,8 +5,8 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2017
 
-#include "objects/geometry/Box.h"
 #include "objects/containers/Array.h"
+#include "objects/geometry/Box.h"
 #include "objects/wrappers/Flags.h"
 
 NAMESPACE_SPH_BEGIN
@@ -69,7 +69,7 @@ private:
 /// \brief Distribution with given particle density.
 ///
 /// Particles are placed using algorithm by Diehl et al. (2012) \cite Diehl_2012
-class DiehlEtAlDistribution : public Abstract::Distribution {
+class DiehlDistribution : public Abstract::Distribution {
 private:
     using DensityFunc = std::function<Float(const Vector& position)>;
     DensityFunc particleDensity;
@@ -91,7 +91,7 @@ public:
     ///                final locations. Larger values mean faster convergence but less stable particle grid.
     /// \param small Normalization value to prevent division by zero for overlapping particles. Keep default,
     ///              only for testing.
-    DiehlEtAlDistribution(const DensityFunc& particleDensity,
+    DiehlDistribution(const DensityFunc& particleDensity,
         const Float error = 10,
         const Size numOfIters = 50,
         const Float strenth = 0.1_f,

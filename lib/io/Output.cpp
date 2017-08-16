@@ -88,21 +88,66 @@ Path TextOutput::dump(Storage& storage, const Statistics& stats) {
 }
 
 Outcome TextOutput::load(const Path& path, Storage& storage) {
-    std::ifstream ifs(path.native());
-    std::string line;
-    storage.removeAll();
-    Size i = 0;
-    while (std::getline(ifs, line)) {
-        if (line[0] == '#') { // comment
-            continue;
+    try {
+        std::ifstream ifs(path.native());
+        if (!ifs) {
+            return "Failed to open the file";
         }
-        std::stringstream ss(line);
-        for (auto& column : columns) {
-            column->accumulate(storage, 5._f, i);
+        std::string line;
+        storage.removeAll();
+        // storage currently requires at least one quantity for insertion by value
+        Quantity& flags = storage.insert<Size>(QuantityId::FLAG, OrderEnum::ZERO, Array<Size>{ 0 });
+
+        Size particleCnt = 0;
+        while (std::getline(ifs, line)) {
+            if (line[0] == '#') { // comment
+                continue;
+            }
+            std::stringstream ss(line);
+            for (auto& column : columns) {
+                Value value;
+                switch (column->getType()) {
+                /// \todo de-duplicate the loading (used in Settings)
+                case ValueEnum::INDEX: {
+                    Size i;
+                    ss >> i;
+                    value = i;
+                    break;
+                }
+                case ValueEnum::SCALAR: {
+                    Float f;
+                    ss >> f;
+                    value = f;
+                    break;
+                }
+                case ValueEnum::VECTOR: {
+                    Vector v;
+                    ss >> v[X] >> v[Y] >> v[Z];
+                    value = v;
+                    break;
+                }
+                default:
+                    NOT_IMPLEMENTED;
+                }
+                column->accumulate(storage, value, particleCnt);
+            }
+            particleCnt++;
         }
-        i++;
+        ifs.close();
+
+        // resize the flag quantity to make the storage consistent
+        for (Array<Size>& buffer : flags.getAll<Size>()) {
+            buffer.resize(particleCnt);
+        }
+
+        // sanity chek
+        if (storage.getParticleCnt() != particleCnt || !storage.isValid()) {
+            return "Loaded storage is not valid";
+        }
+
+    } catch (std::exception& e) {
+        return e.what();
     }
-    ifs.close();
     return SUCCESS;
 }
 
@@ -460,7 +505,7 @@ Outcome BinaryOutput::load(const Path& path, Storage& storage) {
 PkdgravOutput::PkdgravOutput(const Path& fileMask, PkdgravParams&& params)
     : Abstract::Output(fileMask)
     , params(std::move(params)) {
-    ASSERT(almostEqual(conversion.velocity, 2.97853e4_f, 1.e-4_f));
+    ASSERT(almostEqual(this->params.conversion.velocity, 2.97853e4_f, 1.e-4_f));
 }
 
 Path PkdgravOutput::dump(Storage& storage, const Statistics& UNUSED(stats)) {
@@ -481,13 +526,14 @@ Path PkdgravOutput::dump(Storage& storage, const Statistics& UNUSED(stats)) {
             continue;
         }
         const Float radius = this->getRadius(r[idx][H], m[idx], rho[idx]);
+        const Vector v_in = v[idx] + cross(params.omega, r[idx]);
         ASSERT(flags[idx] < params.colors.size(), flags[idx], params.colors.size());
         ofs << std::setw(25) << idx <<                                   //
             std::setw(25) << idx <<                                      //
-            std::setw(25) << m[idx] / conversion.mass <<                 //
-            std::setw(25) << radius / conversion.distance <<             //
-            std::setw(25) << r[idx] / conversion.distance <<             //
-            std::setw(25) << v[idx] / conversion.velocity <<             //
+            std::setw(25) << m[idx] / params.conversion.mass <<          //
+            std::setw(25) << radius / params.conversion.distance <<      //
+            std::setw(25) << r[idx] / params.conversion.distance <<      //
+            std::setw(25) << v_in / params.conversion.velocity <<        //
             std::setw(25) << Vector(0._f) /* zero initial rotation */ << //
             std::setw(25) << params.colors[flags[idx]] << std::endl;
         idx++;

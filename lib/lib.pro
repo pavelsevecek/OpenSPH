@@ -6,6 +6,9 @@ CONFIG -= app_bundle qt
 INCLUDEPATH += /usr/include/eigen3
 DEFINES += SPH_USE_EIGEN
 
+#QMAKE_CXX = mpic++
+#QMAKE_LINK = mpic++
+
 QMAKE_CXXFLAGS += -Wall -Wextra -Werror -msse4.1 -std=c++14 -pthread
 #QMAKE_CXXFLAGS_RELEASE -= -O2
 #QMAKE_CXXFLAGS_RELEASE += -Os
@@ -54,7 +57,6 @@ SOURCES += \
     physics/Integrals.cpp \
     physics/Rheology.cpp \
     physics/TimeFormat.cpp \
-    post/Components.cpp \
     quantities/QuantityIds.cpp \
     quantities/Storage.cpp \
     run/Run.cpp \
@@ -81,7 +83,9 @@ SOURCES += \
     gravity/BarnesHut.cpp \
     thread/Pool.cpp \
     gravity/VoxelGravity.cpp \
-    system/Process.cpp
+    system/Process.cpp \
+    mpi/Mpi.cpp \
+    post/Analysis.cpp
 
 HEADERS += \
     commmon/ForwardDecl.h \
@@ -163,7 +167,6 @@ HEADERS += \
     physics/Integrals.h \
     physics/Rheology.h \
     physics/TimeFormat.h \
-    post/Components.h \
     post/Plot.h \
     quantities/AbstractMaterial.h \
     quantities/Iterate.h \
@@ -237,4 +240,8 @@ HEADERS += \
     objects/containers/List.h \
     tests/Approx.h \
     system/Process.h \
-    objects/wrappers/Function.h
+    objects/wrappers/Function.h \
+    mpi/ProcessPool.h \
+    mpi/Serializable.h \
+    mpi/Mpi.h \
+    post/Analysis.h

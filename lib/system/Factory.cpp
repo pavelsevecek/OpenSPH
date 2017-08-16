@@ -161,7 +161,7 @@ AutoPtr<Abstract::Distribution> Factory::getDistribution(const BodySettings& set
     case DistributionEnum::RANDOM:
         return makeAuto<RandomDistribution>();
     case DistributionEnum::DIEHL_ET_AL:
-        return makeAuto<DiehlEtAlDistribution>([](const Vector&) { return 1._f; });
+        return makeAuto<DiehlDistribution>([](const Vector&) { return 1._f; });
     case DistributionEnum::LINEAR:
         return makeAuto<LinearDistribution>();
     default:

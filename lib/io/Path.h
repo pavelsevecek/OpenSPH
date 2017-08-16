@@ -28,7 +28,7 @@ public:
     explicit Path(const std::string& path);
 
 
-    /// \section Path queries
+    /// \defgroup queries Path queries
 
     /// Checks if the path is empty
     bool empty() const;
@@ -50,7 +50,7 @@ public:
     bool hasExtension() const;
 
 
-    /// \section Parts of the path
+    /// \defgroup parts Parts of the path
 
     /// Returns the parent directory. If the path is empty or root, return empty path.
     Path parentPath() const;
@@ -69,16 +69,18 @@ public:
     Path extension() const;
 
 
-    /// \section Format observers
+    /// \defgroup observers Format observers
 
     /// Returns the native version of the path
     std::string native() const;
 
 
-    /// \section Path modifiers
+    /// \defgroup modifiers Path modifiers
 
-    /// Changes the extension of the file. If the file has no extension, adds the given extension. For files
-    /// with more than one extensions (.tar.gz, etc.), removes all extensions and adds the new one.
+    /// \brief Changes the extension of the file.
+    ///
+    /// If the file has no extension, adds the given extension. For files with more than one extensions
+    /// (.tar.gz, etc.), removes all extensions and adds the new one.
     /// \return Reference to itself, allowing to chain function calls
     Path& replaceExtension(const std::string& newExtension);
 
@@ -95,13 +97,13 @@ public:
     Path& makeRelative();
 
 
-    /// \section Static functions
+    /// \defgroup static Static functions
 
     /// Returns the current working directory, or empty path if the function failed.
     static Path currentPath();
 
 
-    /// \section Operators
+    /// \defgroup operators Operators
 
     /// Appends two paths together.
     Path operator/(const Path& other) const;
@@ -109,9 +111,14 @@ public:
     /// Appends another path to this one.
     Path& operator/=(const Path& other);
 
-    /// Checks if two objects represent the same path. Note that this does not check for the actual file, so
-    /// relative and absolute path to the same file are considered different, it ignores symlinks etc.
+    /// \brief Checks if two objects represent the same path.
+    ///
+    /// Note that this does not check for the actual file, so relative and absolute path to the same file are
+    /// considered different, it ignores symlinks etc.
     bool operator==(const Path& other) const;
+
+    /// \brief Checks if two objects represent different paths.
+    bool operator!=(const Path& other) const;
 
     /// Prints the path into the stream
     friend std::ostream& operator<<(std::ostream& stream, const Path& path);

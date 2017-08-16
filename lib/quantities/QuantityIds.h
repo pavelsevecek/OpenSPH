@@ -44,10 +44,12 @@ enum class QuantityId {
     STRESS_REDUCING,     ///< Total stress reduction factor due to damage and yielding. Is always scalar.
     ///@}
 
-    /// \name Gravity
+    /// \name N-body & Solid sphere physics
     ///@{
     GRAVITY_POTENTIAL, ///< Gravitational potential; not needed for solution, but needs to be included to the
                        /// total energy of the system, otherwise the energy will not be conserved.
+    ANGULAR_VELOCITY,  ///< Angular velocity of particles (spheres). Note that SPH particles have no angular
+                       /// velocity.
     ///@}
 
     /// \name Stress-strain analysis

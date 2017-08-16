@@ -5,8 +5,8 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2017
 
-#include "objects/geometry/Indices.h"
 #include "objects/containers/Array.h"
+#include "objects/geometry/Indices.h"
 #include "objects/wrappers/Iterators.h"
 #include <algorithm>
 
@@ -44,10 +44,10 @@ public:
         return *this;
     }
 
-    /// Shuffle order by given comparator
-    template <typename TComparator>
-    void shuffle(TComparator&& comparator) {
-        std::sort(storage.begin(), storage.end(), std::forward<TComparator>(comparator));
+    /// Shuffle order by given binary predicate.
+    template <typename TBinaryPredicate>
+    void shuffle(TBinaryPredicate&& predicate) {
+        std::sort(storage.begin(), storage.end(), predicate);
     }
 
     /// Returns inverted order
@@ -64,7 +64,7 @@ public:
     }
 
     /// Compose two orders
-    Order operator()(const Order& other) const {
+    Order compose(const Order& other) const {
         Array<Size> composed(storage.size());
         for (Size i = 0; i < storage.size(); ++i) {
             composed[i] = storage[other[i]];

@@ -31,9 +31,4 @@ CONFIG(debug, debug|profile|assert|release) {
   message( "SPH MPI --- Building for Debug" )
   DEFINES += SPH_DEBUG SPH_PROFILE
 }
-SOURCES += main.cpp \
-    Mpi.cpp
-
-HEADERS += \
-    Mpi.h \
-    serializable.h
+SOURCES += main.cpp

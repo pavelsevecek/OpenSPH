@@ -88,6 +88,8 @@ QuantityMetadata getMetadata(const QuantityId key) {
         return QuantityMetadata("Grad-h terms", "Omega", ValueEnum::SCALAR);
     case QuantityId::GRAVITY_POTENTIAL:
         return QuantityMetadata("Grav. potential", "Phi", ValueEnum::SCALAR);
+    case QuantityId::ANGULAR_VELOCITY:
+        return QuantityMetadata("Angular velocity", "Omega", ValueEnum::VECTOR);
     case QuantityId::NEIGHBOUR_CNT:
         return QuantityMetadata("Neigh. cnt", "N_neigh", ValueEnum::INDEX);
     case QuantityId::SURFACE_NORMAL:

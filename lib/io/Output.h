@@ -214,6 +214,21 @@ struct PkdgravParams {
 
     Radius radius = Radius::FROM_DENSITY;
 
+    /// Conversion factors for pkdgrav
+    struct Conversion {
+
+        Float mass = Constants::M_sun;
+
+        Float distance = Constants::au;
+
+        Float velocity = Constants::au * 2._f * PI / (365.25_f * 86400._f);
+
+    } conversion;
+
+    /// Adds additional rotation of all particles around the origin. This can be used to convert a
+    /// non-intertial coordinate system used in the code to intertial system.
+    Vector omega = Vector(0._f);
+
     /// Threshold of internal energy; particles with higher energy are considered a vapor and
     /// we discard them in the output
     Float vaporThreshold = 1.e6_f;
@@ -224,26 +239,15 @@ struct PkdgravParams {
 };
 
 
-/// Dumps data into a file that can be used as an input for pkdgrav code by Richardson et al.
-/// \cite Richardson_etal_2000
+/// \brief Dumps data into a file that can be used as an input for pkdgrav code by Richardson et al.
 ///
 /// SPH particles are converted into hard spheres, moving with the velocity of the particle and no angular
 /// velocity. Quantities are converted into G=1 units.
+/// See \cite Richardson_etal_2000.
 class PkdgravOutput : public Abstract::Output {
 private:
     /// Parameters of the SPH->pkdgrav conversion
     PkdgravParams params;
-
-    /// conversion factors for pkdgrav
-    struct Conversion {
-
-        Float mass = Constants::M_sun;
-
-        Float distance = Constants::au;
-
-        Float velocity = Constants::au * 2._f * PI / (365.25_f * 86400._f);
-
-    } conversion;
 
 public:
     PkdgravOutput(const Path& fileMask, PkdgravParams&& params);

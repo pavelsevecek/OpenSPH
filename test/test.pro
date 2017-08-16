@@ -9,6 +9,7 @@ DEFINES += SPH_USE_EIGEN
 LIBS += ../lib/liblib.a
 
 
+
 CONFIG(release, debug|profile|assert|release) {
   message( "SPH TESTS --- Building for Release" )
 }
@@ -89,7 +90,6 @@ SOURCES += \
     ../lib/physics/test/Integrals.cpp \
     ../lib/physics/test/TimeFormat.cpp \
     ../lib/physics/test/Yielding.cpp \
-    ../lib/post/test/Components.cpp \
     ../lib/quantities/test/Iterate.cpp \
     ../lib/quantities/test/Material.cpp \
     ../lib/quantities/test/Quantity.cpp \
@@ -144,7 +144,8 @@ SOURCES += \
     ../lib/objects/finders/test/BruteForceFinder.cpp \
     ../lib/gravity/test/BruteForceGravity.cpp \
     ../lib/objects/containers/test/List.cpp \
-    ../lib/system/test/Process.cpp
+    ../lib/system/test/Process.cpp \
+    ../lib/post/test/Analysis.cpp
 
 HEADERS += \
     utils/Utils.h \

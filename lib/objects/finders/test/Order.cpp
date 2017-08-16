@@ -5,7 +5,7 @@
 using namespace Sph;
 
 
-TEST_CASE("Shuffle", "[order]") {
+TEST_CASE("Order shuffle", "[order]") {
     Order o(5);
     o.shuffle([](int i1, int i2) { return (i1 + 2) % 5 < (i2 + 2) % 5; });
     Array<int> expected = { 3, 4, 0, 1, 2 };
@@ -20,17 +20,17 @@ TEST_CASE("Shuffle", "[order]") {
     REQUIRE(inv.getInverted() == o);
 }
 
-TEST_CASE("Compose", "[order]") {
+TEST_CASE("Order compose", "[order]") {
     Order o(5);
     o.shuffle([](int i1, int i2) { return (i1 + 2) % 5 < (i2 + 2) % 5; });
     Order inv = o.getInverted();
 
-    Order composed = inv(o); // composing function and its inversion
-    Order id(5);             // identity
+    Order composed = inv.compose(o); // composing function and its inversion
+    Order id(5);                     // identity
     REQUIRE(id == composed);
 }
 
-TEST_CASE("Vector order", "[order]") {
+TEST_CASE("VectorOrder", "[order]") {
     VectorOrder o(5);
     o.shuffle(1, [](int i1, int i2) { return (i1 + 2) % 5 < (i2 + 2) % 5; });
     Array<Indices> expected = {

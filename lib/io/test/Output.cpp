@@ -1,9 +1,9 @@
 #include "io/Output.h"
 #include "catch.hpp"
-#include "objects/geometry/Domain.h"
 #include "io/Column.h"
 #include "io/FileSystem.h"
 #include "objects/containers/PerElementWrapper.h"
+#include "objects/geometry/Domain.h"
 #include "physics/Eos.h"
 #include "quantities/Iterate.h"
 #include "sph/Material.h"
@@ -13,16 +13,19 @@
 
 using namespace Sph;
 
+static void addColumns(TextOutput& output) {
+    output.add(makeAuto<ValueColumn<Float>>(QuantityId::DENSITY));
+    output.add(makeAuto<ValueColumn<Vector>>(QuantityId::POSITIONS));
+    output.add(makeAuto<DerivativeColumn<Vector>>(QuantityId::POSITIONS));
+}
 
 TEST_CASE("TextOutput dump", "[output]") {
     Storage storage;
     storage.insert<Vector>(
         QuantityId::POSITIONS, OrderEnum::SECOND, makeArray(Vector(0._f), Vector(1._f), Vector(2._f)));
     storage.insert<Float>(QuantityId::DENSITY, OrderEnum::FIRST, 5._f);
-    TextOutput output(Path("tmp%d.txt"), "Output", EMPTY_FLAGS);
-    output.add(makeAuto<ValueColumn<Float>>(QuantityId::DENSITY));
-    output.add(makeAuto<ValueColumn<Vector>>(QuantityId::POSITIONS));
-    output.add(makeAuto<DerivativeColumn<Vector>>(QuantityId::POSITIONS));
+    TextOutput output(Path("tmp1_%d.txt"), "Output", EMPTY_FLAGS);
+    addColumns(output);
     Statistics stats;
     stats.set(StatisticsId::TOTAL_TIME, 0._f);
     output.dump(storage, stats);
@@ -34,8 +37,45 @@ TEST_CASE("TextOutput dump", "[output]") {
                    5                   1                   1                   1                   0                   0                   0
                    5                   2                   2                   2                   0                   0                   0
 )";
-    std::string content = readFile(Path("tmp0000.txt"));
+    std::string content = readFile(Path("tmp1_0000.txt"));
     REQUIRE(content == expected);
+}
+
+template <typename TValue>
+static bool almostEqual(const Array<TValue>& b1, const Array<TValue>& b2) {
+    struct Element {
+        TValue v1, v2;
+    };
+    for (Element e : iterateTuple<Element>(b1, b2)) {
+        if (!almostEqual(e.v1, e.v2)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+TEST_CASE("TextOutput dump&accumulate", "[output]") {
+    TextOutput output(Path("tmp2_%d.txt"), "Output", EMPTY_FLAGS);
+    Storage storage = Tests::getGassStorage(1000);
+    Statistics stats;
+    stats.set(StatisticsId::TOTAL_TIME, 0._f);
+    addColumns(output);
+    output.dump(storage, stats);
+
+    Storage loaded;
+    output.load(Path("tmp2_0000.txt"), loaded);
+    REQUIRE(loaded.getQuantityCnt() == 3); // density + position + flags
+
+    Quantity& positions = loaded.getQuantity(QuantityId::POSITIONS);
+    REQUIRE(positions.getOrderEnum() == OrderEnum::FIRST); // we didn't dump accelerations
+    REQUIRE(positions.getValueEnum() == ValueEnum::VECTOR);
+    REQUIRE(almostEqual(positions.getValue<Vector>(), storage.getValue<Vector>(QuantityId::POSITIONS)));
+    REQUIRE(almostEqual(positions.getDt<Vector>(), storage.getDt<Vector>(QuantityId::POSITIONS)));
+
+    Quantity& density = loaded.getQuantity(QuantityId::DENSITY);
+    REQUIRE(density.getOrderEnum() == OrderEnum::ZERO);
+    REQUIRE(density.getValueEnum() == ValueEnum::SCALAR);
+    REQUIRE(almostEqual(density.getValue<Float>(), storage.getValue<Float>(QuantityId::DENSITY)));
 }
 
 TEST_CASE("BinaryOutput dump&accumulate simple", "[output]") {

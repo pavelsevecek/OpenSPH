@@ -22,9 +22,6 @@ NAMESPACE_SPH_BEGIN
 #define SPH_GCC
 #endif
 #endif
-#ifdef MPI_VERSION
-#define SPH_MPI
-#endif
 
 /// Force inline for gcc
 #ifdef SPH_DEBUG

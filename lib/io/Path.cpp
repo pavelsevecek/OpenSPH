@@ -185,6 +185,10 @@ bool Path::operator==(const Path& other) const {
     return path == other.path;
 }
 
+bool Path::operator!=(const Path& other) const {
+    return path != other.path;
+}
+
 std::ostream& operator<<(std::ostream& stream, const Path& path) {
     stream << path.path;
     return stream;
