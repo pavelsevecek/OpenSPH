@@ -207,11 +207,16 @@ static_assert(AnyTrue<true>::value == true, "invalid AnyTrue");
 static_assert(AnyTrue<false>::value == false, "invalid AnyTrue");
 
 
-/// Converts a non-const reference to const one, useful for unit testing to explicitly call a const overload
-/// of a function, or for some hacky tricks with const_cast.
+/// \brief Converts a non-const reference to const one.
+///
+/// Similar to std::as_const in C++17. Useful for unit testing to explicitly call a const overload of a
+/// function, or for some hacky tricks with const_cast.
 template <typename T>
-INLINE const T& addConst(T& ref) {
+INLINE const T& asConst(T& ref) {
     return ref;
 }
+
+template <typename T>
+INLINE const T& asConst(const T&& ref) = delete;
 
 NAMESPACE_SPH_END

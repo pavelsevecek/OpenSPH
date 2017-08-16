@@ -45,25 +45,44 @@ namespace Post {
             COMPONENTS,
 
             /// Radii of individual particles, considering particles as spheres (N-body framework)
+            PARTICLES,
+        } source;
+
+        /// Quantity from which the histogram is constructed
+        enum class Quantity {
+            /// Particle radii or equivalent radii of compoennts
             RADII,
-        } radius;
+
+            /// Velocities of particles or components
+            VELOCITIES,
+        } quantity;
 
         /// Range of values from which the histogram is constructed. Unbounded range means the range is
         /// selected based on the source data.
         Range range;
 
-        /// Number of histogram bins. 0 means the number is selected based on the source data.
+        /// Number of histogram bins. 0 means the number is selected based on the source data. Used only by
+        /// differential SFD.
         Size binCnt = 0;
     };
 
+    /// Point in SFD
+    struct SfdPoint {
+        /// Radius (x coordinate in the plot)
+        Float radius;
+
+        /// Number of particles/components
+        Size count;
+    };
+
     /// \brief Computes differential size-frequency distribution of particle radii.
-    Array<Size> getDifferentialSfd(const Storage& storage, const HistogramParams& params);
+    Array<SfdPoint> getDifferentialSfd(const Storage& storage, const HistogramParams& params);
 
     /// \brief Computes cummulative size-frequency distribution of body sizes (equivalent diameters).
     ///
     /// The storage must contain at least particle positions, masses and densities.
     /// \param params Parameters of the histogram.
-    Array<Size> getCummulativeSfd(const Storage& storage, const HistogramParams& params);
+    Array<SfdPoint> getCummulativeSfd(const Storage& storage, const HistogramParams& params);
 
 
     /// \brief Parses the pkdgrav output file and creates a storage with quantities stored in the file.

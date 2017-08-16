@@ -130,7 +130,7 @@ TEST_CASE("List range-based for empty", "[list]") {
     for (RecordType& e : list) {
         ++counter;
     }
-    for (const RecordType& e : addConst(list)) {
+    for (const RecordType& e : asConst(list)) {
         ++counter;
     }
     REQUIRE(counter == 0);
@@ -145,7 +145,7 @@ TEST_CASE("List range-based for elements", "[list]") {
     }
     REQUIRE(idx == 5);
     // const overload
-    for (const RecordType& e : addConst(list)) {
+    for (const RecordType& e : asConst(list)) {
         REQUIRE(e.value == idx - 4);
         ++idx;
     }

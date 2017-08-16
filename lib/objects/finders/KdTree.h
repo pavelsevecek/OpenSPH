@@ -1,8 +1,8 @@
 #pragma once
 
+#include "objects/finders/AbstractFinder.h"
 #include "objects/geometry/Box.h"
 #include "objects/geometry/Multipole.h"
-#include "objects/finders/AbstractFinder.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -185,7 +185,7 @@ public:
     void iterate(const TFunctor& functor, const Size nodeIdx = 0) const {
         // use non-const overload using const_cast, but call the functor with const reference
         auto actFunctor = [&functor](KdNode& node, KdNode* left, KdNode* right)
-            INL { return functor(addConst(node), left, right); };
+            INL { return functor(asConst(node), left, right); };
         const_cast<KdTree*>(this)->iterate<Dir>(actFunctor, nodeIdx);
     }
 

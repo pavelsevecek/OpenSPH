@@ -58,39 +58,152 @@ Size Post::findComponents(const Storage& storage,
     return componentIdx;
 }
 
-Array<Size> Post::getCummulativeSfd(const Storage& storage, const Post::HistogramParams& params) {
-    Array<Size> components;
-    const Size numComponents =
-        findComponents(storage, RunSettings::getDefaults(), ComponentConnectivity::ANY, components);
-    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
-    Array<Float> volumes(numComponents);
-    volumes.fill(0._f);
-    ArrayView<const Float> rho, m;
-    tie(rho, m) = storage.getValues<Float>(QuantityId::DENSITY, QuantityId::MASSES);
-    for (Size i = 0; i < r.size(); ++i) {
-        volumes[components[i]] += m[i] / rho[i];
-    }
-    Range range = params ? params->range : [&]() {
-        Float minVolume = INFTY, maxVolume = -INFTY;
-        for (Float v : volumes) {
-            minVolume = min(minVolume, v);
-            maxVolume = max(maxVolume, v);
+static Array<Float> getBodiesRadii(const Storage& storage,
+    const Post::HistogramParams::Source source,
+    const Post::HistogramParams::Quantity quantity) {
+    switch (source) {
+    case Post::HistogramParams::Source::PARTICLES: {
+        Array<Float> values(storage.getParticleCnt());
+        switch (quantity) {
+        case Post::HistogramParams::Quantity::RADII: {
+            ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
+            for (Size i = 0; i < r.size(); ++i) {
+                values[i] = r[i][H];
+            }
+            break;
         }
-        return Range(minVolume, maxVolume);
-    }();
-    // estimate initial bin count as sqrt of component count
-    Size binCnt = params ? params->binCnt : Size(sqrt(components.size()));
-    Array<Size> histogram(binCnt);
-    histogram.fill(0);
-    ASSERT(binCnt > 0);
-    for (Float v : volumes) {
-        const Size idx = (binCnt - 1) * (v - range.lower()) / range.size();
-        histogram[idx]++;
+        case Post::HistogramParams::Quantity::VELOCITIES: {
+            ArrayView<const Vector> v = storage.getDt<Vector>(QuantityId::POSITIONS);
+            for (Size i = 0; i < v.size(); ++i) {
+                values[i] = getLength(v[i]);
+            }
+            break;
+        }
+        }
+        std::sort(values.begin(), values.end());
+        return values;
     }
-    /// \todo check histogram, if some bins are "oversampled", increase bin cnt
+    case Post::HistogramParams::Source::COMPONENTS: {
+        Array<Size> components;
+        const Size numComponents =
+            findComponents(storage, RunSettings::getDefaults(), Post::ComponentConnectivity::ANY, components);
 
-    /// \todo diameters, not volumes
-    // how to return range? That's not containted in histogram
+        Array<Float> values(numComponents);
+        values.fill(0._f);
+        switch (quantity) {
+        case Post::HistogramParams::Quantity::RADII: {
+            // compute volume of the body
+            ArrayView<const Float> rho, m;
+            tie(rho, m) = storage.getValues<Float>(QuantityId::DENSITY, QuantityId::MASSES);
+            for (Size i = 0; i < rho.size(); ++i) {
+                values[components[i]] += m[i] / rho[i];
+            }
+
+            // compute equivalent radii from volumes
+            Array<Float> radii(numComponents);
+            for (Size i = 0; i < numComponents; ++i) {
+                radii[i] = root<3>(values[i]);
+            }
+            std::sort(radii.begin(), radii.end());
+            return radii;
+        }
+        case Post::HistogramParams::Quantity::VELOCITIES: {
+            // compute velocity as weighted average
+            ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASSES);
+            ArrayView<const Vector> v = storage.getDt<Vector>(QuantityId::POSITIONS);
+            Array<Vector> sumV(numComponents);
+            Array<Float> weights(numComponents);
+            sumV.fill(Vector(0._f));
+            weights.fill(0._f);
+            for (Size i = 0; i < m.size(); ++i) {
+                const Size componentIdx = components[i];
+                sumV[componentIdx] += m[i] * v[i];
+                weights[componentIdx] += m[i];
+            }
+            for (Size i = 0; i < numComponents; ++i) {
+                ASSERT(weights[i] != 0._f);
+                values[i] = getLength(sumV[i] / weights[i]);
+            }
+            std::sort(values.begin(), values.end());
+            return values;
+        }
+        default:
+            NOT_IMPLEMENTED;
+        }
+    }
+    default:
+        NOT_IMPLEMENTED;
+    }
+}
+
+Array<Post::SfdPoint> Post::getCummulativeSfd(const Storage& storage, const Post::HistogramParams& params) {
+    Array<Float> radii = getBodiesRadii(storage, params.source, params.quantity);
+
+    Range range = params.range;
+    if (range == Range::unbounded()) {
+        for (Float r : radii) {
+            range.extend(r);
+        }
+    }
+
+    Array<SfdPoint> histogram;
+    Size count = 0;
+    Float lastR = 0._f;
+    for (Float r : radii) {
+        if (r > lastR) {
+            if (range.contains(r)) {
+                histogram.push(SfdPoint{ r, count });
+            }
+            lastR = r;
+        }
+        count++;
+    }
+    ASSERT(histogram.size() > 0);
+
+    return histogram;
+}
+
+Array<Post::SfdPoint> Post::getDifferentialSfd(const Storage& storage, const HistogramParams& params) {
+    Array<Float> radii = getBodiesRadii(storage, params.source, params.quantity);
+
+    Range range = params.range;
+    if (range == Range::unbounded()) {
+        for (Float r : radii) {
+            range.extend(r);
+        }
+    }
+
+    Size binCnt = params.binCnt;
+    if (binCnt == 0) {
+        // estimate initial bin count as sqrt of component count
+        binCnt = Size(sqrt(radii.size()));
+    }
+
+    Array<Size> sfd(binCnt);
+    sfd.fill(0);
+    // check for case where only one body/particle exists
+    const bool singular = range.size() == 0;
+    for (Float r : radii) {
+        // get bin index
+        Size binIdx;
+        if (singular) {
+            binIdx = 0; // just add everything into the first bin to get some reasonable output
+        } else {
+            const Float floatIdx = binCnt * (r - range.lower()) / range.size();
+            if (floatIdx >= 0._f && floatIdx < binCnt) {
+                binIdx = Size(floatIdx);
+            } else {
+                // out of range, skip
+                continue;
+            }
+        }
+        sfd[binIdx]++;
+    }
+    // convert to SfdPoints
+    Array<SfdPoint> histogram(binCnt);
+    for (Size i = 0; i < binCnt; ++i) {
+        histogram[i] = { range.lower() + (i * range.size()) / binCnt, sfd[i] };
+    }
     return histogram;
 }
 
