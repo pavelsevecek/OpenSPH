@@ -10,7 +10,8 @@ SUBDIRS = lib \
           gui/rotation \
           test \
           bench \
-    mpi
+    mpi \
+    post
 
 run.depends = lib
 cli.depends = lib

@@ -240,6 +240,8 @@ template<>
 AutoPtr<RunSettings> RunSettings::instance (new RunSettings {
     /// Parameters of the run
     { RunSettingsId::RUN_NAME,                      "run.name",                 std::string("unnamed run") },
+    { RunSettingsId::RUN_AUTHOR,                    "run.author",               std::string("Pavel Sevecek") },
+    { RunSettingsId::RUN_EMAIL,                     "run.email",                std::string("sevecek@sirrah.troja.mff.cuni.cz") },
     { RunSettingsId::RUN_OUTPUT_TYPE,               "run.output.type",          int(OutputEnum::TEXT_FILE) },
     { RunSettingsId::RUN_OUTPUT_INTERVAL,           "run.output.interval",      0.1_f },
     { RunSettingsId::RUN_OUTPUT_NAME,               "run.output.name",          std::string("out_%d.txt") },

@@ -87,6 +87,16 @@ TEST_CASE("RemovePath", "[filesystem]") {
     file.markDeleted();
 }
 
+TEST_CASE("SetWorkingDirectory", "[filesystem]") {
+    const Path current = Path::currentPath();
+    const Path newPath = Path("/home/pavel/");
+    setWorkingDirectory(newPath);
+    REQUIRE(Path::currentPath() == newPath);
+
+    setWorkingDirectory(current);
+    REQUIRE(Path::currentPath() == current);
+}
+
 TEST_CASE("DirectoryIterator", "[filesystem]") {
     TestDirectory dir;
     Array<TestFile> files;

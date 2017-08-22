@@ -164,6 +164,10 @@ Outcome removePath(const Path& path, const Flags<RemovePathFlag> flags) {
 #endif
 }
 
+void setWorkingDirectory(const Path& path) {
+    chdir(path.native().c_str());
+}
+
 DirectoryIterator::DirectoryIterator(DIR* dir)
     : dir(dir) {
     if (dir) {

@@ -65,6 +65,30 @@ TEST_CASE("Component initconds", "[post]") {
     REQUIRE(allMatching());
 }
 
+TEST_CASE("CummulativeSfd", "[post]") {
+    Array<Vector> r(10);
+    for (Size i = 0; i < r.size(); ++i) {
+        r[i] = Vector(0._f, 0._f, 0._f, i + 1);
+    }
+    Storage storage;
+    storage.insert<Vector>(QuantityId::POSITIONS, OrderEnum::ZERO, std::move(r));
+
+    Post::HistogramParams params;
+    params.quantity = Post::HistogramParams::Quantity::RADII;
+    params.source = Post::HistogramParams::Source::PARTICLES;
+    Array<Post::SfdPoint> points = Post::getCummulativeSfd(storage, params);
+    // clang-format off
+    Array<Post::SfdPoint> expected{ { 10, 1 }, { 9, 2 }, { 8, 3 }, { 7, 4 }, { 6, 5 },
+        { 5, 6 }, { 4, 7 }, { 3, 8 }, { 2, 9 }, { 1, 10 } };
+    // clang-format on
+    REQUIRE(expected.size() == points.size());
+
+    auto predicate = [](Post::SfdPoint& p1, Post::SfdPoint& p2) { //
+        return p1.radius == p2.radius && p1.count == p2.count;
+    };
+    REQUIRE(std::equal(points.begin(), points.end(), expected.begin(), predicate));
+}
+
 TEST_CASE("ParsePkdgrav", "[post]") {
     // hardcoded path to pkdgrav output
     Path path("/home/pavel/projects/astro/sph/external/sph_0.541_5_45/pkdgrav_run/ss.last.bt");

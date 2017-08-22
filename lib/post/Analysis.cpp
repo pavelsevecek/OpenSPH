@@ -2,6 +2,7 @@
 #include "io/Column.h"
 #include "io/Output.h"
 #include "objects/geometry/Box.h"
+#include "objects/wrappers/Iterators.h"
 #include "quantities/Storage.h"
 #include "sph/kernel/KernelFactory.h"
 #include "system/Factory.h"
@@ -140,17 +141,18 @@ Array<Post::SfdPoint> Post::getCummulativeSfd(const Storage& storage, const Post
     Array<Float> radii = getBodiesRadii(storage, params.source, params.quantity);
 
     Range range = params.range;
-    if (range == Range::unbounded()) {
+    if (range.isEmpty()) {
         for (Float r : radii) {
             range.extend(r);
         }
     }
 
     Array<SfdPoint> histogram;
-    Size count = 0;
-    Float lastR = 0._f;
-    for (Float r : radii) {
-        if (r > lastR) {
+    Size count = 1;
+    Float lastR = INFTY;
+    // iterate in reverse order - from largest radii to smallest ones
+    for (Float r : reverse(radii)) {
+        if (r < lastR) {
             if (range.contains(r)) {
                 histogram.push(SfdPoint{ r, count });
             }
@@ -222,8 +224,7 @@ Expected<Storage> Post::parsePkdgravOutput(const Path& path) {
             "Invalid extension of pkdgrav file " + path.native() + ", expected '.bt'");
     }*/
 
-    /// \todo create output without the need to specify the mask, etc.
-    TextOutput output(Path("%d.dummy"), "", EMPTY_FLAGS);
+    TextOutput output;
 
     // 1) Particle index -- we don't really need that, just add dummy columnm
     class DummyColumn : public Abstract::Column {

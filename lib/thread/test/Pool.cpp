@@ -139,8 +139,8 @@ TEST_CASE("ThreadLocal parallelFor", "[thread]") {
             sum[i] += value[i];
             perThreadSum += value[i];
         }
-        REQUIRE(perThreadSum > N / pool.getThreadCnt() - 1000);
-        REQUIRE(perThreadSum < N / pool.getThreadCnt() + 1000);
+        REQUIRE(perThreadSum > N / pool.getThreadCnt() - 2000);
+        REQUIRE(perThreadSum < N / pool.getThreadCnt() + 2000);
     });
     REQUIRE(areAllMatching(sum, [](const Size v) { return v == 1; }));
     REQUIRE(pool.remainingTaskCnt() == 0);

@@ -27,8 +27,8 @@ namespace Post {
     ///                SEPARATE_BY_FLAG option is used.
     /// \param settings Run settings (currently only used to get SPH kernel)
     /// \param connectivity Defines additional conditions of particle separation (besides their distance).
-    /// \param indices[out] Array of indices from 0 to n-1, where n is the number of components. In the
-    ///                     array, i-th index corresponds to component to which i-th particle belongs.
+    /// \param indices[out] Array of indices from 0 to n-1, where n is the number of components. In the array,
+    ///                     i-th index corresponds to component to which i-th particle belongs.
     /// \return Number of components
     Size findComponents(const Storage& storage,
         const RunSettings& settings,
@@ -46,7 +46,9 @@ namespace Post {
 
             /// Radii of individual particles, considering particles as spheres (N-body framework)
             PARTICLES,
-        } source;
+        };
+
+        Source source = Source::PARTICLES;
 
         /// Quantity from which the histogram is constructed
         enum class Quantity {
@@ -55,7 +57,9 @@ namespace Post {
 
             /// Velocities of particles or components
             VELOCITIES,
-        } quantity;
+        };
+
+        Quantity quantity = Quantity::RADII;
 
         /// Range of values from which the histogram is constructed. Unbounded range means the range is
         /// selected based on the source data.

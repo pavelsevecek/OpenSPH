@@ -24,9 +24,9 @@ static void benchmarkGravity(Abstract::Gravity& gravity, Benchmark::Context& con
     while (context.running()) {
         gravity.evalAll(ThreadPool::getGlobalInstance(), dv, stats);
     }
-    const int approx = stats.get<int>(StatisticsId::GRAVITY_NODES_APPROX);
-    const int exact = stats.get<int>(StatisticsId::GRAVITY_NODES_EXACT);
-    const int total = stats.get<int>(StatisticsId::GRAVITY_NODE_COUNT);
+    const int approx = stats.getOr<int>(StatisticsId::GRAVITY_NODES_APPROX, 0);
+    const int exact = stats.getOr<int>(StatisticsId::GRAVITY_NODES_EXACT, 0);
+    const int total = stats.getOr<int>(StatisticsId::GRAVITY_NODE_COUNT, 0);
     context.log("approx: ", approx);
     context.log("exact: ", exact);
     context.log("total: ", total);

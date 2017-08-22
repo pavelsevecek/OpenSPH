@@ -422,8 +422,14 @@ enum class RngEnum {
 
 /// Settings relevant for whole run of the simulation
 enum class RunSettingsId {
-    /// Custom name of the run
+    /// User-defined name of the run, used in some output files
     RUN_NAME,
+
+    /// Name of the person running the simulation
+    RUN_AUTHOR,
+
+    /// E-mail of the person running the simulation
+    RUN_EMAIL,
 
     /// Selected format of the output file, see OutputEnum
     RUN_OUTPUT_TYPE,

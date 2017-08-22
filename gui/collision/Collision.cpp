@@ -2,13 +2,18 @@
 #include "gui/GuiCallbacks.h"
 #include "gui/Settings.h"
 #include "io/Column.h"
+#include "io/FileSystem.h"
 #include "io/LogFile.h"
 #include "io/Logger.h"
 #include "io/Output.h"
 #include "objects/geometry/Domain.h"
+#include "post/Analysis.h"
 #include "sph/equations/Potentials.h"
 #include "sph/initial/Initial.h"
+#include "sph/solvers/ContinuitySolver.h"
 #include "sph/solvers/GravitySolver.h"
+#include "system/Platform.h"
+#include "system/Process.h"
 #include "system/Profiler.h"
 
 IMPLEMENT_APP(Sph::App);
@@ -203,10 +208,12 @@ private:
 
 AsteroidCollision::AsteroidCollision(RawPtr<Controller>&& controller)
     : controller(std::move(controller)) {
-    settings.set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::PREDICTOR_CORRECTOR)
+    const std::string runName = "Impact";
+    settings.set(RunSettingsId::RUN_NAME, runName)
+        .set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::PREDICTOR_CORRECTOR)
         .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 0.01_f)
         .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 0.01_f)
-        .set(RunSettingsId::RUN_TIME_RANGE, Range(0._f, 20._f))
+        .set(RunSettingsId::RUN_TIME_RANGE, Range(0._f, 10._f))
         .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 0.1_f)
         .set(RunSettingsId::MODEL_FORCE_SOLID_STRESS, true)
         .set(RunSettingsId::SPH_FINDER, FinderEnum::VOXEL)
@@ -217,7 +224,28 @@ AsteroidCollision::AsteroidCollision(RawPtr<Controller>&& controller)
         .set(RunSettingsId::GRAVITY_OPENING_ANGLE, 0.5_f)
         .set(RunSettingsId::GRAVITY_LEAF_SIZE, 20)
         .set(RunSettingsId::RUN_THREAD_GRANULARITY, 100);
-    settings.saveToFile(Path("code.sph"));
+
+    const Path pathToResults("/home/pavel/projects/astro/sph/result/");
+
+    // generate path of the output directory
+    std::time_t t = std::time(nullptr);
+    std::ostringstream ss;
+    ss << std::put_time(std::localtime(&t), "%y-%m-%d_%H-%M");
+    outputPath = pathToResults / Path(ss.str());
+    settings.set(RunSettingsId::RUN_OUTPUT_PATH, outputPath.native());
+
+    // save code settings to the directory
+    settings.saveToFile(outputPath / Path("code.sph"));
+
+    // save the current git commit
+    const Path pathToSource("/home/pavel/projects/astro/sph/src/");
+    std::string gitSha = getGitCommit(pathToSource).value();
+    FileLogger info(outputPath / Path("info.txt"));
+    ss.str(""); // clear ss
+    ss << std::put_time(std::localtime(&t), "%d. %m. %y, %H-%M");
+    info.write("Run ", runName);
+    info.write("Started on ", ss.str());
+    info.write("Git commit: ", gitSha);
 }
 
 class StatsLog : public CommonStatsLog {
@@ -240,20 +268,21 @@ void AsteroidCollision::setUp() {
     BodySettings body;
     body.set(BodySettingsId::ENERGY, 0._f)
         .set(BodySettingsId::ENERGY_RANGE, Range(0._f, INFTY))
-        .set(BodySettingsId::PARTICLE_COUNT, 100'000)
+        .set(BodySettingsId::PARTICLE_COUNT, 1'000)
         .set(BodySettingsId::EOS, EosEnum::TILLOTSON)
         .set(BodySettingsId::STRESS_TENSOR_MIN, 1.e5_f)
         .set(BodySettingsId::RHEOLOGY_DAMAGE, DamageEnum::SCALAR_GRADY_KIPP)
         .set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::VON_MISES)
         .set(BodySettingsId::ENERGY, 0._f)
         .set(BodySettingsId::DISTRIBUTE_MODE_SPH5, true);
-    body.saveToFile(Path("target.sph"));
+    body.saveToFile(outputPath / Path("target.sph"));
 
     storage = makeShared<Storage>();
-    AutoPtr<CollisionSolver> collisionSolver = makeAuto<CollisionSolver>(settings, body);
+    //    AutoPtr<CollisionSolver> collisionSolver = makeAuto<CollisionSolver>(settings, body);
+    AutoPtr<ContinuitySolver> collisionSolver = makeAuto<ContinuitySolver>(settings);
 
     SharedPtr<InitialConditions> conds = makeShared<InitialConditions>(*storage, *collisionSolver, settings);
-    collisionSolver->setInitialConditions(conds);
+    // collisionSolver->setInitialConditions(conds);
     solver = std::move(collisionSolver);
 
     StdOutLogger logger;
@@ -261,16 +290,25 @@ void AsteroidCollision::setUp() {
     conds->addBody(domain1, body);
     logger.write("Particles of target: ", storage->getParticleCnt());
 
+    body.set(BodySettingsId::PARTICLE_COUNT, 100)
+        .set(BodySettingsId::STRESS_TENSOR_MIN, LARGE)
+        .set(BodySettingsId::DAMAGE_MIN, LARGE);
+    SphericalDomain domain2(Vector(5097.4509902022_f, 3726.8662269290_f, 0._f), 270.5847632732_f);
+    body.saveToFile(outputPath / Path("impactor.sph"));
+    conds->addBody(domain2, body).addVelocity(Vector(-5.e3_f, 0._f, 0._f));
+
+
     this->setupOutput();
 
     callbacks = makeAuto<GuiCallbacks>(controller);
 
     // add printing of run progres
-    logFiles.push(makeAuto<StatsLog>(Factory::getLogger(settings)));
+    logFiles.push(makeAuto<CommonStatsLog>(Factory::getLogger(settings)));
 }
 
 void AsteroidCollision::setupOutput() {
-    Path outputDir = Path("out") / Path(settings.get<std::string>(RunSettingsId::RUN_OUTPUT_NAME));
+    Path outputDir = Path(settings.get<std::string>(RunSettingsId::RUN_OUTPUT_PATH)) /
+                     Path(settings.get<std::string>(RunSettingsId::RUN_OUTPUT_NAME));
     AutoPtr<TextOutput> textOutput = makeAuto<TextOutput>(
         outputDir, settings.get<std::string>(RunSettingsId::RUN_NAME), TextOutput::Options::SCIENTIFIC);
     textOutput->add(makeAuto<ParticleNumberColumn>());
@@ -285,8 +323,8 @@ void AsteroidCollision::setupOutput() {
 
     output = std::move(textOutput);
 
-    logFiles.push(makeAuto<EnergyLogFile>(Path("energy.txt")));
-    logFiles.push(makeAuto<TimestepLogFile>(Path("timestep.txt")));
+    logFiles.push(makeAuto<EnergyLogFile>(outputPath / Path("energy.txt")));
+    logFiles.push(makeAuto<TimestepLogFile>(outputPath / Path("timestep.txt")));
 }
 
 void AsteroidCollision::tearDown() {
@@ -294,9 +332,35 @@ void AsteroidCollision::tearDown() {
     Profiler& profiler = Profiler::getInstance();
     profiler.printStatistics(*logger);
 
+    Storage output = this->runPkdgrav();
+    Array<Post::SfdPoint> sfd = Post::getCummulativeSfd(output, {});
+    FileLogger logSfd(outputPath / Path("sfd.txt"), FileLogger::Options::KEEP_OPENED);
+    for (Post::SfdPoint& p : sfd) {
+        logSfd.write(p.radius, "  ", p.count);
+    }
+    logger->write("FINISHED");
+}
+
+Storage AsteroidCollision::runPkdgrav() {
+    Path pkdgravDir("/home/pavel/projects/astro/sph/external/pkdgrav_run/");
+    ASSERT(pathExists(pkdgravDir));
+    ScopedWorkingDirectory guard(pkdgravDir);
     PkdgravOutput pkdgravOutput(Path("pkdgrav_%d.out"), PkdgravParams{});
     Statistics stats;
     pkdgravOutput.dump(*storage, stats);
+    ASSERT(pathExists(Path("pkdgrav_0000.out")));
+
+    Process pkdgrav(Path("./RUNME.sh"), {});
+    pkdgrav.wait();
+
+    ASSERT(pathExists(Path("ss.50000")));
+    Process convert(Path("./ss2bt"), { "ss.50000" });
+    convert.wait();
+    ASSERT(pathExists(Path("ss.50000.bt")));
+
+    Expected<Storage> output = Post::parsePkdgravOutput(Path("ss.50000.bt"));
+    ASSERT(output);
+    return std::move(output.value());
 }
 
 NAMESPACE_SPH_END

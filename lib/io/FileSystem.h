@@ -35,6 +35,26 @@ enum class RemovePathFlag {
 /// Removes a file or a directory at given path.
 Outcome removePath(const Path& path, const Flags<RemovePathFlag> flags = EMPTY_FLAGS);
 
+/// Changes the current working directory.
+void setWorkingDirectory(const Path& path);
+
+/// Helper RAII class, changing the working directory to given path when constructor and reverting it to the
+/// original path in destructor.
+class ScopedWorkingDirectory {
+private:
+    Path originalDir;
+
+public:
+    ScopedWorkingDirectory(const Path& path) {
+        originalDir = Path::currentPath();
+        setWorkingDirectory(path);
+    }
+
+    ~ScopedWorkingDirectory() {
+        setWorkingDirectory(originalDir);
+    }
+};
+
 /// Iterator allowing to enumerate files in given directory
 class DirectoryIterator {
 private:

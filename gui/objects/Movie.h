@@ -20,7 +20,11 @@ namespace Abstract {
 enum class GuiSettingsId;
 using GuiSettings = Settings<GuiSettingsId>;
 
-class Movie : public std::enable_shared_from_this<Movie> {
+/// \brief Object managing periodic rendering of images and saving them to given paths.
+///
+/// Rendered images are independend from the images in interactive window, i.e. they have dedicated renderer,
+/// camera and list of elements to render.
+class Movie : public Noncopyable {
 private:
     /// time step (framerate) of the movie
     Float outputStep;
@@ -55,9 +59,10 @@ public:
 
     ~Movie();
 
-    /// Called every time step, saves the images every IMAGES_TIMESTEP. If the time since the last frame is
-    /// less than the required framerate, function does nothing. Can be called from any thread; the function
-    /// is blocking, waits until all images are saved.
+    /// \brief Called every time step, saves the images every IMAGES_TIMESTEP.
+    ///
+    /// If the time since the last frame is less than the required framerate, function does nothing. Can be
+    /// called from any thread; the function is blocking, waits until all images are saved.
     void onTimeStep(const Storage& storage, Statistics& stats);
 
     void setEnabled(const bool enable = true);

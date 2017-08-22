@@ -127,7 +127,7 @@ private:
 
     template <typename... TArgs>
     INLINE constexpr TValue construct(const TEnum first, const TArgs... rest) {
-        ASSERT(isPower2(TValue(first)));
+        ASSERT(TValue(first) == 0 || isPower2(TValue(first)));
         return TValue(first) | construct(rest...);
     }
 

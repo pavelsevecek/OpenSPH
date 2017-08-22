@@ -10,6 +10,7 @@ NAMESPACE_SPH_BEGIN
 
 class Deserializer;
 
+/// \brief Helper file generating file names for output files.
 class OutputFile {
 private:
     mutable Size dumpNum = 0;
@@ -21,21 +22,34 @@ public:
     OutputFile(const Path& pathMask);
 
     /// Returns path to the next output file, incrementing the internal counter. No file is created by this.
-    Path getNextPath() const;
+    Path getNextPath(const Statistics& stats) const;
 };
 
-/// Interface for saving quantities of SPH particles to a file. Saves all values in the storage, and also 1st
-/// derivatives for 2nd-order quantities.
 namespace Abstract {
     class Column;
 
+    /// \brief Interface for saving quantities of SPH particles to a file.
+    ///
+    /// Saves all values in the storage or selected few quantities, depending on implementation. It is also
+    /// implementation-defined whether the saved representation of storage is lossless, i.e. whether the
+    /// storage can be loaded with \ref load without a loss in precision.
     class Output : public Polymorphic {
     protected:
         OutputFile paths;
 
     public:
-        /// Constructs output given the file name of the output. The name must contain '%d', which will be
-        /// replaced by the dump number, starting from 0.
+        /// \brief Constructs output object for loading.
+        ///
+        /// Object in this state cannot call \ref dump, checked by assert. It can only be used to load storage
+        /// using \ref load. Object capable of dumping storage can be then created using copy/move operator.
+        Output() = default;
+
+        /// \brief Constructs output given the file name of the output.
+        ///
+        /// The name is used for all output files, meaning if \ref dump is called twice, the second output
+        /// file will override the previous one. To avoid this, the fileMask can contain following wildcards:
+        /// - '%d' - replaced by the dump number, starting from 0, incremented every dump.
+        /// - '%t' - replaced by current simulation time (with _ instead of decimal separator).
         Output(const Path& fileMask);
 
         /// Saves data from particle storage into the file. Returns the filename of the dump.
@@ -64,6 +78,8 @@ private:
     Array<AutoPtr<Abstract::Column>> columns;
 
 public:
+    TextOutput() = default;
+
     TextOutput(const Path& fileMask, const std::string& runName, const Flags<Options> flags);
 
     ~TextOutput();
@@ -165,6 +181,8 @@ private:
     static constexpr Size PADDING_SIZE = 220;
 
 public:
+    BinaryOutput() = default;
+
     BinaryOutput(const Path& fileMask);
 
     virtual Path dump(Storage& storage, const Statistics& stats) override;
@@ -250,6 +268,8 @@ private:
     PkdgravParams params;
 
 public:
+    PkdgravOutput() = default;
+
     PkdgravOutput(const Path& fileMask, PkdgravParams&& params);
 
     virtual Path dump(Storage& storage, const Statistics& stats) override;
@@ -275,7 +295,7 @@ private:
 class NullOutput : public Abstract::Output {
 public:
     NullOutput()
-        : Abstract::Output(Path("%d")) {}
+        : Abstract::Output() {}
 
     virtual Path dump(Storage& UNUSED(storage), const Statistics& UNUSED(stats)) override {
         return Path();

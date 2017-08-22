@@ -10,22 +10,34 @@ NAMESPACE_SPH_BEGIN
 
 OutputFile::OutputFile(const Path& pathMask)
     : pathMask(pathMask) {
-    ASSERT(pathMask.native().find("%d", 0) != std::string::npos);
+    ASSERT(!pathMask.empty());
 }
 
-Path OutputFile::getNextPath() const {
+Path OutputFile::getNextPath(const Statistics& stats) const {
+    ASSERT(!pathMask.empty());
     std::string path = pathMask.native();
-    Size n = path.find("%d", 0);
-    std::ostringstream ss;
-    ss << std::setw(4) << std::setfill('0') << dumpNum;
-    path.replace(n, 2, ss.str());
+    std::size_t n = path.find("%d");
+    if (n != std::string::npos) {
+        std::ostringstream ss;
+        ss << std::setw(4) << std::setfill('0') << dumpNum;
+        path.replace(n, 2, ss.str());
+    }
+    n = path.find("%t");
+    if (n != std::string::npos) {
+        std::ostringstream ss;
+        const Float t = stats.get<Float>(StatisticsId::TOTAL_TIME);
+        ss << std::fixed << t;
+        /// \todo replace decimal dot as docs say
+        path.replace(n, 2, ss.str());
+    }
     dumpNum++;
     return Path(path);
 }
 
 Abstract::Output::Output(const Path& fileMask)
-    : paths(fileMask) {}
-
+    : paths(fileMask) {
+    ASSERT(!fileMask.empty());
+}
 
 static void printHeader(std::ostream& ofs, const std::string& name, const ValueEnum type) {
     switch (type) {
@@ -60,7 +72,7 @@ TextOutput::~TextOutput() = default;
 
 Path TextOutput::dump(Storage& storage, const Statistics& stats) {
     ASSERT(!columns.empty(), "No column added to TextOutput");
-    const Path fileName = paths.getNextPath();
+    const Path fileName = paths.getNextPath(stats);
     createDirectory(fileName.parentPath());
     std::ofstream ofs(fileName.native());
     // print description
@@ -105,31 +117,29 @@ Outcome TextOutput::load(const Path& path, Storage& storage) {
             }
             std::stringstream ss(line);
             for (auto& column : columns) {
-                Value value;
                 switch (column->getType()) {
                 /// \todo de-duplicate the loading (used in Settings)
                 case ValueEnum::INDEX: {
                     Size i;
                     ss >> i;
-                    value = i;
+                    column->accumulate(storage, i, particleCnt);
                     break;
                 }
                 case ValueEnum::SCALAR: {
                     Float f;
                     ss >> f;
-                    value = f;
+                    column->accumulate(storage, f, particleCnt);
                     break;
                 }
                 case ValueEnum::VECTOR: {
-                    Vector v;
+                    Vector v(0._f);
                     ss >> v[X] >> v[Y] >> v[Z];
-                    value = v;
+                    column->accumulate(storage, v, particleCnt);
                     break;
                 }
                 default:
                     NOT_IMPLEMENTED;
                 }
-                column->accumulate(storage, value, particleCnt);
             }
             particleCnt++;
         }
@@ -300,7 +310,7 @@ BinaryOutput::BinaryOutput(const Path& fileMask)
     : Abstract::Output(fileMask) {}
 
 Path BinaryOutput::dump(Storage& storage, const Statistics& stats) {
-    const Path fileName = paths.getNextPath();
+    const Path fileName = paths.getNextPath(stats);
     const Float time = stats.get<Float>(StatisticsId::TOTAL_TIME);
 
     Serializer serializer(fileName);
@@ -508,8 +518,8 @@ PkdgravOutput::PkdgravOutput(const Path& fileMask, PkdgravParams&& params)
     ASSERT(almostEqual(this->params.conversion.velocity, 2.97853e4_f, 1.e-4_f));
 }
 
-Path PkdgravOutput::dump(Storage& storage, const Statistics& UNUSED(stats)) {
-    const Path fileName = paths.getNextPath();
+Path PkdgravOutput::dump(Storage& storage, const Statistics& stats) {
+    const Path fileName = paths.getNextPath(stats);
 
     ArrayView<Float> m, rho, u;
     tie(m, rho, u) = storage.getValues<Float>(QuantityId::MASSES, QuantityId::DENSITY, QuantityId::ENERGY);

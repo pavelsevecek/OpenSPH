@@ -7,6 +7,7 @@
 
 #include "gui/Controller.h"
 #include "gui/MainLoop.h"
+#include "io/Path.h"
 #include "run/Run.h"
 #include <wx/app.h>
 
@@ -15,6 +16,8 @@ NAMESPACE_SPH_BEGIN
 class AsteroidCollision : public Abstract::Run {
 private:
     RawPtr<Controller> controller;
+
+    Path outputPath;
 
 public:
     AsteroidCollision(RawPtr<Controller>&& controller);
@@ -25,6 +28,8 @@ protected:
     virtual void tearDown() override;
 
     void setupOutput();
+
+    Storage runPkdgrav();
 };
 
 class App : public wxApp {

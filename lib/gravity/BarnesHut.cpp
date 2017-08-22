@@ -1,7 +1,7 @@
 #include "gravity/BarnesHut.h"
-#include "objects/geometry/Sphere.h"
 #include "gravity/Moments.h"
 #include "objects/containers/ArrayUtils.h"
+#include "objects/geometry/Sphere.h"
 #include "physics/Constants.h"
 #include "quantities/Storage.h"
 #include "system/Profiler.h"
@@ -314,6 +314,7 @@ void BarnesHut::evalNodeList(const LeafNode& leaf, ArrayView<Size> nodeList, Arr
     LeafIndexSequence seq1 = kdTree.getLeafIndices(leaf);
     for (Size idx : nodeList) {
         const KdNode& node = kdTree.getNode(idx);
+        ASSERT(seq1.size() > 0);
         for (Size i : seq1) {
             dv[i] += evaluateGravity(r[i] - node.com, node.moments, order);
         }
@@ -342,6 +343,7 @@ void BarnesHut::buildLeaf(KdNode& node) {
         leaf.moments.order<1>() = TracelessMultipole<1>(0._f);
         leaf.moments.order<2>() = TracelessMultipole<2>(0._f);
         leaf.moments.order<3>() = TracelessMultipole<3>(0._f);
+        leaf.r_open = 0._f;
         return;
     }
     // compute the center of gravity (the box is already done)
@@ -408,6 +410,7 @@ void BarnesHut::buildInner(KdNode& node, KdNode& left, KdNode& right) {
         inner.moments.order<1>() = TracelessMultipole<1>(0._f);
         inner.moments.order<2>() = TracelessMultipole<2>(0._f);
         inner.moments.order<3>() = TracelessMultipole<3>(0._f);
+        inner.r_open = 0._f;
         return;
     }
 

@@ -49,7 +49,7 @@ void Movie::onTimeStep(const Storage& storage, Statistics& stats) {
     if (stats.get<Float>(StatisticsId::TOTAL_TIME) < nextOutput || !enabled) {
         return;
     }
-    const Path path = paths.getNextPath();
+    const Path path = paths.getNextPath(stats);
     createDirectory(path.parentPath());
     for (auto& e : elements) {
         Path actPath(replace(path.native(), "%e", escapeElementName(e->name())));
@@ -61,8 +61,6 @@ void Movie::onTimeStep(const Storage& storage, Statistics& stats) {
         renderer->initialize(storage, *e, *camera);
 
         auto functor = [this, actPath, &storage, &e, &stats] {
-            // if the callback gets executed, it means the object is still alive and it's save to touch
-            // the e directly
             std::unique_lock<std::mutex> lock(waitMutex);
 
             // create the bitmap and save it to file
