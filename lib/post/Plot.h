@@ -5,12 +5,81 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2017
 
+#include "objects/OperatorTemplate.h"
 #include "quantities/Storage.h"
 
 NAMESPACE_SPH_BEGIN
 
-struct PlotPoint {
+/// \brief Point in 2D plot
+struct PlotPoint : public OperatorTemplate<PlotPoint> {
     Float x, y;
+
+    PlotPoint& operator+=(const PlotPoint& other) {
+        x += other.x;
+        y += other.y;
+        return *this;
+    }
+};
+
+/// \brief Point with error bars
+struct ErrorPlotPlot : public OperatorTemplate<ErrorPlotPlot> {
+    Vector point;
+};
+
+namespace Abstract {
+    /// \brief Defines a continuous function from a set of discrete poitns
+    class Interpolation : public Polymorphic {
+    protected:
+        Array<PlotPoint> points;
+
+    public:
+        Interpolation(Array<PlotPoint>&& points)
+            : points(std::move(points)) {
+            auto compare = [](PlotPoint& p1, PlotPoint& p2) { return p1.x < p2.x; };
+            std::sort(this->points.begin(), this->points.end(), compare);
+        }
+
+        virtual Array<PlotPoint> interpolate(const Range& range, const Float step) const = 0;
+    };
+}
+
+class LinearInterpolation : public Abstract::Interpolation {
+public:
+    LinearInterpolation(Array<PlotPoint>&& points)
+        : Abstract::Interpolation(std::move(points)) {}
+
+    virtual Array<PlotPoint> interpolate(const Range& range, const Float step) const {
+        Array<PlotPoint> result;
+        Size index = 0;
+        const Float x0 = points[index].x;
+        if (range.lower() < x0) {
+            // extend using tangent of two left-most points
+        }
+        for (Float x = range.lower(); x < range.upper(); x += step) {
+
+            //            if ()
+        }
+        // find index
+        //      const Size i0;
+        return result;
+    }
+};
+
+class CatmullRomInterpolation : public Abstract::Interpolation {
+public:
+    Float operator()() const {
+        PlotPoint p0, p1, p2, p3;
+        // compute curve parameters, using centripetal Catmull-Rom parametrization
+        const Float t1 = getParam(p0, p1);
+        const Float t2 = getParam(p1, p2) + t1;
+        const Float t3 = getParam(p2, p3) + t2;
+        return t3;
+    }
+
+private:
+    INLINE Float getParam(const PlotPoint p1, const PlotPoint p2) const {
+        return root<4>(sqr(p2.x - p1.x) + sqr(p2.y - p1.y));
+    }
 };
 
 namespace Abstract {
@@ -37,14 +106,14 @@ namespace Abstract {
 
         virtual void onTimeStep(const Storage& storage, const Statistics& stats) = 0;
 
-        virtual Array<PlotPoint> plot() const = 0;
+        virtual Float plot(const Float x) const = 0;
     };
 }
 
 /// \brief Plot of a simple predefined function.
 ///
 /// Can be used for comparison between computed numerical results and an analytical solution.
-class FunctionPlot : public Abstract::Plot {
+/*class FunctionPlot : public Abstract::Plot {
 private:
     std::function<Float(Float)> func;
     Size numPoints;
@@ -70,7 +139,7 @@ public:
         }
         return points;
     }
-};
+};*/
 
 /// Plot averaging quantities
 /*class WeightedPlot : public Abstract::Plot {
@@ -102,7 +171,7 @@ public:
     }
 };*/
 
-template <typename TDerived>
+/*template <typename TDerived>
 class SpatialPlot : public Abstract::Plot {
 protected:
     QuantityId id;
@@ -155,5 +224,23 @@ public:
     }
 };
 
+/// \brief Plot of temporal dependence of a scalar quantity.
+///
+/// Plot shows a given segment of history of a quantity. This segment moves as time goes. Alternatively, the
+/// segment can be (formally) infinite, meaning the plot shows the whole history of a quantity; the x-range is
+/// rescaled as time goes.
+class TemporalPlot : public Abstract::Plot {
+private:
+    Range timeRange;
 
+public:
+    /// Creates a plot showing the whole history of a quantity.
+    TemporalPlot() = default;
+
+    /// Creates a plot given the time segment to show.
+    TemporalPlot(const Range& timeRange)
+        : timeRange(timeRange) {}
+};
+
+*/
 NAMESPACE_SPH_END

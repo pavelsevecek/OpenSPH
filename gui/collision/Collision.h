@@ -20,9 +20,17 @@ private:
     Path outputPath;
 
 public:
-    AsteroidCollision(RawPtr<Controller>&& controller);
+    AsteroidCollision();
+
+    void setController(RawPtr<Controller> newController) {
+        controller = newController;
+    }
 
     virtual void setUp() override;
+
+    Path getOutputPath() const {
+        return outputPath;
+    }
 
 protected:
     virtual void tearDown() override;
@@ -55,7 +63,7 @@ private:
             .set(GuiSettingsId::ORTHO_PROJECTION, OrthoEnum::XY)
             .set(GuiSettingsId::ORTHO_ROTATE_FRAME, true)
             .set(GuiSettingsId::IMAGES_SAVE, true)
-            .set(GuiSettingsId::IMAGES_TIMESTEP, 10._f)
+            .set(GuiSettingsId::IMAGES_TIMESTEP, 0.1_f)
             //.set(GuiSettingsId::IMAGES_RENDERER, int(RendererEnum::SURFACE))
             //.set(GuiSettingsId::IMAGES_WIDTH, 1024)
             //.set(GuiSettingsId::IMAGES_HEIGHT, 768)
@@ -63,10 +71,13 @@ private:
             .set(GuiSettingsId::SURFACE_RESOLUTION, 70._f)
             .set(GuiSettingsId::SURFACE_LEVEL, 0.3_f);
 
+        AutoPtr<AsteroidCollision> run = makeAuto<AsteroidCollision>();
 
+        gui.set(GuiSettingsId::IMAGES_PATH, (run->getOutputPath() / "imgs"_path).native());
         controller = makeAuto<Controller>(gui);
 
-        AutoPtr<AsteroidCollision> run = makeAuto<AsteroidCollision>(controller.get());
+        /// \todo try to remove this circular dependency
+        run->setController(controller.get());
 
         controller->start(std::move(run));
         return true;

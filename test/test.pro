@@ -62,10 +62,10 @@ SOURCES += \
     ../lib/math/test/Roots.cpp \
     ../lib/math/test/SparseMatrix.cpp \
     ../lib/objects/containers/test/Array.cpp \
-    ../lib/objects/containers/test/ArrayUtils.cpp \
+    ../lib/objects/utility/test/ArrayUtils.cpp \
     ../lib/objects/containers/test/BufferedArray.cpp \
     ../lib/objects/containers/test/StaticArray.cpp \
-    ../lib/objects/containers/test/StringUtils.cpp \
+    ../lib/objects/utility/test/StringUtils.cpp \
     ../lib/objects/containers/test/Tuple.cpp \
     ../lib/objects/finders/test/Finders.cpp \
     ../lib/objects/finders/test/Order.cpp \
@@ -77,7 +77,7 @@ SOURCES += \
     ../lib/objects/wrappers/test/Finally.cpp \
     ../lib/objects/wrappers/test/Function.cpp \
     ../lib/objects/wrappers/test/Flags.cpp \
-    ../lib/objects/wrappers/test/Iterators.cpp \
+    ../lib/objects/utility/test/Iterators.cpp \
     ../lib/objects/wrappers/test/LockingPtr.cpp \
     ../lib/objects/wrappers/test/Optional.cpp \
     ../lib/objects/wrappers/test/Outcome.cpp \
@@ -131,7 +131,7 @@ SOURCES += \
     ../lib/thread/test/Pool.cpp \
     ../lib/timestepping/test/TimeStepCriterion.cpp \
     ../lib/timestepping/test/TimeStepping.cpp \
-    ../lib/objects/wrappers/test/Value.cpp \
+    ../lib/objects/utility/test/Value.cpp \
     ../lib/quantities/test/Particle.cpp \
     ../lib/gravity/test/Moments.cpp \
     ../lib/gravity/test/BarnesHut.cpp \
@@ -145,7 +145,8 @@ SOURCES += \
     ../lib/gravity/test/BruteForceGravity.cpp \
     ../lib/objects/containers/test/List.cpp \
     ../lib/system/test/Process.cpp \
-    ../lib/post/test/Analysis.cpp
+    ../lib/post/test/Analysis.cpp \
+    ../lib/objects/utility/test/OperatorTemplate.cpp
 
 HEADERS += \
     utils/Utils.h \

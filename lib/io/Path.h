@@ -131,5 +131,9 @@ private:
     std::size_t findFolder(const std::string& folder);
 };
 
+/// Useful literal returning path from given string.
+///
+/// Given path cannot be empty.
+Path operator"" _path(const char* nativePath, const std::size_t size);
 
 NAMESPACE_SPH_END

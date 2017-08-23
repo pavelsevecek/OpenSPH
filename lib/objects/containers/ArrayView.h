@@ -7,7 +7,7 @@
 
 #include "common/Assert.h"
 #include "common/Traits.h"
-#include "objects/wrappers/Iterators.h"
+#include "objects/utility/Iterators.h"
 
 NAMESPACE_SPH_BEGIN
 

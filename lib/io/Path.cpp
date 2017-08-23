@@ -221,4 +221,9 @@ std::size_t Path::findFolder(const std::string& folder) {
     return std::string::npos;
 }
 
+Path operator"" _path(const char* nativePath, const std::size_t UNUSED_IN_RELEASE(size)) {
+    ASSERT(size > 0);
+    return Path(nativePath);
+}
+
 NAMESPACE_SPH_END

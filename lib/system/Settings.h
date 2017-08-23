@@ -422,8 +422,11 @@ enum class RngEnum {
 
 /// Settings relevant for whole run of the simulation
 enum class RunSettingsId {
-    /// User-defined name of the run, used in some output files
+    /// User-specified name of the run, used in some output files
     RUN_NAME,
+
+    /// User-specified comment
+    RUN_COMMENT,
 
     /// Name of the person running the simulation
     RUN_AUTHOR,

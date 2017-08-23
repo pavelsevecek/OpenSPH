@@ -49,7 +49,7 @@ SOURCES += \
     math/Morton.cpp \
     math/SparseMatrix.cpp \
     math/rng/Rng.cpp \
-    objects/containers/StringUtils.cpp \
+    objects/utility/StringUtils.cpp \
     objects/finders/Voxel.cpp \
     objects/wrappers/Range.cpp \
     physics/Damage.cpp \
@@ -95,16 +95,6 @@ HEADERS += \
     common/ForwardDecl.h \
     common/Globals.h \
     common/Traits.h \
-    objects/geometry/AntisymmetricTensor.h \
-    objects/geometry/Box.h \
-    objects/geometry/Domagin.h \
-    objects/geometry/Generic.h \
-    objects/geometry/Indices.h \
-    objects/geometry/Multipole.h \
-    objects/geometry/SymmetricTensor.h \
-    objects/geometry/Tensor.h \
-    objects/geometry/TracelessTensor.h \
-    objects/geometry/Vector.h \
     gravity/BarnesHut.h \
     io/Column.h \
     io/FileSystem.h \
@@ -124,15 +114,25 @@ HEADERS += \
     math/rng/VectorRng.h \
     objects/Exceptions.h \
     objects/Object.h \
+    objects/geometry/AntisymmetricTensor.h \
+    objects/geometry/Box.h \
+    objects/geometry/Domagin.h \
+    objects/geometry/Generic.h \
+    objects/geometry/Indices.h \
+    objects/geometry/Multipole.h \
+    objects/geometry/SymmetricTensor.h \
+    objects/geometry/Tensor.h \
+    objects/geometry/TracelessTensor.h \
+    objects/geometry/Vector.h \
     objects/containers/Array.h \
     objects/containers/ArrayMap.h \
-    objects/containers/ArrayUtils.h \
+    objects/utility/ArrayUtils.h \
     objects/containers/ArrayView.h \
     objects/containers/BufferedArray.h \
     objects/containers/LookupMap.h \
-    objects/containers/PerElementWrapper.h \
+    objects/utility/PerElementWrapper.h \
     objects/containers/StaticArray.h \
-    objects/containers/StringUtils.h \
+    objects/utility/StringUtils.h \
     objects/containers/Tuple.h \
     objects/finders/AbstractFinder.h \
     objects/finders/BruteForceFinder.h \
@@ -149,7 +149,7 @@ HEADERS += \
     objects/wrappers/Expected.h \
     objects/wrappers/Finally.h \
     objects/wrappers/Flags.h \
-    objects/wrappers/Iterators.h \
+    objects/utility/Iterators.h \
     objects/wrappers/LockingPtr.h \
     objects/wrappers/NonOwningPtr.h \
     objects/wrappers/ObserverPtr.h \
@@ -157,7 +157,7 @@ HEADERS += \
     objects/wrappers/Outcome.h \
     objects/wrappers/Range.h \
     objects/wrappers/SharedPtr.h \
-    objects/wrappers/Value.h \
+    objects/utility/Value.h \
     objects/wrappers/Variant.h \
     objects/wrappers/VectorizedArray.h \
     physics/Analytic.h \
@@ -244,4 +244,5 @@ HEADERS += \
     mpi/ProcessPool.h \
     mpi/Serializable.h \
     mpi/Mpi.h \
-    post/Analysis.h
+    post/Analysis.h \
+    objects/utility/OperatorTemplate.h

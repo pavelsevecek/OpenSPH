@@ -240,6 +240,7 @@ template<>
 AutoPtr<RunSettings> RunSettings::instance (new RunSettings {
     /// Parameters of the run
     { RunSettingsId::RUN_NAME,                      "run.name",                 std::string("unnamed run") },
+    { RunSettingsId::RUN_COMMENT,                   "run.comment",              std::string("") },
     { RunSettingsId::RUN_AUTHOR,                    "run.author",               std::string("Pavel Sevecek") },
     { RunSettingsId::RUN_EMAIL,                     "run.email",                std::string("sevecek@sirrah.troja.mff.cuni.cz") },
     { RunSettingsId::RUN_OUTPUT_TYPE,               "run.output.type",          int(OutputEnum::TEXT_FILE) },
@@ -302,7 +303,7 @@ AutoPtr<RunSettings> RunSettings::instance (new RunSettings {
     { RunSettingsId::TIMESTEPPING_ADAPTIVE_FACTOR,  "timestep.adaptive.factor", 0.2_f },
 
     /// Selected coordinate system, rotation of bodies
-    { RunSettingsId::FRAME_ANGULAR_FREQUENCY,       "frame.angular_frequency",  0._f },
+    { RunSettingsId::FRAME_ANGULAR_FREQUENCY,       "frame.angular_frequency",  Vector(0._f) },
 
     /// Computational domain and boundary conditions
     { RunSettingsId::DOMAIN_TYPE,                   "domain.type",              int(DomainEnum::NONE) },
