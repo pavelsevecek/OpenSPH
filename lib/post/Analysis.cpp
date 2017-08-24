@@ -2,7 +2,7 @@
 #include "io/Column.h"
 #include "io/Output.h"
 #include "objects/geometry/Box.h"
-#include "objects/wrappers/Iterators.h"
+#include "objects/utility/Iterators.h"
 #include "quantities/Storage.h"
 #include "sph/kernel/KernelFactory.h"
 #include "system/Factory.h"

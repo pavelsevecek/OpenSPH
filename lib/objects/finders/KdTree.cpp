@@ -1,5 +1,5 @@
 #include "objects/finders/KdTree.h"
-#include "objects/containers/ArrayUtils.h"
+#include "objects/utility/ArrayUtils.h"
 #include <set>
 
 NAMESPACE_SPH_BEGIN

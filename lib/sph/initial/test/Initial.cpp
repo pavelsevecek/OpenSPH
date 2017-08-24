@@ -1,12 +1,12 @@
 #include "sph/initial/Initial.h"
 #include "catch.hpp"
 #include "objects/geometry/Domain.h"
-#include "objects/containers/ArrayUtils.h"
+#include "objects/utility/ArrayUtils.h"
 #include "quantities/Iterate.h"
 #include "quantities/Storage.h"
 #include "system/Settings.h"
-#include "timestepping/AbstractSolver.h"
 #include "tests/Approx.h"
+#include "timestepping/AbstractSolver.h"
 #include "utils/SequenceTest.h"
 
 using namespace Sph;

@@ -8,7 +8,7 @@
 #include "common/ForwardDecl.h"
 #include "math/Means.h"
 #include "objects/containers/Array.h"
-#include "objects/wrappers/Value.h"
+#include "objects/utility/Value.h"
 #include "system/Settings.h"
 
 NAMESPACE_SPH_BEGIN

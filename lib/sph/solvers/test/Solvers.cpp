@@ -1,6 +1,6 @@
 #include "catch.hpp"
 #include "objects/geometry/Domain.h"
-#include "objects/containers/ArrayUtils.h"
+#include "objects/utility/ArrayUtils.h"
 #include "objects/wrappers/Range.h"
 #include "physics/Constants.h"
 #include "physics/Integrals.h"
@@ -8,9 +8,9 @@
 #include "sph/solvers/ContinuitySolver.h"
 #include "sph/solvers/SummationSolver.h"
 #include "system/Statistics.h"
+#include "tests/Approx.h"
 #include "tests/Setup.h"
 #include "timestepping/TimeStepping.h"
-#include "tests/Approx.h"
 #include "utils/SequenceTest.h"
 
 using namespace Sph;

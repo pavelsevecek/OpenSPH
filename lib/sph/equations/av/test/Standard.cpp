@@ -1,9 +1,9 @@
 #include "sph/equations/av/Standard.h"
 #include "catch.hpp"
 #include "io/LogFile.h"
-#include "objects/containers/PerElementWrapper.h"
-#include "tests/Setup.h"
+#include "objects/utility/PerElementWrapper.h"
 #include "tests/Approx.h"
+#include "tests/Setup.h"
 #include "utils/SequenceTest.h"
 
 using namespace Sph;

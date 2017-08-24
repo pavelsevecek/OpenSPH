@@ -1,7 +1,7 @@
 #include "gravity/BarnesHut.h"
 #include "gravity/Moments.h"
-#include "objects/containers/ArrayUtils.h"
 #include "objects/geometry/Sphere.h"
+#include "objects/utility/ArrayUtils.h"
 #include "physics/Constants.h"
 #include "quantities/Storage.h"
 #include "system/Profiler.h"

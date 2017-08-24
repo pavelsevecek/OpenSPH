@@ -7,8 +7,8 @@
 
 #include "common/ForwardDecl.h"
 #include "objects/containers/Array.h"
+#include "objects/utility/Value.h"
 #include "objects/wrappers/AutoPtr.h"
-#include "objects/wrappers/Value.h"
 #include "quantities/QuantityIds.h"
 
 NAMESPACE_SPH_BEGIN

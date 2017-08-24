@@ -5,7 +5,7 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2017
 
-#include "objects/wrappers/Value.h"
+#include "objects/utility/Value.h"
 #include "quantities/QuantityIds.h"
 #include "quantities/Storage.h"
 #include "system/Statistics.h"

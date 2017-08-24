@@ -1,4 +1,4 @@
-#include "objects/containers/StringUtils.h"
+#include "objects/utility/StringUtils.h"
 
 NAMESPACE_SPH_BEGIN
 

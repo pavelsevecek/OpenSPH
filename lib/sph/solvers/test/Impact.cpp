@@ -1,6 +1,6 @@
 #include "catch.hpp"
 #include "objects/geometry/Domain.h"
-#include "objects/containers/PerElementWrapper.h"
+#include "objects/utility/PerElementWrapper.h"
 #include "sph/initial/Initial.h"
 #include "sph/solvers/ContinuitySolver.h"
 #include "tests/Setup.h"

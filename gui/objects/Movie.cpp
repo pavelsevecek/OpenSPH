@@ -5,7 +5,7 @@
 #include "gui/objects/Camera.h"
 #include "gui/objects/Element.h"
 #include "io/FileSystem.h"
-#include "objects/containers/StringUtils.h"
+#include "objects/utility/StringUtils.h"
 #include "system/Statistics.h"
 #include "thread/CheckFunction.h"
 #include <condition_variable>

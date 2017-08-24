@@ -10,7 +10,7 @@
 #include "io/Logger.h"
 #include "io/Path.h"
 #include "objects/containers/Array.h"
-#include "objects/containers/StringUtils.h"
+#include "objects/utility/StringUtils.h"
 #include "objects/wrappers/Expected.h"
 #include "objects/wrappers/Outcome.h"
 #include "objects/wrappers/SharedPtr.h"

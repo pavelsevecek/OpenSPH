@@ -1,6 +1,6 @@
 #include "gui/Utils.h"
 #include "common/Assert.h"
-#include "objects/containers/StringUtils.h"
+#include "objects/utility/StringUtils.h"
 #include <iomanip>
 
 NAMESPACE_SPH_BEGIN

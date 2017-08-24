@@ -1,6 +1,6 @@
 #include "quantities/Quantity.h"
 #include "catch.hpp"
-#include "objects/containers/ArrayUtils.h"
+#include "objects/utility/ArrayUtils.h"
 #include "utils/Utils.h"
 
 using namespace Sph;

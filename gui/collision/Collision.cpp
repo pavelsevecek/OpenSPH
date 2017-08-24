@@ -219,6 +219,8 @@ private:
 
 AsteroidCollision::AsteroidCollision() {
     const std::string runName = "Impact";
+    const Float omega = 2._f * PI / (6._f * 3600._f);
+
     settings.set(RunSettingsId::RUN_NAME, runName)
         .set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::PREDICTOR_CORRECTOR)
         .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 0.01_f)
@@ -233,10 +235,11 @@ AsteroidCollision::AsteroidCollision() {
         .set(RunSettingsId::GRAVITY_SOLVER, GravityEnum::BARNES_HUT)
         .set(RunSettingsId::GRAVITY_OPENING_ANGLE, 0.5_f)
         .set(RunSettingsId::GRAVITY_LEAF_SIZE, 20)
-        .set(RunSettingsId::RUN_THREAD_GRANULARITY, 100);
+        .set(RunSettingsId::RUN_THREAD_GRANULARITY, 100)
+        .set(RunSettingsId::FRAME_ANGULAR_FREQUENCY, Vector(0._f, 0._f, omega));
 
-    settings.set(
-        RunSettingsId::RUN_COMMENT, std::string("Homogeneous Gravity with delta = 1, no initial rotation"));
+    settings.set(RunSettingsId::RUN_COMMENT,
+        std::string("Homogeneous Gravity with delta = 1, initial rotation ") + std::to_string(omega));
 
     const Path pathToResults("/home/pavel/projects/astro/sph/result/");
 
@@ -357,7 +360,9 @@ Storage AsteroidCollision::runPkdgrav() {
     Path pkdgravDir("/home/pavel/projects/astro/sph/external/pkdgrav_run/");
     ASSERT(pathExists(pkdgravDir));
     ScopedWorkingDirectory guard(pkdgravDir);
-    PkdgravOutput pkdgravOutput(Path("pkdgrav_%d.out"), PkdgravParams{});
+    PkdgravParams params;
+    params.omega = settings.get<Vector>(RunSettingsId::FRAME_ANGULAR_FREQUENCY);
+    PkdgravOutput pkdgravOutput(Path("pkdgrav_%d.out"), std::move(params));
     Statistics stats;
     pkdgravOutput.dump(*storage, stats);
     ASSERT(pathExists(Path("pkdgrav_0000.out")));

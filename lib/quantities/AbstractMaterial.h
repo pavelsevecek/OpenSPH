@@ -6,7 +6,7 @@
 /// \date 2016-2017
 
 #include "math/rng/Rng.h"
-#include "objects/wrappers/Iterators.h"
+#include "objects/utility/Iterators.h"
 #include "system/Settings.h"
 
 NAMESPACE_SPH_BEGIN

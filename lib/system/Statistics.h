@@ -7,8 +7,8 @@
 
 #include "common/ForwardDecl.h"
 #include "math/Means.h"
+#include "objects/utility/Value.h"
 #include "objects/wrappers/Range.h"
-#include "objects/wrappers/Value.h"
 #include "objects/wrappers/Variant.h"
 #include "quantities/QuantityIds.h"
 #include <map>

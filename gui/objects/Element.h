@@ -9,7 +9,7 @@
 #include "gui/Factory.h"
 #include "gui/objects/Palette.h"
 #include "gui/objects/Point.h"
-#include "objects/wrappers/Value.h"
+#include "objects/utility/Value.h"
 #include "quantities/AbstractMaterial.h"
 #include "quantities/Particle.h"
 

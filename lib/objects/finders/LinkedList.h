@@ -1,8 +1,8 @@
 #pragma once
 
-#include "objects/geometry/Box.h"
 #include "objects/finders/AbstractFinder.h"
-#include "objects/wrappers/Iterators.h"
+#include "objects/geometry/Box.h"
+#include "objects/utility/Iterators.h"
 #include <algorithm>
 
 NAMESPACE_SPH_BEGIN
@@ -56,7 +56,9 @@ private:
     Array<Size> linkedList;
 
 public:
-    LinkedList() { Indices::init(); }
+    LinkedList() {
+        Indices::init();
+    }
 
     virtual Size findNeighbours(const Size index,
         const Float radius,

@@ -7,7 +7,7 @@
 
 #include "objects/containers/Array.h"
 #include "objects/geometry/Indices.h"
-#include "objects/wrappers/Iterators.h"
+#include "objects/utility/Iterators.h"
 #include <algorithm>
 
 NAMESPACE_SPH_BEGIN

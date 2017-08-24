@@ -1,6 +1,6 @@
 #include "thread/Pool.h"
 #include "catch.hpp"
-#include "objects/containers/ArrayUtils.h"
+#include "objects/utility/ArrayUtils.h"
 #include "system/Timer.h"
 #include "thread/ThreadLocal.h"
 #include "utils/Utils.h"

@@ -1,6 +1,6 @@
 #include "system/Settings.h"
 #include "io/FileSystem.h"
-#include "objects/containers/StringUtils.h"
+#include "objects/utility/StringUtils.h"
 #include "objects/wrappers/Outcome.h"
 #include <fstream>
 #include <regex>
