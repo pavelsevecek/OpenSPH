@@ -12,7 +12,7 @@ TEST_CASE("Serialize", "[serialize]") {
         serializer.addPadding(13);
         serializer.write(std::string("test"));
     }
-    REQUIRE(fileSize(path) == 44 + 13 + 5);
+    REQUIRE(FileSystem::fileSize(path) == 44 + 13 + 5);
 
     {
         Deserializer deserializer(path);

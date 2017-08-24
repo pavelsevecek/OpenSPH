@@ -37,7 +37,7 @@ TEST_CASE("TextOutput dump", "[output]") {
                    5                   1                   1                   1                   0                   0                   0
                    5                   2                   2                   2                   0                   0                   0
 )";
-    std::string content = readFile(Path("tmp1_0000.txt"));
+    std::string content = FileSystem::readFile(Path("tmp1_0000.txt"));
     REQUIRE(content == expected);
 }
 
@@ -194,11 +194,11 @@ TEST_CASE("Pkdgrav output", "[output]") {
     PkdgravOutput output(Path("readerik%d.out"), PkdgravParams{});
     Statistics stats;
     output.dump(storage, stats);
-    REQUIRE(fileSize(Path("readerik0000.out")) > 0);
+    REQUIRE(FileSystem::fileSize(Path("readerik0000.out")) > 0);
 
     PkdgravParams params;
     params.vaporThreshold = 0.f;
     PkdgravOutput output2(Path("readerik2_%d.out"), std::move(params));
     output2.dump(storage, stats);
-    REQUIRE(fileSize(Path("readerik2_0000.out")) == 0);
+    REQUIRE(FileSystem::fileSize(Path("readerik2_0000.out")) == 0);
 }

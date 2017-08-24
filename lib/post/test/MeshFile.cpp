@@ -63,7 +63,7 @@ TEST_CASE("Ply cube", "[meshfile]") {
 
     REQUIRE(file.save(Path("cube.ply"), triangles));
 
-    std::string plyData = readFile(Path("cube.ply"));
+    std::string plyData = FileSystem::readFile(Path("cube.ply"));
     std::size_t n = plyData.find("element vertex");
     REQUIRE(n != std::string::npos);
 

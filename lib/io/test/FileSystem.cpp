@@ -41,7 +41,7 @@ public:
 
     ~TestFile() {
         if (!path.empty()) {
-            Outcome result = removePath(path);
+            Outcome result = FileSystem::removePath(path);
             ASSERT(result);
         }
     }
@@ -58,11 +58,11 @@ private:
 public:
     TestDirectory(const Path& parentDir = Path()) {
         path = parentDir / Path(getRandomName());
-        createDirectory(path);
+        FileSystem::createDirectory(path);
     }
 
     ~TestDirectory() {
-        Outcome result = removePath(path, RemovePathFlag::RECURSIVE);
+        Outcome result = FileSystem::removePath(path, FileSystem::RemovePathFlag::RECURSIVE);
         ASSERT(result);
     }
 
@@ -73,27 +73,36 @@ public:
 
 TEST_CASE("PathExists", "[filesystem]") {
     TestFile file;
-    REQUIRE(pathExists(file));
-    REQUIRE(pathExists(Path(file).makeAbsolute()));
-    REQUIRE_FALSE(pathExists(Path(file).removeExtension())); // extension is relevant
-    REQUIRE_FALSE(pathExists(Path("dummy")));
+    REQUIRE(FileSystem::pathExists(file));
+    REQUIRE(FileSystem::pathExists(Path(file).makeAbsolute()));
+    REQUIRE_FALSE(FileSystem::pathExists(Path(file).removeExtension())); // extension is relevant
+    REQUIRE_FALSE(FileSystem::pathExists(Path("dummy")));
+}
+
+TEST_CASE("PathType", "[filesystem]") {
+    TestFile file;
+    TestDirectory directory;
+    REQUIRE(FileSystem::getPathType(file).valueOr(FileSystem::PathType::OTHER) == FileSystem::PathType::FILE);
+    REQUIRE(FileSystem::getPathType(directory).valueOr(FileSystem::PathType::OTHER) ==
+            FileSystem::PathType::directory);
+    REQUIRE_FALSE(FileSystem::getPathType("123456789"));
 }
 
 TEST_CASE("RemovePath", "[filesystem]") {
-    REQUIRE_FALSE(removePath(Path("")));
-    REQUIRE_FALSE(removePath(Path("fdsafdqfqffqfdq")));
+    REQUIRE_FALSE(FileSystem::removePath(Path("")));
+    REQUIRE_FALSE(FileSystem::removePath(Path("fdsafdqfqffqfdq")));
     TestFile file;
-    REQUIRE(removePath(file));
+    REQUIRE(FileSystem::removePath(file));
     file.markDeleted();
 }
 
 TEST_CASE("SetWorkingDirectory", "[filesystem]") {
     const Path current = Path::currentPath();
     const Path newPath = Path("/home/pavel/");
-    setWorkingDirectory(newPath);
+    FileSystem::setWorkingDirectory(newPath);
     REQUIRE(Path::currentPath() == newPath);
 
-    setWorkingDirectory(current);
+    FileSystem::setWorkingDirectory(current);
     REQUIRE(Path::currentPath() == current);
 }
 
@@ -104,7 +113,7 @@ TEST_CASE("DirectoryIterator", "[filesystem]") {
         files.emplaceBack(dir);
     }
     Size found = 0;
-    for (Path path : iterateDirectory(dir)) {
+    for (Path path : FileSystem::iterateDirectory(dir)) {
         REQUIRE(std::find_if(files.begin(), files.end(), [&path, &dir](TestFile& file) {
             return Path(file) == Path(dir) / path;
         }) != files.end());
@@ -115,14 +124,15 @@ TEST_CASE("DirectoryIterator", "[filesystem]") {
 
 TEST_CASE("Create and remove directory", "[filesystem]") {
     Path dummyPath("dummyDir");
-    REQUIRE(createDirectory(dummyPath) == SUCCESS);
-    REQUIRE(createDirectory(dummyPath) == SUCCESS); // should not fail if the directory already exists
-    REQUIRE_FALSE(createDirectory(dummyPath, EMPTY_FLAGS));
-    REQUIRE(pathExists(dummyPath));
-    REQUIRE(createDirectory(Path("dummyDir1/dummyDir2")) == SUCCESS);
+    REQUIRE(FileSystem::createDirectory(dummyPath) == SUCCESS);
+    // should not fail if the directory already exists
+    REQUIRE(FileSystem::createDirectory(dummyPath) == SUCCESS);
+    REQUIRE_FALSE(FileSystem::createDirectory(dummyPath, EMPTY_FLAGS));
+    REQUIRE(FileSystem::pathExists(dummyPath));
+    REQUIRE(FileSystem::createDirectory(Path("dummyDir1/dummyDir2")) == SUCCESS);
 
-    REQUIRE(removePath(dummyPath));
-    REQUIRE_FALSE(pathExists(dummyPath));
-    REQUIRE_FALSE(removePath(Path("dummyDir1")));
-    REQUIRE(removePath(Path("dummyDir1"), RemovePathFlag::RECURSIVE));
+    REQUIRE(FileSystem::removePath(dummyPath));
+    REQUIRE_FALSE(FileSystem::pathExists(dummyPath));
+    REQUIRE_FALSE(FileSystem::removePath(Path("dummyDir1")));
+    REQUIRE(FileSystem::removePath(Path("dummyDir1"), FileSystem::RemovePathFlag::RECURSIVE));
 }

@@ -73,7 +73,7 @@ TextOutput::~TextOutput() = default;
 Path TextOutput::dump(Storage& storage, const Statistics& stats) {
     ASSERT(!columns.empty(), "No column added to TextOutput");
     const Path fileName = paths.getNextPath(stats);
-    createDirectory(fileName.parentPath());
+    FileSystem::createDirectory(fileName.parentPath());
     std::ofstream ofs(fileName.native());
     // print description
     ofs << "# Run: " << runName << std::endl;

@@ -52,7 +52,7 @@ void Session::run(int argc, char* argv[]) {
     if (params.flags.has(Flag::MAKE_BASELINE)) {
         params.target.mode = Mode::MAKE_BASELINE;
         params.baseline.path = this->getBaselinePath();
-        removePath(params.baseline.path);
+        FileSystem::removePath(params.baseline.path);
     } else if (params.flags.has(Flag::RUN_AGAINST_BASELINE)) {
         params.target.mode = Mode::RUN_AGAINST_BASELINE;
         if (!baseline.parse(this->getBaselinePath())) {

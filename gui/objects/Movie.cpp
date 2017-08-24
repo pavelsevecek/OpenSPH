@@ -50,7 +50,7 @@ void Movie::onTimeStep(const Storage& storage, Statistics& stats) {
         return;
     }
     const Path path = paths.getNextPath(stats);
-    createDirectory(path.parentPath());
+    FileSystem::createDirectory(path.parentPath());
     for (auto& e : elements) {
         Path actPath(replace(path.native(), "%e", escapeElementName(e->name())));
 

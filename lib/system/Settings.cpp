@@ -9,7 +9,7 @@ NAMESPACE_SPH_BEGIN
 
 template <typename TEnum>
 void Settings<TEnum>::saveToFile(const Path& path) const {
-    createDirectory(path.parentPath());
+    FileSystem::createDirectory(path.parentPath());
     std::ofstream ofs(path.native());
     for (auto& e : entries) {
         const Entry& entry = e.second;

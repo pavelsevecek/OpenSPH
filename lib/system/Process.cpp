@@ -19,7 +19,7 @@ public:
 };
 
 Process::Process(const Path& path, Array<std::string>&& args) {
-    if (!pathExists(path)) {
+    if (!FileSystem::pathExists(path)) {
         throw ProcessException("Path " + path.native() + " does not exist");
     }
     pid_t pid = fork();

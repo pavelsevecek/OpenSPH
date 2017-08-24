@@ -1,5 +1,5 @@
 #include "io/FileSystem.h"
-#include "common/Assert.h"
+#include "objects/containers/StaticArray.h"
 #include <fstream>
 #include <sstream>
 #include <sys/stat.h>
@@ -10,14 +10,14 @@
 
 NAMESPACE_SPH_BEGIN
 
-std::string readFile(const Path& path) {
+std::string FileSystem::readFile(const Path& path) {
     std::ifstream t(path.native().c_str());
     std::stringstream buffer;
     buffer << t.rdbuf();
     return buffer.str();
 }
 
-bool pathExists(const Path& path) {
+bool FileSystem::pathExists(const Path& path) {
     struct stat buffer;
     if (path.empty()) {
         return false;
@@ -25,53 +25,73 @@ bool pathExists(const Path& path) {
     return (stat(path.native().c_str(), &buffer) == 0);
 }
 
-Size fileSize(const Path& path) {
+Size FileSystem::fileSize(const Path& path) {
     std::ifstream ifs(path.native(), std::ifstream::ate | std::ifstream::binary);
     ASSERT(ifs);
     return ifs.tellg();
 }
 
-namespace {
-    Outcome createSingleDirectory(const Path& path, const Flags<CreateDirectoryFlag> flags) {
-        ASSERT(!path.empty());
-        const bool result = mkdir(path.native().c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) == 0;
-        if (!result) {
-            switch (errno) {
-            case EACCES:
-                return "Search permission is denied on a component of the path prefix, or write permission "
-                       "is denied on the parent directory of the directory to be created.";
-            case EEXIST:
-                if (flags.has(CreateDirectoryFlag::ALLOW_EXISTING)) {
-                    return SUCCESS;
-                } else {
-                    return "The named file exists.";
-                }
-            case ELOOP:
-                return "A loop exists in symbolic links encountered during resolution of the path argument.";
-            case EMLINK:
-                return "The link count of the parent directory would exceed {LINK_MAX}.";
-            case ENAMETOOLONG:
-                return "The length of the path argument exceeds {PATH_MAX} or a pathname component is longer "
-                       "than {NAME_MAX}.";
-            case ENOENT:
-                return "A component of the path prefix specified by path does not name an existing directory "
-                       "or path is an empty string.";
-            case ENOSPC:
-                return "The file system does not contain enough space to hold the contents of the new "
-                       "directory or to extend the parent directory of the new directory.";
-            case ENOTDIR:
-                return "A component of the path prefix is not a directory.";
-            case EROFS:
-                return "The parent directory resides on a read-only file system.";
-            default:
-                return "Unknown error";
-            }
-        }
-        return SUCCESS;
+Expected<FileSystem::PathType> FileSystem::getPathType(const Path& path) {
+    if (path.empty()) {
+        return makeUnexpected<PathType>("Path is empty");
     }
+    struct stat buffer;
+    if (stat(path.native().c_str(), &buffer) != 0) {
+        /// \todo possibly get the actual error, like in other functions
+        return makeUnexpected<PathType>("Cannot retrieve type of the path");
+    }
+    if (S_ISREG(buffer.st_mode)) {
+        return PathType::FILE;
+    }
+    if (S_ISDIR(buffer.st_mode)) {
+        return PathType::DIRECTORY;
+    }
+    if (S_ISLNK(buffer.st_mode)) {
+        return PathType::SYMLINK;
+    }
+    return PathType::OTHER;
 }
 
-Outcome createDirectory(const Path& path, const Flags<CreateDirectoryFlag> flags) {
+
+static Outcome createSingleDirectory(const Path& path, const Flags<FileSystem::CreateDirectoryFlag> flags) {
+    ASSERT(!path.empty());
+    const bool result = mkdir(path.native().c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) == 0;
+    if (!result) {
+        switch (errno) {
+        case EACCES:
+            return "Search permission is denied on a component of the path prefix, or write permission "
+                   "is denied on the parent directory of the directory to be created.";
+        case EEXIST:
+            if (flags.has(FileSystem::CreateDirectoryFlag::ALLOW_EXISTING)) {
+                return SUCCESS;
+            } else {
+                return "The named file exists.";
+            }
+        case ELOOP:
+            return "A loop exists in symbolic links encountered during resolution of the path argument.";
+        case EMLINK:
+            return "The link count of the parent directory would exceed {LINK_MAX}.";
+        case ENAMETOOLONG:
+            return "The length of the path argument exceeds {PATH_MAX} or a pathname component is longer "
+                   "than {NAME_MAX}.";
+        case ENOENT:
+            return "A component of the path prefix specified by path does not name an existing directory "
+                   "or path is an empty string.";
+        case ENOSPC:
+            return "The file system does not contain enough space to hold the contents of the new "
+                   "directory or to extend the parent directory of the new directory.";
+        case ENOTDIR:
+            return "A component of the path prefix is not a directory.";
+        case EROFS:
+            return "The parent directory resides on a read-only file system.";
+        default:
+            return "Unknown error";
+        }
+    }
+    return SUCCESS;
+}
+
+Outcome FileSystem::createDirectory(const Path& path, const Flags<CreateDirectoryFlag> flags) {
 #ifdef SPH_USE_STD_EXPERIMENTAL
     return (Outcome)std::experimental::filesystem::create_directories(path);
 #else
@@ -89,7 +109,7 @@ Outcome createDirectory(const Path& path, const Flags<CreateDirectoryFlag> flags
 #endif
 }
 
-Outcome removePath(const Path& path, const Flags<RemovePathFlag> flags) {
+Outcome FileSystem::removePath(const Path& path, const Flags<RemovePathFlag> flags) {
 #ifdef SPH_USE_STD_EXPERIMENTAL
     try {
         std::experimental::filesystem::remove_all(path);
@@ -164,11 +184,65 @@ Outcome removePath(const Path& path, const Flags<RemovePathFlag> flags) {
 #endif
 }
 
-void setWorkingDirectory(const Path& path) {
+Outcome FileSystem::copyFile(const Path& from, const Path& to) {
+    ASSERT(getPathType(from).valueOr(PathType::OTHER) == PathType::FILE);
+    // there doesn't seem to be any system function for copying, so let's do it by hand
+    std::ifstream ifs(from.native().c_str());
+    if (!ifs) {
+        return "Cannon open file " + from.native() + " for reading";
+    }
+    Outcome result = createDirectory(to.parentPath());
+    if (!result) {
+        return result;
+    }
+    std::ofstream ofs(to.native());
+    if (!ofs) {
+        return "Cannot open file " + to.native() + " for writing";
+    }
+
+    StaticArray<char, 1024> buffer;
+    while (ifs.read(&buffer[0], buffer.size())) {
+        ofs.write(&buffer[0], ifs.gcount());
+        if (!ofs) {
+            return "Failed from copy the file";
+        }
+    }
+    return SUCCESS;
+}
+
+
+Outcome FileSystem::copyDirectory(const Path& from, const Path& to) {
+    ASSERT(getPathType(from).valueOr(PathType::OTHER) == PathType::DIRECTORY);
+    Outcome result = createDirectory(to);
+    if (!result) {
+        return result;
+    }
+    for (Path path : iterateDirectory(from)) {
+        const PathType type = getPathType(from / path).valueOr(PathType::OTHER);
+        switch (type) {
+        case PathType::FILE:
+            result = copyFile(from / path, to / path);
+            break;
+        case PathType::DIRECTORY:
+            result = copyDirectory(from / path, to / path);
+            break;
+        default:
+            // just ignore the rest
+            result = SUCCESS;
+        }
+        if (!result) {
+            return result;
+        }
+    }
+    return SUCCESS;
+}
+
+void FileSystem::setWorkingDirectory(const Path& path) {
+    ASSERT(getPathType(path).valueOr(PathType::OTHER) == PathType::DIRECTORY);
     chdir(path.native().c_str());
 }
 
-DirectoryIterator::DirectoryIterator(DIR* dir)
+FileSystem::DirectoryIterator::DirectoryIterator(DIR* dir)
     : dir(dir) {
     if (dir) {
         // find first file
@@ -176,7 +250,7 @@ DirectoryIterator::DirectoryIterator(DIR* dir)
     }
 }
 
-DirectoryIterator& DirectoryIterator::operator++() {
+FileSystem::DirectoryIterator& FileSystem::DirectoryIterator::operator++() {
     if (!dir) {
         return *this;
     }
@@ -186,17 +260,18 @@ DirectoryIterator& DirectoryIterator::operator++() {
     return *this;
 }
 
-Path DirectoryIterator::operator*() const {
+Path FileSystem::DirectoryIterator::operator*() const {
     ASSERT(entry);
     return Path(entry->d_name);
 }
 
-bool DirectoryIterator::operator!=(const DirectoryIterator& other) const {
+bool FileSystem::DirectoryIterator::operator!=(const DirectoryIterator& other) const {
     // returns false if both are nullptr to end the loop for nonexisting dirs
     return (entry || other.entry) && entry != other.entry;
 }
 
-DirectoryAdapter::DirectoryAdapter(const Path& directory) {
+FileSystem::DirectoryAdapter::DirectoryAdapter(const Path& directory) {
+    ASSERT(getPathType(directory).valueOr(PathType::OTHER) == PathType::DIRECTORY);
     if (!pathExists(directory)) {
         dir = nullptr;
         return;
@@ -204,26 +279,26 @@ DirectoryAdapter::DirectoryAdapter(const Path& directory) {
     dir = opendir(directory.native().c_str());
 }
 
-DirectoryAdapter::~DirectoryAdapter() {
+FileSystem::DirectoryAdapter::~DirectoryAdapter() {
     if (dir) {
         closedir(dir);
     }
 }
 
-DirectoryAdapter::DirectoryAdapter(DirectoryAdapter&& other)
+FileSystem::DirectoryAdapter::DirectoryAdapter(DirectoryAdapter&& other)
     : dir(other.dir) {
     other.dir = nullptr;
 }
 
-DirectoryIterator DirectoryAdapter::begin() const {
+FileSystem::DirectoryIterator FileSystem::DirectoryAdapter::begin() const {
     return DirectoryIterator(dir);
 }
 
-DirectoryIterator DirectoryAdapter::end() const {
+FileSystem::DirectoryIterator FileSystem::DirectoryAdapter::end() const {
     return DirectoryIterator(nullptr);
 }
 
-DirectoryAdapter iterateDirectory(const Path& directory) {
+FileSystem::DirectoryAdapter FileSystem::iterateDirectory(const Path& directory) {
     return DirectoryAdapter(directory);
 }
 

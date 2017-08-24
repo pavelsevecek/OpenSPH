@@ -9,6 +9,10 @@
 
 NAMESPACE_SPH_BEGIN
 
+
+struct UnexpectedTag {};
+const UnexpectedTag UNEXPECTED;
+
 /// \brief Wrapper of type that either contains a value of given type, or an error message.
 ///
 /// Expected is designed as a return type. When talking about 'expected' value, it means no error has been
@@ -17,10 +21,6 @@ NAMESPACE_SPH_BEGIN
 ///
 /// Inspired by Andrei Alexandrescu - Systematic Error Handling in C++
 /// https://channel9.msdn.com/Shows/Going+Deep/C-and-Beyond-2012-Andrei-Alexandrescu-Systematic-Error-Handling-in-C
-
-struct UnexpectedTag {};
-const UnexpectedTag UNEXPECTED;
-
 template <typename Type, typename Error = std::string>
 class Expected {
 private:
@@ -33,9 +33,10 @@ private:
     Variant<NothingType, Type, UnexpectedWrapper> data;
 
 public:
-    /// Construct the expected value using default constructor. Should be avoided if possible as Expected is
-    /// mainly designed as a value returned from function, but nevertheless the default constructor is defined
-    /// for convenience.
+    /// \brief Construct the expected value using default constructor.
+    ///
+    /// Should be avoided if possible as Expected is mainly designed as a value returned from function, but
+    /// nevertheless the default constructor is defined for convenience.
     Expected() {
         data.template emplace<Type>();
     }
@@ -62,27 +63,42 @@ public:
         return !isExpected();
     }
 
-    /// Returns the reference to expected value. Object must not contain unexpected value, checked by assert.
+    /// \brief Returns the reference to expected value.
+    ///
+    /// Object must not contain unexpected value, checked by assert.
     Type& value() {
         ASSERT(isExpected());
         return data.template get<Type>();
     }
 
-    /// Returns the const reference to expected value. Object must not contain unexpected value, checked by
-    /// assert.
+    /// \brief Returns the const reference to expected value.
+    ///
+    /// Object must not contain unexpected value, checked by assert.
     const Type& value() const {
         ASSERT(isExpected());
         return data.template get<Type>();
     }
 
-    /// Returns the error message. Object must contain unexpected value, checked by assert.
+    /// \brief Returns the expected value or given alternative if the object contains unexpected value.
+    Type valueOr(const Type& other) const {
+        if (isExpected()) {
+            return this->value();
+        } else {
+            return other;
+        }
+    }
+
+    /// \brief Returns the error message.
+    ///
+    /// Object must contain unexpected value, checked by assert.
     const Error& error() const {
         ASSERT(!isExpected());
         return data.template get<UnexpectedWrapper>().error;
     }
 
-    /// Operator -> for convenient access to member variables and functions of expected value. If the object
-    /// contains unexpected, throws an assert.
+    /// \brief Operator -> for convenient access to member variables and functions of expected value.
+    ///
+    /// If the object contains unexpected, throws an assert.
     Type* operator->() {
         ASSERT(isExpected());
         return &value();

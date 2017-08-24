@@ -25,21 +25,21 @@ TEST_CASE("FileLogger", "[logger]") {
         // REQUIRE_THROWS(FileLogger("log1.txt"));
         logger.write("first line");
     }
-    std::string content = readFile(Path("log1.txt"));
+    std::string content = FileSystem::readFile(Path("log1.txt"));
     REQUIRE(content == "first line\n");
 
     {
         FileLogger logger(Path("log1.txt"), FileLogger::Options::APPEND);
         logger.write("second line");
     }
-    content = readFile(Path("log1.txt"));
+    content = FileSystem::readFile(Path("log1.txt"));
     REQUIRE(content == "first line\nsecond line\n");
 
     {
         FileLogger logger(Path("log1.txt"));
         logger.write("file cleared");
     }
-    content = readFile(Path("log1.txt"));
+    content = FileSystem::readFile(Path("log1.txt"));
     REQUIRE(content == "file cleared\n");
 }
 
@@ -48,7 +48,7 @@ TEST_CASE("FileLogger timestamp", "[logger]") {
         FileLogger logger(Path("log2.txt"), FileLogger::Options::ADD_TIMESTAMP);
         logger.write("hello world");
     }
-    std::string content = readFile(Path("log2.txt"));
+    std::string content = FileSystem::readFile(Path("log2.txt"));
     REQUIRE(!content.empty());
     REQUIRE(content.find("hello world") != std::string::npos);
 
@@ -60,13 +60,13 @@ TEST_CASE("FileLogger timestamp", "[logger]") {
 }
 
 TEST_CASE("FileLogger Open when writing", "[logger]") {
-    removePath(Path("log3.txt"));
+    FileSystem::removePath(Path("log3.txt"));
     FileLogger logger(Path("log3.txt"), FileLogger::Options::OPEN_WHEN_WRITING);
     REQUIRE_NOTHROW(logger.write("first line"));
     std::string content;
-    REQUIRE_NOTHROW(content = readFile(Path("log3.txt")));
+    REQUIRE_NOTHROW(content = FileSystem::readFile(Path("log3.txt")));
     REQUIRE(content == "first line\n");
     REQUIRE_NOTHROW(logger.write("second line"));
-    REQUIRE_NOTHROW(content = readFile(Path("log3.txt")));
+    REQUIRE_NOTHROW(content = FileSystem::readFile(Path("log3.txt")));
     REQUIRE(content == "first line\nsecond line\n");
 }

@@ -358,22 +358,22 @@ void AsteroidCollision::tearDown() {
 
 Storage AsteroidCollision::runPkdgrav() {
     Path pkdgravDir("/home/pavel/projects/astro/sph/external/pkdgrav_run/");
-    ASSERT(pathExists(pkdgravDir));
-    ScopedWorkingDirectory guard(pkdgravDir);
+    ASSERT(FileSystem::pathExists(pkdgravDir));
+    FileSystem::ScopedWorkingDirectory guard(pkdgravDir);
     PkdgravParams params;
     params.omega = settings.get<Vector>(RunSettingsId::FRAME_ANGULAR_FREQUENCY);
     PkdgravOutput pkdgravOutput(Path("pkdgrav_%d.out"), std::move(params));
     Statistics stats;
     pkdgravOutput.dump(*storage, stats);
-    ASSERT(pathExists(Path("pkdgrav_0000.out")));
+    ASSERT(FileSystem::pathExists(Path("pkdgrav_0000.out")));
 
     Process pkdgrav(Path("./RUNME.sh"), {});
     pkdgrav.wait();
 
-    ASSERT(pathExists(Path("ss.50000")));
+    ASSERT(FileSystem::pathExists(Path("ss.50000")));
     Process convert(Path("./ss2bt"), { "ss.50000" });
     convert.wait();
-    ASSERT(pathExists(Path("ss.50000.bt")));
+    ASSERT(FileSystem::pathExists(Path("ss.50000.bt")));
 
     Expected<Storage> output = Post::parsePkdgravOutput(Path("ss.50000.bt"));
     ASSERT(output);

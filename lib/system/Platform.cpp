@@ -42,7 +42,7 @@ Outcome showNotification(const std::string& title, const std::string& message) {
 /// Returns current git commit hash as string. If the git repository is not found or command fails, returns
 /// empty string.
 Expected<std::string> getGitCommit(const Path& pathToGitRoot, const Size prev) {
-    if (!pathExists(pathToGitRoot)) {
+    if (!FileSystem::pathExists(pathToGitRoot)) {
         return makeUnexpected<std::string>("Invalid path");
     }
     StaticArray<char, 128> buffer;
