@@ -10,11 +10,11 @@ instruction sets).
 ## Getting the code
 The code can be downloaded from <a href="https://gitlab.com/sevecekp/sph/tree/devel">GitLab repository</a>.
 Using git, you can clone the code with
-\code
+```bash
 git clone https://sevecekp@gitlab.com/sevecekp/sph.git
 cd sph
 git checkout devel
-\endcode
+```
 
 ## Compilation 
 The code uses many c++14 features and will migrate to c++17 when it gets implemented 
