@@ -33,10 +33,10 @@ Another optional dependencies of the code are:
 - <a href="https://github.com/google/benchmark">Google Benchmark</a> (comparing perfomance of different solvers, code settings, etc.)
 
 The compilation should be as easy as
-\verbatim
+```bash
 qmake CONFIG+=version project.pro
 make
-\endverbatim
+```
 where *version* can be one of:
 - *release* - full-speed version of the code. This is the default option if no build version is specified
 - *debug* - debugging build with no optimizations (SLOW)
