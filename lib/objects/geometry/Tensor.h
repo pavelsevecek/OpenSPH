@@ -211,7 +211,7 @@ INLINE Tensor max(const Tensor& t1, const Tensor& t2) {
 
 /// Clamping all components by range.
 template <>
-INLINE Tensor clamp(const Tensor& t, const Range& range) {
+INLINE Tensor clamp(const Tensor& t, const Interval& range) {
     return Tensor(clamp(t.row(0), range), clamp(t.row(1), range), clamp(t.row(2), range));
 }
 

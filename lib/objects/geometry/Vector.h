@@ -8,7 +8,7 @@
 #include "common/Globals.h"
 #include "objects/geometry/Generic.h"
 #include "objects/containers/Tuple.h"
-#include "objects/wrappers/Range.h"
+#include "objects/wrappers/Interval.h"
 #include <immintrin.h>
 #include <iomanip>
 #include <smmintrin.h>
@@ -625,7 +625,7 @@ INLINE Vector clamp(const Vector& v, const Vector& v1, const Vector& v2) {
 
 /// Clamping all components by range.
 template <>
-INLINE Vector clamp(const Vector& v, const Range& range) {
+INLINE Vector clamp(const Vector& v, const Interval& range) {
     return Vector(range.clamp(v[0]), range.clamp(v[1]), range.clamp(v[2]), range.clamp(v[3]));
 }
 

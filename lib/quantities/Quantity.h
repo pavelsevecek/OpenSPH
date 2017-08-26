@@ -279,14 +279,22 @@ namespace Detail {
 /// within (like operator [] for \ref Array class, for example). To access the stored values, use on of the
 /// following:
 /// 1. Templated member function getValue, getDt, getD2t
-///    These function returns the reference to stored arrays, provided the template type matches the type of
+///    These functions return the reference to stored arrays, provided the template type matches the type of
 ///    the stored quantity. This is checked by assert. Type of the quantity can be checked by \ref
 ///    getValueEnum
 /// 2. Function getAll; returns all arrays (values and derivatives) stored in the holder if the template type
-///    matches the holder type.
+///    matches the holder type. The value type is checked by assert.
 /// 3. If the quantity is stored in \ref Storage object (which is expected, there is no reason to keep
-///    Quantity outside of \ref Storage), it is possible to enumerate quantity valeus using \ref iterate
-///    function.
+///    Quantity outside of \ref Storage), it is possible to enumerate quantity values using \ref iterate
+///    function (and related function - iteratePair, iterateWithPositions, ...). Utilizing generic lambdas, we
+///    can access the values of buffers in a generic way, provided the called operators and functions are
+///    defiend for all types.
+///
+/// Quantity cannot be easily resized, in order to enforce validity of parent \ref Storage; the number of
+/// quantity values should be the same for all quantities and equal to the number of particles in the storage.
+/// To add or remove particles, use \ref Storage::resize function, rather than manually resizing all
+/// quantities. Even though this is possible to do (using mentioned \ref iterate function), it is not
+/// recommended, as \ref Storage keeps the number of particles as a state and it would invalidate the Storage.
 class Quantity : public Noncopyable {
 private:
     template <typename... TArgs>
@@ -318,21 +326,31 @@ public:
     Quantity(const OrderEnum order, Array<TValue>&& values)
         : data(Detail::Holder<TValue>(order, std::move(values))) {}
 
+    /// \brief Returns the order of the quantity.
+    ///
+    /// Zero order quantities contain only quantity values, first-order quantities contain values and first
+    /// derivatives, and so on. The order is used by timestepping algorithm to advance the quantity values in
+    /// time.
     OrderEnum getOrderEnum() const {
         return forValue(data, [](auto& holder) INL { return holder.getOrderEnum(); });
     }
 
+    /// \brief Returns the value order of the quantity.
     ValueEnum getValueEnum() const {
         ASSERT(data.getTypeIdx() != 0);
         return ValueEnum(data.getTypeIdx() - 1);
     }
 
+    /// \brief Clones all buffers contained by the quantity, or optionally only selected ones.
     Quantity clone(const Flags<VisitorEnum> flags) const {
         Holder cloned = forValue(data, [flags](auto& holder) -> Holder { return holder.clone(flags); });
         return cloned;
     }
 
-    /// Swap quantity (or selected part of it) with other quantity.
+    /// \brief Swap quantity (or selected part of it) with other quantity.
+    ///
+    /// Swapping only part of quantity (only derivatives for example) can be useful for some timestepping
+    /// algorithms, such as predictor-corrector.
     void swap(Quantity& other, const Flags<VisitorEnum> flags) {
         ASSERT(this->getValueEnum() == other.getValueEnum());
         forValue(data, [flags, &other](auto& holder) {
@@ -341,26 +359,29 @@ public:
         });
     }
 
-    /// Returns the size of the quantity (number of particles)
+    /// \brief Returns the size of the quantity (number of particles)
     INLINE Size size() const {
         return forValue(data, [](auto& holder) INL { return holder.size(); });
     }
 
-    /// Returns a reference to array of quantity values. The type of the quantity must match the provided
-    /// type, checked by assert. To check whether the type of the quantity match, use getValueEnum().
+    /// \brief Returns a reference to array of quantity values.
+    ///
+    /// The type of the quantity must match the provided type, checked by assert. To check whether the type of
+    /// the quantity match, use getValueEnum().
     template <typename TValue>
     INLINE Array<TValue>& getValue() {
         return get<TValue>().getValue();
     }
 
-    /// Returns a reference to array of quantity values, const version.
+    /// \brief Returns a reference to array of quantity values, const version.
     template <typename TValue>
     INLINE const Array<TValue>& getValue() const {
         return get<TValue>().getValue();
     }
 
-    /// Returns a reference to array of physical values. If there is no modification to the quantity, simply
-    /// returns stored values.
+    /// \brief Returns a reference to array of physical values.
+    ///
+    /// If there is no modification to the quantity, simply returns stored values.
     template <typename TValue>
     INLINE Array<TValue>& getPhysicalValue() {
         return get<TValue>().getPhysicalValue();
@@ -381,9 +402,11 @@ public:
         return forValue(data, [order](auto& holder) INL { return holder.setOrder(order); });
     }
 
-    /// Returns a reference to array of first derivatives of quantity. The type of the quantity must match the
-    /// provided type and the quantity must be (at least) 1st order, checked by assert. To check whether the
-    /// type and order match, use getValueEnum() and getOrderEnum(), respectively.
+    /// \brief Returns a reference to array of first derivatives of quantity.
+    ///
+    /// The type of the quantity must match the provided type and the quantity must be (at least) 1st order,
+    /// checked by assert. To check whether the type and order match, use getValueEnum() and getOrderEnum(),
+    /// respectively.
     template <typename TValue>
     INLINE Array<TValue>& getDt() {
         return get<TValue>().getDt();
@@ -395,9 +418,11 @@ public:
         return get<TValue>().getDt();
     }
 
-    /// Returns a reference to array of second derivatives of quantity. The type of the quantity must match
-    /// the provided type and the quantity must be 2st order, checked by assert. To check whether the type and
-    /// order match, use getValueEnum() and getOrderEnum(), respectively.
+    /// \brief Returns a reference to array of second derivatives of quantity.
+    ///
+    /// The type of the quantity must match the provided type and the quantity must be 2st order, checked by
+    /// assert. To check whether the type and order match, use getValueEnum() and getOrderEnum(),
+    /// respectively.
     template <typename TValue>
     INLINE Array<TValue>& getD2t() {
         return get<TValue>().getD2t();
@@ -409,9 +434,10 @@ public:
         return get<TValue>().getD2t();
     }
 
-    /// Returns all buffers of given type stored in this quantity. If the quantity is of different type, an
-    /// empty array is returned. Buffers in array are ordered such that quantity values is the first element
-    /// (zero index), first derivative is the second element etc.
+    /// \brief Returns all buffers of given type stored in this quantity.
+    ///
+    /// If the quantity is of different type, an empty array is returned. Buffers in array are ordered such
+    /// that quantity values is the first element (zero index), first derivative is the second element etc.
     template <typename TValue>
     StaticArray<Array<TValue>&, 3> getAll() {
         return get<TValue>().getAll();
@@ -431,7 +457,7 @@ public:
     /// given range.
     /// \todo clamp derivatives as well
     template <typename TIndexSequence>
-    void clamp(const TIndexSequence& sequence, const Range range) {
+    void clamp(const TIndexSequence& sequence, const Interval range) {
         forValue(data, [&sequence, range](auto& v) {
             auto& values = v.getValue();
             for (Size idx : sequence) {

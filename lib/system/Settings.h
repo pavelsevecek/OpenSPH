@@ -8,8 +8,8 @@
 #include "objects/geometry/TracelessTensor.h"
 #include "objects/wrappers/AutoPtr.h"
 #include "objects/wrappers/Flags.h"
+#include "objects/wrappers/Interval.h"
 #include "objects/wrappers/Outcome.h"
-#include "objects/wrappers/Range.h"
 #include "objects/wrappers/Variant.h"
 #include "quantities/QuantityIds.h"
 #include <map>
@@ -32,7 +32,7 @@ const EmptySettingsTag EMPTY_SETTINGS;
 ///
 /// Settings is a storage containing pairs key-value objects, where key is one of predefined enums. The value
 /// can have multiple types within the same \ref Settings object. Currently following types can be stored:
-/// bool, int, float, std::string, \ref Range, \ref Vector, \ref Tensor, \ref TracelessTensor.
+/// bool, int, float, std::string, \ref Interval, \ref Vector, \ref Tensor, \ref TracelessTensor.
 ///
 /// The template cannot be used directly as it is missing default values of parameters; instead
 /// specializations for specific enums should be used. The code defines two specializations:
@@ -47,13 +47,13 @@ class Settings {
     friend class SettingsIterator;
 
 private:
-    enum Types { BOOL, INT, FLOAT, RANGE, STRING, VECTOR, SYMMETRIC_TENSOR, TRACELESS_TENSOR };
+    enum Types { BOOL, INT, FLOAT, INTERVAL, STRING, VECTOR, SYMMETRIC_TENSOR, TRACELESS_TENSOR };
 
     /// Storage type of settings entries. It is possible to add other types to the settings, but always to the
     /// end of the variant to keep the backwards compatibility of serializer.
     /// \todo Possibly refactor by using some polymorphic holder (Any-type) rather than variant, this will
     /// allow to add more types for other Settings specializations (GuiSettings, etc.)
-    using Value = Variant<bool, int, Float, Range, std::string, Vector, SymmetricTensor, TracelessTensor>;
+    using Value = Variant<bool, int, Float, Interval, std::string, Vector, SymmetricTensor, TracelessTensor>;
 
     struct Entry {
         TEnum id;

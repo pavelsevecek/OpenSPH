@@ -57,8 +57,8 @@ private:
             .set(GuiSettingsId::ORTHO_PROJECTION, OrthoEnum::XY)
             .set(GuiSettingsId::IMAGES_SAVE, true)
             .set(GuiSettingsId::IMAGES_TIMESTEP, 0.1_f)
-            .set(GuiSettingsId::PALETTE_ENERGY, Range(0.1_f, 10._f))
-            .set(GuiSettingsId::PALETTE_PRESSURE, Range(-10._f, 1.e6_f));
+            .set(GuiSettingsId::PALETTE_ENERGY, Interval(0.1_f, 10._f))
+            .set(GuiSettingsId::PALETTE_PRESSURE, Interval(-10._f, 1.e6_f));
 
         controller = makeAuto<Controller>(gui);
 

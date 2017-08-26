@@ -9,7 +9,7 @@ TEST_CASE("Settings set/get", "[settings]") {
     Settings<BodySettingsId> settings;
     settings.set(BodySettingsId::DENSITY, 100._f);
     settings.set(BodySettingsId::PARTICLE_COUNT, 50);
-    settings.set(BodySettingsId::DENSITY_RANGE, Range(1._f, 2._f));
+    settings.set(BodySettingsId::DENSITY_RANGE, Interval(1._f, 2._f));
 
     Float rho = settings.get<Float>(BodySettingsId::DENSITY);
     REQUIRE(rho == 100._f);
@@ -17,8 +17,8 @@ TEST_CASE("Settings set/get", "[settings]") {
     int n = settings.get<int>(BodySettingsId::PARTICLE_COUNT);
     REQUIRE(n == 50);
 
-    Range range = settings.get<Range>(BodySettingsId::DENSITY_RANGE);
-    REQUIRE(range == Range(1._f, 2._f));
+    Interval range = settings.get<Interval>(BodySettingsId::DENSITY_RANGE);
+    REQUIRE(range == Interval(1._f, 2._f));
 }
 
 TEST_CASE("Settings save/load", "[settings]") {

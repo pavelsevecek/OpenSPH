@@ -214,7 +214,7 @@ void WindTunnel::finalize(Storage& storage) {
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-Projection1D::Projection1D(const Range& domain)
+Projection1D::Projection1D(const Interval& domain)
     : domain(domain) {}
 
 void Projection1D::finalize(Storage& storage) {

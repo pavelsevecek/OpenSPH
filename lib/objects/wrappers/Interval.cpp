@@ -1,4 +1,4 @@
-#include "objects/wrappers/Range.h"
+#include "objects/wrappers/Interval.h"
 #include <iomanip>
 
 NAMESPACE_SPH_BEGIN
@@ -20,7 +20,7 @@ struct Printer {
     }
 };
 
-std::ostream& operator<<(std::ostream& stream, const Range& range) {
+std::ostream& operator<<(std::ostream& stream, const Interval& range) {
     stream << Printer{ range.lower() } << Printer{ range.upper() };
     return stream;
 }

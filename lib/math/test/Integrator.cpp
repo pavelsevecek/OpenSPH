@@ -5,10 +5,10 @@
 using namespace Sph;
 
 TEST_CASE("Simpson's rule", "[integrators]") {
-    const Float two = integrate(Range(0._f, PI), [](const Float x) { return Sph::sin(x); });
+    const Float two = integrate(Interval(0._f, PI), [](const Float x) { return Sph::sin(x); });
     REQUIRE(two == approx(2._f, 1.e-6_f));
 
-    const Float log11 = integrate(Range(0._f, 10._f), [](const Float x) { return 1._f / (1._f + x); });
+    const Float log11 = integrate(Interval(0._f, 10._f), [](const Float x) { return 1._f / (1._f + x); });
     REQUIRE(log11 == approx(log(11._f), 1.e-6_f));
 }
 

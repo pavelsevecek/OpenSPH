@@ -63,7 +63,7 @@ namespace Post {
 
         /// Range of values from which the histogram is constructed. Unbounded range means the range is
         /// selected based on the source data.
-        Range range;
+        Interval range;
 
         /// Number of histogram bins. 0 means the number is selected based on the source data. Used only by
         /// differential SFD.

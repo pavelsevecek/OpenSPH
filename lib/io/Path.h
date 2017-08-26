@@ -55,8 +55,9 @@ public:
     /// Returns the parent directory. If the path is empty or root, return empty path.
     Path parentPath() const;
 
-    /// Returns the filename of the path. This is an empty path for directories.
-    /// The file name includes the extension, if present.
+    /// \brief Returns the filename of the path.
+    ///
+    /// This is an empty path for directories. The file name includes the extension, if present.
     Path fileName() const;
 
     /// Returns the extension of the filename. This is an empty path for directories or for files without

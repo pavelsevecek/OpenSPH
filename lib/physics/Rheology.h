@@ -6,8 +6,8 @@
 /// \date 2016-2017
 
 #include "common/ForwardDecl.h"
-#include "objects/geometry/TracelessTensor.h"
 #include "objects/containers/Array.h"
+#include "objects/geometry/TracelessTensor.h"
 #include "objects/wrappers/AutoPtr.h"
 
 NAMESPACE_SPH_BEGIN
@@ -27,10 +27,11 @@ namespace Abstract {
         /// \param storage Particle storage, containing particle positions and their masses (optionally also
         ///                other quantities). Particles belong only to the body being created, other bodies
         ///                have separate storages.
-        /// \param settings Parameters of the body being created.
+        /// \param material Material containing input material parameters. The rheology may sets the
+        ///                 timestepping parameters (range and minimal values) of the material.
         /// \param context Shared data for creating all materials in the simulation.
         virtual void create(Storage& storage,
-            const BodySettings& settings,
+            Abstract::Material& material,
             const MaterialInitialContext& context) const = 0;
 
         /// Evaluates the stress tensor reduction factors. Called for every material in the simulation, before
@@ -65,7 +66,7 @@ public:
     ~VonMisesRheology();
 
     virtual void create(Storage& storage,
-        const BodySettings& settings,
+        Abstract::Material& settings,
         const MaterialInitialContext& context) const override;
 
     virtual void initialize(Storage& storage, const MaterialView material) override;
@@ -89,7 +90,7 @@ public:
     ~DruckerPragerRheology();
 
     virtual void create(Storage& storage,
-        const BodySettings& settings,
+        Abstract::Material& material,
         const MaterialInitialContext& context) const override;
 
     virtual void initialize(Storage& storage, const MaterialView material) override;
@@ -115,7 +116,7 @@ public:
 class ElasticRheology : public Abstract::Rheology {
 public:
     virtual void create(Storage& storage,
-        const BodySettings& settings,
+        Abstract::Material& material,
         const MaterialInitialContext& context) const override;
 
     virtual void initialize(Storage& storage, const MaterialView material) override;

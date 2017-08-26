@@ -6,9 +6,9 @@
 /// \date 2016-2017
 
 #include "common/ForwardDecl.h"
+#include "objects/containers/ArrayView.h"
 #include "objects/geometry/TracelessTensor.h"
 #include "objects/geometry/Vector.h"
-#include "objects/containers/ArrayView.h"
 #include "objects/wrappers/Flags.h"
 
 NAMESPACE_SPH_BEGIN
@@ -26,7 +26,7 @@ namespace Abstract {
     public:
         /// Sets up all the necessary quantities in the storage given material settings.
         virtual void setFlaws(Storage& storage,
-            const BodySettings& settings,
+            Abstract::Material& material,
             const MaterialInitialContext& context) const = 0;
 
         /// Computes modified values of given quantity due to fragmentation.
@@ -59,7 +59,7 @@ public:
     ScalarDamage(const RunSettings& settings, const ExplicitFlaws options = ExplicitFlaws::UNIFORM);
 
     virtual void setFlaws(Storage& storage,
-        const BodySettings& settings,
+        Abstract::Material& material,
         const MaterialInitialContext& context) const override;
 
     virtual void reduce(Storage& storage,
@@ -73,7 +73,7 @@ class TensorDamage : public Abstract::Damage {
 private:
 public:
     virtual void setFlaws(Storage& storage,
-        const BodySettings& settings,
+        Abstract::Material& material,
         const MaterialInitialContext& context) const override;
 
     virtual void reduce(Storage& storage,
@@ -86,7 +86,7 @@ public:
 class NullDamage : public Abstract::Damage {
 public:
     virtual void setFlaws(Storage& storage,
-        const BodySettings& settings,
+        Abstract::Material& material,
         const MaterialInitialContext& context) const override;
 
     virtual void reduce(Storage& storage,

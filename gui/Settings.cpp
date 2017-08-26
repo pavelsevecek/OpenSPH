@@ -39,15 +39,15 @@ AutoPtr<GuiSettings> GuiSettings::instance (new GuiSettings {
     { GuiSettingsId::IMAGES_HEIGHT,    "images.height",    600 },
 
     /// Color palettes
-    { GuiSettingsId::PALETTE_DENSITY,       "palette.density",      Range(2650._f, 2750._f) },
-    { GuiSettingsId::PALETTE_VELOCITY,      "palette.velocity",     Range(0._f, 1._f) },
-    { GuiSettingsId::PALETTE_ACCELERATION,  "palette.acceleration", Range(0._f, 100._f) },
-    { GuiSettingsId::PALETTE_PRESSURE,      "palette.pressure",     Range(-1000._f, 1.e10_f) },
-    { GuiSettingsId::PALETTE_ENERGY,        "palette.energy",       Range(1._f, 1.e6_f) },
-    { GuiSettingsId::PALETTE_STRESS,        "palette.stress",       Range(0._f, 1.e10_f) },
-    { GuiSettingsId::PALETTE_DAMAGE,        "palette.damage",       Range(0._f, 1._f) },
-    { GuiSettingsId::PALETTE_DIVV,          "palette.divv",         Range(-0.1_f, 0.1_f) },
-    { GuiSettingsId::PALETTE_DENSITY_PERTURB, "palette.density_perturb",  Range(-1.e-6_f, 1.e-6_f) },
+    { GuiSettingsId::PALETTE_DENSITY,       "palette.density",      Interval(2650._f, 2750._f) },
+    { GuiSettingsId::PALETTE_VELOCITY,      "palette.velocity",     Interval(0._f, 1._f) },
+    { GuiSettingsId::PALETTE_ACCELERATION,  "palette.acceleration", Interval(0._f, 100._f) },
+    { GuiSettingsId::PALETTE_PRESSURE,      "palette.pressure",     Interval(-1000._f, 1.e10_f) },
+    { GuiSettingsId::PALETTE_ENERGY,        "palette.energy",       Interval(1._f, 1.e6_f) },
+    { GuiSettingsId::PALETTE_STRESS,        "palette.stress",       Interval(0._f, 1.e10_f) },
+    { GuiSettingsId::PALETTE_DAMAGE,        "palette.damage",       Interval(0._f, 1._f) },
+    { GuiSettingsId::PALETTE_DIVV,          "palette.divv",         Interval(-0.1_f, 0.1_f) },
+    { GuiSettingsId::PALETTE_DENSITY_PERTURB, "palette.density_perturb",  Interval(-1.e-6_f, 1.e-6_f) },
 });
 // clang-format on
 

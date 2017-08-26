@@ -24,8 +24,8 @@ void Settings<TEnum>::saveToFile(const Path& path) const {
         case FLOAT:
             ofs << entry.value.template get<Float>();
             break;
-        case RANGE:
-            ofs << entry.value.template get<Range>();
+        case INTERVAL:
+            ofs << entry.value.template get<Interval>();
             break;
         case STRING:
             ofs << entry.value.template get<std::string>();
@@ -137,7 +137,7 @@ bool Settings<TEnum>::setValueByType(Entry& entry, const Size typeIdx, const std
             entry.value = f;
             return true;
         }
-    case RANGE: {
+    case INTERVAL: {
         std::string s1, s2;
         ss >> s1 >> s2;
         if (ss.fail()) {
@@ -165,14 +165,13 @@ bool Settings<TEnum>::setValueByType(Entry& entry, const Size typeIdx, const std
         if (ss.fail()) {
             return false;
         } else {
-            entry.value = Range(lower, upper);
+            entry.value = Interval(lower, upper);
             return true;
         }
     }
     case STRING: {
         // trim leading and trailing spaces
         const std::string trimmed = trim(str);
-        ASSERT(!trimmed.empty() && "Variant cannot handle empty strings");
         entry.value = trimmed;
         return true;
     }
@@ -252,7 +251,7 @@ AutoPtr<RunSettings> RunSettings::instance (new RunSettings {
     { RunSettingsId::RUN_LOGGER,                    "run.logger",               int(LoggerEnum::STD_OUT) },
     { RunSettingsId::RUN_LOGGER_FILE,               "run.logger.file",          std::string("log.txt") },
     { RunSettingsId::RUN_STATISTICS_STEP,           "run.statistics_step",      100 },
-    { RunSettingsId::RUN_TIME_RANGE,                "run.time_range",           Range(0._f, 10._f) },
+    { RunSettingsId::RUN_TIME_RANGE,                "run.time_range",           Interval(0._f, 10._f) },
     { RunSettingsId::RUN_TIMESTEP_CNT,              "run.timestep_cnt",         0 },
     { RunSettingsId::RUN_WALLCLOCK_TIME,            "run.wallclock_time",       0._f },
     { RunSettingsId::RUN_RNG,                       "run.rng",                  int(RngEnum::BENZ_ASPHAUG) },
@@ -274,7 +273,7 @@ AutoPtr<RunSettings> RunSettings::instance (new RunSettings {
     /// Global SPH parameters
     { RunSettingsId::SPH_KERNEL,                    "sph.kernel",               int(KernelEnum::CUBIC_SPLINE) },
     { RunSettingsId::SPH_KERNEL_ETA,                "sph.kernel.eta",           1.5_f },
-    { RunSettingsId::SPH_NEIGHBOUR_RANGE,           "sph.neighbour.range",      Range(25._f, 100._f) },
+    { RunSettingsId::SPH_NEIGHBOUR_RANGE,           "sph.neighbour.range",      Interval(25._f, 100._f) },
     { RunSettingsId::SPH_NEIGHBOUR_ENFORCING,       "sph.neighbour.enforcing",  0.2_f },
     { RunSettingsId::SPH_AV_ALPHA,                  "sph.av.alpha",             1.5_f },
     { RunSettingsId::SPH_AV_BETA,                   "sph.av.beta",              3._f },
@@ -348,13 +347,13 @@ AutoPtr<BodySettings> BodySettings::instance (new BodySettings {
 
     /// Material properties
     { BodySettingsId::DENSITY,                 "material.density",             2700._f },
-    { BodySettingsId::DENSITY_RANGE,           "material.density.range",       Range(10._f, INFTY) },
+    { BodySettingsId::DENSITY_RANGE,           "material.density.range",       Interval(10._f, INFTY) },
     { BodySettingsId::DENSITY_MIN,             "material.density.min",         50._f },
     { BodySettingsId::ENERGY,                  "material.energy",              0._f },
-    { BodySettingsId::ENERGY_RANGE,            "material.energy.range",        Range(0._f, INFTY) },
+    { BodySettingsId::ENERGY_RANGE,            "material.energy.range",        Interval(0._f, INFTY) },
     { BodySettingsId::ENERGY_MIN,              "material.energy.min",          1._f },
     { BodySettingsId::DAMAGE,                  "material.damage",              0._f },
-    { BodySettingsId::DAMAGE_RANGE,            "material.damage.range",        Range(0.f, 1._f) },
+    { BodySettingsId::DAMAGE_RANGE,            "material.damage.range",        Interval(0.f, 1._f) },
     { BodySettingsId::DAMAGE_MIN,              "material.damage.min",          0.03_f },
     { BodySettingsId::STRESS_TENSOR,           "material.stress_tensor",       TracelessTensor(0._f) },
     { BodySettingsId::STRESS_TENSOR_MIN,       "material.stress_tensor.min",   1.e5_f },
@@ -374,9 +373,9 @@ AutoPtr<BodySettings> BodySettings::instance (new BodySettings {
     { BodySettingsId::DISTRIBUTE_MODE_SPH5,    "sph.distribute_mode_sph5",     false },
     { BodySettingsId::PARTICLE_COUNT,          "sph.particle_count",           10000 },
     { BodySettingsId::AV_ALPHA,                "av.alpha",                     1.5_f },
-    { BodySettingsId::AV_ALPHA_RANGE,          "av.alpha.range",               Range(0.05_f, 1.5_f) },
+    { BodySettingsId::AV_ALPHA_RANGE,          "av.alpha.range",               Interval(0.05_f, 1.5_f) },
     { BodySettingsId::AV_BETA,                 "av.beta",                      3._f },
-    { BodySettingsId::AV_ALPHA_RANGE,          "av.beta.range",                Range(0.1_f, 3._f) },
+    { BodySettingsId::AV_ALPHA_RANGE,          "av.beta.range",                Interval(0.1_f, 3._f) },
 });
 // clang-format on
 

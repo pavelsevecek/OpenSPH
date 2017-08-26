@@ -298,7 +298,7 @@ INLINE SymmetricTensor max(const SymmetricTensor& t1, const SymmetricTensor& t2)
 
 /// Clamping all components by range.
 template <>
-INLINE SymmetricTensor clamp(const SymmetricTensor& t, const Range& range) {
+INLINE SymmetricTensor clamp(const SymmetricTensor& t, const Interval& range) {
     return SymmetricTensor(clamp(t.diagonal(), range), clamp(t.offDiagonal(), range));
 }
 

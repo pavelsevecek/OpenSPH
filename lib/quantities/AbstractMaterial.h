@@ -6,6 +6,7 @@
 /// \date 2016-2017
 
 #include "math/rng/Rng.h"
+#include "objects/containers/Map.h"
 #include "objects/utility/Iterators.h"
 #include "system/Settings.h"
 
@@ -17,9 +18,14 @@ namespace Abstract {
     class Material;
 }
 
-/// Non-owning wrapper of a material and particles with this material. This object serves as a junction
-/// between particle storage and a material. It can be used to access material parameters and member function,
-/// but also provides means to iterate over particle indices in the storage.
+/// \brief Non-owning wrapper of a material and particles with this material.
+///
+/// This object serves as a junction between particle storage and a material. It can be used to access
+/// material parameters and member function, but also provides means to iterate over particle indices in the
+/// storage.
+///
+/// Material accessed through MaterialView shares the constness of the view, i.e. material parameters cannot
+/// be modified through const MaterialView.
 class MaterialView {
 private:
     RawPtr<Abstract::Material> mat;
@@ -32,21 +38,36 @@ public:
         ASSERT(material != nullptr);
     }
 
-    /// Returns reference to the material of the particles.
+    /// Returns the reference to the material of the particles.
     INLINE Abstract::Material& material() {
+        ASSERT(mat != nullptr);
+        return *mat;
+    }
+
+    /// Returns the const reference to the material of the particles.
+    INLINE Abstract::Material& material() const {
         ASSERT(mat != nullptr);
         return *mat;
     }
 
     /// Implicit conversion to the material.
     INLINE operator Abstract::Material&() {
-        ASSERT(mat != nullptr);
-        return *mat;
+        return this->material();
+    }
+
+    /// Implicit conversion to the material.
+    INLINE operator const Abstract::Material&() const {
+        return this->material();
     }
 
     /// Overloaded -> operator for convenient access to material functions.
-    INLINE RawPtr<Abstract::Material> operator->() const {
-        return mat;
+    INLINE RawPtr<Abstract::Material> operator->() {
+        return &this->material();
+    }
+
+    /// Overloaded -> operator for convenient access to material functions.
+    INLINE RawPtr<const Abstract::Material> operator->() const {
+        return &this->material();
     }
 
     /// Returns iterable index sequence.
@@ -73,17 +94,14 @@ struct MaterialInitialContext {
 namespace Abstract {
     class Material : public Polymorphic {
     protected:
-        /// per-material parameters
+        /// Per-material parameters
         BodySettings params;
 
-        /// \todo this should probably be simple Array instead of map, faster random access with almost no
-        /// overhead. Measure the difference, consider replacing with ArrayMap.
-
-        /// minimal values used in timestepping, do not affect values of quantities themselves.
+        /// Minimal values used in timestepping, do not affect values of quantities themselves.
         std::map<QuantityId, Float> minimals;
 
         /// Allowed range of quantities.
-        std::map<QuantityId, Range> ranges;
+        std::map<QuantityId, Interval> ranges;
 
     public:
         Material(const BodySettings& settings)
@@ -105,32 +123,55 @@ namespace Abstract {
             return params;
         }
 
-        /// Returns a reference value for given quantity
-        INLINE Float& minimal(const QuantityId id) {
-            return minimals[id];
+        /// \brief Sets the timestepping parameters of given quantity.
+        ///
+        /// Note that the function is not thread-safe and has to be synchronized when used in parallel
+        /// context.
+        INLINE void setRange(const QuantityId id, const Interval& range, const Float minimal) {
+            /// \todo if ranges do not contains this id, update only if the range is NOT unbounded, this way
+            /// we don't add default parameters into the map and potentially speed up the getters; same for
+            /// minimal
+            ranges[id] = range;
+            minimals[id] = minimal;
         }
 
-        /// \copydoc Float& minimal(const QuantityId id)
+        /// \brief Sets the timestepping parameters of given quantity.
+        ///
+        /// Syntactic sugar, using BodySettingsIds to retrieve the values from body settings of the material.
+        INLINE void setRange(const QuantityId id,
+            const BodySettingsId rangeId,
+            const BodySettingsId minimalId) {
+            ranges[id] = params.get<Interval>(rangeId);
+            minimals[id] = params.get<Float>(minimalId);
+        }
+
+        /// \brief Returns the scale value of the quantity.
+        ///
+        /// This value is used by timestepping algorithms to determine the time step. The value can be
+        /// specified by \ref setRange; if no value is specified, the fuction defaults to 0.
         INLINE Float minimal(const QuantityId id) const {
             auto iter = minimals.find(id);
-            ASSERT(iter != minimals.end());
+            if (iter == minimals.end()) {
+                return 0.f;
+            }
             return iter->second;
         }
 
-        /// Returns range of allowed values for given quantity
-        INLINE Range& range(const QuantityId id) {
-            return ranges[id];
-        }
-
-        /// \copydoc Range& range(const QuantityId id)
-        INLINE const Range& range(const QuantityId id) const {
+        /// \brief Returns the range of allowed quantity values.
+        ///
+        /// This range is enforced by timestetting algorithms, i.e. quantities do not have to be clamped by
+        /// the solver or elsewhere. The range can be specified by \ref setRange; if no range is specified,
+        /// the function defaults to unbounded quantity (allowing all negative and positive values).
+        INLINE const Interval range(const QuantityId id) const {
             auto iter = ranges.find(id);
-            ASSERT(iter != ranges.end());
+            if (iter == ranges.end()) {
+                return Interval::unbounded();
+            }
             return iter->second;
         }
 
-        /// Create all quantities needed by the material.
-        virtual void create(Storage& storage, const MaterialInitialContext& context) const = 0;
+        /// \brief Create all quantities needed by the material.
+        virtual void create(Storage& storage, const MaterialInitialContext& context) = 0;
 
         /// Initialize all quantities and material parameters. Called once every step before loop.
         virtual void initialize(Storage& storage, const IndexSequence sequence) = 0;

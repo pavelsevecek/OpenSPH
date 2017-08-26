@@ -83,7 +83,7 @@ MaterialView Storage::getMaterialOfParticle(const Size particleIdx) const {
     return this->getMaterial(matId);
 }
 
-Range Storage::getRange(const QuantityId id, const Size matIdx) const {
+Interval Storage::getRange(const QuantityId id, const Size matIdx) const {
     return materials[matIdx]->range(id);
 }
 

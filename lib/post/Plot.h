@@ -39,7 +39,7 @@ namespace Abstract {
             std::sort(this->points.begin(), this->points.end(), compare);
         }
 
-        virtual Array<PlotPoint> interpolate(const Range& range, const Float step) const = 0;
+        virtual Array<PlotPoint> interpolate(const Interval& range, const Float step) const = 0;
     };
 }
 
@@ -48,7 +48,7 @@ public:
     LinearInterpolation(Array<PlotPoint>&& points)
         : Abstract::Interpolation(std::move(points)) {}
 
-    virtual Array<PlotPoint> interpolate(const Range& range, const Float step) const {
+    virtual Array<PlotPoint> interpolate(const Interval& range, const Float step) const {
         Array<PlotPoint> result;
         Size index = 0;
         const Float x0 = points[index].x;
@@ -91,16 +91,16 @@ namespace Abstract {
     class Plot : public Polymorphic {
     protected:
         struct {
-            Range x;
-            Range y;
+            Interval x;
+            Interval y;
         } ranges;
 
     public:
-        Range getRangeX() const {
+        Interval getRangeX() const {
             return ranges.x;
         }
 
-        Range getRangeY() const {
+        Interval getRangeY() const {
             return ranges.y;
         }
 

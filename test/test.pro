@@ -81,7 +81,6 @@ SOURCES += \
     ../lib/objects/wrappers/test/LockingPtr.cpp \
     ../lib/objects/wrappers/test/Optional.cpp \
     ../lib/objects/wrappers/test/Outcome.cpp \
-    ../lib/objects/wrappers/test/Range.cpp \
     ../lib/objects/wrappers/test/SharedPtr.cpp \
     ../lib/objects/wrappers/test/Variant.cpp \
     ../lib/objects/wrappers/test/VectorizedArray.cpp \
@@ -146,7 +145,9 @@ SOURCES += \
     ../lib/objects/containers/test/List.cpp \
     ../lib/system/test/Process.cpp \
     ../lib/post/test/Analysis.cpp \
-    ../lib/objects/utility/test/OperatorTemplate.cpp
+    ../lib/objects/utility/test/OperatorTemplate.cpp \
+    ../lib/objects/wrappers/test/Interval.cpp \
+    ../lib/objects/containers/test/Map.cpp
 
 HEADERS += \
     utils/Utils.h \

@@ -51,7 +51,7 @@ void EulerExplicit::stepImpl(Abstract::Solver& solver, Statistics& stats) {
             dv[i] += d2v[i] * this->dt;
             v[i] += dv[i] * this->dt;
             /// \todo optimize gettings range of materials (same in derivativecriterion for minimals)
-            const Range range = storage->getMaterialOfParticle(i)->range(id);
+            const Interval range = storage->getMaterialOfParticle(i)->range(id);
             if (!range.isEmpty()) {
                 tie(v[i], dv[i]) = clampWithDerivative(v[i], dv[i], range);
             }
@@ -60,7 +60,7 @@ void EulerExplicit::stepImpl(Abstract::Solver& solver, Statistics& stats) {
     iterate<VisitorEnum::FIRST_ORDER>(*storage, [this](const QuantityId id, auto& v, auto& dv) {
         for (Size i = 0; i < v.size(); ++i) {
             v[i] += dv[i] * this->dt;
-            const Range range = storage->getMaterialOfParticle(i)->range(id);
+            const Interval range = storage->getMaterialOfParticle(i)->range(id);
             if (!range.isEmpty()) {
                 tie(v[i], dv[i]) = clampWithDerivative(v[i], dv[i], range);
             }
@@ -91,7 +91,7 @@ void PredictorCorrector::makePredictions() {
                     v[i] += dv[i] * this->dt + d2v[i] * dt2;
                     dv[i] += d2v[i] * this->dt;
                     /// \todo this probably wont change that much, we could cache it
-                    const Range range = storage->getMaterialOfParticle(i)->range(id);
+                    const Interval range = storage->getMaterialOfParticle(i)->range(id);
                     if (!range.isEmpty()) {
                         tie(v[i], dv[i]) = clampWithDerivative(v[i], dv[i], range);
                     }
@@ -102,7 +102,7 @@ void PredictorCorrector::makePredictions() {
         parallelFor(0, v.size(), [&](const Size n1, const Size n2) INL {
             for (Size i = n1; i < n2; ++i) {
                 v[i] += dv[i] * this->dt;
-                const Range range = storage->getMaterialOfParticle(i)->range(id);
+                const Interval range = storage->getMaterialOfParticle(i)->range(id);
                 if (!range.isEmpty()) {
                     tie(v[i], dv[i]) = clampWithDerivative(v[i], dv[i], range);
                 }
@@ -130,7 +130,7 @@ void PredictorCorrector::makeCorrections() {
                 for (Size i = n1; i < n2; ++i) {
                     pv[i] -= a * (cd2v[i] - pd2v[i]) * dt2;
                     pdv[i] -= b * (cd2v[i] - pd2v[i]) * this->dt;
-                    const Range range = storage->getMaterialOfParticle(i)->range(id);
+                    const Interval range = storage->getMaterialOfParticle(i)->range(id);
                     if (!range.isEmpty()) {
                         tie(pv[i], pdv[i]) = clampWithDerivative(pv[i], pdv[i], range);
                     }
@@ -144,7 +144,7 @@ void PredictorCorrector::makeCorrections() {
             parallelFor(0, pv.size(), [&](const Size n1, const Size n2) {
                 for (Size i = n1; i < n2; ++i) {
                     pv[i] -= 0.5_f * (cdv[i] - pdv[i]) * this->dt;
-                    const Range range = storage->getMaterialOfParticle(i)->range(id);
+                    const Interval range = storage->getMaterialOfParticle(i)->range(id);
                     if (!range.isEmpty()) {
                         tie(pv[i], pdv[i]) = clampWithDerivative(pv[i], pdv[i], range);
                     }

@@ -3,7 +3,7 @@
 #include "io/Logger.h"
 #include "objects/containers/Array.h"
 #include "objects/containers/ArrayView.h"
-#include "objects/wrappers/Range.h"
+#include "objects/wrappers/Interval.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -42,8 +42,8 @@ public:
         return maxValue;
     }
 
-    INLINE Range range() const {
-        return Range(Float(minValue), Float(maxValue));
+    INLINE Interval range() const {
+        return Interval(Float(minValue), Float(maxValue));
     }
 
     INLINE Type average() const {

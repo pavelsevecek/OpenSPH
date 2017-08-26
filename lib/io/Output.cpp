@@ -189,7 +189,7 @@ namespace {
         void operator()(const T& value) {
             serializer.write(value);
         }
-        void operator()(const Range& value) {
+        void operator()(const Interval& value) {
             serializer.write(value.lower(), value.upper());
         }
         void operator()(const Vector& value) {
@@ -212,10 +212,10 @@ namespace {
         void operator()(T& value) {
             deserializer.read(value);
         }
-        void operator()(Range& value) {
+        void operator()(Interval& value) {
             Float lower, upper;
             deserializer.read(lower, upper);
-            value = Range(lower, upper);
+            value = Interval(lower, upper);
         }
         void operator()(Vector& value) {
             deserializer.read(value[X], value[Y], value[Z], value[H]);
@@ -347,7 +347,7 @@ Path BinaryOutput::dump(Storage& storage, const Statistics& stats) {
             }
             // dump all ranges and minimal values for timestepping
             for (QuantityId id : cachedIds) {
-                const Range range = material->range(id);
+                const Interval range = material->range(id);
                 const Float minimal = material->minimal(id);
                 serializer.write(id, range.lower(), range.upper(), minimal);
             }
@@ -422,10 +422,8 @@ static Expected<Storage> loadMaterial(const Size matIdx,
                                            getMetadata(ids[i]).quantityName + ", got " +
                                            getMetadata(id).quantityName);
         }
-        if (lower < upper) {
-            material->range(id) = Range(lower, upper);
-        }
-        material->minimal(id) = minimal;
+        ASSERT(lower < upper);
+        material->setRange(id, Interval(lower, upper), minimal);
     }
     // create storage for this material
     return Storage(std::move(material));

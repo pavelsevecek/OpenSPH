@@ -186,7 +186,7 @@ TEST_CASE("TracelessTensor equality", "[tracelesstensor]") {
 TEST_CASE("TracelessTensor clamp", "[tracelesstensor]") {
     TracelessTensor t1(Vector(0._f, -2._f, 1._f), Vector(-2._f, 0._f, 4._f), Vector(1._f, 4._f, 0._f));
     // off diagonal components are clamped normally
-    const Range r(-1._f, 1._f);
+    const Interval r(-1._f, 1._f);
     TracelessTensor expected1(Vector(0._f, -1._f, 1._f), Vector(-1._f, 0._f, 1._f), Vector(1._f, 1._f, 0._f));
     REQUIRE(clamp(t1, r) == expected1);
 

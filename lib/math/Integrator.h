@@ -11,7 +11,7 @@ NAMESPACE_SPH_BEGIN
 
 /// Integrate a one-dimensional function using Simpson's rule
 template <typename TFunctor>
-INLINE Float integrate(const Range range, TFunctor functor) {
+INLINE Float integrate(const Interval range, TFunctor functor) {
     const Size N = 1000;
     const Float h = range.size() / N;
     double result = functor((Float)range.lower()) + functor((Float)range.upper());

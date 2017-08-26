@@ -24,7 +24,8 @@ private:
     Path path;
 
 public:
-    TestFile(const Path& parentDir = Path()) {
+    TestFile(const Path& parentDir = Path("temp")) {
+        FileSystem::createDirectory(parentDir);
         path = parentDir / Path(getRandomName() + ".tmp");
         std::ofstream ofs(path.native());
     }
@@ -34,9 +35,23 @@ public:
         other.path = Path();
     }
 
+    TestFile& operator=(TestFile&& other) {
+        std::swap(path, other.path);
+        return *this;
+    }
+
     // Avoid deleting (and possibly asserting on fail) the file in destructor
     void markDeleted() {
         path = Path();
+    }
+
+    // Fill with integerts from 0 to given value (exluding the value).
+    void fill(const Size num) {
+        std::ofstream ofs(path.native());
+        for (Size i = 0; i < num; ++i) {
+            ofs.write((char*)&i, sizeof(int));
+        }
+        ofs.close();
     }
 
     ~TestFile() {
@@ -56,14 +71,26 @@ private:
     Path path;
 
 public:
-    TestDirectory(const Path& parentDir = Path()) {
+    TestDirectory(const Path& parentDir = Path("temp")) {
         path = parentDir / Path(getRandomName());
         FileSystem::createDirectory(path);
     }
 
+    TestDirectory(TestDirectory&& other)
+        : path(std::move(other)) {
+        other.path = Path();
+    }
+
+    TestDirectory& operator=(TestDirectory&& other) {
+        std::swap(path, other.path);
+        return *this;
+    }
+
     ~TestDirectory() {
-        Outcome result = FileSystem::removePath(path, FileSystem::RemovePathFlag::RECURSIVE);
-        ASSERT(result);
+        if (!path.empty()) {
+            Outcome result = FileSystem::removePath(path, FileSystem::RemovePathFlag::RECURSIVE);
+            ASSERT(result);
+        }
     }
 
     operator Path() const {
@@ -82,10 +109,95 @@ TEST_CASE("PathExists", "[filesystem]") {
 TEST_CASE("PathType", "[filesystem]") {
     TestFile file;
     TestDirectory directory;
-    REQUIRE(FileSystem::getPathType(file).valueOr(FileSystem::PathType::OTHER) == FileSystem::PathType::FILE);
-    REQUIRE(FileSystem::getPathType(directory).valueOr(FileSystem::PathType::OTHER) ==
-            FileSystem::PathType::directory);
-    REQUIRE_FALSE(FileSystem::getPathType("123456789"));
+    REQUIRE(FileSystem::pathType(file).valueOr(FileSystem::PathType::OTHER) == FileSystem::PathType::FILE);
+    REQUIRE(FileSystem::pathType(directory).valueOr(FileSystem::PathType::OTHER) ==
+            FileSystem::PathType::DIRECTORY);
+    REQUIRE_FALSE(FileSystem::pathType(Path("123456789")));
+}
+
+TEST_CASE("CopyFile", "[filesystem]") {
+    TestFile file;
+    file.fill(1000);
+    // sanity check
+    REQUIRE(FileSystem::pathExists(file));
+    const Size size = FileSystem::fileSize(file);
+    REQUIRE(size == 1000 * sizeof(int));
+
+    TestDirectory dir;
+    const Path to = Path(dir) / Path(getRandomName() + ".tmp");
+    REQUIRE(FileSystem::copyFile(file, to));
+    REQUIRE(FileSystem::pathExists(to));
+    REQUIRE(FileSystem::pathType(to).valueOr(FileSystem::PathType::OTHER) == FileSystem::PathType::FILE);
+    REQUIRE(FileSystem::fileSize(to) == size);
+
+    // check content
+    Array<int> content(1000);
+    std::ifstream ifs(to.native());
+    ifs.read((char*)&content[0], size);
+    ifs.close();
+
+    auto test = [&] {
+        for (Size i = 0; i < content.size(); ++i) {
+            if (content[i] != int(i)) {
+                return false;
+            }
+        }
+        return true;
+    };
+    REQUIRE(test());
+}
+
+static Size checkDirectoriesEqual(const Path& fromParent, const Path& toParent) {
+    Size counter = 0;
+
+    struct Element {
+        Path from;
+        Path to;
+    };
+    // iterate in both directories together
+    // although the order of files is not guaranteed, we hope that the order will match the order of creation
+    for (Element e : iterateTuple<Element>(
+             FileSystem::iterateDirectory(fromParent), FileSystem::iterateDirectory(toParent))) {
+        REQUIRE(e.from == e.to);
+        Expected<FileSystem::PathType> fromType = FileSystem::pathType(fromParent / e.from);
+        Expected<FileSystem::PathType> toType = FileSystem::pathType(toParent / e.to);
+        REQUIRE(fromType);
+        REQUIRE(toType);
+        REQUIRE(fromType.value() == toType.value());
+        if (fromType.value() == FileSystem::PathType::FILE) {
+            REQUIRE(FileSystem::fileSize(fromParent / e.from) == FileSystem::fileSize(toParent / e.to));
+            counter++;
+        } else if (fromType.value() == FileSystem::PathType::DIRECTORY) {
+            counter += checkDirectoriesEqual(fromParent / e.from, toParent / e.to);
+        }
+    }
+    return counter;
+}
+
+TEST_CASE("CopyDirectory", "[filesystem]") {
+    TestDirectory parentDir;
+    // order matters as variables are destroyed in reversed order - first the files are destroyed, then the
+    // parent file
+    Array<TestFile> files;
+
+    // add 5 test files to parent dir
+    for (Size i = 0; i < 5; ++i) {
+        files.emplaceBack(parentDir);
+        files[files.size() - 1].fill(100);
+    }
+    // add 3 subdirectories, each containing one additional file
+    Array<TestDirectory> dirs;
+    for (Size i = 0; i < 3; ++i) {
+        dirs.emplaceBack(Path(parentDir));
+        files.emplaceBack(Path(parentDir) / Path(dirs[i]));
+        files[files.size() - 1].fill(100);
+    }
+    TestDirectory toDir;
+    REQUIRE(FileSystem::copyDirectory(parentDir, toDir));
+
+    const Size counter = checkDirectoriesEqual(parentDir, toDir);
+    // we should count 5+3=8 files in total
+    REQUIRE(counter == 8);
 }
 
 TEST_CASE("RemovePath", "[filesystem]") {

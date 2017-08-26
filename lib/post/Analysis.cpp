@@ -140,7 +140,7 @@ static Array<Float> getBodiesRadii(const Storage& storage,
 Array<Post::SfdPoint> Post::getCummulativeSfd(const Storage& storage, const Post::HistogramParams& params) {
     Array<Float> radii = getBodiesRadii(storage, params.source, params.quantity);
 
-    Range range = params.range;
+    Interval range = params.range;
     if (range.isEmpty()) {
         for (Float r : radii) {
             range.extend(r);
@@ -168,8 +168,8 @@ Array<Post::SfdPoint> Post::getCummulativeSfd(const Storage& storage, const Post
 Array<Post::SfdPoint> Post::getDifferentialSfd(const Storage& storage, const HistogramParams& params) {
     Array<Float> radii = getBodiesRadii(storage, params.source, params.quantity);
 
-    Range range = params.range;
-    if (range == Range::unbounded()) {
+    Interval range = params.range;
+    if (range == Interval::unbounded()) {
         for (Float r : radii) {
             range.extend(r);
         }

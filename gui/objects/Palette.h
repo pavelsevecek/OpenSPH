@@ -19,7 +19,7 @@ private:
         Color color;
     };
     Array<Point> points;
-    Range range;
+    Interval range;
     PaletteScale scale;
 
 
@@ -37,7 +37,7 @@ public:
     /// zero) are allowed. Control points must be passed in increasing order.
     Palette(Array<Point>&& controlPoints, const PaletteScale scale);
 
-    Range getRange() const;
+    Interval getRange() const;
 
     Color operator()(const float value) const;
 

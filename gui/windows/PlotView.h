@@ -33,13 +33,13 @@ private:
         dc.SetBrush(brush);
         dc.DrawRectangle(wxPoint(0, 0), this->GetSize());
 
-        const Range rangeX = plot->getRangeX();
-        const Range rangeY = plot->getRangeY();
+        const Interval rangeX = plot->getRangeX();
+        const Interval rangeY = plot->getRangeY();
         drawAxes(dc, rangeX, rangeY);
         drawPlot(dc, rangeX, rangeY);
     }
 
-    void drawPlot(wxDC& dc, const Range rangeX, const Range rangeY) {
+    void drawPlot(wxDC& dc, const Interval rangeX, const Interval rangeY) {
         wxPen pen;
         pen.SetColour(*wxBLUE);
         dc.SetPen(pen);
@@ -56,7 +56,7 @@ private:
         }
     }
 
-    void drawAxes(wxDC& dc, const Range rangeX, const Range rangeY) {
+    void drawAxes(wxDC& dc, const Interval rangeX, const Interval rangeY) {
         wxPen pen;
         pen.SetColour(*wxWHITE);
         dc.SetPen(pen);

@@ -29,7 +29,7 @@ namespace Tests {
         const Float rho0 = settings.get<Float>(BodySettingsId::DENSITY);
         const Float u0 = settings.get<Float>(BodySettingsId::ENERGY);
         settings.set(BodySettingsId::EOS, EosEnum::IDEAL_GAS)
-            .set(BodySettingsId::DENSITY_RANGE, Range(1.e-3_f * rho0, INFTY))
+            .set(BodySettingsId::DENSITY_RANGE, Interval(1.e-3_f * rho0, INFTY))
             .set(BodySettingsId::RHEOLOGY_DAMAGE, DamageEnum::NONE)
             .set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::NONE);
 
@@ -58,7 +58,7 @@ namespace Tests {
         const Float u0 = settings.get<Float>(BodySettingsId::ENERGY);
         const Float rho0 = settings.get<Float>(BodySettingsId::DENSITY);
         settings.set(BodySettingsId::EOS, EosEnum::TILLOTSON)
-            .set(BodySettingsId::DENSITY_RANGE, Range(1.e-3_f * rho0, INFTY));
+            .set(BodySettingsId::DENSITY_RANGE, Interval(1.e-3_f * rho0, INFTY));
         Storage storage(
             makeAuto<SolidMaterial>(settings, Factory::getEos(settings), Factory::getRheology(settings)));
         AutoPtr<Abstract::Distribution> distribution = Factory::getDistribution(settings);

@@ -6,7 +6,7 @@
 /// \date 2016-2017
 
 #include "bench/Common.h"
-#include "objects/wrappers/Range.h"
+#include "objects/wrappers/Interval.h"
 
 NAMESPACE_BENCHMARK_BEGIN
 
@@ -15,7 +15,7 @@ private:
     Float sum = 0._f;
     Float sumSqr = 0._f;
     Size cnt = 0;
-    Range range;
+    Interval range;
 
 public:
     INLINE void add(const Float value) {

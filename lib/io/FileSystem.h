@@ -29,7 +29,7 @@ namespace FileSystem {
     };
 
     /// Returns the type of the given path, or error message if the function fails.
-    Expected<PathType> getPathType(const Path& path);
+    Expected<PathType> pathType(const Path& path);
 
 
     enum class CreateDirectoryFlag {
@@ -110,7 +110,10 @@ namespace FileSystem {
         /// Return the path of the file. The path is returned relative to the parent directory.
         Path operator*() const;
 
-        /// Checks for unequality. Returns false in case both iterators are nullptr.
+        /// Checks for equality. Returns true in case both iterators are nullptr.
+        bool operator==(const DirectoryIterator& other) const;
+
+        /// Checks for inequality. Returns false in case both iterators are nullptr.
         bool operator!=(const DirectoryIterator& other) const;
 
     private:

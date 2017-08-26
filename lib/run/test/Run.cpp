@@ -72,7 +72,7 @@ public:
         : terminateAfterOutput(terminateAfterOutput) {
         settings.set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 0.1_f + EPS);
         settings.set(RunSettingsId::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::NONE);
-        settings.set(RunSettingsId::RUN_TIME_RANGE, Range(0._f, 1._f));
+        settings.set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 1._f));
         settings.set(RunSettingsId::RUN_OUTPUT_INTERVAL, 0.21_f);
         settings.set(RunSettingsId::RUN_LOGGER, LoggerEnum::NONE);
     }

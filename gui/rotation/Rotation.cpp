@@ -25,7 +25,7 @@ AsteroidRotation::AsteroidRotation(const RawPtr<Controller> model, const Float p
     settings.set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::EULER_EXPLICIT)
         .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 0.01_f)
         .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 0.01_f)
-        .set(RunSettingsId::RUN_TIME_RANGE, Range(0._f, 100000._f))
+        .set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 100000._f))
         .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 100._f)
         .set(RunSettingsId::MODEL_FORCE_SOLID_STRESS, true)
         .set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONST)
@@ -60,7 +60,7 @@ public:
 void AsteroidRotation::setUp() {
     BodySettings bodySettings;
     bodySettings.set(BodySettingsId::ENERGY, 0._f)
-        .set(BodySettingsId::ENERGY_RANGE, Range(0._f, INFTY))
+        .set(BodySettingsId::ENERGY_RANGE, Interval(0._f, INFTY))
         .set(BodySettingsId::PARTICLE_COUNT, 100000)
         .set(BodySettingsId::EOS, EosEnum::TILLOTSON)
         .set(BodySettingsId::STRESS_TENSOR_MIN, 1.e5_f)

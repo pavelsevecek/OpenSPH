@@ -41,7 +41,7 @@ TEST_CASE("OperatorTemplate subtract", "[operator]") {
     REQUIRE(t2.value == 3);
     t2 = t1 - t2;
     REQUIRE(t1.value == 2);
-    REQUIRE(t2.value == 1);
+    REQUIRE(t2.value == -1);
 }
 
 TEST_CASE("OperatorTemplate equality", "[operator]") {
@@ -54,7 +54,7 @@ TEST_CASE("OperatorTemplate equality", "[operator]") {
 }
 
 namespace {
-    struct MultipliableStruct : public OperatorTemplate<MultipliableStruct> {
+    struct MultipliableStruct : public OperatorTemplate<MultipliableStruct, int> {
         float value;
 
         MultipliableStruct(const float value)
@@ -68,18 +68,18 @@ namespace {
 }
 
 TEST_CASE("OperatorTemplate multiply", "[operator]") {
-    MultipliableStruct m1(4.f);
+    MultipliableStruct m1(4);
     m1 *= 3;
-    REQUIRE(m1.value == 12.f);
-    m1 /= 6.f;
-    REQUIRE(m1.value == 2.f);
+    REQUIRE(m1.value == 12);
+    m1 /= 6;
+    REQUIRE(m1.value == 2);
 
-    MultipliableStruct m2 = m1 * 4.f;
-    REQUIRE(m2.value == 8.f);
+    MultipliableStruct m2 = m1 * 4;
+    REQUIRE(m2.value == 8);
 
-    m2 = 6.f * m1;
-    REQUIRE(m2.value == 12.f);
+    m2 = 6 * m1;
+    REQUIRE(m2.value == 12);
 
-    MultipliableStruct m3 = m2 / 2.f;
-    REQUIRE(m3.value == 2.f);
+    MultipliableStruct m3 = m2 / 2;
+    REQUIRE(m3.value == 2);
 }

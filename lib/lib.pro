@@ -51,7 +51,6 @@ SOURCES += \
     math/rng/Rng.cpp \
     objects/utility/StringUtils.cpp \
     objects/finders/Voxel.cpp \
-    objects/wrappers/Range.cpp \
     physics/Damage.cpp \
     physics/Eos.cpp \
     physics/Integrals.cpp \
@@ -85,7 +84,8 @@ SOURCES += \
     gravity/VoxelGravity.cpp \
     system/Process.cpp \
     mpi/Mpi.cpp \
-    post/Analysis.cpp
+    post/Analysis.cpp \
+    objects/wrappers/Interval.cpp
 
 HEADERS += \
     commmon/ForwardDecl.h \
@@ -125,7 +125,6 @@ HEADERS += \
     objects/geometry/TracelessTensor.h \
     objects/geometry/Vector.h \
     objects/containers/Array.h \
-    objects/containers/ArrayMap.h \
     objects/utility/ArrayUtils.h \
     objects/containers/ArrayView.h \
     objects/containers/BufferedArray.h \
@@ -155,7 +154,6 @@ HEADERS += \
     objects/wrappers/ObserverPtr.h \
     objects/wrappers/Optional.h \
     objects/wrappers/Outcome.h \
-    objects/wrappers/Range.h \
     objects/wrappers/SharedPtr.h \
     objects/utility/Value.h \
     objects/wrappers/Variant.h \
@@ -245,4 +243,6 @@ HEADERS += \
     mpi/Serializable.h \
     mpi/Mpi.h \
     post/Analysis.h \
-    objects/utility/OperatorTemplate.h
+    objects/utility/OperatorTemplate.h \
+    objects/containers/Map.h \
+    objects/wrappers/Interval.h

@@ -49,7 +49,7 @@ The code can be executed with default settings, in which case it will use the fo
 - Density evolution is solved using continuity equation (ContinuityEquation)
 - Hooke's law as a constitutive equation
 - von Mises criterion to account for plastic yield (VonMisesRheology)
-- Grady-Kipp model of fragmentation with scaler damage quantity (ScalarDamage)
+- Grady-Kipp model of fragmentation with scalar damage quantity (ScalarDamage)
 - Tillotson equation of state (TillotsonEos)
 - Adaptive smoothing length (AdaptiveSmoothingLength)
 - Basalt material parameters

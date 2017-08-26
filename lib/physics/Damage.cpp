@@ -19,13 +19,12 @@ ScalarDamage::ScalarDamage(const RunSettings& settings, const ExplicitFlaws opti
     : ScalarDamage(Factory::getKernel<3>(settings).radius(), options) {}
 
 void ScalarDamage::setFlaws(Storage& storage,
-    const BodySettings& settings,
+    Abstract::Material& material,
     const MaterialInitialContext& context) const {
     ASSERT(storage.getMaterialCnt() == 1);
-    MaterialView material = storage.getMaterial(0);
-    storage.insert<Float>(QuantityId::DAMAGE, OrderEnum::FIRST, settings.get<Float>(BodySettingsId::DAMAGE));
-    material->range(QuantityId::DAMAGE) = settings.get<Range>(BodySettingsId::DAMAGE_RANGE);
-    material->minimal(QuantityId::DAMAGE) = settings.get<Float>(BodySettingsId::DAMAGE_MIN);
+    storage.insert<Float>(
+        QuantityId::DAMAGE, OrderEnum::FIRST, material.getParam<Float>(BodySettingsId::DAMAGE));
+    material.setRange(QuantityId::DAMAGE, BodySettingsId::DAMAGE_RANGE, BodySettingsId::DAMAGE_MIN);
 
     storage.insert<Float>(QuantityId::EPS_MIN, OrderEnum::ZERO, 0._f);
     storage.insert<Float>(QuantityId::M_ZERO, OrderEnum::ZERO, 0._f);
@@ -43,15 +42,15 @@ void ScalarDamage::setFlaws(Storage& storage,
     if (options == ExplicitFlaws::ASSIGNED) {
         activationIdx = storage.getValue<Size>(QuantityId::FLAW_ACTIVATION_IDX);
     }
-    const Float mu = settings.get<Float>(BodySettingsId::SHEAR_MODULUS);
-    const Float A = settings.get<Float>(BodySettingsId::BULK_MODULUS);
+    const Float mu = material.getParam<Float>(BodySettingsId::SHEAR_MODULUS);
+    const Float A = material.getParam<Float>(BodySettingsId::BULK_MODULUS);
     // here all particles have the same material
     /// \todo needs to be generalized for setting up initial conditions with heterogeneous material.
     const Float youngModulus = mu * 9._f * A / (3._f * A + mu);
-    material->setParam(BodySettingsId::YOUNG_MODULUS, youngModulus);
+    material.setParam(BodySettingsId::YOUNG_MODULUS, youngModulus);
 
-    const Float cgFactor = settings.get<Float>(BodySettingsId::RAYLEIGH_SOUND_SPEED);
-    const Float rho0 = settings.get<Float>(BodySettingsId::DENSITY);
+    const Float cgFactor = material.getParam<Float>(BodySettingsId::RAYLEIGH_SOUND_SPEED);
+    const Float rho0 = material.getParam<Float>(BodySettingsId::DENSITY);
     const Float cg = cgFactor * sqrt((A + 4._f / 3._f * mu) / rho0);
 
     const Size size = storage.getParticleCnt();
@@ -65,8 +64,8 @@ void ScalarDamage::setFlaws(Storage& storage,
         V += m[i] / rho[i];
     }
     ASSERT(V > 0.f);
-    const Float k_weibull = settings.get<Float>(BodySettingsId::WEIBULL_COEFFICIENT);
-    const Float m_weibull = settings.get<Float>(BodySettingsId::WEIBULL_EXPONENT);
+    const Float k_weibull = material.getParam<Float>(BodySettingsId::WEIBULL_COEFFICIENT);
+    const Float m_weibull = material.getParam<Float>(BodySettingsId::WEIBULL_EXPONENT);
     // cannot use pow on k_weibull*V, leads to float overflow for larger V
     const Float denom = 1._f / (std::pow(k_weibull, 1._f / m_weibull) * std::pow(V, 1.f / m_weibull));
     ASSERT(isReal(denom) && denom > 0.f);
@@ -147,7 +146,7 @@ void ScalarDamage::integrate(Storage& storage, const MaterialView material) {
         for (Size i = n1; i < n2; ++i) {
             // if damage is already on max value, set stress to zero to avoid limiting timestep by
             // non-existent stresses
-            const Range range = material->range(QuantityId::DAMAGE);
+            const Interval range = material->range(QuantityId::DAMAGE);
             /// \todo skip if the stress tensor is already fully damaged?
             /// \todo can we set S derivatives to zero? This will break PC timestepping for stress tensor
             /// but all physics depend on damaged values, anyway
@@ -181,7 +180,7 @@ void ScalarDamage::integrate(Storage& storage, const MaterialView material) {
 }
 
 void TensorDamage::setFlaws(Storage& UNUSED(storage),
-    const BodySettings& UNUSED(settings),
+    Abstract::Material& UNUSED(material),
     const MaterialInitialContext& UNUSED(context)) const {
     NOT_IMPLEMENTED;
 }
@@ -197,7 +196,7 @@ void TensorDamage::integrate(Storage& UNUSED(storage), const MaterialView UNUSED
 }
 
 void NullDamage::setFlaws(Storage& UNUSED(storage),
-    const BodySettings& UNUSED(settings),
+    Abstract::Material& UNUSED(material),
     const MaterialInitialContext& UNUSED(context)) const {}
 
 void NullDamage::reduce(Storage& storage,

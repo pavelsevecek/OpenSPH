@@ -46,7 +46,7 @@ void Abstract::Run::run() {
     Size i = 0;
     // fetch parameters of run from settings
     const Float outputInterval = settings.get<Float>(RunSettingsId::RUN_OUTPUT_INTERVAL);
-    const Range timeRange = settings.get<Range>(RunSettingsId::RUN_TIME_RANGE);
+    const Interval timeRange = settings.get<Interval>(RunSettingsId::RUN_TIME_RANGE);
 
     // set uninitilized variables
     setNullToDefaults();

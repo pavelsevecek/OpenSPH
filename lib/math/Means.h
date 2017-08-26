@@ -5,7 +5,7 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2017
 
-#include "objects/wrappers/Range.h"
+#include "objects/wrappers/Interval.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -52,7 +52,7 @@ using HarmonicMean = GeneralizedMean<-1>;
 /// Helper class for statistics
 class MinMaxMean {
 private:
-    Range minMax;
+    Interval minMax;
     ArithmeticMean avg;
 
 public:
@@ -66,7 +66,7 @@ public:
     /// Removes all values from the set.
     INLINE void reset() {
         avg.reset();
-        minMax = Range();
+        minMax = Interval();
     }
 
     INLINE Float mean() const {
@@ -81,7 +81,7 @@ public:
         return minMax.upper();
     }
 
-    INLINE Range range() const {
+    INLINE Interval range() const {
         return minMax;
     }
 

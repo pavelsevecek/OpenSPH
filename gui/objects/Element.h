@@ -94,7 +94,7 @@ protected:
     TypedElement() = default;
 
 public:
-    TypedElement(const QuantityId id, const Range range)
+    TypedElement(const QuantityId id, const Interval range)
         : id(id)
         , palette(Factory::getPalette(ElementId(id), range)) {}
 
@@ -133,7 +133,7 @@ public:
 /// Displays particle velocities.
 class VelocityElement : public TypedElement<Vector> {
 public:
-    VelocityElement(const Range range) {
+    VelocityElement(const Interval range) {
         palette = Factory::getPalette(ElementId::VELOCITY, range);
     }
 
@@ -157,7 +157,7 @@ public:
 
 class AccelerationElement : public TypedElement<Vector> {
 public:
-    AccelerationElement(const Range range) {
+    AccelerationElement(const Interval range) {
         palette = Factory::getPalette(ElementId::ACCELERATION, range);
     }
 
@@ -191,7 +191,7 @@ private:
 
 public:
     DirectionElement(const Vector& axis)
-        : palette(Factory::getPalette(ElementId::MOVEMENT_DIRECTION, Range(0._f, 2._f * PI)))
+        : palette(Factory::getPalette(ElementId::MOVEMENT_DIRECTION, Interval(0._f, 2._f * PI)))
         , axis(axis) {
         ASSERT(almostEqual(getLength(axis), 1._f));
         // compute 2 perpendicular directions
@@ -255,7 +255,7 @@ private:
     Array<Float> rho0;
 
 public:
-    DensityPerturbationElement(const Range range)
+    DensityPerturbationElement(const Interval range)
         : palette(Factory::getPalette(ElementId::DENSITY_PERTURBATION, range)) {}
 
     virtual void initialize(const Storage& storage, const ElementSource source) override {

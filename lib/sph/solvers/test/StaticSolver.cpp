@@ -1,13 +1,11 @@
 #include "sph/solvers/StaticSolver.h"
 #include "catch.hpp"
 #include "physics/Constants.h"
-#include "sph/equations/Potentials.h"
-#include "tests/Setup.h"
-#include "tests/Approx.h"
-#include "utils/SequenceTest.h"
-
-#include "io/Logger.h"
 #include "physics/Eos.h"
+#include "sph/equations/Potentials.h"
+#include "tests/Approx.h"
+#include "tests/Setup.h"
+#include "utils/SequenceTest.h"
 
 using namespace Sph;
 
@@ -17,7 +15,7 @@ TEST_CASE("StaticSolver no forces", "[staticsolver]") {
     StaticSolver solver(settings, EquationHolder());
     BodySettings body;
     body.set(BodySettingsId::ENERGY, 0._f)
-        .set(BodySettingsId::ENERGY_RANGE, Range(0._f, INFTY))
+        .set(BodySettingsId::ENERGY_RANGE, Interval(0._f, INFTY))
         .set(BodySettingsId::DENSITY, 10._f);
     Storage storage = Tests::getSolidStorage(1000, body, 1._f * Constants::au);
     solver.create(storage, storage.getMaterial(0));

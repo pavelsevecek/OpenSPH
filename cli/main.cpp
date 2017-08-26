@@ -1,7 +1,7 @@
-#include "objects/geometry/Domain.h"
 #include "io/Column.h"
 #include "io/Logger.h"
 #include "io/Output.h"
+#include "objects/geometry/Domain.h"
 #include "run/Run.h"
 #include "sph/initial/Initial.h"
 #include "system/Profiler.h"
@@ -33,7 +33,7 @@ public:
             .set(RunSettingsId::SPH_FINDER, FinderEnum::VOXEL)
 
             // Time range for the run; the run will end after 1s
-            .set(RunSettingsId::RUN_TIME_RANGE, Range(0._f, 1._f));
+            .set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 1._f));
     }
 
     virtual void setUp() override {
@@ -70,7 +70,7 @@ public:
             .set(BodySettingsId::ENERGY, 1.e2_f)
 
             // Allowed range of energy, preventing non-physical negative values
-            .set(BodySettingsId::ENERGY_RANGE, Range(0.f, INFTY))
+            .set(BodySettingsId::ENERGY_RANGE, Interval(0.f, INFTY))
 
             // Number of particles in the body
             .set(BodySettingsId::PARTICLE_COUNT, 100000)
@@ -109,9 +109,18 @@ int main() {
     // Creates the simulation
     Run run;
 
-    // Sets up the initial conditions. Must be called before the simulation is started.
-    logger.write("Setting up initial conditions of the simulation");
-    run.setUp();
+    try {
+        // Sets up the initial conditions. Must be called before the simulation is started.
+        logger.write("Setting up initial conditions of the simulation");
+        run.setUp();
+    } catch (const InvalidSetup& e) {
+        // Function setUp throws in case the solver is not consistent with the set of equations, for example
+        // when using SummationSolver (which solves density by itself) together with ContinuityEquation.
+        // We should check for this case and report an encountered error.
+        logger.write("The run has been set up incorrectly/inconsistently");
+        logger.write("Issue: ", e.what());
+        return 0;
+    }
 
     // Runs the simulation.
     logger.write("Running the simulation ...");

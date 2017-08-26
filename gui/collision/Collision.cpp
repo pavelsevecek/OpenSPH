@@ -131,7 +131,7 @@ private:
     Vector omega;
 
     /// Time range of the simulation.
-    Range timeRange;
+    Interval timeRange;
 
     /// Time when initial dampening phase is ended and impact starts
     Float startTime = 0._f;
@@ -146,7 +146,7 @@ public:
     CollisionSolver(const RunSettings& settings, const BodySettings& body)
         : GenericSolver(settings, this->getEquations(settings)) // , Factory::getGravity(settings))
         , body(body) {
-        timeRange = settings.get<Range>(RunSettingsId::RUN_TIME_RANGE);
+        timeRange = settings.get<Interval>(RunSettingsId::RUN_TIME_RANGE);
         omega = settings.get<Vector>(RunSettingsId::FRAME_ANGULAR_FREQUENCY);
     }
 
@@ -225,7 +225,7 @@ AsteroidCollision::AsteroidCollision() {
         .set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::PREDICTOR_CORRECTOR)
         .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 0.01_f)
         .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 0.01_f)
-        .set(RunSettingsId::RUN_TIME_RANGE, Range(-10._f, 10._f))
+        .set(RunSettingsId::RUN_TIME_RANGE, Interval(-10._f, 10._f))
         .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 0.1_f)
         .set(RunSettingsId::MODEL_FORCE_SOLID_STRESS, true)
         .set(RunSettingsId::SPH_FINDER, FinderEnum::VOXEL)
@@ -241,22 +241,19 @@ AsteroidCollision::AsteroidCollision() {
     settings.set(RunSettingsId::RUN_COMMENT,
         std::string("Homogeneous Gravity with delta = 1, initial rotation ") + std::to_string(omega));
 
-    const Path pathToResults("/home/pavel/projects/astro/sph/result/");
-
     // generate path of the output directory
     std::time_t t = std::time(nullptr);
     std::ostringstream ss;
     ss << std::put_time(std::localtime(&t), "%y-%m-%d_%H-%M");
-    outputPath = pathToResults / Path(ss.str());
-    settings.set(RunSettingsId::RUN_OUTPUT_PATH, (outputPath / "out"_path).native());
+    outputDir = resultsDir / Path(ss.str());
+    settings.set(RunSettingsId::RUN_OUTPUT_PATH, (outputDir / "out"_path).native());
 
     // save code settings to the directory
-    settings.saveToFile(outputPath / Path("code.sph"));
+    settings.saveToFile(outputDir / Path("code.sph"));
 
     // save the current git commit
-    const Path pathToSource("/home/pavel/projects/astro/sph/src/");
-    std::string gitSha = getGitCommit(pathToSource).value();
-    FileLogger info(outputPath / Path("info.txt"));
+    std::string gitSha = getGitCommit(sourceDir).value();
+    FileLogger info(outputDir / Path("info.txt"));
     ss.str(""); // clear ss
     ss << std::put_time(std::localtime(&t), "%d.%m.%Y, %H:%M");
     info.write("Run ", runName);
@@ -283,14 +280,14 @@ public:
 void AsteroidCollision::setUp() {
     BodySettings body;
     body.set(BodySettingsId::ENERGY, 0._f)
-        .set(BodySettingsId::ENERGY_RANGE, Range(0._f, INFTY))
+        .set(BodySettingsId::ENERGY_RANGE, Interval(0._f, INFTY))
         .set(BodySettingsId::PARTICLE_COUNT, 100'000)
         .set(BodySettingsId::EOS, EosEnum::TILLOTSON)
         .set(BodySettingsId::STRESS_TENSOR_MIN, 1.e5_f)
         .set(BodySettingsId::RHEOLOGY_DAMAGE, DamageEnum::SCALAR_GRADY_KIPP)
         .set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::VON_MISES)
         .set(BodySettingsId::DISTRIBUTE_MODE_SPH5, true);
-    body.saveToFile(outputPath / Path("target.sph"));
+    body.saveToFile(outputDir / Path("target.sph"));
 
     storage = makeShared<Storage>();
     AutoPtr<CollisionSolver> collisionSolver = makeAuto<CollisionSolver>(settings, body);
@@ -338,8 +335,8 @@ void AsteroidCollision::setupOutput() {
 
     output = std::move(textOutput);
 
-    logFiles.push(makeAuto<EnergyLogFile>(outputPath / Path("energy.txt")));
-    logFiles.push(makeAuto<TimestepLogFile>(outputPath / Path("timestep.txt")));
+    logFiles.push(makeAuto<EnergyLogFile>(outputDir / Path("energy.txt")));
+    logFiles.push(makeAuto<TimestepLogFile>(outputDir / Path("timestep.txt")));
 }
 
 void AsteroidCollision::tearDown() {
@@ -348,33 +345,50 @@ void AsteroidCollision::tearDown() {
     profiler.printStatistics(*logger);
 
     Storage output = this->runPkdgrav();
+
+    // get SFD from pkdgrav output
     Array<Post::SfdPoint> sfd = Post::getCummulativeSfd(output, {});
-    FileLogger logSfd(outputPath / Path("sfd.txt"), FileLogger::Options::KEEP_OPENED);
+    FileLogger logSfd(outputDir / Path("sfd.txt"), FileLogger::Options::KEEP_OPENED);
     for (Post::SfdPoint& p : sfd) {
         logSfd.write(p.radius, "  ", p.count);
     }
+
+    // copy pkdgrav files (ss.[0-5][0-5]000) to output directory
+    for (Path path : FileSystem::iterateDirectory(pkdgravDir)) {
+        const std::string s = path.native();
+        if (s.size() == 8 && s.substr(0, 3) == "ss." && s.substr(5) == "000") {
+            FileSystem::copyFile(pkdgravDir / path, outputDir / "pkdgrav"_path / path);
+        }
+    }
+
     logger->write("FINISHED");
 }
 
 Storage AsteroidCollision::runPkdgrav() {
-    Path pkdgravDir("/home/pavel/projects/astro/sph/external/pkdgrav_run/");
     ASSERT(FileSystem::pathExists(pkdgravDir));
+
+    // change working directory to pkdgrav directory
     FileSystem::ScopedWorkingDirectory guard(pkdgravDir);
+
+    // dump current particle storage using pkdgrav output
     PkdgravParams params;
     params.omega = settings.get<Vector>(RunSettingsId::FRAME_ANGULAR_FREQUENCY);
-    PkdgravOutput pkdgravOutput(Path("pkdgrav_%d.out"), std::move(params));
+    PkdgravOutput pkdgravOutput(Path("pkdgrav.out"), std::move(params));
     Statistics stats;
     pkdgravOutput.dump(*storage, stats);
-    ASSERT(FileSystem::pathExists(Path("pkdgrav_0000.out")));
+    ASSERT(FileSystem::pathExists(Path("pkdgrav.out")));
 
+    // convert the text file to pkdgrav input file and RUN PKDGRAV
     Process pkdgrav(Path("./RUNME.sh"), {});
     pkdgrav.wait();
 
+    // convert the last output binary file to text file, using ss2bt binary
     ASSERT(FileSystem::pathExists(Path("ss.50000")));
     Process convert(Path("./ss2bt"), { "ss.50000" });
     convert.wait();
     ASSERT(FileSystem::pathExists(Path("ss.50000.bt")));
 
+    // load the text file into storage
     Expected<Storage> output = Post::parsePkdgravOutput(Path("ss.50000.bt"));
     ASSERT(output);
 

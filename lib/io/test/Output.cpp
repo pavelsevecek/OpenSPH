@@ -123,13 +123,13 @@ TEST_CASE("BinaryOutput dump&accumulate materials", "[output]") {
     body.set(BodySettingsId::INITIAL_DISTRIBUTION, DistributionEnum::RANDOM);
     body.set(BodySettingsId::PARTICLE_COUNT, 10);
     body.set(BodySettingsId::EOS, EosEnum::TILLOTSON);
-    body.set(BodySettingsId::DENSITY_RANGE, Range(4._f, 6._f));
+    body.set(BodySettingsId::DENSITY_RANGE, Interval(4._f, 6._f));
     body.set(BodySettingsId::DENSITY_MIN, 3._f);
     conds.addBody(SphericalDomain(Vector(0._f), 2._f), body);
 
     body.set(BodySettingsId::PARTICLE_COUNT, 20);
     body.set(BodySettingsId::EOS, EosEnum::IDEAL_GAS);
-    body.set(BodySettingsId::DENSITY_RANGE, Range(1._f, 2._f));
+    body.set(BodySettingsId::DENSITY_RANGE, Interval(1._f, 2._f));
     body.set(BodySettingsId::DENSITY_MIN, 5._f);
     conds.addBody(SphericalDomain(Vector(0._f), 1._f), body);
 
@@ -165,14 +165,14 @@ TEST_CASE("BinaryOutput dump&accumulate materials", "[output]") {
     iteratePair<VisitorEnum::ALL_BUFFERS>(loaded, storage, [](auto& b1, auto& b2) { REQUIRE(b1 == b2); });
 
     MaterialView mat = loaded.getMaterial(0);
-    REQUIRE(mat->range(QuantityId::DENSITY) == Range(4._f, 6._f));
+    REQUIRE(mat->range(QuantityId::DENSITY) == Interval(4._f, 6._f));
     REQUIRE(mat->minimal(QuantityId::DENSITY) == 3._f);
     REQUIRE(mat.sequence() == IndexSequence(0, 10));
     EosMaterial* eosMat = dynamic_cast<EosMaterial*>(&mat.material());
     REQUIRE(dynamic_cast<const TillotsonEos*>(&eosMat->getEos()));
 
     mat = loaded.getMaterial(1);
-    REQUIRE(mat->range(QuantityId::DENSITY) == Range(1._f, 2._f));
+    REQUIRE(mat->range(QuantityId::DENSITY) == Interval(1._f, 2._f));
     REQUIRE(mat->minimal(QuantityId::DENSITY) == 5._f);
     REQUIRE(mat.sequence() == IndexSequence(10, 30));
     eosMat = dynamic_cast<EosMaterial*>(&mat.material());

@@ -17,9 +17,19 @@ class AsteroidCollision : public Abstract::Run {
 private:
     RawPtr<Controller> controller;
 
-    Path outputPath;
-
 public:
+    /// Path to the directory containing pkdgrav executable
+    Path pkdgravDir{ "/home/pavel/projects/astro/sph/external/pkdgrav_run/" };
+
+    /// Path to the directory where results are saved, generated in constructor.
+    Path outputDir;
+
+    /// Path to the parent directory of outputDir
+    Path resultsDir{ "/home/pavel/projects/astro/sph/result/" };
+
+    /// Path to the source code, used to get git commit hash
+    Path sourceDir{ "/home/pavel/projects/astro/sph/src/" };
+
     AsteroidCollision();
 
     void setController(RawPtr<Controller> newController) {
@@ -28,9 +38,6 @@ public:
 
     virtual void setUp() override;
 
-    Path getOutputPath() const {
-        return outputPath;
-    }
 
 protected:
     virtual void tearDown() override;
@@ -73,7 +80,7 @@ private:
 
         AutoPtr<AsteroidCollision> run = makeAuto<AsteroidCollision>();
 
-        gui.set(GuiSettingsId::IMAGES_PATH, (run->getOutputPath() / "imgs"_path).native());
+        gui.set(GuiSettingsId::IMAGES_PATH, (run->outputDir / "imgs"_path).native());
         controller = makeAuto<Controller>(gui);
 
         /// \todo try to remove this circular dependency

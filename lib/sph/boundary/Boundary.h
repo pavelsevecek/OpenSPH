@@ -8,7 +8,7 @@
 #include "common/ForwardDecl.h"
 #include "objects/geometry/Vector.h"
 #include "objects/containers/Array.h"
-#include "objects/wrappers/Range.h"
+#include "objects/wrappers/Interval.h"
 #include "sph/equations/EquationTerm.h"
 
 #include <set>
@@ -120,12 +120,12 @@ class PeriodicDomain : public Abstract::BoundaryConditions {
 /// Helper tool for 1D tests, projects all particles onto a 1D line.
 class Projection1D : public Abstract::BoundaryConditions {
 private:
-    Range domain;
+    Interval domain;
     ArrayView<Vector> r, v;
 
 public:
     /// Constructs using range as 1D domain
-    Projection1D(const Range& domain);
+    Projection1D(const Interval& domain);
 
     virtual void initialize(Storage& UNUSED(storage)) override {}
 

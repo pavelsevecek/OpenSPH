@@ -54,13 +54,13 @@ Palette::Palette(Array<Point>&& controlPoints, const PaletteScale scale)
     }
 #endif
     // save range before converting scale
-    range = Range(points[0].value, points[points.size() - 1].value);
+    range = Interval(points[0].value, points[points.size() - 1].value);
     for (Size i = 0; i < points.size(); ++i) {
         points[i].value = linearToPalette(points[i].value);
     }
 }
 
-Range Palette::getRange() const {
+Interval Palette::getRange() const {
     ASSERT(points.size() >= 2);
     return range;
 }
@@ -76,7 +76,7 @@ Color Palette::operator()(const float value) const {
         return points[points.size() - 1].color;
     }
     for (Size i = 0; i < points.size() - 1; ++i) {
-        if (Range(points[i].value, points[i + 1].value).contains(palette)) {
+        if (Interval(points[i].value, points[i + 1].value).contains(palette)) {
             // interpolate
             const float x = (points[i + 1].value - palette) / (points[i + 1].value - points[i].value);
             return points[i].color * x + points[i + 1].color * (1.f - x);

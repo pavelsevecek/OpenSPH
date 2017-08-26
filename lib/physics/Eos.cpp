@@ -100,7 +100,7 @@ Float TillotsonEos::getInternalEnergy(const Float rho, const Float p) const {
             return p0 - p;
         };
         /// \todo optimize, find proper upper bound
-        Optional<Float> root = getRoot(func, Range(0._f, u0), EPS);
+        Optional<Float> root = getRoot(func, Interval(0._f, u0), EPS);
         ASSERT(root);
         return root.value();
     } else {
@@ -116,7 +116,7 @@ Float TillotsonEos::getDensity(const Float p, const Float u) const {
         tie(p, cs) = this->evaluate(rho, u);
         return p0 - p;
     };
-    Optional<Float> root = getRoot(func, Range(0.95_f * rho0, 1.05 * rho0));
+    Optional<Float> root = getRoot(func, Interval(0.95_f * rho0, 1.05 * rho0));
     ASSERT(root);
     return root.value();
 }

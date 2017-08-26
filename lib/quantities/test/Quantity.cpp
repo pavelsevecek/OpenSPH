@@ -114,7 +114,7 @@ TEST_CASE("Quantity modification", "[quantity]") {
 TEST_CASE("Quantity clamp", "[quantity]") {
     Quantity q1(OrderEnum::FIRST, makeArray(0._f, 2._f, 5._f));
     q1.getDt<Float>() = makeArray(8._f, 1._f, -3._f);
-    q1.clamp(IndexSequence(0, 3), Range(1._f, 3._f));
+    q1.clamp(IndexSequence(0, 3), Interval(1._f, 3._f));
     REQUIRE(q1.getValue<Float>() == makeArray(1._f, 2._f, 3._f));
     REQUIRE(q1.getDt<Float>() == makeArray(8._f, 1._f, -3._f));
 }

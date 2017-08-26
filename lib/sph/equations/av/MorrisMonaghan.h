@@ -104,7 +104,7 @@ private:
         constexpr Float eps = 0.1_f;
         for (Size matIdx = 0; matIdx < storage.getMaterialCnt(); ++matIdx) {
             MaterialView material = storage.getMaterial(matIdx);
-            const Range bounds = material->getParam<Range>(BodySettingsId::AV_ALPHA_RANGE);
+            const Interval bounds = material->getParam<Interval>(BodySettingsId::AV_ALPHA_RANGE);
             for (Size i : material.sequence()) {
                 const Float tau = r[i][H] / (eps * cs[i]);
                 ASSERT(tau > 0.f);
@@ -124,7 +124,8 @@ private:
             QuantityId::AV_BETA, OrderEnum::ZERO, material.getParam<Float>(BodySettingsId::AV_BETA));
 
         storage.insert<Float>(QuantityId::VELOCITY_DIVERGENCE, OrderEnum::ZERO, 0._f);
-        material.range(QuantityId::AV_ALPHA) = material.getParam<Range>(BodySettingsId::AV_ALPHA_RANGE);
+        const Interval avRange = material.getParam<Interval>(BodySettingsId::AV_ALPHA_RANGE);
+        material.setRange(QuantityId::AV_ALPHA, avRange, 0._f);
     }
 };
 

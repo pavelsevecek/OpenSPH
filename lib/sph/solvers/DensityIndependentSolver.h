@@ -80,18 +80,17 @@ public:
             throw InvalidSetup("Cannot use DISPH with zero specific energy");
         }
 
-        const Range rhoRange = material.getParam<Range>(BodySettingsId::DENSITY_RANGE);
-        const Range uRange = material.getParam<Range>(BodySettingsId::ENERGY_RANGE);
-        const Range qRange(rhoRange.lower() * uRange.lower(), rhoRange.upper() * uRange.upper());
+        const Interval rhoRange = material.getParam<Interval>(BodySettingsId::DENSITY_RANGE);
+        const Interval uRange = material.getParam<Interval>(BodySettingsId::ENERGY_RANGE);
+        const Interval qRange(rhoRange.lower() * uRange.lower(), rhoRange.upper() * uRange.upper());
         if (qRange.lower() <= 0._f) {
             throw InvalidSetup("Cannot use DISPH with zero specific energy");
         }
-        material.range(QuantityId::ENERGY_DENSITY) = qRange;
-
         const Float rhoMin = material.getParam<Float>(BodySettingsId::DENSITY_MIN);
         const Float uMin = material.getParam<Float>(BodySettingsId::ENERGY_MIN);
         const Float qMin = rhoMin * uMin;
-        material.minimal(QuantityId::ENERGY_DENSITY) = qMin;
+
+        material.setRange(QuantityId::ENERGY_DENSITY, qRange, qMin);
 
         // energy density is computed by direct sum, hence zero order
         storage.insert<Float>(QuantityId::ENERGY_DENSITY, OrderEnum::ZERO, q0);
@@ -143,8 +142,7 @@ public:
         storage.insert<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO, 0);
         storage.insert<Float>(
             QuantityId::DENSITY, OrderEnum::ZERO, material.getParam<Float>(BodySettingsId::DENSITY));
-        material.minimal(QuantityId::DENSITY) = material.getParam<Float>(BodySettingsId::DENSITY_MIN);
-        material.range(QuantityId::DENSITY) = material.getParam<Range>(BodySettingsId::DENSITY_RANGE);
+        material.setRange(QuantityId::DENSITY, BodySettingsId::DENSITY_RANGE, BodySettingsId::DENSITY_MIN);
         equations.create(storage, material);
     }
 

@@ -16,11 +16,11 @@ VonMisesRheology::VonMisesRheology(AutoPtr<Abstract::Damage>&& damage)
 VonMisesRheology::~VonMisesRheology() = default;
 
 void VonMisesRheology::create(Storage& storage,
-    const BodySettings& settings,
+    Abstract::Material& material,
     const MaterialInitialContext& context) const {
     ASSERT(storage.getMaterialCnt() == 1);
     storage.insert<Float>(QuantityId::STRESS_REDUCING, OrderEnum::ZERO, 1._f);
-    damage->setFlaws(storage, settings, context);
+    damage->setFlaws(storage, material, context);
 }
 
 void VonMisesRheology::initialize(Storage& storage, const MaterialView material) {
@@ -82,12 +82,12 @@ DruckerPragerRheology::DruckerPragerRheology(AutoPtr<Abstract::Damage>&& damage)
 DruckerPragerRheology::~DruckerPragerRheology() = default;
 
 void DruckerPragerRheology::create(Storage& storage,
-    const BodySettings& settings,
+    Abstract::Material& material,
     const MaterialInitialContext& context) const {
     ASSERT(storage.getMaterialCnt() == 1);
     /// \todo implement, this is copy+paste of von mises
     storage.insert<Float>(QuantityId::STRESS_REDUCING, OrderEnum::ZERO, 1._f);
-    damage->setFlaws(storage, settings, context);
+    damage->setFlaws(storage, material, context);
 }
 
 void DruckerPragerRheology::initialize(Storage& storage, const MaterialView material) {
@@ -123,7 +123,7 @@ void DruckerPragerRheology::integrate(Storage& storage, const MaterialView mater
 
 
 void ElasticRheology::create(Storage& storage,
-    const BodySettings& UNUSED(settings),
+    Abstract::Material& UNUSED(material),
     const MaterialInitialContext& UNUSED(context)) const {
     ASSERT(storage.getMaterialCnt() == 1);
     storage.insert<Float>(QuantityId::STRESS_REDUCING, OrderEnum::ZERO, 1._f);

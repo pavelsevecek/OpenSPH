@@ -31,7 +31,7 @@ Size FileSystem::fileSize(const Path& path) {
     return ifs.tellg();
 }
 
-Expected<FileSystem::PathType> FileSystem::getPathType(const Path& path) {
+Expected<FileSystem::PathType> FileSystem::pathType(const Path& path) {
     if (path.empty()) {
         return makeUnexpected<PathType>("Path is empty");
     }
@@ -127,7 +127,11 @@ Outcome FileSystem::removePath(const Path& path, const Flags<RemovePathFlag> fla
     if (!pathExists(path)) {
         return "Attemping to remove nonexisting path";
     }
-    if (flags.has(RemovePathFlag::RECURSIVE)) {
+    const Expected<PathType> type = pathType(path);
+    if (!type) {
+        return type.error();
+    }
+    if (type.value() == PathType::DIRECTORY && flags.has(RemovePathFlag::RECURSIVE)) {
         for (Path child : iterateDirectory(path)) {
             Outcome result = removePath(path / child, flags);
             if (!result) {
@@ -185,7 +189,7 @@ Outcome FileSystem::removePath(const Path& path, const Flags<RemovePathFlag> fla
 }
 
 Outcome FileSystem::copyFile(const Path& from, const Path& to) {
-    ASSERT(getPathType(from).valueOr(PathType::OTHER) == PathType::FILE);
+    ASSERT(pathType(from).valueOr(PathType::OTHER) == PathType::FILE);
     // there doesn't seem to be any system function for copying, so let's do it by hand
     std::ifstream ifs(from.native().c_str());
     if (!ifs) {
@@ -201,24 +205,25 @@ Outcome FileSystem::copyFile(const Path& from, const Path& to) {
     }
 
     StaticArray<char, 1024> buffer;
-    while (ifs.read(&buffer[0], buffer.size())) {
+    do {
+        ifs.read(&buffer[0], buffer.size());
         ofs.write(&buffer[0], ifs.gcount());
         if (!ofs) {
             return "Failed from copy the file";
         }
-    }
+    } while (ifs);
     return SUCCESS;
 }
 
 
 Outcome FileSystem::copyDirectory(const Path& from, const Path& to) {
-    ASSERT(getPathType(from).valueOr(PathType::OTHER) == PathType::DIRECTORY);
+    ASSERT(pathType(from).valueOr(PathType::OTHER) == PathType::DIRECTORY);
     Outcome result = createDirectory(to);
     if (!result) {
         return result;
     }
     for (Path path : iterateDirectory(from)) {
-        const PathType type = getPathType(from / path).valueOr(PathType::OTHER);
+        const PathType type = pathType(from / path).valueOr(PathType::OTHER);
         switch (type) {
         case PathType::FILE:
             result = copyFile(from / path, to / path);
@@ -238,7 +243,7 @@ Outcome FileSystem::copyDirectory(const Path& from, const Path& to) {
 }
 
 void FileSystem::setWorkingDirectory(const Path& path) {
-    ASSERT(getPathType(path).valueOr(PathType::OTHER) == PathType::DIRECTORY);
+    ASSERT(pathType(path).valueOr(PathType::OTHER) == PathType::DIRECTORY);
     chdir(path.native().c_str());
 }
 
@@ -265,13 +270,17 @@ Path FileSystem::DirectoryIterator::operator*() const {
     return Path(entry->d_name);
 }
 
+bool FileSystem::DirectoryIterator::operator==(const DirectoryIterator& other) const {
+    return (!entry && !other.entry) || entry == other.entry;
+}
+
 bool FileSystem::DirectoryIterator::operator!=(const DirectoryIterator& other) const {
     // returns false if both are nullptr to end the loop for nonexisting dirs
     return (entry || other.entry) && entry != other.entry;
 }
 
 FileSystem::DirectoryAdapter::DirectoryAdapter(const Path& directory) {
-    ASSERT(getPathType(directory).valueOr(PathType::OTHER) == PathType::DIRECTORY);
+    ASSERT(pathType(directory).valueOr(PathType::OTHER) == PathType::DIRECTORY);
     if (!pathExists(directory)) {
         dir = nullptr;
         return;

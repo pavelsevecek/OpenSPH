@@ -358,8 +358,9 @@ auto componentAdapter(TBuffer&& buffer, const Size component) {
 /// TupleIterator
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-/// Holds multiple iterators, advancing all of them at the same time. Has only the necessary functions to use
-/// in range-based for loops.
+/// \brief Holds multiple iterators, advancing all of them at the same time.
+///
+/// Has only the necessary functions to use in range-based for loops.
 template <typename TElement, typename... TIterator>
 class TupleIterator {
 private:
@@ -383,13 +384,32 @@ public:
     }
 
     bool operator==(const TupleIterator& other) const {
-        // all iterators have the same range, so we can simply compare first one
-        return iterators.template get<0>() != other.iterators.template get<0>();
+        const bool result = iterators.template get<0>() == other.iterators.template get<0>();
+        // check that all iterators return the same result (all containers have the same size)
+        ASSERT(checkEqual(result, other, std::index_sequence_for<TIterator...>{}));
+        return result;
     }
 
     bool operator!=(const TupleIterator& other) const {
-        // all iterators have the same range, so we can simply compare first one
-        return iterators.template get<0>() != other.iterators.template get<0>();
+        const bool result = iterators.template get<0>() != other.iterators.template get<0>();
+        // check that all iterators return the same result (all containers have the same size)
+        ASSERT(checkEqual(!result, other, std::index_sequence_for<TIterator...>{}));
+        return result;
+    }
+
+private:
+    template <std::size_t First, std::size_t... Rest>
+    bool checkEqual(const bool equal, const TupleIterator& other, std::index_sequence<First, Rest...>) const {
+        if (equal != (iterators.template get<First>() == other.iterators.template get<First>())) {
+            // different size
+            return false;
+        }
+        return checkEqual(equal, other, std::index_sequence<Rest...>{});
+    }
+
+    // last step to end the recursion
+    bool checkEqual(const bool, const TupleIterator&, std::index_sequence<>) const {
+        return true;
     }
 };
 
@@ -410,31 +430,30 @@ public:
     TupleAdapter(TContainers&&... containers)
         : tuple(std::forward<TContainers>(containers)...) {
         ASSERT(tuple.size() > 1);
-#ifdef SPH_DEBUG
-        // check that all containers are of the same size
-        const Size size0 = tuple.template get<0>().size();
-        forEach(tuple, [size0](auto& container) { ASSERT(container.size() == size0); });
-#endif
     }
 
     auto begin() {
-        return apply(
-            tuple, [](auto&... containers) { return makeTupleIterator<TElement>(containers.begin()...); });
+        return apply(tuple, [](auto&... containers) { //
+            return makeTupleIterator<TElement>(containers.begin()...);
+        });
     }
 
     auto begin() const {
-        return apply(tuple,
-            [](const auto&... containers) { return makeTupleIterator<TElement>(containers.begin()...); });
+        return apply(tuple, [](const auto&... containers) { //
+            return makeTupleIterator<TElement>(containers.begin()...);
+        });
     }
 
     auto end() {
-        return apply(
-            tuple, [](auto&... containers) { return makeTupleIterator<TElement>(containers.end()...); });
+        return apply(tuple, [](auto&... containers) { //
+            return makeTupleIterator<TElement>(containers.end()...);
+        });
     }
 
     auto end() const {
-        return apply(tuple,
-            [](const auto&... containers) { return makeTupleIterator<TElement>(containers.end()...); });
+        return apply(tuple, [](const auto&... containers) { //
+            return makeTupleIterator<TElement>(containers.end()...);
+        });
     }
 
     Size size() const {

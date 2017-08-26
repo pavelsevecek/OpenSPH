@@ -4,7 +4,6 @@ CONFIG -= app_bundle
 CONFIG -= qt
 
 QMAKE_CXXFLAGS += -Wall -Werror -msse4.1 -std=c++14 -pthread
-QMAKE_CXX = g++
 
 INCLUDEPATH += ../lib ..
 DEPENDPATH += ../lib

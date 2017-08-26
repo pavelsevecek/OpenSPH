@@ -21,7 +21,7 @@ class TracelessTensor {
     template <typename T>
     friend constexpr T max(const T& t1, const T& t2);
     template <typename T>
-    friend T clamp(const T& t, const Range& range);
+    friend T clamp(const T& t, const Interval& range);
     template <typename T>
     friend constexpr auto less(const T& t1, const T& t2);
 
@@ -323,7 +323,7 @@ INLINE auto less(const TracelessTensor& t1, const TracelessTensor& t2) {
 /// tensor can therefore be changed even if they lie within the range.
 /// For exact clamping of tensor components, the traceless tensor must be explicitly casted to Tensor.
 template <>
-INLINE TracelessTensor clamp(const TracelessTensor& t, const Range& range) {
+INLINE TracelessTensor clamp(const TracelessTensor& t, const Interval& range) {
     const SymmetricTensor clamped(clamp(t.diagonal(), range), clamp(t.offDiagonal(), range));
     return TracelessTensor(clamped - SymmetricTensor::identity() * clamped.trace() / 3._f);
 }
@@ -331,7 +331,7 @@ INLINE TracelessTensor clamp(const TracelessTensor& t, const Range& range) {
 template <>
 INLINE Pair<TracelessTensor> clampWithDerivative(const TracelessTensor& v,
     const TracelessTensor& dv,
-    const Range& range) {
+    const Interval& range) {
     const SymmetricTensor lower = less(SymmetricTensor(range.lower()), SymmetricTensor(v));
     const SymmetricTensor upper = less(SymmetricTensor(v), SymmetricTensor(range.upper()));
     /// \todo optimize

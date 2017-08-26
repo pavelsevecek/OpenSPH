@@ -28,7 +28,7 @@ TEST_CASE("M4 gravity kernel", "[kernel]") {
     // check that value = int grad dx
 
     auto test = [&](const Float x1, const Float x2, const Float h) {
-        const Float lhs = integrate(Range(x1, x2), [&](const Float r) { //
+        const Float lhs = integrate(Interval(x1, x2), [&](const Float r) { //
             return kernel.grad(Vector(0._f, r, 0._f), h)[Y];
         });
         const Float rhs = kernel.value(Vector(0._f, x2, 0._f), h) - kernel.value(Vector(0._f, x1, 0._f), h);
@@ -47,7 +47,7 @@ TEST_CASE("M4 gravity kernel consistency", "[kernel]") {
     // W = 1/(4 pi r^2)*d/dr(r^2 dg/dr)
     const Float x1 = 0.3_f;
     const Float x2 = 2.5_f;
-    const Float lhs = integrate(Range(x1, x2), [&](const Float r) { //
+    const Float lhs = integrate(Interval(x1, x2), [&](const Float r) { //
         return 4._f * PI * sqr(r) * m4.value(Vector(r, 0._f, 0._f), 1._f);
     });
     const Float rhs = sqr(x2) * kernel.grad(Vector(x2, 0._f, 0._f), 1._f)[X] -

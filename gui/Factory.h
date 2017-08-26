@@ -20,7 +20,7 @@ namespace Factory {
 
     AutoPtr<Abstract::Element> getElement(const GuiSettings& settings, const ElementId id);
 
-    Palette getPalette(const ElementId id, const Range range);
+    Palette getPalette(const ElementId id, const Interval range);
 }
 
 NAMESPACE_SPH_END

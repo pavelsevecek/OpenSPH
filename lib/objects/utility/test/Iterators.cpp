@@ -78,7 +78,27 @@ TEST_CASE("TupleAdapter", "[iterators]") {
     REQUIRE(floats == Array<float>({ 6.f, 6.f, 6.f, 6.f }));
     REQUIRE(ints == Array<int>({ 7, 7, 7, 7 }));
 
-    REQUIRE_ASSERT(iterateTuple<Element>(Array<int>{ 5 }, Array<float>{ 3.f, 4.f }));
+    auto test1 = [] {
+        for (auto i : iterateTuple<Tuple<int, float>>(Array<int>{ 5 }, Array<float>{ 3.f, 4.f })) {
+            (void)i;
+        }
+    };
+    REQUIRE_ASSERT(test1());
+
+    auto test2 = [] {
+        for (auto i : iterateTuple<Tuple<int, float, char>>(
+                 Array<int>{ 5, 5 }, Array<float>{ 3.f, 4.f }, Array<char>{ 'a', 'e', 'f' })) {
+            (void)i;
+        }
+    };
+    REQUIRE_ASSERT(test2());
+
+    auto test3 = [] {
+        for (auto i : iterateTuple<Tuple<int, float>>(Array<int>{ 5, 5 }, Array<float>{})) {
+            (void)i;
+        }
+    };
+    REQUIRE_ASSERT(test3());
 }
 
 TEST_CASE("SubsetIterator", "[iterators]") {

@@ -37,8 +37,7 @@ public:
     virtual void create(Storage& storage, Abstract::Material& material) const override {
         const Float rho0 = material.getParam<Float>(BodySettingsId::DENSITY);
         storage.insert<Float>(QuantityId::DENSITY, OrderEnum::ZERO, rho0);
-        material.minimal(QuantityId::DENSITY) = material.getParam<Float>(BodySettingsId::DENSITY_MIN);
-        material.range(QuantityId::DENSITY) = material.getParam<Range>(BodySettingsId::DENSITY_RANGE);
+        material.setRange(QuantityId::DENSITY, BodySettingsId::DENSITY_RANGE, BodySettingsId::DENSITY_MIN);
         storage.insert<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO, 0);
         equations.create(storage, material);
     }

@@ -6,7 +6,7 @@
 /// \date 2016-2017
 
 #include "objects/wrappers/Optional.h"
-#include "objects/wrappers/Range.h"
+#include "objects/wrappers/Interval.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -15,17 +15,17 @@ NAMESPACE_SPH_BEGIN
 /// NOTHING. For functions with multiple roots, returns one of them; the selection of such root is not
 /// specified.
 template <typename TFunctor>
-INLINE Optional<Float> getRoot(const TFunctor& functor, const Range& range, const Float eps = EPS) {
-    Range r = range;
+INLINE Optional<Float> getRoot(const TFunctor& functor, const Interval& range, const Float eps = EPS) {
+    Interval r = range;
     if (functor(r.lower()) * functor(r.upper()) > 0._f) { // same sign
         return NOTHING;
     }
     while (r.size() > eps * range.size()) {
         Float x = r.center();
         if (functor(x) * functor(r.upper()) > 0._f) {
-            r = Range(r.lower(), x);
+            r = Interval(r.lower(), x);
         } else {
-            r = Range(x, r.upper());
+            r = Interval(x, r.upper());
         }
     }
     return r.center();

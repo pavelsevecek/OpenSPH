@@ -18,7 +18,8 @@ static Storage getStorage() {
         OrderEnum::SECOND,
         distribution.generate(100, BlockDomain(Vector(0._f), Vector(100._f))));
     storage.insert<Float>(QuantityId::ENERGY, OrderEnum::FIRST, 0._f);
-    storage.getMaterial(0)->minimal(QuantityId::ENERGY) = EPS;
+    Abstract::Material& material = storage.getMaterial(0);
+    material.setRange(QuantityId::ENERGY, Interval::unbounded(), EPS);
 
     const Float cs = 5._f;
     storage.insert<Float>(QuantityId::SOUND_SPEED, OrderEnum::ZERO, cs);
@@ -71,7 +72,8 @@ TEST_CASE("Derivative Criterion", "[timestepping]") {
     REQUIRE(id == CriterionId::DERIVATIVE);
     REQUIRE(stats.get<QuantityId>(StatisticsId::LIMITING_QUANTITY) == QuantityId::ENERGY);
 
-    storage.getMaterial(0)->minimal(QuantityId::ENERGY) = 4._f;
+    Abstract::Material& material = storage.getMaterial(0);
+    material.setRange(QuantityId::ENERGY, Interval::unbounded(), 4._f);
     tieToTuple(step, id) = criterion.compute(storage, INFTY, stats);
     REQUIRE(step == approx(factor * 4._f, 1.e-3_f)); // (12+4)/4
     REQUIRE(id == CriterionId::DERIVATIVE);

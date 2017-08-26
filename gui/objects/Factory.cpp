@@ -30,18 +30,18 @@ AutoPtr<Abstract::Camera> Factory::getCamera(const GuiSettings& settings, const 
 }
 
 AutoPtr<Abstract::Element> Factory::getElement(const GuiSettings& settings, const ElementId id) {
-    Range range;
+    Interval range;
     switch (id) {
     case ElementId::VELOCITY:
-        range = settings.get<Range>(GuiSettingsId::PALETTE_VELOCITY);
+        range = settings.get<Interval>(GuiSettingsId::PALETTE_VELOCITY);
         return makeAuto<VelocityElement>(range);
     case ElementId::ACCELERATION:
-        range = settings.get<Range>(GuiSettingsId::PALETTE_ACCELERATION);
+        range = settings.get<Interval>(GuiSettingsId::PALETTE_ACCELERATION);
         return makeAuto<AccelerationElement>(range);
     case ElementId::MOVEMENT_DIRECTION:
         return makeAuto<DirectionElement>(Vector(0._f, 0._f, 1._f));
     case ElementId::DENSITY_PERTURBATION:
-        range = settings.get<Range>(GuiSettingsId::PALETTE_DENSITY_PERTURB);
+        range = settings.get<Interval>(GuiSettingsId::PALETTE_DENSITY_PERTURB);
         return makeAuto<DensityPerturbationElement>(range);
     case ElementId::BOUNDARY:
         return makeAuto<BoundaryElement>(BoundaryElement::Detection::NEIGBOUR_THRESHOLD, 40);
@@ -51,22 +51,22 @@ AutoPtr<Abstract::Element> Factory::getElement(const GuiSettings& settings, cons
 
         switch (quantity) {
         case QuantityId::DEVIATORIC_STRESS:
-            range = settings.get<Range>(GuiSettingsId::PALETTE_STRESS);
+            range = settings.get<Interval>(GuiSettingsId::PALETTE_STRESS);
             return makeAuto<TypedElement<TracelessTensor>>(quantity, range);
         case QuantityId::DENSITY:
-            range = settings.get<Range>(GuiSettingsId::PALETTE_DENSITY);
+            range = settings.get<Interval>(GuiSettingsId::PALETTE_DENSITY);
             break;
         case QuantityId::PRESSURE:
-            range = settings.get<Range>(GuiSettingsId::PALETTE_PRESSURE);
+            range = settings.get<Interval>(GuiSettingsId::PALETTE_PRESSURE);
             break;
         case QuantityId::ENERGY:
-            range = settings.get<Range>(GuiSettingsId::PALETTE_ENERGY);
+            range = settings.get<Interval>(GuiSettingsId::PALETTE_ENERGY);
             break;
         case QuantityId::DAMAGE:
-            range = settings.get<Range>(GuiSettingsId::PALETTE_DAMAGE);
+            range = settings.get<Interval>(GuiSettingsId::PALETTE_DAMAGE);
             break;
         case QuantityId::VELOCITY_DIVERGENCE:
-            range = settings.get<Range>(GuiSettingsId::PALETTE_DIVV);
+            range = settings.get<Interval>(GuiSettingsId::PALETTE_DIVV);
             break;
         default:
             NOT_IMPLEMENTED;
@@ -75,7 +75,7 @@ AutoPtr<Abstract::Element> Factory::getElement(const GuiSettings& settings, cons
     }
 }
 
-Palette Factory::getPalette(const ElementId id, const Range range) {
+Palette Factory::getPalette(const ElementId id, const Interval range) {
     const float x0 = Float(range.lower());
     const float dx = Float(range.size());
     if (int(id) >= 0) {
@@ -137,7 +137,7 @@ Palette Factory::getPalette(const ElementId id, const Range range) {
                                { x0 + dx, Color(1.0f, 1.0f, 0.2f) } },
                 PaletteScale::LOGARITHMIC);
         case ElementId::MOVEMENT_DIRECTION:
-            ASSERT(range == Range(0.f, 2.f * PI)); // in radians
+            ASSERT(range == Interval(0.f, 2.f * PI)); // in radians
             return Palette({ { 0.f, Color(0.1f, 0.1f, 1.f) },
                                { PI / 3.f, Color(1.f, 0.1f, 1.f) },
                                { 2.f * PI / 3.f, Color(1.f, 0.1f, 0.1f) },

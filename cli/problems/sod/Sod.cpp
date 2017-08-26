@@ -40,7 +40,7 @@ Array<Vector> sodDistribution(const int N, Float dx, const Float eta) {
         } else {
             dx += 0.001_f / N;
         }
-    } while (!Range(0.99f, 1.01f).contains(x[x.size() - 1][0]));
+    } while (!Interval(0.99f, 1.01f).contains(x[x.size() - 1][0]));
     return x;
 }
 
@@ -49,7 +49,7 @@ public:
     Run() {
         // Global settings of the problem
         this->settings.set(RunSettingsId::RUN_NAME, std::string("Sod Shock Tube Problem"))
-            .set(RunSettingsId::RUN_TIME_RANGE, Range(0._f, 0.5_f))
+            .set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 0.5_f))
             .set(RunSettingsId::DOMAIN_TYPE, DomainEnum::SPHERICAL)
             .set(RunSettingsId::DOMAIN_CENTER, Vector(0.5_f))
             .set(RunSettingsId::DOMAIN_RADIUS, 0.5_f)
@@ -76,8 +76,8 @@ public:
         bodySettings.set(BodySettingsId::PARTICLE_COUNT, N);
         bodySettings.set(BodySettingsId::INITIAL_DISTRIBUTION, DistributionEnum::LINEAR);
         bodySettings.set(BodySettingsId::ADIABATIC_INDEX, 1.4_f);
-        bodySettings.set(BodySettingsId::DENSITY_RANGE, Range(0.05_f, INFTY));
-        bodySettings.set(BodySettingsId::ENERGY_RANGE, Range(0.05_f, INFTY));
+        bodySettings.set(BodySettingsId::DENSITY_RANGE, Interval(0.05_f, INFTY));
+        bodySettings.set(BodySettingsId::ENERGY_RANGE, Interval(0.05_f, INFTY));
         bodySettings.set(BodySettingsId::DENSITY, 1._f);
         bodySettings.set(BodySettingsId::DENSITY_MIN, 0.1_f);
         bodySettings.set(BodySettingsId::ENERGY, 2.5_f);

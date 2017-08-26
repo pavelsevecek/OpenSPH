@@ -35,7 +35,7 @@ Controller::~Controller() = default;
 
 void Controller::Vis::initialize(const GuiSettings& gui) {
     renderer = makeAuto<ParticleRenderer>(); // makeAuto<SurfaceRenderer>();
-    element = makeAuto<VelocityElement>(gui.get<Range>(GuiSettingsId::PALETTE_VELOCITY));
+    element = makeAuto<VelocityElement>(gui.get<Interval>(GuiSettingsId::PALETTE_VELOCITY));
     timer = makeAuto<Timer>(gui.get<int>(GuiSettingsId::VIEW_MAX_FRAMERATE), TimerFlags::START_EXPIRED);
     const Point size(gui.get<int>(GuiSettingsId::RENDER_WIDTH), gui.get<int>(GuiSettingsId::RENDER_HEIGHT));
     camera = Factory::getCamera(gui, size);
@@ -322,7 +322,7 @@ SharedPtr<Movie> Controller::createMovie(const Storage& storage) {
         break;
     case RendererEnum::SURFACE:
         renderer = makeAuto<SurfaceRenderer>(gui);
-        elements = { makeShared<VelocityElement>(gui.get<Range>(GuiSettingsId::PALETTE_VELOCITY)) };
+        elements = { makeShared<VelocityElement>(gui.get<Interval>(GuiSettingsId::PALETTE_VELOCITY)) };
         break;
     default:
         STOP;

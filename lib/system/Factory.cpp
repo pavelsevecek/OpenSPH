@@ -261,7 +261,7 @@ AutoPtr<Abstract::BoundaryConditions> Factory::getBoundaryConditions(const RunSe
     case BoundaryEnum::PROJECT_1D: {
         ASSERT(domain != nullptr);
         const Box box = domain->getBoundingBox();
-        return makeAuto<Projection1D>(Range(box.lower()[X], box.upper()[X]));
+        return makeAuto<Projection1D>(Interval(box.lower()[X], box.upper()[X]));
     }
     default:
         NOT_IMPLEMENTED;

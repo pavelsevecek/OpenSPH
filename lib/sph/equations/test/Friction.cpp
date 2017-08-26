@@ -43,7 +43,7 @@ TEST_CASE("InternalFriction", "[friction]") {
             // skip boundary particles
             return SUCCESS;
         }
-        if (Range(0._f, h).contains(r[i][Z])) {
+        if (Interval(0._f, h).contains(r[i][Z])) {
             // these particles should be slowed down
             if (dv[i][X] >= -1.e-5_f) {
                 return makeFailed("Friction didn't decelerate:\n",
@@ -57,14 +57,14 @@ TEST_CASE("InternalFriction", "[friction]") {
             }
             return SUCCESS;
         }
-        if (Range(h, 1._f).contains(r[i][Z])) {
+        if (Interval(h, 1._f).contains(r[i][Z])) {
             // these should either be slowed down or remain unaffected
             if (dv[i][X] > 0._f) {
                 return makeFailed("Friction accelerated where is shouldn't\n", dv[i]);
             }
             return SUCCESS;
         }
-        if (Range(-h, 0._f).contains(r[i][Z])) {
+        if (Interval(-h, 0._f).contains(r[i][Z])) {
             // these particles should be accelerated in X
             if (dv[i][X] <= 1.e-5_f) {
                 return makeFailed("Friction didn't accelerate:\n",
@@ -78,7 +78,7 @@ TEST_CASE("InternalFriction", "[friction]") {
             }
             return SUCCESS;
         }
-        if (Range(-1._f, -h).contains(r[i][Z])) {
+        if (Interval(-1._f, -h).contains(r[i][Z])) {
             // these should either be accelerated or remain uaffected
             if (dv[i][X] < 0._f) {
                 return makeFailed(

@@ -4,9 +4,9 @@
 #include "sph/Material.h"
 #include "system/Settings.h"
 #include "system/Statistics.h"
+#include "tests/Approx.h"
 #include "tests/Setup.h"
 #include "timestepping/AbstractSolver.h"
-#include "tests/Approx.h"
 #include "utils/SequenceTest.h"
 
 using namespace Sph;
@@ -171,9 +171,9 @@ static void testGyroscopicMotion(TArgs&&... args) {
 
 struct ClampSolver : public Abstract::Solver {
     enum class Direction { INCREASING, DECREASING } direction;
-    Range range;
+    Interval range;
 
-    ClampSolver(const Direction direction, const Range range)
+    ClampSolver(const Direction direction, const Interval range)
         : direction(direction)
         , range(range) {}
 
@@ -202,8 +202,9 @@ static void testClamping() {
     storage->insert<Vector>(
         QuantityId::POSITIONS, OrderEnum::SECOND, Array<Vector>{ Vector(1._f, 0._f, 0._f) });
     storage->insert<Float>(QuantityId::ENERGY, OrderEnum::FIRST, 5._f);
-    const Range range(3._f, 7._f);
-    storage->getMaterial(0)->range(QuantityId::ENERGY) = range;
+    const Interval range(3._f, 7._f);
+    Abstract::Material& material = storage->getMaterial(0);
+    material.setRange(QuantityId::ENERGY, range, 0._f);
 
     RunSettings settings;
     settings.set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 1._f);

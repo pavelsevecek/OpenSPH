@@ -52,6 +52,10 @@ public:
         return { iter->first, iter->second };
     }
 
+    bool operator==(const StorageIterator& other) const {
+        return iter == other.iter;
+    }
+
     bool operator!=(const StorageIterator& other) const {
         return iter != other.iter;
     }
@@ -75,6 +79,10 @@ public:
 
     ConstStorageElement operator*() {
         return { iter->first, iter->second };
+    }
+
+    bool operator==(const ConstStorageIterator& other) const {
+        return iter == other.iter;
     }
 
     bool operator!=(const ConstStorageIterator& other) const {
@@ -389,7 +397,7 @@ public:
     /// \code
     /// getMaterial(matIdx)->range(id)
     /// \endcode
-    Range getRange(const QuantityId id, const Size matIdx) const;
+    Interval getRange(const QuantityId id, const Size matIdx) const;
 
     /// Returns the sequence of quantities.
     StorageSequence getQuantities();

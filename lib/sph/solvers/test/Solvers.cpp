@@ -1,7 +1,7 @@
 #include "catch.hpp"
 #include "objects/geometry/Domain.h"
 #include "objects/utility/ArrayUtils.h"
-#include "objects/wrappers/Range.h"
+#include "objects/wrappers/Interval.h"
 #include "physics/Constants.h"
 #include "physics/Integrals.h"
 #include "sph/initial/Initial.h"

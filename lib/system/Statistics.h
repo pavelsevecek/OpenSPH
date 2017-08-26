@@ -8,7 +8,7 @@
 #include "common/ForwardDecl.h"
 #include "math/Means.h"
 #include "objects/utility/Value.h"
-#include "objects/wrappers/Range.h"
+#include "objects/wrappers/Interval.h"
 #include "objects/wrappers/Variant.h"
 #include "quantities/QuantityIds.h"
 #include <map>
@@ -21,9 +21,9 @@ NAMESPACE_SPH_BEGIN
 /// accumulated by each component of the running problem (timestepping, solver, ...).
 class Statistics {
 private:
-    enum Types { BOOL, INT, FLOAT, MEANS, VALUE, RANGE };
+    enum Types { BOOL, INT, FLOAT, MEANS, VALUE, INTERVAL };
 
-    using ValueType = Variant<bool, int, Float, MinMaxMean, Value, Range>;
+    using ValueType = Variant<bool, int, Float, MinMaxMean, Value, Interval>;
 
     std::map<StatisticsId, ValueType> entries;
 

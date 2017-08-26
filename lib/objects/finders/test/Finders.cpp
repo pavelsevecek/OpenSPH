@@ -6,7 +6,6 @@
 #include "objects/finders/Voxel.h"
 #include "objects/geometry/Domain.h"
 #include "objects/utility/ArrayUtils.h"
-#include "objects/wrappers/Range.h"
 #include "sph/initial/Distribution.h"
 #include "tests/Approx.h"
 #include "utils/SequenceTest.h"

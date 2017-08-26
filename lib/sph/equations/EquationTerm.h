@@ -119,8 +119,7 @@ public:
         const Float u0 = material.getParam<Float>(BodySettingsId::ENERGY);
         storage.insert<Float>(QuantityId::ENERGY, OrderEnum::FIRST, u0);
         ASSERT(storage.getMaterialCnt() == 1);
-        material.minimal(QuantityId::ENERGY) = material.getParam<Float>(BodySettingsId::ENERGY_MIN);
-        material.range(QuantityId::ENERGY) = material.getParam<Range>(BodySettingsId::ENERGY_RANGE);
+        material.setRange(QuantityId::ENERGY, BodySettingsId::ENERGY_RANGE, BodySettingsId::ENERGY_MIN);
         // need to create quantity for velocity divergence so that we can save it to storage later
         storage.insert<Float>(QuantityId::VELOCITY_DIVERGENCE, OrderEnum::ZERO, 0._f);
     }
@@ -249,8 +248,9 @@ public:
         storage.insert<TracelessTensor>(QuantityId::DEVIATORIC_STRESS,
             OrderEnum::FIRST,
             material.getParam<TracelessTensor>(BodySettingsId::STRESS_TENSOR));
-        material.minimal(QuantityId::DEVIATORIC_STRESS) =
-            material.getParam<Float>(BodySettingsId::STRESS_TENSOR_MIN);
+        material.setRange(QuantityId::DEVIATORIC_STRESS,
+            Interval::unbounded(),
+            material.getParam<Float>(BodySettingsId::STRESS_TENSOR_MIN));
 
         storage.insert<SymmetricTensor>(
             QuantityId::STRENGTH_VELOCITY_GRADIENT, OrderEnum::ZERO, SymmetricTensor::null());
@@ -376,8 +376,7 @@ public:
     virtual void create(Storage& storage, Abstract::Material& material) const override {
         const Float rho0 = material.getParam<Float>(BodySettingsId::DENSITY);
         storage.insert<Float>(QuantityId::DENSITY, OrderEnum::FIRST, rho0);
-        material.minimal(QuantityId::DENSITY) = material.getParam<Float>(BodySettingsId::DENSITY_MIN);
-        material.range(QuantityId::DENSITY) = material.getParam<Range>(BodySettingsId::DENSITY_RANGE);
+        material.setRange(QuantityId::DENSITY, BodySettingsId::DENSITY_RANGE, BodySettingsId::DENSITY_MIN);
         storage.insert<Float>(QuantityId::VELOCITY_DIVERGENCE, OrderEnum::ZERO, 0._f);
     }
 };
@@ -403,7 +402,7 @@ class AdaptiveSmoothingLength : public Abstract::EquationTerm {
 private:
     struct {
         Float strength;
-        Range range;
+        Interval range;
     } enforcing;
 
     Size dimensions;
@@ -417,7 +416,7 @@ public:
         MARK_USED(flags);
         if (false) { // flags.has(SmoothingLengthEnum::SOUND_SPEED_ENFORCING)) {
             enforcing.strength = settings.get<Float>(RunSettingsId::SPH_NEIGHBOUR_ENFORCING);
-            enforcing.range = settings.get<Range>(RunSettingsId::SPH_NEIGHBOUR_RANGE);
+            enforcing.range = settings.get<Interval>(RunSettingsId::SPH_NEIGHBOUR_RANGE);
         } else {
             enforcing.strength = -INFTY;
         }

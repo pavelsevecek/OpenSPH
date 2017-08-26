@@ -29,7 +29,7 @@ TEST_CASE("Distribute flaws", "[damage]") {
     storage.insert<Float>(QuantityId::MASSES, OrderEnum::ZERO, rho0 * domain.getVolume() / N);
     MaterialInitialContext context;
     context.rng = makeAuto<RngWrapper<BenzAsphaugRng>>(1234);
-    model.setFlaws(storage, bodySettings, context);
+    model.setFlaws(storage, storage.getMaterial(0), context);
 
     // check that all particles have at least one flaw
     ArrayView<Size> n_flaws = storage.getValue<Size>(QuantityId::N_FLAWS);
@@ -65,8 +65,8 @@ TEST_CASE("Fracture growth", "[damage]") {
 
     MaterialInitialContext context;
     context.rng = makeAuto<RngWrapper<BenzAsphaugRng>>(1234);
-    damage.setFlaws(storage, BodySettings::getDefaults(), context);
     MaterialView material = storage.getMaterial(0);
+    damage.setFlaws(storage, material, context);
     auto flags = DamageFlag::PRESSURE | DamageFlag::STRESS_TENSOR | DamageFlag::REDUCTION_FACTOR;
     REQUIRE_NOTHROW(damage.reduce(storage, flags, material));
     REQUIRE_NOTHROW(damage.integrate(storage, material));

@@ -6,7 +6,7 @@
 /// \date 2016-2017
 
 #include "common/ForwardDecl.h"
-#include "objects/wrappers/Range.h"
+#include "objects/wrappers/Interval.h"
 #include "objects/wrappers/SharedPtr.h"
 #include "physics/Integrals.h"
 #include "system/Settings.h"

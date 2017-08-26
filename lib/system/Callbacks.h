@@ -11,7 +11,7 @@ NAMESPACE_SPH_BEGIN
 
 class Storage;
 class Statistics;
-class Range;
+class Interval;
 
 namespace Abstract {
     class Callbacks : public Polymorphic {

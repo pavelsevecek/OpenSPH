@@ -25,8 +25,9 @@ template <VisitorEnum TVisitorType, typename TFunctor>
 struct StoragePairVisitor;
 
 
-/// Iterator over all quantities, executes given functor with buffer of quantity values. Does not access
-/// derivatives of quantities. Stored buffers are passed as LimitedArray to the functor.
+/// \brief Iterator over all quantities, executes given functor with buffer of quantity values.
+///
+/// Does not access derivatives of quantities. Stored buffers are passed as Array to the functor.
 template <typename TFunctor>
 struct StorageVisitor<VisitorEnum::ALL_VALUES, TFunctor> {
     template <typename TValue>
@@ -42,9 +43,11 @@ struct StoragePairVisitor<VisitorEnum::ALL_VALUES, TFunctor> {
     }
 };
 
-/// Iterator over all buffers. This will execute given functor for each buffer of each quantities, meaning
-/// both values of the quantities and all derivatives. Stored buffers are passed as LimitedArray to the
-/// functor. Useful for operations such as merging two storages, resizing all arrays of the storage, ...
+/// \brief Iterator over all buffers.
+///
+/// This will execute given functor for each buffer of each quantities, meaning both values of the quantities
+/// and all derivatives. Stored buffers are passed as Array to the functor. Useful for operations such
+/// as merging two storages, resizing all arrays of the storage, ...
 template <typename TFunctor>
 struct StorageVisitor<VisitorEnum::ALL_BUFFERS, TFunctor> {
     template <typename TValue>
@@ -68,8 +71,10 @@ struct StoragePairVisitor<VisitorEnum::ALL_BUFFERS, TFunctor> {
 };
 
 
-/// Iterator over all zero-order quantities. This won't access first-order quantities nor second-order
-/// quantities! The functor is executed with array of quantity values.
+/// \brief Iterator over all zero-order quantities.
+///
+/// This won't access first-order quantities nor second-order quantities! The functor is executed with array
+/// of quantity values.
 template <typename TFunctor>
 struct StorageVisitor<VisitorEnum::ZERO_ORDER, TFunctor> {
     template <typename TValue>
@@ -93,8 +98,10 @@ struct StoragePairVisitor<VisitorEnum::ZERO_ORDER, TFunctor> {
 };
 
 
-/// Iterator over all first-order quantities. This won't access second-order quantities! The functor is
-/// executed with two parameters: values and derivatives (both LimitedArrays).
+/// \brief Iterator over all first-order quantities.
+///
+/// This won't access second-order quantities! The functor is executed with two parameters: values and
+/// derivatives (both Arrays).
 template <typename TFunctor>
 struct StorageVisitor<VisitorEnum::FIRST_ORDER, TFunctor> {
     template <typename TValue>
@@ -118,7 +125,7 @@ struct StoragePairVisitor<VisitorEnum::FIRST_ORDER, TFunctor> {
 };
 
 /// Iterator over all second-order quantities. Functor is executed with three parameters: values, 1st
-/// derivatives and 2nd derivatives (as LimitedArrays).
+/// derivatives and 2nd derivatives (as Array).
 template <typename TFunctor>
 struct StorageVisitor<VisitorEnum::SECOND_ORDER, TFunctor> {
     template <typename TValue>
@@ -148,9 +155,10 @@ struct StoragePairVisitor<VisitorEnum::SECOND_ORDER, TFunctor> {
 };
 
 
-/// Iterator over all highest-order derivatives of quantities. This won't access zero-order quantities. Passes
-/// single array to the functor; second derivatives for second-order quantities and first derivatives for
-/// first-order quantitites.
+/// \brief Iterator over all highest-order derivatives of quantities.
+///
+/// This won't access zero-order quantities. Passes single array to the functor; second derivatives for
+/// second-order quantities and first derivatives for first-order quantitites.
 template <typename TFunctor>
 struct StorageVisitor<VisitorEnum::HIGHEST_DERIVATIVES, TFunctor> {
     template <typename TValue>
@@ -210,8 +218,10 @@ struct StorageVisitorWithPositions {
     }
 };
 
-/// Iterate over all quantities and execute a functor, passing quantity buffers together with particle
-/// positions as arguments. Storage must already contain positions, checked by assert.
+/// \brief Iterate over all quantities and execute a functor, passing quantity buffers together with particle
+/// positions as arguments.
+///
+/// Storage must already contain positions, checked by assert.
 template <typename TFunctor>
 void iterateWithPositions(Storage& storage, TFunctor&& functor) {
     Array<Vector>& r = storage.getValue<Vector>(QuantityId::POSITIONS);
