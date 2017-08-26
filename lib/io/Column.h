@@ -12,45 +12,42 @@
 
 NAMESPACE_SPH_BEGIN
 
-namespace Abstract {
-    /// \brief Base class for conversion of quantities into the output data.
+/// \brief Base class for conversion of quantities into the output data.
+///
+/// When TextOutput is selected, this represents a single column of values in the file,
+/// hence the name.
+/// Ordinarily, we need to store the quantity values and their derivatives directly,
+/// derived classes ValueColumn and DerivativeColumn can be used for this purpose.
+/// Other implementations can be used to store values that are not directly saved in any quantity,
+/// such as smoothing lenghts (stored as 4th component of the position vectors), or actual
+/// values of stress tensor (quantity contains undamaged values).
+/// The class can also be used to save arbitrary data, such as particle index, current
+/// time of the simulation, etc. This can be useful when using the output files in additional
+/// scripts, for example when creating plots in Gnuplot.
+/// \todo There should also be a conversion from code units to user-selected output units
+class ITextColumn : public Polymorphic {
+public:
+    /// Returns the value of the output column for given particle.
+    virtual Value evaluate(const Storage& storage, const Statistics& stats, const Size particleIdx) const = 0;
 
-    /// When TextOutput is selected, this represents a single column of values in the file,
-    /// hence the name.
-    /// Ordinarily, we need to store the quantity values and their derivatives directly,
-    /// derived classes ValueColumn and DerivativeColumn can be used for this purpose.
-    /// Other implementations can be used to store values that are not directly saved in any quantity,
-    /// such as smoothing lenghts (stored as 4th component of the position vectors), or actual
-    /// values of stress tensor (quantity contains undamaged values).
-    /// The class can also be used to save arbitrary data, such as particle index, current
-    /// time of the simulation, etc. This can be useful when using the output files in additional
-    /// scripts, for example when creating plots in Gnuplot.
-    /// \todo There should also be a conversion from code units to user-selected output units
-    class Column : public Polymorphic {
-    public:
-        /// Returns the value of the output column for given particle.
-        virtual Value evaluate(const Storage& storage,
-            const Statistics& stats,
-            const Size particleIdx) const = 0;
+    /// Reads the value of the column and saves it into the storage, if possible.
+    /// \param storage Particle storage where the value is stored
+    /// \param value Accumulated value, must be the same type as this column. Checked by assert.
+    /// \param particleIdx Index of accumulated particle; if larger than current size of the storage, the
+    ///                    storage is resized accordingly.
+    virtual void accumulate(Storage& storage, const Value value, const Size particleIdx) const = 0;
 
-        /// Reads the value of the column and saves it into the storage, if possible.
-        /// \param storage Particle storage where the value is stored
-        /// \param value Accumulated value, must be the same type as this column. Checked by assert.
-        /// \param particleIdx Index of accumulated particle; if larger than current size of the storage, the
-        ///                    storage is resized accordingly.
-        virtual void accumulate(Storage& storage, const Value value, const Size particleIdx) const = 0;
+    /// Returns a name of the column. The name is printed in the header of the output file.
+    virtual std::string getName() const = 0;
 
-        /// Returns a name of the column. The name is printed in the header of the output file.
-        virtual std::string getName() const = 0;
+    /// Returns the value type of the column.
+    virtual ValueEnum getType() const = 0;
+};
 
-        /// Returns the value type of the column.
-        virtual ValueEnum getType() const = 0;
-    };
-}
 
 /// Returns values of given quantity as stored in storage.
 template <typename TValue>
-class ValueColumn : public Abstract::Column {
+class ValueColumn : public ITextColumn {
 private:
     QuantityId id;
 
@@ -87,7 +84,7 @@ public:
 /// Returns first derivatives of given quantity as stored in storage. Quantity must contain derivative,
 /// checked by assert.
 template <typename TValue>
-class DerivativeColumn : public Abstract::Column {
+class DerivativeColumn : public ITextColumn {
 private:
     QuantityId id;
 
@@ -124,7 +121,7 @@ public:
 /// Returns second derivatives of given quantity as stored in storage. Quantity must contain second
 /// derivative, checked by assert.
 template <typename TValue>
-class SecondDerivativeColumn : public Abstract::Column {
+class SecondDerivativeColumn : public ITextColumn {
 private:
     QuantityId id;
 
@@ -159,7 +156,7 @@ public:
 };
 
 /// Returns smoothing lengths of particles
-class SmoothingLengthColumn : public Abstract::Column {
+class SmoothingLengthColumn : public ITextColumn {
 public:
     virtual Value evaluate(const Storage& storage,
         const Statistics& UNUSED(stats),
@@ -190,7 +187,7 @@ public:
 /// Prints actual values of scalar damage, as damage is stored in storage as third roots.
 /// Can be used for both scalar and tensor damage.
 template <typename TValue>
-class DamageColumn : public Abstract::Column {
+class DamageColumn : public ITextColumn {
 public:
     virtual Value evaluate(const Storage& storage,
         const Statistics& UNUSED(stats),
@@ -215,7 +212,7 @@ public:
 };
 
 /// Helper column printing particle numbers.
-class ParticleNumberColumn : public Abstract::Column {
+class ParticleNumberColumn : public ITextColumn {
 public:
     virtual Value evaluate(const Storage& UNUSED(storage),
         const Statistics& UNUSED(stats),
@@ -237,7 +234,7 @@ public:
 };
 
 /// Helper column printing current run time. This value is the same for every particle.
-class TimeColumn : public Abstract::Column {
+class TimeColumn : public ITextColumn {
 
 public:
     virtual Value evaluate(const Storage& UNUSED(storage),

@@ -7,7 +7,7 @@
 
 NAMESPACE_SPH_BEGIN
 
-class GuiCallbacks : public Abstract::Callbacks {
+class GuiCallbacks : public IRunCallbacks {
 private:
     RawPtr<Controller> model;
 

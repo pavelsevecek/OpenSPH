@@ -9,46 +9,46 @@
 
 NAMESPACE_SPH_BEGIN
 
-namespace Abstract {
-    class LogFile : public Polymorphic {
-    private:
-        Size counter;
-        Size interval;
+/// \brief Base class for auxilliary files logging run statistics.
+class ILogFile : public Polymorphic {
+private:
+    Size counter;
+    Size interval;
 
-    protected:
-        AutoPtr<Abstract::Logger> logger;
+protected:
+    AutoPtr<ILogger> logger;
 
-    public:
-        /// Constructs the log file.
-        /// \param logger Logger for the written data. Must not be nullptr.
-        /// \param interval Interval of logs in time steps. Must be a positive value; if interval is 1, the
-        ///                 log is written every time step.
-        LogFile(AutoPtr<Abstract::Logger>&& logger, const Size interval = 1)
-            : counter(0)
-            , interval(interval)
-            , logger(std::move(logger)) {
-            ASSERT(this->logger);
-            ASSERT(interval > 0);
-        }
-
-        /// Writes the log, given data in storage and statistics
-        void write(const Storage& storage, const Statistics& stats) {
-            counter++;
-            if (counter == interval) {
-                this->writeImpl(storage, stats);
-                counter = 0;
-            }
-        }
-
-    protected:
-        virtual void writeImpl(const Storage& storage, const Statistics& stats) = 0;
-    };
-}
-
-class CommonStatsLog : public Abstract::LogFile {
 public:
-    CommonStatsLog(AutoPtr<Abstract::Logger>&& logger)
-        : Abstract::LogFile(std::move(logger), 1) {}
+    /// Constructs the log file.
+    /// \param logger Logger for the written data. Must not be nullptr.
+    /// \param interval Interval of logs in time steps. Must be a positive value; if interval is 1, the
+    ///                 log is written every time step.
+    ILogFile(AutoPtr<ILogger>&& logger, const Size interval = 1)
+        : counter(0)
+        , interval(interval)
+        , logger(std::move(logger)) {
+        ASSERT(this->logger);
+        ASSERT(interval > 0);
+    }
+
+    /// Writes the log, given data in storage and statistics
+    void write(const Storage& storage, const Statistics& stats) {
+        counter++;
+        if (counter == interval) {
+            this->writeImpl(storage, stats);
+            counter = 0;
+        }
+    }
+
+protected:
+    virtual void writeImpl(const Storage& storage, const Statistics& stats) = 0;
+};
+
+
+class CommonStatsLog : public ILogFile {
+public:
+    CommonStatsLog(AutoPtr<ILogger>&& logger)
+        : ILogFile(std::move(logger), 1) {}
 
 protected:
     virtual void writeImpl(const Storage& UNUSED(storage), const Statistics& stats) {
@@ -70,7 +70,7 @@ protected:
     }
 };
 
-class IntegralsLog : public Abstract::LogFile {
+class IntegralsLog : public ILogFile {
 private:
     TotalEnergy energy;
     TotalMomentum momentum;
@@ -78,7 +78,7 @@ private:
 
 public:
     IntegralsLog(const Path& path, const Size interval)
-        : Abstract::LogFile(makeAuto<FileLogger>(path), interval) {}
+        : ILogFile(makeAuto<FileLogger>(path), interval) {}
 
 protected:
     virtual void writeImpl(const Storage& storage, const Statistics& stats) {

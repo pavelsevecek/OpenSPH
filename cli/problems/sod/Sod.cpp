@@ -3,7 +3,7 @@
 #include "io/Output.h"
 #include "physics/Eos.h"
 #include "physics/Rheology.h"
-#include "run/Run.h"
+#include "run/IRun.h"
 #include "sph/initial/Initial.h"
 #include "sph/solvers/ContinuitySolver.h"
 #include "sph/solvers/DensityIndependentSolver.h"
@@ -44,7 +44,7 @@ Array<Vector> sodDistribution(const int N, Float dx, const Float eta) {
     return x;
 }
 
-class Run : public Abstract::Run {
+class Run : public IRun {
 public:
     Run() {
         // Global settings of the problem
@@ -108,7 +108,7 @@ public:
         }
 
         // 3) setup density to be consistent with masses
-        AutoPtr<Abstract::Finder> finder = Factory::getFinder(this->settings);
+        AutoPtr<INeighbourFinder> finder = Factory::getFinder(this->settings);
         finder->build(storage->getValue<Vector>(QuantityId::POSITIONS));
         LutKernel<1> kernel = Factory::getKernel<1>(settings);
         Array<NeighbourRecord> neighs;
@@ -129,7 +129,7 @@ public:
         }
 
         // 4) compute internal energy using equation of state
-        AutoPtr<Abstract::Eos> eos = Factory::getEos(bodySettings);
+        AutoPtr<IEos> eos = Factory::getEos(bodySettings);
         ArrayView<Float> u = storage->getValue<Float>(QuantityId::ENERGY);
         for (Size i = 0; i < N; ++i) {
             u[i] = eos->getInternalEnergy(

@@ -1,15 +1,15 @@
 #include "sph/initial/Initial.h"
-#include "objects/geometry/Domain.h"
 #include "math/rng/Rng.h"
+#include "objects/geometry/Domain.h"
 #include "physics/Eos.h"
 #include "physics/Integrals.h"
-#include "quantities/AbstractMaterial.h"
+#include "quantities/IMaterial.h"
 #include "quantities/Quantity.h"
 #include "quantities/Storage.h"
 #include "sph/initial/Distribution.h"
 #include "system/Factory.h"
 #include "system/Profiler.h"
-#include "timestepping/AbstractSolver.h"
+#include "timestepping/ISolver.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -55,24 +55,24 @@ BodyView& BodyView::addRotation(const Vector& omega, const RotationOrigin origin
 
 /// Solver taking a reference of another solver and forwarding all function, used to convert owning AutoPtr to
 /// non-owning pointer.
-class ForwardingSolver : public Abstract::Solver {
+class ForwardingSolver : public ISolver {
 private:
-    Abstract::Solver& solver;
+    ISolver& solver;
 
 public:
-    ForwardingSolver(Abstract::Solver& solver)
+    ForwardingSolver(ISolver& solver)
         : solver(solver) {}
 
     virtual void integrate(Storage& storage, Statistics& stats) override {
         solver.integrate(storage, stats);
     }
 
-    virtual void create(Storage& storage, Abstract::Material& material) const override {
+    virtual void create(Storage& storage, IMaterial& material) const override {
         solver.create(storage, material);
     }
 };
 
-InitialConditions::InitialConditions(Storage& storage, Abstract::Solver& solver, const RunSettings& settings)
+InitialConditions::InitialConditions(Storage& storage, ISolver& solver, const RunSettings& settings)
     : storage(storage)
     , solver(makeAuto<ForwardingSolver>(solver)) {
     this->createCommon(settings);
@@ -102,17 +102,17 @@ void InitialConditions::createCommon(const RunSettings& settings) {
     finalization.storeInitialPositions = settings.get<bool>(RunSettingsId::OUTPUT_SAVE_INITIAL_POSITION);
 }
 
-BodyView InitialConditions::addBody(const Abstract::Domain& domain, const BodySettings& settings) {
-    AutoPtr<Abstract::Material> material = Factory::getMaterial(settings);
+BodyView InitialConditions::addBody(const IDomain& domain, const BodySettings& settings) {
+    AutoPtr<IMaterial> material = Factory::getMaterial(settings);
     return this->addBody(domain, std::move(material));
 }
 
-BodyView InitialConditions::addBody(const Abstract::Domain& domain, AutoPtr<Abstract::Material>&& material) {
-    Abstract::Material& mat = *material; // get reference before moving the pointer
+BodyView InitialConditions::addBody(const IDomain& domain, AutoPtr<IMaterial>&& material) {
+    IMaterial& mat = *material; // get reference before moving the pointer
     Storage body(std::move(material));
 
     PROFILE_SCOPE("InitialConditions::addBody");
-    AutoPtr<Abstract::Distribution> distribution = Factory::getDistribution(mat.getParams());
+    AutoPtr<IDistribution> distribution = Factory::getDistribution(mat.getParams());
     const Size n = mat.getParam<int>(BodySettingsId::PARTICLE_COUNT);
 
     // Generate positions of particles
@@ -125,12 +125,11 @@ BodyView InitialConditions::addBody(const Abstract::Domain& domain, AutoPtr<Abst
     return BodyView(storage, bodyIndex++);
 }
 
-InitialConditions::BodySetup::BodySetup(AutoPtr<Abstract::Domain>&& domain,
-    AutoPtr<Abstract::Material>&& material)
+InitialConditions::BodySetup::BodySetup(AutoPtr<IDomain>&& domain, AutoPtr<IMaterial>&& material)
     : domain(std::move(domain))
     , material(std::move(material)) {}
 
-InitialConditions::BodySetup::BodySetup(AutoPtr<Abstract::Domain>&& domain, const BodySettings& settings)
+InitialConditions::BodySetup::BodySetup(AutoPtr<IDomain>&& domain, const BodySettings& settings)
     : domain(std::move(domain))
     , material(Factory::getMaterial(settings)) {}
 
@@ -146,8 +145,7 @@ InitialConditions::BodySetup::~BodySetup() = default;
 Array<BodyView> InitialConditions::addHeterogeneousBody(BodySetup&& environment,
     ArrayView<BodySetup> bodies) {
     PROFILE_SCOPE("InitialConditions::addHeterogeneousBody");
-    AutoPtr<Abstract::Distribution> distribution =
-        Factory::getDistribution(environment.material->getParams());
+    AutoPtr<IDistribution> distribution = Factory::getDistribution(environment.material->getParams());
     const Size n = environment.material->getParam<int>(BodySettingsId::PARTICLE_COUNT);
 
     // Generate positions of ALL particles
@@ -202,7 +200,7 @@ Array<BodyView> InitialConditions::addHeterogeneousBody(BodySetup&& environment,
     return views;
 }
 
-void InitialConditions::setQuantities(Storage& storage, Abstract::Material& material, const Float volume) {
+void InitialConditions::setQuantities(Storage& storage, IMaterial& material, const Float volume) {
     // Set masses of particles, assuming all particles have the same mass
     /// \todo this has to be generalized when using nonuniform particle destribution
     const Float rho0 = material.getParam<Float>(BodySettingsId::DENSITY);

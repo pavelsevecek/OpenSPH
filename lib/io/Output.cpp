@@ -2,7 +2,7 @@
 #include "io/Column.h"
 #include "io/FileSystem.h"
 #include "io/Serializer.h"
-#include "quantities/AbstractMaterial.h"
+#include "quantities/IMaterial.h"
 #include "system/Factory.h"
 #include <fstream>
 
@@ -34,7 +34,7 @@ Path OutputFile::getNextPath(const Statistics& stats) const {
     return Path(path);
 }
 
-Abstract::Output::Output(const Path& fileMask)
+IOutput::IOutput(const Path& fileMask)
     : paths(fileMask) {
     ASSERT(!fileMask.empty());
 }
@@ -64,7 +64,7 @@ static void printHeader(std::ostream& ofs, const std::string& name, const ValueE
 }
 
 TextOutput::TextOutput(const Path& fileMask, const std::string& runName, const Flags<Options> flags)
-    : Abstract::Output(fileMask)
+    : IOutput(fileMask)
     , runName(runName)
     , flags(flags) {}
 
@@ -161,7 +161,7 @@ Outcome TextOutput::load(const Path& path, Storage& storage) {
     return SUCCESS;
 }
 
-TextOutput& TextOutput::add(AutoPtr<Abstract::Column>&& column) {
+TextOutput& TextOutput::add(AutoPtr<ITextColumn>&& column) {
     columns.push(std::move(column));
     return *this;
 }
@@ -307,7 +307,7 @@ namespace {
 }
 
 BinaryOutput::BinaryOutput(const Path& fileMask)
-    : Abstract::Output(fileMask) {}
+    : IOutput(fileMask) {}
 
 Path BinaryOutput::dump(Storage& storage, const Statistics& stats) {
     const Path fileName = paths.getNextPath(stats);
@@ -411,7 +411,7 @@ static Expected<Storage> loadMaterial(const Size matIdx,
     }
 
     // create material based on settings
-    AutoPtr<Abstract::Material> material = Factory::getMaterial(settings);
+    AutoPtr<IMaterial> material = Factory::getMaterial(settings);
     // read all ranges and minimal values for timestepping
     for (Size i = 0; i < ids.size(); ++i) {
         QuantityId id;
@@ -511,7 +511,7 @@ Outcome BinaryOutput::load(const Path& path, Storage& storage) {
 
 
 PkdgravOutput::PkdgravOutput(const Path& fileMask, PkdgravParams&& params)
-    : Abstract::Output(fileMask)
+    : IOutput(fileMask)
     , params(std::move(params)) {
     ASSERT(almostEqual(this->params.conversion.velocity, 2.97853e4_f, 1.e-4_f));
 }

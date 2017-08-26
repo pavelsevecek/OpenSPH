@@ -22,7 +22,7 @@ Array<ScopeStatistics> Profiler::getStatistics() const {
     return stats;
 }
 
-void Profiler::printStatistics(Abstract::Logger& logger) const {
+void Profiler::printStatistics(ILogger& logger) const {
     Array<ScopeStatistics> stats = this->getStatistics();
     for (ScopeStatistics& s : stats) {
         std::stringstream ss;

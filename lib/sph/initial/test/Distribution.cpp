@@ -1,7 +1,7 @@
 #include "sph/initial/Distribution.h"
 #include "catch.hpp"
 #include "io/Output.h"
-#include "objects/finders/AbstractFinder.h"
+#include "objects/finders/INeighbourFinder.h"
 #include "objects/geometry/Domain.h"
 #include "objects/utility/ArrayUtils.h"
 #include "system/ArrayStats.h"
@@ -12,7 +12,7 @@
 
 using namespace Sph;
 
-void testDistributionForDomain(Abstract::Distribution* distribution, const Abstract::Domain& domain) {
+void testDistributionForDomain(IDistribution* distribution, const IDomain& domain) {
     Array<Vector> values = distribution->generate(1000, domain);
 
     // distribution generates approximately 1000 particles
@@ -49,7 +49,7 @@ void testDistributionForDomain(Abstract::Distribution* distribution, const Abstr
     REQUIRE_SEQUENCE(test, 0, n);
 }
 
-void testDistribution(Abstract::Distribution* distribution) {
+void testDistribution(IDistribution* distribution) {
     testDistributionForDomain(distribution, BlockDomain(Vector(-3._f), Vector(2._f)));
     testDistributionForDomain(distribution, CylindricalDomain(Vector(1._f, 2._f, 3._f), 2._f, 3._f, true));
     testDistributionForDomain(distribution, SphericalDomain(Vector(-2._f, 0._f, 1._f), 2.5_f));
@@ -65,7 +65,7 @@ TEST_CASE("HexaPacking grid", "[initial]") {
     HexagonalPacking packing(EMPTY_FLAGS);
     SphericalDomain domain(Vector(0._f), 2._f);
     Array<Vector> r = packing.generate(1000, domain);
-    AutoPtr<Abstract::Finder> finder = Factory::getFinder(RunSettings::getDefaults());
+    AutoPtr<INeighbourFinder> finder = Factory::getFinder(RunSettings::getDefaults());
     finder->build(r);
     Array<NeighbourRecord> neighs;
     auto test = [&](const Size i) -> Outcome {
@@ -103,9 +103,9 @@ TEST_CASE("HexaPacking sorted", "[initial]") {
     ASSERT(r_sort.size() == r_unsort.size());
 
 
-    AutoPtr<Abstract::Finder> finder_sort = Factory::getFinder(RunSettings::getDefaults());
+    AutoPtr<INeighbourFinder> finder_sort = Factory::getFinder(RunSettings::getDefaults());
     finder_sort->build(r_sort);
-    AutoPtr<Abstract::Finder> finder_unsort = Factory::getFinder(RunSettings::getDefaults());
+    AutoPtr<INeighbourFinder> finder_unsort = Factory::getFinder(RunSettings::getDefaults());
     finder_unsort->build(r_unsort);
 
     // find maximum distance of neighbouring particles in memory

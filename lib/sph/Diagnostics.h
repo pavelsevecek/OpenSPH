@@ -12,22 +12,22 @@ NAMESPACE_SPH_BEGIN
 
 /// \todo incorporate into EquationTerm / Derivative framework
 
-namespace Abstract {
-    /// Error message of diagnostics
-    class DiagnosticsReport {
-        std::string message;
-        Array<Size> offendingParticles;
-    };
 
-    /// Base class of diagnostics of the run. Compared to Abstract::Integral, the diagnostics shall return
-    /// boolean result, indicating whether everything is OK an error occured.
-    class Diagnostics : public Polymorphic {
-    public:
-        virtual Outcome check(const Storage& storage) = 0;
-    };
-}
+/// Error message of diagnostics
+class DiagnosticsReport {
+    std::string message;
+    Array<Size> offendingParticles;
+};
 
-class ParticlePairing : public Abstract::Diagnostics {
+/// Base class of diagnostics of the run. Compared to IIntegral, the diagnostics shall return
+/// boolean result, indicating whether everything is OK an error occured.
+class IDiagnostics : public Polymorphic {
+public:
+    virtual Outcome check(const Storage& storage) = 0;
+};
+
+
+class ParticlePairing : public IDiagnostics {
 private:
     Float radius;
     Float limit;
@@ -59,7 +59,7 @@ public:
 };
 
 /// Checks for large differences of smoothing length between neighbouring particles
-class SmoothingDiscontinuity : public Abstract::Diagnostics {
+class SmoothingDiscontinuity : public IDiagnostics {
     Float radius;
     Float limit;
 

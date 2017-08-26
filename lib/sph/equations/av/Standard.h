@@ -30,7 +30,7 @@ NAMESPACE_SPH_BEGIN
 /// The viscosity only applies in convergent flow (\f$(\vec v_i-\vec v_j)\cdot(\vec r_i-\vec r_j) < 0\f$), it
 /// is zero in divergent flow. Prameters \f$\alpha_{\rm AV}\f$ and \f$\beta_{\rm AV}\f$ are constant (in time)
 /// and equal for all particles.
-class StandardAV : public Abstract::EquationTerm {
+class StandardAV : public IEquationTerm {
 public:
     class Derivative : public DerivativeTemplate<Derivative> {
     private:
@@ -104,7 +104,7 @@ public:
 
     virtual void finalize(Storage& UNUSED(storage)) override {}
 
-    virtual void create(Storage& UNUSED(storage), Abstract::Material& UNUSED(material)) const override {}
+    virtual void create(Storage& UNUSED(storage), IMaterial& UNUSED(material)) const override {}
 };
 
 

@@ -5,7 +5,7 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2017
 
-#include "sph/Material.h"
+#include "sph/Materials.h"
 #include "sph/equations/Accumulated.h"
 #include "sph/equations/EquationTerm.h"
 #include "sph/equations/HelperTerms.h"
@@ -14,7 +14,7 @@
 #include "system/Profiler.h"
 #include "system/Statistics.h"
 #include "thread/ThreadLocal.h"
-#include "timestepping/AbstractSolver.h"
+#include "timestepping/ISolver.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -22,7 +22,7 @@ NAMESPACE_SPH_BEGIN
 ///
 /// The solver takes an array of equation terms and evaluate them, using compute gradients of SPH kernel. By
 /// default, no equations are evaluated, except for a 'dummy equation' counting number of neighbours.
-class GenericSolver : public Abstract::Solver {
+class GenericSolver : public ISolver {
 protected:
     struct ThreadData {
         /// Holds all derivatives this thread computes
@@ -52,7 +52,7 @@ protected:
     EquationHolder equations;
 
     /// Structure used to search for neighbouring particles
-    AutoPtr<Abstract::Finder> finder;
+    AutoPtr<INeighbourFinder> finder;
 
     /// Selected SPH kernel, symmetrized over smoothing lenghs:
     /// \f$ W_ij(r_i - r_j, 0.5(h[i] + h[j]) \f$
@@ -110,7 +110,7 @@ public:
         }
     }
 
-    virtual void create(Storage& storage, Abstract::Material& material) const override {
+    virtual void create(Storage& storage, IMaterial& material) const override {
         storage.insert<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO, 0);
         // check equations
         this->sanityCheck();

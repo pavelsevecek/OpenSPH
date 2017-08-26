@@ -1,6 +1,6 @@
 #pragma once
 
-#include "gravity/AbstractGravity.h"
+#include "gravity/IGravity.h"
 #include "objects/finders/Voxel.h"
 #include "sph/kernel/GravityKernel.h"
 
@@ -8,7 +8,7 @@ NAMESPACE_SPH_BEGIN
 
 enum class MultipoleOrder;
 
-/*class VoxelGravity : public Abstract::Gravity {
+/*class VoxelGravity : public IGravity {
 protected:
     /// Source data
     ArrayView<const Vector> r;

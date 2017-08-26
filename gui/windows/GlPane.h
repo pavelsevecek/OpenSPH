@@ -1,7 +1,7 @@
 #pragma once
 
 #include "gui/Utils.h"
-#include "gui/renderers/AbstractRenderer.h"
+#include "gui/renderers/IRenderer.h"
 #include "objects/Bitmap.h"
 #include "objects/containers/BufferedArray.h"
 
@@ -31,7 +31,7 @@ public:
         Array<Size>& is) const;
 };
 
-/*class CustomGlPane : public wxGLCanvas, public Abstract::Renderer {
+/*class CustomGlPane : public wxGLCanvas, public IRenderer {
 private:
     AutoPtr<wxGLContext> context;
     float rotate = 0.f;

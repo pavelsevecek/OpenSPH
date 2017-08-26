@@ -5,7 +5,7 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2017
 
-#include "sph/Material.h"
+#include "sph/Materials.h"
 #include "sph/equations/Accumulated.h"
 #include "sph/equations/EquationTerm.h"
 #include "sph/equations/HelperTerms.h"
@@ -14,14 +14,14 @@
 #include "system/Profiler.h"
 #include "system/Statistics.h"
 #include "thread/ThreadLocal.h"
-#include "timestepping/AbstractSolver.h"
+#include "timestepping/ISolverr.h"
 
 NAMESPACE_SPH_BEGIN
 
 /// \brief Solver
 ///
 /// \todo
-class AsymmetricSolver : public Abstract::Solver {
+class AsymmetricSolver : public ISolver {
 protected:
     /// Holds all derivatives this thread computes
     DerivativeHolder derivatives;
@@ -46,7 +46,7 @@ protected:
     EquationHolder equations;
 
     /// Structure used to search for neighbouring particles
-    AutoPtr<Abstract::Finder> finder;
+    AutoPtr<INeighbourFinder> finder;
 
     /// Selected SPH kernel, symmetrized over smoothing lenghs:
     /// \f$ W_ij(r_i - r_j, 0.5(h[i] + h[j]) \f$
@@ -100,7 +100,7 @@ public:
         }
     }
 
-    virtual void create(Storage& storage, Abstract::Material& material) const override {
+    virtual void create(Storage& storage, IMaterial& material) const override {
         storage.insert<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO, 0);
         equations.create(storage, material);
     }

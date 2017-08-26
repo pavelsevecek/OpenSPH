@@ -14,7 +14,7 @@ NAMESPACE_SPH_BEGIN
 /// RandomDistribution implementation
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-Array<Vector> RandomDistribution::generate(const Size n, const Abstract::Domain& domain) const {
+Array<Vector> RandomDistribution::generate(const Size n, const IDomain& domain) const {
     const Box bounds = domain.getBoundingBox();
     VectorPdfRng<HaltonQrng> boxRng(bounds);
     Array<Vector> vecs(0, n);
@@ -37,7 +37,7 @@ Array<Vector> RandomDistribution::generate(const Size n, const Abstract::Domain&
 /// CubicPacking implementation
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-Array<Vector> CubicPacking::generate(const Size n, const Abstract::Domain& domain) const {
+Array<Vector> CubicPacking::generate(const Size n, const IDomain& domain) const {
     PROFILE_SCOPE("CubicPacking::generate")
     ASSERT(n > 0);
     const Float volume = domain.getVolume();
@@ -67,7 +67,7 @@ Array<Vector> CubicPacking::generate(const Size n, const Abstract::Domain& domai
 HexagonalPacking::HexagonalPacking(const Flags<Options> f)
     : flags(f) {}
 
-Array<Vector> HexagonalPacking::generate(const Size n, const Abstract::Domain& domain) const {
+Array<Vector> HexagonalPacking::generate(const Size n, const IDomain& domain) const {
     PROFILE_SCOPE("HexagonalPacking::generate")
     ASSERT(n > 0);
     const Float volume = domain.getVolume();
@@ -145,7 +145,7 @@ DiehlDistribution::DiehlDistribution(const DiehlDistribution::DensityFunc& parti
     , strength(strength)
     , small(small) {}
 
-Array<Vector> DiehlDistribution::generate(const Size n, const Abstract::Domain& domain) const {
+Array<Vector> DiehlDistribution::generate(const Size n, const IDomain& domain) const {
     // Renormalize particle density so that integral matches expected particle count
     Float multiplier = 1._f;
     auto actDensity = [this, &multiplier](const Vector& v) { return multiplier * particleDensity(v); };
@@ -237,7 +237,7 @@ Array<Vector> DiehlDistribution::generate(const Size n, const Abstract::Domain& 
 /// LinearDistribution implementation
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-Array<Vector> LinearDistribution::generate(const Size n, const Abstract::Domain& domain) const {
+Array<Vector> LinearDistribution::generate(const Size n, const IDomain& domain) const {
     const Float center = domain.getCenter()[X];
     const Float radius = 0.5_f * domain.getBoundingBox().size()[X];
     Array<Vector> vs(0, n);

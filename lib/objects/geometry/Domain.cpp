@@ -7,7 +7,7 @@ NAMESPACE_SPH_BEGIN
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 SphericalDomain::SphericalDomain(const Vector& center, const Float& radius)
-    : Abstract::Domain(center)
+    : IDomain(center)
     , radius(radius) {}
 
 Float SphericalDomain::getVolume() const {
@@ -102,7 +102,7 @@ void SphericalDomain::addGhosts(ArrayView<const Vector> vs,
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 EllipsoidalDomain::EllipsoidalDomain(const Vector& center, const Vector& axes)
-    : Abstract::Domain(center)
+    : IDomain(center)
     , radii(axes) {
     effectiveRadius = cbrt(radii[X] * radii[Y] * radii[Z]);
     ASSERT(isReal(effectiveRadius));
@@ -187,7 +187,7 @@ void EllipsoidalDomain::addGhosts(ArrayView<const Vector> UNUSED(vs),
 
 
 BlockDomain::BlockDomain(const Vector& center, const Vector& edges)
-    : Abstract::Domain(center)
+    : IDomain(center)
     , box(center - 0.5_f * edges, center + 0.5_f * edges) {}
 
 Float BlockDomain::getVolume() const {
@@ -320,7 +320,7 @@ CylindricalDomain::CylindricalDomain(const Vector& center,
     const Float radius,
     const Float height,
     const bool includeBases)
-    : Abstract::Domain(center)
+    : IDomain(center)
     , radius(radius)
     , height(height)
     , includeBases(includeBases) {}
@@ -437,7 +437,7 @@ HexagonalDomain::HexagonalDomain(const Vector& center,
     const Float radius,
     const Float height,
     const bool includeBases)
-    : Abstract::Domain(center)
+    : IDomain(center)
     , outerRadius(radius)
     , innerRadius(sqrt(0.75_f) * outerRadius)
     , height(height)

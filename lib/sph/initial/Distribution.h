@@ -12,38 +12,36 @@
 NAMESPACE_SPH_BEGIN
 
 
-namespace Abstract {
-    class Domain;
+class IDomain;
 
-    /// Base class for generating vertices with specific distribution. Also generates corresponding
-    /// smoothing lengths and save them as fourth component of the vector.
-    class Distribution : public Polymorphic {
-    public:
-        /// \param n Expected number of generated vertices.
-        /// \param domain Computational domain where the vertices are distributed
-        /// \return Output array of vertices. The total number of vertices can slightly differ from n.
-        /// \note This method is expected to be called once at the beginning of the run, so we can
-        ///       return allocated array without worrying about performance costs here.
-        virtual Array<Vector> generate(const Size n, const Domain& domain) const = 0;
-    };
-}
+/// Base class for generating vertices with specific distribution. Also generates corresponding
+/// smoothing lengths and save them as fourth component of the vector.
+class IDistribution : public Polymorphic {
+public:
+    /// \param n Expected number of generated vertices.
+    /// \param domain Computational domain where the vertices are distributed
+    /// \return Output array of vertices. The total number of vertices can slightly differ from n.
+    /// \note This method is expected to be called once at the beginning of the run, so we can
+    ///       return allocated array without worrying about performance costs here.
+    virtual Array<Vector> generate(const Size n, const IDomain& domain) const = 0;
+};
 
 /// Generating random positions withing the domain.
-class RandomDistribution : public Abstract::Distribution {
+class RandomDistribution : public IDistribution {
 public:
-    virtual Array<Vector> generate(const Size n, const Abstract::Domain& domain) const override;
+    virtual Array<Vector> generate(const Size n, const IDomain& domain) const override;
 };
 
 
 /// Cubic close packing
-class CubicPacking : public Abstract::Distribution {
+class CubicPacking : public IDistribution {
 public:
-    virtual Array<Vector> generate(const Size n, const Abstract::Domain& domain) const override;
+    virtual Array<Vector> generate(const Size n, const IDomain& domain) const override;
 };
 
 
 /// Hexagonal close packing
-class HexagonalPacking : public Abstract::Distribution {
+class HexagonalPacking : public IDistribution {
 public:
     enum class Options {
         SORTED = 1 << 0, ///< Particles are sorted using its Morton code, particles close in space are also
@@ -59,7 +57,7 @@ public:
 
     HexagonalPacking(const Flags<Options> flags = Options::CENTER);
 
-    virtual Array<Vector> generate(const Size n, const Abstract::Domain& domain) const override;
+    virtual Array<Vector> generate(const Size n, const IDomain& domain) const override;
 
 private:
     Flags<Options> flags;
@@ -69,7 +67,7 @@ private:
 /// \brief Distribution with given particle density.
 ///
 /// Particles are placed using algorithm by Diehl et al. (2012) \cite Diehl_2012
-class DiehlDistribution : public Abstract::Distribution {
+class DiehlDistribution : public IDistribution {
 private:
     using DensityFunc = std::function<Float(const Vector& position)>;
     DensityFunc particleDensity;
@@ -99,14 +97,14 @@ public:
 
     /// Returns generated particle distribution. Smoothing lengths correspond to particle density given in the
     /// constructor (as h ~ n^(-1/3) )
-    virtual Array<Vector> generate(const Size n, const Abstract::Domain& domain) const override;
+    virtual Array<Vector> generate(const Size n, const IDomain& domain) const override;
 };
 
 /// Generates particles uniformly on a line in x direction, for testing purposes. Uses only center and radius
 /// of the domain.
-class LinearDistribution : public Abstract::Distribution {
+class LinearDistribution : public IDistribution {
 public:
-    virtual Array<Vector> generate(const Size n, const Abstract::Domain& domain) const override;
+    virtual Array<Vector> generate(const Size n, const IDomain& domain) const override;
 };
 
 NAMESPACE_SPH_END

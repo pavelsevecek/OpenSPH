@@ -1,18 +1,18 @@
 #include "timestepping/TimeStepping.h"
 #include "catch.hpp"
 #include "quantities/Storage.h"
-#include "sph/Material.h"
+#include "sph/Materials.h"
 #include "system/Settings.h"
 #include "system/Statistics.h"
 #include "tests/Approx.h"
 #include "tests/Setup.h"
-#include "timestepping/AbstractSolver.h"
+#include "timestepping/ISolver.h"
 #include "utils/SequenceTest.h"
 
 using namespace Sph;
 
 
-struct HomogeneousField : public Abstract::Solver {
+struct HomogeneousField : public ISolver {
     Vector g = Vector(0.f, 0.f, 1._f);
 
     HomogeneousField() = default;
@@ -25,12 +25,12 @@ struct HomogeneousField : public Abstract::Solver {
         }
     }
 
-    virtual void create(Storage&, Abstract::Material&) const override {
+    virtual void create(Storage&, IMaterial&) const override {
         NOT_IMPLEMENTED;
     }
 };
 
-struct HarmonicOscillator : public Abstract::Solver {
+struct HarmonicOscillator : public ISolver {
     Float period = 1._f;
 
     HarmonicOscillator() = default;
@@ -44,12 +44,12 @@ struct HarmonicOscillator : public Abstract::Solver {
         }
     }
 
-    virtual void create(Storage&, Abstract::Material&) const override {
+    virtual void create(Storage&, IMaterial&) const override {
         NOT_IMPLEMENTED;
     }
 };
 
-struct LorentzForce : public Abstract::Solver {
+struct LorentzForce : public ISolver {
     const Vector B = Vector(0.f, 0.f, 1.f);
 
     LorentzForce() = default;
@@ -62,7 +62,7 @@ struct LorentzForce : public Abstract::Solver {
         }
     }
 
-    virtual void create(Storage&, Abstract::Material&) const override {
+    virtual void create(Storage&, IMaterial&) const override {
         NOT_IMPLEMENTED;
     }
 };
@@ -169,7 +169,7 @@ static void testGyroscopicMotion(TArgs&&... args) {
     REQUIRE_SEQUENCE(test, 0, testCnt);
 }
 
-struct ClampSolver : public Abstract::Solver {
+struct ClampSolver : public ISolver {
     enum class Direction { INCREASING, DECREASING } direction;
     Interval range;
 
@@ -191,7 +191,7 @@ struct ClampSolver : public Abstract::Solver {
         }
     }
 
-    virtual void create(Storage&, Abstract::Material&) const override {
+    virtual void create(Storage&, IMaterial&) const override {
         NOT_IMPLEMENTED;
     }
 };
@@ -203,7 +203,7 @@ static void testClamping() {
         QuantityId::POSITIONS, OrderEnum::SECOND, Array<Vector>{ Vector(1._f, 0._f, 0._f) });
     storage->insert<Float>(QuantityId::ENERGY, OrderEnum::FIRST, 5._f);
     const Interval range(3._f, 7._f);
-    Abstract::Material& material = storage->getMaterial(0);
+    IMaterial& material = storage->getMaterial(0);
     material.setRange(QuantityId::ENERGY, range, 0._f);
 
     RunSettings settings;
@@ -225,13 +225,13 @@ static void testClamping() {
     REQUIRE(u[0] == range.lower());
 }
 
-class AddingParticlesSolver : public Abstract::Solver {
+class AddingParticlesSolver : public ISolver {
 public:
     virtual void integrate(Storage& storage, Statistics& UNUSED(stats)) override {
         storage.resize(storage.getParticleCnt() + 100);
     }
 
-    virtual void create(Storage& UNUSED(storage), Abstract::Material& UNUSED(material)) const override {}
+    virtual void create(Storage& UNUSED(storage), IMaterial& UNUSED(material)) const override {}
 };
 
 

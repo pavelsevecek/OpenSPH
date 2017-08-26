@@ -1,4 +1,4 @@
-#include "sph/Material.h"
+#include "sph/Materials.h"
 #include "catch.hpp"
 #include "physics/Eos.h"
 #include "quantities/Storage.h"

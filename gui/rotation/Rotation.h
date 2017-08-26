@@ -8,14 +8,14 @@
 #include "gui/Controller.h"
 #include "gui/MainLoop.h"
 #include "quantities/Storage.h"
-#include "run/Run.h"
+#include "run/IRun.h"
 #include <wx/app.h>
 
 NAMESPACE_SPH_BEGIN
 
 class EquationHolder;
 
-class AsteroidRotation : public Abstract::Run {
+class AsteroidRotation : public IRun {
 private:
     RawPtr<Controller> model;
     Float period;

@@ -5,9 +5,9 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2017
 
-#include "objects/geometry/Vector.h"
 #include "objects/containers/ArrayView.h"
-#include "objects/finders/AbstractFinder.h"
+#include "objects/finders/INeighbourFinder.h"
+#include "objects/geometry/Vector.h"
 #include "quantities/Storage.h"
 #include "sph/equations/Accumulated.h"
 #include "system/Profiler.h"
@@ -16,47 +16,45 @@
 
 NAMESPACE_SPH_BEGIN
 
+/// \brief Derivative accumulated by summing up neighbouring particles.
+///
+/// If solver is parallelized, each threa has its own derivatives that are summed after the solver loop.
+/// In order to use derived classes in DerivativeHolder, they must be either default constructible or have
+/// a constructor <code>Derivative(const RunSettings& settings)</code>; DerivativeHolder will construct
+/// the derivative using the settings constructor if one is available.
+class IDerivative : public Polymorphic {
+public:
+    /// Emplace all needed buffers into shared storage. Called only once at the beginning of the run.
+    virtual void create(Accumulated& results) = 0;
 
-namespace Abstract {
+    /// Initialize derivative before iterating over neighbours.
+    /// \param input Storage containing all the input quantities from which derivatives are computed.
+    ///              This storage is shared for all threads.
+    /// \param results Thread-local storage where the computed derivatives are saved.
+    virtual void initialize(const Storage& input, Accumulated& results) = 0;
 
-    /// Derivative accumulated by summing up neighbouring particles. If solver is parallelized, each thread
-    /// has its own derivatives that are summed after the solver loop.
-    /// In order to use derived classes in DerivativeHolder, they must be either default constructible or have
-    /// a constructor <code>Derivative(const RunSettings& settings)</code>; DerivativeHolder will construct
-    /// the derivative using the settings constructor if one is available.
-    class Derivative : public Polymorphic {
-    public:
-        /// Emplace all needed buffers into shared storage. Called only once at the beginning of the run.
-        virtual void create(Accumulated& results) = 0;
+    /// Compute derivatives from interaction of particle pairs. Each particle pair is visited only once,
+    /// the derivatives shall be computed for both particles.
+    /// \param idx Index of first interacting particle
+    /// \param neighs Array of neighbours of idx-th particle
+    /// \param grads Computed gradients of the SPH kernel
+    virtual void evalSymmetric(const Size idx,
+        ArrayView<const Size> neighs,
+        ArrayView<const Vector> grads) = 0;
 
-        /// Initialize derivative before iterating over neighbours.
-        /// \param input Storage containing all the input quantities from which derivatives are computed.
-        ///              This storage is shared for all threads.
-        /// \param results Thread-local storage where the computed derivatives are saved.
-        virtual void initialize(const Storage& input, Accumulated& results) = 0;
+    /// Compute derivatives from interaction of particle pairs. Only compute derivatives of particle i,
+    /// the function is called for every particle.
+    /// \param idx Index of first interacting particle
+    /// \param neighs Array of neighbours of idx-th particle
+    /// \param grads Computed gradients of the SPH kernel
+    virtual void evalAsymmetric(const Size idx,
+        ArrayView<const Size> neighs,
+        ArrayView<const Vector> grads) = 0;
+};
 
-        /// Compute derivatives from interaction of particle pairs. Each particle pair is visited only once,
-        /// the derivatives shall be computed for both particles.
-        /// \param idx Index of first interacting particle
-        /// \param neighs Array of neighbours of idx-th particle
-        /// \param grads Computed gradients of the SPH kernel
-        virtual void evalSymmetric(const Size idx,
-            ArrayView<const Size> neighs,
-            ArrayView<const Vector> grads) = 0;
-
-        /// Compute derivatives from interaction of particle pairs. Only compute derivatives of particle i,
-        /// the function is called for every particle.
-        /// \param idx Index of first interacting particle
-        /// \param neighs Array of neighbours of idx-th particle
-        /// \param grads Computed gradients of the SPH kernel
-        virtual void evalAsymmetric(const Size idx,
-            ArrayView<const Size> neighs,
-            ArrayView<const Vector> grads) = 0;
-    };
-}
 
 template <typename TDerived>
-class DerivativeTemplate : public Abstract::Derivative {
+class DerivativeTemplate : public IDerivative {
 public:
     virtual void evalSymmetric(const Size idx,
         ArrayView<const Size> neighs,
@@ -280,15 +278,15 @@ private:
     /// storage; one module can use multiple buffers (acceleration and energy derivative) and multiple
     /// modules can write into same buffer (different terms in equation of motion).
     /// Modules are evaluated consecutively (within one thread), so this is thread-safe.
-    Array<AutoPtr<Abstract::Derivative>> derivatives;
+    Array<AutoPtr<IDerivative>> derivatives;
 
 public:
     /// Adds derivative if not already present. If the derivative is already stored, new one is NOT
     /// created, even if settings are different.
     template <typename TDerivative>
     void require(const RunSettings& settings) {
-        for (AutoPtr<Abstract::Derivative>& d : derivatives) {
-            Abstract::Derivative& value = *d;
+        for (AutoPtr<IDerivative>& d : derivatives) {
+            IDerivative& value = *d;
             if (typeid(value) == typeid(TDerivative)) {
                 return;
             }

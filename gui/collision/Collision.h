@@ -8,12 +8,12 @@
 #include "gui/Controller.h"
 #include "gui/MainLoop.h"
 #include "io/Path.h"
-#include "run/Run.h"
+#include "run/IRun.h"
 #include <wx/app.h>
 
 NAMESPACE_SPH_BEGIN
 
-class AsteroidCollision : public Abstract::Run {
+class AsteroidCollision : public IRun {
 private:
     RawPtr<Controller> controller;
 

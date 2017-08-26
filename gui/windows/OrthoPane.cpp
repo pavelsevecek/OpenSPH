@@ -45,11 +45,11 @@ void OrthoPane::onMouseMotion(wxMouseEvent& evt) {
     Point position = evt.GetPosition();
     if (evt.Dragging()) {
         Point offset = Point(position.x - dragging.position.x, -(position.y - dragging.position.y));
-        SharedPtr<Abstract::Camera> camera = controller->getCurrentCamera();
+        SharedPtr<ICamera> camera = controller->getCurrentCamera();
         camera->pan(offset);
         this->Refresh();
     } else {
-        SharedPtr<Abstract::Camera> camera = controller->getCurrentCamera();
+        SharedPtr<ICamera> camera = controller->getCurrentCamera();
         Optional<Particle> selectedParticle = controller->getIntersectedParticle(position);
         const Size selectedIdx = selectedParticle ? selectedParticle->getIndex() : -1;
         if (selectedIdx != particle.lastIdx) {
@@ -66,7 +66,7 @@ void OrthoPane::onMouseWheel(wxMouseEvent& evt) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
     const float spin = evt.GetWheelRotation();
     const float amount = (spin > 0.f) ? 1.2f : 1.f / 1.2f;
-    SharedPtr<Abstract::Camera> camera = controller->getCurrentCamera();
+    SharedPtr<ICamera> camera = controller->getCurrentCamera();
     camera->zoom(amount);
     this->Refresh();
     evt.Skip();

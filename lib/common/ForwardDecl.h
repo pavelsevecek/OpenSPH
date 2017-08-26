@@ -19,15 +19,14 @@ enum class RunSettingsId;
 using RunSettings = Settings<RunSettingsId>;
 using BodySettings = Settings<BodySettingsId>;
 
-namespace Abstract {
-    class Material;
-    class Finder;
-    class Logger;
-    class Domain;
-    class Solver;
-    class TimeStepping;
-    class TimeStepCriterion;
-}
+class IMaterial;
+class INeighbourFinder;
+class ILogger;
+class IDomain;
+class ISolver;
+class ITimeStepping;
+class ITimeStepCriterion;
+
 struct Ghost;
 struct NeighbourRecord;
 class MaterialView;

@@ -1,6 +1,6 @@
 #pragma once
 
-/// \file Run.h
+/// \file IRun.h
 /// \brief Basic interface defining a single run
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2017
@@ -13,12 +13,11 @@
 
 NAMESPACE_SPH_BEGIN
 
-namespace Abstract {
-    class Output;
-    class Callbacks;
-    class LogFile;
-    class Solver;
-}
+class IOutput;
+class IRunCallbacks;
+class ILogFile;
+class ISolverr;
+
 
 /// \brief Defines the interface for a run.
 ///
@@ -36,55 +35,53 @@ namespace Abstract {
 /// Run is started up using \ref run member function. The function is blocking and ends when run is finished.
 /// The function can be called from any thread, but cannot be executed from multiple threads simultaneously.
 /// The flow of the run can be controlled from different thread using provided implementation of Callbacks.
-namespace Abstract {
-    class Run : public Polymorphic {
-    protected:
-        RunSettings settings;
+class IRun : public Polymorphic {
+protected:
+    RunSettings settings;
 
-        /// Data output
-        AutoPtr<Abstract::Output> output;
+    /// Data output
+    AutoPtr<IOutput> output;
 
-        /// GUI callbacks
-        AutoPtr<Abstract::Callbacks> callbacks;
+    /// GUI callbacks
+    AutoPtr<IRunCallbacks> callbacks;
 
-        /// Logging
-        AutoPtr<Abstract::Logger> logger;
+    /// Logging
+    AutoPtr<ILogger> logger;
 
-        /// Stores all SPH particles
-        SharedPtr<Storage> storage;
+    /// Stores all SPH particles
+    SharedPtr<Storage> storage;
 
-        /// Timestepping
-        AutoPtr<Abstract::TimeStepping> timeStepping;
+    /// Timestepping
+    AutoPtr<ITimeStepping> timeStepping;
 
-        /// Solver
-        AutoPtr<Abstract::Solver> solver;
+    /// Solver
+    AutoPtr<ISolver> solver;
 
-        /// Logging files
-        Array<AutoPtr<Abstract::LogFile>> logFiles;
+    /// Logging files
+    Array<AutoPtr<ILogFile>> logFiles;
 
-    public:
-        Run();
+public:
+    IRun();
 
-        ~Run();
+    ~IRun();
 
-        /// Prepares the run, sets all initial conditions, creates logger, output, ...
-        virtual void setUp() = 0;
+    /// Prepares the run, sets all initial conditions, creates logger, output, ...
+    virtual void setUp() = 0;
 
-        /// Starts the run
-        void run();
+    /// Starts the run
+    void run();
 
-        SharedPtr<Storage> getStorage() const;
+    SharedPtr<Storage> getStorage() const;
 
-    protected:
-        /// Called after the run, saves all necessary data, logs run statistics, etc. Is called at the end of
-        /// \ref run function.
-        virtual void tearDown() = 0;
+protected:
+    /// Called after the run, saves all necessary data, logs run statistics, etc. Is called at the end of
+    /// \ref run function.
+    virtual void tearDown() = 0;
 
-    private:
-        void setNullToDefaults();
+private:
+    void setNullToDefaults();
 
-        void tearDownInternal();
-    };
-}
+    void tearDownInternal();
+};
 
 NAMESPACE_SPH_END

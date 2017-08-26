@@ -48,7 +48,7 @@ BENCHMARK("Finder run BruteForce", "[finders]", Benchmark::Context& context) {
 BENCHMARK(linkedListRun);
 
 
-static void finderBuild(benchmark::State& state, Abstract::Finder& finder) {
+static void finderBuild(benchmark::State& state, INeighbourFinder& finder) {
     HexagonalPacking distribution;
     Array<Vector> r = distribution.generate(10000, SphericalDomain(Vector(0._f), 1._f));
     while (state.KeepRunning()) {

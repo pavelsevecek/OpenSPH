@@ -5,7 +5,7 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2017
 
-#include "quantities/AbstractMaterial.h"
+#include "quantities/IMaterial.h"
 #include "quantities/Storage.h"
 #include "sph/equations/EquationTerm.h"
 #include "system/Settings.h"
@@ -17,7 +17,7 @@ NAMESPACE_SPH_BEGIN
 /// Coefficient alpha and beta evolve in time using computed derivatives for each particle separately.
 /// Although the same mechanism could be used with any artificial viscosity, the current implementation is
 /// only an extension of the standard scalar artificial viscosity.
-class MorrisMonaghanAV : public Abstract::EquationTerm {
+class MorrisMonaghanAV : public IEquationTerm {
 private:
     class Derivative : public DerivativeTemplate<Derivative> {
     private:
@@ -116,7 +116,7 @@ private:
         }
     }
 
-    virtual void create(Storage& storage, Abstract::Material& material) const override {
+    virtual void create(Storage& storage, IMaterial& material) const override {
         storage.insert<Float>(
             QuantityId::AV_ALPHA, OrderEnum::FIRST, material.getParam<Float>(BodySettingsId::AV_ALPHA));
         /// \todo maybe remove AV_BETA as we are using AV_BETA = 2*AV_ALPHA anyway

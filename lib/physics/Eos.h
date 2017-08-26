@@ -12,24 +12,22 @@
 
 NAMESPACE_SPH_BEGIN
 
+/// \brief Base class for equations of state.
+class IEos : public Polymorphic {
+public:
+    /// Computes pressure and local sound speed from given density rho and specific internal energy u.
+    virtual Pair<Float> evaluate(const Float rho, const Float u) const = 0;
 
-namespace Abstract {
-    /// Base class for equations of state.
-    class Eos : public Polymorphic {
-    public:
-        /// Computes pressure and local sound speed from given density rho and specific internal energy u.
-        virtual Pair<Float> evaluate(const Float rho, const Float u) const = 0;
+    /// Inverted function; computes specific internal energy u from given density rho and pressure p.
+    virtual Float getInternalEnergy(const Float rho, const Float p) const = 0;
 
-        /// Inverted function; computes specific internal energy u from given density rho and pressure p.
-        virtual Float getInternalEnergy(const Float rho, const Float p) const = 0;
+    /// Inverted function; computes density from pressure p and internal energy u.
+    virtual Float getDensity(const Float p, const Float u) const = 0;
+};
 
-        /// Inverted function; computes density from pressure p and internal energy u.
-        virtual Float getDensity(const Float p, const Float u) const = 0;
-    };
-}
 
 /// Equation of state for ideal gas.
-class IdealGasEos : public Abstract::Eos {
+class IdealGasEos : public IEos {
 private:
     const Float gamma;
 
@@ -46,7 +44,7 @@ public:
 };
 
 /// Tillotson equation of state \cite Tillotson_1962
-class TillotsonEos : public Abstract::Eos {
+class TillotsonEos : public IEos {
 private:
     Float u0;
     Float uiv;
@@ -71,7 +69,7 @@ public:
 };
 
 /// Murnaghan equation of state. Pressure is computed from density only (does not depend on energy).
-class MurnaghanEos : public Abstract::Eos {
+class MurnaghanEos : public IEos {
 private:
     Float rho0;
     Float A;

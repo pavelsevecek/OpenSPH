@@ -12,7 +12,7 @@ namespace Tests {
         BodySettings settings;
         settings.set(BodySettingsId::DENSITY, 1._f);
         Storage storage(makeAuto<NullMaterial>(settings));
-        AutoPtr<Abstract::Distribution> distribution = Factory::getDistribution(settings);
+        AutoPtr<IDistribution> distribution = Factory::getDistribution(settings);
         SphericalDomain domain(Vector(0._f), 1._f);
         storage.insert<Vector>(
             QuantityId::POSITIONS, OrderEnum::SECOND, distribution->generate(particleCnt, domain));
@@ -24,7 +24,7 @@ namespace Tests {
         return storage;
     }
 
-    Storage getGassStorage(const Size particleCnt, BodySettings settings, const Abstract::Domain& domain) {
+    Storage getGassStorage(const Size particleCnt, BodySettings settings, const IDomain& domain) {
         // setup settings
         const Float rho0 = settings.get<Float>(BodySettingsId::DENSITY);
         const Float u0 = settings.get<Float>(BodySettingsId::ENERGY);
@@ -35,7 +35,7 @@ namespace Tests {
 
         // create storage and particle positions
         Storage storage(makeAuto<EosMaterial>(settings, Factory::getEos(settings)));
-        AutoPtr<Abstract::Distribution> distribution = Factory::getDistribution(settings);
+        AutoPtr<IDistribution> distribution = Factory::getDistribution(settings);
         Array<Vector> r = distribution->generate(particleCnt, domain);
         storage.insert<Vector>(QuantityId::POSITIONS, OrderEnum::SECOND, std::move(r));
 
@@ -54,14 +54,14 @@ namespace Tests {
         return getGassStorage(particleCnt, settings, SphericalDomain(Vector(0.f), radius));
     }
 
-    Storage getSolidStorage(const Size particleCnt, BodySettings settings, const Abstract::Domain& domain) {
+    Storage getSolidStorage(const Size particleCnt, BodySettings settings, const IDomain& domain) {
         const Float u0 = settings.get<Float>(BodySettingsId::ENERGY);
         const Float rho0 = settings.get<Float>(BodySettingsId::DENSITY);
         settings.set(BodySettingsId::EOS, EosEnum::TILLOTSON)
             .set(BodySettingsId::DENSITY_RANGE, Interval(1.e-3_f * rho0, INFTY));
         Storage storage(
             makeAuto<SolidMaterial>(settings, Factory::getEos(settings), Factory::getRheology(settings)));
-        AutoPtr<Abstract::Distribution> distribution = Factory::getDistribution(settings);
+        AutoPtr<IDistribution> distribution = Factory::getDistribution(settings);
         storage.insert<Vector>(
             QuantityId::POSITIONS, OrderEnum::SECOND, distribution->generate(particleCnt, domain));
         storage.insert<Float>(QuantityId::DENSITY, OrderEnum::FIRST, rho0);

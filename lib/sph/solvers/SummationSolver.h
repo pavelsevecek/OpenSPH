@@ -34,7 +34,7 @@ public:
         maxIteration = adaptiveH ? settings.get<int>(RunSettingsId::SUMMATION_MAX_ITERATIONS) : 1;
     }
 
-    virtual void create(Storage& storage, Abstract::Material& material) const override {
+    virtual void create(Storage& storage, IMaterial& material) const override {
         const Float rho0 = material.getParam<Float>(BodySettingsId::DENSITY);
         storage.insert<Float>(QuantityId::DENSITY, OrderEnum::ZERO, rho0);
         material.setRange(QuantityId::DENSITY, BodySettingsId::DENSITY_RANGE, BodySettingsId::DENSITY_MIN);

@@ -10,7 +10,7 @@
 using namespace Sph;
 
 TEST_CASE("MarchingCubes sphere", "[marchingcubes]") {
-    struct SphereField : public Abstract::ScalarField {
+    struct SphereField : public IScalarField {
         virtual Float operator()(const Vector& r) override {
             return getLength(r);
         }

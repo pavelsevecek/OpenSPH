@@ -2,7 +2,7 @@
 #include "io/Logger.h"
 #include "io/Output.h"
 #include "objects/geometry/Domain.h"
-#include "run/Run.h"
+#include "run/IRun.h"
 #include "sph/initial/Initial.h"
 #include "system/Profiler.h"
 
@@ -11,7 +11,7 @@ using namespace Sph;
 
 // Simple example of code usage, runs a single simulation of asteroid impact.
 
-class Run : public Abstract::Run {
+class Run : public IRun {
 public:
     Run() {
         // Sets settings of the run; see RunSettingsId enum for all options

@@ -18,9 +18,7 @@
 
 NAMESPACE_SPH_BEGIN
 
-namespace Abstract {
-    class Material;
-}
+class IMaterial;
 
 struct StorageElement {
     QuantityId id;
@@ -144,11 +142,11 @@ public:
 /// certain types for some quantities, though. Particle positions, QuantityId::POSITIONS, are mostly assumed
 /// to be vector quantities of second order. Inconsistency of types will cause an assert when encountered.
 ///
-/// Storage can hold arbitrary number of materials, objects derived from \ref Abstract::Material. In theory,
+/// Storage can hold arbitrary number of materials, objects derived from \ref IMaterial. In theory,
 /// every particle can have a different material (different equation of state, different rheology, ...).
 /// The storage can also exist with no material; this is a valid state, useful for situations where no
 /// material is necessary. A storage with material can be created using constructor
-/// Storage(AutoPtr<Abstract::Material>&& material). All particles subsequently added into the storage
+/// Storage(AutoPtr<IMaterial>&& material). All particles subsequently added into the storage
 /// will have the material passed in the parameter of the constructor. Storage with multiple materials can
 /// then be created by merging the storage with another object, using function \ref merge.
 ///
@@ -163,7 +161,7 @@ private:
     std::map<QuantityId, Quantity> quantities;
 
     /// Holds materials of particles. Each particle can (in theory) have a different material.
-    Array<AutoPtr<Abstract::Material>> materials;
+    Array<AutoPtr<IMaterial>> materials;
 
     /// Partitions between the materials. The size of the array matches the size of materials, or it is empty,
     /// in which case all particles belongs to the same material.
@@ -176,7 +174,7 @@ public:
     Storage();
 
     /// Initialize a storage with a material.
-    Storage(AutoPtr<Abstract::Material>&& material);
+    Storage(AutoPtr<IMaterial>&& material);
 
     ~Storage();
 

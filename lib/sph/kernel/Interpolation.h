@@ -5,7 +5,7 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2017
 
-#include "objects/finders/AbstractFinder.h"
+#include "objects/finders/INeighbourFinder.h"
 #include "objects/wrappers/SharedPtr.h"
 #include "quantities/Storage.h"
 #include "sph/kernel/KernelFactory.h"
@@ -20,7 +20,7 @@ NAMESPACE_SPH_BEGIN
 /// lies outside of support of all SPH particles, the interpolated value is zero.
 class Interpolation : public Noncopyable {
 private:
-    AutoPtr<Abstract::Finder> finder;
+    AutoPtr<INeighbourFinder> finder;
 
     LutKernel<3> kernel;
 
@@ -38,10 +38,10 @@ public:
     }
 
     /// Constructs the interpolation object given a neighbour finding object and a SPH kernel.
-    /// \param finder Object for finding neighbours. Overload of Abstract::Finder::findNeighbours taking a
+    /// \param finder Object for finding neighbours. Overload of INeighbourFinder::findNeighbours taking a
     ///               vector must be implemented. Parameter must not be nullptr.
     /// \param kernel SPH kernel used for interpolation.
-    Interpolation(const Storage& storage, AutoPtr<Abstract::Finder>&& finder, LutKernel<3>&& kernel)
+    Interpolation(const Storage& storage, AutoPtr<INeighbourFinder>&& finder, LutKernel<3>&& kernel)
         : finder(std::move(finder))
         , kernel(std::move(kernel))
         , storage(storage) {

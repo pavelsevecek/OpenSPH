@@ -13,16 +13,14 @@
 
 NAMESPACE_SPH_BEGIN
 
-namespace Abstract {
-    /// Object computing integral quantities and diagnostics of the run.
-    /// \todo automatically exclude ghost particles?
-    template <typename Type>
-    class Integral {
-    public:
-        /// Computes the integral quantity using particles in the storage.
-        virtual Type evaluate(const Storage& storage) const = 0;
-    };
-}
+/// Object computing integral quantities and diagnostics of the run.
+/// \todo automatically exclude ghost particles?
+template <typename Type>
+class IIntegral {
+public:
+    /// Computes the integral quantity using particles in the storage.
+    virtual Type evaluate(const Storage& storage) const = 0;
+};
 
 
 /// Computes the total mass of all SPH particles. Storage must contains particle masses, of course;
@@ -30,7 +28,7 @@ namespace Abstract {
 /// \note Total mass is always conserved automatically as particles do not change their mass. This is
 /// therefore only useful as a sanity check, or potentially if a solver with variable particle masses
 /// gets implemented.
-class TotalMass : public Abstract::Integral<Float> {
+class TotalMass : public IIntegral<Float> {
 public:
     virtual Float evaluate(const Storage& storage) const override;
 };
@@ -38,7 +36,7 @@ public:
 /// Computes total momentum of all SPH particles with a respect to the center of reference frame.
 /// Storage must contain at least particle masses and particle positions with velocities, checked by
 /// assert.
-class TotalMomentum : public Abstract::Integral<Vector> {
+class TotalMomentum : public IIntegral<Vector> {
 private:
     Vector omega;
 
@@ -51,7 +49,7 @@ public:
 /// Computes total angular momentum of all SPH particles with a respect to the center of reference
 /// frame. Storage must contain at least particle masses and particle positions with velocities, checked by
 /// assert.
-class TotalAngularMomentum : public Abstract::Integral<Vector> {
+class TotalAngularMomentum : public IIntegral<Vector> {
 private:
     Vector omega;
 
@@ -63,7 +61,7 @@ public:
 
 /// Returns the total kinetic energy of all particles. Storage must contain at least particle masses
 /// and particle positions with velocities, checked by assert.
-class TotalKineticEnergy : public Abstract::Integral<Float> {
+class TotalKineticEnergy : public IIntegral<Float> {
 private:
     Vector omega;
 
@@ -76,7 +74,7 @@ public:
 /// Returns the total internal energy of all particles. Storage must contain at least particle masses
 /// and specific internal energy. If used solver works with other independent quantity (energy density, total
 /// energy, specific entropy), specific energy must be derived before the function is called.
-class TotalInternalEnergy : public Abstract::Integral<Float> {
+class TotalInternalEnergy : public IIntegral<Float> {
 public:
     virtual Float evaluate(const Storage& storage) const override;
 };
@@ -84,7 +82,7 @@ public:
 /// Returns the total energy of all particles. This is simply of sum of total kinetic energy and total
 /// internal energy.
 /// \todo this has to be generalized if some external potential is used.
-class TotalEnergy : public Abstract::Integral<Float> {
+class TotalEnergy : public IIntegral<Float> {
 private:
     Vector omega;
 
@@ -96,7 +94,7 @@ public:
 
 /// Computes the center of mass of all particles, or optionally center of mass of particles
 /// belonging to body of given ID. The center is evaluated with a respect to reference frame.
-class CenterOfMass : public Abstract::Integral<Vector> {
+class CenterOfMass : public IIntegral<Vector> {
 private:
     Optional<Size> bodyId;
 
@@ -108,7 +106,7 @@ public:
 
 /// Returns means of given scalar quantity. By default means are computed from all particles, optionally only
 /// from particles of given body. Storage must contain quantity of given ID, checked by assert.
-class QuantityMeans : public Abstract::Integral<MinMaxMean> {
+class QuantityMeans : public IIntegral<MinMaxMean> {
 private:
     Variant<QuantityId, std::function<Float(const Size i)>> quantity;
     Optional<Size> bodyId;
@@ -124,7 +122,7 @@ public:
 };
 
 /// Returns the quantity value value of given particle. Currently available only for scalar quantities.
-class QuantityValue : public Abstract::Integral<Float> {
+class QuantityValue : public IIntegral<Float> {
 private:
     QuantityId id;
     Size idx;

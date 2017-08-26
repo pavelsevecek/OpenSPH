@@ -41,7 +41,7 @@ TensorFunctor<TTensor> makeTensorFunctor(Array<TTensor>& view) {
 }
 
 /// \todo we cache ArrayViews, this wont work if we will change number of particles during the run
-class ImpactorLogFile : public Abstract::LogFile {
+class ImpactorLogFile : public ILogFile {
 private:
     QuantityMeans stress;
     QuantityMeans dtStress;
@@ -52,7 +52,7 @@ private:
 
 public:
     ImpactorLogFile(Storage& storage, const Path& path)
-        : Abstract::LogFile(makeAuto<FileLogger>(path))
+        : ILogFile(makeAuto<FileLogger>(path))
         , stress(makeTensorFunctor(storage.getValue<TracelessTensor>(QuantityId::DEVIATORIC_STRESS)), 1)
         , dtStress(makeTensorFunctor(storage.getDt<TracelessTensor>(QuantityId::DEVIATORIC_STRESS)), 1)
         , pressure(QuantityId::PRESSURE, 1)
@@ -76,7 +76,7 @@ protected:
     }
 };
 
-class EnergyLogFile : public Abstract::LogFile {
+class EnergyLogFile : public ILogFile {
 private:
     TotalEnergy en;
     TotalKineticEnergy kinEn;
@@ -84,7 +84,7 @@ private:
 
 public:
     EnergyLogFile(const Path& path)
-        : Abstract::LogFile(makeAuto<FileLogger>(path)) {}
+        : ILogFile(makeAuto<FileLogger>(path)) {}
 
 protected:
     virtual void writeImpl(const Storage& storage, const Statistics& stats) override {
@@ -98,10 +98,10 @@ protected:
     }
 };
 
-class TimestepLogFile : public Abstract::LogFile {
+class TimestepLogFile : public ILogFile {
 public:
     TimestepLogFile(const Path& path)
-        : Abstract::LogFile(makeAuto<FileLogger>(path)) {}
+        : ILogFile(makeAuto<FileLogger>(path)) {}
 
 protected:
     virtual void writeImpl(const Storage& UNUSED(storage), const Statistics& stats) override {
@@ -263,7 +263,7 @@ AsteroidCollision::AsteroidCollision() {
 
 class StatsLog : public CommonStatsLog {
 public:
-    StatsLog(AutoPtr<Abstract::Logger>&& logger)
+    StatsLog(AutoPtr<ILogger>&& logger)
         : CommonStatsLog(std::move(logger)) {}
 
     virtual void writeImpl(const Storage& storage, const Statistics& stats) {

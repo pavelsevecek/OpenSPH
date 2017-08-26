@@ -7,14 +7,14 @@
 
 NAMESPACE_SPH_BEGIN
 
-namespace Abstract {
-    class MeshFile : public Polymorphic {
-    public:
-        virtual Outcome save(const Path& path, ArrayView<const Triangle> triangles) = 0;
-    };
-}
+/// \brief Interface for mesh exporters.
+class IMeshFile : public Polymorphic {
+public:
+    virtual Outcome save(const Path& path, ArrayView<const Triangle> triangles) = 0;
+};
 
-class PlyFile : public Abstract::MeshFile {
+/// \brief Exported of meshes into a ply format.
+class PlyFile : public IMeshFile {
 public:
     virtual Outcome save(const Path& path, ArrayView<const Triangle> triangles) override;
 

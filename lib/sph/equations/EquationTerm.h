@@ -7,52 +7,50 @@
 
 #include "objects/wrappers/SharedPtr.h"
 #include "physics/Constants.h"
-#include "sph/Material.h"
+#include "sph/Materials.h"
 #include "sph/equations/Derivative.h"
 #include "system/Profiler.h"
 
 NAMESPACE_SPH_BEGIN
 
-namespace Abstract {
+/// \brief Represents a term or terms appearing in evolutionary equations.
+///
+/// Each EquationTerm either directly modifies quantities, or adds quantity derivatives. These terms never
+/// work directly with pairs of particles, instead they can register IDerivative that will be
+/// accumulated by the solver. EquationTerm can then access the result.
+class IEquationTerm : public Polymorphic {
+public:
+    /// Sets derivatives required by this term. The derivatives are then automatically evaluated by the
+    /// solver, the equation term can access the result in \ref finalize function. This function is called
+    /// once for each thread at the beginning of the run.
+    virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) = 0;
 
-    /// \brief Represents a term or terms appearing in evolutionary equations.
+    /// Initialize all the derivatives and/or quantity values before derivatives are computed. Called at
+    /// the beginning of every time step. Note that derivatives need not be zeroed out manually, this is
+    /// already done by timestepping (for derivatives of quantities) and solver (for accumulated values).
+    virtual void initialize(Storage& storage) = 0;
+
+    /// Computes all the derivatives and/or quantity values based on accumulated derivatives. Called every
+    /// time step after derivatives are evaluated and saved to storage.
+    virtual void finalize(Storage& storage) = 0;
+
+    /// Creates all quantities needed by the term using given material. Called once for every body in
+    /// the simulation.
+    virtual void create(Storage& storage, IMaterial& material) const = 0;
+
+    /// \brief Fills given arrays with type_info of other EquationTerm objects, specifying compatibility
+    /// with other objects.
     ///
-    /// Each EquationTerm either directly modifies quantities, or adds quantity derivatives. These terms never
-    /// work directly with pairs of particles, instead they can register Abstract::Derivative that will be
-    /// accumulated by the solver. EquationTerm can then access the result.
-    class EquationTerm : public Polymorphic {
-    public:
-        /// Sets derivatives required by this term. The derivatives are then automatically evaluated by the
-        /// solver, the equation term can access the result in \ref finalize function. This function is called
-        /// once for each thread at the beginning of the run.
-        virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) = 0;
+    /// This is used as sanity check of the setup. By default, it is assumed that all equation term are
+    /// compatible with each other and may be used together.
+    /// \param demands Types of equation terms that MUST be solved together with this term
+    /// \param forbids Types of equation terms that MUST NOT be solved together with tihs term
+    /// \todo This should be somehow generalized; for example we should only include one arficifial
+    /// viscosity without the need to specify EVERY single AV in 'forbids' list.
+    virtual void requires(Array<std::type_info>& UNUSED(demands),
+        Array<std::type_info>& UNUSED(forbids)) const {}
+};
 
-        /// Initialize all the derivatives and/or quantity values before derivatives are computed. Called at
-        /// the beginning of every time step. Note that derivatives need not be zeroed out manually, this is
-        /// already done by timestepping (for derivatives of quantities) and solver (for accumulated values).
-        virtual void initialize(Storage& storage) = 0;
-
-        /// Computes all the derivatives and/or quantity values based on accumulated derivatives. Called every
-        /// time step after derivatives are evaluated and saved to storage.
-        virtual void finalize(Storage& storage) = 0;
-
-        /// Creates all quantities needed by the term using given material. Called once for every body in
-        /// the simulation.
-        virtual void create(Storage& storage, Abstract::Material& material) const = 0;
-
-        /// \brief Fills given arrays with type_info of other EquationTerm objects, specifying compatibility
-        /// with other objects.
-        ///
-        /// This is used as sanity check of the setup. By default, it is assumed that all equation term are
-        /// compatible with each other and may be used together.
-        /// \param demands Types of equation terms that MUST be solved together with this term
-        /// \param forbids Types of equation terms that MUST NOT be solved together with tihs term
-        /// \todo This should be somehow generalized; for example we should only include one arficifial
-        /// viscosity without the need to specify EVERY single AV in 'forbids' list.
-        virtual void requires(Array<std::type_info>& UNUSED(demands),
-            Array<std::type_info>& UNUSED(forbids)) const {}
-    };
-}
 
 class PressureGradient : public DerivativeTemplate<PressureGradient> {
 private:
@@ -89,7 +87,7 @@ public:
 ///
 /// Computes acceleration from pressure gradient and corresponding derivative of internal energy.
 /// \todo
-class PressureForce : public Abstract::EquationTerm {
+class PressureForce : public IEquationTerm {
 public:
     virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override {
         derivatives.require<PressureGradient>(settings);
@@ -112,7 +110,7 @@ public:
         });
     }
 
-    virtual void create(Storage& storage, Abstract::Material& material) const override {
+    virtual void create(Storage& storage, IMaterial& material) const override {
         if (!dynamic_cast<EosMaterial*>(&material)) {
             throw InvalidSetup("PressureForce needs to be used with EosMaterial or derived");
         }
@@ -189,7 +187,7 @@ public:
 ///
 /// \attention The isotropic part of the force is NOT computed, it is necessary to use \ref PressureForce
 /// together with this equation.
-class SolidStressForce : public Abstract::EquationTerm {
+class SolidStressForce : public IEquationTerm {
 private:
     bool conserveAngularMomentum;
 
@@ -244,7 +242,7 @@ public:
         }
     }
 
-    virtual void create(Storage& storage, Abstract::Material& material) const override {
+    virtual void create(Storage& storage, IMaterial& material) const override {
         storage.insert<TracelessTensor>(QuantityId::DEVIATORIC_STRESS,
             OrderEnum::FIRST,
             material.getParam<TracelessTensor>(BodySettingsId::STRESS_TENSOR));
@@ -260,7 +258,7 @@ public:
 /// \brief Navier-Stokes equation of motion
 ///
 /// \todo
-class NavierStokesForce : public Abstract::EquationTerm {
+class NavierStokesForce : public IEquationTerm {
 public:
     virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override {
         derivatives.require<StressDivergence>(settings);
@@ -294,7 +292,7 @@ public:
         }
     }
 
-    virtual void create(Storage& storage, Abstract::Material& material) const override {
+    virtual void create(Storage& storage, IMaterial& material) const override {
         ASSERT(storage.has(QuantityId::ENERGY) && storage.has(QuantityId::PRESSURE));
         storage.insert<TracelessTensor>(QuantityId::DEVIATORIC_STRESS,
             OrderEnum::ZERO,
@@ -319,7 +317,7 @@ public:
 ///
 /// Solver must use either this equation or some custom density computation, such as direct summation (see
 /// \ref SummationSolver) or SPH formulation without solving the density (see \ref DensityIndependentSolver).
-class ContinuityEquation : public Abstract::EquationTerm {
+class ContinuityEquation : public IEquationTerm {
 private:
     enum class Options {
         /// All particles contribute to the density derivative (default option)
@@ -373,7 +371,7 @@ public:
         }
     }
 
-    virtual void create(Storage& storage, Abstract::Material& material) const override {
+    virtual void create(Storage& storage, IMaterial& material) const override {
         const Float rho0 = material.getParam<Float>(BodySettingsId::DENSITY);
         storage.insert<Float>(QuantityId::DENSITY, OrderEnum::FIRST, rho0);
         material.setRange(QuantityId::DENSITY, BodySettingsId::DENSITY_RANGE, BodySettingsId::DENSITY_MIN);
@@ -398,7 +396,7 @@ public:
 /// allowed range of neighbours is then controlled by RunSettingsId::SPH_NEIGHBOUR_RANGE. Note that the number
 /// of neighbours is not guaranteed to be in the given range, the actual number of neighbours cannot be
 /// precisely controlled.
-class AdaptiveSmoothingLength : public Abstract::EquationTerm {
+class AdaptiveSmoothingLength : public IEquationTerm {
 private:
     struct {
         Float strength;
@@ -475,7 +473,7 @@ public:
         });
     }
 
-    virtual void create(Storage& UNUSED(storage), Abstract::Material& UNUSED(material)) const override {}
+    virtual void create(Storage& UNUSED(storage), IMaterial& UNUSED(material)) const override {}
 };
 
 /// \brief Helper term to keep smoothing length constant during the simulation
@@ -487,7 +485,7 @@ public:
 /// \attention If neither of these equations are used and the smoothing length is not explicitly handled by
 /// the solver or timestepping, the behavior might by unexpected and possibly leads to errors. This issue will
 /// be resolved in the future.
-class ConstSmoothingLength : public Abstract::EquationTerm {
+class ConstSmoothingLength : public IEquationTerm {
 public:
     virtual void setDerivatives(DerivativeHolder& UNUSED(derivatives),
         const RunSettings& UNUSED(settings)) override {}
@@ -505,7 +503,7 @@ public:
         });
     }
 
-    virtual void create(Storage& UNUSED(storage), Abstract::Material& UNUSED(material)) const override {}
+    virtual void create(Storage& UNUSED(storage), IMaterial& UNUSED(material)) const override {}
 };
 
 
@@ -518,12 +516,12 @@ public:
 /// state.
 class EquationHolder {
 private:
-    Array<SharedPtr<Abstract::EquationTerm>> terms;
+    Array<SharedPtr<IEquationTerm>> terms;
 
 public:
     EquationHolder() = default;
 
-    explicit EquationHolder(const SharedPtr<Abstract::EquationTerm>& term) {
+    explicit EquationHolder(const SharedPtr<IEquationTerm>& term) {
         if (term != nullptr) {
             terms.push(term);
         }
@@ -544,9 +542,9 @@ public:
     /// Checks if the holder contains term of given type.
     template <typename Term>
     bool contains() const {
-        static_assert(std::is_base_of<Abstract::EquationTerm, Term>::value, "Can be used only for terms");
+        static_assert(std::is_base_of<IEquationTerm, Term>::value, "Can be used only for terms");
         for (auto& ptr : terms) {
-            Abstract::EquationTerm& term = *ptr;
+            IEquationTerm& term = *ptr;
             if (typeid(term) == typeid(Term)) {
                 return true;
             }
@@ -578,7 +576,7 @@ public:
     }
 
     /// Calls \ref EquationTerm::create for all stored equation terms.
-    void create(Storage& storage, Abstract::Material& material) const {
+    void create(Storage& storage, IMaterial& material) const {
         for (auto& t : terms) {
             t->create(storage, material);
         }

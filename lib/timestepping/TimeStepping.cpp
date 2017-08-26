@@ -1,25 +1,25 @@
 #include "timestepping/TimeStepping.h"
-#include "quantities/AbstractMaterial.h"
+#include "quantities/IMaterial.h"
 #include "quantities/Iterate.h"
 #include "system/Factory.h"
 #include "system/Profiler.h"
 #include "system/Statistics.h"
-#include "timestepping/AbstractSolver.h"
+#include "timestepping/ISolver.h"
 #include "timestepping/TimeStepCriterion.h"
 
 NAMESPACE_SPH_BEGIN
 
 
-Abstract::TimeStepping::TimeStepping(const SharedPtr<Storage>& storage, const RunSettings& settings)
+ITimeStepping::ITimeStepping(const SharedPtr<Storage>& storage, const RunSettings& settings)
     : storage(storage) {
     dt = settings.get<Float>(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP);
     maxdt = settings.get<Float>(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP);
     adaptiveStep = Factory::getTimeStepCriterion(settings);
 }
 
-Abstract::TimeStepping::~TimeStepping() = default;
+ITimeStepping::~ITimeStepping() = default;
 
-void Abstract::TimeStepping::step(Abstract::Solver& solver, Statistics& stats) {
+void ITimeStepping::step(ISolver& solver, Statistics& stats) {
     Timer timer;
     this->stepImpl(solver, stats);
     // update time step
@@ -36,7 +36,7 @@ void Abstract::TimeStepping::step(Abstract::Solver& solver, Statistics& stats) {
 /// EulerExplicit implementation
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void EulerExplicit::stepImpl(Abstract::Solver& solver, Statistics& stats) {
+void EulerExplicit::stepImpl(ISolver& solver, Statistics& stats) {
     // MEASURE_SCOPE("EulerExplicit::step");
     // clear derivatives from previous timestep
     storage->zeroHighestDerivatives();
@@ -73,7 +73,7 @@ void EulerExplicit::stepImpl(Abstract::Solver& solver, Statistics& stats) {
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 PredictorCorrector::PredictorCorrector(const SharedPtr<Storage>& storage, const RunSettings& settings)
-    : Abstract::TimeStepping(storage, settings) {
+    : ITimeStepping(storage, settings) {
     ASSERT(storage->getQuantityCnt() > 0); // quantities must already been emplaced
     predictions = makeAuto<Storage>(storage->clone(VisitorEnum::HIGHEST_DERIVATIVES));
     storage->zeroHighestDerivatives(); // clear derivatives before using them in step method
@@ -153,7 +153,7 @@ void PredictorCorrector::makeCorrections() {
         });
 }
 
-void PredictorCorrector::stepImpl(Abstract::Solver& solver, Statistics& stats) {
+void PredictorCorrector::stepImpl(ISolver& solver, Statistics& stats) {
     // make predictions
     this->makePredictions();
 
@@ -180,7 +180,7 @@ void PredictorCorrector::stepImpl(Abstract::Solver& solver, Statistics& stats) {
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 RungeKutta::RungeKutta(const SharedPtr<Storage>& storage, const RunSettings& settings)
-    : Abstract::TimeStepping(storage, settings) {
+    : ITimeStepping(storage, settings) {
     ASSERT(storage->getQuantityCnt() > 0); // quantities must already been emplaced
     k1 = makeAuto<Storage>(storage->clone(VisitorEnum::ALL_BUFFERS));
     k2 = makeAuto<Storage>(storage->clone(VisitorEnum::ALL_BUFFERS));
@@ -191,7 +191,7 @@ RungeKutta::RungeKutta(const SharedPtr<Storage>& storage, const RunSettings& set
 
 RungeKutta::~RungeKutta() = default;
 
-void RungeKutta::integrateAndAdvance(Abstract::Solver& solver,
+void RungeKutta::integrateAndAdvance(ISolver& solver,
     Statistics& stats,
     Storage& k,
     const float m,
@@ -216,7 +216,7 @@ void RungeKutta::integrateAndAdvance(Abstract::Solver& solver,
         });
 }
 
-void RungeKutta::stepImpl(Abstract::Solver& solver, Statistics& stats) {
+void RungeKutta::stepImpl(ISolver& solver, Statistics& stats) {
     k1->zeroHighestDerivatives();
     k2->zeroHighestDerivatives();
     k3->zeroHighestDerivatives();

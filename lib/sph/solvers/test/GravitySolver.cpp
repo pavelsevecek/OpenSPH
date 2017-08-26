@@ -9,7 +9,7 @@
 
 using namespace Sph;
 
-static void testGravity(AutoPtr<Abstract::Gravity>&& gravity) {
+static void testGravity(AutoPtr<IGravity>&& gravity) {
     BodySettings settings;
     settings.set(BodySettingsId::DENSITY, 1._f).set(BodySettingsId::ENERGY, 1._f);
     Storage storage = Tests::getGassStorage(2000, settings, Constants::au);

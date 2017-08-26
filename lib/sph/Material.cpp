@@ -1,4 +1,4 @@
-#include "sph/Material.h"
+#include "sph/Materials.h"
 #include "physics/Eos.h"
 #include "physics/Rheology.h"
 #include "quantities/Storage.h"
@@ -7,10 +7,10 @@
 NAMESPACE_SPH_BEGIN
 
 NullMaterial::NullMaterial(const BodySettings& body)
-    : Abstract::Material(body) {}
+    : IMaterial(body) {}
 
-EosMaterial::EosMaterial(const BodySettings& body, AutoPtr<Abstract::Eos>&& eos)
-    : Abstract::Material(body)
+EosMaterial::EosMaterial(const BodySettings& body, AutoPtr<IEos>&& eos)
+    : IMaterial(body)
     , eos(std::move(eos)) {
     ASSERT(this->eos);
 }
@@ -19,7 +19,7 @@ Pair<Float> EosMaterial::evaluate(const Float rho, const Float u) const {
     return eos->evaluate(rho, u);
 }
 
-const Abstract::Eos& EosMaterial::getEos() const {
+const IEos& EosMaterial::getEos() const {
     return *eos;
 }
 
@@ -48,8 +48,8 @@ void EosMaterial::initialize(Storage& storage, const IndexSequence sequence) {
 }
 
 SolidMaterial::SolidMaterial(const BodySettings& body,
-    AutoPtr<Abstract::Eos>&& eos,
-    AutoPtr<Abstract::Rheology>&& rheology)
+    AutoPtr<IEos>&& eos,
+    AutoPtr<IRheology>&& rheology)
     : EosMaterial(body, std::move(eos))
     , rheology(std::move(rheology)) {}
 
@@ -68,7 +68,7 @@ void SolidMaterial::finalize(Storage& storage, const IndexSequence sequence) {
     rheology->integrate(storage, MaterialView(this, sequence));
 }
 
-AutoPtr<Abstract::Material> getDefaultMaterial() {
+AutoPtr<IMaterial> getDefaultMaterial() {
     return Factory::getMaterial(BodySettings::getDefaults());
 }
 

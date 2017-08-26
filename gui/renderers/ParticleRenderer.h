@@ -7,17 +7,11 @@
 
 #include "gui/objects/Bitmap.h"
 #include "gui/objects/Palette.h"
-#include "gui/renderers/AbstractRenderer.h"
+#include "gui/renderers/IRenderer.h"
 
 NAMESPACE_SPH_BEGIN
 
-namespace Abstract {
-    class Camera;
-    class Element;
-}
-
-
-class ParticleRenderer : public Abstract::Renderer {
+class ParticleRenderer : public IRenderer {
 private:
     /// Cached values of visible particles, used for faster drawing.
     struct {
@@ -36,12 +30,10 @@ private:
     } cached;
 
 public:
-    virtual void initialize(const Storage& storage,
-        const Abstract::Element& element,
-        const Abstract::Camera& camera);
+    virtual void initialize(const Storage& storage, const IColorizer& element, const ICamera& camera);
 
     /// Can only be called from main thread
-    virtual SharedPtr<Bitmap> render(const Abstract::Camera& camera,
+    virtual SharedPtr<Bitmap> render(const ICamera& camera,
         const RenderParams& params,
         Statistics& stats) const override;
 

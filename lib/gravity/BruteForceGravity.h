@@ -5,7 +5,7 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2017
 
-#include "gravity/AbstractGravity.h"
+#include "gravity/IGravity.h"
 #include "physics/Constants.h"
 #include "quantities/Storage.h"
 #include "sph/kernel/GravityKernel.h"
@@ -16,7 +16,7 @@ NAMESPACE_SPH_BEGIN
 ///
 /// This implementation is not intended for high-performance code because of the O(N) complexity. Useful for
 /// testing and debugging purposes.
-class BruteForceGravity : public Abstract::Gravity {
+class BruteForceGravity : public IGravity {
 private:
     ArrayView<const Vector> r;
     ArrayView<const Float> m;

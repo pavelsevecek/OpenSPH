@@ -6,7 +6,7 @@
 /// \date 2016-2017
 
 #include "objects/geometry/Box.h"
-#include "objects/finders/AbstractFinder.h"
+#include "objects/finders/INeighbourFinder.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -15,7 +15,7 @@ NAMESPACE_SPH_BEGIN
 /// This implementation is not intended for usage in high-performance code, as computing all particle pairs is
 /// too slow. Use other more efficient finders, such as \ref KdTree of \ref VoxelFinder. BruteForceFinder
 /// should be used only for testing and debugging purposes.
-class BruteForceFinder : public Abstract::Finder {
+class BruteForceFinder : public INeighbourFinder {
 protected:
     // no need to implement these for brute force
     virtual void buildImpl(ArrayView<const Vector> UNUSED(values)) override {}

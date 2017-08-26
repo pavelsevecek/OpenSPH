@@ -24,7 +24,7 @@ ThreadPool::ThreadPool(const Size numThreads)
 
         // run the loop
         while (!stop) {
-            AutoPtr<Abstract::Task> task = this->getNextTask();
+            AutoPtr<ITask> task = this->getNextTask();
             if (task) {
                 // run the task
                 try {
@@ -64,7 +64,7 @@ ThreadPool::~ThreadPool() {
     }
 }
 
-void ThreadPool::submit(AutoPtr<Abstract::Task>&& task) {
+void ThreadPool::submit(AutoPtr<ITask>&& task) {
     {
         std::unique_lock<std::mutex> lock(taskMutex);
         tasks.emplace(std::move(task));
@@ -105,14 +105,14 @@ ThreadPool& ThreadPool::getGlobalInstance() {
     return *globalInstance;
 }
 
-AutoPtr<Abstract::Task> ThreadPool::getNextTask() {
+AutoPtr<ITask> ThreadPool::getNextTask() {
     std::unique_lock<std::mutex> lock(taskMutex);
 
     // wait till a task is available
     taskVar.wait(lock, [this] { return tasks.size() || stop; });
     // execute task
     if (!stop && !tasks.empty()) {
-        AutoPtr<Abstract::Task> task = std::move(tasks.front());
+        AutoPtr<ITask> task = std::move(tasks.front());
         tasks.pop();
         return task;
     } else {

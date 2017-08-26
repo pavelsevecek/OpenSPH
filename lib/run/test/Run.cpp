@@ -1,4 +1,4 @@
-#include "run/Run.h"
+#include "run/IRun.h"
 #include "catch.hpp"
 #include "objects/geometry/Domain.h"
 #include "io/Output.h"
@@ -12,7 +12,7 @@
 
 using namespace Sph;
 
-class DummyCallbacks : public Abstract::Callbacks {
+class DummyCallbacks : public IRunCallbacks {
 private:
     Size& stepIdx;
     Size abortAfterStep;
@@ -40,13 +40,13 @@ public:
     }
 };
 
-class DummyOutput : public Abstract::Output {
+class DummyOutput : public IOutput {
 private:
     Array<Float>& outputTimes;
 
 public:
     DummyOutput(Array<Float>& outputTimes)
-        : Abstract::Output(Path("%d"))
+        : IOutput(Path("%d"))
         , outputTimes(outputTimes) {}
 
     virtual Path dump(Storage& UNUSED(storage), const Statistics& stats) override {
@@ -60,7 +60,7 @@ public:
 };
 
 
-class TestRun : public Abstract::Run {
+class TestRun : public IRun {
 public:
     Array<Float> outputTimes; // times where output was called
     Size stepIdx;             // current timestep index

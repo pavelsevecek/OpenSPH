@@ -4,15 +4,15 @@
 /// Pavel Sevecek 2016
 /// sevecek at sirrah.troja.mff.cuni.cz
 
-#include "objects/finders/AbstractFinder.h"
+#include "objects/finders/INeighbourFinder.h"
 
 NAMESPACE_SPH_BEGIN
 
 template <typename TFinder>
-class PeriodicFinder : public Abstract::Finder {
+class PeriodicFinder : public INeighbourFinder {
 private:
     TFinder finder;
-    Abstract::Domain* domain;
+    IDomain* domain;
 
 public:
     template <typename... TArgs>

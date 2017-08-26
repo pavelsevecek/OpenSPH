@@ -1,7 +1,7 @@
 #include "physics/Damage.h"
 #include "io/Logger.h"
 #include "math/rng/Rng.h"
-#include "quantities/AbstractMaterial.h"
+#include "quantities/IMaterial.h"
 #include "quantities/Storage.h"
 #include "sph/kernel/KernelFactory.h"
 
@@ -19,7 +19,7 @@ ScalarDamage::ScalarDamage(const RunSettings& settings, const ExplicitFlaws opti
     : ScalarDamage(Factory::getKernel<3>(settings).radius(), options) {}
 
 void ScalarDamage::setFlaws(Storage& storage,
-    Abstract::Material& material,
+    IMaterial& material,
     const MaterialInitialContext& context) const {
     ASSERT(storage.getMaterialCnt() == 1);
     storage.insert<Float>(
@@ -180,7 +180,7 @@ void ScalarDamage::integrate(Storage& storage, const MaterialView material) {
 }
 
 void TensorDamage::setFlaws(Storage& UNUSED(storage),
-    Abstract::Material& UNUSED(material),
+    IMaterial& UNUSED(material),
     const MaterialInitialContext& UNUSED(context)) const {
     NOT_IMPLEMENTED;
 }
@@ -196,7 +196,7 @@ void TensorDamage::integrate(Storage& UNUSED(storage), const MaterialView UNUSED
 }
 
 void NullDamage::setFlaws(Storage& UNUSED(storage),
-    Abstract::Material& UNUSED(material),
+    IMaterial& UNUSED(material),
     const MaterialInitialContext& UNUSED(context)) const {}
 
 void NullDamage::reduce(Storage& storage,

@@ -11,7 +11,7 @@
 
 NAMESPACE_SPH_BEGIN
 
-class DensityIndependentPressureForce : public Abstract::EquationTerm {
+class DensityIndependentPressureForce : public IEquationTerm {
 private:
     class Derivative : public DerivativeTemplate<Derivative> {
     private:
@@ -70,7 +70,7 @@ public:
 
     virtual void finalize(Storage& UNUSED(storage)) override {}
 
-    virtual void create(Storage& storage, Abstract::Material& material) const override {
+    virtual void create(Storage& storage, IMaterial& material) const override {
         // energy density = specific energy * density
         const Float rho0 = material.getParam<Float>(BodySettingsId::DENSITY);
         const Float u0 = material.getParam<Float>(BodySettingsId::ENERGY);
@@ -138,7 +138,7 @@ public:
         energyKernel = Factory::getKernel<DIMENSIONS>(settings);
     }
 
-    virtual void create(Storage& storage, Abstract::Material& material) const override {
+    virtual void create(Storage& storage, IMaterial& material) const override {
         storage.insert<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO, 0);
         storage.insert<Float>(
             QuantityId::DENSITY, OrderEnum::ZERO, material.getParam<Float>(BodySettingsId::DENSITY));

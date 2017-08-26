@@ -2,7 +2,7 @@
 #include "gui/Controller.h"
 #include "gui/Factory.h"
 #include "gui/MainLoop.h"
-#include "gui/objects/Element.h"
+#include "gui/objects/Colorizer.h"
 #include "gui/windows/GlPane.h"
 #include "gui/windows/OrthoPane.h"
 #include "gui/windows/ParticleProbe.h"
@@ -85,7 +85,7 @@ void MainWindow::setProgress(const float progress) {
     gauge->SetValue(int(progress * 1000.f));
 }
 
-void MainWindow::setElementList(Array<SharedPtr<Abstract::Element>>&& elements) {
+void MainWindow::setElementList(Array<SharedPtr<IColorizer>>&& elements) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
     elementList = std::move(elements);
     wxArrayString items;
@@ -120,7 +120,7 @@ void MainWindow::onClose(wxCloseEvent& evt) {
 void MainWindow::onComboBox(wxCommandEvent& UNUSED(evt)) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
     const int idx = quantityBox->GetSelection();
-    SharedPtr<Abstract::Element> element = elementList[idx];
+    SharedPtr<IColorizer> element = elementList[idx];
     controller->setElement(std::move(element));
     selectedIdx = idx;
 }

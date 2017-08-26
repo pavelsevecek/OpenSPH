@@ -1,9 +1,9 @@
 #include "timestepping/TimeStepCriterion.h"
 #include "catch.hpp"
 #include "objects/geometry/Domain.h"
-#include "quantities/AbstractMaterial.h"
+#include "quantities/IMaterial.h"
 #include "quantities/Storage.h"
-#include "sph/Material.h"
+#include "sph/Materials.h"
 #include "sph/initial/Distribution.h"
 #include "system/Settings.h"
 #include "system/Statistics.h"
@@ -18,7 +18,7 @@ static Storage getStorage() {
         OrderEnum::SECOND,
         distribution.generate(100, BlockDomain(Vector(0._f), Vector(100._f))));
     storage.insert<Float>(QuantityId::ENERGY, OrderEnum::FIRST, 0._f);
-    Abstract::Material& material = storage.getMaterial(0);
+    IMaterial& material = storage.getMaterial(0);
     material.setRange(QuantityId::ENERGY, Interval::unbounded(), EPS);
 
     const Float cs = 5._f;
@@ -72,7 +72,7 @@ TEST_CASE("Derivative Criterion", "[timestepping]") {
     REQUIRE(id == CriterionId::DERIVATIVE);
     REQUIRE(stats.get<QuantityId>(StatisticsId::LIMITING_QUANTITY) == QuantityId::ENERGY);
 
-    Abstract::Material& material = storage.getMaterial(0);
+    IMaterial& material = storage.getMaterial(0);
     material.setRange(QuantityId::ENERGY, Interval::unbounded(), 4._f);
     tieToTuple(step, id) = criterion.compute(storage, INFTY, stats);
     REQUIRE(step == approx(factor * 4._f, 1.e-3_f)); // (12+4)/4

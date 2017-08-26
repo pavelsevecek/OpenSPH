@@ -5,7 +5,7 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2017
 
-#include "objects/finders/AbstractFinder.h"
+#include "objects/finders/INeighbourFinder.h"
 #include "objects/wrappers/Expected.h"
 #include "system/Settings.h"
 

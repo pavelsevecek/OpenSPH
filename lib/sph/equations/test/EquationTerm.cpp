@@ -17,7 +17,7 @@ using namespace Sph;
 
 /// \todo Move to some common place (utils.h)
 
-struct TestDerivative : public Abstract::Derivative {
+struct TestDerivative : public IDerivative {
     static bool initialized;
     static bool created;
 
@@ -48,7 +48,7 @@ struct TestDerivative : public Abstract::Derivative {
 bool TestDerivative::initialized = false;
 bool TestDerivative::created = false;
 
-struct TestEquation : public Abstract::EquationTerm {
+struct TestEquation : public IEquationTerm {
     enum class Status {
         STORAGE_CREATED = 1 << 0,
         DERIVATIVES_SET = 1 << 1,
@@ -69,7 +69,7 @@ struct TestEquation : public Abstract::EquationTerm {
         flags.set(Status::FINALIZED);
     }
 
-    virtual void create(Storage&, Abstract::Material&) const override {
+    virtual void create(Storage&, IMaterial&) const override {
         flags.set(Status::STORAGE_CREATED);
     }
 };

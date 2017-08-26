@@ -12,24 +12,22 @@
 NAMESPACE_SPH_BEGIN
 
 // forward declarations
-namespace Abstract {
-    class Eos;
-    class Rheology;
-    class Solver;
-    class Gravity;
-    class Damage;
-    class Distribution;
-    class Domain;
-    class Finder;
-    class TimeStepping;
-    class TimeStepCriterion;
-    class BoundaryConditions;
-    class Material;
-    class Logger;
-    class Output;
-    class Rng;
-    class EquationTerm;
-}
+class IEos;
+class IRheology;
+class ISolver;
+class IGravity;
+class IDamage;
+class IDistribution;
+class IDomain;
+class INeighbourFinder;
+class ITimeStepping;
+class ITimeStepCriterion;
+class IBoundaryCondition;
+class IMaterial;
+class ILogger;
+class IOutput;
+class IRng;
+class IEquationTerm;
 
 
 class Storage;
@@ -37,37 +35,35 @@ class Storage;
 /// Class providing a convenient way to construct objects from settings.
 namespace Factory {
     /// \todo move SPH specific stuff elsewhere
-    AutoPtr<Abstract::Eos> getEos(const BodySettings& settings);
+    AutoPtr<IEos> getEos(const BodySettings& settings);
 
-    AutoPtr<Abstract::Rheology> getRheology(const BodySettings& settings);
+    AutoPtr<IRheology> getRheology(const BodySettings& settings);
 
-    AutoPtr<Abstract::Damage> getDamage(const BodySettings& settings);
+    AutoPtr<IDamage> getDamage(const BodySettings& settings);
 
-    AutoPtr<Abstract::EquationTerm> getArtificialViscosity(const RunSettings& settings);
+    AutoPtr<IEquationTerm> getArtificialViscosity(const RunSettings& settings);
 
-    AutoPtr<Abstract::TimeStepping> getTimeStepping(const RunSettings& settings,
-        const SharedPtr<Storage>& storage);
+    AutoPtr<ITimeStepping> getTimeStepping(const RunSettings& settings, const SharedPtr<Storage>& storage);
 
-    AutoPtr<Abstract::TimeStepCriterion> getTimeStepCriterion(const RunSettings& settings);
+    AutoPtr<ITimeStepCriterion> getTimeStepCriterion(const RunSettings& settings);
 
-    AutoPtr<Abstract::Finder> getFinder(const RunSettings& settings);
+    AutoPtr<INeighbourFinder> getFinder(const RunSettings& settings);
 
-    AutoPtr<Abstract::Distribution> getDistribution(const BodySettings& settings);
+    AutoPtr<IDistribution> getDistribution(const BodySettings& settings);
 
-    AutoPtr<Abstract::Solver> getSolver(const RunSettings& settings);
+    AutoPtr<ISolver> getSolver(const RunSettings& settings);
 
-    AutoPtr<Abstract::Gravity> getGravity(const RunSettings& settings);
+    AutoPtr<IGravity> getGravity(const RunSettings& settings);
 
-    AutoPtr<Abstract::BoundaryConditions> getBoundaryConditions(const RunSettings& settings,
-        AutoPtr<Abstract::Domain>&& domain);
+    AutoPtr<IBoundaryCondition> getBoundaryConditions(const RunSettings& settings, AutoPtr<IDomain>&& domain);
 
-    AutoPtr<Abstract::Domain> getDomain(const RunSettings& settings);
+    AutoPtr<IDomain> getDomain(const RunSettings& settings);
 
-    AutoPtr<Abstract::Material> getMaterial(const BodySettings& settings);
+    AutoPtr<IMaterial> getMaterial(const BodySettings& settings);
 
-    AutoPtr<Abstract::Logger> getLogger(const RunSettings& settings);
+    AutoPtr<ILogger> getLogger(const RunSettings& settings);
 
-    AutoPtr<Abstract::Rng> getRng(const RunSettings& settings);
+    AutoPtr<IRng> getRng(const RunSettings& settings);
 }
 
 

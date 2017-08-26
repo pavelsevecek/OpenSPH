@@ -7,7 +7,7 @@
 
 #include "objects/geometry/Box.h"
 #include "objects/containers/Array.h"
-#include "objects/finders/AbstractFinder.h"
+#include "objects/finders/INeighbourFinder.h"
 #include "system/Profiler.h"
 
 NAMESPACE_SPH_BEGIN
@@ -34,7 +34,7 @@ struct OctreeNode {
     }
 };
 
-class Octree : public Abstract::Finder {
+class Octree : public INeighbourFinder {
 private:
     Box box;
     AutoPtr<OctreeNode> root;

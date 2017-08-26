@@ -1,7 +1,7 @@
 #include "gui/renderers/ParticleRenderer.h"
 #include "gui/objects/Camera.h"
 #include "gui/objects/Color.h"
-#include "gui/objects/Element.h"
+#include "gui/objects/Colorizer.h"
 #include "system/Profiler.h"
 #include "system/Statistics.h"
 #include "thread/CheckFunction.h"
@@ -10,8 +10,8 @@
 NAMESPACE_SPH_BEGIN
 
 void ParticleRenderer::initialize(const Storage& storage,
-    const Abstract::Element& element,
-    const Abstract::Camera& camera) {
+    const IColorizer& element,
+    const ICamera& camera) {
     cached.idxs.clear();
     cached.positions.clear();
     cached.colors.clear();
@@ -30,7 +30,7 @@ void ParticleRenderer::initialize(const Storage& storage,
     cached.palette = element.getPalette();
 }
 
-SharedPtr<Bitmap> ParticleRenderer::render(const Abstract::Camera& camera,
+SharedPtr<Bitmap> ParticleRenderer::render(const ICamera& camera,
     const RenderParams& params,
     Statistics& stats) const {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);

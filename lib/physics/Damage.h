@@ -21,21 +21,20 @@ enum class DamageFlag {
     REDUCTION_FACTOR = 1 << 2, ///< Modify reduction factor (QuanityId::REDUCE) due to damage
 };
 
-namespace Abstract {
-    class Damage : public Polymorphic {
-    public:
-        /// Sets up all the necessary quantities in the storage given material settings.
-        virtual void setFlaws(Storage& storage,
-            Abstract::Material& material,
-            const MaterialInitialContext& context) const = 0;
+class IDamage : public Polymorphic {
+public:
+    /// Sets up all the necessary quantities in the storage given material settings.
+    virtual void setFlaws(Storage& storage,
+        IMaterial& material,
+        const MaterialInitialContext& context) const = 0;
 
-        /// Computes modified values of given quantity due to fragmentation.
-        virtual void reduce(Storage& storage, const Flags<DamageFlag> flags, const MaterialView sequence) = 0;
+    /// Computes modified values of given quantity due to fragmentation.
+    virtual void reduce(Storage& storage, const Flags<DamageFlag> flags, const MaterialView sequence) = 0;
 
-        /// Compute damage derivatives
-        virtual void integrate(Storage& storage, const MaterialView sequence) = 0;
-    };
-}
+    /// Compute damage derivatives
+    virtual void integrate(Storage& storage, const MaterialView sequence) = 0;
+};
+
 
 enum class ExplicitFlaws {
     /// Distribute flaws uniformly (to random particles), see Benz & Asphaug (1994) \cite Benz_Asphaug_1994,
@@ -47,7 +46,7 @@ enum class ExplicitFlaws {
 };
 
 /// Scalar damage describing fragmentation of the body according to Grady-Kipp model (Grady and Kipp, 1980)
-class ScalarDamage : public Abstract::Damage {
+class ScalarDamage : public IDamage {
 private:
     Float kernelRadius;
 
@@ -59,7 +58,7 @@ public:
     ScalarDamage(const RunSettings& settings, const ExplicitFlaws options = ExplicitFlaws::UNIFORM);
 
     virtual void setFlaws(Storage& storage,
-        Abstract::Material& material,
+        IMaterial& material,
         const MaterialInitialContext& context) const override;
 
     virtual void reduce(Storage& storage,
@@ -69,11 +68,11 @@ public:
     virtual void integrate(Storage& storage, const MaterialView material) override;
 };
 
-class TensorDamage : public Abstract::Damage {
+class TensorDamage : public IDamage {
 private:
 public:
     virtual void setFlaws(Storage& storage,
-        Abstract::Material& material,
+        IMaterial& material,
         const MaterialInitialContext& context) const override;
 
     virtual void reduce(Storage& storage,
@@ -83,10 +82,10 @@ public:
     virtual void integrate(Storage& storage, const MaterialView material) override;
 };
 
-class NullDamage : public Abstract::Damage {
+class NullDamage : public IDamage {
 public:
     virtual void setFlaws(Storage& storage,
-        Abstract::Material& material,
+        IMaterial& material,
         const MaterialInitialContext& context) const override;
 
     virtual void reduce(Storage& storage,

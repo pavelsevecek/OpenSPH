@@ -14,10 +14,10 @@ using namespace Sph;
 
 /// testing domain, simply a wall x = 0 keeping particles in positive values of x. Only methods necessary for
 /// ghost particles are implemented.
-class WallDomain : public Abstract::Domain {
+class WallDomain : public IDomain {
 public:
     WallDomain()
-        : Abstract::Domain(Vector(0._f)) {}
+        : IDomain(Vector(0._f)) {}
 
     virtual Float getVolume() const override {
         NOT_IMPLEMENTED;

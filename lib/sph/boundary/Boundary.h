@@ -1,13 +1,13 @@
 #pragma once
 
-/// \file boundary.h
+/// \file Boundary.h
 /// \brief Boundary conditions
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2017
 
 #include "common/ForwardDecl.h"
-#include "objects/geometry/Vector.h"
 #include "objects/containers/Array.h"
+#include "objects/geometry/Vector.h"
 #include "objects/wrappers/Interval.h"
 #include "sph/equations/EquationTerm.h"
 
@@ -19,24 +19,25 @@ NAMESPACE_SPH_BEGIN
 /// particles), or added new particles we don't want to touch by other equations.
 /// They must either be equation terms evaluated LAST, or be a separate object
 
-namespace Abstract {
-    /// Base object for boundary conditions; all boundary conditions are essentially equation terms, but they
-    /// do not create any quantities nor they compute derivatives.
-    class BoundaryConditions : public EquationTerm {
-    public:
-        virtual void setDerivatives(DerivativeHolder&, const RunSettings&) override {}
 
-        virtual void create(Storage&, Abstract::Material&) const override {}
-    };
-}
+/// \brief Base object for boundary conditions.
+///
+/// All boundary conditions are essentially equation terms, but they do not create any quantities nor they
+/// compute derivatives.
+class IBoundaryCondition : public IEquationTerm {
+public:
+    virtual void setDerivatives(DerivativeHolder&, const RunSettings&) override {}
+
+    virtual void create(Storage&, IMaterial&) const override {}
+};
 
 
 /// Adds ghost particles symmetrically for each SPH particle close to boundary. All physical quantities are
 /// copied on them. This acts as a natural boundary for SPH particles without creating unphysical gradients
 /// due to discontinuity.
-class GhostParticles : public Abstract::BoundaryConditions {
+class GhostParticles : public IBoundaryCondition {
 private:
-    AutoPtr<Abstract::Domain> domain;
+    AutoPtr<IDomain> domain;
     // index where the ghost particles begin (they are always stored successively)
     Array<Ghost> ghosts;
     Array<Size> ghostIdxs; // indices of ghost particles in the storage
@@ -45,7 +46,7 @@ private:
     Float minimalDist;
 
 public:
-    GhostParticles(AutoPtr<Abstract::Domain>&& domain, const RunSettings& settings);
+    GhostParticles(AutoPtr<IDomain>&& domain, const RunSettings& settings);
 
     /// \todo we hold indices into the storage we get from parameter. There is no guarantee the storage is the
     /// same each time and that it wasn't changed. Think of a better way of doing this, possibly by creating
@@ -66,9 +67,9 @@ public:
 /// given body or list of bodies. This will cause the particles to keep quantity values given by their initial
 /// conditions and move with initial velocity. The 'frozen' particles affect other particles normally and
 /// contribute to all integrals, such as total mometum or energy.
-class FrozenParticles : public Abstract::BoundaryConditions {
+class FrozenParticles : public IBoundaryCondition {
 protected:
-    AutoPtr<Abstract::Domain> domain;
+    AutoPtr<IDomain> domain;
     Float radius;
 
     std::set<Size> frozen;
@@ -85,7 +86,7 @@ public:
 
     /// Constructs boundary conditions given domain and search radius (in units of smoothing length) up to
     /// which the particles will be frozen.
-    FrozenParticles(AutoPtr<Abstract::Domain>&& domain, const Float radius);
+    FrozenParticles(AutoPtr<IDomain>&& domain, const Float radius);
 
     /// Adds body ID particles of which shall be frozen by boundary conditions.
     void freeze(const Size flag);
@@ -104,7 +105,7 @@ public:
 /// them. This is fine-tuned for simulations of a meteorite passing through athmosphere.
 class WindTunnel : public FrozenParticles {
 public:
-    WindTunnel(AutoPtr<Abstract::Domain>&& domain, const Float radius);
+    WindTunnel(AutoPtr<IDomain>&& domain, const Float radius);
 
     virtual void initialize(Storage& UNUSED(storage)) override {}
 
@@ -112,13 +113,13 @@ public:
 };
 
 /// Boundary condition moving all particles passed through the domain to the other side of the domain.
-class PeriodicDomain : public Abstract::BoundaryConditions {
+class PeriodicDomain : public IBoundaryCondition {
     /// \todo modify Finder to search periodically in domain. That should be the whole trick
 };
 
 
 /// Helper tool for 1D tests, projects all particles onto a 1D line.
-class Projection1D : public Abstract::BoundaryConditions {
+class Projection1D : public IBoundaryCondition {
 private:
     Interval domain;
     ArrayView<Vector> r, v;

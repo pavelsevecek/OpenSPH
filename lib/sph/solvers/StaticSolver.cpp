@@ -29,7 +29,7 @@ public:
         s = results.getBuffer<TracelessTensor>(QuantityId::DEVIATORIC_STRESS, OrderEnum::ZERO);
 
         /// \todo generalize for heterogeneous body
-        Abstract::Material& material = input.getMaterial(0);
+        IMaterial& material = input.getMaterial(0);
         lambda = material.getParam<Float>(BodySettingsId::ELASTIC_MODULUS);
         mu = material.getParam<Float>(BodySettingsId::SHEAR_MODULUS);
     }
@@ -55,7 +55,7 @@ public:
     }
 };
 
-class DisplacementTerm : public Abstract::EquationTerm {
+class DisplacementTerm : public IEquationTerm {
 public:
     virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override {
         derivatives.require<DisplacementGradient>(settings);
@@ -65,7 +65,7 @@ public:
 
     virtual void finalize(Storage& UNUSED(storage)) override {}
 
-    virtual void create(Storage& storage, Abstract::Material& UNUSED(material)) const override {
+    virtual void create(Storage& storage, IMaterial& UNUSED(material)) const override {
         storage.insert<Float>(QuantityId::PRESSURE, OrderEnum::ZERO, 0._f);
         storage.insert<TracelessTensor>(
             QuantityId::DEVIATORIC_STRESS, OrderEnum::ZERO, TracelessTensor::null());
@@ -118,7 +118,7 @@ Outcome StaticSolver::solve(Storage& storage, Statistics& stats) {
     // where \lambda, \mu are Lame's coefficient, u is the displacement vector and f is the external force
 
     ASSERT(storage.getMaterialCnt() == 1); /// \todo generalize for heterogeneous bodies
-    Abstract::Material& material = storage.getMaterial(0);
+    IMaterial& material = storage.getMaterial(0);
     const Float lambda = material.getParam<Float>(BodySettingsId::ELASTIC_MODULUS);
     const Float mu = material.getParam<Float>(BodySettingsId::SHEAR_MODULUS);
 
@@ -197,7 +197,7 @@ Outcome StaticSolver::solve(Storage& storage, Statistics& stats) {
     return SUCCESS;
 }
 
-void StaticSolver::create(Storage& storage, Abstract::Material& material) {
+void StaticSolver::create(Storage& storage, IMaterial& material) {
     ASSERT(storage.getMaterialCnt() == 1);
     equationSolver.create(storage, material);
 }

@@ -1,20 +1,18 @@
 #pragma once
 
-/// \file Material.h
-/// \brief SPH-specific implementation of particle material
+/// \file Materials.h
+/// \brief SPH-specific implementation of particle materials
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2017
 
-#include "quantities/AbstractMaterial.h"
+#include "quantities/IMaterial.h"
 
 NAMESPACE_SPH_BEGIN
 
-namespace Abstract {
-    class Eos;
-    class Rheology;
-}
+class IEos;
+class IRheology;
 
-class NullMaterial : public Abstract::Material {
+class NullMaterial : public IMaterial {
 public:
     NullMaterial(const BodySettings& body);
 
@@ -26,13 +24,13 @@ public:
 };
 
 /// Material holding equation of state
-class EosMaterial : public Abstract::Material {
+class EosMaterial : public IMaterial {
 private:
-    AutoPtr<Abstract::Eos> eos;
+    AutoPtr<IEos> eos;
     ArrayView<Float> rho, u, p, cs;
 
 public:
-    EosMaterial(const BodySettings& body, AutoPtr<Abstract::Eos>&& eos);
+    EosMaterial(const BodySettings& body, AutoPtr<IEos>&& eos);
 
     /// Evaluate holded equation of state.
     /// \param rho Density of particle in code units.
@@ -41,7 +39,7 @@ public:
     Pair<Float> evaluate(const Float rho, const Float u) const;
 
     /// Returns the equation of state.
-    const Abstract::Eos& getEos() const;
+    const IEos& getEos() const;
 
     virtual void create(Storage& storage, const MaterialInitialContext& context) override;
 
@@ -56,12 +54,10 @@ public:
 /// modifies pressure and stress tensor.
 class SolidMaterial : public EosMaterial {
 private:
-    AutoPtr<Abstract::Rheology> rheology;
+    AutoPtr<IRheology> rheology;
 
 public:
-    SolidMaterial(const BodySettings& body,
-        AutoPtr<Abstract::Eos>&& eos,
-        AutoPtr<Abstract::Rheology>&& rheology);
+    SolidMaterial(const BodySettings& body, AutoPtr<IEos>&& eos, AutoPtr<IRheology>&& rheology);
 
     virtual void create(Storage& storage, const MaterialInitialContext& context) override;
 
@@ -71,7 +67,7 @@ public:
 };
 
 /// Returns material using default settings.
-AutoPtr<Abstract::Material> getDefaultMaterial();
+AutoPtr<IMaterial> getDefaultMaterial();
 
 
 NAMESPACE_SPH_END

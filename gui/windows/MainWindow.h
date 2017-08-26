@@ -12,9 +12,7 @@ class wxCheckBox;
 
 NAMESPACE_SPH_BEGIN
 
-namespace Abstract {
-    class Element;
-}
+class IColorizer;
 class Controller;
 class OrthoPane;
 class ParticleProbe;
@@ -40,14 +38,14 @@ private:
     wxGauge* gauge;
     wxCheckBox* shadingBox;
 
-    Array<SharedPtr<Abstract::Element>> elementList;
+    Array<SharedPtr<IColorizer>> elementList;
 
 public:
     MainWindow(Controller* controller, const GuiSettings& guiSettings);
 
     void setProgress(const float progress);
 
-    void setElementList(Array<SharedPtr<Abstract::Element>>&& elements);
+    void setElementList(Array<SharedPtr<IColorizer>>&& elements);
 
     void setSelectedParticle(const Particle& particle, const Color color);
 

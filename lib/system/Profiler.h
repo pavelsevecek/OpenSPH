@@ -118,7 +118,7 @@ public:
     Array<ScopeStatistics> getStatistics() const;
 
     /// Prints statistics into the logger.
-    void printStatistics(Abstract::Logger& logger) const;
+    void printStatistics(ILogger& logger) const;
 
     /// Clears all records, mainly for testing purposes
     void clear() {

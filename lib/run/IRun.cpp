@@ -1,13 +1,13 @@
-#include "run/Run.h"
 #include "io/LogFile.h"
 #include "io/Logger.h"
 #include "io/Output.h"
 #include "physics/Integrals.h"
+#include "run/IRun.h"
 #include "system/Callbacks.h"
 #include "system/Factory.h"
 #include "system/Statistics.h"
 #include "system/Timer.h"
-#include "timestepping/AbstractSolver.h"
+#include "timestepping/ISolver.h"
 #include "timestepping/TimeStepping.h"
 
 NAMESPACE_SPH_BEGIN
@@ -33,15 +33,15 @@ public:
     }
 };
 
-Abstract::Run::Run() {
+IRun::IRun() {
 #ifndef SPH_DEBUG
     ASSERT(false, "Invalid configuration, asserts should be only enabled in debug builds");
 #endif
 }
 
-Abstract::Run::~Run() = default;
+IRun::~IRun() = default;
 
-void Abstract::Run::run() {
+void IRun::run() {
     ASSERT(storage);
     Size i = 0;
     // fetch parameters of run from settings
@@ -102,11 +102,11 @@ void Abstract::Run::run() {
     this->tearDownInternal();
 }
 
-SharedPtr<Storage> Abstract::Run::getStorage() const {
+SharedPtr<Storage> IRun::getStorage() const {
     return storage;
 }
 
-void Abstract::Run::setNullToDefaults() {
+void IRun::setNullToDefaults() {
     ASSERT(storage != nullptr);
     if (!solver) {
         solver = Factory::getSolver(settings);
@@ -125,7 +125,7 @@ void Abstract::Run::setNullToDefaults() {
     }
 }
 
-void Abstract::Run::tearDownInternal() {
+void IRun::tearDownInternal() {
     logFiles.clear();
     this->tearDown();
     output.reset();

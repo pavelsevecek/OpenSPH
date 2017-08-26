@@ -18,7 +18,7 @@ NAMESPACE_SPH_BEGIN
 /// affect the continuity equations (density derivative). For self-consistent solutions, use XSPH corrected
 /// velocities in continuity equation or use direct summation of density.
 
-class XSph : public Abstract::EquationTerm {
+class XSph : public IEquationTerm {
 private:
     class Derivative : public DerivativeTemplate<Derivative> {
     private:
@@ -86,7 +86,7 @@ public:
         }
     }
 
-    virtual void create(Storage& storage, Abstract::Material& UNUSED(material)) const override {
+    virtual void create(Storage& storage, IMaterial& UNUSED(material)) const override {
         storage.insert<Vector>(QuantityId::XSPH_VELOCITIES, OrderEnum::ZERO, Vector(0._f));
     }
 };

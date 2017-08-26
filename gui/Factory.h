@@ -4,23 +4,21 @@
 
 NAMESPACE_SPH_BEGIN
 
-namespace Abstract {
-    class Camera;
-    class Element;
-}
+class ICamera;
+class IColorizer;
 class Palette;
 class Point;
-enum class ElementId;
+enum class ColorizerId;
 
 namespace Factory {
 
     /// Creates a camera
     /// \param size Resolution of produced image
-    AutoPtr<Abstract::Camera> getCamera(const GuiSettings& settings, const Point size);
+    AutoPtr<ICamera> getCamera(const GuiSettings& settings, const Point size);
 
-    AutoPtr<Abstract::Element> getElement(const GuiSettings& settings, const ElementId id);
+    AutoPtr<IColorizer> getElement(const GuiSettings& settings, const ColorizerId id);
 
-    Palette getPalette(const ElementId id, const Interval range);
+    Palette getPalette(const ColorizerId id, const Interval range);
 }
 
 NAMESPACE_SPH_END

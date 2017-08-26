@@ -234,7 +234,7 @@ private:
     Array<Group> groups;
 
     /// Logger used to output benchmark results
-    AutoPtr<Abstract::Logger> logger;
+    AutoPtr<ILogger> logger;
 
     /// Status of the session, contains an error if the session is in invalid state.
     Outcome status = SUCCESS;

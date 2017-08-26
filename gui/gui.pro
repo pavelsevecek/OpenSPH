@@ -59,7 +59,6 @@ HEADERS += \
     objects/Camera.h \
     objects/Point.h \
     Factory.h \
-    objects/Element.h \
     objects/Movie.h \
     objects/Bitmap.h \
     MainLoop.h \
@@ -68,6 +67,7 @@ HEADERS += \
     windows/PlotView.h \
     windows/ParticleProbe.h \
     Utils.h \
-    renderers/AbstractRenderer.h \
     renderers/ParticleRenderer.h \
-    renderers/SurfaceRenderer.h
+    renderers/SurfaceRenderer.h \
+    objects/Colorizer.h \
+    renderers/IRenderer.h

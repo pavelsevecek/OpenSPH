@@ -1,13 +1,13 @@
 #pragma once
 
-#include "objects/finders/AbstractFinder.h"
+#include "objects/finders/INeighbourFinder.h"
 #include "objects/geometry/Box.h"
 #include "objects/utility/Iterators.h"
 #include <algorithm>
 
 NAMESPACE_SPH_BEGIN
 
-class LinkedList : public Abstract::Finder {
+class LinkedList : public INeighbourFinder {
 private:
     VectorOrder sortedIndices;
     VectorOrder rank;

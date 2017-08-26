@@ -143,7 +143,7 @@ Vector BarnesHut::evalImpl(const Vector& r0, const Size idx, Statistics& UNUSED(
     return Constants::gravity * f;
 }
 
-class BarnesHut::NodeTask : public Abstract::Task {
+class BarnesHut::NodeTask : public ITask {
 private:
     const BarnesHut& bh;
     ThreadPool& pool;

@@ -6,7 +6,7 @@
 NAMESPACE_SPH_BEGIN
 
 
-class InternalFriction : public Abstract::EquationTerm {
+class InternalFriction : public IEquationTerm {
 private:
     class VelocityLaplacian : public DerivativeTemplate<VelocityLaplacian> {
     private:
@@ -53,11 +53,11 @@ public:
 
     virtual void finalize(Storage& UNUSED(storage)) override {}
 
-    virtual void create(Storage& UNUSED(storage), Abstract::Material& UNUSED(material)) const override {}
+    virtual void create(Storage& UNUSED(storage), IMaterial& UNUSED(material)) const override {}
 };
 
 
-class SimpleDamping : public Abstract::EquationTerm {
+class SimpleDamping : public IEquationTerm {
 private:
     class Derivative : public DerivativeTemplate<Derivative> {
         ArrayView<const Vector> r, v;
@@ -104,7 +104,7 @@ public:
 
     virtual void finalize(Storage& UNUSED(storage)) override {}
 
-    virtual void create(Storage& UNUSED(storage), Abstract::Material& UNUSED(material)) const override {}
+    virtual void create(Storage& UNUSED(storage), IMaterial& UNUSED(material)) const override {}
 };
 
 

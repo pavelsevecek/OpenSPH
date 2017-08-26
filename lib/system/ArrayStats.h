@@ -54,7 +54,7 @@ public:
         return medianValue;
     }
 
-    void write(Abstract::Logger& logger) {
+    void write(ILogger& logger) {
         logger.write("Min = " + std::to_string(min()) + "; Max = " + std::to_string(max()) + "; Mean = " +
                      std::to_string(average()) + "; Median = " + std::to_string(median()));
     }

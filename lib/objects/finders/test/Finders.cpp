@@ -48,7 +48,7 @@ static Outcome checkNeighboursEqual(ArrayView<NeighbourRecord> treeNeighs,
     return SUCCESS;
 }
 
-static void checkNeighbours(Abstract::Finder& finder, Flags<FinderFlags> flags) {
+static void checkNeighbours(INeighbourFinder& finder, Flags<FinderFlags> flags) {
     HexagonalPacking distr;
     SphericalDomain domain(Vector(0._f), 2._f);
     Array<Vector> storage = distr.generate(1000, domain);
@@ -88,7 +88,7 @@ static void checkNeighbours(Abstract::Finder& finder, Flags<FinderFlags> flags) 
     REQUIRE_SEQUENCE(test2, 0, storage.size() - 1);
 }
 
-static void checkEmpty(Abstract::Finder& finder) {
+static void checkEmpty(INeighbourFinder& finder) {
     Array<Vector> storage;
     // build finder on empty array
     REQUIRE_NOTHROW(finder.build(storage));
@@ -99,7 +99,7 @@ static void checkEmpty(Abstract::Finder& finder) {
     REQUIRE(nTree == 0);
 }
 
-static void testFindingSmallerH(Abstract::Finder& finder) {
+static void testFindingSmallerH(INeighbourFinder& finder) {
     Array<Vector> storage(0, 10);
     for (int i = 0; i < 10; ++i) {
         storage.push(Vector(i, 0, 0, i + 1)); // points on line with increasing H
@@ -121,7 +121,7 @@ static void testFindingSmallerH(Abstract::Finder& finder) {
     REQUIRE(allMatching);
 }
 
-static void testFinder(Abstract::Finder& finder) {
+static void testFinder(INeighbourFinder& finder) {
     checkNeighbours(finder, EMPTY_FLAGS);
     checkNeighbours(finder, FinderFlags::FIND_ONLY_SMALLER_H);
     checkEmpty(finder);

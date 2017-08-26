@@ -4,8 +4,8 @@
 /// Pavel Sevecek 2015
 /// sevecek at sirrah.troja.mff.cuni.cz
 
-#include "objects/geometry/Domain.h"
 #include "math/rng/Rng.h"
+#include "objects/geometry/Domain.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -33,12 +33,12 @@ class Integrator : public Noncopyable {
 private:
     Float radius;
     TRng rng;
-    const Abstract::Domain& domain;
+    const IDomain& domain;
     static constexpr uint chunk = 100;
 
 public:
     /// Constructs an integrator given domain of integration.
-    Integrator(const Abstract::Domain& domain)
+    Integrator(const IDomain& domain)
         : domain(domain) {}
 
     /// Integrate a function.

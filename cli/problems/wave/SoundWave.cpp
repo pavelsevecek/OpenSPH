@@ -2,7 +2,7 @@
 #include "objects/geometry/Domain.h"
 #include "io/Logger.h"
 #include "io/Output.h"
-#include "run/Run.h"
+#include "run/IRun.h"
 #include "sph/initial/Initial.h"
 #include "system/Factory.h"
 #include "system/Settings.h"

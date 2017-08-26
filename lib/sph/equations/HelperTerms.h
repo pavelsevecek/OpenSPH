@@ -10,7 +10,7 @@
 NAMESPACE_SPH_BEGIN
 
 /// Helper term counting the number of neighbours of each particle.
-class NeighbourCountTerm : public Abstract::EquationTerm {
+class NeighbourCountTerm : public IEquationTerm {
 private:
     class NeighbourCountImpl : public DerivativeTemplate<NeighbourCountImpl> {
     private:
@@ -48,14 +48,14 @@ private:
 
     virtual void finalize(Storage& UNUSED(storage)) override {}
 
-    virtual void create(Storage& UNUSED(storage), Abstract::Material& UNUSED(material)) const override {}
+    virtual void create(Storage& UNUSED(storage), IMaterial& UNUSED(material)) const override {}
 };
 
 
 /// Termm computing normals of free surface. For particles inside the bodies, this will result to vectors
 /// close to zero (depending on the number of neighbours), and the term can be therefore used to detect
 /// boundary particles
-class SurfaceNormal : public Abstract::EquationTerm {
+class SurfaceNormal : public IEquationTerm {
 private:
     class Derivative : public DerivativeTemplate<Derivative> {
     private:
@@ -101,7 +101,7 @@ public:
 
     virtual void finalize(Storage& UNUSED(storage)) override {}
 
-    virtual void create(Storage& storage, Abstract::Material& UNUSED(material)) const override {
+    virtual void create(Storage& storage, IMaterial& UNUSED(material)) const override {
         storage.insert<Vector>(QuantityId::SURFACE_NORMAL, OrderEnum::ZERO, Vector(0._f));
     }
 };

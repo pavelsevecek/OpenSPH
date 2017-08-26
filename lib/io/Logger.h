@@ -14,52 +14,52 @@
 
 NAMESPACE_SPH_BEGIN
 
-/// Interface providing generic (text, human readable) output of the program. It's meant for logging current
-/// time, some statistics of the simulation, encountered warnings and errors, etc. For output of particle
-/// quantities, use Abstract::Output.
-namespace Abstract {
-    class Logger : public Polymorphic, public Noncopyable {
-    private:
-        Size precision = PRECISION;
-        bool scientific = true;
+/// \brief Interface providing generic (text, human readable) output of the program.
+///
+/// It's meant for logging current time, some statistics of the simulation, encountered warnings and errors,
+/// etc. For output of particle quantities, use IOutput.
+class ILogger : public Polymorphic, public Noncopyable {
+private:
+    Size precision = PRECISION;
+    bool scientific = true;
 
-    public:
-        /// Logs a string message.
-        /// \todo different types (log, warning, error, ...) and levels of verbosity
-        virtual void writeString(const std::string& s) = 0;
+public:
+    /// Logs a string message.
+    /// \todo different types (log, warning, error, ...) and levels of verbosity
+    virtual void writeString(const std::string& s) = 0;
 
-        /// Creates and logs message by concating arguments. Adds a new line to the output.
-        template <typename... TArgs>
-        void write(TArgs&&... args) {
-            std::stringstream ss;
-            writeImpl(ss, std::forward<TArgs>(args)...);
-            ss << std::endl;
-            this->writeString(ss.str());
+    /// Creates and logs message by concating arguments. Adds a new line to the output.
+    template <typename... TArgs>
+    void write(TArgs&&... args) {
+        std::stringstream ss;
+        writeImpl(ss, std::forward<TArgs>(args)...);
+        ss << std::endl;
+        this->writeString(ss.str());
+    }
+
+    /// Changes the precision of printed numbers. The default value is given by global PRECISION constant.
+    void setPrecision(const Size newPrecision) {
+        precision = newPrecision;
+    }
+
+    /// Sets/unsets scientific notation
+    void setScientific(const bool newScientific) {
+        scientific = newScientific;
+    }
+
+private:
+    template <typename T0, typename... TArgs>
+    void writeImpl(std::stringstream& ss, T0&& first, TArgs&&... rest) {
+        ss << std::setprecision(precision);
+        if (scientific) {
+            ss << std::scientific;
         }
+        ss << first;
+        writeImpl(ss, std::forward<TArgs>(rest)...);
+    }
+    void writeImpl(std::stringstream& UNUSED(ss)) {}
+};
 
-        /// Changes the precision of printed numbers. The default value is given by global PRECISION constant.
-        void setPrecision(const Size newPrecision) {
-            precision = newPrecision;
-        }
-
-        /// Sets/unsets scientific notation
-        void setScientific(const bool newScientific) {
-            scientific = newScientific;
-        }
-
-    private:
-        template <typename T0, typename... TArgs>
-        void writeImpl(std::stringstream& ss, T0&& first, TArgs&&... rest) {
-            ss << std::setprecision(precision);
-            if (scientific) {
-                ss << std::scientific;
-            }
-            ss << first;
-            writeImpl(ss, std::forward<TArgs>(rest)...);
-        }
-        void writeImpl(std::stringstream& UNUSED(ss)) {}
-    };
-}
 
 struct Console {
     enum class Foreground {
@@ -118,16 +118,16 @@ struct Console {
 
 /// \brief Standard output logger.
 ///
-/// This is just a wrapper of std::cout with Abstract::Logger interface, it does not tructed on spot with no
+/// This is just a wrapper of std::cout with ILogger interface, it does not tructed on spot with no
 /// cost. All StdOutLoggers print to the same output.
-class StdOutLogger : public Abstract::Logger {
+class StdOutLogger : public ILogger {
 public:
     virtual void writeString(const std::string& s) override;
 };
 
 
 /// \brief Logger writing messages to string stream
-class StringLogger : public Abstract::Logger {
+class StringLogger : public ILogger {
 private:
     std::stringstream ss;
 
@@ -163,7 +163,7 @@ public:
 };
 
 /// File output logger
-class FileLogger : public Abstract::Logger {
+class FileLogger : public ILogger {
 public:
     enum class Options {
         /// Opens the associated file when the logger is constructed and closes it in destructor. This is
@@ -198,16 +198,16 @@ public:
 };
 
 /// Class holding multiple loggers and writing messages to all of them. The objects is the owner of loggers.
-class MultiLogger : public Abstract::Logger {
+class MultiLogger : public ILogger {
 private:
-    Array<AutoPtr<Abstract::Logger>> loggers;
+    Array<AutoPtr<ILogger>> loggers;
 
 public:
     int getLoggerCnt() const {
         return loggers.size();
     }
 
-    void add(AutoPtr<Abstract::Logger>&& logger) {
+    void add(AutoPtr<ILogger>&& logger) {
         loggers.push(std::move(logger));
     }
 
@@ -218,7 +218,7 @@ public:
     }
 };
 
-class DummyLogger : public Abstract::Logger {
+class DummyLogger : public ILogger {
     virtual void writeString(const std::string& UNUSED(s)) override {}
 };
 

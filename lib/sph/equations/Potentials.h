@@ -19,7 +19,7 @@ NAMESPACE_SPH_BEGIN
 ///
 /// To utilize type deduction, use helper function \ref makeExternalForce
 template <typename TFunctor>
-class ExternalForce : public Abstract::EquationTerm {
+class ExternalForce : public IEquationTerm {
 private:
     std::remove_reference_t<TFunctor> functor;
 
@@ -41,7 +41,7 @@ public:
         }
     }
 
-    virtual void create(Storage& UNUSED(storage), Abstract::Material& UNUSED(material)) const override {}
+    virtual void create(Storage& UNUSED(storage), IMaterial& UNUSED(material)) const override {}
 };
 
 /// Helper function to create ExternalForce utilizing type deduction. This way, we can use lambda as the
@@ -54,7 +54,7 @@ AutoPtr<ExternalForce<TFunctor>> makeExternalForce(TFunctor&& functor) {
 /// \brief Centripetal and Coriolis force
 ///
 /// Adds an acceleration due to centripetal force. Internal energy is not modified by this force.
-class NoninertialForce : public Abstract::EquationTerm {
+class NoninertialForce : public IEquationTerm {
 private:
     Vector omega;
 
@@ -77,7 +77,7 @@ public:
         }
     }
 
-    virtual void create(Storage& UNUSED(storage), Abstract::Material& UNUSED(material)) const override {}
+    virtual void create(Storage& UNUSED(storage), IMaterial& UNUSED(material)) const override {}
 };
 
 
@@ -86,7 +86,7 @@ public:
 /// Computes gravitational force of a sphere (not necessarily homogeneous). Particles are assumed to be
 /// spherically symmetric; the force can be used even for different particle distributions, but may yield
 /// incorrect results.
-class SphericalGravity : public Abstract::EquationTerm {
+class SphericalGravity : public IEquationTerm {
 private:
     bool useHomogeneousApprox;
 
@@ -147,7 +147,7 @@ public:
         }
     }
 
-    virtual void create(Storage& UNUSED(storage), Abstract::Material& UNUSED(material)) const override {}
+    virtual void create(Storage& UNUSED(storage), IMaterial& UNUSED(material)) const override {}
 };
 
 NAMESPACE_SPH_END

@@ -18,7 +18,7 @@ NAMESPACE_SPH_BEGIN
 /// require a lot of extra work and it is not needed at the moment. Will be possibly extended in the future.
 class StaticSolver {
 private:
-    AutoPtr<Abstract::Finder> finder;
+    AutoPtr<INeighbourFinder> finder;
 
     SymmetrizeSmoothingLengths<LutKernel<3>> kernel;
 
@@ -41,7 +41,7 @@ public:
     Outcome solve(Storage& storage, Statistics& stats);
 
     /// Creates all the necessary quantities in the storage.
-    void create(Storage& storage, Abstract::Material& material);
+    void create(Storage& storage, IMaterial& material);
 };
 
 #endif

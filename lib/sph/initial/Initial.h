@@ -9,7 +9,7 @@
 #include "objects/geometry/Vector.h"
 #include "objects/containers/ArrayView.h"
 #include "objects/wrappers/AutoPtr.h"
-#include "quantities/AbstractMaterial.h"
+#include "quantities/IMaterial.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -77,7 +77,7 @@ private:
     /// Solver used for creating necessary quantities. Does not necessarily have to be the same the solver
     /// used for the actual run, although it is recommended to make sure all the quantities are set up
     /// correctly.
-    AutoPtr<Abstract::Solver> solver;
+    AutoPtr<ISolver> solver;
 
     /// Counter incremented every time a body is added, used for setting up FLAG quantity
     Size bodyIndex = 0;
@@ -99,7 +99,7 @@ public:
     /// \param solver Solver used to create all the necessary quantities. Also must exist for the duration
     ///               of this object as it is stored by reference.
     /// \param settings Run settings
-    InitialConditions(Storage& storage, Abstract::Solver& solver, const RunSettings& settings);
+    InitialConditions(Storage& storage, ISolver& solver, const RunSettings& settings);
 
     /// Constructor creating solver from values in settings.
     InitialConditions(Storage& storage, const RunSettings& settings);
@@ -111,33 +111,33 @@ public:
     /// Particles are created on positions given by distribution in bodySettings. Beside positions of
     /// particles, the function initialize particle masses, pressure and sound speed, assuming both the
     /// pressure and sound speed are computed from equation of state. The function also calls
-    /// Abstract::Solver::create to initialze quantities needed by used solver, either a solver given in
+    /// ISolver::create to initialze quantities needed by used solver, either a solver given in
     /// constructor or a default one based on RunSettings parameters.
     /// \param domain Spatial domain where the particles are placed. The domain should not overlap a body
     ///               already added into the storage as that would lead to incorrect density estimating in
     ///               overlapping regions.
     /// \param bodySettings Parameters of the body
     /// \todo generalize for entropy solver
-    BodyView addBody(const Abstract::Domain& domain, const BodySettings& bodySettings);
+    BodyView addBody(const IDomain& domain, const BodySettings& bodySettings);
 
     /// Adds a body by explicitly specifying its material.
     /// \copydoc addBody
-    BodyView addBody(const Abstract::Domain& domain, AutoPtr<Abstract::Material>&& material);
+    BodyView addBody(const IDomain& domain, AutoPtr<IMaterial>&& material);
 
 
     /// Holds data needed to create a single body in \ref addHeterogeneousBody function.
     struct BodySetup {
-        AutoPtr<Abstract::Domain> domain;
-        AutoPtr<Abstract::Material> material;
+        AutoPtr<IDomain> domain;
+        AutoPtr<IMaterial> material;
 
         /// Creates a body with undefined domain and material
         BodySetup();
 
         /// Creates a body by specifying its domain and material
-        BodySetup(AutoPtr<Abstract::Domain>&& domain, AutoPtr<Abstract::Material>&& material);
+        BodySetup(AutoPtr<IDomain>&& domain, AutoPtr<IMaterial>&& material);
 
         /// Creates a body by specifying its domain; material is created from parameters in settings
-        BodySetup(AutoPtr<Abstract::Domain>&& domain, const BodySettings& settings);
+        BodySetup(AutoPtr<IDomain>&& domain, const BodySettings& settings);
 
         /// Move constructor
         BodySetup(BodySetup&& other);
@@ -171,7 +171,7 @@ public:
 private:
     void createCommon(const RunSettings& settings);
 
-    void setQuantities(Storage& storage, Abstract::Material& material, const Float volume);
+    void setQuantities(Storage& storage, IMaterial& material, const Float volume);
 };
 
 NAMESPACE_SPH_END

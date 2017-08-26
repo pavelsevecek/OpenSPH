@@ -1,10 +1,10 @@
 #include "gui/Factory.h"
 #include "gui/objects/Camera.h"
-#include "gui/objects/Element.h"
+#include "gui/objects/Colorizer.h"
 
 NAMESPACE_SPH_BEGIN
 
-AutoPtr<Abstract::Camera> Factory::getCamera(const GuiSettings& settings, const Point size) {
+AutoPtr<ICamera> Factory::getCamera(const GuiSettings& settings, const Point size) {
     OrthoEnum id = settings.get<OrthoEnum>(GuiSettingsId::ORTHO_PROJECTION);
     OrthoCameraData data;
     data.fov = 0.5_f * size.y / settings.get<Float>(GuiSettingsId::VIEW_FOV);
@@ -29,22 +29,22 @@ AutoPtr<Abstract::Camera> Factory::getCamera(const GuiSettings& settings, const 
     return makeAuto<OrthoCamera>(size, Point(int(center[X]), int(center[Y])), data);
 }
 
-AutoPtr<Abstract::Element> Factory::getElement(const GuiSettings& settings, const ElementId id) {
+AutoPtr<IColorizer> Factory::getElement(const GuiSettings& settings, const ColorizerId id) {
     Interval range;
     switch (id) {
-    case ElementId::VELOCITY:
+    case ColorizerId::VELOCITY:
         range = settings.get<Interval>(GuiSettingsId::PALETTE_VELOCITY);
-        return makeAuto<VelocityElement>(range);
-    case ElementId::ACCELERATION:
+        return makeAuto<VelocityColorizer>(range);
+    case ColorizerId::ACCELERATION:
         range = settings.get<Interval>(GuiSettingsId::PALETTE_ACCELERATION);
-        return makeAuto<AccelerationElement>(range);
-    case ElementId::MOVEMENT_DIRECTION:
-        return makeAuto<DirectionElement>(Vector(0._f, 0._f, 1._f));
-    case ElementId::DENSITY_PERTURBATION:
+        return makeAuto<AccelerationColorizer>(range);
+    case ColorizerId::MOVEMENT_DIRECTION:
+        return makeAuto<DirectionColorizer>(Vector(0._f, 0._f, 1._f));
+    case ColorizerId::DENSITY_PERTURBATION:
         range = settings.get<Interval>(GuiSettingsId::PALETTE_DENSITY_PERTURB);
-        return makeAuto<DensityPerturbationElement>(range);
-    case ElementId::BOUNDARY:
-        return makeAuto<BoundaryElement>(BoundaryElement::Detection::NEIGBOUR_THRESHOLD, 40);
+        return makeAuto<DensityPerturbationColorizer>(range);
+    case ColorizerId::BOUNDARY:
+        return makeAuto<BoundaryColorizer>(BoundaryColorizer::Detection::NEIGBOUR_THRESHOLD, 40);
     default:
         QuantityId quantity = QuantityId(id);
         ASSERT(int(quantity) >= 0);
@@ -52,7 +52,7 @@ AutoPtr<Abstract::Element> Factory::getElement(const GuiSettings& settings, cons
         switch (quantity) {
         case QuantityId::DEVIATORIC_STRESS:
             range = settings.get<Interval>(GuiSettingsId::PALETTE_STRESS);
-            return makeAuto<TypedElement<TracelessTensor>>(quantity, range);
+            return makeAuto<TypedColorizer<TracelessTensor>>(quantity, range);
         case QuantityId::DENSITY:
             range = settings.get<Interval>(GuiSettingsId::PALETTE_DENSITY);
             break;
@@ -71,11 +71,11 @@ AutoPtr<Abstract::Element> Factory::getElement(const GuiSettings& settings, cons
         default:
             NOT_IMPLEMENTED;
         }
-        return makeAuto<TypedElement<Float>>(quantity, range);
+        return makeAuto<TypedColorizer<Float>>(quantity, range);
     }
 }
 
-Palette Factory::getPalette(const ElementId id, const Interval range) {
+Palette Factory::getPalette(const ColorizerId id, const Interval range) {
     const float x0 = Float(range.lower());
     const float dx = Float(range.size());
     if (int(id) >= 0) {
@@ -122,21 +122,21 @@ Palette Factory::getPalette(const ElementId id, const Interval range) {
         }
     } else {
         switch (id) {
-        case ElementId::VELOCITY:
+        case ColorizerId::VELOCITY:
             return Palette({ { x0, Color(0.5f, 0.5f, 0.5f) },
                                { x0 + 0.001f * dx, Color(0.0f, 0.0f, 0.2f) },
                                { x0 + 0.01f * dx, Color(0.0f, 0.0f, 1.0f) },
                                { x0 + 0.1f * dx, Color(1.0f, 0.0f, 0.2f) },
                                { x0 + dx, Color(1.0f, 1.0f, 0.2f) } },
                 PaletteScale::LOGARITHMIC);
-        case ElementId::ACCELERATION:
+        case ColorizerId::ACCELERATION:
             return Palette({ { x0, Color(0.5f, 0.5f, 0.5f) },
                                { x0 + 0.001f * dx, Color(0.0f, 0.0f, 0.2f) },
                                { x0 + 0.01f * dx, Color(0.0f, 0.0f, 1.0f) },
                                { x0 + 0.1f * dx, Color(1.0f, 0.0f, 0.2f) },
                                { x0 + dx, Color(1.0f, 1.0f, 0.2f) } },
                 PaletteScale::LOGARITHMIC);
-        case ElementId::MOVEMENT_DIRECTION:
+        case ColorizerId::MOVEMENT_DIRECTION:
             ASSERT(range == Interval(0.f, 2.f * PI)); // in radians
             return Palette({ { 0.f, Color(0.1f, 0.1f, 1.f) },
                                { PI / 3.f, Color(1.f, 0.1f, 1.f) },
@@ -146,7 +146,7 @@ Palette Factory::getPalette(const ElementId id, const Interval range) {
                                { 5.f * PI / 3.f, Color(0.1f, 1.f, 1.f) },
                                { 2.f * PI, Color(0.1f, 0.1f, 1.f) } },
                 PaletteScale::LINEAR);
-        case ElementId::DENSITY_PERTURBATION:
+        case ColorizerId::DENSITY_PERTURBATION:
             return Palette({ { x0, Color(0.1f, 0.1f, 1.f) },
                                { x0 + 0.5f * dx, Color(0.7f, 0.7f, 0.7f) },
                                { x0 + dx, Color(1.f, 0.1f, 0.1f) } },

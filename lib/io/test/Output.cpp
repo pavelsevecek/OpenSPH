@@ -6,7 +6,7 @@
 #include "objects/utility/PerElementWrapper.h"
 #include "physics/Eos.h"
 #include "quantities/Iterate.h"
-#include "sph/Material.h"
+#include "sph/Materials.h"
 #include "sph/initial/Initial.h"
 #include "tests/Setup.h"
 #include <fstream>

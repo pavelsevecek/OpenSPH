@@ -1,7 +1,7 @@
 #pragma once
 
-#include "objects/geometry/Box.h"
 #include "objects/containers/Array.h"
+#include "objects/geometry/Box.h"
 #include "objects/wrappers/SharedPtr.h"
 
 NAMESPACE_SPH_BEGIN
@@ -64,15 +64,12 @@ public:
     }
 };
 
-namespace Abstract {
-
-    /// Inferface for a generic scalar field, returning a float for given position.:w
-    class ScalarField : public Polymorphic {
-    public:
-        /// Returns the value of the scalar field at given position
-        virtual Float operator()(const Vector& pos) = 0;
-    };
-}
+/// Inferface for a generic scalar field, returning a float for given position.:w
+class IScalarField : public Polymorphic {
+public:
+    /// Returns the value of the scalar field at given position
+    virtual Float operator()(const Vector& pos) = 0;
+};
 
 /// \brief Marching cubes algorithm for generation of mesh from iso-surface of given scalar field.
 class MarchingCubes {
@@ -82,7 +79,7 @@ private:
     Float surfaceLevel;
 
     /// Field, isosurface of which we want to triangularize
-    SharedPtr<Abstract::ScalarField> field;
+    SharedPtr<IScalarField> field;
 
     /// Output array of triangles
     Array<Triangle> triangles;
@@ -101,9 +98,7 @@ public:
     /// \param surfaceLevel Defines of the boundary of SPH particle as implicit function \f$ {\rm Boundary} =
     ///                     \Phi(\vec r) - {\rm surfaceLevel}\f$, where \f$\Phi\f$ is the scalar field.
     /// \param field Scalar field used to generate the surface.
-    MarchingCubes(ArrayView<const Vector> r,
-        const Float surfaceLevel,
-        const SharedPtr<Abstract::ScalarField>& field);
+    MarchingCubes(ArrayView<const Vector> r, const Float surfaceLevel, const SharedPtr<IScalarField>& field);
 
     /// Adds a triangle mesh representing the boundary of particles inside given bounding box into the
     /// internal triangle buffer.

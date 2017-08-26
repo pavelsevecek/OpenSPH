@@ -5,7 +5,7 @@
 #include "objects/utility/ArrayUtils.h"
 #include "physics/Rheology.h"
 #include "quantities/Storage.h"
-#include "sph/Material.h"
+#include "sph/Materials.h"
 #include "sph/initial/Distribution.h"
 #include "sph/initial/Initial.h"
 #include "system/ArrayStats.h"

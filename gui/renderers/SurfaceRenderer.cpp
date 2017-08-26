@@ -1,7 +1,7 @@
 #include "gui/renderers/SurfaceRenderer.h"
 #include "gui/objects/Camera.h"
 #include "gui/objects/Color.h"
-#include "gui/objects/Element.h"
+#include "gui/objects/Colorizer.h"
 #include "post/MarchingCubes.h"
 #include "system/Profiler.h"
 #include "system/Statistics.h"
@@ -16,8 +16,8 @@ SurfaceRenderer::SurfaceRenderer(const GuiSettings& settings) {
 }
 
 void SurfaceRenderer::initialize(const Storage& storage,
-    const Abstract::Element& UNUSED(element),
-    const Abstract::Camera& camera) {
+    const IColorizer& UNUSED(element),
+    const ICamera& camera) {
     cached.colors.clear();
     cached.triangles.clear();
 
@@ -48,7 +48,7 @@ void SurfaceRenderer::initialize(const Storage& storage,
     }
 }
 
-SharedPtr<Bitmap> SurfaceRenderer::render(const Abstract::Camera& UNUSED(camera),
+SharedPtr<Bitmap> SurfaceRenderer::render(const ICamera& UNUSED(camera),
     const RenderParams& params,
     Statistics& stats) const {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);

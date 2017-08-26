@@ -5,8 +5,8 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2017
 
-#include "objects/geometry/Box.h"
 #include "objects/containers/Array.h"
+#include "objects/geometry/Box.h"
 #include <random>
 
 NAMESPACE_SPH_BEGIN
@@ -80,16 +80,15 @@ public:
 };
 
 
-namespace Abstract {
-    /// Polymorphic holder allowing to store any RNG.
-    class Rng : public Polymorphic {
-    public:
-        /// Generates a random number.
-        virtual Float operator()(const int s = 0) = 0;
-    };
-}
+/// Polymorphic holder allowing to store any RNG (type erasure).
+class IRng : public Polymorphic {
+public:
+    /// Generates a random number.
+    virtual Float operator()(const int s = 0) = 0;
+};
+
 template <typename TRng>
-class RngWrapper : public Abstract::Rng {
+class RngWrapper : public IRng {
 private:
     TRng rng;
 

@@ -58,7 +58,6 @@ SOURCES += \
     physics/TimeFormat.cpp \
     quantities/QuantityIds.cpp \
     quantities/Storage.cpp \
-    run/Run.cpp \
     sph/Diagnostics.cpp \
     sph/Material.cpp \
     sph/boundary/Boundary.cpp \
@@ -85,7 +84,8 @@ SOURCES += \
     system/Process.cpp \
     mpi/Mpi.cpp \
     post/Analysis.cpp \
-    objects/wrappers/Interval.cpp
+    objects/wrappers/Interval.cpp \
+    run/IRun.cpp
 
 HEADERS += \
     commmon/ForwardDecl.h \
@@ -133,7 +133,6 @@ HEADERS += \
     objects/containers/StaticArray.h \
     objects/utility/StringUtils.h \
     objects/containers/Tuple.h \
-    objects/finders/AbstractFinder.h \
     objects/finders/BruteForceFinder.h \
     objects/finders/LinkedList.h \
     objects/finders/Linkedlist.h \
@@ -166,15 +165,12 @@ HEADERS += \
     physics/Rheology.h \
     physics/TimeFormat.h \
     post/Plot.h \
-    quantities/AbstractMaterial.h \
     quantities/Iterate.h \
     quantities/Quantity.h \
     quantities/QuantityHelpers.h \
     quantities/QuantityIds.h \
     quantities/Storage.h \
-    run/Run.h \
     sph/Diagnostics.h \
-    sph/Material.h \
     sph/boundary/Boundary.h \
     sph/equations/Accumulated.h \
     sph/equations/Derivative.h \
@@ -220,7 +216,6 @@ HEADERS += \
     thread/CheckFunction.h \
     thread/Pool.h \
     thread/ThreadLocal.h \
-    timestepping/AbstractSolver.h \
     timestepping/TimeStepCriterion.h \
     timestepping/TimeStepping.h \
     quantities/Particle.h \
@@ -229,7 +224,6 @@ HEADERS += \
     post/MarchingCubes.h \
     post/MeshFile.h \
     gravity/Moments.h \
-    gravity/AbstractGravity.h \
     gravity/BruteForceGravity.h \
     objects/finders/BruteForceFinder.h \
     objects/wrappers/RawPtr.h \
@@ -245,4 +239,11 @@ HEADERS += \
     post/Analysis.h \
     objects/utility/OperatorTemplate.h \
     objects/containers/Map.h \
-    objects/wrappers/Interval.h
+    objects/wrappers/Interval.h \
+    timestepping/ISolverr.h \
+    quantities/IMaterial.h \
+    gravity/IGravity.h \
+    objects/finders/INeighbourFinder.h \
+    run/IRun.h \
+    sph/Materials.h \
+    objects/geometry/Domain.h

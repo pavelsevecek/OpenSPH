@@ -1,6 +1,6 @@
 #include "physics/Rheology.h"
 #include "physics/Damage.h"
-#include "quantities/AbstractMaterial.h"
+#include "quantities/IMaterial.h"
 #include "quantities/Storage.h"
 
 NAMESPACE_SPH_BEGIN
@@ -8,7 +8,7 @@ NAMESPACE_SPH_BEGIN
 VonMisesRheology::VonMisesRheology()
     : VonMisesRheology(makeAuto<NullDamage>()) {}
 
-VonMisesRheology::VonMisesRheology(AutoPtr<Abstract::Damage>&& damage)
+VonMisesRheology::VonMisesRheology(AutoPtr<IDamage>&& damage)
     : damage(std::move(damage)) {
     ASSERT(this->damage != nullptr);
 }
@@ -16,7 +16,7 @@ VonMisesRheology::VonMisesRheology(AutoPtr<Abstract::Damage>&& damage)
 VonMisesRheology::~VonMisesRheology() = default;
 
 void VonMisesRheology::create(Storage& storage,
-    Abstract::Material& material,
+    IMaterial& material,
     const MaterialInitialContext& context) const {
     ASSERT(storage.getMaterialCnt() == 1);
     storage.insert<Float>(QuantityId::STRESS_REDUCING, OrderEnum::ZERO, 1._f);
@@ -72,7 +72,7 @@ void VonMisesRheology::integrate(Storage& storage, const MaterialView material) 
     damage->integrate(storage, material);
 }
 
-DruckerPragerRheology::DruckerPragerRheology(AutoPtr<Abstract::Damage>&& damage)
+DruckerPragerRheology::DruckerPragerRheology(AutoPtr<IDamage>&& damage)
     : damage(std::move(damage)) {
     if (this->damage == nullptr) {
         this->damage = makeAuto<NullDamage>();
@@ -82,7 +82,7 @@ DruckerPragerRheology::DruckerPragerRheology(AutoPtr<Abstract::Damage>&& damage)
 DruckerPragerRheology::~DruckerPragerRheology() = default;
 
 void DruckerPragerRheology::create(Storage& storage,
-    Abstract::Material& material,
+    IMaterial& material,
     const MaterialInitialContext& context) const {
     ASSERT(storage.getMaterialCnt() == 1);
     /// \todo implement, this is copy+paste of von mises
@@ -123,7 +123,7 @@ void DruckerPragerRheology::integrate(Storage& storage, const MaterialView mater
 
 
 void ElasticRheology::create(Storage& storage,
-    Abstract::Material& UNUSED(material),
+    IMaterial& UNUSED(material),
     const MaterialInitialContext& UNUSED(context)) const {
     ASSERT(storage.getMaterialCnt() == 1);
     storage.insert<Float>(QuantityId::STRESS_REDUCING, OrderEnum::ZERO, 1._f);

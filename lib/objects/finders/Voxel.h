@@ -6,11 +6,11 @@
 /// \date 2016-2017
 
 #include "objects/containers/LookupMap.h"
-#include "objects/finders/AbstractFinder.h"
+#include "objects/finders/INeighbourFinder.h"
 
 NAMESPACE_SPH_BEGIN
 
-class VoxelFinder : public Abstract::Finder {
+class VoxelFinder : public INeighbourFinder {
 protected:
     LookupMap lut;
 

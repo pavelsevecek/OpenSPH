@@ -3,7 +3,7 @@
 #include "gui/Settings.h"
 #include "gui/objects/Bitmap.h"
 #include "gui/objects/Camera.h"
-#include "gui/objects/Element.h"
+#include "gui/objects/Colorizer.h"
 #include "io/FileSystem.h"
 #include "objects/utility/StringUtils.h"
 #include "system/Statistics.h"
@@ -15,9 +15,9 @@
 NAMESPACE_SPH_BEGIN
 
 Movie::Movie(const GuiSettings& settings,
-    AutoPtr<Abstract::Renderer>&& renderer,
-    AutoPtr<Abstract::Camera>&& camera,
-    Array<SharedPtr<Abstract::Element>>&& elements,
+    AutoPtr<IRenderer>&& renderer,
+    AutoPtr<ICamera>&& camera,
+    Array<SharedPtr<IColorizer>>&& elements,
     const RenderParams& params)
     : renderer(std::move(renderer))
     , camera(std::move(camera))
@@ -55,7 +55,7 @@ void Movie::onTimeStep(const Storage& storage, Statistics& stats) {
         Path actPath(replace(path.native(), "%e", escapeElementName(e->name())));
 
         // initialize the element
-        e->initialize(storage, ElementSource::POINTER_TO_STORAGE);
+        e->initialize(storage, ColorizerSource::POINTER_TO_STORAGE);
 
         // initialize render with new data (outside main thread)
         renderer->initialize(storage, *e, *camera);

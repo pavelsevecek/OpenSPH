@@ -15,19 +15,16 @@
 
 NAMESPACE_SPH_BEGIN
 
-namespace Abstract {
-
-    /// \brief Task to be executed by one of available threads
-    class Task : public Polymorphic {
-    public:
-        /// Executes the task.
-        virtual void operator()() = 0;
-    };
-}
+/// \brief Task to be executed by one of available threads
+class ITask : public Polymorphic {
+public:
+    /// Executes the task.
+    virtual void operator()() = 0;
+};
 
 /// \brief Task representing a simple lambda, functor or other callable object.
 template <typename TFunctor>
-class SimpleTask : public Abstract::Task {
+class SimpleTask : public ITask {
 private:
     TFunctor functor;
 
@@ -42,7 +39,7 @@ public:
 
 /// Creates a simple task, utilizing type deduction
 template <typename TFunctor>
-AutoPtr<Abstract::Task> makeTask(TFunctor&& functor) {
+AutoPtr<ITask> makeTask(TFunctor&& functor) {
     return makeAuto<SimpleTask<TFunctor>>(std::move(functor));
 }
 
@@ -54,7 +51,7 @@ private:
     Array<AutoPtr<std::thread>> threads;
 
     /// Queue of waiting tasks.
-    std::queue<AutoPtr<Abstract::Task>> tasks;
+    std::queue<AutoPtr<ITask>> tasks;
 
     /// Used for synchronization of the task queue
     std::condition_variable taskVar;
@@ -86,7 +83,7 @@ public:
     /// \brief Submits a task into the thread pool.
     ///
     /// The task will be executed asynchronously once tasks submitted before it are completed.
-    void submit(AutoPtr<Abstract::Task>&& task);
+    void submit(AutoPtr<ITask>&& task);
 
     /// Blocks until all submitted tasks has been finished.
     void waitForAll();
@@ -113,7 +110,7 @@ public:
     static ThreadPool& getGlobalInstance();
 
 private:
-    AutoPtr<Abstract::Task> getNextTask();
+    AutoPtr<ITask> getNextTask();
 };
 
 

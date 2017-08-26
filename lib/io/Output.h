@@ -25,44 +25,44 @@ public:
     Path getNextPath(const Statistics& stats) const;
 };
 
-namespace Abstract {
-    class Column;
 
-    /// \brief Interface for saving quantities of SPH particles to a file.
+class ITextColumn;
+
+/// \brief Interface for saving quantities of SPH particles to a file.
+///
+/// Saves all values in the storage or selected few quantities, depending on implementation. It is also
+/// implementation-defined whether the saved representation of storage is lossless, i.e. whether the
+/// storage can be loaded with \ref load without a loss in precision.
+class IOutput : public Polymorphic {
+protected:
+    OutputFile paths;
+
+public:
+    /// \brief Constructs output object for loading.
     ///
-    /// Saves all values in the storage or selected few quantities, depending on implementation. It is also
-    /// implementation-defined whether the saved representation of storage is lossless, i.e. whether the
-    /// storage can be loaded with \ref load without a loss in precision.
-    class Output : public Polymorphic {
-    protected:
-        OutputFile paths;
+    /// Object in this state cannot call \ref dump, checked by assert. It can only be used to load storage
+    /// using \ref load. Object capable of dumping storage can be then created using copy/move operator.
+    IOutput() = default;
 
-    public:
-        /// \brief Constructs output object for loading.
-        ///
-        /// Object in this state cannot call \ref dump, checked by assert. It can only be used to load storage
-        /// using \ref load. Object capable of dumping storage can be then created using copy/move operator.
-        Output() = default;
+    /// \brief Constructs output given the file name of the output.
+    ///
+    /// The name is used for all output files, meaning if \ref dump is called twice, the second output
+    /// file will override the previous one. To avoid this, the fileMask can contain following wildcards:
+    /// - '%d' - replaced by the dump number, starting from 0, incremented every dump.
+    /// - '%t' - replaced by current simulation time (with _ instead of decimal separator).
+    IOutput(const Path& fileMask);
 
-        /// \brief Constructs output given the file name of the output.
-        ///
-        /// The name is used for all output files, meaning if \ref dump is called twice, the second output
-        /// file will override the previous one. To avoid this, the fileMask can contain following wildcards:
-        /// - '%d' - replaced by the dump number, starting from 0, incremented every dump.
-        /// - '%t' - replaced by current simulation time (with _ instead of decimal separator).
-        Output(const Path& fileMask);
+    /// Saves data from particle storage into the file. Returns the filename of the dump.
+    virtual Path dump(Storage& storage, const Statistics& stats) = 0;
 
-        /// Saves data from particle storage into the file. Returns the filename of the dump.
-        virtual Path dump(Storage& storage, const Statistics& stats) = 0;
+    /// Loads data from the file into the storage. This will remove any data previously stored in storage.
+    /// Can be used to continue simulation from saved snapshot.
+    virtual Outcome load(const Path& path, Storage& storage) = 0;
+};
 
-        /// Loads data from the file into the storage. This will remove any data previously stored in storage.
-        /// Can be used to continue simulation from saved snapshot.
-        virtual Outcome load(const Path& path, Storage& storage) = 0;
-    };
-}
 
 /// Output saving data to text (human readable) file.
-class TextOutput : public Abstract::Output {
+class TextOutput : public IOutput {
 public:
     enum class Options {
         SCIENTIFIC = 1 << 0, ///< Writes all numbers in scientific format
@@ -75,7 +75,7 @@ private:
     Flags<Options> flags;
 
     /// Value columns saved into the file
-    Array<AutoPtr<Abstract::Column>> columns;
+    Array<AutoPtr<ITextColumn>> columns;
 
 public:
     TextOutput() = default;
@@ -86,9 +86,9 @@ public:
 
     /// Adds a new column to be saved into the file. By default, the file has no columns, all quantities must
     /// be explicitly added using this function. The column is added to the right end of the text file.
-    /// \param column New column to save; see \ref Abstract::Column and derived classes
+    /// \param column New column to save; see \ref ITextColumn and derived classes
     /// \return Reference to itself, allowing to queue calls
-    TextOutput& add(AutoPtr<Abstract::Column>&& column);
+    TextOutput& add(AutoPtr<ITextColumn>&& column);
 
     virtual Path dump(Storage& storage, const Statistics& stats) override;
 
@@ -176,7 +176,7 @@ public:
 ///  - deserialized materials are created using Factory::getMaterial from loaded settings. This won't be
 ///    correct if the material was created differently, i.e. if the material doesn't match the information in
 ///    the settings it holds. This should be enforced somehow.
-class BinaryOutput : public Abstract::Output {
+class BinaryOutput : public IOutput {
 private:
     static constexpr Size PADDING_SIZE = 220;
 
@@ -262,7 +262,7 @@ struct PkdgravParams {
 /// SPH particles are converted into hard spheres, moving with the velocity of the particle and no angular
 /// velocity. Quantities are converted into G=1 units.
 /// See \cite Richardson_etal_2000.
-class PkdgravOutput : public Abstract::Output {
+class PkdgravOutput : public IOutput {
 private:
     /// Parameters of the SPH->pkdgrav conversion
     PkdgravParams params;
@@ -292,10 +292,10 @@ private:
     }
 };
 
-class NullOutput : public Abstract::Output {
+class NullOutput : public IOutput {
 public:
     NullOutput()
-        : Abstract::Output() {}
+        : IOutput() {}
 
     virtual Path dump(Storage& UNUSED(storage), const Statistics& UNUSED(stats)) override {
         return Path();

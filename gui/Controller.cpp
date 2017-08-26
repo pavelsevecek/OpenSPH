@@ -2,13 +2,13 @@
 #include "gui/Factory.h"
 #include "gui/MainLoop.h"
 #include "gui/objects/Camera.h"
-#include "gui/objects/Element.h"
+#include "gui/objects/Colorizer.h"
 #include "gui/objects/Movie.h"
 #include "gui/renderers/ParticleRenderer.h"
 #include "gui/renderers/SurfaceRenderer.h"
 #include "gui/windows/MainWindow.h"
 #include "gui/windows/OrthoPane.h"
-#include "run/Run.h"
+#include "run/IRun.h"
 #include "system/Statistics.h"
 #include "system/Timer.h"
 #include "thread/CheckFunction.h"
@@ -35,7 +35,7 @@ Controller::~Controller() = default;
 
 void Controller::Vis::initialize(const GuiSettings& gui) {
     renderer = makeAuto<ParticleRenderer>(); // makeAuto<SurfaceRenderer>();
-    element = makeAuto<VelocityElement>(gui.get<Interval>(GuiSettingsId::PALETTE_VELOCITY));
+    element = makeAuto<VelocityColorizer>(gui.get<Interval>(GuiSettingsId::PALETTE_VELOCITY));
     timer = makeAuto<Timer>(gui.get<int>(GuiSettingsId::VIEW_MAX_FRAMERATE), TimerFlags::START_EXPIRED);
     const Point size(gui.get<int>(GuiSettingsId::RENDER_WIDTH), gui.get<int>(GuiSettingsId::RENDER_HEIGHT));
     camera = Factory::getCamera(gui, size);
@@ -45,7 +45,7 @@ bool Controller::Vis::isInitialized() {
     return renderer && stats && element && camera;
 }
 
-void Controller::start(AutoPtr<Abstract::Run>&& run) {
+void Controller::start(AutoPtr<IRun>&& run) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
     // stop the current one
     this->stop(true);
@@ -160,7 +160,7 @@ bool Controller::isQuitting() const {
     return status == Status::QUITTING;
 }
 
-Array<SharedPtr<Abstract::Element>> Controller::getElementList(const Storage& storage,
+Array<SharedPtr<IColorizer>> Controller::getElementList(const Storage& storage,
     const bool forMovie) const {
     // there is no difference between 'physical' quantities we wish to see (density, energy, ...) and
     // other 'internal' quantities (activation strains, yield reduction, ...) in particle storage,
@@ -168,13 +168,13 @@ Array<SharedPtr<Abstract::Element>> Controller::getElementList(const Storage& st
     /// \todo should be loaded from a file
     // we only add the element if it is contained in the storage
 
-    Array<ElementId> elementIds{
-        ElementId::VELOCITY, ElementId::DENSITY_PERTURBATION,
+    Array<ColorizerId> elementIds{
+        ColorizerId::VELOCITY, ColorizerId::DENSITY_PERTURBATION,
     };
     if (!forMovie) {
-        elementIds.push(ElementId::MOVEMENT_DIRECTION);
-        elementIds.push(ElementId::ACCELERATION);
-        elementIds.push(ElementId::BOUNDARY);
+        elementIds.push(ColorizerId::MOVEMENT_DIRECTION);
+        elementIds.push(ColorizerId::ACCELERATION);
+        elementIds.push(ColorizerId::BOUNDARY);
     }
 
     Array<QuantityId> quantityElementIds{
@@ -188,13 +188,13 @@ Array<SharedPtr<Abstract::Element>> Controller::getElementList(const Storage& st
         quantityElementIds.push(QuantityId::DENSITY);
         quantityElementIds.push(QuantityId::AV_ALPHA);
     }
-    Array<SharedPtr<Abstract::Element>> elements;
-    for (ElementId id : elementIds) {
+    Array<SharedPtr<IColorizer>> elements;
+    for (ColorizerId id : elementIds) {
         elements.push(Factory::getElement(gui, id));
     }
     for (QuantityId id : quantityElementIds) {
         if (storage.has(id)) {
-            elements.push(Factory::getElement(gui, ElementId(id)));
+            elements.push(Factory::getElement(gui, ColorizerId(id)));
         }
     }
     return elements;
@@ -219,7 +219,7 @@ SharedPtr<Bitmap> Controller::getRenderedBitmap() {
     return bitmap;
 }
 
-SharedPtr<Abstract::Camera> Controller::getCurrentCamera() const {
+SharedPtr<ICamera> Controller::getCurrentCamera() const {
     ASSERT(vis.camera != nullptr);
     return vis.camera;
 }
@@ -279,7 +279,7 @@ Optional<Particle> Controller::getIntersectedParticle(const Point position, cons
     }
 }
 
-void Controller::setElement(const SharedPtr<Abstract::Element>& newElement) {
+void Controller::setElement(const SharedPtr<IColorizer>& newElement) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
     vis.element = newElement;
     if (status != Status::RUNNING) {
@@ -289,7 +289,7 @@ void Controller::setElement(const SharedPtr<Abstract::Element>& newElement) {
         if (!storage) {
             return;
         }
-        vis.element->initialize(*storage, ElementSource::POINTER_TO_STORAGE);
+        vis.element->initialize(*storage, ColorizerSource::POINTER_TO_STORAGE);
         vis.renderer->initialize(*storage, *vis.element, *vis.camera);
         window->Refresh();
     }
@@ -313,8 +313,8 @@ SharedPtr<Movie> Controller::createMovie(const Storage& storage) {
     params.size.x = gui.get<int>(GuiSettingsId::IMAGES_WIDTH);
     params.size.y = gui.get<int>(GuiSettingsId::IMAGES_HEIGHT);
 
-    AutoPtr<Abstract::Renderer> renderer;
-    Array<SharedPtr<Abstract::Element>> elements;
+    AutoPtr<IRenderer> renderer;
+    Array<SharedPtr<IColorizer>> elements;
     switch (gui.get<RendererEnum>(GuiSettingsId::IMAGES_RENDERER)) {
     case RendererEnum::PARTICLE:
         renderer = makeAuto<ParticleRenderer>();
@@ -322,13 +322,13 @@ SharedPtr<Movie> Controller::createMovie(const Storage& storage) {
         break;
     case RendererEnum::SURFACE:
         renderer = makeAuto<SurfaceRenderer>(gui);
-        elements = { makeShared<VelocityElement>(gui.get<Interval>(GuiSettingsId::PALETTE_VELOCITY)) };
+        elements = { makeShared<VelocityColorizer>(gui.get<Interval>(GuiSettingsId::PALETTE_VELOCITY)) };
         break;
     default:
         STOP;
     }
     const Point size(gui.get<int>(GuiSettingsId::IMAGES_WIDTH), gui.get<int>(GuiSettingsId::IMAGES_HEIGHT));
-    AutoPtr<Abstract::Camera> camera = Factory::getCamera(gui, size);
+    AutoPtr<ICamera> camera = Factory::getCamera(gui, size);
     return makeShared<Movie>(gui, std::move(renderer), std::move(camera), std::move(elements), params);
 }
 
@@ -352,7 +352,7 @@ void Controller::redraw(const Storage& storage, Statistics& stats) {
 
         // initialize the currently selected element
         ASSERT(vis.isInitialized());
-        vis.element->initialize(storage, ElementSource::CACHE_ARRAYS);
+        vis.element->initialize(storage, ColorizerSource::CACHE_ARRAYS);
 
         // update the renderer with new data
         vis.renderer->initialize(storage, *vis.element, *vis.camera);

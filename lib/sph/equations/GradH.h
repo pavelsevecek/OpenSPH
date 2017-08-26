@@ -22,7 +22,7 @@ NAMESPACE_SPH_BEGIN
 /// To use grad-h properly, it would be probably necessary to create new solver and also modify equations
 /// (derivatives) affected by grad-h terms (uff...)
 
-class GradH : public Abstract::EquationTerm {
+class GradH : public IEquationTerm {
 private:
     class Derivative : public DerivativeTemplate<Derivative> {
     private:
@@ -84,7 +84,7 @@ public:
         }
     }
 
-    virtual void create(Storage& storage, Abstract::Material& UNUSED(material)) const override {
+    virtual void create(Storage& storage, IMaterial& UNUSED(material)) const override {
         storage.insert<Float>(QuantityId::GRAD_H, OrderEnum::ZERO, 1._f);
     }
 };

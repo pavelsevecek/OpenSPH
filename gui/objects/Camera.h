@@ -5,8 +5,8 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mf.cuni.cz)
 /// \date 2016-2017
 
-#include "objects/geometry/Tensor.h"
 #include "gui/objects/Point.h"
+#include "objects/geometry/Tensor.h"
 #include "objects/wrappers/Optional.h"
 
 NAMESPACE_SPH_BEGIN
@@ -27,30 +27,27 @@ struct Ray {
     Vector target;
 };
 
-namespace Abstract {
+/// \brief Interface defining a camera or view, used by a renderer.
+class ICamera : public Polymorphic {
+public:
+    /// Returns projected position of particle on the image. If the particle is outside of the image
+    /// region or is clipped by the projection, returns NOTHING.
+    virtual Optional<ProjectedPoint> project(const Vector& r) const = 0;
 
-    /// \brief Interface defining a camera or view, used by a renderer.
-    class Camera : public Polymorphic {
-    public:
-        /// Returns projected position of particle on the image. If the particle is outside of the image
-        /// region or is clipped by the projection, returns NOTHING.
-        virtual Optional<ProjectedPoint> project(const Vector& r) const = 0;
+    /// Returns a ray in particle coordinates corresponding to given point in the image plane.
+    virtual Ray unproject(const Point point) const = 0;
 
-        /// Returns a ray in particle coordinates corresponding to given point in the image plane.
-        virtual Ray unproject(const Point point) const = 0;
+    /// Zooms the camera. This shall be equivalent to transforming the view with scaling matrix, alhough
+    /// it can be implemented differently.
+    /// \param magnitude Relative zoom amount, value <1 means zooming out, value >1 means zooming in.
+    virtual void zoom(const float magnitude) = 0;
 
-        /// Zooms the camera. This shall be equivalent to transforming the view with scaling matrix, alhough
-        /// it can be implemented differently.
-        /// \param magnitude Relative zoom amount, value <1 means zooming out, value >1 means zooming in.
-        virtual void zoom(const float magnitude) = 0;
+    /// Transforms the current view by given matrix.
+    virtual void transform(const Tensor& matrix) = 0;
 
-        /// Transforms the current view by given matrix.
-        virtual void transform(const Tensor& matrix) = 0;
-
-        /// Moves the camera by relative offset
-        virtual void pan(const Point offset) = 0;
-    };
-}
+    /// Moves the camera by relative offset
+    virtual void pan(const Point offset) = 0;
+};
 
 
 struct OrthoCameraData {
@@ -64,7 +61,7 @@ struct OrthoCameraData {
     Vector u, v;
 };
 
-class OrthoCamera : public Abstract::Camera {
+class OrthoCamera : public ICamera {
 private:
     Point imageSize;
     Point center;

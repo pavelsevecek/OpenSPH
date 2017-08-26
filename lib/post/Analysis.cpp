@@ -27,7 +27,7 @@ Size Post::findComponents(const Storage& storage,
     const Size unassigned = std::numeric_limits<Size>::max();
     indices.fill(unassigned);
     Size componentIdx = 0;
-    AutoPtr<Abstract::Finder> finder = Factory::getFinder(settings);
+    AutoPtr<INeighbourFinder> finder = Factory::getFinder(settings);
     finder->build(r);
     const Float radius = Factory::getKernel<3>(settings).radius();
 
@@ -227,7 +227,7 @@ Expected<Storage> Post::parsePkdgravOutput(const Path& path) {
     TextOutput output;
 
     // 1) Particle index -- we don't really need that, just add dummy columnm
-    class DummyColumn : public Abstract::Column {
+    class DummyColumn : public ITextColumn {
     private:
         ValueEnum type;
 

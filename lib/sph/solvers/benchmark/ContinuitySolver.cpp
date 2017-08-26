@@ -10,7 +10,7 @@ BENCHMARK("ContinuitySolver simpler", "[solvers]", Benchmark::Context& context) 
     settings.set(BodySettingsId::DENSITY, 100._f).set(BodySettingsId::ENERGY, 10._f);
     Storage storage = Tests::getSolidStorage(1000, settings);
     ContinuitySolver solver(RunSettings::getDefaults());
-    Abstract::Material& material = storage.getMaterial(0);
+    IMaterial& material = storage.getMaterial(0);
     solver.create(storage, material);
 
     Statistics stats;

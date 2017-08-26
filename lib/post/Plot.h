@@ -26,27 +26,26 @@ struct ErrorPlotPlot : public OperatorTemplate<ErrorPlotPlot> {
     Vector point;
 };
 
-namespace Abstract {
-    /// \brief Defines a continuous function from a set of discrete poitns
-    class Interpolation : public Polymorphic {
-    protected:
-        Array<PlotPoint> points;
+/// \brief Defines a continuous function from a set of discrete poitns
+class IInterpolation : public Polymorphic {
+protected:
+    Array<PlotPoint> points;
 
-    public:
-        Interpolation(Array<PlotPoint>&& points)
-            : points(std::move(points)) {
-            auto compare = [](PlotPoint& p1, PlotPoint& p2) { return p1.x < p2.x; };
-            std::sort(this->points.begin(), this->points.end(), compare);
-        }
+public:
+    IInterpolation(Array<PlotPoint>&& points)
+        : points(std::move(points)) {
+        auto compare = [](PlotPoint& p1, PlotPoint& p2) { return p1.x < p2.x; };
+        std::sort(this->points.begin(), this->points.end(), compare);
+    }
 
-        virtual Array<PlotPoint> interpolate(const Interval& range, const Float step) const = 0;
-    };
-}
+    virtual Array<PlotPoint> interpolate(const Interval& range, const Float step) const = 0;
+};
 
-class LinearInterpolation : public Abstract::Interpolation {
+
+class LinearInterpolation : public IInterpolation {
 public:
     LinearInterpolation(Array<PlotPoint>&& points)
-        : Abstract::Interpolation(std::move(points)) {}
+        : IInterpolation(std::move(points)) {}
 
     virtual Array<PlotPoint> interpolate(const Interval& range, const Float step) const {
         Array<PlotPoint> result;
@@ -65,7 +64,7 @@ public:
     }
 };
 
-class CatmullRomInterpolation : public Abstract::Interpolation {
+class CatmullRomInterpolation : public IInterpolation {
 public:
     Float operator()() const {
         PlotPoint p0, p1, p2, p3;
@@ -82,38 +81,37 @@ private:
     }
 };
 
-namespace Abstract {
 
-    /// \brief Interface for constructing generic plots from quantities stored in storage.
-    ///
-    /// The plot can currently be only 2D, typically showing a quantity dependence on time or on some spatial
-    /// coordinate.
-    class Plot : public Polymorphic {
-    protected:
-        struct {
-            Interval x;
-            Interval y;
-        } ranges;
+/// \brief Interface for constructing generic plots from quantities stored in storage.
+///
+/// The plot can currently be only 2D, typically showing a quantity dependence on time or on some spatial
+/// coordinate.
+class IPlot : public Polymorphic {
+protected:
+    struct {
+        Interval x;
+        Interval y;
+    } ranges;
 
-    public:
-        Interval getRangeX() const {
-            return ranges.x;
-        }
+public:
+    Interval getRangeX() const {
+        return ranges.x;
+    }
 
-        Interval getRangeY() const {
-            return ranges.y;
-        }
+    Interval getRangeY() const {
+        return ranges.y;
+    }
 
-        virtual void onTimeStep(const Storage& storage, const Statistics& stats) = 0;
+    virtual void onTimeStep(const Storage& storage, const Statistics& stats) = 0;
 
-        virtual Float plot(const Float x) const = 0;
-    };
-}
+    virtual Float plot(const Float x) const = 0;
+};
+
 
 /// \brief Plot of a simple predefined function.
 ///
 /// Can be used for comparison between computed numerical results and an analytical solution.
-/*class FunctionPlot : public Abstract::Plot {
+/*class FunctionPlot : public IPlot {
 private:
     std::function<Float(Float)> func;
     Size numPoints;
@@ -142,7 +140,7 @@ public:
 };*/
 
 /// Plot averaging quantities
-/*class WeightedPlot : public Abstract::Plot {
+/*class WeightedPlot : public IPlot {
 protected:
     Array<Float> values;
     Array<Float> weights;
@@ -172,7 +170,7 @@ public:
 };*/
 
 /*template <typename TDerived>
-class SpatialPlot : public Abstract::Plot {
+class SpatialPlot : public IPlot {
 protected:
     QuantityId id;
     Array<PlotPoint> points;
@@ -229,7 +227,7 @@ public:
 /// Plot shows a given segment of history of a quantity. This segment moves as time goes. Alternatively, the
 /// segment can be (formally) infinite, meaning the plot shows the whole history of a quantity; the x-range is
 /// rescaled as time goes.
-class TemporalPlot : public Abstract::Plot {
+class TemporalPlot : public IPlot {
 private:
     Range timeRange;
 

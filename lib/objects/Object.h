@@ -59,8 +59,6 @@ NAMESPACE_SPH_BEGIN
 #define SPH_UNLIKELY(x) __builtin_expect((x), 0)
 
 
-namespace Abstract {}
-
 /// Object with deleted copy constructor and copy operator
 struct Noncopyable {
     Noncopyable() = default;

@@ -16,12 +16,10 @@ class Statistics;
 class Bitmap;
 class Timer;
 class Point;
-namespace Abstract {
-    class Run;
-    class Renderer;
-    class Camera;
-    class Element;
-}
+class IRun;
+class IRenderer;
+class ICamera;
+class IColorizer;
 
 
 class Controller {
@@ -37,7 +35,7 @@ private:
         std::thread thread;
 
         /// SPH simulation
-        AutoPtr<Abstract::Run> run;
+        AutoPtr<IRun> run;
     } sph;
 
     /// Object for saving image snapshots of the simulations
@@ -51,13 +49,13 @@ private:
         AutoPtr<Statistics> stats;
 
         /// Rendered used for rendering the view
-        AutoPtr<Abstract::Renderer> renderer;
+        AutoPtr<IRenderer> renderer;
 
         /// Currently selected element
-        SharedPtr<Abstract::Element> element;
+        SharedPtr<IColorizer> element;
 
         /// Current camera of the view. The object is shared with parent model.
-        SharedPtr<Abstract::Camera> camera;
+        SharedPtr<ICamera> camera;
 
         /// Current rotation angle of the view
         /// \todo this is a little hardcoded for ortho camera and noninternal frame, possibly generalize
@@ -115,13 +113,13 @@ public:
     /// \param storage Particle storage containing data for the element
     /// \param forMovie Whether to return list of elements for image output or what interactive preview. Some
     ///                 elements are skipped when create image files (boundary, ...)
-    Array<SharedPtr<Abstract::Element>> getElementList(const Storage& storage, const bool forMovie) const;
+    Array<SharedPtr<IColorizer>> getElementList(const Storage& storage, const bool forMovie) const;
 
     /// Renders a bitmap of current view. Can only be called from main thread.
     SharedPtr<Bitmap> getRenderedBitmap();
 
     /// Returns the camera currently used for the rendering
-    SharedPtr<Abstract::Camera> getCurrentCamera() const;
+    SharedPtr<ICamera> getCurrentCamera() const;
 
     /// Returns the particle under given image position.
     /// \param position Position in image coordinates, corresponding to the latest rendered image.
@@ -136,7 +134,7 @@ public:
     /// \section Display setters
 
     /// Sets a new element to be displayed
-    void setElement(const SharedPtr<Abstract::Element>& newElement);
+    void setElement(const SharedPtr<IColorizer>& newElement);
 
     /// Sets a selected particle or changes the current selection. The selection only affects the interactive
     /// view; it can be used by the renderer to highlight a selected particle, and the window can provide
@@ -151,7 +149,7 @@ public:
     /// called. If a simulation is currently running, it waits until the simulation stops and then starts the
     /// new simulation.
     /// \param run New simulation to start
-    void start(AutoPtr<Abstract::Run>&& run);
+    void start(AutoPtr<IRun>&& run);
 
     /// Starts the simulation with current setup. Function does nothing if the simulation is already running.
     /// Can be used to continue paused simulation.

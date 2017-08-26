@@ -38,7 +38,7 @@ public:
     }
 };
 
-class HeatDiffusionEquation : public Abstract::EquationTerm {
+class HeatDiffusionEquation : public IEquationTerm {
 public:
     virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override {
         // add laplacian of energy to the list of derivatives
@@ -49,7 +49,7 @@ public:
 
     virtual void finalize(Storage& UNUSED(storage)) override {}
 
-    virtual void create(Storage& UNUSED(storage), Abstract::Material& UNUSED(material)) const override {}
+    virtual void create(Storage& UNUSED(storage), IMaterial& UNUSED(material)) const override {}
 };
 
 

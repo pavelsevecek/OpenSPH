@@ -8,7 +8,7 @@
 
 using namespace Sph;
 
-static void benchmarkGravity(Abstract::Gravity& gravity, Benchmark::Context& context) {
+static void benchmarkGravity(IGravity& gravity, Benchmark::Context& context) {
     BodySettings settings;
     settings.set(BodySettingsId::DENSITY, 100._f)
         .set(BodySettingsId::ENERGY, 10._f)

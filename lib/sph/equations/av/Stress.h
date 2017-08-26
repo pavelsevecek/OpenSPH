@@ -18,7 +18,7 @@ NAMESPACE_SPH_BEGIN
 /// The implementation more or less follows paper 'SPH without a tensile instability' by Monaghan \cite
 /// Monaghan_1999.
 /// \note This object cannot be used within Balsara switch
-class StressAV : public Abstract::EquationTerm {
+class StressAV : public IEquationTerm {
 private:
     LutKernel<3> kernel;
 
@@ -121,7 +121,7 @@ public:
 
     virtual void finalize(Storage& UNUSED(storage)) override {}
 
-    virtual void create(Storage& storage, Abstract::Material& UNUSED(material)) const override {
+    virtual void create(Storage& storage, IMaterial& UNUSED(material)) const override {
         Quantity& q = storage.insert<Float>(QuantityId::INTERPARTICLE_SPACING_KERNEL, OrderEnum::ZERO, 0._f);
         ArrayView<Float> wp = q.getValue<Float>();
         ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);

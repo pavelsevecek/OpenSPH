@@ -1,5 +1,5 @@
 #include "post/MarchingCubes.h"
-#include "objects/finders/AbstractFinder.h"
+#include "objects/finders/INeighbourFinder.h"
 //#include "post/Components.h"
 #include "quantities/Storage.h"
 #include "sph/kernel/KernelFactory.h"
@@ -297,7 +297,7 @@ Size MarchingCubes::IDXS2[12] = { 1, 2, 3, 0, 5, 6, 7, 4, 4, 5, 6, 7 };
 
 MarchingCubes::MarchingCubes(ArrayView<const Vector> r,
     const Float surfaceLevel,
-    const SharedPtr<Abstract::ScalarField>& field)
+    const SharedPtr<IScalarField>& field)
     : r(r)
     , surfaceLevel(surfaceLevel)
     , field(field) {}
@@ -408,10 +408,10 @@ INLINE Vector MarchingCubes::interpolate(const Vector& v1,
 }
 
 
-struct NumberDensityField : public Abstract::ScalarField {
+struct NumberDensityField : public IScalarField {
 private:
     LutKernel<3>& kernel;
-    Abstract::Finder& finder;
+    INeighbourFinder& finder;
 
     ArrayView<const Vector> r;
     ArrayView<const Float> m, rho;
@@ -425,7 +425,7 @@ public:
     NumberDensityField(const Storage& storage,
         const ArrayView<const Vector> r,
         LutKernel<3>& kernel,
-        Abstract::Finder& finder)
+        INeighbourFinder& finder)
         : kernel(kernel)
         , finder(finder)
         , r(r) {
@@ -475,7 +475,7 @@ Array<Triangle> getSurfaceMesh(const Storage& storage, const Float gridResolutio
     Array<Vector> r_bar(r.size());
     RunSettings settings;
     LutKernel<3> kernel = Factory::getKernel<3>(settings);
-    AutoPtr<Abstract::Finder> finder = Factory::getFinder(settings);
+    AutoPtr<INeighbourFinder> finder = Factory::getFinder(settings);
 
     finder->build(r);
     Array<NeighbourRecord> neighs;

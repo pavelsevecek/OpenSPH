@@ -6,7 +6,7 @@
 #include "quantities/Storage.h"
 #include "system/Settings.h"
 #include "tests/Approx.h"
-#include "timestepping/AbstractSolver.h"
+#include "timestepping/ISolver.h"
 #include "utils/SequenceTest.h"
 
 using namespace Sph;
@@ -52,12 +52,12 @@ TEST_CASE("Initial addBody", "[initial]") {
 }
 
 TEST_CASE("Initial custom solver", "[initial]") {
-    struct Solver : public Abstract::Solver {
+    struct Solver : public ISolver {
         mutable Size createCalled = 0;
 
         virtual void integrate(Storage& UNUSED(storage), Statistics& UNUSED(stats)) override {}
 
-        virtual void create(Storage& UNUSED(storage), Abstract::Material& UNUSED(material)) const override {
+        virtual void create(Storage& UNUSED(storage), IMaterial& UNUSED(material)) const override {
             createCalled++;
         }
     };

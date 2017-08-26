@@ -1,6 +1,6 @@
 #include "quantities/Storage.h"
 #include "physics/Eos.h"
-#include "quantities/AbstractMaterial.h"
+#include "quantities/IMaterial.h"
 #include "quantities/Iterate.h"
 #include "system/Factory.h"
 
@@ -40,7 +40,7 @@ Size ConstStorageSequence::size() const {
 
 Storage::Storage() = default;
 
-Storage::Storage(AutoPtr<Abstract::Material>&& material) {
+Storage::Storage(AutoPtr<IMaterial>&& material) {
     materials.push(std::move(material));
 }
 

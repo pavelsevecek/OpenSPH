@@ -1,6 +1,6 @@
 #pragma once
 
-#include "gravity/AbstractGravity.h"
+#include "gravity/IGravity.h"
 #include "objects/containers/List.h"
 #include "objects/finders/KdTree.h"
 #include "sph/kernel/GravityKernel.h"
@@ -10,7 +10,7 @@ NAMESPACE_SPH_BEGIN
 enum class MultipoleOrder;
 
 /// \brief Multipole approximation of distance particle.
-class BarnesHut : public Abstract::Gravity {
+class BarnesHut : public IGravity {
 protected:
     /// Source data
     ArrayView<const Vector> r;

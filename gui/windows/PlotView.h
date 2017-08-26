@@ -13,7 +13,7 @@ NAMESPACE_SPH_BEGIN
 
 class PlotView : public wxPanel {
 private:
-    AutoPtr<Abstract::Plot> plot;
+    AutoPtr<IPlot> plot;
     wxSize padding;
 
 public:

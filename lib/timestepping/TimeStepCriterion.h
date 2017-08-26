@@ -23,27 +23,24 @@ enum class CriterionId {
 
 std::ostream& operator<<(std::ostream& stream, const CriterionId id);
 
-namespace Abstract {
-
-    /// Base class for timestep setters.
-    class TimeStepCriterion : public Polymorphic {
-    public:
-        /// Returns the current time step.
-        /// \param storage Storage containing all physical quantities from which the time step is determined.
-        /// \param maxStep Maximal allowed time step.
-        /// \param stats Optional parameter used to save statistics of the criterion.
-        /// \returns Tuple, containing computed time step and ID of quantity that determined the value.
-        virtual Tuple<Float, CriterionId> compute(Storage& storage,
-            const Float maxStep,
-            Optional<Statistics&> stats = NOTHING) = 0;
-    };
-}
+/// \brief Base class for timestep setters.
+class ITimeStepCriterion : public Polymorphic {
+public:
+    /// Returns the current time step.
+    /// \param storage Storage containing all physical quantities from which the time step is determined.
+    /// \param maxStep Maximal allowed time step.
+    /// \param stats Optional parameter used to save statistics of the criterion.
+    /// \returns Tuple, containing computed time step and ID of quantity that determined the value.
+    virtual Tuple<Float, CriterionId> compute(Storage& storage,
+        const Float maxStep,
+        Optional<Statistics&> stats = NOTHING) = 0;
+};
 
 /// Criterion setting time step based on value-to-derivative ratio for time-dependent quantities.
 /// \todo add variability, currently sets timestep by mininum of all quantities and all particles, that may be
 /// too strict and limiting (one outlier will set timestep for all).
 /// \todo currently only used on first-order quantities.
-class DerivativeCriterion : public Abstract::TimeStepCriterion {
+class DerivativeCriterion : public ITimeStepCriterion {
 private:
     Float factor;
 
@@ -56,7 +53,7 @@ public:
 };
 
 /// Criterion settings time step based on computed acceleration of particles.
-class AccelerationCriterion : public Abstract::TimeStepCriterion {
+class AccelerationCriterion : public ITimeStepCriterion {
 public:
     virtual Tuple<Float, CriterionId> compute(Storage& storage,
         const Float maxStep,
@@ -64,7 +61,7 @@ public:
 };
 
 /// Time step based on CFL criterion.
-class CourantCriterion : public Abstract::TimeStepCriterion {
+class CourantCriterion : public ITimeStepCriterion {
 private:
     Float courant;
 
@@ -78,10 +75,10 @@ public:
 };
 
 
-/// Helper "virtual" criterion, wrapping multiple criteria under Abstract::AdaptiveTimeStep interface.
-class MultiCriterion : public Abstract::TimeStepCriterion {
+/// Helper "virtual" criterion, wrapping multiple criteria under ITimeStepCriterion interface.
+class MultiCriterion : public ITimeStepCriterion {
 private:
-    StaticArray<AutoPtr<Abstract::TimeStepCriterion>, 3> criteria;
+    StaticArray<AutoPtr<ITimeStepCriterion>, 3> criteria;
 
 public:
     MultiCriterion(const RunSettings& settings);

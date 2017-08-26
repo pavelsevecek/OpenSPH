@@ -11,7 +11,7 @@ NAMESPACE_SPH_BEGIN
 /// GhostParticles implementation
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-GhostParticles::GhostParticles(AutoPtr<Abstract::Domain>&& domain, const RunSettings& settings)
+GhostParticles::GhostParticles(AutoPtr<IDomain>&& domain, const RunSettings& settings)
     : domain(std::move(domain)) {
     searchRadius = Factory::getKernel<3>(settings).radius();
     minimalDist = settings.get<Float>(RunSettingsId::DOMAIN_GHOST_MIN_DIST);
@@ -23,7 +23,7 @@ GhostParticles::GhostParticles(AutoPtr<Abstract::Domain>&& domain, const RunSett
 struct GhostFunctor {
     Array<Ghost>& ghosts;
     Array<Size>& ghostIdxs;
-    Abstract::Domain& domain;
+    IDomain& domain;
 
     /// Generic operator, simply copies value onto the ghost
     template <typename T>
@@ -94,7 +94,7 @@ FrozenParticles::FrozenParticles() = default;
 
 FrozenParticles::~FrozenParticles() = default;
 
-FrozenParticles::FrozenParticles(AutoPtr<Abstract::Domain>&& domain, const Float radius)
+FrozenParticles::FrozenParticles(AutoPtr<IDomain>&& domain, const Float radius)
     : domain(std::move(domain))
     , radius(radius) {}
 
@@ -151,7 +151,7 @@ void FrozenParticles::finalize(Storage& storage) {
 /// WindTunnel implementation
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-WindTunnel::WindTunnel(AutoPtr<Abstract::Domain>&& domain, const Float radius)
+WindTunnel::WindTunnel(AutoPtr<IDomain>&& domain, const Float radius)
     : FrozenParticles(std::move(domain), radius) {}
 
 void WindTunnel::finalize(Storage& storage) {

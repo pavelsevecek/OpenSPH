@@ -26,7 +26,7 @@ NAMESPACE_SPH_BEGIN
 /// \f]
 /// To conserve the total momentum, the term is symmetrized over particle pair, \f$f_{ij} = 0.5(f_i + f_j)\f$
 template <typename AV>
-class BalsaraSwitch : public Abstract::EquationTerm {
+class BalsaraSwitch : public IEquationTerm {
     class Derivative : public DerivativeTemplate<Derivative> {
     private:
         ArrayView<const Float> m;
@@ -119,7 +119,7 @@ public:
         }
     }
 
-    virtual void create(Storage& storage, Abstract::Material& material) const override {
+    virtual void create(Storage& storage, IMaterial& material) const override {
         storage.insert(QuantityId::VELOCITY_DIVERGENCE, OrderEnum::ZERO, 0._f);
         storage.insert(QuantityId::VELOCITY_ROTATION, OrderEnum::ZERO, Vector(0._f));
         if (storeFactor) {

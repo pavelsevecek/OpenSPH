@@ -12,7 +12,7 @@
 #include "physics/Damage.h"
 #include "physics/Eos.h"
 #include "physics/Rheology.h"
-#include "sph/Material.h"
+#include "sph/Materials.h"
 #include "sph/boundary/Boundary.h"
 #include "sph/equations/av/Balsara.h"
 #include "sph/initial/Distribution.h"
@@ -24,7 +24,7 @@
 
 NAMESPACE_SPH_BEGIN
 
-AutoPtr<Abstract::Eos> Factory::getEos(const BodySettings& settings) {
+AutoPtr<IEos> Factory::getEos(const BodySettings& settings) {
     const EosEnum id = settings.get<EosEnum>(BodySettingsId::EOS);
     switch (id) {
     case EosEnum::IDEAL_GAS:
@@ -38,7 +38,7 @@ AutoPtr<Abstract::Eos> Factory::getEos(const BodySettings& settings) {
     }
 }
 
-AutoPtr<Abstract::Rheology> Factory::getRheology(const BodySettings& settings) {
+AutoPtr<IRheology> Factory::getRheology(const BodySettings& settings) {
     const YieldingEnum id = settings.get<YieldingEnum>(BodySettingsId::RHEOLOGY_YIELDING);
     switch (id) {
     case YieldingEnum::NONE:
@@ -52,7 +52,7 @@ AutoPtr<Abstract::Rheology> Factory::getRheology(const BodySettings& settings) {
     }
 }
 
-AutoPtr<Abstract::Damage> Factory::getDamage(const BodySettings& settings) {
+AutoPtr<IDamage> Factory::getDamage(const BodySettings& settings) {
     const DamageEnum id = settings.get<DamageEnum>(BodySettingsId::RHEOLOGY_DAMAGE);
     switch (id) {
     case DamageEnum::NONE:
@@ -68,7 +68,7 @@ AutoPtr<Abstract::Damage> Factory::getDamage(const BodySettings& settings) {
 }
 
 template <typename T>
-AutoPtr<Abstract::EquationTerm> makeAV(const RunSettings& settings, const bool balsara) {
+AutoPtr<IEquationTerm> makeAV(const RunSettings& settings, const bool balsara) {
     if (balsara) {
         return makeAuto<BalsaraSwitch<T>>(settings);
     } else {
@@ -76,7 +76,7 @@ AutoPtr<Abstract::EquationTerm> makeAV(const RunSettings& settings, const bool b
     }
 }
 
-AutoPtr<Abstract::EquationTerm> Factory::getArtificialViscosity(const RunSettings& settings) {
+AutoPtr<IEquationTerm> Factory::getArtificialViscosity(const RunSettings& settings) {
     const ArtificialViscosityEnum id = settings.get<ArtificialViscosityEnum>(RunSettingsId::SPH_AV_TYPE);
     const bool balsara = settings.get<bool>(RunSettingsId::SPH_AV_BALSARA);
     switch (id) {
@@ -91,7 +91,7 @@ AutoPtr<Abstract::EquationTerm> Factory::getArtificialViscosity(const RunSetting
     }
 }
 
-AutoPtr<Abstract::TimeStepping> Factory::getTimeStepping(const RunSettings& settings,
+AutoPtr<ITimeStepping> Factory::getTimeStepping(const RunSettings& settings,
     const SharedPtr<Storage>& storage) {
     const TimesteppingEnum id = settings.get<TimesteppingEnum>(RunSettingsId::TIMESTEPPING_INTEGRATOR);
     switch (id) {
@@ -108,7 +108,7 @@ AutoPtr<Abstract::TimeStepping> Factory::getTimeStepping(const RunSettings& sett
     }
 }
 
-AutoPtr<Abstract::TimeStepCriterion> Factory::getTimeStepCriterion(const RunSettings& settings) {
+AutoPtr<ITimeStepCriterion> Factory::getTimeStepCriterion(const RunSettings& settings) {
     const Size flags = settings.get<int>(RunSettingsId::TIMESTEPPING_CRITERION);
     if (flags == 0) {
         // no criterion
@@ -127,7 +127,7 @@ AutoPtr<Abstract::TimeStepCriterion> Factory::getTimeStepCriterion(const RunSett
     }
 }
 
-AutoPtr<Abstract::Finder> Factory::getFinder(const RunSettings& settings) {
+AutoPtr<INeighbourFinder> Factory::getFinder(const RunSettings& settings) {
     const FinderEnum id = settings.get<FinderEnum>(RunSettingsId::SPH_FINDER);
     switch (id) {
     case FinderEnum::BRUTE_FORCE:
@@ -143,7 +143,7 @@ AutoPtr<Abstract::Finder> Factory::getFinder(const RunSettings& settings) {
     }
 }
 
-AutoPtr<Abstract::Distribution> Factory::getDistribution(const BodySettings& settings) {
+AutoPtr<IDistribution> Factory::getDistribution(const BodySettings& settings) {
     const DistributionEnum id = settings.get<DistributionEnum>(BodySettingsId::INITIAL_DISTRIBUTION);
     const bool center = settings.get<bool>(BodySettingsId::CENTER_PARTICLES);
     const bool sort = settings.get<bool>(BodySettingsId::PARTICLE_SORTING);
@@ -169,7 +169,7 @@ AutoPtr<Abstract::Distribution> Factory::getDistribution(const BodySettings& set
     }
 }
 
-AutoPtr<Abstract::Solver> Factory::getSolver(const RunSettings& settings) {
+AutoPtr<ISolver> Factory::getSolver(const RunSettings& settings) {
     const SolverEnum id = settings.get<SolverEnum>(RunSettingsId::SOLVER_TYPE);
     switch (id) {
     case SolverEnum::CONTINUITY_SOLVER:
@@ -183,7 +183,7 @@ AutoPtr<Abstract::Solver> Factory::getSolver(const RunSettings& settings) {
     }
 }
 
-AutoPtr<Abstract::Gravity> Factory::getGravity(const RunSettings& settings) {
+AutoPtr<IGravity> Factory::getGravity(const RunSettings& settings) {
     const GravityEnum id = settings.get<GravityEnum>(RunSettingsId::GRAVITY_SOLVER);
     const GravityKernelEnum kernelId = settings.get<GravityKernelEnum>(RunSettingsId::GRAVITY_KERNEL);
     GravityLutKernel kernel;
@@ -215,7 +215,7 @@ AutoPtr<Abstract::Gravity> Factory::getGravity(const RunSettings& settings) {
     }
 }
 
-AutoPtr<Abstract::Domain> Factory::getDomain(const RunSettings& settings) {
+AutoPtr<IDomain> Factory::getDomain(const RunSettings& settings) {
     const DomainEnum id = settings.get<DomainEnum>(RunSettingsId::DOMAIN_TYPE);
     const Vector center = settings.get<Vector>(RunSettingsId::DOMAIN_CENTER);
     switch (id) {
@@ -237,8 +237,8 @@ AutoPtr<Abstract::Domain> Factory::getDomain(const RunSettings& settings) {
     }
 }
 
-AutoPtr<Abstract::BoundaryConditions> Factory::getBoundaryConditions(const RunSettings& settings,
-    AutoPtr<Abstract::Domain>&& domain) {
+AutoPtr<IBoundaryCondition> Factory::getBoundaryConditions(const RunSettings& settings,
+    AutoPtr<IDomain>&& domain) {
     const BoundaryEnum id = settings.get<BoundaryEnum>(RunSettingsId::DOMAIN_BOUNDARY);
     switch (id) {
     case BoundaryEnum::NONE:
@@ -268,7 +268,7 @@ AutoPtr<Abstract::BoundaryConditions> Factory::getBoundaryConditions(const RunSe
     }
 }
 
-AutoPtr<Abstract::Material> Factory::getMaterial(const BodySettings& settings) {
+AutoPtr<IMaterial> Factory::getMaterial(const BodySettings& settings) {
     const YieldingEnum yieldId = settings.get<YieldingEnum>(BodySettingsId::RHEOLOGY_YIELDING);
     const EosEnum eosId = settings.get<EosEnum>(BodySettingsId::EOS);
     switch (yieldId) {
@@ -288,7 +288,7 @@ AutoPtr<Abstract::Material> Factory::getMaterial(const BodySettings& settings) {
     }
 }
 
-AutoPtr<Abstract::Logger> Factory::getLogger(const RunSettings& settings) {
+AutoPtr<ILogger> Factory::getLogger(const RunSettings& settings) {
     const LoggerEnum id = settings.get<LoggerEnum>(RunSettingsId::RUN_LOGGER);
     switch (id) {
     case LoggerEnum::NONE:
@@ -304,7 +304,7 @@ AutoPtr<Abstract::Logger> Factory::getLogger(const RunSettings& settings) {
     }
 }
 
-AutoPtr<Abstract::Rng> Factory::getRng(const RunSettings& settings) {
+AutoPtr<IRng> Factory::getRng(const RunSettings& settings) {
     const RngEnum id = settings.get<RngEnum>(RunSettingsId::RUN_RNG);
     const int seed = settings.get<int>(RunSettingsId::RUN_RNG_SEED);
     switch (id) {

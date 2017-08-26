@@ -1,6 +1,6 @@
 #pragma once
 
-#include "objects/finders/AbstractFinder.h"
+#include "objects/finders/INeighbourFinder.h"
 #include "objects/geometry/Box.h"
 #include "objects/geometry/Multipole.h"
 
@@ -100,7 +100,7 @@ public:
 
 
 /// https://www.cs.umd.edu/~mount/Papers/cgc99-smpack.pdf
-class KdTree : public Abstract::Finder {
+class KdTree : public INeighbourFinder {
 private:
     Size leafSize;
     Box entireBox;

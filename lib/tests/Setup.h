@@ -16,7 +16,7 @@ namespace Tests {
     Storage getStorage(const Size particleCnt);
 
     /// Returns a storage with ideal gas particles, having pressure, energy and sound speed.
-    Storage getGassStorage(const Size particleCnt, BodySettings settings, const Abstract::Domain& domain);
+    Storage getGassStorage(const Size particleCnt, BodySettings settings, const IDomain& domain);
 
     /// Returns a storage with ideal gas particles, filling a spherical domain of given radius.
     Storage getGassStorage(const Size particleCnt,
@@ -24,7 +24,7 @@ namespace Tests {
         const Float radius = 1.f);
 
     /// Returns a storage with stress tensor.
-    Storage getSolidStorage(const Size particleCnt, BodySettings settings, const Abstract::Domain& domain);
+    Storage getSolidStorage(const Size particleCnt, BodySettings settings, const IDomain& domain);
 
     /// Returns a storage with stress tensor.
     Storage getSolidStorage(const Size particleCnt,
@@ -55,7 +55,7 @@ namespace Tests {
 
     // Helper equation term using single derivative
     template <typename TDerivative>
-    struct DerivativeWrapper : public Abstract::EquationTerm {
+    struct DerivativeWrapper : public IEquationTerm {
         virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override {
             derivatives.require<TDerivative>(settings);
         }
@@ -64,7 +64,7 @@ namespace Tests {
 
         virtual void finalize(Storage& UNUSED(storage)) override {}
 
-        virtual void create(Storage& UNUSED(storage), Abstract::Material& UNUSED(material)) const override {}
+        virtual void create(Storage& UNUSED(storage), IMaterial& UNUSED(material)) const override {}
     };
 
     /// Computes only a single derivative.

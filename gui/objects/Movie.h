@@ -6,17 +6,16 @@
 /// \date 2016-2017
 
 #include "common/Globals.h"
-#include "gui/renderers/AbstractRenderer.h"
+#include "gui/renderers/IRenderer.h"
 #include "io/Output.h"
 #include <condition_variable>
 
 
 NAMESPACE_SPH_BEGIN
 
-namespace Abstract {
-    class Renderer;
-    class Element;
-}
+
+class IRenderer;
+class IElement;
 enum class GuiSettingsId;
 using GuiSettings = Settings<GuiSettingsId>;
 
@@ -37,13 +36,13 @@ private:
     bool enabled;
 
     /// renderer
-    AutoPtr<Abstract::Renderer> renderer;
+    AutoPtr<IRenderer> renderer;
 
     /// camera
-    AutoPtr<Abstract::Camera> camera;
+    AutoPtr<ICamera> camera;
 
     /// elements to rende1r and save to disk
-    Array<SharedPtr<Abstract::Element>> elements;
+    Array<SharedPtr<IColorizer>> elements;
 
     RenderParams params;
 
@@ -52,9 +51,9 @@ private:
 
 public:
     Movie(const GuiSettings& settings,
-        AutoPtr<Abstract::Renderer>&& renderer,
-        AutoPtr<Abstract::Camera>&& camera,
-        Array<SharedPtr<Abstract::Element>>&& elements,
+        AutoPtr<IRenderer>&& renderer,
+        AutoPtr<ICamera>&& camera,
+        Array<SharedPtr<IColorizer>>&& elements,
         const RenderParams& params);
 
     ~Movie();

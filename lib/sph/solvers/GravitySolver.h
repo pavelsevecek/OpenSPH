@@ -5,7 +5,7 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2017
 
-#include "gravity/AbstractGravity.h"
+#include "gravity/IGravity.h"
 #include "sph/equations/Potentials.h"
 #include "sph/kernel/KernelFactory.h"
 #include "sph/solvers/GenericSolver.h"
@@ -16,9 +16,9 @@ NAMESPACE_SPH_BEGIN
 class GravitySolver : public GenericSolver {
 private:
     /// Implementation of gravity used by the solver
-    AutoPtr<Abstract::Gravity> gravity;
+    AutoPtr<IGravity> gravity;
 
-    struct DummyDerivative : public Abstract::Derivative {
+    struct DummyDerivative : public IDerivative {
         virtual void create(Accumulated& results) override {
             results.insert<Vector>(QuantityId::POSITIONS, OrderEnum::SECOND);
         }
@@ -30,7 +30,7 @@ private:
 public:
     GravitySolver(const RunSettings& settings,
         const EquationHolder& equations,
-        AutoPtr<Abstract::Gravity>&& gravity)
+        AutoPtr<IGravity>&& gravity)
         : GenericSolver(settings, equations)
         , gravity(std::move(gravity)) {
         // check the equations

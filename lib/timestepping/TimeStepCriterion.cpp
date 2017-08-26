@@ -1,6 +1,6 @@
 #include "timestepping/TimeStepCriterion.h"
 #include "io/Logger.h"
-#include "quantities/AbstractMaterial.h"
+#include "quantities/IMaterial.h"
 #include "quantities/Iterate.h"
 #include "system/Profiler.h"
 #include "system/Settings.h"
