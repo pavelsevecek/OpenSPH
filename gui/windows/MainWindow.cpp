@@ -85,15 +85,15 @@ void MainWindow::setProgress(const float progress) {
     gauge->SetValue(int(progress * 1000.f));
 }
 
-void MainWindow::setElementList(Array<SharedPtr<IColorizer>>&& elements) {
+void MainWindow::setColorizerList(Array<SharedPtr<IColorizer>>&& colorizers) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
-    elementList = std::move(elements);
+    colorizerList = std::move(colorizers);
     wxArrayString items;
-    for (auto& e : elementList) {
+    for (auto& e : colorizerList) {
         items.Add(e->name().c_str());
     }
     quantityBox->Set(items);
-    const Size actSelectedIdx = (selectedIdx < elementList.size()) ? selectedIdx : 0;
+    const Size actSelectedIdx = (selectedIdx < colorizerList.size()) ? selectedIdx : 0;
     quantityBox->SetSelection(actSelectedIdx);
 }
 
@@ -120,8 +120,7 @@ void MainWindow::onClose(wxCloseEvent& evt) {
 void MainWindow::onComboBox(wxCommandEvent& UNUSED(evt)) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
     const int idx = quantityBox->GetSelection();
-    SharedPtr<IColorizer> element = elementList[idx];
-    controller->setElement(std::move(element));
+    controller->setColorizer(colorizerList[idx]);
     selectedIdx = idx;
 }
 

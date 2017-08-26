@@ -35,14 +35,14 @@ Controller::~Controller() = default;
 
 void Controller::Vis::initialize(const GuiSettings& gui) {
     renderer = makeAuto<ParticleRenderer>(); // makeAuto<SurfaceRenderer>();
-    element = makeAuto<VelocityColorizer>(gui.get<Interval>(GuiSettingsId::PALETTE_VELOCITY));
+    colorizer = makeAuto<VelocityColorizer>(gui.get<Interval>(GuiSettingsId::PALETTE_VELOCITY));
     timer = makeAuto<Timer>(gui.get<int>(GuiSettingsId::VIEW_MAX_FRAMERATE), TimerFlags::START_EXPIRED);
     const Point size(gui.get<int>(GuiSettingsId::RENDER_WIDTH), gui.get<int>(GuiSettingsId::RENDER_HEIGHT));
     camera = Factory::getCamera(gui, size);
 }
 
 bool Controller::Vis::isInitialized() {
-    return renderer && stats && element && camera;
+    return renderer && stats && colorizer && camera;
 }
 
 void Controller::start(AutoPtr<IRun>&& run) {
@@ -160,24 +160,23 @@ bool Controller::isQuitting() const {
     return status == Status::QUITTING;
 }
 
-Array<SharedPtr<IColorizer>> Controller::getElementList(const Storage& storage,
-    const bool forMovie) const {
+Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage, const bool forMovie) const {
     // there is no difference between 'physical' quantities we wish to see (density, energy, ...) and
     // other 'internal' quantities (activation strains, yield reduction, ...) in particle storage,
-    // we have to provide a list of elements ourselves
+    // we have to provide a list of colorizers ourselves
     /// \todo should be loaded from a file
-    // we only add the element if it is contained in the storage
+    // we only add the colorizer if it is contained in the storage
 
-    Array<ColorizerId> elementIds{
+    Array<ColorizerId> colorizerIds{
         ColorizerId::VELOCITY, ColorizerId::DENSITY_PERTURBATION,
     };
     if (!forMovie) {
-        elementIds.push(ColorizerId::MOVEMENT_DIRECTION);
-        elementIds.push(ColorizerId::ACCELERATION);
-        elementIds.push(ColorizerId::BOUNDARY);
+        colorizerIds.push(ColorizerId::MOVEMENT_DIRECTION);
+        colorizerIds.push(ColorizerId::ACCELERATION);
+        colorizerIds.push(ColorizerId::BOUNDARY);
     }
 
-    Array<QuantityId> quantityElementIds{
+    Array<QuantityId> quantityColorizerIds{
         QuantityId::PRESSURE,
         QuantityId::ENERGY,
         QuantityId::DEVIATORIC_STRESS,
@@ -185,19 +184,19 @@ Array<SharedPtr<IColorizer>> Controller::getElementList(const Storage& storage,
         QuantityId::VELOCITY_DIVERGENCE,
     };
     if (!forMovie) {
-        quantityElementIds.push(QuantityId::DENSITY);
-        quantityElementIds.push(QuantityId::AV_ALPHA);
+        quantityColorizerIds.push(QuantityId::DENSITY);
+        quantityColorizerIds.push(QuantityId::AV_ALPHA);
     }
-    Array<SharedPtr<IColorizer>> elements;
-    for (ColorizerId id : elementIds) {
-        elements.push(Factory::getElement(gui, id));
+    Array<SharedPtr<IColorizer>> colorizers;
+    for (ColorizerId id : colorizerIds) {
+        colorizers.push(Factory::getColorizer(gui, id));
     }
-    for (QuantityId id : quantityElementIds) {
+    for (QuantityId id : quantityColorizerIds) {
         if (storage.has(id)) {
-            elements.push(Factory::getElement(gui, ColorizerId(id)));
+            colorizers.push(Factory::getColorizer(gui, ColorizerId(id)));
         }
     }
-    return elements;
+    return colorizers;
 }
 
 SharedPtr<Bitmap> Controller::getRenderedBitmap() {
@@ -227,7 +226,7 @@ SharedPtr<ICamera> Controller::getCurrentCamera() const {
 Optional<Particle> Controller::getIntersectedParticle(const Point position, const float toleranceEps) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
 
-    if (!vis.element->isInitialized()) {
+    if (!vis.colorizer->isInitialized()) {
         // we have to wait for redraw to get data from storage
         return NOTHING;
     }
@@ -270,7 +269,7 @@ Optional<Particle> Controller::getIntersectedParticle(const Point position, cons
         // not a single candidate found
         return NOTHING;
     } else {
-        Optional<Particle> particle = vis.element->getParticle(first.idx);
+        Optional<Particle> particle = vis.colorizer->getParticle(first.idx);
         if (particle) {
             // add position to the particle data
             particle->addValue(QuantityId::POSITIONS, vis.positions[first.idx]);
@@ -279,18 +278,18 @@ Optional<Particle> Controller::getIntersectedParticle(const Point position, cons
     }
 }
 
-void Controller::setElement(const SharedPtr<IColorizer>& newElement) {
+void Controller::setColorizer(const SharedPtr<IColorizer>& newColorizer) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
-    vis.element = newElement;
+    vis.colorizer = newColorizer;
     if (status != Status::RUNNING) {
-        // we can safely access the storage, otherwise the element will be initialized on next timestep
+        // we can safely access the storage, otherwise the colorizer will be initialized on next timestep
         ASSERT(sph.run);
         SharedPtr<Storage> storage = sph.run->getStorage();
         if (!storage) {
             return;
         }
-        vis.element->initialize(*storage, ColorizerSource::POINTER_TO_STORAGE);
-        vis.renderer->initialize(*storage, *vis.element, *vis.camera);
+        vis.colorizer->initialize(*storage, ColorizerSource::POINTER_TO_STORAGE);
+        vis.renderer->initialize(*storage, *vis.colorizer, *vis.camera);
         window->Refresh();
     }
 }
@@ -299,7 +298,7 @@ void Controller::setSelectedParticle(const Optional<Particle>& particle) {
     vis.selectedParticle = particle;
 
     if (particle) {
-        const Color color = vis.element->eval(particle->getIndex());
+        const Color color = vis.colorizer->eval(particle->getIndex());
         window->setSelectedParticle(particle.value(), color);
     } else {
         window->deselectParticle();
@@ -314,22 +313,22 @@ SharedPtr<Movie> Controller::createMovie(const Storage& storage) {
     params.size.y = gui.get<int>(GuiSettingsId::IMAGES_HEIGHT);
 
     AutoPtr<IRenderer> renderer;
-    Array<SharedPtr<IColorizer>> elements;
+    Array<SharedPtr<IColorizer>> colorizers;
     switch (gui.get<RendererEnum>(GuiSettingsId::IMAGES_RENDERER)) {
     case RendererEnum::PARTICLE:
         renderer = makeAuto<ParticleRenderer>();
-        elements = this->getElementList(storage, true);
+        colorizers = this->getColorizerList(storage, true);
         break;
     case RendererEnum::SURFACE:
         renderer = makeAuto<SurfaceRenderer>(gui);
-        elements = { makeShared<VelocityColorizer>(gui.get<Interval>(GuiSettingsId::PALETTE_VELOCITY)) };
+        colorizers = { makeShared<VelocityColorizer>(gui.get<Interval>(GuiSettingsId::PALETTE_VELOCITY)) };
         break;
     default:
         STOP;
     }
     const Point size(gui.get<int>(GuiSettingsId::IMAGES_WIDTH), gui.get<int>(GuiSettingsId::IMAGES_HEIGHT));
     AutoPtr<ICamera> camera = Factory::getCamera(gui, size);
-    return makeShared<Movie>(gui, std::move(renderer), std::move(camera), std::move(elements), params);
+    return makeShared<Movie>(gui, std::move(renderer), std::move(camera), std::move(colorizers), params);
 }
 
 void Controller::redraw(const Storage& storage, Statistics& stats) {
@@ -350,12 +349,12 @@ void Controller::redraw(const Storage& storage, Statistics& stats) {
             vis.phi = phi;
         }
 
-        // initialize the currently selected element
+        // initialize the currently selected colorizer
         ASSERT(vis.isInitialized());
-        vis.element->initialize(storage, ColorizerSource::CACHE_ARRAYS);
+        vis.colorizer->initialize(storage, ColorizerSource::CACHE_ARRAYS);
 
         // update the renderer with new data
-        vis.renderer->initialize(storage, *vis.element, *vis.camera);
+        vis.renderer->initialize(storage, *vis.colorizer, *vis.camera);
 
         // repaint the window
         window->Refresh();
@@ -376,10 +375,10 @@ void Controller::run() {
         sph.run->setUp();
         SharedPtr<Storage> storage = sph.run->getStorage();
 
-        // fill the combobox with available elements
+        // fill the combobox with available colorizer
         /// \todo can we do this safely from run thread?
         executeOnMainThread([this, storage] { //
-            window->setElementList(this->getElementList(*storage, false));
+            window->setColorizerList(this->getColorizerList(*storage, false));
         });
 
         // draw initial positions of particles

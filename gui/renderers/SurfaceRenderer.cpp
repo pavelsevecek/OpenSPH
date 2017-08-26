@@ -16,7 +16,7 @@ SurfaceRenderer::SurfaceRenderer(const GuiSettings& settings) {
 }
 
 void SurfaceRenderer::initialize(const Storage& storage,
-    const IColorizer& UNUSED(element),
+    const IColorizer& UNUSED(colorizer),
     const ICamera& camera) {
     cached.colors.clear();
     cached.triangles.clear();

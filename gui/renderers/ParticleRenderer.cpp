@@ -10,7 +10,7 @@
 NAMESPACE_SPH_BEGIN
 
 void ParticleRenderer::initialize(const Storage& storage,
-    const IColorizer& element,
+    const IColorizer& colorizer,
     const ICamera& camera) {
     cached.idxs.clear();
     cached.positions.clear();
@@ -18,7 +18,7 @@ void ParticleRenderer::initialize(const Storage& storage,
 
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
     for (Size i = 0; i < r.size(); ++i) {
-        const Color color = element.eval(i);
+        const Color color = colorizer.eval(i);
         const Optional<ProjectedPoint> p = camera.project(r[i]);
         if (p) {
             cached.idxs.push(i);
@@ -27,7 +27,7 @@ void ParticleRenderer::initialize(const Storage& storage,
         }
     }
 
-    cached.palette = element.getPalette();
+    cached.palette = colorizer.getPalette();
 }
 
 SharedPtr<Bitmap> ParticleRenderer::render(const ICamera& camera,

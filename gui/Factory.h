@@ -16,7 +16,7 @@ namespace Factory {
     /// \param size Resolution of produced image
     AutoPtr<ICamera> getCamera(const GuiSettings& settings, const Point size);
 
-    AutoPtr<IColorizer> getElement(const GuiSettings& settings, const ColorizerId id);
+    AutoPtr<IColorizer> getColorizer(const GuiSettings& settings, const ColorizerId id);
 
     Palette getPalette(const ColorizerId id, const Interval range);
 }

@@ -29,7 +29,7 @@ AutoPtr<ICamera> Factory::getCamera(const GuiSettings& settings, const Point siz
     return makeAuto<OrthoCamera>(size, Point(int(center[X]), int(center[Y])), data);
 }
 
-AutoPtr<IColorizer> Factory::getElement(const GuiSettings& settings, const ColorizerId id) {
+AutoPtr<IColorizer> Factory::getColorizer(const GuiSettings& settings, const ColorizerId id) {
     Interval range;
     switch (id) {
     case ColorizerId::VELOCITY:

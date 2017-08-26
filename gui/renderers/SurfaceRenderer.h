@@ -23,7 +23,7 @@ private:
         /// Triangles of the surface
         Array<Point> triangles;
 
-        /// Colors of particles assigned by the element
+        /// Colors of particles assigned by the colorizer
         Array<Color> colors;
 
     } cached;
@@ -31,7 +31,7 @@ private:
 public:
     SurfaceRenderer(const GuiSettings& settings);
 
-    virtual void initialize(const Storage& storage, const IColorizer& element, const ICamera& camera);
+    virtual void initialize(const Storage& storage, const IColorizer& colorizer, const ICamera& camera);
 
     /// Can only be called from main thread
     virtual SharedPtr<Bitmap> render(const ICamera& camera,

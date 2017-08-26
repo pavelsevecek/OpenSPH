@@ -38,14 +38,14 @@ private:
     wxGauge* gauge;
     wxCheckBox* shadingBox;
 
-    Array<SharedPtr<IColorizer>> elementList;
+    Array<SharedPtr<IColorizer>> colorizerList;
 
 public:
     MainWindow(Controller* controller, const GuiSettings& guiSettings);
 
     void setProgress(const float progress);
 
-    void setElementList(Array<SharedPtr<IColorizer>>&& elements);
+    void setColorizerList(Array<SharedPtr<IColorizer>>&& colorizers);
 
     void setSelectedParticle(const Particle& particle, const Color color);
 

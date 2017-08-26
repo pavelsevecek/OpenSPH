@@ -45,14 +45,14 @@ private:
         /// Cached positions of particles for visualization.
         Array<Vector> positions;
 
-        /// Copy of statistics when the element was initialized
+        /// Copy of statistics when the colorizer was initialized
         AutoPtr<Statistics> stats;
 
         /// Rendered used for rendering the view
         AutoPtr<IRenderer> renderer;
 
-        /// Currently selected element
-        SharedPtr<IColorizer> element;
+        /// Currently selected colorizer
+        SharedPtr<IColorizer> colorizer;
 
         /// Current camera of the view. The object is shared with parent model.
         SharedPtr<ICamera> camera;
@@ -98,7 +98,7 @@ public:
     /// Called every time step.
     void onTimeStep(const Storage& storage, Statistics& stats);
 
-    /// \section Run queries
+    /// \addtogroup Run queries
 
     /// Returns true if the user aborted the run.
     bool shouldAbortRun() const;
@@ -107,13 +107,13 @@ public:
     bool isQuitting() const;
 
 
-    /// \section Display queries
+    /// \addtogroup Display queries
 
     /// Returns a list of quantities that can be displayed.
-    /// \param storage Particle storage containing data for the element
-    /// \param forMovie Whether to return list of elements for image output or what interactive preview. Some
-    ///                 elements are skipped when create image files (boundary, ...)
-    Array<SharedPtr<IColorizer>> getElementList(const Storage& storage, const bool forMovie) const;
+    /// \param storage Particle storage containing data for the colorizer
+    /// \param forMovie Whether to return list of colorizers for image output or what interactive preview.
+    ///                 Some colorizers are skipped when create image files (boundary, ...)
+    Array<SharedPtr<IColorizer>> getColorizerList(const Storage& storage, const bool forMovie) const;
 
     /// Renders a bitmap of current view. Can only be called from main thread.
     SharedPtr<Bitmap> getRenderedBitmap();
@@ -131,10 +131,10 @@ public:
     GuiSettings& getGuiSettings();
 
 
-    /// \section Display setters
+    /// \addtogroup Display setters
 
-    /// Sets a new element to be displayed
-    void setElement(const SharedPtr<IColorizer>& newElement);
+    /// Sets a new colorizer to be displayed
+    void setColorizer(const SharedPtr<IColorizer>& newColorizer);
 
     /// Sets a selected particle or changes the current selection. The selection only affects the interactive
     /// view; it can be used by the renderer to highlight a selected particle, and the window can provide
@@ -143,7 +143,7 @@ public:
     void setSelectedParticle(const Optional<Particle>& particle);
 
 
-    /// \section Controlling the run
+    /// \addtogroup Controlling the run
 
     /// Sets up and starts a new simulation. Must be called before any other run-related functions can be
     /// called. If a simulation is currently running, it waits until the simulation stops and then starts the

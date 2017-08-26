@@ -45,9 +45,9 @@ public:
         Connect(wxEVT_PAINT, wxPaintEventHandler(ParticleProbe::onPaint));
     }
 
-    void update(const Particle& selectedParticle, const Color elementColor) {
+    void update(const Particle& selectedParticle, const Color colorizerColor) {
         particle = selectedParticle;
-        color = elementColor;
+        color = colorizerColor;
         this->Refresh();
     }
 
@@ -121,7 +121,7 @@ private:
             const std::wstring wlabel(label.begin(), label.end());
             switch (id) {
             case ValueId::FLOAT:
-                /// \todo we should use the name of the element, not quantity
+                /// \todo we should use the name of the colorizer, not quantity
                 /// \todo replace full quantity name with shorter designation (rho, ...)
                 drawTextWithSubscripts(
                     dc, wlabel + L" = " + toPrintableString(data.value.get<Float>()), offset);

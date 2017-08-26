@@ -17,11 +17,11 @@ NAMESPACE_SPH_BEGIN
 
 class Particle;
 
-/// Source data used for element drawing
+/// Source data used for colorizer drawing
 enum class ColorizerSource {
     /// Necessary data are cached withing the array and can be safely accessed during the run
     CACHE_ARRAYS,
-    /// Element only saves a references to the storage, which can be invalidated during the run. Can be only
+    /// Colorizer only saves a references to the storage, which can be invalidated during the run. Can be only
     /// used for drawing inbetween timesteps or after run ends.
     POINTER_TO_STORAGE
 
@@ -35,12 +35,12 @@ enum class ColorizerSource {
 /// accomplished by \ref TypedColorizer.
 class IColorizer : public Polymorphic {
 public:
-    /// Initialize the element before by getting necessary quantities from storage. Must be called before
+    /// Initialize the colorizer before by getting necessary quantities from storage. Must be called before
     /// \ref eval is called, every time step as ArrayViews taken from storage might be invalidated.
     /// \param storage Particle storage containing source data to be drawn.
     virtual void initialize(const Storage& storage, const ColorizerSource source) = 0;
 
-    /// Checks if the element has been initialized.
+    /// Checks if the colorizer has been initialized.
     virtual bool isInitialized() const = 0;
 
     /// Returns the color of idx-th particle.
@@ -49,10 +49,10 @@ public:
     /// Returns the original value of the displayed quantity, or NOTHING if no such value exists.
     virtual Optional<Particle> getParticle(const Size idx) const = 0;
 
-    /// Returns recommended palette for drawing this element, or NOTHING in case there is no palette.
+    /// Returns recommended palette for drawing this colorizer, or NOTHING in case there is no palette.
     virtual Optional<Palette> getPalette() const = 0;
 
-    /// Returns the name of the element, used when showing the element in the window and as filename
+    /// Returns the name of the colorizer, used when showing the colorizer in the window and as filename
     /// suffix.
     virtual std::string name() const = 0;
 };
@@ -85,7 +85,7 @@ enum class ColorizerId {
     BOUNDARY = -6,             ///< Shows boundary particles
 };
 
-/// Default element simply converting quantity value to color using defined palette. Vector and tensor
+/// Default colorizer simply converting quantity value to color using defined palette. Vector and tensor
 /// quantities are converted to floats using suitable norm.
 template <typename Type>
 class TypedColorizer : public IColorizer {
@@ -297,7 +297,7 @@ public:
     }
 };
 
-/// Shows boundary elements
+/// Shows boundary of bodies in the simulation.
 class BoundaryColorizer : public IColorizer {
 public:
     enum class Detection {

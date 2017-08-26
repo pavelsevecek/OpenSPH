@@ -21,7 +21,7 @@ private:
         /// Indices (in parent storage) of particles
         Array<Size> idxs;
 
-        /// Colors of particles assigned by the element
+        /// Colors of particles assigned by the colorizer
         Array<Color> colors;
 
         /// Color palette or NOTHING if no palette is drawn
@@ -30,7 +30,7 @@ private:
     } cached;
 
 public:
-    virtual void initialize(const Storage& storage, const IColorizer& element, const ICamera& camera);
+    virtual void initialize(const Storage& storage, const IColorizer& colorizer, const ICamera& camera);
 
     /// Can only be called from main thread
     virtual SharedPtr<Bitmap> render(const ICamera& camera,

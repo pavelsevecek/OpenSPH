@@ -40,10 +40,10 @@ struct RenderParams {
 class IRenderer : public Polymorphic {
 public:
     /// Prepares the objects for rendering and updates its data. Called every time a parameter change.
-    /// \param storage Storage containing positions of particles, must match the particles in element.
-    /// \param element Data-to-color conversion object for particles. Must be already initialized!
+    /// \param storage Storage containing positions of particles, must match the particles in colorizer.
+    /// \param colorizer Data-to-color conversion object for particles. Must be already initialized!
     /// \param camera Camera used for rendering.
-    virtual void initialize(const Storage& storage, const IColorizer& element, const ICamera& camera) = 0;
+    virtual void initialize(const Storage& storage, const IColorizer& colorizer, const ICamera& camera) = 0;
 
     /// \brief Draws particles into the bitmap, given the data provided in \ref initialize.
     ///

@@ -15,34 +15,33 @@ NAMESPACE_SPH_BEGIN
 
 
 class IRenderer;
-class IElement;
 enum class GuiSettingsId;
 using GuiSettings = Settings<GuiSettingsId>;
 
 /// \brief Object managing periodic rendering of images and saving them to given paths.
 ///
 /// Rendered images are independend from the images in interactive window, i.e. they have dedicated renderer,
-/// camera and list of elements to render.
+/// camera and list of colorizers to render.
 class Movie : public Noncopyable {
 private:
-    /// time step (framerate) of the movie
+    /// Time step (framerate) of the movie
     Float outputStep;
     Float nextOutput;
 
-    /// file names of the images
+    /// File names of the images
     OutputFile paths;
 
-    /// enable/disable image saving
+    /// Enable/disable image saving
     bool enabled;
 
-    /// renderer
+    /// Renderer
     AutoPtr<IRenderer> renderer;
 
-    /// camera
+    /// Camera
     AutoPtr<ICamera> camera;
 
-    /// elements to rende1r and save to disk
-    Array<SharedPtr<IColorizer>> elements;
+    /// Colorizers to render and save to disk
+    Array<SharedPtr<IColorizer>> colorizers;
 
     RenderParams params;
 
@@ -53,7 +52,7 @@ public:
     Movie(const GuiSettings& settings,
         AutoPtr<IRenderer>&& renderer,
         AutoPtr<ICamera>&& camera,
-        Array<SharedPtr<IColorizer>>&& elements,
+        Array<SharedPtr<IColorizer>>&& colorizers,
         const RenderParams& params);
 
     ~Movie();

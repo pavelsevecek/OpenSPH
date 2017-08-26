@@ -24,7 +24,7 @@ INLINE constexpr bool compare(const TKey& key1, const TKey& key2) {
 /// Elements are stored in an array sorted according to key. The value look-up is O(log(N)), while inserting
 /// or deletion of elements is currently O(N).
 template <typename TKey, typename TValue>
-class Map {
+class Map : public Noncopyable {
 public:
     /// Element of the container.
     struct Element {
@@ -162,6 +162,10 @@ public:
         return data.end();
     }
 
+    INLINE operator ArrayView<Element>() {
+        return data;
+    }
+
     INLINE operator ArrayView<const Element>() const {
         return data;
     }
@@ -170,14 +174,16 @@ private:
     /// Returns a pointer to the element with given key or nullptr if no such element exists.
     INLINE Element* find(const TKey& key) {
         Size from = 0;
-        Size to = data.size() - 1;
-        while (from < to) {
-            const Size mid = (from + to) / 2;
+        Size to = data.size(); // one-past-last to allow for empty map, we are only dereferencing mid value
+        Size mid = Size(-1);
+
+        while (from < to && from != mid) {
+            mid = (from + to) / 2;
             if (data[mid].key == key) {
                 return &data[mid];
             }
             if (compare(data[mid].key, key)) {
-                from = mid;
+                from = mid + 1;
             } else {
                 to = mid;
             }
@@ -192,12 +198,14 @@ private:
     /// Adds new element into the map, assuming no element with the same key exists.
     INLINE void add(const TKey& key, const TValue& value) {
         Size from = 0;
-        Size to = data.size() - 1;
-        while (from < to) {
-            const Size mid = (from + to) / 2;
+        Size to = data.size();
+        Size mid = Size(-1);
+
+        while (from < to && from != mid) {
+            mid = (from + to) / 2;
             ASSERT(data[mid].key != key);
             if (compare(data[mid].key, key)) {
-                from = mid;
+                from = mid + 1;
             } else {
                 to = mid;
             }

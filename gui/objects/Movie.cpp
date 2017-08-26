@@ -17,11 +17,11 @@ NAMESPACE_SPH_BEGIN
 Movie::Movie(const GuiSettings& settings,
     AutoPtr<IRenderer>&& renderer,
     AutoPtr<ICamera>&& camera,
-    Array<SharedPtr<IColorizer>>&& elements,
+    Array<SharedPtr<IColorizer>>&& colorizers,
     const RenderParams& params)
     : renderer(std::move(renderer))
     , camera(std::move(camera))
-    , elements(std::move(elements))
+    , colorizers(std::move(colorizers))
     , params(params) {
     enabled = settings.get<bool>(GuiSettingsId::IMAGES_SAVE);
     outputStep = settings.get<Float>(GuiSettingsId::IMAGES_TIMESTEP);
@@ -38,7 +38,7 @@ Movie::Movie(const GuiSettings& settings,
 
 Movie::~Movie() = default;
 
-INLINE std::string escapeElementName(const std::string& name) {
+INLINE std::string escapeColorizerName(const std::string& name) {
     std::string escaped = replace(name, " ", "");
     escaped = replace(escaped, ".", "_");
     return lowercase(escaped);
@@ -51,10 +51,10 @@ void Movie::onTimeStep(const Storage& storage, Statistics& stats) {
     }
     const Path path = paths.getNextPath(stats);
     FileSystem::createDirectory(path.parentPath());
-    for (auto& e : elements) {
-        Path actPath(replace(path.native(), "%e", escapeElementName(e->name())));
+    for (auto& e : colorizers) {
+        Path actPath(replace(path.native(), "%e", escapeColorizerName(e->name())));
 
-        // initialize the element
+        // initialize the colorizer
         e->initialize(storage, ColorizerSource::POINTER_TO_STORAGE);
 
         // initialize render with new data (outside main thread)
