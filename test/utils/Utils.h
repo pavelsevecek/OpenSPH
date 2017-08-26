@@ -6,9 +6,9 @@
 /// \date 2016-2017
 
 #include "catch.hpp"
-#include "objects/geometry/Vector.h"
 #include "io/Logger.h"
 #include "math/rng/Rng.h"
+#include "objects/geometry/Vector.h"
 
 /// Test cases for testing of multiple types
 
@@ -49,7 +49,7 @@
 #define REQUIRE_ASSERT(func)                                                                                 \
     {                                                                                                        \
         Sph::Assert::ScopedBreakDisabler disabler;                                                           \
-        REQUIRE_THROWS((void)func);                                                                          \
+        REQUIRE_THROWS((void)(func));                                                                        \
     }
 #else
 #define REQUIRE_ASSERT(func)

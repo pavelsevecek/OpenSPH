@@ -1,5 +1,6 @@
 #include "math/Math.h"
 #include "catch.hpp"
+#include "tests/Approx.h"
 
 using namespace Sph;
 
@@ -13,6 +14,12 @@ TEST_CASE("Math", "[math]") {
     REQUIRE(pow<4>(2._f) == 16._f);
     REQUIRE(pow<5>(2._f) == 32._f);
     REQUIRE(pow<6>(2._f) == 64._f);
+
+    REQUIRE(pow<-1>(2._f) == 1._f / 2._f);
+    REQUIRE(pow<-2>(2._f) == 1._f / 4._f);
+    REQUIRE(pow<-3>(2._f) == 1._f / 8._f);
+    REQUIRE(pow<-4>(2._f) == 1._f / 16._f);
+    REQUIRE(pow<-8>(2._f) == 1._f / 256._f);
 
     REQUIRE(max(6, 2) == 6);
     REQUIRE(min(6, 2) == 2);
@@ -53,11 +60,19 @@ TEST_CASE("IsPower", "[math]") {
     REQUIRE_FALSE(isPower2(0));
 }
 
-/*TEST_CASE("Less", "[math]") {
-    REQUIRE(less(1.f, 2.f) == 1.f);
-    REQUIRE(less(2.f, 2.f) == 0.f);
-    REQUIRE(less(3.f, 2.f) == 0.f);
-}*/
+TEST_CASE("Pow fast", "[math]") {
+    REQUIRE(powFastest(6._f, 1._f) == 6._f);
+    REQUIRE(powFastest(2._f, 2._f) == approx(4._f, 0.05_f));
+    REQUIRE(powFastest(2.5_f, 1.5_f) == approx(3.95_f, 0.03_f));
+    REQUIRE(powFastest(15._f, 2.5_f) == approx(871._f, 0.05_f));
+    REQUIRE(powFastest(0.02_f, 4.5_f) == approx(2.26e-8_f, 1.e-9_f));
+
+    REQUIRE(powFast(6._f, 1._f) == approx(6._f, 0.03_f)); /// \todo this is actually less precise
+    REQUIRE(powFast(2._f, 2._f) == approx(4._f, 0.03_f));
+    REQUIRE(powFast(2.5_f, 1.5_f) == approx(3.95_f, 0.01_f));
+    REQUIRE(powFast(15._f, 2.5_f) == approx(871._f, 0.02_f));
+    REQUIRE(powFast(0.02_f, 4.5_f) == approx(2.26e-8_f, 5.e-10_f));
+}
 
 TEST_CASE("Rounding mode", "[math]") {
     // this is a little sandbox, doesn't really belong to tests

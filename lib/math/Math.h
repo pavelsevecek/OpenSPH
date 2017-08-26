@@ -177,6 +177,10 @@ INLINE constexpr Float pow<6>(const Float v) {
     return pow<3>(pow<2>(v));
 }
 template <>
+INLINE constexpr Float pow<8>(const Float v) {
+    return pow<4>(pow<2>(v));
+}
+template <>
 INLINE constexpr Float pow<-1>(const Float v) {
     return 1._f / v;
 }
@@ -195,6 +199,14 @@ INLINE constexpr Float pow<-4>(const Float v) {
 template <>
 INLINE constexpr Float pow<-5>(const Float v) {
     return 1._f / (v * pow<2>(pow<2>(v)));
+}
+template <>
+INLINE constexpr Float pow<-8>(const Float v) {
+    return 1._f / (pow<2>(pow<4>(v)));
+}
+template <>
+INLINE constexpr Float pow<-16>(const Float v) {
+    return 1._f / (pow<2>(pow<8>(v)));
 }
 
 
@@ -237,6 +249,48 @@ INLINE constexpr Size pow<6>(const Size v) {
 template <typename T>
 INLINE T pow(const T value, const T power) {
     return ::pow(value, power);
+}
+
+/// Approximative version of pow function.
+///
+/// Expected error is about 5 %. Works only for positive values and positive powers.
+INLINE Float powFastest(const Float value, const Float power) {
+    ASSERT(value > 0._f && power > 0._f, value, power);
+    // https://martin.ankerl.com/2012/01/25/optimized-approximative-pow-in-c-and-cpp/
+    // this type-punning through union is undefined behavior according to C++ standard, but most compilers
+    // behave expectably ...
+    union {
+        double d;
+        int x[2];
+    } u = { value };
+    u.x[1] = (int)(power * (u.x[1] - 1072632447) + 1072632447);
+    u.x[0] = 0;
+    return u.d;
+}
+
+/// Approximative version of pow function, slightly more precise than powFastest.
+///
+/// Expected error is about 2 %. Works only for positive values and positive powers.
+INLINE Float powFast(Float value, const Float power) {
+    ASSERT(value > 0._f && power > 0._f, value, power);
+    // https://martin.ankerl.com/2012/01/25/optimized-approximative-pow-in-c-and-cpp/
+    int e = (int)power;
+    union {
+        double d;
+        int x[2];
+    } u = { value };
+    u.x[1] = (int)((power - e) * (u.x[1] - 1072632447) + 1072632447);
+    u.x[0] = 0;
+
+    double r = 1.0;
+    while (e) {
+        if (e & 1) {
+            r *= value;
+        }
+        value *= value;
+        e >>= 1;
+    }
+    return r * u.d;
 }
 
 template <typename T>

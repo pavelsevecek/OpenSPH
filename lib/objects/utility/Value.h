@@ -118,6 +118,12 @@ public:
         return this->empty();
     }
 
+    /// Equality operator with one of stored types.
+    template <typename T, typename = std::enable_if_t<ValueVariant::canHold<T>()>>
+    bool operator==(const T& value) {
+        return this->get<T>() == value;
+    }
+
     /// Prints the currently stored value into the stream, using << operator of its type.
     friend std::ostream& operator<<(std::ostream& stream, const Value& value) {
         forValue(value.storage, [&stream](const auto& v) { stream << std::setw(20) << v; });

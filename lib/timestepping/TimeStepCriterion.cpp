@@ -36,72 +36,141 @@ std::ostream& operator<<(std::ostream& stream, const CriterionId id) {
 /// DerivativeCriterion implementation
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+/// Helper class storing a minimal value of time step and corresponding statistics.
+template <typename T>
+struct MinimalStepTls {
+    Float minStep = INFTY;
+    T value = T(0._f);
+    T derivative = T(0._f);
+    Size particleIdx = 0;
+
+    MinimalStepTls(const Float UNUSED(power)) {}
+
+    /// Add a time step to the set, given also value, derivative and particle index
+    INLINE void add(const Float step, const T v, const T dv, const Float idx) {
+        if (step < minStep) {
+            minStep = step;
+            value = v;
+            derivative = dv;
+            particleIdx = idx;
+        }
+    }
+
+    /// Add a time step computed by other TLS
+    INLINE void add(const MinimalStepTls& other) {
+        this->add(other.minStep, other.value, other.derivative, other.particleIdx);
+    }
+
+    /// Return the computed time step
+    INLINE Float getStep() const {
+        return minStep;
+    }
+
+    /// Save auxiliary statistics
+    INLINE void saveStats(Statistics& stats) const {
+        stats.set(StatisticsId::LIMITING_PARTICLE_IDX, int(particleIdx));
+        stats.set(StatisticsId::LIMITING_VALUE, Value(value));
+        stats.set(StatisticsId::LIMITING_DERIVATIVE, Value(derivative));
+    }
+};
+
+/// Helper class storing a (generalized) mean. Statistics do not apply here (no single particle is the
+/// restrictive one). Same interface as in MinimalStepTls.
+template <typename T>
+struct MeanStepTls {
+    NegativeMean mean;
+
+    MeanStepTls(const Float power)
+        : mean(power) {}
+
+    INLINE void add(const Float step, const T UNUSED(v), const T UNUSED(dv), const Float UNUSED(idx)) {
+        mean.accumulate(step);
+    }
+
+    INLINE void add(const MeanStepTls& other) {
+        mean.accumulate(other.mean);
+    }
+
+    INLINE Float getStep() const {
+        return mean.compute();
+    }
+
+    INLINE void saveStats(Statistics& UNUSED(stats)) const {
+        // do nothing
+    }
+};
+
+
 DerivativeCriterion::DerivativeCriterion(const RunSettings& settings) {
     factor = settings.get<Float>(RunSettingsId::TIMESTEPPING_ADAPTIVE_FACTOR);
+    power = settings.get<Float>(RunSettingsId::TIMESTEPPING_MEAN_POWER);
+    ASSERT(power < 0._f); // currently not implemented for non-negative powers
 }
 
 Tuple<Float, CriterionId> DerivativeCriterion::compute(Storage& storage,
     const Float maxStep,
-    Optional<Statistics&> stats) {
+    Statistics& stats) {
+    if (power < -1.e3_f) {
+        // very high negative power, this is effectively computing minimal timestep
+        return this->computeImpl<MinimalStepTls>(storage, maxStep, stats);
+    } else {
+        // generic case, compute a generalized mean of timesteps
+        return this->computeImpl<MeanStepTls>(storage, maxStep, stats);
+    }
+}
+
+template <template <typename> class Tls>
+Tuple<Float, CriterionId> DerivativeCriterion::computeImpl(Storage& storage,
+    const Float maxStep,
+    Statistics& stats) {
     Float totalMinStep = INFTY;
     CriterionId minId = CriterionId::INITIAL_VALUE;
 
-    iterate<VisitorEnum::FIRST_ORDER>(storage, [&](const QuantityId id, auto&& v, auto&& dv) {
+    // for each first-order quantity ...
+    iterate<VisitorEnum::FIRST_ORDER>(storage, [&](const QuantityId id, auto& v, auto& dv) {
         ASSERT(v.size() == dv.size());
         using T = typename std::decay_t<decltype(v)>::Type;
-        struct Tl {
-            Float minStep = INFTY;
-            T value = T(0._f);
-            T derivative = T(0._f);
-            Size particleIdx = 0;
 
-            INLINE void add(const Float step, const T v, const T dv, const Float idx) {
-                if (step < minStep) {
-                    minStep = step;
-                    value = v;
-                    derivative = dv;
-                    particleIdx = idx;
-                }
-            }
-        };
-        auto functor = [&](const Size n1, const Size n2, Tl& tl) {
+        // ... and for each particle ...
+        Tls<T> result(power);
+        ThreadPool& pool = ThreadPool::getGlobalInstance();
+        ThreadLocal<Tls<T>> tls(pool, power);
+
+        auto functor = [&](const Size n1, const Size n2, Tls<T>& tls) {
             for (Size i = n1; i < n2; ++i) {
                 const auto absdv = abs(dv[i]);
                 const auto absv = abs(v[i]);
                 const Float minValue = storage.getMaterialOfParticle(i)->minimal(id);
                 ASSERT(minValue > 0._f); // some nonzero minimal value must be set for all quantities
+
                 StaticArray<Float, 6> vs = getComponents(absv);
                 StaticArray<Float, 6> dvs = getComponents(absdv);
                 ASSERT(vs.size() == dvs.size());
+
                 for (Size j = 0; j < vs.size(); ++j) {
                     if (abs(vs[j]) < 2._f * minValue) {
                         continue;
                     }
                     const Float value = factor * (vs[j] + minValue) / (dvs[j] + EPS);
                     ASSERT(isReal(value));
-                    tl.add(value, v[i], dv[i], i);
+                    tls.add(value, v[i], dv[i], i);
                 }
             }
         };
-        Tl result;
-        ThreadPool& pool = ThreadPool::getGlobalInstance();
-        ThreadLocal<Tl> tls(pool);
-        parallelFor(pool, tls, 0, v.size(), 1000, functor);
+
+        parallelFor(pool, tls, 0, v.size(), 100, functor);
         // get min step from thread-local results
-        tls.forEach([&result](Tl& tl) { //
-            result.add(tl.minStep, tl.value, tl.derivative, tl.particleIdx);
+        tls.forEach([&result](Tls<T>& tl) { //
+            result.add(tl);
         });
 
         // save statistics
-        if (result.minStep < totalMinStep) {
-            totalMinStep = result.minStep;
+        const Float minStep = result.getStep();
+        if (minStep < totalMinStep) {
+            totalMinStep = minStep;
             minId = CriterionId::DERIVATIVE;
-            if (stats) {
-                stats->set(StatisticsId::LIMITING_QUANTITY, id);
-                stats->set(StatisticsId::LIMITING_PARTICLE_IDX, int(result.particleIdx));
-                stats->set(StatisticsId::LIMITING_VALUE, Value(result.value));
-                stats->set(StatisticsId::LIMITING_DERIVATIVE, Value(result.derivative));
-            }
+            stats.set(StatisticsId::LIMITING_QUANTITY, id);
+            result.saveStats(stats);
         }
     });
 // make sure only 2nd order quanity is positions, they are handled by Acceleration criterion
@@ -130,7 +199,7 @@ Tuple<Float, CriterionId> DerivativeCriterion::compute(Storage& storage,
 
 Tuple<Float, CriterionId> AccelerationCriterion::compute(Storage& storage,
     const Float maxStep,
-    Optional<Statistics&> UNUSED(stats)) {
+    Statistics& UNUSED(stats)) {
     ArrayView<const Vector> r, v, dv;
     tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
     struct Tl {
@@ -173,7 +242,7 @@ CourantCriterion::CourantCriterion(const RunSettings& settings) {
 
 Tuple<Float, CriterionId> CourantCriterion::compute(Storage& storage,
     const Float maxStep,
-    Optional<Statistics&> UNUSED(stats)) {
+    Statistics& UNUSED(stats)) {
 
     /// \todo AV contribution?
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
@@ -224,9 +293,7 @@ MultiCriterion::MultiCriterion(const RunSettings& settings)
     }
 }
 
-Tuple<Float, CriterionId> MultiCriterion::compute(Storage& storage,
-    const Float maxStep,
-    Optional<Statistics&> stats) {
+Tuple<Float, CriterionId> MultiCriterion::compute(Storage& storage, const Float maxStep, Statistics& stats) {
     PROFILE_SCOPE("MultiCriterion::compute");
     ASSERT(!criteria.empty());
     Float minStep = INFTY;
@@ -234,12 +301,7 @@ Tuple<Float, CriterionId> MultiCriterion::compute(Storage& storage,
     for (auto& crit : criteria) {
         Float step;
         CriterionId id;
-        /// \todo proper copying of optional reference
-        Optional<Statistics&> statsClone;
-        if (stats) {
-            statsClone.emplace(stats.value());
-        }
-        tieToTuple(step, id) = crit->compute(storage, maxStep, std::move(statsClone));
+        tieToTuple(step, id) = crit->compute(storage, maxStep, stats);
         if (step < minStep) {
             minStep = step;
             minId = id;

@@ -300,6 +300,7 @@ AutoPtr<RunSettings> RunSettings::instance (new RunSettings {
     { RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, "timestep.initial",         0.03_f },
     { RunSettingsId::TIMESTEPPING_CRITERION,        "timestep.criterion",       int(TimeStepCriterionEnum::ALL) },
     { RunSettingsId::TIMESTEPPING_ADAPTIVE_FACTOR,  "timestep.adaptive.factor", 0.2_f },
+    { RunSettingsId::TIMESTEPPING_MEAN_POWER,       "timestep.mean_power",      -INFTY },
 
     /// Selected coordinate system, rotation of bodies
     { RunSettingsId::FRAME_ANGULAR_FREQUENCY,       "frame.angular_frequency",  Vector(0._f) },

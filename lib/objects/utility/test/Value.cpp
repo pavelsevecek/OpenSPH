@@ -56,3 +56,15 @@ TEST_CASE("Value getScalar", "[value]") {
     Value value3(SymmetricTensor(Vector(1.f, 2.f, 3.f), Vector(-1.f, -2.f, -3.f)));
     REQUIRE(value3.getScalar() > 0);
 }
+
+TEST_CASE("Value comparison", "[value]") {
+    Value value(5._f);
+    REQUIRE(value == 5._f);
+    REQUIRE_FALSE(value == 4._f);
+    REQUIRE_ASSERT(value == Vector(3._f));
+
+    value = Vector(3._f);
+    REQUIRE_ASSERT(value == 5._f);
+    REQUIRE(value == Vector(3._f));
+    REQUIRE_FALSE(value == Vector(3._f, 3._f, 4._f));
+}

@@ -605,6 +605,12 @@ enum class RunSettingsId {
     /// Multiplicative factor k in timestep computation; dt = k * v / dv
     TIMESTEPPING_ADAPTIVE_FACTOR,
 
+    /// Power of the generalized mean, used to compute the final timestep from timesteps of individual
+    /// particles. Negative infinity means the minimal timestep is used. This value will also set statistics
+    /// of the restricting particle, namely the particle index and the quantity value and corresponding
+    /// derivative of the particle; these statistics are not saved for other powers.
+    TIMESTEPPING_MEAN_POWER,
+
     /// Global rotation of the coordinate system around axis (0, 0, 1) passing through origin. If non-zero,
     /// causes non-intertial acceleration.
     FRAME_ANGULAR_FREQUENCY,

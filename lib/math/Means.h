@@ -9,6 +9,7 @@
 
 NAMESPACE_SPH_BEGIN
 
+/// \brief Generalized mean with fixed (compile-time) power.
 template <int Power>
 class GeneralizedMean {
 private:
@@ -18,7 +19,6 @@ private:
 public:
     GeneralizedMean() = default;
 
-    /// Adds a value into the set from which the stats (min, max, average) are computed.
     INLINE void accumulate(const Float value) {
         sum += pow<Power>(value);
         weight++;
@@ -39,17 +39,122 @@ public:
     }
 
     friend std::ostream& operator<<(std::ostream& stream, const GeneralizedMean& stats) {
-        stream << stats.mean();
+        stream << stats.compute();
         return stream;
     }
 };
 
+/// Geometric mean has to be specialized.
+template <>
+class GeneralizedMean<0> {
+private:
+    double sum = 1.;
+    Size weight = 0;
+
+public:
+    GeneralizedMean() = default;
+
+    INLINE void accumulate(const Float value) {
+        sum *= value;
+        weight++;
+    }
+
+    INLINE void reset() {
+        sum = 1.;
+        weight = 0;
+    }
+
+    INLINE Float compute() const {
+        return Float(pow(sum, 1. / weight));
+    }
+
+    INLINE Size count() const {
+        return weight;
+    }
+
+    friend std::ostream& operator<<(std::ostream& stream, const GeneralizedMean& stats) {
+        stream << stats.compute();
+        return stream;
+    }
+};
+
+
 /// Aliases
 using ArithmeticMean = GeneralizedMean<1>;
 using HarmonicMean = GeneralizedMean<-1>;
+using GeometricMean = GeneralizedMean<0>;
 
 
-/// Helper class for statistics
+/// \brief Generalized mean with positive (runtime) power.
+///
+/// Cannot be used to compute geometric mean. If constructed with non-positive power, it issues an assert.
+class PositiveMean {
+protected:
+    double sum = 0.;
+    Size weight = 0;
+    Float power;
+
+public:
+    PositiveMean(const Float power)
+        : power(power) {
+        ASSERT(power > 0._f);
+    }
+
+    INLINE void accumulate(const Float value) {
+        sum += powFastest(value, power);
+        weight++;
+    }
+
+    INLINE void accumulate(const PositiveMean& other) {
+        ASSERT(power == other.power); // it only makes sense to sum up same means
+        sum += other.sum;
+        weight += other.weight;
+    }
+
+    INLINE void reset() {
+        sum = 0.;
+        weight = 0;
+    }
+
+    INLINE Float compute() const {
+        return Float(powFastest(sum / weight, 1.f / power));
+    }
+
+    INLINE Size count() const {
+        return weight;
+    }
+
+    friend std::ostream& operator<<(std::ostream& stream, const PositiveMean& stats) {
+        stream << stats.compute();
+        return stream;
+    }
+};
+
+/// \brief Generalized mean with negative (runtime) power.
+///
+/// Cannot be used to compute geometric mean. If constructed with non-negative power, it issues an assert.
+class NegativeMean : public PositiveMean {
+public:
+    NegativeMean(const Float power)
+        : PositiveMean(-power) {}
+
+    INLINE void accumulate(const Float value) {
+        sum += 1._f / powFastest(value, power);
+        weight++;
+    }
+
+    INLINE void accumulate(const NegativeMean& other) {
+        ASSERT(power == other.power);
+        sum += other.sum;
+        weight += other.weight;
+    }
+
+    INLINE Float compute() const {
+        return 1._f / Float(powFastest(sum / weight, 1.f / power));
+    }
+};
+
+/// Helper class for statistics, accumulating minimal, maximal and mean value of a set of numbers.
 class MinMaxMean {
 private:
     Interval minMax;
