@@ -101,6 +101,10 @@ protected:
     /// Allowed range of quantities.
     std::map<QuantityId, Interval> ranges;
 
+    /// Default values
+    const static Interval DEFAULT_RANGE;
+    const static Float DEFAULT_MINIMAL;
+
 public:
     IMaterial(const BodySettings& settings)
         : params(settings) {}
@@ -125,20 +129,13 @@ public:
     ///
     /// Note that the function is not thread-safe and has to be synchronized when used in parallel
     /// context.
-    INLINE void setRange(const QuantityId id, const Interval& range, const Float minimal) {
-        /// \todo if ranges do not contains this id, update only if the range is NOT unbounded, this way
-        /// we don't add default parameters into the map and potentially speed up the getters; same for
-        /// minimal
-        ranges[id] = range;
-        minimals[id] = minimal;
-    }
+    void setRange(const QuantityId id, const Interval& range, const Float minimal);
 
     /// \brief Sets the timestepping parameters of given quantity.
     ///
     /// Syntactic sugar, using BodySettingsIds to retrieve the values from body settings of the material.
     INLINE void setRange(const QuantityId id, const BodySettingsId rangeId, const BodySettingsId minimalId) {
-        ranges[id] = params.get<Interval>(rangeId);
-        minimals[id] = params.get<Float>(minimalId);
+        this->setRange(id, params.get<Interval>(rangeId), params.get<Float>(minimalId));
     }
 
     /// \brief Returns the scale value of the quantity.
@@ -148,7 +145,7 @@ public:
     INLINE Float minimal(const QuantityId id) const {
         auto iter = minimals.find(id);
         if (iter == minimals.end()) {
-            return 0.f;
+            return DEFAULT_MINIMAL;
         }
         return iter->second;
     }
@@ -157,11 +154,11 @@ public:
     ///
     /// This range is enforced by timestetting algorithms, i.e. quantities do not have to be clamped by
     /// the solver or elsewhere. The range can be specified by \ref setRange; if no range is specified,
-    /// the function defaults to unbounded quantity (allowing all negative and positive values).
+    /// the function defaults to unbounded interval.
     INLINE const Interval range(const QuantityId id) const {
         auto iter = ranges.find(id);
         if (iter == ranges.end()) {
-            return Interval::unbounded();
+            return DEFAULT_RANGE;
         }
         return iter->second;
     }

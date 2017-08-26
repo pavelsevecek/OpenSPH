@@ -19,11 +19,17 @@ INLINE constexpr bool compare(const TKey& key1, const TKey& key2) {
     return key1 < key2;
 }
 
+/// Hint used to optimize the map queries
+enum class MapOptimization {
+    LARGE, ///< Optimize the map for large numbers of elements (generally larger than 10)
+    SMALL, ///< Optimize the map for small numbers of elements (generally smaller than 10)
+};
+
 /// \brief Container of key-value pairs.
 ///
 /// Elements are stored in an array sorted according to key. The value look-up is O(log(N)), while inserting
 /// or deletion of elements is currently O(N).
-template <typename TKey, typename TValue>
+template <typename TKey, typename TValue, MapOptimization Optimize = MapOptimization::LARGE>
 class Map : public Noncopyable {
 public:
     /// Element of the container.
@@ -173,22 +179,42 @@ public:
 private:
     /// Returns a pointer to the element with given key or nullptr if no such element exists.
     INLINE Element* find(const TKey& key) {
-        Size from = 0;
-        Size to = data.size(); // one-past-last to allow for empty map, we are only dereferencing mid value
-        Size mid = Size(-1);
+        if (Optimize == MapOptimization::LARGE) {
+            Size from = 0;
+            Size to = data.size();
+            Size mid = Size(-1);
 
-        while (from < to && from != mid) {
-            mid = (from + to) / 2;
-            if (data[mid].key == key) {
-                return &data[mid];
+            while (from < to && from != mid) {
+                mid = (from + to) / 2;
+                if (compare(data[mid].key, key)) {
+                    from = mid + 1;
+                } else if (data[mid].key == key) {
+                    return &data[mid];
+                } else {
+                    to = mid;
+                }
             }
+            return nullptr;
+        } else {
+            if (data.empty()) {
+                return nullptr;
+            }
+            const Size mid = data.size() / 2;
             if (compare(data[mid].key, key)) {
-                from = mid + 1;
+                for (Size i = mid + 1; i < data.size(); ++i) {
+                    if (data[i].key == key) {
+                        return &data[i];
+                    }
+                }
             } else {
-                to = mid;
+                for (Size i = 0; i <= mid; ++i) {
+                    if (data[i].key == key) {
+                        return &data[i];
+                    }
+                }
             }
+            return nullptr;
         }
-        return nullptr;
     }
 
     INLINE const Element* find(const TKey& key) const {
@@ -216,5 +242,10 @@ private:
         data[from] = Element{ key, value };
     }
 };
+
+
+/// Alias for the map optimized for small number of elements
+template <typename TKey, typename TValue>
+using SmallMap = Map<TKey, TValue, MapOptimization::SMALL>;
 
 NAMESPACE_SPH_END

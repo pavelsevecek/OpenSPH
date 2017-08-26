@@ -422,8 +422,13 @@ static Expected<Storage> loadMaterial(const Size matIdx,
                                            getMetadata(ids[i]).quantityName + ", got " +
                                            getMetadata(id).quantityName);
         }
-        ASSERT(lower < upper);
-        material->setRange(id, Interval(lower, upper), minimal);
+        Interval range;
+        if (lower < upper) {
+            range = Interval(lower, upper);
+        } else {
+            range = Interval::unbounded();
+        }
+        material->setRange(id, range, minimal);
     }
     // create storage for this material
     return Storage(std::move(material));

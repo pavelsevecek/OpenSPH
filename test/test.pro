@@ -38,16 +38,10 @@ PRE_TARGETDEPS += ../lib/liblib.a
 
 SOURCES += \
     main.cpp \
-    ../lib/objects/geometry/test/AntisymmetricTensor.cpp \
-    ../lib/objects/geometry/test/Box.cpp \
-    ../lib/objects/geometry/test/Domain.cpp \
-    ../lib/objects/geometry/test/Indices.cpp \
-    ../lib/objects/geometry/test/Multipole.cpp \
-    ../lib/objects/geometry/test/SymmetricTensor.cpp \
-    ../lib/objects/geometry/test/Tensor.cpp \
-    ../lib/objects/geometry/test/TracelessTensor.cpp \
-    ../lib/objects/geometry/test/Vector.cpp \
-    ../lib/objects/geometry/test/Sphere.cpp \
+    ../lib/gravity/test/BarnesHut.cpp \
+    ../lib/gravity/test/BruteForceGravity.cpp \
+    ../lib/gravity/test/Moments.cpp \
+    ../lib/gravity/test/VoxelGravity.cpp \
     ../lib/io/test/FileSystem.cpp \
     ../lib/io/test/Logger.cpp \
     ../lib/io/test/Output.cpp \
@@ -62,22 +56,38 @@ SOURCES += \
     ../lib/math/test/Roots.cpp \
     ../lib/math/test/SparseMatrix.cpp \
     ../lib/objects/containers/test/Array.cpp \
-    ../lib/objects/utility/test/ArrayUtils.cpp \
     ../lib/objects/containers/test/BufferedArray.cpp \
+    ../lib/objects/containers/test/List.cpp \
+    ../lib/objects/containers/test/Map.cpp \
     ../lib/objects/containers/test/StaticArray.cpp \
-    ../lib/objects/utility/test/StringUtils.cpp \
     ../lib/objects/containers/test/Tuple.cpp \
+    ../lib/objects/finders/test/BruteForceFinder.cpp \
     ../lib/objects/finders/test/Finders.cpp \
     ../lib/objects/finders/test/Order.cpp \
+    ../lib/objects/geometry/test/AntisymmetricTensor.cpp \
+    ../lib/objects/geometry/test/Box.cpp \
+    ../lib/objects/geometry/test/Domain.cpp \
+    ../lib/objects/geometry/test/Indices.cpp \
+    ../lib/objects/geometry/test/Multipole.cpp \
+    ../lib/objects/geometry/test/Sphere.cpp \
+    ../lib/objects/geometry/test/SymmetricTensor.cpp \
+    ../lib/objects/geometry/test/Tensor.cpp \
+    ../lib/objects/geometry/test/TracelessTensor.cpp \
+    ../lib/objects/geometry/test/Vector.cpp \
+    ../lib/objects/utility/test/ArrayUtils.cpp \
+    ../lib/objects/utility/test/Iterators.cpp \
+    ../lib/objects/utility/test/OperatorTemplate.cpp \
+    ../lib/objects/utility/test/StringUtils.cpp \
+    ../lib/objects/utility/test/Value.cpp \
     ../lib/objects/wrappers/test/AlignedStorage.cpp \
     ../lib/objects/wrappers/test/Any.cpp \
     ../lib/objects/wrappers/test/AutoPtr.cpp \
     ../lib/objects/wrappers/test/ClonePtr.cpp \
     ../lib/objects/wrappers/test/Expected.cpp \
     ../lib/objects/wrappers/test/Finally.cpp \
-    ../lib/objects/wrappers/test/Function.cpp \
     ../lib/objects/wrappers/test/Flags.cpp \
-    ../lib/objects/utility/test/Iterators.cpp \
+    ../lib/objects/wrappers/test/Function.cpp \
+    ../lib/objects/wrappers/test/Interval.cpp \
     ../lib/objects/wrappers/test/LockingPtr.cpp \
     ../lib/objects/wrappers/test/Optional.cpp \
     ../lib/objects/wrappers/test/Outcome.cpp \
@@ -89,8 +99,12 @@ SOURCES += \
     ../lib/physics/test/Integrals.cpp \
     ../lib/physics/test/TimeFormat.cpp \
     ../lib/physics/test/Yielding.cpp \
+    ../lib/post/test/Analysis.cpp \
+    ../lib/post/test/MarchingCubes.cpp \
+    ../lib/post/test/MeshFile.cpp \
+    ../lib/quantities/test/IMaterial.cpp \
     ../lib/quantities/test/Iterate.cpp \
-    ../lib/quantities/test/Material.cpp \
+    ../lib/quantities/test/Particle.cpp \
     ../lib/quantities/test/Quantity.cpp \
     ../lib/quantities/test/QuantityHelpers.cpp \
     ../lib/quantities/test/Storage.cpp \
@@ -121,6 +135,7 @@ SOURCES += \
     ../lib/sph/solvers/test/StaticSolver.cpp \
     ../lib/sph/test/Diagnostics.cpp \
     ../lib/system/test/ArrayStats.cpp \
+    ../lib/system/test/Process.cpp \
     ../lib/system/test/Profiler.cpp \
     ../lib/system/test/Settings.cpp \
     ../lib/system/test/Statistics.cpp \
@@ -130,24 +145,9 @@ SOURCES += \
     ../lib/thread/test/Pool.cpp \
     ../lib/timestepping/test/TimeStepCriterion.cpp \
     ../lib/timestepping/test/TimeStepping.cpp \
-    ../lib/objects/utility/test/Value.cpp \
-    ../lib/quantities/test/Particle.cpp \
-    ../lib/gravity/test/Moments.cpp \
-    ../lib/gravity/test/BarnesHut.cpp \
-    ../lib/gravity/test/VoxelGravity.cpp \
     utils/Approx.cpp \
     utils/SequenceTest.cpp \
-    utils/Utils.cpp \
-    ../lib/post/test/MarchingCubes.cpp \
-    ../lib/post/test/MeshFile.cpp \
-    ../lib/objects/finders/test/BruteForceFinder.cpp \
-    ../lib/gravity/test/BruteForceGravity.cpp \
-    ../lib/objects/containers/test/List.cpp \
-    ../lib/system/test/Process.cpp \
-    ../lib/post/test/Analysis.cpp \
-    ../lib/objects/utility/test/OperatorTemplate.cpp \
-    ../lib/objects/wrappers/test/Interval.cpp \
-    ../lib/objects/containers/test/Map.cpp
+    utils/Utils.cpp
 
 HEADERS += \
     utils/Utils.h \

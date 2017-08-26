@@ -23,7 +23,7 @@ NAMESPACE_SPH_BEGIN
 ///
 /// Finally, the derived class can implement the equality operator==, the OperatorTemplate then also provides
 /// operator !=. This pair of operators is also independent from all previous operators.
-template <typename TDerived, typename TScalar = Float>
+template <typename TDerived>
 struct OperatorTemplate {
 public:
     TDerived operator+(const TDerived& other) const {
@@ -44,19 +44,19 @@ public:
     }
     /// \todo gcc is happy even if the operators arent defined (as long as they are not called), is this
     /// correct according to standard?
-    TDerived operator*(const TScalar value) const {
+    TDerived operator*(const Float value) const {
         TDerived multiplied(derived());
         multiplied *= value;
         return multiplied;
     }
-    friend TDerived operator*(const TScalar value, const TDerived& derived) {
+    friend TDerived operator*(const Float value, const TDerived& derived) {
         return derived * value;
     }
-    TDerived operator/(const TScalar value) const {
+    TDerived operator/(const Float value) const {
         ASSERT(value != 0._f);
         return derived() * (1._f / value);
     }
-    TDerived& operator/=(const TScalar value) {
+    TDerived& operator/=(const Float value) {
         ASSERT(value != 0._f);
         return derived().operator*=(1._f / value);
     }

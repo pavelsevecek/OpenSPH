@@ -1,5 +1,6 @@
 #include "objects/utility/OperatorTemplate.h"
 #include "catch.hpp"
+#include "tests/Approx.h"
 #include "utils/Utils.h"
 
 using namespace Sph;
@@ -54,13 +55,13 @@ TEST_CASE("OperatorTemplate equality", "[operator]") {
 }
 
 namespace {
-    struct MultipliableStruct : public OperatorTemplate<MultipliableStruct, int> {
-        float value;
+    struct MultipliableStruct : public OperatorTemplate<MultipliableStruct> {
+        Float value;
 
-        MultipliableStruct(const float value)
+        MultipliableStruct(const Float value)
             : value(value) {}
 
-        MultipliableStruct& operator*=(const float x) {
+        MultipliableStruct& operator*=(const Float x) {
             value *= x;
             return *this;
         }
@@ -68,18 +69,18 @@ namespace {
 }
 
 TEST_CASE("OperatorTemplate multiply", "[operator]") {
-    MultipliableStruct m1(4);
-    m1 *= 3;
-    REQUIRE(m1.value == 12);
-    m1 /= 6;
-    REQUIRE(m1.value == 2);
+    MultipliableStruct m1(4._f);
+    m1 *= 3._f;
+    REQUIRE(m1.value == 12._f);
+    m1 /= 6._f;
+    REQUIRE(m1.value == approx(2._f));
 
-    MultipliableStruct m2 = m1 * 4;
-    REQUIRE(m2.value == 8);
+    MultipliableStruct m2 = m1 * 4._f;
+    REQUIRE(m2.value == approx(8._f));
 
-    m2 = 6 * m1;
-    REQUIRE(m2.value == 12);
+    m2 = 6._f * m1;
+    REQUIRE(m2.value == approx(12._f));
 
-    MultipliableStruct m3 = m2 / 2;
-    REQUIRE(m3.value == 2);
+    MultipliableStruct m3 = m2 / 2._f;
+    REQUIRE(m3.value == approx(6._f));
 }

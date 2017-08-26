@@ -6,8 +6,8 @@
 using namespace Sph;
 
 /// Sanity check that the elements are really stored sorted
-template <typename TKey, typename TValue>
-static bool isSorted(const Map<TKey, TValue>& map) {
+template <typename TKey, typename TValue, MapOptimization Optimize>
+static bool isSorted(const Map<TKey, TValue, Optimize>& map) {
     TKey previous;
     for (auto& element : map) {
         if (element.key == map.begin()->key) {
@@ -23,9 +23,10 @@ static bool isSorted(const Map<TKey, TValue>& map) {
     return true;
 }
 
-static Map<int, RecordType> getRandomMap() {
-    Map<int, RecordType> map;
-    using Elem = decltype(map)::Element;
+template <MapOptimization Optimize = MapOptimization::LARGE>
+static Map<int, RecordType, Optimize> getRandomMap() {
+    Map<int, RecordType, Optimize> map;
+    using Elem = typename decltype(map)::Element;
 
     Array<Elem> elements;
     for (int i = 0; i < 1000; ++i) {
@@ -121,6 +122,24 @@ TEST_CASE("Map insert multiple", "[map]") {
     Map<int, RecordType> map = getRandomMap();
 
     REQUIRE(RecordType::existingNum());
+    REQUIRE(map.size() == 1000);
+    REQUIRE(isSorted(map));
+
+    REQUIRE([&] {
+        for (int i = 0; i < 1000; ++i) {
+            if (map[i - 500].value != (i + 200) % 350) {
+                return false;
+            }
+        }
+        return true;
+    }());
+    REQUIRE_ASSERT(map[-501]);
+    REQUIRE_ASSERT(map[500]);
+}
+
+TEST_CASE("Map optimize small", "[map]") {
+    RecordType::resetStats();
+    SmallMap<int, RecordType> map = getRandomMap<MapOptimization::SMALL>();
     REQUIRE(map.size() == 1000);
     REQUIRE(isSorted(map));
 

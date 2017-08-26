@@ -33,10 +33,6 @@ public:
         ASSERT(lower <= upper);
     }
 
-    INLINE Interval(const Interval& other)
-        : minBound(other.minBound)
-        , maxBound(other.maxBound) {}
-
     /// Extends the interval to contain given value. If the value is already inside the interval, nothing
     /// changes.
     INLINE void extend(const Float& value) {
@@ -85,10 +81,11 @@ public:
         return !(*this == other);
     }
 
-    INLINE bool isEmpty() const {
+    INLINE bool empty() const {
         return minBound > maxBound;
     }
 
+    /// Returns an unbounded (infinite) interval
     static Interval unbounded() {
         return Interval(-INFTY, INFTY);
     }

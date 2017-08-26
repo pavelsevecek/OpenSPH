@@ -40,8 +40,8 @@ CONFIG(debug, debug|profile|assert|release) {
 
 SOURCES += \
     common/Assert.cpp \
-    objects/geometry/Domain.cpp \
-    objects/geometry/SymmetricTensor.cpp \
+    gravity/BarnesHut.cpp \
+    gravity/VoxelGravity.cpp \
     io/FileSystem.cpp \
     io/Logger.cpp \
     io/Output.cpp \
@@ -49,15 +49,26 @@ SOURCES += \
     math/Morton.cpp \
     math/SparseMatrix.cpp \
     math/rng/Rng.cpp \
-    objects/utility/StringUtils.cpp \
+    mpi/Mpi.cpp \
+    objects/finders/KdTree.cpp \
     objects/finders/Voxel.cpp \
+    objects/geometry/Domain.cpp \
+    objects/geometry/SymmetricTensor.cpp \
+    objects/utility/StringUtils.cpp \
+    objects/wrappers/Interval.cpp \
     physics/Damage.cpp \
     physics/Eos.cpp \
     physics/Integrals.cpp \
     physics/Rheology.cpp \
     physics/TimeFormat.cpp \
+    post/Analysis.cpp \
+    post/MarchingCubes.cpp \
+    post/MeshFile.cpp \
+    quantities/IMaterial.cpp \
+    quantities/Particle.cpp \
     quantities/QuantityIds.cpp \
     quantities/Storage.cpp \
+    run/IRun.cpp \
     sph/Diagnostics.cpp \
     sph/Material.cpp \
     sph/boundary/Boundary.cpp \
@@ -66,36 +77,27 @@ SOURCES += \
     sph/solvers/StaticSolver.cpp \
     system/Factory.cpp \
     system/Platform.cpp \
+    system/Process.cpp \
     system/Profiler.cpp \
     system/Settings.cpp \
     system/Statistics.cpp \
     system/Timer.cpp \
     tests/Setup.cpp \
     thread/CheckFunction.cpp \
-    timestepping/TimeStepCriterion.cpp \
-    timestepping/TimeStepping.cpp \
-    quantities/Particle.cpp \
-    post/MarchingCubes.cpp \
-    post/MeshFile.cpp \
-    objects/finders/KdTree.cpp \
-    gravity/BarnesHut.cpp \
     thread/Pool.cpp \
-    gravity/VoxelGravity.cpp \
-    system/Process.cpp \
-    mpi/Mpi.cpp \
-    post/Analysis.cpp \
-    objects/wrappers/Interval.cpp \
-    run/IRun.cpp
+    timestepping/TimeStepCriterion.cpp \
+    timestepping/TimeStepping.cpp
 
 HEADERS += \
-    commmon/ForwardDecl.h \
-    commmon/Globals.h \
-    commmon/Traits.h \
     common/Assert.h \
     common/ForwardDecl.h \
     common/Globals.h \
     common/Traits.h \
     gravity/BarnesHut.h \
+    gravity/BruteForceGravity.h \
+    gravity/IGravity.h \
+    gravity/Moments.h \
+    gravity/VoxelGravity.h \
     io/Column.h \
     io/FileSystem.h \
     io/LogFile.h \
@@ -112,34 +114,46 @@ HEADERS += \
     math/SparseMatrix.h \
     math/rng/Rng.h \
     math/rng/VectorRng.h \
+    mpi/Mpi.h \
+    mpi/ProcessPool.h \
+    mpi/Serializable.h \
     objects/Exceptions.h \
     objects/Object.h \
-    objects/geometry/AntisymmetricTensor.h \
-    objects/geometry/Box.h \
-    objects/geometry/Domagin.h \
-    objects/geometry/Generic.h \
-    objects/geometry/Indices.h \
-    objects/geometry/Multipole.h \
-    objects/geometry/SymmetricTensor.h \
-    objects/geometry/Tensor.h \
-    objects/geometry/TracelessTensor.h \
-    objects/geometry/Vector.h \
     objects/containers/Array.h \
-    objects/utility/ArrayUtils.h \
     objects/containers/ArrayView.h \
     objects/containers/BufferedArray.h \
+    objects/containers/List.h \
     objects/containers/LookupMap.h \
-    objects/utility/PerElementWrapper.h \
+    objects/containers/Map.h \
     objects/containers/StaticArray.h \
-    objects/utility/StringUtils.h \
     objects/containers/Tuple.h \
     objects/finders/BruteForceFinder.h \
+    objects/finders/INeighbourFinder.h \
+    objects/finders/KdTree.h \
     objects/finders/LinkedList.h \
     objects/finders/Linkedlist.h \
     objects/finders/Octree.h \
     objects/finders/Order.h \
     objects/finders/PeriodicFinder.h \
     objects/finders/Voxel.h \
+    objects/geometry/AntisymmetricTensor.h \
+    objects/geometry/Box.h \
+    objects/geometry/Domagin.h \
+    objects/geometry/Domain.h \
+    objects/geometry/Generic.h \
+    objects/geometry/Indices.h \
+    objects/geometry/Multipole.h \
+    objects/geometry/Sphere.h \
+    objects/geometry/SymmetricTensor.h \
+    objects/geometry/Tensor.h \
+    objects/geometry/TracelessTensor.h \
+    objects/geometry/Vector.h \
+    objects/utility/ArrayUtils.h \
+    objects/utility/Iterators.h \
+    objects/utility/OperatorTemplate.h \
+    objects/utility/PerElementWrapper.h \
+    objects/utility/StringUtils.h \
+    objects/utility/Value.h \
     objects/wrappers/AlignedStorage.h \
     objects/wrappers/Any.h \
     objects/wrappers/AutoPtr.h \
@@ -147,14 +161,15 @@ HEADERS += \
     objects/wrappers/Expected.h \
     objects/wrappers/Finally.h \
     objects/wrappers/Flags.h \
-    objects/utility/Iterators.h \
+    objects/wrappers/Function.h \
+    objects/wrappers/Interval.h \
     objects/wrappers/LockingPtr.h \
     objects/wrappers/NonOwningPtr.h \
     objects/wrappers/ObserverPtr.h \
     objects/wrappers/Optional.h \
     objects/wrappers/Outcome.h \
+    objects/wrappers/RawPtr.h \
     objects/wrappers/SharedPtr.h \
-    objects/utility/Value.h \
     objects/wrappers/Variant.h \
     objects/wrappers/VectorizedArray.h \
     physics/Analytic.h \
@@ -164,13 +179,20 @@ HEADERS += \
     physics/Integrals.h \
     physics/Rheology.h \
     physics/TimeFormat.h \
+    post/Analysis.h \
+    post/MarchingCubes.h \
+    post/MeshFile.h \
     post/Plot.h \
+    quantities/IMaterial.h \
     quantities/Iterate.h \
+    quantities/Particle.h \
     quantities/Quantity.h \
     quantities/QuantityHelpers.h \
     quantities/QuantityIds.h \
     quantities/Storage.h \
+    run/IRun.h \
     sph/Diagnostics.h \
+    sph/Materials.h \
     sph/boundary/Boundary.h \
     sph/equations/Accumulated.h \
     sph/equations/Derivative.h \
@@ -194,6 +216,7 @@ HEADERS += \
     sph/kernel/Interpolation.h \
     sph/kernel/Kernel.h \
     sph/kernel/KernelFactory.h \
+    sph/solvers/AsymmetricSolver.h \
     sph/solvers/ContinuitySolver.h \
     sph/solvers/DensityIndependentSolver.h \
     sph/solvers/EntropySolver.h \
@@ -207,43 +230,17 @@ HEADERS += \
     system/Element.h \
     system/Factory.h \
     system/Platform.h \
+    system/Process.h \
     system/Profiler.h \
     system/Settings.h \
     system/Statistics.h \
     system/Timer.h \
+    tests/Approx.h \
     tests/Setup.h \
     thread/AtomicFloat.h \
     thread/CheckFunction.h \
     thread/Pool.h \
     thread/ThreadLocal.h \
-    timestepping/TimeStepCriterion.h \
-    timestepping/TimeStepping.h \
-    quantities/Particle.h \
-    sph/solvers/AsymmetricSolver.h \
-    objects/finders/KdTree.h \
-    post/MarchingCubes.h \
-    post/MeshFile.h \
-    gravity/Moments.h \
-    gravity/BruteForceGravity.h \
-    objects/finders/BruteForceFinder.h \
-    objects/wrappers/RawPtr.h \
-    gravity/VoxelGravity.h \
-    objects/objects/geometry/Sphere.h \
-    objects/containers/List.h \
-    tests/Approx.h \
-    system/Process.h \
-    objects/wrappers/Function.h \
-    mpi/ProcessPool.h \
-    mpi/Serializable.h \
-    mpi/Mpi.h \
-    post/Analysis.h \
-    objects/utility/OperatorTemplate.h \
-    objects/containers/Map.h \
-    objects/wrappers/Interval.h \
     timestepping/ISolverr.h \
-    quantities/IMaterial.h \
-    gravity/IGravity.h \
-    objects/finders/INeighbourFinder.h \
-    run/IRun.h \
-    sph/Materials.h \
-    objects/geometry/Domain.h
+    timestepping/TimeStepCriterion.h \
+    timestepping/TimeStepping.h

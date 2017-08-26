@@ -184,11 +184,21 @@ Outcome Session::parseArgs(int argc, char* argv[]) {
             this->printHelp();
             return ""; // empty error message to quit the program
         } else if (arg[0] != '-') {
-            // not starting with '-', it must be a name of the benchmark to run
-            if (arg[0] == '\"' && arg[arg.size() - 1] == '\"') {
-                arg = arg.substr(1, arg.size() - 2);
+            // not starting with '-', it must be a name of the benchmark or group to run
+            if (arg[0] == '[' && arg[arg.size() - 1] == ']') {
+                // find the group by name
+                Group& group = this->getGroupByName(arg);
+                for (auto& unit : group) {
+                    params.benchmarksToRun.push(unit->getName());
+                }
+            } else {
+                // single benchmark
+                if (arg[0] == '\"' && arg[arg.size() - 1] == '\"') {
+                    // trim the name
+                    arg = arg.substr(1, arg.size() - 2);
+                }
+                params.benchmarksToRun.push(arg);
             }
-            params.benchmarksToRun.push(arg);
         }
     }
     return SUCCESS;

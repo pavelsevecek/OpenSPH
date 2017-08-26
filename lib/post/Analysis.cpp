@@ -141,7 +141,7 @@ Array<Post::SfdPoint> Post::getCummulativeSfd(const Storage& storage, const Post
     Array<Float> radii = getBodiesRadii(storage, params.source, params.quantity);
 
     Interval range = params.range;
-    if (range.isEmpty()) {
+    if (range.empty()) {
         for (Float r : radii) {
             range.extend(r);
         }

@@ -35,39 +35,39 @@ CONFIG(debug, debug|profile|assert|release) {
 }
 
 SOURCES += \
-    windows/GlPane.cpp \
-    windows/OrthoPane.cpp \
-    Settings.cpp \
-    MainLoop.cpp \
     Controller.cpp \
-    windows/MainWindow.cpp \
-    objects/Factory.cpp \
-    objects/Palette.cpp \
-    objects/Movie.cpp \
+    MainLoop.cpp \
+    Settings.cpp \
     Utils.cpp \
+    objects/Factory.cpp \
+    objects/Movie.cpp \
+    objects/Palette.cpp \
     renderers/ParticleRenderer.cpp \
-    renderers/SurfaceRenderer.cpp
+    renderers/SurfaceRenderer.cpp \
+    windows/GlPane.cpp \
+    windows/MainWindow.cpp \
+    windows/OrthoPane.cpp
 
 HEADERS += \
-    windows/OrthoPane.h \
-    windows/GlPane.h \
+    Controller.h \
+    Factory.h \
+    GuiCallbacks.h \
+    MainLoop.h \
     Renderer.h \
     Settings.h \
-    objects/Palette.h \
-    objects/Color.h \
-    GuiCallbacks.h \
-    objects/Camera.h \
-    objects/Point.h \
-    Factory.h \
-    objects/Movie.h \
-    objects/Bitmap.h \
-    MainLoop.h \
-    windows/MainWindow.h \
-    Controller.h \
-    windows/PlotView.h \
-    windows/ParticleProbe.h \
     Utils.h \
+    objects/Bitmap.h \
+    objects/Camera.h \
+    objects/Color.h \
+    objects/Colorizer.h \
+    objects/Movie.h \
+    objects/Palette.h \
+    objects/Point.h \
+    renderers/IRenderer.h \
     renderers/ParticleRenderer.h \
     renderers/SurfaceRenderer.h \
-    objects/Colorizer.h \
-    renderers/IRenderer.h
+    windows/GlPane.h \
+    windows/MainWindow.h \
+    windows/OrthoPane.h \
+    windows/ParticleProbe.h \
+    windows/PlotView.h

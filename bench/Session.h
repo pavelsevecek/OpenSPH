@@ -162,6 +162,18 @@ public:
     void addBenchmark(const SharedPtr<Unit>& benchmark) {
         benchmarks.push(benchmark);
     }
+
+    auto begin() const {
+        return benchmarks.begin();
+    }
+
+    auto end() const {
+        return benchmarks.end();
+    }
+
+    Size size() const {
+        return benchmarks.size();
+    }
 };
 
 template <class T>
