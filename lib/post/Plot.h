@@ -91,6 +91,9 @@ public:
     /// Called every time step.
     virtual void onTimeStep(const Storage& storage, const Statistics& stats) = 0;
 
+    /// \brief Clears all cached data, prepares for next run.
+    virtual void clear() = 0;
+
     /// \brief Draws the plot into the drawing context
     virtual void plot(IDrawingContext& dc) const = 0;
 };
@@ -126,6 +129,11 @@ public:
         std::sort(points.begin(), points.end(), [](const PlotPoint& p1, const PlotPoint& p2) {
             return p1.x < p2.x;
         });
+    }
+
+    virtual void clear() override {
+        points.clear();
+        ranges.x = ranges.y = Interval();
     }
 
     virtual void plot(IDrawingContext& dc) const override {
@@ -206,8 +214,8 @@ private:
 
 public:
     /// Creates a plot showing the whole history of given integral.
-    TemporalPlot(IntegralWrapper&& integral, const Params& params)
-        : integral(std::move(integral))
+    TemporalPlot(const IntegralWrapper& integral, const Params& params)
+        : integral(integral)
         , params(params) {
         ASSERT(params.segment > 0._f);
     }
@@ -254,6 +262,12 @@ public:
         } else {
             ranges.x = params.fixedRangeX;
         }
+    }
+
+    virtual void clear() override {
+        points.clear();
+        lastTime = -INFTY;
+        ranges.x = ranges.y = Interval();
     }
 
     virtual void plot(IDrawingContext& dc) const override {

@@ -79,6 +79,13 @@ public:
         other.block = nullptr;
     }
 
+    ~LockingPtr() {
+        if (block) {
+            // make sure all the proxies are destroyed before killing the object
+            std::unique_lock<Detail::LockingControlBlock<T>> lock(*block);
+        }
+    }
+
     LockingPtr& operator=(const LockingPtr& other) {
         resource = other.resource;
         block = other.block;

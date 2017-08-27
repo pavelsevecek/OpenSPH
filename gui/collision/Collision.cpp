@@ -193,12 +193,15 @@ public:
 
 private:
     EquationHolder getEquations(const RunSettings& settings) const {
+        // here we cannot use member variables as they haven't been initialized yet
+
         EquationHolder equations;
 
         // forces
         equations += makeTerm<PressureForce>() + makeTerm<SolidStressForce>(settings);
 
         // noninertial acceleration
+        const Vector omega = settings.get<Vector>(RunSettingsId::FRAME_ANGULAR_FREQUENCY);
         equations += makeTerm<NoninertialForce>(omega);
 
         // gravity (approximation)
@@ -281,7 +284,7 @@ void AsteroidCollision::setUp() {
     BodySettings body;
     body.set(BodySettingsId::ENERGY, 0._f)
         .set(BodySettingsId::ENERGY_RANGE, Interval(0._f, INFTY))
-        .set(BodySettingsId::PARTICLE_COUNT, 100'000)
+        .set(BodySettingsId::PARTICLE_COUNT, 10'000)
         .set(BodySettingsId::EOS, EosEnum::TILLOTSON)
         .set(BodySettingsId::STRESS_TENSOR_MIN, 1.e5_f)
         .set(BodySettingsId::RHEOLOGY_DAMAGE, DamageEnum::SCALAR_GRADY_KIPP)

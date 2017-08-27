@@ -48,6 +48,8 @@ private:
 public:
     MainWindow(Controller* controller, const GuiSettings& guiSettings);
 
+    void runStarted();
+
     void onTimeStep(const Storage& storage, const Statistics& stats);
 
     void setProgress(const float progress);

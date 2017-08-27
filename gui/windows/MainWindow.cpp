@@ -83,14 +83,20 @@ wxBoxSizer* MainWindow::createSidebar() {
     sidebarSizer->Add(probe.get(), 1, wxALIGN_TOP);
     sidebarSizer->AddSpacer(5);
 
-    PlotView* energyPlot = new PlotView(
-        this, wxSize(300, 200), wxSize(10, 10), makeAuto<TotalInternalEnergy>(), Color(230, 130, 10));
+    // the list of all available integrals to plot
+    SharedPtr<Array<IntegralData>> list = makeShared<Array<IntegralData>>();
+    list->push(IntegralData{ makeAuto<TotalEnergy>(), Color(240, 255, 80), 1.e4_f });
+    list->push(IntegralData{ makeAuto<TotalKineticEnergy>(), Color(255, 50, 50), 1.e4_f });
+    list->push(IntegralData{ makeAuto<TotalInternalEnergy>(), Color(230, 130, 10), 1.e4_f });
+    list->push(IntegralData{ makeAuto<TotalMomentum>(), Color(100, 200, 0), 1.e6_f });
+    list->push(IntegralData{ makeAuto<TotalAngularMomentum>(), Color(130, 80, 255), 1.e6_f });
+
+    PlotView* energyPlot = new PlotView(this, wxSize(300, 200), wxSize(10, 10), list, 2);
     sidebarSizer->Add(energyPlot, 1, wxALIGN_TOP);
     plots.push(energyPlot);
     sidebarSizer->AddSpacer(5);
 
-    PlotView* secondPlot = new PlotView(
-        this, wxSize(300, 200), wxSize(10, 10), makeAuto<TotalAngularMomentum>(), Color(130, 80, 255));
+    PlotView* secondPlot = new PlotView(this, wxSize(300, 200), wxSize(10, 10), list, 4);
     sidebarSizer->Add(secondPlot, 1, wxALIGN_TOP);
     plots.push(secondPlot);
 
@@ -100,6 +106,12 @@ wxBoxSizer* MainWindow::createSidebar() {
 void MainWindow::setProgress(const float progress) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
     gauge->SetValue(int(progress * 1000.f));
+}
+
+void MainWindow::runStarted() {
+    for (auto plot : plots) {
+        plot->runStarted();
+    }
 }
 
 void MainWindow::onTimeStep(const Storage& storage, const Statistics& stats) {

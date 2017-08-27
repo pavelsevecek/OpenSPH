@@ -76,6 +76,9 @@ void Controller::restart() {
         }
         // start new simulation
         this->run();
+
+        // notify the window
+        window->runStarted();
     }
     status = Status::RUNNING;
 }

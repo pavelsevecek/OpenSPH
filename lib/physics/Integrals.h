@@ -215,6 +215,8 @@ private:
     std::string name;
 
 public:
+    IntegralWrapper() = default;
+
     template <typename TIntegral>
     IntegralWrapper(AutoPtr<TIntegral>&& integral) {
         name = integral->getName();

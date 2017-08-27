@@ -14,39 +14,88 @@
 
 NAMESPACE_SPH_BEGIN
 
+struct IntegralData {
+    /// Integral used to draw the plot
+    IntegralWrapper integral;
+
+    /// Color of the plot
+    Color color;
+
+    /// Lower bound for the size of the y-axis
+    Float minRangeY = 1.e4_f;
+};
+
 class PlotView : public wxPanel {
 private:
-    LockingPtr<IPlot> plot;
     wxSize padding;
-    Color color;
-    std::string name;
+    SharedPtr<Array<IntegralData>> list;
+
+    struct {
+        LockingPtr<IPlot> plot;
+        Color color;
+        std::string name;
+    } cached;
 
 public:
     PlotView(wxWindow* parent,
         const wxSize size,
         const wxSize padding,
-        IntegralWrapper&& integral,
-        const Color color)
+        const SharedPtr<Array<IntegralData>>& list,
+        const Size defaultSelectedIdx)
         : wxPanel(parent, wxID_ANY, wxDefaultPosition, size)
         , padding(padding)
-        , color(color) {
+        , list(list) {
         this->SetMaxSize(size);
         Connect(wxEVT_PAINT, wxPaintEventHandler(PlotView::onPaint));
+        Connect(wxEVT_RIGHT_UP, wxMouseEventHandler(PlotView::onRightUp));
 
-        name = integral.getName();
-
-        // plot needs to be synchronized as it is updated from different thread, hopefully neither updating
-        // nor drawing will take a lot of time, so we can simply lock the pointer.
-        plot = makeLocking<TemporalPlot>(std::move(integral),
-            TemporalPlot::Params{ 1._f, Interval{ -10._f, 10._f }, 1.e4_f, false, 0.05_f });
+        this->updateIntegral(defaultSelectedIdx);
     }
 
     /// Update the plot data on time step, can be done from any thread
     void onTimeStep(const Storage& storage, const Statistics& stats) {
-        plot->onTimeStep(storage, stats);
+        cached.plot->onTimeStep(storage, stats);
+    }
+
+    void runStarted() {
+        cached.plot->clear();
     }
 
 private:
+    void updateIntegral(const Size index) {
+        IntegralData& data = (*list)[index];
+        cached.name = data.integral.getName();
+        cached.color = data.color;
+
+        TemporalPlot::Params params;
+        params.segment = 1._f;
+        params.fixedRangeX = Interval{ -10._f, 10._f };
+        params.minRangeY = data.minRangeY;
+        params.shrinkY = false;
+        params.period = 0.05_f;
+
+        // plot needs to be synchronized as it is updated from different thread, hopefully neither updating
+        // nor drawing will take a lot of time, so we can simply lock the pointer.
+        cached.plot = makeLocking<TemporalPlot>(data.integral, params);
+    }
+
+    void onRightUp(wxMouseEvent& UNUSED(evt)) {
+        wxMenu menu;
+        Size index = 0;
+        for (IntegralData& data : *list) {
+            menu.Append(index++, data.integral.getName());
+        }
+
+        menu.Connect(wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(PlotView::onMenu), nullptr, this);
+        this->PopupMenu(&menu);
+    }
+
+    void onMenu(wxCommandEvent& evt) {
+        const Size index = evt.GetId();
+        ASSERT(index < list->size());
+        this->updateIntegral(index);
+    }
+
     void onPaint(wxPaintEvent& UNUSED(evt)) {
         wxPaintDC dc(this);
         wxSize canvasSize = dc.GetSize();
@@ -60,7 +109,7 @@ private:
 
         this->drawLabel(dc);
 
-        auto proxy = plot.lock();
+        auto proxy = cached.plot.lock();
         const Interval rangeX = proxy->rangeX();
         const Interval rangeY = proxy->rangeY();
         if (rangeX.size() <= 0._f || rangeY.size() <= 0) {
@@ -72,11 +121,7 @@ private:
     }
 
     void drawPlot(wxPaintDC& dc, IPlot& lockedPlot, const Interval rangeX, const Interval rangeY) {
-        wxPen pen;
-        pen.SetColour(*wxBLUE);
-        dc.SetPen(pen);
-
-        WxDrawingContext context(dc, padding, rangeX, rangeY, color);
+        WxDrawingContext context(dc, padding, rangeX, rangeY, cached.color);
         lockedPlot.plot(context);
     }
 
@@ -102,7 +147,7 @@ private:
     }
 
     void drawLabel(wxDC& dc) {
-        const wxString label = name;
+        const wxString label = cached.name;
         wxFont font = dc.GetFont();
         font.MakeSmaller();
         dc.SetFont(font);
