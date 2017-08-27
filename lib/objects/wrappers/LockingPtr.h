@@ -40,6 +40,9 @@ namespace Detail {
 
 template <typename T>
 class LockingPtr {
+    template <typename>
+    friend class LockingPtr;
+
 private:
     SharedPtr<T> resource;
     Detail::LockingControlBlock<T>* block = nullptr;
@@ -56,9 +59,23 @@ public:
         : resource(other.resource)
         , block(other.block) {}
 
+    template <typename T2>
+    LockingPtr(const LockingPtr<T2>& other)
+        : resource(other.resource)
+        , block(other.block) {}
+
     LockingPtr(LockingPtr&& other)
         : resource(std::move(other.resource))
         , block(other.block) {
+        other.block = nullptr;
+    }
+
+    template <typename T2>
+    LockingPtr(LockingPtr<T2>&& other)
+        : resource(std::move(other.resource))
+        , block((Detail::LockingControlBlock<T>*)other.block) {
+        // type safety is already guarandeed by SharedPtr, so hopefully we can simply cast the block (the
+        // Locking block only adds a mutex that's independend on T)
         other.block = nullptr;
     }
 

@@ -26,22 +26,19 @@ MainWindow::MainWindow(Controller* parent, const GuiSettings& settings)
         settings.get<int>(GuiSettingsId::WINDOW_WIDTH), settings.get<int>(GuiSettingsId::WINDOW_HEIGHT));
     this->Create(nullptr, wxID_ANY, title.c_str(), wxDefaultPosition, size);
 
-    // create all components
+    // toolbar
     wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
-    wxBoxSizer* toolbar = createToolbar(parent);
-    sizer->Add(toolbar);
+    wxBoxSizer* toolbarSizer = createToolbar(parent);
+    sizer->Add(toolbarSizer);
 
+    // everything below toolbar
     wxBoxSizer* mainSizer = new wxBoxSizer(wxHORIZONTAL);
     pane = new OrthoPane(this, parent, settings);
     mainSizer->Add(pane.get(), 1, wxEXPAND);
-
     mainSizer->AddSpacer(5);
 
-    /*PlotView* plot = new PlotView(this, wxSize(390, 250), wxSize(20, 20));
-    mainSizer->Add(plot, 1, wxALIGN_TOP);*/
-
-    probe = new ParticleProbe(this, wxSize(300, 200));
-    mainSizer->Add(probe.get(), 1, wxALIGN_TOP);
+    wxBoxSizer* sidebarSizer = createSidebar();
+    mainSizer->Add(sidebarSizer);
 
     sizer->Add(mainSizer);
 
@@ -80,9 +77,35 @@ wxBoxSizer* MainWindow::createToolbar(Controller* parent) {
     return toolbar;
 }
 
+wxBoxSizer* MainWindow::createSidebar() {
+    wxBoxSizer* sidebarSizer = new wxBoxSizer(wxVERTICAL);
+    probe = new ParticleProbe(this, wxSize(300, 155));
+    sidebarSizer->Add(probe.get(), 1, wxALIGN_TOP);
+    sidebarSizer->AddSpacer(5);
+
+    PlotView* energyPlot = new PlotView(
+        this, wxSize(300, 200), wxSize(10, 10), makeAuto<TotalInternalEnergy>(), Color(230, 130, 10));
+    sidebarSizer->Add(energyPlot, 1, wxALIGN_TOP);
+    plots.push(energyPlot);
+    sidebarSizer->AddSpacer(5);
+
+    PlotView* secondPlot = new PlotView(
+        this, wxSize(300, 200), wxSize(10, 10), makeAuto<TotalAngularMomentum>(), Color(130, 80, 255));
+    sidebarSizer->Add(secondPlot, 1, wxALIGN_TOP);
+    plots.push(secondPlot);
+
+    return sidebarSizer;
+}
+
 void MainWindow::setProgress(const float progress) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
     gauge->SetValue(int(progress * 1000.f));
+}
+
+void MainWindow::onTimeStep(const Storage& storage, const Statistics& stats) {
+    for (auto plot : plots) {
+        plot->onTimeStep(storage, stats);
+    }
 }
 
 void MainWindow::setColorizerList(Array<SharedPtr<IColorizer>>&& colorizers) {

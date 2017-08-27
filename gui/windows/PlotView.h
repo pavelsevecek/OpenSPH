@@ -5,7 +5,10 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2017
 
+#include "gui/objects/Drawing.h"
 #include "gui/objects/Point.h"
+#include "objects/wrappers/LockingPtr.h"
+#include "physics/Integrals.h"
 #include "post/Plot.h"
 #include <wx/panel.h>
 
@@ -13,58 +16,98 @@ NAMESPACE_SPH_BEGIN
 
 class PlotView : public wxPanel {
 private:
-    AutoPtr<IPlot> plot;
+    LockingPtr<IPlot> plot;
     wxSize padding;
+    Color color;
+    std::string name;
 
 public:
-    PlotView(wxWindow* parent, const wxSize size, const wxSize padding)
+    PlotView(wxWindow* parent,
+        const wxSize size,
+        const wxSize padding,
+        IntegralWrapper&& integral,
+        const Color color)
         : wxPanel(parent, wxID_ANY, wxDefaultPosition, size)
-        , padding(padding) {
+        , padding(padding)
+        , color(color) {
         this->SetMaxSize(size);
         Connect(wxEVT_PAINT, wxPaintEventHandler(PlotView::onPaint));
-        // plot = makeAuto<TestPlot>();
+
+        name = integral.getName();
+
+        // plot needs to be synchronized as it is updated from different thread, hopefully neither updating
+        // nor drawing will take a lot of time, so we can simply lock the pointer.
+        plot = makeLocking<TemporalPlot>(std::move(integral),
+            TemporalPlot::Params{ 1._f, Interval{ -10._f, 10._f }, 1.e4_f, false, 0.05_f });
+    }
+
+    /// Update the plot data on time step, can be done from any thread
+    void onTimeStep(const Storage& storage, const Statistics& stats) {
+        plot->onTimeStep(storage, stats);
     }
 
 private:
     void onPaint(wxPaintEvent& UNUSED(evt)) {
         wxPaintDC dc(this);
-        wxBrush brush;
-        brush.SetColour(this->GetBackgroundColour());
-        dc.SetBrush(brush);
-        dc.DrawRectangle(wxPoint(0, 0), this->GetSize());
+        wxSize canvasSize = dc.GetSize();
 
-        const Interval rangeX = plot->getRangeX();
-        const Interval rangeY = plot->getRangeY();
-        drawAxes(dc, rangeX, rangeY);
-        drawPlot(dc, rangeX, rangeY);
+        // draw background
+        Color backgroundColor = Color(this->GetParent()->GetBackgroundColour());
+        wxBrush brush;
+        brush.SetColour(wxColour(backgroundColor.darken(0.2_f)));
+        dc.SetBrush(brush);
+        dc.DrawRectangle(wxPoint(0, 0), canvasSize);
+
+        this->drawLabel(dc);
+
+        auto proxy = plot.lock();
+        const Interval rangeX = proxy->rangeX();
+        const Interval rangeY = proxy->rangeY();
+        if (rangeX.size() <= 0._f || rangeY.size() <= 0) {
+            // don't assert, it probably means there are no data to draw
+            return;
+        }
+        this->drawAxes(dc, rangeX, rangeY);
+        this->drawPlot(dc, *proxy, rangeX, rangeY);
     }
 
-    void drawPlot(wxDC& dc, const Interval rangeX, const Interval rangeY) {
+    void drawPlot(wxPaintDC& dc, IPlot& lockedPlot, const Interval rangeX, const Interval rangeY) {
         wxPen pen;
         pen.SetColour(*wxBLUE);
         dc.SetPen(pen);
-        Storage storage;
-        Array<PlotPoint> points; /// \todo  = plot->plot();
-        const wxSize size = this->GetSize();
-        const wxSize plotSize = size - 2 * padding;
-        for (Size i = 0; i < points.size() - 1; ++i) {
-            const int x1(padding.x + plotSize.x * (points[i].x - rangeX.lower()) / rangeX.size());
-            const int x2(padding.x + plotSize.x * (points[i + 1].x - rangeX.lower()) / rangeX.size());
-            const int y1(padding.y + plotSize.y * (points[i].y - rangeY.lower()) / rangeY.size());
-            const int y2(padding.y + plotSize.y * (points[i + 1].y - rangeY.lower()) / rangeY.size());
-            dc.DrawLine(x1, size.y - y1, x2, size.y - y2);
-        }
+
+        WxDrawingContext context(dc, padding, rangeX, rangeY, color);
+        lockedPlot.plot(context);
     }
 
-    void drawAxes(wxDC& dc, const Interval rangeX, const Interval rangeY) {
+    void drawAxes(wxPaintDC& dc, const Interval rangeX, const Interval rangeY) {
         wxPen pen;
         pen.SetColour(*wxWHITE);
         dc.SetPen(pen);
         const wxSize size = this->GetSize();
-        dc.DrawLine(padding.x, size.y - padding.y, padding.x, padding.y);
-        dc.DrawLine(padding.x, size.y - padding.y, size.x - padding.x, size.y - padding.y);
-        (void)rangeX;
-        (void)rangeY;
+        // find point where y-axis appears on the polot
+        const Float x0 = -rangeX.lower() / rangeX.size();
+        if (x0 >= 0._f && x0 <= 1._f) {
+            // draw y-axis
+            const Float dcX = x0 * (size.x - 2 * padding.x);
+            dc.DrawLine(padding.x + dcX, size.y - padding.y, padding.x + dcX, padding.y);
+        }
+        // find point where x-axis appears on the plot
+        const Float y0 = -rangeY.lower() / rangeY.size();
+        if (y0 >= 0._f && y0 <= 1._f) {
+            // draw x-axis
+            const Float dcY = y0 * (size.y - 2 * padding.y);
+            dc.DrawLine(padding.x, size.y - padding.y - dcY, size.x - padding.x, size.y - padding.y - dcY);
+        }
+    }
+
+    void drawLabel(wxDC& dc) {
+        const wxString label = name;
+        wxFont font = dc.GetFont();
+        font.MakeSmaller();
+        dc.SetFont(font);
+        const wxSize labelSize = dc.GetTextExtent(label);
+        dc.DrawText(label, dc.GetSize().x - labelSize.x, 0);
     }
 };
 

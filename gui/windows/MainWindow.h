@@ -16,8 +16,11 @@ class IColorizer;
 class Controller;
 class OrthoPane;
 class ParticleProbe;
+class PlotView;
 class Particle;
 class Color;
+class Statistics;
+class Storage;
 
 /// Main frame of the application. Run is coupled with the window; currently there can only be one window and
 /// one run at the same time. Run is ended when user closes the window.
@@ -32,6 +35,8 @@ private:
 
     RawPtr<ParticleProbe> probe;
 
+    Array<RawPtr<PlotView>> plots;
+
     /// Additional wx controls
     wxComboBox* quantityBox;
     Size selectedIdx = 0;
@@ -43,6 +48,8 @@ private:
 public:
     MainWindow(Controller* controller, const GuiSettings& guiSettings);
 
+    void onTimeStep(const Storage& storage, const Statistics& stats);
+
     void setProgress(const float progress);
 
     void setColorizerList(Array<SharedPtr<IColorizer>>&& colorizers);
@@ -53,6 +60,8 @@ public:
 
 private:
     wxBoxSizer* createToolbar(Controller* parent);
+
+    wxBoxSizer* createSidebar();
 
     /// wx event handlers
 

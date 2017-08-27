@@ -99,6 +99,8 @@ struct ListIterator {
 /// \brief Doubly-linked list
 ///
 /// Random access is not implemented, as it would be highly ineffective anyway.
+///
+/// \todo Possibly allow a memory pool as an allocator to improve locality of nodes.
 template <typename T>
 class List : public Noncopyable {
 private:

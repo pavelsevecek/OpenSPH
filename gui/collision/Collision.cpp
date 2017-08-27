@@ -319,10 +319,10 @@ void AsteroidCollision::setUp() {
 }
 
 void AsteroidCollision::setupOutput() {
-    Path outputDir = Path(settings.get<std::string>(RunSettingsId::RUN_OUTPUT_PATH)) /
-                     Path(settings.get<std::string>(RunSettingsId::RUN_OUTPUT_NAME));
-    AutoPtr<TextOutput> textOutput = makeAuto<TextOutput>(
-        outputDir, settings.get<std::string>(RunSettingsId::RUN_NAME), TextOutput::Options::SCIENTIFIC);
+    Path outputPath = Path(settings.get<std::string>(RunSettingsId::RUN_OUTPUT_PATH)) /
+                      Path(settings.get<std::string>(RunSettingsId::RUN_OUTPUT_NAME));
+    const std::string name = settings.get<std::string>(RunSettingsId::RUN_NAME);
+    AutoPtr<TextOutput> textOutput = makeAuto<TextOutput>(outputPath, name, TextOutput::Options::SCIENTIFIC);
     textOutput->add(makeAuto<ParticleNumberColumn>());
     textOutput->add(makeAuto<ValueColumn<Vector>>(QuantityId::POSITIONS));
     textOutput->add(makeAuto<DerivativeColumn<Vector>>(QuantityId::POSITIONS));
@@ -343,6 +343,11 @@ void AsteroidCollision::tearDown() {
 
     Profiler& profiler = Profiler::getInstance();
     profiler.printStatistics(*logger);
+
+    if (resultsDir == Path(".")) {
+        // testing & debugging, do not run pkdgrav
+        return;
+    }
 
     Storage output = this->runPkdgrav();
 

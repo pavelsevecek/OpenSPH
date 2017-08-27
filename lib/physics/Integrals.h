@@ -9,31 +9,53 @@
 #include "math/Means.h"
 #include "objects/containers/Array.h"
 #include "objects/utility/Value.h"
+#include "objects/wrappers/Function.h"
 #include "system/Settings.h"
 
 NAMESPACE_SPH_BEGIN
 
-/// Object computing integral quantities and diagnostics of the run.
+/// \brief Interface for classes computing integral quantities from storage
+///
+/// This interface is used to get reduced information from all particles (and possibly all quantities) in the
+/// storage. The result is a single value, type of which is given by the template parameter. This is useful to
+/// get integrals of motion, as the name suggests, as well as other useful values, like
+/// average/minimal/maximal value of given quantity, etc.
+///
 /// \todo automatically exclude ghost particles?
 template <typename Type>
-class IIntegral {
+class IIntegral : public Polymorphic {
 public:
-    /// Computes the integral quantity using particles in the storage.
+    /// \brief Computes the integral quantity using particles in the storage.
+    ///
+    /// Storage must contain quantites relevant to the integral implementation. Generally positions, masses
+    /// and density must be present.
     virtual Type evaluate(const Storage& storage) const = 0;
+
+    /// \brief Returns the name of the integral.
+    ///
+    /// Needed to label the integral in logs, GUI etc.
+    virtual std::string getName() const = 0;
 };
 
 
-/// Computes the total mass of all SPH particles. Storage must contains particle masses, of course;
-/// checked by assert.
+/// \brief Computes the total mass of all SPH particles.
+///
+/// Storage must contains particle masses, of course; checked by assert.
+///
 /// \note Total mass is always conserved automatically as particles do not change their mass. This is
-/// therefore only useful as a sanity check, or potentially if a solver with variable particle masses
-/// gets implemented.
+/// therefore only useful as a sanity check, or potentially when using solver with variable number of
+/// particles.
 class TotalMass : public IIntegral<Float> {
 public:
     virtual Float evaluate(const Storage& storage) const override;
+
+    virtual std::string getName() const override {
+        return "Total mass";
+    }
 };
 
-/// Computes total momentum of all SPH particles with a respect to the center of reference frame.
+/// \brief Computes total momentum of all SPH particles with a respect to the reference frame.
+///
 /// Storage must contain at least particle masses and particle positions with velocities, checked by
 /// assert.
 class TotalMomentum : public IIntegral<Vector> {
@@ -44,10 +66,15 @@ public:
     TotalMomentum(const Float omega = 0._f);
 
     virtual Vector evaluate(const Storage& storage) const override;
+
+    virtual std::string getName() const override {
+        return "Total momentum";
+    }
 };
 
-/// Computes total angular momentum of all SPH particles with a respect to the center of reference
-/// frame. Storage must contain at least particle masses and particle positions with velocities, checked by
+/// \brief Computes total angular momentum of all SPH particles with a respect to the reference frame.
+///
+/// Storage must contain at least particle masses and particle positions with velocities, checked by
 /// assert.
 class TotalAngularMomentum : public IIntegral<Vector> {
 private:
@@ -57,10 +84,15 @@ public:
     TotalAngularMomentum(const Float omega = 0._f);
 
     virtual Vector evaluate(const Storage& storage) const override;
+
+    virtual std::string getName() const override {
+        return "Total angular momentum";
+    }
 };
 
-/// Returns the total kinetic energy of all particles. Storage must contain at least particle masses
-/// and particle positions with velocities, checked by assert.
+/// \brief Returns the total kinetic energy of all particles.
+///
+/// Storage must contain at least particle masses and particle positions with velocities, checked by assert.
 class TotalKineticEnergy : public IIntegral<Float> {
 private:
     Vector omega;
@@ -69,18 +101,29 @@ public:
     TotalKineticEnergy(const Float omega = 0._f);
 
     virtual Float evaluate(const Storage& storage) const override;
+
+    virtual std::string getName() const override {
+        return "Kinetic energy";
+    }
 };
 
-/// Returns the total internal energy of all particles. Storage must contain at least particle masses
-/// and specific internal energy. If used solver works with other independent quantity (energy density, total
-/// energy, specific entropy), specific energy must be derived before the function is called.
+/// \brief Returns the total internal energy of all particles.
+///
+/// Storage must contain at least particle masses and specific internal energy. If used solver works with
+/// other independent quantity (energy density, total energy, specific entropy), specific energy must be
+/// derived and saved to storage before the function is called.
 class TotalInternalEnergy : public IIntegral<Float> {
 public:
     virtual Float evaluate(const Storage& storage) const override;
+
+    virtual std::string getName() const override {
+        return "Internal energy";
+    }
 };
 
-/// Returns the total energy of all particles. This is simply of sum of total kinetic energy and total
-/// internal energy.
+/// \brief Returns the total energy of all particles.
+///
+/// This is simply of sum of total kinetic energy and total internal energy.
 /// \todo this has to be generalized if some external potential is used.
 class TotalEnergy : public IIntegral<Float> {
 private:
@@ -90,10 +133,16 @@ public:
     TotalEnergy(const Float omega = 0._f);
 
     virtual Float evaluate(const Storage& storage) const override;
+
+    virtual std::string getName() const override {
+        return "Total energy";
+    }
 };
 
-/// Computes the center of mass of all particles, or optionally center of mass of particles
-/// belonging to body of given ID. The center is evaluated with a respect to reference frame.
+/// \brief Computes the center of mass of particles.
+///
+/// By default, the center of mass is computed from all particles, optionally only particles belonging to body
+/// of given ID are considered. The center is evaluated with a respect to reference frame.
 class CenterOfMass : public IIntegral<Vector> {
 private:
     Optional<Size> bodyId;
@@ -102,10 +151,16 @@ public:
     CenterOfMass(const Optional<Size> bodyId = NOTHING);
 
     virtual Vector evaluate(const Storage& storage) const override;
+
+    virtual std::string getName() const override {
+        return "Center of mass";
+    }
 };
 
-/// Returns means of given scalar quantity. By default means are computed from all particles, optionally only
-/// from particles of given body. Storage must contain quantity of given ID, checked by assert.
+/// \brief Returns means of given scalar quantity.
+///
+/// By default means are computed from all particles, optionally only from particles of given body. Storage
+/// must contain quantity of given ID, checked by assert.
 class QuantityMeans : public IIntegral<MinMaxMean> {
 private:
     Variant<QuantityId, std::function<Float(const Size i)>> quantity;
@@ -119,9 +174,19 @@ public:
     QuantityMeans(const std::function<Float(const Size i)>& func, const Optional<Size> bodyId = NOTHING);
 
     virtual MinMaxMean evaluate(const Storage& storage) const override;
+
+    virtual std::string getName() const override {
+        if (auto id = quantity.tryGet<QuantityId>()) {
+            return getMetadata(id.value()).quantityName;
+        } else {
+            return "User-defined means";
+        }
+    }
 };
 
-/// Returns the quantity value value of given particle. Currently available only for scalar quantities.
+/// \brief Returns the quantity value of given particle.
+///
+/// Mainly used for debugging. Currently available only for scalar quantities.
 class QuantityValue : public IIntegral<Float> {
 private:
     QuantityId id;
@@ -131,6 +196,40 @@ public:
     QuantityValue(const QuantityId id, const Size particleIdx);
 
     virtual Float evaluate(const Storage& storage) const override;
+
+    virtual std::string getName() const override {
+        return getMetadata(id).quantityName + " " + std::to_string(idx);
+    }
+};
+
+/// \brief Helper integral wrapping another integral and converting the returned value to scalar.
+///
+/// Works as type erasere, allowing to integrals without template parameters, store integrals of different
+/// types in one container, etc.
+class IntegralWrapper : public IIntegral<Float> {
+private:
+    /// As integrals are templated, we have to put one more indirection to store them
+    Function<Value(const Storage& storage)> closure;
+
+    /// Cached name of the object. This is not optimal, because the name can theorically change, but well ...
+    std::string name;
+
+public:
+    template <typename TIntegral>
+    IntegralWrapper(AutoPtr<TIntegral>&& integral) {
+        name = integral->getName();
+        closure = [i = std::move(integral)](const Storage& storage)->Value {
+            return i->evaluate(storage);
+        };
+    }
+
+    virtual Float evaluate(const Storage& storage) const override {
+        return closure(storage).getScalar();
+    }
+
+    virtual std::string getName() const override {
+        return name;
+    }
 };
 
 NAMESPACE_SPH_END

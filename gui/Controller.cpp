@@ -131,6 +131,9 @@ void Controller::onTimeStep(const Storage& storage, Statistics& stats) {
     const float progress = stats.get<Float>(StatisticsId::RELATIVE_PROGRESS);
     executeOnMainThread([this, progress] { window->setProgress(progress); });
 
+    // update the data in all window controls (can be done from any thread)
+    window->onTimeStep(storage, stats);
+
     // check current time and possibly save images
     ASSERT(movie);
     movie->onTimeStep(storage, stats);

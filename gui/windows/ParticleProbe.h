@@ -40,6 +40,7 @@ public:
         : wxPanel(parent, wxID_ANY, wxDefaultPosition, size) {
 
         this->SetMinSize(size);
+        this->SetMaxSize(size);
 
         // Connect handlers
         Connect(wxEVT_PAINT, wxPaintEventHandler(ParticleProbe::onPaint));
@@ -150,6 +151,7 @@ private:
 
     template <typename Type>
     void printTensor(wxDC& dc, const Type& tensor, const std::wstring& label, const wxPoint offset) const {
+        const Size x = dc.GetSize().x / 2;
         drawTextWithSubscripts(
             dc, label + L"_xx = " + toPrintableString(tensor(X, X)), offset + wxSize(0, 0 * config.lineSkip));
         drawTextWithSubscripts(
@@ -157,11 +159,11 @@ private:
         drawTextWithSubscripts(
             dc, label + L"_zz = " + toPrintableString(tensor(Z, Z)), offset + wxSize(0, 2 * config.lineSkip));
         drawTextWithSubscripts(
-            dc, label + L"_xy = " + toPrintableString(tensor(X, Y)), offset + wxSize(0, 3 * config.lineSkip));
+            dc, label + L"_xy = " + toPrintableString(tensor(X, Y)), offset + wxSize(x, 0 * config.lineSkip));
         drawTextWithSubscripts(
-            dc, label + L"_xz = " + toPrintableString(tensor(X, Z)), offset + wxSize(0, 4 * config.lineSkip));
+            dc, label + L"_xz = " + toPrintableString(tensor(X, Z)), offset + wxSize(x, 1 * config.lineSkip));
         drawTextWithSubscripts(
-            dc, label + L"_yz = " + toPrintableString(tensor(Y, X)), offset + wxSize(0, 5 * config.lineSkip));
+            dc, label + L"_yz = " + toPrintableString(tensor(Y, X)), offset + wxSize(x, 2 * config.lineSkip));
     }
 };
 
