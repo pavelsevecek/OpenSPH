@@ -25,7 +25,7 @@ public:
     Path outputDir;
 
     /// Path to the parent directory of outputDir
-    Path resultsDir{ "." }; // /home/pavel/projects/astro/sph/result/" };
+    Path resultsDir{ /*"." }; */ "/home/pavel/projects/astro/sph/result/" };
 
     /// Path to the source code, used to get git commit hash
     Path sourceDir{ "/home/pavel/projects/astro/sph/src/" };

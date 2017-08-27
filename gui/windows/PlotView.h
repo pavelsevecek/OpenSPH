@@ -10,25 +10,23 @@
 #include "objects/wrappers/LockingPtr.h"
 #include "physics/Integrals.h"
 #include "post/Plot.h"
+#include "thread/CheckFunction.h"
 #include <wx/panel.h>
 
 NAMESPACE_SPH_BEGIN
 
-struct IntegralData {
-    /// Integral used to draw the plot
-    IntegralWrapper integral;
+struct PlotData {
+    /// Plot to be drawn with associated mutex
+    LockingPtr<IPlot> plot;
 
     /// Color of the plot
     Color color;
-
-    /// Lower bound for the size of the y-axis
-    Float minRangeY = 1.e4_f;
 };
 
 class PlotView : public wxPanel {
 private:
     wxSize padding;
-    SharedPtr<Array<IntegralData>> list;
+    SharedPtr<Array<PlotData>> list;
 
     struct {
         LockingPtr<IPlot> plot;
@@ -40,7 +38,7 @@ public:
     PlotView(wxWindow* parent,
         const wxSize size,
         const wxSize padding,
-        const SharedPtr<Array<IntegralData>>& list,
+        const SharedPtr<Array<PlotData>>& list,
         const Size defaultSelectedIdx)
         : wxPanel(parent, wxID_ANY, wxDefaultPosition, size)
         , padding(padding)
@@ -49,41 +47,25 @@ public:
         Connect(wxEVT_PAINT, wxPaintEventHandler(PlotView::onPaint));
         Connect(wxEVT_RIGHT_UP, wxMouseEventHandler(PlotView::onRightUp));
 
-        this->updateIntegral(defaultSelectedIdx);
-    }
-
-    /// Update the plot data on time step, can be done from any thread
-    void onTimeStep(const Storage& storage, const Statistics& stats) {
-        cached.plot->onTimeStep(storage, stats);
-    }
-
-    void runStarted() {
-        cached.plot->clear();
+        this->updatePlot(defaultSelectedIdx);
     }
 
 private:
-    void updateIntegral(const Size index) {
-        IntegralData& data = (*list)[index];
-        cached.name = data.integral.getName();
+    void updatePlot(const Size index) {
+        PlotData& data = (*list)[index];
+        cached.name = data.plot->getCaption();
         cached.color = data.color;
-
-        TemporalPlot::Params params;
-        params.segment = 1._f;
-        params.fixedRangeX = Interval{ -10._f, 10._f };
-        params.minRangeY = data.minRangeY;
-        params.shrinkY = false;
-        params.period = 0.05_f;
 
         // plot needs to be synchronized as it is updated from different thread, hopefully neither updating
         // nor drawing will take a lot of time, so we can simply lock the pointer.
-        cached.plot = makeLocking<TemporalPlot>(data.integral, params);
+        cached.plot = data.plot;
     }
 
     void onRightUp(wxMouseEvent& UNUSED(evt)) {
         wxMenu menu;
         Size index = 0;
-        for (IntegralData& data : *list) {
-            menu.Append(index++, data.integral.getName());
+        for (PlotData& data : *list) {
+            menu.Append(index++, data.plot->getCaption());
         }
 
         menu.Connect(wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(PlotView::onMenu), nullptr, this);
@@ -91,9 +73,11 @@ private:
     }
 
     void onMenu(wxCommandEvent& evt) {
+        CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
         const Size index = evt.GetId();
         ASSERT(index < list->size());
-        this->updateIntegral(index);
+        this->updatePlot(index);
+        this->Refresh();
     }
 
     void onPaint(wxPaintEvent& UNUSED(evt)) {

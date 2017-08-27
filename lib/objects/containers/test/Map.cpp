@@ -8,13 +8,12 @@ using namespace Sph;
 /// Sanity check that the elements are really stored sorted
 template <typename TKey, typename TValue, MapOptimization Optimize>
 static bool isSorted(const Map<TKey, TValue, Optimize>& map) {
-    TKey previous;
-    for (auto& element : map) {
-        if (element.key == map.begin()->key) {
-            // skip first element, nothing to compare with
-            previous = element.key;
-            continue;
-        }
+    if (map.empty()) {
+        return true;
+    }
+    TKey previous = map.begin()->key;
+    for (auto iter = map.begin() + 1; iter < map.end(); ++iter) {
+        auto& element = *iter;
         if (element.key <= previous) {
             return false;
         }

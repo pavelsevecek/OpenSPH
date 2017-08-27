@@ -84,21 +84,53 @@ wxBoxSizer* MainWindow::createSidebar() {
     sidebarSizer->AddSpacer(5);
 
     // the list of all available integrals to plot
-    SharedPtr<Array<IntegralData>> list = makeShared<Array<IntegralData>>();
-    list->push(IntegralData{ makeAuto<TotalEnergy>(), Color(240, 255, 80), 1.e4_f });
-    list->push(IntegralData{ makeAuto<TotalKineticEnergy>(), Color(255, 50, 50), 1.e4_f });
-    list->push(IntegralData{ makeAuto<TotalInternalEnergy>(), Color(230, 130, 10), 1.e4_f });
-    list->push(IntegralData{ makeAuto<TotalMomentum>(), Color(100, 200, 0), 1.e6_f });
-    list->push(IntegralData{ makeAuto<TotalAngularMomentum>(), Color(130, 80, 255), 1.e6_f });
+    SharedPtr<Array<PlotData>> list = makeShared<Array<PlotData>>();
+
+    TemporalPlot::Params params;
+    params.segment = 1._f;
+    params.minRangeY = 1.4_f;
+    params.fixedRangeX = Interval{ -10._f, 10._f };
+    params.shrinkY = false;
+    params.period = 0.05_f;
+
+    PlotData data;
+    IntegralWrapper integral = makeAuto<TotalEnergy>();
+    data.plot = makeLocking<TemporalPlot>(integral, params);
+    plots.push(data.plot);
+    data.color = Color(wxColour(240, 255, 80));
+    list->push(data);
+
+    integral = makeAuto<TotalKineticEnergy>();
+    data.plot = makeLocking<TemporalPlot>(integral, params);
+    plots.push(data.plot);
+    data.color = Color(wxColour(200, 0, 0));
+    list->push(data);
+
+    integral = makeAuto<TotalInternalEnergy>();
+    data.plot = makeLocking<TemporalPlot>(integral, params);
+    plots.push(data.plot);
+    data.color = Color(wxColour(255, 50, 50));
+    list->push(data);
+
+    integral = makeAuto<TotalMomentum>();
+    params.minRangeY = 1.e6_f;
+    data.plot = makeLocking<TemporalPlot>(integral, params);
+    plots.push(data.plot);
+    data.color = Color(wxColour(100, 200, 0));
+    list->push(data);
+
+    integral = makeAuto<TotalAngularMomentum>();
+    data.plot = makeLocking<TemporalPlot>(integral, params);
+    plots.push(data.plot);
+    data.color = Color(wxColour(130, 80, 255));
+    list->push(data);
 
     PlotView* energyPlot = new PlotView(this, wxSize(300, 200), wxSize(10, 10), list, 2);
     sidebarSizer->Add(energyPlot, 1, wxALIGN_TOP);
-    plots.push(energyPlot);
     sidebarSizer->AddSpacer(5);
 
     PlotView* secondPlot = new PlotView(this, wxSize(300, 200), wxSize(10, 10), list, 4);
     sidebarSizer->Add(secondPlot, 1, wxALIGN_TOP);
-    plots.push(secondPlot);
 
     return sidebarSizer;
 }
@@ -110,7 +142,7 @@ void MainWindow::setProgress(const float progress) {
 
 void MainWindow::runStarted() {
     for (auto plot : plots) {
-        plot->runStarted();
+        plot->clear();
     }
 }
 

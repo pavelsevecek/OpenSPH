@@ -2,7 +2,7 @@
 
 #include "gui/Settings.h"
 #include "objects/containers/Array.h"
-#include "objects/wrappers/SharedPtr.h"
+#include "objects/wrappers/LockingPtr.h"
 #include <wx/frame.h>
 
 class wxComboBox;
@@ -13,6 +13,7 @@ class wxCheckBox;
 NAMESPACE_SPH_BEGIN
 
 class IColorizer;
+class IPlot;
 class Controller;
 class OrthoPane;
 class ParticleProbe;
@@ -35,7 +36,7 @@ private:
 
     RawPtr<ParticleProbe> probe;
 
-    Array<RawPtr<PlotView>> plots;
+    Array<LockingPtr<IPlot>> plots;
 
     /// Additional wx controls
     wxComboBox* quantityBox;

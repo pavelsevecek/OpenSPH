@@ -78,13 +78,18 @@ protected:
     } ranges;
 
 public:
+    /// \brief Returns the plotted range in x-coordinate.
     Interval rangeX() const {
         return ranges.x;
     }
 
+    /// \brief Returns the plotted range in y-coordinate.
     Interval rangeY() const {
         return ranges.y;
     }
+
+    /// \brief Returns the caption of the plot
+    virtual std::string getCaption() const = 0;
 
     /// \brief Updates the plot with new data.
     ///
@@ -112,6 +117,10 @@ protected:
 public:
     SpatialPlot(const QuantityId id)
         : id(id) {}
+
+    virtual std::string getCaption() const override {
+        return getMetadata(id).quantityName;
+    }
 
     virtual void onTimeStep(const Storage& storage, const Statistics& UNUSED(stats)) override {
         // no temporal dependence - reset everything
@@ -218,6 +227,10 @@ public:
         : integral(integral)
         , params(params) {
         ASSERT(params.segment > 0._f);
+    }
+
+    virtual std::string getCaption() const override {
+        return integral.getName();
     }
 
     virtual void onTimeStep(const Storage& storage, const Statistics& stats) override {

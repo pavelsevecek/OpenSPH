@@ -142,10 +142,14 @@ private:
     /// Denotes the phase of the simulation
     bool impactStarted = false;
 
+    /// Path where are results are saved
+    Path outputPath;
+
 public:
-    CollisionSolver(const RunSettings& settings, const BodySettings& body)
+    CollisionSolver(const RunSettings& settings, const BodySettings& body, const Path& path)
         : GenericSolver(settings, this->getEquations(settings)) // , Factory::getGravity(settings))
-        , body(body) {
+        , body(body)
+        , outputPath(path) {
         timeRange = settings.get<Interval>(RunSettingsId::RUN_TIME_RANGE);
         omega = settings.get<Vector>(RunSettingsId::FRAME_ANGULAR_FREQUENCY);
     }
@@ -175,7 +179,7 @@ public:
                 .set(BodySettingsId::STRESS_TENSOR_MIN, LARGE)
                 .set(BodySettingsId::DAMAGE_MIN, LARGE);
             SphericalDomain domain2(Vector(5097.4509902022_f, 3726.8662269290_f, 0._f), 270.5847632732_f);
-            body.saveToFile(Path("impactor.sph"));
+            body.saveToFile(outputPath / Path("impactor.sph"));
             conds
                 ->addBody(domain2, body)
                 // velocity 5 km/s
@@ -284,7 +288,7 @@ void AsteroidCollision::setUp() {
     BodySettings body;
     body.set(BodySettingsId::ENERGY, 0._f)
         .set(BodySettingsId::ENERGY_RANGE, Interval(0._f, INFTY))
-        .set(BodySettingsId::PARTICLE_COUNT, 10'000)
+        .set(BodySettingsId::PARTICLE_COUNT, 100'000)
         .set(BodySettingsId::EOS, EosEnum::TILLOTSON)
         .set(BodySettingsId::STRESS_TENSOR_MIN, 1.e5_f)
         .set(BodySettingsId::RHEOLOGY_DAMAGE, DamageEnum::SCALAR_GRADY_KIPP)
