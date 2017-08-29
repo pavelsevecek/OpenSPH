@@ -284,6 +284,7 @@ AutoPtr<RunSettings> RunSettings::instance (new RunSettings {
     { RunSettingsId::SPH_AV_STRESS_FACTOR,          "sph.artificial_stress_factor", 0.15_f },
     { RunSettingsId::SPH_SMOOTHING_LENGTH_MIN,      "sph.smoothing_length.min", 1e-5_f },
     { RunSettingsId::SPH_FINDER,                    "sph.finder",               int(FinderEnum::VOXEL) },
+    { RunSettingsId::SPH_FINDER_COMPACT_THRESHOLD,  "sph.finder.compact_threshold", 0.5_f },
     { RunSettingsId::SPH_CONSERVE_ANGULAR_MOMENTUM, "sph.angular_momentum_correction", false },
 
     /// Gravity

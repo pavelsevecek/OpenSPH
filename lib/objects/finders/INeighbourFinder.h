@@ -32,6 +32,8 @@ enum class FinderFlags {
 
 /// \brief Interface of objects finding neighbouring particles.
 class INeighbourFinder : public Polymorphic {
+    friend class DynamicFinder;
+
 protected:
     ArrayView<const Vector> values;
     Order rankH;

@@ -86,7 +86,8 @@ SOURCES += \
     thread/CheckFunction.cpp \
     thread/Pool.cpp \
     timestepping/TimeStepCriterion.cpp \
-    timestepping/TimeStepping.cpp
+    timestepping/TimeStepping.cpp \
+    objects/finders/DynamicFinder.cpp
 
 HEADERS += \
     common/Assert.h \
@@ -243,4 +244,5 @@ HEADERS += \
     thread/ThreadLocal.h \
     timestepping/ISolverr.h \
     timestepping/TimeStepCriterion.h \
-    timestepping/TimeStepping.h
+    timestepping/TimeStepping.h \
+    objects/finders/DynamicFinder.h
