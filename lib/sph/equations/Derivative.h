@@ -252,22 +252,21 @@ namespace VelocityGradientCorrection {
     };
 }
 
-namespace Detail {
-    template <typename TDerivative, typename TEnabler = void>
-    struct DerivativeTraits {
-        static TDerivative make(const RunSettings& UNUSED(settings)) {
-            // default constructible
-            return TDerivative();
-        }
-    };
-    template <typename TDerivative>
-    struct DerivativeTraits<TDerivative,
-        std::enable_if_t<std::is_constructible<TDerivative, const RunSettings&>::value>> {
-        static TDerivative make(const RunSettings& settings) {
-            // constructible from settings
-            return TDerivative(settings);
-        }
-    };
+/// \brief Helper function allowing to construct an object from settings if the object defines such
+/// constructor, or default-construct the object otherwise.
+template <typename Type>
+std::enable_if_t<!std::is_constructible<Type, const RunSettings&>::value, Type> makeFromSettings(
+    const RunSettings& UNUSED(settings)) {
+    // default constructible
+    return Type();
+}
+
+/// Specialization for types constructible from settings
+template <typename Type>
+std::enable_if_t<std::is_constructible<Type, const RunSettings&>::value, Type> makeFromSettings(
+    const RunSettings& settings) {
+    // constructible from settings
+    return Type(settings);
 }
 
 class DerivativeHolder {
@@ -291,8 +290,7 @@ public:
                 return;
             }
         }
-        AutoPtr<TDerivative> ptr =
-            makeAuto<TDerivative>(Detail::DerivativeTraits<TDerivative>::make(settings));
+        AutoPtr<TDerivative> ptr = makeAuto<TDerivative>(makeFromSettings<TDerivative>(settings));
         derivatives.push(std::move(ptr));
     }
 

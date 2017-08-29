@@ -18,7 +18,7 @@ NAMESPACE_SPH_BEGIN
 /// Although the same mechanism could be used with any artificial viscosity, the current implementation is
 /// only an extension of the standard scalar artificial viscosity.
 class MorrisMonaghanAV : public IEquationTerm {
-private:
+public:
     class Derivative : public DerivativeTemplate<Derivative> {
     private:
         ArrayView<const Float> alpha, beta, dalpha, cs, rho, m;

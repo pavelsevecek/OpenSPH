@@ -26,8 +26,6 @@ protected:
 public:
     DynamicFinder(const RunSettings& settings);
 
-    ~DynamicFinder();
-
     virtual Size findNeighbours(const Size index,
         const Float radius,
         Array<NeighbourRecord>& neighbours,

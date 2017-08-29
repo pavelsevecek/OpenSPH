@@ -41,7 +41,7 @@ class BalsaraSwitch : public IEquationTerm {
 
     public:
         Derivative(const RunSettings& settings)
-            : av(settings) {}
+            : av(makeFromSettings<typename AV::Derivative>(settings)) {}
 
         virtual void create(Accumulated& results) override {
             results.insert<Vector>(QuantityId::POSITIONS, OrderEnum::SECOND);
@@ -91,7 +91,7 @@ class BalsaraSwitch : public IEquationTerm {
 
 public:
     BalsaraSwitch(const RunSettings& settings)
-        : av(Detail::DerivativeTraits<AV>::make(settings)) {
+        : av(makeFromSettings<AV>(settings)) {
         storeFactor = settings.get<bool>(RunSettingsId::SPH_AV_BALSARA_STORE);
     }
 
