@@ -244,4 +244,5 @@ HEADERS += \
     thread/ThreadLocal.h \
     timestepping/ISolverr.h \
     timestepping/TimeStepCriterion.h \
-    timestepping/TimeStepping.h
+    timestepping/TimeStepping.h \
+    objects/finders/DynamicFinder.h

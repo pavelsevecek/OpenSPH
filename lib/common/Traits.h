@@ -169,6 +169,13 @@ static_assert(std::is_same<int, ConvertToSize<TestEnum>>::value, "invalid EnumTo
 static_assert(std::is_same<int&, ConvertToSize<TestEnum&>>::value, "invalid EnumToInt");
 
 
+template <typename... Ts>
+struct makeVoid {
+    using Type = void;
+};
+template <typename... Ts>
+using voidType = typename makeVoid<Ts...>::Type;
+
 /// Static logical and
 template <bool... Values>
 struct AllTrue;

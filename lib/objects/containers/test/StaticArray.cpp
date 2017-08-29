@@ -221,7 +221,7 @@ struct AreComparable {
     static constexpr bool value = false;
 };
 template <typename T1, typename T2>
-struct AreComparable<T1, T2, std::void_t<decltype(std::declval<const T1>() == std::declval<const T2>())>> {
+struct AreComparable<T1, T2, voidType<decltype(std::declval<const T1>() == std::declval<const T2>())>> {
     static constexpr bool value = true;
 };
 

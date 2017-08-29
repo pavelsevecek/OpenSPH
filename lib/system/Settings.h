@@ -487,6 +487,11 @@ enum class RunSettingsId {
     /// Structure for searching nearest neighbours of particles
     SPH_FINDER,
 
+    /// Used by DynamicFinder. Maximum relative distance between center of mass and geometric center of the
+    /// bounding box for which VoxelFinder is used. For larger offsets of center of mass, K-d tree is used
+    /// instead.
+    SPH_FINDER_COMPACT_THRESHOLD,
+
     /// If true, the kernel gradient will be corrected for each particle to improve conservation of total
     /// angular momentum. This comes at the cost of higher memory consumption and slower evaluation of SPH
     /// derivatives.
