@@ -74,7 +74,7 @@ TEST_CASE("CummulativeSfd", "[post]") {
     storage.insert<Vector>(QuantityId::POSITIONS, OrderEnum::ZERO, std::move(r));
 
     Post::HistogramParams params;
-    params.quantity = Post::HistogramParams::Quantity::RADII;
+    params.id = Post::HistogramId::RADII;
     params.source = Post::HistogramParams::Source::PARTICLES;
     Array<Post::SfdPoint> points = Post::getCummulativeSfd(storage, params);
     // clang-format off

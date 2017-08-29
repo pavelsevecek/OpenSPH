@@ -61,25 +61,31 @@ Size Post::findComponents(const Storage& storage,
 
 static Array<Float> getBodiesRadii(const Storage& storage,
     const Post::HistogramParams::Source source,
-    const Post::HistogramParams::Quantity quantity) {
+    const Post::HistogramId id) {
     switch (source) {
     case Post::HistogramParams::Source::PARTICLES: {
         Array<Float> values(storage.getParticleCnt());
-        switch (quantity) {
-        case Post::HistogramParams::Quantity::RADII: {
+        switch (id) {
+        case Post::HistogramId::RADII: {
             ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
             for (Size i = 0; i < r.size(); ++i) {
                 values[i] = r[i][H];
             }
             break;
         }
-        case Post::HistogramParams::Quantity::VELOCITIES: {
+        case Post::HistogramId::VELOCITIES: {
             ArrayView<const Vector> v = storage.getDt<Vector>(QuantityId::POSITIONS);
             for (Size i = 0; i < v.size(); ++i) {
                 values[i] = getLength(v[i]);
             }
             break;
         }
+        default:
+            const QuantityId quantityId = QuantityId(id);
+            ASSERT((int)quantityId >= 0);
+            /// \todo allow also other types
+            values = storage.getValue<Float>(quantityId).clone();
+            break;
         }
         std::sort(values.begin(), values.end());
         return values;
@@ -91,8 +97,8 @@ static Array<Float> getBodiesRadii(const Storage& storage,
 
         Array<Float> values(numComponents);
         values.fill(0._f);
-        switch (quantity) {
-        case Post::HistogramParams::Quantity::RADII: {
+        switch (id) {
+        case Post::HistogramId::RADII: {
             // compute volume of the body
             ArrayView<const Float> rho, m;
             tie(rho, m) = storage.getValues<Float>(QuantityId::DENSITY, QuantityId::MASSES);
@@ -108,7 +114,7 @@ static Array<Float> getBodiesRadii(const Storage& storage,
             std::sort(radii.begin(), radii.end());
             return radii;
         }
-        case Post::HistogramParams::Quantity::VELOCITIES: {
+        case Post::HistogramId::VELOCITIES: {
             // compute velocity as weighted average
             ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASSES);
             ArrayView<const Vector> v = storage.getDt<Vector>(QuantityId::POSITIONS);
@@ -138,7 +144,7 @@ static Array<Float> getBodiesRadii(const Storage& storage,
 }
 
 Array<Post::SfdPoint> Post::getCummulativeSfd(const Storage& storage, const Post::HistogramParams& params) {
-    Array<Float> radii = getBodiesRadii(storage, params.source, params.quantity);
+    Array<Float> radii = getBodiesRadii(storage, params.source, params.id);
 
     Interval range = params.range;
     if (range.empty()) {
@@ -166,7 +172,7 @@ Array<Post::SfdPoint> Post::getCummulativeSfd(const Storage& storage, const Post
 }
 
 Array<Post::SfdPoint> Post::getDifferentialSfd(const Storage& storage, const HistogramParams& params) {
-    Array<Float> radii = getBodiesRadii(storage, params.source, params.quantity);
+    Array<Float> radii = getBodiesRadii(storage, params.source, params.id);
 
     Interval range = params.range;
     if (range == Interval::unbounded()) {

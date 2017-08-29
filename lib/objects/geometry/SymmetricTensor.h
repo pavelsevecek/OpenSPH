@@ -5,8 +5,8 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2017
 
-#include "objects/geometry/Tensor.h"
 #include "objects/containers/StaticArray.h"
+#include "objects/geometry/Tensor.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -257,6 +257,8 @@ INLINE bool almostEqual(const SymmetricTensor& t1, const SymmetricTensor& t2, co
 }
 
 /// Arbitrary norm of the tensor.
+///
+/// \note This norm is NOT an invariant.
 /// \todo Use some well-defined norm instead? (spectral norm, L1 or L2 norm, ...)
 template <>
 INLINE Float norm(const SymmetricTensor& t) {

@@ -36,10 +36,22 @@ namespace Post {
         Array<Size>& indices);
 
 
+    /// \brief Quantity from which the histogram is constructed
+    ///
+    /// Beside the listed options, any QuantityId can be used, by casting to HistogramId enum. All values of
+    /// HistogramId has to be negative to avoid clashes.
+    enum class HistogramId {
+        /// Particle radii or equivalent radii of compoennts
+        RADII = -1,
+
+        /// Particle velocities
+        VELOCITIES = -2,
+    };
+
     /// Parameters of the histogram
     struct HistogramParams {
 
-        /// Source data used to construct the histogram
+        /// \brief Source data used to construct the histogram.
         enum class Source {
             /// Equivalent radii of connected chunks of particles (SPH framework)
             COMPONENTS,
@@ -50,16 +62,7 @@ namespace Post {
 
         Source source = Source::PARTICLES;
 
-        /// Quantity from which the histogram is constructed
-        enum class Quantity {
-            /// Particle radii or equivalent radii of compoennts
-            RADII,
-
-            /// Velocities of particles or components
-            VELOCITIES,
-        };
-
-        Quantity quantity = Quantity::RADII;
+        HistogramId id = HistogramId::RADII;
 
         /// Range of values from which the histogram is constructed. Unbounded range means the range is
         /// selected based on the source data.

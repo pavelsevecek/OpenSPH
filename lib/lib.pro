@@ -86,7 +86,8 @@ SOURCES += \
     thread/CheckFunction.cpp \
     thread/Pool.cpp \
     timestepping/TimeStepCriterion.cpp \
-    timestepping/TimeStepping.cpp
+    timestepping/TimeStepping.cpp \
+    post/Plot.cpp
 
 HEADERS += \
     common/Assert.h \
