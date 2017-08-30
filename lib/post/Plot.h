@@ -7,6 +7,7 @@
 
 #include "objects/utility/OperatorTemplate.h"
 #include "physics/Integrals.h"
+#include "post/Analysis.h"
 #include "quantities/Storage.h"
 #include "system/Statistics.h"
 
@@ -115,41 +116,18 @@ protected:
     Array<PlotPoint> points;
 
 public:
-    SpatialPlot(const QuantityId id)
+    explicit SpatialPlot(const QuantityId id)
         : id(id) {}
 
     virtual std::string getCaption() const override {
         return getMetadata(id).quantityName;
     }
 
-    virtual void onTimeStep(const Storage& storage, const Statistics& UNUSED(stats)) override {
-        // no temporal dependence - reset everything
-        points.clear();
-        ranges.x = ranges.y = Interval();
+    virtual void onTimeStep(const Storage& storage, const Statistics& UNUSED(stats)) override;
 
-        ArrayView<const Float> quantity = storage.getValue<Float>(id);
-        ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
-        for (Size i = 0; i < r.size(); ++i) {
-            PlotPoint p{ getX(r[i]), quantity[i] };
-            points.push(p);
-            ranges.x.extend(p.x);
-            ranges.y.extend(p.y);
-        }
-        std::sort(points.begin(), points.end(), [](const PlotPoint& p1, const PlotPoint& p2) {
-            return p1.x < p2.x;
-        });
-    }
+    virtual void clear() override;
 
-    virtual void clear() override {
-        points.clear();
-        ranges.x = ranges.y = Interval();
-    }
-
-    virtual void plot(IDrawingContext& dc) const override {
-        for (PlotPoint p : points) {
-            dc.drawPoint(p);
-        }
-    }
+    virtual void plot(IDrawingContext& dc) const override;
 
 private:
     Float getX(const Vector r) const {
@@ -233,78 +211,45 @@ public:
         return integral.getName();
     }
 
-    virtual void onTimeStep(const Storage& storage, const Statistics& stats) override {
-        // add new point to the queue
-        const Float t = stats.get<Float>(StatisticsId::TOTAL_TIME);
-        if (t - lastTime < params.period) {
-            return;
-        }
-        lastTime = t;
+    virtual void onTimeStep(const Storage& storage, const Statistics& stats) override;
 
-        const Float y = integral.evaluate(storage);
-        points.push_back(PlotPoint{ t, y });
+    virtual void clear() override;
 
-        // pop expired points
-        bool needUpdateRange = false;
-        while (this->isExpired(points.front().x, t)) {
-            points.pop_front();
-            needUpdateRange = true;
-        }
-
-        // update ranges
-        if (needUpdateRange && params.shrinkY) {
-            // we removed some points, so we don't know how much to shrink, let's construct it from scrach
-            ranges.y = Interval();
-            for (PlotPoint& p : points) {
-                ranges.y.extend(p.y);
-            }
-        } else {
-            // we just added points, no need to shrink the range, just extend it with the new point
-            ranges.y.extend(points.back().y);
-        }
-        // make sure the y-range is larger than the minimal allowed value
-        if (ranges.y.size() < params.minRangeY) {
-            const Float dy = 0.5_f * (params.minRangeY - ranges.y.size());
-            ASSERT(dy > 0._f);
-            ranges.y.extend(ranges.y.upper() + dy);
-            ranges.y.extend(ranges.y.lower() - dy);
-        }
-        if (params.fixedRangeX.empty()) {
-            const Float t0 = max(points.front().x, t - params.segment);
-            ranges.x = Interval(t0, t);
-        } else {
-            ranges.x = params.fixedRangeX;
-        }
-    }
-
-    virtual void clear() override {
-        points.clear();
-        lastTime = -INFTY;
-        ranges.x = ranges.y = Interval();
-    }
-
-    virtual void plot(IDrawingContext& dc) const override {
-        if (points.empty()) {
-            return;
-        }
-        AutoPtr<IDrawPath> path = dc.drawPath();
-        for (const PlotPoint& p : points) {
-            dc.drawPoint(p);
-            path->addPoint(p);
-        }
-        path->endPath();
-    }
+    virtual void plot(IDrawingContext& dc) const override;
 
 private:
-    bool isExpired(const Float x, const Float t) const {
-        if (params.fixedRangeX.empty()) {
-            // compare with the segment
-            return x < t - params.segment;
-        } else {
-            // compare with the range
-            return !params.fixedRangeX.contains(t);
-        }
+    /// Checks if given point is presently expired and should be removed from the queue.
+    bool isExpired(const Float x, const Float t) const;
+};
+
+
+/// \brief Differential histogram of quantities
+///
+/// Plot doesn't store any history, it is drawed each timestep independently.
+class HistogramPlot : public IPlot {
+private:
+    /// ID of a quantity from which the histogram is constructed.
+    Post::HistogramId id;
+
+    /// Points representing the histogram
+    Array<Post::SfdPoint> points;
+
+public:
+    explicit HistogramPlot(const Post::HistogramId id)
+        : id(id) {}
+
+    explicit HistogramPlot(const QuantityId id)
+        : id(Post::HistogramId(id)) {}
+
+    virtual std::string getCaption() const override {
+        return getMetadata(QuantityId(id)).quantityName;
     }
+
+    virtual void onTimeStep(const Storage& storage, const Statistics& stats) override;
+
+    virtual void clear() override;
+
+    virtual void plot(IDrawingContext& dc) const override;
 };
 
 NAMESPACE_SPH_END

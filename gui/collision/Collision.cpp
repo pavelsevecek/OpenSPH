@@ -226,7 +226,7 @@ private:
 
 AsteroidCollision::AsteroidCollision() {
     const std::string runName = "Impact";
-    const Float omega = 2._f * PI / (6._f * 3600._f);
+    const Float omega = 2._f * PI / (2._f * 3600._f);
 
     settings.set(RunSettingsId::RUN_NAME, runName)
         .set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::PREDICTOR_CORRECTOR)
@@ -297,7 +297,7 @@ void AsteroidCollision::setUp() {
     body.saveToFile(outputDir / Path("target.sph"));
 
     storage = makeShared<Storage>();
-    AutoPtr<CollisionSolver> collisionSolver = makeAuto<CollisionSolver>(settings, body);
+    AutoPtr<CollisionSolver> collisionSolver = makeAuto<CollisionSolver>(settings, body, outputDir);
     // AutoPtr<ContinuitySolver> collisionSolver = makeAuto<ContinuitySolver>(settings);
 
     SharedPtr<InitialConditions> conds = makeShared<InitialConditions>(*storage, *collisionSolver, settings);

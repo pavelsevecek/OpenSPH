@@ -259,7 +259,10 @@ enum class FinderEnum {
     LINKED_LIST,
 
     /// Partitioning particles into voxels
-    VOXEL
+    VOXEL,
+
+    /// Selecting most suitable finder automatically
+    DYNAMIC
 };
 
 enum class BoundaryEnum {

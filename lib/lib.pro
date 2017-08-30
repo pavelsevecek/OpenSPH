@@ -87,6 +87,7 @@ SOURCES += \
     thread/Pool.cpp \
     timestepping/TimeStepCriterion.cpp \
     timestepping/TimeStepping.cpp \
+    post/Plot.cpp \
     objects/finders/DynamicFinder.cpp
 
 HEADERS += \
@@ -245,4 +246,5 @@ HEADERS += \
     timestepping/ISolverr.h \
     timestepping/TimeStepCriterion.h \
     timestepping/TimeStepping.h \
-    objects/finders/DynamicFinder.h
+    objects/finders/DynamicFinder.h \
+    timestepping/ISolver.h

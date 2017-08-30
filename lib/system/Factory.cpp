@@ -1,20 +1,22 @@
 #include "system/Factory.h"
-#include "objects/geometry/Domain.h"
 #include "gravity/BarnesHut.h"
 #include "gravity/BruteForceGravity.h"
 #include "gravity/VoxelGravity.h"
 #include "io/Logger.h"
 #include "math/rng/Rng.h"
 #include "objects/finders/BruteForceFinder.h"
+#include "objects/finders/DynamicFinder.h"
 #include "objects/finders/KdTree.h"
 #include "objects/finders/Octree.h"
 #include "objects/finders/Voxel.h"
+#include "objects/geometry/Domain.h"
 #include "physics/Damage.h"
 #include "physics/Eos.h"
 #include "physics/Rheology.h"
 #include "sph/Materials.h"
 #include "sph/boundary/Boundary.h"
 #include "sph/equations/av/Balsara.h"
+#include "sph/equations/av/MorrisMonaghan.h"
 #include "sph/initial/Distribution.h"
 #include "sph/solvers/ContinuitySolver.h"
 #include "sph/solvers/DensityIndependentSolver.h"
@@ -84,8 +86,8 @@ AutoPtr<IEquationTerm> Factory::getArtificialViscosity(const RunSettings& settin
         return nullptr;
     case ArtificialViscosityEnum::STANDARD:
         return makeAV<StandardAV>(settings, balsara);
-    /*case ArtificialViscosityEnum::MORRIS_MONAGHAN:
-        reutrn makeAV<MorrisMonaghanAV>();*/
+    case ArtificialViscosityEnum::MORRIS_MONAGHAN:
+        return makeAV<MorrisMonaghanAV>(settings, balsara);
     default:
         NOT_IMPLEMENTED;
     }
@@ -138,6 +140,8 @@ AutoPtr<INeighbourFinder> Factory::getFinder(const RunSettings& settings) {
         return makeAuto<Octree>();
     case FinderEnum::VOXEL:
         return makeAuto<VoxelFinder>();
+    case FinderEnum::DYNAMIC:
+        return makeAuto<DynamicFinder>(settings);
     default:
         NOT_IMPLEMENTED;
     }

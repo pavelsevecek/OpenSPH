@@ -30,7 +30,18 @@ NAMESPACE_SPH_BEGIN
 /// \ref IMaterial::range() const function.
 ///
 /// Temporal derivatives are computed by calling \ref ISolver::integrate function. The solver
-/// assumes the storage already has zeroed highest-order derivatives of all quantities.
+/// assumes the storage already has zeroed highest-order derivatives of all quantities. The implementation of
+/// \ref ITimeStepping inteface must assume that \ref ISolver::integrate changes the number of particles in
+/// the storage.
+///
+/// \todo We have currently no way of matching the particles before and after \ref ISolver::integrate has been
+/// called. This wull screw up timestepping algorithms keeping a copy of the derivatives, such as \ref
+/// PredictorCorrector. It is therefore safe only to add or remove particles from the back of the storage. It
+/// will be necessary to mark the particles as deleted rather than actually deleting them, and let the
+/// timestepping implementation delete them from the storage.
+/// OR we could include an extra mapping quantity, simply containing indices from 0 to particleCnt-1, so if
+/// some particles were removed or shuffled, we would know the indices of the original particles.
+///
 class ITimeStepping : public Polymorphic {
 protected:
     SharedPtr<Storage> storage;
@@ -54,7 +65,7 @@ protected:
 };
 
 
-/// Simple Euler first-order timestepping.
+/// \brief Simple Euler first-order timestepping.
 class EulerExplicit : public ITimeStepping {
 public:
     explicit EulerExplicit(const SharedPtr<Storage>& storage, const RunSettings& settings)
@@ -63,7 +74,7 @@ public:
     virtual void stepImpl(ISolver& solver, Statistics& stats) override;
 };
 
-/// Predictor-corrector second-order timestepping
+/// \brief Predictor-corrector second-order timestepping
 class PredictorCorrector : public ITimeStepping {
 private:
     /// Separate storage holding prediction derivatives. Holds only highest-order derivatives, other buffers

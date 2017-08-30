@@ -6,8 +6,8 @@
 /// \date 2016-2017
 
 #include "common/ForwardDecl.h"
-#include "objects/geometry/Vector.h"
 #include "objects/containers/ArrayView.h"
+#include "objects/geometry/Vector.h"
 #include "objects/wrappers/AutoPtr.h"
 #include "quantities/IMaterial.h"
 
@@ -92,16 +92,22 @@ private:
 
 
 public:
-    /// Constructs object by taking a reference to particle storage. Subsequent calls of \ref addBody
-    /// function
-    /// fill this storage with particles.
+    /// \brief Constructs object by taking a reference to particle storage.
+    ///
+    /// Subsequent calls of \ref addBody function fill this storage with particles.
     /// \param storage Particle storage, must exist at least as long as this object.
     /// \param solver Solver used to create all the necessary quantities. Also must exist for the duration
     ///               of this object as it is stored by reference.
     /// \param settings Run settings
     InitialConditions(Storage& storage, ISolver& solver, const RunSettings& settings);
 
-    /// Constructor creating solver from values in settings.
+    /// \brief Constructor creating solver from values in settings.
+    ///
+    /// \attention When using this overload, the solver used for the run should also be created from settings
+    /// (which is done by default). Using different solver may result in incorrect initialization of
+    /// quantities. Mostly, this will throw an exception or assert, but in case the custom solver uses the
+    /// same quantities as the default one, but it initializes them to different values, this error would go
+    /// unnoticed.
     InitialConditions(Storage& storage, const RunSettings& settings);
 
     ~InitialConditions();
@@ -111,7 +117,7 @@ public:
     /// Particles are created on positions given by distribution in bodySettings. Beside positions of
     /// particles, the function initialize particle masses, pressure and sound speed, assuming both the
     /// pressure and sound speed are computed from equation of state. The function also calls
-    /// ISolver::create to initialze quantities needed by used solver, either a solver given in
+    /// \ref ISolver::create to initialze quantities needed by used solver, either a solver given in
     /// constructor or a default one based on RunSettings parameters.
     /// \param domain Spatial domain where the particles are placed. The domain should not overlap a body
     ///               already added into the storage as that would lead to incorrect density estimating in
@@ -147,25 +153,21 @@ public:
 
     /// Creates particles composed of different materials.
     /// \param environment Base body, domain of which defines the body. No particles are generated outside
-    /// of
-    ///                    this domain. By default, all particles have the material given by this body.
+    ///                    of this domain. By default, all particles have the material given by this body.
     /// \param bodies List of bodies created inside the main environemnt. Each can have different material
-    /// and
-    ///               have different initial velocity. These bodies don't add more particles (particle
-    ///               count
-    ///               in settings is irrelevant), they simply override particles created by environment
-    ///               body.
-    ///               If multiple bodies overlap, particles are assigned to body listed first in the
+    ///               and have different initial velocity. These bodies don't add more particles (particle
+    ///               count in settings is irrelevant), they simply override particles created by environment
+    ///               body. If multiple bodies overlap, particles are assigned to body listed first in the
     ///               array.
     /// \return Array of n+1 BodyViews, where n is the size of \ref bodies parameter. The first one
     ///         corresponds to the environment, the rest are the bodies inside the environment in the
-    ///         order
-    ///         they were passed in \ref bodies.
+    ///         order they were passed in \ref bodies.
     Array<BodyView> addHeterogeneousBody(BodySetup&& environment, ArrayView<BodySetup> bodies);
 
-    /// Ends the initial condition settings. Storage is then no longer used by the object. Does not have
-    /// to be
-    /// called manually.
+    /// \brief Ends the initial condition settings.
+    ///
+    /// Storage is then no longer used by the object. Does not have to be called manually, it is called from
+    /// destructor.
     void finalize();
 
 private:
