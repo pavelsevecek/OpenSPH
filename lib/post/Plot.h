@@ -5,6 +5,7 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2017
 
+#include "objects/containers/List.h"
 #include "objects/utility/OperatorTemplate.h"
 #include "physics/Integrals.h"
 #include "post/Analysis.h"
@@ -192,7 +193,8 @@ private:
     IntegralWrapper integral;
 
     /// Points on the timeline; x coordinate is time, y coordinate is the value of the quantity
-    std::deque<PlotPoint> points;
+    /// \todo replace with Queue
+    List<PlotPoint> points;
 
     /// Last time a point has been added
     Float lastTime = -INFTY;
