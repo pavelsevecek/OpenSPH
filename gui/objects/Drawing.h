@@ -23,13 +23,13 @@ public:
     }
 
     virtual void addPoint(const PlotPoint& point) override {
-        PlotPoint q = point;
-        matrix.TransformPoint(&q.x, &q.y);
+        double x = point.x, y = point.y;
+        matrix.TransformPoint(&x, &y);
         if (first) {
-            path.MoveToPoint(q.x, q.y);
+            path.MoveToPoint(x, y);
             first = false;
         } else {
-            path.AddLineToPoint(q.x, q.y);
+            path.AddLineToPoint(x, y);
         }
     }
 
@@ -74,9 +74,9 @@ public:
     }
 
     virtual void drawPoint(const PlotPoint& point) override {
-        PlotPoint q = point;
-        matrix.TransformPoint(&q.x, &q.y);
-        gc->DrawEllipse(q.x - ps / 2, q.y - ps / 2, ps, ps);
+        double x = point.x, y = point.y;
+        matrix.TransformPoint(&x, &y);
+        gc->DrawEllipse(x - ps / 2, y - ps / 2, ps, ps);
     }
 
     virtual void drawErrorPoint(const ErrorPlotPoint& point) override {
@@ -84,11 +84,11 @@ public:
     }
 
     virtual void drawLine(const PlotPoint& from, const PlotPoint& to) override {
-        PlotPoint q1 = from;
-        matrix.TransformPoint(&q1.x, &q1.y);
-        PlotPoint q2 = to;
-        matrix.TransformPoint(&q2.x, &q2.y);
-        gc->StrokeLine(q1.x, q1.y, q2.x, q2.y);
+        double x1 = from.x, y1 = from.y;
+        matrix.TransformPoint(&x1, &y1);
+        double x2 = to.x, y2 = to.y;
+        matrix.TransformPoint(&x2, &y2);
+        gc->StrokeLine(x1, y1, x2, y2);
     }
 
     virtual AutoPtr<IDrawPath> drawPath() override {

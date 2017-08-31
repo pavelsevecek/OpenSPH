@@ -49,7 +49,7 @@ void TemporalPlot::onTimeStep(const Storage& storage, const Statistics& stats) {
     // pop expired points
     bool needUpdateRange = false;
     while (!points.empty() && this->isExpired(points.front().x, t)) {
-        points.erase(points.begin());
+        points.popFront();
         needUpdateRange = true;
     }
 
@@ -82,7 +82,7 @@ void TemporalPlot::onTimeStep(const Storage& storage, const Statistics& stats) {
 }
 
 void TemporalPlot::clear() {
-    points = List<PlotPoint>();
+    points.clear();
     lastTime = -INFTY;
     ranges.x = ranges.y = Interval();
 }

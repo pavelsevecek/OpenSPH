@@ -212,7 +212,7 @@ public:
 
     /// \brief Returns a const iterator pointing to the first element of the queue.
     INLINE Iterator<const StorageType, TCounter> begin() const {
-        return Iterator<StorageType, TCounter>(data + first, data + first, data + last);
+        return Iterator<const StorageType, TCounter>(data + first, data + first, data + last);
     }
 
     /// \brief Returns an iterator pointing to the one-past-last element of the queue.
@@ -222,7 +222,7 @@ public:
 
     /// \brief Returns a const iterator pointing to the one-past-last element of the queue.
     INLINE Iterator<const StorageType, TCounter> end() const {
-        return Iterator<StorageType, TCounter>(data + last, data + first, data + last);
+        return Iterator<const StorageType, TCounter>(data + last, data + first, data + last);
     }
 
     /// \brief Implicit conversion to arrayview.

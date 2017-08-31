@@ -250,7 +250,7 @@ public:
     }
 };
 
-static_assert(sizeof(TracelessTensor) == 6 * sizeof(Float), "Incorrect size of TracelessTensor");
+// static_assert(sizeof(TracelessTensor) == 6 * sizeof(Float), "Incorrect size of TracelessTensor");
 
 /// Traceless tensor utils
 
