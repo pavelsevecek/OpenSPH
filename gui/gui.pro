@@ -46,7 +46,8 @@ SOURCES += \
     renderers/SurfaceRenderer.cpp \
     windows/GlPane.cpp \
     windows/MainWindow.cpp \
-    windows/OrthoPane.cpp
+    windows/OrthoPane.cpp \
+    windows/PlotView.cpp
 
 HEADERS += \
     Controller.h \

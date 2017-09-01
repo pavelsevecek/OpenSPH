@@ -2,7 +2,8 @@
 
 #include "gui/objects/Color.h"
 #include "post/Plot.h"
-#include <wx/dc.h>
+#include <wx/dcclient.h>
+#include <wx/dcmemory.h>
 #include <wx/graphics.h>
 
 NAMESPACE_SPH_BEGIN
@@ -54,23 +55,26 @@ private:
     const Float ps = 3._f;
 
 public:
-    explicit WxDrawingContext(wxPaintDC& dc,
+    /// Constructs the drawing context from wxPaintDC
+    WxDrawingContext(wxPaintDC& dc,
         const wxSize padding,
         const Interval rangeX,
         const Interval rangeY,
         const Color color)
         : gc(wxGraphicsContext::Create(dc)) {
         ASSERT(rangeX.size() > 0 && rangeY.size() > 0);
-        const wxSize size = dc.GetSize() - 2 * padding;
-        const Float scaleX = size.x / rangeX.size();
-        const Float scaleY = -size.y / rangeY.size();
-        const Float transX = padding.x - scaleX * rangeX.lower();
-        const Float transY = size.y + padding.y - scaleY * rangeY.lower();
-        matrix = gc->CreateMatrix(scaleX, 0.f, 0.f, scaleY, transX, transY);
+        this->setup(dc, padding, rangeX, rangeY, color);
+    }
 
-        wxPen pen;
-        pen.SetColour(wxColour(color));
-        gc->SetPen(pen);
+    /// Constructs the drawing context from wxMemoryDC
+    WxDrawingContext(wxMemoryDC& dc,
+        const wxSize padding,
+        const Interval rangeX,
+        const Interval rangeY,
+        const Color color)
+        : gc(wxGraphicsContext::Create(dc)) {
+        ASSERT(rangeX.size() > 0 && rangeY.size() > 0);
+        this->setup(dc, padding, rangeX, rangeY, color);
     }
 
     virtual void drawPoint(const PlotPoint& point) override {
@@ -93,6 +97,25 @@ public:
 
     virtual AutoPtr<IDrawPath> drawPath() override {
         return makeAuto<WxDrawPath>(gc, matrix);
+    }
+
+private:
+    void setup(wxDC& dc,
+        const wxSize padding,
+        const Interval rangeX,
+        const Interval rangeY,
+        const Color color) {
+
+        const wxSize size = dc.GetSize() - 2 * padding;
+        const Float scaleX = size.x / rangeX.size();
+        const Float scaleY = -size.y / rangeY.size();
+        const Float transX = padding.x - scaleX * rangeX.lower();
+        const Float transY = size.y + padding.y - scaleY * rangeY.lower();
+        matrix = gc->CreateMatrix(scaleX, 0.f, 0.f, scaleY, transX, transY);
+
+        wxPen pen;
+        pen.SetColour(wxColour(color));
+        gc->SetPen(pen);
     }
 };
 

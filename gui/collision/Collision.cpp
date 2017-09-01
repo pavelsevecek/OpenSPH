@@ -127,8 +127,11 @@ private:
     /// Used to create the impactor
     SharedPtr<InitialConditions> conds;
 
-    /// Angular frequency
-    Vector omega;
+    /// Angular frequency of the reference frame. Zero implies the frame is inertial.
+    Vector frameOmega;
+
+    /// Angular frequency of the target with a respect to the frame.
+    Vector targetOmega;
 
     /// Time range of the simulation.
     Interval timeRange;
@@ -146,12 +149,16 @@ private:
     Path outputPath;
 
 public:
-    CollisionSolver(const RunSettings& settings, const BodySettings& body, const Path& path)
+    CollisionSolver(const RunSettings& settings,
+        const BodySettings& body,
+        const Vector targetOmega,
+        const Path& path)
         : GenericSolver(settings, this->getEquations(settings)) // , Factory::getGravity(settings))
         , body(body)
+        , targetOmega(targetOmega)
         , outputPath(path) {
         timeRange = settings.get<Interval>(RunSettingsId::RUN_TIME_RANGE);
-        omega = settings.get<Vector>(RunSettingsId::FRAME_ANGULAR_FREQUENCY);
+        frameOmega = settings.get<Vector>(RunSettingsId::FRAME_ANGULAR_FREQUENCY);
     }
 
     void setInitialConditions(const SharedPtr<InitialConditions>& initialConditions) {
@@ -170,7 +177,10 @@ public:
             for (Size i = 0; i < v.size(); ++i) {
                 // gradually decrease the delta
                 const Float t0 = timeRange.lower();
-                v[i] /= 1._f + lerp(delta * dt, 0._f, min((t - t0) / (startTime - t0), 1._f));
+                const Float factor = 1._f + lerp(delta * dt, 0._f, min((t - t0) / (startTime - t0), 1._f));
+                const Vector rotation = cross(targetOmega, r[i]);
+                // we have to dump only the deviation of velocities, not the initial rotation!
+                v[i] = (v[i] - rotation) / factor + rotation;
                 ASSERT(isReal(v[i]));
             }
         }
@@ -185,13 +195,13 @@ public:
                 // velocity 5 km/s
                 .addVelocity(Vector(-6.e3_f, 0._f, 0._f))
                 // flies straight, i.e. add rotation in non-intertial frame
-                .addRotation(-omega, BodyView::RotationOrigin::FRAME_ORIGIN);
+                .addRotation(-frameOmega, BodyView::RotationOrigin::FRAME_ORIGIN);
 
             impactStarted = true;
         }
         // update the angle
         Float phi = stats.getOr<Float>(StatisticsId::FRAME_ANGLE, 0._f);
-        phi += getLength(omega) * dt;
+        phi += getLength(frameOmega) * dt;
         stats.set(StatisticsId::FRAME_ANGLE, phi);
     }
 
@@ -232,7 +242,7 @@ AsteroidCollision::AsteroidCollision() {
         .set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::PREDICTOR_CORRECTOR)
         .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 0.01_f)
         .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 0.01_f)
-        .set(RunSettingsId::RUN_TIME_RANGE, Interval(-50._f, 10._f))
+        .set(RunSettingsId::RUN_TIME_RANGE, Interval(-50._f, 0._f))
         .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 0.1_f)
         .set(RunSettingsId::MODEL_FORCE_SOLID_STRESS, true)
         .set(RunSettingsId::SPH_FINDER, FinderEnum::VOXEL)
@@ -297,7 +307,11 @@ void AsteroidCollision::setUp() {
     body.saveToFile(outputDir / Path("target.sph"));
 
     storage = makeShared<Storage>();
-    AutoPtr<CollisionSolver> collisionSolver = makeAuto<CollisionSolver>(settings, body, outputDir);
+
+    const Vector targetOmega(2._f * PI / (2._f * 3600._f));
+
+    AutoPtr<CollisionSolver> collisionSolver =
+        makeAuto<CollisionSolver>(settings, body, targetOmega, outputDir);
     // AutoPtr<ContinuitySolver> collisionSolver = makeAuto<ContinuitySolver>(settings);
 
     SharedPtr<InitialConditions> conds = makeShared<InitialConditions>(*storage, *collisionSolver, settings);
@@ -306,7 +320,7 @@ void AsteroidCollision::setUp() {
 
     StdOutLogger logger;
     SphericalDomain domain1(Vector(0._f), 5e3_f); // D = 10km
-    conds->addBody(domain1, body);
+    conds->addBody(domain1, body).addRotation(targetOmega, BodyView::RotationOrigin::FRAME_ORIGIN);
     logger.write("Particles of target: ", storage->getParticleCnt());
 
     /* body.set(BodySettingsId::PARTICLE_COUNT, 100)

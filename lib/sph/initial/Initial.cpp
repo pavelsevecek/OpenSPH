@@ -32,7 +32,7 @@ BodyView& BodyView::addRotation(const Vector& omega, const Vector& origin) {
     tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
     MaterialView material = storage.getMaterial(bodyIndex);
     for (Size i : material.sequence()) {
-        v[i] += cross(r[i] - origin, omega);
+        v[i] += cross(omega, r[i] - origin);
     }
     return *this;
 }

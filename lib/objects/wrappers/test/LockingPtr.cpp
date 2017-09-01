@@ -61,18 +61,47 @@ TEST_CASE("LockingPtr concurrent access", "[lockingptr]") {
     t.join();
 }
 
-TEST_CASE("LockingPtr reset while locked", "[lockingptr]") {
-    LockingPtr<RecordType> l1(new RecordType(5));
-    bool valueSet = false;
-    std::thread t = std::thread([&l1, &valueSet] {
-        auto proxy = l1.lock();
+static std::thread lockAndAssign(LockingPtr<RecordType>& l, bool& valueSet) {
+    return std::thread([&l, &valueSet] {
+        auto proxy = l.lock();
         std::this_thread::sleep_for(std::chrono::milliseconds(200));
         proxy->value = 8;
         valueSet = true;
     });
+}
+
+TEST_CASE("LockingPtr reset while locked", "[lockingptr]") {
+    LockingPtr<RecordType> l1(new RecordType(5));
+    bool valueSet = false;
+    std::thread t = lockAndAssign(l1, valueSet);
     std::this_thread::sleep_for(std::chrono::milliseconds(20));
     REQUIRE_NOTHROW(l1.reset());
     REQUIRE(!l1);
     REQUIRE(valueSet);
+    t.join();
+}
+
+TEST_CASE("LockingPtr assign while locked", "[lockingptr]") {
+    LockingPtr<RecordType> l1(new RecordType(5));
+    bool valueSet = false;
+    std::thread t = lockAndAssign(l1, valueSet);
+    std::this_thread::sleep_for(std::chrono::milliseconds(20));
+    // the value should be assigned after the proxy is released
+    LockingPtr<RecordType> l2(new RecordType(6));
+    l1 = l2;
+    REQUIRE(valueSet);
+    REQUIRE(l1->value == 6);
+    t.join();
+}
+
+TEST_CASE("LockingPtr move while locked", "[lockingptr]") {
+    LockingPtr<RecordType> l1(new RecordType(5));
+    bool valueSet = false;
+    std::thread t = lockAndAssign(l1, valueSet);
+    std::this_thread::sleep_for(std::chrono::milliseconds(20));
+    // the value should be assigned after the proxy is released
+    l1 = makeLocking<RecordType>(6);
+    REQUIRE(valueSet);
+    REQUIRE(l1->value == 6);
     t.join();
 }

@@ -116,6 +116,9 @@ TEST_CASE("Initial rotation", "[initial]") {
         if (dot(v[i], axis) != approx(0._f, 1.e-6_f)) {
             return makeFailed("Invalid angular velocity vector: \n", v[i], " == ", axis);
         }
+        if (dot(cross(r[i], v[i]), axis) <= 0) {
+            return makeFailed("Invalid angular velocity direction: \n", v[i], " == ", axis);
+        }
         return SUCCESS;
     };
     REQUIRE_SEQUENCE(test, 0, r.size());

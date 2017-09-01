@@ -87,14 +87,26 @@ public:
     }
 
     LockingPtr& operator=(const LockingPtr& other) {
-        resource = other.resource;
-        block = other.block;
+        if (block) {
+            std::unique_lock<Detail::LockingControlBlock<T>> lock(*block);
+            resource = other.resource;
+            block = other.block;
+        } else {
+            resource = other.resource;
+            block = other.block;
+        }
         return *this;
     }
 
     LockingPtr& operator=(LockingPtr&& other) {
-        resource = std::move(other.resource);
-        std::swap(block, other.block);
+        if (block) {
+            std::unique_lock<Detail::LockingControlBlock<T>> lock(*block);
+            resource = std::move(other.resource);
+            std::swap(block, other.block);
+        } else {
+            resource = std::move(other.resource);
+            std::swap(block, other.block);
+        }
         return *this;
     }
 
