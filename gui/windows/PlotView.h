@@ -5,7 +5,7 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2017
 
-#include "gui/objects/Drawing.h"
+#include "gui/objects/GraphicsContext.h"
 #include "gui/objects/Point.h"
 #include "objects/wrappers/LockingPtr.h"
 #include "physics/Integrals.h"
@@ -105,7 +105,7 @@ private:
     }
 
     void drawPlot(wxPaintDC& dc, IPlot& lockedPlot, const Interval rangeX, const Interval rangeY) {
-        WxDrawingContext context(dc, padding, rangeX, rangeY, cached.color);
+        GraphicsContext context(dc, padding, rangeX, rangeY, cached.color);
         lockedPlot.plot(context);
     }
 

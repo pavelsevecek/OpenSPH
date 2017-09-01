@@ -1,5 +1,10 @@
 #pragma once
 
+/// \file GraphicsContext.h
+/// \brief Implementation of IDrawingContext using wxGraphicsContext
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2017
+
 #include "gui/objects/Color.h"
 #include "post/Plot.h"
 #include <wx/dc.h>
@@ -7,7 +12,7 @@
 
 NAMESPACE_SPH_BEGIN
 
-class WxDrawPath : public IDrawPath {
+class GraphicsPath : public IDrawPath {
 private:
     SharedPtr<wxGraphicsContext> gc;
     wxGraphicsMatrix matrix;
@@ -15,7 +20,7 @@ private:
     bool first;
 
 public:
-    explicit WxDrawPath(const SharedPtr<wxGraphicsContext>& gc, const wxGraphicsMatrix& matrix)
+    explicit GraphicsPath(const SharedPtr<wxGraphicsContext>& gc, const wxGraphicsMatrix& matrix)
         : gc(gc)
         , matrix(matrix) {
         path = gc->CreatePath();
@@ -43,7 +48,7 @@ public:
     }
 };
 
-class WxDrawingContext : public IDrawingContext {
+class GraphicsContext : public IDrawingContext {
 private:
     SharedPtr<wxGraphicsContext> gc;
 
@@ -54,7 +59,7 @@ private:
     const Float ps = 3._f;
 
 public:
-    explicit WxDrawingContext(wxPaintDC& dc,
+    explicit GraphicsContext(wxPaintDC& dc,
         const wxSize padding,
         const Interval rangeX,
         const Interval rangeY,
@@ -92,7 +97,7 @@ public:
     }
 
     virtual AutoPtr<IDrawPath> drawPath() override {
-        return makeAuto<WxDrawPath>(gc, matrix);
+        return makeAuto<GraphicsPath>(gc, matrix);
     }
 };
 
