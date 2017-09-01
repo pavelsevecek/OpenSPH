@@ -137,7 +137,7 @@ private:
     Float startTime = 0._f;
 
     /// Velocity damping constant
-    Float delta = 1._f;
+    Float delta = 0.1_f;
 
     /// Denotes the phase of the simulation
     bool impactStarted = false;
@@ -178,12 +178,12 @@ public:
             body.set(BodySettingsId::PARTICLE_COUNT, 100)
                 .set(BodySettingsId::STRESS_TENSOR_MIN, LARGE)
                 .set(BodySettingsId::DAMAGE_MIN, LARGE);
-            SphericalDomain domain2(Vector(5097.4509902022_f, 3726.8662269290_f, 0._f), 270.5847632732_f);
+            SphericalDomain domain2(Vector(5598.423798_f, 2839.8390977_f, 0._f), 679.678195_f);
             body.saveToFile(outputPath / Path("impactor.sph"));
             conds
                 ->addBody(domain2, body)
                 // velocity 5 km/s
-                .addVelocity(Vector(-5.e3_f, 0._f, 0._f))
+                .addVelocity(Vector(-6.e3_f, 0._f, 0._f))
                 // flies straight, i.e. add rotation in non-intertial frame
                 .addRotation(-omega, BodyView::RotationOrigin::FRAME_ORIGIN);
 
@@ -226,13 +226,13 @@ private:
 
 AsteroidCollision::AsteroidCollision() {
     const std::string runName = "Impact";
-    const Float omega = 2._f * PI / (2._f * 3600._f);
+    const Float omega = 0._f; // 2._f * PI / (2._f * 3600._f);
 
     settings.set(RunSettingsId::RUN_NAME, runName)
         .set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::PREDICTOR_CORRECTOR)
         .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 0.01_f)
         .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 0.01_f)
-        .set(RunSettingsId::RUN_TIME_RANGE, Interval(-10._f, 10._f))
+        .set(RunSettingsId::RUN_TIME_RANGE, Interval(-50._f, 10._f))
         .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 0.1_f)
         .set(RunSettingsId::MODEL_FORCE_SOLID_STRESS, true)
         .set(RunSettingsId::SPH_FINDER, FinderEnum::VOXEL)
@@ -246,7 +246,7 @@ AsteroidCollision::AsteroidCollision() {
         .set(RunSettingsId::FRAME_ANGULAR_FREQUENCY, Vector(0._f, 0._f, omega));
 
     settings.set(RunSettingsId::RUN_COMMENT,
-        std::string("Homogeneous Gravity with delta = 1, initial rotation ") + std::to_string(omega));
+        std::string("Homogeneous Gravity with no initial rotation")); // + std::to_string(omega));
 
     // generate path of the output directory
     std::time_t t = std::time(nullptr);

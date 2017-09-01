@@ -44,12 +44,12 @@ void TemporalPlot::onTimeStep(const Storage& storage, const Statistics& stats) {
     lastTime = t;
 
     const Float y = integral.evaluate(storage);
-    points.push_back(PlotPoint{ t, y });
+    points.pushBack(PlotPoint{ t, y });
 
     // pop expired points
     bool needUpdateRange = false;
-    while (this->isExpired(points.front().x, t)) {
-        points.pop_front();
+    while (!points.empty() && this->isExpired(points.front().x, t)) {
+        points.erase(points.begin());
         needUpdateRange = true;
     }
 
@@ -60,7 +60,7 @@ void TemporalPlot::onTimeStep(const Storage& storage, const Statistics& stats) {
         for (PlotPoint& p : points) {
             ranges.y.extend(p.y);
         }
-    } else {
+    } else if (!points.empty()) {
         // we just added points, no need to shrink the range, just extend it with the new point
         ranges.y.extend(points.back().y);
     }
@@ -71,7 +71,9 @@ void TemporalPlot::onTimeStep(const Storage& storage, const Statistics& stats) {
         ranges.y.extend(ranges.y.upper() + dy);
         ranges.y.extend(ranges.y.lower() - dy);
     }
-    if (params.fixedRangeX.empty()) {
+    if (points.empty()) {
+        ranges.x = Interval(); // nothing to draw
+    } else if (params.fixedRangeX.empty()) {
         const Float t0 = max(points.front().x, t - params.segment);
         ranges.x = Interval(t0, t);
     } else {
@@ -80,7 +82,7 @@ void TemporalPlot::onTimeStep(const Storage& storage, const Statistics& stats) {
 }
 
 void TemporalPlot::clear() {
-    points.clear();
+    points = List<PlotPoint>();
     lastTime = -INFTY;
     ranges.x = ranges.y = Interval();
 }
