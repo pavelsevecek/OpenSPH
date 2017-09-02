@@ -75,6 +75,9 @@ void ParticleRenderer::drawPalette(wxDC& dc, const Palette& palette) const {
     const int size = 201;
     wxPoint origin(dc.GetSize().x - 50, size + 30);
     wxPen pen = dc.GetPen();
+    wxFont font = dc.GetFont();
+    font.MakeSmaller();
+    dc.SetFont(font);
     for (Size i = 0; i < size; ++i) {
         const float value = palette.getInterpolatedValue(float(i) / (size - 1));
         wxColour color = wxColour(palette(value));
@@ -86,11 +89,11 @@ void ParticleRenderer::drawPalette(wxDC& dc, const Palette& palette) const {
             dc.DrawLine(wxPoint(origin.x, origin.y - i), wxPoint(origin.x + 6, origin.y - i));
             dc.DrawLine(wxPoint(origin.x + 24, origin.y - i), wxPoint(origin.x + 30, origin.y - i));
             dc.SetTextForeground(wxColour(Color::white()));
-            wxFont font(10, wxFONTFAMILY_MODERN, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL);
-            dc.SetFont(font);
+            // wxFont font(9, wxFONTFAMILY_MODERN, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL);
+
             std::wstring text = toPrintableString(value, 1, 1000);
             wxSize extent = dc.GetTextExtent(text);
-            drawTextWithSubscripts(dc, text, wxPoint(origin.x - 80, origin.y - i - (extent.y >> 1)));
+            drawTextWithSubscripts(dc, text, wxPoint(origin.x - 75, origin.y - i - (extent.y >> 1)));
         }
     }
 }

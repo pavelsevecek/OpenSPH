@@ -40,7 +40,7 @@ struct ErrorPlotPoint : public PlotPoint {
 /// \brief 2D affine matrix
 ///
 /// Represets a generic linear transform + translation of a point
-class AffineMatrix2 {
+class AffineMatrix2 : public OperatorTemplate<AffineMatrix2> {
 private:
     Float data[6];
 
@@ -92,6 +92,38 @@ public:
     /// This does not apply the translation.
     PlotPoint transformVector(const PlotPoint& p) const {
         return PlotPoint(get(0, 0) * p.x + get(0, 1) * p.y, get(1, 0) * p.x + get(1, 1) * p.y);
+    }
+
+    /// \brief Returns the inverse of the matrix
+    ///
+    /// The matrix must be invertible, checked by assert.
+    AffineMatrix2 inverse() const {
+        const Float a = get(0, 0);
+        const Float b = get(0, 1);
+        const Float c = get(1, 0);
+        const Float d = get(1, 1);
+        const Float tx = get(0, 2);
+        const Float ty = get(1, 2);
+
+        const Float det = a * d - b * c;
+        const Float detInv = 1._f / det;
+        ASSERT(det != 0._f);
+
+        return AffineMatrix2(d * detInv,
+            -b * detInv,
+            -c * detInv,
+            a * detInv,
+            -(d * tx - b * ty) * detInv,
+            (c * tx - a * ty) * detInv);
+    }
+
+    bool operator==(const AffineMatrix2& other) const {
+        for (Size i = 0; i < 6; ++i) {
+            if (data[i] != other.data[i]) {
+                return false;
+            }
+        }
+        return true;
     }
 };
 

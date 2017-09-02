@@ -89,7 +89,7 @@ wxBoxSizer* MainWindow::createSidebar() {
     TemporalPlot::Params params;
     params.segment = 1._f;
     params.minRangeY = 1.4_f;
-    // params.fixedRangeX = Interval{ -50._f, 10._f };
+    params.fixedRangeX = Interval{ -50._f, 10._f };
     params.shrinkY = false;
     params.period = 0.05_f;
 
@@ -125,11 +125,11 @@ wxBoxSizer* MainWindow::createSidebar() {
     data.color = Color(wxColour(130, 80, 255));
     list->push(data);
 
-    PlotView* energyPlot = new PlotView(this, wxSize(300, 200), wxSize(10, 10), list, 2);
+    PlotView* energyPlot = new PlotView(this, wxSize(300, 200), wxSize(10, 10), list, 2, false);
     sidebarSizer->Add(energyPlot, 1, wxALIGN_TOP);
     sidebarSizer->AddSpacer(5);
 
-    PlotView* secondPlot = new PlotView(this, wxSize(300, 200), wxSize(10, 10), list, 4);
+    PlotView* secondPlot = new PlotView(this, wxSize(300, 200), wxSize(10, 10), list, 4, false);
     sidebarSizer->Add(secondPlot, 1, wxALIGN_TOP);
 
     return sidebarSizer;

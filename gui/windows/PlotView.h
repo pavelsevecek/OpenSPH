@@ -14,6 +14,8 @@
 #include <wx/frame.h>
 #include <wx/panel.h>
 
+class wxBoxSizer;
+
 NAMESPACE_SPH_BEGIN
 
 struct PlotData {
@@ -37,18 +39,39 @@ private:
         std::string name;
     } cached;
 
+    bool showLabels;
+
+    /// Include zero in x-range
+    bool addZeroX = false;
+
+    /// Include zero in y-range
+    bool addZeroY = false;
+
 public:
     PlotView(wxWindow* parent,
         const wxSize size,
         const wxSize padding,
         const SharedPtr<Array<PlotData>>& list,
-        const Size defaultSelectedIdx);
+        const Size defaultSelectedIdx,
+        const bool showLabels);
 
     /// \brief Returns the transformation matrix for managed plot.
     AffineMatrix2 getPlotTransformMatrix(const Interval& rangeX, const Interval& rangeY) const;
 
+    void setZeroX(const bool zeroX) {
+        addZeroX = zeroX;
+    }
+
+    void setZeroY(const bool zeroY) {
+        addZeroY = zeroY;
+    }
+
+    void drawAxes(wxDC& dc, const Interval rangeX, const Interval rangeY);
+
 private:
     void updatePlot(const Size index);
+
+    /// Wx handlers
 
     void onRightUp(wxMouseEvent& evt);
 
@@ -58,11 +81,11 @@ private:
 
     void onPaint(wxPaintEvent& evt);
 
+    /// Helper drawing functions
+
     void drawPlot(wxPaintDC& dc, IPlot& lockedPlot, const Interval rangeX, const Interval rangeY);
 
-    void drawAxes(wxPaintDC& dc, const Interval rangeX, const Interval rangeY);
-
-    void drawLabel(wxDC& dc);
+    void drawCaption(wxDC& dc);
 };
 
 
@@ -77,6 +100,8 @@ public:
     PlotFrame(wxWindow* parent, const wxSize size, const wxSize padding, const LockingPtr<IPlot>& plot);
 
 private:
+    wxBoxSizer* createToolbar(const Size toolbarHeight);
+
     void saveImage(const std::string& path, const int fileIndex);
 };
 
