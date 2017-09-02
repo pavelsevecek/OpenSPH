@@ -1,6 +1,11 @@
 #include "gui/windows/PlotView.h"
+#include "gui/objects/SvgContext.h"
+#include "io/Path.h"
+#include <wx/button.h>
 #include <wx/dcclient.h>
+#include <wx/filedlg.h>
 #include <wx/menu.h>
+#include <wx/sizer.h>
 
 NAMESPACE_SPH_BEGIN
 
@@ -18,6 +23,21 @@ PlotView::PlotView(wxWindow* parent,
     Connect(wxEVT_LEFT_DCLICK, wxMouseEventHandler(PlotView::onDoubleClick));
 
     this->updatePlot(defaultSelectedIdx);
+}
+
+AffineMatrix2 PlotView::getPlotTransformMatrix(const Interval& rangeX, const Interval& rangeY) const {
+    // actual size of the plot
+    const wxSize size = this->GetSize() - 2 * padding;
+
+    // scaling factors
+    const Float scaleX = size.x / rangeX.size();
+    const Float scaleY = -size.y / rangeY.size();
+
+    // translation
+    const Float transX = padding.x - scaleX * rangeX.lower();
+    const Float transY = size.y + padding.y - scaleY * rangeY.lower();
+
+    return AffineMatrix2(scaleX, 0._f, 0._f, scaleY, transX, transY);
 }
 
 void PlotView::updatePlot(const Size index) {
@@ -84,7 +104,10 @@ void PlotView::onPaint(wxPaintEvent& UNUSED(evt)) {
 }
 
 void PlotView::drawPlot(wxPaintDC& dc, IPlot& lockedPlot, const Interval rangeX, const Interval rangeY) {
-    WxDrawingContext context(dc, padding, rangeX, rangeY, cached.color);
+    GraphicsContext context(dc, cached.color);
+    const AffineMatrix2 matrix = this->getPlotTransformMatrix(rangeX, rangeY);
+    context.setTransformMatrix(matrix);
+
     lockedPlot.plot(context);
 }
 
@@ -120,14 +143,65 @@ void PlotView::drawLabel(wxDC& dc) {
 
 PlotFrame::PlotFrame(wxWindow* parent, const wxSize size, const wxSize padding, const LockingPtr<IPlot>& plot)
     : wxFrame(parent, wxID_ANY, "Plot")
-    , plot(plot) {
+    , plot(plot)
+    , padding(padding) {
     this->SetMinSize(size);
     SharedPtr<Array<PlotData>> data = makeShared<Array<PlotData>>();
-    data->push(PlotData{ plot, Color(1.f, 0.3f, 0.5f) });
-    /*PlotView* largeView =*/new PlotView(this, size, padding, data, 0);
+    data->push(PlotData{ plot, Color(0.7f, 0.7f, 1.f) });
 
-    wxButton* saveButton = new wxButton(this, wxID_ANY, ...);
+    wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
+    wxButton* saveButton = new wxButton(this, wxID_ANY, "Save");
+    saveButton->Bind(wxEVT_BUTTON, [this](wxCommandEvent& UNUSED(evt)) {
+        wxFileDialog saveFile(this,
+            "Save image",
+            "",
+            "",
+            "PNG image (*.png)|*.png|SVG image (*.svg)|*.svg",
+            wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+        if (saveFile.ShowModal() == wxID_OK) {
+            this->saveImage(std::string(saveFile.GetPath()), saveFile.GetFilterIndex());
+        }
+    });
+    sizer->Add(saveButton);
+
+    wxSize viewSize(size.x, size.y - saveButton->GetSize().y);
+    plotView = new PlotView(this, viewSize, padding, data, 0);
+    sizer->Add(plotView);
+    this->SetSizer(sizer);
 }
 
+void PlotFrame::saveImage(const std::string& pathStr, const int fileIndex) {
+    Path path(pathStr);
+
+    switch (fileIndex) {
+    case 0: { // png file
+        path.replaceExtension("png");
+
+        wxBitmap bitmap(800, 600, wxBITMAP_SCREEN_DEPTH);
+        wxMemoryDC dc(bitmap);
+        dc.SetBrush(*wxWHITE_BRUSH);
+        dc.DrawRectangle(0, 0, 800, 600);
+
+        auto proxy = plot.lock();
+        GraphicsContext gc(dc, Color(0.f, 0.f, 0.5f));
+        AffineMatrix2 matrix = plotView->getPlotTransformMatrix(proxy->rangeX(), proxy->rangeY());
+        gc.setTransformMatrix(matrix);
+        proxy->plot(gc);
+        dc.SelectObject(wxNullBitmap);
+
+        bitmap.SaveFile(path.native().c_str(), wxBITMAP_TYPE_PNG);
+        break;
+    }
+    case 1: { // svg file
+        path.replaceExtension("svg");
+
+        auto proxy = plot.lock();
+        SvgContext gc(path, Point(800, 600));
+        AffineMatrix2 matrix = plotView->getPlotTransformMatrix(proxy->rangeX(), proxy->rangeY());
+        gc.setTransformMatrix(matrix);
+        proxy->plot(gc);
+    }
+    }
+}
 
 NAMESPACE_SPH_END

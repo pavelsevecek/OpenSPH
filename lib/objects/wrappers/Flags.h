@@ -6,6 +6,7 @@
 /// \date 2016-2017
 
 #include "common/Assert.h"
+#include "common/Traits.h"
 #include "math/Math.h"
 
 NAMESPACE_SPH_BEGIN
@@ -136,7 +137,7 @@ private:
     }
 };
 
-template <typename TEnum, typename = std::enable_if_t<std::is_enum<TEnum>::value>>
+template <typename TEnum, typename = std::enable_if_t<IsEnumClass<TEnum>::value>>
 INLINE constexpr Flags<TEnum> operator|(const TEnum flag1, const TEnum flag2) {
     return Flags<TEnum>(flag1, flag2);
 }

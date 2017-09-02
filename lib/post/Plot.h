@@ -9,43 +9,22 @@
 #include "objects/utility/OperatorTemplate.h"
 #include "physics/Integrals.h"
 #include "post/Analysis.h"
+#include "post/Point.h"
 #include "quantities/Storage.h"
 #include "system/Statistics.h"
 
 NAMESPACE_SPH_BEGIN
 
-/// \brief Point in 2D plot
-struct PlotPoint : public OperatorTemplate<PlotPoint> {
-    Float x, y;
-
-    PlotPoint() = default;
-
-    PlotPoint(const Float x, const Float y)
-        : x(x)
-        , y(y) {}
-
-    PlotPoint& operator+=(const PlotPoint& other) {
-        x += other.x;
-        y += other.y;
-        return *this;
-    }
-};
-
-/// \brief Point with error bars
-struct ErrorPlotPoint : public PlotPoint {
-    Float dx, dy;
-};
-
 
 class IDrawPath : public Polymorphic {
 public:
-    /// Adds a next point on the path
+    /// \brief Adds a next point on the path
     virtual void addPoint(const PlotPoint& point) = 0;
 
-    /// Closes the path, connecting to the first point on the path
+    /// \brief Closes the path, connecting to the first point on the path
     virtual void closePath() = 0;
 
-    /// Finalizes the path. Does not connect the last point to anything.
+    /// \brief Finalizes the path. Does not connect the last point to anything.
     virtual void endPath() = 0;
 };
 
@@ -55,16 +34,30 @@ public:
 class IDrawingContext : public Polymorphic {
 private:
 public:
+    /// \brief Adds a single point to the plot
+    ///
+    /// The plot is drawn by implementation-defined style.
     virtual void drawPoint(const PlotPoint& point) = 0;
 
+    /// \brief Adds a point with error bars to the plot.
     virtual void drawErrorPoint(const ErrorPlotPoint& point) = 0;
 
-    /// Draws a line connecting two points. The ending points are not drawn, call \ref drawPoint manually if
-    /// you wish to draw both lines and the points.
+    /// \brief Draws a line connecting two points.
+    ///
+    /// The ending points are not drawn; call \ref drawPoint manually if you wish to draw both lines and the
+    /// points.
     virtual void drawLine(const PlotPoint& from, const PlotPoint& to) = 0;
 
-    /// Draws a path connecting points.
+    /// \brief Draws a path connecting points.
+    ///
+    /// The path copies the state from the parent drawing context, so if a drawing style of the context
+    /// changes, the change does not affect already existing paths.
     virtual AutoPtr<IDrawPath> drawPath() = 0;
+
+    /// \brief Applies the given tranformation matrix on all primitives.
+    ///
+    /// This does not affect already drawn primitives.
+    virtual void setTransformMatrix(const AffineMatrix2& matrix) = 0;
 };
 
 

@@ -247,4 +247,5 @@ HEADERS += \
     timestepping/TimeStepCriterion.h \
     timestepping/TimeStepping.h \
     objects/finders/DynamicFinder.h \
-    timestepping/ISolver.h
+    timestepping/ISolver.h \
+    post/Point.h

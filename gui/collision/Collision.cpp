@@ -298,7 +298,7 @@ void AsteroidCollision::setUp() {
     BodySettings body;
     body.set(BodySettingsId::ENERGY, 0._f)
         .set(BodySettingsId::ENERGY_RANGE, Interval(0._f, INFTY))
-        .set(BodySettingsId::PARTICLE_COUNT, 100'000)
+        .set(BodySettingsId::PARTICLE_COUNT, 10'000)
         .set(BodySettingsId::EOS, EosEnum::TILLOTSON)
         .set(BodySettingsId::STRESS_TENSOR_MIN, 1.e5_f)
         .set(BodySettingsId::RHEOLOGY_DAMAGE, DamageEnum::SCALAR_GRADY_KIPP)
@@ -308,7 +308,7 @@ void AsteroidCollision::setUp() {
 
     storage = makeShared<Storage>();
 
-    const Vector targetOmega(2._f * PI / (2._f * 3600._f));
+    const Vector targetOmega(0._f); // 0._f, 0._f, 2._f * PI / (2._f * 3600._f));
 
     AutoPtr<CollisionSolver> collisionSolver =
         makeAuto<CollisionSolver>(settings, body, targetOmega, outputDir);

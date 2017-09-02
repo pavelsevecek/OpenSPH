@@ -49,6 +49,7 @@ public:
     }
 };
 
+/// \brief Drawing context using wxWidgets implementation of Cairo backend
 class GraphicsContext : public IDrawingContext {
 private:
     SharedPtr<wxGraphicsContext> gc;
@@ -60,25 +61,22 @@ private:
     const Float ps = 3._f;
 
 public:
-    explicit GraphicsContext(wxPaintDC& dc,
-        const wxSize padding,
-        const Interval rangeX,
-        const Interval rangeY,
-        const Color color)
+    /// Constructs the drawing context from wxPaintDC
+    GraphicsContext(wxPaintDC& dc, const Color color)
         : gc(wxGraphicsContext::Create(dc)) {
-        ASSERT(rangeX.size() > 0 && rangeY.size() > 0);
-        this->setup(dc, padding, rangeX, rangeY, color);
+        wxPen pen;
+        pen.SetColour(wxColour(color));
+        gc->SetPen(pen);
+        matrix = gc->CreateMatrix();
     }
 
     /// Constructs the drawing context from wxMemoryDC
-    WxDrawingContext(wxMemoryDC& dc,
-        const wxSize padding,
-        const Interval rangeX,
-        const Interval rangeY,
-        const Color color)
+    GraphicsContext(wxMemoryDC& dc, const Color color)
         : gc(wxGraphicsContext::Create(dc)) {
-        ASSERT(rangeX.size() > 0 && rangeY.size() > 0);
-        this->setup(dc, padding, rangeX, rangeY, color);
+        wxPen pen;
+        pen.SetColour(wxColour(color));
+        gc->SetPen(pen);
+        matrix = gc->CreateMatrix();
     }
 
     virtual void drawPoint(const PlotPoint& point) override {
@@ -103,23 +101,8 @@ public:
         return makeAuto<GraphicsPath>(gc, matrix);
     }
 
-private:
-    void setup(wxDC& dc,
-        const wxSize padding,
-        const Interval rangeX,
-        const Interval rangeY,
-        const Color color) {
-
-        const wxSize size = dc.GetSize() - 2 * padding;
-        const Float scaleX = size.x / rangeX.size();
-        const Float scaleY = -size.y / rangeY.size();
-        const Float transX = padding.x - scaleX * rangeX.lower();
-        const Float transY = size.y + padding.y - scaleY * rangeY.lower();
-        matrix = gc->CreateMatrix(scaleX, 0.f, 0.f, scaleY, transX, transY);
-
-        wxPen pen;
-        pen.SetColour(wxColour(color));
-        gc->SetPen(pen);
+    virtual void setTransformMatrix(const AffineMatrix2& m) override {
+        matrix.Set(m(0, 0), m(0, 1), m(1, 0), m(1, 1), m(0, 2), m(1, 2));
     }
 };
 

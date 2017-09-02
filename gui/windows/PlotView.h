@@ -44,6 +44,9 @@ public:
         const SharedPtr<Array<PlotData>>& list,
         const Size defaultSelectedIdx);
 
+    /// \brief Returns the transformation matrix for managed plot.
+    AffineMatrix2 getPlotTransformMatrix(const Interval& rangeX, const Interval& rangeY) const;
+
 private:
     void updatePlot(const Size index);
 
@@ -66,9 +69,15 @@ private:
 class PlotFrame : public wxFrame {
 private:
     LockingPtr<IPlot> plot;
+    wxSize padding;
+
+    PlotView* plotView;
 
 public:
     PlotFrame(wxWindow* parent, const wxSize size, const wxSize padding, const LockingPtr<IPlot>& plot);
+
+private:
+    void saveImage(const std::string& path, const int fileIndex);
 };
 
 

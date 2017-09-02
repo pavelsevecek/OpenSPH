@@ -168,6 +168,11 @@ static_assert(std::is_same<bool, ConvertToSize<bool>>::value, "invalid EnumToInt
 static_assert(std::is_same<int, ConvertToSize<TestEnum>>::value, "invalid EnumToInt");
 static_assert(std::is_same<int&, ConvertToSize<TestEnum&>>::value, "invalid EnumToInt");
 
+template <typename T>
+struct IsEnumClass {
+    static constexpr bool value = std::is_enum<T>::value && !std::is_convertible<T, int>::value;
+};
+
 
 template <typename... Ts>
 struct makeVoid {

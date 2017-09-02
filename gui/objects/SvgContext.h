@@ -6,6 +6,7 @@
 /// \date 2016-2017
 
 #include "gui/objects/Point.h"
+#include "io/Path.h"
 #include "post/Plot.h"
 #include <wx/dcsvg.h>
 
@@ -14,26 +15,33 @@ NAMESPACE_SPH_BEGIN
 class SvgPath : public IDrawPath {
 private:
     wxSVGFileDC& dc;
+    AffineMatrix2 matrix;
     Size pointSize;
+
     PlotPoint prev{ -1, -1 };
     PlotPoint first;
 
 public:
-    SvgPath(wxSVGFileDC& dc, const Size pointSize)
+    SvgPath(wxSVGFileDC& dc, const AffineMatrix2& matrix, const Size pointSize)
         : dc(dc)
+        , matrix(matrix)
         , pointSize(pointSize) {}
 
     virtual void addPoint(const PlotPoint& point) override {
         if (prev == PlotPoint{ -1, -1 }) {
             first = point;
         } else {
-            dc.DrawLine({ prev.x, prev.y }, { point.x, point.y });
+            const PlotPoint p1 = matrix.transformPoint(prev);
+            const PlotPoint p2 = matrix.transformPoint(point);
+            dc.DrawLine({ int(p1.x), int(p1.y) }, { int(p2.x), int(p2.y) });
         }
         prev = point;
     }
 
     virtual void closePath() override {
-        dc.DrawLine({ prev.x, prev.y }, { first.x, first.y });
+        const PlotPoint p1 = matrix.transformPoint(prev);
+        const PlotPoint p2 = matrix.transformPoint(first);
+        dc.DrawLine({ int(p1.x), int(p1.y) }, { int(p2.x), int(p2.y) });
     }
 
     virtual void endPath() override {
@@ -44,26 +52,35 @@ public:
 class SvgContext : public IDrawingContext {
 private:
     wxSVGFileDC dc;
-    Size pointSize = 3;
+    int pointSize = 3;
+    AffineMatrix2 matrix;
 
 public:
     SvgContext(const Path& path, const Point size, const double dpi = 72)
         : dc(path.native(), size.x, size.y, dpi) {}
 
     virtual void drawPoint(const PlotPoint& point) override {
-        dc.DrawCircle(point.x, point.y, pointSize);
+        const PlotPoint p = matrix.transformPoint(point);
+        dc.DrawCircle(int(p.x), int(p.y), pointSize);
     }
 
     virtual void drawErrorPoint(const ErrorPlotPoint& point) override {
-        dc.DrawCircle(point.x, point.y, pointSize);
+        const PlotPoint p = matrix.transformPoint(point);
+        dc.DrawCircle(int(p.x), int(p.y), pointSize);
     }
 
     virtual void drawLine(const PlotPoint& from, const PlotPoint& to) override {
-        dc.DrawLine({ from.x, from.y }, { to.x, to.y });
+        const PlotPoint p1 = matrix.transformPoint(from);
+        const PlotPoint p2 = matrix.transformPoint(to);
+        dc.DrawLine({ int(p1.x), int(p1.y) }, { int(p2.x), int(p2.y) });
     }
 
     virtual AutoPtr<IDrawPath> drawPath() override {
-        return makeAuto<SvgPath>(dc, pointSize);
+        return makeAuto<SvgPath>(dc, matrix, pointSize);
+    }
+
+    virtual void setTransformMatrix(const AffineMatrix2& newMatrix) override {
+        matrix = newMatrix;
     }
 };
 
