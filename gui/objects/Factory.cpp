@@ -40,6 +40,9 @@ AutoPtr<IColorizer> Factory::getColorizer(const GuiSettings& settings, const Col
         return makeAuto<AccelerationColorizer>(range);
     case ColorizerId::MOVEMENT_DIRECTION:
         return makeAuto<DirectionColorizer>(Vector(0._f, 0._f, 1._f));
+    case ColorizerId::COROTATING_VELOCITY:
+        range = settings.get<Interval>(GuiSettingsId::PALETTE_VELOCITY);
+        return makeAuto<CorotatingVelocityColorizer>(range);
     case ColorizerId::DENSITY_PERTURBATION:
         range = settings.get<Interval>(GuiSettingsId::PALETTE_DENSITY_PERTURB);
         return makeAuto<DensityPerturbationColorizer>(range);

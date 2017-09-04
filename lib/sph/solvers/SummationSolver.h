@@ -23,8 +23,8 @@ private:
     LutKernel<DIMENSIONS> densityKernel;
 
 public:
-    SummationSolver(const RunSettings& settings)
-        : GenericSolver(settings, getEquations(settings)) {
+    SummationSolver(const RunSettings& settings, const EquationHolder& additionalEquations = {})
+        : GenericSolver(settings, getEquations(settings) + additionalEquations) {
         eta = settings.get<Float>(RunSettingsId::SPH_KERNEL_ETA);
         targetDensityDifference = settings.get<Float>(RunSettingsId::SUMMATION_DENSITY_DELTA);
         densityKernel = Factory::getKernel<DIMENSIONS>(settings);
@@ -46,7 +46,7 @@ private:
     EquationHolder getEquations(const RunSettings& settings) {
         EquationHolder equations;
         if (settings.get<bool>(RunSettingsId::MODEL_FORCE_PRESSURE_GRADIENT)) {
-            equations += makeTerm<PressureForce>();
+            equations += makeTerm<PressureForce>(settings);
         }
         if (settings.get<bool>(RunSettingsId::MODEL_FORCE_SOLID_STRESS)) {
             equations += makeTerm<SolidStressForce>(settings);

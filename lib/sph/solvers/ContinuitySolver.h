@@ -26,7 +26,7 @@ private:
         EquationHolder equations;
         /// \todo test that all possible combination (pressure, stress, AV, ...) work and dont assert
         if (settings.get<bool>(RunSettingsId::MODEL_FORCE_PRESSURE_GRADIENT)) {
-            equations += makeTerm<PressureForce>();
+            equations += makeTerm<PressureForce>(settings);
         }
         if (settings.get<bool>(RunSettingsId::MODEL_FORCE_SOLID_STRESS)) {
             equations += makeTerm<SolidStressForce>(settings);

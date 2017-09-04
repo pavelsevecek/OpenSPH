@@ -1,8 +1,8 @@
 #include "sph/equations/av/Stress.h"
 #include "catch.hpp"
+#include "tests/Approx.h"
 #include "tests/Setup.h"
 #include "timestepping/TimeStepping.h"
-#include "tests/Approx.h"
 #include "utils/SequenceTest.h"
 
 using namespace Sph;
@@ -33,7 +33,7 @@ TEST_CASE("StressAV test", "[av]") {
 
     // solver with some basic forces and artificial stress
     EquationHolder eqs;
-    eqs += makeTerm<PressureForce>() + makeTerm<SolidStressForce>(settings) +
+    eqs += makeTerm<PressureForce>(settings) + makeTerm<SolidStressForce>(settings) +
            makeTerm<ContinuityEquation>(settings) + makeTerm<StressAV>(settings) +
            makeTerm<ConstSmoothingLength>();
     GenericSolver solver(settings, std::move(eqs));

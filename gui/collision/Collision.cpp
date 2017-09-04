@@ -183,6 +183,7 @@ public:
                 v[i] = (v[i] - rotation) / factor + rotation;
                 ASSERT(isReal(v[i]));
             }
+            //  this->smoothDensity(storage);
         }
         if (t > startTime && !impactStarted) {
             body.set(BodySettingsId::PARTICLE_COUNT, 100)
@@ -212,7 +213,7 @@ private:
         EquationHolder equations;
 
         // forces
-        equations += makeTerm<PressureForce>() + makeTerm<SolidStressForce>(settings);
+        equations += makeTerm<PressureForce>(settings) + makeTerm<SolidStressForce>(settings);
 
         // noninertial acceleration
         const Vector omega = settings.get<Vector>(RunSettingsId::FRAME_ANGULAR_FREQUENCY);
@@ -232,6 +233,37 @@ private:
 
         return equations;
     }
+
+    void smoothDensity(Storage& storage) {
+        ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
+        ArrayView<Float> rho = storage.getValue<Float>(QuantityId::DENSITY);
+        Array<Float> rhoSmoothed(rho.size());
+
+        finder->build(r);
+
+        auto functor = [this, r, rho, &rhoSmoothed](const Size n1, const Size n2) {
+            Array<NeighbourRecord> neighs;
+            for (Size i = n1; i < n2; ++i) {
+                finder->findNeighbours(i, r[i][H] * kernel.radius(), neighs);
+
+                Float rhoSum = 0._f;
+                Float weightSum = 0._f;
+                for (auto& n : neighs) {
+                    const Size j = n.index;
+                    const Float w = kernel.value(r[i], r[j]);
+                    rhoSum += rho[j] * w;
+                    weightSum += w;
+                }
+                ASSERT(weightSum > 0._f);
+                rhoSmoothed[i] = rhoSum / weightSum;
+            }
+        };
+        parallelFor(*pool, 0, r.size(), granularity, functor);
+
+        for (Size i = 0; i < rho.size(); ++i) {
+            rho[i] = rhoSmoothed[i];
+        }
+    }
 };
 
 AsteroidCollision::AsteroidCollision() {
@@ -242,7 +274,7 @@ AsteroidCollision::AsteroidCollision() {
         .set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::PREDICTOR_CORRECTOR)
         .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 0.01_f)
         .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 0.01_f)
-        .set(RunSettingsId::RUN_TIME_RANGE, Interval(-50._f, 0._f))
+        .set(RunSettingsId::RUN_TIME_RANGE, Interval(-50._f, 10._f))
         .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 0.1_f)
         .set(RunSettingsId::MODEL_FORCE_SOLID_STRESS, true)
         .set(RunSettingsId::SPH_FINDER, FinderEnum::VOXEL)
@@ -253,7 +285,8 @@ AsteroidCollision::AsteroidCollision() {
         .set(RunSettingsId::GRAVITY_OPENING_ANGLE, 0.5_f)
         .set(RunSettingsId::GRAVITY_LEAF_SIZE, 20)
         .set(RunSettingsId::RUN_THREAD_GRANULARITY, 100)
-        .set(RunSettingsId::FRAME_ANGULAR_FREQUENCY, Vector(0._f, 0._f, omega));
+        .set(RunSettingsId::FRAME_ANGULAR_FREQUENCY, Vector(0._f, 0._f, omega))
+        .set(RunSettingsId::SPH_CONSERVE_ANGULAR_MOMENTUM, false);
 
     settings.set(RunSettingsId::RUN_COMMENT,
         std::string("Homogeneous Gravity with no initial rotation")); // + std::to_string(omega));
@@ -298,7 +331,7 @@ void AsteroidCollision::setUp() {
     BodySettings body;
     body.set(BodySettingsId::ENERGY, 0._f)
         .set(BodySettingsId::ENERGY_RANGE, Interval(0._f, INFTY))
-        .set(BodySettingsId::PARTICLE_COUNT, 10'000)
+        .set(BodySettingsId::PARTICLE_COUNT, 100'000)
         .set(BodySettingsId::EOS, EosEnum::TILLOTSON)
         .set(BodySettingsId::STRESS_TENSOR_MIN, 1.e5_f)
         .set(BodySettingsId::RHEOLOGY_DAMAGE, DamageEnum::SCALAR_GRADY_KIPP)
@@ -308,7 +341,7 @@ void AsteroidCollision::setUp() {
 
     storage = makeShared<Storage>();
 
-    const Vector targetOmega(0._f); // 0._f, 0._f, 2._f * PI / (2._f * 3600._f));
+    const Vector targetOmega(0._f); //  0._f, 2._f * PI / (3._f * 3600._f));
 
     AutoPtr<CollisionSolver> collisionSolver =
         makeAuto<CollisionSolver>(settings, body, targetOmega, outputDir);
@@ -365,12 +398,10 @@ void AsteroidCollision::tearDown() {
     Profiler& profiler = Profiler::getInstance();
     profiler.printStatistics(*logger);
 
-    if (resultsDir == Path(".")) {
-        // testing & debugging, do not run pkdgrav
+    Storage output = this->runPkdgrav();
+    if (output.getQuantityCnt() == 0) {
         return;
     }
-
-    Storage output = this->runPkdgrav();
 
     // get SFD from pkdgrav output
     Array<Post::SfdPoint> sfd = Post::getCummulativeSfd(output, {});
@@ -403,6 +434,12 @@ Storage AsteroidCollision::runPkdgrav() {
     Statistics stats;
     pkdgravOutput.dump(*storage, stats);
     ASSERT(FileSystem::pathExists(Path("pkdgrav.out")));
+
+
+    if (resultsDir == Path(".")) {
+        // testing & debugging, do not run pkdgrav
+        return {};
+    }
 
     // convert the text file to pkdgrav input file and RUN PKDGRAV
     Process pkdgrav(Path("./RUNME.sh"), {});

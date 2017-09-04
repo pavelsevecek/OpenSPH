@@ -75,7 +75,7 @@ TEST_CASE("Total Momentum Body", "[integrals]") {
     /// \todo use positive sign? omega x r or r x omega (basically convention only)
     const Vector angMom = TotalAngularMomentum().evaluate(storage);
     /// \todo this is very imprecise, is it to be expected?
-    REQUIRE(angMom == approx(Vector(0._f, 0._f, -expected), 1.e-2_f));
+    REQUIRE(angMom == approx(Vector(0._f, 0._f, expected), 1.e-2_f));
 }
 
 TEST_CASE("Total Energy Simple", "[integrals]") {

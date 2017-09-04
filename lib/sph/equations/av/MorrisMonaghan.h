@@ -80,7 +80,7 @@ public:
 
     virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override {
         derivatives.require<Derivative>(settings);
-        derivatives.require<VelocityDivergence>(settings);
+        derivatives.require<VelocityDivergence<NoGradientCorrection>>(settings);
     }
 
     virtual void initialize(Storage& storage) override {

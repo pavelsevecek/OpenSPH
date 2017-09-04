@@ -52,6 +52,20 @@ public:
         ArrayView<const Vector> grads) = 0;
 };
 
+/// \brief Helper functor returning the input gradient without any modification.
+///
+/// This is the default template parameter for velocity derivative modifiers. Alternatively, a
+/// \ref AngularMomentumCorrection can be used, modifying the gradient in order to improve conservation of the
+/// total angular momentum.
+struct NoGradientCorrection {
+    /// \brief Returns the modified gradient.
+    INLINE Vector operator()(const Size UNUSED(i), const Vector& grad) {
+        return grad;
+    }
+
+    /// Initialize the correction.
+    void initialize(const Storage& UNUSED(input)) {}
+};
 
 template <typename TDerived>
 class DerivativeTemplate : public IDerivative {
@@ -70,12 +84,13 @@ public:
 };
 
 namespace Detail {
-    template <typename Type, QuantityId Id, typename TDerived>
-    class VelocityTemplate : public DerivativeTemplate<VelocityTemplate<Type, Id, TDerived>> {
+    template <typename Type, QuantityId Id, typename TCorrection, typename TDerived>
+    class VelocityTemplate : public DerivativeTemplate<VelocityTemplate<Type, Id, TCorrection, TDerived>> {
     private:
         ArrayView<const Float> rho, m;
         ArrayView<const Vector> v;
         ArrayView<Type> deriv;
+        TCorrection correction;
 
     public:
         virtual void create(Accumulated& results) override {
@@ -86,6 +101,8 @@ namespace Detail {
             tie(rho, m) = input.getValues<Float>(QuantityId::DENSITY, QuantityId::MASSES);
             v = input.getDt<Vector>(QuantityId::POSITIONS);
             deriv = results.getBuffer<Type>(Id, OrderEnum::ZERO);
+
+            correction.initialize(input);
         }
 
         template <bool Symmetrize>
@@ -93,49 +110,56 @@ namespace Detail {
             ASSERT(neighs.size() == grads.size());
             for (Size k = 0; k < neighs.size(); ++k) {
                 const Size j = neighs[k];
-                const auto dv = TDerived::func(v[j] - v[i], grads[k]);
-                deriv[i] += m[j] / rho[j] * dv;
-                if (Symmetrize) {
-                    deriv[j] += m[i] / rho[i] * dv;
+
+                if (std::is_same<TCorrection, NoGradientCorrection>::value) {
+                    const auto dv = TDerived::func(v[j] - v[i], grads[k]);
+                    deriv[i] += m[j] / rho[j] * dv;
+                    if (Symmetrize) {
+                        deriv[j] += m[i] / rho[i] * dv;
+                    }
+                } else {
+                    deriv[i] += m[j] / rho[j] * TDerived::func(v[j] - v[i], correction(i, grads[k]));
+                    if (Symmetrize) {
+                        deriv[j] += m[i] / rho[i] * TDerived::func(v[j] - v[i], correction(j, grads[k]));
+                    }
                 }
             }
         }
     };
 }
 
-struct VelocityDivergence
-    : public Detail::VelocityTemplate<Float, QuantityId::VELOCITY_DIVERGENCE, VelocityDivergence> {
+template <typename TCorrection>
+struct VelocityDivergence : public Detail::VelocityTemplate<Float,
+                                QuantityId::VELOCITY_DIVERGENCE,
+                                TCorrection,
+                                VelocityDivergence<TCorrection>> {
     INLINE static Float func(const Vector& dv, const Vector& grad) {
         return dot(dv, grad);
     }
 };
 
-struct VelocityGradient
-    : public Detail::VelocityTemplate<SymmetricTensor, QuantityId::VELOCITY_GRADIENT, VelocityGradient> {
+template <typename TCorrection>
+struct VelocityGradient : public Detail::VelocityTemplate<SymmetricTensor,
+                              QuantityId::VELOCITY_GRADIENT,
+                              TCorrection,
+                              VelocityGradient<TCorrection>> {
     INLINE static SymmetricTensor func(const Vector& dv, const Vector& grad) {
         return outer(dv, grad);
     }
 };
 
-struct VelocityRotation
-    : public Detail::VelocityTemplate<Vector, QuantityId::VELOCITY_ROTATION, VelocityRotation> {
+template <typename TCorrection>
+struct VelocityRotation : public Detail::VelocityTemplate<Vector,
+                              QuantityId::VELOCITY_ROTATION,
+                              TCorrection,
+                              VelocityRotation<TCorrection>> {
     INLINE static Vector func(const Vector& dv, const Vector& grad) {
         return cross(dv, grad);
     }
 };
 
-namespace VelocityGradientCorrection {
-    struct NoCorrection {
-        INLINE Vector operator()(const Size UNUSED(i), const Vector& grad) {
-            return grad;
-        }
-
-        void initialize(const Storage& UNUSED(input)) {}
-    };
-}
-
 /// Velocity gradient accumulated only over particles of the same body and only particles with strength.
-template <typename TCorrection = VelocityGradientCorrection::NoCorrection>
+template <typename TCorrection>
 class StrengthVelocityGradient : public DerivativeTemplate<StrengthVelocityGradient<TCorrection>> {
 private:
     ArrayView<const Float> rho, m;
@@ -174,7 +198,7 @@ public:
                 continue;
             }
             const Vector dv = v[j] - v[i];
-            if (std::is_same<TCorrection, VelocityGradientCorrection::NoCorrection>::value) {
+            if (std::is_same<TCorrection, NoGradientCorrection>::value) {
                 // optimization, avoid computing outer product twice
                 const SymmetricTensor t = outer(dv, grads[k]);
                 ASSERT(isReal(t));
@@ -236,21 +260,21 @@ public:
     }
 };
 
-namespace VelocityGradientCorrection {
-    class ConserveAngularMomentum {
-    private:
-        ArrayView<const SymmetricTensor> C_inv;
+/// \brief Velocity derivative correction conserving the total angular momentum.
+class AngularMomentumCorrection {
+private:
+    ArrayView<const SymmetricTensor> C_inv;
 
-    public:
-        INLINE Vector operator()(const Size i, const Vector& grad) {
-            return C_inv[i] * grad;
-        }
+public:
+    INLINE Vector operator()(const Size i, const Vector& grad) {
+        return C_inv[i] * grad;
+    }
 
-        void initialize(const Storage& input) {
-            C_inv = input.getValue<SymmetricTensor>(QuantityId::ANGULAR_MOMENTUM_CORRECTION);
-        }
-    };
-}
+    void initialize(const Storage& input) {
+        C_inv = input.getValue<SymmetricTensor>(QuantityId::ANGULAR_MOMENTUM_CORRECTION);
+    }
+};
+
 
 /// \brief Helper function allowing to construct an object from settings if the object defines such
 /// constructor, or default-construct the object otherwise.

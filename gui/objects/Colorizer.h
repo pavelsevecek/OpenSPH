@@ -80,9 +80,10 @@ enum class ColorizerId {
     VELOCITY = -1,             ///< Particle velocities
     ACCELERATION = -2,         ///< Acceleration of particles
     MOVEMENT_DIRECTION = -3,   ///< Projected direction of motion
-    DISPLACEMENT = -4,         ///< Difference between current positions and initial position
-    DENSITY_PERTURBATION = -5, ///< Relative difference of density and initial density (rho/rho0 - 1)
-    BOUNDARY = -6,             ///< Shows boundary particles
+    COROTATING_VELOCITY = -4,  ///< Velocities with a respect to the rotating body
+    DISPLACEMENT = -5,         ///< Difference between current positions and initial position
+    DENSITY_PERTURBATION = -6, ///< Relative difference of density and initial density (rho/rho0 - 1)
+    BOUNDARY = -7,             ///< Shows boundary particles
 };
 
 /// Default colorizer simply converting quantity value to color using defined palette. Vector and tensor
@@ -246,6 +247,67 @@ public:
     }
 };
 
+/// \brief Shows particle velocities with subtracted corotating component
+class CorotatingVelocityColorizer : public IColorizer {
+private:
+    Palette palette;
+    ArrayView<const Vector> r;
+    ArrayView<const Vector> v;
+    Vector omegaAvg;
+
+    struct {
+        Array<Vector> r;
+        Array<Vector> v;
+    } cached;
+
+public:
+    CorotatingVelocityColorizer(const Interval range) {
+        palette = Factory::getPalette(ColorizerId::VELOCITY, range);
+    }
+
+    virtual void initialize(const Storage& storage, const ColorizerSource source) override {
+        if (source == ColorizerSource::CACHE_ARRAYS) {
+            cached.r = copyable(storage.getValue<Vector>(QuantityId::POSITIONS));
+            cached.v = copyable(storage.getDt<Vector>(QuantityId::POSITIONS));
+            r = cached.r;
+            v = cached.v;
+        } else {
+            r = storage.getValue<Vector>(QuantityId::POSITIONS);
+            v = storage.getDt<Vector>(QuantityId::POSITIONS);
+        }
+        omegaAvg = Vector(0._f);
+        Float weight = 0._f;
+        for (Size i = 0; i < r.size(); ++i) {
+            omegaAvg += cross(r[i], v[i]);
+            weight += getLength(r[i]);
+        }
+        ASSERT(weight > 0._f);
+        omegaAvg /= weight;
+    }
+
+    virtual bool isInitialized() const override {
+        return !v.empty();
+    }
+
+    virtual Color eval(const Size idx) const override {
+        ASSERT(!v.empty() && !r.empty());
+        const Vector omega = cross(r[idx], v[idx]) / (getLength(r[idx]) + EPS);
+        return palette(getLength(omega - omegaAvg));
+    }
+
+    virtual Optional<Particle> getParticle(const Size idx) const override {
+        const Vector omega = cross(r[idx], v[idx]) / (getLength(r[idx]) + EPS);
+        return Particle(idx).addDt(QuantityId::POSITIONS, omega - omegaAvg);
+    }
+
+    virtual Optional<Palette> getPalette() const override {
+        return palette;
+    }
+
+    virtual std::string name() const override {
+        return "Corot. velocity";
+    }
+};
 
 /// \note This does not have anything in common with QuantityId::DISPLACEMENT; it only depends on particle
 /// positions and have nothing to do with stresses.

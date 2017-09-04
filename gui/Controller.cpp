@@ -177,6 +177,7 @@ Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage
         ColorizerId::VELOCITY, ColorizerId::DENSITY_PERTURBATION,
     };
     if (!forMovie) {
+        colorizerIds.push(ColorizerId::COROTATING_VELOCITY);
         colorizerIds.push(ColorizerId::MOVEMENT_DIRECTION);
         colorizerIds.push(ColorizerId::ACCELERATION);
         colorizerIds.push(ColorizerId::BOUNDARY);
@@ -398,6 +399,9 @@ void Controller::run() {
 
         // run the simulation
         sph.run->run();
+
+        // set status to finished
+        status = Status::STOPPED;
     });
 }
 

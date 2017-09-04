@@ -5,6 +5,7 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2017
 
+#include "objects/wrappers/AlignedStorage.h"
 #include "objects/wrappers/SharedPtr.h"
 #include <atomic>
 #include <mutex>
@@ -46,6 +47,13 @@ class LockingPtr {
 private:
     SharedPtr<T> resource;
     Detail::LockingControlBlock<T>* block = nullptr;
+
+#ifdef SPH_DEBUG
+    mutable std::atomic_flag proxyFlag = ATOMIC_FLAG_INIT;
+#else
+    // add dummy variable to that LockingPtr has the same size in Debug and Release
+    AlignedStorage<std::atomic_flag> padding;
+#endif
 
 public:
     LockingPtr() = default;
@@ -116,21 +124,52 @@ public:
 
     private:
         RawPtr<T> ptr;
+
+#ifdef SPH_DEBUG
+        // must be initialized before the lock is locked
+        std::atomic_flag* flag = nullptr;
+#endif
         std::unique_lock<Detail::LockingControlBlock<T>> lock;
 
         Proxy()
             : ptr(nullptr) {}
 
+#ifdef SPH_DEBUG
+        Proxy(const SharedPtr<T>& ptr, Detail::LockingControlBlock<T>* block, std::atomic_flag& flag)
+            : ptr(ptr.get())
+            , flag(this->initFlag(flag))
+            , lock(*block) {
+            ASSERT(ptr != nullptr);
+        }
+#else
         Proxy(const SharedPtr<T>& ptr, Detail::LockingControlBlock<T>* block)
             : ptr(ptr.get())
             , lock(*block) {
             ASSERT(ptr != nullptr);
         }
+#endif
 
     public:
         Proxy(Proxy&& proxy)
             : ptr(proxy.ptr)
-            , lock(std::move(proxy.lock)) {}
+#ifdef SPH_DEBUG
+            , flag(proxy.flag)
+#endif
+            , lock(std::move(proxy.lock)) {
+        }
+
+#ifdef SPH_DEBUG
+        std::atomic_flag* initFlag(std::atomic_flag& flag) {
+            ASSERT(!flag.test_and_set(), "LockingPtr can only be locked once within a scope");
+            return std::addressof(flag);
+        }
+
+        ~Proxy() {
+            if (flag) {
+                flag->clear();
+            }
+        }
+#endif
 
         RawPtr<T> operator->() {
             ASSERT(ptr != nullptr);
@@ -168,7 +207,11 @@ public:
 
     Proxy lock() const {
         if (resource) {
+#ifdef SPH_DEBUG
+            return Proxy(resource, block, proxyFlag);
+#else
             return Proxy(resource, block);
+#endif
         } else {
             return Proxy();
         }
@@ -176,12 +219,20 @@ public:
 
     Proxy operator->() const {
         ASSERT(resource);
+#ifdef SPH_DEBUG
+        return Proxy(resource, block, proxyFlag);
+#else
         return Proxy(resource, block);
+#endif
     }
 
     ProxyRef operator*() const {
         ASSERT(resource);
+#ifdef SPH_DEBUG
+        return ProxyRef{ Proxy(resource, block, proxyFlag) };
+#else
         return ProxyRef{ Proxy(resource, block) };
+#endif
     }
 
     explicit operator bool() const {

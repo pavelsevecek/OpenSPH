@@ -9,16 +9,16 @@ TEST_CASE("Derivative require", "[derivative]") {
     DerivativeHolder derivatives;
     RunSettings settings;
     REQUIRE(derivatives.getDerivativeCnt() == 0);
-    derivatives.require<VelocityDivergence>(settings);
+    derivatives.require<VelocityDivergence<NoGradientCorrection>>(settings);
     REQUIRE(derivatives.getDerivativeCnt() == 1);
-    derivatives.require<VelocityDivergence>(settings);
+    derivatives.require<VelocityDivergence<NoGradientCorrection>>(settings);
     REQUIRE(derivatives.getDerivativeCnt() == 1);
 }
 
 TEST_CASE("Derivative initialize", "[derivative]") {
     DerivativeHolder derivatives;
     RunSettings settings;
-    derivatives.require<VelocityDivergence>(settings);
+    derivatives.require<VelocityDivergence<NoGradientCorrection>>(settings);
     Storage storage;
     storage.insert<Vector>(
         QuantityId::POSITIONS, OrderEnum::FIRST, Array<Vector>{ Vector(1._f), Vector(2._f), Vector(3._f) });

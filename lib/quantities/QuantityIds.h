@@ -50,6 +50,7 @@ enum class QuantityId {
                        /// total energy of the system, otherwise the energy will not be conserved.
     ANGULAR_VELOCITY,  ///< Angular velocity of particles (spheres). Note that SPH particles have no angular
                        /// velocity.
+    MOMENT_OF_INERTIA, ///< Moment of inertia of particles, analogy of particle masses for rotation
     ///@}
 
     /// \name Stress-strain analysis
