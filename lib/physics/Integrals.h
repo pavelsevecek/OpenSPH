@@ -75,7 +75,8 @@ public:
 /// \brief Computes total angular momentum of all SPH particles with a respect to the reference frame.
 ///
 /// Storage must contain at least particle masses and particle positions with velocities, checked by
-/// assert.
+/// assert. If the particles also have nonzero angular velocities, the 'local' angular momenta are added to
+/// the total angular momentum.
 class TotalAngularMomentum : public IIntegral<Vector> {
 private:
     Vector omega;
@@ -93,6 +94,8 @@ public:
 /// \brief Returns the total kinetic energy of all particles.
 ///
 /// Storage must contain at least particle masses and particle positions with velocities, checked by assert.
+/// If the particles also have nonzero angular velocities, the rotational energy is added to the total kinetic
+/// energy.
 class TotalKineticEnergy : public IIntegral<Float> {
 private:
     Vector omega;

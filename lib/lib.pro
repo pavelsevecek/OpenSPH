@@ -248,4 +248,5 @@ HEADERS += \
     timestepping/TimeStepping.h \
     objects/finders/DynamicFinder.h \
     timestepping/ISolver.h \
-    post/Point.h
+    post/Point.h \
+    sph/equations/Rotation.h

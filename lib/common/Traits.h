@@ -1,8 +1,9 @@
 #pragma once
 
-/// Few non-standard type traits.
-/// Pavel Sevecek 2016
-/// sevecek at sirrah.troja.mff.cuni.cz
+/// \file Traits.h
+/// \brief Few non-standard type traits
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2017
 
 #include "common/Globals.h"
 #include <type_traits>

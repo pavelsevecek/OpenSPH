@@ -42,6 +42,7 @@ Vector TotalAngularMomentum::evaluate(const Storage& storage) const {
     ArrayView<const Vector> r, v, dv;
     tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
     ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASSES);
+
     ASSERT(!v.empty());
     for (Size i = 0; i < v.size(); ++i) {
         total += vectorCast<double>(m[i] * cross(r[i], (v[i] + cross(omega, r[i]))));
