@@ -68,6 +68,13 @@ public:
             maker->addImpactor();
             globalLogger.write(
                 "Added impactor, particle cnt = ", storage.getParticleCnt() - targetParticleCnt);
+
+            // zero all damage potentially created during the initial phase
+            ArrayView<Float> d = storage.getValue<Float>(QuantityId::DAMAGE);
+            for (Size i = 0; i < d.size(); ++i) {
+                d[i] = 0._f;
+            }
+
             impactStarted = true;
         }
     }
