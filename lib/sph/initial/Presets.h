@@ -84,8 +84,8 @@ namespace Presets {
 
             const Float impactorDistance = params.targetRadius + params.projectileRadius;
             // move impactor by 3h so that there is no overlap
-            const Float x = impactorDistance * cos(params.impactAngle * DEG_TO_RAD) + 3._f * h;
-            const Float y = impactorDistance * sin(params.impactAngle * DEG_TO_RAD);
+            const Float x = impactorDistance * cos(params.impactAngle) + 3._f * h;
+            const Float y = impactorDistance * sin(params.impactAngle);
 
             BodySettings impactorBody = body;
             impactorBody
