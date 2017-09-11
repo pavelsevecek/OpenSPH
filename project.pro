@@ -11,7 +11,8 @@ SUBDIRS = lib \
           test \
           bench \
     mpi \
-    post
+    post \
+    collision-cli
 
 run.depends = lib
 cli.depends = lib

@@ -61,11 +61,11 @@ Float DynamicFinder::updateFinder(ArrayView<const Vector> points) {
     // choose the finder implementation based on the metric value
     if (metric <= compactThreshold) {
         // particles seem to be compact enough, use voxel finder
-        if (!actual || typeid(*actual) != typeid(VoxelFinder)) {
+        if (!actual || dynamic_cast<VoxelFinder*>(&*actual)) {
             actual = makeAuto<VoxelFinder>();
         }
     } else {
-        if (!actual || typeid(*actual) != typeid(KdTree)) {
+        if (!actual || dynamic_cast<KdTree*>(&*actual)) {
             actual = makeAuto<KdTree>();
         }
     }

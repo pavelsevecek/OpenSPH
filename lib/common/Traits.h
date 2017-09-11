@@ -160,13 +160,15 @@ struct ConvertToSizeType<T, std::enable_if_t<std::is_enum<std::decay_t<T>>::valu
 template <typename T>
 using ConvertToSize = typename ConvertToSizeType<T>::Type;
 
-enum class TestEnum { DUMMY };
+namespace Detail {
+    enum class TestEnum { DUMMY };
 
-static_assert(std::is_same<int, ConvertToSize<int>>::value, "invalid EnumToInt");
-static_assert(std::is_same<float, ConvertToSize<float>>::value, "invalid EnumToInt");
-static_assert(std::is_same<bool, ConvertToSize<bool>>::value, "invalid EnumToInt");
-static_assert(std::is_same<int, ConvertToSize<TestEnum>>::value, "invalid EnumToInt");
-static_assert(std::is_same<int&, ConvertToSize<TestEnum&>>::value, "invalid EnumToInt");
+    static_assert(std::is_same<int, ConvertToSize<int>>::value, "invalid EnumToInt");
+    static_assert(std::is_same<float, ConvertToSize<float>>::value, "invalid EnumToInt");
+    static_assert(std::is_same<bool, ConvertToSize<bool>>::value, "invalid EnumToInt");
+    static_assert(std::is_same<int, ConvertToSize<TestEnum>>::value, "invalid EnumToInt");
+    static_assert(std::is_same<int&, ConvertToSize<TestEnum&>>::value, "invalid EnumToInt");
+}
 
 template <typename T>
 struct IsEnumClass {

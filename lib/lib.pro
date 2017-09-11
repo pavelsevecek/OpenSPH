@@ -88,7 +88,8 @@ SOURCES += \
     timestepping/TimeStepCriterion.cpp \
     timestepping/TimeStepping.cpp \
     post/Plot.cpp \
-    objects/finders/DynamicFinder.cpp
+    objects/finders/DynamicFinder.cpp \
+    system/ArgsParser.cpp
 
 HEADERS += \
     common/Assert.h \
@@ -248,4 +249,8 @@ HEADERS += \
     timestepping/TimeStepping.h \
     objects/finders/DynamicFinder.h \
     timestepping/ISolver.h \
-    post/Point.h
+    post/Point.h \
+    sph/initial/Presets.h \
+    sph/solvers/CollisionSolver.h \
+    system/ArgsParser.h \
+    run/Collision.h

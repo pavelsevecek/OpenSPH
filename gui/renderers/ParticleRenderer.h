@@ -30,7 +30,9 @@ private:
     } cached;
 
 public:
-    virtual void initialize(const Storage& storage, const IColorizer& colorizer, const ICamera& camera);
+    virtual void initialize(const Storage& storage,
+        const IColorizer& colorizer,
+        const ICamera& camera) override;
 
     /// Can only be called from main thread
     virtual SharedPtr<Bitmap> render(const ICamera& camera,

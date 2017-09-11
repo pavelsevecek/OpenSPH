@@ -154,7 +154,7 @@ private:
     std::string message;
 
 public:
-    IoError(const std::string& message)
+    explicit IoError(const std::string& message)
         : message(message) {}
 
     virtual const char* what() const noexcept override {

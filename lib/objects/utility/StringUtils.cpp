@@ -2,6 +2,26 @@
 
 NAMESPACE_SPH_BEGIN
 
+template <typename T>
+Optional<T> fromString(const std::string& s) {
+    std::stringstream ss(s);
+    T value;
+    ss >> value;
+    if (ss.fail()) {
+        return NOTHING;
+    } else {
+        return value;
+    }
+}
+
+template <>
+Optional<std::string> fromString(const std::string& s) {
+    return s;
+}
+
+template Optional<int> fromString(const std::string& s);
+template Optional<float> fromString(const std::string& s);
+
 
 std::string trim(const std::string& s) {
     Size i1 = 0;

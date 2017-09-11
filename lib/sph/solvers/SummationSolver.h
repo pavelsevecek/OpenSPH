@@ -116,7 +116,7 @@ private:
         }
     }
 
-    virtual void sanityCheck() const {
+    virtual void sanityCheck() const override {
         // we handle smoothing lengths ourselves, bypass the check of equations
     }
 };

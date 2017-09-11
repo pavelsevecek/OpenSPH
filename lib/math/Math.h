@@ -355,6 +355,10 @@ constexpr Float E = 2.718281828459045235360287471352662497757247093699959574967_
 
 constexpr Float SQRT_3 = 1.732050807568877293527446341505872366942805253810380628055_f;
 
+constexpr Float DEG_TO_RAD = PI / 180._f;
+
+constexpr Float RAD_TO_DEG = 180._f / PI;
+
 
 /// Computes a volume of a sphere given its radius.
 INLINE constexpr Float sphereVolume(const Float radius) {

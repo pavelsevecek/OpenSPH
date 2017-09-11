@@ -10,7 +10,7 @@ LIBS += ../../gui/libgui.a
 LIBS += ../../lib/liblib.a # must be used after libgui
 LIBS += `wx-config --libs --gl-libs`
 
-QMAKE_CXXFLAGS += -Wall -Werror -msse4.1 -std=c++14 -pthread `wx-config --libs all --cxxflags --gl-libs`
+QMAKE_CXXFLAGS += -Wall -msse4.1 -std=c++14 -pthread `wx-config --libs all --cxxflags --gl-libs`
 
 CONFIG(release, debug|profile|assert|release) {
   message( "SPH COLLISION --- Building for Release" )

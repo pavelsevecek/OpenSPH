@@ -1,9 +1,14 @@
 #pragma once
 
 #include "objects/containers/Array.h"
+#include "objects/wrappers/Optional.h"
 #include <string>
 
 NAMESPACE_SPH_BEGIN
+
+/// Converts a string to given type.
+template <typename T>
+Optional<T> fromString(const std::string& s);
 
 /// Removes all leading and trailing spaces from a string.
 std::string trim(const std::string& s);

@@ -1,5 +1,6 @@
 #include "io/Logger.h"
 #include "common/Assert.h"
+#include "io/FileSystem.h"
 #include <fstream>
 #include <iostream>
 
@@ -44,6 +45,7 @@ FileLogger::FileLogger(const Path& path, const Flags<Options> flags)
     stream = makeAuto<std::ofstream>();
     if (!flags.has(Options::OPEN_WHEN_WRITING)) {
         auto mode = flags.has(Options::APPEND) ? std::ostream::app : std::ostream::out;
+        FileSystem::createDirectory(path.parentPath());
         stream->open(path.native(), mode);
         if (!*stream) {
             throw IoError("Error opening FileLogger at " + path.native());
