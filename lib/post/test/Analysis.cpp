@@ -4,6 +4,7 @@
 #include "objects/geometry/Domain.h"
 #include "objects/utility/ArrayUtils.h"
 #include "objects/utility/PerElementWrapper.h"
+#include "physics/Constants.h"
 #include "quantities/Storage.h"
 #include "sph/initial/Initial.h"
 #include "tests/Approx.h"
@@ -12,13 +13,12 @@ using namespace Sph;
 
 
 TEST_CASE("Components simple", "[post]") {
-    Array<Vector> ar{ Vector(0, 0, 0, 1), Vector(5, 0, 0, 1), Vector(0, 4, 0, 1), Vector(0, 3, 0, 1) };
+    Array<Vector> r{ Vector(0, 0, 0, 1), Vector(5, 0, 0, 1), Vector(0, 4, 0, 1), Vector(0, 3, 0, 1) };
     Array<Size> components;
-    RunSettings settings;
     Storage storage;
-    storage.insert<Vector>(QuantityId::POSITIONS, OrderEnum::ZERO, std::move(ar));
+    storage.insert<Vector>(QuantityId::POSITIONS, OrderEnum::ZERO, std::move(r));
     Size numComponents =
-        Post::findComponents(storage, settings, Post::ComponentConnectivity::ANY, components);
+        Post::findComponents(storage, 2._f, Post::ComponentConnectivity::OVERLAP, components);
     REQUIRE(numComponents == 3);
     REQUIRE(components == Array<Size>({ 0, 1, 2, 2 }));
 }
@@ -38,7 +38,7 @@ TEST_CASE("Component initconds", "[post]") {
     Array<Size> components;
     RunSettings settings;
     const Size numComponents =
-        Post::findComponents(storage, settings, Post::ComponentConnectivity::ANY, components);
+        Post::findComponents(storage, 2._f, Post::ComponentConnectivity::OVERLAP, components);
     REQUIRE(numComponents == 3);
     REQUIRE(components.size() > 0); // sanity check
 
@@ -64,6 +64,36 @@ TEST_CASE("Component initconds", "[post]") {
     };
     REQUIRE(allMatching());
 }
+
+TEST_CASE("Component by v_esc", "[post]") {
+    Array<Vector> r{ Vector(0, 0, 0, 1), Vector(5, 0, 0, 1), Vector(0, 4, 0, 1), Vector(0, 3, 0, 1) };
+    Array<Size> components;
+    Storage storage;
+    storage.insert<Vector>(QuantityId::POSITIONS, OrderEnum::FIRST, std::move(r));
+    const Float m0 = 1._f;
+    storage.insert<Float>(QuantityId::MASSES, OrderEnum::ZERO, m0);
+    Size numComponents =
+        Post::findComponents(storage, 2._f, Post::ComponentConnectivity::GRAVITATIONALLY_BOUND, components);
+    // all particles still, one component only
+    REQUIRE(numComponents == 1);
+    REQUIRE(components == Array<Size>({ 0, 0, 0, 0 }));
+
+    ArrayView<Vector> v = storage.getDt<Vector>(QuantityId::POSITIONS);
+    auto v_esc = [m0](const Float dr) { return sqrt(4._f * m0 * Constants::gravity / dr); };
+    v[0] = Vector(0.8_f * v_esc(3._f), 0._f, 0._f);
+    // too low velocity, nothing should change
+    numComponents =
+        Post::findComponents(storage, 2._f, Post::ComponentConnectivity::GRAVITATIONALLY_BOUND, components);
+    REQUIRE(numComponents == 1);
+
+    v[0] = Vector(1.2_f * v_esc(3._f), 0._f, 0._f);
+    // first and last particle are now separated
+    numComponents =
+        Post::findComponents(storage, 2._f, Post::ComponentConnectivity::GRAVITATIONALLY_BOUND, components);
+    REQUIRE(numComponents == 2);
+    REQUIRE(components == Array<Size>({ 0, 1, 1, 1 }));
+}
+
 
 TEST_CASE("CummulativeSfd", "[post]") {
     Array<Vector> r(10);
