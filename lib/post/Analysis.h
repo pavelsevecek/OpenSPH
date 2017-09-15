@@ -13,6 +13,7 @@ NAMESPACE_SPH_BEGIN
 
 class Storage;
 class Path;
+class ILogger;
 
 namespace Post {
 
@@ -24,7 +25,7 @@ namespace Post {
         SEPARATE_BY_FLAG,
 
         /// Particles overlap or their relative velocity is less than the escape velocity
-        GRAVITATIONALLY_BOUND,
+        ESCAPE_VELOCITY,
     };
 
     /// \brief Finds and marks connected components (a.k.a. separated bodies) in the array of vertices.
@@ -42,7 +43,7 @@ namespace Post {
         Array<Size>& indices);
 
     /// \todo escape velocity
-    Storage findFutureBodies(const Storage& storage, const Float particleRadius);
+    Storage findFutureBodies(const Storage& storage, const Float particleRadius, ILogger& logger);
 
 
     /// \brief Quantity from which the histogram is constructed

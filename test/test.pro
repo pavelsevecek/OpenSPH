@@ -60,6 +60,7 @@ SOURCES += \
     ../lib/objects/containers/test/List.cpp \
     ../lib/objects/containers/test/Map.cpp \
     ../lib/objects/containers/test/StaticArray.cpp \
+    ../lib/objects/containers/test/String.cpp \
     ../lib/objects/containers/test/Tuple.cpp \
     ../lib/objects/finders/test/BruteForceFinder.cpp \
     ../lib/objects/finders/test/Finders.cpp \

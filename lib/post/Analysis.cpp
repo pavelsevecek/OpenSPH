@@ -1,5 +1,6 @@
 #include "post/Analysis.h"
 #include "io/Column.h"
+#include "io/Logger.h"
 #include "io/Output.h"
 #include "objects/finders/BruteForceFinder.h"
 #include "objects/finders/Voxel.h"
@@ -15,6 +16,7 @@ Size Post::findComponents(const Storage& storage,
     const Float radius,
     const ComponentConnectivity connectivity,
     Array<Size>& indices) {
+    ASSERT(radius > 0._f);
     // get values from storage
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
 
@@ -54,7 +56,7 @@ Size Post::findComponents(const Storage& storage,
         checker = makeAuto<AnyChecker>();
         finder = makeAuto<VoxelFinder>();
         break;
-    case ComponentConnectivity::GRAVITATIONALLY_BOUND:
+    case ComponentConnectivity::ESCAPE_VELOCITY:
         class EscapeVelocityComponentChecker : public IComponentChecker {
             ArrayView<const Vector> r;
             ArrayView<const Vector> v;
@@ -77,8 +79,8 @@ Size Post::findComponents(const Storage& storage,
             }
         };
         checker = makeAuto<EscapeVelocityComponentChecker>(storage, radius);
-        finder = makeAuto<BruteForceFinder>();
-        actRadius = LARGE;
+        finder = makeAuto<VoxelFinder>();
+        actRadius = 10._f * radius;
         break;
     }
 
@@ -86,7 +88,7 @@ Size Post::findComponents(const Storage& storage,
 
     // initialize stuff
     indices.resize(r.size());
-    const Size unassigned = std::numeric_limits<Size>::max();
+    const Size unassigned = Size(-1);
     indices.fill(unassigned);
     Size componentIdx = 0;
     finder->build(r);
@@ -121,22 +123,69 @@ Size Post::findComponents(const Storage& storage,
 
 static Storage clone(const Storage& storage) {
     Storage cloned;
-    cloned.insert<Vector>(
-        QuantityId::POSITIONS, OrderEnum::FIRST, storage.getValue<Vector>(QuantityId::POSITIONS).clone());
-    cloned.getDt<Vector>(QuantityId::POSITIONS) = storage.getDt<Vector>(QuantityId::POSITIONS).clone();
-    cloned.insert<Float>(
-        QuantityId::MASSES, OrderEnum::ZERO, storage.getValue<Float>(QuantityId::MASSES).clone());
+    const Array<Vector>& r = storage.getValue<Vector>(QuantityId::POSITIONS);
+    cloned.insert<Vector>(QuantityId::POSITIONS, OrderEnum::FIRST, r.clone());
+
+    const Array<Vector>& v = storage.getDt<Vector>(QuantityId::POSITIONS);
+    cloned.getDt<Vector>(QuantityId::POSITIONS) = v.clone();
+
+    if (storage.has(QuantityId::MASSES)) {
+        const Array<Float>& m = storage.getValue<Float>(QuantityId::MASSES);
+        cloned.insert<Float>(QuantityId::MASSES, OrderEnum::ZERO, m.clone());
+    } else {
+        ArrayView<const Float> rho = storage.getValue<Float>(QuantityId::DENSITY);
+        Float rhoAvg = 0._f;
+        for (Size i = 0; i < r.size(); ++i) {
+            rhoAvg += rho[i];
+        }
+        rhoAvg /= r.size();
+
+        /// \todo ASSUMING 10km body!
+        const Float m = sphereVolume(5.e3_f) * rhoAvg / r.size();
+        cloned.insert<Float>(QuantityId::MASSES, OrderEnum::ZERO, m);
+    }
+
     return cloned;
 }
 
-Storage Post::findFutureBodies(const Storage& storage, const Float particleRadius) {
+// \todo
+// Idea: compare potential energy and kinetic energy of all particles. If kinetic < potential,
+// everything falls onto largest remnant; else throw away the fastest particle and compare again.
+// Continue until kinetic < potential. The slowest particles form a body.
+// Restart to get the second largest, third largest, etc.
+/*{
+    Array<Float> K;
+    Float K_tot = 0._f;
+    for (Size i = 0; i < v.size(); ++i) {
+        K[i] = 0.5_f * m[i] * getSqrLength(v[i]);
+        K_tot += K[i];
+    }
+    std::sort(K.begin(), K.end());
+
+    Float W_tot = 0._f;
+    for (Size i = 0; i < v.size(); ++i) {
+        for (Size j = i + 1; i < v.size(); ++i) {
+            W_tot += Constants::gravity * m[i] * m[j] / getLength(r[i] - r[j]);
+        }
+    }
+}*/
+
+Storage Post::findFutureBodies(const Storage& storage, const Float particleRadius, ILogger& logger) {
     Storage cloned = clone(storage);
     Size numComponents = 0, prevNumComponents;
+    Size iter = 0;
     do {
         Array<Size> indices;
         prevNumComponents = numComponents;
-        numComponents =
-            findComponents(cloned, particleRadius, ComponentConnectivity::GRAVITATIONALLY_BOUND, indices);
+
+        logger.write(
+            "Iteration ", iter, ": number of bodies: ", iter == 0 ? storage.getParticleCnt() : numComponents);
+
+        // do merging the first iteration, the follow with energy considerations
+        ComponentConnectivity connectivity =
+            (iter == 0) ? ComponentConnectivity::OVERLAP : ComponentConnectivity::ESCAPE_VELOCITY;
+        numComponents = findComponents(cloned, particleRadius, connectivity, indices);
+
         Array<Vector> r_new(numComponents);
         Array<Vector> v_new(numComponents);
         Array<Float> h_new(numComponents);
@@ -168,6 +217,7 @@ Storage Post::findFutureBodies(const Storage& storage, const Float particleRadiu
         cloned.getDt<Vector>(QuantityId::POSITIONS) = std::move(v_new);
         cloned.getValue<Float>(QuantityId::MASSES) = std::move(m_new);
 
+        iter++;
     } while (numComponents != prevNumComponents);
 
     return cloned;

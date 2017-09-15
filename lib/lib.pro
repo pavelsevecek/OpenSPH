@@ -89,7 +89,8 @@ SOURCES += \
     timestepping/TimeStepping.cpp \
     post/Plot.cpp \
     objects/finders/DynamicFinder.cpp \
-    system/ArgsParser.cpp
+    system/ArgsParser.cpp \
+    objects/containers/String.cpp
 
 HEADERS += \
     common/Assert.h \
@@ -253,4 +254,5 @@ HEADERS += \
     sph/initial/Presets.h \
     sph/solvers/CollisionSolver.h \
     system/ArgsParser.h \
-    run/Collision.h
+    run/Collision.h \
+    objects/containers/String.h

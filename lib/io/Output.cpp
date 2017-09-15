@@ -137,6 +137,13 @@ Outcome TextOutput::load(const Path& path, Storage& storage) {
                     column->accumulate(storage, v, particleCnt);
                     break;
                 }
+                case ValueEnum::TRACELESS_TENSOR: {
+                    Float xx, yy, xy, xz, yz;
+                    ss >> xx >> yy >> xy >> xz >> yz;
+                    TracelessTensor t(xx, yy, xy, xz, yz);
+                    column->accumulate(storage, t, particleCnt);
+                    break;
+                }
                 default:
                     NOT_IMPLEMENTED;
                 }

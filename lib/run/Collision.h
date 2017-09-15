@@ -17,6 +17,18 @@ MultiLogger globalLogger = [] {
     return ml;
 }();
 
+void setupCollisionColumns(TextOutput& output) {
+    output.add(makeAuto<ParticleNumberColumn>());
+    output.add(makeAuto<ValueColumn<Vector>>(QuantityId::POSITIONS));
+    output.add(makeAuto<DerivativeColumn<Vector>>(QuantityId::POSITIONS));
+    output.add(makeAuto<SmoothingLengthColumn>());
+    output.add(makeAuto<ValueColumn<Float>>(QuantityId::DENSITY));
+    output.add(makeAuto<ValueColumn<Float>>(QuantityId::PRESSURE));
+    output.add(makeAuto<ValueColumn<Float>>(QuantityId::ENERGY));
+    output.add(makeAuto<ValueColumn<Float>>(QuantityId::DAMAGE));
+    output.add(makeAuto<ValueColumn<TracelessTensor>>(QuantityId::DEVIATORIC_STRESS));
+}
+
 class CollisionSolver : public GenericSolver {
 private:
     /// Object used to create impactor
@@ -193,16 +205,7 @@ private:
         const std::string name = settings.get<std::string>(RunSettingsId::RUN_NAME);
         AutoPtr<TextOutput> textOutput =
             makeAuto<TextOutput>(outputPath, name, TextOutput::Options::SCIENTIFIC);
-        textOutput->add(makeAuto<ParticleNumberColumn>());
-        textOutput->add(makeAuto<ValueColumn<Vector>>(QuantityId::POSITIONS));
-        textOutput->add(makeAuto<DerivativeColumn<Vector>>(QuantityId::POSITIONS));
-        textOutput->add(makeAuto<SmoothingLengthColumn>());
-        textOutput->add(makeAuto<ValueColumn<Float>>(QuantityId::DENSITY));
-        textOutput->add(makeAuto<ValueColumn<Float>>(QuantityId::PRESSURE));
-        textOutput->add(makeAuto<ValueColumn<Float>>(QuantityId::ENERGY));
-        textOutput->add(makeAuto<ValueColumn<Float>>(QuantityId::DAMAGE));
-        textOutput->add(makeAuto<ValueColumn<TracelessTensor>>(QuantityId::DEVIATORIC_STRESS));
-
+        setupCollisionColumns(*textOutput);
         output = std::move(textOutput);
     }
 };
