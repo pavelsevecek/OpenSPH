@@ -295,6 +295,25 @@ const int MC_TRIANGLES[256][16] =
 Size MarchingCubes::IDXS1[12] = { 0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3 };
 Size MarchingCubes::IDXS2[12] = { 1, 2, 3, 0, 5, 6, 7, 4, 4, 5, 6, 7 };
 
+/// Parallelized version of Box::iterateWithIndices
+template <typename TFunctor>
+void iterateWithIndices(const Box& box, const Vector& step, TFunctor&& functor) {
+    ASSERT(box != Box::EMPTY());
+
+    auto task = [&step, &box, &functor](const Size k) {
+        const Float z = box.lower()[Z] + k * step[Z];
+        Size i = 0;
+        Size j = 0;
+        for (Float y = box.lower()[Y]; y <= box.upper()[Y]; y += step[Y], j++) {
+            i = 0;
+            for (Float x = box.lower()[X]; x <= box.upper()[X]; x += step[X], i++) {
+                functor(Indices(i, j, k), Vector(x, y, z));
+            }
+        }
+    };
+    parallelFor(ThreadPool::getGlobalInstance(), 0, box.size()[Z] / step[Z] + 1, task);
+}
+
 MarchingCubes::MarchingCubes(ArrayView<const Vector> r,
     const Float surfaceLevel,
     const SharedPtr<IScalarField>& field)
@@ -317,13 +336,14 @@ void MarchingCubes::addComponent(const Box& box, const Float gridResolution) {
         return idxs[X] + (cnts[X] + 1) * idxs[Y] + (cnts[X] + 1) * (cnts[Y] + 1) * idxs[Z];
     };
     cached.phi.resize((cnts[X] + 1) * (cnts[Y] + 1) * (cnts[Z] + 1));
-    box.iterateWithIndices(dr, [this, &mapping](const Indices& idxs, const Vector& v) { //
+    iterateWithIndices(box, dr, [this, &mapping](const Indices& idxs, const Vector& v) { //
         cached.phi[mapping(idxs)] = (*field)(v);
     });
 
     // for each non-empty grid, find all intersecting triangles
     Box boxWithoutLast(box.lower(), box.upper() - dr);
-    boxWithoutLast.iterateWithIndices(dr, [this, &dr, &mapping](const Indices& idxs, const Vector& v) {
+    ThreadLocal<Array<Triangle>> tri(ThreadPool::getGlobalInstance());
+    iterateWithIndices(boxWithoutLast, dr, [this, &dr, &mapping, &tri](const Indices& idxs, const Vector& v) {
         Cell cell;
         bool allBelow = true, allAbove = true;
         Size i = 0;
@@ -344,12 +364,14 @@ void MarchingCubes::addComponent(const Box& box, const Float gridResolution) {
         }
 
         if (!allBelow && !allAbove) {
-            this->intersectCell(cell);
+            this->intersectCell(cell, tri.get());
         }
     });
+
+    tri.forEach([this](Array<Triangle>& triTl) { triangles.pushAll(triTl); });
 }
 
-void MarchingCubes::intersectCell(Cell& cell) {
+void MarchingCubes::intersectCell(Cell& cell, Array<Triangle>& tri) {
     Size cubeIdx = 0;
     for (Size i = 0; i < 8; ++i) {
         if (cell.value(i) <= surfaceLevel) {
@@ -375,15 +397,15 @@ void MarchingCubes::intersectCell(Cell& cell) {
     }
 
     for (Size i = 0; MC_TRIANGLES[cubeIdx][i] != -1; i += 3) {
-        Triangle tri;
-        tri[0] = vertices[MC_TRIANGLES[cubeIdx][i + 0]];
-        tri[1] = vertices[MC_TRIANGLES[cubeIdx][i + 1]];
-        tri[2] = vertices[MC_TRIANGLES[cubeIdx][i + 2]];
-        if (!tri.isValid()) {
+        Triangle t;
+        t[0] = vertices[MC_TRIANGLES[cubeIdx][i + 0]];
+        t[1] = vertices[MC_TRIANGLES[cubeIdx][i + 1]];
+        t[2] = vertices[MC_TRIANGLES[cubeIdx][i + 2]];
+        if (!t.isValid()) {
             // skip degenerated triangles
             continue;
         }
-        triangles.push(tri);
+        tri.push(t);
     }
 }
 
@@ -417,7 +439,7 @@ private:
     ArrayView<const Float> m, rho;
     ArrayView<const Size> flag;
 
-    Array<NeighbourRecord> neighs;
+    ThreadLocal<Array<NeighbourRecord>> neighs;
 
 public:
     Float maxH = 0._f;
@@ -428,7 +450,8 @@ public:
         INeighbourFinder& finder)
         : kernel(kernel)
         , finder(finder)
-        , r(r) {
+        , r(r)
+        , neighs(ThreadPool::getGlobalInstance()) {
         tie(m, rho) = storage.getValues<Float>(QuantityId::MASSES, QuantityId::DENSITY);
         flag = storage.getValue<Size>(QuantityId::FLAG);
 
@@ -438,14 +461,15 @@ public:
 
     virtual Float operator()(const Vector& pos) override {
         ASSERT(maxH > 0._f);
-        finder.findNeighbours(pos, maxH * kernel.radius(), neighs);
+        Array<NeighbourRecord>& neighsTl = neighs.get();
+        finder.findNeighbours(pos, maxH * kernel.radius(), neighsTl);
         Float phi = 0._f;
 
         // find average h of neighbours and the flag of the closest particle
         Size closestFlag = 0;
         Float flagDistSqr = INFTY;
         Float avgH = 0._f;
-        for (NeighbourRecord& n : neighs) {
+        for (NeighbourRecord& n : neighsTl) {
             const Size j = n.index;
             avgH += r[j][H];
             if (n.distanceSqr < flagDistSqr) {
@@ -453,10 +477,10 @@ public:
                 flagDistSqr = n.distanceSqr;
             }
         }
-        avgH /= neighs.size();
+        avgH /= neighsTl.size();
 
         // interpolate values of neighbours
-        for (NeighbourRecord& n : neighs) {
+        for (NeighbourRecord& n : neighsTl) {
             const Size j = n.index;
             if (flag[j] != closestFlag) {
                 continue;
@@ -478,21 +502,23 @@ Array<Triangle> getSurfaceMesh(const Storage& storage, const Float gridResolutio
     AutoPtr<INeighbourFinder> finder = Factory::getFinder(settings);
 
     finder->build(r);
-    Array<NeighbourRecord> neighs;
-    /// \todo parallelize
-    for (Size i = 0; i < r.size(); ++i) {
-        finder->findNeighbours(i, r[i][H] * kernel.radius(), neighs);
-        Vector wr(0._f);
-        Float wsum = 0._f;
-        for (NeighbourRecord& n : neighs) {
-            const Size j = n.index;
-            const Float w = kernel.value(r[i] - r[j], r[i][H]);
-            wr += w * r[j];
-            wsum += w;
+
+    parallelFor(0, r.size(), [&finder, &r_bar, r, &kernel, lambda](const Size n1, const Size n2) {
+        Array<NeighbourRecord> neighs;
+        for (Size i = n1; i < n2; ++i) {
+            finder->findNeighbours(i, r[i][H] * kernel.radius(), neighs);
+            Vector wr(0._f);
+            Float wsum = 0._f;
+            for (NeighbourRecord& n : neighs) {
+                const Size j = n.index;
+                const Float w = kernel.value(r[i] - r[j], r[i][H]);
+                wr += w * r[j];
+                wsum += w;
+            }
+            // Eq. (6) from the paper
+            r_bar[i] = (1._f - lambda) * r[i] + lambda * wr / wsum;
         }
-        // Eq. (6) from the paper
-        r_bar[i] = (1._f - lambda) * r[i] + lambda * wr / wsum;
-    }
+    });
 
     /// \todo we skip the anisotropy correction for now
     // 2. find bounding box and maximum h (we need to search neighbours of arbitrary point in space)

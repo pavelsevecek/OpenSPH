@@ -18,6 +18,11 @@ private:
     Float surfaceResolution;
     Float surfaceLevel;
 
+    /// Shading parameters
+    Vector sunPosition;
+    Float sunIntensity;
+    Float ambient;
+
     /// Cached values of visible particles, used for faster drawing.
     struct {
         /// Triangles of the surface

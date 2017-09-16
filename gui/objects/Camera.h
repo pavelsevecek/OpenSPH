@@ -6,7 +6,7 @@
 /// \date 2016-2017
 
 #include "gui/objects/Point.h"
-#include "objects/geometry/Tensor.h"
+#include "math/AffineMatrix.h"
 #include "objects/wrappers/Optional.h"
 
 NAMESPACE_SPH_BEGIN
@@ -30,22 +30,31 @@ struct Ray {
 /// \brief Interface defining a camera or view, used by a renderer.
 class ICamera : public Polymorphic {
 public:
-    /// Returns projected position of particle on the image. If the particle is outside of the image
-    /// region or is clipped by the projection, returns NOTHING.
+    /// \brief Returns projected position of particle on the image.
+    ///
+    /// If the particle is outside of the image region or is clipped by the projection, returns NOTHING.
     virtual Optional<ProjectedPoint> project(const Vector& r) const = 0;
 
-    /// Returns a ray in particle coordinates corresponding to given point in the image plane.
+    /// \brief Returns a ray in particle coordinates corresponding to given point in the image plane.
     virtual Ray unproject(const Point point) const = 0;
 
-    /// Zooms the camera. This shall be equivalent to transforming the view with scaling matrix, alhough
-    /// it can be implemented differently.
+    /// \brief Returns the direction of the camera.
+    virtual Vector getDirection() const = 0;
+
+    /// \param Applies zoom to the camera.
+    ///
+    /// This is usually equivalent to transforming the view with scaling matrix, alhough it can be implemented
+    /// differently.
     /// \param magnitude Relative zoom amount, value <1 means zooming out, value >1 means zooming in.
     virtual void zoom(const float magnitude) = 0;
 
-    /// Transforms the current view by given matrix.
-    virtual void transform(const Tensor& matrix) = 0;
+    /// \brief Transforms the current view by given matrix.
+    ///
+    /// Subsequent calls accumulate, i.e. rotating camera twice by 90° will rotate the camera by 180°.
+    /// \param matrix Transform matrix applied to the camera.
+    virtual void transform(const AffineMatrix& matrix) = 0;
 
-    /// Moves the camera by relative offset
+    /// \brief Moves the camera by relative offset
     virtual void pan(const Point offset) = 0;
 };
 
@@ -53,9 +62,6 @@ public:
 struct OrthoCameraData {
     /// Field of view (zoom)
     float fov;
-
-    /// Cutoff of particles far away from origin plane
-    float cutoff;
 
     /// Vectors defining camera plane
     Vector u, v;
@@ -81,14 +87,10 @@ public:
     }
 
     virtual Optional<ProjectedPoint> project(const Vector& r) const override {
-        if (data.cutoff == 0._f || abs(dot(cached.w, r)) < data.cutoff) {
-            const Size x = center.x + dot(r, data.u) * data.fov;
-            const Size y = center.y + dot(r, data.v) * data.fov;
-            const Point point(x, imageSize.y - y - 1);
-            return { { point, max(data.fov * float(r[H]), 1.f) } };
-        } else {
-            return NOTHING;
-        }
+        const Size x = center.x + dot(r, data.u) * data.fov;
+        const Size y = center.y + dot(r, data.v) * data.fov;
+        const Point point(x, imageSize.y - y - 1);
+        return { { point, max(data.fov * float(r[H]), 1.f) } };
     }
 
     virtual Ray unproject(const Point point) const override {
@@ -100,12 +102,16 @@ public:
         return ray;
     }
 
+    virtual Vector getDirection() const override {
+        return cached.w;
+    }
+
     virtual void zoom(const float magnitude) override {
         ASSERT(magnitude > 0.f);
         data.fov *= magnitude;
     }
 
-    virtual void transform(const Tensor& matrix) override {
+    virtual void transform(const AffineMatrix& matrix) override {
         data.u = matrix * data.u;
         data.v = matrix * data.v;
         cached.w = matrix * cached.w;

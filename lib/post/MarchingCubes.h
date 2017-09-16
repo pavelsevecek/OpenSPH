@@ -118,7 +118,9 @@ public:
 
 private:
     /// Add triangles representing isolevel of the field in given cell into the interal triangle buffer
-    INLINE void intersectCell(Cell& cell);
+    /// \param cell Cell used in intersection
+    /// \param tri Output triangle array, may contain previously generated triangles.
+    INLINE void intersectCell(Cell& cell, Array<Triangle>& tri);
 
     /// Find the interpolated vertex position based on the surface level
     Vector interpolate(const Vector& v1, const Float p1, const Vector& v2, const Float p2) const;

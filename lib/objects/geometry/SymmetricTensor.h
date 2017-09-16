@@ -5,6 +5,7 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2017
 
+#include "math/AffineMatrix.h"
 #include "objects/containers/StaticArray.h"
 #include "objects/geometry/Tensor.h"
 
@@ -34,14 +35,15 @@ public:
         , off(value) {}
 
     /// Initialize the symmetric tensor from generic tensor, symmetric property is checked by assert.
-    INLINE explicit SymmetricTensor(const Tensor& tensor)
+    /*INLINE explicit SymmetricTensor(const Tensor& tensor)
         : diag(tensor(0, 0), tensor(1, 1), tensor(2, 2))
         , off(tensor(0, 1), tensor(0, 2), tensor(1, 2)) {
         ASSERT(almostEqual(tensor(0, 1), tensor(1, 0), 1.e-6_f) &&
                    almostEqual(tensor(0, 2), tensor(2, 0), 1.e-6_f) &&
                    almostEqual(tensor(1, 2), tensor(2, 1), 1.e-6_f),
             tensor);
-    }
+    }*/
+
 
     /// Construct tensor given three vectors as rows. Matrix represented by the vectors MUST be symmetric,
     /// checked by assert.
@@ -171,9 +173,9 @@ public:
         return SymmetricTensor(-diag, -off);
     }
 
-    INLINE explicit operator Tensor() const {
-        return Tensor((*this)[0], (*this)[1], (*this)[2]);
-    }
+    /* INLINE explicit operator Tensor() const {
+         return Tensor((*this)[0], (*this)[1], (*this)[2]);
+     }*/
 
     INLINE bool operator==(const SymmetricTensor& other) const {
         return diag == other.diag && off == other.off;
@@ -241,9 +243,14 @@ public:
 };
 
 /// Transforms given symmetric tensor by matrix.
-INLINE SymmetricTensor transform(const SymmetricTensor& t, const Tensor& transform) {
-    const Tensor m(t);
-    return SymmetricTensor(transform * m * transform.inverse());
+/// \todo optimize
+INLINE SymmetricTensor transform(const SymmetricTensor& t, const AffineMatrix& transform) {
+    const AffineMatrix m(t[0], t[1], t[2]);
+    AffineMatrix transformed = transform * m * transform.inverse();
+    return SymmetricTensor(Vector(transformed(0, 0), transformed(1, 1), transformed(2, 2)),
+        0.5_f * Vector(transformed(0, 1) + transformed(1, 0),
+                    transformed(0, 2) + transformed(2, 0),
+                    transformed(1, 2) + transformed(2, 1)));
 }
 
 
@@ -358,6 +365,6 @@ INLINE StaticArray<Float, 3> findEigenvalues(const SymmetricTensor& t) {
 }
 
 /// Computes eigenvectors and corresponding eigenvalues of symmetric matrix.
-Tuple<Tensor, Vector> eigenDecomposition(const SymmetricTensor& t);
+Tuple<AffineMatrix, Vector> eigenDecomposition(const SymmetricTensor& t);
 
 NAMESPACE_SPH_END

@@ -45,6 +45,7 @@ namespace Post {
     /// \todo escape velocity
     Storage findFutureBodies(const Storage& storage, const Float particleRadius, ILogger& logger);
 
+    Storage findFutureBodies2(const Storage& storage, ILogger& logger);
 
     /// \brief Quantity from which the histogram is constructed
     ///

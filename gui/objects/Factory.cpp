@@ -1,6 +1,8 @@
 #include "gui/Factory.h"
 #include "gui/objects/Camera.h"
 #include "gui/objects/Colorizer.h"
+#include "gui/renderers/ParticleRenderer.h"
+#include "gui/renderers/SurfaceRenderer.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -8,7 +10,6 @@ AutoPtr<ICamera> Factory::getCamera(const GuiSettings& settings, const Point siz
     OrthoEnum id = settings.get<OrthoEnum>(GuiSettingsId::ORTHO_PROJECTION);
     OrthoCameraData data;
     data.fov = 0.5_f * size.y / settings.get<Float>(GuiSettingsId::VIEW_FOV);
-    data.cutoff = settings.get<Float>(GuiSettingsId::ORTHO_CUTOFF);
     switch (id) {
     case OrthoEnum::XY:
         data.u = Vector(1._f, 0._f, 0._f);
@@ -27,6 +28,18 @@ AutoPtr<ICamera> Factory::getCamera(const GuiSettings& settings, const Point siz
     }
     const Vector center(settings.get<Vector>(GuiSettingsId::VIEW_CENTER));
     return makeAuto<OrthoCamera>(size, Point(int(center[X]), int(center[Y])), data);
+}
+
+AutoPtr<IRenderer> Factory::getRenderer(const GuiSettings& settings) {
+    RendererEnum id = settings.get<RendererEnum>(GuiSettingsId::RENDERER);
+    switch (id) {
+    case RendererEnum::PARTICLE:
+        return makeAuto<ParticleRenderer>(settings);
+    case RendererEnum::SURFACE:
+        return makeAuto<SurfaceRenderer>(settings);
+    default:
+        NOT_IMPLEMENTED;
+    }
 }
 
 AutoPtr<IColorizer> Factory::getColorizer(const GuiSettings& settings, const ColorizerId id) {

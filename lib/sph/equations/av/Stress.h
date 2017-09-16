@@ -107,7 +107,7 @@ public:
             const SymmetricTensor sigma = SymmetricTensor(s[i]) - p[i] * SymmetricTensor::identity();
 
             // find eigenvectors and corresponding eigenvalues
-            Tensor matrix;
+            AffineMatrix matrix;
             Vector sigma_diag;
             tieToTuple(matrix, sigma_diag) = eigenDecomposition(sigma);
 

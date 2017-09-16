@@ -5,6 +5,7 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2017
 
+#include "gui/Settings.h"
 #include "gui/objects/Bitmap.h"
 #include "gui/objects/Palette.h"
 #include "gui/renderers/IRenderer.h"
@@ -13,6 +14,9 @@ NAMESPACE_SPH_BEGIN
 
 class ParticleRenderer : public IRenderer {
 private:
+    /// Cutoff distance of visible particles.
+    float cutoff;
+
     /// Cached values of visible particles, used for faster drawing.
     struct {
         /// Positions of particles
@@ -30,6 +34,8 @@ private:
     } cached;
 
 public:
+    explicit ParticleRenderer(const GuiSettings& settings);
+
     virtual void initialize(const Storage& storage,
         const IColorizer& colorizer,
         const ICamera& camera) override;
@@ -40,6 +46,9 @@ public:
         Statistics& stats) const override;
 
     void drawPalette(wxDC& dc, const Palette& palette) const;
+
+private:
+    bool isCutOff(const ICamera& camera, const Vector& r);
 };
 
 NAMESPACE_SPH_END

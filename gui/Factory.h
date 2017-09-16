@@ -6,6 +6,7 @@ NAMESPACE_SPH_BEGIN
 
 class ICamera;
 class IColorizer;
+class IRenderer;
 class Palette;
 class Point;
 enum class ColorizerId;
@@ -15,6 +16,8 @@ namespace Factory {
     /// Creates a camera
     /// \param size Resolution of produced image
     AutoPtr<ICamera> getCamera(const GuiSettings& settings, const Point size);
+
+    AutoPtr<IRenderer> getRenderer(const GuiSettings& settings);
 
     AutoPtr<IColorizer> getColorizer(const GuiSettings& settings, const ColorizerId id);
 

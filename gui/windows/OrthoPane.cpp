@@ -33,23 +33,23 @@ void OrthoPane::onPaint(wxPaintEvent& UNUSED(evt)) {
     if (bitmap->isOk()) { // not empty
         dc.DrawBitmap(*bitmap, wxPoint(0, 0));
     }
-    /*if (particle.selected) {
-        dc.DrawText(std::to_string(particle.selected->getIndex()), wxPoint(10, 10));
-    } else {
-        dc.DrawText("no particle", wxPoint(10, 10));
-    }*/
 }
 
 void OrthoPane::onMouseMotion(wxMouseEvent& evt) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
     Point position = evt.GetPosition();
     if (evt.Dragging()) {
-        Point offset = Point(position.x - dragging.position.x, -(position.y - dragging.position.y));
         SharedPtr<ICamera> camera = controller->getCurrentCamera();
-        camera->pan(offset);
+        Point offset = Point(position.x - dragging.position.x, -(position.y - dragging.position.y));
+        if (evt.RightDown()) {
+            // right button, rotate view
+            camera->transform(AffineMatrix::identity());
+        } else {
+            // left button (or middle), pan
+            camera->pan(offset);
+        }
         this->Refresh();
     } else {
-        SharedPtr<ICamera> camera = controller->getCurrentCamera();
         Optional<Particle> selectedParticle = controller->getIntersectedParticle(position);
         const Size selectedIdx = selectedParticle ? selectedParticle->getIndex() : -1;
         if (selectedIdx != particle.lastIdx) {

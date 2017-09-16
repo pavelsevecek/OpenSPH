@@ -148,27 +148,59 @@ static Storage clone(const Storage& storage) {
     return cloned;
 }
 
-// \todo
-// Idea: compare potential energy and kinetic energy of all particles. If kinetic < potential,
-// everything falls onto largest remnant; else throw away the fastest particle and compare again.
-// Continue until kinetic < potential. The slowest particles form a body.
-// Restart to get the second largest, third largest, etc.
-/*{
-    Array<Float> K;
-    Float K_tot = 0._f;
-    for (Size i = 0; i < v.size(); ++i) {
-        K[i] = 0.5_f * m[i] * getSqrLength(v[i]);
-        K_tot += K[i];
-    }
-    std::sort(K.begin(), K.end());
-
+Storage Post::findFutureBodies2(const Storage& storage, ILogger& logger) {
+    Array<Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS).clone();
+    Array<Vector> v = storage.getDt<Vector>(QuantityId::POSITIONS).clone();
+    const Float m = sphereVolume(5.e3_f) * 2700.f / r.size();
     Float W_tot = 0._f;
-    for (Size i = 0; i < v.size(); ++i) {
-        for (Size j = i + 1; i < v.size(); ++i) {
-            W_tot += Constants::gravity * m[i] * m[j] / getLength(r[i] - r[j]);
+    for (Size i = 0; i < r.size(); ++i) {
+        for (Size j = i + 1; j < r.size(); ++j) {
+            W_tot += Constants::gravity * sqr(m) / getLength(r[i] - r[j]);
+            ASSERT(isReal(W_tot));
         }
     }
-}*/
+
+    Size iteration = 0;
+    while (true) {
+        // find velocity of COM
+        Vector v0(0._f);
+        for (Size i = 0; i < v.size(); ++i) {
+            v0 += v[i];
+        }
+        v0 /= v.size();
+
+        // find kinetic energies
+        Float K_tot = 0._f;
+        Float K_largest = 0._f;
+        Size idx_largest = 0;
+        for (Size i = 0; i < r.size(); ++i) {
+            const Float k = 0.5_f * m * getSqrLength(v[i] - v0);
+            K_tot += k;
+            if (k > K_largest) {
+                K_largest = k;
+                idx_largest = i;
+            }
+        }
+
+        logger.write("Iteration ", iteration++, ", W = ", W_tot, " / K = ", K_tot);
+        if (K_tot > W_tot) {
+            for (Size i = 0; i < r.size(); ++i) {
+                if (i != idx_largest) {
+                    W_tot -= Constants::gravity * sqr(m) / getLength(r[i] - r[idx_largest]);
+                }
+                ASSERT(W_tot > 0._f);
+            }
+
+            r.remove(idx_largest);
+            v.remove(idx_largest);
+        } else {
+            break;
+        }
+    }
+
+    logger.write("Find largest remnant with ", r.size(), " particles");
+    return clone(storage);
+}
 
 Storage Post::findFutureBodies(const Storage& storage, const Float particleRadius, ILogger& logger) {
     Storage cloned = clone(storage);

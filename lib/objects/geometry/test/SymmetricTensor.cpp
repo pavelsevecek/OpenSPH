@@ -88,25 +88,25 @@ TEST_CASE("SymmetricTensor eigendecomposition", "[symmetrictensor]") {
     SymmetricTensor t(Vector(3._f, 1._f, 3._f), Vector(2._f, 4._f, 2._f));
     StaticArray<Float, 3> eigens = findEigenvalues(t);
     std::sort(eigens.begin(), eigens.end());
-    Tensor v;
+    AffineMatrix m;
     Vector e;
-    tieToTuple(v, e) = eigenDecomposition(t);
+    tieToTuple(m, e) = eigenDecomposition(t);
     Vector e0 = e;
     std::sort(&e[0], &e[3]);
     REQUIRE(eigens[0] == approx(e[0]));
     REQUIRE(eigens[1] == approx(e[1]));
     REQUIRE(eigens[2] == approx(e[2]));
 
-    REQUIRE(getNormalized(v.row(0)) == approx(getNormalized(Vector(1, 0, -1)), 1.e-6_f));
-    REQUIRE(getNormalized(v.row(1)) == approx(getNormalized(Vector(1, -3.56155, 1)), 1.e-6_f));
-    REQUIRE(getNormalized(v.row(2)) == approx(getNormalized(Vector(1, 0.561553, 1)), 1.e-6_f));
+    REQUIRE(getNormalized(m.row(0)) == approx(getNormalized(Vector(1, 0, -1)), 1.e-6_f));
+    REQUIRE(getNormalized(m.row(1)) == approx(getNormalized(Vector(1, -3.56155, 1)), 1.e-6_f));
+    REQUIRE(getNormalized(m.row(2)) == approx(getNormalized(Vector(1, 0.561553, 1)), 1.e-6_f));
 
-    REQUIRE(dot(v.row(0), v.row(1)) == approx(0._f));
-    REQUIRE(dot(v.row(0), v.row(2)) == approx(0._f));
-    REQUIRE(dot(v.row(1), v.row(2)) == approx(0._f));
+    REQUIRE(dot(m.row(0), m.row(1)) == approx(0._f));
+    REQUIRE(dot(m.row(0), m.row(2)) == approx(0._f));
+    REQUIRE(dot(m.row(1), m.row(2)) == approx(0._f));
 
     SymmetricTensor diag(e0, Vector(0._f));
-    REQUIRE(transform(diag, v.transpose()) == approx(t));
+    REQUIRE(transform(diag, m.transpose()) == approx(t));
 }
 
 TEST_CASE("SymmetricTensor norm", "[symmetrictensor]") {

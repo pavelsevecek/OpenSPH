@@ -13,6 +13,9 @@ NAMESPACE_SPH_BEGIN
 SurfaceRenderer::SurfaceRenderer(const GuiSettings& settings) {
     surfaceLevel = settings.get<Float>(GuiSettingsId::SURFACE_LEVEL);
     surfaceResolution = settings.get<Float>(GuiSettingsId::SURFACE_RESOLUTION);
+    sunPosition = settings.get<Vector>(GuiSettingsId::SURFACE_SUN_POSITION);
+    sunIntensity = settings.get<Float>(GuiSettingsId::SURFACE_SUN_INTENSITY);
+    ambient = settings.get<Float>(GuiSettingsId::SURFACE_AMBIENT);
 }
 
 void SurfaceRenderer::initialize(const Storage& storage,
@@ -20,8 +23,6 @@ void SurfaceRenderer::initialize(const Storage& storage,
     const ICamera& camera) {
     cached.colors.clear();
     cached.triangles.clear();
-
-    /// \todo get these values from GuiSettings!
     Array<Triangle> triangles = getSurfaceMesh(storage, surfaceResolution, surfaceLevel);
 
     const Vector n(0._f, 0._f, 1._f);
@@ -32,7 +33,10 @@ void SurfaceRenderer::initialize(const Storage& storage,
             continue;
         }
         // supersimple diffuse shading
-        float gray = 0.4f + 0.5 * cosPhi;
+        /// \todo color using IColorizer; it is non-trivial to use, since we have no connection of generated
+        /// triangles with the particles. This needs to implemented in Marching cubes; we need to compute also
+        /// interpolated values of given quantity (beside the surface field).
+        float gray = ambient + sunIntensity * max(0._f, dot(sunPosition, t.normal()));
 
         StaticArray<Optional<ProjectedPoint>, 3> ps;
         for (Size i = 0; i < 3; ++i) {

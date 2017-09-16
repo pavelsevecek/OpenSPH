@@ -52,6 +52,8 @@ SOURCES += \
     ../lib/math/test/Integrator.cpp \
     ../lib/math/test/Math.cpp \
     ../lib/math/test/Means.cpp \
+    ../lib/math/test/Quat.cpp \
+    ../lib/math/test/AffineMatrix.cpp \
     ../lib/math/test/Morton.cpp \
     ../lib/math/test/Roots.cpp \
     ../lib/math/test/SparseMatrix.cpp \

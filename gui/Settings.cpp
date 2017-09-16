@@ -15,9 +15,11 @@ AutoPtr<GuiSettings> GuiSettings::instance (new GuiSettings {
     { GuiSettingsId::PARTICLE_RADIUS,       "particle_radius",      0.5_f },
     { GuiSettingsId::ORTHO_CUTOFF,          "ortho.cutoff",         0.1_f },
     { GuiSettingsId::ORTHO_PROJECTION,      "ortho.projection",     int(OrthoEnum::XY) },
-    { GuiSettingsId::ORTHO_ROTATE_FRAME,    "ortho.rotate_frame",   false },
     { GuiSettingsId::SURFACE_RESOLUTION,    "surface.resolution",   100._f },  // m
     { GuiSettingsId::SURFACE_LEVEL,         "surface.level",        0.3_f },
+    { GuiSettingsId::SURFACE_SUN_POSITION,  "surface.sun_position", Vector(0.f, 0.f, 1.f) },
+    { GuiSettingsId::SURFACE_SUN_INTENSITY, "surface.sun_intentity", 0.5_f },
+    { GuiSettingsId::SURFACE_AMBIENT,       "surface.ambient",      0.3_f },
     { GuiSettingsId::VIEW_CENTER,           "view.center",          Vector(0._f) },
     { GuiSettingsId::VIEW_FOV,              "view.fov",             1._f },
     { GuiSettingsId::VIEW_WIDTH,            "view.width",           800 },

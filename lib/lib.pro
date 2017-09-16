@@ -75,6 +75,7 @@ SOURCES += \
     sph/initial/Distribution.cpp \
     sph/initial/Initial.cpp \
     sph/solvers/StaticSolver.cpp \
+    system/ArgsParser.cpp \
     system/Factory.cpp \
     system/Platform.cpp \
     system/Process.cpp \
@@ -89,7 +90,6 @@ SOURCES += \
     timestepping/TimeStepping.cpp \
     post/Plot.cpp \
     objects/finders/DynamicFinder.cpp \
-    system/ArgsParser.cpp \
     objects/containers/String.cpp
 
 HEADERS += \
@@ -109,6 +109,7 @@ HEADERS += \
     io/Output.h \
     io/Path.h \
     io/Serializer.h \
+    math/AffineMatrix.h \
     math/Integrator.h \
     math/Math.h \
     math/Matrix.h \
@@ -116,6 +117,7 @@ HEADERS += \
     math/Morton.h \
     math/Roots.h \
     math/SparseMatrix.h \
+    math/Quat.h \
     math/rng/Rng.h \
     math/rng/VectorRng.h \
     mpi/Mpi.h \

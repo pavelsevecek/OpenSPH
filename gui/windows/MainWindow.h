@@ -30,6 +30,9 @@ private:
     /// Parent control object
     RawPtr<Controller> controller;
 
+    /// Gui settings
+    GuiSettings gui;
+
     /// Drawing pane
     /// \todo used some virtual base class instead of directly orthopane
     RawPtr<OrthoPane> pane;
@@ -67,8 +70,6 @@ private:
     wxBoxSizer* createSidebar();
 
     /// wx event handlers
-
-    void onComboBox(wxCommandEvent& evt);
 
     void onClose(wxCloseEvent& evt);
 };
