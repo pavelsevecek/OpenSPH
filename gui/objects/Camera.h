@@ -50,7 +50,7 @@ public:
 
     /// \brief Transforms the current view by given matrix.
     ///
-    /// Subsequent calls accumulate, i.e. rotating camera twice by 90° will rotate the camera by 180°.
+    /// This replaces previous transformation matrix, i.e. subsequent calls do not accumulate.
     /// \param matrix Transform matrix applied to the camera.
     virtual void transform(const AffineMatrix& matrix) = 0;
 
@@ -74,8 +74,9 @@ private:
 
     OrthoCameraData data;
 
+    /// Cached transformed values
     struct {
-        Vector w;
+        Vector u, v, w;
     } cached;
 
 public:
@@ -83,12 +84,14 @@ public:
         : imageSize(imageSize)
         , center(center)
         , data(data) {
+        cached.u = data.u;
+        cached.v = data.v;
         cached.w = cross(data.u, data.v);
     }
 
     virtual Optional<ProjectedPoint> project(const Vector& r) const override {
-        const Size x = center.x + dot(r, data.u) * data.fov;
-        const Size y = center.y + dot(r, data.v) * data.fov;
+        const Size x = center.x + dot(r, cached.u) * data.fov;
+        const Size y = center.y + dot(r, cached.v) * data.fov;
         const Point point(x, imageSize.y - y - 1);
         return { { point, max(data.fov * float(r[H]), 1.f) } };
     }
@@ -97,7 +100,7 @@ public:
         const float x = (point.x - center.x) / data.fov;
         const float y = ((imageSize.y - point.y - 1) - center.y) / data.fov;
         Ray ray;
-        ray.origin = data.u * x + data.v * y;
+        ray.origin = cached.u * x + cached.v * y;
         ray.target = ray.origin + cached.w;
         return ray;
     }
@@ -112,9 +115,9 @@ public:
     }
 
     virtual void transform(const AffineMatrix& matrix) override {
-        data.u = matrix * data.u;
-        data.v = matrix * data.v;
-        cached.w = matrix * cached.w;
+        cached.u = matrix * data.u;
+        cached.v = matrix * data.v;
+        cached.w = cross(cached.u, cached.v);
     }
 
     virtual void pan(const Point offset) override {

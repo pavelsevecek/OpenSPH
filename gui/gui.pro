@@ -73,4 +73,5 @@ HEADERS += \
     windows/ParticleProbe.h \
     windows/PlotView.h \
     objects/GraphicsContext.h \
-    objects/SvgContext.h
+    objects/SvgContext.h \
+    ArcBall.h

@@ -32,7 +32,7 @@ public:
         : storage(std::move(other.storage)) {}
 
     /// Construct identity of given size
-    Order(const Size n)
+    explicit Order(const Size n)
         : storage(0, n) {
         for (Size i = 0; i < n; ++i) {
             storage.push(i);

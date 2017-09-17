@@ -286,17 +286,7 @@ Optional<Particle> Controller::getIntersectedParticle(const Point position, cons
 void Controller::setColorizer(const SharedPtr<IColorizer>& newColorizer) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
     vis.colorizer = newColorizer;
-    if (status != Status::RUNNING) {
-        // we can safely access the storage, otherwise the colorizer will be initialized on next timestep
-        ASSERT(sph.run);
-        SharedPtr<Storage> storage = sph.run->getStorage();
-        if (!storage) {
-            return;
-        }
-        vis.colorizer->initialize(*storage, ColorizerSource::POINTER_TO_STORAGE);
-        vis.renderer->initialize(*storage, *vis.colorizer, *vis.camera);
-        window->Refresh();
-    }
+    this->tryRedraw();
 }
 
 void Controller::setRenderer(AutoPtr<IRenderer>&& newRenderer) {
@@ -376,6 +366,22 @@ void Controller::redraw(const Storage& storage, Statistics& stats) {
         std::unique_lock<std::mutex> lock(vis.mainThreadMutex);
         executeOnMainThread(functor);
         vis.mainThreadVar.wait(lock);
+    }
+}
+
+void Controller::tryRedraw() {
+    CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
+    if (status != Status::RUNNING && vis.timer->isExpired()) {
+        // we can safely access the storage
+        ASSERT(sph.run);
+        SharedPtr<Storage> storage = sph.run->getStorage();
+        if (!storage) {
+            return;
+        }
+        vis.colorizer->initialize(*storage, ColorizerSource::POINTER_TO_STORAGE);
+        vis.renderer->initialize(*storage, *vis.colorizer, *vis.camera);
+        vis.timer->restart();
+        window->Refresh();
     }
 }
 

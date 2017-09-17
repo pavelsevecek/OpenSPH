@@ -36,6 +36,14 @@ public:
         v[3] = c;
     }
 
+    Float& operator[](const Size idx) {
+        return v[idx];
+    }
+
+    Float operator[](const Size idx) const {
+        return v[idx];
+    }
+
     /// \brief Converts the quaternion into a rotation matrix.
     AffineMatrix convert() const {
         const Float n = getSqrLength(v) + sqr(v[3]);

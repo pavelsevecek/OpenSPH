@@ -29,6 +29,10 @@ public:
         return v[idx];
     }
 
+    INLINE Vector center() const {
+        return (v[0] + v[1] + v[2]) / 3._f;
+    }
+
     INLINE Vector normal() const {
         ASSERT(this->isValid());
         const Vector v12 = v[2] - v[1];

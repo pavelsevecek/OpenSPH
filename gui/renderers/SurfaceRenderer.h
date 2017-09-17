@@ -9,6 +9,7 @@
 #include "gui/objects/Bitmap.h"
 #include "gui/objects/Palette.h"
 #include "gui/renderers/IRenderer.h"
+#include "post/MarchingCubes.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -26,7 +27,7 @@ private:
     /// Cached values of visible particles, used for faster drawing.
     struct {
         /// Triangles of the surface
-        Array<Point> triangles;
+        Array<Triangle> triangles;
 
         /// Colors of particles assigned by the colorizer
         Array<Color> colors;

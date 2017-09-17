@@ -14,13 +14,17 @@ NAMESPACE_SPH_BEGIN
 OrthoPane::OrthoPane(wxWindow* parent, Controller* controller, const GuiSettings& gui)
     : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize)
     , controller(controller) {
-    this->SetMinSize(
-        wxSize(gui.get<int>(GuiSettingsId::RENDER_WIDTH), gui.get<int>(GuiSettingsId::RENDER_HEIGHT)));
+    const int width = gui.get<int>(GuiSettingsId::RENDER_WIDTH);
+    const int height = gui.get<int>(GuiSettingsId::RENDER_HEIGHT);
+    this->SetMinSize(wxSize(width, height));
     this->Connect(wxEVT_PAINT, wxPaintEventHandler(OrthoPane::onPaint));
     this->Connect(wxEVT_MOTION, wxMouseEventHandler(OrthoPane::onMouseMotion));
     this->Connect(wxEVT_MOUSEWHEEL, wxMouseEventHandler(OrthoPane::onMouseWheel));
+    this->Connect(wxEVT_RIGHT_DOWN, wxMouseEventHandler(OrthoPane::onRightDown));
+    this->Connect(wxEVT_RIGHT_UP, wxMouseEventHandler(OrthoPane::onRightUp));
 
     particle.lastIdx = -1;
+    arcBall.resize(Point(width, height));
 }
 
 OrthoPane::~OrthoPane() = default;
@@ -41,9 +45,13 @@ void OrthoPane::onMouseMotion(wxMouseEvent& evt) {
     if (evt.Dragging()) {
         SharedPtr<ICamera> camera = controller->getCurrentCamera();
         Point offset = Point(position.x - dragging.position.x, -(position.y - dragging.position.y));
-        if (evt.RightDown()) {
+        if (evt.RightIsDown()) {
             // right button, rotate view
-            camera->transform(AffineMatrix::identity());
+            AffineMatrix matrix = arcBall.drag(position);
+            camera->transform(dragging.initialMatrix * matrix);
+
+            // needs to re-initialize the renderer
+            // controller->tryRedraw();
         } else {
             // left button (or middle), pan
             camera->pan(offset);
@@ -59,7 +67,18 @@ void OrthoPane::onMouseMotion(wxMouseEvent& evt) {
         }
     }
     dragging.position = position;
-    evt.Skip();
+}
+
+void OrthoPane::onRightDown(wxMouseEvent& evt) {
+    CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
+    arcBall.click(evt.GetPosition());
+}
+
+void OrthoPane::onRightUp(wxMouseEvent& evt) {
+    CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
+    AffineMatrix matrix = arcBall.drag(evt.GetPosition());
+    // camera->transform(dragging.initialMatrix * matrix);
+    dragging.initialMatrix = dragging.initialMatrix * matrix;
 }
 
 void OrthoPane::onMouseWheel(wxMouseEvent& evt) {
@@ -69,7 +88,6 @@ void OrthoPane::onMouseWheel(wxMouseEvent& evt) {
     SharedPtr<ICamera> camera = controller->getCurrentCamera();
     camera->zoom(amount);
     this->Refresh();
-    evt.Skip();
 }
 
 NAMESPACE_SPH_END

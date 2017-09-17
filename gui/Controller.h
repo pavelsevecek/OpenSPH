@@ -152,6 +152,11 @@ public:
     /// \param particle Particle to selected; if NOTHING, the current selection is cleared.
     void setSelectedParticle(const Optional<Particle>& particle);
 
+    /// \brief If possible, redraws the particles with data from storage.
+    ///
+    /// This can be done when the run is paused or stopped. Otherwise, it is necessary to wait for the next
+    /// time step; function does nothing during the run. Needs to be called from main thread.
+    void tryRedraw();
 
     /// \addtogroup Controlling the run
 

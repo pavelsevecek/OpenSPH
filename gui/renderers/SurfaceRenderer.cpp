@@ -2,7 +2,7 @@
 #include "gui/objects/Camera.h"
 #include "gui/objects/Color.h"
 #include "gui/objects/Colorizer.h"
-#include "post/MarchingCubes.h"
+#include "objects/finders/Order.h"
 #include "system/Profiler.h"
 #include "system/Statistics.h"
 #include "thread/CheckFunction.h"
@@ -20,39 +20,23 @@ SurfaceRenderer::SurfaceRenderer(const GuiSettings& settings) {
 
 void SurfaceRenderer::initialize(const Storage& storage,
     const IColorizer& UNUSED(colorizer),
-    const ICamera& camera) {
+    const ICamera& UNUSED(camera)) {
     cached.colors.clear();
-    cached.triangles.clear();
-    Array<Triangle> triangles = getSurfaceMesh(storage, surfaceResolution, surfaceLevel);
+    cached.triangles = getSurfaceMesh(storage, surfaceResolution, surfaceLevel);
 
-    const Vector n(0._f, 0._f, 1._f);
-    for (Triangle& t : triangles) {
-        const Float cosPhi = dot(n, t.normal());
-        if (cosPhi < 0._f) {
-            // facing the other way
-            continue;
-        }
+    for (Triangle& t : cached.triangles) {
+
         // supersimple diffuse shading
         /// \todo color using IColorizer; it is non-trivial to use, since we have no connection of generated
         /// triangles with the particles. This needs to implemented in Marching cubes; we need to compute also
         /// interpolated values of given quantity (beside the surface field).
         float gray = ambient + sunIntensity * max(0._f, dot(sunPosition, t.normal()));
 
-        StaticArray<Optional<ProjectedPoint>, 3> ps;
-        for (Size i = 0; i < 3; ++i) {
-            t[i][H] = 1._f; // something reasonable
-            ps[i] = camera.project(t[i]);
-        }
-        if (ps[0] && ps[1] && ps[2]) {
-            cached.triangles.push(ps[0]->point);
-            cached.triangles.push(ps[1]->point);
-            cached.triangles.push(ps[2]->point);
-            cached.colors.push(Color(gray));
-        }
+        cached.colors.push(Color(gray));
     }
 }
 
-SharedPtr<Bitmap> SurfaceRenderer::render(const ICamera& UNUSED(camera),
+SharedPtr<Bitmap> SurfaceRenderer::render(const ICamera& camera,
     const RenderParams& params,
     Statistics& stats) const {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
@@ -69,19 +53,36 @@ SharedPtr<Bitmap> SurfaceRenderer::render(const ICamera& UNUSED(camera),
     wxBrush brush(*wxBLACK_BRUSH);
     wxPen pen(*wxBLACK_PEN);
 
-    ASSERT(cached.triangles.size() % 3 == 0);
-    for (Size i = 0; i < cached.triangles.size() / 3; ++i) {
-        brush.SetColour(wxColour(cached.colors[i]));
-        pen.SetColour(wxColour(cached.colors[i]));
+    // sort the arrays by z-depth
+    Order triangleOrder(cached.triangles.size());
+    triangleOrder.shuffle([this, &camera](const Size i1, const Size i2) {
+        const Vector v1 = cached.triangles[i1].center();
+        const Vector v2 = cached.triangles[i2].center();
+        const Vector cameraDir = camera.getDirection();
+        return dot(cameraDir, v1) > dot(cameraDir, v2);
+    });
+
+    // draw all triangles, starting from the ones with largest z-depth
+    for (Size i = 0; i < cached.triangles.size(); ++i) {
+        const Size idx = triangleOrder[i];
+        brush.SetColour(wxColour(cached.colors[idx]));
+        pen.SetColour(wxColour(cached.colors[idx]));
         dc.SetBrush(brush);
         dc.SetPen(pen);
 
-        wxPoint pts[3];
-        pts[0] = cached.triangles[3 * i + 0];
-        pts[1] = cached.triangles[3 * i + 1];
-        pts[2] = cached.triangles[3 * i + 2];
-        dc.DrawPolygon(3, pts);
+        Optional<ProjectedPoint> p1 = camera.project(cached.triangles[idx][0]);
+        Optional<ProjectedPoint> p2 = camera.project(cached.triangles[idx][1]);
+        Optional<ProjectedPoint> p3 = camera.project(cached.triangles[idx][2]);
+        if (!p1 || !p2 || !p3) {
+            continue;
+        }
+        StaticArray<wxPoint, 3> pts;
+        pts[0] = p1->point;
+        pts[1] = p2->point;
+        pts[2] = p3->point;
+        dc.DrawPolygon(3, &pts[0]);
     }
+
     const Float time = stats.get<Float>(StatisticsId::TOTAL_TIME);
     dc.DrawText(("t = " + std::to_string(time) + "s").c_str(), wxPoint(0, 0));
 

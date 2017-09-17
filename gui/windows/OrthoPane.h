@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui/ArcBall.h"
 #include "gui/Settings.h"
 #include "gui/objects/Point.h"
 #include <wx/panel.h>
@@ -14,9 +15,15 @@ class OrthoPane : public wxPanel {
 private:
     Controller* controller;
 
-    /// Cached mouse position when dragging the window
+    /// Helper for rotation
+    ArcBall arcBall;
+
     struct {
+        /// Cached last mouse position when dragging the window
         Point position;
+
+        /// Camera rotation matrix when dragging started.
+        AffineMatrix initialMatrix = AffineMatrix::identity();
     } dragging;
 
     struct {
@@ -28,11 +35,19 @@ public:
 
     ~OrthoPane();
 
+    void resetView() {
+        dragging.initialMatrix = AffineMatrix::identity();
+    }
+
 private:
     /// wx event handlers
     void onPaint(wxPaintEvent& evt);
 
     void onMouseMotion(wxMouseEvent& evt);
+
+    void onRightDown(wxMouseEvent& evt);
+
+    void onRightUp(wxMouseEvent& evt);
 
     void onMouseWheel(wxMouseEvent& evt);
 };
