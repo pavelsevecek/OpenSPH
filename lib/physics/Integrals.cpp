@@ -35,7 +35,7 @@ Vector TotalMomentum::evaluate(const Storage& storage) const {
 }
 
 TotalAngularMomentum::TotalAngularMomentum(const Float omega)
-    : omega(0._f, 0._f, omega) {}
+    : frameFrequency(0._f, 0._f, omega) {}
 
 Vector TotalAngularMomentum::evaluate(const Storage& storage) const {
     BasicVector<double> total(0.);
@@ -43,10 +43,21 @@ Vector TotalAngularMomentum::evaluate(const Storage& storage) const {
     tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
     ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASSES);
 
+    // angular momentum with respect to origin
     ASSERT(!v.empty());
     for (Size i = 0; i < v.size(); ++i) {
-        total += vectorCast<double>(m[i] * cross(r[i], (v[i] + cross(omega, r[i]))));
+        total += vectorCast<double>(m[i] * cross(r[i], (v[i] + cross(frameFrequency, r[i]))));
     }
+
+    // local angular momentum
+    if (storage.has(QuantityId::ANGULAR_VELOCITY)) {
+        ArrayView<const Vector> omega = storage.getValue<Vector>(QuantityId::ANGULAR_VELOCITY);
+        ArrayView<const Float> I = storage.getValue<Float>(QuantityId::MOMENT_OF_INERTIA);
+        for (Size i = 0; i < v.size(); ++i) {
+            total += I[i] * omega[i];
+        }
+    }
+
     ASSERT(isReal(total));
     return vectorCast<Float>(total);
 }

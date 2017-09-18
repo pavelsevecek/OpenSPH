@@ -94,6 +94,8 @@ QuantityMetadata getMetadata(const QuantityId key) {
         return QuantityMetadata("Neigh. cnt", "N_neigh", ValueEnum::INDEX);
     case QuantityId::SURFACE_NORMAL:
         return QuantityMetadata("Surf. normal", "n", ValueEnum::VECTOR);
+    case QuantityId::MOMENT_OF_INERTIA:
+        return QuantityMetadata("Mom. of intertia", "I", ValueEnum::SCALAR);
     default:
         NOT_IMPLEMENTED;
     }

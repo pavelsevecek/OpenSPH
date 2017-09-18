@@ -255,4 +255,5 @@ HEADERS += \
     sph/solvers/CollisionSolver.h \
     system/ArgsParser.h \
     run/Collision.h \
-    objects/containers/String.h
+    objects/containers/String.h \
+    sph/equations/Rotation.h

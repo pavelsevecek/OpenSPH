@@ -79,10 +79,10 @@ public:
 /// the total angular momentum.
 class TotalAngularMomentum : public IIntegral<Vector> {
 private:
-    Vector omega;
+    Vector frameFrequency;
 
 public:
-    TotalAngularMomentum(const Float omega = 0._f);
+    TotalAngularMomentum(const Float frameFrequency = 0._f);
 
     virtual Vector evaluate(const Storage& storage) const override;
 

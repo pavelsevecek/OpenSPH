@@ -9,6 +9,7 @@
 #include "objects/geometry/Domain.h"
 #include "post/Analysis.h"
 #include "sph/equations/Potentials.h"
+#include "sph/equations/Rotation.h"
 #include "sph/initial/Initial.h"
 #include "sph/solvers/ContinuitySolver.h"
 #include "sph/solvers/GravitySolver.h"
@@ -140,7 +141,7 @@ private:
     Float startTime = 0._f;
 
     /// Velocity damping constant
-    Float delta = 0.1_f;
+    Float delta = 0._f;
 
     /// Denotes the phase of the simulation
     bool impactStarted = false;
@@ -219,6 +220,9 @@ private:
         const Vector omega = settings.get<Vector>(RunSettingsId::FRAME_ANGULAR_FREQUENCY);
         equations += makeTerm<NoninertialForce>(omega);
 
+        // rotation of particles
+        equations += makeTerm<Rotation>(settings);
+
         // gravity (approximation)
         equations += makeTerm<SphericalGravity>(SphericalGravity::Options::ASSUME_HOMOGENEOUS);
 
@@ -229,7 +233,7 @@ private:
         equations += EquationHolder(Factory::getArtificialViscosity(settings));
 
         // adaptive smoothing length
-        equations += makeTerm<AdaptiveSmoothingLength>(settings);
+        equations += makeTerm<ConstSmoothingLength>();
 
         return equations;
     }
@@ -274,10 +278,10 @@ AsteroidCollision::AsteroidCollision() {
         .set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::PREDICTOR_CORRECTOR)
         .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 0.01_f)
         .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 0.01_f)
-        .set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 10._f))
+        .set(RunSettingsId::RUN_TIME_RANGE, Interval(-50._f, 10._f))
         .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 0.1_f)
         .set(RunSettingsId::MODEL_FORCE_SOLID_STRESS, true)
-        .set(RunSettingsId::SPH_FINDER, FinderEnum::VOXEL)
+        .set(RunSettingsId::SPH_FINDER, FinderEnum::KD_TREE)
         .set(RunSettingsId::SPH_AV_TYPE, ArtificialViscosityEnum::STANDARD)
         .set(RunSettingsId::SPH_AV_ALPHA, 1.5_f)
         .set(RunSettingsId::SPH_AV_BETA, 3._f) /// \todo exception when using gravity with continuity solver?
@@ -331,17 +335,17 @@ void AsteroidCollision::setUp() {
     BodySettings body;
     body.set(BodySettingsId::ENERGY, 0._f)
         .set(BodySettingsId::ENERGY_RANGE, Interval(0._f, INFTY))
-        .set(BodySettingsId::PARTICLE_COUNT, 10'000)
+        .set(BodySettingsId::PARTICLE_COUNT, 100'000)
         .set(BodySettingsId::EOS, EosEnum::TILLOTSON)
         .set(BodySettingsId::STRESS_TENSOR_MIN, 1.e5_f)
-        .set(BodySettingsId::RHEOLOGY_DAMAGE, DamageEnum::SCALAR_GRADY_KIPP)
+        .set(BodySettingsId::RHEOLOGY_DAMAGE, DamageEnum::NONE)
         .set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::VON_MISES)
         .set(BodySettingsId::DISTRIBUTE_MODE_SPH5, true);
     body.saveToFile(outputDir / Path("target.sph"));
 
     storage = makeShared<Storage>();
 
-    const Vector targetOmega(0._f); //  0._f, 2._f * PI / (3._f * 3600._f));
+    const Vector targetOmega(0._f, 0._f, 2._f * PI / (3._f * 3600._f));
 
     AutoPtr<CollisionSolver> collisionSolver =
         makeAuto<CollisionSolver>(settings, body, targetOmega, outputDir);

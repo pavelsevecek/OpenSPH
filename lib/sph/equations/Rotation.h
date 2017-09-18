@@ -5,8 +5,32 @@
 
 NAMESPACE_SPH_BEGIN
 
+/// \todo heavy duplication of stress derivative
 class RotationDerivative : public DerivativeTemplate<RotationDerivative> {
+private:
+    ArrayView<const Float> rho, m, I;
+    ArrayView<const TracelessTensor> s;
+    ArrayView<const Float> reduce;
+    ArrayView<const Size> flag;
+    ArrayView<const Vector> r;
+    ArrayView<Vector> domega;
+
 public:
+    virtual void create(Accumulated& results) override {
+        results.insert<Vector>(QuantityId::ANGULAR_VELOCITY, OrderEnum::FIRST);
+    }
+
+    virtual void initialize(const Storage& input, Accumulated& results) override {
+        tie(rho, m, I) =
+            input.getValues<Float>(QuantityId::DENSITY, QuantityId::MASSES, QuantityId::MOMENT_OF_INERTIA);
+        s = input.getPhysicalValue<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
+        reduce = input.getValue<Float>(QuantityId::STRESS_REDUCING);
+        flag = input.getValue<Size>(QuantityId::FLAG);
+        r = input.getValue<Vector>(QuantityId::POSITIONS);
+        domega = results.getBuffer<Vector>(QuantityId::ANGULAR_VELOCITY, OrderEnum::FIRST);
+    }
+
+
     template <bool Symmetrize>
     INLINE void eval(const Size i, ArrayView<const Size> neighs, ArrayView<const Vector> grads) {
         ASSERT(neighs.size() == grads.size());
@@ -15,15 +39,13 @@ public:
             if (flag[i] != flag[j] || reduce[i] == 0._f || reduce[j] == 0._f) {
                 continue;
             }
-            const SymmetricTensor t = (s[i] + s[j]) / (rho[i] * rho[j]);
+            const TracelessTensor t = (s[i] + s[j]) / (rho[i] * rho[j]);
             const Vector force = t * grads[k];
-            const Vector torque = cross(r[j] - r[i], force);
+            const Vector torque = 0.5_f * cross(r[j] - r[i], force);
             ASSERT(isReal(force) && isReal(torque));
-            dv[i] += m[j] * f;
             domega[i] += m[i] / I[i] * m[j] * torque;
 
             if (Symmetrize) {
-                dv[j] -= m[i] * f;
                 domega[i] += m[j] / I[j] * m[i] * torque;
             }
         }
@@ -43,7 +65,7 @@ public:
         const KernelEnum kernel = settings.get<KernelEnum>(RunSettingsId::SPH_KERNEL);
         switch (kernel) {
         case KernelEnum::CUBIC_SPLINE:
-            inertia = 0.6;
+            inertia = 0.02_f; // 0.6
             break;
         default:
             NOT_IMPLEMENTED;
@@ -59,16 +81,19 @@ public:
         ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASSES);
         ArrayView<Float> I = storage.getValue<Float>(QuantityId::MOMENT_OF_INERTIA);
         for (Size i = 0; i < r.size(); ++i) {
-            I[i] = inertia * m[i] * square(r[i][H]);
+            I[i] = inertia * m[i] * sqr(r[i][H]);
         }
     }
 
     virtual void finalize(Storage& UNUSED(storage)) override {}
 
-    virtual void create(Storage& storage, IMaterial& UNUSED(material)) const override {
+    virtual void create(Storage& storage, IMaterial& material) const override {
         // although we should evolve phase angle as second-order quantity rather than angular velocity, the
         // SPH particles are spherically symmetric, so there is no point of doing that
         storage.insert<Vector>(QuantityId::ANGULAR_VELOCITY, OrderEnum::FIRST, Vector(0._f));
+
+        // let the angular velocity be unbounded and not affecting timestepping
+        material.setRange(QuantityId::ANGULAR_VELOCITY, Interval::unbounded(), LARGE);
 
         // we can set it to here, it will be overwritten in \ref initialize anyway
         storage.insert<Float>(QuantityId::MOMENT_OF_INERTIA, OrderEnum::ZERO, 0._f);
