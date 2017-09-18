@@ -9,6 +9,7 @@
 #include "gui/objects/Bitmap.h"
 #include "gui/objects/Palette.h"
 #include "gui/renderers/IRenderer.h"
+#include "post/MarchingCubes.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -18,10 +19,15 @@ private:
     Float surfaceResolution;
     Float surfaceLevel;
 
+    /// Shading parameters
+    Vector sunPosition;
+    Float sunIntensity;
+    Float ambient;
+
     /// Cached values of visible particles, used for faster drawing.
     struct {
         /// Triangles of the surface
-        Array<Point> triangles;
+        Array<Triangle> triangles;
 
         /// Colors of particles assigned by the colorizer
         Array<Color> colors;
@@ -31,7 +37,9 @@ private:
 public:
     SurfaceRenderer(const GuiSettings& settings);
 
-    virtual void initialize(const Storage& storage, const IColorizer& colorizer, const ICamera& camera);
+    virtual void initialize(const Storage& storage,
+        const IColorizer& colorizer,
+        const ICamera& camera) override;
 
     /// Can only be called from main thread
     virtual SharedPtr<Bitmap> render(const ICamera& camera,

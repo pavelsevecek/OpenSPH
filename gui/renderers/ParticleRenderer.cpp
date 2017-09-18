@@ -9,6 +9,14 @@
 
 NAMESPACE_SPH_BEGIN
 
+ParticleRenderer::ParticleRenderer(const GuiSettings& settings) {
+    cutoff = settings.get<Float>(GuiSettingsId::ORTHO_CUTOFF);
+}
+
+bool ParticleRenderer::isCutOff(const ICamera& camera, const Vector& r) {
+    return cutoff != 0._f && abs(dot(camera.getDirection(), r)) > cutoff;
+}
+
 void ParticleRenderer::initialize(const Storage& storage,
     const IColorizer& colorizer,
     const ICamera& camera) {
@@ -20,7 +28,7 @@ void ParticleRenderer::initialize(const Storage& storage,
     for (Size i = 0; i < r.size(); ++i) {
         const Color color = colorizer.eval(i);
         const Optional<ProjectedPoint> p = camera.project(r[i]);
-        if (p) {
+        if (p && !this->isCutOff(camera, r[i])) {
             cached.idxs.push(i);
             cached.positions.push(r[i]);
             cached.colors.push(color);

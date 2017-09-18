@@ -39,8 +39,10 @@ private:
     ValueVariant storage;
 
 public:
-    /// Construct an unitialized value
+    /// Construct an uninitialized value
     Value() = default;
+
+    ~Value() = default;
 
     /// Contruct value from one of possible value types
     template <typename T, typename = std::enable_if_t<!std::is_same<std::decay_t<T>, Value>::value>>

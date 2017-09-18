@@ -77,10 +77,10 @@ public:
     /// The function is blocking, it waits until all data are received.
     /// \param source Process sending the data.
     /// \return Object constructed from deserialized data
-    AutoPtr<Serializable> receive(const Size source);
+    ClonePtr<Serializable> receive(const Size source);
 
     /// \brief Receive a serializable object from any process.
-    AutoPtr<Serializable> receive(const RecvSource source);
+    ClonePtr<Serializable> receive(const RecvSource source);
 
 private:
     Mpi();

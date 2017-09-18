@@ -13,6 +13,7 @@ class wxCheckBox;
 NAMESPACE_SPH_BEGIN
 
 class IColorizer;
+class IGraphicsPane;
 class IPlot;
 class Controller;
 class OrthoPane;
@@ -30,9 +31,11 @@ private:
     /// Parent control object
     RawPtr<Controller> controller;
 
-    /// Drawing pane
-    /// \todo used some virtual base class instead of directly orthopane
-    RawPtr<OrthoPane> pane;
+    /// Gui settings
+    GuiSettings gui;
+
+    /// Drawing pane (owned by wxWidgets)
+    RawPtr<IGraphicsPane> pane;
 
     RawPtr<ParticleProbe> probe;
 
@@ -67,8 +70,6 @@ private:
     wxBoxSizer* createSidebar();
 
     /// wx event handlers
-
-    void onComboBox(wxCommandEvent& evt);
 
     void onClose(wxCloseEvent& evt);
 };

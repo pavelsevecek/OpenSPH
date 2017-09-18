@@ -45,33 +45,33 @@ public:
         return v[idx];
     }
 
-    INLINE Tensor transpose() const {
-        return Tensor(column(0), column(1), column(2));
-    }
+    /*  INLINE Tensor transpose() const {
+          return Tensor(column(0), column(1), column(2));
+      }
 
-    INLINE Float determinant() const {
-        return v[0][0] * (v[1][1] * v[2][2] - v[2][1] * v[1][2]) -
-               v[0][1] * (v[1][0] * v[2][2] - v[1][2] * v[2][0]) +
-               v[0][2] * (v[1][0] * v[2][1] - v[1][1] * v[2][0]);
-    }
+      INLINE Float determinant() const {
+          return v[0][0] * (v[1][1] * v[2][2] - v[2][1] * v[1][2]) -
+                 v[0][1] * (v[1][0] * v[2][2] - v[1][2] * v[2][0]) +
+                 v[0][2] * (v[1][0] * v[2][1] - v[1][1] * v[2][0]);
+      }
 
-    Tensor inverse() const {
-        const Float det = this->determinant();
-        ASSERT(det != 0._f);
-        const Float invdet = 1._f / det;
+      Tensor inverse() const {
+          const Float det = this->determinant();
+          ASSERT(det != 0._f);
+          const Float invdet = 1._f / det;
 
-        Tensor inv;
-        inv(0, 0) = (v[1][1] * v[2][2] - v[2][1] * v[1][2]) * invdet;
-        inv(0, 1) = (v[0][2] * v[2][1] - v[0][1] * v[2][2]) * invdet;
-        inv(0, 2) = (v[0][1] * v[1][2] - v[0][2] * v[1][1]) * invdet;
-        inv(1, 0) = (v[1][2] * v[2][0] - v[1][0] * v[2][2]) * invdet;
-        inv(1, 1) = (v[0][0] * v[2][2] - v[0][2] * v[2][0]) * invdet;
-        inv(1, 2) = (v[1][0] * v[0][2] - v[0][0] * v[1][2]) * invdet;
-        inv(2, 0) = (v[1][0] * v[2][1] - v[2][0] * v[1][1]) * invdet;
-        inv(2, 1) = (v[2][0] * v[0][1] - v[0][0] * v[2][1]) * invdet;
-        inv(2, 2) = (v[0][0] * v[1][1] - v[1][0] * v[0][1]) * invdet;
-        return inv;
-    }
+          Tensor inv;
+          inv(0, 0) = (v[1][1] * v[2][2] - v[2][1] * v[1][2]) * invdet;
+          inv(0, 1) = (v[0][2] * v[2][1] - v[0][1] * v[2][2]) * invdet;
+          inv(0, 2) = (v[0][1] * v[1][2] - v[0][2] * v[1][1]) * invdet;
+          inv(1, 0) = (v[1][2] * v[2][0] - v[1][0] * v[2][2]) * invdet;
+          inv(1, 1) = (v[0][0] * v[2][2] - v[0][2] * v[2][0]) * invdet;
+          inv(1, 2) = (v[1][0] * v[0][2] - v[0][0] * v[1][2]) * invdet;
+          inv(2, 0) = (v[1][0] * v[2][1] - v[2][0] * v[1][1]) * invdet;
+          inv(2, 1) = (v[2][0] * v[0][1] - v[0][0] * v[2][1]) * invdet;
+          inv(2, 2) = (v[0][0] * v[1][1] - v[1][0] * v[0][1]) * invdet;
+          return inv;
+      }*/
 
     static Tensor null() {
         return Tensor(0._f);
@@ -81,11 +81,6 @@ public:
         return Tensor(Vector(1._f, 0._f, 0._f), Vector(0._f, 1._f, 0._f), Vector(0._f, 0._f, 1._f));
     }
 
-    static Tensor rotateZ(const Float angle) {
-        const Float c = cos(angle);
-        const Float s = sin(angle);
-        return Tensor(Vector(c, -s, 0._f), Vector(s, c, 0._f), Vector(0._f, 0._f, 1._f));
-    }
 
     INLINE Tensor operator+(const Tensor& other) const {
         return Tensor(v[0] + other.v[0], v[1] + other.v[1], v[2] + other.v[2]);
@@ -96,15 +91,15 @@ public:
     }
 
     /// Matrix multiplication
-    INLINE Tensor operator*(const Tensor& other) const {
-        Tensor result;
-        for (Size i = 0; i < 3; ++i) {
-            for (Size j = 0; j < 3; ++j) {
-                result(i, j) = dot(this->row(i), other.column(j));
-            }
-        }
-        return result;
-    }
+    /*  INLINE Tensor operator*(const Tensor& other) const {
+          Tensor result;
+          for (Size i = 0; i < 3; ++i) {
+              for (Size j = 0; j < 3; ++j) {
+                  result(i, j) = dot(this->row(i), other.column(j));
+              }
+          }
+          return result;
+      }*/
 
     INLINE Vector operator*(const Vector& u) const {
         return Vector(dot(v[0], u), dot(v[1], u), dot(v[2], u));

@@ -1,8 +1,9 @@
 #pragma once
 
-/// Basic routines for integrating arbitrary functions in N dimensions
-/// Pavel Sevecek 2015
-/// sevecek at sirrah.troja.mff.cuni.cz
+/// \file Integrator.h
+/// \author Basic routines for integrating arbitrary functions in N dimensions
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2017
 
 #include "math/rng/Rng.h"
 #include "objects/geometry/Domain.h"

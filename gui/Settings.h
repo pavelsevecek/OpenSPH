@@ -43,15 +43,20 @@ enum class GuiSettingsId {
 
     ORTHO_PROJECTION,
 
-    /// If true, the rendered image will be rotated to represent the orientation in inertial frame, otherwise
-    /// the image in non-inertial frame is rendered.
-    ORTHO_ROTATE_FRAME,
-
     /// Size of the grid used in MarchingCubes (in code units, not h)
     SURFACE_RESOLUTION,
 
     /// Value of iso-surface being constructed; lower value means larget bodies
     SURFACE_LEVEL,
+
+    /// Direction to the sun used for shading
+    SURFACE_SUN_POSITION,
+
+    /// Intentity of the sun
+    SURFACE_SUN_INTENSITY,
+
+    /// Ambient color for surface renderer
+    SURFACE_AMBIENT,
 
     /// Title of the window appearing on taskbar
     WINDOW_TITLE,

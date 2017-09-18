@@ -88,7 +88,7 @@ Mpi::BarrierLock::~BarrierLock() {
     mpi.barrier();
 }
 
-AutoPtr<Serializable> Mpi::receive(const Size source) {
+ClonePtr<Serializable> Mpi::receive(const Size source) {
     // get the size of the buffer
     MPI_Status status;
     MPI_Probe(source, 0, MPI_COMM_WORLD, &status);
@@ -106,7 +106,7 @@ AutoPtr<Serializable> Mpi::receive(const Size source) {
     return serializable;
 }
 
-AutoPtr<Serializable> Mpi::receive(const RecvSource source) {
+ClonePtr<Serializable> Mpi::receive(const RecvSource source) {
     switch (source) {
     case RecvSource::ANYONE:
         return this->receive(MPI_ANY_SOURCE);

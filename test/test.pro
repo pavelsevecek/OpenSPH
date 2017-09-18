@@ -41,7 +41,6 @@ SOURCES += \
     ../lib/gravity/test/BarnesHut.cpp \
     ../lib/gravity/test/BruteForceGravity.cpp \
     ../lib/gravity/test/Moments.cpp \
-    ../lib/gravity/test/VoxelGravity.cpp \
     ../lib/io/test/FileSystem.cpp \
     ../lib/io/test/Logger.cpp \
     ../lib/io/test/Output.cpp \
@@ -52,6 +51,8 @@ SOURCES += \
     ../lib/math/test/Integrator.cpp \
     ../lib/math/test/Math.cpp \
     ../lib/math/test/Means.cpp \
+    ../lib/math/test/Quat.cpp \
+    ../lib/math/test/AffineMatrix.cpp \
     ../lib/math/test/Morton.cpp \
     ../lib/math/test/Roots.cpp \
     ../lib/math/test/SparseMatrix.cpp \
@@ -60,6 +61,7 @@ SOURCES += \
     ../lib/objects/containers/test/List.cpp \
     ../lib/objects/containers/test/Map.cpp \
     ../lib/objects/containers/test/StaticArray.cpp \
+    ../lib/objects/containers/test/String.cpp \
     ../lib/objects/containers/test/Tuple.cpp \
     ../lib/objects/finders/test/BruteForceFinder.cpp \
     ../lib/objects/finders/test/Finders.cpp \
@@ -113,7 +115,6 @@ SOURCES += \
     ../lib/sph/boundary/test/Boundary.cpp \
     ../lib/sph/equations/av/test/Balsara.cpp \
     ../lib/sph/equations/av/test/MorrisMonaghan.cpp \
-    ../lib/sph/equations/av/test/Standard.cpp \
     ../lib/sph/equations/av/test/Stress.cpp \
     ../lib/sph/equations/heat/test/HeatDiffusion.cpp \
     ../lib/sph/equations/test/Accumulated.cpp \
@@ -135,6 +136,7 @@ SOURCES += \
     ../lib/sph/solvers/test/Solvers.cpp \
     ../lib/sph/solvers/test/StaticSolver.cpp \
     ../lib/sph/test/Diagnostics.cpp \
+    ../lib/system/test/ArgsParser.cpp \
     ../lib/system/test/ArrayStats.cpp \
     ../lib/system/test/Process.cpp \
     ../lib/system/test/Profiler.cpp \
@@ -148,7 +150,8 @@ SOURCES += \
     ../lib/timestepping/test/TimeStepping.cpp \
     utils/Approx.cpp \
     utils/SequenceTest.cpp \
-    utils/Utils.cpp
+    utils/Utils.cpp \
+    ../lib/sph/equations/av/test/AV.cpp
 
 HEADERS += \
     utils/Utils.h \

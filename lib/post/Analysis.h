@@ -13,28 +13,39 @@ NAMESPACE_SPH_BEGIN
 
 class Storage;
 class Path;
+class ILogger;
 
 namespace Post {
 
     enum class ComponentConnectivity {
-        ANY,              ///< Any two particles can belong into the same component
-        SEPARATE_BY_FLAG, ///< Particles with different flags belong a priori to different components
+        /// Overlapping particles belong into the same component
+        OVERLAP,
+
+        /// Particles belong to the same component if they overlap and the have the same flag.
+        SEPARATE_BY_FLAG,
+
+        /// Particles overlap or their relative velocity is less than the escape velocity
+        ESCAPE_VELOCITY,
     };
 
     /// \brief Finds and marks connected components (a.k.a. separated bodies) in the array of vertices.
     ///
     /// \param storage Storage containing the particles. Must also contain QuantityId::FLAG if
     ///                SEPARATE_BY_FLAG option is used.
-    /// \param settings Run settings (currently only used to get SPH kernel)
+    /// \param particleRadius Size of particles in smoothing lengths.
     /// \param connectivity Defines additional conditions of particle separation (besides their distance).
     /// \param indices[out] Array of indices from 0 to n-1, where n is the number of components. In the array,
     ///                     i-th index corresponds to component to which i-th particle belongs.
     /// \return Number of components
     Size findComponents(const Storage& storage,
-        const RunSettings& settings,
+        const Float particleRadius,
         const ComponentConnectivity connectivity,
         Array<Size>& indices);
 
+    /// \todo escape velocity
+    Storage findFutureBodies(const Storage& storage, const Float particleRadius, ILogger& logger);
+
+    Storage findFutureBodies2(const Storage& storage, ILogger& logger);
 
     /// \brief Quantity from which the histogram is constructed
     ///
@@ -71,6 +82,11 @@ namespace Post {
         /// Number of histogram bins. 0 means the number is selected based on the source data. Used only by
         /// differential SFD.
         Size binCnt = 0;
+
+        /// Parameters used by histogram of components
+        struct ComponentParams {
+            Float radius = 2._f;
+        } components;
     };
 
     /// Point in SFD

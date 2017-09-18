@@ -57,10 +57,6 @@ private:
         /// Current camera of the view. The object is shared with parent model.
         SharedPtr<ICamera> camera;
 
-        /// Current rotation angle of the view
-        /// \todo this is a little hardcoded for ortho camera and noninternal frame, possibly generalize
-        Float phi = 0.f;
-
         /// Currently selected particle.
         Optional<Particle> selectedParticle;
 
@@ -133,15 +129,34 @@ public:
 
     /// \addtogroup Display setters
 
-    /// Sets a new colorizer to be displayed
+    /// \brief Sets a new colorizer to be displayed
+    ///
+    /// If the run is currently stopped, the colorizer is applied immediately, otherwise it is necessary to
+    /// wait for the end of the current timestep before repaiting the particles. Must be called from main
+    /// thread.
+    /// \param newColorizer Colorizer replacing the current one.
     void setColorizer(const SharedPtr<IColorizer>& newColorizer);
 
-    /// Sets a selected particle or changes the current selection. The selection only affects the interactive
-    /// view; it can be used by the renderer to highlight a selected particle, and the window can provide
-    /// information about the selected particle.
+    /// \brief Sets a new renderer used to draw particles.
+    ///
+    /// If the run is currently stopped, the renderer is replaced immediately, otherwise it is necessary to
+    /// wait for the end of the current timestep before repainting the particles. Must be called from main
+    /// thread.
+    /// \param newRenderer Renderer replacing the current one.
+    void setRenderer(AutoPtr<IRenderer>&& newRenderer);
+
+    /// \brief Sets a selected particle or changes the current selection.
+    ///
+    /// The selection only affects the interactive view; it can be used by the renderer to highlight a
+    /// selected particle, and the window can provide information about the selected particle.
     /// \param particle Particle to selected; if NOTHING, the current selection is cleared.
     void setSelectedParticle(const Optional<Particle>& particle);
 
+    /// \brief If possible, redraws the particles with data from storage.
+    ///
+    /// This can be done when the run is paused or stopped. Otherwise, it is necessary to wait for the next
+    /// time step; function does nothing during the run. Needs to be called from main thread.
+    void tryRedraw();
 
     /// \addtogroup Controlling the run
 
@@ -172,6 +187,9 @@ public:
 private:
     SharedPtr<Movie> createMovie(const Storage& storage);
 
+    /// \brief Redraws the particles.
+    ///
+    /// Can be called from any thread. Function blocks until the particles are redrawn.
     void redraw(const Storage& storage, Statistics& stats);
 
     void run();

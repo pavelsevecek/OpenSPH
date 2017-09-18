@@ -1,8 +1,9 @@
 #pragma once
 
-/// Wrapper over other finder allowing to search neighbours in periodic domain.
-/// Pavel Sevecek 2016
-/// sevecek at sirrah.troja.mff.cuni.cz
+/// \file PeriodicFinder.h
+/// \brief Wrapper over other finder allowing to search neighbours in periodic domain.
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2017
 
 #include "objects/finders/INeighbourFinder.h"
 
@@ -20,16 +21,17 @@ public:
         : finder(std::forward<TArgs>(args)...) {}
 
     virtual void findNeighbours(const int index,
-                                const Float radius,
-                                Array<NeighbourRecord>& neighbours,
-                                Flags<FinderFlags> flags = EMPTY_FLAGS,
-                                const Float error        = 0._f) const override {
+        const Float radius,
+        Array<NeighbourRecord>& neighbours,
+        Flags<FinderFlags> flags = EMPTY_FLAGS,
+        const Float error = 0._f) const override {
         // seach 'regular' particles
         int n = finder(index, radius, neighbours, flags, error);
 
         /// now we have to move the particle, or create a new one with the same smoothing rank, but we are in
         /// const method, hm ...
-        /// seems like removing const here would be the best way to do it (plus we need an array instead of arrayview)
+        /// seems like removing const here would be the best way to do it (plus we need an array instead of
+        /// arrayview)
         /// also, periodic conditions don't make much sense for 'curved' surfaces (like a spherical domain)
         /// we should only use it for a block domain, possibly for the base of a cylinder (infinite tube)
     }

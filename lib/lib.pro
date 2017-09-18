@@ -41,7 +41,6 @@ CONFIG(debug, debug|profile|assert|release) {
 SOURCES += \
     common/Assert.cpp \
     gravity/BarnesHut.cpp \
-    gravity/VoxelGravity.cpp \
     io/FileSystem.cpp \
     io/Logger.cpp \
     io/Output.cpp \
@@ -75,6 +74,7 @@ SOURCES += \
     sph/initial/Distribution.cpp \
     sph/initial/Initial.cpp \
     sph/solvers/StaticSolver.cpp \
+    system/ArgsParser.cpp \
     system/Factory.cpp \
     system/Platform.cpp \
     system/Process.cpp \
@@ -88,7 +88,8 @@ SOURCES += \
     timestepping/TimeStepCriterion.cpp \
     timestepping/TimeStepping.cpp \
     post/Plot.cpp \
-    objects/finders/DynamicFinder.cpp
+    objects/finders/DynamicFinder.cpp \
+    objects/containers/String.cpp
 
 HEADERS += \
     common/Assert.h \
@@ -99,7 +100,6 @@ HEADERS += \
     gravity/BruteForceGravity.h \
     gravity/IGravity.h \
     gravity/Moments.h \
-    gravity/VoxelGravity.h \
     io/Column.h \
     io/FileSystem.h \
     io/LogFile.h \
@@ -107,6 +107,7 @@ HEADERS += \
     io/Output.h \
     io/Path.h \
     io/Serializer.h \
+    math/AffineMatrix.h \
     math/Integrator.h \
     math/Math.h \
     math/Matrix.h \
@@ -114,6 +115,7 @@ HEADERS += \
     math/Morton.h \
     math/Roots.h \
     math/SparseMatrix.h \
+    math/Quat.h \
     math/rng/Rng.h \
     math/rng/VectorRng.h \
     mpi/Mpi.h \
@@ -249,4 +251,8 @@ HEADERS += \
     objects/finders/DynamicFinder.h \
     timestepping/ISolver.h \
     post/Point.h \
-    sph/equations/Rotation.h
+    sph/initial/Presets.h \
+    sph/solvers/CollisionSolver.h \
+    system/ArgsParser.h \
+    run/Collision.h \
+    objects/containers/String.h

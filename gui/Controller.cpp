@@ -34,7 +34,7 @@ Controller::Controller(const GuiSettings& settings) {
 Controller::~Controller() = default;
 
 void Controller::Vis::initialize(const GuiSettings& gui) {
-    renderer = makeAuto<ParticleRenderer>(); // makeAuto<SurfaceRenderer>();
+    renderer = makeAuto<ParticleRenderer>(gui);
     colorizer = makeAuto<VelocityColorizer>(gui.get<Interval>(GuiSettingsId::PALETTE_VELOCITY));
     timer = makeAuto<Timer>(gui.get<int>(GuiSettingsId::VIEW_MAX_FRAMERATE), TimerFlags::START_EXPIRED);
     const Point size(gui.get<int>(GuiSettingsId::RENDER_WIDTH), gui.get<int>(GuiSettingsId::RENDER_HEIGHT));
@@ -91,6 +91,9 @@ void Controller::pause() {
 void Controller::stop(const bool waitForFinish) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD); // just to make sure there is no race condition on status
     status = Status::STOPPED;
+    // notify continue CV to unpause run (if it's paused), otherwise we would get deadlock
+    continueVar.notify_one();
+
     if (waitForFinish && sph.thread.joinable()) {
         sph.thread.join();
     }
@@ -167,12 +170,7 @@ bool Controller::isQuitting() const {
 }
 
 Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage, const bool forMovie) const {
-    // there is no difference between 'physical' quantities we wish to see (density, energy, ...) and
-    // other 'internal' quantities (activation strains, yield reduction, ...) in particle storage,
-    // we have to provide a list of colorizers ourselves
-    /// \todo should be loaded from a file
-    // we only add the colorizer if it is contained in the storage
-
+    // Available colorizers for display and movie are currently hardcoded
     Array<ColorizerId> colorizerIds{
         ColorizerId::VELOCITY, ColorizerId::DENSITY_PERTURBATION,
     };
@@ -288,15 +286,18 @@ Optional<Particle> Controller::getIntersectedParticle(const Point position, cons
 void Controller::setColorizer(const SharedPtr<IColorizer>& newColorizer) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
     vis.colorizer = newColorizer;
+    this->tryRedraw();
+}
+
+void Controller::setRenderer(AutoPtr<IRenderer>&& newRenderer) {
+    CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
+    vis.renderer = std::move(newRenderer);
     if (status != Status::RUNNING) {
-        // we can safely access the storage, otherwise the colorizer will be initialized on next timestep
         ASSERT(sph.run);
         SharedPtr<Storage> storage = sph.run->getStorage();
-        if (!storage) {
-            return;
+        if (storage) {
+            vis.renderer->initialize(*storage, *vis.colorizer, *vis.camera);
         }
-        vis.colorizer->initialize(*storage, ColorizerSource::POINTER_TO_STORAGE);
-        vis.renderer->initialize(*storage, *vis.colorizer, *vis.camera);
         window->Refresh();
     }
 }
@@ -323,7 +324,7 @@ SharedPtr<Movie> Controller::createMovie(const Storage& storage) {
     Array<SharedPtr<IColorizer>> colorizers;
     switch (gui.get<RendererEnum>(GuiSettingsId::IMAGES_RENDERER)) {
     case RendererEnum::PARTICLE:
-        renderer = makeAuto<ParticleRenderer>();
+        renderer = makeAuto<ParticleRenderer>(gui);
         colorizers = this->getColorizerList(storage, true);
         break;
     case RendererEnum::SURFACE:
@@ -348,14 +349,6 @@ void Controller::redraw(const Storage& storage, Statistics& stats) {
         vis.stats = makeAuto<Statistics>(stats);
         vis.positions = copyable(storage.getValue<Vector>(QuantityId::POSITIONS));
 
-        // rotate camera in case of non-inertial frame
-        /// \todo this is a little specific, would be better to somehow get it outside of controller
-        if (gui.get<bool>(GuiSettingsId::ORTHO_ROTATE_FRAME) && stats.has(StatisticsId::FRAME_ANGLE)) {
-            const Float phi = stats.get<Float>(StatisticsId::FRAME_ANGLE);
-            vis.camera->transform(Tensor::rotateZ(phi - vis.phi));
-            vis.phi = phi;
-        }
-
         // initialize the currently selected colorizer
         ASSERT(vis.isInitialized());
         vis.colorizer->initialize(storage, ColorizerSource::CACHE_ARRAYS);
@@ -373,6 +366,22 @@ void Controller::redraw(const Storage& storage, Statistics& stats) {
         std::unique_lock<std::mutex> lock(vis.mainThreadMutex);
         executeOnMainThread(functor);
         vis.mainThreadVar.wait(lock);
+    }
+}
+
+void Controller::tryRedraw() {
+    CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
+    if (status != Status::RUNNING && vis.timer->isExpired()) {
+        // we can safely access the storage
+        ASSERT(sph.run);
+        SharedPtr<Storage> storage = sph.run->getStorage();
+        if (!storage) {
+            return;
+        }
+        vis.colorizer->initialize(*storage, ColorizerSource::POINTER_TO_STORAGE);
+        vis.renderer->initialize(*storage, *vis.colorizer, *vis.camera);
+        vis.timer->restart();
+        window->Refresh();
     }
 }
 

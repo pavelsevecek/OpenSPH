@@ -141,20 +141,13 @@ public:
     std::string toString() const;
 };
 
-
-/// Converts all parameters into a string and returns the concatenation, utilizing StringLogger
-template <typename... TArgs>
-INLINE std::string toString(TArgs&&... args) {
-    return StringLogger().write(std::forward<TArgs>(args)...);
-}
-
 /// Exception thrown by FileLogger
 class IoError : public std::exception {
 private:
     std::string message;
 
 public:
-    IoError(const std::string& message)
+    explicit IoError(const std::string& message)
         : message(message) {}
 
     virtual const char* what() const noexcept override {

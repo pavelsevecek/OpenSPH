@@ -5,6 +5,7 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2017
 
+#include "math/Math.h"
 #include "objects/Object.h"
 #include <wx/gdicmn.h>
 
@@ -41,6 +42,5 @@ public:
         return *this;
     }
 };
-
 
 NAMESPACE_SPH_END

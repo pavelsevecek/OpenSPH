@@ -1,5 +1,10 @@
 #pragma once
 
+/// \file BarnesHut.h
+/// \brief Barnes-Hut algorithm for computation of gravitational acceleration
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2017
+
 #include "gravity/IGravity.h"
 #include "objects/containers/List.h"
 #include "objects/finders/KdTree.h"

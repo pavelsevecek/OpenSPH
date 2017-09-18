@@ -1,15 +1,17 @@
-#include "sph/equations/av/Standard.h"
 #include "catch.hpp"
 #include "io/LogFile.h"
 #include "objects/utility/PerElementWrapper.h"
+#include "sph/equations/av/Riemann.h"
+#include "sph/equations/av/Standard.h"
 #include "tests/Approx.h"
 #include "tests/Setup.h"
 #include "utils/SequenceTest.h"
+#include "utils/Utils.h"
 
 using namespace Sph;
 
-TEST_CASE("StandardAV divergent", "[av]") {
-    EquationHolder term = makeTerm<StandardAV>();
+CATCH_TEMPLATE_TEST_CASE_2("AV divergent", "[av]", T, StandardAV, RiemannAV) {
+    EquationHolder term = makeTerm<T>();
     Storage storage = Tests::getGassStorage(10000);
     Tests::computeField(storage, std::move(term), [](const Vector& r) {
         // some divergent velocity field
@@ -20,8 +22,8 @@ TEST_CASE("StandardAV divergent", "[av]") {
     REQUIRE(perElement(dv) == Vector(0._f));
 }
 
-TEST_CASE("StandardAV shockwave", "[av]") {
-    EquationHolder term = makeTerm<StandardAV>();
+CATCH_TEMPLATE_TEST_CASE_2("AV shockwave", "[av]", T, StandardAV, RiemannAV) {
+    EquationHolder term = makeTerm<T>();
     BodySettings body;
     body.set(BodySettingsId::DENSITY, 1._f).set(BodySettingsId::ENERGY, 1._f);
     Storage storage = Tests::getGassStorage(10000, body);

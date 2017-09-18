@@ -25,7 +25,7 @@ public:
     Path outputDir;
 
     /// Path to the parent directory of outputDir
-    Path resultsDir{ "/home/pavel/projects/astro/sph/result/" };
+    Path resultsDir{ "." }; /// home/pavel/projects/astro/sph/result/" };
 
     /// Path to the source code, used to get git commit hash
     Path sourceDir{ "/home/pavel/projects/astro/sph/src/" };
@@ -68,15 +68,15 @@ private:
             .set(GuiSettingsId::PARTICLE_RADIUS, 0.3_f)
             .set(GuiSettingsId::ORTHO_CUTOFF, 5.e2_f)
             .set(GuiSettingsId::ORTHO_PROJECTION, OrthoEnum::XY)
-            .set(GuiSettingsId::ORTHO_ROTATE_FRAME, true)
             .set(GuiSettingsId::IMAGES_SAVE, true)
             .set(GuiSettingsId::IMAGES_TIMESTEP, 0.1_f)
-            //.set(GuiSettingsId::IMAGES_RENDERER, int(RendererEnum::SURFACE))
-            //.set(GuiSettingsId::IMAGES_WIDTH, 1024)
-            //.set(GuiSettingsId::IMAGES_HEIGHT, 768)
-            //.set(GuiSettingsId::ORTHO_CUTOFF, 0._f)
-            .set(GuiSettingsId::SURFACE_RESOLUTION, 70._f)
-            .set(GuiSettingsId::SURFACE_LEVEL, 0.3_f);
+            .set(GuiSettingsId::RENDERER, int(RendererEnum::SURFACE))
+            .set(GuiSettingsId::SURFACE_SUN_POSITION, getNormalized(Vector(-0.3_f, -0.4_f, 0.4_f)))
+            .set(GuiSettingsId::SURFACE_SUN_INTENSITY, 0.8_f)
+            .set(GuiSettingsId::SURFACE_AMBIENT, 0.1_f)
+            .set(GuiSettingsId::SURFACE_RESOLUTION, 150._f)
+            .set(GuiSettingsId::SURFACE_LEVEL, 0.9_f);
+        //.set(GuiSettingsId::ORTHO_CUTOFF, 0._f);
 
         AutoPtr<AsteroidCollision> run = makeAuto<AsteroidCollision>();
 

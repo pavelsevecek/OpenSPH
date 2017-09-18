@@ -1,10 +1,9 @@
 #pragma once
 
-/// Implementation of number with atomic operators, defined using compare-exchange. This is mainly intended
-/// for floating-point values (floats and doubles), as atomic operations for integral types are supplied by
-/// the compiler.
-/// Pavel Sevecek 2017
-/// sevecek at sirrah.troja.mff.cuni
+/// \file AtomicFloat.h
+/// \brief Implementation of number with atomic operators.
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2017
 
 #include "common/Assert.h"
 #include "common/Globals.h"
@@ -12,6 +11,10 @@
 
 NAMESPACE_SPH_BEGIN
 
+/// \brief Atomic value implemented using compare-exchange.
+///
+/// This is mainly intended for floating-point values (floats and doubles), as atomic operations for integral
+/// types are supplied by the compiler.
 template <typename Type>
 class Atomic {
 private:

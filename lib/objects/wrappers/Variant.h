@@ -1,9 +1,9 @@
 #pragma once
 
 /// \file Variant.h
-/// \brief Object capable of storing values of different time, having only one value (and one type) in any
-/// moment.
+/// \brief Object capable of storing values of different types
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2017
 
 #include "common/Assert.h"
 #include "common/Globals.h"
@@ -160,7 +160,7 @@ struct VariantIterator<T0> {
 static constexpr struct ConstructTypeIdxTag {
 } CONSTRUCT_TYPE_IDX;
 
-/// Variant, an implementation of type-safe union, similar to std::variant or boost::variant.
+/// \brief Variant, an implementation of type-safe union, similar to std::variant or boost::variant.
 template <typename... TArgs>
 class Variant {
 private:

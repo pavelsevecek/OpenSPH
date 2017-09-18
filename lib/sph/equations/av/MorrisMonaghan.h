@@ -51,7 +51,7 @@ public:
             for (Size k = 0; k < neighs.size(); ++k) {
                 const Size j = neighs[k];
                 const Float Pi = operator()(i, j);
-                const Float heating = Pi * dot(v[i] - v[j], grads[k]);
+                const Float heating = 0.5_f * Pi * dot(v[i] - v[j], grads[k]);
 
                 dv[i] += m[j] * Pi * grads[k];
                 du[i] += m[j] * heating;
