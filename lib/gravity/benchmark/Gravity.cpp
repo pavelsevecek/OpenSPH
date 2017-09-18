@@ -2,7 +2,6 @@
 #include "gravity/BarnesHut.h"
 #include "gravity/BruteForceGravity.h"
 #include "gravity/Moments.h"
-#include "gravity/VoxelGravity.h"
 #include "system/Settings.h"
 #include "tests/Setup.h"
 
@@ -66,13 +65,3 @@ BENCHMARK("BarnesHut Monopole 0.5", "[gravity]", Benchmark::Context& context) {
     BarnesHut gravity(0.5_f, MultipoleOrder::MONOPOLE);
     benchmarkGravity(gravity, context);
 }
-
-/*BENCHMARK("Voxel Octupole 0.5", "[gravity]", Benchmark::Context& context) {
-    VoxelGravity gravity(0.5_f, MultipoleOrder::OCTUPOLE);
-    benchmarkGravity(gravity, context);
-}
-
-BENCHMARK("Voxel Monopole 0.5", "[gravity]", Benchmark::Context& context) {
-    VoxelGravity gravity(0.5_f, MultipoleOrder::MONOPOLE);
-    benchmarkGravity(gravity, context);
-}*/

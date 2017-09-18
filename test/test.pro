@@ -41,7 +41,6 @@ SOURCES += \
     ../lib/gravity/test/BarnesHut.cpp \
     ../lib/gravity/test/BruteForceGravity.cpp \
     ../lib/gravity/test/Moments.cpp \
-    ../lib/gravity/test/VoxelGravity.cpp \
     ../lib/io/test/FileSystem.cpp \
     ../lib/io/test/Logger.cpp \
     ../lib/io/test/Output.cpp \
@@ -116,7 +115,6 @@ SOURCES += \
     ../lib/sph/boundary/test/Boundary.cpp \
     ../lib/sph/equations/av/test/Balsara.cpp \
     ../lib/sph/equations/av/test/MorrisMonaghan.cpp \
-    ../lib/sph/equations/av/test/Standard.cpp \
     ../lib/sph/equations/av/test/Stress.cpp \
     ../lib/sph/equations/heat/test/HeatDiffusion.cpp \
     ../lib/sph/equations/test/Accumulated.cpp \
@@ -152,7 +150,8 @@ SOURCES += \
     ../lib/timestepping/test/TimeStepping.cpp \
     utils/Approx.cpp \
     utils/SequenceTest.cpp \
-    utils/Utils.cpp
+    utils/Utils.cpp \
+    ../lib/sph/equations/av/test/AV.cpp
 
 HEADERS += \
     utils/Utils.h \

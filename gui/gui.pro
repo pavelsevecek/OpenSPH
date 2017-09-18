@@ -74,4 +74,5 @@ HEADERS += \
     windows/PlotView.h \
     objects/GraphicsContext.h \
     objects/SvgContext.h \
-    ArcBall.h
+    ArcBall.h \
+    windows/IGraphicsPane.h

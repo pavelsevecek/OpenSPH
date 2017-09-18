@@ -4,6 +4,7 @@
 /// \brief Date and time routines
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2017
+
 #include "common/Globals.h"
 #include "math/Math.h"
 #include <string>

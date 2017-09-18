@@ -3,16 +3,18 @@
 #include "common/Globals.h"
 #include "objects/wrappers/Outcome.h"
 
-/// Pavel Sevecek 2017
-/// sevecek at sirrah.troja.mff.cuni.cz
+/// \file SequenceTest.h
+/// \brief Helper class for perfoming larger number of related tests.
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2017
 
 NAMESPACE_SPH_BEGIN
 
-/// Helper class for perfoming larger number of related tests. Useful to get better error report in case test
-/// fails.
+/// \brief Helper class for perfoming larger number of related tests.
 ///
-/// Template parameter Test must implement operator()(Size idx) that runs idx-th test. Operator shall return
-/// Outcome object, containing success if test passed or error message if test failed.
+/// Useful to get better error report in case test fails. Template parameter Test must implement
+/// operator()(Size idx) that runs idx-th test. Operator shall return Outcome object, containing success if
+/// test passed or error message if test failed.
 template <typename Test>
 class SequenceTest {
 private:

@@ -1,8 +1,9 @@
 #pragma once
 
-/// Objects for generating random vectors.
-/// Pavel Sevecek 2016
-/// sevecek at sirrah.troja.mff.cuni.cz
+/// \file VectorRng.h
+/// \brief Objects for generating random vectors.
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2017
 
 #include "math/rng/Rng.h"
 
@@ -34,7 +35,9 @@ public:
         return *this;
     }
 
-    Vector operator()() { return Vector(rngImpl(0), rngImpl(1), rngImpl(2)); }
+    Vector operator()() {
+        return Vector(rngImpl(0), rngImpl(1), rngImpl(2));
+    }
 
     /// Generates additional random numbers, can be viewed as extension of vector to more dimensions.
     /// \param i Index of dimension, must be at least 3 as first three dimensions belong to the vector.

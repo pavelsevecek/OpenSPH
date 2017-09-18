@@ -12,7 +12,7 @@
 NAMESPACE_SPH_BEGIN
 
 OrthoPane::OrthoPane(wxWindow* parent, Controller* controller, const GuiSettings& gui)
-    : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize)
+    : IGraphicsPane(parent)
     , controller(controller) {
     const int width = gui.get<int>(GuiSettingsId::RENDER_WIDTH);
     const int height = gui.get<int>(GuiSettingsId::RENDER_HEIGHT);

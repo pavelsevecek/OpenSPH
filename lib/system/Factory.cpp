@@ -1,7 +1,6 @@
 #include "system/Factory.h"
 #include "gravity/BarnesHut.h"
 #include "gravity/BruteForceGravity.h"
-#include "gravity/VoxelGravity.h"
 #include "io/Logger.h"
 #include "math/rng/Rng.h"
 #include "objects/finders/BruteForceFinder.h"
@@ -17,6 +16,7 @@
 #include "sph/boundary/Boundary.h"
 #include "sph/equations/av/Balsara.h"
 #include "sph/equations/av/MorrisMonaghan.h"
+#include "sph/equations/av/Riemann.h"
 #include "sph/initial/Distribution.h"
 #include "sph/solvers/ContinuitySolver.h"
 #include "sph/solvers/DensityIndependentSolver.h"
@@ -86,6 +86,8 @@ AutoPtr<IEquationTerm> Factory::getArtificialViscosity(const RunSettings& settin
         return nullptr;
     case ArtificialViscosityEnum::STANDARD:
         return makeAV<StandardAV>(settings, balsara);
+    case ArtificialViscosityEnum::RIEMANN:
+        return makeAV<RiemannAV>(settings, balsara);
     case ArtificialViscosityEnum::MORRIS_MONAGHAN:
         return makeAV<MorrisMonaghanAV>(settings, balsara);
     default:
@@ -213,7 +215,6 @@ AutoPtr<IGravity> Factory::getGravity(const RunSettings& settings) {
     }
     case GravityEnum::VOXEL:
         NOT_IMPLEMENTED;
-    // return makeAuto<VoxelGravity>(theta, order, std::move(kernel));
     default:
         NOT_IMPLEMENTED;
     }

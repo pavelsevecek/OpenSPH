@@ -41,7 +41,6 @@ CONFIG(debug, debug|profile|assert|release) {
 SOURCES += \
     common/Assert.cpp \
     gravity/BarnesHut.cpp \
-    gravity/VoxelGravity.cpp \
     io/FileSystem.cpp \
     io/Logger.cpp \
     io/Output.cpp \
@@ -101,7 +100,6 @@ HEADERS += \
     gravity/BruteForceGravity.h \
     gravity/IGravity.h \
     gravity/Moments.h \
-    gravity/VoxelGravity.h \
     io/Column.h \
     io/FileSystem.h \
     io/LogFile.h \

@@ -13,6 +13,7 @@ class wxCheckBox;
 NAMESPACE_SPH_BEGIN
 
 class IColorizer;
+class IGraphicsPane;
 class IPlot;
 class Controller;
 class OrthoPane;
@@ -33,9 +34,8 @@ private:
     /// Gui settings
     GuiSettings gui;
 
-    /// Drawing pane
-    /// \todo used some virtual base class instead of directly orthopane
-    RawPtr<OrthoPane> pane;
+    /// Drawing pane (owned by wxWidgets)
+    RawPtr<IGraphicsPane> pane;
 
     RawPtr<ParticleProbe> probe;
 

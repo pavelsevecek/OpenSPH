@@ -5,7 +5,6 @@
 #include "objects/Bitmap.h"
 #include "objects/containers/BufferedArray.h"
 
-#include <thread>
 #include <wx/glcanvas.h>
 #include <wx/timer.h>
 #include <wx/wx.h>

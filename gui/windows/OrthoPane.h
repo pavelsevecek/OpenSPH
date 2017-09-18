@@ -3,7 +3,7 @@
 #include "gui/ArcBall.h"
 #include "gui/Settings.h"
 #include "gui/objects/Point.h"
-#include <wx/panel.h>
+#include "gui/windows/IGraphicsPane.h"
 
 class wxTimer;
 
@@ -11,7 +11,7 @@ NAMESPACE_SPH_BEGIN
 
 class Controller;
 
-class OrthoPane : public wxPanel {
+class OrthoPane : public IGraphicsPane {
 private:
     Controller* controller;
 
@@ -35,7 +35,7 @@ public:
 
     ~OrthoPane();
 
-    void resetView() {
+    virtual void resetView() override {
         dragging.initialMatrix = AffineMatrix::identity();
     }
 
