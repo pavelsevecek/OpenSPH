@@ -24,7 +24,7 @@ protected:
     virtual void rebuildImpl(ArrayView<const Vector> points) override;
 
 public:
-    DynamicFinder(const RunSettings& settings);
+    explicit DynamicFinder(const RunSettings& settings);
 
     virtual Size findNeighbours(const Size index,
         const Float radius,

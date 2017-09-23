@@ -123,6 +123,7 @@ SOURCES += \
     ../lib/sph/equations/test/Friction.cpp \
     ../lib/sph/equations/test/GradH.cpp \
     ../lib/sph/equations/test/Potentials.cpp \
+    ../lib/sph/equations/test/Rotation.cpp \
     ../lib/sph/equations/test/XSph.cpp \
     ../lib/sph/initial/test/Distribution.cpp \
     ../lib/sph/initial/test/Initial.cpp \

@@ -141,7 +141,7 @@ private:
     Float startTime = 0._f;
 
     /// Velocity damping constant
-    Float delta = 0._f;
+    Float delta = 0.1_f;
 
     /// Denotes the phase of the simulation
     bool impactStarted = false;
@@ -184,6 +184,13 @@ public:
                 v[i] = (v[i] - rotation) / factor + rotation;
                 ASSERT(isReal(v[i]));
             }
+
+            if (storage.has(QuantityId::DAMAGE)) {
+                ArrayView<Float> d = storage.getValue<Float>(QuantityId::DAMAGE);
+                for (Size i = 0; i < d.size(); ++i) {
+                    d[i] = 0._f;
+                }
+            }
             //  this->smoothDensity(storage);
         }
         if (t > startTime && !impactStarted) {
@@ -221,7 +228,7 @@ private:
         equations += makeTerm<NoninertialForce>(omega);
 
         // rotation of particles
-        equations += makeTerm<Rotation>(settings);
+        //   equations += makeTerm<SolidStressTorque>(settings);
 
         // gravity (approximation)
         equations += makeTerm<SphericalGravity>(SphericalGravity::Options::ASSUME_HOMOGENEOUS);
@@ -338,14 +345,14 @@ void AsteroidCollision::setUp() {
         .set(BodySettingsId::PARTICLE_COUNT, 100'000)
         .set(BodySettingsId::EOS, EosEnum::TILLOTSON)
         .set(BodySettingsId::STRESS_TENSOR_MIN, 1.e5_f)
-        .set(BodySettingsId::RHEOLOGY_DAMAGE, DamageEnum::NONE)
+        .set(BodySettingsId::RHEOLOGY_DAMAGE, DamageEnum::SCALAR_GRADY_KIPP)
         .set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::VON_MISES)
         .set(BodySettingsId::DISTRIBUTE_MODE_SPH5, true);
     body.saveToFile(outputDir / Path("target.sph"));
 
     storage = makeShared<Storage>();
 
-    const Vector targetOmega(0._f, 0._f, 2._f * PI / (3._f * 3600._f));
+    const Vector targetOmega(0._f, 0._f, 0._f); // 2._f * PI / (0.2_f * 3600._f));
 
     AutoPtr<CollisionSolver> collisionSolver =
         makeAuto<CollisionSolver>(settings, body, targetOmega, outputDir);
@@ -411,7 +418,7 @@ void AsteroidCollision::tearDown() {
     Array<Post::SfdPoint> sfd = Post::getCummulativeSfd(output, {});
     FileLogger logSfd(outputDir / Path("sfd.txt"), FileLogger::Options::KEEP_OPENED);
     for (Post::SfdPoint& p : sfd) {
-        logSfd.write(p.radius, "  ", p.count);
+        logSfd.write(p.value, "  ", p.count);
     }
 
     // copy pkdgrav files (ss.[0-5][0-5]000) to output directory

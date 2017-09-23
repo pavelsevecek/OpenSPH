@@ -500,6 +500,12 @@ enum class RunSettingsId {
     /// derivatives.
     SPH_CONSERVE_ANGULAR_MOMENTUM,
 
+    /// Add equations evolving particle angular velocity
+    SPH_PARTICLE_ROTATION,
+
+    /// Evolve particle phase angle
+    SPH_PHASE_ANGLE,
+
     /// Eta-factor between smoothing length and particle concentration (h = eta * n^(-1/d) )
     SPH_KERNEL_ETA,
 

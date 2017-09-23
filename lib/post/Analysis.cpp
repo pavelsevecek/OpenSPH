@@ -276,6 +276,13 @@ static Array<Float> getBodiesRadii(const Storage& storage,
             }
             break;
         }
+        case Post::HistogramId::ANGULAR_VELOCITIES: {
+            ArrayView<const Vector> omega = storage.getValue<Vector>(QuantityId::ANGULAR_VELOCITY);
+            for (Size i = 0; i < omega.size(); ++i) {
+                values[i] = getLength(omega[i]);
+            }
+            break;
+        }
         default:
             const QuantityId quantityId = QuantityId(id);
             ASSERT((int)quantityId >= 0);
@@ -306,6 +313,7 @@ static Array<Float> getBodiesRadii(const Storage& storage,
             Array<Float> radii(numComponents);
             for (Size i = 0; i < numComponents; ++i) {
                 radii[i] = root<3>(values[i]);
+                ASSERT(isReal(radii[i]) && radii[i] > 0._f, radii[i]);
             }
             std::sort(radii.begin(), radii.end());
             return radii;
@@ -345,9 +353,12 @@ Array<Post::SfdPoint> Post::getCummulativeSfd(const Storage& storage, const Post
     Interval range = params.range;
     if (range.empty()) {
         for (Float r : radii) {
-            range.extend(r);
+            if (params.validator->include(r)) {
+                range.extend(r);
+            }
         }
     }
+    ASSERT(!range.empty());
 
     Array<SfdPoint> histogram;
     Size count = 1;
@@ -355,7 +366,7 @@ Array<Post::SfdPoint> Post::getCummulativeSfd(const Storage& storage, const Post
     // iterate in reverse order - from largest radii to smallest ones
     for (Float r : reverse(radii)) {
         if (r < lastR) {
-            if (range.contains(r)) {
+            if (range.contains(r) && params.validator->include(r)) {
                 histogram.push(SfdPoint{ r, count });
             }
             lastR = r;
@@ -371,11 +382,14 @@ Array<Post::SfdPoint> Post::getDifferentialSfd(const Storage& storage, const His
     Array<Float> radii = getBodiesRadii(storage, params, params.id);
 
     Interval range = params.range;
-    if (range == Interval::unbounded()) {
+    if (range.empty()) {
         for (Float r : radii) {
-            range.extend(r);
+            if (params.validator->include(r)) {
+                range.extend(r);
+            }
         }
     }
+    ASSERT(!range.empty());
 
     Size binCnt = params.binCnt;
     if (binCnt == 0) {
@@ -388,6 +402,9 @@ Array<Post::SfdPoint> Post::getDifferentialSfd(const Storage& storage, const His
     // check for case where only one body/particle exists
     const bool singular = range.size() == 0;
     for (Float r : radii) {
+        if (!params.validator->include(r)) {
+            continue;
+        }
         // get bin index
         Size binIdx;
         if (singular) {
@@ -407,6 +424,7 @@ Array<Post::SfdPoint> Post::getDifferentialSfd(const Storage& storage, const His
     Array<SfdPoint> histogram(binCnt);
     for (Size i = 0; i < binCnt; ++i) {
         histogram[i] = { range.lower() + (i * range.size()) / binCnt, sfd[i] };
+        ASSERT(isReal(histogram[i].value));
     }
     return histogram;
 }
@@ -468,7 +486,7 @@ Expected<Storage> Post::parsePkdgravOutput(const Path& path) {
     // 6) Velocities (3 components)
     output.add(makeAuto<DerivativeColumn<Vector>>(QuantityId::POSITIONS));
 
-    // 7) Angular velocities ? (3 components)
+    // 7) Angular velocities (3 components)
     output.add(makeAuto<ValueColumn<Vector>>(QuantityId::ANGULAR_VELOCITY));
 
     // 8) Color index -- skip
@@ -486,6 +504,8 @@ Expected<Storage> Post::parsePkdgravOutput(const Path& path) {
     Array<Vector>& v = storage.getDt<Vector>(QuantityId::POSITIONS);
     Array<Float>& m = storage.getValue<Float>(QuantityId::MASSES);
     Array<Float>& rho = storage.getValue<Float>(QuantityId::DENSITY);
+    Array<Vector>& omega = storage.getValue<Vector>(QuantityId::ANGULAR_VELOCITY);
+
     for (Size i = 0; i < r.size(); ++i) {
         r[i] *= conversion.distance;
         v[i] *= conversion.velocity;
@@ -499,6 +519,8 @@ Expected<Storage> Post::parsePkdgravOutput(const Path& path) {
         // replace the radius with actual density
         /// \todo too high, fix
         rho[i] = m[i] / pow<3>(rho[i]);
+
+        /// \todo convert units of omega
     }
 
     // sort
@@ -508,6 +530,7 @@ Expected<Storage> Post::parsePkdgravOutput(const Path& path) {
     sort(v, order);
     sort(m, order);
     sort(rho, order);
+    sort(omega, order);
     return std::move(storage);
 }
 

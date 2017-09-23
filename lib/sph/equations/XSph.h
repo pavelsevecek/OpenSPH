@@ -31,7 +31,7 @@ private:
         Float epsilon;
 
     public:
-        Derivative(const RunSettings& settings)
+        explicit Derivative(const RunSettings& settings)
             : kernel(Factory::getKernel<DIMENSIONS>(settings)) {
             epsilon = settings.get<Float>(RunSettingsId::XSPH_EPSILON);
         }

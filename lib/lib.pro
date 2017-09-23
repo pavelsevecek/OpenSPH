@@ -195,6 +195,7 @@ HEADERS += \
     quantities/QuantityIds.h \
     quantities/Storage.h \
     run/IRun.h \
+    run/RunCallbacks.h \
     sph/Diagnostics.h \
     sph/Materials.h \
     sph/boundary/Boundary.h \

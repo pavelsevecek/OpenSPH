@@ -117,7 +117,7 @@ void HistogramPlot::onTimeStep(const Storage& storage, const Statistics& UNUSED(
 
     this->clear();
     for (Post::SfdPoint& p : points) {
-        ranges.x.extend(p.radius);
+        ranges.x.extend(p.value);
         ranges.y.extend(p.count);
     }
 }
@@ -132,9 +132,9 @@ void HistogramPlot::plot(IDrawingContext& dc) const {
     }
     for (Size i = 0; i < points.size() - 1; ++i) {
         dc.drawLine(
-            { points[i].radius, Float(points[i].count) }, { points[i + 1].radius, Float(points[i].count) });
-        dc.drawLine({ points[i + 1].radius, Float(points[i].count) },
-            { points[i + 1].radius, Float(points[i + 1].count) });
+            { points[i].value, Float(points[i].count) }, { points[i + 1].value, Float(points[i].count) });
+        dc.drawLine({ points[i + 1].value, Float(points[i].count) },
+            { points[i + 1].value, Float(points[i + 1].count) });
     }
 }
 

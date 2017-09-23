@@ -116,12 +116,12 @@ void FrozenParticles::finalize(Storage& storage) {
     if (domain) {
         // project particles outside of the domain onto the boundary
         domain->getSubset(r, idxs, SubsetType::OUTSIDE);
-        domain->project(r, idxs.getView());
+        domain->project(r, idxs.view());
 
         // freeze particles close to the boundary
-        idxs.clear();
         domain->getDistanceToBoundary(r, distances);
         for (Size i = 0; i < r.size(); ++i) {
+            ASSERT(distances[i] >= -EPS);
             if (distances[i] < radius * r[i][H]) {
                 idxs.push(i);
             }
@@ -139,7 +139,7 @@ void FrozenParticles::finalize(Storage& storage) {
     }
 
     // set all highest derivatives of flagged particles to zero
-    iterate<VisitorEnum::HIGHEST_DERIVATIVES>(storage, [this](QuantityId, auto&& d2f) {
+    iterate<VisitorEnum::HIGHEST_DERIVATIVES>(storage, [this](QuantityId, auto& d2f) {
         using T = typename std::decay_t<decltype(d2f)>::Type;
         for (Size i : idxs) {
             d2f[i] = T(0._f);

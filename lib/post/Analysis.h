@@ -57,6 +57,16 @@ namespace Post {
 
         /// Particle velocities
         VELOCITIES = -2,
+
+        /// Angular velocities of particles
+        ANGULAR_VELOCITIES = -3,
+    };
+
+    class HistogramValidator : public Polymorphic {
+    public:
+        virtual bool include(const Float& UNUSED(value)) const {
+            return true;
+        }
     };
 
     /// Parameters of the histogram
@@ -87,12 +97,17 @@ namespace Post {
         struct ComponentParams {
             Float radius = 2._f;
         } components;
+
+        /// Validator used to determine particles/component included in the histogram
+        ///
+        /// By default, all particles/components are included
+        AutoPtr<HistogramValidator> validator = makeAuto<HistogramValidator>();
     };
 
     /// Point in SFD
     struct SfdPoint {
-        /// Radius (x coordinate in the plot)
-        Float radius;
+        /// Radius or value of measured quantity (x coordinate in the plot)
+        Float value;
 
         /// Number of particles/components
         Size count;

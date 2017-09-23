@@ -73,7 +73,7 @@ private:
     Float power;
 
 public:
-    DerivativeCriterion(const RunSettings& settings);
+    explicit DerivativeCriterion(const RunSettings& settings);
 
     virtual Tuple<Float, CriterionId> compute(Storage& storage,
         const Float maxStep,
@@ -105,7 +105,7 @@ private:
     Float courant;
 
 public:
-    CourantCriterion(const RunSettings& settings);
+    explicit CourantCriterion(const RunSettings& settings);
 
     /// Storage must contain at least positions of particles and sound speed, checked by assert.
     virtual Tuple<Float, CriterionId> compute(Storage& storage,
@@ -123,7 +123,7 @@ private:
     StaticArray<AutoPtr<ITimeStepCriterion>, 3> criteria;
 
 public:
-    MultiCriterion(const RunSettings& settings);
+    explicit MultiCriterion(const RunSettings& settings);
 
     virtual Tuple<Float, CriterionId> compute(Storage& storage,
         const Float maxStep,

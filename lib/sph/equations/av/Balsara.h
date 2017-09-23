@@ -40,7 +40,7 @@ class BalsaraSwitch : public IEquationTerm {
         const Float eps = 1.e-4_f;
 
     public:
-        Derivative(const RunSettings& settings)
+        explicit Derivative(const RunSettings& settings)
             : av(makeFromSettings<typename AV::Derivative>(settings)) {}
 
         virtual void create(Accumulated& results) override {
@@ -90,7 +90,7 @@ class BalsaraSwitch : public IEquationTerm {
     bool storeFactor;
 
 public:
-    BalsaraSwitch(const RunSettings& settings)
+    explicit BalsaraSwitch(const RunSettings& settings)
         : av(makeFromSettings<AV>(settings)) {
         storeFactor = settings.get<bool>(RunSettingsId::SPH_AV_BALSARA_STORE);
     }

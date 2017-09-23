@@ -2,7 +2,7 @@
 
 #include "gui/Controller.h"
 #include "gui/objects/Movie.h"
-#include "system/Callbacks.h"
+#include "run/RunCallbacks.h"
 #include "system/Statistics.h"
 
 NAMESPACE_SPH_BEGIN

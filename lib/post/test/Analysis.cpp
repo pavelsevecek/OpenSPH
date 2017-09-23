@@ -114,7 +114,7 @@ TEST_CASE("CummulativeSfd", "[post]") {
     REQUIRE(expected.size() == points.size());
 
     auto predicate = [](Post::SfdPoint& p1, Post::SfdPoint& p2) { //
-        return p1.radius == p2.radius && p1.count == p2.count;
+        return p1.value == p2.value && p1.count == p2.count;
     };
     REQUIRE(std::equal(points.begin(), points.end(), expected.begin(), predicate));
 }

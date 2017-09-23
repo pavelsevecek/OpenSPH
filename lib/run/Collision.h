@@ -47,7 +47,7 @@ private:
     bool impactStarted = false;
 
 public:
-    CollisionSolver(const RunSettings& settings)
+    explicit CollisionSolver(const RunSettings& settings)
         : GenericSolver(settings, this->getEquations(settings)) {
         timeRange = settings.get<Interval>(RunSettingsId::RUN_TIME_RANGE);
     }

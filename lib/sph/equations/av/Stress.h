@@ -37,7 +37,7 @@ private:
         ArrayView<Float> du;
 
     public:
-        Derivative(const RunSettings& settings) {
+        explicit Derivative(const RunSettings& settings) {
             kernel = Factory::getKernel<3>(settings);
             n = settings.get<Float>(RunSettingsId::SPH_AV_STRESS_EXPONENT);
             xi = settings.get<Float>(RunSettingsId::SPH_AV_STRESS_FACTOR);

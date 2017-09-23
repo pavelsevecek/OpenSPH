@@ -6,7 +6,7 @@
 NAMESPACE_SPH_BEGIN
 
 /// \todo heavy duplication of stress derivative
-class RotationDerivative : public DerivativeTemplate<RotationDerivative> {
+class RotationStressDivergence : public DerivativeTemplate<RotationStressDivergence> {
 private:
     ArrayView<const Float> rho, m, I;
     ArrayView<const TracelessTensor> s;
@@ -44,36 +44,93 @@ public:
             const Vector torque = 0.5_f * cross(r[j] - r[i], force);
             ASSERT(isReal(force) && isReal(torque));
             domega[i] += m[i] / I[i] * m[j] * torque;
+            ASSERT(isReal(domega[i]));
 
             if (Symmetrize) {
-                domega[i] += m[j] / I[j] * m[i] * torque;
+                domega[j] += m[j] / I[j] * m[i] * torque;
+                ASSERT(isReal(domega[j]));
             }
         }
     }
 };
 
 
-class Rotation : public IEquationTerm {
+class RotationStrengthVelocityGradient : public DerivativeTemplate<RotationStrengthVelocityGradient> {
+private:
+    ArrayView<const Float> rho, m;
+    ArrayView<const Vector> r, omega;
+    ArrayView<const Size> idxs;
+    ArrayView<const Float> reduce;
+    ArrayView<SymmetricTensor> deriv;
+
+public:
+    virtual void create(Accumulated& results) override {
+        results.insert<SymmetricTensor>(QuantityId::STRENGTH_VELOCITY_GRADIENT, OrderEnum::ZERO);
+    }
+
+    virtual void initialize(const Storage& input, Accumulated& results) override {
+        tie(rho, m) = input.getValues<Float>(QuantityId::DENSITY, QuantityId::MASSES);
+        tie(r, omega) = input.getValues<Vector>(QuantityId::POSITIONS, QuantityId::ANGULAR_VELOCITY);
+        idxs = input.getValue<Size>(QuantityId::FLAG);
+        reduce = input.getValue<Float>(QuantityId::STRESS_REDUCING);
+
+        deriv = results.getBuffer<SymmetricTensor>(QuantityId::STRENGTH_VELOCITY_GRADIENT, OrderEnum::ZERO);
+    }
+
+    template <bool Symmetrize>
+    INLINE void eval(const Size i, ArrayView<const Size> neighs, ArrayView<const Vector> grads) {
+        ASSERT(neighs.size() == grads.size());
+        for (Size k = 0; k < neighs.size(); ++k) {
+            const Size j = neighs[k];
+            if (idxs[i] != idxs[j] || reduce[i] == 0._f || reduce[j] == 0._f) {
+                continue;
+            }
+            const Vector domega = omega[j] - omega[i];
+            const Vector dr = r[j] - r[i];
+            const Vector dv = cross(domega, dr);
+            const SymmetricTensor t = outer(dv, grads[k]);
+            ASSERT(isReal(t));
+            deriv[i] -= m[j] / rho[j] * t;
+            if (Symmetrize) {
+                deriv[j] += m[i] / rho[i] * t;
+            }
+        }
+    }
+};
+
+class SolidStressTorque : public IEquationTerm {
 private:
     /// Dimensionless moment of inertia
     ///
     /// Computed by computing integral \f[\int r^2_\perp W(r) dV \f] for selected kernel
     Float inertia;
 
+    bool evolveAngle;
+
 public:
-    explicit Rotation(const RunSettings& settings) {
+    explicit SolidStressTorque(const RunSettings& settings) {
         const KernelEnum kernel = settings.get<KernelEnum>(RunSettingsId::SPH_KERNEL);
         switch (kernel) {
         case KernelEnum::CUBIC_SPLINE:
-            inertia = 0.02_f; // 0.6
+            inertia = 0.6_f;
             break;
         default:
             NOT_IMPLEMENTED;
         }
+
+        evolveAngle = settings.get<bool>(RunSettingsId::SPH_PHASE_ANGLE);
+    }
+
+    /// \brief Returns the dimensionless moment of inertia of particles.
+    ///
+    /// Exposed mainly for testing purposes.
+    INLINE Float getInertia() const {
+        return inertia;
     }
 
     virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override {
-        derivatives.require<RotationDerivative>(settings);
+        derivatives.require<RotationStressDivergence>(settings);
+        /// \todo derivatives.require<RotationStrengthVelocityGradient>(settings);
     }
 
     virtual void initialize(Storage& storage) override {
@@ -82,10 +139,21 @@ public:
         ArrayView<Float> I = storage.getValue<Float>(QuantityId::MOMENT_OF_INERTIA);
         for (Size i = 0; i < r.size(); ++i) {
             I[i] = inertia * m[i] * sqr(r[i][H]);
+            ASSERT(isReal(I[i]) && I[i] > EPS);
         }
     }
 
-    virtual void finalize(Storage& UNUSED(storage)) override {}
+    virtual void finalize(Storage& storage) override {
+        if (evolveAngle) {
+            // copy angular velocity into the phase angle derivative (they are separate quantities)
+            ArrayView<Vector> dphi = storage.getDt<Vector>(QuantityId::PHASE_ANGLE);
+            ArrayView<Vector> omega = storage.getValue<Vector>(QuantityId::ANGULAR_VELOCITY);
+            for (Size i = 0; i < omega.size(); ++i) {
+                dphi[i] = omega[i];
+                ASSERT(maxElement(abs(omega[i])) < 1.e6_f, omega[i]);
+            }
+        }
+    }
 
     virtual void create(Storage& storage, IMaterial& material) const override {
         // although we should evolve phase angle as second-order quantity rather than angular velocity, the
@@ -94,6 +162,14 @@ public:
 
         // let the angular velocity be unbounded and not affecting timestepping
         material.setRange(QuantityId::ANGULAR_VELOCITY, Interval::unbounded(), LARGE);
+
+        // if needed (for testing purposes), evolve phase angle as a separate first order quantity; this is a
+        // waste of one buffer as we need to copy angular velocities between quantities, but it makes no sense
+        // to use in final runs anyway.
+        if (evolveAngle) {
+            storage.insert<Vector>(QuantityId::PHASE_ANGLE, OrderEnum::FIRST, Vector(0._f));
+            material.setRange(QuantityId::PHASE_ANGLE, Interval::unbounded(), LARGE);
+        }
 
         // we can set it to here, it will be overwritten in \ref initialize anyway
         storage.insert<Float>(QuantityId::MOMENT_OF_INERTIA, OrderEnum::ZERO, 0._f);

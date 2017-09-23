@@ -14,90 +14,178 @@ NAMESPACE_SPH_BEGIN
 enum class QuantityId {
     /// \name Common quantities
     ///@{
-    POSITIONS,   ///< Positions (velocities, accelerations) of particles, always a vector quantity,
-    MASSES,      ///< Paricles masses, always a scalar quantity.
-    PRESSURE,    ///< Pressure, not affected by yielding or fragmentation model, always a scalar quantity.
-    DENSITY,     ///< Density, always a scalar quantity.
-    ENERGY,      ///< Specific internal energy, always a scalar quantity.
-    SOUND_SPEED, ///< Sound speed, always a scalar quantity.
-    DEVIATORIC_STRESS, ///< Deviatoric stress tensor, always a traceless tensor.
-    SPECIFIC_ENTROPY,  ///< Specific entropy, always a scalar quantity.
+
+    /// Positions (velocities, accelerations) of particles, always a vector quantity,
+    POSITIONS,
+
+    /// Paricles masses, always a scalar quantity.
+    MASSES,
+
+    /// Pressure, not affected by yielding or fragmentation model, always a scalar quantity.
+    PRESSURE,
+
+    /// Density, always a scalar quantity.
+    DENSITY,
+
+    /// Specific internal energy, always a scalar quantity.
+    ENERGY,
+
+    /// Sound speed, always a scalar quantity.
+    SOUND_SPEED,
+
+    /// Deviatoric stress tensor, always a traceless tensor.
+    DEVIATORIC_STRESS,
+
+    /// Specific entropy, always a scalar quantity.
+    SPECIFIC_ENTROPY,
+
     ///@}
 
     /// \name Density-independent SPH formulation
     ///@{
-    ENERGY_DENSITY,      ///< Energy density
-    ENERGY_PER_PARTICLE, ///< Internal energy per particle (analogy of particle masses)
+
+    /// Energy density (energy per unit volume)
+    ENERGY_DENSITY,
+
+    /// Internal energy per particle (analogy of particle masses in DISPH)
+    ENERGY_PER_PARTICLE,
+
     ///@}
 
     /// \name Damage and fragmentation model (see Benz & Asphaug, 1994)
     ///@{
-    DAMAGE,              ///< Damage
-    EPS_MIN,             ///< Activation strait rate
-    M_ZERO,              ///< Coefficient M_0 of the stretched Weibull distribution
-    EXPLICIT_GROWTH,     ///< Explicit growth of fractures
-    N_FLAWS,             ///< Number of explicit flaws per particle
-    FLAW_ACTIVATION_IDX, ///< Explicitly specified activation 'index' between 0 and N_particles. Lower value
-                         /// mean lower activation strain rate of a flaw. Used only for testing purposes, by
-                         /// default activation strain rates are automatically computed from Weibull
-                         /// distribution.
-    STRESS_REDUCING,     ///< Total stress reduction factor due to damage and yielding. Is always scalar.
+
+    /// Damage
+    DAMAGE,
+
+    /// Activation strait rate
+    EPS_MIN,
+
+    /// Coefficient M_0 of the stretched Weibull distribution
+    M_ZERO,
+
+    /// Explicit growth of fractures
+    EXPLICIT_GROWTH,
+
+    /// Number of explicit flaws per particle
+    N_FLAWS,
+
+    /// Explicitly specified activation 'index' between 0 and N_particles. Lower value mean lower activation
+    /// strain rate of a flaw. Used only for testing purposes, by default activation strain rates are
+    /// automatically computed from Weibull distribution.
+    FLAW_ACTIVATION_IDX,
+
+    /// Total stress reduction factor due to damage and yielding. Is always scalar.
+    STRESS_REDUCING,
+
     ///@}
 
     /// \name N-body & Solid sphere physics
     ///@{
-    GRAVITY_POTENTIAL, ///< Gravitational potential; not needed for solution, but needs to be included to the
-                       /// total energy of the system, otherwise the energy will not be conserved.
-    ANGULAR_VELOCITY,  ///< Angular velocity of particles (spheres). Note that SPH particles have no angular
-                       /// velocity.
-    MOMENT_OF_INERTIA, ///< Moment of inertia of particles, analogy of particle masses for rotation
+
+    /// Gravitational potential; not needed for solution, but needs to be included to the total energy of the
+    /// system, otherwise the energy will not be conserved.
+    GRAVITY_POTENTIAL,
+
+    /// Angular velocity of particles. Note that SPH particles in standard formulation have no angular
+    /// velocity, this quantity is used by solid sphere solvers or by SPH modifications that include particle
+    /// rotation.
+    ANGULAR_VELOCITY,
+
+    /// Current rotation state of the particles. This is only needed for testing purposes, as SPH particles
+    /// are spherically symmetric.
+    PHASE_ANGLE,
+
+    /// Moment of inertia of particles, analogy of particle masses for rotation
+    MOMENT_OF_INERTIA,
+
     ///@}
 
     /// \name Stress-strain analysis
     ///@{
-    DISPLACEMENT, ///< Displacement vector, a solution of the stress analysis
+
+    /// Displacement vector, a solution of the stress analysis
+    DISPLACEMENT,
+
     ///@}
 
     /// \name Intermediate quantities
     ///@{
-    VELOCITY_GRADIENT,           ///< Velocity gradient
-    VELOCITY_DIVERGENCE,         ///< Velocity divergence
-    VELOCITY_ROTATION,           ///< Velocity rotation
-    ROTATION_RATE,               ///< Rotation rate tensor
-    STRENGTH_VELOCITY_GRADIENT,  ///< Gradient computed by summing up particles with non-zero stress tensor
-                                 /// from the same body and strengthless particles (from any body). Used to
-                                 /// implement the 'spring interaction'.
-    ANGULAR_MOMENTUM_CORRECTION, ///< Correction tensor used to improve conservation of total angular
-                                 /// momentum.
+
+    /// Velocity gradient
+    VELOCITY_GRADIENT,
+
+    /// Velocity divergence
+    VELOCITY_DIVERGENCE,
+
+    /// Velocity rotation
+    VELOCITY_ROTATION,
+
+    /// Rotation rate tensor
+    ROTATION_RATE,
+
+    /// Gradient computed by summing up particles with non-zero stress tensor from the same body and
+    /// strengthless particles (from any body). Used to implement the 'spring interaction'.
+    STRENGTH_VELOCITY_GRADIENT,
+
+    /// Correction tensor used to improve conservation of total angular momentum.
+    ANGULAR_MOMENTUM_CORRECTION,
+
     ///@}
 
     /// \name Artificial velocity
     ///@{
-    AV_ALPHA,                     ///< Coefficient alpha of the artificial viscosity
-    AV_BETA,                      ///< Coefficient beta of the artificial viscosity
-    AV_BALSARA,                   ///< Balsara factor
-    AV_STRESS,                    ///< Artificial stress by Monaghan \cite Monaghan_1999
-    INTERPARTICLE_SPACING_KERNEL, ///< Auxiliary quantity needed for evaluating artificial stress
+
+    /// Coefficient alpha of the artificial viscosity
+    AV_ALPHA,
+
+    /// Coefficient beta of the artificial viscosity
+    AV_BETA,
+
+    /// Balsara factor
+    AV_BALSARA,
+
+    /// Artificial stress by Monaghan \cite Monaghan_1999
+    AV_STRESS,
+
+    /// Auxiliary quantity needed for evaluating artificial stress
+    INTERPARTICLE_SPACING_KERNEL,
+
     ///@}
 
     /// \name SPH modifications & corrections
     ///@{
-    GRAD_H, ///< Grad-h terms, appear in self-consistent derivation of SPH equatios due to non-uniform
-            /// smoothing lenghts.
-    XSPH_VELOCITIES, ///< XSPH corrections to velocity. Only modifies evolution equation for particle
-                     /// position, velocity (as an input for velocity divergence, ...) is NOT affected.
+
+    /// Grad-h terms, appear in self-consistent derivation of SPH equatios due to non-uniform smoothing
+    /// lenghts.
+    GRAD_H,
+
+    /// XSPH corrections to velocity. Only modifies evolution equation for particle position, velocity (as an
+    /// input for velocity divergence, ...) is NOT affected.
+    XSPH_VELOCITIES,
+
     ///@}
 
-    /// \name SPH statistics
+    /// \name SPH statistics & auxiliary data
     ///@{
-    NEIGHBOUR_CNT,  ///< Number of neighbouring particles (in radius h * kernel.radius)
-    SURFACE_NORMAL, ///< Vector approximating surface normal
+
+    /// Number of neighbouring particles (in radius h * kernel.radius)
+    NEIGHBOUR_CNT,
+
+    /// Vector approximating surface normal
+    SURFACE_NORMAL,
+
+    /// Initial position of particles, kept constant during the run
+    INITIAL_POSITION,
+
     ///@}
 
     /// \name Particle flags & Materials
     ///@{
-    FLAG,             ///< ID of original body, used to implement discontinuities between bodies in SPH
-    INITIAL_POSITION, ///< Initial position of particles, kept constant during the run
+
+    /// ID of original body, used to implement discontinuities between bodies in SPH
+    FLAG,
+
     ///@}
 };
 

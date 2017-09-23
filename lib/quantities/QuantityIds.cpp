@@ -96,6 +96,8 @@ QuantityMetadata getMetadata(const QuantityId key) {
         return QuantityMetadata("Surf. normal", "n", ValueEnum::VECTOR);
     case QuantityId::MOMENT_OF_INERTIA:
         return QuantityMetadata("Mom. of intertia", "I", ValueEnum::SCALAR);
+    case QuantityId::PHASE_ANGLE:
+        return QuantityMetadata("Phase angle", "phi", ValueEnum::VECTOR);
     default:
         NOT_IMPLEMENTED;
     }

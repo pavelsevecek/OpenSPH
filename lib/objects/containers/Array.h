@@ -351,24 +351,24 @@ public:
     }
 
     /// Explicit conversion to arrayview
-    ArrayView<T, TCounter> getView() {
+    ArrayView<T, TCounter> view() {
         return ArrayView<T, TCounter>(data, actSize);
     }
 
     /// Explicit conversion to arrayview, const version
-    ArrayView<const T, TCounter> getView() const {
+    ArrayView<const T, TCounter> view() const {
         return ArrayView<const T, TCounter>(data, actSize);
     }
 
     /// Comparison operator, comparings array element-by-element. If arrays differ in number of
     /// constructed elements, the comparison always returns false; allocated size does not play role here.
     bool operator==(const Array& other) const {
-        return getView() == other.getView();
+        return view() == other.view();
     }
 
     /// Inequality operator
     bool operator!=(const Array& other) const {
-        return getView() != other.getView();
+        return view() != other.view();
     }
 
     /// Prints content of array to stream. Stored values must have overloaded << operator.

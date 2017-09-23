@@ -34,7 +34,7 @@ private:
         ArrayView<Float> omega;
 
     public:
-        Derivative(const RunSettings& settings)
+        explicit Derivative(const RunSettings& settings)
             : kernel(Factory::getKernel<DIMENSIONS>(settings)) {}
 
         virtual void create(Accumulated& results) override {

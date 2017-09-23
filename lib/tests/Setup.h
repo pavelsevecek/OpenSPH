@@ -31,6 +31,9 @@ namespace Tests {
         BodySettings settings = BodySettings::getDefaults(),
         const Float radius = 1._f);
 
+    /// Returns the index to the particle closest to given point.
+    Size getClosestParticle(const Storage& storage, const Vector& p);
+
 
     /// Computes velocity derivatives for given set of equations. Velocity field is defined by given
     /// lambda.

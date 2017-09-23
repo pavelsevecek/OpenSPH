@@ -133,7 +133,7 @@ private:
     Array<Float> q;
 
 public:
-    DensityIndependentSolver(const RunSettings& settings)
+    explicit DensityIndependentSolver(const RunSettings& settings)
         : GenericSolver(settings, getEquations(settings)) {
         energyKernel = Factory::getKernel<DIMENSIONS>(settings);
     }

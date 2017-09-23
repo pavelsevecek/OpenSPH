@@ -32,9 +32,10 @@ public:
 };
 
 
-/// Adds ghost particles symmetrically for each SPH particle close to boundary. All physical quantities are
-/// copied on them. This acts as a natural boundary for SPH particles without creating unphysical gradients
-/// due to discontinuity.
+/// \brief Adds ghost particles symmetrically for each SPH particle close to boundary.
+///
+/// All physical quantities are copied on them. This acts as a natural boundary for SPH particles without
+/// creating unphysical gradients due to discontinuity.
 class GhostParticles : public IBoundaryCondition {
 private:
     AutoPtr<IDomain> domain;
@@ -55,18 +56,21 @@ public:
 
     virtual void finalize(Storage& UNUSED(storage)) override {}
 
-    /// Removes all ghost particles from the storage. This does not have to be called before apply, ghosts are
-    /// removed and added automatically.
+    /// \brief Removes all ghost particles from the storage.
+    ///
+    /// This does not have to be called before apply, ghosts are removed and added automatically.
     /// \todo Currently needs to be called before data output as ghosts would be saved together with "regular"
     ///       particles. This shouldn't happen, ghosts should be removed automatically.
     void removeGhosts(Storage& storage);
 };
 
 
-/// Boundary condition that nulls all highest derivates of particles close to the boundary and/or particles of
-/// given body or list of bodies. This will cause the particles to keep quantity values given by their initial
-/// conditions and move with initial velocity. The 'frozen' particles affect other particles normally and
-/// contribute to all integrals, such as total mometum or energy.
+/// \brief Boundary condition that nulls all highest derivates of selected particles.
+///
+/// Term can freeze particles close to the boundary and/or particles of given body or list of bodies. This
+/// will cause the particles to keep quantity values given by their initial conditions and move with initial
+/// velocity. The 'frozen' particles affect other particles normally and contribute to all integrals, such as
+/// total mometum or energy.
 class FrozenParticles : public IBoundaryCondition {
 protected:
     AutoPtr<IDomain> domain;
@@ -78,20 +82,25 @@ protected:
     Array<Size> idxs;
 
 public:
-    /// Constructs boundary conditions with no particles frozen. These can be later added using freeze
-    /// function.
+    /// \brief Constructs boundary conditions with no particles frozen.
+    ///
+    /// These can be later added using freeze function.
     FrozenParticles();
 
     ~FrozenParticles();
 
-    /// Constructs boundary conditions given domain and search radius (in units of smoothing length) up to
-    /// which the particles will be frozen.
+    /// \brief Constructs boundary conditions with frozen particles near boundary.
+    ///
+    /// \param domain Domain defining the boundary
+    /// \param radius Search radius (in units of smoothing length) up to which the particles will be frozen.
     FrozenParticles(AutoPtr<IDomain>&& domain, const Float radius);
 
-    /// Adds body ID particles of which shall be frozen by boundary conditions.
+    /// \brief Adds body ID particles of which shall be frozen by boundary conditions.
     void freeze(const Size flag);
 
-    /// Remove a body from the list of frozen bodies. If the body is not on the list, nothing happens.
+    /// \brief Remove a body from the list of frozen bodies.
+    ///
+    /// If the body is not on the list, nothing happens.
     void thaw(const Size flag);
 
     virtual void initialize(Storage& UNUSED(storage)) override {}
@@ -100,9 +109,11 @@ public:
 };
 
 
-/// Boundary conditions creating particles with given velocity on one end of the domain and removing them on
-/// the other side, while keeping particles inside the domain using either ghost particles or by freezing
-/// them. This is fine-tuned for simulations of a meteorite passing through athmosphere.
+/// \brief Boundary conditions creating particles with given velocity at the boundary of the domain.
+///
+/// Outgoing particles are removed at the other side of the boundary, particles inside the domain are kept in
+/// place using either ghost particles or by freezing them. This is fine-tuned for simulations of a meteorite
+/// passing through athmosphere.
 class WindTunnel : public FrozenParticles {
 public:
     WindTunnel(AutoPtr<IDomain>&& domain, const Float radius);

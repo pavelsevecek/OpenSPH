@@ -42,7 +42,7 @@ public:
         Float alpha, beta;
 
     public:
-        Derivative(const RunSettings& settings)
+        explicit Derivative(const RunSettings& settings)
             : alpha(settings.get<Float>(RunSettingsId::SPH_AV_ALPHA))
             , beta(settings.get<Float>(RunSettingsId::SPH_AV_BETA)) {}
 

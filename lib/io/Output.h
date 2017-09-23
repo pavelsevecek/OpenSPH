@@ -80,7 +80,7 @@ private:
 public:
     TextOutput() = default;
 
-    TextOutput(const Path& fileMask, const std::string& runName, const Flags<Options> flags);
+    TextOutput(const Path& fileMask, const std::string& runName, const Flags<Options> flags = EMPTY_FLAGS);
 
     ~TextOutput();
 
