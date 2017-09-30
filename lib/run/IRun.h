@@ -13,11 +13,8 @@
 
 NAMESPACE_SPH_BEGIN
 
-class IOutput;
 class IRunCallbacks;
 class ILogFile;
-class ISolverr;
-
 
 /// \brief Defines the interface for a run.
 ///
