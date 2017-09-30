@@ -37,7 +37,7 @@ namespace Detail {
             return locked;
         }
     };
-}
+} // namespace Detail
 
 template <typename T>
 class LockingPtr {
@@ -61,6 +61,11 @@ public:
     LockingPtr(T* ptr)
         : resource(ptr, ptr ? new Detail::LockingControlBlock<T>(ptr) : nullptr) {
         block = static_cast<Detail::LockingControlBlock<T>*>(resource.block);
+    }
+
+    LockingPtr(AutoPtr<T>&& other)
+        : LockingPtr(&*other) {
+        other.release();
     }
 
     LockingPtr(const LockingPtr& other)
@@ -236,7 +241,7 @@ public:
     }
 
     explicit operator bool() const {
-        return resource;
+        return bool(resource);
     }
 
     bool operator!() const {

@@ -77,7 +77,6 @@ void OrthoPane::onRightDown(wxMouseEvent& evt) {
 void OrthoPane::onRightUp(wxMouseEvent& evt) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
     AffineMatrix matrix = arcBall.drag(evt.GetPosition());
-    // camera->transform(dragging.initialMatrix * matrix);
     dragging.initialMatrix = dragging.initialMatrix * matrix;
 }
 
