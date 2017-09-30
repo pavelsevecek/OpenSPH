@@ -28,8 +28,8 @@ NAMESPACE_SPH_BEGIN
 /// A bar over values denodes symmetrization over particle pair, for example \f$\bar{h} = 0.5(h_i + h_j)\f$.
 ///
 /// The viscosity only applies in convergent flow (\f$(\vec v_i-\vec v_j)\cdot(\vec r_i-\vec r_j) < 0\f$), it
-/// is zero in divergent flow. Prameters \f$\alpha_{\rm AV}\f$ and \f$\beta_{\rm AV}\f$ are constant (in time)
-/// and equal for all particles.
+/// is zero in divergent flow. Parameters \f$\alpha_{\rm AV}\f$ and \f$\beta_{\rm AV}\f$ are constant (in
+/// time) and equal for all particles.
 class StandardAV : public IEquationTerm {
 public:
     class Derivative : public DerivativeTemplate<Derivative> {
