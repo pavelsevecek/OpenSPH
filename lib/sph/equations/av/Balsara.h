@@ -14,7 +14,7 @@ NAMESPACE_SPH_BEGIN
 /// shear flows and avoid numerical issues, such as unphysical transport of angular momentum.
 
 /// Balsara switch is a template, needs another artificial viscosity as a template parameter. The template
-/// parameter shall be an \ref EquationTerm; Balsara switch then forward all functions (initialize, finalize,
+/// parameter shall be an \ref IEquationTerm; Balsara switch then forward all functions (initialize, finalize,
 /// ...) to this base AV. Furthermore, the AV must define a class called Derivative with operator()(i, j),
 /// preferably force inlined, returing value \f$\Pi_{ij}\f$ of the artificial viscosity between particles i
 /// and j.
@@ -27,6 +27,9 @@ NAMESPACE_SPH_BEGIN
 /// To conserve the total momentum, the term is symmetrized over particle pair, \f$f_{ij} = 0.5(f_i + f_j)\f$
 template <typename AV>
 class BalsaraSwitch : public IEquationTerm {
+
+    static_assert(std::is_base_of<IEquationTerm, AV>::value, "AV must be derived from IEquationTerm");
+
     class Derivative : public DerivativeTemplate<Derivative> {
     private:
         ArrayView<const Float> m;
