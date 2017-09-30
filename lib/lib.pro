@@ -230,7 +230,7 @@ HEADERS += \
     sph/solvers/StaticSolver.h \
     sph/solvers/SummationSolver.h \
     system/ArrayStats.h \
-    system/Callbacks.h \
+    system/RunCallbacks.h \
     system/Column.h \
     system/Element.h \
     system/Factory.h \

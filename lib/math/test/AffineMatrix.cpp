@@ -64,6 +64,25 @@ TEST_CASE("Matrix apply", "[affinematrix]") {
     REQUIRE(m * v == Vector(8, -0.5, 18));
 }
 
+TEST_CASE("Matrix multiplication", "[affinematrix]") {
+    const Vector v1(1, -3, 2);
+    AffineMatrix tr1 = AffineMatrix::identity().translate(v1);
+    const Vector v2(-2, 4, 5);
+    AffineMatrix tr2 = AffineMatrix::identity().translate(v2);
+    AffineMatrix res = tr1 * tr2;
+    REQUIRE(res.translation() == v1 + v2);
+    REQUIRE(res.translation() == v1 + v2);
+    REQUIRE(res.removeTranslation() == AffineMatrix::identity());
+
+    AffineMatrix rot = AffineMatrix::rotateZ(PI / 2._f);
+    res = tr1 * rot;
+    REQUIRE(res == rot.translate(v1));
+
+    rot = AffineMatrix::rotateZ(PI / 2._f);
+    res = rot * tr1;
+    REQUIRE(res == rot.translate(rot * v1));
+}
+
 TEST_CASE("Matrix transpose", "[affinematrix]") {
     AffineMatrix m(Vector(1, 2, 3), Vector(4, 5, 6), Vector(7, 8, 9));
     AffineMatrix mt = m.transpose();

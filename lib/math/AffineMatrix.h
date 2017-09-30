@@ -144,12 +144,20 @@ public:
 
     /// Matrix multiplication
     INLINE AffineMatrix operator*(const AffineMatrix& other) const {
-        AffineMatrix result;
+        AffineMatrix result = AffineMatrix::identity();
         for (Size i = 0; i < 3; ++i) {
             for (Size j = 0; j < 3; ++j) {
                 result(i, j) = dot(this->row(i), other.column(j));
             }
         }
+        // add translation part
+        Vector t(0._f);
+        const Vector lhs = this->translation();
+        const Vector rhs = other.translation();
+        for (Size i = 0; i < 3; ++i) {
+            t[i] = dot(this->row(i), rhs) + lhs[i];
+        }
+        result.translate(t);
         return result;
     }
 

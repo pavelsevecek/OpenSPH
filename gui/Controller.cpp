@@ -172,7 +172,8 @@ bool Controller::isQuitting() const {
 Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage, const bool forMovie) const {
     // Available colorizers for display and movie are currently hardcoded
     Array<ColorizerId> colorizerIds{
-        ColorizerId::VELOCITY, ColorizerId::DENSITY_PERTURBATION,
+        ColorizerId::VELOCITY,
+        ColorizerId::DENSITY_PERTURBATION,
     };
     if (!forMovie) {
         colorizerIds.push(ColorizerId::COROTATING_VELOCITY);
