@@ -83,7 +83,7 @@ SharedPtr<Bitmap> SurfaceRenderer::render(const ICamera& camera,
         dc.DrawPolygon(3, &pts[0]);
     }
 
-    const Float time = stats.get<Float>(StatisticsId::TOTAL_TIME);
+    const Float time = stats.get<Float>(StatisticsId::RUN_TIME);
     dc.DrawText(("t = " + std::to_string(time) + "s").c_str(), wxPoint(0, 0));
 
     dc.SelectObject(wxNullBitmap);

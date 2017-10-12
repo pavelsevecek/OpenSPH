@@ -108,10 +108,15 @@ class SpatialPlot : public IPlot {
 protected:
     QuantityId id;
     Array<PlotPoint> points;
+    Optional<Size> binCnt;
 
 public:
-    explicit SpatialPlot(const QuantityId id)
-        : id(id) {}
+    /// \brief Constructs the spatial plot.
+    /// \param id Quantity to plot
+    /// \param binCnt Number of points in the plot; if NOTHING, each particle is plotted as a point.
+    explicit SpatialPlot(const QuantityId id, const Optional<Size> binCnt = NOTHING)
+        : id(id)
+        , binCnt(binCnt) {}
 
     virtual std::string getCaption() const override {
         return getMetadata(id).quantityName;
@@ -135,8 +140,8 @@ private:
     Vector axis;
 
 public:
-    AxialDistributionPlot(const Vector& axis, const QuantityId id)
-        : SpatialPlot<AxialDistributionPlot>(id)
+    AxialDistributionPlot(const Vector& axis, const QuantityId id, const Optional<Size> binCnt = NOTHING)
+        : SpatialPlot<AxialDistributionPlot>(id, binCnt)
         , axis(axis) {}
 
     INLINE Float getX(const Vector& r) const {
@@ -147,8 +152,7 @@ public:
 /// \brief Plots a dependence of given quantity on the distance from the origin
 class SphericalDistributionPlot : public SpatialPlot<SphericalDistributionPlot> {
 public:
-    SphericalDistributionPlot(const QuantityId id)
-        : SpatialPlot<SphericalDistributionPlot>(id) {}
+    SphericalDistributionPlot(const QuantityId id, const Optional<Size> binCnt = NOTHING);
 
     INLINE Float getX(const Vector& r) const {
         return getLength(r);

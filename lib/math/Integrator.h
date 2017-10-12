@@ -7,6 +7,7 @@
 
 #include "math/rng/Rng.h"
 #include "objects/geometry/Domain.h"
+#include "objects/wrappers/AutoPtr.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -34,15 +35,16 @@ class Integrator : public Noncopyable {
 private:
     Float radius;
     TRng rng;
-    const IDomain& domain;
+    AutoPtr<IDomain> domain;
+
     static constexpr uint chunk = 100;
 
 public:
-    /// Constructs an integrator given domain of integration.
-    Integrator(const IDomain& domain)
-        : domain(domain) {}
+    /// \brief Constructs an integrator given domain of integration.
+    Integrator(AutoPtr<IDomain>&& domain)
+        : domain(std::move(domain)) {}
 
-    /// Integrate a function.
+    /// \brief Integrates a function.
     /// \param f Functor with a Vector parameter, returning the integral as a scalar value
     /// \param targetError Precision of the integral. Note that half error means approximately four times the
     ///                    computation time.
@@ -54,7 +56,7 @@ public:
         Size n = 0;
         StaticArray<Vector, chunk> buffer;
         Array<Size> inside;
-        Box box = domain.getBoundingBox();
+        Box box = domain->getBoundingBox();
         while (true) {
             for (Size i = 0; i < chunk; ++i) {
                 // dimensionless vector
@@ -64,7 +66,7 @@ public:
                 buffer[i] = v;
             }
             inside.clear();
-            domain.getSubset(buffer, inside, SubsetType::INSIDE);
+            domain->getSubset(buffer, inside, SubsetType::INSIDE);
             for (Size i : inside) {
                 const double x = (double)f(buffer[i]);
                 sum += x;
@@ -73,7 +75,7 @@ public:
             }
             const double m = double(n);
             if (m * sumSqr - sum * sum < m * m * errorSqr * sumSqr) {
-                return Float(sum / m) * domain.getVolume();
+                return Float(sum / m) * domain->getVolume();
             }
         }
     }

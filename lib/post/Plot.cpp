@@ -6,19 +6,46 @@ NAMESPACE_SPH_BEGIN
 template <typename TDerived>
 void SpatialPlot<TDerived>::onTimeStep(const Storage& storage, const Statistics& UNUSED(stats)) {
     // no temporal dependence - reset everything
-    points.clear();
-    ranges.x = ranges.y = Interval();
+    this->clear();
 
+    Array<PlotPoint> particlePoints;
     ArrayView<const Float> quantity = storage.getValue<Float>(id);
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
     for (Size i = 0; i < r.size(); ++i) {
         PlotPoint p{ getX(r[i]), quantity[i] };
-        points.push(p);
+        particlePoints.push(p);
         ranges.x.extend(p.x);
         ranges.y.extend(p.y);
     }
-    std::sort(
-        points.begin(), points.end(), [](const PlotPoint& p1, const PlotPoint& p2) { return p1.x < p2.x; });
+    std::sort(particlePoints.begin(), particlePoints.end(), [](PlotPoint& p1, PlotPoint& p2) {
+        return p1.x < p2.x;
+    });
+
+    if (!binCnt) {
+        points = std::move(particlePoints);
+    } else {
+        ASSERT(binCnt.value() >= 1);
+        points.resize(binCnt.value());
+        Array<Size> weights(binCnt.value());
+        points.fill(PlotPoint(0.f, 0.f));
+        weights.fill(0);
+
+        const Float lastX = particlePoints[particlePoints.size() - 1].x;
+        for (PlotPoint& p : particlePoints) {
+            const Size bin = min(Size(p.x * (binCnt.value() - 1) / lastX), binCnt.value() - 1);
+            points[bin] += p;
+            weights[bin]++;
+        }
+
+        for (Size i = 0; i < points.size(); ++i) {
+            if (weights[i] > 0) {
+                points[i].x /= weights[i];
+                points[i].y /= weights[i];
+            } else {
+                ASSERT(points[i] == PlotPoint(0.f, 0.f));
+            }
+        }
+    }
 }
 
 template <typename TDerived>
@@ -34,10 +61,13 @@ void SpatialPlot<TDerived>::plot(IDrawingContext& dc) const {
     }
 }
 
+SphericalDistributionPlot::SphericalDistributionPlot(const QuantityId id, const Optional<Size> binCnt)
+    : SpatialPlot<SphericalDistributionPlot>(id, binCnt) {}
+
 
 void TemporalPlot::onTimeStep(const Storage& storage, const Statistics& stats) {
     // add new point to the queue
-    const Float t = stats.get<Float>(StatisticsId::TOTAL_TIME);
+    const Float t = stats.get<Float>(StatisticsId::RUN_TIME);
     if (t - lastTime < params.period) {
         return;
     }

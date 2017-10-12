@@ -33,8 +33,15 @@ enum class ValueId {
 class Value {
 private:
     /// \note If bool is added into the variant, it will probably clash with operator bool().
-    using ValueVariant =
-        Variant<NothingType, Size, Float, Vector, Tensor, SymmetricTensor, TracelessTensor, MinMaxMean>;
+    using ValueVariant = Variant<NothingType,
+        Size,
+        Float,
+        Vector,
+        Tensor,
+        SymmetricTensor,
+        TracelessTensor,
+        MinMaxMean,
+        std::string>;
 
     ValueVariant storage;
 
@@ -146,6 +153,9 @@ private:
         }
         Float operator()(const MinMaxMean& value) {
             return value.mean();
+        }
+        Float operator()(const std::string&) {
+            NOT_IMPLEMENTED;
         }
         Float operator()(const NothingType&) {
             return NAN;

@@ -206,7 +206,7 @@ void BarnesHut::evalNode(ThreadPool& pool,
             // either empty node or a single particle in a leaf, just add it to particle list
             ASSERT(node.isLeaf());
             data.particleList.push(idx);
-            data.checkList.eraseAndIncrement(iter);
+            iter = data.checkList.erase(iter);
             continue;
         }
 
@@ -225,7 +225,7 @@ void BarnesHut::evalNode(ThreadPool& pool,
                 data.checkList.pushBack(inner.left);
                 data.checkList.pushBack(inner.right);
             }
-            data.checkList.eraseAndIncrement(iter);
+            iter = data.checkList.erase(iter);
 
             continue;
         } else if (intersect == IntersectResult::BOX_OUTSIDE_SPHERE) {
@@ -233,7 +233,7 @@ void BarnesHut::evalNode(ThreadPool& pool,
             data.nodeList.push(idx);
 
             // erase this node from checklist
-            data.checkList.eraseAndIncrement(iter);
+            iter = data.checkList.erase(iter);
             continue;
         }
         // for leafs we have to move all nodes from the checklist to one of interaction lists

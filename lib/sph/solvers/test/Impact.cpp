@@ -21,7 +21,7 @@ TEST_CASE("Impact", "[impact]]") {
     GenericSolver solver(settings, std::move(eqs));
 
     SharedPtr<Storage> storage = makeShared<Storage>();
-    InitialConditions initial(*storage, solver, settings);
+    InitialConditions initial(solver, settings);
     BodySettings body;
     body.set(BodySettingsId::PARTICLE_COUNT, 1000);
     body.set(BodySettingsId::ENERGY, 0._f);
@@ -29,10 +29,10 @@ TEST_CASE("Impact", "[impact]]") {
     body.set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::VON_MISES);
     const Float rho0 = body.get<Float>(BodySettingsId::DENSITY);
 
-    initial.addBody(SphericalDomain(Vector(0._f), 1._f), body);
+    initial.addBody(*storage, SphericalDomain(Vector(0._f), 1._f), body);
     body.set(BodySettingsId::PARTICLE_COUNT, 10);
     // bodies overlap a bit, that's OK
-    initial.addBody(SphericalDomain(Vector(1._f, 0._f, 0._f), 0.1_f), body)
+    initial.addBody(*storage, SphericalDomain(Vector(1._f, 0._f, 0._f), 0.1_f), body)
         .addVelocity(Vector(-5._f, 0._f, 0._f));
 
     EulerExplicit timestepping(storage, settings);

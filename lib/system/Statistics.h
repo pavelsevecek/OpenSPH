@@ -96,7 +96,7 @@ enum class StatisticsId {
     INDEX,
 
     /// Current time of the simulation in code units. Does not necessarily have to be 0 when run starts.
-    TOTAL_TIME,
+    RUN_TIME,
 
     /// Progress of the run, always 0 <= progress <= 1, where 0 is the start of the run and 1 is the end of
     /// the run.

@@ -257,4 +257,5 @@ HEADERS += \
     system/ArgsParser.h \
     run/Collision.h \
     objects/containers/String.h \
-    sph/equations/Rotation.h
+    sph/equations/Rotation.h \
+    run/Trigger.h

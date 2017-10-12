@@ -1,6 +1,6 @@
 #include "catch.hpp"
-#include "objects/geometry/Domain.h"
 #include "io/Output.h"
+#include "objects/geometry/Domain.h"
 #include "physics/Eos.h"
 #include "physics/Rheology.h"
 #include "run/IRun.h"
@@ -83,8 +83,8 @@ public:
         bodySettings.set(BodySettingsId::ENERGY, 2.5_f);
         bodySettings.set(BodySettingsId::ENERGY_MIN, 0.1_f);
 
-        InitialConditions initialConditions(*storage, this->settings);
-        initialConditions.addBody(SphericalDomain(Vector(0.5_f), 0.5_f), bodySettings);
+        InitialConditions initialConditions(this->settings);
+        initialConditions.addBody(*storage, SphericalDomain(Vector(0.5_f), 0.5_f), bodySettings);
 
         Path outputDir("sod/" + this->settings.get<std::string>(RunSettingsId::RUN_OUTPUT_NAME));
         this->output = makeAuto<GnuplotOutput>(outputDir,

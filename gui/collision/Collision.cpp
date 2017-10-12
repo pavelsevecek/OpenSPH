@@ -7,15 +7,19 @@
 #include "io/Logger.h"
 #include "io/Output.h"
 #include "objects/geometry/Domain.h"
+#include "physics/Integrals.h"
 #include "post/Analysis.h"
+#include "post/Plot.h"
 #include "sph/equations/Potentials.h"
 #include "sph/equations/Rotation.h"
 #include "sph/initial/Initial.h"
 #include "sph/solvers/ContinuitySolver.h"
 #include "sph/solvers/GravitySolver.h"
+#include "sph/solvers/StaticSolver.h"
 #include "system/Platform.h"
 #include "system/Process.h"
 #include "system/Profiler.h"
+#include <fstream>
 
 IMPLEMENT_APP(Sph::App);
 
@@ -64,7 +68,7 @@ protected:
     virtual void writeImpl(const Storage& storage, const Statistics& stats) override {
         MinMaxMean sm = stress.evaluate(storage);
         MinMaxMean dsm = dtStress.evaluate(storage);
-        this->logger->write(stats.get<Float>(StatisticsId::TOTAL_TIME),
+        this->logger->write(stats.get<Float>(StatisticsId::RUN_TIME),
             sm.mean(),
             dsm.mean(),
             energy.evaluate(storage).mean(),
@@ -89,7 +93,7 @@ public:
 
 protected:
     virtual void writeImpl(const Storage& storage, const Statistics& stats) override {
-        this->logger->write(stats.get<Float>(StatisticsId::TOTAL_TIME),
+        this->logger->write(stats.get<Float>(StatisticsId::RUN_TIME),
             "   ",
             en.evaluate(storage),
             "   ",
@@ -109,7 +113,7 @@ protected:
         if (!stats.has(StatisticsId::LIMITING_PARTICLE_IDX)) {
             return;
         }
-        const Float t = stats.get<Float>(StatisticsId::TOTAL_TIME);
+        const Float t = stats.get<Float>(StatisticsId::RUN_TIME);
         const Float dt = stats.get<Float>(StatisticsId::TIMESTEP_VALUE);
         const QuantityId id = stats.get<QuantityId>(StatisticsId::LIMITING_QUANTITY);
         const int idx = stats.get<int>(StatisticsId::LIMITING_PARTICLE_IDX);
@@ -119,6 +123,51 @@ protected:
     }
 };
 
+
+class FileContext : public IDrawingContext {
+private:
+    std::ofstream ofs;
+
+public:
+    FileContext(const Path& path)
+        : ofs(path.native()) {}
+
+    virtual void drawPoint(const PlotPoint& point) override {
+        ofs << point.x << "  " << point.y << std::endl;
+    }
+
+    virtual void drawErrorPoint(const ErrorPlotPoint&) override {
+        NOT_IMPLEMENTED;
+    }
+
+    virtual void drawLine(const PlotPoint& UNUSED(from), const PlotPoint& UNUSED(to)) override {
+        // do nothing
+    }
+
+
+    virtual AutoPtr<IDrawPath> drawPath() override {
+        class FilePath : public IDrawPath {
+        private:
+            std::ofstream& ofs;
+
+        public:
+            FilePath(std::ofstream& ofs)
+                : ofs(ofs) {}
+
+            virtual void addPoint(const PlotPoint& point) override {
+                ofs << point.x << "  " << point.y << std::endl;
+            }
+
+            virtual void closePath() override {}
+
+            virtual void endPath() override {}
+        };
+
+        return makeAuto<FilePath>(ofs);
+    }
+
+    virtual void setTransformMatrix(const AffineMatrix2& UNUSED(matrix)) override {}
+};
 
 class CollisionSolver : public GenericSolver {
 private:

@@ -114,10 +114,10 @@ void processHarrisFile() {
 }
 
 int main(int argc, char** argv) {
-    if (true) {
+    /*if (true) {
         processHarrisFile();
         return 0;
-    }
+    }*/
 
     if (argc < 4) {
         std::cout << "Expected usage: post inputFile outputFile" << std::endl;

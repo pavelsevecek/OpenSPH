@@ -46,7 +46,7 @@ INLINE std::string escapeColorizerName(const std::string& name) {
 
 
 void Movie::onTimeStep(const Storage& storage, Statistics& stats) {
-    if (stats.get<Float>(StatisticsId::TOTAL_TIME) < nextOutput || !enabled) {
+    if (stats.get<Float>(StatisticsId::RUN_TIME) < nextOutput || !enabled) {
         return;
     }
     const Path path = paths.getNextPath(stats);

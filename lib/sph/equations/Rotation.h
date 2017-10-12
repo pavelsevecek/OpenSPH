@@ -85,14 +85,15 @@ public:
             if (idxs[i] != idxs[j] || reduce[i] == 0._f || reduce[j] == 0._f) {
                 continue;
             }
-            const Vector domega = omega[j] - omega[i];
             const Vector dr = r[j] - r[i];
-            const Vector dv = cross(domega, dr);
-            const SymmetricTensor t = outer(dv, grads[k]);
-            ASSERT(isReal(t));
-            deriv[i] -= m[j] / rho[j] * t;
+            const Vector dvj = cross(omega[j], dr);
+            const SymmetricTensor tj = outer(dvj, grads[k]);
+            ASSERT(isReal(tj));
+            deriv[i] -= m[j] / rho[j] * tj;
             if (Symmetrize) {
-                deriv[j] += m[i] / rho[i] * t;
+                const Vector dvi = cross(omega[i], dr);
+                const SymmetricTensor ti = outer(dvi, grads[k]);
+                deriv[j] += m[i] / rho[i] * ti;
             }
         }
     }

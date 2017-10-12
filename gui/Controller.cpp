@@ -401,7 +401,7 @@ void Controller::run() {
         // draw initial positions of particles
         /// \todo generalize stats
         Statistics stats;
-        stats.set(StatisticsId::TOTAL_TIME, 0._f);
+        stats.set(StatisticsId::RUN_TIME, 0._f);
         this->redraw(*storage, stats);
 
         // set up animation object

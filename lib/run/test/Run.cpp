@@ -50,7 +50,7 @@ public:
         , outputTimes(outputTimes) {}
 
     virtual Path dump(Storage& UNUSED(storage), const Statistics& stats) override {
-        outputTimes.push(stats.get<Float>(StatisticsId::TOTAL_TIME));
+        outputTimes.push(stats.get<Float>(StatisticsId::RUN_TIME));
         return Path();
     }
 
@@ -80,10 +80,10 @@ namespace {
 
         virtual void setUp() override {
             storage = makeShared<Storage>();
-            InitialConditions conds(*storage, settings);
+            InitialConditions conds(settings);
             BodySettings bodySettings;
             bodySettings.set(BodySettingsId::PARTICLE_COUNT, 10);
-            conds.addBody(SphericalDomain(Vector(0._f), 1._f), bodySettings);
+            conds.addBody(*storage, SphericalDomain(Vector(0._f), 1._f), bodySettings);
             stepIdx = 0;
             runEnded = false;
 
@@ -96,7 +96,7 @@ namespace {
     protected:
         virtual void tearDown() override {}
     };
-}
+} // namespace
 
 TEST_CASE("Simple run", "[run]") {
     TestRun run;

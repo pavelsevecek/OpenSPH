@@ -10,6 +10,10 @@ LIBS += ../../gui/libgui.a
 LIBS += ../../lib/liblib.a # must be used after libgui
 LIBS += `wx-config --libs --gl-libs`
 
+
+INCLUDEPATH += /usr/include/eigen3
+DEFINES += SPH_USE_EIGEN
+
 QMAKE_CXXFLAGS += -Wall -msse4.1 -std=c++14 -pthread `wx-config --libs all --cxxflags --gl-libs`
 
 CONFIG(release, debug|profile|assert|release) {

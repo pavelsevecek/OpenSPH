@@ -2,6 +2,7 @@
 #include "catch.hpp"
 #include "io/Column.h"
 #include "io/Output.h"
+#include "math/Integrator.h"
 #include "physics/Eos.h"
 #include "run/IRun.h"
 #include "run/RunCallbacks.h"
@@ -109,7 +110,7 @@ namespace {
 
         virtual void tearDown() override {}
     };
-}
+} // namespace
 
 
 TEST_CASE("Rotation vibrations", "[rotation]") {
@@ -142,4 +143,13 @@ TEST_CASE("Rotation vibrations", "[rotation]") {
     TestRun run(storage, Interval(0._f, t), centerIdx);
     run.setUp();
     run.run();
+}
+
+TEST_CASE("Rotation inertia", "[rotation]") {
+    Integrator<UniformRng> integrator(makeAuto<SphericalDomain>(Vector(0._f), 2._f));
+    LutKernel<3> kernel(CubicSpline<3>{});
+    const Float value = integrator.integrate([&kernel](const Vector& r) { //
+        return (sqr(r[X]) + sqr(r[Y])) * kernel.value(r, 1._f);
+    });
+    REQUIRE(value == 0.6_f);
 }

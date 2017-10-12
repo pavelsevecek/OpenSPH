@@ -60,7 +60,7 @@ public:
         storage = makeShared<Storage>();
 
         // Prepares an object for generating initial conditions
-        InitialConditions conds(*storage, settings);
+        InitialConditions conds(settings);
 
         // Set up material parameters of the bodies; see BodySettingsId enum for all options
         BodySettings body;
@@ -81,7 +81,7 @@ public:
 
         // Creates a spherical body centered at origin, radius = 500m
         SphericalDomain domain1(Vector(0._f), 500._f);
-        conds.addBody(domain1, body);
+        conds.addBody(*storage, domain1, body);
 
         // Set up impactor parameters - same as target, only 100 SPH particles
         body.set(BodySettingsId::PARTICLE_COUNT, 100);
@@ -90,7 +90,8 @@ public:
         SphericalDomain domain2(Vector(6.e2_f, 1.35e2_f, 0._f), 20._f);
 
         // Impactor with v_imp = (-5km/s, 0, 0)
-        conds.addBody(domain2, body).addVelocity(Vector(-5.e3_f, 0._f, 0._f));
+        BodyView impactor = conds.addBody(*storage, domain2, body);
+        impactor.addVelocity(Vector(-5.e3_f, 0._f, 0._f));
     }
 
 protected:

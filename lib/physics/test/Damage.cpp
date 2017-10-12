@@ -60,8 +60,8 @@ TEST_CASE("Fracture growth", "[damage]") {
     /// \todo some better test, for now just testing that integrate will work without asserts
     ScalarDamage damage(2._f);
     Storage storage;
-    InitialConditions conds(storage, RunSettings::getDefaults());
-    conds.addBody(SphericalDomain(Vector(0._f), 1._f), BodySettings::getDefaults());
+    InitialConditions conds(RunSettings::getDefaults());
+    conds.addBody(storage, SphericalDomain(Vector(0._f), 1._f), BodySettings::getDefaults());
 
     MaterialInitialContext context;
     context.rng = makeAuto<RngWrapper<BenzAsphaugRng>>(1234);

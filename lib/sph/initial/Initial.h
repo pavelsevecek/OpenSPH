@@ -60,20 +60,11 @@ private:
 
 /// \brief Object for adding one or more bodies with given material into Storage
 ///
-/// The object is intended to only be constructed on stack, set up needed bodies and get destroyed when
-/// going out of scope. As it holds a reference to the storage, it is unsafe to store InitialConditions and
-/// create additional bodies during the run. All particles created in one run should be created using the same
-/// InitialConditions object. If multiple objects are used, quantity QuantityId::FLAG must be manually
-/// updated to be unique for each body in the simulation.
-///
-/// The object possibly changes the storage from destructor, after all bodies have been added. If for
-/// whatever reason we wish to prevent this, the initial condition setup can be explicitly ended by calling
-/// \ref finalize function. After that, no more bodies can be added into the storage.
+/// All particles created in one run should be created using the same InitialConditions object. If multiple
+/// objects are used, quantity QuantityId::FLAG must be manually updated to be unique for each body in the
+/// simulation.
 class InitialConditions : public Noncopyable {
 private:
-    /// Reference to the storage where all the bodies are saved
-    Storage& storage;
-
     /// Solver used for creating necessary quantities. Does not necessarily have to be the same the solver
     /// used for the actual run, although it is recommended to make sure all the quantities are set up
     /// correctly.
@@ -85,21 +76,14 @@ private:
     /// Shared data when creating bodies
     MaterialInitialContext context;
 
-    /// Params used after all bodies are created
-    struct {
-        bool storeInitialPositions = false;
-    } finalization;
-
-
 public:
     /// \brief Constructs object by taking a reference to particle storage.
     ///
     /// Subsequent calls of \ref addBody function fill this storage with particles.
-    /// \param storage Particle storage, must exist at least as long as this object.
     /// \param solver Solver used to create all the necessary quantities. Also must exist for the duration
     ///               of this object as it is stored by reference.
     /// \param settings Run settings
-    InitialConditions(Storage& storage, ISolver& solver, const RunSettings& settings);
+    InitialConditions(ISolver& solver, const RunSettings& settings);
 
     /// \brief Constructor creating solver from values in settings.
     ///
@@ -108,7 +92,7 @@ public:
     /// quantities. Mostly, this will throw an exception or assert, but in case the custom solver uses the
     /// same quantities as the default one, but it initializes them to different values, this error would go
     /// unnoticed.
-    InitialConditions(Storage& storage, const RunSettings& settings);
+    InitialConditions(const RunSettings& settings);
 
     ~InitialConditions();
 
@@ -119,16 +103,17 @@ public:
     /// pressure and sound speed are computed from equation of state. The function also calls
     /// \ref ISolver::create to initialze quantities needed by used solver, either a solver given in
     /// constructor or a default one based on RunSettings parameters.
+    /// \param storage Particle storage to which the new body is added
     /// \param domain Spatial domain where the particles are placed. The domain should not overlap a body
     ///               already added into the storage as that would lead to incorrect density estimating in
     ///               overlapping regions.
     /// \param bodySettings Parameters of the body
     /// \todo generalize for entropy solver
-    BodyView addBody(const IDomain& domain, const BodySettings& bodySettings);
+    BodyView addBody(Storage& storage, const IDomain& domain, const BodySettings& bodySettings);
 
     /// Adds a body by explicitly specifying its material.
     /// \copydoc addBody
-    BodyView addBody(const IDomain& domain, AutoPtr<IMaterial>&& material);
+    BodyView addBody(Storage& storage, const IDomain& domain, AutoPtr<IMaterial>&& material);
 
 
     /// Holds data needed to create a single body in \ref addHeterogeneousBody function.
@@ -152,6 +137,7 @@ public:
     };
 
     /// Creates particles composed of different materials.
+    /// \param storage Particle storage to which the new body is added
     /// \param environment Base body, domain of which defines the body. No particles are generated outside
     ///                    of this domain. By default, all particles have the material given by this body.
     /// \param bodies List of bodies created inside the main environemnt. Each can have different material
@@ -162,7 +148,9 @@ public:
     /// \return Array of n+1 BodyViews, where n is the size of \ref bodies parameter. The first one
     ///         corresponds to the environment, the rest are the bodies inside the environment in the
     ///         order they were passed in \ref bodies.
-    Array<BodyView> addHeterogeneousBody(BodySetup&& environment, ArrayView<BodySetup> bodies);
+    Array<BodyView> addHeterogeneousBody(Storage& storage,
+        BodySetup&& environment,
+        ArrayView<BodySetup> bodies);
 
     /// \brief Ends the initial condition settings.
     ///

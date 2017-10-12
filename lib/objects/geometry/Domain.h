@@ -23,50 +23,61 @@ struct Ghost {
 };
 
 
-/// Base class for computational domains.
+/// \brief Base class for computational domains.
 class IDomain : public Polymorphic {
 protected:
     Vector center;
 
 public:
-    /// Constructs the domain given its center point.
+    /// \brief Constructs the domain given its center point.
     IDomain(const Vector& center)
         : center(center) {}
 
-    /// Returns the center of the domain
+    /// \brief Returns the center of the domain.
     virtual Vector getCenter() const {
         return this->center;
     }
 
-    /// Returns the bounding box of the domain
+    /// \brief Returns the bounding box of the domain.
     virtual Box getBoundingBox() const = 0;
 
-    /// Returns the total d-dimensional volume of the domain
+    /// \brief Returns the total volume of the domain.
+    ///
+    /// This should be identical to computing an integral of \ref isInside function, although faster and more
+    /// precise.
     virtual Float getVolume() const = 0;
 
-    /// Checks if the vector lies inside the domain
+    /// \brief Checks if the given point lies inside the domain.
+    ///
+    /// Points lying exactly on the boundary of the domain are assumed to be inside.
     virtual bool isInside(const Vector& v) const = 0;
 
-    /// Returns an array of indices, marking vectors with given property by their index.
+    /// \brief Returns an array of indices, marking vectors with given property by their index.
+    ///
+    /// \param vs Input array of points.
     /// \param output Output array, is not cleared by the method, previously stored values are kept
-    /// unchanged.
+    ///               unchanged. Indices of vectors belonging in the subset are pushed into the array.
+    /// \param type Type of the subset, see \ref SubsetType.
     virtual void getSubset(ArrayView<const Vector> vs, Array<Size>& output, const SubsetType type) const = 0;
 
-    /// Returns distances of particles lying close to the boundary. The distances are signed, negative
-    /// number means the particle is lying outside of the domain. Distances can be computed with small
-    /// error to simplify implementation.
-    /// \param vs Input array of partices.
+    /// \brief Returns distances of particles lying close to the boundary.
+    ///
+    /// The distances are signed, negative number means the particle is lying outside of the domain. Distances
+    /// can be computed with small error to simplify implementation.
+    /// \param vs Input array of points.
     /// \param distances Output array, will be resized to the size of particle array and cleared.
     virtual void getDistanceToBoundary(ArrayView<const Vector> vs, Array<Float>& distances) const = 0;
 
-    /// Projects vectors outside of the domain onto its boundary. Vectors inside the domain are untouched.
-    /// Function does not affect 4th component of vectors.
+    /// \brief Projects vectors outside of the domain onto its boundary.
+    ///
+    /// Vectors inside the domain are untouched. Function does not affect 4th component of vectors.
     /// \param vs Array of vectors we want to project
     /// \param indices Optional array of indices. If passed, only selected vectors will be projected. All
     ///        vectors are projected by default.
     virtual void project(ArrayView<Vector> vs, Optional<ArrayView<Size>> indices = NOTHING) const = 0;
 
-    /// Duplicates vectors located close to the boundary, placing the symmetrically to the other side.
+    /// \brief Duplicates vectors located close to the boundary, placing the symmetrically to the other side.
+    ///
     /// Distance of the copy (ghost) to the boundary shall be the same as the source vector. One vector
     /// can create multiple ghosts.
     /// \param vs Array containing vectors creating ghosts.
@@ -88,7 +99,7 @@ public:
 };
 
 
-/// Spherical domain, defined by the center of sphere and its radius.
+/// \brief Spherical domain, defined by the center of sphere and its radius.
 class SphericalDomain : public IDomain {
 private:
     Float radius;
@@ -121,7 +132,7 @@ private:
     }
 };
 
-/// Axis aligned ellipsoidal domain, defined by the center of sphere and lengths of three axes.
+/// \brief Axis aligned ellipsoidal domain, defined by the center of sphere and lengths of three axes.
 class EllipsoidalDomain : public IDomain {
 private:
     /// Lengths of axes
@@ -159,7 +170,7 @@ private:
 };
 
 
-/// Block aligned with coordinate axes, defined by its center and length of each side.
+/// \brief Block aligned with coordinate axes, defined by its center and length of each side.
 /// \todo create extra ghosts in the corners?
 class BlockDomain : public IDomain {
 private:
@@ -189,7 +200,7 @@ public:
 };
 
 
-/// Cylinder aligned with z-axis, optionally including bases (can be either open or close cylinder).
+/// \brief Cylinder aligned with z-axis, optionally including bases (can be either open or close cylinder).
 class CylindricalDomain : public IDomain {
 private:
     Float radius;
@@ -226,8 +237,9 @@ private:
 };
 
 
-/// Similar to cylindrical domain, but bases are hexagons instead of circles. Hexagons are oriented so that
-/// two sides are parallel with x-axis.
+/// \brief Similar to cylindrical domain, but bases are hexagons instead of circles.
+///
+/// Hexagons are oriented so that two sides are parallel with x-axis.
 /// \todo could be easily generalized to any polygon, currently not needed though
 class HexagonalDomain : public IDomain {
 private:

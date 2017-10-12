@@ -203,30 +203,30 @@ TEST_CASE("List erase", "[list]") {
     REQUIRE(list.front().value == 5);
 }
 
-TEST_CASE("List eraseAndIncrement", "[list]") {
+TEST_CASE("List erase and advance", "[list]") {
     List<RecordType> list({ 1, 2, 3, 4 });
     ListIterator<RecordType> iter = list.begin();
-    list.eraseAndIncrement(iter);
+    iter = list.erase(iter);
     REQUIRE(list.size() == 3);
     REQUIRE(list.front().value == 2);
     REQUIRE(iter->value == 2);
 
-    list.eraseAndIncrement(iter);
-    list.eraseAndIncrement(iter);
+    iter = list.erase(iter);
+    iter = list.erase(iter);
     REQUIRE(list.size() == 1);
     REQUIRE(iter->value == 4);
 
-    list.eraseAndIncrement(iter);
+    iter = list.erase(iter);
     REQUIRE(list.empty());
     REQUIRE_FALSE(iter);
 }
 
-TEST_CASE("List eraseAndIncrement loop", "[list]") {
+TEST_CASE("List erase loop", "[list]") {
     List<RecordType> list({ 1, 2, 3, 4 });
     Size counter = 0;
     for (auto iter = list.begin(); iter != list.end();) {
         ++counter;
-        list.eraseAndIncrement(iter);
+        iter = list.erase(iter);
     }
     REQUIRE(list.empty());
     REQUIRE(counter == 4);

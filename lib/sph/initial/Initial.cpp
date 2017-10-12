@@ -72,42 +72,28 @@ public:
     }
 };
 
-InitialConditions::InitialConditions(Storage& storage, ISolver& solver, const RunSettings& settings)
-    : storage(storage)
-    , solver(makeAuto<ForwardingSolver>(solver)) {
+InitialConditions::InitialConditions(ISolver& solver, const RunSettings& settings)
+    : solver(makeAuto<ForwardingSolver>(solver)) {
     this->createCommon(settings);
 }
 
-InitialConditions::InitialConditions(Storage& storage, const RunSettings& settings)
-    : storage(storage)
-    , solver(Factory::getSolver(settings)) {
+InitialConditions::InitialConditions(const RunSettings& settings)
+    : solver(Factory::getSolver(settings)) {
     this->createCommon(settings);
 }
 
-InitialConditions::~InitialConditions() {
-    this->finalize();
-}
-
-void InitialConditions::finalize() {
-    if (finalization.storeInitialPositions) {
-        Array<Vector> cloned = storage.getValue<Vector>(QuantityId::POSITIONS).clone();
-        storage.insert<Vector>(QuantityId::INITIAL_POSITION, OrderEnum::ZERO, std::move(cloned));
-        finalization.storeInitialPositions = false;
-    }
-}
+InitialConditions::~InitialConditions() = default;
 
 void InitialConditions::createCommon(const RunSettings& settings) {
-    /// \todo more general rng (from settings)
-    context.rng = makeAuto<RngWrapper<BenzAsphaugRng>>(1234);
-    finalization.storeInitialPositions = settings.get<bool>(RunSettingsId::OUTPUT_SAVE_INITIAL_POSITION);
+    context.rng = Factory::getRng(settings);
 }
 
-BodyView InitialConditions::addBody(const IDomain& domain, const BodySettings& settings) {
+BodyView InitialConditions::addBody(Storage& storage, const IDomain& domain, const BodySettings& settings) {
     AutoPtr<IMaterial> material = Factory::getMaterial(settings);
-    return this->addBody(domain, std::move(material));
+    return this->addBody(storage, domain, std::move(material));
 }
 
-BodyView InitialConditions::addBody(const IDomain& domain, AutoPtr<IMaterial>&& material) {
+BodyView InitialConditions::addBody(Storage& storage, const IDomain& domain, AutoPtr<IMaterial>&& material) {
     IMaterial& mat = *material; // get reference before moving the pointer
     Storage body(std::move(material));
 
@@ -142,7 +128,8 @@ InitialConditions::BodySetup::BodySetup() = default;
 InitialConditions::BodySetup::~BodySetup() = default;
 
 
-Array<BodyView> InitialConditions::addHeterogeneousBody(BodySetup&& environment,
+Array<BodyView> InitialConditions::addHeterogeneousBody(Storage& storage,
+    BodySetup&& environment,
     ArrayView<BodySetup> bodies) {
     PROFILE_SCOPE("InitialConditions::addHeterogeneousBody");
     AutoPtr<IDistribution> distribution = Factory::getDistribution(environment.material->getParams());

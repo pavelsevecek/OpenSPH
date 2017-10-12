@@ -6,6 +6,7 @@
 /// \date 2016-2017
 
 #include "common/ForwardDecl.h"
+#include "objects/containers/List.h"
 #include "objects/wrappers/Interval.h"
 #include "objects/wrappers/SharedPtr.h"
 #include "physics/Integrals.h"
@@ -15,6 +16,8 @@ NAMESPACE_SPH_BEGIN
 
 class IRunCallbacks;
 class ILogFile;
+class IOutput;
+class ITrigger;
 
 /// \brief Defines the interface for a run.
 ///
@@ -56,6 +59,9 @@ protected:
 
     /// Logging files
     Array<AutoPtr<ILogFile>> logFiles;
+
+    /// Triggers
+    List<AutoPtr<ITrigger>> triggers;
 
 public:
     IRun();

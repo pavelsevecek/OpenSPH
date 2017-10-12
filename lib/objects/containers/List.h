@@ -23,8 +23,9 @@ struct ListNode {
     /// Previous element in the list, can be nullptr.
     RawPtr<ListNode> prev;
 
-    ListNode(const T& value, RawPtr<ListNode> prev, RawPtr<ListNode> next)
-        : value(value)
+    template <typename U>
+    ListNode(U&& value, RawPtr<ListNode> prev, RawPtr<ListNode> next)
+        : value(std::forward<U>(value))
         , next(next)
         , prev(prev) {
         // update pointers of neighbouring nodes
@@ -130,11 +131,7 @@ public:
     }
 
     ~List() {
-        for (RawPtr<ListNode<T>> ptr = first; ptr != nullptr;) {
-            RawPtr<ListNode<T>> next = ptr->next;
-            delete ptr.get();
-            ptr = next;
-        }
+        this->clear();
     }
 
     /// Move operator.
@@ -203,8 +200,11 @@ public:
     /// This does not invalidate iterators or pointers to element, except for the iterator to the element
     /// being erased from the list.
     /// \param iter Iterator to an element being erased. Must not be nullptr.
-    void erase(const ListIterator<T> iter) {
+    /// \return Iterator pointing to the next element, or nullptr if the removed element was the last one.
+    ListIterator<T> erase(const ListIterator<T> iter) {
         ASSERT(iter);
+        ListIterator<T> next = iter;
+        ++next;
         RawPtr<ListNode<T>> node = iter.node;
         node->detach();
         if (node == first) {
@@ -216,17 +216,16 @@ public:
             last = last->prev;
         }
         delete node.get();
+        return next;
     }
 
-    /// \brief Removes an element given by the iterator and moves the iterator to the next element.
-    ///
-    /// If the removed element is at the end of the list, the iterator will contain nullptr. In any case, the
-    /// iterator is not invalidated after the function is called (unlike after \ref erase). Either it points
-    /// to the next element, or it is nullptr.
-    void eraseAndIncrement(ListIterator<T>& iter) {
-        ListIterator<T> copy = iter;
-        ++iter;
-        erase(copy);
+    /// \brief Removes all elements from the list
+    void clear() {
+        for (RawPtr<ListNode<T>> ptr = first; ptr != nullptr;) {
+            RawPtr<ListNode<T>> next = ptr->next;
+            delete ptr.get();
+            ptr = next;
+        }
     }
 
     /// Returns the reference to the first element in the list.

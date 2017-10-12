@@ -4,6 +4,7 @@
 #include "io/Output.h"
 #include "physics/Integrals.h"
 #include "run/RunCallbacks.h"
+#include "run/Trigger.h"
 #include "system/Factory.h"
 #include "system/Statistics.h"
 #include "system/Timer.h"
@@ -65,7 +66,7 @@ void IRun::run() {
          t += timeStepping->getTimeStep()) {
 
         // save current statistics
-        stats.set(StatisticsId::TOTAL_TIME, t);
+        stats.set(StatisticsId::RUN_TIME, t);
         const Float progress = (t - timeRange.lower()) / timeRange.size();
         ASSERT(progress >= 0._f && progress <= 1._f);
         stats.set(StatisticsId::RELATIVE_PROGRESS, progress);
@@ -83,6 +84,19 @@ void IRun::run() {
         // logging
         for (auto& log : logFiles) {
             log->write(*storage, stats);
+        }
+
+        // triggers
+        for (auto iter = triggers.begin(); iter != triggers.end();) {
+            ITrigger& trig = **iter;
+            if (trig.condition(*storage, stats)) {
+                trig.action(*storage, stats);
+                if (trig.type() == TriggerEnum::ONE_TIME) {
+                    iter = triggers.erase(iter);
+                    continue;
+                }
+            }
+            ++iter;
         }
 
         // callbacks
@@ -128,6 +142,7 @@ void IRun::setNullToDefaults() {
 void IRun::tearDownInternal() {
     logFiles.clear();
     this->tearDown();
+    triggers.clear();
     output.reset();
     callbacks.reset();
     logger.reset();

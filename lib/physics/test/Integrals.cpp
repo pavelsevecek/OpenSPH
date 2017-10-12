@@ -9,17 +9,17 @@ using namespace Sph;
 
 TEST_CASE("Total mass", "[integrals]") {
     Storage storage;
-    InitialConditions conds(storage, RunSettings::getDefaults());
+    InitialConditions conds(RunSettings::getDefaults());
     BodySettings settings;
     settings.set(BodySettingsId::DENSITY, 10._f);
     settings.set(BodySettingsId::PARTICLE_COUNT, 100);
 
-    conds.addBody(SphericalDomain(Vector(0._f), 3._f), settings);
+    conds.addBody(storage, SphericalDomain(Vector(0._f), 3._f), settings);
     TotalMass mass;
 
     REQUIRE(mass.evaluate(storage) == approx(10._f * sphereVolume(3._f), 1.e-3_f));
 
-    conds.addBody(BlockDomain(Vector(0._f), Vector(2._f)), settings);
+    conds.addBody(storage, BlockDomain(Vector(0._f), Vector(2._f)), settings);
     REQUIRE(mass.evaluate(storage) == approx(10._f * (sphereVolume(3._f) + 8._f), 1.e-3_f));
 }
 
@@ -53,7 +53,7 @@ TEST_CASE("Total Momentum Simple", "[integrals]") {
 
 TEST_CASE("Total Momentum Body", "[integrals]") {
     Storage storage;
-    InitialConditions conds(storage, RunSettings::getDefaults());
+    InitialConditions conds(RunSettings::getDefaults());
     BodySettings settings;
     const Float rho0 = 5._f;
     settings.set(BodySettingsId::DENSITY, rho0);
@@ -62,7 +62,7 @@ TEST_CASE("Total Momentum Body", "[integrals]") {
 
     const Float radius = 3._f;
     const Float omega = 4._f;
-    conds.addBody(SphericalDomain(Vector(0._f), radius), settings)
+    conds.addBody(storage, SphericalDomain(Vector(0._f), radius), settings)
         .addVelocity(Vector(0.2_f, 0._f, -0.1_f))
         .addRotation(Vector(0._f, 0._f, omega), BodyView::RotationOrigin::FRAME_ORIGIN);
 
@@ -100,14 +100,15 @@ TEST_CASE("Total Energy Simple", "[integrals]") {
 
 TEST_CASE("Total Energy Body", "[integrals]") {
     Storage storage;
-    InitialConditions conds(storage, RunSettings::getDefaults());
+    InitialConditions conds(RunSettings::getDefaults());
     BodySettings settings;
     const Float rho0 = 5._f;
     settings.set(BodySettingsId::DENSITY, rho0);
     settings.set(BodySettingsId::ENERGY, 20._f); // specific energy = energy per MASS
     settings.set(BodySettingsId::PARTICLE_COUNT, 100);
 
-    conds.addBody(SphericalDomain(Vector(0._f), 3._f), settings).addVelocity(Vector(5._f, 1._f, -2._f));
+    conds.addBody(storage, SphericalDomain(Vector(0._f), 3._f), settings)
+        .addVelocity(Vector(5._f, 1._f, -2._f));
 
     const Float totalMass = sphereVolume(3._f) * rho0;
     REQUIRE(TotalKineticEnergy().evaluate(storage) == approx(15._f * totalMass));
@@ -117,14 +118,14 @@ TEST_CASE("Total Energy Body", "[integrals]") {
 
 TEST_CASE("Center of Mass", "[integrals]") {
     Storage storage;
-    InitialConditions conds(storage, RunSettings::getDefaults());
+    InitialConditions conds(RunSettings::getDefaults());
     BodySettings settings;
     settings.set(BodySettingsId::DENSITY, 1000._f);
     const Vector r1(-1._f, 5._f, -2._f);
-    conds.addBody(BlockDomain(r1, Vector(1._f)), settings);
+    conds.addBody(storage, BlockDomain(r1, Vector(1._f)), settings);
     settings.set(BodySettingsId::DENSITY, 500._f);
     const Vector r2(5._f, 3._f, 1._f);
-    conds.addBody(BlockDomain(r2, Vector(2._f)), settings);
+    conds.addBody(storage, BlockDomain(r2, Vector(2._f)), settings);
 
     REQUIRE(CenterOfMass(0).evaluate(storage) == approx(r1, 1.e-6_f));
     REQUIRE(CenterOfMass(1).evaluate(storage) == approx(r2, 1.e-6_f));

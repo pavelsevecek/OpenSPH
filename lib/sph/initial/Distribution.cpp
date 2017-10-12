@@ -1,9 +1,9 @@
 #include "sph/initial/Distribution.h"
-#include "objects/geometry/Domain.h"
 #include "math/Integrator.h"
 #include "math/Morton.h"
 #include "math/rng/VectorRng.h"
 #include "objects/finders/Voxel.h"
+#include "objects/geometry/Domain.h"
 #include "objects/wrappers/Optional.h"
 #include "system/Profiler.h"
 
@@ -145,12 +145,58 @@ DiehlDistribution::DiehlDistribution(const DiehlDistribution::DensityFunc& parti
     , strength(strength)
     , small(small) {}
 
+namespace {
+    class ForwardingDomain : public IDomain {
+    private:
+        const IDomain& domain;
+
+    public:
+        explicit ForwardingDomain(const IDomain& domain)
+            : IDomain(domain.getCenter())
+            , domain(domain) {}
+
+        virtual Box getBoundingBox() const override {
+            return domain.getBoundingBox();
+        }
+
+        virtual Float getVolume() const override {
+            return domain.getVolume();
+        }
+
+        virtual bool isInside(const Vector& v) const override {
+            return domain.isInside(v);
+        }
+
+        virtual void getSubset(ArrayView<const Vector> vs,
+            Array<Size>& output,
+            const SubsetType type) const override {
+            return domain.getSubset(vs, output, type);
+        }
+
+        virtual void getDistanceToBoundary(ArrayView<const Vector> vs,
+            Array<Float>& distances) const override {
+            domain.getDistanceToBoundary(vs, distances);
+        }
+
+        virtual void project(ArrayView<Vector> vs,
+            Optional<ArrayView<Size>> indices = NOTHING) const override {
+            domain.project(vs, indices);
+        }
+        virtual void addGhosts(ArrayView<const Vector> vs,
+            Array<Ghost>& ghosts,
+            const Float radius = 2._f,
+            const Float eps = 0.05_f) const override {
+            domain.addGhosts(vs, ghosts, radius, eps);
+        }
+    };
+} // namespace
+
 Array<Vector> DiehlDistribution::generate(const Size n, const IDomain& domain) const {
     // Renormalize particle density so that integral matches expected particle count
     Float multiplier = 1._f;
     auto actDensity = [this, &multiplier](const Vector& v) { return multiplier * particleDensity(v); };
 
-    Integrator<HaltonQrng> mc(domain);
+    Integrator<HaltonQrng> mc(makeAuto<ForwardingDomain>(domain));
     Size cnt = 0;
     Float particleCnt;
     for (particleCnt = mc.integrate(actDensity); abs(particleCnt - n) > error;) {

@@ -25,7 +25,7 @@ Path OutputFile::getNextPath(const Statistics& stats) const {
     n = path.find("%t");
     if (n != std::string::npos) {
         std::ostringstream ss;
-        const Float t = stats.get<Float>(StatisticsId::TOTAL_TIME);
+        const Float t = stats.get<Float>(StatisticsId::RUN_TIME);
         ss << std::fixed << t;
         /// \todo replace decimal dot as docs say
         path.replace(n, 2, ss.str());
@@ -77,7 +77,7 @@ Path TextOutput::dump(Storage& storage, const Statistics& stats) {
     std::ofstream ofs(fileName.native());
     // print description
     ofs << "# Run: " << runName << std::endl;
-    ofs << "# SPH dump, time = " << stats.get<Float>(StatisticsId::TOTAL_TIME) << std::endl;
+    ofs << "# SPH dump, time = " << stats.get<Float>(StatisticsId::RUN_TIME) << std::endl;
     ofs << "# ";
     for (auto& column : columns) {
         printHeader(ofs, column->getName(), column->getType());
@@ -177,7 +177,7 @@ TextOutput& TextOutput::add(AutoPtr<ITextColumn>&& column) {
 Path GnuplotOutput::dump(Storage& storage, const Statistics& stats) {
     const Path path = TextOutput::dump(storage, stats);
     const Path pathWithoutExt = Path(path).removeExtension();
-    const Float time = stats.get<Float>(StatisticsId::TOTAL_TIME);
+    const Float time = stats.get<Float>(StatisticsId::RUN_TIME);
     const std::string command = "gnuplot -e \"filename='" + pathWithoutExt.native() +
                                 "'; time=" + std::to_string(time) + "\" " + scriptPath;
     const int returned = system(command.c_str());
@@ -318,7 +318,7 @@ BinaryOutput::BinaryOutput(const Path& fileMask)
 
 Path BinaryOutput::dump(Storage& storage, const Statistics& stats) {
     const Path fileName = paths.getNextPath(stats);
-    const Float time = stats.get<Float>(StatisticsId::TOTAL_TIME);
+    const Float time = stats.get<Float>(StatisticsId::RUN_TIME);
 
     Serializer serializer(fileName);
     // file format identifier

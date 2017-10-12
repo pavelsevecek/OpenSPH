@@ -1,11 +1,11 @@
 #include "gui/rotation/Rotation.h"
-#include "objects/geometry/Domain.h"
 #include "gui/GuiCallbacks.h"
 #include "gui/Settings.h"
 #include "io/Column.h"
 #include "io/LogFile.h"
 #include "io/Logger.h"
 #include "io/Output.h"
+#include "objects/geometry/Domain.h"
 #include "quantities/Iterate.h"
 #include "sph/equations/Friction.h"
 #include "sph/equations/Potentials.h"
@@ -51,7 +51,7 @@ public:
         tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
         for (Size i = 0; i < v.size(); ++i) {
             // gradually decrease the delta
-            const Float t = stats.get<Float>(StatisticsId::TOTAL_TIME);
+            const Float t = stats.get<Float>(StatisticsId::RUN_TIME);
             v[i] /= 1._f + lerp(delta, 0._f, min(t / 10._f, 1._f));
         }
     }
@@ -78,11 +78,11 @@ void AsteroidRotation::setUp() {
 
     solver = makeAuto<DisableDerivativesSolver>(settings, externalForces);
 
-    InitialConditions conds(*storage, *solver, settings);
+    InitialConditions conds(*solver, settings);
 
     // Parent body
     SphericalDomain domain1(Vector(0._f), 5e3_f); // D = 10km
-    conds.addBody(domain1, bodySettings);
+    conds.addBody(*storage, domain1, bodySettings);
     logger = Factory::getLogger(settings);
     logger->write("Particles of target: ", storage->getParticleCnt());
 

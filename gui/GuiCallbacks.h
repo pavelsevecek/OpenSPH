@@ -22,7 +22,7 @@ public:
     virtual void onRunStart(const Storage& UNUSED(storage), Statistics& UNUSED(stats)) override {}
 
     virtual void onRunEnd(const Storage& UNUSED(storage), Statistics& stats) override {
-        stats.get<Float>(StatisticsId::TOTAL_TIME);
+        stats.get<Float>(StatisticsId::RUN_TIME);
     }
 
     virtual bool shouldAbortRun() const override {

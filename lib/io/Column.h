@@ -240,7 +240,7 @@ public:
     virtual Value evaluate(const Storage& UNUSED(storage),
         const Statistics& stats,
         const Size UNUSED(particleIdx)) const override {
-        return stats.get<Float>(StatisticsId::TOTAL_TIME);
+        return stats.get<Float>(StatisticsId::RUN_TIME);
     }
 
     virtual void accumulate(Storage&, const Value, const Size) const override {

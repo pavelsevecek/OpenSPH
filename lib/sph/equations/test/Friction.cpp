@@ -17,13 +17,13 @@ TEST_CASE("InternalFriction", "[friction]") {
     GenericSolver solver(settings, std::move(eqs));
 
     Storage storage;
-    InitialConditions initial(storage, solver, RunSettings::getDefaults());
+    InitialConditions initial(solver, RunSettings::getDefaults());
     BodySettings body;
     body.set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::NONE);
     body.set(BodySettingsId::RHEOLOGY_DAMAGE, DamageEnum::NONE);
     body.set(BodySettingsId::EOS, EosEnum::NONE);
     body.set(BodySettingsId::PARTICLE_COUNT, 10000);
-    initial.addBody(BlockDomain(Vector(0._f), Vector(2._f, 2._f, 1._f)), body);
+    initial.addBody(storage, BlockDomain(Vector(0._f), Vector(2._f, 2._f, 1._f)), body);
 
     // add two sliding layers
     ArrayView<Vector> r, v, dv;

@@ -5,6 +5,7 @@
 #include "io/LogFile.h"
 #include "io/Output.h"
 #include "run/IRun.h"
+#include "run/Trigger.h"
 #include "sph/equations/Potentials.h"
 #include "sph/initial/Presets.h"
 #include "sph/solvers/GenericSolver.h"
@@ -28,97 +29,6 @@ void setupCollisionColumns(TextOutput& output) {
     output.add(makeAuto<ValueColumn<Float>>(QuantityId::DAMAGE));
     output.add(makeAuto<ValueColumn<TracelessTensor>>(QuantityId::DEVIATORIC_STRESS));
 }
-
-class CollisionSolver : public GenericSolver {
-private:
-    /// Object used to create impactor
-    AutoPtr<Presets::CollisionMaker> maker;
-
-    /// Time range of the simulation.
-    Interval timeRange;
-
-    /// Time when initial dampening phase is ended and impact starts
-    Float startTime = 0._f;
-
-    /// Velocity damping constant
-    Float delta = 0.5_f;
-
-    /// Denotes the phase of the simulation
-    bool impactStarted = false;
-
-public:
-    explicit CollisionSolver(const RunSettings& settings)
-        : GenericSolver(settings, this->getEquations(settings)) {
-        timeRange = settings.get<Interval>(RunSettingsId::RUN_TIME_RANGE);
-    }
-
-    void setMaker(AutoPtr<Presets::CollisionMaker>&& newMaker) {
-        maker = std::move(newMaker);
-    }
-
-    virtual void integrate(Storage& storage, Statistics& stats) override {
-        GenericSolver::integrate(storage, stats);
-
-        const Float t = stats.get<Float>(StatisticsId::TOTAL_TIME);
-        const Float dt = stats.getOr<Float>(StatisticsId::TIMESTEP_VALUE, 0.01_f);
-        if (t <= startTime) {
-            // damp velocities
-            ArrayView<Vector> r, v, dv;
-            tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
-            for (Size i = 0; i < v.size(); ++i) {
-                // gradually decrease the delta
-                const Float t0 = timeRange.lower();
-                const Float factor = 1._f + lerp(delta * dt, 0._f, min((t - t0) / (startTime - t0), 1._f));
-                // we have to dump only the deviation of velocities, not the initial rotation!
-                v[i] /= factor;
-                ASSERT(isReal(v[i]));
-            }
-            //  this->smoothDensity(storage);
-        }
-        if (t > startTime && !impactStarted) {
-            const Size targetParticleCnt = storage.getParticleCnt();
-            maker->addImpactor();
-            globalLogger.write(
-                "Added impactor, particle cnt = ", storage.getParticleCnt() - targetParticleCnt);
-
-            // zero all damage potentially created during the initial phase
-            ArrayView<Float> d = storage.getValue<Float>(QuantityId::DAMAGE);
-            for (Size i = 0; i < d.size(); ++i) {
-                d[i] = 0._f;
-            }
-
-            impactStarted = true;
-        }
-    }
-
-private:
-    EquationHolder getEquations(const RunSettings& settings) const {
-        // here we cannot use member variables as they haven't been initialized yet
-
-        EquationHolder equations;
-
-        // forces
-        equations += makeTerm<PressureForce>(settings) + makeTerm<SolidStressForce>(settings);
-
-        // noninertial acceleration
-        const Vector omega = settings.get<Vector>(RunSettingsId::FRAME_ANGULAR_FREQUENCY);
-        equations += makeTerm<NoninertialForce>(omega);
-
-        // gravity (approximation)
-        equations += makeTerm<SphericalGravity>(SphericalGravity::Options::ASSUME_HOMOGENEOUS);
-
-        // density evolution
-        equations += makeTerm<ContinuityEquation>(settings);
-
-        // artificial viscosity
-        equations += EquationHolder(Factory::getArtificialViscosity(settings));
-
-        // adaptive smoothing length
-        equations += makeTerm<AdaptiveSmoothingLength>(settings);
-
-        return equations;
-    }
-};
 
 class ForwardingLogger : public ILogger {
 public:
@@ -172,19 +82,17 @@ public:
             .set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::VON_MISES)
             .set(BodySettingsId::DISTRIBUTE_MODE_SPH5, true);
 
-        AutoPtr<CollisionSolver> collisionSolver = makeAuto<CollisionSolver>(settings);
-        AutoPtr<Presets::CollisionMaker> maker =
-            makeAuto<Presets::CollisionMaker>(*collisionSolver, settings, body, _params);
-
+        solver = makeAuto<GenericSolver>(settings, this->getEquations(settings));
+        AutoPtr<Presets::Collision> maker = makeAuto<Presets::Collision>(*solver, settings, body, _params);
         logger = makeAuto<ForwardingLogger>();
+        storage = makeShared<Storage>();
 
-        storage = maker->addTarget();
-        collisionSolver->setMaker(std::move(maker));
+        maker->addTarget(*storage);
         logger->write("Created target with ", storage->getParticleCnt(), " particles");
 
-        solver = std::move(collisionSolver);
 
         this->setupOutput();
+        this->setupTriggers(std::move(maker));
 
         // add printing of run progres
         logFiles.push(makeAuto<CommonStatsLog>(makeAuto<ForwardingLogger>()));
@@ -207,6 +115,123 @@ private:
             makeAuto<TextOutput>(outputPath, name, TextOutput::Options::SCIENTIFIC);
         setupCollisionColumns(*textOutput);
         output = std::move(textOutput);
+    }
+
+
+    void setupTriggers(AutoPtr<Presets::Collision>&& maker) {
+
+        // Trigger creating impactor at t = 0
+        class ImpactorTrigger : public ITrigger {
+        private:
+            AutoPtr<Presets::Collision> maker;
+            Float startTime;
+
+        public:
+            explicit ImpactorTrigger(AutoPtr<Presets::Collision>&& maker, const Float startTime)
+                : maker(std::move(maker))
+                , startTime(startTime) {}
+
+            virtual TriggerEnum type() const override {
+                return TriggerEnum::ONE_TIME;
+            }
+
+            virtual bool condition(const Storage& UNUSED(storage), const Statistics& stats) override {
+                const Float t = stats.get<Float>(StatisticsId::RUN_TIME);
+                return t >= startTime;
+            }
+
+            virtual AutoPtr<ITrigger> action(Storage& storage, Statistics& UNUSED(stats)) override {
+                const Size targetParticleCnt = storage.getParticleCnt();
+                maker->addImpactor(storage);
+                globalLogger.write(
+                    "Added impactor, particle cnt = ", storage.getParticleCnt() - targetParticleCnt);
+                return nullptr;
+            }
+        };
+
+        class DumpTrigger : public ITrigger {
+        private:
+            /// Time range of the simulation.
+            Interval timeRange;
+
+            /// Time when initial dampening phase is ended and impact starts
+            Float startTime = 0._f;
+
+            /// Velocity damping constant
+            Float delta = 0.5_f;
+
+        public:
+            explicit DumpTrigger(const RunSettings& settings) {
+                timeRange = settings.get<Interval>(RunSettingsId::RUN_TIME_RANGE);
+            }
+
+            virtual TriggerEnum type() const override {
+                return TriggerEnum::REPEATING;
+            }
+
+            virtual bool condition(const Storage& UNUSED(storage), const Statistics& stats) override {
+                const Float t = stats.get<Float>(StatisticsId::RUN_TIME);
+
+                // only dump before the start of the simulation
+                return t < startTime;
+            }
+
+            virtual AutoPtr<ITrigger> action(Storage& storage, Statistics& stats) override {
+                const Float t = stats.get<Float>(StatisticsId::RUN_TIME);
+                const Float dt = stats.getOr<Float>(StatisticsId::TIMESTEP_VALUE, 0.01_f);
+                ASSERT(t < startTime);
+                // damp velocities
+                ArrayView<Vector> r, v, dv;
+                tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
+                for (Size i = 0; i < v.size(); ++i) {
+                    // gradually decrease the delta
+                    const Float t0 = timeRange.lower();
+                    const Float factor =
+                        1._f + lerp(delta * dt, 0._f, min((t - t0) / (startTime - t0), 1._f));
+                    // we have to dump only the deviation of velocities, not the initial rotation!
+                    v[i] /= factor;
+                    ASSERT(isReal(v[i]));
+                }
+
+                if (storage.has(QuantityId::DAMAGE)) {
+                    // zero all damage potentially created during the initial phase
+                    ArrayView<Float> d = storage.getValue<Float>(QuantityId::DAMAGE);
+                    for (Size i = 0; i < d.size(); ++i) {
+                        d[i] = 0._f;
+                    }
+                }
+                return nullptr;
+            }
+        };
+        triggers.pushBack(makeAuto<ImpactorTrigger>(std::move(maker), 0._f));
+        triggers.pushBack(makeAuto<DumpTrigger>(settings));
+    }
+
+    EquationHolder getEquations(const RunSettings& settings) const {
+        // here we cannot use member variables as they haven't been initialized yet
+
+        EquationHolder equations;
+
+        // forces
+        equations += makeTerm<PressureForce>(settings) + makeTerm<SolidStressForce>(settings);
+
+        // noninertial acceleration
+        const Vector omega = settings.get<Vector>(RunSettingsId::FRAME_ANGULAR_FREQUENCY);
+        equations += makeTerm<NoninertialForce>(omega);
+
+        // gravity (approximation)
+        equations += makeTerm<SphericalGravity>(SphericalGravity::Options::ASSUME_HOMOGENEOUS);
+
+        // density evolution
+        equations += makeTerm<ContinuityEquation>(settings);
+
+        // artificial viscosity
+        equations += EquationHolder(Factory::getArtificialViscosity(settings));
+
+        // adaptive smoothing length
+        equations += makeTerm<AdaptiveSmoothingLength>(settings);
+
+        return equations;
     }
 };
 

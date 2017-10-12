@@ -55,7 +55,7 @@ protected:
         logger->write("Output #",
             stats.get<int>(StatisticsId::INDEX),
             "  time = ",
-            stats.get<Float>(StatisticsId::TOTAL_TIME));
+            stats.get<Float>(StatisticsId::RUN_TIME));
         CriterionId id = stats.get<CriterionId>(StatisticsId::TIMESTEP_CRITERION);
         std::stringstream ss;
         if (id == CriterionId::DERIVATIVE) {
@@ -82,7 +82,7 @@ public:
 
 protected:
     virtual void writeImpl(const Storage& storage, const Statistics& stats) {
-        const Float time = stats.get<Float>(StatisticsId::TOTAL_TIME);
+        const Float time = stats.get<Float>(StatisticsId::RUN_TIME);
         logger->write(time,
             " ",
             momentum.evaluate(storage),

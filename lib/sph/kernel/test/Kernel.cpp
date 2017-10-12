@@ -18,8 +18,7 @@ void testKernel(const TKernel& kernel, TTest&& test) {
 
     // normalization
     const Float targetError = 1.e-3_f;
-    SphericalDomain domain(Vector(0._f), kernel.radius());
-    Integrator<> in(domain);
+    Integrator<> in(makeAuto<SphericalDomain>(Vector(0._f), kernel.radius()));
     Float norm = in.integrate([&](const Vector& v) { return kernel.value(v, 1._f); }, targetError);
     REQUIRE(norm == approx(1._f, 5._f * kernel.radius() * targetError));
 

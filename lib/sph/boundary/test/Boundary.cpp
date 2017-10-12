@@ -237,12 +237,12 @@ TEST_CASE("GhostParticles empty", "[boundary]") {
 
 TEST_CASE("FrozenParticles by flag", "[boundary]") {
     Storage storage;
-    InitialConditions conds(storage, RunSettings::getDefaults());
+    InitialConditions conds(RunSettings::getDefaults());
     BodySettings settings;
     settings.set(BodySettingsId::PARTICLE_COUNT, 100);
-    conds.addBody(SphericalDomain(Vector(0._f), 1._f), settings);
+    conds.addBody(storage, SphericalDomain(Vector(0._f), 1._f), settings);
     const Size size0 = storage.getParticleCnt();
-    conds.addBody(SphericalDomain(Vector(3._f, 0._f, 0._f), 1._f), settings);
+    conds.addBody(storage, SphericalDomain(Vector(3._f, 0._f, 0._f), 1._f), settings);
 
     ArrayView<Vector> r, v, dv;
     tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
@@ -329,10 +329,10 @@ TEST_CASE("FrozenParticles by flag", "[boundary]") {
 
 TEST_CASE("FrozenParticles by distance", "[boundary]") {
     Storage storage;
-    InitialConditions conds(storage, RunSettings::getDefaults());
+    InitialConditions conds(RunSettings::getDefaults());
     BodySettings settings;
     settings.set(BodySettingsId::PARTICLE_COUNT, 1000);
-    conds.addBody(SphericalDomain(Vector(0._f), 1.5_f), settings);
+    conds.addBody(storage, SphericalDomain(Vector(0._f), 1.5_f), settings);
     const Float radius = 2._f;
     FrozenParticles boundaryConditions(makeAuto<SphericalDomain>(Vector(0._f), 1._f), radius);
 

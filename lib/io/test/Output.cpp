@@ -27,7 +27,7 @@ TEST_CASE("TextOutput dump", "[output]") {
     TextOutput output(Path("tmp1_%d.txt"), "Output", EMPTY_FLAGS);
     addColumns(output);
     Statistics stats;
-    stats.set(StatisticsId::TOTAL_TIME, 0._f);
+    stats.set(StatisticsId::RUN_TIME, 0._f);
     output.dump(storage, stats);
 
     std::string expected = R"(# Run: Output
@@ -58,7 +58,7 @@ TEST_CASE("TextOutput dump&accumulate", "[output]") {
     TextOutput output(Path("tmp2_%d.txt"), "Output", EMPTY_FLAGS);
     Storage storage = Tests::getGassStorage(1000);
     Statistics stats;
-    stats.set(StatisticsId::TOTAL_TIME, 0._f);
+    stats.set(StatisticsId::RUN_TIME, 0._f);
     addColumns(output);
     output.dump(storage, stats);
 
@@ -90,7 +90,7 @@ TEST_CASE("BinaryOutput dump&accumulate simple", "[output]") {
         QuantityId::ANGULAR_MOMENTUM_CORRECTION, OrderEnum::ZERO, SymmetricTensor(6._f));
     BinaryOutput output(Path("simple%d.out"));
     Statistics stats;
-    stats.set(StatisticsId::TOTAL_TIME, 0._f);
+    stats.set(StatisticsId::RUN_TIME, 0._f);
     output.dump(storage1, stats);
 
     Storage storage2;
@@ -117,7 +117,7 @@ TEST_CASE("BinaryOutput dump&accumulate materials", "[output]") {
     RunSettings settings;
     /*settings.set(RunSettingsId::MODEL_FORCE_PRESSURE_GRADIENT, false);
     settings.set(RunSettingsId::MODEL_FORCE_SOLID_STRESS, false);*/
-    InitialConditions conds(storage, settings);
+    InitialConditions conds(settings);
     BodySettings body;
     // for exact number of particles
     body.set(BodySettingsId::INITIAL_DISTRIBUTION, DistributionEnum::RANDOM);
@@ -125,18 +125,18 @@ TEST_CASE("BinaryOutput dump&accumulate materials", "[output]") {
     body.set(BodySettingsId::EOS, EosEnum::TILLOTSON);
     body.set(BodySettingsId::DENSITY_RANGE, Interval(4._f, 6._f));
     body.set(BodySettingsId::DENSITY_MIN, 3._f);
-    conds.addBody(SphericalDomain(Vector(0._f), 2._f), body);
+    conds.addBody(storage, SphericalDomain(Vector(0._f), 2._f), body);
 
     body.set(BodySettingsId::PARTICLE_COUNT, 20);
     body.set(BodySettingsId::EOS, EosEnum::IDEAL_GAS);
     body.set(BodySettingsId::DENSITY_RANGE, Interval(1._f, 2._f));
     body.set(BodySettingsId::DENSITY_MIN, 5._f);
-    conds.addBody(SphericalDomain(Vector(0._f), 1._f), body);
+    conds.addBody(storage, SphericalDomain(Vector(0._f), 1._f), body);
 
     body.set(BodySettingsId::PARTICLE_COUNT, 5);
     body.set(BodySettingsId::EOS, EosEnum::MURNAGHAN);
     body.set(BodySettingsId::DENSITY, 100._f);
-    conds.addBody(SphericalDomain(Vector(0._f), 0.5_f), body);
+    conds.addBody(storage, SphericalDomain(Vector(0._f), 0.5_f), body);
 
     /*body.set(BodySettingsId::PARTICLE_COUNT, 15);
     body.set(BodySettingsId::EOS, EosEnum::NONE);
@@ -147,7 +147,7 @@ TEST_CASE("BinaryOutput dump&accumulate materials", "[output]") {
     BinaryOutput output(Path("mat%d.out"));
     Statistics stats;
     /// \todo accumulate stats
-    stats.set(StatisticsId::TOTAL_TIME, 0._f);
+    stats.set(StatisticsId::RUN_TIME, 0._f);
     output.dump(storage, stats);
 
     // sanity check

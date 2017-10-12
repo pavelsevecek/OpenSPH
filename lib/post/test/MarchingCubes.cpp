@@ -43,13 +43,13 @@ TEST_CASE("MarchingCubes sphere", "[marchingcubes]") {
 
 TEST_CASE("MarchingCubes storage", "[marchingcubes]") {
     Storage storage;
-    InitialConditions initial(storage, RunSettings::getDefaults());
+    InitialConditions initial(RunSettings::getDefaults());
     BodySettings body;
     body.set(BodySettingsId::PARTICLE_COUNT, 10000);
-    initial.addBody(SphericalDomain(Vector(0._f), 1._f), body);
+    initial.addBody(storage, SphericalDomain(Vector(0._f), 1._f), body);
     body.set(BodySettingsId::PARTICLE_COUNT, 100);
-    initial.addBody(SphericalDomain(spherical(1._f, PI / 4._f, PI / 4._f), 0.2_f), body);
-    initial.addBody(SphericalDomain(spherical(1._f, PI / 4._f, -PI / 4._f), 0.2_f), body);
+    initial.addBody(storage, SphericalDomain(spherical(1._f, PI / 4._f, PI / 4._f), 0.2_f), body);
+    initial.addBody(storage, SphericalDomain(spherical(1._f, PI / 4._f, -PI / 4._f), 0.2_f), body);
 
 
     Array<Triangle> triangles = getSurfaceMesh(storage, 0.05_f, 0.2_f);
