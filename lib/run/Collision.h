@@ -12,12 +12,6 @@
 
 NAMESPACE_SPH_BEGIN
 
-MultiLogger globalLogger = [] {
-    MultiLogger ml;
-    ml.add(makeAuto<StdOutLogger>());
-    return ml;
-}();
-
 void setupCollisionColumns(TextOutput& output) {
     output.add(makeAuto<ParticleNumberColumn>());
     output.add(makeAuto<ValueColumn<Vector>>(QuantityId::POSITIONS));
@@ -29,13 +23,6 @@ void setupCollisionColumns(TextOutput& output) {
     output.add(makeAuto<ValueColumn<Float>>(QuantityId::DAMAGE));
     output.add(makeAuto<ValueColumn<TracelessTensor>>(QuantityId::DEVIATORIC_STRESS));
 }
-
-class ForwardingLogger : public ILogger {
-public:
-    virtual void writeString(const std::string& s) override {
-        globalLogger.writeString(s);
-    }
-};
 
 class CollisionRun : public IRun {
 private:
@@ -52,7 +39,7 @@ public:
             .set(RunSettingsId::RUN_TIME_RANGE, Interval(-50._f, 10._f))
             .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 0.1_f)
             .set(RunSettingsId::MODEL_FORCE_SOLID_STRESS, true)
-            .set(RunSettingsId::SPH_FINDER, FinderEnum::VOXEL)
+            .set(RunSettingsId::SPH_FINDER, FinderEnum::UNIFORM_GRID)
             .set(RunSettingsId::SPH_AV_TYPE, ArtificialViscosityEnum::STANDARD)
             .set(RunSettingsId::SPH_AV_ALPHA, 1.5_f)
             .set(RunSettingsId::SPH_AV_BETA, 3._f)
@@ -65,9 +52,6 @@ public:
             .set(RunSettingsId::RUN_OUTPUT_PATH, _params.outputPath.native());
 
         settings.saveToFile(_params.outputPath / Path("code.sph"));
-
-        globalLogger.add(
-            makeAuto<FileLogger>(_params.outputPath / Path("log.txt"), FileLogger::Options::ADD_TIMESTAMP));
     }
 
     virtual void setUp() override {
@@ -84,7 +68,8 @@ public:
 
         solver = makeAuto<GenericSolver>(settings, this->getEquations(settings));
         AutoPtr<Presets::Collision> maker = makeAuto<Presets::Collision>(*solver, settings, body, _params);
-        logger = makeAuto<ForwardingLogger>();
+        Path logPath = _params.outputPath / Path("log.txt");
+        logger = makeAuto<FileLogger>(logPath, FileLogger::Options::ADD_TIMESTAMP);
         storage = makeShared<Storage>();
 
         maker->addTarget(*storage);
@@ -95,7 +80,7 @@ public:
         this->setupTriggers(std::move(maker));
 
         // add printing of run progres
-        logFiles.push(makeAuto<CommonStatsLog>(makeAuto<ForwardingLogger>()));
+        triggers.pushBack(makeAuto<CommonStatsLog>(logger));
     }
 
 private:
@@ -141,10 +126,11 @@ private:
             }
 
             virtual AutoPtr<ITrigger> action(Storage& storage, Statistics& UNUSED(stats)) override {
-                const Size targetParticleCnt = storage.getParticleCnt();
                 maker->addImpactor(storage);
-                globalLogger.write(
-                    "Added impactor, particle cnt = ", storage.getParticleCnt() - targetParticleCnt);
+                /* const Size targetParticleCnt = storage.getParticleCnt();
+                 /// \todo add logger here, either global or as a member variable
+                 * globalLogger.write(
+                    "Added impactor, particle cnt = ", storage.getParticleCnt() - targetParticleCnt);*/
                 return nullptr;
             }
         };
@@ -217,7 +203,7 @@ private:
 
         // noninertial acceleration
         const Vector omega = settings.get<Vector>(RunSettingsId::FRAME_ANGULAR_FREQUENCY);
-        equations += makeTerm<NoninertialForce>(omega);
+        equations += makeTerm<InertialForce>(omega);
 
         // gravity (approximation)
         equations += makeTerm<SphericalGravity>(SphericalGravity::Options::ASSUME_HOMOGENEOUS);

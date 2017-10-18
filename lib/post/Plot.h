@@ -150,9 +150,9 @@ public:
 };
 
 /// \brief Plots a dependence of given quantity on the distance from the origin
-class SphericalDistributionPlot : public SpatialPlot<SphericalDistributionPlot> {
+class RadialDistributionPlot : public SpatialPlot<RadialDistributionPlot> {
 public:
-    SphericalDistributionPlot(const QuantityId id, const Optional<Size> binCnt = NOTHING);
+    RadialDistributionPlot(const QuantityId id, const Optional<Size> binCnt = NOTHING);
 
     INLINE Float getX(const Vector& r) const {
         return getLength(r);

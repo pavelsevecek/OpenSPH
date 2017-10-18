@@ -1,16 +1,16 @@
-#include "objects/finders/Voxel.h"
+#include "objects/finders/UniformGrid.h"
 #include "system/Profiler.h"
 
 NAMESPACE_SPH_BEGIN
 
-VoxelFinder::VoxelFinder(const Float relativeCellCnt)
+UniformGridFinder::UniformGridFinder(const Float relativeCellCnt)
     : relativeCellCnt(relativeCellCnt) {
     Indices::init();
 }
 
-VoxelFinder::~VoxelFinder() = default;
+UniformGridFinder::~UniformGridFinder() = default;
 
-void VoxelFinder::buildImpl(ArrayView<const Vector> points) {
+void UniformGridFinder::buildImpl(ArrayView<const Vector> points) {
     PROFILE_SCOPE("VoxelFinder::buildImpl");
     if (lut.empty()) {
         // number of voxels, free parameter
@@ -22,11 +22,11 @@ void VoxelFinder::buildImpl(ArrayView<const Vector> points) {
     }
 }
 
-void VoxelFinder::rebuildImpl(ArrayView<const Vector> points) {
+void UniformGridFinder::rebuildImpl(ArrayView<const Vector> points) {
     buildImpl(points);
 }
 
-Size VoxelFinder::findNeighbours(const Size index,
+Size UniformGridFinder::findNeighbours(const Size index,
     const Float radius,
     Array<NeighbourRecord>& neighbours,
     Flags<FinderFlags> flags,
@@ -36,7 +36,7 @@ Size VoxelFinder::findNeighbours(const Size index,
     return this->findNeighboursImpl(values[index], values[index], refRank, radius, neighbours, flags, error);
 }
 
-Size VoxelFinder::findNeighbours(const Vector& position,
+Size UniformGridFinder::findNeighbours(const Vector& position,
     const Float radius,
     Array<NeighbourRecord>& neighbours,
     Flags<FinderFlags> flags,
@@ -49,7 +49,7 @@ Size VoxelFinder::findNeighbours(const Vector& position,
     return this->findNeighboursImpl(position, refPosition, refRank, radius, neighbours, flags, error);
 }
 
-Size VoxelFinder::findNeighboursImpl(const Vector& position,
+Size UniformGridFinder::findNeighboursImpl(const Vector& position,
     const Vector& refPosition,
     const Size refRank,
     const Float radius,

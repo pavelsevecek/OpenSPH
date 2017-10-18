@@ -116,7 +116,7 @@ TEST_CASE("StaticSolver stationary", "[staticsolver]") {
 
     EquationHolder equations;
     equations += makeTerm<SphericalGravity>(SphericalGravity::Options::ASSUME_HOMOGENEOUS);
-    equations += makeTerm<NoninertialForce>(Vector(0._f, 0._f, 2.f * PI / (3600._f * 12._f)));
+    equations += makeTerm<InertialForce>(Vector(0._f, 0._f, 2.f * PI / (3600._f * 12._f)));
     StaticSolver staticSolver(RunSettings::getDefaults(), equations);
     staticSolver.create(storage, storage.getMaterial(0));
     Statistics stats;

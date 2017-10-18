@@ -50,7 +50,6 @@ SOURCES += \
     math/rng/Rng.cpp \
     mpi/Mpi.cpp \
     objects/finders/KdTree.cpp \
-    objects/finders/Voxel.cpp \
     objects/geometry/Domain.cpp \
     objects/geometry/SymmetricTensor.cpp \
     objects/utility/StringUtils.cpp \
@@ -89,7 +88,8 @@ SOURCES += \
     timestepping/TimeStepping.cpp \
     post/Plot.cpp \
     objects/finders/DynamicFinder.cpp \
-    objects/containers/String.cpp
+    objects/containers/String.cpp \
+    objects/finders/UniformGrid.cpp
 
 HEADERS += \
     common/Assert.h \
@@ -139,7 +139,6 @@ HEADERS += \
     objects/finders/Octree.h \
     objects/finders/Order.h \
     objects/finders/PeriodicFinder.h \
-    objects/finders/Voxel.h \
     objects/geometry/AntisymmetricTensor.h \
     objects/geometry/Box.h \
     objects/geometry/Domagin.h \
@@ -258,4 +257,7 @@ HEADERS += \
     run/Collision.h \
     objects/containers/String.h \
     sph/equations/Rotation.h \
-    run/Trigger.h
+    run/Trigger.h \
+    objects/finders/UniformGrid.h \
+    objects/finders/AdaptiveGrid.h \
+    gravity/NBodySolver.h

@@ -34,7 +34,6 @@ class Storage;
 
 /// Class providing a convenient way to construct objects from settings.
 namespace Factory {
-    /// \todo move SPH specific stuff elsewhere
     AutoPtr<IEos> getEos(const BodySettings& settings);
 
     AutoPtr<IRheology> getRheology(const BodySettings& settings);
@@ -64,7 +63,7 @@ namespace Factory {
     AutoPtr<ILogger> getLogger(const RunSettings& settings);
 
     AutoPtr<IRng> getRng(const RunSettings& settings);
-}
+} // namespace Factory
 
 
 NAMESPACE_SPH_END

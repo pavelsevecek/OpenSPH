@@ -81,16 +81,14 @@ void IRun::run() {
         // make time step
         timeStepping->step(*solver, stats);
 
-        // logging
-        for (auto& log : logFiles) {
-            log->write(*storage, stats);
-        }
-
         // triggers
         for (auto iter = triggers.begin(); iter != triggers.end();) {
             ITrigger& trig = **iter;
             if (trig.condition(*storage, stats)) {
-                trig.action(*storage, stats);
+                AutoPtr<ITrigger> newTrigger = trig.action(*storage, stats);
+                if (newTrigger) {
+                    triggers.pushBack(std::move(newTrigger));
+                }
                 if (trig.type() == TriggerEnum::ONE_TIME) {
                     iter = triggers.erase(iter);
                     continue;
@@ -140,7 +138,6 @@ void IRun::setNullToDefaults() {
 }
 
 void IRun::tearDownInternal() {
-    logFiles.clear();
     this->tearDown();
     triggers.clear();
     output.reset();

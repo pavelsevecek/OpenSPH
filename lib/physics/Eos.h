@@ -32,7 +32,7 @@ private:
     const Float gamma;
 
 public:
-    IdealGasEos(const Float gamma);
+    explicit IdealGasEos(const Float gamma);
 
     virtual Pair<Float> evaluate(const Float rho, const Float u) const override;
 
@@ -43,7 +43,67 @@ public:
     Float getTemperature(const Float u) const;
 };
 
-/// Tillotson equation of state \cite Tillotson_1962
+/// \brief Tait equation of state
+///
+/// Equation describing behavior of water and other fluids. Depends only on density, does not require energy
+/// equation to be used.
+class TaitEos : public IEos {
+private:
+    Float c0;    ///< Sound speed at reference density
+    Float rho0;  ///< Reference density
+    Float gamma; ///< Density exponent
+
+public:
+    explicit TaitEos(const BodySettings& settings);
+
+    virtual Pair<Float> evaluate(const Float rho, const Float u) const override;
+
+    virtual Float getInternalEnergy(const Float UNUSED(rho), const Float UNUSED(p)) const override {
+        NOT_IMPLEMENTED;
+    }
+
+    virtual Float getDensity(const Float UNUSED(p), const Float UNUSED(u)) const override {
+        NOT_IMPLEMENTED;
+    }
+};
+
+/// \brief Mie-Gruneisen equation of state
+///
+/// Simple equation of state describing solids. It consists of two separated terms, first (reference curve)
+/// depending solely on pressure. Uses extension of R. Menikoff \cite Menikoff_1962 which makes the equation
+/// of state complete; it is therefore possible to compute temperature from known internal energy.
+class MieGruneisenEos : public IEos {
+private:
+    Float c0;    ///< Bulk sound speed
+    Float rho0;  ///< Reference density
+    Float Gamma; ///< Gruneisen Gamma
+    Float s;     ///< Linear Hugoniot slope coefficient
+
+public:
+    explicit MieGruneisenEos(const BodySettings& settings);
+
+    virtual Pair<Float> evaluate(const Float rho, const Float u) const override;
+
+    virtual Float getInternalEnergy(const Float UNUSED(rho), const Float UNUSED(p)) const override {
+        NOT_IMPLEMENTED;
+    }
+
+    virtual Float getDensity(const Float UNUSED(p), const Float UNUSED(u)) const override {
+        NOT_IMPLEMENTED;
+    }
+};
+
+/// \brief Tillotson equation of state \cite Tillotson_1962.
+///
+/// Describes a behavior of a solid material in both the compressed and expanded phase. The phase transition
+/// is defined by two parameters - energy u_iv of incipient vaporization and energy u_cv of complete
+/// vaporization. Between these two values (and if the density is lower than the reference density rho_0,
+/// meaning the material is not compressed), the pressure and sound speed is given by simple linear
+/// interpolation between the two phases
+///
+/// Note that Tillotson equation is an incomplete equation of state, meaning no relation between temperature
+/// and internal energy is described. If one needs to compute the temperature, more complex equation of state
+/// has to be used.
 class TillotsonEos : public IEos {
 private:
     Float u0;
@@ -58,7 +118,7 @@ private:
     Float beta;
 
 public:
-    TillotsonEos(const BodySettings& settings);
+    explicit TillotsonEos(const BodySettings& settings);
 
     virtual Pair<Float> evaluate(const Float rho, const Float u) const override;
 
@@ -75,7 +135,7 @@ private:
     Float A;
 
 public:
-    MurnaghanEos(const BodySettings& settings);
+    explicit MurnaghanEos(const BodySettings& settings);
 
     virtual Pair<Float> evaluate(const Float rho, const Float u) const override;
 

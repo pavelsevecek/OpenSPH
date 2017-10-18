@@ -47,10 +47,19 @@ protected:
     SharedPtr<Storage> storage;
     Float dt;
     Float maxdt;
-    AutoPtr<ITimeStepCriterion> adaptiveStep;
+    AutoPtr<ITimeStepCriterion> criterion;
 
 public:
+    /// Constructs the timestepping, using timestep criteria from parameters in settings.
+    /// \param storage Storage used during the run
+    /// \param settings Settings containing initial and maximal timestep and aslo timestep criteria
     ITimeStepping(const SharedPtr<Storage>& storage, const RunSettings& settings);
+
+    /// Constructs the timestepping, explicitly specifying the timestep criterion used in the run.
+    /// \note Use MultiCriterion if more than one criterion is used
+    ITimeStepping(const SharedPtr<Storage>& storage,
+        const RunSettings& settings,
+        AutoPtr<ITimeStepCriterion>&& criterion);
 
     virtual ~ITimeStepping();
 

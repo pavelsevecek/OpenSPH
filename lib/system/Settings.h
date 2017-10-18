@@ -258,8 +258,8 @@ enum class FinderEnum {
     /// Using linked list
     LINKED_LIST,
 
-    /// Partitioning particles into voxels
-    VOXEL,
+    /// Partitioning particles into a grid uniform in space
+    UNIFORM_GRID,
 
     /// Selecting most suitable finder automatically
     DYNAMIC
@@ -551,8 +551,8 @@ enum class RunSettingsId {
 
     MODEL_FORCE_NAVIER_STOKES,
 
-    /// Use centripetal force given by angular frequency of the coordinate frame in the model
-    MODEL_FORCE_CENTRIPETAL,
+    /// Use centrifugal force given by angular frequency of the coordinate frame in the model
+    MODEL_FORCE_CENTRIFUGAL,
 
     /// Use gravitational force in the model.
     MODEL_FORCE_GRAVITY,
@@ -625,6 +625,11 @@ enum class RunSettingsId {
     /// derivative of the particle; these statistics are not saved for other powers.
     TIMESTEPPING_MEAN_POWER,
 
+    /// Maximum relative change of a timestep in two subsequent timesteps. Used to 'smooth' the timesteps and
+    /// avoid large oscillations of timesteps to both very low and very high values. Used only by
+    /// MultiCriterion.
+    TIMESTEPPING_MAX_CHANGE,
+
     /// Global rotation of the coordinate system around axis (0, 0, 1) passing through origin. If non-zero,
     /// causes non-intertial acceleration.
     FRAME_ANGULAR_FREQUENCY,
@@ -682,6 +687,12 @@ enum class EosEnum {
 
     /// Equation of state for ideal gas
     IDEAL_GAS,
+
+    /// Tait equation of state for simulations of liquids
+    TAIT,
+
+    /// Mie-Gruneisen equation of state
+    MIE_GRUNEISEN,
 
     /// Tillotson (1962) equation of state
     TILLOTSON,
@@ -752,6 +763,12 @@ enum class BodySettingsId {
     /// Adiabatic index used by some equations of state (such as ideal gas)
     ADIABATIC_INDEX,
 
+    /// Exponent of density, representing a compressibility of a fluid. Used in Tait equation of state.
+    TAIT_GAMMA,
+
+    /// Sound speed used in Tait equation of state
+    TAIT_SOUND_SPEED,
+
     /// Bulk modulus of the material
     BULK_MODULUS,
 
@@ -778,6 +795,15 @@ enum class BodySettingsId {
 
     /// Specific energy of complete vaporization
     TILLOTSON_ENERGY_CV,
+
+    /// Gruneisen's gamma paraemter used in Mie-Gruneisen equation of state
+    GRUNEISEN_GAMMA,
+
+    /// Used in Mie-Gruneisen equations of state
+    BULK_SOUND_SPEED,
+
+    /// Linear Hugoniot slope coefficient used in Mie-Gruneisen equation of state
+    HUGONIOT_SLOPE,
 
     RHEOLOGY_YIELDING,
 

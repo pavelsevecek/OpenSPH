@@ -61,8 +61,8 @@ void SpatialPlot<TDerived>::plot(IDrawingContext& dc) const {
     }
 }
 
-SphericalDistributionPlot::SphericalDistributionPlot(const QuantityId id, const Optional<Size> binCnt)
-    : SpatialPlot<SphericalDistributionPlot>(id, binCnt) {}
+RadialDistributionPlot::RadialDistributionPlot(const QuantityId id, const Optional<Size> binCnt)
+    : SpatialPlot<RadialDistributionPlot>(id, binCnt) {}
 
 
 void TemporalPlot::onTimeStep(const Storage& storage, const Statistics& stats) {

@@ -3,7 +3,7 @@
 #include "objects/finders/KdTree.h"
 #include "objects/finders/LinkedList.h"
 #include "objects/finders/Octree.h"
-#include "objects/finders/Voxel.h"
+#include "objects/finders/UniformGrid.h"
 #include "objects/geometry/Domain.h"
 #include "objects/utility/ArrayUtils.h"
 #include "sph/initial/Distribution.h"
@@ -145,8 +145,8 @@ TEST_CASE("KdTree", "[finders]") {
     testFinderSmallerH(linkedList);
 }*/
 
-TEST_CASE("VoxelFinder", "[finders]") {
-    VoxelFinder finder;
+TEST_CASE("UniformGridFinder", "[finders]") {
+    UniformGridFinder finder;
     testFinder(finder);
 }
 

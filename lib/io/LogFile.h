@@ -4,54 +4,49 @@
 #include "objects/wrappers/SharedPtr.h"
 #include "physics/Integrals.h"
 #include "quantities/QuantityIds.h"
-#include "system/Statistics.h"
+#include "run/Trigger.h"
 #include "timestepping/TimeStepCriterion.h"
 
 NAMESPACE_SPH_BEGIN
 
 /// \brief Base class for auxilliary files logging run statistics.
-class ILogFile : public Polymorphic {
-private:
-    Size counter;
-    Size interval;
-
+class ILogFile : public PeriodicTrigger {
 protected:
-    AutoPtr<ILogger> logger;
+    SharedPtr<ILogger> logger;
 
 public:
     /// Constructs the log file.
+    ///
+    /// This base class actually does not use the logger in any way, it is stored there (and required in the
+    /// constructor) because all derived classes are expected to use a logger; this way we can reduce the code
+    /// duplication.
     /// \param logger Logger for the written data. Must not be nullptr.
-    /// \param interval Interval of logs in time steps. Must be a positive value; if interval is 1, the
-    ///                 log is written every time step.
-    ILogFile(AutoPtr<ILogger>&& logger, const Size interval = 1)
-        : counter(0)
-        , interval(interval)
-        , logger(std::move(logger)) {
+    /// \param period Log period in run time. Must be a positive value or zero; zero period means the log
+    ///               message is written on every time step.
+    explicit ILogFile(const SharedPtr<ILogger>& logger, const Float period = 0._f)
+        : PeriodicTrigger(period)
+        , logger(logger) {
         ASSERT(this->logger);
-        ASSERT(interval > 0);
     }
 
-    /// Writes the log, given data in storage and statistics
-    void write(const Storage& storage, const Statistics& stats) {
-        counter++;
-        if (counter == interval) {
-            this->writeImpl(storage, stats);
-            counter = 0;
-        }
+    virtual AutoPtr<ITrigger> action(Storage& storage, Statistics& stats) {
+        this->write(storage, stats);
+        return nullptr;
     }
 
 protected:
-    virtual void writeImpl(const Storage& storage, const Statistics& stats) = 0;
+    /// Syntactic suggar, used for const-correctness (loggers should not modify storage nor stats) and
+    /// throwing out the return value (loggers do not create more triggers)
+    virtual void write(const Storage& storage, const Statistics& stats) = 0;
 };
 
 
 class CommonStatsLog : public ILogFile {
 public:
-    CommonStatsLog(AutoPtr<ILogger>&& logger)
-        : ILogFile(std::move(logger), 1) {}
+    explicit CommonStatsLog(const SharedPtr<ILogger>& logger)
+        : ILogFile(logger, 0._f) {}
 
-protected:
-    virtual void writeImpl(const Storage& UNUSED(storage), const Statistics& stats) {
+    virtual void write(const Storage& UNUSED(storage), const Statistics& stats) {
         logger->write("Output #",
             stats.get<int>(StatisticsId::INDEX),
             "  time = ",
@@ -81,7 +76,7 @@ public:
         : ILogFile(makeAuto<FileLogger>(path), interval) {}
 
 protected:
-    virtual void writeImpl(const Storage& storage, const Statistics& stats) {
+    virtual void write(const Storage& storage, const Statistics& stats) override {
         const Float time = stats.get<Float>(StatisticsId::RUN_TIME);
         logger->write(time,
             " ",

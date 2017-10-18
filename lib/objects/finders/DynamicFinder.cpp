@@ -1,6 +1,6 @@
 #include "objects/finders/DynamicFinder.h"
 #include "objects/finders/KdTree.h"
-#include "objects/finders/Voxel.h"
+#include "objects/finders/UniformGrid.h"
 #include "objects/geometry/SymmetricTensor.h"
 #include "system/Settings.h"
 
@@ -61,8 +61,8 @@ Float DynamicFinder::updateFinder(ArrayView<const Vector> points) {
     // choose the finder implementation based on the metric value
     if (metric <= compactThreshold) {
         // particles seem to be compact enough, use voxel finder
-        if (!actual || dynamic_cast<VoxelFinder*>(&*actual)) {
-            actual = makeAuto<VoxelFinder>();
+        if (!actual || dynamic_cast<UniformGridFinder*>(&*actual)) {
+            actual = makeAuto<UniformGridFinder>();
         }
     } else {
         if (!actual || dynamic_cast<KdTree*>(&*actual)) {

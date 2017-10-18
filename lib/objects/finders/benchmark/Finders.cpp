@@ -1,9 +1,9 @@
 #include "bench/Session.h"
-#include "objects/geometry/Domain.h"
 #include "objects/finders/BruteForceFinder.h"
 #include "objects/finders/KdTree.h"
 #include "objects/finders/LinkedList.h"
-#include "objects/finders/Voxel.h"
+#include "objects/finders/UniformGrid.h"
+#include "objects/geometry/Domain.h"
 #include "sph/initial/Distribution.h"
 
 using namespace Sph;
@@ -30,9 +30,9 @@ BENCHMARK("Finder run KdTree", "[finders]", Benchmark::Context& context) {
     finderRun(context, tree, 10000);
 }
 
-BENCHMARK("Finder run Voxel", "[finders]", Benchmark::Context& context) {
-    VoxelFinder voxelFiner;
-    finderRun(context, voxelFiner, 10000);
+BENCHMARK("Finder run UniformGrid", "[finders]", Benchmark::Context& context) {
+    UniformGridFinder finder;
+    finderRun(context, finder, 10000);
 }
 
 BENCHMARK("Finder run BruteForce", "[finders]", Benchmark::Context& context) {

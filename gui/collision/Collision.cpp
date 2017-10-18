@@ -25,59 +25,40 @@ IMPLEMENT_APP(Sph::App);
 
 NAMESPACE_SPH_BEGIN
 
-template <typename TTensor>
-class TensorFunctor {
-private:
-    ArrayView<TTensor> v;
-
-public:
-    TensorFunctor(ArrayView<TTensor> view) {
-        v = view;
-    }
-
-    Float operator()(const Size i) {
-        return sqrt(ddot(v[i], v[i]));
-    }
-};
-
-template <typename TTensor>
-TensorFunctor<TTensor> makeTensorFunctor(Array<TTensor>& view) {
-    return TensorFunctor<TTensor>(view);
-}
-
-/// \todo we cache ArrayViews, this wont work if we will change number of particles during the run
 class ImpactorLogFile : public ILogFile {
-private:
-    QuantityMeans stress;
-    QuantityMeans dtStress;
-    QuantityMeans pressure;
-    QuantityMeans energy;
-    QuantityMeans density;
-
-
 public:
-    ImpactorLogFile(Storage& storage, const Path& path)
-        : ILogFile(makeAuto<FileLogger>(path))
-        , stress(makeTensorFunctor(storage.getValue<TracelessTensor>(QuantityId::DEVIATORIC_STRESS)), 1)
-        , dtStress(makeTensorFunctor(storage.getDt<TracelessTensor>(QuantityId::DEVIATORIC_STRESS)), 1)
-        , pressure(QuantityId::PRESSURE, 1)
-        , energy(QuantityId::ENERGY, 1)
-        , density(QuantityId::DENSITY, 1) {}
+    ImpactorLogFile(const Path& path)
+        : ILogFile(makeAuto<FileLogger>(path)) {}
 
 protected:
-    virtual void writeImpl(const Storage& storage, const Statistics& stats) override {
-        MinMaxMean sm = stress.evaluate(storage);
-        MinMaxMean dsm = dtStress.evaluate(storage);
-        this->logger->write(stats.get<Float>(StatisticsId::RUN_TIME),
-            sm.mean(),
-            dsm.mean(),
-            energy.evaluate(storage).mean(),
-            pressure.evaluate(storage).mean(),
-            density.evaluate(storage).mean(),
-            sm.min(),
-            sm.max(),
-            dsm.min(),
-            dsm.max());
+    virtual void write(const Storage& storage, const Statistics& stats) override {
+        const Float t = stats.get<Float>(StatisticsId::RUN_TIME);
+        const Float e = this->evalMean(storage, QuantityId::ENERGY);
+        const Float p = this->evalMean(storage, QuantityId::PRESSURE);
+        const Float rho = this->evalMean(storage, QuantityId::DENSITY);
+
+        class StressValue : public IUserQuantity {
+            ArrayView<const TracelessTensor> s;
+
+        public:
+            virtual void initialize(const Storage& storage) override {
+                s = storage.getValue<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
+            }
+            virtual Float evaluate(const Size i) const override {
+                return sqrt(ddot(s[i], s[i]));
+            }
+            virtual std::string name() const override {
+                return "Stress invariant";
+            }
+        };
+
+        MinMaxMean sm = QuantityMeans{ makeAuto<StressValue>(), 1 }.evaluate(storage);
+        this->logger->write(t, e, p, rho, sm.mean(), sm.min(), sm.max());
+    }
+
+private:
+    INLINE Float evalMean(const Storage& storage, const QuantityId id) {
+        return QuantityMeans{ id, 1 }.evaluate(storage).mean();
     }
 };
 
@@ -92,7 +73,7 @@ public:
         : ILogFile(makeAuto<FileLogger>(path)) {}
 
 protected:
-    virtual void writeImpl(const Storage& storage, const Statistics& stats) override {
+    virtual void write(const Storage& storage, const Statistics& stats) override {
         this->logger->write(stats.get<Float>(StatisticsId::RUN_TIME),
             "   ",
             en.evaluate(storage),
@@ -109,7 +90,7 @@ public:
         : ILogFile(makeAuto<FileLogger>(path)) {}
 
 protected:
-    virtual void writeImpl(const Storage& UNUSED(storage), const Statistics& stats) override {
+    virtual void write(const Storage& UNUSED(storage), const Statistics& stats) override {
         if (!stats.has(StatisticsId::LIMITING_PARTICLE_IDX)) {
             return;
         }
@@ -218,7 +199,7 @@ public:
     virtual void integrate(Storage& storage, Statistics& stats) override {
         GenericSolver::integrate(storage, stats);
 
-        const Float t = stats.get<Float>(StatisticsId::TOTAL_TIME);
+        const Float t = stats.get<Float>(StatisticsId::RUN_TIME);
         const Float dt = stats.getOr<Float>(StatisticsId::TIMESTEP_VALUE, 0.01_f);
         if (t <= startTime) {
             // damp velocities
@@ -249,13 +230,19 @@ public:
             SphericalDomain domain2(Vector(5598.423798_f, 2839.8390977_f, 0._f), 679.678195_f);
             body.saveToFile(outputPath / Path("impactor.sph"));
             conds
-                ->addBody(domain2, body)
+                ->addBody(storage, domain2, body)
                 // velocity 5 km/s
                 .addVelocity(Vector(-6.e3_f, 0._f, 0._f))
                 // flies straight, i.e. add rotation in non-intertial frame
                 .addRotation(-frameOmega, BodyView::RotationOrigin::FRAME_ORIGIN);
 
             impactStarted = true;
+
+
+            RadialDistributionPlot plot(QuantityId::PRESSURE, 100);
+            plot.onTimeStep(storage, stats);
+            FileContext context(Path("pressurePlot.txt"));
+            plot.plot(context);
         }
         // update the angle
         Float phi = stats.getOr<Float>(StatisticsId::FRAME_ANGLE, 0._f);
@@ -273,8 +260,8 @@ private:
         equations += makeTerm<PressureForce>(settings) + makeTerm<SolidStressForce>(settings);
 
         // noninertial acceleration
-        const Vector omega = settings.get<Vector>(RunSettingsId::FRAME_ANGULAR_FREQUENCY);
-        equations += makeTerm<NoninertialForce>(omega);
+        //  const Vector omega = settings.get<Vector>(RunSettingsId::FRAME_ANGULAR_FREQUENCY);
+        //        equations += makeTerm<NoninertialForce>(omega);
 
         // rotation of particles
         //   equations += makeTerm<SolidStressTorque>(settings);
@@ -376,8 +363,8 @@ public:
     StatsLog(AutoPtr<ILogger>&& logger)
         : CommonStatsLog(std::move(logger)) {}
 
-    virtual void writeImpl(const Storage& storage, const Statistics& stats) {
-        CommonStatsLog::writeImpl(storage, stats);
+    virtual void write(const Storage& storage, const Statistics& stats) {
+        CommonStatsLog::write(storage, stats);
         const int approximatedNodes = stats.get<int>(StatisticsId::GRAVITY_NODES_APPROX);
         const int exactNodes = stats.get<int>(StatisticsId::GRAVITY_NODES_EXACT);
         const Float ratio = Float(approximatedNodes) / (exactNodes + approximatedNodes);
@@ -407,13 +394,13 @@ void AsteroidCollision::setUp() {
         makeAuto<CollisionSolver>(settings, body, targetOmega, outputDir);
     // AutoPtr<ContinuitySolver> collisionSolver = makeAuto<ContinuitySolver>(settings);
 
-    SharedPtr<InitialConditions> conds = makeShared<InitialConditions>(*storage, *collisionSolver, settings);
+    SharedPtr<InitialConditions> conds = makeShared<InitialConditions>(*collisionSolver, settings);
     collisionSolver->setInitialConditions(conds);
     solver = std::move(collisionSolver);
 
     StdOutLogger logger;
     SphericalDomain domain1(Vector(0._f), 5e3_f); // D = 10km
-    conds->addBody(domain1, body).addRotation(targetOmega, BodyView::RotationOrigin::FRAME_ORIGIN);
+    conds->addBody(*storage, domain1, body).addRotation(targetOmega, BodyView::RotationOrigin::FRAME_ORIGIN);
     logger.write("Particles of target: ", storage->getParticleCnt());
 
     /* body.set(BodySettingsId::PARTICLE_COUNT, 100)
@@ -429,7 +416,7 @@ void AsteroidCollision::setUp() {
     callbacks = makeAuto<GuiCallbacks>(controller);
 
     // add printing of run progres
-    logFiles.push(makeAuto<CommonStatsLog>(Factory::getLogger(settings)));
+    triggers.pushBack(makeAuto<CommonStatsLog>(Factory::getLogger(settings)));
 }
 
 void AsteroidCollision::setupOutput() {
@@ -449,8 +436,8 @@ void AsteroidCollision::setupOutput() {
 
     output = std::move(textOutput);
 
-    logFiles.push(makeAuto<EnergyLogFile>(outputDir / Path("energy.txt")));
-    logFiles.push(makeAuto<TimestepLogFile>(outputDir / Path("timestep.txt")));
+    triggers.pushBack(makeAuto<EnergyLogFile>(outputDir / Path("energy.txt")));
+    triggers.pushBack(makeAuto<TimestepLogFile>(outputDir / Path("timestep.txt")));
 }
 
 void AsteroidCollision::tearDown() {

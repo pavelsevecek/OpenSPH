@@ -30,7 +30,7 @@ public:
             .set(RunSettingsId::MODEL_FORCE_SOLID_STRESS, true)
 
             // Structure for finding neighbouring particles
-            .set(RunSettingsId::SPH_FINDER, FinderEnum::VOXEL)
+            .set(RunSettingsId::SPH_FINDER, FinderEnum::UNIFORM_GRID)
 
             // Time range for the run; the run will end after 1s
             .set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 1._f));

@@ -18,7 +18,7 @@ namespace Detail {
     public:
         virtual TReturn operator()(TArgs&&... args) const = 0;
     };
-}
+} // namespace Detail
 
 template <typename TSignature>
 class Function;
@@ -80,7 +80,8 @@ public:
 
 
     /// Calls the function, given argument list.
-    TReturn operator()(TArgs&&... args) const {
+    template <typename... Ts>
+    TReturn operator()(Ts&&... args) const {
         ASSERT(holder);
         return (*holder)(std::forward<TArgs>(args)...);
     }

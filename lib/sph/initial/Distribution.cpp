@@ -2,7 +2,7 @@
 #include "math/Integrator.h"
 #include "math/Morton.h"
 #include "math/rng/VectorRng.h"
-#include "objects/finders/Voxel.h"
+#include "objects/finders/UniformGrid.h"
 #include "objects/geometry/Domain.h"
 #include "objects/wrappers/Optional.h"
 #include "system/Profiler.h"
@@ -222,7 +222,7 @@ Array<Vector> DiehlDistribution::generate(const Size n, const IDomain& domain) c
         vecs.push(v);
     }
 
-    VoxelFinder finder;
+    UniformGridFinder finder;
     Array<NeighbourRecord> neighs;
     finder.build(vecs);
 

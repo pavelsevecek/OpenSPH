@@ -9,7 +9,7 @@
 
 using namespace Sph;
 
-int processPkdgravFile(const Path& filePath, const Path& sfdPath, const Path& omegaPath) {
+int pkdgravToSfd(const Path& filePath, const Path& sfdPath) {
     std::cout << "Processing pkdgrav file ... " << std::endl;
     Expected<Storage> storage = Post::parsePkdgravOutput(filePath);
     if (!storage) {
@@ -24,16 +24,23 @@ int processPkdgravFile(const Path& filePath, const Path& sfdPath, const Path& om
     for (Post::SfdPoint& p : sfd) {
         logRadiiSfd.write(p.value, "  ", p.count);
     }
+    return 0;
+}
 
+int pkdgravToOmega(const Path& filePath, const Path& omegaPath) {
+    std::cout << "Processing pkdgrav file ... " << std::endl;
+    Expected<Storage> storage = Post::parsePkdgravOutput(filePath);
+    if (!storage) {
+        std::cout << "Invalid file: " << storage.error() << std::endl;
+        return 0;
+    }
+    Post::HistogramParams params;
+    params.source = Post::HistogramParams::Source::PARTICLES;
     params.id = Post::HistogramId::ANGULAR_VELOCITIES;
     params.binCnt = 50;
-    struct Validator : public Post::HistogramValidator {
-        virtual bool include(const Float& value) const override {
-            return value > 0._f;
-        }
-    };
-    params.validator = makeAuto<Validator>();
-    sfd = Post::getDifferentialSfd(storage.value(), params);
+    params.validator = [](const Float value) { return value > 0._f; };
+
+    Array<Post::SfdPoint> sfd = Post::getDifferentialSfd(storage.value(), params);
     FileLogger logOmegaSfd(omegaPath, FileLogger::Options::KEEP_OPENED);
     for (Post::SfdPoint& p : sfd) {
         logOmegaSfd.write(p.value, "  ", p.count);
@@ -41,7 +48,21 @@ int processPkdgravFile(const Path& filePath, const Path& sfdPath, const Path& om
     return 0;
 }
 
-int processSphFile(const Path& filePath, const Path& settingsPath, const Path& sfdPath) {
+int pkdgravToMoons(const Path& filePath, const float limit) {
+    std::cout << "Processing pkdgrav file ... " << std::endl;
+    Expected<Storage> storage = Post::parsePkdgravOutput(filePath);
+    if (!storage) {
+        std::cout << "Invalid file: " << storage.error() << std::endl;
+        return 0;
+    }
+    /// \todo use correct radius here, we assume that close ecounters will eventually collide
+    Array<Post::MoonEnum> moons = Post::findMoons(storage.value(), 2._f, limit);
+    Size moonCnt = std::count(moons.begin(), moons.end(), Post::MoonEnum::MOON);
+    std::cout << "Moon count = " << moonCnt << std::endl;
+    return 0;
+}
+
+int sphToSfd(const Path& filePath, const Path& settingsPath, const Path& sfdPath) {
     std::cout << "Processing SPH file ... " << std::endl;
     TextOutput output;
     setupCollisionColumns(output);
@@ -113,24 +134,51 @@ void processHarrisFile() {
     }
 }
 
-int main(int argc, char** argv) {
-    /*if (true) {
-        processHarrisFile();
-        return 0;
-    }*/
+void printHelp() {
+    std::cout << "Expected usage: post mode [parameters]" << std::endl
+              << " where 'mode' is one of:" << std::endl
+              << " - pkdgravToSfd   - computes the cummulative SFD from pkdgrav output file" << std::endl
+              << " - pkdgravToOmega - computes the spin rate distribution from pkdgrav output file"
+              << std::endl
+              << " - pkdgravToMoons - finds satellites of the largest remnant (fragment) from pkdgrav "
+                 "output file"
+              << std::endl
+              << "- sphToSfd - computes the cummulative SFD from SPH output file" << std::endl;
+}
 
-    if (argc < 4) {
-        std::cout << "Expected usage: post inputFile outputFile" << std::endl;
+int main(int argc, char** argv) {
+    if (argc < 2) {
+        printHelp();
         return 0;
     }
-    Path path(argv[1]);
-    if (path.extension() == Path("50000.bt")) {
-        return processPkdgravFile(path, Path(argv[2]), Path(argv[3]));
-    } else if (path.extension() == Path("txt")) {
+    std::string mode(argv[1]);
+    if (mode == "pkdgravToSfd") {
         if (argc < 4) {
-            std::cout << "Missing settings file" << std::endl;
+            std::cout << "Expected parameters: post pkdgravToSfd ss.50000.bt sfd.txt";
             return 0;
         }
-        return processSphFile(path, Path(argv[2]), Path(argv[3]));
+        return pkdgravToSfd(Path(argv[2]), Path(argv[3]));
+    } else if (mode == "pkdgravToOmega") {
+        if (argc < 4) {
+            std::cout << "Expected parameters: post pkdgravToOmega ss.50000.bt omega.txt";
+            return 0;
+        }
+        return pkdgravToOmega(Path(argv[2]), Path(argv[3]));
+    } else if (mode == "pkdgravToMoons") {
+        if (argc < 4) {
+            std::cout << "Expected parameters: post pkdgravToMoons ss.50000.bt 0.1";
+            return 0;
+        }
+        const float limit = std::atof(argv[3]);
+        return pkdgravToMoons(Path(argv[2]), limit);
+    } else if (mode == "sphToSfd") {
+        if (argc < 5) {
+            std::cout << "Expected parameters: post sphToSfd out_0090.txt code.sph sfd.txt";
+            return 0;
+        }
+        return sphToSfd(Path(argv[2]), Path(argv[3]), Path(argv[4]));
+    } else {
+        printHelp();
+        return 0;
     }
 }

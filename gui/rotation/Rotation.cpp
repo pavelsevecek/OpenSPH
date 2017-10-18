@@ -29,7 +29,7 @@ AsteroidRotation::AsteroidRotation(const RawPtr<Controller> model, const Float p
         .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 100._f)
         .set(RunSettingsId::MODEL_FORCE_SOLID_STRESS, true)
         .set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONST)
-        .set(RunSettingsId::SPH_FINDER, FinderEnum::VOXEL)
+        .set(RunSettingsId::SPH_FINDER, FinderEnum::UNIFORM_GRID)
         .set(RunSettingsId::SPH_AV_TYPE, ArtificialViscosityEnum::STANDARD)
         .set(RunSettingsId::SPH_AV_ALPHA, 1.5_f)
         .set(RunSettingsId::SPH_AV_BETA, 3._f)
@@ -74,7 +74,7 @@ void AsteroidRotation::setUp() {
     EquationHolder externalForces;
     externalForces += makeTerm<SphericalGravity>(SphericalGravity::Options::ASSUME_HOMOGENEOUS);
     const Vector omega = 2._f * PI / (3600._f * period) * Vector(0, 1, 0);
-    externalForces += makeTerm<NoninertialForce>(omega);
+    externalForces += makeTerm<InertialForce>(omega);
 
     solver = makeAuto<DisableDerivativesSolver>(settings, externalForces);
 
@@ -114,7 +114,7 @@ void AsteroidRotation::setUp() {
     textOutput->add(makeAuto<ValueColumn<TracelessTensor>>(QuantityId::DEVIATORIC_STRESS));
     output = std::move(textOutput);
 
-    logFiles.push(makeAuto<IntegralsLog>(Path("integrals.txt"), 1));
+    triggers.pushBack(makeAuto<IntegralsLog>(Path("integrals.txt"), 1));
 
     callbacks = makeAuto<GuiCallbacks>(model);
 }

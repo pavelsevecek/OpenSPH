@@ -63,7 +63,7 @@ private:
     Vector omega;
 
 public:
-    TotalMomentum(const Float omega = 0._f);
+    explicit TotalMomentum(const Float omega = 0._f);
 
     virtual Vector evaluate(const Storage& storage) const override;
 
@@ -82,7 +82,7 @@ private:
     Vector frameFrequency;
 
 public:
-    TotalAngularMomentum(const Float frameFrequency = 0._f);
+    explicit TotalAngularMomentum(const Float frameFrequency = 0._f);
 
     virtual Vector evaluate(const Storage& storage) const override;
 
@@ -101,7 +101,7 @@ private:
     Vector omega;
 
 public:
-    TotalKineticEnergy(const Float omega = 0._f);
+    explicit TotalKineticEnergy(const Float omega = 0._f);
 
     virtual Float evaluate(const Storage& storage) const override;
 
@@ -133,7 +133,7 @@ private:
     Vector omega;
 
 public:
-    TotalEnergy(const Float omega = 0._f);
+    explicit TotalEnergy(const Float omega = 0._f);
 
     virtual Float evaluate(const Storage& storage) const override;
 
@@ -151,7 +151,7 @@ private:
     Optional<Size> bodyId;
 
 public:
-    CenterOfMass(const Optional<Size> bodyId = NOTHING);
+    explicit CenterOfMass(const Optional<Size> bodyId = NOTHING);
 
     virtual Vector evaluate(const Storage& storage) const override;
 
@@ -160,21 +160,36 @@ public:
     }
 };
 
+/// \brief Interface for auxilirary user-defined scalar quantities.
+///
+/// The quantity values needs to be computed from other quantities already stored in Storage. The class is
+/// therefore suitable for quantities such as velocity magnitude, second invariant of stress tensor, etc.
+class IUserQuantity : public Polymorphic {
+public:
+    virtual void initialize(const Storage& storage) = 0;
+
+    virtual Float evaluate(const Size i) const = 0;
+
+    virtual std::string name() const = 0;
+};
+
 /// \brief Returns means of given scalar quantity.
 ///
 /// By default means are computed from all particles, optionally only from particles of given body. Storage
 /// must contain quantity of given ID, checked by assert.
 class QuantityMeans : public IIntegral<MinMaxMean> {
 private:
-    Variant<QuantityId, std::function<Float(const Size i)>> quantity;
+    Variant<QuantityId, AutoPtr<IUserQuantity>> quantity;
     Optional<Size> bodyId;
 
 public:
-    /// Computes mean of quantity values.
-    QuantityMeans(const QuantityId id, const Optional<Size> bodyId = NOTHING);
+    /// \brief Computes mean of quantity values.
+    /// \param id Quantity ID of average quantity
+    /// \param bodyId Optional body index; by default all particles are averaged.
+    explicit QuantityMeans(const QuantityId id, const Optional<Size> bodyId = NOTHING);
 
-    /// Computes mean of user-defined function.
-    QuantityMeans(const std::function<Float(const Size i)>& func, const Optional<Size> bodyId = NOTHING);
+    /// \brief Computes mean of user-defined function.
+    explicit QuantityMeans(AutoPtr<IUserQuantity>&& func, const Optional<Size> bodyId = NOTHING);
 
     virtual MinMaxMean evaluate(const Storage& storage) const override;
 
@@ -182,7 +197,7 @@ public:
         if (auto id = quantity.tryGet<QuantityId>()) {
             return getMetadata(id.value()).quantityName;
         } else {
-            return "User-defined means";
+            return quantity.get<AutoPtr<IUserQuantity>>()->name();
         }
     }
 };

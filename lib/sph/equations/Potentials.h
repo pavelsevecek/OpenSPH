@@ -51,15 +51,15 @@ AutoPtr<ExternalForce<TFunctor>> makeExternalForce(TFunctor&& functor) {
     return makeAuto<ExternalForce<TFunctor>>(std::forward<TFunctor>(functor));
 }
 
-/// \brief Centripetal and Coriolis force
+/// \brief Centrifugal and Coriolis force
 ///
-/// Adds an acceleration due to centripetal force. Internal energy is not modified by this force.
-class NoninertialForce : public IEquationTerm {
+/// Adds an acceleration due to centrifugal force. Internal energy is not modified by this force.
+class InertialForce : public IEquationTerm {
 private:
     Vector omega;
 
 public:
-    NoninertialForce(const Vector omega)
+    InertialForce(const Vector omega)
         : omega(omega) {}
 
     virtual void setDerivatives(DerivativeHolder& UNUSED(derivatives),
@@ -72,7 +72,7 @@ public:
         tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
         /// \todo parallelize
         for (Size i = 0; i < r.size(); ++i) {
-            dv[i] += 2._f * cross(omega, v[i]) + cross(omega, cross(omega, r[i]));
+            dv[i] -= 2._f * cross(omega, v[i]) + cross(omega, cross(omega, r[i]));
             // no energy term - energy is not generally conserved when external force is used
         }
     }

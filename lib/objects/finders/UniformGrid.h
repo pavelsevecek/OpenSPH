@@ -10,7 +10,8 @@
 
 NAMESPACE_SPH_BEGIN
 
-class VoxelFinder : public INeighbourFinder {
+/// \brief Finder projecting a uniform grid on the particles.
+class UniformGridFinder : public INeighbourFinder {
 protected:
     LookupMap lut;
 
@@ -26,9 +27,9 @@ public:
     ///                        the number points; relative voxel count 1 means that on average, one cell will
     ///                        contain one particle. Higher value means more cells, therefore less than one
     ///                        particle per cell, etc.
-    VoxelFinder(const Float relativeCellCnt = 1);
+    UniformGridFinder(const Float relativeCellCnt = 1);
 
-    ~VoxelFinder();
+    ~UniformGridFinder();
 
     virtual Size findNeighbours(const Size index,
         const Float radius,

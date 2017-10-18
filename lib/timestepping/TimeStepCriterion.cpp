@@ -278,10 +278,9 @@ Tuple<Float, CriterionId> CourantCriterion::compute(Storage& storage,
 /// MultiCriterion implementation
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-MultiCriterion::MultiCriterion(const RunSettings& settings)
-    : criteria(EMPTY_ARRAY) {
+MultiCriterion::MultiCriterion(const RunSettings& settings) {
     const Flags<TimeStepCriterionEnum> flags =
-        Flags<TimeStepCriterionEnum>::fromValue(settings.get<int>(RunSettingsId::TIMESTEPPING_CRITERION));
+        settings.getFlags<TimeStepCriterionEnum>(RunSettingsId::TIMESTEPPING_CRITERION);
     if (flags.has(TimeStepCriterionEnum::COURANT)) {
         criteria.push(makeAuto<CourantCriterion>(settings));
     }
@@ -291,6 +290,8 @@ MultiCriterion::MultiCriterion(const RunSettings& settings)
     if (flags.has(TimeStepCriterionEnum::ACCELERATION)) {
         criteria.push(makeAuto<AccelerationCriterion>());
     }
+
+    maxChange = settings.get<Float>(RunSettingsId::TIMESTEPPING_MAX_CHANGE);
 }
 
 Tuple<Float, CriterionId> MultiCriterion::compute(Storage& storage, const Float maxStep, Statistics& stats) {
@@ -307,6 +308,13 @@ Tuple<Float, CriterionId> MultiCriterion::compute(Storage& storage, const Float 
             minId = id;
         }
     }
+
+    // smooth the timestep if required
+    if (maxChange < INFTY && lastStep > 0._f) {
+        minStep = clamp(minStep, lastStep * (1._f - maxChange), lastStep * (1._f + maxChange));
+    }
+    lastStep = minStep;
+
     // we don't have to limit by maxStep as each criterion is limited separately
     ASSERT(minStep < INFTY);
     return { minStep, minId };

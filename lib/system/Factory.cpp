@@ -7,7 +7,7 @@
 #include "objects/finders/DynamicFinder.h"
 #include "objects/finders/KdTree.h"
 #include "objects/finders/Octree.h"
-#include "objects/finders/Voxel.h"
+#include "objects/finders/UniformGrid.h"
 #include "objects/geometry/Domain.h"
 #include "physics/Damage.h"
 #include "physics/Eos.h"
@@ -31,6 +31,10 @@ AutoPtr<IEos> Factory::getEos(const BodySettings& settings) {
     switch (id) {
     case EosEnum::IDEAL_GAS:
         return makeAuto<IdealGasEos>(settings.get<Float>(BodySettingsId::ADIABATIC_INDEX));
+    case EosEnum::TAIT:
+        return makeAuto<TaitEos>(settings);
+    case EosEnum::MIE_GRUNEISEN:
+        return makeAuto<MieGruneisenEos>(settings);
     case EosEnum::TILLOTSON:
         return makeAuto<TillotsonEos>(settings);
     case EosEnum::MURNAGHAN:
@@ -140,8 +144,8 @@ AutoPtr<INeighbourFinder> Factory::getFinder(const RunSettings& settings) {
         return makeAuto<KdTree>();
     case FinderEnum::OCTREE:
         return makeAuto<Octree>();
-    case FinderEnum::VOXEL:
-        return makeAuto<VoxelFinder>();
+    case FinderEnum::UNIFORM_GRID:
+        return makeAuto<UniformGridFinder>();
     case FinderEnum::DYNAMIC:
         return makeAuto<DynamicFinder>(settings);
     default:

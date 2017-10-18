@@ -46,7 +46,7 @@ protected:
     AutoPtr<IRunCallbacks> callbacks;
 
     /// Logging
-    AutoPtr<ILogger> logger;
+    SharedPtr<ILogger> logger;
 
     /// Stores all SPH particles
     SharedPtr<Storage> storage;
@@ -56,9 +56,6 @@ protected:
 
     /// Solver
     AutoPtr<ISolver> solver;
-
-    /// Logging files
-    Array<AutoPtr<ILogFile>> logFiles;
 
     /// Triggers
     List<AutoPtr<ITrigger>> triggers;

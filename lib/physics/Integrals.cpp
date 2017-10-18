@@ -139,8 +139,8 @@ QuantityMeans::QuantityMeans(const QuantityId id, const Optional<Size> bodyId)
     : quantity(id)
     , bodyId(bodyId) {}
 
-QuantityMeans::QuantityMeans(const std::function<Float(const Size i)>& func, const Optional<Size> bodyId)
-    : quantity(func)
+QuantityMeans::QuantityMeans(AutoPtr<IUserQuantity>&& func, const Optional<Size> bodyId)
+    : quantity(std::move(func))
     , bodyId(bodyId) {}
 
 MinMaxMean QuantityMeans::evaluate(const Storage& storage) const {
@@ -167,7 +167,9 @@ MinMaxMean QuantityMeans::evaluate(const Storage& storage) const {
         accumulate([&](const Size i) { return q[i]; });
     } else {
         ASSERT(quantity.getTypeIdx() == 1);
-        accumulate(quantity.get<std::function<Float(const Size i)>>());
+        const AutoPtr<IUserQuantity>& func = quantity;
+        func->initialize(storage);
+        accumulate([&](const Size i) { return func->evaluate(i); });
     }
     return means;
 }

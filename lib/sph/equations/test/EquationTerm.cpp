@@ -1,6 +1,6 @@
 #include "sph/equations/EquationTerm.h"
 #include "catch.hpp"
-#include "objects/finders/Voxel.h"
+#include "objects/finders/UniformGrid.h"
 #include "objects/geometry/Domain.h"
 #include "objects/utility/PerElementWrapper.h"
 #include "sph/equations/av/Standard.h"
@@ -148,7 +148,7 @@ TEST_CASE("NeighbourCountTerm", "[equationterm]") {
 
     REQUIRE(neighCnts.size() == N);
     // count neighbours manually and compare
-    VoxelFinder finder;
+    UniformGridFinder finder;
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
     finder.build(r);
     const Float radius = Factory::getKernel<3>(RunSettings::getDefaults()).radius();

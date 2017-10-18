@@ -260,7 +260,7 @@ AutoPtr<RunSettings> RunSettings::instance (new RunSettings {
     /// Physical model
     { RunSettingsId::MODEL_FORCE_PRESSURE_GRADIENT, "model.force.grad_p",       true },
     { RunSettingsId::MODEL_FORCE_SOLID_STRESS,      "model.force.div_s",        true },
-    { RunSettingsId::MODEL_FORCE_CENTRIPETAL,       "model.force.centripetal",  false },
+    { RunSettingsId::MODEL_FORCE_CENTRIFUGAL,       "model.force.centrifugal",  false },
     { RunSettingsId::MODEL_FORCE_GRAVITY,           "model.force.gravity",      false },
 
     /// SPH solvers
@@ -283,7 +283,7 @@ AutoPtr<RunSettings> RunSettings::instance (new RunSettings {
     { RunSettingsId::SPH_AV_STRESS_EXPONENT,        "sph.artificial_stress_exponent", 4._f },
     { RunSettingsId::SPH_AV_STRESS_FACTOR,          "sph.artificial_stress_factor", 0.15_f },
     { RunSettingsId::SPH_SMOOTHING_LENGTH_MIN,      "sph.smoothing_length.min", 1e-5_f },
-    { RunSettingsId::SPH_FINDER,                    "sph.finder",               int(FinderEnum::VOXEL) },
+    { RunSettingsId::SPH_FINDER,                    "sph.finder",               int(FinderEnum::UNIFORM_GRID) },
     { RunSettingsId::SPH_FINDER_COMPACT_THRESHOLD,  "sph.finder.compact_threshold", 0.5_f },
     { RunSettingsId::SPH_CONSERVE_ANGULAR_MOMENTUM, "sph.angular_momentum_correction", false },
     { RunSettingsId::SPH_PARTICLE_ROTATION,         "sph.particle_rotation",    false },
@@ -304,6 +304,7 @@ AutoPtr<RunSettings> RunSettings::instance (new RunSettings {
     { RunSettingsId::TIMESTEPPING_CRITERION,        "timestep.criterion",       int(TimeStepCriterionEnum::ALL) },
     { RunSettingsId::TIMESTEPPING_ADAPTIVE_FACTOR,  "timestep.adaptive.factor", 0.2_f },
     { RunSettingsId::TIMESTEPPING_MEAN_POWER,       "timestep.mean_power",      -INFTY },
+    { RunSettingsId::TIMESTEPPING_MAX_CHANGE,       "timestep.max_change",      INFTY },
 
     /// Selected coordinate system, rotation of bodies
     { RunSettingsId::FRAME_ANGULAR_FREQUENCY,       "frame.angular_frequency",  Vector(0._f) },
@@ -331,6 +332,8 @@ AutoPtr<BodySettings> BodySettings::instance (new BodySettings {
     /// Equation of state
     { BodySettingsId::EOS,                     "eos",                          int(EosEnum::IDEAL_GAS) },
     { BodySettingsId::ADIABATIC_INDEX,         "eos.adiabatic_index",          1.4_f },
+    { BodySettingsId::TAIT_GAMMA,              "eos.tait.gamma",               7._f },
+    { BodySettingsId::TAIT_SOUND_SPEED,        "eos.tait.sound_speed",         1484._f }, // value for water
     { BodySettingsId::TILLOTSON_SMALL_A,       "eos.tillotson.small_a",        0.5_f },
     { BodySettingsId::TILLOTSON_SMALL_B,       "eos.tillotson.small_b",        1.5_f },
     { BodySettingsId::TILLOTSON_ALPHA,         "eos.tillotson.alpha",          5._f },
@@ -339,6 +342,9 @@ AutoPtr<BodySettings> BodySettings::instance (new BodySettings {
     { BodySettingsId::TILLOTSON_SUBLIMATION,   "eos.tillotson.sublimation",    4.87e8_f },
     { BodySettingsId::TILLOTSON_ENERGY_IV,     "eos.tillotson.energy_iv",      4.72e6_f },
     { BodySettingsId::TILLOTSON_ENERGY_CV,     "eos.tillotson.energy_cv",      1.82e7_f },
+    { BodySettingsId::GRUNEISEN_GAMMA,         "eos.mie_gruneisen.gamma",      2._f },      // value for copper taken from wikipedia
+    { BodySettingsId::HUGONIOT_SLOPE,          "eos.mie_gruneises.hugoniot_slope",   1.5_f }, // value for copper taken from wikipedia
+    { BodySettingsId::BULK_SOUND_SPEED,        "eos.mie_gruneises.bulk_sound_speed", 3933._f }, // value for copper taken from wikipedia
 
     /// Yielding & Damage
     { BodySettingsId::RHEOLOGY_YIELDING,  "rheology.yielding",           int(YieldingEnum::VON_MISES) },

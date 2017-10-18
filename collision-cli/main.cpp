@@ -33,10 +33,11 @@ std::string getRunName(const Float targetRadius,
 
 int main(int argc, char* argv[]) {
     Map<CollisionParam, ArgValue> params;
+    StdOutLogger logger;
     try {
         params = parser.parse(argc, argv);
     } catch (std::exception& e) {
-        globalLogger.write(e.what());
+        logger.write(e.what());
         return 0;
     }
 
@@ -47,16 +48,16 @@ int main(int argc, char* argv[]) {
     cp.impactSpeed = params[CollisionParam::IMPACT_SPEED].get<float>();
     cp.impactAngle = params[CollisionParam::IMPACT_ANGLE].get<float>();
 
-    globalLogger.write("Target radius:       ", cp.targetRadius);
-    globalLogger.write("Impactor radius:     ", cp.projectileRadius);
-    globalLogger.write("Target period [h]:   ", cp.targetRotation);
-    globalLogger.write("Impact speed [km/s]: ", cp.impactSpeed);
-    globalLogger.write("Impact angle [°]:    ", cp.impactAngle);
+    logger.write("Target radius:       ", cp.targetRadius);
+    logger.write("Impactor radius:     ", cp.projectileRadius);
+    logger.write("Target period [h]:   ", cp.targetRotation);
+    logger.write("Impact speed [km/s]: ", cp.impactSpeed);
+    logger.write("Impact angle [°]:    ", cp.impactAngle);
 
     const std::string runName =
         getRunName(cp.targetRadius, cp.projectileRadius, cp.targetRotation, cp.impactSpeed, cp.impactAngle);
-    globalLogger.write("Starting run ", runName);
-    globalLogger.write("");
+    logger.write("Starting run ", runName);
+    logger.write("");
 
     // convert to correct units
     cp.targetRotation = 2._f * PI / (3600._f * cp.targetRotation);

@@ -3,7 +3,7 @@
 #include "io/Logger.h"
 #include "io/Output.h"
 #include "objects/finders/BruteForceFinder.h"
-#include "objects/finders/Voxel.h"
+#include "objects/finders/UniformGrid.h"
 #include "objects/geometry/Box.h"
 #include "objects/utility/Iterators.h"
 #include "quantities/Storage.h"
@@ -43,7 +43,7 @@ Size Post::findComponents(const Storage& storage,
             }
         };
         checker = makeAuto<FlagComponentChecker>(storage);
-        finder = makeAuto<VoxelFinder>();
+        finder = makeAuto<UniformGridFinder>();
         break;
     case ComponentConnectivity::OVERLAP:
         class AnyChecker : public IComponentChecker {
@@ -54,7 +54,7 @@ Size Post::findComponents(const Storage& storage,
             }
         };
         checker = makeAuto<AnyChecker>();
-        finder = makeAuto<VoxelFinder>();
+        finder = makeAuto<UniformGridFinder>();
         break;
     case ComponentConnectivity::ESCAPE_VELOCITY:
         class EscapeVelocityComponentChecker : public IComponentChecker {
@@ -79,7 +79,7 @@ Size Post::findComponents(const Storage& storage,
             }
         };
         checker = makeAuto<EscapeVelocityComponentChecker>(storage, radius);
-        finder = makeAuto<VoxelFinder>();
+        finder = makeAuto<UniformGridFinder>();
         actRadius = 10._f * radius;
         break;
     }
@@ -255,6 +255,116 @@ Storage Post::findFutureBodies(const Storage& storage, const Float particleRadiu
     return cloned;
 }
 
+Array<Post::MoonEnum> Post::findMoons(const Storage& storage, const Float radius, const Float limit) {
+    // first, find the larget one
+    ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASSES);
+    Size largestIdx = 0;
+    Float largestM = 0._f;
+    for (Size i = 0; i < m.size(); ++i) {
+        if (m[i] > largestM) {
+            largestM = m[i];
+            largestIdx = i;
+        }
+    }
+
+    Array<MoonEnum> status(m.size());
+#ifdef SPH_DEBUG
+    status.fill(MoonEnum(-1));
+#endif
+    status[largestIdx] = MoonEnum::LARGEST_FRAGMENT;
+
+    // find the ellipse for all bodies
+    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
+    ArrayView<const Vector> v = storage.getDt<Vector>(QuantityId::POSITIONS);
+    for (Size i = 0; i < m.size(); ++i) {
+        if (i == largestIdx) {
+            continue;
+        }
+
+        // check for observability
+        if (r[i][H] < limit * r[largestIdx][H]) {
+            status[i] = MoonEnum::UNOBSERVABLE;
+            continue;
+        }
+
+        // compute the orbital elements
+        Optional<KeplerianElements> elements = findKeplerEllipse(
+            m[i] + largestM, m[i] * largestM / (m[i] + largestM), r[i] - r[largestIdx], v[i] - v[largestIdx]);
+
+        if (!elements) {
+            // not bound, mark as ejected body
+            status[i] = MoonEnum::RUNAWAY;
+        } else {
+            // if the pericenter is closer than the sum of radii, mark as impactor
+            if (elements->pericenterDist() < radius * (r[i][H] + r[largestIdx][H])) {
+                status[i] = MoonEnum::IMPACTOR;
+            } else {
+                // bound and not on colli
+                status[i] = MoonEnum::MOON;
+            }
+        }
+    }
+
+    return status;
+}
+
+Float Post::KeplerianElements::ascendingNode() const {
+    if (sqr(L[Z]) > (1._f - EPS) * getSqrLength(L)) {
+        // Longitude of the ascending node undefined, return 0 (this is a valid case, not an error the data)
+        return 0._f;
+    } else {
+        return -atan2(L[X], L[Y]);
+    }
+}
+
+Float Post::KeplerianElements::periapsisArgument() const {
+    if (e < EPS) {
+        return 0._f;
+    }
+    const Float Omega = this->ascendingNode();
+    const Vector OmegaDir(cos(Omega), sin(Omega), 0._f); // direction of the ascending node
+    const Float omega = acos(dot(OmegaDir, getNormalized(K)));
+    if (K[Z] < 0._f) {
+        return 2._f * PI - omega;
+    } else {
+        return omega;
+    }
+}
+
+Float Post::KeplerianElements::pericenterDist() const {
+    return a * (1._f - e);
+}
+
+Float Post::KeplerianElements::semiminorAxis() const {
+    return a * sqrt(1._f - e * e);
+}
+
+Optional<Post::KeplerianElements> Post::findKeplerEllipse(const Float M,
+    const Float mu,
+    const Vector& r,
+    const Vector& v) {
+    const Float E = 0.5_f * mu * getSqrLength(v) - Constants::gravity * M * mu / getLength(r);
+    if (E >= 0._f) {
+        // parabolic or hyperbolic trajectory
+        return NOTHING;
+    }
+
+    // http://sirrah.troja.mff.cuni.cz/~davok/scripta-NB1.pdf
+    KeplerianElements elements;
+    elements.a = -Constants::gravity * mu * M / (2._f * E);
+
+    const Vector L = mu * cross(r, v); // angular momentum
+    ASSERT(L != Vector(0._f));
+    elements.i = acos(L[Z] / getLength(L));
+    elements.e = sqrt(1._f + 2._f * E * getSqrLength(L) / (sqr(Constants::gravity) * pow<3>(mu) * sqr(M)));
+
+    elements.K = cross(v, L) - Constants::gravity * mu * M * getNormalized(r);
+    elements.L = L;
+
+    return elements;
+}
+
+
 static Array<Float> getBodiesRadii(const Storage& storage,
     const Post::HistogramParams& params,
     const Post::HistogramId id) {
@@ -353,7 +463,7 @@ Array<Post::SfdPoint> Post::getCummulativeSfd(const Storage& storage, const Post
     Interval range = params.range;
     if (range.empty()) {
         for (Float r : radii) {
-            if (params.validator->include(r)) {
+            if (params.validator(r)) {
                 range.extend(r);
             }
         }
@@ -366,7 +476,7 @@ Array<Post::SfdPoint> Post::getCummulativeSfd(const Storage& storage, const Post
     // iterate in reverse order - from largest radii to smallest ones
     for (Float r : reverse(radii)) {
         if (r < lastR) {
-            if (range.contains(r) && params.validator->include(r)) {
+            if (range.contains(r) && params.validator(r)) {
                 histogram.push(SfdPoint{ r, count });
             }
             lastR = r;
@@ -384,7 +494,7 @@ Array<Post::SfdPoint> Post::getDifferentialSfd(const Storage& storage, const His
     Interval range = params.range;
     if (range.empty()) {
         for (Float r : radii) {
-            if (params.validator->include(r)) {
+            if (params.validator(r)) {
                 range.extend(r);
             }
         }
@@ -402,7 +512,7 @@ Array<Post::SfdPoint> Post::getDifferentialSfd(const Storage& storage, const His
     // check for case where only one body/particle exists
     const bool singular = range.size() == 0;
     for (Float r : radii) {
-        if (!params.validator->include(r)) {
+        if (!params.validator(r)) {
             continue;
         }
         // get bin index
@@ -438,12 +548,6 @@ static void sort(Array<TValue>& ar, const Order& order) {
 }
 
 Expected<Storage> Post::parsePkdgravOutput(const Path& path) {
-    /* the extension can also be '.50000.bt' or '.last.bt'
-     *  if (path.extension() != Path("bt")) {
-        return makeUnexpected<Storage>(
-            "Invalid extension of pkdgrav file " + path.native() + ", expected '.bt'");
-    }*/
-
     TextOutput output;
 
     // 1) Particle index -- we don't really need that, just add dummy columnm

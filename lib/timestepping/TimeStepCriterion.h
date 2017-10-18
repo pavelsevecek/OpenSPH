@@ -120,7 +120,11 @@ public:
 /// settings. Each criterion computes a time step and the minimal time step of these is returned.
 class MultiCriterion : public ITimeStepCriterion {
 private:
-    StaticArray<AutoPtr<ITimeStepCriterion>, 3> criteria;
+    Array<AutoPtr<ITimeStepCriterion>> criteria;
+
+    /// Parameters for smoothing the timestep
+    Float maxChange;
+    Float lastStep = 0._f;
 
 public:
     explicit MultiCriterion(const RunSettings& settings);

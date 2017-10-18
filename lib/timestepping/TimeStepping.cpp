@@ -10,12 +10,17 @@
 NAMESPACE_SPH_BEGIN
 
 
-ITimeStepping::ITimeStepping(const SharedPtr<Storage>& storage, const RunSettings& settings)
-    : storage(storage) {
+ITimeStepping::ITimeStepping(const SharedPtr<Storage>& storage,
+    const RunSettings& settings,
+    AutoPtr<ITimeStepCriterion>&& criterion)
+    : storage(storage)
+    , criterion(std::move(criterion)) {
     dt = settings.get<Float>(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP);
     maxdt = settings.get<Float>(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP);
-    adaptiveStep = Factory::getTimeStepCriterion(settings);
 }
+
+ITimeStepping::ITimeStepping(const SharedPtr<Storage>& storage, const RunSettings& settings)
+    : ITimeStepping(storage, settings, Factory::getTimeStepCriterion(settings)) {}
 
 ITimeStepping::~ITimeStepping() = default;
 
@@ -23,12 +28,12 @@ void ITimeStepping::step(ISolver& solver, Statistics& stats) {
     Timer timer;
     this->stepImpl(solver, stats);
     // update time step
-    CriterionId criterion = CriterionId::INITIAL_VALUE;
-    if (adaptiveStep) {
-        tieToTuple(dt, criterion) = adaptiveStep->compute(*storage, maxdt, stats);
+    CriterionId criterionId = CriterionId::INITIAL_VALUE;
+    if (criterion) {
+        tieToTuple(dt, criterionId) = criterion->compute(*storage, maxdt, stats);
     }
     stats.set(StatisticsId::TIMESTEP_VALUE, dt);
-    stats.set(StatisticsId::TIMESTEP_CRITERION, criterion);
+    stats.set(StatisticsId::TIMESTEP_CRITERION, criterionId);
     stats.set(StatisticsId::TIMESTEP_ELAPSED, int(timer.elapsed(TimerUnit::MILLISECOND)));
 }
 

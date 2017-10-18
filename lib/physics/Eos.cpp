@@ -25,6 +25,34 @@ Float IdealGasEos::getTemperature(const Float u) const {
     return u / Constants::gasConstant;
 }
 
+TaitEos::TaitEos(const BodySettings& settings) {
+    c0 = settings.get<Float>(BodySettingsId::TAIT_SOUND_SPEED);
+    rho0 = settings.get<Float>(BodySettingsId::DENSITY);
+    gamma = settings.get<Float>(BodySettingsId::TAIT_GAMMA);
+}
+
+Pair<Float> TaitEos::evaluate(const Float rho, const Float UNUSED(u)) const {
+    const Float p = sqr(c0) * rho0 / gamma * (pow(rho / rho0, gamma) - 1._f);
+    return { p, c0 };
+}
+
+
+MieGruneisenEos::MieGruneisenEos(const BodySettings& settings) {
+    c0 = settings.get<Float>(BodySettingsId::BULK_SOUND_SPEED);
+    rho0 = settings.get<Float>(BodySettingsId::DENSITY);
+    Gamma = settings.get<Float>(BodySettingsId::GRUNEISEN_GAMMA);
+    s = settings.get<Float>(BodySettingsId::HUGONIOT_SLOPE);
+}
+
+Pair<Float> MieGruneisenEos::evaluate(const Float rho, const Float u) const {
+    const Float chi = 1._f - rho0 / rho;
+    ASSERT(isReal(chi));
+    const Float num = rho0 * sqr(c0) * chi * (1._f - 0.5_f * Gamma * chi);
+    const Float denom = sqr(1._f - s * chi);
+    ASSERT(denom != 0._f);
+    return { num / denom + Gamma * u * rho, c0 }; /// \todo derive the sound speed
+}
+
 
 TillotsonEos::TillotsonEos(const BodySettings& settings)
     : u0(settings.get<Float>(BodySettingsId::TILLOTSON_SUBLIMATION))
