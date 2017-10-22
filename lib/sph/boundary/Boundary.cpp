@@ -162,7 +162,7 @@ void WindTunnel::finalize(Storage& storage) {
     Array<Size> toRemove;
     Array<Vector>& r = storage.getValue<Vector>(QuantityId::POSITIONS);
     for (Size i = 0; i < r.size(); ++i) {
-        if (!this->domain->isInside(r[i])) {
+        if (!this->domain->contains(r[i])) {
             toRemove.push(i);
         }
     }

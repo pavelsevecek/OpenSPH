@@ -60,7 +60,7 @@ namespace Presets {
 
         void addTarget(Storage& storage) {
             SphericalDomain domain(Vector(0._f), _params.targetRadius);
-            _ic.addBody(storage, domain, _body);
+            _ic.addMonolithicBody(storage, domain, _body);
 
             if (!_params.outputPath.empty()) {
                 _body.saveToFile(_params.outputPath / Path("target.sph"));
@@ -85,7 +85,7 @@ namespace Presets {
                 .set(BodySettingsId::DAMAGE_MIN, LARGE);
 
             SphericalDomain domain(Vector(x, y, 0._f), _params.projectileRadius);
-            _ic.addBody(storage, domain, impactorBody)
+            _ic.addMonolithicBody(storage, domain, impactorBody)
                 .addVelocity(Vector(-_params.impactSpeed, 0._f, 0._f))
                 .addRotation(
                     Vector(0._f, 0._f, _params.targetRotation), BodyView::RotationOrigin::FRAME_ORIGIN);

@@ -9,7 +9,7 @@
 
 NAMESPACE_SPH_BEGIN
 
-/// Helper term counting the number of neighbours of each particle.
+/// \brief Helper term counting the number of neighbours of each particle.
 class NeighbourCountTerm : public IEquationTerm {
 private:
     class NeighbourCountImpl : public DerivativeTemplate<NeighbourCountImpl> {
@@ -52,9 +52,10 @@ private:
 };
 
 
-/// Termm computing normals of free surface. For particles inside the bodies, this will result to vectors
-/// close to zero (depending on the number of neighbours), and the term can be therefore used to detect
-/// boundary particles
+/// \brief Term computing normals of free surface.
+///
+/// For particles inside the bodies, this will result to vectors close to zero (depending on the number of
+/// neighbours), and the term can be therefore used to detect boundary particles
 class SurfaceNormal : public IEquationTerm {
 private:
     class Derivative : public DerivativeTemplate<Derivative> {

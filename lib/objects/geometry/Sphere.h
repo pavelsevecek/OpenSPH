@@ -21,6 +21,10 @@ private:
     Vector centerAndRadius;
 
 public:
+    /// Creates an uninitialized sphere.
+    Sphere() = default;
+
+    /// Creates a sphere given its center and radius
     Sphere(const Vector& center, const Float radius)
         : centerAndRadius(center) {
         centerAndRadius[H] = radius;
@@ -30,12 +34,31 @@ public:
         return centerAndRadius;
     }
 
+    INLINE Vector& center() {
+        return centerAndRadius;
+    }
+
     INLINE Float radius() const {
+        return centerAndRadius[H];
+    }
+
+    INLINE Float& radius() {
         return centerAndRadius[H];
     }
 
     INLINE Float volume() const {
         return sphereVolume(this->radius());
+    }
+
+    INLINE bool contains(const Vector& v) const {
+        return getSqrLength(this->center() - v) < sqr(this->radius());
+    }
+
+    /// \brief Checks if the sphere intersects another sphere.
+    ///
+    /// If one sphere contains the other one entirely, it counts as an intersections.
+    INLINE bool intersects(const Sphere& other) const {
+        return getSqrLength(this->center() - other.center()) < sqr(this->radius() + other.radius());
     }
 
     /// \brief Checks the intersection of the sphere with a box

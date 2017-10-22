@@ -29,10 +29,10 @@ TEST_CASE("Component initconds", "[post]") {
     Storage storage;
     InitialConditions conds(RunSettings::getDefaults());
     bodySettings.set<int>(BodySettingsId::PARTICLE_COUNT, 1000);
-    conds.addBody(storage, SphericalDomain(Vector(0, 0, 0), 1._f), bodySettings);
-    conds.addBody(storage, SphericalDomain(Vector(-6, 4, 0), 1._f), bodySettings);
-    conds.addBody(storage, SphericalDomain(Vector(5, 2, 0), 1._f), bodySettings);
-    conds.addBody(storage, SphericalDomain(Vector(5, 2.5_f, 0), 1._f), bodySettings);
+    conds.addMonolithicBody(storage, SphericalDomain(Vector(0, 0, 0), 1._f), bodySettings);
+    conds.addMonolithicBody(storage, SphericalDomain(Vector(-6, 4, 0), 1._f), bodySettings);
+    conds.addMonolithicBody(storage, SphericalDomain(Vector(5, 2, 0), 1._f), bodySettings);
+    conds.addMonolithicBody(storage, SphericalDomain(Vector(5, 2.5_f, 0), 1._f), bodySettings);
 
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
     Array<Size> components;

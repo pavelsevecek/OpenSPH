@@ -20,7 +20,7 @@ void testDistributionForDomain(IDistribution* distribution, const IDomain& domai
     REQUIRE(values.size() < 1100);
 
     // all particles are inside prescribed domain
-    bool allInside = areAllMatching(values, [&](const Vector& v) { return domain.isInside(v); });
+    bool allInside = areAllMatching(values, [&](const Vector& v) { return domain.contains(v); });
     REQUIRE(allInside);
 
     // if we split the cube to octants, each of them will have approximately the same number of particles.

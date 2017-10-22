@@ -30,6 +30,9 @@ private:
 public:
     Statistics() = default;
 
+    /// \brief Checks if the object contains a statistic with given ID
+    ///
+    /// By default, the object is empty, it contains no data.
     bool has(const StatisticsId idx) const {
         return entries.find(idx) != entries.end();
     }

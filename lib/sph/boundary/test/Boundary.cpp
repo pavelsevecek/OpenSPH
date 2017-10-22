@@ -27,7 +27,7 @@ public:
         NOT_IMPLEMENTED;
     }
 
-    virtual bool isInside(const Vector& UNUSED(v)) const override {
+    virtual bool contains(const Vector& UNUSED(v)) const override {
         NOT_IMPLEMENTED;
     }
 
@@ -240,9 +240,9 @@ TEST_CASE("FrozenParticles by flag", "[boundary]") {
     InitialConditions conds(RunSettings::getDefaults());
     BodySettings settings;
     settings.set(BodySettingsId::PARTICLE_COUNT, 100);
-    conds.addBody(storage, SphericalDomain(Vector(0._f), 1._f), settings);
+    conds.addMonolithicBody(storage, SphericalDomain(Vector(0._f), 1._f), settings);
     const Size size0 = storage.getParticleCnt();
-    conds.addBody(storage, SphericalDomain(Vector(3._f, 0._f, 0._f), 1._f), settings);
+    conds.addMonolithicBody(storage, SphericalDomain(Vector(3._f, 0._f, 0._f), 1._f), settings);
 
     ArrayView<Vector> r, v, dv;
     tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
@@ -332,7 +332,7 @@ TEST_CASE("FrozenParticles by distance", "[boundary]") {
     InitialConditions conds(RunSettings::getDefaults());
     BodySettings settings;
     settings.set(BodySettingsId::PARTICLE_COUNT, 1000);
-    conds.addBody(storage, SphericalDomain(Vector(0._f), 1.5_f), settings);
+    conds.addMonolithicBody(storage, SphericalDomain(Vector(0._f), 1.5_f), settings);
     const Float radius = 2._f;
     FrozenParticles boundaryConditions(makeAuto<SphericalDomain>(Vector(0._f), 1._f), radius);
 

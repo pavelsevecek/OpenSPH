@@ -9,10 +9,11 @@
 
 NAMESPACE_SPH_BEGIN
 
-/// A base class for all SPH kernels, providing interface for computing kernel values and gradients.
-/// All derived class must implement method <code>value</code> and
-/// <code>grad</code>. Both function take SQUARED value of dimensionless distance q as a parameter. Function
-/// value returns the kernel value, grad returns gradient DIVIDED BY q.
+/// \brief Base class for all SPH kernels.
+///
+/// Provides an interface for computing kernel values and gradients. All derived class must implement method
+/// <code>valueImpl</code> and <code>gradImpl</code>. Both function take SQUARED value of dimensionless
+/// distance q as a parameter. Function value returns the kernel value, grad returns gradient DIVIDED BY q.
 template <typename TDerived, Size D>
 class Kernel : public Noncopyable {
 public:
@@ -34,7 +35,7 @@ public:
     }
 
 private:
-    const TDerived& impl() const {
+    INLINE const TDerived& impl() const {
         return static_cast<const TDerived&>(*this);
     }
 };

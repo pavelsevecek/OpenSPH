@@ -5,7 +5,17 @@
 using namespace Sph;
 
 
-TEST_CASE("Sphere intersection", "[sphere]") {
+TEST_CASE("Sphere intersectsSphere", "[sphere]") {
+    Sphere sphere(Vector(0._f), 1._f);
+    REQUIRE(sphere.intersects(Sphere(Vector(0._f), 0.5_f)));
+    REQUIRE(sphere.intersects(Sphere(Vector(0.5_f), 2._f)));
+    REQUIRE(sphere.intersects(Sphere(Vector(1.5_f, 0._f, 0._f), 0.6_f)));
+
+    REQUIRE_FALSE(sphere.intersects(Sphere(Vector(1.5_f, 0._f, 0._f), 0.45_f)));
+    REQUIRE_FALSE(sphere.intersects(Sphere(Vector(0._f, 1._f + 2._f * EPS, 0._f), EPS)));
+}
+
+TEST_CASE("Sphere intersectsBox", "[sphere]") {
     Sphere sphere(Vector(0._f), 1._f);
     /*// box enclosing the sphere
     /// \todo how is this case classified? (currently not used by TreeWalk, but should be implemented

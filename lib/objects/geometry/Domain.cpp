@@ -19,7 +19,7 @@ Box SphericalDomain::getBoundingBox() const {
     return Box(this->center - r, this->center + r);
 }
 
-bool SphericalDomain::isInside(const Vector& v) const {
+bool SphericalDomain::contains(const Vector& v) const {
     return isInsideImpl(v);
 }
 
@@ -116,7 +116,7 @@ Box EllipsoidalDomain::getBoundingBox() const {
     return Box(this->center - radii, this->center + radii);
 }
 
-bool EllipsoidalDomain::isInside(const Vector& v) const {
+bool EllipsoidalDomain::contains(const Vector& v) const {
     return isInsideImpl(v);
 }
 
@@ -198,7 +198,7 @@ Box BlockDomain::getBoundingBox() const {
     return box;
 }
 
-bool BlockDomain::isInside(const Vector& v) const {
+bool BlockDomain::contains(const Vector& v) const {
     return box.contains(v);
 }
 
@@ -334,7 +334,7 @@ Box CylindricalDomain::getBoundingBox() const {
     return Box(this->center - sides, this->center + sides);
 }
 
-bool CylindricalDomain::isInside(const Vector& v) const {
+bool CylindricalDomain::contains(const Vector& v) const {
     return this->isInsideImpl(v);
 }
 
@@ -453,7 +453,7 @@ Box HexagonalDomain::getBoundingBox() const {
     return Box(this->center - sides, this->center + sides);
 }
 
-bool HexagonalDomain::isInside(const Vector& v) const {
+bool HexagonalDomain::contains(const Vector& v) const {
     return this->isInsideImpl(v);
 }
 

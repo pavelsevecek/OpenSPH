@@ -230,7 +230,7 @@ public:
             SphericalDomain domain2(Vector(5598.423798_f, 2839.8390977_f, 0._f), 679.678195_f);
             body.saveToFile(outputPath / Path("impactor.sph"));
             conds
-                ->addBody(storage, domain2, body)
+                ->addMonolithicBody(storage, domain2, body)
                 // velocity 5 km/s
                 .addVelocity(Vector(-6.e3_f, 0._f, 0._f))
                 // flies straight, i.e. add rotation in non-intertial frame
@@ -400,7 +400,7 @@ void AsteroidCollision::setUp() {
 
     StdOutLogger logger;
     SphericalDomain domain1(Vector(0._f), 5e3_f); // D = 10km
-    conds->addBody(*storage, domain1, body).addRotation(targetOmega, BodyView::RotationOrigin::FRAME_ORIGIN);
+    conds->addMonolithicBody(*storage, domain1, body).addRotation(targetOmega, BodyView::RotationOrigin::FRAME_ORIGIN);
     logger.write("Particles of target: ", storage->getParticleCnt());
 
     /* body.set(BodySettingsId::PARTICLE_COUNT, 100)

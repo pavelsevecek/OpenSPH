@@ -83,7 +83,7 @@ namespace {
             InitialConditions conds(settings);
             BodySettings bodySettings;
             bodySettings.set(BodySettingsId::PARTICLE_COUNT, 10);
-            conds.addBody(*storage, SphericalDomain(Vector(0._f), 1._f), bodySettings);
+            conds.addMonolithicBody(*storage, SphericalDomain(Vector(0._f), 1._f), bodySettings);
             stepIdx = 0;
             runEnded = false;
 

@@ -11,7 +11,7 @@
 
 NAMESPACE_SPH_BEGIN
 
-/// Random number generator with uniform distribution.
+/// \brief Random number generator with uniform distribution.
 class UniformRng : public Noncopyable {
 private:
     std::mt19937_64 mt;
@@ -32,8 +32,9 @@ public:
 };
 
 
-/// Random number generator used in code SPH5 of Benz & Asphaug (1994), reimplemented for reproducibility of
-/// results.
+/// \brief Random number generator used in code SPH5 of Benz & Asphaug (1994).
+///
+/// Reimplemented for reproducibility of results.
 class BenzAsphaugRng : public Noncopyable {
 private:
     const int seed;
@@ -64,7 +65,7 @@ public:
     Float operator()(const int s = 0);
 };
 
-/// Quasi-random number generator.
+/// \brief Quasi-random number generator.
 class HaltonQrng : public Noncopyable {
 protected:
     static const int dimension = 6;
@@ -80,7 +81,7 @@ public:
 };
 
 
-/// Polymorphic holder allowing to store any RNG (type erasure).
+/// \brief Polymorphic holder allowing to store any RNG (type erasure).
 class IRng : public Polymorphic {
 public:
     /// Generates a random number.

@@ -82,7 +82,7 @@ void AsteroidRotation::setUp() {
 
     // Parent body
     SphericalDomain domain1(Vector(0._f), 5e3_f); // D = 10km
-    conds.addBody(*storage, domain1, bodySettings);
+    conds.addMonolithicBody(*storage, domain1, bodySettings);
     logger = Factory::getLogger(settings);
     logger->write("Particles of target: ", storage->getParticleCnt());
 

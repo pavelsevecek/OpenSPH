@@ -84,7 +84,7 @@ public:
         bodySettings.set(BodySettingsId::ENERGY_MIN, 0.1_f);
 
         InitialConditions initialConditions(this->settings);
-        initialConditions.addBody(*storage, SphericalDomain(Vector(0.5_f), 0.5_f), bodySettings);
+        initialConditions.addMonolithicBody(*storage, SphericalDomain(Vector(0.5_f), 0.5_f), bodySettings);
 
         Path outputDir("sod/" + this->settings.get<std::string>(RunSettingsId::RUN_OUTPUT_NAME));
         this->output = makeAuto<GnuplotOutput>(outputDir,

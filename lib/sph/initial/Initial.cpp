@@ -1,6 +1,7 @@
 #include "sph/initial/Initial.h"
-#include "math/rng/Rng.h"
+#include "math/rng/VectorRng.h"
 #include "objects/geometry/Domain.h"
+#include "objects/geometry/Sphere.h"
 #include "physics/Eos.h"
 #include "physics/Integrals.h"
 #include "quantities/IMaterial.h"
@@ -88,12 +89,16 @@ void InitialConditions::createCommon(const RunSettings& settings) {
     context.rng = Factory::getRng(settings);
 }
 
-BodyView InitialConditions::addBody(Storage& storage, const IDomain& domain, const BodySettings& settings) {
+BodyView InitialConditions::addMonolithicBody(Storage& storage,
+    const IDomain& domain,
+    const BodySettings& settings) {
     AutoPtr<IMaterial> material = Factory::getMaterial(settings);
-    return this->addBody(storage, domain, std::move(material));
+    return this->addMonolithicBody(storage, domain, std::move(material));
 }
 
-BodyView InitialConditions::addBody(Storage& storage, const IDomain& domain, AutoPtr<IMaterial>&& material) {
+BodyView InitialConditions::addMonolithicBody(Storage& storage,
+    const IDomain& domain,
+    AutoPtr<IMaterial>&& material) {
     IMaterial& mat = *material; // get reference before moving the pointer
     Storage body(std::move(material));
 
@@ -148,7 +153,7 @@ Array<BodyView> InitialConditions::addHeterogeneousBody(Storage& storage,
     Array<Array<Vector>> pos_bodies(bodies.size());
     auto assign = [&](const Vector& p) {
         for (Size i = 0; i < bodies.size(); ++i) {
-            if (bodies[i].domain->isInside(p)) {
+            if (bodies[i].domain->contains(p)) {
                 pos_bodies[i].push(p);
                 return true;
             }
@@ -187,6 +192,100 @@ Array<BodyView> InitialConditions::addHeterogeneousBody(Storage& storage,
     return views;
 }
 
+void InitialConditions::addRubblePileBody(Storage& storage,
+    const IDomain& domain,
+    const PowerLawSfd& sfd,
+    const BodySettings& bodySettings) {
+    const Size n = bodySettings.get<int>(BodySettingsId::PARTICLE_COUNT);
+    const Size minN = bodySettings.get<int>(BodySettingsId::MIN_PARTICLE_COUNT);
+
+    ASSERT(context.rng);
+    VectorRng<IRng&> rng(*context.rng);
+
+    // stack of generated spheres, to check for overlap
+    Array<Sphere> spheres;
+
+    // generate the particles that will be eventually turned into spheres
+    AutoPtr<IDistribution> distribution = Factory::getDistribution(bodySettings);
+    Array<Vector> positions = distribution->generate(n, domain);
+
+    // counter used to exit the loop (when no more spheres can be generated)
+    Size bailoutCounter = 0;
+    constexpr Size bailoutTarget = 1000;
+
+    while (bailoutCounter < bailoutTarget) {
+
+        Vector center;
+        Float radius;
+        while (bailoutCounter < bailoutTarget) {
+
+            // generate a center of the sphere
+            const Box box = domain.getBoundingBox();
+            center = box.lower() + rng() * box.size();
+            if (!domain.contains(center)) {
+                // outside of the domain, reject (do not increase the bailoutCounter here)
+                continue;
+            }
+
+            // generate a radius
+            radius = sfd(rng.getAdditional(3));
+
+            // check for overlap with spheres already generated
+            auto checkOverlap = [&spheres](const Sphere& sphere) {
+                for (const Sphere& s : spheres) {
+                    if (s.intersects(sphere)) {
+                        return true;
+                    }
+                }
+                return false;
+            };
+            Sphere sphere(center, radius);
+            if (checkOverlap(sphere)) {
+                // overlaps, reject
+                bailoutCounter++;
+                continue;
+            }
+
+            // okay, this sphere seems valid, accept it
+            break;
+        }
+
+        Sphere sphere(center, radius);
+
+        // extract all particles inside the sphere, ignore particles outside of the domain
+        Array<Vector> spherePositions;
+        for (Size i = 0; i < positions.size();) {
+            if (sphere.contains(positions[i])) {
+                spherePositions.push(positions[i]);
+                positions.remove(i);
+            } else {
+                ++i;
+            }
+        }
+
+        // if the body has less than the minimal number of particles, reject it and generate a new sphere
+        if (spherePositions.size() < minN) {
+            // we need to put the (unused) points back
+            positions.pushAll(std::move(spherePositions));
+            bailoutCounter++;
+            continue;
+        }
+        spheres.push(sphere);
+
+        // create the body
+        Storage body(Factory::getMaterial(bodySettings));
+        body.insert<Vector>(QuantityId::POSITIONS, OrderEnum::ZERO, std::move(spherePositions));
+        this->setQuantities(body, body.getMaterial(0), sphere.volume());
+
+        // add it to the storage
+        storage.merge(std::move(body));
+        bodyIndex++;
+
+        // we are still adding spheres, reset the counter
+        bailoutCounter = 0;
+    }
+}
+
 void InitialConditions::setQuantities(Storage& storage, IMaterial& material, const Float volume) {
     // Set masses of particles, assuming all particles have the same mass
     /// \todo this has to be generalized when using nonuniform particle destribution
@@ -201,7 +300,7 @@ void InitialConditions::setQuantities(Storage& storage, IMaterial& material, con
     // Initialize all quantities needed by the solver
     solver->create(storage, material);
 
-    // Initialize material (we need density and energy for that)
+    // Initialize material (we need density and energy for EoS)
     material.create(storage, context);
 }
 

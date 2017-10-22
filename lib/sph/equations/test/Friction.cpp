@@ -23,7 +23,7 @@ TEST_CASE("InternalFriction", "[friction]") {
     body.set(BodySettingsId::RHEOLOGY_DAMAGE, DamageEnum::NONE);
     body.set(BodySettingsId::EOS, EosEnum::NONE);
     body.set(BodySettingsId::PARTICLE_COUNT, 10000);
-    initial.addBody(storage, BlockDomain(Vector(0._f), Vector(2._f, 2._f, 1._f)), body);
+    initial.addMonolithicBody(storage, BlockDomain(Vector(0._f), Vector(2._f, 2._f, 1._f)), body);
 
     // add two sliding layers
     ArrayView<Vector> r, v, dv;

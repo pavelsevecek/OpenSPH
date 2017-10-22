@@ -5,7 +5,7 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2017
 
-#include "math/rng/Rng.h"
+#include "math/rng/Rng.h" // not really needed, but it doesn't make sense to use VectorRng without some Rng object
 
 NAMESPACE_SPH_BEGIN
 

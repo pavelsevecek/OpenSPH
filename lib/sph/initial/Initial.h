@@ -28,8 +28,10 @@ private:
 public:
     BodyView(Storage& storage, const Size bodyIndex);
 
-    /// Adds a velocity vector to all particles of the body. If the particles previously had nonzero
-    /// velocities, the velocities are added; the previous velocities are not erased.
+    /// \brief Adds a velocity vector to all particles of the body.
+    ///
+    /// If the particles previously had nonzero velocities, the velocities are added; the previous velocities
+    /// are not erased.
     /// \param v Velocity vector added to all particles.
     /// \returns Reference to itself.
     BodyView& addVelocity(const Vector& v);
@@ -40,15 +42,17 @@ public:
         CENTER_OF_MASS, ///< Rotate the body around its center of mass
     };
 
-    /// Adds an angular velocity to all particles of the body. The new velocities are added to velocities
-    /// previously assigned to the particles.
+    /// \brief Adds an angular velocity to all particles of the body.
+    ///
+    /// The new velocities are added to velocities previously assigned to the particles.
     /// \param omega Angular velocity (in radians/s), the direction of the vector is the axis of rotation.
     /// \param origin Center point of the rotation, see RotationOrigin enum.
     /// \returns Reference to itself.
     BodyView& addRotation(const Vector& omega, const RotationOrigin origin);
 
-    /// Adds an angular velocity to all particles of the body. The new velocities are added to velocities
-    /// previously assigned to the particles.
+    /// \brief Adds an angular velocity to all particles of the body.
+    ///
+    /// The new velocities are added to velocities previously assigned to the particles.
     /// \param omega Angular velocity (in radians/s), the direction of the vector is the axis of rotation.
     /// \param origin Vector defining the center point of the rotation.
     /// \returns Reference to itself.
@@ -57,6 +61,31 @@ public:
 private:
     Vector getOrigin(const RotationOrigin origin) const;
 };
+
+/// \brief Holds the information about a power-law size-frequency distributions.
+struct PowerLawSfd {
+    /// Exponent alpha of the power-law x^-alpha. Can be lower than 1 or negative, meaning there is more
+    /// larger modies than smaller bodies. Cannot be exactly 1.
+    Float exponent;
+
+    /// Minimal and maximal value of the SFD
+    Interval interval;
+
+    /// \brief Generates a new value of the SFD by transforming given value from interval [0, 1].
+    ///
+    /// For x=0 and x=1, interval.lower() and interval.upper() is returned, respectively. Input value must lie
+    /// in unit interval, checked by assert.
+    Float operator()(const Float x) const {
+        ASSERT(x >= 0._f && x <= 1._f);
+        ASSERT(exponent != 1._f);
+        const Float Rmin = pow(interval.lower(), 1._f - exponent);
+        const Float Rmax = pow(interval.upper(), 1._f - exponent);
+        const Float R = pow((Rmax - Rmin) * x + Rmin, 1._f / (1._f - exponent));
+        ASSERT(R >= interval.lower() && R <= interval.upper(), R);
+        return R;
+    }
+};
+
 
 /// \brief Object for adding one or more bodies with given material into Storage
 ///
@@ -96,7 +125,7 @@ public:
 
     ~InitialConditions();
 
-    /// \brief Creates particles by filling given domain.
+    /// \brief Creates a monolithic body by filling given domain with particles.
     ///
     /// Particles are created on positions given by distribution in bodySettings. Beside positions of
     /// particles, the function initialize particle masses, pressure and sound speed, assuming both the
@@ -109,11 +138,11 @@ public:
     ///               overlapping regions.
     /// \param bodySettings Parameters of the body
     /// \todo generalize for entropy solver
-    BodyView addBody(Storage& storage, const IDomain& domain, const BodySettings& bodySettings);
+    BodyView addMonolithicBody(Storage& storage, const IDomain& domain, const BodySettings& bodySettings);
 
     /// Adds a body by explicitly specifying its material.
     /// \copydoc addBody
-    BodyView addBody(Storage& storage, const IDomain& domain, AutoPtr<IMaterial>&& material);
+    BodyView addMonolithicBody(Storage& storage, const IDomain& domain, AutoPtr<IMaterial>&& material);
 
 
     /// Holds data needed to create a single body in \ref addHeterogeneousBody function.
@@ -136,15 +165,18 @@ public:
         ~BodySetup();
     };
 
-    /// Creates particles composed of different materials.
+    /// \brief Creates particles composed of different materials.
+    ///
+    /// Particles of different materials fill given domains inside the parent (environment) body. Each body
+    /// can have different material and have different initial velocity. These bodies don't add more particles
+    /// (particle count in settings is irrelevant when creating the bodies), they simply override particles
+    /// created by environment body. If multiple bodies overlap, particles are assigned to body listed first
+    /// in the array.
+    ///
     /// \param storage Particle storage to which the new body is added
     /// \param environment Base body, domain of which defines the body. No particles are generated outside
     ///                    of this domain. By default, all particles have the material given by this body.
-    /// \param bodies List of bodies created inside the main environemnt. Each can have different material
-    ///               and have different initial velocity. These bodies don't add more particles (particle
-    ///               count in settings is irrelevant), they simply override particles created by environment
-    ///               body. If multiple bodies overlap, particles are assigned to body listed first in the
-    ///               array.
+    /// \param bodies List of bodies created inside the main environemnt.
     /// \return Array of n+1 BodyViews, where n is the size of \ref bodies parameter. The first one
     ///         corresponds to the environment, the rest are the bodies inside the environment in the
     ///         order they were passed in \ref bodies.
@@ -152,11 +184,26 @@ public:
         BodySetup&& environment,
         ArrayView<BodySetup> bodies);
 
-    /// \brief Ends the initial condition settings.
+    /// \brief Creates a rubble-pile body, composing of monolithic spheres.
     ///
-    /// Storage is then no longer used by the object. Does not have to be called manually, it is called from
-    /// destructor.
-    void finalize();
+    /// The spheres are created randomly, using the RNG from InitialMaterialContext. Each sphere is considered
+    /// as a different body, so the interactions between the spheres is the same as the interactions between
+    /// an impactor an a target, for example. The spheres can partially exceed the boundary of the domain; the
+    /// particles outside of the domain are removed in this case. The body is created 'statically', no
+    /// gravitational interaction is considered and the created configuration might not be stable. The body is
+    /// created similarly as in \cite Benavidez_2012. For more complex initial conditions of rubble-pile
+    /// bodies, see \cite Deller_2017.
+    ///
+    /// \param storage Particle storage to which the rubble-pile body is added.
+    /// \param domain Spatial domain where the particles are placed.
+    /// \param sfd Power-law size-frequency distribution of the spheres.
+    /// \param bodySettings Material parameters of the spheres.
+    ///
+    /// \todo potentially move to other object / create an abstract interface for addBody ?
+    void addRubblePileBody(Storage& storage,
+        const IDomain& domain,
+        const PowerLawSfd& sfd,
+        const BodySettings& bodySettings);
 
 private:
     void createCommon(const RunSettings& settings);

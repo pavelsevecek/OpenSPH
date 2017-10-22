@@ -1,5 +1,7 @@
 #include "sph/initial/Initial.h"
 #include "catch.hpp"
+#include "io/Column.h"
+#include "io/Output.h"
 #include "objects/geometry/Domain.h"
 #include "objects/utility/ArrayUtils.h"
 #include "quantities/Iterate.h"
@@ -17,7 +19,7 @@ TEST_CASE("Initial addBody", "[initial]") {
     BlockDomain domain(Vector(0._f), Vector(1._f));
     Storage storage;
     InitialConditions conds(RunSettings::getDefaults());
-    conds.addBody(storage, domain, bodySettings);
+    conds.addMonolithicBody(storage, domain, bodySettings);
 
     const Size size = storage.getValue<Vector>(QuantityId::POSITIONS).size();
     REQUIRE(size >= 80);
@@ -66,9 +68,9 @@ TEST_CASE("Initial custom solver", "[initial]") {
     InitialConditions initial(solver, RunSettings::getDefaults());
     REQUIRE(solver.createCalled == 0);
     BodySettings body;
-    initial.addBody(storage, SphericalDomain(Vector(0._f), 1._f), body);
+    initial.addMonolithicBody(storage, SphericalDomain(Vector(0._f), 1._f), body);
     REQUIRE(solver.createCalled == 1);
-    initial.addBody(storage, SphericalDomain(Vector(0._f), 2._f), body);
+    initial.addMonolithicBody(storage, SphericalDomain(Vector(0._f), 2._f), body);
     REQUIRE(solver.createCalled == 2);
 }
 
@@ -77,10 +79,10 @@ TEST_CASE("Initial velocity", "[initial]") {
     InitialConditions conds(RunSettings::getDefaults());
     BodySettings bodySettings;
     bodySettings.set<Float>(BodySettingsId::DENSITY, 1._f);
-    conds.addBody(storage, SphericalDomain(Vector(0._f), 1._f), bodySettings)
+    conds.addMonolithicBody(storage, SphericalDomain(Vector(0._f), 1._f), bodySettings)
         .addVelocity(Vector(2._f, 1._f, -1._f));
     bodySettings.set<Float>(BodySettingsId::DENSITY, 2._f);
-    conds.addBody(storage, SphericalDomain(Vector(0._f), 1._f), bodySettings)
+    conds.addMonolithicBody(storage, SphericalDomain(Vector(0._f), 1._f), bodySettings)
         .addVelocity(Vector(0._f, 0._f, 1._f));
     ArrayView<Float> rho = storage.getValue<Float>(QuantityId::DENSITY);
     ArrayView<Vector> v = storage.getAll<Vector>(QuantityId::POSITIONS)[1];
@@ -100,7 +102,7 @@ TEST_CASE("Initial velocity", "[initial]") {
 TEST_CASE("Initial rotation", "[initial]") {
     Storage storage;
     InitialConditions conds(RunSettings::getDefaults());
-    conds.addBody(storage, SphericalDomain(Vector(0._f), 1._f), BodySettings::getDefaults())
+    conds.addMonolithicBody(storage, SphericalDomain(Vector(0._f), 1._f), BodySettings::getDefaults())
         .addRotation(Vector(1._f, 3._f, -2._f), BodyView::RotationOrigin::FRAME_ORIGIN);
     ArrayView<Vector> r, v, dv;
     tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
@@ -139,7 +141,7 @@ TEST_CASE("Initial addHeterogeneousBody single", "[initial]") {
     Storage storage2;
     InitialConditions conds2(RunSettings::getDefaults());
     BlockDomain domain2(Vector(0._f), Vector(1._f));
-    conds2.addBody(storage2, domain2, bodySettings);
+    conds2.addMonolithicBody(storage2, domain2, bodySettings);
     REQUIRE(storage1.getQuantityCnt() == storage2.getQuantityCnt());
     REQUIRE(storage1.getParticleCnt() == storage2.getParticleCnt());
     REQUIRE(storage1.getMaterialCnt() == storage2.getMaterialCnt());
@@ -196,11 +198,11 @@ TEST_CASE("Initial addHeterogeneousBody multiple", "[initial]") {
     SphericalDomain dom1 = SphericalDomain(Vector(3._f, 3._f, 2._f), 2._f);
     SphericalDomain dom2 = SphericalDomain(Vector(-2._f, -2._f, -1._f), 2._f);
     auto test = [&](const Size i) -> Outcome {
-        if (dom1.isInside(r[i])) {
+        if (dom1.contains(r[i])) {
             particlesBody1++;
             return Outcome(flag[i] == 0 && v[i] == v1);
         }
-        if (dom2.isInside(r[i])) {
+        if (dom2.contains(r[i])) {
             particlesBody2++;
             return Outcome(flag[i] == 1 && v[i] == v2);
         }
@@ -209,4 +211,24 @@ TEST_CASE("Initial addHeterogeneousBody multiple", "[initial]") {
     REQUIRE_SEQUENCE(test, 0, r.size());
     REQUIRE(particlesBody1 > 30);
     REQUIRE(particlesBody2 > 30);
+}
+
+TEST_CASE("Initial addRubblePileBody", "[initial]") {
+    InitialConditions ic(RunSettings::getDefaults());
+
+    BodySettings body;
+    body.set(BodySettingsId::PARTICLE_COUNT, 10000);
+    body.set(BodySettingsId::MIN_PARTICLE_COUNT, 10);
+    Storage storage;
+    PowerLawSfd sfd;
+    sfd.interval = Interval(0.2_f, 1._f);
+    sfd.exponent = 3._f;
+    ic.addRubblePileBody(storage, SphericalDomain(Vector(0._f), 1._f), sfd, body);
+
+    TextOutput output(Path("rubblepile.txt"), "test", EMPTY_FLAGS);
+    output.add(makeAuto<ValueColumn<Vector>>(QuantityId::POSITIONS));
+    output.add(makeAuto<ValueColumn<Size>>(QuantityId::FLAG));
+    Statistics stats;
+    stats.set(StatisticsId::RUN_TIME, 0._f);
+    output.dump(storage, stats);
 }

@@ -103,15 +103,17 @@ protected:
     void makeCorrections();
 };
 
+/// \brief Leapfrog timestepping
+///
+/// Uses the drift-kick-drift version of the algorithm for second-order quantities. First-order quantities are
+/// integrated using ordinary Euler timestepping.
 class LeapFrog : public ITimeStepping {
 public:
     LeapFrog(const SharedPtr<Storage>& storage, const RunSettings& settings)
         : ITimeStepping(storage, settings) {}
 
 protected:
-    virtual void stepImpl(ISolver& UNUSED(solver), Statistics& UNUSED(stats)) override {
-        NOT_IMPLEMENTED;
-    }
+    virtual void stepImpl(ISolver& solver, Statistics& stats) override;
 };
 
 class RungeKutta : public ITimeStepping {

@@ -840,8 +840,17 @@ enum class BodySettingsId {
 
     KINEMATIC_VISCOSITY,
 
+    /// Coefficient of surface tension
+    SURFACE_TENSION,
+
     /// Number of SPH particles in the body
     PARTICLE_COUNT,
+
+    /// Minimal number of particles per one body. Used when creating 'sub-bodies' withing one 'parent' body,
+    /// for example when creating rubble-pile asteroids, ice blocks inside an asteroid, etc. Parameter has no
+    /// effect for creation of a single monolithic body; the number of particles from PARTICLE_COUNT is used
+    /// in any case.
+    MIN_PARTICLE_COUNT,
 
     /// Initial alpha coefficient of the artificial viscosity. This is only used if the coefficient is
     /// different for each particle. For constant coefficient shared for all particles, use value from global

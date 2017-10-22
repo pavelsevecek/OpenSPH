@@ -50,7 +50,7 @@ public:
     /// \brief Checks if the given point lies inside the domain.
     ///
     /// Points lying exactly on the boundary of the domain are assumed to be inside.
-    virtual bool isInside(const Vector& v) const = 0;
+    virtual bool contains(const Vector& v) const = 0;
 
     /// \brief Returns an array of indices, marking vectors with given property by their index.
     ///
@@ -111,7 +111,7 @@ public:
 
     virtual Box getBoundingBox() const override;
 
-    virtual bool isInside(const Vector& v) const override;
+    virtual bool contains(const Vector& v) const override;
 
     virtual void getSubset(ArrayView<const Vector> vs,
         Array<Size>& output,
@@ -148,7 +148,7 @@ public:
 
     virtual Box getBoundingBox() const override;
 
-    virtual bool isInside(const Vector& v) const override;
+    virtual bool contains(const Vector& v) const override;
 
     virtual void getSubset(ArrayView<const Vector> vs,
         Array<Size>& output,
@@ -183,7 +183,7 @@ public:
 
     virtual Box getBoundingBox() const override;
 
-    virtual bool isInside(const Vector& v) const override;
+    virtual bool contains(const Vector& v) const override;
 
     virtual void getSubset(ArrayView<const Vector> vs,
         Array<Size>& output,
@@ -214,7 +214,7 @@ public:
 
     virtual Box getBoundingBox() const override;
 
-    virtual bool isInside(const Vector& v) const override;
+    virtual bool contains(const Vector& v) const override;
 
     virtual void getSubset(ArrayView<const Vector> vs,
         Array<Size>& output,
@@ -255,7 +255,7 @@ public:
 
     virtual Box getBoundingBox() const override;
 
-    virtual bool isInside(const Vector& v) const override;
+    virtual bool contains(const Vector& v) const override;
 
     virtual void getSubset(ArrayView<const Vector> vs,
         Array<Size>& output,

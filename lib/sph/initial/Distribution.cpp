@@ -25,7 +25,7 @@ Array<Vector> RandomDistribution::generate(const Size n, const IDomain& domain) 
     for (Size i = 0; i < 1e5 * n && found < n; ++i) {
         Vector w = boxRng();
         w[H] = h;
-        if (domain.isInside(w)) {
+        if (domain.contains(w)) {
             vecs.push(w);
             ++found;
         }
@@ -52,7 +52,7 @@ Array<Vector> CubicPacking::generate(const Size n, const IDomain& domain) const 
     const Box box(boundingBox.lower() + 0.5_f * step, boundingBox.upper());
     Array<Vector> vecs;
     box.iterate(step, [&vecs, &domain, h](Vector&& v) {
-        if (domain.isInside(v)) {
+        if (domain.contains(v)) {
             v[H] = h;
             vecs.push(std::move(v));
         }
@@ -98,7 +98,7 @@ Array<Vector> HexagonalPacking::generate(const Size n, const IDomain& domain) co
             }
             v[Y] += deltaY;
         }
-        if (domain.isInside(v)) {
+        if (domain.contains(v)) {
             v[H] = h;
             vecs.push(std::move(v));
         }
@@ -163,8 +163,8 @@ namespace {
             return domain.getVolume();
         }
 
-        virtual bool isInside(const Vector& v) const override {
-            return domain.isInside(v);
+        virtual bool contains(const Vector& v) const override {
+            return domain.contains(v);
         }
 
         virtual void getSubset(ArrayView<const Vector> vs,

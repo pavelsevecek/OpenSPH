@@ -260,4 +260,5 @@ HEADERS += \
     run/Trigger.h \
     objects/finders/UniformGrid.h \
     objects/finders/AdaptiveGrid.h \
-    gravity/NBodySolver.h
+    gravity/NBodySolver.h \
+    sph/equations/Fluids.h

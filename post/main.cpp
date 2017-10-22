@@ -55,8 +55,8 @@ int pkdgravToMoons(const Path& filePath, const float limit) {
         std::cout << "Invalid file: " << storage.error() << std::endl;
         return 0;
     }
-    /// \todo use correct radius here, we assume that close ecounters will eventually collide
-    Array<Post::MoonEnum> moons = Post::findMoons(storage.value(), 2._f, limit);
+    /// \todo use correct radius here, we assume that very close ecounters will eventually collide
+    Array<Post::MoonEnum> moons = Post::findMoons(storage.value(), 1.2_f, limit);
     Size moonCnt = std::count(moons.begin(), moons.end(), Post::MoonEnum::MOON);
     std::cout << "Moon count = " << moonCnt << std::endl;
     return 0;

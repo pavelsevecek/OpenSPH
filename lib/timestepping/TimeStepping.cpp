@@ -179,6 +179,41 @@ void PredictorCorrector::stepImpl(ISolver& solver, Statistics& stats) {
     this->makeCorrections();
 }
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/// Leapfrog implementation
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void LeapFrog::stepImpl(ISolver& solver, Statistics& stats) {
+    // move positions by half a timestep (drift)
+    iterate<VisitorEnum::SECOND_ORDER>(
+        *storage, [this](const QuantityId UNUSED(id), auto& v, auto& dv, auto& UNUSED(d2v)) {
+            for (Size i = 0; i < v.size(); ++i) {
+                v[i] += dv[i] * 0.5_f * this->dt;
+            }
+        });
+
+    // compute the derivatives
+    storage->zeroHighestDerivatives();
+    solver.integrate(*storage, stats);
+
+    // integrate first-order quantities as in Euler
+    iterate<VisitorEnum::FIRST_ORDER>(*storage, [this](const QuantityId UNUSED(id), auto& v, auto& dv) {
+        for (Size i = 0; i < v.size(); ++i) {
+            v[i] += dv[i] * this->dt;
+        }
+    });
+
+    iterate<VisitorEnum::SECOND_ORDER>(
+        *storage, [this](const QuantityId UNUSED(id), auto& v, auto& dv, auto& d2v) {
+            for (Size i = 0; i < v.size(); ++i) {
+                // move velocities by full timestep (kick)
+                dv[i] += d2v[i] * this->dt;
+
+                // move positions by another half timestep (drift)
+                v[i] += dv[i] * 0.5_f * this->dt;
+            }
+        });
+}
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// RungeKutta implementation

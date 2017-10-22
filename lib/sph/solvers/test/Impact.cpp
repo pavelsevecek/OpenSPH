@@ -29,10 +29,10 @@ TEST_CASE("Impact", "[impact]]") {
     body.set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::VON_MISES);
     const Float rho0 = body.get<Float>(BodySettingsId::DENSITY);
 
-    initial.addBody(*storage, SphericalDomain(Vector(0._f), 1._f), body);
+    initial.addMonolithicBody(*storage, SphericalDomain(Vector(0._f), 1._f), body);
     body.set(BodySettingsId::PARTICLE_COUNT, 10);
     // bodies overlap a bit, that's OK
-    initial.addBody(*storage, SphericalDomain(Vector(1._f, 0._f, 0._f), 0.1_f), body)
+    initial.addMonolithicBody(*storage, SphericalDomain(Vector(1._f, 0._f, 0._f), 0.1_f), body)
         .addVelocity(Vector(-5._f, 0._f, 0._f));
 
     EulerExplicit timestepping(storage, settings);

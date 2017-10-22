@@ -61,7 +61,7 @@ TEST_CASE("Fracture growth", "[damage]") {
     ScalarDamage damage(2._f);
     Storage storage;
     InitialConditions conds(RunSettings::getDefaults());
-    conds.addBody(storage, SphericalDomain(Vector(0._f), 1._f), BodySettings::getDefaults());
+    conds.addMonolithicBody(storage, SphericalDomain(Vector(0._f), 1._f), BodySettings::getDefaults());
 
     MaterialInitialContext context;
     context.rng = makeAuto<RngWrapper<BenzAsphaugRng>>(1234);

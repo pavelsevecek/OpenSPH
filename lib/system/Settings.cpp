@@ -375,6 +375,7 @@ AutoPtr<BodySettings> BodySettings::instance (new BodySettings {
     { BodySettingsId::WEIBULL_COEFFICIENT,     "material.weibull_coefficient", 4.e35_f },
     { BodySettingsId::WEIBULL_EXPONENT,        "material.weibull_exponent",    9._f },
     { BodySettingsId::KINEMATIC_VISCOSITY,     "material.kinematic_viscosity", 1.e-6_f }, /// \todo this is a value of water
+    { BodySettingsId::SURFACE_TENSION,         "material.surface_tension",     1._f },
 
     /// SPH parameters specific for the body
     { BodySettingsId::INITIAL_DISTRIBUTION,    "sph.initial_distribution",     int(DistributionEnum::HEXAGONAL) },
@@ -382,6 +383,7 @@ AutoPtr<BodySettings> BodySettings::instance (new BodySettings {
     { BodySettingsId::PARTICLE_SORTING,        "sph.particle_sorting",         false },
     { BodySettingsId::DISTRIBUTE_MODE_SPH5,    "sph.distribute_mode_sph5",     false },
     { BodySettingsId::PARTICLE_COUNT,          "sph.particle_count",           10000 },
+    { BodySettingsId::MIN_PARTICLE_COUNT,      "sph.min_particle_count",       100 },
     { BodySettingsId::AV_ALPHA,                "av.alpha",                     1.5_f },
     { BodySettingsId::AV_ALPHA_RANGE,          "av.alpha.range",               Interval(0.05_f, 1.5_f) },
     { BodySettingsId::AV_BETA,                 "av.beta",                      3._f },

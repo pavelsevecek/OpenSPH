@@ -125,18 +125,18 @@ TEST_CASE("BinaryOutput dump&accumulate materials", "[output]") {
     body.set(BodySettingsId::EOS, EosEnum::TILLOTSON);
     body.set(BodySettingsId::DENSITY_RANGE, Interval(4._f, 6._f));
     body.set(BodySettingsId::DENSITY_MIN, 3._f);
-    conds.addBody(storage, SphericalDomain(Vector(0._f), 2._f), body);
+    conds.addMonolithicBody(storage, SphericalDomain(Vector(0._f), 2._f), body);
 
     body.set(BodySettingsId::PARTICLE_COUNT, 20);
     body.set(BodySettingsId::EOS, EosEnum::IDEAL_GAS);
     body.set(BodySettingsId::DENSITY_RANGE, Interval(1._f, 2._f));
     body.set(BodySettingsId::DENSITY_MIN, 5._f);
-    conds.addBody(storage, SphericalDomain(Vector(0._f), 1._f), body);
+    conds.addMonolithicBody(storage, SphericalDomain(Vector(0._f), 1._f), body);
 
     body.set(BodySettingsId::PARTICLE_COUNT, 5);
     body.set(BodySettingsId::EOS, EosEnum::MURNAGHAN);
     body.set(BodySettingsId::DENSITY, 100._f);
-    conds.addBody(storage, SphericalDomain(Vector(0._f), 0.5_f), body);
+    conds.addMonolithicBody(storage, SphericalDomain(Vector(0._f), 0.5_f), body);
 
     /*body.set(BodySettingsId::PARTICLE_COUNT, 15);
     body.set(BodySettingsId::EOS, EosEnum::NONE);
