@@ -25,7 +25,7 @@ protected:
     KdTree kdTree;
 
     /// Kernel used to evaluate gravity of close particles
-    GravityLutKernel kernel;
+    SymmetrizeSmoothingLengths<GravityLutKernel> kernel;
 
     /// Inverted value of the opening angle for multipole approximation (in radians)
     Float thetaInv;

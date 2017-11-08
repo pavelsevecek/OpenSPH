@@ -89,7 +89,12 @@ private:
 /// This criterion is somewhat similar to \ref DerivativeCriterion; the time step is computed from the ratio
 /// of smoothing length and particle acceleration (or square root of the ratio, to be exact).
 class AccelerationCriterion : public ITimeStepCriterion {
+private:
+    Float factor;
+
 public:
+    explicit AccelerationCriterion(const RunSettings& settings);
+
     virtual Tuple<Float, CriterionId> compute(Storage& storage,
         const Float maxStep,
         Statistics& stats) override;

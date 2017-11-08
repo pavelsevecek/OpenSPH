@@ -30,7 +30,8 @@ public:
             "Use GravityKernel to get gravity smoothing kernel associated to SPH kernel");
     }
 
-    INLINE float closeRadius() const {
+    /// \todo
+    INLINE float radius() const {
         return close.radius();
     }
 
@@ -94,8 +95,9 @@ public:
         } else if (q < 1._f) {
             return 1._f / q * (4._f / 3._f * q - 6._f / 5._f * pow<3>(q) + 1._f / 2._f * pow<2>(qSqr));
         } else {
-            return 1._f / q * (8._f / 3._f * q - 3._f * qSqr + 6._f / 5._f * pow<3>(q) -
-                                  1._f / 6._f * pow<2>(qSqr) - 1._f / (15._f * qSqr));
+            return 1._f / q *
+                   (8._f / 3._f * q - 3._f * qSqr + 6._f / 5._f * pow<3>(q) - 1._f / 6._f * pow<2>(qSqr) -
+                       1._f / (15._f * qSqr));
         }
     }
 };

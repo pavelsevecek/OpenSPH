@@ -16,7 +16,7 @@ BarnesHut::BarnesHut(const Float theta, const MultipoleOrder order, const Size l
     // use default-constructed kernel; it works, because by default LutKernel has zero radius and functions
     // valueImpl and gradImpl are never called.
     // Check by assert to make sure this trick will work
-    ASSERT(kernel.closeRadius() == 0._f);
+    ASSERT(kernel.radius() == 0._f);
     ASSERT(theta > 0._f, theta);
 }
 
@@ -81,11 +81,11 @@ void BarnesHut::evalAll(ArrayView<Vector> dv, Statistics& stats) const {
 
 void BarnesHut::evalAll(ThreadPool& pool, ArrayView<Vector> dv, Statistics& stats) const {
     TreeWalkState data;
-    const KdNode& root = kdTree.getNode(0);
+    /*const KdNode& root = kdTree.getNode(0);
     if (SPH_UNLIKELY(root.isLeaf())) {
         // all particles within one leaf - boring case with only few particles
         data.particleList.push(0);
-    }
+    }*/
     TreeWalkResult result;
     pool.submit(makeTask([&] { this->evalNode(pool, dv, 0, std::move(data), result); }));
     pool.waitForAll();
@@ -288,22 +288,19 @@ void BarnesHut::evalParticleList(const LeafNode& leaf,
             ASSERT(h > 0._f, h);
             for (Size j : seq2) {
                 ASSERT(r[j][H] > 0._f, r[j][H]);
-                const Vector grad = kernel.grad(r[j] - r[i], h);
+                const Vector grad = kernel.grad(r[j], r[i]);
                 dv[i] += m[j] * grad;
             }
         }
     }
     // evaluate intra-leaf interactions (the leaf itself is not included in the list)
     for (Size i : seq1) {
-        const Float h = r[i][H];
-        ASSERT(h > 0._f, h);
         for (Size j : seq1) {
-            ASSERT(r[j][H] > 0._f, r[j][H]);
             if (i == j) {
                 // skip, we are doing a symmetric evaluation
                 continue;
             }
-            const Vector grad = kernel.grad(r[j] - r[i], h);
+            const Vector grad = kernel.grad(r[j], r[i]);
             dv[i] += m[j] * grad;
         }
     }
@@ -328,8 +325,7 @@ Vector BarnesHut::evalExact(const LeafNode& leaf, const Vector& r0, const Size i
         if (idx == i) {
             continue;
         }
-        ASSERT(r[i][H] > 0._f, r[i][H]);
-        f += m[i] * kernel.grad(r[i] - r0, r0[H]);
+        f += m[i] * kernel.grad(r[i], r0);
     }
     return f;
 }
@@ -355,7 +351,7 @@ void BarnesHut::buildLeaf(KdNode& node) {
         m_leaf += m[i];
         // extend the bounding box, given particle radius
         ASSERT(r[i][H] > 0._f, r[i][H]);
-        const Vector dr(r[i][H] * kernel.closeRadius());
+        const Vector dr(r[i][H] * kernel.radius());
         leaf.box.extend(r[i] + dr);
         leaf.box.extend(r[i] - dr);
     }

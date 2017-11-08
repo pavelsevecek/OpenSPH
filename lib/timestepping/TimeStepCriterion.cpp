@@ -197,6 +197,10 @@ Tuple<Float, CriterionId> DerivativeCriterion::computeImpl(Storage& storage,
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
+AccelerationCriterion::AccelerationCriterion(const RunSettings& settings) {
+    factor = settings.get<Float>(RunSettingsId::TIMESTEPPING_ADAPTIVE_FACTOR);
+}
+
 Tuple<Float, CriterionId> AccelerationCriterion::compute(Storage& storage,
     const Float maxStep,
     Statistics& UNUSED(stats)) {
@@ -210,7 +214,7 @@ Tuple<Float, CriterionId> AccelerationCriterion::compute(Storage& storage,
         for (Size i = n1; i < n2; ++i) {
             const Float dvNorm = getSqrLength(dv[i]);
             if (dvNorm > EPS) {
-                const Float step = root<4>(sqr(r[i][H]) / dvNorm);
+                const Float step = factor * root<4>(sqr(r[i][H]) / dvNorm);
                 ASSERT(isReal(step) && step > 0._f && step < INFTY);
                 tl.minStep = min(tl.minStep, step);
             }
@@ -288,7 +292,7 @@ MultiCriterion::MultiCriterion(const RunSettings& settings) {
         criteria.push(makeAuto<DerivativeCriterion>(settings));
     }
     if (flags.has(TimeStepCriterionEnum::ACCELERATION)) {
-        criteria.push(makeAuto<AccelerationCriterion>());
+        criteria.push(makeAuto<AccelerationCriterion>(settings));
     }
 
     maxChange = settings.get<Float>(RunSettingsId::TIMESTEPPING_MAX_CHANGE);

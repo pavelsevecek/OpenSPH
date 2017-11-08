@@ -1,13 +1,10 @@
-#include "sph/Materials.h"
 #include "physics/Eos.h"
 #include "physics/Rheology.h"
 #include "quantities/Storage.h"
+#include "sph/Materials.h"
 #include "system/Factory.h"
 
 NAMESPACE_SPH_BEGIN
-
-NullMaterial::NullMaterial(const BodySettings& body)
-    : IMaterial(body) {}
 
 EosMaterial::EosMaterial(const BodySettings& body, AutoPtr<IEos>&& eos)
     : IMaterial(body)
@@ -47,9 +44,7 @@ void EosMaterial::initialize(Storage& storage, const IndexSequence sequence) {
     });
 }
 
-SolidMaterial::SolidMaterial(const BodySettings& body,
-    AutoPtr<IEos>&& eos,
-    AutoPtr<IRheology>&& rheology)
+SolidMaterial::SolidMaterial(const BodySettings& body, AutoPtr<IEos>&& eos, AutoPtr<IRheology>&& rheology)
     : EosMaterial(body, std::move(eos))
     , rheology(std::move(rheology)) {}
 

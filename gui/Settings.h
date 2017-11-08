@@ -17,6 +17,16 @@ enum class RendererEnum {
 
 enum class OrthoEnum { XY, XZ, YZ };
 
+enum class IntegralEnum {
+    INTERNAL_ENERGY = 1 << 0,
+    KINETIC_ENERGY = 1 << 1,
+    TOTAL_ENERGY = 1 << 2,
+    TOTAL_MOMENTUM = 1 << 3,
+    TOTAL_ANGULAR_MOMENTUM = 1 << 4,
+
+    ALL = INTERNAL_ENERGY | KINETIC_ENERGY | TOTAL_ENERGY | TOTAL_MOMENTUM | TOTAL_ANGULAR_MOMENTUM,
+};
+
 /// \todo generic ortho projection (x,y,z) -> (u,v)
 
 enum class GuiSettingsId {
@@ -68,6 +78,8 @@ enum class GuiSettingsId {
     RENDER_WIDTH,
 
     RENDER_HEIGHT,
+
+    PLOT_INTEGRALS,
 
     IMAGES_RENDERER,
 

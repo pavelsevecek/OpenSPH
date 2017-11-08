@@ -127,7 +127,7 @@ TEST_CASE("Derivative Criterion mean", "[timestepping]") {
 }
 
 TEST_CASE("Acceleration Criterion", "[timestepping]") {
-    AccelerationCriterion criterion;
+    AccelerationCriterion criterion(RunSettings::getDefaults());
     Storage storage = getStorage();
 
     ArrayView<Vector> r, v, dv;

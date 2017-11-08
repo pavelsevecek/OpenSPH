@@ -30,6 +30,7 @@ AutoPtr<GuiSettings> GuiSettings::instance (new GuiSettings {
     { GuiSettingsId::WINDOW_TITLE,     "window.title",     std::string("SPH") },
     { GuiSettingsId::WINDOW_WIDTH,     "window.width",     1110 },
     { GuiSettingsId::WINDOW_HEIGHT,    "window.height",    600 },
+    { GuiSettingsId::PLOT_INTEGRALS,   "plot.integrals",   int(IntegralEnum::ALL) },
 
     /// Saved animation frames
     { GuiSettingsId::IMAGES_RENDERER,  "images.renderer",  int(RendererEnum::PARTICLE) },

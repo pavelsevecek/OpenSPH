@@ -12,24 +12,21 @@ NAMESPACE_SPH_BEGIN
 class IEos;
 class IRheology;
 
-class NullMaterial : public IMaterial {
-public:
-    NullMaterial(const BodySettings& body);
-
-    virtual void create(Storage& UNUSED(storage), const MaterialInitialContext& UNUSED(context)) override {}
-
-    virtual void initialize(Storage& UNUSED(storage), const IndexSequence UNUSED(sequence)) override {}
-
-    virtual void finalize(Storage& UNUSED(storage), const IndexSequence UNUSED(sequence)) override {}
-};
-
-/// Material holding equation of state
+/// \brief Material holding equation of state
+///
+/// Pressure and sound speed are computed in \ref initialize function, so the EoS does not have to be
+/// evaluated manually. If this is necessary for some reason (when setting pressure-dependent initial
+/// conditions or checking if we selected correct EoS, for example), functions \ref evaluate and \ref getEos
+/// can be used. This is not part of the IMaterial interface, so dynamic_cast have to be used to access it.
 class EosMaterial : public IMaterial {
 private:
     AutoPtr<IEos> eos;
     ArrayView<Float> rho, u, p, cs;
 
 public:
+    /// \brief Creates the material by specifying an equation of state.
+    ///
+    /// Equation of state must not be nullptr.
     EosMaterial(const BodySettings& body, AutoPtr<IEos>&& eos);
 
     /// Evaluate holded equation of state.
@@ -50,8 +47,10 @@ public:
     }
 };
 
-/// Solid material is a generalization of material with equation of state, also having rheology that
-/// modifies pressure and stress tensor.
+/// \brief Solid material is a generalization of material with equation of state.
+///
+/// It holds a rheology implementation that modifies pressure and stress tensor. This is done in \ref
+/// initialize function, function \ref finalize then integrates the fragmentation model (if used, of course).
 class SolidMaterial : public EosMaterial {
 private:
     AutoPtr<IRheology> rheology;

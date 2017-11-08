@@ -136,6 +136,7 @@ wxBoxSizer* MainWindow::createSidebar() {
     sidebarSizer->AddSpacer(5);
 
     // the list of all available integrals to plot
+    // shared between plotviews, so that they can switch plot through context menu
     SharedPtr<Array<PlotData>> list = makeShared<Array<PlotData>>();
 
     TemporalPlot::Params params;
@@ -146,42 +147,57 @@ wxBoxSizer* MainWindow::createSidebar() {
     params.period = 0.05_f;
 
     PlotData data;
-    IntegralWrapper integral = makeAuto<TotalEnergy>();
-    data.plot = makeLocking<TemporalPlot>(integral, params);
-    plots.push(data.plot);
-    data.color = Color(wxColour(240, 255, 80));
-    list->push(data);
+    IntegralWrapper integral;
+    Flags<IntegralEnum> flags = gui.getFlags<IntegralEnum>(GuiSettingsId::PLOT_INTEGRALS);
 
-    integral = makeAuto<TotalKineticEnergy>();
-    data.plot = makeLocking<TemporalPlot>(integral, params);
-    plots.push(data.plot);
-    data.color = Color(wxColour(200, 0, 0));
-    list->push(data);
+    /// \todo this plots should really be set somewhere outside of main window, they are problem-specific
+    if (flags.has(IntegralEnum::TOTAL_ENERGY)) {
+        integral = makeAuto<TotalEnergy>();
+        data.plot = makeLocking<TemporalPlot>(integral, params);
+        plots.push(data.plot);
+        data.color = Color(wxColour(240, 255, 80));
+        list->push(data);
+    }
 
-    integral = makeAuto<TotalInternalEnergy>();
-    data.plot = makeLocking<TemporalPlot>(integral, params);
-    plots.push(data.plot);
-    data.color = Color(wxColour(255, 50, 50));
-    list->push(data);
+    if (flags.has(IntegralEnum::KINETIC_ENERGY)) {
+        integral = makeAuto<TotalKineticEnergy>();
+        data.plot = makeLocking<TemporalPlot>(integral, params);
+        plots.push(data.plot);
+        data.color = Color(wxColour(200, 0, 0));
+        list->push(data);
+    }
 
-    integral = makeAuto<TotalMomentum>();
-    params.minRangeY = 1.e6_f;
-    data.plot = makeLocking<TemporalPlot>(integral, params);
-    plots.push(data.plot);
-    data.color = Color(wxColour(100, 200, 0));
-    list->push(data);
+    if (flags.has(IntegralEnum::INTERNAL_ENERGY)) {
+        integral = makeAuto<TotalInternalEnergy>();
+        data.plot = makeLocking<TemporalPlot>(integral, params);
+        plots.push(data.plot);
+        data.color = Color(wxColour(255, 50, 50));
+        list->push(data);
+    }
 
-    integral = makeAuto<TotalAngularMomentum>();
-    data.plot = makeLocking<TemporalPlot>(integral, params);
-    plots.push(data.plot);
-    data.color = Color(wxColour(130, 80, 255));
-    list->push(data);
+    if (flags.has(IntegralEnum::TOTAL_MOMENTUM)) {
+        integral = makeAuto<TotalMomentum>();
+        params.minRangeY = 1.e6_f;
+        data.plot = makeLocking<TemporalPlot>(integral, params);
+        plots.push(data.plot);
+        data.color = Color(wxColour(100, 200, 0));
+        list->push(data);
+    }
 
-    PlotView* energyPlot = new PlotView(this, wxSize(300, 200), wxSize(10, 10), list, 2, false);
-    sidebarSizer->Add(energyPlot, 1, wxALIGN_TOP);
+    if (flags.has(IntegralEnum::TOTAL_ANGULAR_MOMENTUM)) {
+        integral = makeAuto<TotalAngularMomentum>();
+        data.plot = makeLocking<TemporalPlot>(integral, params);
+        plots.push(data.plot);
+        data.color = Color(wxColour(130, 80, 255));
+        list->push(data);
+    }
+
+    PlotView* firstPlot = new PlotView(this, wxSize(300, 200), wxSize(10, 10), list, 0, false);
+    sidebarSizer->Add(firstPlot, 1, wxALIGN_TOP);
     sidebarSizer->AddSpacer(5);
 
-    PlotView* secondPlot = new PlotView(this, wxSize(300, 200), wxSize(10, 10), list, 4, false);
+    PlotView* secondPlot =
+        new PlotView(this, wxSize(300, 200), wxSize(10, 10), list, list->size() == 1 ? 0 : 1, false);
     sidebarSizer->Add(secondPlot, 1, wxALIGN_TOP);
 
     return sidebarSizer;

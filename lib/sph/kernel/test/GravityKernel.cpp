@@ -8,7 +8,7 @@ using namespace Sph;
 
 TEST_CASE("Default kernel", "[kernel]") {
     GravityLutKernel kernel;
-    REQUIRE(kernel.closeRadius() == 0._f);
+    REQUIRE(kernel.radius() == 0._f);
     REQUIRE(kernel.value(Vector(2._f, 0._f, 0._f), 1._f) == -0.5_f);
     REQUIRE(kernel.grad(Vector(2._f, 0._f, 0._f), 1._f) == Vector(0.25_f, 0._f, 0._f));
 }

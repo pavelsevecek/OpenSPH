@@ -26,7 +26,7 @@ private:
 public:
     /// Default-construced gravity, assuming point-like particles
     BruteForceGravity() {
-        ASSERT(kernel.closeRadius() == 0._f);
+        ASSERT(kernel.radius() == 0._f);
     }
 
     /// Constructs gravity using smoothing kernel

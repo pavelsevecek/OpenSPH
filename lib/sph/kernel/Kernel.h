@@ -320,10 +320,12 @@ public:
         : kernel(std::forward<TArgs>(args)...) {}
 
     INLINE Float value(const Vector& r1, const Vector& r2) const {
+        ASSERT(r1[H] > 0 && r2[H] > 0, r1[H], r2[H]);
         return 0.5_f * (kernel.value(r1 - r2, r1[H]) + kernel.value(r1 - r2, r2[H]));
     }
 
     INLINE Vector grad(const Vector& r1, const Vector& r2) const {
+        ASSERT(r1[H] > 0 && r2[H] > 0, r1[H], r2[H]);
         return 0.5_f * (kernel.grad(r1 - r2, r1[H]) + kernel.grad(r1 - r2, r2[H]));
     }
 
@@ -343,10 +345,12 @@ public:
         : kernel(std::forward<TArgs>(args)...) {}
 
     INLINE Float value(const Vector& r1, const Vector& r2) const {
+        ASSERT(r1[H] > 0 && r2[H] > 0, r1[H], r2[H]);
         return kernel.value(r1 - r2, 0.5_f * (r1[H] + r2[H]));
     }
 
     INLINE Vector grad(const Vector& r1, const Vector& r2) const {
+        ASSERT(r1[H] > 0 && r2[H] > 0, r1[H], r2[H]);
         return kernel.grad(r1 - r2, 0.5_f * (r1[H] + r2[H]));
     }
 

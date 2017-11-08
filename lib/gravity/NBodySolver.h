@@ -6,6 +6,7 @@
 /// \date 2016-2017
 
 #include "gravity/IGravity.h"
+#include "system/Factory.h"
 #include "system/Settings.h"
 #include "timestepping/ISolver.h"
 
@@ -25,7 +26,12 @@ private:
     AutoPtr<INeighbourFinder> collisionFinder;
 
 public:
-    explicit NBodySolver(const RunSettings& settings, AutoPtr<IGravity>&& gravity)
+    /// \brief Creates the solver, using the gravity implementation specified by settings.
+    explicit NBodySolver(const RunSettings& settings)
+        : NBodySolver(settings, Factory::getGravity(settings)) {}
+
+    /// \brief Creates the solver by passing the user-defined gravity implementation.
+    NBodySolver(const RunSettings& settings, AutoPtr<IGravity>&& gravity)
         : gravity(std::move(gravity))
         , pool(settings.get<int>(RunSettingsId::RUN_THREAD_CNT)) {}
 
@@ -34,23 +40,38 @@ public:
 
         ArrayView<Vector> dv = storage.getD2t<Vector>(QuantityId::POSITIONS);
         gravity->evalAll(pool, dv, stats);
+
+        // null all derivatives of smoothing lengths (particle radii)
+        ArrayView<Vector> v = storage.getDt<Vector>(QuantityId::POSITIONS);
+        for (Size i = 0; i < v.size(); ++i) {
+            v[i][H] = 0._f;
+            dv[i][H] = 0._f;
+        }
     }
 
-    virtual void create(Storage& storage, IMaterial& material) const override {
+    virtual void create(Storage& UNUSED(storage), IMaterial& UNUSED(material)) const override {
         // no quantities need to be created, positions and masses are already in the storage
     }
 
 private:
     /// Checks and resolves particle collisions
     void collide(Storage& storage, const Float dt) {
-        const Float restitution = 1._f; // coeff of restitution; 0 -> perfect sticking, 1 -> perfect bounce
+        // const Float restitution = 1._f; // coeff of restitution; 0 -> perfect sticking, 1 -> perfect bounce
 
-        ArrayView<const Vector> r, v, a;
+        ArrayView<Vector> r, v, a;
         tie(r, v, a) = storage.getAll<Vector>(QuantityId::POSITIONS);
+
+        // find the largest velocity, so that we know how far to search for potentional impactors
+        /// \todo naive implementation, improve
+        Float v_max = 0._f;
+        for (Size i = 0; i < r.size(); ++i) {
+            v_max = max(v_max, getSqrLength(v[i]));
+        }
+        v_max = sqrt(v_max);
 
         Array<NeighbourRecord> neighs;
         for (Size i = 0; i < r.size(); ++i) {
-            collisionFinder->findNeighbours(i, v_max * dt, neighs);
+            collisionFinder->findNeighbours(i, 2._f * v_max * dt, neighs);
             for (NeighbourRecord& n : neighs) {
                 const Size j = n.index;
                 const Vector dr = r[i] - r[j];
@@ -77,8 +98,8 @@ private:
 
                             // keep only the perpendicular component of the acceleration
                             const Vector dir = getNormalized(r1 - r2);
-                            dv[i] -= dot(dv[i], dir) * dir; // check signs!
-                            dv[j] += dot(dv[j], dir) * dir;
+                            a[i] -= dot(a[i], dir) * dir; // check signs!
+                            a[j] += dot(a[j], dir) * dir;
                         }
                     }
                 }

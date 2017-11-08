@@ -107,6 +107,8 @@ AutoPtr<ITimeStepping> Factory::getTimeStepping(const RunSettings& settings,
         return makeAuto<EulerExplicit>(storage, settings);
     case TimesteppingEnum::PREDICTOR_CORRECTOR:
         return makeAuto<PredictorCorrector>(storage, settings);
+    case TimesteppingEnum::LEAP_FROG:
+        return makeAuto<LeapFrog>(storage, settings);
     case TimesteppingEnum::BULIRSCH_STOER:
         return makeAuto<BulirschStoer>(storage, settings);
     case TimesteppingEnum::RUNGE_KUTTA:
@@ -128,7 +130,7 @@ AutoPtr<ITimeStepCriterion> Factory::getTimeStepCriterion(const RunSettings& set
     case Size(TimeStepCriterionEnum::DERIVATIVES):
         return makeAuto<DerivativeCriterion>(settings);
     case Size(TimeStepCriterionEnum::ACCELERATION):
-        return makeAuto<AccelerationCriterion>();
+        return makeAuto<AccelerationCriterion>(settings);
     default:
         ASSERT(!isPower2(flags)); // multiple criteria, assert in case we add another criterion
         return makeAuto<MultiCriterion>(settings);

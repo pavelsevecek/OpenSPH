@@ -106,7 +106,7 @@ protected:
     const static Float DEFAULT_MINIMAL;
 
 public:
-    IMaterial(const BodySettings& settings)
+    explicit IMaterial(const BodySettings& settings)
         : params(settings) {}
 
     template <typename TValue>
@@ -173,5 +173,20 @@ public:
     virtual void finalize(Storage& storage, const IndexSequence sequence) = 0;
 };
 
+
+/// \brief Material that does not require any initialization or finalization.
+///
+/// It only holds the per-material properties of particles.
+class NullMaterial : public IMaterial {
+public:
+    explicit NullMaterial(const BodySettings& body)
+        : IMaterial(body) {}
+
+    virtual void create(Storage& UNUSED(storage), const MaterialInitialContext& UNUSED(context)) override {}
+
+    virtual void initialize(Storage& UNUSED(storage), const IndexSequence UNUSED(sequence)) override {}
+
+    virtual void finalize(Storage& UNUSED(storage), const IndexSequence UNUSED(sequence)) override {}
+};
 
 NAMESPACE_SPH_END
