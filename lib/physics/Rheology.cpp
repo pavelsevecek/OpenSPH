@@ -2,6 +2,7 @@
 #include "physics/Damage.h"
 #include "quantities/IMaterial.h"
 #include "quantities/Storage.h"
+#include "thread/Pool.h"
 
 NAMESPACE_SPH_BEGIN
 

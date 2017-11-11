@@ -32,8 +32,21 @@ public:
     /// (this is a responsibility of \ref ITimeStepping implementation).
     ///
     /// \param storage Storage containing all quantities.
-    /// \param stats Object where the solver saves all computes statistics of the run.
+    /// \param stats Object where the solver saves all computed statistics of the run.
     virtual void integrate(Storage& storage, Statistics& stats) = 0;
+
+    /// \brief Detects the collisions and computes new positions of particles.
+    ///
+    /// In case no collision is detected or there is no concept of collisions in the solver (for example
+    /// collisions do not have to be handled explicitly in SPH, they are a result of solving equations of
+    /// hydrodynamics), function should simply advance particle positions: \f[\vec r += \vec v {\rm d}t\f].
+    ///
+    /// \param storage Storage containing all quantities.
+    /// \param stats Object where the solver saves collision statistics.
+    /// \param dt Drift timestep, or time interval in which the collisions should be detected. Note that this
+    ///           timestep can be different than the one in statistics, depending on selected timestepping
+    ///           algorithm (for example LeapFrog uses drift step dt/2).
+    virtual void collide(Storage& storage, Statistics& stats, const Float dt) = 0;
 
     /// \brief Initializes all quantities needed by the solver in the storage.
     ///

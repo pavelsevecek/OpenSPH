@@ -186,6 +186,9 @@ enum class QuantityId {
     /// ID of original body, used to implement discontinuities between bodies in SPH
     FLAG,
 
+    /// Index of material of the particle. Can be generally different than the flag value.
+    MATERIAL_ID,
+
     ///@}
 };
 

@@ -6,6 +6,7 @@
 #include "quantities/Storage.h"
 #include "system/Profiler.h"
 #include "system/Statistics.h"
+#include "thread/Pool.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -58,16 +59,21 @@ void BarnesHut::build(const Storage& storage) {
 
 void BarnesHut::evalAll(ArrayView<Vector> dv, Statistics& stats) const {
     TreeWalkState data;
-    const KdNode& root = kdTree.getNode(0);
-    if (SPH_UNLIKELY(root.isLeaf())) {
-        // all particles within one leaf - boring case with only few particles
-        data.particleList.push(0);
-    }
-    // single-threaded overload, created dummy ThreadPool to avoid code duplication
-    ThreadPool pool(1);
     TreeWalkResult result;
-    pool.submit(makeTask([&] { this->evalNode(pool, dv, 0, std::move(data), result); }));
-    pool.waitForAll();
+
+    // Dummy scheduler without any parallelization
+    class SequentialScheduler : public IScheduler {
+    public:
+        virtual void submit(AutoPtr<ITask>&& task) override {
+            (*task)();
+        }
+
+        virtual void waitForAll() override {
+            // do nothing
+        }
+    } scheduler;
+
+    this->evalNode(scheduler, dv, 0, std::move(data), result);
 
     stats.set<int>(StatisticsId::GRAVITY_NODES_APPROX, result.approximatedNodes);
     stats.set<int>(StatisticsId::GRAVITY_NODES_EXACT, result.exactNodes);
@@ -79,16 +85,13 @@ void BarnesHut::evalAll(ArrayView<Vector> dv, Statistics& stats) const {
     }
 }
 
-void BarnesHut::evalAll(ThreadPool& pool, ArrayView<Vector> dv, Statistics& stats) const {
+void BarnesHut::evalAll(IScheduler& scheduler, ArrayView<Vector> dv, Statistics& stats) const {
     TreeWalkState data;
-    /*const KdNode& root = kdTree.getNode(0);
-    if (SPH_UNLIKELY(root.isLeaf())) {
-        // all particles within one leaf - boring case with only few particles
-        data.particleList.push(0);
-    }*/
     TreeWalkResult result;
-    pool.submit(makeTask([&] { this->evalNode(pool, dv, 0, std::move(data), result); }));
-    pool.waitForAll();
+    scheduler.submit(makeTask([this, &scheduler, dv, &data, &result] { //
+        this->evalNode(scheduler, dv, 0, std::move(data), result);
+    }));
+    scheduler.waitForAll();
 
     stats.set<int>(StatisticsId::GRAVITY_NODES_APPROX, result.approximatedNodes);
     stats.set<int>(StatisticsId::GRAVITY_NODES_EXACT, result.exactNodes);
@@ -99,6 +102,7 @@ void BarnesHut::evalAll(ThreadPool& pool, ArrayView<Vector> dv, Statistics& stat
         dv[i] *= Constants::gravity;
     }
 }
+
 
 Vector BarnesHut::eval(const Vector& r0, Statistics& stats) const {
     return this->evalImpl(r0, Size(-1), stats);
@@ -108,7 +112,6 @@ Vector BarnesHut::evalImpl(const Vector& r0, const Size idx, Statistics& UNUSED(
     if (SPH_UNLIKELY(r.empty())) {
         return Vector(0._f);
     }
-    ASSERT(r0[H] > 0._f, r0[H]);
     Vector f(0._f);
 
     auto lambda = [this, &r0, &f, idx](const KdNode& node, const KdNode*, const KdNode*) {
@@ -146,7 +149,7 @@ Vector BarnesHut::evalImpl(const Vector& r0, const Size idx, Statistics& UNUSED(
 class BarnesHut::NodeTask : public ITask {
 private:
     const BarnesHut& bh;
-    ThreadPool& pool;
+    IScheduler& scheduler;
     ArrayView<Vector> dv;
     Size nodeIdx;
     BarnesHut::TreeWalkState data;
@@ -154,20 +157,20 @@ private:
 
 public:
     NodeTask(const BarnesHut& bh,
-        ThreadPool& pool,
+        IScheduler& scheduler,
         ArrayView<Vector> dv,
         const Size nodeIdx,
         BarnesHut::TreeWalkState&& data,
         BarnesHut::TreeWalkResult& result)
         : bh(bh)
-        , pool(pool)
+        , scheduler(scheduler)
         , dv(dv)
         , nodeIdx(nodeIdx)
         , data(std::move(data))
         , result(result) {}
 
     virtual void operator()() override {
-        bh.evalNode(pool, dv, nodeIdx, std::move(data), result);
+        bh.evalNode(scheduler, dv, nodeIdx, std::move(data), result);
     }
 };
 
@@ -181,7 +184,7 @@ BarnesHut::TreeWalkState BarnesHut::TreeWalkState::clone() const {
 
 /// \todo try different containers; we need fast inserting & deletion
 
-void BarnesHut::evalNode(ThreadPool& pool,
+void BarnesHut::evalNode(IScheduler& scheduler,
     ArrayView<Vector> dv,
     const Size evaluatedNodeIdx,
     TreeWalkState data,
@@ -262,19 +265,21 @@ void BarnesHut::evalNode(ThreadPool& pool,
         TreeWalkState childData = data.clone();
         childData.checkList.pushBack(inner.right);
         AutoPtr<NodeTask> task =
-            makeAuto<NodeTask>(*this, pool, dv, inner.left, std::move(childData), result);
-        pool.submit(std::move(task));
+            makeAuto<NodeTask>(*this, scheduler, dv, inner.left, std::move(childData), result);
+        scheduler.submit(std::move(task));
 
         // since we go only once through the tree (we never go 'up'), we can simply move the lists into the
         // right child and modify them for the child node
         data.checkList.pushBack(inner.left);
-        this->evalNode(pool, dv, inner.right, std::move(data), result);
+        this->evalNode(scheduler, dv, inner.right, std::move(data), result);
     }
 }
 
 void BarnesHut::evalParticleList(const LeafNode& leaf,
     ArrayView<Size> particleList,
     ArrayView<Vector> dv) const {
+    // needs to symmetrize smoothing length to keep the total momentum conserved
+    SymmetrizeSmoothingLengths<const GravityLutKernel&> actKernel(kernel);
     // go through all nodes in the list and compute the pair-wise interactions
     LeafIndexSequence seq1 = kdTree.getLeafIndices(leaf);
     ASSERT(areElementsUnique(particleList), particleList);
@@ -288,7 +293,7 @@ void BarnesHut::evalParticleList(const LeafNode& leaf,
             ASSERT(h > 0._f, h);
             for (Size j : seq2) {
                 ASSERT(r[j][H] > 0._f, r[j][H]);
-                const Vector grad = kernel.grad(r[j], r[i]);
+                const Vector grad = actKernel.grad(r[j], r[i]);
                 dv[i] += m[j] * grad;
             }
         }
@@ -300,7 +305,7 @@ void BarnesHut::evalParticleList(const LeafNode& leaf,
                 // skip, we are doing a symmetric evaluation
                 continue;
             }
-            const Vector grad = kernel.grad(r[j], r[i]);
+            const Vector grad = actKernel.grad(r[j], r[i]);
             dv[i] += m[j] * grad;
         }
     }
@@ -325,7 +330,7 @@ Vector BarnesHut::evalExact(const LeafNode& leaf, const Vector& r0, const Size i
         if (idx == i) {
             continue;
         }
-        f += m[i] * kernel.grad(r[i], r0);
+        f += m[i] * kernel.grad(r[i] - r0, r[i][H]);
     }
     return f;
 }

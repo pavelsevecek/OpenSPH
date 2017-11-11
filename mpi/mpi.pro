@@ -11,6 +11,7 @@ INCLUDEPATH += ../lib
 PRE_TARGETDEPS += ../lib/liblib.a
 LIBS += ../lib/liblib.a
 
+DEFINES += SPH_MPI
 
 CONFIG(release, debug|profile|assert|release) {
   message( "SPH MPI --- Building for Release" )

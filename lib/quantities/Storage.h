@@ -11,10 +11,7 @@
 #include "objects/wrappers/SharedPtr.h"
 #include "quantities/Quantity.h"
 #include "quantities/QuantityIds.h"
-#include "thread/Pool.h"
-#include "thread/ThreadLocal.h"
 #include <map>
-
 
 NAMESPACE_SPH_BEGIN
 
@@ -152,7 +149,7 @@ public:
 ///
 /// Storage is not thread-safe. If used in multithreaded context, any calls of member functions must be
 /// synchonized by the caller.
-class Storage : public Noncopyable {
+class Storage : public Noncopyable, public ShareFromThis<Storage> {
     friend class StorageSequence;
     friend class ConstStorageSequence;
 
@@ -160,20 +157,45 @@ private:
     /// Stored quantities (array of arrays). All arrays must be the same size at all times.
     std::map<QuantityId, Quantity> quantities;
 
-    /// Holds materials of particles. Each particle can (in theory) have a different material.
-    Array<AutoPtr<IMaterial>> materials;
+    /// Holds information about a material and particles with this material.
+    struct Mat {
+        /// Actual implementation of the material
+        AutoPtr<IMaterial> material;
 
-    /// Partitions between the materials. The size of the array matches the size of materials, or it is empty,
-    /// in which case all particles belongs to the same material.
-    /// Particles of the first material are 0..partitions[0], section material partitions[0]..partitions[1],
-    /// etc.
-    Array<Size> partitions;
+        /// First index of particle with this material
+        Size from = 0;
+
+        /// One-past-last index of particle with this material
+        Size to = 0;
+
+        Mat() = default;
+
+        Mat(AutoPtr<IMaterial>&& material, const Size from, const Size to);
+    };
+
+    /// Materials of particles in the storage.
+    ///
+    /// Particles of the same material are stored consecutively; first material always starts with index 0 and
+    /// last material ends with index equal to the number of particles.
+    Array<Mat> mats;
+
+    /// Cached view of material IDs of particles, used for fast access of material properties.
+    ArrayView<Size> matIds;
+
+    /// Dependent storages, modified every time the number of particles of this storage is changed (in order
+    /// to keep the number of particles in dependent storages the same).
+    Array<WeakPtr<Storage>> dependent;
 
 public:
-    /// Creates a storage with no material. Any call of \ref getMaterial function will result in assert.
+    /// \brief Creates a storage with no material.
+    ///
+    /// Any call of \ref getMaterial function will result in an assert.
     Storage();
 
-    /// Initialize a storage with a material.
+    /// \brief Initialize a storage with a material.
+    ///
+    /// All particles of the storage will have the same material. To create a heterogeneous storage, it is
+    /// necessary to merge another storage object into this one, using \ref merge function.
     Storage(AutoPtr<IMaterial>&& material);
 
     ~Storage();
@@ -346,39 +368,29 @@ public:
     ///                     storage, the value is unused.
     /// \returns Reference to the inserted quantity.
     template <typename TValue>
-    Quantity& insert(const QuantityId key, const OrderEnum order, const TValue& defaultValue) {
-        if (this->has(key)) {
-            Quantity& q = this->getQuantity(key);
-            if (q.getValueEnum() != GetValueEnum<TValue>::type) {
-                throw InvalidSetup("Inserting quantity already stored with different type");
-            }
-            if (q.getOrderEnum() < order) {
-                q.setOrder(order);
-            }
-        } else {
-            const Size particleCnt = getParticleCnt();
-            ASSERT(particleCnt);
-            quantities[key] = Quantity(order, defaultValue, particleCnt);
-        }
-        return quantities[key];
-    }
+    Quantity& insert(const QuantityId key, const OrderEnum order, const TValue& defaultValue);
 
     /// \brief Creates a quantity in the storage, given array of values.
     ///
     /// The size of the array must match the number of particles. Derivatives of the quantity are set to zero.
-    /// Cannot be used if there already is a quantity with the same key, checked by assert. If this is the
-    /// first quantity inserted into the storage, it sets the number of particles; all quantities added after
-    /// that must have the same size.
+    /// If this is the first quantity inserted into the storage, it sets the number of particles; all
+    /// quantities added after that must have the same size. If a quantity with the same key already exists in
+    /// the storage, its values are overriden. Derivatives are not changed. In this case, the function checks
+    /// that the quantity type is the same; if it isn't, InvalidSetup exception is thrown.
     /// \returns Reference to the inserted quantity.
     template <typename TValue>
-    Quantity& insert(const QuantityId key, const OrderEnum order, Array<TValue>&& values) {
-        ASSERT(!this->has(key));
-        Quantity q(order, std::move(values));
-        UNUSED_IN_RELEASE(const Size size = q.size();)
-        quantities[key] = std::move(q);
-        ASSERT(quantities.empty() || size == getParticleCnt()); // size must match sizes of other quantities
-        return quantities[key];
-    }
+    Quantity& insert(const QuantityId key, const OrderEnum order, Array<TValue>&& values);
+
+    /// \brief Registers a dependent storage.
+    ///
+    /// A dependent storage mirrors changes of particle counts. Every time new particles are added into the
+    /// storage or when some particles are removed, the same action is performed on all (existing) dependent
+    /// storages. However, no other action is handled this way, namely new quantities have to be added
+    /// manually to all storages. Same goes for clearing the derivatives, changing materials, etc.
+    ///
+    /// Note that the storage holds weak references, the dependent storages must be held in SharedPtr
+    /// somewhere to keep the link.
+    void addDependent(const WeakPtr<Storage>& other);
 
     /// \brief Returns an object containing a reference to given material.
     ///
@@ -416,17 +428,29 @@ public:
     /// \brief Merges another storage into this object.
     ///
     /// The passed storage is moved in the process. All materials in the merged storage are conserved;
-    /// particles will keep the materials they had before the merge. The function invalidates any reference or
-    /// \ref ArrayView to quantity values or derivatives. For this reason, storages can only be merged when
-    /// setting up initial conditions or inbetween timesteps, never while evaluating solver!
+    /// particles will keep the materials they had before the merge. The merge is only allowed for storages
+    /// that both have materials or neither have one. Merging a storage without a material into a storage with
+    /// at least one material will result in assert. Similarly for merging a storage with materials into a
+    /// storage without materials.
+    ///
+    /// The function invalidates any reference or \ref ArrayView to quantity values or derivatives. For this
+    /// reason, storages can only be merged when setting up initial conditions or inbetween timesteps, never
+    /// while evaluating solver!
     void merge(Storage&& other);
 
     /// Sets all highest-level derivatives of quantities to zero. Other values are unchanged.
     void zeroHighestDerivatives();
 
+    /// \brief Removes specified particles from the storage.
+    ///
+    /// If all particles of some material are removed by this, the material is also removed from the storage.
+    /// Same particles are also removed from all dependent storages.
+    /// \param idsx Indices of particles to remove. No need to sort the indices.
+    void remove(ArrayView<const Size> idxs);
+
     /// \brief Removes all particles with all quantities (including materials) from the storage.
     ///
-    /// The storage is left is a state as if it was default-constructed.
+    /// The storage is left is a state as if it was default-constructed. Dependent storages are also cleared.
     void removeAll();
 
     /// \brief Clones specified buffers of the storage.
@@ -447,19 +471,26 @@ public:
     /// If the new number of particles is larger than the current one, the quantities of the newly created
     /// particles are set to zero, regardless of the actual initial value. This is true for all quantity
     /// values and derivatives. Storage must already contain at least one quantity, checked by assert.
+    /// All dependent storages are resized as well. Can be only used on storages with no material or storages
+    /// with only a single material, checked by assert.
     /// \param newParticleCnt New number of particles.
     /// \param flags Options of the resizing, see ResizeFlag enum. By default, all quantities are resized.
     void resize(const Size newParticleCnt, const Flags<ResizeFlag> flags = EMPTY_FLAGS);
 
-    /// Swap quantities or given subset of quantities between two storages.
+    /// \brief Swap quantities or given subset of quantities between two storages.
+    ///
+    /// Note that materials of the storages are NOT changed.
     void swap(Storage& other, const Flags<VisitorEnum> flags);
 
-    /// Checks whether the storage is in valid state, that is whether all quantities have the same number of
-    /// particles.
+    /// \brief Checks whether the storage is in valid state.
+    ///
+    /// The valid state means that is whether all quantities have the same number of particles. This should be
+    /// handled automatically, the function is mainly for debugging purposes.
     bool isValid() const;
 
 private:
-    IndexSequence getMaterialRange(const Size matId) const;
+    /// Updates the cached matIds view.
+    void update();
 };
 
 NAMESPACE_SPH_END

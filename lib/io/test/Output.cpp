@@ -138,12 +138,6 @@ TEST_CASE("BinaryOutput dump&accumulate materials", "[output]") {
     body.set(BodySettingsId::DENSITY, 100._f);
     conds.addMonolithicBody(storage, SphericalDomain(Vector(0._f), 0.5_f), body);
 
-    /*body.set(BodySettingsId::PARTICLE_COUNT, 15);
-    body.set(BodySettingsId::EOS, EosEnum::NONE);
-    body.set(BodySettingsId::RHEOLOGY_DAMAGE, DamageEnum::NONE);
-    body.set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::NONE);
-    conds.addBody(SphericalDomain(Vector(0._f), 1.5_f), body);*/
-
     BinaryOutput output(Path("mat%d.out"));
     Statistics stats;
     /// \todo accumulate stats
@@ -153,7 +147,15 @@ TEST_CASE("BinaryOutput dump&accumulate materials", "[output]") {
     // sanity check
     REQUIRE(storage.getMaterialCnt() == 3);
     REQUIRE(storage.getParticleCnt() == 35);
-    REQUIRE(storage.getQuantityCnt() == 12);
+    // positions, masses, pressure, density, energy, sound speed, deviatoric stress, yielding reduction,
+    // velocity divergence, velocity gradient, neighbour count, flags, material count
+    REQUIRE(storage.getQuantityCnt() == 13);
+
+    Expected<BinaryOutput::Info> info = output.getInfo(Path("mat0000.out"));
+    REQUIRE(info);
+    REQUIRE(info->materialCnt == 3);
+    REQUIRE(info->particleCnt == 35);
+    REQUIRE(info->quantityCnt == 12); // matIds not stored
 
     Storage loaded;
     REQUIRE(output.load(Path("mat0000.out"), loaded));

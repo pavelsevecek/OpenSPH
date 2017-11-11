@@ -7,6 +7,7 @@
 #include "run/IRun.h"
 #include "run/RunCallbacks.h"
 #include "sph/boundary/Boundary.h"
+#include "tests/Approx.h"
 #include "tests/Setup.h"
 #include "timestepping/TimeStepping.h"
 
@@ -113,20 +114,20 @@ namespace {
 } // namespace
 
 
-TEST_CASE("Rotation vibrations", "[rotation]") {
+/*TEST_CASE("Rotation vibrations", "[rotation]") {
     BodySettings body;
     body.set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::NONE);
     body.set(BodySettingsId::RHEOLOGY_DAMAGE, DamageEnum::NONE);
     SharedPtr<Storage> storage = makeShared<Storage>(Tests::getSolidStorage(50, body));
 
-    /*const Float rho0 = body.get<Float>(BodySettingsId::DENSITY);
-    const Float mu0 = body.get<Float>(BodySettingsId::SHEAR_MODULUS);
-    const Float h0 = storage->getValue<Vector>(QuantityId::POSITIONS)[0][H];
-    const Float u0 = body.get<Float>(BodySettingsId::ENERGY);
+    //const Float rho0 = body.get<Float>(BodySettingsId::DENSITY);
+    /const Float mu0 = body.get<Float>(BodySettingsId::SHEAR_MODULUS);
+    //const Float h0 = storage->getValue<Vector>(QuantityId::POSITIONS)[0][H];
+    //const Float u0 = body.get<Float>(BodySettingsId::ENERGY);
 
-    TillotsonEos eos(body);
-    Float cs, p;
-    tie(p, cs) = eos.evaluate(rho0, u0);*/
+    //TillotsonEos eos(body);
+    //Float cs, p;
+    //tie(p, cs) = eos.evaluate(rho0, u0);
 
     // add rotation quantities and spin up the center particle
     storage->insert<Vector>(QuantityId::PHASE_ANGLE, OrderEnum::FIRST, Vector(0._f));
@@ -136,14 +137,13 @@ TEST_CASE("Rotation vibrations", "[rotation]") {
     // omega[centerIdx] = Vector(0._f, 0._f, 100._f);
     omega[centerIdx] = Vector(0._f, 0._f, 1._f);
 
-
     const Float t = 0.05_f;
 
     // run the simulation
     TestRun run(storage, Interval(0._f, t), centerIdx);
     run.setUp();
     run.run();
-}
+}*/
 
 TEST_CASE("Rotation inertia", "[rotation]") {
     Integrator<UniformRng> integrator(makeAuto<SphericalDomain>(Vector(0._f), 2._f));
@@ -151,5 +151,5 @@ TEST_CASE("Rotation inertia", "[rotation]") {
     const Float value = integrator.integrate([&kernel](const Vector& r) { //
         return (sqr(r[X]) + sqr(r[Y])) * kernel.value(r, 1._f);
     });
-    REQUIRE(value == 0.6_f);
+    REQUIRE(value == approx(0.6_f, 0.01_f));
 }

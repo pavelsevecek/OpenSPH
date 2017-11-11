@@ -311,7 +311,7 @@ namespace {
             }
         }
     };
-}
+} // namespace
 
 BinaryOutput::BinaryOutput(const Path& fileMask)
     : IOutput(fileMask) {}
@@ -323,8 +323,9 @@ Path BinaryOutput::dump(Storage& storage, const Statistics& stats) {
     Serializer serializer(fileName);
     // file format identifier
     // size: 4 + 8 + 8 + 8 + 8 = 36
-    serializer.write(
-        "SPH", time, storage.getParticleCnt(), storage.getQuantityCnt(), storage.getMaterialCnt());
+    const Size materialCnt = storage.getMaterialCnt();
+    const Size quantityCnt = storage.getQuantityCnt() - int(storage.has(QuantityId::MATERIAL_ID));
+    serializer.write("SPH", time, storage.getParticleCnt(), quantityCnt, materialCnt);
     // zero bytes until 256 to allow extensions of the header
     serializer.addPadding(PADDING_SIZE);
 
@@ -333,14 +334,17 @@ Path BinaryOutput::dump(Storage& storage, const Statistics& stats) {
     for (auto i : storage.getQuantities()) {
         // first 3 values: quantity ID, order (number of derivatives), type
         Quantity& q = i.quantity;
-        cachedIds.push(i.id);
-        serializer.write(Size(i.id), Size(q.getOrderEnum()), Size(q.getValueEnum()));
+        if (i.id != QuantityId::MATERIAL_ID) {
+            // no need to dump material IDs, they are always consecutive
+            cachedIds.push(i.id);
+            serializer.write(Size(i.id), Size(q.getOrderEnum()), Size(q.getValueEnum()));
+        }
     }
 
     SerializerDispatcher dispatcher{ serializer };
-    const bool hasMaterials = storage.getMaterialCnt() > 0;
+    const bool hasMaterials = materialCnt > 0;
     // dump quantities separated by materials
-    for (Size matIdx = 0; matIdx < max(storage.getMaterialCnt(), Size(1)); ++matIdx) {
+    for (Size matIdx = 0; matIdx < max(materialCnt, Size(1)); ++matIdx) {
         // storage can currently exist without materials, only write material params if we have a material
         if (hasMaterials) {
             serializer.write("MAT", matIdx);
@@ -375,9 +379,11 @@ Path BinaryOutput::dump(Storage& storage, const Statistics& stats) {
         serializer.write(*sequence.begin(), *sequence.end());
 
         for (auto i : storage.getQuantities()) {
-            Quantity& q = i.quantity;
-            StoreBuffersVisitor visitor;
-            dispatch(q.getValueEnum(), visitor, q, serializer, sequence);
+            if (i.id != QuantityId::MATERIAL_ID) {
+                Quantity& q = i.quantity;
+                StoreBuffersVisitor visitor;
+                dispatch(q.getValueEnum(), visitor, q, serializer, sequence);
+            }
         }
     }
 
@@ -521,6 +527,21 @@ Outcome BinaryOutput::load(const Path& path, Storage& storage) {
     return SUCCESS;
 }
 
+Expected<BinaryOutput::Info> BinaryOutput::getInfo(const Path& path) const {
+    Deserializer deserializer(path);
+    std::string identifier;
+    Float time;
+    Info info;
+    try {
+        deserializer.read(identifier, time, info.particleCnt, info.quantityCnt, info.materialCnt);
+    } catch (SerializerException&) {
+        return makeUnexpected<Info>("Invalid file format");
+    }
+    if (identifier != "SPH") {
+        return makeUnexpected<Info>("Invalid format specifier: expected SPH, got " + identifier);
+    }
+    return std::move(info);
+}
 
 PkdgravOutput::PkdgravOutput(const Path& fileMask, PkdgravParams&& params)
     : IOutput(fileMask)

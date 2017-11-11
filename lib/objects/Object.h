@@ -94,7 +94,7 @@ namespace Detail {
             visitor.template visit<N>();
         }
     };
-}
+} // namespace Detail
 
 /// Static for loop from n1 to n2, including both values. Takes an object as an argument that must implement
 /// templated method template<int n> visit(); for loop will pass the current index as a template parameter,
@@ -120,7 +120,7 @@ namespace Detail {
             return std::forward<TValue>(value);
         }
     };
-}
+} // namespace Detail
 
 /// Returns N-th argument from an argument list. The type of the returned argument matches the type of the
 /// input argument.

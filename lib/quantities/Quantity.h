@@ -44,7 +44,7 @@ enum class VisitorEnum {
 
     /// Iterate over quantity values for 1st order quantities and over values and 1st derivatives of 2nd order
     /// quantities. Zero order quantities are skipped.
-    DEPENDENT_VALUES = 1 << 5,
+    STATE_VALUES = 1 << 5,
 
     /// Iterates over all 1st order and 2nd order quantities, passes their 1st and 2nd derivatives as
     /// parameters, respectively.
@@ -99,7 +99,8 @@ namespace Detail {
 
         /// Returns size of the stored arrays (=number of particles).
         INLINE Size size() const {
-            return v.size();
+            // the quantity can be incomplete (can hold only derivatives), just return the maximum size
+            return max(v.size(), dv_dt.size(), d2v_dt2.size());
         }
 
         INLINE Array<TValue>& getValue() {
@@ -233,7 +234,7 @@ namespace Detail {
             if (flags.hasAny(VisitorEnum::ZERO_ORDER,
                     VisitorEnum::ALL_BUFFERS,
                     VisitorEnum::ALL_VALUES,
-                    VisitorEnum::DEPENDENT_VALUES)) {
+                    VisitorEnum::STATE_VALUES)) {
                 functor(v, other.v);
             }
             if (flags.hasAny(VisitorEnum::ALL_BUFFERS, VisitorEnum::PHYSICAL_VALUES)) {
@@ -248,7 +249,7 @@ namespace Detail {
                 }
                 break;
             case OrderEnum::SECOND:
-                if (flags.hasAny(VisitorEnum::ALL_BUFFERS, VisitorEnum::DEPENDENT_VALUES)) {
+                if (flags.hasAny(VisitorEnum::ALL_BUFFERS, VisitorEnum::STATE_VALUES)) {
                     functor(dv_dt, other.dv_dt);
                 }
                 if (flags.hasAny(VisitorEnum::ALL_BUFFERS,
@@ -267,7 +268,7 @@ namespace Detail {
             const_cast<Holder*>(this)->visitMutable(other, flags, std::forward<TFunctor>(functor));
         }
     };
-}
+} // namespace Detail
 
 /// \brief Generic container for storing scalar, vector or tensor quantity and its derivatives.
 ///
@@ -308,20 +309,25 @@ private:
         : data(std::move(holder)) {}
 
 public:
-    /// Constructs an empty quantity. Calling any member functions will cause assert, quantity can be then
-    /// created using move constructor. The default constructor allows using Quantity in STL containers.
+    /// \brief Constructs an empty quantity.
+    ///
+    /// Calling any member functions will cause assert, quantity can be then created using move constructor.
+    /// The default constructor allows using Quantity in STL containers.
     Quantity() = default;
 
-    /// Creates a quantity given number of particles and default value of the quantity. All values are set to
-    /// the default value. If the type is 1st-order or 2nd-order, derivatives arrays resized to the same size
-    /// as the array of values and set to zero.
+    /// \brief Creates a quantity given number of particles and default value of the quantity.
+    ///
+    /// All values are set to the default value. If the type is 1st-order or 2nd-order, derivatives arrays
+    /// resized to the same size as the array of values and set to zero.
     /// \param defaultValue Value assigned to all particles.
     /// \param size Size of the array, equal to the number of particles.
     template <typename TValue>
     Quantity(const OrderEnum order, const TValue& defaultValue, const Size size)
         : data(Detail::Holder<TValue>(order, defaultValue, size)) {}
 
-    /// Creates a quantity from an array of values. All derivatives are set to zero.
+    /// \brief Creates a quantity from an array of values.
+    ///
+    /// All derivatives are set to zero.
     template <typename TValue>
     Quantity(const OrderEnum order, Array<TValue>&& values)
         : data(Detail::Holder<TValue>(order, std::move(values))) {}

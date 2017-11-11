@@ -25,12 +25,12 @@ TEST_CASE("List push one", "[list]") {
         REQUIRE(list.front().value == 1);
         REQUIRE(&list.front() == &list.back());
 
-        REQUIRE(RecordType::constructedNum == 2); // 1 element + 1 temporary
-        REQUIRE(RecordType::destructedNum == 1);
+        REQUIRE(RecordType::constructedNum == 1);
+        REQUIRE(RecordType::destructedNum == 0);
     }
     // make sure the element gets deleted
-    REQUIRE(RecordType::constructedNum == 2);
-    REQUIRE(RecordType::destructedNum == 2);
+    REQUIRE(RecordType::constructedNum == 1);
+    REQUIRE(RecordType::destructedNum == 1);
 }
 
 TEST_CASE("List push elements", "[list]") {
@@ -47,11 +47,11 @@ TEST_CASE("List push elements", "[list]") {
         REQUIRE(list.size() == 5);
         REQUIRE(list.front().value == 0);
         REQUIRE(list.back().value == 4);
-        REQUIRE(RecordType::constructedNum == 10);
-        REQUIRE(RecordType::destructedNum == 5);
+        REQUIRE(RecordType::constructedNum == 5);
+        REQUIRE(RecordType::destructedNum == 0);
     }
-    REQUIRE(RecordType::constructedNum == 10);
-    REQUIRE(RecordType::destructedNum == 10);
+    REQUIRE(RecordType::constructedNum == 5);
+    REQUIRE(RecordType::destructedNum == 5);
 }
 
 TEST_CASE("List construct initializer_list", "[list]") {

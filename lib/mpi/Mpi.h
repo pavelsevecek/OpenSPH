@@ -5,7 +5,7 @@
 
 NAMESPACE_SPH_BEGIN
 
-class Serializable;
+class ISerializable;
 
 enum class RecvSource {
     ANYONE,
@@ -17,7 +17,7 @@ private:
     /// Global instance of the object
     static Mpi* instance;
 
-    Array<ClonePtr<Serializable>> creators;
+    Array<ClonePtr<ISerializable>> creators;
 
 
 public:
@@ -49,17 +49,17 @@ public:
     ///
     /// All processes have to register the same serializables in the same order. The order of the creator is
     /// used as handle as the object!
-    void registerData(ClonePtr<Serializable>&& creator);
+    void registerData(ClonePtr<ISerializable>&& creator);
 
     /// \brief Sends a serializable objects to given process.
     ///
     /// The function is blocking, it waits until the target process receives all data.
     /// \param data Serializable object sent over to the process.
     /// \param dest Rank of the target process.
-    void send(const Serializable& data, const Size dest);
+    void send(const ISerializable& data, const Size dest);
 
     /// \brief Sends a serializable object to all processes.
-    void broadcast(const Serializable& data);
+    void broadcast(const ISerializable& data);
 
     /// \brief Blocks until all processes call the barrier.
     void barrier();
@@ -77,10 +77,10 @@ public:
     /// The function is blocking, it waits until all data are received.
     /// \param source Process sending the data.
     /// \return Object constructed from deserialized data
-    ClonePtr<Serializable> receive(const Size source);
+    ClonePtr<ISerializable> receive(const Size source);
 
     /// \brief Receive a serializable object from any process.
-    ClonePtr<Serializable> receive(const RecvSource source);
+    ClonePtr<ISerializable> receive(const RecvSource source);
 
 private:
     Mpi();

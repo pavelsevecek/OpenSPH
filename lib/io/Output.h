@@ -215,8 +215,8 @@ public:
         Array<QuantityInfo> quantityInfo;
     };
 
-    /// Opens the file and reads header info without reading the rest of the file.
-    Expected<Info> getInfo(const Path& path);
+    /// \brief Opens the file and reads header info without reading the rest of the file.
+    Expected<Info> getInfo(const Path& path) const;
 };
 
 struct PkdgravParams {

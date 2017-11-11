@@ -11,81 +11,87 @@
 
 NAMESPACE_SPH_BEGIN
 
-/// Object defining 1D interval. Can also represent one sided [x, infty] or [-infty, x], or even unbounded
-/// [-infty, infty] intervals.
+/// \brief Object representing a 1D interval of real numbers.
+///
+/// Can also represent one sided [x, infty] or [-infty, x], or even unbounded [-infty, infty] intervals.
 class Interval {
 private:
     Float minBound;
     Float maxBound;
 
 public:
-    /// Default construction of an empty interval. Any contains() call will return false, extending the
-    /// interval will result in zero-size interval containing the inserted value.
+    /// \brief Default construction of an empty interval.
+    ///
+    /// Any contains() call will return false, extending the interval will result in zero-size interval
+    /// containing the inserted value.
     INLINE Interval()
         : minBound(INFTY)
         , maxBound(-INFTY) {}
 
-    /// Constructs the interval given its lower and upper bound. You can use INFTY and -INFTY to create
-    /// one-sided or unbounded intervals.
+    /// \brief Constructs the interval given its lower and upper bound.
+    ///
+    /// You can use INFTY and -INFTY to create one-sided or unbounded intervals.
     INLINE Interval(const Float& lower, const Float& upper)
         : minBound(lower)
         , maxBound(upper) {
         ASSERT(lower <= upper);
     }
 
-    /// Extends the interval to contain given value. If the value is already inside the interval, nothing
-    /// changes.
+    /// \brief Extends the interval to contain given value.
+    ///
+    /// If the value is already inside the interval, nothing changes.
     INLINE void extend(const Float& value) {
         minBound = min(minBound, value);
         maxBound = max(maxBound, value);
     }
 
-    /// Checks whether value is inside the interval.
+    /// \brief Checks whether value is inside the interval.
     INLINE bool contains(const Float& value) const {
         return minBound <= value && value <= maxBound;
     }
 
-    /// Clamps the given value by the interval.
+    /// \brief Clamps the given value by the interval.
     INLINE Float clamp(const Float& value) const {
         ASSERT(minBound <= maxBound);
         return max(minBound, min(value, maxBound));
     }
 
-    /// Returns lower bound of the interval.
+    /// \brief Returns lower bound of the interval.
     INLINE Float lower() const {
         return minBound;
     }
 
-    /// Returns upper bound of the interval.
+    /// \brief Returns upper bound of the interval.
     INLINE Float upper() const {
         return maxBound;
     }
 
-    /// Returns the center of the interval
+    /// \brief Returns the center of the interval
     INLINE Float center() const {
         return 0.5_f * (minBound + maxBound);
     }
 
-    /// Returns the size of the interval.
+    /// \brief Returns the size of the interval.
     INLINE Float size() const {
         return maxBound - minBound;
     }
 
-    /// Comparison operator; true if and only if both bounds are equal.
+    /// \brief Comparison operator; true if and only if both bounds are equal.
     INLINE bool operator==(const Interval& other) const {
         return minBound == other.minBound && maxBound == other.maxBound;
     }
 
-    /// Negation of comparison operator
+    /// \brief Negation of comparison operator
     INLINE bool operator!=(const Interval& other) const {
         return !(*this == other);
     }
 
+    /// \brief Returns true if the interval is empty (default constructed).
     INLINE bool empty() const {
         return minBound > maxBound;
     }
 
-    /// Returns an unbounded (infinite) interval
+    /// \brief Returns an unbounded (infinite) interval
     static Interval unbounded() {
         return Interval(-INFTY, INFTY);
     }

@@ -4,6 +4,7 @@
 #include "quantities/IMaterial.h"
 #include "quantities/Storage.h"
 #include "sph/kernel/KernelFactory.h"
+#include "thread/Pool.h"
 
 NAMESPACE_SPH_BEGIN
 

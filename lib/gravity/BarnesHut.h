@@ -9,6 +9,7 @@
 #include "objects/containers/List.h"
 #include "objects/finders/KdTree.h"
 #include "sph/kernel/GravityKernel.h"
+#include <atomic>
 
 NAMESPACE_SPH_BEGIN
 
@@ -25,7 +26,7 @@ protected:
     KdTree kdTree;
 
     /// Kernel used to evaluate gravity of close particles
-    SymmetrizeSmoothingLengths<GravityLutKernel> kernel;
+    GravityLutKernel kernel;
 
     /// Inverted value of the opening angle for multipole approximation (in radians)
     Float thetaInv;
@@ -54,7 +55,7 @@ public:
 
     virtual void evalAll(ArrayView<Vector> dv, Statistics& stats) const override;
 
-    virtual void evalAll(ThreadPool& pool, ArrayView<Vector> dv, Statistics& stats) const override;
+    virtual void evalAll(IScheduler& scheduler, ArrayView<Vector> dv, Statistics& stats) const override;
 
     virtual Vector eval(const Vector& r0, Statistics& stats) const override;
 
@@ -99,12 +100,12 @@ protected:
     /// Treewalk starts at given node and subsequently calls \ref evalNode for children nodes. Function moves
     /// nodes from checkList into interaction lists and in case the node is a leaf, gravity is computed using
     /// constructed interaction lists.
-    /// \param pool Thread pool used for parallelization
+    /// \param scheduler Scheduler used for parallelization
     /// \param dv Output thread-local buffer where computed accelerations are stored
     /// \param nodeIdx Index of the first node evaluated by the function
     /// \param data Checklist nad interaction lists of he node
     /// \param result Statistics incremented by the node. Cannot be return value, the type is not moveable.
-    void evalNode(ThreadPool& pool,
+    void evalNode(IScheduler& scheduler,
         ArrayView<Vector> dv,
         const Size nodeIdx,
         TreeWalkState data,

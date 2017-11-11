@@ -4,6 +4,7 @@
 #include "system/Factory.h"
 #include "system/Profiler.h"
 #include "system/Statistics.h"
+#include "thread/Pool.h"
 #include "timestepping/ISolver.h"
 #include "timestepping/TimeStepCriterion.h"
 
@@ -52,13 +53,21 @@ void EulerExplicit::stepImpl(ISolver& solver, Statistics& stats) {
     PROFILE_SCOPE("EulerExplicit::step")
     // advance all 2nd-order quantities by current timestep, first values, then 1st derivatives
     iterate<VisitorEnum::SECOND_ORDER>(*storage, [this](const QuantityId id, auto& v, auto& dv, auto& d2v) {
-        for (Size i = 0; i < v.size(); ++i) {
-            dv[i] += d2v[i] * this->dt;
-            v[i] += dv[i] * this->dt;
-            /// \todo optimize gettings range of materials (same in derivativecriterion for minimals)
-            const Interval range = storage->getMaterialOfParticle(i)->range(id);
-            if (range != Interval::unbounded()) {
-                tie(v[i], dv[i]) = clampWithDerivative(v[i], dv[i], range);
+        if (id == QuantityId::POSITIONS) {
+            for (Size i = 0; i < v.size(); ++i) {
+                dv[i] += d2v[i] * this->dt;
+                // positions are advanced in collision function of the solver
+                /// \todo no need to clamp positions, right?
+            }
+        } else {
+            for (Size i = 0; i < v.size(); ++i) {
+                dv[i] += d2v[i] * this->dt;
+                v[i] += dv[i] * this->dt;
+                /// \todo optimize gettings range of materials (same in derivativecriterion for minimals)
+                const Interval range = storage->getMaterialOfParticle(i)->range(id);
+                if (range != Interval::unbounded()) {
+                    tie(v[i], dv[i]) = clampWithDerivative(v[i], dv[i], range);
+                }
             }
         }
     });
@@ -71,6 +80,8 @@ void EulerExplicit::stepImpl(ISolver& solver, Statistics& stats) {
             }
         }
     });
+
+    solver.collide(*storage, stats, this->dt);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -80,8 +91,13 @@ void EulerExplicit::stepImpl(ISolver& solver, Statistics& stats) {
 PredictorCorrector::PredictorCorrector(const SharedPtr<Storage>& storage, const RunSettings& settings)
     : ITimeStepping(storage, settings) {
     ASSERT(storage->getQuantityCnt() > 0); // quantities must already been emplaced
-    predictions = makeAuto<Storage>(storage->clone(VisitorEnum::HIGHEST_DERIVATIVES));
-    storage->zeroHighestDerivatives(); // clear derivatives before using them in step method
+
+    // we need to keep a copy of the highest derivatives (predictions)
+    predictions = makeShared<Storage>(storage->clone(VisitorEnum::HIGHEST_DERIVATIVES));
+    storage->addDependent(predictions);
+
+    // clear derivatives before using them in step method
+    storage->zeroHighestDerivatives();
 }
 
 PredictorCorrector::~PredictorCorrector() = default;
@@ -170,10 +186,9 @@ void PredictorCorrector::stepImpl(ISolver& solver, Statistics& stats) {
 
     // compute derivatives
     solver.integrate(*storage, stats);
-
-    // resize the correction storage, needed because solver might add or remove particles
-    ASSERT(storage->getParticleCnt() > 0);
-    predictions->resize(storage->getParticleCnt(), Storage::ResizeFlag::KEEP_EMPTY_UNCHANGED);
+    ASSERT(storage->getParticleCnt() == predictions->getParticleCnt(),
+        storage->getParticleCnt(),
+        predictions->getParticleCnt());
 
     // make corrections
     this->makeCorrections();
@@ -222,11 +237,18 @@ void LeapFrog::stepImpl(ISolver& solver, Statistics& stats) {
 RungeKutta::RungeKutta(const SharedPtr<Storage>& storage, const RunSettings& settings)
     : ITimeStepping(storage, settings) {
     ASSERT(storage->getQuantityCnt() > 0); // quantities must already been emplaced
-    k1 = makeAuto<Storage>(storage->clone(VisitorEnum::ALL_BUFFERS));
-    k2 = makeAuto<Storage>(storage->clone(VisitorEnum::ALL_BUFFERS));
-    k3 = makeAuto<Storage>(storage->clone(VisitorEnum::ALL_BUFFERS));
-    k4 = makeAuto<Storage>(storage->clone(VisitorEnum::ALL_BUFFERS));
-    storage->zeroHighestDerivatives(); // clear derivatives before using them in step method
+    k1 = makeShared<Storage>(storage->clone(VisitorEnum::ALL_BUFFERS));
+    k2 = makeShared<Storage>(storage->clone(VisitorEnum::ALL_BUFFERS));
+    k3 = makeShared<Storage>(storage->clone(VisitorEnum::ALL_BUFFERS));
+    k4 = makeShared<Storage>(storage->clone(VisitorEnum::ALL_BUFFERS));
+
+    storage->addDependent(k1);
+    storage->addDependent(k2);
+    storage->addDependent(k3);
+    storage->addDependent(k4);
+
+    // clear derivatives before using them in step method
+    storage->zeroHighestDerivatives();
 }
 
 RungeKutta::~RungeKutta() = default;
@@ -265,18 +287,18 @@ void RungeKutta::stepImpl(ISolver& solver, Statistics& stats) {
     solver.integrate(*k1, stats);
     integrateAndAdvance(solver, stats, *k1, 0.5_f, 1._f / 6._f);
     // swap values of 1st order quantities and both values and 1st derivatives of 2nd order quantities
-    k1->swap(*k2, VisitorEnum::DEPENDENT_VALUES);
+    k1->swap(*k2, VisitorEnum::STATE_VALUES);
 
     /// \todo derivatives of storage (original, not k1, ..., k4) are never used
     // compute k2 derivatives based on values computes in previous integration
     solver.integrate(*k2, stats);
     /// \todo at this point, I no longer need k1, we just need 2 auxiliary buffers
     integrateAndAdvance(solver, stats, *k2, 0.5_f, 1._f / 3._f);
-    k2->swap(*k3, VisitorEnum::DEPENDENT_VALUES);
+    k2->swap(*k3, VisitorEnum::STATE_VALUES);
 
     solver.integrate(*k3, stats);
     integrateAndAdvance(solver, stats, *k3, 0.5_f, 1._f / 3._f);
-    k3->swap(*k4, VisitorEnum::DEPENDENT_VALUES);
+    k3->swap(*k4, VisitorEnum::STATE_VALUES);
 
     solver.integrate(*k4, stats);
 

@@ -8,6 +8,7 @@
 #include "gravity/IGravity.h"
 #include "system/Factory.h"
 #include "system/Settings.h"
+#include "thread/Pool.h"
 #include "timestepping/ISolver.h"
 
 NAMESPACE_SPH_BEGIN
@@ -49,13 +50,8 @@ public:
         }
     }
 
-    virtual void create(Storage& UNUSED(storage), IMaterial& UNUSED(material)) const override {
-        // no quantities need to be created, positions and masses are already in the storage
-    }
-
-private:
     /// Checks and resolves particle collisions
-    void collide(Storage& storage, const Float dt) {
+    virtual void collide(Storage& storage, Statistics& UNUSED(stats), const Float dt) override {
         // const Float restitution = 1._f; // coeff of restitution; 0 -> perfect sticking, 1 -> perfect bounce
 
         ArrayView<Vector> r, v, a;
@@ -106,6 +102,12 @@ private:
             }
         }
     }
+
+    virtual void create(Storage& UNUSED(storage), IMaterial& UNUSED(material)) const override {
+        // no quantities need to be created, positions and masses are already in the storage
+    }
+
+private:
 };
 
 NAMESPACE_SPH_END

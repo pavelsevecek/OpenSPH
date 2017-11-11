@@ -100,7 +100,7 @@ TEST_CASE("Matrix inverse", "[affinematrix]") {
     REQUIRE(tr.inverse() == AffineMatrix::identity().translate(Vector(-4._f, -2._f, -1._f)));
 
     AffineMatrix rotX = AffineMatrix::rotateX(0.2_f);
-    REQUIRE(rotX.inverse() == rotX.transpose());
+    REQUIRE(rotX.inverse() == approx(rotX.transpose()));
 
     AffineMatrix m{ { 2, 0.5, -1, -2 }, { 0, 1, -1, 0.5 }, { 3, -2, 1, 0 } };
     AffineMatrix m_inv{ { 2., -3., -1., 5.5 }, { 6., -10., -4., 17. }, { 6., -11., -4., 17.5 } };

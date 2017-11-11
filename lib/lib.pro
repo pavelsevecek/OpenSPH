@@ -5,6 +5,7 @@ CONFIG -= app_bundle qt
 # disable if you dont have eigen
 INCLUDEPATH += /usr/include/eigen3
 DEFINES += SPH_USE_EIGEN
+DEFINES += SPH_MPI
 
 #QMAKE_CXX = mpic++
 #QMAKE_LINK = mpic++
@@ -119,7 +120,6 @@ HEADERS += \
     math/rng/Rng.h \
     math/rng/VectorRng.h \
     mpi/Mpi.h \
-    mpi/ProcessPool.h \
     mpi/Serializable.h \
     objects/Exceptions.h \
     objects/Object.h \
@@ -261,4 +261,7 @@ HEADERS += \
     objects/finders/UniformGrid.h \
     objects/finders/AdaptiveGrid.h \
     gravity/NBodySolver.h \
-    sph/equations/Fluids.h
+    sph/equations/Fluids.h \
+    thread/IScheduler.h \
+    mpi/MpiScheduler.h \
+    physics/Units.h

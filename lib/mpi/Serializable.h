@@ -9,7 +9,7 @@
 
 NAMESPACE_SPH_BEGIN
 
-class Serializable : public Polymorphic {
+class ISerializable : public Polymorphic {
 public:
     /// \brief Serializes the object into a buffer.
     virtual void serialize(Array<uint8_t>& buffer) const = 0;
@@ -20,11 +20,6 @@ public:
     virtual Size handle() const = 0;
 
     virtual void registerHandle(const Size handle) = 0;
-};
-
-class SerializableTask : public Serializable {
-public:
-    virtual void operator()() = 0;
 };
 
 NAMESPACE_SPH_END

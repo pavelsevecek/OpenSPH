@@ -5,7 +5,7 @@
 #include "system/Profiler.h"
 #include "system/Settings.h"
 #include "system/Statistics.h"
-#include "thread/AtomicFloat.h"
+#include "thread/ThreadLocal.h"
 
 NAMESPACE_SPH_BEGIN
 

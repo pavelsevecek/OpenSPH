@@ -59,6 +59,10 @@ TEST_CASE("Initial custom solver", "[initial]") {
 
         virtual void integrate(Storage& UNUSED(storage), Statistics& UNUSED(stats)) override {}
 
+        virtual void collide(Storage& UNUSED(storage),
+            Statistics& UNUSED(stats),
+            const Float UNUSED(dt)) override {}
+
         virtual void create(Storage& UNUSED(storage), IMaterial& UNUSED(material)) const override {
             createCalled++;
         }

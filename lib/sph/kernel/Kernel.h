@@ -359,5 +359,4 @@ public:
     }
 };
 
-
 NAMESPACE_SPH_END

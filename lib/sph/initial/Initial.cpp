@@ -68,6 +68,10 @@ public:
         solver.integrate(storage, stats);
     }
 
+    virtual void collide(Storage& storage, Statistics& stats, const Float dt) override {
+        solver.collide(storage, stats, dt);
+    }
+
     virtual void create(Storage& storage, IMaterial& material) const override {
         solver.create(storage, material);
     }

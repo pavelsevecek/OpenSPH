@@ -3,6 +3,7 @@
 #include "quantities/Storage.h"
 #include "sph/Materials.h"
 #include "system/Factory.h"
+#include "thread/Pool.h"
 
 NAMESPACE_SPH_BEGIN
 

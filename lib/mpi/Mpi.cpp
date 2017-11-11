@@ -1,17 +1,11 @@
 #include "mpi/Mpi.h"
 #include "mpi/Serializable.h"
 #include "thread/CheckFunction.h"
+#ifdef SPH_MPI
 #include <mpi.h>
-
-NAMESPACE_SPH_BEGIN
-
-/// The macro is defined if mpi.h, so we cannot check for it sooner
-#ifdef MPI_VERSION
-#define SPH_MPI
 #endif
 
-
-#ifdef SPH_MPI
+NAMESPACE_SPH_BEGIN
 
 Mpi* Mpi::instance = nullptr;
 
@@ -22,6 +16,7 @@ Mpi& Mpi::getInstance() {
     return *instance;
 }
 
+#ifdef SPH_MPI
 Mpi::Mpi() {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
     // initialize the environment
@@ -63,19 +58,19 @@ std::string Mpi::getProcessorName() const {
     return name;
 }
 
-void Mpi::registerData(ClonePtr<Serializable>&& creator) {
+void Mpi::registerData(ClonePtr<ISerializable>&& creator) {
     creator->registerHandle(creators.size());
     creators.push(std::move(creator));
 }
 
-void Mpi::send(const Serializable& data, const Size dest) {
+void Mpi::send(const ISerializable& data, const Size dest) {
     const Size handle = data.handle();
     Array<uint8_t> buffer;
     data.serialize(buffer);
     MPI_Send(&buffer[0], buffer.size(), MPI_UNSIGNED_CHAR, dest, int(handle), MPI_COMM_WORLD);
 }
 
-void Mpi::broadcast(const Serializable&) {
+void Mpi::broadcast(const ISerializable&) {
     NOT_IMPLEMENTED;
 }
 
@@ -88,7 +83,7 @@ Mpi::BarrierLock::~BarrierLock() {
     mpi.barrier();
 }
 
-ClonePtr<Serializable> Mpi::receive(const Size source) {
+ClonePtr<ISerializable> Mpi::receive(const Size source) {
     // get the size of the buffer
     MPI_Status status;
     MPI_Probe(source, 0, MPI_COMM_WORLD, &status);
@@ -101,12 +96,12 @@ ClonePtr<Serializable> Mpi::receive(const Size source) {
     MPI_Recv(&buffer[0], size, MPI_UNSIGNED_CHAR, source, handle, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
     // deserialize the data
-    ClonePtr<Serializable> serializable = creators[handle];
+    ClonePtr<ISerializable> serializable = creators[handle];
     serializable->deserialize(buffer);
     return serializable;
 }
 
-ClonePtr<Serializable> Mpi::receive(const RecvSource source) {
+ClonePtr<ISerializable> Mpi::receive(const RecvSource source) {
     switch (source) {
     case RecvSource::ANYONE:
         return this->receive(MPI_ANY_SOURCE);

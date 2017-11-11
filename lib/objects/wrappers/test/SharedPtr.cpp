@@ -226,3 +226,35 @@ TEST_CASE("WeakPtr copy assign", "[sharedptr]") {
     REQUIRE_FALSE(w3.lock());
     REQUIRE(w3.getUseCount() == 0);
 }
+
+TEST_CASE("ShareFromThis", "[sharedptr]") {
+    class Derived : public ShareFromThis<Derived> {};
+
+    Derived value;
+    REQUIRE_ASSERT(value.sharedFromThis());
+
+    SharedPtr<Derived> ptr1 = makeShared<Derived>();
+    SharedPtr<Derived> ptr2 = ptr1->sharedFromThis();
+    REQUIRE(ptr2);
+    REQUIRE(ptr2 == ptr1);
+
+    ptr2 = nullptr;
+    value = *ptr1;
+    REQUIRE(value.sharedFromThis());
+    ptr1 = nullptr;
+    REQUIRE_ASSERT(value.sharedFromThis());
+    REQUIRE_FALSE(value.weakFromThis());
+}
+
+TEST_CASE("ShareFromThis copy", "[sharedptr]") {
+    class Derived : public ShareFromThis<Derived> {};
+
+    SharedPtr<Derived> ptr1 = makeShared<Derived>();
+    SharedPtr<Derived> ptr2 = makeShared<Derived>(*ptr1);
+    ptr1 = nullptr;
+
+    REQUIRE(ptr2->sharedFromThis() == ptr2);
+    Derived value = *ptr2;
+    ptr2 = nullptr;
+    REQUIRE_ASSERT(ptr2->sharedFromThis());
+}

@@ -1,8 +1,8 @@
 #include "gravity/BruteForceGravity.h"
 #include "catch.hpp"
 #include "sph/equations/Potentials.h"
-#include "tests/Setup.h"
 #include "tests/Approx.h"
+#include "tests/Setup.h"
 #include "utils/SequenceTest.h"
 
 using namespace Sph;
@@ -70,4 +70,19 @@ TEST_CASE("BruteForceGravity parallel", "[gravity]") {
         return SUCCESS;
     };
     REQUIRE_SEQUENCE(test, 0, dv1.size());
+}
+
+TEST_CASE("BruteForceGravity symmetrization", "[gravity]") {
+    Storage storage;
+    storage.insert<Vector>(QuantityId::POSITIONS,
+        OrderEnum::SECOND,
+        Array<Vector>({ Vector(0.f, 0.f, 0.f, 1.f), Vector(2._f, 0.f, 0.f, 5._f) }));
+    storage.insert<Float>(QuantityId::MASSES, OrderEnum::ZERO, 1.e10_f);
+
+    BruteForceGravity gravity;
+    gravity.build(storage);
+    Statistics stats;
+    ArrayView<Vector> dv = storage.getD2t<Vector>(QuantityId::POSITIONS);
+    gravity.evalAll(dv, stats);
+    REQUIRE(dv[0] == -dv[1]);
 }

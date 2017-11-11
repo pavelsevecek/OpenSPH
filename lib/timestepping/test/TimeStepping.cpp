@@ -11,61 +11,75 @@
 
 using namespace Sph;
 
+namespace {
 
-struct HomogeneousField : public ISolver {
-    Vector g = Vector(0.f, 0.f, 1._f);
-
-    HomogeneousField() = default;
-
-    virtual void integrate(Storage& storage, Statistics&) override {
-        ArrayView<Vector> r, v, dv;
-        tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
-        for (Size i = 0; i < r.size(); ++i) {
-            dv[i] = g;
+    struct TestSolver : public ISolver {
+        virtual void collide(Storage& storage, Statistics& UNUSED(stats), const Float dt) override {
+            ArrayView<Vector> r, v, dv;
+            tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
+            for (Size i = 0; i < r.size(); ++i) {
+                r[i] += v[i] * dt;
+            }
         }
-    }
+    };
 
-    virtual void create(Storage&, IMaterial&) const override {
-        NOT_IMPLEMENTED;
-    }
-};
 
-struct HarmonicOscillator : public ISolver {
-    Float period = 1._f;
+    struct HomogeneousField : public TestSolver {
+        Vector g = Vector(0.f, 0.f, 1._f);
 
-    HarmonicOscillator() = default;
+        HomogeneousField() = default;
 
-    virtual void integrate(Storage& storage, Statistics&) override {
-        ArrayView<Vector> r, v, dv;
-        tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
-        Float omega = 2._f * PI / period;
-        for (Size i = 0; i < r.size(); ++i) {
-            dv[i] = -sqr(omega) * r[i];
+        virtual void integrate(Storage& storage, Statistics&) override {
+            ArrayView<Vector> r, v, dv;
+            tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
+            for (Size i = 0; i < r.size(); ++i) {
+                dv[i] = g;
+            }
         }
-    }
 
-    virtual void create(Storage&, IMaterial&) const override {
-        NOT_IMPLEMENTED;
-    }
-};
-
-struct LorentzForce : public ISolver {
-    const Vector B = Vector(0.f, 0.f, 1.f);
-
-    LorentzForce() = default;
-
-    virtual void integrate(Storage& storage, Statistics&) override {
-        ArrayView<Vector> r, v, dv;
-        tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
-        for (Size i = 0; i < r.size(); ++i) {
-            dv[i] = cross(v[i], B);
+        virtual void create(Storage&, IMaterial&) const override {
+            NOT_IMPLEMENTED;
         }
-    }
+    };
 
-    virtual void create(Storage&, IMaterial&) const override {
-        NOT_IMPLEMENTED;
-    }
-};
+    struct HarmonicOscillator : public TestSolver {
+        Float period = 1._f;
+
+        HarmonicOscillator() = default;
+
+        virtual void integrate(Storage& storage, Statistics&) override {
+            ArrayView<Vector> r, v, dv;
+            tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
+            Float omega = 2._f * PI / period;
+            for (Size i = 0; i < r.size(); ++i) {
+                dv[i] = -sqr(omega) * r[i];
+            }
+        }
+
+        virtual void create(Storage&, IMaterial&) const override {
+            NOT_IMPLEMENTED;
+        }
+    };
+
+    struct LorentzForce : public TestSolver {
+        const Vector B = Vector(0.f, 0.f, 1.f);
+
+        LorentzForce() = default;
+
+        virtual void integrate(Storage& storage, Statistics&) override {
+            ArrayView<Vector> r, v, dv;
+            tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
+            for (Size i = 0; i < r.size(); ++i) {
+                dv[i] = cross(v[i], B);
+            }
+        }
+
+        virtual void create(Storage&, IMaterial&) const override {
+            NOT_IMPLEMENTED;
+        }
+    };
+
+} // namespace
 
 const Float timeStep = 0.01_f;
 
@@ -169,8 +183,12 @@ static void testGyroscopicMotion(TArgs&&... args) {
     REQUIRE_SEQUENCE(test, 0, testCnt);
 }
 
-struct ClampSolver : public ISolver {
-    enum class Direction { INCREASING, DECREASING } direction;
+struct ClampSolver : public TestSolver {
+    enum class Direction {
+        INCREASING,
+        DECREASING,
+    } direction;
+
     Interval range;
 
     ClampSolver(const Direction direction, const Interval range)
@@ -225,10 +243,12 @@ static void testClamping() {
     REQUIRE(u[0] == range.lower());
 }
 
-class AddingParticlesSolver : public ISolver {
+class AddingParticlesSolver : public TestSolver {
 public:
     virtual void integrate(Storage& storage, Statistics& UNUSED(stats)) override {
         storage.resize(storage.getParticleCnt() + 100);
+
+        /// \todo test adding and removing particles from the middle after layered storage is implemented
     }
 
     virtual void create(Storage& UNUSED(storage), IMaterial& UNUSED(material)) const override {}

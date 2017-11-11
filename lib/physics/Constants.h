@@ -26,6 +26,9 @@ namespace Constants {
     /// Solar mass
     /// http://asa.usno.navy.mil/static/files/2014/Astronomical_Constants_2014.pdf
     const Float M_sun = 1.9884e30_f; // kg
-}
+
+    /// Earth mass
+    const Float M_earth = 5.9722e24_f; // kg
+} // namespace Constants
 
 NAMESPACE_SPH_END

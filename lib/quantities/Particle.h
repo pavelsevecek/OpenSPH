@@ -7,9 +7,9 @@ NAMESPACE_SPH_BEGIN
 
 /// \brief Object holding information about single particle
 ///
-/// \ref Particle can store all or some quantities of given particle. Unlike in \ref Storage, the \ref
-/// Particle does not hold information about orders of the stored quantities, and it is possible to store
-/// derivatives of quantities without having quantity values stored as well.
+/// Particle can store all or some quantities of given particle. Unlike in \ref Storage, the \ref Particle
+/// does not hold information about orders of the stored quantities, and it is possible to store derivatives
+/// of quantities without having quantity values stored as well.
 class Particle {
 private:
     Size idx;
@@ -25,29 +25,34 @@ private:
     std::map<QuantityId, InternalQuantityData> data;
 
 public:
-    /// Default constructor, defined only for convenient usage in containers, etc. Particle has to be
-    /// initialized using copy/move operator.
+    /// \brief Default constructor, defined only for convenient usage in containers, etc.
+    ///
+    /// Particle has to be initialized using copy/move operator.
     Particle() = default;
 
-    /// Constructs object given its index in parent storage, containing no particle data. Quantity data can be
-    /// added using functions \ref addValue, \ref addDt and \ref addD2t.
-    Particle(const Size idx)
+    /// \brief Constructs object given its index in parent storage, containing no particle data.
+    ///
+    /// Quantity data can be added using functions \ref addValue, \ref addDt and \ref addD2t.
+    explicit Particle(const Size idx)
         : idx(idx) {}
 
-    /// Constructs the object from storage, storing values of all quantities for given particle
+    /// \brief Constructs the object from storage, storing values of all quantities for given particle
+    ///
     /// \param storage Storage containing the particle
     /// \param idx Index of the particle
     Particle(const Storage& storage, const Size idx);
 
-    /// Constructs a particle with information about a single quantity value. Other quantity data can be added
-    /// using functions \ref addValue, \ref addDt and \ref addD2t.
+    /// \brief Constructs a particle with information about a single quantity value.
+    ///
+    /// Other quantity data can be added using functions \ref addValue, \ref addDt and \ref addD2t.
     /// \param id Quantity ID of the quantity value
     /// \param value Quantity value. Cannot be used to add derivatives.
     /// \param idx Index of particle; although this constructor is not necessarily bound to a particle
     ///            storage, this represents index to storage associated with the particle.
     Particle(const QuantityId id, const Value& value, const Size idx);
 
-    /// Adds another quantity value or updates the value of quantity previously stored.
+    /// \brief Adds another quantity value or updates the value of quantity previously stored.
+    ///
     /// \param id Quantity ID of the quantity value
     /// \param value New value of given quantity
     /// \return Reference to itself, allowing to queue functions

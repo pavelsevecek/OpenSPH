@@ -175,7 +175,7 @@ public:
     /// Element is copied or moved, based on the type of the value.
     template <typename U>
     void pushFront(U&& value) {
-        RawPtr<ListNode<T>> node = new ListNode<T>(std::forward<T>(value), nullptr, first);
+        RawPtr<ListNode<T>> node = new ListNode<T>(std::forward<U>(value), nullptr, first);
         first = node;
         if (last == nullptr) {
             // this is the first element, update also last ptr.
@@ -188,7 +188,7 @@ public:
     template <typename U>
     void insert(const ListIterator<T> iter, U&& value) {
         ASSERT(iter);
-        RawPtr<ListNode<T>> node = new ListNode<T>(std::forward<T>(value), iter.node, iter.node->next);
+        RawPtr<ListNode<T>> node = new ListNode<T>(std::forward<U>(value), iter.node, iter.node->next);
         if (iter.node == last) {
             // we added to the back of the list, update the pointer
             last = node;

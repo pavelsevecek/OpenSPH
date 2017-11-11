@@ -82,6 +82,8 @@ QuantityMetadata getMetadata(const QuantityId key) {
         return QuantityMetadata("Displacement", "u", ValueEnum::VECTOR);
     case QuantityId::FLAG:
         return QuantityMetadata("Flag", "flag", ValueEnum::INDEX);
+    case QuantityId::MATERIAL_ID:
+        return QuantityMetadata("MaterialId", "matID", ValueEnum::INDEX);
     case QuantityId::XSPH_VELOCITIES:
         return QuantityMetadata("XSPH correction", "v_xsph", ValueEnum::VECTOR);
     case QuantityId::GRAD_H:

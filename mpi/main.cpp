@@ -4,7 +4,7 @@
 
 using namespace Sph;
 
-class TestSerializable : public Serializable {
+class TestSerializable : public ISerializable {
 private:
     static Size hndl;
 
@@ -49,7 +49,7 @@ int main() {
         }
     } else {
         while (true) {
-            AutoPtr<Serializable> serializable = mpi.receive(RecvSource::ANYONE);
+            AutoPtr<ISerializable> serializable = mpi.receive(RecvSource::ANYONE);
             TestSerializable* act = dynamic_cast<TestSerializable*>(&*serializable);
             ASSERT(act);
             std::cout << "Received " << act->data << " by " << mpi.getProcessRank() << std::endl;

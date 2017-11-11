@@ -90,7 +90,7 @@ namespace Detail {
             delete ptr;
         }
     };
-}
+} // namespace Detail
 
 template <typename T>
 class SharedPtr {
@@ -100,6 +100,8 @@ class SharedPtr {
     friend class WeakPtr;
     template <typename>
     friend class LockingPtr;
+    template <typename>
+    friend class SharedFromThis;
 
 protected:
     T* ptr;
@@ -121,6 +123,7 @@ public:
         } else {
             block = nullptr;
         }
+        setSharedFromThis(*this);
     }
 
     SharedPtr(const SharedPtr& other)
@@ -272,6 +275,16 @@ bool operator!=(std::nullptr_t, const SharedPtr<T>& ptr) {
 }
 
 template <typename T>
+bool operator==(const SharedPtr<T>& ptr1, const SharedPtr<T>& ptr2) {
+    return ptr1.get() == ptr2.get();
+}
+
+template <typename T>
+bool operator!=(const SharedPtr<T>& ptr1, const SharedPtr<T>& ptr2) {
+    return ptr1.get() != ptr2.get();
+}
+
+template <typename T>
 class WeakPtr {
 private:
     Detail::ControlBlockHolder* block;
@@ -334,7 +347,7 @@ public:
         return *this;
     }
 
-    SharedPtr<T> lock() {
+    SharedPtr<T> lock() const {
         if (block && block->increaseUseCntIfNonzero()) {
             SharedPtr<T> ptr;
             ptr.block = block;
@@ -353,12 +366,20 @@ public:
         }
     }
 
-    INLINE Size getUseCount() {
+    INLINE Size getUseCount() const {
         if (!block) {
             return 0;
         } else {
             return block->getUseCount();
         }
+    }
+
+    INLINE explicit operator bool() const {
+        return this->getUseCount() > 0;
+    }
+
+    INLINE bool operator!() const {
+        return this->getUseCount() == 0;
     }
 };
 
@@ -367,5 +388,41 @@ INLINE SharedPtr<T> makeShared(TArgs&&... args) {
     return SharedPtr<T>(new T(std::forward<TArgs>(args)...));
 }
 
+template <typename T>
+class ShareFromThis {
+    template <typename T2>
+    friend std::enable_if_t<std::is_base_of<ShareFromThis<T2>, T2>::value, void> setSharedFromThis(
+        const SharedPtr<T2>& ptr);
+
+private:
+    WeakPtr<T> ptr;
+
+    void setWeakPtr(const WeakPtr<T>& weakPtr) {
+        ptr = weakPtr;
+    }
+
+public:
+    SharedPtr<T> sharedFromThis() {
+        SharedPtr<T> sharedPtr = ptr.lock();
+        ASSERT(sharedPtr);
+        return sharedPtr;
+    }
+
+    WeakPtr<T> weakFromThis() {
+        return ptr;
+    }
+};
+
+template <typename T>
+std::enable_if_t<std::is_base_of<ShareFromThis<T>, T>::value, void> setSharedFromThis(
+    const SharedPtr<T>& ptr) {
+    ptr->setWeakPtr(ptr);
+}
+
+template <typename T>
+std::enable_if_t<!std::is_base_of<ShareFromThis<T>, T>::value, void> setSharedFromThis(
+    const SharedPtr<T>& UNUSED(ptr)) {
+    // do nothing
+}
 
 NAMESPACE_SPH_END

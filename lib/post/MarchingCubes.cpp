@@ -1,10 +1,10 @@
 #include "post/MarchingCubes.h"
 #include "objects/finders/INeighbourFinder.h"
-//#include "post/Components.h"
 #include "quantities/Storage.h"
 #include "sph/kernel/KernelFactory.h"
 #include "system/Factory.h"
 #include "system/Settings.h"
+#include "thread/ThreadLocal.h"
 
 NAMESPACE_SPH_BEGIN
 

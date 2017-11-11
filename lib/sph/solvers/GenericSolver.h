@@ -110,6 +110,15 @@ public:
         }
     }
 
+    virtual void collide(Storage& storage, Statistics& UNUSED(stats), const Float dt) override {
+        // no collisions in SPH, simply advance positions
+        ArrayView<Vector> r, v, dv;
+        tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
+        for (Size i = 0; i < r.size(); ++i) {
+            r[i] += v[i] * dt;
+        }
+    }
+
     virtual void create(Storage& storage, IMaterial& material) const override {
         storage.insert<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO, 0);
         // check equations

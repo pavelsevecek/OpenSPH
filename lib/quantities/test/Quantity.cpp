@@ -118,3 +118,14 @@ TEST_CASE("Quantity clamp", "[quantity]") {
     REQUIRE(q1.getValue<Float>() == makeArray(1._f, 2._f, 3._f));
     REQUIRE(q1.getDt<Float>() == makeArray(8._f, 1._f, -3._f));
 }
+
+TEST_CASE("Quantity clone", "[quantity]") {
+    Quantity q1(OrderEnum::FIRST, makeArray(0._f, 1._f, 2._f));
+    q1.getDt<Float>() = Array<Float>({ 3._f, 4._f, 5._f });
+
+    Quantity q2 = q1.clone(VisitorEnum::HIGHEST_DERIVATIVES);
+    REQUIRE(q2.getValueEnum() == ValueEnum::SCALAR);
+    REQUIRE(q2.getOrderEnum() == OrderEnum::FIRST);
+    REQUIRE(q2.size() == q1.size());
+    REQUIRE(q2.getDt<Float>() == Array<Float>({ 3._f, 4._f, 5._f }));
+}
