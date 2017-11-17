@@ -94,13 +94,13 @@ public:
 
         // 1) setup initial positions, with different spacing in each region
         const Float eta = this->settings.get<Float>(RunSettingsId::SPH_KERNEL_ETA);
-        this->storage->getValue<Vector>(QuantityId::POSITIONS) = sodDistribution(N, 1._f / N, eta);
+        this->storage->getValue<Vector>(QuantityId::POSITION) = sodDistribution(N, 1._f / N, eta);
 
         // 2) setup initial pressure and masses of particles
         ArrayView<Vector> r;
         ArrayView<Float> p, m;
-        r = storage->getValue<Vector>(QuantityId::POSITIONS);
-        tie(p, m) = storage->getValues<Float>(QuantityId::PRESSURE, QuantityId::MASSES);
+        r = storage->getValue<Vector>(QuantityId::POSITION);
+        tie(p, m) = storage->getValues<Float>(QuantityId::PRESSURE, QuantityId::MASS);
         for (Size i = 0; i < N; ++i) {
             p[i] = smoothingFunc(r[i][0], 1._f, 0.1_f);
             // mass = 1/N *integral density * dx
@@ -109,7 +109,7 @@ public:
 
         // 3) setup density to be consistent with masses
         AutoPtr<INeighbourFinder> finder = Factory::getFinder(this->settings);
-        finder->build(storage->getValue<Vector>(QuantityId::POSITIONS));
+        finder->build(storage->getValue<Vector>(QuantityId::POSITION));
         LutKernel<1> kernel = Factory::getKernel<1>(settings);
         Array<NeighbourRecord> neighs;
         ArrayView<Float> rho = storage->getValue<Float>(QuantityId::DENSITY);

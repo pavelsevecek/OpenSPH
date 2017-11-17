@@ -84,7 +84,7 @@ int sphToSfd(const Path& filePath, const Path& settingsPath, const Path& sfdPath
     std::cout << "Adding rotation of P = " << Vector(2._f * PI) / omega << std::endl;
 
     ArrayView<Vector> r, v;
-    tie(r, v) = storage.getAll<Vector>(QuantityId::POSITIONS);
+    tie(r, v) = storage.getAll<Vector>(QuantityId::POSITION);
     for (Size i = 0; i < r.size(); ++i) {
         v[i] += cross(omega, r[i]);
     }

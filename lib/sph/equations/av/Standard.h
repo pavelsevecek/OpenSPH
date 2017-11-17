@@ -47,18 +47,18 @@ public:
             , beta(settings.get<Float>(RunSettingsId::SPH_AV_BETA)) {}
 
         virtual void create(Accumulated& results) override {
-            results.insert<Vector>(QuantityId::POSITIONS, OrderEnum::SECOND);
+            results.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND);
             results.insert<Float>(QuantityId::ENERGY, OrderEnum::FIRST);
         }
 
         virtual void initialize(const Storage& input, Accumulated& results) override {
             ArrayView<const Vector> dummy;
-            tie(r, v, dummy) = input.getAll<Vector>(QuantityId::POSITIONS);
+            tie(r, v, dummy) = input.getAll<Vector>(QuantityId::POSITION);
             // sound speed must be computed by the solver using AV
             tie(rho, cs, m) =
-                input.getValues<Float>(QuantityId::DENSITY, QuantityId::SOUND_SPEED, QuantityId::MASSES);
+                input.getValues<Float>(QuantityId::DENSITY, QuantityId::SOUND_SPEED, QuantityId::MASS);
 
-            dv = results.getBuffer<Vector>(QuantityId::POSITIONS, OrderEnum::SECOND);
+            dv = results.getBuffer<Vector>(QuantityId::POSITION, OrderEnum::SECOND);
             du = results.getBuffer<Float>(QuantityId::ENERGY, OrderEnum::FIRST);
         }
 

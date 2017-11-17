@@ -65,14 +65,14 @@ public:
         : kernel(CohesionKernel{}) {}
 
     virtual void create(Accumulated& results) override {
-        results.insert<Vector>(QuantityId::POSITIONS, OrderEnum::SECOND);
+        results.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND);
     }
 
     virtual void initialize(const Storage& input, Accumulated& results) override {
-        r = input.getValue<Vector>(QuantityId::POSITIONS);
+        r = input.getValue<Vector>(QuantityId::POSITION);
         n = input.getValue<Vector>(QuantityId::SURFACE_NORMAL);
-        m = input.getValue<Float>(QuantityId::MASSES);
-        dv = results.getBuffer<Vector>(QuantityId::POSITIONS, OrderEnum::SECOND);
+        m = input.getValue<Float>(QuantityId::MASS);
+        dv = results.getBuffer<Vector>(QuantityId::POSITION, OrderEnum::SECOND);
 
         /// \todo needs to be generalized for heterogeneous fluids
         gamma = input.getMaterial(0)->getParam<Float>(BodySettingsId::SURFACE_TENSION);
@@ -110,8 +110,8 @@ public:
     }
 
     virtual void initialize(const Storage& input, Accumulated& results) override {
-        r = input.getValue<Vector>(QuantityId::POSITIONS);
-        tie(m, rho) = input.getValues<Float>(QuantityId::MASSES, QuantityId::DENSITY);
+        r = input.getValue<Vector>(QuantityId::POSITION);
+        tie(m, rho) = input.getValues<Float>(QuantityId::MASS, QuantityId::DENSITY);
 
         n = results.getBuffer<Vector>(QuantityId::SURFACE_NORMAL, OrderEnum::ZERO);
     }

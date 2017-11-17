@@ -51,7 +51,7 @@ static Accumulated getAccumulated() {
     ArrayView<Size> buffer1 = getInserted<Size>(ac, QuantityId::NEIGHBOUR_CNT, 5);
     ArrayView<Float> buffer2 = getInserted<Float>(ac, QuantityId::DENSITY, 5);
     ArrayView<Vector> buffer3 = getInserted<Vector>(ac, QuantityId::ENERGY, 5);
-    ArrayView<SymmetricTensor> buffer4 = getInserted<SymmetricTensor>(ac, QuantityId::POSITIONS, 5);
+    ArrayView<SymmetricTensor> buffer4 = getInserted<SymmetricTensor>(ac, QuantityId::POSITION, 5);
     for (Size i = 0; i < 5; ++i) {
         buffer1[i] = 5;
         buffer2[i] = 3._f;
@@ -66,7 +66,7 @@ static Storage getStorage() {
     storage.insert<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO, Array<Size>{ 1 });
     storage.insert<Float>(QuantityId::DENSITY, OrderEnum::ZERO, 0._f);
     storage.insert<Vector>(QuantityId::ENERGY, OrderEnum::ZERO, Vector(0._f));
-    storage.insert<SymmetricTensor>(QuantityId::POSITIONS, OrderEnum::ZERO, SymmetricTensor::null());
+    storage.insert<SymmetricTensor>(QuantityId::POSITION, OrderEnum::ZERO, SymmetricTensor::null());
     return storage;
 }
 
@@ -89,7 +89,7 @@ TEST_CASE("Accumulated sum parallelized", "[accumulated]") {
     ArrayView<Vector> buffer3 = storage.getValue<Vector>(QuantityId::ENERGY);
     REQUIRE(buffer3.size() == 5);
     REQUIRE(perElement(buffer3) == Vector(4._f));
-    ArrayView<SymmetricTensor> buffer4 = storage.getValue<SymmetricTensor>(QuantityId::POSITIONS);
+    ArrayView<SymmetricTensor> buffer4 = storage.getValue<SymmetricTensor>(QuantityId::POSITION);
     REQUIRE(buffer4.size() == 5);
     REQUIRE(perElement(buffer4) == SymmetricTensor(2._f));
 }
@@ -111,23 +111,23 @@ TEST_CASE("Accumulated store", "[accumulated]") {
 
 TEST_CASE("Accumulate store second derivative", "[accumulated]") {
     Accumulated ac;
-    ac.insert<Vector>(QuantityId::POSITIONS, OrderEnum::SECOND);
+    ac.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND);
     ac.initialize(1);
-    ArrayView<Vector> dv = ac.getBuffer<Vector>(QuantityId::POSITIONS, OrderEnum::SECOND);
+    ArrayView<Vector> dv = ac.getBuffer<Vector>(QuantityId::POSITION, OrderEnum::SECOND);
     dv[0] = Vector(5._f);
 
     Storage storage;
-    storage.insert<Vector>(QuantityId::POSITIONS, OrderEnum::FIRST, makeArray(Vector(0._f)));
+    storage.insert<Vector>(QuantityId::POSITION, OrderEnum::FIRST, makeArray(Vector(0._f)));
     REQUIRE_ASSERT(ac.store(storage));
-    storage.insert<Vector>(QuantityId::POSITIONS, OrderEnum::SECOND, Vector(0._f));
+    storage.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, Vector(0._f));
     REQUIRE_NOTHROW(ac.store(storage));
-    dv = storage.getD2t<Vector>(QuantityId::POSITIONS);
+    dv = storage.getD2t<Vector>(QuantityId::POSITION);
     REQUIRE(dv[0] == Vector(5._f));
 }
 
 TEST_CASE("Accumulated insert two orders", "[accumulated]") {
     Accumulated ac;
-    ac.insert<Vector>(QuantityId::POSITIONS, OrderEnum::SECOND);
-    REQUIRE_ASSERT(ac.insert<Vector>(QuantityId::POSITIONS, OrderEnum::FIRST));
-    REQUIRE_ASSERT(ac.getBuffer<Vector>(QuantityId::POSITIONS, OrderEnum::FIRST));
+    ac.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND);
+    REQUIRE_ASSERT(ac.insert<Vector>(QuantityId::POSITION, OrderEnum::FIRST));
+    REQUIRE_ASSERT(ac.getBuffer<Vector>(QuantityId::POSITION, OrderEnum::FIRST));
 }

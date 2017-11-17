@@ -85,19 +85,19 @@ TEST_CASE("Constant smoothing length", "[solvers]") {
     solver.create(*storage, storage->getMaterial(0));
 
     // setup nonzero velocities
-    ArrayView<Vector> v = storage->getDt<Vector>(QuantityId::POSITIONS);
+    ArrayView<Vector> v = storage->getDt<Vector>(QuantityId::POSITION);
     for (Size i = 0; i < v.size(); ++i) {
         while (getLength(v[i]) < EPS) {
             v[i] = randomVector();
         }
     }
 
-    Array<Vector> initialPositions = storage->getValue<Vector>(QuantityId::POSITIONS).clone();
+    Array<Vector> initialPositions = storage->getValue<Vector>(QuantityId::POSITION).clone();
 
     EulerExplicit timestepping(storage, settings);
     Statistics stats;
     timestepping.step(solver, stats);
-    ArrayView<Vector> r = storage->getValue<Vector>(QuantityId::POSITIONS);
+    ArrayView<Vector> r = storage->getValue<Vector>(QuantityId::POSITION);
 
     auto test = [&](const Size i) -> Outcome {
         if (r[i] == initialPositions[i]) {

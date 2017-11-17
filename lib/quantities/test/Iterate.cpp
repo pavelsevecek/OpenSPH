@@ -6,7 +6,7 @@ using namespace Sph;
 
 TEST_CASE("Iterate", "[iterate]") {
     Storage storage;
-    storage.insert<Float>(QuantityId::POSITIONS, OrderEnum::SECOND, makeArray(5._f));
+    storage.insert<Float>(QuantityId::POSITION, OrderEnum::SECOND, makeArray(5._f));
     storage.resize(5);
     storage.insert<Vector>(QuantityId::DENSITY, OrderEnum::FIRST, Vector(1._f));
     storage.insert<SymmetricTensor>(QuantityId::DEVIATORIC_STRESS, OrderEnum::FIRST, SymmetricTensor(3._f));

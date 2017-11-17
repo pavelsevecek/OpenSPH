@@ -13,7 +13,7 @@ TEST_CASE("Pairing", "[diagnostics]") {
     BodySettings settings;
     settings.set(BodySettingsId::PARTICLE_COUNT, 100);
     conds.addMonolithicBody(storage, SphericalDomain(Vector(0._f), 3._f), settings);
-    Array<Vector>& r = storage.getValue<Vector>(QuantityId::POSITIONS);
+    Array<Vector>& r = storage.getValue<Vector>(QuantityId::POSITION);
 
     ParticlePairing diag(2, 1.e-1_f);
     REQUIRE(diag.getPairs(storage).empty());

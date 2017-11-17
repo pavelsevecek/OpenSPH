@@ -98,8 +98,8 @@ namespace Detail {
         }
 
         virtual void initialize(const Storage& input, Accumulated& results) override {
-            tie(rho, m) = input.getValues<Float>(QuantityId::DENSITY, QuantityId::MASSES);
-            v = input.getDt<Vector>(QuantityId::POSITIONS);
+            tie(rho, m) = input.getValues<Float>(QuantityId::DENSITY, QuantityId::MASS);
+            v = input.getDt<Vector>(QuantityId::POSITION);
             deriv = results.getBuffer<Type>(Id, OrderEnum::ZERO);
 
             correction.initialize(input);
@@ -175,8 +175,8 @@ public:
     }
 
     virtual void initialize(const Storage& input, Accumulated& results) override {
-        tie(rho, m) = input.getValues<Float>(QuantityId::DENSITY, QuantityId::MASSES);
-        v = input.getDt<Vector>(QuantityId::POSITIONS);
+        tie(rho, m) = input.getValues<Float>(QuantityId::DENSITY, QuantityId::MASS);
+        v = input.getDt<Vector>(QuantityId::POSITION);
         idxs = input.getValue<Size>(QuantityId::FLAG);
         reduce = input.getValue<Float>(QuantityId::STRESS_REDUCING);
 
@@ -241,8 +241,8 @@ public:
     }
 
     virtual void initialize(const Storage& input, Accumulated& results) override {
-        tie(m, rho) = input.getValues<Float>(QuantityId::MASSES, QuantityId::DENSITY);
-        r = input.getValue<Vector>(QuantityId::POSITIONS);
+        tie(m, rho) = input.getValues<Float>(QuantityId::MASS, QuantityId::DENSITY);
+        r = input.getValue<Vector>(QuantityId::POSITION);
         C = results.getBuffer<SymmetricTensor>(QuantityId::ANGULAR_MOMENTUM_CORRECTION, OrderEnum::ZERO);
     }
 

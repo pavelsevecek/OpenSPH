@@ -59,6 +59,9 @@ AutoPtr<IColorizer> Factory::getColorizer(const GuiSettings& settings, const Col
     case ColorizerId::DENSITY_PERTURBATION:
         range = settings.get<Interval>(GuiSettingsId::PALETTE_DENSITY_PERTURB);
         return makeAuto<DensityPerturbationColorizer>(range);
+    case ColorizerId::RADIUS:
+        range = settings.get<Interval>(GuiSettingsId::PALETTE_RADIUS);
+        return makeAuto<RadiusColorizer>(range);
     case ColorizerId::BOUNDARY:
         return makeAuto<BoundaryColorizer>(BoundaryColorizer::Detection::NEIGBOUR_THRESHOLD, 40);
     default:
@@ -163,6 +166,11 @@ Palette Factory::getPalette(const ColorizerId id, const Interval range) {
                                { 2.f * PI, Color(0.1f, 0.1f, 1.f) } },
                 PaletteScale::LINEAR);
         case ColorizerId::DENSITY_PERTURBATION:
+            return Palette({ { x0, Color(0.1f, 0.1f, 1.f) },
+                               { x0 + 0.5f * dx, Color(0.7f, 0.7f, 0.7f) },
+                               { x0 + dx, Color(1.f, 0.1f, 0.1f) } },
+                PaletteScale::LINEAR);
+        case ColorizerId::RADIUS:
             return Palette({ { x0, Color(0.1f, 0.1f, 1.f) },
                                { x0 + 0.5f * dx, Color(0.7f, 0.7f, 0.7f) },
                                { x0 + dx, Color(1.f, 0.1f, 0.1f) } },

@@ -27,7 +27,7 @@ TEST_CASE("InternalFriction", "[friction]") {
 
     // add two sliding layers
     ArrayView<Vector> r, v, dv;
-    tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
+    tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
     for (Size i = 0; i < r.size(); ++i) {
         if (r[i][Z] > 0._f) {
             v[i] = Vector(10._f, 0._f, 0._f);
@@ -36,7 +36,7 @@ TEST_CASE("InternalFriction", "[friction]") {
     Statistics stats;
     solver.integrate(storage, stats);
     ArrayView<const Size> neighs = storage.getValue<Size>(QuantityId::NEIGHBOUR_CNT);
-    tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
+    tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
     const Float h = r[0][H];
     auto test = [&](const Size i) -> Outcome {
         if (max(abs(r[i][X]), abs(r[i][Y]), abs(r[i][Z])) > 0.8_f) {

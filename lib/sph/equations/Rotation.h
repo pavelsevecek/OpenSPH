@@ -22,11 +22,11 @@ public:
 
     virtual void initialize(const Storage& input, Accumulated& results) override {
         tie(rho, m, I) =
-            input.getValues<Float>(QuantityId::DENSITY, QuantityId::MASSES, QuantityId::MOMENT_OF_INERTIA);
+            input.getValues<Float>(QuantityId::DENSITY, QuantityId::MASS, QuantityId::MOMENT_OF_INERTIA);
         s = input.getPhysicalValue<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
         reduce = input.getValue<Float>(QuantityId::STRESS_REDUCING);
         flag = input.getValue<Size>(QuantityId::FLAG);
-        r = input.getValue<Vector>(QuantityId::POSITIONS);
+        r = input.getValue<Vector>(QuantityId::POSITION);
         domega = results.getBuffer<Vector>(QuantityId::ANGULAR_VELOCITY, OrderEnum::FIRST);
     }
 
@@ -69,8 +69,8 @@ public:
     }
 
     virtual void initialize(const Storage& input, Accumulated& results) override {
-        tie(rho, m) = input.getValues<Float>(QuantityId::DENSITY, QuantityId::MASSES);
-        tie(r, omega) = input.getValues<Vector>(QuantityId::POSITIONS, QuantityId::ANGULAR_VELOCITY);
+        tie(rho, m) = input.getValues<Float>(QuantityId::DENSITY, QuantityId::MASS);
+        tie(r, omega) = input.getValues<Vector>(QuantityId::POSITION, QuantityId::ANGULAR_VELOCITY);
         idxs = input.getValue<Size>(QuantityId::FLAG);
         reduce = input.getValue<Float>(QuantityId::STRESS_REDUCING);
 
@@ -135,8 +135,8 @@ public:
     }
 
     virtual void initialize(Storage& storage) override {
-        ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
-        ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASSES);
+        ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
+        ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
         ArrayView<Float> I = storage.getValue<Float>(QuantityId::MOMENT_OF_INERTIA);
         for (Size i = 0; i < r.size(); ++i) {
             I[i] = inertia * m[i] * sqr(r[i][H]);

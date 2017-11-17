@@ -10,7 +10,7 @@ NAMESPACE_SPH_BEGIN
 
 NBody::NBody() {
     settings.set(RunSettingsId::RUN_NAME, std::string("NBody"))
-        .set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::LEAP_FROG)
+        .set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::EULER_EXPLICIT)
         .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 1.e3_f)
         .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 1.e3_f)
         .set(RunSettingsId::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::ACCELERATION)
@@ -33,7 +33,7 @@ void NBody::setUp() {
     // add two particles
     const Float dx = 0.25_f * Constants::au;
     Quantity& quantity = storage->insert<Vector>(
-        QuantityId::POSITIONS, OrderEnum::SECOND, { Vector(-dx, 0._f, 0._f), Vector(dx, 0._f, 0._f) });
+        QuantityId::POSITION, OrderEnum::SECOND, { Vector(-dx, 0._f, 0._f), Vector(dx, 0._f, 0._f) });
     ArrayView<Vector> r = quantity.getValue<Vector>();
     r[0][H] = 0.01_f * Constants::au;
     r[1][H] = 0.05_f * Constants::au;
@@ -42,7 +42,7 @@ void NBody::setUp() {
     v[0] = Vector(0._f, 1.e4_f, 0._f);
     v[1] = Vector(0._f, -1.e4_f, 0._f);
 
-    storage->insert<Float>(QuantityId::MASSES, OrderEnum::ZERO, Constants::M_sun);
+    storage->insert<Float>(QuantityId::MASS, OrderEnum::ZERO, Constants::M_sun);
 
     // create the solver quantities
     solver->create(*storage, storage->getMaterial(0));

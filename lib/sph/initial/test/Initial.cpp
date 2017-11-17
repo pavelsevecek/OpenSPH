@@ -21,7 +21,7 @@ TEST_CASE("Initial addBody", "[initial]") {
     InitialConditions conds(RunSettings::getDefaults());
     conds.addMonolithicBody(storage, domain, bodySettings);
 
-    const Size size = storage.getValue<Vector>(QuantityId::POSITIONS).size();
+    const Size size = storage.getValue<Vector>(QuantityId::POSITION).size();
     REQUIRE(size >= 80);
     REQUIRE(size <= 120);
     iterate<VisitorEnum::ALL_BUFFERS>(storage, [size](auto&& array) { REQUIRE(array.size() == size); });
@@ -45,7 +45,7 @@ TEST_CASE("Initial addBody", "[initial]") {
     });
     REQUIRE(result);
 
-    ArrayView<Float> ms = storage.getValue<Float>(QuantityId::MASSES);
+    ArrayView<Float> ms = storage.getValue<Float>(QuantityId::MASS);
     float totalM = 0._f;
     for (Float m : ms) {
         totalM += m;
@@ -89,7 +89,7 @@ TEST_CASE("Initial velocity", "[initial]") {
     conds.addMonolithicBody(storage, SphericalDomain(Vector(0._f), 1._f), bodySettings)
         .addVelocity(Vector(0._f, 0._f, 1._f));
     ArrayView<Float> rho = storage.getValue<Float>(QuantityId::DENSITY);
-    ArrayView<Vector> v = storage.getAll<Vector>(QuantityId::POSITIONS)[1];
+    ArrayView<Vector> v = storage.getAll<Vector>(QuantityId::POSITION)[1];
 
     auto test = [&](const Size i) -> Outcome {
         if (rho[i] == 1._f && v[i] != Vector(2._f, 1._f, -1._f)) {
@@ -109,7 +109,7 @@ TEST_CASE("Initial rotation", "[initial]") {
     conds.addMonolithicBody(storage, SphericalDomain(Vector(0._f), 1._f), BodySettings::getDefaults())
         .addRotation(Vector(1._f, 3._f, -2._f), BodyView::RotationOrigin::FRAME_ORIGIN);
     ArrayView<Vector> r, v, dv;
-    tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
+    tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
 
     Vector axis;
     float magnitude;
@@ -194,7 +194,7 @@ TEST_CASE("Initial addHeterogeneousBody multiple", "[initial]") {
     REQUIRE(storage.getMaterialCnt() == 3);
     ArrayView<Size> flag = storage.getValue<Size>(QuantityId::FLAG);
     ArrayView<Vector> r, v, dv;
-    tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
+    tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
     Size particlesBody1 = 0;
     Size particlesBody2 = 0;
 
@@ -230,7 +230,7 @@ TEST_CASE("Initial addRubblePileBody", "[initial]") {
     ic.addRubblePileBody(storage, SphericalDomain(Vector(0._f), 1._f), sfd, body);
 
     TextOutput output(Path("rubblepile.txt"), "test", EMPTY_FLAGS);
-    output.add(makeAuto<ValueColumn<Vector>>(QuantityId::POSITIONS));
+    output.add(makeAuto<ValueColumn<Vector>>(QuantityId::POSITION));
     output.add(makeAuto<ValueColumn<Size>>(QuantityId::FLAG));
     Statistics stats;
     stats.set(StatisticsId::RUN_TIME, 0._f);

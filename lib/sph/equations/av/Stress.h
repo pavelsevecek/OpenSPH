@@ -44,19 +44,19 @@ private:
         }
 
         virtual void create(Accumulated& results) override {
-            results.insert<Vector>(QuantityId::POSITIONS, OrderEnum::SECOND);
+            results.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND);
             results.insert<Float>(QuantityId::ENERGY, OrderEnum::FIRST);
         }
 
         virtual void initialize(const Storage& input, Accumulated& results) override {
             wp = input.getValue<Float>(QuantityId::INTERPARTICLE_SPACING_KERNEL);
             as = input.getValue<SymmetricTensor>(QuantityId::AV_STRESS);
-            m = input.getValue<Float>(QuantityId::MASSES);
+            m = input.getValue<Float>(QuantityId::MASS);
             rho = input.getValue<Float>(QuantityId::DENSITY);
             ArrayView<const Vector> dummy;
-            tie(r, v, dummy) = input.getAll<Vector>(QuantityId::POSITIONS);
+            tie(r, v, dummy) = input.getAll<Vector>(QuantityId::POSITION);
 
-            dv = results.getBuffer<Vector>(QuantityId::POSITIONS, OrderEnum::SECOND);
+            dv = results.getBuffer<Vector>(QuantityId::POSITION, OrderEnum::SECOND);
             du = results.getBuffer<Float>(QuantityId::ENERGY, OrderEnum::FIRST);
         }
 
@@ -124,7 +124,7 @@ public:
     virtual void create(Storage& storage, IMaterial& UNUSED(material)) const override {
         Quantity& q = storage.insert<Float>(QuantityId::INTERPARTICLE_SPACING_KERNEL, OrderEnum::ZERO, 0._f);
         ArrayView<Float> wp = q.getValue<Float>();
-        ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
+        ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
         for (Size i = 0; i < r.size(); ++i) {
             /// Delta p / h is assumed to be constant, so that W(Delta p) is constant
             wp[i] = kernel.value(Vector(r[i][H], 0._f, 0._f), r[i][H]);

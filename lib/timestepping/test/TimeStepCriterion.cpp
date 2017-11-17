@@ -17,7 +17,7 @@ const Size MINIMAL_PARTICLE_IDX = 53; // just something non-trivial
 static Storage getStorage() {
     Storage storage(getDefaultMaterial());
     HexagonalPacking distribution;
-    storage.insert<Vector>(QuantityId::POSITIONS,
+    storage.insert<Vector>(QuantityId::POSITION,
         OrderEnum::SECOND,
         distribution.generate(100, BlockDomain(Vector(0._f), Vector(100._f))));
     storage.insert<Float>(QuantityId::ENERGY, OrderEnum::FIRST, 0._f);
@@ -51,7 +51,7 @@ TEST_CASE("Courant Criterion", "[timestepping]") {
     CriterionId id;
     tieToTuple(step, id) = cfl.compute(storage, INFTY, stats);
 
-    ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
+    ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     ArrayView<Float> cs = storage.getValue<Float>(QuantityId::SOUND_SPEED);
     const Float h = r[0][H]; // all hs are the same
     const Float expected = courantNumber * h / cs[0];
@@ -133,7 +133,7 @@ TEST_CASE("Acceleration Criterion", "[timestepping]") {
     Storage storage = getStorage();
 
     ArrayView<Vector> r, v, dv;
-    tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
+    tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
     for (Size i = 0; i < r.size(); ++i) {
         dv[i] = Vector(0.2_f, 0._f, 0._f);
     }

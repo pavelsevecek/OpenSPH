@@ -452,7 +452,7 @@ public:
         , finder(finder)
         , r(r)
         , neighs(ThreadPool::getGlobalInstance()) {
-        tie(m, rho) = storage.getValues<Float>(QuantityId::MASSES, QuantityId::DENSITY);
+        tie(m, rho) = storage.getValues<Float>(QuantityId::MASS, QuantityId::DENSITY);
         flag = storage.getValue<Size>(QuantityId::FLAG);
 
         // we have to re-build the tree since we are using different positions (in general)
@@ -495,7 +495,7 @@ Array<Triangle> getSurfaceMesh(const Storage& storage, const Float gridResolutio
     // 1. get denoised particle positions
     // (according to http://www.cc.gatech.edu/~turk/my_papers/sph_surfaces.pdf)
     const Float lambda = 0.9_f;
-    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
+    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     Array<Vector> r_bar(r.size());
     RunSettings settings;
     LutKernel<3> kernel = Factory::getKernel<3>(settings);

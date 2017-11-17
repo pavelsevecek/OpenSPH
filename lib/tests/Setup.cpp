@@ -14,11 +14,11 @@ Storage Tests::getStorage(const Size particleCnt) {
     AutoPtr<IDistribution> distribution = Factory::getDistribution(settings);
     SphericalDomain domain(Vector(0._f), 1._f);
     storage.insert<Vector>(
-        QuantityId::POSITIONS, OrderEnum::SECOND, distribution->generate(particleCnt, domain));
+        QuantityId::POSITION, OrderEnum::SECOND, distribution->generate(particleCnt, domain));
     storage.insert<Float>(QuantityId::DENSITY, OrderEnum::FIRST, 1._f);
     storage.insert<Size>(QuantityId::FLAG, OrderEnum::ZERO, 0);
     // density = 1, therefore total mass = volume, therefore mass per particle = volume / N
-    storage.insert<Float>(QuantityId::MASSES, OrderEnum::ZERO, sphereVolume(1._f) / storage.getParticleCnt());
+    storage.insert<Float>(QuantityId::MASS, OrderEnum::ZERO, sphereVolume(1._f) / storage.getParticleCnt());
     return storage;
 }
 
@@ -35,12 +35,12 @@ Storage Tests::getGassStorage(const Size particleCnt, BodySettings settings, con
     Storage storage(makeAuto<EosMaterial>(settings, Factory::getEos(settings)));
     AutoPtr<IDistribution> distribution = Factory::getDistribution(settings);
     Array<Vector> r = distribution->generate(particleCnt, domain);
-    storage.insert<Vector>(QuantityId::POSITIONS, OrderEnum::SECOND, std::move(r));
+    storage.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, std::move(r));
 
     // set needed quantities and materials
     storage.insert<Float>(QuantityId::DENSITY, OrderEnum::FIRST, rho0);
     const Float m0 = rho0 * domain.getVolume() / storage.getParticleCnt();
-    storage.insert<Float>(QuantityId::MASSES, OrderEnum::ZERO, m0);
+    storage.insert<Float>(QuantityId::MASS, OrderEnum::ZERO, m0);
     storage.insert<Float>(QuantityId::ENERGY, OrderEnum::FIRST, u0);
     MaterialView material = storage.getMaterial(0);
     material->create(storage, MaterialInitialContext());
@@ -61,10 +61,10 @@ Storage Tests::getSolidStorage(const Size particleCnt, BodySettings settings, co
         makeAuto<SolidMaterial>(settings, Factory::getEos(settings), Factory::getRheology(settings)));
     AutoPtr<IDistribution> distribution = Factory::getDistribution(settings);
     storage.insert<Vector>(
-        QuantityId::POSITIONS, OrderEnum::SECOND, distribution->generate(particleCnt, domain));
+        QuantityId::POSITION, OrderEnum::SECOND, distribution->generate(particleCnt, domain));
     storage.insert<Float>(QuantityId::DENSITY, OrderEnum::FIRST, rho0);
     const Float m0 = rho0 * domain.getVolume() / storage.getParticleCnt();
-    storage.insert<Float>(QuantityId::MASSES, OrderEnum::ZERO, m0);
+    storage.insert<Float>(QuantityId::MASS, OrderEnum::ZERO, m0);
     storage.insert<Float>(QuantityId::ENERGY, OrderEnum::FIRST, u0);
     storage.insert<TracelessTensor>(QuantityId::DEVIATORIC_STRESS, OrderEnum::FIRST, TracelessTensor::null());
     storage.insert<Size>(QuantityId::FLAG, OrderEnum::ZERO, 0);
@@ -79,7 +79,7 @@ Storage Tests::getSolidStorage(const Size particleCnt, BodySettings settings, co
 }
 
 Size Tests::getClosestParticle(const Storage& storage, const Vector& p) {
-    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
+    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     Float closestDistSqr = INFINITY;
     Size closestIdx = Size(-1);
     for (Size i = 0; i < r.size(); ++i) {

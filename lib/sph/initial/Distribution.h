@@ -8,14 +8,15 @@
 #include "objects/containers/Array.h"
 #include "objects/geometry/Box.h"
 #include "objects/wrappers/Flags.h"
+#include "objects/wrappers/Function.h"
 
 NAMESPACE_SPH_BEGIN
 
-
 class IDomain;
 
-/// Base class for generating vertices with specific distribution. Also generates corresponding
-/// smoothing lengths and save them as fourth component of the vector.
+/// \brief Base class for generating vertices with specific distribution.
+///
+/// Also generates corresponding smoothing lengths and save them as fourth component of the vector.
 class IDistribution : public Polymorphic {
 public:
     /// \param n Expected number of generated vertices.
@@ -32,13 +33,11 @@ public:
     virtual Array<Vector> generate(const Size n, const IDomain& domain) const override;
 };
 
-
 /// Cubic close packing
 class CubicPacking : public IDistribution {
 public:
     virtual Array<Vector> generate(const Size n, const IDomain& domain) const override;
 };
-
 
 /// Hexagonal close packing
 class HexagonalPacking : public IDistribution {
@@ -69,7 +68,7 @@ private:
 /// Particles are placed using algorithm by Diehl et al. (2012) \cite Diehl_2012
 class DiehlDistribution : public IDistribution {
 private:
-    using DensityFunc = std::function<Float(const Vector& position)>;
+    using DensityFunc = Function<Float(const Vector& position)>;
     DensityFunc particleDensity;
     Float error;
     Size numOfIters;
@@ -77,7 +76,8 @@ private:
     Float small;
 
 public:
-    /// Constructs a distribution using function returning expected particle density at given position.
+    /// \brief Constructs a distribution using function returning expected particle density at given position.
+    ///
     /// Function does not have to be normalized, only a relative number of particles at different places is
     /// relevant.
     /// \param error Allowed relative error in number of generated particles. Lower value generates number of

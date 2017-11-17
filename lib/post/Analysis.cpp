@@ -18,7 +18,7 @@ Size Post::findComponents(const Storage& storage,
     Array<Size>& indices) {
     ASSERT(radius > 0._f);
     // get values from storage
-    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
+    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
 
     AutoPtr<INeighbourFinder> finder;
     Float actRadius = radius;
@@ -66,9 +66,9 @@ Size Post::findComponents(const Storage& storage,
         public:
             explicit EscapeVelocityComponentChecker(const Storage& storage, const Float radius)
                 : radius(radius) {
-                r = storage.getValue<Vector>(QuantityId::POSITIONS);
-                v = storage.getDt<Vector>(QuantityId::POSITIONS);
-                m = storage.getValue<Float>(QuantityId::MASSES);
+                r = storage.getValue<Vector>(QuantityId::POSITION);
+                v = storage.getDt<Vector>(QuantityId::POSITION);
+                m = storage.getValue<Float>(QuantityId::MASS);
             }
             virtual bool belong(const Size i, const Size j) override {
                 const Float dv = getLength(v[i] - v[j]);
@@ -123,15 +123,15 @@ Size Post::findComponents(const Storage& storage,
 
 static Storage clone(const Storage& storage) {
     Storage cloned;
-    const Array<Vector>& r = storage.getValue<Vector>(QuantityId::POSITIONS);
-    cloned.insert<Vector>(QuantityId::POSITIONS, OrderEnum::FIRST, r.clone());
+    const Array<Vector>& r = storage.getValue<Vector>(QuantityId::POSITION);
+    cloned.insert<Vector>(QuantityId::POSITION, OrderEnum::FIRST, r.clone());
 
-    const Array<Vector>& v = storage.getDt<Vector>(QuantityId::POSITIONS);
-    cloned.getDt<Vector>(QuantityId::POSITIONS) = v.clone();
+    const Array<Vector>& v = storage.getDt<Vector>(QuantityId::POSITION);
+    cloned.getDt<Vector>(QuantityId::POSITION) = v.clone();
 
-    if (storage.has(QuantityId::MASSES)) {
-        const Array<Float>& m = storage.getValue<Float>(QuantityId::MASSES);
-        cloned.insert<Float>(QuantityId::MASSES, OrderEnum::ZERO, m.clone());
+    if (storage.has(QuantityId::MASS)) {
+        const Array<Float>& m = storage.getValue<Float>(QuantityId::MASS);
+        cloned.insert<Float>(QuantityId::MASS, OrderEnum::ZERO, m.clone());
     } else {
         ArrayView<const Float> rho = storage.getValue<Float>(QuantityId::DENSITY);
         Float rhoAvg = 0._f;
@@ -142,15 +142,15 @@ static Storage clone(const Storage& storage) {
 
         /// \todo ASSUMING 10km body!
         const Float m = sphereVolume(5.e3_f) * rhoAvg / r.size();
-        cloned.insert<Float>(QuantityId::MASSES, OrderEnum::ZERO, m);
+        cloned.insert<Float>(QuantityId::MASS, OrderEnum::ZERO, m);
     }
 
     return cloned;
 }
 
 Storage Post::findFutureBodies2(const Storage& storage, ILogger& logger) {
-    Array<Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS).clone();
-    Array<Vector> v = storage.getDt<Vector>(QuantityId::POSITIONS).clone();
+    Array<Vector> r = storage.getValue<Vector>(QuantityId::POSITION).clone();
+    Array<Vector> v = storage.getDt<Vector>(QuantityId::POSITION).clone();
     const Float m = sphereVolume(5.e3_f) * 2700.f / r.size();
     Float W_tot = 0._f;
     for (Size i = 0; i < r.size(); ++i) {
@@ -228,9 +228,9 @@ Storage Post::findFutureBodies(const Storage& storage, const Float particleRadiu
         m_new.fill(0._f);
 
 
-        ArrayView<const Vector> r = cloned.getValue<Vector>(QuantityId::POSITIONS);
-        ArrayView<const Vector> v = cloned.getDt<Vector>(QuantityId::POSITIONS);
-        ArrayView<const Float> m = cloned.getValue<Float>(QuantityId::MASSES);
+        ArrayView<const Vector> r = cloned.getValue<Vector>(QuantityId::POSITION);
+        ArrayView<const Vector> v = cloned.getDt<Vector>(QuantityId::POSITION);
+        ArrayView<const Float> m = cloned.getValue<Float>(QuantityId::MASS);
 
         for (Size i = 0; i < r.size(); ++i) {
             m_new[indices[i]] += m[i];
@@ -245,9 +245,9 @@ Storage Post::findFutureBodies(const Storage& storage, const Float particleRadiu
             v_new[i] /= m_new[i];
         }
 
-        cloned.getValue<Vector>(QuantityId::POSITIONS) = std::move(r_new);
-        cloned.getDt<Vector>(QuantityId::POSITIONS) = std::move(v_new);
-        cloned.getValue<Float>(QuantityId::MASSES) = std::move(m_new);
+        cloned.getValue<Vector>(QuantityId::POSITION) = std::move(r_new);
+        cloned.getDt<Vector>(QuantityId::POSITION) = std::move(v_new);
+        cloned.getValue<Float>(QuantityId::MASS) = std::move(m_new);
 
         iter++;
     } while (numComponents != prevNumComponents);
@@ -257,7 +257,7 @@ Storage Post::findFutureBodies(const Storage& storage, const Float particleRadiu
 
 Array<Post::MoonEnum> Post::findMoons(const Storage& storage, const Float radius, const Float limit) {
     // first, find the larget one
-    ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASSES);
+    ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
     Size largestIdx = 0;
     Float largestM = 0._f;
     for (Size i = 0; i < m.size(); ++i) {
@@ -274,8 +274,8 @@ Array<Post::MoonEnum> Post::findMoons(const Storage& storage, const Float radius
     status[largestIdx] = MoonEnum::LARGEST_FRAGMENT;
 
     // find the ellipse for all bodies
-    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
-    ArrayView<const Vector> v = storage.getDt<Vector>(QuantityId::POSITIONS);
+    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
+    ArrayView<const Vector> v = storage.getDt<Vector>(QuantityId::POSITION);
     for (Size i = 0; i < m.size(); ++i) {
         if (i == largestIdx) {
             continue;
@@ -373,14 +373,14 @@ static Array<Float> getBodiesRadii(const Storage& storage,
         Array<Float> values(storage.getParticleCnt());
         switch (id) {
         case Post::HistogramId::RADII: {
-            ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
+            ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
             for (Size i = 0; i < r.size(); ++i) {
                 values[i] = r[i][H];
             }
             break;
         }
         case Post::HistogramId::VELOCITIES: {
-            ArrayView<const Vector> v = storage.getDt<Vector>(QuantityId::POSITIONS);
+            ArrayView<const Vector> v = storage.getDt<Vector>(QuantityId::POSITION);
             for (Size i = 0; i < v.size(); ++i) {
                 values[i] = getLength(v[i]);
             }
@@ -414,7 +414,7 @@ static Array<Float> getBodiesRadii(const Storage& storage,
         case Post::HistogramId::RADII: {
             // compute volume of the body
             ArrayView<const Float> rho, m;
-            tie(rho, m) = storage.getValues<Float>(QuantityId::DENSITY, QuantityId::MASSES);
+            tie(rho, m) = storage.getValues<Float>(QuantityId::DENSITY, QuantityId::MASS);
             for (Size i = 0; i < rho.size(); ++i) {
                 values[components[i]] += m[i] / rho[i];
             }
@@ -430,8 +430,8 @@ static Array<Float> getBodiesRadii(const Storage& storage,
         }
         case Post::HistogramId::VELOCITIES: {
             // compute velocity as weighted average
-            ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASSES);
-            ArrayView<const Vector> v = storage.getDt<Vector>(QuantityId::POSITIONS);
+            ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
+            ArrayView<const Vector> v = storage.getDt<Vector>(QuantityId::POSITION);
             Array<Vector> sumV(numComponents);
             Array<Float> weights(numComponents);
             sumV.fill(Vector(0._f));
@@ -579,16 +579,16 @@ Expected<Storage> Post::parsePkdgravOutput(const Path& path) {
     output.add(makeAuto<DummyColumn>(ValueEnum::INDEX));
 
     // 3) Particle mass
-    output.add(makeAuto<ValueColumn<Float>>(QuantityId::MASSES));
+    output.add(makeAuto<ValueColumn<Float>>(QuantityId::MASS));
 
     // 4) radius ?  -- skip
     output.add(makeAuto<ValueColumn<Float>>(QuantityId::DENSITY));
 
     // 5) Positions (3 components)
-    output.add(makeAuto<ValueColumn<Vector>>(QuantityId::POSITIONS));
+    output.add(makeAuto<ValueColumn<Vector>>(QuantityId::POSITION));
 
     // 6) Velocities (3 components)
-    output.add(makeAuto<DerivativeColumn<Vector>>(QuantityId::POSITIONS));
+    output.add(makeAuto<DerivativeColumn<Vector>>(QuantityId::POSITION));
 
     // 7) Angular velocities (3 components)
     output.add(makeAuto<ValueColumn<Vector>>(QuantityId::ANGULAR_VELOCITY));
@@ -604,9 +604,9 @@ Expected<Storage> Post::parsePkdgravOutput(const Path& path) {
 
     // Convert units -- assuming default conversion values
     PkdgravParams::Conversion conversion;
-    Array<Vector>& r = storage.getValue<Vector>(QuantityId::POSITIONS);
-    Array<Vector>& v = storage.getDt<Vector>(QuantityId::POSITIONS);
-    Array<Float>& m = storage.getValue<Float>(QuantityId::MASSES);
+    Array<Vector>& r = storage.getValue<Vector>(QuantityId::POSITION);
+    Array<Vector>& v = storage.getDt<Vector>(QuantityId::POSITION);
+    Array<Float>& m = storage.getValue<Float>(QuantityId::MASS);
     Array<Float>& rho = storage.getValue<Float>(QuantityId::DENSITY);
     Array<Vector>& omega = storage.getValue<Vector>(QuantityId::ANGULAR_VELOCITY);
 

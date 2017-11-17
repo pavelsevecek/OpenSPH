@@ -5,9 +5,9 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2017
 
-#include "objects/geometry/Vector.h"
 #include "objects/Object.h"
-#include <functional>
+#include "objects/geometry/Vector.h"
+//#include <functional>
 
 NAMESPACE_SPH_BEGIN
 

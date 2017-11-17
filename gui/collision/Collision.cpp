@@ -204,7 +204,7 @@ public:
         if (t <= startTime) {
             // damp velocities
             ArrayView<Vector> r, v, dv;
-            tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
+            tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
             for (Size i = 0; i < v.size(); ++i) {
                 // gradually decrease the delta
                 const Float t0 = timeRange.lower();
@@ -282,7 +282,7 @@ private:
     }
 
     void smoothDensity(Storage& storage) {
-        ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
+        ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
         ArrayView<Float> rho = storage.getValue<Float>(QuantityId::DENSITY);
         Array<Float> rhoSmoothed(rho.size());
 
@@ -425,8 +425,8 @@ void AsteroidCollision::setupOutput() {
     const std::string name = settings.get<std::string>(RunSettingsId::RUN_NAME);
     AutoPtr<TextOutput> textOutput = makeAuto<TextOutput>(outputPath, name, TextOutput::Options::SCIENTIFIC);
     textOutput->add(makeAuto<ParticleNumberColumn>());
-    textOutput->add(makeAuto<ValueColumn<Vector>>(QuantityId::POSITIONS));
-    textOutput->add(makeAuto<DerivativeColumn<Vector>>(QuantityId::POSITIONS));
+    textOutput->add(makeAuto<ValueColumn<Vector>>(QuantityId::POSITION));
+    textOutput->add(makeAuto<DerivativeColumn<Vector>>(QuantityId::POSITION));
     textOutput->add(makeAuto<SmoothingLengthColumn>());
     textOutput->add(makeAuto<ValueColumn<Float>>(QuantityId::DENSITY));
     textOutput->add(makeAuto<ValueColumn<Float>>(QuantityId::PRESSURE));

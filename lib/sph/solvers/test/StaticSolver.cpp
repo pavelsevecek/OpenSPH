@@ -22,7 +22,7 @@ TEST_CASE("StaticSolver no forces", "[staticsolver]") {
 
     Statistics stats;
     REQUIRE(solver.solve(storage, stats));
-    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
+    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     ArrayView<const Float> p = storage.getValue<Float>(QuantityId::PRESSURE);
     ArrayView<const TracelessTensor> s = storage.getValue<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
     ArrayView<const Float> u = storage.getValue<Float>(QuantityId::ENERGY);
@@ -58,7 +58,7 @@ TEST_CASE("StaticSolver pressure", "[staticsolver]") {
     Statistics stats;
     REQUIRE(solver.solve(storage, stats));
 
-    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
+    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     ArrayView<const Float> p = storage.getValue<Float>(QuantityId::PRESSURE);
 
     Float K = 0._f;

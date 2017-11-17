@@ -53,7 +53,7 @@ void EulerExplicit::stepImpl(ISolver& solver, Statistics& stats) {
     PROFILE_SCOPE("EulerExplicit::step")
     // advance all 2nd-order quantities by current timestep, first values, then 1st derivatives
     iterate<VisitorEnum::SECOND_ORDER>(*storage, [this](const QuantityId id, auto& v, auto& dv, auto& d2v) {
-        if (id == QuantityId::POSITIONS) {
+        if (id == QuantityId::POSITION) {
             for (Size i = 0; i < v.size(); ++i) {
                 dv[i] += d2v[i] * this->dt;
                 // positions are advanced in collision function of the solver
@@ -82,6 +82,8 @@ void EulerExplicit::stepImpl(ISolver& solver, Statistics& stats) {
     });
 
     solver.collide(*storage, stats, this->dt);
+
+    ASSERT(storage->isValid());
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -192,6 +194,8 @@ void PredictorCorrector::stepImpl(ISolver& solver, Statistics& stats) {
 
     // make corrections
     this->makeCorrections();
+
+    ASSERT(storage->isValid());
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -228,6 +232,8 @@ void LeapFrog::stepImpl(ISolver& solver, Statistics& stats) {
                 v[i] += dv[i] * 0.5_f * this->dt;
             }
         });
+
+    ASSERT(storage->isValid());
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////

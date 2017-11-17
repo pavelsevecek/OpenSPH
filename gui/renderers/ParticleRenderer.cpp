@@ -24,7 +24,7 @@ void ParticleRenderer::initialize(const Storage& storage,
     cached.positions.clear();
     cached.colors.clear();
 
-    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
+    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     for (Size i = 0; i < r.size(); ++i) {
         const Color color = colorizer.eval(i);
         const Optional<ProjectedPoint> p = camera.project(r[i]);

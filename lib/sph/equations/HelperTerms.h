@@ -69,7 +69,7 @@ private:
         }
 
         virtual void initialize(const Storage& input, Accumulated& results) override {
-            r = input.getValue<Vector>(QuantityId::POSITIONS);
+            r = input.getValue<Vector>(QuantityId::POSITION);
             n = results.getBuffer<Vector>(QuantityId::SURFACE_NORMAL, OrderEnum::ZERO);
         }
 

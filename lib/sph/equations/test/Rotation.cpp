@@ -89,7 +89,7 @@ namespace {
 
             AutoPtr<TextOutput> textOutput = makeAuto<TextOutput>(Path("out_%d.txt"), "rot");
 
-            textOutput->add(makeAuto<ValueColumn<Vector>>(QuantityId::POSITIONS));
+            textOutput->add(makeAuto<ValueColumn<Vector>>(QuantityId::POSITION));
             textOutput->add(makeAuto<ValueColumn<Vector>>(QuantityId::ANGULAR_VELOCITY));
 
             output = std::move(textOutput);

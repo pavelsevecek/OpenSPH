@@ -28,11 +28,11 @@ private:
 
         virtual void initialize(const Storage& input, Accumulated& results) override {
             tie(m, q, U) = input.getValues<Float>(
-                QuantityId::MASSES, QuantityId::ENERGY_DENSITY, QuantityId::ENERGY_PER_PARTICLE);
+                QuantityId::MASS, QuantityId::ENERGY_DENSITY, QuantityId::ENERGY_PER_PARTICLE);
             ArrayView<const Vector> dummy;
-            tie(r, v, dummy) = input.getAll<Vector>(QuantityId::POSITIONS);
+            tie(r, v, dummy) = input.getAll<Vector>(QuantityId::POSITION);
 
-            dv = results.getBuffer<Vector>(QuantityId::POSITIONS, OrderEnum::SECOND);
+            dv = results.getBuffer<Vector>(QuantityId::POSITION, OrderEnum::SECOND);
             dU = results.getBuffer<Float>(QuantityId::ENERGY_PER_PARTICLE, OrderEnum::FIRST);
             /// \todo here we assume all particles have the same adiabatic index, as in Saitoh & Makino.
             /// DISPH would need to be generalized for particles with different gamma.
@@ -96,7 +96,7 @@ public:
         storage.insert<Float>(QuantityId::ENERGY_DENSITY, OrderEnum::ZERO, q0);
 
         // energy per particle
-        Array<Float> e = storage.getValue<Float>(QuantityId::MASSES).clone();
+        Array<Float> e = storage.getValue<Float>(QuantityId::MASS).clone();
         for (Size i = 0; i < e.size(); ++i) {
             e[i] *= u0;
         }
@@ -157,7 +157,7 @@ private:
 
     virtual void beforeLoop(Storage& storage, Statistics& stats) override {
         GenericSolver::beforeLoop(storage, stats);
-        ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
+        ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
         ArrayView<Float> U = storage.getValue<Float>(QuantityId::ENERGY_PER_PARTICLE);
 
         q.resize(r.size());
@@ -189,7 +189,7 @@ private:
         tie(q, U, rho, m, u) = storage.getValues<Float>(QuantityId::ENERGY_DENSITY,
             QuantityId::ENERGY_PER_PARTICLE,
             QuantityId::DENSITY,
-            QuantityId::MASSES,
+            QuantityId::MASS,
             QuantityId::ENERGY);
         for (Size i = 0; i < u.size(); ++i) {
             u[i] = U[i] / m[i];

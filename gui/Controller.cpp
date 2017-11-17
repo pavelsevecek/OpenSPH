@@ -278,7 +278,7 @@ Optional<Particle> Controller::getIntersectedParticle(const Point position, cons
         Optional<Particle> particle = vis.colorizer->getParticle(first.idx);
         if (particle) {
             // add position to the particle data
-            particle->addValue(QuantityId::POSITIONS, vis.positions[first.idx]);
+            particle->addValue(QuantityId::POSITION, vis.positions[first.idx]);
         }
         return particle;
     }
@@ -348,7 +348,7 @@ void Controller::redraw(const Storage& storage, Statistics& stats) {
         // this lock makes sure we don't execute notify_one before getting to wait
         std::unique_lock<std::mutex> lock(vis.mainThreadMutex);
         vis.stats = makeAuto<Statistics>(stats);
-        vis.positions = copyable(storage.getValue<Vector>(QuantityId::POSITIONS));
+        vis.positions = copyable(storage.getValue<Vector>(QuantityId::POSITION));
 
         // initialize the currently selected colorizer
         ASSERT(vis.isInitialized());

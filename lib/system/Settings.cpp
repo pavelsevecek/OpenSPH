@@ -347,13 +347,15 @@ AutoPtr<BodySettings> BodySettings::instance (new BodySettings {
     { BodySettingsId::BULK_SOUND_SPEED,        "eos.mie_gruneises.bulk_sound_speed", 3933._f }, // value for copper taken from wikipedia
 
     /// Yielding & Damage
-    { BodySettingsId::RHEOLOGY_YIELDING,  "rheology.yielding",           int(YieldingEnum::VON_MISES) },
-    { BodySettingsId::RHEOLOGY_DAMAGE,    "rheology.damage",             int(DamageEnum::NONE) },
-    { BodySettingsId::ELASTICITY_LIMIT,   "rheology.elasticity_limit",   3.5e9_f },
-    { BodySettingsId::MELT_ENERGY,        "rheology.melt_energy",        3.4e6_f },
-    { BodySettingsId::COHESION,           "rheology.cohesion",           9.e7_f },
-    { BodySettingsId::INTERNAL_FRICTION,  "rheology.internal_friction",  2._f },
-    { BodySettingsId::DRY_FRICTION,       "rheology.dry_friction",       0.8_f },
+    { BodySettingsId::RHEOLOGY_YIELDING,    "rheology.yielding",            int(YieldingEnum::VON_MISES) },
+    { BodySettingsId::RHEOLOGY_DAMAGE,      "rheology.damage",              int(DamageEnum::NONE) },
+    { BodySettingsId::ELASTICITY_LIMIT,     "rheology.elasticity_limit",    3.5e9_f },
+    { BodySettingsId::MELT_ENERGY,          "rheology.melt_energy",         3.4e6_f },
+    { BodySettingsId::COHESION,             "rheology.cohesion",            9.e7_f },
+    { BodySettingsId::INTERNAL_FRICTION,    "rheology.internal_friction",   2._f },
+    { BodySettingsId::DRY_FRICTION,         "rheology.dry_friction",        0.8_f },
+    { BodySettingsId::MOHR_COULOMB_STRESS,  "rheology.mohr_coulomb_stress", 0._f },
+    { BodySettingsId::FRICTION_ANGLE,       "rheology.friction_angle",      0._f },
 
     /// Material properties
     { BodySettingsId::DENSITY,                 "material.density",             2700._f },

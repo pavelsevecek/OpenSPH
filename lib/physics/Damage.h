@@ -82,6 +82,15 @@ public:
     virtual void integrate(Storage& storage, const MaterialView material) override;
 };
 
+class MohrCoulombModel : public IDamage {
+public:
+    virtual void setFlaws(Storage& storage,
+        IMaterial& material,
+        const MaterialInitialContext& context) const override;
+
+    virtual void integrate(Storage& storage, const MaterialView material) override;
+};
+
 class NullDamage : public IDamage {
 public:
     virtual void setFlaws(Storage& storage,

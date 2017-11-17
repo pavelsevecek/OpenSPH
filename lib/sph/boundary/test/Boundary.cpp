@@ -80,7 +80,7 @@ TEST_CASE("GhostParticles wall", "[boundary]") {
     GhostParticles boundaryConditions(makeAuto<WallDomain>(), settings);
     Storage storage;
     // Create few particles. Particles with x < 2 will create corresponding ghost particle.
-    storage.insert<Vector>(QuantityId::POSITIONS,
+    storage.insert<Vector>(QuantityId::POSITION,
         OrderEnum::SECOND,
         Array<Vector>{ Vector(1.5_f, 1._f, 3._f, 1._f), // has ghost
             Vector(0.5_f, 2._f, -1._f, 1._f),           // has ghost
@@ -90,7 +90,7 @@ TEST_CASE("GhostParticles wall", "[boundary]") {
             Vector(1._f, 1._f, 1._f, 1._f),             // has ghost
             Vector(2.5_f, 0._f, 5._f, 1._f) });         // does not have ghost
     ArrayView<Vector> r, v, dv;
-    tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
+    tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
     // add some velocities, the x-coordinate of the corresponding ghost should be inverted by the boundary
     // conditions
     v[0] = Vector(-1._f, 1._f, 1._f);
@@ -101,7 +101,7 @@ TEST_CASE("GhostParticles wall", "[boundary]") {
         QuantityId::DENSITY, OrderEnum::FIRST, Array<Float>{ 3._f, 5._f, 2._f, 1._f, 3._f, 4._f, 10._f });
 
     boundaryConditions.initialize(storage);
-    tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
+    tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
     REQUIRE(makeArray(r.size(), v.size(), dv.size()) == makeArray(12u, 12u, 12u));
     REQUIRE(r[7] == Vector(-1.5_f, 1._f, 3._f));
     REQUIRE(r[8] == Vector(-0.5_f, 2._f, -1._f));
@@ -122,7 +122,7 @@ TEST_CASE("GhostParticles wall", "[boundary]") {
 
     // subsequent calls shouldn't change result
     boundaryConditions.initialize(storage);
-    tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
+    tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
     REQUIRE(makeArray(r.size(), v.size(), dv.size()) == makeArray(12u, 12u, 12u));
     REQUIRE(r[7] == Vector(-1.5_f, 1._f, 3._f));
     REQUIRE(v[7] == approx(Vector(1._f, 1._f, 1._f), 1.e-3_f));
@@ -140,9 +140,9 @@ TEST_CASE("GhostParticles Sphere", "[boundary]") {
             particles.push(v);
         }
     }
-    storage.insert<Vector>(QuantityId::POSITIONS, OrderEnum::SECOND, std::move(particles));
+    storage.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, std::move(particles));
     ArrayView<Vector> r, v, dv;
-    tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
+    tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
     VectorRng<UniformRng> rng;
     // randomize velocities
     for (Vector& q : v) {
@@ -153,7 +153,7 @@ TEST_CASE("GhostParticles Sphere", "[boundary]") {
     GhostParticles boundaryConditions(
         makeAuto<SphericalDomain>(Vector(0._f), 2._f), RunSettings::getDefaults());
     boundaryConditions.initialize(storage);
-    tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
+    tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
     REQUIRE(r.size() == 2 * ghostIdx); // ghost for each particle
 
     auto test = [&](const Size i) -> Outcome {
@@ -197,14 +197,14 @@ TEST_CASE("GhostParticles Sphere Projection", "[boundary]") {
             particles.push(v);
         }
     }
-    storage.insert<Vector>(QuantityId::POSITIONS, OrderEnum::SECOND, std::move(particles));
-    ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
+    storage.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, std::move(particles));
+    ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     const Size ghostIdx = r.size();
     const Size halfSize = ghostIdx >> 1;
     GhostParticles boundaryConditions(
         makeAuto<SphericalDomain>(Vector(0._f), 2._f), RunSettings::getDefaults());
     boundaryConditions.initialize(storage);
-    r = storage.getValue<Vector>(QuantityId::POSITIONS);
+    r = storage.getValue<Vector>(QuantityId::POSITION);
     REQUIRE(r.size() == halfSize * 3); // only layer with r=1.9 creates ghost particles
 
     auto test = [&](const Size i) -> Outcome {
@@ -226,11 +226,11 @@ TEST_CASE("GhostParticles empty", "[boundary]") {
     Storage storage;
     Array<Vector> particles;
     particles.push(Vector(1._f, 0._f, 0._f, 0.1_f));
-    storage.insert<Vector>(QuantityId::POSITIONS, OrderEnum::SECOND, std::move(particles));
+    storage.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, std::move(particles));
     GhostParticles boundaryConditions(
         makeAuto<SphericalDomain>(Vector(0._f), 2._f), RunSettings::getDefaults());
     boundaryConditions.initialize(storage);
-    ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
+    ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     REQUIRE(r.size() == 1);
     REQUIRE(r[0] == Vector(1._f, 0._f, 0._f));
 }
@@ -245,7 +245,7 @@ TEST_CASE("FrozenParticles by flag", "[boundary]") {
     conds.addMonolithicBody(storage, SphericalDomain(Vector(3._f, 0._f, 0._f), 1._f), settings);
 
     ArrayView<Vector> r, v, dv;
-    tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
+    tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
     ArrayView<Float> u, du;
     tie(u, du) = storage.getAll<Float>(QuantityId::ENERGY);
     // fill with some nonzero derivatives
@@ -337,7 +337,7 @@ TEST_CASE("FrozenParticles by distance", "[boundary]") {
     FrozenParticles boundaryConditions(makeAuto<SphericalDomain>(Vector(0._f), 1._f), radius);
 
     ArrayView<Vector> r, v, dv;
-    tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
+    tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
     const Float h = r[0][H];
     ArrayView<Float> u, du;
     tie(u, du) = storage.getAll<Float>(QuantityId::ENERGY);

@@ -44,7 +44,7 @@ private:
         virtual void initialize(const Storage& input, Accumulated& results) override {
             omega = results.getBuffer<Float>(QuantityId::GRAD_H, OrderEnum::ZERO);
             rho = input.getValue<Float>(QuantityId::DENSITY);
-            r = input.getValue<Vector>(QuantityId::POSITIONS);
+            r = input.getValue<Vector>(QuantityId::POSITION);
         }
 
         template <bool Symmetrize>
@@ -76,7 +76,7 @@ public:
 
     virtual void finalize(Storage& storage) override {
         ArrayView<Float> omega = storage.getValue<Float>(QuantityId::GRAD_H);
-        ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
+        ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
         ArrayView<Float> rho = storage.getValue<Float>(QuantityId::DENSITY);
         // so far we only summed up the dW/dh terms, compute final grad-h term
         for (Size i = 0; i < omega.size(); ++i) {

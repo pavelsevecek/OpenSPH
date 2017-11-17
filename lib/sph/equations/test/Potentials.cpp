@@ -38,9 +38,9 @@ TEST_CASE("SphericalGravity consistency", "[equationterm]") {
     SphericalGravity gravity2(SphericalGravity::Options::ASSUME_HOMOGENEOUS);
     gravity2.finalize(expected);
 
-    ArrayView<const Vector> dv1 = storage.getD2t<Vector>(QuantityId::POSITIONS);
-    ArrayView<const Vector> dv2 = expected.getD2t<Vector>(QuantityId::POSITIONS);
-    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
+    ArrayView<const Vector> dv1 = storage.getD2t<Vector>(QuantityId::POSITION);
+    ArrayView<const Vector> dv2 = expected.getD2t<Vector>(QuantityId::POSITION);
+    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
 
     auto test = [&](const Size i) -> Outcome { //
         if (getLength(r[i]) < 0.1_f * Constants::au) {
@@ -66,7 +66,7 @@ TEST_CASE("Inertial Centrifugal", "[equationterm]") {
     force.finalize(storage);
 
     ArrayView<const Vector> r, v, dv;
-    tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
+    tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
 
     auto test = [&](const Size i) -> Outcome {
         const Float r_perp = sqrt(sqr(r[i][X]) + sqr(r[i][Y]));
@@ -88,7 +88,7 @@ TEST_CASE("Inertial Coriolis", "[equationterm]") {
     InertialForce force(Vector(0._f, 0._f, omega));
     Storage storage = Tests::getGassStorage(1000, BodySettings::getDefaults(), EPS);
     ArrayView<Vector> r, v, dv;
-    tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
+    tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
     for (Size i = 0; i < v.size(); ++i) {
         v[i] = Vector(v0, 0._f, 0._f);
     }

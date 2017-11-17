@@ -23,7 +23,7 @@ public:
 
     virtual void initialize(const Storage& input, Accumulated& results) override {
         u = input.getValue<Vector>(QuantityId::DISPLACEMENT);
-        tie(m, rho) = input.getValues<Float>(QuantityId::MASSES, QuantityId::DENSITY);
+        tie(m, rho) = input.getValues<Float>(QuantityId::MASS, QuantityId::DENSITY);
 
         p = results.getBuffer<Float>(QuantityId::PRESSURE, OrderEnum::ZERO);
         s = results.getBuffer<TracelessTensor>(QuantityId::DEVIATORIC_STRESS, OrderEnum::ZERO);
@@ -85,7 +85,7 @@ StaticSolver::StaticSolver(const RunSettings& settings, const EquationHolder& eq
 
 
 Outcome StaticSolver::solve(Storage& storage, Statistics& stats) {
-    ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
+    ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
 
     // build the neighbour finding structure
     finder->build(r);
@@ -95,8 +95,8 @@ Outcome StaticSolver::solve(Storage& storage, Statistics& stats) {
     equationSolver.integrate(storage, stats);
 
     ArrayView<Float> m, rho;
-    tie(m, rho) = storage.getValues<Float>(QuantityId::MASSES, QuantityId::DENSITY);
-    ArrayView<const Vector> dv = storage.getD2t<Vector>(QuantityId::POSITIONS);
+    tie(m, rho) = storage.getValues<Float>(QuantityId::MASS, QuantityId::DENSITY);
+    ArrayView<const Vector> dv = storage.getD2t<Vector>(QuantityId::POSITION);
     Array<Float> b(dv.size() * 3);
     Float b_avg = 0._f;
 

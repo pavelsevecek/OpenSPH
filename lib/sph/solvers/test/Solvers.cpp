@@ -44,7 +44,7 @@ void solveGassBall(Flags<Options> flags) {
     solver.create(*storage, storage->getMaterial(0));
 
     ArrayView<Vector> r, v, dv;
-    tie(r, v, dv) = storage->getAll<Vector>(QuantityId::POSITIONS);
+    tie(r, v, dv) = storage->getAll<Vector>(QuantityId::POSITION);
     const Float h = r[0][H];
 
     // check integrals of motion
@@ -70,7 +70,7 @@ void solveGassBall(Flags<Options> flags) {
     REQUIRE(stepCnt > 10);
 
     ArrayView<Float> u, rho;
-    tie(r, v, dv) = storage->getAll<Vector>(QuantityId::POSITIONS);
+    tie(r, v, dv) = storage->getAll<Vector>(QuantityId::POSITION);
     tie(u, rho) = storage->getValues<Float>(QuantityId::ENERGY, QuantityId::DENSITY);
 
     auto test = [&](const Size i) -> Outcome {

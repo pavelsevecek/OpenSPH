@@ -60,8 +60,8 @@ private:
 
     virtual void beforeLoop(Storage& storage, Statistics& stats) override {
         GenericSolver::beforeLoop(storage, stats);
-        ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
-        ArrayView<Float> m = storage.getValue<Float>(QuantityId::MASSES);
+        ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
+        ArrayView<Float> m = storage.getValue<Float>(QuantityId::MASS);
 
         // initialize density estimate
         rho.resize(r.size());

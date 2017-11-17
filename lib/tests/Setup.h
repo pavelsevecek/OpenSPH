@@ -43,7 +43,7 @@ namespace Tests {
         TLambda&& lambda,
         const Size repeatCnt = 1) {
         ArrayView<Vector> r, v, dv;
-        tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
+        tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
         for (Size i = 0; i < v.size(); ++i) {
             v[i] = lambda(r[i]);
         }

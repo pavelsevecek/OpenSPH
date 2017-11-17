@@ -10,7 +10,7 @@ void SpatialPlot<TDerived>::onTimeStep(const Storage& storage, const Statistics&
 
     Array<PlotPoint> particlePoints;
     ArrayView<const Float> quantity = storage.getValue<Float>(id);
-    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
+    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     for (Size i = 0; i < r.size(); ++i) {
         PlotPoint p{ getX(r[i]), quantity[i] };
         particlePoints.push(p);

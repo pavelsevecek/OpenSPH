@@ -23,7 +23,7 @@ TEST_CASE("MorrisMonaghan sanitycheck", "[av]") {
 
     // check that AV increases in the shock and decays far away from it
     ArrayView<Float> dalpha = storage.getDt<Float>(QuantityId::AV_ALPHA);
-    ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
+    ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     const Float h = r[0][H];
 
     auto test = [&](const Size i) -> Outcome {

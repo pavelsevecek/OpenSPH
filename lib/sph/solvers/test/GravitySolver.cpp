@@ -21,7 +21,7 @@ static void testGravity(AutoPtr<IGravity>&& gravity) {
 
     // only gravity, no pressure -> gass cloud should collapse, acceleration to the center
     ArrayView<Vector> r, v, dv;
-    tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
+    tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
 
     auto test = [&](const Size i) -> Outcome {
         if (getLength(dv[i]) == 0._f) {

@@ -20,8 +20,8 @@ public:
 
     virtual void initialize(const Storage& input, Accumulated& results) override {
         tie(u, m, rho, alpha) = input.getValues<Float>(
-            QuantityId::ENERGY, QuantityId::MASSES, QuantityId::DENSITY /*, QuantityId::DIFFUSIVITY*/);
-        r = input.getValue<Vector>(QuantityId::POSITIONS);
+            QuantityId::ENERGY, QuantityId::MASS, QuantityId::DENSITY /*, QuantityId::DIFFUSIVITY*/);
+        r = input.getValue<Vector>(QuantityId::POSITION);
         du = results.getBuffer<Float>(QuantityId::ENERGY, OrderEnum::FIRST);
     }
 

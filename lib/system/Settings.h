@@ -831,6 +831,12 @@ enum class BodySettingsId {
     /// Coefficient of friction for fully damaged material
     DRY_FRICTION,
 
+    /// \todo
+    MOHR_COULOMB_STRESS,
+
+    /// \todo
+    FRICTION_ANGLE,
+
     /// Speed of crack growth, in units of local sound speed.
     RAYLEIGH_SOUND_SPEED,
 

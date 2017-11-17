@@ -23,10 +23,10 @@ TEST_CASE("Distribute flaws", "[damage]") {
     SphericalDomain domain(Vector(0._f), 1._f);
     Array<Vector> r = distribution.generate(9000, domain);
     const int N = r.size();
-    storage.insert<Vector>(QuantityId::POSITIONS, OrderEnum::SECOND, std::move(r));
+    storage.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, std::move(r));
     const Float rho0 = bodySettings.get<Float>(BodySettingsId::DENSITY);
     storage.insert<Float>(QuantityId::DENSITY, OrderEnum::ZERO, rho0);
-    storage.insert<Float>(QuantityId::MASSES, OrderEnum::ZERO, rho0 * domain.getVolume() / N);
+    storage.insert<Float>(QuantityId::MASS, OrderEnum::ZERO, rho0 * domain.getVolume() / N);
     MaterialInitialContext context;
     context.rng = makeAuto<RngWrapper<BenzAsphaugRng>>(1234);
     model.setFlaws(storage, storage.getMaterial(0), context);

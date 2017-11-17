@@ -161,16 +161,16 @@ public:
     virtual Value evaluate(const Storage& storage,
         const Statistics& UNUSED(stats),
         const Size particleIdx) const override {
-        ArrayView<const Vector> value = storage.getValue<Vector>(QuantityId::POSITIONS);
+        ArrayView<const Vector> value = storage.getValue<Vector>(QuantityId::POSITION);
         return value[particleIdx][H];
     }
 
     virtual void accumulate(Storage& storage, const Value value, const Size particleIdx) const override {
-        if (!storage.has(QuantityId::POSITIONS)) {
+        if (!storage.has(QuantityId::POSITION)) {
             // lazy initialization
-            storage.insert<Vector>(QuantityId::POSITIONS, OrderEnum::SECOND, Vector(0._f));
+            storage.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, Vector(0._f));
         }
-        Array<Vector>& array = storage.getValue<Vector>(QuantityId::POSITIONS);
+        Array<Vector>& array = storage.getValue<Vector>(QuantityId::POSITION);
         array.resize(particleIdx + 1);
         array[particleIdx][H] = value.get<Float>();
     }

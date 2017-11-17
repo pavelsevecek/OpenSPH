@@ -47,19 +47,19 @@ class BalsaraSwitch : public IEquationTerm {
             : av(makeFromSettings<typename AV::Derivative>(settings)) {}
 
         virtual void create(Accumulated& results) override {
-            results.insert<Vector>(QuantityId::POSITIONS, OrderEnum::SECOND);
+            results.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND);
             results.insert<Float>(QuantityId::ENERGY, OrderEnum::FIRST);
         }
 
         virtual void initialize(const Storage& input, Accumulated& results) override {
-            m = input.getValue<Float>(QuantityId::MASSES);
+            m = input.getValue<Float>(QuantityId::MASS);
             ArrayView<const Vector> dummy;
-            tie(r, v, dummy) = input.getAll<Vector>(QuantityId::POSITIONS);
+            tie(r, v, dummy) = input.getAll<Vector>(QuantityId::POSITION);
             cs = input.getValue<Float>(QuantityId::SOUND_SPEED);
             divv = input.getValue<Float>(QuantityId::VELOCITY_DIVERGENCE);
             rotv = input.getValue<Vector>(QuantityId::VELOCITY_ROTATION);
 
-            dv = results.getBuffer<Vector>(QuantityId::POSITIONS, OrderEnum::SECOND);
+            dv = results.getBuffer<Vector>(QuantityId::POSITION, OrderEnum::SECOND);
             du = results.getBuffer<Float>(QuantityId::ENERGY, OrderEnum::FIRST);
             av.template initialize(input, results);
         }

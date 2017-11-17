@@ -16,7 +16,7 @@ namespace Detail {
     template <typename TReturn, typename... TArgs>
     class Callable<TReturn(TArgs...)> : public Polymorphic {
     public:
-        virtual TReturn operator()(TArgs&&... args) const = 0;
+        virtual TReturn operator()(TArgs... args) const = 0;
     };
 } // namespace Detail
 
@@ -40,8 +40,8 @@ private:
         FunctorCallable(TFunctor&& functor)
             : functor(std::forward<TFunctor>(functor)) {}
 
-        virtual TReturn operator()(TArgs&&... args) const override {
-            return functor(std::forward<TArgs>(args)...);
+        virtual TReturn operator()(TArgs... args) const override {
+            return functor(args...);
         }
     };
 
@@ -78,12 +78,11 @@ public:
         return *this;
     }
 
-
     /// Calls the function, given argument list.
     template <typename... Ts>
     TReturn operator()(Ts&&... args) const {
         ASSERT(holder);
-        return (*holder)(std::forward<TArgs>(args)...);
+        return (*holder)(std::forward<Ts>(args)...);
     }
 
     INLINE explicit operator bool() const {

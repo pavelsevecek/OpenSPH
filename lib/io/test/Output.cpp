@@ -15,14 +15,14 @@ using namespace Sph;
 
 static void addColumns(TextOutput& output) {
     output.add(makeAuto<ValueColumn<Float>>(QuantityId::DENSITY));
-    output.add(makeAuto<ValueColumn<Vector>>(QuantityId::POSITIONS));
-    output.add(makeAuto<DerivativeColumn<Vector>>(QuantityId::POSITIONS));
+    output.add(makeAuto<ValueColumn<Vector>>(QuantityId::POSITION));
+    output.add(makeAuto<DerivativeColumn<Vector>>(QuantityId::POSITION));
 }
 
 TEST_CASE("TextOutput dump", "[output]") {
     Storage storage;
     storage.insert<Vector>(
-        QuantityId::POSITIONS, OrderEnum::SECOND, makeArray(Vector(0._f), Vector(1._f), Vector(2._f)));
+        QuantityId::POSITION, OrderEnum::SECOND, makeArray(Vector(0._f), Vector(1._f), Vector(2._f)));
     storage.insert<Float>(QuantityId::DENSITY, OrderEnum::FIRST, 5._f);
     TextOutput output(Path("tmp1_%d.txt"), "Output", EMPTY_FLAGS);
     addColumns(output);
@@ -66,11 +66,11 @@ TEST_CASE("TextOutput dump&accumulate", "[output]") {
     output.load(Path("tmp2_0000.txt"), loaded);
     REQUIRE(loaded.getQuantityCnt() == 3); // density + position + flags
 
-    Quantity& positions = loaded.getQuantity(QuantityId::POSITIONS);
+    Quantity& positions = loaded.getQuantity(QuantityId::POSITION);
     REQUIRE(positions.getOrderEnum() == OrderEnum::FIRST); // we didn't dump accelerations
     REQUIRE(positions.getValueEnum() == ValueEnum::VECTOR);
-    REQUIRE(almostEqual(positions.getValue<Vector>(), storage.getValue<Vector>(QuantityId::POSITIONS)));
-    REQUIRE(almostEqual(positions.getDt<Vector>(), storage.getDt<Vector>(QuantityId::POSITIONS)));
+    REQUIRE(almostEqual(positions.getValue<Vector>(), storage.getValue<Vector>(QuantityId::POSITION)));
+    REQUIRE(almostEqual(positions.getDt<Vector>(), storage.getDt<Vector>(QuantityId::POSITION)));
 
     Quantity& density = loaded.getQuantity(QuantityId::DENSITY);
     REQUIRE(density.getOrderEnum() == OrderEnum::ZERO);
@@ -82,8 +82,8 @@ TEST_CASE("BinaryOutput dump&accumulate simple", "[output]") {
     Storage storage1;
     Array<Vector> r{ Vector(0._f), Vector(1._f), Vector(2._f) };
     Array<Vector> v{ Vector(-1._f), Vector(-2._f), Vector(-3._f) };
-    storage1.insert<Vector>(QuantityId::POSITIONS, OrderEnum::SECOND, r.clone());
-    storage1.getDt<Vector>(QuantityId::POSITIONS) = v.clone();
+    storage1.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, r.clone());
+    storage1.getDt<Vector>(QuantityId::POSITION) = v.clone();
     storage1.insert<Float>(QuantityId::DENSITY, OrderEnum::FIRST, 5._f);
     storage1.insert<TracelessTensor>(QuantityId::DEVIATORIC_STRESS, OrderEnum::ZERO, TracelessTensor(3._f));
     storage1.insert<SymmetricTensor>(
@@ -98,9 +98,9 @@ TEST_CASE("BinaryOutput dump&accumulate simple", "[output]") {
     REQUIRE(storage2.getParticleCnt() == 3);
     REQUIRE(storage2.getQuantityCnt() == 4);
 
-    REQUIRE(storage2.getValue<Vector>(QuantityId::POSITIONS) == r);
-    REQUIRE(storage2.getDt<Vector>(QuantityId::POSITIONS) == v);
-    REQUIRE(perElement(storage2.getD2t<Vector>(QuantityId::POSITIONS)) == Vector(0._f));
+    REQUIRE(storage2.getValue<Vector>(QuantityId::POSITION) == r);
+    REQUIRE(storage2.getDt<Vector>(QuantityId::POSITION) == v);
+    REQUIRE(perElement(storage2.getD2t<Vector>(QuantityId::POSITION)) == Vector(0._f));
 
     REQUIRE(storage2.getQuantity(QuantityId::DENSITY).getOrderEnum() == OrderEnum::FIRST);
     REQUIRE(perElement(storage2.getValue<Float>(QuantityId::DENSITY)) == 5._f);

@@ -113,7 +113,7 @@ public:
     virtual void collide(Storage& storage, Statistics& UNUSED(stats), const Float dt) override {
         // no collisions in SPH, simply advance positions
         ArrayView<Vector> r, v, dv;
-        tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
+        tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
         for (Size i = 0; i < r.size(); ++i) {
             r[i] += v[i] * dt;
         }
@@ -132,7 +132,7 @@ protected:
     virtual void loop(Storage& storage, Statistics& UNUSED(stats)) {
         // (re)build neighbour-finding structure; this needs to be done after all equations
         // are initialized in case some of them modify smoothing lengths
-        ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
+        ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
         finder->build(r);
 
         auto functor = [this, r](const Size n1, const Size n2, ThreadData& data) {

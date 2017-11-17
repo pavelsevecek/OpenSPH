@@ -6,6 +6,7 @@
 /// \date 2016-2017
 
 #include "math/rng/Rng.h" // not really needed, but it doesn't make sense to use VectorRng without some Rng object
+#include "objects/wrappers/Function.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -55,8 +56,8 @@ class VectorPdfRng : public Noncopyable {
 private:
     Box box;
     VectorRng<TScalarRng> vectorRng;
-    std::function<Float(const Vector&)> pdf;
-    std::function<Float(const Vector&)> jacobian;
+    Function<Float(const Vector&)> pdf;
+    Function<Float(const Vector&)> jacobian;
     Float maxPdf;
 
 public:
@@ -68,8 +69,8 @@ public:
     /// \param maximalPdf Maximal value of given PDF. By default, the value is estimated from the function
     /// itself.
     VectorPdfRng(const Box& box,
-        const std::function<Float(const Vector&)>& pdf = [](const Vector&) { return 1._f; },
-        const std::function<Float(const Vector&)>& jacobian = [](const Vector&) { return 1._f; },
+        const Function<Float(const Vector&)>& pdf = [](const Vector&) { return 1._f; },
+        const Function<Float(const Vector&)>& jacobian = [](const Vector&) { return 1._f; },
         const Float maximalPdf = 0._f)
         : box(box)
         , pdf(pdf)
@@ -80,8 +81,9 @@ public:
             /// \todo should depend on jacobian
             const Vector delta = 0.05_f * box.size();
             /// \todo jacobian
-            box.iterate(delta,
-                [&](const Vector& v) { this->maxPdf = max(this->maxPdf, this->pdf(v) * this->jacobian(v)); });
+            box.iterate(delta, [&](const Vector& v) { //
+                this->maxPdf = max(this->maxPdf, this->pdf(v) * this->jacobian(v));
+            });
         }
     }
 

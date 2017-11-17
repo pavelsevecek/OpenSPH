@@ -14,8 +14,8 @@ NAMESPACE_SPH_BEGIN
 
 void setupCollisionColumns(TextOutput& output) {
     output.add(makeAuto<ParticleNumberColumn>());
-    output.add(makeAuto<ValueColumn<Vector>>(QuantityId::POSITIONS));
-    output.add(makeAuto<DerivativeColumn<Vector>>(QuantityId::POSITIONS));
+    output.add(makeAuto<ValueColumn<Vector>>(QuantityId::POSITION));
+    output.add(makeAuto<DerivativeColumn<Vector>>(QuantityId::POSITION));
     output.add(makeAuto<SmoothingLengthColumn>());
     output.add(makeAuto<ValueColumn<Float>>(QuantityId::DENSITY));
     output.add(makeAuto<ValueColumn<Float>>(QuantityId::PRESSURE));
@@ -168,7 +168,7 @@ private:
                 ASSERT(t < startTime);
                 // damp velocities
                 ArrayView<Vector> r, v, dv;
-                tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
+                tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
                 for (Size i = 0; i < v.size(); ++i) {
                     // gradually decrease the delta
                     const Float t0 = timeRange.lower();

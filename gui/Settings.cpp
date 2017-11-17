@@ -50,6 +50,7 @@ AutoPtr<GuiSettings> GuiSettings::instance (new GuiSettings {
     { GuiSettingsId::PALETTE_STRESS,        "palette.stress",       Interval(0._f, 1.e10_f) },
     { GuiSettingsId::PALETTE_DAMAGE,        "palette.damage",       Interval(0._f, 1._f) },
     { GuiSettingsId::PALETTE_DIVV,          "palette.divv",         Interval(-0.1_f, 0.1_f) },
+    { GuiSettingsId::PALETTE_RADIUS,        "palette.radius",       Interval(0._f, 1.e3_f) },
     { GuiSettingsId::PALETTE_DENSITY_PERTURB, "palette.density_perturb",  Interval(-1.e-6_f, 1.e-6_f) },
 });
 // clang-format on

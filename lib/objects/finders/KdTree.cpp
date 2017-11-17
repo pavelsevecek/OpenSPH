@@ -1,5 +1,6 @@
 #include "objects/finders/KdTree.h"
 #include "objects/utility/ArrayUtils.h"
+#include "objects/wrappers/Function.h"
 #include <set>
 
 NAMESPACE_SPH_BEGIN
@@ -358,7 +359,7 @@ bool KdTree::sanityCheck() const {
     Size counter = 0;
     std::set<Size> indices;
 
-    std::function<bool(const Size idx)> countNodes([this, &indices, &counter, &countNodes](const Size idx) {
+    Function<bool(const Size idx)> countNodes([this, &indices, &counter, &countNodes](const Size idx) {
         // count this
         counter++;
 

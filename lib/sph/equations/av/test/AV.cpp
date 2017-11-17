@@ -17,7 +17,7 @@ CATCH_TEMPLATE_TEST_CASE_2("AV divergent", "[av]", T, StandardAV, RiemannAV) {
         // some divergent velocity field
         return r;
     });
-    ArrayView<Vector> dv = storage.getD2t<Vector>(QuantityId::POSITIONS);
+    ArrayView<Vector> dv = storage.getD2t<Vector>(QuantityId::POSITION);
     // AV shouldn't kick in for divergent flow
     REQUIRE(perElement(dv) == Vector(0._f));
 }
@@ -40,7 +40,7 @@ CATCH_TEMPLATE_TEST_CASE_2("AV shockwave", "[av]", T, StandardAV, RiemannAV) {
     });
     // should add acceleration and heating to particles around x=0
     ArrayView<Vector> r, v, dv;
-    tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
+    tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
     ArrayView<Float> du = storage.getDt<Float>(QuantityId::ENERGY);
     const Float h = r[0][H];
 

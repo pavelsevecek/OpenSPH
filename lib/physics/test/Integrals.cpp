@@ -26,15 +26,15 @@ TEST_CASE("Total mass", "[integrals]") {
 TEST_CASE("Total Momentum Simple", "[integrals]") {
     Storage storage;
     // two particles, perpendicular but moving in the same direction
-    storage.insert<Vector>(QuantityId::POSITIONS,
+    storage.insert<Vector>(QuantityId::POSITION,
         OrderEnum::SECOND,
         Array<Vector>{ Vector(1._f, 0._f, 0._f), Vector(0._f, 2._f, 0._f) });
     ArrayView<Vector> r, v, dv;
-    tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
+    tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
     v[0] = Vector(0._f, 2._f, 0._f);
     v[1] = Vector(0._f, 3._f, 0._f);
 
-    storage.insert<Float>(QuantityId::MASSES, OrderEnum::ZERO, Array<Float>{ 5._f, 7._f });
+    storage.insert<Float>(QuantityId::MASS, OrderEnum::ZERO, Array<Float>{ 5._f, 7._f });
 
     // integrals in inertial frame
     TotalMomentum momentum;
@@ -81,15 +81,15 @@ TEST_CASE("Total Momentum Body", "[integrals]") {
 TEST_CASE("Total Energy Simple", "[integrals]") {
     Storage storage;
     storage.insert<Vector>( // positions are irrelevant here ...
-        QuantityId::POSITIONS,
+        QuantityId::POSITION,
         OrderEnum::SECOND,
         Array<Vector>{ Vector(1._f, 0._f, 0._f), Vector(0._f, 2._f, 0._f) });
     ArrayView<Vector> r, v, dv;
-    tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
+    tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
     v[0] = Vector(0._f, 2._f, 0._f);
     v[1] = Vector(0._f, 3._f, 0._f);
 
-    storage.insert<Float>(QuantityId::MASSES, OrderEnum::ZERO, Array<Float>{ 5._f, 7._f });
+    storage.insert<Float>(QuantityId::MASS, OrderEnum::ZERO, Array<Float>{ 5._f, 7._f });
     storage.insert<Float>(QuantityId::ENERGY, OrderEnum::ZERO, Array<Float>{ 3._f, 4._f });
 
     REQUIRE(TotalKineticEnergy().evaluate(storage) == 41.5_f);

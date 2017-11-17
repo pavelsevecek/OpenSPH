@@ -54,8 +54,8 @@ TEST_CASE("Moments computation", "[gravity]") {
     BodySettings settings;
     settings.set(BodySettingsId::DENSITY, 1._f);
     Storage storage = Tests::getGassStorage(10, settings);
-    ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
-    ArrayView<Float> m = storage.getValue<Float>(QuantityId::MASSES);
+    ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
+    ArrayView<Float> m = storage.getValue<Float>(QuantityId::MASS);
 
     // compute the center of mass
     CenterOfMass com;
@@ -99,8 +99,8 @@ TEST_CASE("Parallel axis theorem", "[gravity]") {
     BodySettings settings;
     settings.set(BodySettingsId::DENSITY, 1._f);
     Storage storage = Tests::getGassStorage(10, settings);
-    ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
-    ArrayView<Float> m = storage.getValue<Float>(QuantityId::MASSES);
+    ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
+    ArrayView<Float> m = storage.getValue<Float>(QuantityId::MASS);
 
     IndexSequence seq(0, r.size());
     const Float m0 = computeMultipole<0>(r, m, Vector(0._f), seq).value();

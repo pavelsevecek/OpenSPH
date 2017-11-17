@@ -16,10 +16,10 @@ enum class QuantityId {
     ///@{
 
     /// Positions (velocities, accelerations) of particles, always a vector quantity,
-    POSITIONS,
+    POSITION,
 
     /// Paricles masses, always a scalar quantity.
-    MASSES,
+    MASS,
 
     /// Pressure, not affected by yielding or fragmentation model, always a scalar quantity.
     PRESSURE,
@@ -77,6 +77,12 @@ enum class QuantityId {
 
     /// Total stress reduction factor due to damage and yielding. Is always scalar.
     STRESS_REDUCING,
+
+    /// \todo
+    MOHR_COULOMB_STRESS,
+
+    /// \todo
+    FRICTION_ANGLE,
 
     ///@}
 
@@ -177,6 +183,11 @@ enum class QuantityId {
 
     /// Initial position of particles, kept constant during the run
     INITIAL_POSITION,
+
+    /// Smoothing lengths of particles. Note that ordinarily the smoothing lenghts are stored as 4th component
+    /// of position vectors, so this ID cannot be used to obtain smoothing lenghts from Storage object. It can
+    /// be useful for other uses of quantities, like data output, visualization etc.
+    SMOOTHING_LENGHT,
 
     ///@}
 

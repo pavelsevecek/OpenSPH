@@ -8,6 +8,7 @@
 #include "common/ForwardDecl.h"
 #include "objects/Exceptions.h"
 #include "objects/containers/Array.h"
+#include "objects/wrappers/Function.h"
 #include "objects/wrappers/SharedPtr.h"
 #include "quantities/Quantity.h"
 #include "quantities/QuantityIds.h"
@@ -415,6 +416,11 @@ public:
     /// Returns the sequence of quantities, const version.
     ConstStorageSequence getQuantities() const;
 
+    /// Executes a given functor recursively for all dependent storages.
+    ///
+    /// This storage is executed first, followed by the direct dependents, etc.
+    void propagate(const Function<void(Storage& storage)>& functor);
+
     /// Return the number of materials in the storage. Material indices from 0 to (getMaterialCnt() - 1) are
     /// valid input for \ref getMaterialView function.
     Size getMaterialCnt() const;
@@ -446,7 +452,8 @@ public:
     /// If all particles of some material are removed by this, the material is also removed from the storage.
     /// Same particles are also removed from all dependent storages.
     /// \param idsx Indices of particles to remove. No need to sort the indices.
-    void remove(ArrayView<const Size> idxs);
+    /// \param propagate If true, particles with given indices are also removed from all dependent storages.
+    void remove(ArrayView<const Size> idxs, const bool propagate);
 
     /// \brief Removes all particles with all quantities (including materials) from the storage.
     ///
@@ -484,8 +491,9 @@ public:
 
     /// \brief Checks whether the storage is in valid state.
     ///
-    /// The valid state means that is whether all quantities have the same number of particles. This should be
-    /// handled automatically, the function is mainly for debugging purposes.
+    /// The valid state means that all quantities have the same number of particles and materials are stored
+    /// consecutively in the storage. This should be handled automatically, the function is mainly for
+    /// debugging purposes.
     bool isValid() const;
 
 private:

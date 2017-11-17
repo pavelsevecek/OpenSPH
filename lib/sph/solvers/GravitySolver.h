@@ -20,7 +20,7 @@ private:
 
     struct DummyDerivative : public IDerivative {
         virtual void create(Accumulated& results) override {
-            results.insert<Vector>(QuantityId::POSITIONS, OrderEnum::SECOND);
+            results.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND);
         }
         virtual void initialize(const Storage&, Accumulated&) override {}
         virtual void evalSymmetric(const Size, ArrayView<const Size>, ArrayView<const Vector>) override {}
@@ -51,7 +51,7 @@ protected:
         // get acceleration buffer corresponding to first thread (to save some memory + time)
         ThreadData& data = threadData.first();
         Accumulated& accumulated = data.derivatives.getAccumulated();
-        ArrayView<Vector> dv = accumulated.getBuffer<Vector>(QuantityId::POSITIONS, OrderEnum::SECOND);
+        ArrayView<Vector> dv = accumulated.getBuffer<Vector>(QuantityId::POSITION, OrderEnum::SECOND);
 
         // evaluate gravity for each particle
         MEASURE("Evaluating gravity", gravity->evalAll(*pool, dv, stats));

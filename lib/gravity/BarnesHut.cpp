@@ -34,8 +34,8 @@ BarnesHut::BarnesHut(const Float theta,
 
 void BarnesHut::build(const Storage& storage) {
     // save source data
-    r = storage.getValue<Vector>(QuantityId::POSITIONS);
-    m = storage.getValue<Float>(QuantityId::MASSES);
+    r = storage.getValue<Vector>(QuantityId::POSITION);
+    m = storage.getValue<Float>(QuantityId::MASS);
 
     // build K-d Tree
     kdTree.build(r);

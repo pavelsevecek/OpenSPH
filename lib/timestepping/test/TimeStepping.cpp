@@ -16,7 +16,7 @@ namespace {
     struct TestSolver : public ISolver {
         virtual void collide(Storage& storage, Statistics& UNUSED(stats), const Float dt) override {
             ArrayView<Vector> r, v, dv;
-            tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
+            tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
             for (Size i = 0; i < r.size(); ++i) {
                 r[i] += v[i] * dt;
             }
@@ -31,7 +31,7 @@ namespace {
 
         virtual void integrate(Storage& storage, Statistics&) override {
             ArrayView<Vector> r, v, dv;
-            tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
+            tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
             for (Size i = 0; i < r.size(); ++i) {
                 dv[i] = g;
             }
@@ -49,7 +49,7 @@ namespace {
 
         virtual void integrate(Storage& storage, Statistics&) override {
             ArrayView<Vector> r, v, dv;
-            tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
+            tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
             Float omega = 2._f * PI / period;
             for (Size i = 0; i < r.size(); ++i) {
                 dv[i] = -sqr(omega) * r[i];
@@ -68,7 +68,7 @@ namespace {
 
         virtual void integrate(Storage& storage, Statistics&) override {
             ArrayView<Vector> r, v, dv;
-            tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
+            tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
             for (Size i = 0; i < r.size(); ++i) {
                 dv[i] = cross(v[i], B);
             }
@@ -93,10 +93,10 @@ static void testHomogeneousField(TArgs&&... args) {
 
     SharedPtr<Storage> storage = makeShared<Storage>(getDefaultMaterial());
     storage->insert<Vector>(
-        QuantityId::POSITIONS, OrderEnum::SECOND, Array<Vector>{ Vector(0._f, 0._f, 0._f) });
+        QuantityId::POSITION, OrderEnum::SECOND, Array<Vector>{ Vector(0._f, 0._f, 0._f) });
 
     ArrayView<const Vector> r, v, dv;
-    tie(r, v, dv) = storage->getAll<Vector>(QuantityId::POSITIONS);
+    tie(r, v, dv) = storage->getAll<Vector>(QuantityId::POSITION);
     TTimestepping timestepping(storage, std::forward<TArgs>(args)...);
     Statistics stats;
     Size n = 0;
@@ -124,10 +124,10 @@ static void testHarmonicOscillator(TArgs&&... args) {
 
     SharedPtr<Storage> storage = makeShared<Storage>(getDefaultMaterial());
     storage->insert<Vector>(
-        QuantityId::POSITIONS, OrderEnum::SECOND, Array<Vector>{ Vector(1._f, 0._f, 0._f) });
+        QuantityId::POSITION, OrderEnum::SECOND, Array<Vector>{ Vector(1._f, 0._f, 0._f) });
 
     ArrayView<const Vector> r, v, dv;
-    tie(r, v, dv) = storage->getAll<Vector>(QuantityId::POSITIONS);
+    tie(r, v, dv) = storage->getAll<Vector>(QuantityId::POSITION);
     TTimestepping timestepping(storage, std::forward<TArgs>(args)...);
     Statistics stats;
     Size n = 0;
@@ -155,10 +155,10 @@ static void testGyroscopicMotion(TArgs&&... args) {
 
     SharedPtr<Storage> storage = makeShared<Storage>(getDefaultMaterial());
     storage->insert<Vector>(
-        QuantityId::POSITIONS, OrderEnum::SECOND, Array<Vector>{ Vector(1._f, 0._f, 0._f) });
+        QuantityId::POSITION, OrderEnum::SECOND, Array<Vector>{ Vector(1._f, 0._f, 0._f) });
 
     ArrayView<Vector> r, v, dv;
-    tie(r, v, dv) = storage->getAll<Vector>(QuantityId::POSITIONS);
+    tie(r, v, dv) = storage->getAll<Vector>(QuantityId::POSITION);
     v[0] = Vector(0._f, -1._f, 0.5_f);
     // y component is perpendicular, should oscilate with cyclotron frequency, in this case omega_C = B
     // z component is parallel, should move with constant velocity
@@ -218,7 +218,7 @@ template <typename TTimestepping>
 static void testClamping() {
     SharedPtr<Storage> storage = makeShared<Storage>(getDefaultMaterial());
     storage->insert<Vector>(
-        QuantityId::POSITIONS, OrderEnum::SECOND, Array<Vector>{ Vector(1._f, 0._f, 0._f) });
+        QuantityId::POSITION, OrderEnum::SECOND, Array<Vector>{ Vector(1._f, 0._f, 0._f) });
     storage->insert<Float>(QuantityId::ENERGY, OrderEnum::FIRST, 5._f);
     const Interval range(3._f, 7._f);
     IMaterial& material = storage->getMaterial(0);

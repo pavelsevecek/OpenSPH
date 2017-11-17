@@ -33,12 +33,12 @@ void ScalarDamage::setFlaws(Storage& storage,
     storage.insert<Size>(QuantityId::N_FLAWS, OrderEnum::ZERO, 0);
     ArrayView<Float> rho, m, eps_min, m_zero, growth;
     tie(rho, m, eps_min, m_zero, growth) = storage.getValues<Float>(QuantityId::DENSITY,
-        QuantityId::MASSES,
+        QuantityId::MASS,
         QuantityId::EPS_MIN,
         QuantityId::M_ZERO,
         QuantityId::EXPLICIT_GROWTH);
     ArrayView<Size> n_flaws = storage.getValue<Size>(QuantityId::N_FLAWS);
-    ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
+    ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     ArrayView<Size> activationIdx;
     if (options == ExplicitFlaws::ASSIGNED) {
         activationIdx = storage.getValue<Size>(QuantityId::FLAW_ACTIVATION_IDX);
@@ -194,6 +194,23 @@ void TensorDamage::reduce(Storage& UNUSED(storage),
 
 void TensorDamage::integrate(Storage& UNUSED(storage), const MaterialView UNUSED(material)) {
     NOT_IMPLEMENTED;
+}
+
+void MohrCoulombModel::setFlaws(Storage& storage,
+    IMaterial& UNUSED(material),
+    const MaterialInitialContext& UNUSED(context)) const {
+    /// \todo correct values
+    storage.insert<Float>(QuantityId::MOHR_COULOMB_STRESS, 0._f);
+    storage.insert<Float>(QuantityId::FRICTION_ANGLE, 0._f);
+}
+
+void MohrCoulombModel::integrate(Storage& storage, const MaterialView material) {
+    for (Size i = 0; i < p.size(); ++i) {
+        const SymmetricTensor sigma = SymmetricTensor(s_dmg[i]) - p[i] * SymmetricTensor::identity();
+        Float sig1, sig2, sig3;
+        tie(sig1, sig2, sig3) = findEigenvalues(sigma);
+        const Float sigMax = max(sig1, sig2, sig3);
+    }
 }
 
 void NullDamage::setFlaws(Storage& UNUSED(storage),

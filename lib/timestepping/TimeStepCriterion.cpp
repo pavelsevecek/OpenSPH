@@ -205,7 +205,7 @@ Tuple<Float, CriterionId> AccelerationCriterion::compute(Storage& storage,
     const Float maxStep,
     Statistics& UNUSED(stats)) {
     ArrayView<const Vector> r, v, dv;
-    tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
+    tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
     struct Tl {
         Float minStep = INFTY;
     };
@@ -249,7 +249,7 @@ Tuple<Float, CriterionId> CourantCriterion::compute(Storage& storage,
     Statistics& UNUSED(stats)) {
 
     /// \todo AV contribution?
-    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
+    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     ArrayView<const Float> cs = storage.getValue<Float>(QuantityId::SOUND_SPEED);
     struct Tl {
         Float minStep = INFTY;

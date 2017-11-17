@@ -16,7 +16,7 @@ TEST_CASE("Components simple", "[post]") {
     Array<Vector> r{ Vector(0, 0, 0, 1), Vector(5, 0, 0, 1), Vector(0, 4, 0, 1), Vector(0, 3, 0, 1) };
     Array<Size> components;
     Storage storage;
-    storage.insert<Vector>(QuantityId::POSITIONS, OrderEnum::ZERO, std::move(r));
+    storage.insert<Vector>(QuantityId::POSITION, OrderEnum::ZERO, std::move(r));
     Size numComponents =
         Post::findComponents(storage, 2._f, Post::ComponentConnectivity::OVERLAP, components);
     REQUIRE(numComponents == 3);
@@ -34,7 +34,7 @@ TEST_CASE("Component initconds", "[post]") {
     conds.addMonolithicBody(storage, SphericalDomain(Vector(5, 2, 0), 1._f), bodySettings);
     conds.addMonolithicBody(storage, SphericalDomain(Vector(5, 2.5_f, 0), 1._f), bodySettings);
 
-    ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
+    ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     Array<Size> components;
     RunSettings settings;
     const Size numComponents =
@@ -69,16 +69,16 @@ TEST_CASE("Component by v_esc", "[post]") {
     Array<Vector> r{ Vector(0, 0, 0, 1), Vector(5, 0, 0, 1), Vector(0, 4, 0, 1), Vector(0, 3, 0, 1) };
     Array<Size> components;
     Storage storage;
-    storage.insert<Vector>(QuantityId::POSITIONS, OrderEnum::FIRST, std::move(r));
+    storage.insert<Vector>(QuantityId::POSITION, OrderEnum::FIRST, std::move(r));
     const Float m0 = 1._f;
-    storage.insert<Float>(QuantityId::MASSES, OrderEnum::ZERO, m0);
+    storage.insert<Float>(QuantityId::MASS, OrderEnum::ZERO, m0);
     Size numComponents =
         Post::findComponents(storage, 2._f, Post::ComponentConnectivity::ESCAPE_VELOCITY, components);
     // all particles still, one component only
     REQUIRE(numComponents == 1);
     REQUIRE(components == Array<Size>({ 0, 0, 0, 0 }));
 
-    ArrayView<Vector> v = storage.getDt<Vector>(QuantityId::POSITIONS);
+    ArrayView<Vector> v = storage.getDt<Vector>(QuantityId::POSITION);
     auto v_esc = [m0](const Float dr) { return sqrt(4._f * m0 * Constants::gravity / dr); };
     v[0] = Vector(0.8_f * v_esc(3._f), 0._f, 0._f);
     // too low velocity, nothing should change
@@ -101,7 +101,7 @@ TEST_CASE("CummulativeSfd", "[post]") {
         r[i] = Vector(0._f, 0._f, 0._f, i + 1);
     }
     Storage storage;
-    storage.insert<Vector>(QuantityId::POSITIONS, OrderEnum::ZERO, std::move(r));
+    storage.insert<Vector>(QuantityId::POSITION, OrderEnum::ZERO, std::move(r));
 
     Post::HistogramParams params;
     params.id = Post::HistogramId::RADII;
@@ -128,7 +128,7 @@ TEST_CASE("ParsePkdgrav", "[post]") {
     REQUIRE(storage->getParticleCnt() > 5000);
 
     // check that particles are sorted by masses
-    ArrayView<Float> m = storage->getValue<Float>(QuantityId::MASSES);
+    ArrayView<Float> m = storage->getValue<Float>(QuantityId::MASS);
     Float lastM = LARGE;
     Float sumM = 0._f;
     bool sorted = true;
@@ -177,9 +177,9 @@ TEST_CASE("FindMoons", "[post]") {
     const Vector v(0._f, 0._f, 29800._f);
 
     Storage storage;
-    storage.insert<Vector>(QuantityId::POSITIONS, OrderEnum::FIRST, { Vector(0._f), r });
-    storage.getDt<Vector>(QuantityId::POSITIONS) = Array<Vector>{ Vector(0._f), v };
-    storage.insert<Float>(QuantityId::MASSES, OrderEnum::ZERO, { M, m });
+    storage.insert<Vector>(QuantityId::POSITION, OrderEnum::FIRST, { Vector(0._f), r });
+    storage.getDt<Vector>(QuantityId::POSITION) = Array<Vector>{ Vector(0._f), v };
+    storage.insert<Float>(QuantityId::MASS, OrderEnum::ZERO, { M, m });
 
     Array<Post::MoonEnum> status = Post::findMoons(storage, 0._f);
     REQUIRE(status.size() == 2);

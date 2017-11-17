@@ -26,9 +26,9 @@ QuantityMetadata::QuantityMetadata(const std::string& fullName,
 
 QuantityMetadata getMetadata(const QuantityId key) {
     switch (key) {
-    case QuantityId::POSITIONS:
+    case QuantityId::POSITION:
         return QuantityMetadata("Position", "r", ValueEnum::VECTOR, "Velocity", "Acceleration");
-    case QuantityId::MASSES:
+    case QuantityId::MASS:
         return QuantityMetadata("Particle mass", "m", ValueEnum::SCALAR);
     case QuantityId::PRESSURE:
         return QuantityMetadata("Pressure", "p", ValueEnum::SCALAR);

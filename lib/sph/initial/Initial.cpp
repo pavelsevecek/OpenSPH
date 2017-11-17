@@ -19,7 +19,7 @@ BodyView::BodyView(Storage& storage, const Size bodyIndex)
     , bodyIndex(bodyIndex) {}
 
 BodyView& BodyView::addVelocity(const Vector& velocity) {
-    ArrayView<Vector> v = storage.getDt<Vector>(QuantityId::POSITIONS);
+    ArrayView<Vector> v = storage.getDt<Vector>(QuantityId::POSITION);
     // Body created using InitialConditions always has a material
     MaterialView material = storage.getMaterial(bodyIndex);
     for (Size i : material.sequence()) {
@@ -30,7 +30,7 @@ BodyView& BodyView::addVelocity(const Vector& velocity) {
 
 BodyView& BodyView::addRotation(const Vector& omega, const Vector& origin) {
     ArrayView<Vector> r, v, dv;
-    tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
+    tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
     MaterialView material = storage.getMaterial(bodyIndex);
     for (Size i : material.sequence()) {
         v[i] += cross(omega, r[i] - origin);
@@ -113,7 +113,7 @@ BodyView InitialConditions::addMonolithicBody(Storage& storage,
     // Generate positions of particles
     Array<Vector> positions = distribution->generate(n, domain);
     ASSERT(positions.size() > 0);
-    body.insert<Vector>(QuantityId::POSITIONS, OrderEnum::SECOND, std::move(positions));
+    body.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, std::move(positions));
 
     this->setQuantities(body, mat, domain.getVolume());
     storage.merge(std::move(body));
@@ -176,14 +176,14 @@ Array<BodyView> InitialConditions::addHeterogeneousBody(Storage& storage,
     // Initialize storages
     Float environmentVolume = environment.domain->getVolume();
     for (Size i = 0; i < bodyStorages.size(); ++i) {
-        bodyStorages[i].insert<Vector>(QuantityId::POSITIONS, OrderEnum::SECOND, std::move(pos_bodies[i]));
+        bodyStorages[i].insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, std::move(pos_bodies[i]));
         const Float volume = bodies[i].domain->getVolume();
         setQuantities(bodyStorages[i], bodyStorages[i].getMaterial(0), volume);
         views.emplaceBack(BodyView(storage, bodyIndex++));
         environmentVolume -= volume;
     }
     ASSERT(environmentVolume >= 0._f);
-    environmentStorage.insert<Vector>(QuantityId::POSITIONS, OrderEnum::SECOND, std::move(pos_env));
+    environmentStorage.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, std::move(pos_env));
     setQuantities(environmentStorage, environmentStorage.getMaterial(0), environmentVolume);
     views.emplaceBack(BodyView(storage, bodyIndex++));
 
@@ -278,7 +278,7 @@ void InitialConditions::addRubblePileBody(Storage& storage,
 
         // create the body
         Storage body(Factory::getMaterial(bodySettings));
-        body.insert<Vector>(QuantityId::POSITIONS, OrderEnum::ZERO, std::move(spherePositions));
+        body.insert<Vector>(QuantityId::POSITION, OrderEnum::ZERO, std::move(spherePositions));
         this->setQuantities(body, body.getMaterial(0), sphere.volume());
 
         // add it to the storage
@@ -296,7 +296,7 @@ void InitialConditions::setQuantities(Storage& storage, IMaterial& material, con
     const Float rho0 = material.getParam<Float>(BodySettingsId::DENSITY);
     const Float totalM = volume * rho0; // m = rho * V
     ASSERT(totalM > 0._f);
-    storage.insert<Float>(QuantityId::MASSES, OrderEnum::ZERO, totalM / storage.getParticleCnt());
+    storage.insert<Float>(QuantityId::MASS, OrderEnum::ZERO, totalM / storage.getParticleCnt());
 
     // Mark particles of this body
     storage.insert<Size>(QuantityId::FLAG, OrderEnum::ZERO, bodyIndex);

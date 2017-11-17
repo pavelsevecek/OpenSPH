@@ -19,7 +19,7 @@ TEST_CASE("StressAV test", "[av]") {
     SharedPtr<Storage> storage = makeShared<Storage>(Tests::getSolidStorage(10000, body, 1._f));
     const Float cs = storage->getValue<Float>(QuantityId::SOUND_SPEED)[0];
     ArrayView<Vector> r, v, dv;
-    tie(r, v, dv) = storage->getAll<Vector>(QuantityId::POSITIONS);
+    tie(r, v, dv) = storage->getAll<Vector>(QuantityId::POSITION);
     const Vector dir = getNormalized(Vector(1._f, 2._f, -5._f)); // some non-trivial direction of motion
     for (Size i = 0; i < r.size(); ++i) {
         // subsonic flow along the axis
@@ -46,7 +46,7 @@ TEST_CASE("StressAV test", "[av]") {
     // sanity check - check components of stress tensor
     // note that artificial stress shouldn't do anything so far as we have zero initial stress tensor
     ArrayView<TracelessTensor> s = storage->getValue<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
-    tie(r, v, dv) = storage->getAll<Vector>(QuantityId::POSITIONS);
+    tie(r, v, dv) = storage->getAll<Vector>(QuantityId::POSITION);
     ArrayView<SymmetricTensor> as = storage->getValue<SymmetricTensor>(QuantityId::AV_STRESS);
     const Float h = r[0][H];
     auto test1 = [&](const Size i) -> Outcome {
@@ -69,7 +69,7 @@ TEST_CASE("StressAV test", "[av]") {
     GenericSolver solverAS(settings, std::move(eqs));
     timestepping.step(solverAS, stats);
 
-    tie(r, v, dv) = storage->getAll<Vector>(QuantityId::POSITIONS);
+    tie(r, v, dv) = storage->getAll<Vector>(QuantityId::POSITION);
     as = storage->getValue<SymmetricTensor>(QuantityId::AV_STRESS);
     auto test2 = [&](const Size i) -> Outcome {
         if (getLength(r[i]) > 0.7_f) {

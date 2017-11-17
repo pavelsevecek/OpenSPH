@@ -30,18 +30,18 @@ public:
         }
 
         virtual void create(Accumulated& results) override {
-            results.insert<Vector>(QuantityId::POSITIONS, OrderEnum::SECOND);
+            results.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND);
             results.insert<Float>(QuantityId::ENERGY, OrderEnum::FIRST);
         }
 
         virtual void initialize(const Storage& storage, Accumulated& results) override {
             ArrayView<const Vector> dummy;
-            tie(r, v, dummy) = storage.getAll<Vector>(QuantityId::POSITIONS);
+            tie(r, v, dummy) = storage.getAll<Vector>(QuantityId::POSITION);
             cs = storage.getValue<Float>(QuantityId::SOUND_SPEED);
             rho = storage.getValue<Float>(QuantityId::SOUND_SPEED);
-            m = storage.getValue<Float>(QuantityId::MASSES);
+            m = storage.getValue<Float>(QuantityId::MASS);
 
-            dv = results.getBuffer<Vector>(QuantityId::POSITIONS, OrderEnum::SECOND);
+            dv = results.getBuffer<Vector>(QuantityId::POSITION, OrderEnum::SECOND);
             du = results.getBuffer<Float>(QuantityId::ENERGY, OrderEnum::FIRST);
         }
 

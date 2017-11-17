@@ -18,10 +18,10 @@ TEST_CASE("BruteForceGravity single-thread", "[gravity]") {
     Storage storage = Tests::getGassStorage(1000, settings, r0);
     // compute analytical acceleraion
     analytic.finalize(storage);
-    Array<Vector> a = storage.getD2t<Vector>(QuantityId::POSITIONS).clone();
+    Array<Vector> a = storage.getD2t<Vector>(QuantityId::POSITION).clone();
 
-    ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
-    ArrayView<Vector> d2v = storage.getD2t<Vector>(QuantityId::POSITIONS);
+    ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
+    ArrayView<Vector> d2v = storage.getD2t<Vector>(QuantityId::POSITION);
     storage.zeroHighestDerivatives(); // clear derivatives computed by analytic
     gravity.build(storage);
 
@@ -52,7 +52,7 @@ TEST_CASE("BruteForceGravity parallel", "[gravity]") {
 
     BruteForceGravity gravity;
     gravity.build(storage);
-    Array<Vector> dv1 = storage.getD2t<Vector>(QuantityId::POSITIONS).clone();
+    Array<Vector> dv1 = storage.getD2t<Vector>(QuantityId::POSITION).clone();
     Statistics stats;
     gravity.evalAll(dv1, stats);
 
@@ -74,15 +74,15 @@ TEST_CASE("BruteForceGravity parallel", "[gravity]") {
 
 TEST_CASE("BruteForceGravity symmetrization", "[gravity]") {
     Storage storage;
-    storage.insert<Vector>(QuantityId::POSITIONS,
+    storage.insert<Vector>(QuantityId::POSITION,
         OrderEnum::SECOND,
         Array<Vector>({ Vector(0.f, 0.f, 0.f, 1.f), Vector(2._f, 0.f, 0.f, 5._f) }));
-    storage.insert<Float>(QuantityId::MASSES, OrderEnum::ZERO, 1.e10_f);
+    storage.insert<Float>(QuantityId::MASS, OrderEnum::ZERO, 1.e10_f);
 
     BruteForceGravity gravity;
     gravity.build(storage);
     Statistics stats;
-    ArrayView<Vector> dv = storage.getD2t<Vector>(QuantityId::POSITIONS);
+    ArrayView<Vector> dv = storage.getD2t<Vector>(QuantityId::POSITION);
     gravity.evalAll(dv, stats);
     REQUIRE(dv[0] == -dv[1]);
 }

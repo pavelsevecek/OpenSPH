@@ -11,7 +11,7 @@ TEST_CASE("IMaterial timestepping params", "[material]") {
     settings.set(BodySettingsId::DAMAGE_RANGE, Interval(0._f, 10._f));
     settings.set(BodySettingsId::DAMAGE_MIN, 4._f);
     NullMaterial material(settings);
-    REQUIRE(material.minimal(QuantityId::POSITIONS) == 0._f);
+    REQUIRE(material.minimal(QuantityId::POSITION) == 0._f);
     REQUIRE(material.minimal(QuantityId::AV_BALSARA) == 0._f);
     REQUIRE(material.range(QuantityId::DAMAGE) == Interval::unbounded());
     REQUIRE(material.range(QuantityId::DISPLACEMENT) == Interval::unbounded());

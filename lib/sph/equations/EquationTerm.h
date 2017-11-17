@@ -59,13 +59,13 @@ private:
 
 public:
     virtual void create(Accumulated& results) override {
-        results.insert<Vector>(QuantityId::POSITIONS, OrderEnum::SECOND);
+        results.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND);
     }
 
     virtual void initialize(const Storage& input, Accumulated& results) override {
         tie(p, rho, m) =
-            input.getValues<Float>(QuantityId::PRESSURE, QuantityId::DENSITY, QuantityId::MASSES);
-        dv = results.getBuffer<Vector>(QuantityId::POSITIONS, OrderEnum::SECOND);
+            input.getValues<Float>(QuantityId::PRESSURE, QuantityId::DENSITY, QuantityId::MASS);
+        dv = results.getBuffer<Vector>(QuantityId::POSITION, OrderEnum::SECOND);
     }
 
     template <bool Symmetrize>
@@ -112,7 +112,7 @@ public:
         ArrayView<const Float> divv = storage.getValue<Float>(QuantityId::VELOCITY_DIVERGENCE);
         ArrayView<const Float> p, rho, m; ///\todo share these arrayviews?
         tie(p, rho, m) =
-            storage.getValues<Float>(QuantityId::PRESSURE, QuantityId::DENSITY, QuantityId::MASSES);
+            storage.getValues<Float>(QuantityId::PRESSURE, QuantityId::DENSITY, QuantityId::MASS);
         ArrayView<Float> du = storage.getDt<Float>(QuantityId::ENERGY);
 
         parallelFor(0, du.size(), [&](const Size n1, const Size n2) INL {
@@ -145,15 +145,15 @@ private:
 
 public:
     virtual void create(Accumulated& results) override {
-        results.insert<Vector>(QuantityId::POSITIONS, OrderEnum::SECOND);
+        results.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND);
     }
 
     virtual void initialize(const Storage& input, Accumulated& results) override {
-        tie(rho, m) = input.getValues<Float>(QuantityId::DENSITY, QuantityId::MASSES);
+        tie(rho, m) = input.getValues<Float>(QuantityId::DENSITY, QuantityId::MASS);
         s = input.getPhysicalValue<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
         reduce = input.getValue<Float>(QuantityId::STRESS_REDUCING);
         flag = input.getValue<Size>(QuantityId::FLAG);
-        dv = results.getBuffer<Vector>(QuantityId::POSITIONS, OrderEnum::SECOND);
+        dv = results.getBuffer<Vector>(QuantityId::POSITION, OrderEnum::SECOND);
     }
 
     template <bool Symmetrize>
@@ -454,7 +454,7 @@ public:
     }
 
     virtual void initialize(Storage& storage) override {
-        ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
+        ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
         // clamp smoothing lengths
         for (Size i = 0; i < r.size(); ++i) {
             r[i][H] = max(r[i][H], minimal);
@@ -466,7 +466,7 @@ public:
         ArrayView<const Float> cs = storage.getValue<Float>(QuantityId::SOUND_SPEED);
         ArrayView<const Size> neighCnt = storage.getValue<Size>(QuantityId::NEIGHBOUR_CNT);
         ArrayView<Vector> r, v, dv;
-        tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
+        tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
         parallelFor(0, r.size(), [&](const Size n1, const Size n2) INL {
             for (Size i = n1; i < n2; ++i) {
                 // 'continuity equation' for smoothing lengths
@@ -522,7 +522,7 @@ public:
 
     virtual void finalize(Storage& storage) override {
         ArrayView<Vector> r, v, dv;
-        tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
+        tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
         parallelFor(0, r.size(), [&v, &dv](const Size n1, const Size n2) INL {
             for (Size i = n1; i < n2; ++i) {
                 v[i][H] = 0._f;

@@ -84,7 +84,7 @@ private:
         dc.DrawText("Particle " + std::to_string(particle->getIndex()), wxPoint(24, 4));
 
         // particle position
-        const Vector position = particle->getValue(QuantityId::POSITIONS);
+        const Vector position = particle->getValue(QuantityId::POSITION);
         drawTextWithSubscripts(
             dc, L"x = " + toPrintableString(position[X]), offset + wxSize(0, 1 * config.lineSkip));
         drawTextWithSubscripts(
@@ -92,7 +92,7 @@ private:
         drawTextWithSubscripts(
             dc, L"z = " + toPrintableString(position[Z]), offset + wxSize(0, 3 * config.lineSkip));
 
-        Value velocityValue = particle->getDt(QuantityId::POSITIONS);
+        Value velocityValue = particle->getDt(QuantityId::POSITION);
         if (velocityValue) {
             const Vector velocity = velocityValue;
             const Size x = canvasSize.x / 2;
@@ -108,7 +108,7 @@ private:
 
         // print other particle data
         for (Particle::QuantityData data : particle.value()) {
-            if (data.id == QuantityId::POSITIONS) {
+            if (data.id == QuantityId::POSITION) {
                 // skip position info, already printed
                 continue;
             }

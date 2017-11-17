@@ -7,7 +7,7 @@
 
 #include "io/Path.h"
 #include "objects/containers/Array.h"
-#include <functional>
+#include "objects/wrappers/Function.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -40,7 +40,7 @@ public:
     /// Blocks the calling thread until the managed process exits or until given condition is met.
     /// \param condition Function returning true if the wait should be interrupted.
     /// \param checkEvery Period of condition checking in milliseconds
-    void waitUntil(const std::function<bool()>& condition, const uint64_t checkEvery = 100);
+    void waitUntil(const Function<bool()>& condition, const uint64_t checkEvery = 100);
 };
 
 NAMESPACE_SPH_END

@@ -137,7 +137,7 @@ template Quantity& Storage::insert(const QuantityId, const OrderEnum, Array<Tens
 void Storage::addDependent(const WeakPtr<Storage>& other) {
 #ifdef SPH_DEBUG
     // check for a cycle - look for itself in a hierarchy
-    std::function<bool(const Storage&)> checkDependent = [this, &checkDependent](const Storage& storage) {
+    Function<bool(const Storage&)> checkDependent = [this, &checkDependent](const Storage& storage) {
         for (const WeakPtr<Storage>& weakPtr : storage.dependent) {
             if (SharedPtr<Storage> ptr = weakPtr.lock()) {
                 if (&*ptr == this) {
@@ -183,6 +183,15 @@ StorageSequence Storage::getQuantities() {
 
 ConstStorageSequence Storage::getQuantities() const {
     return *this;
+}
+
+void Storage::propagate(const Function<void(Storage& storage)>& functor) {
+    functor(*this);
+    for (WeakPtr<Storage>& weakPtr : dependent) {
+        if (SharedPtr<Storage> sharedPtr = weakPtr.lock()) {
+            sharedPtr->propagate(functor);
+        }
+    }
 }
 
 Size Storage::getMaterialCnt() const {
@@ -239,10 +248,7 @@ void Storage::merge(Storage&& other) {
     this->update();
 
     // sanity check
-    ASSERT(!matIds || matIds[0] == 0);
-    ASSERT(!matIds || matIds[this->getParticleCnt() - 1] == this->getMaterialCnt() - 1);
-    ASSERT(mats.empty() || mats[0].from == 0);
-    ASSERT(mats.empty() || mats[mats.size() - 1].to == this->getParticleCnt());
+    ASSERT(this->isValid());
 }
 
 void Storage::zeroHighestDerivatives() {
@@ -286,14 +292,50 @@ void Storage::swap(Storage& other, const Flags<VisitorEnum> flags) {
 }
 
 bool Storage::isValid() const {
+    TODO("Test");
     const Size cnt = this->getParticleCnt();
     bool valid = true;
-    iterate<VisitorEnum::ALL_BUFFERS>(const_cast<Storage&>(*this), [cnt, &valid](const auto& buffer) {
+    // check that all buffers have the same number of particles
+    iterate<VisitorEnum::ALL_BUFFERS>(*this, [cnt, &valid](const auto& buffer) {
         if (buffer.size() != cnt) {
             valid = false;
         }
     });
-    return valid;
+    if (!valid) {
+        return false;
+    }
+
+    // check that materials are set up correctly
+    if (this->getMaterialCnt() == 0) {
+        // no materials are a valid state, all OK
+        return true;
+    }
+    if (!matIds || !this->has(QuantityId::MATERIAL_ID)) {
+        // with at least one material we need the MATERIAL_ID helper quantity and cached view
+        return false;
+    }
+
+    if (matIds != this->getValue<Size>(QuantityId::MATERIAL_ID)) {
+        // WTF did I cache?
+        return false;
+    }
+
+    for (Size matId = 0; matId < mat.size(); ++matId) {
+        Mat& mat = mats[matId];
+        for (Size i = mat.from; i < mat.to; ++i) {
+            if (matIds[i] != matId) {
+                return false;
+            }
+        }
+        if ((matId != mats.size() - 1) && (mat.to != mat[matId + 1].from)) {
+            return false;
+        }
+    }
+    if (mat[0].from 1 = 0 || mat[mats.size() - 1] != cnt) {
+        return false;
+    }
+
+    return true;
 }
 
 void Storage::remove(ArrayView<const Size> idxs) {
@@ -301,6 +343,7 @@ void Storage::remove(ArrayView<const Size> idxs) {
     for (Size matId = 0; matId < mats.size();) {
         Mat& mat = mats[matId];
         mat.from -= particlesRemoved;
+        mat.to -= particlesRemoved;
         for (Size i : idxs) {
             if (matIds[i] == matId) {
                 mat.to--;
@@ -310,21 +353,33 @@ void Storage::remove(ArrayView<const Size> idxs) {
 
         if (mat.from == mat.to) {
             // no particles with this material left, remove
+            for (Size i : IndexSequence(mat.to, this->getParticleCnt())) {
+                matIds[i]--;
+            }
             mats.remove(matId);
         } else {
             ++matId;
         }
     }
 
-    iterate<VisitorEnum::ALL_BUFFERS>(*this, [idxs](auto& buffer) {
-        for (Size i : idxs) {
+    Array<Size> sorted(0, idxs.size());
+    sorted.pushAll(idxs.begin(), idxs.end());
+    std::sort(sorted.begin(), sorted.end());
+
+    iterate<VisitorEnum::ALL_BUFFERS>(*this, [&sorted](auto& buffer) {
+        for (Size i : reverse(sorted)) {
             buffer.remove(i);
         }
     });
 
     this->update();
 
-    NOT_IMPLEMENTED; /// \todo TESTS!!
+    for (WeakPtr<Storage>& weakPtr : dependent) {
+        if (SharedPtr<Storage> ptr = weakPtr.lock()) {
+            /// \todo can be optimized by passing already sorted indices + flag that we don't have to sort it
+            ptr->remove(idxs);
+        }
+    }
 }
 
 void Storage::removeAll() {

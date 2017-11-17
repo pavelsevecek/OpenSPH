@@ -11,10 +11,10 @@ NAMESPACE_SPH_BEGIN
 /// does not hold information about orders of the stored quantities, and it is possible to store derivatives
 /// of quantities without having quantity values stored as well.
 class Particle {
+    friend class ParticleVisitor;
+
 private:
     Size idx;
-
-    struct Visitor;
 
     struct InternalQuantityData {
         Value value;

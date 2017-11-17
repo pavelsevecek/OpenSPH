@@ -21,9 +21,9 @@ TEST_CASE("Derivative initialize", "[derivative]") {
     derivatives.require<VelocityDivergence<NoGradientCorrection>>(settings);
     Storage storage;
     storage.insert<Vector>(
-        QuantityId::POSITIONS, OrderEnum::FIRST, Array<Vector>{ Vector(1._f), Vector(2._f), Vector(3._f) });
+        QuantityId::POSITION, OrderEnum::FIRST, Array<Vector>{ Vector(1._f), Vector(2._f), Vector(3._f) });
     storage.insert<Float>(QuantityId::DENSITY, OrderEnum::ZERO, 1._f); // quantities needed by divv
-    storage.insert<Float>(QuantityId::MASSES, OrderEnum::ZERO, 1._f);
+    storage.insert<Float>(QuantityId::MASS, OrderEnum::ZERO, 1._f);
 
     derivatives.initialize(storage);
     Accumulated& ac = derivatives.getAccumulated();

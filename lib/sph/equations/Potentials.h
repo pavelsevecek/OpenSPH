@@ -34,7 +34,7 @@ public:
 
     virtual void finalize(Storage& storage) override {
         ArrayView<Vector> r, v, dv;
-        tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
+        tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
         /// \todo parallelize
         for (Size i = 0; i < r.size(); ++i) {
             dv[i] += functor(r[i]);
@@ -69,7 +69,7 @@ public:
 
     virtual void finalize(Storage& storage) override {
         ArrayView<Vector> r, v, dv;
-        tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
+        tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
         /// \todo parallelize
         for (Size i = 0; i < r.size(); ++i) {
             dv[i] -= 2._f * cross(omega, v[i]) + cross(omega, cross(omega, r[i]));
@@ -106,8 +106,8 @@ public:
     virtual void initialize(Storage& UNUSED(storage)) override {}
 
     virtual void finalize(Storage& storage) override {
-        ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
-        ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASSES);
+        ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
+        ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
         /*        Float rmax = 0._f;
                 for (Size i = 0; i < r.size(); ++i) {
                     rmax = max(rmax, getSqrLength(r[i]));
@@ -117,7 +117,7 @@ public:
 
         if (useHomogeneousApprox) {
             // compute acceleration
-            ArrayView<Vector> dv = storage.getD2t<Vector>(QuantityId::POSITIONS);
+            ArrayView<Vector> dv = storage.getD2t<Vector>(QuantityId::POSITION);
             const Float rho0 = storage.getMaterial(0)->getParam<Float>(BodySettingsId::DENSITY);
             Analytic::StaticSphere sphere(INFTY, rho0); // here radius does not matter
             for (Size i = 0; i < dv.size(); ++i) {
@@ -139,7 +139,7 @@ public:
                 M[i] = m[idxs[i]] + (i > 0 ? M[i - 1] : 0._f);
             }
             // compute acceleration
-            ArrayView<Vector> dv = storage.getD2t<Vector>(QuantityId::POSITIONS);
+            ArrayView<Vector> dv = storage.getD2t<Vector>(QuantityId::POSITION);
             for (Size i = 0; i < dv.size(); ++i) {
                 const Size idx = idxs[i];
                 dv[idx] -= Constants::gravity * M[i] * r[idx] / pow<3>(getLength(r[idx]));

@@ -54,11 +54,10 @@ struct GhostFunctor {
 };
 
 void GhostParticles::initialize(Storage& storage) {
-    // remove previous ghost particles
-    removeGhosts(storage);
+    ASSERT(ghosts.empty() && ghostIdxs.empty());
 
     // project particles outside of the domain on the boundary
-    Array<Vector>& r = storage.getValue<Vector>(QuantityId::POSITIONS);
+    Array<Vector>& r = storage.getValue<Vector>(QuantityId::POSITION);
     domain->project(r);
 
     // find particles close to boundary and create necessary ghosts
@@ -67,21 +66,36 @@ void GhostParticles::initialize(Storage& storage) {
     const Size ghostStartIdx = r.size();
     for (Size i = 0; i < ghosts.size(); ++i) {
         ghostIdxs.push(ghostStartIdx + i);
-        r.push(ghosts[i].position);
-    }
+    };
 
-    // copy all quantities on ghosts
-    GhostFunctor functor{ ghosts, ghostIdxs, *domain };
-    iterateWithPositions(storage, functor);
+    TODO(
+        "actually there is no reason to propagate, we can just add particles on initializzation and remove "
+        "them on finalization. This will break the 1-1 correspondence with dependent storages, but this "
+        "shouldn't matter inside the solver. We have to add a parameter to Storage::remove and functions "
+        "adding particles to tell them NOT to propagate, that could mess things up");
+
+    // we have to also add the ghosts to all dependent storages
+    storage.propagate([this](Storage& s) {
+        // the dependent storages can be incomplete, so we have to be careful
+        if (!s.has(QuantityId::POSITION)) {
+            return;
+        }
+        Array<Vector>& r = s.getValue<Vector>(QuantityId::POSITION);
+        if (!r.empty()) {
+            // push ghosts into the position buffer
+            for (Size i = 0; i < ghosts.size(); ++i) {
+                r.push(ghosts[i].position);
+            }
+        }
+        // copy all quantities on ghosts
+        GhostFunctor functor{ ghosts, ghostIdxs, *domain };
+        iterateWithPositions(s, functor);
+    });
 }
 
-void GhostParticles::removeGhosts(Storage& storage) {
-    iterate<VisitorEnum::ALL_BUFFERS>(storage, [this](auto&& v) {
-        // remove from highest index so that lower indices are unchanged
-        for (int i = ghostIdxs.size() - 1; i >= 0; --i) {
-            v.remove(ghostIdxs[i]);
-        }
-    });
+void GhostParticles::finalize(Storage& storage) {
+    // remove ghosts by indices (which also removes ghosts from all dependent storages)
+    storage.remove(ghostIdxs);
     ghostIdxs.clear();
     ghosts.clear();
 }
@@ -110,7 +124,7 @@ void FrozenParticles::thaw(const Size flag) {
 
 void FrozenParticles::finalize(Storage& storage) {
     ArrayView<Vector> r, v, dv;
-    tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
+    tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
 
     idxs.clear();
     if (domain) {
@@ -160,7 +174,7 @@ void WindTunnel::finalize(Storage& storage) {
 
     // remove particles outside of the domain
     Array<Size> toRemove;
-    Array<Vector>& r = storage.getValue<Vector>(QuantityId::POSITIONS);
+    Array<Vector>& r = storage.getValue<Vector>(QuantityId::POSITION);
     for (Size i = 0; i < r.size(); ++i) {
         if (!this->domain->contains(r[i])) {
             toRemove.push(i);
@@ -219,7 +233,7 @@ Projection1D::Projection1D(const Interval& domain)
 
 void Projection1D::finalize(Storage& storage) {
     ArrayView<Vector> dv;
-    tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
+    tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
     for (Size i = 0; i < r.size(); ++i) {
         // throw away y and z, keep h
         r[i] = Vector(domain.clamp(r[i][0]), 0._f, 0._f, r[i][H]);

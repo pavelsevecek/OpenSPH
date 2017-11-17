@@ -16,7 +16,7 @@ TEST_CASE("Interpolation gassball", "[interpolation]") {
     Storage storage = Tests::getGassStorage(4000, settings, 1._f);
     Interpolation interpol(storage);
 
-    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
+    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     const Float h = r[0][H];
 
     auto test = [&](const Size i) -> Outcome {
@@ -46,7 +46,7 @@ TEST_CASE("Interpolate velocity", "[interpolation]") {
     settings.set(BodySettingsId::DENSITY, rho0);
     Storage storage = Tests::getGassStorage(4000, settings, 1._f);
     ArrayView<Vector> r, v, dv;
-    tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
+    tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
     auto field = [](const Vector& x) {
         // some nontrivial velocity field
         return Vector(3._f * x[X] + x[Z], exp(x[Y]) * x[Z], -x[X] / (4._f + x[Z]));
@@ -61,7 +61,7 @@ TEST_CASE("Interpolate velocity", "[interpolation]") {
     auto test = [&](const Size i) -> Outcome {
         const Vector expected = field(points[i]);
         const Vector actual =
-            interpol.interpolate<Vector>(QuantityId::POSITIONS, OrderEnum::FIRST, points[i]);
+            interpol.interpolate<Vector>(QuantityId::POSITION, OrderEnum::FIRST, points[i]);
         if (expected != approx(actual, 0.01_f)) {
             return makeFailed("Incorrect velocity:\n", expected, " == ", actual);
         }
@@ -70,6 +70,6 @@ TEST_CASE("Interpolate velocity", "[interpolation]") {
     REQUIRE_SEQUENCE(test, 0, points.size());
 
     const Vector v_out =
-        interpol.interpolate<Vector>(QuantityId::POSITIONS, OrderEnum::FIRST, Vector(-1._f, 2._f, 1._f));
+        interpol.interpolate<Vector>(QuantityId::POSITION, OrderEnum::FIRST, Vector(-1._f, 2._f, 1._f));
     REQUIRE(v_out == Vector(0._f));
 }

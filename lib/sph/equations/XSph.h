@@ -42,9 +42,9 @@ private:
 
         virtual void initialize(const Storage& input, Accumulated& results) override {
             dr = results.getBuffer<Vector>(QuantityId::XSPH_VELOCITIES, OrderEnum::ZERO);
-            tie(rho, m) = input.getValues<Float>(QuantityId::DENSITY, QuantityId::MASSES);
+            tie(rho, m) = input.getValues<Float>(QuantityId::DENSITY, QuantityId::MASS);
             ArrayView<const Vector> dummy;
-            tie(r, v, dummy) = input.getAll<Vector>(QuantityId::POSITIONS);
+            tie(r, v, dummy) = input.getAll<Vector>(QuantityId::POSITION);
         }
 
         template <bool Symmetric>
@@ -71,7 +71,7 @@ public:
         /// \todo this is not very good solution as it depends on ordering of equation term in the array;
         /// some may already get corrected velocities.
         /// This should be really done by deriving GenericSolver and correcting velocities manually.
-        ArrayView<Vector> v = storage.getDt<Vector>(QuantityId::POSITIONS);
+        ArrayView<Vector> v = storage.getDt<Vector>(QuantityId::POSITION);
         ArrayView<Vector> dr = storage.getValue<Vector>(QuantityId::XSPH_VELOCITIES);
         for (Size i = 0; i < v.size(); ++i) {
             v[i] -= dr[i];
@@ -79,7 +79,7 @@ public:
     }
 
     virtual void finalize(Storage& storage) override {
-        ArrayView<Vector> v = storage.getDt<Vector>(QuantityId::POSITIONS);
+        ArrayView<Vector> v = storage.getDt<Vector>(QuantityId::POSITION);
         ArrayView<Vector> dr = storage.getValue<Vector>(QuantityId::XSPH_VELOCITIES);
         for (Size i = 0; i < v.size(); ++i) {
             v[i] += dr[i];

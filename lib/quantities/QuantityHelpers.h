@@ -68,10 +68,11 @@ struct GetTypeFromEnum<ValueEnum::INDEX> {
 };
 
 
-/// Selects type based on run-time ValueEnum value and runs visit<Type>() method of the visitor. This provides
-/// a way to run generic code with different types. Return whatever TVisitor::visit returns.
+/// \brief Selects type based on run-time ValueEnum value and runs visit<Type>() method of the visitor.
+///
+/// This provides a way to run generic code with different types. Return whatever TVisitor::visit returns.
 template <typename TVisitor, typename... TArgs>
-auto dispatch(const ValueEnum value, TVisitor&& visitor, TArgs&&... args) {
+decltype(auto) dispatch(const ValueEnum value, TVisitor&& visitor, TArgs&&... args) {
     switch (value) {
     case ValueEnum::SCALAR:
         return visitor.template visit<Float>(std::forward<TArgs>(args)...);

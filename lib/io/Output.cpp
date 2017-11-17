@@ -553,9 +553,9 @@ Path PkdgravOutput::dump(Storage& storage, const Statistics& stats) {
     const Path fileName = paths.getNextPath(stats);
 
     ArrayView<Float> m, rho, u;
-    tie(m, rho, u) = storage.getValues<Float>(QuantityId::MASSES, QuantityId::DENSITY, QuantityId::ENERGY);
+    tie(m, rho, u) = storage.getValues<Float>(QuantityId::MASS, QuantityId::DENSITY, QuantityId::ENERGY);
     ArrayView<Vector> r, v, dv;
-    tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
+    tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
     ArrayView<Size> flags = storage.getValue<Size>(QuantityId::FLAG);
 
     std::ofstream ofs(fileName.native());

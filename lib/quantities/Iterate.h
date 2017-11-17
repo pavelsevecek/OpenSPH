@@ -201,11 +201,20 @@ void iterate(Storage& storage, TFunctor&& functor) {
     }
 }
 
+/// \copydoc iterate
+template <VisitorEnum Type, typename TFunctor>
+void iterate(const Storage& storage, TFunctor&& functor) {
+    StorageVisitor<Type, TFunctor> visitor;
+    for (auto q : storage.getQuantities()) {
+        dispatch(q.quantity.getValueEnum(), visitor, q.quantity, q.id, std::forward<TFunctor>(functor));
+    }
+}
+
 template <typename TFunctor>
 struct StorageVisitorWithPositions {
     template <typename TValue>
     void visit(Quantity& q, Array<Vector>& r, QuantityId key, TFunctor&& functor) {
-        if (key == QuantityId::POSITIONS) {
+        if (key == QuantityId::POSITION) {
             // exclude positions
             auto buffers = q.getAll<TValue>();
             functor(buffers[1], r);
@@ -224,7 +233,7 @@ struct StorageVisitorWithPositions {
 /// Storage must already contain positions, checked by assert.
 template <typename TFunctor>
 void iterateWithPositions(Storage& storage, TFunctor&& functor) {
-    Array<Vector>& r = storage.getValue<Vector>(QuantityId::POSITIONS);
+    Array<Vector>& r = storage.getValue<Vector>(QuantityId::POSITION);
     StorageVisitorWithPositions<TFunctor> visitor;
     for (auto q : storage.getQuantities()) {
         dispatch(q.quantity.getValueEnum(), visitor, q.quantity, r, q.id, std::forward<TFunctor>(functor));

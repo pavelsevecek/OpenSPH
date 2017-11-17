@@ -32,13 +32,13 @@ TEST_CASE("Balsara shear flow", "[av]") {
         },
         2);
 
-    ArrayView<Vector> dv1 = storage1.getD2t<Vector>(QuantityId::POSITIONS);
+    ArrayView<Vector> dv1 = storage1.getD2t<Vector>(QuantityId::POSITION);
     ArrayView<Float> du1 = storage1.getDt<Float>(QuantityId::ENERGY);
-    ArrayView<Vector> dv2 = storage2.getD2t<Vector>(QuantityId::POSITIONS);
+    ArrayView<Vector> dv2 = storage2.getD2t<Vector>(QuantityId::POSITION);
     ArrayView<Float> du2 = storage2.getDt<Float>(QuantityId::ENERGY);
     ArrayView<Float> divv = storage2.getValue<Float>(QuantityId::VELOCITY_DIVERGENCE);
     ArrayView<Vector> rotv = storage2.getValue<Vector>(QuantityId::VELOCITY_ROTATION);
-    ArrayView<Vector> r = storage2.getValue<Vector>(QuantityId::POSITIONS);
+    ArrayView<Vector> r = storage2.getValue<Vector>(QuantityId::POSITION);
 
     auto test = [&](const Size i) -> Outcome {
         if (getLength(r[i]) >= 0.7_f) {
@@ -82,13 +82,13 @@ TEST_CASE("Balsara divergent flow", "[av]") {
     // need to compute twice, first to get velocity divergence and rotation, second to compute AV
     Tests::computeField(storage2, std::move(term2), [](const Vector& r) { return -r; }, 2);
 
-    ArrayView<Vector> dv1 = storage1.getD2t<Vector>(QuantityId::POSITIONS);
+    ArrayView<Vector> dv1 = storage1.getD2t<Vector>(QuantityId::POSITION);
     ArrayView<Float> du1 = storage1.getDt<Float>(QuantityId::ENERGY);
-    ArrayView<Vector> dv2 = storage2.getD2t<Vector>(QuantityId::POSITIONS);
+    ArrayView<Vector> dv2 = storage2.getD2t<Vector>(QuantityId::POSITION);
     ArrayView<Float> du2 = storage2.getDt<Float>(QuantityId::ENERGY);
     ArrayView<Float> divv = storage2.getValue<Float>(QuantityId::VELOCITY_DIVERGENCE);
     ArrayView<Vector> rotv = storage2.getValue<Vector>(QuantityId::VELOCITY_ROTATION);
-    ArrayView<Vector> r = storage2.getValue<Vector>(QuantityId::POSITIONS);
+    ArrayView<Vector> r = storage2.getValue<Vector>(QuantityId::POSITION);
 
     auto test = [&](const Size i) -> Outcome {
         if (getLength(r[i]) >= 0.7_f) {

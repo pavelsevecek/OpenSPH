@@ -2,7 +2,7 @@
 
 NAMESPACE_SPH_BEGIN
 
-struct Particle::Visitor {
+struct ParticleVisitor {
     std::map<QuantityId, Particle::InternalQuantityData>& data;
 
     template <typename TValue>
@@ -24,10 +24,11 @@ struct Particle::Visitor {
     }
 };
 
+
 Particle::Particle(const Storage& storage, const Size idx)
     : idx(idx) {
     for (ConstStorageElement i : storage.getQuantities()) {
-        Visitor visitor{ data };
+        ParticleVisitor visitor{ data };
         dispatch(i.quantity.getValueEnum(), visitor, i.id, i.quantity, idx);
     }
 }

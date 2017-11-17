@@ -60,9 +60,9 @@ public:
     template <typename Type>
     Type interpolate(const QuantityId id, const OrderEnum deriv, const Vector& pos) const {
         /// \todo measure these getters
-        ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
+        ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
         ArrayView<const Float> m, rho;
-        tie(m, rho) = storage.getValues<Float>(QuantityId::MASSES, QuantityId::DENSITY);
+        tie(m, rho) = storage.getValues<Float>(QuantityId::MASS, QuantityId::DENSITY);
         ArrayView<const Type> quantity = storage.getAll<Type>(id)[int(deriv)];
 
         Type interpol(0._f);
@@ -79,7 +79,7 @@ public:
 
 private:
     void build() {
-        ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
+        ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
         finder->build(r);
         searchRadius = 0._f;
         for (Size i = 0; i < r.size(); ++i) {

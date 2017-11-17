@@ -7,7 +7,7 @@
 #include "common/Assert.h"
 #include "common/Traits.h"
 #include "objects/wrappers/AlignedStorage.h"
-#include <functional>
+//#include <functional>
 #include <type_traits>
 
 NAMESPACE_SPH_BEGIN

@@ -708,6 +708,11 @@ public:
     INLINE bool operator==(const IndexSequence& other) {
         return from == other.from && to == other.to;
     }
+
+    friend std::ostream& operator<<(std::ostream& ofs, const IndexSequence& sequence) {
+        ofs << sequence.from << " - " << sequence.to;
+        return ofs;
+    }
 };
 
 NAMESPACE_SPH_END

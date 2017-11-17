@@ -18,16 +18,16 @@ private:
 
     public:
         virtual void create(Accumulated& results) override {
-            results.insert<Vector>(QuantityId::POSITIONS, OrderEnum::SECOND);
+            results.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND);
         }
 
         virtual void initialize(const Storage& input, Accumulated& results) override {
             ArrayView<const Vector> dummy;
-            tie(r, v, dummy) = input.getAll<Vector>(QuantityId::POSITIONS);
-            tie(m, rho) = input.getValues<Float>(QuantityId::MASSES, QuantityId::DENSITY);
+            tie(r, v, dummy) = input.getAll<Vector>(QuantityId::POSITION);
+            tie(m, rho) = input.getValues<Float>(QuantityId::MASS, QuantityId::DENSITY);
             nu = input.getMaterial(0)->getParam<Float>(BodySettingsId::KINEMATIC_VISCOSITY);
 
-            dv = results.getBuffer<Vector>(QuantityId::POSITIONS, OrderEnum::SECOND);
+            dv = results.getBuffer<Vector>(QuantityId::POSITION, OrderEnum::SECOND);
         }
 
         template <bool Symmetrize>
@@ -68,17 +68,17 @@ private:
 
     public:
         virtual void create(Accumulated& results) override {
-            results.insert<Vector>(QuantityId::POSITIONS, OrderEnum::SECOND);
+            results.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND);
         }
 
         virtual void initialize(const Storage& input, Accumulated& results) override {
             ArrayView<const Vector> dummy;
-            tie(r, v, dummy) = input.getAll<Vector>(QuantityId::POSITIONS);
+            tie(r, v, dummy) = input.getAll<Vector>(QuantityId::POSITION);
             cs = input.getValue<Float>(QuantityId::SOUND_SPEED);
 
             /// \todo different coefficient - damping coeff
             k = input.getMaterial(0)->getParam<Float>(BodySettingsId::KINEMATIC_VISCOSITY);
-            dv = results.getBuffer<Vector>(QuantityId::POSITIONS, OrderEnum::SECOND);
+            dv = results.getBuffer<Vector>(QuantityId::POSITION, OrderEnum::SECOND);
         }
 
         template <bool Symmetrize>

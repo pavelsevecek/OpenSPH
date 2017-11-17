@@ -109,7 +109,7 @@ protected:
     virtual void loop(Storage& storage) {
         // (re)build neighbour-finding structure; this needs to be done after all equations
         // are initialized in case some of them modify smoothing lengths
-        ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
+        ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
         finder->build(r);
 
         auto functor = [this, r](const Size n1, const Size n2) {

@@ -35,8 +35,8 @@ public:
         : kernel(std::move(kernel)) {}
 
     virtual void build(const Storage& storage) override {
-        r = storage.getValue<Vector>(QuantityId::POSITIONS);
-        m = storage.getValue<Float>(QuantityId::MASSES);
+        r = storage.getValue<Vector>(QuantityId::POSITION);
+        m = storage.getValue<Float>(QuantityId::MASS);
     }
 
     virtual void evalAll(ArrayView<Vector> dv, Statistics& UNUSED(stats)) const override {

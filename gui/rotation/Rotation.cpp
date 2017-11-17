@@ -48,7 +48,7 @@ public:
     virtual void integrate(Storage& storage, Statistics& stats) override {
         ContinuitySolver::integrate(storage, stats);
         ArrayView<Vector> r, v, dv;
-        tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
+        tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
         for (Size i = 0; i < v.size(); ++i) {
             // gradually decrease the delta
             const Float t = stats.get<Float>(StatisticsId::RUN_TIME);
@@ -104,8 +104,8 @@ void AsteroidRotation::setUp() {
     AutoPtr<TextOutput> textOutput = makeAuto<TextOutput>(
         outputDir, settings.get<std::string>(RunSettingsId::RUN_NAME), TextOutput::Options::SCIENTIFIC);
     textOutput->add(makeAuto<ParticleNumberColumn>());
-    textOutput->add(makeAuto<ValueColumn<Vector>>(QuantityId::POSITIONS));
-    textOutput->add(makeAuto<DerivativeColumn<Vector>>(QuantityId::POSITIONS));
+    textOutput->add(makeAuto<ValueColumn<Vector>>(QuantityId::POSITION));
+    textOutput->add(makeAuto<DerivativeColumn<Vector>>(QuantityId::POSITION));
     textOutput->add(makeAuto<SmoothingLengthColumn>());
     textOutput->add(makeAuto<ValueColumn<Float>>(QuantityId::DENSITY));
     textOutput->add(makeAuto<ValueColumn<Float>>(QuantityId::PRESSURE));
@@ -131,7 +131,7 @@ void AsteroidRotation::setInitialStressTensor(Storage& smaller, EquationHolder& 
     ASSERT(result);
 
     // Set values of energy and stress in original storage from values computed by static solver
-    ArrayView<Vector> r = storage->getValue<Vector>(QuantityId::POSITIONS);
+    ArrayView<Vector> r = storage->getValue<Vector>(QuantityId::POSITION);
     ArrayView<Float> u = storage->getValue<Float>(QuantityId::ENERGY);
     ArrayView<TracelessTensor> s = storage->getValue<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
 

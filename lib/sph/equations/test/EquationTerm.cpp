@@ -149,7 +149,7 @@ TEST_CASE("NeighbourCountTerm", "[equationterm]") {
     REQUIRE(neighCnts.size() == N);
     // count neighbours manually and compare
     UniformGridFinder finder;
-    ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
+    ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     finder.build(r);
     const Float radius = Factory::getKernel<3>(RunSettings::getDefaults()).radius();
     Array<NeighbourRecord> neighs;
@@ -170,7 +170,7 @@ TEST_CASE("Div v of position vectors", "[equationterm]") {
     storage.insert<Float>(QuantityId::VELOCITY_DIVERGENCE, OrderEnum::ZERO, 0._f);
     Tests::computeField<VelocityDivergence<NoGradientCorrection>>(storage, [](const Vector& r) { return r; });
 
-    ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
+    ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     ArrayView<Float> divv = storage.getValue<Float>(QuantityId::VELOCITY_DIVERGENCE);
     REQUIRE(divv.size() == r.size());
 
@@ -198,7 +198,7 @@ TEST_CASE("Grad v of const field", "[equationterm]") {
         return Vector(2._f, 3._f, -1._f);
     });
 
-    ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
+    ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     ArrayView<SymmetricTensor> gradv = storage.getValue<SymmetricTensor>(QuantityId::VELOCITY_GRADIENT);
     auto test = [&](const Size i) -> Outcome {
         // here we ALWAYS subtract two equal values, so the result should be zero EXACTLY
@@ -221,7 +221,7 @@ TEST_CASE("Grad v of position vector", "[equationterm]") {
     storage.insert<SymmetricTensor>(QuantityId::VELOCITY_GRADIENT, OrderEnum::ZERO, SymmetricTensor::null());
     Tests::computeField<VelocityGradient<NoGradientCorrection>>(storage, [](const Vector& r) { return r; });
 
-    ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
+    ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     ArrayView<SymmetricTensor> gradv = storage.getValue<SymmetricTensor>(QuantityId::VELOCITY_GRADIENT);
     auto test = [&](const Size i) -> Outcome {
         if (getLength(r[i]) > 0.7_f) {
@@ -248,7 +248,7 @@ TEST_CASE("Grad v of non-trivial field", "[equationterm]") {
         return Vector(r[0] * sqr(r[1]), r[0] + 0.5_f * r[2], sin(r[2]));
     });
 
-    ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
+    ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     ArrayView<SymmetricTensor> gradv = storage.getValue<SymmetricTensor>(QuantityId::VELOCITY_GRADIENT);
     auto test = [&](const Size i) -> Outcome {
         if (getLength(r[i]) > 0.7_f) {

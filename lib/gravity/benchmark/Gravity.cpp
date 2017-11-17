@@ -18,7 +18,7 @@ static void benchmarkGravity(IGravity& gravity, Benchmark::Context& context) {
     ArrayView<Float> m = storage.getValue<Float>(QuantityId::MASSES);*/
     gravity.build(storage);
     Statistics stats;
-    ArrayView<Vector> dv = storage.getD2t<Vector>(QuantityId::POSITIONS);
+    ArrayView<Vector> dv = storage.getD2t<Vector>(QuantityId::POSITION);
     context.log("particle count: ", dv.size());
     while (context.running()) {
         gravity.evalAll(ThreadPool::getGlobalInstance(), dv, stats);

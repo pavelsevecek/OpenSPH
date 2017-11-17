@@ -29,20 +29,20 @@ public:
 
     public:
         virtual void create(Accumulated& results) override {
-            results.insert<Vector>(QuantityId::POSITIONS, OrderEnum::SECOND);
+            results.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND);
             results.insert<Float>(QuantityId::ENERGY, OrderEnum::FIRST);
         }
 
         virtual void initialize(const Storage& input, Accumulated& results) override {
             ArrayView<const Vector> dummy;
-            tie(r, v, dummy) = input.getAll<Vector>(QuantityId::POSITIONS);
+            tie(r, v, dummy) = input.getAll<Vector>(QuantityId::POSITION);
             tie(alpha, dalpha) = input.getAll<Float>(QuantityId::AV_ALPHA);
             beta = input.getValue<Float>(QuantityId::AV_BETA);
             cs = input.getValue<Float>(QuantityId::SOUND_SPEED);
             rho = input.getValue<Float>(QuantityId::DENSITY);
-            m = input.getValue<Float>(QuantityId::MASSES);
+            m = input.getValue<Float>(QuantityId::MASS);
 
-            dv = results.getBuffer<Vector>(QuantityId::POSITIONS, OrderEnum::SECOND);
+            dv = results.getBuffer<Vector>(QuantityId::POSITION, OrderEnum::SECOND);
             du = results.getBuffer<Float>(QuantityId::ENERGY, OrderEnum::FIRST);
         }
 
@@ -85,7 +85,7 @@ public:
 
     virtual void initialize(Storage& storage) override {
         ArrayView<Vector> r, v, dv;
-        tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITIONS);
+        tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
 
         ArrayView<Float> alpha = storage.getValue<Float>(QuantityId::AV_ALPHA);
         ArrayView<Float> beta = storage.getValue<Float>(QuantityId::AV_BETA);
@@ -96,7 +96,7 @@ public:
     }
 
     virtual void finalize(Storage& storage) override {
-        ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
+        ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
         ArrayView<Float> alpha, dalpha;
         tie(alpha, dalpha) = storage.getAll<Float>(QuantityId::AV_ALPHA);
         ArrayView<Float> divv = storage.getValue<Float>(QuantityId::VELOCITY_DIVERGENCE);

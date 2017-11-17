@@ -71,7 +71,7 @@ namespace Detail {
     INLINE float getColorizerValue(const TracelessTensor& value) {
         return sqrt(ddot(value, value));
     }
-}
+} // namespace Detail
 
 /// Special colorizers that do not directly correspond to quantities, must have strictly negative values.
 /// Function taking ColorizerId as an argument also acceps QuantityId casted to ColorizerId, interpreting as
@@ -83,7 +83,8 @@ enum class ColorizerId {
     COROTATING_VELOCITY = -4,  ///< Velocities with a respect to the rotating body
     DISPLACEMENT = -5,         ///< Difference between current positions and initial position
     DENSITY_PERTURBATION = -6, ///< Relative difference of density and initial density (rho/rho0 - 1)
-    BOUNDARY = -7,             ///< Shows boundary particles
+    RADIUS = -7,               ///< Radii/smoothing lenghts of particles
+    BOUNDARY = -8,             ///< Shows boundary particles
 };
 
 /// Default colorizer simply converting quantity value to color using defined palette. Vector and tensor
@@ -144,15 +145,15 @@ public:
 
     virtual void initialize(const Storage& storage, const ColorizerSource source) override {
         if (source == ColorizerSource::CACHE_ARRAYS) {
-            cached = copyable(storage.getDt<Vector>(QuantityId::POSITIONS));
+            cached = copyable(storage.getDt<Vector>(QuantityId::POSITION));
             values = cached;
         } else {
-            values = storage.getDt<Vector>(QuantityId::POSITIONS);
+            values = storage.getDt<Vector>(QuantityId::POSITION);
         }
     }
 
     virtual Optional<Particle> getParticle(const Size idx) const override {
-        return Particle(idx).addDt(QuantityId::POSITIONS, values[idx]);
+        return Particle(idx).addDt(QuantityId::POSITION, values[idx]);
     }
 
     virtual std::string name() const override {
@@ -168,15 +169,15 @@ public:
 
     virtual void initialize(const Storage& storage, const ColorizerSource source) override {
         if (source == ColorizerSource::CACHE_ARRAYS) {
-            cached = copyable(storage.getD2t<Vector>(QuantityId::POSITIONS));
+            cached = copyable(storage.getD2t<Vector>(QuantityId::POSITION));
             values = cached;
         } else {
-            values = storage.getD2t<Vector>(QuantityId::POSITIONS);
+            values = storage.getD2t<Vector>(QuantityId::POSITION);
         }
     }
 
     virtual Optional<Particle> getParticle(const Size idx) const override {
-        return Particle(idx).addD2t(QuantityId::POSITIONS, values[idx]);
+        return Particle(idx).addD2t(QuantityId::POSITION, values[idx]);
     }
 
     virtual std::string name() const override {
@@ -213,10 +214,10 @@ public:
 
     virtual void initialize(const Storage& storage, const ColorizerSource source) override {
         if (source == ColorizerSource::CACHE_ARRAYS) {
-            cached = copyable(storage.getDt<Vector>(QuantityId::POSITIONS));
+            cached = copyable(storage.getDt<Vector>(QuantityId::POSITION));
             values = cached;
         } else {
-            values = storage.getDt<Vector>(QuantityId::POSITIONS);
+            values = storage.getDt<Vector>(QuantityId::POSITION);
         }
     }
 
@@ -235,7 +236,7 @@ public:
 
     virtual Optional<Particle> getParticle(const Size idx) const override {
         // return velocity of the particle
-        return Particle(idx).addDt(QuantityId::POSITIONS, values[idx]);
+        return Particle(idx).addDt(QuantityId::POSITION, values[idx]);
     }
 
     virtual Optional<Palette> getPalette() const override {
@@ -267,13 +268,13 @@ public:
 
     virtual void initialize(const Storage& storage, const ColorizerSource source) override {
         if (source == ColorizerSource::CACHE_ARRAYS) {
-            cached.r = copyable(storage.getValue<Vector>(QuantityId::POSITIONS));
-            cached.v = copyable(storage.getDt<Vector>(QuantityId::POSITIONS));
+            cached.r = copyable(storage.getValue<Vector>(QuantityId::POSITION));
+            cached.v = copyable(storage.getDt<Vector>(QuantityId::POSITION));
             r = cached.r;
             v = cached.v;
         } else {
-            r = storage.getValue<Vector>(QuantityId::POSITIONS);
-            v = storage.getDt<Vector>(QuantityId::POSITIONS);
+            r = storage.getValue<Vector>(QuantityId::POSITION);
+            v = storage.getDt<Vector>(QuantityId::POSITION);
         }
         omegaAvg = Vector(0._f);
         Float weight = 0._f;
@@ -297,7 +298,7 @@ public:
 
     virtual Optional<Particle> getParticle(const Size idx) const override {
         const Vector omega = cross(r[idx], v[idx]) / (getLength(r[idx]) + EPS);
-        return Particle(idx).addDt(QuantityId::POSITIONS, omega - omegaAvg);
+        return Particle(idx).addDt(QuantityId::POSITION, omega - omegaAvg);
     }
 
     virtual Optional<Palette> getPalette() const override {
@@ -356,6 +357,30 @@ public:
 
     virtual std::string name() const override {
         return "Delta Density";
+    }
+};
+
+class RadiusColorizer : public TypedColorizer<Vector> {
+public:
+    explicit RadiusColorizer(const Interval range) {
+        palette = Factory::getPalette(ColorizerId::RADIUS, range);
+    }
+
+    virtual void initialize(const Storage& storage, const ColorizerSource source) override {
+        if (source == ColorizerSource::CACHE_ARRAYS) {
+            cached = copyable(storage.getValue<Vector>(QuantityId::POSITION));
+            values = cached;
+        } else {
+            values = storage.getValue<Vector>(QuantityId::POSITION);
+        }
+    }
+
+    virtual Optional<Particle> getParticle(const Size idx) const override {
+        return Particle(idx).addValue(QuantityId::SMOOTHING_LENGHT, values[idx][H]);
+    }
+
+    virtual std::string name() const override {
+        return "Radius";
     }
 };
 
