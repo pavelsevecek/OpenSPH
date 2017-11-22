@@ -444,8 +444,23 @@ public:
     /// while evaluating solver!
     void merge(Storage&& other);
 
-    /// Sets all highest-level derivatives of quantities to zero. Other values are unchanged.
+    /// \brief Sets all highest-level derivatives of quantities to zero.
+    ///
+    /// Other values are unchanged.
     void zeroHighestDerivatives();
+
+    /// \brief Duplicates some particles in the storage.
+    ///
+    /// New particles are added to an unspecified positions in the storage, copying all the quantities and
+    /// materials from the source particles. Note that this is not intended to be used without further
+    /// modifications of the newly created particles as we never want to create particle pairs; make sure to
+    /// move the created particles to required positions and modify their quantities as needed. The function
+    /// can be used to add new particles with materials already existing in the storage.
+    /// \param idxs Indices of the particles to duplicate.
+    /// \param propagete If true, particles with given indices are also duplicated in all dependent storages.
+    /// \return Indices of the newly created particles (in the modified storage). Note that the original
+    ///         indices passed into the storage are no longer valid after the function is called.
+    Array<Size> duplicate(ArrayView<const Size> idxs, const bool propagate);
 
     /// \brief Removes specified particles from the storage.
     ///
@@ -489,12 +504,17 @@ public:
     /// Note that materials of the storages are NOT changed.
     void swap(Storage& other, const Flags<VisitorEnum> flags);
 
+    enum class ValidFlag {
+        /// Checks that the storage is complete, i.e. there are no empty buffers.
+        COMPLETE = 1 << 0,
+    };
+
     /// \brief Checks whether the storage is in valid state.
     ///
     /// The valid state means that all quantities have the same number of particles and materials are stored
     /// consecutively in the storage. This should be handled automatically, the function is mainly for
     /// debugging purposes.
-    bool isValid() const;
+    bool isValid(const Flags<ValidFlag> flags = ValidFlag::COMPLETE) const;
 
 private:
     /// Updates the cached matIds view.

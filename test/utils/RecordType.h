@@ -6,6 +6,7 @@
 /// \date 2016-2017
 
 #include "objects/Object.h"
+#include <ostream>
 
 NAMESPACE_SPH_BEGIN
 
@@ -77,6 +78,15 @@ struct RecordType {
     bool operator==(const RecordType& other) const {
         return value == other.value;
     }
+
+    bool operator!=(const RecordType& other) const {
+        return value != other.value;
+    }
+
+    friend std::ostream& operator<<(std::ostream& ofs, const RecordType& r) {
+        ofs << r.value;
+        return ofs;
+    }
 };
 
 template <typename T>
@@ -97,4 +107,4 @@ namespace std {
         r1.wasSwapped = true;
         r2.wasSwapped = true;
     }
-}
+} // namespace std

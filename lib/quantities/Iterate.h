@@ -56,6 +56,12 @@ struct StorageVisitor<VisitorEnum::ALL_BUFFERS, TFunctor> {
             functor(i);
         }
     }
+    template <typename TValue>
+    void visit(const Quantity& q, const QuantityId UNUSED(id), TFunctor&& functor) {
+        for (const auto& i : q.getAll<TValue>()) {
+            functor(i);
+        }
+    }
 };
 template <typename TFunctor>
 struct StoragePairVisitor<VisitorEnum::ALL_BUFFERS, TFunctor> {
@@ -79,6 +85,13 @@ template <typename TFunctor>
 struct StorageVisitor<VisitorEnum::ZERO_ORDER, TFunctor> {
     template <typename TValue>
     void visit(Quantity& q, const QuantityId id, TFunctor&& functor) {
+        if (q.getOrderEnum() != OrderEnum::ZERO) {
+            return;
+        }
+        functor(id, q.getValue<TValue>());
+    }
+    template <typename TValue>
+    void visit(const Quantity& q, const QuantityId id, TFunctor&& functor) {
         if (q.getOrderEnum() != OrderEnum::ZERO) {
             return;
         }
@@ -111,6 +124,13 @@ struct StorageVisitor<VisitorEnum::FIRST_ORDER, TFunctor> {
         }
         functor(id, q.getValue<TValue>(), q.getDt<TValue>());
     }
+    template <typename TValue>
+    void visit(const Quantity& q, const QuantityId id, TFunctor&& functor) {
+        if (q.getOrderEnum() != OrderEnum::FIRST) {
+            return;
+        }
+        functor(id, q.getValue<TValue>(), q.getDt<TValue>());
+    }
 };
 template <typename TFunctor>
 struct StoragePairVisitor<VisitorEnum::FIRST_ORDER, TFunctor> {
@@ -130,6 +150,13 @@ template <typename TFunctor>
 struct StorageVisitor<VisitorEnum::SECOND_ORDER, TFunctor> {
     template <typename TValue>
     void visit(Quantity& q, const QuantityId id, TFunctor&& functor) {
+        if (q.getOrderEnum() != OrderEnum::SECOND) {
+            return;
+        }
+        functor(id, q.getValue<TValue>(), q.getDt<TValue>(), q.getD2t<TValue>());
+    }
+    template <typename TValue>
+    void visit(const Quantity& q, const QuantityId id, TFunctor&& functor) {
         if (q.getOrderEnum() != OrderEnum::SECOND) {
             return;
         }

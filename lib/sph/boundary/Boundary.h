@@ -8,27 +8,31 @@
 #include "common/ForwardDecl.h"
 #include "objects/containers/Array.h"
 #include "objects/geometry/Vector.h"
+#include "objects/wrappers/AutoPtr.h"
 #include "objects/wrappers/Interval.h"
-#include "sph/equations/EquationTerm.h"
-
 #include <set>
 
 NAMESPACE_SPH_BEGIN
 
-/// \todo boundary conditions CANNOT be just equation terms, they affect computed derivatives (frozen
-/// particles), or added new particles we don't want to touch by other equations.
-/// They must either be equation terms evaluated LAST, or be a separate object
-
-
 /// \brief Base object for boundary conditions.
 ///
-/// All boundary conditions are essentially equation terms, but they do not create any quantities nor they
-/// compute derivatives.
-class IBoundaryCondition : public IEquationTerm {
+/// All boundary conditions behave similarly to equation terms, meaning they can modify the storage each time
+/// step before the derivatives are computed (in \ref initialize function) and after derivatives are computed
+/// (in \ref finalize function).
+/// They do not create any quantities nor they compute derivatives. In solver, boundary conditions are
+/// evaluated after all the equations have been evaluated. This is needed in order to copy the correct
+/// quantities on ghosts, make sure that derivatives are zero/clamped as needed, etc.
+class IBoundaryCondition : public Polymorphic {
 public:
-    virtual void setDerivatives(DerivativeHolder&, const RunSettings&) override {}
+    /// \brief Applies the boundary conditions before the derivatives are computed.
+    ///
+    /// Called every time step after equations are initialized.
+    virtual void initialize(Storage& storage) = 0;
 
-    virtual void create(Storage&, IMaterial&) const override {}
+    /// \brief Applies the boundary conditions after the derivatives are computed.
+    ///
+    /// Called every time step after equations are evaluated (finalized).
+    virtual void finalize(Storage& storage) = 0;
 };
 
 
@@ -38,13 +42,24 @@ public:
 /// creating unphysical gradients due to discontinuity.
 class GhostParticles : public IBoundaryCondition {
 private:
-    AutoPtr<IDomain> domain;
-    // index where the ghost particles begin (they are always stored successively)
     Array<Ghost> ghosts;
-    Array<Size> ghostIdxs; // indices of ghost particles in the storage
-    Array<Float> distances;
-    Float searchRadius;
-    Float minimalDist;
+    Array<Size> ghostIdxs;
+    AutoPtr<IDomain> domain;
+
+    /// Cached array to avoid frequent (de)allocations
+    struct {
+        Array<Float> distances;
+    } cached;
+
+    /// Parameters of the BCs
+    struct {
+        Float searchRadius;
+        Float minimalDist;
+    } params;
+
+    /// Used as consistency check; currently we don't allow any other object to add or remove particles if
+    /// GhostParticles are used.
+    Size particleCnt;
 
 public:
     GhostParticles(AutoPtr<IDomain>&& domain, const RunSettings& settings);

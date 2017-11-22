@@ -157,7 +157,7 @@ Outcome TextOutput::load(const Path& path, Storage& storage) {
             buffer.resize(particleCnt);
         }
 
-        // sanity chek
+        // sanity check
         if (storage.getParticleCnt() != particleCnt || !storage.isValid()) {
             return "Loaded storage is not valid";
         }

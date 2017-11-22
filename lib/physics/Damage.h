@@ -1,6 +1,6 @@
 #pragma once
 
-/// \file Damage.h
+/// \file Fracture.h
 /// \brief Models of fragmentation
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2017
@@ -21,7 +21,7 @@ enum class DamageFlag {
     REDUCTION_FACTOR = 1 << 2, ///< Modify reduction factor (QuanityId::REDUCE) due to damage
 };
 
-class IDamage : public Polymorphic {
+class IFractureModel : public Polymorphic {
 public:
     /// Sets up all the necessary quantities in the storage given material settings.
     virtual void setFlaws(Storage& storage,
@@ -46,16 +46,16 @@ enum class ExplicitFlaws {
 };
 
 /// Scalar damage describing fragmentation of the body according to Grady-Kipp model (Grady and Kipp, 1980)
-class ScalarDamage : public IDamage {
+class ScalarGradyKippModel : public IFractureModel {
 private:
     Float kernelRadius;
 
     ExplicitFlaws options;
 
 public:
-    ScalarDamage(const Float kernelRadius, const ExplicitFlaws options = ExplicitFlaws::UNIFORM);
+    ScalarGradyKippModel(const Float kernelRadius, const ExplicitFlaws options = ExplicitFlaws::UNIFORM);
 
-    ScalarDamage(const RunSettings& settings, const ExplicitFlaws options = ExplicitFlaws::UNIFORM);
+    ScalarGradyKippModel(const RunSettings& settings, const ExplicitFlaws options = ExplicitFlaws::UNIFORM);
 
     virtual void setFlaws(Storage& storage,
         IMaterial& material,
@@ -68,7 +68,7 @@ public:
     virtual void integrate(Storage& storage, const MaterialView material) override;
 };
 
-class TensorDamage : public IDamage {
+class TensorGradyKippModel : public IFractureModel {
 private:
 public:
     virtual void setFlaws(Storage& storage,
@@ -82,7 +82,7 @@ public:
     virtual void integrate(Storage& storage, const MaterialView material) override;
 };
 
-class MohrCoulombModel : public IDamage {
+class MohrCoulombModel : public IFractureModel {
 public:
     virtual void setFlaws(Storage& storage,
         IMaterial& material,
@@ -91,7 +91,7 @@ public:
     virtual void integrate(Storage& storage, const MaterialView material) override;
 };
 
-class NullDamage : public IDamage {
+class NullFracture : public IFractureModel {
 public:
     virtual void setFlaws(Storage& storage,
         IMaterial& material,

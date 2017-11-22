@@ -13,7 +13,7 @@
 NAMESPACE_SPH_BEGIN
 
 struct MaterialInitialContext;
-class IDamage;
+class IFractureModel;
 
 /// \brief Base class of rheological models
 ///
@@ -51,7 +51,7 @@ public:
 /// Introduces plastic behavior for stress tensor, using von Mises yield criterion \cite vonMises_1913.
 class VonMisesRheology : public IRheology {
 private:
-    AutoPtr<IDamage> damage;
+    AutoPtr<IFractureModel> damage;
 
 public:
     /// Constructs a rheology with no fragmentation model. Stress tensor is only modified by von Mises
@@ -59,7 +59,7 @@ public:
     VonMisesRheology();
 
     /// Constructs a rheology with given fragmentation model.
-    VonMisesRheology(AutoPtr<IDamage>&& damage);
+    VonMisesRheology(AutoPtr<IFractureModel>&& damage);
 
     ~VonMisesRheology();
 
@@ -76,14 +76,14 @@ public:
 /// Pressure dependent failure modes \cite Collins_2004
 class DruckerPragerRheology : public IRheology {
 private:
-    AutoPtr<IDamage> damage;
+    AutoPtr<IFractureModel> damage;
 
     /// \todo Fix implementation according to von Mises
 
     Array<Float> yieldingStress;
 
 public:
-    DruckerPragerRheology(AutoPtr<IDamage>&& damage);
+    DruckerPragerRheology(AutoPtr<IFractureModel>&& damage);
 
     ~DruckerPragerRheology();
 

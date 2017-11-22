@@ -13,7 +13,7 @@ TEST_CASE("Iterate", "[iterate]") {
     storage.insert<TracelessTensor>(QuantityId::ENERGY, OrderEnum::ZERO, TracelessTensor(6._f));
 
     int cnt = 0;
-    iterate<VisitorEnum::ALL_BUFFERS>(storage, [&cnt](auto&& UNUSED(v)) { cnt++; });
+    iterate<VisitorEnum::ALL_BUFFERS>(storage, [&cnt](const auto& UNUSED(v)) { cnt++; });
     REQUIRE(cnt == 8);
 
     cnt = 0;

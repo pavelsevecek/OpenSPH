@@ -236,7 +236,7 @@ TEST_CASE("Storage zeroHighestDerivatives", "[storage]") {
     storage.insert<Float>(QuantityId::MASS, OrderEnum::FIRST, 1._f);
     storage.insert<Float>(QuantityId::DENSITY, OrderEnum::ZERO, 2._f);
 
-    iterate<VisitorEnum::ALL_BUFFERS>(storage, [](auto&& buffer) {
+    iterate<VisitorEnum::ALL_BUFFERS>(storage, [](auto& buffer) {
         using Type = typename std::decay_t<decltype(buffer)>::Type;
         buffer.fill(Type(5._f));
     });
@@ -335,7 +335,7 @@ TEST_CASE("Storage remove", "[storage]") {
     storage2.insert<Size>(QuantityId::FLAG, OrderEnum::ZERO, Array<Size>{ 3, 4, 5 });
     storage1.merge(std::move(storage2));
 
-    storage1.remove(Pair<Size>{ 0, 4 });
+    storage1.remove(Pair<Size>{ 0, 4 }, false);
     ArrayView<const Size> flags = storage1.getValue<Size>(QuantityId::FLAG);
     REQUIRE(flags == Array<Size>({ 1, 2, 3, 5 }));
     REQUIRE(storage1.getMaterialCnt() == 2);
@@ -344,7 +344,7 @@ TEST_CASE("Storage remove", "[storage]") {
     REQUIRE(storage1.getMaterial(1)->getParam<int>(BodySettingsId::PARTICLE_COUNT) == 7);
     REQUIRE(storage1.getMaterial(1).sequence() == IndexSequence(2, 4));
 
-    storage1.remove(Pair<Size>{ 0, 1 });
+    storage1.remove(Pair<Size>{ 0, 1 }, false);
     flags = storage1.getValue<Size>(QuantityId::FLAG);
     REQUIRE(flags == Array<Size>({ 3, 5 }));
     REQUIRE(storage1.getMaterialCnt() == 1);
@@ -388,4 +388,24 @@ TEST_CASE("Storage addDependent", "[storage]") {
     REQUIRE(storage2->getParticleCnt() == 8);
 
     REQUIRE_ASSERT(storage2->addDependent(storage1));
+}
+
+TEST_CASE("Storage isValid", "[storage]") {
+    Storage storage1(getDefaultMaterial());
+    REQUIRE(storage1.isValid());
+
+    storage1.insert<Float>(QuantityId::FLAG, OrderEnum::ZERO, Array<Float>{ 0 });
+    REQUIRE(storage1.isValid());
+
+    iterate<VisitorEnum::ALL_BUFFERS>(storage1, [](auto& buffer) { buffer.resize(2); });
+    REQUIRE_FALSE(storage1.isValid()); // materials need to be resized as well
+
+    Storage storage2;
+    REQUIRE(storage2.isValid());
+
+    storage2.insert<Float>(QuantityId::FLAG, OrderEnum::FIRST, Array<Float>{ 0 });
+    REQUIRE(storage2.isValid());
+
+    storage2.getDt<Float>(QuantityId::FLAG).resize(2);
+    REQUIRE_FALSE(storage2.isValid()); // derivatives have different size
 }

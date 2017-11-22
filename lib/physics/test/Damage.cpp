@@ -16,7 +16,7 @@ using namespace Sph;
 
 
 TEST_CASE("Distribute flaws", "[damage]") {
-    ScalarDamage model(2._f);
+    ScalarGradyKippModel model(2._f);
     BodySettings bodySettings;
     Storage storage(getDefaultMaterial());
     HexagonalPacking distribution;
@@ -58,7 +58,7 @@ TEST_CASE("Distribute flaws", "[damage]") {
 
 TEST_CASE("Fracture growth", "[damage]") {
     /// \todo some better test, for now just testing that integrate will work without asserts
-    ScalarDamage damage(2._f);
+    ScalarGradyKippModel damage(2._f);
     Storage storage;
     InitialConditions conds(RunSettings::getDefaults());
     conds.addMonolithicBody(storage, SphericalDomain(Vector(0._f), 1._f), BodySettings::getDefaults());

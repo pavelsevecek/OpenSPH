@@ -58,16 +58,16 @@ AutoPtr<IRheology> Factory::getRheology(const BodySettings& settings) {
     }
 }
 
-AutoPtr<IDamage> Factory::getDamage(const BodySettings& settings) {
+AutoPtr<IFractureModel> Factory::getDamage(const BodySettings& settings) {
     const DamageEnum id = settings.get<DamageEnum>(BodySettingsId::RHEOLOGY_DAMAGE);
     switch (id) {
     case DamageEnum::NONE:
-        return makeAuto<NullDamage>();
+        return makeAuto<NullFracture>();
     case DamageEnum::SCALAR_GRADY_KIPP:
         /// \todo  where to get kernel radius from??
-        return makeAuto<ScalarDamage>(2._f);
+        return makeAuto<ScalarGradyKippModel>(2._f);
     case DamageEnum::TENSOR_GRADY_KIPP:
-        return makeAuto<TensorDamage>();
+        return makeAuto<TensorGradyKippModel>();
     default:
         NOT_IMPLEMENTED;
     }
@@ -248,12 +248,17 @@ AutoPtr<IDomain> Factory::getDomain(const RunSettings& settings) {
     }
 }
 
-AutoPtr<IBoundaryCondition> Factory::getBoundaryConditions(const RunSettings& settings,
-    AutoPtr<IDomain>&& domain) {
+AutoPtr<IBoundaryCondition> Factory::getBoundaryConditions(const RunSettings& settings) {
     const BoundaryEnum id = settings.get<BoundaryEnum>(RunSettingsId::DOMAIN_BOUNDARY);
+    AutoPtr<IDomain> domain = getDomain(settings);
     switch (id) {
     case BoundaryEnum::NONE:
-        return nullptr;
+        struct NoBoundaryCondition : public IBoundaryCondition {
+            virtual void initialize(Storage& UNUSED(storage)) override {}
+            virtual void finalize(Storage& UNUSED(storage)) override {}
+        };
+
+        return makeAuto<NoBoundaryCondition>();
     case BoundaryEnum::GHOST_PARTICLES:
         ASSERT(domain != nullptr);
         return makeAuto<GhostParticles>(std::move(domain), settings);

@@ -77,7 +77,7 @@ TEST_CASE("GhostParticles wall", "[boundary]") {
     const Float minDist = 0.1_f; // minimal distance of ghost
     RunSettings settings;
     settings.set(RunSettingsId::DOMAIN_GHOST_MIN_DIST, minDist);
-    GhostParticles boundaryConditions(makeAuto<WallDomain>(), settings);
+    GhostParticles bc(makeAuto<WallDomain>(), settings);
     Storage storage;
     // Create few particles. Particles with x < 2 will create corresponding ghost particle.
     storage.insert<Vector>(QuantityId::POSITION,
@@ -100,7 +100,7 @@ TEST_CASE("GhostParticles wall", "[boundary]") {
     storage.insert<Float>(
         QuantityId::DENSITY, OrderEnum::FIRST, Array<Float>{ 3._f, 5._f, 2._f, 1._f, 3._f, 4._f, 10._f });
 
-    boundaryConditions.initialize(storage);
+    bc.initialize(storage);
     tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
     REQUIRE(makeArray(r.size(), v.size(), dv.size()) == makeArray(12u, 12u, 12u));
     REQUIRE(r[7] == Vector(-1.5_f, 1._f, 3._f));
@@ -119,9 +119,10 @@ TEST_CASE("GhostParticles wall", "[boundary]") {
     REQUIRE(rho[9] == 2._f);
     REQUIRE(rho[10] == 1._f);
     REQUIRE(rho[11] == 4._f);
+    bc.finalize(storage);
 
     // subsequent calls shouldn't change result
-    boundaryConditions.initialize(storage);
+    bc.initialize(storage);
     tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
     REQUIRE(makeArray(r.size(), v.size(), dv.size()) == makeArray(12u, 12u, 12u));
     REQUIRE(r[7] == Vector(-1.5_f, 1._f, 3._f));
@@ -150,9 +151,8 @@ TEST_CASE("GhostParticles Sphere", "[boundary]") {
     }
 
     const Size ghostIdx = r.size();
-    GhostParticles boundaryConditions(
-        makeAuto<SphericalDomain>(Vector(0._f), 2._f), RunSettings::getDefaults());
-    boundaryConditions.initialize(storage);
+    GhostParticles bc(makeAuto<SphericalDomain>(Vector(0._f), 2._f), RunSettings::getDefaults());
+    bc.initialize(storage);
     tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
     REQUIRE(r.size() == 2 * ghostIdx); // ghost for each particle
 
@@ -201,9 +201,8 @@ TEST_CASE("GhostParticles Sphere Projection", "[boundary]") {
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     const Size ghostIdx = r.size();
     const Size halfSize = ghostIdx >> 1;
-    GhostParticles boundaryConditions(
-        makeAuto<SphericalDomain>(Vector(0._f), 2._f), RunSettings::getDefaults());
-    boundaryConditions.initialize(storage);
+    GhostParticles bc(makeAuto<SphericalDomain>(Vector(0._f), 2._f), RunSettings::getDefaults());
+    bc.initialize(storage);
     r = storage.getValue<Vector>(QuantityId::POSITION);
     REQUIRE(r.size() == halfSize * 3); // only layer with r=1.9 creates ghost particles
 
@@ -227,9 +226,8 @@ TEST_CASE("GhostParticles empty", "[boundary]") {
     Array<Vector> particles;
     particles.push(Vector(1._f, 0._f, 0._f, 0.1_f));
     storage.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, std::move(particles));
-    GhostParticles boundaryConditions(
-        makeAuto<SphericalDomain>(Vector(0._f), 2._f), RunSettings::getDefaults());
-    boundaryConditions.initialize(storage);
+    GhostParticles bc(makeAuto<SphericalDomain>(Vector(0._f), 2._f), RunSettings::getDefaults());
+    bc.initialize(storage);
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     REQUIRE(r.size() == 1);
     REQUIRE(r[0] == Vector(1._f, 0._f, 0._f));

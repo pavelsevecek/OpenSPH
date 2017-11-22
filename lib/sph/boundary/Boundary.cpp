@@ -13,8 +13,8 @@ NAMESPACE_SPH_BEGIN
 
 GhostParticles::GhostParticles(AutoPtr<IDomain>&& domain, const RunSettings& settings)
     : domain(std::move(domain)) {
-    searchRadius = Factory::getKernel<3>(settings).radius();
-    minimalDist = settings.get<Float>(RunSettingsId::DOMAIN_GHOST_MIN_DIST);
+    params.searchRadius = Factory::getKernel<3>(settings).radius();
+    params.minimalDist = settings.get<Float>(RunSettingsId::DOMAIN_GHOST_MIN_DIST);
 }
 
 
@@ -61,41 +61,34 @@ void GhostParticles::initialize(Storage& storage) {
     domain->project(r);
 
     // find particles close to boundary and create necessary ghosts
-    domain->addGhosts(r, ghosts, searchRadius, minimalDist);
+    domain->addGhosts(r, ghosts, params.searchRadius, params.minimalDist);
 
+    // there is no need to also add particles to dependent storages as we remove ghosts in finalization;
+    // however, it might cause problems when there is another BC or equation that DOES need to propagate to
+    // dependents. So far no such thing is used, but it would have to be done carefully in case multiple
+    // objects add or remove particles from the storage.
     const Size ghostStartIdx = r.size();
     for (Size i = 0; i < ghosts.size(); ++i) {
         ghostIdxs.push(ghostStartIdx + i);
-    };
+        // push ghosts into the position buffer
+        r.push(ghosts[i].position);
+    }
+    // copy all quantities on ghosts
+    GhostFunctor functor{ ghosts, ghostIdxs, *domain };
+    iterateWithPositions(storage, functor);
 
-    TODO(
-        "actually there is no reason to propagate, we can just add particles on initializzation and remove "
-        "them on finalization. This will break the 1-1 correspondence with dependent storages, but this "
-        "shouldn't matter inside the solver. We have to add a parameter to Storage::remove and functions "
-        "adding particles to tell them NOT to propagate, that could mess things up");
+    ASSERT(storage.isValid());
 
-    // we have to also add the ghosts to all dependent storages
-    storage.propagate([this](Storage& s) {
-        // the dependent storages can be incomplete, so we have to be careful
-        if (!s.has(QuantityId::POSITION)) {
-            return;
-        }
-        Array<Vector>& r = s.getValue<Vector>(QuantityId::POSITION);
-        if (!r.empty()) {
-            // push ghosts into the position buffer
-            for (Size i = 0; i < ghosts.size(); ++i) {
-                r.push(ghosts[i].position);
-            }
-        }
-        // copy all quantities on ghosts
-        GhostFunctor functor{ ghosts, ghostIdxs, *domain };
-        iterateWithPositions(s, functor);
-    });
+    particleCnt = storage.getParticleCnt();
 }
 
 void GhostParticles::finalize(Storage& storage) {
-    // remove ghosts by indices (which also removes ghosts from all dependent storages)
-    storage.remove(ghostIdxs);
+    ASSERT(storage.getParticleCnt() == particleCnt,
+        "Solver changed the number of particles. This is currently not consistent with the implementation of "
+        "GhostParticles");
+
+    // remove ghosts by indices
+    storage.remove(ghostIdxs, false);
     ghostIdxs.clear();
     ghosts.clear();
 }
@@ -180,7 +173,7 @@ void WindTunnel::finalize(Storage& storage) {
             toRemove.push(i);
         }
     }
-    iterate<VisitorEnum::ALL_BUFFERS>(storage, [&toRemove](auto&& v) {
+    iterate<VisitorEnum::ALL_BUFFERS>(storage, [&toRemove](auto& v) {
         for (Size idx : reverse(toRemove)) { // iterate in reverse to remove higher indices first
             v.remove(idx);
         }
@@ -207,7 +200,7 @@ void WindTunnel::finalize(Storage& storage) {
          }
          ASSERT(!idxs.empty());
          // copy all quantities
-         iterate<VisitorEnum::ALL_BUFFERS>(storage, [&idxs](auto&& v) {
+         iterate<VisitorEnum::ALL_BUFFERS>(storage, [&idxs](auto& v) {
              for (Size i : idxs) {
                  auto cloned = v[i];
                  v.push(cloned);

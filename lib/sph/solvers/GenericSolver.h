@@ -6,6 +6,7 @@
 /// \date 2016-2017
 
 #include "sph/Materials.h"
+#include "sph/boundary/Boundary.h"
 #include "sph/equations/Accumulated.h"
 #include "sph/equations/EquationTerm.h"
 #include "sph/equations/HelperTerms.h"
@@ -51,6 +52,9 @@ protected:
     /// Holds all equation terms evaluated by the solver.
     EquationHolder equations;
 
+    /// Boundary condition used by the solver.
+    AutoPtr<IBoundaryCondition> bc;
+
     /// Structure used to search for neighbouring particles
     AutoPtr<INeighbourFinder> finder;
 
@@ -67,6 +71,8 @@ public:
         , threadData(*pool) {
         kernel = Factory::getKernel<DIMENSIONS>(settings);
         finder = Factory::getFinder(settings);
+        bc = Factory::getBoundaryConditions(settings);
+
         granularity = settings.get<int>(RunSettingsId::RUN_THREAD_GRANULARITY);
         equations += eqs;
 
@@ -90,6 +96,9 @@ public:
         // initialize all equation terms (applies dependencies between quantities)
         equations.initialize(storage);
 
+        // apply boundary conditions before the loop
+        bc->initialize(storage);
+
         // initialize accumulate storages & derivatives
         this->beforeLoop(storage, stats);
 
@@ -101,6 +110,9 @@ public:
 
         // integrate all equations
         equations.finalize(storage);
+
+        // apply boundary conditions after the loop
+        bc->finalize(storage);
 
         // finalize all materials (integrate fragmentation model)
         for (Size i = 0; i < storage.getMaterialCnt(); ++i) {

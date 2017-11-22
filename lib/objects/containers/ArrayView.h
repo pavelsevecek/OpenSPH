@@ -50,7 +50,7 @@ public:
     }
 
     /// Implicit conversion to const version
-    INLINE operator ArrayView<const T, TCounter>() {
+    INLINE operator ArrayView<const T, TCounter>() const {
         return ArrayView<const T, TCounter>(data, actSize);
     }
 

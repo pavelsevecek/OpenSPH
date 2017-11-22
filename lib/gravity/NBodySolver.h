@@ -117,7 +117,7 @@ public:
         }
 
         for (auto& mergers : toMerge) {
-            storage.remove(mergers);
+            storage.remove(mergers, true);
         }
     }
 

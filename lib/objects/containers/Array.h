@@ -280,6 +280,16 @@ public:
         actSize++;
     }
 
+    /// \brief Inserts a new element to given position in the array.
+    ///
+    /// All the existing elements after the given positions are moved using move operator.
+    void insert(const TCounter position, const T& value) {
+        ASSERT(position <= actSize);
+        this->resize(actSize + 1);
+        std::move_backward(this->begin() + position, this->end() - 1, this->end());
+        data[position] = value;
+    }
+
     /// \brief Removes the last element from the array and return its value.
     ///
     /// Asserts if the array is empty.
@@ -433,4 +443,4 @@ namespace std {
     void swap(Sph::Array<T, TCounter>& ar1, Sph::Array<T, TCounter>& ar2) {
         ar1.swap(ar2);
     }
-}
+} // namespace std

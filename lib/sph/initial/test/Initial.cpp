@@ -24,7 +24,7 @@ TEST_CASE("Initial addBody", "[initial]") {
     const Size size = storage.getValue<Vector>(QuantityId::POSITION).size();
     REQUIRE(size >= 80);
     REQUIRE(size <= 120);
-    iterate<VisitorEnum::ALL_BUFFERS>(storage, [size](auto&& array) { REQUIRE(array.size() == size); });
+    iterate<VisitorEnum::ALL_BUFFERS>(storage, [size](const auto& array) { REQUIRE(array.size() == size); });
 
     ArrayView<Float> rhos, us, drhos, dus;
     tie(rhos, drhos) = storage.getAll<Float>(QuantityId::DENSITY);

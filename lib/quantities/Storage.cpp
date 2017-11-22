@@ -275,6 +275,11 @@ void Storage::resize(const Size newParticleCnt, const Flags<ResizeFlag> flags) {
         }
     });
 
+    if (!mats.empty()) {
+        // can be only used for homogeneous storages
+        mats[0].to = newParticleCnt;
+    }
+
     for (WeakPtr<Storage>& weakPtr : dependent) {
         if (SharedPtr<Storage> ptr = weakPtr.lock()) {
             ptr->resize(newParticleCnt, flags);
@@ -282,6 +287,8 @@ void Storage::resize(const Size newParticleCnt, const Flags<ResizeFlag> flags) {
     }
 
     this->update();
+    ASSERT(this->isValid(
+        flags.has(ResizeFlag::KEEP_EMPTY_UNCHANGED) ? Flags<ValidFlag>() : ValidFlag::COMPLETE));
 }
 
 void Storage::swap(Storage& other, const Flags<VisitorEnum> flags) {
@@ -291,13 +298,12 @@ void Storage::swap(Storage& other, const Flags<VisitorEnum> flags) {
     }
 }
 
-bool Storage::isValid() const {
-    TODO("Test");
+bool Storage::isValid(const Flags<ValidFlag> flags) const {
     const Size cnt = this->getParticleCnt();
     bool valid = true;
     // check that all buffers have the same number of particles
-    iterate<VisitorEnum::ALL_BUFFERS>(*this, [cnt, &valid](const auto& buffer) {
-        if (buffer.size() != cnt) {
+    iterate<VisitorEnum::ALL_BUFFERS>(*this, [cnt, &valid, flags](const auto& buffer) {
+        if (buffer.size() != cnt && (flags.has(ValidFlag::COMPLETE) || !buffer.empty())) {
             valid = false;
         }
     });
@@ -306,39 +312,83 @@ bool Storage::isValid() const {
     }
 
     // check that materials are set up correctly
-    if (this->getMaterialCnt() == 0) {
+    if (this->getMaterialCnt() == 0 || this->getQuantityCnt() == 0) {
         // no materials are a valid state, all OK
         return true;
     }
     if (!matIds || !this->has(QuantityId::MATERIAL_ID)) {
-        // with at least one material we need the MATERIAL_ID helper quantity and cached view
+        // with at least one material and one quantity, we need the MATERIAL_ID helper quantity and cached
+        // view
         return false;
     }
 
-    if (matIds != this->getValue<Size>(QuantityId::MATERIAL_ID)) {
+    if (ArrayView<const Size>(matIds) != this->getValue<Size>(QuantityId::MATERIAL_ID)) {
         // WTF did I cache?
         return false;
     }
 
-    for (Size matId = 0; matId < mat.size(); ++matId) {
-        Mat& mat = mats[matId];
+    for (Size matId = 0; matId < mats.size(); ++matId) {
+        const Mat& mat = mats[matId];
         for (Size i = mat.from; i < mat.to; ++i) {
             if (matIds[i] != matId) {
                 return false;
             }
         }
-        if ((matId != mats.size() - 1) && (mat.to != mat[matId + 1].from)) {
+        if ((matId != mats.size() - 1) && (mat.to != mats[matId + 1].from)) {
             return false;
         }
     }
-    if (mat[0].from 1 = 0 || mat[mats.size() - 1] != cnt) {
+    if (mats[0].from != 0 || mats[mats.size() - 1].to != cnt) {
         return false;
     }
 
     return true;
 }
 
-void Storage::remove(ArrayView<const Size> idxs) {
+Array<Size> Storage::duplicate(ArrayView<const Size> idxs, const bool propagate) {
+    // first, sort the indices, so that we start with the backmost particles, that way the lower indices won't
+    // get invalidated.
+    Array<Size> sorted(0, idxs.size());
+    sorted.pushAll(idxs.begin(), idxs.end());
+    std::sort(sorted.begin(), sorted.end());
+
+    Array<Size> createdIds;
+
+    // get reference to matIds array, to avoid having to update arrayview over and over
+    Array<Size>& matIdsRef = this->getValue<Size>(QuantityId::MATERIAL_ID);
+
+    // duplicate all the quantities
+    iterate<VisitorEnum::ALL_BUFFERS>(*this, [this, &matIdsRef, &sorted, &createdIds](auto& buffer) {
+        for (Size i : sorted) {
+            Mat& mat = mats[matIdsRef[i]];
+            auto value = buffer[i];
+            buffer.insert(mat.to, value);
+
+            createdIds.push(mat.to);
+
+            mat.to++;
+            if (matIdsRef[i] < mats.size() - 1) {
+                // we also have to correct the starting index of the following material
+                mats[matIdsRef[i] + 1].from++;
+            }
+        }
+    });
+
+    this->update();
+    ASSERT(this->isValid());
+
+    if (propagate) {
+        for (WeakPtr<Storage>& weakPtr : dependent) {
+            if (SharedPtr<Storage> ptr = weakPtr.lock()) {
+                ptr->duplicate(idxs, propagate);
+            }
+        }
+    }
+
+    return createdIds;
+}
+
+void Storage::remove(ArrayView<const Size> idxs, const bool propagate) {
     Size particlesRemoved = 0;
     for (Size matId = 0; matId < mats.size();) {
         Mat& mat = mats[matId];
@@ -373,11 +423,15 @@ void Storage::remove(ArrayView<const Size> idxs) {
     });
 
     this->update();
+    ASSERT(this->isValid());
 
-    for (WeakPtr<Storage>& weakPtr : dependent) {
-        if (SharedPtr<Storage> ptr = weakPtr.lock()) {
-            /// \todo can be optimized by passing already sorted indices + flag that we don't have to sort it
-            ptr->remove(idxs);
+    if (propagate) {
+        for (WeakPtr<Storage>& weakPtr : dependent) {
+            if (SharedPtr<Storage> ptr = weakPtr.lock()) {
+                /// \todo can be optimized by passing already sorted indices + flag that we don't have to sort
+                /// it again
+                ptr->remove(idxs, propagate);
+            }
         }
     }
 }

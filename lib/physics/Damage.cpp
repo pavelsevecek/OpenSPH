@@ -12,14 +12,14 @@ NAMESPACE_SPH_BEGIN
 /// ScalarDamage implementation
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-ScalarDamage::ScalarDamage(const Float kernelRadius, const ExplicitFlaws options)
+ScalarGradyKippModel::ScalarGradyKippModel(const Float kernelRadius, const ExplicitFlaws options)
     : kernelRadius(kernelRadius)
     , options(options) {}
 
-ScalarDamage::ScalarDamage(const RunSettings& settings, const ExplicitFlaws options)
-    : ScalarDamage(Factory::getKernel<3>(settings).radius(), options) {}
+ScalarGradyKippModel::ScalarGradyKippModel(const RunSettings& settings, const ExplicitFlaws options)
+    : ScalarGradyKippModel(Factory::getKernel<3>(settings).radius(), options) {}
 
-void ScalarDamage::setFlaws(Storage& storage,
+void ScalarGradyKippModel::setFlaws(Storage& storage,
     IMaterial& material,
     const MaterialInitialContext& context) const {
     ASSERT(storage.getMaterialCnt() == 1);
@@ -98,7 +98,9 @@ void ScalarDamage::setFlaws(Storage& storage,
     }
 }
 
-void ScalarDamage::reduce(Storage& storage, const Flags<DamageFlag> flags, const MaterialView material) {
+void ScalarGradyKippModel::reduce(Storage& storage,
+    const Flags<DamageFlag> flags,
+    const MaterialView material) {
     ArrayView<Float> damage = storage.getValue<Float>(QuantityId::DAMAGE);
     // we can reduce pressure in place as the original value can be computed from equation of state
     ArrayView<Float> p = storage.getValue<Float>(QuantityId::PRESSURE);
@@ -129,7 +131,7 @@ void ScalarDamage::reduce(Storage& storage, const Flags<DamageFlag> flags, const
     });
 }
 
-void ScalarDamage::integrate(Storage& storage, const MaterialView material) {
+void ScalarGradyKippModel::integrate(Storage& storage, const MaterialView material) {
     ArrayView<TracelessTensor> s, s_dmg, ds;
     s_dmg = storage.getPhysicalValue<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
     s = storage.getValue<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
@@ -180,19 +182,19 @@ void ScalarDamage::integrate(Storage& storage, const MaterialView material) {
     });
 }
 
-void TensorDamage::setFlaws(Storage& UNUSED(storage),
+void TensorGradyKippModel::setFlaws(Storage& UNUSED(storage),
     IMaterial& UNUSED(material),
     const MaterialInitialContext& UNUSED(context)) const {
     NOT_IMPLEMENTED;
 }
 
-void TensorDamage::reduce(Storage& UNUSED(storage),
+void TensorGradyKippModel::reduce(Storage& UNUSED(storage),
     const Flags<DamageFlag> UNUSED(flags),
     const MaterialView UNUSED(material)) {
     NOT_IMPLEMENTED;
 }
 
-void TensorDamage::integrate(Storage& UNUSED(storage), const MaterialView UNUSED(material)) {
+void TensorGradyKippModel::integrate(Storage& UNUSED(storage), const MaterialView UNUSED(material)) {
     NOT_IMPLEMENTED;
 }
 
@@ -200,24 +202,25 @@ void MohrCoulombModel::setFlaws(Storage& storage,
     IMaterial& UNUSED(material),
     const MaterialInitialContext& UNUSED(context)) const {
     /// \todo correct values
-    storage.insert<Float>(QuantityId::MOHR_COULOMB_STRESS, 0._f);
-    storage.insert<Float>(QuantityId::FRICTION_ANGLE, 0._f);
+    storage.insert<Float>(QuantityId::MOHR_COULOMB_STRESS, OrderEnum::ZERO, 0._f);
+    storage.insert<Float>(QuantityId::FRICTION_ANGLE, OrderEnum::ZERO, 0._f);
 }
 
-void MohrCoulombModel::integrate(Storage& storage, const MaterialView material) {
-    for (Size i = 0; i < p.size(); ++i) {
+void MohrCoulombModel::integrate(Storage& UNUSED(storage), const MaterialView UNUSED(material)) {
+    NOT_IMPLEMENTED;
+    /*for (Size i = 0; i < p.size(); ++i) {
         const SymmetricTensor sigma = SymmetricTensor(s_dmg[i]) - p[i] * SymmetricTensor::identity();
         Float sig1, sig2, sig3;
         tie(sig1, sig2, sig3) = findEigenvalues(sigma);
         const Float sigMax = max(sig1, sig2, sig3);
-    }
+    }*/
 }
 
-void NullDamage::setFlaws(Storage& UNUSED(storage),
+void NullFracture::setFlaws(Storage& UNUSED(storage),
     IMaterial& UNUSED(material),
     const MaterialInitialContext& UNUSED(context)) const {}
 
-void NullDamage::reduce(Storage& storage,
+void NullFracture::reduce(Storage& storage,
     const Flags<DamageFlag> UNUSED(flags),
     const MaterialView material) {
     ArrayView<TracelessTensor> s, s_dmg;
@@ -231,6 +234,6 @@ void NullDamage::reduce(Storage& storage,
     });
 }
 
-void NullDamage::integrate(Storage& UNUSED(storage), const MaterialView UNUSED(material)) {}
+void NullFracture::integrate(Storage& UNUSED(storage), const MaterialView UNUSED(material)) {}
 
 NAMESPACE_SPH_END

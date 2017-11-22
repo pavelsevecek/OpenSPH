@@ -174,6 +174,19 @@ TEST_CASE("Array EmplaceBack", "[array]") {
     REQUIRE(ar[0].value == 3);
 }
 
+TEST_CASE("Array Insert", "[array]") {
+    Array<RecordType> ar = { 1, 2, 3, 4, 5 };
+    RecordType::resetStats();
+    ar.insert(0, 0);
+    REQUIRE(ar == Array<RecordType>({ 0, 1, 2, 3, 4, 5 }));
+    ar.insert(6, 6);
+    REQUIRE(ar == Array<RecordType>({ 0, 1, 2, 3, 4, 5, 6 }));
+    ar.insert(3, -1);
+    REQUIRE(ar == Array<RecordType>({ 0, 1, 2, -1, 3, 4, 5, 6 }));
+
+    REQUIRE_ASSERT(ar.insert(9, 5));
+}
+
 TEST_CASE("Array Remove by index", "[array]") {
     Array<int> ar{ 1, 5, 3, 6, 2, 3 };
     ar.remove(0);

@@ -16,7 +16,7 @@ class IEos;
 class IRheology;
 class ISolver;
 class IGravity;
-class IDamage;
+class IFractureModel;
 class IDistribution;
 class IDomain;
 class INeighbourFinder;
@@ -38,7 +38,7 @@ namespace Factory {
 
     AutoPtr<IRheology> getRheology(const BodySettings& settings);
 
-    AutoPtr<IDamage> getDamage(const BodySettings& settings);
+    AutoPtr<IFractureModel> getDamage(const BodySettings& settings);
 
     AutoPtr<IEquationTerm> getArtificialViscosity(const RunSettings& settings);
 
@@ -54,7 +54,7 @@ namespace Factory {
 
     AutoPtr<IGravity> getGravity(const RunSettings& settings);
 
-    AutoPtr<IBoundaryCondition> getBoundaryConditions(const RunSettings& settings, AutoPtr<IDomain>&& domain);
+    AutoPtr<IBoundaryCondition> getBoundaryConditions(const RunSettings& settings);
 
     AutoPtr<IDomain> getDomain(const RunSettings& settings);
 
