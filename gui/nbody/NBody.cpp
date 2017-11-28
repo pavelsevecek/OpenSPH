@@ -47,7 +47,7 @@ void NBody::setUp() {
     // create the solver quantities
     solver->create(*storage, storage->getMaterial(0));
 
-    callbacks = makeAuto<GuiCallbacks>(controller);
+    callbacks = makeAuto<GuiCallbacks>(*controller);
 }
 
 void NBody::tearDown() {}

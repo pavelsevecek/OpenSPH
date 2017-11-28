@@ -251,8 +251,7 @@ public:
     }
 
 private:
-    EquationHolder getEquations(const RunSettings& settings) const {
-        // here we cannot use member variables as they haven't been initialized yet
+    static EquationHolder getEquations(const RunSettings& settings) {
 
         EquationHolder equations;
 
@@ -400,7 +399,8 @@ void AsteroidCollision::setUp() {
 
     StdOutLogger logger;
     SphericalDomain domain1(Vector(0._f), 5e3_f); // D = 10km
-    conds->addMonolithicBody(*storage, domain1, body).addRotation(targetOmega, BodyView::RotationOrigin::FRAME_ORIGIN);
+    conds->addMonolithicBody(*storage, domain1, body)
+        .addRotation(targetOmega, BodyView::RotationOrigin::FRAME_ORIGIN);
     logger.write("Particles of target: ", storage->getParticleCnt());
 
     /* body.set(BodySettingsId::PARTICLE_COUNT, 100)
@@ -413,7 +413,7 @@ void AsteroidCollision::setUp() {
 
     this->setupOutput();
 
-    callbacks = makeAuto<GuiCallbacks>(controller);
+    callbacks = makeAuto<GuiCallbacks>(*controller);
 
     // add printing of run progres
     triggers.pushBack(makeAuto<CommonStatsLog>(Factory::getLogger(settings)));

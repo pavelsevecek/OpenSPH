@@ -116,7 +116,7 @@ void AsteroidRotation::setUp() {
 
     triggers.pushBack(makeAuto<IntegralsLog>(Path("integrals.txt"), 1));
 
-    callbacks = makeAuto<GuiCallbacks>(model);
+    callbacks = makeAuto<GuiCallbacks>(*model);
 }
 
 void AsteroidRotation::setInitialStressTensor(Storage& smaller, EquationHolder& equations) {

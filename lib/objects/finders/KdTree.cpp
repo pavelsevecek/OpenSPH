@@ -148,7 +148,7 @@ void KdTree::buildTree(const Size parent,
     }
 }
 
-void KdTree::addLeaf(const Size parent, const Size from, const Size to) {
+void KdTree::addLeaf(const Size parent, const Size from, const Size to) noexcept {
     nodes.emplaceBack(KdNode::Type::LEAF);
     const Size index = nodes.size() - 1;
     LeafNode& node = (LeafNode&)nodes[index];
@@ -181,7 +181,7 @@ void KdTree::addLeaf(const Size parent, const Size from, const Size to) {
     }
 }
 
-void KdTree::addInner(const Size parent, const Float splitPosition, const Size splitIdx) {
+void KdTree::addInner(const Size parent, const Float splitPosition, const Size splitIdx) noexcept {
     static_assert(int(KdNode::Type::X) == 0 && int(KdNode::Type::Y) == 1 && int(KdNode::Type::Z) == 2,
         "Invalid values of KdNode::Type enum");
 

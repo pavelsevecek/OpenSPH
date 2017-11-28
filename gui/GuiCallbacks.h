@@ -9,14 +9,15 @@ NAMESPACE_SPH_BEGIN
 
 class GuiCallbacks : public IRunCallbacks {
 private:
-    RawPtr<Controller> model;
+    /// \todo avoid the dependency loop - controller is the owner of GuiCallbacks!
+    Controller& controller;
 
 public:
-    GuiCallbacks(const RawPtr<Controller> model)
-        : model(model) {}
+    GuiCallbacks(Controller& controller)
+        : controller(controller) {}
 
     virtual void onTimeStep(const Storage& storage, Statistics& stats) override {
-        model->onTimeStep(storage, stats);
+        controller.onTimeStep(storage, stats);
     }
 
     virtual void onRunStart(const Storage& UNUSED(storage), Statistics& UNUSED(stats)) override {}
@@ -26,7 +27,7 @@ public:
     }
 
     virtual bool shouldAbortRun() const override {
-        return model->shouldAbortRun();
+        return controller.shouldAbortRun();
     }
 };
 

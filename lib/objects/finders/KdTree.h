@@ -185,7 +185,7 @@ public:
     void iterate(const TFunctor& functor, const Size nodeIdx = 0) const {
         // use non-const overload using const_cast, but call the functor with const reference
         auto actFunctor = [&functor](KdNode& node, KdNode* left, KdNode* right)
-            INL { return functor(asConst(node), left, right); };
+                              INL { return functor(asConst(node), left, right); };
         const_cast<KdTree*>(this)->iterate<Dir>(actFunctor, nodeIdx);
     }
 
@@ -222,9 +222,9 @@ private:
 
     void buildTree(const Size parent, const Size from, const Size to, const Box& box, const Size slidingCnt);
 
-    void addLeaf(const Size parent, const Size from, const Size to);
+    void addLeaf(const Size parent, const Size from, const Size to) noexcept;
 
-    void addInner(const Size parent, const Float splitPosition, const Size splitIdx);
+    void addInner(const Size parent, const Float splitPosition, const Size splitIdx) noexcept;
 
     bool isSingular(const Size from, const Size to, const Size splitIdx) const;
 

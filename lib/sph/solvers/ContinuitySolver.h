@@ -22,7 +22,8 @@ public:
         : GenericSolver(settings, this->getEquations(settings, additionalEquations)) {}
 
 private:
-    EquationHolder getEquations(const RunSettings& settings, const EquationHolder& additionalEquations) {
+    static EquationHolder getEquations(const RunSettings& settings,
+        const EquationHolder& additionalEquations) {
         EquationHolder equations;
         /// \todo test that all possible combination (pressure, stress, AV, ...) work and dont assert
         if (settings.get<bool>(RunSettingsId::MODEL_FORCE_PRESSURE_GRADIENT)) {

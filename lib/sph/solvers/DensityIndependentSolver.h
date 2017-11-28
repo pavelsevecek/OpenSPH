@@ -147,7 +147,7 @@ public:
     }
 
 private:
-    EquationHolder getEquations(const RunSettings& UNUSED(settings)) {
+    static EquationHolder getEquations(const RunSettings& UNUSED(settings)) {
         EquationHolder equations;
         equations += makeTerm<DensityIndependentPressureForce>() + makeTerm<StandardAV>() +
                      makeTerm<ConstSmoothingLength>();

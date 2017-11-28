@@ -193,8 +193,7 @@ private:
         triggers.pushBack(makeAuto<DumpTrigger>(settings));
     }
 
-    EquationHolder getEquations(const RunSettings& settings) const {
-        // here we cannot use member variables as they haven't been initialized yet
+    static EquationHolder getEquations(const RunSettings& settings) {
 
         EquationHolder equations;
 

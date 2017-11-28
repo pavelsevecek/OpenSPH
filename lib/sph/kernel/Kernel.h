@@ -22,20 +22,20 @@ public:
     /// Value of kernel at given point
     /// this should be called only once for a pair of particles as there is expensive division
     /// \todo Potentially precompute the 3rd power ...
-    INLINE Float value(const Vector& r, const Float h) const {
+    INLINE Float value(const Vector& r, const Float h) const noexcept {
         ASSERT(h > 0._f);
         const Float hInv = 1._f / h;
         return pow<D>(hInv) * impl().valueImpl(getSqrLength(r) * sqr(hInv));
     }
 
-    INLINE Vector grad(const Vector& r, const Float h) const {
+    INLINE Vector grad(const Vector& r, const Float h) const noexcept {
         ASSERT(h > 0._f);
         const Float hInv = 1._f / h;
         return r * pow<D + 2>(hInv) * impl().gradImpl(getSqrLength(r) * sqr(hInv));
     }
 
 private:
-    INLINE const TDerived& impl() const {
+    INLINE const TDerived& impl() const noexcept {
         return static_cast<const TDerived&>(*this);
     }
 };
@@ -90,11 +90,11 @@ public:
         return rad > 0._f;
     }
 
-    INLINE Float radius() const {
+    INLINE Float radius() const noexcept {
         return rad;
     }
 
-    INLINE Float valueImpl(const Float qSqr) const {
+    INLINE Float valueImpl(const Float qSqr) const noexcept {
         ASSERT(qSqr >= 0.f);
         ASSERT(isInit());
         if (SPH_UNLIKELY(qSqr >= sqr(rad))) {
@@ -112,7 +112,7 @@ public:
         return values[idx1] * (1._f - ratio) + (int(idx2 < NEntries) * values[idx2]) * ratio;
     }
 
-    INLINE Float gradImpl(const Float qSqr) const {
+    INLINE Float gradImpl(const Float qSqr) const noexcept {
         ASSERT(qSqr >= 0._f);
         ASSERT(isInit());
         if (SPH_UNLIKELY(qSqr >= sqr(rad))) {
