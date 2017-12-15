@@ -348,7 +348,7 @@ AutoPtr<BodySettings> BodySettings::instance (new BodySettings {
 
     /// Yielding & Damage
     { BodySettingsId::RHEOLOGY_YIELDING,    "rheology.yielding",            int(YieldingEnum::VON_MISES) },
-    { BodySettingsId::RHEOLOGY_DAMAGE,      "rheology.damage",              int(DamageEnum::NONE) },
+    { BodySettingsId::RHEOLOGY_DAMAGE,      "rheology.damage",              int(FractureEnum::NONE) },
     { BodySettingsId::ELASTICITY_LIMIT,     "rheology.elasticity_limit",    3.5e9_f },
     { BodySettingsId::MELT_ENERGY,          "rheology.melt_energy",         3.4e6_f },
     { BodySettingsId::COHESION,             "rheology.cohesion",            9.e7_f },

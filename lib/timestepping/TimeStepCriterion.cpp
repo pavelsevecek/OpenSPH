@@ -69,8 +69,8 @@ struct MinimalStepTls {
     /// Save auxiliary statistics
     INLINE void saveStats(Statistics& stats) const {
         stats.set(StatisticsId::LIMITING_PARTICLE_IDX, int(particleIdx));
-        stats.set(StatisticsId::LIMITING_VALUE, Value(value));
-        stats.set(StatisticsId::LIMITING_DERIVATIVE, Value(derivative));
+        stats.set(StatisticsId::LIMITING_VALUE, Dynamic(value));
+        stats.set(StatisticsId::LIMITING_DERIVATIVE, Dynamic(derivative));
     }
 };
 

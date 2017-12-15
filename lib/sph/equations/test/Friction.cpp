@@ -20,7 +20,7 @@ TEST_CASE("InternalFriction", "[friction]") {
     InitialConditions initial(solver, RunSettings::getDefaults());
     BodySettings body;
     body.set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::NONE);
-    body.set(BodySettingsId::RHEOLOGY_DAMAGE, DamageEnum::NONE);
+    body.set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::NONE);
     body.set(BodySettingsId::EOS, EosEnum::NONE);
     body.set(BodySettingsId::PARTICLE_COUNT, 10000);
     initial.addMonolithicBody(storage, BlockDomain(Vector(0._f), Vector(2._f, 2._f, 1._f)), body);

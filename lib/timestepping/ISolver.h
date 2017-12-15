@@ -46,6 +46,9 @@ public:
     /// \param dt Drift timestep, or time interval in which the collisions should be detected. Note that this
     ///           timestep can be different than the one in statistics, depending on selected timestepping
     ///           algorithm (for example LeapFrog uses drift step dt/2).
+    ///
+    /// \todo Positions should be automatically advanced if the solver does not have a concept of collisions.
+    /// It pointless to duplicate this code.
     virtual void collide(Storage& storage, Statistics& stats, const Float dt) = 0;
 
     /// \brief Initializes all quantities needed by the solver in the storage.

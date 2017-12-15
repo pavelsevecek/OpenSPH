@@ -90,7 +90,8 @@ SOURCES += \
     post/Plot.cpp \
     objects/finders/DynamicFinder.cpp \
     objects/containers/String.cpp \
-    objects/finders/UniformGrid.cpp
+    objects/finders/UniformGrid.cpp \
+    io/FileManager.cpp
 
 HEADERS += \
     common/Assert.h \
@@ -156,7 +157,6 @@ HEADERS += \
     objects/utility/OperatorTemplate.h \
     objects/utility/PerElementWrapper.h \
     objects/utility/StringUtils.h \
-    objects/utility/Value.h \
     objects/wrappers/AlignedStorage.h \
     objects/wrappers/Any.h \
     objects/wrappers/AutoPtr.h \
@@ -264,4 +264,10 @@ HEADERS += \
     sph/equations/Fluids.h \
     thread/IScheduler.h \
     mpi/MpiScheduler.h \
-    physics/Units.h
+    physics/Units.h \
+    objects/containers/Allocators.h \
+    objects/wrappers/Transient.h \
+    objects/wrappers/SafePtr.h \
+    objects/wrappers/Locking.h \
+    io/FileManager.h \
+    objects/utility/Dynamic.h

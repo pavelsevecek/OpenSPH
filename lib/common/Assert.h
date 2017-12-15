@@ -97,4 +97,14 @@ struct Assert {
     ASSERT(false, "stop");                                                                                   \
     throw std::exception();
 
+/// Helper cast, performing a static_cast, but checking that the cast is valid using dynamic_cast in assert
+/// and debug builds.
+template <typename T>
+INLINE T assert_cast(T value) {
+    static_assert(std::is_pointer<T>::value, "Must be a pointer type");
+    ASSERT(!value || dynamic_cast<T>(value) != nullptr);
+    return static_cast<T>(value);
+}
+
+
 NAMESPACE_SPH_END

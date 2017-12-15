@@ -33,39 +33,39 @@ Particle::Particle(const Storage& storage, const Size idx)
     }
 }
 
-Particle::Particle(const QuantityId id, const Value& value, const Size idx)
+Particle::Particle(const QuantityId id, const Dynamic& value, const Size idx)
     : idx(idx) {
     data[id].value = value;
 }
 
-Particle& Particle::addValue(const QuantityId id, const Value& value) {
+Particle& Particle::addValue(const QuantityId id, const Dynamic& value) {
     data[id].value = value;
     return *this;
 }
 
-Particle& Particle::addDt(const QuantityId id, const Value& value) {
+Particle& Particle::addDt(const QuantityId id, const Dynamic& value) {
     data[id].dt = value;
     return *this;
 }
 
-Particle& Particle::addD2t(const QuantityId id, const Value& value) {
+Particle& Particle::addD2t(const QuantityId id, const Dynamic& value) {
     data[id].d2t = value;
     return *this;
 }
 
-Value Particle::getValue(const QuantityId id) const {
+Dynamic Particle::getValue(const QuantityId id) const {
     auto iter = data.find(id);
     ASSERT(iter != data.end());
     return iter->second.value;
 }
 
-Value Particle::getDt(const QuantityId id) const {
+Dynamic Particle::getDt(const QuantityId id) const {
     auto iter = data.find(id);
     ASSERT(iter != data.end());
     return iter->second.dt;
 }
 
-Value Particle::getD2t(const QuantityId id) const {
+Dynamic Particle::getD2t(const QuantityId id) const {
     auto iter = data.find(id);
     ASSERT(iter != data.end());
     return iter->second.d2t;
@@ -81,7 +81,7 @@ Particle::ValueIterator& Particle::ValueIterator::operator++() {
 
 Particle::QuantityData Particle::ValueIterator::operator*() const {
     const InternalQuantityData& internal = iter->second;
-    ValueId type;
+    DynamicId type;
     if (internal.value) {
         type = internal.value.getType();
         ASSERT(internal.dt.empty() || internal.dt.getType() == type);

@@ -243,6 +243,20 @@ TEST_CASE("List clone", "[list]") {
     REQUIRE(list1.back().value == 4); // deep copy, lists are not referencing same elements
 }
 
+TEST_CASE("List clear", "[list]") {
+    List<RecordType> list({ 1, 2, 3, 4 });
+    list.clear();
+    REQUIRE(list.size() == 0);
+    REQUIRE(list.empty());
+    REQUIRE(list.begin() == list.end());
+    REQUIRE_ASSERT(list.front());
+    REQUIRE_ASSERT(list.back());
+
+    list.pushBack(5);
+    REQUIRE(list.size() == 1);
+    REQUIRE(list.front().value == 5);
+}
+
 TEST_CASE("List of references", "[list]") {
     List<RecordType&> list;
     RecordType r1(3), r2(5);

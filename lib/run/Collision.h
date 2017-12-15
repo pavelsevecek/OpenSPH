@@ -62,7 +62,7 @@ public:
             .set(BodySettingsId::PARTICLE_COUNT, int(_params.targetParticleCnt))
             .set(BodySettingsId::EOS, EosEnum::TILLOTSON)
             .set(BodySettingsId::STRESS_TENSOR_MIN, 1.e5_f)
-            .set(BodySettingsId::RHEOLOGY_DAMAGE, DamageEnum::SCALAR_GRADY_KIPP)
+            .set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::SCALAR_GRADY_KIPP)
             .set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::VON_MISES)
             .set(BodySettingsId::DISTRIBUTE_MODE_SPH5, true);
 

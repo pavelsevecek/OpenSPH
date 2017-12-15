@@ -92,7 +92,7 @@ private:
         drawTextWithSubscripts(
             dc, L"z = " + toPrintableString(position[Z]), offset + wxSize(0, 3 * config.lineSkip));
 
-        Value velocityValue = particle->getDt(QuantityId::POSITION);
+        Dynamic velocityValue = particle->getDt(QuantityId::POSITION);
         if (velocityValue) {
             const Vector velocity = velocityValue;
             const Size x = canvasSize.x / 2;
@@ -117,27 +117,31 @@ private:
             /// although we can assume there are only quantity values, generalize it for future uses.
 
             ASSERT(!data.value.empty());
-            const ValueId id = data.value.getType();
-            const std::string label = getMetadata(data.id).label;
-            const std::wstring wlabel(label.begin(), label.end());
+            const DynamicId id = data.value.getType();
+            const std::wstring label = getMetadata(data.id).label;
             switch (id) {
-            case ValueId::FLOAT:
+            case DynamicId::FLOAT:
                 /// \todo we should use the name of the colorizer, not quantity
                 /// \todo replace full quantity name with shorter designation (rho, ...)
                 drawTextWithSubscripts(
-                    dc, wlabel + L" = " + toPrintableString(data.value.get<Float>()), offset);
+                    dc, label + L" = " + toPrintableString(data.value.get<Float>()), offset);
                 offset.y += config.leftSkip;
                 break;
-
-            case ValueId::TRACELESS_TENSOR: {
+            case DynamicId::VECTOR: {
+                const Vector vector = data.value;
+                this->printVector(dc, vector, label, offset);
+                offset.y += 3 * config.leftSkip;
+                break;
+            }
+            case DynamicId::TRACELESS_TENSOR: {
                 const TracelessTensor tensor = data.value;
-                this->printTensor(dc, tensor, wlabel, offset);
+                this->printTensor(dc, tensor, label, offset);
                 offset.y += 6 * config.leftSkip;
                 break;
             }
-            case ValueId::SYMMETRIC_TENSOR: {
+            case DynamicId::SYMMETRIC_TENSOR: {
                 const SymmetricTensor tensor = data.value;
-                this->printTensor(dc, tensor, wlabel, offset);
+                this->printTensor(dc, tensor, label, offset);
                 offset.y += 6 * config.leftSkip;
                 break;
             }
@@ -147,6 +151,15 @@ private:
                 break;
             }
         }
+    }
+
+    void printVector(wxDC& dc, const Vector& v, const std::wstring& label, const wxPoint offset) const {
+        drawTextWithSubscripts(
+            dc, label + L"_x = " + toPrintableString(v[X]), offset + wxSize(0, 0 * config.lineSkip));
+        drawTextWithSubscripts(
+            dc, label + L"_y = " + toPrintableString(v[Y]), offset + wxSize(0, 1 * config.lineSkip));
+        drawTextWithSubscripts(
+            dc, label + L"_z = " + toPrintableString(v[Z]), offset + wxSize(0, 2 * config.lineSkip));
     }
 
     template <typename Type>

@@ -9,7 +9,7 @@
 #include "gui/Factory.h"
 #include "gui/objects/Palette.h"
 #include "gui/objects/Point.h"
-#include "objects/utility/Value.h"
+#include "objects/utility/Dynamic.h"
 #include "quantities/IMaterial.h"
 #include "quantities/Particle.h"
 
@@ -69,6 +69,10 @@ namespace Detail {
     }
     template <>
     INLINE float getColorizerValue(const TracelessTensor& value) {
+        return sqrt(ddot(value, value));
+    }
+    template <>
+    INLINE float getColorizerValue(const SymmetricTensor& value) {
         return sqrt(ddot(value, value));
     }
 } // namespace Detail

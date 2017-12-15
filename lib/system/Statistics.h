@@ -7,7 +7,7 @@
 
 #include "common/ForwardDecl.h"
 #include "math/Means.h"
-#include "objects/utility/Value.h"
+#include "objects/utility/Dynamic.h"
 #include "objects/wrappers/Interval.h"
 #include "objects/wrappers/Variant.h"
 #include "quantities/QuantityIds.h"
@@ -23,7 +23,7 @@ class Statistics {
 private:
     enum Types { BOOL, INT, FLOAT, MEANS, VALUE, INTERVAL };
 
-    using ValueType = Variant<bool, int, Float, MinMaxMean, Value, Interval>;
+    using ValueType = Variant<bool, int, Float, MinMaxMean, Dynamic, Interval>;
 
     std::map<StatisticsId, ValueType> entries;
 

@@ -1,6 +1,6 @@
 #pragma once
 
-/// \file Value.h
+/// \file Dynamic.h
 /// \brief Object holding a single values of various types
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2017
@@ -14,7 +14,7 @@ NAMESPACE_SPH_BEGIN
 /// \brief Enum representing a value type stored in a Value object.
 ///
 /// Has to be kept in sync with ValueVariant defined below.
-enum class ValueId {
+enum class DynamicId {
     SIZE = 1,
     FLOAT,
     VECTOR,
@@ -30,10 +30,10 @@ enum class ValueId {
 /// This is intended mainly for logging and output routines, as the object provides generic way to store
 /// different types and print stored values. There is no need to pass types as template arguments, so the
 /// object Value is a suitable return value or parameter of virtual functions (that cannot be templated).
-class Value {
+class Dynamic {
 private:
     /// \note If bool is added into the variant, it will probably clash with operator bool().
-    using ValueVariant = Variant<NothingType,
+    using DynamicVariant = Variant<NothingType,
         Size,
         Float,
         Vector,
@@ -43,38 +43,38 @@ private:
         MinMaxMean,
         std::string>;
 
-    ValueVariant storage;
+    DynamicVariant storage;
 
 public:
     /// Construct an uninitialized value
-    Value() = default;
+    Dynamic() = default;
 
-    ~Value() = default;
+    ~Dynamic() = default;
 
     /// Contruct value from one of possible value types
-    template <typename T, typename = std::enable_if_t<!std::is_same<std::decay_t<T>, Value>::value>>
-    Value(T&& value)
+    template <typename T, typename = std::enable_if_t<!std::is_same<std::decay_t<T>, Dynamic>::value>>
+    Dynamic(T&& value)
         : storage(std::forward<T>(value)) {}
 
-    Value(const Value& other)
+    Dynamic(const Dynamic& other)
         : storage(other.storage) {}
 
-    Value(Value&& other)
+    Dynamic(Dynamic&& other)
         : storage(std::move(other.storage)) {}
 
     /// Assign one of possible value types into the value
-    template <typename T, typename = std::enable_if_t<ValueVariant::canHold<T>()>>
-    Value& operator=(T&& rhs) {
+    template <typename T, typename = std::enable_if_t<DynamicVariant::canHold<T>()>>
+    Dynamic& operator=(T&& rhs) {
         storage = std::forward<T>(rhs);
         return *this;
     }
 
-    Value& operator=(const Value& other) {
+    Dynamic& operator=(const Dynamic& other) {
         storage = other.storage;
         return *this;
     }
 
-    Value& operator=(Value&& other) {
+    Dynamic& operator=(Dynamic&& other) {
         storage = std::move(other.storage);
         return *this;
     }
@@ -82,25 +82,25 @@ public:
     /// \brief Returns the reference to the stored value given its type.
     ///
     /// The stored value must indeed have a type T, checked by assert.
-    template <typename T, typename = std::enable_if_t<ValueVariant::canHold<T>()>>
+    template <typename T, typename = std::enable_if_t<DynamicVariant::canHold<T>()>>
     INLINE T& get() {
         return storage.get<T>();
     }
 
     /// Returns the const reference to the stored value given its type.
-    template <typename T, typename = std::enable_if_t<ValueVariant::canHold<T>()>>
+    template <typename T, typename = std::enable_if_t<DynamicVariant::canHold<T>()>>
     const T& get() const {
         return storage.get<T>();
     }
 
     /// Conversion operator to one of stored types
-    template <typename T, typename = std::enable_if_t<ValueVariant::canHold<T>()>>
+    template <typename T, typename = std::enable_if_t<DynamicVariant::canHold<T>()>>
     operator T&() {
         return this->get<T>();
     }
 
-    /// Conversion operator to one of stored types, const version
-    template <typename T, typename = std::enable_if_t<ValueVariant::canHold<T>()>>
+    /// Coversion operator to one of stored types, const version
+    template <typename T, typename = std::enable_if_t<DynamicVariant::canHold<T>()>>
     operator const T&() const {
         return this->get<T>();
     }
@@ -110,8 +110,8 @@ public:
         return forValue(storage, ScalarFunctor());
     }
 
-    ValueId getType() const {
-        return ValueId(storage.getTypeIdx());
+    DynamicId getType() const {
+        return DynamicId(storage.getTypeIdx());
     }
 
     /// Checks if the value has been initialized.
@@ -128,13 +128,13 @@ public:
     }
 
     /// Equality operator with one of stored types.
-    template <typename T, typename = std::enable_if_t<ValueVariant::canHold<T>()>>
+    template <typename T, typename = std::enable_if_t<DynamicVariant::canHold<T>()>>
     bool operator==(const T& value) {
         return this->get<T>() == value;
     }
 
     /// Prints the currently stored value into the stream, using << operator of its type.
-    friend std::ostream& operator<<(std::ostream& stream, const Value& value) {
+    friend std::ostream& operator<<(std::ostream& stream, const Dynamic& value) {
         forValue(value.storage, [&stream](const auto& v) { stream << std::setw(20) << v; });
         return stream;
     }

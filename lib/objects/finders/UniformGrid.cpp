@@ -12,9 +12,10 @@ UniformGridFinder::~UniformGridFinder() = default;
 
 void UniformGridFinder::buildImpl(ArrayView<const Vector> points) {
     PROFILE_SCOPE("VoxelFinder::buildImpl");
-    if (lut.empty()) {
-        // number of voxels, free parameter
-        const Size lutSize = Size(relativeCellCnt * root<3>(points.size())) + 1;
+    // number of voxels, free parameter
+    const Size lutSize = Size(relativeCellCnt * root<3>(points.size())) + 1;
+    if (lut.empty() || lutSize != lut.getDimensionSize()) {
+        // build lookup map if not yet build or we have a significantly different number of points
         lut = LookupMap(lutSize);
     }
     if (SPH_LIKELY(!points.empty())) {

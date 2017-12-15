@@ -21,23 +21,24 @@ private:
     pid_t childPid = -1;
 
 public:
-    /// Creates a null process handle.
+    /// \brief Creates a null process handle.
     Process() = default;
 
-    /// Creates a process by running given executable file.
+    /// \brief Creates a process by running given executable file.
     /// \param path Path to the executable. The file must exist.
     /// \param args Arguments passes to the executable. Can be an empty array.
     /// \throw Exception if the file does not exist or the process fails to start.
+    /// \note Uses Array instead of ArrayView to easily pass brace-initialized list.
     Process(const Path& path, Array<std::string>&& args);
 
-    /// Blocks the calling thread until the managed process exits. The function may block indefinitely.
+    /// \brief Blocks the calling thread until the managed process exits. The function may block indefinitely.
     void wait();
 
-    /// Blocks the calling thread until the managed process exits or for specified duration.
+    /// \brief Blocks the calling thread until the managed process exits or for specified duration.
     /// \param duration Maximum wait duration in milliseconds.
     void waitFor(const uint64_t duration);
 
-    /// Blocks the calling thread until the managed process exits or until given condition is met.
+    /// \brief Blocks the calling thread until the managed process exits or until given condition is met.
     /// \param condition Function returning true if the wait should be interrupted.
     /// \param checkEvery Period of condition checking in milliseconds
     void waitUntil(const Function<bool()>& condition, const uint64_t checkEvery = 100);

@@ -1,30 +1,37 @@
 #pragma once
 
+/// \file MpiScheduler.h
+/// \brief Implementation of IScheduler interface using MPI
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2017
+
 #include "mpi/Mpi.h"
 #include "mpi/Serializable.h"
 #include "thread/IScheduler.h"
+#include <queue>
 
 NAMESPACE_SPH_BEGIN
 
-/// Only serializable tasks can be submitted
+/// \brief Scheduler using MPI for parallelization.
+///
+/// Only serializable tasks can be submitted; it a non-serializable task is pushed, an exception is thrown.
 class MpiScheduler : public IScheduler {
 private:
     Mpi& mpi;
 
-    /// Number of tasks assigned to each thread.
-    Array<Size> taskCnt;
+    /// Local queue of tasks
+    std::queue<AutoPtr<ITask>> queue;
+
 
 public:
     MpiScheduler()
-        : mpi(Mpi::getInstance()) {
-        taskCnt.resize(mpi.getCommunicatorSize());
-        taskCnt.fill(0);
-    }
+        : mpi(Mpi::getInstance()) {}
 
     virtual void submit(AutoPtr<ITask>&& task) override {
-        ASSERT(mpi.isMaster());
         ISerializable& serializable = dynamic_cast<ISerializable&>(*task);
-        // find the thread with the least tasks
+        Array<uint8_t> buffer;
+        serializable.serialize(buffer);
+        queue.push(std::move(task));
     }
 
     virtual void waitForAll() override {

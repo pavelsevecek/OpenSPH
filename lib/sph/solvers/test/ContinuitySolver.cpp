@@ -22,7 +22,7 @@ TEST_CASE("ContinuitySolver gass", "[solvers]") {
     BodySettings body;
     body.set(BodySettingsId::DENSITY, 1._f)
         .set(BodySettingsId::ENERGY, 1._f)
-        .set(BodySettingsId::RHEOLOGY_DAMAGE, DamageEnum::NONE)
+        .set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::NONE)
         .set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::NONE);
     Storage storage = Tests::getGassStorage(100, body, 1._f);
     testSolver(storage, settings);
@@ -47,22 +47,22 @@ TEST_CASE("ContinuitySolver solid", "[solvers]") {
     settings.set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONST);
     settings.set(RunSettingsId::SPH_AV_TYPE, ArtificialViscosityEnum::NONE);
     BodySettings body;
-    body.set(BodySettingsId::RHEOLOGY_DAMAGE, DamageEnum::NONE);
+    body.set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::NONE);
     body.set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::NONE);
     Storage storage = Tests::getSolidStorage(100, body, 1._f);
     testSolver(storage, settings);
 
     /// \todo this probably won't apply damage as it uses some dummy rheology, but it shouldn't throw
-    body.set(BodySettingsId::RHEOLOGY_DAMAGE, DamageEnum::SCALAR_GRADY_KIPP);
+    body.set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::SCALAR_GRADY_KIPP);
     storage = Tests::getSolidStorage(100, body, 1._f);
     testSolver(storage, settings);
 
-    body.set(BodySettingsId::RHEOLOGY_DAMAGE, DamageEnum::NONE);
+    body.set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::NONE);
     body.set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::VON_MISES);
     storage = Tests::getSolidStorage(100, body, 1._f);
     testSolver(storage, settings);
 
-    body.set(BodySettingsId::RHEOLOGY_DAMAGE, DamageEnum::SCALAR_GRADY_KIPP);
+    body.set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::SCALAR_GRADY_KIPP);
     body.set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::VON_MISES);
     testSolver(storage, settings);
     testSolver(storage, settings);

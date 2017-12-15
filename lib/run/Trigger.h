@@ -37,12 +37,13 @@ public:
 class PeriodicTrigger : public ITrigger {
 private:
     Float _period;
-    Float _lastAction = 0._f;
+    Float _lastAction;
 
 public:
     /// \brief period Period in simulation time of triggered action.
-    explicit PeriodicTrigger(const Float period)
-        : _period(period) {}
+    explicit PeriodicTrigger(const Float period, const Float startTime)
+        : _period(period)
+        , _lastAction(startTime - EPS) {}
 
     virtual TriggerEnum type() const override {
         return TriggerEnum::REPEATING;

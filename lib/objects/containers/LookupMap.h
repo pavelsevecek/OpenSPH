@@ -5,9 +5,9 @@
 /// \author Pavel Sevecek (seevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2017
 
+#include "objects/containers/Array.h"
 #include "objects/geometry/Box.h"
 #include "objects/geometry/Vector.h"
-#include "objects/containers/Array.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -33,7 +33,7 @@ public:
         for (const Vector& v : points) {
             tightBox.extend(v);
         }
-        boundingBox = this->extendBox(tightBox);
+        boundingBox = this->extendBox(tightBox, 1.e-6_f);
         for (auto& a : storage) {
             a.clear();
         }
@@ -87,7 +87,7 @@ public:
 
     INLINE Indices map(const Vector& v) const {
         ASSERT(boundingBox.size()[X] > 0._f && boundingBox.size()[Y] > 0._f && boundingBox.size()[Z] > 0._f);
-        ASSERT(dimensionSize >= 2);
+        ASSERT(dimensionSize >= 1);
         Vector idxs = (v - boundingBox.lower()) / (boundingBox.size()) * dimensionSize;
         ASSERT(idxs[X] >= 0 && idxs[Y] >= 0 && idxs[Z] >= 0);
         ASSERT(idxs[X] < dimensionSize && idxs[Y] < dimensionSize && idxs[Z] < dimensionSize);
@@ -95,10 +95,15 @@ public:
     }
 
 private:
-    // extends the bounding box by EPS in each dimension so we don't have to deal with particles lying on the
-    // boundary.
-    Box extendBox(const Box& box) const {
-        const Vector extension = max(EPS * box.size(), Vector(EPS));
+    /// \brief Extends the bounding box by EPS in each dimension.
+    ///
+    /// This is needed to avoid particles lying on the boundary, causing issues when assigning them to voxels.
+    /// Settings the actual epsilon for extension is a little bit tricky here: it has to scale with the size
+    /// of the box, but at the same it has to handle cases where the whole bounding box is very far from the
+    /// origin.
+    Box extendBox(const Box& box, const Float eps) const {
+        const Vector extension =
+            max(eps * box.size(), eps * abs(box.lower()), eps * abs(box.upper()), Vector(eps));
         Box extendedBox = box;
         extendedBox.extend(box.upper() + extension);
         extendedBox.extend(box.lower() - extension);

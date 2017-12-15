@@ -1,9 +1,12 @@
+#include "io/FileManager.h"
 #include "io/Logger.h"
 #include "io/Output.h"
 #include "io/Path.h"
+#include "objects/utility/StringUtils.h"
 #include "post/Analysis.h"
 #include "quantities/Storage.h"
 #include "run/Collision.h"
+#include "system/Process.h"
 #include <fstream>
 #include <iostream>
 
@@ -34,16 +37,24 @@ int pkdgravToOmega(const Path& filePath, const Path& omegaPath) {
         std::cout << "Invalid file: " << storage.error() << std::endl;
         return 0;
     }
-    Post::HistogramParams params;
+    /*Post::HistogramParams params;
     params.source = Post::HistogramParams::Source::PARTICLES;
     params.id = Post::HistogramId::ANGULAR_VELOCITIES;
     params.binCnt = 50;
-    params.validator = [](const Float value) { return value > 0._f; };
+    params.validator = [](const Float value) { return value > 0._f; };*/
 
-    Array<Post::SfdPoint> sfd = Post::getDifferentialSfd(storage.value(), params);
+    // Array<Post::SfdPoint> sfd = Post::getDifferentialSfd(storage.value(), params);
     FileLogger logOmegaSfd(omegaPath, FileLogger::Options::KEEP_OPENED);
-    for (Post::SfdPoint& p : sfd) {
+    /*for (Post::SfdPoint& p : sfd) {
         logOmegaSfd.write(p.value, "  ", p.count);
+    }*/
+    ArrayView<Vector> omega = storage->getValue<Vector>(QuantityId::ANGULAR_VELOCITY);
+    std::sort(
+        omega.begin(), omega.end(), [](Vector& v1, Vector& v2) { return getLength(v1) > getLength(v2); });
+    for (Vector v : omega) {
+        if (getLength(v) != 0._f) {
+            logOmegaSfd.write(getLength(v));
+        }
     }
     return 0;
 }
@@ -103,12 +114,19 @@ int sphToSfd(const Path& filePath, const Path& settingsPath, const Path& sfdPath
     return 0;
 }
 
-void processHarrisFile() {
-    Path harrisPath("/home/pavel/projects/astro/asteroids/grant3/harris.out");
-    std::ifstream ifs(harrisPath.native());
+struct HarrisAsteroid {
+    Optional<Size> number;
+    std::string name;
+    Optional<float> radius;
+    Optional<float> period;
+};
+
+static Array<HarrisAsteroid> loadHarris(std::ifstream& ifs) {
+    Array<HarrisAsteroid> harris;
     while (ifs) {
         std::string dummy;
-        ifs >> dummy >> dummy;
+        std::string number;
+        ifs >> number >> dummy;
 
         std::string name;
         ifs >> name;
@@ -116,22 +134,154 @@ void processHarrisFile() {
             ifs >> dummy;
         }
 
-        float radius;
+        std::string radius;
         ifs >> radius;
         for (int i = 0; i < 5; ++i) {
             ifs >> dummy;
         }
 
-        float period;
+        std::string period;
         ifs >> period;
         for (int i = 0; i < 10; ++i) {
             ifs >> dummy;
         }
 
-        if (radius > 0.1f && period < 0.1f) {
-            std::cout << name << " - " << radius << " km, P = " << period << std::endl;
+        harris.push(HarrisAsteroid{
+            fromString<Size>(number),
+            name,
+            fromString<float>(radius),
+            fromString<float>(period),
+        });
+    }
+    return harris;
+}
+
+struct FamilyAsteroid {
+    Optional<Size> number;
+    Optional<std::string> name;
+};
+
+static Array<FamilyAsteroid> loadFamilies(std::ifstream& ifs) {
+    ASSERT(ifs);
+    Array<FamilyAsteroid> asteroids;
+    std::string line;
+    bool firstLine = true;
+    int format = 1;
+    while (std::getline(ifs, line)) {
+        if (line.empty() || line[0] == '#') {
+            // comment line
+            if (firstLine) {
+                // this is the other format of the file, with asteroid names, etc.
+                format = 2;
+            }
+            firstLine = false;
+            continue;
+        }
+        firstLine = false;
+        std::stringstream ss(line);
+        // both formats start with asteroid number
+        std::string number;
+        ss >> number;
+        if (format == 2) {
+            std::string name;
+            ss >> name;
+            asteroids.push(FamilyAsteroid{ fromString<Size>(number), name });
+        } else {
+            asteroids.push(FamilyAsteroid{ fromString<Size>(number), NOTHING });
+        }
+        // check that we have at least one information
+        ASSERT(asteroids.back().name || asteroids.back().number);
+    }
+    return asteroids;
+}
+
+static Optional<HarrisAsteroid> findInHarris(const FamilyAsteroid& ast1,
+    ArrayView<const HarrisAsteroid> catalog) {
+    auto iter = std::find_if(catalog.begin(), catalog.end(), [&ast1](const HarrisAsteroid& ast2) { //
+        // search primarily by number
+        if (ast1.number && ast2.number && ast1.number.value() == ast2.number.value()) {
+            return true;
+        }
+        // if we don't have the number, search by name
+        if (ast1.name && ast1.name.value() == ast2.name) {
+            return true;
+        }
+        // either don't match or we don't have the information
+        return false;
+    });
+    if (iter == catalog.end()) {
+        return NOTHING;
+    } else {
+        if (iter->period && iter->radius) {
+            return *iter;
+        } else {
+            return NOTHING;
         }
     }
+}
+
+static void printDvsOmega(const Path& familyData,
+    const Path& outputPath,
+    ArrayView<const HarrisAsteroid> catalog) {
+    std::ifstream ifs(familyData.native());
+    ASSERT(ifs);
+    Array<FamilyAsteroid> family = loadFamilies(ifs);
+    Array<HarrisAsteroid> found;
+    for (FamilyAsteroid& famAst : family) {
+        if (auto harAst = findInHarris(famAst, catalog)) {
+            found.push(harAst.value());
+        }
+    }
+
+    FileSystem::createDirectory(outputPath.parentPath());
+    std::ofstream ofs(outputPath.native());
+    ASSERT(ofs);
+
+    auto largestRemnant = std::max_element(found.begin(),
+        found.end(),
+        [](HarrisAsteroid& ast1, HarrisAsteroid& ast2) { return ast1.radius.value() < ast2.radius.value(); });
+
+    for (HarrisAsteroid& ast : found) {
+        if (&ast != &*largestRemnant) {
+            ofs << ast.name << "  " << ast.radius.value() << "  " << 1._f / (ast.period.value() / 24._f)
+                << std::endl;
+        }
+    }
+}
+
+void processHarrisFile() {
+    Path harrisPath("/home/pavel/projects/astro/asteroids/grant3/harris.out");
+    std::ifstream ifs(harrisPath.native());
+    Array<HarrisAsteroid> harris = loadHarris(ifs);
+    ifs.close();
+
+    printDvsOmega(Path("/home/pavel/projects/astro/asteroids/families.txt"), Path("LR_D_omega.txt"), harris);
+
+    const Path parentPath("/home/pavel/projects/astro/asteroids/families");
+    Array<Path> paths = FileSystem::getFilesInDirectory(parentPath);
+    std::mutex printMutex;
+    std::mutex plotMutex;
+    UniquePathManager uniquePaths;
+    parallelFor(ThreadPool::getGlobalInstance(), 0, paths.size(), [&](const Size index) {
+        {
+            std::unique_lock<std::mutex> lock(printMutex);
+            std::cout << paths[index].native() << std::endl;
+        }
+        const Path name = paths[index].fileName();
+        const Path targetPath = Path("D_omega") / Path(name.native() + ".txt");
+        printDvsOmega(parentPath / paths[index], targetPath, harris);
+
+        std::unique_lock<std::mutex> lock(plotMutex);
+        if (FileSystem::fileSize(targetPath) == 0) {
+            return;
+        }
+        FileSystem::copyFile(targetPath, Path("family.txt"));
+        // make plot
+        Process gnuplot(Path("/bin/gnuplot"), { "doplot.plt" });
+        gnuplot.wait();
+        ASSERT(FileSystem::pathExists(Path("plot.png")));
+        FileSystem::copyFile(Path("plot.png"), uniquePaths.getPath(Path(targetPath).replaceExtension("png")));
+    });
 }
 
 void printHelp() {
@@ -143,7 +293,8 @@ void printHelp() {
               << " - pkdgravToMoons - finds satellites of the largest remnant (fragment) from pkdgrav "
                  "output file"
               << std::endl
-              << "- sphToSfd - computes the cummulative SFD from SPH output file" << std::endl;
+              << "- sphToSfd - computes the cummulative SFD from SPH output file" << std::endl
+              << "- harris - TODO" << std::endl;
 }
 
 int main(int argc, char** argv) {
@@ -177,6 +328,8 @@ int main(int argc, char** argv) {
             return 0;
         }
         return sphToSfd(Path(argv[2]), Path(argv[3]), Path(argv[4]));
+    } else if (mode == "harris") {
+        processHarrisFile();
     } else {
         printHelp();
         return 0;

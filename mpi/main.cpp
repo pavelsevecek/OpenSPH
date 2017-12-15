@@ -1,13 +1,12 @@
 #include "mpi/Mpi.h"
+#include "mpi/MpiScheduler.h"
 #include "mpi/Serializable.h"
+#include <atomic>
 #include <iostream>
 
 using namespace Sph;
 
 class TestSerializable : public ISerializable {
-private:
-    static Size hndl;
-
 public:
     Size data = 0;
 
@@ -22,23 +21,15 @@ public:
     }
 
     virtual Size handle() const override {
-        ASSERT(hndl != Size(-1));
-        return hndl;
-    }
-
-    virtual void registerHandle(const Size handle) {
-        hndl = handle;
+        return 1234;
     }
 };
-
-Size TestSerializable::hndl = Size(-1);
-
 
 int main() {
     Mpi& mpi = Mpi::getInstance();
     std::cout << mpi.getProcessorName() << ", rank: " << mpi.getProcessRank() << std::endl;
 
-    mpi.registerData(makeClone<TestSerializable>());
+    mpi.record(makeClone<TestSerializable>());
     TestSerializable dummy;
     ASSERT(dummy.handle() == 0);
 
@@ -55,6 +46,43 @@ int main() {
             std::cout << "Received " << act->data << " by " << mpi.getProcessRank() << std::endl;
         }
     }
+
+    /*  MpiScheduler scheduler;
+      std::atomic_int sum{ 0 };
+
+      class Task : public ITask, public ISerializable {
+      private:
+          std::atomic_int& sum;
+
+      public:
+          explicit Task(std::atomic_int& sum)
+              : sum(sum) {}
+
+          virtual void operator()() override {
+              sum += i;
+          }
+
+          virtual void serialize(Array<uint8_t>& buffer) const override {
+              int value = sum.load();
+              buffer.resize(sizeof(value));
+              memcpy(&buffer[0], &value, sizeof(value));
+          }
+
+          virtual void deserialize(ArrayView<uint8_t> buffer) {
+              int value;
+              memcpy(&value, &buffer[0], sizeof(int));
+              sum.store(value);
+          }
+
+          virtual Size handle() const override {
+              return 666;
+          }
+      };
+
+      parallelFor(scheduler, 0, 1000, 10, makeAuto<Task>(sum));
+
+      std::cout << "sum = " << sum << std::endl;*/
+
     Mpi::shutdown();
     return 0;
 }

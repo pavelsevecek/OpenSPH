@@ -87,6 +87,13 @@ AutoPtr<IColorizer> Factory::getColorizer(const GuiSettings& settings, const Col
         case QuantityId::VELOCITY_DIVERGENCE:
             range = settings.get<Interval>(GuiSettingsId::PALETTE_DIVV);
             break;
+        case QuantityId::VELOCITY_GRADIENT:
+        case QuantityId::STRENGTH_VELOCITY_GRADIENT:
+            range = settings.get<Interval>(GuiSettingsId::PALETTE_GRADV);
+            return makeAuto<TypedColorizer<SymmetricTensor>>(quantity, range);
+        case QuantityId::ANGULAR_VELOCITY:
+            range = settings.get<Interval>(GuiSettingsId::PALETTE_ANGULAR_VELOCITY);
+            return makeAuto<TypedColorizer<Vector>>(quantity, range);
         default:
             NOT_IMPLEMENTED;
         }
@@ -130,12 +137,30 @@ Palette Factory::getPalette(const ColorizerId id, const Interval range) {
             return Palette({ { x0, Color(0.1f, 0.1f, 0.1f) }, { x0 + dx, Color(0.9f, 0.9f, 0.9f) } },
                 PaletteScale::LINEAR);
         case QuantityId::VELOCITY_DIVERGENCE:
+            ASSERT(x0 < 0._f);
             return Palette({ { x0, Color(0.3f, 0.3f, 0.8f) },
-                               { -1.e-2f, Color(0.f, 0.f, 0.2f) },
+                               { 0.1f * x0, Color(0.f, 0.f, 0.2f) },
                                { 0.f, Color(0.2f, 0.2f, 0.2f) },
-                               { 1.e-2f, Color(0.8f, 0.8f, 0.8f) },
+                               { 0.1f * (x0 + dx), Color(0.8f, 0.8f, 0.8f) },
                                { x0 + dx, Color(1.0f, 0.6f, 0.f) } },
                 PaletteScale::HYBRID);
+        case QuantityId::VELOCITY_GRADIENT:
+        case QuantityId::STRENGTH_VELOCITY_GRADIENT:
+            ASSERT(x0 == 0._f);
+            return Palette({ { 0._f, Color(0.3f, 0.3f, 0.8f) },
+                               { 0.01f * dx, Color(0.f, 0.f, 0.2f) },
+                               { 0.05f * dx, Color(0.2f, 0.2f, 0.2f) },
+                               { 0.2f * dx, Color(0.8f, 0.8f, 0.8f) },
+                               { dx, Color(1.0f, 0.6f, 0.f) } },
+                PaletteScale::HYBRID);
+        case QuantityId::ANGULAR_VELOCITY:
+            ASSERT(x0 == 0._f);
+            return Palette({ { 0._f, Color(0.3f, 0.3f, 0.8f) },
+                               { 0.25f * dx, Color(0.f, 0.f, 0.2f) },
+                               { 0.5f * dx, Color(0.2f, 0.2f, 0.2f) },
+                               { 0.75f * dx, Color(0.8f, 0.8f, 0.8f) },
+                               { dx, Color(1.0f, 0.6f, 0.f) } },
+                PaletteScale::LINEAR);
         default:
             NOT_IMPLEMENTED;
         }

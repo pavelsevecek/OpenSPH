@@ -4,7 +4,7 @@
 NAMESPACE_SPH_BEGIN
 
 QuantityMetadata::QuantityMetadata(const std::string& fullName,
-    const std::string& label,
+    const std::wstring& label,
     const ValueEnum type,
     const std::string& dtName,
     const std::string& d2tName)
@@ -27,79 +27,79 @@ QuantityMetadata::QuantityMetadata(const std::string& fullName,
 QuantityMetadata getMetadata(const QuantityId key) {
     switch (key) {
     case QuantityId::POSITION:
-        return QuantityMetadata("Position", "r", ValueEnum::VECTOR, "Velocity", "Acceleration");
+        return QuantityMetadata("Position", L"r", ValueEnum::VECTOR, "Velocity", "Acceleration");
     case QuantityId::MASS:
-        return QuantityMetadata("Particle mass", "m", ValueEnum::SCALAR);
+        return QuantityMetadata("Particle mass", L"m", ValueEnum::SCALAR);
     case QuantityId::PRESSURE:
-        return QuantityMetadata("Pressure", "p", ValueEnum::SCALAR);
+        return QuantityMetadata("Pressure", L"p", ValueEnum::SCALAR);
     case QuantityId::DENSITY:
-        return QuantityMetadata("Density", "rho", ValueEnum::SCALAR);
+        return QuantityMetadata("Density", L"\u03C1" /*rho*/, ValueEnum::SCALAR);
     case QuantityId::ENERGY:
-        return QuantityMetadata("Specific energy", "u", ValueEnum::SCALAR);
+        return QuantityMetadata("Specific energy", L"u", ValueEnum::SCALAR);
     case QuantityId::SOUND_SPEED:
-        return QuantityMetadata("Sound speed", "c_s", ValueEnum::SCALAR);
+        return QuantityMetadata("Sound speed", L"c_s", ValueEnum::SCALAR);
     case QuantityId::DEVIATORIC_STRESS:
-        return QuantityMetadata("Deviatoric stress", "s", ValueEnum::TRACELESS_TENSOR);
+        return QuantityMetadata("Deviatoric stress", L"S", ValueEnum::TRACELESS_TENSOR);
     case QuantityId::SPECIFIC_ENTROPY:
-        return QuantityMetadata("Specific entropy", "s", ValueEnum::SCALAR);
+        return QuantityMetadata("Specific entropy", L"s", ValueEnum::SCALAR);
     case QuantityId::ENERGY_DENSITY:
-        return QuantityMetadata("Energy density", "q", ValueEnum::SCALAR);
+        return QuantityMetadata("Energy density", L"q", ValueEnum::SCALAR);
     case QuantityId::ENERGY_PER_PARTICLE:
-        return QuantityMetadata("Energy per particle", "U", ValueEnum::SCALAR);
+        return QuantityMetadata("Energy per particle", L"U", ValueEnum::SCALAR);
     case QuantityId::DAMAGE:
-        return QuantityMetadata("Damage", "D", ValueEnum::SCALAR);
+        return QuantityMetadata("Damage", L"D", ValueEnum::SCALAR);
     case QuantityId::EPS_MIN:
-        return QuantityMetadata("Activation strain", "eps", ValueEnum::SCALAR);
+        return QuantityMetadata("Activation strain", L"\u03B5" /*epsilon*/, ValueEnum::SCALAR);
     case QuantityId::M_ZERO:
-        return QuantityMetadata("Weibull exponent of stretched distribution", "m_0", ValueEnum::SCALAR);
+        return QuantityMetadata("Weibull exponent of stretched distribution", L"m_0", ValueEnum::SCALAR);
     case QuantityId::EXPLICIT_GROWTH:
-        return QuantityMetadata("Explicit crack growth", "???", ValueEnum::SCALAR);
+        return QuantityMetadata("Explicit crack growth", L"???", ValueEnum::SCALAR);
     case QuantityId::N_FLAWS:
-        return QuantityMetadata("Number of flaws", "N_flaws", ValueEnum::INDEX);
+        return QuantityMetadata("Number of flaws", L"N_flaws", ValueEnum::INDEX);
     case QuantityId::FLAW_ACTIVATION_IDX:
-        return QuantityMetadata("Flaw activation idx", "Act", ValueEnum::INDEX);
+        return QuantityMetadata("Flaw activation idx", L"Act", ValueEnum::INDEX);
     case QuantityId::STRESS_REDUCING:
-        return QuantityMetadata("Yielding reduce", "Red", ValueEnum::SCALAR);
+        return QuantityMetadata("Yielding reduce", L"Red", ValueEnum::SCALAR);
     case QuantityId::VELOCITY_GRADIENT:
-        return QuantityMetadata("Velocity gradient", "grad v", ValueEnum::SYMMETRIC_TENSOR);
+        return QuantityMetadata("Velocity gradient", L"\u2207v" /*nabla v*/, ValueEnum::SYMMETRIC_TENSOR);
     case QuantityId::VELOCITY_DIVERGENCE:
-        return QuantityMetadata("Velocity divergence", "div v", ValueEnum::SCALAR);
+        return QuantityMetadata("Velocity divergence", L"\u2207\u22C5v" /*nabla cdot v*/, ValueEnum::SCALAR);
     case QuantityId::VELOCITY_ROTATION:
-        return QuantityMetadata("Velocity rotation", "rot v", ValueEnum::VECTOR);
+        return QuantityMetadata("Velocity rotation", L"\u2207\u2A2Fv" /*nabla cross v*/, ValueEnum::VECTOR);
     case QuantityId::STRENGTH_VELOCITY_GRADIENT:
-        return QuantityMetadata("Strength velocity gradient", "grad_S v", ValueEnum::SYMMETRIC_TENSOR);
+        return QuantityMetadata("Strength velocity gradient", L"\u2207v", ValueEnum::SYMMETRIC_TENSOR);
     case QuantityId::ANGULAR_MOMENTUM_CORRECTION:
-        return QuantityMetadata("Correction tensor", "C_ij", ValueEnum::SYMMETRIC_TENSOR);
+        return QuantityMetadata("Correction tensor", L"C_ij", ValueEnum::SYMMETRIC_TENSOR);
     case QuantityId::AV_ALPHA:
-        return QuantityMetadata("AV alpha", "alpha_AV", ValueEnum::SCALAR);
+        return QuantityMetadata("AV alpha", L"\u03B1_AV" /*alpha_AV*/, ValueEnum::SCALAR);
     case QuantityId::AV_BETA:
-        return QuantityMetadata("AV beta", "beta_AV", ValueEnum::SCALAR);
+        return QuantityMetadata("AV beta", L"\u03B2_AV" /*beta_AV*/, ValueEnum::SCALAR);
     case QuantityId::AV_STRESS:
-        return QuantityMetadata("Artificial stress", "R", ValueEnum::SYMMETRIC_TENSOR);
+        return QuantityMetadata("Artificial stress", L"R", ValueEnum::SYMMETRIC_TENSOR);
     case QuantityId::INTERPARTICLE_SPACING_KERNEL:
-        return QuantityMetadata("Interparticle spacing kernel", "w(Delta p)", ValueEnum::SCALAR);
+        return QuantityMetadata("Interparticle spacing kernel", L"w(\u0394 p)", ValueEnum::SCALAR);
     case QuantityId::DISPLACEMENT:
-        return QuantityMetadata("Displacement", "u", ValueEnum::VECTOR);
+        return QuantityMetadata("Displacement", L"u", ValueEnum::VECTOR);
     case QuantityId::FLAG:
-        return QuantityMetadata("Flag", "flag", ValueEnum::INDEX);
+        return QuantityMetadata("Flag", L"flag", ValueEnum::INDEX);
     case QuantityId::MATERIAL_ID:
-        return QuantityMetadata("MaterialId", "matID", ValueEnum::INDEX);
+        return QuantityMetadata("MaterialId", L"matID", ValueEnum::INDEX);
     case QuantityId::XSPH_VELOCITIES:
-        return QuantityMetadata("XSPH correction", "v_xsph", ValueEnum::VECTOR);
+        return QuantityMetadata("XSPH correction", L"v_xsph", ValueEnum::VECTOR);
     case QuantityId::GRAD_H:
-        return QuantityMetadata("Grad-h terms", "Omega", ValueEnum::SCALAR);
+        return QuantityMetadata("Grad-h terms", L"\u03A9" /*Omega*/, ValueEnum::SCALAR);
     case QuantityId::GRAVITY_POTENTIAL:
-        return QuantityMetadata("Grav. potential", "Phi", ValueEnum::SCALAR);
+        return QuantityMetadata("Grav. potential", L"\u03A6" /*Phi*/, ValueEnum::SCALAR);
     case QuantityId::ANGULAR_VELOCITY:
-        return QuantityMetadata("Angular velocity", "Omega", ValueEnum::VECTOR);
+        return QuantityMetadata("Angular velocity", L"\u03C9" /*omega*/, ValueEnum::VECTOR);
     case QuantityId::NEIGHBOUR_CNT:
-        return QuantityMetadata("Neigh. cnt", "N_neigh", ValueEnum::INDEX);
+        return QuantityMetadata("Neigh. cnt", L"N_neigh", ValueEnum::INDEX);
     case QuantityId::SURFACE_NORMAL:
-        return QuantityMetadata("Surf. normal", "n", ValueEnum::VECTOR);
+        return QuantityMetadata("Surf. normal", L"n", ValueEnum::VECTOR);
     case QuantityId::MOMENT_OF_INERTIA:
-        return QuantityMetadata("Mom. of intertia", "I", ValueEnum::SCALAR);
+        return QuantityMetadata("Mom. of intertia", L"I", ValueEnum::SCALAR);
     case QuantityId::PHASE_ANGLE:
-        return QuantityMetadata("Phase angle", "phi", ValueEnum::VECTOR);
+        return QuantityMetadata("Phase angle", L"\u03C6" /*phi*/, ValueEnum::VECTOR);
     default:
         NOT_IMPLEMENTED;
     }

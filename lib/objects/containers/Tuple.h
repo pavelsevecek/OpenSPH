@@ -129,9 +129,9 @@ namespace Detail {
             return true;
         }
     };
-}
+} // namespace Detail
 
-/// Useful type trait
+/// Useful type trait, checking whether given type is a Tuple
 template <typename T>
 struct IsTuple {
     static constexpr bool value = false;
@@ -150,7 +150,6 @@ private:
 
 public:
     INLINE constexpr Tuple() = default;
-
 
     template <typename... Ts,
         typename = std::enable_if_t<AllTrue<std::is_constructible<TArgs, Ts>::value...>::value>>
@@ -344,7 +343,7 @@ namespace Detail {
         std::index_sequence<TIdxs2...>) {
         return Tuple<Ts1..., Ts2...>(t1.template get<TIdxs1>()..., t2.template get<TIdxs2>()...);
     }
-}
+} // namespace Detail
 
 /// Creates a tuple by appending values into an existing tuple. If the input tuple contains l-value
 /// references, only the reference is copied, otherwise elements of new tuple are copy-constructed.
@@ -426,7 +425,7 @@ namespace Detail {
         template <std::size_t TIndex>
         INLINE std::enable_if_t<!TTrait<TupleElement<TTuple, TIndex>>::value> visit() {}
     };
-}
+} // namespace Detail
 
 /// For loop to iterate over tuple. The functor must be a generic lambda or have overloaded operators()
 /// for all types stored within tuple.
@@ -474,7 +473,7 @@ namespace Detail {
     INLINE decltype(auto) applyImpl(TTuple&& tuple, TFunctor&& functor, std::index_sequence<TIndices...>) {
         return functor(std::forward<TTuple>(tuple).template get<TIndices>()...);
     }
-}
+} // namespace Detail
 
 /// Expands arguments stored in tuple into parameter pack of a functor.
 template <typename TFunctor, typename... TArgs>

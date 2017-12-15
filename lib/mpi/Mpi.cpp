@@ -58,9 +58,8 @@ std::string Mpi::getProcessorName() const {
     return name;
 }
 
-void Mpi::registerData(ClonePtr<ISerializable>&& creator) {
-    creator->registerHandle(creators.size());
-    creators.push(std::move(creator));
+void Mpi::record(ClonePtr<ISerializable>&& creator) {
+    creators[creator->handle()] = std::move(creator);
 }
 
 void Mpi::send(const ISerializable& data, const Size dest) {
@@ -76,11 +75,6 @@ void Mpi::broadcast(const ISerializable&) {
 
 void Mpi::barrier() {
     MPI_Barrier(MPI_COMM_WORLD);
-}
-
-Mpi::BarrierLock::~BarrierLock() {
-    Mpi& mpi = Mpi::getInstance();
-    mpi.barrier();
 }
 
 ClonePtr<ISerializable> Mpi::receive(const Size source) {

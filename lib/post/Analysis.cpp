@@ -559,11 +559,11 @@ Expected<Storage> Post::parsePkdgravOutput(const Path& path) {
         DummyColumn(const ValueEnum type)
             : type(type) {}
 
-        virtual Value evaluate(const Storage&, const Statistics&, const Size) const override {
+        virtual Dynamic evaluate(const Storage&, const Statistics&, const Size) const override {
             NOT_IMPLEMENTED;
         }
 
-        virtual void accumulate(Storage&, const Value, const Size) const override {}
+        virtual void accumulate(Storage&, const Dynamic, const Size) const override {}
 
         virtual std::string getName() const override {
             return "dummy";
@@ -624,7 +624,7 @@ Expected<Storage> Post::parsePkdgravOutput(const Path& path) {
         /// \todo too high, fix
         rho[i] = m[i] / pow<3>(rho[i]);
 
-        /// \todo convert units of omega
+        omega[i] *= conversion.velocity / conversion.distance;
     }
 
     // sort

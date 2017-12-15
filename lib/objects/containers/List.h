@@ -226,6 +226,7 @@ public:
             delete ptr.get();
             ptr = next;
         }
+        first = last = nullptr;
     }
 
     /// Returns the reference to the first element in the list.

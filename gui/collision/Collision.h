@@ -75,7 +75,8 @@ private:
             .set(GuiSettingsId::SURFACE_SUN_INTENSITY, 0.8_f)
             .set(GuiSettingsId::SURFACE_AMBIENT, 0.1_f)
             .set(GuiSettingsId::SURFACE_RESOLUTION, 150._f)
-            .set(GuiSettingsId::SURFACE_LEVEL, 0.9_f);
+            .set(GuiSettingsId::SURFACE_LEVEL, 0.9_f)
+            .set(GuiSettingsId::PALETTE_DIVV, Interval(-1.e-6_f, 1.e-6_f));
         //.set(GuiSettingsId::ORTHO_CUTOFF, 0._f);
 
         AutoPtr<AsteroidCollision> run = makeAuto<AsteroidCollision>();

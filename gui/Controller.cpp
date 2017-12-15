@@ -192,6 +192,8 @@ Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage
     if (!forMovie) {
         quantityColorizerIds.push(QuantityId::DENSITY);
         quantityColorizerIds.push(QuantityId::AV_ALPHA);
+        quantityColorizerIds.push(QuantityId::ANGULAR_VELOCITY);
+        quantityColorizerIds.push(QuantityId::STRENGTH_VELOCITY_GRADIENT);
     }
     Array<SharedPtr<IColorizer>> colorizers;
     for (ColorizerId id : colorizerIds) {
@@ -247,10 +249,17 @@ Optional<Particle> Controller::getIntersectedParticle(const Point position, cons
         bool wasHitOutside = true;
     } first;
 
+    const Float cutoff = gui.get<Float>(GuiSettingsId::ORTHO_CUTOFF);
     for (Size i = 0; i < vis.positions.size(); ++i) {
         Optional<ProjectedPoint> p = vis.camera->project(vis.positions[i]);
         if (!p) {
             // particle not visible by the camera
+            continue;
+        }
+        if (cutoff != 0._f && abs(dot(vis.camera->getDirection(), vis.positions[i])) > cutoff) {
+            // particle cut off by projection
+            /// \todo This is really weird, we are duplicating code of ParticleRenderer in a function that
+            /// really makes only sense with ParticleRenderer. Needs refactoring.
             continue;
         }
 

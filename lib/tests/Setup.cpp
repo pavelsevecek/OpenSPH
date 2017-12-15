@@ -28,7 +28,7 @@ Storage Tests::getGassStorage(const Size particleCnt, BodySettings settings, con
     const Float u0 = settings.get<Float>(BodySettingsId::ENERGY);
     settings.set(BodySettingsId::EOS, EosEnum::IDEAL_GAS)
         .set(BodySettingsId::DENSITY_RANGE, Interval(1.e-3_f * rho0, INFTY))
-        .set(BodySettingsId::RHEOLOGY_DAMAGE, DamageEnum::NONE)
+        .set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::NONE)
         .set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::NONE);
 
     // create storage and particle positions

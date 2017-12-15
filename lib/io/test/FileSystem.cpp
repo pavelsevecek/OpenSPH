@@ -1,32 +1,21 @@
 #include "io/FileSystem.h"
 #include "catch.hpp"
-#include "math/rng/Rng.h"
+#include "io/FileManager.h"
 #include "utils/Utils.h"
 #include <fstream>
 #include <regex>
 
 using namespace Sph;
 
-static std::string getRandomName() {
-    static UniformRng rng(time(NULL));
-    static char chars[] = "abcdefghijklmnopqrstuvwxyz0123456789";
-    std::string name;
-    for (Size i = 0; i < 8; ++i) {
-        // -1 for terminating zero, -2 is the last indexable position
-        const Size index = min(Size(rng() * (sizeof(chars) - 1)), Size(sizeof(chars) - 2));
-        name += chars[index];
-    }
-    return name;
-}
-
 class TestFile {
 private:
     Path path;
+    RandomPathManager manager;
 
 public:
     TestFile(const Path& parentDir = Path("temp")) {
         FileSystem::createDirectory(parentDir);
-        path = parentDir / Path(getRandomName() + ".tmp");
+        path = parentDir / manager.getPath("tmp");
         std::ofstream ofs(path.native());
     }
 
@@ -69,10 +58,11 @@ public:
 class TestDirectory {
 private:
     Path path;
+    RandomPathManager manager;
 
 public:
     TestDirectory(const Path& parentDir = Path("temp")) {
-        path = parentDir / Path(getRandomName());
+        path = parentDir / manager.getPath();
         FileSystem::createDirectory(path);
     }
 
@@ -124,7 +114,8 @@ TEST_CASE("CopyFile", "[filesystem]") {
     REQUIRE(size == 1000 * sizeof(int));
 
     TestDirectory dir;
-    const Path to = Path(dir) / Path(getRandomName() + ".tmp");
+    RandomPathManager manager;
+    const Path to = Path(dir) / manager.getPath("tmp");
     REQUIRE(FileSystem::copyFile(file, to));
     REQUIRE(FileSystem::pathExists(to));
     REQUIRE(FileSystem::pathType(to).valueOr(FileSystem::PathType::OTHER) == FileSystem::PathType::FILE);

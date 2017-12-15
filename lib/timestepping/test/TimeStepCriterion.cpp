@@ -80,8 +80,8 @@ TEST_CASE("Derivative Criterion minimum", "[timestepping]") {
     REQUIRE(id == CriterionId::DERIVATIVE);
     REQUIRE(stats.get<QuantityId>(StatisticsId::LIMITING_QUANTITY) == QuantityId::ENERGY);
     REQUIRE(stats.get<int>(StatisticsId::LIMITING_PARTICLE_IDX) == MINIMAL_PARTICLE_IDX);
-    REQUIRE(stats.get<Value>(StatisticsId::LIMITING_VALUE) == 12._f);
-    REQUIRE(stats.get<Value>(StatisticsId::LIMITING_DERIVATIVE) == 4._f);
+    REQUIRE(stats.get<Dynamic>(StatisticsId::LIMITING_VALUE) == 12._f);
+    REQUIRE(stats.get<Dynamic>(StatisticsId::LIMITING_DERIVATIVE) == 4._f);
 
     // modify minimal value
     IMaterial& material = storage.getMaterial(0);

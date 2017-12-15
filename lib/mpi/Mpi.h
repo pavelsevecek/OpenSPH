@@ -2,6 +2,7 @@
 
 #include "objects/containers/Array.h"
 #include "objects/wrappers/ClonePtr.h"
+#include <map>
 
 NAMESPACE_SPH_BEGIN
 
@@ -17,8 +18,7 @@ private:
     /// Global instance of the object
     static Mpi* instance;
 
-    Array<ClonePtr<ISerializable>> creators;
-
+    std::map<Size, ClonePtr<ISerializable>> creators;
 
 public:
     ~Mpi();
@@ -47,9 +47,18 @@ public:
 
     /// \brief Registers a serializable that can be sent and received by MPI processes.
     ///
-    /// All processes have to register the same serializables in the same order. The order of the creator is
-    /// used as handle as the object!
-    void registerData(ClonePtr<ISerializable>&& creator);
+    /// The handle of the serializable must be unique. If multiple objects with the same handle are
+    /// registered, an exception is thrown. To change a serializable, make sure to unrecord the previous one.
+    /// Note that all serializables must be the same on all threads in the communicator, otherwise the
+    /// behavior is undefined.
+    void record(ClonePtr<ISerializable>&& creator);
+
+    /// \brief Removes a serializable with given handle from the list.
+    ///
+    /// This allows a new serializable with the same handle to be registerd.
+    /// \param handle The handle of the serializable to remove
+    /// \return True if the serializable with given handle has been found and removed, false otherwise.
+    bool unrecord(const Size handle);
 
     /// \brief Sends a serializable objects to given process.
     ///
@@ -63,14 +72,6 @@ public:
 
     /// \brief Blocks until all processes call the barrier.
     void barrier();
-
-    /// \brief Helper object that calls Mpi::barrier() from its destructor.
-    ///
-    /// Useful for exception safe MPI code.
-    struct BarrierLock {
-        ~BarrierLock();
-    };
-
 
     /// \brief Receive a serializable object from given process.
     ///

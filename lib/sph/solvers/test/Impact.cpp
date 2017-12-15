@@ -25,7 +25,7 @@ TEST_CASE("Impact", "[impact]]") {
     BodySettings body;
     body.set(BodySettingsId::PARTICLE_COUNT, 1000);
     body.set(BodySettingsId::ENERGY, 0._f);
-    body.set(BodySettingsId::RHEOLOGY_DAMAGE, DamageEnum::SCALAR_GRADY_KIPP);
+    body.set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::SCALAR_GRADY_KIPP);
     body.set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::VON_MISES);
     const Float rho0 = body.get<Float>(BodySettingsId::DENSITY);
 

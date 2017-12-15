@@ -1,7 +1,7 @@
 #pragma once
 
-#include "objects/geometry/Vector.h"
 #include "objects/containers/StaticArray.h"
+#include "objects/geometry/Vector.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -78,7 +78,7 @@ namespace Detail {
     struct MultipoleMapping<> {
         static constexpr Size value = 0;
     };
-}
+} // namespace Detail
 
 template <Size Order>
 class Multipole {
@@ -296,7 +296,7 @@ namespace Detail {
     struct TracelessMultipoleMapping<I> {
         static constexpr Size value = I;
     };
-}
+} // namespace Detail
 
 template <Size... Idxs>
 struct TracelessMultipoleComponent;
@@ -311,16 +311,16 @@ private:
 public:
     static constexpr Size ORDER = Order;
 
-    TracelessMultipole() = default;
+    constexpr TracelessMultipole() = default;
 
-    TracelessMultipole(const Float f) {
+    constexpr TracelessMultipole(const Float f) {
         for (Float& v : data) {
             v = f;
         }
     }
 
     template <Size... Idxs>
-    INLINE Float value() const {
+    INLINE constexpr Float value() const {
         return TracelessMultipoleComponent<Idxs...>{}.get(*this);
     }
 
@@ -333,14 +333,14 @@ public:
     }
 
     template <Size... Idxs>
-    INLINE Float valueImpl() const {
+    INLINE constexpr Float valueImpl() const {
         static_assert(sizeof...(Idxs) == Order, "Number of indices must match the order");
         const Size idx = Detail::TracelessMultipoleMapping<Idxs...>::value;
         ASSERT(idx < COMPONENT_CNT, idx, Idxs...);
         return *(&data[0] + idx);
     }
 
-    INLINE Float operator[](const Size idx) const {
+    INLINE constexpr Float operator[](const Size idx) const {
         ASSERT(idx < COMPONENT_CNT, idx);
         return data[idx];
     }
@@ -570,26 +570,26 @@ template <Size... Idxs>
 struct TracelessMultipoleComponent {
     using Sequence = std::make_index_sequence<sizeof...(Idxs)>;
 
-    INLINE static Float get(const TracelessMultipole<sizeof...(Idxs)>& m) {
+    INLINE static constexpr Float get(const TracelessMultipole<sizeof...(Idxs)>& m) {
         return expandTracelessMultipoleComponent<Idxs...>(m, Sequence{});
     }
 };
 
 template <>
 struct TracelessMultipoleComponentImpl<Z, Z> {
-    INLINE static Float get(const TracelessMultipole<2>& m) {
+    INLINE static constexpr Float get(const TracelessMultipole<2>& m) {
         return -m.valueImpl<X, X>() - m.valueImpl<Y, Y>();
     }
 };
 template <Size I>
 struct TracelessMultipoleComponentImpl<I, Z, Z> {
-    INLINE static Float get(const TracelessMultipole<3>& m) {
+    INLINE static constexpr Float get(const TracelessMultipole<3>& m) {
         return -m.valueImpl<X, X, I>() - m.valueImpl<Y, Y, I>();
     }
 };
 template <Size I, Size J>
 struct TracelessMultipoleComponentImpl<I, J, Z, Z> {
-    INLINE static Float get(const TracelessMultipole<4>& m) {
+    INLINE static constexpr Float get(const TracelessMultipole<4>& m) {
         return -m.valueImpl<X, X, I, J>() - m.valueImpl<Y, Y, I, J>();
     }
 };
@@ -620,12 +620,12 @@ namespace MomentOperators {
         static constexpr Size ORDER = Order;
 
         template <Size I, Size J, Size K, Size L, Size... Rest>
-        INLINE static constexpr Float value() {
+        INLINE static constexpr int value() {
             static_assert(sizeof...(Rest) + 4 == Order, "Invalid number of indices");
             return ((I == J) ? 1 : 0) * Delta<Order - 2>::template value<K, L, Rest...>();
         }
         template <Size I, Size J>
-        INLINE static constexpr Float value() {
+        INLINE static constexpr int value() {
             static_assert(Order == 2, "Invalid number of indices");
             return ((I == J) ? 1 : 0);
         }
@@ -949,7 +949,7 @@ namespace MomentOperators {
             return v[I];
         }
     };
-}
+} // namespace MomentOperators
 
 template <Size N>
 struct MultipoleExpansion {
@@ -1103,7 +1103,7 @@ public:
         return data;
     }
 
-    INLINE Multipole operator*(const Float f) const {
+    INLINE Multipole operator*(const Float f) const ,1{
         return data * f;
     }
 
@@ -1210,7 +1210,7 @@ namespace Experimental {
     public:
         // inner
     };
-}
+} // namespace Experimental
 
 
 NAMESPACE_SPH_END

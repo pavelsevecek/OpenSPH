@@ -289,8 +289,7 @@ void BarnesHut::evalParticleList(const LeafNode& leaf,
         ASSERT(node.isLeaf());
         LeafIndexSequence seq2 = kdTree.getLeafIndices(reinterpret_cast<const LeafNode&>(node));
         for (Size i : seq1) {
-            const Float h = r[i][H];
-            ASSERT(h > 0._f, h);
+            ASSERT(r[i][H] > 0._f, r[i][H]);
             for (Size j : seq2) {
                 ASSERT(r[j][H] > 0._f, r[j][H]);
                 const Vector grad = actKernel.grad(r[j], r[i]);

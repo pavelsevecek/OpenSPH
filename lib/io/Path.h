@@ -10,6 +10,12 @@
 
 NAMESPACE_SPH_BEGIN
 
+/// TODO
+enum class ExtensionEnum {
+    ALL,
+    LAST,
+};
+
 /// \brief Object representing a path on a filesystem
 ///
 /// Can represent both directory and file paths. Object does not check existence or accesibility of the path
@@ -60,8 +66,10 @@ public:
     /// This is an empty path for directories. The file name includes the extension, if present.
     Path fileName() const;
 
-    /// Returns the extension of the filename. This is an empty path for directories or for files without
-    /// extensions. If the file has more than one extension, returns all of them.
+    /// \brief Returns the extension of the filename.
+    ///
+    /// This is an empty path for directories or for files without extensions. If the file has more than one
+    /// extension, returns all of them.
     /// Example:
     ///   /usr/lib -> ""
     ///   file.txt -> "txt"
@@ -85,16 +93,22 @@ public:
     /// \return Reference to itself, allowing to chain function calls
     Path& replaceExtension(const std::string& newExtension);
 
-    /// Removes the extension from the path. If the path has no extension, the function does nothing.
+    /// \brief Removes the extension from the path.
+    ///
+    /// If the path has no extension, the function does nothing.
     Path& removeExtension();
 
-    /// Removes . and .. directories from the path
+    /// \brief Removes . and .. directories from the path
     Path& removeSpecialDirs();
 
-    /// Turns the path into an absolute path. If the path already is absolute, function does nothing.
+    /// \brief Turns the path into an absolute path.
+    ///
+    /// If the path already is absolute, function does nothing.
     Path& makeAbsolute();
 
-    /// Turns the path into a relative path. If the path already is relative, function does nothing.
+    /// \brief Turns the path into a relative path.
+    ///
+    /// If the path already is relative, function does nothing.
     Path& makeRelative();
 
 

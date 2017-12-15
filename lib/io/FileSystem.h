@@ -1,6 +1,7 @@
 #pragma once
 
 #include "io/Path.h"
+#include "objects/containers/Array.h"
 #include "objects/wrappers/Expected.h"
 #include "objects/wrappers/Flags.h"
 #include "objects/wrappers/Outcome.h"
@@ -162,6 +163,30 @@ namespace FileSystem {
     /// }
     /// \endcode
     DirectoryAdapter iterateDirectory(const Path& directory);
-}
+
+    /// \brief Alternatitve to \ref iterateDirectory, returning all files in directory in an array.
+    ///
+    /// Returns relative paths with respect to the given parent directory.
+    Array<Path> getFilesInDirectory(const Path& directory);
+
+    /// \brief Locks a file.
+    ///
+    /// Satisfies requirements of Lockable type, so it can be used with std::unique_lock, for example.
+    /// \todo UNFINISHED
+    class FileLock {
+    private:
+        int handle;
+
+    public:
+        explicit FileLock(const Path& path);
+
+        void lock();
+
+        void unlock();
+    };
+
+    bool isFileLocked(const Path& path);
+
+} // namespace FileSystem
 
 NAMESPACE_SPH_END

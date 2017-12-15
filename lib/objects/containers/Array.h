@@ -6,6 +6,7 @@
 /// \date 2016-2017
 
 #include "math/Math.h"
+#include "objects/containers/Allocators.h"
 #include "objects/containers/ArrayView.h"
 #include <limits>
 
@@ -128,14 +129,34 @@ public:
         return newArray;
     }
 
-    INLINE T& operator[](const TCounter idx) {
+    INLINE T& operator[](const TCounter idx) noexcept {
         ASSERT(unsigned(idx) < unsigned(actSize), idx, actSize);
         return data[idx];
     }
 
-    INLINE const T& operator[](const TCounter idx) const {
+    INLINE const T& operator[](const TCounter idx) const noexcept {
         ASSERT(unsigned(idx) < unsigned(actSize), idx, actSize);
         return data[idx];
+    }
+
+    INLINE T& front() noexcept {
+        ASSERT(actSize > 0);
+        return data[0];
+    }
+
+    INLINE const T& front() const noexcept {
+        ASSERT(actSize > 0);
+        return data[0];
+    }
+
+    INLINE T& back() noexcept {
+        ASSERT(actSize > 0);
+        return data[actSize - 1];
+    }
+
+    INLINE const T& back() const noexcept {
+        ASSERT(actSize > 0);
+        return data[actSize - 1];
     }
 
     /// \brief Sets all elements of the array to given value.
@@ -145,11 +166,11 @@ public:
         }
     }
 
-    INLINE TCounter size() const {
+    INLINE TCounter size() const noexcept {
         return actSize;
     }
 
-    INLINE bool empty() const {
+    INLINE bool empty() const noexcept {
         return actSize == 0;
     }
 
@@ -326,58 +347,58 @@ public:
         std::swap(actSize, other.actSize);
     }
 
-    INLINE Iterator<StorageType, TCounter> begin() {
+    INLINE Iterator<StorageType, TCounter> begin() noexcept {
         return Iterator<StorageType, TCounter>(data, data, data + actSize);
     }
 
-    INLINE Iterator<const StorageType, TCounter> begin() const {
+    INLINE Iterator<const StorageType, TCounter> begin() const noexcept {
         return Iterator<const StorageType, TCounter>(data, data, data + actSize);
     }
 
-    INLINE Iterator<const StorageType, TCounter> cbegin() const {
+    INLINE Iterator<const StorageType, TCounter> cbegin() const noexcept {
         return Iterator<const StorageType, TCounter>(data, data, data + actSize);
     }
 
-    INLINE Iterator<StorageType, TCounter> end() {
+    INLINE Iterator<StorageType, TCounter> end() noexcept {
         return Iterator<StorageType, TCounter>(data + actSize, data, data + actSize);
     }
 
-    INLINE Iterator<const StorageType, TCounter> end() const {
+    INLINE Iterator<const StorageType, TCounter> end() const noexcept {
         return Iterator<const StorageType, TCounter>(data + actSize, data, data + actSize);
     }
 
-    INLINE Iterator<const StorageType, TCounter> cend() const {
+    INLINE Iterator<const StorageType, TCounter> cend() const noexcept {
         return Iterator<const StorageType, TCounter>(data + actSize, data, data + actSize);
     }
 
     /// Implicit conversion to arrayview.
-    INLINE operator ArrayView<T, TCounter>() {
+    INLINE operator ArrayView<T, TCounter>() noexcept {
         return ArrayView<T, TCounter>(data, actSize);
     }
 
     /// Implicit conversion to arrayview, const version.
-    INLINE operator ArrayView<const T, TCounter>() const {
+    INLINE operator ArrayView<const T, TCounter>() const noexcept {
         return ArrayView<const T, TCounter>(data, actSize);
     }
 
     /// Explicit conversion to arrayview
-    ArrayView<T, TCounter> view() {
+    ArrayView<T, TCounter> view() noexcept {
         return ArrayView<T, TCounter>(data, actSize);
     }
 
     /// Explicit conversion to arrayview, const version
-    ArrayView<const T, TCounter> view() const {
+    ArrayView<const T, TCounter> view() const noexcept {
         return ArrayView<const T, TCounter>(data, actSize);
     }
 
     /// Comparison operator, comparings array element-by-element. If arrays differ in number of
     /// constructed elements, the comparison always returns false; allocated size does not play role here.
-    bool operator==(const Array& other) const {
+    bool operator==(const Array& other) const noexcept {
         return view() == other.view();
     }
 
     /// Inequality operator
-    bool operator!=(const Array& other) const {
+    bool operator!=(const Array& other) const noexcept {
         return view() != other.view();
     }
 

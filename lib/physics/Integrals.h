@@ -8,7 +8,7 @@
 #include "common/ForwardDecl.h"
 #include "math/Means.h"
 #include "objects/containers/Array.h"
-#include "objects/utility/Value.h"
+#include "objects/utility/Dynamic.h"
 #include "objects/wrappers/Function.h"
 #include "system/Settings.h"
 
@@ -227,7 +227,7 @@ public:
 class IntegralWrapper : public IIntegral<Float> {
 private:
     /// As integrals are templated, we have to put one more indirection to store them
-    Function<Value(const Storage& storage)> closure;
+    Function<Dynamic(const Storage& storage)> closure;
 
     /// Cached name of the object. This is not optimal, because the name can theorically change, but well ...
     std::string name;
@@ -238,7 +238,7 @@ public:
     template <typename TIntegral>
     IntegralWrapper(AutoPtr<TIntegral>&& integral) {
         name = integral->getName();
-        closure = [i = std::move(integral)](const Storage& storage)->Value {
+        closure = [i = std::move(integral)](const Storage& storage)->Dynamic {
             return i->evaluate(storage);
         };
     }

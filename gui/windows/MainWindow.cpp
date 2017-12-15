@@ -81,17 +81,18 @@ wxBoxSizer* MainWindow::createToolbar(Controller* parent) {
     toolbar->Add(quantityBox);
 
     toolbar->Add(new wxStaticText(this, wxID_ANY, "Cutoff"), 0, wxALIGN_CENTER_VERTICAL);
-    wxSpinCtrl* cutoffSpinner = new wxSpinCtrl(this,
-        wxID_ANY,
-        std::to_string(gui.get<Float>(GuiSettingsId::ORTHO_CUTOFF)),
-        wxDefaultPosition,
-        wxSize(80, -1));
+    const Float cutoff = gui.get<Float>(GuiSettingsId::ORTHO_CUTOFF);
+    wxSpinCtrl* cutoffSpinner = new wxSpinCtrl(this, wxID_ANY, "", wxDefaultPosition, wxSize(80, -1));
     cutoffSpinner->SetRange(0, 1000000);
+    cutoffSpinner->SetValue(int(cutoff));
     cutoffSpinner->Bind(wxEVT_SPINCTRL, [this, parent](wxSpinEvent& evt) {
         int cutoff = evt.GetPosition();
         GuiSettings modifiedGui = gui;
+        /// \todo this is horrible and needs refactoring
         modifiedGui.set(GuiSettingsId::ORTHO_CUTOFF, Float(cutoff));
         parent->setRenderer(makeAuto<ParticleRenderer>(modifiedGui));
+        parent->getGuiSettings().set<Float>(GuiSettingsId::ORTHO_CUTOFF, cutoff);
+
     });
     toolbar->Add(cutoffSpinner);
 

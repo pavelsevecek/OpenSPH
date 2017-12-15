@@ -1,6 +1,6 @@
 #pragma once
 
-#include "objects/utility/Value.h"
+#include "objects/utility/Dynamic.h"
 #include "quantities/Storage.h"
 
 NAMESPACE_SPH_BEGIN
@@ -17,9 +17,9 @@ private:
     Size idx;
 
     struct InternalQuantityData {
-        Value value;
-        Value dt;
-        Value d2t;
+        Dynamic value;
+        Dynamic dt;
+        Dynamic d2t;
     };
 
     std::map<QuantityId, InternalQuantityData> data;
@@ -49,26 +49,26 @@ public:
     /// \param value Quantity value. Cannot be used to add derivatives.
     /// \param idx Index of particle; although this constructor is not necessarily bound to a particle
     ///            storage, this represents index to storage associated with the particle.
-    Particle(const QuantityId id, const Value& value, const Size idx);
+    Particle(const QuantityId id, const Dynamic& value, const Size idx);
 
     /// \brief Adds another quantity value or updates the value of quantity previously stored.
     ///
     /// \param id Quantity ID of the quantity value
     /// \param value New value of given quantity
     /// \return Reference to itself, allowing to queue functions
-    Particle& addValue(const QuantityId id, const Value& value);
+    Particle& addValue(const QuantityId id, const Dynamic& value);
 
     /// Adds another quantity derivative or updates the derivative of quantity previously stored.
     /// \param id Quantity ID of the quantity value
     /// \param value New derivative of given quantity
     /// \return Reference to itself, allowing to queue functions
-    Particle& addDt(const QuantityId id, const Value& value);
+    Particle& addDt(const QuantityId id, const Dynamic& value);
 
     /// Adds another quantity 2nd derivative or updates the 2nd derivative of quantity previously stored.
     /// \param id Quantity ID of the quantity value
     /// \param value New 2nd derivative of given quantity
     /// \return Reference to itself, allowing to queue functions
-    Particle& addD2t(const QuantityId id, const Value& value);
+    Particle& addD2t(const QuantityId id, const Dynamic& value);
 
     /// Returns the index of particle in the parent storage.
     INLINE Size getIndex() const {
@@ -77,15 +77,15 @@ public:
 
     /// Retrieves a quantity value of the particle. If the particle doesn't hold value of quantity with given
     /// ID, returns unitialized (empty) Value.
-    Value getValue(const QuantityId id) const;
+    Dynamic getValue(const QuantityId id) const;
 
     /// Retrieves a quantity derivative of the particle. If the particle doesn't hold derivative of quantity
     /// with given ID, returns unitialized (empty) Value.
-    Value getDt(const QuantityId id) const;
+    Dynamic getDt(const QuantityId id) const;
 
     /// Retrieves a quantity 2nd derivative of the particle. If the particle doesn't hold 2nd derivative of
     /// quantity with given ID, returns unitialized (empty) Value.
-    Value getD2t(const QuantityId id) const;
+    Dynamic getD2t(const QuantityId id) const;
 
     /// Stored info about a quantity. Note that not all values have to be initialized; if they are, however,
     /// all values have the same type.
@@ -95,16 +95,16 @@ public:
         QuantityId id;
 
         /// Value type of the quantity
-        ValueId type;
+        DynamicId type;
 
         /// Quantity value
-        Value value;
+        Dynamic value;
 
         /// First derivative of the quantity
-        Value dt;
+        Dynamic dt;
 
         /// Second derivative of the quantity
-        Value d2t;
+        Dynamic d2t;
     };
 
     /// Iterator used to enumerate all stored quantities.

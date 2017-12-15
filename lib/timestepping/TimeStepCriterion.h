@@ -7,7 +7,7 @@
 
 #include "common/ForwardDecl.h"
 #include "objects/containers/Array.h"
-#include "objects/utility/Value.h"
+#include "objects/utility/Dynamic.h"
 #include "objects/wrappers/AutoPtr.h"
 #include "quantities/QuantityIds.h"
 

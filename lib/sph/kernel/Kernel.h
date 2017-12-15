@@ -254,6 +254,35 @@ public:
     }
 };
 
+/// Kernel introduced by Thomas & Couchman (1992).
+///
+/// The kernel values are the same as for cubic spline, but the gradient is modified, adding a small repulsive
+/// force. This attempts to prevent particle clustering.
+template <Size D>
+class ThomasCouchmanKernel : public CubicSpline<D> {
+public:
+    INLINE Float gradImpl(const Float qSqr) const {
+        const Float q = sqrt(qSqr);
+        if (q == 0._f) {
+            // this kernel has discontinuous gradient - it is nonzero for q->0, so the value for q = 0 is
+            // undefined (it is a "0/0" expression). To avoid this, let's just return zero.
+            return 0._f;
+        }
+        TODO("finish");
+        if (q < 2._f / 3._f) {
+            return -(1._f / q) * this->normalization[D - 1];
+        }
+        if (q < 1._f) {
+            return (1._f / q) * this->normalization[D - 1] *
+                   (-0.75_f * q * pow<2>(2._f - q) + 3._f * pow<2>(1._f - q));
+        }
+        if (q < 2._f) {
+            return (1._f / q) * this->normalization[D - 1] * (-0.75f * pow<2>(2.f - q));
+        }
+        return 0._f;
+    }
+};
+
 /// Gaussian kernel, clamped to zero at radius 5 (the error is therefore about exp(-5^2) = 10^-11).
 template <Size D>
 class Gaussian : public Kernel<Gaussian<D>, D> {

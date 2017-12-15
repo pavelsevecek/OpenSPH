@@ -5,8 +5,63 @@
 
 NAMESPACE_SPH_BEGIN
 
-class Unit {
+/// There are three different unit systems in the code:
+/// 1) Code units
+///     Currently selected unit system, used for actual computation in the code. Or more precisely, we don't
+///     use runtime dimensional analysis in the actual simulation for performance reasons, we convert the
+///     input quantities (values and units) into floats or doubles using the selected code units. These units
+///     determine the accuracy of the code; if a nanometer is selected as a unit of length in a simulation of
+///     protoplanetary disk, you can expect a loss of precision. Select the code units so that the typical
+///     values of quantities in your simulation correspond to the unit values of code units.
+///
+/// 2) Reference units
+///     Unit system used as a reference for all conversions. Used for convenience as we do not want to define
+///     conversions between each pair of unit systems; for each unit system, we simply define its relation to
+///     the reference units. This is always SI, for simplicity.
+///
+/// 3) Input/output units
+///     Selected units of input or output values.
 
+class Dimensions {
+    // use only the units we need, we can extend it any time
+    StaticArray<int, 3> f;
+};
+
+enum class BasicDimension {
+    LENGTH,
+    MASS,
+    TIME,
+};
+
+constexpr Size DIMENSION_CNT = 3;
+
+class UnitSystem : public Noncopyable {
+private:
+    StaticArray<Float, DIMENSION_CNT> coeffs;
+
+public:
+    template <typename Type>
+    Unit<Type> getUnit(const Type& value, const Dimensions& dimensions) {}
+
+    static UnitSystem SI() {
+        return { 1._f, 1._f, 1._f };
+    }
+
+    static UnitSystem CGS() {
+        return { 0.01_f, 0.001_f, 1._f };
+    }
+};
+
+/// \todo better name
+template <typename Type>
+class Unit {
+private:
+    Type value;
+
+public:
+    Unit() = default;
+
+    Unit(const Type& value, const UnitSystem& system) {}
 
     /// Expected format: kg^3 m s^-1
     /// No * or / symbols allowed, used powers

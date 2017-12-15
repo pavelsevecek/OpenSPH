@@ -2,6 +2,7 @@
 #include "objects/containers/StaticArray.h"
 #include <fstream>
 #include <sstream>
+#include <sys/file.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #ifdef SPH_USE_STD_EXPERIMENTAL
@@ -310,5 +311,31 @@ FileSystem::DirectoryIterator FileSystem::DirectoryAdapter::end() const {
 FileSystem::DirectoryAdapter FileSystem::iterateDirectory(const Path& directory) {
     return DirectoryAdapter(directory);
 }
+
+Array<Path> FileSystem::getFilesInDirectory(const Path& directory) {
+    Array<Path> paths;
+    for (Path path : iterateDirectory(directory)) {
+        paths.push(path);
+    }
+    return paths;
+}
+
+FileSystem::FileLock::FileLock(const Path& path) {
+    handle = open(path.native().c_str(), O_RDONLY);
+    TODO("check that the file exists and was correctly opened");
+}
+
+void FileSystem::FileLock::lock() {
+    flock(handle, LOCK_EX | LOCK_NB);
+}
+
+void FileSystem::FileLock::unlock() {
+    flock(handle, LOCK_UN | LOCK_NB);
+}
+
+bool FileSystem::isFileLocked(const Path& UNUSED(path)) {
+    NOT_IMPLEMENTED;
+}
+
 
 NAMESPACE_SPH_END

@@ -217,7 +217,7 @@ struct QuantityMetadata {
     std::string secondDerivativeName;
 
     /// Short designation of the quantiy (i.e. 'rho', 's', ...)
-    std::string label;
+    std::wstring label;
 
     /// \todo Units & dimensional analysis !
 
@@ -230,7 +230,7 @@ struct QuantityMetadata {
     ValueEnum expectedType;
 
     QuantityMetadata(const std::string& fullName,
-        const std::string& label,
+        const std::wstring& label,
         const ValueEnum type,
         const std::string& derivativeName = "",
         const std::string& secondDerivativeName = "");

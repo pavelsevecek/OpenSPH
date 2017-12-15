@@ -80,7 +80,6 @@ SOURCES += \
     ../lib/objects/utility/test/Iterators.cpp \
     ../lib/objects/utility/test/OperatorTemplate.cpp \
     ../lib/objects/utility/test/StringUtils.cpp \
-    ../lib/objects/utility/test/Value.cpp \
     ../lib/objects/wrappers/test/AlignedStorage.cpp \
     ../lib/objects/wrappers/test/Any.cpp \
     ../lib/objects/wrappers/test/AutoPtr.cpp \
@@ -152,7 +151,8 @@ SOURCES += \
     utils/Approx.cpp \
     utils/SequenceTest.cpp \
     utils/Utils.cpp \
-    ../lib/sph/equations/av/test/AV.cpp
+    ../lib/sph/equations/av/test/AV.cpp \
+    ../lib/objects/utility/test/Dynamic.cpp
 
 HEADERS += \
     utils/Utils.h \

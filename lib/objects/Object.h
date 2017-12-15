@@ -59,7 +59,7 @@ NAMESPACE_SPH_BEGIN
 #define SPH_UNLIKELY(x) __builtin_expect((x), 0)
 
 
-/// Object with deleted copy constructor and copy operator
+/// \brief Object with deleted copy constructor and copy operator
 struct Noncopyable {
     Noncopyable() = default;
 
@@ -72,7 +72,31 @@ struct Noncopyable {
     Noncopyable& operator=(Noncopyable&&) = default;
 };
 
-/// Base class for all polymorphic objects
+/// \brief Object with deleted copy and move constructor and copy and move operator
+struct Immovable {
+    Immovable() = default;
+
+private:
+    Immovable(const Noncopyable&) = delete;
+
+    Immovable& operator=(const Noncopyable&) = delete;
+};
+
+
+/// \brief Object intended to only be constructed on stack
+///
+/// \note This does not strictly enforce the object is constructed on stack, as we can easily wrap it to
+/// another class and call operator new on the wrapper.
+/// And yes, being local variable and being constructed on stack are not the same things. Try to think of a
+/// better name if you can.
+class Local {
+    void* operator new(std::size_t) = delete;
+    void* operator new[](std::size_t) = delete;
+    void operator delete(void*) = delete;
+    void operator delete[](void*) = delete;
+};
+
+/// \brief Base class for all polymorphic objects
 struct Polymorphic {
     virtual ~Polymorphic() {}
 };

@@ -99,6 +99,20 @@ static void checkEmpty(INeighbourFinder& finder) {
     REQUIRE(nTree == 0);
 }
 
+/// Tests for one particular bug: single particle with very large components of position vector.
+/// Used to cause assert in UniformGridFinder, due to absolute values of epsilon in bounding box.
+static void checkLargeValues(INeighbourFinder& finder) {
+    Array<Vector> storage = { Vector(1.e10_f, 2.e10_f, -3.e10_f, 1._f) };
+    REQUIRE_NOTHROW(finder.build(storage));
+
+    Array<NeighbourRecord> treeNeighs;
+    Size nTree = finder.findNeighbours(0, 1.f, treeNeighs, EMPTY_FLAGS);
+    REQUIRE(nTree == 1);
+
+    nTree = finder.findNeighbours(0, 1.f, treeNeighs, FinderFlags::FIND_ONLY_SMALLER_H);
+    REQUIRE(nTree == 0);
+}
+
 static void testFindingSmallerH(INeighbourFinder& finder) {
     Array<Vector> storage(0, 10);
     for (int i = 0; i < 10; ++i) {
@@ -125,6 +139,7 @@ static void testFinder(INeighbourFinder& finder) {
     checkNeighbours(finder, EMPTY_FLAGS);
     checkNeighbours(finder, FinderFlags::FIND_ONLY_SMALLER_H);
     checkEmpty(finder);
+    checkLargeValues(finder);
     testFindingSmallerH(finder);
 }
 

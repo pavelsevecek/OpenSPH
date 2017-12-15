@@ -116,9 +116,13 @@ enum class GuiSettingsId {
 
     PALETTE_DIVV,
 
+    PALETTE_GRADV,
+
     PALETTE_DENSITY_PERTURB,
 
     PALETTE_RADIUS,
+
+    PALETTE_ANGULAR_VELOCITY,
 };
 
 using GuiSettings = Settings<GuiSettingsId>;

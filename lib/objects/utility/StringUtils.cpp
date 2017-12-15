@@ -20,6 +20,7 @@ Optional<std::string> fromString(const std::string& s) {
 }
 
 template Optional<int> fromString(const std::string& s);
+template Optional<Size> fromString(const std::string& s);
 template Optional<float> fromString(const std::string& s);
 
 

@@ -338,7 +338,7 @@ enum class YieldingEnum {
     DRUCKER_PRAGER
 };
 
-enum class DamageEnum {
+enum class FractureEnum {
     /// No fragmentation
     NONE,
 

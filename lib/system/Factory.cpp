@@ -59,14 +59,14 @@ AutoPtr<IRheology> Factory::getRheology(const BodySettings& settings) {
 }
 
 AutoPtr<IFractureModel> Factory::getDamage(const BodySettings& settings) {
-    const DamageEnum id = settings.get<DamageEnum>(BodySettingsId::RHEOLOGY_DAMAGE);
+    const FractureEnum id = settings.get<FractureEnum>(BodySettingsId::RHEOLOGY_DAMAGE);
     switch (id) {
-    case DamageEnum::NONE:
+    case FractureEnum::NONE:
         return makeAuto<NullFracture>();
-    case DamageEnum::SCALAR_GRADY_KIPP:
+    case FractureEnum::SCALAR_GRADY_KIPP:
         /// \todo  where to get kernel radius from??
         return makeAuto<ScalarGradyKippModel>(2._f);
-    case DamageEnum::TENSOR_GRADY_KIPP:
+    case FractureEnum::TENSOR_GRADY_KIPP:
         return makeAuto<TensorGradyKippModel>();
     default:
         NOT_IMPLEMENTED;

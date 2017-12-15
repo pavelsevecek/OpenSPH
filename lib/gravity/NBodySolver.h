@@ -6,6 +6,7 @@
 /// \date 2016-2017
 
 #include "gravity/IGravity.h"
+#include "objects/finders/BruteForceFinder.h"
 #include "system/Factory.h"
 #include "system/Settings.h"
 #include "thread/Pool.h"
@@ -58,6 +59,8 @@ public:
         ArrayView<Vector> r, v, a;
         tie(r, v, a) = storage.getAll<Vector>(QuantityId::POSITION);
 
+        ArrayView<Float> m = storage.getValue<Float>(QuantityId::MASS);
+
         // find the largest velocity, so that we know how far to search for potentional impactors
         /// \todo naive implementation, improve
         Float v_max = 0._f;
@@ -67,13 +70,13 @@ public:
         v_max = sqrt(v_max);
 
         collisionFinder->build(r);
-        Array<Pair<Size>> toMerge;
 
         Array<NeighbourRecord> neighs;
-        for (Size i = 0; i < r.size(); ++i) {
+        for (Size i = 0; i < r.size();) {
             // find each pair only once
             collisionFinder->findNeighbours(
                 i, 2._f * (v_max * dt + r[i][H]), neighs, FinderFlags::FIND_ONLY_SMALLER_H);
+            bool didCollide = false;
             for (NeighbourRecord& n : neighs) {
                 const Size j = n.index;
                 const Vector dr = r[i] - r[j];
@@ -106,18 +109,31 @@ public:
                             a[i] -= dot(a[i], dir) * dir; // check signs!
                             a[j] += dot(a[j], dir) * dir;
 
-                            toMerge.push(Pair<Size>{ i, j });
+                            // replace i-th particle with the merger
+                            // conserve volume!
+                            const Float h_merger = Sph::root<3>(pow<3>(r[i][H]) + pow<3>(r[j][H]));
+                            const Float m_merger = m[i] + m[j];
+                            const Vector r_merger = (m[i] * r[i] + m[j] * r[j]) / m_merger;
+                            const Vector v_merger = (m[i] * v[i] + m[j] * v[j]) / m_merger;
+
+                            r[i] = r_merger;
+                            v[i] = v_merger;
+                            r[i][H] = h_merger;
+                            m[i] = m_merger;
+
+                            // remove the j-th particle
+                            storage.remove(Array<Size>{ j }, true);
+                            didCollide = true;
                         }
                     }
                 }
-                ASSERT(r[i][H] + r[j][H] <= getLength(dr), r[i][H] + r[j][H], getLength(dr));
+                // ASSERT(r[i][H] + r[j][H] <= getLength(dr), r[i][H] + r[j][H], getLength(dr));
             }
-            // no collision, just advance positions
-            r[i] += v[i] * dt;
-        }
-
-        for (auto& mergers : toMerge) {
-            storage.remove(mergers, true);
+            if (!didCollide) {
+                // no collision, just advance positions
+                r[i] += v[i] * dt;
+                ++i;
+            }
         }
     }
 

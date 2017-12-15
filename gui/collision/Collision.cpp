@@ -16,6 +16,7 @@
 #include "sph/solvers/ContinuitySolver.h"
 #include "sph/solvers/GravitySolver.h"
 #include "sph/solvers/StaticSolver.h"
+#include "sph/solvers/SummationSolver.h"
 #include "system/Platform.h"
 #include "system/Process.h"
 #include "system/Profiler.h"
@@ -98,8 +99,8 @@ protected:
         const Float dt = stats.get<Float>(StatisticsId::TIMESTEP_VALUE);
         const QuantityId id = stats.get<QuantityId>(StatisticsId::LIMITING_QUANTITY);
         const int idx = stats.get<int>(StatisticsId::LIMITING_PARTICLE_IDX);
-        const Value value = stats.get<Value>(StatisticsId::LIMITING_VALUE);
-        const Value derivative = stats.get<Value>(StatisticsId::LIMITING_DERIVATIVE);
+        const Dynamic value = stats.get<Dynamic>(StatisticsId::LIMITING_VALUE);
+        const Dynamic derivative = stats.get<Dynamic>(StatisticsId::LIMITING_DERIVATIVE);
         this->logger->write(t, " ", dt, " ", id, " ", idx, " ", value, " ", derivative);
     }
 };
@@ -263,7 +264,7 @@ private:
         //        equations += makeTerm<NoninertialForce>(omega);
 
         // rotation of particles
-        //   equations += makeTerm<SolidStressTorque>(settings);
+        equations += makeTerm<SolidStressTorque>(settings);
 
         // gravity (approximation)
         equations += makeTerm<SphericalGravity>(SphericalGravity::Options::ASSUME_HOMOGENEOUS);
@@ -318,6 +319,7 @@ AsteroidCollision::AsteroidCollision() {
 
     settings.set(RunSettingsId::RUN_NAME, runName)
         .set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::PREDICTOR_CORRECTOR)
+        .set(RunSettingsId::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::COURANT)
         .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 0.01_f)
         .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 0.01_f)
         .set(RunSettingsId::RUN_TIME_RANGE, Interval(-50._f, 10._f))
@@ -327,6 +329,7 @@ AsteroidCollision::AsteroidCollision() {
         .set(RunSettingsId::SPH_AV_TYPE, ArtificialViscosityEnum::STANDARD)
         .set(RunSettingsId::SPH_AV_ALPHA, 1.5_f)
         .set(RunSettingsId::SPH_AV_BETA, 3._f) /// \todo exception when using gravity with continuity solver?
+        .set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONST)
         .set(RunSettingsId::GRAVITY_SOLVER, GravityEnum::BARNES_HUT)
         .set(RunSettingsId::GRAVITY_OPENING_ANGLE, 0.5_f)
         .set(RunSettingsId::GRAVITY_LEAF_SIZE, 20)
@@ -380,14 +383,14 @@ void AsteroidCollision::setUp() {
         .set(BodySettingsId::PARTICLE_COUNT, 100'000)
         .set(BodySettingsId::EOS, EosEnum::TILLOTSON)
         .set(BodySettingsId::STRESS_TENSOR_MIN, 1.e5_f)
-        .set(BodySettingsId::RHEOLOGY_DAMAGE, DamageEnum::SCALAR_GRADY_KIPP)
+        .set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::SCALAR_GRADY_KIPP)
         .set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::VON_MISES)
         .set(BodySettingsId::DISTRIBUTE_MODE_SPH5, true);
     body.saveToFile(outputDir / Path("target.sph"));
 
     storage = makeShared<Storage>();
 
-    const Vector targetOmega(0._f, 0._f, 0._f); // 2._f * PI / (0.2_f * 3600._f));
+    const Vector targetOmega(0._f, 0._f, 2._f * PI / (2._f * 3600._f));
 
     AutoPtr<CollisionSolver> collisionSolver =
         makeAuto<CollisionSolver>(settings, body, targetOmega, outputDir);
@@ -401,6 +404,14 @@ void AsteroidCollision::setUp() {
     SphericalDomain domain1(Vector(0._f), 5e3_f); // D = 10km
     conds->addMonolithicBody(*storage, domain1, body)
         .addRotation(targetOmega, BodyView::RotationOrigin::FRAME_ORIGIN);
+
+    if (storage->has(QuantityId::ANGULAR_VELOCITY)) {
+        ArrayView<Vector> omega = storage->getValue<Vector>(QuantityId::ANGULAR_VELOCITY);
+        for (Vector& o : omega) {
+            o = targetOmega;
+        }
+    }
+
     logger.write("Particles of target: ", storage->getParticleCnt());
 
     /* body.set(BodySettingsId::PARTICLE_COUNT, 100)

@@ -5,7 +5,7 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2017
 
-#include "objects/utility/Value.h"
+#include "objects/utility/Dynamic.h"
 #include "quantities/QuantityIds.h"
 #include "quantities/Storage.h"
 #include "system/Statistics.h"
@@ -28,14 +28,14 @@ NAMESPACE_SPH_BEGIN
 class ITextColumn : public Polymorphic {
 public:
     /// Returns the value of the output column for given particle.
-    virtual Value evaluate(const Storage& storage, const Statistics& stats, const Size particleIdx) const = 0;
+    virtual Dynamic evaluate(const Storage& storage, const Statistics& stats, const Size particleIdx) const = 0;
 
     /// Reads the value of the column and saves it into the storage, if possible.
     /// \param storage Particle storage where the value is stored
     /// \param value Accumulated value, must be the same type as this column. Checked by assert.
     /// \param particleIdx Index of accumulated particle; if larger than current size of the storage, the
     ///                    storage is resized accordingly.
-    virtual void accumulate(Storage& storage, const Value value, const Size particleIdx) const = 0;
+    virtual void accumulate(Storage& storage, const Dynamic value, const Size particleIdx) const = 0;
 
     /// Returns a name of the column. The name is printed in the header of the output file.
     virtual std::string getName() const = 0;
@@ -55,14 +55,14 @@ public:
     ValueColumn(const QuantityId id)
         : id(id) {}
 
-    virtual Value evaluate(const Storage& storage,
+    virtual Dynamic evaluate(const Storage& storage,
         const Statistics& UNUSED(stats),
         const Size particleIdx) const override {
         ArrayView<const TValue> value = storage.getValue<TValue>(id);
         return value[particleIdx];
     }
 
-    virtual void accumulate(Storage& storage, const Value value, const Size particleIdx) const override {
+    virtual void accumulate(Storage& storage, const Dynamic value, const Size particleIdx) const override {
         if (!storage.has(id)) {
             // lazy initialization
             storage.insert<TValue>(id, OrderEnum::ZERO, TValue(0._f));
@@ -92,14 +92,14 @@ public:
     DerivativeColumn(const QuantityId id)
         : id(id) {}
 
-    virtual Value evaluate(const Storage& storage,
+    virtual Dynamic evaluate(const Storage& storage,
         const Statistics& UNUSED(stats),
         const Size particleIdx) const override {
         ArrayView<const TValue> value = storage.getDt<TValue>(id);
         return value[particleIdx];
     }
 
-    virtual void accumulate(Storage& storage, const Value value, const Size particleIdx) const override {
+    virtual void accumulate(Storage& storage, const Dynamic value, const Size particleIdx) const override {
         if (!storage.has<TValue>(id, OrderEnum::FIRST)) {
             // lazy initialization
             storage.insert<TValue>(id, OrderEnum::FIRST, TValue(0._f));
@@ -129,14 +129,14 @@ public:
     SecondDerivativeColumn(const QuantityId id)
         : id(id) {}
 
-    virtual Value evaluate(const Storage& storage,
+    virtual Dynamic evaluate(const Storage& storage,
         const Statistics& UNUSED(stats),
         const Size particleIdx) const override {
         ArrayView<const TValue> value = storage.getAll<TValue>(id)[2];
         return value[particleIdx];
     }
 
-    virtual void accumulate(Storage& storage, const Value value, const Size particleIdx) const override {
+    virtual void accumulate(Storage& storage, const Dynamic value, const Size particleIdx) const override {
         if (!storage.has<TValue>(id, OrderEnum::SECOND)) {
             // lazy initialization
             storage.insert<TValue>(id, OrderEnum::SECOND, TValue(0._f));
@@ -158,14 +158,14 @@ public:
 /// Returns smoothing lengths of particles
 class SmoothingLengthColumn : public ITextColumn {
 public:
-    virtual Value evaluate(const Storage& storage,
+    virtual Dynamic evaluate(const Storage& storage,
         const Statistics& UNUSED(stats),
         const Size particleIdx) const override {
         ArrayView<const Vector> value = storage.getValue<Vector>(QuantityId::POSITION);
         return value[particleIdx][H];
     }
 
-    virtual void accumulate(Storage& storage, const Value value, const Size particleIdx) const override {
+    virtual void accumulate(Storage& storage, const Dynamic value, const Size particleIdx) const override {
         if (!storage.has(QuantityId::POSITION)) {
             // lazy initialization
             storage.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, Vector(0._f));
@@ -189,14 +189,14 @@ public:
 template <typename TValue>
 class DamageColumn : public ITextColumn {
 public:
-    virtual Value evaluate(const Storage& storage,
+    virtual Dynamic evaluate(const Storage& storage,
         const Statistics& UNUSED(stats),
         const Size particleIdx) const override {
         ArrayView<const TValue> value = storage.getValue<TValue>(QuantityId::DAMAGE);
         return pow<3>(value[particleIdx]);
     }
 
-    virtual void accumulate(Storage& storage, const Value value, const Size particleIdx) const override {
+    virtual void accumulate(Storage& storage, const Dynamic value, const Size particleIdx) const override {
         Array<TValue>& array = storage.getValue<TValue>(QuantityId::DAMAGE);
         array.resize(particleIdx + 1);
         array[particleIdx] = root<3>(value.get<TValue>());
@@ -214,13 +214,13 @@ public:
 /// Helper column printing particle numbers.
 class ParticleNumberColumn : public ITextColumn {
 public:
-    virtual Value evaluate(const Storage& UNUSED(storage),
+    virtual Dynamic evaluate(const Storage& UNUSED(storage),
         const Statistics& UNUSED(stats),
         const Size particleIdx) const override {
         return particleIdx;
     }
 
-    virtual void accumulate(Storage&, const Value, const Size) const override {
+    virtual void accumulate(Storage&, const Dynamic, const Size) const override {
         // do nothing
     }
 
@@ -237,13 +237,13 @@ public:
 class TimeColumn : public ITextColumn {
 
 public:
-    virtual Value evaluate(const Storage& UNUSED(storage),
+    virtual Dynamic evaluate(const Storage& UNUSED(storage),
         const Statistics& stats,
         const Size UNUSED(particleIdx)) const override {
         return stats.get<Float>(StatisticsId::RUN_TIME);
     }
 
-    virtual void accumulate(Storage&, const Value, const Size) const override {
+    virtual void accumulate(Storage&, const Dynamic, const Size) const override {
         // do nothing
     }
 

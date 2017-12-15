@@ -64,7 +64,7 @@ void AsteroidRotation::setUp() {
         .set(BodySettingsId::PARTICLE_COUNT, 100000)
         .set(BodySettingsId::EOS, EosEnum::TILLOTSON)
         .set(BodySettingsId::STRESS_TENSOR_MIN, 1.e5_f)
-        .set(BodySettingsId::RHEOLOGY_DAMAGE, DamageEnum::NONE)
+        .set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::NONE)
         .set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::VON_MISES)
         .set(BodySettingsId::DISTRIBUTE_MODE_SPH5, true);
     bodySettings.saveToFile(Path("target.sph"));

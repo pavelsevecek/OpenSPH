@@ -169,7 +169,7 @@ namespace Detail {
     static_assert(std::is_same<bool, ConvertToSize<bool>>::value, "invalid EnumToInt");
     static_assert(std::is_same<int, ConvertToSize<TestEnum>>::value, "invalid EnumToInt");
     static_assert(std::is_same<int&, ConvertToSize<TestEnum&>>::value, "invalid EnumToInt");
-}
+} // namespace Detail
 
 template <typename T>
 struct IsEnumClass {
@@ -185,6 +185,7 @@ template <typename... Ts>
 using voidType = typename makeVoid<Ts...>::Type;
 
 /// Static logical and
+/// \todo Can be replaced by C++17 fold expressions
 template <bool... Values>
 struct AllTrue;
 template <bool First, bool Second, bool... Others>

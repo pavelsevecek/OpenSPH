@@ -61,7 +61,7 @@ private:
     ArrayView<const Vector> r, omega;
     ArrayView<const Size> idxs;
     ArrayView<const Float> reduce;
-    ArrayView<SymmetricTensor> deriv;
+    ArrayView<SymmetricTensor> gradv;
 
 public:
     virtual void create(Accumulated& results) override {
@@ -74,7 +74,7 @@ public:
         idxs = input.getValue<Size>(QuantityId::FLAG);
         reduce = input.getValue<Float>(QuantityId::STRESS_REDUCING);
 
-        deriv = results.getBuffer<SymmetricTensor>(QuantityId::STRENGTH_VELOCITY_GRADIENT, OrderEnum::ZERO);
+        gradv = results.getBuffer<SymmetricTensor>(QuantityId::STRENGTH_VELOCITY_GRADIENT, OrderEnum::ZERO);
     }
 
     template <bool Symmetrize>
@@ -89,11 +89,11 @@ public:
             const Vector dvj = cross(omega[j], dr);
             const SymmetricTensor tj = outer(dvj, grads[k]);
             ASSERT(isReal(tj));
-            deriv[i] -= m[j] / rho[j] * tj;
+            gradv[i] -= m[j] / rho[j] * tj;
             if (Symmetrize) {
                 const Vector dvi = cross(omega[i], dr);
                 const SymmetricTensor ti = outer(dvi, grads[k]);
-                deriv[j] += m[i] / rho[i] * ti;
+                gradv[j] -= m[i] / rho[i] * ti;
             }
         }
     }
@@ -131,7 +131,7 @@ public:
 
     virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override {
         derivatives.require<RotationStressDivergence>(settings);
-        /// \todo derivatives.require<RotationStrengthVelocityGradient>(settings);
+        derivatives.require<RotationStrengthVelocityGradient>(settings);
     }
 
     virtual void initialize(Storage& storage) override {
