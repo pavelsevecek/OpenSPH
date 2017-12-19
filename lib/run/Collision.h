@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gravity/SphericalGravity.h"
 #include "io/Column.h"
 #include "io/FileSystem.h"
 #include "io/LogFile.h"
@@ -205,7 +206,7 @@ private:
         equations += makeTerm<InertialForce>(omega);
 
         // gravity (approximation)
-        equations += makeTerm<SphericalGravity>(SphericalGravity::Options::ASSUME_HOMOGENEOUS);
+        equations += makeTerm<SphericalGravityEquation>();
 
         // density evolution
         equations += makeTerm<ContinuityEquation>(settings);

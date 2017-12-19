@@ -50,8 +50,8 @@ private:
         Connect(MAIN_LOOP_TYPE, MainLoopEventHandler(App::processEvents));
 
         GuiSettings gui;
-        gui.set(GuiSettingsId::VIEW_FOV, 5.e3_f)
-            .set(GuiSettingsId::VIEW_CENTER, Vector(320, 200, 0._f))
+        gui.set(GuiSettingsId::ORTHO_FOV, 5.e3_f)
+            .set(GuiSettingsId::ORTHO_VIEW_CENTER, Vector(320, 200, 0._f))
             .set(GuiSettingsId::PARTICLE_RADIUS, 0.3_f)
             .set(GuiSettingsId::ORTHO_CUTOFF, 5.e2_f)
             .set(GuiSettingsId::ORTHO_PROJECTION, OrthoEnum::XY)

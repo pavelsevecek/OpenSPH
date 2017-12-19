@@ -5,7 +5,7 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2017
 
-#include "physics/Analytic.h"
+#include "physics/Functions.h"
 #include "sph/equations/EquationTerm.h"
 
 NAMESPACE_SPH_BEGIN
@@ -74,76 +74,6 @@ public:
         for (Size i = 0; i < r.size(); ++i) {
             dv[i] -= 2._f * cross(omega, v[i]) + cross(omega, cross(omega, r[i]));
             // no energy term - energy is not generally conserved when external force is used
-        }
-    }
-
-    virtual void create(Storage& UNUSED(storage), IMaterial& UNUSED(material)) const override {}
-};
-
-
-/// \brief Spherically symmetrized gravitational force.
-///
-/// Computes gravitational force of a sphere (not necessarily homogeneous). Particles are assumed to be
-/// spherically symmetric; the force can be used even for different particle distributions, but may yield
-/// incorrect results.
-class SphericalGravity : public IEquationTerm {
-private:
-    bool useHomogeneousApprox;
-
-public:
-    enum class Options {
-        ///< Simplifies the computations and makes it more precise, only if density is contant within the body
-        ASSUME_HOMOGENEOUS = 1 << 0,
-    };
-
-    SphericalGravity(const Flags<Options> flags) {
-        useHomogeneousApprox = flags.has(Options::ASSUME_HOMOGENEOUS);
-    }
-
-    virtual void setDerivatives(DerivativeHolder& UNUSED(derivatives),
-        const RunSettings& UNUSED(settings)) override {}
-
-    virtual void initialize(Storage& UNUSED(storage)) override {}
-
-    virtual void finalize(Storage& storage) override {
-        ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
-        ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
-        /*        Float rmax = 0._f;
-                for (Size i = 0; i < r.size(); ++i) {
-                    rmax = max(rmax, getSqrLength(r[i]));
-                }
-                rmax = sqrt(rmax);
-                ASSERT(isReal(rmax));*/
-
-        if (useHomogeneousApprox) {
-            // compute acceleration
-            ArrayView<Vector> dv = storage.getD2t<Vector>(QuantityId::POSITION);
-            const Float rho0 = storage.getMaterial(0)->getParam<Float>(BodySettingsId::DENSITY);
-            Analytic::StaticSphere sphere(INFTY, rho0); // here radius does not matter
-            for (Size i = 0; i < dv.size(); ++i) {
-                dv[i] += sphere.getAcceleration(r[i]);
-            }
-        } else {
-            Array<Size> idxs(m.size());
-            for (Size i = 0; i < idxs.size(); ++i) {
-                idxs[i] = i;
-            }
-            // sort particles by increasing r
-            std::sort(idxs.begin(), idxs.end(), [r](const Size i1, const Size i2) {
-                return getLength(r[i1]) < getLength(r[i2]);
-            });
-            // compute mass M within radius r
-            Array<Float> M(m.size());
-            /// \todo replace this staircase function with some smooth spline
-            for (Size i = 0; i < idxs.size(); ++i) {
-                M[i] = m[idxs[i]] + (i > 0 ? M[i - 1] : 0._f);
-            }
-            // compute acceleration
-            ArrayView<Vector> dv = storage.getD2t<Vector>(QuantityId::POSITION);
-            for (Size i = 0; i < dv.size(); ++i) {
-                const Size idx = idxs[i];
-                dv[idx] -= Constants::gravity * M[i] * r[idx] / pow<3>(getLength(r[idx]));
-            }
         }
     }
 

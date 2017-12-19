@@ -3,8 +3,8 @@
 #include "gravity/BarnesHut.h"
 #include "gravity/BruteForceGravity.h"
 #include "gravity/Moments.h"
-#include "tests/Setup.h"
 #include "tests/Approx.h"
+#include "tests/Setup.h"
 #include "utils/SequenceTest.h"
 
 using namespace Sph;
@@ -58,11 +58,4 @@ TEST_CASE("GravitySolver", "[solvers]") {
     testGravity(makeAuto<BruteForceGravity>(GravityKernel<CubicSpline<3>>{}));
     testGravity(makeAuto<BarnesHut>(0.5_f, MultipoleOrder::QUADRUPOLE));
     testGravity(makeAuto<BarnesHut>(0.5_f, MultipoleOrder::QUADRUPOLE, GravityKernel<CubicSpline<3>>{}));
-}
-
-TEST_CASE("GravitySolver setup", "[solvers]") {
-    EquationHolder holder;
-    holder += makeTerm<SphericalGravity>(SphericalGravity::Options::ASSUME_HOMOGENEOUS);
-    REQUIRE_THROWS_AS(
-        GravitySolver(RunSettings::getDefaults(), holder, makeAuto<BruteForceGravity>()), InvalidSetup);
 }

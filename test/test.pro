@@ -152,7 +152,8 @@ SOURCES += \
     utils/SequenceTest.cpp \
     utils/Utils.cpp \
     ../lib/sph/equations/av/test/AV.cpp \
-    ../lib/objects/utility/test/Dynamic.cpp
+    ../lib/objects/utility/test/Dynamic.cpp \
+    ../lib/io/test/FileManager.cpp
 
 HEADERS += \
     utils/Utils.h \

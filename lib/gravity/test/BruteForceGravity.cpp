@@ -1,5 +1,6 @@
 #include "gravity/BruteForceGravity.h"
 #include "catch.hpp"
+#include "gravity/SphericalGravity.h"
 #include "sph/equations/Potentials.h"
 #include "tests/Approx.h"
 #include "tests/Setup.h"
@@ -9,23 +10,24 @@ using namespace Sph;
 
 TEST_CASE("BruteForceGravity single-thread", "[gravity]") {
     BruteForceGravity gravity;
-    SphericalGravity analytic(SphericalGravity::Options::ASSUME_HOMOGENEOUS);
+    SphericalGravity analytic;
 
     const Float r0 = 1.e7_f;
     const Float rho0 = 100.f;
     BodySettings settings;
     settings.set(BodySettingsId::DENSITY, rho0);
     Storage storage = Tests::getGassStorage(1000, settings, r0);
+    Statistics stats;
+
     // compute analytical acceleraion
-    analytic.finalize(storage);
+    analytic.build(storage);
     Array<Vector> a = storage.getD2t<Vector>(QuantityId::POSITION).clone();
+    analytic.evalAll(a, stats);
 
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     ArrayView<Vector> d2v = storage.getD2t<Vector>(QuantityId::POSITION);
     storage.zeroHighestDerivatives(); // clear derivatives computed by analytic
     gravity.build(storage);
-
-    Statistics stats;
     gravity.evalAll(d2v, stats);
 
     auto test = [&](const Size i) -> Outcome {

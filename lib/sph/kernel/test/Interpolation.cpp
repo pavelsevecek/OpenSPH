@@ -2,8 +2,8 @@
 #include "catch.hpp"
 #include "objects/geometry/Domain.h"
 #include "sph/initial/Distribution.h"
-#include "tests/Setup.h"
 #include "tests/Approx.h"
+#include "tests/Setup.h"
 #include "utils/SequenceTest.h"
 
 using namespace Sph;
@@ -56,12 +56,11 @@ TEST_CASE("Interpolate velocity", "[interpolation]") {
     }
 
     Interpolation interpol(storage);
-    RandomDistribution dist;
+    RandomDistribution dist(1234);
     Array<Vector> points = dist.generate(1000, SphericalDomain(Vector(0._f), 0.7_f));
     auto test = [&](const Size i) -> Outcome {
         const Vector expected = field(points[i]);
-        const Vector actual =
-            interpol.interpolate<Vector>(QuantityId::POSITION, OrderEnum::FIRST, points[i]);
+        const Vector actual = interpol.interpolate<Vector>(QuantityId::POSITION, OrderEnum::FIRST, points[i]);
         if (expected != approx(actual, 0.01_f)) {
             return makeFailed("Incorrect velocity:\n", expected, " == ", actual);
         }

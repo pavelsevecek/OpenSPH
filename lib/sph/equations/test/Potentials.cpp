@@ -25,7 +25,7 @@ TEST_CASE("SphericalGravity analytic", "[equationterm]") {
     REQUIRE(a == approx(-rho0 * sphereVolume(r0) * r / pow<3>(getLength(r))));
 }
 
-TEST_CASE("SphericalGravity consistency", "[equationterm]") {
+/*TEST_CASE("SphericalGravity consistency", "[equationterm]") {
     BodySettings settings;
     const Float rho0 = 100._f;
     settings.set(BodySettingsId::DENSITY, rho0);
@@ -57,7 +57,7 @@ TEST_CASE("SphericalGravity consistency", "[equationterm]") {
     };
     REQUIRE(dv1.size() > 500); // sanity check
     REQUIRE_SEQUENCE(test, 0, dv1.size());
-}
+}*/
 
 TEST_CASE("Inertial Centrifugal", "[equationterm]") {
     const Float omega = 1.5_f;

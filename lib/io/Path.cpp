@@ -78,13 +78,21 @@ Path& Path::replaceExtension(const std::string& newExtension) {
     if (name.empty() || name.path == "." || name.path == "..") {
         return *this;
     }
+    // skip first character, files like '.gitignore' are hidden, not just extension without filename
     const std::size_t n = name.path.find('.', 1);
     if (n == std::string::npos) {
         // no extension, append the new one
-        path += "." + newExtension;
+        if (!newExtension.empty()) {
+            path += "." + newExtension;
+        }
         return *this;
     } else {
-        path.replace(path.size() - name.path.size() + n + 1, std::string::npos, newExtension);
+        const std::size_t indexInPath = path.size() - name.path.size() + n;
+        if (!newExtension.empty()) {
+            path.replace(indexInPath + 1, std::string::npos, newExtension);
+        } else {
+            path = path.substr(0, indexInPath);
+        }
     }
     return *this;
 }
@@ -187,6 +195,10 @@ bool Path::operator==(const Path& other) const {
 
 bool Path::operator!=(const Path& other) const {
     return path != other.path;
+}
+
+bool Path::operator<(const Path& other) const {
+    return path < other.path;
 }
 
 std::ostream& operator<<(std::ostream& stream, const Path& path) {

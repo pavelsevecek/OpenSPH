@@ -87,13 +87,6 @@ public:
         }
     }
 
-    VectorPdfRng(VectorPdfRng&& other)
-        : box(std::move(other.box))
-        , vectorRng(std::move(other.vectorRng))
-        , pdf(std::move(other.pdf))
-        , jacobian(std::move(other.jacobian))
-        , maxPdf(other.maxPdf) {}
-
     Vector operator()() {
         ASSERT(getLength(box.size()) > 0._f);
         for (Size i = 0; i < 1000; ++i) {

@@ -71,6 +71,10 @@ TEST_CASE("Path replaceExtension", "[path]") {
     REQUIRE(Path("/usr/file.").replaceExtension("tmp") == Path("/usr/file.tmp"));
     REQUIRE(Path("/usr/.gitignore").replaceExtension("tmp") == Path("/usr/.gitignore.tmp"));
     REQUIRE(Path("/usr/local/..").replaceExtension("tmp") == Path("/usr/local/.."));
+    REQUIRE(Path("file").replaceExtension("") == Path("file"));
+    REQUIRE(Path("file.txt").replaceExtension("") == Path("file"));
+    REQUIRE(Path("/usr/file.txt").replaceExtension("") == Path("/usr/file"));
+    REQUIRE(Path("/usr/./test/../file.txt").replaceExtension("") == Path("/usr/./test/../file"));
 }
 
 TEST_CASE("Path removeExtension", "[path]") {

@@ -51,8 +51,8 @@ public:
         Array<std::type_info>& UNUSED(forbids)) const {}
 };
 
-
-class PressureGradient : public DerivativeTemplate<PressureGradient> {
+template <FormulationEnum TVariant>
+class PressureGradient : public DerivativeTemplate<PressureGradient<TVariant>> {
 private:
     ArrayView<const Float> p, rho, m;
     ArrayView<Vector> dv;
@@ -63,8 +63,7 @@ public:
     }
 
     virtual void initialize(const Storage& input, Accumulated& results) override {
-        tie(p, rho, m) =
-            input.getValues<Float>(QuantityId::PRESSURE, QuantityId::DENSITY, QuantityId::MASS);
+        tie(p, rho, m) = input.getValues<Float>(QuantityId::PRESSURE, QuantityId::DENSITY, QuantityId::MASS);
         dv = results.getBuffer<Vector>(QuantityId::POSITION, OrderEnum::SECOND);
     }
 
@@ -73,7 +72,17 @@ public:
         ASSERT(neighs.size() == grads.size());
         for (Size k = 0; k < neighs.size(); ++k) {
             const Size j = neighs[k];
-            const Vector f = (p[i] + p[j]) / (rho[i] * rho[j]) * grads[k];
+            Vector f;
+            switch (TVariant) {
+            case FormulationEnum::STANDARD:
+                f = (p[i] / sqr(rho[i]) + p[j] / sqr(rho[j])) * grads[k];
+                break;
+            case FormulationEnum::BENZ_ASPHAUG:
+                f = (p[i] + p[j]) / (rho[i] * rho[j]) * grads[k];
+                break;
+            default:
+                NOT_IMPLEMENTED;
+            }
             ASSERT(isReal(f));
             dv[i] -= m[j] * f;
             if (Symmetrize) {
@@ -83,13 +92,28 @@ public:
     }
 };
 
+template <template <FormulationEnum> class TDerivative>
+static void requireVariant(DerivativeHolder& derivatives, const RunSettings& settings) {
+    const FormulationEnum formulation = settings.get<FormulationEnum>(RunSettingsId::SPH_FORMULATION);
+    switch (formulation) {
+    case FormulationEnum::STANDARD:
+        derivatives.require<TDerivative<FormulationEnum::STANDARD>>(settings);
+        break;
+    case FormulationEnum::BENZ_ASPHAUG:
+        derivatives.require<TDerivative<FormulationEnum::BENZ_ASPHAUG>>(settings);
+        break;
+    default:
+        NOT_IMPLEMENTED;
+    }
+}
+
 /// \brief Equation of motion due to pressure gradient
 ///
 /// Computes acceleration from pressure gradient and corresponding derivative of internal energy.
 /// \todo
 class PressureForce : public IEquationTerm {
 private:
-    bool conserveAngularMomentum = false;
+    bool conserveAngularMomentum;
 
 public:
     explicit PressureForce(const RunSettings& settings) {
@@ -97,7 +121,8 @@ public:
     }
 
     virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override {
-        derivatives.require<PressureGradient>(settings);
+        requireVariant<PressureGradient>(derivatives, settings);
+
         if (conserveAngularMomentum) {
             derivatives.require<VelocityDivergence<AngularMomentumCorrection>>(settings);
             derivatives.require<AngularMomentumCorrectionTensor>(settings);
@@ -135,7 +160,8 @@ public:
     }
 };
 
-class StressDivergence : public DerivativeTemplate<StressDivergence> {
+template <FormulationEnum TVariant>
+class StressDivergence : public DerivativeTemplate<StressDivergence<TVariant>> {
 private:
     ArrayView<const Float> rho, m;
     ArrayView<const TracelessTensor> s;
@@ -164,7 +190,17 @@ public:
             if (flag[i] != flag[j] || reduce[i] == 0._f || reduce[j] == 0._f) {
                 continue;
             }
-            const Vector f = (s[i] + s[j]) / (rho[i] * rho[j]) * grads[k];
+            Vector f;
+            switch (TVariant) {
+            case FormulationEnum::STANDARD:
+                f = (s[i] / sqr(rho[i]) + s[j] / sqr(rho[j])) * grads[k];
+                break;
+            case FormulationEnum::BENZ_ASPHAUG:
+                f = (s[i] + s[j]) / (rho[i] * rho[j]) * grads[k];
+                break;
+            default:
+                NOT_IMPLEMENTED;
+            }
             ASSERT(isReal(f));
             dv[i] += m[j] * f;
             if (Symmetrize) {
@@ -209,7 +245,7 @@ public:
     }
 
     virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override {
-        derivatives.require<StressDivergence>(settings);
+        requireVariant<StressDivergence>(derivatives, settings);
 
         if (conserveAngularMomentum) {
             derivatives.require<StrengthVelocityGradient<AngularMomentumCorrection>>(settings);
@@ -285,7 +321,7 @@ public:
     }
 
     virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override {
-        derivatives.require<StressDivergence>(settings);
+        requireVariant<StressDivergence>(derivatives, settings);
         // do don't need to do 'hacks' with gradient for fluids
         if (conserveAngularMomentum) {
             derivatives.require<VelocityGradient<AngularMomentumCorrection>>(settings);

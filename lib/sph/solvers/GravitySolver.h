@@ -28,9 +28,7 @@ private:
     };
 
 public:
-    GravitySolver(const RunSettings& settings,
-        const EquationHolder& equations,
-        AutoPtr<IGravity>&& gravity)
+    GravitySolver(const RunSettings& settings, const EquationHolder& equations, AutoPtr<IGravity>&& gravity)
         : GenericSolver(settings, equations)
         , gravity(std::move(gravity)) {
         // check the equations
@@ -58,15 +56,6 @@ protected:
 
         // second, compute SPH derivatives using symmetric evaluation
         MEASURE("Evaluating SPH", GenericSolver::loop(storage, stats));
-    }
-
-    void sanityCheck() const {
-        // check that we don't solve gravity twice
-        /// \todo generalize for ALL solvers of gravity (some categories?)
-        if (equations.contains<SphericalGravity>()) {
-            throw InvalidSetup(
-                "Cannot use SphericalGravity in GravitySolver; only one solver of gravity is allowed");
-        }
     }
 };
 

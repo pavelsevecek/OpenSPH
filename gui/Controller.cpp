@@ -180,6 +180,7 @@ Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage
         colorizerIds.push(ColorizerId::MOVEMENT_DIRECTION);
         colorizerIds.push(ColorizerId::ACCELERATION);
         colorizerIds.push(ColorizerId::BOUNDARY);
+        colorizerIds.push(ColorizerId::ID);
     }
 
     Array<QuantityId> quantityColorizerIds{

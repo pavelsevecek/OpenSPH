@@ -327,6 +327,15 @@ enum class SolverEnum {
     DENSITY_INDEPENDENT
 };
 
+
+enum class FormulationEnum {
+    /// P_i / rho_i^2 + P_j / rho_j^2
+    STANDARD,
+
+    /// (P_i + P_j) / (rho_i rho_j)
+    BENZ_ASPHAUG,
+};
+
 enum class YieldingEnum {
     /// No yielding, just elastic deformations following Hooke's law
     NONE,
@@ -494,6 +503,8 @@ enum class RunSettingsId {
     /// bounding box for which VoxelFinder is used. For larger offsets of center of mass, K-d tree is used
     /// instead.
     SPH_FINDER_COMPACT_THRESHOLD,
+
+    SPH_FORMULATION,
 
     /// If true, the kernel gradient will be corrected for each particle to improve conservation of total
     /// angular momentum. This comes at the cost of higher memory consumption and slower evaluation of SPH

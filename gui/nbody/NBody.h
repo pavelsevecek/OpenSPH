@@ -48,10 +48,13 @@ private:
         Connect(MAIN_LOOP_TYPE, MainLoopEventHandler(App::processEvents));
 
         GuiSettings gui;
-        gui.set(GuiSettingsId::VIEW_FOV, 1._f * Constants::au)
-            .set(GuiSettingsId::VIEW_CENTER, 0.5_f * Vector(800, 600, 0))
+        gui.set(GuiSettingsId::ORTHO_FOV, 1._f * Constants::au)
+            .set(GuiSettingsId::ORTHO_VIEW_CENTER, 0.5_f * Vector(800, 600, 0))
             .set(GuiSettingsId::PARTICLE_RADIUS, 1._f)
-            .set(GuiSettingsId::ORTHO_CUTOFF, 5.e2_f)
+            .set(GuiSettingsId::CAMERA, int(CameraEnum::ORTHO))
+            .set(GuiSettingsId::PERSPECTIVE_TARGET, Vector(0._f))
+            .set(GuiSettingsId::PERSPECTIVE_POSITION, Vector(Constants::au, 0._f, 0._f))
+            .set(GuiSettingsId::ORTHO_CUTOFF, 0._f)
             .set(GuiSettingsId::ORTHO_PROJECTION, OrthoEnum::XY)
             .set(GuiSettingsId::IMAGES_SAVE, false)
             .set(GuiSettingsId::IMAGES_TIMESTEP, 10._f)

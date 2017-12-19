@@ -15,6 +15,11 @@ enum class RendererEnum {
     OPENGL
 };
 
+enum class CameraEnum {
+    ORTHO,
+    PERSPECTIVE,
+};
+
 enum class OrthoEnum { XY, XZ, YZ };
 
 enum class IntegralEnum {
@@ -33,11 +38,21 @@ enum class GuiSettingsId {
     /// Selected renderer
     RENDERER,
 
+    CAMERA,
+
     /// Center point of the view
-    VIEW_CENTER,
+    ORTHO_VIEW_CENTER,
 
     /// View field of view (zoom)
-    VIEW_FOV,
+    ORTHO_FOV,
+
+    PERSPECTIVE_FOV,
+
+    PERSPECTIVE_POSITION,
+
+    PERSPECTIVE_TARGET,
+
+    PERSPECTIVE_UP,
 
     VIEW_WIDTH,
 

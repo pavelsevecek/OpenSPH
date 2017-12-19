@@ -143,7 +143,7 @@ TEST_CASE("CubicPacking", "[initial]") {
 }
 
 TEST_CASE("RandomDistribution", "[initial]") {
-    RandomDistribution random;
+    RandomDistribution random(1234);
     testDistribution(&random);
     // 100 points inside block [0,1]^d, approx. distance is 100^(-1/d)
 }

@@ -286,6 +286,7 @@ AutoPtr<RunSettings> RunSettings::instance (new RunSettings {
     { RunSettingsId::SPH_FINDER,                    "sph.finder",               int(FinderEnum::UNIFORM_GRID) },
     { RunSettingsId::SPH_FINDER_COMPACT_THRESHOLD,  "sph.finder.compact_threshold", 0.5_f },
     { RunSettingsId::SPH_CONSERVE_ANGULAR_MOMENTUM, "sph.angular_momentum_correction", false },
+    { RunSettingsId::SPH_FORMULATION,               "sph.formulation",          int(FormulationEnum::STANDARD) },
     { RunSettingsId::SPH_PARTICLE_ROTATION,         "sph.particle_rotation",    false },
     { RunSettingsId::SPH_PHASE_ANGLE,               "sph.phase_angle",          false },
 

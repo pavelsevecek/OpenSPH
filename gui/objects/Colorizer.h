@@ -89,6 +89,7 @@ enum class ColorizerId {
     DENSITY_PERTURBATION = -6, ///< Relative difference of density and initial density (rho/rho0 - 1)
     RADIUS = -7,               ///< Radii/smoothing lenghts of particles
     BOUNDARY = -8,             ///< Shows boundary particles
+    ID = -9,                   ///< Each particle drawn with different color
 };
 
 /// Default colorizer simply converting quantity value to color using defined palette. Vector and tensor
@@ -487,5 +488,51 @@ private:
     }
 };
 
+class IdColorizer : public IColorizer {
+private:
+    /// \todo possibly move elsewhere
+    static uint64_t getHash(const Size value) {
+        // https://stackoverflow.com/questions/8317508/hash-function-for-a-string
+        constexpr int A = 54059;
+        constexpr int B = 76963;
+        constexpr int FIRST = 37;
+
+        uint64_t hash = FIRST;
+        uint8_t* ptr = (uint8_t*)&value;
+        for (uint i = 0; i < sizeof(uint64_t); ++i) {
+            hash = (hash * A) ^ (*ptr++ * B);
+        }
+        return hash;
+    }
+
+public:
+    virtual void initialize(const Storage& UNUSED(storage), const ColorizerSource UNUSED(source)) override {
+        // no need to cache anything
+    }
+
+    virtual bool isInitialized() const override {
+        return true;
+    }
+
+    virtual Color eval(const Size idx) const override {
+        uint64_t hash = getHash(idx);
+        const uint8_t r = (hash & 0x00000000FFFF);
+        const uint8_t g = (hash & 0x0000FFFF0000) >> 16;
+        const uint8_t b = (hash & 0xFFFF00000000) >> 32;
+        return Color(r / 255.f, g / 255.f, b / 255.f);
+    }
+
+    virtual Optional<Particle> getParticle(const Size idx) const override {
+        return Particle(idx);
+    }
+
+    virtual Optional<Palette> getPalette() const override {
+        return NOTHING;
+    }
+
+    virtual std::string name() const override {
+        return "ID";
+    }
+};
 
 NAMESPACE_SPH_END

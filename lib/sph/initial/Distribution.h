@@ -5,6 +5,7 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2017
 
+#include "math/rng/Rng.h"
 #include "objects/containers/Array.h"
 #include "objects/geometry/Box.h"
 #include "objects/wrappers/Flags.h"
@@ -29,7 +30,12 @@ public:
 
 /// Generating random positions withing the domain.
 class RandomDistribution : public IDistribution {
+private:
+    mutable UniformRng rng;
+
 public:
+    explicit RandomDistribution(const Size seed);
+
     virtual Array<Vector> generate(const Size n, const IDomain& domain) const override;
 };
 

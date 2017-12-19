@@ -151,7 +151,7 @@ public:
     virtual void setTransformMatrix(const AffineMatrix2& UNUSED(matrix)) override {}
 };
 
-class CollisionSolver : public GenericSolver {
+class CollisionSolver : public GravitySolver {
 private:
     /// Body settings for the impactor
     BodySettings body;
@@ -185,7 +185,7 @@ public:
         const BodySettings& body,
         const Vector targetOmega,
         const Path& path)
-        : GenericSolver(settings, this->getEquations(settings)) // , Factory::getGravity(settings))
+        : GravitySolver(settings, this->getEquations(settings), Factory::getGravity(settings))
         , body(body)
         , targetOmega(targetOmega)
         , outputPath(path) {
@@ -198,7 +198,7 @@ public:
     }
 
     virtual void integrate(Storage& storage, Statistics& stats) override {
-        GenericSolver::integrate(storage, stats);
+        GravitySolver::integrate(storage, stats);
 
         const Float t = stats.get<Float>(StatisticsId::RUN_TIME);
         const Float dt = stats.getOr<Float>(StatisticsId::TIMESTEP_VALUE, 0.01_f);
@@ -225,7 +225,7 @@ public:
             //  this->smoothDensity(storage);
         }
         if (t > startTime && !impactStarted) {
-            body.set(BodySettingsId::PARTICLE_COUNT, 100)
+            body.set(BodySettingsId::PARTICLE_COUNT, 300)
                 .set(BodySettingsId::STRESS_TENSOR_MIN, LARGE)
                 .set(BodySettingsId::DAMAGE_MIN, LARGE);
             SphericalDomain domain2(Vector(5598.423798_f, 2839.8390977_f, 0._f), 679.678195_f);
@@ -264,10 +264,10 @@ private:
         //        equations += makeTerm<NoninertialForce>(omega);
 
         // rotation of particles
-        equations += makeTerm<SolidStressTorque>(settings);
+        // equations += makeTerm<SolidStressTorque>(settings);
 
         // gravity (approximation)
-        equations += makeTerm<SphericalGravity>(SphericalGravity::Options::ASSUME_HOMOGENEOUS);
+        // equations += makeTerm<SphericalGravity>(SphericalGravity::Options::ASSUME_HOMOGENEOUS);
 
         // density evolution
         equations += makeTerm<ContinuityEquation>(settings);
@@ -319,19 +319,21 @@ AsteroidCollision::AsteroidCollision() {
 
     settings.set(RunSettingsId::RUN_NAME, runName)
         .set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::PREDICTOR_CORRECTOR)
-        .set(RunSettingsId::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::COURANT)
-        .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 0.01_f)
-        .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 0.01_f)
-        .set(RunSettingsId::RUN_TIME_RANGE, Interval(-50._f, 10._f))
+        //.set(RunSettingsId::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::COURANT)
+        .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 0.1_f)
+        .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 0.1_f)
+        .set(RunSettingsId::RUN_TIME_RANGE, Interval(-5000._f, 10._f))
         .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 0.1_f)
         .set(RunSettingsId::MODEL_FORCE_SOLID_STRESS, true)
-        .set(RunSettingsId::SPH_FINDER, FinderEnum::KD_TREE)
+        .set(RunSettingsId::SPH_FINDER, FinderEnum::UNIFORM_GRID)
         .set(RunSettingsId::SPH_AV_TYPE, ArtificialViscosityEnum::STANDARD)
         .set(RunSettingsId::SPH_AV_ALPHA, 1.5_f)
         .set(RunSettingsId::SPH_AV_BETA, 3._f) /// \todo exception when using gravity with continuity solver?
-        .set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONST)
+        //.set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONST)
         .set(RunSettingsId::GRAVITY_SOLVER, GravityEnum::BARNES_HUT)
-        .set(RunSettingsId::GRAVITY_OPENING_ANGLE, 0.5_f)
+        .set(RunSettingsId::GRAVITY_KERNEL, GravityKernelEnum::POINT_PARTICLES)
+        .set(RunSettingsId::GRAVITY_MULTIPOLE_ORDER, 0)
+        .set(RunSettingsId::GRAVITY_OPENING_ANGLE, 0.8_f)
         .set(RunSettingsId::GRAVITY_LEAF_SIZE, 20)
         .set(RunSettingsId::RUN_THREAD_GRANULARITY, 100)
         .set(RunSettingsId::FRAME_ANGULAR_FREQUENCY, Vector(0._f, 0._f, omega))
@@ -411,6 +413,11 @@ void AsteroidCollision::setUp() {
             o = targetOmega;
         }
     }
+
+    /*ArrayView<Vector> r = storage->getValue<Vector>(QuantityId::POSITION);
+    for (Vector& v : r) {
+        v[H] *= 2._f;
+    }*/
 
     logger.write("Particles of target: ", storage->getParticleCnt());
 

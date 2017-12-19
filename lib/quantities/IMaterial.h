@@ -85,6 +85,9 @@ public:
 struct MaterialInitialContext {
     /// Random number generator
     AutoPtr<IRng> rng;
+
+    /// Multiplier of smoothing length of all particles
+    Float eta;
 };
 
 /// \brief Material settings and functions specific for one material.

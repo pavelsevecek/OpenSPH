@@ -63,9 +63,9 @@ private:
         Connect(MAIN_LOOP_TYPE, MainLoopEventHandler(App::processEvents));
 
         GuiSettings gui;
-        gui.set(GuiSettingsId::VIEW_FOV, 7e3_f)
-            .set(GuiSettingsId::VIEW_CENTER, 0.5_f * Vector(800, 600, 0))
-            .set(GuiSettingsId::PARTICLE_RADIUS, 0.3_f)
+        gui.set(GuiSettingsId::ORTHO_FOV, 7e3_f)
+            .set(GuiSettingsId::ORTHO_VIEW_CENTER, 0.5_f * Vector(800, 600, 0))
+            .set(GuiSettingsId::PARTICLE_RADIUS, 0.2_f)
             .set(GuiSettingsId::ORTHO_CUTOFF, 5.e2_f)
             .set(GuiSettingsId::ORTHO_PROJECTION, OrthoEnum::XY)
             .set(GuiSettingsId::IMAGES_SAVE, true)

@@ -125,4 +125,92 @@ public:
     }
 };
 
+struct PerspectiveCameraData {
+    /// Field of view (angle)
+    float fov;
+
+    /// Camera position in space
+    Vector position;
+
+    /// Look-at point in space
+    Vector target;
+
+    /// Up vector of the camera (direction)
+    Vector up;
+};
+
+class PerspectiveCamera : public ICamera {
+private:
+    Point imageSize;
+    PerspectiveCameraData data;
+
+    struct {
+        /// Unit direction of the camera
+        Vector dir;
+
+        /// Up vector of the camera, size of which of represents the image size at the target distance
+        Vector up;
+
+        /// Left vector of the camera, size of which of represents the image size at the target distance
+        Vector left;
+    } cached;
+
+public:
+    PerspectiveCamera(const Point imageSize, const PerspectiveCameraData& data)
+        : imageSize(imageSize)
+        , data(data) {
+        cached.dir = getNormalized(data.target - data.position);
+
+        const Float aspect = Float(imageSize.x) / Float(imageSize.y);
+        ASSERT(aspect >= 1._f); // not really required, using for simplicity
+        const Float tgfov = tan(0.5_f * data.fov);
+        cached.up = tgfov / aspect * getNormalized(data.up);
+        cached.left = tgfov * getNormalized(cross(cached.up, cached.dir));
+    }
+
+    virtual Optional<ProjectedPoint> project(const Vector& r) const override {
+        const Vector dr = r - data.position;
+        const Float proj = dot(dr, cached.dir);
+        if (proj <= 0._f) {
+            // point on the other side of the camera view
+            return NOTHING;
+        }
+        const Vector r0 = dr / proj;
+        // convert [-1, 1] to [0, imageSize]
+        const int x = 0.5_f * (1._f + dot(cached.left, r0)) * imageSize.x;
+        const int y = 0.5_f * (1._f + dot(cached.up, r0)) * imageSize.y;
+        /// \todo cache the tangent
+        const float h = float(r[H] / proj) * imageSize.x / tan(0.5_f * data.fov);
+
+        // if (x >= -h && x < imageSize.x + h && y >= -h && y < imageSize.y )
+        return ProjectedPoint{ { x, y }, max(h, 1.f) };
+    }
+
+    virtual Ray unproject(const Point point) const override {
+        const Float x = 2._f * Float(point.x) / imageSize.x - 1._f;
+        const Float y = 2._f * Float(point.y) / imageSize.y - 1._f;
+        Ray ray;
+        ray.origin = data.position;
+        ray.target = data.target + cached.left * x + cached.up * y;
+        return ray;
+    }
+
+    virtual Vector getDirection() const override {
+        return cached.dir;
+    }
+
+    virtual void zoom(const float magnitude) override {
+        ASSERT(magnitude > 0.f);
+        data.fov *= magnitude;
+    }
+
+    virtual void transform(const AffineMatrix& UNUSED(matrix)) override {
+        /// todo
+    }
+
+    virtual void pan(const Point UNUSED(offset)) override {
+        /// todo
+    }
+};
+
 NAMESPACE_SPH_END

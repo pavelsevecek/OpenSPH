@@ -1,5 +1,6 @@
 #include "sph/solvers/StaticSolver.h"
 #include "catch.hpp"
+#include "gravity/SphericalGravity.h"
 #include "physics/Constants.h"
 #include "physics/Eos.h"
 #include "sph/equations/Potentials.h"
@@ -44,8 +45,7 @@ TEST_CASE("StaticSolver pressure", "[staticsolver]") {
     RunSettings settings;
     const Float rho0 = 300._f;
     const Float r0 = 1._f * Constants::au;
-    EquationHolder equations =
-        makeTerm<SphericalGravity>(SphericalGravity::Options::ASSUME_HOMOGENEOUS); //(std::move(potential);
+    EquationHolder equations = makeTerm<SphericalGravityEquation>();
     StaticSolver solver(settings, std::move(equations));
 
     BodySettings body;
@@ -115,7 +115,7 @@ TEST_CASE("StaticSolver stationary", "[staticsolver]") {
     }*/
 
     EquationHolder equations;
-    equations += makeTerm<SphericalGravity>(SphericalGravity::Options::ASSUME_HOMOGENEOUS);
+    equations += makeTerm<SphericalGravityEquation>();
     equations += makeTerm<InertialForce>(Vector(0._f, 0._f, 2.f * PI / (3600._f * 12._f)));
     StaticSolver staticSolver(RunSettings::getDefaults(), equations);
     staticSolver.create(storage, storage.getMaterial(0));

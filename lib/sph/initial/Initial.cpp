@@ -91,6 +91,7 @@ InitialConditions::~InitialConditions() = default;
 
 void InitialConditions::createCommon(const RunSettings& settings) {
     context.rng = Factory::getRng(settings);
+    context.eta = settings.get<Float>(RunSettingsId::SPH_KERNEL_ETA);
 }
 
 BodyView InitialConditions::addMonolithicBody(Storage& storage,
@@ -117,6 +118,14 @@ BodyView InitialConditions::addMonolithicBody(Storage& storage,
 
     this->setQuantities(body, mat, domain.getVolume());
     storage.merge(std::move(body));
+    const Size particleCnt = storage.getParticleCnt();
+
+    /// \todo refactor
+    storage.propagate([&particleCnt, &storage](Storage& act) { //
+        if (&act != &storage) {
+            act.resize(particleCnt, Storage::ResizeFlag::KEEP_EMPTY_UNCHANGED);
+        }
+    });
     return BodyView(storage, bodyIndex++);
 }
 
@@ -291,6 +300,10 @@ void InitialConditions::addRubblePileBody(Storage& storage,
 }
 
 void InitialConditions::setQuantities(Storage& storage, IMaterial& material, const Float volume) {
+    ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
+    for (Size i = 0; i < r.size(); ++i) {
+        r[i][H] *= context.eta;
+    }
     // Set masses of particles, assuming all particles have the same mass
     /// \todo this has to be generalized when using nonuniform particle destribution
     const Float rho0 = material.getParam<Float>(BodySettingsId::DENSITY);

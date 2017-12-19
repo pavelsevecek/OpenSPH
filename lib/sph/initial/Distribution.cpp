@@ -14,16 +14,19 @@ NAMESPACE_SPH_BEGIN
 /// RandomDistribution implementation
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+RandomDistribution::RandomDistribution(const Size seed)
+    : rng(seed) {}
+
 Array<Vector> RandomDistribution::generate(const Size n, const IDomain& domain) const {
     const Box bounds = domain.getBoundingBox();
-    VectorPdfRng<HaltonQrng> boxRng(bounds);
+    VectorRng<UniformRng&> boxRng(rng);
     Array<Vector> vecs(0, n);
     // use homogeneous smoothing lenghs regardless of actual spatial variability of particle concentration
     const Float volume = domain.getVolume();
     const Float h = root<3>(volume / n);
     Size found = 0;
     for (Size i = 0; i < 1e5 * n && found < n; ++i) {
-        Vector w = boxRng();
+        Vector w = boxRng() * bounds.size() + bounds.lower();
         w[H] = h;
         if (domain.contains(w)) {
             vecs.push(w);

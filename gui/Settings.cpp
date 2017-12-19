@@ -11,17 +11,24 @@ AutoPtr<GuiSettings> GuiSettings::instance (new GuiSettings {
     { GuiSettingsId::RENDER_WIDTH,     "render.width",     800 },
     { GuiSettingsId::RENDER_HEIGHT,    "render.height",    600 },
 
-    /// Particle visualization
+    /// Camera pameters
+    { GuiSettingsId::CAMERA,                "camera",               int(CameraEnum::ORTHO) },
     { GuiSettingsId::PARTICLE_RADIUS,       "particle_radius",      0.5_f },
     { GuiSettingsId::ORTHO_CUTOFF,          "ortho.cutoff",         0.1_f },
     { GuiSettingsId::ORTHO_PROJECTION,      "ortho.projection",     int(OrthoEnum::XY) },
+    { GuiSettingsId::PERSPECTIVE_FOV,       "perspective.fov",      PI / 3._f },
+    { GuiSettingsId::PERSPECTIVE_POSITION,  "perspective.position", Vector(0._f) },
+    { GuiSettingsId::PERSPECTIVE_TARGET,    "perspective.target",   Vector(1._f, 0._f, 0._f) },
+    { GuiSettingsId::PERSPECTIVE_UP,        "perspective.up",       Vector(0._f, 0._f, 1._f) },
+
+    /// Particle visualization
     { GuiSettingsId::SURFACE_RESOLUTION,    "surface.resolution",   100._f },  // m
     { GuiSettingsId::SURFACE_LEVEL,         "surface.level",        0.3_f },
     { GuiSettingsId::SURFACE_SUN_POSITION,  "surface.sun_position", Vector(0.f, 0.f, 1.f) },
     { GuiSettingsId::SURFACE_SUN_INTENSITY, "surface.sun_intentity", 0.5_f },
     { GuiSettingsId::SURFACE_AMBIENT,       "surface.ambient",      0.3_f },
-    { GuiSettingsId::VIEW_CENTER,           "view.center",          Vector(0._f) },
-    { GuiSettingsId::VIEW_FOV,              "view.fov",             1._f },
+    { GuiSettingsId::ORTHO_VIEW_CENTER,           "view.center",          Vector(0._f) },
+    { GuiSettingsId::ORTHO_FOV,              "view.fov",             1._f },
     { GuiSettingsId::VIEW_WIDTH,            "view.width",           800 },
     { GuiSettingsId::VIEW_HEIGHT,           "view.height",          600 },
     { GuiSettingsId::VIEW_MAX_FRAMERATE,    "view.max_framerate",   100 }, // ms

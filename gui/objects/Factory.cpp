@@ -7,27 +7,42 @@
 NAMESPACE_SPH_BEGIN
 
 AutoPtr<ICamera> Factory::getCamera(const GuiSettings& settings, const Point size) {
-    OrthoEnum id = settings.get<OrthoEnum>(GuiSettingsId::ORTHO_PROJECTION);
-    OrthoCameraData data;
-    data.fov = 0.5_f * size.y / settings.get<Float>(GuiSettingsId::VIEW_FOV);
-    switch (id) {
-    case OrthoEnum::XY:
-        data.u = Vector(1._f, 0._f, 0._f);
-        data.v = Vector(0._f, 1._f, 0._f);
-        break;
-    case OrthoEnum::XZ:
-        data.u = Vector(1._f, 0._f, 0._f);
-        data.v = Vector(0._f, 0._f, 1._f);
-        break;
-    case OrthoEnum::YZ:
-        data.u = Vector(0._f, 1._f, 0._f);
-        data.v = Vector(0._f, 0._f, 1._f);
-        break;
+    CameraEnum cameraId = settings.get<CameraEnum>(GuiSettingsId::CAMERA);
+    switch (cameraId) {
+    case CameraEnum::ORTHO: {
+        OrthoEnum id = settings.get<OrthoEnum>(GuiSettingsId::ORTHO_PROJECTION);
+        OrthoCameraData data;
+        data.fov = 0.5_f * size.y / settings.get<Float>(GuiSettingsId::ORTHO_FOV);
+        switch (id) {
+        case OrthoEnum::XY:
+            data.u = Vector(1._f, 0._f, 0._f);
+            data.v = Vector(0._f, 1._f, 0._f);
+            break;
+        case OrthoEnum::XZ:
+            data.u = Vector(1._f, 0._f, 0._f);
+            data.v = Vector(0._f, 0._f, 1._f);
+            break;
+        case OrthoEnum::YZ:
+            data.u = Vector(0._f, 1._f, 0._f);
+            data.v = Vector(0._f, 0._f, 1._f);
+            break;
+        default:
+            NOT_IMPLEMENTED;
+        }
+        const Vector center(settings.get<Vector>(GuiSettingsId::ORTHO_VIEW_CENTER));
+        return makeAuto<OrthoCamera>(size, Point(int(center[X]), int(center[Y])), data);
+    }
+    case CameraEnum::PERSPECTIVE: {
+        PerspectiveCameraData data;
+        data.position = settings.get<Vector>(GuiSettingsId::PERSPECTIVE_POSITION);
+        data.target = settings.get<Vector>(GuiSettingsId::PERSPECTIVE_TARGET);
+        data.up = settings.get<Vector>(GuiSettingsId::PERSPECTIVE_UP);
+        data.fov = settings.get<Float>(GuiSettingsId::PERSPECTIVE_FOV);
+        return makeAuto<PerspectiveCamera>(size, data);
+    }
     default:
         NOT_IMPLEMENTED;
     }
-    const Vector center(settings.get<Vector>(GuiSettingsId::VIEW_CENTER));
-    return makeAuto<OrthoCamera>(size, Point(int(center[X]), int(center[Y])), data);
 }
 
 AutoPtr<IRenderer> Factory::getRenderer(const GuiSettings& settings) {
@@ -64,6 +79,8 @@ AutoPtr<IColorizer> Factory::getColorizer(const GuiSettings& settings, const Col
         return makeAuto<RadiusColorizer>(range);
     case ColorizerId::BOUNDARY:
         return makeAuto<BoundaryColorizer>(BoundaryColorizer::Detection::NEIGBOUR_THRESHOLD, 40);
+    case ColorizerId::ID:
+        return makeAuto<IdColorizer>();
     default:
         QuantityId quantity = QuantityId(id);
         ASSERT(int(quantity) >= 0);

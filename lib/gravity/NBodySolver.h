@@ -5,6 +5,8 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2017
 
+#include "gravity/BruteForceGravity.h"
+#include "gravity/Collision.h"
 #include "gravity/IGravity.h"
 #include "objects/finders/BruteForceFinder.h"
 #include "system/Factory.h"
@@ -27,16 +29,20 @@ private:
 
     AutoPtr<INeighbourFinder> collisionFinder;
 
+    AutoPtr<ICollisionHandler> collisionHandler;
+
 public:
     /// \brief Creates the solver, using the gravity implementation specified by settings.
     explicit NBodySolver(const RunSettings& settings)
-        : NBodySolver(settings, Factory::getGravity(settings)) {}
+        : NBodySolver(settings, makeAuto<BruteForceGravity>()) {       // Factory::getGravity(settings)) {
+        collisionHandler = makeAuto<ElasticBounceHandler>(1._f, 1._f); // PerfectMergingHandler>();
+    }
 
     /// \brief Creates the solver by passing the user-defined gravity implementation.
     NBodySolver(const RunSettings& settings, AutoPtr<IGravity>&& gravity)
         : gravity(std::move(gravity))
         , pool(settings.get<int>(RunSettingsId::RUN_THREAD_CNT))
-        , collisionFinder(Factory::getFinder(settings)) {}
+        , collisionFinder(makeAuto<BruteForceFinder>()) {} // Factory::getFinder(settings)) {}
 
     virtual void integrate(Storage& storage, Statistics& stats) override {
         gravity->build(storage);
@@ -59,8 +65,6 @@ public:
         ArrayView<Vector> r, v, a;
         tie(r, v, a) = storage.getAll<Vector>(QuantityId::POSITION);
 
-        ArrayView<Float> m = storage.getValue<Float>(QuantityId::MASS);
-
         // find the largest velocity, so that we know how far to search for potentional impactors
         /// \todo naive implementation, improve
         Float v_max = 0._f;
@@ -70,12 +74,12 @@ public:
         v_max = sqrt(v_max);
 
         collisionFinder->build(r);
+        collisionHandler->initialize(storage);
 
         Array<NeighbourRecord> neighs;
         for (Size i = 0; i < r.size();) {
-            // find each pair only once
-            collisionFinder->findNeighbours(
-                i, 2._f * (v_max * dt + r[i][H]), neighs, FinderFlags::FIND_ONLY_SMALLER_H);
+            /// \todo find only in from of the particle ?
+            collisionFinder->findNeighbours(i, 2._f * (v_max * dt + r[i][H]), neighs, EMPTY_FLAGS);
             bool didCollide = false;
             for (NeighbourRecord& n : neighs) {
                 const Size j = n.index;
@@ -97,33 +101,17 @@ public:
                         const Float t_coll = -dvdr / dv2 * root;
 
                         if (t_coll < dt) {
-                            // collision happens in this timestep, find the new positions of spheres
-                            const Vector r1 = r[i] + v[i] * t_coll;
-                            const Vector r2 = r[j] + v[j] * t_coll;
-                            /*ASSERT(almostEqual(getSqrLength(r1 - r2), r[i][H] + r[j][H]),
-                                getSqrLength(r1 - r2),
-                                r[i][H] + r[j][H]);*/
-
-                            // keep only the perpendicular component of the acceleration
-                            const Vector dir = getNormalized(r1 - r2);
-                            a[i] -= dot(a[i], dir) * dir; // check signs!
-                            a[j] += dot(a[j], dir) * dir;
-
-                            // replace i-th particle with the merger
-                            // conserve volume!
-                            const Float h_merger = Sph::root<3>(pow<3>(r[i][H]) + pow<3>(r[j][H]));
-                            const Float m_merger = m[i] + m[j];
-                            const Vector r_merger = (m[i] * r[i] + m[j] * r[j]) / m_merger;
-                            const Vector v_merger = (m[i] * v[i] + m[j] * v[j]) / m_merger;
-
-                            r[i] = r_merger;
-                            v[i] = v_merger;
-                            r[i][H] = h_merger;
-                            m[i] = m_merger;
-
-                            // remove the j-th particle
-                            storage.remove(Array<Size>{ j }, true);
-                            didCollide = true;
+                            r[i] += v[i] * t_coll;
+                            r[j] += v[j] * t_coll;
+                            didCollide = collisionHandler->collide(i, j, dt - t_coll);
+                            if (didCollide) {
+                                ASSERT(storage.isValid());
+                                break;
+                            } else {
+                                // revert the change??
+                                r[i] -= v[i] * t_coll;
+                                r[j] -= v[j] * t_coll;
+                            }
                         }
                     }
                 }
@@ -133,6 +121,10 @@ public:
                 // no collision, just advance positions
                 r[i] += v[i] * dt;
                 ++i;
+            } else {
+                // reset arrayviews
+                tie(r, v, a) = storage.getAll<Vector>(QuantityId::POSITION);
+                collisionFinder->build(r);
             }
         }
     }

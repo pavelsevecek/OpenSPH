@@ -205,11 +205,16 @@ void PredictorCorrector::stepImpl(ISolver& solver, Statistics& stats) {
 void LeapFrog::stepImpl(ISolver& solver, Statistics& stats) {
     // move positions by half a timestep (drift)
     iterate<VisitorEnum::SECOND_ORDER>(
-        *storage, [this](const QuantityId UNUSED(id), auto& v, auto& dv, auto& UNUSED(d2v)) {
+        *storage, [this](const QuantityId id, auto& v, auto& dv, auto& UNUSED(d2v)) {
+            if (id == QuantityId::POSITION) {
+                // skip positions, we are using collisions
+                return;
+            }
             for (Size i = 0; i < v.size(); ++i) {
                 v[i] += dv[i] * 0.5_f * this->dt;
             }
         });
+    solver.collide(*storage, stats, 0.5_f * this->dt);
 
     // compute the derivatives
     storage->zeroHighestDerivatives();
@@ -222,8 +227,13 @@ void LeapFrog::stepImpl(ISolver& solver, Statistics& stats) {
         }
     });
 
-    iterate<VisitorEnum::SECOND_ORDER>(
-        *storage, [this](const QuantityId UNUSED(id), auto& v, auto& dv, auto& d2v) {
+    iterate<VisitorEnum::SECOND_ORDER>(*storage, [this](const QuantityId id, auto& v, auto& dv, auto& d2v) {
+        if (id == QuantityId::POSITION) {
+            for (Size i = 0; i < v.size(); ++i) {
+                // move velocities by full timestep (kick)
+                dv[i] += d2v[i] * this->dt;
+            }
+        } else {
             for (Size i = 0; i < v.size(); ++i) {
                 // move velocities by full timestep (kick)
                 dv[i] += d2v[i] * this->dt;
@@ -231,7 +241,9 @@ void LeapFrog::stepImpl(ISolver& solver, Statistics& stats) {
                 // move positions by another half timestep (drift)
                 v[i] += dv[i] * 0.5_f * this->dt;
             }
-        });
+        }
+    });
+    solver.collide(*storage, stats, 0.5_f * this->dt);
 
     ASSERT(storage->isValid());
 }

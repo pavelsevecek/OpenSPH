@@ -89,7 +89,8 @@ public:
     /// \brief Changes the extension of the file.
     ///
     /// If the file has no extension, adds the given extension. For files with more than one extensions
-    /// (.tar.gz, etc.), removes all extensions and adds the new one.
+    /// (.tar.gz, etc.), removes all extensions and adds the new one. If the new extension is empty, it
+    /// behaves as removeExtension function.
     /// \return Reference to itself, allowing to chain function calls
     Path& replaceExtension(const std::string& newExtension);
 
@@ -134,6 +135,11 @@ public:
 
     /// \brief Checks if two objects represent different paths.
     bool operator!=(const Path& other) const;
+
+    /// \brief Does lexicographical comparison of two paths.
+    ///
+    /// Mainly needed for using Path in associative containers.
+    bool operator<(const Path& other) const;
 
     /// Prints the path into the stream
     friend std::ostream& operator<<(std::ostream& stream, const Path& path);

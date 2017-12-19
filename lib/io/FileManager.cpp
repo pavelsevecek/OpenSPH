@@ -13,20 +13,26 @@ public:
 };
 
 Path UniquePathManager::getPath(const Path& expected) {
-    if (std::find(usedPaths.begin(), usedPaths.end(), expected) == usedPaths.end()) {
-        usedPaths.push(expected);
+    auto iter = std::find(usedPaths.begin(), usedPaths.end(), expected);
+    if (iter == usedPaths.end()) {
+        usedPaths.insert(expected);
         return expected;
     } else {
+        std::stringstream ss;
+        // since std::set is sorted, we actually do not need to search the whole container for other paths
         for (Size i = 1; i < 999; ++i) {
             Path path = expected;
             path.removeExtension();
-            std::stringstream ss;
+            ss.str("");
             ss << std::setw(3) << std::setfill('0') << i;
             path = Path(path.native() + "_" + ss.str());
             path.replaceExtension(expected.extension().native());
 
-            if (std::find(usedPaths.begin(), usedPaths.end(), path) == usedPaths.end()) {
-                usedPaths.push(path);
+            // starting from i==2, the path are always consecutive, so we don't really have to find the path;
+            // the speed different is quite small, though
+            iter = std::find(iter, usedPaths.end(), path);
+            if (iter == usedPaths.end()) {
+                usedPaths.insert(path);
                 return path;
             }
         }

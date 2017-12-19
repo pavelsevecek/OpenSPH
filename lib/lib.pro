@@ -175,7 +175,6 @@ HEADERS += \
     objects/wrappers/SharedPtr.h \
     objects/wrappers/Variant.h \
     objects/wrappers/VectorizedArray.h \
-    physics/Analytic.h \
     physics/Constants.h \
     physics/Damage.h \
     physics/Eos.h \
@@ -270,4 +269,7 @@ HEADERS += \
     objects/wrappers/SafePtr.h \
     objects/wrappers/Locking.h \
     io/FileManager.h \
-    objects/utility/Dynamic.h
+    objects/utility/Dynamic.h \
+    gravity/Collision.h \
+    physics/Functions.h \
+    gravity/SphericalGravity.h

@@ -72,7 +72,7 @@ void AsteroidRotation::setUp() {
     storage = makeShared<Storage>();
 
     EquationHolder externalForces;
-    externalForces += makeTerm<SphericalGravity>(SphericalGravity::Options::ASSUME_HOMOGENEOUS);
+    // externalForces += makeTerm<SphericalGravity>(SphericalGravity::Options::ASSUME_HOMOGENEOUS);
     const Vector omega = 2._f * PI / (3600._f * period) * Vector(0, 1, 0);
     externalForces += makeTerm<InertialForce>(omega);
 

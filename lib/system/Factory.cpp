@@ -171,7 +171,8 @@ AutoPtr<IDistribution> Factory::getDistribution(const BodySettings& settings) {
     case DistributionEnum::CUBIC:
         return makeAuto<CubicPacking>();
     case DistributionEnum::RANDOM:
-        return makeAuto<RandomDistribution>();
+        /// \todo user-selected seed?
+        return makeAuto<RandomDistribution>(1234);
     case DistributionEnum::DIEHL_ET_AL:
         return makeAuto<DiehlDistribution>([](const Vector&) { return 1._f; });
     case DistributionEnum::LINEAR:

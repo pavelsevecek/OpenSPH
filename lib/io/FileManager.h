@@ -2,6 +2,7 @@
 
 #include "io/Path.h"
 #include "math/rng/Rng.h"
+#include <set>
 
 NAMESPACE_SPH_BEGIN
 
@@ -11,7 +12,7 @@ NAMESPACE_SPH_BEGIN
 /// paths are requested from given path, it throws an exception.
 class UniquePathManager : public Noncopyable {
 private:
-    Array<Path> usedPaths;
+    std::set<Path> usedPaths;
 
 public:
     /// \brief Generates a unique path, based on given input path.
@@ -19,8 +20,6 @@ public:
     /// The generated file may or may not exist on filesystem, the function only ensures it returns a
     /// different path every time. If more multiple manager objects are used, they may generate equal paths.
     /// The function is NOT thread safe, it has to be explicitly synchronized.
-    ///
-    /// \todo TESTS!
     Path getPath(const Path& expected);
 };
 
