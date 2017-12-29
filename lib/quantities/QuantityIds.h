@@ -105,6 +105,10 @@ enum class QuantityId {
     /// Moment of inertia of particles, analogy of particle masses for rotation
     MOMENT_OF_INERTIA,
 
+    /// Time for which the particles can move in current time step. Equal to the current drift timestep,
+    /// unless collision occurs, in which case the time is decreased to dt-t_coll.
+    MOVEMENT_TIME,
+
     ///@}
 
     /// \name Stress-strain analysis

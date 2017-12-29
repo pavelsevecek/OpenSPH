@@ -46,7 +46,7 @@ private:
     static EquationHolder getEquations(const RunSettings& settings) {
         EquationHolder equations;
         if (settings.get<bool>(RunSettingsId::MODEL_FORCE_PRESSURE_GRADIENT)) {
-            equations += makeTerm<PressureForce>(settings);
+            equations += makeTerm<PressureForce>();
         }
         if (settings.get<bool>(RunSettingsId::MODEL_FORCE_SOLID_STRESS)) {
             equations += makeTerm<SolidStressForce>(settings);

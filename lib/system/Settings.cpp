@@ -285,7 +285,7 @@ AutoPtr<RunSettings> RunSettings::instance (new RunSettings {
     { RunSettingsId::SPH_SMOOTHING_LENGTH_MIN,      "sph.smoothing_length.min", 1e-5_f },
     { RunSettingsId::SPH_FINDER,                    "sph.finder",               int(FinderEnum::UNIFORM_GRID) },
     { RunSettingsId::SPH_FINDER_COMPACT_THRESHOLD,  "sph.finder.compact_threshold", 0.5_f },
-    { RunSettingsId::SPH_CONSERVE_ANGULAR_MOMENTUM, "sph.angular_momentum_correction", false },
+    { RunSettingsId::SPH_STRAIN_RATE_CORRECTION_TENSOR, "sph.correction_tensor", false },
     { RunSettingsId::SPH_FORMULATION,               "sph.formulation",          int(FormulationEnum::STANDARD) },
     { RunSettingsId::SPH_PARTICLE_ROTATION,         "sph.particle_rotation",    false },
     { RunSettingsId::SPH_PHASE_ANGLE,               "sph.phase_angle",          false },
@@ -296,6 +296,10 @@ AutoPtr<RunSettings> RunSettings::instance (new RunSettings {
     { RunSettingsId::GRAVITY_LEAF_SIZE,             "gravity.leaf_size",        25 },
     { RunSettingsId::GRAVITY_MULTIPOLE_ORDER,       "gravity.multipole_order",  3 },
     { RunSettingsId::GRAVITY_KERNEL,                "gravity.kernel",           int(GravityKernelEnum::SPH_KERNEL) },
+
+    { RunSettingsId::COLLISION_RESTITUTION_NORMAL,  "collision.restitution_normal",     0.8_f },
+    { RunSettingsId::COLLISION_RESTITUTION_TANGENT, "collision.restitution_tangent",    1.0_f },
+    { RunSettingsId::COLLISION_ALLOWED_OVERLAP,     "collision.allowed_overlap",        1.e-4_f },
 
     /// Timestepping parameters
     { RunSettingsId::TIMESTEPPING_INTEGRATOR,       "timestep.integrator",      int(TimesteppingEnum::PREDICTOR_CORRECTOR) },

@@ -1,6 +1,7 @@
 #include "system/Factory.h"
 #include "gravity/BarnesHut.h"
 #include "gravity/BruteForceGravity.h"
+#include "gravity/SphericalGravity.h"
 #include "io/Logger.h"
 #include "math/rng/Rng.h"
 #include "objects/finders/BruteForceFinder.h"
@@ -212,6 +213,8 @@ AutoPtr<IGravity> Factory::getGravity(const RunSettings& settings) {
     }
 
     switch (id) {
+    case GravityEnum::SPHERICAL:
+        return makeAuto<SphericalGravity>();
     case GravityEnum::BRUTE_FORCE:
         return makeAuto<BruteForceGravity>(std::move(kernel));
     case GravityEnum::BARNES_HUT: {
@@ -220,8 +223,6 @@ AutoPtr<IGravity> Factory::getGravity(const RunSettings& settings) {
         const int leafSize = settings.get<int>(RunSettingsId::GRAVITY_LEAF_SIZE);
         return makeAuto<BarnesHut>(theta, order, std::move(kernel), leafSize);
     }
-    case GravityEnum::VOXEL:
-        NOT_IMPLEMENTED;
     default:
         NOT_IMPLEMENTED;
     }

@@ -83,76 +83,55 @@ public:
     }
 };
 
-namespace Detail {
-    template <typename Type, QuantityId Id, typename TCorrection, typename TDerived>
-    class VelocityTemplate : public DerivativeTemplate<VelocityTemplate<Type, Id, TCorrection, TDerived>> {
-    private:
-        ArrayView<const Float> rho, m;
-        ArrayView<const Vector> v;
-        ArrayView<Type> deriv;
-        TCorrection correction;
+template <typename Type, QuantityId Id, typename TDerived>
+class VelocityTemplate : public DerivativeTemplate<VelocityTemplate<Type, Id, TDerived>> {
+private:
+    ArrayView<const Float> rho, m;
+    ArrayView<const Vector> v;
+    ArrayView<Type> deriv;
 
-    public:
-        virtual void create(Accumulated& results) override {
-            results.insert<Type>(Id, OrderEnum::ZERO);
-        }
+public:
+    virtual void create(Accumulated& results) override {
+        results.insert<Type>(Id, OrderEnum::ZERO);
+    }
 
-        virtual void initialize(const Storage& input, Accumulated& results) override {
-            tie(rho, m) = input.getValues<Float>(QuantityId::DENSITY, QuantityId::MASS);
-            v = input.getDt<Vector>(QuantityId::POSITION);
-            deriv = results.getBuffer<Type>(Id, OrderEnum::ZERO);
+    virtual void initialize(const Storage& input, Accumulated& results) override {
+        tie(rho, m) = input.getValues<Float>(QuantityId::DENSITY, QuantityId::MASS);
+        v = input.getDt<Vector>(QuantityId::POSITION);
+        deriv = results.getBuffer<Type>(Id, OrderEnum::ZERO);
+    }
 
-            correction.initialize(input);
-        }
+    template <bool Symmetrize>
+    INLINE void eval(const Size i, ArrayView<const Size> neighs, ArrayView<const Vector> grads) {
+        ASSERT(neighs.size() == grads.size());
+        for (Size k = 0; k < neighs.size(); ++k) {
+            const Size j = neighs[k];
 
-        template <bool Symmetrize>
-        INLINE void eval(const Size i, ArrayView<const Size> neighs, ArrayView<const Vector> grads) {
-            ASSERT(neighs.size() == grads.size());
-            for (Size k = 0; k < neighs.size(); ++k) {
-                const Size j = neighs[k];
-
-                if (std::is_same<TCorrection, NoGradientCorrection>::value) {
-                    const auto dv = TDerived::func(v[j] - v[i], grads[k]);
-                    deriv[i] += m[j] / rho[j] * dv;
-                    if (Symmetrize) {
-                        deriv[j] += m[i] / rho[i] * dv;
-                    }
-                } else {
-                    deriv[i] += m[j] / rho[j] * TDerived::func(v[j] - v[i], correction(i, grads[k]));
-                    if (Symmetrize) {
-                        deriv[j] += m[i] / rho[i] * TDerived::func(v[j] - v[i], correction(j, grads[k]));
-                    }
-                }
+            const auto dv = TDerived::func(v[j] - v[i], grads[k]);
+            deriv[i] += m[j] / rho[j] * dv;
+            if (Symmetrize) {
+                deriv[j] += m[i] / rho[i] * dv;
             }
         }
-    };
-}
+    }
+};
 
-template <typename TCorrection>
-struct VelocityDivergence : public Detail::VelocityTemplate<Float,
-                                QuantityId::VELOCITY_DIVERGENCE,
-                                TCorrection,
-                                VelocityDivergence<TCorrection>> {
+
+struct VelocityDivergence
+    : public VelocityTemplate<Float, QuantityId::VELOCITY_DIVERGENCE, VelocityDivergence> {
     INLINE static Float func(const Vector& dv, const Vector& grad) {
         return dot(dv, grad);
     }
 };
 
-template <typename TCorrection>
-struct VelocityGradient : public Detail::VelocityTemplate<SymmetricTensor,
-                              QuantityId::VELOCITY_GRADIENT,
-                              TCorrection,
-                              VelocityGradient<TCorrection>> {
+struct VelocityGradient
+    : public VelocityTemplate<SymmetricTensor, QuantityId::VELOCITY_GRADIENT, VelocityGradient> {
     INLINE static SymmetricTensor func(const Vector& dv, const Vector& grad) {
         return outer(dv, grad);
     }
 };
 
-template <typename TCorrection>
-struct VelocityRotation : public Detail::VelocityTemplate<Vector,
-                              QuantityId::VELOCITY_ROTATION,
-                              TCorrection,
-                              VelocityRotation<TCorrection>> {
+struct VelocityRotation : public VelocityTemplate<Vector, QuantityId::VELOCITY_ROTATION, VelocityRotation> {
     INLINE static Vector func(const Vector& dv, const Vector& grad) {
         return cross(dv, grad);
     }

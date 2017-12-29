@@ -152,7 +152,7 @@ protected:
                 // Find all neighbours within kernel support. Since we are only searching for particles with
                 // smaller h, we know that symmetrized lengths (h_i + h_j)/2 will be ALWAYS smaller or equal
                 // to h_i, and we thus never "miss" a particle.
-                const FinderFlags flags = FinderFlags::FIND_ONLY_SMALLER_H;
+                const FinderFlag flags = FinderFlag::FIND_ONLY_SMALLER_H;
                 finder->findNeighbours(i, r[i][H] * kernel.radius(), data.neighs, flags);
                 data.grads.clear();
                 data.idxs.clear();

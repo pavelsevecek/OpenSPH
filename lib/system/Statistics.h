@@ -76,7 +76,7 @@ public:
     template <typename TValue>
     TValue get(const StatisticsId idx) const {
         auto iter = entries.find(idx);
-        ASSERT(iter != entries.end());
+        ASSERT(iter != entries.end(), int(idx));
         using StoreType = ConvertToSize<TValue>;
         const StoreType& value = iter->second.template get<StoreType>();
         return TValue(value);

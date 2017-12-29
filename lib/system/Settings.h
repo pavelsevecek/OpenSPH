@@ -208,7 +208,14 @@ enum class KernelEnum {
     GAUSSIAN,
 
     /// Core Triangle (CT) kernel by Read et al. (2010)
-    CORE_TRIANGLE
+    CORE_TRIANGLE,
+
+    /// Wendland kernels
+    WENDLAND_C2,
+
+    WENDLAND_C4,
+
+    WENDLAND_C6,
 };
 
 enum class TimesteppingEnum {
@@ -371,14 +378,14 @@ enum class SmoothingLengthEnum {
 };
 
 enum class GravityEnum {
+    /// Approximated gravity, assuming the matter is a simple homogeneous sphere.
+    SPHERICAL,
+
     /// Brute-force summation over all particle pairs (O(N^2) complexity)
     BRUTE_FORCE,
 
     /// Use Barnes-Hut algorithm, approximating gravity by multipole expansion (up to octupole order)
     BARNES_HUT,
-
-    /// Barnes-Hut, uses spatial grid instead of K-d tree
-    VOXEL,
 };
 
 enum class GravityKernelEnum {
@@ -506,10 +513,11 @@ enum class RunSettingsId {
 
     SPH_FORMULATION,
 
-    /// If true, the kernel gradient will be corrected for each particle to improve conservation of total
-    /// angular momentum. This comes at the cost of higher memory consumption and slower evaluation of SPH
-    /// derivatives.
-    SPH_CONSERVE_ANGULAR_MOMENTUM,
+    /// If true, the kernel gradient for evaluation of strain rate will be corrected for each particle by an
+    /// inversion of an SPH-discretized identity matrix. This generally improves stability of the run and
+    /// conservation of total angular momentum, but comes at the cost of higher memory consumption and slower
+    /// evaluation of SPH derivatives.
+    SPH_STRAIN_RATE_CORRECTION_TENSOR,
 
     /// Add equations evolving particle angular velocity
     SPH_PARTICLE_ROTATION,
@@ -552,6 +560,12 @@ enum class RunSettingsId {
 
     /// Gravity smoothing kernel
     GRAVITY_KERNEL,
+
+    COLLISION_RESTITUTION_NORMAL,
+
+    COLLISION_RESTITUTION_TANGENT,
+
+    COLLISION_ALLOWED_OVERLAP,
 
     /// Use force from pressure gradient in the model
     MODEL_FORCE_PRESSURE_GRADIENT,

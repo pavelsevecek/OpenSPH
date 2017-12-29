@@ -33,7 +33,7 @@ TEST_CASE("StressAV test", "[av]") {
 
     // solver with some basic forces and artificial stress
     EquationHolder eqs;
-    eqs += makeTerm<PressureForce>(settings) + makeTerm<SolidStressForce>(settings) +
+    eqs += makeTerm<PressureForce>() + makeTerm<SolidStressForce>(settings) +
            makeTerm<ContinuityEquation>(settings) + makeTerm<StressAV>(settings) +
            makeTerm<ConstSmoothingLength>();
     GenericSolver solver(settings, std::move(eqs));

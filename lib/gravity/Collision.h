@@ -10,6 +10,14 @@
 
 NAMESPACE_SPH_BEGIN
 
+enum class CollisionResult {
+    NONE,          ///< No collision took place
+    BOUNCE,        ///< Bounce/scatter collision, no merging and no fragmentation
+    FRAGMENTATION, ///< Target was disrupted, creating largest remnant and fragments
+    MERGER,        ///< Particles merged together
+    EVAPORATION,   ///< No asteroids survived the collision
+};
+
 /// \brief Abstraction of collision outcome.
 ///
 /// Collision can arbitrarily change the number of particles in the storage. It can one or both colliding
@@ -26,9 +34,13 @@ public:
     /// and that the storage object passed to \ref initialize is valid, so it is allowed (and recommended) to
     /// storage a pointer to the storage.
     /// \param i,j Indices of particles in the storage.
-    /// \param t Remaining time of the step (after the collision)
+    /// \param toRemove Indices of particles to be removed from the storage.
     /// \return True if the collision took place, false to reject the collision.
-    virtual bool collide(const Size i, const Size j, const Float t) = 0;
+    ///
+    /// \todo Needs to be generatelized for fragmentation handlers. Currently the function CANNOT change the
+    /// number of particles as it would invalidate arrayviews and we would lost the track of i-th and j-th
+    /// particle (which we need for decreasing movement time).
+    virtual CollisionResult collide(const Size i, const Size j, Array<Size>& toRemove) = 0;
 };
 
 /// \brief Helper class, similar to ArrayView, but actually holding a reference to the array itself.
@@ -72,6 +84,16 @@ public:
     }
 };
 
+/// \brief Helper function sorting two values
+template <typename T>
+Tuple<T, T> minMax(const T& t1, const T& t2) {
+    if (t1 < t2) {
+        return { t1, t2 };
+    } else {
+        return { t2, t1 };
+    }
+}
+
 class PerfectMergingHandler : public ICollisionHandler {
 private:
     RawPtr<Storage> storage;
@@ -88,7 +110,7 @@ public:
         m = storage.getValue<Float>(QuantityId::MASS);
     }
 
-    virtual bool collide(const Size i, const Size j, const Float t_rest) override {
+    virtual CollisionResult collide(const Size i, const Size j, Array<Size>& toRemove) override {
         // set radius of the merger to conserve volume
         const Float h_merger = root<3>(pow<3>(r[i][H]) + pow<3>(r[j][H]));
         const Float m_merger = m[i] + m[j];
@@ -96,14 +118,19 @@ public:
         const Vector r_merger = weightedAverage(r[i], m[i], r[j], m[j]);
         const Vector v_merger = weightedAverage(v[i], m[i], v[j], m[j]);
 
-        v[i] = v_merger;
-        r[i] = r_merger + v[i] * t_rest;
-        r[i][H] = h_merger;
-        m[i] = m_merger;
+        Size lowerIdx, upperIdx;
+        tieToTuple(lowerIdx, upperIdx) = minMax(i, j);
 
-        // remove the j-th particle
-        storage->remove(Array<Size>{ j }, true);
-        return true;
+        // modify the particle with higher idx in place, so it gets processed again
+        /// \todo not really a good design, the collision handler should not depend on the callsite ...
+        r[upperIdx] = r_merger;
+        v[upperIdx] = v_merger;
+        r[upperIdx][H] = h_merger;
+        m[upperIdx] = m_merger;
+
+        // remove the particle with lower idx
+        toRemove.push(lowerIdx);
+        return CollisionResult::MERGER;
     }
 
 private:
@@ -116,7 +143,7 @@ private:
 
 class ElasticBounceHandler : public ICollisionHandler {
 private:
-    ArrayRef<Vector> r, v;
+    ArrayRef<Vector> r, v, dv;
     ArrayRef<Float> m;
 
     /// Coefficients of restitution
@@ -126,6 +153,7 @@ private:
 
         /// Tangential
         Float t;
+
     } restitution;
 
 public:
@@ -133,31 +161,29 @@ public:
         : restitution{ n, t } {}
 
     virtual void initialize(Storage& storage) override {
-        ArrayRef<Vector> dv;
         tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
-
         m = storage.getValue<Float>(QuantityId::MASS);
     }
 
-    virtual bool collide(const Size i, const Size j, const Float t_rest) override {
+    virtual CollisionResult collide(const Size i, const Size j, Array<Size>& UNUSED(toRemove)) override {
         const Vector dr = getNormalized(r[i] - r[j]);
-        v[i] = this->reflect(v[i], -dr);
-        v[j] = this->reflect(v[j], dr);
+        const Vector v_com = (m[i] * v[i] + m[j] * v[j]) / (m[i] + m[j]);
+        v[i] = this->reflect(v[i], v_com, -dr);
+        v[j] = this->reflect(v[j], v_com, dr);
 
-        r[i] += v[i] * t_rest;
-        r[j] += v[j] * t_rest;
-        return true;
+        return CollisionResult::BOUNCE;
     }
 
 private:
-    INLINE Vector reflect(const Vector& v, const Vector& dir) {
+    INLINE Vector reflect(const Vector& v, const Vector& v_com, const Vector& dir) {
         ASSERT(almostEqual(getSqrLength(dir), 1._f), dir);
-        const Float proj = dot(v, dir);
-        const Vector v_t = v - proj * dir;
+        const Vector v_rel = v - v_com;
+        const Float proj = dot(v_rel, dir);
+        const Vector v_t = v_rel - proj * dir;
         const Vector v_n = proj * dir;
 
         // flip the orientation of normal component (bounce) and apply coefficients of restitution
-        return restitution.t * v_t - restitution.n * v_n;
+        return restitution.t * v_t - restitution.n * v_n + v_com;
     }
 };
 
@@ -166,12 +192,12 @@ class FragmentationHandler : public ICollisionHandler {
 public:
     // ParametricRelations, directionality of fragments
 
-    virtual bool collide(const Size i, const Size j, const Float t) override {
+    virtual CollisionResult collide(const Size i, const Size j, Array<Size>& UNUSED(toRemove)) override {
         (void)i;
         (void)j;
-        (void)t;
         /// \todo
-        return true;
+        TODO("needs to modify the remaining movement time of fragments");
+        return CollisionResult::FRAGMENTATION;
     }
 };
 
@@ -204,7 +230,7 @@ public:
         m = storage.getValue<Float>(QuantityId::MASS);
     }
 
-    virtual bool collide(const Size i, const Size j, const Float t_rest) override {
+    virtual CollisionResult collide(const Size i, const Size j, Array<Size>& toRemove) override {
         const Float dv2 = getSqrLength(v[i] - v[j]);
         // determine the target and the impactor
         Float M_targ, m_imp, D_targ;
@@ -221,9 +247,9 @@ public:
         /// \todo generalize energy
         const Float Q_D = evalBenzAsphaugScalingLaw(D_targ, 2700._f);
         if (Q / Q_D > thresholdSqr) {
-            return fast->collide(i, j, t_rest);
+            return fast->collide(i, j, toRemove);
         } else {
-            return slow->collide(i, j, t_rest);
+            return slow->collide(i, j, toRemove);
         }
     }
 };

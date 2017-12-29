@@ -27,6 +27,12 @@ struct PlotPoint : public OperatorTemplate<PlotPoint> {
         return *this;
     }
 
+    PlotPoint& operator*=(const Float value) {
+        x *= value;
+        y *= value;
+        return *this;
+    }
+
     bool operator==(const PlotPoint& other) const {
         return x == other.x && y == other.y;
     }

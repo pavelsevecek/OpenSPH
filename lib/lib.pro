@@ -91,7 +91,8 @@ SOURCES += \
     objects/finders/DynamicFinder.cpp \
     objects/containers/String.cpp \
     objects/finders/UniformGrid.cpp \
-    io/FileManager.cpp
+    io/FileManager.cpp \
+    post/StatisticTests.cpp
 
 HEADERS += \
     common/Assert.h \
@@ -272,4 +273,5 @@ HEADERS += \
     objects/utility/Dynamic.h \
     gravity/Collision.h \
     physics/Functions.h \
-    gravity/SphericalGravity.h
+    gravity/SphericalGravity.h \
+    post/StatisticTests.h

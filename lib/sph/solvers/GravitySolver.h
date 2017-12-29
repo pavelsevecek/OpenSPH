@@ -5,14 +5,14 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2017
 
-#include "gravity/IGravity.h"
+#include "gravity/SphericalGravity.h"
 #include "sph/equations/Potentials.h"
 #include "sph/kernel/KernelFactory.h"
 #include "sph/solvers/GenericSolver.h"
 
 NAMESPACE_SPH_BEGIN
 
-/// \brief Gravity solver
+/// \brief Extension of the generic SPH solver, including gravitational interactions of particles.
 class GravitySolver : public GenericSolver {
 private:
     /// Implementation of gravity used by the solver
@@ -56,6 +56,15 @@ protected:
 
         // second, compute SPH derivatives using symmetric evaluation
         MEASURE("Evaluating SPH", GenericSolver::loop(storage, stats));
+    }
+
+    void sanityCheck() const {
+        // check that we don't solve gravity twice
+        /// \todo generalize for ALL solvers of gravity (some categories?)
+        if (equations.contains<SphericalGravityEquation>()) {
+            throw InvalidSetup(
+                "Cannot use SphericalGravity in GravitySolver; only one solver of gravity is allowed");
+        }
     }
 };
 

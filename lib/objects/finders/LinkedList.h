@@ -63,7 +63,7 @@ public:
     virtual Size findNeighbours(const Size index,
         const Float radius,
         Array<NeighbourRecord>& neighbours,
-        Flags<FinderFlags> flags = EMPTY_FLAGS,
+        Flags<FinderFlag> flags = EMPTY_FLAGS,
         const Float UNUSED(error) = 0.f) const override {
         neighbours.clear();
         const Float cellCntSqrInv = 1._f / sqr(cellCnt);
@@ -84,7 +84,7 @@ public:
         lower = max(lower, Indices(0));
         upper = min(upper, Indices(upperBounds.size() - 1));
         const Size refRankH =
-            flags.has(FinderFlags::FIND_ONLY_SMALLER_H) ? rank[index][H] : this->values.size();
+            flags.has(FinderFlag::FIND_ONLY_SMALLER_H) ? rank[index][H] : this->values.size();
         for (int x = lower[X]; x <= upper[X]; ++x) {
             for (int y = lower[Y]; y <= upper[Y]; ++y) {
                 for (int z = lower[Z]; z <= upper[Z]; ++z) {

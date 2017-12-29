@@ -21,17 +21,19 @@ public:
     /// \brief Evaluates the gravitational acceleration for all particles in the storage.
     ///
     /// The implementation must be either single-threaded or parallelize the computation internally,
-    /// possibly using global ThreadPoolinstance.
-    /// \param dv Acceleration values, my contain previous values, gravity should add acceleration
+    /// possibly using global ThreadPool instance.
+    /// \param dv Acceleration values, may contain previous values, gravity should add acceleration
     ///           instead of replacing the previous values with new one.
-    /// \param stats Statistics of the gravitational solver.
+    /// \param stats Output statistics of the gravitational solver.
     virtual void evalAll(ArrayView<Vector> dv, Statistics& stats) const = 0;
 
-    /// Evaluates the gravitational acceleration concurrently.
+    /// \brief Evaluates the gravitational acceleration concurrently.
+    ///
+    /// The function is blocking, it must exit after the gravity is evaluated.
     /// \param scheduler Scheduler used for parallelization
     /// \param dv Acceleration values, my contain previous values, gravity should add acceleration
     ///           instead of replacing the previous values with new one.
-    /// \param stats Statistics of the gravitational solver.
+    /// \param stats Output statistics of the gravitational solver.
     virtual void evalAll(IScheduler& scheduler, ArrayView<Vector> dv, Statistics& stats) const = 0;
 
     /// \brief Evaluates the gravitational acceleration at given point.

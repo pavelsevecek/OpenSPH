@@ -4,6 +4,7 @@
 #include "io/Path.h"
 #include "objects/utility/StringUtils.h"
 #include "post/Analysis.h"
+#include "post/StatisticTests.h"
 #include "quantities/Storage.h"
 #include "run/Collision.h"
 #include "system/Process.h"
@@ -220,33 +221,66 @@ static Optional<HarrisAsteroid> findInHarris(const FamilyAsteroid& ast1,
     }
 }
 
-static void printDvsOmega(const Path& familyData,
+static Optional<Post::KsResult> printDvsOmega(const Path& familyData,
     const Path& outputPath,
-    ArrayView<const HarrisAsteroid> catalog) {
+    ArrayView<const HarrisAsteroid> catalog,
+    Array<PlotPoint>& outPoints) {
+
     std::ifstream ifs(familyData.native());
     ASSERT(ifs);
     Array<FamilyAsteroid> family = loadFamilies(ifs);
     Array<HarrisAsteroid> found;
+    Interval rangePeriod;
+    Interval rangeR;
     for (FamilyAsteroid& famAst : family) {
         if (auto harAst = findInHarris(famAst, catalog)) {
             found.push(harAst.value());
+            rangePeriod.extend(harAst->period.value());
+            rangeR.extend(harAst->radius.value());
         }
+    }
+    if (found.size() < 4) {
+        // too few data to do any statistics
+        return NOTHING;
     }
 
     FileSystem::createDirectory(outputPath.parentPath());
     std::ofstream ofs(outputPath.native());
     ASSERT(ofs);
 
-    auto largestRemnant = std::max_element(found.begin(),
-        found.end(),
-        [](HarrisAsteroid& ast1, HarrisAsteroid& ast2) { return ast1.radius.value() < ast2.radius.value(); });
+    auto compare = [](HarrisAsteroid& ast1, HarrisAsteroid& ast2) {
+        return ast1.radius.value() < ast2.radius.value();
+    };
+    Iterator<HarrisAsteroid> largestRemnant = std::max_element(found.begin(), found.end(), compare);
 
+    auto periodToOmega = [](const Float P) { return 1._f / (P / 24._f); };
+
+    Array<PlotPoint> points;
     for (HarrisAsteroid& ast : found) {
+        const Float omega = periodToOmega(ast.period.value());
         if (&ast != &*largestRemnant) {
-            ofs << ast.name << "  " << ast.radius.value() << "  " << 1._f / (ast.period.value() / 24._f)
-                << std::endl;
+            ofs << ast.radius.value() << "  " << omega << std::endl;
         }
+        points.push(PlotPoint(ast.radius.value(), omega));
     }
+    Interval rangeOmega;
+    rangeOmega.extend(periodToOmega(rangePeriod.lower()));
+    rangeOmega.extend(periodToOmega(rangePeriod.upper()));
+
+    Post::KsFunction uniformCdf = Post::getUniformKsFunction(rangeR, rangeOmega);
+    Post::KsResult result = Post::kolmogorovSmirnovTest(points, uniformCdf);
+
+    outPoints = std::move(points);
+    return result;
+}
+
+static std::string elliptize(const std::string& s, const Size maxSize) {
+    ASSERT(maxSize >= 5);
+    if (s.size() < maxSize) {
+        return s;
+    }
+    const Size cutSize = (maxSize - 3) / 2;
+    return s.substr(0, cutSize) + "..." + s.substr(s.size() - cutSize);
 }
 
 void processHarrisFile() {
@@ -255,13 +289,20 @@ void processHarrisFile() {
     Array<HarrisAsteroid> harris = loadHarris(ifs);
     ifs.close();
 
-    printDvsOmega(Path("/home/pavel/projects/astro/asteroids/families.txt"), Path("LR_D_omega.txt"), harris);
+    Array<PlotPoint> points;
+    printDvsOmega(
+        Path("/home/pavel/projects/astro/asteroids/families.txt"), Path("LR_D_omega.txt"), harris, points);
 
     const Path parentPath("/home/pavel/projects/astro/asteroids/families");
     Array<Path> paths = FileSystem::getFilesInDirectory(parentPath);
     std::mutex printMutex;
     std::mutex plotMutex;
     UniquePathManager uniquePaths;
+    std::ofstream kss("KS.txt");
+    kss << "# name                             D_ks           probability" << std::endl;
+
+    std::ofstream alls("D_omega_all.txt");
+
     parallelFor(ThreadPool::getGlobalInstance(), 0, paths.size(), [&](const Size index) {
         {
             std::unique_lock<std::mutex> lock(printMutex);
@@ -269,12 +310,22 @@ void processHarrisFile() {
         }
         const Path name = paths[index].fileName();
         const Path targetPath = Path("D_omega") / Path(name.native() + ".txt");
-        printDvsOmega(parentPath / paths[index], targetPath, harris);
+        const Path ksPath = Path("KS") / Path(name.native() + ".txt");
+        Array<PlotPoint> points;
+        Optional<Post::KsResult> ks = printDvsOmega(parentPath / paths[index], targetPath, harris, points);
 
         std::unique_lock<std::mutex> lock(plotMutex);
-        if (FileSystem::fileSize(targetPath) == 0) {
+        if (!FileSystem::pathExists(targetPath) || FileSystem::fileSize(targetPath) == 0) {
             return;
         }
+        if (ks) {
+            kss << std::left << std::setw(35) << elliptize(Path(name).removeExtension().native(), 30)
+                << std::setw(15) << ks->D << std::setw(15) << ks->prob << std::endl;
+        }
+        for (PlotPoint p : points) {
+            alls << p.x << "  " << p.y << "  " << index << std::endl;
+        }
+
         FileSystem::copyFile(targetPath, Path("family.txt"));
         // make plot
         Process gnuplot(Path("/bin/gnuplot"), { "doplot.plt" });
@@ -282,6 +333,10 @@ void processHarrisFile() {
         ASSERT(FileSystem::pathExists(Path("plot.png")));
         FileSystem::copyFile(Path("plot.png"), uniquePaths.getPath(Path(targetPath).replaceExtension("png")));
     });
+
+    FileSystem::copyFile(Path("D_omega_all.txt"), Path("family.txt"));
+    Process gnuplot(Path("/bin/gnuplot"), { "doplot_all.plt" });
+    gnuplot.wait();
 }
 
 void printHelp() {

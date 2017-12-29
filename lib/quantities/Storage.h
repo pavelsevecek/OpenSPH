@@ -416,13 +416,16 @@ public:
     /// Returns the sequence of quantities, const version.
     ConstStorageSequence getQuantities() const;
 
-    /// Executes a given functor recursively for all dependent storages.
+    /// \brief Executes a given functor recursively for all dependent storages.
     ///
-    /// This storage is executed first, followed by the direct dependents, etc.
+    /// This storage is not visited, the functor is executed with child storages, grandchild storages, etc. If
+    /// one of dependent storages expired (no shared pointer is currently holding it), it is removed from the
+    /// list.
     void propagate(const Function<void(Storage& storage)>& functor);
 
-    /// Return the number of materials in the storage. Material indices from 0 to (getMaterialCnt() - 1) are
-    /// valid input for \ref getMaterialView function.
+    /// \brief Return the number of materials in the storage.
+    ///
+    /// Material indices from 0 to (getMaterialCnt() - 1) are valid input for \ref getMaterialView function.
     Size getMaterialCnt() const;
 
     /// Returns the number of stored quantities.
@@ -457,18 +460,16 @@ public:
     /// move the created particles to required positions and modify their quantities as needed. The function
     /// can be used to add new particles with materials already existing in the storage.
     /// \param idxs Indices of the particles to duplicate.
-    /// \param propagete If true, particles with given indices are also duplicated in all dependent storages.
     /// \return Indices of the newly created particles (in the modified storage). Note that the original
     ///         indices passed into the storage are no longer valid after the function is called.
-    Array<Size> duplicate(ArrayView<const Size> idxs, const bool propagate);
+    Array<Size> duplicate(ArrayView<const Size> idxs);
 
     /// \brief Removes specified particles from the storage.
     ///
     /// If all particles of some material are removed by this, the material is also removed from the storage.
     /// Same particles are also removed from all dependent storages.
     /// \param idsx Indices of particles to remove. No need to sort the indices.
-    /// \param propagate If true, particles with given indices are also removed from all dependent storages.
-    void remove(ArrayView<const Size> idxs, const bool propagate);
+    void remove(ArrayView<const Size> idxs);
 
     /// \brief Removes all particles with all quantities (including materials) from the storage.
     ///

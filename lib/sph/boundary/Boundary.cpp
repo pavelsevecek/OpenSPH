@@ -88,7 +88,7 @@ void GhostParticles::finalize(Storage& storage) {
         "GhostParticles");
 
     // remove ghosts by indices
-    storage.remove(ghostIdxs, false);
+    storage.remove(ghostIdxs);
     ghostIdxs.clear();
     ghosts.clear();
 }

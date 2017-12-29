@@ -29,13 +29,13 @@ public:
     virtual Size findNeighbours(const Size index,
         const Float radius,
         Array<NeighbourRecord>& neighbours,
-        Flags<FinderFlags> flags = EMPTY_FLAGS,
+        Flags<FinderFlag> flags = EMPTY_FLAGS,
         const Float error = 0._f) const override;
 
     virtual Size findNeighbours(const Vector& position,
         const Float radius,
         Array<NeighbourRecord>& neighbours,
-        Flags<FinderFlags> flags = EMPTY_FLAGS,
+        Flags<FinderFlag> flags = EMPTY_FLAGS,
         const Float error = 0._f) const override;
 
     /// \brief Replaces the current finder with the most suitable one.

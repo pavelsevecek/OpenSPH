@@ -322,10 +322,10 @@ Size KdTree::findNeighboursImpl(const Vector& r0,
 Size KdTree::findNeighbours(const Size index,
     const Float radius,
     Array<NeighbourRecord>& neighbours,
-    Flags<FinderFlags> flags,
+    Flags<FinderFlag> flags,
     const Float UNUSED(error)) const {
     neighbours.clear();
-    const Size refRank = (flags.has(FinderFlags::FIND_ONLY_SMALLER_H)) ? rankH[index] : values.size();
+    const Size refRank = (flags.has(FinderFlag::FIND_ONLY_SMALLER_H)) ? rankH[index] : values.size();
 
     const Vector& r0 = values[index];
     return this->findNeighboursImpl(r0, radius, refRank, neighbours);
@@ -334,7 +334,7 @@ Size KdTree::findNeighbours(const Size index,
 Size KdTree::findNeighbours(const Vector& position,
     const Float radius,
     Array<NeighbourRecord>& neighbours,
-    Flags<FinderFlags> UNUSED(flags),
+    Flags<FinderFlag> UNUSED(flags),
     const Float UNUSED(error)) const {
     neighbours.clear();
     if (SPH_UNLIKELY(values.empty())) {

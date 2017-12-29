@@ -64,10 +64,29 @@ INLINE Float evalBenzAsphaugScalingLaw(const Float D, const Float rho) {
 class CollisionMC {
 private:
     UniformRng rng;
-    Float M_tot;
 
 public:
-    Float M_LR(const Float QoverQ_D) {
+    Array<Float> operator()(const Float QoverQ_D, const Float M_tot, const Float m_min) {
+        const Float largest = max(M_LR(QoverQ_D, M_tot), M_LF(QoverQ_D, M_tot));
+        const Float exponent = q(QoverQ_D) + 1._f;
+
+        /// \todo
+        Array<Float> fragments;
+        fragments.push(largest);
+        Float m_partial = largest;
+        while (M_tot - m_partial > m_min) {
+            const Float m = pow(rng(), 1._f / exponent) - m_min; /// \todo fix
+            if (m + m_partial > M_tot) {
+                continue;
+            }
+            fragments.push(m);
+            m_partial += m;
+        }
+        return fragments;
+    }
+
+private:
+    Float M_LR(const Float QoverQ_D, const Float M_tot) {
         if (QoverQ_D < 1._f) {
             return (-0.5_f * (QoverQ_D - 1._f) + 0.5_f) * M_tot;
         } else {
@@ -75,7 +94,7 @@ public:
         }
     }
 
-    Float M_LF(const Float QoverQ_D) {
+    Float M_LF(const Float QoverQ_D, const Float M_tot) {
         return 8.e-3_f * (QoverQ_D * exp(-sqr(0.25_f * QoverQ_D))) * M_tot;
     }
 

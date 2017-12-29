@@ -23,7 +23,7 @@ void DynamicFinder::rebuildImpl(ArrayView<const Vector> points) {
 Size DynamicFinder::findNeighbours(const Size index,
     const Float radius,
     Array<NeighbourRecord>& neighbours,
-    Flags<FinderFlags> flags,
+    Flags<FinderFlag> flags,
     const Float error) const {
     return actual->findNeighbours(index, radius, neighbours, flags, error);
 }
@@ -31,7 +31,7 @@ Size DynamicFinder::findNeighbours(const Size index,
 Size DynamicFinder::findNeighbours(const Vector& position,
     const Float radius,
     Array<NeighbourRecord>& neighbours,
-    Flags<FinderFlags> flags,
+    Flags<FinderFlag> flags,
     const Float error) const {
     return actual->findNeighbours(position, radius, neighbours, flags, error);
 }

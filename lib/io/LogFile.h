@@ -62,7 +62,10 @@ public:
         }
         const Float dt = stats.get<Float>(StatisticsId::TIMESTEP_VALUE);
         logger->write(" - timestep: dt = ", dt, " (set by ", ss.str(), ")");
-        logger->write(" - neigbours: ", stats.get<MinMaxMean>(StatisticsId::NEIGHBOUR_COUNT));
+
+        if (stats.has(StatisticsId::NEIGHBOUR_COUNT)) {
+            logger->write(" - neigbours: ", stats.get<MinMaxMean>(StatisticsId::NEIGHBOUR_COUNT));
+        }
         logger->write(" - time spent: ", stats.get<int>(StatisticsId::TIMESTEP_ELAPSED), "ms");
 
         // Solver-specific stats

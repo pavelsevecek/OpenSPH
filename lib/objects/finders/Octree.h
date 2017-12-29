@@ -59,13 +59,13 @@ public:
     virtual Size findNeighbours(const Size index,
         const Float radius,
         Array<NeighbourRecord>& neighbours,
-        Flags<FinderFlags> flags = EMPTY_FLAGS,
+        Flags<FinderFlag> flags = EMPTY_FLAGS,
         const Float UNUSED(error) = 0._f) const override {
         PROFILE_SCOPE("Octree::findNeighbours");
         neighbours.clear();
         ASSERT(root);
         const Size refRank =
-            (flags.has(FinderFlags::FIND_ONLY_SMALLER_H)) ? this->rankH[index] : this->values.size();
+            (flags.has(FinderFlag::FIND_ONLY_SMALLER_H)) ? this->rankH[index] : this->values.size();
         findNeighboursInNode(*root, index, radius, neighbours, refRank);
         return neighbours.size();
     }
@@ -73,7 +73,7 @@ public:
     virtual Size findNeighbours(const Vector& UNUSED(position),
         const Float radius,
         Array<NeighbourRecord>& neighbours,
-        Flags<FinderFlags> UNUSED(flags) = EMPTY_FLAGS,
+        Flags<FinderFlag> UNUSED(flags) = EMPTY_FLAGS,
         const Float UNUSED(error) = 0._f) const override {
         PROFILE_SCOPE("Octree::findNeighbours");
         neighbours.clear();

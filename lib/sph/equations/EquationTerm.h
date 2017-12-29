@@ -112,23 +112,10 @@ static void requireVariant(DerivativeHolder& derivatives, const RunSettings& set
 /// Computes acceleration from pressure gradient and corresponding derivative of internal energy.
 /// \todo
 class PressureForce : public IEquationTerm {
-private:
-    bool conserveAngularMomentum;
-
 public:
-    explicit PressureForce(const RunSettings& settings) {
-        conserveAngularMomentum = settings.get<bool>(RunSettingsId::SPH_CONSERVE_ANGULAR_MOMENTUM);
-    }
-
     virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override {
         requireVariant<PressureGradient>(derivatives, settings);
-
-        if (conserveAngularMomentum) {
-            derivatives.require<VelocityDivergence<AngularMomentumCorrection>>(settings);
-            derivatives.require<AngularMomentumCorrectionTensor>(settings);
-        } else {
-            derivatives.require<VelocityDivergence<NoGradientCorrection>>(settings);
-        }
+        derivatives.require<VelocityDivergence>(settings);
     }
 
     virtual void initialize(Storage& UNUSED(storage)) override {}
@@ -237,17 +224,17 @@ public:
 /// together with this equation.
 class SolidStressForce : public IEquationTerm {
 private:
-    bool conserveAngularMomentum;
+    bool useCorrectionTensor;
 
 public:
     explicit SolidStressForce(const RunSettings& settings) {
-        conserveAngularMomentum = settings.get<bool>(RunSettingsId::SPH_CONSERVE_ANGULAR_MOMENTUM);
+        useCorrectionTensor = settings.get<bool>(RunSettingsId::SPH_STRAIN_RATE_CORRECTION_TENSOR);
     }
 
     virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override {
         requireVariant<StressDivergence>(derivatives, settings);
 
-        if (conserveAngularMomentum) {
+        if (useCorrectionTensor) {
             derivatives.require<StrengthVelocityGradient<AngularMomentumCorrection>>(settings);
             derivatives.require<AngularMomentumCorrectionTensor>(settings);
         } else {
@@ -279,7 +266,7 @@ public:
                 }
             });
         }
-        if (conserveAngularMomentum) {
+        if (useCorrectionTensor) {
             /// \todo here we assume only this equation term uses the correction
             ArrayView<SymmetricTensor> C =
                 storage.getValue<SymmetricTensor>(QuantityId::ANGULAR_MOMENTUM_CORRECTION);
@@ -301,7 +288,7 @@ public:
 
         storage.insert<SymmetricTensor>(
             QuantityId::STRENGTH_VELOCITY_GRADIENT, OrderEnum::ZERO, SymmetricTensor::null());
-        if (conserveAngularMomentum) {
+        if (useCorrectionTensor) {
             storage.insert<SymmetricTensor>(
                 QuantityId::ANGULAR_MOMENTUM_CORRECTION, OrderEnum::ZERO, SymmetricTensor::identity());
         }
@@ -312,22 +299,11 @@ public:
 ///
 /// \todo
 class NavierStokesForce : public IEquationTerm {
-private:
-    bool conserveAngularMomentum = false;
-
 public:
-    explicit NavierStokesForce(const RunSettings& settings) {
-        conserveAngularMomentum = settings.get<bool>(RunSettingsId::SPH_CONSERVE_ANGULAR_MOMENTUM);
-    }
-
     virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override {
         requireVariant<StressDivergence>(derivatives, settings);
-        // do don't need to do 'hacks' with gradient for fluids
-        if (conserveAngularMomentum) {
-            derivatives.require<VelocityGradient<AngularMomentumCorrection>>(settings);
-        } else {
-            derivatives.require<VelocityGradient<NoGradientCorrection>>(settings);
-        }
+        // no need to do 'hacks' with gradient for fluids
+        derivatives.require<VelocityGradient>(settings);
     }
 
     virtual void initialize(Storage&) override {
@@ -400,10 +376,13 @@ public:
     }
 
     virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override {
-        /// \todo use correction here as well?
-        derivatives.require<VelocityDivergence<NoGradientCorrection>>(settings);
+        derivatives.require<VelocityDivergence>(settings);
         if (flags.has(Options::SOLID)) {
-            derivatives.require<StrengthVelocityGradient<NoGradientCorrection>>(settings);
+            if (settings.get<bool>(RunSettingsId::SPH_STRAIN_RATE_CORRECTION_TENSOR)) {
+                derivatives.require<StrengthVelocityGradient<AngularMomentumCorrection>>(settings);
+            } else {
+                derivatives.require<StrengthVelocityGradient<NoGradientCorrection>>(settings);
+            }
         }
     }
 
@@ -486,7 +465,7 @@ public:
     }
 
     virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override {
-        derivatives.require<VelocityDivergence<NoGradientCorrection>>(settings);
+        derivatives.require<VelocityDivergence>(settings);
     }
 
     virtual void initialize(Storage& storage) override {

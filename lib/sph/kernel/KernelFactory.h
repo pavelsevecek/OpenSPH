@@ -22,6 +22,12 @@ namespace Factory {
         case KernelEnum::CORE_TRIANGLE:
             ASSERT(D == 3);
             return CoreTriangle();
+        case KernelEnum::WENDLAND_C2:
+            return WendlandC2();
+        case KernelEnum::WENDLAND_C4:
+            return WendlandC4();
+        case KernelEnum::WENDLAND_C6:
+            return WendlandC6();
         default:
             NOT_IMPLEMENTED;
         }
@@ -36,6 +42,6 @@ namespace Factory {
             NOT_IMPLEMENTED;
         }
     }
-}
+} // namespace Factory
 
 NAMESPACE_SPH_END

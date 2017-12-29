@@ -138,8 +138,6 @@ private:
     const Float normalization[3] = { 2._f / 3._f, 10._f / (7._f * PI), 1._f / PI };
 
 public:
-    CubicSpline() = default;
-
     INLINE Float radius() const {
         return 2._f;
     }
@@ -278,6 +276,101 @@ public:
         }
         if (q < 2._f) {
             return (1._f / q) * this->normalization[D - 1] * (-0.75f * pow<2>(2.f - q));
+        }
+        return 0._f;
+    }
+};
+
+class WendlandC2 : public Kernel<WendlandC2, 3> {
+private:
+    const Float normalization = 21._f / (16._f * PI);
+
+public:
+    INLINE Float radius() const {
+        return 2._f;
+    }
+
+    INLINE Float valueImpl(const Float qSqr) const {
+        const Float q = sqrt(qSqr);
+        ASSERT(q >= 0);
+        if (q < 2._f) {
+            return normalization * pow<4>(1._f - 0.5_f * q) * (2._f * q + 1._f);
+        }
+        return 0._f;
+    }
+
+    INLINE Float gradImpl(const Float qSqr) const {
+        const Float q = sqrt(qSqr);
+        if (q == 0._f) {
+            return -5._f * normalization;
+        }
+        if (q < 2._f) {
+            return (1._f / q) * normalization * 0.625_f * pow<3>(q - 2._f) * q;
+        }
+        return 0._f;
+    }
+};
+
+class WendlandC4 : public Kernel<WendlandC4, 3> {
+private:
+    const Float normalization = 495._f / (256._f * PI);
+
+public:
+    INLINE Float radius() const {
+        return 2._f;
+    }
+
+    INLINE Float valueImpl(const Float qSqr) const {
+        const Float q = sqrt(qSqr);
+        ASSERT(q >= 0);
+        if (q < 2._f) {
+            return normalization * pow<6>(1._f - 0.5_f * q) * (35._f / 12._f * pow<2>(q) + 3._f * q + 1._f);
+        }
+        return 0._f;
+    }
+
+    INLINE Float gradImpl(const Float qSqr) const {
+        const Float q = sqrt(qSqr);
+        if (q == 0._f) {
+            return -14._f / 3._f * normalization;
+        }
+        if (q < 2._f) {
+            return (1._f / q) * normalization *
+                   (7._f / 96._f * q *
+                       (5._f * pow<6>(q) - 48._f * pow<5>(q) + 180._f * pow<4>(q) - 320._f * pow<3>(q) +
+                           240._f * pow<2>(q) - 64._f));
+        }
+        return 0._f;
+    }
+};
+
+class WendlandC6 : public Kernel<WendlandC6, 3> {
+private:
+    const Float normalization = 1365._f / (512._f * PI);
+
+public:
+    INLINE Float radius() const {
+        return 2._f;
+    }
+
+    INLINE Float valueImpl(const Float qSqr) const {
+        const Float q = sqrt(qSqr);
+        ASSERT(q >= 0);
+        if (q < 2._f) {
+            return normalization * pow<8>(1._f - 0.5_f * q) *
+                   (4._f * pow<3>(q) + 25._f / 4._f * pow<2>(q) + 4._f * q + 1._f);
+        }
+        return 0._f;
+    }
+
+    INLINE Float gradImpl(const Float qSqr) const {
+        const Float q = sqrt(qSqr);
+        if (q == 0._f) {
+            return -5.5_f * normalization;
+        }
+        if (q < 2._f) {
+            return (1._f / q) * normalization * 0.0214844_f * pow<7>(q - 2._f) * q *
+                   (8._f * pow<2>(q) + 7._f * q + 2._f);
         }
         return 0._f;
     }

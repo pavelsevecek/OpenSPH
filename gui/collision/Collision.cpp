@@ -151,7 +151,7 @@ public:
     virtual void setTransformMatrix(const AffineMatrix2& UNUSED(matrix)) override {}
 };
 
-class CollisionSolver : public GravitySolver {
+class CollisionSolver : public GenericSolver {
 private:
     /// Body settings for the impactor
     BodySettings body;
@@ -185,7 +185,7 @@ public:
         const BodySettings& body,
         const Vector targetOmega,
         const Path& path)
-        : GravitySolver(settings, this->getEquations(settings), Factory::getGravity(settings))
+        : GenericSolver(settings, this->getEquations(settings)) // , Factory::getGravity(settings))
         , body(body)
         , targetOmega(targetOmega)
         , outputPath(path) {
@@ -198,7 +198,7 @@ public:
     }
 
     virtual void integrate(Storage& storage, Statistics& stats) override {
-        GravitySolver::integrate(storage, stats);
+        GenericSolver::integrate(storage, stats);
 
         const Float t = stats.get<Float>(StatisticsId::RUN_TIME);
         const Float dt = stats.getOr<Float>(StatisticsId::TIMESTEP_VALUE, 0.01_f);
@@ -257,7 +257,7 @@ private:
         EquationHolder equations;
 
         // forces
-        equations += makeTerm<PressureForce>(settings) + makeTerm<SolidStressForce>(settings);
+        equations += makeTerm<PressureForce>() + makeTerm<SolidStressForce>(settings);
 
         // noninertial acceleration
         //  const Vector omega = settings.get<Vector>(RunSettingsId::FRAME_ANGULAR_FREQUENCY);
@@ -325,19 +325,21 @@ AsteroidCollision::AsteroidCollision() {
         .set(RunSettingsId::RUN_TIME_RANGE, Interval(-5000._f, 10._f))
         .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 0.1_f)
         .set(RunSettingsId::MODEL_FORCE_SOLID_STRESS, true)
+        //.set(RunSettingsId::SPH_KERNEL, KernelEnum::WENDLAND_C6)
         .set(RunSettingsId::SPH_FINDER, FinderEnum::UNIFORM_GRID)
+        .set(RunSettingsId::SPH_FORMULATION, FormulationEnum::BENZ_ASPHAUG)
         .set(RunSettingsId::SPH_AV_TYPE, ArtificialViscosityEnum::STANDARD)
         .set(RunSettingsId::SPH_AV_ALPHA, 1.5_f)
         .set(RunSettingsId::SPH_AV_BETA, 3._f) /// \todo exception when using gravity with continuity solver?
         //.set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONST)
-        .set(RunSettingsId::GRAVITY_SOLVER, GravityEnum::BARNES_HUT)
+        .set(RunSettingsId::GRAVITY_SOLVER, GravityEnum::SPHERICAL)
         .set(RunSettingsId::GRAVITY_KERNEL, GravityKernelEnum::POINT_PARTICLES)
-        .set(RunSettingsId::GRAVITY_MULTIPOLE_ORDER, 0)
+        .set(RunSettingsId::GRAVITY_MULTIPOLE_ORDER, 0) // monopole
         .set(RunSettingsId::GRAVITY_OPENING_ANGLE, 0.8_f)
         .set(RunSettingsId::GRAVITY_LEAF_SIZE, 20)
         .set(RunSettingsId::RUN_THREAD_GRANULARITY, 100)
         .set(RunSettingsId::FRAME_ANGULAR_FREQUENCY, Vector(0._f, 0._f, omega))
-        .set(RunSettingsId::SPH_CONSERVE_ANGULAR_MOMENTUM, false);
+        .set(RunSettingsId::SPH_STRAIN_RATE_CORRECTION_TENSOR, true);
 
     settings.set(RunSettingsId::RUN_COMMENT,
         std::string("Homogeneous Gravity with no initial rotation")); // + std::to_string(omega));
@@ -382,7 +384,7 @@ void AsteroidCollision::setUp() {
     BodySettings body;
     body.set(BodySettingsId::ENERGY, 0._f)
         .set(BodySettingsId::ENERGY_RANGE, Interval(0._f, INFTY))
-        .set(BodySettingsId::PARTICLE_COUNT, 100'000)
+        .set(BodySettingsId::PARTICLE_COUNT, 200'000)
         .set(BodySettingsId::EOS, EosEnum::TILLOTSON)
         .set(BodySettingsId::STRESS_TENSOR_MIN, 1.e5_f)
         .set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::SCALAR_GRADY_KIPP)

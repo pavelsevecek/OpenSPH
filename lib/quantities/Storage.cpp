@@ -186,10 +186,14 @@ ConstStorageSequence Storage::getQuantities() const {
 }
 
 void Storage::propagate(const Function<void(Storage& storage)>& functor) {
-    functor(*this);
-    for (WeakPtr<Storage>& weakPtr : dependent) {
-        if (SharedPtr<Storage> sharedPtr = weakPtr.lock()) {
-            sharedPtr->propagate(functor);
+    for (Size i = 0; i < dependent.size();) {
+        if (SharedPtr<Storage> storagePtr = dependent[i].lock()) {
+            functor(*storagePtr);
+            storagePtr->propagate(functor);
+            ++i;
+        } else {
+            // remove expired storage
+            dependent.remove(i);
         }
     }
 }
@@ -280,11 +284,7 @@ void Storage::resize(const Size newParticleCnt, const Flags<ResizeFlag> flags) {
         mats[0].to = newParticleCnt;
     }
 
-    for (WeakPtr<Storage>& weakPtr : dependent) {
-        if (SharedPtr<Storage> ptr = weakPtr.lock()) {
-            ptr->resize(newParticleCnt, flags);
-        }
-    }
+    this->propagate([newParticleCnt, flags](Storage& storage) { storage.resize(newParticleCnt, flags); });
 
     this->update();
     ASSERT(this->isValid(
@@ -345,7 +345,7 @@ bool Storage::isValid(const Flags<ValidFlag> flags) const {
     return true;
 }
 
-Array<Size> Storage::duplicate(ArrayView<const Size> idxs, const bool propagate) {
+Array<Size> Storage::duplicate(ArrayView<const Size> idxs) {
     // first, sort the indices, so that we start with the backmost particles, that way the lower indices won't
     // get invalidated.
     Array<Size> sorted(0, idxs.size());
@@ -377,18 +377,11 @@ Array<Size> Storage::duplicate(ArrayView<const Size> idxs, const bool propagate)
     this->update();
     ASSERT(this->isValid());
 
-    if (propagate) {
-        for (WeakPtr<Storage>& weakPtr : dependent) {
-            if (SharedPtr<Storage> ptr = weakPtr.lock()) {
-                ptr->duplicate(idxs, propagate);
-            }
-        }
-    }
-
+    TODO("TEST!");
     return createdIds;
 }
 
-void Storage::remove(ArrayView<const Size> idxs, const bool propagate) {
+void Storage::remove(ArrayView<const Size> idxs) {
     Size particlesRemoved = 0;
     for (Size matId = 0; matId < mats.size();) {
         Mat& mat = mats[matId];
@@ -424,25 +417,10 @@ void Storage::remove(ArrayView<const Size> idxs, const bool propagate) {
 
     this->update();
     ASSERT(this->isValid());
-
-    if (propagate) {
-        for (WeakPtr<Storage>& weakPtr : dependent) {
-            if (SharedPtr<Storage> ptr = weakPtr.lock()) {
-                /// \todo can be optimized by passing already sorted indices + flag that we don't have to sort
-                /// it again
-                ptr->remove(idxs, propagate);
-            }
-        }
-    }
 }
 
 void Storage::removeAll() {
-    for (WeakPtr<Storage>& weakPtr : dependent) {
-        if (SharedPtr<Storage> ptr = weakPtr.lock()) {
-            ptr->removeAll();
-        }
-    }
-
+    this->propagate([](Storage& storage) { storage.removeAll(); });
     *this = Storage();
 }
 

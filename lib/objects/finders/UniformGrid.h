@@ -34,13 +34,13 @@ public:
     virtual Size findNeighbours(const Size index,
         const Float radius,
         Array<NeighbourRecord>& neighbours,
-        Flags<FinderFlags> flags = EMPTY_FLAGS,
+        Flags<FinderFlag> flags = EMPTY_FLAGS,
         const Float error = 0._f) const override;
 
     virtual Size findNeighbours(const Vector& position,
         const Float radius,
         Array<NeighbourRecord>& neighbours,
-        Flags<FinderFlags> flags = EMPTY_FLAGS,
+        Flags<FinderFlag> flags = EMPTY_FLAGS,
         const Float error = 0._f) const override;
 
     /// Exposed for gravity
@@ -70,7 +70,7 @@ private:
         const Size refRank,
         const Float radius,
         Array<NeighbourRecord>& neighbours,
-        Flags<FinderFlags> flags,
+        Flags<FinderFlag> flags,
         const Float error) const;
 };
 

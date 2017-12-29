@@ -23,7 +23,7 @@ public:
     virtual void findNeighbours(const int index,
         const Float radius,
         Array<NeighbourRecord>& neighbours,
-        Flags<FinderFlags> flags = EMPTY_FLAGS,
+        Flags<FinderFlag> flags = EMPTY_FLAGS,
         const Float error = 0._f) const override {
         // seach 'regular' particles
         int n = finder(index, radius, neighbours, flags, error);

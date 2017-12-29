@@ -101,8 +101,8 @@ public:
     virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override {
         // no need to use the angular momentum conservation here, velocity derivatives are only used to
         // compute the Balsara factor, which is an arbitrary correction to AV anyway
-        derivatives.require<VelocityDivergence<NoGradientCorrection>>(settings);
-        derivatives.require<VelocityRotation<NoGradientCorrection>>(settings);
+        derivatives.require<VelocityDivergence>(settings);
+        derivatives.require<VelocityRotation>(settings);
         derivatives.require<Derivative>(settings);
     }
 

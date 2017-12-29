@@ -22,7 +22,7 @@ TEST_CASE("BruteForceFinder", "[bruteforce]") {
     REQUIRE(neighs[2].index == 5);
     REQUIRE(neighs[2].distanceSqr == 1.f);
 
-    cnt = finder.findNeighbours(4, 1.5f, neighs, FinderFlags::FIND_ONLY_SMALLER_H);
+    cnt = finder.findNeighbours(4, 1.5f, neighs, FinderFlag::FIND_ONLY_SMALLER_H);
     REQUIRE(cnt == 1);
     REQUIRE(neighs[0].index == 3);
     REQUIRE(neighs[0].distanceSqr == 1.f);

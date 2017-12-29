@@ -21,7 +21,7 @@ struct NeighbourRecord {
     }
 };
 
-enum class FinderFlags {
+enum class FinderFlag {
     /// Finds only neighbours that have smaller smoothing length h than value given
     FIND_ONLY_SMALLER_H = 1 << 0,
 
@@ -69,7 +69,7 @@ public:
     virtual Size findNeighbours(const Size index,
         const Float radius,
         Array<NeighbourRecord>& neighbours,
-        Flags<FinderFlags> flags = EMPTY_FLAGS,
+        Flags<FinderFlag> flags = EMPTY_FLAGS,
         const Float error = 0._f) const = 0;
 
     /// Finds all points within given radius from given position. The position may not correspond to any
@@ -77,7 +77,7 @@ public:
     virtual Size findNeighbours(const Vector& position,
         const Float radius,
         Array<NeighbourRecord>& neighbours,
-        Flags<FinderFlags> flags = EMPTY_FLAGS,
+        Flags<FinderFlag> flags = EMPTY_FLAGS,
         const Float error = 0._f) const = 0;
 
 private:

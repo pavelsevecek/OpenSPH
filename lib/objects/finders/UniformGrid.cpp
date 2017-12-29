@@ -30,17 +30,17 @@ void UniformGridFinder::rebuildImpl(ArrayView<const Vector> points) {
 Size UniformGridFinder::findNeighbours(const Size index,
     const Float radius,
     Array<NeighbourRecord>& neighbours,
-    Flags<FinderFlags> flags,
+    Flags<FinderFlag> flags,
     const Float error) const {
     const Size refRank =
-        (flags.has(FinderFlags::FIND_ONLY_SMALLER_H)) ? this->rankH[index] : this->values.size();
+        (flags.has(FinderFlag::FIND_ONLY_SMALLER_H)) ? this->rankH[index] : this->values.size();
     return this->findNeighboursImpl(values[index], values[index], refRank, radius, neighbours, flags, error);
 }
 
 Size UniformGridFinder::findNeighbours(const Vector& position,
     const Float radius,
     Array<NeighbourRecord>& neighbours,
-    Flags<FinderFlags> flags,
+    Flags<FinderFlag> flags,
     const Float error) const {
     const Size refRank = this->values.size();
     const Vector refPosition = lut.clamp(position);
@@ -55,7 +55,7 @@ Size UniformGridFinder::findNeighboursImpl(const Vector& position,
     const Size refRank,
     const Float radius,
     Array<NeighbourRecord>& neighbours,
-    Flags<FinderFlags> UNUSED(flags),
+    Flags<FinderFlag> UNUSED(flags),
     const Float UNUSED(error)) const {
     neighbours.clear();
     Indices lower = lut.map(refPosition);

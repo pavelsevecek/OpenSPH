@@ -101,12 +101,12 @@ INLINE T sqrtApprox(const T f) {
 
 /// Return a squared value.
 template <typename T>
-INLINE constexpr T sqr(const T& f) {
+INLINE constexpr T sqr(const T& f) noexcept {
     return f * f;
 }
 
 /// Returns true if given n is a power of 2. N must at least 1.
-INLINE constexpr bool isPower2(const Size n) {
+INLINE constexpr bool isPower2(const Size n) noexcept {
     return n >= 1 && (n & (n - 1)) == 0;
 }
 
@@ -175,6 +175,10 @@ INLINE constexpr Float pow<5>(const Float v) {
 template <>
 INLINE constexpr Float pow<6>(const Float v) {
     return pow<3>(pow<2>(v));
+}
+template <>
+INLINE constexpr Float pow<7>(const Float v) {
+    return pow<6>(v) * v;
 }
 template <>
 INLINE constexpr Float pow<8>(const Float v) {

@@ -14,6 +14,8 @@ TEST_CASE("Math", "[math]") {
     REQUIRE(pow<4>(2._f) == 16._f);
     REQUIRE(pow<5>(2._f) == 32._f);
     REQUIRE(pow<6>(2._f) == 64._f);
+    REQUIRE(pow<7>(2._f) == 128._f);
+    REQUIRE(pow<8>(2._f) == 256._f);
 
     REQUIRE(pow<-1>(2._f) == 1._f / 2._f);
     REQUIRE(pow<-2>(2._f) == 1._f / 4._f);

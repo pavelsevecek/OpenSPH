@@ -104,6 +104,7 @@ SOURCES += \
     ../lib/post/test/MarchingCubes.cpp \
     ../lib/post/test/MeshFile.cpp \
     ../lib/post/test/Point.cpp \
+    ../lib/post/test/StatisticTests.cpp \
     ../lib/quantities/test/IMaterial.cpp \
     ../lib/quantities/test/Iterate.cpp \
     ../lib/quantities/test/Particle.cpp \

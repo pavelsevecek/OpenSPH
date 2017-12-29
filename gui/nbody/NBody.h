@@ -59,7 +59,8 @@ private:
             .set(GuiSettingsId::IMAGES_SAVE, false)
             .set(GuiSettingsId::IMAGES_TIMESTEP, 10._f)
             .set(GuiSettingsId::PLOT_INTEGRALS,
-                int(IntegralEnum::TOTAL_MOMENTUM) | int(IntegralEnum::TOTAL_ANGULAR_MOMENTUM));
+                int(IntegralEnum::TOTAL_MOMENTUM) | int(IntegralEnum::TOTAL_ANGULAR_MOMENTUM))
+            .set(GuiSettingsId::PALETTE_VELOCITY, Interval(1.e3_f, 1.e6_f));
 
         AutoPtr<NBody> run = makeAuto<NBody>();
 

@@ -335,7 +335,7 @@ TEST_CASE("Storage remove", "[storage]") {
     storage2.insert<Size>(QuantityId::FLAG, OrderEnum::ZERO, Array<Size>{ 3, 4, 5 });
     storage1.merge(std::move(storage2));
 
-    storage1.remove(Pair<Size>{ 0, 4 }, false);
+    storage1.remove(Pair<Size>{ 0, 4 });
     ArrayView<const Size> flags = storage1.getValue<Size>(QuantityId::FLAG);
     REQUIRE(flags == Array<Size>({ 1, 2, 3, 5 }));
     REQUIRE(storage1.getMaterialCnt() == 2);
@@ -344,7 +344,7 @@ TEST_CASE("Storage remove", "[storage]") {
     REQUIRE(storage1.getMaterial(1)->getParam<int>(BodySettingsId::PARTICLE_COUNT) == 7);
     REQUIRE(storage1.getMaterial(1).sequence() == IndexSequence(2, 4));
 
-    storage1.remove(Pair<Size>{ 0, 1 }, false);
+    storage1.remove(Pair<Size>{ 0, 1 });
     flags = storage1.getValue<Size>(QuantityId::FLAG);
     REQUIRE(flags == Array<Size>({ 3, 5 }));
     REQUIRE(storage1.getMaterialCnt() == 1);

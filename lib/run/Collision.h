@@ -49,7 +49,7 @@ public:
             .set(RunSettingsId::GRAVITY_LEAF_SIZE, 20)
             .set(RunSettingsId::RUN_THREAD_GRANULARITY, 100)
             .set(RunSettingsId::FRAME_ANGULAR_FREQUENCY, Vector(0._f, 0._f, _params.targetRotation))
-            .set(RunSettingsId::SPH_CONSERVE_ANGULAR_MOMENTUM, false)
+            .set(RunSettingsId::SPH_STRAIN_RATE_CORRECTION_TENSOR, false)
             .set(RunSettingsId::RUN_OUTPUT_PATH, _params.outputPath.native());
 
         settings.saveToFile(_params.outputPath / Path("code.sph"));
@@ -199,7 +199,7 @@ private:
         EquationHolder equations;
 
         // forces
-        equations += makeTerm<PressureForce>(settings) + makeTerm<SolidStressForce>(settings);
+        equations += makeTerm<PressureForce>() + makeTerm<SolidStressForce>(settings);
 
         // noninertial acceleration
         const Vector omega = settings.get<Vector>(RunSettingsId::FRAME_ANGULAR_FREQUENCY);

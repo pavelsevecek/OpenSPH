@@ -31,6 +31,9 @@ void testKernel(const TKernel& kernel, TTest&& test) {
         REQUIRE(kernel.gradImpl(xSqr) * x == approx(diff, 2._f * eps));
     }
 
+    // check that kernel gradient is continuous at q->0
+    REQUIRE(kernel.gradImpl(0._f) == approx(kernel.gradImpl(1.e-8_f), 1.e-3_f));
+
     // check that kernel and LUT give the same values and gradients
     LutKernel<d> lut(kernel);
     // check that its values match the precise kernels
@@ -59,7 +62,7 @@ void testKernel(const TKernel& kernel, TTest&& test) {
 TEST_CASE("M4 kernel", "[kernel]") {
     CubicSpline<3> m4;
 
-    testKernel<3>(m4, [](auto&& kernel) {
+    testKernel<3>(m4, [](const auto& kernel) {
         REQUIRE(kernel.radius() == 2._f);
         Float norm = 1. / PI;
 
@@ -104,8 +107,7 @@ TEST_CASE("M4 kernel", "[kernel]") {
 TEST_CASE("M5 kernel", "[kernel]") {
     FourthOrderSpline<3> m5;
 
-
-    testKernel<3>(m5, [](auto&& kernel) { REQUIRE(kernel.radius() == 2.5_f); });
+    testKernel<3>(m5, [](const auto& kernel) { REQUIRE(kernel.radius() == 2.5_f); });
 
     FourthOrderSpline<1> m5_1d;
     // 1D norm
@@ -133,7 +135,22 @@ TEST_CASE("M5 kernel", "[kernel]") {
 
 TEST_CASE("Gaussian kernel", "[kernel]") {
     Gaussian<3> gaussian;
-    testKernel<3>(gaussian, [](auto&& kernel) { REQUIRE(kernel.radius() == 5._f); });
+    testKernel<3>(gaussian, [](const auto& kernel) { REQUIRE(kernel.radius() == 5._f); });
+}
+
+TEST_CASE("Wendland C2 kernel", "[kernel]") {
+    WendlandC2 kernel;
+    testKernel<3>(kernel, [](const auto& kernel) { REQUIRE(kernel.radius() == 2._f); });
+}
+
+TEST_CASE("Wendland C4 kernel", "[kernel]") {
+    WendlandC4 kernel;
+    testKernel<3>(kernel, [](const auto& kernel) { REQUIRE(kernel.radius() == 2._f); });
+}
+
+TEST_CASE("Wendland C6 kernel", "[kernel]") {
+    WendlandC6 kernel;
+    testKernel<3>(kernel, [](const auto& kernel) { REQUIRE(kernel.radius() == 2._f); });
 }
 
 TEST_CASE("Lut kernel", "[kernel]") {

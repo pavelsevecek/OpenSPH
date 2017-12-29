@@ -48,7 +48,7 @@ static Outcome checkNeighboursEqual(ArrayView<NeighbourRecord> treeNeighs,
     return SUCCESS;
 }
 
-static void checkNeighbours(INeighbourFinder& finder, Flags<FinderFlags> flags) {
+static void checkNeighbours(INeighbourFinder& finder, Flags<FinderFlag> flags) {
     HexagonalPacking distr;
     SphericalDomain domain(Vector(0._f), 2._f);
     Array<Vector> storage = distr.generate(1000, domain);
@@ -109,7 +109,7 @@ static void checkLargeValues(INeighbourFinder& finder) {
     Size nTree = finder.findNeighbours(0, 1.f, treeNeighs, EMPTY_FLAGS);
     REQUIRE(nTree == 1);
 
-    nTree = finder.findNeighbours(0, 1.f, treeNeighs, FinderFlags::FIND_ONLY_SMALLER_H);
+    nTree = finder.findNeighbours(0, 1.f, treeNeighs, FinderFlag::FIND_ONLY_SMALLER_H);
     REQUIRE(nTree == 0);
 }
 
@@ -124,7 +124,7 @@ static void testFindingSmallerH(INeighbourFinder& finder) {
     int nAll = finder.findNeighbours(4, 10._f, treeNeighs);
     REQUIRE(nAll == 10); // this should find all particles
 
-    int nSmaller = finder.findNeighbours(4, 10._f, treeNeighs, FinderFlags::FIND_ONLY_SMALLER_H);
+    int nSmaller = finder.findNeighbours(4, 10._f, treeNeighs, FinderFlag::FIND_ONLY_SMALLER_H);
     REQUIRE(nSmaller == 4); // this should find indices 0, 1, 2, 3
     bool allMatching = true;
     for (auto& n : treeNeighs) {
@@ -137,7 +137,7 @@ static void testFindingSmallerH(INeighbourFinder& finder) {
 
 static void testFinder(INeighbourFinder& finder) {
     checkNeighbours(finder, EMPTY_FLAGS);
-    checkNeighbours(finder, FinderFlags::FIND_ONLY_SMALLER_H);
+    checkNeighbours(finder, FinderFlag::FIND_ONLY_SMALLER_H);
     checkEmpty(finder);
     checkLargeValues(finder);
     testFindingSmallerH(finder);

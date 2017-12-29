@@ -59,3 +59,10 @@ TEST_CASE("GravitySolver", "[solvers]") {
     testGravity(makeAuto<BarnesHut>(0.5_f, MultipoleOrder::QUADRUPOLE));
     testGravity(makeAuto<BarnesHut>(0.5_f, MultipoleOrder::QUADRUPOLE, GravityKernel<CubicSpline<3>>{}));
 }
+
+TEST_CASE("GravitySolver setup", "[solvers]") {
+    EquationHolder holder;
+    holder += makeTerm<SphericalGravityEquation>();
+    RunSettings settings;
+    REQUIRE_THROWS_AS(GravitySolver(settings, holder, makeAuto<BruteForceGravity>()), InvalidSetup);
+}
