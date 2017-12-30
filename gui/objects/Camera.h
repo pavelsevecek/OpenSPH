@@ -45,8 +45,9 @@ public:
     ///
     /// This is usually equivalent to transforming the view with scaling matrix, alhough it can be implemented
     /// differently.
+    /// \param fixedPoint Point that remains fixed after the zoom (for magnitude != 1, there is exactly one)
     /// \param magnitude Relative zoom amount, value <1 means zooming out, value >1 means zooming in.
-    virtual void zoom(const float magnitude) = 0;
+    virtual void zoom(const Point fixedPoint, const float magnitude) = 0;
 
     /// \brief Transforms the current view by given matrix.
     ///
@@ -93,7 +94,7 @@ public:
         const Size x = center.x + dot(r, cached.u) * data.fov;
         const Size y = center.y + dot(r, cached.v) * data.fov;
         const Point point(x, imageSize.y - y - 1);
-        return { { point, max(data.fov * float(r[H]), 1.f) } };
+        return { { point, data.fov * float(r[H]) } };
     }
 
     virtual Ray unproject(const Point point) const override {
@@ -109,8 +110,9 @@ public:
         return cached.w;
     }
 
-    virtual void zoom(const float magnitude) override {
+    virtual void zoom(const Point fixedPoint, const float magnitude) override {
         ASSERT(magnitude > 0.f);
+        center += (fixedPoint - center) * (1.f - magnitude);
         data.fov *= magnitude;
     }
 
@@ -199,7 +201,7 @@ public:
         return cached.dir;
     }
 
-    virtual void zoom(const float magnitude) override {
+    virtual void zoom(const Point UNUSED(fixedPoint), const float magnitude) override {
         ASSERT(magnitude > 0.f);
         data.fov *= magnitude;
     }

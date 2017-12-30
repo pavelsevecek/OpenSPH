@@ -11,7 +11,7 @@
 #include "objects/finders/BruteForceFinder.h"
 #include "system/Factory.h"
 #include "system/Settings.h"
-#include "thread/Pool.h"
+#include "thread/ThreadLocal.h"
 #include "timestepping/ISolver.h"
 
 NAMESPACE_SPH_BEGIN
@@ -37,12 +37,15 @@ private:
     /// Small value specifying allowed overlap of collided particles, used for numerical stability.
     Float allowedOverlap;
 
+    Array<NeighbourRecord> neighs;
+
 public:
     /// \brief Creates the solver, using the gravity implementation specified by settings.
     explicit NBodySolver(const RunSettings& settings)
         : NBodySolver(settings, makeAuto<BruteForceGravity>()) { // Factory::getGravity(settings)) {
         const Float epsN = settings.get<Float>(RunSettingsId::COLLISION_RESTITUTION_NORMAL);
         const Float epsT = settings.get<Float>(RunSettingsId::COLLISION_RESTITUTION_TANGENT);
+        /// \todo check if this parameter is still needed
         allowedOverlap = settings.get<Float>(RunSettingsId::COLLISION_ALLOWED_OVERLAP);
         collisionHandler = makeAuto<ElasticBounceHandler>(epsN, epsT);
     }
@@ -51,7 +54,7 @@ public:
     NBodySolver(const RunSettings& settings, AutoPtr<IGravity>&& gravity)
         : gravity(std::move(gravity))
         , pool(settings.get<int>(RunSettingsId::RUN_THREAD_CNT))
-        , collisionFinder(makeAuto<BruteForceFinder>()) {} // Factory::getFinder(settings)) {}
+        , collisionFinder(Factory::getFinder(settings)) {} // makeAuto<BruteForceFinder>()) {}
 
     virtual void integrate(Storage& storage, Statistics& stats) override {
         gravity->build(storage);
@@ -68,7 +71,8 @@ public:
     }
 
     struct CollisionRecord {
-        Size index;
+        Size i;
+        Size j;
         Float t_coll = INFINITY;
 
         // sort by collision time
@@ -82,7 +86,7 @@ public:
     };
 
     /// Checks and resolves particle collisions
-    virtual void collide(Storage& storage, Statistics& UNUSED(stats), const Float dt) override {
+    virtual void collide(Storage& storage, Statistics& stats, const Float dt) override {
         ArrayView<Vector> r, v, a;
         tie(r, v, a) = storage.getAll<Vector>(QuantityId::POSITION);
 
@@ -98,95 +102,83 @@ public:
         // create helper storage with simple quantity - remaining time for each particle
         // SharedPtr<Storage> timers = this->getTimerStorage(storage, dt);
         // ArrayView<Float> dts = timers->getValue<Float>(QuantityId::MOVEMENT_TIME);
-        Array<Float> dts(r.size());
-        dts.fill(dt);
+        /*timers.resize(r.size());
+        timers.fill(0._f);*/
 
-        Array<NeighbourRecord> neighs;
+
+        Size collisionCounter = 0;
 
         Array<Size> toRemove;
-        for (Size i = 0; i < r.size();) {
-            /// \todo search only in front of the particle ?
-            collisionFinder->findNeighbours(i, searchRadius, neighs, FinderFlag::FIND_ONLY_SMALLER_H);
 
-            // find the closest collision
+
+        // find all collisions and sort them by collision time
+        Float time = dt;
+        while (time > 0._f) {
+            // collisions.clear();
+
             CollisionRecord closestCollision;
-            for (NeighbourRecord& n : neighs) {
-                const Size j = n.index;
-
-                // temporary hack to force particles into the z=0 plane
-                v[i][Z] = 0._f;
-                v[j][Z] = 0._f;
-
-
-                // ASSERT(getLength(r[i] - r[j]) >= 0.8_f * (r[i][H] + r[j][H]), r[i], r[j]);
-
-                /// \todo we need to determine ALL t_colls first, then choose the smallest one. Sorting
-                /// neighbours doesn't make a difference!!
-                const Float maxDt = min(dts[i], dts[j]);
-                Optional<Float> t_coll = this->checkCollision(r[i], v[i], r[j], v[j], maxDt);
-                if (t_coll) {
-                    ASSERT(t_coll.value() < dts[i] && t_coll.value() < dts[j]);
-                    closestCollision = min(closestCollision, CollisionRecord{ j, t_coll.value() });
-                }
+            for (Size i = 0; i < r.size(); ++i) {
+                CollisionRecord col = this->findClosestCollision(i, searchRadius, time, r, v);
+                closestCollision = min(closestCollision, col);
             }
 
-            if (closestCollision) {
-                const Size j = closestCollision.index;
-                const Float t_coll = closestCollision.t_coll;
+            const Size i = closestCollision.i;
+            const Size j = closestCollision.j;
+            const Float t_coll = closestCollision ? closestCollision.t_coll : time;
 
-                // advance positions to the point of collision
+            // advance all positions to the collision time
+
+            for (Size i = 0; i < r.size(); ++i) {
                 r[i] += v[i] * t_coll;
-                r[j] += v[j] * t_coll;
-
-                // let collision handler determine the outcome
-                toRemove.clear();
-                const CollisionResult result = collisionHandler->collide(i, j, toRemove);
-                if (result != CollisionResult::NONE) {
-                    ASSERT(storage.isValid());
-                    // decrease the movement time of collided particles
-                    // dts[i] -= t_coll;
-                    // dts[j] -= t_coll;
-                    ASSERT(dts[i] >= 0._f && dts[j] >= 0._f, dts[i], dts[j]);
-                    // apply the removal list (now we can safely invalidate arrayviews)
-                    storage.remove(toRemove);
-                    // remove it also from all dependent storages, since this is a permanent action
-                    storage.propagate([&toRemove](Storage& dependent) { dependent.remove(toRemove); });
-                } else {
-                    // collision handler rejected the collision, revert the change
-                    r[i] -= v[i] * t_coll;
-                    r[j] -= v[j] * t_coll;
-                }
-
-                switch (result) {
-                case CollisionResult::NONE:
-                case CollisionResult::BOUNCE:
-                    // no need to do anything, case handled just so we are sure we are not forgetting
-                    // something
-                    break;
-                case CollisionResult::EVAPORATION:
-                case CollisionResult::MERGER:
-                case CollisionResult::FRAGMENTATION:
-                    // number of particles changed, we need to reset (possibly invalidated) arrayviews and
-                    // rebuild the tree
-                    tie(r, v, a) = storage.getAll<Vector>(QuantityId::POSITION);
-                    /// \todo dts = timers->getValue<Float>(QuantityId::MOVEMENT_TIME);
-                    collisionFinder->build(r);
-                    break;
-                default:
-                    NOT_IMPLEMENTED;
-                }
-
-                // process the particle again as there may be more collisions
-                continue;
-            } else {
-                ++i;
             }
+
+            if (bool(closestCollision) == false) {
+                break;
+            }
+
+
+            // handle the collision
+            toRemove.clear();
+            const CollisionResult result = collisionHandler->collide(i, j, toRemove);
+            if (result != CollisionResult::NONE) {
+                ASSERT(storage.isValid());
+                time -= t_coll;
+
+                collisionCounter++;
+
+                /// \todo remove previous (now invalid) collisions of particles i and j?
+                // decrease the movement time of collided particles
+                //  ASSERT(dts[i] >= 0._f && dts[j] >= 0._f, dts[i], dts[j]);
+                // apply the removal list (now we can safely invalidate arrayviews)
+                storage.remove(toRemove);
+                // remove it also from all dependent storages, since this is a permanent action
+                storage.propagate([&toRemove](Storage& dependent) { dependent.remove(toRemove); });
+            }
+            /*  switch (result) {
+              case CollisionResult::NONE:
+              case CollisionResult::BOUNCE:
+                  // no need to do anything, case handled just so we are sure we are not forgetting
+                  // something
+                  break;
+              case CollisionResult::EVAPORATION:
+              case CollisionResult::MERGER:
+              case CollisionResult::FRAGMENTATION:
+                  // number of particles changed, we need to reset (possibly invalidated) arrayviews and
+                  // rebuild the tree
+                  tie(r, v, a) = storage.getAll<Vector>(QuantityId::POSITION);
+                  /// \todo dts = timers->getValue<Float>(QuantityId::MOVEMENT_TIME);
+                  collisionFinder->build(r);
+                  break;
+              default:
+                  NOT_IMPLEMENTED;
+              }
+
+              // process the particle again as there may be more collisions
+              continue;
+          }*/
         }
 
-        // advance particle positions by the remainder of the movement time
-        for (Size i = 0; i < r.size(); ++i) {
-            r[i] += v[i] * dts[i];
-        }
+        stats.set(StatisticsId::COLLISION_COUNT, int(collisionCounter));
     }
 
     virtual void create(Storage& UNUSED(storage), IMaterial& UNUSED(material)) const override {
@@ -208,6 +200,34 @@ private:
         return 2._f * (v_max * dt + h_max);
     }
 
+    CollisionRecord findClosestCollision(const Size i,
+        const Float searchRadius,
+        const Float dt,
+        ArrayView<Vector> r,
+        ArrayView<Vector> v) {
+        /// \todo search only in front of the particle ?
+        collisionFinder->findNeighbours(i, searchRadius, neighs, EMPTY_FLAGS);
+
+        CollisionRecord closestCollision;
+        for (NeighbourRecord& n : neighs) {
+            const Size j = n.index;
+
+            // temporary hack to force particles into the z=0 plane
+            v[i][Z] = 0._f;
+            v[j][Z] = 0._f;
+
+
+            // ASSERT(getLength(r[i] - r[j]) >= 0.8_f * (r[i][H] + r[j][H]), r[i], r[j]);
+
+            Optional<Float> t_coll = this->checkCollision(r[i], v[i], r[j], v[j], dt);
+            if (t_coll) {
+                ASSERT(t_coll.value() < dt && t_coll.value() < dt);
+                closestCollision = min(closestCollision, CollisionRecord{ i, j, t_coll.value() });
+            }
+        }
+        return closestCollision;
+    }
+
     SharedPtr<Storage> getTimerStorage(Storage& storage, const Float dt) const {
         SharedPtr<Storage> timers = makeShared<Storage>();
         Array<Float> dts(storage.getParticleCnt());
@@ -222,7 +242,7 @@ private:
         const Vector& v1,
         const Vector& r2,
         const Vector& v2,
-        const Float dt) {
+        const Float dt) const {
         const Vector dr = r1 - r2;
         const Vector dv = v1 - v2;
         const Float dvdr = dot(dv, dr);

@@ -126,6 +126,9 @@ enum class StatisticsId {
     /// Number of tree nodes evaluated using multipole approximation
     GRAVITY_NODES_APPROX,
 
+    /// Number of collisions in the timestep
+    COLLISION_COUNT,
+
     /// Current angular position of the non-inertial frame
     FRAME_ANGLE,
 

@@ -66,8 +66,12 @@ SharedPtr<Bitmap> ParticleRenderer::render(const ICamera& camera,
         dc.SetPen(pen);
         const Optional<ProjectedPoint> p = camera.project(cached.positions[i]);
         ASSERT(p); // cached values must be visible by the camera
-        const int size = max(int(p->radius * params.particles.scale), 1);
-        dc.DrawCircle(p->point, size);
+        const int size = round(p->radius * params.particles.scale);
+        if (size == 0) {
+            dc.DrawPoint(p->point);
+        } else {
+            dc.DrawCircle(p->point, size);
+        }
     }
     if (cached.palette) {
         this->drawPalette(dc, cached.palette.value());

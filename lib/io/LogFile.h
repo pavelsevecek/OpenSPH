@@ -66,6 +66,9 @@ public:
         if (stats.has(StatisticsId::NEIGHBOUR_COUNT)) {
             logger->write(" - neigbours: ", stats.get<MinMaxMean>(StatisticsId::NEIGHBOUR_COUNT));
         }
+        if (stats.has(StatisticsId::COLLISION_COUNT)) {
+            logger->write(" - collisions: ", stats.get<int>(StatisticsId::COLLISION_COUNT));
+        }
         logger->write(" - time spent: ", stats.get<int>(StatisticsId::TIMESTEP_ELAPSED), "ms");
 
         // Solver-specific stats

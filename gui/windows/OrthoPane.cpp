@@ -85,7 +85,8 @@ void OrthoPane::onMouseWheel(wxMouseEvent& evt) {
     const float spin = evt.GetWheelRotation();
     const float amount = (spin > 0.f) ? 1.2f : 1.f / 1.2f;
     SharedPtr<ICamera> camera = controller->getCurrentCamera();
-    camera->zoom(amount);
+    Point fixedPoint = evt.GetPosition();
+    camera->zoom(Point(fixedPoint.x, this->GetSize().y - fixedPoint.y - 1), amount);
     this->Refresh();
 }
 

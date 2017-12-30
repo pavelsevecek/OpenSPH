@@ -3,6 +3,7 @@
 #include "gui/GuiCallbacks.h"
 #include "gui/Settings.h"
 #include "io/LogFile.h"
+#include "math/rng/VectorRng.h"
 #include "objects/geometry/Domain.h"
 #include "quantities/IMaterial.h"
 #include "sph/initial/Distribution.h"
@@ -17,15 +18,16 @@ NBody::NBody() {
         .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 1.e3_f)
         .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 1.e3_f)
         .set(RunSettingsId::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::ACCELERATION)
-        .set(RunSettingsId::TIMESTEPPING_ADAPTIVE_FACTOR, 1.e-3_f)
+        .set(RunSettingsId::TIMESTEPPING_ADAPTIVE_FACTOR, 1._f)
         .set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 1.e10_f))
         .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 1.e10_f)
+        .set(RunSettingsId::SPH_FINDER, FinderEnum::KD_TREE)
         .set(RunSettingsId::GRAVITY_SOLVER, GravityEnum::BARNES_HUT)
         .set(RunSettingsId::GRAVITY_KERNEL, GravityKernelEnum::POINT_PARTICLES)
         .set(RunSettingsId::GRAVITY_OPENING_ANGLE, 0.5_f)
         .set(RunSettingsId::GRAVITY_LEAF_SIZE, 20)
-        .set(RunSettingsId::COLLISION_RESTITUTION_NORMAL, 0.95_f)
-        .set(RunSettingsId::COLLISION_RESTITUTION_TANGENT, 1._f)
+        .set(RunSettingsId::COLLISION_RESTITUTION_NORMAL, 0.6_f)
+        .set(RunSettingsId::COLLISION_RESTITUTION_TANGENT, 0.9_f)
         .set(RunSettingsId::RUN_THREAD_GRANULARITY, 100);
 }
 
@@ -37,15 +39,18 @@ void NBody::setUp() {
 
 
     RandomDistribution rndDist(124);
-    Array<Vector> dist = rndDist.generate(15, SphericalDomain(Vector(0._f), Constants::au));
+    const Size particleCnt = 150;
+
+    Array<Vector> dist = rndDist.generate(particleCnt, SphericalDomain(Vector(0._f), 1._f * Constants::au));
     storage->insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, std::move(dist));
     ArrayView<Vector> r = storage->getValue<Vector>(QuantityId::POSITION);
 
     Array<Vector>& v = storage->getDt<Vector>(QuantityId::POSITION);
-    v = rndDist.generate(15, SphericalDomain(Vector(0._f), 1.e5_f));
 
     for (Size i = 0; i < r.size(); ++i) {
         r[i][Z] = 0._f;
+        v[i] = 6.e4_f *
+               (cross(r[i] * pow<2>(Constants::au) / pow<3>(getLength(r[i])), Vector(0._f, 0._f, 1._f)));
         v[i][Z] = 0._f;
         r[i][H] = 0.02_f * Constants::au;
     }
