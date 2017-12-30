@@ -18,7 +18,7 @@ NBody::NBody() {
         .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 1.e3_f)
         .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 1.e3_f)
         .set(RunSettingsId::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::ACCELERATION)
-        .set(RunSettingsId::TIMESTEPPING_ADAPTIVE_FACTOR, 1._f)
+        .set(RunSettingsId::TIMESTEPPING_ADAPTIVE_FACTOR, 0.1_f)
         .set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 1.e10_f))
         .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 1.e10_f)
         .set(RunSettingsId::SPH_FINDER, FinderEnum::KD_TREE)
@@ -26,8 +26,8 @@ NBody::NBody() {
         .set(RunSettingsId::GRAVITY_KERNEL, GravityKernelEnum::POINT_PARTICLES)
         .set(RunSettingsId::GRAVITY_OPENING_ANGLE, 0.5_f)
         .set(RunSettingsId::GRAVITY_LEAF_SIZE, 20)
-        .set(RunSettingsId::COLLISION_RESTITUTION_NORMAL, 0.6_f)
-        .set(RunSettingsId::COLLISION_RESTITUTION_TANGENT, 0.9_f)
+        .set(RunSettingsId::COLLISION_RESTITUTION_NORMAL, 0.8_f)
+        .set(RunSettingsId::COLLISION_RESTITUTION_TANGENT, 1._f)
         .set(RunSettingsId::RUN_THREAD_GRANULARITY, 100);
 }
 
@@ -38,10 +38,10 @@ void NBody::setUp() {
     solver = makeAuto<NBodySolver>(settings);
 
 
-    RandomDistribution rndDist(124);
+    RandomDistribution rndDist(makeRng<HaltonQrng>());
     const Size particleCnt = 150;
 
-    Array<Vector> dist = rndDist.generate(particleCnt, SphericalDomain(Vector(0._f), 1._f * Constants::au));
+    Array<Vector> dist = rndDist.generate(particleCnt, SphericalDomain(Vector(0._f), 2._f * Constants::au));
     storage->insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, std::move(dist));
     ArrayView<Vector> r = storage->getValue<Vector>(QuantityId::POSITION);
 
@@ -49,26 +49,11 @@ void NBody::setUp() {
 
     for (Size i = 0; i < r.size(); ++i) {
         r[i][Z] = 0._f;
-        v[i] = 6.e4_f *
+        v[i] = 2.e5_f *
                (cross(r[i] * pow<2>(Constants::au) / pow<3>(getLength(r[i])), Vector(0._f, 0._f, 1._f)));
         v[i][Z] = 0._f;
         r[i][H] = 0.02_f * Constants::au;
     }
-
-    /*Array<Vector>& v = storage->getDt<Vector>(QuantityId::POSITION);
-        v = rndDist.generate(20, SphericalDomain(Vector(0._f), 5.e4_f));*/
-
-    /*Array<Vector> dist{
-        Vector(-0.5_f * Constants::au, 0._f, 0._f, 0.05_f * Constants::au),
-        Vector(0.5_f * Constants::au, 0._f, 0._f, 0.05_f * Constants::au),
-        Vector(0._f, 0.5_f * Constants::au, 0._f, 0.05_f * Constants::au),
-        Vector(0._f, -0.5_f * Constants::au, 0._f, 0.05_f * Constants::au),
-    };*/
-    // storage->insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, std::move(dist));
-
-    /*        ArrayView<Vector> velocities = storage->getDt<Vector>(QuantityId::POSITION);
-        velocities[0] = Vector(0._f, 5000._f, 0._f);
-        velocities[2] = Vector(0._f, -20000._f, 0._f);*/
 
 
     storage->insert<Float>(QuantityId::MASS, OrderEnum::ZERO, Constants::M_sun);

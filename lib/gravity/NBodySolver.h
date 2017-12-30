@@ -8,11 +8,13 @@
 #include "gravity/BruteForceGravity.h"
 #include "gravity/Collision.h"
 #include "gravity/IGravity.h"
+#include "io/Logger.h"
 #include "objects/finders/BruteForceFinder.h"
 #include "system/Factory.h"
 #include "system/Settings.h"
 #include "thread/ThreadLocal.h"
 #include "timestepping/ISolver.h"
+#include <set>
 
 NAMESPACE_SPH_BEGIN
 
@@ -54,7 +56,8 @@ public:
     NBodySolver(const RunSettings& settings, AutoPtr<IGravity>&& gravity)
         : gravity(std::move(gravity))
         , pool(settings.get<int>(RunSettingsId::RUN_THREAD_CNT))
-        , collisionFinder(Factory::getFinder(settings)) {} // makeAuto<BruteForceFinder>()) {}
+        , collisionFinder(/*Factory::getFinder(settings)) {} // */
+              makeAuto<BruteForceFinder>()) {}
 
     virtual void integrate(Storage& storage, Statistics& stats) override {
         gravity->build(storage);
@@ -78,6 +81,17 @@ public:
         // sort by collision time
         bool operator<(const CollisionRecord& other) const {
             return t_coll < other.t_coll;
+        }
+
+        bool operator==(const CollisionRecord& other) const {
+            if (!almostEqual(t_coll, other.t_coll, 1.e-6_f)) {
+                return false;
+            }
+            return (i == other.i && j == other.j) || (i == other.j && j == other.i);
+        }
+
+        bool operator!=(const CollisionRecord& other) const {
+            return !(*this == other);
         }
 
         explicit operator bool() const {
@@ -109,33 +123,29 @@ public:
         Size collisionCounter = 0;
 
         Array<Size> toRemove;
-
+        std::set<CollisionRecord> collisions;
+        std::set<Size> removedIdx;
 
         // find all collisions and sort them by collision time
         Float time = dt;
-        while (time > 0._f) {
-            // collisions.clear();
 
-            CollisionRecord closestCollision;
-            for (Size i = 0; i < r.size(); ++i) {
-                CollisionRecord col = this->findClosestCollision(i, searchRadius, time, r, v);
-                closestCollision = min(closestCollision, col);
+        for (Size i = 0; i < r.size(); ++i) {
+            if (CollisionRecord col = this->findClosestCollision(i, searchRadius, time, NOTHING, r, v)) {
+                collisions.insert(col);
             }
+        }
 
-            const Size i = closestCollision.i;
-            const Size j = closestCollision.j;
-            const Float t_coll = closestCollision ? closestCollision.t_coll : time;
+        while (!collisions.empty()) {
+            const CollisionRecord& col = *collisions.begin();
+            const Size i = col.i;
+            const Size j = col.j;
+            const Float t_coll = col.t_coll;
+            ASSERT(t_coll < time);
 
             // advance all positions to the collision time
-
             for (Size i = 0; i < r.size(); ++i) {
                 r[i] += v[i] * t_coll;
             }
-
-            if (bool(closestCollision) == false) {
-                break;
-            }
-
 
             // handle the collision
             toRemove.clear();
@@ -143,40 +153,52 @@ public:
             if (result != CollisionResult::NONE) {
                 ASSERT(storage.isValid());
                 time -= t_coll;
-
+                // decrease current collision times accordingly
+                for (const CollisionRecord& c : collisions) {
+                    const_cast<CollisionRecord&>(c).t_coll -= t_coll;
+                }
                 collisionCounter++;
 
-                /// \todo remove previous (now invalid) collisions of particles i and j?
-                // decrease the movement time of collided particles
-                //  ASSERT(dts[i] >= 0._f && dts[j] >= 0._f, dts[i], dts[j]);
                 // apply the removal list (now we can safely invalidate arrayviews)
-                storage.remove(toRemove);
+                // storage.remove(toRemove);
                 // remove it also from all dependent storages, since this is a permanent action
-                storage.propagate([&toRemove](Storage& dependent) { dependent.remove(toRemove); });
-            }
-            /*  switch (result) {
-              case CollisionResult::NONE:
-              case CollisionResult::BOUNCE:
-                  // no need to do anything, case handled just so we are sure we are not forgetting
-                  // something
-                  break;
-              case CollisionResult::EVAPORATION:
-              case CollisionResult::MERGER:
-              case CollisionResult::FRAGMENTATION:
-                  // number of particles changed, we need to reset (possibly invalidated) arrayviews and
-                  // rebuild the tree
-                  tie(r, v, a) = storage.getAll<Vector>(QuantityId::POSITION);
-                  /// \todo dts = timers->getValue<Float>(QuantityId::MOVEMENT_TIME);
-                  collisionFinder->build(r);
-                  break;
-              default:
-                  NOT_IMPLEMENTED;
-              }
+                // storage.propagate([&toRemove](Storage& dependent) { dependent.remove(toRemove); });
 
-              // process the particle again as there may be more collisions
-              continue;
-          }*/
+                // remove all collisions containing either i or j
+                removedIdx.clear();
+                for (auto iter = collisions.begin(); iter != collisions.end();) {
+                    const CollisionRecord& c = *iter;
+                    if (c.i == i || c.i == j || c.j == i || c.j == j) {
+                        removedIdx.insert(c.i);
+                        removedIdx.insert(c.j);
+                        iter = collisions.erase(iter);
+                    } else {
+                        ++iter;
+                    }
+                }
+
+                // find new collisions for removed indices
+                for (Size idx : removedIdx) {
+                    if (CollisionRecord c =
+                            this->findClosestCollision(idx, searchRadius, time, NOTHING, r, v)) {
+                        if ((c.i == i && c.j == j) || (c.j == i && c.i == j)) {
+                            // don't process the same pair twice in a row
+                            continue;
+                        }
+                        collisions.insert(c);
+                    }
+                }
+            }
         }
+        // advance all positions by the remaining time
+        for (Size i = 0; i < r.size(); ++i) {
+            r[i] += v[i] * time;
+        }
+
+        //        incrementalCollisions.push(CollisionRecord{ Size(-1), Size(-1), time });
+
+        //      ASSERT(incrementalCollisions == allCollisions);
+
 
         stats.set(StatisticsId::COLLISION_COUNT, int(collisionCounter));
     }
@@ -203,6 +225,7 @@ private:
     CollisionRecord findClosestCollision(const Size i,
         const Float searchRadius,
         const Float dt,
+        const Optional<Size> ignoreIdx,
         ArrayView<Vector> r,
         ArrayView<Vector> v) {
         /// \todo search only in front of the particle ?
@@ -211,6 +234,11 @@ private:
         CollisionRecord closestCollision;
         for (NeighbourRecord& n : neighs) {
             const Size j = n.index;
+
+            (void)ignoreIdx;
+            if (j == i) { // || j == ignoreIdx) {
+                continue;
+            }
 
             // temporary hack to force particles into the z=0 plane
             v[i][Z] = 0._f;

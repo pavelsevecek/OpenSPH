@@ -31,9 +31,15 @@ public:
 /// Generating random positions withing the domain.
 class RandomDistribution : public IDistribution {
 private:
-    mutable UniformRng rng;
+    AutoPtr<IRng> rng;
 
 public:
+    /// \brief Creates a random distribution given random number generator
+    explicit RandomDistribution(AutoPtr<IRng>&& rng);
+
+    /// \brief Creates a random distribution with uniform sampling.
+    ///
+    /// \param seed Seed for the uniform RNG.
     explicit RandomDistribution(const Size seed);
 
     virtual Array<Vector> generate(const Size n, const IDomain& domain) const override;

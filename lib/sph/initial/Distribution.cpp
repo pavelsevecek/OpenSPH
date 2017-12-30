@@ -14,12 +14,15 @@ NAMESPACE_SPH_BEGIN
 /// RandomDistribution implementation
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+RandomDistribution::RandomDistribution(AutoPtr<IRng>&& rng)
+    : rng(std::move(rng)) {}
+
 RandomDistribution::RandomDistribution(const Size seed)
-    : rng(seed) {}
+    : rng(makeRng<UniformRng>(seed)) {}
 
 Array<Vector> RandomDistribution::generate(const Size n, const IDomain& domain) const {
     const Box bounds = domain.getBoundingBox();
-    VectorRng<UniformRng&> boxRng(rng);
+    VectorRng<IRng&> boxRng(*rng);
     Array<Vector> vecs(0, n);
     // use homogeneous smoothing lenghs regardless of actual spatial variability of particle concentration
     const Float volume = domain.getVolume();

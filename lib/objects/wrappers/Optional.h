@@ -206,7 +206,6 @@ bool operator==(const Optional<T>& opt, const T& t) {
     return opt.value() == t;
 }
 
-
 template <typename T>
 bool operator==(const T& t, const Optional<T>& opt) {
     if (!opt) {

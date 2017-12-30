@@ -7,6 +7,7 @@
 
 #include "objects/containers/Array.h"
 #include "objects/geometry/Box.h"
+#include "objects/wrappers/AutoPtr.h"
 #include <random>
 
 NAMESPACE_SPH_BEGIN
@@ -102,5 +103,10 @@ public:
         return rng(s);
     }
 };
+
+template <typename TRng, typename... TArgs>
+AutoPtr<RngWrapper<TRng>> makeRng(TArgs&&... args) {
+    return makeAuto<RngWrapper<TRng>>(std::forward<TArgs>(args)...);
+}
 
 NAMESPACE_SPH_END
