@@ -1,18 +1,20 @@
 #include "sph/equations/av/MorrisMonaghan.h"
 #include "catch.hpp"
-#include "tests/Setup.h"
+#include "sph/solvers/AsymmetricSolver.h"
 #include "tests/Approx.h"
+#include "tests/Setup.h"
 #include "utils/SequenceTest.h"
+#include "utils/Utils.h"
 
 using namespace Sph;
 
-TEST_CASE("MorrisMonaghan sanitycheck", "[av]") {
+TYPED_TEST_CASE_2("MorrisMonaghan sanitycheck", "[av]", TSolver, SymmetricSolver, AsymmetricSolver) {
     BodySettings body;
     body.set(BodySettingsId::DENSITY, 1._f).set(BodySettingsId::ENERGY, 1._f);
     Storage storage = Tests::getGassStorage(1000, body);
     const Float cs = storage.getValue<Float>(QuantityId::SOUND_SPEED)[0];
 
-    Tests::computeField(storage, makeTerm<MorrisMonaghanAV>(), [cs](const Vector r) {
+    Tests::computeField<TSolver>(storage, makeTerm<MorrisMonaghanAV>(), [cs](const Vector r) {
         // supersonic shock at x=0
         if (r[X] > 0.f) {
             return Vector(-25._f * cs, 0._f, 0._f);

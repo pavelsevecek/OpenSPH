@@ -219,7 +219,10 @@ namespace Detail {
             case OrderEnum::SECOND:
                 d2v_dt2.resize(size);
                 d2v_dt2.fill(TValue(0._f));
-                SPH_FALLTHROUGH;
+                dv_dt.resize(size);
+                dv_dt.fill(TValue(0._f));
+                // [[fallthrough]] - somehow doesn't work with gcc6
+                break;
             case OrderEnum::FIRST:
                 dv_dt.resize(size);
                 dv_dt.fill(TValue(0._f));

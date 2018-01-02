@@ -1,7 +1,7 @@
 #pragma once
 
-#include "objects/geometry/Multipole.h"
 #include "objects/finders/KdTree.h"
+#include "objects/geometry/Multipole.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -147,7 +147,7 @@ namespace Detail {
     INLINE Multipole<0> computeMultipoleImpl(const Vector& UNUSED(dr), const Float m) {
         return m;
     }
-}
+} // namespace Detail
 
 template <Size N, typename TSequence>
 Multipole<N> computeMultipole(ArrayView<const Vector> r,
@@ -263,7 +263,7 @@ namespace MomentOperators {
                    makeInner<2>(Q, f2).value() * (-1._f / 5._f);
         }
     };
-}
+} // namespace MomentOperators
 
 INLINE TracelessMultipole<3> parallelAxisTheorem(const TracelessMultipole<3>& Qijk,
     const TracelessMultipole<2>& Qij,
@@ -326,10 +326,10 @@ Vector evaluateGravity(const Vector& dr, const MultipoleExpansion<N>& ms, const 
     switch (maxOrder) {
     case MultipoleOrder::OCTUPOLE:
         a += computeMultipoleAcceleration<3>(ms, gamma, -dr);
-        SPH_FALLTHROUGH;
+        SPH_FALLTHROUGH
     case MultipoleOrder::QUADRUPOLE:
         a += computeMultipoleAcceleration<2>(ms, gamma, -dr);
-        SPH_FALLTHROUGH;
+        SPH_FALLTHROUGH
     case MultipoleOrder::MONOPOLE:
         a += computeMultipoleAcceleration<0>(ms, gamma, -dr);
         break;

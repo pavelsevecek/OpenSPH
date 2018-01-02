@@ -50,15 +50,20 @@ private:
         Connect(MAIN_LOOP_TYPE, MainLoopEventHandler(App::processEvents));
 
         GuiSettings gui;
-        gui.set(GuiSettingsId::ORTHO_FOV, 5.e3_f)
-            .set(GuiSettingsId::ORTHO_VIEW_CENTER, Vector(320, 200, 0._f))
-            .set(GuiSettingsId::PARTICLE_RADIUS, 0.3_f)
-            .set(GuiSettingsId::ORTHO_CUTOFF, 5.e2_f)
+        gui.set(GuiSettingsId::ORTHO_FOV, 1._f)
+            .set(GuiSettingsId::ORTHO_VIEW_CENTER, Vector(320, 240, 0._f))
+            .set(GuiSettingsId::PARTICLE_RADIUS, 0.2_f)
+            .set(GuiSettingsId::ORTHO_CUTOFF, 0.005_f)
             .set(GuiSettingsId::ORTHO_PROJECTION, OrthoEnum::XY)
             .set(GuiSettingsId::IMAGES_SAVE, true)
-            .set(GuiSettingsId::IMAGES_TIMESTEP, 0.1_f)
-            .set(GuiSettingsId::PALETTE_ENERGY, Interval(0.1_f, 10._f))
-            .set(GuiSettingsId::PALETTE_PRESSURE, Interval(-10._f, 1.e6_f));
+            .set(GuiSettingsId::IMAGES_TIMESTEP, 0.0001_f)
+            .set(GuiSettingsId::VIEW_GRID_SIZE, 0.25_f)
+            .set(GuiSettingsId::PALETTE_ENERGY, Interval(1.e-6_f, 1.e-2_f))
+            .set(GuiSettingsId::PALETTE_VELOCITY, Interval(0.1_f, 8._f * PI))
+            .set(GuiSettingsId::PALETTE_DIVV, Interval(-1.e-2_f, 1.e-2_f))
+            .set(GuiSettingsId::PALETTE_PRESSURE, Interval(-1.e6_f, 1.e2_f))
+            .set(GuiSettingsId::PALETTE_STRESS, Interval(1.e4f, 1.e6_f))
+            .set(GuiSettingsId::PALETTE_DENSITY_PERTURB, Interval(-1.e-4_f, 1.e-4_f));
 
         controller = makeAuto<Controller>(gui);
 

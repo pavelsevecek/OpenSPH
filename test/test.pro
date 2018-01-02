@@ -8,7 +8,8 @@ QMAKE_CXXFLAGS += -msse4.1 -Wall -Wextra -Werror -std=c++14 -pthread
 DEFINES += SPH_USE_EIGEN
 LIBS += ../lib/liblib.a
 
-
+#QMAKE_CXX = clang++
+#QMAKE_LINK = clang++
 
 CONFIG(release, debug|profile|assert|release) {
   message( "SPH TESTS --- Building for Release" )
@@ -37,10 +38,10 @@ LIBS += ../lib/liblib.a
 PRE_TARGETDEPS += ../lib/liblib.a
 
 SOURCES += \
-    main.cpp \
     ../lib/gravity/test/BarnesHut.cpp \
     ../lib/gravity/test/BruteForceGravity.cpp \
     ../lib/gravity/test/Moments.cpp \
+    ../lib/io/test/FileManager.cpp \
     ../lib/io/test/FileSystem.cpp \
     ../lib/io/test/Logger.cpp \
     ../lib/io/test/Output.cpp \
@@ -48,12 +49,12 @@ SOURCES += \
     ../lib/io/test/Serializer.cpp \
     ../lib/math/rng/test/Rng.cpp \
     ../lib/math/rng/test/VectorRng.cpp \
+    ../lib/math/test/AffineMatrix.cpp \
     ../lib/math/test/Integrator.cpp \
     ../lib/math/test/Math.cpp \
     ../lib/math/test/Means.cpp \
-    ../lib/math/test/Quat.cpp \
-    ../lib/math/test/AffineMatrix.cpp \
     ../lib/math/test/Morton.cpp \
+    ../lib/math/test/Quat.cpp \
     ../lib/math/test/Roots.cpp \
     ../lib/math/test/SparseMatrix.cpp \
     ../lib/objects/containers/test/Array.cpp \
@@ -77,6 +78,7 @@ SOURCES += \
     ../lib/objects/geometry/test/TracelessTensor.cpp \
     ../lib/objects/geometry/test/Vector.cpp \
     ../lib/objects/utility/test/ArrayUtils.cpp \
+    ../lib/objects/utility/test/Dynamic.cpp \
     ../lib/objects/utility/test/Iterators.cpp \
     ../lib/objects/utility/test/OperatorTemplate.cpp \
     ../lib/objects/utility/test/StringUtils.cpp \
@@ -113,6 +115,7 @@ SOURCES += \
     ../lib/quantities/test/Storage.cpp \
     ../lib/run/test/Run.cpp \
     ../lib/sph/boundary/test/Boundary.cpp \
+    ../lib/sph/equations/av/test/AV.cpp \
     ../lib/sph/equations/av/test/Balsara.cpp \
     ../lib/sph/equations/av/test/MorrisMonaghan.cpp \
     ../lib/sph/equations/av/test/Stress.cpp \
@@ -149,12 +152,10 @@ SOURCES += \
     ../lib/thread/test/Pool.cpp \
     ../lib/timestepping/test/TimeStepCriterion.cpp \
     ../lib/timestepping/test/TimeStepping.cpp \
+    main.cpp \
     utils/Approx.cpp \
     utils/SequenceTest.cpp \
-    utils/Utils.cpp \
-    ../lib/sph/equations/av/test/AV.cpp \
-    ../lib/objects/utility/test/Dynamic.cpp \
-    ../lib/io/test/FileManager.cpp
+    utils/Utils.cpp
 
 HEADERS += \
     utils/Utils.h \

@@ -298,6 +298,10 @@ MultiCriterion::MultiCriterion(const RunSettings& settings) {
     maxChange = settings.get<Float>(RunSettingsId::TIMESTEPPING_MAX_CHANGE);
 }
 
+MultiCriterion::MultiCriterion(Array<AutoPtr<ITimeStepCriterion>>&& criteria, const Float maxChange)
+    : criteria(std::move(criteria))
+    , maxChange(maxChange) {}
+
 Tuple<Float, CriterionId> MultiCriterion::compute(Storage& storage, const Float maxStep, Statistics& stats) {
     PROFILE_SCOPE("MultiCriterion::compute");
     ASSERT(!criteria.empty());

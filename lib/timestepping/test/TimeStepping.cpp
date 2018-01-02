@@ -12,19 +12,7 @@
 using namespace Sph;
 
 namespace {
-
-    struct TestSolver : public ISolver {
-        virtual void collide(Storage& storage, Statistics& UNUSED(stats), const Float dt) override {
-            ArrayView<Vector> r, v, dv;
-            tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
-            for (Size i = 0; i < r.size(); ++i) {
-                r[i] += v[i] * dt;
-            }
-        }
-    };
-
-
-    struct HomogeneousField : public TestSolver {
+    struct HomogeneousField : public ISolver {
         Vector g = Vector(0.f, 0.f, 1._f);
 
         HomogeneousField() = default;
@@ -42,7 +30,7 @@ namespace {
         }
     };
 
-    struct HarmonicOscillator : public TestSolver {
+    struct HarmonicOscillator : public ISolver {
         Float period = 1._f;
 
         HarmonicOscillator() = default;
@@ -61,7 +49,7 @@ namespace {
         }
     };
 
-    struct LorentzForce : public TestSolver {
+    struct LorentzForce : public ISolver {
         const Vector B = Vector(0.f, 0.f, 1.f);
 
         LorentzForce() = default;
@@ -183,7 +171,7 @@ static void testGyroscopicMotion(TArgs&&... args) {
     REQUIRE_SEQUENCE(test, 0, testCnt);
 }
 
-struct ClampSolver : public TestSolver {
+struct ClampSolver : public ISolver {
     enum class Direction {
         INCREASING,
         DECREASING,
@@ -243,7 +231,7 @@ static void testClamping() {
     REQUIRE(u[0] == range.lower());
 }
 
-class AddingParticlesSolver : public TestSolver {
+class AddingParticlesSolver : public ISolver {
 public:
     virtual void integrate(Storage& storage, Statistics& UNUSED(stats)) override {
         storage.resize(storage.getParticleCnt() + 100);

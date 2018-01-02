@@ -51,7 +51,7 @@ public:
 
     virtual bool condition(const Storage& UNUSED(storage), const Statistics& stats) override {
         const Float t = stats.get<Float>(StatisticsId::RUN_TIME);
-        if (t > _lastAction) {
+        if (t > _lastAction + _period) {
             _lastAction = t;
             return true;
         } else {

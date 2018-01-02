@@ -101,7 +101,7 @@ namespace {
         }
 
         virtual void setUp() override {
-            solver = makeAuto<GenericSolver>(settings, equations);
+            solver = makeAuto<SymmetricSolver>(settings, equations);
             IMaterial& material = storage->getMaterial(0);
             solver->create(*storage, material);
 

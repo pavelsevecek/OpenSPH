@@ -14,7 +14,7 @@
 #include "system/Profiler.h"
 #include "system/Statistics.h"
 #include "thread/ThreadLocal.h"
-#include "timestepping/ISolverr.h"
+#include "timestepping/ISolver.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -23,20 +23,24 @@ NAMESPACE_SPH_BEGIN
 /// \todo
 class AsymmetricSolver : public ISolver {
 protected:
-    /// Holds all derivatives this thread computes
+    /// Holds all derivatives (shared for all threads)
     DerivativeHolder derivatives;
-
-    /// Cached array of neighbours, to avoid allocation every step
-    Array<NeighbourRecord> neighs;
-
-    /// Indices of real neighbours
-    Array<Size> idxs;
-
-    /// Cached array of gradients
-    Array<Vector> grads;
 
     /// Thread pool used to parallelize the solver, runs the whole time the solver exists.
     SharedPtr<ThreadPool> pool;
+
+    struct ThreadData {
+        /// Cached array of neighbours, to avoid allocation every step
+        Array<NeighbourRecord> neighs;
+
+        /// Indices of real neighbours
+        Array<Size> idxs;
+
+        /// Cached array of gradients
+        Array<Vector> grads;
+    };
+
+    ThreadLocal<ThreadData> threadData;
 
     /// Selected granularity of the parallel processing. The more particles in simulation, the higher the
     /// value should be to utilize the solver optimally.
@@ -60,19 +64,15 @@ public:
         finder = Factory::getFinder(settings);
         granularity = settings.get<int>(RunSettingsId::RUN_THREAD_GRANULARITY);
         equations += eqs;
-        // add term counting number of neighbours
-        equations += makeTerm<NeighbourCountTerm>();
+
         // initialize all derivatives
         equations.setDerivatives(derivatives, settings);
     }
 
     virtual void integrate(Storage& storage, Statistics& stats) override {
-        /// \todo move elsewhere
-        storage.setThreadPool(pool);
-
         // initialize all materials (compute pressure, apply yielding and damage, ...)
         for (Size i = 0; i < storage.getMaterialCnt(); ++i) {
-            PROFILE_SCOPE("GenericSolver initialize materials")
+            PROFILE_SCOPE("AsymmetricSolver initialize materials")
             MaterialView material = storage.getMaterial(i);
             material->initialize(storage, material.sequence());
         }
@@ -81,7 +81,7 @@ public:
         equations.initialize(storage);
 
         // initialize accumulate storages & derivatives
-        this->beforeLoop(storage, stats);
+        derivatives.initialize(storage);
 
         // main loop over pairs of interacting particles
         this->loop(storage);
@@ -94,7 +94,7 @@ public:
 
         // finalize all materials (integrate fragmentation model)
         for (Size i = 0; i < storage.getMaterialCnt(); ++i) {
-            PROFILE_SCOPE("GenericSolver finalize materials")
+            PROFILE_SCOPE("AsymmetricSolver finalize materials")
             MaterialView material = storage.getMaterial(i);
             material->finalize(storage, material.sequence());
         }
@@ -112,35 +112,39 @@ protected:
         ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
         finder->build(r);
 
-        auto functor = [this, r](const Size n1, const Size n2) {
+        // find the maximum search radius
+        Float maxH = 0._f;
+        for (Size i = 0; i < r.size(); ++i) {
+            maxH = max(maxH, r[i][H]);
+        }
+        const Float radius = maxH * kernel.radius();
+
+        ArrayView<Size> neighs = storage.getValue<Size>(QuantityId::NEIGHBOUR_CNT);
+
+        auto functor = [this, r, &neighs, radius](const Size n1, const Size n2, ThreadData& data) {
             for (Size i = n1; i < n2; ++i) {
-                finder->findNeighbours(i, maxH * kernel.radius(), data.neighs, EMPTY_FLAGS);
-                grads.clear();
-                idxs.clear();
+                finder->findNeighbours(i, radius, data.neighs, EMPTY_FLAGS);
+                data.grads.clear();
+                data.idxs.clear();
                 for (auto& n : data.neighs) {
                     const Size j = n.index;
                     const Float hbar = 0.5_f * (r[i][H] + r[j][H]);
                     ASSERT(hbar > EPS && hbar <= r[i][H], hbar, r[i][H]);
-                    if (getSqrLength(r[i] - r[j]) >= sqr(this->kernel.radius() * hbar)) {
+                    if (i == j || getSqrLength(r[i] - r[j]) >= sqr(this->kernel.radius() * hbar)) {
                         // aren't actual neighbours
                         continue;
                     }
                     const Vector gr = kernel.grad(r[i], r[j]);
                     ASSERT(isReal(gr) && dot(gr, r[i] - r[j]) < 0._f, gr, r[i] - r[j]);
-                    grads.emplaceBack(gr);
-                    idxs.emplaceBack(j);
+                    data.grads.emplaceBack(gr);
+                    data.idxs.emplaceBack(j);
                 }
-                data.derivatives.eval<false>(i, data.idxs, data.grads);
+                derivatives.eval(i, data.idxs, data.grads);
+                neighs[i] = data.idxs.size();
             }
         };
         PROFILE_SCOPE("AsymmetricSolver main loop");
-        parallelFor(*pool, 0, r.size(), granularity, functor);
-    }
-
-    virtual void beforeLoop(Storage& storage, Statistics& UNUSED(stats)) {
-        // clear thread accumulated
-        PROFILE_SCOPE("GenericSolver::beforeLoop");
-        derivatives.initialize(storage);
+        parallelFor(*pool, threadData, 0, r.size(), granularity, functor);
     }
 
     virtual void afterLoop(Storage& storage, Statistics& stats) {

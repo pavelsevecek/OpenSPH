@@ -151,7 +151,7 @@ public:
     virtual void setTransformMatrix(const AffineMatrix2& UNUSED(matrix)) override {}
 };
 
-class CollisionSolver : public GenericSolver {
+class CollisionSolver : public SymmetricSolver {
 private:
     /// Body settings for the impactor
     BodySettings body;
@@ -185,7 +185,7 @@ public:
         const BodySettings& body,
         const Vector targetOmega,
         const Path& path)
-        : GenericSolver(settings, this->getEquations(settings)) // , Factory::getGravity(settings))
+        : SymmetricSolver(settings, this->getEquations(settings)) // , Factory::getGravity(settings))
         , body(body)
         , targetOmega(targetOmega)
         , outputPath(path) {
@@ -198,7 +198,7 @@ public:
     }
 
     virtual void integrate(Storage& storage, Statistics& stats) override {
-        GenericSolver::integrate(storage, stats);
+        SymmetricSolver::integrate(storage, stats);
 
         const Float t = stats.get<Float>(StatisticsId::RUN_TIME);
         const Float dt = stats.getOr<Float>(StatisticsId::TIMESTEP_VALUE, 0.01_f);

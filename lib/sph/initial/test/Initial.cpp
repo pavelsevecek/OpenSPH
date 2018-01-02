@@ -59,10 +59,6 @@ TEST_CASE("Initial custom solver", "[initial]") {
 
         virtual void integrate(Storage& UNUSED(storage), Statistics& UNUSED(stats)) override {}
 
-        virtual void collide(Storage& UNUSED(storage),
-            Statistics& UNUSED(stats),
-            const Float UNUSED(dt)) override {}
-
         virtual void create(Storage& UNUSED(storage), IMaterial& UNUSED(material)) const override {
             createCalled++;
         }
@@ -213,8 +209,8 @@ TEST_CASE("Initial addHeterogeneousBody multiple", "[initial]") {
         return Outcome(flag[i] == 2 && v[i] == Vector(0._f));
     };
     REQUIRE_SEQUENCE(test, 0, r.size());
-    REQUIRE(particlesBody1 > 30);
-    REQUIRE(particlesBody2 > 30);
+    REQUIRE(particlesBody1 >= 30);
+    REQUIRE(particlesBody2 >= 30);
 }
 
 TEST_CASE("Initial addRubblePileBody", "[initial]") {

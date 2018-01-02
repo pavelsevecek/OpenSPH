@@ -171,6 +171,12 @@ public:
         v[i] = this->reflect(v[i], v_com, -dr);
         v[j] = this->reflect(v[j], v_com, dr);
 
+        // temporary hack to force particles into the z=0 plane
+        //    v[i][Z] = 0._f;
+        //    v[j][Z] = 0._f;
+        v[i][H] = 0._f;
+        v[j][H] = 0._f;
+
         return CollisionResult::BOUNCE;
     }
 

@@ -101,6 +101,9 @@ enum class StatisticsId {
     /// Current time of the simulation in code units. Does not necessarily have to be 0 when run starts.
     RUN_TIME,
 
+    /// Current wallclock duration of the simulation
+    WALLCLOCK_TIME,
+
     /// Progress of the run, always 0 <= progress <= 1, where 0 is the start of the run and 1 is the end of
     /// the run.
     RELATIVE_PROGRESS,
@@ -117,6 +120,9 @@ enum class StatisticsId {
     /// Number of neighbours (min, max, mean)
     NEIGHBOUR_COUNT,
 
+    /// Wallclock duration of evaluation of SPH derivatives
+    SPH_EVAL_TIME,
+
     /// Number of nodes in used gravity tree
     GRAVITY_NODE_COUNT,
 
@@ -125,6 +131,9 @@ enum class StatisticsId {
 
     /// Number of tree nodes evaluated using multipole approximation
     GRAVITY_NODES_APPROX,
+
+    /// Wallclock duration of gravity evaluation
+    GRAVITY_EVAL_TIME,
 
     /// Number of collisions in the timestep
     COLLISION_COUNT,

@@ -87,7 +87,7 @@ TEST_CASE("BinaryOutput dump&accumulate simple", "[output]") {
     storage1.insert<Float>(QuantityId::DENSITY, OrderEnum::FIRST, 5._f);
     storage1.insert<TracelessTensor>(QuantityId::DEVIATORIC_STRESS, OrderEnum::ZERO, TracelessTensor(3._f));
     storage1.insert<SymmetricTensor>(
-        QuantityId::ANGULAR_MOMENTUM_CORRECTION, OrderEnum::ZERO, SymmetricTensor(6._f));
+        QuantityId::STRAIN_RATE_CORRECTION_TENSOR, OrderEnum::ZERO, SymmetricTensor(6._f));
     BinaryOutput output(Path("simple%d.out"));
     Statistics stats;
     stats.set(StatisticsId::RUN_TIME, 0._f);
@@ -107,8 +107,8 @@ TEST_CASE("BinaryOutput dump&accumulate simple", "[output]") {
     REQUIRE(storage2.getQuantity(QuantityId::DEVIATORIC_STRESS).getOrderEnum() == OrderEnum::ZERO);
     REQUIRE(perElement(storage2.getValue<TracelessTensor>(QuantityId::DEVIATORIC_STRESS)) ==
             TracelessTensor(3._f));
-    REQUIRE(storage2.getQuantity(QuantityId::ANGULAR_MOMENTUM_CORRECTION).getOrderEnum() == OrderEnum::ZERO);
-    REQUIRE(perElement(storage2.getValue<SymmetricTensor>(QuantityId::ANGULAR_MOMENTUM_CORRECTION)) ==
+    REQUIRE(storage2.getQuantity(QuantityId::STRAIN_RATE_CORRECTION_TENSOR).getOrderEnum() == OrderEnum::ZERO);
+    REQUIRE(perElement(storage2.getValue<SymmetricTensor>(QuantityId::STRAIN_RATE_CORRECTION_TENSOR)) ==
             SymmetricTensor(6._f));
 }
 

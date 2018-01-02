@@ -10,15 +10,11 @@ NAMESPACE_SPH_BEGIN
 bool Assert::isTest = false;
 bool Assert::breakOnFail = true;
 
-void Assert::check(const bool condition,
-    const char* message,
+void Assert::fireParams(const char* message,
     const char* file,
     const char* func,
     const int line,
     const char* text) {
-    if (condition) {
-        return;
-    }
     static std::mutex mutex;
     std::unique_lock<std::mutex> lock(mutex);
     if (breakOnFail) {
@@ -39,7 +35,7 @@ void Assert::check(const bool condition,
         }
     }
     if (!isTest) {
-        assert(condition);
+        assert(false);
     } else {
         throw Exception(message);
     }

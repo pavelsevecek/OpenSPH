@@ -134,6 +134,8 @@ private:
 public:
     explicit MultiCriterion(const RunSettings& settings);
 
+    explicit MultiCriterion(Array<AutoPtr<ITimeStepCriterion>>&& criteria, const Float maxChange = INFTY);
+
     virtual Tuple<Float, CriterionId> compute(Storage& storage,
         const Float maxStep,
         Statistics& stats) override;

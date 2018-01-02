@@ -17,6 +17,9 @@ private:
     /// Cutoff distance of visible particles.
     float cutoff;
 
+    /// Grid size
+    float grid;
+
     /// Cached values of visible particles, used for faster drawing.
     struct {
         /// Positions of particles
@@ -45,7 +48,9 @@ public:
         const RenderParams& params,
         Statistics& stats) const override;
 
-    void drawPalette(wxDC& dc, const Palette& palette) const;
+    static void drawPalette(wxDC& dc, const Palette& palette);
+
+    static void drawGrid(wxDC& dc, const ICamera& camera, const float grid);
 
 private:
     bool isCutOff(const ICamera& camera, const Vector& r);

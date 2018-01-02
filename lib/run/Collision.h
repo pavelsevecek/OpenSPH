@@ -67,7 +67,7 @@ public:
             .set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::VON_MISES)
             .set(BodySettingsId::DISTRIBUTE_MODE_SPH5, true);
 
-        solver = makeAuto<GenericSolver>(settings, this->getEquations(settings));
+        solver = makeAuto<SymmetricSolver>(settings, this->getEquations(settings));
         AutoPtr<Presets::Collision> maker = makeAuto<Presets::Collision>(*solver, settings, body, _params);
         Path logPath = _params.outputPath / Path("log.txt");
         logger = makeAuto<FileLogger>(logPath, FileLogger::Options::ADD_TIMESTAMP);

@@ -65,7 +65,7 @@ public:
         if (!block.ptr) {
             return;
         }
-        if (block.ptr + block.size == pos) {
+        if ((char*)block.ptr + block.size == pos) {
             pos = static_cast<char*>(block.ptr);
         }
         block = Block::EMPTY();

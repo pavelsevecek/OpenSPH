@@ -10,10 +10,10 @@
 
 using namespace Sph;
 
-CATCH_TEMPLATE_TEST_CASE_2("AV divergent", "[av]", T, StandardAV, RiemannAV) {
+TYPED_TEST_CASE_2("AV divergent", "[av]", T, StandardAV, RiemannAV) {
     EquationHolder term = makeTerm<T>();
     Storage storage = Tests::getGassStorage(10000);
-    Tests::computeField(storage, std::move(term), [](const Vector& r) {
+    Tests::computeField<SymmetricSolver>(storage, std::move(term), [](const Vector& r) {
         // some divergent velocity field
         return r;
     });
@@ -22,7 +22,7 @@ CATCH_TEMPLATE_TEST_CASE_2("AV divergent", "[av]", T, StandardAV, RiemannAV) {
     REQUIRE(perElement(dv) == Vector(0._f));
 }
 
-CATCH_TEMPLATE_TEST_CASE_2("AV shockwave", "[av]", T, StandardAV, RiemannAV) {
+TYPED_TEST_CASE_2("AV shockwave", "[av]", T, StandardAV, RiemannAV) {
     EquationHolder term = makeTerm<T>();
     BodySettings body;
     body.set(BodySettingsId::DENSITY, 1._f).set(BodySettingsId::ENERGY, 1._f);
@@ -30,7 +30,7 @@ CATCH_TEMPLATE_TEST_CASE_2("AV shockwave", "[av]", T, StandardAV, RiemannAV) {
     const Float cs = storage.getValue<Float>(QuantityId::SOUND_SPEED)[0]; // all particles have the same c_s
     REQUIRE(cs > 0._f);
     const Float v0 = 5._f * cs;
-    Tests::computeField(storage, std::move(term), [cs, v0](const Vector& r) {
+    Tests::computeField<SymmetricSolver>(storage, std::move(term), [v0](const Vector& r) {
         // zero velocity for x<0, supersonic flow for x>0
         if (r[X] < 0._f) {
             return Vector(0._f);

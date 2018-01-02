@@ -1,5 +1,6 @@
 #include "sph/initial/Initial.h"
 #include "math/rng/VectorRng.h"
+#include "objects/finders/KdTree.h"
 #include "objects/geometry/Domain.h"
 #include "objects/geometry/Sphere.h"
 #include "physics/Eos.h"
@@ -320,5 +321,32 @@ void InitialConditions::setQuantities(Storage& storage, IMaterial& material, con
     material.create(storage, context);
 }
 
+void spaceParticles(ArrayView<Vector> r, const Float radius) {
+    KdTree finder;
+    finder.build(r);
+    Array<NeighbourRecord> neighs;
+    Size moveCnt = -1;
+    while (moveCnt != 0) {
+        moveCnt = 0;
+        for (Size i = 0; i < r.size(); ++i) {
+            finder.findNeighbours(i, 10._f * r[i][H] * radius, neighs, EMPTY_FLAGS);
+            Vector force = Vector(0._f);
+            if (neighs.size() <= 1) {
+                continue;
+            }
+            for (NeighbourRecord& n : neighs) {
+                if (i != n.index) {
+                    const Vector dr = r[n.index] - r[i];
+                    force += -0.3_f * dr * pow<3>(r[i][H]) / pow<3>(getLength(dr));
+                    if (getLength(dr) < r[i][H] * radius) {
+                        moveCnt++;
+                    }
+                }
+            }
+            force[H] = 0._f;
+            r[i] += force;
+        }
+    }
+}
 
 NAMESPACE_SPH_END

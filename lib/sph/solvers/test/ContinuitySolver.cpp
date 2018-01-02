@@ -8,7 +8,7 @@
 using namespace Sph;
 
 void testSolver(Storage& storage, const RunSettings& settings) {
-    ContinuitySolver solver(settings);
+    SymmetricSolver solver(settings, getStandardEquations(settings));
     REQUIRE_NOTHROW(solver.create(storage, storage.getMaterial(0)));
     Statistics stats;
     REQUIRE_NOTHROW(solver.integrate(storage, stats));
@@ -81,7 +81,7 @@ TEST_CASE("Constant smoothing length", "[solvers]") {
     settings.set(RunSettingsId::MODEL_FORCE_SOLID_STRESS, true);
     settings.set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONST);
 
-    ContinuitySolver solver(settings);
+    SymmetricSolver solver(settings, getStandardEquations(settings));
     solver.create(*storage, storage->getMaterial(0));
 
     // setup nonzero velocities

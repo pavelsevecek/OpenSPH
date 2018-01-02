@@ -87,9 +87,10 @@ enum class ColorizerId {
     COROTATING_VELOCITY = -4,  ///< Velocities with a respect to the rotating body
     DISPLACEMENT = -5,         ///< Difference between current positions and initial position
     DENSITY_PERTURBATION = -6, ///< Relative difference of density and initial density (rho/rho0 - 1)
-    RADIUS = -7,               ///< Radii/smoothing lenghts of particles
-    BOUNDARY = -8,             ///< Shows boundary particles
-    ID = -9,                   ///< Each particle drawn with different color
+    YIELD_REDUCTION = -7,      ///< Reduction of stress tensor due to yielding (1 - f_vonMises)
+    RADIUS = -8,               ///< Radii/smoothing lenghts of particles
+    BOUNDARY = -9,             ///< Shows boundary particles
+    ID = -10,                  ///< Each particle drawn with different color
 };
 
 /// Default colorizer simply converting quantity value to color using defined palette. Vector and tensor
@@ -106,8 +107,11 @@ protected:
 
 public:
     TypedColorizer(const QuantityId id, const Interval range)
+        : TypedColorizer(id, ColorizerId(id), range) {}
+
+    TypedColorizer(const QuantityId id, const ColorizerId colorizerId, const Interval range)
         : id(id)
-        , palette(Factory::getPalette(ColorizerId(id), range)) {}
+        , palette(Factory::getPalette(colorizerId, range)) {}
 
     virtual void initialize(const Storage& storage, const ColorizerSource source) override {
         if (source == ColorizerSource::CACHE_ARRAYS) {
@@ -134,7 +138,6 @@ public:
     virtual Optional<Palette> getPalette() const override {
         return palette;
     }
-
 
     virtual std::string name() const override {
         return getMetadata(id).quantityName;
@@ -282,13 +285,11 @@ public:
             v = storage.getDt<Vector>(QuantityId::POSITION);
         }
         omegaAvg = Vector(0._f);
-        Float weight = 0._f;
         for (Size i = 0; i < r.size(); ++i) {
             omegaAvg += cross(r[i], v[i]);
-            weight += getLength(r[i]);
         }
         ASSERT(weight > 0._f);
-        omegaAvg /= weight;
+        omegaAvg /= r.size();
     }
 
     virtual bool isInitialized() const override {
@@ -297,13 +298,11 @@ public:
 
     virtual Color eval(const Size idx) const override {
         ASSERT(!v.empty() && !r.empty());
-        const Vector omega = cross(r[idx], v[idx]) / (getLength(r[idx]) + EPS);
-        return palette(getLength(omega - omegaAvg));
+        return palette(getLength(v[idx] - cross(omegaAvg, r[idx])));
     }
 
     virtual Optional<Particle> getParticle(const Size idx) const override {
-        const Vector omega = cross(r[idx], v[idx]) / (getLength(r[idx]) + EPS);
-        return Particle(idx).addDt(QuantityId::POSITION, omega - omegaAvg);
+        return Particle(idx).addDt(QuantityId::POSITION, v[idx] - cross(omegaAvg, r[idx]));
     }
 
     virtual Optional<Palette> getPalette() const override {
@@ -365,9 +364,28 @@ public:
     }
 };
 
+class YieldReductionColorizer : public TypedColorizer<Float> {
+public:
+    explicit YieldReductionColorizer()
+        : TypedColorizer<Float>(QuantityId::STRESS_REDUCING,
+              ColorizerId::YIELD_REDUCTION,
+              Interval(0._f, 1._f)) {}
+
+    virtual Color eval(const Size idx) const override {
+        ASSERT(values);
+        ASSERT(values[idx] >= 0._f && values[idx] <= 1._f);
+        return palette(1._f - values[idx]);
+    }
+
+    virtual std::string name() const override {
+        return "Yield reduction";
+    }
+};
+
 class RadiusColorizer : public TypedColorizer<Vector> {
 public:
     explicit RadiusColorizer(const Interval range) {
+        TODO("finish");
         palette = Factory::getPalette(ColorizerId::RADIUS, range);
     }
 

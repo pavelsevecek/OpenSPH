@@ -211,4 +211,6 @@ private:
     void setQuantities(Storage& storage, IMaterial& material, const Float volume);
 };
 
+void spaceParticles(ArrayView<Vector> r, const Float radius);
+
 NAMESPACE_SPH_END

@@ -37,7 +37,7 @@ namespace Tests {
 
     /// Computes velocity derivatives for given set of equations. Velocity field is defined by given
     /// lambda.
-    template <typename TLambda>
+    template <typename TSolver, typename TLambda>
     void computeField(Storage& storage,
         EquationHolder&& equations,
         TLambda&& lambda,
@@ -48,7 +48,7 @@ namespace Tests {
             v[i] = lambda(r[i]);
         }
         equations += makeTerm<ConstSmoothingLength>();
-        GenericSolver solver(RunSettings::getDefaults(), std::move(equations));
+        TSolver solver(RunSettings::getDefaults(), std::move(equations));
         solver.create(storage, storage.getMaterial(0));
         Statistics stats;
         for (Size i = 0; i < repeatCnt; ++i) {
@@ -71,12 +71,12 @@ namespace Tests {
     };
 
     /// Computes only a single derivative.
-    template <typename TDerivative, typename TLambda>
+    template <typename TDerivative, typename TSolver, typename TLambda>
     void computeField(Storage& storage, TLambda&& lambda, const Size repeatCnt = 1) {
         EquationHolder equations;
         equations += makeTerm<DerivativeWrapper<TDerivative>>();
-        computeField(storage, std::move(equations), std::forward<TLambda>(lambda), repeatCnt);
+        computeField<TSolver>(storage, std::move(equations), std::forward<TLambda>(lambda), repeatCnt);
     }
-}
+} // namespace Tests
 
 NAMESPACE_SPH_END

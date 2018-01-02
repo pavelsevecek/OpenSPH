@@ -57,8 +57,11 @@ Storage Tests::getSolidStorage(const Size particleCnt, BodySettings settings, co
     const Float rho0 = settings.get<Float>(BodySettingsId::DENSITY);
     settings.set(BodySettingsId::EOS, EosEnum::TILLOTSON)
         .set(BodySettingsId::DENSITY_RANGE, Interval(1.e-3_f * rho0, INFTY));
-    Storage storage(
-        makeAuto<SolidMaterial>(settings, Factory::getEos(settings), Factory::getRheology(settings)));
+    AutoPtr<IRheology> rheology = Factory::getRheology(settings);
+    if (!rheology) {
+        rheology = makeAuto<ElasticRheology>();
+    }
+    Storage storage(makeAuto<SolidMaterial>(settings, Factory::getEos(settings), std::move(rheology)));
     AutoPtr<IDistribution> distribution = Factory::getDistribution(settings);
     storage.insert<Vector>(
         QuantityId::POSITION, OrderEnum::SECOND, distribution->generate(particleCnt, domain));

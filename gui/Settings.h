@@ -60,6 +60,9 @@ enum class GuiSettingsId {
 
     VIEW_MAX_FRAMERATE,
 
+    /// Size of the grid cell in simulation units (not window units); if zero, no grid is drawn
+    VIEW_GRID_SIZE,
+
     /// Displayed radius of particle in units of smoothing length
     PARTICLE_RADIUS,
 
@@ -138,6 +141,10 @@ enum class GuiSettingsId {
     PALETTE_RADIUS,
 
     PALETTE_ANGULAR_VELOCITY,
+
+    PALETTE_STRAIN_RATE_CORRECTION_TENSOR,
+
+    PALETTE_ACTIVATION_STRAIN,
 };
 
 using GuiSettings = Settings<GuiSettingsId>;

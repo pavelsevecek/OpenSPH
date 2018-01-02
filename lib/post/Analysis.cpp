@@ -308,6 +308,30 @@ Array<Post::MoonEnum> Post::findMoons(const Storage& storage, const Float radius
     return status;
 }
 
+SymmetricTensor Post::getInertiaTensor(ArrayView<const Float> m,
+    ArrayView<const Vector> r,
+    const Vector& r0) {
+    TODO("test!");
+    SymmetricTensor I = SymmetricTensor::null();
+    for (Size i = 0; i < r.size(); ++i) {
+        const Vector dr = r[i] - r0;
+        I += m[i] * (SymmetricTensor::identity() * getSqrLength(dr) - outer(dr, dr));
+    }
+    return I;
+}
+
+SymmetricTensor Post::getInertiaTensor(ArrayView<const Float> m, ArrayView<const Vector> r) {
+    Vector com(0._f);
+    Float m_tot = 0._f;
+    for (Size i = 0; i < r.size(); ++i) {
+        com += m[i] * r[i];
+        m_tot += m[i];
+    }
+    com /= m_tot;
+
+    return getInertiaTensor(m, r, com);
+}
+
 Float Post::KeplerianElements::ascendingNode() const {
     if (sqr(L[Z]) > (1._f - EPS) * getSqrLength(L)) {
         // Longitude of the ascending node undefined, return 0 (this is a valid case, not an error the data)
@@ -539,14 +563,6 @@ Array<Post::SfdPoint> Post::getDifferentialSfd(const Storage& storage, const His
     return histogram;
 }
 
-template <typename TValue>
-static void sort(Array<TValue>& ar, const Order& order) {
-    Array<TValue> ar0 = ar.clone();
-    for (Size i = 0; i < ar.size(); ++i) {
-        ar[i] = ar0[order[i]];
-    }
-}
-
 Expected<Storage> Post::parsePkdgravOutput(const Path& path) {
     TextOutput output;
 
@@ -630,11 +646,11 @@ Expected<Storage> Post::parsePkdgravOutput(const Path& path) {
     // sort
     Order order(r.size());
     order.shuffle([&m](const Size i1, const Size i2) { return m[i1] > m[i2]; });
-    sort(r, order);
-    sort(v, order);
-    sort(m, order);
-    sort(rho, order);
-    sort(omega, order);
+    r = order.apply(r);
+    v = order.apply(v);
+    m = order.apply(m);
+    rho = order.apply(rho);
+    omega = order.apply(omega);
     return std::move(storage);
 }
 

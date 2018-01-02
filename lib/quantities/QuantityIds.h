@@ -139,7 +139,10 @@ enum class QuantityId {
     STRENGTH_VELOCITY_GRADIENT,
 
     /// Correction tensor used to improve conservation of total angular momentum.
-    ANGULAR_MOMENTUM_CORRECTION,
+    STRAIN_RATE_CORRECTION_TENSOR,
+
+    /// Density times velocity divergence, used when evaluating the continuity equation
+    DENSITY_VELOCITY_DIVERGENCE,
 
     ///@}
 

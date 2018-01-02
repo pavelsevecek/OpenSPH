@@ -50,6 +50,7 @@ SOURCES += \
     windows/PlotView.cpp
 
 HEADERS += \
+    ArcBall.h \
     Controller.h \
     Factory.h \
     GuiCallbacks.h \
@@ -61,18 +62,17 @@ HEADERS += \
     objects/Camera.h \
     objects/Color.h \
     objects/Colorizer.h \
+    objects/GraphicsContext.h \
     objects/Movie.h \
     objects/Palette.h \
     objects/Point.h \
+    objects/SvgContext.h \
     renderers/IRenderer.h \
     renderers/ParticleRenderer.h \
     renderers/SurfaceRenderer.h \
     windows/GlPane.h \
+    windows/IGraphicsPane.h \
     windows/MainWindow.h \
     windows/OrthoPane.h \
     windows/ParticleProbe.h \
-    windows/PlotView.h \
-    objects/GraphicsContext.h \
-    objects/SvgContext.h \
-    ArcBall.h \
-    windows/IGraphicsPane.h
+    windows/PlotView.h

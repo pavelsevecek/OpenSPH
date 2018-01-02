@@ -258,13 +258,14 @@ AutoPtr<RunSettings> RunSettings::instance (new RunSettings {
     { RunSettingsId::RUN_RNG_SEED,                  "run.rng.seed",             1234 },
 
     /// Physical model
-    { RunSettingsId::MODEL_FORCE_PRESSURE_GRADIENT, "model.force.grad_p",       true },
-    { RunSettingsId::MODEL_FORCE_SOLID_STRESS,      "model.force.div_s",        true },
-    { RunSettingsId::MODEL_FORCE_CENTRIFUGAL,       "model.force.centrifugal",  false },
-    { RunSettingsId::MODEL_FORCE_GRAVITY,           "model.force.gravity",      false },
+    { RunSettingsId::MODEL_FORCE_PRESSURE_GRADIENT, "model.force.pressure",      true },
+    { RunSettingsId::MODEL_FORCE_SOLID_STRESS,      "model.force.solid_stress",  true },
+    { RunSettingsId::MODEL_FORCE_NAVIER_STOKES,     "model.force.navier_stokes", false },
+    { RunSettingsId::MODEL_FORCE_CENTRIFUGAL,       "model.force.centrifugal",   false },
+    { RunSettingsId::MODEL_FORCE_GRAVITY,           "model.force.gravity",       false },
 
     /// SPH solvers
-    { RunSettingsId::SOLVER_TYPE,                   "solver.type",                      int(SolverEnum::CONTINUITY_SOLVER) },
+    { RunSettingsId::SOLVER_TYPE,                   "solver.type",                      int(SolverEnum::SYMMETRIC_SOLVER) },
     { RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH,     "solver.adaptive_smoothing_length", int(SmoothingLengthEnum::CONTINUITY_EQUATION) },
     { RunSettingsId::SUMMATION_DENSITY_DELTA,       "solver.summation.density_delta",   1.e-3_f },
     { RunSettingsId::SUMMATION_MAX_ITERATIONS,      "solver.summation.max_iterations",  5 },

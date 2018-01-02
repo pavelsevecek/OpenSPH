@@ -12,37 +12,39 @@
 
 /// Test cases for testing of multiple types
 
-#define INTERNAL_CATCH_TEMPLATE_TEST_CASE_DECL(name, description, T)                                         \
+#define CATCH_TESTCASE1(...)                                                                                 \
+    static void INTERNAL_CATCH_UNIQUE_NAME(____C_A_T_C_H____T_E_S_T____1)();                                 \
+    namespace {                                                                                              \
+        Catch::AutoReg INTERNAL_CATCH_UNIQUE_NAME(autoRegistrar1)(                                           \
+            &INTERNAL_CATCH_UNIQUE_NAME(____C_A_T_C_H____T_E_S_T____1),                                      \
+            CATCH_INTERNAL_LINEINFO,                                                                         \
+            Catch::NameAndDesc(__VA_ARGS__));                                                                \
+    }                                                                                                        \
+    static void INTERNAL_CATCH_UNIQUE_NAME(____C_A_T_C_H____T_E_S_T____1)()
+
+#define CATCH_TESTCASE2(...)                                                                                 \
+    static void INTERNAL_CATCH_UNIQUE_NAME(____C_A_T_C_H____T_E_S_T____2)();                                 \
+    namespace {                                                                                              \
+        Catch::AutoReg INTERNAL_CATCH_UNIQUE_NAME(autoRegistrar2)(                                           \
+            &INTERNAL_CATCH_UNIQUE_NAME(____C_A_T_C_H____T_E_S_T____2),                                      \
+            CATCH_INTERNAL_LINEINFO,                                                                         \
+            Catch::NameAndDesc(__VA_ARGS__));                                                                \
+    }                                                                                                        \
+    static void INTERNAL_CATCH_UNIQUE_NAME(____C_A_T_C_H____T_E_S_T____2)()
+
+#define CATCH_STRINGIFY(x, y) x "  [" y "]"
+
+#define TYPED_TEST_CASE_2(name, description, T, T1, T2)                                                      \
     template <typename T>                                                                                    \
     void INTERNAL_CATCH_UNIQUE_NAME(____C_A_T_C_H____T_E_M_P_L_A_TE____T_E_S_T____)();                       \
-    TEST_CASE(name, description)
-
-#define INTERNAL_CATCH_TEMPLATE_TEST_CASE_SECTION(Tn)                                                        \
-    SECTION(#Tn) {                                                                                           \
-        INTERNAL_CATCH_UNIQUE_NAME(____C_A_T_C_H____T_E_M_P_L_A_TE____T_E_S_T____)<Tn>();                    \
-    }
-
-#define INTERNAL_CATCH_TEMPLATE_TEST_CASE_DEFN(T)                                                            \
+    CATCH_TESTCASE1(CATCH_STRINGIFY(name, #T1), description) {                                               \
+        INTERNAL_CATCH_UNIQUE_NAME(____C_A_T_C_H____T_E_M_P_L_A_TE____T_E_S_T____)<T1>();                    \
+    }                                                                                                        \
+    CATCH_TESTCASE2(CATCH_STRINGIFY(name, #T2), description) {                                               \
+        INTERNAL_CATCH_UNIQUE_NAME(____C_A_T_C_H____T_E_M_P_L_A_TE____T_E_S_T____)<T2>();                    \
+    }                                                                                                        \
     template <typename T>                                                                                    \
     void INTERNAL_CATCH_UNIQUE_NAME(____C_A_T_C_H____T_E_M_P_L_A_TE____T_E_S_T____)()
-
-#define CATCH_TEMPLATE_TEST_CASE_1(name, description, T, T1)                                                 \
-    INTERNAL_CATCH_TEMPLATE_TEST_CASE_DECL(name, description, T){ INTERNAL_CATCH_TEMPLATE_TEST_CASE_SECTION( \
-        T1) } INTERNAL_CATCH_TEMPLATE_TEST_CASE_DEFN(T)
-
-#define CATCH_TEMPLATE_TEST_CASE_2(name, description, T, T1, T2)                                             \
-    INTERNAL_CATCH_TEMPLATE_TEST_CASE_DECL(name, description, T){ INTERNAL_CATCH_TEMPLATE_TEST_CASE_SECTION( \
-        T1) INTERNAL_CATCH_TEMPLATE_TEST_CASE_SECTION(T2) } INTERNAL_CATCH_TEMPLATE_TEST_CASE_DEFN(T)
-
-#define CATCH_TEMPLATE_TEST_CASE_3(name, description, T, T1, T2, T3)                                         \
-    INTERNAL_CATCH_TEMPLATE_TEST_CASE_DECL(name, description, T){ INTERNAL_CATCH_TEMPLATE_TEST_CASE_SECTION( \
-        T1) INTERNAL_CATCH_TEMPLATE_TEST_CASE_SECTION(T2)                                                    \
-            INTERNAL_CATCH_TEMPLATE_TEST_CASE_SECTION(T3) } INTERNAL_CATCH_TEMPLATE_TEST_CASE_DEFN(T)
-
-#define CATCH_TEMPLATE_TEST_CASE_4(name, description, T, T1, T2, T3, T4)                                     \
-    INTERNAL_CATCH_TEMPLATE_TEST_CASE_DECL(name, description, T){ INTERNAL_CATCH_TEMPLATE_TEST_CASE_SECTION( \
-        T1) INTERNAL_CATCH_TEMPLATE_TEST_CASE_SECTION(T2) INTERNAL_CATCH_TEMPLATE_TEST_CASE_SECTION(T3)      \
-            INTERNAL_CATCH_TEMPLATE_TEST_CASE_SECTION(T4) } INTERNAL_CATCH_TEMPLATE_TEST_CASE_DEFN(T)
 
 
 #ifdef SPH_DEBUG

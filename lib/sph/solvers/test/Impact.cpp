@@ -18,7 +18,7 @@ TEST_CASE("Impact", "[impact]]") {
     /// \todo refactor, avoid adding ConstSmootihngLength term
     eqs += makeTerm<PressureForce>() + makeTerm<SolidStressForce>(settings) + makeTerm<StandardAV>() +
            makeTerm<ContinuityEquation>(settings) + makeTerm<ConstSmoothingLength>();
-    GenericSolver solver(settings, std::move(eqs));
+    SymmetricSolver solver(settings, std::move(eqs));
 
     SharedPtr<Storage> storage = makeShared<Storage>();
     InitialConditions initial(solver, settings);

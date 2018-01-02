@@ -63,7 +63,7 @@ public:
             .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 1.e-1_f)
             .set(RunSettingsId::TIMESTEPPING_COURANT, 0.5_f)
             .set(RunSettingsId::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::COURANT)
-            .set(RunSettingsId::SOLVER_TYPE, SolverEnum::CONTINUITY_SOLVER)
+            .set(RunSettingsId::SOLVER_TYPE, SolverEnum::SYMMETRIC_SOLVER)
             .set(RunSettingsId::MODEL_FORCE_PRESSURE_GRADIENT, true)
             .set(RunSettingsId::MODEL_FORCE_SOLID_STRESS, false);
     }

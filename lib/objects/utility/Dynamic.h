@@ -47,9 +47,9 @@ private:
 
 public:
     /// Construct an uninitialized value
-    Dynamic() = default;
+    Dynamic();
 
-    ~Dynamic() = default;
+    ~Dynamic();
 
     /// Contruct value from one of possible value types
     template <typename T, typename = std::enable_if_t<!std::is_same<std::decay_t<T>, Dynamic>::value>>

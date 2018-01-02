@@ -51,6 +51,12 @@ namespace Post {
     /// \todo TEMPORARY FUNCTION, REMOVE
     Storage findFutureBodies2(const Storage& storage, ILogger& logger);
 
+    /// \brief Computes the total inertia tensor of particles with respect to given center
+    SymmetricTensor getInertiaTensor(ArrayView<const Float> m, ArrayView<const Vector> r, const Vector& r0);
+
+    /// \brief Computes the total inertia tensor of particle with respect to their center of mass.
+    SymmetricTensor getInertiaTensor(ArrayView<const Float> m, ArrayView<const Vector> r);
+
     /// Potential relationship of the body with a respect to the largest remnant (fragment).
     enum class MoonEnum {
         LARGEST_FRAGMENT, ///< This is the largest fragment (or remnant, depending on definition)

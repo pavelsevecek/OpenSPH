@@ -11,6 +11,8 @@
 
 NAMESPACE_SPH_BEGIN
 
+struct Svd;
+
 class SymmetricTensor {
 private:
     Vector diag; // diagonal part
@@ -48,9 +50,9 @@ public:
     /// Construct tensor given three vectors as rows. Matrix represented by the vectors MUST be symmetric,
     /// checked by assert.
     INLINE SymmetricTensor(const Vector& v0, const Vector& v1, const Vector& v2) {
-        ASSERT(v0[1] == v1[0]);
-        ASSERT(v0[2] == v2[0]);
-        ASSERT(v1[2] == v2[1]);
+        ASSERT(v0[1] == v1[0], v0[1], v1[0]);
+        ASSERT(v0[2] == v2[0], v0[2], v2[0]);
+        ASSERT(v1[2] == v2[1], v1[2], v2[1]);
         diag = Vector(v0[0], v1[1], v2[2]);
         off = Vector(v0[1], v0[2], v1[2]);
     }
@@ -62,7 +64,7 @@ public:
     }
 
     /// Returns a row of the matrix.
-    INLINE Vector operator[](const Size idx) const {
+    INLINE Vector row(const Size idx) const {
         ASSERT(idx < 3);
         switch (idx) {
         case 0:
@@ -236,6 +238,9 @@ public:
         return SymmetricTensor(invDiag / det, invOff / det);
     }
 
+    // Moore-Penrose pseudo-inversion of matrix
+    SymmetricTensor pseudoInverse(const Float eps) const;
+
     friend std::ostream& operator<<(std::ostream& stream, const SymmetricTensor& t) {
         stream << t.diagonal() << t.offDiagonal();
         return stream;
@@ -245,7 +250,7 @@ public:
 /// Transforms given symmetric tensor by matrix.
 /// \todo optimize
 INLINE SymmetricTensor transform(const SymmetricTensor& t, const AffineMatrix& transform) {
-    const AffineMatrix m(t[0], t[1], t[2]);
+    const AffineMatrix m(t.row(0), t.row(1), t.row(2));
     AffineMatrix transformed = transform * m * transform.inverse();
     return SymmetricTensor(Vector(transformed(0, 0), transformed(1, 1), transformed(2, 2)),
         0.5_f * Vector(transformed(0, 1) + transformed(1, 0),
@@ -366,5 +371,14 @@ INLINE StaticArray<Float, 3> findEigenvalues(const SymmetricTensor& t) {
 
 /// Computes eigenvectors and corresponding eigenvalues of symmetric matrix.
 Tuple<AffineMatrix, Vector> eigenDecomposition(const SymmetricTensor& t);
+
+struct Svd {
+    AffineMatrix U;
+    Vector S;
+    AffineMatrix V;
+};
+
+/// Computes the singular value decomposition of symmetric matrix.
+Svd singularValueDecomposition(const SymmetricTensor& t);
 
 NAMESPACE_SPH_END

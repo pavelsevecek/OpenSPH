@@ -355,10 +355,12 @@ void BarnesHut::buildLeaf(KdNode& node) {
         leaf.com += m[i] * r[i];
         m_leaf += m[i];
         // extend the bounding box, given particle radius
-        ASSERT(r[i][H] > 0._f, r[i][H]);
-        const Vector dr(r[i][H] * kernel.radius());
-        leaf.box.extend(r[i] + dr);
-        leaf.box.extend(r[i] - dr);
+        /// \todo this slows down the simulation way too much, approximating by point particles
+        // ASSERT(r[i][H] > 0._f, r[i][H]);
+        // const Vector dr(r[i][H] * kernel.radius());
+        // leaf.box.extend(r[i] + dr);
+        // leaf.box.extend(r[i] - dr);
+        leaf.box.extend(r[i]);
     }
     ASSERT(m_leaf > 0._f, m_leaf);
     leaf.com /= m_leaf;

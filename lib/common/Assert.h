@@ -17,14 +17,14 @@ struct Assert {
 
     class Exception : public std::exception {
     private:
-        const char* message;
+        const std::string message;
 
     public:
         Exception(const char* message)
             : message(message) {}
 
         virtual const char* what() const noexcept override {
-            return message;
+            return message.c_str();
         }
     };
 
@@ -51,23 +51,18 @@ struct Assert {
 
     static void stringify(std::stringstream& UNUSED(ss)) {}
 
-    template <typename T0, typename... TArgs>
-    static void check(const bool condition,
-        const char* message,
+    template <typename... TArgs>
+    static void fire(const char* message,
         const char* file,
         const char* func,
         const int line,
-        T0&& t0,
         TArgs&&... args) {
-        if (!condition) {
-            std::stringstream ss;
-            stringify(ss, std::forward<T0>(t0), std::forward<TArgs>(args)...);
-            check(condition, message, file, func, line, ss.str().c_str());
-        }
+        std::stringstream ss;
+        stringify(ss, std::forward<TArgs>(args)...);
+        fireParams(message, file, func, line, ss.str().c_str());
     }
 
-    static void check(const bool condition,
-        const char* message,
+    static void fireParams(const char* message,
         const char* file,
         const char* func,
         const int line,
@@ -79,7 +74,10 @@ struct Assert {
 #define TODO(x) Assert::todo(x, __FUNCTION__, __LINE__);
 
 #ifdef SPH_DEBUG
-#define ASSERT(x, ...) Assert::check(bool(x), #x, __FILE__, __FUNCTION__, __LINE__, ##__VA_ARGS__)
+#define ASSERT(x, ...)                                                                                       \
+    if (!bool(x)) {                                                                                          \
+        Assert::fire(#x, __FILE__, __FUNCTION__, __LINE__, ##__VA_ARGS__);                                   \
+    }
 #define CONSTEXPR_ASSERT(x) assert(x)
 #else
 #define ASSERT(x, ...)
@@ -99,11 +97,11 @@ struct Assert {
 
 /// Helper cast, performing a static_cast, but checking that the cast is valid using dynamic_cast in assert
 /// and debug builds.
-template <typename T>
-INLINE T assert_cast(T value) {
-    static_assert(std::is_pointer<T>::value, "Must be a pointer type");
-    ASSERT(!value || dynamic_cast<T>(value) != nullptr);
-    return static_cast<T>(value);
+template <typename TDerived, typename TBase>
+INLINE TDerived assert_cast(TBase* value) {
+    static_assert(std::is_pointer<TDerived>::value, "Must be a pointer type");
+    ASSERT(!value || dynamic_cast<TDerived>(value) != nullptr, value);
+    return static_cast<TDerived>(value);
 }
 
 

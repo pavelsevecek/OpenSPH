@@ -5,6 +5,7 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2017
 
+#include "math/AffineMatrix.h"
 #include "objects/geometry/Box.h"
 #include "objects/wrappers/Optional.h"
 
@@ -292,5 +293,80 @@ private:
     }
 };
 
+/// \brief Transform another domain by given transformation matrix
+///
+/// \todo TESTS
+template <typename TDomain>
+class TransformedDomain : public IDomain {
+private:
+    TDomain domain;
+    AffineMatrix tm, tmInv;
+
+public:
+    template <typename... TArgs>
+    TransformedDomain(const AffineMatrix& matrix, const Vector& center, TArgs&&... args)
+        : IDomain(matrix.inverse() * center)
+        , domain(matrix.inverse() * center, std::forward<TArgs>(args)...) {
+        tm = matrix;
+        tmInv = matrix.inverse();
+    }
+
+    virtual Float getVolume() const override {
+        return domain.getVolume();
+    }
+
+    virtual Box getBoundingBox() const override {
+        const Box box = domain.getBoundingBox();
+        // transform all 8 points
+        Box transformedBox;
+        for (Size i = 0; i <= 1; ++i) {
+            for (Size j = 0; j <= 1; ++j) {
+                for (Size k = 0; k <= 1; ++k) {
+                    const Vector p =
+                        box.lower() * Vector(i, j, k) + box.upper() * Vector(1 - i, 1 - j, 1 - k);
+                    transformedBox.extend(tm * p);
+                }
+            }
+        }
+        return transformedBox;
+    }
+
+    virtual bool contains(const Vector& v) const override {
+        return domain.contains(tmInv * v);
+    }
+
+    virtual void getSubset(ArrayView<const Vector> vs,
+        Array<Size>& output,
+        const SubsetType type) const override {
+        domain.getSubset(this->untransform(vs), output, type);
+    }
+
+    virtual void getDistanceToBoundary(ArrayView<const Vector> vs, Array<Float>& distances) const override {
+        return domain.getDistanceToBoundary(this->untransform(vs), distances);
+    }
+
+    virtual void project(ArrayView<Vector> vs, Optional<ArrayView<Size>> indices = NOTHING) const override {
+        return domain.project(this->untransform(vs), indices);
+    }
+
+    virtual void addGhosts(ArrayView<const Vector> vs,
+        Array<Ghost>& ghosts,
+        const Float eta,
+        const Float eps) const override {
+        domain.addGhosts(this->untransform(vs), ghosts, eta, eps);
+        for (Ghost& g : ghosts) {
+            g.position = tm * g.position;
+        }
+    }
+
+private:
+    Array<Vector> untransform(ArrayView<const Vector> vs) const {
+        Array<Vector> untransformed(vs.size());
+        for (Size i = 0; i < vs.size(); ++i) {
+            untransformed[i] = tmInv * vs[i];
+        }
+        return untransformed;
+    }
+};
 
 NAMESPACE_SPH_END

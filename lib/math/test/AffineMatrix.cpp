@@ -109,3 +109,23 @@ TEST_CASE("Matrix inverse", "[affinematrix]") {
 
     REQUIRE_ASSERT(AffineMatrix::null().inverse());
 }
+
+TEST_CASE("Matrix scaling", "[affinematrix]") {
+    AffineMatrix s = AffineMatrix::scale(Vector(2._f, 3._f, -1._f));
+    REQUIRE(s * Vector(2._f, 3._f, 4._f) == Vector(4._f, 9._f, -4._f));
+}
+
+TEST_CASE("Matrix rotateX", "[affinematrix]") {
+    AffineMatrix rot = AffineMatrix::rotateX(PI / 2._f);
+    REQUIRE(rot * Vector(2._f, 3._f, 4._f) == approx(Vector(2._f, -4._f, 3._f)));
+}
+
+TEST_CASE("Matrix rotateY", "[affinematrix]") {
+    AffineMatrix rot = AffineMatrix::rotateY(PI / 2._f);
+    REQUIRE(rot * Vector(2._f, 3._f, 4._f) == approx(Vector(4._f, 3._f, -2._f)));
+}
+
+TEST_CASE("Matrix rotateZ", "[affinematrix]") {
+    AffineMatrix rot = AffineMatrix::rotateZ(PI / 2._f);
+    REQUIRE(rot * Vector(2._f, 3._f, 4._f) == approx(Vector(-3._f, 2._f, 4._f)));
+}

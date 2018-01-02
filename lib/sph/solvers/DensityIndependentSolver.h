@@ -127,14 +127,14 @@ public:
 /// self-consistent solution with smoothing length.
 ///
 /// \attention Works only for ideal gas EoS!
-class DensityIndependentSolver : public GenericSolver {
+class DensityIndependentSolver : public SymmetricSolver {
 private:
     LutKernel<DIMENSIONS> energyKernel;
     Array<Float> q;
 
 public:
     explicit DensityIndependentSolver(const RunSettings& settings)
-        : GenericSolver(settings, getEquations(settings)) {
+        : SymmetricSolver(settings, getEquations(settings)) {
         energyKernel = Factory::getKernel<DIMENSIONS>(settings);
     }
 
@@ -156,7 +156,7 @@ private:
     }
 
     virtual void beforeLoop(Storage& storage, Statistics& stats) override {
-        GenericSolver::beforeLoop(storage, stats);
+        SymmetricSolver::beforeLoop(storage, stats);
         ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
         ArrayView<Float> U = storage.getValue<Float>(QuantityId::ENERGY_PER_PARTICLE);
 
@@ -183,7 +183,7 @@ private:
     }
 
     virtual void afterLoop(Storage& storage, Statistics& statistics) override {
-        GenericSolver::afterLoop(storage, statistics);
+        SymmetricSolver::afterLoop(storage, statistics);
         // compute dependent quantities
         ArrayView<Float> q, U, rho, m, u;
         tie(q, U, rho, m, u) = storage.getValues<Float>(QuantityId::ENERGY_DENSITY,

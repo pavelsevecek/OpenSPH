@@ -74,6 +74,8 @@ AutoPtr<IColorizer> Factory::getColorizer(const GuiSettings& settings, const Col
     case ColorizerId::DENSITY_PERTURBATION:
         range = settings.get<Interval>(GuiSettingsId::PALETTE_DENSITY_PERTURB);
         return makeAuto<DensityPerturbationColorizer>(range);
+    case ColorizerId::YIELD_REDUCTION:
+        return makeAuto<YieldReductionColorizer>();
     case ColorizerId::RADIUS:
         range = settings.get<Interval>(GuiSettingsId::PALETTE_RADIUS);
         return makeAuto<RadiusColorizer>(range);
@@ -104,6 +106,12 @@ AutoPtr<IColorizer> Factory::getColorizer(const GuiSettings& settings, const Col
         case QuantityId::VELOCITY_DIVERGENCE:
             range = settings.get<Interval>(GuiSettingsId::PALETTE_DIVV);
             break;
+        case QuantityId::AV_BALSARA:
+            range = Interval(0._f, 1._f);
+            break;
+        case QuantityId::EPS_MIN:
+            range = settings.get<Interval>(GuiSettingsId::PALETTE_ACTIVATION_STRAIN);
+            break;
         case QuantityId::VELOCITY_GRADIENT:
         case QuantityId::STRENGTH_VELOCITY_GRADIENT:
             range = settings.get<Interval>(GuiSettingsId::PALETTE_GRADV);
@@ -111,6 +119,9 @@ AutoPtr<IColorizer> Factory::getColorizer(const GuiSettings& settings, const Col
         case QuantityId::ANGULAR_VELOCITY:
             range = settings.get<Interval>(GuiSettingsId::PALETTE_ANGULAR_VELOCITY);
             return makeAuto<TypedColorizer<Vector>>(quantity, range);
+        case QuantityId::STRAIN_RATE_CORRECTION_TENSOR:
+            range = settings.get<Interval>(GuiSettingsId::PALETTE_STRAIN_RATE_CORRECTION_TENSOR);
+            return makeAuto<TypedColorizer<SymmetricTensor>>(quantity, range);
         default:
             NOT_IMPLEMENTED;
         }
@@ -130,7 +141,7 @@ Palette Factory::getPalette(const ColorizerId id, const Interval range) {
                                { -1.f, Color(0.f, 0.f, 0.2f) },
                                { 0.f, Color(0.2f, 0.2f, 0.2f) },
                                { 1.f, Color(0.8f, 0.8f, 0.8f) },
-                               { 1.f + sqrt(dx), Color(1.f, 1.f, 0.2f) },
+                               { max(10.f, x0 + sqrt(dx)), Color(1.f, 1.f, 0.2f) },
                                { x0 + dx, Color(0.5f, 0.f, 0.f) } },
                 PaletteScale::HYBRID);
         case QuantityId::ENERGY:
@@ -142,7 +153,9 @@ Palette Factory::getPalette(const ColorizerId id, const Interval range) {
                 PaletteScale::LOGARITHMIC);
         case QuantityId::DEVIATORIC_STRESS:
             return Palette({ { x0, Color(0.f, 0.f, 0.2f) },
-                               { x0 + sqrt(dx), Color(1.f, 1.f, 0.2f) },
+                               { x0 + 0.01f * dx, Color(0.9f, 0.9f, 0.9f) },
+                               { x0 + 0.025f * dx, Color(1.f, 1.f, 0.2f) },
+                               { x0 + 0.1f * dx, Color(1.f, 0.5f, 0.f) },
                                { x0 + dx, Color(0.5f, 0.f, 0.f) } },
                 PaletteScale::LOGARITHMIC);
         case QuantityId::DENSITY:
@@ -178,6 +191,21 @@ Palette Factory::getPalette(const ColorizerId id, const Interval range) {
                                { 0.75f * dx, Color(0.8f, 0.8f, 0.8f) },
                                { dx, Color(1.0f, 0.6f, 0.f) } },
                 PaletteScale::LINEAR);
+        case QuantityId::STRAIN_RATE_CORRECTION_TENSOR:
+            ASSERT(x0 > 0._f);
+            return Palette({ { x0, Color(0.f, 0.f, 0.5f) },
+                               { x0 + 0.01f, Color(0.1f, 0.1f, 0.1f) },
+                               { x0 + 0.6f * dx, Color(0.9f, 0.9f, 0.9f) },
+                               { x0 + dx, Color(0.6f, 0.0f, 0.0f) } },
+                PaletteScale::LOGARITHMIC);
+        case QuantityId::AV_BALSARA:
+            return Palette({ { x0, Color(0.1f, 0.1f, 0.1f) }, { x0 + dx, Color(0.9f, 0.9f, 0.9f) } },
+                PaletteScale::LINEAR);
+        case QuantityId::EPS_MIN:
+            return Palette({ { x0, Color(0.1f, 0.1f, 1.f) },
+                               { x0 + 0.5f * dx, Color(0.7f, 0.7f, 0.7f) },
+                               { x0 + dx, Color(1.f, 0.1f, 0.1f) } },
+                PaletteScale::LINEAR);
         default:
             NOT_IMPLEMENTED;
         }
@@ -211,6 +239,9 @@ Palette Factory::getPalette(const ColorizerId id, const Interval range) {
             return Palette({ { x0, Color(0.1f, 0.1f, 1.f) },
                                { x0 + 0.5f * dx, Color(0.7f, 0.7f, 0.7f) },
                                { x0 + dx, Color(1.f, 0.1f, 0.1f) } },
+                PaletteScale::LINEAR);
+        case ColorizerId::YIELD_REDUCTION:
+            return Palette({ { 0._f, Color(0.1f, 0.1f, 0.1f) }, { 1._f, Color(0.9f, 0.9f, 0.9f) } },
                 PaletteScale::LINEAR);
         case ColorizerId::RADIUS:
             return Palette({ { x0, Color(0.1f, 0.1f, 1.f) },

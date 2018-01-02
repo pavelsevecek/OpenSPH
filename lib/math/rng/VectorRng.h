@@ -18,20 +18,21 @@ private:
     TScalarRng rngImpl;
 
 public:
-    /// Default constructor. Enabled only if RNG is owned by the object.
-    template <typename = std::enable_if_t<!std::is_reference<TScalarRng>::value>>
-    VectorRng() {}
+    /// Default constructor. Can be only used if RNG is owned by the object.
+    VectorRng() {
+        static_assert(!std::is_reference<TScalarRng>::value, "Cannot be used for references");
+    }
 
-    /// \todo this should copy l-value ref and move r-value ref, right?
     VectorRng(TScalarRng&& rng)
         : rngImpl(std::forward<TScalarRng>(rng)) {}
 
-    template <typename = std::enable_if_t<!std::is_reference<TScalarRng>::value>>
     VectorRng(VectorRng&& other)
-        : rngImpl(std::move(other.rngImpl)) {}
+        : rngImpl(std::move(other.rngImpl)) {
+        static_assert(!std::is_reference<TScalarRng>::value, "Cannot be used for references");
+    }
 
-    template <typename = std::enable_if_t<!std::is_reference<TScalarRng>::value>>
     VectorRng& operator=(VectorRng&& other) {
+        static_assert(!std::is_reference<TScalarRng>::value, "Cannot be used for references");
         rngImpl = std::move(other.rngImpl);
         return *this;
     }

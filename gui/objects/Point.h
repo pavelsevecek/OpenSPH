@@ -43,4 +43,8 @@ public:
     }
 };
 
+inline float getLength(const Point p) {
+    return sqrt(sqr(p.x) + sqr(p.y));
+}
+
 NAMESPACE_SPH_END

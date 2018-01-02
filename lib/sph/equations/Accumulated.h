@@ -161,15 +161,14 @@ private:
         const QuantityId id,
         ArrayView<Accumulated*> others) {
         Array<Iterator<Type>> iterators = this->getBufferIterators<Type>(id, others);
-        const Type zero = Type(0._f);
-        auto functor = [&zero, &iterators, &buffer1](const Size n1, const Size n2) INL {
+        auto functor = [&iterators, &buffer1](const Size n1, const Size n2) INL {
             for (Size i = n1; i < n2; ++i) {
-                Type sum = zero;
+                Type sum(0._f);
                 for (Iterator<Type> iter : iterators) {
                     Type& x = *(iter + i);
-                    if (x != zero) {
+                    if (x != Type(0._f)) {
                         sum += x;
-                        x = zero;
+                        x = Type(0._f);
                     }
                 }
                 buffer1[i] += sum;

@@ -36,7 +36,7 @@ TEST_CASE("StressAV test", "[av]") {
     eqs += makeTerm<PressureForce>() + makeTerm<SolidStressForce>(settings) +
            makeTerm<ContinuityEquation>(settings) + makeTerm<StressAV>(settings) +
            makeTerm<ConstSmoothingLength>();
-    GenericSolver solver(settings, std::move(eqs));
+    SymmetricSolver solver(settings, std::move(eqs));
     solver.create(*storage, storage->getMaterial(0));
 
     // do one time step to compute values of stress tensor
@@ -66,7 +66,7 @@ TEST_CASE("StressAV test", "[av]") {
     // do another step - this time we should get nonzero artificial stress
     // create another solver WITHOUT pressure and stress force to get acceleration only from AS
     eqs = makeTerm<StressAV>(settings) + makeTerm<ConstSmoothingLength>();
-    GenericSolver solverAS(settings, std::move(eqs));
+    SymmetricSolver solverAS(settings, std::move(eqs));
     timestepping.step(solverAS, stats);
 
     tie(r, v, dv) = storage->getAll<Vector>(QuantityId::POSITION);

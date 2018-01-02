@@ -93,4 +93,9 @@ public:
     int64_t elapsed(const TimerUnit unit) const;
 };
 
+/// \brief Returns the human-readable formatted time in suitable units
+///
+/// \param time Time in milliseconds
+std::string getFormattedTime(const int64_t time);
+
 NAMESPACE_SPH_END

@@ -67,6 +67,7 @@ void IRun::run() {
 
         // save current statistics
         stats.set(StatisticsId::RUN_TIME, t);
+        stats.set(StatisticsId::WALLCLOCK_TIME, int(runTimer.elapsed(TimerUnit::MILLISECOND)));
         const Float progress = (t - timeRange.lower()) / timeRange.size();
         ASSERT(progress >= 0._f && progress <= 1._f);
         stats.set(StatisticsId::RELATIVE_PROGRESS, progress);

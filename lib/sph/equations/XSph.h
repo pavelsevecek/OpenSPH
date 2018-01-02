@@ -49,6 +49,7 @@ private:
 
         template <bool Symmetric>
         INLINE void eval(const Size i, ArrayView<const Size> neighs, ArrayView<const Vector> UNUSED(grads)) {
+            // this depends on v[i]-v[j], so it is zero for i==j
             for (Size k = 0; k < neighs.size(); ++k) {
                 const Size j = neighs[k];
                 const Vector f =

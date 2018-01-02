@@ -48,19 +48,27 @@ private:
         Connect(MAIN_LOOP_TYPE, MainLoopEventHandler(App::processEvents));
 
         GuiSettings gui;
-        gui.set(GuiSettingsId::ORTHO_FOV, 5._f * Constants::au)
-            .set(GuiSettingsId::ORTHO_VIEW_CENTER, 0.5_f * Vector(800, 600, 0))
+        gui.set(GuiSettingsId::ORTHO_FOV, 1._f * Constants::au)
+            .set(GuiSettingsId::ORTHO_VIEW_CENTER, 0.5_f * Vector(1024, 768, 0))
+            .set(GuiSettingsId::RENDER_WIDTH, 1024)
+            .set(GuiSettingsId::RENDER_HEIGHT, 768)
+            .set(GuiSettingsId::VIEW_WIDTH, 1024)
+            .set(GuiSettingsId::VIEW_HEIGHT, 768)
+            .set(GuiSettingsId::IMAGES_WIDTH, 1024)
+            .set(GuiSettingsId::IMAGES_HEIGHT, 768)
+            .set(GuiSettingsId::WINDOW_WIDTH, 1334)
+            .set(GuiSettingsId::WINDOW_HEIGHT, 768)
             .set(GuiSettingsId::PARTICLE_RADIUS, 1._f)
             .set(GuiSettingsId::CAMERA, int(CameraEnum::ORTHO))
             .set(GuiSettingsId::PERSPECTIVE_TARGET, Vector(0._f))
             .set(GuiSettingsId::PERSPECTIVE_POSITION, Vector(Constants::au, 0._f, 0._f))
             .set(GuiSettingsId::ORTHO_CUTOFF, 0._f)
             .set(GuiSettingsId::ORTHO_PROJECTION, OrthoEnum::XY)
-            .set(GuiSettingsId::IMAGES_SAVE, false)
-            .set(GuiSettingsId::IMAGES_TIMESTEP, 10._f)
+            .set(GuiSettingsId::IMAGES_SAVE, true)
+            .set(GuiSettingsId::IMAGES_TIMESTEP, 1.e4_f)
             .set(GuiSettingsId::PLOT_INTEGRALS,
                 int(IntegralEnum::TOTAL_MOMENTUM) | int(IntegralEnum::TOTAL_ANGULAR_MOMENTUM))
-            .set(GuiSettingsId::PALETTE_VELOCITY, Interval(1.e3_f, 1.e6_f));
+            .set(GuiSettingsId::PALETTE_VELOCITY, Interval(1.e2_f, 1.e5_f));
 
         AutoPtr<NBody> run = makeAuto<NBody>();
 

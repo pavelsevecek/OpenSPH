@@ -324,14 +324,20 @@ enum class ArtificialViscosityEnum {
 };
 
 enum class SolverEnum {
-    /// Standard SPH formulation evolving density, velocity and internal energy in time.
-    CONTINUITY_SOLVER,
+    /// SPH formulation using symmetrized evaluation of derivatives.
+    SYMMETRIC_SOLVER,
+
+    /// Generic solver evaluating all derivatives asymmetrically.
+    ASYMMETRIC_SOLVER,
 
     /// Density is obtained by direct summation over nearest SPH particles.
     SUMMATION_SOLVER,
 
     /// Density independent solver by Saitoh & Makino (2013).
-    DENSITY_INDEPENDENT
+    DENSITY_INDEPENDENT,
+
+    /// Solver computing SPH derivatives as well as self-gravity
+    GRAVITY_SOLVER,
 };
 
 
@@ -344,8 +350,11 @@ enum class FormulationEnum {
 };
 
 enum class YieldingEnum {
-    /// No yielding, just elastic deformations following Hooke's law
+    /// Gass or material with no stress tensor
     NONE,
+
+    /// No yielding, just elastic deformations following Hooke's law
+    ELASTIC,
 
     /// Von Mises criterion
     VON_MISES,
@@ -574,6 +583,7 @@ enum class RunSettingsId {
     /// tensor is then evolved in time using Hooke's equation.
     MODEL_FORCE_SOLID_STRESS,
 
+    /// Stress tensor for the simulation of liquids. Cannot be used together with solid stress force.
     MODEL_FORCE_NAVIER_STOKES,
 
     /// Use centrifugal force given by angular frequency of the coordinate frame in the model

@@ -2,7 +2,9 @@
 
 /// Disable some warning to compile Eigen with gcc 7.1
 #ifdef SPH_GCC
+#if __GNUC__ >= 7
 #pragma GCC diagnostic ignored "-Wint-in-bool-context"
+#endif
 #endif
 
 #include <Eigen/IterativeLinearSolvers>

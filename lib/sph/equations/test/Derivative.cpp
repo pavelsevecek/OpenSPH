@@ -13,6 +13,8 @@ TEST_CASE("Derivative require", "[derivative]") {
     REQUIRE(derivatives.getDerivativeCnt() == 1);
     derivatives.require<VelocityDivergence>(settings);
     REQUIRE(derivatives.getDerivativeCnt() == 1);
+    derivatives.require<VelocityGradient>(settings);
+    REQUIRE(derivatives.getDerivativeCnt() == 2);
 }
 
 TEST_CASE("Derivative initialize", "[derivative]") {
@@ -31,4 +33,30 @@ TEST_CASE("Derivative initialize", "[derivative]") {
     ArrayView<Float> divv = ac.getBuffer<Float>(QuantityId::VELOCITY_DIVERGENCE, OrderEnum::ZERO);
     REQUIRE(divv.size() == 3);
     REQUIRE(perElement(divv) == 0._f);
+}
+
+TEST_CASE("Derivative isSymmetric", "[derivative]") {
+    DerivativeHolder derivatives;
+    RunSettings settings;
+    derivatives.require<VelocityDivergence>(settings);
+    REQUIRE(derivatives.isSymmetric());
+
+    derivatives.require<VelocityGradient>(settings);
+    REQUIRE(derivatives.isSymmetric());
+
+    class AsymmetricDerivative : public IDerivative {
+        virtual DerivativePhase phase() const override {
+            return DerivativePhase::EVALUATION;
+        }
+
+        virtual void create(Accumulated& UNUSED(results)) override {}
+
+        virtual void initialize(const Storage& UNUSED(input), Accumulated& UNUSED(results)) override {}
+
+        virtual void evalNeighs(const Size UNUSED(idx),
+            ArrayView<const Size> UNUSED(neighs),
+            ArrayView<const Vector> UNUSED(grads)) override {}
+    };
+    derivatives.require<AsymmetricDerivative>(settings);
+    REQUIRE_FALSE(derivatives.isSymmetric());
 }

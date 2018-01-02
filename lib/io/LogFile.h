@@ -5,6 +5,7 @@
 #include "physics/Integrals.h"
 #include "quantities/QuantityIds.h"
 #include "run/Trigger.h"
+#include "system/Timer.h"
 #include "timestepping/TimeStepCriterion.h"
 
 NAMESPACE_SPH_BEGIN
@@ -50,7 +51,9 @@ public:
         // Timestep number and current run time
         const int index = stats.get<int>(StatisticsId::INDEX);
         const Float time = stats.get<Float>(StatisticsId::RUN_TIME);
-        logger->write("Output #", index, "  time = ", time);
+        const int wallclock = stats.get<int>(StatisticsId::WALLCLOCK_TIME);
+        const std::string formattedWallclock = getFormattedTime(wallclock);
+        logger->write("Output #", index, "  time = ", time, "  wallclock time: ", formattedWallclock);
 
         // Timestepping info
         CriterionId id = stats.get<CriterionId>(StatisticsId::TIMESTEP_CRITERION);
@@ -61,20 +64,29 @@ public:
             ss << id;
         }
         const Float dt = stats.get<Float>(StatisticsId::TIMESTEP_VALUE);
-        logger->write(" - timestep: dt = ", dt, " (set by ", ss.str(), ")");
+        logger->write(" - timestep:    ", dt, " (set by ", ss.str(), ")");
 
-        if (stats.has(StatisticsId::NEIGHBOUR_COUNT)) {
-            logger->write(" - neigbours: ", stats.get<MinMaxMean>(StatisticsId::NEIGHBOUR_COUNT));
-        }
-        if (stats.has(StatisticsId::COLLISION_COUNT)) {
-            logger->write(" - collisions: ", stats.get<int>(StatisticsId::COLLISION_COUNT));
-        }
-        logger->write(" - time spent: ", stats.get<int>(StatisticsId::TIMESTEP_ELAPSED), "ms");
+        // clang-format off
+        printStat<MinMaxMean>(stats, StatisticsId::NEIGHBOUR_COUNT,       " - neigbours:   ");
+        printStat<int>(stats, StatisticsId::COLLISION_COUNT,              " - collisions:  ");
+        printStat<int>(stats, StatisticsId::SOLVER_SUMMATION_ITERATIONS,  " - iteration #: ");
+        printStat<int>(stats, StatisticsId::TIMESTEP_ELAPSED,             " - time spent:  ", "ms");
+        printStat<int>(stats, StatisticsId::SPH_EVAL_TIME,                "    * SPH evaluation:     ", "ms");
+        printStat<int>(stats, StatisticsId::GRAVITY_EVAL_TIME,            "    * gravity evaluation: ", "ms");
+        // clang-format on
+    }
 
-        // Solver-specific stats
-        if (stats.has(StatisticsId::SOLVER_SUMMATION_ITERATIONS)) {
-            const int iterationCnt = stats.get<int>(StatisticsId::SOLVER_SUMMATION_ITERATIONS);
-            logger->write(" - iteration #: ", iterationCnt);
+private:
+    template <typename T>
+    void printStat(const Statistics& stats,
+        const StatisticsId id,
+        const std::string& message,
+        const std::string& unit = "",
+        const std::string& emptyValue = "") {
+        if (stats.has(id)) {
+            logger->write(message, stats.get<T>(id), unit);
+        } else if (!emptyValue.empty()) {
+            logger->write(message, emptyValue);
         }
     }
 };

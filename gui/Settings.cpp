@@ -27,11 +27,12 @@ AutoPtr<GuiSettings> GuiSettings::instance (new GuiSettings {
     { GuiSettingsId::SURFACE_SUN_POSITION,  "surface.sun_position", Vector(0.f, 0.f, 1.f) },
     { GuiSettingsId::SURFACE_SUN_INTENSITY, "surface.sun_intentity", 0.5_f },
     { GuiSettingsId::SURFACE_AMBIENT,       "surface.ambient",      0.3_f },
-    { GuiSettingsId::ORTHO_VIEW_CENTER,           "view.center",          Vector(0._f) },
-    { GuiSettingsId::ORTHO_FOV,              "view.fov",             1._f },
+    { GuiSettingsId::ORTHO_VIEW_CENTER,     "view.center",          Vector(0._f) },
+    { GuiSettingsId::ORTHO_FOV,             "view.fov",             1._f },
     { GuiSettingsId::VIEW_WIDTH,            "view.width",           800 },
     { GuiSettingsId::VIEW_HEIGHT,           "view.height",          600 },
     { GuiSettingsId::VIEW_MAX_FRAMERATE,    "view.max_framerate",   100 }, // ms
+    { GuiSettingsId::VIEW_GRID_SIZE,        "view.grid_size",       0._f },
 
     /// Window settings
     { GuiSettingsId::WINDOW_TITLE,     "window.title",     std::string("SPH") },
@@ -59,8 +60,10 @@ AutoPtr<GuiSettings> GuiSettings::instance (new GuiSettings {
     { GuiSettingsId::PALETTE_DIVV,          "palette.divv",         Interval(-0.1_f, 0.1_f) },
     { GuiSettingsId::PALETTE_GRADV,         "palette.gradv",         Interval(0._f, 1.e-3_f) },
     { GuiSettingsId::PALETTE_RADIUS,        "palette.radius",       Interval(0._f, 1.e3_f) },
-    { GuiSettingsId::PALETTE_DENSITY_PERTURB, "palette.density_perturb",  Interval(-1.e-6_f, 1.e-6_f) },
-    { GuiSettingsId::PALETTE_ANGULAR_VELOCITY, "palette.angular_velocity", Interval(0._f, 1.e-3_f) },
+    { GuiSettingsId::PALETTE_DENSITY_PERTURB,               "palette.density_perturb",                  Interval(-1.e-6_f, 1.e-6_f) },
+    { GuiSettingsId::PALETTE_ANGULAR_VELOCITY,              "palette.angular_velocity",                 Interval(0._f, 1.e-3_f) },
+    { GuiSettingsId::PALETTE_STRAIN_RATE_CORRECTION_TENSOR, "palette.strain_rate_correction_tensor",    Interval(0.01_f, 100._f) },
+    { GuiSettingsId::PALETTE_ACTIVATION_STRAIN,             "palette.activation_strain",                Interval(2.e-4_f, 8.e-4_f) },
 });
 // clang-format on
 

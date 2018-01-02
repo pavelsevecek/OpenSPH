@@ -113,13 +113,15 @@ public:
     virtual void finalize(Storage& storage) override {
         av.finalize(storage);
         if (storeFactor) {
-            Accumulated dummy;
-            /// \todo is this ok?
-            Derivative derivative(RunSettings::getDefaults());
-            derivative.initialize(storage, dummy);
+            ArrayView<const Float> divv = storage.getValue<Float>(QuantityId::VELOCITY_DIVERGENCE);
+            ArrayView<const Vector> rotv = storage.getValue<Vector>(QuantityId::VELOCITY_ROTATION);
+            ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
+            ArrayView<const Float> cs = storage.getValue<Float>(QuantityId::SOUND_SPEED);
             ArrayView<Float> factor = storage.getValue<Float>(QuantityId::AV_BALSARA);
             for (Size i = 0; i < factor.size(); ++i) {
-                factor[i] = derivative.factor(i);
+                const Float dv = abs(divv[i]);
+                const Float rv = getLength(rotv[i]);
+                factor[i] = dv / (dv + rv + 1.e-4_f * cs[i] / r[i][H]);
             }
         }
     }

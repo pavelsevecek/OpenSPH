@@ -14,7 +14,7 @@ TEST_CASE("InternalFriction", "[friction]") {
     settings.set(RunSettingsId::MODEL_FORCE_SOLID_STRESS, false);
     eqs += makeTerm<InternalFriction>() + makeTerm<ContinuityEquation>(settings) +
            makeTerm<ConstSmoothingLength>();
-    GenericSolver solver(settings, std::move(eqs));
+    SymmetricSolver solver(settings, std::move(eqs));
 
     Storage storage;
     InitialConditions initial(solver, RunSettings::getDefaults());

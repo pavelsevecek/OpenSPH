@@ -1,18 +1,19 @@
 #include "sph/equations/GradH.h"
 #include "catch.hpp"
+#include "sph/solvers/AsymmetricSolver.h"
 #include "tests/Setup.h"
+#include "utils/SequenceTest.h"
 
 using namespace Sph;
 
 TEST_CASE("GradH", "[solvers]") {
     Storage storage = Tests::getGassStorage(1000, BodySettings::getDefaults());
-    EquationHolder eqs;
-    RunSettings settings;
-    settings.set(RunSettingsId::MODEL_FORCE_SOLID_STRESS, false);
-    eqs += makeTerm<PressureForce>() + makeTerm<ContinuityEquation>(settings) + makeTerm<GradH>() +
-           makeTerm<ConstSmoothingLength>();
-    GenericSolver solver(RunSettings::getDefaults(), std::move(eqs));
-    REQUIRE_NOTHROW(solver.create(storage, storage.getMaterial(0)));
-    Statistics stats;
-    REQUIRE_NOTHROW(solver.integrate(storage, stats));
+    storage.insert<Float>(QuantityId::GRAD_H, OrderEnum::ZERO, 0._f);
+    REQUIRE_NOTHROW((Tests::computeField<GradH, AsymmetricSolver>(
+        storage, [](Vector UNUSED(r)) { return Vector(0._f); })));
+
+    // check that it computed 'something'
+    ArrayView<const Float> omega = storage.getValue<Float>(QuantityId::GRAD_H);
+    auto test = [omega](Size i) -> Outcome { return Outcome(omega[i] > 0._f); };
+    REQUIRE_SEQUENCE(test, 0, omega.size());
 }

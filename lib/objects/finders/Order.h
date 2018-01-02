@@ -72,6 +72,16 @@ public:
         return composed;
     }
 
+    /// Shuffles given array using this order
+    template <typename T>
+    Array<T> apply(const Array<T>& input) {
+        Array<T> sorted(input.size());
+        for (Size i = 0; i < input.size(); ++i) {
+            sorted[i] = input[storage[i]];
+        }
+        return sorted;
+    }
+
     INLINE Size operator[](const Size idx) const {
         return storage[idx];
     }

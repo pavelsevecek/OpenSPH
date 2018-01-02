@@ -1,6 +1,7 @@
 #include "system/Timer.h"
 #include "objects/wrappers/LockingPtr.h"
 #include <atomic>
+#include <iomanip>
 #include <thread>
 
 NAMESPACE_SPH_BEGIN
@@ -155,6 +156,32 @@ void TimerThread::runLoop() {
 void TimerThread::removeEntry(TimerEntry& entry) {
     /// \todo proper removing
     entry.timer.reset();
+}
+
+/// \todo can be improved after units are introduced into the code
+
+const int64_t SECOND = 1000;
+const int64_t MINUTE = 60 * SECOND;
+const int64_t HOUR = 60 * MINUTE;
+const int64_t DAY = 24 * HOUR;
+
+std::string getFormattedTime(int64_t time) {
+    std::stringstream ss;
+    if (time >= DAY) {
+        ss << time / DAY << "d ";
+        time = time % DAY;
+    }
+    if (time >= HOUR) {
+        ss << std::setw(2) << std::setfill('0') << time / HOUR << "h ";
+        time = time % HOUR;
+    }
+    if (time >= MINUTE) {
+        ss << std::setw(2) << std::setfill('0') << time / MINUTE << "min ";
+        time = time % MINUTE;
+    }
+    ss << std::setw(2) << std::setfill('0') << time / SECOND;
+    ss << "." << std::setw(3) << std::setfill('0') << time % SECOND << "s";
+    return ss.str();
 }
 
 NAMESPACE_SPH_END

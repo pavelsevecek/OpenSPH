@@ -13,23 +13,23 @@
 NAMESPACE_SPH_BEGIN
 
 /// \brief Extension of the generic SPH solver, including gravitational interactions of particles.
-class GravitySolver : public GenericSolver {
+class GravitySolver : public SymmetricSolver {
 private:
     /// Implementation of gravity used by the solver
     AutoPtr<IGravity> gravity;
 
-    struct DummyDerivative : public IDerivative {
+    struct DummyDerivative : public SymmetricDerivative {
         virtual void create(Accumulated& results) override {
             results.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND);
         }
         virtual void initialize(const Storage&, Accumulated&) override {}
+        virtual void evalNeighs(const Size, ArrayView<const Size>, ArrayView<const Vector>) override {}
         virtual void evalSymmetric(const Size, ArrayView<const Size>, ArrayView<const Vector>) override {}
-        virtual void evalAsymmetric(const Size, ArrayView<const Size>, ArrayView<const Vector>) override {}
     };
 
 public:
     GravitySolver(const RunSettings& settings, const EquationHolder& equations, AutoPtr<IGravity>&& gravity)
-        : GenericSolver(settings, equations)
+        : SymmetricSolver(settings, equations)
         , gravity(std::move(gravity)) {
         // check the equations
         this->sanityCheck();
@@ -44,7 +44,7 @@ protected:
         // first, do asymmetric evaluation of gravity:
 
         // build gravity tree
-        MEASURE("Building gravity", gravity->build(storage));
+        gravity->build(storage);
 
         // get acceleration buffer corresponding to first thread (to save some memory + time)
         ThreadData& data = threadData.first();
@@ -52,13 +52,17 @@ protected:
         ArrayView<Vector> dv = accumulated.getBuffer<Vector>(QuantityId::POSITION, OrderEnum::SECOND);
 
         // evaluate gravity for each particle
-        MEASURE("Evaluating gravity", gravity->evalAll(*pool, dv, stats));
+        Timer timer;
+        gravity->evalAll(*pool, dv, stats);
+        stats.set(StatisticsId::GRAVITY_EVAL_TIME, int(timer.elapsed(TimerUnit::MILLISECOND)));
 
         // second, compute SPH derivatives using symmetric evaluation
-        MEASURE("Evaluating SPH", GenericSolver::loop(storage, stats));
+        timer.restart();
+        SymmetricSolver::loop(storage, stats);
+        stats.set(StatisticsId::SPH_EVAL_TIME, int(timer.elapsed(TimerUnit::MILLISECOND)));
     }
 
-    void sanityCheck() const {
+    virtual void sanityCheck() const override {
         // check that we don't solve gravity twice
         /// \todo generalize for ALL solvers of gravity (some categories?)
         if (equations.contains<SphericalGravityEquation>()) {

@@ -47,7 +47,7 @@ NAMESPACE_SPH_BEGIN
 #define SPH_CPP17
 
 #ifdef SPH_CPP17
-#define SPH_FALLTHROUGH [[fallthrough]]
+#define SPH_FALLTHROUGH [[fallthrough]];
 #else
 #define SPH_FALLTHROUGH
 #endif
@@ -55,8 +55,8 @@ NAMESPACE_SPH_BEGIN
 #define DEPRECATED __attribute__((deprecated))
 
 /// Branch prediction hints
-#define SPH_LIKELY(x) __builtin_expect((x), 1)
-#define SPH_UNLIKELY(x) __builtin_expect((x), 0)
+#define SPH_LIKELY(x) __builtin_expect(bool(x), 1)
+#define SPH_UNLIKELY(x) __builtin_expect(bool(x), 0)
 
 
 /// \brief Object with deleted copy constructor and copy operator

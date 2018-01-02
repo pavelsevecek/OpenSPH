@@ -19,6 +19,7 @@
 #include "sph/equations/av/MorrisMonaghan.h"
 #include "sph/equations/av/Riemann.h"
 #include "sph/initial/Distribution.h"
+#include "sph/solvers/AsymmetricSolver.h"
 #include "sph/solvers/ContinuitySolver.h"
 #include "sph/solvers/DensityIndependentSolver.h"
 #include "sph/solvers/SummationSolver.h"
@@ -49,6 +50,8 @@ AutoPtr<IRheology> Factory::getRheology(const BodySettings& settings) {
     const YieldingEnum id = settings.get<YieldingEnum>(BodySettingsId::RHEOLOGY_YIELDING);
     switch (id) {
     case YieldingEnum::NONE:
+        return nullptr;
+    case YieldingEnum::ELASTIC:
         return makeAuto<ElasticRheology>();
     case YieldingEnum::VON_MISES:
         return makeAuto<VonMisesRheology>(Factory::getDamage(settings));
@@ -186,8 +189,10 @@ AutoPtr<IDistribution> Factory::getDistribution(const BodySettings& settings) {
 AutoPtr<ISolver> Factory::getSolver(const RunSettings& settings) {
     const SolverEnum id = settings.get<SolverEnum>(RunSettingsId::SOLVER_TYPE);
     switch (id) {
-    case SolverEnum::CONTINUITY_SOLVER:
-        return makeAuto<ContinuitySolver>(settings);
+    case SolverEnum::SYMMETRIC_SOLVER:
+        return makeAuto<SymmetricSolver>(settings, getStandardEquations(settings));
+    case SolverEnum::ASYMMETRIC_SOLVER:
+        return makeAuto<AsymmetricSolver>(settings, getStandardEquations(settings));
     case SolverEnum::SUMMATION_SOLVER:
         return makeAuto<SummationSolver>(settings);
     case SolverEnum::DENSITY_INDEPENDENT:
@@ -292,6 +297,7 @@ AutoPtr<IMaterial> Factory::getMaterial(const BodySettings& settings) {
     switch (yieldId) {
     case YieldingEnum::DRUCKER_PRAGER:
     case YieldingEnum::VON_MISES:
+    case YieldingEnum::ELASTIC:
         return makeAuto<SolidMaterial>(settings, Factory::getEos(settings), Factory::getRheology(settings));
     case YieldingEnum::NONE:
         switch (eosId) {

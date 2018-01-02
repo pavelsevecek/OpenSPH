@@ -7,8 +7,8 @@ INCLUDEPATH += /usr/include/eigen3
 DEFINES += SPH_USE_EIGEN
 DEFINES += SPH_MPI
 
-#QMAKE_CXX = mpic++
-#QMAKE_LINK = mpic++
+#QMAKE_CXX = clang++
+#QMAKE_LINK = clang++
 
 QMAKE_CXXFLAGS += -Wall -Wextra -Werror -msse4.1 -std=c++14 -pthread
 #QMAKE_CXXFLAGS_RELEASE -= -O2
@@ -42,6 +42,7 @@ CONFIG(debug, debug|profile|assert|release) {
 SOURCES += \
     common/Assert.cpp \
     gravity/BarnesHut.cpp \
+    io/FileManager.cpp \
     io/FileSystem.cpp \
     io/Logger.cpp \
     io/Output.cpp \
@@ -50,9 +51,13 @@ SOURCES += \
     math/SparseMatrix.cpp \
     math/rng/Rng.cpp \
     mpi/Mpi.cpp \
+    objects/containers/String.cpp \
+    objects/finders/DynamicFinder.cpp \
     objects/finders/KdTree.cpp \
+    objects/finders/UniformGrid.cpp \
     objects/geometry/Domain.cpp \
     objects/geometry/SymmetricTensor.cpp \
+    objects/utility/Dynamic.cpp \
     objects/utility/StringUtils.cpp \
     objects/wrappers/Interval.cpp \
     physics/Damage.cpp \
@@ -63,6 +68,8 @@ SOURCES += \
     post/Analysis.cpp \
     post/MarchingCubes.cpp \
     post/MeshFile.cpp \
+    post/Plot.cpp \
+    post/StatisticTests.cpp \
     quantities/IMaterial.cpp \
     quantities/Particle.cpp \
     quantities/QuantityIds.cpp \
@@ -86,13 +93,7 @@ SOURCES += \
     thread/CheckFunction.cpp \
     thread/Pool.cpp \
     timestepping/TimeStepCriterion.cpp \
-    timestepping/TimeStepping.cpp \
-    post/Plot.cpp \
-    objects/finders/DynamicFinder.cpp \
-    objects/containers/String.cpp \
-    objects/finders/UniformGrid.cpp \
-    io/FileManager.cpp \
-    post/StatisticTests.cpp
+    timestepping/TimeStepping.cpp
 
 HEADERS += \
     common/Assert.h \
@@ -101,9 +102,13 @@ HEADERS += \
     common/Traits.h \
     gravity/BarnesHut.h \
     gravity/BruteForceGravity.h \
+    gravity/Collision.h \
     gravity/IGravity.h \
     gravity/Moments.h \
+    gravity/NBodySolver.h \
+    gravity/SphericalGravity.h \
     io/Column.h \
+    io/FileManager.h \
     io/FileSystem.h \
     io/LogFile.h \
     io/Logger.h \
@@ -116,15 +121,17 @@ HEADERS += \
     math/Matrix.h \
     math/Means.h \
     math/Morton.h \
+    math/Quat.h \
     math/Roots.h \
     math/SparseMatrix.h \
-    math/Quat.h \
     math/rng/Rng.h \
     math/rng/VectorRng.h \
     mpi/Mpi.h \
+    mpi/MpiScheduler.h \
     mpi/Serializable.h \
     objects/Exceptions.h \
     objects/Object.h \
+    objects/containers/Allocators.h \
     objects/containers/Array.h \
     objects/containers/ArrayView.h \
     objects/containers/BufferedArray.h \
@@ -132,8 +139,11 @@ HEADERS += \
     objects/containers/LookupMap.h \
     objects/containers/Map.h \
     objects/containers/StaticArray.h \
+    objects/containers/String.h \
     objects/containers/Tuple.h \
+    objects/finders/AdaptiveGrid.h \
     objects/finders/BruteForceFinder.h \
+    objects/finders/DynamicFinder.h \
     objects/finders/INeighbourFinder.h \
     objects/finders/KdTree.h \
     objects/finders/LinkedList.h \
@@ -141,6 +151,7 @@ HEADERS += \
     objects/finders/Octree.h \
     objects/finders/Order.h \
     objects/finders/PeriodicFinder.h \
+    objects/finders/UniformGrid.h \
     objects/geometry/AntisymmetricTensor.h \
     objects/geometry/Box.h \
     objects/geometry/Domagin.h \
@@ -154,6 +165,7 @@ HEADERS += \
     objects/geometry/TracelessTensor.h \
     objects/geometry/Vector.h \
     objects/utility/ArrayUtils.h \
+    objects/utility/Dynamic.h \
     objects/utility/Iterators.h \
     objects/utility/OperatorTemplate.h \
     objects/utility/PerElementWrapper.h \
@@ -167,25 +179,32 @@ HEADERS += \
     objects/wrappers/Flags.h \
     objects/wrappers/Function.h \
     objects/wrappers/Interval.h \
+    objects/wrappers/Locking.h \
     objects/wrappers/LockingPtr.h \
     objects/wrappers/NonOwningPtr.h \
     objects/wrappers/ObserverPtr.h \
     objects/wrappers/Optional.h \
     objects/wrappers/Outcome.h \
     objects/wrappers/RawPtr.h \
+    objects/wrappers/SafePtr.h \
     objects/wrappers/SharedPtr.h \
+    objects/wrappers/Transient.h \
     objects/wrappers/Variant.h \
     objects/wrappers/VectorizedArray.h \
     physics/Constants.h \
     physics/Damage.h \
     physics/Eos.h \
+    physics/Functions.h \
     physics/Integrals.h \
     physics/Rheology.h \
     physics/TimeFormat.h \
+    physics/Units.h \
     post/Analysis.h \
     post/MarchingCubes.h \
     post/MeshFile.h \
     post/Plot.h \
+    post/Point.h \
+    post/StatisticTests.h \
     quantities/IMaterial.h \
     quantities/Iterate.h \
     quantities/Particle.h \
@@ -193,18 +212,22 @@ HEADERS += \
     quantities/QuantityHelpers.h \
     quantities/QuantityIds.h \
     quantities/Storage.h \
+    run/Collision.h \
     run/IRun.h \
     run/RunCallbacks.h \
+    run/Trigger.h \
     sph/Diagnostics.h \
     sph/Materials.h \
     sph/boundary/Boundary.h \
     sph/equations/Accumulated.h \
     sph/equations/Derivative.h \
     sph/equations/EquationTerm.h \
+    sph/equations/Fluids.h \
     sph/equations/Friction.h \
     sph/equations/GradH.h \
     sph/equations/HelperTerms.h \
     sph/equations/Potentials.h \
+    sph/equations/Rotation.h \
     sph/equations/Statics.h \
     sph/equations/XSph.h \
     sph/equations/av/Balsara.h \
@@ -216,11 +239,13 @@ HEADERS += \
     sph/equationsav/Standard.h \
     sph/initial/Distribution.h \
     sph/initial/Initial.h \
+    sph/initial/Presets.h \
     sph/kernel/GravityKernel.h \
     sph/kernel/Interpolation.h \
     sph/kernel/Kernel.h \
     sph/kernel/KernelFactory.h \
     sph/solvers/AsymmetricSolver.h \
+    sph/solvers/CollisionSolver.h \
     sph/solvers/ContinuitySolver.h \
     sph/solvers/DensityIndependentSolver.h \
     sph/solvers/EntropySolver.h \
@@ -228,14 +253,15 @@ HEADERS += \
     sph/solvers/GravitySolver.h \
     sph/solvers/StaticSolver.h \
     sph/solvers/SummationSolver.h \
+    system/ArgsParser.h \
     system/ArrayStats.h \
-    system/RunCallbacks.h \
     system/Column.h \
     system/Element.h \
     system/Factory.h \
     system/Platform.h \
     system/Process.h \
     system/Profiler.h \
+    system/RunCallbacks.h \
     system/Settings.h \
     system/Statistics.h \
     system/Timer.h \
@@ -243,35 +269,10 @@ HEADERS += \
     tests/Setup.h \
     thread/AtomicFloat.h \
     thread/CheckFunction.h \
+    thread/IScheduler.h \
     thread/Pool.h \
     thread/ThreadLocal.h \
+    timestepping/ISolver.h \
     timestepping/ISolverr.h \
     timestepping/TimeStepCriterion.h \
-    timestepping/TimeStepping.h \
-    objects/finders/DynamicFinder.h \
-    timestepping/ISolver.h \
-    post/Point.h \
-    sph/initial/Presets.h \
-    sph/solvers/CollisionSolver.h \
-    system/ArgsParser.h \
-    run/Collision.h \
-    objects/containers/String.h \
-    sph/equations/Rotation.h \
-    run/Trigger.h \
-    objects/finders/UniformGrid.h \
-    objects/finders/AdaptiveGrid.h \
-    gravity/NBodySolver.h \
-    sph/equations/Fluids.h \
-    thread/IScheduler.h \
-    mpi/MpiScheduler.h \
-    physics/Units.h \
-    objects/containers/Allocators.h \
-    objects/wrappers/Transient.h \
-    objects/wrappers/SafePtr.h \
-    objects/wrappers/Locking.h \
-    io/FileManager.h \
-    objects/utility/Dynamic.h \
-    gravity/Collision.h \
-    physics/Functions.h \
-    gravity/SphericalGravity.h \
-    post/StatisticTests.h
+    timestepping/TimeStepping.h

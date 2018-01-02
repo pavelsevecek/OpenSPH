@@ -9,8 +9,10 @@
 #include "quantities/Iterate.h"
 #include "sph/equations/Friction.h"
 #include "sph/equations/Potentials.h"
+#include "sph/equations/Rotation.h"
 #include "sph/initial/Initial.h"
 #include "sph/kernel/Interpolation.h"
+#include "sph/solvers/AsymmetricSolver.h"
 #include "sph/solvers/ContinuitySolver.h"
 #include "sph/solvers/StaticSolver.h"
 #include "system/Profiler.h"
@@ -22,37 +24,64 @@ NAMESPACE_SPH_BEGIN
 AsteroidRotation::AsteroidRotation(const RawPtr<Controller> model, const Float period)
     : model(model)
     , period(period) {
-    settings.set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::EULER_EXPLICIT)
-        .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 0.01_f)
-        .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 0.01_f)
-        .set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 100000._f))
+    settings.set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::PREDICTOR_CORRECTOR)
+        .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 1.e-7_f)
+        .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 4.e-6_f)
+        .set(RunSettingsId::TIMESTEPPING_COURANT, 1._f)
+        .set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 1._f))
         .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 100._f)
         .set(RunSettingsId::MODEL_FORCE_SOLID_STRESS, true)
         .set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONST)
         .set(RunSettingsId::SPH_FINDER, FinderEnum::UNIFORM_GRID)
         .set(RunSettingsId::SPH_AV_TYPE, ArtificialViscosityEnum::STANDARD)
+        .set(RunSettingsId::SPH_AV_BALSARA, false)
+        .set(RunSettingsId::SPH_AV_BALSARA_STORE, false)
         .set(RunSettingsId::SPH_AV_ALPHA, 1.5_f)
         .set(RunSettingsId::SPH_AV_BETA, 3._f)
-        .set(RunSettingsId::RUN_THREAD_GRANULARITY, 100);
+        .set(RunSettingsId::SPH_STRAIN_RATE_CORRECTION_TENSOR, true)
+        .set(RunSettingsId::RUN_THREAD_GRANULARITY, 10);
     settings.saveToFile(Path("code.sph"));
 }
 
-class DisableDerivativesSolver : public ContinuitySolver {
+class DisableDerivativesSolver : public AsymmetricSolver {
 private:
-    Float delta = 0.0_f;
+    Vector omega;
+
+    Float delta = 0.2_f;
 
 public:
-    DisableDerivativesSolver(const RunSettings& settings, const EquationHolder& equations)
-        : ContinuitySolver(settings, equations) {}
+    DisableDerivativesSolver(const RunSettings& settings,
+        const Vector& omega,
+        const EquationHolder& equations)
+        : AsymmetricSolver(settings, getStandardEquations(settings, equations))
+        , omega(omega) {}
 
     virtual void integrate(Storage& storage, Statistics& stats) override {
-        ContinuitySolver::integrate(storage, stats);
+        AsymmetricSolver::integrate(storage, stats);
         ArrayView<Vector> r, v, dv;
         tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
+
+        const Float t = stats.get<Float>(StatisticsId::RUN_TIME);
+        const Float dt = stats.getOr<Float>(StatisticsId::TIMESTEP_VALUE, 1.e-7f);
+        const Float targetTime = 0.01_f;
         for (Size i = 0; i < v.size(); ++i) {
             // gradually decrease the delta
-            const Float t = stats.get<Float>(StatisticsId::RUN_TIME);
-            v[i] /= 1._f + lerp(delta, 0._f, min(t / 10._f, 1._f));
+            const Vector rotation = cross(omega, r[i]);
+            const Float factor = 1._f + lerp(delta * dt, 0._f, min(t / targetTime, 1._f));
+            // we have to dump only the deviation of velocities, not the initial rotation!
+            v[i] = (v[i] - rotation) / factor + rotation;
+        }
+        if (storage.has(QuantityId::DAMAGE) && t < targetTime) {
+            ArrayView<Float> D = storage.getValue<Float>(QuantityId::DAMAGE);
+            for (Size i = 0; i < D.size(); ++i) {
+                D[i] = 0._f;
+            }
+        }
+        if (storage.has(QuantityId::STRESS_REDUCING) && t < targetTime) {
+            ArrayView<Float> Y = storage.getValue<Float>(QuantityId::STRESS_REDUCING);
+            for (Size i = 0; i < Y.size(); ++i) {
+                Y[i] = 1._f;
+            }
         }
     }
 };
@@ -61,10 +90,12 @@ void AsteroidRotation::setUp() {
     BodySettings bodySettings;
     bodySettings.set(BodySettingsId::ENERGY, 0._f)
         .set(BodySettingsId::ENERGY_RANGE, Interval(0._f, INFTY))
-        .set(BodySettingsId::PARTICLE_COUNT, 100000)
+        .set(BodySettingsId::PARTICLE_COUNT, 50000)
         .set(BodySettingsId::EOS, EosEnum::TILLOTSON)
-        .set(BodySettingsId::STRESS_TENSOR_MIN, 1.e5_f)
-        .set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::NONE)
+        //.set(BodySettingsId::ENERGY_MIN, LARGE)
+        .set(BodySettingsId::STRESS_TENSOR_MIN, LARGE)
+        .set(BodySettingsId::DAMAGE_MIN, 0.2_f)
+        .set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::SCALAR_GRADY_KIPP)
         .set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::VON_MISES)
         .set(BodySettingsId::DISTRIBUTE_MODE_SPH5, true);
     bodySettings.saveToFile(Path("target.sph"));
@@ -72,19 +103,28 @@ void AsteroidRotation::setUp() {
     storage = makeShared<Storage>();
 
     EquationHolder externalForces;
-    // externalForces += makeTerm<SphericalGravity>(SphericalGravity::Options::ASSUME_HOMOGENEOUS);
-    const Vector omega = 2._f * PI / (3600._f * period) * Vector(0, 1, 0);
-    externalForces += makeTerm<InertialForce>(omega);
+    // externalForces += makeTerm<SphericalGravity>();
+    // const Vector omega = 2._f * PI / (3600._f * period) * Vector(0, 1, 0);
+    // externalForces += makeTerm<InertialForce>(omega);
 
-    solver = makeAuto<DisableDerivativesSolver>(settings, externalForces);
+    const Vector omega(0._f, 0._f, 140._f);
+    solver = makeAuto<DisableDerivativesSolver>(settings, omega, externalForces);
 
     InitialConditions conds(*solver, settings);
 
     // Parent body
-    SphericalDomain domain1(Vector(0._f), 5e3_f); // D = 10km
-    conds.addMonolithicBody(*storage, domain1, bodySettings);
+    AffineMatrix tm = AffineMatrix::rotateX(PI / 2._f);
+    TransformedDomain<CylindricalDomain> domain1(tm, Vector(0._f), 0.2_f, 1._f, true); // H = 1m
+    conds.addMonolithicBody(*storage, domain1, bodySettings).addRotation(omega, Vector(0._f));
     logger = Factory::getLogger(settings);
     logger->write("Particles of target: ", storage->getParticleCnt());
+
+    if (storage->has(QuantityId::ANGULAR_VELOCITY)) {
+        ArrayView<Vector> w = storage->getValue<Vector>(QuantityId::ANGULAR_VELOCITY);
+        for (Size i = 0; i < w.size(); ++i) {
+            w[i] = omega;
+        }
+    }
 
     // Auxiliary storage for computing initial pressure and energy
     /*Storage smaller;
@@ -115,6 +155,7 @@ void AsteroidRotation::setUp() {
     output = std::move(textOutput);
 
     triggers.pushBack(makeAuto<IntegralsLog>(Path("integrals.txt"), 1));
+    triggers.pushBack(makeAuto<CommonStatsLog>(Factory::getLogger(settings)));
 
     callbacks = makeAuto<GuiCallbacks>(*model);
 }

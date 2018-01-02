@@ -11,10 +11,10 @@ struct ParticleVisitor {
         switch (q.getOrderEnum()) {
         case OrderEnum::SECOND:
             data[id].d2t = values[2][idx];
-            SPH_FALLTHROUGH;
+            SPH_FALLTHROUGH
         case OrderEnum::FIRST:
             data[id].dt = values[1][idx];
-            SPH_FALLTHROUGH;
+            SPH_FALLTHROUGH
         case OrderEnum::ZERO:
             data[id].value = values[0][idx];
             break;

@@ -116,6 +116,11 @@ public:
         return AffineMatrix(Vector(1._f, 0._f, 0._f), Vector(0._f, 1._f, 0._f), Vector(0._f, 0._f, 1._f));
     }
 
+    static AffineMatrix scale(const Vector& scaling) {
+        return AffineMatrix(
+            Vector(scaling[X], 0._f, 0._f), Vector(0._f, scaling[Y], 0._f), Vector(0._f, 0._f, scaling[Z]));
+    }
+
     static AffineMatrix rotateX(const Float angle) {
         const Float c = cos(angle);
         const Float s = sin(angle);

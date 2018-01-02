@@ -30,12 +30,12 @@ private:
             ArrayView<const Size> neighs,
             ArrayView<const Vector> UNUSED_IN_RELEASE(grads)) {
             ASSERT(neighs.size() == grads.size());
+            // there is no need to use this in asymmetric solver, since we already know all the neighbours
+            ASSERT(Symmetrize);
             neighCnts[i] += neighs.size();
-            if (Symmetrize) {
-                for (Size k = 0; k < neighs.size(); ++k) {
-                    const Size j = neighs[k];
-                    neighCnts[j]++;
-                }
+            for (Size k = 0; k < neighs.size(); ++k) {
+                const Size j = neighs[k];
+                neighCnts[j]++;
             }
         }
     };

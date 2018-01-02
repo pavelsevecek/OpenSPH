@@ -11,9 +11,9 @@ TEST_CASE("SymmetricTensor construction", "[symmetrictensor]") {
     REQUIRE_NOTHROW(SymmetricTensor t1);
 
     SymmetricTensor t2(Vector(1._f, 2._f, 3._f), Vector(-1._f, -2._f, -3._f));
-    REQUIRE(t2[0] == Vector(1._f, -1._f, -2._f));
-    REQUIRE(t2[1] == Vector(-1._f, 2._f, -3._f));
-    REQUIRE(t2[2] == Vector(-2._f, -3._f, 3._f));
+    REQUIRE(t2.row(0) == Vector(1._f, -1._f, -2._f));
+    REQUIRE(t2.row(1) == Vector(-1._f, 2._f, -3._f));
+    REQUIRE(t2.row(2) == Vector(-2._f, -3._f, 3._f));
 
     REQUIRE(t2(0, 0) == 1._f);
     REQUIRE(t2(0, 1) == -1._f);
@@ -107,6 +107,35 @@ TEST_CASE("SymmetricTensor eigendecomposition", "[symmetrictensor]") {
 
     SymmetricTensor diag(e0, Vector(0._f));
     REQUIRE(transform(diag, m.transpose()) == approx(t));
+}
+
+TEST_CASE("SymmetricTensor SVD", "[symmetrictensor]") {
+    Svd svd = singularValueDecomposition(SymmetricTensor::identity());
+    REQUIRE(svd.S == Vector(1._f));
+    // matrices U and V are not unique, so it's possible that the tests fails when implementation of SVD
+    // changes, even though it works properly
+    REQUIRE(svd.U == AffineMatrix::scale(Vector(-1._f)));
+    REQUIRE(svd.V == AffineMatrix::scale(Vector(-1._f)));
+
+    svd = singularValueDecomposition(SymmetricTensor::null());
+    REQUIRE(svd.S == Vector(0._f));
+    REQUIRE(svd.U == AffineMatrix::scale(Vector(1._f)));
+    REQUIRE(svd.V == AffineMatrix::scale(Vector(1._f)));
+
+    SymmetricTensor A(Vector(1, 2, -3), Vector(4, -2, -1));
+    svd = singularValueDecomposition(A);
+    // computed by wolfram
+    REQUIRE(svd.S == approx(Vector(6.01247f, 2.06406f, 3.94841f), 1.e-5f)); // order doesn't matter
+    REQUIRE(svd.U * AffineMatrix::scale(svd.S) * svd.V.transpose() ==
+            approx(AffineMatrix(A.row(0), A.row(1), A.row(2)), 1.e-5f));
+}
+
+TEST_CASE("SymmetricTensor pseudoinverse", "[symmetrictensor]") {
+    REQUIRE(SymmetricTensor::identity().pseudoInverse(EPS) == SymmetricTensor::identity());
+    REQUIRE(SymmetricTensor::null().pseudoInverse(EPS) == SymmetricTensor::null());
+
+    SymmetricTensor t(Vector(1._f, 2._f, 3._f), Vector(-1._f, -2._f, -3._f));
+    REQUIRE(t.pseudoInverse(EPS) == approx(t.inverse(), 1.e-6_f));
 }
 
 TEST_CASE("SymmetricTensor norm", "[symmetrictensor]") {

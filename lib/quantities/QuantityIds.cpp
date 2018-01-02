@@ -68,14 +68,19 @@ QuantityMetadata getMetadata(const QuantityId key) {
         return QuantityMetadata("Velocity rotation", L"\u2207\u2A2Fv" /*nabla cross v*/, ValueEnum::VECTOR);
     case QuantityId::STRENGTH_VELOCITY_GRADIENT:
         return QuantityMetadata("Strength velocity gradient", L"\u2207v", ValueEnum::SYMMETRIC_TENSOR);
-    case QuantityId::ANGULAR_MOMENTUM_CORRECTION:
-        return QuantityMetadata("Correction tensor", L"C_ij", ValueEnum::SYMMETRIC_TENSOR);
+    case QuantityId::STRAIN_RATE_CORRECTION_TENSOR:
+        return QuantityMetadata("Correction tensor", L"C", ValueEnum::SYMMETRIC_TENSOR);
+    case QuantityId::DENSITY_VELOCITY_DIVERGENCE:
+        return QuantityMetadata(
+            "Density velocity divergence", L"\u03C1\u2207\u22C5v" /*rho nabla cdot v*/, ValueEnum::SCALAR);
     case QuantityId::AV_ALPHA:
         return QuantityMetadata("AV alpha", L"\u03B1_AV" /*alpha_AV*/, ValueEnum::SCALAR);
     case QuantityId::AV_BETA:
         return QuantityMetadata("AV beta", L"\u03B2_AV" /*beta_AV*/, ValueEnum::SCALAR);
     case QuantityId::AV_STRESS:
         return QuantityMetadata("Artificial stress", L"R", ValueEnum::SYMMETRIC_TENSOR);
+    case QuantityId::AV_BALSARA:
+        return QuantityMetadata("Balsara switch", L"f", ValueEnum::SCALAR);
     case QuantityId::INTERPARTICLE_SPACING_KERNEL:
         return QuantityMetadata("Interparticle spacing kernel", L"w(\u0394 p)", ValueEnum::SCALAR);
     case QuantityId::DISPLACEMENT:
@@ -85,7 +90,7 @@ QuantityMetadata getMetadata(const QuantityId key) {
     case QuantityId::MATERIAL_ID:
         return QuantityMetadata("MaterialId", L"matID", ValueEnum::INDEX);
     case QuantityId::XSPH_VELOCITIES:
-        return QuantityMetadata("XSPH correction", L"v_xsph", ValueEnum::VECTOR);
+        return QuantityMetadata("XSPH correction", L"xsph", ValueEnum::VECTOR);
     case QuantityId::GRAD_H:
         return QuantityMetadata("Grad-h terms", L"\u03A9" /*Omega*/, ValueEnum::SCALAR);
     case QuantityId::GRAVITY_POTENTIAL:

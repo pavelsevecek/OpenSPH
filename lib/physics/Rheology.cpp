@@ -122,7 +122,6 @@ void DruckerPragerRheology::integrate(Storage& storage, const MaterialView mater
     damage->integrate(storage, material);
 }
 
-
 void ElasticRheology::create(Storage& storage,
     IMaterial& UNUSED(material),
     const MaterialInitialContext& UNUSED(context)) const {

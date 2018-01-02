@@ -23,7 +23,7 @@ NAMESPACE_SPH_BEGIN
 ///
 /// The solver takes an array of equation terms and evaluate them, using compute gradients of SPH kernel. By
 /// default, no equations are evaluated, except for a 'dummy equation' counting number of neighbours.
-class GenericSolver : public ISolver {
+class SymmetricSolver : public ISolver {
 protected:
     struct ThreadData {
         /// Holds all derivatives this thread computes
@@ -66,7 +66,7 @@ public:
     /// \todo we have to somehow enforce either conservation of smoothing length or some EquationTerm that
     /// will evolve it. Or maybe just move smoothing length to separate quantity to get rid of these issues?
 
-    GenericSolver(const RunSettings& settings, const EquationHolder& eqs)
+    SymmetricSolver(const RunSettings& settings, const EquationHolder& eqs)
         : pool(makeShared<ThreadPool>(settings.get<int>(RunSettingsId::RUN_THREAD_CNT)))
         , threadData(*pool) {
         kernel = Factory::getKernel<DIMENSIONS>(settings);
@@ -82,13 +82,18 @@ public:
         // initialize all derivatives
         threadData.forEach([this, &settings](ThreadData& data) { //
             equations.setDerivatives(data.derivatives, settings);
+
+            // all derivatives must be symmetric!
+            if (!data.derivatives.isSymmetric()) {
+                throw InvalidSetup("Asymmetric derivative used within symmetric solver");
+            }
         });
     }
 
     virtual void integrate(Storage& storage, Statistics& stats) override {
         // initialize all materials (compute pressure, apply yielding and damage, ...)
         for (Size i = 0; i < storage.getMaterialCnt(); ++i) {
-            PROFILE_SCOPE("GenericSolver initialize materials")
+            PROFILE_SCOPE("SymmetricSolver initialize materials")
             MaterialView material = storage.getMaterial(i);
             material->initialize(storage, material.sequence());
         }
@@ -116,18 +121,9 @@ public:
 
         // finalize all materials (integrate fragmentation model)
         for (Size i = 0; i < storage.getMaterialCnt(); ++i) {
-            PROFILE_SCOPE("GenericSolver finalize materials")
+            PROFILE_SCOPE("SymmetricSolver finalize materials")
             MaterialView material = storage.getMaterial(i);
             material->finalize(storage, material.sequence());
-        }
-    }
-
-    virtual void collide(Storage& storage, Statistics& UNUSED(stats), const Float dt) override {
-        // no collisions in SPH, simply advance positions
-        ArrayView<Vector> r, v, dv;
-        tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
-        for (Size i = 0; i < r.size(); ++i) {
-            r[i] += v[i] * dt;
         }
     }
 
@@ -165,11 +161,11 @@ protected:
                         continue;
                     }
                     const Vector gr = kernel.grad(r[i], r[j]);
-                    ASSERT(isReal(gr) && dot(gr, r[i] - r[j]) < 0._f, gr, r[i] - r[j]);
+                    ASSERT(isReal(gr) && dot(gr, r[i] - r[j]) <= 0._f, gr, getLength(r[i] - r[j]));
                     data.grads.emplaceBack(gr);
                     data.idxs.emplaceBack(j);
                 }
-                data.derivatives.eval<true>(i, data.idxs, data.grads);
+                data.derivatives.evalSymmetric(i, data.idxs, data.grads);
             }
         };
         PROFILE_SCOPE("GenericSolver main loop");
@@ -187,7 +183,7 @@ protected:
         {
             // sum up thread local accumulated values
             Array<Accumulated*> threadLocalAccumulated;
-            threadData.forEach([this, &first, &threadLocalAccumulated](ThreadData& data) {
+            threadData.forEach([&first, &threadLocalAccumulated](ThreadData& data) {
                 if (!first) {
                     first = &data.derivatives.getAccumulated();
                 } else {

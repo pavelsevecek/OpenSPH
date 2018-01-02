@@ -6,6 +6,7 @@
 /// \date 2016-2017
 
 #include "objects/containers/Array.h"
+#include <typeinfo>
 
 NAMESPACE_SPH_BEGIN
 

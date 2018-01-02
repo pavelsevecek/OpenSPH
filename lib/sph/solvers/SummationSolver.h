@@ -12,7 +12,7 @@ NAMESPACE_SPH_BEGIN
 
 /// Uses density and specific energy as independent variables. Density is solved by direct summation, using
 /// self-consistent solution with smoothing length. Energy is evolved using energy equation.
-class SummationSolver : public GenericSolver {
+class SummationSolver : public SymmetricSolver {
 private:
     Float eta;
     Size maxIteration;
@@ -24,7 +24,7 @@ private:
 
 public:
     SummationSolver(const RunSettings& settings, const EquationHolder& additionalEquations = {})
-        : GenericSolver(settings, getEquations(settings) + additionalEquations) {
+        : SymmetricSolver(settings, getEquations(settings) + additionalEquations) {
         eta = settings.get<Float>(RunSettingsId::SPH_KERNEL_ETA);
         targetDensityDifference = settings.get<Float>(RunSettingsId::SUMMATION_DENSITY_DELTA);
         densityKernel = Factory::getKernel<DIMENSIONS>(settings);
@@ -59,7 +59,7 @@ private:
     }
 
     virtual void beforeLoop(Storage& storage, Statistics& stats) override {
-        GenericSolver::beforeLoop(storage, stats);
+        SymmetricSolver::beforeLoop(storage, stats);
         ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
         ArrayView<Float> m = storage.getValue<Float>(QuantityId::MASS);
 

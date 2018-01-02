@@ -171,16 +171,24 @@ bool Controller::isQuitting() const {
 
 Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage, const bool forMovie) const {
     // Available colorizers for display and movie are currently hardcoded
-    Array<ColorizerId> colorizerIds{
-        ColorizerId::VELOCITY,
-        ColorizerId::DENSITY_PERTURBATION,
-    };
+    Array<ColorizerId> colorizerIds;
+
+    if (storage.has(QuantityId::DENSITY)) {
+        colorizerIds.push(ColorizerId::DENSITY_PERTURBATION);
+    }
+    if (storage.has(QuantityId::STRESS_REDUCING)) {
+        colorizerIds.push(ColorizerId::YIELD_REDUCTION);
+    }
+
     if (!forMovie) {
         colorizerIds.push(ColorizerId::COROTATING_VELOCITY);
         colorizerIds.push(ColorizerId::MOVEMENT_DIRECTION);
         colorizerIds.push(ColorizerId::ACCELERATION);
-        colorizerIds.push(ColorizerId::BOUNDARY);
         colorizerIds.push(ColorizerId::ID);
+
+        if (storage.has(QuantityId::NEIGHBOUR_CNT)) {
+            colorizerIds.push(ColorizerId::BOUNDARY);
+        }
     }
 
     Array<QuantityId> quantityColorizerIds{
@@ -193,17 +201,28 @@ Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage
     if (!forMovie) {
         quantityColorizerIds.push(QuantityId::DENSITY);
         quantityColorizerIds.push(QuantityId::AV_ALPHA);
+        quantityColorizerIds.push(QuantityId::AV_BALSARA);
         quantityColorizerIds.push(QuantityId::ANGULAR_VELOCITY);
         quantityColorizerIds.push(QuantityId::STRENGTH_VELOCITY_GRADIENT);
+        quantityColorizerIds.push(QuantityId::STRAIN_RATE_CORRECTION_TENSOR);
+        quantityColorizerIds.push(QuantityId::EPS_MIN);
     }
     Array<SharedPtr<IColorizer>> colorizers;
-    for (ColorizerId id : colorizerIds) {
-        colorizers.push(Factory::getColorizer(gui, id));
-    }
+    // add velocity (always present)
+    colorizers.push(Factory::getColorizer(gui, ColorizerId::VELOCITY));
+
+    // add all quantity colorizers (sorted by the key)
+    std::sort(quantityColorizerIds.begin(), quantityColorizerIds.end());
     for (QuantityId id : quantityColorizerIds) {
         if (storage.has(id)) {
             colorizers.push(Factory::getColorizer(gui, ColorizerId(id)));
         }
+    }
+
+    // add all auxiliary colorizers (sorted by the key)
+    std::sort(colorizerIds.begin(), colorizerIds.end());
+    for (ColorizerId id : colorizerIds) {
+        colorizers.push(Factory::getColorizer(gui, id));
     }
     return colorizers;
 }
