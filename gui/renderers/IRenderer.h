@@ -3,7 +3,7 @@
 /// \file IRenderer.h
 /// \brief Interface for renderers
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2017
+/// \date 2016-2018
 
 #include "gui/Utils.h"
 #include "gui/objects/Point.h"

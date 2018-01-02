@@ -3,7 +3,7 @@
 /// \file Initial.h
 /// \brief Generating initial conditions of SPH particles
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2017
+/// \date 2016-2018
 
 #include "common/ForwardDecl.h"
 #include "objects/containers/ArrayView.h"

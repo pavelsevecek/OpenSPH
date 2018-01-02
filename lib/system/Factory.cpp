@@ -20,7 +20,7 @@
 #include "sph/equations/av/Riemann.h"
 #include "sph/initial/Distribution.h"
 #include "sph/solvers/AsymmetricSolver.h"
-#include "sph/solvers/ContinuitySolver.h"
+#include "sph/solvers/StandardSets.h"
 #include "sph/solvers/DensityIndependentSolver.h"
 #include "sph/solvers/SummationSolver.h"
 #include "timestepping/TimeStepCriterion.h"

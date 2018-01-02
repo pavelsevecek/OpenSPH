@@ -1,5 +1,6 @@
 #include "sph/solvers/DensityIndependentSolver.h"
 #include "catch.hpp"
+#include "system/Statistics.h"
 #include "tests/Setup.h"
 
 using namespace Sph;

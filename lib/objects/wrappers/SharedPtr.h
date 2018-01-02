@@ -3,7 +3,7 @@
 /// \file AutoPtr.h
 /// \brief Simplified implementation of std::unique_ptr, using only default deleter.
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2017
+/// \date 2016-2018
 
 #include "objects/wrappers/AutoPtr.h"
 #include <atomic>

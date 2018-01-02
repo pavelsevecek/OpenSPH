@@ -3,7 +3,7 @@
 /// \file SurfaceRenderer.h
 /// \brief Renderer visualizing the surface as triangle mesh
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2017
+/// \date 2016-2018
 
 #include "gui/Settings.h"
 #include "gui/objects/Bitmap.h"

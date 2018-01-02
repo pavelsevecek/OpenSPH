@@ -1,5 +1,7 @@
 #include "sph/equations/XSph.h"
 #include "catch.hpp"
+#include "sph/solvers/SymmetricSolver.h"
+#include "system/Statistics.h"
 #include "tests/Setup.h"
 
 using namespace Sph;

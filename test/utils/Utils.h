@@ -3,7 +3,7 @@
 /// \file Utils.h
 /// \brief Additional helper macros and functions for unit testing
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2017
+/// \date 2016-2018
 
 #include "catch.hpp"
 #include "io/Logger.h"

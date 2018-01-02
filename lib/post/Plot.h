@@ -3,7 +3,7 @@
 /// \file Plot.h
 /// \brief Drawing quantity values as functions of time or spatial coordinates
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2017
+/// \date 2016-2018
 
 #include "objects/containers/Queue.h"
 #include "objects/utility/OperatorTemplate.h"

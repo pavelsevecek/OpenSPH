@@ -3,7 +3,7 @@
 /// \file Constants.h
 /// \brief Definitions of physical constaints (in SI units).
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2017
+/// \date 2016-2018
 
 #include "common/Globals.h"
 

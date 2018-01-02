@@ -1,5 +1,7 @@
 #include "sph/equations/av/Stress.h"
 #include "catch.hpp"
+#include "sph/solvers/SymmetricSolver.h"
+#include "system/Statistics.h"
 #include "tests/Approx.h"
 #include "tests/Setup.h"
 #include "timestepping/TimeStepping.h"

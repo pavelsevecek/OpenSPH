@@ -3,7 +3,7 @@
 /// \file Interval.h
 /// \brief Object representing interval of real values
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2017
+/// \date 2016-2018
 
 #include "common/Globals.h"
 #include "math/Math.h"

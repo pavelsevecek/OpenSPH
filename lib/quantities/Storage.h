@@ -3,7 +3,7 @@
 /// \file Storage.h
 /// \brief Container for storing particle quantities and materials.
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2017
+/// \date 2016-2018
 
 #include "common/ForwardDecl.h"
 #include "objects/Exceptions.h"

@@ -7,6 +7,7 @@
 #include "run/IRun.h"
 #include "run/RunCallbacks.h"
 #include "sph/boundary/Boundary.h"
+#include "sph/solvers/SymmetricSolver.h"
 #include "tests/Approx.h"
 #include "tests/Setup.h"
 #include "timestepping/TimeStepping.h"

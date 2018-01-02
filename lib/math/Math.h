@@ -3,7 +3,7 @@
 /// \file Math.h
 /// \brief Basic math routines used within the code.
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2017
+/// \date 2016-2018
 
 #include "common/Assert.h"
 #include <algorithm>

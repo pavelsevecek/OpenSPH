@@ -3,7 +3,7 @@
 /// \file ArcBall.h
 /// \brief Helper class for rotating objects by mouse drag
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2017
+/// \date 2016-2018
 
 #include "gui/objects/Point.h"
 #include "math/Quat.h"

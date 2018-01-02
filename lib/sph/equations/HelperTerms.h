@@ -3,7 +3,7 @@
 /// \file HelperTerms.h
 /// \brief Additional equatiosn computing SPH statistics rather than physical quantities
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2017
+/// \date 2016-2018
 
 #include "sph/equations/EquationTerm.h"
 

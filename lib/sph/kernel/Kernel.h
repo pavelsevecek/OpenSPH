@@ -3,7 +3,7 @@
 /// \file Kernel.h
 /// \brief SPH kernels
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz))
-/// \date 2016-2017
+/// \date 2016-2018
 
 #include "objects/geometry/Vector.h"
 

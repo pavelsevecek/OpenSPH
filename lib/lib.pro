@@ -93,7 +93,10 @@ SOURCES += \
     thread/CheckFunction.cpp \
     thread/Pool.cpp \
     timestepping/TimeStepCriterion.cpp \
-    timestepping/TimeStepping.cpp
+    timestepping/TimeStepping.cpp \
+    sph/solvers/AsymmetricSolver.cpp \
+    sph/solvers/SymmetricSolver.cpp \
+    sph/solvers/StandardSets.cpp
 
 HEADERS += \
     common/Assert.h \
@@ -246,10 +249,8 @@ HEADERS += \
     sph/kernel/KernelFactory.h \
     sph/solvers/AsymmetricSolver.h \
     sph/solvers/CollisionSolver.h \
-    sph/solvers/ContinuitySolver.h \
     sph/solvers/DensityIndependentSolver.h \
     sph/solvers/EntropySolver.h \
-    sph/solvers/GenericSolver.h \
     sph/solvers/GravitySolver.h \
     sph/solvers/StaticSolver.h \
     sph/solvers/SummationSolver.h \
@@ -275,4 +276,6 @@ HEADERS += \
     timestepping/ISolver.h \
     timestepping/ISolverr.h \
     timestepping/TimeStepCriterion.h \
-    timestepping/TimeStepping.h
+    timestepping/TimeStepping.h \
+    sph/solvers/SymmetricSolver.h \
+    sph/solvers/StandardSets.h

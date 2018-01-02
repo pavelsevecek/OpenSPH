@@ -3,12 +3,12 @@
 /// \file GravitySolver.h
 /// \brief SPH solver including gravity
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2017
+/// \date 2016-2018
 
 #include "gravity/SphericalGravity.h"
 #include "sph/equations/Potentials.h"
 #include "sph/kernel/KernelFactory.h"
-#include "sph/solvers/GenericSolver.h"
+#include "sph/solvers/SymmetricSolver.h"
 
 NAMESPACE_SPH_BEGIN
 

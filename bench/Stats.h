@@ -3,7 +3,7 @@
 /// \file Stats.h
 /// \brief Benchmark statistics
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2017
+/// \date 2016-2018
 
 #include "bench/Common.h"
 #include "objects/wrappers/Interval.h"

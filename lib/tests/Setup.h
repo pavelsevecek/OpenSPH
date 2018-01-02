@@ -3,10 +3,13 @@
 /// \file Setup.h
 /// \brief Helper functions performing common tasks in unit testing and benchmarks
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2017
+/// \date 2016-2018
 
 #include "objects/geometry/Domain.h"
-#include "sph/solvers/GenericSolver.h"
+#include "quantities/Storage.h"
+#include "sph/equations/EquationTerm.h"
+#include "system/Settings.h"
+#include "system/Statistics.h"
 
 NAMESPACE_SPH_BEGIN
 

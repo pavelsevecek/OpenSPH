@@ -5,7 +5,7 @@
 #include "physics/Rheology.h"
 #include "run/IRun.h"
 #include "sph/initial/Initial.h"
-#include "sph/solvers/ContinuitySolver.h"
+#include "sph/solvers/StandardSets.h"
 #include "sph/solvers/DensityIndependentSolver.h"
 #include "sph/solvers/SummationSolver.h"
 #include "system/Factory.h"

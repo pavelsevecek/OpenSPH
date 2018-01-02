@@ -3,7 +3,7 @@
 /// \file Present.h
 /// \brief Problem-specific initial conditions
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2017
+/// \date 2016-2018
 
 #include "objects/geometry/Domain.h"
 #include "objects/wrappers/SharedPtr.h"

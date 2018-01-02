@@ -3,7 +3,7 @@
 /// \file CheckFunction.h
 /// \brief Helper functions to check the internal consistency of the code
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2017
+/// \date 2016-2018
 
 #include "common/Globals.h"
 #include "objects/wrappers/Flags.h"

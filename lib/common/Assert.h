@@ -3,7 +3,7 @@
 /// \file Assert.h
 /// \brief Custom assertions
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2017
+/// \date 2016-2018
 
 #include "common/Globals.h"
 #include <exception>

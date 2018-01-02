@@ -3,7 +3,7 @@
 /// \file Distribution.h
 /// \brief Filling spatial domain with SPH particles
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2017
+/// \date 2016-2018
 
 #include "math/rng/Rng.h"
 #include "objects/containers/Array.h"

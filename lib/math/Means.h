@@ -3,7 +3,7 @@
 /// \file Means.h
 /// \brief Computing minimum, maximum and mean value of floats.
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2017
+/// \date 2016-2018
 
 #include "objects/wrappers/Interval.h"
 

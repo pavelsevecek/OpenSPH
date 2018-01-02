@@ -3,7 +3,7 @@
 #include "physics/Eos.h"
 #include "physics/Rheology.h"
 #include "sph/initial/Distribution.h"
-#include "sph/solvers/GenericSolver.h"
+#include "system/Factory.h"
 
 NAMESPACE_SPH_BEGIN
 

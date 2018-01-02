@@ -1,15 +1,19 @@
 #include "catch.hpp"
 #include "objects/geometry/Domain.h"
 #include "objects/utility/PerElementWrapper.h"
+#include "sph/equations/av/Standard.h"
 #include "sph/initial/Initial.h"
-#include "sph/solvers/ContinuitySolver.h"
+#include "sph/solvers/AsymmetricSolver.h"
+#include "sph/solvers/StandardSets.h"
+#include "sph/solvers/SymmetricSolver.h"
+#include "system/Statistics.h"
 #include "tests/Setup.h"
 #include "timestepping/TimeStepping.h"
+#include "utils/Utils.h"
 
 using namespace Sph;
 
-
-TEST_CASE("Impact", "[impact]]") {
+TYPED_TEST_CASE_2("Impact", "[impact]]", TSolver, SymmetricSolver, AsymmetricSolver) {
     // Check that first two steps of impact work as expected.
 
     RunSettings settings;
@@ -18,7 +22,7 @@ TEST_CASE("Impact", "[impact]]") {
     /// \todo refactor, avoid adding ConstSmootihngLength term
     eqs += makeTerm<PressureForce>() + makeTerm<SolidStressForce>(settings) + makeTerm<StandardAV>() +
            makeTerm<ContinuityEquation>(settings) + makeTerm<ConstSmoothingLength>();
-    SymmetricSolver solver(settings, std::move(eqs));
+    TSolver solver(settings, std::move(eqs));
 
     SharedPtr<Storage> storage = makeShared<Storage>();
     InitialConditions initial(solver, settings);

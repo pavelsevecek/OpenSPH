@@ -3,7 +3,7 @@
 /// \file AlignedStorage.h
 /// \brief Base class for utility wrappers (Optional, Variant, ...)
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2017
+/// \date 2016-2018
 
 #include "common/Traits.h"
 

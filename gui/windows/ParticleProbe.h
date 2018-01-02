@@ -3,7 +3,7 @@
 /// \file ParticleProbe.h
 /// \brief Frame showing information about selected particle
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2017
+/// \date 2016-2018
 
 #include "gui/Utils.h"
 #include "gui/objects/Color.h"

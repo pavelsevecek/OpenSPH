@@ -3,7 +3,7 @@
 /// \file Object.h
 /// \brief Common macros and basic objects.
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2017
+/// \date 2016-2018
 
 #include <stdint.h>
 #include <utility>

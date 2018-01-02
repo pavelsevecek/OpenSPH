@@ -3,7 +3,7 @@
 /// \file Allocators.h
 /// \brief Allocators used by containers
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2017
+/// \date 2016-2018
 
 #include "common/Assert.h"
 #include "objects/wrappers/AlignedStorage.h"

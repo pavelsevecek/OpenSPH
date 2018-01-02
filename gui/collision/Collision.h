@@ -3,7 +3,7 @@
 /// \file Collision.h
 /// \brief Asteroid collision problem setup
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2017
+/// \date 2016-2018
 
 #include "gui/Controller.h"
 #include "gui/MainLoop.h"

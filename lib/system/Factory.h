@@ -3,7 +3,7 @@
 /// \file Factory.h
 /// \brief Creating code components based on values from settings.
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2017
+/// \date 2016-2018
 
 #include "objects/wrappers/ClonePtr.h"
 #include "objects/wrappers/SharedPtr.h"

@@ -3,12 +3,12 @@
 /// \file StaticSolver.h
 /// \brief Computes quantities to get equilibrium state
 /// \author Pavel Sevecek
-/// \date 2016-2017
+/// \date 2016-2018
 
 #include "math/SparseMatrix.h"
 #include "objects/wrappers/Outcome.h"
 #include "sph/equations/EquationTerm.h"
-#include "sph/solvers/GenericSolver.h"
+#include "sph/solvers/SymmetricSolver.h"
 
 NAMESPACE_SPH_BEGIN
 

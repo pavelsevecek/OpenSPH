@@ -3,7 +3,7 @@
 /// \file Colorizer.h
 /// \brief Object converting quantity values of particles into colors.
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2017
+/// \date 2016-2018
 
 
 #include "gui/Factory.h"
@@ -288,7 +288,6 @@ public:
         for (Size i = 0; i < r.size(); ++i) {
             omegaAvg += cross(r[i], v[i]);
         }
-        ASSERT(weight > 0._f);
         omegaAvg /= r.size();
     }
 

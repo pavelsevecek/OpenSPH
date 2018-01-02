@@ -3,7 +3,7 @@
 /// \file Finally.h
 /// \brief Wraps a functor and executes it once the wrapper goes out of scope.
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2017
+/// \date 2016-2018
 
 #include "common/Assert.h"
 

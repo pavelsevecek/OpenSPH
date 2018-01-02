@@ -3,7 +3,7 @@
 /// \file BruteForceFinder.h
 /// \brief Object finding nearest neighbours by evaluating all partice pairs
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2017
+/// \date 2016-2018
 
 #include "objects/finders/INeighbourFinder.h"
 #include "objects/geometry/Box.h"

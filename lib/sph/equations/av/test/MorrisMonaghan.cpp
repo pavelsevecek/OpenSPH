@@ -1,6 +1,7 @@
 #include "sph/equations/av/MorrisMonaghan.h"
 #include "catch.hpp"
 #include "sph/solvers/AsymmetricSolver.h"
+#include "sph/solvers/SymmetricSolver.h"
 #include "tests/Approx.h"
 #include "tests/Setup.h"
 #include "utils/SequenceTest.h"

@@ -3,7 +3,7 @@
 /// \file Column.h
 /// \brief Object for printing quantity values into output
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2017
+/// \date 2016-2018
 
 #include "objects/utility/Dynamic.h"
 #include "quantities/QuantityIds.h"

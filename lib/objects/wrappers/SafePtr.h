@@ -3,7 +3,7 @@
 /// \file SafePtr.h
 /// \brief Safer alternative to AutoPtr, throwing exception when a nullptr is dereferenced.
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2017
+/// \date 2016-2018
 
 #include "objects/wrappers/AutoPtr.h"
 

@@ -3,7 +3,7 @@
 /// \file Integrator.h
 /// \author Basic routines for integrating arbitrary functions in N dimensions
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2017
+/// \date 2016-2018
 
 #include "math/rng/Rng.h"
 #include "objects/geometry/Domain.h"

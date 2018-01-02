@@ -3,7 +3,7 @@
 /// \file IGraphicsPane.h
 /// \brief Base class for drawing particles into the window
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2017
+/// \date 2016-2018
 
 #include "common/Assert.h"
 #include <wx/panel.h>

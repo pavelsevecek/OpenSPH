@@ -3,7 +3,7 @@
 /// \file IGravity.h
 /// \brief Base class for solvers of gravity
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2017
+/// \date 2016-2018
 
 #include "objects/finders/KdTree.h"
 #include "system/Statistics.h"

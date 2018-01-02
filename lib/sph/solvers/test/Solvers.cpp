@@ -7,7 +7,7 @@
 #include "quantities/Iterate.h"
 #include "sph/initial/Initial.h"
 #include "sph/solvers/AsymmetricSolver.h"
-#include "sph/solvers/ContinuitySolver.h"
+#include "sph/solvers/StandardSets.h"
 #include "sph/solvers/SummationSolver.h"
 #include "system/Statistics.h"
 #include "tests/Approx.h"

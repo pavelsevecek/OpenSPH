@@ -3,7 +3,7 @@
 /// \file Expected.h
 /// \brief Wrapper of type containing either a value or an error message
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2017
+/// \date 2016-2018
 
 #include "objects/wrappers/Variant.h"
 

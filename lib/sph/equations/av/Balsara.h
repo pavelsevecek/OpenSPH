@@ -3,7 +3,7 @@
 /// \file Balsara.h
 /// \brief Implementation of the Balsara switch
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2017
+/// \date 2016-2018
 
 #include "sph/equations/EquationTerm.h"
 #include "system/Settings.h"

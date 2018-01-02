@@ -3,11 +3,12 @@
 /// \file DensityIndependentSolver.h
 /// \brief Density-independent formulation of SPH
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz
-/// \date 2016-2017
+/// \date 2016-2018
 
 #include "sph/equations/EquationTerm.h"
 #include "sph/equations/av/Standard.h"
-#include "sph/solvers/GenericSolver.h"
+#include "sph/kernel/KernelFactory.h"
+#include "sph/solvers/SymmetricSolver.h"
 
 NAMESPACE_SPH_BEGIN
 

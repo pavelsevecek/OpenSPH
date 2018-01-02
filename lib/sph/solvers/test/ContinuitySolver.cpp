@@ -1,5 +1,8 @@
-#include "sph/solvers/ContinuitySolver.h"
 #include "catch.hpp"
+#include "sph/solvers/AsymmetricSolver.h"
+#include "sph/solvers/StandardSets.h"
+#include "sph/solvers/SymmetricSolver.h"
+#include "system/Statistics.h"
 #include "tests/Setup.h"
 #include "timestepping/TimeStepping.h"
 #include "utils/SequenceTest.h"
@@ -7,14 +10,15 @@
 
 using namespace Sph;
 
+template <typename TSolver>
 void testSolver(Storage& storage, const RunSettings& settings) {
-    SymmetricSolver solver(settings, getStandardEquations(settings));
+    TSolver solver(settings, getStandardEquations(settings));
     REQUIRE_NOTHROW(solver.create(storage, storage.getMaterial(0)));
     Statistics stats;
     REQUIRE_NOTHROW(solver.integrate(storage, stats));
 }
 
-TEST_CASE("ContinuitySolver gass", "[solvers]") {
+TYPED_TEST_CASE_2("Solvers gass", "[solvers]", TSolver, SymmetricSolver, AsymmetricSolver) {
     RunSettings settings;
     settings.set(RunSettingsId::MODEL_FORCE_SOLID_STRESS, false);
     settings.set(RunSettingsId::SPH_AV_TYPE, ArtificialViscosityEnum::NONE);
@@ -25,23 +29,23 @@ TEST_CASE("ContinuitySolver gass", "[solvers]") {
         .set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::NONE)
         .set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::NONE);
     Storage storage = Tests::getGassStorage(100, body, 1._f);
-    testSolver(storage, settings);
+    testSolver<TSolver>(storage, settings);
 
     settings.set(RunSettingsId::SPH_AV_TYPE, ArtificialViscosityEnum::STANDARD);
-    testSolver(storage, settings);
+    testSolver<TSolver>(storage, settings);
 
     settings.set(RunSettingsId::SPH_AV_BALSARA, true);
-    testSolver(storage, settings);
+    testSolver<TSolver>(storage, settings);
 
     settings.set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONTINUITY_EQUATION);
-    testSolver(storage, settings);
+    testSolver<TSolver>(storage, settings);
 
     settings.set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH,
         int(SmoothingLengthEnum::CONTINUITY_EQUATION) | int(SmoothingLengthEnum::SOUND_SPEED_ENFORCING));
-    testSolver(storage, settings);
+    testSolver<TSolver>(storage, settings);
 }
 
-TEST_CASE("ContinuitySolver solid", "[solvers]") {
+TYPED_TEST_CASE_2("Solvers solid", "[solvers]", TSolver, SymmetricSolver, AsymmetricSolver) {
     RunSettings settings;
     settings.set(RunSettingsId::MODEL_FORCE_SOLID_STRESS, true);
     settings.set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONST);
@@ -50,30 +54,33 @@ TEST_CASE("ContinuitySolver solid", "[solvers]") {
     body.set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::NONE);
     body.set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::NONE);
     Storage storage = Tests::getSolidStorage(100, body, 1._f);
-    testSolver(storage, settings);
+    testSolver<TSolver>(storage, settings);
 
     /// \todo this probably won't apply damage as it uses some dummy rheology, but it shouldn't throw
     body.set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::SCALAR_GRADY_KIPP);
     storage = Tests::getSolidStorage(100, body, 1._f);
-    testSolver(storage, settings);
+    testSolver<TSolver>(storage, settings);
 
     body.set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::NONE);
     body.set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::VON_MISES);
     storage = Tests::getSolidStorage(100, body, 1._f);
-    testSolver(storage, settings);
+    testSolver<TSolver>(storage, settings);
 
     body.set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::SCALAR_GRADY_KIPP);
     body.set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::VON_MISES);
-    testSolver(storage, settings);
-    testSolver(storage, settings);
+    testSolver<TSolver>(storage, settings);
+    testSolver<TSolver>(storage, settings);
 
     settings.set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH,
         int(SmoothingLengthEnum::CONTINUITY_EQUATION) | int(SmoothingLengthEnum::SOUND_SPEED_ENFORCING));
-    testSolver(storage, settings);
+    testSolver<TSolver>(storage, settings);
 }
 
-
-TEST_CASE("Constant smoothing length", "[solvers]") {
+TYPED_TEST_CASE_2("Solvers constant smoothing length",
+    "[solvers]",
+    TSolver,
+    SymmetricSolver,
+    AsymmetricSolver) {
     // there was a bug that smoothing length changed (incorrectly) for SmoothingLengthEnum::CONST
 
     SharedPtr<Storage> storage = makeShared<Storage>(Tests::getSolidStorage(10000));
@@ -81,7 +88,7 @@ TEST_CASE("Constant smoothing length", "[solvers]") {
     settings.set(RunSettingsId::MODEL_FORCE_SOLID_STRESS, true);
     settings.set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONST);
 
-    SymmetricSolver solver(settings, getStandardEquations(settings));
+    TSolver solver(settings, getStandardEquations(settings));
     solver.create(*storage, storage->getMaterial(0));
 
     // setup nonzero velocities

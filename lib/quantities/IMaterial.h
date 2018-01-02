@@ -3,7 +3,7 @@
 /// \file IMaterial.h
 /// \brief Base class for all particle materials
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2017
+/// \date 2016-2018
 
 #include "math/rng/Rng.h"
 #include "objects/containers/Map.h"

@@ -3,7 +3,7 @@
 /// \file RecordType.h
 /// \brief Helper type tracking the number of copies, moves, etc.
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2017
+/// \date 2016-2018
 
 #include "objects/Object.h"
 #include <ostream>

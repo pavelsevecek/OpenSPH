@@ -3,7 +3,7 @@
 /// \file Accumulated.h
 /// \brief Buffer storing quantity values accumulated by summing over particle pairs
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2017
+/// \date 2016-2018
 
 #include "common/Assert.h"
 #include "objects/containers/Array.h"

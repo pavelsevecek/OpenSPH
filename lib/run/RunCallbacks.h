@@ -3,7 +3,7 @@
 /// \file RunCallbacks.h
 /// \brief Generic callbacks from the run, useful for GUI extensions.
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2017
+/// \date 2016-2018
 
 #include "objects/Object.h"
 

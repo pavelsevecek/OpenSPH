@@ -3,7 +3,7 @@
 /// \file DynamicFinder.h
 /// \brief Finder switching between K-d tree and Voxel finder based on particle spatial distribution
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz))
-/// \date 2016-2017
+/// \date 2016-2018
 
 #include "common/ForwardDecl.h"
 #include "objects/finders/INeighbourFinder.h"

@@ -2,6 +2,7 @@
 #include "catch.hpp"
 #include "sph/equations/av/Standard.h"
 #include "sph/solvers/AsymmetricSolver.h"
+#include "sph/solvers/SymmetricSolver.h"
 #include "tests/Approx.h"
 #include "tests/Setup.h"
 #include "utils/SequenceTest.h"

@@ -3,15 +3,21 @@
 /// \file SummationSolver.h
 /// \brief Solver using direction summation to compute density and smoothing length.
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2017
+/// \date 2016-2018
 
-#include "sph/solvers/GenericSolver.h"
+#include "sph/equations/av/Standard.h"
+#include "sph/kernel/KernelFactory.h"
+#include "sph/solvers/SymmetricSolver.h"
+#include "system/Factory.h"
+#include "system/Statistics.h"
 #include "thread/AtomicFloat.h"
 
 NAMESPACE_SPH_BEGIN
 
-/// Uses density and specific energy as independent variables. Density is solved by direct summation, using
-/// self-consistent solution with smoothing length. Energy is evolved using energy equation.
+/// \brief SPH solver using density and specific energy as independent variables.
+///
+/// Density is solved by direct summation, using self-consistent solution with smoothing length. Energy is
+/// evolved using energy equation.
 class SummationSolver : public SymmetricSolver {
 private:
     Float eta;

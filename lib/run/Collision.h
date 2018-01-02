@@ -9,7 +9,8 @@
 #include "run/Trigger.h"
 #include "sph/equations/Potentials.h"
 #include "sph/initial/Presets.h"
-#include "sph/solvers/GenericSolver.h"
+#include "sph/solvers/SymmetricSolver.h"
+#include "system/Factory.h"
 
 NAMESPACE_SPH_BEGIN
 

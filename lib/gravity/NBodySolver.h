@@ -3,7 +3,7 @@
 /// \file NBodySolver.h
 /// \brief Solver performing N-body simulation
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2017
+/// \date 2016-2018
 
 #include "gravity/BruteForceGravity.h"
 #include "gravity/Collision.h"

@@ -3,7 +3,7 @@
 /// \file Point.h
 /// \brief 2D point and other primitives for 2D geometry
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2017
+/// \date 2016-2018
 
 #include "objects/utility/OperatorTemplate.h"
 

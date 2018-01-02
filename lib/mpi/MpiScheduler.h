@@ -3,7 +3,7 @@
 /// \file MpiScheduler.h
 /// \brief Implementation of IScheduler interface using MPI
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2017
+/// \date 2016-2018
 
 #include "mpi/Mpi.h"
 #include "mpi/Serializable.h"

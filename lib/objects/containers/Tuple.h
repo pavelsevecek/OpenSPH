@@ -3,7 +3,7 @@
 /// \file Tuple.h
 /// \brief Re-implementation of std::tuple with some additional functionality.
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2017
+/// \date 2016-2018
 
 #include "common/Traits.h"
 

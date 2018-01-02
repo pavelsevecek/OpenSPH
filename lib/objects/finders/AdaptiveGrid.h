@@ -3,7 +3,7 @@
 /// \file AdaptiveGrid.h
 /// \brief Finder projecting a non-uniform grid on particles
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2017
+/// \date 2016-2018
 
 #include "objects/finders/INeighbourFinder.h"
 

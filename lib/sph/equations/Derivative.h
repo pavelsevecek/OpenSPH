@@ -3,7 +3,7 @@
 /// \file Derivative.h
 /// \brief Spatial derivatives to be computed by SPH discretization
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2017
+/// \date 2016-2018
 
 #include "objects/containers/ArrayView.h"
 #include "objects/finders/INeighbourFinder.h"

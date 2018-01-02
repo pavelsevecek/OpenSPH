@@ -3,7 +3,7 @@
 /// \file GradH.h
 /// \brief Corrections due to gradient of smoothing length (grad-h terms)
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2017
+/// \date 2016-2018
 
 #include "sph/equations/EquationTerm.h"
 #include "sph/kernel/KernelFactory.h"

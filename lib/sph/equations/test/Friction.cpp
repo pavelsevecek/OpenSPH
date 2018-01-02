@@ -2,7 +2,8 @@
 #include "catch.hpp"
 #include "objects/geometry/Domain.h"
 #include "sph/initial/Initial.h"
-#include "sph/solvers/GenericSolver.h"
+#include "sph/solvers/SymmetricSolver.h"
+#include "system/Statistics.h"
 #include "tests/Approx.h"
 #include "utils/SequenceTest.h"
 

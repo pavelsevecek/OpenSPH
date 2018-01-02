@@ -1,20 +1,9 @@
-#pragma once
-
-/// \file ContinuitySolver.h
-/// \brief Standard SPH formulation that uses continuity equation for solution of density
-/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
-/// \date 2016-2017
-
-#include "sph/equations/av/Standard.h"
-#include "sph/solvers/GenericSolver.h"
+#include "sph/solvers/StandardSets.h"
+#include "system/Factory.h"
 
 NAMESPACE_SPH_BEGIN
 
-/// \brief Standard SPH equation set, using density and specific energy as independent variables.
-///
-/// Evolves density using continuity equation and energy using energy equation. Works with any artificial
-/// viscosity and any equation of state.
-inline EquationHolder getStandardEquations(const RunSettings& settings, const EquationHolder& other = {}) {
+EquationHolder getStandardEquations(const RunSettings& settings, const EquationHolder& other) {
     EquationHolder equations;
     /// \todo test that all possible combination (pressure, stress, AV, ...) work and dont assert
     if (settings.get<bool>(RunSettingsId::MODEL_FORCE_PRESSURE_GRADIENT)) {

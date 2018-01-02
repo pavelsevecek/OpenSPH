@@ -13,7 +13,7 @@
 #include "sph/initial/Initial.h"
 #include "sph/kernel/Interpolation.h"
 #include "sph/solvers/AsymmetricSolver.h"
-#include "sph/solvers/ContinuitySolver.h"
+#include "sph/solvers/StandardSets.h"
 #include "sph/solvers/StaticSolver.h"
 #include "system/Profiler.h"
 
