@@ -1,6 +1,7 @@
 #include "system/Factory.h"
 #include "gravity/BarnesHut.h"
 #include "gravity/BruteForceGravity.h"
+#include "gravity/Collision.h"
 #include "gravity/SphericalGravity.h"
 #include "io/Logger.h"
 #include "math/rng/Rng.h"
@@ -20,8 +21,8 @@
 #include "sph/equations/av/Riemann.h"
 #include "sph/initial/Distribution.h"
 #include "sph/solvers/AsymmetricSolver.h"
-#include "sph/solvers/StandardSets.h"
 #include "sph/solvers/DensityIndependentSolver.h"
+#include "sph/solvers/StandardSets.h"
 #include "sph/solvers/SummationSolver.h"
 #include "timestepping/TimeStepCriterion.h"
 #include "timestepping/TimeStepping.h"
@@ -228,6 +229,20 @@ AutoPtr<IGravity> Factory::getGravity(const RunSettings& settings) {
         const int leafSize = settings.get<int>(RunSettingsId::GRAVITY_LEAF_SIZE);
         return makeAuto<BarnesHut>(theta, order, std::move(kernel), leafSize);
     }
+    default:
+        NOT_IMPLEMENTED;
+    }
+}
+
+AutoPtr<ICollisionHandler> Factory::getCollisionHandler(const RunSettings& settings) {
+    const CollisionHandlerEnum id = settings.get<CollisionHandlerEnum>(RunSettingsId::COLLISION_HANDLER);
+    switch (id) {
+    case CollisionHandlerEnum::ELASTIC_BOUNCE:
+        return makeAuto<ElasticBounceHandler>(settings);
+    case CollisionHandlerEnum::PERFECT_MERGING:
+        return makeAuto<PerfectMergingHandler>(settings);
+    case CollisionHandlerEnum::MERGE_OR_BOUNCE:
+        return makeAuto<FallbackHandler<PerfectMergingHandler, ElasticBounceHandler>>(settings);
     default:
         NOT_IMPLEMENTED;
     }

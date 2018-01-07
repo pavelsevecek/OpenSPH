@@ -269,8 +269,6 @@ public:
                 C[i] = C[i].inverse();
                 ASSERT(C[i].determinant() > 0._f, C[i]);
             } else {
-                // playing it safe
-                // C[i] = SymmetricTensor::identity();
                 C[i] = C[i].pseudoInverse(1.e-3_f);
             }
 

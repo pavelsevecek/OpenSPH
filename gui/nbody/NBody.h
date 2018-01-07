@@ -48,7 +48,7 @@ private:
         Connect(MAIN_LOOP_TYPE, MainLoopEventHandler(App::processEvents));
 
         GuiSettings gui;
-        gui.set(GuiSettingsId::ORTHO_FOV, 1._f * Constants::au)
+        gui.set(GuiSettingsId::ORTHO_FOV, 2._f * Constants::au)
             .set(GuiSettingsId::ORTHO_VIEW_CENTER, 0.5_f * Vector(1024, 768, 0))
             .set(GuiSettingsId::RENDER_WIDTH, 1024)
             .set(GuiSettingsId::RENDER_HEIGHT, 768)

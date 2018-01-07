@@ -284,13 +284,6 @@ TEST_CASE("Strain rate correction", "[equationterm]") {
     Storage storage = Tests::getSolidStorage(1000, body);
     storage.insert<SymmetricTensor>(
         QuantityId::STRAIN_RATE_CORRECTION_TENSOR, OrderEnum::ZERO, SymmetricTensor::identity());
-    // add necessary quantities
-    /*storage.insert<Float>(QuantityId::DENSITY, OrderEnum::FIRST, 1._f);
-    storage.insert<Float>(QuantityId::ENERGY, OrderEnum::FIRST, 0._f);
-    storage.insert<SymmetricTensor>(
-        QuantityId::STRENGTH_VELOCITY_GRADIENT, OrderEnum::ZERO, SymmetricTensor::null());
-    storage.insert<TracelessTensor>(QuantityId::DEVIATORIC_STRESS, OrderEnum::FIRST,
-    TracelessTensor::null());*/
 
     RunSettings settings;
     settings.set(RunSettingsId::SPH_STRAIN_RATE_CORRECTION_TENSOR, true);
@@ -334,8 +327,8 @@ TEST_CASE("Strain rate correction", "[equationterm]") {
     corr = storage.getValue<SymmetricTensor>(QuantityId::STRAIN_RATE_CORRECTION_TENSOR);
 
     auto test2 = [corr](Size i) -> Outcome {
-        // currently results in identity, may change in the future
-        if (corr[i] != SymmetricTensor::identity()) {
+        // currently results in zero, may change in the future
+        if (corr[i] != SymmetricTensor::null()) {
             return makeFailed("Incorrect inversion of singular matrix:\nC[i] == ", corr[i]);
         }
         return SUCCESS;

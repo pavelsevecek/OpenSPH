@@ -36,17 +36,6 @@ public:
         : diag(value)
         , off(value) {}
 
-    /// Initialize the symmetric tensor from generic tensor, symmetric property is checked by assert.
-    /*INLINE explicit SymmetricTensor(const Tensor& tensor)
-        : diag(tensor(0, 0), tensor(1, 1), tensor(2, 2))
-        , off(tensor(0, 1), tensor(0, 2), tensor(1, 2)) {
-        ASSERT(almostEqual(tensor(0, 1), tensor(1, 0), 1.e-6_f) &&
-                   almostEqual(tensor(0, 2), tensor(2, 0), 1.e-6_f) &&
-                   almostEqual(tensor(1, 2), tensor(2, 1), 1.e-6_f),
-            tensor);
-    }*/
-
-
     /// Construct tensor given three vectors as rows. Matrix represented by the vectors MUST be symmetric,
     /// checked by assert.
     INLINE SymmetricTensor(const Vector& v0, const Vector& v1, const Vector& v2) {
@@ -258,6 +247,18 @@ INLINE SymmetricTensor transform(const SymmetricTensor& t, const AffineMatrix& t
                     transformed(1, 2) + transformed(2, 1)));
 }
 
+INLINE SymmetricTensor convert(const AffineMatrix& matrix) {
+    ASSERT(almostEqual(matrix(0, 1), matrix(1, 0), 1.e-6_f) &&
+           almostEqual(matrix(0, 2), matrix(2, 0), 1.e-6_f) &&
+           almostEqual(matrix(1, 2), matrix(2, 1), 1.e-6_f));
+    return SymmetricTensor(
+        Vector(matrix(0, 0), matrix(1, 1), matrix(2, 2)), Vector(matrix(0, 1), matrix(0, 2), matrix(1, 2)));
+}
+
+INLINE AffineMatrix convert(const SymmetricTensor& t) {
+    return AffineMatrix(t.row(0), t.row(1), t.row(2));
+}
+
 
 /// Tensor utils
 
@@ -369,8 +370,16 @@ INLINE StaticArray<Float, 3> findEigenvalues(const SymmetricTensor& t) {
     return { sig[0] * n, sig[1] * n, sig[2] * n };
 }
 
+struct Eigen {
+    /// Matrix of eigenvectors, stored as rows
+    AffineMatrix vectors;
+
+    /// Eigenvalues
+    Vector values;
+};
+
 /// Computes eigenvectors and corresponding eigenvalues of symmetric matrix.
-Tuple<AffineMatrix, Vector> eigenDecomposition(const SymmetricTensor& t);
+Eigen eigenDecomposition(const SymmetricTensor& t);
 
 struct Svd {
     AffineMatrix U;

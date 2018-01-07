@@ -6,7 +6,7 @@
 /// \date 2016-2018
 
 #include "math/rng/Rng.h"
-#include "objects/geometry/Vector.h"
+#include "objects/geometry/SymmetricTensor.h"
 #include "physics/Constants.h"
 
 NAMESPACE_SPH_BEGIN
@@ -46,6 +46,23 @@ namespace Analytic {
     };
 } // namespace Analytic
 
+/// Physics of rigid body
+namespace Rigid {
+    /// \brief Computes the inertia tensor of a homogeneous sphere.
+    INLINE SymmetricTensor sphereInertia(const Float m, const Float r) {
+        return SymmetricTensor::identity() * (0.4_f * m * sqr(r));
+    }
+
+    /// \brief Computes the inertia tensor with respect to given point
+    ///
+    /// \param I Inertia tensor with respect to the center of mass
+    /// \param m Total mass of the body
+    /// \param a Translation vector with respect to the center of mass
+    INLINE SymmetricTensor parallelAxisTheorem(const SymmetricTensor& I, const Float m, const Vector& a) {
+        return I + m * (SymmetricTensor::identity() * getSqrLength(a) - outer(a, a));
+    }
+
+} // namespace Rigid
 
 /// \todo docs
 /// \todo replace D with units, do not enforce SI

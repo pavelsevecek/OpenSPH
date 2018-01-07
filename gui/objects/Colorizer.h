@@ -262,7 +262,8 @@ private:
     Palette palette;
     ArrayView<const Vector> r;
     ArrayView<const Vector> v;
-    Vector omegaAvg;
+
+    Vector omegaMax;
 
     struct {
         Array<Vector> r;
@@ -284,11 +285,17 @@ public:
             r = storage.getValue<Vector>(QuantityId::POSITION);
             v = storage.getDt<Vector>(QuantityId::POSITION);
         }
-        omegaAvg = Vector(0._f);
+        Float rSqrMax = 0._f;
         for (Size i = 0; i < r.size(); ++i) {
-            omegaAvg += cross(r[i], v[i]);
+            const Float rSqr = getSqrLength(r[i]);
+            if (rSqr > rSqrMax) {
+                rSqrMax = rSqr;
+                const Vector perp = cross(r[i], v[i]);
+                const Vector perpNorm = getNormalized(perp);
+                const Vector rPerp = r[i] - dot(perpNorm, r[i]) * perpNorm;
+                omegaMax = perp / getSqrLength(rPerp);
+            }
         }
-        omegaAvg /= r.size();
     }
 
     virtual bool isInitialized() const override {
@@ -297,11 +304,11 @@ public:
 
     virtual Color eval(const Size idx) const override {
         ASSERT(!v.empty() && !r.empty());
-        return palette(getLength(v[idx] - cross(omegaAvg, r[idx])));
+        return palette(getLength(v[idx] - cross(omegaMax, r[idx])));
     }
 
     virtual Optional<Particle> getParticle(const Size idx) const override {
-        return Particle(idx).addDt(QuantityId::POSITION, v[idx] - cross(omegaAvg, r[idx]));
+        return Particle(idx).addDt(QuantityId::POSITION, v[idx] - cross(omegaMax, r[idx]));
     }
 
     virtual Optional<Palette> getPalette() const override {

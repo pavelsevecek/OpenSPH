@@ -1,6 +1,6 @@
+#include "sph/solvers/StandardSets.h"
 #include "catch.hpp"
 #include "sph/solvers/AsymmetricSolver.h"
-#include "sph/solvers/StandardSets.h"
 #include "sph/solvers/SymmetricSolver.h"
 #include "system/Statistics.h"
 #include "tests/Setup.h"
@@ -18,7 +18,82 @@ void testSolver(Storage& storage, const RunSettings& settings) {
     REQUIRE_NOTHROW(solver.integrate(storage, stats));
 }
 
-TYPED_TEST_CASE_2("Solvers gass", "[solvers]", TSolver, SymmetricSolver, AsymmetricSolver) {
+template <typename TSolver>
+static Storage initStorage(TSolver& solver, BodySettings body) {
+    Storage storage = Tests::getSolidStorage(10, body);
+    solver.create(storage, storage.getMaterial(0));
+    return storage;
+}
+
+TYPED_TEST_CASE_2("StandardSets quantities B&A", "[solvers]", TSolver, SymmetricSolver, AsymmetricSolver) {
+    RunSettings settings;
+    settings.set(RunSettingsId::SPH_FORMULATION, FormulationEnum::BENZ_ASPHAUG);
+    settings.set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONTINUITY_EQUATION);
+    TSolver solver(settings, getStandardEquations(settings));
+
+    BodySettings body;
+    body.set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::NONE);
+    Storage storage = initStorage(solver, body);
+    // positions, masses, pressure, density, energy, sound speed, deviatoric stress, yielding reduction,
+    // velocity divergence, velocity gradient, neighbour count, flags, material count
+    REQUIRE(storage.getQuantityCnt() == 13);
+    REQUIRE(storage.has<Vector>(QuantityId::POSITION, OrderEnum::SECOND));
+    REQUIRE(storage.has<Float>(QuantityId::MASS, OrderEnum::ZERO));
+    REQUIRE(storage.has<Float>(QuantityId::PRESSURE, OrderEnum::ZERO));
+    REQUIRE(storage.has<Float>(QuantityId::DENSITY, OrderEnum::FIRST));
+    REQUIRE(storage.has<Float>(QuantityId::ENERGY, OrderEnum::FIRST));
+    REQUIRE(storage.has<Float>(QuantityId::SOUND_SPEED, OrderEnum::ZERO));
+    REQUIRE(storage.has<Float>(QuantityId::STRESS_REDUCING, OrderEnum::ZERO));
+    REQUIRE(storage.has<TracelessTensor>(QuantityId::DEVIATORIC_STRESS, OrderEnum::FIRST));
+    REQUIRE(storage.has<Float>(QuantityId::VELOCITY_DIVERGENCE, OrderEnum::ZERO));
+    REQUIRE(storage.has<SymmetricTensor>(QuantityId::STRENGTH_VELOCITY_GRADIENT, OrderEnum::ZERO));
+    REQUIRE(storage.has<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO));
+    REQUIRE(storage.has<Size>(QuantityId::FLAG, OrderEnum::ZERO));
+    REQUIRE(storage.has<Size>(QuantityId::MATERIAL_ID, OrderEnum::ZERO));
+
+    body.set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::SCALAR_GRADY_KIPP);
+    storage = initStorage(solver, body);
+    REQUIRE(storage.getQuantityCnt() == 18);
+    REQUIRE(storage.has<Float>(QuantityId::DAMAGE, OrderEnum::FIRST));
+    REQUIRE(storage.has<Float>(QuantityId::EPS_MIN, OrderEnum::ZERO));
+    REQUIRE(storage.has<Float>(QuantityId::M_ZERO, OrderEnum::ZERO));
+    REQUIRE(storage.has<Float>(QuantityId::EXPLICIT_GROWTH, OrderEnum::ZERO));
+    REQUIRE(storage.has<Size>(QuantityId::N_FLAWS, OrderEnum::ZERO));
+}
+
+TYPED_TEST_CASE_2("StandardSets quantities standard",
+    "[solvers]",
+    TSolver,
+    SymmetricSolver,
+    AsymmetricSolver) {
+    RunSettings settings;
+    settings.set(RunSettingsId::SPH_FORMULATION, FormulationEnum::STANDARD);
+    settings.set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONTINUITY_EQUATION);
+    TSolver solver(settings, getStandardEquations(settings));
+
+    BodySettings body;
+    body.set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::NONE);
+    Storage storage = initStorage(solver, body);
+    // positions, masses, pressure, density, energy, sound speed, deviatoric stress, yielding reduction,
+    // density velocity divergence, neighbour count, flags, material count
+    REQUIRE(storage.getQuantityCnt() == 12);
+    REQUIRE(storage.has<Vector>(QuantityId::POSITION, OrderEnum::SECOND));
+    REQUIRE(storage.has<Float>(QuantityId::MASS, OrderEnum::ZERO));
+    REQUIRE(storage.has<Float>(QuantityId::PRESSURE, OrderEnum::ZERO));
+    REQUIRE(storage.has<Float>(QuantityId::DENSITY, OrderEnum::FIRST));
+    REQUIRE(storage.has<Float>(QuantityId::ENERGY, OrderEnum::FIRST));
+    REQUIRE(storage.has<Float>(QuantityId::SOUND_SPEED, OrderEnum::ZERO));
+    REQUIRE(storage.has<Float>(QuantityId::STRESS_REDUCING, OrderEnum::ZERO));
+    REQUIRE(storage.has<TracelessTensor>(QuantityId::DEVIATORIC_STRESS, OrderEnum::FIRST));
+    REQUIRE(storage.has<Float>(QuantityId::DENSITY_VELOCITY_DIVERGENCE, OrderEnum::ZERO));
+    REQUIRE(storage.has<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO));
+    REQUIRE(storage.has<Size>(QuantityId::FLAG, OrderEnum::ZERO));
+    REQUIRE(storage.has<Size>(QuantityId::MATERIAL_ID, OrderEnum::ZERO));
+
+    // damage is the same in both formulations
+}
+
+TYPED_TEST_CASE_2("StandardSets gass", "[solvers]", TSolver, SymmetricSolver, AsymmetricSolver) {
     RunSettings settings;
     settings.set(RunSettingsId::MODEL_FORCE_SOLID_STRESS, false);
     settings.set(RunSettingsId::SPH_AV_TYPE, ArtificialViscosityEnum::NONE);
@@ -45,7 +120,7 @@ TYPED_TEST_CASE_2("Solvers gass", "[solvers]", TSolver, SymmetricSolver, Asymmet
     testSolver<TSolver>(storage, settings);
 }
 
-TYPED_TEST_CASE_2("Solvers solid", "[solvers]", TSolver, SymmetricSolver, AsymmetricSolver) {
+TYPED_TEST_CASE_2("StandardSets solid", "[solvers]", TSolver, SymmetricSolver, AsymmetricSolver) {
     RunSettings settings;
     settings.set(RunSettingsId::MODEL_FORCE_SOLID_STRESS, true);
     settings.set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONST);
@@ -76,7 +151,7 @@ TYPED_TEST_CASE_2("Solvers solid", "[solvers]", TSolver, SymmetricSolver, Asymme
     testSolver<TSolver>(storage, settings);
 }
 
-TYPED_TEST_CASE_2("Solvers constant smoothing length",
+TYPED_TEST_CASE_2("StandardSets constant smoothing length",
     "[solvers]",
     TSolver,
     SymmetricSolver,

@@ -139,6 +139,28 @@ public:
         return AffineMatrix(Vector(c, -s, 0._f), Vector(s, c, 0._f), Vector(0._f, 0._f, 1._f));
     }
 
+    static AffineMatrix rotateAxis(const Vector& axis, const Float angle) {
+        ASSERT(getSqrLength(axis) == 1._f, axis);
+        const Float u = axis[0];
+        const Float v = axis[1];
+        const Float w = axis[2];
+        const Float s = sin(-angle);
+        const Float c = cos(-angle);
+        return {
+            Vector(u * u + (v * v + w * w) * c, u * v * (1 - c) - w * s, u * w * (1 - c) + v * s),
+            Vector(u * v * (1 - c) + w * s, v * v + (u * u + w * w) * c, v * w * (1 - c) - u * s),
+            Vector(u * w * (1 - c) - v * s, v * w * (1 - c) + u * s, w * w + (u * u + v * v) * c),
+        };
+    }
+
+    static AffineMatrix crossProductOperator(const Vector& a) {
+        return {
+            Vector(0._f, -a[Z], a[Y]),
+            Vector(a[Z], 0._f, -a[X]),
+            Vector(-a[Y], a[X], 0._f),
+        };
+    }
+
     INLINE AffineMatrix operator+(const AffineMatrix& other) const {
         return AffineMatrix(v[0] + other.v[0], v[1] + other.v[1], v[2] + other.v[2]);
     }

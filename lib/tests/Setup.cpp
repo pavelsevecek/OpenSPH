@@ -72,7 +72,10 @@ Storage Tests::getSolidStorage(const Size particleCnt, BodySettings settings, co
     storage.insert<TracelessTensor>(QuantityId::DEVIATORIC_STRESS, OrderEnum::FIRST, TracelessTensor::null());
     storage.insert<Size>(QuantityId::FLAG, OrderEnum::ZERO, 0);
     MaterialView material = storage.getMaterial(0);
-    material->create(storage, MaterialInitialContext());
+
+    MaterialInitialContext context;
+    context.rng = makeRng<UniformRng>();
+    material->create(storage, context);
     material->initialize(storage, material.sequence());
     return storage;
 }

@@ -16,6 +16,7 @@ class IEos;
 class IRheology;
 class ISolver;
 class IGravity;
+class ICollisionHandler;
 class IFractureModel;
 class IDistribution;
 class IDomain;
@@ -53,6 +54,8 @@ namespace Factory {
     AutoPtr<ISolver> getSolver(const RunSettings& settings);
 
     AutoPtr<IGravity> getGravity(const RunSettings& settings);
+
+    AutoPtr<ICollisionHandler> getCollisionHandler(const RunSettings& settings);
 
     AutoPtr<IBoundaryCondition> getBoundaryConditions(const RunSettings& settings);
 

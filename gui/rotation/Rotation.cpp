@@ -90,24 +90,25 @@ void AsteroidRotation::setUp() {
     BodySettings bodySettings;
     bodySettings.set(BodySettingsId::ENERGY, 0._f)
         .set(BodySettingsId::ENERGY_RANGE, Interval(0._f, INFTY))
-        .set(BodySettingsId::PARTICLE_COUNT, 50000)
+        .set(BodySettingsId::PARTICLE_COUNT, 5'000)
         .set(BodySettingsId::EOS, EosEnum::TILLOTSON)
         //.set(BodySettingsId::ENERGY_MIN, LARGE)
         .set(BodySettingsId::STRESS_TENSOR_MIN, LARGE)
         .set(BodySettingsId::DAMAGE_MIN, 0.2_f)
-        .set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::SCALAR_GRADY_KIPP)
-        .set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::VON_MISES)
+        .set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::NONE)
+        .set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::ELASTIC)
         .set(BodySettingsId::DISTRIBUTE_MODE_SPH5, true);
     bodySettings.saveToFile(Path("target.sph"));
 
     storage = makeShared<Storage>();
 
     EquationHolder externalForces;
+    // externalForces += makeTerm<SolidStressTorque>(settings);
     // externalForces += makeTerm<SphericalGravity>();
     // const Vector omega = 2._f * PI / (3600._f * period) * Vector(0, 1, 0);
     // externalForces += makeTerm<InertialForce>(omega);
 
-    const Vector omega(0._f, 0._f, 140._f);
+    const Vector omega(0._f, 0._f, 32._f);
     solver = makeAuto<DisableDerivativesSolver>(settings, omega, externalForces);
 
     InitialConditions conds(*solver, settings);

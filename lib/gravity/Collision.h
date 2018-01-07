@@ -7,6 +7,7 @@
 
 #include "physics/Functions.h"
 #include "quantities/Storage.h"
+#include "system/Settings.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -96,40 +97,68 @@ Tuple<T, T> minMax(const T& t1, const T& t2) {
 
 class PerfectMergingHandler : public ICollisionHandler {
 private:
-    RawPtr<Storage> storage;
-
+    /// \todo replace arrayref with arrayviews and re-initialize after collision? (we need to do that for
+    /// finder anyway)
     ArrayRef<Vector> r, v;
+    ArrayRef<Vector> omega;
     ArrayRef<Float> m;
+    ArrayRef<SymmetricTensor> I;
+
+    Float mergingLimit;
 
 public:
+    explicit PerfectMergingHandler(const RunSettings& settings) {
+        mergingLimit = settings.get<Float>(RunSettingsId::COLLISION_MERGING_LIMIT);
+    }
+
     virtual void initialize(Storage& storage) override {
-        this->storage = std::addressof(storage);
         ArrayRef<Vector> dv;
         tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
+        omega = storage.getValue<Vector>(QuantityId::ANGULAR_VELOCITY);
 
         m = storage.getValue<Float>(QuantityId::MASS);
+        I = storage.getValue<SymmetricTensor>(QuantityId::MOMENT_OF_INERTIA);
     }
 
     virtual CollisionResult collide(const Size i, const Size j, Array<Size>& toRemove) override {
-        // set radius of the merger to conserve volume
-        const Float h_merger = root<3>(pow<3>(r[i][H]) + pow<3>(r[j][H]));
+        // set radius of the merger so that the volume is conserved
+        const Float h_merger = r[i][H]; // root<3>(pow<3>(r[i][H]) + pow<3>(r[j][H]));
+
+        // conserve total mass
         const Float m_merger = m[i] + m[j];
 
-        const Vector r_merger = weightedAverage(r[i], m[i], r[j], m[j]);
+        // merge so that the center of mass remains unchanged
+        const Vector r_merger = r[i]; // weightedAverage(r[i], m[i], r[j], m[j]);
+
+        // converve momentum
         const Vector v_merger = weightedAverage(v[i], m[i], v[j], m[j]);
 
-        Size lowerIdx, upperIdx;
-        tieToTuple(lowerIdx, upperIdx) = minMax(i, j);
+        // sum up the inertia tensors, but first move them to new origin
+        const SymmetricTensor I_merger = Rigid::parallelAxisTheorem(I[i], m[i], r_merger - r[i]) +
+                                         Rigid::parallelAxisTheorem(I[j], m[j], r_merger - r[j]);
 
-        // modify the particle with higher idx in place, so it gets processed again
-        /// \todo not really a good design, the collision handler should not depend on the callsite ...
-        r[upperIdx] = r_merger;
-        v[upperIdx] = v_merger;
-        r[upperIdx][H] = h_merger;
-        m[upperIdx] = m_merger;
+        // conserve angular momentum
+        const Vector L_merger = m[i] * cross(r[i] - r_merger, v[i] - v_merger) + //
+                                m[j] * cross(r[j] - r_merger, v[j] - v_merger) + //
+                                I[i] * omega[i] + I[j] * omega[j];
+        // L = I*omega  =>  omega = I^-1 * L
+        const Vector omega_merger = I_merger.inverse() * L_merger;
 
-        // remove the particle with lower idx
-        toRemove.push(lowerIdx);
+        if (!this->acceptMerge(i, j, h_merger, omega_merger)) {
+            return CollisionResult::NONE;
+        }
+
+        /// \todo keep track of density as well?
+
+        m[i] = m_merger;
+        r[i] = r_merger;
+        r[i][H] = h_merger;
+        v[i] = v_merger;
+        v[i][H] = 0._f;
+        I[i] = I_merger;
+        omega[i] = omega_merger;
+
+        toRemove.push(j);
         return CollisionResult::MERGER;
     }
 
@@ -138,6 +167,30 @@ private:
     INLINE static T weightedAverage(const T& v1, const Float w1, const T& v2, const Float w2) {
         ASSERT(w1 + w2 > 0._f, w1, w2);
         return (v1 * w1 + v2 * w2) / (w1 + w2);
+    }
+
+    /// \brief Checks if the particles should be merged
+    ///
+    /// We merge particles if their relative velocity is lower than the escape velocity AND if the angular
+    /// velocity of the merger is lower than the breakup limit.
+    /// \param i, j Particle indices
+    /// \param h Radius of the merger
+    /// \param omega Angular velocity of the merger
+    INLINE bool acceptMerge(const Size i, const Size j, const Float h, const Vector& omega) const {
+        const Float vEscSqr = 2._f * Constants::gravity * (m[i] + m[j]) / (r[i][H] + r[j][H]);
+        const Float vRelSqr = getSqrLength(v[i] - v[j]);
+        if (vRelSqr * mergingLimit > vEscSqr) {
+            // moving too fast, reject the merge
+            /// \todo shouldn't we check velocities AFTER the bounce?
+            return false;
+        }
+        const Float omegaCritSqr = Constants::gravity * (m[i] + m[j]) / pow<3>(h);
+        const Float omegaSqr = getSqrLength(omega);
+        if (omegaSqr * mergingLimit > omegaCritSqr) {
+            // rotates too fast, reject the merge
+            return false;
+        }
+        return true;
     }
 };
 
@@ -157,8 +210,10 @@ private:
     } restitution;
 
 public:
-    ElasticBounceHandler(const Float n, const Float t)
-        : restitution{ n, t } {}
+    explicit ElasticBounceHandler(const RunSettings& settings) {
+        restitution.n = settings.get<Float>(RunSettingsId::COLLISION_RESTITUTION_NORMAL);
+        restitution.t = settings.get<Float>(RunSettingsId::COLLISION_RESTITUTION_TANGENT);
+    }
 
     virtual void initialize(Storage& storage) override {
         tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
@@ -171,9 +226,7 @@ public:
         v[i] = this->reflect(v[i], v_com, -dr);
         v[j] = this->reflect(v[j], v_com, dr);
 
-        // temporary hack to force particles into the z=0 plane
-        //    v[i][Z] = 0._f;
-        //    v[j][Z] = 0._f;
+        // no change of radius
         v[i][H] = 0._f;
         v[j][H] = 0._f;
 
@@ -193,6 +246,33 @@ private:
     }
 };
 
+/// \brief Helper handler, choosing another collision handler if the primary handler rejects the collision.
+template <typename TPrimary, typename TFallback>
+class FallbackHandler : public ICollisionHandler {
+private:
+    TPrimary primary;
+    TFallback fallback;
+
+public:
+    FallbackHandler(const RunSettings& settings)
+        : primary(settings)
+        , fallback(settings) {}
+
+    virtual void initialize(Storage& storage) override {
+        primary.initialize(storage);
+        fallback.initialize(storage);
+    }
+
+    virtual CollisionResult collide(const Size i, const Size j, Array<Size>& toRemove) override {
+        CollisionResult result = primary.collide(i, j, toRemove);
+        if (result == CollisionResult::NONE) {
+            ASSERT(toRemove.empty());
+            return fallback.collide(i, j, toRemove);
+        } else {
+            return result;
+        }
+    }
+};
 
 class FragmentationHandler : public ICollisionHandler {
 public:
@@ -210,7 +290,7 @@ public:
 /// \brief Auxiliary collision handler, distinguising the collision behavior based on impact energy
 ///
 /// \todo generalize scaling law?
-class ThresholdHandler : public ICollisionHandler {
+/*class ThresholdHandler : public ICollisionHandler {
 private:
     AutoPtr<ICollisionHandler> slow;
     AutoPtr<ICollisionHandler> fast;
@@ -258,6 +338,6 @@ public:
             return slow->collide(i, j, toRemove);
         }
     }
-};
+};*/
 
 NAMESPACE_SPH_END

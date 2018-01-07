@@ -281,15 +281,16 @@ AutoPtr<RunSettings> RunSettings::instance (new RunSettings {
     { RunSettingsId::SPH_AV_TYPE,                   "sph.av.type",              int(ArtificialViscosityEnum::STANDARD) },
     { RunSettingsId::SPH_AV_BALSARA,                "sph.av.balsara",           false },
     { RunSettingsId::SPH_AV_BALSARA_STORE,          "sph.av.balsara.store",     false },
-    { RunSettingsId::SPH_AV_STRESS_EXPONENT,        "sph.artificial_stress_exponent", 4._f },
-    { RunSettingsId::SPH_AV_STRESS_FACTOR,          "sph.artificial_stress_factor", 0.15_f },
-    { RunSettingsId::SPH_SMOOTHING_LENGTH_MIN,      "sph.smoothing_length.min", 1e-5_f },
-    { RunSettingsId::SPH_FINDER,                    "sph.finder",               int(FinderEnum::UNIFORM_GRID) },
-    { RunSettingsId::SPH_FINDER_COMPACT_THRESHOLD,  "sph.finder.compact_threshold", 0.5_f },
-    { RunSettingsId::SPH_STRAIN_RATE_CORRECTION_TENSOR, "sph.correction_tensor", false },
-    { RunSettingsId::SPH_FORMULATION,               "sph.formulation",          int(FormulationEnum::STANDARD) },
-    { RunSettingsId::SPH_PARTICLE_ROTATION,         "sph.particle_rotation",    false },
-    { RunSettingsId::SPH_PHASE_ANGLE,               "sph.phase_angle",          false },
+    { RunSettingsId::SPH_AV_STRESS_EXPONENT,        "sph.artificial_stress_exponent",   4._f },
+    { RunSettingsId::SPH_AV_STRESS_FACTOR,          "sph.artificial_stress_factor",     0.15_f },
+    { RunSettingsId::SPH_SMOOTHING_LENGTH_MIN,      "sph.smoothing_length.min",         1e-5_f },
+    { RunSettingsId::SPH_PARTICLE_ROTATION,         "sph.particle_rotation",            false },
+    { RunSettingsId::SPH_PHASE_ANGLE,               "sph.phase_angle",                  false },
+    { RunSettingsId::SPH_FINDER,                    "sph.finder",                       int(FinderEnum::UNIFORM_GRID) },
+    { RunSettingsId::SPH_FINDER_COMPACT_THRESHOLD,  "sph.finder.compact_threshold",     0.5_f },
+    { RunSettingsId::SPH_STRAIN_RATE_CORRECTION_TENSOR, "sph.correction_tensor",        false },
+    { RunSettingsId::SPH_FORMULATION,                   "sph.formulation",              int(FormulationEnum::STANDARD) },
+
 
     /// Gravity
     { RunSettingsId::GRAVITY_SOLVER,                "gravity.solver",           int(GravityEnum::BARNES_HUT) },
@@ -298,9 +299,12 @@ AutoPtr<RunSettings> RunSettings::instance (new RunSettings {
     { RunSettingsId::GRAVITY_MULTIPOLE_ORDER,       "gravity.multipole_order",  3 },
     { RunSettingsId::GRAVITY_KERNEL,                "gravity.kernel",           int(GravityKernelEnum::SPH_KERNEL) },
 
+    /// Collision handling
+    { RunSettingsId::COLLISION_HANDLER,             "collision.handler",                int(CollisionHandlerEnum::MERGE_OR_BOUNCE) },
     { RunSettingsId::COLLISION_RESTITUTION_NORMAL,  "collision.restitution_normal",     0.8_f },
     { RunSettingsId::COLLISION_RESTITUTION_TANGENT, "collision.restitution_tangent",    1.0_f },
     { RunSettingsId::COLLISION_ALLOWED_OVERLAP,     "collision.allowed_overlap",        1.e-4_f },
+    { RunSettingsId::COLLISION_MERGING_LIMIT,       "collision.merging_limit",          1._f },
 
     /// Timestepping parameters
     { RunSettingsId::TIMESTEPPING_INTEGRATOR,       "timestep.integrator",      int(TimesteppingEnum::PREDICTOR_CORRECTOR) },

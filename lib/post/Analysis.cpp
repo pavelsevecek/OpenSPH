@@ -308,6 +308,26 @@ Array<Post::MoonEnum> Post::findMoons(const Storage& storage, const Float radius
     return status;
 }
 
+Array<Post::Tumbler> Post::findTumblers(const Storage& storage, const Float limit) {
+    Array<Tumbler> tumblers;
+    ArrayView<const Vector> omega = storage.getValue<Vector>(QuantityId::ANGULAR_VELOCITY);
+    ArrayView<const SymmetricTensor> I = storage.getValue<SymmetricTensor>(QuantityId::MOMENT_OF_INERTIA);
+
+    for (Size i = 0; i < omega.size(); ++i) {
+        const Vector L = I[i] * omega[i];
+        if (omega[i] == Vector(0._f)) {
+            continue;
+        }
+        const Float cosBeta = dot(L, omega[i]) / (getLength(L) * getLength(omega[i]));
+        ASSERT(cosBeta >= -1._f && cosBeta <= 1._f);
+        const Float beta = acos(cosBeta);
+        if (beta > limit) {
+            tumblers.push(Tumbler{ i, beta });
+        }
+    }
+    return tumblers;
+}
+
 SymmetricTensor Post::getInertiaTensor(ArrayView<const Float> m,
     ArrayView<const Vector> r,
     const Vector& r0) {

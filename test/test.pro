@@ -133,7 +133,6 @@ SOURCES += \
     ../lib/sph/kernel/test/GravityKernel.cpp \
     ../lib/sph/kernel/test/Interpolation.cpp \
     ../lib/sph/kernel/test/Kernel.cpp \
-    ../lib/sph/solvers/test/ContinuitySolver.cpp \
     ../lib/sph/solvers/test/DensityIndependentSolver.cpp \
     ../lib/sph/solvers/test/GravitySolver.cpp \
     ../lib/sph/solvers/test/Impact.cpp \
@@ -155,7 +154,9 @@ SOURCES += \
     main.cpp \
     utils/Approx.cpp \
     utils/SequenceTest.cpp \
-    utils/Utils.cpp
+    utils/Utils.cpp \
+    ../lib/sph/solvers/test/StandardSets.cpp \
+    ../lib/gravity/test/NBodySolver.cpp
 
 HEADERS += \
     utils/Utils.h \

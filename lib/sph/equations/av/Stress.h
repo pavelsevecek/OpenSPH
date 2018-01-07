@@ -107,9 +107,9 @@ public:
             const SymmetricTensor sigma = SymmetricTensor(s[i]) - p[i] * SymmetricTensor::identity();
 
             // find eigenvectors and corresponding eigenvalues
-            AffineMatrix matrix;
-            Vector sigma_diag;
-            tieToTuple(matrix, sigma_diag) = eigenDecomposition(sigma);
+            Eigen eigen = eigenDecomposition(sigma);
+            AffineMatrix matrix = eigen.vectors;
+            Vector sigma_diag = eigen.values;
 
             // for positive values of diagonal stress, compute artificial stress
             const Vector as_diag = -max(sigma_diag, Vector(0._f));

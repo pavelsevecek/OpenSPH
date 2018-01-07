@@ -53,7 +53,7 @@ private:
         gui.set(GuiSettingsId::ORTHO_FOV, 1._f)
             .set(GuiSettingsId::ORTHO_VIEW_CENTER, Vector(320, 240, 0._f))
             .set(GuiSettingsId::PARTICLE_RADIUS, 0.2_f)
-            .set(GuiSettingsId::ORTHO_CUTOFF, 0.005_f)
+            .set(GuiSettingsId::ORTHO_CUTOFF, 0.05_f)
             .set(GuiSettingsId::ORTHO_PROJECTION, OrthoEnum::XY)
             .set(GuiSettingsId::IMAGES_SAVE, true)
             .set(GuiSettingsId::IMAGES_TIMESTEP, 0.0001_f)
@@ -63,7 +63,7 @@ private:
             .set(GuiSettingsId::PALETTE_DIVV, Interval(-1.e-2_f, 1.e-2_f))
             .set(GuiSettingsId::PALETTE_PRESSURE, Interval(-1.e6_f, 1.e2_f))
             .set(GuiSettingsId::PALETTE_STRESS, Interval(1.e4f, 1.e6_f))
-            .set(GuiSettingsId::PALETTE_DENSITY_PERTURB, Interval(-1.e-4_f, 1.e-4_f));
+            .set(GuiSettingsId::PALETTE_DENSITY_PERTURB, Interval(-1.e-5_f, 1.e-5_f));
 
         controller = makeAuto<Controller>(gui);
 

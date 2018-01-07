@@ -112,26 +112,56 @@ static void requireVariant(DerivativeHolder& derivatives, const RunSettings& set
 /// Computes acceleration from pressure gradient and corresponding derivative of internal energy.
 /// \todo
 class PressureForce : public IEquationTerm {
+private:
+    FormulationEnum variant;
+
 public:
     virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override {
+        variant = settings.get<FormulationEnum>(RunSettingsId::SPH_FORMULATION);
+        switch (variant) {
+        case FormulationEnum::BENZ_ASPHAUG:
+            derivatives.require<VelocityDivergence>(settings);
+            break;
+        case FormulationEnum::STANDARD:
+            derivatives.require<DensityVelocityDivergence>(settings);
+            break;
+        default:
+            NOT_IMPLEMENTED;
+        }
+
         requireVariant<PressureGradient>(derivatives, settings);
-        derivatives.require<VelocityDivergence>(settings);
     }
 
     virtual void initialize(Storage& UNUSED(storage)) override {}
 
     virtual void finalize(Storage& storage) override {
-        ArrayView<const Float> divv = storage.getValue<Float>(QuantityId::VELOCITY_DIVERGENCE);
-        ArrayView<const Float> p, rho, m; ///\todo share these arrayviews?
+        ArrayView<const Float> p, rho, m;
         tie(p, rho, m) =
             storage.getValues<Float>(QuantityId::PRESSURE, QuantityId::DENSITY, QuantityId::MASS);
         ArrayView<Float> du = storage.getDt<Float>(QuantityId::ENERGY);
 
-        parallelFor(0, du.size(), [&](const Size n1, const Size n2) INL {
-            for (Size i = n1; i < n2; ++i) {
-                du[i] -= p[i] / rho[i] * divv[i];
-            }
-        });
+        switch (variant) {
+        case FormulationEnum::BENZ_ASPHAUG: {
+            ArrayView<const Float> divv = storage.getValue<Float>(QuantityId::VELOCITY_DIVERGENCE);
+            parallelFor(0, du.size(), [&](const Size n1, const Size n2) INL {
+                for (Size i = n1; i < n2; ++i) {
+                    du[i] -= p[i] / rho[i] * divv[i];
+                }
+            });
+            break;
+        }
+        case FormulationEnum::STANDARD: {
+            ArrayView<const Float> rhoDivv = storage.getValue<Float>(QuantityId::DENSITY_VELOCITY_DIVERGENCE);
+            parallelFor(0, du.size(), [&](const Size n1, const Size n2) INL {
+                for (Size i = n1; i < n2; ++i) {
+                    du[i] -= p[i] / sqr(rho[i]) * rhoDivv[i];
+                }
+            });
+            break;
+        }
+        default:
+            NOT_IMPLEMENTED;
+        }
     }
 
     virtual void create(Storage& storage, IMaterial& material) const override {
@@ -143,7 +173,16 @@ public:
         ASSERT(storage.getMaterialCnt() == 1);
         material.setRange(QuantityId::ENERGY, BodySettingsId::ENERGY_RANGE, BodySettingsId::ENERGY_MIN);
         // need to create quantity for velocity divergence so that we can save it to storage later
-        storage.insert<Float>(QuantityId::VELOCITY_DIVERGENCE, OrderEnum::ZERO, 0._f);
+        switch (variant) {
+        case FormulationEnum::BENZ_ASPHAUG:
+            storage.insert<Float>(QuantityId::VELOCITY_DIVERGENCE, OrderEnum::ZERO, 0._f);
+            break;
+        case FormulationEnum::STANDARD:
+            storage.insert<Float>(QuantityId::DENSITY_VELOCITY_DIVERGENCE, OrderEnum::ZERO, 0._f);
+            break;
+        default:
+            NOT_IMPLEMENTED;
+        }
     }
 };
 
@@ -197,31 +236,31 @@ public:
     }
 };
 
-/// \brief Equation of motion for solid body and constitutive equation for the stress tensor (Hooke's law)
+/// \brief Equation of motion for solid body and constitutive equation for the stress tensor
+/// (Hooke's law)
 ///
-/// The equation computes acceleration from the divergence of the deviatoric stress \f$S\f$. The equation of
-/// motion in the used SPH discretization reads:
-/// \f[
-///  \frac{{\rm d} \vec v_i}{{\rm d} t} = \sum_j m_j \left(\frac{S_i + S_j}{\rho_i \rho_j}\right) \cdot
-///  \nabla W_{ij}\,,
+/// The equation computes acceleration from the divergence of the deviatoric stress \f$S\f$. The
+/// equation of motion in the used SPH discretization reads: \f[
+///  \frac{{\rm d} \vec v_i}{{\rm d} t} = \sum_j m_j \left(\frac{S_i + S_j}{\rho_i \rho_j}\right)
+///  \cdot \nabla W_{ij}\,,
 /// \f]
-/// Corresponding term of energy equation (viscous heating) is also added to the energy derivative:
-/// \f[
+/// Corresponding term of energy equation (viscous heating) is also added to the energy
+/// derivative: \f[
 ///  \frac{{\rm d} u_i}{{\rm d} t} = \frac{1}{\rho_i} S_i : \nabla \vec v_i \,,
 /// \f]
 /// where \f$\nabla \vec v_i\f$ is the symmetrized velocity gradient.
 ///
 /// The stress is evolved as a first-order quantity, using Hooke's law as constitutive equation:
 /// \f[
-///  \frac{{\rm d} S_i}{{\rm d} t} = 2\mu \left( \nabla \vec v - {\bf 1} \, \frac{\nabla \cdot \vec v}{3}
-///  \right)\,,
+///  \frac{{\rm d} S_i}{{\rm d} t} = 2\mu \left( \nabla \vec v - {\bf 1} \, \frac{\nabla \cdot
+///  \vec v}{3} \right)\,,
 /// \f]
 /// where \f$\mu\f$ is the shear modulus and \f$\bf 1\f$ is the identity tensor.
 ///
 /// This equation represents solid bodies, for fluids use \ref NavierStokesForce.
 ///
-/// \attention The isotropic part of the force is NOT computed, it is necessary to use \ref PressureForce
-/// together with this equation.
+/// \attention The isotropic part of the force is NOT computed, it is necessary to use \ref
+/// PressureForce together with this equation.
 class SolidStressForce : public IEquationTerm {
 private:
     bool useCorrectionTensor;
@@ -326,21 +365,22 @@ public:
 
 /// \brief Equation for evolution of density
 ///
-/// Provides a first-order evolutionary equation for density, computing the derivative of i-th particle using:
-/// \f[
+/// Provides a first-order evolutionary equation for density, computing the derivative of i-th
+/// particle using: \f[
 ///  \frac{{\rm d} \rho_i}{{\rm d} t} = -\rho_i \nabla \cdot \vec v_i \,,
 /// \f]
 /// where \f$\vec v_i\f$ is the velocity of the particle.
 ///
-/// The equation has two modes - fluid and solid - differing in the particle set used in the sum of velocity
-/// divergence. The modes are specified by RunSettingsId::MODEL_FORCE_SOLID_STRESS boolean parameter.
-/// For fluid mode, the velocity divergence is computed from all particles, while for solid mode, it only sums
-/// velocities of undamaged particles from the same body, or fully damaged particles. This is needed to
-/// properly handle density derivatives in impact; it is undesirable to get increased density by merely moving
-/// the bodies closer to each other.
+/// The equation has two modes - fluid and solid - differing in the particle set used in the sum
+/// of velocity divergence. The modes are specified by RunSettingsId::MODEL_FORCE_SOLID_STRESS
+/// boolean parameter. For fluid mode, the velocity divergence is computed from all particles,
+/// while for solid mode, it only sums velocities of undamaged particles from the same body, or
+/// fully damaged particles. This is needed to properly handle density derivatives in impact; it
+/// is undesirable to get increased density by merely moving the bodies closer to each other.
 ///
-/// Solver must use either this equation or some custom density computation, such as direct summation (see
-/// \ref SummationSolver) or SPH formulation without solving the density (see \ref DensityIndependentSolver).
+/// Solver must use either this equation or some custom density computation, such as direct
+/// summation (see \ref SummationSolver) or SPH formulation without solving the density (see \ref
+/// DensityIndependentSolver).
 class ContinuityEquation : public IEquationTerm {
 private:
     enum class Options {
@@ -366,13 +406,14 @@ public:
     virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override {
         switch (variant) {
         case FormulationEnum::STANDARD:
-            // standard formulation of the continuity equation: \dot \rho_i = \sum_j m_j \nabla \cdot \vec v
+            // standard formulation of the continuity equation: \dot \rho_i = \sum_j m_j \nabla
+            // \cdot \vec v
             derivatives.require<DensityVelocityDivergence>(settings);
             break;
         case FormulationEnum::BENZ_ASPHAUG:
-            // this formulation uses equation \dot \rho_i = m_i \sum_j m_j/rho_j \nabla \cdot \vec v
-            // where the velocity divergence is taken either directly, or as a trace of strength velocity
-            // gradient, see below.
+            // this formulation uses equation \dot \rho_i = m_i \sum_j m_j/rho_j \nabla \cdot \vec
+            // v where the velocity divergence is taken either directly, or as a trace of strength
+            // velocity gradient, see below.
             derivatives.require<VelocityDivergence>(settings);
             if (flags.has(Options::SOLID)) {
                 derivatives.require<StrengthVelocityGradient>(settings);
@@ -434,8 +475,8 @@ public:
         storage.insert<Float>(QuantityId::DENSITY, OrderEnum::FIRST, rho0);
         material.setRange(QuantityId::DENSITY, BodySettingsId::DENSITY_RANGE, BodySettingsId::DENSITY_MIN);
 
-        /// \todo would make more sense to split the formulations into different EquationTerms, and have
-        /// getStandardEquations / getBenzAsphaugEquation (or something) instead
+        /// \todo would make more sense to split the formulations into different EquationTerms,
+        /// and have getStandardEquations / getBenzAsphaugEquation (or something) instead
         switch (variant) {
         case FormulationEnum::BENZ_ASPHAUG:
             storage.insert<Float>(QuantityId::VELOCITY_DIVERGENCE, OrderEnum::ZERO, 0._f);
@@ -451,21 +492,20 @@ public:
 
 /// \brief Evolutionary equation for the (scalar) smoothing length
 ///
-/// The smoothing length is evolved using first-order equation, 'mirroring' changes in density in order to
-/// keep the particle concentration approximately constant. The derivative of smoothing length \f$h\f$ of i-th
-/// particle computed using:
-/// \f[
+/// The smoothing length is evolved using first-order equation, 'mirroring' changes in density in
+/// order to keep the particle concentration approximately constant. The derivative of smoothing
+/// length \f$h\f$ of i-th particle computed using: \f[
 ///  \frac{{\rm d} h_i}{{\rm d} t} = \frac{h_i}{D} \nabla \cdot \vec v_i \,,
 /// \f]
-/// where \f$D\f$ is the number of spatial dimensions (3 unless specified otherwise) and \f$\vec v_i\f$ is the
-/// velocity of the particle.
+/// where \f$D\f$ is the number of spatial dimensions (3 unless specified otherwise) and \f$\vec
+/// v_i\f$ is the velocity of the particle.
 ///
-/// It is possible to add additional term into the equation that increases/decreases the smoothing length when
-/// number of neighbours is too low/high. This is done by setting flag
-/// SmoothingLengthEnum::SOUND_SPEED_ENFORCING to settings entry RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH. The
-/// allowed range of neighbours is then controlled by RunSettingsId::SPH_NEIGHBOUR_RANGE. Note that the number
-/// of neighbours is not guaranteed to be in the given range, the actual number of neighbours cannot be
-/// precisely controlled.
+/// It is possible to add additional term into the equation that increases/decreases the smoothing
+/// length when number of neighbours is too low/high. This is done by setting flag
+/// SmoothingLengthEnum::SOUND_SPEED_ENFORCING to settings entry
+/// RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH. The allowed range of neighbours is then controlled
+/// by RunSettingsId::SPH_NEIGHBOUR_RANGE. Note that the number of neighbours is not guaranteed to
+/// be in the given range, the actual number of neighbours cannot be precisely controlled.
 class AdaptiveSmoothingLength : public IEquationTerm {
 private:
     struct {
@@ -492,6 +532,7 @@ public:
     }
 
     virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override {
+        /// \todo needs to respect the formulation; same for energy derivatives !!!
         derivatives.require<VelocityDivergence>(settings);
     }
 
@@ -543,18 +584,21 @@ public:
         });
     }
 
-    virtual void create(Storage& UNUSED(storage), IMaterial& UNUSED(material)) const override {}
+    virtual void create(Storage& storage, IMaterial& UNUSED(material)) const override {
+        storage.insert<Float>(QuantityId::VELOCITY_DIVERGENCE, OrderEnum::ZERO, 0._f);
+    }
 };
 
 /// \brief Helper term to keep smoothing length constant during the simulation
 ///
-/// The smoothing length is currently stored as the 4th component of the position vectors. Because of that, it
-/// is necessary to either provide an equation evolving smoothing length in time (see \ref
-/// AdaptiveSmoothingLength), or use this equation to set all derivatives of smoothing length to zero.
+/// The smoothing length is currently stored as the 4th component of the position vectors. Because
+/// of that, it is necessary to either provide an equation evolving smoothing length in time (see
+/// \ref AdaptiveSmoothingLength), or use this equation to set all derivatives of smoothing length
+/// to zero.
 ///
-/// \attention If neither of these equations are used and the smoothing length is not explicitly handled by
-/// the solver or timestepping, the behavior might by unexpected and possibly leads to errors. This issue will
-/// be resolved in the future.
+/// \attention If neither of these equations are used and the smoothing length is not explicitly
+/// handled by the solver or timestepping, the behavior might by unexpected and possibly leads to
+/// errors. This issue will be resolved in the future.
 class ConstSmoothingLength : public IEquationTerm {
 public:
     virtual void setDerivatives(DerivativeHolder& UNUSED(derivatives),
@@ -579,11 +623,11 @@ public:
 
 /// \brief Container holding equation terms
 ///
-/// Holds an array of equation terms. The object also defines operators for adding more equation terms and
-/// functions \ref initialize, \ref finalize and \ref create, calling corresponding functions for all stored
-/// equation terms. Equation terms are stored as shared pointers and can be thus used in multiple
-/// EquationHolders. It is however not recommended to access the same term concurrently as it can contain a
-/// state.
+/// Holds an array of equation terms. The object also defines operators for adding more equation
+/// terms and functions \ref initialize, \ref finalize and \ref create, calling corresponding
+/// functions for all stored equation terms. Equation terms are stored as shared pointers and can
+/// be thus used in multiple EquationHolders. It is however not recommended to access the same
+/// term concurrently as it can contain a state.
 class EquationHolder {
 private:
     Array<SharedPtr<IEquationTerm>> terms;

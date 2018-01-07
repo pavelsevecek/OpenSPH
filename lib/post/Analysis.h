@@ -51,11 +51,20 @@ namespace Post {
     /// \todo TEMPORARY FUNCTION, REMOVE
     Storage findFutureBodies2(const Storage& storage, ILogger& logger);
 
-    /// \brief Computes the total inertia tensor of particles with respect to given center
-    SymmetricTensor getInertiaTensor(ArrayView<const Float> m, ArrayView<const Vector> r, const Vector& r0);
+    struct Tumbler {
+        /// Index of particle (body)
+        Size index;
 
-    /// \brief Computes the total inertia tensor of particle with respect to their center of mass.
-    SymmetricTensor getInertiaTensor(ArrayView<const Float> m, ArrayView<const Vector> r);
+        /// Angle between the current angular velocity and the angular momentum
+        Float beta;
+    };
+
+    /// \brief Find all tumbling asteroids.
+    ///
+    /// Limit specifies the required misalignment angle (in radians) for asteroid to be considered a tumbler.
+    /// Note that tumbling begins to be detectable for the misalignment angle larger than 15 degrees with high
+    /// accuracy data (Henych, 2013).
+    Array<Tumbler> findTumblers(const Storage& storage, const Float limit);
 
     /// Potential relationship of the body with a respect to the largest remnant (fragment).
     enum class MoonEnum {
@@ -89,6 +98,11 @@ namespace Post {
     /// \return Array of the same size of storage, marking each body in the storage; see MoonEnum.
     Array<MoonEnum> findMoons(const Storage& storage, const Float radius = 1._f, const Float limit = 0._f);
 
+    /// \brief Computes the total inertia tensor of particles with respect to given center
+    SymmetricTensor getInertiaTensor(ArrayView<const Float> m, ArrayView<const Vector> r, const Vector& r0);
+
+    /// \brief Computes the total inertia tensor of particle with respect to their center of mass.
+    SymmetricTensor getInertiaTensor(ArrayView<const Float> m, ArrayView<const Vector> r);
 
     /// \brief Object holding Keplerian orbital elements of a body
     ///

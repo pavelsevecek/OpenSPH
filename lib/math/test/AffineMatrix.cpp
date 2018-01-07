@@ -129,3 +129,13 @@ TEST_CASE("Matrix rotateZ", "[affinematrix]") {
     AffineMatrix rot = AffineMatrix::rotateZ(PI / 2._f);
     REQUIRE(rot * Vector(2._f, 3._f, 4._f) == approx(Vector(-3._f, 2._f, 4._f)));
 }
+
+TEST_CASE("Matrix rotateAxis", "[affinematrix]") {
+    AffineMatrix rotX = AffineMatrix::rotateX(0.7_f);
+    AffineMatrix rotY = AffineMatrix::rotateY(-1.9_f);
+    AffineMatrix rotZ = AffineMatrix::rotateZ(0.5_f);
+
+    REQUIRE(rotX == AffineMatrix::rotateAxis(Vector(1._f, 0._f, 0._f), 0.7_f));
+    REQUIRE(rotY == AffineMatrix::rotateAxis(Vector(0._f, 1._f, 0._f), -1.9_f));
+    REQUIRE(rotZ == AffineMatrix::rotateAxis(Vector(0._f, 0._f, 1._f), 0.5_f));
+}

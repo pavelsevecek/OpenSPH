@@ -241,7 +241,7 @@ static void tql2(double V[n][n], double d[n], double e[n]) {
     }
 }
 
-Tuple<AffineMatrix, Vector> eigenDecomposition(const SymmetricTensor& t) {
+Eigen eigenDecomposition(const SymmetricTensor& t) {
     double e[n];
     double d[n];
     double V[n][n];

@@ -405,6 +405,22 @@ enum class GravityKernelEnum {
     SPH_KERNEL,
 };
 
+enum class CollisionHandlerEnum {
+    /// All collided particles merge, creating larger spherical particles. May reject the collision in case
+    /// the particles move two fast (faster than the escape velocity). To ensure that the particles are always
+    /// merged, set the COLLISION_MERGE_LIMIT to zero. Note that this may create unphysically fast rotators,
+    /// but it is a simple handler, useful for testing.
+    PERFECT_MERGING,
+
+    /// Collided particles bounce with some energy dissipation, specified by the coefficients of restitution.
+    /// No merging, number of particles remains contant.
+    ELASTIC_BOUNCE,
+
+    /// If the relative speed of the collided particles is lower than the escape velocity, the particles are
+    /// merged, otherwise the particle bounce.
+    MERGE_OR_BOUNCE,
+};
+
 enum class LoggerEnum {
     /// Do not log anything
     NONE,
@@ -570,11 +586,19 @@ enum class RunSettingsId {
     /// Gravity smoothing kernel
     GRAVITY_KERNEL,
 
+    COLLISION_HANDLER,
+
     COLLISION_RESTITUTION_NORMAL,
 
     COLLISION_RESTITUTION_TANGENT,
 
     COLLISION_ALLOWED_OVERLAP,
+
+    /// Multiplier of the relative velocity and the angular velocity of the merger, used when determining
+    /// whether to merge the collided particles or reject the collision. If zero, particles are always merged,
+    /// values slightly lower than 1 can be used to simulate strength, holding together a body rotating above
+    /// breakup limit. Larger values can be used to merge only very slowly moving particles.
+    COLLISION_MERGING_LIMIT,
 
     /// Use force from pressure gradient in the model
     MODEL_FORCE_PRESSURE_GRADIENT,

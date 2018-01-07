@@ -107,7 +107,8 @@ TEST_CASE("BinaryOutput dump&accumulate simple", "[output]") {
     REQUIRE(storage2.getQuantity(QuantityId::DEVIATORIC_STRESS).getOrderEnum() == OrderEnum::ZERO);
     REQUIRE(perElement(storage2.getValue<TracelessTensor>(QuantityId::DEVIATORIC_STRESS)) ==
             TracelessTensor(3._f));
-    REQUIRE(storage2.getQuantity(QuantityId::STRAIN_RATE_CORRECTION_TENSOR).getOrderEnum() == OrderEnum::ZERO);
+    REQUIRE(
+        storage2.getQuantity(QuantityId::STRAIN_RATE_CORRECTION_TENSOR).getOrderEnum() == OrderEnum::ZERO);
     REQUIRE(perElement(storage2.getValue<SymmetricTensor>(QuantityId::STRAIN_RATE_CORRECTION_TENSOR)) ==
             SymmetricTensor(6._f));
 }
@@ -115,6 +116,7 @@ TEST_CASE("BinaryOutput dump&accumulate simple", "[output]") {
 TEST_CASE("BinaryOutput dump&accumulate materials", "[output]") {
     Storage storage;
     RunSettings settings;
+    settings.set(RunSettingsId::SPH_FORMULATION, FormulationEnum::BENZ_ASPHAUG);
     /*settings.set(RunSettingsId::MODEL_FORCE_PRESSURE_GRADIENT, false);
     settings.set(RunSettingsId::MODEL_FORCE_SOLID_STRESS, false);*/
     InitialConditions conds(settings);

@@ -87,7 +87,7 @@ struct MaterialInitialContext {
     AutoPtr<IRng> rng;
 
     /// Multiplier of smoothing length of all particles
-    Float eta;
+    Float eta = 1._f;
 };
 
 /// \brief Material settings and functions specific for one material.

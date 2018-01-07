@@ -96,7 +96,8 @@ SOURCES += \
     timestepping/TimeStepping.cpp \
     sph/solvers/AsymmetricSolver.cpp \
     sph/solvers/SymmetricSolver.cpp \
-    sph/solvers/StandardSets.cpp
+    sph/solvers/StandardSets.cpp \
+    gravity/NBodySolver.cpp
 
 HEADERS += \
     common/Assert.h \
