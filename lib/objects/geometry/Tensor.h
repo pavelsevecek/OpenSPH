@@ -5,7 +5,7 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2018
 
-#include "objects/geometry/Vector.h"
+#include "objects/geometry/SymmetricTensor.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -157,6 +157,15 @@ public:
     }
 };
 
+template <>
+INLINE AffineMatrix convert(const Tensor& t) {
+    return AffineMatrix(t.row(0), t.row(1), t.row(2));
+}
+
+template <>
+INLINE Tensor convert(const AffineMatrix& t) {
+    return Tensor(t.row(0), t.row(1), t.row(2));
+}
 
 /// Checks if two tensors are equal to some given accuracy.
 INLINE bool almostEqual(const Tensor& t1, const Tensor& t2, const Float eps = EPS) {

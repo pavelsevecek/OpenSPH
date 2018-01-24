@@ -1,6 +1,6 @@
 #pragma once
 
-/// \file Map.h
+/// \file FlatMap.h
 /// \brief Key-value associative container
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2018
@@ -30,7 +30,7 @@ enum class MapOptimization {
 /// Elements are stored in an array sorted according to key. The value look-up is O(log(N)), while inserting
 /// or deletion of elements is currently O(N).
 template <typename TKey, typename TValue, MapOptimization Optimize = MapOptimization::LARGE>
-class Map : public Noncopyable {
+class FlatMap : public Noncopyable {
 public:
     /// Element of the container.
     struct Element {
@@ -44,13 +44,13 @@ private:
     Array<Element> data;
 
 public:
-    Map() = default;
+    FlatMap() = default;
 
     /// \brief Constructs the map fromm initializer list of elements.
     ///
     /// Elements do not have to be sorted in the initializer list, the keys of the elements have to be unique,
     /// i.e. each key has to be present at most once. This is checked by assert.
-    Map(std::initializer_list<Element> list)
+    FlatMap(std::initializer_list<Element> list)
         : data(list) {
         std::sort(data.begin(), data.end(), [](Element& e1, Element& e2) {
             ASSERT(e1.key != e2.key); // keys must be unique
@@ -218,7 +218,7 @@ private:
     }
 
     INLINE const Element* find(const TKey& key) const {
-        return const_cast<Map*>(this)->find(key);
+        return const_cast<FlatMap*>(this)->find(key);
     }
 
     /// Adds new element into the map, assuming no element with the same key exists.
@@ -246,6 +246,6 @@ private:
 
 /// Alias for the map optimized for small number of elements
 template <typename TKey, typename TValue>
-using SmallMap = Map<TKey, TValue, MapOptimization::SMALL>;
+using SmallMap = FlatMap<TKey, TValue, MapOptimization::SMALL>;
 
 NAMESPACE_SPH_END

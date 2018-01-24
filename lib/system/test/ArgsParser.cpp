@@ -18,7 +18,7 @@ TEST_CASE("No args", "[args]") {
     ArgsParser<TestArgEnum> parser({});
     char* args1[] = { "" };
     // no input args -> no output args
-    Map<TestArgEnum, ArgValue> result = parser.parse(1, args1);
+    FlatMap<TestArgEnum, ArgValue> result = parser.parse(1, args1);
     REQUIRE(result.empty());
 
     char* args2[] = { "", "value" };
@@ -29,7 +29,7 @@ TEST_CASE("No args", "[args]") {
 TEST_CASE("Unnamed args", "[args]") {
     ArgsParser<TestArgEnum> parser({ { TestArgEnum::VALUE1, ArgEnum::FLOAT, OptionalEnum::MANDATORY } });
     char* args1[] = { "", "5.3" };
-    Map<TestArgEnum, ArgValue> result = parser.parse(2, args1);
+    FlatMap<TestArgEnum, ArgValue> result = parser.parse(2, args1);
     REQUIRE(result.size() == 1);
     REQUIRE(result[TestArgEnum::VALUE1].get<float>() == approx(5.3, 1.e-6f));
 
@@ -46,14 +46,14 @@ TEST_CASE("Unordered unnamed args", "[args]") {
         { TestArgEnum::VALUE2, ArgEnum::FLOAT, OptionalEnum::MANDATORY },
         { TestArgEnum::NAME, ArgEnum::STRING, OptionalEnum::MANDATORY } });
     char* args1[] = { "", "5", "3.3", "test" };
-    Map<TestArgEnum, ArgValue> result = parser.parse(4, args1);
+    FlatMap<TestArgEnum, ArgValue> result = parser.parse(4, args1);
     REQUIRE(result.size() == 3);
 }
 
 TEST_CASE("Named args", "[args]") {
     ArgsParser<TestArgEnum> parser({ { TestArgEnum::VALUE1, ArgEnum::FLOAT, "-p", "--param" } });
     char* args1[] = { "", "-p", "5.3" };
-    Map<TestArgEnum, ArgValue> result = parser.parse(3, args1);
+    FlatMap<TestArgEnum, ArgValue> result = parser.parse(3, args1);
     REQUIRE(result.size() == 1);
     REQUIRE(result[TestArgEnum::VALUE1].get<float>() == approx(5.3, 1.e-6f));
 
@@ -75,7 +75,7 @@ TEST_CASE("Argument list", "[args]") {
         { TestArgEnum::NAME, ArgEnum::STRING, OptionalEnum::MANDATORY },
         { TestArgEnum::COUNT, ArgEnum::INT, OptionalEnum::OPTIONAL } });
     char* args1[] = { "", "-a", "5.3", "file.txt", "-b", "4.8", "9" };
-    Map<TestArgEnum, ArgValue> result = parser.parse(7, args1);
+    FlatMap<TestArgEnum, ArgValue> result = parser.parse(7, args1);
     REQUIRE(result.size() == 4);
     REQUIRE(result[TestArgEnum::VALUE1].get<float>() == approx(5.3, 1.e-6f));
     REQUIRE(result[TestArgEnum::VALUE2].get<float>() == approx(4.8, 1.e-6f));

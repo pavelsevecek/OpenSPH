@@ -1,6 +1,6 @@
 #pragma once
 
-#include "objects/containers/Map.h"
+#include "objects/containers/FlatMap.h"
 #include "objects/utility/StringUtils.h"
 #include "objects/wrappers/SharedPtr.h"
 #include "objects/wrappers/Variant.h"
@@ -212,8 +212,8 @@ public:
         }
     }
 
-    Map<TEnum, ArgValue> parse(int argc, char** argv) {
-        Map<TEnum, ArgValue> map;
+    FlatMap<TEnum, ArgValue> parse(int argc, char** argv) {
+        FlatMap<TEnum, ArgValue> map;
         if (argc == 0) {
             throw ArgsError("Empty parameter list");
         }

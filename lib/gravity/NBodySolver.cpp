@@ -1,41 +1,57 @@
 #include "gravity/NBodySolver.h"
+#include "gravity/BruteForceGravity.h"
+#include "gravity/Collision.h"
+#include "sph/Diagnostics.h"
+#include "system/Factory.h"
+#include "system/Settings.h"
 
 NAMESPACE_SPH_BEGIN
 
 NBodySolver::NBodySolver(const RunSettings& settings)
-    : NBodySolver(settings, makeAuto<BruteForceGravity>()) { // Factory::getGravity(settings)) {
-}
+    : NBodySolver(settings, Factory::getGravity(settings)) {}
 
 NBodySolver::NBodySolver(const RunSettings& settings, AutoPtr<IGravity>&& gravity)
     : gravity(std::move(gravity))
-    , pool(settings.get<int>(RunSettingsId::RUN_THREAD_CNT))
-    , collisionFinder(Factory::getFinder(settings))
-    , collisionHandler(Factory::getCollisionHandler(settings)) {
-    /// \todo check if this parameter is still needed
-    allowedOverlap = settings.get<Float>(RunSettingsId::COLLISION_ALLOWED_OVERLAP);
+    , pool(settings.get<int>(RunSettingsId::RUN_THREAD_CNT)) {
+    collision.handler = Factory::getCollisionHandler(settings);
+    collision.finder = Factory::getFinder(settings);
+    overlap.handler = Factory::getOverlapHandler(settings);
+    overlap.allowedRatio = settings.get<Float>(RunSettingsId::COLLISION_ALLOWED_OVERLAP);
 }
 
-static void integrateRigidBody(Storage& storage) {
-    ArrayView<SymmetricTensor> I, dI;
-    tie(I, dI) = storage.getAll<SymmetricTensor>(QuantityId::MOMENT_OF_INERTIA);
+NBodySolver::~NBodySolver() = default;
+
+/*static void integrateRigidBody(Storage& storage, const Float dt) {
+    ArrayView<Tensor> E = storage.getValue<Tensor>(QuantityId::LOCAL_FRAME);
     ArrayView<Vector> w, dw;
     tie(w, dw) = storage.getAll<Vector>(QuantityId::ANGULAR_VELOCITY);
 
     for (Size i = 0; i < w.size(); ++i) {
-        AffineMatrix w_cross = AffineMatrix::crossProductOperator(w[i]);
+        //AffineMatrix w_cross = AffineMatrix::crossProductOperator(w[i]);
         // we need to convert to affine matrix, as the intermediate steps break the symmetry of the tensor
-        AffineMatrix Im = convert(I[i]);
-        AffineMatrix dIm = w_cross * Im - Im * w_cross;
+        //AffineMatrix Im = convert(I[i]);
+        //AffineMatrix dIm = w_cross * Im - Im * w_cross;
         // convert back to the symmetric tensor, the result should be symmetric (checked by assert)
-        dI[i] = convert(dIm);
+        //dI[i] = convert(dIm);
+        // SymmetricTensor I0 = I[i];
+        if (w[i] != Vector(0._f)) {
+            Vector dir;
+            Float omega;
+            tieToTuple(dir, omega) = getNormalizedWithLength(w[i]);
+            AffineMatrix rotation = AffineMatrix::rotateAxis(dir, omega * dt);
+            AffineMatrix Em = convert<AffineMatrix>(E[i]);
+            Em = rotation * Em * rotation.transpose();
 
-        SymmetricTensor Iinv = I[i].inverse();
+            E[i] = convert<Tensor>(Em);
+        }
+        // SymmetricTensor Iinv = I[i].inverse();
 
         // using torque-free solution
         // I dw/dt + dI/dt * w = 0
-        dw[i] = -Iinv * (dI[i] * w[i]);
+        // dw[i] = -Iinv * (dI[i] * w[i]);
+        // dw[i] = -Iinv * ((I[i] - I0) / dt * w[i]);
     }
-}
+}*/
 
 void NBodySolver::integrate(Storage& storage, Statistics& stats) {
     gravity->build(storage);
@@ -49,10 +65,49 @@ void NBodySolver::integrate(Storage& storage, Statistics& stats) {
         v[i][H] = 0._f;
         dv[i][H] = 0._f;
     }
-
-    // rigid body dynamics
-    integrateRigidBody(storage);
 }
+
+/*void NBodySolver::forceMerge(Size i, Storage& storage, const Float searchRadius) {
+    RunSettings forceMergeSettings(EMPTY_SETTINGS);
+    forceMergeSettings.set(RunSettingsId::COLLISION_MERGING_LIMIT, 0._f);
+    PerfectMergingHandler forceMergeHandler(forceMergeSettings);
+    forceMergeHandler.initialize(storage);
+    ASSERT(i < storage.getParticleCnt());
+    Array<Vector>& r = storage.getValue<Vector>(QuantityId::POSITION);
+    collisionFinder->build(r);
+    while (true) {
+        const Size count = collisionFinder->findNeighbours(i, r[i][H] + searchRadius, neighs, EMPTY_FLAGS);
+        if (count <= 1) {
+            break;
+        }
+        Array<Size> toRemove;
+        std::sort(neighs.begin(), neighs.end());
+        ASSERT(neighs[0].index == i); // closest should be the particle itself
+
+        const Size j = neighs[1].index;
+        if (neighs[1].distanceSqr <= sqr(r[i][H] + r[j][H])) {
+            // overlap
+            toRemove.clear();
+            forceMergeHandler.collide(i, j, toRemove);
+
+            ASSERT(!toRemove.empty());
+            storage.remove(toRemove);
+            storage.propagate([&toRemove](Storage& dependent) { dependent.remove(toRemove); });
+            collisionFinder->build(r);
+
+
+            for (Size idx : toRemove) {
+                if (idx < i) {
+                    --i;
+                }
+            }
+            ASSERT(i < storage.getParticleCnt());
+        } else {
+            // closest particle does not overlap -> no particle overlaps
+            break;
+        }
+    }
+}*/
 
 void NBodySolver::collide(Storage& storage, Statistics& stats, const Float dt) {
     ArrayView<Vector> r, v, a;
@@ -62,31 +117,179 @@ void NBodySolver::collide(Storage& storage, Statistics& stats, const Float dt) {
     const Float searchRadius = this->getSearchRadius(r, v, dt);
 
     // tree for finding collisions
-    collisionFinder->build(r);
+    collision.finder->build(r);
 
     // handler determining collison outcomes
-    collisionHandler->initialize(storage);
+    collision.handler->initialize(storage);
+    overlap.handler->initialize(storage);
 
-    Size collisionCounter = 0;
-    Array<Size> toRemove;
+    Size collisionCount = 0;
+    Size overlapCount = 0;
 
     // holds computed collisions
     std::set<CollisionRecord> collisions;
 
-    // holds indices of particles collisions of which have been invalidated and needs to be recomputed
     std::set<Size> invalidIdx;
 
-    // first pass - find all collisions and sort them by collision time
-    for (Size i = 0; i < r.size(); ++i) {
-        if (CollisionRecord col = this->findClosestCollision(i, searchRadius, dt, neighs, r, v)) {
+    // first pass - find all particles in interval <0, dt>
+    /*for (Size i = 0; i < r.size(); ++i) {
+        const Interval interval(0, dt);
+        if (CollisionRecord col = this->findClosestCollision(i, searchRadius, interval, r, v)) {
             collisions.insert(col);
         }
     }
 
-    Float time = 0._f; // dt;
+    Float time = 0._f;
+    removed.clear();
+
+    // go through all collisions, sorted by collision time
     while (!collisions.empty()) {
         const CollisionRecord& col = *collisions.begin();
         const Float t_coll = col.t_coll;
+        const Size i = col.i;
+        const Size j = col.j;
+
+        // advance positions of collided particles to the collision time
+        r[i] += v[i] * t_coll;
+        r[j] += v[j] * t_coll;
+
+        invalidIdx.clear();
+        const CollisionResult result = collisionHandler->collide(i, j, removed);
+        if (result != CollisionResult::NONE) {
+            // move the time to the current collision time
+            ASSERT(t_coll > time);
+            time = t_coll;
+
+            // remove all collisions containing either i or j
+            for (auto iter = collisions.begin(); iter != collisions.end();) {
+                const CollisionRecord& c = *iter;
+                if (c.i == i || c.i == j || c.j == i || c.j == j) {
+                    invalidIdx.insert(c.i);
+                    invalidIdx.insert(c.j);
+                    iter = collisions.erase(iter);
+                } else {
+                    ++iter;
+                }
+            }
+        }
+
+        // move particles back to the beginning of the time step
+        r[i] -= v[i] * t_coll;
+        r[j] -= v[j] * t_coll;
+        collisionFinder->build(r);
+
+        // find new collisions for invalid indices
+        for (Size idx : invalidIdx) {
+            if (removed.find(idx) != removed.end()) {
+                // this particle has been removed, no need to find collisions
+                continue;
+            }
+            const Interval interval(time, dt);
+            if (CollisionRecord c = this->findClosestCollision(idx, searchRadius, interval, r, v)) {
+                ASSERT((c.i != i || c.j != j) && (c.j != i || c.i != j));
+                collisions.insert(c);
+            }
+        }
+    }
+
+    // advance all particles to the end of the timestep
+    for (Size i = 0; i < r.size(); ++i) {
+        r[i] += v[i] * dt;
+    }
+
+    // finally remove marked particles from the storage
+    for (auto iter = removed.rbegin(); iter != removed.rend(); ++iter) {
+        const Size i = *iter;
+        ASSERT(i < storage.getParticleCnt(), i, storage.getParticleCnt());
+        storage.remove(Array<Size>{ i });
+    }
+    storage.propagate([this](Storage& dependent) {
+        for (auto iter = removed.rbegin(); iter != removed.rend(); ++iter) {
+            dependent.remove(Array<Size>{ *iter });
+        }
+    });*/
+
+
+    // holds indices of particles collisions of which have been invalidated and needs to be recomputed
+    // std::set<Size> invalidIdx;
+
+    // rigid body dynamics
+    // integrateRigidBody(storage, stats.get<Float>(StatisticsId::TIMESTEP_VALUE));
+
+    /* Float time = 0._f;
+     while (true) {
+         tie(r, v, a) = storage.getAll<Vector>(QuantityId::POSITION);
+         switch (overlap.option) {
+         case OverlapEnum::FORCE_MERGE:
+             for (Size i = 0; i < r.size(); ++i) {
+                 forceMerge(i, storage, searchRadius);
+                 tie(r, v, a) = storage.getAll<Vector>(QuantityId::POSITION);
+             }
+             break;
+         case OverlapEnum::NOTHING:
+             break;
+         default:
+             NOT_IMPLEMENTED;
+         }
+
+         collisionFinder->build(r);
+
+         CollisionRecord closestCollision;
+         for (Size i = 0; i < r.size(); ++i) {
+             if (CollisionRecord col = this->findClosestCollision(i, searchRadius, dt - time, neighs, r, v)) {
+                 closestCollision = min(closestCollision, col);
+             }
+         }
+         if (!closestCollision) {
+             for (Size i = 0; i < r.size(); ++i) {
+                 r[i] += v[i] * (dt - time);
+             }
+             break;
+         }
+         for (Size i = 0; i < r.size(); ++i) {
+             r[i] += v[i] * closestCollision.t_coll;
+         }
+         Size i = closestCollision.i;
+         Size j = closestCollision.j;
+         toRemove.clear();
+         const CollisionResult result = collisionHandler->collide(i, j, toRemove);
+         if (result != CollisionResult::NONE) {
+             time = closestCollision.t_coll;
+         }
+
+         if (!toRemove.empty()) {
+             storage.remove(toRemove);
+             // remove it also from all dependent storages, since this is a permanent action
+             storage.propagate([&toRemove](Storage& dependent) { dependent.remove(toRemove); });
+
+             // reset the invalidated arrayviews and rebuild the finder
+             tie(r, v, a) = storage.getAll<Vector>(QuantityId::POSITION);
+
+             collisionFinder->build(r);
+         }
+
+         for (Size idx : toRemove) {
+             if (idx < i) {
+                 --i;
+             }
+         }
+     }*/
+
+
+    // first pass - find all collisions and sort them by collision time
+    for (Size i = 0; i < r.size(); ++i) {
+        if (CollisionRecord col = this->findClosestCollision(i, searchRadius, Interval(-LARGE, dt), r, v)) {
+            ASSERT(isReal(col));
+            collisions.insert(col);
+        }
+    }
+
+    std::set<Size> toRemove;
+
+    Float time = 0._f; // dt;
+    while (!collisions.empty()) {
+        const CollisionRecord& col = *collisions.begin();
+        const Float t_coll = col.isOverlap() ? time : col.collisionTime;
         ASSERT(t_coll < dt);
 
         Size i = col.i;
@@ -96,12 +299,25 @@ void NBodySolver::collide(Storage& storage, Statistics& stats, const Float dt) {
         if (t_coll != time) {
             for (Size i = 0; i < r.size(); ++i) {
                 r[i] += v[i] * (t_coll - time);
+                ASSERT(isReal(r[i]));
             }
         }
+        /*ParticlePairing test(2._f, 1._f);
+        Outcome pairs = test.check(storage);
+        ASSERT(pairs, pairs, stats.get<Float>(StatisticsId::RUN_TIME));*/
 
-        // handle the collision
         toRemove.clear();
-        const CollisionResult result = collisionHandler->collide(i, j, toRemove);
+
+        CollisionResult result;
+        // check and handle overlaps
+        if (col.isOverlap()) {
+            result = overlap.handler->collide(i, j, toRemove);
+            overlapCount++;
+        } else {
+            result = collision.handler->collide(i, j, toRemove);
+            collisionCount++;
+        }
+
         if (result != CollisionResult::NONE) {
             ASSERT(storage.isValid());
             time = t_coll; // move the time to the current collision time
@@ -151,14 +367,14 @@ void NBodySolver::collide(Storage& storage, Statistics& stats, const Float dt) {
 
             // apply the removal list
             if (!toRemove.empty()) {
-                storage.remove(toRemove);
+                /*storage.remove(toRemove);
                 // remove it also from all dependent storages, since this is a permanent action
                 storage.propagate([&toRemove](Storage& dependent) { dependent.remove(toRemove); });
 
                 // reset the invalidated arrayviews and rebuild the finder
-                tie(r, v, a) = storage.getAll<Vector>(QuantityId::POSITION);
-                collisionFinder->build(r);
+                tie(r, v, a) = storage.getAll<Vector>(QuantityId::POSITION);*/
             }
+            // collisionFinder->build(r);
 
             // find new collisions for invalid indices
             for (Size idx : invalidIdx) {
@@ -166,38 +382,40 @@ void NBodySolver::collide(Storage& storage, Statistics& stats, const Float dt) {
                 // ASSERT(std::find(toRemove.begin(), toRemove.end(), idx) == toRemove.end());
 
                 if (CollisionRecord c =
-                        this->findClosestCollision(idx, searchRadius, dt - time, neighs, r, v)) {
-                    // ASSERT(std::find(toRemove.begin(), toRemove.end(), c.i) == toRemove.end());
-                    // ASSERT(std::find(toRemove.begin(), toRemove.end(), c.j) == toRemove.end());
+                        this->findClosestCollision(idx, searchRadius, Interval(-LARGE, dt - time), r, v)) {
+                    ASSERT(isReal(c));
                     if ((c.i == i && c.j == j) || (c.j == i && c.i == j)) {
                         // don't process the same pair twice in a row
                         continue;
                     }
-                    c.t_coll += time;
+                    c.collisionTime += time; // ok to advance time for overlaps, it is never used
                     collisions.insert(c);
                 }
             }
-
-            collisionCounter++;
         }
     }
     // advance all positions by the remaining time
     for (Size i = 0; i < r.size(); ++i) {
         r[i] += v[i] * (dt - time);
     }
-    stats.set(StatisticsId::COLLISION_COUNT, int(collisionCounter));
+
+    stats.set(StatisticsId::COLLISION_COUNT, int(collisionCount));
+    stats.set(StatisticsId::OVERLAP_COUNT, int(overlapCount));
 }
 
 void NBodySolver::create(Storage& storage, IMaterial& UNUSED(material)) const {
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
 
-    storage.insert<SymmetricTensor>(QuantityId::MOMENT_OF_INERTIA, OrderEnum::FIRST, SymmetricTensor::null());
+    storage.insert<SymmetricTensor>(QuantityId::MOMENT_OF_INERTIA, OrderEnum::ZERO, SymmetricTensor::null());
     ArrayView<SymmetricTensor> I = storage.getValue<SymmetricTensor>(QuantityId::MOMENT_OF_INERTIA);
     for (Size i = 0; i < r.size(); ++i) {
         I[i] = Rigid::sphereInertia(m[i], r[i][H]);
     }
     storage.insert<Vector>(QuantityId::ANGULAR_VELOCITY, OrderEnum::FIRST, Vector(0._f));
+
+    // zero order, we integrate the frame coordinates manually
+    storage.insert<Tensor>(QuantityId::LOCAL_FRAME, OrderEnum::ZERO, Tensor::null());
 }
 
 Float NBodySolver::getSearchRadius(ArrayView<const Vector> r, ArrayView<const Vector> v, const Float dt) {
@@ -215,31 +433,31 @@ Float NBodySolver::getSearchRadius(ArrayView<const Vector> r, ArrayView<const Ve
 
 CollisionRecord NBodySolver::findClosestCollision(const Size i,
     const Float globalRadius,
-    const Float dt,
-    Array<NeighbourRecord>& neighs,
+    const Interval interval,
     ArrayView<Vector> r,
-    ArrayView<Vector> v) const {
+    ArrayView<Vector> v) {
     // maximum travel of i-th particle
-    const Float localRadius = r[i][H] + getLength(v[i]) * dt;
+    const Float localRadius = r[i][H] + getLength(v[i]) * interval.upper();
     // since we don't know a priori the travel distance of neighbours, use the maximum of all
-    collisionFinder->findNeighbours(i, globalRadius + localRadius, neighs, EMPTY_FLAGS);
+    collision.finder->findNeighbours(i, globalRadius + localRadius, neighs, EMPTY_FLAGS);
 
     CollisionRecord closestCollision;
     for (NeighbourRecord& n : neighs) {
         const Size j = n.index;
-        if (j == i) {
+        if (j == i || removed.find(j) != removed.end()) {
+            // either the particle itself or particle already removed, skip
             continue;
         }
-        ASSERT(getLength(r[i] - r[j]) >= 0.9_f * (r[i][H] + r[j][H]),
-            i,
-            j,
-            getLength(r[i] - r[j]),
-            r[i][H] + r[j][H]);
+        const Float overlap = 1._f - getSqrLength(r[i] - r[j]) / sqr(r[i][H] + r[j][H]);
+        if (overlap > 0.01_f) { /// \todo make variable limit
+            // make as overlap
+            return CollisionRecord::OVERLAP(i, j, overlap);
+        }
 
-        Optional<Float> t_coll = this->checkCollision(r[i], v[i], r[j], v[j], dt);
+        Optional<Float> t_coll = this->checkCollision(r[i], v[i], r[j], v[j], interval);
         if (t_coll) {
-            ASSERT(t_coll.value() < dt && t_coll.value() < dt);
-            closestCollision = min(closestCollision, CollisionRecord{ i, j, t_coll.value() });
+            ASSERT(interval.contains(t_coll.value()));
+            closestCollision = min(closestCollision, CollisionRecord::COLLISION(i, j, t_coll.value()));
         }
     }
     return closestCollision;
@@ -249,17 +467,15 @@ Optional<Float> NBodySolver::checkCollision(const Vector& r1,
     const Vector& v1,
     const Vector& r2,
     const Vector& v2,
-    const Float dt) const {
+    const Interval interval) const {
     const Vector dr = r1 - r2;
     const Vector dv = v1 - v2;
     const Float dvdr = dot(dv, dr);
-    if (dvdr > 0._f) {
+    if (dvdr >= 0._f) {
         // not moving towards each other, no collision
         return NOTHING;
     }
 
-    //        getLength(dv) < EPS * (getLength(v1) + getLength(v2)) ? getNormalized(dr) :
-    //        getNormalized(dv);
     const Vector dr_perp = dr - dot(dv, dr) * dv / getSqrLength(dv);
     ASSERT(getSqrLength(dr_perp) < (1._f + EPS) * getSqrLength(dr), dr_perp, dr);
     if (getSqrLength(dr_perp) <= sqr(r1[H] + r2[H])) {
@@ -267,7 +483,8 @@ Optional<Float> NBodySolver::checkCollision(const Vector& r1,
         const Float dv2 = getSqrLength(dv);
         const Float det = 1._f - (getSqrLength(dr) - sqr(r1[H] + r2[H])) / sqr(dvdr) * dv2;
         // ASSERT(det >= 0._f);
-        const Float root = (det > 1._f + allowedOverlap) ? 1._f + sqrt(det) : 1._f - sqrt(max(0._f, det));
+        const Float sqrtDet = sqrt(max(0._f, det));
+        const Float root = (det > 1._f + overlap.allowedRatio) ? 1._f + sqrtDet : 1._f - sqrtDet;
         const Float t_coll = -dvdr / dv2 * root;
         // collision time can be slightly negative number, corresponding to collision of overlaping
         // particles.
@@ -276,7 +493,7 @@ Optional<Float> NBodySolver::checkCollision(const Vector& r1,
         ASSERT(isReal(t_coll));
 
         // collision happens if the collision time is less than the current timestep
-        if (t_coll < dt) {
+        if (interval.contains(t_coll)) {
             return t_coll;
         }
     }

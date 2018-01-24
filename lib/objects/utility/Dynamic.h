@@ -6,6 +6,7 @@
 /// \date 2016-2018
 
 #include "math/Means.h"
+#include "objects/geometry/Tensor.h"
 #include "objects/geometry/TracelessTensor.h"
 #include "objects/wrappers/Variant.h"
 

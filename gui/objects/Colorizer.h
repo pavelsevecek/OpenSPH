@@ -61,19 +61,26 @@ public:
 namespace Detail {
     template <typename Type>
     INLINE float getColorizerValue(const Type& value) {
+        ASSERT(isReal(value));
         return value;
     }
     template <>
     INLINE float getColorizerValue(const Vector& value) {
-        return getLength(value);
+        const Float result = getLength(value);
+        ASSERT(isReal(result), value);
+        return result;
     }
     template <>
     INLINE float getColorizerValue(const TracelessTensor& value) {
-        return sqrt(ddot(value, value));
+        const Float result = sqrt(ddot(value, value));
+        ASSERT(isReal(result), value);
+        return result;
     }
     template <>
     INLINE float getColorizerValue(const SymmetricTensor& value) {
-        return sqrt(ddot(value, value));
+        const Float result = sqrt(ddot(value, value));
+        ASSERT(isReal(result), value);
+        return result;
     }
 } // namespace Detail
 

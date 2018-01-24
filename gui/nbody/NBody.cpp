@@ -8,6 +8,7 @@
 #include "quantities/IMaterial.h"
 #include "sph/initial/Distribution.h"
 #include "sph/initial/Initial.h"
+#include "system/Factory.h"
 
 IMPLEMENT_APP(Sph::App);
 
@@ -16,11 +17,11 @@ NAMESPACE_SPH_BEGIN
 NBody::NBody() {
     settings.set(RunSettingsId::RUN_NAME, std::string("NBody"))
         .set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::LEAP_FROG)
-        .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 1.e4_f)
-        .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 1.e4_f)
+        .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 1.e-1_f)
+        .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 1.e3_f)
         .set(RunSettingsId::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::ACCELERATION)
         .set(RunSettingsId::TIMESTEPPING_ADAPTIVE_FACTOR, 1._f)
-        .set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 1.e10_f))
+        .set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 1.e7_f))
         .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 1.e10_f)
         .set(RunSettingsId::SPH_FINDER, FinderEnum::KD_TREE)
         .set(RunSettingsId::GRAVITY_SOLVER, GravityEnum::BARNES_HUT)
@@ -28,7 +29,7 @@ NBody::NBody() {
         .set(RunSettingsId::GRAVITY_OPENING_ANGLE, 0.5_f)
         .set(RunSettingsId::GRAVITY_LEAF_SIZE, 20)
         .set(RunSettingsId::COLLISION_HANDLER, CollisionHandlerEnum::ELASTIC_BOUNCE)
-        .set(RunSettingsId::COLLISION_RESTITUTION_NORMAL, 0.8_f)
+        .set(RunSettingsId::COLLISION_RESTITUTION_NORMAL, 0.1_f)
         .set(RunSettingsId::COLLISION_RESTITUTION_TANGENT, 1._f)
         .set(RunSettingsId::RUN_THREAD_GRANULARITY, 100);
 }
@@ -36,14 +37,12 @@ NBody::NBody() {
 void NBody::setUp() {
     // we don't need any material, so just pass some dummy
     storage = makeShared<Storage>(makeAuto<NullMaterial>(EMPTY_SETTINGS));
-
     solver = makeAuto<NBodySolver>(settings);
 
-
     RandomDistribution rndDist(makeRng<UniformRng>());
-    const Size particleCnt = 800;
+    const Size particleCnt = 5000;
 
-    Array<Vector> dist = rndDist.generate(particleCnt, SphericalDomain(Vector(0._f), 2._f * Constants::au));
+    Array<Vector> dist = rndDist.generate(particleCnt, SphericalDomain(Vector(0._f), 1.e3_f));
     // dist.push(Vector(0._f));
     storage->insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, std::move(dist));
     ArrayView<Vector> r = storage->getValue<Vector>(QuantityId::POSITION);
@@ -52,18 +51,18 @@ void NBody::setUp() {
 
     for (Size i = 0; i < r.size(); ++i) {
         r[i][Z] = 0._f;
-        r[i][H] = 0.01_f * Constants::au;
+        r[i][H] = 1._f;
     }
 
     spaceParticles(r, 2._f);
     for (Size i = 0; i < r.size(); ++i) {
-        const Float kepler = sqrt(Constants::gravity * Constants::M_sun / getLength(r[i]));
-        v[i] = cross(getNormalized(r[i]), Vector(0._f, 0._f, 1._f)) * kepler;
+        // const Float kepler = sqrt(Constants::gravity * Constants::M_sun / getLength(r[i]));
+        v[i] = cross(getNormalized(r[i]), Vector(0._f, 0._f, 1._f)) * 3.e-3_f;
         v[i][Z] = 0._f;
     }
 
 
-    storage->insert<Float>(QuantityId::MASS, OrderEnum::ZERO, 0.1_f * Constants::M_sun);
+    storage->insert<Float>(QuantityId::MASS, OrderEnum::ZERO, 2.e5_f);
     // ArrayView<Float> m = storage->getValue<Float>(QuantityId::MASS);
     // m[0] = 0.1_f * Constants::M_sun;
     // m[m.size() - 1] = Constants::M_sun;

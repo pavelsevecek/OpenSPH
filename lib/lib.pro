@@ -141,7 +141,6 @@ HEADERS += \
     objects/containers/BufferedArray.h \
     objects/containers/List.h \
     objects/containers/LookupMap.h \
-    objects/containers/Map.h \
     objects/containers/StaticArray.h \
     objects/containers/String.h \
     objects/containers/Tuple.h \
@@ -279,4 +278,5 @@ HEADERS += \
     timestepping/TimeStepCriterion.h \
     timestepping/TimeStepping.h \
     sph/solvers/SymmetricSolver.h \
-    sph/solvers/StandardSets.h
+    sph/solvers/StandardSets.h \
+    objects/containers/FlatMap.h

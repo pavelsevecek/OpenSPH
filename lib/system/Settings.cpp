@@ -301,9 +301,10 @@ AutoPtr<RunSettings> RunSettings::instance (new RunSettings {
 
     /// Collision handling
     { RunSettingsId::COLLISION_HANDLER,             "collision.handler",                int(CollisionHandlerEnum::MERGE_OR_BOUNCE) },
+    { RunSettingsId::COLLISION_OVERLAP,             "collision.overlap",                int(OverlapEnum::REPEL) },
     { RunSettingsId::COLLISION_RESTITUTION_NORMAL,  "collision.restitution_normal",     0.8_f },
     { RunSettingsId::COLLISION_RESTITUTION_TANGENT, "collision.restitution_tangent",    1.0_f },
-    { RunSettingsId::COLLISION_ALLOWED_OVERLAP,     "collision.allowed_overlap",        1.e-4_f },
+    { RunSettingsId::COLLISION_ALLOWED_OVERLAP,     "collision.allowed_overlap",        0._f },
     { RunSettingsId::COLLISION_MERGING_LIMIT,       "collision.merging_limit",          1._f },
 
     /// Timestepping parameters

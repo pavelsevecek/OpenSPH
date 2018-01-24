@@ -1,10 +1,13 @@
 #include "gravity/NBodySolver.h"
 #include "catch.hpp"
+#include "gravity/Collision.h"
+#include "physics/Integrals.h"
 #include "quantities/IMaterial.h"
 #include "tests/Approx.h"
 #include "tests/Setup.h"
 #include "timestepping/TimeStepping.h"
 #include "utils/SequenceTest.h"
+#include "utils/Utils.h"
 
 using namespace Sph;
 
@@ -18,6 +21,7 @@ static void integrate(SharedPtr<Storage> storage, ISolver& solver, const Float d
     Statistics stats;
 
     auto test = [&](Size i) -> Outcome {
+        stats.set(StatisticsId::RUN_TIME, i * dt);
         timestepping.step(solver, stats);
         return functor(i);
     };
@@ -25,6 +29,7 @@ static void integrate(SharedPtr<Storage> storage, ISolver& solver, const Float d
 }
 
 TEST_CASE("Symmetric free flywheel", "[nbody]") {
+    SKIP_TEST;
     NBodySolver solver(RunSettings::getDefaults());
     SharedPtr<Storage> storage = makeShared<Storage>(makeAuto<NullMaterial>(EMPTY_SETTINGS));
     storage->insert<Vector>(QuantityId::POSITION,
@@ -333,6 +338,31 @@ TEST_CASE("Collision merge miss", "[nbody]") {
 
 TEST_CASE("Collision merge rejection", "[nbody]") {}
 
+TEST_CASE("Collision repel", "[nbody]") {
+    Storage storage;
+    // add two overlapping particles
+    storage.insert<Vector>(QuantityId::POSITION,
+        OrderEnum::SECOND,
+        Array<Vector>{ Vector(0._f, 0._f, 0._f, 1._f), Vector(1._f, 0._f, 0._f, 0.25_f) });
+    storage.insert<Float>(QuantityId::MASS, OrderEnum::ZERO, Array<Float>{ 1._f, 0.1_f });
+
+    CenterOfMass com;
+    const Vector com1 = com.evaluate(storage);
+    RepelHandler repel;
+    repel.initialize(storage);
+    std::set<Size> dummy;
+    repel.collide(0, 1, dummy);
+    const Vector com2 = com.evaluate(storage);
+    REQUIRE(com1 == approx(com2));
+
+    ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
+    REQUIRE(r[0][H] + r[1][H] == approx(getLength(r[0] - r[1])));
+
+    r[1] = Vector(10._f, 0._f, 0._f, 0.2_f);
+    repel.initialize(storage);
+    REQUIRE_ASSERT(repel.collide(0, 1, dummy));
+}
+
 TEST_CASE("Collision merge cloud", "[nbody]") {
     // just check that many particles fired into one point will all merge into a single particle
     RunSettings settings;
@@ -346,8 +376,8 @@ TEST_CASE("Collision merge cloud", "[nbody]") {
     ArrayView<Vector> r, v, dv;
     tie(r, v, dv) = storage->getAll<Vector>(QuantityId::POSITION);
     for (Size i = 0; i < r.size(); ++i) {
-        r[i][H] = 0.001_f;
-        v[i] = -5._f * r[i];
+        r[i][H] = 0.01_f;
+        v[i] = -4._f * r[i];
     }
     integrate(storage, solver, 1.e-4_f, [](Size) -> Outcome { return SUCCESS; });
 

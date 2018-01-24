@@ -6,6 +6,8 @@
 /// \date 2016-2018
 
 #include "common/ForwardDecl.h"
+#include "objects/geometry/Vector.h"
+#include "quantities/Storage.h"
 
 NAMESPACE_SPH_BEGIN
 

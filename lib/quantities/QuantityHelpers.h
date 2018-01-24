@@ -5,6 +5,7 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2018
 
+#include "objects/geometry/Tensor.h"
 #include "objects/geometry/TracelessTensor.h"
 
 NAMESPACE_SPH_BEGIN

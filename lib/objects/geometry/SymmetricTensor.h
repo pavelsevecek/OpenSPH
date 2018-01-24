@@ -7,7 +7,6 @@
 
 #include "math/AffineMatrix.h"
 #include "objects/containers/StaticArray.h"
-#include "objects/geometry/Tensor.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -247,6 +246,10 @@ INLINE SymmetricTensor transform(const SymmetricTensor& t, const AffineMatrix& t
                     transformed(1, 2) + transformed(2, 1)));
 }
 
+template <typename T1, typename T2>
+T1 convert(const T2& matrix);
+
+template <>
 INLINE SymmetricTensor convert(const AffineMatrix& matrix) {
     ASSERT(almostEqual(matrix(0, 1), matrix(1, 0), 1.e-6_f) &&
            almostEqual(matrix(0, 2), matrix(2, 0), 1.e-6_f) &&
@@ -255,6 +258,7 @@ INLINE SymmetricTensor convert(const AffineMatrix& matrix) {
         Vector(matrix(0, 0), matrix(1, 1), matrix(2, 2)), Vector(matrix(0, 1), matrix(0, 2), matrix(1, 2)));
 }
 
+template <>
 INLINE AffineMatrix convert(const SymmetricTensor& t) {
     return AffineMatrix(t.row(0), t.row(1), t.row(2));
 }

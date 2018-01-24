@@ -6,7 +6,7 @@
 /// \date 2016-2018
 
 #include "math/rng/Rng.h"
-#include "objects/containers/Map.h"
+#include "objects/containers/FlatMap.h"
 #include "objects/utility/Iterators.h"
 #include "system/Settings.h"
 

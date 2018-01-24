@@ -69,6 +69,7 @@ public:
         // clang-format off
         printStat<MinMaxMean>(stats, StatisticsId::NEIGHBOUR_COUNT,       " - neigbours:   ");
         printStat<int>(stats, StatisticsId::COLLISION_COUNT,              " - collisions:  ");
+        printStat<int>(stats, StatisticsId::OVERLAP_COUNT,                " - overlaps:    ");
         printStat<int>(stats, StatisticsId::SOLVER_SUMMATION_ITERATIONS,  " - iteration #: ");
         printStat<int>(stats, StatisticsId::TIMESTEP_ELAPSED,             " - time spent:  ", "ms");
         printStat<int>(stats, StatisticsId::SPH_EVAL_TIME,                "    * SPH evaluation:     ", "ms");

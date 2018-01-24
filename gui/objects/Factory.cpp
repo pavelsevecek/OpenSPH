@@ -122,6 +122,9 @@ AutoPtr<IColorizer> Factory::getColorizer(const GuiSettings& settings, const Col
         case QuantityId::STRAIN_RATE_CORRECTION_TENSOR:
             range = settings.get<Interval>(GuiSettingsId::PALETTE_STRAIN_RATE_CORRECTION_TENSOR);
             return makeAuto<TypedColorizer<SymmetricTensor>>(quantity, range);
+        case QuantityId::MOMENT_OF_INERTIA:
+            range = settings.get<Interval>(GuiSettingsId::PALETTE_MOMENT_OF_INERTIA);
+            return makeAuto<TypedColorizer<SymmetricTensor>>(quantity, range);
         default:
             NOT_IMPLEMENTED;
         }
@@ -202,6 +205,11 @@ Palette Factory::getPalette(const ColorizerId id, const Interval range) {
             return Palette({ { x0, Color(0.1f, 0.1f, 0.1f) }, { x0 + dx, Color(0.9f, 0.9f, 0.9f) } },
                 PaletteScale::LINEAR);
         case QuantityId::EPS_MIN:
+            return Palette({ { x0, Color(0.1f, 0.1f, 1.f) },
+                               { x0 + 0.5f * dx, Color(0.7f, 0.7f, 0.7f) },
+                               { x0 + dx, Color(1.f, 0.1f, 0.1f) } },
+                PaletteScale::LINEAR);
+        case QuantityId::MOMENT_OF_INERTIA:
             return Palette({ { x0, Color(0.1f, 0.1f, 1.f) },
                                { x0 + 0.5f * dx, Color(0.7f, 0.7f, 0.7f) },
                                { x0 + dx, Color(1.f, 0.1f, 0.1f) } },

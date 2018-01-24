@@ -105,6 +105,9 @@ enum class QuantityId {
     /// Moment of inertia of particles, analogy of particle masses for rotation
     MOMENT_OF_INERTIA,
 
+    /// Local coordinates of a particle; moment of inertia is typically expressed in these coordinates.
+    LOCAL_FRAME,
+
     ///@}
 
     /// \name Stress-strain analysis

@@ -138,15 +138,15 @@ public:
 
 
 /// Generic reverse iterator over continuous array of objects of type T.
-template <typename T, typename TCounter = Size>
+template <typename TIterator>
 class ReverseIterator {
 protected:
-    Iterator<T, Size> iter;
+    TIterator iter;
 
 public:
     ReverseIterator() = default;
 
-    ReverseIterator(Iterator<T, Size> iter)
+    ReverseIterator(TIterator iter)
         : iter(iter) {}
 
     decltype(auto) operator*() const {
@@ -182,9 +182,9 @@ public:
 };
 
 /// Creates reverse iterator by wrapping forward iterator, utilizes type deduction.
-template <typename T, typename TCounter>
-ReverseIterator<T, TCounter> reverseIterator(const Iterator<T, TCounter> iter) {
-    return ReverseIterator<T, TCounter>(iter);
+template <typename TIterator>
+ReverseIterator<TIterator> reverseIterator(const TIterator iter) {
+    return ReverseIterator<TIterator>(iter);
 }
 
 
@@ -202,12 +202,16 @@ public:
 
     /// Returns iterator pointing to the last element in container.
     auto begin() {
-        return reverseIterator(container.end() - 1);
+        auto iter = container.end();
+        --iter;
+        return reverseIterator(iter);
     }
 
     /// Returns iterator pointiing to one before the first element.
     auto end() {
-        return reverseIterator(container.begin() - 1);
+        auto iter = container.begin();
+        --iter;
+        return reverseIterator(iter);
     }
 
     auto size() const {

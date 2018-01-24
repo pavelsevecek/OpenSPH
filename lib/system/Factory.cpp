@@ -214,6 +214,9 @@ AutoPtr<IGravity> Factory::getGravity(const RunSettings& settings) {
     case GravityKernelEnum::SPH_KERNEL:
         kernel = Factory::getGravityKernel(settings);
         break;
+    case GravityKernelEnum::SOLID_SPHERES:
+        kernel = SolidSphereKernel();
+        break;
     default:
         NOT_IMPLEMENTED;
     }
@@ -243,6 +246,18 @@ AutoPtr<ICollisionHandler> Factory::getCollisionHandler(const RunSettings& setti
         return makeAuto<PerfectMergingHandler>(settings);
     case CollisionHandlerEnum::MERGE_OR_BOUNCE:
         return makeAuto<FallbackHandler<PerfectMergingHandler, ElasticBounceHandler>>(settings);
+    default:
+        NOT_IMPLEMENTED;
+    }
+}
+
+AutoPtr<ICollisionHandler> Factory::getOverlapHandler(const RunSettings& settings) {
+    const OverlapEnum id = settings.get<OverlapEnum>(RunSettingsId::COLLISION_OVERLAP);
+    switch (id) {
+    case OverlapEnum::FORCE_MERGE:
+        return makeAuto<PerfectMergingHandler>(0._f);
+    case OverlapEnum::REPEL:
+        return makeAuto<RepelHandler>();
     default:
         NOT_IMPLEMENTED;
     }

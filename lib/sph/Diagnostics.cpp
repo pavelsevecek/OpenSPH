@@ -17,7 +17,7 @@ Array<ParticlePairing::Pair> ParticlePairing::getPairs(const Storage& storage) c
         // only smaller h to go through each pair only once
         finder.findNeighbours(i, r[i][H] * radius, neighs, FinderFlag::FIND_ONLY_SMALLER_H);
         for (auto& n : neighs) {
-            if (getSqrLength(r[i] - r[n.index]) < sqr(limit * r[i][H])) {
+            if (getSqrLength(r[i] - r[n.index]) < sqr(limit * (r[i][H] + r[n.index][H]))) {
                 pairs.push(ParticlePairing::Pair{ i, n.index });
             }
         }

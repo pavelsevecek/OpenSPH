@@ -1,5 +1,5 @@
-#include "objects/containers/Map.h"
 #include "catch.hpp"
+#include "objects/containers/FlatMap.h"
 #include "utils/RecordType.h"
 #include "utils/Utils.h"
 
@@ -7,7 +7,7 @@ using namespace Sph;
 
 /// Sanity check that the elements are really stored sorted
 template <typename TKey, typename TValue, MapOptimization Optimize>
-static bool isSorted(const Map<TKey, TValue, Optimize>& map) {
+static bool isSorted(const FlatMap<TKey, TValue, Optimize>& map) {
     if (map.empty()) {
         return true;
     }
@@ -23,8 +23,8 @@ static bool isSorted(const Map<TKey, TValue, Optimize>& map) {
 }
 
 template <MapOptimization Optimize = MapOptimization::LARGE>
-static Map<int, RecordType, Optimize> getRandomMap() {
-    Map<int, RecordType, Optimize> map;
+static FlatMap<int, RecordType, Optimize> getRandomMap() {
+    FlatMap<int, RecordType, Optimize> map;
     using Elem = typename decltype(map)::Element;
 
     Array<Elem> elements;
@@ -44,9 +44,9 @@ static Map<int, RecordType, Optimize> getRandomMap() {
     return map;
 }
 
-TEST_CASE("Map default construct", "[map]") {
+TEST_CASE("Map default construct", "[flatmap]") {
     RecordType::resetStats();
-    Map<int, RecordType> map;
+    FlatMap<int, RecordType> map;
     REQUIRE(RecordType::constructedNum == 0);
     REQUIRE(map.size() == 0);
     REQUIRE(map.empty());
@@ -56,9 +56,9 @@ TEST_CASE("Map default construct", "[map]") {
     REQUIRE_ASSERT(map[0]);
 }
 
-TEST_CASE("Map insert lower key", "[map]") {
+TEST_CASE("Map insert lower key", "[flatmap]") {
     RecordType::resetStats();
-    Map<int, RecordType> map;
+    FlatMap<int, RecordType> map;
     map.insert(5, RecordType(2));
     REQUIRE(RecordType::existingNum() == 1); // some temporaries were constructed, but none survived
     REQUIRE(map.size() == 1);
@@ -81,8 +81,8 @@ TEST_CASE("Map insert lower key", "[map]") {
     REQUIRE(isSorted(map));
 }
 
-TEST_CASE("Map insert greater key", "[map]") {
-    Map<int, RecordType> map;
+TEST_CASE("Map insert greater key", "[flatmap]") {
+    FlatMap<int, RecordType> map;
     map.insert(5, RecordType(2));
     map.insert(8, RecordType(4));
     REQUIRE(RecordType::existingNum() == 2);
@@ -98,9 +98,9 @@ TEST_CASE("Map insert greater key", "[map]") {
     REQUIRE(isSorted(map));
 }
 
-TEST_CASE("Map insert duplicate", "[map]") {
+TEST_CASE("Map insert duplicate", "[flatmap]") {
     RecordType::resetStats();
-    Map<int, RecordType> map;
+    FlatMap<int, RecordType> map;
     map.insert(2, RecordType(3));
     map.insert(3, RecordType(4));
     map.insert(2, RecordType(1));
@@ -116,9 +116,9 @@ TEST_CASE("Map insert duplicate", "[map]") {
     REQUIRE(map[3].value == 5);
 }
 
-TEST_CASE("Map insert multiple", "[map]") {
+TEST_CASE("Map insert multiple", "[flatmap]") {
     RecordType::resetStats();
-    Map<int, RecordType> map = getRandomMap();
+    FlatMap<int, RecordType> map = getRandomMap();
 
     REQUIRE(RecordType::existingNum());
     REQUIRE(map.size() == 1000);
@@ -136,7 +136,7 @@ TEST_CASE("Map insert multiple", "[map]") {
     REQUIRE_ASSERT(map[500]);
 }
 
-TEST_CASE("Map optimize small", "[map]") {
+TEST_CASE("Map optimize small", "[flatmap]") {
     RecordType::resetStats();
     SmallMap<int, RecordType> map = getRandomMap<MapOptimization::SMALL>();
     REQUIRE(map.size() == 1000);
@@ -156,9 +156,9 @@ TEST_CASE("Map optimize small", "[map]") {
 
 /// \todo add benchmark against std::map?
 
-TEST_CASE("Map remove", "[map]") {
+TEST_CASE("Map remove", "[flatmap]") {
     RecordType::resetStats();
-    Map<int, RecordType> map;
+    FlatMap<int, RecordType> map;
     map.insert(5, RecordType(1));
     map.remove(5);
     REQUIRE(RecordType::existingNum() == 0);
@@ -180,9 +180,9 @@ TEST_CASE("Map remove", "[map]") {
     REQUIRE(map[2].value == 4);
 }
 
-TEST_CASE("Map remove multiple", "[map]") {
+TEST_CASE("Map remove multiple", "[flatmap]") {
     RecordType::resetStats();
-    Map<int, RecordType> map = getRandomMap();
+    FlatMap<int, RecordType> map = getRandomMap();
 
     Array<int> indices(1000);
     for (int i = 0; i < int(indices.size()); ++i) {
@@ -206,8 +206,8 @@ TEST_CASE("Map remove multiple", "[map]") {
     }());
 }
 
-TEST_CASE("Map tryGet", "[map]") {
-    Map<int, RecordType> map;
+TEST_CASE("Map tryGet", "[flatmap]") {
+    FlatMap<int, RecordType> map;
     map.insert(4, RecordType(9));
     map.insert(5, RecordType(2));
     map.insert(1, RecordType(4));
@@ -218,11 +218,11 @@ TEST_CASE("Map tryGet", "[map]") {
     REQUIRE_FALSE(map.tryGet(3));
 }
 
-TEST_CASE("Map iterators", "[map]") {
-    Map<int, RecordType> map = getRandomMap();
+TEST_CASE("Map iterators", "[flatmap]") {
+    FlatMap<int, RecordType> map = getRandomMap();
     Size counter = 0;
     REQUIRE([&] {
-        for (Map<int, RecordType>::Element element : map) {
+        for (FlatMap<int, RecordType>::Element element : map) {
             ++counter;
             if (map[element.key].value != element.value.value) {
                 return false;
@@ -232,13 +232,13 @@ TEST_CASE("Map iterators", "[map]") {
     }());
 }
 
-TEST_CASE("Map arrayview", "[map]") {
-    Map<int, RecordType> map;
+TEST_CASE("Map arrayview", "[flatmap]") {
+    FlatMap<int, RecordType> map;
     map.insert(5, RecordType(1));
     map.insert(-1, RecordType(3));
     map.insert(0, RecordType(5));
 
-    ArrayView<Map<int, RecordType>::Element> view = map;
+    ArrayView<FlatMap<int, RecordType>::Element> view = map;
     REQUIRE(view.size() == 3);
     REQUIRE(view[0].key == -1);
     REQUIRE(view[0].value.value == 3);

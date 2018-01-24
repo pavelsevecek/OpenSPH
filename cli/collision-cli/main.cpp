@@ -32,7 +32,7 @@ std::string getRunName(const Float targetRadius,
 }
 
 int main(int argc, char* argv[]) {
-    Map<CollisionParam, ArgValue> params;
+    FlatMap<CollisionParam, ArgValue> params;
     StdOutLogger logger;
     try {
         params = parser.parse(argc, argv);

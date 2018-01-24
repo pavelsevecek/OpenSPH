@@ -57,6 +57,8 @@ namespace Factory {
 
     AutoPtr<ICollisionHandler> getCollisionHandler(const RunSettings& settings);
 
+    AutoPtr<ICollisionHandler> getOverlapHandler(const RunSettings& settings);
+
     AutoPtr<IBoundaryCondition> getBoundaryConditions(const RunSettings& settings);
 
     AutoPtr<IDomain> getDomain(const RunSettings& settings);

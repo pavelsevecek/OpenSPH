@@ -102,5 +102,22 @@ public:
     }
 };
 
+/// Gravity kernel of a solid sphere
+class SolidSphereKernel {
+public:
+    SolidSphereKernel() = default;
+
+    INLINE Float radius() const {
+        return 1._f;
+    }
+
+    INLINE Float valueImpl(const Float UNUSED(qSqr)) const {
+        return 0._f; /// \todo
+    }
+
+    INLINE Float gradImpl(const Float UNUSED(qSqr)) const {
+        return 0._f; // 1._f;
+    }
+};
 
 NAMESPACE_SPH_END

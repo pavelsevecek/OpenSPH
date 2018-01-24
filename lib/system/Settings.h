@@ -403,6 +403,10 @@ enum class GravityKernelEnum {
 
     /// Use gravity smoothing kernel corresponding to selected SPH kernel
     SPH_KERNEL,
+
+    /// Use kernel representing gravity of solid spheres. Useful for N-body simulations where overlaps are
+    /// allowed.
+    SOLID_SPHERES,
 };
 
 enum class CollisionHandlerEnum {
@@ -419,6 +423,17 @@ enum class CollisionHandlerEnum {
     /// If the relative speed of the collided particles is lower than the escape velocity, the particles are
     /// merged, otherwise the particle bounce.
     MERGE_OR_BOUNCE,
+};
+
+enum class OverlapEnum {
+    /// All overlaps are ignored
+    NOTHING,
+
+    /// Overlapping particles are merged
+    FORCE_MERGE,
+
+    /// Particles are shifted until no overlap happens
+    REPEL,
 };
 
 enum class LoggerEnum {
@@ -587,6 +602,8 @@ enum class RunSettingsId {
     GRAVITY_KERNEL,
 
     COLLISION_HANDLER,
+
+    COLLISION_OVERLAP,
 
     COLLISION_RESTITUTION_NORMAL,
 

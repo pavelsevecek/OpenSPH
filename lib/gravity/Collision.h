@@ -8,6 +8,7 @@
 #include "physics/Functions.h"
 #include "quantities/Storage.h"
 #include "system/Settings.h"
+#include <set>
 
 NAMESPACE_SPH_BEGIN
 
@@ -35,20 +36,21 @@ public:
     /// and that the storage object passed to \ref initialize is valid, so it is allowed (and recommended) to
     /// storage a pointer to the storage.
     /// \param i,j Indices of particles in the storage.
-    /// \param toRemove Indices of particles to be removed from the storage.
+    /// \param toRemove Indices of particles to be removed from the storage. May already contain some indices,
+    ///                 collision handler should only add new indices and it shall not clear the storage.
     /// \return True if the collision took place, false to reject the collision.
     ///
     /// \todo Needs to be generatelized for fragmentation handlers. Currently the function CANNOT change the
     /// number of particles as it would invalidate arrayviews and we would lost the track of i-th and j-th
     /// particle (which we need for decreasing movement time).
-    virtual CollisionResult collide(const Size i, const Size j, Array<Size>& toRemove) = 0;
+    virtual CollisionResult collide(const Size i, const Size j, std::set<Size>& toRemove) = 0;
 };
 
 /// \brief Helper class, similar to ArrayView, but actually holding a reference to the array itself.
 ///
 /// The advantage over ArrayView is that it doesn't get invalidated when the array is resized. Works only with
 /// Array, no other container.
-template <typename T>
+/*template <typename T>
 class ArrayRef {
 private:
     RawPtr<Array<T>> ptr;
@@ -83,7 +85,7 @@ public:
     operator const Array<T>&() const {
         return *ptr;
     }
-};
+};*/
 
 /// \brief Helper function sorting two values
 template <typename T>
@@ -95,14 +97,29 @@ Tuple<T, T> minMax(const T& t1, const T& t2) {
     }
 }
 
+template <typename T>
+INLINE T weightedAverage(const T& v1, const Float w1, const T& v2, const Float w2) {
+    ASSERT(w1 + w2 > 0._f, w1, w2);
+    return (v1 * w1 + v2 * w2) / (w1 + w2);
+}
+
+class NullHandler : public ICollisionHandler {
+public:
+    virtual void initialize(Storage& UNUSED(storage)) override {}
+
+    virtual CollisionResult collide(const Size UNUSED(i),
+        const Size UNUSED(j),
+        std::set<Size>& UNUSED(toRemove)) override {
+        return CollisionResult::NONE;
+    }
+};
+
 class PerfectMergingHandler : public ICollisionHandler {
 private:
-    /// \todo replace arrayref with arrayviews and re-initialize after collision? (we need to do that for
-    /// finder anyway)
-    ArrayRef<Vector> r, v;
-    ArrayRef<Vector> omega;
-    ArrayRef<Float> m;
-    ArrayRef<SymmetricTensor> I;
+    ArrayView<Vector> r, v;
+    ArrayView<Vector> omega;
+    ArrayView<Float> m;
+    ArrayView<SymmetricTensor> I;
 
     Float mergingLimit;
 
@@ -111,8 +128,11 @@ public:
         mergingLimit = settings.get<Float>(RunSettingsId::COLLISION_MERGING_LIMIT);
     }
 
+    explicit PerfectMergingHandler(const Float mergingLimit)
+        : mergingLimit(mergingLimit) {}
+
     virtual void initialize(Storage& storage) override {
-        ArrayRef<Vector> dv;
+        ArrayView<Vector> dv;
         tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
         omega = storage.getValue<Vector>(QuantityId::ANGULAR_VELOCITY);
 
@@ -120,7 +140,7 @@ public:
         I = storage.getValue<SymmetricTensor>(QuantityId::MOMENT_OF_INERTIA);
     }
 
-    virtual CollisionResult collide(const Size i, const Size j, Array<Size>& toRemove) override {
+    virtual CollisionResult collide(const Size i, const Size j, std::set<Size>& toRemove) override {
         // set radius of the merger so that the volume is conserved
         const Float h_merger = r[i][H]; // root<3>(pow<3>(r[i][H]) + pow<3>(r[j][H]));
 
@@ -158,17 +178,11 @@ public:
         I[i] = I_merger;
         omega[i] = omega_merger;
 
-        toRemove.push(j);
+        toRemove.insert(j);
         return CollisionResult::MERGER;
     }
 
 private:
-    template <typename T>
-    INLINE static T weightedAverage(const T& v1, const Float w1, const T& v2, const Float w2) {
-        ASSERT(w1 + w2 > 0._f, w1, w2);
-        return (v1 * w1 + v2 * w2) / (w1 + w2);
-    }
-
     /// \brief Checks if the particles should be merged
     ///
     /// We merge particles if their relative velocity is lower than the escape velocity AND if the angular
@@ -195,9 +209,9 @@ private:
 };
 
 class ElasticBounceHandler : public ICollisionHandler {
-private:
-    ArrayRef<Vector> r, v, dv;
-    ArrayRef<Float> m;
+protected:
+    ArrayView<Vector> r, v;
+    ArrayView<Float> m;
 
     /// Coefficients of restitution
     struct {
@@ -215,12 +229,18 @@ public:
         restitution.t = settings.get<Float>(RunSettingsId::COLLISION_RESTITUTION_TANGENT);
     }
 
+    ElasticBounceHandler(const Float n, const Float t) {
+        restitution.n = n;
+        restitution.t = t;
+    }
+
     virtual void initialize(Storage& storage) override {
+        ArrayView<Vector> dv;
         tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
         m = storage.getValue<Float>(QuantityId::MASS);
     }
 
-    virtual CollisionResult collide(const Size i, const Size j, Array<Size>& UNUSED(toRemove)) override {
+    virtual CollisionResult collide(const Size i, const Size j, std::set<Size>& UNUSED(toRemove)) override {
         const Vector dr = getNormalized(r[i] - r[j]);
         const Vector v_com = (m[i] * v[i] + m[j] * v[j]) / (m[i] + m[j]);
         v[i] = this->reflect(v[i], v_com, -dr);
@@ -230,6 +250,7 @@ public:
         v[i][H] = 0._f;
         v[j][H] = 0._f;
 
+        ASSERT(isReal(v[i]) && isReal(v[j]));
         return CollisionResult::BOUNCE;
     }
 
@@ -243,6 +264,31 @@ private:
 
         // flip the orientation of normal component (bounce) and apply coefficients of restitution
         return restitution.t * v_t - restitution.n * v_n + v_com;
+    }
+};
+
+class RepelHandler : public ElasticBounceHandler {
+public:
+    RepelHandler()
+        : ElasticBounceHandler(0.1_f, 1._f) {}
+
+    virtual CollisionResult collide(const Size i, const Size j, std::set<Size>& toRemove) override {
+        Vector dir;
+        Float dist;
+        tieToTuple(dir, dist) = getNormalizedWithLength(r[i] - r[j]);
+        dir[H] = 0._f;                    // don't mess up radii
+        ASSERT(dist < r[i][H] + r[j][H]); // can be only used for overlapping particles
+        const Float x1 = (r[i][H] + r[j][H] - dist) / (1._f + m[i] / m[j]);
+        const Float x2 = m[i] / m[j] * x1;
+        r[i] += dir * x1;
+        r[j] -= dir * x2;
+        ASSERT(almostEqual(getSqrLength(r[i] - r[j]), sqr(r[i][H] + r[j][H])),
+            getSqrLength(r[i] - r[j]),
+            sqr(r[i][H] + r[j][H]));
+
+        // set normal velocities to zero to avoid 'accumulating' huge velocities during overlap
+        ElasticBounceHandler::collide(i, j, toRemove);
+        return CollisionResult::BOUNCE;
     }
 };
 
@@ -263,7 +309,7 @@ public:
         fallback.initialize(storage);
     }
 
-    virtual CollisionResult collide(const Size i, const Size j, Array<Size>& toRemove) override {
+    virtual CollisionResult collide(const Size i, const Size j, std::set<Size>& toRemove) override {
         CollisionResult result = primary.collide(i, j, toRemove);
         if (result == CollisionResult::NONE) {
             ASSERT(toRemove.empty());
@@ -278,11 +324,11 @@ class FragmentationHandler : public ICollisionHandler {
 public:
     // ParametricRelations, directionality of fragments
 
-    virtual CollisionResult collide(const Size i, const Size j, Array<Size>& UNUSED(toRemove)) override {
+    virtual CollisionResult collide(const Size i, const Size j, std::set<Size>& UNUSED(toRemove)) override {
         (void)i;
         (void)j;
         /// \todo
-        TODO("needs to modify the remaining movement time of fragments");
+        NOT_IMPLEMENTED;
         return CollisionResult::FRAGMENTATION;
     }
 };

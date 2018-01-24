@@ -19,6 +19,11 @@ struct NeighbourRecord {
     bool operator!=(const NeighbourRecord& other) const {
         return index != other.index || distanceSqr != other.distanceSqr;
     }
+
+    /// Sort by the distance
+    bool operator<(const NeighbourRecord& other) const {
+        return distanceSqr < other.distanceSqr;
+    }
 };
 
 enum class FinderFlag {

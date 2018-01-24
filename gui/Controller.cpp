@@ -203,6 +203,7 @@ Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage
         quantityColorizerIds.push(QuantityId::AV_ALPHA);
         quantityColorizerIds.push(QuantityId::AV_BALSARA);
         quantityColorizerIds.push(QuantityId::ANGULAR_VELOCITY);
+        quantityColorizerIds.push(QuantityId::MOMENT_OF_INERTIA);
         quantityColorizerIds.push(QuantityId::STRENGTH_VELOCITY_GRADIENT);
         quantityColorizerIds.push(QuantityId::STRAIN_RATE_CORRECTION_TENSOR);
         quantityColorizerIds.push(QuantityId::EPS_MIN);
