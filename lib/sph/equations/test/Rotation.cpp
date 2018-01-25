@@ -95,7 +95,8 @@ namespace {
 
             output = std::move(textOutput);
 
-            equations += makeTerm<SolidStressForce>(settings) + makeTerm<SolidStressTorque>(settings);
+            equations += makeTerm<BenzAsphaugSolidStressForce>(settings) +
+                         makeTerm<BenzAsphaugSolidStressTorque>(settings);
             equations += makeTerm<ConstSmoothingLength>();
             // add boundary conditions last
             //   equations += makeTerm<FrozenParticles>(makeAuto<SphericalDomain>(Vector(0._f), 1._f), 2._f);

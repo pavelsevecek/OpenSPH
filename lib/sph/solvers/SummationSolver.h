@@ -52,10 +52,10 @@ private:
     static EquationHolder getEquations(const RunSettings& settings) {
         EquationHolder equations;
         if (settings.get<bool>(RunSettingsId::MODEL_FORCE_PRESSURE_GRADIENT)) {
-            equations += makeTerm<PressureForce>();
+            equations += makeTerm<StandardPressureForce>();
         }
         if (settings.get<bool>(RunSettingsId::MODEL_FORCE_SOLID_STRESS)) {
-            equations += makeTerm<SolidStressForce>(settings);
+            equations += makeTerm<StandardSolidStressForce>(settings);
         }
         equations += makeTerm<StandardAV>();
 
@@ -122,7 +122,7 @@ private:
         }
     }
 
-    virtual void sanityCheck() const override {
+    virtual void sanityCheck(const Storage& UNUSED(storage)) const override {
         // we handle smoothing lengths ourselves, bypass the check of equations
     }
 };

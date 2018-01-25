@@ -13,7 +13,7 @@ TEST_CASE("InternalFriction", "[friction]") {
     EquationHolder eqs;
     RunSettings settings;
     settings.set(RunSettingsId::MODEL_FORCE_SOLID_STRESS, false);
-    eqs += makeTerm<InternalFriction>() + makeTerm<ContinuityEquation>(settings) +
+    eqs += makeTerm<InternalFriction>() + makeTerm<BenzAsphaugContinuityEquation>() +
            makeTerm<ConstSmoothingLength>();
     SymmetricSolver solver(settings, std::move(eqs));
 

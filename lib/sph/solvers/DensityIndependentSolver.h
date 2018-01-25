@@ -42,22 +42,18 @@ private:
         }
 
         template <bool Symmetric>
-        INLINE void eval(const Size i, ArrayView<const Size> neighs, ArrayView<const Vector> grads) {
-            ASSERT(neighs.size() == grads.size());
-            for (Size k = 0; k < neighs.size(); ++k) {
-                const Size j = neighs[k];
-                const Vector f = (gamma - 1._f) * U[i] * U[j] * (1._f / q[i] + 1._f / q[j]) * grads[k];
-                ASSERT(isReal(f));
-                dv[i] -= f / m[i];
-                /// \todo possible optimization, acceleration could be multiplied by factor (gamma-1)/m_i
-                /// could be after the loop
-                const Float e = (gamma - 1._f) * U[i] * U[j] * dot(v[i] - v[k], grads[k]);
-                dU[i] += e / q[i];
+        INLINE void eval(const Size i, const Size j, const Vector& grad) {
+            const Vector f = (gamma - 1._f) * U[i] * U[j] * (1._f / q[i] + 1._f / q[j]) * grad;
+            ASSERT(isReal(f));
+            dv[i] -= f / m[i];
+            /// \todo possible optimization, acceleration could be multiplied by factor (gamma-1)/m_i
+            /// could be after the loop
+            const Float e = (gamma - 1._f) * U[i] * U[j] * dot(v[i] - v[j], grad);
+            dU[i] += e / q[i];
 
-                if (Symmetric) {
-                    dv[j] += f / m[j];
-                    dU[j] += e / q[j];
-                }
+            if (Symmetric) {
+                dv[j] += f / m[j];
+                dU[j] += e / q[j];
             }
         }
     };

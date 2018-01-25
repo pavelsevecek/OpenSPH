@@ -60,9 +60,9 @@ SOURCES += \
     ../lib/objects/containers/test/Array.cpp \
     ../lib/objects/containers/test/BufferedArray.cpp \
     ../lib/objects/containers/test/List.cpp \
-    ../lib/objects/containers/test/Map.cpp \
     ../lib/objects/containers/test/StaticArray.cpp \
     ../lib/objects/containers/test/String.cpp \
+    ../lib/objects/containers/test/FlatMap.cpp \
     ../lib/objects/containers/test/Tuple.cpp \
     ../lib/objects/finders/test/BruteForceFinder.cpp \
     ../lib/objects/finders/test/Finders.cpp \
@@ -156,7 +156,8 @@ SOURCES += \
     utils/SequenceTest.cpp \
     utils/Utils.cpp \
     ../lib/sph/solvers/test/StandardSets.cpp \
-    ../lib/gravity/test/NBodySolver.cpp
+    ../lib/gravity/test/NBodySolver.cpp \
+    ../lib/objects/containers/test/FlatSet.cpp
 
 HEADERS += \
     utils/Utils.h \

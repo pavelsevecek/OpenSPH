@@ -68,7 +68,10 @@ public:
 
         // clang-format off
         printStat<MinMaxMean>(stats, StatisticsId::NEIGHBOUR_COUNT,       " - neigbours:   ");
-        printStat<int>(stats, StatisticsId::COLLISION_COUNT,              " - collisions:  ");
+        printStat<int>(stats, StatisticsId::TOTAL_COLLISION_COUNT,        " - collisions:  ");
+        printStat<int>(stats, StatisticsId::BOUNCE_COUNT,                 "    * bounces:  ");
+        printStat<int>(stats, StatisticsId::MERGER_COUNT,                 "    * mergers:  ");
+        printStat<int>(stats, StatisticsId::BREAKUP_COUNT,               "    * breakups: ");
         printStat<int>(stats, StatisticsId::OVERLAP_COUNT,                " - overlaps:    ");
         printStat<int>(stats, StatisticsId::SOLVER_SUMMATION_ITERATIONS,  " - iteration #: ");
         printStat<int>(stats, StatisticsId::TIMESTEP_ELAPSED,             " - time spent:  ", "ms");

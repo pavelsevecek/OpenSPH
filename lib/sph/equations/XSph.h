@@ -48,16 +48,12 @@ private:
         }
 
         template <bool Symmetric>
-        INLINE void eval(const Size i, ArrayView<const Size> neighs, ArrayView<const Vector> UNUSED(grads)) {
+        INLINE void eval(const Size i, const Size j, const Vector& UNUSED(grad)) {
             // this depends on v[i]-v[j], so it is zero for i==j
-            for (Size k = 0; k < neighs.size(); ++k) {
-                const Size j = neighs[k];
-                const Vector f =
-                    epsilon * (v[j] - v[i]) / (0.5_f * (rho[i] + rho[j])) * kernel.value(r[i], r[j]);
-                dr[i] += m[j] * f;
-                if (Symmetric) {
-                    dr[j] -= m[i] * f;
-                }
+            const Vector f = epsilon * (v[j] - v[i]) / (0.5_f * (rho[i] + rho[j])) * kernel.value(r[i], r[j]);
+            dr[i] += m[j] * f;
+            if (Symmetric) {
+                dr[j] -= m[i] * f;
             }
         }
     };

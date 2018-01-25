@@ -83,6 +83,10 @@ struct RecordType {
         return value != other.value;
     }
 
+    bool operator<(const RecordType& other) const {
+        return value < other.value;
+    }
+
     friend std::ostream& operator<<(std::ostream& ofs, const RecordType& r) {
         ofs << r.value;
         return ofs;

@@ -5,9 +5,9 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2018
 
+#include "objects/containers/FlatSet.h"
 #include "thread/ThreadLocal.h"
 #include "timestepping/ISolver.h"
-#include <set>
 
 NAMESPACE_SPH_BEGIN
 
@@ -82,7 +82,7 @@ private:
     Array<NeighbourRecord> neighs;
 
     // cached array of removed particles, used to avoid invalidating indices during collision handling
-    std::set<Size> removed;
+    FlatSet<Size> removed;
 
     struct {
         AutoPtr<ICollisionHandler> handler;
@@ -93,7 +93,6 @@ private:
     struct {
         AutoPtr<ICollisionHandler> handler;
 
-        /// Small value specifying allowed overlap of collided particles, used for numerical stability.
         Float allowedRatio;
     } overlap;
 
@@ -127,8 +126,6 @@ private:
         const Vector& r2,
         const Vector& v2,
         const Interval interval) const;
-
-    void forceMerge(const Size i, Storage& storage, const Float searchRadius);
 };
 
 NAMESPACE_SPH_END

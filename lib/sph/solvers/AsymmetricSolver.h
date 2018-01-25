@@ -68,6 +68,8 @@ public:
 
 protected:
     virtual void loop(Storage& storage, Statistics& stats);
+
+    virtual void sanityCheck(const Storage& storage) const;
 };
 
 NAMESPACE_SPH_END

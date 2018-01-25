@@ -61,26 +61,22 @@ private:
         }
 
         template <bool Symmetrize>
-        INLINE void eval(const Size i, ArrayView<const Size> neighs, ArrayView<const Vector> grads) {
-            ASSERT(neighs.size() == grads.size());
-            for (Size k = 0; k < neighs.size(); ++k) {
-                const Size j = neighs[k];
-                const Float w = kernel.value(r[i], r[j]);
+        INLINE void eval(const Size i, const Size j, const Vector& grad) {
+            const Float w = kernel.value(r[i], r[j]);
 
-                // weighting function
-                const Float phi = xi * pow(w / wp[i], n);
+            // weighting function
+            const Float phi = xi * pow(w / wp[i], n);
 
-                // AV term, discretized as stress force (i.e. differently than in \cite Monaghan_1999) for
-                // internally consistent SPH formulation
-                const SymmetricTensor Pi = phi * (as[i] + as[j]) / (rho[i] * rho[j]);
-                const Vector f = Pi * grads[k];
-                const Float heating = 0.5_f * dot(Pi * (v[i] - v[j]), grads[k]);
-                dv[i] += m[j] * f;
-                du[i] += m[j] * heating;
-                if (Symmetrize) {
-                    dv[j] -= m[i] * f;
-                    du[j] += m[i] * heating;
-                }
+            // AV term, discretized as stress force (i.e. differently than in \cite Monaghan_1999) for
+            // internally consistent SPH formulation
+            const SymmetricTensor Pi = phi * (as[i] + as[j]) / (rho[i] * rho[j]);
+            const Vector f = Pi * grad;
+            const Float heating = 0.5_f * dot(Pi * (v[i] - v[j]), grad);
+            dv[i] += m[j] * f;
+            du[i] += m[j] * heating;
+            if (Symmetrize) {
+                dv[j] -= m[i] * f;
+                du[j] += m[i] * heating;
             }
         }
     };

@@ -1,7 +1,9 @@
 #pragma once
 
 #include "gui/Settings.h"
+#include "io/Path.h"
 #include "objects/containers/Array.h"
+#include "objects/wrappers/Locking.h"
 #include "objects/wrappers/SharedPtr.h"
 #include "quantities/Particle.h"
 #include <condition_variable>
@@ -36,6 +38,13 @@ private:
 
         /// SPH simulation
         AutoPtr<IRun> run;
+
+        /// List of callbacks executed on the next timestep (on run thread).
+        ///
+        /// Callbacks take current run time as an argument. The list is cleared every timestep, only callbacks
+        /// added between timesteps are executed.
+        using TimeStepCallback = Function<void(const Float runTime)>;
+        Locking<Array<TimeStepCallback>> onTimeStepCallbacks;
     } sph;
 
     /// Object for saving image snapshots of the simulations
@@ -160,26 +169,42 @@ public:
 
     /// \addtogroup Controlling the run
 
-    /// Sets up and starts a new simulation. Must be called before any other run-related functions can be
-    /// called. If a simulation is currently running, it waits until the simulation stops and then starts the
-    /// new simulation.
+    /// \brief Sets up and starts a new simulation.
+    ///
+    /// Must be called before any other run-related functions can be called. If a simulation is currently
+    /// running, it waits until the simulation stops and then starts the new simulation.
     /// \param run New simulation to start
     void start(AutoPtr<IRun>&& run);
 
-    /// Starts the simulation with current setup. Function does nothing if the simulation is already running.
-    /// Can be used to continue paused simulation.
+    /// \brief Starts the simulation with current setup.
+    ///
+    /// Function does nothing if the simulation is already running. Can be used to continue paused simulation.
     void restart();
 
-    /// Pause the current simulation. Can only be paused at the beginning of a timestep. The function is not
-    /// blocking, it does not wait until the simulation completes the current timestep.
-    /// Simulation can be continued using \ref start function or stopped with \ref stop.
+    /// \brief Pause the current simulation.
+    ///
+    /// Can only be paused at the beginning of a timestep. The function is not blocking, it does not wait
+    /// until the simulation completes the current timestep. Simulation can be continued using \ref start
+    /// function or stopped with \ref stop.
     void pause();
 
-    /// Stops the current simulation. If no simulation is running, the function does nothing. Next usage of
-    /// \ref start will start the simulation from the beginning.
-    /// \param waitForFinish If true, the function will block until the run is finished. Otherwise the
+    /// \brief Stops the current simulation.
+    ///
+    /// If no simulation is running, the function does nothing. Next usage of \ref start will start the
+    /// simulation from the beginning. \param waitForFinish If true, the function will block until the run is
+    /// finished. Otherwise the
     ///                      function is nonblocking.
     void stop(bool waitForFinish = false);
+
+    /// \brief Saves the state of the current run to the disk.
+    ///
+    /// \param path Path to the file where the run state is saved (as binary data).
+    void saveState(const Path& path);
+
+    /// \brief Restarts the run, using given state file as initial conditions.
+    ///
+    /// \param path Path to the state file.
+    void loadState(const Path& path);
 
     /// Closes down the model, clears all allocated resources. Must be called only once.
     void quit();
@@ -192,7 +217,7 @@ private:
     /// Can be called from any thread. Function blocks until the particles are redrawn.
     void redraw(const Storage& storage, Statistics& stats);
 
-    void run();
+    void run(const Path& path = Path());
 };
 
 NAMESPACE_SPH_END

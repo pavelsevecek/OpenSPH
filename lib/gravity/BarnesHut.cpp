@@ -194,7 +194,8 @@ void BarnesHut::evalNode(IScheduler& scheduler,
     const Box& box = evaluatedNode.box;
 
     if (box == Box::EMPTY()) {
-        //  no partiles in the box, skip
+        // no particles in the box, skip
+        /// \todo ASSERT FIRED !
         ASSERT(evaluatedNode.isLeaf());
         return;
     }

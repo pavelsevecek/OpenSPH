@@ -31,15 +31,11 @@ private:
         }
 
         template <bool Symmetrize>
-        INLINE void eval(const Size i, ArrayView<const Size> neighs, ArrayView<const Vector> grads) {
-            ASSERT(neighs.size() == grads.size());
-            for (Size k = 0; k < neighs.size(); ++k) {
-                const Size j = neighs[k];
-                const Vector delta = laplacian(v[j] - v[i], grads[k], r[j] - r[i]);
-                dv[i] -= m[j] / rho[j] * nu * delta;
-                if (Symmetrize) {
-                    dv[j] += m[i] / rho[i] * nu * delta;
-                }
+        INLINE void eval(const Size i, const Size j, const Vector& grad) {
+            const Vector delta = laplacian(v[j] - v[i], grad, r[j] - r[i]);
+            dv[i] -= m[j] / rho[j] * nu * delta;
+            if (Symmetrize) {
+                dv[j] += m[i] / rho[i] * nu * delta;
             }
         }
     };
@@ -82,15 +78,12 @@ private:
         }
 
         template <bool Symmetrize>
-        INLINE void eval(const Size i, ArrayView<const Size> neighs, ArrayView<const Vector> UNUSED(grads)) {
-            for (Size k = 0; k < neighs.size(); ++k) {
-                const Size j = neighs[k];
-                const Float csbar = 0.5_f * (cs[i] + cs[j]);
-                const Vector f = k * (v[i] - v[j]) / csbar;
-                dv[i] -= f;
-                if (Symmetrize) {
-                    dv[j] += f;
-                }
+        INLINE void eval(const Size i, const Size j, const Vector& UNUSED(grad)) {
+            const Float csbar = 0.5_f * (cs[i] + cs[j]);
+            const Vector f = k * (v[i] - v[j]) / csbar;
+            dv[i] -= f;
+            if (Symmetrize) {
+                dv[j] += f;
             }
         }
     };

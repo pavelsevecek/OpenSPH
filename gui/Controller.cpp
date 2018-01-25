@@ -13,6 +13,7 @@
 #include "system/Timer.h"
 #include "thread/CheckFunction.h"
 #include <wx/app.h>
+#include <wx/msgdlg.h>
 
 NAMESPACE_SPH_BEGIN
 
@@ -99,6 +100,39 @@ void Controller::stop(const bool waitForFinish) {
     }
 }
 
+void Controller::saveState(const Path& path) {
+    CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
+    ASSERT(path.extension() == Path("ssf"));
+    auto dump = [this, path](const Float time) {
+        SharedPtr<Storage> storage = sph.run->getStorage();
+        BinaryOutput output(path);
+        Statistics stats;
+        stats.set(StatisticsId::RUN_TIME, time);
+        output.dump(*storage, stats);
+    };
+
+    if (status == Status::RUNNING) {
+        // cannot directly access the storage during the run, execute it on the time step
+        sph.onTimeStepCallbacks->push(dump);
+    } else {
+        // if not running, we can safely save the storage from main thread
+        /// \todo somehow remember the time of the last simulation?
+        dump(0._f);
+    }
+}
+
+void Controller::loadState(const Path& path) {
+    CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
+    // stop the current run
+    this->stop(true);
+
+    // update the status
+    status = Status::RUNNING;
+
+    // start the run from file
+    this->run(path);
+}
+
 void Controller::quit() {
     if (status == Status::QUITTING) {
         // already quitting
@@ -130,6 +164,7 @@ void Controller::quit() {
 }
 
 void Controller::onTimeStep(const Storage& storage, Statistics& stats) {
+    ASSERT(std::this_thread::get_id() == sph.thread.get_id());
     if (status == Status::QUITTING) {
         return;
     }
@@ -148,6 +183,16 @@ void Controller::onTimeStep(const Storage& storage, Statistics& stats) {
     if (vis.timer->isExpired()) {
         this->redraw(storage, stats);
         vis.timer->restart();
+    }
+
+    // executed all waiting callbacks
+    if (!sph.onTimeStepCallbacks->empty()) {
+        const float time = stats.get<Float>(StatisticsId::RUN_TIME);
+        auto onTimeStepProxy = sph.onTimeStepCallbacks.lock();
+        for (auto& func : onTimeStepProxy.get()) {
+            func(time);
+        }
+        onTimeStepProxy->clear();
     }
 
     // pause if we are supposed to
@@ -416,11 +461,23 @@ void Controller::tryRedraw() {
     }
 }
 
-void Controller::run() {
-    sph.thread = std::thread([this] {
+void Controller::run(const Path& path) {
+    sph.thread = std::thread([this, path] {
         // create storage and set up initial conditions
         sph.run->setUp();
         SharedPtr<Storage> storage = sph.run->getStorage();
+
+        // if we want to resume run from state file, load the storage
+        if (!path.empty()) {
+            BinaryOutput io;
+            Outcome result = io.load(path, *storage);
+            if (!result) {
+                executeOnMainThread([result] {
+                    wxMessageBox("Cannot resume the run: " + result.error(), "Error", wxOK | wxCENTRE);
+                });
+                return;
+            }
+        }
 
         // fill the combobox with available colorizer
         /// \todo can we do this safely from run thread?

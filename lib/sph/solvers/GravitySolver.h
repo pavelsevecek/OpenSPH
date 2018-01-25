@@ -31,8 +31,6 @@ public:
     GravitySolver(const RunSettings& settings, const EquationHolder& equations, AutoPtr<IGravity>&& gravity)
         : SymmetricSolver(settings, equations)
         , gravity(std::move(gravity)) {
-        // check the equations
-        this->sanityCheck();
         // add acceleration as it is needed by gravity
         threadData.forEach([&settings](ThreadData& data) { //
             data.derivatives.require<DummyDerivative>(settings);
@@ -62,7 +60,8 @@ protected:
         stats.set(StatisticsId::SPH_EVAL_TIME, int(timer.elapsed(TimerUnit::MILLISECOND)));
     }
 
-    virtual void sanityCheck() const override {
+    virtual void sanityCheck(const Storage& storage) const override {
+        SymmetricSolver::sanityCheck(storage);
         // check that we don't solve gravity twice
         /// \todo generalize for ALL solvers of gravity (some categories?)
         if (equations.contains<SphericalGravityEquation>()) {

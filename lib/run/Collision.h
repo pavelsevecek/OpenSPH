@@ -200,7 +200,7 @@ private:
         EquationHolder equations;
 
         // forces
-        equations += makeTerm<PressureForce>() + makeTerm<SolidStressForce>(settings);
+        equations += makeTerm<BenzAsphaugPressureForce>() + makeTerm<BenzAsphaugSolidStressForce>(settings);
 
         // noninertial acceleration
         const Vector omega = settings.get<Vector>(RunSettingsId::FRAME_ANGULAR_FREQUENCY);
@@ -210,13 +210,13 @@ private:
         equations += makeTerm<SphericalGravityEquation>();
 
         // density evolution
-        equations += makeTerm<ContinuityEquation>(settings);
+        equations += makeTerm<BenzAsphaugContinuityEquation>();
 
         // artificial viscosity
         equations += EquationHolder(Factory::getArtificialViscosity(settings));
 
         // adaptive smoothing length
-        equations += makeTerm<AdaptiveSmoothingLength>(settings);
+        equations += makeTerm<BenzAsphaugAdaptiveSmoothingLength>(settings);
 
         return equations;
     }

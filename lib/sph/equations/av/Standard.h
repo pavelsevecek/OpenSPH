@@ -63,22 +63,18 @@ public:
         }
 
         template <bool Symmetrize>
-        INLINE void eval(const Size i, ArrayView<const Size> neighs, ArrayView<const Vector> grads) {
-            ASSERT(neighs.size() == grads.size());
-            for (Size k = 0; k < neighs.size(); ++k) {
-                const Size j = neighs[k];
-                const Float av = (*this)(i, j);
-                ASSERT(isReal(av) && av >= 0._f);
-                const Vector Pi = av * grads[k];
-                const Float heating = 0.5_f * av * dot(v[i] - v[j], grads[k]);
-                ASSERT(isReal(heating) && heating >= 0._f);
-                dv[i] -= m[j] * Pi;
-                du[i] += m[j] * heating;
+        INLINE void eval(const Size i, const Size j, const Vector& grad) {
+            const Float av = (*this)(i, j);
+            ASSERT(isReal(av) && av >= 0._f);
+            const Vector Pi = av * grad;
+            const Float heating = 0.5_f * av * dot(v[i] - v[j], grad);
+            ASSERT(isReal(heating) && heating >= 0._f);
+            dv[i] -= m[j] * Pi;
+            du[i] += m[j] * heating;
 
-                if (Symmetrize) {
-                    dv[j] += m[i] * Pi;
-                    du[j] += m[i] * heating;
-                }
+            if (Symmetrize) {
+                dv[j] += m[i] * Pi;
+                du[j] += m[i] * heating;
             }
         }
 

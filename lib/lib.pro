@@ -279,4 +279,5 @@ HEADERS += \
     timestepping/TimeStepping.h \
     sph/solvers/SymmetricSolver.h \
     sph/solvers/StandardSets.h \
-    objects/containers/FlatMap.h
+    objects/containers/FlatMap.h \
+    objects/containers/FlatSet.h

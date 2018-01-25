@@ -36,22 +36,18 @@ public:
     }
 
     template <bool Symmetrize>
-    INLINE void eval(const Size i, ArrayView<const Size> neighs, ArrayView<const Vector> grads) {
-        ASSERT(neighs.size() == grads.size());
-        for (Size k = 0; k < neighs.size(); ++k) {
-            const Size j = neighs[k];
-            /// \todo determine actual discretization of this equation
-            const SymmetricTensor epsilon = outer(u[j] - u[i], grads[k]);
-            const SymmetricTensor sigma =
-                lambda * epsilon.trace() * SymmetricTensor::identity() + 2._f * mu * epsilon;
-            const Float tr3 = sigma.trace() / 3._f;
-            TracelessTensor ds(sigma - tr3 * SymmetricTensor::identity());
-            p[i] += m[j] / rho[j] * tr3;
-            s[i] += m[j] / rho[j] * ds;
-            if (Symmetrize) {
-                p[j] += m[i] / rho[i] * tr3;
-                s[j] += m[i] / rho[i] * ds;
-            }
+    INLINE void eval(const Size i, const Size j, const Vector& grad) {
+        /// \todo determine actual discretization of this equation
+        const SymmetricTensor epsilon = outer(u[j] - u[i], grad);
+        const SymmetricTensor sigma =
+            lambda * epsilon.trace() * SymmetricTensor::identity() + 2._f * mu * epsilon;
+        const Float tr3 = sigma.trace() / 3._f;
+        TracelessTensor ds(sigma - tr3 * SymmetricTensor::identity());
+        p[i] += m[j] / rho[j] * tr3;
+        s[i] += m[j] / rho[j] * ds;
+        if (Symmetrize) {
+            p[j] += m[i] / rho[i] * tr3;
+            s[j] += m[i] / rho[i] * ds;
         }
     }
 };

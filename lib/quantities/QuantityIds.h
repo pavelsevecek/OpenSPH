@@ -143,6 +143,8 @@ enum class QuantityId {
     /// Density times velocity divergence, used when evaluating the continuity equation
     DENSITY_VELOCITY_DIVERGENCE,
 
+    STRENGTH_DENSITY_VELOCITY_GRADIENT,
+
     ///@}
 
     /// \name Artificial velocity

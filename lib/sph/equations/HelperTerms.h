@@ -26,17 +26,11 @@ private:
         }
 
         template <bool Symmetrize>
-        INLINE void eval(const Size i,
-            ArrayView<const Size> neighs,
-            ArrayView<const Vector> UNUSED_IN_RELEASE(grads)) {
-            ASSERT(neighs.size() == grads.size());
+        INLINE void eval(const Size i, const Size j, const Vector& UNUSED(grad)) {
             // there is no need to use this in asymmetric solver, since we already know all the neighbours
             ASSERT(Symmetrize);
-            neighCnts[i] += neighs.size();
-            for (Size k = 0; k < neighs.size(); ++k) {
-                const Size j = neighs[k];
-                neighCnts[j]++;
-            }
+            neighCnts[i]++;
+            neighCnts[j]++;
         }
     };
 
@@ -74,20 +68,14 @@ private:
         }
 
         template <bool Symmetrize>
-        INLINE void eval(const Size i,
-            ArrayView<const Size> neighs,
-            ArrayView<const Vector> UNUSED_IN_RELEASE(grads)) {
-            ASSERT(neighs.size() == grads.size());
-            for (Size k = 0; k < neighs.size(); ++k) {
-                const Size j = neighs[k];
-                const Vector dr = (r[j] - r[i]) / (r[i][H] + r[j][H]);
-                const Float length = getLength(dr);
-                if (length != 0) {
-                    const Vector normalized = dr / length;
-                    n[i] += normalized;
-                    if (Symmetrize) {
-                        n[j] -= normalized;
-                    }
+        INLINE void eval(const Size i, const Size j, const Vector& UNUSED(grad)) {
+            const Vector dr = (r[j] - r[i]) / (r[i][H] + r[j][H]);
+            const Float length = getLength(dr);
+            if (length != 0) {
+                const Vector normalized = dr / length;
+                n[i] += normalized;
+                if (Symmetrize) {
+                    n[j] -= normalized;
                 }
             }
         }

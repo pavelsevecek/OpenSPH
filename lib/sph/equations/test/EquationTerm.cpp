@@ -98,18 +98,18 @@ TEST_CASE("Setting derivatives", "[equationterm]") {
 TEST_CASE("EquationHolder operators", "[equationterm]") {
     EquationHolder eqs;
     REQUIRE(eqs.getTermCnt() == 0);
-    eqs += makeTerm<PressureForce>();
+    eqs += makeTerm<StandardPressureForce>();
     REQUIRE(eqs.getTermCnt() == 1);
 
     EquationHolder sum = std::move(eqs) + makeTerm<NeighbourCountTerm>() +
-                         makeTerm<AdaptiveSmoothingLength>(RunSettings::getDefaults());
+                         makeTerm<StandardAdaptiveSmoothingLength>(RunSettings::getDefaults());
     REQUIRE(sum.getTermCnt() == 3);
 }
 
 TEST_CASE("EquationHolder contains", "[equationterm]") {
     EquationHolder eqs;
-    eqs += makeTerm<PressureForce>();
-    REQUIRE(eqs.contains<PressureForce>());
+    eqs += makeTerm<StandardPressureForce>();
+    REQUIRE(eqs.contains<StandardPressureForce>());
     REQUIRE_FALSE(eqs.contains<TestEquation>());
 }
 

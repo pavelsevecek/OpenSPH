@@ -136,7 +136,16 @@ enum class StatisticsId {
     GRAVITY_EVAL_TIME,
 
     /// Number of collisions in the timestep
-    COLLISION_COUNT,
+    TOTAL_COLLISION_COUNT,
+
+    /// Number of mergers in the timestep
+    MERGER_COUNT,
+
+    /// Number of bounce collisions
+    BOUNCE_COUNT,
+
+    /// Number of fragmentation collisions
+    BREAKUP_COUNT,
 
     /// Number of particle overlaps detected during collision evaluation
     OVERLAP_COUNT,

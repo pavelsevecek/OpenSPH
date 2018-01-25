@@ -65,20 +65,16 @@ class BalsaraSwitch : public IEquationTerm {
         }
 
         template <bool Symmetrize>
-        INLINE void eval(const Size i, ArrayView<const Size> neighs, ArrayView<const Vector> grads) {
-            ASSERT(neighs.size() == grads.size());
-            for (Size k = 0; k < neighs.size(); ++k) {
-                const Size j = neighs[k];
-                const Float Pi = 0.5_f * (factor(i) + factor(j)) * av(i, j);
-                ASSERT(isReal(Pi));
-                dv[i] += m[j] * Pi * grads[k];
-                const Float heating = 0.5_f * Pi * dot(v[i] - v[j], grads[k]);
-                du[i] += m[j] * heating;
+        INLINE void eval(const Size i, const Size j, const Vector& grad) {
+            const Float Pi = 0.5_f * (factor(i) + factor(j)) * av(i, j);
+            ASSERT(isReal(Pi));
+            dv[i] += m[j] * Pi * grad;
+            const Float heating = 0.5_f * Pi * dot(v[i] - v[j], grad);
+            du[i] += m[j] * heating;
 
-                if (Symmetrize) {
-                    dv[j] -= m[i] * Pi * grads[k];
-                    du[j] += m[i] * heating;
-                }
+            if (Symmetrize) {
+                dv[j] -= m[i] * Pi * grad;
+                du[j] += m[i] * heating;
             }
         }
 

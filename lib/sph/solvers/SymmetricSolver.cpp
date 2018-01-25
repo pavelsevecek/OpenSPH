@@ -77,11 +77,12 @@ void SymmetricSolver::integrate(Storage& storage, Statistics& stats) {
 
 void SymmetricSolver::create(Storage& storage, IMaterial& material) const {
     storage.insert<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO, 0);
-    // check equations
-    this->sanityCheck();
 
     // create necessary quantities
     equations.create(storage, material);
+
+    // check equations and create quantities
+    this->sanityCheck(storage);
 }
 
 void SymmetricSolver::loop(Storage& storage, Statistics& UNUSED(stats)) {
@@ -157,12 +158,27 @@ void SymmetricSolver::afterLoop(Storage& storage, Statistics& stats) {
     stats.set(StatisticsId::NEIGHBOUR_COUNT, neighs);
 }
 
-void SymmetricSolver::sanityCheck() const {
+void SymmetricSolver::sanityCheck(const Storage& storage) const {
     // we must solve smoothing length somehow
-    if (!equations.contains<AdaptiveSmoothingLength>() && !equations.contains<ConstSmoothingLength>()) {
+    if (!equations.contains<StandardAdaptiveSmoothingLength>() &&
+        !equations.contains<ConstSmoothingLength>()) {
         throw InvalidSetup(
             "No solver of smoothing length specified; add either ConstSmootingLength or "
             "AdaptiveSmootingLength into the list of equations");
+    }
+
+    // check for incompatible quantities
+    if (storage.has(QuantityId::VELOCITY_DIVERGENCE) &&
+        storage.has(QuantityId::DENSITY_VELOCITY_DIVERGENCE)) {
+        throw InvalidSetup(
+            "Storage contains both velocity divergence and density velocity divergence, this probably means "
+            "that equations from different SPH formulations are used together.");
+    }
+    if (storage.has(QuantityId::STRENGTH_VELOCITY_GRADIENT) &&
+        storage.has(QuantityId::STRENGTH_DENSITY_VELOCITY_GRADIENT)) {
+        throw InvalidSetup(
+            "Storage contains both strength velocity gradient and density strength velocity gradient, this "
+            "probably means that equations from different SPH formulations are used together.");
     }
 }
 

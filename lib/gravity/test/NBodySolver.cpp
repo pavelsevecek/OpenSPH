@@ -348,9 +348,9 @@ TEST_CASE("Collision repel", "[nbody]") {
 
     CenterOfMass com;
     const Vector com1 = com.evaluate(storage);
-    RepelHandler repel;
+    RepelHandler repel(0._f, 0._f);
     repel.initialize(storage);
-    std::set<Size> dummy;
+    FlatSet<Size> dummy;
     repel.collide(0, 1, dummy);
     const Vector com2 = com.evaluate(storage);
     REQUIRE(com1 == approx(com2));

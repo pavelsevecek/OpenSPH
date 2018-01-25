@@ -23,8 +23,9 @@ TYPED_TEST_CASE_2("Impact", "[impact]]", TSolver, SymmetricSolver, AsymmetricSol
         FormulationEnum::BENZ_ASPHAUG); /// \todo Fix standard formulation as well !!!
     EquationHolder eqs;
     /// \todo refactor, avoid adding ConstSmoothingLength term
-    eqs += makeTerm<PressureForce>() + makeTerm<SolidStressForce>(settings) + makeTerm<StandardAV>() +
-           makeTerm<ContinuityEquation>(settings) + makeTerm<ConstSmoothingLength>();
+    eqs += makeTerm<BenzAsphaugPressureForce>() + makeTerm<BenzAsphaugSolidStressForce>(settings) +
+           makeTerm<StandardAV>() + makeTerm<BenzAsphaugContinuityEquation>() +
+           makeTerm<ConstSmoothingLength>();
     TSolver solver(settings, std::move(eqs));
 
     SharedPtr<Storage> storage = makeShared<Storage>();

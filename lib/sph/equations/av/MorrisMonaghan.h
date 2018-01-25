@@ -46,20 +46,17 @@ public:
             du = results.getBuffer<Float>(QuantityId::ENERGY, OrderEnum::FIRST);
         }
 
-        template <bool TSymmetric>
-        INLINE void eval(const Size i, ArrayView<const Size> neighs, ArrayView<const Vector> grads) {
-            for (Size k = 0; k < neighs.size(); ++k) {
-                const Size j = neighs[k];
-                const Float Pi = operator()(i, j);
-                const Float heating = 0.5_f * Pi * dot(v[i] - v[j], grads[k]);
+        template <bool Symmetric>
+        INLINE void eval(const Size i, const Size j, const Vector& grad) {
+            const Float Pi = operator()(i, j);
+            const Float heating = 0.5_f * Pi * dot(v[i] - v[j], grad);
 
-                dv[i] += m[j] * Pi * grads[k];
-                du[i] += m[j] * heating;
+            dv[i] += m[j] * Pi * grad;
+            du[i] += m[j] * heating;
 
-                if (TSymmetric) {
-                    dv[j] -= m[i] * Pi * grads[k];
-                    du[j] += m[i] * heating;
-                }
+            if (Symmetric) {
+                dv[j] -= m[i] * Pi * grad;
+                du[j] += m[i] * heating;
             }
         }
 

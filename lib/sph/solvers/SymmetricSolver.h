@@ -92,7 +92,7 @@ protected:
     ///
     /// Ran when the solver is created. Function throws an exception if there are conflicting equations or the
     /// solver cannot solve given set of equations for some reason.
-    virtual void sanityCheck() const;
+    virtual void sanityCheck(const Storage& storage) const;
 };
 
 NAMESPACE_SPH_END

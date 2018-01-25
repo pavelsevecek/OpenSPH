@@ -13,6 +13,23 @@
 
 NAMESPACE_SPH_BEGIN
 
+/*enum class TermCategory {
+    /// Term modifying the total acceleration of particles
+    FORCE = 1 << 0,
+
+    /// Term contributing to the total change of internal energy
+    ENERGY_TERM = 1 << 1,
+
+    ///
+    ARTIFICIAL_VISCOSITY = 1 << 2,
+    NUMERICAL_TERM = 1 << 3,
+}
+
+class TermCategory {
+  private:
+    Variant<std::type_info,
+};*/
+
 /// \brief Represents a term or terms appearing in evolutionary equations.
 ///
 /// Each EquationTerm either directly modifies quantities, or adds quantity derivatives. These terms never
@@ -38,8 +55,7 @@ public:
     /// the simulation.
     virtual void create(Storage& storage, IMaterial& material) const = 0;
 
-    /// \brief Fills given arrays with type_info of other EquationTerm objects, specifying compatibility
-    /// with other objects.
+    /// \brief Fills given arrays with QuantityIds, specifying compatibility with other equations.
     ///
     /// This is used as sanity check of the setup. By default, it is assumed that all equation term are
     /// compatible with each other and may be used together.
@@ -47,11 +63,10 @@ public:
     /// \param forbids Types of equation terms that MUST NOT be solved together with tihs term
     /// \todo This should be somehow generalized; for example we should only include one arficifial
     /// viscosity without the need to specify EVERY single AV in 'forbids' list.
-    virtual void requires(Array<std::type_info>& UNUSED(demands),
-        Array<std::type_info>& UNUSED(forbids)) const {}
+    // virtual void info(Array<QuantityId>& solves, Array<QuantityId>& forbids) const = 0;
 };
 
-template <FormulationEnum TVariant>
+template <typename TVariant>
 class PressureGradient : public DerivativeTemplate<PressureGradient<TVariant>> {
 private:
     ArrayView<const Float> p, rho, m;
@@ -68,100 +83,48 @@ public:
     }
 
     template <bool Symmetrize>
-    INLINE void eval(const Size i, ArrayView<const Size> neighs, ArrayView<const Vector> grads) {
-        ASSERT(neighs.size() == grads.size());
-        for (Size k = 0; k < neighs.size(); ++k) {
-            const Size j = neighs[k];
-            Vector f;
-            switch (TVariant) {
-            case FormulationEnum::STANDARD:
-                f = (p[i] / sqr(rho[i]) + p[j] / sqr(rho[j])) * grads[k];
-                break;
-            case FormulationEnum::BENZ_ASPHAUG:
-                f = (p[i] + p[j]) / (rho[i] * rho[j]) * grads[k];
-                break;
-            default:
-                NOT_IMPLEMENTED;
-            }
-            ASSERT(isReal(f));
-            dv[i] -= m[j] * f;
-            if (Symmetrize) {
-                dv[j] += m[i] * f;
-            }
+    INLINE void eval(const Size i, const Size j, const Vector& grad) {
+        const Vector f = TVariant::term(p, rho, i, j) * grad;
+        ASSERT(isReal(f));
+        dv[i] -= m[j] * f;
+        if (Symmetrize) {
+            dv[j] += m[i] * f;
         }
     }
 };
-
-template <template <FormulationEnum> class TDerivative>
-static void requireVariant(DerivativeHolder& derivatives, const RunSettings& settings) {
-    const FormulationEnum formulation = settings.get<FormulationEnum>(RunSettingsId::SPH_FORMULATION);
-    switch (formulation) {
-    case FormulationEnum::STANDARD:
-        derivatives.require<TDerivative<FormulationEnum::STANDARD>>(settings);
-        break;
-    case FormulationEnum::BENZ_ASPHAUG:
-        derivatives.require<TDerivative<FormulationEnum::BENZ_ASPHAUG>>(settings);
-        break;
-    default:
-        NOT_IMPLEMENTED;
-    }
-}
 
 /// \brief Equation of motion due to pressure gradient
 ///
 /// Computes acceleration from pressure gradient and corresponding derivative of internal energy.
 /// \todo
-class PressureForce : public IEquationTerm {
-private:
-    FormulationEnum variant;
-
+class StandardPressureForce : public IEquationTerm {
 public:
     virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override {
-        variant = settings.get<FormulationEnum>(RunSettingsId::SPH_FORMULATION);
-        switch (variant) {
-        case FormulationEnum::BENZ_ASPHAUG:
-            derivatives.require<VelocityDivergence>(settings);
-            break;
-        case FormulationEnum::STANDARD:
-            derivatives.require<DensityVelocityDivergence>(settings);
-            break;
-        default:
-            NOT_IMPLEMENTED;
-        }
+        derivatives.require<DensityVelocityDivergence>(settings);
 
-        requireVariant<PressureGradient>(derivatives, settings);
+        struct Term {
+            static Float term(ArrayView<const Float> p,
+                ArrayView<const Float> rho,
+                const Size i,
+                const Size j) {
+                return p[i] / sqr(rho[i]) + p[j] / sqr(rho[j]);
+            }
+        };
+        derivatives.require<PressureGradient<Term>>(settings);
     }
 
     virtual void initialize(Storage& UNUSED(storage)) override {}
 
     virtual void finalize(Storage& storage) override {
-        ArrayView<const Float> p, rho, m;
-        tie(p, rho, m) =
-            storage.getValues<Float>(QuantityId::PRESSURE, QuantityId::DENSITY, QuantityId::MASS);
+        ArrayView<const Float> p, rho;
+        tie(p, rho) = storage.getValues<Float>(QuantityId::PRESSURE, QuantityId::DENSITY);
         ArrayView<Float> du = storage.getDt<Float>(QuantityId::ENERGY);
-
-        switch (variant) {
-        case FormulationEnum::BENZ_ASPHAUG: {
-            ArrayView<const Float> divv = storage.getValue<Float>(QuantityId::VELOCITY_DIVERGENCE);
-            parallelFor(0, du.size(), [&](const Size n1, const Size n2) INL {
-                for (Size i = n1; i < n2; ++i) {
-                    du[i] -= p[i] / rho[i] * divv[i];
-                }
-            });
-            break;
-        }
-        case FormulationEnum::STANDARD: {
-            ArrayView<const Float> rhoDivv = storage.getValue<Float>(QuantityId::DENSITY_VELOCITY_DIVERGENCE);
-            parallelFor(0, du.size(), [&](const Size n1, const Size n2) INL {
-                for (Size i = n1; i < n2; ++i) {
-                    du[i] -= p[i] / sqr(rho[i]) * rhoDivv[i];
-                }
-            });
-            break;
-        }
-        default:
-            NOT_IMPLEMENTED;
-        }
+        ArrayView<const Float> rhoDivv = storage.getValue<Float>(QuantityId::DENSITY_VELOCITY_DIVERGENCE);
+        parallelFor(0, du.size(), [&](const Size n1, const Size n2) INL {
+            for (Size i = n1; i < n2; ++i) {
+                du[i] -= p[i] / sqr(rho[i]) * rhoDivv[i];
+            }
+        });
     }
 
     virtual void create(Storage& storage, IMaterial& material) const override {
@@ -170,23 +133,55 @@ public:
         }
         const Float u0 = material.getParam<Float>(BodySettingsId::ENERGY);
         storage.insert<Float>(QuantityId::ENERGY, OrderEnum::FIRST, u0);
-        ASSERT(storage.getMaterialCnt() == 1);
         material.setRange(QuantityId::ENERGY, BodySettingsId::ENERGY_RANGE, BodySettingsId::ENERGY_MIN);
-        // need to create quantity for velocity divergence so that we can save it to storage later
-        switch (variant) {
-        case FormulationEnum::BENZ_ASPHAUG:
-            storage.insert<Float>(QuantityId::VELOCITY_DIVERGENCE, OrderEnum::ZERO, 0._f);
-            break;
-        case FormulationEnum::STANDARD:
-            storage.insert<Float>(QuantityId::DENSITY_VELOCITY_DIVERGENCE, OrderEnum::ZERO, 0._f);
-            break;
-        default:
-            NOT_IMPLEMENTED;
-        }
+        // need to create quantity for density velocity divergence so that we can save it to storage later
+        storage.insert<Float>(QuantityId::DENSITY_VELOCITY_DIVERGENCE, OrderEnum::ZERO, 0._f);
     }
 };
 
-template <FormulationEnum TVariant>
+class BenzAsphaugPressureForce : public IEquationTerm {
+public:
+    virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override {
+        derivatives.require<VelocityDivergence>(settings);
+
+        struct Term {
+            static Float term(ArrayView<const Float> p,
+                ArrayView<const Float> rho,
+                const Size i,
+                const Size j) {
+                return (p[i] + p[j]) / (rho[i] * rho[j]);
+            }
+        };
+        derivatives.require<PressureGradient<Term>>(settings);
+    }
+
+    virtual void initialize(Storage& UNUSED(storage)) override {}
+
+    virtual void finalize(Storage& storage) override {
+        ArrayView<const Float> p, rho;
+        tie(p, rho) = storage.getValues<Float>(QuantityId::PRESSURE, QuantityId::DENSITY);
+        ArrayView<Float> du = storage.getDt<Float>(QuantityId::ENERGY);
+        ArrayView<const Float> divv = storage.getValue<Float>(QuantityId::VELOCITY_DIVERGENCE);
+        parallelFor(0, du.size(), [&](const Size n1, const Size n2) INL {
+            for (Size i = n1; i < n2; ++i) {
+                du[i] -= p[i] / rho[i] * divv[i];
+            }
+        });
+    }
+
+    virtual void create(Storage& storage, IMaterial& material) const override {
+        if (!dynamic_cast<EosMaterial*>(&material)) {
+            throw InvalidSetup("PressureForce needs to be used with EosMaterial or derived");
+        }
+        const Float u0 = material.getParam<Float>(BodySettingsId::ENERGY);
+        storage.insert<Float>(QuantityId::ENERGY, OrderEnum::FIRST, u0);
+        material.setRange(QuantityId::ENERGY, BodySettingsId::ENERGY_RANGE, BodySettingsId::ENERGY_MIN);
+        storage.insert<Float>(QuantityId::VELOCITY_DIVERGENCE, OrderEnum::ZERO, 0._f);
+    }
+};
+
+
+template <typename TVariant>
 class StressDivergence : public DerivativeTemplate<StressDivergence<TVariant>> {
 private:
     ArrayView<const Float> rho, m;
@@ -209,32 +204,47 @@ public:
     }
 
     template <bool Symmetrize>
-    INLINE void eval(const Size i, ArrayView<const Size> neighs, ArrayView<const Vector> grads) {
-        ASSERT(neighs.size() == grads.size());
-        for (Size k = 0; k < neighs.size(); ++k) {
-            const Size j = neighs[k];
-            if (flag[i] != flag[j] || reduce[i] == 0._f || reduce[j] == 0._f) {
-                continue;
-            }
-            Vector f;
-            switch (TVariant) {
-            case FormulationEnum::STANDARD:
-                f = (s[i] / sqr(rho[i]) + s[j] / sqr(rho[j])) * grads[k];
-                break;
-            case FormulationEnum::BENZ_ASPHAUG:
-                f = (s[i] + s[j]) / (rho[i] * rho[j]) * grads[k];
-                break;
-            default:
-                NOT_IMPLEMENTED;
-            }
-            ASSERT(isReal(f));
-            dv[i] += m[j] * f;
-            if (Symmetrize) {
-                dv[j] -= m[i] * f;
-            }
+    INLINE void eval(const Size i, const Size j, const Vector& grad) {
+        if (flag[i] != flag[j] || reduce[i] == 0._f || reduce[j] == 0._f) {
+            return;
+        }
+        const Vector f = TVariant::term(s, rho, i, j) * grad;
+        ASSERT(isReal(f));
+        dv[i] += m[j] * f;
+        if (Symmetrize) {
+            dv[j] -= m[i] * f;
         }
     }
 };
+
+template <QuantityId GradId>
+class SolidStressForceBase : public IEquationTerm {
+protected:
+    bool useCorrectionTensor;
+
+public:
+    explicit SolidStressForceBase(const RunSettings& settings) {
+        // the correction tensor is associated with strength (density) velocity gradient, which we are
+        // creating in this term, so we need to also create the correction tensor (if requested)
+        useCorrectionTensor = settings.get<bool>(RunSettingsId::SPH_STRAIN_RATE_CORRECTION_TENSOR);
+    }
+
+    virtual void initialize(Storage& UNUSED(storage)) override {}
+
+    virtual void create(Storage& storage, IMaterial& material) const override {
+        const TracelessTensor s0 = material.getParam<TracelessTensor>(BodySettingsId::STRESS_TENSOR);
+        storage.insert<TracelessTensor>(QuantityId::DEVIATORIC_STRESS, OrderEnum::FIRST, s0);
+        const Float s_min = material.getParam<Float>(BodySettingsId::STRESS_TENSOR_MIN);
+        material.setRange(QuantityId::DEVIATORIC_STRESS, Interval::unbounded(), s_min);
+
+        storage.insert<SymmetricTensor>(GradId, OrderEnum::ZERO, SymmetricTensor::null());
+        if (useCorrectionTensor) {
+            storage.insert<SymmetricTensor>(
+                QuantityId::STRAIN_RATE_CORRECTION_TENSOR, OrderEnum::ZERO, SymmetricTensor::identity());
+        }
+    }
+};
+
 
 /// \brief Equation of motion for solid body and constitutive equation for the stress tensor
 /// (Hooke's law)
@@ -261,21 +271,67 @@ public:
 ///
 /// \attention The isotropic part of the force is NOT computed, it is necessary to use \ref
 /// PressureForce together with this equation.
-class SolidStressForce : public IEquationTerm {
-private:
-    bool useCorrectionTensor;
-
+class StandardSolidStressForce : public SolidStressForceBase<QuantityId::STRENGTH_DENSITY_VELOCITY_GRADIENT> {
 public:
-    explicit SolidStressForce(const RunSettings& settings) {
-        useCorrectionTensor = settings.get<bool>(RunSettingsId::SPH_STRAIN_RATE_CORRECTION_TENSOR);
-    }
+    using SolidStressForceBase<QuantityId::STRENGTH_DENSITY_VELOCITY_GRADIENT>::SolidStressForceBase;
 
     virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override {
-        requireVariant<StressDivergence>(derivatives, settings);
-        derivatives.require<StrengthVelocityGradient>(settings);
+        derivatives.require<StrengthDensityVelocityGradient>(settings);
+
+        struct Term {
+            static TracelessTensor term(ArrayView<const TracelessTensor> s,
+                ArrayView<const Float> rho,
+                const Size i,
+                const Size j) {
+                return s[i] / sqr(rho[i]) + s[j] / sqr(rho[j]);
+            }
+        };
+        derivatives.require<StressDivergence<Term>>(settings);
     }
 
-    virtual void initialize(Storage& UNUSED(storage)) override {}
+    virtual void finalize(Storage& storage) override {
+        ArrayView<Float> rho = storage.getValue<Float>(QuantityId::DENSITY);
+        ArrayView<TracelessTensor> s, ds;
+        tie(s, ds) = storage.getPhysicalAll<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
+        ArrayView<Float> du = storage.getDt<Float>(QuantityId::ENERGY);
+        ArrayView<SymmetricTensor> rhoGradv =
+            storage.getValue<SymmetricTensor>(QuantityId::STRENGTH_DENSITY_VELOCITY_GRADIENT);
+
+        for (Size matIdx = 0; matIdx < storage.getMaterialCnt(); ++matIdx) {
+            MaterialView material = storage.getMaterial(matIdx);
+            const Float mu = material->getParam<Float>(BodySettingsId::SHEAR_MODULUS);
+            IndexSequence seq = material.sequence();
+            parallelFor(*seq.begin(), *seq.end(), [&](const Size n1, const Size n2) INL {
+                for (Size i = n1; i < n2; ++i) {
+                    du[i] += 1._f / sqr(rho[i]) * ddot(s[i], rhoGradv[i]);
+                    /// \todo rotation rate tensor?
+                    TracelessTensor dev(
+                        rhoGradv[i] - SymmetricTensor::identity() * rhoGradv[i].trace() / 3._f);
+                    ds[i] += 2._f * mu / rho[i] * dev;
+                    ASSERT(isReal(du[i]) && isReal(ds[i]));
+                }
+            });
+        }
+    }
+};
+
+class BenzAsphaugSolidStressForce : public SolidStressForceBase<QuantityId::STRENGTH_VELOCITY_GRADIENT> {
+public:
+    using SolidStressForceBase<QuantityId::STRENGTH_VELOCITY_GRADIENT>::SolidStressForceBase;
+
+    virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override {
+        derivatives.require<StrengthVelocityGradient>(settings);
+
+        struct Term {
+            static TracelessTensor term(ArrayView<const TracelessTensor> s,
+                ArrayView<const Float> rho,
+                const Size i,
+                const Size j) {
+                return (s[i] + s[j]) / (rho[i] * rho[j]);
+            }
+        };
+        derivatives.require<StressDivergence<Term>>(settings);
+    }
 
     virtual void finalize(Storage& storage) override {
         ArrayView<Float> rho = storage.getValue<Float>(QuantityId::DENSITY);
@@ -300,22 +356,6 @@ public:
             });
         }
     }
-
-    virtual void create(Storage& storage, IMaterial& material) const override {
-        storage.insert<TracelessTensor>(QuantityId::DEVIATORIC_STRESS,
-            OrderEnum::FIRST,
-            material.getParam<TracelessTensor>(BodySettingsId::STRESS_TENSOR));
-        material.setRange(QuantityId::DEVIATORIC_STRESS,
-            Interval::unbounded(),
-            material.getParam<Float>(BodySettingsId::STRESS_TENSOR_MIN));
-
-        storage.insert<SymmetricTensor>(
-            QuantityId::STRENGTH_VELOCITY_GRADIENT, OrderEnum::ZERO, SymmetricTensor::null());
-        if (useCorrectionTensor) {
-            storage.insert<SymmetricTensor>(
-                QuantityId::STRAIN_RATE_CORRECTION_TENSOR, OrderEnum::ZERO, SymmetricTensor::identity());
-        }
-    }
 };
 
 /// \brief Navier-Stokes equation of motion
@@ -324,7 +364,8 @@ public:
 class NavierStokesForce : public IEquationTerm {
 public:
     virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override {
-        requireVariant<StressDivergence>(derivatives, settings);
+        /// derivatives.require<StressDivergence>(derivatives, settings);
+        TODO("implement");
         // no need to do 'hacks' with gradient for fluids
         derivatives.require<VelocityGradient>(settings);
     }
@@ -381,47 +422,11 @@ public:
 /// Solver must use either this equation or some custom density computation, such as direct
 /// summation (see \ref SummationSolver) or SPH formulation without solving the density (see \ref
 /// DensityIndependentSolver).
-class ContinuityEquation : public IEquationTerm {
-private:
-    enum class Options {
-        /// All particles contribute to the density derivative (default option)
-        FLUID = 0,
-
-        /// Only particles from the same body OR fully damaged particles contribute
-        /// \todo possibly allow per-material settings here
-        SOLID = 1 << 0,
-    };
-
-    Flags<Options> flags;
-
-    FormulationEnum variant;
-
+class StandardContinuityEquation : public IEquationTerm {
 public:
-    explicit ContinuityEquation(const RunSettings& settings) {
-        flags.setIf(Options::SOLID, settings.get<bool>(RunSettingsId::MODEL_FORCE_SOLID_STRESS));
-
-        variant = settings.get<FormulationEnum>(RunSettingsId::SPH_FORMULATION);
-    }
-
     virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override {
-        switch (variant) {
-        case FormulationEnum::STANDARD:
-            // standard formulation of the continuity equation: \dot \rho_i = \sum_j m_j \nabla
-            // \cdot \vec v
-            derivatives.require<DensityVelocityDivergence>(settings);
-            break;
-        case FormulationEnum::BENZ_ASPHAUG:
-            // this formulation uses equation \dot \rho_i = m_i \sum_j m_j/rho_j \nabla \cdot \vec
-            // v where the velocity divergence is taken either directly, or as a trace of strength
-            // velocity gradient, see below.
-            derivatives.require<VelocityDivergence>(settings);
-            if (flags.has(Options::SOLID)) {
-                derivatives.require<StrengthVelocityGradient>(settings);
-            }
-            break;
-        default:
-            NOT_IMPLEMENTED;
-        }
+        // standard formulation of the continuity equation: \dot \rho_i = \sum_j m_j \nabla \cdot \vec v
+        derivatives.require<DensityVelocityDivergence>(settings);
     }
 
     virtual void initialize(Storage& UNUSED(storage)) override {}
@@ -429,45 +434,13 @@ public:
     virtual void finalize(Storage& storage) override {
         ArrayView<Float> rho, drho;
         tie(rho, drho) = storage.getAll<Float>(QuantityId::DENSITY);
-
-        switch (variant) {
-        case FormulationEnum::BENZ_ASPHAUG: {
-            ArrayView<const Float> divv = storage.getValue<Float>(QuantityId::VELOCITY_DIVERGENCE);
-            if (flags.has(Options::SOLID)) {
-                ArrayView<const Float> reduce = storage.getValue<Float>(QuantityId::STRESS_REDUCING);
-                ArrayView<const SymmetricTensor> gradv =
-                    storage.getValue<SymmetricTensor>(QuantityId::STRENGTH_VELOCITY_GRADIENT);
-                parallelFor(0, rho.size(), [&](const Size n1, const Size n2) INL {
-                    for (Size i = n1; i < n2; ++i) {
-                        if (reduce[i] != 0._f) {
-                            drho[i] = -rho[i] * gradv[i].trace();
-                        } else {
-                            drho[i] = -rho[i] * divv[i];
-                        }
-                    }
-                });
-            } else {
-                parallelFor(0, rho.size(), [&](const Size n1, const Size n2) INL {
-                    for (Size i = n1; i < n2; ++i) {
-                        drho[i] = -rho[i] * divv[i];
-                    }
-                });
+        ArrayView<const Float> rhoDivv = storage.getValue<Float>(QuantityId::DENSITY_VELOCITY_DIVERGENCE);
+        /// \todo here we could accumulate directly into the density derivative
+        parallelFor(0, rho.size(), [&](const Size n1, const Size n2) INL {
+            for (Size i = n1; i < n2; ++i) {
+                drho[i] = -rhoDivv[i];
             }
-            break;
-        }
-        case FormulationEnum::STANDARD: {
-            ArrayView<const Float> rhoDivv = storage.getValue<Float>(QuantityId::DENSITY_VELOCITY_DIVERGENCE);
-            /// \todo here we could accumulate directly into the density derivative
-            parallelFor(0, rho.size(), [&](const Size n1, const Size n2) INL {
-                for (Size i = n1; i < n2; ++i) {
-                    drho[i] = -rhoDivv[i];
-                }
-            });
-            break;
-        }
-        default:
-            NOT_IMPLEMENTED;
-        }
+        });
     }
 
     virtual void create(Storage& storage, IMaterial& material) const override {
@@ -475,18 +448,47 @@ public:
         storage.insert<Float>(QuantityId::DENSITY, OrderEnum::FIRST, rho0);
         material.setRange(QuantityId::DENSITY, BodySettingsId::DENSITY_RANGE, BodySettingsId::DENSITY_MIN);
 
-        /// \todo would make more sense to split the formulations into different EquationTerms,
-        /// and have getStandardEquations / getBenzAsphaugEquation (or something) instead
-        switch (variant) {
-        case FormulationEnum::BENZ_ASPHAUG:
-            storage.insert<Float>(QuantityId::VELOCITY_DIVERGENCE, OrderEnum::ZERO, 0._f);
-            break;
-        case FormulationEnum::STANDARD:
-            storage.insert<Float>(QuantityId::DENSITY_VELOCITY_DIVERGENCE, OrderEnum::ZERO, 0._f);
-            break;
-        default:
-            NOT_IMPLEMENTED;
-        }
+        storage.insert<Float>(QuantityId::DENSITY_VELOCITY_DIVERGENCE, OrderEnum::ZERO, 0._f);
+    }
+};
+
+
+class BenzAsphaugContinuityEquation : public IEquationTerm {
+public:
+    virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override {
+        // this formulation uses equation \dot \rho_i = m_i \sum_j m_j/rho_j \nabla \cdot \vec  v where the
+        // velocity divergence is taken either directly, or as a trace of strength velocity gradient, see
+        // below.
+        derivatives.require<VelocityDivergence>(settings);
+        derivatives.require<StrengthVelocityGradient>(settings);
+    }
+
+    virtual void initialize(Storage& UNUSED(storage)) override {}
+
+    virtual void finalize(Storage& storage) override {
+        ArrayView<Float> rho, drho;
+        tie(rho, drho) = storage.getAll<Float>(QuantityId::DENSITY);
+        ArrayView<const Float> divv = storage.getValue<Float>(QuantityId::VELOCITY_DIVERGENCE);
+        ArrayView<const SymmetricTensor> gradv =
+            storage.getValue<SymmetricTensor>(QuantityId::STRENGTH_VELOCITY_GRADIENT);
+        ArrayView<const Float> reduce = storage.getValue<Float>(QuantityId::STRESS_REDUCING);
+
+        parallelFor(0, rho.size(), [&](const Size n1, const Size n2) INL {
+            for (Size i = n1; i < n2; ++i) {
+                if (reduce[i] != 0._f) {
+                    drho[i] = -rho[i] * gradv[i].trace();
+                } else {
+                    drho[i] = -rho[i] * divv[i];
+                }
+            }
+        });
+    }
+
+    virtual void create(Storage& storage, IMaterial& material) const override {
+        const Float rho0 = material.getParam<Float>(BodySettingsId::DENSITY);
+        storage.insert<Float>(QuantityId::DENSITY, OrderEnum::FIRST, rho0);
+        material.setRange(QuantityId::DENSITY, BodySettingsId::DENSITY_RANGE, BodySettingsId::DENSITY_MIN);
+        storage.insert<Float>(QuantityId::VELOCITY_DIVERGENCE, OrderEnum::ZERO, 0._f);
     }
 };
 
@@ -506,34 +508,31 @@ public:
 /// RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH. The allowed range of neighbours is then controlled
 /// by RunSettingsId::SPH_NEIGHBOUR_RANGE. Note that the number of neighbours is not guaranteed to
 /// be in the given range, the actual number of neighbours cannot be precisely controlled.
-class AdaptiveSmoothingLength : public IEquationTerm {
-private:
+class AdaptiveSmoothingLengthBase : public IEquationTerm {
+protected:
+    /// Number of spatial dimensions of the simulation. This should match the dimensions of the SPH kernel.
+    Size dimensions;
+
+    /// Minimal allowed value of the smoothing length
+    Float minimal;
+
     struct {
         Float strength;
         Interval range;
     } enforcing;
 
-    Size dimensions;
-    Float minimal;
-
 public:
-    explicit AdaptiveSmoothingLength(const RunSettings& settings, const Size dimensions = DIMENSIONS)
+    explicit AdaptiveSmoothingLengthBase(const RunSettings& settings, const Size dimensions = DIMENSIONS)
         : dimensions(dimensions) {
-        Flags<SmoothingLengthEnum> flags = Flags<SmoothingLengthEnum>::fromValue(
-            settings.get<int>(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH));
-        MARK_USED(flags);
-        if (false) { // flags.has(SmoothingLengthEnum::SOUND_SPEED_ENFORCING)) {
+        Flags<SmoothingLengthEnum> flags =
+            settings.getFlags<SmoothingLengthEnum>(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH);
+        if (flags.has(SmoothingLengthEnum::SOUND_SPEED_ENFORCING)) {
             enforcing.strength = settings.get<Float>(RunSettingsId::SPH_NEIGHBOUR_ENFORCING);
             enforcing.range = settings.get<Interval>(RunSettingsId::SPH_NEIGHBOUR_RANGE);
         } else {
             enforcing.strength = -INFTY;
         }
         minimal = settings.get<Float>(RunSettingsId::SPH_SMOOTHING_LENGTH_MIN);
-    }
-
-    virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override {
-        /// \todo needs to respect the formulation; same for energy derivatives !!!
-        derivatives.require<VelocityDivergence>(settings);
     }
 
     virtual void initialize(Storage& storage) override {
@@ -580,6 +579,104 @@ public:
                     }
                 }
                 ASSERT(isReal(v[i]));
+            }
+        });
+    }
+
+    INLINE void enforce(ArrayView<Vector> v,
+        ArrayView<const Float> cs,
+        ArrayView<const Size> neighCnt,
+        const Size i) {
+        if (enforcing.strength <= -1.e2_f) {
+            // too weak enforcing, effectively has no effect
+            return;
+        }
+
+        // check upper limit of neighbour count
+        const Float dn1 = neighCnt[i] - enforcing.range.upper();
+        ASSERT(dn1 < neighCnt.size());
+        if (dn1 > 0._f) {
+            // sound speed is used to add correct dimensions to the term
+            v[i][H] -= exp(enforcing.strength * dn1) * cs[i];
+            return;
+        }
+        // check lower limit of neighbour count
+        const Float dn2 = enforcing.range.lower() - neighCnt[i];
+        ASSERT(dn2 < neighCnt.size());
+        if (dn2 > 0._f) {
+            v[i][H] += exp(enforcing.strength * dn2) * cs[i];
+        }
+
+        ASSERT(isReal(v[i]));
+    }
+};
+
+class StandardAdaptiveSmoothingLength : public AdaptiveSmoothingLengthBase {
+public:
+    using AdaptiveSmoothingLengthBase::AdaptiveSmoothingLengthBase;
+
+    virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override {
+        derivatives.require<DensityVelocityDivergence>(settings);
+    }
+
+    virtual void finalize(Storage& storage) override {
+        ArrayView<const Float> rhoDivv, cs, rho;
+        tie(rhoDivv, cs, rho) = storage.getValues<Float>(
+            QuantityId::DENSITY_VELOCITY_DIVERGENCE, QuantityId::SOUND_SPEED, QuantityId::DENSITY);
+        ArrayView<const Size> neighCnt = storage.getValue<Size>(QuantityId::NEIGHBOUR_CNT);
+        ArrayView<Vector> r, v, dv;
+        tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
+        parallelFor(0, r.size(), [&](const Size n1, const Size n2) INL {
+            for (Size i = n1; i < n2; ++i) {
+                // 'continuity equation' for smoothing lengths
+                if (r[i][H] > 2._f * minimal) {
+                    v[i][H] = r[i][H] / dimensions * rhoDivv[i] / rho[i];
+                } else {
+                    v[i][H] = 0._f;
+                }
+
+                /// \todo generalize for grad v
+                // no acceleration of smoothing lengths (we evolve h as first-order quantity)
+                dv[i][H] = 0._f;
+
+                this->enforce(v, cs, neighCnt, i);
+            }
+        });
+    }
+
+    virtual void create(Storage& storage, IMaterial& UNUSED(material)) const override {
+        storage.insert<Float>(QuantityId::DENSITY_VELOCITY_DIVERGENCE, OrderEnum::ZERO, 0._f);
+    }
+};
+
+class BenzAsphaugAdaptiveSmoothingLength : public AdaptiveSmoothingLengthBase {
+public:
+    using AdaptiveSmoothingLengthBase::AdaptiveSmoothingLengthBase;
+
+    virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override {
+        derivatives.require<VelocityDivergence>(settings);
+    }
+
+    virtual void finalize(Storage& storage) override {
+        ArrayView<const Float> divv = storage.getValue<Float>(QuantityId::VELOCITY_DIVERGENCE);
+        ArrayView<const Float> cs = storage.getValue<Float>(QuantityId::SOUND_SPEED);
+        ArrayView<const Size> neighCnt = storage.getValue<Size>(QuantityId::NEIGHBOUR_CNT);
+        ArrayView<Vector> r, v, dv;
+        tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
+        parallelFor(0, r.size(), [&](const Size n1, const Size n2) INL {
+            for (Size i = n1; i < n2; ++i) {
+                // 'continuity equation' for smoothing lengths
+                if (r[i][H] > 2._f * minimal) {
+                    v[i][H] = r[i][H] / dimensions * divv[i];
+                } else {
+                    v[i][H] = 0._f;
+                }
+
+                /// \todo generalize for grad v
+                // no acceleration of smoothing lengths (we evolve h as first-order quantity)
+                dv[i][H] = 0._f;
+
+                this->enforce(v, cs, neighCnt, i);
             }
         });
     }

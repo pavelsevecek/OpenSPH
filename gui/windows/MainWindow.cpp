@@ -69,6 +69,32 @@ wxBoxSizer* MainWindow::createToolbar(Controller* parent) {
     toolbar->Add(button);
     button->Bind(wxEVT_BUTTON, [parent](wxCommandEvent& UNUSED(evt)) { parent->stop(); });
 
+
+    static wxString fileDesc = "SPH state files (*.ssf)|*.ssf";
+    button = new wxButton(this, wxID_ANY, "Save");
+    toolbar->Add(button);
+    button->Bind(wxEVT_BUTTON, [parent, this](wxCommandEvent& UNUSED(evt)) {
+        wxFileDialog saveFileDialog(
+            this, _("Save state file"), "", "", fileDesc, wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+        if (saveFileDialog.ShowModal() == wxID_CANCEL) {
+            return;
+        }
+        const std::string path(saveFileDialog.GetPath());
+        parent->saveState(Path(path).replaceExtension("ssf"));
+    });
+
+    button = new wxButton(this, wxID_ANY, "Load");
+    toolbar->Add(button);
+    button->Bind(wxEVT_BUTTON, [parent, this](wxCommandEvent& UNUSED(evt)) {
+        wxFileDialog loadFileDialog(
+            this, _("Load state file"), "", "", fileDesc, wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+        if (loadFileDialog.ShowModal() == wxID_CANCEL) {
+            return;
+        }
+        const std::string path(loadFileDialog.GetPath());
+        parent->loadState(Path(path).replaceExtension("ssf"));
+    });
+
     quantityBox = new wxComboBox(this, int(ControlIds::QUANTITY_BOX), "");
     quantityBox->SetWindowStyle(wxCB_SIMPLE | wxCB_READONLY);
     quantityBox->SetSelection(0);

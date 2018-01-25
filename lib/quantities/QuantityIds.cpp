@@ -73,6 +73,10 @@ QuantityMetadata getMetadata(const QuantityId key) {
     case QuantityId::DENSITY_VELOCITY_DIVERGENCE:
         return QuantityMetadata(
             "Density velocity divergence", L"\u03C1\u2207\u22C5v" /*rho nabla cdot v*/, ValueEnum::SCALAR);
+    case QuantityId::STRENGTH_DENSITY_VELOCITY_GRADIENT:
+        return QuantityMetadata("Strength density velocity gradient",
+            L"\u03C1\u2207v" /*rho nabla v*/,
+            ValueEnum::SYMMETRIC_TENSOR);
     case QuantityId::AV_ALPHA:
         return QuantityMetadata("AV alpha", L"\u03B1_AV" /*alpha_AV*/, ValueEnum::SCALAR);
     case QuantityId::AV_BETA:

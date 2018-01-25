@@ -257,7 +257,7 @@ AutoPtr<ICollisionHandler> Factory::getOverlapHandler(const RunSettings& setting
     case OverlapEnum::FORCE_MERGE:
         return makeAuto<PerfectMergingHandler>(0._f);
     case OverlapEnum::REPEL:
-        return makeAuto<RepelHandler>();
+        return makeAuto<RepelHandler>(settings);
     default:
         NOT_IMPLEMENTED;
     }

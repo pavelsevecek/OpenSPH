@@ -29,7 +29,7 @@ public:
     }
 
     class Proxy {
-        template <typename>
+        template <typename, typename>
         friend class Locking;
 
     private:
@@ -47,7 +47,15 @@ public:
             , lock(std::move(other.lock)) {}
 
         T* operator->() const {
-            return &value
+            return &value;
+        }
+
+        T& get() {
+            return value;
+        }
+
+        const T& get() const {
+            return value;
         }
 
         bool isLocked() {
@@ -61,11 +69,11 @@ public:
         }
     };
 
-    Proxy lock() const {
+    Proxy lock() {
         return Proxy(value, mutex);
     }
 
-    Proxy operator->() const {
+    Proxy operator->() {
         return this->lock();
     }
 };

@@ -68,7 +68,9 @@ public:
     /// Prepares the run, sets all initial conditions, creates logger, output, ...
     virtual void setUp() = 0;
 
-    /// Starts the run
+    /// \brief Starts the run.
+    ///
+    /// Function assumes that \ref setUp has been called (at least once).
     void run();
 
     SharedPtr<Storage> getStorage() const;

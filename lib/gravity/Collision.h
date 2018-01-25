@@ -5,10 +5,10 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2018
 
+#include "objects/containers/FlatSet.h"
 #include "physics/Functions.h"
 #include "quantities/Storage.h"
 #include "system/Settings.h"
-#include <set>
 
 NAMESPACE_SPH_BEGIN
 
@@ -43,7 +43,7 @@ public:
     /// \todo Needs to be generatelized for fragmentation handlers. Currently the function CANNOT change the
     /// number of particles as it would invalidate arrayviews and we would lost the track of i-th and j-th
     /// particle (which we need for decreasing movement time).
-    virtual CollisionResult collide(const Size i, const Size j, std::set<Size>& toRemove) = 0;
+    virtual CollisionResult collide(const Size i, const Size j, FlatSet<Size>& toRemove) = 0;
 };
 
 /// \brief Helper class, similar to ArrayView, but actually holding a reference to the array itself.
@@ -109,7 +109,7 @@ public:
 
     virtual CollisionResult collide(const Size UNUSED(i),
         const Size UNUSED(j),
-        std::set<Size>& UNUSED(toRemove)) override {
+        FlatSet<Size>& UNUSED(toRemove)) override {
         return CollisionResult::NONE;
     }
 };
@@ -140,15 +140,15 @@ public:
         I = storage.getValue<SymmetricTensor>(QuantityId::MOMENT_OF_INERTIA);
     }
 
-    virtual CollisionResult collide(const Size i, const Size j, std::set<Size>& toRemove) override {
+    virtual CollisionResult collide(const Size i, const Size j, FlatSet<Size>& toRemove) override {
         // set radius of the merger so that the volume is conserved
-        const Float h_merger = r[i][H]; // root<3>(pow<3>(r[i][H]) + pow<3>(r[j][H]));
+        const Float h_merger = root<3>(pow<3>(r[i][H]) + pow<3>(r[j][H]));
 
         // conserve total mass
         const Float m_merger = m[i] + m[j];
 
         // merge so that the center of mass remains unchanged
-        const Vector r_merger = r[i]; // weightedAverage(r[i], m[i], r[j], m[j]);
+        const Vector r_merger = weightedAverage(r[i], m[i], r[j], m[j]);
 
         // converve momentum
         const Vector v_merger = weightedAverage(v[i], m[i], v[j], m[j]);
@@ -240,7 +240,7 @@ public:
         m = storage.getValue<Float>(QuantityId::MASS);
     }
 
-    virtual CollisionResult collide(const Size i, const Size j, std::set<Size>& UNUSED(toRemove)) override {
+    virtual CollisionResult collide(const Size i, const Size j, FlatSet<Size>& UNUSED(toRemove)) override {
         const Vector dr = getNormalized(r[i] - r[j]);
         const Vector v_com = (m[i] * v[i] + m[j] * v[j]) / (m[i] + m[j]);
         v[i] = this->reflect(v[i], v_com, -dr);
@@ -269,10 +269,13 @@ private:
 
 class RepelHandler : public ElasticBounceHandler {
 public:
-    RepelHandler()
-        : ElasticBounceHandler(0.1_f, 1._f) {}
+    explicit RepelHandler(const RunSettings& settings)
+        : ElasticBounceHandler(settings) {}
 
-    virtual CollisionResult collide(const Size i, const Size j, std::set<Size>& toRemove) override {
+    RepelHandler(const Float n, const Float t)
+        : ElasticBounceHandler(n, t) {}
+
+    virtual CollisionResult collide(const Size i, const Size j, FlatSet<Size>& toRemove) override {
         Vector dir;
         Float dist;
         tieToTuple(dir, dist) = getNormalizedWithLength(r[i] - r[j]);
@@ -309,10 +312,9 @@ public:
         fallback.initialize(storage);
     }
 
-    virtual CollisionResult collide(const Size i, const Size j, std::set<Size>& toRemove) override {
+    virtual CollisionResult collide(const Size i, const Size j, FlatSet<Size>& toRemove) override {
         CollisionResult result = primary.collide(i, j, toRemove);
         if (result == CollisionResult::NONE) {
-            ASSERT(toRemove.empty());
             return fallback.collide(i, j, toRemove);
         } else {
             return result;
@@ -324,7 +326,7 @@ class FragmentationHandler : public ICollisionHandler {
 public:
     // ParametricRelations, directionality of fragments
 
-    virtual CollisionResult collide(const Size i, const Size j, std::set<Size>& UNUSED(toRemove)) override {
+    virtual CollisionResult collide(const Size i, const Size j, FlatSet<Size>& UNUSED(toRemove)) override {
         (void)i;
         (void)j;
         /// \todo

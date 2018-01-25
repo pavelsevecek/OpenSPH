@@ -52,6 +52,7 @@ void AsymmetricSolver::integrate(Storage& storage, Statistics& stats) {
 void AsymmetricSolver::create(Storage& storage, IMaterial& material) const {
     storage.insert<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO, 0);
     equations.create(storage, material);
+    this->sanityCheck(storage);
 }
 
 void AsymmetricSolver::loop(Storage& storage, Statistics& stats) {
@@ -105,6 +106,33 @@ void AsymmetricSolver::loop(Storage& storage, Statistics& stats) {
         neighsStats.accumulate(neighs[i]);
     }
     stats.set(StatisticsId::NEIGHBOUR_COUNT, neighsStats);
+}
+
+void AsymmetricSolver::sanityCheck(const Storage& storage) const {
+    /// \todo deduplicate ?
+
+    // we must solve smoothing length somehow
+    if (!equations.contains<StandardAdaptiveSmoothingLength>() &&
+        !equations.contains<BenzAsphaugAdaptiveSmoothingLength>() &&
+        !equations.contains<ConstSmoothingLength>()) {
+        throw InvalidSetup(
+            "No solver of smoothing length specified; add either ConstSmootingLength or "
+            "AdaptiveSmootingLength into the list of equations");
+    }
+
+    // check for incompatible quantities
+    if (storage.has(QuantityId::VELOCITY_DIVERGENCE) &&
+        storage.has(QuantityId::DENSITY_VELOCITY_DIVERGENCE)) {
+        throw InvalidSetup(
+            "Storage contains both velocity divergence and density velocity divergence, this probably means "
+            "that equations from different SPH formulations are used together.");
+    }
+    if (storage.has(QuantityId::STRENGTH_VELOCITY_GRADIENT) &&
+        storage.has(QuantityId::STRENGTH_DENSITY_VELOCITY_GRADIENT)) {
+        throw InvalidSetup(
+            "Storage contains both strength velocity gradient and density strength velocity gradient, this "
+            "probably means that equations from different SPH formulations are used together.");
+    }
 }
 
 NAMESPACE_SPH_END

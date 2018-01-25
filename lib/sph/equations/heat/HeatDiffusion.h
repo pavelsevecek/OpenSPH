@@ -26,14 +26,11 @@ public:
     }
 
     template <bool Symmetric>
-    INLINE void eval(const Size i, ArrayView<const Size> neighs, ArrayView<const Vector> grads) {
-        for (Size k = 0; k < neighs.size(); ++k) {
-            const Size j = neighs[k];
-            const Float f = laplacian(u[j] - u[i], r[j] - r[i], grads[k]);
-            du[i] -= m[j] / rho[j] * f;
-            if (Symmetric) {
-                du[j] += m[i] / rho[i] * f;
-            }
+    INLINE void eval(const Size i, const Size j, const Vector& grad) {
+        const Float f = laplacian(u[j] - u[i], r[j] - r[i], grad);
+        du[i] -= m[j] / rho[j] * f;
+        if (Symmetric) {
+            du[j] += m[i] / rho[i] * f;
         }
     }
 };
