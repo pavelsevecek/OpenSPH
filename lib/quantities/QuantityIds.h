@@ -98,6 +98,10 @@ enum class QuantityId {
     /// rotation.
     ANGULAR_VELOCITY,
 
+    /// Angular momentum of particles. Useful replacement of angular velocity quantity as angular momentum is
+    /// always conserved.
+    ANGULAR_MOMENTUM,
+
     /// Current rotation state of the particles. This is only needed for testing purposes, as SPH particles
     /// are spherically symmetric.
     PHASE_ANGLE,

@@ -78,7 +78,7 @@ void AsymmetricSolver::loop(Storage& storage, Statistics& stats) {
             for (auto& n : data.neighs) {
                 const Size j = n.index;
                 const Float hbar = 0.5_f * (r[i][H] + r[j][H]);
-                ASSERT(hbar > EPS && hbar <= r[i][H], hbar, r[i][H]);
+                ASSERT(hbar > EPS, hbar);
                 if (i == j || getSqrLength(r[i] - r[j]) >= sqr(this->kernel.radius() * hbar)) {
                     // aren't actual neighbours
                     continue;
@@ -112,8 +112,8 @@ void AsymmetricSolver::sanityCheck(const Storage& storage) const {
     /// \todo deduplicate ?
 
     // we must solve smoothing length somehow
-    if (!equations.contains<StandardAdaptiveSmoothingLength>() &&
-        !equations.contains<BenzAsphaugAdaptiveSmoothingLength>() &&
+    if (!equations.contains<StandardSph::AdaptiveSmoothingLength>() &&
+        !equations.contains<BenzAsphaugSph::AdaptiveSmoothingLength>() &&
         !equations.contains<ConstSmoothingLength>()) {
         throw InvalidSetup(
             "No solver of smoothing length specified; add either ConstSmootingLength or "
@@ -121,18 +121,15 @@ void AsymmetricSolver::sanityCheck(const Storage& storage) const {
     }
 
     // check for incompatible quantities
-    if (storage.has(QuantityId::VELOCITY_DIVERGENCE) &&
-        storage.has(QuantityId::DENSITY_VELOCITY_DIVERGENCE)) {
-        throw InvalidSetup(
-            "Storage contains both velocity divergence and density velocity divergence, this probably means "
-            "that equations from different SPH formulations are used together.");
-    }
     if (storage.has(QuantityId::STRENGTH_VELOCITY_GRADIENT) &&
         storage.has(QuantityId::STRENGTH_DENSITY_VELOCITY_GRADIENT)) {
         throw InvalidSetup(
             "Storage contains both strength velocity gradient and density strength velocity gradient, this "
             "probably means that equations from different SPH formulations are used together.");
     }
+
+    // we allow both velocity divergence and density velocity divergence as the former can be used by some
+    // terms (e.g. Balsara switch) even in Standard formulation
 }
 
 NAMESPACE_SPH_END

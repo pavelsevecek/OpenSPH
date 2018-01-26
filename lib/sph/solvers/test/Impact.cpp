@@ -14,20 +14,9 @@
 
 using namespace Sph;
 
-TYPED_TEST_CASE_2("Impact", "[impact]]", TSolver, SymmetricSolver, AsymmetricSolver) {
-    // Check that first two steps of impact work as expected.
-
-    RunSettings settings;
-    settings.set(RunSettingsId::MODEL_FORCE_SOLID_STRESS, true);
-    settings.set(RunSettingsId::SPH_FORMULATION,
-        FormulationEnum::BENZ_ASPHAUG); /// \todo Fix standard formulation as well !!!
-    EquationHolder eqs;
-    /// \todo refactor, avoid adding ConstSmoothingLength term
-    eqs += makeTerm<BenzAsphaugPressureForce>() + makeTerm<BenzAsphaugSolidStressForce>(settings) +
-           makeTerm<StandardAV>() + makeTerm<BenzAsphaugContinuityEquation>() +
-           makeTerm<ConstSmoothingLength>();
+template <typename TSolver>
+static void runImpact(EquationHolder eqs, const RunSettings& settings) {
     TSolver solver(settings, std::move(eqs));
-
     SharedPtr<Storage> storage = makeShared<Storage>();
     InitialConditions initial(solver, settings);
     BodySettings body;
@@ -51,8 +40,11 @@ TYPED_TEST_CASE_2("Impact", "[impact]]", TSolver, SymmetricSolver, AsymmetricSol
 
     timestepping.step(solver, stats);
 
-    ArrayView<SymmetricTensor> gradv =
-        storage->getValue<SymmetricTensor>(QuantityId::STRENGTH_VELOCITY_GRADIENT);
+    FormulationEnum formulation = settings.get<FormulationEnum>(RunSettingsId::SPH_FORMULATION);
+    QuantityId gradId = (formulation == FormulationEnum::BENZ_ASPHAUG)
+                            ? QuantityId::STRENGTH_VELOCITY_GRADIENT
+                            : QuantityId::STRENGTH_DENSITY_VELOCITY_GRADIENT;
+    ArrayView<SymmetricTensor> gradv = storage->getValue<SymmetricTensor>(gradId);
     ArrayView<TracelessTensor> s, ds;
     tie(s, ds) = storage->getAll<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
     ArrayView<Float> rho, drho;
@@ -70,7 +62,7 @@ TYPED_TEST_CASE_2("Impact", "[impact]]", TSolver, SymmetricSolver, AsymmetricSol
     timestepping.step(solver, stats);
 
     // arrayviews must be reset as they might be (and were) invalidated
-    gradv = storage->getValue<SymmetricTensor>(QuantityId::STRENGTH_VELOCITY_GRADIENT);
+    gradv = storage->getValue<SymmetricTensor>(gradId);
     tie(s, ds) = storage->getAll<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
     tie(rho, drho) = storage->getAll<Float>(QuantityId::DENSITY);
     // not all particles will be affected by the impact yet; count number of nonzero particles
@@ -95,9 +87,32 @@ TYPED_TEST_CASE_2("Impact", "[impact]]", TSolver, SymmetricSolver, AsymmetricSol
 }
 
 TYPED_TEST_CASE_2("Impact standard SPH", "[impact]]", TSolver, SymmetricSolver, AsymmetricSolver) {
+    // Check that first two steps of impact work as expected.
+
+    RunSettings settings;
+    settings.set(RunSettingsId::MODEL_FORCE_PRESSURE_GRADIENT, true);
+    settings.set(RunSettingsId::MODEL_FORCE_SOLID_STRESS, true);
+    settings.set(RunSettingsId::SPH_AV_TYPE, ArtificialViscosityEnum::STANDARD);
+    settings.set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONST);
+    settings.set(RunSettingsId::SPH_FORMULATION, FormulationEnum::STANDARD);
+    EquationHolder eqs = getStandardEquations(settings);
+
+    runImpact<TSolver>(std::move(eqs), settings);
+}
+
+TYPED_TEST_CASE_2("Impact B&A SPH", "[impact]]", TSolver, SymmetricSolver, AsymmetricSolver) {
     /// \todo remaining fixes of standard SPH
     /// - use density divv in energy derivative and smoothing length derivative, test that no other term
     /// requires divv !
     /// - use the same trick as B&A formulation for integration of density, so that the test above passes
-    std::cout << "NOT IMPLEMENTED YET" << std::endl;
+
+    RunSettings settings;
+    settings.set(RunSettingsId::MODEL_FORCE_PRESSURE_GRADIENT, true);
+    settings.set(RunSettingsId::MODEL_FORCE_SOLID_STRESS, true);
+    settings.set(RunSettingsId::SPH_AV_TYPE, ArtificialViscosityEnum::STANDARD);
+    settings.set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONST);
+    settings.set(RunSettingsId::SPH_FORMULATION, FormulationEnum::BENZ_ASPHAUG);
+    EquationHolder eqs = getBenzAsphaugEquations(settings);
+
+    runImpact<TSolver>(std::move(eqs), settings);
 }

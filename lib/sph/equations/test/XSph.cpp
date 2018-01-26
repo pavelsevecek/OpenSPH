@@ -14,9 +14,11 @@ TEST_CASE("XSph", "[solvers]") {
     EquationHolder eqs;
     RunSettings settings;
     settings.set(RunSettingsId::MODEL_FORCE_SOLID_STRESS, false);
-    eqs += makeTerm<BenzAsphaugPressureForce>() + makeTerm<BenzAsphaugContinuityEquation>() +
-           makeTerm<XSph>() + makeTerm<ConstSmoothingLength>();
-    SymmetricSolver solver(RunSettings::getDefaults(), std::move(eqs));
+
+    using namespace BenzAsphaugSph;
+    eqs += makeTerm<PressureForce>() + makeTerm<ContinuityEquation>() + makeTerm<XSph>() +
+           makeTerm<ConstSmoothingLength>();
+    SymmetricSolver solver(settings, std::move(eqs));
     REQUIRE_NOTHROW(solver.create(storage, storage.getMaterial(0)));
     Statistics stats;
     REQUIRE_NOTHROW(solver.integrate(storage, stats));

@@ -63,14 +63,70 @@ static void printHeader(std::ostream& ofs, const std::string& name, const ValueE
     }
 }
 
+static void addBasicColumns(Array<AutoPtr<ITextColumn>>& columns) {
+    columns.push(makeAuto<ParticleNumberColumn>());
+    columns.push(makeAuto<ValueColumn<Vector>>(QuantityId::POSITION));
+    columns.push(makeAuto<DerivativeColumn<Vector>>(QuantityId::POSITION));
+    columns.push(makeAuto<ValueColumn<Float>>(QuantityId::MASS));
+}
+
+static void addExtendedColumns(Array<AutoPtr<ITextColumn>>& columns) {
+    addBasicColumns(columns);
+
+    columns.push(makeAuto<SmoothingLengthColumn>());
+    columns.push(makeAuto<ValueColumn<Float>>(QuantityId::DENSITY));
+    columns.push(makeAuto<ValueColumn<Float>>(QuantityId::PRESSURE));
+    columns.push(makeAuto<ValueColumn<Float>>(QuantityId::ENERGY));
+    columns.push(makeAuto<ValueColumn<Float>>(QuantityId::DAMAGE));
+    columns.push(makeAuto<ValueColumn<TracelessTensor>>(QuantityId::DEVIATORIC_STRESS));
+}
+
+struct DumpAllVisitor {
+    template <typename TValue>
+    void visit(QuantityId id, Array<AutoPtr<ITextColumn>>& columns) {
+        columns.push(makeAuto<ValueColumn<TValue>>(id));
+    }
+};
+
+TextOutput::TextOutput(const Flags<Options> flags)
+    : flags(flags) {
+    if (flags.has(Options::BASIC_COLUMNS)) {
+        addBasicColumns(columns);
+    }
+    if (flags.has(Options::EXTENDED_COLUMNS)) {
+        addExtendedColumns(columns);
+    }
+}
+
 TextOutput::TextOutput(const Path& fileMask, const std::string& runName, const Flags<Options> flags)
     : IOutput(fileMask)
     , runName(runName)
-    , flags(flags) {}
+    , flags(flags) {
+    if (flags.has(Options::BASIC_COLUMNS)) {
+        addBasicColumns(columns);
+    }
+    if (flags.has(Options::EXTENDED_COLUMNS)) {
+        addExtendedColumns(columns);
+    }
+}
 
 TextOutput::~TextOutput() = default;
 
 Path TextOutput::dump(Storage& storage, const Statistics& stats) {
+    if (flags.has(Options::DUMP_ALL)) {
+        columns.clear();
+        addBasicColumns(columns);
+        // the one 'extraordinary' quantity
+        columns.push(makeAuto<SmoothingLengthColumn>());
+        for (StorageElement e : storage.getQuantities()) {
+            if (e.id == QuantityId::POSITION || e.id == QuantityId::MASS) {
+                // already added as basic columns
+                continue;
+            }
+            dispatch(e.quantity.getValueEnum(), DumpAllVisitor{}, e.id, columns);
+        }
+    }
+
     ASSERT(!columns.empty(), "No column added to TextOutput");
     const Path fileName = paths.getNextPath(stats);
     FileSystem::createDirectory(fileName.parentPath());
@@ -168,7 +224,7 @@ Outcome TextOutput::load(const Path& path, Storage& storage) {
     return SUCCESS;
 }
 
-TextOutput& TextOutput::add(AutoPtr<ITextColumn>&& column) {
+TextOutput& TextOutput::addColumn(AutoPtr<ITextColumn>&& column) {
     columns.push(std::move(column));
     return *this;
 }

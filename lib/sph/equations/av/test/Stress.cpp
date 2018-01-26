@@ -34,10 +34,10 @@ TEST_CASE("StressAV test", "[av]") {
     EulerExplicit timestepping(storage, settings);
 
     // solver with some basic forces and artificial stress
+    using namespace BenzAsphaugSph;
     EquationHolder eqs;
-    eqs += makeTerm<BenzAsphaugPressureForce>() + makeTerm<BenzAsphaugSolidStressForce>(settings) +
-           makeTerm<BenzAsphaugContinuityEquation>() + makeTerm<StressAV>(settings) +
-           makeTerm<ConstSmoothingLength>();
+    eqs += makeTerm<PressureForce>() + makeTerm<SolidStressForce>(settings) + makeTerm<ContinuityEquation>() +
+           makeTerm<StressAV>(settings) + makeTerm<ConstSmoothingLength>();
     SymmetricSolver solver(settings, std::move(eqs));
     solver.create(*storage, storage->getMaterial(0));
 

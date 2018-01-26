@@ -14,9 +14,9 @@
 using namespace Sph;
 
 static void addColumns(TextOutput& output) {
-    output.add(makeAuto<ValueColumn<Float>>(QuantityId::DENSITY));
-    output.add(makeAuto<ValueColumn<Vector>>(QuantityId::POSITION));
-    output.add(makeAuto<DerivativeColumn<Vector>>(QuantityId::POSITION));
+    output.addColumn(makeAuto<ValueColumn<Float>>(QuantityId::DENSITY));
+    output.addColumn(makeAuto<ValueColumn<Vector>>(QuantityId::POSITION));
+    output.addColumn(makeAuto<DerivativeColumn<Vector>>(QuantityId::POSITION));
 }
 
 TEST_CASE("TextOutput dump", "[output]") {

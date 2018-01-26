@@ -47,10 +47,12 @@ void Assert::fireParams(const char* message,
         if (strlen(text) != 0) {
             logger.write("Assert parameters: ", text);
         }
-        logger.write("Stack trace:");
-        Array<std::string> trace = getStackTrace();
-        for (std::string& s : trace) {
-            logger.write(s);
+        if (false) {
+            logger.write("Stack trace:");
+            Array<std::string> trace = getStackTrace();
+            for (std::string& s : trace) {
+                logger.write(s);
+            }
         }
         logger.write(
             "================================================================================================"

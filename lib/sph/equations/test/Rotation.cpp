@@ -90,13 +90,13 @@ namespace {
 
             AutoPtr<TextOutput> textOutput = makeAuto<TextOutput>(Path("out_%d.txt"), "rot");
 
-            textOutput->add(makeAuto<ValueColumn<Vector>>(QuantityId::POSITION));
-            textOutput->add(makeAuto<ValueColumn<Vector>>(QuantityId::ANGULAR_VELOCITY));
+            textOutput->addColumn(makeAuto<ValueColumn<Vector>>(QuantityId::POSITION));
+            textOutput->addColumn(makeAuto<ValueColumn<Vector>>(QuantityId::ANGULAR_VELOCITY));
 
             output = std::move(textOutput);
 
-            equations += makeTerm<BenzAsphaugSolidStressForce>(settings) +
-                         makeTerm<BenzAsphaugSolidStressTorque>(settings);
+            equations += makeTerm<BenzAsphaugSph::SolidStressForce>(settings) +
+                         makeTerm<BenzAsphaugSph::SolidStressTorque>(settings);
             equations += makeTerm<ConstSmoothingLength>();
             // add boundary conditions last
             //   equations += makeTerm<FrozenParticles>(makeAuto<SphericalDomain>(Vector(0._f), 1._f), 2._f);

@@ -291,6 +291,9 @@ AutoPtr<RunSettings> RunSettings::instance (new RunSettings {
     { RunSettingsId::SPH_STRAIN_RATE_CORRECTION_TENSOR, "sph.correction_tensor",        false },
     { RunSettingsId::SPH_FORMULATION,                   "sph.formulation",              int(FormulationEnum::STANDARD) },
 
+    /// Global parameters of N-body simulations
+    { RunSettingsId::NBODY_INERTIA_TENSOR,          "nbody.inertia_tensor",     true },
+    { RunSettingsId::NBODY_MAX_ROTATION_ANGLE,      "nbody.max_rotation_angle", 0.5_f },
 
     /// Gravity
     { RunSettingsId::GRAVITY_SOLVER,                "gravity.solver",           int(GravityEnum::BARNES_HUT) },

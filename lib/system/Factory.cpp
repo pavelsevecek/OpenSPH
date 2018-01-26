@@ -188,12 +188,25 @@ AutoPtr<IDistribution> Factory::getDistribution(const BodySettings& settings) {
 }
 
 AutoPtr<ISolver> Factory::getSolver(const RunSettings& settings) {
+    const FormulationEnum formulation = settings.get<FormulationEnum>(RunSettingsId::SPH_FORMULATION);
+    EquationHolder eqs;
+    switch (formulation) {
+    case FormulationEnum::STANDARD:
+        eqs = getStandardEquations(settings);
+        break;
+    case FormulationEnum::BENZ_ASPHAUG:
+        eqs = getBenzAsphaugEquations(settings);
+        break;
+    default:
+        NOT_IMPLEMENTED;
+    }
+
     const SolverEnum id = settings.get<SolverEnum>(RunSettingsId::SOLVER_TYPE);
     switch (id) {
     case SolverEnum::SYMMETRIC_SOLVER:
-        return makeAuto<SymmetricSolver>(settings, getStandardEquations(settings));
+        return makeAuto<SymmetricSolver>(settings, std::move(eqs));
     case SolverEnum::ASYMMETRIC_SOLVER:
-        return makeAuto<AsymmetricSolver>(settings, getStandardEquations(settings));
+        return makeAuto<AsymmetricSolver>(settings, std::move(eqs));
     case SolverEnum::SUMMATION_SOLVER:
         return makeAuto<SummationSolver>(settings);
     case SolverEnum::DENSITY_INDEPENDENT:

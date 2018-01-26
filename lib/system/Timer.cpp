@@ -1,7 +1,7 @@
 #include "system/Timer.h"
-#include "objects/wrappers/LockingPtr.h"
 #include <atomic>
 #include <iomanip>
+#include <mutex>
 #include <thread>
 
 NAMESPACE_SPH_BEGIN
@@ -17,7 +17,8 @@ private:
         std::function<void()> callback;
     };
 
-    LockingPtr<Array<TimerEntry>> entries;
+    std::mutex entryMutex;
+    Array<TimerEntry> entries;
 
 public:
     TimerThread();
@@ -104,7 +105,6 @@ SharedPtr<Timer> makeTimer(const int64_t interval,
 
 TimerThread::TimerThread() {
     closingDown = false;
-    entries = makeLocking<Array<TimerEntry>>();
     thread = std::thread([this]() { this->runLoop(); });
 }
 
@@ -122,15 +122,16 @@ TimerThread& TimerThread::getInstance() {
 }
 
 void TimerThread::registerTimer(const SharedPtr<Timer>& timer, const std::function<void(void)>& callback) {
-    entries->push(TimerEntry{ timer, callback });
+    std::unique_lock<std::mutex> lock(entryMutex);
+    entries.push(TimerEntry{ timer, callback });
 }
 
 void TimerThread::runLoop() {
     Array<TimerEntry> copies;
     while (!closingDown) {
         {
-            auto proxy = entries.lock();
-            copies = copyable(*proxy);
+            std::unique_lock<std::mutex> lock(entryMutex);
+            copies = copyable(entries);
         }
         for (TimerEntry& entry : copies) {
             // if the timer is expired (and still exists)

@@ -586,6 +586,13 @@ enum class RunSettingsId {
     /// Minimal value of smoothing length
     SPH_SMOOTHING_LENGTH_MIN,
 
+    /// If true, all particles have also a moment of inertia, representing a non-homogeneous mass
+    /// distribution. Otherwise, particles are spherical with inertia tensor I = 2/5 mr^2
+    NBODY_INERTIA_TENSOR,
+
+    /// \todo
+    NBODY_MAX_ROTATION_ANGLE,
+
     /// Algorithm to compute gravitational acceleration
     GRAVITY_SOLVER,
 

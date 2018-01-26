@@ -50,12 +50,14 @@ public:
 
 private:
     static EquationHolder getEquations(const RunSettings& settings) {
+        using namespace StandardSph;
+
         EquationHolder equations;
         if (settings.get<bool>(RunSettingsId::MODEL_FORCE_PRESSURE_GRADIENT)) {
-            equations += makeTerm<StandardPressureForce>();
+            equations += makeTerm<PressureForce>();
         }
         if (settings.get<bool>(RunSettingsId::MODEL_FORCE_SOLID_STRESS)) {
-            equations += makeTerm<StandardSolidStressForce>(settings);
+            equations += makeTerm<SolidStressForce>(settings);
         }
         equations += makeTerm<StandardAV>();
 

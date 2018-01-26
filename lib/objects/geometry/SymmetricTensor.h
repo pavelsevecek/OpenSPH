@@ -260,6 +260,10 @@ INLINE SymmetricTensor convert(const AffineMatrix& matrix) {
 
 template <>
 INLINE AffineMatrix convert(const SymmetricTensor& t) {
+    // make sure there is no 'accidental' translation in the matrix
+    ASSERT(t.row(0)[H] == 0._f);
+    ASSERT(t.row(1)[H] == 0._f);
+    ASSERT(t.row(2)[H] == 0._f);
     return AffineMatrix(t.row(0), t.row(1), t.row(2));
 }
 

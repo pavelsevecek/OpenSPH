@@ -67,16 +67,16 @@ public:
         logger->write(" - timestep:    ", dt, " (set by ", ss.str(), ")");
 
         // clang-format off
+        printStat<int>(stats, StatisticsId::TIMESTEP_ELAPSED,             " - time spent:  ", "ms");
+        printStat<int>(stats, StatisticsId::SPH_EVAL_TIME,                "    * SPH evaluation:     ", "ms");
+        printStat<int>(stats, StatisticsId::GRAVITY_EVAL_TIME,            "    * gravity evaluation: ", "ms");
         printStat<MinMaxMean>(stats, StatisticsId::NEIGHBOUR_COUNT,       " - neigbours:   ");
         printStat<int>(stats, StatisticsId::TOTAL_COLLISION_COUNT,        " - collisions:  ");
         printStat<int>(stats, StatisticsId::BOUNCE_COUNT,                 "    * bounces:  ");
         printStat<int>(stats, StatisticsId::MERGER_COUNT,                 "    * mergers:  ");
-        printStat<int>(stats, StatisticsId::BREAKUP_COUNT,               "    * breakups: ");
+        printStat<int>(stats, StatisticsId::BREAKUP_COUNT,                "    * breakups: ");
         printStat<int>(stats, StatisticsId::OVERLAP_COUNT,                " - overlaps:    ");
         printStat<int>(stats, StatisticsId::SOLVER_SUMMATION_ITERATIONS,  " - iteration #: ");
-        printStat<int>(stats, StatisticsId::TIMESTEP_ELAPSED,             " - time spent:  ", "ms");
-        printStat<int>(stats, StatisticsId::SPH_EVAL_TIME,                "    * SPH evaluation:     ", "ms");
-        printStat<int>(stats, StatisticsId::GRAVITY_EVAL_TIME,            "    * gravity evaluation: ", "ms");
         // clang-format on
     }
 

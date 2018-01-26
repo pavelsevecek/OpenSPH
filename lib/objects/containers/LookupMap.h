@@ -89,9 +89,10 @@ public:
         ASSERT(boundingBox.size()[X] > 0._f && boundingBox.size()[Y] > 0._f && boundingBox.size()[Z] > 0._f);
         ASSERT(dimensionSize >= 1);
         Vector idxs = (v - boundingBox.lower()) / (boundingBox.size()) * dimensionSize;
-        ASSERT(idxs[X] >= 0 && idxs[Y] >= 0 && idxs[Z] >= 0);
-        ASSERT(idxs[X] < dimensionSize && idxs[Y] < dimensionSize && idxs[Z] < dimensionSize);
-        return Indices(idxs);
+        // Ordinarily, idxs are never <0 or >=dimensionSize, BUT in case the points are slightly move, this
+        // can happen. In this case, we want to return a valid result rather than crashing, even though some
+        // neighbours might be missed if the tree is not rebuilt
+        return Indices(Sph::clamp(idxs, Vector(0._f), Vector(dimensionSize - 1._f)));
     }
 
 private:

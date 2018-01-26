@@ -97,7 +97,9 @@ SOURCES += \
     sph/solvers/AsymmetricSolver.cpp \
     sph/solvers/SymmetricSolver.cpp \
     sph/solvers/StandardSets.cpp \
-    gravity/NBodySolver.cpp
+    gravity/NBodySolver.cpp \
+    sph/equations/EquationTerm.cpp \
+    sph/equations/Rotation.cpp
 
 HEADERS += \
     common/Assert.h \

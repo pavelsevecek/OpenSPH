@@ -226,8 +226,8 @@ TEST_CASE("Initial addRubblePileBody", "[initial]") {
     ic.addRubblePileBody(storage, SphericalDomain(Vector(0._f), 1._f), sfd, body);
 
     TextOutput output(Path("rubblepile.txt"), "test", EMPTY_FLAGS);
-    output.add(makeAuto<ValueColumn<Vector>>(QuantityId::POSITION));
-    output.add(makeAuto<ValueColumn<Size>>(QuantityId::FLAG));
+    output.addColumn(makeAuto<ValueColumn<Vector>>(QuantityId::POSITION));
+    output.addColumn(makeAuto<ValueColumn<Size>>(QuantityId::FLAG));
     Statistics stats;
     stats.set(StatisticsId::RUN_TIME, 0._f);
     output.dump(storage, stats);

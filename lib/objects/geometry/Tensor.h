@@ -152,7 +152,7 @@ public:
     }
 
     friend std::ostream& operator<<(std::ostream& stream, const Tensor& t) {
-        stream << t.row(0) << t.row(1) << t.row(2);
+        stream << t.row(0) << std::endl << t.row(1) << std::endl << t.row(2);
         return stream;
     }
 };

@@ -609,28 +609,28 @@ Expected<Storage> Post::parsePkdgravOutput(const Path& path) {
             return type;
         }
     };
-    output.add(makeAuto<DummyColumn>(ValueEnum::INDEX));
+    output.addColumn(makeAuto<DummyColumn>(ValueEnum::INDEX));
 
     // 2) Original index -- not really needed, skip
-    output.add(makeAuto<DummyColumn>(ValueEnum::INDEX));
+    output.addColumn(makeAuto<DummyColumn>(ValueEnum::INDEX));
 
     // 3) Particle mass
-    output.add(makeAuto<ValueColumn<Float>>(QuantityId::MASS));
+    output.addColumn(makeAuto<ValueColumn<Float>>(QuantityId::MASS));
 
     // 4) radius ?  -- skip
-    output.add(makeAuto<ValueColumn<Float>>(QuantityId::DENSITY));
+    output.addColumn(makeAuto<ValueColumn<Float>>(QuantityId::DENSITY));
 
     // 5) Positions (3 components)
-    output.add(makeAuto<ValueColumn<Vector>>(QuantityId::POSITION));
+    output.addColumn(makeAuto<ValueColumn<Vector>>(QuantityId::POSITION));
 
     // 6) Velocities (3 components)
-    output.add(makeAuto<DerivativeColumn<Vector>>(QuantityId::POSITION));
+    output.addColumn(makeAuto<DerivativeColumn<Vector>>(QuantityId::POSITION));
 
     // 7) Angular velocities (3 components)
-    output.add(makeAuto<ValueColumn<Vector>>(QuantityId::ANGULAR_VELOCITY));
+    output.addColumn(makeAuto<ValueColumn<Vector>>(QuantityId::ANGULAR_VELOCITY));
 
     // 8) Color index -- skip
-    output.add(makeAuto<DummyColumn>(ValueEnum::INDEX));
+    output.addColumn(makeAuto<DummyColumn>(ValueEnum::INDEX));
 
     Storage storage;
     Outcome outcome = output.load(path, storage);

@@ -96,6 +96,10 @@ private:
         Float allowedRatio;
     } overlap;
 
+    bool useInertiaTensor;
+
+    Float maxAngle;
+
 public:
     /// \brief Creates the solver, using the gravity implementation specified by settings.
     explicit NBodySolver(const RunSettings& settings);
@@ -114,6 +118,8 @@ public:
 
 private:
     static Float getSearchRadius(ArrayView<const Vector> r, ArrayView<const Vector> v, const Float dt);
+
+    void rotateLocalFrame(Storage& storage, const Float dt);
 
     CollisionRecord findClosestCollision(const Size i,
         const Float globalRadius,

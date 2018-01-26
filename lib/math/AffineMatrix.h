@@ -108,6 +108,23 @@ public:
         return inv / det;
     }
 
+    bool isOrthogonal() const {
+        for (Size i = 0; i < 3; ++i) {
+            for (Size j = 0; j < 3; ++j) {
+                const Float x = dot(v[i], v[j]);
+                if (!almostEqual(x, i == j, 1.e-6_f)) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    bool isIsotropic() const {
+        return v[0][0] == v[1][1] && v[0][0] == v[2][2] && v[0][1] == 0._f && v[0][2] == 0._f &&
+               v[1][2] == 0._f;
+    }
+
     static AffineMatrix null() {
         return AffineMatrix(Vector(0._f), Vector(0._f), Vector(0._f));
     }
@@ -140,12 +157,12 @@ public:
     }
 
     static AffineMatrix rotateAxis(const Vector& axis, const Float angle) {
-        ASSERT(getSqrLength(axis) == 1._f, axis);
+        ASSERT(almostEqual(getSqrLength(axis), 1._f), getSqrLength(axis));
         const Float u = axis[0];
         const Float v = axis[1];
         const Float w = axis[2];
-        const Float s = sin(-angle);
-        const Float c = cos(-angle);
+        const Float s = sin(angle);
+        const Float c = cos(angle);
         return {
             Vector(u * u + (v * v + w * w) * c, u * v * (1 - c) - w * s, u * w * (1 - c) + v * s),
             Vector(u * v * (1 - c) + w * s, v * v + (u * u + w * w) * c, v * w * (1 - c) - u * s),

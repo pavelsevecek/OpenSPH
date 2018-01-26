@@ -110,6 +110,13 @@ TEST_CASE("Matrix inverse", "[affinematrix]") {
     REQUIRE_ASSERT(AffineMatrix::null().inverse());
 }
 
+TEST_CASE("Matrix isOrthogonal", "[affinematrix]") {
+    REQUIRE(AffineMatrix::identity().isOrthogonal());
+    REQUIRE_FALSE(AffineMatrix::null().isOrthogonal());
+    REQUIRE(AffineMatrix::rotateX(0.2_f).isOrthogonal());
+    REQUIRE_FALSE(AffineMatrix::scale(Vector(2._f, 1._f, 0.5_f)).isOrthogonal());
+}
+
 TEST_CASE("Matrix scaling", "[affinematrix]") {
     AffineMatrix s = AffineMatrix::scale(Vector(2._f, 3._f, -1._f));
     REQUIRE(s * Vector(2._f, 3._f, 4._f) == Vector(4._f, 9._f, -4._f));

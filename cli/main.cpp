@@ -50,8 +50,8 @@ public:
             makeAuto<TextOutput>(outputName, runName, TextOutput::Options::SCIENTIFIC);
 
         // Defines columns in the output file
-        textOutput->add(makeAuto<ParticleNumberColumn>());                     // number of particles
-        textOutput->add(makeAuto<ValueColumn<Vector>>(QuantityId::POSITION)); // particle positions
+        textOutput->addColumn(makeAuto<ParticleNumberColumn>());                     // number of particles
+        textOutput->addColumn(makeAuto<ValueColumn<Vector>>(QuantityId::POSITION)); // particle positions
 
         // Assigns the new output. By default, no output files are generated.
         output = std::move(textOutput);

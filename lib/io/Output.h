@@ -65,7 +65,21 @@ public:
 class TextOutput : public IOutput {
 public:
     enum class Options {
-        SCIENTIFIC = 1 << 0, ///< Writes all numbers in scientific format
+        /// No columns are created by default, they have to be added by the user
+        NO_COLUMNS = 0,
+
+        /// Basic columns are created (particle index, positions, velocitites, masses)
+        BASIC_COLUMNS = 1 << 0,
+
+        /// Additional columns for particle quantities are added. This implies option BASIC_COLUMNS.
+        /// Suitable for SPH impact simulations.
+        EXTENDED_COLUMNS = 1 << 1,
+
+        /// Dumps all quantity values from the storage. This option implies BASIC_COLUMNS.
+        DUMP_ALL = 1 << 2,
+
+        /// Writes all numbers in scientific format
+        SCIENTIFIC = 1 << 3,
     };
 
 private:
@@ -78,17 +92,19 @@ private:
     Array<AutoPtr<ITextColumn>> columns;
 
 public:
-    TextOutput() = default;
+    TextOutput(const Flags<Options> flags = EMPTY_FLAGS);
 
     TextOutput(const Path& fileMask, const std::string& runName, const Flags<Options> flags = EMPTY_FLAGS);
 
     ~TextOutput();
 
-    /// Adds a new column to be saved into the file. By default, the file has no columns, all quantities must
-    /// be explicitly added using this function. The column is added to the right end of the text file.
+    /// \brief Adds a new column to be saved into the file.
+    ///
+    /// Unless an option is specified in constructor, the file has no columns. All quantities must be
+    /// explicitly added using this function. The column is added to the right end of the text file.
     /// \param column New column to save; see \ref ITextColumn and derived classes
     /// \return Reference to itself, allowing to queue calls
-    TextOutput& add(AutoPtr<ITextColumn>&& column);
+    TextOutput& addColumn(AutoPtr<ITextColumn>&& column);
 
     virtual Path dump(Storage& storage, const Statistics& stats) override;
 

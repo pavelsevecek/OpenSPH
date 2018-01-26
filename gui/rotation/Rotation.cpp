@@ -144,15 +144,15 @@ void AsteroidRotation::setUp() {
     Path outputDir = Path("out") / Path(settings.get<std::string>(RunSettingsId::RUN_OUTPUT_NAME));
     AutoPtr<TextOutput> textOutput = makeAuto<TextOutput>(
         outputDir, settings.get<std::string>(RunSettingsId::RUN_NAME), TextOutput::Options::SCIENTIFIC);
-    textOutput->add(makeAuto<ParticleNumberColumn>());
-    textOutput->add(makeAuto<ValueColumn<Vector>>(QuantityId::POSITION));
-    textOutput->add(makeAuto<DerivativeColumn<Vector>>(QuantityId::POSITION));
-    textOutput->add(makeAuto<SmoothingLengthColumn>());
-    textOutput->add(makeAuto<ValueColumn<Float>>(QuantityId::DENSITY));
-    textOutput->add(makeAuto<ValueColumn<Float>>(QuantityId::PRESSURE));
-    textOutput->add(makeAuto<ValueColumn<Float>>(QuantityId::ENERGY));
-    textOutput->add(makeAuto<ValueColumn<Float>>(QuantityId::DAMAGE));
-    textOutput->add(makeAuto<ValueColumn<TracelessTensor>>(QuantityId::DEVIATORIC_STRESS));
+    textOutput->addColumn(makeAuto<ParticleNumberColumn>());
+    textOutput->addColumn(makeAuto<ValueColumn<Vector>>(QuantityId::POSITION));
+    textOutput->addColumn(makeAuto<DerivativeColumn<Vector>>(QuantityId::POSITION));
+    textOutput->addColumn(makeAuto<SmoothingLengthColumn>());
+    textOutput->addColumn(makeAuto<ValueColumn<Float>>(QuantityId::DENSITY));
+    textOutput->addColumn(makeAuto<ValueColumn<Float>>(QuantityId::PRESSURE));
+    textOutput->addColumn(makeAuto<ValueColumn<Float>>(QuantityId::ENERGY));
+    textOutput->addColumn(makeAuto<ValueColumn<Float>>(QuantityId::DAMAGE));
+    textOutput->addColumn(makeAuto<ValueColumn<TracelessTensor>>(QuantityId::DEVIATORIC_STRESS));
     output = std::move(textOutput);
 
     triggers.pushBack(makeAuto<IntegralsLog>(Path("integrals.txt"), 1));

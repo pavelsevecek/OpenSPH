@@ -9,22 +9,11 @@
 #include "run/Trigger.h"
 #include "sph/equations/Potentials.h"
 #include "sph/initial/Presets.h"
+#include "sph/solvers/StandardSets.h"
 #include "sph/solvers/SymmetricSolver.h"
 #include "system/Factory.h"
 
 NAMESPACE_SPH_BEGIN
-
-void setupCollisionColumns(TextOutput& output) {
-    output.add(makeAuto<ParticleNumberColumn>());
-    output.add(makeAuto<ValueColumn<Vector>>(QuantityId::POSITION));
-    output.add(makeAuto<DerivativeColumn<Vector>>(QuantityId::POSITION));
-    output.add(makeAuto<SmoothingLengthColumn>());
-    output.add(makeAuto<ValueColumn<Float>>(QuantityId::DENSITY));
-    output.add(makeAuto<ValueColumn<Float>>(QuantityId::PRESSURE));
-    output.add(makeAuto<ValueColumn<Float>>(QuantityId::ENERGY));
-    output.add(makeAuto<ValueColumn<Float>>(QuantityId::DAMAGE));
-    output.add(makeAuto<ValueColumn<TracelessTensor>>(QuantityId::DEVIATORIC_STRESS));
-}
 
 class CollisionRun : public IRun {
 private:
@@ -98,10 +87,8 @@ private:
         Path outputPath = Path(settings.get<std::string>(RunSettingsId::RUN_OUTPUT_PATH)) /
                           Path(settings.get<std::string>(RunSettingsId::RUN_OUTPUT_NAME));
         const std::string name = settings.get<std::string>(RunSettingsId::RUN_NAME);
-        AutoPtr<TextOutput> textOutput =
-            makeAuto<TextOutput>(outputPath, name, TextOutput::Options::SCIENTIFIC);
-        setupCollisionColumns(*textOutput);
-        output = std::move(textOutput);
+        output = makeAuto<TextOutput>(
+            outputPath, name, TextOutput::Options::SCIENTIFIC | TextOutput::Options::EXTENDED_COLUMNS);
     }
 
 
@@ -199,9 +186,6 @@ private:
 
         EquationHolder equations;
 
-        // forces
-        equations += makeTerm<BenzAsphaugPressureForce>() + makeTerm<BenzAsphaugSolidStressForce>(settings);
-
         // noninertial acceleration
         const Vector omega = settings.get<Vector>(RunSettingsId::FRAME_ANGULAR_FREQUENCY);
         equations += makeTerm<InertialForce>(omega);
@@ -209,16 +193,7 @@ private:
         // gravity (approximation)
         equations += makeTerm<SphericalGravityEquation>();
 
-        // density evolution
-        equations += makeTerm<BenzAsphaugContinuityEquation>();
-
-        // artificial viscosity
-        equations += EquationHolder(Factory::getArtificialViscosity(settings));
-
-        // adaptive smoothing length
-        equations += makeTerm<BenzAsphaugAdaptiveSmoothingLength>(settings);
-
-        return equations;
+        return getStandardEquations(settings, std::move(equations));
     }
 };
 

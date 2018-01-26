@@ -15,4 +15,6 @@ NAMESPACE_SPH_BEGIN
 /// viscosity and any equation of state.
 EquationHolder getStandardEquations(const RunSettings& settings, const EquationHolder& other = {});
 
+EquationHolder getBenzAsphaugEquations(const RunSettings& settings, const EquationHolder& other = {});
+
 NAMESPACE_SPH_END

@@ -17,41 +17,77 @@ NBodySolver::NBodySolver(const RunSettings& settings, AutoPtr<IGravity>&& gravit
     collision.finder = Factory::getFinder(settings);
     overlap.handler = Factory::getOverlapHandler(settings);
     overlap.allowedRatio = settings.get<Float>(RunSettingsId::COLLISION_ALLOWED_OVERLAP);
+    useInertiaTensor = settings.get<bool>(RunSettingsId::NBODY_INERTIA_TENSOR);
+    maxAngle = settings.get<Float>(RunSettingsId::NBODY_MAX_ROTATION_ANGLE);
 }
 
 NBodySolver::~NBodySolver() = default;
 
-/*static void integrateRigidBody(Storage& storage, const Float dt) {
+/*static void integrateOmega(Storage& storage) {
+    ArrayView<SymmetricTensor> I = storage.getValue<SymmetricTensor>(QuantityId::MOMENT_OF_INERTIA);
     ArrayView<Tensor> E = storage.getValue<Tensor>(QuantityId::LOCAL_FRAME);
     ArrayView<Vector> w, dw;
     tie(w, dw) = storage.getAll<Vector>(QuantityId::ANGULAR_VELOCITY);
 
     for (Size i = 0; i < w.size(); ++i) {
-        //AffineMatrix w_cross = AffineMatrix::crossProductOperator(w[i]);
-        // we need to convert to affine matrix, as the intermediate steps break the symmetry of the tensor
-        //AffineMatrix Im = convert(I[i]);
-        //AffineMatrix dIm = w_cross * Im - Im * w_cross;
-        // convert back to the symmetric tensor, the result should be symmetric (checked by assert)
-        //dI[i] = convert(dIm);
-        // SymmetricTensor I0 = I[i];
-        if (w[i] != Vector(0._f)) {
-            Vector dir;
-            Float omega;
-            tieToTuple(dir, omega) = getNormalizedWithLength(w[i]);
-            AffineMatrix rotation = AffineMatrix::rotateAxis(dir, omega * dt);
-            AffineMatrix Em = convert<AffineMatrix>(E[i]);
-            Em = rotation * Em * rotation.transpose();
-
-            E[i] = convert<Tensor>(Em);
+        if (w[i] == Vector(0._f)) {
+            continue;
         }
-        // SymmetricTensor Iinv = I[i].inverse();
+        SymmetricTensor Iinv = I[i].inverse();
+        // convert the angular frequency to the local frame;
+        // note the E is always orthogonal, so we can use transpose instead of inverse
+        AffineMatrix Em = convert<AffineMatrix>(E[i]);
+        ASSERT(Em.isOrthogonal());
+        const Vector w_loc = Em.transpose() * w[i];
 
-        // using torque-free solution
-        // I dw/dt + dI/dt * w = 0
-        // dw[i] = -Iinv * (dI[i] * w[i]);
-        // dw[i] = -Iinv * ((I[i] - I0) / dt * w[i]);
+        // compute the change of angular velocity using Euler's equations
+        const Vector dw_loc = -Iinv * cross(w_loc, I[i] * w_loc);
+
+        // now dw[i] is also in local space, convert to inertial space
+        // (note that dw_in = dw_loc as omega x omega is obviously zero)
+        dw[i] = Em * dw_loc;
     }
 }*/
+
+void NBodySolver::rotateLocalFrame(Storage& storage, const Float dt) {
+    ArrayView<Tensor> E = storage.getValue<Tensor>(QuantityId::LOCAL_FRAME);
+    ArrayView<Vector> L = storage.getValue<Vector>(QuantityId::ANGULAR_MOMENTUM);
+    ArrayView<Vector> w = storage.getValue<Vector>(QuantityId::ANGULAR_VELOCITY);
+    ArrayView<SymmetricTensor> I = storage.getValue<SymmetricTensor>(QuantityId::MOMENT_OF_INERTIA);
+
+    for (Size i = 0; i < L.size(); ++i) {
+        if (L[i] == Vector(0._f)) {
+            continue;
+        }
+        AffineMatrix Em = convert<AffineMatrix>(E[i]);
+
+        const Float omega = getLength(w[i]);
+        const Float dphi = omega * dt;
+
+        // To ensure we never rotate more than maxAngle, we do a 'substepping' of angular velocity here;
+        // rotate the local frame around the current omega by maxAngle, compute the new omega, and so on,
+        // until we rotated by dphi
+        // To disable it, just set maxAngle to very high value. Note that nothing gets 'broken'; both angular
+        // momentum and moment of inertia are always conserved (by construction), but the precession might not
+        // be solved correctly
+        for (Float totalRot = 0._f; totalRot < dphi; totalRot += maxAngle) {
+            const Vector dir = getNormalized(w[i]);
+
+            const Float rot = min(maxAngle, dphi - totalRot);
+            AffineMatrix rotation = AffineMatrix::rotateAxis(dir, rot);
+
+            ASSERT(Em.isOrthogonal());
+            Em = rotation * Em;
+
+            // compute new angular velocity, to keep angular velocity consistent with angular momentum
+            // note that this assumes that L and omega are set up consistently
+            const SymmetricTensor I_in = transform(I[i], Em);
+            const SymmetricTensor I_inv = I_in.inverse();
+            w[i] = I_inv * L[i];
+        }
+        E[i] = convert<Tensor>(Em);
+    }
+}
 
 void NBodySolver::integrate(Storage& storage, Statistics& stats) {
     gravity->build(storage);
@@ -65,9 +101,19 @@ void NBodySolver::integrate(Storage& storage, Statistics& stats) {
         v[i][H] = 0._f;
         dv[i][H] = 0._f;
     }
+
+    /*if (useInertiaTensor) {
+        integrateOmega(storage);
+    } else {
+        // do nothing, for spherical particles the omega is constant
+    }*/
 }
 
 void NBodySolver::collide(Storage& storage, Statistics& stats, const Float dt) {
+    if (useInertiaTensor) {
+        rotateLocalFrame(storage, dt);
+    }
+
     ArrayView<Vector> r, v, a;
     tie(r, v, a) = storage.getAll<Vector>(QuantityId::POSITION);
 
@@ -196,8 +242,8 @@ void NBodySolver::collide(Storage& storage, Statistics& stats, const Float dt) {
 
          CollisionRecord closestCollision;
          for (Size i = 0; i < r.size(); ++i) {
-             if (CollisionRecord col = this->findClosestCollision(i, searchRadius, dt - time, neighs, r, v)) {
-                 closestCollision = min(closestCollision, col);
+             if (CollisionRecord col = this->findClosestCollision(i, searchRadius, dt - time, neighs, r,
+     v)) { closestCollision = min(closestCollision, col);
              }
          }
          if (!closestCollision) {
@@ -338,18 +384,24 @@ void NBodySolver::collide(Storage& storage, Statistics& stats, const Float dt) {
 }
 
 void NBodySolver::create(Storage& storage, IMaterial& UNUSED(material)) const {
-    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
-    ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
+    storage.insert<Vector>(QuantityId::ANGULAR_MOMENTUM, OrderEnum::ZERO, Vector(0._f));
 
-    storage.insert<SymmetricTensor>(QuantityId::MOMENT_OF_INERTIA, OrderEnum::ZERO, SymmetricTensor::null());
-    ArrayView<SymmetricTensor> I = storage.getValue<SymmetricTensor>(QuantityId::MOMENT_OF_INERTIA);
-    for (Size i = 0; i < r.size(); ++i) {
-        I[i] = Rigid::sphereInertia(m[i], r[i][H]);
+    // dependent quantity, computed from angular momentum
+    storage.insert<Vector>(QuantityId::ANGULAR_VELOCITY, OrderEnum::ZERO, Vector(0._f));
+
+    if (useInertiaTensor) {
+        storage.insert<SymmetricTensor>(
+            QuantityId::MOMENT_OF_INERTIA, OrderEnum::ZERO, SymmetricTensor::null());
+        ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
+        ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
+        ArrayView<SymmetricTensor> I = storage.getValue<SymmetricTensor>(QuantityId::MOMENT_OF_INERTIA);
+        for (Size i = 0; i < r.size(); ++i) {
+            I[i] = Rigid::sphereInertia(m[i], r[i][H]);
+        }
+
+        // zero order, we integrate the frame coordinates manually
+        storage.insert<Tensor>(QuantityId::LOCAL_FRAME, OrderEnum::ZERO, Tensor::identity());
     }
-    storage.insert<Vector>(QuantityId::ANGULAR_VELOCITY, OrderEnum::FIRST, Vector(0._f));
-
-    // zero order, we integrate the frame coordinates manually
-    storage.insert<Tensor>(QuantityId::LOCAL_FRAME, OrderEnum::ZERO, Tensor::null());
 }
 
 Float NBodySolver::getSearchRadius(ArrayView<const Vector> r, ArrayView<const Vector> v, const Float dt) {

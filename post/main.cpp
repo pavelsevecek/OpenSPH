@@ -76,8 +76,7 @@ int pkdgravToMoons(const Path& filePath, const float limit) {
 
 int sphToSfd(const Path& filePath, const Path& settingsPath, const Path& sfdPath) {
     std::cout << "Processing SPH file ... " << std::endl;
-    TextOutput output;
-    setupCollisionColumns(output);
+    TextOutput output(TextOutput::Options::EXTENDED_COLUMNS);
 
     Storage storage;
     Outcome outcome = output.load(filePath, storage);

@@ -117,9 +117,11 @@ public:
 class PerfectMergingHandler : public ICollisionHandler {
 private:
     ArrayView<Vector> r, v;
-    ArrayView<Vector> omega;
     ArrayView<Float> m;
+    ArrayView<Vector> L;
+    ArrayView<Vector> omega;
     ArrayView<SymmetricTensor> I;
+    ArrayView<Tensor> E;
 
     Float mergingLimit;
 
@@ -134,10 +136,14 @@ public:
     virtual void initialize(Storage& storage) override {
         ArrayView<Vector> dv;
         tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
+        m = storage.getValue<Float>(QuantityId::MASS);
         omega = storage.getValue<Vector>(QuantityId::ANGULAR_VELOCITY);
 
-        m = storage.getValue<Float>(QuantityId::MASS);
-        I = storage.getValue<SymmetricTensor>(QuantityId::MOMENT_OF_INERTIA);
+        if (storage.has(QuantityId::MOMENT_OF_INERTIA)) {
+            I = storage.getValue<SymmetricTensor>(QuantityId::MOMENT_OF_INERTIA);
+            E = storage.getValue<Tensor>(QuantityId::LOCAL_FRAME);
+            L = storage.getValue<Vector>(QuantityId::ANGULAR_MOMENTUM);
+        }
     }
 
     virtual CollisionResult collide(const Size i, const Size j, FlatSet<Size>& toRemove) override {
@@ -153,16 +159,43 @@ public:
         // converve momentum
         const Vector v_merger = weightedAverage(v[i], m[i], v[j], m[j]);
 
-        // sum up the inertia tensors, but first move them to new origin
-        const SymmetricTensor I_merger = Rigid::parallelAxisTheorem(I[i], m[i], r_merger - r[i]) +
-                                         Rigid::parallelAxisTheorem(I[j], m[j], r_merger - r[j]);
+        Vector omega_merger;
 
-        // conserve angular momentum
-        const Vector L_merger = m[i] * cross(r[i] - r_merger, v[i] - v_merger) + //
-                                m[j] * cross(r[j] - r_merger, v[j] - v_merger) + //
-                                I[i] * omega[i] + I[j] * omega[j];
-        // L = I*omega  =>  omega = I^-1 * L
-        const Vector omega_merger = I_merger.inverse() * L_merger;
+        if (I) {
+            // compute inertia tensors in inertial frame
+            const SymmetricTensor I1 = transform(I[i], convert<AffineMatrix>(E[i]));
+            const SymmetricTensor I2 = transform(I[j], convert<AffineMatrix>(E[j]));
+
+            // sum up the inertia tensors, but first move them to new origin
+            const SymmetricTensor I_merger = Rigid::parallelAxisTheorem(I1, m[i], r_merger - r[i]) +
+                                             Rigid::parallelAxisTheorem(I2, m[j], r_merger - r[j]);
+
+            // compute the total angular momentum - has to be conserved
+            const Vector L_merger = m[i] * cross(r[i] - r_merger, v[i] - v_merger) + //
+                                    m[j] * cross(r[j] - r_merger, v[j] - v_merger) + //
+                                    L[i] + L[j];
+            // L = I*omega  =>  omega = I^-1 * L
+            omega_merger = I_merger.inverse() * L_merger;
+
+            // compute the new local frame of the merger and inertia tensor in this frame
+            Eigen eigen = eigenDecomposition(I_merger);
+            I[i] = SymmetricTensor(eigen.values, Vector(0._f));
+            E[i] = convert<Tensor>(eigen.vectors);
+            L[i] = L_merger;
+            omega[i] = omega_merger;
+            /// \todo remove, we have unit tests for this
+            ASSERT(almostEqual(getSqrLength(E[i].row(0)), 1._f, 1.e-6_f));
+            ASSERT(almostEqual(getSqrLength(E[i].row(1)), 1._f, 1.e-6_f));
+            ASSERT(almostEqual(getSqrLength(E[i].row(2)), 1._f, 1.e-6_f));
+
+        } else {
+            const Vector L_merger = m[i] * cross(r[i] - r_merger, v[i] - v_merger) + //
+                                    m[j] * cross(r[j] - r_merger, v[j] - v_merger);
+            omega_merger = Rigid::sphereInertia(m_merger, h_merger).inverse() * L_merger;
+            L[i] = L_merger;
+            omega[i] = omega_merger;
+        }
+        // omega[i] = omega_merger;
 
         if (!this->acceptMerge(i, j, h_merger, omega_merger)) {
             return CollisionResult::NONE;
@@ -175,8 +208,6 @@ public:
         r[i][H] = h_merger;
         v[i] = v_merger;
         v[i][H] = 0._f;
-        I[i] = I_merger;
-        omega[i] = omega_merger;
 
         toRemove.insert(j);
         return CollisionResult::MERGER;

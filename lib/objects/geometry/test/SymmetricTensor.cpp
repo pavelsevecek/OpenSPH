@@ -100,6 +100,9 @@ TEST_CASE("SymmetricTensor eigendecomposition", "[symmetrictensor]") {
     REQUIRE(getNormalized(m.row(0)) == approx(getNormalized(Vector(1, 0, -1)), 1.e-6_f));
     REQUIRE(getNormalized(m.row(1)) == approx(getNormalized(Vector(1, -3.56155, 1)), 1.e-6_f));
     REQUIRE(getNormalized(m.row(2)) == approx(getNormalized(Vector(1, 0.561553, 1)), 1.e-6_f));
+    REQUIRE(getSqrLength(m.row(0)) == approx(1._f, 1.e-6_f));
+    REQUIRE(getSqrLength(m.row(1)) == approx(1._f, 1.e-6_f));
+    REQUIRE(getSqrLength(m.row(2)) == approx(1._f, 1.e-6_f));
 
     REQUIRE(dot(m.row(0), m.row(1)) == approx(0._f));
     REQUIRE(dot(m.row(0), m.row(2)) == approx(0._f));
