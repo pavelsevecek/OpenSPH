@@ -19,19 +19,19 @@ QMAKE_CXXFLAGS += -Wall -Wextra -Werror -msse4.1 -std=c++14 -pthread
 
 CONFIG(release, debug|profile|assert|release) {
   message( "SPH LIB --- Building for Release" )
-  QMAKE_CXXFLAGS += -O4
+  QMAKE_CXXFLAGS += -O2
 }
 
 CONFIG(profile, debug|profile|assert|release) {
   message( "SPH LIB --- Building for Profile" )
   DEFINES += SPH_PROFILE
-  QMAKE_CXXFLAGS += -O4
+  QMAKE_CXXFLAGS += -O2
 }
 
 CONFIG(assert, debug|profile|assert|release) {
   message( "SPH LIB --- Building for Assert" )
   DEFINES += SPH_DEBUG SPH_PROFILE
-  QMAKE_CXXFLAGS += -O4
+  QMAKE_CXXFLAGS += -O2
 }
 
 CONFIG(debug, debug|profile|assert|release) {

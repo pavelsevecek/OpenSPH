@@ -64,6 +64,15 @@ void NBodySolver::rotateLocalFrame(Storage& storage, const Float dt) {
         const Float omega = getLength(w[i]);
         const Float dphi = omega * dt;
 
+        if (almostEqual(I[0], SymmetricTensor(Vector(I[0].trace() / 3._f), Vector(0._f)), 1.e-6_f)) {
+            // (almost) isotropic particle, we can skip the substepping and omega integration
+            const Vector dir = getNormalized(w[i]);
+            AffineMatrix rotation = AffineMatrix::rotateAxis(dir, dphi);
+            ASSERT(Em.isOrthogonal());
+            E[i] = convert<Tensor>(rotation * Em);
+            continue;
+        }
+
         // To ensure we never rotate more than maxAngle, we do a 'substepping' of angular velocity here;
         // rotate the local frame around the current omega by maxAngle, compute the new omega, and so on,
         // until we rotated by dphi

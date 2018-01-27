@@ -111,12 +111,11 @@ protected:
         TreeWalkState data,
         TreeWalkResult& result) const;
 
-    void evalParticleList(const LeafNode& leaf, ArrayView<Size> particleList, ArrayView<Vector> dv) const
-        noexcept;
+    void evalParticleList(const LeafNode& leaf, ArrayView<Size> particleList, ArrayView<Vector> dv) const;
 
-    void evalNodeList(const LeafNode& leaf, ArrayView<Size> nodeList, ArrayView<Vector> dv) const noexcept;
+    void evalNodeList(const LeafNode& leaf, ArrayView<Size> nodeList, ArrayView<Vector> dv) const;
 
-    Vector evalExact(const LeafNode& node, const Vector& r0, const Size idx) const noexcept;
+    Vector evalExact(const LeafNode& node, const Vector& r0, const Size idx) const;
 
     void buildLeaf(KdNode& node);
 

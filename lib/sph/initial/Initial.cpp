@@ -124,6 +124,7 @@ BodyView InitialConditions::addMonolithicBody(Storage& storage,
     /// \todo refactor
     storage.propagate([&particleCnt, &storage](Storage& act) { //
         ASSERT(&act != &storage);
+        (void)storage;
         act.resize(particleCnt, Storage::ResizeFlag::KEEP_EMPTY_UNCHANGED);
     });
     return BodyView(storage, bodyIndex++);

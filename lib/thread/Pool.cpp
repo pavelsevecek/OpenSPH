@@ -66,12 +66,12 @@ ThreadPool::~ThreadPool() {
 
 void ThreadPool::submit(AutoPtr<ITask>&& task) {
     {
-        std::unique_lock<std::mutex> lock(taskMutex);
-        tasks.emplace(std::move(task));
-    }
-    {
         std::unique_lock<std::mutex> lock(waitMutex);
         ++tasksLeft;
+    }
+    {
+        std::unique_lock<std::mutex> lock(taskMutex);
+        tasks.emplace(std::move(task));
     }
     taskVar.notify_one();
 }

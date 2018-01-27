@@ -278,7 +278,7 @@ void BarnesHut::evalNode(IScheduler& scheduler,
 
 void BarnesHut::evalParticleList(const LeafNode& leaf,
     ArrayView<Size> particleList,
-    ArrayView<Vector> dv) const noexcept {
+    ArrayView<Vector> dv) const {
     // needs to symmetrize smoothing length to keep the total momentum conserved
     SymmetrizeSmoothingLengths<const GravityLutKernel&> actKernel(kernel);
     // go through all nodes in the list and compute the pair-wise interactions
@@ -286,6 +286,7 @@ void BarnesHut::evalParticleList(const LeafNode& leaf,
     ASSERT(areElementsUnique(particleList), particleList);
     for (Size idx : particleList) {
         // the particle lists do not have to be necessarily symmetric, we have to do each node separately
+        ASSERT(idx < kdTree.getNodeCnt(), idx, kdTree.getNodeCnt());
         const KdNode& node = kdTree.getNode(idx);
         ASSERT(node.isLeaf());
         LeafIndexSequence seq2 = kdTree.getLeafIndices(reinterpret_cast<const LeafNode&>(node));
@@ -311,8 +312,7 @@ void BarnesHut::evalParticleList(const LeafNode& leaf,
     }
 }
 
-void BarnesHut::evalNodeList(const LeafNode& leaf, ArrayView<Size> nodeList, ArrayView<Vector> dv) const
-    noexcept {
+void BarnesHut::evalNodeList(const LeafNode& leaf, ArrayView<Size> nodeList, ArrayView<Vector> dv) const {
     ASSERT(areElementsUnique(nodeList), nodeList);
     LeafIndexSequence seq1 = kdTree.getLeafIndices(leaf);
     for (Size idx : nodeList) {
@@ -324,7 +324,7 @@ void BarnesHut::evalNodeList(const LeafNode& leaf, ArrayView<Size> nodeList, Arr
     }
 }
 
-Vector BarnesHut::evalExact(const LeafNode& leaf, const Vector& r0, const Size idx) const noexcept {
+Vector BarnesHut::evalExact(const LeafNode& leaf, const Vector& r0, const Size idx) const {
     LeafIndexSequence sequence = kdTree.getLeafIndices(leaf);
     Vector f(0._f);
     for (Size i : sequence) {

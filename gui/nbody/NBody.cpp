@@ -9,6 +9,7 @@
 #include "sph/initial/Distribution.h"
 #include "sph/initial/Initial.h"
 #include "system/Factory.h"
+#include "system/Platform.h"
 
 IMPLEMENT_APP(Sph::App);
 
@@ -41,7 +42,7 @@ void NBody::setUp() {
     solver = makeAuto<NBodySolver>(settings);
 
     RandomDistribution rndDist(makeRng<UniformRng>());
-    const Size particleCnt = 40000;
+    const Size particleCnt = 100'000;
 
     Array<Vector> dist = rndDist.generate(particleCnt, SphericalDomain(Vector(0._f), 1.e3_f));
     // dist.push(Vector(0._f));
@@ -56,10 +57,12 @@ void NBody::setUp() {
     }
 
     spaceParticles(r, 2._f);
+    v = rndDist.generate(particleCnt, SphericalDomain(Vector(0._f), 3.e-2_f));
     for (Size i = 0; i < r.size(); ++i) {
         // const Float kepler = sqrt(Constants::gravity * Constants::M_sun / getLength(r[i]));
-        v[i] = cross(getNormalized(r[i]), Vector(0._f, 0._f, 1._f)) * 1.e-2_f;
+        v[i] += cross(r[i] / 1.e3_f, Vector(0._f, 0._f, 1._f)) * 8.e-2_f;
         v[i][Z] = 0._f;
+        v[i][H] = 0._f;
     }
 
 
@@ -78,7 +81,9 @@ void NBody::setUp() {
     triggers.pushBack(makeAuto<CommonStatsLog>(Factory::getLogger(settings)));
 }
 
-void NBody::tearDown() {}
+void NBody::tearDown() {
+    showNotification("NBody", "Run finished");
+}
 
 
 NAMESPACE_SPH_END

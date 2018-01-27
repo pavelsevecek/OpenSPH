@@ -14,6 +14,7 @@ FunctionChecker::FunctionChecker(std::atomic<Size>& reentrantCnt, std::atomic<Si
 }
 
 FunctionChecker::~FunctionChecker() {
+    MARK_USED(totalCnt); // to silence clang warning
     reentrantCnt--;
 }
 
