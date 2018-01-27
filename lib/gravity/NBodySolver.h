@@ -13,56 +13,10 @@ NAMESPACE_SPH_BEGIN
 
 class ICollisionHandler;
 class IGravity;
+class CollisionRecord;
+class CollisionStats;
+enum class CollisionResult;
 enum class OverlapEnum;
-
-
-class CollisionRecord {
-private:
-    Float overlap = 0._f;
-
-    CollisionRecord(const Size i, const Size j, const Float overlap, const Float time)
-        : overlap(overlap)
-        , i(i)
-        , j(j)
-        , collisionTime(time) {}
-
-public:
-    /// Indices of the collided particles.
-    /// \todo temporarily mutable
-    mutable Size i;
-    mutable Size j;
-
-    Float collisionTime = INFINITY;
-
-    CollisionRecord() = default;
-
-    // sort by collision time
-    bool operator<(const CollisionRecord& other) const {
-        return std::make_tuple(-overlap, collisionTime, i, j) <
-               std::make_tuple(-other.overlap, other.collisionTime, other.i, other.j);
-    }
-
-    /// Returns true if there is some collision or overlap
-    explicit operator bool() const {
-        return overlap > 0._f || collisionTime < INFINITY;
-    }
-
-    static CollisionRecord COLLISION(const Size i, const Size j, const Float time) {
-        return CollisionRecord(i, j, 0._f, time);
-    }
-
-    static CollisionRecord OVERLAP(const Size i, const Size j, const Float overlap) {
-        return CollisionRecord(i, j, overlap, INFINITY);
-    }
-
-    bool isOverlap() const {
-        return overlap > 0._f;
-    }
-
-    friend bool isReal(const CollisionRecord& col) {
-        return col.isOverlap() ? isReal(col.overlap) : isReal(col.collisionTime);
-    }
-};
 
 /// TODO unit tests!
 ///  perfect bounce, perfect sticking, merging - just check for asserts, it shows enough problems
@@ -78,16 +32,28 @@ private:
     /// Thread pool for parallelization
     ThreadPool pool;
 
+    struct ThreadData {
+        // neighbours for parallelized queries
+        Array<NeighbourRecord> neighs;
+
+        FlatSet<CollisionRecord> collisions;
+    };
+
+    ThreadLocal<ThreadData> threadData;
+
     // for single-threaded search (should be parallelized in the future)
     Array<NeighbourRecord> neighs;
 
     // cached array of removed particles, used to avoid invalidating indices during collision handling
     FlatSet<Size> removed;
 
+    // holds computed collisions
+    FlatSet<CollisionRecord> collisions;
+
     struct {
         AutoPtr<ICollisionHandler> handler;
 
-        AutoPtr<INeighbourFinder> finder;
+        AutoPtr<IBasicFinder> finder;
     } collision;
 
     struct {
@@ -96,9 +62,13 @@ private:
         Float allowedRatio;
     } overlap;
 
-    bool useInertiaTensor;
+    struct {
+        /// Use moment of inertia of individual particles
+        bool use;
 
-    Float maxAngle;
+        /// Maximum rotation of a particle in a single (sub)step.
+        Float maxAngle;
+    } rigidBody;
 
 public:
     /// \brief Creates the solver, using the gravity implementation specified by settings.
@@ -117,21 +87,24 @@ public:
     virtual void create(Storage& storage, IMaterial& material) const override;
 
 private:
-    static Float getSearchRadius(ArrayView<const Vector> r, ArrayView<const Vector> v, const Float dt);
-
     void rotateLocalFrame(Storage& storage, const Float dt);
 
     CollisionRecord findClosestCollision(const Size i,
         const Float globalRadius,
         const Interval interval,
+        Array<NeighbourRecord>& neighs,
         ArrayView<Vector> r,
-        ArrayView<Vector> v);
+        ArrayView<Vector> v) const;
 
+    /// \brief Checks for collision between particles at positions r1 and r2.
+    ///
+    /// If the collision happens in time less than given dt, the collision time is returned, otherwise
+    /// function returns NULL_OPTIONAL.
     Optional<Float> checkCollision(const Vector& r1,
         const Vector& v1,
         const Vector& r2,
         const Vector& v2,
-        const Interval interval) const;
+        const Float dt) const;
 };
 
 NAMESPACE_SPH_END

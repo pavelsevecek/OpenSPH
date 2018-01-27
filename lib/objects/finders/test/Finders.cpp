@@ -48,7 +48,7 @@ static Outcome checkNeighboursEqual(ArrayView<NeighbourRecord> treeNeighs,
     return SUCCESS;
 }
 
-static void checkNeighbours(INeighbourFinder& finder, Flags<FinderFlag> flags) {
+static void checkNeighbours(ISymmetricFinder& finder) {
     HexagonalPacking distr;
     SphericalDomain domain(Vector(0._f), 2._f);
     Array<Vector> storage = distr.generate(1000, domain);
@@ -62,8 +62,8 @@ static void checkNeighbours(INeighbourFinder& finder, Flags<FinderFlag> flags) {
     const Float radius = 0.7_f;
 
     auto test1 = [&](const Size refIdx) -> Outcome {
-        const Size nTree = finder.findNeighbours(refIdx, radius, treeNeighs, flags);
-        const Size nBf = bf.findNeighbours(refIdx, radius, bfNeighs, flags);
+        const Size nTree = finder.findAll(refIdx, radius, treeNeighs);
+        const Size nBf = bf.findAll(refIdx, radius, bfNeighs);
 
         if (nTree != nBf) {
             return makeFailed("Invalid number of neighbours:\n", nTree, " == ", nBf);
@@ -74,10 +74,8 @@ static void checkNeighbours(INeighbourFinder& finder, Flags<FinderFlag> flags) {
     REQUIRE_SEQUENCE(test1, 0, storage.size());
 
     auto test2 = [&](const Size refIdx) -> Outcome {
-        // find neighbours in the middle of two points (just to get something else then one of points)
-        const Vector point = 0.5_f * (storage[refIdx] + storage[refIdx + 1]);
-        const Size nTree = finder.findNeighbours(point, radius, treeNeighs, flags);
-        const Size nBf = bf.findNeighbours(point, radius, bfNeighs, flags);
+        const Size nTree = finder.findLowerRank(refIdx, radius, treeNeighs);
+        const Size nBf = bf.findLowerRank(refIdx, radius, bfNeighs);
 
         if (nTree != nBf) {
             return makeFailed("Invalid number of neighbours:\n", nTree, " == ", nBf);
@@ -85,35 +83,49 @@ static void checkNeighbours(INeighbourFinder& finder, Flags<FinderFlag> flags) {
 
         return checkNeighboursEqual(treeNeighs, bfNeighs);
     };
-    REQUIRE_SEQUENCE(test2, 0, storage.size() - 1);
+    REQUIRE_SEQUENCE(test2, 0, storage.size());
+
+    auto test3 = [&](const Size refIdx) -> Outcome {
+        // find neighbours in the middle of two points (just to get something else then one of points)
+        const Vector point = 0.5_f * (storage[refIdx] + storage[refIdx + 1]);
+        const Size nTree = finder.findAll(point, radius, treeNeighs);
+        const Size nBf = bf.findAll(point, radius, bfNeighs);
+
+        if (nTree != nBf) {
+            return makeFailed("Invalid number of neighbours:\n", nTree, " == ", nBf);
+        }
+
+        return checkNeighboursEqual(treeNeighs, bfNeighs);
+    };
+    REQUIRE_SEQUENCE(test3, 0, storage.size() - 1);
 }
 
-static void checkEmpty(INeighbourFinder& finder) {
+static void checkEmpty(ISymmetricFinder& finder) {
     Array<Vector> storage;
     // build finder on empty array
     REQUIRE_NOTHROW(finder.build(storage));
 
     // find in empty
     Array<NeighbourRecord> treeNeighs;
-    const Size nTree = finder.findNeighbours(Vector(0._f), 1.f, treeNeighs, EMPTY_FLAGS);
+    const Size nTree = finder.findAll(Vector(0._f), 1.f, treeNeighs);
     REQUIRE(nTree == 0);
 }
 
 /// Tests for one particular bug: single particle with very large components of position vector.
 /// Used to cause assert in UniformGridFinder, due to absolute values of epsilon in bounding box.
-static void checkLargeValues(INeighbourFinder& finder) {
+static void checkLargeValues(ISymmetricFinder& finder) {
     Array<Vector> storage = { Vector(1.e10_f, 2.e10_f, -3.e10_f, 1._f) };
     REQUIRE_NOTHROW(finder.build(storage));
 
     Array<NeighbourRecord> treeNeighs;
-    Size nTree = finder.findNeighbours(0, 1.f, treeNeighs, EMPTY_FLAGS);
+    Size nTree = finder.findAll(0, 1.f, treeNeighs);
     REQUIRE(nTree == 1);
 
-    nTree = finder.findNeighbours(0, 1.f, treeNeighs, FinderFlag::FIND_ONLY_SMALLER_H);
+    nTree = finder.findLowerRank(0, 1.f, treeNeighs);
     REQUIRE(nTree == 0);
 }
 
-static void testFindingSmallerH(INeighbourFinder& finder) {
+static void testFindingSmallerH(ISymmetricFinder& finder) {
     Array<Vector> storage(0, 10);
     for (int i = 0; i < 10; ++i) {
         storage.push(Vector(i, 0, 0, i + 1)); // points on line with increasing H
@@ -121,10 +133,10 @@ static void testFindingSmallerH(INeighbourFinder& finder) {
 
     finder.build(storage);
     Array<NeighbourRecord> treeNeighs;
-    int nAll = finder.findNeighbours(4, 10._f, treeNeighs);
+    int nAll = finder.findAll(4, 10._f, treeNeighs);
     REQUIRE(nAll == 10); // this should find all particles
 
-    int nSmaller = finder.findNeighbours(4, 10._f, treeNeighs, FinderFlag::FIND_ONLY_SMALLER_H);
+    int nSmaller = finder.findLowerRank(4, 10._f, treeNeighs);
     REQUIRE(nSmaller == 4); // this should find indices 0, 1, 2, 3
     bool allMatching = true;
     for (auto& n : treeNeighs) {
@@ -135,9 +147,8 @@ static void testFindingSmallerH(INeighbourFinder& finder) {
     REQUIRE(allMatching);
 }
 
-static void testFinder(INeighbourFinder& finder) {
-    checkNeighbours(finder, EMPTY_FLAGS);
-    checkNeighbours(finder, FinderFlag::FIND_ONLY_SMALLER_H);
+static void testFinder(ISymmetricFinder& finder) {
+    checkNeighbours(finder);
     checkEmpty(finder);
     checkLargeValues(finder);
     testFindingSmallerH(finder);
@@ -165,7 +176,7 @@ TEST_CASE("UniformGridFinder", "[finders]") {
     testFinder(finder);
 }
 
-TEST_CASE("Octree", "[finders]") {
+/*TEST_CASE("Octree", "[finders]") {
     Octree finder;
     /// \todo testFinder(finder);
 
@@ -177,4 +188,4 @@ TEST_CASE("Octree", "[finders]") {
     Size cnt = 0;
     finder.enumerateChildren([&cnt](OctreeNode& node) { cnt += node.points.size(); });
     REQUIRE(cnt == storage.size());
-}
+}*/

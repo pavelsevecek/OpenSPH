@@ -63,7 +63,7 @@ TEST_CASE("TextOutput dump&accumulate", "[output]") {
     output.dump(storage, stats);
 
     Storage loaded;
-    output.load(Path("tmp2_0000.txt"), loaded);
+    output.load(Path("tmp2_0000.txt"), loaded, stats);
     REQUIRE(loaded.getQuantityCnt() == 3); // density + position + flags
 
     Quantity& positions = loaded.getQuantity(QuantityId::POSITION);
@@ -94,7 +94,7 @@ TEST_CASE("BinaryOutput dump&accumulate simple", "[output]") {
     output.dump(storage1, stats);
 
     Storage storage2;
-    REQUIRE(output.load(Path("simple0000.out"), storage2));
+    REQUIRE(output.load(Path("simple0000.out"), storage2, stats));
     REQUIRE(storage2.getParticleCnt() == 3);
     REQUIRE(storage2.getQuantityCnt() == 4);
 
@@ -160,7 +160,7 @@ TEST_CASE("BinaryOutput dump&accumulate materials", "[output]") {
     REQUIRE(info->quantityCnt == 12); // matIds not stored
 
     Storage loaded;
-    REQUIRE(output.load(Path("mat0000.out"), loaded));
+    REQUIRE(output.load(Path("mat0000.out"), loaded, stats));
     REQUIRE(loaded.getMaterialCnt() == storage.getMaterialCnt());
     REQUIRE(loaded.getParticleCnt() == storage.getParticleCnt());
     REQUIRE(loaded.getQuantityCnt() == storage.getQuantityCnt());

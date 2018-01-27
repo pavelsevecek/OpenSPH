@@ -20,7 +20,7 @@ using RunSettings = Settings<RunSettingsId>;
 using BodySettings = Settings<BodySettingsId>;
 
 class IMaterial;
-class INeighbourFinder;
+class IBasicFinder;
 class ILogger;
 class IDomain;
 class ISolver;

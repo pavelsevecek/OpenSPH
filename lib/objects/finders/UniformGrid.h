@@ -6,12 +6,12 @@
 /// \date 2016-2018
 
 #include "objects/containers/LookupMap.h"
-#include "objects/finders/INeighbourFinder.h"
+#include "objects/finders/NeighbourFinder.h"
 
 NAMESPACE_SPH_BEGIN
 
 /// \brief Finder projecting a uniform grid on the particles.
-class UniformGridFinder : public INeighbourFinder {
+class UniformGridFinder : public FinderTemplate<UniformGridFinder> {
 protected:
     LookupMap lut;
 
@@ -31,17 +31,8 @@ public:
 
     ~UniformGridFinder();
 
-    virtual Size findNeighbours(const Size index,
-        const Float radius,
-        Array<NeighbourRecord>& neighbours,
-        Flags<FinderFlag> flags = EMPTY_FLAGS,
-        const Float error = 0._f) const override;
-
-    virtual Size findNeighbours(const Vector& position,
-        const Float radius,
-        Array<NeighbourRecord>& neighbours,
-        Flags<FinderFlag> flags = EMPTY_FLAGS,
-        const Float error = 0._f) const override;
+    template <bool FindAll>
+    Size find(const Vector& pos, const Size index, const Float radius, Array<NeighbourRecord>& neighs) const;
 
     /// Exposed for gravity
     /// \todo refactor, finder shouldn't know anything about gravity
@@ -63,15 +54,6 @@ public:
     INLINE Size getDimensionSize() const {
         return lut.getDimensionSize();
     }
-
-private:
-    Size findNeighboursImpl(const Vector& position,
-        const Vector& refPosition,
-        const Size refRank,
-        const Float radius,
-        Array<NeighbourRecord>& neighbours,
-        Flags<FinderFlag> flags,
-        const Float error) const;
 };
 
 NAMESPACE_SPH_END

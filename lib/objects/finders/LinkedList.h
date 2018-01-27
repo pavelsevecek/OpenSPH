@@ -1,13 +1,13 @@
 #pragma once
 
-#include "objects/finders/INeighbourFinder.h"
+#include "objects/finders/NeighbourFinder.h"
 #include "objects/geometry/Box.h"
 #include "objects/utility/Iterators.h"
 #include <algorithm>
 
 NAMESPACE_SPH_BEGIN
 
-class LinkedList : public INeighbourFinder {
+/*class LinkedList : public INeighbourFinder {
 private:
     VectorOrder sortedIndices;
     VectorOrder rank;
@@ -142,6 +142,6 @@ protected:
         upperBounds.resize(cellCnt);
         rebuildImpl(points);
     }
-};
+};*/
 
 NAMESPACE_SPH_END

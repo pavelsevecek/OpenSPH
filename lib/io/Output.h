@@ -52,12 +52,16 @@ public:
     /// - '%t' - replaced by current simulation time (with _ instead of decimal separator).
     IOutput(const Path& fileMask);
 
-    /// Saves data from particle storage into the file. Returns the filename of the dump.
+    /// \brief Saves data from particle storage into the file.
+    ///
+    /// Returns the filename of the dump, generated from file mask given in constructor.
     virtual Path dump(Storage& storage, const Statistics& stats) = 0;
 
-    /// Loads data from the file into the storage. This will remove any data previously stored in storage.
-    /// Can be used to continue simulation from saved snapshot.
-    virtual Outcome load(const Path& path, Storage& storage) = 0;
+    /// \brief Loads data from the file into the storage.
+    ///
+    /// This will remove any data previously stored in storage. Can be used to continue simulation from saved
+    /// snapshot.
+    virtual Outcome load(const Path& path, Storage& storage, Statistics& stats) = 0;
 };
 
 
@@ -108,7 +112,7 @@ public:
 
     virtual Path dump(Storage& storage, const Statistics& stats) override;
 
-    virtual Outcome load(const Path& path, Storage& storage) override;
+    virtual Outcome load(const Path& path, Storage& storage, Statistics& stats) override;
 };
 
 /// Extension of text output that runs given gnuplot script on dumped text data.
@@ -203,7 +207,7 @@ public:
 
     virtual Path dump(Storage& storage, const Statistics& stats) override;
 
-    virtual Outcome load(const Path& path, Storage& storage) override;
+    virtual Outcome load(const Path& path, Storage& storage, Statistics& stats) override;
 
     struct Info {
         /// Number of quantities in the file
@@ -290,7 +294,9 @@ public:
 
     virtual Path dump(Storage& storage, const Statistics& stats) override;
 
-    virtual Outcome load(const Path& UNUSED(path), Storage& UNUSED(storage)) override {
+    virtual Outcome load(const Path& UNUSED(path),
+        Storage& UNUSED(storage),
+        Statistics& UNUSED(stats)) override {
         NOT_IMPLEMENTED;
     }
 
@@ -317,7 +323,9 @@ public:
         return Path();
     }
 
-    virtual Outcome load(const Path& UNUSED(path), Storage& UNUSED(storage)) override {
+    virtual Outcome load(const Path& UNUSED(path),
+        Storage& UNUSED(storage),
+        Statistics& UNUSED(stats)) override {
         return SUCCESS;
     }
 };

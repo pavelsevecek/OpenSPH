@@ -20,7 +20,7 @@ class ICollisionHandler;
 class IFractureModel;
 class IDistribution;
 class IDomain;
-class INeighbourFinder;
+class ISymmetricFinder;
 class ITimeStepping;
 class ITimeStepCriterion;
 class IBoundaryCondition;
@@ -29,9 +29,8 @@ class ILogger;
 class IOutput;
 class IRng;
 class IEquationTerm;
-
-
 class Storage;
+enum class FinderFlag;
 
 /// Class providing a convenient way to construct objects from settings.
 namespace Factory {
@@ -47,7 +46,7 @@ namespace Factory {
 
     AutoPtr<ITimeStepCriterion> getTimeStepCriterion(const RunSettings& settings);
 
-    AutoPtr<INeighbourFinder> getFinder(const RunSettings& settings);
+    AutoPtr<ISymmetricFinder> getFinder(const RunSettings& settings);
 
     AutoPtr<IDistribution> getDistribution(const BodySettings& settings);
 

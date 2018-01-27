@@ -17,7 +17,7 @@ void finderRun(Benchmark::Context& context, TFinder& finder, const Size particle
     while (context.running()) {
         finder.build(r);
         for (Size i = 0; i < r.size(); ++i) {
-            finder.findNeighbours(i, 2._f * r[i][H], neighs);
+            finder.findAll(i, 2._f * r[i][H], neighs);
             for (NeighbourRecord& n : neighs) {
                 distSum += n.distanceSqr;
             }

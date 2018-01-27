@@ -20,22 +20,21 @@ void DynamicFinder::rebuildImpl(ArrayView<const Vector> points) {
     actual->rebuildImpl(points);
 }
 
-Size DynamicFinder::findNeighbours(const Size index,
-    const Float radius,
-    Array<NeighbourRecord>& neighbours,
-    Flags<FinderFlag> flags,
-    const Float error) const {
-    return actual->findNeighbours(index, radius, neighbours, flags, error);
+Size DynamicFinder::findAll(const Size index, const Float radius, Array<NeighbourRecord>& neighbours) const {
+    return actual->findAll(index, radius, neighbours);
 }
 
-Size DynamicFinder::findNeighbours(const Vector& position,
+Size DynamicFinder::findAll(const Vector& position,
     const Float radius,
-    Array<NeighbourRecord>& neighbours,
-    Flags<FinderFlag> flags,
-    const Float error) const {
-    return actual->findNeighbours(position, radius, neighbours, flags, error);
+    Array<NeighbourRecord>& neighbours) const {
+    return actual->findAll(position, radius, neighbours);
 }
 
+Size DynamicFinder::findLowerRank(const Size index,
+    const Float radius,
+    Array<NeighbourRecord>& neighbours) const {
+    return actual->findLowerRank(index, radius, neighbours);
+}
 
 Float DynamicFinder::updateFinder(ArrayView<const Vector> points) {
     // compute dipole and quadrupole moments (assuming all particles have the same mass)

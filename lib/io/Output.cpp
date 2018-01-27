@@ -155,7 +155,7 @@ Path TextOutput::dump(Storage& storage, const Statistics& stats) {
     return fileName;
 }
 
-Outcome TextOutput::load(const Path& path, Storage& storage) {
+Outcome TextOutput::load(const Path& path, Storage& storage, Statistics& UNUSED(stats)) {
     try {
         std::ifstream ifs(path.native());
         if (!ifs) {
@@ -504,7 +504,7 @@ static Expected<Storage> loadMaterial(const Size matIdx,
 }
 
 
-Outcome BinaryOutput::load(const Path& path, Storage& storage) {
+Outcome BinaryOutput::load(const Path& path, Storage& storage, Statistics& UNUSED(stats)) {
     storage.removeAll();
     Deserializer deserializer(path);
     std::string identifier;

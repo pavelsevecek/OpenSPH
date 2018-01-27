@@ -149,7 +149,6 @@ HEADERS += \
     objects/finders/AdaptiveGrid.h \
     objects/finders/BruteForceFinder.h \
     objects/finders/DynamicFinder.h \
-    objects/finders/INeighbourFinder.h \
     objects/finders/KdTree.h \
     objects/finders/LinkedList.h \
     objects/finders/Linkedlist.h \
@@ -282,4 +281,5 @@ HEADERS += \
     sph/solvers/SymmetricSolver.h \
     sph/solvers/StandardSets.h \
     objects/containers/FlatMap.h \
-    objects/containers/FlatSet.h
+    objects/containers/FlatSet.h \
+    objects/finders/NeighbourFinder.h

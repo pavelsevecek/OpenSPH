@@ -330,7 +330,7 @@ void spaceParticles(ArrayView<Vector> r, const Float radius) {
     while (moveCnt != 0) {
         moveCnt = 0;
         for (Size i = 0; i < r.size(); ++i) {
-            finder.findNeighbours(i, 10._f * r[i][H] * radius, neighs, EMPTY_FLAGS);
+            finder.findAll(i, 10._f * r[i][H] * radius, neighs);
             Vector force = Vector(0._f);
             if (neighs.size() <= 1) {
                 continue;

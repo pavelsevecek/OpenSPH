@@ -158,7 +158,7 @@ TYPED_TEST_CASE_2("NeighbourCount", "[equationterm]", TSolver, SymmetricSolver, 
     const Float radius = Factory::getKernel<3>(RunSettings::getDefaults()).radius();
     Array<NeighbourRecord> neighs;
     auto test = [&](Size i) -> Outcome {
-        const Size cnt = finder.findNeighbours(i, r[i][H] * radius, neighs, EMPTY_FLAGS);
+        const Size cnt = finder.findAll(i, r[i][H] * radius, neighs);
         if (cnt != neighCnts[i] + 1) {
             // +1 for the particle itself
             return makeFailed("Incorrect neighbour count for particle ", i, "\n", cnt, " == ", neighCnts[i]);

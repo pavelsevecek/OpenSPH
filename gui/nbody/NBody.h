@@ -65,7 +65,7 @@ private:
             .set(GuiSettingsId::ORTHO_CUTOFF, 0._f)
             .set(GuiSettingsId::ORTHO_PROJECTION, OrthoEnum::XY)
             .set(GuiSettingsId::IMAGES_SAVE, true)
-            .set(GuiSettingsId::IMAGES_TIMESTEP, 2.e3_f)
+            .set(GuiSettingsId::IMAGES_TIMESTEP, 1.e6_f)
             .set(GuiSettingsId::PLOT_INTEGRALS,
                 int(IntegralEnum::TOTAL_MOMENTUM) | int(IntegralEnum::TOTAL_ANGULAR_MOMENTUM))
             .set(GuiSettingsId::PALETTE_VELOCITY, Interval(1.e-4_f, 1.e-2_f));

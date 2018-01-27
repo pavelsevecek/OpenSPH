@@ -6,7 +6,7 @@
 /// \date 2016-2018
 
 #include "objects/containers/ArrayView.h"
-#include "objects/finders/INeighbourFinder.h"
+#include "objects/finders/NeighbourFinder.h"
 #include "objects/geometry/Vector.h"
 #include "quantities/Storage.h"
 #include "sph/equations/Accumulated.h"

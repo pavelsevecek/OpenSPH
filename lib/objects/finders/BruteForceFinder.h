@@ -5,7 +5,7 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2018
 
-#include "objects/finders/INeighbourFinder.h"
+#include "objects/finders/NeighbourFinder.h"
 #include "objects/geometry/Box.h"
 
 NAMESPACE_SPH_BEGIN
@@ -15,7 +15,7 @@ NAMESPACE_SPH_BEGIN
 /// This implementation is not intended for usage in high-performance code, as computing all particle pairs is
 /// too slow. Use other more efficient finders, such as \ref KdTree of \ref UniformGridFinder.
 /// BruteForceFinder should be used only for testing and debugging purposes.
-class BruteForceFinder : public INeighbourFinder {
+class BruteForceFinder : public FinderTemplate<BruteForceFinder> {
 protected:
     // no need to implement these for brute force
     virtual void buildImpl(ArrayView<const Vector> UNUSED(values)) override {}
@@ -23,38 +23,15 @@ protected:
     virtual void rebuildImpl(ArrayView<const Vector> UNUSED(values)) override {}
 
 public:
-    BruteForceFinder() = default;
-
-    virtual Size findNeighbours(const Size index,
-        const Float radius,
-        Array<NeighbourRecord>& neighbours,
-        Flags<FinderFlag> flags = EMPTY_FLAGS,
-        const Float UNUSED(error) = 0._f) const override {
-        neighbours.clear();
-        const Size refRank =
-            (flags.has(FinderFlag::FIND_ONLY_SMALLER_H)) ? this->rankH[index] : this->values.size();
+    template <bool FindAll>
+    Size find(const Vector& pos, const Size index, const Float radius, Array<NeighbourRecord>& neighs) const {
         for (Size i = 0; i < this->values.size(); ++i) {
-            const Float distSqr = getSqrLength(this->values[i] - this->values[index]);
-            if (rankH[i] < refRank && distSqr < sqr(radius)) {
-                neighbours.push(NeighbourRecord{ i, distSqr });
+            const Float distSqr = getSqrLength(this->values[i] - pos);
+            if (distSqr < sqr(radius) && (FindAll || rankH[i] < rankH[index])) {
+                neighs.push(NeighbourRecord{ i, distSqr });
             }
         }
-        return neighbours.size();
-    }
-
-    virtual Size findNeighbours(const Vector& position,
-        const Float radius,
-        Array<NeighbourRecord>& neighbours,
-        Flags<FinderFlag> UNUSED(flags) = EMPTY_FLAGS,
-        const Float UNUSED(error) = 0._f) const override {
-        neighbours.clear();
-        for (Size i = 0; i < this->values.size(); ++i) {
-            const Float distSqr = getSqrLength(this->values[i] - position);
-            if (distSqr < sqr(radius)) {
-                neighbours.push(NeighbourRecord{ i, distSqr });
-            }
-        }
-        return neighbours.size();
+        return neighs.size();
     }
 
     /// Updates the structure when the position change.

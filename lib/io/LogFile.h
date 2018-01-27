@@ -68,8 +68,9 @@ public:
 
         // clang-format off
         printStat<int>(stats, StatisticsId::TIMESTEP_ELAPSED,             " - time spent:  ", "ms");
-        printStat<int>(stats, StatisticsId::SPH_EVAL_TIME,                "    * SPH evaluation:     ", "ms");
-        printStat<int>(stats, StatisticsId::GRAVITY_EVAL_TIME,            "    * gravity evaluation: ", "ms");
+        printStat<int>(stats, StatisticsId::SPH_EVAL_TIME,                "    * SPH evaluation:       ", "ms");
+        printStat<int>(stats, StatisticsId::GRAVITY_EVAL_TIME,            "    * gravity evaluation:   ", "ms");
+        printStat<int>(stats, StatisticsId::COLLISION_EVAL_TIME,          "    * collision evaluation: ", "ms");
         printStat<MinMaxMean>(stats, StatisticsId::NEIGHBOUR_COUNT,       " - neigbours:   ");
         printStat<int>(stats, StatisticsId::TOTAL_COLLISION_COUNT,        " - collisions:  ");
         printStat<int>(stats, StatisticsId::BOUNCE_COUNT,                 "    * bounces:  ");

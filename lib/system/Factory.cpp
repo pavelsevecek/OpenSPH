@@ -142,7 +142,7 @@ AutoPtr<ITimeStepCriterion> Factory::getTimeStepCriterion(const RunSettings& set
     }
 }
 
-AutoPtr<INeighbourFinder> Factory::getFinder(const RunSettings& settings) {
+AutoPtr<ISymmetricFinder> Factory::getFinder(const RunSettings& settings) {
     const FinderEnum id = settings.get<FinderEnum>(RunSettingsId::SPH_FINDER);
     switch (id) {
     case FinderEnum::BRUTE_FORCE:
@@ -150,7 +150,8 @@ AutoPtr<INeighbourFinder> Factory::getFinder(const RunSettings& settings) {
     case FinderEnum::KD_TREE:
         return makeAuto<KdTree>();
     case FinderEnum::OCTREE:
-        return makeAuto<Octree>();
+        NOT_IMPLEMENTED;
+        // return makeAuto<Octree>();
     case FinderEnum::UNIFORM_GRID:
         return makeAuto<UniformGridFinder>();
     case FinderEnum::DYNAMIC:
@@ -256,7 +257,7 @@ AutoPtr<ICollisionHandler> Factory::getCollisionHandler(const RunSettings& setti
     case CollisionHandlerEnum::ELASTIC_BOUNCE:
         return makeAuto<ElasticBounceHandler>(settings);
     case CollisionHandlerEnum::PERFECT_MERGING:
-        return makeAuto<PerfectMergingHandler>(settings);
+        return makeAuto<PerfectMergingHandler>(0._f);
     case CollisionHandlerEnum::MERGE_OR_BOUNCE:
         return makeAuto<FallbackHandler<PerfectMergingHandler, ElasticBounceHandler>>(settings);
     default:
@@ -267,6 +268,8 @@ AutoPtr<ICollisionHandler> Factory::getCollisionHandler(const RunSettings& setti
 AutoPtr<ICollisionHandler> Factory::getOverlapHandler(const RunSettings& settings) {
     const OverlapEnum id = settings.get<OverlapEnum>(RunSettingsId::COLLISION_OVERLAP);
     switch (id) {
+    case OverlapEnum::NONE:
+        return makeAuto<NullHandler>();
     case OverlapEnum::FORCE_MERGE:
         return makeAuto<PerfectMergingHandler>(0._f);
     case OverlapEnum::REPEL:

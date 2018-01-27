@@ -470,7 +470,8 @@ void Controller::run(const Path& path) {
         // if we want to resume run from state file, load the storage
         if (!path.empty()) {
             BinaryOutput io;
-            Outcome result = io.load(path, *storage);
+            Statistics stats;
+            Outcome result = io.load(path, *storage, stats);
             if (!result) {
                 executeOnMainThread([result] {
                     wxMessageBox("Cannot resume the run: " + result.error(), "Error", wxOK | wxCENTRE);

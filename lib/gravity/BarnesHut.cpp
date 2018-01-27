@@ -37,8 +37,8 @@ void BarnesHut::build(const Storage& storage) {
     r = storage.getValue<Vector>(QuantityId::POSITION);
     m = storage.getValue<Float>(QuantityId::MASS);
 
-    // build K-d Tree
-    kdTree.build(r);
+    // build K-d Tree; no need for rank as we are never searching neighbours
+    kdTree.build(r, FinderFlag::SKIP_RANK);
 
     if (SPH_UNLIKELY(r.empty())) {
         return;

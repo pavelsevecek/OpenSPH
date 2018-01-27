@@ -405,15 +405,10 @@ TEST_CASE("Collision repel", "[nbody]") {
     REQUIRE_ASSERT(repel.collide(0, 1, dummy));
 }
 
-TEST_CASE("Collision merge cloud", "[nbody]") {
-    // just check that many particles fired into one point will all merge into a single particle
-    RunSettings settings;
-    settings.set(RunSettingsId::COLLISION_HANDLER, CollisionHandlerEnum::PERFECT_MERGING);
-    settings.set(RunSettingsId::COLLISION_OVERLAP, OverlapEnum::FORCE_MERGE);
-    settings.set(RunSettingsId::COLLISION_MERGING_LIMIT, 0._f);
+static SharedPtr<Storage> runCloud(const RunSettings& settings, const Size particleCount) {
     NBodySolver solver(settings);
 
-    SharedPtr<Storage> storage = makeShared<Storage>(Tests::getStorage(100));
+    SharedPtr<Storage> storage = makeShared<Storage>(Tests::getStorage(particleCount));
     solver.create(*storage, storage->getMaterial(0));
 
     ArrayView<Vector> r, v, dv;
@@ -424,31 +419,41 @@ TEST_CASE("Collision merge cloud", "[nbody]") {
     }
     integrate(storage, solver, 1.e-4_f, [](Size) -> Outcome { return SUCCESS; });
 
+    return storage;
+}
+
+TEST_CASE("Collision cloud merge", "[nbody]") {
+    // just check that many particles fired into one point will all merge into a single particle
+    RunSettings settings;
+    settings.set(RunSettingsId::COLLISION_HANDLER, CollisionHandlerEnum::PERFECT_MERGING);
+    settings.set(RunSettingsId::COLLISION_OVERLAP, OverlapEnum::FORCE_MERGE);
+    settings.set(RunSettingsId::COLLISION_MERGING_LIMIT, 0._f);
+    SharedPtr<Storage> storage = runCloud(settings, 100);
+
     // all particles should be merged into one
     REQUIRE(storage->getParticleCnt() == 1);
 }
 
-TEST_CASE("Collision merge&bounce", "[nbody]") {
+TEST_CASE("Collision cloud merge&bounce", "[nbody]") {
     // similar to above, more or less tests that MERGE_OR_BOUNCE with REPEL overlap handler will not cause any
     // assert
     RunSettings settings;
     settings.set(RunSettingsId::COLLISION_HANDLER, CollisionHandlerEnum::MERGE_OR_BOUNCE);
     settings.set(RunSettingsId::COLLISION_OVERLAP, OverlapEnum::REPEL);
     settings.set(RunSettingsId::COLLISION_MERGING_LIMIT, 0._f);
-    NBodySolver solver(settings);
-
-    SharedPtr<Storage> storage = makeShared<Storage>(Tests::getStorage(100));
-    solver.create(*storage, storage->getMaterial(0));
-
-    ArrayView<Vector> r, v, dv;
-    tie(r, v, dv) = storage->getAll<Vector>(QuantityId::POSITION);
-    for (Size i = 0; i < r.size(); ++i) {
-        r[i][H] = 0.01_f;
-        v[i] = -4._f * r[i];
-    }
-    integrate(storage, solver, 1.e-4_f, [](Size) -> Outcome { return SUCCESS; });
+    SharedPtr<Storage> storage = runCloud(settings, 100);
 
     // some particles either bounced away or were repelled in overlap, so we generally don't get 1 particle
     REQUIRE(storage->getParticleCnt() > 1);
-    REQUIRE(storage->getParticleCnt() < 20);
+    REQUIRE(storage->getParticleCnt() < 25);
+}
+
+TEST_CASE("Collision cloud bounce", "[nbody]") {
+    // for elastic bounces there should be NO overlaps (except for some very improbably numerical reasons);
+    // this setup would cause an assert
+    RunSettings settings;
+    settings.set(RunSettingsId::COLLISION_HANDLER, CollisionHandlerEnum::ELASTIC_BOUNCE);
+    settings.set(RunSettingsId::COLLISION_OVERLAP, OverlapEnum::NONE);
+    NBodySolver solver(settings);
+    REQUIRE_NOTHROW(runCloud(settings, 50));
 }

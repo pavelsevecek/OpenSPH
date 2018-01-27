@@ -123,7 +123,7 @@ Outcome StaticSolver::solve(Storage& storage, Statistics& stats) {
     Array<NeighbourRecord> neighs;
     matrix.resize(r.size() * 3);
     for (Size i = 0; i < r.size(); ++i) {
-        finder->findNeighbours(i, kernel.radius() * r[i][H], neighs, FinderFlag::FIND_ONLY_SMALLER_H);
+        finder->findLowerRank(i, kernel.radius() * r[i][H], neighs);
 
         for (Size k = 0; k < neighs.size(); ++k) {
             const Size j = neighs[k].index;

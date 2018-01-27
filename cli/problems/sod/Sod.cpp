@@ -5,8 +5,8 @@
 #include "physics/Rheology.h"
 #include "run/IRun.h"
 #include "sph/initial/Initial.h"
-#include "sph/solvers/StandardSets.h"
 #include "sph/solvers/DensityIndependentSolver.h"
+#include "sph/solvers/StandardSets.h"
 #include "sph/solvers/SummationSolver.h"
 #include "system/Factory.h"
 #include "system/Settings.h"
@@ -108,7 +108,7 @@ public:
         }
 
         // 3) setup density to be consistent with masses
-        AutoPtr<INeighbourFinder> finder = Factory::getFinder(this->settings);
+        AutoPtr<IBasicFinder> finder = Factory::getFinder(this->settings);
         finder->build(storage->getValue<Vector>(QuantityId::POSITION));
         LutKernel<1> kernel = Factory::getKernel<1>(settings);
         Array<NeighbourRecord> neighs;
@@ -119,7 +119,7 @@ public:
             } else if (r[i][X] > 0.85_f) {
                 rho[i] = 0.125_f;
             } else {
-                finder->findNeighbours(i, r[i][H] * kernel.radius(), neighs);
+                finder->findAll(i, r[i][H] * kernel.radius(), neighs);
                 rho[i] = 0._f;
                 for (Size n = 0; n < neighs.size(); ++n) {
                     const Size j = neighs[n].index;

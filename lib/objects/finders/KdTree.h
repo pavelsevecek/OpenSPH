@@ -1,6 +1,6 @@
 #pragma once
 
-#include "objects/finders/INeighbourFinder.h"
+#include "objects/finders/NeighbourFinder.h"
 #include "objects/geometry/Box.h"
 #include "objects/geometry/Multipole.h"
 
@@ -100,7 +100,7 @@ public:
 
 
 /// https://www.cs.umd.edu/~mount/Papers/cgc99-smpack.pdf
-class KdTree : public INeighbourFinder {
+class KdTree : public FinderTemplate<KdTree> {
 private:
     Size leafSize;
     Box entireBox;
@@ -128,17 +128,8 @@ public:
         ASSERT(leafSize >= 1);
     }
 
-    virtual Size findNeighbours(const Size index,
-        const Float radius,
-        Array<NeighbourRecord>& neighbours,
-        Flags<FinderFlag> flags = EMPTY_FLAGS,
-        const Float error = 0._f) const override;
-
-    virtual Size findNeighbours(const Vector& position,
-        const Float radius,
-        Array<NeighbourRecord>& neighbours,
-        Flags<FinderFlag> flags = EMPTY_FLAGS,
-        const Float error = 0._f) const override;
+    template <bool FindAll>
+    Size find(const Vector& pos, const Size index, const Float radius, Array<NeighbourRecord>& neighs) const;
 
     enum class Direction {
         TOP_DOWN,  ///< From root to leaves
@@ -214,11 +205,6 @@ protected:
 
 private:
     void init();
-
-    Size findNeighboursImpl(const Vector& position,
-        const Float radius,
-        const Size refRank,
-        Array<NeighbourRecord>& neighbours) const;
 
     void buildTree(const Size parent, const Size from, const Size to, const Box& box, const Size slidingCnt);
 

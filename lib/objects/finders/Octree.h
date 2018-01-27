@@ -5,16 +5,16 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2018
 
-#include "objects/geometry/Box.h"
 #include "objects/containers/Array.h"
-#include "objects/finders/INeighbourFinder.h"
+#include "objects/finders/NeighbourFinder.h"
+#include "objects/geometry/Box.h"
 #include "system/Profiler.h"
 
 NAMESPACE_SPH_BEGIN
 
 constexpr Size MAX_CHILDREN_PER_LEAF = 1;
 
-struct OctreeNode {
+/*struct OctreeNode {
     StaticArray<AutoPtr<OctreeNode>, 8> children;
     Box voxel;
     Array<Size> points;
@@ -34,7 +34,7 @@ struct OctreeNode {
     }
 };
 
-class Octree : public INeighbourFinder {
+class Octree : public FinderTemplate<Octree> {
 private:
     Box box;
     AutoPtr<OctreeNode> root;
@@ -58,28 +58,21 @@ public:
 
     virtual Size findNeighbours(const Size index,
         const Float radius,
-        Array<NeighbourRecord>& neighbours,
-        Flags<FinderFlag> flags = EMPTY_FLAGS,
-        const Float UNUSED(error) = 0._f) const override {
+        Array<NeighbourRecord>& neighbours) const override {
         PROFILE_SCOPE("Octree::findNeighbours");
-        neighbours.clear();
+        ASSERT(neighbours.empty())
         ASSERT(root);
-        const Size refRank =
-            (flags.has(FinderFlag::FIND_ONLY_SMALLER_H)) ? this->rankH[index] : this->values.size();
-        findNeighboursInNode(*root, index, radius, neighbours, refRank);
+        findNeighboursInNode(*root, index, radius, neighbours);
         return neighbours.size();
     }
 
     virtual Size findNeighbours(const Vector& UNUSED(position),
         const Float radius,
-        Array<NeighbourRecord>& neighbours,
-        Flags<FinderFlag> UNUSED(flags) = EMPTY_FLAGS,
-        const Float UNUSED(error) = 0._f) const override {
+        Array<NeighbourRecord>& neighbours) const override {
         PROFILE_SCOPE("Octree::findNeighbours");
         neighbours.clear();
         ASSERT(root);
-        const Size refRank = this->values.size();
-        findNeighboursInNode(*root, 0, radius, neighbours, refRank);
+        findNeighboursInNode(*root, 0, radius, neighbours);
         NOT_IMPLEMENTED;
         return neighbours.size();
     }
@@ -103,20 +96,19 @@ private:
     void findNeighboursInNode(OctreeNode& node,
         const Size index,
         const Float radius,
-        Array<NeighbourRecord>& neighbours,
-        const Size refRank) const {
+        Array<NeighbourRecord>& neighbours) const {
         const Float radiusSqr = sqr(radius);
         if (node.isLeaf) {
             for (Size i : node.points) {
                 const Float distSqr = getSqrLength(values[i] - values[index]);
-                if (rankH[i] < refRank && distSqr < radiusSqr) {
+                if (distSqr < radiusSqr && (this->findAll() || rankH[i] < rankH[index])) {
                     neighbours.push(NeighbourRecord{ i, distSqr });
                 }
             }
         } else {
             const Vector& p = values[index];
             const Size code = this->getCode(p, node.voxel);
-            /*Box voxel = node.children[code]->voxel;
+            Box voxel = node.children[code]->voxel;
             if (getSqrLength(voxel.lower() - p) < radiusSqr && getSqrLength(voxel.upper() - p) < radiusSqr) {
                 // all points of the voxel are already the sphere, skip the checks and just add all points
                 this->enumerateChildrenNode(node, [this, &p, refRank, &neighbours](OctreeNode& n) INL {
@@ -132,7 +124,7 @@ private:
                 });
                 return;
             }*/
-            /*Vector& l = voxel.lower();
+/*Vector& l = voxel.lower();
             Vector& u = voxel.upper();
             const Vector r(radius);
             l += r;
@@ -140,13 +132,13 @@ private:
             if (voxel.contains(p)) {
                 // sphere is entirely in this octant, no need to check the other octants
                 this->findNeighboursInNode(*node.children[code], index, radius, neighbours, refRank);
-            } else*/ {
+            } else*/ /*{
                 for (Size i = 0; i < node.children.size(); ++i) {
                     OctreeNode& child = *node.children[i];
                     const bool intersect = (i == code) ? true : sphereIntersectsBox(p, radius, child.voxel);
                     if (intersect) {
                         ASSERT(node.children[i]);
-                        this->findNeighboursInNode(child, index, radius, neighbours, refRank);
+                        this->findNeighboursInNode(child, index, radius, neighbours);
                     }
                 }
             }
@@ -232,6 +224,6 @@ private:
         ASSERT(code < 8);
         return code;
     }
-};
+};*/
 
 NAMESPACE_SPH_END

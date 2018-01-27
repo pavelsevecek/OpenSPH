@@ -16,6 +16,10 @@ SymmetricSolver::SymmetricSolver(const RunSettings& settings, const EquationHold
     /// will evolve it. Or maybe just move smoothing length to separate quantity to get rid of these
     /// issues?
     kernel = Factory::getKernel<DIMENSIONS>(settings);
+
+    // Find all neighbours within kernel support. Since we are only searching for particles with
+    // smaller h, we know that symmetrized lengths (h_i + h_j)/2 will be ALWAYS smaller or equal
+    // to h_i, and we thus never "miss" a particle.
     finder = Factory::getFinder(settings);
     bc = Factory::getBoundaryConditions(settings);
 
@@ -93,11 +97,7 @@ void SymmetricSolver::loop(Storage& storage, Statistics& UNUSED(stats)) {
 
     auto functor = [this, r](const Size n1, const Size n2, ThreadData& data) {
         for (Size i = n1; i < n2; ++i) {
-            // Find all neighbours within kernel support. Since we are only searching for particles with
-            // smaller h, we know that symmetrized lengths (h_i + h_j)/2 will be ALWAYS smaller or equal
-            // to h_i, and we thus never "miss" a particle.
-            const FinderFlag flags = FinderFlag::FIND_ONLY_SMALLER_H;
-            finder->findNeighbours(i, r[i][H] * kernel.radius(), data.neighs, flags);
+            finder->findLowerRank(i, r[i][H] * kernel.radius(), data.neighs);
             data.grads.clear();
             data.idxs.clear();
             for (auto& n : data.neighs) {

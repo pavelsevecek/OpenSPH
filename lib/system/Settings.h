@@ -427,7 +427,7 @@ enum class CollisionHandlerEnum {
 
 enum class OverlapEnum {
     /// All overlaps are ignored
-    NOTHING,
+    NONE,
 
     /// Overlapping particles are merged
     FORCE_MERGE,

@@ -20,13 +20,14 @@ Size Post::findComponents(const Storage& storage,
     // get values from storage
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
 
-    AutoPtr<INeighbourFinder> finder;
+    AutoPtr<IBasicFinder> finder = makeAuto<UniformGridFinder>();
     Float actRadius = radius;
 
     // Checks if two particles belong to the same component
     struct IComponentChecker : public Polymorphic {
         virtual bool belong(const Size i, const Size j) = 0;
     };
+
     AutoPtr<IComponentChecker> checker;
 
     switch (connectivity) {
@@ -43,7 +44,6 @@ Size Post::findComponents(const Storage& storage,
             }
         };
         checker = makeAuto<FlagComponentChecker>(storage);
-        finder = makeAuto<UniformGridFinder>();
         break;
     case ComponentConnectivity::OVERLAP:
         class AnyChecker : public IComponentChecker {
@@ -54,7 +54,6 @@ Size Post::findComponents(const Storage& storage,
             }
         };
         checker = makeAuto<AnyChecker>();
-        finder = makeAuto<UniformGridFinder>();
         break;
     case ComponentConnectivity::ESCAPE_VELOCITY:
         class EscapeVelocityComponentChecker : public IComponentChecker {
@@ -79,7 +78,6 @@ Size Post::findComponents(const Storage& storage,
             }
         };
         checker = makeAuto<EscapeVelocityComponentChecker>(storage, radius);
-        finder = makeAuto<UniformGridFinder>();
         actRadius = 10._f * radius;
         break;
     }
@@ -103,7 +101,7 @@ Size Post::findComponents(const Storage& storage,
             // find new neigbours recursively until we find all particles in the component
             while (!stack.empty()) {
                 const Size index = stack.pop();
-                finder->findNeighbours(index, r[index][H] * actRadius, neighs);
+                finder->findAll(index, r[index][H] * actRadius, neighs);
                 for (auto& n : neighs) {
                     if (!checker->belong(index, n.index)) {
                         // do not count as neighbours
@@ -633,7 +631,8 @@ Expected<Storage> Post::parsePkdgravOutput(const Path& path) {
     output.addColumn(makeAuto<DummyColumn>(ValueEnum::INDEX));
 
     Storage storage;
-    Outcome outcome = output.load(path, storage);
+    Statistics stats;
+    Outcome outcome = output.load(path, storage, stats);
     if (!outcome) {
         return makeUnexpected<Storage>(outcome.error());
     }

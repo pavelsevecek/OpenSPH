@@ -87,7 +87,7 @@ private:
             for (Size i = n1; i < n2; ++i) {
                 /// \todo do we have to recompute neighbours in every iteration?
                 // find all neighbours
-                finder->findNeighbours(i, h[i] * kernel.radius(), data.neighs, EMPTY_FLAGS);
+                finder->findAll(i, h[i] * kernel.radius(), data.neighs);
                 ASSERT(data.neighs.size() > 0, data.neighs.size());
                 // find density and smoothing length by self-consistent solution.
                 const Float rho0 = rho[i];

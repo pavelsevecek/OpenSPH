@@ -1,7 +1,7 @@
 #include "sph/initial/Distribution.h"
 #include "catch.hpp"
 #include "io/Output.h"
-#include "objects/finders/INeighbourFinder.h"
+#include "objects/finders/NeighbourFinder.h"
 #include "objects/geometry/Domain.h"
 #include "objects/utility/ArrayUtils.h"
 #include "system/ArrayStats.h"
@@ -65,7 +65,7 @@ TEST_CASE("HexaPacking grid", "[initial]") {
     HexagonalPacking packing(EMPTY_FLAGS);
     SphericalDomain domain(Vector(0._f), 2._f);
     Array<Vector> r = packing.generate(1000, domain);
-    AutoPtr<INeighbourFinder> finder = Factory::getFinder(RunSettings::getDefaults());
+    AutoPtr<ISymmetricFinder> finder = Factory::getFinder(RunSettings::getDefaults());
     finder->build(r);
     Array<NeighbourRecord> neighs;
     auto test = [&](const Size i) -> Outcome {
@@ -73,7 +73,7 @@ TEST_CASE("HexaPacking grid", "[initial]") {
             // skip particles close to boundary, they don't necessarily have 12 neighbours
             return SUCCESS;
         }
-        finder->findNeighbours(i, 1.5_f * r[i][H], neighs, EMPTY_FLAGS);
+        finder->findAll(i, 1.5_f * r[i][H], neighs);
         if (neighs.size() != 13) { // 12 + i-th particle itself
             return makeFailed("Invalid number of neighbours: \n", neighs.size(), " == 13");
         }
@@ -103,9 +103,9 @@ TEST_CASE("HexaPacking sorted", "[initial]") {
     ASSERT(r_sort.size() == r_unsort.size());
 
 
-    AutoPtr<INeighbourFinder> finder_sort = Factory::getFinder(RunSettings::getDefaults());
+    AutoPtr<ISymmetricFinder> finder_sort = Factory::getFinder(RunSettings::getDefaults());
     finder_sort->build(r_sort);
-    AutoPtr<INeighbourFinder> finder_unsort = Factory::getFinder(RunSettings::getDefaults());
+    AutoPtr<ISymmetricFinder> finder_unsort = Factory::getFinder(RunSettings::getDefaults());
     finder_unsort->build(r_unsort);
 
     // find maximum distance of neighbouring particles in memory
@@ -115,14 +115,14 @@ TEST_CASE("HexaPacking sorted", "[initial]") {
     Array<Size> dists_unsort;
     Array<NeighbourRecord> neighs;
     for (Size i = 0; i < r_sort.size(); ++i) {
-        neighCnt_sort += finder_sort->findNeighbours(i, 2._f * r_sort[i][H], neighs);
+        neighCnt_sort += finder_sort->findAll(i, 2._f * r_sort[i][H], neighs);
         for (auto& n : neighs) {
             const Size dist = Size(abs(int(n.index) - int(i)));
             dists_sort.push(dist);
         }
     }
     for (Size i = 0; i < r_unsort.size(); ++i) {
-        neighCnt_unsort += finder_unsort->findNeighbours(i, 2._f * r_unsort[i][H], neighs);
+        neighCnt_unsort += finder_unsort->findAll(i, 2._f * r_unsort[i][H], neighs);
         for (auto& n : neighs) {
             const Size dist = Size(abs(int(n.index) - int(i)));
             dists_unsort.push(dist);

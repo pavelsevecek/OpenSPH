@@ -13,7 +13,7 @@ TEST_CASE("BruteForceFinder", "[bruteforce]") {
     BruteForceFinder finder;
     finder.build(storage);
     Array<NeighbourRecord> neighs(0, 10);
-    int cnt = finder.findNeighbours(4, 1.5f, neighs, EMPTY_FLAGS);
+    int cnt = finder.findAll(4, 1.5f, neighs);
     REQUIRE(cnt == 3);
     REQUIRE(neighs[0].index == 3);
     REQUIRE(neighs[0].distanceSqr == 1.f);
@@ -22,13 +22,13 @@ TEST_CASE("BruteForceFinder", "[bruteforce]") {
     REQUIRE(neighs[2].index == 5);
     REQUIRE(neighs[2].distanceSqr == 1.f);
 
-    cnt = finder.findNeighbours(4, 1.5f, neighs, FinderFlag::FIND_ONLY_SMALLER_H);
+    cnt = finder.findLowerRank(4, 1.5f, neighs);
     REQUIRE(cnt == 1);
     REQUIRE(neighs[0].index == 3);
     REQUIRE(neighs[0].distanceSqr == 1.f);
 
     for (int i = 0; i < 10; ++i) {
-        cnt = finder.findNeighbours(0, i + 0.1f, neighs);
+        cnt = finder.findAll(0, i + 0.1f, neighs);
         REQUIRE(cnt == i + 1);
     }
 }

@@ -53,7 +53,7 @@ protected:
     EquationHolder equations;
 
     /// Structure used to search for neighbouring particles
-    AutoPtr<INeighbourFinder> finder;
+    AutoPtr<IBasicFinder> finder;
 
     /// Selected SPH kernel, symmetrized over smoothing lenghs:
     /// \f$ W_ij(r_i - r_j, 0.5(h[i] + h[j]) \f$

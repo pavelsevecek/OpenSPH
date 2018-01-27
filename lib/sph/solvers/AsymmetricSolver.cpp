@@ -72,7 +72,7 @@ void AsymmetricSolver::loop(Storage& storage, Statistics& stats) {
 
     auto functor = [this, r, &neighs, radius](const Size n1, const Size n2, ThreadData& data) {
         for (Size i = n1; i < n2; ++i) {
-            finder->findNeighbours(i, radius, data.neighs, EMPTY_FLAGS);
+            finder->findAll(i, radius, data.neighs);
             data.grads.clear();
             data.idxs.clear();
             for (auto& n : data.neighs) {

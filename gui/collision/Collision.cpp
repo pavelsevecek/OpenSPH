@@ -292,7 +292,7 @@ private:
         auto functor = [this, r, rho, &rhoSmoothed](const Size n1, const Size n2) {
             Array<NeighbourRecord> neighs;
             for (Size i = n1; i < n2; ++i) {
-                finder->findNeighbours(i, r[i][H] * kernel.radius(), neighs);
+                finder->findAll(i, r[i][H] * kernel.radius(), neighs);
 
                 Float rhoSum = 0._f;
                 Float weightSum = 0._f;

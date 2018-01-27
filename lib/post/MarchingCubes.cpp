@@ -1,5 +1,5 @@
 #include "post/MarchingCubes.h"
-#include "objects/finders/INeighbourFinder.h"
+#include "objects/finders/NeighbourFinder.h"
 #include "quantities/Storage.h"
 #include "sph/kernel/KernelFactory.h"
 #include "system/Factory.h"
@@ -433,7 +433,7 @@ INLINE Vector MarchingCubes::interpolate(const Vector& v1,
 struct NumberDensityField : public IScalarField {
 private:
     LutKernel<3>& kernel;
-    INeighbourFinder& finder;
+    IBasicFinder& finder;
 
     ArrayView<const Vector> r;
     ArrayView<const Float> m, rho;
@@ -447,7 +447,7 @@ public:
     NumberDensityField(const Storage& storage,
         const ArrayView<const Vector> r,
         LutKernel<3>& kernel,
-        INeighbourFinder& finder)
+        IBasicFinder& finder)
         : kernel(kernel)
         , finder(finder)
         , r(r)
@@ -462,7 +462,7 @@ public:
     virtual Float operator()(const Vector& pos) override {
         ASSERT(maxH > 0._f);
         Array<NeighbourRecord>& neighsTl = neighs.get();
-        finder.findNeighbours(pos, maxH * kernel.radius(), neighsTl);
+        finder.findAll(pos, maxH * kernel.radius(), neighsTl);
         Float phi = 0._f;
 
         // find average h of neighbours and the flag of the closest particle
@@ -499,14 +499,14 @@ Array<Triangle> getSurfaceMesh(const Storage& storage, const Float gridResolutio
     Array<Vector> r_bar(r.size());
     RunSettings settings;
     LutKernel<3> kernel = Factory::getKernel<3>(settings);
-    AutoPtr<INeighbourFinder> finder = Factory::getFinder(settings);
+    AutoPtr<IBasicFinder> finder = Factory::getFinder(settings);
 
     finder->build(r);
 
     parallelFor(0, r.size(), [&finder, &r_bar, r, &kernel, lambda](const Size n1, const Size n2) {
         Array<NeighbourRecord> neighs;
         for (Size i = n1; i < n2; ++i) {
-            finder->findNeighbours(i, r[i][H] * kernel.radius(), neighs);
+            finder->findAll(i, r[i][H] * kernel.radius(), neighs);
             Vector wr(0._f);
             Float wsum = 0._f;
             for (NeighbourRecord& n : neighs) {

@@ -54,7 +54,9 @@ public:
         return Path();
     }
 
-    virtual Outcome load(const Path& UNUSED(path), Storage& UNUSED(storage)) override {
+    virtual Outcome load(const Path& UNUSED(path),
+        Storage& UNUSED(storage),
+        Statistics& UNUSED(stats)) override {
         NOT_IMPLEMENTED;
     }
 };

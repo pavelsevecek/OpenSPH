@@ -381,7 +381,7 @@ Array<Size> Storage::duplicate(ArrayView<const Size> idxs) {
     return createdIds;
 }
 
-void Storage::remove(ArrayView<const Size> idxs) {
+void Storage::remove(ArrayView<const Size> idxs, const Flags<RemoveFlag> flags) {
     Size particlesRemoved = 0;
     for (Size matId = 0; matId < mats.size();) {
         Mat& mat = mats[matId];
@@ -405,12 +405,19 @@ void Storage::remove(ArrayView<const Size> idxs) {
         }
     }
 
-    Array<Size> sorted(0, idxs.size());
-    sorted.pushAll(idxs.begin(), idxs.end());
-    std::sort(sorted.begin(), sorted.end());
+    ArrayView<const Size> sortedIdxs;
+    Array<Size> sortedHolder;
+    if (flags.has(RemoveFlag::INDICES_SORTED)) {
+        ASSERT(std::is_sorted(idxs.begin(), idxs.end()));
+        sortedIdxs = idxs;
+    } else {
+        sortedHolder.pushAll(idxs.begin(), idxs.end());
+        std::sort(sortedHolder.begin(), sortedHolder.end());
+        sortedIdxs = sortedHolder;
+    }
 
-    iterate<VisitorEnum::ALL_BUFFERS>(*this, [&sorted](auto& buffer) {
-        for (Size i : reverse(sorted)) {
+    iterate<VisitorEnum::ALL_BUFFERS>(*this, [&sortedIdxs](auto& buffer) {
+        for (Size i : reverse(sortedIdxs)) {
             buffer.remove(i);
         }
     });

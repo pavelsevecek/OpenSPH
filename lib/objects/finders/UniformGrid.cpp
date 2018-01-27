@@ -27,43 +27,18 @@ void UniformGridFinder::rebuildImpl(ArrayView<const Vector> points) {
     buildImpl(points);
 }
 
-Size UniformGridFinder::findNeighbours(const Size index,
+template <bool FindAll>
+Size UniformGridFinder::find(const Vector& pos,
+    const Size index,
     const Float radius,
-    Array<NeighbourRecord>& neighbours,
-    Flags<FinderFlag> flags,
-    const Float error) const {
-    const Size refRank =
-        (flags.has(FinderFlag::FIND_ONLY_SMALLER_H)) ? this->rankH[index] : this->values.size();
-    return this->findNeighboursImpl(values[index], values[index], refRank, radius, neighbours, flags, error);
-}
-
-Size UniformGridFinder::findNeighbours(const Vector& position,
-    const Float radius,
-    Array<NeighbourRecord>& neighbours,
-    Flags<FinderFlag> flags,
-    const Float error) const {
-    const Size refRank = this->values.size();
-    const Vector refPosition = lut.clamp(position);
-    if (SPH_UNLIKELY(values.empty())) {
-        return 0;
-    }
-    return this->findNeighboursImpl(position, refPosition, refRank, radius, neighbours, flags, error);
-}
-
-Size UniformGridFinder::findNeighboursImpl(const Vector& position,
-    const Vector& refPosition,
-    const Size refRank,
-    const Float radius,
-    Array<NeighbourRecord>& neighbours,
-    Flags<FinderFlag> UNUSED(flags),
-    const Float UNUSED(error)) const {
-    neighbours.clear();
+    Array<NeighbourRecord>& neighbours) const {
+    const Vector refPosition = lut.clamp(pos);
     Indices lower = lut.map(refPosition);
     Indices upper = lower;
     Box voxel = lut.voxel(lower);
     const Vector size = lut.getVoxelSize();
-    Vector diffUpper = voxel.upper() - position;
-    Vector diffLower = position - voxel.lower();
+    Vector diffUpper = voxel.upper() - pos;
+    Vector diffLower = pos - voxel.lower();
 
     ASSERT(lut.getDimensionSize() > 0);
     const int upperLimit = lut.getDimensionSize() - 1;
@@ -96,8 +71,8 @@ Size UniformGridFinder::findNeighboursImpl(const Vector& position,
         for (int y = lower[Y]; y <= upper[Y]; ++y) {
             for (int z = lower[Z]; z <= upper[Z]; ++z) {
                 for (Size i : lut(Indices(x, y, z))) {
-                    const Float distSqr = getSqrLength(values[i] - position);
-                    if (rankH[i] < refRank && distSqr < sqr(radius)) {
+                    const Float distSqr = getSqrLength(values[i] - pos);
+                    if (distSqr < sqr(radius) && (FindAll || rankH[i] < rankH[index])) {
                         neighbours.emplaceBack(NeighbourRecord{ i, distSqr });
                     }
                 }

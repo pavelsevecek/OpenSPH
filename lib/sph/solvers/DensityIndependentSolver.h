@@ -162,7 +162,7 @@ private:
         auto functor = [this, r, U](const Size n1, const Size n2, ThreadData& data) {
             for (Size i = n1; i < n2; ++i) {
                 // find all neighbours
-                finder->findNeighbours(i, r[i][H] * kernel.radius(), data.neighs, EMPTY_FLAGS);
+                finder->findAll(i, r[i][H] * kernel.radius(), data.neighs);
                 q[i] = 0._f;
                 for (auto& n : data.neighs) {
                     const int j = n.index;

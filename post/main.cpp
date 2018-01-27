@@ -79,7 +79,8 @@ int sphToSfd(const Path& filePath, const Path& settingsPath, const Path& sfdPath
     TextOutput output(TextOutput::Options::EXTENDED_COLUMNS);
 
     Storage storage;
-    Outcome outcome = output.load(filePath, storage);
+    Statistics stats;
+    Outcome outcome = output.load(filePath, storage, stats);
     if (!outcome) {
         std::cout << "Cannot load particle data, " << outcome.error() << std::endl;
         return 0;

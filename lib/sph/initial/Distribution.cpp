@@ -249,7 +249,7 @@ Array<Vector> DiehlDistribution::generate(const Size n, const IDomain& domain) c
             const Float n = actDensity(vecs[i]); // average particle density
             // average interparticle distance at given point
             const Float neighbourRadius = kernelRadius / root<3>(n);
-            finder.findNeighbours(i, neighbourRadius, neighs, EMPTY_FLAGS, 1.e-3_f);
+            finder.findAll(i, neighbourRadius, neighs);
 
             /// \todo find a way to add ghosts
             // create ghosts for particles near the boundary

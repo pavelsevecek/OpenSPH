@@ -5,7 +5,7 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2018
 
-#include "objects/finders/INeighbourFinder.h"
+#include "objects/finders/NeighbourFinder.h"
 #include "objects/wrappers/SharedPtr.h"
 #include "quantities/Storage.h"
 #include "sph/kernel/KernelFactory.h"
@@ -20,7 +20,7 @@ NAMESPACE_SPH_BEGIN
 /// lies outside of support of all SPH particles, the interpolated value is zero.
 class Interpolation : public Noncopyable {
 private:
-    AutoPtr<INeighbourFinder> finder;
+    AutoPtr<IBasicFinder> finder;
 
     LutKernel<3> kernel;
 
@@ -29,7 +29,7 @@ private:
     const Storage& storage;
 
 public:
-    /// Constructs the interpolation object from settings.
+    /// \brief Constructs the interpolation object from settings.
     Interpolation(const Storage& storage, const RunSettings& settings = RunSettings::getDefaults())
         : finder(Factory::getFinder(settings))
         , kernel(Factory::getKernel<3>(settings))
@@ -37,11 +37,11 @@ public:
         this->build();
     }
 
-    /// Constructs the interpolation object given a neighbour finding object and a SPH kernel.
+    /// \brief Constructs the interpolation object given a neighbour finding object and a SPH kernel.
     /// \param finder Object for finding neighbours. Overload of INeighbourFinder::findNeighbours taking a
     ///               vector must be implemented. Parameter must not be nullptr.
     /// \param kernel SPH kernel used for interpolation.
-    Interpolation(const Storage& storage, AutoPtr<INeighbourFinder>&& finder, LutKernel<3>&& kernel)
+    Interpolation(const Storage& storage, AutoPtr<IBasicFinder>&& finder, LutKernel<3>&& kernel)
         : finder(std::move(finder))
         , kernel(std::move(kernel))
         , storage(storage) {
@@ -49,7 +49,7 @@ public:
         this->build();
     }
 
-    /// Computes interpolated value at given point.
+    /// \brief Computes interpolated value at given point.
     /// \tparam Type Value type of the quantity, must be the type of the quantity being interpolated.
     /// \param id Quantity values of which we wish to interpolate. The quantity must be stored in the storage.
     /// \param deriv Specifies whether to interpolate quantity values or its derivatives. For values, use
@@ -67,7 +67,7 @@ public:
 
         Type interpol(0._f);
         Array<NeighbourRecord> neighs;
-        finder->findNeighbours(pos, kernel.radius() * searchRadius, neighs, EMPTY_FLAGS);
+        finder->findAll(pos, kernel.radius() * searchRadius, neighs);
         for (Size k = 0; k < neighs.size(); ++k) {
             const Size j = neighs[k].index;
             if (neighs[k].distanceSqr < sqr(kernel.radius() * r[j][H])) {

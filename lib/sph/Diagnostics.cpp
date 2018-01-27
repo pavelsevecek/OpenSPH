@@ -15,7 +15,7 @@ Array<ParticlePairing::Pair> ParticlePairing::getPairs(const Storage& storage) c
     /// \todo symmetrized h
     for (Size i = 0; i < r.size(); ++i) {
         // only smaller h to go through each pair only once
-        finder.findNeighbours(i, r[i][H] * radius, neighs, FinderFlag::FIND_ONLY_SMALLER_H);
+        finder.findLowerRank(i, r[i][H] * radius, neighs);
         for (auto& n : neighs) {
             if (getSqrLength(r[i] - r[n.index]) < sqr(limit * (r[i][H] + r[n.index][H]))) {
                 pairs.push(ParticlePairing::Pair{ i, n.index });
@@ -48,7 +48,7 @@ Outcome SmoothingDiscontinuity::check(const Storage& storage) {
     };
     Array<Pair> pairs;
     for (Size i = 0; i < r.size(); ++i) {
-        finder.findNeighbours(i, r[i][H] * radius, neighs, FinderFlag::FIND_ONLY_SMALLER_H);
+        finder.findLowerRank(i, r[i][H] * radius, neighs);
         for (auto& n : neighs) {
             const Size j = n.index;
             if (abs(r[i][H] - r[j][H]) > limit * (r[i][H] + r[j][H])) {

@@ -135,6 +135,9 @@ enum class StatisticsId {
     /// Wallclock duration of gravity evaluation
     GRAVITY_EVAL_TIME,
 
+    /// Wallclock duration of collision evaluation
+    COLLISION_EVAL_TIME,
+
     /// Number of collisions in the timestep
     TOTAL_COLLISION_COUNT,
 

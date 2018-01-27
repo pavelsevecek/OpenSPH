@@ -245,10 +245,12 @@ bool KdTree::checkBoxes(const Size from,
     return true;
 }
 
-Size KdTree::findNeighboursImpl(const Vector& r0,
+template <bool FindAll>
+Size KdTree::find(const Vector& r0,
+    const Size index,
     const Float radius,
-    const Size refRank,
     Array<NeighbourRecord>& neighbours) const {
+    ASSERT(neighbours.empty());
     const Float radiusSqr = sqr(radius);
     const Vector maxDistSqr = sqr(max(Vector(0._f), entireBox.lower() - r0, r0 - entireBox.upper()));
 
@@ -270,7 +272,7 @@ Size KdTree::findNeighboursImpl(const Vector& r0,
                     for (Size i = leaf.from; i < leaf.to; ++i) {
                         const Size actIndex = idxs[i];
                         const Float distSqr = getSqrLength(values[actIndex] - r0);
-                        if (rankH[actIndex] < refRank && distSqr < radiusSqr) {
+                        if (distSqr < radiusSqr && (FindAll || rankH[actIndex] < rankH[index])) {
                             /// \todo order part
                             neighbours.push(NeighbourRecord{ actIndex, distSqr });
                         }
@@ -317,30 +319,6 @@ Size KdTree::findNeighboursImpl(const Vector& r0,
     }
 
     return neighbours.size();
-}
-
-Size KdTree::findNeighbours(const Size index,
-    const Float radius,
-    Array<NeighbourRecord>& neighbours,
-    Flags<FinderFlag> flags,
-    const Float UNUSED(error)) const {
-    neighbours.clear();
-    const Size refRank = (flags.has(FinderFlag::FIND_ONLY_SMALLER_H)) ? rankH[index] : values.size();
-
-    const Vector& r0 = values[index];
-    return this->findNeighboursImpl(r0, radius, refRank, neighbours);
-}
-
-Size KdTree::findNeighbours(const Vector& position,
-    const Float radius,
-    Array<NeighbourRecord>& neighbours,
-    Flags<FinderFlag> UNUSED(flags),
-    const Float UNUSED(error)) const {
-    neighbours.clear();
-    if (SPH_UNLIKELY(values.empty())) {
-        return 0;
-    }
-    return this->findNeighboursImpl(position, radius, values.size(), neighbours);
 }
 
 bool KdTree::sanityCheck() const {

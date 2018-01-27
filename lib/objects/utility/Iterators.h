@@ -123,6 +123,13 @@ public:
     INLINE bool operator!=(const Iterator& iter) const {
         return data != iter.data;
     }
+    INLINE operator Iterator<const T>() const {
+#ifdef SPH_DEBUG
+        return Iterator<const T>(data, begin, end);
+#else
+        return Iterator<const T>(data, nullptr, nullptr);
+#endif
+    }
 
 
     using iterator_category = std::random_access_iterator_tag;

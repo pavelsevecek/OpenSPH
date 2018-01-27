@@ -464,12 +464,17 @@ public:
     ///         indices passed into the storage are no longer valid after the function is called.
     Array<Size> duplicate(ArrayView<const Size> idxs);
 
+    enum class RemoveFlag {
+        /// Use if the given array is already sorted (optimization)
+        INDICES_SORTED = 1 << 0,
+    };
+
     /// \brief Removes specified particles from the storage.
     ///
     /// If all particles of some material are removed by this, the material is also removed from the storage.
     /// Same particles are also removed from all dependent storages.
     /// \param idsx Indices of particles to remove. No need to sort the indices.
-    void remove(ArrayView<const Size> idxs);
+    void remove(ArrayView<const Size> idxs, const Flags<RemoveFlag> flags = EMPTY_FLAGS);
 
     /// \brief Removes all particles with all quantities (including materials) from the storage.
     ///
