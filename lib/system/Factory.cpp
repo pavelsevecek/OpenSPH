@@ -22,6 +22,7 @@
 #include "sph/initial/Distribution.h"
 #include "sph/solvers/AsymmetricSolver.h"
 #include "sph/solvers/DensityIndependentSolver.h"
+#include "sph/solvers/GravitySolver.h"
 #include "sph/solvers/StandardSets.h"
 #include "sph/solvers/SummationSolver.h"
 #include "timestepping/TimeStepCriterion.h"
@@ -129,7 +130,8 @@ AutoPtr<ITimeStepCriterion> Factory::getTimeStepCriterion(const RunSettings& set
         // no criterion
         return nullptr;
     }
-    switch (flags) {
+    return makeAuto<MultiCriterion>(settings);
+    /*switch (flags) {
     case Size(TimeStepCriterionEnum::COURANT):
         return makeAuto<CourantCriterion>(settings);
     case Size(TimeStepCriterionEnum::DERIVATIVES):
@@ -139,7 +141,7 @@ AutoPtr<ITimeStepCriterion> Factory::getTimeStepCriterion(const RunSettings& set
     default:
         ASSERT(!isPower2(flags)); // multiple criteria, assert in case we add another criterion
         return makeAuto<MultiCriterion>(settings);
-    }
+    }*/
 }
 
 AutoPtr<ISymmetricFinder> Factory::getFinder(const RunSettings& settings) {
@@ -188,6 +190,16 @@ AutoPtr<IDistribution> Factory::getDistribution(const BodySettings& settings) {
     }
 }
 
+template <typename TSolver>
+static AutoPtr<ISolver> getActualSolver(const RunSettings& settings, EquationHolder&& eqs) {
+    const bool gravity = settings.get<bool>(RunSettingsId::MODEL_FORCE_GRAVITY);
+    if (gravity) {
+        return makeAuto<GravitySolver<TSolver>>(settings, std::move(eqs));
+    } else {
+        return makeAuto<TSolver>(settings, std::move(eqs));
+    }
+}
+
 AutoPtr<ISolver> Factory::getSolver(const RunSettings& settings) {
     const FormulationEnum formulation = settings.get<FormulationEnum>(RunSettingsId::SPH_FORMULATION);
     EquationHolder eqs;
@@ -205,9 +217,9 @@ AutoPtr<ISolver> Factory::getSolver(const RunSettings& settings) {
     const SolverEnum id = settings.get<SolverEnum>(RunSettingsId::SOLVER_TYPE);
     switch (id) {
     case SolverEnum::SYMMETRIC_SOLVER:
-        return makeAuto<SymmetricSolver>(settings, std::move(eqs));
+        return getActualSolver<SymmetricSolver>(settings, std::move(eqs));
     case SolverEnum::ASYMMETRIC_SOLVER:
-        return makeAuto<AsymmetricSolver>(settings, std::move(eqs));
+        return getActualSolver<AsymmetricSolver>(settings, std::move(eqs));
     case SolverEnum::SUMMATION_SOLVER:
         return makeAuto<SummationSolver>(settings);
     case SolverEnum::DENSITY_INDEPENDENT:
@@ -265,15 +277,22 @@ AutoPtr<ICollisionHandler> Factory::getCollisionHandler(const RunSettings& setti
     }
 }
 
-AutoPtr<ICollisionHandler> Factory::getOverlapHandler(const RunSettings& settings) {
+AutoPtr<IOverlapHandler> Factory::getOverlapHandler(const RunSettings& settings) {
     const OverlapEnum id = settings.get<OverlapEnum>(RunSettingsId::COLLISION_OVERLAP);
     switch (id) {
     case OverlapEnum::NONE:
-        return makeAuto<NullHandler>();
+        return makeAuto<NullOverlapHandler>();
     case OverlapEnum::FORCE_MERGE:
-        return makeAuto<PerfectMergingHandler>(0._f);
+        return makeAuto<MergeOverlapHandler>();
     case OverlapEnum::REPEL:
-        return makeAuto<RepelHandler>(settings);
+        return makeAuto<RepelHandler<ElasticBounceHandler>>(settings);
+    case OverlapEnum::REPEL_OR_MERGE:
+        using FollowupHandler = FallbackHandler<PerfectMergingHandler, ElasticBounceHandler>;
+        return makeAuto<RepelHandler<FollowupHandler>>(settings);
+    case OverlapEnum::INTERNAL_BOUNCE:
+        return makeAuto<InternalBounceHandler>(settings);
+    case OverlapEnum::PASS_OR_MERGE:
+        return makeAuto<TodoMergeHandler>();
     default:
         NOT_IMPLEMENTED;
     }

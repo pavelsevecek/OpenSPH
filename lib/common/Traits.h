@@ -157,7 +157,6 @@ template <typename T>
 struct ConvertToSizeType<T, std::enable_if_t<std::is_enum<std::decay_t<T>>::value>> {
     using Type = Undecay<std::underlying_type_t<std::decay_t<T>>, T>;
 };
-
 template <typename T>
 using ConvertToSize = typename ConvertToSizeType<T>::Type;
 

@@ -17,6 +17,7 @@ class IRheology;
 class ISolver;
 class IGravity;
 class ICollisionHandler;
+class IOverlapHandler;
 class IFractureModel;
 class IDistribution;
 class IDomain;
@@ -56,7 +57,7 @@ namespace Factory {
 
     AutoPtr<ICollisionHandler> getCollisionHandler(const RunSettings& settings);
 
-    AutoPtr<ICollisionHandler> getOverlapHandler(const RunSettings& settings);
+    AutoPtr<IOverlapHandler> getOverlapHandler(const RunSettings& settings);
 
     AutoPtr<IBoundaryCondition> getBoundaryConditions(const RunSettings& settings);
 

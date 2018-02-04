@@ -42,7 +42,7 @@ static Storage getStorage() {
 
 TEST_CASE("Courant Criterion", "[timestepping]") {
     CourantCriterion cfl(RunSettings::getDefaults());
-    const Float courantNumber = RunSettings::getDefaults().get<Float>(RunSettingsId::TIMESTEPPING_COURANT);
+    const Float courantNumber = RunSettings::getDefaults().get<Float>(RunSettingsId::TIMESTEPPING_COURANT_NUMBER);
 
     Storage storage = getStorage();
 

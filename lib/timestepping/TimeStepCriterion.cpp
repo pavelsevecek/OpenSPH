@@ -26,6 +26,9 @@ std::ostream& operator<<(std::ostream& stream, const CriterionId id) {
     case CriterionId::INITIAL_VALUE:
         stream << "Default value";
         break;
+    case CriterionId::MAX_CHANGE:
+        stream << "Max. change limit";
+        break;
     default:
         NOT_IMPLEMENTED;
     }
@@ -61,8 +64,12 @@ struct MinimalStepTls {
         this->add(other.minStep, other.value, other.derivative, other.particleIdx);
     }
 
+    INLINE Size isDefined() const {
+        return minStep < INFTY;
+    }
+
     /// Return the computed time step
-    INLINE Float getStep() const {
+    INLINE Optional<Float> getStep() const {
         return minStep;
     }
 
@@ -91,8 +98,14 @@ struct MeanStepTls {
         mean.accumulate(other.mean);
     }
 
-    INLINE Float getStep() const {
-        return mean.compute();
+    INLINE Optional<Float> getStep() const {
+        if (mean.count() > 0) {
+            const Float step = mean.compute();
+            ASSERT(isReal(step) || step == INFINITY, step);
+            return step;
+        } else {
+            return NOTHING;
+        }
     }
 
     INLINE void saveStats(Statistics& UNUSED(stats)) const {
@@ -165,9 +178,9 @@ Tuple<Float, CriterionId> DerivativeCriterion::computeImpl(Storage& storage,
         });
 
         // save statistics
-        const Float minStep = result.getStep();
-        if (minStep < totalMinStep) {
-            totalMinStep = minStep;
+        const Optional<Float> minStep = result.getStep();
+        if (minStep && minStep.value() < totalMinStep) {
+            totalMinStep = minStep.value();
             minId = CriterionId::DERIVATIVE;
             stats.set(StatisticsId::LIMITING_QUANTITY, id);
             result.saveStats(stats);
@@ -240,7 +253,8 @@ Tuple<Float, CriterionId> AccelerationCriterion::compute(Storage& storage,
 
 
 CourantCriterion::CourantCriterion(const RunSettings& settings) {
-    courant = settings.get<Float>(RunSettingsId::TIMESTEPPING_COURANT);
+    courant = settings.get<Float>(RunSettingsId::TIMESTEPPING_COURANT_NUMBER);
+    neighLimit = settings.get<int>(RunSettingsId::TIMESTEPPING_COURANT_NEIGHBOUR_LIMIT);
 }
 
 
@@ -251,13 +265,14 @@ Tuple<Float, CriterionId> CourantCriterion::compute(Storage& storage,
     /// \todo AV contribution?
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     ArrayView<const Float> cs = storage.getValue<Float>(QuantityId::SOUND_SPEED);
+    ArrayView<const Size> neighs = storage.getValue<Size>(QuantityId::NEIGHBOUR_CNT);
     struct Tl {
         Float minStep = INFTY;
     };
 
     auto functor = [&](const Size n1, const Size n2, Tl& tl) {
         for (Size i = n1; i < n2; ++i) {
-            if (cs[i] > 0._f) {
+            if (cs[i] > 0._f && neighs[i] > neighLimit) {
                 const Float value = courant * r[i][H] / cs[i];
                 ASSERT(isReal(value) && value > 0._f && value < INFTY);
                 tl.minStep = min(tl.minStep, value);
@@ -296,11 +311,15 @@ MultiCriterion::MultiCriterion(const RunSettings& settings) {
     }
 
     maxChange = settings.get<Float>(RunSettingsId::TIMESTEPPING_MAX_CHANGE);
+    lastStep = settings.get<Float>(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP);
 }
 
-MultiCriterion::MultiCriterion(Array<AutoPtr<ITimeStepCriterion>>&& criteria, const Float maxChange)
+MultiCriterion::MultiCriterion(Array<AutoPtr<ITimeStepCriterion>>&& criteria,
+    const Float maxChange,
+    const Float initial)
     : criteria(std::move(criteria))
-    , maxChange(maxChange) {}
+    , maxChange(maxChange)
+    , lastStep(initial) {}
 
 Tuple<Float, CriterionId> MultiCriterion::compute(Storage& storage, const Float maxStep, Statistics& stats) {
     PROFILE_SCOPE("MultiCriterion::compute");
@@ -318,10 +337,16 @@ Tuple<Float, CriterionId> MultiCriterion::compute(Storage& storage, const Float 
     }
 
     // smooth the timestep if required
-    if (maxChange < INFTY && lastStep > 0._f) {
-        minStep = clamp(minStep, lastStep * (1._f - maxChange), lastStep * (1._f + maxChange));
+    if (maxChange < INFTY) {
+        if (minStep < lastStep * (1._f - maxChange)) {
+            minStep = lastStep * (1._f - maxChange);
+            minId = CriterionId::MAX_CHANGE;
+        } else if (minStep > lastStep * (1._f + maxChange)) {
+            minStep = lastStep * (1._f + maxChange);
+            minId = CriterionId::MAX_CHANGE;
+        }
+        lastStep = minStep;
     }
-    lastStep = minStep;
 
     // we don't have to limit by maxStep as each criterion is limited separately
     ASSERT(minStep < INFTY);

@@ -61,7 +61,7 @@ public:
             .set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::PREDICTOR_CORRECTOR)
             .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 1.e-5_f)
             .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 1.e-1_f)
-            .set(RunSettingsId::TIMESTEPPING_COURANT, 0.5_f)
+            .set(RunSettingsId::TIMESTEPPING_COURANT_NUMBER, 0.5_f)
             .set(RunSettingsId::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::COURANT)
             .set(RunSettingsId::SOLVER_TYPE, SolverEnum::SYMMETRIC_SOLVER)
             .set(RunSettingsId::MODEL_FORCE_PRESSURE_GRADIENT, true)

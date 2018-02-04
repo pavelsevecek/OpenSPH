@@ -46,46 +46,22 @@ public:
     virtual CollisionResult collide(const Size i, const Size j, FlatSet<Size>& toRemove) = 0;
 };
 
-/// \brief Helper class, similar to ArrayView, but actually holding a reference to the array itself.
-///
-/// The advantage over ArrayView is that it doesn't get invalidated when the array is resized. Works only with
-/// Array, no other container.
-/*template <typename T>
-class ArrayRef {
-private:
-    RawPtr<Array<T>> ptr;
-
+class IOverlapHandler : public Polymorphic {
 public:
-    ArrayRef() = default;
+    virtual void initialize(Storage& storage) = 0;
 
-    ArrayRef(Array<T>& array)
-        : ptr(std::addressof(array)) {}
+    /// \brief Returns true if two particles overlaps
+    ///
+    /// If so, the overlap is then resolved using \ref handle.
+    /// \param i,j Indices of particles in the storage.
+    virtual bool overlaps(const Size i, const Size j) = 0;
 
-    ArrayRef& operator=(Array<T>& array) {
-        ptr = std::addressof(array);
-        return *this;
-    }
-
-    INLINE T& operator[](const Size index) {
-        return (*ptr)[index];
-    }
-
-    INLINE const T& operator[](const Size index) const {
-        return (*ptr)[index];
-    }
-
-    INLINE Size size() const {
-        return ptr->size();
-    }
-
-    operator Array<T>&() {
-        return *ptr;
-    }
-
-    operator const Array<T>&() const {
-        return *ptr;
-    }
-};*/
+    /// \brief Handles the overlap of two particles.
+    ///
+    /// When called, the particles must actually overlap (\ref overlaps must return true). This is checked by
+    /// assert.
+    virtual void handle(const Size i, const Size j, FlatSet<Size>& toRemove) = 0;
+};
 
 /// \brief Helper function sorting two values
 template <typename T>
@@ -103,7 +79,7 @@ INLINE T weightedAverage(const T& v1, const Float w1, const T& v2, const Float w
     return (v1 * w1 + v2 * w2) / (w1 + w2);
 }
 
-class NullHandler : public ICollisionHandler {
+class NullCollisionHandler : public ICollisionHandler {
 public:
     virtual void initialize(Storage& UNUSED(storage)) override {}
 
@@ -122,6 +98,8 @@ private:
     ArrayView<Vector> omega;
     ArrayView<SymmetricTensor> I;
     ArrayView<Tensor> E;
+
+    /// \todo filling factor, collapse of particles in contact must result in sphere of same volume!
 
     Float mergingLimit;
 
@@ -180,9 +158,14 @@ public:
             // compute the new local frame of the merger and inertia tensor in this frame
             Eigen eigen = eigenDecomposition(I_merger);
             I[i] = SymmetricTensor(eigen.values, Vector(0._f));
+            ASSERT(isReal(I[i]));
+
             E[i] = convert<Tensor>(eigen.vectors);
+            ASSERT(isReal(E[i]));
+
             L[i] = L_merger;
             omega[i] = omega_merger;
+            ASSERT(isReal(L[i]) && isReal(omega[i]), L[i], omega[i]);
             /// \todo remove, we have unit tests for this
             ASSERT(almostEqual(getSqrLength(E[i].row(0)), 1._f, 1.e-6_f));
             ASSERT(almostEqual(getSqrLength(E[i].row(1)), 1._f, 1.e-6_f));
@@ -190,9 +173,10 @@ public:
 
         } else {
             const Vector L_merger = m[i] * cross(r[i] - r_merger, v[i] - v_merger) + //
-                                    m[j] * cross(r[j] - r_merger, v[j] - v_merger);
+                                    m[j] * cross(r[j] - r_merger, v[j] - v_merger) + //
+                                    Rigid::sphereInertia(m[i], r[i][H]) * omega[i] + //
+                                    Rigid::sphereInertia(m[j], r[j][H]) * omega[j];
             omega_merger = Rigid::sphereInertia(m_merger, h_merger).inverse() * L_merger;
-            L[i] = L_merger;
             omega[i] = omega_merger;
         }
         // omega[i] = omega_merger;
@@ -209,6 +193,8 @@ public:
         v[i] = v_merger;
         v[i][H] = 0._f;
 
+        ASSERT(isReal(v[i]));
+        ASSERT(isReal(r[i]));
         toRemove.insert(j);
         return CollisionResult::MERGER;
     }
@@ -229,12 +215,14 @@ private:
             /// \todo shouldn't we check velocities AFTER the bounce?
             return false;
         }
-        const Float omegaCritSqr = Constants::gravity * (m[i] + m[j]) / pow<3>(h);
+        (void)h;
+        (void)omega;
+        /* TODO const Float omegaCritSqr = Constants::gravity * (m[i] + m[j]) / pow<3>(h);
         const Float omegaSqr = getSqrLength(omega);
         if (omegaSqr * mergingLimit > omegaCritSqr) {
             // rotates too fast, reject the merge
             return false;
-        }
+        }*/
         return true;
     }
 };
@@ -273,7 +261,7 @@ public:
 
     virtual CollisionResult collide(const Size i, const Size j, FlatSet<Size>& UNUSED(toRemove)) override {
         const Vector dr = getNormalized(r[i] - r[j]);
-        const Vector v_com = (m[i] * v[i] + m[j] * v[j]) / (m[i] + m[j]);
+        const Vector v_com = weightedAverage(v[i], m[i], v[j], m[j]);
         v[i] = this->reflect(v[i], v_com, -dr);
         v[j] = this->reflect(v[j], v_com, dr);
 
@@ -298,35 +286,8 @@ private:
     }
 };
 
-class RepelHandler : public ElasticBounceHandler {
-public:
-    explicit RepelHandler(const RunSettings& settings)
-        : ElasticBounceHandler(settings) {}
-
-    RepelHandler(const Float n, const Float t)
-        : ElasticBounceHandler(n, t) {}
-
-    virtual CollisionResult collide(const Size i, const Size j, FlatSet<Size>& toRemove) override {
-        Vector dir;
-        Float dist;
-        tieToTuple(dir, dist) = getNormalizedWithLength(r[i] - r[j]);
-        dir[H] = 0._f;                    // don't mess up radii
-        ASSERT(dist < r[i][H] + r[j][H]); // can be only used for overlapping particles
-        const Float x1 = (r[i][H] + r[j][H] - dist) / (1._f + m[i] / m[j]);
-        const Float x2 = m[i] / m[j] * x1;
-        r[i] += dir * x1;
-        r[j] -= dir * x2;
-        ASSERT(almostEqual(getSqrLength(r[i] - r[j]), sqr(r[i][H] + r[j][H])),
-            getSqrLength(r[i] - r[j]),
-            sqr(r[i][H] + r[j][H]));
-
-        // set normal velocities to zero to avoid 'accumulating' huge velocities during overlap
-        ElasticBounceHandler::collide(i, j, toRemove);
-        return CollisionResult::BOUNCE;
-    }
-};
-
-/// \brief Helper handler, choosing another collision handler if the primary handler rejects the collision.
+/// \brief Helper handler, choosing another collision handler if the primary handler rejects the
+/// collision.
 template <typename TPrimary, typename TFallback>
 class FallbackHandler : public ICollisionHandler {
 private:
@@ -363,6 +324,158 @@ public:
         /// \todo
         NOT_IMPLEMENTED;
         return CollisionResult::FRAGMENTATION;
+    }
+};
+
+class NullOverlapHandler : public IOverlapHandler {
+public:
+    virtual void initialize(Storage& UNUSED(storage)) override {}
+
+    virtual bool overlaps(const Size UNUSED(i), const Size UNUSED(j)) override {
+        return false;
+    }
+
+    virtual void handle(const Size UNUSED(i),
+        const Size UNUSED(j),
+        FlatSet<Size>& UNUSED(toRemove)) override {}
+};
+
+/// \brief Helper object implementing the \ref IOverlapHandler interface using \ref PerfectMergingHandler.
+class MergeOverlapHandler : public IOverlapHandler {
+private:
+    PerfectMergingHandler handler;
+
+public:
+    MergeOverlapHandler()
+        : handler(0._f) {}
+
+    virtual void initialize(Storage& storage) override {
+        handler.initialize(storage);
+    }
+
+    virtual bool overlaps(const Size UNUSED(i), const Size UNUSED(j)) override {
+        return true;
+    }
+
+    virtual void handle(const Size i, const Size j, FlatSet<Size>& toRemove) override {
+        handler.collide(i, j, toRemove);
+    }
+};
+
+template <typename TFollowupHandler>
+class RepelHandler : public IOverlapHandler {
+private:
+    TFollowupHandler handler;
+
+    ArrayView<Vector> r, v;
+    ArrayView<Float> m;
+
+public:
+    explicit RepelHandler(const RunSettings& settings)
+        : handler(settings) {}
+
+    virtual void initialize(Storage& storage) override {
+        ArrayView<Vector> dv;
+        tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
+        m = storage.getValue<Float>(QuantityId::MASS);
+
+        handler.initialize(storage);
+    }
+
+    virtual bool overlaps(const Size UNUSED(i), const Size UNUSED(j)) override {
+        // this function is called only if the spheres intersect, which is the only condition for this handler
+        return true;
+    }
+
+    virtual void handle(const Size i, const Size j, FlatSet<Size>& toRemove) override {
+        Vector dir;
+        Float dist;
+        tieToTuple(dir, dist) = getNormalizedWithLength(r[i] - r[j]);
+        dir[H] = 0._f;                    // don't mess up radii
+        ASSERT(dist < r[i][H] + r[j][H]); // can be only used for overlapping particles
+        const Float x1 = (r[i][H] + r[j][H] - dist) / (1._f + m[i] / m[j]);
+        const Float x2 = m[i] / m[j] * x1;
+        r[i] += dir * x1;
+        r[j] -= dir * x2;
+        ASSERT(almostEqual(getSqrLength(r[i] - r[j]), sqr(r[i][H] + r[j][H])),
+            getSqrLength(r[i] - r[j]),
+            sqr(r[i][H] + r[j][H]));
+
+        ASSERT(isReal(v[i]) && isReal(v[j]));
+        ASSERT(isReal(r[i]) && isReal(r[j]));
+
+        // Now when the two particles are touching, handle the collision using the followup handler.
+        handler.collide(i, j, toRemove);
+    }
+};
+
+class InternalBounceHandler : public IOverlapHandler {
+private:
+    ElasticBounceHandler handler;
+
+    ArrayView<Vector> r, v;
+
+public:
+    explicit InternalBounceHandler(const RunSettings& settings)
+        : handler(settings) {
+        // this handler allows overlaps of particles, so it should never be used with point particles, as we
+        // could potentially get infinite accelerations
+        ASSERT(settings.get<GravityKernelEnum>(RunSettingsId::GRAVITY_KERNEL) !=
+               GravityKernelEnum::POINT_PARTICLES);
+    }
+
+    virtual void initialize(Storage& storage) override {
+        ArrayView<Vector> dv;
+        tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
+
+        handler.initialize(storage);
+    }
+
+    virtual bool overlaps(const Size i, const Size j) override {
+        // overlap needs to be handled only if the particles are moving towards each other
+        const Vector dr = r[i] - r[j];
+        const Vector dv = v[i] - v[j];
+        return dot(dr, dv) < 0._f;
+    }
+
+    virtual void handle(const Size i, const Size j, FlatSet<Size>& toRemove) override {
+        handler.collide(i, j, toRemove);
+    }
+};
+
+class TodoMergeHandler : public IOverlapHandler {
+private:
+    PerfectMergingHandler handler;
+
+public:
+    ArrayView<Vector> r, v;
+    ArrayView<Float> m;
+
+public:
+    explicit TodoMergeHandler()
+        : handler(0.f) {}
+
+    virtual void initialize(Storage& storage) override {
+        ArrayView<Vector> dv;
+        tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
+        m = storage.getValue<Float>(QuantityId::MASS);
+
+        handler.initialize(storage);
+    }
+
+    virtual bool overlaps(const Size i, const Size j) override {
+        const Float vEscSqr = 2._f * Constants::gravity * (m[i] + m[j]) / (r[i][H] + r[j][H]);
+        const Float vRelSqr = getSqrLength(v[i] - v[j]);
+        if (vRelSqr > vEscSqr) {
+            // moving too fast, reject the merge
+            /// \todo shouldn't we check velocities AFTER the bounce?
+            return false;
+        }
+        return true;
+    }
+
+    virtual void handle(const Size i, const Size j, FlatSet<Size>& toRemove) override {
+        handler.collide(i, j, toRemove);
     }
 };
 

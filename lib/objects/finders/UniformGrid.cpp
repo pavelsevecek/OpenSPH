@@ -72,7 +72,7 @@ Size UniformGridFinder::find(const Vector& pos,
             for (int z = lower[Z]; z <= upper[Z]; ++z) {
                 for (Size i : lut(Indices(x, y, z))) {
                     const Float distSqr = getSqrLength(values[i] - pos);
-                    if (distSqr < sqr(radius) && (FindAll || rankH[i] < rankH[index])) {
+                    if (distSqr < sqr(radius) && (FindAll || rank[i] < rank[index])) {
                         neighbours.emplaceBack(NeighbourRecord{ i, distSqr });
                     }
                 }

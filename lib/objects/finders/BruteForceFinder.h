@@ -27,7 +27,7 @@ public:
     Size find(const Vector& pos, const Size index, const Float radius, Array<NeighbourRecord>& neighs) const {
         for (Size i = 0; i < this->values.size(); ++i) {
             const Float distSqr = getSqrLength(this->values[i] - pos);
-            if (distSqr < sqr(radius) && (FindAll || rankH[i] < rankH[index])) {
+            if (distSqr < sqr(radius) && (FindAll || rank[i] < rank[index])) {
                 neighs.push(NeighbourRecord{ i, distSqr });
             }
         }

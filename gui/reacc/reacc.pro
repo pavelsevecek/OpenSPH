@@ -1,4 +1,3 @@
-
 TEMPLATE = app
 CONFIG += c++14 thread silent
 CONFIG -= app_bundle
@@ -15,7 +14,7 @@ LIBS += `wx-config --libs --gl-libs`
 INCLUDEPATH += /usr/include/eigen3
 DEFINES += SPH_USE_EIGEN
 
-QMAKE_CXXFLAGS += -Wall -msse4.1 -std=c++14 -pthread `wx-config --libs all --cxxflags --gl-libs`
+QMAKE_CXXFLAGS += -Wall -Wextra -Werror -msse4.1 -std=c++14 -pthread `wx-config --libs all --cxxflags --gl-libs`
 
 CONFIG(release, debug|profile|assert|release) {
   message( "SPH COLLISION --- Building for Release" )
@@ -38,8 +37,8 @@ CONFIG(debug, debug|profile|assert|release) {
 }
 
 SOURCES += \
-    Collision.cpp
+    Reacc.cpp
 
 HEADERS += \  
-    Collision.h
+    Reacc.h
 

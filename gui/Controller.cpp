@@ -202,8 +202,36 @@ void Controller::onTimeStep(const Storage& storage, Statistics& stats) {
     }
 }
 
-GuiSettings& Controller::getGuiSettings() {
+GuiSettings& Controller::getParams() {
     return gui;
+}
+
+void Controller::setParams(const GuiSettings& settings) {
+    CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
+    gui = settings;
+    // reset camera
+    const Point size(gui.get<int>(GuiSettingsId::RENDER_WIDTH), gui.get<int>(GuiSettingsId::RENDER_HEIGHT));
+    vis.camera = Factory::getCamera(gui, size);
+    // reset renderer with new params
+    /// \todo this needs to be generic
+    this->setRenderer(makeAuto<ParticleRenderer>(gui));
+}
+
+void Controller::update(const Storage& storage) {
+    // fill the combobox with available colorizer
+    /// \todo can we do this safely from run thread?
+    executeOnMainThread([this, &storage] { //
+        window->setColorizerList(this->getColorizerList(storage, false));
+    });
+
+    // draw initial positions of particles
+    /// \todo generalize stats
+    Statistics stats;
+    stats.set(StatisticsId::RUN_TIME, 0._f);
+    this->redraw(storage, stats);
+
+    // set up animation object
+    movie = this->createMovie(storage);
 }
 
 bool Controller::shouldAbortRun() const {
@@ -218,21 +246,23 @@ Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage
     // Available colorizers for display and movie are currently hardcoded
     Array<ColorizerId> colorizerIds;
 
-    if (storage.has(QuantityId::DENSITY)) {
-        colorizerIds.push(ColorizerId::DENSITY_PERTURBATION);
-    }
-    if (storage.has(QuantityId::STRESS_REDUCING)) {
-        colorizerIds.push(ColorizerId::YIELD_REDUCTION);
-    }
-
     if (!forMovie) {
-        colorizerIds.push(ColorizerId::COROTATING_VELOCITY);
-        colorizerIds.push(ColorizerId::MOVEMENT_DIRECTION);
-        colorizerIds.push(ColorizerId::ACCELERATION);
-        colorizerIds.push(ColorizerId::ID);
+        if (storage.has(QuantityId::DENSITY)) {
+            colorizerIds.push(ColorizerId::DENSITY_PERTURBATION);
+        }
+        if (storage.has(QuantityId::STRESS_REDUCING)) {
+            colorizerIds.push(ColorizerId::YIELD_REDUCTION);
+        }
 
-        if (storage.has(QuantityId::NEIGHBOUR_CNT)) {
-            colorizerIds.push(ColorizerId::BOUNDARY);
+        if (!forMovie) {
+            colorizerIds.push(ColorizerId::COROTATING_VELOCITY);
+            colorizerIds.push(ColorizerId::MOVEMENT_DIRECTION);
+            colorizerIds.push(ColorizerId::ACCELERATION);
+            colorizerIds.push(ColorizerId::ID);
+
+            if (storage.has(QuantityId::NEIGHBOUR_CNT)) {
+                colorizerIds.push(ColorizerId::BOUNDARY);
+            }
         }
     }
 
@@ -252,7 +282,11 @@ Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage
         quantityColorizerIds.push(QuantityId::STRENGTH_VELOCITY_GRADIENT);
         quantityColorizerIds.push(QuantityId::STRAIN_RATE_CORRECTION_TENSOR);
         quantityColorizerIds.push(QuantityId::EPS_MIN);
+    } else {
+        quantityColorizerIds.clear();
+        quantityColorizerIds.push(QuantityId::ENERGY);
     }
+
     Array<SharedPtr<IColorizer>> colorizers;
     // add velocity (always present)
     colorizers.push(Factory::getColorizer(gui, ColorizerId::VELOCITY));
@@ -480,20 +514,8 @@ void Controller::run(const Path& path) {
             }
         }
 
-        // fill the combobox with available colorizer
-        /// \todo can we do this safely from run thread?
-        executeOnMainThread([this, storage] { //
-            window->setColorizerList(this->getColorizerList(*storage, false));
-        });
-
-        // draw initial positions of particles
-        /// \todo generalize stats
-        Statistics stats;
-        stats.set(StatisticsId::RUN_TIME, 0._f);
-        this->redraw(*storage, stats);
-
-        // set up animation object
-        movie = this->createMovie(*storage);
+        // setup image output, generate colorizers, etc.
+        this->update(*storage);
 
         // run the simulation
         sph.run->run();

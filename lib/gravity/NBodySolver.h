@@ -11,7 +11,9 @@
 
 NAMESPACE_SPH_BEGIN
 
+class ISymmetricFinder;
 class ICollisionHandler;
+class IOverlapHandler;
 class IGravity;
 class CollisionRecord;
 class CollisionStats;
@@ -47,17 +49,22 @@ private:
     // cached array of removed particles, used to avoid invalidating indices during collision handling
     FlatSet<Size> removed;
 
+    /*FlatSet<Size> ignored;
+    std::mutex ignoredMutex;*/
+
     // holds computed collisions
     FlatSet<CollisionRecord> collisions;
 
+    Array<Float> searchRadii;
+
     struct {
         AutoPtr<ICollisionHandler> handler;
 
-        AutoPtr<IBasicFinder> finder;
+        AutoPtr<ISymmetricFinder> finder;
     } collision;
 
     struct {
-        AutoPtr<ICollisionHandler> handler;
+        AutoPtr<IOverlapHandler> handler;
 
         Float allowedRatio;
     } overlap;
@@ -69,6 +76,10 @@ private:
         /// Maximum rotation of a particle in a single (sub)step.
         Float maxAngle;
     } rigidBody;
+
+    /// Cached views of positions of velocities, so that we don't have to pass it to every function
+    ArrayView<Vector> r;
+    ArrayView<Vector> v;
 
 public:
     /// \brief Creates the solver, using the gravity implementation specified by settings.
@@ -89,12 +100,19 @@ public:
 private:
     void rotateLocalFrame(Storage& storage, const Float dt);
 
+    enum class SearchEnum {
+        /// Finds only particles with lower rank. This option also updates the search radii for each particle,
+        /// so that USE_RADII can be used afterwards.
+        FIND_LOWER_RANK,
+
+        /// Uses search radius generated with FIND_LOWER_RANK.
+        USE_RADII,
+    };
+
     CollisionRecord findClosestCollision(const Size i,
-        const Float globalRadius,
+        const SearchEnum opt,
         const Interval interval,
-        Array<NeighbourRecord>& neighs,
-        ArrayView<Vector> r,
-        ArrayView<Vector> v) const;
+        Array<NeighbourRecord>& neighs);
 
     /// \brief Checks for collision between particles at positions r1 and r2.
     ///

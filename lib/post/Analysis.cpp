@@ -421,6 +421,13 @@ static Array<Float> getBodiesRadii(const Storage& storage,
             }
             break;
         }
+        case Post::HistogramId::EQUIVALENT_MASS_RADII: {
+            ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
+            for (Size i = 0; i < m.size(); ++i) {
+                values[i] = root<3>(3.f * m[i] / (params.referenceDensity * 4.f * PI));
+            }
+            break;
+        }
         case Post::HistogramId::VELOCITIES: {
             ArrayView<const Vector> v = storage.getDt<Vector>(QuantityId::POSITION);
             for (Size i = 0; i < v.size(); ++i) {

@@ -22,14 +22,16 @@ enum class CameraEnum {
 
 enum class OrthoEnum { XY, XZ, YZ };
 
-enum class IntegralEnum {
+enum class PlotEnum {
     INTERNAL_ENERGY = 1 << 0,
     KINETIC_ENERGY = 1 << 1,
     TOTAL_ENERGY = 1 << 2,
     TOTAL_MOMENTUM = 1 << 3,
     TOTAL_ANGULAR_MOMENTUM = 1 << 4,
+    SIZE_FREQUENCY_DISTRIBUTION = 1 << 5,
 
-    ALL = INTERNAL_ENERGY | KINETIC_ENERGY | TOTAL_ENERGY | TOTAL_MOMENTUM | TOTAL_ANGULAR_MOMENTUM,
+    ALL = INTERNAL_ENERGY | KINETIC_ENERGY | TOTAL_ENERGY | TOTAL_MOMENTUM | TOTAL_ANGULAR_MOMENTUM |
+          SIZE_FREQUENCY_DISTRIBUTION
 };
 
 /// \todo generic ortho projection (x,y,z) -> (u,v)

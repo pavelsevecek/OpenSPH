@@ -90,11 +90,9 @@ private:
 
     /// Cached stuff to avoid re-allocation
     struct {
+        /// Values of the scalar field defining the surface
         Array<Float> phi;
     } cached;
-
-    static Size IDXS1[12];
-    static Size IDXS2[12];
 
 public:
     /// Constructs the object using given scalar field.

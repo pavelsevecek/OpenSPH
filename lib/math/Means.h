@@ -5,6 +5,7 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2018
 
+#include "objects/geometry/Generic.h"
 #include "objects/wrappers/Interval.h"
 
 NAMESPACE_SPH_BEGIN
@@ -139,8 +140,14 @@ public:
         : PositiveMean(-power) {}
 
     INLINE void accumulate(const Float value) {
-        sum += 1._f / powFastest(value, power);
-        weight++;
+        ASSERT(value > 0._f, value);
+        const Float p = pow(value, power);
+        if (p == INFINITY) {
+            weight++; // just increase weight
+        } else if (p > 0._f) {
+            sum += 1._f / p;
+            weight++;
+        }
     }
 
     INLINE void accumulate(const NegativeMean& other) {
@@ -150,7 +157,14 @@ public:
     }
 
     INLINE Float compute() const {
-        return 1._f / Float(powFastest(sum / weight, 1.f / power));
+        Float avg = sum / weight;
+        ASSERT(isReal(avg), avg, sum, weight);
+        Float avgPow = pow(avg, 1._f / power);
+        if (avgPow == 0._f) {
+            return INFINITY;
+        } else {
+            return 1._f / avgPow;
+        }
     }
 };
 

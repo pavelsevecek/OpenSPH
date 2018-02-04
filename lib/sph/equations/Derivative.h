@@ -354,7 +354,7 @@ std::enable_if_t<std::is_constructible<Type, const RunSettings&>::value, Type> m
 }
 
 class DerivativeHolder {
-protected:
+private:
     Accumulated accumulated;
 
     struct Less {
@@ -375,6 +375,9 @@ protected:
     /// motion). Modules are evaluated consecutively (within one thread), so this is thread-safe.
     std::set<AutoPtr<IDerivative>, Less> derivatives;
 
+    /// Used for lazy creation of derivatives
+    bool needsCreate = true;
+
 public:
     /// \brief Adds derivative if not already present.
     ///
@@ -393,14 +396,12 @@ public:
 
     /// Initialize derivatives before loop
     void initialize(const Storage& input) {
-        if (accumulated.getBufferCnt() == 0) {
-            //   PROFILE_SCOPE("DerivativeHolder create");
+        if (needsCreate) {
             // lazy buffer creation
-            /// \todo this will be called every time if derivatives do not create any buffers,
-            /// does it really matter?
             for (const auto& deriv : derivatives) {
                 deriv->create(accumulated);
             }
+            needsCreate = false;
         }
         accumulated.initialize(input.getParticleCnt());
         // initialize buffers first, possibly resizing then and invalidating previously stored arrayviews

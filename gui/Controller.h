@@ -133,10 +133,23 @@ public:
     Optional<Particle> getIntersectedParticle(const Point position, const float toleranceEps = 1.f);
 
     /// Returns the settings object.
-    GuiSettings& getGuiSettings();
+    GuiSettings& getParams();
 
 
     /// \addtogroup Display setters
+
+    /// \brief Updates the colorizer list, reset the camera and the renderer, etc.
+    ///
+    /// This does not have to be called manually, unless the run changes parameters in the middle of the
+    /// simulation (for example handoff in composite run). This also creates a new image sequence, so it is
+    /// necesary to set up new image path or filename mask prior to calling \ref update, otherwise the
+    /// previously generated images will be overwritten.
+    void update(const Storage& storage);
+
+    /// \brief Updates the UI parameters of the controller.
+    ///
+    /// Note that not all parameters can be updated once the controller is constructed.
+    void setParams(const GuiSettings& settings);
 
     /// \brief Sets a new colorizer to be displayed
     ///

@@ -7,6 +7,7 @@
 
 #include "gui/objects/Color.h"
 #include "post/Plot.h"
+#include "post/Point.h"
 #include <wx/dcclient.h>
 #include <wx/dcmemory.h>
 #include <wx/graphics.h>

@@ -9,12 +9,12 @@
 #include "objects/utility/OperatorTemplate.h"
 #include "physics/Integrals.h"
 #include "post/Analysis.h"
-#include "post/Point.h"
-#include "quantities/Storage.h"
-#include "system/Statistics.h"
 
 NAMESPACE_SPH_BEGIN
 
+class PlotPoint;
+class ErrorPlotPoint;
+class AffineMatrix2;
 
 class IDrawPath : public Polymorphic {
 public:
@@ -225,7 +225,7 @@ private:
 ///
 /// Plot doesn't store any history, it is drawed each timestep independently.
 class HistogramPlot : public IPlot {
-private:
+protected:
     /// ID of a quantity from which the histogram is constructed.
     Post::HistogramId id;
 
@@ -246,6 +246,23 @@ public:
     virtual void onTimeStep(const Storage& storage, const Statistics& stats) override;
 
     virtual void clear() override;
+
+    virtual void plot(IDrawingContext& dc) const override;
+};
+
+class SfdPlot : public HistogramPlot {
+private:
+    Array<PlotPoint> sfd;
+
+public:
+    SfdPlot()
+        : HistogramPlot(Post::HistogramId::RADII) {}
+
+    virtual std::string getCaption() const override {
+        return "Size-frequency distribution";
+    }
+
+    virtual void onTimeStep(const Storage& storage, const Statistics& stats) override;
 
     virtual void plot(IDrawingContext& dc) const override;
 };

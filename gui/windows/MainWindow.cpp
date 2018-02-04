@@ -117,7 +117,7 @@ wxBoxSizer* MainWindow::createToolbar(Controller* parent) {
         /// \todo this is horrible and needs refactoring
         modifiedGui.set(GuiSettingsId::ORTHO_CUTOFF, Float(cutoff));
         parent->setRenderer(makeAuto<ParticleRenderer>(modifiedGui));
-        parent->getGuiSettings().set<Float>(GuiSettingsId::ORTHO_CUTOFF, cutoff);
+        parent->getParams().set<Float>(GuiSettingsId::ORTHO_CUTOFF, cutoff);
 
     });
     toolbar->Add(cutoffSpinner);
@@ -169,16 +169,16 @@ wxBoxSizer* MainWindow::createSidebar() {
     TemporalPlot::Params params;
     params.segment = 1._f;
     params.minRangeY = 1.4_f;
-    params.fixedRangeX = Interval{ -50._f, 10._f };
+    // params.fixedRangeX = Interval{ -50._f, 10._f };
     params.shrinkY = false;
     params.period = 0.05_f;
 
     PlotData data;
     IntegralWrapper integral;
-    Flags<IntegralEnum> flags = gui.getFlags<IntegralEnum>(GuiSettingsId::PLOT_INTEGRALS);
+    Flags<PlotEnum> flags = gui.getFlags<PlotEnum>(GuiSettingsId::PLOT_INTEGRALS);
 
     /// \todo this plots should really be set somewhere outside of main window, they are problem-specific
-    if (flags.has(IntegralEnum::TOTAL_ENERGY)) {
+    if (flags.has(PlotEnum::TOTAL_ENERGY)) {
         integral = makeAuto<TotalEnergy>();
         data.plot = makeLocking<TemporalPlot>(integral, params);
         plots.push(data.plot);
@@ -186,7 +186,7 @@ wxBoxSizer* MainWindow::createSidebar() {
         list->push(data);
     }
 
-    if (flags.has(IntegralEnum::KINETIC_ENERGY)) {
+    if (flags.has(PlotEnum::KINETIC_ENERGY)) {
         integral = makeAuto<TotalKineticEnergy>();
         data.plot = makeLocking<TemporalPlot>(integral, params);
         plots.push(data.plot);
@@ -194,7 +194,7 @@ wxBoxSizer* MainWindow::createSidebar() {
         list->push(data);
     }
 
-    if (flags.has(IntegralEnum::INTERNAL_ENERGY)) {
+    if (flags.has(PlotEnum::INTERNAL_ENERGY)) {
         integral = makeAuto<TotalInternalEnergy>();
         data.plot = makeLocking<TemporalPlot>(integral, params);
         plots.push(data.plot);
@@ -202,7 +202,7 @@ wxBoxSizer* MainWindow::createSidebar() {
         list->push(data);
     }
 
-    if (flags.has(IntegralEnum::TOTAL_MOMENTUM)) {
+    if (flags.has(PlotEnum::TOTAL_MOMENTUM)) {
         integral = makeAuto<TotalMomentum>();
         params.minRangeY = 1.e6_f;
         data.plot = makeLocking<TemporalPlot>(integral, params);
@@ -211,11 +211,18 @@ wxBoxSizer* MainWindow::createSidebar() {
         list->push(data);
     }
 
-    if (flags.has(IntegralEnum::TOTAL_ANGULAR_MOMENTUM)) {
+    if (flags.has(PlotEnum::TOTAL_ANGULAR_MOMENTUM)) {
         integral = makeAuto<TotalAngularMomentum>();
         data.plot = makeLocking<TemporalPlot>(integral, params);
         plots.push(data.plot);
         data.color = Color(wxColour(130, 80, 255));
+        list->push(data);
+    }
+
+    if (flags.has(PlotEnum::SIZE_FREQUENCY_DISTRIBUTION)) {
+        data.plot = makeLocking<SfdPlot>();
+        plots.push(data.plot);
+        data.color = Color(wxColour(0, 190, 255));
         list->push(data);
     }
 

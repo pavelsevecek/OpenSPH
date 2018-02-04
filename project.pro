@@ -9,6 +9,7 @@ SUBDIRS = lib \
           gui/collision \
           gui/rotation \
           gui/nbody \
+          gui/reacc \
           test \
           bench \
     mpi \
@@ -22,5 +23,6 @@ gui.depends = lib
 collision.depends = lib gui
 rotation.depends = lib gui
 nbody.depends = lib gui
+reacc.depends = lib gui
 test.depends = lib
 bench.depends = lib

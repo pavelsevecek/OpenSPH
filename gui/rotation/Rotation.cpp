@@ -27,7 +27,7 @@ AsteroidRotation::AsteroidRotation(const RawPtr<Controller> model, const Float p
     settings.set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::PREDICTOR_CORRECTOR)
         .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 1.e-7_f)
         .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 4.e-6_f)
-        .set(RunSettingsId::TIMESTEPPING_COURANT, 1._f)
+        .set(RunSettingsId::TIMESTEPPING_COURANT_NUMBER, 1._f)
         .set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 1._f))
         .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 100._f)
         .set(RunSettingsId::MODEL_FORCE_SOLID_STRESS, true)

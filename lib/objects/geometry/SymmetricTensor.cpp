@@ -15,9 +15,9 @@ SymmetricTensor SymmetricTensor::pseudoInverse(const Float eps) const {
     AffineMatrix S = AffineMatrix::scale(svd.S);
     AffineMatrix result = svd.V * S * svd.U.transpose();
     // result is ALMOST symmetric, but symmetric tensor assumes ABSOLUTELY symmetric input
-    ASSERT(almostEqual(result(0, 1), result(1, 0), 1.e-4f), result);
+    /*ASSERT(almostEqual(result(0, 1), result(1, 0), 1.e-4f), result);
     ASSERT(almostEqual(result(0, 2), result(2, 0), 1.e-4f), result);
-    ASSERT(almostEqual(result(1, 2), result(2, 1), 1.e-4f), result);
+    ASSERT(almostEqual(result(1, 2), result(2, 1), 1.e-4f), result);*/
     return SymmetricTensor(
         Vector(result(0, 0), result(1, 1), result(2, 2)), Vector(result(0, 1), result(0, 2), result(1, 2)));
 }

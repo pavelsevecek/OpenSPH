@@ -104,26 +104,33 @@ class ISymmetricFinder : public IBasicFinder {
 
 protected:
     /// Ranks of particles according to their smoothing lengths
-    Order rankH;
+    Order rank;
 
 public:
     /// \brief Constructs the struct with an array of vectors.
     void build(ArrayView<const Vector> points, const Flags<FinderFlag> flags = FinderFlag::MAKE_RANK) {
         values = points;
         if (flags.has(FinderFlag::MAKE_RANK)) {
-            rankH = makeRankH(values);
+            rank = makeRankH(values);
         } else {
-            rankH = Order();
+            rank = Order();
         }
+        this->buildImpl(values);
+    }
+
+    template <typename TCompare>
+    void buildWithRank(ArrayView<const Vector> points, TCompare&& comp) {
+        values = points;
+        rank = makeRank(values.size(), comp);
         this->buildImpl(values);
     }
 
     /// \brief Updates the structure when the position change.
     void rebuild(const Flags<FinderFlag> flags = FinderFlag::MAKE_RANK) {
         if (flags.has(FinderFlag::MAKE_RANK)) {
-            rankH = makeRankH(values);
+            rank = makeRankH(values);
         } else {
-            rankH = Order();
+            rank = Order();
         }
         this->rebuildImpl(values);
     }
@@ -144,20 +151,19 @@ public:
 
 private:
     /// \brief Generates the rank of particles, according to their smoothing lengths.
-    static Order makeRankH(ArrayView<const Vector> values) {
-        Order tmp(values.size());
+    template <typename TCompare>
+    static Order makeRank(const Size size, TCompare&& comp) {
+        Order tmp(size);
         // sort by smoothing length
-        tmp.shuffle([values](const Size i1, const Size i2) { return values[i1][H] < values[i2][H]; });
-// invert to get rank in H
-/// \todo avoid allocation here
-#ifdef SPH_DEBUG
-        Float lastH = EPS;
-        for (Size i = 0; i < tmp.size(); ++i) {
-            ASSERT(values[tmp[i]][H] >= lastH, values[tmp[i]][H], lastH);
-            lastH = values[tmp[i]][H];
-        }
-#endif
+        tmp.shuffle(comp);
+        // invert to get rank in H
         return tmp.getInverted();
+    }
+
+    static Order makeRankH(ArrayView<const Vector> values) {
+        return makeRank(values.size(), [values](const Size i1, const Size i2) { //
+            return values[i1][H] < values[i2][H];
+        });
     }
 };
 

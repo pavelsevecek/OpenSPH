@@ -99,7 +99,8 @@ SOURCES += \
     sph/solvers/StandardSets.cpp \
     gravity/NBodySolver.cpp \
     sph/equations/EquationTerm.cpp \
-    sph/equations/Rotation.cpp
+    sph/equations/Rotation.cpp \
+    sph/solvers/GravitySolver.cpp
 
 HEADERS += \
     common/Assert.h \
@@ -282,4 +283,5 @@ HEADERS += \
     sph/solvers/StandardSets.h \
     objects/containers/FlatMap.h \
     objects/containers/FlatSet.h \
-    objects/finders/NeighbourFinder.h
+    objects/finders/NeighbourFinder.h \
+    run/CompositeRun.h

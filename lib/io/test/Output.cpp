@@ -91,6 +91,7 @@ TEST_CASE("BinaryOutput dump&accumulate simple", "[output]") {
     BinaryOutput output(Path("simple%d.out"));
     Statistics stats;
     stats.set(StatisticsId::RUN_TIME, 0._f);
+    stats.set(StatisticsId::TIMESTEP_VALUE, 0._f);
     output.dump(storage1, stats);
 
     Storage storage2;
@@ -142,8 +143,8 @@ TEST_CASE("BinaryOutput dump&accumulate materials", "[output]") {
 
     BinaryOutput output(Path("mat%d.out"));
     Statistics stats;
-    /// \todo accumulate stats
     stats.set(StatisticsId::RUN_TIME, 0._f);
+    stats.set(StatisticsId::TIMESTEP_VALUE, 0._f);
     output.dump(storage, stats);
 
     // sanity check
@@ -187,6 +188,27 @@ TEST_CASE("BinaryOutput dump&accumulate materials", "[output]") {
     REQUIRE(mat.sequence() == IndexSequence(30, 35));
     eosMat = dynamic_cast<EosMaterial*>(&mat.material());
     REQUIRE(dynamic_cast<const MurnaghanEos*>(&eosMat->getEos()));
+}
+
+TEST_CASE("BinaryOutput dump stats", "[output]") {
+    Storage storage = Tests::getGassStorage(10);
+    Statistics stats;
+    stats.set(StatisticsId::RUN_TIME, 24._f);
+    stats.set(StatisticsId::TIMESTEP_VALUE, 0.1_f);
+    Path path("dummy.out");
+    BinaryOutput output(path);
+    output.dump(storage, stats);
+
+    storage.removeAll();
+    Statistics loadedStats;
+    REQUIRE(output.load(path, storage, loadedStats));
+    REQUIRE(loadedStats.get<Float>(StatisticsId::RUN_TIME) == 24._f);
+    REQUIRE(loadedStats.get<Float>(StatisticsId::TIMESTEP_VALUE) == 0.1_f);
+
+    Expected<BinaryOutput::Info> info = output.getInfo(path);
+    REQUIRE(info);
+    REQUIRE(info->runTime == 24._f);
+    REQUIRE(info->timeStep == 0.1_f);
 }
 
 TEST_CASE("Pkdgrav output", "[output]") {

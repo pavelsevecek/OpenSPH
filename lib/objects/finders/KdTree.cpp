@@ -272,7 +272,7 @@ Size KdTree::find(const Vector& r0,
                     for (Size i = leaf.from; i < leaf.to; ++i) {
                         const Size actIndex = idxs[i];
                         const Float distSqr = getSqrLength(values[actIndex] - r0);
-                        if (distSqr < radiusSqr && (FindAll || rankH[actIndex] < rankH[index])) {
+                        if (distSqr < radiusSqr && (FindAll || rank[actIndex] < rank[index])) {
                             /// \todo order part
                             neighbours.push(NeighbourRecord{ actIndex, distSqr });
                         }

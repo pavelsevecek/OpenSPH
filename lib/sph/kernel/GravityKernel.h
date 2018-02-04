@@ -108,7 +108,7 @@ public:
     SolidSphereKernel() = default;
 
     INLINE Float radius() const {
-        return 1._f;
+        return 2._f;
     }
 
     INLINE Float valueImpl(const Float UNUSED(qSqr)) const {
@@ -116,7 +116,7 @@ public:
     }
 
     INLINE Float gradImpl(const Float UNUSED(qSqr)) const {
-        return 0._f; // 1._f;
+        return 1._f;
     }
 };
 

@@ -3,6 +3,7 @@
 #include "io/Logger.h"
 #include "io/Output.h"
 #include "physics/Integrals.h"
+#include "quantities/IMaterial.h"
 #include "run/RunCallbacks.h"
 #include "run/Trigger.h"
 #include "system/Factory.h"
@@ -123,6 +124,9 @@ void IRun::setNullToDefaults() {
     ASSERT(storage != nullptr);
     if (!solver) {
         solver = Factory::getSolver(settings);
+        for (Size i = 0; i < storage->getMaterialCnt(); ++i) {
+            solver->create(*storage, storage->getMaterial(i));
+        }
     }
     if (!logger) {
         logger = Factory::getLogger(settings);
@@ -146,7 +150,7 @@ void IRun::tearDownInternal() {
     logger.reset();
     timeStepping.reset();
     solver.reset();
-    // keep storage so that we can access particle data after render ends
+    // keep storage so that we can access particle data after run ends
 }
 
 NAMESPACE_SPH_END

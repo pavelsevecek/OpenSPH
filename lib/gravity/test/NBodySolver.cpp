@@ -390,10 +390,14 @@ TEST_CASE("Collision repel", "[nbody]") {
 
     CenterOfMass com;
     const Vector com1 = com.evaluate(storage);
-    RepelHandler repel(0._f, 0._f);
+
+    RunSettings settings;
+    settings.set(RunSettingsId::COLLISION_RESTITUTION_NORMAL, 0._f);
+    settings.set(RunSettingsId::COLLISION_RESTITUTION_TANGENT, 0._f);
+    RepelHandler<ElasticBounceHandler> repel(settings);
     repel.initialize(storage);
     FlatSet<Size> dummy;
-    repel.collide(0, 1, dummy);
+    repel.handle(0, 1, dummy);
     const Vector com2 = com.evaluate(storage);
     REQUIRE(com1 == approx(com2));
 
@@ -402,7 +406,7 @@ TEST_CASE("Collision repel", "[nbody]") {
 
     r[1] = Vector(10._f, 0._f, 0._f, 0.2_f);
     repel.initialize(storage);
-    REQUIRE_ASSERT(repel.collide(0, 1, dummy));
+    REQUIRE_ASSERT(repel.handle(0, 1, dummy));
 }
 
 static SharedPtr<Storage> runCloud(const RunSettings& settings, const Size particleCount) {

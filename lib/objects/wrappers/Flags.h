@@ -103,6 +103,11 @@ public:
         }
     }
 
+    /// Returns the underlying value.
+    INLINE TValue value() const {
+        return data;
+    }
+
     /// Returns a Flags object by adding a single flag to currently stored values.
     INLINE constexpr Flags operator|(const TEnum flag) {
         ASSERT(isPower2(TValue(flag)));

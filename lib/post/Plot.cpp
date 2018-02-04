@@ -1,4 +1,7 @@
 #include "post/Plot.h"
+#include "post/Point.h"
+#include "quantities/Storage.h"
+#include "system/Statistics.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -139,7 +142,6 @@ bool TemporalPlot::isExpired(const Float x, const Float t) const {
     }
 }
 
-
 void HistogramPlot::onTimeStep(const Storage& storage, const Statistics& UNUSED(stats)) {
     Post::HistogramParams params;
     params.id = Post::HistogramId(id);
@@ -166,6 +168,39 @@ void HistogramPlot::plot(IDrawingContext& dc) const {
         dc.drawLine({ points[i + 1].value, Float(points[i].count) },
             { points[i + 1].value, Float(points[i + 1].count) });
     }
+}
+
+void SfdPlot::onTimeStep(const Storage& storage, const Statistics& UNUSED(stats)) {
+    Post::HistogramParams params;
+    params.id = Post::HistogramId::RADII;
+    points = Post::getCummulativeSfd(storage, params);
+
+    this->clear();
+    sfd.clear();
+    sfd.reserve(points.size());
+    for (Post::SfdPoint& p : points) {
+        ASSERT(p.value > 0._f && p.count > 0);
+        const Float value = log10(p.value);
+        const Float count = log10(Float(p.count));
+        ranges.x.extend(value);
+        ranges.y.extend(count);
+        sfd.emplaceBack(PlotPoint{ value, count });
+    }
+    points = Array<Post::SfdPoint>();
+}
+
+void SfdPlot::plot(IDrawingContext& dc) const {
+    if (sfd.empty()) {
+        return;
+    }
+    AutoPtr<IDrawPath> path = dc.drawPath();
+    for (Size i = 0; i < sfd.size() - 1; ++i) {
+        dc.drawPoint(sfd[i]);
+        path->addPoint(sfd[i]);
+    }
+    dc.drawPoint(sfd.back());
+    path->addPoint(sfd.back());
+    path->endPath();
 }
 
 NAMESPACE_SPH_END

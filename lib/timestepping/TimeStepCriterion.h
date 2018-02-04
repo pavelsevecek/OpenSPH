@@ -18,7 +18,8 @@ enum class CriterionId {
     MAXIMAL_VALUE, ///< Timestep given by selected maximal value
     DERIVATIVE,    ///< Timestep based on value-to-derivative ratio
     CFL_CONDITION, ///< Timestep computed using CFL condition
-    ACCELERATION   ///< Timestep constrained by acceleration condition
+    ACCELERATION,  ///< Timestep constrained by acceleration condition
+    MAX_CHANGE,    ///< Timestep is limited by the maximum allowed change from previous timestep
 };
 
 std::ostream& operator<<(std::ostream& stream, const CriterionId id);
@@ -108,6 +109,7 @@ public:
 class CourantCriterion : public ITimeStepCriterion {
 private:
     Float courant;
+    Size neighLimit;
 
 public:
     explicit CourantCriterion(const RunSettings& settings);
@@ -128,13 +130,16 @@ private:
     Array<AutoPtr<ITimeStepCriterion>> criteria;
 
     /// Parameters for smoothing the timestep
+    /// \todo separate into a separate criterion, doesn't belong here
     Float maxChange;
-    Float lastStep = 0._f;
+    Float lastStep;
 
 public:
     explicit MultiCriterion(const RunSettings& settings);
 
-    explicit MultiCriterion(Array<AutoPtr<ITimeStepCriterion>>&& criteria, const Float maxChange = INFTY);
+    explicit MultiCriterion(Array<AutoPtr<ITimeStepCriterion>>&& criteria,
+        const Float maxChange,
+        const Float initial);
 
     virtual Tuple<Float, CriterionId> compute(Storage& storage,
         const Float maxStep,

@@ -148,14 +148,19 @@ namespace Post {
     /// Beside the listed options, any QuantityId can be used, by casting to HistogramId enum. All values of
     /// HistogramId has to be negative to avoid clashes.
     enum class HistogramId {
-        /// Particle radii or equivalent radii of compoennts
+        /// Particle radii or equivalent radii of components
         RADII = -1,
 
+        /// Radii determined from particle masses and given reference density. This generally given more
+        /// 'discretized' SFD, as masses of SPH particles are constant during the run, whereas radii
+        /// (smoothing lenghts) or densities may change.
+        EQUIVALENT_MASS_RADII = -2,
+
         /// Particle velocities
-        VELOCITIES = -2,
+        VELOCITIES = -3,
 
         /// Angular velocities of particles
-        ANGULAR_VELOCITIES = -3,
+        ANGULAR_VELOCITIES = -4,
     };
 
     /// Parameters of the histogram
@@ -181,6 +186,9 @@ namespace Post {
         /// Number of histogram bins. 0 means the number is selected based on the source data. Used only by
         /// differential SFD.
         Size binCnt = 0;
+
+        /// Reference density, used when computing particle radii from their masses.
+        Float referenceDensity = 2700._f;
 
         /// Parameters used by histogram of components
         struct ComponentParams {

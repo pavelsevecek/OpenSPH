@@ -10,29 +10,54 @@
 
 NAMESPACE_SPH_BEGIN
 
-SurfaceRenderer::SurfaceRenderer(const GuiSettings& settings) {
-    surfaceLevel = settings.get<Float>(GuiSettingsId::SURFACE_LEVEL);
-    surfaceResolution = settings.get<Float>(GuiSettingsId::SURFACE_RESOLUTION);
-    sunPosition = settings.get<Vector>(GuiSettingsId::SURFACE_SUN_POSITION);
-    sunIntensity = settings.get<Float>(GuiSettingsId::SURFACE_SUN_INTENSITY);
-    ambient = settings.get<Float>(GuiSettingsId::SURFACE_AMBIENT);
+SurfaceRenderer::SurfaceRenderer(const GuiSettings& gui) {
+    surfaceLevel = gui.get<Float>(GuiSettingsId::SURFACE_LEVEL);
+    surfaceResolution = gui.get<Float>(GuiSettingsId::SURFACE_RESOLUTION);
+    sunPosition = gui.get<Vector>(GuiSettingsId::SURFACE_SUN_POSITION);
+    sunIntensity = gui.get<Float>(GuiSettingsId::SURFACE_SUN_INTENSITY);
+    ambient = gui.get<Float>(GuiSettingsId::SURFACE_AMBIENT);
+
+    RunSettings settings;
+    finder = Factory::getFinder(settings);
+    kernel = Factory::getKernel<3>(settings);
 }
 
 void SurfaceRenderer::initialize(const Storage& storage,
-    const IColorizer& UNUSED(colorizer),
+    const IColorizer& colorizer,
     const ICamera& UNUSED(camera)) {
     cached.colors.clear();
+
+    // get the surface as triangles
     cached.triangles = getSurfaceMesh(storage, surfaceResolution, surfaceLevel);
 
+    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
+    Float maxH = 0._f;
+    for (Size i = 0; i < r.size(); ++i) {
+        maxH = max(maxH, r[i][H]);
+    }
+
+    finder->build(r);
+    Array<NeighbourRecord> neighs;
+
     for (Triangle& t : cached.triangles) {
+        const Vector pos = t.center();
+        /// \todo test wxGraphicsContext::CreateLinearGradientBrush, it might be possible to interpolate
+        /// colors between triangle vertices
+        finder->findAll(pos, 2.f * maxH, neighs);
+
+        Color colorSum(0._f);
+        Float weightSum = 0._f;
+        for (auto& n : neighs) {
+            const Size i = n.index;
+            const Color color = colorizer.eval(i);
+            const Float w = kernel.value(r[i] - pos, r[i][H]);
+            colorSum += w * color;
+            weightSum += w;
+        }
 
         // supersimple diffuse shading
-        /// \todo color using IColorizer; it is non-trivial to use, since we have no connection of generated
-        /// triangles with the particles. This needs to implemented in Marching cubes; we need to compute also
-        /// interpolated values of given quantity (beside the surface field).
-        float gray = ambient + sunIntensity * max(0._f, dot(sunPosition, t.normal()));
-
-        cached.colors.push(Color(gray));
+        const float gray = ambient + sunIntensity * max(0._f, dot(sunPosition, t.normal()));
+        cached.colors.push(colorSum / weightSum * gray);
     }
 }
 

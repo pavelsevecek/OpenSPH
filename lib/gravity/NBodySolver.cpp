@@ -212,7 +212,7 @@ public:
     }
 };
 
-static Float getSearchRadius(ArrayView<const Vector> r, ArrayView<const Vector> v, const Float dt) {
+/*static Float getSearchRadius(ArrayView<const Vector> r, ArrayView<const Vector> v, const Float dt) {
     // find the largest velocity, so that we know how far to search for potentional impactors
     /// \todo naive implementation, improve
     Float v_max = 0._f;
@@ -223,7 +223,105 @@ static Float getSearchRadius(ArrayView<const Vector> r, ArrayView<const Vector> 
     }
     v_max = sqrt(v_max);
     return v_max * dt + h_max;
+}*/
+
+/*static bool isSeparable(const CollisionRecord& col1,
+    const CollisionRecord& col2,
+    ArrayView<const Vector> r,
+    const Float radius) {
+    auto intersects = [r, radius](const Size i, const Size j) {
+        return getSqrLength(r[i] - r[j]) <= sqr(2._f * radius);
+    };
+    return !intersects(col1.i, col2.i) && !intersects(col1.i, col2.j) && //
+           !intersects(col1.j, col2.i) && !intersects(col1.j, col2.j);
 }
+
+class CollisionTask : public ITask {
+private:
+    Locking<FlatSet<CollisionRecord>>& collisions;
+
+    Float searchRadius;
+
+    /// Collision to process
+    FlatSet<Size> invalidIdxs;
+
+    FlatSet<Size> removed;
+
+    /// Statistics for this thread
+    CollisionStats cs;
+
+    ArrayView<Vector> r;
+    ArrayView<Vector> v;
+
+public:
+    CollisionTask(Storage& storage, Locking<FlatSet<CollisionRecord>>& collisions, const Float searchRadius)
+        : collisions(collisions)
+        , searchRadius(searchRadius) {
+        ArrayView<Vector> dv;
+        tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
+    }
+
+    virtual void operator()() override {
+        while (!collisions->empty()) {
+            const CollisionRecord col = this->getNextCollision();
+            const Size i = col.i;
+            const Size j = col.j;
+            const Float t_coll = col.collisionTime;
+
+            // advance the positions of collided particles to the collision time
+            r[i] += v[i] * t_coll;
+            r[j] += v[j] * t_coll;
+
+            // check and handle overlaps
+            CollisionResult result;
+            if (col.isOverlap()) {
+                result = overlap.handler->collide(i, j, removed);
+                cs.overlapCount++;
+            } else {
+                result = collision.handler->collide(i, j, removed);
+                cs.clasify(result);
+            }
+            ASSERT(result != CollisionResult::NONE);
+
+            // move the positions back to the beginning of the timestep
+            r[i] -= v[i] * t_coll;
+            r[j] -= v[j] * t_coll;
+
+            // remove all collisions containing either i or j
+            invalidIdxs.clear();
+            auto proxy = collisions.lock();
+            for (auto iter = proxy->begin(); iter != proxy->end();) {
+                const CollisionRecord& c = *iter;
+                if (c.i == i || c.i == j || c.j == i || c.j == j) {
+                    invalidIdxs.insert(c.i);
+                    invalidIdxs.insert(c.j);
+                    iter = proxy->erase(iter);
+                } else {
+                    ++iter;
+                }
+            }
+            proxy.release();
+
+            for (Size idx : invalidIdxs) {
+                // here we shouldn't search any removed particle
+                if (removed.find(idx) != removed.end()) {
+                    continue;
+                }
+                const Interval interval(t_coll, dt);
+                if (CollisionRecord c =
+                        this->findClosestCollision(idx, searchRadius, interval, neighs, r, v)) {
+                    ASSERT(isReal(c));
+                    ASSERT(removed.find(c.i) == removed.end() && removed.find(c.j) == removed.end());
+                    if ((c.i == i && c.j == j) || (c.j == i && c.i == j)) {
+                        // don't process the same pair twice in a row
+                        continue;
+                    }
+                    collisions->insert(c);
+                }
+            }
+        }
+    }
+};*/
 
 void NBodySolver::collide(Storage& storage, Statistics& stats, const Float dt) {
     Timer timer;
@@ -231,26 +329,32 @@ void NBodySolver::collide(Storage& storage, Statistics& stats, const Float dt) {
         rotateLocalFrame(storage, dt);
     }
 
-    ArrayView<Vector> r, v, a;
+    ArrayView<Vector> a;
     tie(r, v, a) = storage.getAll<Vector>(QuantityId::POSITION);
 
     // find the radius of possible colliders
-    const Float searchRadius = getSearchRadius(r, v, dt);
+    // const Float searchRadius = getSearchRadius(r, v, dt);
 
     // tree for finding collisions
-    collision.finder->build(r);
+    collision.finder->buildWithRank(r, [this, dt](const Size i, const Size j) {
+        return r[i][H] + getLength(v[i]) * dt < r[j][H] + getLength(v[j]) * dt;
+    });
 
     // handler determining collison outcomes
     collision.handler->initialize(storage);
     overlap.handler->initialize(storage);
 
+    // ignored.clear();
     collisions.clear();
+    searchRadii.resize(r.size());
+    searchRadii.fill(0._f);
+
     threadData.forEach([](ThreadData& data) { data.collisions.clear(); });
     // first pass - find all collisions and sort them by collision time
     parallelFor(pool, threadData, 0, r.size(), 100, [&](const Size n1, const Size n2, ThreadData& data) {
         for (Size i = n1; i < n2; ++i) {
-            if (CollisionRecord col =
-                    this->findClosestCollision(i, searchRadius, Interval(0._f, dt), data.neighs, r, v)) {
+            if (CollisionRecord col = this->findClosestCollision(
+                    i, SearchEnum::FIND_LOWER_RANK, Interval(0._f, dt), data.neighs)) {
                 ASSERT(isReal(col));
                 data.collisions.insert(col);
             }
@@ -263,13 +367,13 @@ void NBodySolver::collide(Storage& storage, Statistics& stats, const Float dt) {
     });
 
     CollisionStats cs(stats);
-    FlatSet<Size> invalidIdxs;
     removed.clear();
 
     // We have to process the all collision in order, sorted according to collision time, but this is
-    // hardly parallelized. We can however process collisions concurrently, as long as the collided particles
-    // don't intersect the spheres with radius equal to the search radius.
-    // Note that this works as long as the search radius does not increase during collision handling.
+    // hardly parallelized. We can however process collisions concurrently, as long as the collided
+    // particles don't intersect the spheres with radius equal to the search radius. Note that this works
+    // as long as the search radius does not increase during collision handling.
+    FlatSet<std::tuple<Size, bool>> invalidIdxs;
     while (!collisions.empty()) {
         const CollisionRecord& col = *collisions.begin();
         const Float t_coll = col.collisionTime;
@@ -281,11 +385,13 @@ void NBodySolver::collide(Storage& storage, Statistics& stats, const Float dt) {
         // advance the positions of collided particles to the collision time
         r[i] += v[i] * t_coll;
         r[j] += v[j] * t_coll;
+        ASSERT(isReal(r[i]) && isReal(r[j]));
 
         // check and handle overlaps
         CollisionResult result;
         if (col.isOverlap()) {
-            result = overlap.handler->collide(i, j, removed);
+            overlap.handler->handle(i, j, removed);
+            result = CollisionResult::BOUNCE; ///\todo
             cs.overlapCount++;
         } else {
             result = collision.handler->collide(i, j, removed);
@@ -296,27 +402,32 @@ void NBodySolver::collide(Storage& storage, Statistics& stats, const Float dt) {
         // move the positions back to the beginning of the timestep
         r[i] -= v[i] * t_coll;
         r[j] -= v[j] * t_coll;
+        ASSERT(isReal(r[i]) && isReal(r[j]));
 
         // remove all collisions containing either i or j
         invalidIdxs.clear();
         for (auto iter = collisions.begin(); iter != collisions.end();) {
             const CollisionRecord& c = *iter;
             if (c.i == i || c.i == j || c.j == i || c.j == j) {
-                invalidIdxs.insert(c.i);
-                invalidIdxs.insert(c.j);
+                invalidIdxs.insert(std::make_tuple(c.i, true));
+                invalidIdxs.insert(std::make_tuple(c.j, false));
                 iter = collisions.erase(iter);
             } else {
                 ++iter;
             }
         }
 
-        for (Size idx : invalidIdxs) {
+        for (auto x : invalidIdxs) {
+            Size idx;
+            bool findLowerRank;
+            std::tie(idx, findLowerRank) = x;
             // here we shouldn't search any removed particle
             if (removed.find(idx) != removed.end()) {
                 continue;
             }
             const Interval interval(t_coll, dt);
-            if (CollisionRecord c = this->findClosestCollision(idx, searchRadius, interval, neighs, r, v)) {
+            if (CollisionRecord c =
+                    this->findClosestCollision(idx, SearchEnum::USE_RADII, interval, neighs)) {
                 ASSERT(isReal(c));
                 ASSERT(removed.find(c.i) == removed.end() && removed.find(c.j) == removed.end());
                 if ((c.i == i && c.j == j) || (c.j == i && c.i == j)) {
@@ -330,6 +441,7 @@ void NBodySolver::collide(Storage& storage, Statistics& stats, const Float dt) {
     // advance all positions to the end of the timestep
     for (Size i = 0; i < r.size(); ++i) {
         r[i] += v[i] * dt;
+        ASSERT(isReal(r[i]));
     }
 
     // apply the removal list
@@ -365,33 +477,53 @@ void NBodySolver::create(Storage& storage, IMaterial& UNUSED(material)) const {
 }
 
 CollisionRecord NBodySolver::findClosestCollision(const Size i,
-    const Float globalRadius,
+    const SearchEnum opt,
     const Interval interval,
-    Array<NeighbourRecord>& neighs,
-    ArrayView<Vector> r,
-    ArrayView<Vector> v) const {
+    Array<NeighbourRecord>& neighs) {
     ASSERT(!interval.empty());
-    // maximum travel of i-th particle
-    const Float localRadius = r[i][H] + getLength(v[i]) * interval.size();
-    // Since we don't know a priori the travel distance of neighbours, use the maximum of all.
-    // Note that we cannot use the findLowerRank variant as the search radius is NOT proportional to radius
-    // (as in SPH), it depends on velocity which can be significantly different for the other particle
-    collision.finder->findAll(i, globalRadius + localRadius, neighs);
+    if (opt == SearchEnum::FIND_LOWER_RANK) {
+        // maximum travel of i-th particle
+        const Float radius = r[i][H] + getLength(v[i]) * interval.upper();
+        collision.finder->findLowerRank(i, 2._f * radius, neighs);
+    } else {
+        ASSERT(isReal(searchRadii[i]));
+        if (searchRadii[i] > 0._f) {
+            collision.finder->findAll(i, 2._f * searchRadii[i], neighs);
+        } else {
+            return CollisionRecord{};
+        }
+    }
 
     CollisionRecord closestCollision;
     for (NeighbourRecord& n : neighs) {
         const Size j = n.index;
+        if (opt == SearchEnum::FIND_LOWER_RANK) {
+            searchRadii[i] = searchRadii[j] = r[i][H] + getLength(v[i]) * interval.upper();
+        }
         if (i == j || removed.find(j) != removed.end()) {
             // particle already removed, skip
             continue;
         }
+        /*{            std::unique_lock<std::mutex> lock(ignoredMutex);
+            if (ignored.find(i) != ignored.end()) {
+                continue;
+            }
+        }*/
         // advance positions to the start of the interval
         const Vector r1 = r[i] + v[i] * interval.lower();
         const Vector r2 = r[j] + v[j] * interval.lower();
         const Float overlapValue = 1._f - getSqrLength(r1 - r2) / sqr(r[i][H] + r[j][H]);
         if (overlapValue > sqr(overlap.allowedRatio)) {
-            // make as overlap
-            return CollisionRecord::OVERLAP(i, j, interval.lower(), overlapValue);
+            /*std::unique_lock<std::mutex> lock(ignoredMutex);
+            ignored.insert(i);
+            ignored.insert(j);*/
+            if (overlap.handler->overlaps(i, j)) {
+                // this overlap needs to be handled
+                return CollisionRecord::OVERLAP(i, j, interval.lower(), overlapValue);
+            } else {
+                // skip this overlap, which also implies skipping the collision, so just continue
+                continue;
+            }
         }
 
         Optional<Float> t_coll = this->checkCollision(r1, v[i], r2, v[j], interval.size());

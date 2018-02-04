@@ -50,13 +50,14 @@ Vector TotalAngularMomentum::evaluate(const Storage& storage) const {
     }
 
     // local angular momentum
-    if (storage.has(QuantityId::ANGULAR_VELOCITY)) {
+    /// \todo consolidate the angular momentum here - always in local frame? introduce physical quantity?
+    /*if (storage.has(QuantityId::ANGULAR_VELOCITY)) {
         ArrayView<const Vector> omega = storage.getValue<Vector>(QuantityId::ANGULAR_VELOCITY);
         ArrayView<const SymmetricTensor> I = storage.getValue<SymmetricTensor>(QuantityId::MOMENT_OF_INERTIA);
         for (Size i = 0; i < v.size(); ++i) {
             total += I[i] * omega[i];
         }
-    }
+    }*/
 
     ASSERT(isReal(total));
     return vectorCast<Float>(total);

@@ -1,0 +1,62 @@
+#pragma once
+
+/// \file CompositeRun.h
+/// \brief Simulation composed of multiple phases with generally different solvers
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2018
+
+#include "run/IRun.h"
+
+NAMESPACE_SPH_BEGIN
+
+class IRunPhase : public IRun {
+    friend class CompositeRun;
+
+public:
+    /// \brief Returns the next phase, following this run.
+    ///
+    /// If nullptr, this is the last phase of the composite run.
+    virtual AutoPtr<IRunPhase> getNextPhase() const = 0;
+
+    virtual void handoff(const Storage& input) = 0;
+};
+
+class CompositeRun : public IRun {
+private:
+    AutoPtr<IRunPhase> first;
+
+public:
+    CompositeRun(AutoPtr<IRunPhase>&& first)
+        : first(std::move(first)) {}
+
+    virtual void setUp() override {
+        first->setUp();
+        this->storage = first->getStorage();
+    }
+
+    virtual void run() override {
+        AutoPtr<IRunPhase> next;
+        RawPtr<IRunPhase> current = first.get();
+        // we need to hold callbacks, otherwise they would get deleted
+        SharedPtr<IRunCallbacks> callbacks = current->callbacks;
+        while (true) {
+            current->run();
+            next = current->getNextPhase();
+            if (!next) {
+                return;
+            }
+            // make the handoff, using the storage of the previous run
+            next->handoff(*current->getStorage());
+            // copy the callbacks
+            /// \todo is this always necessary
+            next->callbacks = callbacks;
+            this->storage = next->getStorage();
+            current = next.get();
+        }
+    }
+
+protected:
+    virtual void tearDown() override {}
+};
+
+NAMESPACE_SPH_END

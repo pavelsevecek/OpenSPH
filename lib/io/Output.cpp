@@ -381,7 +381,8 @@ Path BinaryOutput::dump(Storage& storage, const Statistics& stats) {
     // size: 4 + 8 + 8 + 8 + 8 = 36
     const Size materialCnt = storage.getMaterialCnt();
     const Size quantityCnt = storage.getQuantityCnt() - int(storage.has(QuantityId::MATERIAL_ID));
-    serializer.write("SPH", time, storage.getParticleCnt(), quantityCnt, materialCnt);
+    const Float timeStep = stats.get<Float>(StatisticsId::TIMESTEP_VALUE);
+    serializer.write("SPH", time, storage.getParticleCnt(), quantityCnt, materialCnt, timeStep);
     // zero bytes until 256 to allow extensions of the header
     serializer.addPadding(PADDING_SIZE);
 
@@ -504,20 +505,22 @@ static Expected<Storage> loadMaterial(const Size matIdx,
 }
 
 
-Outcome BinaryOutput::load(const Path& path, Storage& storage, Statistics& UNUSED(stats)) {
+Outcome BinaryOutput::load(const Path& path, Storage& storage, Statistics& stats) {
     storage.removeAll();
     Deserializer deserializer(path);
     std::string identifier;
-    Float time;
+    Float time, timeStep;
     Size particleCnt, quantityCnt, materialCnt;
     try {
-        deserializer.read(identifier, time, particleCnt, quantityCnt, materialCnt);
+        deserializer.read(identifier, time, particleCnt, quantityCnt, materialCnt, timeStep);
     } catch (SerializerException&) {
         return "Invalid file format";
     }
     if (identifier != "SPH") {
         return "Invalid format specifier: expected SPH, got " + identifier;
     }
+    stats.set(StatisticsId::RUN_TIME, time);
+    stats.set(StatisticsId::TIMESTEP_VALUE, timeStep);
     try {
         deserializer.skip(PADDING_SIZE);
     } catch (SerializerException&) {
@@ -586,10 +589,10 @@ Outcome BinaryOutput::load(const Path& path, Storage& storage, Statistics& UNUSE
 Expected<BinaryOutput::Info> BinaryOutput::getInfo(const Path& path) const {
     Deserializer deserializer(path);
     std::string identifier;
-    Float time;
     Info info;
     try {
-        deserializer.read(identifier, time, info.particleCnt, info.quantityCnt, info.materialCnt);
+        deserializer.read(
+            identifier, info.runTime, info.particleCnt, info.quantityCnt, info.materialCnt, info.timeStep);
     } catch (SerializerException&) {
         return makeUnexpected<Info>("Invalid file format");
     }

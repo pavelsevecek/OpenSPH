@@ -3,6 +3,8 @@
 #include "gravity/BarnesHut.h"
 #include "gravity/BruteForceGravity.h"
 #include "gravity/Moments.h"
+#include "gravity/SphericalGravity.h"
+#include "sph/solvers/SymmetricSolver.h"
 #include "tests/Approx.h"
 #include "tests/Setup.h"
 #include "utils/SequenceTest.h"
@@ -14,7 +16,8 @@ static void testGravity(AutoPtr<IGravity>&& gravity) {
     settings.set(BodySettingsId::DENSITY, 1._f).set(BodySettingsId::ENERGY, 1._f);
     Storage storage = Tests::getGassStorage(2000, settings, Constants::au);
     // no SPH equations, just gravity
-    GravitySolver solver(RunSettings::getDefaults(), makeTerm<ConstSmoothingLength>(), std::move(gravity));
+    GravitySolver<SymmetricSolver> solver(
+        RunSettings::getDefaults(), makeTerm<ConstSmoothingLength>(), std::move(gravity));
     REQUIRE_NOTHROW(solver.create(storage, storage.getMaterial(0)));
     Statistics stats;
     REQUIRE_NOTHROW(solver.integrate(storage, stats));
@@ -65,6 +68,6 @@ TEST_CASE("GravitySolver setup", "[solvers]") {
     holder += makeTerm<SphericalGravityEquation>();
     RunSettings settings;
     Storage storage = Tests::getGassStorage(2);
-    GravitySolver solver(settings, holder, makeAuto<BruteForceGravity>());
+    GravitySolver<SymmetricSolver> solver(settings, holder, makeAuto<BruteForceGravity>());
     REQUIRE_THROWS_AS(solver.create(storage, storage.getMaterial(0)), InvalidSetup);
 }

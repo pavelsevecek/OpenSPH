@@ -5,7 +5,7 @@ wxDEFINE_EVENT(MAIN_LOOP_TYPE, Sph::MainLoopEvent);
 
 NAMESPACE_SPH_BEGIN
 
-void executeOnMainThread(const std::function<void()>& function) {
+void executeOnMainThread(std::function<void()> function) {
     MainLoopEvent* evt = new MainLoopEvent(function);
     wxTheApp->QueueEvent(evt);
 }

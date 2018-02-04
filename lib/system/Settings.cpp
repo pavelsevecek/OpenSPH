@@ -308,11 +308,15 @@ AutoPtr<RunSettings> RunSettings::instance (new RunSettings {
     { RunSettingsId::COLLISION_RESTITUTION_NORMAL,  "collision.restitution_normal",     0.8_f },
     { RunSettingsId::COLLISION_RESTITUTION_TANGENT, "collision.restitution_tangent",    1.0_f },
     { RunSettingsId::COLLISION_ALLOWED_OVERLAP,     "collision.allowed_overlap",        0.01_f },
+
+    { RunSettingsId::COLLISION_OVERLAP_RESTITUTION_NORMAL,  "collision.overlap_restitution_normal",     0.5_f },
+    { RunSettingsId::COLLISION_OVERLAP_RESTITUTION_TANGENT, "collision.overlap_restitution_tangent",    1.0_f },
     { RunSettingsId::COLLISION_MERGING_LIMIT,       "collision.merging_limit",          1._f },
 
     /// Timestepping parameters
     { RunSettingsId::TIMESTEPPING_INTEGRATOR,       "timestep.integrator",      int(TimesteppingEnum::PREDICTOR_CORRECTOR) },
-    { RunSettingsId::TIMESTEPPING_COURANT,          "timestep.courant",         1._f },
+    { RunSettingsId::TIMESTEPPING_COURANT_NUMBER,   "timestep.courant_number",         1._f },
+    { RunSettingsId::TIMESTEPPING_COURANT_NEIGHBOUR_LIMIT, "timestep.courant_neighbour_limit",  1 },
     { RunSettingsId::TIMESTEPPING_MAX_TIMESTEP,     "timestep.max_step",        0.1_f /*s*/}, /// \todo units necessary in settings!!!
     { RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, "timestep.initial",         0.03_f },
     { RunSettingsId::TIMESTEPPING_CRITERION,        "timestep.criterion",       int(TimeStepCriterionEnum::ALL) },

@@ -10,6 +10,7 @@
 #include "gui/objects/Palette.h"
 #include "gui/renderers/IRenderer.h"
 #include "post/MarchingCubes.h"
+#include "sph/kernel/Interpolation.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -29,10 +30,15 @@ private:
         /// Triangles of the surface
         Array<Triangle> triangles;
 
-        /// Colors of particles assigned by the colorizer
+        /// Colors of surface vertices assigned by the colorizer
         Array<Color> colors;
 
     } cached;
+
+    /// Finder used for colorization of the surface
+    AutoPtr<IBasicFinder> finder;
+
+    LutKernel<3> kernel;
 
 public:
     SurfaceRenderer(const GuiSettings& settings);

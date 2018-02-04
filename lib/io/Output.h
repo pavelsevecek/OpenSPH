@@ -198,7 +198,7 @@ public:
 ///    the settings it holds. This should be enforced somehow.
 class BinaryOutput : public IOutput {
 private:
-    static constexpr Size PADDING_SIZE = 220;
+    static constexpr Size PADDING_SIZE = 212;
 
 public:
     BinaryOutput() = default;
@@ -233,6 +233,12 @@ public:
         };
 
         Array<QuantityInfo> quantityInfo;
+
+        /// Run time of the snapshot
+        Float runTime;
+
+        /// Current timestep of the run
+        Float timeStep;
     };
 
     /// \brief Opens the file and reads header info without reading the rest of the file.

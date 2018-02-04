@@ -106,6 +106,12 @@ public:
         return *this;
     }
 
+    template <typename TValue>
+    Settings& setFlags(const TEnum idx, const Flags<TValue> flags) {
+        entries[idx].value = int(flags.value());
+        return *this;
+    }
+
     /// \brief Returns a value of given type from the settings.
     ///
     /// Value must be stored in settings and must have corresponding type, checked by assert.
@@ -335,9 +341,6 @@ enum class SolverEnum {
 
     /// Density independent solver by Saitoh & Makino (2013).
     DENSITY_INDEPENDENT,
-
-    /// Solver computing SPH derivatives as well as self-gravity
-    GRAVITY_SOLVER,
 };
 
 
@@ -434,6 +437,15 @@ enum class OverlapEnum {
 
     /// Particles are shifted until no overlap happens
     REPEL,
+
+    /// Particles are either repeled (and bounced) or merged, based on the ratio of their relative velocity to
+    /// the escape velocity (similar to MERGE_OR_BOUNCE).
+    REPEL_OR_MERGE,
+
+    /// Particles are allowed to overlap and they bounce if moving towards each other.
+    INTERNAL_BOUNCE,
+
+    PASS_OR_MERGE,
 };
 
 enum class LoggerEnum {
@@ -618,6 +630,10 @@ enum class RunSettingsId {
 
     COLLISION_ALLOWED_OVERLAP,
 
+    COLLISION_OVERLAP_RESTITUTION_NORMAL,
+
+    COLLISION_OVERLAP_RESTITUTION_TANGENT,
+
     /// Multiplier of the relative velocity and the angular velocity of the merger, used when determining
     /// whether to merge the collided particles or reject the collision. If zero, particles are always merged,
     /// values slightly lower than 1 can be used to simulate strength, holding together a body rotating above
@@ -684,7 +700,12 @@ enum class RunSettingsId {
     TIMESTEPPING_INTEGRATOR,
 
     /// Courant number
-    TIMESTEPPING_COURANT,
+    TIMESTEPPING_COURANT_NUMBER,
+
+    /// Turns of the Courant criterion for given particle if the number of neighbours is lower than given
+    /// limit. This is used mainly to avoid limitation from single (separated) particles where we don't need
+    /// the Courant criterion.
+    TIMESTEPPING_COURANT_NEIGHBOUR_LIMIT,
 
     /// Upper limit of the time step. The timestep is guaranteed to never exceed this value for any timestep
     /// criterion. The lowest possible timestep is not set, timestep can be any positive value.

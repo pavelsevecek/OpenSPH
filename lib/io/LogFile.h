@@ -4,6 +4,7 @@
 #include "objects/wrappers/SharedPtr.h"
 #include "physics/Integrals.h"
 #include "quantities/QuantityIds.h"
+#include "quantities/Storage.h"
 #include "run/Trigger.h"
 #include "system/Timer.h"
 #include "timestepping/TimeStepCriterion.h"
@@ -47,13 +48,22 @@ public:
     explicit CommonStatsLog(const SharedPtr<ILogger>& logger)
         : ILogFile(logger, 0._f) {}
 
-    virtual void write(const Storage& UNUSED(storage), const Statistics& stats) {
+    virtual void write(const Storage& storage, const Statistics& stats) {
         // Timestep number and current run time
         const int index = stats.get<int>(StatisticsId::INDEX);
         const Float time = stats.get<Float>(StatisticsId::RUN_TIME);
         const int wallclock = stats.get<int>(StatisticsId::WALLCLOCK_TIME);
         const std::string formattedWallclock = getFormattedTime(wallclock);
         logger->write("Output #", index, "  time = ", time, "  wallclock time: ", formattedWallclock);
+        if (stats.has(StatisticsId::RELATIVE_PROGRESS)) {
+            const Float progress = stats.get<Float>(StatisticsId::RELATIVE_PROGRESS);
+            if (progress > 0.05_f) {
+                const std::string formattedEta = getFormattedTime(wallclock * (1._f / progress - 1._f));
+                logger->write(" - ETA:         ", formattedEta);
+            } else {
+                logger->write(" - ETA:         N/A");
+            }
+        }
 
         // Timestepping info
         CriterionId id = stats.get<CriterionId>(StatisticsId::TIMESTEP_CRITERION);
@@ -71,6 +81,8 @@ public:
         printStat<int>(stats, StatisticsId::SPH_EVAL_TIME,                "    * SPH evaluation:       ", "ms");
         printStat<int>(stats, StatisticsId::GRAVITY_EVAL_TIME,            "    * gravity evaluation:   ", "ms");
         printStat<int>(stats, StatisticsId::COLLISION_EVAL_TIME,          "    * collision evaluation: ", "ms");
+        printStat<int>(stats, StatisticsId::POSTPROCESS_EVAL_TIME,        "    * visualization:        ", "ms");
+        logger->write(                                                    " - particles:   ", storage.getParticleCnt());
         printStat<MinMaxMean>(stats, StatisticsId::NEIGHBOUR_COUNT,       " - neigbours:   ");
         printStat<int>(stats, StatisticsId::TOTAL_COLLISION_COUNT,        " - collisions:  ");
         printStat<int>(stats, StatisticsId::BOUNCE_COUNT,                 "    * bounces:  ");

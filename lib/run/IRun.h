@@ -43,7 +43,7 @@ protected:
     AutoPtr<IOutput> output;
 
     /// GUI callbacks
-    AutoPtr<IRunCallbacks> callbacks;
+    SharedPtr<IRunCallbacks> callbacks;
 
     /// Logging
     SharedPtr<ILogger> logger;
@@ -71,9 +71,9 @@ public:
     /// \brief Starts the run.
     ///
     /// Function assumes that \ref setUp has been called (at least once).
-    void run();
+    virtual void run();
 
-    SharedPtr<Storage> getStorage() const;
+    virtual SharedPtr<Storage> getStorage() const;
 
 protected:
     /// Called after the run, saves all necessary data, logs run statistics, etc. Is called at the end of

@@ -10,6 +10,7 @@
 #include "physics/Integrals.h"
 #include "post/Analysis.h"
 #include "post/Plot.h"
+#include "post/Point.h"
 #include "sph/equations/Potentials.h"
 #include "sph/equations/Rotation.h"
 #include "sph/initial/Initial.h"
@@ -385,7 +386,7 @@ void AsteroidCollision::setUp() {
     BodySettings body;
     body.set(BodySettingsId::ENERGY, 0._f)
         .set(BodySettingsId::ENERGY_RANGE, Interval(0._f, INFTY))
-        .set(BodySettingsId::PARTICLE_COUNT, 200'000)
+        .set(BodySettingsId::PARTICLE_COUNT, 10'000)
         .set(BodySettingsId::EOS, EosEnum::TILLOTSON)
         .set(BodySettingsId::STRESS_TENSOR_MIN, 1.e5_f)
         .set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::SCALAR_GRADY_KIPP)

@@ -51,7 +51,7 @@ public:
 /// The function does not wait for the callback to be executed. The callback is executed by wxWidget
 /// framework; that means the event loop must be running and there must be an event handler executing the
 /// callback.
-void executeOnMainThread(const std::function<void()>& function);
+void executeOnMainThread(std::function<void()> function);
 
 /// \brief Executes a callback in main thread, passing a shared pointer to given object as its argument.
 ///
