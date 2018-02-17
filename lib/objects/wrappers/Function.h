@@ -16,7 +16,7 @@ namespace Detail {
     template <typename TReturn, typename... TArgs>
     class Callable<TReturn(TArgs...)> : public Polymorphic {
     public:
-        virtual TReturn operator()(TArgs... args) const = 0;
+        virtual TReturn operator()(TArgs... args) = 0;
     };
 } // namespace Detail
 
@@ -40,7 +40,7 @@ private:
         FunctorCallable(TFunctor&& functor)
             : functor(std::forward<TFunctor>(functor)) {}
 
-        virtual TReturn operator()(TArgs... args) const override {
+        virtual TReturn operator()(TArgs... args) override {
             return functor(args...);
         }
     };
@@ -62,6 +62,9 @@ public:
     Function(Function&& other)
         : holder(std::move(other.holder)) {}
 
+    Function(std::nullptr_t)
+        : holder(nullptr) {}
+
     template <typename TFunctor>
     Function& operator=(TFunctor functor) {
         holder = makeShared<FunctorCallable<TFunctor>>(std::move(functor));
@@ -75,6 +78,11 @@ public:
 
     Function& operator=(Function&& other) {
         holder = std::move(other.holder);
+        return *this;
+    }
+
+    Function& operator=(std::nullptr_t) {
+        holder = nullptr;
         return *this;
     }
 

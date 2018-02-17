@@ -1,36 +1,38 @@
 #pragma once
 
+/// \file Heat.h
+/// \brief Energy transfer terms
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2018
+
 #include "sph/equations/EquationTerm.h"
 #include "sph/kernel/Kernel.h"
 
 NAMESPACE_SPH_BEGIN
 
-
 class EnergyLaplacian : public DerivativeTemplate<EnergyLaplacian> {
 private:
-    ArrayView<Float> du;
+    ArrayView<Float> deltaU;
     ArrayView<const Float> u, m, rho;
     ArrayView<const Vector> r;
-    ArrayView<const Float> alpha;
 
 public:
     virtual void create(Accumulated& results) override {
-        results.insert<Float>(QuantityId::ENERGY, OrderEnum::FIRST);
+        results.insert<Float>(QuantityId::ENERGY_LAPLACIAN, OrderEnum::ZERO);
     }
 
     virtual void initialize(const Storage& input, Accumulated& results) override {
-        tie(u, m, rho, alpha) = input.getValues<Float>(
-            QuantityId::ENERGY, QuantityId::MASS, QuantityId::DENSITY /*, QuantityId::DIFFUSIVITY*/);
+        tie(u, m, rho) = input.getValues<Float>(QuantityId::ENERGY, QuantityId::MASS, QuantityId::DENSITY);
         r = input.getValue<Vector>(QuantityId::POSITION);
-        du = results.getBuffer<Float>(QuantityId::ENERGY, OrderEnum::FIRST);
+        deltaU = results.getBuffer<Float>(QuantityId::ENERGY_LAPLACIAN, OrderEnum::ZERO);
     }
 
     template <bool Symmetric>
     INLINE void eval(const Size i, const Size j, const Vector& grad) {
         const Float f = laplacian(u[j] - u[i], r[j] - r[i], grad);
-        du[i] -= m[j] / rho[j] * f;
+        deltaU[i] -= m[j] / rho[j] * f;
         if (Symmetric) {
-            du[j] += m[i] / rho[i] * f;
+            deltaU[j] += m[i] / rho[i] * f;
         }
     }
 };
@@ -44,10 +46,21 @@ public:
 
     virtual void initialize(Storage& UNUSED(storage)) override {}
 
-    virtual void finalize(Storage& UNUSED(storage)) override {}
+    virtual void finalize(Storage& storage) override {
+        ArrayView<Float> du = storage.getDt<Float>(QuantityId::ENERGY);
+        ArrayView<const Float> deltaU = storage.getValue<Float>(QuantityId::ENERGY_LAPLACIAN);
+        for (Size matIdx = 0; matIdx < storage.getMaterialCnt(); ++matIdx) {
+            MaterialView mat = storage.getMaterial(matIdx);
+            const Float alpha = mat->getParam<Float>(BodySettingsId::DIFFUSIVITY);
+            for (Size i : mat.sequence()) {
+                du[i] = alpha * deltaU[i];
+            }
+        }
+    }
 
     virtual void create(Storage& UNUSED(storage), IMaterial& UNUSED(material)) const override {}
 };
 
+class RadiativeCooling : public IEquationTerm {};
 
 NAMESPACE_SPH_END

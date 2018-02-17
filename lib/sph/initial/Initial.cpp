@@ -105,11 +105,18 @@ BodyView InitialConditions::addMonolithicBody(Storage& storage,
 BodyView InitialConditions::addMonolithicBody(Storage& storage,
     const IDomain& domain,
     AutoPtr<IMaterial>&& material) {
+    AutoPtr<IDistribution> distribution = Factory::getDistribution(material->getParams());
+    return this->addMonolithicBody(storage, domain, std::move(material), std::move(distribution));
+}
+
+BodyView InitialConditions::addMonolithicBody(Storage& storage,
+    const IDomain& domain,
+    AutoPtr<IMaterial>&& material,
+    AutoPtr<IDistribution>&& distribution) {
     IMaterial& mat = *material; // get reference before moving the pointer
     Storage body(std::move(material));
 
     PROFILE_SCOPE("InitialConditions::addBody");
-    AutoPtr<IDistribution> distribution = Factory::getDistribution(mat.getParams());
     const Size n = mat.getParam<int>(BodySettingsId::PARTICLE_COUNT);
 
     // Generate positions of particles
@@ -300,17 +307,36 @@ void InitialConditions::addRubblePileBody(Storage& storage,
     }
 }
 
+/// Creates array of particles masses, assuming relation m ~ h^3.
+///
+/// This is equal to totalM / r.size() if all particles in the body have the same smoothing length.
+static Array<Float> getMasses(ArrayView<const Vector> r, const Float totalM) {
+    Array<Float> m(r.size());
+    Float prelimM = 0._f;
+    for (Size i = 0; i < r.size(); ++i) {
+        m[i] = pow<3>(r[i][H]);
+        prelimM += m[i];
+    }
+    // renormalize masses so that they sum up to totalM
+    const Float normalization = totalM / prelimM;
+    for (Size i = 0; i < r.size(); ++i) {
+        m[i] *= normalization;
+    }
+    return m;
+}
+
 void InitialConditions::setQuantities(Storage& storage, IMaterial& material, const Float volume) {
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     for (Size i = 0; i < r.size(); ++i) {
         r[i][H] *= context.eta;
     }
-    // Set masses of particles, assuming all particles have the same mass
-    /// \todo this has to be generalized when using nonuniform particle destribution
+
     const Float rho0 = material.getParam<Float>(BodySettingsId::DENSITY);
     const Float totalM = volume * rho0; // m = rho * V
     ASSERT(totalM > 0._f);
-    storage.insert<Float>(QuantityId::MASS, OrderEnum::ZERO, totalM / storage.getParticleCnt());
+
+    // Add masses (possibly heterogeneous, depending on generated smoothing lengths)
+    storage.insert<Float>(QuantityId::MASS, OrderEnum::ZERO, getMasses(r, totalM));
 
     // Mark particles of this body
     storage.insert<Size>(QuantityId::FLAG, OrderEnum::ZERO, bodyIndex);

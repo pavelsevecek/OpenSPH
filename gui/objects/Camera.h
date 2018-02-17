@@ -91,8 +91,8 @@ public:
     }
 
     virtual Optional<ProjectedPoint> project(const Vector& r) const override {
-        const Size x = center.x + dot(r, cached.u) * data.fov;
-        const Size y = center.y + dot(r, cached.v) * data.fov;
+        const int x = center.x + dot(r, cached.u) * data.fov;
+        const int y = center.y + dot(r, cached.v) * data.fov;
         const Point point(x, imageSize.y - y - 1);
         return { { point, data.fov * float(r[H]) } };
     }

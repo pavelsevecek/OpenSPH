@@ -21,7 +21,7 @@ TEST_CASE("MarchingCubes sphere", "[marchingcubes]") {
     box.iterate(Vector(1._f), [&r](const Vector& pos) { r.push(pos); });
 
     const Float r0 = 0.4_f;
-    MarchingCubes mc(r, r0, makeAuto<SphereField>());
+    MarchingCubes mc(r0, makeAuto<SphereField>());
     mc.addComponent(box, 0.05_f);
     Array<Triangle>& triangles = mc.getTriangles();
 

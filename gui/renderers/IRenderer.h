@@ -7,8 +7,7 @@
 
 #include "gui/Utils.h"
 #include "gui/objects/Point.h"
-#include "quantities/Storage.h"
-
+#include "quantities/Particle.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -25,15 +24,23 @@ struct RenderParams {
     /// Resolution of the produced bitmap
     Point size = Point(640, 480);
 
-    struct Particle {
+    struct {
         /// Scaling factor of drawn particles relative to 1. Can be (in theory) any positive value.
         float scale = 1.f;
 
     } particles;
 
-    /// Particle index of highlighted particle (only for interactive view).
-    /// If NOTHING, no particle is selected.
-    Optional<Size> selectedParticle = NOTHING;
+    struct {
+        /// Multiplier of the rendered vector field
+        float scale = 1.e4_f;
+
+        /// Size of the vector proportional to the logarithm of velocity
+        bool toLog = true;
+
+    } vectors;
+
+    /// Highlighted particle (only for interactive view). If NOTHING, no particle is selected.
+    Optional<Particle> selectedParticle = NOTHING;
 };
 
 

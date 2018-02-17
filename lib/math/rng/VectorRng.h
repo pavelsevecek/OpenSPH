@@ -85,6 +85,7 @@ public:
             box.iterate(delta, [&](const Vector& v) { //
                 this->maxPdf = max(this->maxPdf, this->pdf(v) * this->jacobian(v));
             });
+            ASSERT(maxPdf > 0._f);
         }
     }
 
@@ -97,7 +98,7 @@ public:
                 return v;
             }
         }
-        ASSERT(false && "Couldn't generate vector in 1000 iterations");
+        ASSERT(false, "Couldn't generate vector in 1000 iterations");
         return Vector(0._f);
     }
 };

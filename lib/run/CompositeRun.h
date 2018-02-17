@@ -18,16 +18,21 @@ public:
     /// If nullptr, this is the last phase of the composite run.
     virtual AutoPtr<IRunPhase> getNextPhase() const = 0;
 
-    virtual void handoff(const Storage& input) = 0;
+    virtual void handoff(Storage&& input) = 0;
 };
 
 class CompositeRun : public IRun {
 private:
     AutoPtr<IRunPhase> first;
+    Function<void(const Storage& storage)> onNextPhase = nullptr;
 
 public:
     CompositeRun(AutoPtr<IRunPhase>&& first)
         : first(std::move(first)) {}
+
+    void setPhaseCallback(Function<void(const Storage& storage)> callback) {
+        onNextPhase = callback;
+    }
 
     virtual void setUp() override {
         first->setUp();
@@ -35,23 +40,27 @@ public:
     }
 
     virtual void run() override {
-        AutoPtr<IRunPhase> next;
-        RawPtr<IRunPhase> current = first.get();
+        AutoPtr<IRunPhase> currentHolder;
+        RawPtr<IRunPhase> current = first.get(); // references either first or currentHolders
         // we need to hold callbacks, otherwise they would get deleted
         SharedPtr<IRunCallbacks> callbacks = current->callbacks;
         while (true) {
             current->run();
-            next = current->getNextPhase();
+            AutoPtr<IRunPhase> next = current->getNextPhase();
             if (!next) {
                 return;
             }
             // make the handoff, using the storage of the previous run
-            next->handoff(*current->getStorage());
+            next->handoff(std::move(*current->getStorage()));
             // copy the callbacks
             /// \todo is this always necessary
             next->callbacks = callbacks;
             this->storage = next->getStorage();
-            current = next.get();
+            currentHolder = std::move(next);
+            current = currentHolder.get();
+            if (onNextPhase) {
+                onNextPhase(*storage);
+            }
         }
     }
 

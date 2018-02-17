@@ -11,6 +11,12 @@ NAMESPACE_SPH_BEGIN
 /// GhostParticles implementation
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+GhostParticles::GhostParticles(AutoPtr<IDomain>&& domain, const Float searchRadius, const Float minimalDist)
+    : domain(std::move(domain)) {
+    params.searchRadius = searchRadius;
+    params.minimalDist = minimalDist;
+}
+
 GhostParticles::GhostParticles(AutoPtr<IDomain>&& domain, const RunSettings& settings)
     : domain(std::move(domain)) {
     params.searchRadius = Factory::getKernel<3>(settings).radius();

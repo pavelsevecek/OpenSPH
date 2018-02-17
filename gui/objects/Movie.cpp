@@ -6,6 +6,7 @@
 #include "gui/objects/Colorizer.h"
 #include "io/FileSystem.h"
 #include "objects/utility/StringUtils.h"
+#include "system/Process.h"
 #include "system/Statistics.h"
 #include "thread/CheckFunction.h"
 #include <condition_variable>
@@ -28,6 +29,10 @@ Movie::Movie(const GuiSettings& settings,
     const Path directory(settings.get<std::string>(GuiSettingsId::IMAGES_PATH));
     const Path name(settings.get<std::string>(GuiSettingsId::IMAGES_NAME));
     paths = OutputFile(directory / name);
+
+    const Path animationName(settings.get<std::string>(GuiSettingsId::IMAGES_MOVIE_NAME));
+    animationPath = directory / animationName;
+
     static bool first = true;
     if (first) {
         wxInitAllImageHandlers();
@@ -55,7 +60,7 @@ void Movie::onTimeStep(const Storage& storage, Statistics& stats) {
         Path actPath(replace(path.native(), "%e", escapeColorizerName(e->name())));
 
         // initialize the colorizer
-        e->initialize(storage, ColorizerSource::POINTER_TO_STORAGE);
+        e->initialize(storage, RefEnum::WEAK);
 
         // initialize render with new data (outside main thread)
         renderer->initialize(storage, *e, *camera);
@@ -79,6 +84,26 @@ void Movie::onTimeStep(const Storage& storage, Statistics& stats) {
         }
     }
     nextOutput += outputStep;
+}
+
+void Movie::finalize() {
+    for (auto& e : colorizers) {
+        std::string name = escapeColorizerName(e->name());
+        std::string outPath = animationPath.native();
+        outPath = replace(outPath, "%e", name);
+        std::string inPath = paths.getMask().native();
+        inPath = replace(inPath, "%e", name);
+        inPath = replace(inPath, "%d", "%04d");
+        // clang-format off
+        Process ffmpeg(Path("/bin/ffmpeg"), {
+                "-framerate", "25",
+                "-i", inPath,
+                "-c:v", "libx264",
+                outPath
+            });
+        // clang-format on
+        ffmpeg.wait();
+    }
 }
 
 void Movie::setEnabled(const bool enable) {

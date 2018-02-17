@@ -16,28 +16,26 @@ NAMESPACE_SPH_BEGIN
 /// one must implement static methods iterate() that iterates over quantities of one storage, and
 /// iteratePair() that iterates over quantities of two storages at the same time (assuming the storages
 /// contain the same quantities).
-///
-/// \note We have to pass TFunctor type here as visit<> method must have only one argument (type).
-template <VisitorEnum TVisitorType, typename TFunctor>
+template <VisitorEnum TVisitorType>
 struct StorageVisitor;
 
-template <VisitorEnum TVisitorType, typename TFunctor>
+template <VisitorEnum TVisitorType>
 struct StoragePairVisitor;
 
 
 /// \brief Iterator over all quantities, executes given functor with buffer of quantity values.
 ///
 /// Does not access derivatives of quantities. Stored buffers are passed as Array to the functor.
-template <typename TFunctor>
-struct StorageVisitor<VisitorEnum::ALL_VALUES, TFunctor> {
-    template <typename TValue>
+template <>
+struct StorageVisitor<VisitorEnum::ALL_VALUES> {
+    template <typename TValue, typename TFunctor>
     void visit(Quantity& q, const QuantityId id, TFunctor&& functor) {
         functor(id, q.getValue<TValue>());
     }
 };
-template <typename TFunctor>
-struct StoragePairVisitor<VisitorEnum::ALL_VALUES, TFunctor> {
-    template <typename TValue>
+template <>
+struct StoragePairVisitor<VisitorEnum::ALL_VALUES> {
+    template <typename TValue, typename TFunctor>
     void visit(Quantity& q1, Quantity& q2, TFunctor&& functor) {
         functor(q1.getValue<TValue>(), q2.getValue<TValue>());
     }
@@ -48,24 +46,24 @@ struct StoragePairVisitor<VisitorEnum::ALL_VALUES, TFunctor> {
 /// This will execute given functor for each buffer of each quantities, meaning both values of the quantities
 /// and all derivatives. Stored buffers are passed as Array to the functor. Useful for operations such
 /// as merging two storages, resizing all arrays of the storage, ...
-template <typename TFunctor>
-struct StorageVisitor<VisitorEnum::ALL_BUFFERS, TFunctor> {
-    template <typename TValue>
+template <>
+struct StorageVisitor<VisitorEnum::ALL_BUFFERS> {
+    template <typename TValue, typename TFunctor>
     void visit(Quantity& q, const QuantityId UNUSED(id), TFunctor&& functor) {
         for (auto& i : q.getAll<TValue>()) {
             functor(i);
         }
     }
-    template <typename TValue>
+    template <typename TValue, typename TFunctor>
     void visit(const Quantity& q, const QuantityId UNUSED(id), TFunctor&& functor) {
         for (const auto& i : q.getAll<TValue>()) {
             functor(i);
         }
     }
 };
-template <typename TFunctor>
-struct StoragePairVisitor<VisitorEnum::ALL_BUFFERS, TFunctor> {
-    template <typename TValue>
+template <>
+struct StoragePairVisitor<VisitorEnum::ALL_BUFFERS> {
+    template <typename TValue, typename TFunctor>
     void visit(Quantity& q1, Quantity& q2, const QuantityId UNUSED(id), TFunctor&& functor) {
         auto values1 = q1.template getAll<TValue>();
         auto values2 = q2.template getAll<TValue>();
@@ -81,16 +79,16 @@ struct StoragePairVisitor<VisitorEnum::ALL_BUFFERS, TFunctor> {
 ///
 /// This won't access first-order quantities nor second-order quantities! The functor is executed with array
 /// of quantity values.
-template <typename TFunctor>
-struct StorageVisitor<VisitorEnum::ZERO_ORDER, TFunctor> {
-    template <typename TValue>
+template <>
+struct StorageVisitor<VisitorEnum::ZERO_ORDER> {
+    template <typename TValue, typename TFunctor>
     void visit(Quantity& q, const QuantityId id, TFunctor&& functor) {
         if (q.getOrderEnum() != OrderEnum::ZERO) {
             return;
         }
         functor(id, q.getValue<TValue>());
     }
-    template <typename TValue>
+    template <typename TValue, typename TFunctor>
     void visit(const Quantity& q, const QuantityId id, TFunctor&& functor) {
         if (q.getOrderEnum() != OrderEnum::ZERO) {
             return;
@@ -98,9 +96,9 @@ struct StorageVisitor<VisitorEnum::ZERO_ORDER, TFunctor> {
         functor(id, q.getValue<TValue>());
     }
 };
-template <typename TFunctor>
-struct StoragePairVisitor<VisitorEnum::ZERO_ORDER, TFunctor> {
-    template <typename TValue>
+template <>
+struct StoragePairVisitor<VisitorEnum::ZERO_ORDER> {
+    template <typename TValue, typename TFunctor>
     void visit(Quantity& q1, Quantity& q2, const QuantityId id, TFunctor&& functor) {
         if (q1.getOrderEnum() != OrderEnum::ZERO) {
             return;
@@ -115,16 +113,16 @@ struct StoragePairVisitor<VisitorEnum::ZERO_ORDER, TFunctor> {
 ///
 /// This won't access second-order quantities! The functor is executed with two parameters: values and
 /// derivatives (both Arrays).
-template <typename TFunctor>
-struct StorageVisitor<VisitorEnum::FIRST_ORDER, TFunctor> {
-    template <typename TValue>
+template <>
+struct StorageVisitor<VisitorEnum::FIRST_ORDER> {
+    template <typename TValue, typename TFunctor>
     void visit(Quantity& q, const QuantityId id, TFunctor&& functor) {
         if (q.getOrderEnum() != OrderEnum::FIRST) {
             return;
         }
         functor(id, q.getValue<TValue>(), q.getDt<TValue>());
     }
-    template <typename TValue>
+    template <typename TValue, typename TFunctor>
     void visit(const Quantity& q, const QuantityId id, TFunctor&& functor) {
         if (q.getOrderEnum() != OrderEnum::FIRST) {
             return;
@@ -132,9 +130,9 @@ struct StorageVisitor<VisitorEnum::FIRST_ORDER, TFunctor> {
         functor(id, q.getValue<TValue>(), q.getDt<TValue>());
     }
 };
-template <typename TFunctor>
-struct StoragePairVisitor<VisitorEnum::FIRST_ORDER, TFunctor> {
-    template <typename TValue>
+template <>
+struct StoragePairVisitor<VisitorEnum::FIRST_ORDER> {
+    template <typename TValue, typename TFunctor>
     void visit(Quantity& q1, Quantity& q2, const QuantityId id, TFunctor&& functor) {
         if (q1.getOrderEnum() != OrderEnum::FIRST) {
             return;
@@ -146,16 +144,16 @@ struct StoragePairVisitor<VisitorEnum::FIRST_ORDER, TFunctor> {
 
 /// Iterator over all second-order quantities. Functor is executed with three parameters: values, 1st
 /// derivatives and 2nd derivatives (as Array).
-template <typename TFunctor>
-struct StorageVisitor<VisitorEnum::SECOND_ORDER, TFunctor> {
-    template <typename TValue>
+template <>
+struct StorageVisitor<VisitorEnum::SECOND_ORDER> {
+    template <typename TValue, typename TFunctor>
     void visit(Quantity& q, const QuantityId id, TFunctor&& functor) {
         if (q.getOrderEnum() != OrderEnum::SECOND) {
             return;
         }
         functor(id, q.getValue<TValue>(), q.getDt<TValue>(), q.getD2t<TValue>());
     }
-    template <typename TValue>
+    template <typename TValue, typename TFunctor>
     void visit(const Quantity& q, const QuantityId id, TFunctor&& functor) {
         if (q.getOrderEnum() != OrderEnum::SECOND) {
             return;
@@ -163,9 +161,9 @@ struct StorageVisitor<VisitorEnum::SECOND_ORDER, TFunctor> {
         functor(id, q.getValue<TValue>(), q.getDt<TValue>(), q.getD2t<TValue>());
     }
 };
-template <typename TFunctor>
-struct StoragePairVisitor<VisitorEnum::SECOND_ORDER, TFunctor> {
-    template <typename TValue>
+template <>
+struct StoragePairVisitor<VisitorEnum::SECOND_ORDER> {
+    template <typename TValue, typename TFunctor>
     void visit(Quantity& q1, Quantity& q2, const QuantityId id, TFunctor&& functor) {
         if (q1.getOrderEnum() != OrderEnum::SECOND) {
             return;
@@ -186,9 +184,9 @@ struct StoragePairVisitor<VisitorEnum::SECOND_ORDER, TFunctor> {
 ///
 /// This won't access zero-order quantities. Passes single array to the functor; second derivatives for
 /// second-order quantities and first derivatives for first-order quantitites.
-template <typename TFunctor>
-struct StorageVisitor<VisitorEnum::HIGHEST_DERIVATIVES, TFunctor> {
-    template <typename TValue>
+template <>
+struct StorageVisitor<VisitorEnum::HIGHEST_DERIVATIVES> {
+    template <typename TValue, typename TFunctor>
     void visit(Quantity& q, const QuantityId id, TFunctor&& functor) {
         const OrderEnum order = q.getOrderEnum();
         if (order == OrderEnum::FIRST) {
@@ -198,9 +196,9 @@ struct StorageVisitor<VisitorEnum::HIGHEST_DERIVATIVES, TFunctor> {
         }
     }
 };
-template <typename TFunctor>
-struct StoragePairVisitor<VisitorEnum::HIGHEST_DERIVATIVES, TFunctor> {
-    template <typename TValue>
+template <>
+struct StoragePairVisitor<VisitorEnum::HIGHEST_DERIVATIVES> {
+    template <typename TValue, typename TFunctor>
     void visit(Quantity& q1, Quantity& q2, TFunctor&& functor) {
         const OrderEnum order1 = q1.getOrderEnum();
         ASSERT(order1 == q2.getOrderEnum());
@@ -222,7 +220,7 @@ struct StoragePairVisitor<VisitorEnum::HIGHEST_DERIVATIVES, TFunctor> {
 /// \param functor Functor executed for every quantity or buffer matching the specified criterion
 template <VisitorEnum Type, typename TFunctor>
 void iterate(Storage& storage, TFunctor&& functor) {
-    StorageVisitor<Type, TFunctor> visitor;
+    StorageVisitor<Type> visitor;
     for (auto q : storage.getQuantities()) {
         dispatch(q.quantity.getValueEnum(), visitor, q.quantity, q.id, std::forward<TFunctor>(functor));
     }
@@ -231,21 +229,23 @@ void iterate(Storage& storage, TFunctor&& functor) {
 /// \copydoc iterate
 template <VisitorEnum Type, typename TFunctor>
 void iterate(const Storage& storage, TFunctor&& functor) {
-    StorageVisitor<Type, TFunctor> visitor;
+    StorageVisitor<Type> visitor;
     for (auto q : storage.getQuantities()) {
         dispatch(q.quantity.getValueEnum(), visitor, q.quantity, q.id, std::forward<TFunctor>(functor));
     }
 }
 
-template <typename TFunctor>
 struct StorageVisitorWithPositions {
-    template <typename TValue>
+    template <typename TValue, typename TFunctor>
     void visit(Quantity& q, Array<Vector>& r, QuantityId key, TFunctor&& functor) {
         if (key == QuantityId::POSITION) {
-            // exclude positions
+            // exclude positions, iterate only derivatives
             auto buffers = q.getAll<TValue>();
-            functor(buffers[1], r);
-            functor(buffers[2], r);
+            // usually, there are 3 buffers (positions, velocities, accelerations), but we allow any number of
+            // buffers to make it more general (and this is actually used in DiehlDistribution, for example).
+            for (Size i = 1; i < buffers.size(); ++i) {
+                functor(buffers[i], r);
+            }
         } else {
             for (auto& i : q.getAll<TValue>()) {
                 functor(i, r);
@@ -261,9 +261,9 @@ struct StorageVisitorWithPositions {
 template <typename TFunctor>
 void iterateWithPositions(Storage& storage, TFunctor&& functor) {
     Array<Vector>& r = storage.getValue<Vector>(QuantityId::POSITION);
-    StorageVisitorWithPositions<TFunctor> visitor;
+    StorageVisitorWithPositions visitor;
     for (auto q : storage.getQuantities()) {
-        dispatch(q.quantity.getValueEnum(), visitor, q.quantity, r, q.id, std::forward<TFunctor>(functor));
+        dispatch(q.quantity.getValueEnum(), visitor, q.quantity, r, q.id, functor);
     }
 }
 
@@ -273,7 +273,7 @@ void iteratePair(Storage& storage1, Storage& storage2, TFunctor&& functor) {
     ASSERT(storage1.getQuantityCnt() == storage2.getQuantityCnt(),
         storage1.getQuantityCnt(),
         storage2.getQuantityCnt());
-    StoragePairVisitor<Type, TFunctor> visitor;
+    StoragePairVisitor<Type> visitor;
     struct Element {
         StorageElement e1;
         StorageElement e2;
@@ -284,7 +284,7 @@ void iteratePair(Storage& storage1, Storage& storage2, TFunctor&& functor) {
         Quantity& q1 = i.e1.quantity;
         Quantity& q2 = i.e2.quantity;
         ASSERT(q1.getValueEnum() == q2.getValueEnum());
-        dispatch(q1.getValueEnum(), visitor, q1, q2, i.e1.id, std::forward<TFunctor>(functor));
+        dispatch(q1.getValueEnum(), visitor, q1, q2, i.e1.id, functor);
     }
 }
 

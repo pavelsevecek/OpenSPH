@@ -1,4 +1,4 @@
-#include "sph/equations/heat/HeatDiffusion.h"
+#include "sph/equations/Heat.h"
 #include "catch.hpp"
 #include "tests/Setup.h"
 

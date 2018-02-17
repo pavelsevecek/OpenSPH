@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gui/Settings.h"
+#include "objects/containers/FlatMap.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -19,9 +20,11 @@ namespace Factory {
 
     AutoPtr<IRenderer> getRenderer(const GuiSettings& settings);
 
-    AutoPtr<IColorizer> getColorizer(const GuiSettings& settings, const ColorizerId id);
+    AutoPtr<IColorizer> getColorizer(const GuiSettings& settings,
+        const ColorizerId id,
+        const FlatMap<ColorizerId, Palette>& paletteOverrides = {});
 
     Palette getPalette(const ColorizerId id, const Interval range);
-}
+} // namespace Factory
 
 NAMESPACE_SPH_END

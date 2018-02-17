@@ -5,10 +5,12 @@
 #include "objects/finders/UniformGrid.h"
 #include "objects/geometry/Domain.h"
 #include "objects/wrappers/Optional.h"
+#include "quantities/Storage.h"
+#include "sph/boundary/Boundary.h"
 #include "system/Profiler.h"
+#include "thread/ThreadLocal.h"
 
 NAMESPACE_SPH_BEGIN
-
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /// RandomDistribution implementation
@@ -141,12 +143,12 @@ Array<Vector> HexagonalPacking::generate(const Size n, const IDomain& domain) co
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 DiehlDistribution::DiehlDistribution(const DiehlDistribution::DensityFunc& particleDensity,
-    const Float error,
+    const Float maxDifference,
     const Size numOfIters,
     const Float strength,
     const Float small)
     : particleDensity(particleDensity)
-    , error(error)
+    , maxDifference(maxDifference)
     , numOfIters(numOfIters)
     , strength(strength)
     , small(small) {}
@@ -197,92 +199,162 @@ namespace {
     };
 } // namespace
 
-Array<Vector> DiehlDistribution::generate(const Size n, const IDomain& domain) const {
-    // Renormalize particle density so that integral matches expected particle count
+/// Renormalizes particle density so that integral matches expected particle count.
+///
+/// Uses iterative approach, finding normalization coefficient until the different between the expected and
+/// the final number of particles is less than the error.
+/// \param domain in which the particles are created
+/// \param n Input/output parameter - Takes the expected number of particles and returns the final number.
+/// \param error Maximum difference between the expected and the final number of particles.
+/// \param density Input (unnormalized) particle density
+/// \return Functor representing the renormalized density
+template <typename TDensity>
+static auto renormalizeDensity(const IDomain& domain, Size& n, const Size error, TDensity& density) {
     Float multiplier = 1._f;
-    auto actDensity = [this, &multiplier](const Vector& v) { return multiplier * particleDensity(v); };
+    auto actDensity = [&domain, &density, &multiplier](const Vector& v) {
+        if (domain.contains(v)) {
+            return multiplier * density(v);
+        } else {
+            return 0._f;
+        }
+    };
 
     Integrator<HaltonQrng> mc(makeAuto<ForwardingDomain>(domain));
     Size cnt = 0;
     Float particleCnt;
     for (particleCnt = mc.integrate(actDensity); abs(particleCnt - n) > error;) {
         const Float ratio = n / max(particleCnt, 1._f);
+        ASSERT(ratio > EPS);
         multiplier *= ratio;
         particleCnt = mc.integrate(actDensity);
         if (cnt++ > 100) { // break potential infinite loop
             break;
         }
     }
-    const Size N = Size(particleCnt); // final particle count of the target
+    n = particleCnt;
+    // create a different functor that captures multiplier by value, so we can return it from the function
+    return [&domain, &density, multiplier](const Vector& v) {
+        if (domain.contains(v)) {
+            return multiplier * density(v);
+        } else {
+            return 0._f;
+        }
+    };
+}
 
+/// Generate the initial positions in Diehl's distribution.
+/// \param domain Domain in which the particles are created
+/// \param N Number of particles to create
+/// \param density Functor describing the particle density (concentration).
+template <typename TDensity>
+static Storage generateInitial(const IDomain& domain, const Size N, TDensity&& density) {
     Box boundingBox = domain.getBoundingBox();
-    VectorPdfRng<HaltonQrng> rng(boundingBox, actDensity);
+    VectorPdfRng<HaltonQrng> rng(boundingBox, density);
 
-    // generate initial particle positions
-    Array<Vector> vecs;
+    Array<Vector> r(0, N);
     for (Size i = 0; i < N; ++i) {
-        Vector v = rng();
-        const Float n = actDensity(v);
-        const Float h = 1._f / root<3>(n);
-        v[H] = h;
-        vecs.push(v);
+        Vector pos = rng();
+        const Float n = density(pos);
+        pos[H] = 1._f / root<3>(n);
+        ASSERT(isReal(pos));
+        r.push(pos);
     }
 
+    // create a dummy storage so that we can use the functionality of GhostParticles
+    Storage storage;
+    storage.insert<Vector>(QuantityId::POSITION, OrderEnum::ZERO, std::move(r));
+    return storage;
+}
+
+Array<Vector> DiehlDistribution::generate(const Size expectedN, const IDomain& domain) const {
+    Size N = expectedN;
+    auto actDensity = renormalizeDensity(domain, N, maxDifference, particleDensity);
+    ASSERT(abs(int(N) - int(expectedN)) <= maxDifference);
+
+    // generate initial particle positions
+    Storage storage = generateInitial(domain, N, actDensity);
+    Array<Vector>& r = storage.getValue<Vector>(QuantityId::POSITION);
+
+    GhostParticles bc(makeAuto<ForwardingDomain>(domain), 2._f, EPS);
+
     UniformGridFinder finder;
-    Array<NeighbourRecord> neighs;
-    finder.build(vecs);
+    ThreadPool& pool = ThreadPool::getGlobalInstance();
+    ThreadLocal<Array<NeighbourRecord>> neighs(pool);
+    finder.build(r);
 
     const Float correction = strength / (1.f + small);
     // radius of search, does not have to be equal to radius of used SPH kernel
     const Float kernelRadius = 2._f;
 
+    Array<Vector> deltas(N);
     for (Size k = 0; k < numOfIters; ++k) {
         // gradually decrease the strength of particle dislocation
         const Float converg = 1._f / sqrt(Float(k + 1));
 
-        // reconstruct finder to allow for variable topology of particles
-        finder.rebuild();
+        // add ghost particles
+        bc.initialize(storage);
 
-        // for all particles ...
-        for (Size i = 0; i < N; ++i) {
-            Vector delta(0._f);
-            const Float n = actDensity(vecs[i]); // average particle density
-            // average interparticle distance at given point
-            const Float neighbourRadius = kernelRadius / root<3>(n);
-            finder.findAll(i, neighbourRadius, neighs);
+        // reconstruct finder to allow for variable topology of particles (we need to reset the internal
+        // arrayview as we added ghosts)
+        finder.build(r);
 
-            /// \todo find a way to add ghosts
-            // create ghosts for particles near the boundary
-            // Vector<float, d> mirror;
-            // if (vecs[i].getSqrLength() > radius - neighbourRadius) {
-            //    mirror = vecs[i].sphericalInversion(Vector<float, d>(0.f), radius);
-            //    neighbours.push(&mirror);
-            //}
-            for (Size j = 0; j < neighs.size(); ++j) {
-                const Size k = neighs[j].index;
-                const Vector diff = vecs[k] - vecs[i];
-                const Float lengthSqr = getSqrLength(diff);
-                // average kernel radius to allow for the gradient of particle density
-                const Float h = kernelRadius *
-                                (0.5f / root<3>(actDensity(vecs[i])) + 0.5f / root<3>(actDensity(vecs[k])));
-                if (lengthSqr > h * h || lengthSqr == 0) {
-                    continue;
+        // clean up the previous displacements
+        deltas.fill(Vector(0._f));
+
+        auto lambda = [&](const Size n1, const Size n2, Array<NeighbourRecord>& neighsTl) {
+            for (Size i = n1; i < n2; ++i) {
+                const Float rhoi = actDensity(r[i]); // average particle density
+                // average interparticle distance at given point
+                const Float neighbourRadius = kernelRadius / root<3>(rhoi);
+                finder.findAll(i, neighbourRadius, neighsTl);
+
+                for (Size j = 0; j < neighsTl.size(); ++j) {
+                    const Size k = neighsTl[j].index;
+                    const Vector diff = r[k] - r[i];
+                    const Float lengthSqr = getSqrLength(diff);
+                    // for ghost particles, just copy the density (density outside the domain is always 0)
+                    const Float rhok = (k >= N) ? rhoi : actDensity(r[k]);
+                    // average kernel radius to allow for the gradient of particle density
+                    const Float h = kernelRadius * (0.5f / root<3>(rhoi) + 0.5f / root<3>(rhok));
+                    if (lengthSqr > h * h || lengthSqr == 0) {
+                        continue;
+                    }
+                    const Float hSqrInv = 1.f / (h * h);
+                    const Float length = getLength(diff);
+                    ASSERT(length != 0._f);
+                    const Vector diffUnit = diff / length;
+                    const Float t =
+                        converg * h * (strength / (small + getSqrLength(diff) * hSqrInv) - correction);
+                    deltas[i] += diffUnit * min(t, h); // clamp the displacement to particle distance
+                    ASSERT(isReal(deltas[i]));
                 }
-                const Float hSqrInv = 1.f / (h * h);
-                const Float length = getLength(diff);
-                ASSERT(length != 0._f);
-                const Vector diffUnit = diff / length;
-                const Float t =
-                    converg * h * (strength / (small + getSqrLength(diff) * hSqrInv) - correction);
-                delta += diffUnit * min(t, h); // clamp the dislocation to particle distance
+                deltas[i][H] = 0._f; // do not affect smoothing lengths
             }
-            vecs[i] = vecs[i] - delta;
+        };
+        parallelFor(pool, neighs, 0, N, 100, lambda);
+
+        // apply the computed displacements; note that r might be larger than deltas due to ghost particles -
+        // we don't need to move them
+        for (Size i = 0; i < deltas.size(); ++i) {
+            r[i] -= deltas[i];
         }
+
+        // remove the ghosts
+        bc.finalize(storage);
+
         // project particles outside of the domain to the boundary
-        domain.project(vecs);
+        // (there shouldn't be any, but it may happen for large strengths / weird boundaries)
+        domain.project(r);
     }
 
-    return vecs;
+#ifdef SPH_DEBUG
+    for (Size i = 0; i < N; ++i) {
+        ASSERT(isReal(r[i]) && r[i][H] > 1.e-20_f);
+    }
+#endif
+    // extract the buffers from the storage
+    Array<Vector> positions = std::move(storage.getValue<Vector>(QuantityId::POSITION));
+    return positions;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////

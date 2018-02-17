@@ -79,7 +79,6 @@ public:
 class MarchingCubes {
 private:
     /// Input values
-    ArrayView<const Vector> r;
     Float surfaceLevel;
 
     /// Field, isosurface of which we want to triangularize
@@ -96,11 +95,10 @@ private:
 
 public:
     /// Constructs the object using given scalar field.
-    /// \param r Particle positions
     /// \param surfaceLevel Defines of the boundary of SPH particle as implicit function \f$ {\rm Boundary} =
     ///                     \Phi(\vec r) - {\rm surfaceLevel}\f$, where \f$\Phi\f$ is the scalar field.
     /// \param field Scalar field used to generate the surface.
-    MarchingCubes(ArrayView<const Vector> r, const Float surfaceLevel, const SharedPtr<IScalarField>& field);
+    MarchingCubes(const Float surfaceLevel, const SharedPtr<IScalarField>& field);
 
     /// Adds a triangle mesh representing the boundary of particles inside given bounding box into the
     /// internal triangle buffer.

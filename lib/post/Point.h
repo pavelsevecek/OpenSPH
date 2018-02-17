@@ -5,6 +5,7 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2018
 
+#include "math/Math.h"
 #include "objects/utility/OperatorTemplate.h"
 
 NAMESPACE_SPH_BEGIN
@@ -121,6 +122,22 @@ public:
             a * detInv,
             -(d * tx - b * ty) * detInv,
             (c * tx - a * ty) * detInv);
+    }
+
+    /// \brief Returns the transposed matrix.
+    ///
+    /// The translation component is inverted, so that the transposed orthogonal matrix is equal to its
+    /// inverse.
+    AffineMatrix2 transpose() const {
+        /// \todo test
+        return AffineMatrix2(data[0], data[3], data[1], data[4], -data[2], -data[5]);
+    }
+
+    /// \brief Create a rotation matrix.
+    static AffineMatrix2 rotate(const Float phi) {
+        const Float c = cos(phi);
+        const Float s = sin(phi);
+        return AffineMatrix2(c, s, -s, c);
     }
 
     bool operator==(const AffineMatrix2& other) const {

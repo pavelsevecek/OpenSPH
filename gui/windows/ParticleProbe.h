@@ -93,6 +93,7 @@ private:
             dc, L"z = " + toPrintableString(position[Z]), offset + wxSize(0, 3 * config.lineSkip));
 
         Dynamic velocityValue = particle->getDt(QuantityId::POSITION);
+        Dynamic accelerationValue = particle->getD2t(QuantityId::POSITION);
         if (velocityValue) {
             const Vector velocity = velocityValue;
             const Size x = canvasSize.x / 2;
@@ -102,6 +103,15 @@ private:
                 dc, L"v_y = " + toPrintableString(velocity[Y]), offset + wxSize(x, 2 * config.lineSkip));
             drawTextWithSubscripts(
                 dc, L"v_z = " + toPrintableString(velocity[Z]), offset + wxSize(x, 3 * config.lineSkip));
+        } else if (accelerationValue) {
+            const Vector acceleration = accelerationValue;
+            const Size x = canvasSize.x / 2;
+            drawTextWithSubscripts(
+                dc, L"dv_x = " + toPrintableString(acceleration[X]), offset + wxSize(x, 1 * config.lineSkip));
+            drawTextWithSubscripts(
+                dc, L"dv_y = " + toPrintableString(acceleration[Y]), offset + wxSize(x, 2 * config.lineSkip));
+            drawTextWithSubscripts(
+                dc, L"dv_z = " + toPrintableString(acceleration[Z]), offset + wxSize(x, 3 * config.lineSkip));
         }
 
         offset.y += 4 * config.lineSkip;

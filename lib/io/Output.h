@@ -23,6 +23,8 @@ public:
 
     /// Returns path to the next output file, incrementing the internal counter. No file is created by this.
     Path getNextPath(const Statistics& stats) const;
+
+    Path getMask() const;
 };
 
 

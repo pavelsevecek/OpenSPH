@@ -233,14 +233,13 @@ HEADERS += \
     sph/equations/HelperTerms.h \
     sph/equations/Potentials.h \
     sph/equations/Rotation.h \
-    sph/equations/Statics.h \
+    sph/equations/Heat.h \
     sph/equations/XSph.h \
     sph/equations/av/Balsara.h \
     sph/equations/av/MorrisMonaghan.h \
     sph/equations/av/Riemann.h \
     sph/equations/av/Standard.h \
     sph/equations/av/Stress.h \
-    sph/equations/heat/HeatDiffusion.h \
     sph/equationsav/Standard.h \
     sph/initial/Distribution.h \
     sph/initial/Initial.h \
@@ -284,4 +283,9 @@ HEADERS += \
     objects/containers/FlatMap.h \
     objects/containers/FlatSet.h \
     objects/finders/NeighbourFinder.h \
-    run/CompositeRun.h
+    run/CompositeRun.h \
+    sph/solvers/StabilizationSolver.h \
+    objects/containers/ArrayRef.h \
+    io/Table.h \
+    sph/equations/heat/Heat.h \
+    objects/wrappers/Lut.h

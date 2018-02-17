@@ -79,6 +79,17 @@ void TemporalPlot::onTimeStep(const Storage& storage, const Statistics& stats) {
     const Float y = integral.evaluate(storage);
     points.pushBack(PlotPoint{ t, y });
 
+    if (params.segment == INFTY && points.size() > 100) {
+        // plot is unnecessarily detailed, drop every second point to reduce the drawing time
+        Queue<PlotPoint> newPoints;
+        for (Size i = 0; i < points.size(); i += 2) {
+            newPoints.pushBack(points[i]);
+        }
+        points = std::move(newPoints);
+        // also add new points with double period
+        params.period *= 2._f;
+    }
+
     // pop expired points
     bool needUpdateRange = false;
     while (!points.empty() && this->isExpired(points.front().x, t)) {

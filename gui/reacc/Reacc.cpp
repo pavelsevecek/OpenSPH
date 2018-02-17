@@ -6,13 +6,12 @@
 #include "io/LogFile.h"
 #include "math/rng/VectorRng.h"
 #include "objects/geometry/Domain.h"
-#include "physics/Eos.h"
-#include "physics/Functions.h"
 #include "quantities/IMaterial.h"
 #include "quantities/Iterate.h"
 #include "sph/initial/Distribution.h"
 #include "sph/initial/Initial.h"
 #include "sph/initial/Presets.h"
+#include "sph/solvers/StabilizationSolver.h"
 #include "system/Factory.h"
 #include "system/Platform.h"
 #include <fstream>
@@ -99,7 +98,7 @@ public:
 
     virtual bool condition(const Storage& UNUSED(storage), const Statistics& stats) override {
         const Float dt = stats.get<Float>(StatisticsId::TIMESTEP_VALUE);
-        return dt < 1.e-6_f;
+        return dt < 1.e-9_f;
     }
 
     virtual AutoPtr<ITrigger> action(Storage& storage, Statistics& stats) override {
@@ -117,54 +116,54 @@ public:
 };
 
 
-Fragmentation::Fragmentation(RawPtr<Controller> newController) {
-    const std::string runName = "Fragmentations";
-    settings.set(RunSettingsId::RUN_NAME, runName)
-        .set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::PREDICTOR_CORRECTOR)
+/// Shared settings for stabilization and fragmentation
+RunSettings getSharedSettings() {
+    RunSettings settings;
+    settings.set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::PREDICTOR_CORRECTOR)
         .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 0.1_f)
         .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 1000._f)
         .set(RunSettingsId::TIMESTEPPING_COURANT_NEIGHBOUR_LIMIT, 10)
-        .set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 1500000._f))
-        .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 500._f)
+        .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 50._f)
         .set(RunSettingsId::MODEL_FORCE_SOLID_STRESS, true)
         .set(RunSettingsId::MODEL_FORCE_GRAVITY, true)
         .set(RunSettingsId::SOLVER_TYPE, SolverEnum::ASYMMETRIC_SOLVER)
         .set(RunSettingsId::SPH_FINDER, FinderEnum::KD_TREE)
-        .set(RunSettingsId::SPH_FORMULATION, FormulationEnum::BENZ_ASPHAUG)
+        .set(RunSettingsId::SPH_FORMULATION, FormulationEnum::STANDARD)
         .set(RunSettingsId::SPH_AV_TYPE, ArtificialViscosityEnum::STANDARD)
         .set(RunSettingsId::SPH_AV_ALPHA, 1.5_f)
         .set(RunSettingsId::SPH_AV_BETA, 3._f)
-        .set(RunSettingsId::SPH_KERNEL_ETA, 1._f)
+        .set(RunSettingsId::SPH_KERNEL_ETA, 1.3_f)
         .set(RunSettingsId::GRAVITY_SOLVER, GravityEnum::BARNES_HUT)
         .set(RunSettingsId::GRAVITY_KERNEL, GravityKernelEnum::SOLID_SPHERES)
         .set(RunSettingsId::GRAVITY_OPENING_ANGLE, 0.8_f)
         .set(RunSettingsId::GRAVITY_LEAF_SIZE, 20)
         //.set(RunSettingsId::TIMESTEPPING_MEAN_POWER, -0._f)
-        .set(RunSettingsId::TIMESTEPPING_ADAPTIVE_FACTOR, 0.5_f)
+        .set(RunSettingsId::TIMESTEPPING_ADAPTIVE_FACTOR, 0.2_f)
         .set(RunSettingsId::RUN_THREAD_GRANULARITY, 100)
         .set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONST)
-        .set(RunSettingsId::SPH_STRAIN_RATE_CORRECTION_TENSOR, true);
+        .set(RunSettingsId::SPH_STRAIN_RATE_CORRECTION_TENSOR, true)
+        .set(RunSettingsId::SPH_STABILIZATION_DAMPING, 0.1_f);
+    return settings;
+}
 
+Stabilization::Stabilization(RawPtr<Controller> newController) {
+    settings = getSharedSettings();
+    settings.set(RunSettingsId::RUN_NAME, std::string("Stabilization"));
+
+    if (wxTheApp->argc > 1) {
+        // continue run, we don't need to do the stabilization, so skip it by settings the range to zero
+        settings.set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 0._f));
+    } else {
+        settings.set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 100._f));
+    }
     controller = newController;
 }
 
+Stabilization::~Stabilization() {}
 
-void Fragmentation::setUp() {
-    Size N = 100000;
-    BodySettings body;
-    body.set(BodySettingsId::ENERGY, 0._f)
-        .set(BodySettingsId::ENERGY_RANGE, Interval(0._f, INFTY))
-        .set(BodySettingsId::PARTICLE_COUNT, int(N))
-        .set(BodySettingsId::EOS, EosEnum::TILLOTSON)
-        .set(BodySettingsId::STRESS_TENSOR_MIN, 1.e5_f)
-        .set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::SCALAR_GRADY_KIPP)
-        .set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::VON_MISES)
-        .set(BodySettingsId::DISTRIBUTE_MODE_SPH5, true)
-        .set(BodySettingsId::STRESS_TENSOR_MIN, LARGE)
-        .set(BodySettingsId::DAMAGE_MIN, LARGE);
-
+void Stabilization::setUp() {
+    solver = makeAuto<StabilizationSolver>(settings);
     storage = makeShared<Storage>();
-    solver = Factory::getSolver(settings);
 
     if (wxTheApp->argc > 1) {
         std::string arg(wxTheApp->argv[1]);
@@ -180,58 +179,157 @@ void Fragmentation::setUp() {
                 wxMessageBox("Cannot load the run state file " + path.native(), "Error", wxOK);
                 return;
             } else {
-                const Float t0 = stats.get<Float>(StatisticsId::RUN_TIME);
+                // const Float t0 = stats.get<Float>(StatisticsId::RUN_TIME);
                 const Float dt = stats.get<Float>(StatisticsId::TIMESTEP_VALUE);
-                const Interval origRange = settings.get<Interval>(RunSettingsId::RUN_TIME_RANGE);
-                settings.set(RunSettingsId::RUN_TIME_RANGE, Interval(t0, origRange.upper()));
+                // const Interval origRange = settings.get<Interval>(RunSettingsId::RUN_TIME_RANGE);
+                // settings.set(RunSettingsId::RUN_TIME_RANGE, Interval(t0, origRange.upper()));
                 settings.set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, dt);
             }
         }
-
     } else {
-        InitialConditions ic(*solver, settings);
 
-        Float v = 230._f;
-        Float r = 3e6;
-        Vector pos(-3._f * r, 0.8_f * r, 0._f);
-        SphericalDomain domain1(pos, r); // D = 10km
-        ic.addMonolithicBody(*storage, domain1, body).addVelocity(Vector(v, 0._f, 0._f));
+        Size N = 75'000;
 
-        ArrayView<Vector> d = storage->getValue<Vector>(QuantityId::POSITION);
-        ArrayView<Float> u = storage->getValue<Float>(QuantityId::ENERGY);
-        Analytic::StaticSphere sphere(r, 2700._f);
-        TillotsonEos eos(body);
-        for (Size i = 0; i < d.size(); ++i) {
-            const Float p = sphere.getPressure(getLength(d[i] - pos));
-            u[i] = eos.getInternalEnergy(2700._f, p);
-        }
+        BodySettings body;
+        body.set(BodySettingsId::ENERGY, 0._f)
+            .set(BodySettingsId::ENERGY_RANGE, Interval(0._f, INFTY))
+            .set(BodySettingsId::EOS, EosEnum::TILLOTSON)
+            .set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::SCALAR_GRADY_KIPP)
+            .set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::VON_MISES)
+            .set(BodySettingsId::DISTRIBUTE_MODE_SPH5, true)
+            //.set(BodySettingsId::STRESS_TENSOR_MIN, 5.e5_f)
+            .set(BodySettingsId::ENERGY_MIN, 10._f)
+            .set(BodySettingsId::DAMAGE_MIN, 0.5_f);
+        //.set(BodySettingsId::DIELH_STRENGTH, 0.1_f);
 
-        body.set(BodySettingsId::PARTICLE_COUNT, int(N / 8))
-            .set(BodySettingsId::STRESS_TENSOR_MIN, LARGE)
-            .set(BodySettingsId::DAMAGE_MIN, LARGE);
-        // SphericalDomain domain2(Vector(5097.4509902022_f, 3726.8662269290_f, 0._f), 270.5847632732_f);
-        // SphericalDomain domain2(Vector(7000._f, 1000._f, 0._f), 400._f);
-        SphericalDomain domain2(Vector(3._f * r, -0.8f * r, 0._f), 0.5_f * r); // D = 10km
-        ic.addMonolithicBody(*storage, domain2, body).addVelocity(Vector(-8._f * v, 0._f, 0._f));
+        Presets::CollisionParams params;
+        params.targetRadius = 50.e3_f;     // D = 100km
+        params.projectileRadius = 0.5e3_f; // D = 1km
+        params.impactAngle = 75._f * DEG_TO_RAD;
+        params.impactSpeed = 5.e3_f;
+        params.targetRotation = 2._f * PI / (6._f * 3600._f);
+        params.targetParticleCnt = N;
+        params.impactorParticleCntOverride = 50;
+
+        /*const Vector impactPoint(params.targetRadius * cos(params.impactAngle),
+            params.targetRadius * sin(params.impactAngle),
+            0._f);
+        const Float homogeneousRadius = 0.25_f * params.targetRadius;
+        params.concentration = [impactPoint, homogeneousRadius](const Vector& v) {
+            const Float distSqr = getSqrLength(v - impactPoint);
+            if (distSqr < sqr(homogeneousRadius)) {
+                return 1._f;
+            } else {
+                return sqr(sqr(homogeneousRadius) / distSqr);
+            }
+        };*/
+
+        data = makeShared<Presets::Collision>(*solver, settings, body, params);
+        data->addTarget(*storage);
     }
 
     callbacks = makeAuto<GuiCallbacks>(*controller);
+    triggers.pushBack(makeAuto<CommonStatsLog>(Factory::getLogger(settings)));
+    output = makeAuto<BinaryOutput>(Path("stab_%d.ssf"));
+}
 
-    output = makeAuto<BinaryOutput>(Path("out%d.ssf"));
+AutoPtr<IRunPhase> Stabilization::getNextPhase() const {
+    return makeAuto<Fragmentation>(data, onSphFinished);
+}
+
+void Stabilization::tearDown() {
+    if (wxTheApp->argc == 1) {
+        data->addImpactor(*storage);
+    }
+}
+
+
+Fragmentation::Fragmentation(SharedPtr<Presets::Collision> data, Function<void()> onFinished)
+    : data(data)
+    , onFinished(onFinished) {
+    settings = getSharedSettings();
+    settings.set(RunSettingsId::RUN_NAME, std::string("Fragmentation"))
+        .set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 10'000._f));
+}
+
+Fragmentation::~Fragmentation() = default;
+
+void Fragmentation::setUp() {
+    /*  storage = makeShared<Storage>();
+      solver = Factory::getSolver(settings);
+
+      if (wxTheApp->argc > 1) {
+          std::string arg(wxTheApp->argv[1]);
+          Path path(arg);
+          if (!FileSystem::pathExists(path)) {
+              wxMessageBox("Cannot locate file " + path.native(), "Error", wxOK);
+              return;
+          } else {
+              BinaryOutput io;
+              Statistics stats;
+              Outcome result = io.load(path, *storage, stats);
+              if (!result) {
+                  wxMessageBox("Cannot load the run state file " + path.native(), "Error", wxOK);
+                  return;
+              } else {
+                  // const Float t0 = stats.get<Float>(StatisticsId::RUN_TIME);
+                  const Float dt = stats.get<Float>(StatisticsId::TIMESTEP_VALUE);
+                  // const Interval origRange = settings.get<Interval>(RunSettingsId::RUN_TIME_RANGE);
+                  // settings.set(RunSettingsId::RUN_TIME_RANGE, Interval(t0, origRange.upper()));
+                  settings.set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, dt);
+              }
+          }
+
+      } else {
+          InitialConditions ic(*solver, settings);
+
+          Float v = 230._f;
+          Float r = 3e6;
+          Vector pos(-3._f * r, 0.8_f * r, 0._f);
+          SphericalDomain domain1(pos, r); // D = 10km
+          ic.addMonolithicBody(*storage, domain1, body).addVelocity(Vector(v, 0._f, 0._f));
+
+          ArrayView<Vector> d = storage->getValue<Vector>(QuantityId::POSITION);
+          ArrayView<Float> u = storage->getValue<Float>(QuantityId::ENERGY);
+          Analytic::StaticSphere sphere(r, 2700._f);
+          TillotsonEos eos(body);
+          for (Size i = 0; i < d.size(); ++i) {
+              const Float p = sphere.getPressure(getLength(d[i] - pos));
+              u[i] = eos.getInternalEnergy(2700._f, p);
+          }
+
+          body.set(BodySettingsId::PARTICLE_COUNT, int(N / 8))
+              .set(BodySettingsId::STRESS_TENSOR_MIN, LARGE)
+              .set(BodySettingsId::DAMAGE_MIN, LARGE);
+          // SphericalDomain domain2(Vector(5097.4509902022_f, 3726.8662269290_f, 0._f), 270.5847632732_f);
+          // SphericalDomain domain2(Vector(7000._f, 1000._f, 0._f), 400._f);
+          SphericalDomain domain2(Vector(3._f * r, -0.8f * r, 0._f), 0.5_f * r); // D = 10km
+          ic.addMonolithicBody(*storage, domain2, body).addVelocity(Vector(-8._f * v, 0._f, 0._f));
+      }
+
+      callbacks = makeAuto<GuiCallbacks>(*controller);
+
+      output = makeAuto<BinaryOutput>(Path("out%d.ssf"));*/
 
     // add printing of run progres
     triggers.pushBack(makeAuto<CommonStatsLog>(Factory::getLogger(settings)));
     triggers.pushBack(makeAuto<ErrorDump>());
 }
 
+void Fragmentation::handoff(Storage&& input) {
+    storage = makeShared<Storage>(std::move(input));
+    solver = Factory::getSolver(settings);
+    // the quantities are already created, no need to call solver->create
+    triggers.pushBack(makeAuto<CommonStatsLog>(Factory::getLogger(settings)));
+    output = makeAuto<BinaryOutput>(Path("frag_%d.ssf"));
+}
+
 AutoPtr<IRunPhase> Fragmentation::getNextPhase() const {
-    AutoPtr<Reaccumulation> reac = makeAuto<Reaccumulation>();
-    reac->onRunStarted = [this](const Storage& storage) { controller->update(storage); };
-    return reac;
+    return makeAuto<Reaccumulation>();
 }
 
 void Fragmentation::tearDown() {
-    onRunFinished();
+    onFinished();
 }
 
 Reaccumulation::Reaccumulation() {
@@ -264,7 +362,7 @@ void Reaccumulation::setUp() {
     STOP;
 }
 
-void Reaccumulation::handoff(const Storage& sph) {
+void Reaccumulation::handoff(Storage&& sph) {
     // we don't need any material, so just pass some dummy
     solver = makeAuto<NBodySolver>(settings);
 
@@ -314,8 +412,7 @@ void Reaccumulation::handoff(const Storage& sph) {
     ASSERT(storage->isValid());
     triggers.pushBack(makeAuto<CommonStatsLog>(Factory::getLogger(settings)));
 
-
-    onRunStarted(*storage);
+    //    onRunStarted(*storage);
 }
 
 void Reaccumulation::tearDown() {

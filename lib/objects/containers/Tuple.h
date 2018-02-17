@@ -10,125 +10,125 @@
 NAMESPACE_SPH_BEGIN
 
 namespace Detail {
-    template <std::size_t TIndex, typename TValue>
-    class TupleValue {
-        TValue value;
+template <std::size_t TIndex, typename TValue>
+class TupleValue {
+    TValue value;
 
-    public:
-        constexpr TupleValue() = default;
+public:
+    constexpr TupleValue() = default;
 
-        template <typename T>
-        INLINE constexpr TupleValue(T&& value)
-            : value(std::forward<T>(value)) {}
+    template <typename T>
+    INLINE constexpr TupleValue(T&& value)
+        : value(std::forward<T>(value)) {}
 
-        template <typename T>
-        INLINE constexpr TupleValue& operator=(T&& t) {
-            value = std::forward<T>(t);
-            return *this;
-        }
+    template <typename T>
+    INLINE constexpr TupleValue& operator=(T&& t) {
+        value = std::forward<T>(t);
+        return *this;
+    }
 
-        using ReturnType = std::conditional_t<std::is_rvalue_reference<TValue>::value, TValue&&, TValue&>;
+    using ReturnType = std::conditional_t<std::is_rvalue_reference<TValue>::value, TValue&&, TValue&>;
 
-        /// Return r-value reference if TValue is an r-value reference, otherwise returns l-value reference.
-        INLINE constexpr ReturnType get() {
-            return static_cast<ReturnType>(value);
-        }
+    /// Return r-value reference if TValue is an r-value reference, otherwise returns l-value reference.
+    INLINE constexpr ReturnType get() {
+        return static_cast<ReturnType>(value);
+    }
 
-        /// Return const r-value reference if TValue is an r-value reference, otherwise returns const l-value
-        /// reference.
-        /// \todo Does this make any sense? What's the point of const r-value reference?
-        INLINE constexpr const TValue& get() const {
-            return value;
-        }
+    /// Return const r-value reference if TValue is an r-value reference, otherwise returns const l-value
+    /// reference.
+    /// \todo Does this make any sense? What's the point of const r-value reference?
+    INLINE constexpr const TValue& get() const {
+        return value;
+    }
 
-        /// 'Forwards' the value out of tuple, i.e. returns l-value reference for l-values and r-value
-        /// reference otherwise.
-        INLINE constexpr TValue&& forward() {
-            return std::forward<TValue>(value);
-        }
-    };
+    /// 'Forwards' the value out of tuple, i.e. returns l-value reference for l-values and r-value
+    /// reference otherwise.
+    INLINE constexpr TValue&& forward() {
+        return std::forward<TValue>(value);
+    }
+};
 
-    template <typename TSequence, typename... TArgs>
-    class TupleImpl;
+template <typename TSequence, typename... TArgs>
+class TupleImpl;
 
-    template <std::size_t... TIndices, typename... TArgs>
-    class TupleImpl<std::index_sequence<TIndices...>, TArgs...> : TupleValue<TIndices, TArgs>... {
-    private:
-        static_assert(sizeof...(TIndices) == sizeof...(TArgs), "Internal error in tuple");
+template <std::size_t... TIndices, typename... TArgs>
+class TupleImpl<std::index_sequence<TIndices...>, TArgs...> : TupleValue<TIndices, TArgs>... {
+private:
+    static_assert(sizeof...(TIndices) == sizeof...(TArgs), "Internal error in tuple");
 
-        template <std::size_t TIndex>
-        using Value = TupleValue<TIndex, SelectType<TIndex, TArgs...>>;
+    template <std::size_t TIndex>
+    using Value = TupleValue<TIndex, SelectType<TIndex, TArgs...>>;
 
-    public:
-        constexpr TupleImpl() = default;
+public:
+    constexpr TupleImpl() = default;
 
-        template <typename... Ts,
-            typename = std::enable_if_t<AllTrue<std::is_constructible<TArgs, Ts>::value...>::value>>
-        INLINE constexpr TupleImpl(Ts&&... args)
-            : TupleValue<TIndices, TArgs>(std::forward<Ts>(args))... {}
+    template <typename... Ts,
+        typename = std::enable_if_t<AllTrue<std::is_constructible<TArgs, Ts>::value...>::value>>
+    INLINE constexpr TupleImpl(Ts&&... args)
+        : TupleValue<TIndices, TArgs>(std::forward<Ts>(args))... {}
 
-        template <typename... Ts>
-        INLINE constexpr TupleImpl(const TupleImpl<Ts...>& other)
-            : TupleValue<TIndices, TArgs>(other.template get<TIndices>())... {}
+    template <typename... Ts>
+    INLINE constexpr TupleImpl(const TupleImpl<Ts...>& other)
+        : TupleValue<TIndices, TArgs>(other.template get<TIndices>())... {}
 
-        template <typename... Ts>
-        INLINE constexpr TupleImpl(TupleImpl<Ts...>&& other)
-            : TupleValue<TIndices, TArgs>(other.template forward<TIndices>())... {}
+    template <typename... Ts>
+    INLINE constexpr TupleImpl(TupleImpl<Ts...>&& other)
+        : TupleValue<TIndices, TArgs>(other.template forward<TIndices>())... {}
 
-        template <std::size_t TIndex>
-        INLINE constexpr decltype(auto) get() {
-            return Value<TIndex>::get();
-        }
+    template <std::size_t TIndex>
+    INLINE constexpr decltype(auto) get() {
+        return Value<TIndex>::get();
+    }
 
-        template <std::size_t TIndex>
-        INLINE constexpr decltype(auto) get() const {
-            return Value<TIndex>::get();
-        }
+    template <std::size_t TIndex>
+    INLINE constexpr decltype(auto) get() const {
+        return Value<TIndex>::get();
+    }
 
-        template <std::size_t TIndex>
-        INLINE constexpr decltype(auto) forward() {
-            return Value<TIndex>::forward();
-        }
+    template <std::size_t TIndex>
+    INLINE constexpr decltype(auto) forward() {
+        return Value<TIndex>::forward();
+    }
 
-    protected:
-        template <typename... Ts, std::size_t TIndex, std::size_t... TIdxs>
-        INLINE void copyAssign(const TupleImpl<Ts...>& other, std::index_sequence<TIndex, TIdxs...>) {
-            this->get<TIndex>() = other.template get<TIndex>();
-            copyAssign(other, std::index_sequence<TIdxs...>());
-        }
+protected:
+    template <typename... Ts, std::size_t TIndex, std::size_t... TIdxs>
+    INLINE void copyAssign(const TupleImpl<Ts...>& other, std::index_sequence<TIndex, TIdxs...>) {
+        this->get<TIndex>() = other.template get<TIndex>();
+        copyAssign(other, std::index_sequence<TIdxs...>());
+    }
 
-        template <typename... Ts>
-        INLINE void copyAssign(const TupleImpl<Ts...>& UNUSED(other), std::index_sequence<>) {}
+    template <typename... Ts>
+    INLINE void copyAssign(const TupleImpl<Ts...>& UNUSED(other), std::index_sequence<>) {}
 
-        template <typename... Ts, std::size_t TIndex, std::size_t... TIdxs>
-        INLINE void copyAssign(TupleImpl<Ts...>& other, std::index_sequence<TIndex, TIdxs...>) {
-            this->get<TIndex>() = other.template get<TIndex>();
-            copyAssign(other, std::index_sequence<TIdxs...>());
-        }
+    template <typename... Ts, std::size_t TIndex, std::size_t... TIdxs>
+    INLINE void copyAssign(TupleImpl<Ts...>& other, std::index_sequence<TIndex, TIdxs...>) {
+        this->get<TIndex>() = other.template get<TIndex>();
+        copyAssign(other, std::index_sequence<TIdxs...>());
+    }
 
-        template <typename... Ts>
-        INLINE void copyAssign(TupleImpl<Ts...>& UNUSED(other), std::index_sequence<>) {}
+    template <typename... Ts>
+    INLINE void copyAssign(TupleImpl<Ts...>& UNUSED(other), std::index_sequence<>) {}
 
-        template <typename... Ts, std::size_t TIndex, std::size_t... TIdxs>
-        INLINE void moveAssign(TupleImpl<Ts...>&& other, std::index_sequence<TIndex, TIdxs...>) {
-            this->get<TIndex>() = other.template forward<TIndex>();
-            moveAssign(std::move(other), std::index_sequence<TIdxs...>());
-        }
+    template <typename... Ts, std::size_t TIndex, std::size_t... TIdxs>
+    INLINE void moveAssign(TupleImpl<Ts...>&& other, std::index_sequence<TIndex, TIdxs...>) {
+        this->get<TIndex>() = other.template forward<TIndex>();
+        moveAssign(std::move(other), std::index_sequence<TIdxs...>());
+    }
 
-        template <typename... Ts>
-        INLINE void moveAssign(const TupleImpl<Ts...>& UNUSED(other), std::index_sequence<>) {}
+    template <typename... Ts>
+    INLINE void moveAssign(const TupleImpl<Ts...>& UNUSED(other), std::index_sequence<>) {}
 
-        template <typename... Ts, std::size_t TIndex, std::size_t... TIdxs>
-        INLINE bool isEqual(const TupleImpl<Ts...>& other, std::index_sequence<TIndex, TIdxs...>) const {
-            return this->get<TIndex>() == other.template get<TIndex>() &&
-                   isEqual(other, std::index_sequence<TIdxs...>());
-        }
+    template <typename... Ts, std::size_t TIndex, std::size_t... TIdxs>
+    INLINE bool isEqual(const TupleImpl<Ts...>& other, std::index_sequence<TIndex, TIdxs...>) const {
+        return this->get<TIndex>() == other.template get<TIndex>() &&
+               isEqual(other, std::index_sequence<TIdxs...>());
+    }
 
-        template <typename... Ts>
-        INLINE bool isEqual(const TupleImpl<Ts...>& UNUSED(other), std::index_sequence<>) const {
-            return true;
-        }
-    };
+    template <typename... Ts>
+    INLINE bool isEqual(const TupleImpl<Ts...>& UNUSED(other), std::index_sequence<>) const {
+        return true;
+    }
+};
 } // namespace Detail
 
 /// Useful type trait, checking whether given type is a Tuple
@@ -322,27 +322,27 @@ const struct Ignore {
 } IGNORE;
 
 namespace Detail {
-    template <typename... Ts1, typename... Ts2, std::size_t... TIdxs>
-    INLINE constexpr Tuple<Ts1..., Ts2...> appendImpl(const Tuple<Ts1...>& tuple,
-        std::index_sequence<TIdxs...>,
-        Ts2&&... values) {
-        return Tuple<Ts1..., Ts2...>(tuple.template get<TIdxs>()..., std::forward<Ts2>(values)...);
-    }
+template <typename... Ts1, typename... Ts2, std::size_t... TIdxs>
+INLINE constexpr Tuple<Ts1..., Ts2...> appendImpl(const Tuple<Ts1...>& tuple,
+    std::index_sequence<TIdxs...>,
+    Ts2&&... values) {
+    return Tuple<Ts1..., Ts2...>(tuple.template get<TIdxs>()..., std::forward<Ts2>(values)...);
+}
 
-    template <typename... Ts1, typename... Ts2, std::size_t... TIdxs>
-    INLINE constexpr Tuple<Ts1..., Ts2...> appendImpl(Tuple<Ts1...>&& tuple,
-        std::index_sequence<TIdxs...>,
-        Ts2&&... values) {
-        return Tuple<Ts1..., Ts2...>(std::move(tuple).template get<TIdxs>()..., std::forward<Ts2>(values)...);
-    }
+template <typename... Ts1, typename... Ts2, std::size_t... TIdxs>
+INLINE constexpr Tuple<Ts1..., Ts2...> appendImpl(Tuple<Ts1...>&& tuple,
+    std::index_sequence<TIdxs...>,
+    Ts2&&... values) {
+    return Tuple<Ts1..., Ts2...>(std::move(tuple).template get<TIdxs>()..., std::forward<Ts2>(values)...);
+}
 
-    template <typename... Ts1, typename... Ts2, std::size_t... TIdxs1, std::size_t... TIdxs2>
-    INLINE constexpr Tuple<Ts1..., Ts2...> appendImpl(const Tuple<Ts1...>& t1,
-        const Tuple<Ts2...>& t2,
-        std::index_sequence<TIdxs1...>,
-        std::index_sequence<TIdxs2...>) {
-        return Tuple<Ts1..., Ts2...>(t1.template get<TIdxs1>()..., t2.template get<TIdxs2>()...);
-    }
+template <typename... Ts1, typename... Ts2, std::size_t... TIdxs1, std::size_t... TIdxs2>
+INLINE constexpr Tuple<Ts1..., Ts2...> appendImpl(const Tuple<Ts1...>& t1,
+    const Tuple<Ts2...>& t2,
+    std::index_sequence<TIdxs1...>,
+    std::index_sequence<TIdxs2...>) {
+    return Tuple<Ts1..., Ts2...>(t1.template get<TIdxs1>()..., t2.template get<TIdxs2>()...);
+}
 } // namespace Detail
 
 /// Creates a tuple by appending values into an existing tuple. If the input tuple contains l-value
@@ -401,30 +401,30 @@ using TupleElement = typename TupleElementType<TTuple, TIndex>::Type;
 
 
 namespace Detail {
-    template <typename TFunctor, typename TTuple>
-    struct ForEachVisitor {
-        TTuple&& tuple;
-        TFunctor&& functor;
+template <typename TFunctor, typename TTuple>
+struct ForEachVisitor {
+    TTuple&& tuple;
+    TFunctor&& functor;
 
-        template <std::size_t TIndex>
-        INLINE void visit() {
-            functor(tuple.template get<TIndex>());
-        }
-    };
+    template <std::size_t TIndex>
+    INLINE void visit() {
+        functor(tuple.template get<TIndex>());
+    }
+};
 
-    template <typename TFunctor, typename TTuple, template <class> class TTrait>
-    struct ForEachIfVisitor {
-        TTuple&& tuple;
-        TFunctor&& functor;
+template <typename TFunctor, typename TTuple, template <class> class TTrait>
+struct ForEachIfVisitor {
+    TTuple&& tuple;
+    TFunctor&& functor;
 
-        template <std::size_t TIndex>
-        INLINE std::enable_if_t<TTrait<TupleElement<TTuple, TIndex>>::value> visit() {
-            functor(tuple.template get<TIndex>());
-        }
+    template <std::size_t TIndex>
+    INLINE std::enable_if_t<TTrait<TupleElement<TTuple, TIndex>>::value> visit() {
+        functor(tuple.template get<TIndex>());
+    }
 
-        template <std::size_t TIndex>
-        INLINE std::enable_if_t<!TTrait<TupleElement<TTuple, TIndex>>::value> visit() {}
-    };
+    template <std::size_t TIndex>
+    INLINE std::enable_if_t<!TTrait<TupleElement<TTuple, TIndex>>::value> visit() {}
+};
 } // namespace Detail
 
 /// For loop to iterate over tuple. The functor must be a generic lambda or have overloaded operators()
@@ -469,10 +469,10 @@ INLINE void forEachIf(const Tuple<TArgs...>& tuple, TFunctor&& functor) {
 
 
 namespace Detail {
-    template <typename TFunctor, typename TTuple, std::size_t... TIndices>
-    INLINE decltype(auto) applyImpl(TTuple&& tuple, TFunctor&& functor, std::index_sequence<TIndices...>) {
-        return functor(std::forward<TTuple>(tuple).template get<TIndices>()...);
-    }
+template <typename TFunctor, typename TTuple, std::size_t... TIndices>
+INLINE decltype(auto) applyImpl(TTuple&& tuple, TFunctor&& functor, std::index_sequence<TIndices...>) {
+    return functor(std::forward<TTuple>(tuple).template get<TIndices>()...);
+}
 } // namespace Detail
 
 /// Expands arguments stored in tuple into parameter pack of a functor.

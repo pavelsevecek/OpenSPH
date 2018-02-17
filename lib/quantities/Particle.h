@@ -58,37 +58,45 @@ public:
     /// \return Reference to itself, allowing to queue functions
     Particle& addValue(const QuantityId id, const Dynamic& value);
 
-    /// Adds another quantity derivative or updates the derivative of quantity previously stored.
+    /// \brief Adds another quantity derivative or updates the derivative of quantity previously stored.
+    ///
     /// \param id Quantity ID of the quantity value
     /// \param value New derivative of given quantity
     /// \return Reference to itself, allowing to queue functions
     Particle& addDt(const QuantityId id, const Dynamic& value);
 
-    /// Adds another quantity 2nd derivative or updates the 2nd derivative of quantity previously stored.
+    /// \brief Adds another quantity 2nd derivative or updates the 2nd derivative of quantity previously
+    /// stored.
+    ///
     /// \param id Quantity ID of the quantity value
     /// \param value New 2nd derivative of given quantity
     /// \return Reference to itself, allowing to queue functions
     Particle& addD2t(const QuantityId id, const Dynamic& value);
 
-    /// Returns the index of particle in the parent storage.
+    /// \brief Returns the index of particle in the parent storage.
     INLINE Size getIndex() const {
         return idx;
     }
 
-    /// Retrieves a quantity value of the particle. If the particle doesn't hold value of quantity with given
-    /// ID, returns unitialized (empty) Value.
+    /// \brief Retrieves a quantity value of the particle.
+    ///
+    /// If the particle doesn't hold value of quantity with given ID, returns unitialized (empty) value.
     Dynamic getValue(const QuantityId id) const;
 
-    /// Retrieves a quantity derivative of the particle. If the particle doesn't hold derivative of quantity
-    /// with given ID, returns unitialized (empty) Value.
+    /// \brief Retrieves a quantity derivative of the particle.
+    ///
+    /// If the particle doesn't hold derivative of quantity with given ID, returns unitialized (empty) value.
     Dynamic getDt(const QuantityId id) const;
 
-    /// Retrieves a quantity 2nd derivative of the particle. If the particle doesn't hold 2nd derivative of
-    /// quantity with given ID, returns unitialized (empty) Value.
+    /// \brief Retrieves a quantity 2nd derivative of the particle.
+    ///
+    /// If the particle doesn't hold 2nd derivative of quantity with given ID, returns unitialized (empty)
+    /// Value.
     Dynamic getD2t(const QuantityId id) const;
 
-    /// Stored info about a quantity. Note that not all values have to be initialized; if they are, however,
-    /// all values have the same type.
+    /// \brief Stored info about a quantity.
+    ///
+    /// Note that not all values have to be initialized; if they are, however, all values have the same type.
     struct QuantityData {
 
         /// Quantity ID
@@ -107,7 +115,7 @@ public:
         Dynamic d2t;
     };
 
-    /// Iterator used to enumerate all stored quantities.
+    /// \brief Iterator used to enumerate all stored quantities.
     class ValueIterator {
     private:
         using Iterator = std::map<QuantityId, InternalQuantityData>::const_iterator;
@@ -115,8 +123,9 @@ public:
         Iterator iter;
 
     public:
-        /// Constructs the iterator from internal type; use \ref Particle::begin and \ref Particle::end to
-        /// obtain iterators.
+        /// \brief Constructs the iterator from internal type.
+        ///
+        /// Use \ref Particle::begin and \ref Particle::end to obtain iterators.
         ValueIterator(const Iterator iterator);
 
         /// Advances the iterator to next quantity.
@@ -129,10 +138,10 @@ public:
         bool operator!=(const ValueIterator& other) const;
     };
 
-    /// Returns iterator pointing to the first quantity.
+    /// \brief Returns iterator pointing to the first quantity.
     ValueIterator begin() const;
 
-    /// Returns iterator pointing to the one-past-last quantity.
+    /// \brief Returns iterator pointing to the one-past-last quantity.
     ValueIterator end() const;
 };
 

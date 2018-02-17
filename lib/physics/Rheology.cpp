@@ -80,6 +80,21 @@ DruckerPragerRheology::DruckerPragerRheology(AutoPtr<IFractureModel>&& damage)
     }
 }
 
+/*Float plasticStrain(const Float p) {
+    ASSERT(p_bd < p_bp);
+    if (Y_d < Y_i) {
+        // discrete brittle failure along microcracks
+        return lerp(0.01_f, 0.05_f, p / p_bd);
+    } else if (p > 2._f * Y) {
+        ASSERT(Y >= p_bp && Y <= 2._f * p_bp);
+        // motion of point defects, dislocations, and twins or from grain boundary sliding
+        return lerp(0.1_f, 1._f, (p - p_bp) / p_bp);
+    } else {
+        // both brittle fracture and ductile flow
+        return lerp(0.05_f, 0.1_f, (p - p_bd) / (p_bp - b_bd));
+    }
+}*/
+
 DruckerPragerRheology::~DruckerPragerRheology() = default;
 
 void DruckerPragerRheology::create(Storage& storage,

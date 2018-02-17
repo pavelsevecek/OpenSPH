@@ -35,12 +35,21 @@ public:
         return data * value;
     }
 
+    Color operator/(const float value) const {
+        return data / value;
+    }
+
     Color operator*(const Color& other) const {
         return data * other.data;
     }
 
     Color operator+(const Color& other) const {
         return data + other.data;
+    }
+
+    Color& operator+=(const Color& other) {
+        *this = *this + other;
+        return *this;
     }
 
     /// Returns a color darker by given factor (in interval [0, 1], where 0 = current color, 1 = black)

@@ -314,11 +314,8 @@ void iterateWithIndices(const Box& box, const Vector& step, TFunctor&& functor) 
     parallelFor(ThreadPool::getGlobalInstance(), 0, box.size()[Z] / step[Z] + 1, task);
 }
 
-MarchingCubes::MarchingCubes(ArrayView<const Vector> r,
-    const Float surfaceLevel,
-    const SharedPtr<IScalarField>& field)
-    : r(r)
-    , surfaceLevel(surfaceLevel)
+MarchingCubes::MarchingCubes(const Float surfaceLevel, const SharedPtr<IScalarField>& field)
+    : surfaceLevel(surfaceLevel)
     , field(field) {}
 
 void MarchingCubes::addComponent(const Box& box, const Float gridResolution) {
@@ -458,9 +455,9 @@ public:
     NumberDensityField(const Storage& storage,
         const ArrayView<const Vector> r,
         const ArrayView<const SymmetricTensor> aniso,
-        const LutKernel<3>& kernel,
+        LutKernel<3>&& kernel,
         AutoPtr<IBasicFinder>&& finder)
-        : kernel(kernel)
+        : kernel(std::move(kernel))
         , finder(std::move(finder))
         , r(r)
         , aniso(aniso)
@@ -469,7 +466,7 @@ public:
         flag = storage.getValue<Size>(QuantityId::FLAG);
 
         // we have to re-build the tree since we are using different positions (in general)
-        finder->build(r);
+        this->finder->build(r);
     }
 
     virtual Float operator()(const Vector& pos) override {
@@ -483,16 +480,16 @@ public:
         // find average h of neighbours and the flag of the closest particle
         Size closestFlag = 0;
         Float flagDistSqr = INFTY;
-        // Float avgH = 0._f;
+        Float avgH = 0._f;
         for (NeighbourRecord& n : neighsTl) {
             const Size j = n.index;
-            //  avgH += r[j][H];
+            avgH += r[j][H];
             if (n.distanceSqr < flagDistSqr) {
                 closestFlag = flag[j];
                 flagDistSqr = n.distanceSqr;
             }
         }
-        // avgH /= neighsTl.size();
+        avgH /= neighsTl.size();
 
         // interpolate values of neighbours
         for (NeighbourRecord& n : neighsTl) {
@@ -500,18 +497,19 @@ public:
             if (flag[j] != closestFlag) {
                 continue;
             }
-            phi += m[j] / rho[j] * aniso[i].determinant() *
-                   kernel.valueImpl(getSqrLength(aniso[i] * (pos - r[j])));
+            // phi += m[j] / rho[j] * kernel.value(pos - r[j], avgH);
+            phi += m[j] / rho[j] * aniso[j].determinant() *
+                   kernel.valueImpl(getSqrLength(aniso[j] * (pos - r[j])));
         }
         return phi;
     }
 };
 
-INLINE Float weight(const Float r1, const Float r2) {
+INLINE Float weight(const Vector& r1, const Vector& r2) {
     const Float lengthSqr = getSqrLength(r1 - r2);
     // Eq. (11)
     if (lengthSqr < sqr(2._f * r1[H])) {
-        return 1._f - pow<3>(sqrt(lengthSqr) / (2._f * r[i][H]));
+        return 1._f - pow<3>(sqrt(lengthSqr) / (2._f * r1[H]));
     } else {
         return 0._f;
     }
@@ -535,13 +533,12 @@ Array<Triangle> getSurfaceMesh(const Storage& storage, const Float gridResolutio
     finder->build(r);
 
     Array<Vector> r_bar(r.size());
-    Array<Vector> r_mean(r.size());     // mean particle positions
     Array<SymmetricTensor> C(r.size()); // covariance matrix
 
     parallelFor(0, r.size(), [&](const Size n1, const Size n2) {
         Array<NeighbourRecord> neighs;
         for (Size i = n1; i < n2; ++i) {
-            finder->findAll(i, r[i][H] * kernel.radius(), neighs);
+            finder->findAll(i, 2._f * r[i][H], neighs);
             // 1. compute the mean particle positions and the denoised (bar) positions
             Vector wr(0._f);
             Float wsum = 0._f;
@@ -553,7 +550,7 @@ Array<Triangle> getSurfaceMesh(const Storage& storage, const Float gridResolutio
             }
             ASSERT(wsum > 0._f);
             // Eq. (10) from the paper
-            r_mean[i] = wr / wsum;
+            const Vector r_mean = wr / wsum;
             // Eq. (6)
             r_bar[i] = (1._f - lambda) * r[i] + lambda * wr / wsum;
 
@@ -563,24 +560,36 @@ Array<Triangle> getSurfaceMesh(const Storage& storage, const Float gridResolutio
                 const Size j = n.index;
                 const Float w = weight(r[i], r[j]); /// \todo can be probably cached
                 // Eq. (9)
-                cov += w * outer(r[j] - r_mean[i], r[j] - r_mean[i]);
+                cov += w * outer(r[j] - r_mean, r[j] - r_mean);
             }
             C[i] = cov / wsum;
 
-            Svd svd = singularValueDecomposition(C[i]);
-            ASSERT(svd.S[X] >= svd.S[Y] >= svd.S[Z]); // temporary check, either make sure the implementation
-                                                      // behaves like this or sort it afterwards
+            /*Svd svd = singularValueDecomposition(C[i]);
+            std::sort((Float*)&svd.S, ((Float*)&svd.S) + 3, std::greater<Float>{});
+            ASSERT(svd.S[X] >= svd.S[Y] &&
+                   svd.S[Y] >= svd.S[Z]); // temporary check, either make sure the implementation
+                                          // behaves like this or sort it afterwards
             // 3. 'fix' the singular values (end of Sec. 4)
             if (neighCnt[i] > Ne) {
                 svd.S[Y] = max(svd.S[Y], svd.S[X] / kr);
                 svd.S[Z] = max(svd.S[Z], svd.S[X] / kr);
-                svd.S *= ks;
+                svd.S = (ks * svd.S);
             } else {
-                svd.S = Vector(kn);
-            }
+                svd.S = Vector(1._f / kn);
+            }*/
 
             // 4. get the final anisotropy matrix using Eq. (16)
-            C[i] = 1._f / r[i][H] * convert<SymmetricTensor>(svd.V * S * svd.U.transpose());
+            // const AffineMatrix matrix = svd.U * AffineMatrix::scale(svd.S) * svd.V.transpose();
+            // C[i] = convert<SymmetricTensor>(0.5_f * (matrix + matrix.transpose()));
+            (void)ks;
+            (void)kr;
+            (void)kn;
+            (void)Ne;
+            // C[i] = SymmetricTensor::identity(); // C[i].pseudoInverse(1.e-6_f);
+
+            // C[i] = SymmetricTensor::identity();
+            // C[i] = C[i].inverse();
+            C[i] = C[i] / (root<3>(C[i].determinant()) * r[i][H]);
         }
     });
 
@@ -589,16 +598,18 @@ Array<Triangle> getSurfaceMesh(const Storage& storage, const Float gridResolutio
     Box box;
     Float maxH = 0._f;
     for (Size i = 0; i < r_bar.size(); ++i) {
+        if (neighCnt[i] < 10) {
+            continue; // don't mesh separated particles
+        }
         const Vector dr = Vector(r_bar[i][H] * kernel.radius());
         box.extend(r_bar[i] + dr);
         box.extend(r_bar[i] - dr);
         maxH = max(maxH, r_bar[i][H]);
     }
-    field->maxH = maxH;
-
     SharedPtr<NumberDensityField> field =
-        makeShared<NumberDensityField>(storage, r_bar, C, kernel, std::move(finder));
-    MarchingCubes mc(r_bar, surfaceLevel, field);
+        makeShared<NumberDensityField>(storage, r_bar, C, std::move(kernel), std::move(finder));
+    field->maxH = maxH;
+    MarchingCubes mc(surfaceLevel, field);
 
     // 6. find the surface using marching cubes
     mc.addComponent(box, gridResolution);

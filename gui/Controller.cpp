@@ -36,7 +36,7 @@ Controller::~Controller() = default;
 
 void Controller::Vis::initialize(const GuiSettings& gui) {
     renderer = makeAuto<ParticleRenderer>(gui);
-    colorizer = makeAuto<VelocityColorizer>(gui.get<Interval>(GuiSettingsId::PALETTE_VELOCITY));
+    colorizer = Factory::getColorizer(gui, ColorizerId::VELOCITY);
     timer = makeAuto<Timer>(gui.get<int>(GuiSettingsId::VIEW_MAX_FRAMERATE), TimerFlags::START_EXPIRED);
     const Point size(gui.get<int>(GuiSettingsId::RENDER_WIDTH), gui.get<int>(GuiSettingsId::RENDER_HEIGHT));
     camera = Factory::getCamera(gui, size);
@@ -103,11 +103,12 @@ void Controller::stop(const bool waitForFinish) {
 void Controller::saveState(const Path& path) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
     ASSERT(path.extension() == Path("ssf"));
-    auto dump = [this, path](const Float time) {
+    auto dump = [this, path](const Float time, const Float step) {
         SharedPtr<Storage> storage = sph.run->getStorage();
         BinaryOutput output(path);
         Statistics stats;
         stats.set(StatisticsId::RUN_TIME, time);
+        stats.set(StatisticsId::TIMESTEP_VALUE, step);
         output.dump(*storage, stats);
     };
 
@@ -117,7 +118,7 @@ void Controller::saveState(const Path& path) {
     } else {
         // if not running, we can safely save the storage from main thread
         /// \todo somehow remember the time of the last simulation?
-        dump(0._f);
+        dump(0._f, 0.1_f);
     }
 }
 
@@ -187,10 +188,11 @@ void Controller::onTimeStep(const Storage& storage, Statistics& stats) {
 
     // executed all waiting callbacks
     if (!sph.onTimeStepCallbacks->empty()) {
-        const float time = stats.get<Float>(StatisticsId::RUN_TIME);
+        const Float time = stats.get<Float>(StatisticsId::RUN_TIME);
+        const Float step = stats.get<Float>(StatisticsId::TIMESTEP_VALUE);
         auto onTimeStepProxy = sph.onTimeStepCallbacks.lock();
         for (auto& func : onTimeStepProxy.get()) {
-            func(time);
+            func(time, step);
         }
         onTimeStepProxy->clear();
     }
@@ -221,7 +223,8 @@ void Controller::update(const Storage& storage) {
     // fill the combobox with available colorizer
     /// \todo can we do this safely from run thread?
     executeOnMainThread([this, &storage] { //
-        window->setColorizerList(this->getColorizerList(storage, false));
+        window->runStarted();
+        window->setColorizerList(this->getColorizerList(storage, false, {}));
     });
 
     // draw initial positions of particles
@@ -234,6 +237,10 @@ void Controller::update(const Storage& storage) {
     movie = this->createMovie(storage);
 }
 
+void Controller::setRunning() {
+    status = Status::RUNNING;
+}
+
 bool Controller::shouldAbortRun() const {
     return status == Status::STOPPED || status == Status::QUITTING;
 }
@@ -242,27 +249,32 @@ bool Controller::isQuitting() const {
     return status == Status::QUITTING;
 }
 
-Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage, const bool forMovie) const {
+Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage,
+    const bool forMovie,
+    const FlatMap<ColorizerId, Palette>& overrides) const {
     // Available colorizers for display and movie are currently hardcoded
     Array<ColorizerId> colorizerIds;
 
+    if (storage.has(QuantityId::DENSITY)) {
+        colorizerIds.push(ColorizerId::DENSITY_PERTURBATION);
+    }
+    colorizerIds.push(ColorizerId::COROTATING_VELOCITY);
+
     if (!forMovie) {
-        if (storage.has(QuantityId::DENSITY)) {
-            colorizerIds.push(ColorizerId::DENSITY_PERTURBATION);
+        if (storage.has(QuantityId::MASS)) {
+            colorizerIds.push(ColorizerId::SUMMED_DENSITY);
         }
         if (storage.has(QuantityId::STRESS_REDUCING)) {
             colorizerIds.push(ColorizerId::YIELD_REDUCTION);
         }
 
-        if (!forMovie) {
-            colorizerIds.push(ColorizerId::COROTATING_VELOCITY);
-            colorizerIds.push(ColorizerId::MOVEMENT_DIRECTION);
-            colorizerIds.push(ColorizerId::ACCELERATION);
-            colorizerIds.push(ColorizerId::ID);
+        colorizerIds.push(ColorizerId::MOVEMENT_DIRECTION);
+        colorizerIds.push(ColorizerId::ACCELERATION);
+        colorizerIds.push(ColorizerId::RADIUS);
+        colorizerIds.push(ColorizerId::ID);
 
-            if (storage.has(QuantityId::NEIGHBOUR_CNT)) {
-                colorizerIds.push(ColorizerId::BOUNDARY);
-            }
+        if (storage.has(QuantityId::NEIGHBOUR_CNT)) {
+            colorizerIds.push(ColorizerId::BOUNDARY);
         }
     }
 
@@ -275,6 +287,7 @@ Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage
     };
     if (!forMovie) {
         quantityColorizerIds.push(QuantityId::DENSITY);
+        quantityColorizerIds.push(QuantityId::MASS);
         quantityColorizerIds.push(QuantityId::AV_ALPHA);
         quantityColorizerIds.push(QuantityId::AV_BALSARA);
         quantityColorizerIds.push(QuantityId::ANGULAR_VELOCITY);
@@ -282,9 +295,6 @@ Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage
         quantityColorizerIds.push(QuantityId::STRENGTH_VELOCITY_GRADIENT);
         quantityColorizerIds.push(QuantityId::STRAIN_RATE_CORRECTION_TENSOR);
         quantityColorizerIds.push(QuantityId::EPS_MIN);
-    } else {
-        quantityColorizerIds.clear();
-        quantityColorizerIds.push(QuantityId::ENERGY);
     }
 
     Array<SharedPtr<IColorizer>> colorizers;
@@ -302,7 +312,7 @@ Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage
     // add all auxiliary colorizers (sorted by the key)
     std::sort(colorizerIds.begin(), colorizerIds.end());
     for (ColorizerId id : colorizerIds) {
-        colorizers.push(Factory::getColorizer(gui, id));
+        colorizers.push(Factory::getColorizer(gui, id, overrides));
     }
     return colorizers;
 }
@@ -312,9 +322,8 @@ SharedPtr<Bitmap> Controller::getRenderedBitmap() {
     RenderParams params;
     params.particles.scale = gui.get<Float>(GuiSettingsId::PARTICLE_RADIUS);
     params.size = Point(gui.get<int>(GuiSettingsId::VIEW_WIDTH), gui.get<int>(GuiSettingsId::VIEW_HEIGHT));
-    if (vis.selectedParticle) {
-        params.selectedParticle = vis.selectedParticle->getIndex();
-    }
+    params.selectedParticle = vis.selectedParticle;
+
     SharedPtr<Bitmap> bitmap;
     if (!vis.isInitialized()) {
         // not initialized yet, return empty bitmap
@@ -372,7 +381,7 @@ Optional<Particle> Controller::getIntersectedParticle(const Point position, cons
         if (distanceSqr < radiusSqr * sqr(1._f + toleranceEps)) {
             const bool wasHitOutside = distanceSqr > radiusSqr;
             // hit candidate, check if it's closer or current candidate was hit outside the actual radius
-            if (t > first.t || (first.wasHitOutside && !wasHitOutside)) {
+            if (t < first.t || (first.wasHitOutside && !wasHitOutside)) {
                 // update the current candidate
                 first.idx = i;
                 first.t = t;
@@ -416,7 +425,7 @@ void Controller::setSelectedParticle(const Optional<Particle>& particle) {
     vis.selectedParticle = particle;
 
     if (particle) {
-        const Color color = vis.colorizer->eval(particle->getIndex());
+        const Color color = vis.colorizer->evalColor(particle->getIndex());
         window->setSelectedParticle(particle.value(), color);
     } else {
         window->deselectParticle();
@@ -435,11 +444,11 @@ SharedPtr<Movie> Controller::createMovie(const Storage& storage) {
     switch (gui.get<RendererEnum>(GuiSettingsId::IMAGES_RENDERER)) {
     case RendererEnum::PARTICLE:
         renderer = makeAuto<ParticleRenderer>(gui);
-        colorizers = this->getColorizerList(storage, true);
+        colorizers = this->getColorizerList(storage, true, {});
         break;
     case RendererEnum::SURFACE:
         renderer = makeAuto<SurfaceRenderer>(gui);
-        colorizers = { makeShared<VelocityColorizer>(gui.get<Interval>(GuiSettingsId::PALETTE_VELOCITY)) };
+        colorizers = { Factory::getColorizer(gui, ColorizerId::VELOCITY) };
         break;
     default:
         STOP;
@@ -461,7 +470,7 @@ void Controller::redraw(const Storage& storage, Statistics& stats) {
 
         // initialize the currently selected colorizer
         ASSERT(vis.isInitialized());
-        vis.colorizer->initialize(storage, ColorizerSource::CACHE_ARRAYS);
+        vis.colorizer->initialize(storage, RefEnum::STRONG);
 
         // update the renderer with new data
         vis.renderer->initialize(storage, *vis.colorizer, *vis.camera);
@@ -488,7 +497,7 @@ void Controller::tryRedraw() {
         if (!storage) {
             return;
         }
-        vis.colorizer->initialize(*storage, ColorizerSource::POINTER_TO_STORAGE);
+        vis.colorizer->initialize(*storage, RefEnum::STRONG);
         vis.renderer->initialize(*storage, *vis.colorizer, *vis.camera);
         vis.timer->restart();
         window->Refresh();

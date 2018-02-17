@@ -48,10 +48,6 @@ public:
         const RenderParams& params,
         Statistics& stats) const override;
 
-    static void drawPalette(wxDC& dc, const Palette& palette);
-
-    static void drawGrid(wxDC& dc, const ICamera& camera, const float grid);
-
 private:
     bool isCutOff(const ICamera& camera, const Vector& r);
 };

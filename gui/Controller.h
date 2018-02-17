@@ -2,7 +2,7 @@
 
 #include "gui/Settings.h"
 #include "io/Path.h"
-#include "objects/containers/Array.h"
+#include "objects/containers/FlatMap.h"
 #include "objects/wrappers/Locking.h"
 #include "objects/wrappers/SharedPtr.h"
 #include "quantities/Particle.h"
@@ -18,13 +18,17 @@ class Statistics;
 class Bitmap;
 class Timer;
 class Point;
+class Palette;
 class IRun;
 class IRenderer;
 class ICamera;
 class IColorizer;
+enum class ColorizerId;
 
 
 class Controller {
+    friend class GuiCallbacks;
+
 private:
     /// Main frame of the application
     RawPtr<MainWindow> window;
@@ -43,7 +47,7 @@ private:
         ///
         /// Callbacks take current run time as an argument. The list is cleared every timestep, only callbacks
         /// added between timesteps are executed.
-        using TimeStepCallback = Function<void(const Float runTime)>;
+        using TimeStepCallback = Function<void(const Float runTime, const Float timeStep)>;
         Locking<Array<TimeStepCallback>> onTimeStepCallbacks;
     } sph;
 
@@ -103,6 +107,9 @@ public:
     /// Called every time step.
     void onTimeStep(const Storage& storage, Statistics& stats);
 
+    /// \todo ugly hack, remove
+    void setRunning();
+
     /// \addtogroup Run queries
 
     /// Returns true if the user aborted the run.
@@ -116,9 +123,13 @@ public:
 
     /// Returns a list of quantities that can be displayed.
     /// \param storage Particle storage containing data for the colorizer
-    /// \param forMovie Whether to return list of colorizers for image output or what interactive preview.
+    /// \param forMovie Whether to return list of colorizers for image output or for interactive preview.
     ///                 Some colorizers are skipped when create image files (boundary, ...)
-    Array<SharedPtr<IColorizer>> getColorizerList(const Storage& storage, const bool forMovie) const;
+    /// \param paletteOverrides Sets palettes for specific colorizers. Ordinarilly, default palettes are used
+    ///                         as returned by Factory::getPalette, this map can be used for customization.
+    Array<SharedPtr<IColorizer>> getColorizerList(const Storage& storage,
+        const bool forMovie,
+        const FlatMap<ColorizerId, Palette>& paletteOverrides) const;
 
     /// Renders a bitmap of current view. Can only be called from main thread.
     SharedPtr<Bitmap> getRenderedBitmap();

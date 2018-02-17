@@ -82,7 +82,7 @@ class DiehlDistribution : public IDistribution {
 private:
     using DensityFunc = Function<Float(const Vector& position)>;
     DensityFunc particleDensity;
-    Float error;
+    Float maxDifference;
     Size numOfIters;
     Float strength;
     Float small;
@@ -91,9 +91,10 @@ public:
     /// \brief Constructs a distribution using function returning expected particle density at given position.
     ///
     /// Function does not have to be normalized, only a relative number of particles at different places is
-    /// relevant.
-    /// \param error Allowed relative error in number of generated particles. Lower value generates number of
-    ///              particles closer to required value, but takes longer to compute.
+    /// relevant. It has to be strictly non-negative in the domain.
+    /// \param maxDifference Allowed difference between the expected number of particles and the number of
+    ///                      generated particles. Lower value generates number of particles closer to required
+    ///                      value, but takes longer to compute.
     /// \param numOfIters Number of iterations. For zero, distribution of particles is simply random, higher
     ///                   values lead to more evenly distributed particles (less discrepancy), but also take
     ///                   longer to compute.
@@ -102,7 +103,7 @@ public:
     /// \param small Normalization value to prevent division by zero for overlapping particles. Keep default,
     ///              only for testing.
     DiehlDistribution(const DensityFunc& particleDensity,
-        const Float error = 10,
+        const Float maxDifference = 10,
         const Size numOfIters = 50,
         const Float strenth = 0.1_f,
         const Float small = 0.1_f);

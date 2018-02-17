@@ -144,6 +144,11 @@ public:
     /// \copydoc addBody
     BodyView addMonolithicBody(Storage& storage, const IDomain& domain, AutoPtr<IMaterial>&& material);
 
+    BodyView addMonolithicBody(Storage& storage,
+        const IDomain& domain,
+        AutoPtr<IMaterial>&& material,
+        AutoPtr<IDistribution>&& distribution);
+
 
     /// Holds data needed to create a single body in \ref addHeterogeneousBody function.
     struct BodySetup {

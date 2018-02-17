@@ -290,6 +290,7 @@ AutoPtr<RunSettings> RunSettings::instance (new RunSettings {
     { RunSettingsId::SPH_FINDER_COMPACT_THRESHOLD,  "sph.finder.compact_threshold",     0.5_f },
     { RunSettingsId::SPH_STRAIN_RATE_CORRECTION_TENSOR, "sph.correction_tensor",        false },
     { RunSettingsId::SPH_FORMULATION,                   "sph.formulation",              int(FormulationEnum::STANDARD) },
+    { RunSettingsId::SPH_STABILIZATION_DAMPING,         "sph.stabilization_damping",    0.1_f },
 
     /// Global parameters of N-body simulations
     { RunSettingsId::NBODY_INERTIA_TENSOR,          "nbody.inertia_tensor",     true },
@@ -308,9 +309,6 @@ AutoPtr<RunSettings> RunSettings::instance (new RunSettings {
     { RunSettingsId::COLLISION_RESTITUTION_NORMAL,  "collision.restitution_normal",     0.8_f },
     { RunSettingsId::COLLISION_RESTITUTION_TANGENT, "collision.restitution_tangent",    1.0_f },
     { RunSettingsId::COLLISION_ALLOWED_OVERLAP,     "collision.allowed_overlap",        0.01_f },
-
-    { RunSettingsId::COLLISION_OVERLAP_RESTITUTION_NORMAL,  "collision.overlap_restitution_normal",     0.5_f },
-    { RunSettingsId::COLLISION_OVERLAP_RESTITUTION_TANGENT, "collision.overlap_restitution_tangent",    1.0_f },
     { RunSettingsId::COLLISION_MERGING_LIMIT,       "collision.merging_limit",          1._f },
 
     /// Timestepping parameters
@@ -372,6 +370,8 @@ AutoPtr<BodySettings> BodySettings::instance (new BodySettings {
     { BodySettingsId::COHESION,             "rheology.cohesion",            9.e7_f },
     { BodySettingsId::INTERNAL_FRICTION,    "rheology.internal_friction",   2._f },
     { BodySettingsId::DRY_FRICTION,         "rheology.dry_friction",        0.8_f },
+    { BodySettingsId::BRITTLE_DUCTILE_TRANSITION_PRESSURE, "rheology.brittle_ductile_transition_pressure", 1.23e9_f },  // Modeling damage and deformation in impact simulations
+    { BodySettingsId::BRITTLE_PLASTIC_TRANSITION_PRESSURE, "rheology.brittle_plastic_transition_pressure", 2.35e9_f },  // Collions et al. (2004)
     { BodySettingsId::MOHR_COULOMB_STRESS,  "rheology.mohr_coulomb_stress", 0._f },
     { BodySettingsId::FRICTION_ANGLE,       "rheology.friction_angle",      0._f },
 
@@ -402,12 +402,17 @@ AutoPtr<BodySettings> BodySettings::instance (new BodySettings {
     { BodySettingsId::CENTER_PARTICLES,        "sph.center_particles",         true },
     { BodySettingsId::PARTICLE_SORTING,        "sph.particle_sorting",         false },
     { BodySettingsId::DISTRIBUTE_MODE_SPH5,    "sph.distribute_mode_sph5",     false },
+    { BodySettingsId::DIELH_STRENGTH,          "sph.diehl_strength",           0.1_f },
+    { BodySettingsId::DIEHL_MAX_DIFFERENCE,    "sph.diehl_max_difference",     10 },
     { BodySettingsId::PARTICLE_COUNT,          "sph.particle_count",           10000 },
     { BodySettingsId::MIN_PARTICLE_COUNT,      "sph.min_particle_count",       100 },
     { BodySettingsId::AV_ALPHA,                "av.alpha",                     1.5_f },
     { BodySettingsId::AV_ALPHA_RANGE,          "av.alpha.range",               Interval(0.05_f, 1.5_f) },
     { BodySettingsId::AV_BETA,                 "av.beta",                      3._f },
     { BodySettingsId::AV_ALPHA_RANGE,          "av.beta.range",                Interval(0.1_f, 3._f) },
+    { BodySettingsId::BODY_CENTER,             "body.center",                  Vector(0._f) },
+    { BodySettingsId::BODY_VELOCITY,           "body.velocity",                Vector(0._f) },
+    { BodySettingsId::BODY_ANGULAR_VELOCITY,   "body.angular_velocity",        Vector(0._f) },
 });
 // clang-format on
 

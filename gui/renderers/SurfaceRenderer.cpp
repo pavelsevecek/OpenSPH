@@ -18,6 +18,7 @@ SurfaceRenderer::SurfaceRenderer(const GuiSettings& gui) {
     ambient = gui.get<Float>(GuiSettingsId::SURFACE_AMBIENT);
 
     RunSettings settings;
+    settings.set(RunSettingsId::SPH_FINDER, FinderEnum::KD_TREE);
     finder = Factory::getFinder(settings);
     kernel = Factory::getKernel<3>(settings);
 }
@@ -31,10 +32,10 @@ void SurfaceRenderer::initialize(const Storage& storage,
     cached.triangles = getSurfaceMesh(storage, surfaceResolution, surfaceLevel);
 
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
-    Float maxH = 0._f;
+    /*Float maxH = 0._f;
     for (Size i = 0; i < r.size(); ++i) {
         maxH = max(maxH, r[i][H]);
-    }
+    }*/
 
     finder->build(r);
     Array<NeighbourRecord> neighs;
@@ -43,21 +44,26 @@ void SurfaceRenderer::initialize(const Storage& storage,
         const Vector pos = t.center();
         /// \todo test wxGraphicsContext::CreateLinearGradientBrush, it might be possible to interpolate
         /// colors between triangle vertices
-        finder->findAll(pos, 2.f * maxH, neighs);
+        finder->findAll(pos, 2.f * surfaceResolution, neighs);
 
         Color colorSum(0._f);
         Float weightSum = 0._f;
         for (auto& n : neighs) {
             const Size i = n.index;
-            const Color color = colorizer.eval(i);
-            const Float w = kernel.value(r[i] - pos, r[i][H]);
-            colorSum += w * color;
+            const Color color = colorizer.evalColor(i);
+            const Float w = kernel.value(r[i] - pos, surfaceResolution);
+            colorSum += color * w;
             weightSum += w;
         }
 
-        // supersimple diffuse shading
-        const float gray = ambient + sunIntensity * max(0._f, dot(sunPosition, t.normal()));
-        cached.colors.push(colorSum / weightSum * gray);
+        if (weightSum == 0._f) {
+            // we somehow didn't find any neighbours, indicate the error by red triangle
+            cached.colors.push(Color::red());
+        } else {
+            // supersimple diffuse shading
+            const float gray = ambient + sunIntensity * max(0._f, dot(sunPosition, t.normal()));
+            cached.colors.push(colorSum / weightSum * gray);
+        }
     }
 }
 

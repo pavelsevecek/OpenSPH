@@ -116,11 +116,15 @@ enum class GuiSettingsId {
     /// Mask of the image names, having %d where the output number will be placed.
     IMAGES_NAME,
 
+    IMAGES_MOVIE_NAME,
+
     /// Time interval (in run time) of image saving. Note that images do not have to be saved exactly in
     /// specified times, as time step of the run is generally different than this value.
     IMAGES_TIMESTEP,
 
     PALETTE_DENSITY,
+
+    PALETTE_MASS,
 
     PALETTE_VELOCITY,
 

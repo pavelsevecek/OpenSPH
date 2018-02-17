@@ -149,6 +149,8 @@ enum class QuantityId {
 
     STRENGTH_DENSITY_VELOCITY_GRADIENT,
 
+    ENERGY_LAPLACIAN,
+
     ///@}
 
     /// \name Artificial velocity

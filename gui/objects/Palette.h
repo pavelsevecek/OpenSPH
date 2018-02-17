@@ -30,7 +30,11 @@ public:
 
     Palette(const Palette& other);
 
+    Palette(Palette&& other) = default;
+
     Palette& operator=(const Palette& other);
+
+    Palette& operator=(Palette&& other) = default;
 
     /// Create a color palette given control points and their colors. For linear and hybrid scale, controls
     /// points can be both positive or negative numbers, for logarithmic scale only positive numbers (and

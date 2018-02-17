@@ -58,8 +58,9 @@ void SphericalDomain::project(ArrayView<Vector> vs, Optional<ArrayView<Size>> in
     auto impl = [this](Vector& v) {
         if (!isInsideImpl(v)) {
             const Float h = v[H];
-            v = getNormalized(v - this->center) * radius + this->center;
+            v = getNormalized(v - this->center) * (1._f - EPS) * radius + this->center;
             v[H] = h;
+            ASSERT(isInsideImpl(v)); // these asserts are quite reduntant since we have unit tests for that
         }
     };
     if (indices) {
@@ -159,6 +160,7 @@ void EllipsoidalDomain::project(ArrayView<Vector> vs, Optional<ArrayView<Size>> 
             /// \todo test
             v = getNormalized((v - this->center) / radii) * radii + this->center;
             v[H] = h;
+            ASSERT(isInsideImpl(v));
         }
     };
     if (indices) {
@@ -250,6 +252,7 @@ void BlockDomain::project(ArrayView<Vector> vs, Optional<ArrayView<Size>> indice
             const Float h = v[H];
             v = box.clamp(v);
             v[H] = h;
+            ASSERT(box.contains(v));
         }
     };
     if (indices) {
@@ -374,12 +377,14 @@ void CylindricalDomain::project(ArrayView<Vector> vs, Optional<ArrayView<Size>> 
     auto impl = [this](Vector& v) {
         if (!isInsideImpl(v)) {
             const Float h = v[H];
-            v = getNormalized(Vector(v[X], v[Y], this->center[Z]) - this->center) * radius +
+            v = getNormalized(Vector(v[X], v[Y], this->center[Z]) - this->center) * (1._f - EPS) * radius +
                 Vector(this->center[X], this->center[Y], v[Z]);
             if (includeBases) {
-                v[Z] = clamp(v[Z], this->center[Z] - 0.5_f * height, this->center[Z] + 0.5_f * height);
+                const Float halfHeight = 0.5_f * (1._f - EPS) * height;
+                v[Z] = clamp(v[Z], this->center[Z] - halfHeight, this->center[Z] + halfHeight);
             }
             v[H] = h;
+            ASSERT(isInsideImpl(v));
         }
     };
     if (indices) {
@@ -486,12 +491,14 @@ void HexagonalDomain::project(ArrayView<Vector> vs, Optional<ArrayView<Size>> in
         if (!isInsideImpl(v)) {
             // find triangle
             const Float phi = atan2(v[Y], v[X]);
-            const Float r = outerRadius * hexagon(phi);
+            const Float r = (1._f - EPS) * outerRadius * hexagon(phi);
             const Vector u = r * getNormalized(Vector(v[X], v[Y], 0._f));
             v = Vector(u[X], u[Y], v[Z], v[H]);
             if (includeBases) {
-                v[Z] = clamp(v[Z], this->center[Z] - 0.5_f * height, this->center[Z] + 0.5_f * height);
+                const Float halfHeight = 0.5_f * (1._f - EPS) * height;
+                v[Z] = clamp(v[Z], this->center[Z] - halfHeight, this->center[Z] + halfHeight);
             }
+            ASSERT(isInsideImpl(v));
         }
     };
     if (indices) {

@@ -20,13 +20,17 @@ public:
     virtual void onTimeStep(const Storage& storage, Statistics& stats) override {
         Timer timer;
         controller.onTimeStep(storage, stats);
-        stats.set(StatisticsId::POSTPROCESS_EVAL_TIME, timer.elapsed(TimerUnit::MILLISECOND));
+        stats.set(StatisticsId::POSTPROCESS_EVAL_TIME, int(timer.elapsed(TimerUnit::MILLISECOND)));
     }
 
-    virtual void onRunStart(const Storage& UNUSED(storage), Statistics& UNUSED(stats)) override {}
+    virtual void onRunStart(const Storage& UNUSED(storage), Statistics& UNUSED(stats)) override {
+        controller.setRunning();
+    }
 
-    virtual void onRunEnd(const Storage& UNUSED(storage), Statistics& stats) override {
-        stats.get<Float>(StatisticsId::RUN_TIME);
+    virtual void onRunEnd(const Storage& UNUSED(storage), Statistics& UNUSED(stats)) override {
+        if (controller.movie) {
+            controller.movie->finalize();
+        }
     }
 
     virtual bool shouldAbortRun() const override {

@@ -54,7 +54,7 @@ void IRun::run() {
     setNullToDefaults();
 
     // run main loop
-    Float nextOutput = outputInterval;
+    Float nextOutput = timeRange.lower() + outputInterval;
     logger->write("Running:");
     Timer runTimer;
     EndingCondition condition(settings.get<Float>(RunSettingsId::RUN_WALLCLOCK_TIME),
@@ -117,6 +117,7 @@ void IRun::run() {
 }
 
 SharedPtr<Storage> IRun::getStorage() const {
+    ASSERT(storage);
     return storage;
 }
 

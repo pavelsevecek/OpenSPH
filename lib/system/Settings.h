@@ -598,6 +598,32 @@ enum class RunSettingsId {
     /// Minimal value of smoothing length
     SPH_SMOOTHING_LENGTH_MIN,
 
+    /// Type of used artificial viscosity.
+    SPH_AV_TYPE,
+
+    /// Whether to use balsara switch for computing artificial viscosity dissipation. If no artificial
+    /// viscosity is used, the value has no effect.
+    SPH_AV_BALSARA,
+
+    /// If true, Balsara factors will be saved as quantity AV_BALSARA. Mainly for debugging purposes.
+    SPH_AV_BALSARA_STORE,
+
+    /// Epsilon-factor of XSPH correction (Monaghan, 1992). Value 0 turns off the correction, epsilon
+    /// shouldn't be larger than 1.
+    XSPH_EPSILON,
+
+    /// Weighting function exponent n in artificial stress term
+    SPH_AV_STRESS_EXPONENT,
+
+    /// Multiplicative factor of the artificial stress term (= strength of the viscosity)
+    SPH_AV_STRESS_FACTOR,
+
+    /// Damping coefficient of particle velocities in stabilization phase. Higher values damp the
+    /// oscillation/instabilities faster, but may converge to incorrect (unstable) configuration. Lower values
+    /// lead to (slower) convergence to correct (stable) configuration, but it may cause body dissintegration
+    /// if the initial conditions are to far from the stable solution.
+    SPH_STABILIZATION_DAMPING,
+
     /// If true, all particles have also a moment of inertia, representing a non-homogeneous mass
     /// distribution. Otherwise, particles are spherical with inertia tensor I = 2/5 mr^2
     NBODY_INERTIA_TENSOR,
@@ -620,19 +646,24 @@ enum class RunSettingsId {
     /// Gravity smoothing kernel
     GRAVITY_KERNEL,
 
+    /// Specifies how the collisions of particles should be handler; see CollisionHandlerEnum.
     COLLISION_HANDLER,
 
+    /// Specifies how particle overlaps should be handled.
     COLLISION_OVERLAP,
 
+    /// Coefficient of restitution for normal component (alongside particle direction vector) of velocity.
+    /// Applicable only for bounce collisions.
     COLLISION_RESTITUTION_NORMAL,
 
+    /// Coefficient of restitution for tangent component (perpendicular to particle direction vector) of
+    /// velocity. Applicable only for bounce collisions.
     COLLISION_RESTITUTION_TANGENT,
 
+    /// Relative particle overlap (0 for particles in contact, 1 for particles lying on top of each other) for
+    /// which the collision is handled as overlap. Used to avoid very small (<EPS) overlaps not being handled
+    /// as collision due to numerical imprecisions.
     COLLISION_ALLOWED_OVERLAP,
-
-    COLLISION_OVERLAP_RESTITUTION_NORMAL,
-
-    COLLISION_OVERLAP_RESTITUTION_TANGENT,
 
     /// Multiplier of the relative velocity and the angular velocity of the merger, used when determining
     /// whether to merge the collided particles or reject the collision. If zero, particles are always merged,
@@ -656,16 +687,6 @@ enum class RunSettingsId {
     /// Use gravitational force in the model.
     MODEL_FORCE_GRAVITY,
 
-    /// Type of used artificial viscosity.
-    SPH_AV_TYPE,
-
-    /// Whether to use balsara switch for computing artificial viscosity dissipation. If no artificial
-    /// viscosity is used, the value has no effect.
-    SPH_AV_BALSARA,
-
-    /// If true, Balsara factors will be saved as quantity AV_BALSARA. Mainly for debugging purposes.
-    SPH_AV_BALSARA_STORE,
-
     /// Selected solver for computing derivatives of physical variables.
     SOLVER_TYPE,
 
@@ -674,16 +695,6 @@ enum class RunSettingsId {
 
     /// Number of spatial dimensions of the problem.
     SOLVER_DIMENSIONS,
-
-    /// Epsilon-factor of XSPH correction (Monaghan, 1992). Value 0 turns off the correction, epsilon
-    /// shouldn't be larger than 1.
-    XSPH_EPSILON,
-
-    /// Weighting function exponent n in artificial stress term
-    SPH_AV_STRESS_EXPONENT,
-
-    /// Multiplicative factor of the artificial stress term (= strength of the viscosity)
-    SPH_AV_STRESS_FACTOR,
 
     /// Save initial positions of particles to the output
     OUTPUT_SAVE_INITIAL_POSITION,
@@ -830,6 +841,13 @@ enum class BodySettingsId {
     /// implies CENTER_PARTICLES.
     DISTRIBUTE_MODE_SPH5,
 
+    /// Strength parameter of the Diehl's distribution.
+    DIELH_STRENGTH,
+
+    /// Maximum allowed difference between the expected number of particles and the actual number of generated
+    /// particles. Higher value speed up the generation of particle positions.
+    DIEHL_MAX_DIFFERENCE,
+
     /// Density at zero pressure
     DENSITY,
 
@@ -936,6 +954,12 @@ enum class BodySettingsId {
     DRY_FRICTION,
 
     /// \todo
+    BRITTLE_DUCTILE_TRANSITION_PRESSURE,
+
+    /// \todo
+    BRITTLE_PLASTIC_TRANSITION_PRESSURE,
+
+    /// \todo
     MOHR_COULOMB_STRESS,
 
     /// \todo
@@ -949,6 +973,8 @@ enum class BodySettingsId {
     WEIBULL_EXPONENT,
 
     KINEMATIC_VISCOSITY,
+
+    DIFFUSIVITY,
 
     /// Coefficient of surface tension
     SURFACE_TENSION,
@@ -975,6 +1001,16 @@ enum class BodySettingsId {
 
     /// Lower and upper bound of the alpha coefficient, used only for time-dependent artificial viscosity.
     AV_BETA_RANGE,
+
+    /// Center point of the body. Currently used only by StabilizationSolver.
+    BODY_CENTER,
+
+    /// Velocity of the body. `Currently used only by StabilizationSolver.
+    BODY_VELOCITY,
+
+    /// Angular velocity of the body with a respect to position given by BODY_CENTER. `Currently used only by
+    /// StabilizationSolver.
+    BODY_ANGULAR_VELOCITY,
 };
 
 using RunSettings = Settings<RunSettingsId>;

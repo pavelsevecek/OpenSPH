@@ -34,6 +34,10 @@ Path OutputFile::getNextPath(const Statistics& stats) const {
     return Path(path);
 }
 
+Path OutputFile::getMask() const {
+    return pathMask;
+}
+
 IOutput::IOutput(const Path& fileMask)
     : paths(fileMask) {
     ASSERT(!fileMask.empty());
@@ -244,129 +248,128 @@ Path GnuplotOutput::dump(Storage& storage, const Statistics& stats) {
 
 namespace {
 
-    /// \todo this should be really part of the serializer/deserializer, otherwise it's kinda pointless
-    struct SerializerDispatcher {
-        Serializer& serializer;
+/// \todo this should be really part of the serializer/deserializer, otherwise it's kinda pointless
+struct SerializerDispatcher {
+    Serializer& serializer;
 
-        template <typename T>
-        void operator()(const T& value) {
-            serializer.write(value);
-        }
-        void operator()(const Interval& value) {
-            serializer.write(value.lower(), value.upper());
-        }
-        void operator()(const Vector& value) {
-            serializer.write(value[X], value[Y], value[Z], value[H]);
-        }
-        void operator()(const SymmetricTensor& t) {
-            serializer.write(t(0, 0), t(1, 1), t(2, 2), t(0, 1), t(0, 2), t(1, 2));
-        }
-        void operator()(const TracelessTensor& t) {
-            serializer.write(t(0, 0), t(1, 1), t(0, 1), t(0, 2), t(1, 2));
-        }
-        void operator()(const Tensor& t) {
-            serializer.write(t(0, 0), t(0, 1), t(0, 2), t(1, 0), t(1, 1), t(1, 2), t(2, 0), t(2, 1), t(2, 2));
-        }
-    };
-    struct DeserializerDispatcher {
-        Deserializer& deserializer;
+    template <typename T>
+    void operator()(const T& value) {
+        serializer.write(value);
+    }
+    void operator()(const Interval& value) {
+        serializer.write(value.lower(), value.upper());
+    }
+    void operator()(const Vector& value) {
+        serializer.write(value[X], value[Y], value[Z], value[H]);
+    }
+    void operator()(const SymmetricTensor& t) {
+        serializer.write(t(0, 0), t(1, 1), t(2, 2), t(0, 1), t(0, 2), t(1, 2));
+    }
+    void operator()(const TracelessTensor& t) {
+        serializer.write(t(0, 0), t(1, 1), t(0, 1), t(0, 2), t(1, 2));
+    }
+    void operator()(const Tensor& t) {
+        serializer.write(t(0, 0), t(0, 1), t(0, 2), t(1, 0), t(1, 1), t(1, 2), t(2, 0), t(2, 1), t(2, 2));
+    }
+};
+struct DeserializerDispatcher {
+    Deserializer& deserializer;
 
-        template <typename T>
-        void operator()(T& value) {
-            deserializer.read(value);
-        }
-        void operator()(Interval& value) {
-            Float lower, upper;
-            deserializer.read(lower, upper);
-            value = Interval(lower, upper);
-        }
-        void operator()(Vector& value) {
-            deserializer.read(value[X], value[Y], value[Z], value[H]);
-        }
-        void operator()(SymmetricTensor& t) {
-            deserializer.read(t(0, 0), t(1, 1), t(2, 2), t(0, 1), t(0, 2), t(1, 2));
-        }
-        void operator()(TracelessTensor& t) {
-            StaticArray<Float, 5> a;
-            deserializer.read(a[0], a[1], a[2], a[3], a[4]);
-            t = TracelessTensor(a[0], a[1], a[2], a[3], a[4]);
-        }
-        void operator()(Tensor& t) {
-            deserializer.read(
-                t(0, 0), t(0, 1), t(0, 2), t(1, 0), t(1, 1), t(1, 2), t(2, 0), t(2, 1), t(2, 2));
-        }
-    };
+    template <typename T>
+    void operator()(T& value) {
+        deserializer.read(value);
+    }
+    void operator()(Interval& value) {
+        Float lower, upper;
+        deserializer.read(lower, upper);
+        value = Interval(lower, upper);
+    }
+    void operator()(Vector& value) {
+        deserializer.read(value[X], value[Y], value[Z], value[H]);
+    }
+    void operator()(SymmetricTensor& t) {
+        deserializer.read(t(0, 0), t(1, 1), t(2, 2), t(0, 1), t(0, 2), t(1, 2));
+    }
+    void operator()(TracelessTensor& t) {
+        StaticArray<Float, 5> a;
+        deserializer.read(a[0], a[1], a[2], a[3], a[4]);
+        t = TracelessTensor(a[0], a[1], a[2], a[3], a[4]);
+    }
+    void operator()(Tensor& t) {
+        deserializer.read(t(0, 0), t(0, 1), t(0, 2), t(1, 0), t(1, 1), t(1, 2), t(2, 0), t(2, 1), t(2, 2));
+    }
+};
 
-    struct StoreBuffersVisitor {
-        template <typename TValue>
-        void visit(Quantity& q, Serializer& serializer, const IndexSequence& sequence) {
-            SerializerDispatcher dispatcher{ serializer };
-            StaticArray<Array<TValue>&, 3> buffers = q.getAll<TValue>();
+struct StoreBuffersVisitor {
+    template <typename TValue>
+    void visit(Quantity& q, Serializer& serializer, const IndexSequence& sequence) {
+        SerializerDispatcher dispatcher{ serializer };
+        StaticArray<Array<TValue>&, 3> buffers = q.getAll<TValue>();
+        for (Size i : sequence) {
+            dispatcher(buffers[0][i]);
+        }
+        switch (q.getOrderEnum()) {
+        case OrderEnum::ZERO:
+            break;
+        case OrderEnum::FIRST:
             for (Size i : sequence) {
-                dispatcher(buffers[0][i]);
+                dispatcher(buffers[1][i]);
             }
-            switch (q.getOrderEnum()) {
-            case OrderEnum::ZERO:
-                break;
-            case OrderEnum::FIRST:
-                for (Size i : sequence) {
-                    dispatcher(buffers[1][i]);
-                }
-                break;
-            case OrderEnum::SECOND:
-                for (Size i : sequence) {
-                    dispatcher(buffers[1][i]);
-                }
-                for (Size i : sequence) {
-                    dispatcher(buffers[2][i]);
-                }
-                break;
-            default:
-                STOP;
-            }
-        }
-    };
-
-    struct LoadBuffersVisitor {
-        template <typename TValue>
-        void visit(Storage& storage,
-            Deserializer& deserializer,
-            const IndexSequence& sequence,
-            const QuantityId id,
-            const OrderEnum order) {
-            DeserializerDispatcher dispatcher{ deserializer };
-            Array<TValue> buffer(sequence.size());
+            break;
+        case OrderEnum::SECOND:
             for (Size i : sequence) {
-                dispatcher(buffer[i]);
+                dispatcher(buffers[1][i]);
             }
-            storage.insert<TValue>(id, order, std::move(buffer));
-            switch (order) {
-            case OrderEnum::ZERO:
-                // already done
-                break;
-            case OrderEnum::FIRST: {
-                ArrayView<TValue> dv = storage.getDt<TValue>(id);
-                for (Size i : sequence) {
-                    dispatcher(dv[i]);
-                }
-                break;
+            for (Size i : sequence) {
+                dispatcher(buffers[2][i]);
             }
-            case OrderEnum::SECOND: {
-                ArrayView<TValue> dv = storage.getDt<TValue>(id);
-                ArrayView<TValue> d2v = storage.getD2t<TValue>(id);
-                for (Size i : sequence) {
-                    dispatcher(dv[i]);
-                }
-                for (Size i : sequence) {
-                    dispatcher(d2v[i]);
-                }
-                break;
-            }
-            default:
-                NOT_IMPLEMENTED;
-            }
+            break;
+        default:
+            STOP;
         }
-    };
+    }
+};
+
+struct LoadBuffersVisitor {
+    template <typename TValue>
+    void visit(Storage& storage,
+        Deserializer& deserializer,
+        const IndexSequence& sequence,
+        const QuantityId id,
+        const OrderEnum order) {
+        DeserializerDispatcher dispatcher{ deserializer };
+        Array<TValue> buffer(sequence.size());
+        for (Size i : sequence) {
+            dispatcher(buffer[i]);
+        }
+        storage.insert<TValue>(id, order, std::move(buffer));
+        switch (order) {
+        case OrderEnum::ZERO:
+            // already done
+            break;
+        case OrderEnum::FIRST: {
+            ArrayView<TValue> dv = storage.getDt<TValue>(id);
+            for (Size i : sequence) {
+                dispatcher(dv[i]);
+            }
+            break;
+        }
+        case OrderEnum::SECOND: {
+            ArrayView<TValue> dv = storage.getDt<TValue>(id);
+            ArrayView<TValue> d2v = storage.getD2t<TValue>(id);
+            for (Size i : sequence) {
+                dispatcher(dv[i]);
+            }
+            for (Size i : sequence) {
+                dispatcher(d2v[i]);
+            }
+            break;
+        }
+        default:
+            NOT_IMPLEMENTED;
+        }
+    }
+};
 } // namespace
 
 BinaryOutput::BinaryOutput(const Path& fileMask)

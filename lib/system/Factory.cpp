@@ -181,8 +181,11 @@ AutoPtr<IDistribution> Factory::getDistribution(const BodySettings& settings) {
     case DistributionEnum::RANDOM:
         /// \todo user-selected seed?
         return makeAuto<RandomDistribution>(1234);
-    case DistributionEnum::DIEHL_ET_AL:
-        return makeAuto<DiehlDistribution>([](const Vector&) { return 1._f; });
+    case DistributionEnum::DIEHL_ET_AL: {
+        const Float strength = settings.get<Float>(BodySettingsId::DIELH_STRENGTH);
+        const Size maxDiff = settings.get<int>(BodySettingsId::DIEHL_MAX_DIFFERENCE);
+        return makeAuto<DiehlDistribution>([](const Vector&) { return 1._f; }, maxDiff, 50, strength);
+    }
     case DistributionEnum::LINEAR:
         return makeAuto<LinearDistribution>();
     default:

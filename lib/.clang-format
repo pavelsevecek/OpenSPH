@@ -41,7 +41,7 @@ Language: Cpp
 MacroBlockBegin: 'BEGIN_EVENT_TABLE'
 MacroBlockEnd:   'END_EVENT_TABLE'
 MaxEmptyLinesToKeep: 2
-NamespaceIndentation: All
+NamespaceIndentation: Inner
 
 PenaltyBreakBeforeFirstCallParameter: 9999999
 PenaltyBreakComment: 300

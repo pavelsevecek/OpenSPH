@@ -31,6 +31,9 @@ private:
     /// File names of the images
     OutputFile paths;
 
+    /// Path (mask) of the final animations
+    Path animationPath;
+
     /// Enable/disable image saving
     bool enabled;
 
@@ -65,6 +68,9 @@ public:
     ///
     /// Can be called from any thread; the function is blocking, waits until all images are saved.
     void onTimeStep(const Storage& storage, Statistics& stats);
+
+    /// \brief Creates the animations from generated images.
+    void finalize();
 
     void setEnabled(const bool enable = true);
 };

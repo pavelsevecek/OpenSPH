@@ -167,11 +167,11 @@ wxBoxSizer* MainWindow::createSidebar() {
     SharedPtr<Array<PlotData>> list = makeShared<Array<PlotData>>();
 
     TemporalPlot::Params params;
-    params.segment = 1._f;
+    // params.segment = 1._f;
     params.minRangeY = 1.4_f;
     // params.fixedRangeX = Interval{ -50._f, 10._f };
     params.shrinkY = false;
-    params.period = 0.05_f;
+    params.period = 1._f;
 
     PlotData data;
     IntegralWrapper integral;

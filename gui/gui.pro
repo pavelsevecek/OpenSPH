@@ -75,4 +75,5 @@ HEADERS += \
     windows/MainWindow.h \
     windows/OrthoPane.h \
     windows/ParticleProbe.h \
-    windows/PlotView.h
+    windows/PlotView.h \
+    renderers/RenderContext.h

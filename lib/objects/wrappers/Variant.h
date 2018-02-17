@@ -50,87 +50,87 @@ public:
 /// Helper visitors creating, deleting or modifying Variant
 namespace VariantHelpers {
 
-    /// Creates a variant using default constructor
-    template <typename... TArgs>
-    struct DefaultCreate {
-        AlignedUnion<TArgs...>& storage;
+/// Creates a variant using default constructor
+template <typename... TArgs>
+struct DefaultCreate {
+    AlignedUnion<TArgs...>& storage;
 
-        template <typename T>
-        void visit() {
-            storage.template emplace<T>();
-        }
-    };
+    template <typename T>
+    void visit() {
+        storage.template emplace<T>();
+    }
+};
 
-    /// Destroys the object currently stored in variant.
-    template <typename... TArgs>
-    struct Delete {
-        AlignedUnion<TArgs...>& storage;
+/// Destroys the object currently stored in variant.
+template <typename... TArgs>
+struct Delete {
+    AlignedUnion<TArgs...>& storage;
 
-        template <typename T>
-        void visit() {
-            storage.template destroy<T>();
-        }
-    };
+    template <typename T>
+    void visit() {
+        storage.template destroy<T>();
+    }
+};
 
-    /// Creates a variant by copying/moving value currently stored in other variant.
-    template <typename... TArgs>
-    struct CopyMoveCreate {
-        AlignedUnion<TArgs...>& storage;
+/// Creates a variant by copying/moving value currently stored in other variant.
+template <typename... TArgs>
+struct CopyMoveCreate {
+    AlignedUnion<TArgs...>& storage;
 
-        template <typename T, typename TOther>
-        void visit(const TOther& other) {
-            storage.template emplace<T>(other.template get<T>());
-        }
+    template <typename T, typename TOther>
+    void visit(const TOther& other) {
+        storage.template emplace<T>(other.template get<T>());
+    }
 
-        template <typename T,
-            typename TOther,
-            typename = std::enable_if_t<!std::is_lvalue_reference<TOther>::value>>
-        void visit(TOther&& other) {
-            storage.template emplace<T>(std::move(other.template get<T>()));
-        }
-    };
+    template <typename T,
+        typename TOther,
+        typename = std::enable_if_t<!std::is_lvalue_reference<TOther>::value>>
+    void visit(TOther&& other) {
+        storage.template emplace<T>(std::move(other.template get<T>()));
+    }
+};
 
-    /// Assigns a value type of which can be stored in variant.
-    template <typename... TArgs>
-    struct Assign {
-        AlignedUnion<TArgs...>& storage;
+/// Assigns a value type of which can be stored in variant.
+template <typename... TArgs>
+struct Assign {
+    AlignedUnion<TArgs...>& storage;
 
-        template <typename T, typename TOther>
-        void visit(TOther&& other) {
-            using TRaw = std::decay_t<TOther>;
-            storage.template get<TRaw>() = std::forward<TOther>(other);
-        }
-    };
+    template <typename T, typename TOther>
+    void visit(TOther&& other) {
+        using TRaw = std::decay_t<TOther>;
+        storage.template get<TRaw>() = std::forward<TOther>(other);
+    }
+};
 
-    /// Creates a variant by copying/moving value currently stored in other variant.
-    template <typename... TArgs>
-    struct CopyMoveAssign {
-        AlignedUnion<TArgs...>& storage;
+/// Creates a variant by copying/moving value currently stored in other variant.
+template <typename... TArgs>
+struct CopyMoveAssign {
+    AlignedUnion<TArgs...>& storage;
 
-        template <typename T, typename TOther>
-        void visit(const TOther& other) {
-            storage.template get<T>() = other.template get<T>();
-        }
+    template <typename T, typename TOther>
+    void visit(const TOther& other) {
+        storage.template get<T>() = other.template get<T>();
+    }
 
-        template <typename T,
-            typename TOther,
-            typename = std::enable_if_t<!std::is_lvalue_reference<TOther>::value>>
-        void visit(TOther&& other) {
-            storage.template get<T>() = std::move(other.template get<T>());
-        }
-    };
+    template <typename T,
+        typename TOther,
+        typename = std::enable_if_t<!std::is_lvalue_reference<TOther>::value>>
+    void visit(TOther&& other) {
+        storage.template get<T>() = std::move(other.template get<T>());
+    }
+};
 
-    /// Swaps content of two variants.
-    template <typename... TArgs>
-    struct Swap {
-        AlignedUnion<TArgs...>& storage;
+/// Swaps content of two variants.
+template <typename... TArgs>
+struct Swap {
+    AlignedUnion<TArgs...>& storage;
 
-        template <typename T, typename TOther>
-        void visit(TOther&& other) {
-            std::swap(storage.template get<T>(), other.template get<T>());
-        }
-    };
-}
+    template <typename T, typename TOther>
+    void visit(TOther&& other) {
+        std::swap(storage.template get<T>(), other.template get<T>());
+    }
+};
+} // namespace VariantHelpers
 
 /// Iterates through types of variant until idx-th type is found, and executes given TVisitor, passing
 /// arguments to its method visit().
@@ -345,18 +345,7 @@ public:
     /// Returns the stored value in the variant. Safer than implicit conversion as it returns NOTHING in case
     /// the value is currently not stored in variant.
     template <typename T>
-    Optional<T&> tryGet() {
-        constexpr int idx = getTypeIndex<std::decay_t<T>, TArgs...>;
-        static_assert(idx != -1, "Cannot convert variant to this type");
-        if (typeIdx != getTypeIndex<std::decay_t<T>, TArgs...>) {
-            return NOTHING;
-        }
-        return storage.template get<T>();
-    }
-
-    /// Returns the stored value in the variant, const version
-    template <typename T>
-    Optional<const T&> tryGet() const {
+    Optional<T> tryGet() const {
         constexpr int idx = getTypeIndex<std::decay_t<T>, TArgs...>;
         static_assert(idx != -1, "Cannot convert variant to this type");
         if (typeIdx != getTypeIndex<std::decay_t<T>, TArgs...>) {
@@ -368,40 +357,40 @@ public:
 
 
 namespace Detail {
-    template <Size N, typename T0, typename... TArgs>
-    struct ForValue {
-        template <typename TVariant, typename TFunctor>
-        INLINE static decltype(auto) action(TVariant&& variant, TFunctor&& functor) {
-            if (variant.template getTypeIdx() == N) {
-                return functor(variant.template get<T0>());
-            } else {
-                return ForValue<N + 1, TArgs...>::action(
-                    std::forward<TVariant>(variant), std::forward<TFunctor>(functor));
-            }
-        }
-    };
-
-    // specialization for NothingType, does not call the functor
-    template <Size N, typename... TArgs>
-    struct ForValue<N, NothingType, TArgs...> {
-        template <typename TVariant, typename TFunctor>
-        INLINE static decltype(auto) action(TVariant&& variant, TFunctor&& functor) {
-            if (variant.template getTypeIdx() != N) {
-                return ForValue<N + 1, TArgs...>::action(
-                    std::forward<TVariant>(variant), std::forward<TFunctor>(functor));
-            }
-            STOP;
-        }
-    };
-
-    template <Size N, typename T0>
-    struct ForValue<N, T0> {
-        template <typename TVariant, typename TFunctor>
-        INLINE static decltype(auto) action(TVariant&& variant, TFunctor&& functor) {
+template <Size N, typename T0, typename... TArgs>
+struct ForValue {
+    template <typename TVariant, typename TFunctor>
+    INLINE static decltype(auto) action(TVariant&& variant, TFunctor&& functor) {
+        if (variant.template getTypeIdx() == N) {
             return functor(variant.template get<T0>());
+        } else {
+            return ForValue<N + 1, TArgs...>::action(
+                std::forward<TVariant>(variant), std::forward<TFunctor>(functor));
         }
-    };
-}
+    }
+};
+
+// specialization for NothingType, does not call the functor
+template <Size N, typename... TArgs>
+struct ForValue<N, NothingType, TArgs...> {
+    template <typename TVariant, typename TFunctor>
+    INLINE static decltype(auto) action(TVariant&& variant, TFunctor&& functor) {
+        if (variant.template getTypeIdx() != N) {
+            return ForValue<N + 1, TArgs...>::action(
+                std::forward<TVariant>(variant), std::forward<TFunctor>(functor));
+        }
+        STOP;
+    }
+};
+
+template <Size N, typename T0>
+struct ForValue<N, T0> {
+    template <typename TVariant, typename TFunctor>
+    INLINE static decltype(auto) action(TVariant&& variant, TFunctor&& functor) {
+        return functor(variant.template get<T0>());
+    }
+};
+} // namespace Detail
 
 /// Executes a functor passing current value stored in variant as its parameter. The functor must either have
 /// templated operator() (i.e. generic lambda), or have an overloaded operator for each type contained in
@@ -428,8 +417,8 @@ NAMESPACE_SPH_END
 
 /// Overload of std::swap for Sph::Variant.
 namespace std {
-    template <typename... TArgs>
-    void swap(Sph::Variant<TArgs...>& v1, Sph::Variant<TArgs...>& v2) {
-        v1.swap(v2);
-    }
+template <typename... TArgs>
+void swap(Sph::Variant<TArgs...>& v1, Sph::Variant<TArgs...>& v2) {
+    v1.swap(v2);
 }
+} // namespace std

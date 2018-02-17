@@ -119,7 +119,7 @@ SOURCES += \
     ../lib/sph/equations/av/test/Balsara.cpp \
     ../lib/sph/equations/av/test/MorrisMonaghan.cpp \
     ../lib/sph/equations/av/test/Stress.cpp \
-    ../lib/sph/equations/heat/test/HeatDiffusion.cpp \
+    ../lib/sph/equations/test/Heat.cpp \
     ../lib/sph/equations/test/Accumulated.cpp \
     ../lib/sph/equations/test/Derivative.cpp \
     ../lib/sph/equations/test/EquationTerm.cpp \
@@ -157,7 +157,9 @@ SOURCES += \
     utils/Utils.cpp \
     ../lib/sph/solvers/test/StandardSets.cpp \
     ../lib/gravity/test/NBodySolver.cpp \
-    ../lib/objects/containers/test/FlatSet.cpp
+    ../lib/objects/containers/test/FlatSet.cpp \
+    ../lib/objects/containers/test/ArrayRef.cpp \
+    ../lib/objects/wrappers/test/Lut.cpp
 
 HEADERS += \
     utils/Utils.h \

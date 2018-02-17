@@ -62,6 +62,8 @@ private:
     Size particleCnt;
 
 public:
+    GhostParticles(AutoPtr<IDomain>&& domain, const Float searchRadius, const Float minimalDist);
+
     GhostParticles(AutoPtr<IDomain>&& domain, const RunSettings& settings);
 
     virtual void initialize(Storage& storage) override;

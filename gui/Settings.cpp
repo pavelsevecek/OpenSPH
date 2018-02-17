@@ -25,7 +25,7 @@ AutoPtr<GuiSettings> GuiSettings::instance (new GuiSettings {
     { GuiSettingsId::SURFACE_RESOLUTION,    "surface.resolution",   100._f },  // m
     { GuiSettingsId::SURFACE_LEVEL,         "surface.level",        0.3_f },
     { GuiSettingsId::SURFACE_SUN_POSITION,  "surface.sun_position", Vector(0.f, 0.f, 1.f) },
-    { GuiSettingsId::SURFACE_SUN_INTENSITY, "surface.sun_intentity", 0.5_f },
+    { GuiSettingsId::SURFACE_SUN_INTENSITY, "surface.sun_intentity", 0.7_f },
     { GuiSettingsId::SURFACE_AMBIENT,       "surface.ambient",      0.3_f },
     { GuiSettingsId::ORTHO_VIEW_CENTER,     "view.center",          Vector(0._f) },
     { GuiSettingsId::ORTHO_FOV,             "view.fov",             1._f },
@@ -41,16 +41,18 @@ AutoPtr<GuiSettings> GuiSettings::instance (new GuiSettings {
     { GuiSettingsId::PLOT_INTEGRALS,   "plot.integrals",   int(PlotEnum::ALL) },
 
     /// Saved animation frames
-    { GuiSettingsId::IMAGES_RENDERER,  "images.renderer",  int(RendererEnum::PARTICLE) },
-    { GuiSettingsId::IMAGES_SAVE,      "images.save",      false },
-    { GuiSettingsId::IMAGES_PATH,      "images.path",      std::string("imgs/") },
-    { GuiSettingsId::IMAGES_NAME,      "images.name",      std::string("img_%e_%d.png") },
-    { GuiSettingsId::IMAGES_TIMESTEP,  "images.time_step", 0.1_f },
-    { GuiSettingsId::IMAGES_WIDTH,     "images.width",     800 },
-    { GuiSettingsId::IMAGES_HEIGHT,    "images.height",    600 },
+    { GuiSettingsId::IMAGES_RENDERER,       "images.renderer",      int(RendererEnum::PARTICLE) },
+    { GuiSettingsId::IMAGES_SAVE,           "images.save",          false },
+    { GuiSettingsId::IMAGES_PATH,           "images.path",          std::string("imgs/") },
+    { GuiSettingsId::IMAGES_NAME,           "images.name",          std::string("img_%e_%d.png") },
+    { GuiSettingsId::IMAGES_MOVIE_NAME,     "images.movie_name",    std::string("%e.avi") },
+    { GuiSettingsId::IMAGES_TIMESTEP,       "images.time_step",     0.1_f },
+    { GuiSettingsId::IMAGES_WIDTH,          "images.width",         800 },
+    { GuiSettingsId::IMAGES_HEIGHT,         "images.height",        600 },
 
     /// Color palettes
     { GuiSettingsId::PALETTE_DENSITY,       "palette.density",      Interval(2650._f, 2750._f) },
+    { GuiSettingsId::PALETTE_MASS,          "palette.mass",         Interval(0._f, 1.e10_f) },
     { GuiSettingsId::PALETTE_VELOCITY,      "palette.velocity",     Interval(0._f, 1._f) },
     { GuiSettingsId::PALETTE_ACCELERATION,  "palette.acceleration", Interval(0._f, 100._f) },
     { GuiSettingsId::PALETTE_PRESSURE,      "palette.pressure",     Interval(-1000._f, 1.e10_f) },
@@ -58,7 +60,7 @@ AutoPtr<GuiSettings> GuiSettings::instance (new GuiSettings {
     { GuiSettingsId::PALETTE_STRESS,        "palette.stress",       Interval(0._f, 1.e10_f) },
     { GuiSettingsId::PALETTE_DAMAGE,        "palette.damage",       Interval(0._f, 1._f) },
     { GuiSettingsId::PALETTE_DIVV,          "palette.divv",         Interval(-0.1_f, 0.1_f) },
-    { GuiSettingsId::PALETTE_GRADV,         "palette.gradv",         Interval(0._f, 1.e-3_f) },
+    { GuiSettingsId::PALETTE_GRADV,         "palette.gradv",        Interval(0._f, 1.e-3_f) },
     { GuiSettingsId::PALETTE_RADIUS,        "palette.radius",       Interval(0._f, 1.e3_f) },
     { GuiSettingsId::PALETTE_DENSITY_PERTURB,               "palette.density_perturb",                  Interval(-1.e-6_f, 1.e-6_f) },
     { GuiSettingsId::PALETTE_ANGULAR_VELOCITY,              "palette.angular_velocity",                 Interval(0._f, 1.e-3_f) },
