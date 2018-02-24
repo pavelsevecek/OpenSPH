@@ -120,12 +120,12 @@ public:
 RunSettings getSharedSettings() {
     RunSettings settings;
     settings.set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::PREDICTOR_CORRECTOR)
-        .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 0.1_f)
-        .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 1000._f)
+        .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 0.01_f)
+        .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 100._f)
         .set(RunSettingsId::TIMESTEPPING_COURANT_NEIGHBOUR_LIMIT, 10)
-        .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 50._f)
-        .set(RunSettingsId::MODEL_FORCE_SOLID_STRESS, true)
-        .set(RunSettingsId::MODEL_FORCE_GRAVITY, true)
+        .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 50000._f)
+        .setFlags(RunSettingsId::SOLVER_FORCES,
+            ForceEnum::PRESSURE_GRADIENT | ForceEnum::SOLID_STRESS | ForceEnum::GRAVITY | ForceEnum::INERTIAL)
         .set(RunSettingsId::SOLVER_TYPE, SolverEnum::ASYMMETRIC_SOLVER)
         .set(RunSettingsId::SPH_FINDER, FinderEnum::KD_TREE)
         .set(RunSettingsId::SPH_FORMULATION, FormulationEnum::STANDARD)
@@ -142,7 +142,8 @@ RunSettings getSharedSettings() {
         .set(RunSettingsId::RUN_THREAD_GRANULARITY, 100)
         .set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONST)
         .set(RunSettingsId::SPH_STRAIN_RATE_CORRECTION_TENSOR, true)
-        .set(RunSettingsId::SPH_STABILIZATION_DAMPING, 0.1_f);
+        .set(RunSettingsId::SPH_STABILIZATION_DAMPING, 0.1_f)
+        .set(RunSettingsId::FRAME_ANGULAR_FREQUENCY, Vector(0._f, 0._f, 2._f * PI / (3._f * 3600._f)));
     return settings;
 }
 
@@ -197,6 +198,8 @@ void Stabilization::setUp() {
             .set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::SCALAR_GRADY_KIPP)
             .set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::VON_MISES)
             .set(BodySettingsId::DISTRIBUTE_MODE_SPH5, true)
+            .set(BodySettingsId::SHEAR_VISCOSITY, 1.e12_f)
+            .set(BodySettingsId::BULK_VISCOSITY, 0._f)
             //.set(BodySettingsId::STRESS_TENSOR_MIN, 5.e5_f)
             .set(BodySettingsId::ENERGY_MIN, 10._f)
             .set(BodySettingsId::DAMAGE_MIN, 0.5_f);
@@ -207,9 +210,9 @@ void Stabilization::setUp() {
         params.projectileRadius = 0.5e3_f; // D = 1km
         params.impactAngle = 75._f * DEG_TO_RAD;
         params.impactSpeed = 5.e3_f;
-        params.targetRotation = 2._f * PI / (6._f * 3600._f);
+        params.targetRotation = 0._f; // 2._f * PI / (3._f * 3600._f);
         params.targetParticleCnt = N;
-        params.impactorParticleCntOverride = 50;
+        params.impactorParticleCntOverride = 10;
 
         /*const Vector impactPoint(params.targetRadius * cos(params.impactAngle),
             params.targetRadius * sin(params.impactAngle),
@@ -249,7 +252,8 @@ Fragmentation::Fragmentation(SharedPtr<Presets::Collision> data, Function<void()
     , onFinished(onFinished) {
     settings = getSharedSettings();
     settings.set(RunSettingsId::RUN_NAME, std::string("Fragmentation"))
-        .set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 10'000._f));
+        .set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 10'000._f))
+        .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 1000._f);
 }
 
 Fragmentation::~Fragmentation() = default;
@@ -322,6 +326,10 @@ void Fragmentation::handoff(Storage&& input) {
     // the quantities are already created, no need to call solver->create
     triggers.pushBack(makeAuto<CommonStatsLog>(Factory::getLogger(settings)));
     output = makeAuto<BinaryOutput>(Path("frag_%d.ssf"));
+
+    /*for (Size matId = 0; matId < storage->getMaterialCnt(); ++matId) {
+        storage->getMaterial(matId)->setRange(QuantityId::DEVIATORIC_STRESS, Interval::unbounded(), 1.e7_f);
+    }*/
 }
 
 AutoPtr<IRunPhase> Fragmentation::getNextPhase() const {

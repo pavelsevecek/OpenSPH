@@ -23,11 +23,10 @@ public:
             // Maximum allowed time step
             .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 1.e-1_f)
 
-            // Use force from pressure gradient in the code
-            .set(RunSettingsId::MODEL_FORCE_PRESSURE_GRADIENT, true)
-
-            // Use force from stress divergence in the code; the stress tensor is evolved using Hooke's law
-            .set(RunSettingsId::MODEL_FORCE_SOLID_STRESS, true)
+            // Use force from the divergence of the stress tensor in the run. This automatically adds equation
+            // of motion, corresponding energy equation and evolution equation for the stress tensor to the
+            // solver.
+            .setFlags(RunSettingsId::SOLVER_FORCES, ForceEnum::PRESSURE_GRADIENT | ForceEnum::SOLID_STRESS)
 
             // Structure for finding neighbouring particles
             .set(RunSettingsId::SPH_FINDER, FinderEnum::UNIFORM_GRID)
@@ -50,7 +49,7 @@ public:
             makeAuto<TextOutput>(outputName, runName, TextOutput::Options::SCIENTIFIC);
 
         // Defines columns in the output file
-        textOutput->addColumn(makeAuto<ParticleNumberColumn>());                     // number of particles
+        textOutput->addColumn(makeAuto<ParticleNumberColumn>());                    // number of particles
         textOutput->addColumn(makeAuto<ValueColumn<Vector>>(QuantityId::POSITION)); // particle positions
 
         // Assigns the new output. By default, no output files are generated.

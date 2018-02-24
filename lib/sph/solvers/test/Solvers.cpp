@@ -32,12 +32,11 @@ SharedPtr<Storage> solveGassBall(RunSettings settings, Flags<Options> flags) {
     settings.set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 5.e-4_f)
         .set(RunSettingsId::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::NONE)
         .set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::EULER_EXPLICIT)
-        .set(RunSettingsId::MODEL_FORCE_SOLID_STRESS, false)
-        .set(RunSettingsId::MODEL_FORCE_PRESSURE_GRADIENT, true)
+        .setFlags(RunSettingsId::SOLVER_FORCES, ForceEnum::PRESSURE_GRADIENT)
         .set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONST)
         .set(RunSettingsId::RUN_THREAD_GRANULARITY, 10);
 
-    TSolver solver(settings, getStandardEquations(settings));
+    TSolver solver(settings, getEquations(settings));
 
     const Float rho0 = 10._f;
     const Float u0 = 1.e4_f;

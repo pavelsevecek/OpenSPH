@@ -91,11 +91,21 @@ struct Console {
         UNCHANGED = 0
     } bg = Background::UNCHANGED;
 
+    enum class Series {
+        NORMAL = 0,
+        BOLD = 1,
+    } series = Series::NORMAL;
+
+    Console() = default;
+
     Console(const Foreground fg)
         : fg(fg) {}
 
     Console(const Background bg)
         : bg(bg) {}
+
+    Console(const Series series)
+        : series(series) {}
 
     friend std::ostream& operator<<(std::ostream& stream, const Console& mod) {
         if (mod.bg != Background::UNCHANGED) {
@@ -104,15 +114,14 @@ struct Console {
         if (mod.fg != Foreground::UNCHANGED) {
             stream << "\033[" << int(mod.fg) << "m";
         }
+        stream << "\e[" << int(mod.series) << "m";
         return stream;
     }
+};
 
-    struct ScopedColor {
-        ScopedColor(const Foreground fg);
-        ScopedColor(const Background bg);
-
-        ~ScopedColor();
-    };
+struct ScopedConsole {
+    ScopedConsole(const Console console);
+    ~ScopedConsole();
 };
 
 

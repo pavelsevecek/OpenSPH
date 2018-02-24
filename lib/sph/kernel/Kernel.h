@@ -406,25 +406,30 @@ public:
     }
 };
 
-/// SPH approximation of laplacian, computed from a kernel gradient. Is more stable than directly applying
-/// second derivatives to kernel and has the same error O(h^2).
-/// Can be used to compute laplacian of both scalar and vector quantities.
+/// \brief SPH approximation of laplacian, computed from a kernel gradient.
+///
+/// Is more stable than directly applying second derivatives to kernel and has the same error O(h^2). Can be
+/// used to compute laplacian of both scalar and vector quantities.
 /// \param value Scalar or vector value from which we compute the laplacian
 /// \param grad Kernel gradient corresponding to vector dr
-/// \todo check sign! and test
+///
+/// \note Note that the sign is different compared to the Eq. (95) of \cite Price_2010. This is correct,
+/// provided the value is computed as v[j]-v[i], dr is computed as r[j]-r[i] and grad is computed as grad
+/// W(r[j]-r[i]).
 template <typename T>
 INLINE T laplacian(const T& value, const Vector& grad, const Vector& dr) {
-    ASSERT(getSqrLength(dr) != 0._f, dr);
-    return -2._f * value * dot(dr, grad) / getSqrLength(dr);
+    ASSERT(dr != Vector(0._f));
+    return 2._f * value * dot(dr, grad) / getSqrLength(dr);
 }
 
-/// Second derivative of vector quantity, applying gradient on a divergence. Doesn't make sense for scalar
-/// quantities. See Price 2010 \cite Price_2010
-/// \todo test
+/// \brief Second derivative of vector quantity, applying gradient on a divergence.
+///
+/// Doesn't make sense for scalar quantities. See Price 2010 \cite Price_2010
 INLINE Vector gradientOfDivergence(const Vector& value, const Vector& grad, const Vector& dr) {
+    ASSERT(dr != Vector(0._f));
     const Float rSqr = getSqrLength(dr);
     const Float f = dot(dr, grad) / rSqr;
-    return -(DIMENSIONS + 2) * dot(value, dr) * dr * f / rSqr + value * f;
+    return (DIMENSIONS + 2) * dot(value, dr) * dr * f / rSqr - value * f;
 }
 
 

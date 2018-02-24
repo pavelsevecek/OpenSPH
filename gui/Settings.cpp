@@ -67,6 +67,7 @@ AutoPtr<GuiSettings> GuiSettings::instance (new GuiSettings {
     { GuiSettingsId::PALETTE_MOMENT_OF_INERTIA,             "palette.moment_of_inertia",                Interval(0._f, 1.e10_f) },
     { GuiSettingsId::PALETTE_STRAIN_RATE_CORRECTION_TENSOR, "palette.strain_rate_correction_tensor",    Interval(0.01_f, 100._f) },
     { GuiSettingsId::PALETTE_ACTIVATION_STRAIN,             "palette.activation_strain",                Interval(2.e-4_f, 8.e-4_f) },
+    { GuiSettingsId::PALETTE_VELOCITY_SECOND_DERIVATIVES,   "palette.velocity_second_derivatives",      Interval(0._f, 5._f) },
 });
 // clang-format on
 

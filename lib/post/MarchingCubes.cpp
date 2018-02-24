@@ -525,7 +525,7 @@ Array<Triangle> getSurfaceMesh(const Storage& storage, const Float gridResolutio
 
 
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
-    ArrayView<const Size> neighCnt = storage.getValue<Size>(QuantityId::NEIGHBOUR_CNT);
+    // ArrayView<const Size> neighCnt = storage.getValue<Size>(QuantityId::NEIGHBOUR_CNT);
     RunSettings settings;
     LutKernel<3> kernel = Factory::getKernel<3>(settings);
     AutoPtr<IBasicFinder> finder = Factory::getFinder(settings);
@@ -598,9 +598,9 @@ Array<Triangle> getSurfaceMesh(const Storage& storage, const Float gridResolutio
     Box box;
     Float maxH = 0._f;
     for (Size i = 0; i < r_bar.size(); ++i) {
-        if (neighCnt[i] < 10) {
+        /*if (neighCnt[i] < 10) {
             continue; // don't mesh separated particles
-        }
+        }*/
         const Vector dr = Vector(r_bar[i][H] * kernel.radius());
         box.extend(r_bar[i] + dr);
         box.extend(r_bar[i] - dr);

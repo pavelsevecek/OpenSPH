@@ -52,16 +52,19 @@ private:
     static EquationHolder getEquations(const RunSettings& settings) {
         using namespace StandardSph;
 
+        Flags<ForceEnum> forces = settings.getFlags<ForceEnum>(RunSettingsId::SOLVER_FORCES);
         EquationHolder equations;
-        if (settings.get<bool>(RunSettingsId::MODEL_FORCE_PRESSURE_GRADIENT)) {
+        if (forces.has(ForceEnum::PRESSURE_GRADIENT)) {
             equations += makeTerm<PressureForce>();
         }
-        if (settings.get<bool>(RunSettingsId::MODEL_FORCE_SOLID_STRESS)) {
+        if (forces.has(ForceEnum::SOLID_STRESS)) {
             equations += makeTerm<SolidStressForce>(settings);
         }
         equations += makeTerm<StandardAV>();
 
         // we evolve density and smoothing length ourselves (outside the equation framework)
+
+        ASSERT(!forces.has(ForceEnum::GRAVITY), "Summation solver cannot be currently used with gravity");
 
         return equations;
     }

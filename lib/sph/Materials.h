@@ -29,6 +29,8 @@ public:
     /// Equation of state must not be nullptr.
     EosMaterial(const BodySettings& body, AutoPtr<IEos>&& eos);
 
+    explicit EosMaterial(const BodySettings& body);
+
     /// Evaluate holded equation of state.
     /// \param rho Density of particle in code units.
     /// \param u Specific energy of particle in code units
@@ -47,7 +49,7 @@ public:
     }
 };
 
-/// \brief Solid material is a generalization of material with equation of state.
+/// \brief Generalization of material with equation of state.
 ///
 /// It holds a rheology implementation that modifies pressure and stress tensor. This is done in \ref
 /// initialize function, function \ref finalize then integrates the fragmentation model (if used, of course).
@@ -57,6 +59,8 @@ private:
 
 public:
     SolidMaterial(const BodySettings& body, AutoPtr<IEos>&& eos, AutoPtr<IRheology>&& rheology);
+
+    explicit SolidMaterial(const BodySettings& body);
 
     virtual void create(Storage& storage, const MaterialInitialContext& context) override;
 

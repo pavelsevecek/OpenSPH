@@ -16,8 +16,10 @@
 
 NAMESPACE_SPH_BEGIN
 
-/// Storage for accumulating derivatives. Each thread shall own its own Accumulated storage.
-/// Each accumulated buffer is associated with a quantity using QuantityId.
+/// \brief Storage for accumulating derivatives.
+///
+/// Each thread shall own its own Accumulated storage. Each accumulated buffer is associated with a quantity
+/// using QuantityId.
 class Accumulated {
 private:
     template <typename... TArgs>
@@ -35,8 +37,9 @@ private:
 public:
     Accumulated() = default;
 
-    /// Creates a new storage with given ID. Should be called once for each thread when the solver is
-    /// initialized.
+    /// \brief Creates a new storage with given ID.
+    ///
+    /// Should be called once for each thread when the solver is initialized.
     template <typename TValue>
     void insert(const QuantityId id, const OrderEnum order) {
         for (Element& e : buffers) {
@@ -102,9 +105,10 @@ public:
         }
     }
 
-    /// Stores accumulated values to corresponding quantities. If there is no quantity with corresponding key
-    /// in the storage, it is created with zero order.
-    /// \todo merge with sum somehow
+    /// \brief Stores accumulated values to corresponding quantities.
+    ///
+    /// The accumulated quantity must already exist in the storage and its order must be at least the order of
+    /// the accumulated buffer.
     void store(Storage& storage) {
         for (Element& e : buffers) {
             forValue(e.buffer, [&e, &storage](auto& buffer) {

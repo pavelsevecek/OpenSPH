@@ -70,6 +70,9 @@ public:
 
 
 namespace Detail {
+    /// Helper function returning a scalar representation of given quantity.
+    ///
+    /// This value is later converted to color, using provided palette.
     template <typename Type>
     INLINE float getColorizerValue(const Type& value) {
         ASSERT(isReal(value));
@@ -92,6 +95,19 @@ namespace Detail {
         const Float result = sqrt(ddot(value, value));
         ASSERT(isReal(result), value);
         return result;
+    }
+
+    /// Helper function returning vector representation of given quantity.
+    ///
+    /// Only meaningful result is returned for vector quantity, other quantities simply return zero vector.
+    /// The function is useful to avoid specializing colorizers for different types.
+    template <typename Type>
+    INLINE Vector getColorizerVector(const Type& UNUSED(value)) {
+        return Vector(0._f);
+    }
+    template <>
+    INLINE Vector getColorizerVector(const Vector& value) {
+        return value;
     }
 } // namespace Detail
 
@@ -141,6 +157,10 @@ public:
     virtual Color evalColor(const Size idx) const override {
         ASSERT(this->isInitialized());
         return palette(Detail::getColorizerValue(values[idx]));
+    }
+
+    virtual Vector evalVector(const Size idx) const {
+        return Detail::getColorizerVector(values[idx]);
     }
 
     virtual Optional<Particle> getParticle(const Size idx) const override {
@@ -293,13 +313,11 @@ public:
 
     virtual Color evalColor(const Size idx) const override {
         ASSERT(!v.empty() && !r.empty());
-        const BodyMetadata& body = data[matIds[idx]];
-        const Vector localVelocity = v[idx] - cross(body.omega, r[idx]);
-        return palette(getLength(localVelocity));
+        return palette(getLength(this->getCorotatingVelocity(idx)));
     }
 
     virtual Optional<Particle> getParticle(const Size idx) const override {
-        return Particle(idx).addDt(QuantityId::POSITION, v[idx]);
+        return Particle(idx).addDt(QuantityId::POSITION, this->getCorotatingVelocity(idx));
     }
 
     virtual Optional<Palette> getPalette() const override {
@@ -308,6 +326,12 @@ public:
 
     virtual std::string name() const override {
         return "Corot. velocity";
+    }
+
+private:
+    Vector getCorotatingVelocity(const Size idx) const {
+        const BodyMetadata& body = data[matIds[idx]];
+        return v[idx] - cross(body.omega, r[idx]);
     }
 };
 

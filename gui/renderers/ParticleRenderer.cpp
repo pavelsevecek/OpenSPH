@@ -115,7 +115,9 @@ void ParticleRenderer::initialize(const Storage& storage,
     cached.idxs.clear();
     cached.positions.clear();
     cached.colors.clear();
+    cached.vectors.clear();
 
+    bool hasVectorData = false;
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     for (Size i = 0; i < r.size(); ++i) {
         const Color color = colorizer.evalColor(i);
@@ -124,6 +126,10 @@ void ParticleRenderer::initialize(const Storage& storage,
             cached.idxs.push(i);
             cached.positions.push(r[i]);
             cached.colors.push(color);
+
+            const Vector v = colorizer.evalVector(i);
+            cached.vectors.push(v);
+            hasVectorData |= (v != Vector(0._f));
         }
     }
     // sort in z-order
@@ -137,6 +143,12 @@ void ParticleRenderer::initialize(const Storage& storage,
     cached.positions = order.apply(cached.positions);
     cached.idxs = order.apply(cached.idxs);
     cached.colors = order.apply(cached.colors);
+
+    if (hasVectorData) {
+        cached.vectors = order.apply(cached.vectors);
+    } else {
+        cached.vectors.clear();
+    }
 
     cached.palette = colorizer.getPalette();
 }
@@ -168,20 +180,17 @@ SharedPtr<Bitmap> ParticleRenderer::render(const ICamera& camera,
     wxPen pen(*wxBLACK_PEN);
     // draw particles
     for (Size i = 0; i < cached.positions.size(); ++i) {
-        if (params.selectedParticle && cached.idxs[i] == params.selectedParticle->getIndex()) {
-            /// \todo this could be generalized - draw vector related to the current colorizer
-            Dynamic v = params.selectedParticle->getDt(QuantityId::POSITION);
-            if (v && getSqrLength(v.get<Vector>()) > 0._f) {
-                dir.used = true;
-                if (params.vectors.toLog) {
-                    Float len;
-                    tieToTuple(dir.v, len) = getNormalizedWithLength(v.get<Vector>());
-                    dir.v = dir.v * log(1._f + len) * params.vectors.scale;
-                } else {
-                    dir.v = v.get<Vector>() * params.vectors.scale;
-                }
-                dir.r = cached.positions[i];
+        if (!cached.vectors.empty() && params.selectedParticle &&
+            cached.idxs[i] == params.selectedParticle->getIndex()) {
+            dir.used = true;
+            if (params.vectors.toLog) {
+                Float len;
+                tieToTuple(dir.v, len) = getNormalizedWithLength(cached.vectors[i]);
+                dir.v = dir.v * log(1._f + len) * params.vectors.scale;
+            } else {
+                dir.v = cached.vectors[i] * params.vectors.scale;
             }
+            dir.r = cached.positions[i];
 
             brush.SetColour(*wxRED);
             pen.SetColour(*wxWHITE);

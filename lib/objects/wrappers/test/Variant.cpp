@@ -16,9 +16,9 @@ TEST_CASE("Variant default constructor", "[variant]") {
     REQUIRE(RecordType::constructedNum == 0);
 
     Variant<RecordType, int> variant2;
-    REQUIRE(variant2.tryGet<RecordType>());
-    REQUIRE(variant2.get<RecordType>().wasDefaultConstructed);
-    REQUIRE(RecordType::constructedNum == 1);
+    REQUIRE(variant2.tryGet<RecordType>());                    // this returns a copy of a value
+    REQUIRE(variant2.get<RecordType>().wasDefaultConstructed); // this returns a reference
+    REQUIRE(RecordType::constructedNum == 2);                  // default constructed + temporary from tryGet
 }
 
 TEST_CASE("Variant value construct", "[variant]") {

@@ -12,8 +12,8 @@ using namespace Sph;
 TEST_CASE("InternalFriction", "[friction]") {
     EquationHolder eqs;
     RunSettings settings;
-    settings.set(RunSettingsId::MODEL_FORCE_SOLID_STRESS, false);
-    eqs += makeTerm<InternalFriction>() + makeTerm<BenzAsphaugSph::ContinuityEquation>() +
+    settings.setFlags(RunSettingsId::SOLVER_FORCES, ForceEnum::PRESSURE_GRADIENT);
+    eqs += makeTerm<StandardSph::ViscousStress>() + makeTerm<StandardSph::ContinuityEquation>() +
            makeTerm<ConstSmoothingLength>();
     SymmetricSolver solver(settings, std::move(eqs));
 
@@ -26,6 +26,10 @@ TEST_CASE("InternalFriction", "[friction]") {
     body.set(BodySettingsId::PARTICLE_COUNT, 10000);
     initial.addMonolithicBody(storage, BlockDomain(Vector(0._f), Vector(2._f, 2._f, 1._f)), body);
 
+    /// \todo this is normally createdb by rheology, but we actually don't need any rheology here. Better
+    /// solution?
+    storage.insert<Float>(QuantityId::STRESS_REDUCING, OrderEnum::ZERO, 1._f);
+
     // add two sliding layers
     ArrayView<Vector> r, v, dv;
     tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
@@ -35,6 +39,8 @@ TEST_CASE("InternalFriction", "[friction]") {
         }
     }
     Statistics stats;
+    /// \todo this is currently necessary as the friction depends on pre-computed grad-v  :(
+    solver.integrate(storage, stats);
     solver.integrate(storage, stats);
     ArrayView<const Size> neighs = storage.getValue<Size>(QuantityId::NEIGHBOUR_CNT);
     tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
@@ -47,14 +53,13 @@ TEST_CASE("InternalFriction", "[friction]") {
         if (Interval(0._f, h).contains(r[i][Z])) {
             // these particles should be slowed down
             if (dv[i][X] >= -1.e-5_f) {
-                return makeFailed("Friction didn't decelerate:\n",
-                    dv[i],
-                    "\nr =",
-                    r[i],
-                    ", v = ",
-                    v[i],
-                    "\n neigh cnt = ",
-                    neighs[i]);
+                // clang-format off
+                return makeFailed("Friction didn't decelerate:",
+                    "\ndv = ", dv[i],
+                    "\nr = ", r[i],
+                    "\nv = ", v[i],
+                    "\nneigh cnt = ", neighs[i]);
+                // clang-format on
             }
             return SUCCESS;
         }
@@ -68,14 +73,13 @@ TEST_CASE("InternalFriction", "[friction]") {
         if (Interval(-h, 0._f).contains(r[i][Z])) {
             // these particles should be accelerated in X
             if (dv[i][X] <= 1.e-5_f) {
-                return makeFailed("Friction didn't accelerate:\n",
-                    dv[i],
-                    "\nr = ",
-                    r[i],
-                    ", v = ",
-                    v[i],
-                    "\n neigh cnt = ",
-                    neighs[i]);
+                // clang-format off
+                return makeFailed("Friction didn't accelerate:",
+                    "\ndv = ", dv[i],
+                    "\nr = ", r[i],
+                    "\nv = ", v[i],
+                    "\nneigh cnt = ", neighs[i]);
+                // clang-format on
             }
             return SUCCESS;
         }
@@ -83,7 +87,7 @@ TEST_CASE("InternalFriction", "[friction]") {
             // these should either be accelerated or remain uaffected
             if (dv[i][X] < 0._f) {
                 return makeFailed(
-                    "Friction decelerated where is shouldn't\n", dv[i], "\nr = ", r[i], ", v = ", v[i]);
+                    "Friction decelerated where is shouldn't\n", dv[i], "\nr = ", r[i], "\nv = ", v[i]);
             }
             return SUCCESS;
         }

@@ -90,8 +90,7 @@ TYPED_TEST_CASE_2("Impact standard SPH", "[impact]]", TSolver, SymmetricSolver, 
     // Check that first two steps of impact work as expected.
 
     RunSettings settings;
-    settings.set(RunSettingsId::MODEL_FORCE_PRESSURE_GRADIENT, true);
-    settings.set(RunSettingsId::MODEL_FORCE_SOLID_STRESS, true);
+    settings.setFlags(RunSettingsId::SOLVER_FORCES, ForceEnum::PRESSURE_GRADIENT | ForceEnum::SOLID_STRESS);
     settings.set(RunSettingsId::SPH_AV_TYPE, ArtificialViscosityEnum::STANDARD);
     settings.set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONST);
     settings.set(RunSettingsId::SPH_FORMULATION, FormulationEnum::STANDARD);
@@ -107,8 +106,7 @@ TYPED_TEST_CASE_2("Impact B&A SPH", "[impact]]", TSolver, SymmetricSolver, Asymm
     /// - use the same trick as B&A formulation for integration of density, so that the test above passes
 
     RunSettings settings;
-    settings.set(RunSettingsId::MODEL_FORCE_PRESSURE_GRADIENT, true);
-    settings.set(RunSettingsId::MODEL_FORCE_SOLID_STRESS, true);
+    settings.setFlags(RunSettingsId::SOLVER_FORCES, ForceEnum::PRESSURE_GRADIENT | ForceEnum::SOLID_STRESS);
     settings.set(RunSettingsId::SPH_AV_TYPE, ArtificialViscosityEnum::STANDARD);
     settings.set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONST);
     settings.set(RunSettingsId::SPH_FORMULATION, FormulationEnum::BENZ_ASPHAUG);

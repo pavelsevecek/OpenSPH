@@ -284,6 +284,10 @@ Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage
         QuantityId::DEVIATORIC_STRESS,
         QuantityId::DAMAGE,
         QuantityId::VELOCITY_DIVERGENCE,
+        QuantityId::DENSITY_VELOCITY_DIVERGENCE,
+        QuantityId::VELOCITY_LAPLACIAN,
+        QuantityId::VELOCITY_GRADIENT_OF_DIVERGENCE,
+        QuantityId::FRICTION,
     };
     if (!forMovie) {
         quantityColorizerIds.push(QuantityId::DENSITY);
@@ -506,8 +510,17 @@ void Controller::tryRedraw() {
 
 void Controller::run(const Path& path) {
     sph.thread = std::thread([this, path] {
-        // create storage and set up initial conditions
-        sph.run->setUp();
+
+        try {
+            // create storage and set up initial conditions
+            sph.run->setUp();
+        } catch (std::exception& e) {
+            executeOnMainThread([&e] { //
+                wxMessageBox(std::string("Invalid run setup: \n") + e.what(), "Fail", wxOK | wxCENTRE);
+            });
+            return;
+        }
+
         SharedPtr<Storage> storage = sph.run->getStorage();
 
         // if we want to resume run from state file, load the storage

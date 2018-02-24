@@ -13,7 +13,7 @@ TEST_CASE("XSph", "[solvers]") {
     Storage storage = Tests::getGassStorage(1000, BodySettings::getDefaults());
     EquationHolder eqs;
     RunSettings settings;
-    settings.set(RunSettingsId::MODEL_FORCE_SOLID_STRESS, false);
+    settings.setFlags(RunSettingsId::SOLVER_FORCES, ForceEnum::PRESSURE_GRADIENT);
 
     using namespace BenzAsphaugSph;
     eqs += makeTerm<PressureForce>() + makeTerm<ContinuityEquation>() + makeTerm<XSph>() +

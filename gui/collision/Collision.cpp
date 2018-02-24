@@ -326,7 +326,6 @@ AsteroidCollision::AsteroidCollision() {
         .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 0.1_f)
         .set(RunSettingsId::RUN_TIME_RANGE, Interval(-5000._f, 10._f))
         .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 0.1_f)
-        .set(RunSettingsId::MODEL_FORCE_SOLID_STRESS, true)
         //.set(RunSettingsId::SPH_KERNEL, KernelEnum::WENDLAND_C6)
         .set(RunSettingsId::SPH_FINDER, FinderEnum::UNIFORM_GRID)
         .set(RunSettingsId::SPH_FORMULATION, FormulationEnum::BENZ_ASPHAUG)

@@ -159,9 +159,9 @@ private:
     std::map<QuantityId, Quantity> quantities;
 
     /// Holds information about a material and particles with this material.
-    struct Mat {
+    struct MatRange {
         /// Actual implementation of the material
-        AutoPtr<IMaterial> material;
+        SharedPtr<IMaterial> material;
 
         /// First index of particle with this material
         Size from = 0;
@@ -169,16 +169,16 @@ private:
         /// One-past-last index of particle with this material
         Size to = 0;
 
-        Mat() = default;
+        MatRange() = default;
 
-        Mat(AutoPtr<IMaterial>&& material, const Size from, const Size to);
+        MatRange(SharedPtr<IMaterial>&& material, const Size from, const Size to);
     };
 
     /// Materials of particles in the storage.
     ///
     /// Particles of the same material are stored consecutively; first material always starts with index 0 and
     /// last material ends with index equal to the number of particles.
-    Array<Mat> mats;
+    Array<MatRange> mats;
 
     /// Cached view of material IDs of particles, used for fast access of material properties.
     ArrayView<Size> matIds;
@@ -205,12 +205,14 @@ public:
 
     Storage& operator=(Storage&& other);
 
-    /// Checks if the storage contains quantity with given key. Type or order of unit is not specified.
+    /// \brief Checks if the storage contains quantity with given key.
+    ///
+    /// Type or order of unit is not specified, any quantity with this key will match.
     bool has(const QuantityId key) const {
         return quantities.find(key) != quantities.end();
     }
 
-    /// Checks if the storage contains quantity with given key, value type and order.
+    /// \brief Checks if the storage contains quantity with given key, value type and order.
     template <typename TValue>
     bool has(const QuantityId key, const OrderEnum order) const {
         auto iter = quantities.find(key);
@@ -221,15 +223,16 @@ public:
         return q.getOrderEnum() == order && q.getValueEnum() == GetValueEnum<TValue>::type;
     }
 
-    /// Retrieves quantity with given key from the storage. Quantity must be already stored, checked by
-    /// assert.
+    /// \brief Retrieves quantity with given key from the storage.
+    ///
+    /// Quantity must be already stored, checked by assert.
     Quantity& getQuantity(const QuantityId key) {
         auto iter = quantities.find(key);
         ASSERT(iter != quantities.end(), getMetadata(key).quantityName);
         return iter->second;
     }
 
-    /// Retrieves quantity with given key from the storage, const version.
+    /// \brief Retrieves quantity with given key from the storage, const version.
     const Quantity& getQuantity(const QuantityId key) const {
         auto iter = quantities.find(key);
         ASSERT(iter != quantities.end());
@@ -248,6 +251,7 @@ public:
         return q.getAll<TValue>();
     }
 
+    /// \brief Retrieves quantity buffers from the storage, given its key and value type, const version.
     template <typename TValue>
     StaticArray<const Array<TValue>&, 3> getAll(const QuantityId key) const {
         const Quantity& q = this->getQuantity(key);
@@ -339,14 +343,15 @@ public:
         return const_cast<Storage*>(this)->getD2t<TValue>(key);
     }
 
-    /// Retrieves an array of quantities from the key. The type of all quantities must be the same and equal
-    /// to TValue, checked by assert.
+    /// \brief Retrieves an array of quantities from the key.
+    ///
+    /// The type of all quantities must be the same and equal to TValue, checked by assert.
     template <typename TValue, typename... TArgs>
     auto getValues(const QuantityId first, const QuantityId second, const TArgs... others) {
         return tie(getValue<TValue>(first), getValue<TValue>(second), getValue<TValue>(others)...);
     }
 
-    /// Retrieves an array of quantities from the key, const version.
+    /// \brief Retrieves an array of quantities from the key, const version.
     template <typename TValue, typename... TArgs>
     auto getValues(const QuantityId first, const QuantityId second, const TArgs... others) const {
         // better not const_cast here as we are deducing return type
@@ -403,17 +408,27 @@ public:
     /// Returns material view for material of given particle.
     MaterialView getMaterialOfParticle(const Size particleIdx) const;
 
-    /// Returns the bounding range of given quantity. Provides an easy access to the material range without
-    /// construcing intermediate object of \ref MaterialView, otherwise this function is equivalent to:
-    /// \code
-    /// getMaterial(matIdx)->range(id)
-    /// \endcode
+    /// \brief Returns the bounding range of given quantity.
+    ///
+    /// Provides an easy access to the material range without construcing intermediate object of \ref
+    /// MaterialView, otherwise this function is equivalent to: \code getMaterial(matIdx)->range(id) \endcode
     Interval getRange(const QuantityId id, const Size matIdx) const;
 
-    /// Returns the sequence of quantities.
+    /// \brief Returns the given material parameter for all materials in the storage.
+    ///
+    /// To get the material parameter for given particle, use the index given by material ID.
+    template <typename TValue>
+    Array<TValue> getMaterialParams(const BodySettingsId param) const;
+
+    /// \brief Checks if the particles in the storage are homogeneous with respect to given parameter.
+    ///
+    /// It is assumed that the parameter is scalar.
+    bool isHomogeneous(const BodySettingsId param) const;
+
+    /// \brief Returns the sequence of quantities.
     StorageSequence getQuantities();
 
-    /// Returns the sequence of quantities, const version.
+    /// \brief Returns the sequence of quantities, const version.
     ConstStorageSequence getQuantities() const;
 
     /// \brief Executes a given functor recursively for all dependent storages.
@@ -428,10 +443,12 @@ public:
     /// Material indices from 0 to (getMaterialCnt() - 1) are valid input for \ref getMaterialView function.
     Size getMaterialCnt() const;
 
-    /// Returns the number of stored quantities.
+    /// \brief Returns the number of stored quantities.
     Size getQuantityCnt() const;
 
-    /// Returns the number of particles. The number of particle is always the same for all quantities.
+    /// \brief Returns the number of particles.
+    ///
+    /// The number of particle is always the same for all quantities.
     Size getParticleCnt() const;
 
     /// \brief Merges another storage into this object.
@@ -486,7 +503,9 @@ public:
     /// Cloned (sub)set of buffers is given by flags. Cloned storage will have the same number of quantities
     /// and the order and types of quantities will match; if some buffer is excluded from cloning, it is
     /// simply left empty.
-    Storage clone(const Flags<VisitorEnum> flags) const;
+    /// Note that materials are NOT cloned, but rather shared with the parent storage. Modifying material
+    /// parameters in cloned storage will also modify the parameters in the parent storage.
+    Storage clone(const Flags<VisitorEnum> buffers) const;
 
     /// Options for the storage resize
     enum class ResizeFlag {

@@ -1,9 +1,12 @@
 #include "sph/boundary/Boundary.h"
 #include "objects/geometry/Domain.h"
 #include "objects/utility/Iterators.h"
+#include "quantities/IMaterial.h"
 #include "quantities/Iterate.h"
+#include "sph/initial/Distribution.h"
 #include "sph/kernel/KernelFactory.h"
 #include "system/Factory.h"
+#include "timestepping/ISolver.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -97,6 +100,68 @@ void GhostParticles::finalize(Storage& storage) {
     storage.remove(ghostIdxs);
     ghostIdxs.clear();
     ghosts.clear();
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/// FixedParticles implementation
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+FixedParticles::FixedParticles(Params&& params)
+    : fixedParticles(std::move(params.material)) {
+    ASSERT(isReal(params.thickness));
+    Box box = params.domain->getBoundingBox();
+    box.extend(box.lower() - Vector(params.thickness));
+    box.extend(box.upper() + Vector(params.thickness));
+
+    // We need to fill a layer close to the boundary with dummy particles. IDomain interface does not provide
+    // a way to construct enlarged domain, so we need a more general approach - construct a block domain using
+    // the bounding box, fill it with particles, and then remove all particles that are inside the original
+    // domain or too far from the boundary. This may be inefficient for some obscure domain, but otherwise it
+    // works fine.
+    BlockDomain boundingDomain(box.center(), box.size());
+    /// \todo generalize, we assume that kernel radius = 2 and don't take eta into account
+    Array<Vector> dummies =
+        params.distribution->generate(box.volume() / pow<3>(0.5_f * params.thickness), boundingDomain);
+    // remove all particles inside the actual domain or too far away
+    Array<Float> distances;
+    params.domain->getDistanceToBoundary(dummies, distances);
+    for (Size i = 0; i < dummies.size();) {
+        if (distances[i] >= 0._f || distances[i] < -params.thickness) {
+            dummies.remove(i);
+        } else {
+            ++i;
+        }
+    }
+    fixedParticles.insert<Vector>(QuantityId::POSITION, OrderEnum::ZERO, std::move(dummies));
+
+    // create all quantities
+    MaterialView mat = fixedParticles.getMaterial(0);
+    const Float rho0 = mat->getParam<Float>(BodySettingsId::DENSITY);
+    const Float m0 = rho0 * box.volume() / fixedParticles.getParticleCnt();
+    fixedParticles.insert<Float>(QuantityId::MASS, OrderEnum::ZERO, m0);
+    // use negative flag to separate the dummy particles from the real ones
+    fixedParticles.insert<Size>(QuantityId::FLAG, OrderEnum::ZERO, Size(-1));
+    params.solver->create(fixedParticles, mat);
+    MaterialInitialContext context;
+    mat->create(fixedParticles, context);
+}
+
+void FixedParticles::initialize(Storage& storage) {
+    // add all fixed particles into the storage
+    storage.merge(fixedParticles.clone(VisitorEnum::ALL_BUFFERS));
+}
+
+void FixedParticles::finalize(Storage& storage) {
+    // remove all fixed particles (particles with flag -1) from the storage
+    ArrayView<const Size> flag = storage.getValue<Size>(QuantityId::FLAG);
+    Array<Size> toRemove;
+    for (Size i = 0; i < flag.size(); ++i) {
+        if (flag[i] == Size(-1)) {
+            toRemove.push(i);
+        }
+    }
+
+    storage.remove(toRemove, Storage::RemoveFlag::INDICES_SORTED);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////

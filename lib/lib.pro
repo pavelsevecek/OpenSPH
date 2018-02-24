@@ -42,6 +42,7 @@ CONFIG(debug, debug|profile|assert|release) {
 SOURCES += \
     common/Assert.cpp \
     gravity/BarnesHut.cpp \
+    gravity/NBodySolver.cpp \
     io/FileManager.cpp \
     io/FileSystem.cpp \
     io/Logger.cpp \
@@ -78,9 +79,15 @@ SOURCES += \
     sph/Diagnostics.cpp \
     sph/Material.cpp \
     sph/boundary/Boundary.cpp \
+    sph/equations/EquationTerm.cpp \
+    sph/equations/Rotation.cpp \
     sph/initial/Distribution.cpp \
     sph/initial/Initial.cpp \
+    sph/solvers/AsymmetricSolver.cpp \
+    sph/solvers/GravitySolver.cpp \
+    sph/solvers/StandardSets.cpp \
     sph/solvers/StaticSolver.cpp \
+    sph/solvers/SymmetricSolver.cpp \
     system/ArgsParser.cpp \
     system/Factory.cpp \
     system/Platform.cpp \
@@ -93,14 +100,7 @@ SOURCES += \
     thread/CheckFunction.cpp \
     thread/Pool.cpp \
     timestepping/TimeStepCriterion.cpp \
-    timestepping/TimeStepping.cpp \
-    sph/solvers/AsymmetricSolver.cpp \
-    sph/solvers/SymmetricSolver.cpp \
-    sph/solvers/StandardSets.cpp \
-    gravity/NBodySolver.cpp \
-    sph/equations/EquationTerm.cpp \
-    sph/equations/Rotation.cpp \
-    sph/solvers/GravitySolver.cpp
+    timestepping/TimeStepping.cpp
 
 HEADERS += \
     common/Assert.h \
@@ -122,6 +122,7 @@ HEADERS += \
     io/Output.h \
     io/Path.h \
     io/Serializer.h \
+    io/Table.h \
     math/AffineMatrix.h \
     math/Integrator.h \
     math/Math.h \
@@ -140,8 +141,11 @@ HEADERS += \
     objects/Object.h \
     objects/containers/Allocators.h \
     objects/containers/Array.h \
+    objects/containers/ArrayRef.h \
     objects/containers/ArrayView.h \
     objects/containers/BufferedArray.h \
+    objects/containers/FlatMap.h \
+    objects/containers/FlatSet.h \
     objects/containers/List.h \
     objects/containers/LookupMap.h \
     objects/containers/StaticArray.h \
@@ -153,6 +157,7 @@ HEADERS += \
     objects/finders/KdTree.h \
     objects/finders/LinkedList.h \
     objects/finders/Linkedlist.h \
+    objects/finders/NeighbourFinder.h \
     objects/finders/Octree.h \
     objects/finders/Order.h \
     objects/finders/PeriodicFinder.h \
@@ -186,6 +191,7 @@ HEADERS += \
     objects/wrappers/Interval.h \
     objects/wrappers/Locking.h \
     objects/wrappers/LockingPtr.h \
+    objects/wrappers/Lut.h \
     objects/wrappers/NonOwningPtr.h \
     objects/wrappers/ObserverPtr.h \
     objects/wrappers/Optional.h \
@@ -218,6 +224,7 @@ HEADERS += \
     quantities/QuantityIds.h \
     quantities/Storage.h \
     run/Collision.h \
+    run/CompositeRun.h \
     run/IRun.h \
     run/RunCallbacks.h \
     run/Trigger.h \
@@ -230,16 +237,17 @@ HEADERS += \
     sph/equations/Fluids.h \
     sph/equations/Friction.h \
     sph/equations/GradH.h \
+    sph/equations/Heat.h \
     sph/equations/HelperTerms.h \
     sph/equations/Potentials.h \
     sph/equations/Rotation.h \
-    sph/equations/Heat.h \
     sph/equations/XSph.h \
     sph/equations/av/Balsara.h \
     sph/equations/av/MorrisMonaghan.h \
     sph/equations/av/Riemann.h \
     sph/equations/av/Standard.h \
     sph/equations/av/Stress.h \
+    sph/equations/heat/Heat.h \
     sph/equationsav/Standard.h \
     sph/initial/Distribution.h \
     sph/initial/Initial.h \
@@ -253,8 +261,11 @@ HEADERS += \
     sph/solvers/DensityIndependentSolver.h \
     sph/solvers/EntropySolver.h \
     sph/solvers/GravitySolver.h \
+    sph/solvers/StabilizationSolver.h \
+    sph/solvers/StandardSets.h \
     sph/solvers/StaticSolver.h \
     sph/solvers/SummationSolver.h \
+    sph/solvers/SymmetricSolver.h \
     system/ArgsParser.h \
     system/ArrayStats.h \
     system/Column.h \
@@ -277,15 +288,4 @@ HEADERS += \
     timestepping/ISolver.h \
     timestepping/ISolverr.h \
     timestepping/TimeStepCriterion.h \
-    timestepping/TimeStepping.h \
-    sph/solvers/SymmetricSolver.h \
-    sph/solvers/StandardSets.h \
-    objects/containers/FlatMap.h \
-    objects/containers/FlatSet.h \
-    objects/finders/NeighbourFinder.h \
-    run/CompositeRun.h \
-    sph/solvers/StabilizationSolver.h \
-    objects/containers/ArrayRef.h \
-    io/Table.h \
-    sph/equations/heat/Heat.h \
-    objects/wrappers/Lut.h
+    timestepping/TimeStepping.h

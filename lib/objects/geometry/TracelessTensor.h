@@ -99,7 +99,7 @@ public:
     }
 
     /// Returns a row of the matrix.
-    INLINE Vector operator[](const int idx) const {
+    INLINE Vector row(const int idx) const {
         ASSERT(unsigned(idx) < 3);
         switch (idx) {
         case 0:
@@ -159,16 +159,6 @@ public:
     INLINE friend TracelessTensor operator*(const Float v, const TracelessTensor& t) {
         return TracelessTensor(t.m * v, t.m12 * v);
     }
-
-    /// Multiplies a tensor by another tensor, element-wise. Not a matrix multiplication!
-    /* INLINE friend TracelessTensor operator*(const TracelessTensor& t1, const TracelessTensor& t2) {
-         return TracelessTensor(t1.m * t2.m, t1.m12 * t2.m12);
-     }
-
-     /// Divides a tensor by another tensor, element-wise.
-     INLINE friend TracelessTensor operator/(const TracelessTensor& t1, const TracelessTensor& t2) {
-         return TracelessTensor(t1.m / t2.m, t1.m12 / t2.m12);
-     }*/
 
     /// Divides a tensor by a scalar
     INLINE friend TracelessTensor operator/(const TracelessTensor& t, const Float v) {
@@ -250,7 +240,22 @@ public:
     }
 };
 
-// static_assert(sizeof(TracelessTensor) == 6 * sizeof(Float), "Incorrect size of TracelessTensor");
+template <>
+INLINE TracelessTensor convert(const AffineMatrix& m) {
+    ASSERT(almostEqual(m(0, 1), m(1, 0), 1.e-6_f) && almostEqual(m(0, 2), m(2, 0), 1.e-6_f) &&
+           almostEqual(m(1, 2), m(2, 1), 1.e-6_f));
+    ASSERT(almostEqual(m(0, 0) + m(1, 1) + m(2, 2), 0._f, 1.e-6_f));
+    return TracelessTensor(m(0, 0), m(1, 1), m(0, 1), m(0, 2), m(1, 2));
+}
+
+template <>
+INLINE AffineMatrix convert(const TracelessTensor& t) {
+    // make sure there is no 'accidental' translation in the matrix
+    ASSERT(t.row(0)[H] == 0._f);
+    ASSERT(t.row(1)[H] == 0._f);
+    ASSERT(t.row(2)[H] == 0._f);
+    return AffineMatrix(t.row(0), t.row(1), t.row(2));
+}
 
 /// Traceless tensor utils
 

@@ -38,7 +38,7 @@ Size ConstStorageSequence::size() const {
 }
 
 
-Storage::Mat::Mat(AutoPtr<IMaterial>&& material, const Size from, const Size to)
+Storage::MatRange::MatRange(SharedPtr<IMaterial>&& material, const Size from, const Size to)
     : material(std::move(material))
     , from(from)
     , to(to) {
@@ -163,7 +163,7 @@ void Storage::addDependent(const WeakPtr<Storage>& other) {
 
 MaterialView Storage::getMaterial(const Size matId) const {
     ASSERT(!mats.empty());
-    const Mat& mat = mats[matId];
+    const MatRange& mat = mats[matId];
     return MaterialView(mat.material.get(), IndexSequence(mat.from, mat.to));
 }
 
@@ -172,9 +172,34 @@ MaterialView Storage::getMaterialOfParticle(const Size particleIdx) const {
     return this->getMaterial(matIds[particleIdx]);
 }
 
+bool Storage::isHomogeneous(const BodySettingsId param) const {
+    if (mats.empty()) {
+        return true;
+    }
+    const MaterialView mat0 = this->getMaterial(0);
+    const Float value0 = mat0->getParam<Float>(param);
+    for (Size matId = 1; matId < this->getMaterialCnt(); ++matId) {
+        const MaterialView mat = this->getMaterial(matId);
+        const Float value = mat->getParam<Float>(param);
+        if (value != value0) {
+            return false;
+        }
+    }
+    return true;
+}
+
 Interval Storage::getRange(const QuantityId id, const Size matIdx) const {
     ASSERT(matIdx < mats.size());
     return mats[matIdx].material->range(id);
+}
+
+template <typename TValue>
+Array<TValue> Storage::getMaterialParams(const BodySettingsId param) const {
+    Array<TValue> values;
+    for (Size matId = 0; matId < this->getMaterialCnt(); ++matId) {
+        values.push(this->getMaterial(matId)->getParam<TValue>(param));
+    }
+    return values;
 }
 
 StorageSequence Storage::getQuantities() {
@@ -229,7 +254,7 @@ void Storage::merge(Storage&& other) {
 
     // update material intervals and cached matIds before merge
     const Size partCnt = this->getParticleCnt();
-    for (Mat& mat : other.mats) {
+    for (MatRange& mat : other.mats) {
         mat.from += partCnt;
         mat.to += partCnt;
     }
@@ -262,11 +287,14 @@ void Storage::zeroHighestDerivatives() {
     });
 }
 
-Storage Storage::clone(const Flags<VisitorEnum> flags) const {
+Storage Storage::clone(const Flags<VisitorEnum> buffers) const {
     Storage cloned;
     for (const auto& q : quantities) {
-        cloned.quantities[q.first] = q.second.clone(flags);
+        cloned.quantities[q.first] = q.second.clone(buffers);
     }
+    cloned.mats = this->mats.clone();
+    cloned.update();
+
     return cloned;
 }
 
@@ -328,7 +356,7 @@ bool Storage::isValid(const Flags<ValidFlag> flags) const {
     }
 
     for (Size matId = 0; matId < mats.size(); ++matId) {
-        const Mat& mat = mats[matId];
+        const MatRange& mat = mats[matId];
         for (Size i = mat.from; i < mat.to; ++i) {
             if (matIds[i] != matId) {
                 return false;
@@ -346,8 +374,8 @@ bool Storage::isValid(const Flags<ValidFlag> flags) const {
 }
 
 Array<Size> Storage::duplicate(ArrayView<const Size> idxs) {
-    // first, sort the indices, so that we start with the backmost particles, that way the lower indices won't
-    // get invalidated.
+    // first, sort the indices, so that we start with the backmost particles, that way the lower indices
+    // won't get invalidated.
     Array<Size> sorted(0, idxs.size());
     sorted.pushAll(idxs.begin(), idxs.end());
     std::sort(sorted.begin(), sorted.end());
@@ -360,7 +388,7 @@ Array<Size> Storage::duplicate(ArrayView<const Size> idxs) {
     // duplicate all the quantities
     iterate<VisitorEnum::ALL_BUFFERS>(*this, [this, &matIdsRef, &sorted, &createdIds](auto& buffer) {
         for (Size i : sorted) {
-            Mat& mat = mats[matIdsRef[i]];
+            MatRange& mat = mats[matIdsRef[i]];
             auto value = buffer[i];
             buffer.insert(mat.to, value);
 
@@ -384,7 +412,7 @@ Array<Size> Storage::duplicate(ArrayView<const Size> idxs) {
 void Storage::remove(ArrayView<const Size> idxs, const Flags<RemoveFlag> flags) {
     Size particlesRemoved = 0;
     for (Size matId = 0; matId < mats.size();) {
-        Mat& mat = mats[matId];
+        MatRange& mat = mats[matId];
         mat.from -= particlesRemoved;
         mat.to -= particlesRemoved;
         for (Size i : idxs) {

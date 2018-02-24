@@ -13,6 +13,9 @@ EosMaterial::EosMaterial(const BodySettings& body, AutoPtr<IEos>&& eos)
     ASSERT(this->eos);
 }
 
+EosMaterial::EosMaterial(const BodySettings& body)
+    : EosMaterial(body, Factory::getEos(body)) {}
+
 Pair<Float> EosMaterial::evaluate(const Float rho, const Float u) const {
     return eos->evaluate(rho, u);
 }
@@ -48,6 +51,9 @@ void EosMaterial::initialize(Storage& storage, const IndexSequence sequence) {
 SolidMaterial::SolidMaterial(const BodySettings& body, AutoPtr<IEos>&& eos, AutoPtr<IRheology>&& rheology)
     : EosMaterial(body, std::move(eos))
     , rheology(std::move(rheology)) {}
+
+SolidMaterial::SolidMaterial(const BodySettings& body)
+    : SolidMaterial(body, Factory::getEos(body), Factory::getRheology(body)) {}
 
 void SolidMaterial::create(Storage& storage, const MaterialInitialContext& context) {
     EosMaterial::create(storage, context);

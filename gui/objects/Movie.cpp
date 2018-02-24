@@ -96,6 +96,7 @@ void Movie::finalize() {
         inPath = replace(inPath, "%d", "%04d");
         // clang-format off
         Process ffmpeg(Path("/bin/ffmpeg"), {
+                "-y",
                 "-framerate", "25",
                 "-i", inPath,
                 "-c:v", "libx264",

@@ -13,39 +13,39 @@ template <typename T>
 class ClonePtr;
 
 namespace Detail {
-    struct Cloner : public Polymorphic {
+struct Cloner : public Polymorphic {
 
-        virtual void* clonePtr() const = 0;
+    virtual void* clonePtr() const = 0;
 
-        virtual AutoPtr<Cloner> cloneThis() const = 0;
-    };
-    template <typename T>
-    class TypedCloner : public Cloner {
-    private:
-        T* ptr;
+    virtual AutoPtr<Cloner> cloneThis() const = 0;
+};
+template <typename T>
+class TypedCloner : public Cloner {
+private:
+    T* ptr;
 
-    public:
-        TypedCloner(T* ptr)
-            : ptr(ptr) {}
+public:
+    TypedCloner(T* ptr)
+        : ptr(ptr) {}
 
-        virtual void* clonePtr() const override {
-            if (!ptr) {
-                return nullptr;
-            } else {
-                // clone the resource and itself
-                return new T(*ptr);
-            }
+    virtual void* clonePtr() const override {
+        if (!ptr) {
+            return nullptr;
+        } else {
+            // clone the resource and itself
+            return new T(*ptr);
         }
+    }
 
-        virtual AutoPtr<Cloner> cloneThis() const override {
-            if (!ptr) {
-                return nullptr;
-            } else {
-                return makeAuto<TypedCloner<T>>(*this);
-            }
+    virtual AutoPtr<Cloner> cloneThis() const override {
+        if (!ptr) {
+            return nullptr;
+        } else {
+            return makeAuto<TypedCloner<T>>(*this);
         }
-    };
-}
+    }
+};
+} // namespace Detail
 
 template <typename T>
 class ClonePtr {
@@ -54,7 +54,6 @@ class ClonePtr {
 
 private:
     AutoPtr<T> ptr;
-
 
     AutoPtr<Detail::Cloner> cloner;
 

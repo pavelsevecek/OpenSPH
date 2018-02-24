@@ -41,6 +41,7 @@ SOURCES += \
     ../lib/gravity/test/BarnesHut.cpp \
     ../lib/gravity/test/BruteForceGravity.cpp \
     ../lib/gravity/test/Moments.cpp \
+    ../lib/gravity/test/NBodySolver.cpp \
     ../lib/io/test/FileManager.cpp \
     ../lib/io/test/FileSystem.cpp \
     ../lib/io/test/Logger.cpp \
@@ -58,11 +59,13 @@ SOURCES += \
     ../lib/math/test/Roots.cpp \
     ../lib/math/test/SparseMatrix.cpp \
     ../lib/objects/containers/test/Array.cpp \
+    ../lib/objects/containers/test/ArrayRef.cpp \
     ../lib/objects/containers/test/BufferedArray.cpp \
+    ../lib/objects/containers/test/FlatMap.cpp \
+    ../lib/objects/containers/test/FlatSet.cpp \
     ../lib/objects/containers/test/List.cpp \
     ../lib/objects/containers/test/StaticArray.cpp \
     ../lib/objects/containers/test/String.cpp \
-    ../lib/objects/containers/test/FlatMap.cpp \
     ../lib/objects/containers/test/Tuple.cpp \
     ../lib/objects/finders/test/BruteForceFinder.cpp \
     ../lib/objects/finders/test/Finders.cpp \
@@ -92,6 +95,7 @@ SOURCES += \
     ../lib/objects/wrappers/test/Function.cpp \
     ../lib/objects/wrappers/test/Interval.cpp \
     ../lib/objects/wrappers/test/LockingPtr.cpp \
+    ../lib/objects/wrappers/test/Lut.cpp \
     ../lib/objects/wrappers/test/Optional.cpp \
     ../lib/objects/wrappers/test/Outcome.cpp \
     ../lib/objects/wrappers/test/SharedPtr.cpp \
@@ -119,12 +123,12 @@ SOURCES += \
     ../lib/sph/equations/av/test/Balsara.cpp \
     ../lib/sph/equations/av/test/MorrisMonaghan.cpp \
     ../lib/sph/equations/av/test/Stress.cpp \
-    ../lib/sph/equations/test/Heat.cpp \
     ../lib/sph/equations/test/Accumulated.cpp \
     ../lib/sph/equations/test/Derivative.cpp \
     ../lib/sph/equations/test/EquationTerm.cpp \
     ../lib/sph/equations/test/Friction.cpp \
     ../lib/sph/equations/test/GradH.cpp \
+    ../lib/sph/equations/test/Heat.cpp \
     ../lib/sph/equations/test/Potentials.cpp \
     ../lib/sph/equations/test/Rotation.cpp \
     ../lib/sph/equations/test/XSph.cpp \
@@ -137,6 +141,7 @@ SOURCES += \
     ../lib/sph/solvers/test/GravitySolver.cpp \
     ../lib/sph/solvers/test/Impact.cpp \
     ../lib/sph/solvers/test/Solvers.cpp \
+    ../lib/sph/solvers/test/StandardSets.cpp \
     ../lib/sph/solvers/test/StaticSolver.cpp \
     ../lib/sph/test/Diagnostics.cpp \
     ../lib/system/test/ArgsParser.cpp \
@@ -154,12 +159,7 @@ SOURCES += \
     main.cpp \
     utils/Approx.cpp \
     utils/SequenceTest.cpp \
-    utils/Utils.cpp \
-    ../lib/sph/solvers/test/StandardSets.cpp \
-    ../lib/gravity/test/NBodySolver.cpp \
-    ../lib/objects/containers/test/FlatSet.cpp \
-    ../lib/objects/containers/test/ArrayRef.cpp \
-    ../lib/objects/wrappers/test/Lut.cpp
+    utils/Utils.cpp
 
 HEADERS += \
     utils/Utils.h \

@@ -97,10 +97,13 @@
 #define REQUIRE_ASSERT(func)
 #endif
 
+extern int skippedTests;
+
 #define SKIP_TEST                                                                                            \
     {                                                                                                        \
         StdOutLogger logger;                                                                                 \
         logger.write(" << Test in file ", __FILE__, " on line ", __LINE__, " temporarily disabled");         \
+        skippedTests++;                                                                                      \
         return;                                                                                              \
     }
 

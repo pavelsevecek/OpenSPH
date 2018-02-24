@@ -141,6 +141,8 @@ enum class QuantityId {
     /// strengthless particles (from any body). Used to implement the 'spring interaction'.
     STRENGTH_VELOCITY_GRADIENT,
 
+    STRENGTH_VELOCITY_ROTATION,
+
     /// Correction tensor used to improve conservation of total angular momentum.
     STRAIN_RATE_CORRECTION_TENSOR,
 
@@ -148,6 +150,8 @@ enum class QuantityId {
     DENSITY_VELOCITY_DIVERGENCE,
 
     STRENGTH_DENSITY_VELOCITY_GRADIENT,
+
+    STRENGTH_DENSITY_VELOCITY_ROTATION,
 
     ENERGY_LAPLACIAN,
 
@@ -215,6 +219,15 @@ enum class QuantityId {
     MATERIAL_ID,
 
     ///@}
+
+
+    // TEMPORARY QUANTITIES, REMOVE
+
+    VELOCITY_LAPLACIAN,
+
+    VELOCITY_GRADIENT_OF_DIVERGENCE,
+
+    FRICTION,
 };
 
 /// Auxiliary information about quantity that aren't stored directly in \ref Quantity

@@ -146,13 +146,13 @@ void Session::compareResults(const Result& measured, const Result& baseline) {
     const Float diff = measured.mean - baseline.mean;
     const Float sigma = params.confidence * sqrt(measured.variance + baseline.variance);
     if (diff < -sigma) {
-        Console::ScopedColor color(Console::Foreground::GREEN);
+        ScopedConsole color(Console::Foreground::GREEN);
         this->log(measured.duration, " < ", baseline.duration);
     } else if (diff > sigma) {
-        Console::ScopedColor color(Console::Foreground::RED);
+        ScopedConsole color(Console::Foreground::RED);
         this->log(measured.duration, " > ", baseline.duration);
     } else {
-        Console::ScopedColor color(Console::Foreground::LIGHT_GRAY);
+        ScopedConsole color(Console::Foreground::LIGHT_GRAY);
         this->log(measured.duration, " == ", baseline.duration);
     }
 }
@@ -217,8 +217,8 @@ void Session::log(TArgs&&... args) {
 
 template <typename... TArgs>
 void Session::logError(TArgs&&... args) {
-    Console::ScopedColor bg(Console::Background::RED);
-    Console::ScopedColor fg(Console::Foreground::WHITE);
+    ScopedConsole bg(Console::Background::RED);
+    ScopedConsole fg(Console::Foreground::WHITE);
     logger->write(std::forward<TArgs>(args)...);
 }
 

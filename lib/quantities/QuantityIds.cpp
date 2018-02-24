@@ -77,6 +77,16 @@ QuantityMetadata getMetadata(const QuantityId key) {
         return QuantityMetadata("Strength density velocity gradient",
             L"\u03C1\u2207v" /*rho nabla v*/,
             ValueEnum::SYMMETRIC_TENSOR);
+    case QuantityId::VELOCITY_LAPLACIAN:
+        return QuantityMetadata("Velocity laplacian", L"\u0394v" /*Delta v*/, ValueEnum::VECTOR);
+    case QuantityId::VELOCITY_GRADIENT_OF_DIVERGENCE:
+        return QuantityMetadata("Gradient of velocity divergence",
+            L"\u2207(\u2207\u22C5v)" /*nabla(nabla cdot v)*/,
+            ValueEnum::VECTOR);
+    case QuantityId::FRICTION:
+        return QuantityMetadata("Friction", L"f", ValueEnum::VECTOR);
+    case QuantityId::ENERGY_LAPLACIAN:
+        return QuantityMetadata("Energy laplacian", L"\u0394u" /*Delta u*/, ValueEnum::SCALAR);
     case QuantityId::AV_ALPHA:
         return QuantityMetadata("AV alpha", L"\u03B1_AV" /*alpha_AV*/, ValueEnum::SCALAR);
     case QuantityId::AV_BETA:

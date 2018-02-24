@@ -43,6 +43,8 @@ AutoPtr<IEos> Factory::getEos(const BodySettings& settings) {
         return makeAuto<TillotsonEos>(settings);
     case EosEnum::MURNAGHAN:
         return makeAuto<MurnaghanEos>(settings);
+    case EosEnum::NONE:
+        return nullptr;
     default:
         NOT_IMPLEMENTED;
     }
@@ -195,8 +197,8 @@ AutoPtr<IDistribution> Factory::getDistribution(const BodySettings& settings) {
 
 template <typename TSolver>
 static AutoPtr<ISolver> getActualSolver(const RunSettings& settings, EquationHolder&& eqs) {
-    const bool gravity = settings.get<bool>(RunSettingsId::MODEL_FORCE_GRAVITY);
-    if (gravity) {
+    const Flags<ForceEnum> forces = settings.getFlags<ForceEnum>(RunSettingsId::SOLVER_FORCES);
+    if (forces.has(ForceEnum::GRAVITY)) {
         return makeAuto<GravitySolver<TSolver>>(settings, std::move(eqs));
     } else {
         return makeAuto<TSolver>(settings, std::move(eqs));
@@ -366,13 +368,13 @@ AutoPtr<IMaterial> Factory::getMaterial(const BodySettings& settings) {
     case YieldingEnum::DRUCKER_PRAGER:
     case YieldingEnum::VON_MISES:
     case YieldingEnum::ELASTIC:
-        return makeAuto<SolidMaterial>(settings, Factory::getEos(settings), Factory::getRheology(settings));
+        return makeAuto<SolidMaterial>(settings);
     case YieldingEnum::NONE:
         switch (eosId) {
         case EosEnum::NONE:
             return makeAuto<NullMaterial>(settings);
         default:
-            return makeAuto<EosMaterial>(settings, Factory::getEos(settings));
+            return makeAuto<EosMaterial>(settings);
         }
 
     default:

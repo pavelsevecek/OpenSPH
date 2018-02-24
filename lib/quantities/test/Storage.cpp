@@ -144,7 +144,7 @@ TEST_CASE("Storage resize heterogeneous", "[storage]") {
     REQUIRE_ASSERT(storage1.resize(5));
 }
 
-TEST_CASE("Clone storages", "[storage]") {
+TEST_CASE("Storage clone", "[storage]") {
     Storage storage;
     storage.insert<Float>(QuantityId::FLAG, OrderEnum::ZERO, Array<Float>{ 0 });
     storage.resize(5);
@@ -205,6 +205,53 @@ TEST_CASE("Clone storages", "[storage]") {
     updateViews(cloned1);
     REQUIRE(makeArray(r.size(), v.size(), dv.size(), m.size(), rho.size(), drho.size()) ==
             makeArray(0u, 0u, 12u, 0u, 0u, 1u));
+}
+
+TEST_CASE("Storage clone material", "[storage]") {
+    BodySettings body;
+    body.set(BodySettingsId::DENSITY, 1234._f);
+    body.set(BodySettingsId::EOS, EosEnum::TAIT);
+    AutoPtr<EosMaterial> mat = makeAuto<EosMaterial>(body);
+    mat->setRange(QuantityId::AV_ALPHA, Interval(-1._f, 1._f), 0.5_f);
+    Storage storage1(std::move(mat));
+    storage1.insert<Float>(QuantityId::POSITION, OrderEnum::SECOND, { 1._f, 2._f, 3._f });
+
+    body.set(BodySettingsId::DENSITY, 4321._f);
+    body.set(BodySettingsId::EOS, EosEnum::MIE_GRUNEISEN);
+    mat = makeAuto<EosMaterial>(body);
+    mat->setRange(QuantityId::AV_ALPHA, Interval(0._f, 5._f), 2._f);
+    Storage storage2(std::move(mat));
+    storage2.insert<Float>(QuantityId::POSITION, OrderEnum::SECOND, { 4._f, 5._f, 6._f });
+
+    storage1.merge(std::move(storage2));
+    // sanity check that we have correct setup
+    REQUIRE(storage1.getMaterialCnt() == 2);
+    REQUIRE(storage1.getParticleCnt() == 6);
+    REQUIRE(storage1.getQuantityCnt() == 2); // positions + matId
+
+    Storage cloned = storage1.clone(VisitorEnum::ALL_BUFFERS);
+    REQUIRE(cloned.getMaterialCnt() == 2);
+    REQUIRE(cloned.getParticleCnt() == 6);
+    REQUIRE(cloned.getQuantityCnt() == 2);
+
+    IMaterial& mat1 = cloned.getMaterial(0);
+    REQUIRE(mat1.getParam<Float>(BodySettingsId::DENSITY) == 1234._f);
+    REQUIRE(mat1.range(QuantityId::AV_ALPHA) == Interval(-1._f, 1._f));
+    REQUIRE(mat1.minimal(QuantityId::AV_ALPHA) == 0.5_f);
+    REQUIRE(dynamic_cast<EosMaterial*>(&mat1));
+
+    IMaterial& mat2 = cloned.getMaterial(1);
+    REQUIRE(mat2.getParam<Float>(BodySettingsId::DENSITY) == 4321._f);
+    REQUIRE(mat2.range(QuantityId::AV_ALPHA) == Interval(0._f, 5._f));
+    REQUIRE(mat2.minimal(QuantityId::AV_ALPHA) == 2._f);
+    REQUIRE(dynamic_cast<EosMaterial*>(&mat2));
+
+    IMaterial& parentMat1 = storage1.getMaterial(0);
+    REQUIRE(
+        &dynamic_cast<EosMaterial*>(&mat1)->getEos() == &dynamic_cast<EosMaterial*>(&parentMat1)->getEos());
+
+    mat1.setParam(BodySettingsId::DENSITY, 666._f);
+    REQUIRE(parentMat1.getParam<Float>(BodySettingsId::DENSITY) == 666._f);
 }
 
 TEST_CASE("Storage merge", "[storage]") {

@@ -279,6 +279,181 @@ TYPED_TEST_CASE_2("Grad v of non-trivial field",
     REQUIRE_SEQUENCE(test, 0, r.size());
 }
 
+template <typename TRotation, typename TSolver>
+static void testRotation(QuantityId id) {
+    Storage storage = Tests::getStorage(10000);
+    storage.insert<Vector>(id, OrderEnum::ZERO, Vector(0._f));
+    storage.insert<Float>(QuantityId::DENSITY, OrderEnum::ZERO, 1._f);
+    storage.insert<Float>(QuantityId::STRESS_REDUCING, OrderEnum::ZERO, 1._f);
+    Tests::computeField<TRotation, TSolver>(storage, [](const Vector& r) { //
+        return Vector(r[2] * sqr(r[1]), r[0] + 0.5_f * r[2], sin(r[1]));
+    });
+
+    ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
+    ArrayView<Vector> rotV = storage.getValue<Vector>(id);
+    auto test = [&](const Size i) -> Outcome {
+        if (getLength(r[i]) > 0.7_f) {
+            // skip test by reporting success
+            return SUCCESS;
+        }
+        const Float x = r[i][X];
+        const Float y = r[i][Y];
+        const Float z = r[i][Z];
+        Vector expected(cos(y) - 0.5_f, sqr(y) - 0._f, 1._f - 2._f * z * y);
+        if (rotV[i] != approx(expected, 0.03_f)) {
+            // clang-format off
+                 return makeFailed("Invalid rot v"
+                                   "\n r = ", r[i],
+                                   "\n rot v = ", rotV[i],
+                                   "\n expected = ", expected);
+            // clang-format on
+        }
+        return SUCCESS;
+    };
+    REQUIRE_SEQUENCE(test, 0, r.size());
+}
+
+TYPED_TEST_CASE_2("Rot v", "[equationterm]", TSolver, SymmetricSolver, AsymmetricSolver) {
+    testRotation<VelocityRotation, TSolver>(QuantityId::VELOCITY_ROTATION);
+}
+
+TYPED_TEST_CASE_2("Strength Density Rot v", "[equationterm]", TSolver, SymmetricSolver, AsymmetricSolver) {
+    testRotation<StrengthDensityVelocityRotation, TSolver>(QuantityId::STRENGTH_DENSITY_VELOCITY_ROTATION);
+}
+
+
+namespace {
+
+class VelocityLaplacian : public DerivativeTemplate<VelocityLaplacian> {
+private:
+    ArrayView<const Vector> r, v;
+    ArrayView<const Float> m, rho;
+    ArrayView<Vector> divGradV;
+
+public:
+    virtual void create(Accumulated& results) override {
+        results.insert<Vector>(QuantityId::VELOCITY_LAPLACIAN, OrderEnum::ZERO);
+    }
+
+    virtual void initialize(const Storage& input, Accumulated& results) override {
+        ArrayView<const Vector> dummy;
+        tie(r, v, dummy) = input.getAll<Vector>(QuantityId::POSITION);
+        tie(m, rho) = input.getValues<Float>(QuantityId::MASS, QuantityId::DENSITY);
+        divGradV = results.getBuffer<Vector>(QuantityId::VELOCITY_LAPLACIAN, OrderEnum::ZERO);
+    }
+
+    template <bool Symmetrize>
+    INLINE void eval(const Size i, const Size j, const Vector& grad) {
+        const Vector dgv = laplacian(v[j] - v[i], grad, r[j] - r[i]);
+        divGradV[i] += m[j] / rho[j] * dgv;
+        if (Symmetrize) {
+            divGradV[j] -= m[i] / rho[i] * dgv;
+        }
+    }
+};
+
+} // namespace
+
+TYPED_TEST_CASE_2("Laplacian vector", "[equationterm]", TSolver, SymmetricSolver, AsymmetricSolver) {
+    Storage storage = Tests::getStorage(10000);
+    storage.insert<Vector>(QuantityId::VELOCITY_LAPLACIAN, OrderEnum::ZERO, Vector(0._f));
+    Tests::computeField<VelocityLaplacian, TSolver>(storage, [](const Vector& r) { //
+        return Vector(sqr(r[0]) * sqr(r[1]), exp(r[0]) + 0.5_f * cos(r[2]), sin(r[2]));
+    });
+    ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
+    ArrayView<Vector> divGradV = storage.getValue<Vector>(QuantityId::VELOCITY_LAPLACIAN);
+
+    auto test = [&](const Size i) -> Outcome {
+        if (getLength(r[i]) > 0.7_f) {
+            // skip test by reporting success
+            return SUCCESS;
+        }
+        const Float x = r[i][X];
+        const Float y = r[i][Y];
+        const Float z = r[i][Z];
+        Vector expected = Vector(2._f * sqr(y), exp(x), 0._f)       // d^2v/dx^2
+                          + Vector(2._f * sqr(x), 0._f, 0._f)       // d^2v/dy^2
+                          + Vector(0._f, -0.5_f * cos(z), -sin(z)); // d^2v/dz^2
+        if (divGradV[i] != approx(expected, 0.05_f)) {
+            // clang-format off
+            return makeFailed("Invalid laplacian"
+                              "\n r = ", r[i],
+                              "\n Delta v = ", divGradV[i],
+                              "\n expected = ", expected);
+            // clang-format on
+        }
+        return SUCCESS;
+    };
+    REQUIRE_SEQUENCE(test, 0, r.size());
+}
+
+namespace {
+
+class GradientOfVelocityDivergence : public DerivativeTemplate<GradientOfVelocityDivergence> {
+private:
+    ArrayView<const Vector> r, v;
+    ArrayView<const Float> m, rho;
+    ArrayView<Vector> gradDivV;
+
+public:
+    virtual void create(Accumulated& results) override {
+        results.insert<Vector>(QuantityId::VELOCITY_GRADIENT_OF_DIVERGENCE, OrderEnum::ZERO);
+    }
+
+    virtual void initialize(const Storage& input, Accumulated& results) override {
+        ArrayView<const Vector> dummy;
+        tie(r, v, dummy) = input.getAll<Vector>(QuantityId::POSITION);
+        tie(m, rho) = input.getValues<Float>(QuantityId::MASS, QuantityId::DENSITY);
+        gradDivV = results.getBuffer<Vector>(QuantityId::VELOCITY_GRADIENT_OF_DIVERGENCE, OrderEnum::ZERO);
+    }
+
+    template <bool Symmetrize>
+    INLINE void eval(const Size i, const Size j, const Vector& grad) {
+        const Vector gdv = gradientOfDivergence(v[j] - v[i], grad, r[j] - r[i]);
+        gradDivV[i] += m[j] / rho[j] * gdv;
+        if (Symmetrize) {
+            gradDivV[j] -= m[i] / rho[i] * gdv;
+        }
+    }
+};
+
+} // namespace
+
+TYPED_TEST_CASE_2("Gradient of divergence", "[equationterm]", TSolver, SymmetricSolver, AsymmetricSolver) {
+    SKIP_TEST;
+
+    Storage storage = Tests::getStorage(10000);
+    storage.insert<Vector>(QuantityId::VELOCITY_GRADIENT_OF_DIVERGENCE, OrderEnum::ZERO, Vector(0._f));
+    Tests::computeField<GradientOfVelocityDivergence, TSolver>(storage, [](const Vector& r) { //
+        return Vector(sqr(r[X]) * sqr(r[Y]), exp(r[X]) + 0.5_f * cos(r[Z]), sin(r[Z]));
+    });
+    ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
+    ArrayView<Vector> gradDivV = storage.getValue<Vector>(QuantityId::VELOCITY_GRADIENT_OF_DIVERGENCE);
+
+    auto test = [&](const Size i) -> Outcome {
+        if (getLength(r[i]) > 0.7_f) {
+            // skip test by reporting success
+            return SUCCESS;
+        }
+        const Float x = r[i][X];
+        const Float y = r[i][Y];
+        const Float z = r[i][Z];
+        // div v = 2*x*y^2 + 0 + cos(z)
+        Vector expected(2._f * sqr(y), 4._f * x * y, -sin(z));
+        if (gradDivV[i] != approx(expected, 0.05_f)) {
+            // clang-format off
+            return makeFailed("Invalid gradient of divergence"
+                              "\n r = ", r[i],
+                              "\n grad div v = ", gradDivV[i],
+                              "\n expected = ", expected);
+            // clang-format on
+        }
+        return SUCCESS;
+    };
+    REQUIRE_SEQUENCE(test, 0, r.size());
+}
+
+
 TEST_CASE("Strain rate correction", "[equationterm]") {
     BodySettings body;
     Storage storage = Tests::getSolidStorage(1000, body);

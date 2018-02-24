@@ -1,4 +1,6 @@
 #include "sph/solvers/StandardSets.h"
+#include "sph/equations/Friction.h"
+#include "sph/equations/Potentials.h"
 #include "system/Factory.h"
 
 NAMESPACE_SPH_BEGIN
@@ -7,14 +9,29 @@ EquationHolder getStandardEquations(const RunSettings& settings, const EquationH
     ASSERT(settings.get<FormulationEnum>(RunSettingsId::SPH_FORMULATION) == FormulationEnum::STANDARD);
     EquationHolder equations;
     /// \todo test that all possible combination (pressure, stress, AV, ...) work and dont assert
-    if (settings.get<bool>(RunSettingsId::MODEL_FORCE_PRESSURE_GRADIENT)) {
+    Flags<ForceEnum> forces = settings.getFlags<ForceEnum>(RunSettingsId::SOLVER_FORCES);
+    if (forces.has(ForceEnum::PRESSURE_GRADIENT)) {
         equations += makeTerm<StandardSph::PressureForce>();
+
+        if (forces.has(ForceEnum::NAVIER_STOKES)) {
+            equations += makeTerm<StandardSph::NavierStokesForce>();
+        } else if (forces.has(ForceEnum::SOLID_STRESS)) {
+            equations += makeTerm<StandardSph::SolidStressForce>(settings);
+        }
     }
-    if (settings.get<bool>(RunSettingsId::MODEL_FORCE_NAVIER_STOKES)) {
-        equations += makeTerm<StandardSph::NavierStokesForce>();
-    } else if (settings.get<bool>(RunSettingsId::MODEL_FORCE_SOLID_STRESS)) {
-        equations += makeTerm<StandardSph::SolidStressForce>(settings);
+
+    if (forces.has(ForceEnum::INTERNAL_FRICTION)) {
+        /// \todo this term (and also AV) do not depend on particular equation set, so it could be moved
+        /// outside to reduce code duplication, but this also provides a way to get all necessary terms by
+        /// calling a single function ...
+        equations += makeTerm<StandardSph::ViscousStress>();
     }
+
+    if (forces.has(ForceEnum::INERTIAL)) {
+        const Vector omega = settings.get<Vector>(RunSettingsId::FRAME_ANGULAR_FREQUENCY);
+        equations += makeTerm<InertialForce>(omega);
+    }
+
     equations += makeTerm<StandardSph::ContinuityEquation>();
 
     // artificial viscosity
@@ -40,14 +57,21 @@ EquationHolder getStandardEquations(const RunSettings& settings, const EquationH
 EquationHolder getBenzAsphaugEquations(const RunSettings& settings, const EquationHolder& other) {
     ASSERT(settings.get<FormulationEnum>(RunSettingsId::SPH_FORMULATION) == FormulationEnum::BENZ_ASPHAUG);
     EquationHolder equations;
-    if (settings.get<bool>(RunSettingsId::MODEL_FORCE_PRESSURE_GRADIENT)) {
+    Flags<ForceEnum> forces = settings.getFlags<ForceEnum>(RunSettingsId::SOLVER_FORCES);
+    if (forces.has(ForceEnum::PRESSURE_GRADIENT)) {
         equations += makeTerm<BenzAsphaugSph::PressureForce>();
+
+        if (forces.has(ForceEnum::NAVIER_STOKES)) {
+            NOT_IMPLEMENTED;
+        } else if (forces.has(ForceEnum::SOLID_STRESS)) {
+            equations += makeTerm<BenzAsphaugSph::SolidStressForce>(settings);
+        }
     }
-    if (settings.get<bool>(RunSettingsId::MODEL_FORCE_NAVIER_STOKES)) {
+
+    if (forces.has(ForceEnum::INTERNAL_FRICTION)) {
         NOT_IMPLEMENTED;
-    } else if (settings.get<bool>(RunSettingsId::MODEL_FORCE_SOLID_STRESS)) {
-        equations += makeTerm<BenzAsphaugSph::SolidStressForce>(settings);
     }
+
     equations += makeTerm<BenzAsphaugSph::ContinuityEquation>();
 
     // artificial viscosity
@@ -70,5 +94,16 @@ EquationHolder getBenzAsphaugEquations(const RunSettings& settings, const Equati
     return equations;
 }
 
+EquationHolder getEquations(const RunSettings& settings, const EquationHolder& other) {
+    const FormulationEnum formulation = settings.get<FormulationEnum>(RunSettingsId::SPH_FORMULATION);
+    switch (formulation) {
+    case FormulationEnum::STANDARD:
+        return getStandardEquations(settings, other);
+    case FormulationEnum::BENZ_ASPHAUG:
+        return getBenzAsphaugEquations(settings, other);
+    default:
+        NOT_IMPLEMENTED;
+    }
+}
 
 NAMESPACE_SPH_END

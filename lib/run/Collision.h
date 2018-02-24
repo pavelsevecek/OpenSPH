@@ -29,7 +29,7 @@ public:
             .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 0.01_f)
             .set(RunSettingsId::RUN_TIME_RANGE, Interval(-50._f, 10._f))
             .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 0.1_f)
-            .set(RunSettingsId::MODEL_FORCE_SOLID_STRESS, true)
+            .setFlags(RunSettingsId::SOLVER_FORCES, ForceEnum::PRESSURE_GRADIENT | ForceEnum::SOLID_STRESS)
             .set(RunSettingsId::SPH_FINDER, FinderEnum::UNIFORM_GRID)
             .set(RunSettingsId::SPH_AV_TYPE, ArtificialViscosityEnum::STANDARD)
             .set(RunSettingsId::SPH_AV_ALPHA, 1.5_f)

@@ -10,6 +10,7 @@
 #include "objects/geometry/Vector.h"
 #include "objects/wrappers/AutoPtr.h"
 #include "objects/wrappers/Interval.h"
+#include "quantities/Storage.h"
 #include <set>
 
 NAMESPACE_SPH_BEGIN
@@ -62,9 +63,49 @@ private:
     Size particleCnt;
 
 public:
+    /// \param searchRadius Radius of a single particle, in units of smoothing length.
     GhostParticles(AutoPtr<IDomain>&& domain, const Float searchRadius, const Float minimalDist);
 
     GhostParticles(AutoPtr<IDomain>&& domain, const RunSettings& settings);
+
+    virtual void initialize(Storage& storage) override;
+
+    virtual void finalize(Storage& storage) override;
+};
+
+/// \brief Places immovable particles along boundary.
+///
+/// The dummy particles can have generally different material than the rest of the simulation.
+class FixedParticles : public IBoundaryCondition {
+public:
+    struct Params {
+        /// Computational domain; dummy particles will be placed outside of the domain
+        AutoPtr<IDomain> domain;
+
+        /// Distribution used to create the dummy particles
+        AutoPtr<IDistribution> distribution;
+
+        /// Solver used to create necessary quantities for the dummy particles. It shall be the same solver as
+        /// the main solver of the simulation.
+        /// \todo This creates circular dependency (solver holds the boundary condition). Is there a better
+        /// solution?
+        RawPtr<ISolver> solver;
+
+        /// Material of the dummy particles. This can be generally different than the material of "real"
+        /// particles in the simulation, specifically the material is not copied as for ghost particles.
+        AutoPtr<IMaterial> material;
+
+        /// Maximum size of the boundary layer. Note that this is an absolute value, it is NOT in units of
+        /// smoothing length.
+        Float thickness = NAN;
+    };
+
+private:
+    /// Storage containing the fixed particles.
+    Storage fixedParticles;
+
+public:
+    explicit FixedParticles(Params&& params);
 
     virtual void initialize(Storage& storage) override;
 

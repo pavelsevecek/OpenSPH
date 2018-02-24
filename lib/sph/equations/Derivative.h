@@ -174,20 +174,21 @@ public:
 };
 
 struct Dot {
-    INLINE static Float product(const Vector& v1, const Vector& v2) {
-        return dot(v1, v2);
+    INLINE static Float product(const Vector& v, const Vector& grad) {
+        return dot(v, grad);
     }
 };
 
 struct Cross {
-    INLINE static Vector product(const Vector& v1, const Vector& v2) {
-        return cross(v1, v2);
+    INLINE static Vector product(const Vector& v, const Vector& grad) {
+        // nabla x v
+        return cross(grad, v);
     }
 };
 
 struct Outer {
-    INLINE static SymmetricTensor product(const Vector& v1, const Vector& v2) {
-        return outer(v1, v2);
+    INLINE static SymmetricTensor product(const Vector& v, const Vector& grad) {
+        return outer(v, grad);
     }
 };
 
@@ -297,11 +298,7 @@ public:
 
     template <bool Symmetrize>
     INLINE void eval(const Size i, const Size j, const Vector& grad) {
-        /// \todo this is currently taken from SPH5 to allow easier comparison, drawback is that the
-        /// density (and smoothing length) is evolved using this derivative or velocity divergence
-        /// depending on damage status, it would be better to but this heuristics directly into the
-        /// derivative, if possible
-        if (idxs[i] != idxs[j] || reduce[i] == 0._f || reduce[j] == 0._f) {
+        if (idxs[i] != idxs[j] && reduce[i] > 0._f && reduce[j] > 0._f) {
             return;
         }
         const Vector dv = v[j] - v[i];
@@ -323,7 +320,7 @@ public:
 
     template <bool Symmetrize>
     INLINE void eval(const Size i, const Size j, const Vector& grad) {
-        if (idxs[i] != idxs[j] || reduce[i] == 0._f || reduce[j] == 0._f) {
+        if (idxs[i] != idxs[j] && reduce[i] > 0._f && reduce[j] > 0._f) {
             return;
         }
         const Vector dv = v[j] - v[i];
@@ -335,6 +332,88 @@ public:
         }
     }
 };
+
+class StrengthDensityVelocityRotation : public DerivativeTemplate<StrengthDensityVelocityRotation> {
+private:
+    ArrayView<const Float> m;
+    ArrayView<const Float> reduce;
+    ArrayView<const Size> idxs;
+    ArrayView<const Vector> v;
+
+    ArrayView<Vector> rhoRotV;
+
+public:
+    virtual void create(Accumulated& results) override {
+        results.insert<Vector>(QuantityId::STRENGTH_DENSITY_VELOCITY_ROTATION, OrderEnum::ZERO);
+    }
+
+    virtual void initialize(const Storage& input, Accumulated& results) override {
+        m = input.getValue<Float>(QuantityId::MASS);
+        reduce = input.getValue<Float>(QuantityId::STRESS_REDUCING);
+        idxs = input.getValue<Size>(QuantityId::FLAG);
+        v = input.getDt<Vector>(QuantityId::POSITION);
+
+        rhoRotV = results.getBuffer<Vector>(QuantityId::STRENGTH_DENSITY_VELOCITY_ROTATION, OrderEnum::ZERO);
+    }
+
+
+    template <bool Symmetrize>
+    INLINE void eval(const Size i, const Size j, const Vector& grad) {
+        if (idxs[i] != idxs[j] && reduce[i] > 0._f && reduce[j] > 0._f) {
+            return;
+        }
+        // nabla x v  --> correct order
+        const Vector rot = cross(grad, v[j] - v[i]);
+        rhoRotV[i] += m[j] * rot;
+        ASSERT(isReal(rhoRotV[i]));
+        if (Symmetrize) {
+            rhoRotV[j] += m[i] * rot;
+            ASSERT(isReal(rhoRotV[j]));
+        }
+    }
+};
+
+class StrengthVelocityRotation : public DerivativeTemplate<StrengthVelocityRotation> {
+private:
+    ArrayView<const Float> m, rho;
+    ArrayView<const Float> reduce;
+    ArrayView<const Size> idxs;
+    ArrayView<const Vector> v;
+
+    ArrayView<Vector> rhoRotV;
+
+public:
+    virtual void create(Accumulated& results) override {
+        results.insert<Vector>(QuantityId::STRENGTH_DENSITY_VELOCITY_ROTATION, OrderEnum::ZERO);
+    }
+
+    virtual void initialize(const Storage& input, Accumulated& results) override {
+        m = input.getValue<Float>(QuantityId::MASS);
+        rho = input.getValue<Float>(QuantityId::DENSITY);
+        reduce = input.getValue<Float>(QuantityId::STRESS_REDUCING);
+        idxs = input.getValue<Size>(QuantityId::FLAG);
+        v = input.getDt<Vector>(QuantityId::POSITION);
+
+        rhoRotV = results.getBuffer<Vector>(QuantityId::STRENGTH_DENSITY_VELOCITY_ROTATION, OrderEnum::ZERO);
+    }
+
+
+    template <bool Symmetrize>
+    INLINE void eval(const Size i, const Size j, const Vector& grad) {
+        if (idxs[i] != idxs[j] && reduce[i] > 0._f && reduce[j] > 0._f) {
+            return;
+        }
+        // nabla x v  --> correct order
+        const Vector rot = cross(grad, v[j] - v[i]);
+        rhoRotV[i] += m[j] / rho[j] * rot;
+        ASSERT(isReal(rhoRotV[i]));
+        if (Symmetrize) {
+            rhoRotV[j] += m[i] / rho[i] * rot;
+            ASSERT(isReal(rhoRotV[j]));
+        }
+    }
+};
+
 
 /// \brief Helper function allowing to construct an object from settings if the object defines such
 /// constructor, or default-construct the object otherwise.
@@ -370,9 +449,10 @@ private:
 
     /// \brief Holds all derivatives that are evaluated in the loop.
     ///
-    /// Modules save data to the \ref accumulated storage; one module can use multiple buffers (acceleration
-    /// and energy derivative) and multiple modules can write into same buffer (different terms in equation of
-    /// motion). Modules are evaluated consecutively (within one thread), so this is thread-safe.
+    /// Modules save data to the \ref accumulated storage; one module can use multiple buffers
+    /// (acceleration and energy derivative) and multiple modules can write into same buffer (different
+    /// terms in equation of motion). Modules are evaluated consecutively (within one thread), so this is
+    /// thread-safe.
     std::set<AutoPtr<IDerivative>, Less> derivatives;
 
     /// Used for lazy creation of derivatives

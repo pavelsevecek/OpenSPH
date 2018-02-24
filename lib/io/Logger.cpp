@@ -6,22 +6,17 @@
 
 NAMESPACE_SPH_BEGIN
 
-Console::ScopedColor::ScopedColor(const Console::Foreground fg) {
-    std::cout << fg;
-}
-Console::ScopedColor::ScopedColor(const Console::Background bg) {
-    std::cout << bg;
+ScopedConsole::ScopedConsole(const Console console) {
+    std::cout << console;
 }
 
-Console::ScopedColor::~ScopedColor() {
-    std::cout << Console::Foreground::DEFAULT << Console::Background::DEFAULT;
+ScopedConsole::~ScopedConsole() {
+    std::cout << Console::Foreground::DEFAULT << Console::Background::DEFAULT << Console::Series::NORMAL;
 }
-
 
 void StdOutLogger::writeString(const std::string& s) {
     std::cout << s << std::flush;
 }
-
 
 void StringLogger::writeString(const std::string& s) {
     ss << s << std::flush;

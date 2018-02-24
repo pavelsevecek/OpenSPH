@@ -106,9 +106,31 @@ public:
         return *this;
     }
 
+    /// \brief Saves flags into the settings.
+    ///
+    /// This is internally saved as integer. There is no type-checking, flags can be freely converted to the
+    /// underlying enum or even int using function \ref setFlags and \ref getFlags.
     template <typename TValue>
     Settings& setFlags(const TEnum idx, const Flags<TValue> flags) {
         entries[idx].value = int(flags.value());
+        return *this;
+    }
+
+    /// \brief Saves a single enum as flag into the settings.
+    ///
+    /// This overload is mostly intended for self-documentation, as we could use \ref set to accomplish the
+    /// same (flags can be stored as enum). However, \ref setFlags issues an assert in case given value is not
+    /// a power of two.
+    template <typename TValue, typename = std::enable_if_t<std::is_enum<std::decay_t<TValue>>::value>>
+    Settings& setFlags(const TEnum idx, TValue&& flag) {
+        ASSERT(isPower2(int(flag)));
+        entries[idx].value = int(flag);
+        return *this;
+    }
+
+    /// \brief Clear flags of given parameter in settings.
+    Settings& setFlags(const TEnum idx, EmptyFlags) {
+        entries[idx].value = 0;
         return *this;
     }
 
@@ -313,6 +335,30 @@ enum class DomainEnum {
 
     /// Cylindrical domain aligned with z axis
     CYLINDER
+};
+
+/// List of forces to compute by the solver. This does not include numerical terms, see
+/// ArtificialViscosityEnum.
+enum class ForceEnum {
+    /// Use force from pressure gradient in the solver
+    PRESSURE_GRADIENT = 1 << 0,
+
+    /// Use force from stress divergence in the model. Must be used together with PRESSURE_GRADIENT. Stress
+    /// tensor is then evolved in time using Hooke's equation.
+    SOLID_STRESS = 1 << 1,
+
+    /// Stress tensor for the simulation of fluids. Must be used together with PRESSURE_GRADIENT, cannot be
+    /// used together with solid stress force.
+    NAVIER_STOKES = 1 << 2,
+
+    /// Use internal friction given by the viscosity in the material.
+    INTERNAL_FRICTION = 1 << 3,
+
+    /// Use centrifugal force and Coriolis forces given by angular frequency of the coordinate frame.
+    INERTIAL = 1 << 4,
+
+    /// Use gravitational force in the model
+    GRAVITY = 1 << 5,
 };
 
 enum class ArtificialViscosityEnum {
@@ -671,24 +717,11 @@ enum class RunSettingsId {
     /// breakup limit. Larger values can be used to merge only very slowly moving particles.
     COLLISION_MERGING_LIMIT,
 
-    /// Use force from pressure gradient in the model
-    MODEL_FORCE_PRESSURE_GRADIENT,
-
-    /// Use force from stress divergence in the model (must be used together with MODEL_FORCE_GRAD_P). Stress
-    /// tensor is then evolved in time using Hooke's equation.
-    MODEL_FORCE_SOLID_STRESS,
-
-    /// Stress tensor for the simulation of liquids. Cannot be used together with solid stress force.
-    MODEL_FORCE_NAVIER_STOKES,
-
-    /// Use centrifugal force given by angular frequency of the coordinate frame in the model
-    MODEL_FORCE_CENTRIFUGAL,
-
-    /// Use gravitational force in the model.
-    MODEL_FORCE_GRAVITY,
-
     /// Selected solver for computing derivatives of physical variables.
     SOLVER_TYPE,
+
+    /// List of forces to compute by the solver.
+    SOLVER_FORCES,
 
     /// Solution for evolutions of the smoothing length
     ADAPTIVE_SMOOTHING_LENGTH,
@@ -972,7 +1005,11 @@ enum class BodySettingsId {
 
     WEIBULL_EXPONENT,
 
-    KINEMATIC_VISCOSITY,
+    BULK_VISCOSITY,
+
+    SHEAR_VISCOSITY,
+
+    DAMPING_COEFFICIENT,
 
     DIFFUSIVITY,
 

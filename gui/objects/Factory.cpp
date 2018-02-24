@@ -118,11 +118,8 @@ AutoPtr<IColorizer> Factory::getColorizer(const GuiSettings& settings,
 
         switch (quantity) {
         case QuantityId::DEVIATORIC_STRESS: {
-            Palette palette = getRealPalette(ColorizerId(QuantityId::DEVIATORIC_STRESS),
-                GuiSettingsId::PALETTE_STRESS,
-                settings,
-                overrides);
-            return makeAuto<TypedColorizer<TracelessTensor>>(quantity, std::move(palette));
+            rangeVariant = GuiSettingsId::PALETTE_STRESS;
+            break;
         }
         case QuantityId::DENSITY:
             rangeVariant = GuiSettingsId::PALETTE_DENSITY;
@@ -140,7 +137,15 @@ AutoPtr<IColorizer> Factory::getColorizer(const GuiSettings& settings,
             rangeVariant = GuiSettingsId::PALETTE_DAMAGE;
             break;
         case QuantityId::VELOCITY_DIVERGENCE:
+        case QuantityId::DENSITY_VELOCITY_DIVERGENCE:
             rangeVariant = GuiSettingsId::PALETTE_DIVV;
+            break;
+        case QuantityId::VELOCITY_LAPLACIAN:
+        case QuantityId::VELOCITY_GRADIENT_OF_DIVERGENCE:
+            rangeVariant = GuiSettingsId::PALETTE_VELOCITY_SECOND_DERIVATIVES;
+            break;
+        case QuantityId::FRICTION:
+            rangeVariant = Interval(0._f, 50._f);
             break;
         case QuantityId::AV_BALSARA:
             rangeVariant = Interval(0._f, 1._f);
@@ -151,25 +156,33 @@ AutoPtr<IColorizer> Factory::getColorizer(const GuiSettings& settings,
         case QuantityId::VELOCITY_GRADIENT:
         case QuantityId::STRENGTH_VELOCITY_GRADIENT:
             rangeVariant = GuiSettingsId::PALETTE_GRADV;
-            return makeAuto<TypedColorizer<SymmetricTensor>>(
-                quantity, getRealPalette(id, rangeVariant, settings, overrides));
+            break;
         case QuantityId::ANGULAR_VELOCITY:
             rangeVariant = GuiSettingsId::PALETTE_ANGULAR_VELOCITY;
-            return makeAuto<TypedColorizer<Vector>>(
-                quantity, getRealPalette(id, rangeVariant, settings, overrides));
+            break;
         case QuantityId::STRAIN_RATE_CORRECTION_TENSOR:
             rangeVariant = GuiSettingsId::PALETTE_STRAIN_RATE_CORRECTION_TENSOR;
-            return makeAuto<TypedColorizer<SymmetricTensor>>(
-                quantity, getRealPalette(id, rangeVariant, settings, overrides));
+            break;
         case QuantityId::MOMENT_OF_INERTIA:
             rangeVariant = GuiSettingsId::PALETTE_MOMENT_OF_INERTIA;
-            return makeAuto<TypedColorizer<SymmetricTensor>>(
-                quantity, getRealPalette(id, rangeVariant, settings, overrides));
+            break;
         default:
             NOT_IMPLEMENTED;
         }
-        return makeAuto<TypedColorizer<Float>>(
-            quantity, getRealPalette(id, rangeVariant, settings, overrides));
+
+        Palette palette = getRealPalette(id, rangeVariant, settings, overrides);
+        switch (getMetadata(quantity).expectedType) {
+        case ValueEnum::SCALAR:
+            return makeAuto<TypedColorizer<Float>>(quantity, std::move(palette));
+        case ValueEnum::VECTOR:
+            return makeAuto<TypedColorizer<Vector>>(quantity, std::move(palette));
+        case ValueEnum::TRACELESS_TENSOR:
+            return makeAuto<TypedColorizer<TracelessTensor>>(quantity, std::move(palette));
+        case ValueEnum::SYMMETRIC_TENSOR:
+            return makeAuto<TypedColorizer<SymmetricTensor>>(quantity, std::move(palette));
+        default:
+            NOT_IMPLEMENTED;
+        }
     }
 }
 
@@ -210,6 +223,9 @@ Palette Factory::getPalette(const ColorizerId id, const Interval range) {
                                { x0 + dx, Color(0.5f, 0.f, 0.f) } },
                 PaletteScale::LOGARITHMIC);
         case QuantityId::DENSITY:
+        case QuantityId::VELOCITY_LAPLACIAN:
+        case QuantityId::FRICTION:
+        case QuantityId::VELOCITY_GRADIENT_OF_DIVERGENCE:
             return Palette({ { x0, Color(0.1f, 0.1f, 0.1f) },
                                { x0 + 0.4f * dx, Color(0.2_f, 0.2_f, 1._f) },
                                { x0 + 0.5f * dx, Color(0.9f, 0.9f, 0.9f) },
@@ -223,6 +239,7 @@ Palette Factory::getPalette(const ColorizerId id, const Interval range) {
             return Palette({ { x0, Color(0.1f, 0.1f, 0.1f) }, { x0 + dx, Color(0.9f, 0.9f, 0.9f) } },
                 PaletteScale::LINEAR);
         case QuantityId::VELOCITY_DIVERGENCE:
+        case QuantityId::DENSITY_VELOCITY_DIVERGENCE:
             ASSERT(x0 < 0._f);
             return Palette({ { x0, Color(0.3f, 0.3f, 0.8f) },
                                { 0.1f * x0, Color(0.f, 0.f, 0.2f) },

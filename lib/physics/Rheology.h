@@ -20,8 +20,9 @@ class IFractureModel;
 /// Shall be only used in \ref SolidMaterial, functions do not have to be called directly from the solver.
 class IRheology : public Polymorphic {
 public:
-    /// Creates all the necessary quantities and material parameters needed by the rheology. The function
-    /// is called by each body added to the simulation.
+    /// \brief Creates all the necessary quantities and material parameters needed by the rheology.
+    ///
+    /// The function is called for each body added to the simulation.
     /// \param storage Particle storage, containing particle positions and their masses (optionally also
     ///                other quantities). Particles belong only to the body being created, other bodies
     ///                have separate storages.
@@ -32,15 +33,17 @@ public:
         IMaterial& material,
         const MaterialInitialContext& context) const = 0;
 
-    /// Evaluates the stress tensor reduction factors. Called for every material in the simulation, before
-    /// iteration over particle pairs
+    /// \brief Evaluates the stress tensor reduction factors.
+    ///
+    /// Called for every material in the simulation every timestep, before iteration over particle pairs
     /// \param storage Storage including all the particles.
     /// \param material Material properties and sequence of particles with this material. Implementation
     ///                 should only modify particles with indices in this sequence.
     virtual void initialize(Storage& storage, const MaterialView material) = 0;
 
-    /// Computes derivatives of the time-dependent quantities of the rheological model. Called for every
-    /// material in the simulation, after all derivatives are computed.
+    /// \brief Computes derivatives of the time-dependent quantities of the rheological model.
+    ///
+    /// Called for every material in the simulation every timestep, after all derivatives are computed.
     /// \param storage Storage including all the particles.
     /// \param material Material properties and sequence of particles with this material. Implementation
     ///                 should only modify particles with indices in this sequence.

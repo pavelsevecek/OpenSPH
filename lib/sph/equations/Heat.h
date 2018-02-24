@@ -37,6 +37,7 @@ public:
     }
 };
 
+/// \todo this
 class HeatDiffusionEquation : public IEquationTerm {
 public:
     virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override {
@@ -58,7 +59,9 @@ public:
         }
     }
 
-    virtual void create(Storage& UNUSED(storage), IMaterial& UNUSED(material)) const override {}
+    virtual void create(Storage& storage, IMaterial& UNUSED(material)) const override {
+        storage.insert<Float>(QuantityId::ENERGY_LAPLACIAN, OrderEnum::ZERO, 0._f);
+    }
 };
 
 class RadiativeCooling : public IEquationTerm {};

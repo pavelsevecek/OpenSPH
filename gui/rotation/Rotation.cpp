@@ -30,7 +30,6 @@ AsteroidRotation::AsteroidRotation(const RawPtr<Controller> model, const Float p
         .set(RunSettingsId::TIMESTEPPING_COURANT_NUMBER, 1._f)
         .set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 1._f))
         .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 100._f)
-        .set(RunSettingsId::MODEL_FORCE_SOLID_STRESS, true)
         .set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONST)
         .set(RunSettingsId::SPH_FINDER, FinderEnum::UNIFORM_GRID)
         .set(RunSettingsId::SPH_AV_TYPE, ArtificialViscosityEnum::STANDARD)

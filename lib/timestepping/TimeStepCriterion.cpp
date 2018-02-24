@@ -265,14 +265,18 @@ Tuple<Float, CriterionId> CourantCriterion::compute(Storage& storage,
     /// \todo AV contribution?
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     ArrayView<const Float> cs = storage.getValue<Float>(QuantityId::SOUND_SPEED);
-    ArrayView<const Size> neighs = storage.getValue<Size>(QuantityId::NEIGHBOUR_CNT);
+    ArrayView<const Size> neighs;
+    if (storage.has(QuantityId::NEIGHBOUR_CNT)) {
+        neighs = storage.getValue<Size>(QuantityId::NEIGHBOUR_CNT);
+    }
+
     struct Tl {
         Float minStep = INFTY;
     };
 
     auto functor = [&](const Size n1, const Size n2, Tl& tl) {
         for (Size i = n1; i < n2; ++i) {
-            if (cs[i] > 0._f && neighs[i] > neighLimit) {
+            if (cs[i] > 0._f && (!neighs || neighs[i] > neighLimit)) {
                 const Float value = courant * r[i][H] / cs[i];
                 ASSERT(isReal(value) && value > 0._f && value < INFTY);
                 tl.minStep = min(tl.minStep, value);

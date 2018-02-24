@@ -17,4 +17,7 @@ EquationHolder getStandardEquations(const RunSettings& settings, const EquationH
 
 EquationHolder getBenzAsphaugEquations(const RunSettings& settings, const EquationHolder& other = {});
 
+/// \brief Selects the formulation based on the value in settings.
+EquationHolder getEquations(const RunSettings& settings, const EquationHolder& other = {});
+
 NAMESPACE_SPH_END

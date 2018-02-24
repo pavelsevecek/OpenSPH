@@ -10,9 +10,9 @@ TEST_CASE("TracelessTensor construction", "[tracelesstensor]") {
     REQUIRE_NOTHROW(TracelessTensor t1);
 
     TracelessTensor t2(Vector(1._f, 2._f, 3._f), Vector(2._f, 2._f, 4._f), Vector(3._f, 4._f, -3._f));
-    REQUIRE(t2[0] == Vector(1._f, 2._f, 3._f));
-    REQUIRE(t2[1] == Vector(2._f, 2._f, 4._f));
-    REQUIRE(t2[2] == Vector(3._f, 4._f, -3._f));
+    REQUIRE(t2.row(0) == Vector(1._f, 2._f, 3._f));
+    REQUIRE(t2.row(1) == Vector(2._f, 2._f, 4._f));
+    REQUIRE(t2.row(2) == Vector(3._f, 4._f, -3._f));
 
     REQUIRE(t2(0, 0) == 1._f);
     REQUIRE(t2(0, 1) == 2._f);
@@ -24,9 +24,9 @@ TEST_CASE("TracelessTensor construction", "[tracelesstensor]") {
     REQUIRE(t2(2, 1) == 4._f);
     REQUIRE(t2(2, 2) == -3._f);
 
-    REQUIRE(t2[0] == Vector(1._f, 2._f, 3._f));
-    REQUIRE(t2[1] == Vector(2._f, 2._f, 4._f));
-    REQUIRE(t2[2] == Vector(3._f, 4._f, -3._f));
+    REQUIRE(t2.row(0) == Vector(1._f, 2._f, 3._f));
+    REQUIRE(t2.row(1) == Vector(2._f, 2._f, 4._f));
+    REQUIRE(t2.row(2) == Vector(3._f, 4._f, -3._f));
 
     SymmetricTensor t3(Vector(1._f, 3._f, -4._f), Vector(1.5_f, -5._f, 2._f));
     TracelessTensor t4(t3);
@@ -40,9 +40,9 @@ TEST_CASE("TracelessTensor construction", "[tracelesstensor]") {
     REQUIRE(t4(1, 2) == 2._f);
     REQUIRE(t4(2, 1) == 2._f);
 
-    REQUIRE(t4[0] == Vector(1._f, 1.5_f, -5._f));
-    REQUIRE(t4[1] == Vector(1.5_f, 3._f, 2._f));
-    REQUIRE(t4[2] == Vector(-5._f, 2._f, -4._f));
+    REQUIRE(t4.row(0) == Vector(1._f, 1.5_f, -5._f));
+    REQUIRE(t4.row(1) == Vector(1.5_f, 3._f, 2._f));
+    REQUIRE(t4.row(2) == Vector(-5._f, 2._f, -4._f));
 }
 
 TEST_CASE("TracelessTensor copy", "[tracelesstensor]") {
@@ -200,4 +200,10 @@ TEST_CASE("TracelessTensor clamp", "[tracelesstensor]") {
 TEST_CASE("TracelessTensor less", "[tracelesstensor]") {
     TracelessTensor t1(Vector(1._f, 2._f, 3._f), Vector(2._f, 2._f, 4._f), Vector(3._f, 4._f, -3._f));
     TracelessTensor t2(Vector(5._f, 4._f, 2._f), Vector(4._f, -7._f, 9._f), Vector(2._f, 9._f, 2._f));
+}
+
+TEST_CASE("TracelessTensor convert", "[tracelesstensor]") {
+    TracelessTensor t1(Vector(1._f, 2._f, 3._f), Vector(2._f, 2._f, 4._f), Vector(3._f, 4._f, -3._f));
+    TracelessTensor t2 = convert<TracelessTensor>(convert<AffineMatrix>(t1));
+    REQUIRE(t1 == t2);
 }

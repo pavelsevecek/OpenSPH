@@ -5,3 +5,5 @@ using namespace Sph;
 
 int RecordType::constructedNum = 0;
 int RecordType::destructedNum = 0;
+
+int skippedTests = 0;

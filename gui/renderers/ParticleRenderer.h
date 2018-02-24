@@ -31,6 +31,9 @@ private:
         /// Colors of particles assigned by the colorizer
         Array<Color> colors;
 
+        /// Vectors representing the colorized quantity. May be empty.
+        Array<Vector> vectors;
+
         /// Color palette or NOTHING if no palette is drawn
         Optional<Palette> palette;
 

@@ -127,7 +127,8 @@ public:
 
     template <bool Symmetrize>
     INLINE void eval(const Size i, const Size j, const Vector& grad) {
-        if (flag[i] != flag[j] || reduce[i] == 0._f || reduce[j] == 0._f) {
+        if ((flag[i] != flag[j] && reduce[i] > 0._f && reduce[j] > 0._f) ||
+            (reduce[i] == 0 && reduce[j] == 0)) {
             return;
         }
         const Vector f = Term::term(s, rho, i, j) * grad;
@@ -141,14 +142,16 @@ public:
 
 static void createSolidStressForce(Storage& storage,
     IMaterial& material,
-    QuantityId GradId,
+    QuantityId gradId,
+    QuantityId rotId,
     bool useCorrectionTensor) {
     const TracelessTensor s0 = material.getParam<TracelessTensor>(BodySettingsId::STRESS_TENSOR);
     storage.insert<TracelessTensor>(QuantityId::DEVIATORIC_STRESS, OrderEnum::FIRST, s0);
     const Float s_min = material.getParam<Float>(BodySettingsId::STRESS_TENSOR_MIN);
     material.setRange(QuantityId::DEVIATORIC_STRESS, Interval::unbounded(), s_min);
 
-    storage.insert<SymmetricTensor>(GradId, OrderEnum::ZERO, SymmetricTensor::null());
+    storage.insert<SymmetricTensor>(gradId, OrderEnum::ZERO, SymmetricTensor::null());
+    storage.insert<Vector>(rotId, OrderEnum::ZERO, Vector(0._f));
     if (useCorrectionTensor) {
         storage.insert<SymmetricTensor>(
             QuantityId::STRAIN_RATE_CORRECTION_TENSOR, OrderEnum::ZERO, SymmetricTensor::identity());
@@ -164,6 +167,7 @@ StandardSph::SolidStressForce::SolidStressForce(const RunSettings& settings) {
 void StandardSph::SolidStressForce::setDerivatives(DerivativeHolder& derivatives,
     const RunSettings& settings) {
     derivatives.require<StrengthDensityVelocityGradient>(settings);
+    derivatives.require<StrengthDensityVelocityRotation>(settings);
 
     struct Term {
         static TracelessTensor term(ArrayView<const TracelessTensor> s,
@@ -185,6 +189,8 @@ void StandardSph::SolidStressForce::finalize(Storage& storage) {
     ArrayView<Float> du = storage.getDt<Float>(QuantityId::ENERGY);
     ArrayView<SymmetricTensor> rhoGradv =
         storage.getValue<SymmetricTensor>(QuantityId::STRENGTH_DENSITY_VELOCITY_GRADIENT);
+    ArrayView<Vector> rhoRotV = storage.getValue<Vector>(QuantityId::STRENGTH_DENSITY_VELOCITY_ROTATION);
+    ArrayView<Float> reduce = storage.getValue<Float>(QuantityId::STRESS_REDUCING);
 
     for (Size matIdx = 0; matIdx < storage.getMaterialCnt(); ++matIdx) {
         MaterialView material = storage.getMaterial(matIdx);
@@ -192,10 +198,19 @@ void StandardSph::SolidStressForce::finalize(Storage& storage) {
         IndexSequence seq = material.sequence();
         parallelFor(*seq.begin(), *seq.end(), [&](const Size n1, const Size n2) INL {
             for (Size i = n1; i < n2; ++i) {
+                if (reduce[i] == 0._f) {
+                    continue;
+                }
                 du[i] += 1._f / sqr(rho[i]) * ddot(s[i], rhoGradv[i]);
-                /// \todo rotation rate tensor?
+
+                // Hooke's law
                 TracelessTensor dev(rhoGradv[i] - SymmetricTensor::identity() * rhoGradv[i].trace() / 3._f);
                 ds[i] += 2._f * mu / rho[i] * dev;
+
+                // add rotation terms for independence of reference frame
+                const AffineMatrix R = 0.5_f * AffineMatrix::crossProductOperator(rhoRotV[i]);
+                const AffineMatrix S = convert<AffineMatrix>(s[i]);
+                ds[i] += convert<TracelessTensor>(1._f / rho[i] * (S * R - R * S));
                 ASSERT(isReal(du[i]) && isReal(ds[i]));
             }
         });
@@ -203,8 +218,11 @@ void StandardSph::SolidStressForce::finalize(Storage& storage) {
 }
 
 void StandardSph::SolidStressForce::create(Storage& storage, IMaterial& material) const {
-    createSolidStressForce(
-        storage, material, QuantityId::STRENGTH_DENSITY_VELOCITY_GRADIENT, useCorrectionTensor);
+    createSolidStressForce(storage,
+        material,
+        QuantityId::STRENGTH_DENSITY_VELOCITY_GRADIENT,
+        QuantityId::STRENGTH_DENSITY_VELOCITY_ROTATION,
+        useCorrectionTensor);
 }
 
 BenzAsphaugSph::SolidStressForce::SolidStressForce(const RunSettings& settings) {
@@ -214,6 +232,7 @@ BenzAsphaugSph::SolidStressForce::SolidStressForce(const RunSettings& settings) 
 void BenzAsphaugSph::SolidStressForce::setDerivatives(DerivativeHolder& derivatives,
     const RunSettings& settings) {
     derivatives.require<StrengthVelocityGradient>(settings);
+    derivatives.require<StrengthVelocityRotation>(settings);
 
     struct Term {
         INLINE static TracelessTensor term(ArrayView<const TracelessTensor> s,
@@ -253,7 +272,11 @@ void BenzAsphaugSph::SolidStressForce::finalize(Storage& storage) {
 }
 
 void BenzAsphaugSph::SolidStressForce::create(Storage& storage, IMaterial& material) const {
-    createSolidStressForce(storage, material, QuantityId::STRENGTH_VELOCITY_GRADIENT, useCorrectionTensor);
+    createSolidStressForce(storage,
+        material,
+        QuantityId::STRENGTH_VELOCITY_GRADIENT,
+        QuantityId::STRENGTH_VELOCITY_ROTATION,
+        useCorrectionTensor);
 }
 
 void StandardSph::NavierStokesForce::setDerivatives(DerivativeHolder& derivatives,
@@ -300,11 +323,12 @@ void StandardSph::NavierStokesForce::create(Storage& storage, IMaterial& materia
 
 void StandardSph::ContinuityEquation::setDerivatives(DerivativeHolder& derivatives,
     const RunSettings& settings) {
-    derivatives.require<DensityVelocityDivergence>(settings);
-
-    if (settings.get<bool>(RunSettingsId::MODEL_FORCE_SOLID_STRESS)) {
+    Flags<ForceEnum> forces = settings.getFlags<ForceEnum>(RunSettingsId::SOLVER_FORCES);
+    if (forces.has(ForceEnum::SOLID_STRESS)) {
         /// \todo better way to "detect" if we need this gradient?
         derivatives.require<StrengthDensityVelocityGradient>(settings);
+    } else {
+        derivatives.require<DensityVelocityDivergence>(settings);
     }
 }
 
@@ -319,15 +343,9 @@ void StandardSph::ContinuityEquation::finalize(Storage& storage) {
     if (storage.has(QuantityId::STRENGTH_DENSITY_VELOCITY_GRADIENT)) {
         ArrayView<const SymmetricTensor> rhoGradv =
             storage.getValue<SymmetricTensor>(QuantityId::STRENGTH_DENSITY_VELOCITY_GRADIENT);
-        ArrayView<const Float> reduce = storage.getValue<Float>(QuantityId::STRESS_REDUCING);
-
         parallelFor(0, rho.size(), [&](const Size n1, const Size n2) INL {
             for (Size i = n1; i < n2; ++i) {
-                if (reduce[i] != 0._f) {
-                    drho[i] = -rhoGradv[i].trace();
-                } else {
-                    drho[i] = -rhoDivv[i];
-                }
+                drho[i] = -rhoGradv[i].trace();
             }
         });
     } else {
@@ -352,11 +370,12 @@ void BenzAsphaugSph::ContinuityEquation::setDerivatives(DerivativeHolder& deriva
     // this formulation uses equation \dot \rho_i = m_i \sum_j m_j/rho_j \nabla \cdot \vec  v where the
     // velocity divergence is taken either directly, or as a trace of strength velocity gradient, see
     // below.
-    derivatives.require<VelocityDivergence>(settings);
-
-    if (settings.get<bool>(RunSettingsId::MODEL_FORCE_SOLID_STRESS)) {
+    Flags<ForceEnum> forces = settings.getFlags<ForceEnum>(RunSettingsId::SOLVER_FORCES);
+    if (forces.has(ForceEnum::SOLID_STRESS)) {
         /// \todo better way to "detect" if we need this gradient?
         derivatives.require<StrengthVelocityGradient>(settings);
+    } else {
+        derivatives.require<VelocityDivergence>(settings);
     }
 }
 
@@ -373,15 +392,9 @@ void BenzAsphaugSph::ContinuityEquation::finalize(Storage& storage) {
         // approach (only the deformation on impact increases the density)
         ArrayView<const SymmetricTensor> gradv =
             storage.getValue<SymmetricTensor>(QuantityId::STRENGTH_VELOCITY_GRADIENT);
-        ArrayView<const Float> reduce = storage.getValue<Float>(QuantityId::STRESS_REDUCING);
-
         parallelFor(0, rho.size(), [&](const Size n1, const Size n2) INL {
             for (Size i = n1; i < n2; ++i) {
-                if (reduce[i] != 0._f) {
-                    drho[i] = -rho[i] * gradv[i].trace();
-                } else {
-                    drho[i] = -rho[i] * divv[i];
-                }
+                drho[i] = -rho[i] * gradv[i].trace();
             }
         });
     } else {
