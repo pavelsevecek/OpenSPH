@@ -207,10 +207,11 @@ void StandardSph::SolidStressForce::finalize(Storage& storage) {
                 TracelessTensor dev(rhoGradv[i] - SymmetricTensor::identity() * rhoGradv[i].trace() / 3._f);
                 ds[i] += 2._f * mu / rho[i] * dev;
 
+                (void)rhoRotV;
                 // add rotation terms for independence of reference frame
-                const AffineMatrix R = 0.5_f * AffineMatrix::crossProductOperator(rhoRotV[i]);
+                /*const AffineMatrix R = -0.5_f * AffineMatrix::crossProductOperator(rhoRotV[i]);
                 const AffineMatrix S = convert<AffineMatrix>(s[i]);
-                ds[i] += convert<TracelessTensor>(1._f / rho[i] * (S * R - R * S));
+                ds[i] += convert<TracelessTensor>(1._f / rho[i] * (S * R - R * S));*/
                 ASSERT(isReal(du[i]) && isReal(ds[i]));
             }
         });
@@ -338,6 +339,7 @@ void StandardSph::ContinuityEquation::finalize(Storage& storage) {
     ArrayView<Float> rho, drho;
     tie(rho, drho) = storage.getAll<Float>(QuantityId::DENSITY);
     ArrayView<const Float> rhoDivv = storage.getValue<Float>(QuantityId::DENSITY_VELOCITY_DIVERGENCE);
+    ArrayView<const Float> reduce = storage.getValue<Float>(QuantityId::STRESS_REDUCING);
 
     // see Benz&Asphaug version for commentary
     if (storage.has(QuantityId::STRENGTH_DENSITY_VELOCITY_GRADIENT)) {
@@ -345,7 +347,11 @@ void StandardSph::ContinuityEquation::finalize(Storage& storage) {
             storage.getValue<SymmetricTensor>(QuantityId::STRENGTH_DENSITY_VELOCITY_GRADIENT);
         parallelFor(0, rho.size(), [&](const Size n1, const Size n2) INL {
             for (Size i = n1; i < n2; ++i) {
-                drho[i] = -rhoGradv[i].trace();
+                if (reduce[i] > 0._f) {
+                    drho[i] = -rhoGradv[i].trace();
+                } else {
+                    drho[i] = -rhoDivv[i];
+                }
             }
         });
     } else {

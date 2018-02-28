@@ -103,21 +103,21 @@ struct Polymorphic {
 
 
 namespace Detail {
-    template <std::size_t N1, std::size_t N2>
-    struct StaticForType {
-        template <typename TVisitor>
-        INLINE static void action(TVisitor&& visitor) {
-            visitor.template visit<N1>();
-            StaticForType<N1 + 1, N2>::action(std::forward<TVisitor>(visitor));
-        }
-    };
-    template <std::size_t N>
-    struct StaticForType<N, N> {
-        template <typename TVisitor>
-        INLINE static void action(TVisitor&& visitor) {
-            visitor.template visit<N>();
-        }
-    };
+template <std::size_t N1, std::size_t N2>
+struct StaticForType {
+    template <typename TVisitor>
+    INLINE static void action(TVisitor&& visitor) {
+        visitor.template visit<N1>();
+        StaticForType<N1 + 1, N2>::action(std::forward<TVisitor>(visitor));
+    }
+};
+template <std::size_t N>
+struct StaticForType<N, N> {
+    template <typename TVisitor>
+    INLINE static void action(TVisitor&& visitor) {
+        visitor.template visit<N>();
+    }
+};
 } // namespace Detail
 
 /// Static for loop from n1 to n2, including both values. Takes an object as an argument that must implement
@@ -128,22 +128,33 @@ INLINE void staticFor(TVisitor&& visitor) {
     Detail::StaticForType<N1, N2>::action(std::forward<TVisitor>(visitor));
 }
 
+namespace Detail {
+/// \todo can be replaced with fold expressions
+template <typename... TArgs>
+void expandPack(TArgs&&...) {}
+} // namespace Detail
+
+template <typename TVisitor, typename... TArgs>
+INLINE void staticForEach(TVisitor&& visitor, TArgs&&... args) {
+    Detail::expandPack(visitor(std::forward<TArgs>(args))...);
+}
+
 
 namespace Detail {
-    template <std::size_t I, std::size_t N>
-    struct SelectNthType {
-        template <typename TValue, typename... TOthers>
-        INLINE static decltype(auto) action(TValue&& UNUSED(value), TOthers&&... others) {
-            return SelectNthType<I + 1, N>::action(std::forward<TOthers>(others)...);
-        }
-    };
-    template <std::size_t N>
-    struct SelectNthType<N, N> {
-        template <typename TValue, typename... TOthers>
-        INLINE static decltype(auto) action(TValue&& value, TOthers&&... UNUSED(others)) {
-            return std::forward<TValue>(value);
-        }
-    };
+template <std::size_t I, std::size_t N>
+struct SelectNthType {
+    template <typename TValue, typename... TOthers>
+    INLINE static decltype(auto) action(TValue&& UNUSED(value), TOthers&&... others) {
+        return SelectNthType<I + 1, N>::action(std::forward<TOthers>(others)...);
+    }
+};
+template <std::size_t N>
+struct SelectNthType<N, N> {
+    template <typename TValue, typename... TOthers>
+    INLINE static decltype(auto) action(TValue&& value, TOthers&&... UNUSED(others)) {
+        return std::forward<TValue>(value);
+    }
+};
 } // namespace Detail
 
 /// Returns N-th argument from an argument list. The type of the returned argument matches the type of the

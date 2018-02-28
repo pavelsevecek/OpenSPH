@@ -54,7 +54,7 @@ std::string lowercase(const std::string& s) {
     return l;
 }
 
-std::string replace(const std::string& source, const std::string& old, const std::string& s) {
+std::string replaceFirst(const std::string& source, const std::string& old, const std::string& s) {
     const auto n = source.find(old);
     if (n == std::string::npos) {
         return source;
@@ -62,6 +62,18 @@ std::string replace(const std::string& source, const std::string& old, const std
     std::string replaced = source;
     replaced.replace(n, old.size(), s);
     return replaced;
+}
+
+std::string replaceAll(const std::string& source, const std::string& old, const std::string& s) {
+    std::string current = source;
+    while (true) {
+        std::string replaced = replaceFirst(current, old, s);
+        if (replaced == current) {
+            return current;
+        } else {
+            current = replaced;
+        }
+    }
 }
 
 Array<std::string> split(const std::string& s, const char delimiter) {

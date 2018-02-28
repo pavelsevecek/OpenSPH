@@ -123,9 +123,10 @@ enum class ColorizerId {
     DENSITY_PERTURBATION = -6, ///< Relative difference of density and initial density (rho/rho0 - 1)
     SUMMED_DENSITY = -7,       ///< Density computed from particle masses by direct summation of neighbours
     YIELD_REDUCTION = -8,      ///< Reduction of stress tensor due to yielding (1 - f_vonMises)
-    RADIUS = -9,               ///< Radii/smoothing lenghts of particles
-    BOUNDARY = -10,            ///< Shows boundary particles
-    ID = -11,                  ///< Each particle drawn with different color
+    DAMAGE_ACTIVATION = -9,    ///< Ratio of the stress and the activation strain
+    RADIUS = -10,              ///< Radii/smoothing lenghts of particles
+    BOUNDARY = -11,            ///< Shows boundary particles
+    ID = -12,                  ///< Each particle drawn with different color
 };
 
 /// Default colorizer simply converting quantity value to color using defined palette. Vector and tensor
@@ -335,10 +336,6 @@ private:
     }
 };
 
-/// \note This does not have anything in common with QuantityId::DISPLACEMENT; it only depends on particle
-/// positions and have nothing to do with stresses.
-class DisplacementColorizer : public IColorizer {};
-
 class DensityPerturbationColorizer : public IColorizer {
 private:
     Palette palette;
@@ -449,6 +446,62 @@ public:
 
     virtual std::string name() const override {
         return "Yield reduction";
+    }
+};
+
+class DamageActivationColorizer : public IColorizer {
+private:
+    Palette palette;
+    Array<Float> ratio;
+
+public:
+    explicit DamageActivationColorizer(Palette palette)
+        : palette(std::move(palette)) {}
+
+    virtual void initialize(const Storage& storage, const RefEnum UNUSED(ref)) override {
+        ArrayView<const TracelessTensor> s =
+            storage.getPhysicalValue<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
+        ArrayView<const Float> p = storage.getValue<Float>(QuantityId::PRESSURE);
+        ArrayView<const Float> eps_min = storage.getValue<Float>(QuantityId::EPS_MIN);
+        ArrayView<const Float> damage = storage.getValue<Float>(QuantityId::DAMAGE);
+
+        ratio.resize(p.size());
+        /// \todo taken from ScalarGradyKippDamage, could be deduplicated
+        for (Size matId = 0; matId < storage.getMaterialCnt(); ++matId) {
+            MaterialView mat = storage.getMaterial(matId);
+            const Float young = mat->getParam<Float>(BodySettingsId::YOUNG_MODULUS);
+
+            /// \todo parallelize
+            for (Size i : mat.sequence()) {
+                const SymmetricTensor sigma = SymmetricTensor(s[i]) - p[i] * SymmetricTensor::identity();
+                Float sig1, sig2, sig3;
+                tie(sig1, sig2, sig3) = findEigenvalues(sigma);
+                const Float sigMax = max(sig1, sig2, sig3);
+                const Float young_red = max((1._f - pow<3>(damage[i])) * young, 1.e-20_f);
+                const Float strain = sigMax / young_red;
+                ratio[i] = strain / eps_min[i];
+            }
+        }
+    }
+
+    virtual bool isInitialized() const override {
+        return !ratio.empty();
+    }
+
+    virtual Color evalColor(const Size idx) const override {
+        return palette(ratio[idx]);
+    }
+
+    virtual Optional<Particle> getParticle(const Size UNUSED(idx)) const override {
+        return NOTHING;
+    }
+
+    virtual Optional<Palette> getPalette() const override {
+        return palette;
+    }
+
+    virtual std::string name() const override {
+        return "Damage activation ratio";
     }
 };
 

@@ -44,8 +44,8 @@ Movie::Movie(const GuiSettings& settings,
 Movie::~Movie() = default;
 
 INLINE std::string escapeColorizerName(const std::string& name) {
-    std::string escaped = replace(name, " ", "");
-    escaped = replace(escaped, ".", "_");
+    std::string escaped = replaceAll(name, " ", "");
+    escaped = replaceAll(escaped, ".", "_");
     return lowercase(escaped);
 }
 
@@ -57,7 +57,7 @@ void Movie::onTimeStep(const Storage& storage, Statistics& stats) {
     const Path path = paths.getNextPath(stats);
     FileSystem::createDirectory(path.parentPath());
     for (auto& e : colorizers) {
-        Path actPath(replace(path.native(), "%e", escapeColorizerName(e->name())));
+        Path actPath(replaceAll(path.native(), "%e", escapeColorizerName(e->name())));
 
         // initialize the colorizer
         e->initialize(storage, RefEnum::WEAK);
@@ -90,16 +90,17 @@ void Movie::finalize() {
     for (auto& e : colorizers) {
         std::string name = escapeColorizerName(e->name());
         std::string outPath = animationPath.native();
-        outPath = replace(outPath, "%e", name);
+        outPath = replaceAll(outPath, "%e", name);
         std::string inPath = paths.getMask().native();
-        inPath = replace(inPath, "%e", name);
-        inPath = replace(inPath, "%d", "%04d");
+        inPath = replaceAll(inPath, "%e", name);
+        inPath = replaceAll(inPath, "%d", "%04d");
         // clang-format off
         Process ffmpeg(Path("/bin/ffmpeg"), {
-                "-y",
-                "-framerate", "25",
+                "-y",               // override existing files
+                "-nostdin",         // don't prompt for confirmation, etc.
+                "-framerate", "25", // 25 FPS
                 "-i", inPath,
-                "-c:v", "libx264",
+                "-c:v", "libx264",  // video codec
                 outPath
             });
         // clang-format on

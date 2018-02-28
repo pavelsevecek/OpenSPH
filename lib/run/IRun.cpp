@@ -108,9 +108,8 @@ void IRun::run() {
         i++;
     }
     logger->write("Run ended after ", runTimer.elapsed(TimerUnit::SECOND), "s.");
-    if (result) {
-        callbacks->onRunEnd(*storage, stats);
-    } else {
+    callbacks->onRunEnd(*storage, stats);
+    if (!result) {
         logger->write(result.error());
     }
     this->tearDownInternal();

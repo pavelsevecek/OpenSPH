@@ -254,11 +254,13 @@ Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage
     const FlatMap<ColorizerId, Palette>& overrides) const {
     // Available colorizers for display and movie are currently hardcoded
     Array<ColorizerId> colorizerIds;
-
+    colorizerIds.push(ColorizerId::COROTATING_VELOCITY);
     if (storage.has(QuantityId::DENSITY)) {
         colorizerIds.push(ColorizerId::DENSITY_PERTURBATION);
     }
-    colorizerIds.push(ColorizerId::COROTATING_VELOCITY);
+    if (storage.has(QuantityId::DAMAGE)) {
+        colorizerIds.push(ColorizerId::DAMAGE_ACTIVATION);
+    }
 
     if (!forMovie) {
         if (storage.has(QuantityId::MASS)) {

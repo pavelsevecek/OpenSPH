@@ -104,6 +104,9 @@ AutoPtr<IColorizer> Factory::getColorizer(const GuiSettings& settings,
     case ColorizerId::YIELD_REDUCTION:
         return makeAuto<YieldReductionColorizer>(
             getRealPalette(ColorizerId::YIELD_REDUCTION, Interval(0._f, 1._f), settings, overrides));
+    case ColorizerId::DAMAGE_ACTIVATION:
+        return makeAuto<DamageActivationColorizer>(
+            getRealPalette(ColorizerId::DAMAGE_ACTIVATION, Interval(0._f, 2._f), settings, overrides));
     case ColorizerId::RADIUS:
         return makeAuto<RadiusColorizer>(
             getRealPalette(ColorizerId::RADIUS, GuiSettingsId::PALETTE_RADIUS, settings, overrides));
@@ -320,6 +323,11 @@ Palette Factory::getPalette(const ColorizerId id, const Interval range) {
                 PaletteScale::LINEAR);
         case ColorizerId::YIELD_REDUCTION:
             return Palette({ { 0._f, Color(0.1f, 0.1f, 0.1f) }, { 1._f, Color(0.9f, 0.9f, 0.9f) } },
+                PaletteScale::LINEAR);
+        case ColorizerId::DAMAGE_ACTIVATION:
+            return Palette({ { x0, Color(0.1f, 0.1f, 1.f) },
+                               { x0 + 0.5f * dx, Color(0.7f, 0.7f, 0.7f) },
+                               { x0 + dx, Color(1.f, 0.1f, 0.1f) } },
                 PaletteScale::LINEAR);
         case ColorizerId::RADIUS:
             return Palette({ { x0, Color(0.1f, 0.1f, 1.f) },

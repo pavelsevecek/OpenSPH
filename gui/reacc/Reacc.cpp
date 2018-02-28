@@ -125,7 +125,8 @@ RunSettings getSharedSettings() {
         .set(RunSettingsId::TIMESTEPPING_COURANT_NEIGHBOUR_LIMIT, 10)
         .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 50000._f)
         .setFlags(RunSettingsId::SOLVER_FORCES,
-            ForceEnum::PRESSURE_GRADIENT | ForceEnum::SOLID_STRESS | ForceEnum::GRAVITY | ForceEnum::INERTIAL)
+            ForceEnum::PRESSURE_GRADIENT | ForceEnum::SOLID_STRESS |
+                ForceEnum::GRAVITY) //| ForceEnum::INERTIAL)
         .set(RunSettingsId::SOLVER_TYPE, SolverEnum::ASYMMETRIC_SOLVER)
         .set(RunSettingsId::SPH_FINDER, FinderEnum::KD_TREE)
         .set(RunSettingsId::SPH_FORMULATION, FormulationEnum::STANDARD)
@@ -134,7 +135,7 @@ RunSettings getSharedSettings() {
         .set(RunSettingsId::SPH_AV_BETA, 3._f)
         .set(RunSettingsId::SPH_KERNEL_ETA, 1.3_f)
         .set(RunSettingsId::GRAVITY_SOLVER, GravityEnum::BARNES_HUT)
-        .set(RunSettingsId::GRAVITY_KERNEL, GravityKernelEnum::SOLID_SPHERES)
+        .set(RunSettingsId::GRAVITY_KERNEL, GravityKernelEnum::SPH_KERNEL)
         .set(RunSettingsId::GRAVITY_OPENING_ANGLE, 0.8_f)
         .set(RunSettingsId::GRAVITY_LEAF_SIZE, 20)
         //.set(RunSettingsId::TIMESTEPPING_MEAN_POWER, -0._f)
@@ -143,7 +144,8 @@ RunSettings getSharedSettings() {
         .set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONST)
         .set(RunSettingsId::SPH_STRAIN_RATE_CORRECTION_TENSOR, true)
         .set(RunSettingsId::SPH_STABILIZATION_DAMPING, 0.1_f)
-        .set(RunSettingsId::FRAME_ANGULAR_FREQUENCY, Vector(0._f, 0._f, 2._f * PI / (3._f * 3600._f)));
+        .set(RunSettingsId::FRAME_ANGULAR_FREQUENCY, Vector(0._f));
+    // Vector(0._f, 0._f, 2._f * PI / (6._f * 3600._f)));
     return settings;
 }
 
@@ -189,7 +191,7 @@ void Stabilization::setUp() {
         }
     } else {
 
-        Size N = 75'000;
+        Size N = 50'000;
 
         BodySettings body;
         body.set(BodySettingsId::ENERGY, 0._f)
@@ -210,7 +212,7 @@ void Stabilization::setUp() {
         params.projectileRadius = 0.5e3_f; // D = 1km
         params.impactAngle = 75._f * DEG_TO_RAD;
         params.impactSpeed = 5.e3_f;
-        params.targetRotation = 0._f; // 2._f * PI / (3._f * 3600._f);
+        params.targetRotation = 2._f * PI / (3._f * 3600._f);
         params.targetParticleCnt = N;
         params.impactorParticleCntOverride = 10;
 
@@ -326,6 +328,14 @@ void Fragmentation::handoff(Storage&& input) {
     // the quantities are already created, no need to call solver->create
     triggers.pushBack(makeAuto<CommonStatsLog>(Factory::getLogger(settings)));
     output = makeAuto<BinaryOutput>(Path("frag_%d.ssf"));
+
+    /*    ArrayView<const Vector> r = storage->getValue<Vector>(QuantityId::POSITION);
+        ArrayView<Float> dmg = storage->getValue<Float>(QuantityId::DAMAGE);
+        for (Size i = 0; i < r.size(); ++i) {
+            if (getLength(r[i] - data->getImpactPoint()) < 5.e3_f) {
+                dmg[i] = 1._f;
+            }
+        }*/
 
     /*for (Size matId = 0; matId < storage->getMaterialCnt(); ++matId) {
         storage->getMaterial(matId)->setRange(QuantityId::DEVIATORIC_STRESS, Interval::unbounded(), 1.e7_f);

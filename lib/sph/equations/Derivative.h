@@ -99,6 +99,10 @@ public:
 };
 
 /// \brief Helper template for derivatives that define both the symmetrized and asymmetric variant.
+///
+/// Derived class must implement \a eval templated member function, taking the indices of the particles and
+/// the gradient as arguments. The template parameter is a bool, where false means asymmetric evaluation (only
+/// the first particle should be modified), and true means symmetric evaluation.
 template <typename TDerived>
 class DerivativeTemplate : public SymmetricDerivative {
 public:
@@ -120,6 +124,87 @@ public:
         }
     }
 };
+
+/*template <typename TDerived>
+class AutoDerivative : public DerivativeTemplate<AutoDerivative<TDerived>> {
+public:
+    virtual void create(Accumulated& results) override {
+        static_cast<TDerived*>)(this)->template visit();
+    }
+
+    virtual void initialize(const Storage& input, Accumulated& results) override {
+        static_cast<TDerived*>)(this)->template visit();
+    }
+};*/
+
+/*template <typename TValue, QuantityId Id>
+class AutoInitializer {
+public:
+    template <typename TFeeder>
+    AutoInitializer(TFeeder&& feeder) {}
+
+    void operator[](const Size idx) const {}
+};
+
+class Divv1 {
+
+    template <typename Ar>
+    INLINE Float eval(const Size i, const Size j) {
+        const Float p = dot(v[j] - v[i], grad);
+
+        m[j] / rho[j] * p;
+
+        if (Symmetrize) {
+            m[i] / rho[i] * p;
+        }
+    }
+};
+
+template <typename TDerived>
+class Velo: public VelocityTemplate<DDD<what>> {
+public:
+    virtual void create(Accumulated& results) override {
+        auto visitor = [&results](AutoView... params) {
+            forEach(params) {
+                results.insert<type>(id, order);
+            }
+        };
+        what dummy(feeder);
+    }
+};
+
+template <typename TValue, QuantityId Id, OrderEnum Order>
+class AutoInput : public ArrayView<TValue> {
+public:
+    using Type = TValue;
+    static constexpr QuantityId id = Id;
+    static constexpr OrderEnum order = Order;
+};
+
+class Divv2 : public AutoInitializer {
+
+    AutoInput<Vector, QuantityId::POSITION, OrderEnum::FIRST> v;
+    AutoInput<Float, QuantityId::DENSITY, OrderEnum::ZERO> rho;
+
+    AutoOutput<Float, QuantityId::VELOCITY_DIVERGENCE, OrderEnum::ZERO> divv;
+
+    Divv2(feeder)
+        : v(feeder)
+        , rho(feeder)
+        , divv(feeder) {}
+
+    template <typename Ar>
+    INLINE Float eval(const Size i, const Size j) {
+        const Float p = dot(v[j] - v[i], grad);
+
+        m[j] / rho[i] * p;
+
+        if (Symmetrize) {
+            m[i] / rho[j] * p;
+        }
+    }
+};
+*/
 
 template <typename TFunctor>
 using ProductType = decltype(TFunctor::product(std::declval<Vector>(), std::declval<Vector>()));
@@ -320,7 +405,8 @@ public:
 
     template <bool Symmetrize>
     INLINE void eval(const Size i, const Size j, const Vector& grad) {
-        if (idxs[i] != idxs[j] && reduce[i] > 0._f && reduce[j] > 0._f) {
+        if (idxs[i] != idxs[j] //|| reduce[i] == 0._f || reduce[j] == 0._f) {
+            && reduce[i] > 0._f && reduce[j] > 0._f) {
             return;
         }
         const Vector dv = v[j] - v[i];

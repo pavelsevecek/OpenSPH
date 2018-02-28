@@ -292,9 +292,13 @@ Storage Storage::clone(const Flags<VisitorEnum> buffers) const {
     for (const auto& q : quantities) {
         cloned.quantities[q.first] = q.second.clone(buffers);
     }
-    cloned.mats = this->mats.clone();
-    cloned.update();
 
+    // clone the materials if we cloned MATERIAL_IDs.
+    if (cloned.has(QuantityId::MATERIAL_ID) && !cloned.getValue<Size>(QuantityId::MATERIAL_ID).empty()) {
+        cloned.mats = this->mats.clone();
+    }
+
+    cloned.update();
     return cloned;
 }
 
@@ -344,9 +348,10 @@ bool Storage::isValid(const Flags<ValidFlag> flags) const {
         // no materials are a valid state, all OK
         return true;
     }
-    if (!matIds || !this->has(QuantityId::MATERIAL_ID)) {
-        // with at least one material and one quantity, we need the MATERIAL_ID helper quantity and cached
-        // view
+    if (bool(matIds) != this->has(QuantityId::MATERIAL_ID)) {
+        // checks that either both matIds and quantity MATERIAL_ID exist, or neither of them do;
+        // if we cloned just some buffers, quantity MATERIAL_ID might not be there even though the storage has
+        // materials, so we don't report it as an error.
         return false;
     }
 
@@ -460,8 +465,10 @@ void Storage::removeAll() {
 }
 
 void Storage::update() {
-    if (this->getMaterialCnt() > 0) {
+    if (this->has(QuantityId::MATERIAL_ID)) {
         matIds = this->getValue<Size>(QuantityId::MATERIAL_ID);
+    } else {
+        matIds = nullptr;
     }
 }
 
