@@ -48,7 +48,7 @@ private:
         Connect(MAIN_LOOP_TYPE, MainLoopEventHandler(App::processEvents));
 
         GuiSettings gui;
-        gui.set(GuiSettingsId::ORTHO_FOV, 1.2e3_f)
+        gui.set(GuiSettingsId::ORTHO_FOV, 1.5e3_f)
             .set(GuiSettingsId::ORTHO_VIEW_CENTER, 0.5_f * Vector(1024, 768, 0))
             .set(GuiSettingsId::RENDER_WIDTH, 1024)
             .set(GuiSettingsId::RENDER_HEIGHT, 768)
@@ -67,7 +67,7 @@ private:
             .set(GuiSettingsId::IMAGES_SAVE, true)
             .set(GuiSettingsId::IMAGES_TIMESTEP, 1.e6_f)
             .set(GuiSettingsId::PLOT_INTEGRALS,
-                int(IntegralEnum::TOTAL_MOMENTUM) | int(IntegralEnum::TOTAL_ANGULAR_MOMENTUM))
+                int(PlotEnum::TOTAL_MOMENTUM) | int(PlotEnum::TOTAL_ANGULAR_MOMENTUM))
             .set(GuiSettingsId::PALETTE_VELOCITY, Interval(1.e-4_f, 1.e-2_f));
 
         AutoPtr<NBody> run = makeAuto<NBody>();
