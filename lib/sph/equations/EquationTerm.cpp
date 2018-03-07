@@ -127,8 +127,7 @@ public:
 
     template <bool Symmetrize>
     INLINE void eval(const Size i, const Size j, const Vector& grad) {
-        if ((flag[i] != flag[j] && reduce[i] > 0._f && reduce[j] > 0._f) ||
-            (reduce[i] == 0 && reduce[j] == 0)) {
+        if (flag[i] != flag[j]) { //  || reduce[i] == 0._f || reduce[j] == 0._f) {
             return;
         }
         const Vector f = Term::term(s, rho, i, j) * grad;
@@ -190,7 +189,7 @@ void StandardSph::SolidStressForce::finalize(Storage& storage) {
     ArrayView<SymmetricTensor> rhoGradv =
         storage.getValue<SymmetricTensor>(QuantityId::STRENGTH_DENSITY_VELOCITY_GRADIENT);
     ArrayView<Vector> rhoRotV = storage.getValue<Vector>(QuantityId::STRENGTH_DENSITY_VELOCITY_ROTATION);
-    ArrayView<Float> reduce = storage.getValue<Float>(QuantityId::STRESS_REDUCING);
+    // ArrayView<Float> reduce = storage.getValue<Float>(QuantityId::STRESS_REDUCING);
 
     for (Size matIdx = 0; matIdx < storage.getMaterialCnt(); ++matIdx) {
         MaterialView material = storage.getMaterial(matIdx);
@@ -198,20 +197,19 @@ void StandardSph::SolidStressForce::finalize(Storage& storage) {
         IndexSequence seq = material.sequence();
         parallelFor(*seq.begin(), *seq.end(), [&](const Size n1, const Size n2) INL {
             for (Size i = n1; i < n2; ++i) {
-                if (reduce[i] == 0._f) {
+                /*if (reduce[i] == 0._f) {
                     continue;
-                }
+                }*/
                 du[i] += 1._f / sqr(rho[i]) * ddot(s[i], rhoGradv[i]);
 
                 // Hooke's law
                 TracelessTensor dev(rhoGradv[i] - SymmetricTensor::identity() * rhoGradv[i].trace() / 3._f);
                 ds[i] += 2._f * mu / rho[i] * dev;
 
-                (void)rhoRotV;
                 // add rotation terms for independence of reference frame
-                /*const AffineMatrix R = -0.5_f * AffineMatrix::crossProductOperator(rhoRotV[i]);
+                const AffineMatrix R = 0.5_f * AffineMatrix::crossProductOperator(rhoRotV[i]);
                 const AffineMatrix S = convert<AffineMatrix>(s[i]);
-                ds[i] += convert<TracelessTensor>(1._f / rho[i] * (S * R - R * S));*/
+                ds[i] += convert<TracelessTensor>(1._f / rho[i] * (S * R - R * S));
                 ASSERT(isReal(du[i]) && isReal(ds[i]));
             }
         });
@@ -339,19 +337,19 @@ void StandardSph::ContinuityEquation::finalize(Storage& storage) {
     ArrayView<Float> rho, drho;
     tie(rho, drho) = storage.getAll<Float>(QuantityId::DENSITY);
     ArrayView<const Float> rhoDivv = storage.getValue<Float>(QuantityId::DENSITY_VELOCITY_DIVERGENCE);
-    ArrayView<const Float> reduce = storage.getValue<Float>(QuantityId::STRESS_REDUCING);
+    // ArrayView<const Float> reduce = storage.getValue<Float>(QuantityId::STRESS_REDUCING);
 
     // see Benz&Asphaug version for commentary
     if (storage.has(QuantityId::STRENGTH_DENSITY_VELOCITY_GRADIENT)) {
-        ArrayView<const SymmetricTensor> rhoGradv =
-            storage.getValue<SymmetricTensor>(QuantityId::STRENGTH_DENSITY_VELOCITY_GRADIENT);
+        /* ArrayView<const SymmetricTensor> rhoGradv =
+             storage.getValue<SymmetricTensor>(QuantityId::STRENGTH_DENSITY_VELOCITY_GRADIENT);*/
         parallelFor(0, rho.size(), [&](const Size n1, const Size n2) INL {
             for (Size i = n1; i < n2; ++i) {
-                if (reduce[i] > 0._f) {
+                /*if (reduce[i] > 0._f) {
                     drho[i] = -rhoGradv[i].trace();
-                } else {
-                    drho[i] = -rhoDivv[i];
-                }
+                } else {*/
+                drho[i] = -rhoDivv[i];
+                //}
             }
         });
     } else {

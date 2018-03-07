@@ -68,6 +68,9 @@ QuantityMetadata getMetadata(const QuantityId key) {
         return QuantityMetadata("Velocity rotation", L"\u2207\u2A2Fv" /*nabla cross v*/, ValueEnum::VECTOR);
     case QuantityId::STRENGTH_VELOCITY_GRADIENT:
         return QuantityMetadata("Strength velocity gradient", L"\u2207v", ValueEnum::SYMMETRIC_TENSOR);
+    case QuantityId::STRENGTH_DENSITY_VELOCITY_ROTATION:
+        return QuantityMetadata(
+            "Strength density velocity rotation", L"\u03C1\u2207\u2A2Fv", ValueEnum::VECTOR);
     case QuantityId::STRAIN_RATE_CORRECTION_TENSOR:
         return QuantityMetadata("Correction tensor", L"C", ValueEnum::SYMMETRIC_TENSOR);
     case QuantityId::DENSITY_VELOCITY_DIVERGENCE:

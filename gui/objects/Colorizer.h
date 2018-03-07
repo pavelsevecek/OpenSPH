@@ -317,6 +317,10 @@ public:
         return palette(getLength(this->getCorotatingVelocity(idx)));
     }
 
+    virtual Vector evalVector(const Size idx) const override {
+        return this->getCorotatingVelocity(idx);
+    }
+
     virtual Optional<Particle> getParticle(const Size idx) const override {
         return Particle(idx).addDt(QuantityId::POSITION, this->getCorotatingVelocity(idx));
     }

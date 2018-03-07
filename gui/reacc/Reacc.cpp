@@ -123,7 +123,7 @@ RunSettings getSharedSettings() {
         .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 0.01_f)
         .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 100._f)
         .set(RunSettingsId::TIMESTEPPING_COURANT_NEIGHBOUR_LIMIT, 10)
-        .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 50000._f)
+        .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 10._f)
         .setFlags(RunSettingsId::SOLVER_FORCES,
             ForceEnum::PRESSURE_GRADIENT | ForceEnum::SOLID_STRESS |
                 ForceEnum::GRAVITY) //| ForceEnum::INERTIAL)

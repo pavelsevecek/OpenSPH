@@ -339,19 +339,27 @@ public:
         ArrayView<const Vector> grads) override {
         ASSERT(neighs.size() == grads.size());
         if (useCorrectionTensor) {
+            C[i] = SymmetricTensor::null();
             for (Size k = 0; k < neighs.size(); ++k) {
                 const Size j = neighs[k];
+                if (reduce[i] == 0._f || reduce[j] == 0._f) {
+                    continue;
+                }
                 SymmetricTensor t = outer(r[j] - r[i], grads[k]); // symmetric in i,j ?
                 C[i] += m[j] / rho[j] * t;
             }
-
-            // sanity check that we are not getting 'weird' tensors with non-positive values on diagonal
-            ASSERT(minElement(C[i].diagonal()) >= 0._f, C[i]);
-            if (C[i].determinant() > 0.01_f) {
-                C[i] = C[i].inverse();
-                ASSERT(C[i].determinant() > 0._f, C[i]);
+            if (C[i] == SymmetricTensor::null()) {
+                C[i] = SymmetricTensor::identity();
             } else {
-                C[i] = C[i].pseudoInverse(1.e-3_f);
+
+                // sanity check that we are not getting 'weird' tensors with non-positive values on diagonal
+                ASSERT(minElement(C[i].diagonal()) >= 0._f, C[i]);
+                if (C[i].determinant() > 0.01_f) {
+                    C[i] = C[i].inverse();
+                    ASSERT(C[i].determinant() > 0._f, C[i]);
+                } else {
+                    C[i] = C[i].pseudoInverse(1.e-3_f);
+                }
             }
 
             for (Size k = 0; k < neighs.size(); ++k) {
@@ -383,7 +391,7 @@ public:
 
     template <bool Symmetrize>
     INLINE void eval(const Size i, const Size j, const Vector& grad) {
-        if (idxs[i] != idxs[j] && reduce[i] > 0._f && reduce[j] > 0._f) {
+        if (idxs[i] != idxs[j]) { // && reduce[i] > 0._f && reduce[j] > 0._f) {
             return;
         }
         const Vector dv = v[j] - v[i];
@@ -405,8 +413,7 @@ public:
 
     template <bool Symmetrize>
     INLINE void eval(const Size i, const Size j, const Vector& grad) {
-        if (idxs[i] != idxs[j] //|| reduce[i] == 0._f || reduce[j] == 0._f) {
-            && reduce[i] > 0._f && reduce[j] > 0._f) {
+        if (idxs[i] != idxs[j] || reduce[i] == 0._f || reduce[j] == 0._f) {
             return;
         }
         const Vector dv = v[j] - v[i];
@@ -445,7 +452,7 @@ public:
 
     template <bool Symmetrize>
     INLINE void eval(const Size i, const Size j, const Vector& grad) {
-        if (idxs[i] != idxs[j] && reduce[i] > 0._f && reduce[j] > 0._f) {
+        if (idxs[i] != idxs[j] || reduce[i] == 0._f || reduce[j] == 0._f) {
             return;
         }
         // nabla x v  --> correct order
@@ -486,7 +493,7 @@ public:
 
     template <bool Symmetrize>
     INLINE void eval(const Size i, const Size j, const Vector& grad) {
-        if (idxs[i] != idxs[j] && reduce[i] > 0._f && reduce[j] > 0._f) {
+        if (idxs[i] != idxs[j]) { // reduce[i] == 0._f || reduce[j] == 0._f) {
             return;
         }
         // nabla x v  --> correct order

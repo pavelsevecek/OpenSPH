@@ -157,6 +157,7 @@ AutoPtr<IColorizer> Factory::getColorizer(const GuiSettings& settings,
             rangeVariant = GuiSettingsId::PALETTE_ACTIVATION_STRAIN;
             break;
         case QuantityId::VELOCITY_GRADIENT:
+        case QuantityId::STRENGTH_DENSITY_VELOCITY_ROTATION:
         case QuantityId::STRENGTH_VELOCITY_GRADIENT:
             rangeVariant = GuiSettingsId::PALETTE_GRADV;
             break;
@@ -187,6 +188,12 @@ AutoPtr<IColorizer> Factory::getColorizer(const GuiSettings& settings,
             NOT_IMPLEMENTED;
         }
     }
+}
+
+static Palette getDefaultPalette(const Interval range) {
+    return Palette({ { float(range.lower()), Color(0.1f, 0.1f, 0.1f) },
+                       { float(range.upper()), Color(0.9f, 0.9f, 0.9f) } },
+        PaletteScale::LINEAR);
 }
 
 Palette Factory::getPalette(const ColorizerId id, const Interval range) {
@@ -220,9 +227,9 @@ Palette Factory::getPalette(const ColorizerId id, const Interval range) {
 
         case QuantityId::DEVIATORIC_STRESS:
             return Palette({ { x0, Color(0.f, 0.f, 0.2f) },
-                               { x0 + 0.01f * dx, Color(0.9f, 0.9f, 0.9f) },
-                               { x0 + 0.025f * dx, Color(1.f, 1.f, 0.2f) },
-                               { x0 + 0.1f * dx, Color(1.f, 0.5f, 0.f) },
+                               { x0 + 0.1f * dx, Color(0.9f, 0.9f, 0.9f) },
+                               { x0 + 0.25f * dx, Color(1.f, 1.f, 0.2f) },
+                               { x0 + 0.5f * dx, Color(1.f, 0.5f, 0.f) },
                                { x0 + dx, Color(0.5f, 0.f, 0.f) } },
                 PaletteScale::LOGARITHMIC);
         case QuantityId::DENSITY:
@@ -288,7 +295,7 @@ Palette Factory::getPalette(const ColorizerId id, const Interval range) {
                                { x0 + dx, Color(1.f, 0.1f, 0.1f) } },
                 PaletteScale::LINEAR);
         default:
-            NOT_IMPLEMENTED;
+            return getDefaultPalette(Interval(x0, x0 + dx));
         }
     } else {
         switch (id) {
@@ -335,7 +342,7 @@ Palette Factory::getPalette(const ColorizerId id, const Interval range) {
                                { x0 + dx, Color(1.f, 0.1f, 0.1f) } },
                 PaletteScale::LINEAR);
         default:
-            NOT_IMPLEMENTED;
+            return getDefaultPalette(Interval(x0, x0 + dx));
         }
     }
 }

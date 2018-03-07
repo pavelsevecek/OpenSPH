@@ -289,6 +289,7 @@ Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage
         QuantityId::DENSITY_VELOCITY_DIVERGENCE,
         QuantityId::VELOCITY_LAPLACIAN,
         QuantityId::VELOCITY_GRADIENT_OF_DIVERGENCE,
+        QuantityId::STRENGTH_DENSITY_VELOCITY_ROTATION,
         QuantityId::FRICTION,
     };
     if (!forMovie) {
