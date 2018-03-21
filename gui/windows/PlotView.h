@@ -36,18 +36,18 @@ private:
     struct {
         LockingPtr<IPlot> plot;
         Color color;
-        std::string name;
     } cached;
 
     bool showLabels;
 
+public:
     /// Include zero in x-range
     bool addZeroX = false;
 
     /// Include zero in y-range
     bool addZeroY = false;
 
-public:
+
     PlotView(wxWindow* parent,
         const wxSize size,
         const wxSize padding,
@@ -57,14 +57,6 @@ public:
 
     /// \brief Returns the transformation matrix for managed plot.
     AffineMatrix2 getPlotTransformMatrix(const Interval& rangeX, const Interval& rangeY) const;
-
-    void setZeroX(const bool zeroX) {
-        addZeroX = zeroX;
-    }
-
-    void setZeroY(const bool zeroY) {
-        addZeroY = zeroY;
-    }
 
     void drawAxes(wxDC& dc, const Interval rangeX, const Interval rangeY);
 
@@ -85,7 +77,7 @@ private:
 
     void drawPlot(wxPaintDC& dc, IPlot& lockedPlot, const Interval rangeX, const Interval rangeY);
 
-    void drawCaption(wxDC& dc);
+    void drawCaption(wxDC& dc, IPlot& lockedPlot);
 };
 
 

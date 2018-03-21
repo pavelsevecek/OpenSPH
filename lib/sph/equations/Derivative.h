@@ -342,9 +342,7 @@ public:
             C[i] = SymmetricTensor::null();
             for (Size k = 0; k < neighs.size(); ++k) {
                 const Size j = neighs[k];
-                if (reduce[i] == 0._f || reduce[j] == 0._f) {
-                    continue;
-                }
+
                 SymmetricTensor t = outer(r[j] - r[i], grads[k]); // symmetric in i,j ?
                 C[i] += m[j] / rho[j] * t;
             }
@@ -413,7 +411,7 @@ public:
 
     template <bool Symmetrize>
     INLINE void eval(const Size i, const Size j, const Vector& grad) {
-        if (idxs[i] != idxs[j] || reduce[i] == 0._f || reduce[j] == 0._f) {
+        if (idxs[i] != idxs[j]) {
             return;
         }
         const Vector dv = v[j] - v[i];
@@ -432,6 +430,7 @@ private:
     ArrayView<const Float> reduce;
     ArrayView<const Size> idxs;
     ArrayView<const Vector> v;
+    ArrayView<const SymmetricTensor> C;
 
     ArrayView<Vector> rhoRotV;
 
@@ -445,6 +444,7 @@ public:
         reduce = input.getValue<Float>(QuantityId::STRESS_REDUCING);
         idxs = input.getValue<Size>(QuantityId::FLAG);
         v = input.getDt<Vector>(QuantityId::POSITION);
+        C = results.getBuffer<SymmetricTensor>(QuantityId::STRAIN_RATE_CORRECTION_TENSOR, OrderEnum::ZERO);
 
         rhoRotV = results.getBuffer<Vector>(QuantityId::STRENGTH_DENSITY_VELOCITY_ROTATION, OrderEnum::ZERO);
     }
@@ -452,11 +452,12 @@ public:
 
     template <bool Symmetrize>
     INLINE void eval(const Size i, const Size j, const Vector& grad) {
-        if (idxs[i] != idxs[j] || reduce[i] == 0._f || reduce[j] == 0._f) {
+        if (idxs[i] != idxs[j]) {
             return;
         }
         // nabla x v  --> correct order
-        const Vector rot = cross(grad, v[j] - v[i]);
+        ASSERT(C[i] != SymmetricTensor::null());
+        const Vector rot = cross(C[i] * grad, v[j] - v[i]);
         rhoRotV[i] += m[j] * rot;
         ASSERT(isReal(rhoRotV[i]));
         if (Symmetrize) {

@@ -22,6 +22,131 @@ NAMESPACE_SPH_BEGIN
 
 enum class ControlIds { QUANTITY_BOX };
 
+class SelectedParticleIntegral : public IIntegral<Float> {
+private:
+    SharedPtr<IColorizer> colorizer;
+    Size selectedIdx;
+
+public:
+    SelectedParticleIntegral(SharedPtr<IColorizer> colorizer, const Size idx)
+        : colorizer(colorizer)
+        , selectedIdx(idx) {}
+
+    virtual Float evaluate(const Storage& UNUSED(storage)) const override {
+        ASSERT(colorizer->isInitialized(), colorizer->name());
+        return colorizer->evalScalar(selectedIdx).valueOr(0._f);
+    }
+
+    virtual std::string getName() const override {
+        return colorizer->name() + " " + std::to_string(selectedIdx);
+    }
+};
+
+/// \brief Temporal plot of currently selected particle.
+///
+/// Uses current colorizer as a source quantity. If either colorizer or selected particle changes, plot is
+/// cleared. It also holds a cache of previously selected particles, so that if a previously plotted particle
+/// is re-selected, the cached data are redrawn.
+class SelectedParticlePlot : public IPlot {
+private:
+    // Currently used plot (actual implementation); may be nullptr
+    SharedPtr<TemporalPlot> currentPlot;
+
+    // Selected particle; if NOTHING, no plot is drawn
+    Optional<Size> selectedIdx;
+
+    // Colorizer used to get the scalar value of the selected particle
+    SharedPtr<IColorizer> colorizer;
+
+    // Cache of previously selected particles. Cleared every time a new colorizer is selected.
+    FlatMap<Size, SharedPtr<TemporalPlot>> plotCache;
+
+public:
+    void selectParticle(const Optional<Size> idx) {
+        if (selectedIdx.valueOr(-1) == idx.valueOr(-1)) {
+            // either the same particle or deselecting when nothing was selected; do nothing
+            return;
+        }
+        if (selectedIdx && currentPlot) {
+            // save the current plot to cache
+            plotCache.insert(selectedIdx.value(), currentPlot);
+        }
+        selectedIdx = idx;
+
+        if (idx) {
+            // try to get the plot from the cache
+            Optional<SharedPtr<TemporalPlot>&> cachedPlot = plotCache.tryGet(idx.value());
+            if (cachedPlot) {
+                // reuse the cached plot
+                currentPlot = cachedPlot.value();
+                return;
+            }
+        }
+        // either deselecting or no cached plot found; clear the plot
+        this->clear();
+    }
+
+    void setColorizer(const SharedPtr<IColorizer>& newColorizer) {
+        if (colorizer != newColorizer) {
+            colorizer = newColorizer;
+            this->clear();
+            plotCache.clear();
+        }
+    }
+
+    virtual std::string getCaption() const override {
+        if (currentPlot) {
+            return currentPlot->getCaption();
+        } else {
+            return "Selected particle";
+        }
+    }
+
+    virtual void onTimeStep(const Storage& storage, const Statistics& stats) override {
+        if (selectedIdx && currentPlot) {
+            currentPlot->onTimeStep(storage, stats);
+        } else {
+            currentPlot.reset();
+        }
+        // also do onTimeStep for all cached plots
+        for (auto& plot : plotCache) {
+            plot.value->onTimeStep(storage, stats);
+        }
+        this->syncRanges();
+    }
+
+    virtual void clear() override {
+        if (selectedIdx) {
+            AutoPtr<SelectedParticleIntegral> integral =
+                makeAuto<SelectedParticleIntegral>(colorizer, selectedIdx.value());
+            TemporalPlot::Params params;
+            params.minRangeY = EPS;
+            params.shrinkY = false;
+            params.period = 0.01_f;
+            params.maxPointCnt = 1000;
+            currentPlot = makeAuto<TemporalPlot>(std::move(integral), params);
+        } else {
+            currentPlot.reset();
+        }
+        this->syncRanges();
+    }
+
+    virtual void plot(IDrawingContext& dc) const override {
+        if (currentPlot) {
+            currentPlot->plot(dc);
+        }
+    }
+
+private:
+    /// Sinces range getters are not virtual, we have to update ranges manually.
+    void syncRanges() {
+        if (currentPlot) {
+            ranges.x = currentPlot->rangeX();
+            ranges.y = currentPlot->rangeY();
+        }
+    }
+};
+
 MainWindow::MainWindow(Controller* parent, const GuiSettings& settings)
     : controller(parent)
     , gui(settings) {
@@ -167,9 +292,7 @@ wxBoxSizer* MainWindow::createSidebar() {
     SharedPtr<Array<PlotData>> list = makeShared<Array<PlotData>>();
 
     TemporalPlot::Params params;
-    // params.segment = 1._f;
     params.minRangeY = 1.4_f;
-    // params.fixedRangeX = Interval{ -50._f, 10._f };
     params.shrinkY = false;
     params.period = 1._f;
 
@@ -226,6 +349,17 @@ wxBoxSizer* MainWindow::createSidebar() {
         list->push(data);
     }
 
+    if (flags.has(PlotEnum::SELECTED_PARTICLE)) {
+        selectedParticlePlot = makeLocking<SelectedParticlePlot>();
+        data.plot = selectedParticlePlot;
+        plots.push(data.plot);
+        data.color = Color(wxColour(255, 255, 255));
+        list->push(data);
+    } else {
+        selectedParticlePlot.reset();
+    }
+
+
     PlotView* firstPlot = new PlotView(this, wxSize(300, 200), wxSize(10, 10), list, 0, false);
     sidebarSizer->Add(firstPlot, 1, wxALIGN_TOP);
     sidebarSizer->AddSpacer(5);
@@ -249,6 +383,14 @@ void MainWindow::runStarted() {
 }
 
 void MainWindow::onTimeStep(const Storage& storage, const Statistics& stats) {
+    if (selectedParticlePlot) {
+        selectedParticlePlot->selectParticle(controller->getSelectedParticle());
+
+        SharedPtr<IColorizer> colorizer = controller->getCurrentColorizer();
+        // we need validity of arrayrefs only for the duration of this function, so weak reference is OK
+        colorizer->initialize(storage, RefEnum::WEAK);
+        selectedParticlePlot->setColorizer(colorizer);
+    }
     for (auto plot : plots) {
         plot->onTimeStep(storage, stats);
     }

@@ -22,6 +22,7 @@ OrthoPane::OrthoPane(wxWindow* parent, Controller* controller, const GuiSettings
     this->Connect(wxEVT_MOUSEWHEEL, wxMouseEventHandler(OrthoPane::onMouseWheel));
     this->Connect(wxEVT_RIGHT_DOWN, wxMouseEventHandler(OrthoPane::onRightDown));
     this->Connect(wxEVT_RIGHT_UP, wxMouseEventHandler(OrthoPane::onRightUp));
+    this->Connect(wxEVT_LEFT_UP, wxMouseEventHandler(OrthoPane::onLeftUp));
 
     particle.lastIdx = -1;
     arcBall.resize(Point(width, height));
@@ -57,14 +58,6 @@ void OrthoPane::onMouseMotion(wxMouseEvent& evt) {
             camera->pan(offset);
         }
         this->Refresh();
-    } else {
-        Optional<Particle> selectedParticle = controller->getIntersectedParticle(position);
-        const Size selectedIdx = selectedParticle ? selectedParticle->getIndex() : -1;
-        if (selectedIdx != particle.lastIdx) {
-            particle.lastIdx = selectedIdx;
-            controller->setSelectedParticle(selectedParticle);
-            this->Refresh();
-        }
     }
     dragging.position = position;
 }
@@ -78,6 +71,17 @@ void OrthoPane::onRightUp(wxMouseEvent& evt) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
     AffineMatrix matrix = arcBall.drag(evt.GetPosition());
     dragging.initialMatrix = dragging.initialMatrix * matrix;
+}
+
+void OrthoPane::onLeftUp(wxMouseEvent& evt) {
+    CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
+    Point position = evt.GetPosition();
+    Optional<Size> selectedIdx = controller->getIntersectedParticle(position);
+    if (selectedIdx.valueOr(-1) != particle.lastIdx.valueOr(-1)) {
+        particle.lastIdx = selectedIdx;
+        controller->setSelectedParticle(selectedIdx);
+        this->Refresh();
+    }
 }
 
 void OrthoPane::onMouseWheel(wxMouseEvent& evt) {

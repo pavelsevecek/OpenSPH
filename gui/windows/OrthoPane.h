@@ -27,7 +27,7 @@ private:
     } dragging;
 
     struct {
-        Size lastIdx;
+        Optional<Size> lastIdx;
     } particle;
 
 public:
@@ -44,6 +44,8 @@ private:
     void onPaint(wxPaintEvent& evt);
 
     void onMouseMotion(wxMouseEvent& evt);
+
+    void onLeftUp(wxMouseEvent& evt);
 
     void onRightDown(wxMouseEvent& evt);
 

@@ -29,9 +29,10 @@ enum class PlotEnum {
     TOTAL_MOMENTUM = 1 << 3,
     TOTAL_ANGULAR_MOMENTUM = 1 << 4,
     SIZE_FREQUENCY_DISTRIBUTION = 1 << 5,
+    SELECTED_PARTICLE = 1 << 6,
 
     ALL = INTERNAL_ENERGY | KINETIC_ENERGY | TOTAL_ENERGY | TOTAL_MOMENTUM | TOTAL_ANGULAR_MOMENTUM |
-          SIZE_FREQUENCY_DISTRIBUTION
+          SIZE_FREQUENCY_DISTRIBUTION | SELECTED_PARTICLE,
 };
 
 /// \todo generic ortho projection (x,y,z) -> (u,v)
@@ -116,6 +117,8 @@ enum class GuiSettingsId {
     /// Mask of the image names, having %d where the output number will be placed.
     IMAGES_NAME,
 
+    IMAGES_MAKE_MOVIE,
+
     IMAGES_MOVIE_NAME,
 
     /// Time interval (in run time) of image saving. Note that images do not have to be saved exactly in
@@ -141,6 +144,8 @@ enum class GuiSettingsId {
     PALETTE_DIVV,
 
     PALETTE_GRADV,
+
+    PALETTE_ROTV,
 
     PALETTE_DENSITY_PERTURB,
 

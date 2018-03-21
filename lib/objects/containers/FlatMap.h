@@ -109,6 +109,11 @@ public:
         }
     }
 
+    /// \brief Removes all elements from the map.
+    INLINE void clear() {
+        data.clear();
+    }
+
     /// \brief Returns a reference to the value matching the given key, or NOTHING if no such value exists.
     ///
     /// Safe alternative to operator[].

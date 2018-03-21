@@ -123,7 +123,7 @@ RunSettings getSharedSettings() {
         .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 0.01_f)
         .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 100._f)
         .set(RunSettingsId::TIMESTEPPING_COURANT_NEIGHBOUR_LIMIT, 10)
-        .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 10._f)
+        .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 100._f)
         .setFlags(RunSettingsId::SOLVER_FORCES,
             ForceEnum::PRESSURE_GRADIENT | ForceEnum::SOLID_STRESS |
                 ForceEnum::GRAVITY) //| ForceEnum::INERTIAL)
@@ -157,7 +157,7 @@ Stabilization::Stabilization(RawPtr<Controller> newController) {
         // continue run, we don't need to do the stabilization, so skip it by settings the range to zero
         settings.set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 0._f));
     } else {
-        settings.set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 100._f));
+        settings.set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 200._f));
     }
     controller = newController;
 }
@@ -202,7 +202,6 @@ void Stabilization::setUp() {
             .set(BodySettingsId::DISTRIBUTE_MODE_SPH5, true)
             .set(BodySettingsId::SHEAR_VISCOSITY, 1.e12_f)
             .set(BodySettingsId::BULK_VISCOSITY, 0._f)
-            //.set(BodySettingsId::STRESS_TENSOR_MIN, 5.e5_f)
             .set(BodySettingsId::ENERGY_MIN, 10._f)
             .set(BodySettingsId::DAMAGE_MIN, 0.5_f);
         //.set(BodySettingsId::DIELH_STRENGTH, 0.1_f);
@@ -255,6 +254,7 @@ Fragmentation::Fragmentation(SharedPtr<Presets::Collision> data, Function<void()
     settings = getSharedSettings();
     settings.set(RunSettingsId::RUN_NAME, std::string("Fragmentation"))
         .set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 10'000._f))
+        //.set(RunSettingsId::TIMESTEPPING_ADAPTIVE_FACTOR, 0.8_f)
         .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 1000._f);
 }
 
@@ -343,7 +343,7 @@ void Fragmentation::handoff(Storage&& input) {
 }
 
 AutoPtr<IRunPhase> Fragmentation::getNextPhase() const {
-    return makeAuto<Reaccumulation>();
+    return nullptr; // return makeAuto<Reaccumulation>();
 }
 
 void Fragmentation::tearDown() {

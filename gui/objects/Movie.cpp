@@ -25,6 +25,7 @@ Movie::Movie(const GuiSettings& settings,
     , colorizers(std::move(colorizers))
     , params(params) {
     enabled = settings.get<bool>(GuiSettingsId::IMAGES_SAVE);
+    makeAnimation = settings.get<bool>(GuiSettingsId::IMAGES_MAKE_MOVIE);
     outputStep = settings.get<Float>(GuiSettingsId::IMAGES_TIMESTEP);
     const Path directory(settings.get<std::string>(GuiSettingsId::IMAGES_PATH));
     const Path name(settings.get<std::string>(GuiSettingsId::IMAGES_NAME));
@@ -87,6 +88,10 @@ void Movie::onTimeStep(const Storage& storage, Statistics& stats) {
 }
 
 void Movie::finalize() {
+    if (!makeAnimation) {
+        return;
+    }
+
     for (auto& e : colorizers) {
         std::string name = escapeColorizerName(e->name());
         std::string outPath = animationPath.native();

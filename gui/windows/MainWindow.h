@@ -23,6 +23,7 @@ class Particle;
 class Color;
 class Statistics;
 class Storage;
+class SelectedParticlePlot;
 
 /// Main frame of the application. Run is coupled with the window; currently there can only be one window and
 /// one run at the same time. Run is ended when user closes the window.
@@ -41,12 +42,15 @@ private:
 
     Array<LockingPtr<IPlot>> plots;
 
+    LockingPtr<SelectedParticlePlot> selectedParticlePlot;
+
     /// Additional wx controls
     wxComboBox* quantityBox;
     Size selectedIdx = 0;
     wxGauge* gauge;
     wxCheckBox* shadingBox;
 
+    /// Colorizers corresponding to the items in combobox
     Array<SharedPtr<IColorizer>> colorizerList;
 
 public:

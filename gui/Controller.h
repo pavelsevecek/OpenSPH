@@ -71,7 +71,7 @@ private:
         SharedPtr<ICamera> camera;
 
         /// Currently selected particle.
-        Optional<Particle> selectedParticle;
+        Optional<Size> selectedParticle;
 
         /// CV for waiting till main thread events are processed
         std::mutex mainThreadMutex;
@@ -131,17 +131,24 @@ public:
         const bool forMovie,
         const FlatMap<ColorizerId, Palette>& paletteOverrides) const;
 
-    /// Renders a bitmap of current view. Can only be called from main thread.
+    /// \brief Renders a bitmap of current view.
+    ///
+    /// Can only be called from main thread.
     SharedPtr<Bitmap> getRenderedBitmap();
 
-    /// Returns the camera currently used for the rendering
+    /// \brief Returns the camera currently used for the rendering
     SharedPtr<ICamera> getCurrentCamera() const;
 
-    /// Returns the particle under given image position.
+    /// \brief Returns the colorizer currently used for rendering into the window.
+    SharedPtr<IColorizer> getCurrentColorizer() const;
+
+    /// Returns the particle under given image position, or NOTHING if such particle exists.
     /// \param position Position in image coordinates, corresponding to the latest rendered image.
     /// \param toleranceEps Relative addition to effective radius of a particle; particles are considered to
     ///                     be under the point of they are closer than (displayedRadius * (1+toleranceEps)).
-    Optional<Particle> getIntersectedParticle(const Point position, const float toleranceEps = 1.f);
+    Optional<Size> getIntersectedParticle(const Point position, const float toleranceEps = 1.f);
+
+    Optional<Size> getSelectedParticle() const;
 
     /// Returns the settings object.
     GuiSettings& getParams();
@@ -182,8 +189,8 @@ public:
     ///
     /// The selection only affects the interactive view; it can be used by the renderer to highlight a
     /// selected particle, and the window can provide information about the selected particle.
-    /// \param particle Particle to selected; if NOTHING, the current selection is cleared.
-    void setSelectedParticle(const Optional<Particle>& particle);
+    /// \param particleIdx Particle to selected; if NOTHING, the current selection is cleared.
+    void setSelectedParticle(const Optional<Size>& particleIdx);
 
     /// \brief If possible, redraws the particles with data from storage.
     ///

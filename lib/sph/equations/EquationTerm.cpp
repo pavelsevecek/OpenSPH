@@ -189,7 +189,7 @@ void StandardSph::SolidStressForce::finalize(Storage& storage) {
     ArrayView<SymmetricTensor> rhoGradv =
         storage.getValue<SymmetricTensor>(QuantityId::STRENGTH_DENSITY_VELOCITY_GRADIENT);
     ArrayView<Vector> rhoRotV = storage.getValue<Vector>(QuantityId::STRENGTH_DENSITY_VELOCITY_ROTATION);
-    // ArrayView<Float> reduce = storage.getValue<Float>(QuantityId::STRESS_REDUCING);
+    ArrayView<Float> reduce = storage.getValue<Float>(QuantityId::STRESS_REDUCING);
 
     for (Size matIdx = 0; matIdx < storage.getMaterialCnt(); ++matIdx) {
         MaterialView material = storage.getMaterial(matIdx);
@@ -197,9 +197,9 @@ void StandardSph::SolidStressForce::finalize(Storage& storage) {
         IndexSequence seq = material.sequence();
         parallelFor(*seq.begin(), *seq.end(), [&](const Size n1, const Size n2) INL {
             for (Size i = n1; i < n2; ++i) {
-                /*if (reduce[i] == 0._f) {
+                if (reduce[i] == 0._f) {
                     continue;
-                }*/
+                }
                 du[i] += 1._f / sqr(rho[i]) * ddot(s[i], rhoGradv[i]);
 
                 // Hooke's law
@@ -209,7 +209,8 @@ void StandardSph::SolidStressForce::finalize(Storage& storage) {
                 // add rotation terms for independence of reference frame
                 const AffineMatrix R = 0.5_f * AffineMatrix::crossProductOperator(rhoRotV[i]);
                 const AffineMatrix S = convert<AffineMatrix>(s[i]);
-                ds[i] += convert<TracelessTensor>(1._f / rho[i] * (S * R - R * S));
+                const TracelessTensor ds_rot = convert<TracelessTensor>(1._f / rho[i] * (S * R - R * S));
+                ds[i] += ds_rot;
                 ASSERT(isReal(du[i]) && isReal(ds[i]));
             }
         });

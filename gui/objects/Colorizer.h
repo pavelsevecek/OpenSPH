@@ -44,12 +44,19 @@ public:
     /// \brief Returns the color of idx-th particle.
     virtual Color evalColor(const Size idx) const = 0;
 
+    /// \brief Returns the scalar representation of the colorized quantity for idx-th particle.
+    ///
+    /// If there is no reasonable scalar representation (boundary particles, for example), returns NOTHING
+    virtual Optional<Float> evalScalar(const Size UNUSED(idx)) const {
+        return NOTHING;
+    }
+
     /// \brief Returns the vector representation of the colorized quantity for idx-th particle.
     ///
     /// If there is no reasonable vector representation (which is true for any non-vector quantity) or the
-    /// function is not defined, return zero vector.
-    virtual Vector evalVector(const Size UNUSED(idx)) const {
-        return Vector(0._f);
+    /// function is not defined, return NOTHING.
+    virtual Optional<Vector> evalVector(const Size UNUSED(idx)) const {
+        return NOTHING;
     }
 
     /// \brief Returns the original value of the displayed quantity.
@@ -67,6 +74,13 @@ public:
     /// This is used when showing the colorizer in the window and as filename suffix.
     virtual std::string name() const = 0;
 };
+
+/// Types
+/// Scalar -> scalar
+/// Vector -> size, x, y, z
+/// Tensor -> trace, 2nd inv, xx, yy, zz, xy, xz, yz, largest eigen, smallest eigen
+///
+///
 
 
 namespace Detail {
@@ -86,15 +100,11 @@ namespace Detail {
     }
     template <>
     INLINE float getColorizerValue(const TracelessTensor& value) {
-        const Float result = sqrt(ddot(value, value));
-        ASSERT(isReal(result), value);
-        return result;
+        return sqrt(ddot(value, value));
     }
     template <>
     INLINE float getColorizerValue(const SymmetricTensor& value) {
-        const Float result = sqrt(ddot(value, value));
-        ASSERT(isReal(result), value);
-        return result;
+        return value.trace();
     }
 
     /// Helper function returning vector representation of given quantity.
@@ -102,11 +112,11 @@ namespace Detail {
     /// Only meaningful result is returned for vector quantity, other quantities simply return zero vector.
     /// The function is useful to avoid specializing colorizers for different types.
     template <typename Type>
-    INLINE Vector getColorizerVector(const Type& UNUSED(value)) {
-        return Vector(0._f);
+    INLINE Optional<Vector> getColorizerVector(const Type& UNUSED(value)) {
+        return NOTHING;
     }
     template <>
-    INLINE Vector getColorizerVector(const Vector& value) {
+    INLINE Optional<Vector> getColorizerVector(const Vector& value) {
         return value;
     }
 } // namespace Detail
@@ -122,11 +132,12 @@ enum class ColorizerId {
     DISPLACEMENT = -5,         ///< Difference between current positions and initial position
     DENSITY_PERTURBATION = -6, ///< Relative difference of density and initial density (rho/rho0 - 1)
     SUMMED_DENSITY = -7,       ///< Density computed from particle masses by direct summation of neighbours
-    YIELD_REDUCTION = -8,      ///< Reduction of stress tensor due to yielding (1 - f_vonMises)
-    DAMAGE_ACTIVATION = -9,    ///< Ratio of the stress and the activation strain
-    RADIUS = -10,              ///< Radii/smoothing lenghts of particles
-    BOUNDARY = -11,            ///< Shows boundary particles
-    ID = -12,                  ///< Each particle drawn with different color
+    TOTAL_STRESS = -8,         ///< Total stress (sigma = S - pI)
+    YIELD_REDUCTION = -9,      ///< Reduction of stress tensor due to yielding (1 - f_vonMises)
+    DAMAGE_ACTIVATION = -10,   ///< Ratio of the stress and the activation strain
+    RADIUS = -11,              ///< Radii/smoothing lenghts of particles
+    BOUNDARY = -12,            ///< Shows boundary particles
+    ID = -13,                  ///< Each particle drawn with different color
 };
 
 /// Default colorizer simply converting quantity value to color using defined palette. Vector and tensor
@@ -148,7 +159,7 @@ public:
         , palette(Factory::getPalette(colorizerId, range)) {}
 
     virtual void initialize(const Storage& storage, const RefEnum ref) override {
-        values = makeArrayRef(storage.getValue<Type>(id), ref);
+        values = makeArrayRef(storage.getPhysicalValue<Type>(id), ref);
     }
 
     virtual bool isInitialized() const override {
@@ -156,11 +167,15 @@ public:
     }
 
     virtual Color evalColor(const Size idx) const override {
-        ASSERT(this->isInitialized());
-        return palette(Detail::getColorizerValue(values[idx]));
+        return palette(this->evalScalar(idx).value());
     }
 
-    virtual Vector evalVector(const Size idx) const {
+    virtual Optional<Float> evalScalar(const Size idx) const {
+        ASSERT(this->isInitialized());
+        return Detail::getColorizerValue(values[idx]);
+    }
+
+    virtual Optional<Vector> evalVector(const Size idx) const {
         return Detail::getColorizerVector(values[idx]);
     }
 
@@ -187,7 +202,7 @@ public:
         values = makeArrayRef(storage.getDt<Vector>(QuantityId::POSITION), ref);
     }
 
-    virtual Vector evalVector(const Size idx) const override {
+    virtual Optional<Vector> evalVector(const Size idx) const override {
         return values[idx];
     }
 
@@ -317,7 +332,7 @@ public:
         return palette(getLength(this->getCorotatingVelocity(idx)));
     }
 
-    virtual Vector evalVector(const Size idx) const override {
+    virtual Optional<Vector> evalVector(const Size idx) const override {
         return this->getCorotatingVelocity(idx);
     }
 
@@ -434,6 +449,53 @@ private:
             rho += m[n.index] * kernel.value(r[idx] - r[n.index], r[idx][H]);
         }
         return rho;
+    }
+};
+
+class StressColorizer : public IColorizer {
+    Palette palette;
+    ArrayRef<const Float> p;
+    ArrayRef<const TracelessTensor> s;
+
+public:
+    StressColorizer(Palette palette)
+        : palette(std::move(palette)) {}
+
+    virtual void initialize(const Storage& storage, const RefEnum ref) override {
+        s = makeArrayRef(storage.getPhysicalValue<TracelessTensor>(QuantityId::DEVIATORIC_STRESS), ref);
+        p = makeArrayRef(storage.getValue<Float>(QuantityId::PRESSURE), ref);
+    }
+
+    virtual bool isInitialized() const override {
+        return !s.empty() && !p.empty();
+    }
+
+    virtual Color evalColor(const Size idx) const override {
+        return palette(this->evalScalar(idx).value());
+    }
+
+    virtual Optional<Float> evalScalar(const Size idx) const {
+        ASSERT(this->isInitialized());
+        SymmetricTensor sigma = SymmetricTensor(s[idx]) - p[idx] * SymmetricTensor::identity();
+        StaticArray<Float, 3> eigens = findEigenvalues(sigma);
+        return max(abs(eigens[0]), abs(eigens[1]), abs(eigens[2]));
+    }
+
+    virtual Optional<Vector> evalVector(const Size UNUSED(idx)) const {
+        return NOTHING;
+    }
+
+    virtual Optional<Particle> getParticle(const Size idx) const override {
+        SymmetricTensor sigma = SymmetricTensor(s[idx]) - p[idx] * SymmetricTensor::identity();
+        return Particle(QuantityId::DEVIATORIC_STRESS, sigma, idx);
+    }
+
+    virtual Optional<Palette> getPalette() const override {
+        return palette;
+    }
+
+    virtual std::string name() const override {
+        return "Total stress";
     }
 };
 

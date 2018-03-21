@@ -163,7 +163,7 @@ public:
     }
 
     template <typename TOther>
-    INLINE const Type& valueOr(const TOther& other) const {
+    INLINE Type valueOr(const TOther& other) const {
         if (used) {
             return storage;
         } else {

@@ -79,7 +79,7 @@ void TemporalPlot::onTimeStep(const Storage& storage, const Statistics& stats) {
     const Float y = integral.evaluate(storage);
     points.pushBack(PlotPoint{ t, y });
 
-    if (params.segment == INFTY && points.size() > 100) {
+    if (params.segment == INFTY && points.size() > params.maxPointCnt) {
         // plot is unnecessarily detailed, drop every second point to reduce the drawing time
         Queue<PlotPoint> newPoints;
         for (Size i = 0; i < points.size(); i += 2) {

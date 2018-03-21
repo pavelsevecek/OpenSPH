@@ -175,4 +175,13 @@ MinMaxMean QuantityMeans::evaluate(const Storage& storage) const {
     return means;
 }
 
+QuantityValue::QuantityValue(const QuantityId id, const Size particleIdx)
+    : id(id)
+    , idx(particleIdx) {}
+
+Float QuantityValue::evaluate(const Storage& storage) const {
+    ArrayView<const Float> values = storage.getValue<Float>(id);
+    return values[idx];
+}
+
 NAMESPACE_SPH_END

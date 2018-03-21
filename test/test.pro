@@ -45,6 +45,7 @@ SOURCES += \
     ../lib/io/test/FileManager.cpp \
     ../lib/io/test/FileSystem.cpp \
     ../lib/io/test/Logger.cpp \
+    ../lib/io/test/OutOfCore.cpp \
     ../lib/io/test/Output.cpp \
     ../lib/io/test/Path.cpp \
     ../lib/io/test/Serializer.cpp \

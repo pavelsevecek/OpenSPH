@@ -101,6 +101,9 @@ AutoPtr<IColorizer> Factory::getColorizer(const GuiSettings& settings,
             getRealPalette(
                 ColorizerId(QuantityId::DENSITY), GuiSettingsId::PALETTE_DENSITY, settings, overrides));
     }
+    case ColorizerId::TOTAL_STRESS:
+        return makeAuto<StressColorizer>(
+            getRealPalette(ColorizerId::TOTAL_STRESS, GuiSettingsId::PALETTE_STRESS, settings, overrides));
     case ColorizerId::YIELD_REDUCTION:
         return makeAuto<YieldReductionColorizer>(
             getRealPalette(ColorizerId::YIELD_REDUCTION, Interval(0._f, 1._f), settings, overrides));
@@ -157,9 +160,12 @@ AutoPtr<IColorizer> Factory::getColorizer(const GuiSettings& settings,
             rangeVariant = GuiSettingsId::PALETTE_ACTIVATION_STRAIN;
             break;
         case QuantityId::VELOCITY_GRADIENT:
-        case QuantityId::STRENGTH_DENSITY_VELOCITY_ROTATION:
         case QuantityId::STRENGTH_VELOCITY_GRADIENT:
+        case QuantityId::STRENGTH_DENSITY_VELOCITY_GRADIENT:
             rangeVariant = GuiSettingsId::PALETTE_GRADV;
+            break;
+        case QuantityId::STRENGTH_DENSITY_VELOCITY_ROTATION:
+            rangeVariant = GuiSettingsId::PALETTE_ROTV;
             break;
         case QuantityId::ANGULAR_VELOCITY:
             rangeVariant = GuiSettingsId::PALETTE_ANGULAR_VELOCITY;
@@ -191,8 +197,13 @@ AutoPtr<IColorizer> Factory::getColorizer(const GuiSettings& settings,
 }
 
 static Palette getDefaultPalette(const Interval range) {
-    return Palette({ { float(range.lower()), Color(0.1f, 0.1f, 0.1f) },
-                       { float(range.upper()), Color(0.9f, 0.9f, 0.9f) } },
+    const float x0 = float(range.lower());
+    const float dx = float(range.size());
+    return Palette({ { x0, Color(0.f, 0.f, 0.6f) },
+                       { x0 + 0.2f * dx, Color(0.1f, 0.1f, 0.1f) },
+                       { x0 + 0.6f * dx, Color(0.9f, 0.9f, 0.9f) },
+                       { x0 + 0.8f * dx, Color(1.f, 1.f, 0.f) },
+                       { x0 + dx, Color(0.6f, 0.f, 0.f) } },
         PaletteScale::LINEAR);
 }
 

@@ -180,6 +180,10 @@ public:
         /// When discarting points out of plotted range, shrink y-axis to fit currently visible points
         bool shrinkY = false;
 
+        /// Maximum number of points on the plot. When exceeded, every second point is removed and the plot
+        /// period is doubled.
+        Size maxPointCnt = 100;
+
         /// Time that needs to pass before a new point is added
         Float period = 0._f;
     };

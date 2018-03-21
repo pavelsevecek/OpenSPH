@@ -13,30 +13,30 @@
 NAMESPACE_SPH_BEGIN
 
 namespace Detail {
-    template <typename T>
-    class LockingControlBlock : public ControlBlock<T> {
-    private:
-        std::mutex mutex;
-        bool locked = false;
+template <typename T>
+class LockingControlBlock : public ControlBlock<T> {
+private:
+    std::mutex mutex;
+    bool locked = false;
 
-    public:
-        LockingControlBlock(T* ptr)
-            : ControlBlock<T>(ptr) {}
+public:
+    LockingControlBlock(T* ptr)
+        : ControlBlock<T>(ptr) {}
 
-        void lock() {
-            mutex.lock();
-            locked = true;
-        }
+    void lock() {
+        mutex.lock();
+        locked = true;
+    }
 
-        void unlock() {
-            mutex.unlock();
-            locked = false;
-        }
+    void unlock() {
+        mutex.unlock();
+        locked = false;
+    }
 
-        bool isLocked() const {
-            return locked;
-        }
-    };
+    bool isLocked() const {
+        return locked;
+    }
+};
 } // namespace Detail
 
 template <typename T>
@@ -74,8 +74,9 @@ public:
 
     template <typename T2>
     LockingPtr(const LockingPtr<T2>& other)
-        : resource(other.resource)
-        , block(other.block) {}
+        : resource(other.resource) {
+        block = static_cast<Detail::LockingControlBlock<T>*>(resource.block);
+    }
 
     LockingPtr(LockingPtr&& other)
         : resource(std::move(other.resource))

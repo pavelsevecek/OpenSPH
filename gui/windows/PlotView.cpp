@@ -56,7 +56,6 @@ AffineMatrix2 PlotView::getPlotTransformMatrix(const Interval& rangeX, const Int
 
 void PlotView::updatePlot(const Size index) {
     PlotData& data = (*list)[index];
-    cached.name = data.plot->getCaption();
     cached.color = data.color;
 
     // plot needs to be synchronized as it is updated from different thread, hopefully neither updating
@@ -104,9 +103,9 @@ void PlotView::onPaint(wxPaintEvent& UNUSED(evt)) {
     dc.SetBrush(brush);
     dc.DrawRectangle(wxPoint(0, 0), canvasSize);
 
-    this->drawCaption(dc);
-
     auto proxy = cached.plot.lock();
+    this->drawCaption(dc, *proxy);
+
     const Interval rangeX = extendRange(proxy->rangeX(), addZeroX);
     const Interval rangeY = extendRange(proxy->rangeY(), addZeroY);
     if (rangeX.size() <= 0._f || rangeY.size() <= 0) {
@@ -171,8 +170,10 @@ void PlotView::drawAxes(wxDC& dc, const Interval rangeX, const Interval rangeY) 
     }
 }
 
-void PlotView::drawCaption(wxDC& dc) {
-    const wxString label = cached.name;
+void PlotView::drawCaption(wxDC& dc, IPlot& lockedPlot) {
+    // plot may change caption during simulation (by selecting particle, for example), so we need to get the
+    // name every time from the plot
+    const wxString label = lockedPlot.getCaption();
     wxFont font = dc.GetFont();
     font.MakeSmaller();
     dc.SetFont(font);
@@ -223,7 +224,7 @@ wxBoxSizer* PlotFrame::createToolbar(const Size UNUSED(toolbarHeight)) {
     wxCheckBox* addZeroXBox = new wxCheckBox(this, wxID_ANY, "Show zero X");
     addZeroXBox->Bind(wxEVT_CHECKBOX, [this, addZeroXBox](wxCommandEvent& UNUSED(evt)) {
         const bool checked = addZeroXBox->GetValue();
-        plotView->setZeroX(checked);
+        plotView->addZeroX = checked;
         this->Refresh();
     });
     sizer->Add(addZeroXBox, 0, wxALIGN_CENTER_VERTICAL);
@@ -231,7 +232,7 @@ wxBoxSizer* PlotFrame::createToolbar(const Size UNUSED(toolbarHeight)) {
     wxCheckBox* addZeroYBox = new wxCheckBox(this, wxID_ANY, "Show zero Y");
     addZeroYBox->Bind(wxEVT_CHECKBOX, [this, addZeroYBox](wxCommandEvent& UNUSED(evt)) {
         const bool checked = addZeroYBox->GetValue();
-        plotView->setZeroY(checked);
+        plotView->addZeroY = checked;
         this->Refresh();
     });
     sizer->Add(addZeroYBox, 0, wxALIGN_CENTER_VERTICAL);
@@ -252,8 +253,8 @@ void PlotFrame::saveImage(const std::string& pathStr, const int fileIndex) {
 
         auto proxy = plot.lock();
         GraphicsContext gc(dc, Color(0.f, 0.f, 0.5f));
-        const Interval actRangeX = extendRange(proxy->rangeX(), true);
-        const Interval actRangeY = extendRange(proxy->rangeY(), true);
+        const Interval actRangeX = extendRange(proxy->rangeX(), plotView->addZeroX);
+        const Interval actRangeY = extendRange(proxy->rangeY(), plotView->addZeroY);
         AffineMatrix2 matrix = plotView->getPlotTransformMatrix(actRangeX, actRangeY);
         gc.setTransformMatrix(matrix);
         proxy->plot(gc);

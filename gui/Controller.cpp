@@ -169,6 +169,7 @@ void Controller::onTimeStep(const Storage& storage, Statistics& stats) {
     if (status == Status::QUITTING) {
         return;
     }
+
     // update run progress
     const float progress = stats.get<Float>(StatisticsId::RELATIVE_PROGRESS);
     executeOnMainThread([this, progress] { window->setProgress(progress); });
@@ -184,6 +185,9 @@ void Controller::onTimeStep(const Storage& storage, Statistics& stats) {
     if (vis.timer->isExpired()) {
         this->redraw(storage, stats);
         vis.timer->restart();
+
+        // update particle probe - has to be done after we redraw the image as it initializes the colorizer
+        executeOnMainThread([this] { this->setSelectedParticle(vis.selectedParticle); });
     }
 
     // executed all waiting callbacks
@@ -261,6 +265,9 @@ Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage
     if (storage.has(QuantityId::DAMAGE)) {
         colorizerIds.push(ColorizerId::DAMAGE_ACTIVATION);
     }
+    if (storage.has(QuantityId::PRESSURE) && storage.has(QuantityId::DEVIATORIC_STRESS)) {
+        colorizerIds.push(ColorizerId::TOTAL_STRESS);
+    }
 
     if (!forMovie) {
         if (storage.has(QuantityId::MASS)) {
@@ -289,6 +296,7 @@ Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage
         QuantityId::DENSITY_VELOCITY_DIVERGENCE,
         QuantityId::VELOCITY_LAPLACIAN,
         QuantityId::VELOCITY_GRADIENT_OF_DIVERGENCE,
+        QuantityId::STRENGTH_DENSITY_VELOCITY_GRADIENT,
         QuantityId::STRENGTH_DENSITY_VELOCITY_ROTATION,
         QuantityId::FRICTION,
     };
@@ -347,7 +355,12 @@ SharedPtr<ICamera> Controller::getCurrentCamera() const {
     return vis.camera;
 }
 
-Optional<Particle> Controller::getIntersectedParticle(const Point position, const float toleranceEps) {
+SharedPtr<IColorizer> Controller::getCurrentColorizer() const {
+    ASSERT(vis.colorizer != nullptr);
+    return vis.colorizer;
+}
+
+Optional<Size> Controller::getIntersectedParticle(const Point position, const float toleranceEps) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
 
     if (!vis.colorizer->isInitialized()) {
@@ -400,12 +413,7 @@ Optional<Particle> Controller::getIntersectedParticle(const Point position, cons
         // not a single candidate found
         return NOTHING;
     } else {
-        Optional<Particle> particle = vis.colorizer->getParticle(first.idx);
-        if (particle) {
-            // add position to the particle data
-            particle->addValue(QuantityId::POSITION, vis.positions[first.idx]);
-        }
-        return particle;
+        return first.idx;
     }
 }
 
@@ -428,15 +436,25 @@ void Controller::setRenderer(AutoPtr<IRenderer>&& newRenderer) {
     }
 }
 
-void Controller::setSelectedParticle(const Optional<Particle>& particle) {
-    vis.selectedParticle = particle;
+void Controller::setSelectedParticle(const Optional<Size>& particleIdx) {
+    CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
+    vis.selectedParticle = particleIdx;
 
-    if (particle) {
-        const Color color = vis.colorizer->evalColor(particle->getIndex());
-        window->setSelectedParticle(particle.value(), color);
-    } else {
-        window->deselectParticle();
+    if (particleIdx) {
+        const Color color = vis.colorizer->evalColor(particleIdx.value());
+        Optional<Particle> particle = vis.colorizer->getParticle(particleIdx.value());
+        if (particle) {
+            // add position to the particle data
+            particle->addValue(QuantityId::POSITION, vis.positions[particleIdx.value()]);
+            window->setSelectedParticle(particle.value(), color);
+            return;
+        }
     }
+    window->deselectParticle();
+}
+
+Optional<Size> Controller::getSelectedParticle() const {
+    return vis.selectedParticle;
 }
 
 SharedPtr<Movie> Controller::createMovie(const Storage& storage) {

@@ -40,7 +40,7 @@ struct RenderParams {
     } vectors;
 
     /// Highlighted particle (only for interactive view). If NOTHING, no particle is selected.
-    Optional<Particle> selectedParticle = NOTHING;
+    Optional<Size> selectedParticle = NOTHING;
 };
 
 

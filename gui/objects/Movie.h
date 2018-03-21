@@ -37,6 +37,9 @@ private:
     /// Enable/disable image saving
     bool enabled;
 
+    /// Make an animatiaon from rendered images when simulation ends
+    bool makeAnimation;
+
     /// Renderer
     AutoPtr<IRenderer> renderer;
 

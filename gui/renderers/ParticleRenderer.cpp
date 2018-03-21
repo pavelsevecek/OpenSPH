@@ -127,9 +127,12 @@ void ParticleRenderer::initialize(const Storage& storage,
             cached.positions.push(r[i]);
             cached.colors.push(color);
 
-            const Vector v = colorizer.evalVector(i);
-            cached.vectors.push(v);
-            hasVectorData |= (v != Vector(0._f));
+            if (Optional<Vector> v = colorizer.evalVector(i)) {
+                cached.vectors.push(v.value());
+                hasVectorData = true;
+            } else {
+                cached.vectors.push(Vector(0._f));
+            }
         }
     }
     // sort in z-order
@@ -180,20 +183,22 @@ SharedPtr<Bitmap> ParticleRenderer::render(const ICamera& camera,
     wxPen pen(*wxBLACK_PEN);
     // draw particles
     for (Size i = 0; i < cached.positions.size(); ++i) {
-        if (!cached.vectors.empty() && params.selectedParticle &&
-            cached.idxs[i] == params.selectedParticle->getIndex()) {
-            dir.used = true;
-            if (params.vectors.toLog) {
-                Float len;
-                tieToTuple(dir.v, len) = getNormalizedWithLength(cached.vectors[i]);
-                dir.v = dir.v * log(1._f + len) * params.vectors.scale;
-            } else {
-                dir.v = cached.vectors[i] * params.vectors.scale;
-            }
-            dir.r = cached.positions[i];
-
+        if (params.selectedParticle && cached.idxs[i] == params.selectedParticle.value()) {
+            // highlight the selected particle
             brush.SetColour(*wxRED);
             pen.SetColour(*wxWHITE);
+
+            if (!cached.vectors.empty()) {
+                dir.used = true;
+                if (params.vectors.toLog) {
+                    Float len;
+                    tieToTuple(dir.v, len) = getNormalizedWithLength(cached.vectors[i]);
+                    dir.v = dir.v * log(1._f + len) * params.vectors.scale;
+                } else {
+                    dir.v = cached.vectors[i] * params.vectors.scale;
+                }
+                dir.r = cached.positions[i];
+            }
         } else {
             brush.SetColour(wxColour(cached.colors[i]));
             pen.SetColour(wxColour(cached.colors[i]));
