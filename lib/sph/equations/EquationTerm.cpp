@@ -103,6 +103,9 @@ void BenzAsphaugSph::PressureForce::create(Storage& storage, IMaterial& material
 }
 
 
+/// \todo separate the correction tensor from VelocityGradient to another Derivative, make it PRECOMPUTE phase
+/// so that others can use the value!!
+
 template <typename Term>
 class StressDivergence : public DerivativeTemplate<StressDivergence<Term>> {
 private:
@@ -110,6 +113,7 @@ private:
     ArrayView<const TracelessTensor> s;
     ArrayView<const Float> reduce;
     ArrayView<const Size> flag;
+    ArrayView<const SymmetricTensor> C;
     ArrayView<Vector> dv;
 
 public:
@@ -123,14 +127,17 @@ public:
         reduce = input.getValue<Float>(QuantityId::STRESS_REDUCING);
         flag = input.getValue<Size>(QuantityId::FLAG);
         dv = results.getBuffer<Vector>(QuantityId::POSITION, OrderEnum::SECOND);
+
+        C = results.getBuffer<SymmetricTensor>(QuantityId::STRAIN_RATE_CORRECTION_TENSOR, OrderEnum::ZERO);
     }
 
     template <bool Symmetrize>
     INLINE void eval(const Size i, const Size j, const Vector& grad) {
-        if (flag[i] != flag[j]) { //  || reduce[i] == 0._f || reduce[j] == 0._f) {
+        if (flag[i] != flag[j] || reduce[i] == 0._f || reduce[j] == 0._f) {
             return;
         }
-        const Vector f = Term::term(s, rho, i, j) * grad;
+        ASSERT(C[i] != SymmetricTensor::null());
+        const Vector f = Term::term(s, rho, i, j) * (C[i] * grad);
         ASSERT(isReal(f));
         dv[i] += m[j] * f;
         if (Symmetrize) {
@@ -166,7 +173,7 @@ StandardSph::SolidStressForce::SolidStressForce(const RunSettings& settings) {
 void StandardSph::SolidStressForce::setDerivatives(DerivativeHolder& derivatives,
     const RunSettings& settings) {
     derivatives.require<StrengthDensityVelocityGradient>(settings);
-    derivatives.require<StrengthDensityVelocityRotation>(settings);
+    // derivatives.require<StrengthDensityVelocityRotation>(settings);
 
     struct Term {
         static TracelessTensor term(ArrayView<const TracelessTensor> s,
@@ -188,7 +195,7 @@ void StandardSph::SolidStressForce::finalize(Storage& storage) {
     ArrayView<Float> du = storage.getDt<Float>(QuantityId::ENERGY);
     ArrayView<SymmetricTensor> rhoGradv =
         storage.getValue<SymmetricTensor>(QuantityId::STRENGTH_DENSITY_VELOCITY_GRADIENT);
-    ArrayView<Vector> rhoRotV = storage.getValue<Vector>(QuantityId::STRENGTH_DENSITY_VELOCITY_ROTATION);
+    // ArrayView<Vector> rhoRotV = storage.getValue<Vector>(QuantityId::STRENGTH_DENSITY_VELOCITY_ROTATION);
     ArrayView<Float> reduce = storage.getValue<Float>(QuantityId::STRESS_REDUCING);
 
     for (Size matIdx = 0; matIdx < storage.getMaterialCnt(); ++matIdx) {
@@ -207,10 +214,10 @@ void StandardSph::SolidStressForce::finalize(Storage& storage) {
                 ds[i] += 2._f * mu / rho[i] * dev;
 
                 // add rotation terms for independence of reference frame
-                const AffineMatrix R = 0.5_f * AffineMatrix::crossProductOperator(rhoRotV[i]);
+                /*const AffineMatrix R = 0.5_f * AffineMatrix::crossProductOperator(rhoRotV[i]);
                 const AffineMatrix S = convert<AffineMatrix>(s[i]);
                 const TracelessTensor ds_rot = convert<TracelessTensor>(1._f / rho[i] * (S * R - R * S));
-                ds[i] += ds_rot;
+                ds[i] += ds_rot;*/
                 ASSERT(isReal(du[i]) && isReal(ds[i]));
             }
         });
@@ -342,8 +349,8 @@ void StandardSph::ContinuityEquation::finalize(Storage& storage) {
 
     // see Benz&Asphaug version for commentary
     if (storage.has(QuantityId::STRENGTH_DENSITY_VELOCITY_GRADIENT)) {
-        /* ArrayView<const SymmetricTensor> rhoGradv =
-             storage.getValue<SymmetricTensor>(QuantityId::STRENGTH_DENSITY_VELOCITY_GRADIENT);*/
+        // ArrayView<const SymmetricTensor> rhoGradv =
+        // storage.getValue<SymmetricTensor>(QuantityId::STRENGTH_DENSITY_VELOCITY_GRADIENT);
         parallelFor(0, rho.size(), [&](const Size n1, const Size n2) INL {
             for (Size i = n1; i < n2; ++i) {
                 /*if (reduce[i] > 0._f) {

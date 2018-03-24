@@ -215,14 +215,12 @@ private:
             /// \todo shouldn't we check velocities AFTER the bounce?
             return false;
         }
-        (void)h;
-        (void)omega;
-        /* TODO const Float omegaCritSqr = Constants::gravity * (m[i] + m[j]) / pow<3>(h);
+        const Float omegaCritSqr = Constants::gravity * (m[i] + m[j]) / pow<3>(h);
         const Float omegaSqr = getSqrLength(omega);
         if (omegaSqr * mergingLimit > omegaCritSqr) {
             // rotates too fast, reject the merge
             return false;
-        }*/
+        }
         return true;
     }
 };

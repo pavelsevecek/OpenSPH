@@ -71,7 +71,7 @@ RadialDistributionPlot::RadialDistributionPlot(const QuantityId id, const Option
 void TemporalPlot::onTimeStep(const Storage& storage, const Statistics& stats) {
     // add new point to the queue
     const Float t = stats.get<Float>(StatisticsId::RUN_TIME);
-    if (t - lastTime < params.period) {
+    if (t - lastTime < actPeriod) {
         return;
     }
     lastTime = t;
@@ -87,7 +87,7 @@ void TemporalPlot::onTimeStep(const Storage& storage, const Statistics& stats) {
         }
         points = std::move(newPoints);
         // also add new points with double period
-        params.period *= 2._f;
+        actPeriod *= 2._f;
     }
 
     // pop expired points
@@ -129,6 +129,7 @@ void TemporalPlot::clear() {
     points.clear();
     lastTime = -INFTY;
     ranges.x = ranges.y = Interval();
+    actPeriod = params.period;
 }
 
 void TemporalPlot::plot(IDrawingContext& dc) const {

@@ -35,39 +35,39 @@ enum class FinderFlag;
 
 /// Class providing a convenient way to construct objects from settings.
 namespace Factory {
-    AutoPtr<IEos> getEos(const BodySettings& settings);
+AutoPtr<IEos> getEos(const BodySettings& settings);
 
-    AutoPtr<IRheology> getRheology(const BodySettings& settings);
+AutoPtr<IRheology> getRheology(const BodySettings& settings);
 
-    AutoPtr<IFractureModel> getDamage(const BodySettings& settings);
+AutoPtr<IFractureModel> getDamage(const BodySettings& settings);
 
-    AutoPtr<IEquationTerm> getArtificialViscosity(const RunSettings& settings);
+AutoPtr<IEquationTerm> getArtificialViscosity(const RunSettings& settings);
 
-    AutoPtr<ITimeStepping> getTimeStepping(const RunSettings& settings, const SharedPtr<Storage>& storage);
+AutoPtr<ITimeStepping> getTimeStepping(const RunSettings& settings, const SharedPtr<Storage>& storage);
 
-    AutoPtr<ITimeStepCriterion> getTimeStepCriterion(const RunSettings& settings);
+AutoPtr<ITimeStepCriterion> getTimeStepCriterion(const RunSettings& settings);
 
-    AutoPtr<ISymmetricFinder> getFinder(const RunSettings& settings);
+AutoPtr<ISymmetricFinder> getFinder(const RunSettings& settings);
 
-    AutoPtr<IDistribution> getDistribution(const BodySettings& settings);
+AutoPtr<IDistribution> getDistribution(const BodySettings& settings);
 
-    AutoPtr<ISolver> getSolver(const RunSettings& settings);
+AutoPtr<ISolver> getSolver(const RunSettings& settings);
 
-    AutoPtr<IGravity> getGravity(const RunSettings& settings);
+AutoPtr<IGravity> getGravity(const RunSettings& settings);
 
-    AutoPtr<ICollisionHandler> getCollisionHandler(const RunSettings& settings);
+AutoPtr<ICollisionHandler> getCollisionHandler(const RunSettings& settings);
 
-    AutoPtr<IOverlapHandler> getOverlapHandler(const RunSettings& settings);
+AutoPtr<IOverlapHandler> getOverlapHandler(const RunSettings& settings);
 
-    AutoPtr<IBoundaryCondition> getBoundaryConditions(const RunSettings& settings);
+AutoPtr<IBoundaryCondition> getBoundaryConditions(const RunSettings& settings);
 
-    AutoPtr<IDomain> getDomain(const RunSettings& settings);
+AutoPtr<IDomain> getDomain(const RunSettings& settings);
 
-    AutoPtr<IMaterial> getMaterial(const BodySettings& settings);
+AutoPtr<IMaterial> getMaterial(const BodySettings& settings);
 
-    AutoPtr<ILogger> getLogger(const RunSettings& settings);
+AutoPtr<ILogger> getLogger(const RunSettings& settings);
 
-    AutoPtr<IRng> getRng(const RunSettings& settings);
+AutoPtr<IRng> getRng(const RunSettings& settings);
 } // namespace Factory
 
 

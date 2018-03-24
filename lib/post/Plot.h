@@ -199,7 +199,11 @@ private:
     /// Last time a point has been added
     Float lastTime = -INFTY;
 
-    Params params;
+    /// Parameters used to create the plot.
+    const Params params;
+
+    /// Current period of the plot. Initialized with params.period, but may change during the run.
+    Float actPeriod;
 
 public:
     /// Creates a plot showing the whole history of given integral.
@@ -207,6 +211,7 @@ public:
         : integral(integral)
         , params(params) {
         ASSERT(params.segment > 0._f);
+        actPeriod = params.period;
     }
 
     virtual std::string getCaption() const override {

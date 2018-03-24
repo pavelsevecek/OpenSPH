@@ -268,6 +268,9 @@ Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage
     if (storage.has(QuantityId::PRESSURE) && storage.has(QuantityId::DEVIATORIC_STRESS)) {
         colorizerIds.push(ColorizerId::TOTAL_STRESS);
     }
+    if (storage.has(QuantityId::ENERGY)) {
+        colorizerIds.push(ColorizerId::TOTAL_ENERGY);
+    }
 
     if (!forMovie) {
         if (storage.has(QuantityId::MASS)) {
@@ -276,7 +279,6 @@ Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage
         if (storage.has(QuantityId::STRESS_REDUCING)) {
             colorizerIds.push(ColorizerId::YIELD_REDUCTION);
         }
-
         colorizerIds.push(ColorizerId::MOVEMENT_DIRECTION);
         colorizerIds.push(ColorizerId::ACCELERATION);
         colorizerIds.push(ColorizerId::RADIUS);
@@ -310,6 +312,7 @@ Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage
         quantityColorizerIds.push(QuantityId::STRENGTH_VELOCITY_GRADIENT);
         quantityColorizerIds.push(QuantityId::STRAIN_RATE_CORRECTION_TENSOR);
         quantityColorizerIds.push(QuantityId::EPS_MIN);
+        quantityColorizerIds.push(QuantityId::EFFECTIVE_NEIGHBOUR_CNT);
     }
 
     Array<SharedPtr<IColorizer>> colorizers;
@@ -440,7 +443,8 @@ void Controller::setSelectedParticle(const Optional<Size>& particleIdx) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
     vis.selectedParticle = particleIdx;
 
-    if (particleIdx) {
+    /// \todo if the colorizer is not initialized, we should selected the particle after the next timestep
+    if (particleIdx && vis.colorizer->isInitialized()) {
         const Color color = vis.colorizer->evalColor(particleIdx.value());
         Optional<Particle> particle = vis.colorizer->getParticle(particleIdx.value());
         if (particle) {

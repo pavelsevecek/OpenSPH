@@ -90,7 +90,7 @@ namespace Detail {
     template <typename Type>
     INLINE float getColorizerValue(const Type& value) {
         ASSERT(isReal(value));
-        return value;
+        return float(value);
     }
     template <>
     INLINE float getColorizerValue(const Vector& value) {
@@ -133,11 +133,12 @@ enum class ColorizerId {
     DENSITY_PERTURBATION = -6, ///< Relative difference of density and initial density (rho/rho0 - 1)
     SUMMED_DENSITY = -7,       ///< Density computed from particle masses by direct summation of neighbours
     TOTAL_STRESS = -8,         ///< Total stress (sigma = S - pI)
-    YIELD_REDUCTION = -9,      ///< Reduction of stress tensor due to yielding (1 - f_vonMises)
-    DAMAGE_ACTIVATION = -10,   ///< Ratio of the stress and the activation strain
-    RADIUS = -11,              ///< Radii/smoothing lenghts of particles
-    BOUNDARY = -12,            ///< Shows boundary particles
-    ID = -13,                  ///< Each particle drawn with different color
+    TOTAL_ENERGY = -9,         ///< Sum of kinetic and internal energy for given particle
+    YIELD_REDUCTION = -10,     ///< Reduction of stress tensor due to yielding (1 - f_vonMises)
+    DAMAGE_ACTIVATION = -11,   ///< Ratio of the stress and the activation strain
+    RADIUS = -12,              ///< Radii/smoothing lenghts of particles
+    BOUNDARY = -13,            ///< Shows boundary particles
+    ID = -14,                  ///< Each particle drawn with different color
 };
 
 /// Default colorizer simply converting quantity value to color using defined palette. Vector and tensor
@@ -458,7 +459,7 @@ class StressColorizer : public IColorizer {
     ArrayRef<const TracelessTensor> s;
 
 public:
-    StressColorizer(Palette palette)
+    explicit StressColorizer(Palette palette)
         : palette(std::move(palette)) {}
 
     virtual void initialize(const Storage& storage, const RefEnum ref) override {
@@ -496,6 +497,53 @@ public:
 
     virtual std::string name() const override {
         return "Total stress";
+    }
+};
+
+class EnergyColorizer : public IColorizer {
+    Palette palette;
+    ArrayRef<const Float> u;
+    ArrayRef<const Float> m;
+    ArrayRef<const Vector> v;
+
+public:
+    explicit EnergyColorizer(Palette palette)
+        : palette(std::move(palette)) {}
+
+    virtual void initialize(const Storage& storage, const RefEnum ref) override {
+        u = makeArrayRef(storage.getValue<Float>(QuantityId::ENERGY), ref);
+        m = makeArrayRef(storage.getValue<Float>(QuantityId::MASS), ref);
+        v = makeArrayRef(storage.getDt<Vector>(QuantityId::POSITION), ref);
+    }
+
+    virtual bool isInitialized() const override {
+        return !m.empty();
+    }
+
+    virtual Color evalColor(const Size idx) const override {
+        return palette(this->evalScalar(idx).value());
+    }
+
+    virtual Optional<Float> evalScalar(const Size idx) const {
+        ASSERT(this->isInitialized());
+        return u[idx] + 0.5_f * m[idx] * getSqrLength(v[idx]);
+    }
+
+    virtual Optional<Vector> evalVector(const Size UNUSED(idx)) const {
+        return NOTHING;
+    }
+
+    virtual Optional<Particle> getParticle(const Size idx) const override {
+        const Float value = evalScalar(idx).value();
+        return Particle(QuantityId::ENERGY_PER_PARTICLE, value, idx);
+    }
+
+    virtual Optional<Palette> getPalette() const override {
+        return palette;
+    }
+
+    virtual std::string name() const override {
+        return "Total energy";
     }
 };
 

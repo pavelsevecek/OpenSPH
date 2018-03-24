@@ -196,6 +196,8 @@ enum class QuantityId {
     /// Number of neighbouring particles (in radius h * kernel.radius)
     NEIGHBOUR_CNT,
 
+    EFFECTIVE_NEIGHBOUR_CNT,
+
     /// Vector approximating surface normal
     SURFACE_NORMAL,
 

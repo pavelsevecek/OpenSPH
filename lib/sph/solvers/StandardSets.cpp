@@ -1,6 +1,8 @@
 #include "sph/solvers/StandardSets.h"
 #include "sph/equations/Friction.h"
+#include "sph/equations/HelperTerms.h"
 #include "sph/equations/Potentials.h"
+#include "sph/equations/av/Stress.h"
 #include "system/Factory.h"
 
 NAMESPACE_SPH_BEGIN
@@ -36,6 +38,9 @@ EquationHolder getStandardEquations(const RunSettings& settings, const EquationH
 
     // artificial viscosity
     equations += EquationHolder(Factory::getArtificialViscosity(settings));
+
+    // equations += makeTerm<EffectiveNeighbourCountTerm>();
+    equations += makeTerm<StressAV>(settings);
 
     // add all the additional equations
     equations += other;

@@ -191,7 +191,7 @@ void Stabilization::setUp() {
         }
     } else {
 
-        Size N = 50'000;
+        Size N = 40'000;
 
         BodySettings body;
         body.set(BodySettingsId::ENERGY, 0._f)
@@ -343,7 +343,7 @@ void Fragmentation::handoff(Storage&& input) {
 }
 
 AutoPtr<IRunPhase> Fragmentation::getNextPhase() const {
-    return nullptr; // return makeAuto<Reaccumulation>();
+    return makeAuto<Reaccumulation>();
 }
 
 void Fragmentation::tearDown() {
@@ -358,7 +358,7 @@ Reaccumulation::Reaccumulation() {
         .set(RunSettingsId::TIMESTEPPING_MAX_CHANGE, 0.05_f)
         .set(RunSettingsId::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::ACCELERATION)
         .set(RunSettingsId::TIMESTEPPING_ADAPTIVE_FACTOR, 0.5_f)
-        .set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 1._f)) // 30.f * 24._f * 3600._f))
+        .set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 30.f * 24._f * 3600._f))
         .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 1.e10_f)
         .set(RunSettingsId::SPH_FINDER, FinderEnum::KD_TREE)
         .set(RunSettingsId::GRAVITY_SOLVER, GravityEnum::BARNES_HUT)

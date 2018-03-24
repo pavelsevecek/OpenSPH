@@ -12,7 +12,7 @@ NAMESPACE_SPH_BEGIN
 /// \brief Helper term counting the number of neighbours of each particle.
 class NeighbourCountTerm : public IEquationTerm {
 private:
-    class NeighbourCountImpl : public DerivativeTemplate<NeighbourCountImpl> {
+    class Derivative : public DerivativeTemplate<Derivative> {
     private:
         ArrayView<Size> neighCnts;
 
@@ -35,7 +35,7 @@ private:
     };
 
     virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override {
-        derivatives.require<NeighbourCountImpl>(settings);
+        derivatives.require<Derivative>(settings);
     }
 
     virtual void initialize(Storage& UNUSED(storage)) override {}
@@ -43,6 +43,50 @@ private:
     virtual void finalize(Storage& UNUSED(storage)) override {}
 
     virtual void create(Storage& UNUSED(storage), IMaterial& UNUSED(material)) const override {}
+};
+
+class EffectiveNeighbourCountTerm : public IEquationTerm {
+private:
+    class Derivative : public DerivativeTemplate<Derivative> {
+    private:
+        ArrayView<const Size> idxs;
+        ArrayView<const Float> reduce;
+        ArrayView<Size> neighCnts;
+
+    public:
+        virtual void create(Accumulated& results) override {
+            results.insert<Size>(QuantityId::EFFECTIVE_NEIGHBOUR_CNT, OrderEnum::ZERO);
+        }
+
+        virtual void initialize(const Storage& input, Accumulated& results) override {
+            idxs = input.getValue<Size>(QuantityId::FLAG);
+            reduce = input.getValue<Float>(QuantityId::STRESS_REDUCING);
+            neighCnts = results.getBuffer<Size>(QuantityId::EFFECTIVE_NEIGHBOUR_CNT, OrderEnum::ZERO);
+        }
+
+        template <bool Symmetrize>
+        INLINE void eval(const Size i, const Size j, const Vector& UNUSED(grad)) {
+            if (idxs[i] != idxs[j] || reduce[i] == 0._f || reduce[j] == 0._f) {
+                return;
+            }
+            neighCnts[i]++;
+            if (Symmetrize) {
+                neighCnts[j]++;
+            }
+        }
+    };
+
+    virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override {
+        derivatives.require<Derivative>(settings);
+    }
+
+    virtual void initialize(Storage& UNUSED(storage)) override {}
+
+    virtual void finalize(Storage& UNUSED(storage)) override {}
+
+    virtual void create(Storage& storage, IMaterial& UNUSED(material)) const override {
+        storage.insert<Size>(QuantityId::EFFECTIVE_NEIGHBOUR_CNT, OrderEnum::ZERO, 0);
+    }
 };
 
 

@@ -101,6 +101,9 @@ AutoPtr<IColorizer> Factory::getColorizer(const GuiSettings& settings,
             getRealPalette(
                 ColorizerId(QuantityId::DENSITY), GuiSettingsId::PALETTE_DENSITY, settings, overrides));
     }
+    case ColorizerId::TOTAL_ENERGY:
+        return makeAuto<EnergyColorizer>(getRealPalette(
+            ColorizerId::TOTAL_ENERGY, GuiSettingsId::PALETTE_TOTAL_ENERGY, settings, overrides));
     case ColorizerId::TOTAL_STRESS:
         return makeAuto<StressColorizer>(
             getRealPalette(ColorizerId::TOTAL_STRESS, GuiSettingsId::PALETTE_STRESS, settings, overrides));
@@ -176,12 +179,17 @@ AutoPtr<IColorizer> Factory::getColorizer(const GuiSettings& settings,
         case QuantityId::MOMENT_OF_INERTIA:
             rangeVariant = GuiSettingsId::PALETTE_MOMENT_OF_INERTIA;
             break;
+        case QuantityId::EFFECTIVE_NEIGHBOUR_CNT:
+            rangeVariant = Interval(0._f, 200._f);
+            break;
         default:
             NOT_IMPLEMENTED;
         }
 
         Palette palette = getRealPalette(id, rangeVariant, settings, overrides);
         switch (getMetadata(quantity).expectedType) {
+        case ValueEnum::INDEX:
+            return makeAuto<TypedColorizer<Size>>(quantity, std::move(palette));
         case ValueEnum::SCALAR:
             return makeAuto<TypedColorizer<Float>>(quantity, std::move(palette));
         case ValueEnum::VECTOR:
@@ -216,12 +224,12 @@ Palette Factory::getPalette(const ColorizerId id, const Interval range) {
         case QuantityId::PRESSURE:
             ASSERT(x0 < -1.f);
             return Palette({ { x0, Color(0.3f, 0.3f, 0.8f) },
-                               { -1.f, Color(0.f, 0.f, 0.2f) },
+                               { -1.e4f, Color(0.f, 0.f, 0.2f) },
                                { 0.f, Color(0.2f, 0.2f, 0.2f) },
-                               { 1.f, Color(0.8f, 0.8f, 0.8f) },
-                               { max(10.f, x0 + sqrt(dx)), Color(1.f, 1.f, 0.2f) },
+                               { 1.e4f, Color(0.8f, 0.8f, 0.8f) },
+                               { 2.e4f, Color(1.f, 1.f, 0.2f) },
                                { x0 + dx, Color(0.5f, 0.f, 0.f) } },
-                PaletteScale::HYBRID);
+                PaletteScale::LINEAR);
         case QuantityId::ENERGY:
             return Palette({ { x0, Color(0.7f, 0.7f, 0.7) },
                                { x0 + 0.001f * dx, Color(0.1f, 0.1f, 1.f) },
@@ -339,6 +347,13 @@ Palette Factory::getPalette(const ColorizerId id, const Interval range) {
                                { x0 + 0.5f * dx, Color(0.7f, 0.7f, 0.7f) },
                                { x0 + dx, Color(1.f, 0.1f, 0.1f) } },
                 PaletteScale::LINEAR);
+        case ColorizerId::TOTAL_ENERGY:
+            return Palette({ { x0, Color(0.f, 0.f, 0.6f) },
+                               { x0 + 0.01f * dx, Color(0.1f, 0.1f, 0.1f) },
+                               { x0 + 0.05f * dx, Color(0.9f, 0.9f, 0.9f) },
+                               { x0 + 0.2f * dx, Color(1.f, 1.f, 0.f) },
+                               { x0 + dx, Color(0.6f, 0.f, 0.f) } },
+                PaletteScale::LOGARITHMIC);
         case ColorizerId::YIELD_REDUCTION:
             return Palette({ { 0._f, Color(0.1f, 0.1f, 0.1f) }, { 1._f, Color(0.9f, 0.9f, 0.9f) } },
                 PaletteScale::LINEAR);

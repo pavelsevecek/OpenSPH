@@ -294,7 +294,7 @@ wxBoxSizer* MainWindow::createSidebar() {
     TemporalPlot::Params params;
     params.minRangeY = 1.4_f;
     params.shrinkY = false;
-    params.period = 1._f;
+    params.period = 0.1_f;
 
     PlotData data;
     IntegralWrapper integral;

@@ -342,7 +342,9 @@ public:
             C[i] = SymmetricTensor::null();
             for (Size k = 0; k < neighs.size(); ++k) {
                 const Size j = neighs[k];
-
+                if (idxs[i] != idxs[j] || reduce[i] == 0._f || reduce[j] == 0._f) {
+                    continue;
+                }
                 SymmetricTensor t = outer(r[j] - r[i], grads[k]); // symmetric in i,j ?
                 C[i] += m[j] / rho[j] * t;
             }
@@ -411,7 +413,7 @@ public:
 
     template <bool Symmetrize>
     INLINE void eval(const Size i, const Size j, const Vector& grad) {
-        if (idxs[i] != idxs[j]) {
+        if (idxs[i] != idxs[j] || reduce[i] == 0._f || reduce[j] == 0._f) {
             return;
         }
         const Vector dv = v[j] - v[i];
@@ -452,7 +454,7 @@ public:
 
     template <bool Symmetrize>
     INLINE void eval(const Size i, const Size j, const Vector& grad) {
-        if (idxs[i] != idxs[j]) {
+        if (idxs[i] != idxs[j] || reduce[i] == 0._f || reduce[j] == 0._f) {
             return;
         }
         // nabla x v  --> correct order

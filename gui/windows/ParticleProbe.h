@@ -137,6 +137,10 @@ private:
                     dc, label + L" = " + toPrintableString(data.value.get<Float>()), offset);
                 offset.y += config.leftSkip;
                 break;
+            case DynamicId::SIZE:
+                drawTextWithSubscripts(dc, label + L" = " + std::to_wstring(data.value.get<Size>()), offset);
+                offset.y += config.leftSkip;
+                break;
             case DynamicId::VECTOR: {
                 const Vector vector = data.value;
                 this->printVector(dc, vector, label, offset);

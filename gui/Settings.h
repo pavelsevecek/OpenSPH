@@ -160,6 +160,8 @@ enum class GuiSettingsId {
     PALETTE_VELOCITY_SECOND_DERIVATIVES,
 
     PALETTE_ACTIVATION_STRAIN,
+
+    PALETTE_TOTAL_ENERGY,
 };
 
 using GuiSettings = Settings<GuiSettingsId>;

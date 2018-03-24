@@ -64,6 +64,7 @@ AutoPtr<GuiSettings> GuiSettings::instance (new GuiSettings {
     { GuiSettingsId::PALETTE_GRADV,         "palette.gradv",        Interval(0._f, 1.e-3_f) },
     { GuiSettingsId::PALETTE_ROTV,          "palette.rotv",         Interval(0._f, 4._f) },
     { GuiSettingsId::PALETTE_RADIUS,        "palette.radius",       Interval(0._f, 1.e3_f) },
+    { GuiSettingsId::PALETTE_TOTAL_ENERGY,  "palette.total_energy", Interval(1.e14_f, 1.e17_f) },
     { GuiSettingsId::PALETTE_DENSITY_PERTURB,               "palette.density_perturb",                  Interval(-1.e-6_f, 1.e-6_f) },
     { GuiSettingsId::PALETTE_ANGULAR_VELOCITY,              "palette.angular_velocity",                 Interval(0._f, 1.e-3_f) },
     { GuiSettingsId::PALETTE_MOMENT_OF_INERTIA,             "palette.moment_of_inertia",                Interval(0._f, 1.e10_f) },

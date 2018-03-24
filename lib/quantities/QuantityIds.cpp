@@ -116,6 +116,8 @@ QuantityMetadata getMetadata(const QuantityId key) {
         return QuantityMetadata("Angular velocity", L"\u03C9" /*omega*/, ValueEnum::VECTOR);
     case QuantityId::NEIGHBOUR_CNT:
         return QuantityMetadata("Neigh. cnt", L"N_neigh", ValueEnum::INDEX);
+    case QuantityId::EFFECTIVE_NEIGHBOUR_CNT:
+        return QuantityMetadata("Ef. neigh. cnt", L"N_eff", ValueEnum::INDEX);
     case QuantityId::SURFACE_NORMAL:
         return QuantityMetadata("Surf. normal", L"n", ValueEnum::VECTOR);
     case QuantityId::MOMENT_OF_INERTIA:
