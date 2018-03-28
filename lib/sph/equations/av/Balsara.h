@@ -10,6 +10,24 @@
 
 NAMESPACE_SPH_BEGIN
 
+/// \brief Helper function allowing to construct an object from settings if the object defines such
+/// constructor, or default-construct the object otherwise.
+template <typename Type>
+std::enable_if_t<!std::is_constructible<Type, const RunSettings&>::value, Type> makeFromSettings(
+    const RunSettings& UNUSED(settings)) {
+    // default constructible
+    return Type();
+}
+
+/// Specialization for types constructible from settings
+template <typename Type>
+std::enable_if_t<std::is_constructible<Type, const RunSettings&>::value, Type> makeFromSettings(
+    const RunSettings& settings) {
+    // constructible from settings
+    return Type(settings);
+}
+
+
 /// \brief Implementation of the Balsara switch \cite Balsara_1995, designed to reduce artificial viscosity in
 /// shear flows and avoid numerical issues, such as unphysical transport of angular momentum.
 
@@ -44,14 +62,15 @@ class BalsaraSwitch : public IEquationTerm {
 
     public:
         explicit Derivative(const RunSettings& settings)
-            : av(makeFromSettings<typename AV::Derivative>(settings)) {}
+            : DerivativeTemplate<Derivative>(settings)
+            , av(settings) {}
 
         virtual void create(Accumulated& results) override {
-            results.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND);
-            results.insert<Float>(QuantityId::ENERGY, OrderEnum::FIRST);
+            results.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, BufferSource::SHARED);
+            results.insert<Float>(QuantityId::ENERGY, OrderEnum::FIRST, BufferSource::SHARED);
         }
 
-        virtual void initialize(const Storage& input, Accumulated& results) override {
+        void init(const Storage& input, Accumulated& results) {
             m = input.getValue<Float>(QuantityId::MASS);
             ArrayView<const Vector> dummy;
             tie(r, v, dummy) = input.getAll<Vector>(QuantityId::POSITION);
@@ -95,11 +114,11 @@ public:
     }
 
     virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override {
-        // no need to use the angular momentum conservation here, velocity derivatives are only used to
+        // no need to use the correction tensor here, velocity derivatives are only used to
         // compute the Balsara factor, which is an arbitrary correction to AV anyway
-        derivatives.require<VelocityDivergence>(settings);
-        derivatives.require<VelocityRotation>(settings);
-        derivatives.require<Derivative>(settings);
+        derivatives.require(makeDerivative<VelocityDivergence>(settings));
+        derivatives.require(makeDerivative<VelocityRotation>(settings));
+        derivatives.require(makeAuto<Derivative>(settings));
     }
 
     virtual void initialize(Storage& storage) override {

@@ -8,6 +8,7 @@
 #include "catch.hpp"
 #include "io/Logger.h"
 #include "math/rng/Rng.h"
+#include "objects/containers/Array.h"
 #include "objects/geometry/Vector.h"
 
 /// Test cases for testing of multiple types
@@ -97,13 +98,13 @@
 #define REQUIRE_ASSERT(func)
 #endif
 
-extern int skippedTests;
+extern Sph::Array<std::pair<std::string, int>> skippedTests;
 
 #define SKIP_TEST                                                                                            \
     {                                                                                                        \
         StdOutLogger logger;                                                                                 \
         logger.write(" << Test in file ", __FILE__, " on line ", __LINE__, " temporarily disabled");         \
-        skippedTests++;                                                                                      \
+        skippedTests.push(std::make_pair(__FILE__, __LINE__));                                               \
         return;                                                                                              \
     }
 

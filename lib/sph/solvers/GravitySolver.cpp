@@ -21,7 +21,8 @@ GravitySolver<SymmetricSolver>::GravitySolver(const RunSettings& settings,
 
     // make sure acceleration are being accumulated
     threadData.forEach([&settings](ThreadData& data) { //
-        data.derivatives.getAccumulated().insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND);
+        Accumulated& results = data.derivatives.getAccumulated();
+        results.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, BufferSource::SHARED);
     });
 }
 
@@ -33,7 +34,8 @@ GravitySolver<AsymmetricSolver>::GravitySolver(const RunSettings& settings,
     , gravity(std::move(gravity)) {
 
     // make sure acceleration are being accumulated
-    derivatives.getAccumulated().insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND);
+    Accumulated& results = derivatives.getAccumulated();
+    results.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, BufferSource::SHARED);
 }
 
 template <typename TSphSolver>

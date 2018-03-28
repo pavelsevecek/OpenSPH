@@ -295,11 +295,9 @@ Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage
         QuantityId::DEVIATORIC_STRESS,
         QuantityId::DAMAGE,
         QuantityId::VELOCITY_DIVERGENCE,
-        QuantityId::DENSITY_VELOCITY_DIVERGENCE,
+        QuantityId::VELOCITY_GRADIENT,
         QuantityId::VELOCITY_LAPLACIAN,
         QuantityId::VELOCITY_GRADIENT_OF_DIVERGENCE,
-        QuantityId::STRENGTH_DENSITY_VELOCITY_GRADIENT,
-        QuantityId::STRENGTH_DENSITY_VELOCITY_ROTATION,
         QuantityId::FRICTION,
     };
     if (!forMovie) {
@@ -309,7 +307,6 @@ Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage
         quantityColorizerIds.push(QuantityId::AV_BALSARA);
         quantityColorizerIds.push(QuantityId::ANGULAR_VELOCITY);
         quantityColorizerIds.push(QuantityId::MOMENT_OF_INERTIA);
-        quantityColorizerIds.push(QuantityId::STRENGTH_VELOCITY_GRADIENT);
         quantityColorizerIds.push(QuantityId::STRAIN_RATE_CORRECTION_TENSOR);
         quantityColorizerIds.push(QuantityId::EPS_MIN);
         quantityColorizerIds.push(QuantityId::EFFECTIVE_NEIGHBOUR_CNT);

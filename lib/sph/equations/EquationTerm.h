@@ -13,24 +13,6 @@
 
 NAMESPACE_SPH_BEGIN
 
-
-/*enum class TermCategory {
-    /// Term modifying the total acceleration of particles
-    FORCE = 1 << 0,
-
-    /// Term contributing to the total change of internal energy
-    ENERGY_TERM = 1 << 1,
-
-    ///
-    ARTIFICIAL_VISCOSITY = 1 << 2,
-    NUMERICAL_TERM = 1 << 3,
-}
-
-class TermCategory {
-  private:
-    Variant<std::type_info,
-};*/
-
 /// \brief Represents a term or terms appearing in evolutionary equations.
 ///
 /// Each EquationTerm either directly modifies quantities, or adds quantity derivatives. These terms never
@@ -68,11 +50,54 @@ public:
 };
 
 
-/// \brief Base class for common implementations of adaptive smoothing length.
+/// \brief Discretization of pressure term in standard SPH formulation.
+class StandardForceDiscr {
+    ArrayView<const Float> rho;
+
+public:
+    void initialize(const Storage& input) {
+        rho = input.getValue<Float>(QuantityId::DENSITY);
+    }
+
+    template <typename T>
+    INLINE T eval(const Size i, const Size j, const T& vi, const T& vj) {
+        return vi / sqr(rho[i]) + vj / sqr(rho[j]);
+    }
+};
+
+/// \brief Discretization of pressure term in code SPH5
+class BenzAsphaugForceDiscr {
+    ArrayView<const Float> rho;
+
+public:
+    void initialize(const Storage& input) {
+        rho = input.getValue<Float>(QuantityId::DENSITY);
+    }
+
+    template <typename T>
+    INLINE T eval(const Size i, const Size j, const T& vi, const T& vj) {
+        return (vi + vj) / (rho[i] * rho[j]);
+    }
+};
+
+
+/// \brief Evolutionary equation for the (scalar) smoothing length
 ///
-/// Provides derived classes with smoothing length parameters (read from settings) and also ensures proper
-/// clamping of smoothing lenghts.
-class AdaptiveSmoothingLengthBase : public IEquationTerm {
+/// The smoothing length is evolved using first-order equation, 'mirroring' changes in density in
+/// order to keep the particle concentration approximately constant. The derivative of smoothing
+/// length \f$h\f$ of i-th particle computed using: \f[
+///  \frac{{\rm d} h_i}{{\rm d} t} = \frac{h_i}{D} \nabla \cdot \vec v_i \,,
+/// \f]
+/// where \f$D\f$ is the number of spatial dimensions (3 unless specified otherwise) and \f$\vec
+/// v_i\f$ is the velocity of the particle.
+///
+/// It is possible to add additional term into the equation that increases/decreases the smoothing
+/// length when number of neighbours is too low/high. This is done by setting flag
+/// SmoothingLengthEnum::SOUND_SPEED_ENFORCING to settings entry
+/// RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH. The allowed range of neighbours is then controlled
+/// by RunSettingsId::SPH_NEIGHBOUR_RANGE. Note that the number of neighbours is not guaranteed to
+/// be in the given range, the actual number of neighbours cannot be precisely controlled.
+class AdaptiveSmoothingLength : public IEquationTerm {
 protected:
     /// Number of spatial dimensions of the simulation. This should match the dimensions of the SPH kernel.
     Size dimensions;
@@ -86,10 +111,17 @@ protected:
     } enforcing;
 
 public:
-    explicit AdaptiveSmoothingLengthBase(const RunSettings& settings, const Size dimensions = DIMENSIONS);
+    explicit AdaptiveSmoothingLength(const RunSettings& settings, const Size dimensions = DIMENSIONS);
+
+    virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override;
 
     virtual void initialize(Storage& storage) override;
 
+    virtual void finalize(Storage& storage) override;
+
+    virtual void create(Storage& storage, IMaterial& material) const override;
+
+private:
     /// \brief Modifies the smoothing length derivative, attempting to enforce that the number of neighbours
     /// is within the given interval.
     ///
@@ -105,216 +137,108 @@ public:
         ArrayView<const Size> neighCnt);
 };
 
-/// Standard set of SPH equations
-namespace StandardSph {
 
-    /// \brief Equation of motion due to pressure gradient
-    ///
-    /// Computes acceleration from pressure gradient and corresponding derivative of internal energy.
-    /// The acceleration is given by: \f[
-    ///  \frac{{\rm d} \vec v_i}{{\rm d} t} = \sum_j m_j \left(\frac{p_i}{\rho_i^2} +
-    ///  \frac{p_j}{\rho_j^2}\right) \cdot \nabla W_{ij}\,,
-    /// \f]
-    class PressureForce : public IEquationTerm {
-    public:
-        virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override;
+/// \brief Equation of motion due to pressure gradient
+///
+/// Computes acceleration from pressure gradient and corresponding derivative of internal energy.
+/// The acceleration is given by: \f[
+///  \frac{{\rm d} \vec v_i}{{\rm d} t} = \sum_j m_j \left(\frac{p_i}{\rho_i^2} +
+///  \frac{p_j}{\rho_j^2}\right) \cdot \nabla W_{ij}\,,
+/// \f]
+class PressureForce : public IEquationTerm {
+public:
+    virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override;
 
-        virtual void initialize(Storage& storage) override;
+    virtual void initialize(Storage& storage) override;
 
-        virtual void finalize(Storage& storage) override;
+    virtual void finalize(Storage& storage) override;
 
-        virtual void create(Storage& storage, IMaterial& material) const override;
-    };
+    virtual void create(Storage& storage, IMaterial& material) const override;
+};
 
-    /// \brief Equation of motion for solid body and constitutive equation for the stress tensor
-    /// (Hooke's law)
-    ///
-    /// The equation computes acceleration from the divergence of the deviatoric stress \f$S\f$. The
-    /// equation of motion in the used SPH discretization reads: \f[
-    ///  \frac{{\rm d} \vec v_i}{{\rm d} t} = \sum_j m_j \left(\frac{S_i + S_j}{\rho_i \rho_j}\right)
-    ///  \cdot \nabla W_{ij}\,,
-    /// \f]
-    /// Corresponding term of energy equation (viscous heating) is also added to the energy
-    /// derivative: \f[
-    ///  \frac{{\rm d} u_i}{{\rm d} t} = \frac{1}{\rho_i} S_i : \nabla \vec v_i \,,
-    /// \f]
-    /// where \f$\nabla \vec v_i\f$ is the symmetrized velocity gradient.
-    ///
-    /// The stress is evolved as a first-order quantity, using Hooke's law as constitutive equation:
-    /// \f[
-    ///  \frac{{\rm d} S_i}{{\rm d} t} = 2\mu \left( \nabla \vec v - {\bf 1} \, \frac{\nabla \cdot
-    ///  \vec v}{3} \right)\,,
-    /// \f]
-    /// where \f$\mu\f$ is the shear modulus and \f$\bf 1\f$ is the identity tensor.
-    ///
-    /// This equation represents solid bodies, for fluids use \ref NavierStokesForce.
-    ///
-    /// \attention The isotropic part of the force is NOT computed, it is necessary to use \ref
-    /// PressureForce together with this equation.
-    class SolidStressForce : public IEquationTerm {
-    private:
-        bool useCorrectionTensor;
+/// \brief Equation of motion for solid body and constitutive equation for the stress tensor
+/// (Hooke's law)
+///
+/// The equation computes acceleration from the divergence of the deviatoric stress \f$S\f$. The
+/// equation of motion in the used SPH discretization reads: \f[
+///  \frac{{\rm d} \vec v_i}{{\rm d} t} = \sum_j m_j \left(\frac{S_i + S_j}{\rho_i \rho_j}\right)
+///  \cdot \nabla W_{ij}\,,
+/// \f]
+/// Corresponding term of energy equation (viscous heating) is also added to the energy
+/// derivative: \f[
+///  \frac{{\rm d} u_i}{{\rm d} t} = \frac{1}{\rho_i} S_i : \nabla \vec v_i \,,
+/// \f]
+/// where \f$\nabla \vec v_i\f$ is the symmetrized velocity gradient.
+///
+/// The stress is evolved as a first-order quantity, using Hooke's law as constitutive equation:
+/// \f[
+///  \frac{{\rm d} S_i}{{\rm d} t} = 2\mu \left( \nabla \vec v - {\bf 1} \, \frac{\nabla \cdot
+///  \vec v}{3} \right)\,,
+/// \f]
+/// where \f$\mu\f$ is the shear modulus and \f$\bf 1\f$ is the identity tensor.
+///
+/// This equation represents solid bodies, for fluids use \ref NavierStokesForce.
+///
+/// \attention The isotropic part of the force is NOT computed, it is necessary to use \ref
+/// PressureForce together with this equation.
+class SolidStressForce : public IEquationTerm {
+private:
+    bool useCorrectionTensor;
 
-    public:
-        explicit SolidStressForce(const RunSettings& settings);
+public:
+    explicit SolidStressForce(const RunSettings& settings);
 
-        /// \brief Actual term appearing on the right-hand side of the equation of motion
-        INLINE static TracelessTensor forceTerm(ArrayView<const TracelessTensor> s,
-            ArrayView<const Float> rho,
-            const Size i,
-            const Size j) {
-            return s[i] / sqr(rho[i]) + s[j] / sqr(rho[j]);
-        }
+    virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override;
 
-        virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override;
+    virtual void initialize(Storage& storage) override;
 
-        virtual void initialize(Storage& storage) override;
+    virtual void finalize(Storage& storage) override;
 
-        virtual void finalize(Storage& storage) override;
+    virtual void create(Storage& storage, IMaterial& material) const override;
+};
 
-        virtual void create(Storage& storage, IMaterial& material) const override;
-    };
+/// \brief Navier-Stokes equation of motion
+///
+/// \todo
+class NavierStokesForce : public IEquationTerm {
+public:
+    virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override;
 
-    /// \brief Navier-Stokes equation of motion
-    ///
-    /// \todo
-    class NavierStokesForce : public IEquationTerm {
-    public:
-        virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override;
+    virtual void initialize(Storage& storage) override;
 
-        virtual void initialize(Storage& storage) override;
+    virtual void finalize(Storage& storage) override;
 
-        virtual void finalize(Storage& storage) override;
+    virtual void create(Storage& storage, IMaterial& material) const override;
+};
 
-        virtual void create(Storage& storage, IMaterial& material) const override;
-    };
+/// \brief Equation for evolution of density
+///
+/// Provides a first-order evolutionary equation for density, computing the derivative of i-th
+/// particle using: \f[
+///  \frac{{\rm d} \rho_i}{{\rm d} t} = -\rho_i \nabla \cdot \vec v_i \,,
+/// \f]
+/// where \f$\vec v_i\f$ is the velocity of the particle.
+///
+/// The equation has two modes - fluid and solid - differing in the particle set used in the sum
+/// of velocity divergence. The modes are specified by RunSettingsId::MODEL_FORCE_SOLID_STRESS
+/// boolean parameter. For fluid mode, the velocity divergence is computed from all particles,
+/// while for solid mode, it only sums velocities of undamaged particles from the same body, or
+/// fully damaged particles. This is needed to properly handle density derivatives in impact; it
+/// is undesirable to get increased density by merely moving the bodies closer to each other.
+///
+/// Solver must use either this equation or some custom density computation, such as direct
+/// summation (see \ref SummationSolver) or SPH formulation without solving the density (see \ref
+/// DensityIndependentSolver).
+class ContinuityEquation : public IEquationTerm {
+public:
+    virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override;
 
-    /// \brief Equation for evolution of density
-    ///
-    /// Provides a first-order evolutionary equation for density, computing the derivative of i-th
-    /// particle using: \f[
-    ///  \frac{{\rm d} \rho_i}{{\rm d} t} = -\rho_i \nabla \cdot \vec v_i \,,
-    /// \f]
-    /// where \f$\vec v_i\f$ is the velocity of the particle.
-    ///
-    /// The equation has two modes - fluid and solid - differing in the particle set used in the sum
-    /// of velocity divergence. The modes are specified by RunSettingsId::MODEL_FORCE_SOLID_STRESS
-    /// boolean parameter. For fluid mode, the velocity divergence is computed from all particles,
-    /// while for solid mode, it only sums velocities of undamaged particles from the same body, or
-    /// fully damaged particles. This is needed to properly handle density derivatives in impact; it
-    /// is undesirable to get increased density by merely moving the bodies closer to each other.
-    ///
-    /// Solver must use either this equation or some custom density computation, such as direct
-    /// summation (see \ref SummationSolver) or SPH formulation without solving the density (see \ref
-    /// DensityIndependentSolver).
-    class ContinuityEquation : public IEquationTerm {
-    public:
-        virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override;
+    virtual void initialize(Storage& storage) override;
 
-        virtual void initialize(Storage& storage) override;
+    virtual void finalize(Storage& storage) override;
 
-        virtual void finalize(Storage& storage) override;
-
-        virtual void create(Storage& storage, IMaterial& material) const override;
-    };
-
-    /// \brief Evolutionary equation for the (scalar) smoothing length
-    ///
-    /// The smoothing length is evolved using first-order equation, 'mirroring' changes in density in
-    /// order to keep the particle concentration approximately constant. The derivative of smoothing
-    /// length \f$h\f$ of i-th particle computed using: \f[
-    ///  \frac{{\rm d} h_i}{{\rm d} t} = \frac{h_i}{D} \nabla \cdot \vec v_i \,,
-    /// \f]
-    /// where \f$D\f$ is the number of spatial dimensions (3 unless specified otherwise) and \f$\vec
-    /// v_i\f$ is the velocity of the particle.
-    ///
-    /// It is possible to add additional term into the equation that increases/decreases the smoothing
-    /// length when number of neighbours is too low/high. This is done by setting flag
-    /// SmoothingLengthEnum::SOUND_SPEED_ENFORCING to settings entry
-    /// RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH. The allowed range of neighbours is then controlled
-    /// by RunSettingsId::SPH_NEIGHBOUR_RANGE. Note that the number of neighbours is not guaranteed to
-    /// be in the given range, the actual number of neighbours cannot be precisely controlled.
-    class AdaptiveSmoothingLength : public AdaptiveSmoothingLengthBase {
-    public:
-        using AdaptiveSmoothingLengthBase::AdaptiveSmoothingLengthBase;
-
-        virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override;
-
-        virtual void finalize(Storage& storage) override;
-
-        virtual void create(Storage& storage, IMaterial& material) const override;
-    };
-
-} // namespace StandardSph
-
-/// Set of equations discretized according to Benz & Asphaug (as in code SPH5)
-namespace BenzAsphaugSph {
-
-    /// \brief Equation of motion due to pressure gradient
-    ///
-    /// Computes acceleration from pressure gradient and corresponding derivative of internal energy.
-    /// The acceleration is given by: \f[
-    ///  \frac{{\rm d} \vec v_i}{{\rm d} t} = \sum_j m_j \left(\frac{p_i + p_j}{\rho_i \rho_j}\right) \cdot
-    ///  \nabla W_{ij}\,,
-    /// \f]
-    class PressureForce : public IEquationTerm {
-    public:
-        virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override;
-
-        virtual void initialize(Storage& storage) override;
-
-        virtual void finalize(Storage& storage) override;
-
-        virtual void create(Storage& storage, IMaterial& material) const override;
-    };
-
-    class SolidStressForce : public IEquationTerm {
-    private:
-        bool useCorrectionTensor;
-
-    public:
-        explicit SolidStressForce(const RunSettings& settings);
-
-        /// \brief Actual term appearing on the right-hand side of the equation of motion
-        INLINE static TracelessTensor forceTerm(ArrayView<const TracelessTensor> s,
-            ArrayView<const Float> rho,
-            const Size i,
-            const Size j) {
-            return (s[i] + s[j]) / (rho[i] * rho[j]);
-        }
-
-        virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override;
-
-        virtual void initialize(Storage& storage) override;
-
-        virtual void finalize(Storage& storage) override;
-
-        virtual void create(Storage& storage, IMaterial& material) const override;
-    };
-
-    class ContinuityEquation : public IEquationTerm {
-    public:
-        virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override;
-
-        virtual void initialize(Storage& storage) override;
-
-        virtual void finalize(Storage& storage) override;
-
-        virtual void create(Storage& storage, IMaterial& material) const override;
-    };
-
-    class AdaptiveSmoothingLength : public AdaptiveSmoothingLengthBase {
-    public:
-        using AdaptiveSmoothingLengthBase::AdaptiveSmoothingLengthBase;
-
-        virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override;
-
-        virtual void finalize(Storage& storage) override;
-
-        virtual void create(Storage& storage, IMaterial& material) const override;
-    };
-
-} // namespace BenzAsphaugSph
+    virtual void create(Storage& storage, IMaterial& material) const override;
+};
 
 /// \brief Helper term to keep smoothing length constant during the simulation
 ///

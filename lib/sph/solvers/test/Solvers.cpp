@@ -36,7 +36,7 @@ SharedPtr<Storage> solveGassBall(RunSettings settings, Flags<Options> flags) {
         .set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONST)
         .set(RunSettingsId::RUN_THREAD_GRANULARITY, 10);
 
-    TSolver solver(settings, getEquations(settings));
+    TSolver solver(settings, getStandardEquations(settings));
 
     const Float rho0 = 10._f;
     const Float u0 = 1.e4_f;
@@ -123,6 +123,9 @@ TYPED_TEST_CASE_2("SymmetricSolver gass ball", "[solvers]", TSolver, SymmetricSo
 
 TEST_CASE("SymmetricSolver asymmetric derivative", "[solvers]") {
     class AsymmetricDerivative : public IDerivative {
+    public:
+        explicit AsymmetricDerivative(const RunSettings& UNUSED(settings)) {}
+
         virtual DerivativePhase phase() const override {
             return DerivativePhase::EVALUATION;
         }
@@ -136,7 +139,7 @@ TEST_CASE("SymmetricSolver asymmetric derivative", "[solvers]") {
             ArrayView<const Vector> UNUSED(grads)) override {}
     };
 
-    auto eq = makeTerm<Tests::DerivativeWrapper<AsymmetricDerivative>>();
+    auto eq = makeTerm<Tests::SingleDerivativeMaker<AsymmetricDerivative>>();
     REQUIRE_THROWS_AS(SymmetricSolver(RunSettings::getDefaults(), eq), InvalidSetup);
 }
 

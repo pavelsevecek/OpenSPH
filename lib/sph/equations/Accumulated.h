@@ -8,13 +8,20 @@
 #include "common/Assert.h"
 #include "objects/containers/Array.h"
 #include "objects/geometry/TracelessTensor.h"
-#include "objects/utility/PerElementWrapper.h"
 #include "objects/wrappers/Variant.h"
 #include "quantities/QuantityIds.h"
 #include "quantities/Storage.h"
 #include "thread/ThreadLocal.h"
 
 NAMESPACE_SPH_BEGIN
+
+enum class BufferSource {
+    /// Only a single derivative accumulates to this buffer
+    UNIQUE,
+
+    /// Multiple derivatives may accumulate into the buffer
+    SHARED,
+};
 
 /// \brief Storage for accumulating derivatives.
 ///
@@ -28,11 +35,24 @@ private:
     using Buffer = HolderVariant<Size, Float, Vector, TracelessTensor, SymmetricTensor>;
 
     struct Element {
-        QuantityId id;   ///< ID of accumulated quantity, used to stored the quantity into the storage
-        OrderEnum order; ///< order, specifying whether we are accumulating values or derivatives
-        Buffer buffer;   ///< accumulated data
+        /// ID of accumulated quantity, used to stored the quantity into the storage
+        QuantityId id;
+
+        /// Order, specifying whether we are accumulating values or derivatives
+        OrderEnum order;
+
+        /// Accumulated data
+        Buffer buffer;
     };
     Array<Element> buffers;
+
+    struct QuantityRecord {
+        QuantityId id;
+        bool unique;
+    };
+
+    /// Debug array, holding IDs of all quantities to check for uniqueness.
+    Array<QuantityRecord> records;
 
 public:
     Accumulated() = default;
@@ -40,16 +60,33 @@ public:
     /// \brief Creates a new storage with given ID.
     ///
     /// Should be called once for each thread when the solver is initialized.
+    /// \param id ID of the accumulated quantity
+    /// \param order Order of the quantity. Only highest order can be accumulated, this parameter is used to
+    ///              ensure the derivative is used consistently.
+    /// \param unique Whether this buffer is being accumulated by a single derivative. It has no effect on
+    ///               the simulation, but ensures a consistency of the run (that we don't accumulate two
+    ///               different velocity gradients, for example).
     template <typename TValue>
-    void insert(const QuantityId id, const OrderEnum order) {
-        for (Element& e : buffers) {
-            if (e.id == id) {
-                // already used
-                ASSERT(e.order == order, "Cannot accumulate both values and derivatives of quantity");
-                return;
+    void insert(const QuantityId id, const OrderEnum order, const BufferSource source) {
+        // add the buffer if not already present
+        if (!this->hasBuffer(id, order)) {
+            buffers.push(Element{ id, order, Array<TValue>() });
+        }
+
+        // check if we didn't call this more then once for 'unique' buffers
+        auto recordIter = std::find_if(records.begin(), records.end(), [id](QuantityRecord& r) { //
+            return r.id == id;
+        });
+        if (recordIter == records.end()) {
+            records.push(QuantityRecord{ id, source == BufferSource::UNIQUE });
+        } else {
+            ASSERT(recordIter->id == id);
+            if (source == BufferSource::UNIQUE || recordIter->unique) {
+                // either the previous record was unique and we are adding another one, or the previous one
+                // was shared and now we are adding unique
+                ASSERT(false, "Another derivatives accumulates to quantity marked as unique");
             }
         }
-        buffers.push(Element{ id, order, Array<TValue>() });
     }
 
     /// Initialize all storages, resizing them if needed and clearing out all previously accumulated values.
@@ -62,7 +99,7 @@ public:
                     values.fill(T(0._f));
                 } else {
                     // check that the array is really cleared
-                    ASSERT(perElement(values) == T(0._f));
+                    ASSERT(std::count(values.begin(), values.end(), T(0._f)) == values.size());
                 }
             });
         }
@@ -179,6 +216,17 @@ private:
             }
         };
         parallelFor(pool, 0, buffer1.size(), 10000, functor);
+    }
+
+    bool hasBuffer(const QuantityId id, const OrderEnum UNUSED_IN_RELEASE(order)) const {
+        for (const Element& e : buffers) {
+            if (e.id == id) {
+                // already used
+                ASSERT(e.order == order, "Cannot accumulate both values and derivatives of quantity");
+                return true;
+            }
+        }
+        return false;
     }
 };
 

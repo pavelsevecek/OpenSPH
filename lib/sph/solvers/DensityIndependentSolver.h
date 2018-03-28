@@ -5,6 +5,7 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz
 /// \date 2016-2018
 
+#include "objects/finders/NeighbourFinder.h"
 #include "sph/equations/EquationTerm.h"
 #include "sph/equations/av/Standard.h"
 #include "sph/kernel/KernelFactory.h"
@@ -23,11 +24,14 @@ private:
         Float gamma;
 
     public:
+        explicit Derivative(const RunSettings& settings)
+            : DerivativeTemplate<Derivative>(settings) {}
+
         virtual void create(Accumulated& results) override {
-            results.insert<Float>(QuantityId::ENERGY_PER_PARTICLE, OrderEnum::FIRST);
+            results.insert<Float>(QuantityId::ENERGY_PER_PARTICLE, OrderEnum::FIRST, BufferSource::SHARED);
         }
 
-        virtual void initialize(const Storage& input, Accumulated& results) override {
+        INLINE void init(const Storage& input, Accumulated& results) {
             tie(m, q, U) = input.getValues<Float>(
                 QuantityId::MASS, QuantityId::ENERGY_DENSITY, QuantityId::ENERGY_PER_PARTICLE);
             ArrayView<const Vector> dummy;
@@ -60,7 +64,7 @@ private:
 
 public:
     virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override {
-        derivatives.require<Derivative>(settings);
+        derivatives.require(makeAuto<Derivative>(settings));
     }
 
     virtual void initialize(Storage& UNUSED(storage)) override {}

@@ -43,15 +43,16 @@ public:
 
     public:
         explicit Derivative(const RunSettings& settings)
-            : alpha(settings.get<Float>(RunSettingsId::SPH_AV_ALPHA))
+            : DerivativeTemplate<Derivative>(settings)
+            , alpha(settings.get<Float>(RunSettingsId::SPH_AV_ALPHA))
             , beta(settings.get<Float>(RunSettingsId::SPH_AV_BETA)) {}
 
         virtual void create(Accumulated& results) override {
-            results.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND);
-            results.insert<Float>(QuantityId::ENERGY, OrderEnum::FIRST);
+            results.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, BufferSource::SHARED);
+            results.insert<Float>(QuantityId::ENERGY, OrderEnum::FIRST, BufferSource::SHARED);
         }
 
-        virtual void initialize(const Storage& input, Accumulated& results) override {
+        INLINE void init(const Storage& input, Accumulated& results) {
             ArrayView<const Vector> dummy;
             tie(r, v, dummy) = input.getAll<Vector>(QuantityId::POSITION);
             // sound speed must be computed by the solver using AV
@@ -93,7 +94,7 @@ public:
     };
 
     virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override {
-        derivatives.require<Derivative>(settings);
+        derivatives.require(makeAuto<Derivative>(settings));
     }
 
     virtual void initialize(Storage& UNUSED(storage)) override {}

@@ -60,7 +60,8 @@ public:
     /// Blocks until all submitted tasks has been finished.
     virtual void waitForAll() override;
 
-    /// Returns the index of this thread, or NOTHING if this thread was not invoked by the thread pool.
+    /// \brief Returns the index of this thread, or NOTHING if this thread was not invoked by the thread pool.
+    ///
     /// The index is within [0, numThreads-1].
     Optional<Size> getThreadIdx() const;
 

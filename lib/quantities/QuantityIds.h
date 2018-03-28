@@ -134,24 +134,8 @@ enum class QuantityId {
     /// Velocity rotation
     VELOCITY_ROTATION,
 
-    /// Rotation rate tensor
-    ROTATION_RATE,
-
-    /// Gradient computed by summing up particles with non-zero stress tensor from the same body and
-    /// strengthless particles (from any body). Used to implement the 'spring interaction'.
-    STRENGTH_VELOCITY_GRADIENT,
-
-    STRENGTH_VELOCITY_ROTATION,
-
     /// Correction tensor used to improve conservation of total angular momentum.
     STRAIN_RATE_CORRECTION_TENSOR,
-
-    /// Density times velocity divergence, used when evaluating the continuity equation
-    DENSITY_VELOCITY_DIVERGENCE,
-
-    STRENGTH_DENSITY_VELOCITY_GRADIENT,
-
-    STRENGTH_DENSITY_VELOCITY_ROTATION,
 
     ENERGY_LAPLACIAN,
 

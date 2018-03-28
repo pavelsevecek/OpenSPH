@@ -6,7 +6,7 @@ NAMESPACE_SPH_BEGIN
 ///
 /// This happens if both particles belong to the same body or they have nonzero damage and yielding
 /// reduction.
-INLINE bool interacts(Size i, Size j, ArrayView<const Size> flag, ArrayView<const Float> reduce) {
+/*INLINE bool interacts(Size i, Size j, ArrayView<const Size> flag, ArrayView<const Float> reduce) {
     return flag[i] == flag[j] && reduce[i] > 0._f && reduce[j] > 0._f;
 }
 
@@ -148,9 +148,8 @@ public:
     }
 };
 
-class RotationStrengthDensityVelocityGradient
-    : public RotationStrengthVelocityTemplate<QuantityId::STRENGTH_DENSITY_VELOCITY_GRADIENT,
-          RotationStrengthDensityVelocityGradient> {
+class RotationVelocityGradient : public RotationTemplate<QuantityId::STRENGTH_DENSITY_VELOCITY_GRADIENT,
+                                     RotationStrengthDensityVelocityGradient> {
 public:
     using RotationStrengthVelocityTemplate<QuantityId::STRENGTH_DENSITY_VELOCITY_GRADIENT,
         RotationStrengthDensityVelocityGradient>::RotationStrengthVelocityTemplate;
@@ -258,6 +257,6 @@ void StandardSph::SolidStressTorque::setDerivatives(DerivativeHolder& derivative
     };
     derivatives.require<RotationStressDivergence<Term>>(settings);
     derivatives.require<RotationStrengthDensityVelocityGradient>(settings);
-}
+}*/
 
 NAMESPACE_SPH_END

@@ -13,8 +13,7 @@ TEST_CASE("InternalFriction", "[friction]") {
     EquationHolder eqs;
     RunSettings settings;
     settings.setFlags(RunSettingsId::SOLVER_FORCES, ForceEnum::PRESSURE_GRADIENT);
-    eqs += makeTerm<StandardSph::ViscousStress>() + makeTerm<StandardSph::ContinuityEquation>() +
-           makeTerm<ConstSmoothingLength>();
+    eqs += makeTerm<ViscousStress>() + makeTerm<ContinuityEquation>() + makeTerm<ConstSmoothingLength>();
     SymmetricSolver solver(settings, std::move(eqs));
 
     Storage storage;

@@ -1,6 +1,7 @@
 #include "objects/geometry/TracelessTensor.h"
 #include "catch.hpp"
 #include "objects/containers/Array.h"
+#include "tests/Approx.h"
 #include "utils/Utils.h"
 
 using namespace Sph;
@@ -193,8 +194,8 @@ TEST_CASE("TracelessTensor clamp", "[tracelesstensor]") {
     // diagonal components are clamped and the trace is subtracted from result
     TracelessTensor t2(Vector(1._f, -2._f, 3._f), Vector(-2._f, -6._f, 4._f), Vector(3._f, 4._f, 5._f));
     SymmetricTensor expected2(Vector(1._f, -1._f, 1._f), Vector(-1._f, 1._f, 1._f));
-    REQUIRE(
-        clamp(t2, r) == TracelessTensor(expected2 - SymmetricTensor::identity() * expected2.trace() / 3._f));
+    REQUIRE(clamp(t2, r) ==
+            approx(TracelessTensor(expected2 - SymmetricTensor::identity() * expected2.trace() / 3._f)));
 }
 
 TEST_CASE("TracelessTensor less", "[tracelesstensor]") {

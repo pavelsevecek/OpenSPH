@@ -14,6 +14,7 @@
 NAMESPACE_SPH_BEGIN
 
 class IBoundaryCondition;
+class ISymmetricFinder;
 
 /// \brief Basic solver for integration of SPH equations
 ///

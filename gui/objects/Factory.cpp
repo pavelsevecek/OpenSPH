@@ -146,7 +146,6 @@ AutoPtr<IColorizer> Factory::getColorizer(const GuiSettings& settings,
             rangeVariant = GuiSettingsId::PALETTE_DAMAGE;
             break;
         case QuantityId::VELOCITY_DIVERGENCE:
-        case QuantityId::DENSITY_VELOCITY_DIVERGENCE:
             rangeVariant = GuiSettingsId::PALETTE_DIVV;
             break;
         case QuantityId::VELOCITY_LAPLACIAN:
@@ -163,11 +162,9 @@ AutoPtr<IColorizer> Factory::getColorizer(const GuiSettings& settings,
             rangeVariant = GuiSettingsId::PALETTE_ACTIVATION_STRAIN;
             break;
         case QuantityId::VELOCITY_GRADIENT:
-        case QuantityId::STRENGTH_VELOCITY_GRADIENT:
-        case QuantityId::STRENGTH_DENSITY_VELOCITY_GRADIENT:
             rangeVariant = GuiSettingsId::PALETTE_GRADV;
             break;
-        case QuantityId::STRENGTH_DENSITY_VELOCITY_ROTATION:
+        case QuantityId::VELOCITY_ROTATION:
             rangeVariant = GuiSettingsId::PALETTE_ROTV;
             break;
         case QuantityId::ANGULAR_VELOCITY:
@@ -268,7 +265,6 @@ Palette Factory::getPalette(const ColorizerId id, const Interval range) {
             return Palette({ { x0, Color(0.1f, 0.1f, 0.1f) }, { x0 + dx, Color(0.9f, 0.9f, 0.9f) } },
                 PaletteScale::LINEAR);
         case QuantityId::VELOCITY_DIVERGENCE:
-        case QuantityId::DENSITY_VELOCITY_DIVERGENCE:
             ASSERT(x0 < 0._f);
             return Palette({ { x0, Color(0.3f, 0.3f, 0.8f) },
                                { 0.1f * x0, Color(0.f, 0.f, 0.2f) },
@@ -277,7 +273,6 @@ Palette Factory::getPalette(const ColorizerId id, const Interval range) {
                                { x0 + dx, Color(1.0f, 0.6f, 0.f) } },
                 PaletteScale::HYBRID);
         case QuantityId::VELOCITY_GRADIENT:
-        case QuantityId::STRENGTH_VELOCITY_GRADIENT:
             ASSERT(x0 == 0._f);
             return Palette({ { 0._f, Color(0.3f, 0.3f, 0.8f) },
                                { 0.01f * dx, Color(0.f, 0.f, 0.2f) },

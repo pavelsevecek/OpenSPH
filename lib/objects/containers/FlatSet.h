@@ -9,8 +9,8 @@
 
 NAMESPACE_SPH_BEGIN
 
-template <typename T>
-class FlatSet {
+template <typename T, typename TLess = std::less<T>>
+class FlatSet : TLess {
 private:
     Array<T> data;
 
@@ -39,23 +39,24 @@ public:
         return data[idx];
     }
 
-    void insert(const T& value) {
+    template <typename U>
+    void insert(U&& value) {
         Size from = 0;
         Size to = data.size();
         Size mid = Size(-1);
 
         while (from < to && from != mid) {
             mid = (from + to) / 2;
-            if (data[mid] < value) {
+            if (less(data[mid], value)) {
                 from = mid + 1;
-            } else if (value < data[mid]) {
+            } else if (less(value, data[mid])) {
                 to = mid;
             } else {
                 // found the same value, skip
                 return;
             }
         }
-        data.insert(from, value);
+        data.insert(from, std::forward<U>(value));
     }
 
     Iterator<T> find(const T& value) {
@@ -65,7 +66,7 @@ public:
 
         while (from < to && from != mid) {
             mid = (from + to) / 2;
-            if (data[mid] < value) {
+            if (less(data[mid], value)) {
                 from = mid + 1;
             } else if (data[mid] == value) {
                 return this->begin() + mid;
@@ -112,6 +113,11 @@ public:
 
     operator ArrayView<const T>() const {
         return data;
+    }
+
+private:
+    INLINE bool less(const T& t1, const T& t2) const {
+        return TLess::operator()(t1, t2);
     }
 };
 

@@ -17,11 +17,14 @@ private:
         ArrayView<Size> neighCnts;
 
     public:
+        explicit Derivative(const RunSettings& settings)
+            : DerivativeTemplate<Derivative>(settings) {}
+
         virtual void create(Accumulated& results) override {
-            results.insert<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO);
+            results.insert<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO, BufferSource::UNIQUE);
         }
 
-        virtual void initialize(const Storage& UNUSED(input), Accumulated& results) override {
+        INLINE void init(const Storage& UNUSED(input), Accumulated& results) {
             neighCnts = results.getBuffer<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO);
         }
 
@@ -30,12 +33,15 @@ private:
             // there is no need to use this in asymmetric solver, since we already know all the neighbours
             ASSERT(Symmetrize);
             neighCnts[i]++;
-            neighCnts[j]++;
+            if (Symmetrize) {
+                neighCnts[j]++;
+            }
         }
     };
 
+public:
     virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override {
-        derivatives.require<Derivative>(settings);
+        derivatives.require(makeAuto<Derivative>(settings));
     }
 
     virtual void initialize(Storage& UNUSED(storage)) override {}
@@ -43,50 +49,6 @@ private:
     virtual void finalize(Storage& UNUSED(storage)) override {}
 
     virtual void create(Storage& UNUSED(storage), IMaterial& UNUSED(material)) const override {}
-};
-
-class EffectiveNeighbourCountTerm : public IEquationTerm {
-private:
-    class Derivative : public DerivativeTemplate<Derivative> {
-    private:
-        ArrayView<const Size> idxs;
-        ArrayView<const Float> reduce;
-        ArrayView<Size> neighCnts;
-
-    public:
-        virtual void create(Accumulated& results) override {
-            results.insert<Size>(QuantityId::EFFECTIVE_NEIGHBOUR_CNT, OrderEnum::ZERO);
-        }
-
-        virtual void initialize(const Storage& input, Accumulated& results) override {
-            idxs = input.getValue<Size>(QuantityId::FLAG);
-            reduce = input.getValue<Float>(QuantityId::STRESS_REDUCING);
-            neighCnts = results.getBuffer<Size>(QuantityId::EFFECTIVE_NEIGHBOUR_CNT, OrderEnum::ZERO);
-        }
-
-        template <bool Symmetrize>
-        INLINE void eval(const Size i, const Size j, const Vector& UNUSED(grad)) {
-            if (idxs[i] != idxs[j] || reduce[i] == 0._f || reduce[j] == 0._f) {
-                return;
-            }
-            neighCnts[i]++;
-            if (Symmetrize) {
-                neighCnts[j]++;
-            }
-        }
-    };
-
-    virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override {
-        derivatives.require<Derivative>(settings);
-    }
-
-    virtual void initialize(Storage& UNUSED(storage)) override {}
-
-    virtual void finalize(Storage& UNUSED(storage)) override {}
-
-    virtual void create(Storage& storage, IMaterial& UNUSED(material)) const override {
-        storage.insert<Size>(QuantityId::EFFECTIVE_NEIGHBOUR_CNT, OrderEnum::ZERO, 0);
-    }
 };
 
 
@@ -102,11 +64,14 @@ private:
         ArrayView<Vector> n;
 
     public:
+        explicit Derivative(const RunSettings& settings)
+            : DerivativeTemplate<Derivative>(settings) {}
+
         virtual void create(Accumulated& results) override {
-            results.insert<Vector>(QuantityId::SURFACE_NORMAL, OrderEnum::ZERO);
+            results.insert<Vector>(QuantityId::SURFACE_NORMAL, OrderEnum::ZERO, BufferSource::UNIQUE);
         }
 
-        virtual void initialize(const Storage& input, Accumulated& results) override {
+        INLINE void init(const Storage& input, Accumulated& results) {
             r = input.getValue<Vector>(QuantityId::POSITION);
             n = results.getBuffer<Vector>(QuantityId::SURFACE_NORMAL, OrderEnum::ZERO);
         }
@@ -127,7 +92,7 @@ private:
 
 public:
     virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override {
-        derivatives.require<Derivative>(settings);
+        derivatives.require(makeAuto<Derivative>(settings));
     }
 
     virtual void initialize(Storage& UNUSED(storage)) override {}

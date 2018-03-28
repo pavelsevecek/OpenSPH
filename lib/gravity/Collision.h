@@ -46,6 +46,11 @@ public:
     virtual CollisionResult collide(const Size i, const Size j, FlatSet<Size>& toRemove) = 0;
 };
 
+/// \brief Handles overlaps of particles.
+///
+/// Interface similar to \ref ICollisionHandler, but unlike collision result, overlaps has no result -
+/// particles either overlap or not. Note that overlaps are processed before collisions and if two particles
+/// do not overlap (\ref overlaps returns false), they are then checked for collisions.
 class IOverlapHandler : public Polymorphic {
 public:
     virtual void initialize(Storage& storage) = 0;
@@ -79,6 +84,10 @@ INLINE T weightedAverage(const T& v1, const Float w1, const T& v2, const Float w
     return (v1 * w1 + v2 * w2) / (w1 + w2);
 }
 
+/// \brief Helper handler always returning CollisionResult::NONE.
+///
+/// Cannot be used directly as collision always have to return a valid result (not NONE), but it can be used
+/// for testing purposes or in composite handlers (such as \ref FallbackHandler).
 class NullCollisionHandler : public ICollisionHandler {
 public:
     virtual void initialize(Storage& UNUSED(storage)) override {}
@@ -90,6 +99,11 @@ public:
     }
 };
 
+/// \brief Handler merging particles into a single, larger particles.
+///
+/// The volume of the merger is the sum of volumes of colliders. Particles are only merged if the relative
+/// velocity of collision is lower than the escape velocity and if the angular frequency of the would-be
+/// merger is lower than the break-up frequency; if not, CollisionResult::NONE is returned.
 class PerfectMergingHandler : public ICollisionHandler {
 private:
     ArrayView<Vector> r, v;
@@ -225,6 +239,7 @@ private:
     }
 };
 
+/// \brief Handler
 class ElasticBounceHandler : public ICollisionHandler {
 protected:
     ArrayView<Vector> r, v;

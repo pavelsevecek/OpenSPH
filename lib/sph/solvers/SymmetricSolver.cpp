@@ -1,6 +1,6 @@
 #include "sph/solvers/SymmetricSolver.h"
+#include "objects/finders/NeighbourFinder.h"
 #include "sph/boundary/Boundary.h"
-//#include "sph/equations/Accumulated.h"
 #include "sph/equations/HelperTerms.h"
 #include "sph/kernel/KernelFactory.h"
 #include "system/Factory.h"
@@ -158,26 +158,13 @@ void SymmetricSolver::afterLoop(Storage& storage, Statistics& stats) {
     stats.set(StatisticsId::NEIGHBOUR_COUNT, neighs);
 }
 
-void SymmetricSolver::sanityCheck(const Storage& storage) const {
+void SymmetricSolver::sanityCheck(const Storage& UNUSED(storage)) const {
     // we must solve smoothing length somehow
-    if (!equations.contains<StandardSph::AdaptiveSmoothingLength>() &&
-        !equations.contains<BenzAsphaugSph::AdaptiveSmoothingLength>() &&
-        !equations.contains<ConstSmoothingLength>()) {
+    if (!equations.contains<AdaptiveSmoothingLength>() && !equations.contains<ConstSmoothingLength>()) {
         throw InvalidSetup(
             "No solver of smoothing length specified; add either ConstSmootingLength or "
             "AdaptiveSmootingLength into the list of equations");
     }
-
-    // check for incompatible quantities
-    if (storage.has(QuantityId::STRENGTH_VELOCITY_GRADIENT) &&
-        storage.has(QuantityId::STRENGTH_DENSITY_VELOCITY_GRADIENT)) {
-        throw InvalidSetup(
-            "Storage contains both strength velocity gradient and density strength velocity gradient, this "
-            "probably means that equations from different SPH formulations are used together.");
-    }
-
-    // we allow both velocity divergence and density velocity divergence as the former can be used by some
-    // terms (e.g. Balsara switch) even in Standard formulation
 }
 
 NAMESPACE_SPH_END

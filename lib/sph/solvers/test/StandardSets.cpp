@@ -29,7 +29,7 @@ TYPED_TEST_CASE_2("StandardSets quantities B&A", "[solvers]", TSolver, Symmetric
     RunSettings settings;
     settings.set(RunSettingsId::SPH_FORMULATION, FormulationEnum::BENZ_ASPHAUG);
     settings.set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONTINUITY_EQUATION);
-    TSolver solver(settings, getBenzAsphaugEquations(settings));
+    TSolver solver(settings, getStandardEquations(settings));
 
     BodySettings body;
     body.set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::NONE);
@@ -46,7 +46,7 @@ TYPED_TEST_CASE_2("StandardSets quantities B&A", "[solvers]", TSolver, Symmetric
     REQUIRE(storage.has<Float>(QuantityId::STRESS_REDUCING, OrderEnum::ZERO));
     REQUIRE(storage.has<TracelessTensor>(QuantityId::DEVIATORIC_STRESS, OrderEnum::FIRST));
     REQUIRE(storage.has<Float>(QuantityId::VELOCITY_DIVERGENCE, OrderEnum::ZERO));
-    REQUIRE(storage.has<SymmetricTensor>(QuantityId::STRENGTH_VELOCITY_GRADIENT, OrderEnum::ZERO));
+    REQUIRE(storage.has<SymmetricTensor>(QuantityId::VELOCITY_GRADIENT, OrderEnum::ZERO));
     REQUIRE(storage.has<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO));
     REQUIRE(storage.has<Size>(QuantityId::FLAG, OrderEnum::ZERO));
     REQUIRE(storage.has<Size>(QuantityId::MATERIAL_ID, OrderEnum::ZERO));
@@ -85,8 +85,8 @@ TYPED_TEST_CASE_2("StandardSets quantities standard",
     REQUIRE(storage.has<Float>(QuantityId::SOUND_SPEED, OrderEnum::ZERO));
     REQUIRE(storage.has<Float>(QuantityId::STRESS_REDUCING, OrderEnum::ZERO));
     REQUIRE(storage.has<TracelessTensor>(QuantityId::DEVIATORIC_STRESS, OrderEnum::FIRST));
-    REQUIRE(storage.has<SymmetricTensor>(QuantityId::STRENGTH_DENSITY_VELOCITY_GRADIENT, OrderEnum::ZERO));
-    REQUIRE(storage.has<Float>(QuantityId::DENSITY_VELOCITY_DIVERGENCE, OrderEnum::ZERO));
+    REQUIRE(storage.has<SymmetricTensor>(QuantityId::VELOCITY_GRADIENT, OrderEnum::ZERO));
+    REQUIRE(storage.has<Float>(QuantityId::VELOCITY_DIVERGENCE, OrderEnum::ZERO));
     REQUIRE(storage.has<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO));
     REQUIRE(storage.has<Size>(QuantityId::FLAG, OrderEnum::ZERO));
     REQUIRE(storage.has<Size>(QuantityId::MATERIAL_ID, OrderEnum::ZERO));

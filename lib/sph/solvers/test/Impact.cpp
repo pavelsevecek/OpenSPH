@@ -40,11 +40,7 @@ static void runImpact(EquationHolder eqs, const RunSettings& settings) {
 
     timestepping.step(solver, stats);
 
-    FormulationEnum formulation = settings.get<FormulationEnum>(RunSettingsId::SPH_FORMULATION);
-    QuantityId gradId = (formulation == FormulationEnum::BENZ_ASPHAUG)
-                            ? QuantityId::STRENGTH_VELOCITY_GRADIENT
-                            : QuantityId::STRENGTH_DENSITY_VELOCITY_GRADIENT;
-    ArrayView<SymmetricTensor> gradv = storage->getValue<SymmetricTensor>(gradId);
+    ArrayView<SymmetricTensor> gradv = storage->getValue<SymmetricTensor>(QuantityId::VELOCITY_GRADIENT);
     ArrayView<TracelessTensor> s, ds;
     tie(s, ds) = storage->getAll<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
     ArrayView<Float> rho, drho;
@@ -62,7 +58,7 @@ static void runImpact(EquationHolder eqs, const RunSettings& settings) {
     timestepping.step(solver, stats);
 
     // arrayviews must be reset as they might be (and were) invalidated
-    gradv = storage->getValue<SymmetricTensor>(gradId);
+    gradv = storage->getValue<SymmetricTensor>(QuantityId::VELOCITY_GRADIENT);
     tie(s, ds) = storage->getAll<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
     tie(rho, drho) = storage->getAll<Float>(QuantityId::DENSITY);
     // not all particles will be affected by the impact yet; count number of nonzero particles
@@ -100,17 +96,12 @@ TYPED_TEST_CASE_2("Impact standard SPH", "[impact]]", TSolver, SymmetricSolver, 
 }
 
 TYPED_TEST_CASE_2("Impact B&A SPH", "[impact]]", TSolver, SymmetricSolver, AsymmetricSolver) {
-    /// \todo remaining fixes of standard SPH
-    /// - use density divv in energy derivative and smoothing length derivative, test that no other term
-    /// requires divv !
-    /// - use the same trick as B&A formulation for integration of density, so that the test above passes
-
     RunSettings settings;
     settings.setFlags(RunSettingsId::SOLVER_FORCES, ForceEnum::PRESSURE_GRADIENT | ForceEnum::SOLID_STRESS);
     settings.set(RunSettingsId::SPH_AV_TYPE, ArtificialViscosityEnum::STANDARD);
     settings.set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONST);
     settings.set(RunSettingsId::SPH_FORMULATION, FormulationEnum::BENZ_ASPHAUG);
-    EquationHolder eqs = getBenzAsphaugEquations(settings);
+    EquationHolder eqs = getStandardEquations(settings);
 
     runImpact<TSolver>(std::move(eqs), settings);
 }

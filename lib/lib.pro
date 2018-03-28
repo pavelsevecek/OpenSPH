@@ -100,7 +100,9 @@ SOURCES += \
     thread/CheckFunction.cpp \
     thread/Pool.cpp \
     timestepping/TimeStepCriterion.cpp \
-    timestepping/TimeStepping.cpp
+    timestepping/TimeStepping.cpp \
+    sph/equations/Derivative.cpp \
+    sph/solvers/SummationSolver.cpp
 
 HEADERS += \
     common/Assert.h \

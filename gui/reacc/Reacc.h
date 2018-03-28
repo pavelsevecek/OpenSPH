@@ -124,7 +124,7 @@ private:
             .set(GuiSettingsId::PALETTE_PRESSURE, Interval(-5.e4_f, 5.e4_f))
             .set(GuiSettingsId::PALETTE_ENERGY, Interval(0._f, 1.e3_f))
             .set(GuiSettingsId::PALETTE_RADIUS, Interval(700._f, 3.e3_f))
-            .set(GuiSettingsId::PALETTE_GRADV, Interval(0._f, 5.e-3_f))
+            .set(GuiSettingsId::PALETTE_GRADV, Interval(0._f, 1.e-5_f))
             .setFlags(GuiSettingsId::PLOT_INTEGRALS,
                 PlotEnum::KINETIC_ENERGY | PlotEnum::INTERNAL_ENERGY | PlotEnum::TOTAL_ENERGY |
                     PlotEnum::TOTAL_MOMENTUM | PlotEnum::TOTAL_ANGULAR_MOMENTUM |

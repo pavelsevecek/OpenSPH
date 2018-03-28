@@ -1,6 +1,6 @@
 #include "sph/solvers/AsymmetricSolver.h"
+#include "objects/finders/NeighbourFinder.h"
 #include "sph/equations/Accumulated.h"
-#include "sph/equations/EquationTerm.h"
 #include "sph/equations/HelperTerms.h"
 #include "sph/kernel/KernelFactory.h"
 #include "system/Factory.h"
@@ -20,6 +20,8 @@ AsymmetricSolver::AsymmetricSolver(const RunSettings& settings, const EquationHo
     // initialize all derivatives
     equations.setDerivatives(derivatives, settings);
 }
+
+AsymmetricSolver::~AsymmetricSolver() = default;
 
 void AsymmetricSolver::integrate(Storage& storage, Statistics& stats) {
     // initialize all materials (compute pressure, apply yielding and damage, ...)
@@ -108,24 +110,12 @@ void AsymmetricSolver::loop(Storage& storage, Statistics& stats) {
     stats.set(StatisticsId::NEIGHBOUR_COUNT, neighsStats);
 }
 
-void AsymmetricSolver::sanityCheck(const Storage& storage) const {
-    /// \todo deduplicate ?
-
+void AsymmetricSolver::sanityCheck(const Storage& UNUSED(storage)) const {
     // we must solve smoothing length somehow
-    if (!equations.contains<StandardSph::AdaptiveSmoothingLength>() &&
-        !equations.contains<BenzAsphaugSph::AdaptiveSmoothingLength>() &&
-        !equations.contains<ConstSmoothingLength>()) {
+    if (!equations.contains<AdaptiveSmoothingLength>() && !equations.contains<ConstSmoothingLength>()) {
         throw InvalidSetup(
             "No solver of smoothing length specified; add either ConstSmootingLength or "
             "AdaptiveSmootingLength into the list of equations");
-    }
-
-    // check for incompatible quantities
-    if (storage.has(QuantityId::STRENGTH_VELOCITY_GRADIENT) &&
-        storage.has(QuantityId::STRENGTH_DENSITY_VELOCITY_GRADIENT)) {
-        throw InvalidSetup(
-            "Storage contains both strength velocity gradient and density strength velocity gradient, this "
-            "probably means that equations from different SPH formulations are used together.");
     }
 
     // we allow both velocity divergence and density velocity divergence as the former can be used by some

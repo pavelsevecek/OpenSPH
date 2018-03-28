@@ -32,15 +32,16 @@ private:
 
     public:
         explicit Derivative(const RunSettings& settings)
-            : kernel(Factory::getKernel<DIMENSIONS>(settings)) {
+            : DerivativeTemplate<Derivative>(settings)
+            , kernel(Factory::getKernel<DIMENSIONS>(settings)) {
             epsilon = settings.get<Float>(RunSettingsId::XSPH_EPSILON);
         }
 
         virtual void create(Accumulated& results) override {
-            results.insert<Vector>(QuantityId::XSPH_VELOCITIES, OrderEnum::ZERO);
+            results.insert<Vector>(QuantityId::XSPH_VELOCITIES, OrderEnum::ZERO, BufferSource::UNIQUE);
         }
 
-        virtual void initialize(const Storage& input, Accumulated& results) override {
+        INLINE void init(const Storage& input, Accumulated& results) {
             dr = results.getBuffer<Vector>(QuantityId::XSPH_VELOCITIES, OrderEnum::ZERO);
             tie(rho, m) = input.getValues<Float>(QuantityId::DENSITY, QuantityId::MASS);
             ArrayView<const Vector> dummy;
@@ -60,7 +61,7 @@ private:
 
 public:
     virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override {
-        derivatives.require<Derivative>(settings);
+        derivatives.require(makeAuto<Derivative>(settings));
     }
 
     virtual void initialize(Storage& storage) override {

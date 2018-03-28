@@ -1,4 +1,5 @@
 #include "sph/solvers/StaticSolver.h"
+#include "objects/finders/NeighbourFinder.h"
 #include "physics/Eos.h"
 #include "sph/equations/EquationTerm.h"
 #include "sph/kernel/KernelFactory.h"
@@ -17,12 +18,15 @@ private:
     Float lambda, mu;
 
 public:
+    DisplacementGradient(const RunSettings& settings)
+        : DerivativeTemplate<DisplacementGradient>(settings) {}
+
     virtual void create(Accumulated& results) override {
-        results.insert<Float>(QuantityId::PRESSURE, OrderEnum::ZERO);
-        results.insert<TracelessTensor>(QuantityId::DEVIATORIC_STRESS, OrderEnum::ZERO);
+        results.insert<Float>(QuantityId::PRESSURE, OrderEnum::ZERO, BufferSource::UNIQUE);
+        results.insert<TracelessTensor>(QuantityId::DEVIATORIC_STRESS, OrderEnum::ZERO, BufferSource::UNIQUE);
     }
 
-    virtual void initialize(const Storage& input, Accumulated& results) override {
+    INLINE void init(const Storage& input, Accumulated& results) {
         u = input.getValue<Vector>(QuantityId::DISPLACEMENT);
         tie(m, rho) = input.getValues<Float>(QuantityId::MASS, QuantityId::DENSITY);
 
@@ -55,7 +59,7 @@ public:
 class DisplacementTerm : public IEquationTerm {
 public:
     virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override {
-        derivatives.require<DisplacementGradient>(settings);
+        derivatives.require(makeAuto<DisplacementGradient>(settings));
     }
 
     virtual void initialize(Storage& UNUSED(storage)) override {}

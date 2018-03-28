@@ -32,7 +32,7 @@ public:
     }
 
     virtual void create(Accumulated& results) override {
-        results.insert<Float>(QuantityId::GRAD_H, OrderEnum::ZERO);
+        results.insert<Float>(QuantityId::GRAD_H, OrderEnum::ZERO, BufferSource::UNIQUE);
     }
 
     virtual void initialize(const Storage& input, Accumulated& results) override {

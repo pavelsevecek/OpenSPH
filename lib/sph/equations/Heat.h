@@ -17,11 +17,14 @@ private:
     ArrayView<const Vector> r;
 
 public:
+    explicit EnergyLaplacian(const RunSettings& settings)
+        : DerivativeTemplate<EnergyLaplacian>(settings) {}
+
     virtual void create(Accumulated& results) override {
-        results.insert<Float>(QuantityId::ENERGY_LAPLACIAN, OrderEnum::ZERO);
+        results.insert<Float>(QuantityId::ENERGY_LAPLACIAN, OrderEnum::ZERO, BufferSource::UNIQUE);
     }
 
-    virtual void initialize(const Storage& input, Accumulated& results) override {
+    INLINE void init(const Storage& input, Accumulated& results) {
         tie(u, m, rho) = input.getValues<Float>(QuantityId::ENERGY, QuantityId::MASS, QuantityId::DENSITY);
         r = input.getValue<Vector>(QuantityId::POSITION);
         deltaU = results.getBuffer<Float>(QuantityId::ENERGY_LAPLACIAN, OrderEnum::ZERO);
@@ -42,7 +45,7 @@ class HeatDiffusionEquation : public IEquationTerm {
 public:
     virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override {
         // add laplacian of energy to the list of derivatives
-        derivatives.require<EnergyLaplacian>(settings);
+        derivatives.require(makeAuto<EnergyLaplacian>(settings));
     }
 
     virtual void initialize(Storage& UNUSED(storage)) override {}

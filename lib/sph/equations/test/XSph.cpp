@@ -15,7 +15,6 @@ TEST_CASE("XSph", "[solvers]") {
     RunSettings settings;
     settings.setFlags(RunSettingsId::SOLVER_FORCES, ForceEnum::PRESSURE_GRADIENT);
 
-    using namespace BenzAsphaugSph;
     eqs += makeTerm<PressureForce>() + makeTerm<ContinuityEquation>() + makeTerm<XSph>() +
            makeTerm<ConstSmoothingLength>();
     SymmetricSolver solver(settings, std::move(eqs));

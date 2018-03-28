@@ -69,6 +69,12 @@ TEST_CASE("GetThreadIdx", "[thread]") {
     REQUIRE(pool.getThreadCnt() == 2);
     REQUIRE_FALSE(pool.getThreadIdx()); // main thread, not within the pool
 
+    std::thread thread([&pool] {
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        REQUIRE_FALSE(pool.getThreadIdx()); // also not within the pool
+    });
+    thread.join();
+
     pool.submit(makeTask([&pool] {
         const Optional<Size> idx = pool.getThreadIdx();
         REQUIRE(idx);

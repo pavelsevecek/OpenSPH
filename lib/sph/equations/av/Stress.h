@@ -37,18 +37,19 @@ private:
         ArrayView<Float> du;
 
     public:
-        explicit Derivative(const RunSettings& settings) {
+        explicit Derivative(const RunSettings& settings)
+            : DerivativeTemplate<Derivative>(settings) {
             kernel = Factory::getKernel<3>(settings);
             n = settings.get<Float>(RunSettingsId::SPH_AV_STRESS_EXPONENT);
             xi = settings.get<Float>(RunSettingsId::SPH_AV_STRESS_FACTOR);
         }
 
         virtual void create(Accumulated& results) override {
-            results.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND);
-            results.insert<Float>(QuantityId::ENERGY, OrderEnum::FIRST);
+            results.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, BufferSource::SHARED);
+            results.insert<Float>(QuantityId::ENERGY, OrderEnum::FIRST, BufferSource::SHARED);
         }
 
-        virtual void initialize(const Storage& input, Accumulated& results) override {
+        INLINE void init(const Storage& input, Accumulated& results) {
             wp = input.getValue<Float>(QuantityId::INTERPARTICLE_SPACING_KERNEL);
             as = input.getValue<SymmetricTensor>(QuantityId::AV_STRESS);
             m = input.getValue<Float>(QuantityId::MASS);
@@ -88,7 +89,7 @@ public:
     }
 
     virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override {
-        derivatives.require<Derivative>(settings);
+        derivatives.require(makeAuto<Derivative>(settings));
     }
 
     virtual void initialize(Storage& storage) override {

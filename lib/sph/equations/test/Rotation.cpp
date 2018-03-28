@@ -15,104 +15,104 @@
 using namespace Sph;
 
 namespace {
-    class TestRun : public IRun {
+class TestRun : public IRun {
+private:
+    EquationHolder equations;
+    Size observedIndex;
+
+public:
+    class Callbacks : public IRunCallbacks {
     private:
-        EquationHolder equations;
         Size observedIndex;
+        FileLogger logger;
+        Size stepIdx = 0;
 
     public:
-        class Callbacks : public IRunCallbacks {
-        private:
-            Size observedIndex;
-            FileLogger logger;
-            Size stepIdx = 0;
+        explicit Callbacks(const Size observedIndex)
+            : observedIndex(observedIndex)
+            , logger(Path("rotation.txt"), EMPTY_FLAGS) {}
 
-        public:
-            explicit Callbacks(const Size observedIndex)
-                : observedIndex(observedIndex)
-                , logger(Path("rotation.txt"), EMPTY_FLAGS) {}
+        virtual void onTimeStep(const Storage& storage, Statistics& UNUSED(stats)) override {
+            ArrayView<const Vector> phi = storage.getValue<Vector>(QuantityId::PHASE_ANGLE);
+            ArrayView<const Vector> omega = storage.getValue<Vector>(QuantityId::ANGULAR_VELOCITY);
+            ArrayView<const Float> u = storage.getValue<Float>(QuantityId::ENERGY);
+            logger.write(stepIdx++, phi[observedIndex], omega[observedIndex], "  ", u[observedIndex]);
+        }
 
-            virtual void onTimeStep(const Storage& storage, Statistics& UNUSED(stats)) override {
-                ArrayView<const Vector> phi = storage.getValue<Vector>(QuantityId::PHASE_ANGLE);
-                ArrayView<const Vector> omega = storage.getValue<Vector>(QuantityId::ANGULAR_VELOCITY);
-                ArrayView<const Float> u = storage.getValue<Float>(QuantityId::ENERGY);
-                logger.write(stepIdx++, phi[observedIndex], omega[observedIndex], "  ", u[observedIndex]);
-            }
+        virtual void onRunStart(const Storage& UNUSED(storage), Statistics& UNUSED(stats)) override {}
 
-            virtual void onRunStart(const Storage& UNUSED(storage), Statistics& UNUSED(stats)) override {}
+        virtual void onRunEnd(const Storage& UNUSED(storage), Statistics& UNUSED(stats)) override {}
 
-            virtual void onRunEnd(const Storage& UNUSED(storage), Statistics& UNUSED(stats)) override {}
+        virtual bool shouldAbortRun() const override {
+            return false;
+        }
+    };
+    /*
+            class ZeroRotation : public IEquationTerm {
+            private:
+                Size observedIndex;
 
-            virtual bool shouldAbortRun() const override {
-                return false;
-            }
-        };
-        /*
-                class ZeroRotation : public IEquationTerm {
-                private:
-                    Size observedIndex;
+            public:
+                explicit ZeroRotation(const Size observedIndex)
+                    : observedIndex(observedIndex) {}
 
-                public:
-                    explicit ZeroRotation(const Size observedIndex)
-                        : observedIndex(observedIndex) {}
+                virtual void setDerivatives(DerivativeHolder&, const RunSettings&) override {}
 
-                    virtual void setDerivatives(DerivativeHolder&, const RunSettings&) override {}
+                virtual void initialize(Storage&) override {}
 
-                    virtual void initialize(Storage&) override {}
-
-                    virtual void finalize(Storage& storage) override {
-                        ArrayView<Vector> omega = storage.getValue<Vector>(QuantityId::ANGULAR_VELOCITY);
-                        ArrayView<Vector> dphi = storage.getDt<Vector>(QuantityId::PHASE_ANGLE);
-                        for (Size i = 0; i < omega.size(); ++i) {
-                            if (i != observedIndex) {
-                                omega[i] = dphi[i] = Vector(0._f);
-                            }
+                virtual void finalize(Storage& storage) override {
+                    ArrayView<Vector> omega = storage.getValue<Vector>(QuantityId::ANGULAR_VELOCITY);
+                    ArrayView<Vector> dphi = storage.getDt<Vector>(QuantityId::PHASE_ANGLE);
+                    for (Size i = 0; i < omega.size(); ++i) {
+                        if (i != observedIndex) {
+                            omega[i] = dphi[i] = Vector(0._f);
                         }
                     }
+                }
 
-                    virtual void create(Storage&, IMaterial&) const override {}
-                };*/
+                virtual void create(Storage&, IMaterial&) const override {}
+            };*/
 
-        TestRun(const SharedPtr<Storage>& storage, const Interval timeline, const Size observedIndex) {
+    TestRun(const SharedPtr<Storage>& storage, const Interval timeline, const Size observedIndex) {
 
-            this->storage = storage;
-            this->observedIndex = observedIndex;
+        this->storage = storage;
+        this->observedIndex = observedIndex;
 
-            settings.set(RunSettingsId::RUN_TIME_RANGE, timeline);
+        settings.set(RunSettingsId::RUN_TIME_RANGE, timeline);
 
-            const Float duration = timeline.size();
-            settings.set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 0.0001_f * duration)
-                .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 0.0001_f * duration)
-                .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 0.01_f * duration)
-                .set(RunSettingsId::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::COURANT)
-                .set(RunSettingsId::SPH_PHASE_ANGLE, true)
-                .set(RunSettingsId::SPH_PARTICLE_ROTATION, true);
+        const Float duration = timeline.size();
+        settings.set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 0.0001_f * duration)
+            .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 0.0001_f * duration)
+            .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 0.01_f * duration)
+            .set(RunSettingsId::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::COURANT)
+            .set(RunSettingsId::SPH_PHASE_ANGLE, true)
+            .set(RunSettingsId::SPH_PARTICLE_ROTATION, true);
 
-            AutoPtr<TextOutput> textOutput = makeAuto<TextOutput>(Path("out_%d.txt"), "rot");
+        AutoPtr<TextOutput> textOutput = makeAuto<TextOutput>(Path("out_%d.txt"), "rot");
 
-            textOutput->addColumn(makeAuto<ValueColumn<Vector>>(QuantityId::POSITION));
-            textOutput->addColumn(makeAuto<ValueColumn<Vector>>(QuantityId::ANGULAR_VELOCITY));
+        textOutput->addColumn(makeAuto<ValueColumn<Vector>>(QuantityId::POSITION));
+        textOutput->addColumn(makeAuto<ValueColumn<Vector>>(QuantityId::ANGULAR_VELOCITY));
 
-            output = std::move(textOutput);
+        output = std::move(textOutput);
 
-            equations += makeTerm<BenzAsphaugSph::SolidStressForce>(settings) +
-                         makeTerm<BenzAsphaugSph::SolidStressTorque>(settings);
-            equations += makeTerm<ConstSmoothingLength>();
-            // add boundary conditions last
-            //   equations += makeTerm<FrozenParticles>(makeAuto<SphericalDomain>(Vector(0._f), 1._f), 2._f);
-        }
+        equations += makeTerm<SolidStressForce>(
+            settings); /// \todo FIX ROTATION+ makeTerm<SolidStressTorque>(settings);
+        equations += makeTerm<ConstSmoothingLength>();
+        // add boundary conditions last
+        //   equations += makeTerm<FrozenParticles>(makeAuto<SphericalDomain>(Vector(0._f), 1._f), 2._f);
+    }
 
-        virtual void setUp() override {
-            solver = makeAuto<SymmetricSolver>(settings, equations);
-            IMaterial& material = storage->getMaterial(0);
-            solver->create(*storage, material);
+    virtual void setUp() override {
+        solver = makeAuto<SymmetricSolver>(settings, equations);
+        IMaterial& material = storage->getMaterial(0);
+        solver->create(*storage, material);
 
-            timeStepping = makeAuto<EulerExplicit>(storage, settings);
-            callbacks = makeAuto<Callbacks>(observedIndex);
-        }
+        timeStepping = makeAuto<EulerExplicit>(storage, settings);
+        callbacks = makeAuto<Callbacks>(observedIndex);
+    }
 
-        virtual void tearDown() override {}
-    };
+    virtual void tearDown() override {}
+};
 } // namespace
 
 

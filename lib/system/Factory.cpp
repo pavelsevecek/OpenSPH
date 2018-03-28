@@ -206,19 +206,7 @@ static AutoPtr<ISolver> getActualSolver(const RunSettings& settings, EquationHol
 }
 
 AutoPtr<ISolver> Factory::getSolver(const RunSettings& settings) {
-    const FormulationEnum formulation = settings.get<FormulationEnum>(RunSettingsId::SPH_FORMULATION);
-    EquationHolder eqs;
-    switch (formulation) {
-    case FormulationEnum::STANDARD:
-        eqs = getStandardEquations(settings);
-        break;
-    case FormulationEnum::BENZ_ASPHAUG:
-        eqs = getBenzAsphaugEquations(settings);
-        break;
-    default:
-        NOT_IMPLEMENTED;
-    }
-
+    EquationHolder eqs = getStandardEquations(settings);
     const SolverEnum id = settings.get<SolverEnum>(RunSettingsId::SOLVER_TYPE);
     switch (id) {
     case SolverEnum::SYMMETRIC_SOLVER:

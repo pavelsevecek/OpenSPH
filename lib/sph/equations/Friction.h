@@ -13,7 +13,6 @@ private:
     private:
         ArrayView<const Vector> r, v;
         ArrayView<const Float> m, rho;
-        ArrayView<const Size> flag;
         ArrayView<Vector> dv;
 
         /// Helper quantities for visualizations
@@ -27,17 +26,20 @@ private:
         static constexpr Float multiplier = 1.e17_f;
 
     public:
+        explicit Derivative(const RunSettings& settings)
+            : DerivativeTemplate<Derivative>(settings, DerivativeFlag::SUM_ONLY_UNDAMAGED) {}
+
         virtual void create(Accumulated& results) override {
-            results.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND);
-            results.insert<Vector>(QuantityId::VELOCITY_LAPLACIAN, OrderEnum::ZERO);
-            results.insert<Vector>(QuantityId::VELOCITY_GRADIENT_OF_DIVERGENCE, OrderEnum::ZERO);
+            results.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, BufferSource::SHARED);
+            results.insert<Vector>(QuantityId::VELOCITY_LAPLACIAN, OrderEnum::ZERO, BufferSource::UNIQUE);
+            results.insert<Vector>(
+                QuantityId::VELOCITY_GRADIENT_OF_DIVERGENCE, OrderEnum::ZERO, BufferSource::UNIQUE);
         }
 
-        virtual void initialize(const Storage& input, Accumulated& results) override {
+        INLINE void init(const Storage& input, Accumulated& results) {
             ArrayView<const Vector> dummy;
             tie(r, v, dummy) = input.getAll<Vector>(QuantityId::POSITION);
             tie(m, rho) = input.getValues<Float>(QuantityId::MASS, QuantityId::DENSITY);
-            flag = input.getValue<Size>(QuantityId::FLAG);
 
             dv = results.getBuffer<Vector>(QuantityId::POSITION, OrderEnum::SECOND);
             gradDivV =
@@ -53,10 +55,6 @@ private:
 
         template <bool Symmetrize>
         INLINE void eval(const Size i, const Size j, const Vector& grad) {
-            if (flag[i] != flag[j]) {
-                // no internal friction between different bodies
-                return;
-            }
             const Vector dgv = laplacian(v[j] - v[i], grad, r[j] - r[i]);
             const Vector gdv = gradientOfDivergence(v[j] - v[i], grad, r[j] - r[i]);
             const Vector shear = eta * (dgv + gdv / 3._f);
@@ -75,7 +73,7 @@ private:
 
 public:
     virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override {
-        derivatives.require<Derivative>(settings);
+        derivatives.require(makeAuto<Derivative>(settings));
     }
 
     virtual void initialize(Storage& UNUSED(storage)) override {}
@@ -88,15 +86,13 @@ public:
     }
 };
 
-
-namespace StandardSph {
 /// Flebbe et al. (1994)
 class ViscousStress : public IEquationTerm {
 private:
     class Derivative : public DerivativeTemplate<Derivative> {
     private:
         ArrayView<const Float> m, rho;
-        ArrayView<const SymmetricTensor> rhoGradV;
+        ArrayView<const SymmetricTensor> gradV;
 
         ArrayView<Vector> dv;
         ArrayView<Vector> frict;
@@ -104,14 +100,17 @@ private:
         Float eta;
 
     public:
+        explicit Derivative(const RunSettings& settings)
+            : DerivativeTemplate<Derivative>(settings) {}
+
         virtual void create(Accumulated& results) override {
-            results.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND);
-            results.insert<Vector>(QuantityId::FRICTION, OrderEnum::ZERO);
+            results.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, BufferSource::SHARED);
+            results.insert<Vector>(QuantityId::FRICTION, OrderEnum::ZERO, BufferSource::UNIQUE);
         }
 
-        virtual void initialize(const Storage& input, Accumulated& results) override {
+        INLINE void init(const Storage& input, Accumulated& results) {
             tie(m, rho) = input.getValues<Float>(QuantityId::MASS, QuantityId::DENSITY);
-            rhoGradV = input.getValue<SymmetricTensor>(QuantityId::STRENGTH_DENSITY_VELOCITY_GRADIENT);
+            gradV = input.getValue<SymmetricTensor>(QuantityId::VELOCITY_GRADIENT);
 
             dv = results.getBuffer<Vector>(QuantityId::POSITION, OrderEnum::SECOND);
             frict = results.getBuffer<Vector>(QuantityId::FRICTION, OrderEnum::ZERO);
@@ -123,11 +122,11 @@ private:
         template <bool Symmetrize>
         INLINE void eval(const Size i, const Size j, const Vector& grad) {
             SymmetricTensor sigmai =
-                2._f * rhoGradV[i] - 2._f / 3._f * rhoGradV[i].trace() * SymmetricTensor::identity();
+                2._f * gradV[i] - 2._f / 3._f * gradV[i].trace() * SymmetricTensor::identity();
             SymmetricTensor sigmaj =
-                2._f * rhoGradV[j] - 2._f / 3._f * rhoGradV[j].trace() * SymmetricTensor::identity();
+                2._f * gradV[j] - 2._f / 3._f * gradV[j].trace() * SymmetricTensor::identity();
 
-            const Vector f = eta * (sigmai / pow<3>(rho[i]) + sigmaj / pow<3>(rho[j])) * grad;
+            const Vector f = eta * (sigmai / pow<2>(rho[i]) + sigmaj / pow<2>(rho[j])) * grad;
             dv[i] += m[j] * f;
             frict[i] += m[j] * f;
             if (Symmetrize) {
@@ -140,8 +139,9 @@ private:
 
 public:
     virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override {
-        derivatives.require<StrengthDensityVelocityGradient>(settings);
-        derivatives.require<Derivative>(settings);
+        const Flags<DerivativeFlag> flags = DerivativeFlag::SUM_ONLY_UNDAMAGED;
+        derivatives.require(makeDerivative<VelocityGradient>(settings, flags));
+        derivatives.require(makeAuto<Derivative>(settings));
     }
 
     virtual void initialize(Storage& UNUSED(storage)) override {}
@@ -151,12 +151,9 @@ public:
     virtual void create(Storage& storage, IMaterial& UNUSED(material)) const override {
         storage.insert<Vector>(QuantityId::FRICTION, OrderEnum::ZERO, Vector(0._f));
         storage.insert<SymmetricTensor>(
-            QuantityId::STRENGTH_DENSITY_VELOCITY_GRADIENT, OrderEnum::ZERO, SymmetricTensor::null());
+            QuantityId::VELOCITY_GRADIENT, OrderEnum::ZERO, SymmetricTensor::null());
     }
 };
-
-} // namespace StandardSph
-
 
 class SimpleDamping : public IEquationTerm {
 private:
@@ -168,11 +165,14 @@ private:
         Float k;
 
     public:
+        explicit Derivative(const RunSettings& settings)
+            : DerivativeTemplate<Derivative>(settings) {}
+
         virtual void create(Accumulated& results) override {
-            results.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND);
+            results.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, BufferSource::SHARED);
         }
 
-        virtual void initialize(const Storage& input, Accumulated& results) override {
+        INLINE void init(const Storage& input, Accumulated& results) {
             ArrayView<const Vector> dummy;
             tie(r, v, dummy) = input.getAll<Vector>(QuantityId::POSITION);
             cs = input.getValue<Float>(QuantityId::SOUND_SPEED);
@@ -194,7 +194,7 @@ private:
 
 public:
     virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override {
-        derivatives.require<Derivative>(settings);
+        derivatives.require(makeAuto<Derivative>(settings));
     }
 
     virtual void initialize(Storage& UNUSED(storage)) override {}

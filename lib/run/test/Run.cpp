@@ -63,41 +63,41 @@ public:
 
 namespace {
 
-    class TestRun : public IRun {
-    public:
-        Array<Float> outputTimes; // times where output was called
-        Size stepIdx;             // current timestep index
-        bool runEnded;            // set to true by DummyCallbacks when run ends
-        Size terminateAfterOutput;
+class TestRun : public IRun {
+public:
+    Array<Float> outputTimes; // times where output was called
+    Size stepIdx;             // current timestep index
+    bool runEnded;            // set to true by DummyCallbacks when run ends
+    Size terminateAfterOutput;
 
 
-        TestRun(const Size terminateAfterOutput = 1000)
-            : terminateAfterOutput(terminateAfterOutput) {
-            settings.set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 0.1_f + EPS);
-            settings.set(RunSettingsId::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::NONE);
-            settings.set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 1._f));
-            settings.set(RunSettingsId::RUN_OUTPUT_INTERVAL, 0.21_f);
-            settings.set(RunSettingsId::RUN_LOGGER, LoggerEnum::NONE);
-        }
+    TestRun(const Size terminateAfterOutput = 1000)
+        : terminateAfterOutput(terminateAfterOutput) {
+        settings.set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 0.1_f + EPS);
+        settings.set(RunSettingsId::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::NONE);
+        settings.set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 1._f));
+        settings.set(RunSettingsId::RUN_OUTPUT_INTERVAL, 0.21_f);
+        settings.set(RunSettingsId::RUN_LOGGER, LoggerEnum::NONE);
+    }
 
-        virtual void setUp() override {
-            storage = makeShared<Storage>();
-            InitialConditions conds(settings);
-            BodySettings bodySettings;
-            bodySettings.set(BodySettingsId::PARTICLE_COUNT, 10);
-            conds.addMonolithicBody(*storage, SphericalDomain(Vector(0._f), 1._f), bodySettings);
-            stepIdx = 0;
-            runEnded = false;
+    virtual void setUp() override {
+        storage = makeShared<Storage>();
+        InitialConditions conds(settings);
+        BodySettings bodySettings;
+        bodySettings.set(BodySettingsId::PARTICLE_COUNT, 10);
+        conds.addMonolithicBody(*storage, SphericalDomain(Vector(0._f), 1._f), bodySettings);
+        stepIdx = 0;
+        runEnded = false;
 
-            /// \todo insert custom timestepping and custom logger and test they are properly called
-            this->callbacks = makeAuto<DummyCallbacks>(stepIdx, runEnded, terminateAfterOutput);
-            outputTimes.clear();
-            this->output = makeAuto<DummyOutput>(outputTimes);
-        }
+        /// \todo insert custom timestepping and custom logger and test they are properly called
+        this->callbacks = makeAuto<DummyCallbacks>(stepIdx, runEnded, terminateAfterOutput);
+        outputTimes.clear();
+        this->output = makeAuto<DummyOutput>(outputTimes);
+    }
 
-    protected:
-        virtual void tearDown() override {}
-    };
+protected:
+    virtual void tearDown() override {}
+};
 } // namespace
 
 TEST_CASE("Simple run", "[run]") {
@@ -119,7 +119,7 @@ TEST_CASE("Run abort", "[run]") {
     REQUIRE_NOTHROW(run.setUp());
     REQUIRE_NOTHROW(run.run());
     REQUIRE(run.stepIdx == 6);
-    REQUIRE_FALSE(run.runEnded); // this is only set if the run ends successfully
+    REQUIRE(run.runEnded);
 }
 
 TEST_CASE("Run twice", "[run]") {

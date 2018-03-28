@@ -66,20 +66,8 @@ QuantityMetadata getMetadata(const QuantityId key) {
         return QuantityMetadata("Velocity divergence", L"\u2207\u22C5v" /*nabla cdot v*/, ValueEnum::SCALAR);
     case QuantityId::VELOCITY_ROTATION:
         return QuantityMetadata("Velocity rotation", L"\u2207\u2A2Fv" /*nabla cross v*/, ValueEnum::VECTOR);
-    case QuantityId::STRENGTH_VELOCITY_GRADIENT:
-        return QuantityMetadata("Strength velocity gradient", L"\u2207v", ValueEnum::SYMMETRIC_TENSOR);
-    case QuantityId::STRENGTH_DENSITY_VELOCITY_ROTATION:
-        return QuantityMetadata(
-            "Strength density velocity rotation", L"\u03C1\u2207\u2A2Fv", ValueEnum::VECTOR);
     case QuantityId::STRAIN_RATE_CORRECTION_TENSOR:
         return QuantityMetadata("Correction tensor", L"C", ValueEnum::SYMMETRIC_TENSOR);
-    case QuantityId::DENSITY_VELOCITY_DIVERGENCE:
-        return QuantityMetadata(
-            "Density velocity divergence", L"\u03C1\u2207\u22C5v" /*rho nabla cdot v*/, ValueEnum::SCALAR);
-    case QuantityId::STRENGTH_DENSITY_VELOCITY_GRADIENT:
-        return QuantityMetadata("Strength density velocity gradient",
-            L"\u03C1\u2207v" /*rho nabla v*/,
-            ValueEnum::SYMMETRIC_TENSOR);
     case QuantityId::VELOCITY_LAPLACIAN:
         return QuantityMetadata("Velocity laplacian", L"\u0394v" /*Delta v*/, ValueEnum::VECTOR);
     case QuantityId::VELOCITY_GRADIENT_OF_DIVERGENCE:
@@ -116,8 +104,6 @@ QuantityMetadata getMetadata(const QuantityId key) {
         return QuantityMetadata("Angular velocity", L"\u03C9" /*omega*/, ValueEnum::VECTOR);
     case QuantityId::NEIGHBOUR_CNT:
         return QuantityMetadata("Neigh. cnt", L"N_neigh", ValueEnum::INDEX);
-    case QuantityId::EFFECTIVE_NEIGHBOUR_CNT:
-        return QuantityMetadata("Ef. neigh. cnt", L"N_eff", ValueEnum::INDEX);
     case QuantityId::SURFACE_NORMAL:
         return QuantityMetadata("Surf. normal", L"n", ValueEnum::VECTOR);
     case QuantityId::MOMENT_OF_INERTIA:

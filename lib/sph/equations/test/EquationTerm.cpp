@@ -27,8 +27,13 @@ struct TestDerivative : public SymmetricDerivative {
 
     ArrayView<Size> flags;
 
+    TestDerivative() = default;
+
+    // needed for some generic functions creating derivatives from settings
+    explicit TestDerivative(const RunSettings& UNUSED(settings)) {}
+
     virtual void create(Accumulated& results) override {
-        results.insert<Size>(QuantityId::FLAG, OrderEnum::ZERO);
+        results.insert<Size>(QuantityId::FLAG, OrderEnum::ZERO, BufferSource::UNIQUE);
         created = true;
     }
 
@@ -80,7 +85,7 @@ struct TestEquation : public IEquationTerm {
 
 TEST_CASE("Setting derivatives", "[equationterm]") {
     TestDerivative::initialized = false;
-    Tests::DerivativeWrapper<TestDerivative> eq;
+    Tests::SingleDerivativeMaker<TestDerivative> eq;
     DerivativeHolder derivatives;
     eq.setDerivatives(derivatives, RunSettings::getDefaults());
     Storage storage;
@@ -98,18 +103,18 @@ TEST_CASE("Setting derivatives", "[equationterm]") {
 TEST_CASE("EquationHolder operators", "[equationterm]") {
     EquationHolder eqs;
     REQUIRE(eqs.getTermCnt() == 0);
-    eqs += makeTerm<StandardSph::PressureForce>();
+    eqs += makeTerm<PressureForce>();
     REQUIRE(eqs.getTermCnt() == 1);
 
     EquationHolder sum = std::move(eqs) + makeTerm<NeighbourCountTerm>() +
-                         makeTerm<StandardSph::AdaptiveSmoothingLength>(RunSettings::getDefaults());
+                         makeTerm<AdaptiveSmoothingLength>(RunSettings::getDefaults());
     REQUIRE(sum.getTermCnt() == 3);
 }
 
 TEST_CASE("EquationHolder contains", "[equationterm]") {
     EquationHolder eqs;
-    eqs += makeTerm<StandardSph::PressureForce>();
-    REQUIRE(eqs.contains<StandardSph::PressureForce>());
+    eqs += makeTerm<PressureForce>();
+    REQUIRE(eqs.contains<PressureForce>());
     REQUIRE_FALSE(eqs.contains<TestEquation>());
 }
 
@@ -119,7 +124,7 @@ TYPED_TEST_CASE_2("TestEquation", "[equationterm]", TSolver, SymmetricSolver, As
     Statistics stats;
     SharedPtr<TestEquation> eq = makeShared<TestEquation>();
     EquationHolder equations(eq);
-    equations += makeTerm<Tests::DerivativeWrapper<TestDerivative>>() + makeTerm<ConstSmoothingLength>();
+    equations += makeTerm<Tests::SingleDerivativeMaker<TestDerivative>>() + makeTerm<ConstSmoothingLength>();
 
     TSolver solver(RunSettings::getDefaults(), std::move(equations));
     REQUIRE(eq->flags == TestEquation::Status::DERIVATIVES_SET);
@@ -172,7 +177,8 @@ TYPED_TEST_CASE_2("Div v of position vectors", "[equationterm]", TSolver, Symmet
     // test case checking that div r = 3
     Storage storage = Tests::getStorage(10000);
     storage.insert<Float>(QuantityId::VELOCITY_DIVERGENCE, OrderEnum::ZERO, 0._f);
-    Tests::computeField<VelocityDivergence, TSolver>(storage, [](const Vector& r) { return r; });
+    Tests::computeField<VelocityDivergence<CenterDensityDiscr>, TSolver>(
+        storage, [](const Vector& r) { return r; });
 
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     ArrayView<Float> divv = storage.getValue<Float>(QuantityId::VELOCITY_DIVERGENCE);
@@ -197,7 +203,7 @@ TYPED_TEST_CASE_2("Div v of position vectors", "[equationterm]", TSolver, Symmet
 TYPED_TEST_CASE_2("Grad v of const field", "[equationterm]", TSolver, SymmetricSolver, AsymmetricSolver) {
     Storage storage = Tests::getStorage(10000);
     storage.insert<SymmetricTensor>(QuantityId::VELOCITY_GRADIENT, OrderEnum::ZERO, SymmetricTensor::null());
-    Tests::computeField<VelocityGradient, TSolver>(storage, [](const Vector&) { //
+    Tests::computeField<VelocityGradient<CenterDensityDiscr>, TSolver>(storage, [](const Vector&) { //
         return Vector(2._f, 3._f, -1._f);
     });
 
@@ -221,7 +227,8 @@ TYPED_TEST_CASE_2("Grad v of const field", "[equationterm]", TSolver, SymmetricS
 TYPED_TEST_CASE_2("Grad v of position vector", "[equationterm]", TSolver, SymmetricSolver, AsymmetricSolver) {
     Storage storage = Tests::getStorage(10000);
     storage.insert<SymmetricTensor>(QuantityId::VELOCITY_GRADIENT, OrderEnum::ZERO, SymmetricTensor::null());
-    Tests::computeField<VelocityGradient, TSolver>(storage, [](const Vector& r) { return r; });
+    Tests::computeField<VelocityGradient<CenterDensityDiscr>, TSolver>(
+        storage, [](const Vector& r) { return r; });
 
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     ArrayView<SymmetricTensor> gradv = storage.getValue<SymmetricTensor>(QuantityId::VELOCITY_GRADIENT);
@@ -249,7 +256,7 @@ TYPED_TEST_CASE_2("Grad v of non-trivial field",
     AsymmetricSolver) {
     Storage storage = Tests::getStorage(10000);
     storage.insert<SymmetricTensor>(QuantityId::VELOCITY_GRADIENT, OrderEnum::ZERO, SymmetricTensor::null());
-    Tests::computeField<VelocityGradient, TSolver>(storage, [](const Vector& r) { //
+    Tests::computeField<VelocityGradient<CenterDensityDiscr>, TSolver>(storage, [](const Vector& r) { //
         return Vector(r[0] * sqr(r[1]), r[0] + 0.5_f * r[2], sin(r[2]));
     });
 
@@ -314,13 +321,8 @@ static void testRotation(QuantityId id) {
 }
 
 TYPED_TEST_CASE_2("Rot v", "[equationterm]", TSolver, SymmetricSolver, AsymmetricSolver) {
-    testRotation<VelocityRotation, TSolver>(QuantityId::VELOCITY_ROTATION);
+    testRotation<VelocityRotation<CenterDensityDiscr>, TSolver>(QuantityId::VELOCITY_ROTATION);
 }
-
-TYPED_TEST_CASE_2("Strength Density Rot v", "[equationterm]", TSolver, SymmetricSolver, AsymmetricSolver) {
-    testRotation<StrengthDensityVelocityRotation, TSolver>(QuantityId::STRENGTH_DENSITY_VELOCITY_ROTATION);
-}
-
 
 namespace {
 
@@ -331,11 +333,14 @@ private:
     ArrayView<Vector> divGradV;
 
 public:
+    explicit VelocityLaplacian(const RunSettings& settings)
+        : DerivativeTemplate<VelocityLaplacian>(settings) {}
+
     virtual void create(Accumulated& results) override {
-        results.insert<Vector>(QuantityId::VELOCITY_LAPLACIAN, OrderEnum::ZERO);
+        results.insert<Vector>(QuantityId::VELOCITY_LAPLACIAN, OrderEnum::ZERO, BufferSource::UNIQUE);
     }
 
-    virtual void initialize(const Storage& input, Accumulated& results) override {
+    INLINE void init(const Storage& input, Accumulated& results) {
         ArrayView<const Vector> dummy;
         tie(r, v, dummy) = input.getAll<Vector>(QuantityId::POSITION);
         tie(m, rho) = input.getValues<Float>(QuantityId::MASS, QuantityId::DENSITY);
@@ -396,11 +401,15 @@ private:
     ArrayView<Vector> gradDivV;
 
 public:
+    explicit GradientOfVelocityDivergence(const RunSettings& settings)
+        : DerivativeTemplate<GradientOfVelocityDivergence>(settings) {}
+
     virtual void create(Accumulated& results) override {
-        results.insert<Vector>(QuantityId::VELOCITY_GRADIENT_OF_DIVERGENCE, OrderEnum::ZERO);
+        results.insert<Vector>(
+            QuantityId::VELOCITY_GRADIENT_OF_DIVERGENCE, OrderEnum::ZERO, BufferSource::UNIQUE);
     }
 
-    virtual void initialize(const Storage& input, Accumulated& results) override {
+    INLINE void init(const Storage& input, Accumulated& results) {
         ArrayView<const Vector> dummy;
         tie(r, v, dummy) = input.getAll<Vector>(QuantityId::POSITION);
         tie(m, rho) = input.getValues<Float>(QuantityId::MASS, QuantityId::DENSITY);
@@ -456,6 +465,7 @@ TYPED_TEST_CASE_2("Gradient of divergence", "[equationterm]", TSolver, Symmetric
 
 TEST_CASE("Strain rate correction", "[equationterm]") {
     BodySettings body;
+    body.set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::SCALAR_GRADY_KIPP);
     Storage storage = Tests::getSolidStorage(1000, body);
     storage.insert<SymmetricTensor>(
         QuantityId::STRAIN_RATE_CORRECTION_TENSOR, OrderEnum::ZERO, SymmetricTensor::identity());
@@ -490,23 +500,41 @@ TEST_CASE("Strain rate correction", "[equationterm]") {
                 "\nexpected == ",
                 expected.offDiagonal());
         }
+        if (corr[i] == SymmetricTensor::identity()) {
+            return makeFailed("Correction tensor is 'exactly' identity matrix: \nC[i] == ", corr[i]);
+        }
         return SUCCESS;
     };
     REQUIRE_SEQUENCE(test1, 0, corr.size());
 
-    // check that inverted singular matrix is something reasonable
-    // we get singular matrix by settings masses to zero
-    storage.getValue<Float>(QuantityId::MASS).fill(0._f);
-
+    // all damaged particles -> we should get identity matrix
+    storage.getValue<Float>(QuantityId::DAMAGE).fill(1._f);
     solver.integrate(storage, stats);
     corr = storage.getValue<SymmetricTensor>(QuantityId::STRAIN_RATE_CORRECTION_TENSOR);
 
     auto test2 = [corr](Size i) -> Outcome {
         // currently results in zero, may change in the future
-        if (corr[i] != SymmetricTensor::null()) {
-            return makeFailed("Incorrect inversion of singular matrix:\nC[i] == ", corr[i]);
+        if (corr[i] != SymmetricTensor::identity()) {
+            return makeFailed(
+                "Correction tensors of damaged particle is not identity matrix:\nC[i] == ", corr[i]);
         }
         return SUCCESS;
     };
     REQUIRE_SEQUENCE(test2, 0, corr.size());
+
+    // check that inverted singular matrix is something reasonable
+    // we get 'singular' matrix (matrix with very small determinant) by settings masses to EPS
+    storage.getValue<Float>(QuantityId::DAMAGE).fill(0._f);
+    storage.getValue<Float>(QuantityId::MASS).fill(EPS);
+    solver.integrate(storage, stats);
+    corr = storage.getValue<SymmetricTensor>(QuantityId::STRAIN_RATE_CORRECTION_TENSOR);
+
+    auto test3 = [corr](Size i) -> Outcome {
+        // currently results in identity matrix, may change in the future
+        if (corr[i] != SymmetricTensor::identity()) {
+            return makeFailed("Incorrect inversion of singular matrix:\nC[i] == ", corr[i]);
+        }
+        return SUCCESS;
+    };
+    REQUIRE_SEQUENCE(test3, 0, corr.size());
 }

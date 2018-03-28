@@ -10,10 +10,10 @@ TEST_CASE("Accumulated sum simple", "[accumulated]") {
     Accumulated ac1;
     REQUIRE_ASSERT(ac1.getBuffer<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO));
     REQUIRE(ac1.getBufferCnt() == 0);
-    ac1.insert<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO);
+    ac1.insert<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO, BufferSource::SHARED);
     REQUIRE(ac1.getBufferCnt() == 1);
     // subsequent calls dont do anything
-    ac1.insert<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO);
+    ac1.insert<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO, BufferSource::SHARED);
     REQUIRE(ac1.getBufferCnt() == 1);
 
     ac1.initialize(5);
@@ -26,7 +26,7 @@ TEST_CASE("Accumulated sum simple", "[accumulated]") {
     REQUIRE(ac1.getBufferCnt() == 1);
 
     Accumulated ac2;
-    ac2.insert<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO);
+    ac2.insert<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO, BufferSource::SHARED);
     ac2.initialize(5);
     ArrayView<Size> buffer2 = ac2.getBuffer<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO);
     REQUIRE(ac2.getBufferCnt() == 1);
@@ -41,7 +41,7 @@ TEST_CASE("Accumulated sum simple", "[accumulated]") {
 
 template <typename TValue>
 ArrayView<TValue> getInserted(Accumulated& ac, const QuantityId id, const Size size) {
-    ac.insert<TValue>(id, OrderEnum::ZERO);
+    ac.insert<TValue>(id, OrderEnum::ZERO, BufferSource::SHARED);
     ac.initialize(size); // multiple initialization do not matter, it's only a bit inefficient
     return ac.getBuffer<TValue>(id, OrderEnum::ZERO);
 }
@@ -111,7 +111,7 @@ TEST_CASE("Accumulated store", "[accumulated]") {
 
 TEST_CASE("Accumulate store second derivative", "[accumulated]") {
     Accumulated ac;
-    ac.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND);
+    ac.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, BufferSource::SHARED);
     ac.initialize(1);
     ArrayView<Vector> dv = ac.getBuffer<Vector>(QuantityId::POSITION, OrderEnum::SECOND);
     dv[0] = Vector(5._f);
@@ -127,7 +127,7 @@ TEST_CASE("Accumulate store second derivative", "[accumulated]") {
 
 TEST_CASE("Accumulated insert two orders", "[accumulated]") {
     Accumulated ac;
-    ac.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND);
-    REQUIRE_ASSERT(ac.insert<Vector>(QuantityId::POSITION, OrderEnum::FIRST));
+    ac.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, BufferSource::SHARED);
+    REQUIRE_ASSERT(ac.insert<Vector>(QuantityId::POSITION, OrderEnum::FIRST, BufferSource::SHARED));
     REQUIRE_ASSERT(ac.getBuffer<Vector>(QuantityId::POSITION, OrderEnum::FIRST));
 }

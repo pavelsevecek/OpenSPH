@@ -5,14 +5,12 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2018
 
-#include "objects/containers/ArrayView.h"
-#include "objects/finders/NeighbourFinder.h"
+#include "objects/containers/FlatSet.h"
 #include "objects/geometry/Vector.h"
 #include "quantities/Storage.h"
 #include "sph/equations/Accumulated.h"
 #include "system/Profiler.h"
 #include "system/Settings.h"
-#include <set>
 
 NAMESPACE_SPH_BEGIN
 
@@ -42,13 +40,6 @@ enum class DerivativePhase {
 /// the derivative using the settings constructor if one is available.
 class IDerivative : public Polymorphic {
 public:
-    /// \brief Returns the phase of the derivative.
-    ///
-    /// As long as the derivative does not depend on other derivatives, it shall return
-    /// DerivativePhase::EVALUATION. Auxiliary derivatives, computing helper term that are later used for
-    /// evaluation of other derivatives, belong to phase DerivativePhase::PRECOMPUTE.
-    virtual DerivativePhase phase() const = 0;
-
     /// \brief Emplace all needed buffers into shared storage.
     ///
     /// Called only once at the beginning of the run.
@@ -72,6 +63,13 @@ public:
     /// \param neighs Array containing all neighbours of idx-th particle
     /// \param grads Computed gradients of the SPH kernel
     virtual void evalNeighs(const Size idx, ArrayView<const Size> neighs, ArrayView<const Vector> grads) = 0;
+
+    /// \brief Returns the phase of the derivative.
+    ///
+    /// As long as the derivative does not depend on other derivatives, it shall return
+    /// DerivativePhase::EVALUATION. Auxiliary derivatives, computing helper term that are later used for
+    /// evaluation of other derivatives, belong to phase DerivativePhase::PRECOMPUTE.
+    virtual DerivativePhase phase() const = 0;
 };
 
 /// \brief Extension of derivative, allowing a symmetrized evaluation.
@@ -93,25 +91,80 @@ public:
     /// For symmetric evaluation, the concept of phases does not make sense. If one needs to use auxiliary
     /// derivatives in symmetric solver, it is necessary to do two passes over all particles and evaluated
     /// different sets of derivatives in each pass.
-    virtual DerivativePhase phase() const override {
+    virtual DerivativePhase phase() const final {
         return DerivativePhase::EVALUATION;
     }
+};
+
+enum class DerivativeFlag {
+    /// Use correction tensor on kernel gradient when evaluating the derivative. Can be currently only used
+    /// for asymmetric derivatives. Implies SUM_ONLY_UNDAMAGED - the correction tensor is only computed for
+    /// undamaged particles.
+    CORRECTED = 1 << 0,
+
+    /// Only undamaged particles (particles with damage > 0) from the same body (body with the same flag) will
+    /// contribute to the sum.
+    SUM_ONLY_UNDAMAGED = 1 << 1,
 };
 
 /// \brief Helper template for derivatives that define both the symmetrized and asymmetric variant.
 ///
 /// Derived class must implement \a eval templated member function, taking the indices of the particles and
 /// the gradient as arguments. The template parameter is a bool, where false means asymmetric evaluation (only
-/// the first particle should be modified), and true means symmetric evaluation.
+/// the first particle should be modified), and true means symmetric evaluation. It must also implement
+/// function \a init, having the same signature as \a initialize of \ref IDerivative; it initializes
+/// additional ArrayViews, specific for the derived type, without the need to override the \ref initialize
+/// function and manually call the function of a parent (which is why the function is marked as final).
 template <typename TDerived>
 class DerivativeTemplate : public SymmetricDerivative {
+private:
+    ArrayView<const Size> idxs;
+    ArrayView<const Float> reduce;
+    ArrayView<const SymmetricTensor> C;
+
+    Flags<DerivativeFlag> flags;
+
 public:
+    explicit DerivativeTemplate(const RunSettings& settings, const Flags<DerivativeFlag> flags = EMPTY_FLAGS)
+        : flags(flags) {
+        const bool useCorrectionTensor = settings.get<bool>(RunSettingsId::SPH_STRAIN_RATE_CORRECTION_TENSOR);
+        if (!useCorrectionTensor) {
+            // 'global' override for correction tensor
+            this->flags.unset(DerivativeFlag::CORRECTED);
+        }
+    }
+
+    virtual void initialize(const Storage& input, Accumulated& results) final {
+        if (flags.has(DerivativeFlag::CORRECTED)) {
+            C = results.getBuffer<SymmetricTensor>(
+                QuantityId::STRAIN_RATE_CORRECTION_TENSOR, OrderEnum::ZERO);
+        } else {
+            C = nullptr;
+        }
+        if (flags.has(DerivativeFlag::SUM_ONLY_UNDAMAGED)) {
+            idxs = input.getValue<Size>(QuantityId::FLAG);
+            reduce = input.getValue<Float>(QuantityId::STRESS_REDUCING);
+        } else {
+            idxs = nullptr;
+            reduce = nullptr;
+        }
+
+        derived()->init(input, results);
+    }
+
     virtual void evalNeighs(const Size idx,
         ArrayView<const Size> neighs,
         ArrayView<const Vector> grads) override {
         ASSERT(neighs.size() == grads.size());
-        for (Size i = 0; i < neighs.size(); ++i) {
-            static_cast<TDerived*>(this)->template eval<false>(idx, neighs[i], grads[i]);
+        if (C) {
+            sum(idx, neighs, grads, [this](Size i, Size j, const Vector& grad) INL {
+                ASSERT(C[i] != SymmetricTensor::null());
+                derived()->template eval<false>(i, j, C[i] * grad);
+            });
+        } else {
+            sum(idx, neighs, grads, [this](Size i, Size j, const Vector& grad) INL {
+                derived()->template eval<false>(i, j, grad);
+            });
         }
     }
 
@@ -119,421 +172,192 @@ public:
         ArrayView<const Size> neighs,
         ArrayView<const Vector> grads) override {
         ASSERT(neighs.size() == grads.size());
-        for (Size i = 0; i < neighs.size(); ++i) {
-            static_cast<TDerived*>(this)->template eval<true>(idx, neighs[i], grads[i]);
-        }
-    }
-};
-
-/*template <typename TDerived>
-class AutoDerivative : public DerivativeTemplate<AutoDerivative<TDerived>> {
-public:
-    virtual void create(Accumulated& results) override {
-        static_cast<TDerived*>)(this)->template visit();
+        ASSERT(!flags.has(DerivativeFlag::CORRECTED));
+        sum(idx, neighs, grads, [this](Size i, Size j, const Vector& grad) INL {
+            derived()->template eval<true>(i, j, grad);
+        });
     }
 
-    virtual void initialize(const Storage& input, Accumulated& results) override {
-        static_cast<TDerived*>)(this)->template visit();
-    }
-};*/
 
-/*template <typename TValue, QuantityId Id>
-class AutoInitializer {
-public:
-    template <typename TFeeder>
-    AutoInitializer(TFeeder&& feeder) {}
-
-    void operator[](const Size idx) const {}
-};
-
-class Divv1 {
-
-    template <typename Ar>
-    INLINE Float eval(const Size i, const Size j) {
-        const Float p = dot(v[j] - v[i], grad);
-
-        m[j] / rho[j] * p;
-
-        if (Symmetrize) {
-            m[i] / rho[i] * p;
-        }
-    }
-};
-
-template <typename TDerived>
-class Velo: public VelocityTemplate<DDD<what>> {
-public:
-    virtual void create(Accumulated& results) override {
-        auto visitor = [&results](AutoView... params) {
-            forEach(params) {
-                results.insert<type>(id, order);
-            }
-        };
-        what dummy(feeder);
-    }
-};
-
-template <typename TValue, QuantityId Id, OrderEnum Order>
-class AutoInput : public ArrayView<TValue> {
-public:
-    using Type = TValue;
-    static constexpr QuantityId id = Id;
-    static constexpr OrderEnum order = Order;
-};
-
-class Divv2 : public AutoInitializer {
-
-    AutoInput<Vector, QuantityId::POSITION, OrderEnum::FIRST> v;
-    AutoInput<Float, QuantityId::DENSITY, OrderEnum::ZERO> rho;
-
-    AutoOutput<Float, QuantityId::VELOCITY_DIVERGENCE, OrderEnum::ZERO> divv;
-
-    Divv2(feeder)
-        : v(feeder)
-        , rho(feeder)
-        , divv(feeder) {}
-
-    template <typename Ar>
-    INLINE Float eval(const Size i, const Size j) {
-        const Float p = dot(v[j] - v[i], grad);
-
-        m[j] / rho[i] * p;
-
-        if (Symmetrize) {
-            m[i] / rho[j] * p;
-        }
-    }
-};
-*/
-
-template <typename TFunctor>
-using ProductType = decltype(TFunctor::product(std::declval<Vector>(), std::declval<Vector>()));
-
-template <QuantityId Id, typename Type, typename TDerived>
-class VelocityTemplateBase : public DerivativeTemplate<TDerived> {
-protected:
-    ArrayView<const Float> rho, m;
-    ArrayView<const Vector> v;
-
-    ArrayView<Type> deriv;
-
-public:
-    virtual void create(Accumulated& results) override {
-        results.insert<Type>(Id, OrderEnum::ZERO);
-    }
-
-    virtual void initialize(const Storage& input, Accumulated& results) override {
-        tie(rho, m) = input.getValues<Float>(QuantityId::DENSITY, QuantityId::MASS);
-        v = input.getDt<Vector>(QuantityId::POSITION);
-        deriv = results.getBuffer<Type>(Id, OrderEnum::ZERO);
-    }
-};
-
-template <QuantityId Id, typename TFunctor>
-class VelocityTemplate
-    : public VelocityTemplateBase<Id, ProductType<TFunctor>, VelocityTemplate<Id, TFunctor>> {
-public:
-    template <bool Symmetrize>
-    INLINE void eval(const Size i, const Size j, const Vector& grad) {
-        const auto dv = TFunctor::product(this->v[j] - this->v[i], grad);
-        this->deriv[i] += this->m[j] / this->rho[j] * dv;
-        if (Symmetrize) {
-            this->deriv[j] += this->m[i] / this->rho[i] * dv;
-        }
-    }
-};
-
-
-template <QuantityId Id, typename TFunctor>
-class DensityVelocityTemplate
-    : public VelocityTemplateBase<Id, ProductType<TFunctor>, DensityVelocityTemplate<Id, TFunctor>> {
-public:
-    template <bool Symmetrize>
-    INLINE void eval(const Size i, const Size j, const Vector& grad) {
-        const auto rhoDv = TFunctor::product(this->v[j] - this->v[i], grad);
-        this->deriv[i] += this->m[j] * rhoDv;
-        if (Symmetrize) {
-            this->deriv[j] += this->m[i] * rhoDv;
-        }
-    }
-};
-
-struct Dot {
-    INLINE static Float product(const Vector& v, const Vector& grad) {
-        return dot(v, grad);
-    }
-};
-
-struct Cross {
-    INLINE static Vector product(const Vector& v, const Vector& grad) {
-        // nabla x v
-        return cross(grad, v);
-    }
-};
-
-struct Outer {
-    INLINE static SymmetricTensor product(const Vector& v, const Vector& grad) {
-        return outer(v, grad);
-    }
-};
-
-using VelocityDivergence = VelocityTemplate<QuantityId::VELOCITY_DIVERGENCE, Dot>;
-using VelocityRotation = VelocityTemplate<QuantityId::VELOCITY_ROTATION, Cross>;
-using VelocityGradient = VelocityTemplate<QuantityId::VELOCITY_GRADIENT, Outer>;
-using DensityVelocityDivergence = DensityVelocityTemplate<QuantityId::DENSITY_VELOCITY_DIVERGENCE, Dot>;
-
-
-/// \brief Velocity gradient accumulated only over particles of the same body and only particles with
-/// strength.
-///
-/// Here we only sum up particle belonging to the same body to avoid creating unphysical strength between
-/// different bodies; a trick to add the discontinuity that doesn't exist in SPH continuum. Optionally,
-/// the velocity gradient can be corrected by a auxiliary tensor; the summed gradient is  multiplied by the
-/// inner product of kernel gradient and the inverse \f$C_{ij}^{-1}\f$, where \f$C_{ij}\f$ is an identity
-/// matrix discretized by SPH (and thus not generally equal to identity matrix).
-///
-/// See paper 'Collisions between equal-sized ice grain agglomerates' by Schafer et al. (2007).
-template <QuantityId Id, typename TDerived>
-class StrengthVelocityTemplate : public SymmetricDerivative {
-protected:
-    ArrayView<const Float> rho, m;
-    ArrayView<const Vector> r, v;
-    ArrayView<const Size> idxs;
-    ArrayView<const Float> reduce;
-
-    ArrayView<SymmetricTensor> C;
-    ArrayView<SymmetricTensor> deriv;
-
-    bool useCorrectionTensor;
-
-public:
-    explicit StrengthVelocityTemplate(const RunSettings& settings) {
-        useCorrectionTensor = settings.get<bool>(RunSettingsId::SPH_STRAIN_RATE_CORRECTION_TENSOR);
-    }
-
-    virtual void create(Accumulated& results) override {
-        results.insert<SymmetricTensor>(Id, OrderEnum::ZERO);
-
-        if (useCorrectionTensor) {
-            // not really needed to save the result, using for debugging purposes
-            results.insert<SymmetricTensor>(QuantityId::STRAIN_RATE_CORRECTION_TENSOR, OrderEnum::ZERO);
-        }
-    }
-
-    virtual void initialize(const Storage& input, Accumulated& results) override {
-        tie(rho, m) = input.getValues<Float>(QuantityId::DENSITY, QuantityId::MASS);
-        ArrayView<const Vector> dv;
-        tie(r, v, dv) = input.getAll<Vector>(QuantityId::POSITION);
-        idxs = input.getValue<Size>(QuantityId::FLAG);
-        reduce = input.getValue<Float>(QuantityId::STRESS_REDUCING);
-
-        deriv = results.getBuffer<SymmetricTensor>(Id, OrderEnum::ZERO);
-        if (useCorrectionTensor) {
-            C = results.getBuffer<SymmetricTensor>(
-                QuantityId::STRAIN_RATE_CORRECTION_TENSOR, OrderEnum::ZERO);
-        }
-    }
-
-    virtual void evalNeighs(const Size i,
+    template <typename TFunctor>
+    INLINE void sum(const Size i,
         ArrayView<const Size> neighs,
-        ArrayView<const Vector> grads) override {
-        ASSERT(neighs.size() == grads.size());
-        if (useCorrectionTensor) {
-            C[i] = SymmetricTensor::null();
+        ArrayView<const Vector> grads,
+        const TFunctor& functor) {
+        if (flags.has(DerivativeFlag::SUM_ONLY_UNDAMAGED)) {
             for (Size k = 0; k < neighs.size(); ++k) {
                 const Size j = neighs[k];
                 if (idxs[i] != idxs[j] || reduce[i] == 0._f || reduce[j] == 0._f) {
                     continue;
                 }
-                SymmetricTensor t = outer(r[j] - r[i], grads[k]); // symmetric in i,j ?
-                C[i] += m[j] / rho[j] * t;
-            }
-            if (C[i] == SymmetricTensor::null()) {
-                C[i] = SymmetricTensor::identity();
-            } else {
-
-                // sanity check that we are not getting 'weird' tensors with non-positive values on diagonal
-                ASSERT(minElement(C[i].diagonal()) >= 0._f, C[i]);
-                if (C[i].determinant() > 0.01_f) {
-                    C[i] = C[i].inverse();
-                    ASSERT(C[i].determinant() > 0._f, C[i]);
-                } else {
-                    C[i] = C[i].pseudoInverse(1.e-3_f);
-                }
-            }
-
-            for (Size k = 0; k < neighs.size(); ++k) {
-                const Vector correctedGrad = C[i] * grads[k];
-                static_cast<TDerived*>(this)->template eval<false>(i, neighs[k], correctedGrad);
+                functor(i, j, grads[k]);
             }
         } else {
             for (Size k = 0; k < neighs.size(); ++k) {
-                static_cast<TDerived*>(this)->template eval<false>(i, neighs[k], grads[k]);
+                const Size j = neighs[k];
+                functor(i, j, grads[k]);
             }
         }
     }
 
-    virtual void evalSymmetric(const Size idx,
-        ArrayView<const Size> neighs,
-        ArrayView<const Vector> grads) override {
-        ASSERT(neighs.size() == grads.size());
-        for (Size k = 0; k < neighs.size(); ++k) {
-            static_cast<TDerived*>(this)->template eval<true>(idx, neighs[k], grads[k]);
-        }
+    TDerived* derived() {
+        return static_cast<TDerived*>(this);
     }
 };
 
-class StrengthVelocityGradient
-    : public StrengthVelocityTemplate<QuantityId::STRENGTH_VELOCITY_GRADIENT, StrengthVelocityGradient> {
-public:
-    using StrengthVelocityTemplate<QuantityId::STRENGTH_VELOCITY_GRADIENT,
-        StrengthVelocityGradient>::StrengthVelocityTemplate;
-
-    template <bool Symmetrize>
-    INLINE void eval(const Size i, const Size j, const Vector& grad) {
-        if (idxs[i] != idxs[j]) { // && reduce[i] > 0._f && reduce[j] > 0._f) {
-            return;
-        }
-        const Vector dv = v[j] - v[i];
-        const SymmetricTensor t = outer(dv, grad);
-        ASSERT(isReal(t));
-        deriv[i] += m[j] / rho[j] * t;
-        if (Symmetrize) {
-            deriv[j] += m[i] / rho[i] * t;
-        }
-    }
-};
-
-class StrengthDensityVelocityGradient
-    : public StrengthVelocityTemplate<QuantityId::STRENGTH_DENSITY_VELOCITY_GRADIENT,
-          StrengthDensityVelocityGradient> {
-public:
-    using StrengthVelocityTemplate<QuantityId::STRENGTH_DENSITY_VELOCITY_GRADIENT,
-        StrengthDensityVelocityGradient>::StrengthVelocityTemplate;
-
-    template <bool Symmetrize>
-    INLINE void eval(const Size i, const Size j, const Vector& grad) {
-        if (idxs[i] != idxs[j] || reduce[i] == 0._f || reduce[j] == 0._f) {
-            return;
-        }
-        const Vector dv = v[j] - v[i];
-        const SymmetricTensor t = outer(dv, grad);
-        ASSERT(isReal(t));
-        deriv[i] += m[j] * t;
-        if (Symmetrize) {
-            deriv[j] += m[i] * t;
-        }
-    }
-};
-
-class StrengthDensityVelocityRotation : public DerivativeTemplate<StrengthDensityVelocityRotation> {
+class CorrectionTensor final : public IDerivative {
 private:
-    ArrayView<const Float> m;
-    ArrayView<const Float> reduce;
+    ArrayView<const Vector> r;
     ArrayView<const Size> idxs;
-    ArrayView<const Vector> v;
-    ArrayView<const SymmetricTensor> C;
-
-    ArrayView<Vector> rhoRotV;
-
-public:
-    virtual void create(Accumulated& results) override {
-        results.insert<Vector>(QuantityId::STRENGTH_DENSITY_VELOCITY_ROTATION, OrderEnum::ZERO);
-    }
-
-    virtual void initialize(const Storage& input, Accumulated& results) override {
-        m = input.getValue<Float>(QuantityId::MASS);
-        reduce = input.getValue<Float>(QuantityId::STRESS_REDUCING);
-        idxs = input.getValue<Size>(QuantityId::FLAG);
-        v = input.getDt<Vector>(QuantityId::POSITION);
-        C = results.getBuffer<SymmetricTensor>(QuantityId::STRAIN_RATE_CORRECTION_TENSOR, OrderEnum::ZERO);
-
-        rhoRotV = results.getBuffer<Vector>(QuantityId::STRENGTH_DENSITY_VELOCITY_ROTATION, OrderEnum::ZERO);
-    }
-
-
-    template <bool Symmetrize>
-    INLINE void eval(const Size i, const Size j, const Vector& grad) {
-        if (idxs[i] != idxs[j] || reduce[i] == 0._f || reduce[j] == 0._f) {
-            return;
-        }
-        // nabla x v  --> correct order
-        ASSERT(C[i] != SymmetricTensor::null());
-        const Vector rot = cross(C[i] * grad, v[j] - v[i]);
-        rhoRotV[i] += m[j] * rot;
-        ASSERT(isReal(rhoRotV[i]));
-        if (Symmetrize) {
-            rhoRotV[j] += m[i] * rot;
-            ASSERT(isReal(rhoRotV[j]));
-        }
-    }
-};
-
-class StrengthVelocityRotation : public DerivativeTemplate<StrengthVelocityRotation> {
-private:
+    ArrayView<const Float> reduce;
     ArrayView<const Float> m, rho;
-    ArrayView<const Float> reduce;
-    ArrayView<const Size> idxs;
-    ArrayView<const Vector> v;
-
-    ArrayView<Vector> rhoRotV;
+    ArrayView<SymmetricTensor> C;
 
 public:
-    virtual void create(Accumulated& results) override {
-        results.insert<Vector>(QuantityId::STRENGTH_DENSITY_VELOCITY_ROTATION, OrderEnum::ZERO);
+    virtual void create(Accumulated& results) override;
+
+    virtual void initialize(const Storage& input, Accumulated& results) override;
+
+    virtual void evalNeighs(Size i, ArrayView<const Size> neighs, ArrayView<const Vector> grads) override;
+
+    virtual DerivativePhase phase() const override;
+};
+
+
+/// \brief Discretization using the density of the center particle.
+///
+/// Represents:
+/// 1/rho[i] sum_j m[j]*(v[j]-v[i]) * grad_ji
+/// This is the discretization of velocity divergence (and other gradients) in standard SPH formulation.
+class CenterDensityDiscr {
+    ArrayView<const Float> rho, m;
+
+public:
+    void initialize(const Storage& input) {
+        tie(rho, m) = input.getValues<Float>(QuantityId::DENSITY, QuantityId::MASS);
     }
 
-    virtual void initialize(const Storage& input, Accumulated& results) override {
-        m = input.getValue<Float>(QuantityId::MASS);
-        rho = input.getValue<Float>(QuantityId::DENSITY);
-        reduce = input.getValue<Float>(QuantityId::STRESS_REDUCING);
-        idxs = input.getValue<Size>(QuantityId::FLAG);
-        v = input.getDt<Vector>(QuantityId::POSITION);
+    template <typename T>
+    INLINE T eval(const Size i, const Size j, const T& value) {
+        return m[j] / rho[i] * value;
+    }
+};
 
-        rhoRotV = results.getBuffer<Vector>(QuantityId::STRENGTH_DENSITY_VELOCITY_ROTATION, OrderEnum::ZERO);
+/// \brief Discretization using the densities of summed particles.
+///
+/// Represents:
+/// sum_j m[j]/rho[j]*(v[j]-v[i]) * grad_ji
+/// This is the discretization used in SPH5 code/
+class NeighbourDensityDiscr {
+    ArrayView<const Float> rho, m;
+
+public:
+    void initialize(const Storage& input) {
+        tie(rho, m) = input.getValues<Float>(QuantityId::DENSITY, QuantityId::MASS);
     }
 
-
-    template <bool Symmetrize>
-    INLINE void eval(const Size i, const Size j, const Vector& grad) {
-        if (idxs[i] != idxs[j]) { // reduce[i] == 0._f || reduce[j] == 0._f) {
-            return;
-        }
-        // nabla x v  --> correct order
-        const Vector rot = cross(grad, v[j] - v[i]);
-        rhoRotV[i] += m[j] / rho[j] * rot;
-        ASSERT(isReal(rhoRotV[i]));
-        if (Symmetrize) {
-            rhoRotV[j] += m[i] / rho[i] * rot;
-            ASSERT(isReal(rhoRotV[j]));
-        }
+    template <typename T>
+    INLINE T eval(const Size UNUSED(i), const Size j, const T& value) {
+        return m[j] / rho[j] * value;
     }
 };
 
 
-/// \brief Helper function allowing to construct an object from settings if the object defines such
-/// constructor, or default-construct the object otherwise.
-template <typename Type>
-std::enable_if_t<!std::is_constructible<Type, const RunSettings&>::value, Type> makeFromSettings(
-    const RunSettings& UNUSED(settings)) {
-    // default constructible
-    return Type();
+template <QuantityId Id, typename Discr, typename Traits>
+class VelocityTemplate : public DerivativeTemplate<VelocityTemplate<Id, Discr, Traits>> {
+private:
+    /// Velocity buffer
+    ArrayView<const Vector> v;
+
+    /// Discretization type
+    Discr discr;
+
+    /// Target buffer where derivatives are written
+    ArrayView<typename Traits::Type> deriv;
+
+public:
+    using DerivativeTemplate<VelocityTemplate<Id, Discr, Traits>>::DerivativeTemplate;
+
+    virtual void create(Accumulated& results) override {
+        results.insert<typename Traits::Type>(Id, OrderEnum::ZERO, BufferSource::UNIQUE);
+    }
+
+    INLINE void init(const Storage& input, Accumulated& results) {
+        v = input.getDt<Vector>(QuantityId::POSITION);
+        discr.initialize(input);
+        deriv = results.getBuffer<typename Traits::Type>(Id, OrderEnum::ZERO);
+    }
+
+    template <bool Symmetrize>
+    INLINE void eval(const Size i, const Size j, const Vector& grad) {
+        const typename Traits::Type dv = Traits::eval(v[j] - v[i], grad);
+        deriv[i] += discr.eval(i, j, dv);
+        if (Symmetrize) {
+            deriv[j] += discr.eval(j, i, dv);
+        }
+    }
+};
+
+struct DivergenceTraits {
+    using Type = Float;
+
+    INLINE static Float eval(const Vector& v, const Vector& grad) {
+        return dot(v, grad);
+    }
+};
+
+struct RotationTraits {
+    using Type = Vector;
+
+    INLINE static Vector eval(const Vector& v, const Vector& grad) {
+        // nabla x v
+        return cross(grad, v);
+    }
+};
+
+struct GradientTraits {
+    using Type = SymmetricTensor;
+
+    INLINE static SymmetricTensor eval(const Vector& v, const Vector& grad) {
+        return outer(v, grad);
+    }
+};
+
+
+template <typename Discr>
+using VelocityDivergence = VelocityTemplate<QuantityId::VELOCITY_DIVERGENCE, Discr, DivergenceTraits>;
+
+template <typename Discr>
+using VelocityRotation = VelocityTemplate<QuantityId::VELOCITY_ROTATION, Discr, RotationTraits>;
+
+template <typename Discr>
+using VelocityGradient = VelocityTemplate<QuantityId::VELOCITY_GRADIENT, Discr, GradientTraits>;
+
+
+/// \brief Creates a given velocity derivative, using discretization given by selected SPH formulation.
+///
+/// Note that other formulations can still be used, provided the specialization of VelocityTemplate for given
+/// discretization is defined.
+template <template <class> class TVelocityDerivative>
+AutoPtr<IDerivative> makeDerivative(const RunSettings& settings, Flags<DerivativeFlag> flags = EMPTY_FLAGS) {
+    const FormulationEnum formulation = settings.get<FormulationEnum>(RunSettingsId::SPH_FORMULATION);
+    switch (formulation) {
+    case FormulationEnum::STANDARD:
+        return makeAuto<TVelocityDerivative<CenterDensityDiscr>>(settings, flags);
+    case FormulationEnum::BENZ_ASPHAUG:
+        return makeAuto<TVelocityDerivative<NeighbourDensityDiscr>>(settings, flags);
+    default:
+        NOT_IMPLEMENTED;
+    }
 }
 
-/// Specialization for types constructible from settings
-template <typename Type>
-std::enable_if_t<std::is_constructible<Type, const RunSettings&>::value, Type> makeFromSettings(
-    const RunSettings& settings) {
-    // constructible from settings
-    return Type(settings);
-}
 
 class DerivativeHolder {
 private:
     Accumulated accumulated;
 
     struct Less {
-        bool operator()(const AutoPtr<IDerivative>& d1, const AutoPtr<IDerivative>& d2) {
+        bool operator()(const AutoPtr<IDerivative>& d1, const AutoPtr<IDerivative>& d2) const {
             if (d1->phase() != d2->phase()) {
                 // sort primarily by phases
                 return d1->phase() < d2->phase();
@@ -549,7 +373,7 @@ private:
     /// (acceleration and energy derivative) and multiple modules can write into same buffer (different
     /// terms in equation of motion). Modules are evaluated consecutively (within one thread), so this is
     /// thread-safe.
-    std::set<AutoPtr<IDerivative>, Less> derivatives;
+    FlatSet<AutoPtr<IDerivative>, Less> derivatives;
 
     /// Used for lazy creation of derivatives
     bool needsCreate = true;
@@ -557,39 +381,14 @@ private:
 public:
     /// \brief Adds derivative if not already present.
     ///
-    /// If the derivative is already stored, new one is NOT created, even if settings are different.
-    template <typename Type>
-    void require(const RunSettings& settings) {
-        for (const AutoPtr<IDerivative>& d : derivatives) {
-            const IDerivative& value = *d;
-            if (typeid(value) == typeid(Type)) {
-                return;
-            }
-        }
-        AutoPtr<Type> ptr = makeAuto<Type>(makeFromSettings<Type>(settings));
-        derivatives.insert(std::move(ptr));
-    }
+    /// If the derivative is already stored, new one is NOT stored, it is simply ignored, even the internal
+    /// state of the passed derivative is different.
+    void require(AutoPtr<IDerivative>&& derivative);
 
-    /// Initialize derivatives before loop
-    void initialize(const Storage& input) {
-        if (needsCreate) {
-            // lazy buffer creation
-            for (const auto& deriv : derivatives) {
-                deriv->create(accumulated);
-            }
-            needsCreate = false;
-        }
-        accumulated.initialize(input.getParticleCnt());
-        // initialize buffers first, possibly resizing then and invalidating previously stored arrayviews
+    /// \brief Initialize derivatives before loop
+    void initialize(const Storage& input);
 
-        // PROFILE_SCOPE("DerivativeHolder initialize accumulated");
-        for (const auto& deriv : derivatives) {
-            //     PROFILE_SCOPE("DerivativeHolder initialize derivatvies");
-            // then get the arrayviews for derivatives
-            deriv->initialize(input, accumulated);
-        }
-    }
-
+    /// \brief Evaluates all held derivatives.
     void eval(const Size idx, ArrayView<const Size> neighs, ArrayView<const Vector> grads) {
         ASSERT(neighs.size() == grads.size());
         for (const auto& deriv : derivatives) {
@@ -599,6 +398,7 @@ public:
 
     void evalSymmetric(const Size idx, ArrayView<const Size> neighs, ArrayView<const Vector> grads) {
         ASSERT(neighs.size() == grads.size());
+        ASSERT(isSymmetric());
         for (const auto& deriv : derivatives) {
             SymmetricDerivative* symmetric = assert_cast<SymmetricDerivative*>(&*deriv);
             symmetric->evalSymmetric(idx, neighs, grads);

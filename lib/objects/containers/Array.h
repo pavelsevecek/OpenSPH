@@ -304,11 +304,12 @@ public:
     /// \brief Inserts a new element to given position in the array.
     ///
     /// All the existing elements after the given positions are moved using move operator.
-    void insert(const TCounter position, const T& value) {
+    template <typename U>
+    void insert(const TCounter position, U&& value) {
         ASSERT(position <= actSize);
         this->resize(actSize + 1);
         std::move_backward(this->begin() + position, this->end() - 1, this->end());
-        data[position] = value;
+        data[position] = std::forward<U>(value);
     }
 
     /// \brief Removes the last element from the array and return its value.
@@ -460,8 +461,8 @@ NAMESPACE_SPH_END
 
 /// Overload of std::swap for Sph::Array.
 namespace std {
-    template <typename T, typename TCounter>
-    void swap(Sph::Array<T, TCounter>& ar1, Sph::Array<T, TCounter>& ar2) {
-        ar1.swap(ar2);
-    }
+template <typename T, typename TCounter>
+void swap(Sph::Array<T, TCounter>& ar1, Sph::Array<T, TCounter>& ar2) {
+    ar1.swap(ar2);
+}
 } // namespace std

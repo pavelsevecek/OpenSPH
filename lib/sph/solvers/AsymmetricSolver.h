@@ -62,6 +62,8 @@ protected:
 public:
     AsymmetricSolver(const RunSettings& settings, const EquationHolder& eqs);
 
+    ~AsymmetricSolver();
+
     virtual void integrate(Storage& storage, Statistics& stats) override;
 
     virtual void create(Storage& storage, IMaterial& material) const override;
