@@ -22,7 +22,7 @@ struct ProjectedPoint {
 };
 
 /// Ray given by origin and target point
-struct Ray {
+struct CameraRay {
     Vector origin;
     Vector target;
 };
@@ -36,7 +36,7 @@ public:
     virtual Optional<ProjectedPoint> project(const Vector& r) const = 0;
 
     /// \brief Returns a ray in particle coordinates corresponding to given point in the image plane.
-    virtual Ray unproject(const Point point) const = 0;
+    virtual CameraRay unproject(const Point point) const = 0;
 
     /// \brief Returns the direction of the camera.
     virtual Vector getDirection() const = 0;
@@ -97,10 +97,10 @@ public:
         return { { point, data.fov * float(r[H]) } };
     }
 
-    virtual Ray unproject(const Point point) const override {
+    virtual CameraRay unproject(const Point point) const override {
         const float x = (point.x - center.x) / data.fov;
         const float y = ((imageSize.y - point.y - 1) - center.y) / data.fov;
-        Ray ray;
+        CameraRay ray;
         ray.origin = cached.u * x + cached.v * y;
         ray.target = ray.origin + cached.w;
         return ray;
@@ -188,10 +188,10 @@ public:
         return ProjectedPoint{ { x, y }, max(h, 1.f) };
     }
 
-    virtual Ray unproject(const Point point) const override {
+    virtual CameraRay unproject(const Point point) const override {
         const Float x = 2._f * Float(point.x) / imageSize.x - 1._f;
         const Float y = 2._f * Float(point.y) / imageSize.y - 1._f;
-        Ray ray;
+        CameraRay ray;
         ray.origin = data.position;
         ray.target = data.target + cached.left * x + cached.up * y;
         return ray;

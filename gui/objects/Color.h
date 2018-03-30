@@ -31,6 +31,14 @@ public:
         return wxColour(int(data[0] * 255.f), int(data[1] * 255.f), int(data[2] * 255.f));
     }
 
+    float operator[](const Size idx) const {
+        return data[idx];
+    }
+
+    float& operator[](const Size idx) {
+        return data[idx];
+    }
+
     Color operator*(const float value) const {
         return data * value;
     }

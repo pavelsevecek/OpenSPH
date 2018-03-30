@@ -68,7 +68,7 @@ static void drawPalette(wxDC& dc, const Palette& palette) {
 
 static void drawGrid(wxDC& dc, const ICamera& camera, const float grid) {
     // find (any) direction in the camera plane
-    const Ray originRay = camera.unproject(Point(0, 0));
+    const CameraRay originRay = camera.unproject(Point(0, 0));
     const Vector dir = getNormalized(originRay.target - originRay.origin);
     Vector perpDir;
     if (dir == Vector(0._f, 0._f, 1._f)) {

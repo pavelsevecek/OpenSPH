@@ -68,14 +68,24 @@ TotalEnergy::TotalEnergy(const Float omega)
 
 Float TotalEnergy::evaluate(const Storage& storage) const {
     double total = 0.;
+    // add kinetic energy
     ArrayView<const Vector> r, v, dv;
     tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
     ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
-    ArrayView<const Float> u = storage.getValue<Float>(QuantityId::ENERGY);
     for (Size i = 0; i < v.size(); ++i) {
         ASSERT(!v.empty());
-        total += 0.5 * m[i] * getSqrLength(v[i]) + m[i] * u[i];
+        total += 0.5 * m[i] * getSqrLength(v[i]);
     }
+
+    if (storage.has(QuantityId::ENERGY)) {
+        // add internal energy
+        ArrayView<const Float> u = storage.getValue<Float>(QuantityId::ENERGY);
+        for (Size i = 0; i < v.size(); ++i) {
+            ASSERT(!v.empty());
+            total += m[i] * u[i];
+        }
+    }
+
     ASSERT(isReal(total));
     return Float(total);
 }
@@ -98,6 +108,9 @@ Float TotalKineticEnergy::evaluate(const Storage& storage) const {
 
 Float TotalInternalEnergy::evaluate(const Storage& storage) const {
     double total = 0.;
+    if (!storage.has(QuantityId::ENERGY)) {
+        return total;
+    }
     ArrayView<const Float> u = storage.getValue<Float>(QuantityId::ENERGY);
     ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
     ASSERT(!m.empty());

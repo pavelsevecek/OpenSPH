@@ -41,10 +41,6 @@ public:
 
 protected:
     virtual void tearDown() override;
-
-    void setupOutput();
-
-    Storage runPkdgrav();
 };
 
 class App : public wxApp {
@@ -63,21 +59,36 @@ private:
         Connect(MAIN_LOOP_TYPE, MainLoopEventHandler(App::processEvents));
 
         GuiSettings gui;
-        gui.set(GuiSettingsId::ORTHO_FOV, 7e3_f)
-            .set(GuiSettingsId::ORTHO_VIEW_CENTER, 0.5_f * Vector(800, 600, 0))
-            .set(GuiSettingsId::PARTICLE_RADIUS, 0.2_f)
-            .set(GuiSettingsId::ORTHO_CUTOFF, 5.e2_f)
+        gui.set(GuiSettingsId::ORTHO_FOV, 3.5e3_f)
+            .set(GuiSettingsId::ORTHO_VIEW_CENTER, /*Vector(0, 300, 0)) // */ 0.5_f * Vector(1024, 768, 0))
+            .set(GuiSettingsId::RENDER_WIDTH, 1024)
+            .set(GuiSettingsId::RENDER_HEIGHT, 768)
+            .set(GuiSettingsId::VIEW_WIDTH, 1024)
+            .set(GuiSettingsId::VIEW_HEIGHT, 768)
+            .set(GuiSettingsId::IMAGES_WIDTH, 1024)
+            .set(GuiSettingsId::IMAGES_HEIGHT, 768)
+            .set(GuiSettingsId::WINDOW_WIDTH, 1334)
+            .set(GuiSettingsId::WINDOW_HEIGHT, 768)
+            .set(GuiSettingsId::RENDERER, int(RendererEnum::RAYTRACER))
+            .set(GuiSettingsId::PARTICLE_RADIUS, 0.25_f)
+            .set(GuiSettingsId::SURFACE_RESOLUTION, 2.e3_f)
+            .set(GuiSettingsId::CAMERA, int(CameraEnum::ORTHO))
             .set(GuiSettingsId::ORTHO_PROJECTION, OrthoEnum::XY)
+            .set(GuiSettingsId::ORTHO_CUTOFF, 0._f)
             .set(GuiSettingsId::IMAGES_SAVE, true)
-            .set(GuiSettingsId::IMAGES_TIMESTEP, 0.1_f)
-            .set(GuiSettingsId::RENDERER, int(RendererEnum::SURFACE))
-            .set(GuiSettingsId::SURFACE_SUN_POSITION, getNormalized(Vector(-0.3_f, -0.4_f, 0.4_f)))
-            .set(GuiSettingsId::SURFACE_SUN_INTENSITY, 0.8_f)
-            .set(GuiSettingsId::SURFACE_AMBIENT, 0.1_f)
-            .set(GuiSettingsId::SURFACE_RESOLUTION, 150._f)
-            .set(GuiSettingsId::SURFACE_LEVEL, 0.9_f)
-            .set(GuiSettingsId::PALETTE_DIVV, Interval(-1.e-6_f, 1.e-6_f));
-        //.set(GuiSettingsId::ORTHO_CUTOFF, 0._f);
+            .set(GuiSettingsId::IMAGES_NAME, std::string("frag_%e_%d.png"))
+            .set(GuiSettingsId::IMAGES_MOVIE_NAME, std::string("frag_%e.avi"))
+            .set(GuiSettingsId::IMAGES_TIMESTEP, 10._f)
+            .set(GuiSettingsId::PALETTE_STRESS, Interval(1.e5_f, 3.e6_f))
+            .set(GuiSettingsId::PALETTE_VELOCITY, Interval(0.01_f, 1.e2_f))
+            .set(GuiSettingsId::PALETTE_PRESSURE, Interval(-5.e4_f, 5.e4_f))
+            .set(GuiSettingsId::PALETTE_ENERGY, Interval(0._f, 1.e3_f))
+            .set(GuiSettingsId::PALETTE_RADIUS, Interval(700._f, 3.e3_f))
+            .set(GuiSettingsId::PALETTE_GRADV, Interval(0._f, 1.e-5_f))
+            .setFlags(GuiSettingsId::PLOT_INTEGRALS,
+                PlotEnum::KINETIC_ENERGY | PlotEnum::INTERNAL_ENERGY | PlotEnum::TOTAL_ENERGY |
+                    PlotEnum::TOTAL_MOMENTUM | PlotEnum::TOTAL_ANGULAR_MOMENTUM |
+                    PlotEnum::SELECTED_PARTICLE);
 
         AutoPtr<AsteroidCollision> run = makeAuto<AsteroidCollision>();
 

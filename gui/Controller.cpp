@@ -35,7 +35,7 @@ Controller::Controller(const GuiSettings& settings) {
 Controller::~Controller() = default;
 
 void Controller::Vis::initialize(const GuiSettings& gui) {
-    renderer = makeAuto<ParticleRenderer>(gui);
+    renderer = Factory::getRenderer(gui);
     colorizer = Factory::getColorizer(gui, ColorizerId::VELOCITY);
     timer = makeAuto<Timer>(gui.get<int>(GuiSettingsId::VIEW_MAX_FRAMERATE), TimerFlags::START_EXPIRED);
     const Point size(gui.get<int>(GuiSettingsId::RENDER_WIDTH), gui.get<int>(GuiSettingsId::RENDER_HEIGHT));
@@ -309,7 +309,6 @@ Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage
         quantityColorizerIds.push(QuantityId::MOMENT_OF_INERTIA);
         quantityColorizerIds.push(QuantityId::STRAIN_RATE_CORRECTION_TENSOR);
         quantityColorizerIds.push(QuantityId::EPS_MIN);
-        quantityColorizerIds.push(QuantityId::EFFECTIVE_NEIGHBOUR_CNT);
     }
 
     Array<SharedPtr<IColorizer>> colorizers;
@@ -369,7 +368,7 @@ Optional<Size> Controller::getIntersectedParticle(const Point position, const fl
     }
 
     const float radius = gui.get<Float>(GuiSettingsId::PARTICLE_RADIUS);
-    const Ray ray = vis.camera->unproject(position);
+    const CameraRay ray = vis.camera->unproject(position);
     const Vector dir = getNormalized(ray.target - ray.origin);
 
     struct {
@@ -532,7 +531,6 @@ void Controller::tryRedraw() {
 
 void Controller::run(const Path& path) {
     sph.thread = std::thread([this, path] {
-
         try {
             // create storage and set up initial conditions
             sph.run->setUp();

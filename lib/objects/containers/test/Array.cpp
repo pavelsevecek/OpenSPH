@@ -152,11 +152,12 @@ TEST_CASE("Array PushAll", "[array]") {
 TEST_CASE("Array EmplaceBack", "[array]") {
     RecordType::resetStats();
     Array<RecordType> ar;
-    ar.emplaceBack(RecordType(7));
+    RecordType& ref = ar.emplaceBack(RecordType(7));
     REQUIRE(RecordType::existingNum() == 1);
     REQUIRE(ar.size() == 1);
     REQUIRE(ar[0].wasMoveConstructed);
     REQUIRE(ar[0].value == 7);
+    REQUIRE(&ref == &ar[0]);
 
     RecordType r(5);
     ar.emplaceBack(r);

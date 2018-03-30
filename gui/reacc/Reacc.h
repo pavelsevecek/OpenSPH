@@ -118,7 +118,7 @@ private:
             .set(GuiSettingsId::IMAGES_SAVE, true)
             .set(GuiSettingsId::IMAGES_NAME, std::string("frag_%e_%d.png"))
             .set(GuiSettingsId::IMAGES_MOVIE_NAME, std::string("frag_%e.avi"))
-            .set(GuiSettingsId::IMAGES_TIMESTEP, 3._f)
+            .set(GuiSettingsId::IMAGES_TIMESTEP, 10._f)
             .set(GuiSettingsId::PALETTE_STRESS, Interval(1.e5_f, 3.e6_f))
             .set(GuiSettingsId::PALETTE_VELOCITY, Interval(0.01_f, 1.e2_f))
             .set(GuiSettingsId::PALETTE_PRESSURE, Interval(-5.e4_f, 5.e4_f))
@@ -128,7 +128,7 @@ private:
             .setFlags(GuiSettingsId::PLOT_INTEGRALS,
                 PlotEnum::KINETIC_ENERGY | PlotEnum::INTERNAL_ENERGY | PlotEnum::TOTAL_ENERGY |
                     PlotEnum::TOTAL_MOMENTUM | PlotEnum::TOTAL_ANGULAR_MOMENTUM |
-                    PlotEnum::SELECTED_PARTICLE);
+                    PlotEnum::SIZE_FREQUENCY_DISTRIBUTION | PlotEnum::SELECTED_PARTICLE);
 
         controller = makeAuto<Controller>(gui);
 
@@ -142,6 +142,7 @@ private:
                     //.set(GuiSettingsId::ORTHO_FOV, 8e7_f)
                     .set(GuiSettingsId::IMAGES_TIMESTEP, 100._f)
                     .set(GuiSettingsId::PALETTE_VELOCITY, Interval(1._f, 1.e4_f))
+                    .set(GuiSettingsId::ORTHO_CUTOFF, 0._f)
                     .set(GuiSettingsId::IMAGES_NAME, std::string("reac_%e_%d.png"));
                 controller->setParams(newGui);
             });

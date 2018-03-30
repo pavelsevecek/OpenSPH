@@ -68,7 +68,6 @@ static Outcome checkStorage(const Storage& storage) {
     };
     iterate<VisitorEnum::ZERO_ORDER>(storage, [&storage, &mergeError](QuantityId id, const auto& buffer) {
         mergeError(checkValues(buffer, storage, id), id, "values");
-
     });
     iterate<VisitorEnum::FIRST_ORDER>(
         storage, [&storage, &mergeError](QuantityId id, const auto& buffer, const auto& dv) {
@@ -355,7 +354,7 @@ Reaccumulation::Reaccumulation() {
         .set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::LEAP_FROG)
         .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 0.1_f)
         .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 500._f)
-        .set(RunSettingsId::TIMESTEPPING_MAX_CHANGE, 0.05_f)
+        .set(RunSettingsId::TIMESTEPPING_MAX_CHANGE, 0.001_f)
         .set(RunSettingsId::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::ACCELERATION)
         .set(RunSettingsId::TIMESTEPPING_ADAPTIVE_FACTOR, 0.5_f)
         .set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 30.f * 24._f * 3600._f))
@@ -365,12 +364,12 @@ Reaccumulation::Reaccumulation() {
         .set(RunSettingsId::GRAVITY_KERNEL, GravityKernelEnum::SOLID_SPHERES)
         .set(RunSettingsId::GRAVITY_OPENING_ANGLE, 0.8_f)
         .set(RunSettingsId::GRAVITY_LEAF_SIZE, 20)
-        .set(RunSettingsId::COLLISION_HANDLER, CollisionHandlerEnum::ELASTIC_BOUNCE)
-        .set(RunSettingsId::COLLISION_OVERLAP, OverlapEnum::REPEL)
-        .set(RunSettingsId::COLLISION_RESTITUTION_NORMAL, 0.5_f)
+        .set(RunSettingsId::COLLISION_HANDLER, CollisionHandlerEnum::MERGE_OR_BOUNCE)
+        .set(RunSettingsId::COLLISION_OVERLAP, OverlapEnum::PASS_OR_MERGE)
+        .set(RunSettingsId::COLLISION_RESTITUTION_NORMAL, 0.1_f)
         .set(RunSettingsId::COLLISION_RESTITUTION_TANGENT, 1._f)
         .set(RunSettingsId::COLLISION_ALLOWED_OVERLAP, 0.1_f)
-        .set(RunSettingsId::COLLISION_MERGING_LIMIT, 1._f)
+        .set(RunSettingsId::COLLISION_MERGING_LIMIT, 10._f)
         .set(RunSettingsId::NBODY_INERTIA_TENSOR, false)
         .set(RunSettingsId::NBODY_MAX_ROTATION_ANGLE, 0.01_f)
         .set(RunSettingsId::RUN_THREAD_GRANULARITY, 100);
@@ -381,10 +380,12 @@ void Reaccumulation::setUp() {
 }
 
 void Reaccumulation::handoff(Storage&& sph) {
-    // we don't need any material, so just pass some dummy
     solver = makeAuto<NBodySolver>(settings);
 
-    storage = makeShared<Storage>(makeAuto<NullMaterial>(EMPTY_SETTINGS));
+    // we don't need any material, so just pass some dummy
+    // we read material settings in some colorizers, so even though the values do not make sense, it's easier
+    // to just read defaults
+    storage = makeShared<Storage>(makeAuto<NullMaterial>(BodySettings::getDefaults()));
     storage->insert<Vector>(
         QuantityId::POSITION, OrderEnum::SECOND, sph.getValue<Vector>(QuantityId::POSITION).clone());
     storage->getDt<Vector>(QuantityId::POSITION) = sph.getDt<Vector>(QuantityId::POSITION).clone();
@@ -396,7 +397,7 @@ void Reaccumulation::handoff(Storage&& sph) {
     ArrayView<Vector> r_nbody = storage->getValue<Vector>(QuantityId::POSITION);
     ASSERT(r_nbody.size() == rho.size());
     for (Size i = 0; i < r_nbody.size(); ++i) {
-        r_nbody[i][H] = 0.75_f * cbrt(3._f * m[i] / (4._f * PI * rho[i]));
+        r_nbody[i][H] = cbrt(3._f * m[i] / (4._f * PI * rho[i]));
     }
 
     Array<Size> toRemove;

@@ -39,7 +39,7 @@ SOURCES += \
     MainLoop.cpp \
     Settings.cpp \
     Utils.cpp \
-    objects/Factory.cpp \
+    Factory.cpp \
     objects/Movie.cpp \
     objects/Palette.cpp \
     renderers/ParticleRenderer.cpp \
@@ -47,7 +47,8 @@ SOURCES += \
     windows/GlPane.cpp \
     windows/MainWindow.cpp \
     windows/OrthoPane.cpp \
-    windows/PlotView.cpp
+    windows/PlotView.cpp \
+    renderers/RayTracer.cpp
 
 HEADERS += \
     ArcBall.h \
@@ -76,4 +77,6 @@ HEADERS += \
     windows/OrthoPane.h \
     windows/ParticleProbe.h \
     windows/PlotView.h \
-    renderers/RenderContext.h
+    renderers/RenderContext.h \
+    renderers/RayTracer.h \
+    renderers/Brdf.h

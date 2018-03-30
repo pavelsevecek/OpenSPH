@@ -10,7 +10,10 @@
 
 NAMESPACE_SPH_BEGIN
 
-/// Unique ID of basic quantities of SPH particles
+/// \brief Unique IDs of basic quantities of SPH particles.
+///
+/// New quantities should be added to the BOTTOM of the enum in order to allow opening older binary files
+/// (using \ref BinaryOutput).
 enum class QuantityId {
     /// \name Common quantities
     ///@{
@@ -134,9 +137,10 @@ enum class QuantityId {
     /// Velocity rotation
     VELOCITY_ROTATION,
 
-    /// Correction tensor used to improve conservation of total angular momentum.
+    /// Correction tensor used to improve conservation of total angular momentum
     STRAIN_RATE_CORRECTION_TENSOR,
 
+    /// Laplacian of internal energy, used in heat diffusion equation
     ENERGY_LAPLACIAN,
 
     ///@}
@@ -180,8 +184,6 @@ enum class QuantityId {
     /// Number of neighbouring particles (in radius h * kernel.radius)
     NEIGHBOUR_CNT,
 
-    EFFECTIVE_NEIGHBOUR_CNT,
-
     /// Vector approximating surface normal
     SURFACE_NORMAL,
 
@@ -204,10 +206,16 @@ enum class QuantityId {
     /// Index of material of the particle. Can be generally different than the flag value.
     MATERIAL_ID,
 
+    /// Persistent index of the particle that does not change when adding or removing particles in the
+    /// storage. Useful when we need to track particle with given index; particle index in storage may change
+    /// when some particles from the middle of the storage are removed. Indices of removed particles are made
+    /// available again and can be reused by newly created particles.
+    PERSISTENT_INDEX,
+
     ///@}
 
 
-    // TEMPORARY QUANTITIES, REMOVE
+    // TEMPORARY QUANTITIES, TO BE REMOVED
 
     VELOCITY_LAPLACIAN,
 

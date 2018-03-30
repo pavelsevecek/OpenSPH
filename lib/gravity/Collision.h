@@ -50,7 +50,7 @@ public:
 ///
 /// Interface similar to \ref ICollisionHandler, but unlike collision result, overlaps has no result -
 /// particles either overlap or not. Note that overlaps are processed before collisions and if two particles
-/// do not overlap (\ref overlaps returns false), they are then checked for collisions.
+/// do not overlap (\ref overlaps returns false), the check for collisions is skipped.
 class IOverlapHandler : public Polymorphic {
 public:
     virtual void initialize(Storage& storage) = 0;
@@ -83,6 +83,10 @@ INLINE T weightedAverage(const T& v1, const Float w1, const T& v2, const Float w
     ASSERT(w1 + w2 > 0._f, w1, w2);
     return (v1 * w1 + v2 * w2) / (w1 + w2);
 }
+
+/// ----------------------------------------------------------------------------------------------------------
+/// Collision Handlers
+/// ----------------------------------------------------------------------------------------------------------
 
 /// \brief Helper handler always returning CollisionResult::NONE.
 ///
@@ -207,8 +211,7 @@ public:
         v[i] = v_merger;
         v[i][H] = 0._f;
 
-        ASSERT(isReal(v[i]));
-        ASSERT(isReal(r[i]));
+        ASSERT(isReal(v[i]) && isReal(r[i]));
         toRemove.insert(j);
         return CollisionResult::MERGER;
     }
@@ -239,7 +242,9 @@ private:
     }
 };
 
-/// \brief Handler
+/// \brief Handler for bounce on collision.
+///
+/// No merging takes place. Particles lose fraction of momentum, given by coefficients of restitution.
 class ElasticBounceHandler : public ICollisionHandler {
 protected:
     ArrayView<Vector> r, v;
@@ -300,7 +305,7 @@ private:
 };
 
 /// \brief Helper handler, choosing another collision handler if the primary handler rejects the
-/// collision.
+/// collision by returning CollisionResult::NONE.
 template <typename TPrimary, typename TFallback>
 class FallbackHandler : public ICollisionHandler {
 private:
@@ -340,6 +345,12 @@ public:
     }
 };
 
+
+/// ----------------------------------------------------------------------------------------------------------
+/// Overlap Handlers
+/// ----------------------------------------------------------------------------------------------------------
+
+/// \brief Handler simply ignoring overlaps.
 class NullOverlapHandler : public IOverlapHandler {
 public:
     virtual void initialize(Storage& UNUSED(storage)) override {}
@@ -353,7 +364,10 @@ public:
         FlatSet<Size>& UNUSED(toRemove)) override {}
 };
 
-/// \brief Helper object implementing the \ref IOverlapHandler interface using \ref PerfectMergingHandler.
+/// \brief Handler unconditionally merging the overlapping particles.
+///
+/// Behaves similarly to collision handler \ref PerfectMergingHandler, but there is no check for relative
+/// velocities of particles nor angular frequency of the merger - particles are always merged.
 class MergeOverlapHandler : public IOverlapHandler {
 private:
     PerfectMergingHandler handler;
@@ -375,6 +389,12 @@ public:
     }
 };
 
+/// \brief Handler displacing the overlapping particles so that they just touch.
+///
+/// Particles are moved alongside their relative position vector. They must not overlap perfectly, as in such
+/// a case the displacement direction is undefined. The handler is templated, allowing to specify a followup
+/// handler that is applied after the particles have been moved. This can be another \ref IOverlapHandler, but
+/// also a \ref ICollisionHandler, as the two interfaces are similar.
 template <typename TFollowupHandler>
 class RepelHandler : public IOverlapHandler {
 private:
@@ -422,6 +442,11 @@ public:
     }
 };
 
+/// \brief Overlap handler performing a bounce of particles.
+///
+/// Particles only bounce if their centers are moving towards each other. This way we prevent particles
+/// bouncing infinitely - after the first bounce, the particle move away from each other and they are not
+/// classified as overlaps by the handler.
 class InternalBounceHandler : public IOverlapHandler {
 private:
     ElasticBounceHandler handler;
@@ -456,21 +481,30 @@ public:
     }
 };
 
-class TodoMergeHandler : public IOverlapHandler {
+/// \brief Handler merging overlapping particles if their relative velocity is lower than the escape velocity.
+///
+/// If the relative veloity is too high, the particles are allowed to simply pass each other - this situation
+/// is not classified as overlap.
+class MergeBoundHandler : public IOverlapHandler {
 private:
     PerfectMergingHandler handler;
 
 public:
-    ArrayView<Vector> r, v;
+    ArrayView<Vector> r, v, omega;
     ArrayView<Float> m;
 
+    Float mergingLimit;
+
 public:
-    explicit TodoMergeHandler()
-        : handler(0.f) {}
+    explicit MergeBoundHandler(const RunSettings& settings)
+        : handler(settings) {
+        mergingLimit = settings.get<Float>(RunSettingsId::COLLISION_MERGING_LIMIT);
+    }
 
     virtual void initialize(Storage& storage) override {
         ArrayView<Vector> dv;
         tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
+        omega = storage.getValue<Vector>(QuantityId::ANGULAR_VELOCITY);
         m = storage.getValue<Float>(QuantityId::MASS);
 
         handler.initialize(storage);
@@ -479,11 +513,29 @@ public:
     virtual bool overlaps(const Size i, const Size j) override {
         const Float vEscSqr = 2._f * Constants::gravity * (m[i] + m[j]) / (r[i][H] + r[j][H]);
         const Float vRelSqr = getSqrLength(v[i] - v[j]);
-        if (vRelSqr > vEscSqr) {
+        if (vRelSqr * mergingLimit > vEscSqr) {
             // moving too fast, reject the merge
             /// \todo shouldn't we check velocities AFTER the bounce?
             return false;
         }
+
+        const Float h_merger = root<3>(pow<3>(r[i][H]) + pow<3>(r[j][H]));
+        const Float omegaCritSqr = Constants::gravity * (m[i] + m[j]) / pow<3>(h_merger);
+
+        const Float m_merger = m[i] + m[j];
+        const Vector r_merger = weightedAverage(r[i], m[i], r[j], m[j]);
+        const Vector v_merger = weightedAverage(v[i], m[i], v[j], m[j]);
+        const Vector L_merger = m[i] * cross(r[i] - r_merger, v[i] - v_merger) + //
+                                m[j] * cross(r[j] - r_merger, v[j] - v_merger) + //
+                                Rigid::sphereInertia(m[i], r[i][H]) * omega[i] + //
+                                Rigid::sphereInertia(m[j], r[j][H]) * omega[j];
+        const Vector omega_merger = Rigid::sphereInertia(m_merger, h_merger).inverse() * L_merger;
+        const Float omegaSqr = getSqrLength(omega_merger);
+        if (omegaSqr * mergingLimit > omegaCritSqr) {
+            // rotates too fast, reject the merge
+            return false;
+        }
+
         return true;
     }
 

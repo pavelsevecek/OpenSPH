@@ -2,6 +2,7 @@
 #include "gui/objects/Camera.h"
 #include "gui/objects/Colorizer.h"
 #include "gui/renderers/ParticleRenderer.h"
+#include "gui/renderers/RayTracer.h"
 #include "gui/renderers/SurfaceRenderer.h"
 
 NAMESPACE_SPH_BEGIN
@@ -52,6 +53,8 @@ AutoPtr<IRenderer> Factory::getRenderer(const GuiSettings& settings) {
         return makeAuto<ParticleRenderer>(settings);
     case RendererEnum::SURFACE:
         return makeAuto<SurfaceRenderer>(settings);
+    case RendererEnum::RAYTRACER:
+        return makeAuto<RayTracer>(settings);
     default:
         NOT_IMPLEMENTED;
     }
@@ -175,9 +178,6 @@ AutoPtr<IColorizer> Factory::getColorizer(const GuiSettings& settings,
             break;
         case QuantityId::MOMENT_OF_INERTIA:
             rangeVariant = GuiSettingsId::PALETTE_MOMENT_OF_INERTIA;
-            break;
-        case QuantityId::EFFECTIVE_NEIGHBOUR_CNT:
-            rangeVariant = Interval(0._f, 200._f);
             break;
         default:
             NOT_IMPLEMENTED;

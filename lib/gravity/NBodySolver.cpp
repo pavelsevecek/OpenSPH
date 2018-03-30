@@ -212,117 +212,6 @@ public:
     }
 };
 
-/*static Float getSearchRadius(ArrayView<const Vector> r, ArrayView<const Vector> v, const Float dt) {
-    // find the largest velocity, so that we know how far to search for potentional impactors
-    /// \todo naive implementation, improve
-    Float v_max = 0._f;
-    Float h_max = 0._f;
-    for (Size i = 0; i < r.size(); ++i) {
-        v_max = max(v_max, getSqrLength(v[i]));
-        h_max = max(h_max, r[i][H]);
-    }
-    v_max = sqrt(v_max);
-    return v_max * dt + h_max;
-}*/
-
-/*static bool isSeparable(const CollisionRecord& col1,
-    const CollisionRecord& col2,
-    ArrayView<const Vector> r,
-    const Float radius) {
-    auto intersects = [r, radius](const Size i, const Size j) {
-        return getSqrLength(r[i] - r[j]) <= sqr(2._f * radius);
-    };
-    return !intersects(col1.i, col2.i) && !intersects(col1.i, col2.j) && //
-           !intersects(col1.j, col2.i) && !intersects(col1.j, col2.j);
-}
-
-class CollisionTask : public ITask {
-private:
-    Locking<FlatSet<CollisionRecord>>& collisions;
-
-    Float searchRadius;
-
-    /// Collision to process
-    FlatSet<Size> invalidIdxs;
-
-    FlatSet<Size> removed;
-
-    /// Statistics for this thread
-    CollisionStats cs;
-
-    ArrayView<Vector> r;
-    ArrayView<Vector> v;
-
-public:
-    CollisionTask(Storage& storage, Locking<FlatSet<CollisionRecord>>& collisions, const Float searchRadius)
-        : collisions(collisions)
-        , searchRadius(searchRadius) {
-        ArrayView<Vector> dv;
-        tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
-    }
-
-    virtual void operator()() override {
-        while (!collisions->empty()) {
-            const CollisionRecord col = this->getNextCollision();
-            const Size i = col.i;
-            const Size j = col.j;
-            const Float t_coll = col.collisionTime;
-
-            // advance the positions of collided particles to the collision time
-            r[i] += v[i] * t_coll;
-            r[j] += v[j] * t_coll;
-
-            // check and handle overlaps
-            CollisionResult result;
-            if (col.isOverlap()) {
-                result = overlap.handler->collide(i, j, removed);
-                cs.overlapCount++;
-            } else {
-                result = collision.handler->collide(i, j, removed);
-                cs.clasify(result);
-            }
-            ASSERT(result != CollisionResult::NONE);
-
-            // move the positions back to the beginning of the timestep
-            r[i] -= v[i] * t_coll;
-            r[j] -= v[j] * t_coll;
-
-            // remove all collisions containing either i or j
-            invalidIdxs.clear();
-            auto proxy = collisions.lock();
-            for (auto iter = proxy->begin(); iter != proxy->end();) {
-                const CollisionRecord& c = *iter;
-                if (c.i == i || c.i == j || c.j == i || c.j == j) {
-                    invalidIdxs.insert(c.i);
-                    invalidIdxs.insert(c.j);
-                    iter = proxy->erase(iter);
-                } else {
-                    ++iter;
-                }
-            }
-            proxy.release();
-
-            for (Size idx : invalidIdxs) {
-                // here we shouldn't search any removed particle
-                if (removed.find(idx) != removed.end()) {
-                    continue;
-                }
-                const Interval interval(t_coll, dt);
-                if (CollisionRecord c =
-                        this->findClosestCollision(idx, searchRadius, interval, neighs, r, v)) {
-                    ASSERT(isReal(c));
-                    ASSERT(removed.find(c.i) == removed.end() && removed.find(c.j) == removed.end());
-                    if ((c.i == i && c.j == j) || (c.j == i && c.i == j)) {
-                        // don't process the same pair twice in a row
-                        continue;
-                    }
-                    collisions->insert(c);
-                }
-            }
-        }
-    }
-};*/
-
 void NBodySolver::collide(Storage& storage, Statistics& stats, const Float dt) {
     Timer timer;
     if (rigidBody.use) {
@@ -504,19 +393,11 @@ CollisionRecord NBodySolver::findClosestCollision(const Size i,
             // particle already removed, skip
             continue;
         }
-        /*{            std::unique_lock<std::mutex> lock(ignoredMutex);
-            if (ignored.find(i) != ignored.end()) {
-                continue;
-            }
-        }*/
         // advance positions to the start of the interval
         const Vector r1 = r[i] + v[i] * interval.lower();
         const Vector r2 = r[j] + v[j] * interval.lower();
         const Float overlapValue = 1._f - getSqrLength(r1 - r2) / sqr(r[i][H] + r[j][H]);
         if (overlapValue > sqr(overlap.allowedRatio)) {
-            /*std::unique_lock<std::mutex> lock(ignoredMutex);
-            ignored.insert(i);
-            ignored.insert(j);*/
             if (overlap.handler->overlaps(i, j)) {
                 // this overlap needs to be handled
                 return CollisionRecord::OVERLAP(i, j, interval.lower(), overlapValue);

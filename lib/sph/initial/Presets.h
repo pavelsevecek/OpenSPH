@@ -43,6 +43,9 @@ struct CollisionParams {
     /// number of target particles and the ratio of target radius to projectile radius.
     Optional<Size> impactorParticleCntOverride = NOTHING;
 
+    /// If true, velocities of particles are modified so that center of mass has zero velocity.
+    bool centerOfMassFrame = false;
+
     /// Path to the output directory; is set, parameters of target and impactor are saved there.
     Path outputPath;
 
@@ -130,6 +133,29 @@ public:
 
         SphericalDomain domain(center, _params.projectileRadius);
         _ic.addMonolithicBody(storage, domain, impactorBody).addVelocity(v_imp);
+
+        if (_params.centerOfMassFrame) {
+            ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
+            ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
+            ArrayView<Vector> v = storage.getDt<Vector>(QuantityId::POSITION);
+            Float m_total = 0._f;
+            Vector r_com(0._f);
+            Vector v_com(0._f);
+            for (Size i = 0; i < m.size(); ++i) {
+                m_total += m[i];
+                r_com += m[i] * r[i];
+                v_com += m[i] * v[i];
+            }
+            ASSERT(m_total != 0._f);
+            v_com /= m_total;
+            r_com /= m_total;
+            // don't modify smoothing lengths
+            r_com[H] = v_com[H] = 0._f;
+            for (Size i = 0; i < m.size(); ++i) {
+                r[i] -= r_com;
+                v[i] -= v_com;
+            }
+        }
 
         if (!_params.outputPath.empty()) {
             impactorBody.saveToFile(_params.outputPath / Path("impactor.sph"));

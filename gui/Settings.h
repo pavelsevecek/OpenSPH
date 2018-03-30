@@ -4,12 +4,16 @@
 
 NAMESPACE_SPH_BEGIN
 
+/// \todo currently mixing rendered geometry (spheres, mesh from marching cubes, iso-surface) with renderer
+/// (wx, opengl, raytracer, ...)
 enum class RendererEnum {
     /// 2D section showing particles as points
     PARTICLE,
 
     /// Reconstructed surface of bodies
     SURFACE,
+
+    RAYTRACER,
 
     /// 3D visualization of simulation using OpenGL
     OPENGL

@@ -285,7 +285,7 @@ AutoPtr<IOverlapHandler> Factory::getOverlapHandler(const RunSettings& settings)
     case OverlapEnum::INTERNAL_BOUNCE:
         return makeAuto<InternalBounceHandler>(settings);
     case OverlapEnum::PASS_OR_MERGE:
-        return makeAuto<TodoMergeHandler>();
+        return makeAuto<MergeBoundHandler>(settings);
     default:
         NOT_IMPLEMENTED;
     }

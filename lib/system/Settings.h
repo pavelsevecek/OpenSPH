@@ -144,7 +144,7 @@ public:
     template <typename TValue>
     TValue get(const TEnum idx) const {
         typename std::map<TEnum, Entry>::const_iterator iter = entries.find(idx);
-        ASSERT(iter != entries.end());
+        ASSERT(iter != entries.end(), int(idx));
         using StoreType = ConvertToSize<TValue>;
         const StoreType& value = iter->second.value.template get<StoreType>();
         return TValue(value);

@@ -71,6 +71,7 @@ SOURCES += \
     ../lib/objects/finders/test/BruteForceFinder.cpp \
     ../lib/objects/finders/test/Finders.cpp \
     ../lib/objects/finders/test/Order.cpp \
+    ../lib/objects/finders/test/Bvh.cpp \
     ../lib/objects/geometry/test/AntisymmetricTensor.cpp \
     ../lib/objects/geometry/test/Box.cpp \
     ../lib/objects/geometry/test/Domain.cpp \

@@ -294,11 +294,13 @@ public:
 
     /// \brief Constructs a new element at the end of the array in place, using the provided arguments.
     template <typename... TArgs>
-    void emplaceBack(TArgs&&... args) {
+    StorageType& emplaceBack(TArgs&&... args) {
         reserve(actSize + 1);
         ASSERT(maxSize > actSize);
-        new (data + actSize) StorageType(std::forward<TArgs>(args)...);
+        StorageType* ptr = new (data + actSize) StorageType(std::forward<TArgs>(args)...);
+        ASSERT(ptr);
         actSize++;
+        return *ptr;
     }
 
     /// \brief Inserts a new element to given position in the array.

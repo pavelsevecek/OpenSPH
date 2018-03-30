@@ -184,7 +184,7 @@ void HistogramPlot::plot(IDrawingContext& dc) const {
 
 void SfdPlot::onTimeStep(const Storage& storage, const Statistics& UNUSED(stats)) {
     Post::HistogramParams params;
-    params.id = Post::HistogramId::RADII;
+    params.id = Post::HistogramId::EQUIVALENT_MASS_RADII;
     points = Post::getCummulativeSfd(storage, params);
 
     this->clear();
