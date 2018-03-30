@@ -123,7 +123,7 @@ bool Bvh<TBvhObject>::getFirstIntersection(const Ray& ray, IntersectionInfo& int
 }
 
 template <typename TBvhObject>
-void Bvh<TBvhObject>::getAllIntersections(const Ray& ray, FlatSet<IntersectionInfo>& intersections) const {
+void Bvh<TBvhObject>::getAllIntersections(const Ray& ray, std::set<IntersectionInfo>& intersections) const {
     intersections.clear();
     this->getIntersections(ray, [&intersections](IntersectionInfo& current) { //
         intersections.insert(current);

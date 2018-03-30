@@ -1,9 +1,10 @@
 #pragma once
 
-#include "objects/containers/FlatSet.h"
+#include "objects/containers/Array.h"
 #include "objects/geometry/Box.h"
 #include "objects/geometry/Indices.h"
 #include "objects/wrappers/AutoPtr.h"
+#include <set>
 
 NAMESPACE_SPH_BEGIN
 
@@ -174,7 +175,7 @@ public:
     bool getFirstIntersection(const Ray& ray, IntersectionInfo& intersection) const;
 
     /// \brief Returns all intersections of the ray.
-    void getAllIntersections(const Ray& ray, FlatSet<IntersectionInfo>& intersections) const;
+    void getAllIntersections(const Ray& ray, std::set<IntersectionInfo>& intersections) const;
 
     /// \brief Returns true if the ray is occluded by some geometry
     bool isOccluded(const Ray& ray) const;

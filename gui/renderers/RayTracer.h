@@ -28,13 +28,18 @@ private:
         /// Iso-level of the surface; see GuiSettingsId::SURFACE_LEVEL.
         Float surfaceLevel;
 
+        /// Direction to sun; sun is assumed to be a point light source.
+        Vector dirToSun;
+
+        /// BRDF used to get the surface reflectance.
         AutoPtr<IBrdf> brdf;
+
     } params;
 
     struct ThreadData {
-        Array<NeighbourRecord> neighs;
+        Array<Size> neighs;
 
-        FlatSet<IntersectionInfo> intersections;
+        std::set<IntersectionInfo> intersections;
 
         Size previousIdx;
     };
@@ -84,14 +89,25 @@ private:
 
         /// Distance of the sphere hit, i.e. the minimap distance of the actual hit.
         Float t_min;
-
-        /// How much distance is one pixel in world units
-        Float pixelToWorldRatio;
     };
 
-    Optional<Color> shade(ThreadData& data, const ShadeContext& context) const;
+    /// \param Creates a neighbour list for given particle.
+    ///
+    /// The neighbour list is cached and can be reused by the calling thread next time the function is called.
+    /// \return View on the cached neighbour light.
+    ArrayView<const Size> getNeighbourList(ThreadData& data, const Size index) const;
+
+    /// \brief Returns the intersection of the iso-surface.
+    ///
+    /// If no intersection exists, function returns NOTHING.
+    Optional<Vector> getSurface(ThreadData& data, const ShadeContext& context) const;
+
+    /// \brief Returns the color of given hit point.
+    Color shade(ThreadData& data, const Vector& hit, const ShadeContext& context) const;
 
     Float evalField(ArrayView<const Size> neighs, const Vector& pos) const;
+
+    Vector evalGradient(ArrayView<const Size> neighs, const Vector& pos) const;
 
     Color evalColor(ArrayView<const Size> neighs, const Vector& pos1) const;
 };
