@@ -9,13 +9,14 @@
 #include <condition_variable>
 #include <thread>
 
+class wxBitmap;
+
 NAMESPACE_SPH_BEGIN
 
 class MainWindow;
 class Movie;
 class Storage;
 class Statistics;
-class Bitmap;
 class Timer;
 class Point;
 class Palette;
@@ -134,7 +135,7 @@ public:
     /// \brief Renders a bitmap of current view.
     ///
     /// Can only be called from main thread.
-    SharedPtr<Bitmap> getRenderedBitmap();
+    SharedPtr<wxBitmap> getRenderedBitmap();
 
     /// \brief Returns the camera currently used for the rendering
     SharedPtr<ICamera> getCurrentCamera() const;

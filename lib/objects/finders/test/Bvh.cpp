@@ -39,19 +39,19 @@ TEST_CASE("BvhBox", "[bvh]") {
 
     IntersectionInfo intersection;
     Ray ray1(Vector(2._f, 0.5_f, 0.5_f), Vector(-1._f, 0._f, 0._f));
-    REQUIRE(bvh.getIntersection(ray1, intersection));
+    REQUIRE(bvh.getFirstIntersection(ray1, intersection));
     REQUIRE(intersection.object);
     REQUIRE(intersection.object->userData == 1);
     REQUIRE(intersection.t == 1._f);
 
     Ray ray2(Vector(0._f, 3._f, 0._f), Vector(0.2_f, -1._f, 0.4_f));
-    REQUIRE(bvh.getIntersection(ray2, intersection));
+    REQUIRE(bvh.getFirstIntersection(ray2, intersection));
     REQUIRE(intersection.object);
     REQUIRE(intersection.object->userData == 2);
     REQUIRE(intersection.t == 0.5_f);
 
     Ray ray3(Vector(-1._f, 1.8_f, 0.3_f), Vector(1._f, 0._f, 0._f));
-    REQUIRE_FALSE(bvh.getIntersection(ray3, intersection));
+    REQUIRE_FALSE(bvh.getFirstIntersection(ray3, intersection));
 }
 
 TEST_CASE("BvhSphere", "[bvh]") {
@@ -76,7 +76,7 @@ TEST_CASE("Bvh many boxes", "[bvh]") {
     IntersectionInfo intersection;
     Ray ray(Vector(-1._f, 5._f, 5._f), Vector(1._f, 0._f, 0.1_f));
     // just test that we hit something
-    REQUIRE(bvh.getIntersection(ray, intersection));
+    REQUIRE(bvh.getFirstIntersection(ray, intersection));
     REQUIRE(intersection.t > 1._f);
     REQUIRE(intersection.t < 5._f);
     REQUIRE(intersection.object != nullptr);
@@ -93,7 +93,7 @@ TEST_CASE("Bvh many spheres", "[bvh]") {
 
     IntersectionInfo intersection;
     Ray ray(Vector(-1._f, 5._f, 5._f), Vector(1._f, 0._f, 0.1_f));
-    REQUIRE(bvh.getIntersection(ray, intersection));
+    REQUIRE(bvh.getFirstIntersection(ray, intersection));
     REQUIRE(intersection.t > 1._f);
     REQUIRE(intersection.t < 5._f);
     REQUIRE(intersection.object != nullptr);

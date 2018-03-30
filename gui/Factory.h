@@ -10,6 +10,7 @@ class IColorizer;
 class IRenderer;
 class Palette;
 class Point;
+class IBrdf;
 enum class ColorizerId;
 
 namespace Factory {
@@ -19,6 +20,8 @@ namespace Factory {
     AutoPtr<ICamera> getCamera(const GuiSettings& settings, const Point size);
 
     AutoPtr<IRenderer> getRenderer(const GuiSettings& settings);
+
+    AutoPtr<IBrdf> getBrdf(const GuiSettings& settings);
 
     AutoPtr<IColorizer> getColorizer(const GuiSettings& settings,
         const ColorizerId id,

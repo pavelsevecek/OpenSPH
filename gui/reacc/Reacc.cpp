@@ -207,7 +207,7 @@ void Stabilization::setUp() {
 
         Presets::CollisionParams params;
         params.targetRadius = 50.e3_f;     // D = 100km
-        params.projectileRadius = 0.5e3_f; // D = 1km
+        params.impactorRadius = 0.5e3_f; // D = 1km
         params.impactAngle = 75._f * DEG_TO_RAD;
         params.impactSpeed = 5.e3_f;
         params.targetRotation = 2._f * PI / (3._f * 3600._f);

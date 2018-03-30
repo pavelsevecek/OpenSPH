@@ -41,14 +41,14 @@ private:
     LutKernel<3> kernel;
 
 public:
-    SurfaceRenderer(const GuiSettings& settings);
+    explicit SurfaceRenderer(const GuiSettings& settings);
 
     virtual void initialize(const Storage& storage,
         const IColorizer& colorizer,
         const ICamera& camera) override;
 
     /// Can only be called from main thread
-    virtual SharedPtr<Bitmap> render(const ICamera& camera,
+    virtual SharedPtr<wxBitmap> render(const ICamera& camera,
         const RenderParams& params,
         Statistics& stats) const override;
 };

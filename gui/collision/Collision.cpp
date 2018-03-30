@@ -1,6 +1,7 @@
 #include "gui/collision/Collision.h"
 #include "gui/GuiCallbacks.h"
 #include "gui/Settings.h"
+#include "io/FileSystem.h"
 #include "io/LogFile.h"
 #include "sph/initial/Presets.h"
 #include "sph/solvers/GravitySolver.h"
@@ -9,6 +10,7 @@
 #include "system/Process.h"
 #include "system/Profiler.h"
 #include <fstream>
+#include <wx/msgdlg.h>
 
 IMPLEMENT_APP(Sph::App);
 
@@ -22,9 +24,8 @@ AsteroidCollision::AsteroidCollision() {
         .set(RunSettingsId::TIMESTEPPING_COURANT_NEIGHBOUR_LIMIT, 10)
         .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 100._f)
         .set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 10000._f))
-        .setFlags(RunSettingsId::SOLVER_FORCES,
-            ForceEnum::PRESSURE_GRADIENT | ForceEnum::SOLID_STRESS |
-                ForceEnum::GRAVITY) //| ForceEnum::INERTIAL)
+        .setFlags(RunSettingsId::SOLVER_FORCES, ForceEnum::PRESSURE_GRADIENT | ForceEnum::SOLID_STRESS)
+        // ForceEnum::GRAVITY) //| ForceEnum::INERTIAL)
         .set(RunSettingsId::SOLVER_TYPE, SolverEnum::ASYMMETRIC_SOLVER)
         .set(RunSettingsId::SPH_FINDER, FinderEnum::KD_TREE)
         .set(RunSettingsId::SPH_FORMULATION, FormulationEnum::STANDARD)
@@ -69,31 +70,58 @@ AsteroidCollision::AsteroidCollision() {
 void AsteroidCollision::setUp() {
     storage = makeShared<Storage>();
 
-    Size N = 500;
 
-    BodySettings body;
-    body.set(BodySettingsId::ENERGY, 0._f)
-        .set(BodySettingsId::ENERGY_RANGE, Interval(0._f, INFTY))
-        .set(BodySettingsId::EOS, EosEnum::TILLOTSON)
-        .set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::SCALAR_GRADY_KIPP)
-        .set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::VON_MISES)
-        .set(BodySettingsId::DISTRIBUTE_MODE_SPH5, true)
-        .set(BodySettingsId::ENERGY_MIN, 10._f)
-        .set(BodySettingsId::DAMAGE_MIN, 0.5_f);
+    if (wxTheApp->argc > 1) {
+        std::string arg(wxTheApp->argv[1]);
+        Path path(arg);
+        if (!FileSystem::pathExists(path)) {
+            wxMessageBox("Cannot locate file " + path.native(), "Error", wxOK);
+            return;
+        } else {
+            BinaryOutput io;
+            Statistics stats;
+            Outcome result = io.load(path, *storage, stats);
+            if (!result) {
+                wxMessageBox("Cannot load the run state file " + path.native(), "Error", wxOK);
+                return;
+            } else {
+                // const Float t0 = stats.get<Float>(StatisticsId::RUN_TIME);
+                const Float dt = stats.get<Float>(StatisticsId::TIMESTEP_VALUE);
+                // const Interval origRange = settings.get<Interval>(RunSettingsId::RUN_TIME_RANGE);
+                // settings.set(RunSettingsId::RUN_TIME_RANGE, Interval(t0, origRange.upper()));
+                settings.set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, dt);
+            }
+        }
+    } else {
+        Size N = 50000;
 
-    Presets::CollisionParams params;
-    params.targetRadius = 1.e3_f;     // D = 2km
-    params.projectileRadius = 1.e3_f; // D = 2km
-    params.impactAngle = 45._f * DEG_TO_RAD;
-    params.impactSpeed = 7._f; // v_imp = 5km/s
-    params.targetRotation = 0._f;
-    params.targetParticleCnt = N;
-    params.centerOfMassFrame = true;
+        BodySettings body;
+        body.set(BodySettingsId::ENERGY, 0._f)
+            .set(BodySettingsId::ENERGY_RANGE, Interval(0._f, INFTY))
+            .set(BodySettingsId::EOS, EosEnum::TILLOTSON)
+            .set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::SCALAR_GRADY_KIPP)
+            .set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::VON_MISES)
+            .set(BodySettingsId::DISTRIBUTE_MODE_SPH5, true)
+            .set(BodySettingsId::INITIAL_DISTRIBUTION, DistributionEnum::DIEHL_ET_AL)
+            .set(BodySettingsId::ENERGY_MIN, 10._f)
+            .set(BodySettingsId::DAMAGE_MIN, 0.5_f);
 
-    solver = Factory::getSolver(settings);
-    Presets::Collision data(*solver, settings, body, params);
-    data.addTarget(*storage);
-    data.addImpactor(*storage);
+        Presets::CollisionParams params;
+        params.targetRadius = 1.e3_f;   // D = 2km
+        params.impactorRadius = 1.e3_f; // D = 2km
+        params.impactAngle = 45._f * DEG_TO_RAD;
+        params.impactSpeed = 9._f; // v_imp = 5km/s
+        params.targetRotation = 0._f;
+        params.targetParticleCnt = N;
+        params.centerOfMassFrame = true;
+        params.optimizeImpactor = false;
+
+        solver = Factory::getSolver(settings);
+        Presets::Collision data(*solver, settings, body, params);
+        data.addTarget(*storage);
+        data.addImpactor(*storage);
+    }
+
     callbacks = makeAuto<GuiCallbacks>(*controller);
 
     // add printing of run progres

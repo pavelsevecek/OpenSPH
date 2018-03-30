@@ -47,7 +47,7 @@ public:
         const ICamera& camera) override;
 
     /// Can only be called from main thread
-    virtual SharedPtr<Bitmap> render(const ICamera& camera,
+    virtual SharedPtr<wxBitmap> render(const ICamera& camera,
         const RenderParams& params,
         Statistics& stats) const override;
 

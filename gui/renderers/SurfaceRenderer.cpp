@@ -67,14 +67,14 @@ void SurfaceRenderer::initialize(const Storage& storage,
     }
 }
 
-SharedPtr<Bitmap> SurfaceRenderer::render(const ICamera& camera,
+SharedPtr<wxBitmap> SurfaceRenderer::render(const ICamera& camera,
     const RenderParams& params,
     Statistics& stats) const {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
     // MEASURE_SCOPE("SurfaceRenderer::render");
     const wxSize size(params.size.x, params.size.y);
-    wxBitmap bitmap(size, 24);
-    wxMemoryDC dc(bitmap);
+    SharedPtr<wxBitmap> bitmap = makeShared<wxBitmap>(size, 24);
+    wxMemoryDC dc(*bitmap);
 
     // draw black background (there is no fill method?)
     dc.SetBrush(*wxBLACK_BRUSH);
@@ -118,7 +118,7 @@ SharedPtr<Bitmap> SurfaceRenderer::render(const ICamera& camera,
     dc.DrawText(("t = " + std::to_string(time) + "s").c_str(), wxPoint(0, 0));
 
     dc.SelectObject(wxNullBitmap);
-    return makeShared<Bitmap>(std::move(bitmap));
+    return bitmap;
 }
 
 NAMESPACE_SPH_END

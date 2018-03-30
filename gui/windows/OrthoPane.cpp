@@ -34,8 +34,8 @@ void OrthoPane::onPaint(wxPaintEvent& UNUSED(evt)) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
     // MEASURE_SCOPE("OrthoPane::onPaint");
     wxPaintDC dc(this);
-    SharedPtr<Bitmap> bitmap = controller->getRenderedBitmap();
-    if (bitmap->isOk()) { // not empty
+    SharedPtr<wxBitmap> bitmap = controller->getRenderedBitmap();
+    if (bitmap->IsOk()) { // not empty
         dc.DrawBitmap(*bitmap, wxPoint(0, 0));
     }
 }

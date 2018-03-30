@@ -18,7 +18,7 @@ public:
     Color(const float r, const float g, const float b)
         : data(r, g, b) {}
 
-    Color(const float gray)
+    explicit Color(const float gray)
         : data(gray) {}
 
     Color(const Color& other)

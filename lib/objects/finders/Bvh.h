@@ -1,6 +1,6 @@
 #pragma once
 
-#include "objects/containers/Array.h"
+#include "objects/containers/FlatSet.h"
 #include "objects/geometry/Box.h"
 #include "objects/geometry/Indices.h"
 #include "objects/wrappers/AutoPtr.h"
@@ -17,6 +17,8 @@ private:
     Indices signs;
 
 public:
+    Ray() = default;
+
     Ray(const Vector& origin, const Vector& dir)
         : orig(origin)
         , dir(dir) {
@@ -57,6 +59,11 @@ struct IntersectionInfo {
 
     INLINE Vector hit(const Ray& ray) const {
         return ray.origin() + ray.direction() * t;
+    }
+
+    /// Sort by intersection distance
+    INLINE bool operator<(const IntersectionInfo& other) const {
+        return t < other.t;
     }
 };
 
@@ -138,9 +145,9 @@ struct BvhNode {
 /// \brief Simple bounding volume hierarchy.
 ///
 /// Interface for finding an intersection of given ray with a set of geometric objects. Currently very
-/// limited; allows to find only the closest intersection, has no occlusion queries, etc. \ref Bvh is
-/// explicitly specialized for \ref BvhSphere and \ref BvhBox; if other geometric primitives are needed,
-/// either add the specialization to cpp, or move the implementation to header.
+/// limited and not very optimized. \ref Bvh is explicitly specialized for \ref BvhSphere and \ref BvhBox; if
+/// other geometric primitives are needed, either add the specialization to cpp, or move the implementation to
+/// header.
 template <typename TBvhObject>
 class Bvh {
 private:
@@ -164,7 +171,17 @@ public:
     /// \brief Finds the closest intersection of the ray.
     ///
     /// Returns true if an intersection has been found.
-    bool getIntersection(const Ray& ray, IntersectionInfo& intersection) const;
+    bool getFirstIntersection(const Ray& ray, IntersectionInfo& intersection) const;
+
+    /// \brief Returns all intersections of the ray.
+    void getAllIntersections(const Ray& ray, FlatSet<IntersectionInfo>& intersections) const;
+
+    /// \brief Returns true if the ray is occluded by some geometry
+    bool isOccluded(const Ray& ray) const;
+
+private:
+    template <typename TAddIntersection>
+    void getIntersections(const Ray& ray, const TAddIntersection& addIntersection) const;
 };
 
 NAMESPACE_SPH_END

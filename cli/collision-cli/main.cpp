@@ -43,19 +43,19 @@ int main(int argc, char* argv[]) {
 
     Presets::CollisionParams cp;
     cp.targetRadius = params[CollisionParam::TARGET_RADIUS].get<float>();
-    cp.projectileRadius = params[CollisionParam::IMPACTOR_RADIUS].get<float>();
+    cp.impactorRadius = params[CollisionParam::IMPACTOR_RADIUS].get<float>();
     cp.targetRotation = params[CollisionParam::TARGET_PERIOD].get<float>();
     cp.impactSpeed = params[CollisionParam::IMPACT_SPEED].get<float>();
     cp.impactAngle = params[CollisionParam::IMPACT_ANGLE].get<float>();
 
     logger.write("Target radius:       ", cp.targetRadius);
-    logger.write("Impactor radius:     ", cp.projectileRadius);
+    logger.write("Impactor radius:     ", cp.impactorRadius);
     logger.write("Target period [h]:   ", cp.targetRotation);
     logger.write("Impact speed [km/s]: ", cp.impactSpeed);
     logger.write("Impact angle [°]:    ", cp.impactAngle);
 
     const std::string runName =
-        getRunName(cp.targetRadius, cp.projectileRadius, cp.targetRotation, cp.impactSpeed, cp.impactAngle);
+        getRunName(cp.targetRadius, cp.impactorRadius, cp.targetRotation, cp.impactSpeed, cp.impactAngle);
     logger.write("Starting run ", runName);
     logger.write("");
 

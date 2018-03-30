@@ -70,8 +70,8 @@ void Movie::onTimeStep(const Storage& storage, Statistics& stats) {
             std::unique_lock<std::mutex> lock(waitMutex);
 
             // create the bitmap and save it to file
-            SharedPtr<Bitmap> bitmap = renderer->render(*camera, params, stats);
-            bitmap->saveToFile(actPath);
+            SharedPtr<wxBitmap> bitmap = renderer->render(*camera, params, stats);
+            saveToFile(*bitmap, actPath);
 
             waitVar.notify_one();
         };

@@ -1,6 +1,7 @@
 #include "gui/Factory.h"
 #include "gui/objects/Camera.h"
 #include "gui/objects/Colorizer.h"
+#include "gui/renderers/Brdf.h"
 #include "gui/renderers/ParticleRenderer.h"
 #include "gui/renderers/RayTracer.h"
 #include "gui/renderers/SurfaceRenderer.h"
@@ -58,6 +59,10 @@ AutoPtr<IRenderer> Factory::getRenderer(const GuiSettings& settings) {
     default:
         NOT_IMPLEMENTED;
     }
+}
+
+AutoPtr<IBrdf> Factory::getBrdf(const GuiSettings& UNUSED(settings)) {
+    return makeAuto<LambertBrdf>(1._f);
 }
 
 static Palette getRealPalette(ColorizerId id,
@@ -123,6 +128,8 @@ AutoPtr<IColorizer> Factory::getColorizer(const GuiSettings& settings,
         return makeAuto<BoundaryColorizer>(BoundaryColorizer::Detection::NEIGBOUR_THRESHOLD, 40);
     case ColorizerId::ID:
         return makeAuto<IdColorizer>();
+    case ColorizerId::BEAUTY:
+        return makeAuto<BeautyColorizer>();
     default:
         QuantityId quantity = QuantityId(id);
         ASSERT(int(quantity) >= 0);

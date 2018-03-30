@@ -103,7 +103,8 @@ SOURCES += \
     timestepping/TimeStepCriterion.cpp \
     timestepping/TimeStepping.cpp \
     sph/equations/Derivative.cpp \
-    sph/solvers/SummationSolver.cpp
+    sph/solvers/SummationSolver.cpp \
+    sph/initial/Presets.cpp
 
 HEADERS += \
     common/Assert.h \

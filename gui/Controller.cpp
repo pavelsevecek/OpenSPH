@@ -36,7 +36,7 @@ Controller::~Controller() = default;
 
 void Controller::Vis::initialize(const GuiSettings& gui) {
     renderer = Factory::getRenderer(gui);
-    colorizer = Factory::getColorizer(gui, ColorizerId::VELOCITY);
+    colorizer = Factory::getColorizer(gui, ColorizerId::BEAUTY);
     timer = makeAuto<Timer>(gui.get<int>(GuiSettingsId::VIEW_MAX_FRAMERATE), TimerFlags::START_EXPIRED);
     const Point size(gui.get<int>(GuiSettingsId::RENDER_WIDTH), gui.get<int>(GuiSettingsId::RENDER_HEIGHT));
     camera = Factory::getCamera(gui, size);
@@ -270,6 +270,7 @@ Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage
     }
     if (storage.has(QuantityId::ENERGY)) {
         colorizerIds.push(ColorizerId::TOTAL_ENERGY);
+        colorizerIds.push(ColorizerId::BEAUTY);
     }
 
     if (!forMovie) {
@@ -331,20 +332,20 @@ Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage
     return colorizers;
 }
 
-SharedPtr<Bitmap> Controller::getRenderedBitmap() {
+SharedPtr<wxBitmap> Controller::getRenderedBitmap() {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
     RenderParams params;
     params.particles.scale = gui.get<Float>(GuiSettingsId::PARTICLE_RADIUS);
     params.size = Point(gui.get<int>(GuiSettingsId::VIEW_WIDTH), gui.get<int>(GuiSettingsId::VIEW_HEIGHT));
     params.selectedParticle = vis.selectedParticle;
 
-    SharedPtr<Bitmap> bitmap;
+    SharedPtr<wxBitmap> bitmap;
     if (!vis.isInitialized()) {
         // not initialized yet, return empty bitmap
-        bitmap = makeShared<Bitmap>(wxNullBitmap);
+        bitmap = makeShared<wxBitmap>(wxNullBitmap);
     } else {
         bitmap = vis.renderer->render(*vis.camera, params, *vis.stats);
-        ASSERT(bitmap->isOk());
+        ASSERT(bitmap->IsOk());
     }
     return bitmap;
 }

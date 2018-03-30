@@ -139,6 +139,7 @@ enum class ColorizerId {
     RADIUS = -12,              ///< Radii/smoothing lenghts of particles
     BOUNDARY = -13,            ///< Shows boundary particles
     ID = -14,                  ///< Each particle drawn with different color
+    BEAUTY = -15,              ///< Colorizer attempting to show the real-world look
 };
 
 /// Default colorizer simply converting quantity value to color using defined palette. Vector and tensor
@@ -618,6 +619,48 @@ public:
         return "Damage activation ratio";
     }
 };
+
+class BeautyColorizer : public IColorizer {
+private:
+    ArrayRef<const Float> u;
+    Palette palette;
+
+public:
+    virtual void initialize(const Storage& storage, const RefEnum ref) override {
+        u = makeArrayRef(storage.getValue<Float>(QuantityId::ENERGY), ref);
+
+        // IMaterial& mat = storage.getMaterial(0).material();
+        const float u_iv = 10._f;  // mat.getParam<Float>(BodySettingsId::TILLOTSON_ENERGY_IV);
+        const float u_cv = 200._f; // mat.getParam<Float>(BodySettingsId::TILLOTSON_ENERGY_CV);
+        palette = Palette({ { 0.01f * u_iv, Color(0.5f, 0.5f, 0.5) },
+                              { 0.5f * u_iv, Color(0.5f, 0.5f, 0.5f) },
+                              { u_iv, Color(1.f, 0.f, 0.f) },
+                              { u_cv, Color(1.f, 1.f, 0.5) } },
+            PaletteScale::LOGARITHMIC);
+    }
+
+    virtual bool isInitialized() const override {
+        return !u.empty();
+    }
+
+    virtual Color evalColor(const Size idx) const override {
+        ASSERT(this->isInitialized());
+        return palette(u[idx]);
+    }
+
+    virtual Optional<Particle> getParticle(const Size idx) const override {
+        return Particle(idx).addValue(QuantityId::ENERGY, u[idx]);
+    }
+
+    virtual Optional<Palette> getPalette() const override {
+        return palette;
+    }
+
+    virtual std::string name() const override {
+        return "Beauty";
+    }
+};
+
 
 class RadiusColorizer : public TypedColorizer<Vector> {
 public:

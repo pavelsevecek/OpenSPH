@@ -62,7 +62,7 @@ public:
     /// \param stats Input-output parameter, contains run statistics that can be included in the render
     ///              (run time, timestep, ...), renderers can also output some statistics of their own
     ///              (time used in rendering, framerate, ...)
-    virtual SharedPtr<Bitmap> render(const ICamera& camera,
+    virtual SharedPtr<wxBitmap> render(const ICamera& camera,
         const RenderParams& params,
         Statistics& stats) const = 0;
 };

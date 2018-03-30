@@ -2,11 +2,15 @@
 
 #include "gui/Settings.h"
 #include "gui/objects/Color.h"
+#include "gui/renderers/Brdf.h"
 #include "gui/renderers/IRenderer.h"
 #include "objects/finders/Bvh.h"
 #include "sph/kernel/Kernel.h"
+#include "thread/ThreadLocal.h"
 
 NAMESPACE_SPH_BEGIN
+
+class IBrdf;
 
 class RayTracer : public IRenderer {
 private:
@@ -21,9 +25,26 @@ private:
     LutKernel<3> kernel;
 
     struct {
-        Float surfaceLevel = 0.5_f;
+        /// Iso-level of the surface; see GuiSettingsId::SURFACE_LEVEL.
+        Float surfaceLevel;
 
+        AutoPtr<IBrdf> brdf;
     } params;
+
+    struct ThreadData {
+        Array<NeighbourRecord> neighs;
+
+        FlatSet<IntersectionInfo> intersections;
+
+        Size previousIdx;
+    };
+
+    /// Thread pool for parallelization; we need to use a custom instance instead of the global one as there
+    /// is currently no way to wait for just some tasks - using the global instance could clash with the
+    /// simulation tasks,
+    mutable ThreadPool pool;
+
+    mutable ThreadLocal<ThreadData> threadData;
 
     struct {
         /// Particle positions
@@ -36,28 +57,43 @@ private:
         Array<Float> v;
 
         /// Particle indices
-        Array<Size> idxs;
+        Array<Size> flags;
 
-        mutable Array<NeighbourRecord> neighs;
-
-        mutable Size previousIdx;
     } cached;
 
 public:
-    RayTracer(const GuiSettings& settings);
+    explicit RayTracer(const GuiSettings& settings);
+
+    ~RayTracer();
 
     virtual void initialize(const Storage& storage,
         const IColorizer& colorizer,
         const ICamera& camera) override;
 
-    virtual SharedPtr<Bitmap> render(const ICamera& camera,
+    virtual SharedPtr<wxBitmap> render(const ICamera& camera,
         const RenderParams& params,
         Statistics& stats) const override;
 
 private:
-    Color shade(const Size i, const Ray& ray, const Float t_min) const;
+    struct ShadeContext {
+        /// Particle hit by the ray
+        Size index;
 
-    Float eval(const Vector& pos, const Size flag) const;
+        /// Ray casted from the camera
+        Ray ray;
+
+        /// Distance of the sphere hit, i.e. the minimap distance of the actual hit.
+        Float t_min;
+
+        /// How much distance is one pixel in world units
+        Float pixelToWorldRatio;
+    };
+
+    Optional<Color> shade(ThreadData& data, const ShadeContext& context) const;
+
+    Float evalField(ArrayView<const Size> neighs, const Vector& pos) const;
+
+    Color evalColor(ArrayView<const Size> neighs, const Vector& pos1) const;
 };
 
 NAMESPACE_SPH_END

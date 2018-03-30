@@ -5,6 +5,7 @@
 #include "gui/objects/Camera.h"
 #include "gui/objects/Colorizer.h"
 #include "gui/renderers/ParticleRenderer.h"
+#include "gui/renderers/RayTracer.h"
 #include "gui/renderers/SurfaceRenderer.h"
 #include "gui/windows/GlPane.h"
 #include "gui/windows/OrthoPane.h"
@@ -20,7 +21,10 @@
 
 NAMESPACE_SPH_BEGIN
 
-enum class ControlIds { QUANTITY_BOX };
+enum class ControlIds {
+    QUANTITY_BOX,
+    RENDERER_BOX,
+};
 
 class SelectedParticleIntegral : public IIntegral<Float> {
 private:
@@ -243,22 +247,33 @@ wxBoxSizer* MainWindow::createToolbar(Controller* parent) {
         modifiedGui.set(GuiSettingsId::ORTHO_CUTOFF, Float(cutoff));
         parent->setRenderer(makeAuto<ParticleRenderer>(modifiedGui));
         parent->getParams().set<Float>(GuiSettingsId::ORTHO_CUTOFF, cutoff);
-
     });
     toolbar->Add(cutoffSpinner);
 
-    wxCheckBox* surfaceBox = new wxCheckBox(this, wxID_ANY, "Show surface");
-    surfaceBox->Bind(wxEVT_CHECKBOX, [surfaceBox, this](wxCommandEvent& UNUSED(evt)) {
+    wxComboBox* rendererBox = new wxComboBox(this, int(ControlIds::RENDERER_BOX), "");
+    rendererBox->SetWindowStyle(wxCB_SIMPLE | wxCB_READONLY);
+    rendererBox->Append("Particles");
+    rendererBox->Append("Mesh");
+    rendererBox->Append("Surface");
+    rendererBox->SetSelection(0);
+    rendererBox->Bind(wxEVT_COMBOBOX, [this, rendererBox](wxCommandEvent& UNUSED(evt)) {
         CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
-        const bool checked = surfaceBox->GetValue();
-        if (checked) {
-            controller->setRenderer(makeAuto<SurfaceRenderer>(gui));
-        } else {
+        const int idx = rendererBox->GetSelection();
+        switch (idx) {
+        case 0:
             controller->setRenderer(makeAuto<ParticleRenderer>(gui));
+            break;
+        case 1:
+            controller->setRenderer(makeAuto<SurfaceRenderer>(gui));
+            break;
+        case 2:
+            controller->setRenderer(makeAuto<RayTracer>(gui));
+            break;
+        default:
+            NOT_IMPLEMENTED;
         }
-        surfaceBox->Refresh();
     });
-    toolbar->Add(surfaceBox, 0, wxALIGN_CENTER_VERTICAL);
+    toolbar->Add(rendererBox);
 
     wxButton* resetView = new wxButton(this, wxID_ANY, "Reset view");
     resetView->Bind(wxEVT_BUTTON, [this, parent](wxCommandEvent& UNUSED(evt)) {

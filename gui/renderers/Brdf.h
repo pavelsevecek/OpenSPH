@@ -48,6 +48,8 @@ public:
         const Float mu_i = dot(normal, dir_in);
         const Float mu_e = dot(normal, dir_out);
         ASSERT(mu_i > 0._f && mu_e > 0._f, mu_i, mu_e);
+        NOT_IMPLEMENTED;
+        const Float alpha = 0._f;
         return albedo / (mu_i + mu_e) * ((1._f + B(alpha)) * P(alpha) + H(mu_i) * H(mu_e) - 1._f) *
                S(theta_bar);
     }
@@ -63,6 +65,11 @@ private:
 
     INLINE Float H(const Float mu) const {
         return 1._f - Aw * mu / (r0 + 0.5_f * (1._f - 2._f * r0 * mu) * log((1._f + mu) / mu));
+    }
+
+    INLINE Float S(const Float theta) const {
+        NOT_IMPLEMENTED;
+        return theta;
     }
 };
 
