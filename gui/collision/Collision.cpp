@@ -94,7 +94,7 @@ void AsteroidCollision::setUp() {
             }
         }
     } else {
-        Size N = 10000;
+        Size N = 50000;
 
         BodySettings body;
         body.set(BodySettingsId::ENERGY, 0._f)

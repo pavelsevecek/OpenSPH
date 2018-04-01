@@ -14,6 +14,13 @@ RayTracer::RayTracer(const GuiSettings& settings)
     params.surfaceLevel = settings.get<Float>(GuiSettingsId::SURFACE_LEVEL);
     params.dirToSun = settings.get<Vector>(GuiSettingsId::SURFACE_SUN_POSITION);
     params.brdf = Factory::getBrdf(settings);
+    params.ambientLight = settings.get<Float>(GuiSettingsId::SURFACE_AMBIENT);
+
+    // params.hdri = loadBitmapFromFile(Path("/home/pavel/projects/astro/sph/external/hdri.jpg"));
+    params.textures.emplaceBack(
+        Path("/home/pavel/projects/astro/sph/external/surface.jpg"), TextureFiltering::BILINEAR);
+    params.textures.emplaceBack(
+        Path("/home/pavel/projects/astro/sph/external/surface2.jpg"), TextureFiltering::BILINEAR);
 }
 
 RayTracer::~RayTracer() = default;
@@ -25,14 +32,16 @@ void RayTracer::initialize(const Storage& storage,
     cached.r = storage.getValue<Vector>(QuantityId::POSITION).clone();
     const Size particleCnt = cached.r.size();
 
+    cached.uvws = storage.getValue<Vector>(QuantityId(GuiQuantityId::UVW)).clone();
+
     cached.flags.resize(particleCnt);
     ArrayView<const Size> idxs = storage.getValue<Size>(QuantityId::FLAG);
     ArrayView<const Float> reduce = storage.getValue<Float>(QuantityId::STRESS_REDUCING);
     // assign separate flag to fully damaged particles so that they do not blend with other particles
-    Size damagedIdx = 5;
+    // Size damagedIdx = 5;
     for (Size i = 0; i < particleCnt; ++i) {
         if (reduce[i] == 0._f) {
-            cached.flags[i] = damagedIdx++;
+            cached.flags[i] = idxs[i]; // damagedIdx++;
         } else {
             cached.flags[i] = idxs[i];
         }
@@ -81,30 +90,18 @@ SharedPtr<wxBitmap> RayTracer::render(const ICamera& camera,
     Statistics& UNUSED(stats)) const {
     MEASURE_SCOPE("Rendering frame");
     Bitmap bitmap(params.size);
-    /// \todo this currently works only for ortho camera
-    const Float ratio =
-        getLength(camera.unproject(Point(1, 0)).origin - camera.unproject(Point(0, 0)).origin);
-    ASSERT(ratio > 0._f);
     Timer timer;
-    parallelFor(pool, 0, Size(params.size.y), [this, &bitmap, &camera, &params, ratio](Size y) {
+    parallelFor(pool, 0, Size(params.size.y), [this, &bitmap, &camera, &params](Size y) {
         ThreadData& data = threadData.get();
         for (Size x = 0; x < Size(params.size.x); ++x) {
             CameraRay cameraRay = camera.unproject(Point(x, y));
-            const Ray ray(cameraRay.origin, getNormalized(cameraRay.target - cameraRay.origin));
-            bvh.getAllIntersections(ray, data.intersections);
+            const Vector dir = getNormalized(cameraRay.target - cameraRay.origin);
+            /// \todo the ray for ortho camera should originate outside bbox
+            const Ray ray(cameraRay.origin /*- 1.e8_f * dir*/, dir);
+
             Color accumulatedColor = Color::black();
-            for (const IntersectionInfo& intersect : data.intersections) {
-                ShadeContext sc;
-                sc.index = intersect.object->userData;
-                sc.ray = ray;
-                sc.t_min = intersect.t;
-                this->getNeighbourList(data, sc.index);
-                const Optional<Vector> hit = this->getSurface(data, sc);
-                if (hit) {
-                    accumulatedColor = this->shade(data, hit.value(), sc);
-                    break;
-                }
-                // rejected, process another intersection
+            if (Optional<Vector> hit = this->intersect(data, ray, false)) {
+                accumulatedColor = this->shade(data, data.previousIdx, hit.value(), ray.direction());
             }
             bitmap[Point(x, y)] = wxColour(accumulatedColor);
         }
@@ -133,16 +130,34 @@ ArrayView<const Size> RayTracer::getNeighbourList(ThreadData& data, const Size i
     return data.neighs;
 }
 
-Optional<Vector> RayTracer::getSurface(ThreadData& data, const ShadeContext& context) const {
-    /*if (true) {
-        return context.ray.origin() + context.ray.direction() * context.t_min;
-    }*/
+Optional<Vector> RayTracer::intersect(ThreadData& data, const Ray& ray, const bool occlusion) const {
+    bvh.getAllIntersections(ray, data.intersections);
+
+    for (const IntersectionInfo& intersect : data.intersections) {
+        ShadeContext sc;
+        sc.index = intersect.object->userData;
+        sc.ray = ray;
+        sc.t_min = intersect.t;
+        const Optional<Vector> hit = this->getSurfaceHit(data, sc, occlusion);
+        if (hit) {
+            return hit;
+        }
+        // rejected, process another intersection
+    }
+    return NOTHING;
+}
+
+Optional<Vector> RayTracer::getSurfaceHit(ThreadData& data,
+    const ShadeContext& context,
+    bool occlusion) const {
+    this->getNeighbourList(data, context.index);
+
     const Size i = context.index;
     const Ray& ray = context.ray;
-    ASSERT(getSqrLength(ray.direction()) == 1._f, getSqrLength(ray.direction()));
+    ASSERT(almostEqual(getSqrLength(ray.direction()), 1._f), getSqrLength(ray.direction()));
     Vector v1 = ray.origin() + ray.direction() * context.t_min;
     // the sphere hit should be always above the surface
-    ASSERT(this->evalField(data.neighs, v1) < 0._f);
+    // ASSERT(this->evalField(data.neighs, v1) < 0._f);
     // look for the intersection up to hit + 4H; if we don't find it, we should reject the hit and look for
     // the next intersection - the surface can be non-convex!!
     const Float limit = 2._f * cached.r[i][H];
@@ -155,6 +170,9 @@ Optional<Vector> RayTracer::getSurface(ThreadData& data, const ShadeContext& con
     while (travelled < limit && eps > 0.2_f * cached.r[i][H]) {
         phi = this->evalField(data.neighs, v2);
         if (phi > 0._f) {
+            if (occlusion) {
+                return v2;
+            }
             // we crossed the surface, move back
             v2 = 0.5_f * (v1 + v2);
             eps *= 0.5_f;
@@ -176,29 +194,39 @@ Optional<Vector> RayTracer::getSurface(ThreadData& data, const ShadeContext& con
     }
 }
 
-Color RayTracer::shade(ThreadData& data, const Vector& hit, const ShadeContext& context) const {
-    // "sample light" - occlusion ray to sun
-    // Ray rayToSun(hit .dirToSun * 0.01_f, params.dirToSun);
-    /*if (bvh.isOccluded(rayToSun)) {
-        /// \todo ambient light?
-        return Color::black();
-    }*/
+Color RayTracer::shade(ThreadData& data, const Size index, const Vector& hit, const Vector& dir) const {
+    Color color = Color::white();
+    if (!params.textures.empty()) {
+        const Vector uvw = this->evalUvws(data.neighs, hit);
+        color = params.textures[cached.flags[index]].eval(uvw) * 2._f;
+    }
 
     // compute normal = gradient of the field
-    /*const Float phi = this->evalField(data.neighs, hit);
-    const Float phi_dx = this->evalField(data.neighs, hit + Vector(ratio, 0._f, 0._f));
-    const Float phi_dy = this->evalField(data.neighs, hit + Vector(0._f, ratio, 0._f));
-    const Float phi_dz = this->evalField(data.neighs, hit + Vector(0._f, 0._f, ratio));*/
-    const Vector n = this->evalGradient(data.neighs, hit); // (phi_dx - phi, phi_dy - phi, phi_dz - phi);
+    const Vector n = this->evalGradient(data.neighs, hit);
     ASSERT(n != Vector(0._f));
     const Vector n_norm = getNormalized(n);
     const Float cosPhi = dot(n_norm, params.dirToSun);
     if (cosPhi <= 0._f) {
         // not illuminated
-        return Color::black();
+        return Color(params.ambientLight) * color;
     }
-    const Float f = params.brdf->transport(n_norm, -context.ray.direction(), params.dirToSun);
-    return this->evalColor(data.neighs, hit) * PI * f * cosPhi;
+
+    // evaluate color before checking for occlusion as that invalidates the neighbour list
+    const Color colorizerValue = this->evalColor(data.neighs, hit);
+
+    // check for occlusion
+    if (params.shadows) {
+        Ray rayToSun(hit - 1.e-3_f * params.dirToSun, -params.dirToSun);
+        if (this->intersect(data, rayToSun, true)) {
+            // casted shadow
+            return Color(params.ambientLight) * color;
+        }
+    }
+
+    // evaluate BRDF
+    const Float f = params.brdf->transport(n_norm, -dir, params.dirToSun);
+
+    return color * (colorizerValue * PI * f * cosPhi + Color(params.ambientLight));
 }
 
 Float RayTracer::evalField(ArrayView<const Size> neighs, const Vector& pos1) const {
@@ -236,6 +264,45 @@ Color RayTracer::evalColor(ArrayView<const Size> neighs, const Vector& pos1) con
     }
     ASSERT(weightSum != 0._f);
     return color / weightSum;
+}
+
+constexpr Float SEAM_WIDTH = 0.1_f;
+
+Vector RayTracer::evalUvws(ArrayView<const Size> neighs, const Vector& pos1) const {
+    ASSERT(!neighs.empty());
+    Vector uvws(0._f);
+    Float weightSum = 0._f;
+    int seamFlag = 0;
+    for (Size index : neighs) {
+        const Vector& pos2 = cached.r[index];
+        const Float weight = kernel.value(pos1 - pos2, pos2[H]) * cached.v[index];
+        uvws += cached.uvws[index] * weight;
+        weightSum += weight;
+        seamFlag |= cached.uvws[index][X] < SEAM_WIDTH ? 0x01 : 0;
+        seamFlag |= cached.uvws[index][X] > 1._f - SEAM_WIDTH ? 0x02 : 0;
+    }
+    if (seamFlag & 0x03) {
+        // we are near seam in u-coordinate, we cannot interpolate the UVWs directly
+        uvws = Vector(0._f);
+        weightSum = 0._f;
+        for (Size index : neighs) {
+            const Vector& pos2 = cached.r[index];
+            /// \todo optimize - cache the kernel values
+            const Float weight = kernel.value(pos1 - pos2, pos2[H]) * cached.v[index];
+            Vector uvw = cached.uvws[index];
+            // if near the seam, subtract 1 to make the u-mapping continuous
+            uvw[X] -= (uvw[X] > 0.5_f) ? 1._f : 0._f;
+            uvws += uvw * weight;
+            weightSum += weight;
+        }
+        ASSERT(weightSum != 0._f);
+        uvws /= weightSum;
+        uvws[X] += (uvws[X] < 0._f) ? 1._f : 0._f;
+        return uvws;
+    } else {
+        ASSERT(weightSum != 0._f);
+        return uvws / weightSum;
+    }
 }
 
 NAMESPACE_SPH_END

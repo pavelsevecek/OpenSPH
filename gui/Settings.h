@@ -7,6 +7,8 @@ NAMESPACE_SPH_BEGIN
 /// \todo currently mixing rendered geometry (spheres, mesh from marching cubes, iso-surface) with renderer
 /// (wx, opengl, raytracer, ...)
 enum class RendererEnum {
+    NONE,
+
     /// 2D section showing particles as points
     PARTICLE,
 
@@ -52,6 +54,10 @@ enum class GuiSettingsId {
 
     /// View field of view (zoom)
     ORTHO_FOV,
+
+    /// Z-offset of the camera (from origin)
+    /// \todo replace this and ORTHO_VIEW_CENTER with camera position
+    ORTHO_ZOFFSET,
 
     PERSPECTIVE_FOV,
 

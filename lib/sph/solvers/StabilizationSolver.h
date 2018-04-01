@@ -29,6 +29,11 @@ private:
     Float delta;
 
 public:
+    StabilizationSolver(const Interval timeRange, const Float delta, AutoPtr<ISolver>&& solver)
+        : solver(std::move(solver))
+        , timeRange(timeRange)
+        , delta(delta) {}
+
     StabilizationSolver(const RunSettings& settings, AutoPtr<ISolver>&& solver)
         : solver(std::move(solver)) {
         timeRange = settings.get<Interval>(RunSettingsId::RUN_TIME_RANGE);
@@ -43,6 +48,11 @@ public:
 
         const Float t = stats.get<Float>(StatisticsId::RUN_TIME);
         const Float dt = stats.getOr<Float>(StatisticsId::TIMESTEP_VALUE, 0.01_f);
+
+        if (t > timeRange.upper()) {
+            return;
+        }
+
         // damp velocities
         ArrayView<Vector> r, v, dv;
         tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);

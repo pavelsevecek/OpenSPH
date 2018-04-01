@@ -67,5 +67,4 @@ public:
         Statistics& stats) const = 0;
 };
 
-
 NAMESPACE_SPH_END

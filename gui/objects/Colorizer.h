@@ -5,8 +5,8 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2018
 
-
 #include "gui/Factory.h"
+#include "gui/Uvw.h"
 #include "gui/objects/Palette.h"
 #include "gui/objects/Point.h"
 #include "objects/containers/ArrayRef.h"
@@ -137,9 +137,10 @@ enum class ColorizerId {
     YIELD_REDUCTION = -10,     ///< Reduction of stress tensor due to yielding (1 - f_vonMises)
     DAMAGE_ACTIVATION = -11,   ///< Ratio of the stress and the activation strain
     RADIUS = -12,              ///< Radii/smoothing lenghts of particles
-    BOUNDARY = -13,            ///< Shows boundary particles
-    ID = -14,                  ///< Each particle drawn with different color
-    BEAUTY = -15,              ///< Colorizer attempting to show the real-world look
+    UVW = -13,                 ///< Shows UV mapping, u-coordinate in red and v-coordinate in blur
+    BOUNDARY = -14,            ///< Shows boundary particles
+    ID = -15,                  ///< Each particle drawn with different color
+    BEAUTY = -16,              ///< Colorizer attempting to show the real-world look
 };
 
 /// Default colorizer simply converting quantity value to color using defined palette. Vector and tensor
@@ -630,12 +631,12 @@ public:
         u = makeArrayRef(storage.getValue<Float>(QuantityId::ENERGY), ref);
 
         // IMaterial& mat = storage.getMaterial(0).material();
-        const float u_iv = 10._f;  // mat.getParam<Float>(BodySettingsId::TILLOTSON_ENERGY_IV);
-        const float u_cv = 200._f; // mat.getParam<Float>(BodySettingsId::TILLOTSON_ENERGY_CV);
+        const float u_iv = 1.e4_f; // mat.getParam<Float>(BodySettingsId::TILLOTSON_ENERGY_IV);
+        const float u_cv = 1.e5_f; // mat.getParam<Float>(BodySettingsId::TILLOTSON_ENERGY_CV);
         palette = Palette({ { 0.01f * u_iv, Color(0.5f, 0.5f, 0.5) },
                               { 0.5f * u_iv, Color(0.5f, 0.5f, 0.5f) },
-                              { u_iv, Color(1.f, 0.f, 0.f) },
-                              { u_cv, Color(1.f, 1.f, 0.5) } },
+                              { u_iv, Color(1.5f, 0.f, 0.f) },
+                              { u_cv, Color(3.f, 3.f, 1.5) } },
             PaletteScale::LOGARITHMIC);
     }
 
@@ -682,6 +683,37 @@ public:
 
     virtual std::string name() const override {
         return "Radius";
+    }
+};
+
+class UvwColorizer : public IColorizer {
+private:
+    ArrayRef<const Vector> uvws;
+
+public:
+    virtual void initialize(const Storage& storage, const RefEnum ref) override {
+        uvws = makeArrayRef(storage.getValue<Vector>(QuantityId(GuiQuantityId::UVW)), ref);
+    }
+
+    virtual bool isInitialized() const override {
+        return !uvws.empty();
+    }
+
+    virtual Color evalColor(const Size idx) const override {
+        ASSERT(this->isInitialized());
+        return Color(uvws[idx][X], 0._f, uvws[idx][Y]);
+    }
+
+    virtual Optional<Particle> getParticle(const Size UNUSED(idx)) const override {
+        return NOTHING;
+    }
+
+    virtual Optional<Palette> getPalette() const override {
+        return NOTHING;
+    }
+
+    virtual std::string name() const override {
+        return "Uvws";
     }
 };
 

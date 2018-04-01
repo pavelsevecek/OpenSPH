@@ -136,7 +136,7 @@ TEST_CASE("GhostParticles Sphere", "[boundary]") {
     Array<Vector> particles;
     for (Float phi = 0._f; phi < 2._f * PI; phi += 0.1_f) {
         for (Float theta = 0._f; theta < PI; theta += 0.1_f) {
-            Vector v = spherical(1.9_f, theta, phi);
+            Vector v = sphericalToCartesian(1.9_f, theta, phi);
             v[H] = 0.1_f;
             particles.push(v);
         }
@@ -189,10 +189,10 @@ TEST_CASE("GhostParticles Sphere Projection", "[boundary]") {
     // two spherical layers of particles
     for (Float phi = 0._f; phi < 2._f * PI; phi += 0.1_f) {
         for (Float theta = 0._f; theta < PI; theta += 0.1_f) {
-            Vector v = spherical(1.9_f, theta, phi);
+            Vector v = sphericalToCartesian(1.9_f, theta, phi);
             v[H] = 0.1_f;
             particles.push(v);
-            v = spherical(0.9_f, theta, phi);
+            v = sphericalToCartesian(0.9_f, theta, phi);
             v[H] = 0.1_f;
             particles.push(v);
         }

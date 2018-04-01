@@ -2,6 +2,7 @@
 #include "gravity/NBodySolver.h"
 #include "gui/GuiCallbacks.h"
 #include "gui/Settings.h"
+#include "gui/Uvw.h"
 #include "io/FileSystem.h"
 #include "io/LogFile.h"
 #include "math/rng/VectorRng.h"
@@ -122,7 +123,7 @@ RunSettings getSharedSettings() {
         .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 0.01_f)
         .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 100._f)
         .set(RunSettingsId::TIMESTEPPING_COURANT_NEIGHBOUR_LIMIT, 10)
-        .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 100._f)
+        .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 10000._f)
         .setFlags(RunSettingsId::SOLVER_FORCES,
             ForceEnum::PRESSURE_GRADIENT | ForceEnum::SOLID_STRESS |
                 ForceEnum::GRAVITY) //| ForceEnum::INERTIAL)
@@ -156,7 +157,7 @@ Stabilization::Stabilization(RawPtr<Controller> newController) {
         // continue run, we don't need to do the stabilization, so skip it by settings the range to zero
         settings.set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 0._f));
     } else {
-        settings.set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 200._f));
+        settings.set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 3000._f));
     }
     controller = newController;
 }
@@ -190,29 +191,43 @@ void Stabilization::setUp() {
         }
     } else {
 
-        Size N = 40'000;
+        Size N = 5'000;
 
         BodySettings body;
         body.set(BodySettingsId::ENERGY, 0._f)
             .set(BodySettingsId::ENERGY_RANGE, Interval(0._f, INFTY))
             .set(BodySettingsId::EOS, EosEnum::TILLOTSON)
-            .set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::SCALAR_GRADY_KIPP)
+            .set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::NONE)
             .set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::VON_MISES)
             .set(BodySettingsId::DISTRIBUTE_MODE_SPH5, true)
             .set(BodySettingsId::SHEAR_VISCOSITY, 1.e12_f)
             .set(BodySettingsId::BULK_VISCOSITY, 0._f)
-            .set(BodySettingsId::ENERGY_MIN, 10._f)
+            .set(BodySettingsId::ENERGY_MIN, 100._f)
+            .set(BodySettingsId::STRESS_TENSOR_MIN, 1.e8_f)
             .set(BodySettingsId::DAMAGE_MIN, 0.5_f);
         //.set(BodySettingsId::DIELH_STRENGTH, 0.1_f);
 
-        Presets::CollisionParams params;
-        params.targetRadius = 50.e3_f;     // D = 100km
-        params.impactorRadius = 0.5e3_f; // D = 1km
+
+        /*Presets::CollisionParams params;
+        params.targetRadius = 1.e6_f;     // D = 2km
+        params.impactorRadius = 0.35e6_f; // D = 2km
         params.impactAngle = 75._f * DEG_TO_RAD;
-        params.impactSpeed = 5.e3_f;
-        params.targetRotation = 2._f * PI / (3._f * 3600._f);
+        params.impactSpeed = 500._f;
+        params.targetRotation = 0._f;
+        params.impactorOffset = 100._f;
         params.targetParticleCnt = N;
-        params.impactorParticleCntOverride = 10;
+        params.centerOfMassFrame = false;
+        params.optimizeImpactor = true;*/
+
+        Presets::SatelliteParams params;
+        params.targetRadius = 1.e6_f; // D = 2km
+        params.primaryRotation = Vector(0._f, -2._f / (4._f * PI * 3600._f), 0._f);
+        params.targetParticleCnt = N;
+        params.satelliteRadius = 0.35e6_f;
+        params.satellitePosition = Vector(4.e6_f, 0._f, 0._f);
+        params.satelliteRotation = Vector(0._f, 2._f / (3._f * PI * 3600._f), 0._f);
+        params.velocityDirection = Vector(0._f, 0.1_f, 0.6_f);
+        params.centerOfMassFrame = false;
 
         /*const Vector impactPoint(params.targetRadius * cos(params.impactAngle),
             params.targetRadius * sin(params.impactAngle),
@@ -227,8 +242,9 @@ void Stabilization::setUp() {
             }
         };*/
 
-        data = makeShared<Presets::Collision>(*solver, settings, body, params);
-        data->addTarget(*storage);
+        data = makeShared<Presets::Satellite>(*solver, settings, body, params);
+        // data->addTarget(*storage);
+        data->addPrimary(*storage);
     }
 
     callbacks = makeAuto<GuiCallbacks>(*controller);
@@ -242,17 +258,21 @@ AutoPtr<IRunPhase> Stabilization::getNextPhase() const {
 
 void Stabilization::tearDown() {
     if (wxTheApp->argc == 1) {
-        data->addImpactor(*storage);
+        ASSERT(storage->has(QuantityId::POSITION));
+        onStabilizationFinished();
+        // data->addImpactor(*storage);
+        data->addSecondary(*storage);
+        setupUvws(*storage);
     }
 }
 
 
-Fragmentation::Fragmentation(SharedPtr<Presets::Collision> data, Function<void()> onFinished)
+Fragmentation::Fragmentation(SharedPtr<Presets::Satellite> data, Function<void()> onFinished)
     : data(data)
     , onFinished(onFinished) {
     settings = getSharedSettings();
     settings.set(RunSettingsId::RUN_NAME, std::string("Fragmentation"))
-        .set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 10'000._f))
+        .set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 10'000'000._f))
         //.set(RunSettingsId::TIMESTEPPING_ADAPTIVE_FACTOR, 0.8_f)
         .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 1000._f);
 }
@@ -323,6 +343,10 @@ void Fragmentation::setUp() {
 
 void Fragmentation::handoff(Storage&& input) {
     storage = makeShared<Storage>(std::move(input));
+    // there may still be some unprocessed callbacks accessing the storage of the previous phase, so we but
+    // the buffers back; ugly solution, needs to be done properly (wait till all callbacks are finished before
+    // moving the storage)
+    input = storage->clone(VisitorEnum::ALL_BUFFERS);
     solver = Factory::getSolver(settings);
     // the quantities are already created, no need to call solver->create
     triggers.pushBack(makeAuto<CommonStatsLog>(Factory::getLogger(settings)));

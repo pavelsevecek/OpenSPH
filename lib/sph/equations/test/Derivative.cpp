@@ -36,6 +36,23 @@ TEST_CASE("Derivative initialize", "[derivative]") {
     REQUIRE(perElement(divv) == 0._f);
 }
 
+TEST_CASE("Derivative equals", "[derivative]") {
+    RunSettings settings;
+    auto deriv1 = makeDerivative<VelocityDivergence>(settings, DerivativeFlag::SUM_ONLY_UNDAMAGED);
+    auto deriv2 = makeDerivative<VelocityDivergence>(settings, DerivativeFlag::SUM_ONLY_UNDAMAGED);
+    auto deriv3 = makeDerivative<VelocityDivergence>(settings, DerivativeFlag::CORRECTED);
+    auto deriv4 = makeDerivative<VelocityGradient>(settings);
+    REQUIRE(deriv1->equals(*deriv1));
+    REQUIRE(deriv1->equals(*deriv2));
+    REQUIRE(deriv2->equals(*deriv1));
+    REQUIRE_FALSE(deriv1->equals(*deriv3));
+    REQUIRE_FALSE(deriv1->equals(*deriv4));
+    REQUIRE_FALSE(deriv2->equals(*deriv3));
+    REQUIRE_FALSE(deriv2->equals(*deriv4));
+    REQUIRE(deriv3->equals(*deriv3));
+    REQUIRE(deriv4->equals(*deriv4));
+}
+
 template <int I, BufferSource Source>
 class DummyDerivative : public IDerivative {
 public:

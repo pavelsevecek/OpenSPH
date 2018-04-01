@@ -284,6 +284,7 @@ Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage
         colorizerIds.push(ColorizerId::ACCELERATION);
         colorizerIds.push(ColorizerId::RADIUS);
         colorizerIds.push(ColorizerId::ID);
+        colorizerIds.push(ColorizerId::UVW);
 
         if (storage.has(QuantityId::NEIGHBOUR_CNT)) {
             colorizerIds.push(ColorizerId::BOUNDARY);
@@ -430,6 +431,7 @@ void Controller::setRenderer(AutoPtr<IRenderer>&& newRenderer) {
         ASSERT(sph.run);
         SharedPtr<Storage> storage = sph.run->getStorage();
         if (storage) {
+            vis.colorizer->initialize(*storage, RefEnum::STRONG);
             vis.renderer->initialize(*storage, *vis.colorizer, *vis.camera);
         }
         window->Refresh();
@@ -465,16 +467,20 @@ SharedPtr<Movie> Controller::createMovie(const Storage& storage) {
     params.size.x = gui.get<int>(GuiSettingsId::IMAGES_WIDTH);
     params.size.y = gui.get<int>(GuiSettingsId::IMAGES_HEIGHT);
 
-    AutoPtr<IRenderer> renderer;
     Array<SharedPtr<IColorizer>> colorizers;
+    GuiSettings guiClone = gui;
+    guiClone.set(GuiSettingsId::RENDERER, gui.get<RendererEnum>(GuiSettingsId::IMAGES_RENDERER));
+    AutoPtr<IRenderer> renderer = Factory::getRenderer(guiClone);
+    // limit colorizer list for slower renderers
     switch (gui.get<RendererEnum>(GuiSettingsId::IMAGES_RENDERER)) {
     case RendererEnum::PARTICLE:
-        renderer = makeAuto<ParticleRenderer>(gui);
         colorizers = this->getColorizerList(storage, true, {});
         break;
     case RendererEnum::SURFACE:
-        renderer = makeAuto<SurfaceRenderer>(gui);
         colorizers = { Factory::getColorizer(gui, ColorizerId::VELOCITY) };
+        break;
+    case RendererEnum::RAYTRACER:
+        colorizers = { Factory::getColorizer(gui, ColorizerId::BEAUTY) };
         break;
     default:
         STOP;

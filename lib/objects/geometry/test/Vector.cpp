@@ -138,8 +138,13 @@ TEST_CASE("Vector products", "[vector]") {
 
 TEST_CASE("Vector utilities", "[vector]") {
     // spherical coordinates
-    Vector v = spherical(Sph::sqrt(2._f), PI / 2._f, PI / 4._f);
+    Vector v = sphericalToCartesian(Sph::sqrt(2._f), PI / 2._f, PI / 4._f);
     REQUIRE(v == approx(Vector(1._f, 1._f, 0._f)));
+
+    SphericalCoords spherical = cartensianToSpherical(v);
+    REQUIRE(spherical.r == approx(sqrt(2._f)));
+    REQUIRE(spherical.theta == approx(PI / 2._f));
+    REQUIRE(spherical.phi == approx(PI / 4._f));
 }
 
 TEST_CASE("Vector inequalities", "[vectors]") {

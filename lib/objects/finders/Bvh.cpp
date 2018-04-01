@@ -55,7 +55,7 @@ void Bvh<TBvhObject>::getIntersections(const Ray& ray, const TAddIntersection& a
     int stackIdx = 0;
 
     stack[stackIdx].idx = 0;
-    stack[stackIdx].t_min = -INFTY;
+    stack[stackIdx].t_min = 0._f; // -INFTY;
 
     while (stackIdx >= 0) {
         const Size idx = stack[stackIdx].idx;
@@ -126,7 +126,9 @@ template <typename TBvhObject>
 void Bvh<TBvhObject>::getAllIntersections(const Ray& ray, std::set<IntersectionInfo>& intersections) const {
     intersections.clear();
     this->getIntersections(ray, [&intersections](IntersectionInfo& current) { //
-        intersections.insert(current);
+        if (current.t > 0._f) {
+            intersections.insert(current);
+        }
         return true;
     });
 }
@@ -225,6 +227,10 @@ void Bvh<TBvhObject>::build(Array<TBvhObject>&& objs) {
     nodes = std::move(buildNodes);
 }
 
+template <typename TBvhObject>
+Box Bvh<TBvhObject>::getBoundingBox() const {
+    return nodes[0].box;
+}
 
 template class Bvh<BvhSphere>;
 template class Bvh<BvhBox>;

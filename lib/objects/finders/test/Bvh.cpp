@@ -52,6 +52,8 @@ TEST_CASE("BvhBox", "[bvh]") {
 
     Ray ray3(Vector(-1._f, 1.8_f, 0.3_f), Vector(1._f, 0._f, 0._f));
     REQUIRE_FALSE(bvh.getFirstIntersection(ray3, intersection));
+
+    REQUIRE(bvh.getBoundingBox() == Box(Vector(0._f, 0._f, 0._f), Vector(1._f, 2.5_f, 1._f)));
 }
 
 TEST_CASE("BvhSphere", "[bvh]") {
@@ -66,9 +68,12 @@ TEST_CASE("BvhSphere", "[bvh]") {
 TEST_CASE("Bvh many boxes", "[bvh]") {
     Array<BvhBox> objects;
     VectorRng<UniformRng> rng;
+    Box bbox;
     for (Size i = 0; i < 10000; ++i) {
         const Vector q = 10._f * rng();
-        objects.emplaceBack(Box(q, q + rng() * 1._f));
+        Box box(q, q + rng() * 1._f);
+        objects.emplaceBack(box);
+        bbox.extend(box);
     }
     Bvh<BvhBox> bvh;
     bvh.build(std::move(objects));
@@ -80,6 +85,8 @@ TEST_CASE("Bvh many boxes", "[bvh]") {
     REQUIRE(intersection.t > 1._f);
     REQUIRE(intersection.t < 5._f);
     REQUIRE(intersection.object != nullptr);
+
+    REQUIRE(bvh.getBoundingBox() == bbox);
 }
 
 TEST_CASE("Bvh many spheres", "[bvh]") {

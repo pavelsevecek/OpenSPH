@@ -75,6 +75,26 @@ inline void toWxBitmap(const Bitmap& bitmap, wxBitmap& wx) {
     ASSERT(wx.IsOk());
 }
 
+inline Bitmap toBitmap(wxBitmap& wx) {
+    Bitmap bitmap(Point(wx.GetWidth(), wx.GetHeight()));
+
+    wxNativePixelData pixels(wx);
+    ASSERT(pixels);
+    wxNativePixelData::Iterator iterator(pixels);
+    ASSERT(iterator.IsOk());
+    static_assert(
+        std::is_same<std::decay_t<decltype(iterator.Red())>, unsigned char>::value, "expected unsigned char");
+
+    for (int y = 0; y < bitmap.size().y; ++y) {
+        for (int x = 0; x < bitmap.size().x; ++x) {
+            bitmap[Point(x, y)] = wxColour(iterator.Red(), iterator.Green(), iterator.Blue());
+            ++iterator;
+        }
+    }
+
+    return bitmap;
+}
+
 inline void saveToFile(const wxBitmap& wx, const Path& path) {
     wx.SaveFile(path.native().c_str(), wxBITMAP_TYPE_PNG);
 }
@@ -83,6 +103,15 @@ inline void saveToFile(const Bitmap& bitmap, const Path& path) {
     wxBitmap wx;
     toWxBitmap(bitmap, wx);
     saveToFile(wx, path);
+}
+
+inline Bitmap loadBitmapFromFile(const Path& path) {
+    wxBitmap wx;
+    if (!wx.LoadFile(path.native().c_str())) {
+        ASSERT(false, "Cannot load bitmap");
+    }
+    ASSERT(wx.IsOk());
+    return toBitmap(wx);
 }
 
 NAMESPACE_SPH_END

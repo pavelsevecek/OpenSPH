@@ -6,8 +6,8 @@
 /// \date 2016-2018
 
 #include "common/Globals.h"
-#include "objects/geometry/Generic.h"
 #include "objects/containers/Tuple.h"
+#include "objects/geometry/Generic.h"
 #include "objects/wrappers/Interval.h"
 #include <immintrin.h>
 #include <iomanip>
@@ -753,21 +753,38 @@ INLINE Vector cos(const Vector& v) {
     return Vector(cos(v[X]), cos(v[Y]), cos(v[Z]));
 }
 
-/// Construct a vector from spherical coordinates. The angle has generally different
-/// type to allow using units with dimensions.
+/// \brief Construct a vector from spherical coordinates.
+///
+/// The angle has generally different type to allow using units with dimensions.
 /// \param r Radius coordinate
 /// \param theta Latitude in radians, where 0 and PI correspond to poles.
 /// \param phi Longitude in radians
-INLINE Vector spherical(const Float r, const Float theta, const Float phi) {
+INLINE Vector sphericalToCartesian(const Float r, const Float theta, const Float phi) {
     const Float s = sin(theta);
     const Float c = cos(theta);
     return r * Vector(s * cos(phi), s * sin(phi), c);
 }
 
+struct SphericalCoords {
+    Float r;     ///< radius
+    Float theta; ///< latitude
+    Float phi;   ///< longitude
+};
+
+/// \brief Converts vector in cartesian coordinates to spherical coordinates
+INLINE SphericalCoords cartensianToSpherical(const Vector& v) {
+    const Float r = getLength(v);
+    const Float phi = atan2(v[Y], v[X]);
+    const Float theta = acos(v[Z] / r); // atan2(sqrt(sqr(v[X]) + sqr(v[Y])), v[Z]);
+    return { r, theta, phi };
+}
+
+
 /// Computes a spherical inversion of a vector. Works in arbitrary number of dimensions.
 /// \param v Vector to be inverted.
 /// \param center Center of the spherical inversion.
-/// \param radius Radius of the spherical inversion. For vectors in radius from center, spherical inversion is
+/// \param radius Radius of the spherical inversion. For vectors in radius from center, spherical
+/// inversion is
 ///               an identity transform.
 INLINE Vector sphericalInversion(const Vector& v, const Vector& center, const Float radius) {
     const Vector diff = v - center;

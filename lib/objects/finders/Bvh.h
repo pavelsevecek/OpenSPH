@@ -180,6 +180,9 @@ public:
     /// \brief Returns true if the ray is occluded by some geometry
     bool isOccluded(const Ray& ray) const;
 
+    /// \brief Returns the bounding box of all objects in BVH.
+    Box getBoundingBox() const;
+
 private:
     template <typename TAddIntersection>
     void getIntersections(const Ray& ray, const TAddIntersection& addIntersection) const;

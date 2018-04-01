@@ -64,6 +64,9 @@ struct OrthoCameraData {
     /// Field of view (zoom)
     float fov;
 
+    /// Z-offset of the camera
+    float zoffset;
+
     /// Vectors defining camera plane
     Vector u, v;
 };
@@ -101,7 +104,7 @@ public:
         const float x = (point.x - center.x) / data.fov;
         const float y = ((imageSize.y - point.y - 1) - center.y) / data.fov;
         CameraRay ray;
-        ray.origin = cached.u * x + cached.v * y;
+        ray.origin = cached.u * x + cached.v * y + cached.w * data.zoffset;
         ray.target = ray.origin + cached.w;
         return ray;
     }
@@ -150,10 +153,10 @@ private:
         /// Unit direction of the camera
         Vector dir;
 
-        /// Up vector of the camera, size of which of represents the image size at the target distance
+        /// Up vector of the camera, size of which of represents the image size at unit distance
         Vector up;
 
-        /// Left vector of the camera, size of which of represents the image size at the target distance
+        /// Left vector of the camera, size of which of represents the image size at unit distance
         Vector left;
     } cached;
 
@@ -179,13 +182,23 @@ public:
         }
         const Vector r0 = dr / proj;
         // convert [-1, 1] to [0, imageSize]
-        const int x = 0.5_f * (1._f + dot(cached.left, r0)) * imageSize.x;
-        const int y = 0.5_f * (1._f + dot(cached.up, r0)) * imageSize.y;
-        /// \todo cache the tangent
-        const float h = float(r[H] / proj) * imageSize.x / tan(0.5_f * data.fov);
+        Vector left0;
+        Float leftLength;
+        tieToTuple(left0, leftLength) = getNormalizedWithLength(cached.left);
+        Vector up0;
+        Float upLength;
+        tieToTuple(up0, upLength) = getNormalizedWithLength(cached.up);
+        const Float leftRel = dot(left0, r0) / leftLength;
+        // ASSERT(leftRel >= -1._f && leftRel <= 1._f);
+        const Float upRel = dot(up0, r0) / upLength;
+        // ASSERT(upRel >= -1._f && upRel <= 1._f);
+        const int x = 0.5_f * (1._f + leftRel) * imageSize.x;
+        const int y = 0.5_f * (1._f + upRel) * imageSize.y;
+        const Float hAtUnitDist = r[H] / proj;
+        const Float h = hAtUnitDist / leftLength * imageSize.x;
 
         // if (x >= -h && x < imageSize.x + h && y >= -h && y < imageSize.y )
-        return ProjectedPoint{ { x, y }, max(h, 1.f) };
+        return ProjectedPoint{ { x, imageSize.y - y - 1 }, max(float(h), 1.f) };
     }
 
     virtual CameraRay unproject(const Point point) const override {
@@ -193,7 +206,7 @@ public:
         const Float y = 2._f * Float(point.y) / imageSize.y - 1._f;
         CameraRay ray;
         ray.origin = data.position;
-        ray.target = data.target + cached.left * x + cached.up * y;
+        ray.target = ray.origin + cached.dir + cached.left * x - cached.up * y;
         return ray;
     }
 

@@ -28,7 +28,7 @@ public:
         : data(other.Red() / 255.f, other.Green() / 255.f, other.Blue() / 255.f) {}
 
     explicit operator wxColour() const {
-        return wxColour(int(data[0] * 255.f), int(data[1] * 255.f), int(data[2] * 255.f));
+        return wxColour(getByte(data[0]), getByte(data[1]), getByte(data[2]));
     }
 
     float operator[](const Size idx) const {
@@ -95,6 +95,11 @@ public:
 
     static Color gray(const float value = 0.5f) {
         return Color(value, value, value);
+    }
+
+private:
+    int getByte(const float f) const {
+        return clamp(int(f * 255.f), 0, 255);
     }
 };
 

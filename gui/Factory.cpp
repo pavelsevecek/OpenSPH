@@ -15,6 +15,7 @@ AutoPtr<ICamera> Factory::getCamera(const GuiSettings& settings, const Point siz
         OrthoEnum id = settings.get<OrthoEnum>(GuiSettingsId::ORTHO_PROJECTION);
         OrthoCameraData data;
         data.fov = 0.5_f * size.y / settings.get<Float>(GuiSettingsId::ORTHO_FOV);
+        data.zoffset = settings.get<Float>(GuiSettingsId::ORTHO_ZOFFSET);
         switch (id) {
         case OrthoEnum::XY:
             data.u = Vector(1._f, 0._f, 0._f);
@@ -50,6 +51,16 @@ AutoPtr<ICamera> Factory::getCamera(const GuiSettings& settings, const Point siz
 AutoPtr<IRenderer> Factory::getRenderer(const GuiSettings& settings) {
     RendererEnum id = settings.get<RendererEnum>(GuiSettingsId::RENDERER);
     switch (id) {
+    case RendererEnum::NONE:
+        class NullRenderer : public IRenderer {
+            virtual void initialize(const Storage&, const IColorizer&, const ICamera&) override {}
+            virtual SharedPtr<wxBitmap> render(const ICamera&,
+                const RenderParams&,
+                Statistics&) const override {
+                return nullptr;
+            }
+        };
+        return makeAuto<NullRenderer>();
     case RendererEnum::PARTICLE:
         return makeAuto<ParticleRenderer>(settings);
     case RendererEnum::SURFACE:
@@ -126,6 +137,8 @@ AutoPtr<IColorizer> Factory::getColorizer(const GuiSettings& settings,
             getRealPalette(ColorizerId::RADIUS, GuiSettingsId::PALETTE_RADIUS, settings, overrides));
     case ColorizerId::BOUNDARY:
         return makeAuto<BoundaryColorizer>(BoundaryColorizer::Detection::NEIGBOUR_THRESHOLD, 40);
+    case ColorizerId::UVW:
+        return makeAuto<UvwColorizer>();
     case ColorizerId::ID:
         return makeAuto<IdColorizer>();
     case ColorizerId::BEAUTY:

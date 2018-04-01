@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gui/Settings.h"
+#include "gui/Uvw.h"
 #include "gui/objects/Color.h"
 #include "gui/renderers/Brdf.h"
 #include "gui/renderers/IRenderer.h"
@@ -31,8 +32,19 @@ private:
         /// Direction to sun; sun is assumed to be a point light source.
         Vector dirToSun;
 
+        /// Ambient light illuminating every point unconditionally.
+        Float ambientLight;
+
         /// BRDF used to get the surface reflectance.
         AutoPtr<IBrdf> brdf;
+
+        /// HDRI for the background. Can be empty.
+        // Bitmap hdri;
+
+        Array<Texture> textures;
+
+        /// Cast shadows
+        bool shadows = true;
 
     } params;
 
@@ -57,6 +69,8 @@ private:
 
         /// Particle colors
         Array<Color> colors;
+
+        Array<Vector> uvws;
 
         /// Particle volume (=mass/density)
         Array<Float> v;
@@ -100,16 +114,23 @@ private:
     /// \brief Returns the intersection of the iso-surface.
     ///
     /// If no intersection exists, function returns NOTHING.
-    Optional<Vector> getSurface(ThreadData& data, const ShadeContext& context) const;
+    Optional<Vector> intersect(ThreadData& data, const Ray& ray, const bool occlusion) const;
+
+    /// \brief Finds the actual surface point for given shade context.
+    ///
+    /// If no such point exists, function returns NOTHING.
+    Optional<Vector> getSurfaceHit(ThreadData& data, const ShadeContext& context, const bool occlusion) const;
 
     /// \brief Returns the color of given hit point.
-    Color shade(ThreadData& data, const Vector& hit, const ShadeContext& context) const;
+    Color shade(ThreadData& data, const Size index, const Vector& hit, const Vector& dir) const;
 
     Float evalField(ArrayView<const Size> neighs, const Vector& pos) const;
 
     Vector evalGradient(ArrayView<const Size> neighs, const Vector& pos) const;
 
     Color evalColor(ArrayView<const Size> neighs, const Vector& pos1) const;
+
+    Vector evalUvws(ArrayView<const Size> neighs, const Vector& pos1) const;
 };
 
 NAMESPACE_SPH_END

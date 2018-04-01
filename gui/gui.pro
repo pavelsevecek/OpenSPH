@@ -79,4 +79,5 @@ HEADERS += \
     windows/PlotView.h \
     renderers/RenderContext.h \
     renderers/RayTracer.h \
-    renderers/Brdf.h
+    renderers/Brdf.h \
+    Uvw.h

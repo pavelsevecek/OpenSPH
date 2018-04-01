@@ -70,6 +70,15 @@ public:
     /// DerivativePhase::EVALUATION. Auxiliary derivatives, computing helper term that are later used for
     /// evaluation of other derivatives, belong to phase DerivativePhase::PRECOMPUTE.
     virtual DerivativePhase phase() const = 0;
+
+    /// \brief Returns true if this derivative is equal to the given derivative.
+    ///
+    /// This is always false if the derivative is a different type, but a derivative may also have an inner
+    /// state and result in different value, even if the type is the same. This function is only used to check
+    /// that we do not try to add two derivatives of the same type, but with different internal state.
+    virtual bool equals(const IDerivative& other) const {
+        return typeid(*this) == typeid(other);
+    }
 };
 
 /// \brief Extension of derivative, allowing a symmetrized evaluation.
@@ -178,7 +187,15 @@ public:
         });
     }
 
+    virtual bool equals(const IDerivative& other) const override {
+        if (typeid(*this) != typeid(other)) {
+            return false;
+        }
+        const TDerived* actOther = assert_cast<const TDerived*>(&other);
+        return flags == actOther->flags;
+    }
 
+private:
     template <typename TFunctor>
     INLINE void sum(const Size i,
         ArrayView<const Size> neighs,

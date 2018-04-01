@@ -15,11 +15,12 @@ AutoPtr<GuiSettings> GuiSettings::instance (new GuiSettings {
     { GuiSettingsId::CAMERA,                "camera",               int(CameraEnum::ORTHO) },
     { GuiSettingsId::PARTICLE_RADIUS,       "particle_radius",      0.5_f },
     { GuiSettingsId::ORTHO_CUTOFF,          "ortho.cutoff",         0.1_f },
+    { GuiSettingsId::ORTHO_ZOFFSET,         "ortho.zoffset",        0._f },
     { GuiSettingsId::ORTHO_PROJECTION,      "ortho.projection",     int(OrthoEnum::XY) },
     { GuiSettingsId::PERSPECTIVE_FOV,       "perspective.fov",      PI / 3._f },
-    { GuiSettingsId::PERSPECTIVE_POSITION,  "perspective.position", Vector(0._f) },
-    { GuiSettingsId::PERSPECTIVE_TARGET,    "perspective.target",   Vector(1._f, 0._f, 0._f) },
-    { GuiSettingsId::PERSPECTIVE_UP,        "perspective.up",       Vector(0._f, 0._f, 1._f) },
+    { GuiSettingsId::PERSPECTIVE_POSITION,  "perspective.position", Vector(0._f, 0._f, 1._f) },
+    { GuiSettingsId::PERSPECTIVE_TARGET,    "perspective.target",   Vector(0._f) },
+    { GuiSettingsId::PERSPECTIVE_UP,        "perspective.up",       Vector(0._f, 1._f, 0._f) },
 
     /// Particle visualization
     { GuiSettingsId::SURFACE_RESOLUTION,    "surface.resolution",   100._f },  // m

@@ -1,5 +1,6 @@
 #include "sph/initial/Presets.h"
 #include "objects/geometry/Domain.h"
+#include "physics/Constants.h"
 #include "quantities/Storage.h"
 #include "sph/initial/Distribution.h"
 #include "system/Factory.h"
@@ -40,6 +41,7 @@ void Presets::Collision::addTarget(Storage& storage) {
             return _ic.addMonolithicBody(storage, domain, _body);
         }
     }();
+    /// \todo the center of rotation (here Vector(0._f)) must match the center of domain above.
     view.addRotation(Vector(0._f, 0._f, _params.targetRotation), Vector(0._f));
 
     if (!_params.outputPath.empty()) {
@@ -60,11 +62,9 @@ void Presets::Collision::addImpactor(Storage& storage) {
             max<int>(_params.minParticleCnt, targetDensity * pow<3>(_params.impactorRadius));
     }
 
-    const Float impactorDistance = _params.targetRadius + _params.impactorRadius;
-    // move impactor by 6h so that there is no overlap
-    const Float x = impactorDistance * cos(_params.impactAngle) + 6._f * h;
-    const Float y = impactorDistance * sin(_params.impactAngle);
-    const Vector center(x, y, 0._f);
+    Vector center = this->getImpactPoint();
+    // move impactor by some offset so that there is no overlap
+    center[X] += _params.impactorOffset * h;
     const Vector v_imp(-_params.impactSpeed, 0._f, 0._f);
 
     BodySettings impactorBody = _body;
@@ -102,6 +102,14 @@ void Presets::Collision::addImpactor(Storage& storage) {
             r[i] -= r_com;
             v[i] -= v_com;
         }
+
+        for (Size matId = 0; matId < storage.getMaterialCnt(); ++matId) {
+            MaterialView mat = storage.getMaterial(matId);
+            mat->setParam(
+                BodySettingsId::BODY_CENTER, mat->getParam<Vector>(BodySettingsId::BODY_CENTER) - r_com);
+            mat->setParam(
+                BodySettingsId::BODY_VELOCITY, mat->getParam<Vector>(BodySettingsId::BODY_VELOCITY) - v_com);
+        }
     }
 
     if (!_params.outputPath.empty()) {
@@ -114,6 +122,58 @@ Vector Presets::Collision::getImpactPoint() const {
     const Float x = impactorDistance * cos(_params.impactAngle);
     const Float y = impactorDistance * sin(_params.impactAngle);
     return Vector(x, y, 0._f);
+}
+
+Presets::Satellite::Satellite(ISolver& solver,
+    const RunSettings& settings,
+    const BodySettings& body,
+    const SatelliteParams& params)
+    : _ic(solver, settings)
+    , _body(body)
+    , _params(params) {
+    _body.set(BodySettingsId::PARTICLE_COUNT, int(_params.targetParticleCnt));
+    // this has to match the actual center/velocity/rotation of the target below
+    _body.set(BodySettingsId::BODY_CENTER, Vector(0._f));
+    _body.set(BodySettingsId::BODY_VELOCITY, Vector(0._f));
+    _body.set(BodySettingsId::BODY_ANGULAR_VELOCITY, _params.primaryRotation);
+}
+
+void Presets::Satellite::addPrimary(Storage& storage) {
+    // make sure the value in settings is the came that's passed to params
+    ASSERT(int(_params.targetParticleCnt) == _body.get<int>(BodySettingsId::PARTICLE_COUNT));
+    SphericalDomain domain(Vector(0._f), _params.targetRadius);
+    BodyView view = _ic.addMonolithicBody(storage, domain, _body);
+    view.addRotation(_params.primaryRotation, Vector(0._f));
+}
+
+static Float getTotalMass(const Storage& storage) {
+    ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
+    Float m_tot = 0._f;
+    for (Size i = 0; i < m.size(); ++i) {
+        m_tot += m[i];
+    }
+    return m_tot;
+}
+
+void Presets::Satellite::addSecondary(Storage& storage) {
+    ASSERT(_params.satelliteRadius > EPS);
+    const Float targetDensity = _params.targetParticleCnt / pow<3>(_params.targetRadius);
+    Size satelliteParticleCnt =
+        max<int>(_params.minParticleCnt, targetDensity * pow<3>(_params.satelliteRadius));
+
+    const Float v_c = sqrt(Constants::gravity * getTotalMass(storage) / getLength(_params.satellitePosition));
+    Vector v = getNormalized(_params.velocityDirection) * _params.velocityMultiplier * v_c;
+
+    BodySettings satelliteBody = _body;
+    satelliteBody.set(BodySettingsId::PARTICLE_COUNT, int(satelliteParticleCnt))
+        .set(BodySettingsId::BODY_CENTER, _params.satellitePosition)
+        .set(BodySettingsId::BODY_VELOCITY, v)
+        .set(BodySettingsId::BODY_ANGULAR_VELOCITY, _params.satelliteRotation);
+    SphericalDomain domain(_params.satellitePosition, _params.satelliteRadius);
+    BodyView view = _ic.addMonolithicBody(storage, domain, satelliteBody);
+
+    view.addVelocity(v);
+    view.addRotation(_params.satelliteRotation, BodyView::RotationOrigin::CENTER_OF_MASS);
 }
 
 NAMESPACE_SPH_END
