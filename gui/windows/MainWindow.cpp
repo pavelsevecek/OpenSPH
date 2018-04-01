@@ -6,7 +6,7 @@
 #include "gui/objects/Colorizer.h"
 #include "gui/renderers/ParticleRenderer.h"
 #include "gui/renderers/RayTracer.h"
-#include "gui/renderers/SurfaceRenderer.h"
+#include "gui/renderers/MeshRenderer.h"
 #include "gui/windows/GlPane.h"
 #include "gui/windows/OrthoPane.h"
 #include "gui/windows/ParticleProbe.h"
@@ -264,7 +264,7 @@ wxBoxSizer* MainWindow::createToolbar(Controller* parent) {
             controller->setRenderer(makeAuto<ParticleRenderer>(gui));
             break;
         case 1:
-            controller->setRenderer(makeAuto<SurfaceRenderer>(gui));
+            controller->setRenderer(makeAuto<MeshRenderer>(gui));
             break;
         case 2:
             controller->setRenderer(makeAuto<RayTracer>(gui));

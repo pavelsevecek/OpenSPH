@@ -5,7 +5,7 @@
 #include "gui/objects/Colorizer.h"
 #include "gui/objects/Movie.h"
 #include "gui/renderers/ParticleRenderer.h"
-#include "gui/renderers/SurfaceRenderer.h"
+#include "gui/renderers/MeshRenderer.h"
 #include "gui/windows/MainWindow.h"
 #include "gui/windows/OrthoPane.h"
 #include "run/IRun.h"
@@ -476,7 +476,7 @@ SharedPtr<Movie> Controller::createMovie(const Storage& storage) {
     case RendererEnum::PARTICLE:
         colorizers = this->getColorizerList(storage, true, {});
         break;
-    case RendererEnum::SURFACE:
+    case RendererEnum::MESH:
         colorizers = { Factory::getColorizer(gui, ColorizerId::VELOCITY) };
         break;
     case RendererEnum::RAYTRACER:

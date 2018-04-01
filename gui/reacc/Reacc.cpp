@@ -157,7 +157,7 @@ Stabilization::Stabilization(RawPtr<Controller> newController) {
         // continue run, we don't need to do the stabilization, so skip it by settings the range to zero
         settings.set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 0._f));
     } else {
-        settings.set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 3000._f));
+        settings.set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 5000._f));
     }
     controller = newController;
 }
@@ -191,35 +191,35 @@ void Stabilization::setUp() {
         }
     } else {
 
-        Size N = 5'000;
+        Size N = 20'000;
 
         BodySettings body;
         body.set(BodySettingsId::ENERGY, 0._f)
             .set(BodySettingsId::ENERGY_RANGE, Interval(0._f, INFTY))
             .set(BodySettingsId::EOS, EosEnum::TILLOTSON)
-            .set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::NONE)
+            .set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::SCALAR_GRADY_KIPP)
             .set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::VON_MISES)
             .set(BodySettingsId::DISTRIBUTE_MODE_SPH5, true)
             .set(BodySettingsId::SHEAR_VISCOSITY, 1.e12_f)
             .set(BodySettingsId::BULK_VISCOSITY, 0._f)
-            .set(BodySettingsId::ENERGY_MIN, 100._f)
-            .set(BodySettingsId::STRESS_TENSOR_MIN, 1.e8_f)
+            .set(BodySettingsId::ENERGY_MIN, 10._f)
+            .set(BodySettingsId::STRESS_TENSOR_MIN, 1.e6_f)
             .set(BodySettingsId::DAMAGE_MIN, 0.5_f);
         //.set(BodySettingsId::DIELH_STRENGTH, 0.1_f);
 
 
-        /*Presets::CollisionParams params;
+        Presets::CollisionParams params;
         params.targetRadius = 1.e6_f;     // D = 2km
-        params.impactorRadius = 0.35e6_f; // D = 2km
+        params.impactorRadius = 0.15e6_f; // D = 2km
         params.impactAngle = 75._f * DEG_TO_RAD;
-        params.impactSpeed = 500._f;
+        params.impactSpeed = 1500._f;
         params.targetRotation = 0._f;
         params.impactorOffset = 100._f;
         params.targetParticleCnt = N;
         params.centerOfMassFrame = false;
-        params.optimizeImpactor = true;*/
+        params.optimizeImpactor = true;
 
-        Presets::SatelliteParams params;
+        /*Presets::SatelliteParams params;
         params.targetRadius = 1.e6_f; // D = 2km
         params.primaryRotation = Vector(0._f, -2._f / (4._f * PI * 3600._f), 0._f);
         params.targetParticleCnt = N;
@@ -227,7 +227,7 @@ void Stabilization::setUp() {
         params.satellitePosition = Vector(4.e6_f, 0._f, 0._f);
         params.satelliteRotation = Vector(0._f, 2._f / (3._f * PI * 3600._f), 0._f);
         params.velocityDirection = Vector(0._f, 0.1_f, 0.6_f);
-        params.centerOfMassFrame = false;
+        params.centerOfMassFrame = false;*/
 
         /*const Vector impactPoint(params.targetRadius * cos(params.impactAngle),
             params.targetRadius * sin(params.impactAngle),
@@ -242,9 +242,9 @@ void Stabilization::setUp() {
             }
         };*/
 
-        data = makeShared<Presets::Satellite>(*solver, settings, body, params);
-        // data->addTarget(*storage);
-        data->addPrimary(*storage);
+        data = makeShared<Presets::Collision>(*solver, settings, body, params);
+        data->addTarget(*storage);
+        // data->addPrimary(*storage);
     }
 
     callbacks = makeAuto<GuiCallbacks>(*controller);
@@ -260,14 +260,14 @@ void Stabilization::tearDown() {
     if (wxTheApp->argc == 1) {
         ASSERT(storage->has(QuantityId::POSITION));
         onStabilizationFinished();
-        // data->addImpactor(*storage);
-        data->addSecondary(*storage);
+        data->addImpactor(*storage);
+        // data->addSecondary(*storage);
         setupUvws(*storage);
     }
 }
 
 
-Fragmentation::Fragmentation(SharedPtr<Presets::Satellite> data, Function<void()> onFinished)
+Fragmentation::Fragmentation(SharedPtr<Presets::Collision> data, Function<void()> onFinished)
     : data(data)
     , onFinished(onFinished) {
     settings = getSharedSettings();

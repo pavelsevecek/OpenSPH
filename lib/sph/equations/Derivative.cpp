@@ -55,7 +55,13 @@ void DerivativeHolder::require(AutoPtr<IDerivative>&& derivative) {
         const IDerivative& value1 = *d;
         const IDerivative& value2 = *derivative;
         if (typeid(value1) == typeid(value2)) {
-            // same type, do nothing
+            // same type, check for equality of derivatives and return
+            if (!value1.equals(value2)) {
+                throw InvalidSetup(
+                    "Using two derivatives with the same type, but with different internal state. This is "
+                    "currently unsupported; while it is allowed to require the same derivative more than "
+                    "once, it MUST have the same state.");
+            }
             return;
         }
     }
@@ -76,6 +82,24 @@ void DerivativeHolder::initialize(const Storage& input) {
     for (const auto& deriv : derivatives) {
         // then get the arrayviews for derivatives
         deriv->initialize(input, accumulated);
+    }
+}
+
+void DerivativeHolder::eval(const Size idx, ArrayView<const Size> neighs, ArrayView<const Vector> grads) {
+    ASSERT(neighs.size() == grads.size());
+    for (const auto& deriv : derivatives) {
+        deriv->evalNeighs(idx, neighs, grads);
+    }
+}
+
+void DerivativeHolder::evalSymmetric(const Size idx,
+    ArrayView<const Size> neighs,
+    ArrayView<const Vector> grads) {
+    ASSERT(neighs.size() == grads.size());
+    ASSERT(isSymmetric());
+    for (const auto& deriv : derivatives) {
+        SymmetricDerivative* symmetric = assert_cast<SymmetricDerivative*>(&*deriv);
+        symmetric->evalSymmetric(idx, neighs, grads);
     }
 }
 

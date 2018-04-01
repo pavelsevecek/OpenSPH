@@ -23,6 +23,10 @@ AutoPtr<GuiSettings> GuiSettings::instance (new GuiSettings {
     { GuiSettingsId::PERSPECTIVE_UP,        "perspective.up",       Vector(0._f, 1._f, 0._f) },
 
     /// Particle visualization
+    { GuiSettingsId::VIEW_WIDTH,            "view.width",           800 },
+    { GuiSettingsId::VIEW_HEIGHT,           "view.height",          600 },
+    { GuiSettingsId::VIEW_MAX_FRAMERATE,    "view.max_framerate",   100 }, // ms
+    { GuiSettingsId::VIEW_GRID_SIZE,        "view.grid_size",       0._f },
     { GuiSettingsId::SURFACE_RESOLUTION,    "surface.resolution",   100._f },  // m
     { GuiSettingsId::SURFACE_LEVEL,         "surface.level",        0.3_f },
     { GuiSettingsId::SURFACE_SUN_POSITION,  "surface.sun_position", Vector(0.f, 0.f, 1.f) },
@@ -30,10 +34,9 @@ AutoPtr<GuiSettings> GuiSettings::instance (new GuiSettings {
     { GuiSettingsId::SURFACE_AMBIENT,       "surface.ambient",      0.3_f },
     { GuiSettingsId::ORTHO_VIEW_CENTER,     "view.center",          Vector(0._f) },
     { GuiSettingsId::ORTHO_FOV,             "view.fov",             1._f },
-    { GuiSettingsId::VIEW_WIDTH,            "view.width",           800 },
-    { GuiSettingsId::VIEW_HEIGHT,           "view.height",          600 },
-    { GuiSettingsId::VIEW_MAX_FRAMERATE,    "view.max_framerate",   100 }, // ms
-    { GuiSettingsId::VIEW_GRID_SIZE,        "view.grid_size",       0._f },
+    { GuiSettingsId::RAYTRACE_HDRI,         "raytrace.hdri",        std::string("") },
+    { GuiSettingsId::RAYTRACE_TEXTURE_PRIMARY,      "raytrace.texture_primary",     std::string("") },
+    { GuiSettingsId::RAYTRACE_TEXTURE_SECONDARY,    "raytrace.texture_secondary",   std::string("") },
 
     /// Window settings
     { GuiSettingsId::WINDOW_TITLE,     "window.title",     std::string("SPH") },

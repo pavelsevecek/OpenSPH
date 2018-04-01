@@ -16,11 +16,20 @@ RayTracer::RayTracer(const GuiSettings& settings)
     params.brdf = Factory::getBrdf(settings);
     params.ambientLight = settings.get<Float>(GuiSettingsId::SURFACE_AMBIENT);
 
-    // params.hdri = loadBitmapFromFile(Path("/home/pavel/projects/astro/sph/external/hdri.jpg"));
-    params.textures.emplaceBack(
-        Path("/home/pavel/projects/astro/sph/external/surface.jpg"), TextureFiltering::BILINEAR);
-    params.textures.emplaceBack(
-        Path("/home/pavel/projects/astro/sph/external/surface2.jpg"), TextureFiltering::BILINEAR);
+    std::string hdriPath = settings.get<std::string>(GuiSettingsId::RAYTRACE_HDRI);
+    if (!hdriPath.empty()) {
+        params.hdri = Texture(Path(hdriPath), TextureFiltering::BILINEAR);
+    }
+
+    std::string primaryPath = settings.get<std::string>(GuiSettingsId::RAYTRACE_TEXTURE_PRIMARY);
+    if (!primaryPath.empty()) {
+        params.textures.emplaceBack(Path(primaryPath), TextureFiltering::BILINEAR);
+
+        std::string secondaryPath = settings.get<std::string>(GuiSettingsId::RAYTRACE_TEXTURE_SECONDARY);
+        if (!secondaryPath.empty()) {
+            params.textures.emplaceBack(Path(secondaryPath), TextureFiltering::BILINEAR);
+        }
+    }
 }
 
 RayTracer::~RayTracer() = default;
@@ -96,12 +105,13 @@ SharedPtr<wxBitmap> RayTracer::render(const ICamera& camera,
         for (Size x = 0; x < Size(params.size.x); ++x) {
             CameraRay cameraRay = camera.unproject(Point(x, y));
             const Vector dir = getNormalized(cameraRay.target - cameraRay.origin);
-            /// \todo the ray for ortho camera should originate outside bbox
-            const Ray ray(cameraRay.origin /*- 1.e8_f * dir*/, dir);
+            const Ray ray(cameraRay.origin, dir);
 
-            Color accumulatedColor = Color::black();
+            Color accumulatedColor;
             if (Optional<Vector> hit = this->intersect(data, ray, false)) {
                 accumulatedColor = this->shade(data, data.previousIdx, hit.value(), ray.direction());
+            } else {
+                accumulatedColor = this->getEnviroColor(ray);
             }
             bitmap[Point(x, y)] = wxColour(accumulatedColor);
         }
@@ -302,6 +312,18 @@ Vector RayTracer::evalUvws(ArrayView<const Size> neighs, const Vector& pos1) con
     } else {
         ASSERT(weightSum != 0._f);
         return uvws / weightSum;
+    }
+}
+
+Color RayTracer::getEnviroColor(const Ray& ray) const {
+    if (params.hdri.empty()) {
+        return Color::black();
+    } else {
+        const Vector dir = ray.direction();
+        /// \todo deduplicate with setupUvws
+        const SphericalCoords spherical = cartensianToSpherical(Vector(dir[X], dir[Z], dir[Y]));
+        const Vector uvw(spherical.phi / (2._f * PI) + 0.5_f, spherical.theta / PI, 0._f);
+        return params.hdri.eval(uvw);
     }
 }
 

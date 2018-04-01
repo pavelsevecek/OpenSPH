@@ -13,7 +13,7 @@ enum class RendererEnum {
     PARTICLE,
 
     /// Reconstructed surface of bodies
-    SURFACE,
+    MESH,
 
     RAYTRACER,
 
@@ -98,6 +98,12 @@ enum class GuiSettingsId {
 
     /// Ambient color for surface renderer
     SURFACE_AMBIENT,
+
+    RAYTRACE_HDRI,
+
+    RAYTRACE_TEXTURE_PRIMARY,
+
+    RAYTRACE_TEXTURE_SECONDARY,
 
     /// Title of the window appearing on taskbar
     WINDOW_TITLE,

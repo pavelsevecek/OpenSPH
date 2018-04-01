@@ -1,6 +1,6 @@
 #pragma once
 
-/// \file SurfaceRenderer.h
+/// \file MeshRenderer.h
 /// \brief Renderer visualizing the surface as triangle mesh
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2018
@@ -14,7 +14,7 @@
 
 NAMESPACE_SPH_BEGIN
 
-class SurfaceRenderer : public IRenderer {
+class MeshRenderer : public IRenderer {
 private:
     /// Parameters of Marching Cubes
     Float surfaceResolution;
@@ -41,7 +41,7 @@ private:
     LutKernel<3> kernel;
 
 public:
-    explicit SurfaceRenderer(const GuiSettings& settings);
+    explicit MeshRenderer(const GuiSettings& settings);
 
     virtual void initialize(const Storage& storage,
         const IColorizer& colorizer,

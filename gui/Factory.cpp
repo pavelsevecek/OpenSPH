@@ -2,9 +2,9 @@
 #include "gui/objects/Camera.h"
 #include "gui/objects/Colorizer.h"
 #include "gui/renderers/Brdf.h"
+#include "gui/renderers/MeshRenderer.h"
 #include "gui/renderers/ParticleRenderer.h"
 #include "gui/renderers/RayTracer.h"
-#include "gui/renderers/SurfaceRenderer.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -63,8 +63,8 @@ AutoPtr<IRenderer> Factory::getRenderer(const GuiSettings& settings) {
         return makeAuto<NullRenderer>();
     case RendererEnum::PARTICLE:
         return makeAuto<ParticleRenderer>(settings);
-    case RendererEnum::SURFACE:
-        return makeAuto<SurfaceRenderer>(settings);
+    case RendererEnum::MESH:
+        return makeAuto<MeshRenderer>(settings);
     case RendererEnum::RAYTRACER:
         return makeAuto<RayTracer>(settings);
     default:

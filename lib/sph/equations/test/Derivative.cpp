@@ -11,9 +11,11 @@ TEST_CASE("Derivative require", "[derivative]") {
     REQUIRE(derivatives.getDerivativeCnt() == 0);
     derivatives.require(makeDerivative<VelocityDivergence>(settings));
     REQUIRE(derivatives.getDerivativeCnt() == 1);
-    // same type but different state -> ignore anyway
-    derivatives.require(makeDerivative<VelocityDivergence>(settings, DerivativeFlag::SUM_ONLY_UNDAMAGED));
+    derivatives.require(makeDerivative<VelocityDivergence>(settings));
     REQUIRE(derivatives.getDerivativeCnt() == 1);
+    REQUIRE_THROWS_AS(
+        derivatives.require(makeDerivative<VelocityDivergence>(settings, DerivativeFlag::SUM_ONLY_UNDAMAGED)),
+        InvalidSetup);
     derivatives.require(makeDerivative<VelocityGradient>(settings));
     REQUIRE(derivatives.getDerivativeCnt() == 2);
 }
@@ -40,7 +42,7 @@ TEST_CASE("Derivative equals", "[derivative]") {
     RunSettings settings;
     auto deriv1 = makeDerivative<VelocityDivergence>(settings, DerivativeFlag::SUM_ONLY_UNDAMAGED);
     auto deriv2 = makeDerivative<VelocityDivergence>(settings, DerivativeFlag::SUM_ONLY_UNDAMAGED);
-    auto deriv3 = makeDerivative<VelocityDivergence>(settings, DerivativeFlag::CORRECTED);
+    auto deriv3 = makeDerivative<VelocityDivergence>(settings, EMPTY_FLAGS);
     auto deriv4 = makeDerivative<VelocityGradient>(settings);
     REQUIRE(deriv1->equals(*deriv1));
     REQUIRE(deriv1->equals(*deriv2));

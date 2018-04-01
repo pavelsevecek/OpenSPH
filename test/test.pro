@@ -161,7 +161,8 @@ SOURCES += \
     main.cpp \
     utils/Approx.cpp \
     utils/SequenceTest.cpp \
-    utils/Utils.cpp
+    utils/Utils.cpp \
+    ../lib/sph/equations/test/Fluids.cpp
 
 HEADERS += \
     utils/Utils.h \

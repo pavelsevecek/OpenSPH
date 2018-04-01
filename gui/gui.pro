@@ -43,12 +43,12 @@ SOURCES += \
     objects/Movie.cpp \
     objects/Palette.cpp \
     renderers/ParticleRenderer.cpp \
-    renderers/SurfaceRenderer.cpp \
     windows/GlPane.cpp \
     windows/MainWindow.cpp \
     windows/OrthoPane.cpp \
     windows/PlotView.cpp \
-    renderers/RayTracer.cpp
+    renderers/RayTracer.cpp \
+    renderers/MeshRenderer.cpp
 
 HEADERS += \
     ArcBall.h \
@@ -70,7 +70,6 @@ HEADERS += \
     objects/SvgContext.h \
     renderers/IRenderer.h \
     renderers/ParticleRenderer.h \
-    renderers/SurfaceRenderer.h \
     windows/GlPane.h \
     windows/IGraphicsPane.h \
     windows/MainWindow.h \
@@ -80,4 +79,5 @@ HEADERS += \
     renderers/RenderContext.h \
     renderers/RayTracer.h \
     renderers/Brdf.h \
-    Uvw.h
+    Uvw.h \
+    renderers/MeshRenderer.h

@@ -39,8 +39,10 @@ private:
         AutoPtr<IBrdf> brdf;
 
         /// HDRI for the background. Can be empty.
-        // Bitmap hdri;
+        Texture hdri;
 
+        /// Textures of the rendered bodies. Can be empty. The textures are assigned to the bodies using their
+        /// flags (not material IDs).
         Array<Texture> textures;
 
         /// Cast shadows
@@ -123,6 +125,8 @@ private:
 
     /// \brief Returns the color of given hit point.
     Color shade(ThreadData& data, const Size index, const Vector& hit, const Vector& dir) const;
+
+    Color getEnviroColor(const Ray& ray) const;
 
     Float evalField(ArrayView<const Size> neighs, const Vector& pos) const;
 

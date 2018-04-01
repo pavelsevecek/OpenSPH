@@ -49,6 +49,14 @@ private:
             results.insert<Float>(QuantityId::ENERGY, OrderEnum::FIRST, BufferSource::SHARED);
         }
 
+        virtual bool equals(const IDerivative& other) const override {
+            if (!DerivativeTemplate<Derivative>::equals(other)) {
+                return false;
+            }
+            const Derivative* actOther = assert_cast<const Derivative*>(&other);
+            return n == actOther->n && xi == actOther->xi;
+        }
+
         INLINE void init(const Storage& input, Accumulated& results) {
             wp = input.getValue<Float>(QuantityId::INTERPARTICLE_SPACING_KERNEL);
             as = input.getValue<SymmetricTensor>(QuantityId::AV_STRESS);

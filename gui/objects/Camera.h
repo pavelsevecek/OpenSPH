@@ -158,19 +158,16 @@ private:
 
         /// Left vector of the camera, size of which of represents the image size at unit distance
         Vector left;
+
+        /// Last matrix set by \ref transform.
+        AffineMatrix matrix = AffineMatrix::identity();
     } cached;
 
 public:
     PerspectiveCamera(const Point imageSize, const PerspectiveCameraData& data)
         : imageSize(imageSize)
         , data(data) {
-        cached.dir = getNormalized(data.target - data.position);
-
-        const Float aspect = Float(imageSize.x) / Float(imageSize.y);
-        ASSERT(aspect >= 1._f); // not really required, using for simplicity
-        const Float tgfov = tan(0.5_f * data.fov);
-        cached.up = tgfov / aspect * getNormalized(data.up);
-        cached.left = tgfov * getNormalized(cross(cached.up, cached.dir));
+        this->update();
     }
 
     virtual Optional<ProjectedPoint> project(const Vector& r) const override {
@@ -216,15 +213,37 @@ public:
 
     virtual void zoom(const Point UNUSED(fixedPoint), const float magnitude) override {
         ASSERT(magnitude > 0.f);
-        data.fov *= magnitude;
+        data.fov *= 0.1_f * magnitude;
+        this->transform(cached.matrix);
     }
 
-    virtual void transform(const AffineMatrix& UNUSED(matrix)) override {
-        /// todo
+    virtual void transform(const AffineMatrix& matrix) override {
+        // reset the previous transform
+        this->update();
+
+        cached.dir = matrix * cached.dir;
+        cached.up = matrix * cached.up;
+        cached.left = matrix * cached.left;
+        cached.matrix = matrix;
     }
 
-    virtual void pan(const Point UNUSED(offset)) override {
-        /// todo
+    virtual void pan(const Point offset) override {
+        const Float x = Float(offset.x) / imageSize.x;
+        const Float y = Float(offset.y) / imageSize.y;
+        const Vector worldOffset = getLength(data.target - data.position) * (cached.left * x + cached.up * y);
+        data.position -= worldOffset;
+        data.target -= worldOffset;
+    }
+
+private:
+    void update() {
+        cached.dir = getNormalized(data.target - data.position);
+
+        const Float aspect = Float(imageSize.x) / Float(imageSize.y);
+        ASSERT(aspect >= 1._f); // not really required, using for simplicity
+        const Float tgfov = tan(0.5_f * data.fov);
+        cached.up = tgfov / aspect * getNormalized(data.up);
+        cached.left = tgfov * getNormalized(cross(cached.up, cached.dir));
     }
 };
 

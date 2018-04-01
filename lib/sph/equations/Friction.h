@@ -36,6 +36,14 @@ private:
                 QuantityId::VELOCITY_GRADIENT_OF_DIVERGENCE, OrderEnum::ZERO, BufferSource::UNIQUE);
         }
 
+        virtual bool equals(const IDerivative& other) const override {
+            if (!DerivativeTemplate<Derivative>::equals(other)) {
+                return false;
+            }
+            const Derivative* actOther = assert_cast<const Derivative*>(&other);
+            return eta == actOther->eta && zeta == actOther->zeta;
+        }
+
         INLINE void init(const Storage& input, Accumulated& results) {
             ArrayView<const Vector> dummy;
             tie(r, v, dummy) = input.getAll<Vector>(QuantityId::POSITION);
@@ -108,6 +116,14 @@ private:
             results.insert<Vector>(QuantityId::FRICTION, OrderEnum::ZERO, BufferSource::UNIQUE);
         }
 
+        virtual bool equals(const IDerivative& other) const override {
+            if (!DerivativeTemplate<Derivative>::equals(other)) {
+                return false;
+            }
+            const Derivative* actOther = assert_cast<const Derivative*>(&other);
+            return eta == actOther->eta;
+        }
+
         INLINE void init(const Storage& input, Accumulated& results) {
             tie(m, rho) = input.getValues<Float>(QuantityId::MASS, QuantityId::DENSITY);
             gradV = input.getValue<SymmetricTensor>(QuantityId::VELOCITY_GRADIENT);
@@ -170,6 +186,14 @@ private:
 
         virtual void create(Accumulated& results) override {
             results.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, BufferSource::SHARED);
+        }
+
+        virtual bool equals(const IDerivative& other) const override {
+            if (!DerivativeTemplate<Derivative>::equals(other)) {
+                return false;
+            }
+            const Derivative* actOther = assert_cast<const Derivative*>(&other);
+            return k == actOther->k;
         }
 
         INLINE void init(const Storage& input, Accumulated& results) {

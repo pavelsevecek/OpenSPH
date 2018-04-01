@@ -21,6 +21,8 @@ private:
     TextureFiltering filtering;
 
 public:
+    Texture() = default;
+
     explicit Texture(Bitmap&& bitmap, const TextureFiltering filtering)
         : bitmap(std::move(bitmap))
         , filtering(filtering) {}
@@ -39,6 +41,10 @@ public:
         default:
             NOT_IMPLEMENTED;
         }
+    }
+
+    bool empty() const {
+        return bitmap.empty();
     }
 
 private:

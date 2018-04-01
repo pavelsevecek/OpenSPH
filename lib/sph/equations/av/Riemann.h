@@ -35,6 +35,14 @@ public:
             results.insert<Float>(QuantityId::ENERGY, OrderEnum::FIRST, BufferSource::SHARED);
         }
 
+        virtual bool equals(const IDerivative& other) const override {
+            if (!DerivativeTemplate<Derivative>::equals(other)) {
+                return false;
+            }
+            const Derivative* actOther = assert_cast<const Derivative*>(&other);
+            return alpha == actOther->alpha;
+        }
+
         INLINE void init(const Storage& storage, Accumulated& results) {
             ArrayView<const Vector> dummy;
             tie(r, v, dummy) = storage.getAll<Vector>(QuantityId::POSITION);

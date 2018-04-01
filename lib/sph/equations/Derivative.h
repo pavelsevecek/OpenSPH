@@ -398,29 +398,21 @@ private:
 public:
     /// \brief Adds derivative if not already present.
     ///
-    /// If the derivative is already stored, new one is NOT stored, it is simply ignored, even the internal
-    /// state of the passed derivative is different.
+    /// If the derivative is already stored, new one is NOT stored, it is simply ignored. However, the new
+    /// derivative must be equal to the one already stored, which is checked using \ref IDerivative::equals.
+    /// If derivative has the same type, but different internal state, exception InvalidState is thrown.
     void require(AutoPtr<IDerivative>&& derivative);
 
     /// \brief Initialize derivatives before loop
     void initialize(const Storage& input);
 
-    /// \brief Evaluates all held derivatives.
-    void eval(const Size idx, ArrayView<const Size> neighs, ArrayView<const Vector> grads) {
-        ASSERT(neighs.size() == grads.size());
-        for (const auto& deriv : derivatives) {
-            deriv->evalNeighs(idx, neighs, grads);
-        }
-    }
+    /// \brief Evaluates all held derivatives for given particle.
+    void eval(const Size idx, ArrayView<const Size> neighs, ArrayView<const Vector> grads);
 
-    void evalSymmetric(const Size idx, ArrayView<const Size> neighs, ArrayView<const Vector> grads) {
-        ASSERT(neighs.size() == grads.size());
-        ASSERT(isSymmetric());
-        for (const auto& deriv : derivatives) {
-            SymmetricDerivative* symmetric = assert_cast<SymmetricDerivative*>(&*deriv);
-            symmetric->evalSymmetric(idx, neighs, grads);
-        }
-    }
+    /// \brief Evaluates all held derivatives symetrically for given particle pairs.
+    ///
+    /// Useful to limit the total number of evaluations - every particle pair can be evaluated only once.
+    void evalSymmetric(const Size idx, ArrayView<const Size> neighs, ArrayView<const Vector> grads);
 
     INLINE Accumulated& getAccumulated() {
         return accumulated;

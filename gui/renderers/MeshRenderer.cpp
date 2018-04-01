@@ -1,4 +1,4 @@
-#include "gui/renderers/SurfaceRenderer.h"
+#include "gui/renderers/MeshRenderer.h"
 #include "gui/objects/Camera.h"
 #include "gui/objects/Color.h"
 #include "gui/objects/Colorizer.h"
@@ -10,7 +10,7 @@
 
 NAMESPACE_SPH_BEGIN
 
-SurfaceRenderer::SurfaceRenderer(const GuiSettings& gui) {
+MeshRenderer::MeshRenderer(const GuiSettings& gui) {
     surfaceLevel = gui.get<Float>(GuiSettingsId::SURFACE_LEVEL);
     surfaceResolution = gui.get<Float>(GuiSettingsId::SURFACE_RESOLUTION);
     sunPosition = gui.get<Vector>(GuiSettingsId::SURFACE_SUN_POSITION);
@@ -23,7 +23,7 @@ SurfaceRenderer::SurfaceRenderer(const GuiSettings& gui) {
     kernel = Factory::getKernel<3>(settings);
 }
 
-void SurfaceRenderer::initialize(const Storage& storage,
+void MeshRenderer::initialize(const Storage& storage,
     const IColorizer& colorizer,
     const ICamera& UNUSED(camera)) {
     cached.colors.clear();
@@ -67,7 +67,7 @@ void SurfaceRenderer::initialize(const Storage& storage,
     }
 }
 
-SharedPtr<wxBitmap> SurfaceRenderer::render(const ICamera& camera,
+SharedPtr<wxBitmap> MeshRenderer::render(const ICamera& camera,
     const RenderParams& params,
     Statistics& stats) const {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);

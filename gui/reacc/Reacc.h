@@ -25,7 +25,7 @@ namespace Presets {
 class Stabilization : public IRunPhase {
 private:
     RawPtr<Controller> controller;
-    SharedPtr<Presets::Satellite> data;
+    SharedPtr<Presets::Collision> data;
 
 public:
     Function<void()> onSphFinished;
@@ -51,12 +51,12 @@ protected:
 
 class Fragmentation : public IRunPhase {
 private:
-    SharedPtr<Presets::Satellite> data;
+    SharedPtr<Presets::Collision> data;
 
     Function<void()> onFinished;
 
 public:
-    Fragmentation(SharedPtr<Presets::Satellite> data, Function<void()> onFinished);
+    Fragmentation(SharedPtr<Presets::Collision> data, Function<void()> onFinished);
 
     ~Fragmentation();
 
@@ -114,10 +114,16 @@ private:
             .set(GuiSettingsId::WINDOW_WIDTH, 1334)
             .set(GuiSettingsId::WINDOW_HEIGHT, 768)
             .set(GuiSettingsId::PARTICLE_RADIUS, 0.25_f)
-            .set(GuiSettingsId::SURFACE_RESOLUTION, 2.e3_f)
+            .set(GuiSettingsId::SURFACE_RESOLUTION, 1.e5_f)
             .set(GuiSettingsId::SURFACE_LEVEL, 0.1_f)
             .set(GuiSettingsId::SURFACE_AMBIENT, 0.1_f)
             .set(GuiSettingsId::SURFACE_SUN_POSITION, getNormalized(Vector(-0.4f, -0.1f, 0.6f)))
+            .set(GuiSettingsId::RAYTRACE_HDRI,
+                std::string("/home/pavel/projects/astro/sph/external/hdri3.jpg"))
+            .set(GuiSettingsId::RAYTRACE_TEXTURE_PRIMARY,
+                std::string("/home/pavel/projects/astro/sph/external/surface.jpg"))
+            .set(GuiSettingsId::RAYTRACE_TEXTURE_SECONDARY,
+                std::string("/home/pavel/projects/astro/sph/external/surface2.jpg"))
             .set(GuiSettingsId::CAMERA, int(CameraEnum::PERSPECTIVE))
             .set(GuiSettingsId::ORTHO_PROJECTION, OrthoEnum::XY)
             .set(GuiSettingsId::ORTHO_CUTOFF, 0._f)
