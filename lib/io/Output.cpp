@@ -34,6 +34,11 @@ Path OutputFile::getNextPath(const Statistics& stats) const {
     return Path(path);
 }
 
+bool OutputFile::hasWildcard() const {
+    std::string path = pathMask.native();
+    return path.find("%d") != std::string::npos || path.find("%t") != std::string::npos;
+}
+
 Path OutputFile::getMask() const {
     return pathMask;
 }
