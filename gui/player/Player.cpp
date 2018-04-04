@@ -19,8 +19,6 @@ void RunPlayer::setUp() {
     }
 
     std::string arg(wxTheApp->argv[1]);
-    // we also allow passing the first file instead of the mask
-    arg = replaceAll(arg, "0000", "%d");
     files = OutputFile(Path(arg));
     fileCnt = this->getFileCount(Path(arg));
 
@@ -42,11 +40,7 @@ void RunPlayer::setUp() {
         });
         return;
     } else {
-        // const Float t0 = stats.get<Float>(StatisticsId::RUN_TIME);
-        const Float dt = stats.get<Float>(StatisticsId::TIMESTEP_VALUE);
-        // const Interval origRange = settings.get<Interval>(RunSettingsId::RUN_TIME_RANGE);
-        // settings.set(RunSettingsId::RUN_TIME_RANGE, Interval(t0, origRange.upper()));
-        settings.set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, dt);
+        loadedTime = stats.get<Float>(StatisticsId::RUN_TIME);
     }
 
     callbacks = makeAuto<GuiCallbacks>(*controller);
@@ -54,6 +48,9 @@ void RunPlayer::setUp() {
 
 Size RunPlayer::getFileCount(const Path& pathMask) const {
     OutputFile of(pathMask);
+    if (!of.hasWildcard()) {
+        return FileSystem::pathExists(pathMask) ? 1 : 0;
+    }
     Size cnt = 0;
     Statistics stats;
     while (true) {
@@ -73,7 +70,7 @@ void RunPlayer::run() {
     logger->write("Running:");
 
     Statistics stats;
-    stats.set(StatisticsId::RUN_TIME, 0._f);
+    stats.set(StatisticsId::RUN_TIME, loadedTime);
     callbacks->onRunStart(*storage, stats);
 
     const Size stepMilliseconds = Size(1000._f / fps);

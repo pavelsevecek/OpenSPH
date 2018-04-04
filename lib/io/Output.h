@@ -21,9 +21,18 @@ public:
 
     OutputFile(const Path& pathMask);
 
-    /// Returns path to the next output file, incrementing the internal counter. No file is created by this.
+    /// \brief Returns path to the next output file.
+    ///
+    /// This increments the internal counter. Function is const so that it can be used in const functions. No
+    /// file is created by this.
     Path getNextPath(const Statistics& stats) const;
 
+    /// \brief Returns true if the file mask contains (at least one) wildcard.
+    ///
+    /// If not, \ref getNextPath will always return the same path.
+    bool hasWildcard() const;
+
+    /// \brief Returns the file mask as given in constructor.
     Path getMask() const;
 };
 

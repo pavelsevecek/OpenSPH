@@ -22,6 +22,8 @@ private:
 
     Float fps = 10._f;
 
+    Float loadedTime;
+
 public:
     RunPlayer();
 
