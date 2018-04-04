@@ -38,6 +38,22 @@ struct TwoBodyParams {
     Function<Float(const Vector& r)> concentration;
 };
 
+
+enum class CollisionSettingsId {
+    TARGET_RADIUS,
+    TARGET_PARTICLE_CNT,
+    MIN_PARTICLE_CNT,
+    CENTER_OF_MASS_FRAME,
+    IMPACTOR_RADIUS,
+    IMPACT_SPEED,
+    IMPACT_ANGLE,
+    TARGET_ROTATION,
+    IMPACTOR_OFFSET,
+    OPTIMIZE_IMPACTOR
+};
+
+using CollisionSettings = Settings<CollisionSettingsId>;
+
 struct CollisionParams : public TwoBodyParams {
 
     /// Radius of the projectile in meters
@@ -68,6 +84,8 @@ struct CollisionParams : public TwoBodyParams {
     /// This significantly improves the performance of the code. The option is intended mainly for cratering
     /// impacts and should be always false when simulating collision of bodies of comparable sizes.
     bool optimizeImpactor = true;
+
+    bool loadFromFile(const Path& path);
 };
 
 /// \brief Object for setting up initial conditions of asteroid impact.

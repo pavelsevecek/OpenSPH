@@ -1,0 +1,70 @@
+#include "physics/Units.h"
+#include "catch.hpp"
+#include "tests/Approx.h"
+#include "utils/Utils.h"
+
+using namespace Sph;
+
+TEST_CASE("Unit systems", "[units]") {
+    Unit u1(5._f, BasicDimension::MASS, UnitSystem::CGS());
+    REQUIRE(u1 == 5._g);
+    REQUIRE(u1.value(UnitSystem::CGS()) == 5._f);
+    REQUIRE(u1.value(UnitSystem::SI()) == 5.e-3_f);
+}
+
+TEST_CASE("Unit sum and diff", "[units]") {
+    Unit u1 = 5._m;
+    Unit u2 = 7._m;
+    REQUIRE(u1 + u2 == 12._m);
+    REQUIRE(u1 - u2 == -2._m);
+    u1 += u2;
+    REQUIRE(u1 == 12._m);
+    u2 -= u1;
+    REQUIRE(u2 == -5._m);
+}
+
+TEST_CASE("Unit product and div", "[units]") {
+    Unit u1 = 6._m;
+    Unit u2 = 3._s;
+    Unit prod = u1 * u2;
+    REQUIRE(prod.value(UnitSystem::SI()) == 18._f);
+    REQUIRE(prod.dimension() == UnitDimensions::length() + UnitDimensions::time());
+
+    Unit diff = u1 / u2;
+    REQUIRE(diff.value(UnitSystem::SI()) == 2._f);
+    REQUIRE(diff.dimension() == UnitDimensions::velocity());
+    REQUIRE(diff == 2._mps);
+
+    u1 *= 5._f;
+    REQUIRE(u1 == 30._m);
+    u2 *= 2._kg;
+    REQUIRE(u2.value(UnitSystem::SI()) == 6);
+    REQUIRE(u2.dimension() == UnitDimensions::mass() + UnitDimensions::time());
+
+    u2 /= 6._g;
+    REQUIRE(u2 == 1000._s);
+}
+
+TEST_CASE("Unit invalid operations", "[units]") {
+    Unit u1 = 6._m;
+    Unit u2 = 3._s;
+    REQUIRE_ASSERT(u1 + u2);
+    REQUIRE_ASSERT(u1 - u2);
+}
+
+TEST_CASE("Unit parseUnit", "[units]") {
+    Expected<Unit> u1 = parseUnit("m");
+    REQUIRE(u1.value() == 1._m);
+    Expected<Unit> u2 = parseUnit("km h^-1");
+    REQUIRE(u2.value() == approx(0.27777777_mps, 1.e-6_f));
+    Expected<Unit> u3 = parseUnit("");
+    REQUIRE(u3.value() == Unit::dimensionless(1._f));
+    Expected<Unit> u4 = parseUnit("kg m^2 s^-2");
+    REQUIRE(u4.value().value(UnitSystem::SI()) == 1._f);
+    REQUIRE(u4.value().dimension() == UnitDimensions::energy());
+
+    REQUIRE_FALSE(parseUnit("kgm"));
+    REQUIRE_FALSE(parseUnit("m^2s"));
+    REQUIRE_FALSE(parseUnit("m^2^3"));
+    REQUIRE_FALSE(parseUnit("kg^ "));
+}

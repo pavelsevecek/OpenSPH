@@ -7,6 +7,38 @@
 
 NAMESPACE_SPH_BEGIN
 
+template <>
+AutoPtr<Presets::CollisionSettings> Presets::CollisionSettings::instance(new Presets::CollisionSettings{
+    /// Renderer
+    { Presets::CollisionSettingsId::TARGET_RADIUS, "target_radius", 1.e4_f },
+    { Presets::CollisionSettingsId::TARGET_PARTICLE_CNT, "target_particle_cnt", 100000 },
+    { Presets::CollisionSettingsId::MIN_PARTICLE_CNT, "min_particle_cnt", 100 },
+    { Presets::CollisionSettingsId::CENTER_OF_MASS_FRAME, "center_of_mass_frame", true },
+    { Presets::CollisionSettingsId::IMPACTOR_RADIUS, "impactor_radius", 1.e3_f },
+    { Presets::CollisionSettingsId::IMPACT_SPEED, "impact_speed", 5.e3_f },
+    { Presets::CollisionSettingsId::IMPACT_ANGLE, "impact_angle", 45._f * DEG_TO_RAD },
+    { Presets::CollisionSettingsId::TARGET_ROTATION, "target_rotation", 0._f },
+    { Presets::CollisionSettingsId::IMPACTOR_OFFSET, "impactor_offset", 4 },
+    { Presets::CollisionSettingsId::OPTIMIZE_IMPACTOR, "optimize_impactor", true },
+});
+
+bool Presets::CollisionParams::loadFromFile(const Path& path) {
+    CollisionSettings settings;
+    if (!settings.loadFromFile(path)) {
+        return false;
+    }
+    targetRadius = settings.get<Float>(CollisionSettingsId::TARGET_RADIUS);
+    targetParticleCnt = settings.get<int>(CollisionSettingsId::TARGET_PARTICLE_CNT);
+    minParticleCnt = settings.get<int>(CollisionSettingsId::MIN_PARTICLE_CNT);
+    centerOfMassFrame = settings.get<bool>(CollisionSettingsId::CENTER_OF_MASS_FRAME);
+    impactorRadius = settings.get<Float>(CollisionSettingsId::IMPACTOR_RADIUS);
+    impactSpeed = settings.get<Float>(CollisionSettingsId::IMPACT_SPEED);
+    impactAngle = settings.get<Float>(CollisionSettingsId::IMPACT_ANGLE);
+    impactorOffset = settings.get<int>(CollisionSettingsId::IMPACTOR_OFFSET);
+    optimizeImpactor = settings.get<bool>(CollisionSettingsId::OPTIMIZE_IMPACTOR);
+    return true;
+}
+
 Presets::Collision::Collision(ISolver& solver,
     const RunSettings& settings,
     const BodySettings& body,
@@ -15,7 +47,7 @@ Presets::Collision::Collision(ISolver& solver,
     , _body(body)
     , _params(params) {
     ASSERT(params.impactAngle >= 0._f && params.impactAngle < 2._f * PI);
-    ASSERT(params.impactSpeed > 0._f);
+    ASSERT(params.impactSpeed >= 0._f);
     _body.set(BodySettingsId::PARTICLE_COUNT, int(_params.targetParticleCnt));
     // this has to match the actual center/velocity/rotation of the target below
     _body.set(BodySettingsId::BODY_CENTER, Vector(0._f));

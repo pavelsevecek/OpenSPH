@@ -2,26 +2,60 @@
 
 NAMESPACE_SPH_BEGIN
 
-template <typename T>
-Optional<T> fromString(const std::string& s) {
-    std::stringstream ss(s);
-    T value;
-    ss >> value;
-    if (ss.fail()) {
-        return NOTHING;
-    } else {
-        return value;
-    }
-}
-
 template <>
 Optional<std::string> fromString(const std::string& s) {
     return s;
 }
 
-template Optional<int> fromString(const std::string& s);
-template Optional<Size> fromString(const std::string& s);
-template Optional<float> fromString(const std::string& s);
+template <>
+Optional<int> fromString(const std::string& s) {
+    try {
+        std::size_t idx;
+        const int result = std::stoi(s, &idx);
+        if (idx == s.size()) {
+            return result;
+        } else {
+            return NOTHING;
+        }
+    } catch (std::exception&) {
+        return NOTHING;
+    }
+}
+
+template <>
+Optional<Size> fromString(const std::string& s) {
+    try {
+        std::size_t idx;
+        const Size result = std::stoul(s, &idx);
+        if (idx == s.size()) {
+            return result;
+        } else {
+            return NOTHING;
+        }
+    } catch (std::exception&) {
+        return NOTHING;
+    }
+}
+
+template <>
+Optional<float> fromString(const std::string& s) {
+    try {
+        std::size_t idx;
+        const float result = std::stof(s, &idx);
+        if (idx == s.size()) {
+            return result;
+        } else {
+            return NOTHING;
+        }
+    } catch (std::exception&) {
+        return NOTHING;
+    }
+}
+
+template Optional<std::string> fromString(const std::string&);
+template Optional<int> fromString(const std::string&);
+template Optional<Size> fromString(const std::string&);
+template Optional<float> fromString(const std::string&);
 
 
 std::string trim(const std::string& s) {

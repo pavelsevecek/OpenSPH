@@ -4,9 +4,9 @@
 #include "gui/MainLoop.h"
 #include "gui/objects/Camera.h"
 #include "gui/objects/Colorizer.h"
+#include "gui/renderers/MeshRenderer.h"
 #include "gui/renderers/ParticleRenderer.h"
 #include "gui/renderers/RayTracer.h"
-#include "gui/renderers/MeshRenderer.h"
 #include "gui/windows/GlPane.h"
 #include "gui/windows/OrthoPane.h"
 #include "gui/windows/ParticleProbe.h"
@@ -309,7 +309,7 @@ wxBoxSizer* MainWindow::createSidebar() {
     TemporalPlot::Params params;
     params.minRangeY = 1.4_f;
     params.shrinkY = false;
-    params.period = 0.1_f;
+    params.period = gui.get<Float>(GuiSettingsId::PLOT_INITIAL_PERIOD);
 
     PlotData data;
     IntegralWrapper integral;

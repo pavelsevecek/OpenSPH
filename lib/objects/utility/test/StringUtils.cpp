@@ -16,3 +16,8 @@ TEST_CASE("String split", "[string]") {
     REQUIRE(parts.size() == 1);
     REQUIRE(parts[0] == csv);
 }
+
+TEST_CASE("fromString", "[string]") {
+    Optional<int> o1 = fromString<int>("53");
+    REQUIRE(o1.value() == 53);
+}

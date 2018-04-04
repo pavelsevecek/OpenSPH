@@ -4,8 +4,8 @@
 #include "gui/objects/Camera.h"
 #include "gui/objects/Colorizer.h"
 #include "gui/objects/Movie.h"
-#include "gui/renderers/ParticleRenderer.h"
 #include "gui/renderers/MeshRenderer.h"
+#include "gui/renderers/ParticleRenderer.h"
 #include "gui/windows/MainWindow.h"
 #include "gui/windows/OrthoPane.h"
 #include "run/IRun.h"
@@ -36,7 +36,7 @@ Controller::~Controller() = default;
 
 void Controller::Vis::initialize(const GuiSettings& gui) {
     renderer = Factory::getRenderer(gui);
-    colorizer = Factory::getColorizer(gui, ColorizerId::BEAUTY);
+    colorizer = Factory::getColorizer(gui, ColorizerId::VELOCITY);
     timer = makeAuto<Timer>(gui.get<int>(GuiSettingsId::VIEW_MAX_FRAMERATE), TimerFlags::START_EXPIRED);
     const Point size(gui.get<int>(GuiSettingsId::RENDER_WIDTH), gui.get<int>(GuiSettingsId::RENDER_HEIGHT));
     camera = Factory::getCamera(gui, size);

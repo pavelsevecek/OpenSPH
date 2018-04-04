@@ -17,7 +17,6 @@ IMPLEMENT_APP(Sph::App);
 NAMESPACE_SPH_BEGIN
 
 AsteroidCollision::AsteroidCollision() {
-
     settings.set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::PREDICTOR_CORRECTOR)
         .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 0.01_f)
         .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 100._f)
@@ -94,7 +93,7 @@ void AsteroidCollision::setUp() {
             }
         }
     } else {
-        Size N = 50000;
+        Size N = 10000;
 
         BodySettings body;
         body.set(BodySettingsId::ENERGY, 0._f)
@@ -103,15 +102,14 @@ void AsteroidCollision::setUp() {
             .set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::SCALAR_GRADY_KIPP)
             .set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::VON_MISES)
             .set(BodySettingsId::DISTRIBUTE_MODE_SPH5, true)
-            .set(BodySettingsId::INITIAL_DISTRIBUTION, DistributionEnum::DIEHL_ET_AL)
             .set(BodySettingsId::ENERGY_MIN, 10._f)
             .set(BodySettingsId::DAMAGE_MIN, 0.5_f);
 
         Presets::CollisionParams params;
-        params.targetRadius = 1.e3_f;   // D = 2km
-        params.impactorRadius = 1.e3_f; // D = 2km
+        params.targetRadius = 1e3_f;   // D = 2km
+        params.impactorRadius = 1e3_f; // D = 2km
         params.impactAngle = 45._f * DEG_TO_RAD;
-        params.impactSpeed = 9._f; // v_imp = 5km/s
+        params.impactSpeed = 5._f; // v_imp = 5km/s
         params.targetRotation = 0._f;
         params.targetParticleCnt = N;
         params.centerOfMassFrame = true;

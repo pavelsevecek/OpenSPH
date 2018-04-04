@@ -94,7 +94,6 @@ SOURCES += \
     system/Platform.cpp \
     system/Process.cpp \
     system/Profiler.cpp \
-    system/Settings.cpp \
     system/Statistics.cpp \
     system/Timer.cpp \
     tests/Setup.cpp \
@@ -104,7 +103,8 @@ SOURCES += \
     timestepping/TimeStepping.cpp \
     sph/equations/Derivative.cpp \
     sph/solvers/SummationSolver.cpp \
-    sph/initial/Presets.cpp
+    sph/initial/Presets.cpp \
+    system/Settings.cpp
 
 HEADERS += \
     common/Assert.h \
@@ -281,6 +281,7 @@ HEADERS += \
     system/Profiler.h \
     system/RunCallbacks.h \
     system/Settings.h \
+    system/Settings.inl.h \
     system/Statistics.h \
     system/Timer.h \
     tests/Approx.h \
@@ -294,4 +295,5 @@ HEADERS += \
     timestepping/ISolverr.h \
     timestepping/TimeStepCriterion.h \
     timestepping/TimeStepping.h \
-    io/OutOfCore.h
+    io/OutOfCore.h \
+    system/Settings.inl.h

@@ -1,6 +1,10 @@
 #pragma once
 
-#include "common/Assert.h"
+#include "math/Math.h"
+#include "objects/containers/FlatMap.h"
+#include "objects/containers/StaticArray.h"
+#include "objects/utility/StringUtils.h"
+#include "objects/wrappers/Expected.h"
 #include "physics/Constants.h"
 
 NAMESPACE_SPH_BEGIN
@@ -22,11 +26,6 @@ NAMESPACE_SPH_BEGIN
 /// 3) Input/output units
 ///     Selected units of input or output values.
 
-class Dimensions {
-    // use only the units we need, we can extend it any time
-    StaticArray<int, 3> f;
-};
-
 enum class BasicDimension {
     LENGTH,
     MASS,
@@ -35,13 +34,181 @@ enum class BasicDimension {
 
 constexpr Size DIMENSION_CNT = 3;
 
-class UnitSystem : public Noncopyable {
+// use only the units we need, we can extend it any time
+class UnitDimensions {
+private:
+    StaticArray<int, DIMENSION_CNT> values;
+
+public:
+    UnitDimensions() = default;
+
+    UnitDimensions(const BasicDimension& basicDimension) {
+        values.fill(0);
+        values[int(basicDimension)] = 1;
+    }
+
+    UnitDimensions(const UnitDimensions& other) {
+        for (Size i = 0; i < DIMENSION_CNT; ++i) {
+            values[i] = other.values[i];
+        }
+    }
+
+    UnitDimensions(const int length, const int mass, const int time)
+        : values{ length, mass, time } {}
+
+    UnitDimensions& operator=(const UnitDimensions& other) {
+        for (Size i = 0; i < DIMENSION_CNT; ++i) {
+            values[i] = other.values[i];
+        }
+        return *this;
+    }
+
+    int& operator[](const BasicDimension dim) {
+        return values[int(dim)];
+    }
+
+    int operator[](const BasicDimension dim) const {
+        return values[int(dim)];
+    }
+
+    UnitDimensions& operator+=(const UnitDimensions& other) {
+        for (Size i = 0; i < DIMENSION_CNT; ++i) {
+            values[i] += other.values[i];
+        }
+        return *this;
+    }
+
+    UnitDimensions& operator-=(const UnitDimensions& other) {
+        for (Size i = 0; i < DIMENSION_CNT; ++i) {
+            values[i] -= other.values[i];
+        }
+        return *this;
+    }
+
+    friend UnitDimensions operator+(const UnitDimensions& dim1, const UnitDimensions& dim2) {
+        UnitDimensions sum(dim1);
+        sum += dim2;
+        return sum;
+    }
+
+    friend UnitDimensions operator-(const UnitDimensions& dim1, const UnitDimensions& dim2) {
+        UnitDimensions diff(dim1);
+        diff -= dim2;
+        return diff;
+    }
+
+    UnitDimensions operator-() const {
+        UnitDimensions dims;
+        for (Size i = 0; i < DIMENSION_CNT; ++i) {
+            dims.values[i] = -values[i];
+        }
+        return dims;
+    }
+
+    UnitDimensions& operator*=(const int mult) {
+        for (Size i = 0; i < DIMENSION_CNT; ++i) {
+            values[i] *= mult;
+        }
+        return *this;
+    }
+
+    friend UnitDimensions operator*(const UnitDimensions& dim, const int mult) {
+        UnitDimensions result(dim);
+        result *= mult;
+        return result;
+    }
+
+    friend UnitDimensions operator*(const int mult, const UnitDimensions& dim) {
+        return dim * mult;
+    }
+
+
+    bool operator==(const UnitDimensions& other) const {
+        return values == other.values;
+    }
+
+    bool operator!=(const UnitDimensions& other) const {
+        return values != other.values;
+    }
+
+    static UnitDimensions length() {
+        return BasicDimension::LENGTH;
+    }
+
+    static UnitDimensions mass() {
+        return BasicDimension::MASS;
+    }
+
+    static UnitDimensions time() {
+        return BasicDimension::TIME;
+    }
+
+    static UnitDimensions velocity() {
+        return length() - time();
+    }
+
+    static UnitDimensions acceleration() {
+        return length() - 2 * time();
+    }
+
+    static UnitDimensions area() {
+        return 2 * length();
+    }
+
+    static UnitDimensions volume() {
+        return 3 * length();
+    }
+
+    static UnitDimensions density() {
+        return mass() - volume();
+    }
+
+    static UnitDimensions numberDensity() {
+        return -volume();
+    }
+
+    static UnitDimensions force() {
+        return mass() + acceleration();
+    }
+
+    static UnitDimensions energy() {
+        return force() + length();
+    }
+
+    static UnitDimensions energyDensity() {
+        return energy() - volume();
+    }
+
+    static UnitDimensions power() {
+        return energy() - time();
+    }
+};
+
+
+class UnitSystem {
 private:
     StaticArray<Float, DIMENSION_CNT> coeffs;
 
 public:
-    template <typename Type>
-    Unit<Type> getUnit(const Type& value, const Dimensions& dimensions) {}
+    UnitSystem() = default;
+
+    UnitSystem(const UnitSystem& other) {
+        for (Size i = 0; i < DIMENSION_CNT; ++i) {
+            coeffs[i] = other.coeffs[i];
+        }
+    }
+
+    UnitSystem(const Float length, const Float mass, const Float time)
+        : coeffs{ length, mass, time } {}
+
+    /// \brief Returns the conversion factor with a respect to the reference unit system.
+    Float getFactor(const UnitDimensions& dimensions) const {
+        Float factor = 1._f;
+        for (Size i = 0; i < DIMENSION_CNT; ++i) {
+            factor *= std::pow(coeffs[i], dimensions[BasicDimension(i)]);
+        }
+        return factor;
+    }
 
     static UnitSystem SI() {
         return { 1._f, 1._f, 1._f };
@@ -52,54 +219,182 @@ public:
     }
 };
 
+UnitSystem CODE_UNITS = UnitSystem::SI();
+
 /// \todo better name
-template <typename Type>
 class Unit {
 private:
-    Type value;
+    Float data;
+    UnitDimensions dimensions;
 
 public:
     Unit() = default;
 
-    Unit(const Type& value, const UnitSystem& system) {}
-
-    /// Expected format: kg^3 m s^-1
-    /// No * or / symbols allowed, used powers
-    static Expected<Unit> parse(const std::string& text) {
-        // unit symbols can only contains letters (both lowercase and uppercase) and underscores
-        Size idx0 = 0;
-        for (Size i = 0; i < text.size(); ++i) {
-            if ((text[i] >= 'a' && text[i] <= 'z') || (text[i] >= 'A' && text[i] <= 'Z') || text[i] == '_') {
-                continue;
-            }
-            std::string symbol = text.substr(idx0, i - idx0);
-            UnitDescriptor* ptr = std::find_if(std::begin(UNITS),
-                std::end(UNITS),
-                [&symbol](UnitDescriptor& desc) { return desc.symbol == symbol; });
-            if (ptr != std::end(UNITS)) {
-                // symbol
-            } else {
-                return makeUnexpected<Unit>("Unexpected unit symbol: " + symbol);
-            }
-
-            if (text[i] == "^") {
-                // make power
-            }
-        }
+    /// \brief Creates a unit, given its value, dimensions and a unit system in which the value is expressed.
+    Unit(const Float& value, const UnitDimensions& dimensions, const UnitSystem& system)
+        : dimensions(dimensions) {
+        // convert value to code units
+        const Float conversion = system.getFactor(dimensions) / CODE_UNITS.getFactor(dimensions);
+        this->data = conversion * value;
     }
 
-    /// Prints in the most suitable units (so that the value is as close to 1 as possible). Can be only used
-    /// with base units.
-    std::string human() const {
+    /// \brief Returns the value in given unit system.
+    Float value(const UnitSystem& system) const {
+        return data / system.getFactor(dimensions);
+    }
+
+    UnitDimensions dimension() const {
+        return dimensions;
+    }
+
+    /// Arithmetics
+    Unit& operator+=(const Unit& other) {
+        ASSERT(dimensions == other.dimensions);
+        data += other.data;
+        return *this;
+    }
+
+    Unit& operator-=(const Unit& other) {
+        ASSERT(dimensions == other.dimensions);
+        data -= other.data;
+        return *this;
+    }
+
+    Unit operator-() const {
+        Unit neg;
+        neg.dimensions = dimensions;
+        neg.data = -data;
+        return neg;
+    }
+
+    Unit& operator*=(const Float f) {
+        data *= f;
+        return *this;
+    }
+
+    Unit& operator*=(const Unit& other) {
+        data *= other.data;
+        dimensions += other.dimensions;
+        return *this;
+    }
+
+    Unit& operator/=(const Unit& other) {
+        data /= other.data;
+        dimensions -= other.dimensions;
+        return *this;
+    }
+
+    bool operator==(const Unit& other) const {
+        ASSERT(dimensions == other.dimensions);
+        return data == other.data;
+    }
+
+    bool operator!=(const Unit& other) const {
+        return !(*this == other);
+    }
+
+    bool operator<(const Unit& other) const {
+        ASSERT(dimensions == other.dimensions);
+        return data < other.data;
+    }
+
+    bool operator<=(const Unit& other) const {
+        ASSERT(dimensions == other.dimensions);
+        return data <= other.data;
+    }
+
+    bool operator>(const Unit& other) const {
+        return !(*this <= other);
+    }
+
+    bool operator>=(const Unit& other) const {
+        return !(*this < other);
+    }
+
+    /// Utility functions
+
+    /// \brief Prints in the most suitable units (so that the value is as close to 1 as possible).
+    ///
+    /// Can be only used with base units.
+    /*std::string human() const {
         const Float ratio;
         for (UnitDescriptor& desc : UNITS) {
             if (desc.value.type() == this->type()) {
             }
         }
+    }*/
+
+    friend std::ostream& operator<<(std::ostream& stream, const Unit& u) {
+        /// \todo
+        stream << u.value(UnitSystem::SI());
+        return stream;
+    }
+
+    friend Unit pow(const Unit& u, const int power) {
+        Unit result;
+        result.data = std::pow(u.data, power);
+        result.dimensions = u.dimensions * power;
+        return result;
+    }
+
+    friend bool almostEqual(const Unit& u1, const Unit& u2, const Float eps) {
+        ASSERT(u1.dimensions == u2.dimensions);
+        return Sph::almostEqual(u1.data, u2.data, eps);
+    }
+
+    static Unit dimensionless(const Float value) {
+        return Unit(value, UnitDimensions(0, 0, 0), UnitSystem::SI());
+    }
+
+    static Unit kilogram(const Float value) {
+        return Unit(value, BasicDimension::MASS, UnitSystem::SI());
+    }
+
+    static Unit meter(const Float value) {
+        return Unit(value, BasicDimension::LENGTH, UnitSystem::SI());
+    }
+
+    static Unit second(const Float value) {
+        return Unit(value, BasicDimension::TIME, UnitSystem::SI());
     }
 };
 
-enum class UnitEnum {
+inline Unit operator+(const Unit& u1, const Unit& u2) {
+    Unit sum(u1);
+    sum += u2;
+    return sum;
+}
+
+inline Unit operator-(const Unit& u1, const Unit& u2) {
+    Unit diff(u1);
+    diff -= u2;
+    return diff;
+}
+
+inline Unit operator*(const Unit& u, const Float f) {
+    Unit mult(u);
+    mult *= f;
+    return mult;
+}
+
+inline Unit operator*(const Float f, const Unit& u) {
+    return u * f;
+}
+
+inline Unit operator*(const Unit& u1, const Unit& u2) {
+    Unit mult(u1);
+    mult *= u2;
+    return mult;
+}
+
+inline Unit operator/(const Unit& u1, const Unit& u2) {
+    Unit div(u1);
+    div /= u2;
+    return div;
+}
+
+
+/*enum class UnitEnum {
     /// SI units
     KILOGRAM,
     METER,
@@ -122,33 +417,116 @@ enum class UnitEnum {
     HOUR,
     DAY,
     YEAR,
+
+    /// Derived reciprocal time units
+    REVS_PER_DAY,
+    HERTZ,
+};*/
+
+
+INLINE Unit operator"" _kg(long double value) {
+    return Unit::kilogram(value);
+}
+INLINE Unit operator"" _g(long double value) {
+    return 1.e-3_kg * value;
+}
+INLINE Unit operator"" _m(long double value) {
+    return Unit::meter(value);
+}
+INLINE Unit operator"" _cm(long double value) {
+    return 0.01_m * value;
+}
+INLINE Unit operator"" _mm(long double value) {
+    return 1.e-3_m * value;
+}
+INLINE Unit operator"" _km(long double value) {
+    return 1.e3_m * value;
+}
+INLINE Unit operator"" _s(long double value) {
+    return Unit::second(value);
+}
+
+INLINE Unit operator"" _mps(long double value) {
+    return Unit(value, UnitDimensions::velocity(), UnitSystem::SI());
+}
+
+FlatMap<std::string, Unit> UNITS = {
+    { "kg", 1._kg },
+    { "g", 1.e-3_kg },
+    { "M_sun", Unit::kilogram(Constants::M_sun) },
+    { "M_earth", Unit::kilogram(Constants::M_earth) },
+
+    { "m", 1._m },
+    { "mm", 1.e-3_m },
+    { "cm", 1.e-2_m },
+    { "km", 1.e3_m },
+    { "au", Unit::meter(Constants::au) },
+
+    { "s", 1._s },
+    { "min", 60._s },
+    { "h", 3600._s },
+    { "d", 86400._s },
+    { "y", 31556926._s },
+
+    //    { UnitEnum::KELVIN, "K", 1._K },
 };
 
-struct UnitDescriptor {
-    UnitEnum id;
-    std::string symbol;
-    Unit value;
-};
+inline Expected<Unit> parseUnit(const std::string& text) {
+    Unit u = Unit::dimensionless(1._f);
+    Array<std::string> parts = split(text, ' ');
+    for (std::string& part : parts) {
+        if (part.empty()) {
+            // multiple spaces or empty input string; allow and continue
+            continue;
+        }
+        Array<std::string> valueAndPower = split(part, '^');
+        if (valueAndPower.size() > 2) {
+            return makeUnexpected<Unit>("More than one exponent");
+        }
+        ASSERT(valueAndPower.size() == 1 || valueAndPower.size() == 2);
+        int power;
+        if (valueAndPower.size() == 1) {
+            // just unit without any power
+            power = 1;
+        } else {
+            if (Optional<int> optPower = fromString<int>(valueAndPower[1])) {
+                power = optPower.value();
+            } else {
+                return makeUnexpected<Unit>("Cannot convert power to int");
+            }
+        }
+        if (auto optValue = UNITS.tryGet(valueAndPower[0])) {
+            u *= pow(optValue.value(), power);
+        } else {
+            return makeUnexpected<Unit>("Unknown unit: " + valueAndPower[0]);
+        }
+    }
+    return u;
+}
 
-UnitDescriptor UNITS[] = {
-    { UnitEnum::KILOGRAM, "kg", 1._kg },
-    { UnitEnum::GRAM, "g", 1.e-3_kg },
-    { UnitEnum::SOLAR_MASS, "M_sun", Constants::M_sun },
-    { UnitEnum::EARTH_MASS, "M_earth", Constants::M_earth },
+/// Expected format: kg^3 m s^-1
+/// No * or / symbols allowed, used powers
+/*static Expected<Unit> parseUnit(const std::string& text) {
+    // unit symbols can only contains letters (both lowercase and uppercase) and underscores
+    Size idx0 = 0;
+    for (Size i = 0; i < text.size(); ++i) {
+        if ((text[i] >= 'a' && text[i] <= 'z') || (text[i] >= 'A' && text[i] <= 'Z') || text[i] == '_') {
+            continue;
+        }
+        std::string symbol = text.substr(idx0, i - idx0);
+        UnitDescriptor* ptr = std::find_if(std::begin(UNITS),
+            std::end(UNITS),
+            [&symbol](UnitDescriptor& desc) { return desc.symbol == symbol; });
+        if (ptr != std::end(UNITS)) {
+            // symbol
+        } else {
+            return makeUnexpected<Unit>("Unexpected unit symbol: " + symbol);
+        }
 
-    { UnitEnum::METER, "m", 1._m },
-    { UnitEnum::MILLIMETER, "mm", 1.e-3_m },
-    { UnitEnum::CENTIMETER, "cm", 1.e-2_m },
-    { UnitEnum::KILOMETER, "kg", 1.e3_m },
-    { UnitEnum::AU, "au", Constants::au },
-
-    { UnitEnum::SECOND, "s", 1._s },
-    { UnitEnum::MINUTE, "min", 60._s },
-    { UnitEnum::HOUR, "h", 3600._s },
-    { UnitEnum::DAY, "d", 86400._s },
-    { UnitEnum::YEAR, "y", 31556926._s },
-
-    { UnitEnum::KELVIN, "K", 1._K },
-};
+        if (text[i] == "^") {
+            // make power
+        }
+    }
+}*/
 
 NAMESPACE_SPH_END

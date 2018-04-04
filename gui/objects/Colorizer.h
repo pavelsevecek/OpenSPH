@@ -631,12 +631,12 @@ public:
         u = makeArrayRef(storage.getValue<Float>(QuantityId::ENERGY), ref);
 
         // IMaterial& mat = storage.getMaterial(0).material();
-        const float u_iv = 1.e4_f; // mat.getParam<Float>(BodySettingsId::TILLOTSON_ENERGY_IV);
-        const float u_cv = 1.e5_f; // mat.getParam<Float>(BodySettingsId::TILLOTSON_ENERGY_CV);
+        const float u_iv = 3.e4_f; // mat.getParam<Float>(BodySettingsId::TILLOTSON_ENERGY_IV);
+        const float u_cv = 5.e5_f; // mat.getParam<Float>(BodySettingsId::TILLOTSON_ENERGY_CV);
         palette = Palette({ { 0.01f * u_iv, Color(0.5f, 0.5f, 0.5) },
                               { 0.5f * u_iv, Color(0.5f, 0.5f, 0.5f) },
                               { u_iv, Color(1.5f, 0.f, 0.f) },
-                              { u_cv, Color(3.f, 3.f, 1.5) } },
+                              { u_cv, Color(2.f, 2.f, 0.95) } },
             PaletteScale::LOGARITHMIC);
     }
 

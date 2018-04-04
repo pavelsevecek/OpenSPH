@@ -39,10 +39,11 @@ AutoPtr<GuiSettings> GuiSettings::instance (new GuiSettings {
     { GuiSettingsId::RAYTRACE_TEXTURE_SECONDARY,    "raytrace.texture_secondary",   std::string("") },
 
     /// Window settings
-    { GuiSettingsId::WINDOW_TITLE,     "window.title",     std::string("SPH") },
-    { GuiSettingsId::WINDOW_WIDTH,     "window.width",     1110 },
-    { GuiSettingsId::WINDOW_HEIGHT,    "window.height",    600 },
-    { GuiSettingsId::PLOT_INTEGRALS,   "plot.integrals",   int(PlotEnum::ALL) },
+    { GuiSettingsId::WINDOW_TITLE,          "window.title",         std::string("SPH") },
+    { GuiSettingsId::WINDOW_WIDTH,          "window.width",         1110 },
+    { GuiSettingsId::WINDOW_HEIGHT,         "window.height",        600 },
+    { GuiSettingsId::PLOT_INTEGRALS,        "plot.integrals",       int(PlotEnum::ALL) },
+    { GuiSettingsId::PLOT_INITIAL_PERIOD,   "plot.initial_period",  0.1_f },
 
     /// Saved animation frames
     { GuiSettingsId::IMAGES_RENDERER,       "images.renderer",      int(RendererEnum::PARTICLE) },

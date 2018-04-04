@@ -161,17 +161,18 @@ public:
     }
 
 
-    /// Saves all values stored in settings into file.
+    /// \brief Saves all values stored in settings into file.
+    ///
     /// \param path Path (relative or absolute) to the file. The file will be created, any previous
-    /// content
-    ///             will be overriden.
+    ///             content will be overriden.
     void saveToFile(const Path& path) const;
 
-    /// Loads the settings from file. Previous values stored in settings are removed. The file must have a
-    /// valid settings format.
+    /// \brief Loads the settings from file.
+    ///
+    /// Previous values stored in settings are removed. The file must have a valid settings format.
     /// \param path Path to the file. The file must exist.
     /// \returns Successful \ref Outcome if the settings were correctly parsed from the file, otherwise
-    /// returns encountered error.
+    ///          returns encountered error.
     Outcome loadFromFile(const Path& path);
 
     /// Iterator to the first entry of the settings storage.
@@ -617,6 +618,11 @@ enum class RunSettingsId {
     /// evaluation of SPH derivatives.
     SPH_STRAIN_RATE_CORRECTION_TENSOR,
 
+    /// If true, derivatives with flag DerivativeFlag::SUM_ONLY_UNDAMAGED will evaluate only undamaged
+    /// particles belonging to the same body. Otherwise, all particle are evaluated, regardless of derivative
+    /// flags.
+    SPH_SUM_ONLY_UNDAMAGED,
+
     /// Add equations evolving particle angular velocity
     SPH_PARTICLE_ROTATION,
 
@@ -1054,3 +1060,5 @@ using RunSettings = Settings<RunSettingsId>;
 using BodySettings = Settings<BodySettingsId>;
 
 NAMESPACE_SPH_END
+
+#include "system/Settings.inl.h"

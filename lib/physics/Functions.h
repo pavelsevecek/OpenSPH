@@ -64,7 +64,12 @@ INLINE SymmetricTensor parallelAxisTheorem(const SymmetricTensor& I, const Float
 
 } // namespace Rigid
 
-/// \todo docs
+/// \brief Returns the critical energy Q_D^* as a function of body diameter.
+///
+/// The critical energy is a kinetic energy for which half of the target is dispersed into the fragments. In
+/// other words, impact with critical energy will produce largest remnant (or fragment), mass of which is 50%
+/// mass of the parent body, The relation follows the scaling law of Benz & Asphaug (1999).
+///
 /// \todo replace D with units, do not enforce SI
 INLINE Float evalBenzAsphaugScalingLaw(const Float D, const Float rho) {
     const Float D_cgs = 100._f * D;
@@ -77,6 +82,56 @@ INLINE Float evalBenzAsphaugScalingLaw(const Float D, const Float rho) {
 
     return Q_0 * pow(D_cgs / 2._f, a) + B * rho_cgs * pow(D_cgs / 2._f, b);
 }
+
+/// \brief Calculates the impactor diameter to satisfy required impact parameters.
+///
+/// The radius is computed so that the total relative impact energy is equal to the given value, assuming Benz
+/// & Asphaug scaling law.
+///
+/// \param D_pb Diameter of the parent body (target).
+/// \param rho Density of the parent body
+/// \param v_imp Impact velocity
+/// \param Q_over_Q_D Ratio of the impact velocity and the critical velocity. Values <<1 imply cratering
+///                   impacts, while values >>1 imply (super)catastrophic impacts.
+INLINE Float getImpactorDiameter(const Float D_pb, const Float rho, const Float v_imp, const Float QoverQ_D) {
+    const Float Q_D = evalBenzAsphaugScalingLaw(D_pb, rho);
+    const Float Q = QoverQ_D * Q_D;
+    return root<3>(2._f * Q / sqr(v_imp)) * D_pb;
+}
+
+
+class ImpactCone {
+private:
+    AffineMatrix frame;
+    Float v_c;
+
+    UniformRng rng;
+
+public:
+    explicit ImpactCone(const AffineMatrix& frame, const Float cutoffVelocity)
+        : frame(frame)
+        , v_c(cutoffVelocity) {}
+
+    /// \brief Generates fragments at the impact point.
+    ///
+    /// Particles are added into provided buffers, keeping the existing content untouched.
+    /// \param m_tot Total mass of ejected fragments
+    /// \param N Total number of fragments.
+    /// \param r Output array of particle positions.
+    /// \param r Output array of particle velocities.
+    /// \param r Output array of particle masses.
+    void getFragments(const Float m_tot, const Size N, Array<Vector>& r, Array<Vector>& v, Array<Float>& m) {
+        constexpr Float theta = PI / 4._f;
+        const Float m_frag = m_tot / N;
+        for (Size i = 0; i < N; ++i) {
+            const Float phi = 2._f * PI * rng();
+            /// \todo sample velocity from power law
+            v.push(frame * sphericalToCartesian(v_c, theta, phi));
+            r.push(frame.translation());
+            m.push(m_frag);
+        }
+    }
+};
 
 class CollisionMC {
 private:

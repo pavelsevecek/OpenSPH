@@ -118,6 +118,8 @@ enum class GuiSettingsId {
 
     PLOT_INTEGRALS,
 
+    PLOT_INITIAL_PERIOD,
+
     IMAGES_RENDERER,
 
     IMAGES_WIDTH,

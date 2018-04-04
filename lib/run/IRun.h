@@ -80,7 +80,6 @@ protected:
     /// \ref run function.
     virtual void tearDown() = 0;
 
-private:
     void setNullToDefaults();
 
     void tearDownInternal();

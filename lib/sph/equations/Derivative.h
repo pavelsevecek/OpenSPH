@@ -141,6 +141,11 @@ public:
             // 'global' override for correction tensor
             this->flags.unset(DerivativeFlag::CORRECTED);
         }
+        const bool sumOnlyUndamaged = settings.get<bool>(RunSettingsId::SPH_SUM_ONLY_UNDAMAGED);
+        if (!sumOnlyUndamaged) {
+            // 'global' override - always sum all particles
+            this->flags.unset(DerivativeFlag::SUM_ONLY_UNDAMAGED);
+        }
     }
 
     virtual void initialize(const Storage& input, Accumulated& results) final {
