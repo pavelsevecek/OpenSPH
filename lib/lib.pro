@@ -5,7 +5,7 @@ CONFIG -= app_bundle qt
 # disable if you dont have eigen
 INCLUDEPATH += /usr/include/eigen3
 DEFINES += SPH_USE_EIGEN
-DEFINES += SPH_MPI
+#DEFINES += SPH_MPI
 
 #QMAKE_CXX = clang++
 #QMAKE_LINK = clang++

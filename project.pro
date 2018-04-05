@@ -13,7 +13,6 @@ SUBDIRS = lib \
           gui/player \
           test \
           bench \
-    mpi \
     post \
     cli/collision-cli
 

@@ -201,7 +201,7 @@ void Stabilization::setUp() {
         }
     } else {
 
-        Size N = 10'000;
+        Size N = 200'000;
 
         BodySettings body;
         body.set(BodySettingsId::ENERGY, 0._f)
