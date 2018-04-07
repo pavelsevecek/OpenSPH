@@ -79,6 +79,13 @@ public:
         return tasksLeft;
     }
 
+    /// \brief Returns a value of granulariry for (to - from) tasks that is expected to perform well with
+    /// current thread count.
+    Size getRecommendedGranularity(const Size from, const Size to) const {
+        ASSERT(to > from);
+        return min<Size>(1000, max<Size>((to - from) / this->getThreadCnt(), 1));
+    }
+
     /// Returns the global instance of the thread pool. Other instances can be constructed if needed.
     static ThreadPool& getGlobalInstance();
 
@@ -86,14 +93,56 @@ private:
     AutoPtr<ITask> getNextTask();
 };
 
+/// \brief Executes a functor concurrently from all available threads.
+///
+/// Syntax mimics typical usage of for loop; functor is executed with index as parameter, starting at 'from'
+/// and ending one before 'to', so that total number of executions is (to-from). The function blocks until
+/// parallel for is completed.
+/// \param pool Thread pool, the functor will be executed on threads managed by this pool.
+/// \param from First processed index.
+/// \param to One-past-last processed index.
+/// \param functor Functor executed (to-from) times in different threads; takes an index as an argument.
+template <typename TFunctor>
+INLINE void parallelFor(ThreadPool& pool, const Size from, const Size to, TFunctor&& functor) {
+    const Size granularity = pool.getRecommendedGranularity(from, to);
+    parallelFor(pool, from, to, granularity, std::forward<TFunctor>(functor));
+}
+
+/// \brief Executes a functor concurrently with given granularity.
+///
+/// \param pool Thread pool, the functor will be executed on threads managed by this pool.
+/// \param from First processed index.
+/// \param to One-past-last processed index.
+/// \param granularity Number of indices processed by the functor at once. It shall be a positive number less
+///                    than or equal to (to-from).
+/// \param functor Functor executed concurrently, takes two parameters as arguments, defining range of
+///                assigned indices.
+template <typename TFunctor>
+INLINE void parallelFor(ThreadPool& pool,
+    const Size from,
+    const Size to,
+    const Size granularity,
+    TFunctor&& functor) {
+    ASSERT(to > from);
+    for (Size i = from; i < to; i += granularity) {
+        const Size n1 = i;
+        const Size n2 = min(i + granularity, to);
+        pool.submit(makeTask([n1, n2, &functor] {
+            for (Size n = n1; n < n2; ++n) {
+                functor(n);
+            }
+        }));
+    }
+    pool.waitForAll();
+}
+
 /// \brief Executes a functor concurrently, using an empirical formula for granularity.
 ///
 /// This overload uses the global instance of the thread pool
 template <typename TFunctor>
 INLINE void parallelFor(const Size from, const Size to, TFunctor&& functor) {
     ThreadPool& pool = ThreadPool::getGlobalInstance();
-    const Size granularity = min<Size>(1000, max<Size>((to - from) / pool.getThreadCnt(), 1));
-    parallelFor(pool, from, to, granularity, std::forward<TFunctor>(functor));
+    parallelFor(pool, from, to, std::forward<TFunctor>(functor));
 }
 
 NAMESPACE_SPH_END

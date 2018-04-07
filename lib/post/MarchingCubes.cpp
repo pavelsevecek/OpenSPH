@@ -535,62 +535,61 @@ Array<Triangle> getSurfaceMesh(const Storage& storage, const Float gridResolutio
     Array<Vector> r_bar(r.size());
     Array<SymmetricTensor> C(r.size()); // covariance matrix
 
-    parallelFor(0, r.size(), [&](const Size n1, const Size n2) {
-        Array<NeighbourRecord> neighs;
-        for (Size i = n1; i < n2; ++i) {
-            finder->findAll(i, 2._f * r[i][H], neighs);
-            // 1. compute the mean particle positions and the denoised (bar) positions
-            Vector wr(0._f);
-            Float wsum = 0._f;
-            for (NeighbourRecord& n : neighs) {
-                const Size j = n.index;
-                const Float w = weight(r[i], r[j]);
-                wr += w * r[j];
-                wsum += w;
-            }
-            ASSERT(wsum > 0._f);
-            // Eq. (10) from the paper
-            const Vector r_mean = wr / wsum;
-            // Eq. (6)
-            r_bar[i] = (1._f - lambda) * r[i] + lambda * wr / wsum;
-
-            // 2. compute the covariance matrix, utilizing the mean positions
-            SymmetricTensor cov = SymmetricTensor::null();
-            for (NeighbourRecord& n : neighs) {
-                const Size j = n.index;
-                const Float w = weight(r[i], r[j]); /// \todo can be probably cached
-                // Eq. (9)
-                cov += w * outer(r[j] - r_mean, r[j] - r_mean);
-            }
-            C[i] = cov / wsum;
-
-            /*Svd svd = singularValueDecomposition(C[i]);
-            std::sort((Float*)&svd.S, ((Float*)&svd.S) + 3, std::greater<Float>{});
-            ASSERT(svd.S[X] >= svd.S[Y] &&
-                   svd.S[Y] >= svd.S[Z]); // temporary check, either make sure the implementation
-                                          // behaves like this or sort it afterwards
-            // 3. 'fix' the singular values (end of Sec. 4)
-            if (neighCnt[i] > Ne) {
-                svd.S[Y] = max(svd.S[Y], svd.S[X] / kr);
-                svd.S[Z] = max(svd.S[Z], svd.S[X] / kr);
-                svd.S = (ks * svd.S);
-            } else {
-                svd.S = Vector(1._f / kn);
-            }*/
-
-            // 4. get the final anisotropy matrix using Eq. (16)
-            // const AffineMatrix matrix = svd.U * AffineMatrix::scale(svd.S) * svd.V.transpose();
-            // C[i] = convert<SymmetricTensor>(0.5_f * (matrix + matrix.transpose()));
-            (void)ks;
-            (void)kr;
-            (void)kn;
-            (void)Ne;
-            // C[i] = SymmetricTensor::identity(); // C[i].pseudoInverse(1.e-6_f);
-
-            // C[i] = SymmetricTensor::identity();
-            // C[i] = C[i].inverse();
-            C[i] = C[i] / (root<3>(C[i].determinant()) * r[i][H]);
+    ThreadLocal<Array<NeighbourRecord>> neighsData(ThreadPool::getGlobalInstance());
+    parallelFor(0, r.size(), [&](const Size i) {
+        Array<NeighbourRecord>& neighs = neighsData.get();
+        finder->findAll(i, 2._f * r[i][H], neighs);
+        // 1. compute the mean particle positions and the denoised (bar) positions
+        Vector wr(0._f);
+        Float wsum = 0._f;
+        for (NeighbourRecord& n : neighs) {
+            const Size j = n.index;
+            const Float w = weight(r[i], r[j]);
+            wr += w * r[j];
+            wsum += w;
         }
+        ASSERT(wsum > 0._f);
+        // Eq. (10) from the paper
+        const Vector r_mean = wr / wsum;
+        // Eq. (6)
+        r_bar[i] = (1._f - lambda) * r[i] + lambda * wr / wsum;
+
+        // 2. compute the covariance matrix, utilizing the mean positions
+        SymmetricTensor cov = SymmetricTensor::null();
+        for (NeighbourRecord& n : neighs) {
+            const Size j = n.index;
+            const Float w = weight(r[i], r[j]); /// \todo can be probably cached
+            // Eq. (9)
+            cov += w * outer(r[j] - r_mean, r[j] - r_mean);
+        }
+        C[i] = cov / wsum;
+
+        /*Svd svd = singularValueDecomposition(C[i]);
+        std::sort((Float*)&svd.S, ((Float*)&svd.S) + 3, std::greater<Float>{});
+        ASSERT(svd.S[X] >= svd.S[Y] &&
+               svd.S[Y] >= svd.S[Z]); // temporary check, either make sure the implementation
+                                      // behaves like this or sort it afterwards
+        // 3. 'fix' the singular values (end of Sec. 4)
+        if (neighCnt[i] > Ne) {
+            svd.S[Y] = max(svd.S[Y], svd.S[X] / kr);
+            svd.S[Z] = max(svd.S[Z], svd.S[X] / kr);
+            svd.S = (ks * svd.S);
+        } else {
+            svd.S = Vector(1._f / kn);
+        }*/
+
+        // 4. get the final anisotropy matrix using Eq. (16)
+        // const AffineMatrix matrix = svd.U * AffineMatrix::scale(svd.S) * svd.V.transpose();
+        // C[i] = convert<SymmetricTensor>(0.5_f * (matrix + matrix.transpose()));
+        (void)ks;
+        (void)kr;
+        (void)kn;
+        (void)Ne;
+        // C[i] = SymmetricTensor::identity(); // C[i].pseudoInverse(1.e-6_f);
+
+        // C[i] = SymmetricTensor::identity();
+        // C[i] = C[i].inverse();
+        C[i] = C[i] / (root<3>(C[i].determinant()) * r[i][H]);
     });
 
     /// \todo we skip the anisotropy correction for now

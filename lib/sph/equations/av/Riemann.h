@@ -87,9 +87,9 @@ public:
         derivatives.require(makeAuto<Derivative>(settings));
     }
 
-    virtual void initialize(Storage& UNUSED(storage)) override {}
+    virtual void initialize(Storage& UNUSED(storage), ThreadPool& UNUSED(pool)) override {}
 
-    virtual void finalize(Storage& UNUSED(storage)) override {}
+    virtual void finalize(Storage& UNUSED(storage), ThreadPool& UNUSED(pool)) override {}
 
     virtual void create(Storage& UNUSED(storage), IMaterial& UNUSED(material)) const override {}
 };

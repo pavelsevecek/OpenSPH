@@ -67,9 +67,9 @@ public:
         derivatives.require(makeAuto<Derivative>(settings));
     }
 
-    virtual void initialize(Storage& UNUSED(storage)) override {}
+    virtual void initialize(Storage& UNUSED(storage), ThreadPool& UNUSED(pool)) override {}
 
-    virtual void finalize(Storage& UNUSED(storage)) override {}
+    virtual void finalize(Storage& UNUSED(storage), ThreadPool& UNUSED(pool)) override {}
 
     virtual void create(Storage& storage, IMaterial& material) const override {
         // energy density = specific energy * density
@@ -163,21 +163,19 @@ private:
 
         q.resize(r.size());
         q.fill(EPS);
-        auto functor = [this, r, U](const Size n1, const Size n2, ThreadData& data) {
-            for (Size i = n1; i < n2; ++i) {
-                // find all neighbours
-                finder->findAll(i, r[i][H] * kernel.radius(), data.neighs);
-                q[i] = 0._f;
-                for (auto& n : data.neighs) {
-                    const int j = n.index;
-                    /// \todo can this be generally different kernel than the one used for derivatives?
-                    q[i] += U[j] * energyKernel.value(r[i] - r[j], r[i][H]);
-                }
+        auto functor = [this, r, U](const Size i, ThreadData& data) {
+            // find all neighbours
+            finder->findAll(i, r[i][H] * kernel.radius(), data.neighs);
+            q[i] = 0._f;
+            for (auto& n : data.neighs) {
+                const int j = n.index;
+                /// \todo can this be generally different kernel than the one used for derivatives?
+                q[i] += U[j] * energyKernel.value(r[i] - r[j], r[i][H]);
             }
         };
         finder->build(r);
         /// \todo this should also be self-consistently solved with smoothing length (as SummationSolver)
-        parallelFor(*pool, threadData, 0, r.size(), granularity, functor);
+        parallelFor(pool, threadData, 0, r.size(), granularity, functor);
 
         // save computed values
         std::swap(storage.getValue<Float>(QuantityId::ENERGY_DENSITY), q);

@@ -109,26 +109,22 @@ void PredictorCorrector::makePredictions() {
     const Float dt2 = 0.5_f * sqr(this->dt);
     iterate<VisitorEnum::SECOND_ORDER>(
         *storage, [this, dt2](const QuantityId id, auto& v, auto& dv, auto& d2v) {
-            parallelFor(0, v.size(), [&](const Size n1, const Size n2) INL {
-                for (Size i = n1; i < n2; ++i) {
-                    v[i] += dv[i] * this->dt + d2v[i] * dt2;
-                    dv[i] += d2v[i] * this->dt;
-                    /// \todo this probably wont change that much, we could cache it
-                    const Interval range = storage->getMaterialOfParticle(i)->range(id);
-                    if (range != Interval::unbounded()) {
-                        tie(v[i], dv[i]) = clampWithDerivative(v[i], dv[i], range);
-                    }
-                }
-            });
-        });
-    iterate<VisitorEnum::FIRST_ORDER>(*storage, [this](const QuantityId id, auto& v, auto& dv) {
-        parallelFor(0, v.size(), [&](const Size n1, const Size n2) INL {
-            for (Size i = n1; i < n2; ++i) {
-                v[i] += dv[i] * this->dt;
+            parallelFor(0, v.size(), [&](const Size i) INL {
+                v[i] += dv[i] * this->dt + d2v[i] * dt2;
+                dv[i] += d2v[i] * this->dt;
+                /// \todo this probably wont change that much, we could cache it
                 const Interval range = storage->getMaterialOfParticle(i)->range(id);
                 if (range != Interval::unbounded()) {
                     tie(v[i], dv[i]) = clampWithDerivative(v[i], dv[i], range);
                 }
+            });
+        });
+    iterate<VisitorEnum::FIRST_ORDER>(*storage, [this](const QuantityId id, auto& v, auto& dv) {
+        parallelFor(0, v.size(), [&](const Size i) INL {
+            v[i] += dv[i] * this->dt;
+            const Interval range = storage->getMaterialOfParticle(i)->range(id);
+            if (range != Interval::unbounded()) {
+                tie(v[i], dv[i]) = clampWithDerivative(v[i], dv[i], range);
             }
         });
     });
@@ -149,14 +145,12 @@ void PredictorCorrector::makeCorrections() {
             ASSERT(pv.size() == pd2v.size());
             constexpr Float a = 1._f / 3._f;
             constexpr Float b = 0.5_f;
-            parallelFor(0, pv.size(), [&](const Size n1, const Size n2) {
-                for (Size i = n1; i < n2; ++i) {
-                    pv[i] -= a * (cd2v[i] - pd2v[i]) * dt2;
-                    pdv[i] -= b * (cd2v[i] - pd2v[i]) * this->dt;
-                    const Interval range = storage->getMaterialOfParticle(i)->range(id);
-                    if (range != Interval::unbounded()) {
-                        tie(pv[i], pdv[i]) = clampWithDerivative(pv[i], pdv[i], range);
-                    }
+            parallelFor(0, pv.size(), [&](const Size i) {
+                pv[i] -= a * (cd2v[i] - pd2v[i]) * dt2;
+                pdv[i] -= b * (cd2v[i] - pd2v[i]) * this->dt;
+                const Interval range = storage->getMaterialOfParticle(i)->range(id);
+                if (range != Interval::unbounded()) {
+                    tie(pv[i], pdv[i]) = clampWithDerivative(pv[i], pdv[i], range);
                 }
             });
         });
@@ -164,13 +158,11 @@ void PredictorCorrector::makeCorrections() {
         *predictions,
         [this](const QuantityId id, auto& pv, auto& pdv, auto& UNUSED(cv), auto& cdv) {
             ASSERT(pv.size() == pdv.size());
-            parallelFor(0, pv.size(), [&](const Size n1, const Size n2) {
-                for (Size i = n1; i < n2; ++i) {
-                    pv[i] -= 0.5_f * (cdv[i] - pdv[i]) * this->dt;
-                    const Interval range = storage->getMaterialOfParticle(i)->range(id);
-                    if (range != Interval::unbounded()) {
-                        tie(pv[i], pdv[i]) = clampWithDerivative(pv[i], pdv[i], range);
-                    }
+            parallelFor(0, pv.size(), [&](const Size i) {
+                pv[i] -= 0.5_f * (cdv[i] - pdv[i]) * this->dt;
+                const Interval range = storage->getMaterialOfParticle(i)->range(id);
+                if (range != Interval::unbounded()) {
+                    tie(pv[i], pdv[i]) = clampWithDerivative(pv[i], pdv[i], range);
                 }
             });
         });

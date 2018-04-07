@@ -70,11 +70,11 @@ struct TestEquation : public IEquationTerm {
         flags.set(Status::DERIVATIVES_SET);
     }
 
-    virtual void initialize(Storage&) override {
+    virtual void initialize(Storage&, ThreadPool&) override {
         flags.set(Status::INITIALIZED);
     }
 
-    virtual void finalize(Storage&) override {
+    virtual void finalize(Storage&, ThreadPool&) override {
         flags.set(Status::FINALIZED);
     }
 
@@ -86,7 +86,7 @@ struct TestEquation : public IEquationTerm {
 TEST_CASE("Setting derivatives", "[equationterm]") {
     TestDerivative::initialized = false;
     Tests::SingleDerivativeMaker<TestDerivative> eq;
-    DerivativeHolder derivatives;
+    DerivativeHolder derivatives(RunSettings::getDefaults());
     eq.setDerivatives(derivatives, RunSettings::getDefaults());
     Storage storage;
     // add some dummy quantity to set particle count

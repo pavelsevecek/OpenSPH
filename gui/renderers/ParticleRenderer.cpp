@@ -7,6 +7,7 @@
 #include "system/Profiler.h"
 #include "system/Statistics.h"
 #include "thread/CheckFunction.h"
+#include "system/Profiler.h"
 #include <wx/dcmemory.h>
 
 NAMESPACE_SPH_BEGIN
@@ -112,6 +113,7 @@ bool ParticleRenderer::isCutOff(const ICamera& camera, const Vector& r) {
 void ParticleRenderer::initialize(const Storage& storage,
     const IColorizer& colorizer,
     const ICamera& camera) {
+    MEASURE_SCOPE("ParticleRenderer::initialize");
     cached.idxs.clear();
     cached.positions.clear();
     cached.colors.clear();
@@ -160,7 +162,7 @@ SharedPtr<wxBitmap> ParticleRenderer::render(const ICamera& camera,
     const RenderParams& params,
     Statistics& stats) const {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
-    // MEASURE_SCOPE("OrthoRenderer::render");
+    MEASURE_SCOPE("ParticleRenderer::render");
     const wxSize size(params.size.x, params.size.y);
     SharedPtr<wxBitmap> bitmap = makeShared<wxBitmap>(size, 24);
     wxMemoryDC dc(*bitmap);

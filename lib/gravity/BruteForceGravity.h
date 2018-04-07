@@ -47,15 +47,13 @@ public:
         }
     }
 
-    virtual void evalAll(IScheduler& scheduler,
+    virtual void evalAll(ThreadPool& scheduler,
         ArrayView<Vector> dv,
         Statistics& UNUSED(stats)) const override {
         ASSERT(r.size() == dv.size());
         SymmetrizeSmoothingLengths<const GravityLutKernel&> actKernel(kernel);
-        parallelFor(scheduler, 0, r.size(), 10, [&dv, &actKernel, this](const Size n1, const Size n2) {
-            for (Size i = n1; i < n2; ++i) {
-                dv[i] += this->evalImpl(actKernel, r[i], i);
-            }
+        parallelFor(scheduler, 0, r.size(), [&dv, &actKernel, this](const Size i) {
+            dv[i] += this->evalImpl(actKernel, r[i], i);
         });
     }
 

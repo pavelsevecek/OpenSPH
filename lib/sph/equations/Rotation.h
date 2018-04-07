@@ -5,7 +5,7 @@
 
 NAMESPACE_SPH_BEGIN
 
-namespace BenzAsphaugSph {
+/*namespace BenzAsphaugSph {
     class SolidStressTorque : public IEquationTerm {
     private:
         /// Dimensionless moment of inertia
@@ -42,5 +42,5 @@ namespace StandardSph {
     };
 
 } // namespace StandardSph
-
+*/
 NAMESPACE_SPH_END

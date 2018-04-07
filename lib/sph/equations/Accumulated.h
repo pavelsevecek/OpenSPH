@@ -11,6 +11,7 @@
 #include "objects/wrappers/Variant.h"
 #include "quantities/QuantityIds.h"
 #include "quantities/Storage.h"
+#include "system/Settings.h"
 #include "thread/ThreadLocal.h"
 
 NAMESPACE_SPH_BEGIN
@@ -54,8 +55,12 @@ private:
     /// Debug array, holding IDs of all quantities to check for uniqueness.
     Array<QuantityRecord> records;
 
+    Size granularity;
+
 public:
-    Accumulated() = default;
+    explicit Accumulated(const RunSettings& settings) {
+        granularity = settings.get<int>(RunSettingsId::RUN_THREAD_GRANULARITY);
+    }
 
     /// \brief Creates a new storage with given ID.
     ///
@@ -89,7 +94,9 @@ public:
         }
     }
 
-    /// Initialize all storages, resizing them if needed and clearing out all previously accumulated values.
+    /// \brief Initialize all storages.
+    ///
+    /// Storages are resized if needed and cleared out of all previously accumulated values.
     void initialize(const Size size) {
         for (Element& e : buffers) {
             forValue(e.buffer, [size](auto& values) {
@@ -105,7 +112,7 @@ public:
         }
     }
 
-    /// Returns the buffer of given quantity and given order.
+    /// \brief Returns the buffer of given quantity and given order.
     ///
     /// \note Accumulated can store only one buffer per quantity, so the order is not neccesary to retrive the
     /// buffer, but it is required to check that we are indeed returning the required order of quantity. It
@@ -123,8 +130,10 @@ public:
         STOP;
     }
 
-    /// Sums values of a list of storages. Storages must have the same number of buffers and the matching
-    /// buffers must have the same type and same size.
+    /// \brief Sums values of a list of storages.
+    ///
+    /// Storages must have the same number of buffers and the matching buffers must have the same type and
+    /// same size.
     void sum(ArrayView<Accumulated*> others) {
         for (Element& e : buffers) {
             forValue(e.buffer, [this, &e, &others](auto& buffer) INL { //
@@ -133,7 +142,7 @@ public:
         }
     }
 
-    /// Sums values, concurently over different quantities
+    /// \brief Sums values, concurently over different quantities
     void sum(ThreadPool& pool, ArrayView<Accumulated*> others) {
         for (Element& e : buffers) {
             forValue(e.buffer, [this, &pool, &e, &others](auto& buffer) INL { //
@@ -202,20 +211,18 @@ private:
         const QuantityId id,
         ArrayView<Accumulated*> others) {
         Array<Iterator<Type>> iterators = this->getBufferIterators<Type>(id, others);
-        auto functor = [&iterators, &buffer1](const Size n1, const Size n2) INL {
-            for (Size i = n1; i < n2; ++i) {
-                Type sum(0._f);
-                for (Iterator<Type> iter : iterators) {
-                    Type& x = *(iter + i);
-                    if (x != Type(0._f)) {
-                        sum += x;
-                        x = Type(0._f);
-                    }
+        auto functor = [&iterators, &buffer1](const Size i) INL {
+            Type sum(0._f);
+            for (Iterator<Type> iter : iterators) {
+                Type& x = *(iter + i);
+                if (x != Type(0._f)) {
+                    sum += x;
+                    x = Type(0._f);
                 }
-                buffer1[i] += sum;
             }
+            buffer1[i] += sum;
         };
-        parallelFor(pool, 0, buffer1.size(), 10000, functor);
+        parallelFor(pool, 0, buffer1.size(), granularity, functor);
     }
 
     bool hasBuffer(const QuantityId id, const OrderEnum UNUSED_IN_RELEASE(order)) const {

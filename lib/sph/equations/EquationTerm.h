@@ -20,33 +20,29 @@ NAMESPACE_SPH_BEGIN
 /// accumulated by the solver. EquationTerm can then access the result.
 class IEquationTerm : public Polymorphic {
 public:
-    /// Sets derivatives required by this term. The derivatives are then automatically evaluated by the
-    /// solver, the equation term can access the result in \ref finalize function. This function is called
-    /// once for each thread at the beginning of the run.
+    /// \brief Sets derivatives required by this term.
+    ///
+    /// The derivatives are then automatically evaluated by the solver, the equation term can access the
+    /// result in \ref finalize function. This function is called once for each thread at the beginning of the
+    /// run.
     virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) = 0;
 
-    /// Initialize all the derivatives and/or quantity values before derivatives are computed. Called at
-    /// the beginning of every time step. Note that derivatives need not be zeroed out manually, this is
-    /// already done by timestepping (for derivatives of quantities) and solver (for accumulated values).
-    virtual void initialize(Storage& storage) = 0;
-
-    /// Computes all the derivatives and/or quantity values based on accumulated derivatives. Called every
-    /// time step after derivatives are evaluated and saved to storage.
-    virtual void finalize(Storage& storage) = 0;
-
-    /// Creates all quantities needed by the term using given material. Called once for every body in
-    /// the simulation.
-    virtual void create(Storage& storage, IMaterial& material) const = 0;
-
-    /// \brief Fills given arrays with QuantityIds, specifying compatibility with other equations.
+    /// \brief Initialize all the derivatives and/or quantity values before derivatives are computed.
     ///
-    /// This is used as sanity check of the setup. By default, it is assumed that all equation term are
-    /// compatible with each other and may be used together.
-    /// \param demands Types of equation terms that MUST be solved together with this term
-    /// \param forbids Types of equation terms that MUST NOT be solved together with tihs term
-    /// \todo This should be somehow generalized; for example we should only include one arficifial
-    /// viscosity without the need to specify EVERY single AV in 'forbids' list.
-    // virtual void info(Array<QuantityId>& solves, Array<QuantityId>& forbids) const = 0;
+    /// Called at the beginning of every time step. Note that derivatives need not be zeroed out manually,
+    /// this is already done by timestepping (for derivatives of quantities) and solver (for accumulated
+    /// values).
+    virtual void initialize(Storage& storage, ThreadPool& pool) = 0;
+
+    /// \brief Computes all the derivatives and/or quantity values based on accumulated derivatives.
+    ///
+    /// Called every time step after derivatives are evaluated and saved to storage.
+    virtual void finalize(Storage& storage, ThreadPool& pool) = 0;
+
+    /// \brief Creates all quantities needed by the term using given material.
+    ///
+    /// Called once for every body in the simulation.
+    virtual void create(Storage& storage, IMaterial& material) const = 0;
 };
 
 
@@ -115,9 +111,9 @@ public:
 
     virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override;
 
-    virtual void initialize(Storage& storage) override;
+    virtual void initialize(Storage& storage, ThreadPool& pool) override;
 
-    virtual void finalize(Storage& storage) override;
+    virtual void finalize(Storage& storage, ThreadPool& pool) override;
 
     virtual void create(Storage& storage, IMaterial& material) const override;
 
@@ -149,9 +145,9 @@ class PressureForce : public IEquationTerm {
 public:
     virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override;
 
-    virtual void initialize(Storage& storage) override;
+    virtual void initialize(Storage& storage, ThreadPool& pool) override;
 
-    virtual void finalize(Storage& storage) override;
+    virtual void finalize(Storage& storage, ThreadPool& pool) override;
 
     virtual void create(Storage& storage, IMaterial& material) const override;
 };
@@ -190,9 +186,9 @@ public:
 
     virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override;
 
-    virtual void initialize(Storage& storage) override;
+    virtual void initialize(Storage& storage, ThreadPool& pool) override;
 
-    virtual void finalize(Storage& storage) override;
+    virtual void finalize(Storage& storage, ThreadPool& pool) override;
 
     virtual void create(Storage& storage, IMaterial& material) const override;
 };
@@ -204,9 +200,9 @@ class NavierStokesForce : public IEquationTerm {
 public:
     virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override;
 
-    virtual void initialize(Storage& storage) override;
+    virtual void initialize(Storage& storage, ThreadPool& pool) override;
 
-    virtual void finalize(Storage& storage) override;
+    virtual void finalize(Storage& storage, ThreadPool& pool) override;
 
     virtual void create(Storage& storage, IMaterial& material) const override;
 };
@@ -233,9 +229,9 @@ class ContinuityEquation : public IEquationTerm {
 public:
     virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override;
 
-    virtual void initialize(Storage& storage) override;
+    virtual void initialize(Storage& storage, ThreadPool& pool) override;
 
-    virtual void finalize(Storage& storage) override;
+    virtual void finalize(Storage& storage, ThreadPool& pool) override;
 
     virtual void create(Storage& storage, IMaterial& material) const override;
 };
@@ -254,9 +250,9 @@ class ConstSmoothingLength : public IEquationTerm {
 public:
     virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override;
 
-    virtual void initialize(Storage& storage) override;
+    virtual void initialize(Storage& storage, ThreadPool& pool) override;
 
-    virtual void finalize(Storage& storage) override;
+    virtual void finalize(Storage& storage, ThreadPool& pool) override;
 
     virtual void create(Storage& storage, IMaterial& material) const override;
 };
@@ -315,18 +311,18 @@ public:
     }
 
     /// Calls \ref EquationTerm::initialize for all stored equation terms.
-    void initialize(Storage& storage) {
+    void initialize(Storage& storage, ThreadPool& pool) {
         PROFILE_SCOPE("EquationHolder::initialize");
         for (auto& t : terms) {
-            t->initialize(storage);
+            t->initialize(storage, pool);
         }
     }
 
     /// Calls \ref EquationTerm::finalize for all stored equation terms.
-    void finalize(Storage& storage) {
+    void finalize(Storage& storage, ThreadPool& pool) {
         PROFILE_SCOPE("EquationHolder::finalize");
         for (auto& t : terms) {
-            t->finalize(storage);
+            t->finalize(storage, pool);
         }
     }
 

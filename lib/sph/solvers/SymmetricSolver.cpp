@@ -9,9 +9,12 @@
 
 NAMESPACE_SPH_BEGIN
 
+SymmetricSolver::ThreadData::ThreadData(const RunSettings& settings)
+    : derivatives(settings) {}
+
 SymmetricSolver::SymmetricSolver(const RunSettings& settings, const EquationHolder& eqs)
-    : pool(makeShared<ThreadPool>(settings.get<int>(RunSettingsId::RUN_THREAD_CNT)))
-    , threadData(*pool) {
+    : pool(settings.get<int>(RunSettingsId::RUN_THREAD_CNT))
+    , threadData(pool, settings) {
     /// \todo we have to somehow enforce either conservation of smoothing length or some EquationTerm that
     /// will evolve it. Or maybe just move smoothing length to separate quantity to get rid of these
     /// issues?
@@ -51,7 +54,7 @@ void SymmetricSolver::integrate(Storage& storage, Statistics& stats) {
     }
 
     // initialize all equation terms (applies dependencies between quantities)
-    equations.initialize(storage);
+    equations.initialize(storage, pool);
 
     // apply boundary conditions before the loop
     bc->initialize(storage);
@@ -66,7 +69,7 @@ void SymmetricSolver::integrate(Storage& storage, Statistics& stats) {
     this->afterLoop(storage, stats);
 
     // integrate all equations
-    equations.finalize(storage);
+    equations.finalize(storage, pool);
 
     // apply boundary conditions after the loop
     bc->finalize(storage);
@@ -95,29 +98,27 @@ void SymmetricSolver::loop(Storage& storage, Statistics& UNUSED(stats)) {
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     finder->build(r);
 
-    auto functor = [this, r](const Size n1, const Size n2, ThreadData& data) {
-        for (Size i = n1; i < n2; ++i) {
-            finder->findLowerRank(i, r[i][H] * kernel.radius(), data.neighs);
-            data.grads.clear();
-            data.idxs.clear();
-            for (auto& n : data.neighs) {
-                const Size j = n.index;
-                const Float hbar = 0.5_f * (r[i][H] + r[j][H]);
-                ASSERT(hbar > EPS && hbar <= r[i][H], hbar, r[i][H]);
-                if (getSqrLength(r[i] - r[j]) >= sqr(this->kernel.radius() * hbar)) {
-                    // aren't actual neighbours
-                    continue;
-                }
-                const Vector gr = kernel.grad(r[i], r[j]);
-                ASSERT(isReal(gr) && dot(gr, r[i] - r[j]) <= 0._f, gr, getLength(r[i] - r[j]));
-                data.grads.emplaceBack(gr);
-                data.idxs.emplaceBack(j);
+    auto functor = [this, r](const Size i, ThreadData& data) {
+        finder->findLowerRank(i, r[i][H] * kernel.radius(), data.neighs);
+        data.grads.clear();
+        data.idxs.clear();
+        for (auto& n : data.neighs) {
+            const Size j = n.index;
+            const Float hbar = 0.5_f * (r[i][H] + r[j][H]);
+            ASSERT(hbar > EPS && hbar <= r[i][H], hbar, r[i][H]);
+            if (getSqrLength(r[i] - r[j]) >= sqr(this->kernel.radius() * hbar)) {
+                // aren't actual neighbours
+                continue;
             }
-            data.derivatives.evalSymmetric(i, data.idxs, data.grads);
+            const Vector gr = kernel.grad(r[i], r[j]);
+            ASSERT(isReal(gr) && dot(gr, r[i] - r[j]) <= 0._f, gr, getLength(r[i] - r[j]));
+            data.grads.emplaceBack(gr);
+            data.idxs.emplaceBack(j);
         }
+        data.derivatives.evalSymmetric(i, data.idxs, data.grads);
     };
     PROFILE_SCOPE("GenericSolver main loop");
-    parallelFor(*pool, threadData, 0, r.size(), granularity, functor);
+    parallelFor(pool, threadData, 0, r.size(), granularity, functor);
 }
 
 void SymmetricSolver::beforeLoop(Storage& storage, Statistics& UNUSED(stats)) {
@@ -141,7 +142,7 @@ void SymmetricSolver::afterLoop(Storage& storage, Statistics& stats) {
         });
         ASSERT(first != nullptr);
         PROFILE_SCOPE("GenericSolver::afterLoop part 1");
-        first->sum(*pool, threadLocalAccumulated);
+        first->sum(pool, threadLocalAccumulated);
     }
     PROFILE_SCOPE("GenericSolver::afterLoop part 2");
     ASSERT(first);

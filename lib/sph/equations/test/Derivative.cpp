@@ -6,8 +6,8 @@
 using namespace Sph;
 
 TEST_CASE("Derivative require", "[derivative]") {
-    DerivativeHolder derivatives;
     RunSettings settings;
+    DerivativeHolder derivatives(settings);
     REQUIRE(derivatives.getDerivativeCnt() == 0);
     derivatives.require(makeDerivative<VelocityDivergence>(settings));
     REQUIRE(derivatives.getDerivativeCnt() == 1);
@@ -21,8 +21,8 @@ TEST_CASE("Derivative require", "[derivative]") {
 }
 
 TEST_CASE("Derivative initialize", "[derivative]") {
-    DerivativeHolder derivatives;
     RunSettings settings;
+    DerivativeHolder derivatives(settings);
     derivatives.require(makeDerivative<VelocityDivergence>(settings));
     Storage storage;
     storage.insert<Vector>(
@@ -74,8 +74,8 @@ public:
 };
 
 TEST_CASE("Derivative unique buffer", "[derivative]") {
-    DerivativeHolder derivatives;
     RunSettings settings;
+    DerivativeHolder derivatives(settings);
     derivatives.require(makeAuto<DummyDerivative<1, BufferSource::UNIQUE>>());
     derivatives.require(makeAuto<DummyDerivative<2, BufferSource::UNIQUE>>());
 
@@ -85,8 +85,8 @@ TEST_CASE("Derivative unique buffer", "[derivative]") {
 }
 
 TEST_CASE("Derivative shared buffer", "[derivative]") {
-    DerivativeHolder derivatives;
     RunSettings settings;
+    DerivativeHolder derivatives(settings);
     derivatives.require(makeAuto<DummyDerivative<1, BufferSource::SHARED>>());
     derivatives.require(makeAuto<DummyDerivative<2, BufferSource::SHARED>>());
 
@@ -96,8 +96,8 @@ TEST_CASE("Derivative shared buffer", "[derivative]") {
 }
 
 TEST_CASE("Derivative isSymmetric", "[derivative]") {
-    DerivativeHolder derivatives;
     RunSettings settings;
+    DerivativeHolder derivatives(settings);
     derivatives.require(makeDerivative<VelocityDivergence>(settings));
     REQUIRE(derivatives.isSymmetric());
 

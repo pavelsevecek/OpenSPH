@@ -149,29 +149,27 @@ Tuple<Float, CriterionId> DerivativeCriterion::computeImpl(Storage& storage,
         ThreadPool& pool = ThreadPool::getGlobalInstance();
         ThreadLocal<Tls<T>> tls(pool, power);
 
-        auto functor = [&](const Size n1, const Size n2, Tls<T>& tls) {
-            for (Size i = n1; i < n2; ++i) {
-                const auto absdv = abs(dv[i]);
-                const auto absv = abs(v[i]);
-                const Float minValue = storage.getMaterialOfParticle(i)->minimal(id);
-                ASSERT(minValue > 0._f); // some nonzero minimal value must be set for all quantities
+        auto functor = [&](const Size i, Tls<T>& tls) {
+            const auto absdv = abs(dv[i]);
+            const auto absv = abs(v[i]);
+            const Float minValue = storage.getMaterialOfParticle(i)->minimal(id);
+            ASSERT(minValue > 0._f); // some nonzero minimal value must be set for all quantities
 
-                StaticArray<Float, 6> vs = getComponents(absv);
-                StaticArray<Float, 6> dvs = getComponents(absdv);
-                ASSERT(vs.size() == dvs.size());
+            StaticArray<Float, 6> vs = getComponents(absv);
+            StaticArray<Float, 6> dvs = getComponents(absdv);
+            ASSERT(vs.size() == dvs.size());
 
-                for (Size j = 0; j < vs.size(); ++j) {
-                    if (abs(vs[j]) < 2._f * minValue) {
-                        continue;
-                    }
-                    const Float value = factor * (vs[j] + minValue) / (dvs[j] + EPS);
-                    ASSERT(isReal(value));
-                    tls.add(value, v[i], dv[i], i);
+            for (Size j = 0; j < vs.size(); ++j) {
+                if (abs(vs[j]) < 2._f * minValue) {
+                    continue;
                 }
+                const Float value = factor * (vs[j] + minValue) / (dvs[j] + EPS);
+                ASSERT(isReal(value));
+                tls.add(value, v[i], dv[i], i);
             }
         };
 
-        parallelFor(pool, tls, 0, v.size(), 100, functor);
+        parallelFor(pool, tls, 0, v.size(), functor);
         // get min step from thread-local results
         tls.forEach([&result](Tls<T>& tl) { //
             result.add(tl);
@@ -223,20 +221,18 @@ Tuple<Float, CriterionId> AccelerationCriterion::compute(Storage& storage,
         Float minStep = INFTY;
     };
 
-    auto functor = [&](const Size n1, const Size n2, Tl& tl) {
-        for (Size i = n1; i < n2; ++i) {
-            const Float dvNorm = getSqrLength(dv[i]);
-            if (dvNorm > EPS) {
-                const Float step = factor * root<4>(sqr(r[i][H]) / dvNorm);
-                ASSERT(isReal(step) && step > 0._f && step < INFTY);
-                tl.minStep = min(tl.minStep, step);
-            }
+    auto functor = [&](const Size i, Tl& tl) {
+        const Float dvNorm = getSqrLength(dv[i]);
+        if (dvNorm > EPS) {
+            const Float step = factor * root<4>(sqr(r[i][H]) / dvNorm);
+            ASSERT(isReal(step) && step > 0._f && step < INFTY);
+            tl.minStep = min(tl.minStep, step);
         }
     };
     Tl result;
     ThreadPool& pool = ThreadPool::getGlobalInstance();
     ThreadLocal<Tl> tls(pool);
-    parallelFor(pool, tls, 0, r.size(), 1000, functor);
+    parallelFor(pool, tls, 0, r.size(), functor);
     tls.forEach([&result](Tl& tl) { result.minStep = min(result.minStep, tl.minStep); });
 
     if (result.minStep > maxStep) {
@@ -274,19 +270,17 @@ Tuple<Float, CriterionId> CourantCriterion::compute(Storage& storage,
         Float minStep = INFTY;
     };
 
-    auto functor = [&](const Size n1, const Size n2, Tl& tl) {
-        for (Size i = n1; i < n2; ++i) {
-            if (cs[i] > 0._f && (!neighs || neighs[i] > neighLimit)) {
-                const Float value = courant * r[i][H] / cs[i];
-                ASSERT(isReal(value) && value > 0._f && value < INFTY);
-                tl.minStep = min(tl.minStep, value);
-            }
+    auto functor = [&](const Size i, Tl& tl) {
+        if (cs[i] > 0._f && (!neighs || neighs[i] > neighLimit)) {
+            const Float value = courant * r[i][H] / cs[i];
+            ASSERT(isReal(value) && value > 0._f && value < INFTY);
+            tl.minStep = min(tl.minStep, value);
         }
     };
     Tl result;
     ThreadPool& pool = ThreadPool::getGlobalInstance();
     ThreadLocal<Tl> tls(pool);
-    parallelFor(pool, tls, 0, r.size(), 1000, functor);
+    parallelFor(pool, tls, 0, r.size(), functor);
     tls.forEach([&result](Tl& tl) { result.minStep = min(result.minStep, tl.minStep); });
 
     if (result.minStep > maxStep) {

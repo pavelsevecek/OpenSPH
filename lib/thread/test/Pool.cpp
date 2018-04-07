@@ -130,11 +130,9 @@ TEST_CASE("ThreadLocal parallelFor", "[thread]") {
 
     std::atomic<int> executeCnt;
     executeCnt = 0;
-    parallelFor(pool, partial, 0, N, 1, [&executeCnt](Size n1, Size n2, Array<Size>& value) {
+    parallelFor(pool, partial, 0, N, 1, [&executeCnt](Size i, Array<Size>& value) {
         executeCnt++;
-        for (Size i = n1; i < n2; ++i) {
-            value[i] = 1;
-        }
+        value[i] = 1;
     });
     REQUIRE(executeCnt == N);
     Array<Size> sum(N);

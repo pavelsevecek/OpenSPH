@@ -10,8 +10,9 @@
 NAMESPACE_SPH_BEGIN
 
 AsymmetricSolver::AsymmetricSolver(const RunSettings& settings, const EquationHolder& eqs)
-    : pool(makeShared<ThreadPool>(settings.get<int>(RunSettingsId::RUN_THREAD_CNT)))
-    , threadData(*pool) {
+    : derivatives(settings)
+    , pool(settings.get<int>(RunSettingsId::RUN_THREAD_CNT))
+    , threadData(pool) {
     kernel = Factory::getKernel<DIMENSIONS>(settings);
     finder = Factory::getFinder(settings);
     granularity = settings.get<int>(RunSettingsId::RUN_THREAD_GRANULARITY);
@@ -32,7 +33,7 @@ void AsymmetricSolver::integrate(Storage& storage, Statistics& stats) {
     }
 
     // initialize all equation terms (applies dependencies between quantities)
-    equations.initialize(storage);
+    equations.initialize(storage, pool);
 
     // initialize accumulate storages & derivatives
     derivatives.initialize(storage);
@@ -41,7 +42,7 @@ void AsymmetricSolver::integrate(Storage& storage, Statistics& stats) {
     this->loop(storage, stats);
 
     // integrate all equations
-    equations.finalize(storage);
+    equations.finalize(storage, pool);
 
     // finalize all materials (integrate fragmentation model)
     for (Size i = 0; i < storage.getMaterialCnt(); ++i) {
@@ -72,30 +73,28 @@ void AsymmetricSolver::loop(Storage& storage, Statistics& stats) {
 
     ArrayView<Size> neighs = storage.getValue<Size>(QuantityId::NEIGHBOUR_CNT);
 
-    auto functor = [this, r, &neighs, radius](const Size n1, const Size n2, ThreadData& data) {
-        for (Size i = n1; i < n2; ++i) {
-            finder->findAll(i, radius, data.neighs);
-            data.grads.clear();
-            data.idxs.clear();
-            for (auto& n : data.neighs) {
-                const Size j = n.index;
-                const Float hbar = 0.5_f * (r[i][H] + r[j][H]);
-                ASSERT(hbar > EPS, hbar);
-                if (i == j || getSqrLength(r[i] - r[j]) >= sqr(this->kernel.radius() * hbar)) {
-                    // aren't actual neighbours
-                    continue;
-                }
-                const Vector gr = kernel.grad(r[i], r[j]);
-                ASSERT(isReal(gr) && dot(gr, r[i] - r[j]) < 0._f, gr, r[i] - r[j]);
-                data.grads.emplaceBack(gr);
-                data.idxs.emplaceBack(j);
+    auto functor = [this, r, &neighs, radius](const Size i, ThreadData& data) {
+        finder->findAll(i, radius, data.neighs);
+        data.grads.clear();
+        data.idxs.clear();
+        for (auto& n : data.neighs) {
+            const Size j = n.index;
+            const Float hbar = 0.5_f * (r[i][H] + r[j][H]);
+            ASSERT(hbar > EPS, hbar);
+            if (i == j || getSqrLength(r[i] - r[j]) >= sqr(this->kernel.radius() * hbar)) {
+                // aren't actual neighbours
+                continue;
             }
-            derivatives.eval(i, data.idxs, data.grads);
-            neighs[i] = data.idxs.size();
+            const Vector gr = kernel.grad(r[i], r[j]);
+            ASSERT(isReal(gr) && dot(gr, r[i] - r[j]) < 0._f, gr, r[i] - r[j]);
+            data.grads.emplaceBack(gr);
+            data.idxs.emplaceBack(j);
         }
+        derivatives.eval(i, data.idxs, data.grads);
+        neighs[i] = data.idxs.size();
     };
     PROFILE_SCOPE("AsymmetricSolver main loop");
-    parallelFor(*pool, threadData, 0, r.size(), granularity, functor);
+    parallelFor(pool, threadData, 0, r.size(), granularity, functor);
 
     // store accumulated to storage
     Accumulated& accumulated = derivatives.getAccumulated();

@@ -39,12 +39,10 @@ void EosMaterial::create(Storage& storage, const MaterialInitialContext& UNUSED(
 void EosMaterial::initialize(Storage& storage, const IndexSequence sequence) {
     tie(rho, u, p, cs) = storage.getValues<Float>(
         QuantityId::DENSITY, QuantityId::ENERGY, QuantityId::PRESSURE, QuantityId::SOUND_SPEED);
-    parallelFor(*sequence.begin(), *sequence.end(), [&](const Size n1, const Size n2) INL {
+    parallelFor(*sequence.begin(), *sequence.end(), [&](const Size i) INL {
         /// \todo now we can easily pass sequence into the EoS and iterate inside, to avoid calling
         /// virtual function (and we could also optimize with SSE)
-        for (Size i = n1; i < n2; ++i) {
-            tie(p[i], cs[i]) = eos->evaluate(rho[i], u[i]);
-        }
+        tie(p[i], cs[i]) = eos->evaluate(rho[i], u[i]);
     });
 }
 

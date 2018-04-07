@@ -65,9 +65,9 @@ public:
     virtual void setDerivatives(DerivativeHolder& UNUSED(derivatives),
         const RunSettings& UNUSED(settings)) override {}
 
-    virtual void initialize(Storage& UNUSED(storage)) override {}
+    virtual void initialize(Storage& UNUSED(storage), ThreadPool& UNUSED(pool)) override {}
 
-    virtual void finalize(Storage& storage) override {
+    virtual void finalize(Storage& storage, ThreadPool& UNUSED(pool)) override {
         ArrayView<Vector> r, v, dv;
         tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
         /// \todo parallelize

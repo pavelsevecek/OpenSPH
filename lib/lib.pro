@@ -16,7 +16,6 @@ QMAKE_CXXFLAGS += -Wall -Wextra -Werror -msse4.1 -std=c++14 -pthread
 #QMAKE_CXXFLAGS_DEBUG += -fsanitize=undefined-trap -fsanitize-undefined-trap-on-error  # -ftime-report
 
 
-
 CONFIG(release, debug|profile|assert|release) {
   message( "SPH LIB --- Building for Release" )
   QMAKE_CXXFLAGS += -O2

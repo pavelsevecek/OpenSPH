@@ -51,17 +51,15 @@ void PressureForce::setDerivatives(DerivativeHolder& derivatives, const RunSetti
     }
 }
 
-void PressureForce::initialize(Storage& UNUSED(storage)) {}
+void PressureForce::initialize(Storage& UNUSED(storage), ThreadPool& UNUSED(pool)) {}
 
-void PressureForce::finalize(Storage& storage) {
+void PressureForce::finalize(Storage& storage, ThreadPool& pool) {
     ArrayView<const Float> p, rho;
     tie(p, rho) = storage.getValues<Float>(QuantityId::PRESSURE, QuantityId::DENSITY);
     ArrayView<Float> du = storage.getDt<Float>(QuantityId::ENERGY);
     ArrayView<const Float> divv = storage.getValue<Float>(QuantityId::VELOCITY_DIVERGENCE);
-    parallelFor(0, du.size(), [&](const Size n1, const Size n2) INL {
-        for (Size i = n1; i < n2; ++i) {
-            du[i] -= p[i] / rho[i] * divv[i];
-        }
+    parallelFor(pool, 0, du.size(), [&](const Size i) INL { //
+        du[i] -= p[i] / rho[i] * divv[i];
     });
 }
 
@@ -143,9 +141,9 @@ void SolidStressForce::setDerivatives(DerivativeHolder& derivatives, const RunSe
     }
 }
 
-void SolidStressForce::initialize(Storage& UNUSED(storage)) {}
+void SolidStressForce::initialize(Storage& UNUSED(storage), ThreadPool& UNUSED(pool)) {}
 
-void SolidStressForce::finalize(Storage& storage) {
+void SolidStressForce::finalize(Storage& storage, ThreadPool& pool) {
     ArrayView<Float> rho = storage.getValue<Float>(QuantityId::DENSITY);
     ArrayView<TracelessTensor> s, ds;
     tie(s, ds) = storage.getPhysicalAll<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
@@ -158,24 +156,22 @@ void SolidStressForce::finalize(Storage& storage) {
         MaterialView material = storage.getMaterial(matIdx);
         const Float mu = material->getParam<Float>(BodySettingsId::SHEAR_MODULUS);
         IndexSequence seq = material.sequence();
-        parallelFor(*seq.begin(), *seq.end(), [&](const Size n1, const Size n2) INL {
-            for (Size i = n1; i < n2; ++i) {
-                if (reduce[i] == 0._f) {
-                    continue;
-                }
-                du[i] += 1._f / rho[i] * ddot(s[i], gradv[i]);
-
-                // Hooke's law
-                TracelessTensor dev(gradv[i] - SymmetricTensor::identity() * gradv[i].trace() / 3._f);
-                ds[i] += 2._f * mu * dev;
-
-                // add rotation terms for independence of reference frame
-                /*const AffineMatrix R = 0.5_f * AffineMatrix::crossProductOperator(rhoRotV[i]);
-                const AffineMatrix S = convert<AffineMatrix>(s[i]);
-                const TracelessTensor ds_rot = convert<TracelessTensor>(1._f / rho[i] * (S * R - R * S));
-                ds[i] += ds_rot;*/
-                ASSERT(isReal(du[i]) && isReal(ds[i]));
+        parallelFor(pool, *seq.begin(), *seq.end(), [&](const Size i) INL {
+            if (reduce[i] == 0._f) {
+                return;
             }
+            du[i] += 1._f / rho[i] * ddot(s[i], gradv[i]);
+
+            // Hooke's law
+            TracelessTensor dev(gradv[i] - SymmetricTensor::identity() * gradv[i].trace() / 3._f);
+            ds[i] += 2._f * mu * dev;
+
+            // add rotation terms for independence of reference frame
+            /*const AffineMatrix R = 0.5_f * AffineMatrix::crossProductOperator(rhoRotV[i]);
+            const AffineMatrix S = convert<AffineMatrix>(s[i]);
+            const TracelessTensor ds_rot = convert<TracelessTensor>(1._f / rho[i] * (S * R - R * S));
+            ds[i] += ds_rot;*/
+            ASSERT(isReal(du[i]) && isReal(ds[i]));
         });
     }
 }
@@ -203,11 +199,11 @@ void NavierStokesForce::setDerivatives(DerivativeHolder& derivatives, const RunS
     derivatives.require(makeDerivative<VelocityGradient>(settings, DerivativeFlag::CORRECTED));
 }
 
-void NavierStokesForce::initialize(Storage&) {
+void NavierStokesForce::initialize(Storage&, ThreadPool&) {
     TODO("implement");
 }
 
-void NavierStokesForce::finalize(Storage& storage) {
+void NavierStokesForce::finalize(Storage& storage, ThreadPool&) {
     ArrayView<Float> rho = storage.getValue<Float>(QuantityId::DENSITY);
     ArrayView<TracelessTensor> s, ds;
     tie(s, ds) = storage.getPhysicalAll<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
@@ -248,9 +244,9 @@ void ContinuityEquation::setDerivatives(DerivativeHolder& derivatives, const Run
     derivatives.require(makeDerivative<VelocityDivergence>(settings));
 }
 
-void ContinuityEquation::initialize(Storage& UNUSED(storage)) {}
+void ContinuityEquation::initialize(Storage& UNUSED(storage), ThreadPool& UNUSED(pool)) {}
 
-void ContinuityEquation::finalize(Storage& storage) {
+void ContinuityEquation::finalize(Storage& storage, ThreadPool& pool) {
     ArrayView<Float> rho, drho;
     tie(rho, drho) = storage.getAll<Float>(QuantityId::DENSITY);
     ArrayView<const Float> divv = storage.getValue<Float>(QuantityId::VELOCITY_DIVERGENCE);
@@ -259,20 +255,16 @@ void ContinuityEquation::finalize(Storage& storage) {
         ArrayView<const Float> reduce = storage.getValue<Float>(QuantityId::STRESS_REDUCING);
         ArrayView<const SymmetricTensor> gradv =
             storage.getValue<SymmetricTensor>(QuantityId::VELOCITY_GRADIENT);
-        parallelFor(0, rho.size(), [&](const Size n1, const Size n2) INL {
-            for (Size i = n1; i < n2; ++i) {
-                if (reduce[i] > 0._f) {
-                    drho[i] = -rho[i] * gradv[i].trace();
-                } else {
-                    drho[i] = -rho[i] * divv[i];
-                }
+        parallelFor(pool, 0, rho.size(), [&](const Size i) INL {
+            if (reduce[i] > 0._f) {
+                drho[i] = -rho[i] * gradv[i].trace();
+            } else {
+                drho[i] = -rho[i] * divv[i];
             }
         });
     } else {
-        parallelFor(0, rho.size(), [&](const Size n1, const Size n2) INL {
-            for (Size i = n1; i < n2; ++i) {
-                drho[i] = -rho[i] * divv[i];
-            }
+        parallelFor(pool, 0, rho.size(), [&](const Size i) INL { //
+            drho[i] = -rho[i] * divv[i];
         });
     }
 }
@@ -303,7 +295,7 @@ void AdaptiveSmoothingLength::setDerivatives(DerivativeHolder& derivatives, cons
     derivatives.require(makeDerivative<VelocityDivergence>(settings));
 }
 
-void AdaptiveSmoothingLength::initialize(Storage& storage) {
+void AdaptiveSmoothingLength::initialize(Storage& storage, ThreadPool& UNUSED(pool)) {
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     // clamp smoothing lengths
     for (Size i = 0; i < r.size(); ++i) {
@@ -311,28 +303,26 @@ void AdaptiveSmoothingLength::initialize(Storage& storage) {
     }
 }
 
-void AdaptiveSmoothingLength::finalize(Storage& storage) {
+void AdaptiveSmoothingLength::finalize(Storage& storage, ThreadPool& pool) {
     ArrayView<const Float> divv, cs;
     tie(divv, cs) = storage.getValues<Float>(QuantityId::VELOCITY_DIVERGENCE, QuantityId::SOUND_SPEED);
     ArrayView<const Size> neighCnt = storage.getValue<Size>(QuantityId::NEIGHBOUR_CNT);
     ArrayView<Vector> r, v, dv;
     tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
 
-    parallelFor(0, r.size(), [&](const Size n1, const Size n2) INL {
-        for (Size i = n1; i < n2; ++i) {
-            // 'continuity equation' for smoothing lengths
-            if (r[i][H] > 2._f * minimal) {
-                v[i][H] = r[i][H] / dimensions * divv[i];
-            } else {
-                v[i][H] = 0._f;
-            }
-
-            /// \todo generalize for grad v
-            // no acceleration of smoothing lengths (we evolve h as first-order quantity)
-            dv[i][H] = 0._f;
-
-            this->enforce(i, v, cs, neighCnt);
+    parallelFor(pool, 0, r.size(), [&](const Size i) INL {
+        // 'continuity equation' for smoothing lengths
+        if (r[i][H] > 2._f * minimal) {
+            v[i][H] = r[i][H] / dimensions * divv[i];
+        } else {
+            v[i][H] = 0._f;
         }
+
+        /// \todo generalize for grad v
+        // no acceleration of smoothing lengths (we evolve h as first-order quantity)
+        dv[i][H] = 0._f;
+
+        this->enforce(i, v, cs, neighCnt);
     });
 }
 
@@ -370,16 +360,14 @@ INLINE void AdaptiveSmoothingLength::enforce(const Size i,
 void ConstSmoothingLength::setDerivatives(DerivativeHolder& UNUSED(derivatives),
     const RunSettings& UNUSED(settings)) {}
 
-void ConstSmoothingLength::initialize(Storage& UNUSED(storage)) {}
+void ConstSmoothingLength::initialize(Storage& UNUSED(storage), ThreadPool& UNUSED(pool)) {}
 
-void ConstSmoothingLength::finalize(Storage& storage) {
+void ConstSmoothingLength::finalize(Storage& storage, ThreadPool& pool) {
     ArrayView<Vector> r, v, dv;
     tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
-    parallelFor(0, r.size(), [&v, &dv](const Size n1, const Size n2) INL {
-        for (Size i = n1; i < n2; ++i) {
-            v[i][H] = 0._f;
-            dv[i][H] = 0._f;
-        }
+    parallelFor(pool, 0, r.size(), [&v, &dv](const Size i) INL {
+        v[i][H] = 0._f;
+        dv[i][H] = 0._f;
     });
 }
 

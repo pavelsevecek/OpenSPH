@@ -59,34 +59,30 @@ void SummationSolver::beforeLoop(Storage& storage, Statistics& stats) {
         h[i] = r[i][H];
     }
 
-    Atomic<Float> totalDiff = 0._f; // we only sum few numbers, so it does not have to be thread local.
-    auto functor = [this, r, m, &totalDiff](const Size n1, const Size n2, ThreadData& data) {
-        Float diff = 0._f;
-        for (Size i = n1; i < n2; ++i) {
-            /// \todo do we have to recompute neighbours in every iteration?
-            // find all neighbours
-            finder->findAll(i, h[i] * kernel.radius(), data.neighs);
-            ASSERT(data.neighs.size() > 0, data.neighs.size());
-            // find density and smoothing length by self-consistent solution.
-            const Float rho0 = rho[i];
-            rho[i] = 0._f;
-            for (auto& n : data.neighs) {
-                const Size j = n.index;
-                /// \todo can this be generally different kernel than the one used for derivatives?
-                rho[i] += m[j] * densityKernel.value(r[i] - r[j], h[i]);
-            }
-            ASSERT(rho[i] > 0._f, rho[i]);
-            h[i] = eta * root<DIMENSIONS>(m[i] / rho[i]);
-            ASSERT(h[i] > 0._f);
-            diff += abs(rho[i] - rho0) / (rho[i] + rho0);
+    Atomic<Float> totalDiff = 0._f; /// \todo use thread local for summing?
+    auto functor = [this, r, m, &totalDiff](const Size i, ThreadData& data) {
+        /// \todo do we have to recompute neighbours in every iteration?
+        // find all neighbours
+        finder->findAll(i, h[i] * kernel.radius(), data.neighs);
+        ASSERT(data.neighs.size() > 0, data.neighs.size());
+        // find density and smoothing length by self-consistent solution.
+        const Float rho0 = rho[i];
+        rho[i] = 0._f;
+        for (auto& n : data.neighs) {
+            const Size j = n.index;
+            /// \todo can this be generally different kernel than the one used for derivatives?
+            rho[i] += m[j] * densityKernel.value(r[i] - r[j], h[i]);
         }
-        totalDiff += diff;
+        ASSERT(rho[i] > 0._f, rho[i]);
+        h[i] = eta * root<DIMENSIONS>(m[i] / rho[i]);
+        ASSERT(h[i] > 0._f);
+        totalDiff += abs(rho[i] - rho0) / (rho[i] + rho0);
     };
 
     finder->build(r);
     Size iterationIdx = 0;
     for (; iterationIdx < maxIteration; ++iterationIdx) {
-        parallelFor(*pool, threadData, 0, r.size(), granularity, functor);
+        parallelFor(pool, threadData, 0, r.size(), granularity, functor);
         const Float diff = totalDiff / r.size();
         if (diff < targetDensityDifference) {
             break;

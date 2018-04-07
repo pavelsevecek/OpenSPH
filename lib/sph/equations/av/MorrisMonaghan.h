@@ -83,7 +83,7 @@ public:
         derivatives.require(makeAuto<Derivative>(settings));
     }
 
-    virtual void initialize(Storage& storage) override {
+    virtual void initialize(Storage& storage, ThreadPool& UNUSED(pool)) override {
         ArrayView<Vector> r, v, dv;
         tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
 
@@ -95,7 +95,7 @@ public:
         }
     }
 
-    virtual void finalize(Storage& storage) override {
+    virtual void finalize(Storage& storage, ThreadPool& UNUSED(pool)) override {
         ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
         ArrayView<Float> alpha, dalpha;
         tie(alpha, dalpha) = storage.getAll<Float>(QuantityId::AV_ALPHA);

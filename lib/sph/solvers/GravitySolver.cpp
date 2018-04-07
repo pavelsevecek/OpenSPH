@@ -51,7 +51,7 @@ void GravitySolver<TSphSolver>::loop(Storage& storage, Statistics& stats) {
 
     // evaluate gravity for each particle
     Timer timer;
-    gravity->evalAll(*this->pool, dv, stats);
+    gravity->evalAll(this->pool, dv, stats);
     stats.set(StatisticsId::GRAVITY_EVAL_TIME, int(timer.elapsed(TimerUnit::MILLISECOND)));
 
     // second, compute SPH derivatives using given solver

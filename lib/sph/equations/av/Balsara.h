@@ -121,12 +121,12 @@ public:
         derivatives.require(makeAuto<Derivative>(settings));
     }
 
-    virtual void initialize(Storage& storage) override {
-        av.initialize(storage);
+    virtual void initialize(Storage& storage, ThreadPool& pool) override {
+        av.initialize(storage, pool);
     }
 
-    virtual void finalize(Storage& storage) override {
-        av.finalize(storage);
+    virtual void finalize(Storage& storage, ThreadPool& pool) override {
+        av.finalize(storage, pool);
         if (storeFactor) {
             ArrayView<const Float> divv = storage.getValue<Float>(QuantityId::VELOCITY_DIVERGENCE);
             ArrayView<const Vector> rotv = storage.getValue<Vector>(QuantityId::VELOCITY_ROTATION);

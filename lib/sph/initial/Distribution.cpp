@@ -154,49 +154,47 @@ DiehlDistribution::DiehlDistribution(const DiehlDistribution::DensityFunc& parti
     , small(small) {}
 
 namespace {
-    class ForwardingDomain : public IDomain {
-    private:
-        const IDomain& domain;
+class ForwardingDomain : public IDomain {
+private:
+    const IDomain& domain;
 
-    public:
-        explicit ForwardingDomain(const IDomain& domain)
-            : IDomain(domain.getCenter())
-            , domain(domain) {}
+public:
+    explicit ForwardingDomain(const IDomain& domain)
+        : IDomain(domain.getCenter())
+        , domain(domain) {}
 
-        virtual Box getBoundingBox() const override {
-            return domain.getBoundingBox();
-        }
+    virtual Box getBoundingBox() const override {
+        return domain.getBoundingBox();
+    }
 
-        virtual Float getVolume() const override {
-            return domain.getVolume();
-        }
+    virtual Float getVolume() const override {
+        return domain.getVolume();
+    }
 
-        virtual bool contains(const Vector& v) const override {
-            return domain.contains(v);
-        }
+    virtual bool contains(const Vector& v) const override {
+        return domain.contains(v);
+    }
 
-        virtual void getSubset(ArrayView<const Vector> vs,
-            Array<Size>& output,
-            const SubsetType type) const override {
-            return domain.getSubset(vs, output, type);
-        }
+    virtual void getSubset(ArrayView<const Vector> vs,
+        Array<Size>& output,
+        const SubsetType type) const override {
+        return domain.getSubset(vs, output, type);
+    }
 
-        virtual void getDistanceToBoundary(ArrayView<const Vector> vs,
-            Array<Float>& distances) const override {
-            domain.getDistanceToBoundary(vs, distances);
-        }
+    virtual void getDistanceToBoundary(ArrayView<const Vector> vs, Array<Float>& distances) const override {
+        domain.getDistanceToBoundary(vs, distances);
+    }
 
-        virtual void project(ArrayView<Vector> vs,
-            Optional<ArrayView<Size>> indices = NOTHING) const override {
-            domain.project(vs, indices);
-        }
-        virtual void addGhosts(ArrayView<const Vector> vs,
-            Array<Ghost>& ghosts,
-            const Float radius = 2._f,
-            const Float eps = 0.05_f) const override {
-            domain.addGhosts(vs, ghosts, radius, eps);
-        }
-    };
+    virtual void project(ArrayView<Vector> vs, Optional<ArrayView<Size>> indices = NOTHING) const override {
+        domain.project(vs, indices);
+    }
+    virtual void addGhosts(ArrayView<const Vector> vs,
+        Array<Ghost>& ghosts,
+        const Float radius = 2._f,
+        const Float eps = 0.05_f) const override {
+        domain.addGhosts(vs, ghosts, radius, eps);
+    }
+};
 } // namespace
 
 /// Renormalizes particle density so that integral matches expected particle count.
@@ -301,35 +299,33 @@ Array<Vector> DiehlDistribution::generate(const Size expectedN, const IDomain& d
         // clean up the previous displacements
         deltas.fill(Vector(0._f));
 
-        auto lambda = [&](const Size n1, const Size n2, Array<NeighbourRecord>& neighsTl) {
-            for (Size i = n1; i < n2; ++i) {
-                const Float rhoi = actDensity(r[i]); // average particle density
-                // average interparticle distance at given point
-                const Float neighbourRadius = kernelRadius / root<3>(rhoi);
-                finder.findAll(i, neighbourRadius, neighsTl);
+        auto lambda = [&](const Size i, Array<NeighbourRecord>& neighsTl) {
+            const Float rhoi = actDensity(r[i]); // average particle density
+            // average interparticle distance at given point
+            const Float neighbourRadius = kernelRadius / root<3>(rhoi);
+            finder.findAll(i, neighbourRadius, neighsTl);
 
-                for (Size j = 0; j < neighsTl.size(); ++j) {
-                    const Size k = neighsTl[j].index;
-                    const Vector diff = r[k] - r[i];
-                    const Float lengthSqr = getSqrLength(diff);
-                    // for ghost particles, just copy the density (density outside the domain is always 0)
-                    const Float rhok = (k >= N) ? rhoi : actDensity(r[k]);
-                    // average kernel radius to allow for the gradient of particle density
-                    const Float h = kernelRadius * (0.5f / root<3>(rhoi) + 0.5f / root<3>(rhok));
-                    if (lengthSqr > h * h || lengthSqr == 0) {
-                        continue;
-                    }
-                    const Float hSqrInv = 1.f / (h * h);
-                    const Float length = getLength(diff);
-                    ASSERT(length != 0._f);
-                    const Vector diffUnit = diff / length;
-                    const Float t =
-                        converg * h * (strength / (small + getSqrLength(diff) * hSqrInv) - correction);
-                    deltas[i] += diffUnit * min(t, h); // clamp the displacement to particle distance
-                    ASSERT(isReal(deltas[i]));
+            for (Size j = 0; j < neighsTl.size(); ++j) {
+                const Size k = neighsTl[j].index;
+                const Vector diff = r[k] - r[i];
+                const Float lengthSqr = getSqrLength(diff);
+                // for ghost particles, just copy the density (density outside the domain is always 0)
+                const Float rhok = (k >= N) ? rhoi : actDensity(r[k]);
+                // average kernel radius to allow for the gradient of particle density
+                const Float h = kernelRadius * (0.5f / root<3>(rhoi) + 0.5f / root<3>(rhok));
+                if (lengthSqr > h * h || lengthSqr == 0) {
+                    continue;
                 }
-                deltas[i][H] = 0._f; // do not affect smoothing lengths
+                const Float hSqrInv = 1.f / (h * h);
+                const Float length = getLength(diff);
+                ASSERT(length != 0._f);
+                const Vector diffUnit = diff / length;
+                const Float t =
+                    converg * h * (strength / (small + getSqrLength(diff) * hSqrInv) - correction);
+                deltas[i] += diffUnit * min(t, h); // clamp the displacement to particle distance
+                ASSERT(isReal(deltas[i]));
             }
+            deltas[i][H] = 0._f; // do not affect smoothing lengths
         };
         parallelFor(pool, neighs, 0, N, 100, lambda);
 

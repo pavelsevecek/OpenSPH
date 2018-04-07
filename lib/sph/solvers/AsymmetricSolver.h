@@ -22,7 +22,9 @@ NAMESPACE_SPH_BEGIN
 /// correction tensor) that require two passes over the particle neighbours; the derivative is completed after
 /// the neighbours are summed up, as the list of neighbours contains ALL of the neighbouring particles (as
 /// opposed to SymmetricSolver, where the list of neighbours only contains the particles with lower smoothing
-/// length). Another benefit is lower memory overhead (all threads can write into the same buffers) and
+/// length).
+///
+/// Another benefit is lower memory overhead (all threads can write into the same buffers) and
 /// generally higher CPU usage.
 class AsymmetricSolver : public ISolver {
 protected:
@@ -30,7 +32,7 @@ protected:
     DerivativeHolder derivatives;
 
     /// Thread pool used to parallelize the solver, runs the whole time the solver exists.
-    SharedPtr<ThreadPool> pool;
+    ThreadPool pool;
 
     struct ThreadData {
         /// Cached array of neighbours, to avoid allocation every step

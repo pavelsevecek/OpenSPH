@@ -10,7 +10,7 @@
 
 NAMESPACE_SPH_BEGIN
 
-class IScheduler;
+class ThreadPool;
 
 /// \brief Interface for evaluators of gravitational interaction
 class IGravity : public Polymorphic {
@@ -30,11 +30,11 @@ public:
     /// \brief Evaluates the gravitational acceleration concurrently.
     ///
     /// The function is blocking, it must exit after the gravity is evaluated.
-    /// \param scheduler Scheduler used for parallelization
+    /// \param pool Thread pool used for parallelization
     /// \param dv Acceleration values, my contain previous values, gravity should add acceleration
     ///           instead of replacing the previous values with new one.
     /// \param stats Output statistics of the gravitational solver.
-    virtual void evalAll(IScheduler& scheduler, ArrayView<Vector> dv, Statistics& stats) const = 0;
+    virtual void evalAll(ThreadPool& pool, ArrayView<Vector> dv, Statistics& stats) const = 0;
 
     /// \brief Evaluates the gravitational acceleration at given point.
     ///

@@ -85,13 +85,13 @@ void BarnesHut::evalAll(ArrayView<Vector> dv, Statistics& stats) const {
     }
 }
 
-void BarnesHut::evalAll(IScheduler& scheduler, ArrayView<Vector> dv, Statistics& stats) const {
+void BarnesHut::evalAll(ThreadPool& pool, ArrayView<Vector> dv, Statistics& stats) const {
     TreeWalkState data;
     TreeWalkResult result;
-    scheduler.submit(makeTask([this, &scheduler, dv, &data, &result] { //
-        this->evalNode(scheduler, dv, 0, std::move(data), result);
+    pool.submit(makeTask([this, &pool, dv, &data, &result] { //
+        this->evalNode(pool, dv, 0, std::move(data), result);
     }));
-    scheduler.waitForAll();
+    pool.waitForAll();
 
     stats.set<int>(StatisticsId::GRAVITY_NODES_APPROX, result.approximatedNodes);
     stats.set<int>(StatisticsId::GRAVITY_NODES_EXACT, result.exactNodes);

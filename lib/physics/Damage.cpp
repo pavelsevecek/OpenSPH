@@ -113,23 +113,21 @@ void ScalarGradyKippModel::reduce(Storage& storage,
     tie(s, s_dmg) = storage.modify<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
 
     IndexSequence seq = material.sequence();
-    parallelFor(*seq.begin(), *seq.end(), [&](const Size n1, const Size n2) INL {
-        for (Size i = n1; i < n2; ++i) {
-            const Float d = pow<3>(damage[i]);
-            // pressure is reduced only for negative values
-            /// \todo could be vectorized, maybe
-            if (flags.has(DamageFlag::PRESSURE)) {
-                if (p[i] < 0._f) {
-                    p[i] = (1._f - d) * p[i];
-                }
+    parallelFor(*seq.begin(), *seq.end(), [&](const Size i) INL {
+        const Float d = pow<3>(damage[i]);
+        // pressure is reduced only for negative values
+        /// \todo could be vectorized, maybe
+        if (flags.has(DamageFlag::PRESSURE)) {
+            if (p[i] < 0._f) {
+                p[i] = (1._f - d) * p[i];
             }
-            // stress is reduced for both positive and negative values
-            if (flags.has(DamageFlag::STRESS_TENSOR)) {
-                s_dmg[i] = (1._f - d) * s[i];
-            }
-            if (flags.has(DamageFlag::REDUCTION_FACTOR)) {
-                reduce[i] = (1._f - d) * reduce[i];
-            }
+        }
+        // stress is reduced for both positive and negative values
+        if (flags.has(DamageFlag::STRESS_TENSOR)) {
+            s_dmg[i] = (1._f - d) * s[i];
+        }
+        if (flags.has(DamageFlag::REDUCTION_FACTOR)) {
+            reduce[i] = (1._f - d) * reduce[i];
         }
     });
 }
@@ -148,40 +146,38 @@ void ScalarGradyKippModel::integrate(Storage& storage, const MaterialView materi
     tie(damage, ddamage) = storage.getAll<Float>(QuantityId::DAMAGE);
 
     IndexSequence seq = material.sequence();
-    parallelFor(*seq.begin(), *seq.end(), [&](const Size n1, const Size n2) {
-        for (Size i = n1; i < n2; ++i) {
-            // if damage is already on max value, set stress to zero to avoid limiting timestep by
-            // non-existent stresses
-            const Interval range = material->range(QuantityId::DAMAGE);
-            /// \todo skip if the stress tensor is already fully damaged?
-            /// \todo can we set S derivatives to zero? This will break PC timestepping for stress tensor
-            /// but all physics depend on damaged values, anyway
-            if (damage[i] >= range.upper()) {
-                // we CANNOT set derivative of damage to zero!
-                ddamage[i] = LARGE; /// \todo is this ok?
-                // we set damage derivative to large value, so that it is larger than the derivative from
-                // prediction, therefore damage will INCREASE in corrections, but will be immediately clamped
-                // to 1 TOGETHER WITH DERIVATIVES, time step is computed afterwards, so it should be ok.
-                s[i] = TracelessTensor::null();
-                ds[i] = TracelessTensor::null(); /// \todo this is the derivative used for computing time step
-                continue;
-            }
-            const SymmetricTensor sigma = SymmetricTensor(s_dmg[i]) - p[i] * SymmetricTensor::identity();
-            Float sig1, sig2, sig3;
-            tie(sig1, sig2, sig3) = findEigenvalues(sigma);
-            const Float sigMax = max(sig1, sig2, sig3);
-            const Float young = material->getParam<Float>(BodySettingsId::YOUNG_MODULUS);
-            // we need to assume reduces Young modulus here, hence 1-D factor
-            const Float young_red = max((1._f - pow<3>(damage[i])) * young, 1.e-20_f);
-            const Float strain = sigMax / young_red;
-            const Float ratio = strain / eps_min[i];
-            ASSERT(isReal(ratio));
-            if (ratio <= 1._f) {
-                continue;
-            }
-            ddamage[i] = growth[i] * root<3>(min(std::pow(ratio, m_zero[i]), Float(n_flaws[i])));
-            ASSERT(ddamage[i] >= 0.f);
+    parallelFor(*seq.begin(), *seq.end(), [&](const Size i) {
+        // if damage is already on max value, set stress to zero to avoid limiting timestep by
+        // non-existent stresses
+        const Interval range = material->range(QuantityId::DAMAGE);
+        /// \todo skip if the stress tensor is already fully damaged?
+        /// \todo can we set S derivatives to zero? This will break PC timestepping for stress tensor
+        /// but all physics depend on damaged values, anyway
+        if (damage[i] >= range.upper()) {
+            // we CANNOT set derivative of damage to zero!
+            ddamage[i] = LARGE; /// \todo is this ok?
+            // we set damage derivative to large value, so that it is larger than the derivative from
+            // prediction, therefore damage will INCREASE in corrections, but will be immediately clamped
+            // to 1 TOGETHER WITH DERIVATIVES, time step is computed afterwards, so it should be ok.
+            s[i] = TracelessTensor::null();
+            ds[i] = TracelessTensor::null(); /// \todo this is the derivative used for computing time step
+            return;
         }
+        const SymmetricTensor sigma = SymmetricTensor(s_dmg[i]) - p[i] * SymmetricTensor::identity();
+        Float sig1, sig2, sig3;
+        tie(sig1, sig2, sig3) = findEigenvalues(sigma);
+        const Float sigMax = max(sig1, sig2, sig3);
+        const Float young = material->getParam<Float>(BodySettingsId::YOUNG_MODULUS);
+        // we need to assume reduces Young modulus here, hence 1-D factor
+        const Float young_red = max((1._f - pow<3>(damage[i])) * young, 1.e-20_f);
+        const Float strain = sigMax / young_red;
+        const Float ratio = strain / eps_min[i];
+        ASSERT(isReal(ratio));
+        if (ratio <= 1._f) {
+            return;
+        }
+        ddamage[i] = growth[i] * root<3>(min(std::pow(ratio, m_zero[i]), Float(n_flaws[i])));
+        ASSERT(ddamage[i] >= 0.f);
     });
 }
 
@@ -230,11 +226,7 @@ void NullFracture::reduce(Storage& storage,
     tie(s, s_dmg) = storage.modify<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
 
     IndexSequence seq = material.sequence();
-    parallelFor(*seq.begin(), *seq.end(), [&](const Size n1, const Size n2) INL {
-        for (Size i = n1; i < n2; ++i) {
-            s_dmg[i] = s[i];
-        }
-    });
+    parallelFor(*seq.begin(), *seq.end(), [&](const Size i) INL { s_dmg[i] = s[i]; });
 }
 
 void NullFracture::integrate(Storage& UNUSED(storage), const MaterialView UNUSED(material)) {}

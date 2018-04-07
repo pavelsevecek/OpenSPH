@@ -106,8 +106,18 @@ public:
     }
 };
 
-/// Overload of parallelFor that passes thread-local storage into the functor. Function split range into
-/// sub-ranges and passes beginning and end of each subrange to functors.
+/// \brief Overload of parallelFor that passes thread-local storage into the functor.
+template <typename Type, typename TFunctor>
+INLINE void parallelFor(ThreadPool& pool,
+    ThreadLocal<Type>& storage,
+    const Size from,
+    const Size to,
+    TFunctor&& functor) {
+    const Size granularity = pool.getRecommendedGranularity(from, to);
+    parallelFor(pool, storage, from, to, granularity, std::forward<TFunctor>(functor));
+}
+
+/// \brief Overload of parallelFor that passes thread-local storage into the functor.
 template <typename Type, typename TFunctor>
 INLINE void parallelFor(ThreadPool& pool,
     ThreadLocal<Type>& storage,
@@ -121,7 +131,9 @@ INLINE void parallelFor(ThreadPool& pool,
         const Size n2 = min(i + granularity, to);
         pool.submit(makeTask([n1, n2, &storage, &functor] {
             Type& tls = storage.get();
-            functor(n1, n2, tls);
+            for (Size n = n1; n < n2; ++n) {
+                functor(n, tls);
+            }
         }));
     }
     pool.waitForAll();

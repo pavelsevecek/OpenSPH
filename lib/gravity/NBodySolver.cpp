@@ -240,13 +240,11 @@ void NBodySolver::collide(Storage& storage, Statistics& stats, const Float dt) {
 
     threadData.forEach([](ThreadData& data) { data.collisions.clear(); });
     // first pass - find all collisions and sort them by collision time
-    parallelFor(pool, threadData, 0, r.size(), 100, [&](const Size n1, const Size n2, ThreadData& data) {
-        for (Size i = n1; i < n2; ++i) {
-            if (CollisionRecord col = this->findClosestCollision(
-                    i, SearchEnum::FIND_LOWER_RANK, Interval(0._f, dt), data.neighs)) {
-                ASSERT(isReal(col));
-                data.collisions.insert(col);
-            }
+    parallelFor(pool, threadData, 0, r.size(), [&](const Size i, ThreadData& data) {
+        if (CollisionRecord col =
+                this->findClosestCollision(i, SearchEnum::FIND_LOWER_RANK, Interval(0._f, dt), data.neighs)) {
+            ASSERT(isReal(col));
+            data.collisions.insert(col);
         }
     });
     threadData.forEach([this](ThreadData& data) {

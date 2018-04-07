@@ -41,10 +41,12 @@ protected:
 
         /// Cached array of gradients
         Array<Vector> grads;
+
+        explicit ThreadData(const RunSettings& settings);
     };
 
     /// Thread pool used to parallelize the solver, runs the whole time the solver exists.
-    SharedPtr<ThreadPool> pool;
+    ThreadPool pool;
 
     /// Selected granularity of the parallel processing. The more particles in simulation, the higher the
     /// value should be to utilize the solver optimally.

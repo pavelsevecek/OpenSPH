@@ -13,6 +13,7 @@
 
 NAMESPACE_SPH_BEGIN
 
+class IScheduler;
 enum class MultipoleOrder;
 
 /// \brief Multipole approximation of distance particle.
@@ -55,7 +56,7 @@ public:
 
     virtual void evalAll(ArrayView<Vector> dv, Statistics& stats) const override;
 
-    virtual void evalAll(IScheduler& scheduler, ArrayView<Vector> dv, Statistics& stats) const override;
+    virtual void evalAll(ThreadPool& pool, ArrayView<Vector> dv, Statistics& stats) const override;
 
     virtual Vector eval(const Vector& r0, Statistics& stats) const override;
 

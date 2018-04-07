@@ -401,6 +401,9 @@ private:
     bool needsCreate = true;
 
 public:
+    explicit DerivativeHolder(const RunSettings& settings)
+        : accumulated(settings) {}
+
     /// \brief Adds derivative if not already present.
     ///
     /// If the derivative is already stored, new one is NOT stored, it is simply ignored. However, the new
