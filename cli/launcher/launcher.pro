@@ -12,23 +12,25 @@ LIBS += ../../lib/liblib.a
 
 
 CONFIG(release, debug|profile|assert|release) {
-  message( "SPH CLI --- Building for Release" )
+  message( "SPH Launcher --- Building for Release" )
+  QMAKE_CXXFLAGS += -O4
 }
 
 CONFIG(profile, debug|profile|assert|release) {
-  message( "SPH CLI --- Building for Profile" )
+  message( "SPH Launcher --- Building for Profile" )
   DEFINES += SPH_PROFILE
 }
 
 CONFIG(assert, debug|profile|assert|release) {
-  message( "SPH CLI --- Building for Assert" )
+  message( "SPH Launcher --- Building for Assert" )
   DEFINES += SPH_DEBUG SPH_PROFILE
   QMAKE_CXXFLAGS += -O2
 }
 
 CONFIG(debug, debug|profile|assert|release) {
-  message( "SPH CLI --- Building for Debug" )
+  message( "SPH Launcher --- Building for Debug" )
   DEFINES += SPH_DEBUG SPH_PROFILE
 }
 
-SOURCES += main.cpp
+SOURCES += \
+    Launcher.cpp

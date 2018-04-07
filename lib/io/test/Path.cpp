@@ -1,5 +1,6 @@
 ﻿#include "io/Path.h"
 #include "catch.hpp"
+#include "utils/Config.h"
 
 using namespace Sph;
 
@@ -114,25 +115,21 @@ TEST_CASE("Path removeSpecialDirs", "[path]") {
     REQUIRE(Path("usr/../lib").removeSpecialDirs() == Path("lib"));
 }
 
-/// \todo this is fine tuned for my system, sorry ...
-
-const Path workingDir("/home/pavel/projects/astro/sph/build/test/");
-
 TEST_CASE("Path makeAbsolute", "[path]") {
     REQUIRE(Path().makeAbsolute() == Path());
     REQUIRE(Path("/").makeAbsolute() == Path("/"));
     REQUIRE(Path("/usr/lib/").makeAbsolute() == Path("/usr/lib/"));
-    REQUIRE(Path("file").makeAbsolute() == workingDir / Path("file"));
-    REQUIRE(Path("./file").makeAbsolute() == workingDir / Path("file"));
-    REQUIRE(Path(".").makeAbsolute() == workingDir);
-    REQUIRE(Path("../../file").makeAbsolute() == Path("/home/pavel/projects/astro/sph/file"));
+    REQUIRE(Path("file").makeAbsolute() == WORKING_DIR / Path("file"));
+    REQUIRE(Path("./file").makeAbsolute() == WORKING_DIR / Path("file"));
+    REQUIRE(Path(".").makeAbsolute() == WORKING_DIR);
+    REQUIRE(Path("../../file").makeAbsolute() == WORKING_DIR.parentPath().parentPath() / Path("file"));
 }
 
 TEST_CASE("Path makeRelative", "[path]") {
     REQUIRE(Path().makeRelative() == Path());
     REQUIRE(Path(".").makeRelative() == Path("."));
     REQUIRE(Path("file/file").makeRelative() == Path("file/file"));
-    REQUIRE((workingDir / Path("file")).makeRelative() == Path("file"));
+    REQUIRE((WORKING_DIR / Path("file")).makeRelative() == Path("file"));
     REQUIRE(Path("/home/pavel/projects/astro/").makeRelative() == Path("../../.."));
     REQUIRE(Path("file").makeAbsolute().makeRelative() == Path("file"));
     REQUIRE(Path("/home/pavel/test").makeRelative().makeAbsolute() == Path("/home/pavel/test"));
@@ -148,5 +145,5 @@ TEST_CASE("Path native", "[path]") {
 TEST_CASE("Current path", "[path]") {
     Path path = Path::currentPath();
 
-    REQUIRE(path == workingDir);
+    REQUIRE(path == WORKING_DIR);
 }

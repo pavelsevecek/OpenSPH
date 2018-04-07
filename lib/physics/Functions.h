@@ -80,7 +80,8 @@ INLINE Float evalBenzAsphaugScalingLaw(const Float D, const Float rho) {
     constexpr Float a = -0.36_f;
     constexpr Float b = 1.36_f;
 
-    return Q_0 * pow(D_cgs / 2._f, a) + B * rho_cgs * pow(D_cgs / 2._f, b);
+    const Float Q_cgs = Q_0 * pow(D_cgs / 2._f, a) + B * rho_cgs * pow(D_cgs / 2._f, b);
+    return 1.e-4_f * Q_cgs;
 }
 
 /// \brief Calculates the impactor diameter to satisfy required impact parameters.

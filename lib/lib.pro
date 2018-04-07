@@ -103,7 +103,8 @@ SOURCES += \
     sph/equations/Derivative.cpp \
     sph/solvers/SummationSolver.cpp \
     sph/initial/Presets.cpp \
-    system/Settings.cpp
+    system/Settings.cpp \
+    run/Collision.cpp
 
 HEADERS += \
     common/Assert.h \

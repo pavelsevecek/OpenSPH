@@ -136,13 +136,4 @@ INLINE void parallelFor(ThreadPool& pool,
     pool.waitForAll();
 }
 
-/// \brief Executes a functor concurrently, using an empirical formula for granularity.
-///
-/// This overload uses the global instance of the thread pool
-template <typename TFunctor>
-INLINE void parallelFor(const Size from, const Size to, TFunctor&& functor) {
-    ThreadPool& pool = ThreadPool::getGlobalInstance();
-    parallelFor(pool, from, to, std::forward<TFunctor>(functor));
-}
-
 NAMESPACE_SPH_END

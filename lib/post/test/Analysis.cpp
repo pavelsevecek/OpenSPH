@@ -8,9 +8,9 @@
 #include "quantities/Storage.h"
 #include "sph/initial/Initial.h"
 #include "tests/Approx.h"
+#include "utils/Utils.h"
 
 using namespace Sph;
-
 
 TEST_CASE("Components simple", "[post]") {
     Array<Vector> r{ Vector(0, 0, 0, 1), Vector(5, 0, 0, 1), Vector(0, 4, 0, 1), Vector(0, 3, 0, 1) };
@@ -122,6 +122,9 @@ TEST_CASE("CummulativeSfd", "[post]") {
 TEST_CASE("ParsePkdgrav", "[post]") {
     // hardcoded path to pkdgrav output
     Path path("/home/pavel/projects/astro/sph/external/sph_0.541_5_45/pkdgrav_run/ss.last.bt");
+    if (!FileSystem::pathExists(path)) {
+        SKIP_TEST;
+    }
 
     Expected<Storage> storage = Post::parsePkdgravOutput(path);
     REQUIRE(storage);

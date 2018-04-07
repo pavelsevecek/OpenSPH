@@ -18,6 +18,9 @@ public:
     /// If nullptr, this is the last phase of the composite run.
     virtual AutoPtr<IRunPhase> getNextPhase() const = 0;
 
+    /// \brief Performs a hand-off, taking a results of previous phase in storage.
+    ///
+    /// This is called instead of \ref setUp for all run phases except for the first one.
     virtual void handoff(Storage&& input) = 0;
 };
 

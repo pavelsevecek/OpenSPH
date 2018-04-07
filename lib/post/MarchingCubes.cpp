@@ -536,7 +536,7 @@ Array<Triangle> getSurfaceMesh(const Storage& storage, const Float gridResolutio
     Array<SymmetricTensor> C(r.size()); // covariance matrix
 
     ThreadLocal<Array<NeighbourRecord>> neighsData(ThreadPool::getGlobalInstance());
-    parallelFor(0, r.size(), [&](const Size i) {
+    parallelFor(ThreadPool::getGlobalInstance(), 0, r.size(), [&](const Size i) {
         Array<NeighbourRecord>& neighs = neighsData.get();
         finder->findAll(i, 2._f * r[i][H], neighs);
         // 1. compute the mean particle positions and the denoised (bar) positions

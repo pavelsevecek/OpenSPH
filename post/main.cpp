@@ -8,8 +8,11 @@
 #include "quantities/Storage.h"
 #include "run/Collision.h"
 #include "system/Process.h"
+#include "system/Statistics.h"
+#include "thread/Pool.h"
 #include <fstream>
 #include <iostream>
+#include <mutex>
 
 using namespace Sph;
 

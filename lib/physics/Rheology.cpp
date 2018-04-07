@@ -37,7 +37,7 @@ void VonMisesRheology::initialize(Storage& storage, const MaterialView material)
     const Float u_melt = material->getParam<Float>(BodySettingsId::MELT_ENERGY);
     IndexSequence seq = material.sequence();
     constexpr Float eps = 1.e-15_f;
-    parallelFor(*seq.begin(), *seq.end(), [&](const Size i) INL {
+    parallelFor(ThreadPool::getGlobalInstance(), *seq.begin(), *seq.end(), [&](const Size i) INL {
         // compute yielding stress
         const Float unorm = u[i] / u_melt;
         const Float y = unorm < 1.e-5_f ? limit : limit * max(1.f - unorm, 0._f);

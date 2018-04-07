@@ -74,7 +74,6 @@ public:
         }
     }
 
-
     virtual void create(Storage& UNUSED(storage), IMaterial& UNUSED(material)) const override {}
 };
 

@@ -168,4 +168,5 @@ SOURCES += \
 HEADERS += \
     utils/Utils.h \
     utils/RecordType.h \
-    utils/SequenceTest.h
+    utils/SequenceTest.h \
+    utils/Config.h

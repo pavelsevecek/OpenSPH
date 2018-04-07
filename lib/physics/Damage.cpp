@@ -113,7 +113,7 @@ void ScalarGradyKippModel::reduce(Storage& storage,
     tie(s, s_dmg) = storage.modify<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
 
     IndexSequence seq = material.sequence();
-    parallelFor(*seq.begin(), *seq.end(), [&](const Size i) INL {
+    parallelFor(ThreadPool::getGlobalInstance(), *seq.begin(), *seq.end(), [&](const Size i) INL {
         const Float d = pow<3>(damage[i]);
         // pressure is reduced only for negative values
         /// \todo could be vectorized, maybe
@@ -146,7 +146,7 @@ void ScalarGradyKippModel::integrate(Storage& storage, const MaterialView materi
     tie(damage, ddamage) = storage.getAll<Float>(QuantityId::DAMAGE);
 
     IndexSequence seq = material.sequence();
-    parallelFor(*seq.begin(), *seq.end(), [&](const Size i) {
+    parallelFor(ThreadPool::getGlobalInstance(), *seq.begin(), *seq.end(), [&](const Size i) {
         // if damage is already on max value, set stress to zero to avoid limiting timestep by
         // non-existent stresses
         const Interval range = material->range(QuantityId::DAMAGE);
@@ -226,7 +226,9 @@ void NullFracture::reduce(Storage& storage,
     tie(s, s_dmg) = storage.modify<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
 
     IndexSequence seq = material.sequence();
-    parallelFor(*seq.begin(), *seq.end(), [&](const Size i) INL { s_dmg[i] = s[i]; });
+    parallelFor(ThreadPool::getGlobalInstance(), *seq.begin(), *seq.end(), [&](const Size i) INL {
+        s_dmg[i] = s[i];
+    });
 }
 
 void NullFracture::integrate(Storage& UNUSED(storage), const MaterialView UNUSED(material)) {}

@@ -39,7 +39,7 @@ void EosMaterial::create(Storage& storage, const MaterialInitialContext& UNUSED(
 void EosMaterial::initialize(Storage& storage, const IndexSequence sequence) {
     tie(rho, u, p, cs) = storage.getValues<Float>(
         QuantityId::DENSITY, QuantityId::ENERGY, QuantityId::PRESSURE, QuantityId::SOUND_SPEED);
-    parallelFor(*sequence.begin(), *sequence.end(), [&](const Size i) INL {
+    parallelFor(ThreadPool::getGlobalInstance(), *sequence.begin(), *sequence.end(), [&](const Size i) INL {
         /// \todo now we can easily pass sequence into the EoS and iterate inside, to avoid calling
         /// virtual function (and we could also optimize with SSE)
         tie(p[i], cs[i]) = eos->evaluate(rho[i], u[i]);

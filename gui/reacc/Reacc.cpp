@@ -162,12 +162,7 @@ Stabilization::Stabilization(RawPtr<Controller> newController) {
     } else {
         settings.set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 20._f));
     }
-
-    if (FileSystem::pathExists(Path("stabilization.sph"))) {
-        settings.loadFromFile(Path("stabilization.sph"));
-    } else {
-        settings.saveToFile(Path("stabilization.sph"));
-    }
+    settings.saveToFile(Path("stabilization.sph"));
 
     controller = newController;
 }
@@ -217,11 +212,7 @@ void Stabilization::setUp() {
             .set(BodySettingsId::DAMAGE_MIN, 0.2_f);
         //.set(BodySettingsId::DIELH_STRENGTH, 0.1_f);
 
-        if (FileSystem::pathExists(Path("body.sph"))) {
-            body.loadFromFile(Path("body.sph"));
-        } else {
-            body.saveToFile(Path("body.sph"));
-        }
+        body.saveToFile(Path("body.sph"));
 
         Presets::CollisionParams params;
         params.targetRadius = 1e3_f;   // D = 2km
@@ -234,12 +225,7 @@ void Stabilization::setUp() {
         params.centerOfMassFrame = true;
         params.optimizeImpactor = false;
 
-        if (FileSystem::pathExists(Path("impact.sph"))) {
-            params.loadFromFile(Path("impact.sph"));
-        } else {
-            // params.saveToFile(Path("impact.sph"));
-            Presets::CollisionSettings().saveToFile(Path("impact.sph"));
-        }
+        Presets::CollisionSettings().saveToFile(Path("impact.sph"));
 
 
         /*Presets::CollisionParams params;
@@ -330,11 +316,7 @@ Fragmentation::Fragmentation(SharedPtr<Presets::Collision> data, Function<void()
         //.set(RunSettingsId::TIMESTEPPING_ADAPTIVE_FACTOR, 0.8_f)
         .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 1000._f);
 
-    if (FileSystem::pathExists(Path("fragmentation.sph"))) {
-        settings.loadFromFile(Path("fragmentation.sph"));
-    } else {
-        settings.saveToFile(Path("fragmentation.sph"));
-    }
+    settings.saveToFile(Path("fragmentation.sph"));
 }
 
 Fragmentation::~Fragmentation() = default;
@@ -458,11 +440,7 @@ Reaccumulation::Reaccumulation() {
         .set(RunSettingsId::NBODY_MAX_ROTATION_ANGLE, 0.01_f)
         .set(RunSettingsId::RUN_THREAD_GRANULARITY, 100);
 
-    if (FileSystem::pathExists(Path("reaccumulation.sph"))) {
-        settings.loadFromFile(Path("reaccumulation.sph"));
-    } else {
-        settings.saveToFile(Path("reaccumulation.sph"));
-    }
+    settings.saveToFile(Path("reaccumulation.sph"));
 }
 
 void Reaccumulation::setUp() {

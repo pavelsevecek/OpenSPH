@@ -3,7 +3,7 @@ TEMPLATE = subdirs
 CONFIG += ordered
 
 SUBDIRS = lib \
-          cli \
+          cli/launcher \
           cli/problems \
           gui \
           gui/collision \
@@ -13,11 +13,10 @@ SUBDIRS = lib \
           gui/player \
           test \
           bench \
-    post \
-    cli/collision-cli
+          post
 
 run.depends = lib
-cli.depends = lib
+launcher.depends = lib
 problems.depends = lib
 gui.depends = lib
 collision.depends = lib gui
