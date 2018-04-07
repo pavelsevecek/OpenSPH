@@ -39,11 +39,10 @@ bool Presets::CollisionParams::loadFromFile(const Path& path) {
     return true;
 }
 
-Presets::Collision::Collision(ISolver& solver,
-    const RunSettings& settings,
+Presets::Collision::Collision(const RunSettings& settings,
     const BodySettings& body,
     const CollisionParams& params)
-    : _ic(solver, settings)
+    : _ic(settings)
     , _body(body)
     , _params(params) {
     ASSERT(params.impactAngle >= 0._f && params.impactAngle < 2._f * PI);

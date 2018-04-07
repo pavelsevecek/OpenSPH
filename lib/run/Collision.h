@@ -22,7 +22,7 @@ public:
     }
 
 private:
-    virtual void tearDown() override {}
+    virtual void tearDown(const Statistics& UNUSED(stats)) override {}
 };
 
 class FragmentationRunPhase : public IRunPhase {
@@ -44,7 +44,7 @@ public:
     virtual void handoff(Storage&& input) override;
 
 private:
-    virtual void tearDown() override;
+    virtual void tearDown(const Statistics& stats) override;
 };
 
 class CollisionRun : public CompositeRun {

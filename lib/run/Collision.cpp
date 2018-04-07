@@ -8,6 +8,8 @@
 NAMESPACE_SPH_BEGIN
 
 static RunSettings getSharedSettings(const Presets::CollisionParams& params, const std::string& fileMask) {
+    // for 100km body, run 100 s
+    const Float runTime = 2._f * params.targetRadius / 1000;
     RunSettings settings;
     settings.set(RunSettingsId::RUN_NAME, std::string("Impact"))
         .set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::PREDICTOR_CORRECTOR)
@@ -15,9 +17,8 @@ static RunSettings getSharedSettings(const Presets::CollisionParams& params, con
         .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 1._f)
         .set(RunSettingsId::TIMESTEPPING_MAX_CHANGE, 0.1_f)
         .set(RunSettingsId::TIMESTEPPING_COURANT_NUMBER, 0.25_f)
-        // for 100km body, run 100 s
-        .set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, params.targetRadius / 1000))
-        .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 1._f)
+        .set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, runTime))
+        .set(RunSettingsId::RUN_OUTPUT_INTERVAL, runTime / 100._f)
         .set(RunSettingsId::RUN_OUTPUT_TYPE, OutputEnum::BINARY_FILE)
         .set(RunSettingsId::RUN_OUTPUT_PATH, params.outputPath.native())
         .set(RunSettingsId::RUN_OUTPUT_NAME, fileMask)
@@ -42,7 +43,7 @@ static RunSettings getSharedSettings(const Presets::CollisionParams& params, con
 
 StabilizationRunPhase::StabilizationRunPhase(const Presets::CollisionParams params)
     : params(params) {
-    const Path stabPath("stabilization.sph");
+    const Path stabPath = params.outputPath / Path("stabilization.sph");
     bool settingsLoaded;
     if (FileSystem::pathExists(stabPath)) {
         settings.loadFromFile(stabPath);
@@ -56,6 +57,7 @@ StabilizationRunPhase::StabilizationRunPhase(const Presets::CollisionParams para
     }
 
     logger = Factory::getLogger(settings);
+    output = Factory::getOutput(settings);
 
     if (settingsLoaded) {
         logger->write("Loaded stabilization settings from file '", stabPath.native(), "'");
@@ -68,7 +70,7 @@ void StabilizationRunPhase::setUp() {
     logger = Factory::getLogger(settings);
 
     BodySettings body;
-    const Path matPath("material.sph");
+    const Path matPath = params.outputPath / Path("material.sph");
     if (FileSystem::pathExists(matPath)) {
         body.loadFromFile(matPath);
         logger->write("Loaded material settings from file '", matPath.native(), "'");
@@ -87,7 +89,7 @@ void StabilizationRunPhase::setUp() {
     }
 
     solver = makeAuto<StabilizationSolver>(settings);
-    data = makeShared<Presets::Collision>(*solver, settings, body, params);
+    data = makeShared<Presets::Collision>(settings, body, params);
     storage = makeShared<Storage>();
 
     data->addTarget(*storage);
@@ -110,7 +112,7 @@ FragmentationRunPhase::FragmentationRunPhase(Presets::CollisionParams params,
     : params(params)
     , data(data) {
 
-    const Path fragPath("fragmentation.sph");
+    const Path fragPath = params.outputPath / Path("fragmentation.sph");
     bool settingsLoaded;
     if (FileSystem::pathExists(fragPath)) {
         settings.loadFromFile(fragPath);
@@ -124,6 +126,7 @@ FragmentationRunPhase::FragmentationRunPhase(Presets::CollisionParams params,
     }
 
     logger = Factory::getLogger(settings);
+    output = Factory::getOutput(settings);
 
     if (settingsLoaded) {
         logger->write("Loaded fragmentation settings from file '", fragPath.native(), "'");
@@ -145,12 +148,11 @@ void FragmentationRunPhase::handoff(Storage&& input) {
     triggers.pushBack(makeAuto<CommonStatsLog>(logger));
 }
 
-void FragmentationRunPhase::tearDown() {
+void FragmentationRunPhase::tearDown(const Statistics& stats) {
     // save the final result in multiple formats
     PkdgravParams pkd;
     pkd.omega = settings.get<Vector>(RunSettingsId::FRAME_ANGULAR_FREQUENCY);
     PkdgravOutput pkdgravOutput(params.outputPath / Path("pkdgrav/pkdgrav.out"), std::move(pkd));
-    Statistics stats;
     pkdgravOutput.dump(*storage, stats);
 
     TextOutput textOutput(

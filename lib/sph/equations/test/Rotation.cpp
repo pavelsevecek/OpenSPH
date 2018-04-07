@@ -111,7 +111,7 @@ public:
         callbacks = makeAuto<Callbacks>(observedIndex);
     }
 
-    virtual void tearDown() override {}
+    virtual void tearDown(const Statistics& UNUSED(stats)) override {}
 };
 } // namespace
 

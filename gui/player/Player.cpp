@@ -79,19 +79,22 @@ void RunPlayer::run() {
         stats.set(StatisticsId::RELATIVE_PROGRESS, Float(i) / fileCnt);
         callbacks->onTimeStep(*storage, stats);
 
-        BinaryOutput io;
-        const Path path = files.getNextPath(stats);
-        storage = makeShared<Storage>();
-        const Outcome result = io.load(path, *storage, stats);
-        if (!result) {
-            executeOnMainThread(
-                [path] { wxMessageBox("Cannot load the run state file " + path.native(), "Error", wxOK); });
-            break;
-        }
+        if (i != fileCnt - 1) {
+            BinaryOutput io;
+            const Path path = files.getNextPath(stats);
+            storage = makeShared<Storage>();
+            const Outcome result = io.load(path, *storage, stats);
+            if (!result) {
+                executeOnMainThread([path] {
+                    wxMessageBox("Cannot load the run state file " + path.native(), "Error", wxOK);
+                });
+                break;
+            }
 
-        const Size elapsed = stepTimer.elapsed(TimerUnit::MILLISECOND);
-        if (elapsed < stepMilliseconds) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(stepMilliseconds - elapsed));
+            const Size elapsed = stepTimer.elapsed(TimerUnit::MILLISECOND);
+            if (elapsed < stepMilliseconds) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(stepMilliseconds - elapsed));
+            }
         }
 
         // triggers
@@ -115,9 +118,9 @@ void RunPlayer::run() {
         }
     }
     callbacks->onRunEnd(*storage, stats);
-    this->tearDownInternal();
+    this->tearDownInternal(stats);
 }
 
-void RunPlayer::tearDown() {}
+void RunPlayer::tearDown(const Statistics& UNUSED(stats)) {}
 
 NAMESPACE_SPH_END

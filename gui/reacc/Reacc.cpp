@@ -262,7 +262,7 @@ void Stabilization::setUp() {
             }
         };*/
 
-        data = makeShared<Presets::Collision>(*solver, settings, body, params);
+        data = makeShared<Presets::Collision>(settings, body, params);
         data->addTarget(*storage);
         // data->addPrimary(*storage);
     }
@@ -276,7 +276,7 @@ AutoPtr<IRunPhase> Stabilization::getNextPhase() const {
     return makeAuto<Fragmentation>(data, onSphFinished);
 }
 
-void Stabilization::tearDown() {
+void Stabilization::tearDown(const Statistics& UNUSED(stats)) {
     if (wxTheApp->argc == 1) {
         ASSERT(storage->has(QuantityId::POSITION));
         onStabilizationFinished();
@@ -411,7 +411,7 @@ AutoPtr<IRunPhase> Fragmentation::getNextPhase() const {
     return makeAuto<Reaccumulation>();
 }
 
-void Fragmentation::tearDown() {
+void Fragmentation::tearDown(const Statistics& UNUSED(stats)) {
     onFinished();
 }
 
@@ -502,7 +502,7 @@ void Reaccumulation::handoff(Storage&& sph) {
     //    onRunStarted(*storage);
 }
 
-void Reaccumulation::tearDown() {
+void Reaccumulation::tearDown(const Statistics& UNUSED(stats)) {
     showNotification("Reacc", "Run finished");
 }
 

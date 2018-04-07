@@ -45,7 +45,7 @@ public:
     }
 
 protected:
-    virtual void tearDown() override;
+    virtual void tearDown(const Statistics& stats) override;
 };
 
 
@@ -67,7 +67,7 @@ public:
     virtual void handoff(Storage&& input) override;
 
 protected:
-    virtual void tearDown() override;
+    virtual void tearDown(const Statistics& stats) override;
 };
 
 
@@ -84,7 +84,7 @@ public:
     virtual void handoff(Storage&& input) override;
 
 protected:
-    virtual void tearDown() override;
+    virtual void tearDown(const Statistics& stats) override;
 };
 
 class App : public wxApp {

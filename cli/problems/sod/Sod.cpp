@@ -152,7 +152,7 @@ public:
     }
 
 protected:
-    virtual void tearDown() override {}
+    virtual void tearDown(const Statistics& UNUSED(stats)) override {}
 };
 
 TEST_CASE("Sod", "[sod]") {

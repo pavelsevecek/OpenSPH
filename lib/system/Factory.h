@@ -67,7 +67,10 @@ AutoPtr<IMaterial> getMaterial(const BodySettings& settings);
 
 AutoPtr<ILogger> getLogger(const RunSettings& settings);
 
+AutoPtr<IOutput> getOutput(const RunSettings& settings);
+
 AutoPtr<IRng> getRng(const RunSettings& settings);
+
 } // namespace Factory
 
 

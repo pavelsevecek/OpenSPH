@@ -121,7 +121,7 @@ void NBody::setUp() {
     triggers.pushBack(makeAuto<CommonStatsLog>(Factory::getLogger(settings)));
 }
 
-void NBody::tearDown() {
+void NBody::tearDown(const Statistics& UNUSED(stats)) {
     showNotification("NBody", "Run finished");
     ArrayView<Vector> r = storage->getValue<Vector>(QuantityId::POSITION);
     logger->write("Start radius = ", startingRadius);

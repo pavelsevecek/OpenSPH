@@ -96,10 +96,7 @@ private:
     CollisionParams _params;
 
 public:
-    Collision(ISolver& solver,
-        const RunSettings& settings,
-        const BodySettings& body,
-        const CollisionParams& params);
+    Collision(const RunSettings& settings, const BodySettings& body, const CollisionParams& params);
 
     /// \brief Adds a target (primary body) into the storage.
     ///

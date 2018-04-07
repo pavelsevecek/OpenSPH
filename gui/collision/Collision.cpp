@@ -116,7 +116,7 @@ void AsteroidCollision::setUp() {
         params.optimizeImpactor = false;
 
         solver = Factory::getSolver(settings);
-        Presets::Collision data(*solver, settings, body, params);
+        Presets::Collision data(settings, body, params);
         data.addTarget(*storage);
         data.addImpactor(*storage);
     }
@@ -127,7 +127,7 @@ void AsteroidCollision::setUp() {
     triggers.pushBack(makeAuto<CommonStatsLog>(Factory::getLogger(settings)));
 }
 
-void AsteroidCollision::tearDown() {
+void AsteroidCollision::tearDown(const Statistics& UNUSED(stats)) {
 
     /*Profiler& profiler = Profiler::getInstance();
     profiler.printStatistics(*logger);

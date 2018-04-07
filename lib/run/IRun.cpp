@@ -112,7 +112,7 @@ void IRun::run() {
     if (!result) {
         logger->write(result.error());
     }
-    this->tearDownInternal();
+    this->tearDownInternal(stats);
 }
 
 SharedPtr<Storage> IRun::getStorage() const {
@@ -142,8 +142,8 @@ void IRun::setNullToDefaults() {
     }
 }
 
-void IRun::tearDownInternal() {
-    this->tearDown();
+void IRun::tearDownInternal(const Statistics& stats) {
+    this->tearDown(stats);
     triggers.clear();
     output.reset();
     callbacks.reset();

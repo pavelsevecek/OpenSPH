@@ -73,6 +73,7 @@ int main(int argc, char* argv[]) {
     cp.impactSpeed = 1000._f * cp.impactSpeed;
     cp.impactAngle = DEG_TO_RAD * cp.impactAngle;
     cp.outputPath = Path(runName);
+    // cp.targetParticleCnt = 1000;
 
     CollisionRun run(cp);
     run.setUp();

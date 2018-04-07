@@ -76,13 +76,15 @@ public:
     virtual SharedPtr<Storage> getStorage() const;
 
 protected:
-    /// Called after the run, saves all necessary data, logs run statistics, etc. Is called at the end of
-    /// \ref run function.
-    virtual void tearDown() = 0;
+    /// \brief Called after the run
+    ///
+    /// Used to save the necessary data, log run statistics, etc. Is called at the end of \ref run function.
+    /// \param stats Run statistics at the end of the run.
+    virtual void tearDown(const Statistics& stats) = 0;
 
     void setNullToDefaults();
 
-    void tearDownInternal();
+    void tearDownInternal(const Statistics& stats);
 };
 
 NAMESPACE_SPH_END

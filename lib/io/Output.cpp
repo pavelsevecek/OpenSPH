@@ -618,6 +618,7 @@ PkdgravOutput::PkdgravOutput(const Path& fileMask, PkdgravParams&& params)
 
 Path PkdgravOutput::dump(Storage& storage, const Statistics& stats) {
     const Path fileName = paths.getNextPath(stats);
+    FileSystem::createDirectory(fileName.parentPath());
 
     ArrayView<Float> m, rho, u;
     tie(m, rho, u) = storage.getValues<Float>(QuantityId::MASS, QuantityId::DENSITY, QuantityId::ENERGY);

@@ -37,7 +37,7 @@ public:
 
 
 protected:
-    virtual void tearDown() override;
+    virtual void tearDown(const Statistics& stats) override;
 
     Size getFileCount(const Path& pathMask) const;
 };

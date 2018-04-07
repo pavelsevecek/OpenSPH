@@ -27,7 +27,7 @@ public:
     virtual void setUp() override;
 
 protected:
-    virtual void tearDown() override;
+    virtual void tearDown(const Statistics& stats) override;
 
 private:
     void setInitialStressTensor(Storage& smaller, EquationHolder& equations);

@@ -4,6 +4,7 @@
 #include "gravity/Collision.h"
 #include "gravity/SphericalGravity.h"
 #include "io/Logger.h"
+#include "io/Output.h"
 #include "math/rng/Rng.h"
 #include "objects/finders/BruteForceFinder.h"
 #include "objects/finders/DynamicFinder.h"
@@ -380,6 +381,29 @@ AutoPtr<ILogger> Factory::getLogger(const RunSettings& settings) {
     case LoggerEnum::FILE: {
         const Path path(settings.get<std::string>(RunSettingsId::RUN_LOGGER_FILE));
         return makeAuto<FileLogger>(path);
+    }
+    default:
+        NOT_IMPLEMENTED;
+    }
+}
+
+AutoPtr<IOutput> Factory::getOutput(const RunSettings& settings) {
+    const OutputEnum id = settings.get<OutputEnum>(RunSettingsId::RUN_OUTPUT_TYPE);
+    const Path outputPath(settings.get<std::string>(RunSettingsId::RUN_OUTPUT_PATH));
+    const Path fileMask(settings.get<std::string>(RunSettingsId::RUN_OUTPUT_NAME));
+    switch (id) {
+    case OutputEnum::NONE:
+        return makeAuto<NullOutput>();
+    case OutputEnum::TEXT_FILE:
+        return makeAuto<TextOutput>(outputPath / fileMask,
+            settings.get<std::string>(RunSettingsId::RUN_NAME),
+            TextOutput::Options::EXTENDED_COLUMNS);
+    case OutputEnum::BINARY_FILE:
+        return makeAuto<BinaryOutput>(outputPath / fileMask);
+    case OutputEnum::PKDGRAV_INPUT: {
+        PkdgravParams pkd;
+        pkd.omega = settings.get<Vector>(RunSettingsId::FRAME_ANGULAR_FREQUENCY);
+        return makeAuto<PkdgravOutput>(outputPath / fileMask, std::move(pkd));
     }
     default:
         NOT_IMPLEMENTED;
