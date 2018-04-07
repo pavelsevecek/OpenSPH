@@ -4,6 +4,7 @@
 #include "quantities/Storage.h"
 #include "sph/initial/Distribution.h"
 #include "system/Factory.h"
+#include "system/Settings.impl.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -21,6 +22,8 @@ AutoPtr<Presets::CollisionSettings> Presets::CollisionSettings::instance(new Pre
     { Presets::CollisionSettingsId::IMPACTOR_OFFSET, "impactor_offset", 4 },
     { Presets::CollisionSettingsId::OPTIMIZE_IMPACTOR, "optimize_impactor", true },
 });
+
+template class Settings<Presets::CollisionSettingsId>;
 
 bool Presets::CollisionParams::loadFromFile(const Path& path) {
     CollisionSettings settings;

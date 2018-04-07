@@ -250,7 +250,6 @@ Tuple<Float, CriterionId> AccelerationCriterion::compute(Storage& storage,
 
 CourantCriterion::CourantCriterion(const RunSettings& settings) {
     courant = settings.get<Float>(RunSettingsId::TIMESTEPPING_COURANT_NUMBER);
-    neighLimit = settings.get<int>(RunSettingsId::TIMESTEPPING_COURANT_NEIGHBOUR_LIMIT);
 }
 
 
@@ -271,7 +270,7 @@ Tuple<Float, CriterionId> CourantCriterion::compute(Storage& storage,
     };
 
     auto functor = [&](const Size i, Tl& tl) {
-        if (cs[i] > 0._f && (!neighs || neighs[i] > neighLimit)) {
+        if (cs[i] > 0._f) {
             const Float value = courant * r[i][H] / cs[i];
             ASSERT(isReal(value) && value > 0._f && value < INFTY);
             tl.minStep = min(tl.minStep, value);

@@ -3,6 +3,7 @@
 #include "gui/Settings.h"
 #include "objects/containers/Array.h"
 #include "objects/wrappers/LockingPtr.h"
+#include "system/Settings.h"
 #include <wx/frame.h>
 
 class wxComboBox;

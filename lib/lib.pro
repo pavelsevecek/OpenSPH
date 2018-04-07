@@ -281,7 +281,6 @@ HEADERS += \
     system/Profiler.h \
     system/RunCallbacks.h \
     system/Settings.h \
-    system/Settings.inl.h \
     system/Statistics.h \
     system/Timer.h \
     tests/Approx.h \
@@ -296,4 +295,5 @@ HEADERS += \
     timestepping/TimeStepCriterion.h \
     timestepping/TimeStepping.h \
     io/OutOfCore.h \
-    system/Settings.inl.h
+    objects/utility/EnumMap.h \
+    system/Settings.impl.h

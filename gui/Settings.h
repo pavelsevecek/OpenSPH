@@ -1,6 +1,6 @@
 #pragma once
 
-#include "system/Settings.h"
+#include "common/ForwardDecl.h"
 
 NAMESPACE_SPH_BEGIN
 

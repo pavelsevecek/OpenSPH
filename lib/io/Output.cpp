@@ -276,6 +276,9 @@ struct SerializerDispatcher {
     void operator()(const Tensor& t) {
         serializer.write(t(0, 0), t(0, 1), t(0, 2), t(1, 0), t(1, 1), t(1, 2), t(2, 0), t(2, 1), t(2, 2));
     }
+    void operator()(const EnumWrapper& e) {
+        serializer.write(e.value, e.typeHash);
+    }
 };
 struct DeserializerDispatcher {
     Deserializer& deserializer;
@@ -302,6 +305,9 @@ struct DeserializerDispatcher {
     }
     void operator()(Tensor& t) {
         deserializer.read(t(0, 0), t(0, 1), t(0, 2), t(1, 0), t(1, 1), t(1, 2), t(2, 0), t(2, 1), t(2, 2));
+    }
+    void operator()(EnumWrapper& e) {
+        deserializer.read(e.value, e.typeHash);
     }
 };
 

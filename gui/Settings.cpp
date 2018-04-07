@@ -1,5 +1,5 @@
 #include "gui/Settings.h"
-#include "system/Settings.h"
+#include "system/Settings.impl.h"
 
 NAMESPACE_SPH_BEGIN
 

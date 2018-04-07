@@ -64,7 +64,7 @@ public:
             .set(RunSettingsId::TIMESTEPPING_COURANT_NUMBER, 0.5_f)
             .set(RunSettingsId::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::COURANT)
             .set(RunSettingsId::SOLVER_TYPE, SolverEnum::SYMMETRIC_SOLVER)
-            .setFlags(RunSettingsId::SOLVER_FORCES, ForceEnum::PRESSURE_GRADIENT);
+            .setFlags(RunSettingsId::SOLVER_FORCES, ForceEnum::PRESSURE);
     }
 
     virtual void setUp() override {

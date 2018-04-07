@@ -20,12 +20,10 @@ AsteroidCollision::AsteroidCollision() {
     settings.set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::PREDICTOR_CORRECTOR)
         .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 0.01_f)
         .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 100._f)
-        .set(RunSettingsId::TIMESTEPPING_COURANT_NEIGHBOUR_LIMIT, 10)
         .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 100._f)
         .set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 10000._f))
         .setFlags(RunSettingsId::SOLVER_FORCES,
-            ForceEnum::PRESSURE_GRADIENT | ForceEnum::SOLID_STRESS |
-                ForceEnum::GRAVITY) //| ForceEnum::INERTIAL)
+            ForceEnum::PRESSURE | ForceEnum::SOLID_STRESS | ForceEnum::GRAVITY) //| ForceEnum::INERTIAL)
         .set(RunSettingsId::SOLVER_TYPE, SolverEnum::ASYMMETRIC_SOLVER)
         .set(RunSettingsId::SPH_FINDER, FinderEnum::KD_TREE)
         .set(RunSettingsId::SPH_FORMULATION, FormulationEnum::STANDARD)

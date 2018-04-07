@@ -30,7 +30,7 @@ TEST_CASE("StressAV test", "[av]") {
     RunSettings settings;
     settings.set(RunSettingsId::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::NONE);
     settings.set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 0.1_f * r[0][H] / cs);
-    settings.setFlags(RunSettingsId::SOLVER_FORCES, ForceEnum::PRESSURE_GRADIENT | ForceEnum::SOLID_STRESS);
+    settings.setFlags(RunSettingsId::SOLVER_FORCES, ForceEnum::PRESSURE | ForceEnum::SOLID_STRESS);
     EulerExplicit timestepping(storage, settings);
 
     // solver with some basic forces and artificial stress

@@ -12,7 +12,7 @@ using namespace Sph;
 TEST_CASE("InternalFriction", "[friction]") {
     EquationHolder eqs;
     RunSettings settings;
-    settings.setFlags(RunSettingsId::SOLVER_FORCES, ForceEnum::PRESSURE_GRADIENT);
+    settings.setFlags(RunSettingsId::SOLVER_FORCES, ForceEnum::PRESSURE);
     eqs += makeTerm<ViscousStress>() + makeTerm<ContinuityEquation>() + makeTerm<ConstSmoothingLength>();
     SymmetricSolver solver(settings, std::move(eqs));
 

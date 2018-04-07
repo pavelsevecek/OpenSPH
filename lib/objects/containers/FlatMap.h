@@ -86,6 +86,16 @@ public:
         }
     }
 
+    /// \copydoc insert
+    INLINE void insert(const TKey& key, TValue&& value) {
+        Element* element = this->find(key);
+        if (!element) {
+            this->add(key, std::move(value));
+        } else {
+            element->value = std::move(value);
+        }
+    }
+
     /// \brief Removes element with given key from the map.
     ///
     /// The element must exists in the map, checked by assert.
@@ -227,7 +237,8 @@ private:
     }
 
     /// Adds new element into the map, assuming no element with the same key exists.
-    INLINE void add(const TKey& key, const TValue& value) {
+    template <typename T>
+    INLINE void add(const TKey& key, T&& value) {
         Size from = 0;
         Size to = data.size();
         Size mid = Size(-1);
@@ -244,7 +255,7 @@ private:
         /// \todo add insert into Array
         data.resize(data.size() + 1);
         std::move_backward(data.begin() + from, data.end() - 1, data.end());
-        data[from] = Element{ key, value };
+        data[from] = Element{ key, std::forward<T>(value) };
     }
 };
 

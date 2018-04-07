@@ -1,5 +1,6 @@
 #include "post/Analysis.h"
 #include "catch.hpp"
+#include "io/FileSystem.h"
 #include "io/Path.h"
 #include "objects/geometry/Domain.h"
 #include "objects/utility/ArrayUtils.h"

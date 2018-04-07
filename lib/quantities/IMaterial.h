@@ -8,6 +8,7 @@
 #include "math/rng/Rng.h"
 #include "objects/containers/FlatMap.h"
 #include "objects/utility/Iterators.h"
+#include "quantities/QuantityIds.h"
 #include "system/Settings.h"
 
 NAMESPACE_SPH_BEGIN

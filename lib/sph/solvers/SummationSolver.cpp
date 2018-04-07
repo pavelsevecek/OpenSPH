@@ -10,7 +10,7 @@ NAMESPACE_SPH_BEGIN
 static EquationHolder getEquations(const RunSettings& settings) {
     Flags<ForceEnum> forces = settings.getFlags<ForceEnum>(RunSettingsId::SOLVER_FORCES);
     EquationHolder equations;
-    if (forces.has(ForceEnum::PRESSURE_GRADIENT)) {
+    if (forces.has(ForceEnum::PRESSURE)) {
         equations += makeTerm<PressureForce>();
     }
     if (forces.has(ForceEnum::SOLID_STRESS)) {
