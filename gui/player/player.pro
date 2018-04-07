@@ -19,11 +19,13 @@ QMAKE_CXXFLAGS += -Wall -msse4.1 -std=c++14 -pthread `wx-config --libs all --cxx
 
 CONFIG(release, debug|profile|assert|release) {
   message( "SPH COLLISION --- Building for Release" )
+  QMAKE_CXXFLAGS += -O2
 }
 
 CONFIG(profile, debug|profile|assert|release) {
   message( "SPH COLLISION --- Building for Profile" )
   DEFINES += SPH_PROFILE
+  QMAKE_CXXFLAGS += -O2
 }
 
 CONFIG(assert, debug|profile|assert|release) {

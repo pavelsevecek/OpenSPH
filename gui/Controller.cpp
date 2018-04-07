@@ -542,8 +542,8 @@ void Controller::run(const Path& path) {
             // create storage and set up initial conditions
             sph.run->setUp();
         } catch (std::exception& e) {
-            executeOnMainThread([&e] { //
-                wxMessageBox(std::string("Invalid run setup: \n") + e.what(), "Fail", wxOK | wxCENTRE);
+            executeOnMainThread([desc = std::string(e.what())] { //
+                wxMessageBox(std::string("Invalid run setup: \n") + desc, "Fail", wxOK | wxCENTRE);
             });
             return;
         }

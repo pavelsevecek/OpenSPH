@@ -7,7 +7,6 @@
 #include "system/Profiler.h"
 #include "system/Statistics.h"
 #include "thread/CheckFunction.h"
-#include "system/Profiler.h"
 #include <wx/dcmemory.h>
 
 NAMESPACE_SPH_BEGIN
@@ -183,6 +182,8 @@ SharedPtr<wxBitmap> ParticleRenderer::render(const ICamera& camera,
 
     wxBrush brush(*wxBLACK_BRUSH);
     wxPen pen(*wxBLACK_PEN);
+
+    wxColour prevColor = *wxBLACK;
     // draw particles
     for (Size i = 0; i < cached.positions.size(); ++i) {
         if (params.selectedParticle && cached.idxs[i] == params.selectedParticle.value()) {
@@ -201,12 +202,19 @@ SharedPtr<wxBitmap> ParticleRenderer::render(const ICamera& camera,
                 }
                 dir.r = cached.positions[i];
             }
+            dc.SetBrush(brush);
+            dc.SetPen(pen);
         } else {
-            brush.SetColour(wxColour(cached.colors[i]));
-            pen.SetColour(wxColour(cached.colors[i]));
+            wxColour color(cached.colors[i]);
+            if (prevColor != color) {
+                brush.SetColour(color);
+                pen.SetColour(color);
+                dc.SetBrush(brush);
+                dc.SetPen(pen);
+                prevColor = color;
+            }
         }
-        dc.SetBrush(brush);
-        dc.SetPen(pen);
+
         const Optional<ProjectedPoint> p = camera.project(cached.positions[i]);
         ASSERT(p); // cached values must be visible by the camera
         const int size = round(p->radius * params.particles.scale);

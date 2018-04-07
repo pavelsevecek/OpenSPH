@@ -74,7 +74,7 @@ private:
             .set(GuiSettingsId::SURFACE_RESOLUTION, 2.e3_f)
             .set(GuiSettingsId::CAMERA, int(CameraEnum::ORTHO))
             .set(GuiSettingsId::ORTHO_PROJECTION, OrthoEnum::XY)
-            .set(GuiSettingsId::ORTHO_CUTOFF, 0._f)
+            .set(GuiSettingsId::ORTHO_CUTOFF, 1.e2_f)
             .set(GuiSettingsId::IMAGES_SAVE, false)
             .set(GuiSettingsId::IMAGES_NAME, std::string("frag_%e_%d.png"))
             .set(GuiSettingsId::IMAGES_MOVIE_NAME, std::string("frag_%e.avi"))

@@ -14,8 +14,7 @@ RunPlayer::RunPlayer() {}
 
 void RunPlayer::setUp() {
     if (wxTheApp->argc == 1) {
-        wxMessageBox("Specify file mask as a parameter", "Error", wxOK);
-        return;
+        throw InvalidSetup("Specify file mask as a parameter");
     }
 
     std::string arg(wxTheApp->argv[1]);
@@ -26,19 +25,14 @@ void RunPlayer::setUp() {
     stats.set(StatisticsId::RUN_TIME, 0._f);
     const Path firstPath = files.getNextPath(stats);
     if (!FileSystem::pathExists(firstPath)) {
-        executeOnMainThread(
-            [firstPath] { wxMessageBox("Cannot locate file " + firstPath.native(), "Error", wxOK); });
-        return;
+        throw InvalidSetup("Cannot locate file " + firstPath.native());
     }
 
     storage = makeShared<Storage>();
     BinaryOutput io;
     Outcome result = io.load(firstPath, *storage, stats);
     if (!result) {
-        executeOnMainThread([firstPath] {
-            wxMessageBox("Cannot load the run state file " + firstPath.native(), "Error", wxOK);
-        });
-        return;
+        throw InvalidSetup("Cannot load the run state file " + firstPath.native());
     } else {
         loadedTime = stats.get<Float>(StatisticsId::RUN_TIME);
     }
