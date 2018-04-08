@@ -8,6 +8,7 @@
 #include "quantities/Iterate.h"
 #include "sph/Materials.h"
 #include "sph/initial/Initial.h"
+#include "tests/Approx.h"
 #include "tests/Setup.h"
 #include <fstream>
 
@@ -96,8 +97,8 @@ TEST_CASE("BinaryOutput dump&accumulate simple", "[output]") {
 
     Storage storage2;
     REQUIRE(output.load(Path("simple0000.out"), storage2, stats));
-    REQUIRE(storage2.getParticleCnt() == 3);
-    REQUIRE(storage2.getQuantityCnt() == 4);
+    REQUIRE(storage2.getParticleCnt() == storage1.getParticleCnt());
+    REQUIRE(storage2.getQuantityCnt() == storage2.getQuantityCnt());
 
     REQUIRE(storage2.getValue<Vector>(QuantityId::POSITION) == r);
     REQUIRE(storage2.getDt<Vector>(QuantityId::POSITION) == v);
@@ -209,6 +210,74 @@ TEST_CASE("BinaryOutput dump stats", "[output]") {
     REQUIRE(info);
     REQUIRE(info->runTime == 24._f);
     REQUIRE(info->timeStep == 0.1_f);
+    REQUIRE(info->version == BinaryOutput::Version::LATEST);
+}
+
+Path resourcePath = Path("/home/pavel/projects/astro/sph/src/test/resources");
+
+Storage generateLatestOutput() {
+    BodySettings body1;
+    body1.set(BodySettingsId::DENSITY, 1000._f);
+    body1.set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::NONE);
+    body1.set(BodySettingsId::BODY_CENTER, Vector(1._f, 2._f, 3._f));
+    body1.set(BodySettingsId::DISTRIBUTE_MODE_SPH5, true);
+    Storage storage1 = Tests::getSolidStorage(200, body1, 2._f);
+
+    BodySettings body2;
+    body2.set(BodySettingsId::DENSITY, 2000._f);
+    body2.set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::ELASTIC);
+    body2.set(BodySettingsId::BODY_CENTER, Vector(0._f, 1._f, 2._f));
+    body2.set(BodySettingsId::DISTRIBUTE_MODE_SPH5, false);
+    Storage storage2 = Tests::getSolidStorage(30, body2, 1._f);
+
+    Storage storage(std::move(storage1));
+    storage.merge(std::move(storage2));
+
+    Path path = resourcePath / Path(std::to_string(std::size_t(BinaryOutput::Version::LATEST)) + ".ssf");
+    BinaryOutput output(path);
+    Statistics stats;
+    stats.set(StatisticsId::RUN_TIME, 20._f);
+    stats.set(StatisticsId::TIMESTEP_VALUE, 1.5_f);
+    output.dump(storage, stats);
+    return storage;
+}
+
+static void testVersion(BinaryOutput::Version version) {
+    Storage current = generateLatestOutput();
+    Path path = resourcePath / Path(std::to_string(std::size_t(version)) + ".ssf");
+    BinaryOutput output;
+    Storage previous;
+    Statistics stats;
+    REQUIRE(output.load(path, previous, stats));
+
+    REQUIRE(previous.getMaterialCnt() == current.getMaterialCnt());
+    REQUIRE(previous.getParticleCnt() == current.getParticleCnt());
+    REQUIRE(previous.getQuantityCnt() == current.getQuantityCnt());
+    iteratePair<VisitorEnum::ALL_BUFFERS>(current, previous, [](auto& b1, auto& b2) { //
+        // even though we do a lossless save, we allow some eps-difference since floats generated on different
+        // machine can be slightly different due to different compiler optimizations, etc.
+        REQUIRE(almostEqual(b1, b2));
+    });
+
+    for (Size matId = 0; matId < current.getMaterialCnt(); ++matId) {
+        MaterialView mat1 = current.getMaterial(matId);
+        MaterialView mat2 = previous.getMaterial(matId);
+        REQUIRE(
+            mat1->getParam<Float>(BodySettingsId::DENSITY) == mat2->getParam<Float>(BodySettingsId::DENSITY));
+        REQUIRE(mat1->getParam<YieldingEnum>(BodySettingsId::RHEOLOGY_YIELDING) ==
+                mat2->getParam<YieldingEnum>(BodySettingsId::RHEOLOGY_YIELDING));
+        REQUIRE(mat1->getParam<Vector>(BodySettingsId::BODY_CENTER) ==
+                mat2->getParam<Vector>(BodySettingsId::BODY_CENTER));
+        REQUIRE(mat1->getParam<bool>(BodySettingsId::DISTRIBUTE_MODE_SPH5) ==
+                mat2->getParam<bool>(BodySettingsId::DISTRIBUTE_MODE_SPH5));
+    }
+}
+
+
+TEST_CASE("BinaryOutput backward compatibility", "[output]") {
+    // generateLatestOutput();
+    testVersion(BinaryOutput::Version::FIRST);
+    testVersion(BinaryOutput::Version::V2018_04_07);
 }
 
 TEST_CASE("Pkdgrav output", "[output]") {

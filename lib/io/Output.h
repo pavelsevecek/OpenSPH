@@ -209,9 +209,15 @@ public:
 ///    the settings it holds. This should be enforced somehow.
 class BinaryOutput : public IOutput {
 private:
-    static constexpr Size PADDING_SIZE = 212;
+    static constexpr Size PADDING_SIZE = 204;
 
 public:
+    enum class Version : uint64_t {
+        FIRST = 0,
+        V2018_04_07 = 20180407,
+        LATEST = V2018_04_07,
+    };
+
     BinaryOutput() = default;
 
     BinaryOutput(const Path& fileMask);
@@ -250,6 +256,9 @@ public:
 
         /// Current timestep of the run
         Float timeStep;
+
+        /// Format version of the file
+        Version version;
     };
 
     /// \brief Opens the file and reads header info without reading the rest of the file.

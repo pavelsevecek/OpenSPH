@@ -151,6 +151,9 @@ enum class QuantityId {
     /// Coefficient alpha of the artificial viscosity. Coefficient beta is always 2*alpha.
     AV_ALPHA,
 
+    /// Coefficient beta of the artificial viscosity
+    AV_BETA,
+
     /// Balsara factor
     AV_BALSARA,
 

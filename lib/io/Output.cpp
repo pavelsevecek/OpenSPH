@@ -250,7 +250,6 @@ Path GnuplotOutput::dump(Storage& storage, const Statistics& stats) {
     return path;
 }
 
-
 namespace {
 
 /// \todo this should be really part of the serializer/deserializer, otherwise it's kinda pointless
@@ -392,11 +391,11 @@ Path BinaryOutput::dump(Storage& storage, const Statistics& stats) {
 
     Serializer serializer(fileName);
     // file format identifier
-    // size: 4 + 8 + 8 + 8 + 8 = 36
     const Size materialCnt = storage.getMaterialCnt();
     const Size quantityCnt = storage.getQuantityCnt() - int(storage.has(QuantityId::MATERIAL_ID));
     const Float timeStep = stats.get<Float>(StatisticsId::TIMESTEP_VALUE);
-    serializer.write("SPH", time, storage.getParticleCnt(), quantityCnt, materialCnt, timeStep);
+    serializer.write(
+        "SPH", time, storage.getParticleCnt(), quantityCnt, materialCnt, timeStep, Version::LATEST);
     // zero bytes until 256 to allow extensions of the header
     serializer.addPadding(PADDING_SIZE);
 
@@ -464,7 +463,8 @@ Path BinaryOutput::dump(Storage& storage, const Statistics& stats) {
 
 static Expected<Storage> loadMaterial(const Size matIdx,
     Deserializer& deserializer,
-    ArrayView<QuantityId> ids) {
+    ArrayView<QuantityId> ids,
+    const BinaryOutput::Version version) {
     Size matIdxCheck;
     std::string identifier;
     deserializer.read(identifier, matIdxCheck);
@@ -485,6 +485,18 @@ static Expected<Storage> loadMaterial(const Size matIdx,
         BodySettingsId paramId;
         Size valueId;
         deserializer.read(paramId, valueId);
+
+        if (version == BinaryOutput::Version::FIRST) {
+            if (valueId == 1 && settings.has<EnumWrapper>(paramId)) {
+                // enums used to be stored as ints (index 1), now we store it as enum wrapper;
+                // convert the value to enum and save manually
+                EnumWrapper e = settings.get<EnumWrapper>(paramId);
+                deserializer.read(e.value);
+                settings.set(paramId, e);
+                continue;
+            }
+        }
+
         /// \todo this is currently the only way to access Settings variant, refactor if possible
         SettingsIterator<BodySettingsId>::IteratorValue iteratorValue{ paramId,
             { CONSTRUCT_TYPE_IDX, valueId } };
@@ -525,8 +537,9 @@ Outcome BinaryOutput::load(const Path& path, Storage& storage, Statistics& stats
     std::string identifier;
     Float time, timeStep;
     Size particleCnt, quantityCnt, materialCnt;
+    Version version;
     try {
-        deserializer.read(identifier, time, particleCnt, quantityCnt, materialCnt, timeStep);
+        deserializer.read(identifier, time, particleCnt, quantityCnt, materialCnt, timeStep, version);
     } catch (SerializerException&) {
         return "Invalid file format";
     }
@@ -558,7 +571,7 @@ Outcome BinaryOutput::load(const Path& path, Storage& storage, Statistics& stats
         Storage bodyStorage;
         if (hasMaterials) {
             try {
-                Expected<Storage> loadedStorage = loadMaterial(matIdx, deserializer, quantityIds);
+                Expected<Storage> loadedStorage = loadMaterial(matIdx, deserializer, quantityIds, version);
                 if (!loadedStorage) {
                     return loadedStorage.error();
                 } else {
@@ -605,8 +618,13 @@ Expected<BinaryOutput::Info> BinaryOutput::getInfo(const Path& path) const {
     std::string identifier;
     Info info;
     try {
-        deserializer.read(
-            identifier, info.runTime, info.particleCnt, info.quantityCnt, info.materialCnt, info.timeStep);
+        deserializer.read(identifier,
+            info.runTime,
+            info.particleCnt,
+            info.quantityCnt,
+            info.materialCnt,
+            info.timeStep,
+            info.version);
     } catch (SerializerException&) {
         return makeUnexpected<Info>("Invalid file format");
     }

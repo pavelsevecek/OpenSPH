@@ -109,10 +109,11 @@ private:
     }
 };
 
+/// \brief Helper class for adding individual enums to the enum map.
 template <typename TEnum>
-struct MapEnum {
+struct RegisterEnum {
 public:
-    MapEnum(Array<EnumInputValue<TEnum>>&& input) {
+    RegisterEnum(Array<EnumInputValue<TEnum>>&& input) {
         EnumMap::addEnum(std::move(input));
     }
 };

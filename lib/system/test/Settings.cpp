@@ -24,6 +24,13 @@ TEST_CASE("Settings set/get", "[settings]") {
     REQUIRE_ASSERT(settings.get<int>(BodySettingsId::DENSITY_RANGE));
 }
 
+TEST_CASE("Settings has", "[settings]") {
+    RunSettings settings;
+    REQUIRE(settings.has<Float>(RunSettingsId::COLLISION_ALLOWED_OVERLAP));
+    REQUIRE(settings.has<bool>(RunSettingsId::SPH_STRAIN_RATE_CORRECTION_TENSOR));
+    REQUIRE(settings.has<std::string>(RunSettingsId::RUN_NAME));
+}
+
 TEST_CASE("Settings iterator", "[settings]") {
     RunSettings settings(EMPTY_SETTINGS);
     settings.set(RunSettingsId::DOMAIN_CENTER, Vector(1._f, 2._f, 3._f));

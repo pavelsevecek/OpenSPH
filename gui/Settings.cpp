@@ -7,16 +7,23 @@ NAMESPACE_SPH_BEGIN
 template<>
 AutoPtr<GuiSettings> GuiSettings::instance (new GuiSettings {
     /// Renderer
-    { GuiSettingsId::RENDERER,         "renderer",         int(RendererEnum::PARTICLE) },
-    { GuiSettingsId::RENDER_WIDTH,     "render.width",     800 },
-    { GuiSettingsId::RENDER_HEIGHT,    "render.height",    600 },
+    { GuiSettingsId::RENDERER,         "renderer",         RendererEnum::PARTICLE,
+        "Selected renderer for particle visualization. Can be one of the following:\n" + EnumMap::getDesc<RendererEnum>() },
+    { GuiSettingsId::RENDER_WIDTH,     "render.width",     800,
+        "Width of the rendered image (in pixels)." },
+    { GuiSettingsId::RENDER_HEIGHT,    "render.height",    600,
+        "Height of the rendered image (in pixels)." },
 
     /// Camera pameters
-    { GuiSettingsId::CAMERA,                "camera",               int(CameraEnum::ORTHO) },
-    { GuiSettingsId::PARTICLE_RADIUS,       "particle_radius",      0.5_f },
-    { GuiSettingsId::ORTHO_CUTOFF,          "ortho.cutoff",         0.1_f },
-    { GuiSettingsId::ORTHO_ZOFFSET,         "ortho.zoffset",        0._f },
-    { GuiSettingsId::ORTHO_PROJECTION,      "ortho.projection",     int(OrthoEnum::XY) },
+    { GuiSettingsId::CAMERA,                "camera",               CameraEnum::ORTHO,
+        "Specifies the projection of the particles to the image. Can be one of the following:\n" + EnumMap::getDesc<CameraEnum>() },
+    { GuiSettingsId::PARTICLE_RADIUS,       "particle_radius",      0.5_f,
+        "Multiplier of the particle radius for drawing." },
+    { GuiSettingsId::ORTHO_CUTOFF,          "ortho.cutoff",         0.1_f,
+        "Cut-off distance from center plane. Particles further away are not drawn. Used by particle renderer." },
+    { GuiSettingsId::ORTHO_ZOFFSET,         "ortho.zoffset",        0._f,
+        "Distance of the orthographic camera from the center plane. Used by raytracer to get the ray origin. "},
+    { GuiSettingsId::ORTHO_PROJECTION,      "ortho.projection",     OrthoEnum::XY },
     { GuiSettingsId::PERSPECTIVE_FOV,       "perspective.fov",      PI / 3._f },
     { GuiSettingsId::PERSPECTIVE_POSITION,  "perspective.position", Vector(0._f, 0._f, 1._f) },
     { GuiSettingsId::PERSPECTIVE_TARGET,    "perspective.target",   Vector(0._f) },
@@ -42,11 +49,11 @@ AutoPtr<GuiSettings> GuiSettings::instance (new GuiSettings {
     { GuiSettingsId::WINDOW_TITLE,          "window.title",         std::string("SPH") },
     { GuiSettingsId::WINDOW_WIDTH,          "window.width",         1110 },
     { GuiSettingsId::WINDOW_HEIGHT,         "window.height",        600 },
-    { GuiSettingsId::PLOT_INTEGRALS,        "plot.integrals",       int(PlotEnum::ALL) },
+    { GuiSettingsId::PLOT_INTEGRALS,        "plot.integrals",       PlotEnum::ALL },
     { GuiSettingsId::PLOT_INITIAL_PERIOD,   "plot.initial_period",  0.1_f },
 
     /// Saved animation frames
-    { GuiSettingsId::IMAGES_RENDERER,       "images.renderer",      int(RendererEnum::PARTICLE) },
+    { GuiSettingsId::IMAGES_RENDERER,       "images.renderer",      RendererEnum::PARTICLE },
     { GuiSettingsId::IMAGES_SAVE,           "images.save",          false },
     { GuiSettingsId::IMAGES_PATH,           "images.path",          std::string("imgs/") },
     { GuiSettingsId::IMAGES_NAME,           "images.name",          std::string("img_%e_%d.png") },

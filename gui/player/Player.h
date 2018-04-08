@@ -72,7 +72,7 @@ private:
             .set(GuiSettingsId::SURFACE_LEVEL, 0.1_f)
             .set(GuiSettingsId::SURFACE_SUN_POSITION, getNormalized(Vector(-0.2f, -0.1f, 1.1f)))
             .set(GuiSettingsId::SURFACE_RESOLUTION, 2.e3_f)
-            .set(GuiSettingsId::CAMERA, int(CameraEnum::ORTHO))
+            .set(GuiSettingsId::CAMERA, CameraEnum::ORTHO)
             .set(GuiSettingsId::ORTHO_PROJECTION, OrthoEnum::XY)
             .set(GuiSettingsId::ORTHO_CUTOFF, 1.e2_f)
             .set(GuiSettingsId::IMAGES_SAVE, false)

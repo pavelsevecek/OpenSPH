@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/ForwardDecl.h"
+#include "objects/utility/EnumMap.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -17,16 +18,32 @@ enum class RendererEnum {
 
     RAYTRACER,
 
-    /// 3D visualization of simulation using OpenGL
-    OPENGL
 };
+static RegisterEnum<RendererEnum> sRenderer({
+    { RendererEnum::NONE, "none", "No particle visualization" },
+    { RendererEnum::PARTICLE, "particle", "Particles are visualized as circles. No shading." },
+    { RendererEnum::MESH,
+        "mesh",
+        "Surfaces of bodies are meshed using Marching cubes and drawed as triangles." },
+    { RendererEnum::RAYTRACER, "raytracer", "Use raytracing to find intersections with implicit surface." },
+});
 
 enum class CameraEnum {
     ORTHO,
     PERSPECTIVE,
 };
+static RegisterEnum<CameraEnum> sCamera({
+    { CameraEnum::ORTHO, "ortho", "Orthographic projection" },
+    { CameraEnum::PERSPECTIVE, "perspective", "Perspective projection" },
+});
 
 enum class OrthoEnum { XY, XZ, YZ };
+/// \todo replace with up and dir
+static RegisterEnum<OrthoEnum> sOrtho({
+    { OrthoEnum::XY, "xy", "XY plane" },
+    { OrthoEnum::XZ, "xz", "XZ plane" },
+    { OrthoEnum::YZ, "yz", "YZ plane" },
+});
 
 enum class PlotEnum {
     INTERNAL_ENERGY = 1 << 0,
@@ -40,6 +57,19 @@ enum class PlotEnum {
     ALL = INTERNAL_ENERGY | KINETIC_ENERGY | TOTAL_ENERGY | TOTAL_MOMENTUM | TOTAL_ANGULAR_MOMENTUM |
           SIZE_FREQUENCY_DISTRIBUTION | SELECTED_PARTICLE,
 };
+static RegisterEnum<PlotEnum> sPlot({
+    { PlotEnum::INTERNAL_ENERGY, "internal_energy", "Plots the total internal energy." },
+    { PlotEnum::KINETIC_ENERGY, "kinetic_energy", "Plots the total kinetic energy." },
+    { PlotEnum::TOTAL_ENERGY, "total_energy", "Plots the sum of the internal and kinetic energy." },
+    { PlotEnum::TOTAL_MOMENTUM, "total_momentum", "Plots the total momentum." },
+    { PlotEnum::TOTAL_ANGULAR_MOMENTUM, "total_angular_momentum", "Plots the total angular momentum." },
+    { PlotEnum::SIZE_FREQUENCY_DISTRIBUTION,
+        "size_distribution",
+        "Current cumulative size-frequency distribution of bodies in the simulation." },
+    { PlotEnum::SELECTED_PARTICLE,
+        "selected_particle",
+        "Plots the current quantity of the selected particle." },
+});
 
 /// \todo generic ortho projection (x,y,z) -> (u,v)
 
