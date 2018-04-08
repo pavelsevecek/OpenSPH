@@ -1,6 +1,7 @@
 #include "io/Output.h"
 #include "catch.hpp"
 #include "io/Column.h"
+#include "io/FileManager.h"
 #include "io/FileSystem.h"
 #include "objects/geometry/Domain.h"
 #include "objects/utility/PerElementWrapper.h"
@@ -8,9 +9,11 @@
 #include "quantities/Iterate.h"
 #include "sph/Materials.h"
 #include "sph/initial/Initial.h"
+#include "system/Factory.h"
 #include "tests/Approx.h"
 #include "tests/Setup.h"
 #include "utils/Config.h"
+#include "utils/Utils.h"
 #include <fstream>
 
 using namespace Sph;
@@ -41,6 +44,9 @@ TEST_CASE("TextOutput dump", "[output]") {
 )";
     std::string content = FileSystem::readFile(Path("tmp1_0000.txt"));
     REQUIRE(content == expected);
+
+    output.dump(storage, stats);
+    REQUIRE(FileSystem::pathExists(Path("tmp1_0001.txt")));
 }
 
 template <typename TValue>
@@ -57,7 +63,9 @@ static bool almostEqual(const Array<TValue>& b1, const Array<TValue>& b2) {
 }
 
 TEST_CASE("TextOutput dump&accumulate", "[output]") {
-    TextOutput output(Path("tmp2_%d.txt"), "Output", EMPTY_FLAGS);
+    RandomPathManager manager;
+    Path path = manager.getPath("txt");
+    TextOutput output(path, "Output", EMPTY_FLAGS);
     Storage storage = Tests::getGassStorage(1000);
     Statistics stats;
     stats.set(StatisticsId::RUN_TIME, 0._f);
@@ -65,7 +73,7 @@ TEST_CASE("TextOutput dump&accumulate", "[output]") {
     output.dump(storage, stats);
 
     Storage loaded;
-    output.load(Path("tmp2_0000.txt"), loaded, stats);
+    output.load(path, loaded, stats);
     REQUIRE(loaded.getQuantityCnt() == 3); // density + position + flags
 
     Quantity& positions = loaded.getQuantity(QuantityId::POSITION);
@@ -80,6 +88,32 @@ TEST_CASE("TextOutput dump&accumulate", "[output]") {
     REQUIRE(almostEqual(density.getValue<Float>(), storage.getValue<Float>(QuantityId::DENSITY)));
 }
 
+TEST_CASE("TextOutput create from settings", "[output]") {
+    RandomPathManager manager;
+    RunSettings settings;
+    Path path = manager.getPath("txt");
+    settings.set(RunSettingsId::RUN_OUTPUT_TYPE, OutputEnum::TEXT_FILE);
+    settings.set(RunSettingsId::RUN_OUTPUT_PATH, std::string(""));
+    settings.set(RunSettingsId::RUN_OUTPUT_NAME, path.native());
+    AutoPtr<IOutput> output = Factory::getOutput(settings);
+
+    Storage storage = Tests::getSolidStorage(100);
+
+    Statistics stats;
+    stats.set(StatisticsId::RUN_TIME, 0._f);
+    output->dump(storage, stats);
+
+    Storage loaded;
+    REQUIRE(output->load(path, loaded, stats));
+    REQUIRE(loaded.getParticleCnt() == storage.getParticleCnt());
+    // check that the basic quantities are saved
+    REQUIRE(loaded.has(QuantityId::POSITION));
+    REQUIRE(loaded.has(QuantityId::DENSITY));
+    REQUIRE(loaded.has(QuantityId::PRESSURE));
+    REQUIRE(loaded.has(QuantityId::ENERGY));
+    REQUIRE(loaded.has(QuantityId::DEVIATORIC_STRESS));
+}
+
 TEST_CASE("BinaryOutput dump&accumulate simple", "[output]") {
     Storage storage1;
     Array<Vector> r{ Vector(0._f), Vector(1._f), Vector(2._f) };
@@ -90,14 +124,17 @@ TEST_CASE("BinaryOutput dump&accumulate simple", "[output]") {
     storage1.insert<TracelessTensor>(QuantityId::DEVIATORIC_STRESS, OrderEnum::ZERO, TracelessTensor(3._f));
     storage1.insert<SymmetricTensor>(
         QuantityId::STRAIN_RATE_CORRECTION_TENSOR, OrderEnum::ZERO, SymmetricTensor(6._f));
-    BinaryOutput output(Path("simple%d.out"));
+
+    RandomPathManager manager;
+    Path path = manager.getPath("out");
+    BinaryOutput output(path);
     Statistics stats;
     stats.set(StatisticsId::RUN_TIME, 0._f);
     stats.set(StatisticsId::TIMESTEP_VALUE, 0._f);
     output.dump(storage1, stats);
 
     Storage storage2;
-    REQUIRE(output.load(Path("simple0000.out"), storage2, stats));
+    REQUIRE(output.load(path, storage2, stats));
     REQUIRE(storage2.getParticleCnt() == storage1.getParticleCnt());
     REQUIRE(storage2.getQuantityCnt() == storage2.getQuantityCnt());
 
@@ -143,7 +180,9 @@ TEST_CASE("BinaryOutput dump&accumulate materials", "[output]") {
     body.set(BodySettingsId::DENSITY, 100._f);
     conds.addMonolithicBody(storage, SphericalDomain(Vector(0._f), 0.5_f), body);
 
-    BinaryOutput output(Path("mat%d.out"));
+    RandomPathManager manager;
+    Path path = manager.getPath("out");
+    BinaryOutput output(path);
     Statistics stats;
     stats.set(StatisticsId::RUN_TIME, 0._f);
     stats.set(StatisticsId::TIMESTEP_VALUE, 0._f);
@@ -156,14 +195,14 @@ TEST_CASE("BinaryOutput dump&accumulate materials", "[output]") {
     // velocity divergence, velocity gradient, neighbour count, flags, material count
     REQUIRE(storage.getQuantityCnt() == 13);
 
-    Expected<BinaryOutput::Info> info = output.getInfo(Path("mat0000.out"));
+    Expected<BinaryOutput::Info> info = output.getInfo(path);
     REQUIRE(info);
     REQUIRE(info->materialCnt == 3);
     REQUIRE(info->particleCnt == 35);
     REQUIRE(info->quantityCnt == 12); // matIds not stored
 
     Storage loaded;
-    REQUIRE(output.load(Path("mat0000.out"), loaded, stats));
+    REQUIRE(output.load(path, loaded, stats));
     REQUIRE(loaded.getMaterialCnt() == storage.getMaterialCnt());
     REQUIRE(loaded.getParticleCnt() == storage.getParticleCnt());
     REQUIRE(loaded.getQuantityCnt() == storage.getQuantityCnt());
@@ -197,7 +236,8 @@ TEST_CASE("BinaryOutput dump stats", "[output]") {
     Statistics stats;
     stats.set(StatisticsId::RUN_TIME, 24._f);
     stats.set(StatisticsId::TIMESTEP_VALUE, 0.1_f);
-    Path path("dummy.out");
+    RandomPathManager manager;
+    Path path = manager.getPath("out");
     BinaryOutput output(path);
     output.dump(storage, stats);
 
@@ -284,14 +324,54 @@ TEST_CASE("Pkdgrav output", "[output]") {
     Storage storage = Tests::getGassStorage(100, settings);
     storage.insert<Size>(QuantityId::FLAG, OrderEnum::ZERO, 0);
 
-    PkdgravOutput output(Path("readerik%d.out"), PkdgravParams{});
+    RandomPathManager manager;
+    Path path = manager.getPath("out");
+    PkdgravOutput output(path, PkdgravParams{});
     Statistics stats;
     output.dump(storage, stats);
-    REQUIRE(FileSystem::fileSize(Path("readerik0000.out")) > 0);
+    REQUIRE(FileSystem::fileSize(path) > 0);
 
     PkdgravParams params;
     params.vaporThreshold = 0.f;
-    PkdgravOutput output2(Path("readerik2_%d.out"), std::move(params));
+    Path path2 = manager.getPath("out");
+    PkdgravOutput output2(path2, std::move(params));
     output2.dump(storage, stats);
-    REQUIRE(FileSystem::fileSize(Path("readerik2_0000.out")) == 0);
+    REQUIRE(FileSystem::fileSize(path2) == 0);
+}
+
+
+TEST_CASE("Pkdgrav load", "[output]") {
+    // hardcoded path to pkdgrav output
+    Path path("/home/pavel/projects/astro/sph/external/sph_0.541_5_45/pkdgrav_run/ss.last.bt");
+    if (!FileSystem::pathExists(path)) {
+        SKIP_TEST;
+    }
+
+    Storage storage;
+    Statistics stats;
+    PkdgravOutput io;
+    REQUIRE(io.load(path, storage, stats));
+    REQUIRE(storage.getParticleCnt() > 5000);
+
+    // check that particles are sorted by masses
+    ArrayView<Float> m = storage.getValue<Float>(QuantityId::MASS);
+    Float lastM = LARGE;
+    Float sumM = 0._f;
+    bool sorted = true;
+    for (Size i = 0; i < m.size(); ++i) {
+        sumM += m[i];
+        if (m[i] > lastM) {
+            sorted = false;
+        }
+        lastM = m[i];
+    }
+    REQUIRE(sorted);
+
+    // this particular simulation is the impact into 10km target with rho=2700 km/m^3, so the sum of the
+    // fragments should be +- as massive as the target
+    REQUIRE(sumM == approx(2700 * sphereVolume(5000), 1.e-3_f));
+
+    /*Array<Float>& rho = storage->getValue<Float>(QuantityId::DENSITY);
+    REQUIRE(perElement(rho) < 2800._f);
+    REQUIRE(perElement(rho) > 2600._f);*/
 }

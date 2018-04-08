@@ -28,7 +28,9 @@ NAMESPACE_SPH_BEGIN
 class ITextColumn : public Polymorphic {
 public:
     /// Returns the value of the output column for given particle.
-    virtual Dynamic evaluate(const Storage& storage, const Statistics& stats, const Size particleIdx) const = 0;
+    virtual Dynamic evaluate(const Storage& storage,
+        const Statistics& stats,
+        const Size particleIdx) const = 0;
 
     /// Reads the value of the column and saves it into the storage, if possible.
     /// \param storage Particle storage where the value is stored
@@ -45,7 +47,7 @@ public:
 };
 
 
-/// Returns values of given quantity as stored in storage.
+/// \brief Returns values of given quantity as stored in storage.
 template <typename TValue>
 class ValueColumn : public ITextColumn {
 private:
@@ -81,8 +83,9 @@ public:
     }
 };
 
-/// Returns first derivatives of given quantity as stored in storage. Quantity must contain derivative,
-/// checked by assert.
+/// \brief Returns first derivatives of given quantity as stored in storage.
+///
+/// Quantity must contain derivative, checked by assert.
 template <typename TValue>
 class DerivativeColumn : public ITextColumn {
 private:
@@ -118,8 +121,9 @@ public:
     }
 };
 
-/// Returns second derivatives of given quantity as stored in storage. Quantity must contain second
-/// derivative, checked by assert.
+/// \brief Returns second derivatives of given quantity as stored in storage.
+///
+/// Quantity must contain second derivative, checked by assert.
 template <typename TValue>
 class SecondDerivativeColumn : public ITextColumn {
 private:
@@ -155,7 +159,7 @@ public:
     }
 };
 
-/// Returns smoothing lengths of particles
+/// \brief Returns smoothing lengths of particles
 class SmoothingLengthColumn : public ITextColumn {
 public:
     virtual Dynamic evaluate(const Storage& storage,
@@ -184,8 +188,9 @@ public:
     }
 };
 
-/// Prints actual values of scalar damage, as damage is stored in storage as third roots.
-/// Can be used for both scalar and tensor damage.
+/// \brief Prints actual values of scalar damage.
+///
+/// Needed because damage is stored in storage as third roots. Can be used for both scalar and tensor damage.
 template <typename TValue>
 class DamageColumn : public ITextColumn {
 public:
@@ -211,7 +216,7 @@ public:
     }
 };
 
-/// Helper column printing particle numbers.
+/// \brief Helper column printing particle numbers.
 class ParticleNumberColumn : public ITextColumn {
 public:
     virtual Dynamic evaluate(const Storage& UNUSED(storage),
@@ -233,9 +238,8 @@ public:
     }
 };
 
-/// Helper column printing current run time. This value is the same for every particle.
+/// \brief Helper column printing current run time. This value is the same for every particle.
 class TimeColumn : public ITextColumn {
-
 public:
     virtual Dynamic evaluate(const Storage& UNUSED(storage),
         const Statistics& stats,

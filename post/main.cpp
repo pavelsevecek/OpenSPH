@@ -17,9 +17,21 @@
 
 using namespace Sph;
 
+static Expected<Storage> parsePkdgravOutput(const Path& path) {
+    Storage storage;
+    Statistics stats;
+    PkdgravOutput io;
+    Outcome result = io.load(path, storage, stats);
+    if (!result) {
+        return makeUnexpected<Storage>(result.error());
+    } else {
+        return std::move(storage);
+    }
+}
+
 int pkdgravToSfd(const Path& filePath, const Path& sfdPath) {
     std::cout << "Processing pkdgrav file ... " << std::endl;
-    Expected<Storage> storage = Post::parsePkdgravOutput(filePath);
+    Expected<Storage> storage = parsePkdgravOutput(filePath);
     if (!storage) {
         std::cout << "Invalid file: " << storage.error() << std::endl;
         return 0;
@@ -37,7 +49,7 @@ int pkdgravToSfd(const Path& filePath, const Path& sfdPath) {
 
 int pkdgravToOmega(const Path& filePath, const Path& omegaPath) {
     std::cout << "Processing pkdgrav file ... " << std::endl;
-    Expected<Storage> storage = Post::parsePkdgravOutput(filePath);
+    Expected<Storage> storage = parsePkdgravOutput(filePath);
     if (!storage) {
         std::cout << "Invalid file: " << storage.error() << std::endl;
         return 0;
@@ -66,7 +78,7 @@ int pkdgravToOmega(const Path& filePath, const Path& omegaPath) {
 
 int pkdgravToMoons(const Path& filePath, const float limit) {
     std::cout << "Processing pkdgrav file ... " << std::endl;
-    Expected<Storage> storage = Post::parsePkdgravOutput(filePath);
+    Expected<Storage> storage = parsePkdgravOutput(filePath);
     if (!storage) {
         std::cout << "Invalid file: " << storage.error() << std::endl;
         return 0;

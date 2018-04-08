@@ -142,10 +142,6 @@ enum class GuiSettingsId {
 
     WINDOW_HEIGHT,
 
-    RENDER_WIDTH,
-
-    RENDER_HEIGHT,
-
     PLOT_INTEGRALS,
 
     PLOT_INITIAL_PERIOD,

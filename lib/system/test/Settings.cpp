@@ -1,6 +1,6 @@
 #include "system/Settings.h"
 #include "catch.hpp"
-#include "io/Path.h"
+#include "io/FileManager.h"
 #include "objects/wrappers/Outcome.h"
 #include "utils/Utils.h"
 
@@ -75,10 +75,13 @@ TEST_CASE("Settings save/load basic", "[settings]") {
     settings.set(RunSettingsId::DOMAIN_RADIUS, 3.5_f);
     settings.set(RunSettingsId::RUN_NAME, std::string("test"));
     settings.set(RunSettingsId::RUN_OUTPUT_TYPE, OutputEnum::BINARY_FILE);
-    settings.saveToFile(Path("tmp1.sph"));
+
+    RandomPathManager manager;
+    Path path = manager.getPath("sph");
+    settings.saveToFile(path);
 
     RunSettings loadedSettings;
-    const Outcome result = loadedSettings.loadFromFile(Path("tmp1.sph"));
+    const Outcome result = loadedSettings.loadFromFile(path);
     REQUIRE(result);
     const Vector center = loadedSettings.get<Vector>(RunSettingsId::DOMAIN_CENTER);
     REQUIRE(center == Vector(1._f, 2._f, 3._f));
@@ -93,16 +96,18 @@ TEST_CASE("Settings save/load basic", "[settings]") {
 
     BodySettings body;
     // just test that body settings also work without asserts, otherwise the system is the same
-    REQUIRE_NOTHROW(body.saveToFile(Path("tmp2.sph")));
+    REQUIRE_NOTHROW(body.saveToFile(manager.getPath("sph")));
 }
 
 TEST_CASE("Settings save/load flags", "[settings]") {
+    RandomPathManager manager;
+    Path path = manager.getPath("sph");
     RunSettings settings;
     settings.set(RunSettingsId::TIMESTEPPING_CRITERION,
         TimeStepCriterionEnum::COURANT | TimeStepCriterionEnum::ACCELERATION);
-    settings.saveToFile(Path("tmp3.sph"));
+    settings.saveToFile(path);
     RunSettings loadedSettings;
-    REQUIRE(loadedSettings.loadFromFile(Path("tmp3.sph")));
+    REQUIRE(loadedSettings.loadFromFile(path));
     Flags<TimeStepCriterionEnum> flags =
         loadedSettings.getFlags<TimeStepCriterionEnum>(RunSettingsId::TIMESTEPPING_CRITERION);
     REQUIRE(flags == (TimeStepCriterionEnum::COURANT | TimeStepCriterionEnum::ACCELERATION));
@@ -149,13 +154,16 @@ static bool areSettingsEqual(RunSettings& settings1, RunSettings& settings2) {
 }
 
 TEST_CASE("Settings save/load complete", "[settings]") {
+    RandomPathManager manager;
+    Path path = manager.getPath("sph");
+
     RunSettings settings1;
     settings1.set(RunSettingsId::DOMAIN_RADIUS, 3.5_f);
     settings1.set(RunSettingsId::RUN_NAME, std::string("lll"));
     settings1.set(RunSettingsId::TIMESTEPPING_CRITERION, EMPTY_FLAGS);
-    settings1.saveToFile(Path("tmp4.sph"));
+    settings1.saveToFile(path);
     RunSettings settings2(EMPTY_SETTINGS);
-    REQUIRE(settings2.loadFromFile(Path("tmp4.sph")));
+    REQUIRE(settings2.loadFromFile(path));
 
     REQUIRE(settings1.size() == settings2.size());
     REQUIRE(areSettingsEqual(settings1, settings2));

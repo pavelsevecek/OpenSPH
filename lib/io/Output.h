@@ -355,11 +355,7 @@ public:
 
     virtual Path dump(Storage& storage, const Statistics& stats) override;
 
-    virtual Outcome load(const Path& UNUSED(path),
-        Storage& UNUSED(storage),
-        Statistics& UNUSED(stats)) override {
-        NOT_IMPLEMENTED;
-    }
+    virtual Outcome load(const Path& path, Storage& storage, Statistics& stats) override;
 
 private:
     INLINE Float getRadius(const Float h, const Float m, const Float rho) const {

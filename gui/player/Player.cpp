@@ -10,16 +10,24 @@ IMPLEMENT_APP(Sph::App);
 
 NAMESPACE_SPH_BEGIN
 
-RunPlayer::RunPlayer() {}
+RunPlayer::RunPlayer(const Path& fileMask)
+    : fileMask(fileMask) {}
+
+static AutoPtr<IOutput> getOutput(const Path& path) {
+    if (path.extension() == Path("ssf")) {
+        return makeAuto<BinaryOutput>();
+    } else {
+        std::string str = path.native();
+        if (str.substr(str.size() - 3) == ".bt") {
+            return makeAuto<PkdgravOutput>();
+        }
+    }
+    throw InvalidSetup("Unknown file type: " + path.native());
+}
 
 void RunPlayer::setUp() {
-    if (wxTheApp->argc == 1) {
-        throw InvalidSetup("Specify file mask as a parameter");
-    }
-
-    std::string arg(wxTheApp->argv[1]);
-    files = OutputFile(Path(arg));
-    fileCnt = this->getFileCount(Path(arg));
+    files = OutputFile(fileMask);
+    fileCnt = this->getFileCount(fileMask);
 
     Statistics stats;
     stats.set(StatisticsId::RUN_TIME, 0._f);
@@ -29,8 +37,8 @@ void RunPlayer::setUp() {
     }
 
     storage = makeShared<Storage>();
-    BinaryOutput io;
-    Outcome result = io.load(firstPath, *storage, stats);
+    AutoPtr<IOutput> io = getOutput(firstPath);
+    Outcome result = io->load(firstPath, *storage, stats);
     if (!result) {
         throw InvalidSetup("Cannot load the run state file " + firstPath.native());
     } else {
@@ -74,10 +82,10 @@ void RunPlayer::run() {
         callbacks->onTimeStep(*storage, stats);
 
         if (i != fileCnt - 1) {
-            BinaryOutput io;
-            const Path path = files.getNextPath(stats);
             storage = makeShared<Storage>();
-            const Outcome result = io.load(path, *storage, stats);
+            const Path path = files.getNextPath(stats);
+            AutoPtr<IOutput> io = getOutput(path);
+            const Outcome result = io->load(path, *storage, stats);
             if (!result) {
                 executeOnMainThread([path] {
                     wxMessageBox("Cannot load the run state file " + path.native(), "Error", wxOK);
@@ -116,5 +124,74 @@ void RunPlayer::run() {
 }
 
 void RunPlayer::tearDown(const Statistics& UNUSED(stats)) {}
+
+bool App::OnInit() {
+    Connect(MAIN_LOOP_TYPE, MainLoopEventHandler(App::processEvents));
+
+    Path fileMask;
+    if (wxTheApp->argc == 1) {
+        const std::string desc = "SPH state files (*.ssf)|*.ssf|Pkdgrav output files (*.bt)|*bt|All files|*";
+        wxFileDialog dialog(nullptr, "Open file", "", "", desc, wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+        if (dialog.ShowModal() == wxID_CANCEL) {
+            return false;
+        }
+        std::string s(dialog.GetPath());
+        fileMask = Path(s);
+
+    } else {
+        fileMask = Path(std::string(wxTheApp->argv[1]));
+    }
+
+    GuiSettings gui;
+    gui.set(GuiSettingsId::ORTHO_FOV, 2.e5_f)
+        .set(GuiSettingsId::ORTHO_VIEW_CENTER, 0.5_f * Vector(1024, 768, 0))
+        .set(GuiSettingsId::VIEW_WIDTH, 1024)
+        .set(GuiSettingsId::VIEW_HEIGHT, 768)
+        .set(GuiSettingsId::IMAGES_WIDTH, 1024)
+        .set(GuiSettingsId::IMAGES_HEIGHT, 768)
+        .set(GuiSettingsId::WINDOW_WIDTH, 1334)
+        .set(GuiSettingsId::WINDOW_HEIGHT, 768)
+        .set(GuiSettingsId::PARTICLE_RADIUS, 0.25_f)
+        .set(GuiSettingsId::SURFACE_LEVEL, 0.1_f)
+        .set(GuiSettingsId::SURFACE_SUN_POSITION, getNormalized(Vector(-0.2f, -0.1f, 1.1f)))
+        .set(GuiSettingsId::SURFACE_RESOLUTION, 2.e3_f)
+        .set(GuiSettingsId::CAMERA, CameraEnum::ORTHO)
+        .set(GuiSettingsId::ORTHO_PROJECTION, OrthoEnum::XY)
+        .set(GuiSettingsId::ORTHO_CUTOFF, 1.e2_f)
+        .set(GuiSettingsId::VIEW_GRID_SIZE, 5.e4_f)
+        .set(GuiSettingsId::IMAGES_SAVE, false)
+        .set(GuiSettingsId::IMAGES_NAME, std::string("frag_%e_%d.png"))
+        .set(GuiSettingsId::IMAGES_MOVIE_NAME, std::string("frag_%e.avi"))
+        .set(GuiSettingsId::IMAGES_TIMESTEP, 10._f)
+        .set(GuiSettingsId::PALETTE_STRESS, Interval(1.e5_f, 3.e6_f))
+        .set(GuiSettingsId::PALETTE_VELOCITY, Interval(0.01_f, 1.e2_f))
+        .set(GuiSettingsId::PALETTE_PRESSURE, Interval(-5.e4_f, 5.e4_f))
+        .set(GuiSettingsId::PALETTE_ENERGY, Interval(0._f, 1.e3_f))
+        .set(GuiSettingsId::PALETTE_RADIUS, Interval(700._f, 3.e3_f))
+        .set(GuiSettingsId::PALETTE_GRADV, Interval(0._f, 1.e-5_f))
+        .set(GuiSettingsId::PLOT_INTEGRALS,
+            PlotEnum::KINETIC_ENERGY | PlotEnum::INTERNAL_ENERGY | PlotEnum::TOTAL_ENERGY |
+                PlotEnum::TOTAL_MOMENTUM | PlotEnum::TOTAL_ANGULAR_MOMENTUM | PlotEnum::SELECTED_PARTICLE);
+
+    if (fileMask.native().substr(fileMask.native().size() - 3) == ".bt") {
+        // pkdgrav file, override some options
+        gui.set(GuiSettingsId::ORTHO_FOV, 1.e6_f)
+            .set(GuiSettingsId::ORTHO_CUTOFF, 0._f)
+            .set(GuiSettingsId::PARTICLE_RADIUS, 1._f);
+    }
+
+    /*if (FileSystem::pathExists(Path("gui.sph"))) {
+        gui.loadFromFile(Path("gui.sph"));
+    } else {
+        gui.saveToFile(Path("gui.sph"));
+    }*/
+
+    controller = makeAuto<Controller>(gui);
+
+    AutoPtr<RunPlayer> run = makeAuto<RunPlayer>(fileMask);
+    run->setController(controller.get());
+    controller->start(std::move(run));
+    return true;
+}
 
 NAMESPACE_SPH_END
