@@ -48,6 +48,34 @@ IOutput::IOutput(const Path& fileMask)
     ASSERT(!fileMask.empty());
 }
 
+
+static RegisterEnum<OutputQuantityFlag> sQuantity({
+    { OutputQuantityFlag::POSITION, "position", "Positions of particles, always a vector quantity." },
+    { OutputQuantityFlag::SMOOTHING_LENGTH, "smoothing_length", "Smoothing lenghts of particles." },
+    { OutputQuantityFlag::VELOCITY, "velocity", "Velocities of particles, always a vector quantity." },
+    { OutputQuantityFlag::MASS, "mass", "Particle masses, always a scalar quantity." },
+    { OutputQuantityFlag::PRESSURE,
+        "pressure",
+        "Pressure, reduced by yielding and fracture model (multiplied by 1-damage); always a scalar "
+        "quantity." },
+    { OutputQuantityFlag::DENSITY, "density", "Density, always a scalar quantity." },
+    { OutputQuantityFlag::ENERGY, "energy", "Specific internal energy, always a scalar quantity." },
+    // { QuantityId::SOUND_SPEED, "sound_speed", "Local sound speed, always a scalar quantity." },
+    { OutputQuantityFlag::DEVIATORIC_STRESS,
+        "deviatoric_stress",
+        "Deviatoric stress tensor, always a traceless tensor stored in components xx, yy, xy, xz, yz." },
+    { OutputQuantityFlag::DAMAGE, "damage", "Damage, reducing the pressure and deviatoric stress." },
+    /* { QuantityId::VELOCITY_GRADIENT, "velocity_gradient", "Velocity gradient (strain rate)." },
+     { QuantityId::VELOCITY_DIVERGENCE, "velocity_divergence", "Velocity divergence." },
+     { QuantityId::VELOCITY_ROTATION, "velocity_rotation", "Velocity rotation (rotation rate)." },*/
+    { OutputQuantityFlag::STRAIN_RATE_CORRECTION_TENSOR,
+        "correction_tensor",
+        "Symmetric tensor correcting kernel gradient for linear consistency." },
+    { OutputQuantityFlag::MATERIAL_ID, "material_id", "ID of material, indexed from 0 to (#bodies - 1)." },
+    { OutputQuantityFlag::INDEX, "index", "Index of particle, indexed from 0 to (#particles - 1)." },
+});
+
+
 static void printHeader(std::ostream& ofs, const std::string& name, const ValueEnum type) {
     switch (type) {
     case ValueEnum::SCALAR:
@@ -72,22 +100,43 @@ static void printHeader(std::ostream& ofs, const std::string& name, const ValueE
     }
 }
 
-static void addBasicColumns(Array<AutoPtr<ITextColumn>>& columns) {
-    columns.push(makeAuto<ParticleNumberColumn>());
-    columns.push(makeAuto<ValueColumn<Vector>>(QuantityId::POSITION));
-    columns.push(makeAuto<DerivativeColumn<Vector>>(QuantityId::POSITION));
-    columns.push(makeAuto<ValueColumn<Float>>(QuantityId::MASS));
-}
-
-static void addExtendedColumns(Array<AutoPtr<ITextColumn>>& columns) {
-    addBasicColumns(columns);
-
-    columns.push(makeAuto<SmoothingLengthColumn>());
-    columns.push(makeAuto<ValueColumn<Float>>(QuantityId::DENSITY));
-    columns.push(makeAuto<ValueColumn<Float>>(QuantityId::PRESSURE));
-    columns.push(makeAuto<ValueColumn<Float>>(QuantityId::ENERGY));
-    columns.push(makeAuto<ValueColumn<Float>>(QuantityId::DAMAGE));
-    columns.push(makeAuto<ValueColumn<TracelessTensor>>(QuantityId::DEVIATORIC_STRESS));
+static void addColumns(const Flags<OutputQuantityFlag> quantities, Array<AutoPtr<ITextColumn>>& columns) {
+    if (quantities.has(OutputQuantityFlag::POSITION)) {
+        columns.push(makeAuto<ValueColumn<Vector>>(QuantityId::POSITION));
+    }
+    if (quantities.has(OutputQuantityFlag::VELOCITY)) {
+        columns.push(makeAuto<DerivativeColumn<Vector>>(QuantityId::POSITION));
+    }
+    if (quantities.has(OutputQuantityFlag::SMOOTHING_LENGTH)) {
+        columns.push(makeAuto<SmoothingLengthColumn>());
+    }
+    if (quantities.has(OutputQuantityFlag::MASS)) {
+        columns.push(makeAuto<ValueColumn<Float>>(QuantityId::MASS));
+    }
+    if (quantities.has(OutputQuantityFlag::PRESSURE)) {
+        columns.push(makeAuto<ValueColumn<Float>>(QuantityId::PRESSURE));
+    }
+    if (quantities.has(OutputQuantityFlag::DENSITY)) {
+        columns.push(makeAuto<ValueColumn<Float>>(QuantityId::DENSITY));
+    }
+    if (quantities.has(OutputQuantityFlag::ENERGY)) {
+        columns.push(makeAuto<ValueColumn<Float>>(QuantityId::ENERGY));
+    }
+    if (quantities.has(OutputQuantityFlag::DEVIATORIC_STRESS)) {
+        columns.push(makeAuto<ValueColumn<TracelessTensor>>(QuantityId::DEVIATORIC_STRESS));
+    }
+    if (quantities.has(OutputQuantityFlag::DAMAGE)) {
+        columns.push(makeAuto<ValueColumn<Float>>(QuantityId::DAMAGE));
+    }
+    if (quantities.has(OutputQuantityFlag::STRAIN_RATE_CORRECTION_TENSOR)) {
+        columns.push(makeAuto<ValueColumn<SymmetricTensor>>(QuantityId::STRAIN_RATE_CORRECTION_TENSOR));
+    }
+    if (quantities.has(OutputQuantityFlag::MATERIAL_ID)) {
+        columns.push(makeAuto<ValueColumn<Size>>(QuantityId::MATERIAL_ID));
+    }
+    if (quantities.has(OutputQuantityFlag::INDEX)) {
+        columns.push(makeAuto<ParticleNumberColumn>());
+    }
 }
 
 struct DumpAllVisitor {
@@ -97,39 +146,30 @@ struct DumpAllVisitor {
     }
 };
 
-TextOutput::TextOutput(const Flags<Options> flags)
-    : flags(flags) {
-    if (flags.has(Options::BASIC_COLUMNS)) {
-        addBasicColumns(columns);
-    }
-    if (flags.has(Options::EXTENDED_COLUMNS)) {
-        addExtendedColumns(columns);
-    }
-}
-
-TextOutput::TextOutput(const Path& fileMask, const std::string& runName, const Flags<Options> flags)
+TextOutput::TextOutput(const Path& fileMask,
+    const std::string& runName,
+    const Flags<OutputQuantityFlag> quantities,
+    const Flags<Options> options)
     : IOutput(fileMask)
     , runName(runName)
-    , flags(flags) {
-    if (flags.has(Options::BASIC_COLUMNS)) {
-        addBasicColumns(columns);
-    }
-    if (flags.has(Options::EXTENDED_COLUMNS)) {
-        addExtendedColumns(columns);
-    }
+    , options(options) {
+    addColumns(quantities, columns);
 }
 
 TextOutput::~TextOutput() = default;
 
 Path TextOutput::dump(Storage& storage, const Statistics& stats) {
-    if (flags.has(Options::DUMP_ALL)) {
+    if (options.has(Options::DUMP_ALL)) {
         columns.clear();
-        addBasicColumns(columns);
-        // the one 'extraordinary' quantity
+        // add some 'extraordinary' quantities and position (we want those to be one of the first, not after
+        // density, etc).
+        columns.push(makeAuto<ParticleNumberColumn>());
+        columns.push(makeAuto<ValueColumn<Vector>>(QuantityId::POSITION));
+        columns.push(makeAuto<DerivativeColumn<Vector>>(QuantityId::POSITION));
         columns.push(makeAuto<SmoothingLengthColumn>());
         for (StorageElement e : storage.getQuantities()) {
-            if (e.id == QuantityId::POSITION || e.id == QuantityId::MASS) {
-                // already added as basic columns
+            if (e.id == QuantityId::POSITION) {
+                // already added
                 continue;
             }
             dispatch(e.quantity.getValueEnum(), DumpAllVisitor{}, e.id, columns);
@@ -152,7 +192,7 @@ Path TextOutput::dump(Storage& storage, const Statistics& stats) {
     for (Size i = 0; i < storage.getParticleCnt(); ++i) {
         for (auto& column : columns) {
             // write one extra space to be sure numbers won't merge
-            if (flags.has(Options::SCIENTIFIC)) {
+            if (options.has(Options::SCIENTIFIC)) {
                 ofs << std::scientific << std::setprecision(PRECISION) << column->evaluate(storage, stats, i);
             } else {
                 ofs << std::setprecision(PRECISION) << column->evaluate(storage, stats, i);
@@ -529,7 +569,6 @@ static Expected<Storage> loadMaterial(const Size matIdx,
     // create storage for this material
     return Storage(std::move(material));
 }
-
 
 Outcome BinaryOutput::load(const Path& path, Storage& storage, Statistics& stats) {
     storage.removeAll();

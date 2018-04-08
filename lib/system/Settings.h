@@ -872,6 +872,9 @@ enum class RunSettingsId {
     /// Path where all output files (dumps, logs, ...) will be written
     RUN_OUTPUT_PATH,
 
+    /// List of quantities to write to text output. Binary output always stores all quantitites.
+    RUN_OUTPUT_QUANTITIES,
+
     /// Number of threads used by the code. If 0, all available threads are used.
     RUN_THREAD_CNT,
 
@@ -1175,202 +1178,199 @@ static RegisterEnum<EosEnum> sEos({
         "ANEOS equation of state, requires look-up table of values for given material." },
 });
 
-/// Settings of a single body / gas phase / ...
-/// Combines material parameters and numerical parameters of the SPH method specific for one body.
+/// \brief Settings of a single body / gas phase / ...
+///
+/// Combines material parameters and numerical parameters of the SPH method specific for one body. Values of
+/// parameters CANNOT be changed to preserve backward compatibility of serializer. New IDs can be created as
+/// needed, parameters no longer needed can be removed.
 enum class BodySettingsId {
     /// Equation of state for this material, see EosEnum for options.
-    EOS,
+    EOS = 0,
 
     /// Initial distribution of SPH particles within the domain, see DistributionEnum for options.
-    INITIAL_DISTRIBUTION,
+    INITIAL_DISTRIBUTION = 1,
 
     /// If true, generated particles will be moved so that their center of mass corresponds to the center of
     /// selected domain. Note that this will potentially move some particles outside of the domain, which can
     /// clash with boundary conditions.
-    CENTER_PARTICLES,
+    CENTER_PARTICLES = 2,
 
     /// If true, particles are sorted using Morton code, preserving locality in memory.
-    PARTICLE_SORTING,
+    PARTICLE_SORTING = 3,
 
     /// Turns on 'SPH5 compatibility' mode when generating particle positions. This allows 1-1 comparison of
     /// generated arrays, but results in too many generated particles (by about factor 1.4). The option also
     /// implies CENTER_PARTICLES.
-    DISTRIBUTE_MODE_SPH5,
+    DISTRIBUTE_MODE_SPH5 = 4,
 
     /// Strength parameter of the Diehl's distribution.
-    DIELH_STRENGTH,
+    DIELH_STRENGTH = 5,
 
     /// Maximum allowed difference between the expected number of particles and the actual number of generated
     /// particles. Higher value speed up the generation of particle positions.
-    DIEHL_MAX_DIFFERENCE,
+    DIEHL_MAX_DIFFERENCE = 6,
 
     /// Density at zero pressure
-    DENSITY,
+    DENSITY = 7,
 
     /// Allowed range of density. Densities of all particles all clamped to fit in the range.
-    DENSITY_RANGE,
+    DENSITY_RANGE = 8,
 
     /// Estimated minimal value of density. This value is NOT used to clamp densities, but for
     /// determining error of timestepping.
-    DENSITY_MIN,
+    DENSITY_MIN = 9,
 
     /// Initial specific internal energy
-    ENERGY,
+    ENERGY = 10,
 
     /// Allowed range of specific internal energy.
-    ENERGY_RANGE,
+    ENERGY_RANGE = 11,
 
     /// Estimated minimal value of energy used to determine timestepping error.
-    ENERGY_MIN,
+    ENERGY_MIN = 12,
 
     /// Initial values of the deviatoric stress tensor
-    STRESS_TENSOR,
+    STRESS_TENSOR = 13,
 
     /// Estimated minial value of stress tensor components used to determined timestepping error.
-    STRESS_TENSOR_MIN,
+    STRESS_TENSOR_MIN = 14,
 
     /// Initial damage of the body.
-    DAMAGE,
+    DAMAGE = 15,
 
     /// Allowed range of damage.
-    DAMAGE_RANGE,
+    DAMAGE_RANGE = 16,
 
     /// Estimate minimal value of damage used to determine timestepping error.
-    DAMAGE_MIN,
+    DAMAGE_MIN = 17,
 
     /// Adiabatic index used by some equations of state (such as ideal gas)
-    ADIABATIC_INDEX,
+    ADIABATIC_INDEX = 18,
 
     /// Exponent of density, representing a compressibility of a fluid. Used in Tait equation of state.
-    TAIT_GAMMA,
+    TAIT_GAMMA = 19,
 
     /// Sound speed used in Tait equation of state
-    TAIT_SOUND_SPEED,
+    TAIT_SOUND_SPEED = 20,
 
     /// Bulk modulus of the material
-    BULK_MODULUS,
+    BULK_MODULUS = 21,
 
     /// Coefficient B of the nonlinear compressive term in Tillotson equation
-    TILLOTSON_NONLINEAR_B,
+    TILLOTSON_NONLINEAR_B = 22,
 
     /// "Small a" coefficient in Tillotson equation
-    TILLOTSON_SMALL_A,
+    TILLOTSON_SMALL_A = 23,
 
     /// "Small b" coefficient in Tillotson equation
-    TILLOTSON_SMALL_B,
+    TILLOTSON_SMALL_B = 24,
 
     /// Alpha coefficient in expanded phase of Tillotson equation
-    TILLOTSON_ALPHA,
+    TILLOTSON_ALPHA = 25,
 
     /// Beta coefficient in expanded phase of Tillotson equation
-    TILLOTSON_BETA,
+    TILLOTSON_BETA = 26,
 
     /// Specific sublimation energy
-    TILLOTSON_SUBLIMATION,
+    TILLOTSON_SUBLIMATION = 27,
 
     /// Specific energy of incipient vaporization
-    TILLOTSON_ENERGY_IV,
+    TILLOTSON_ENERGY_IV = 28,
 
     /// Specific energy of complete vaporization
-    TILLOTSON_ENERGY_CV,
+    TILLOTSON_ENERGY_CV = 29,
 
     /// Gruneisen's gamma paraemter used in Mie-Gruneisen equation of state
-    GRUNEISEN_GAMMA,
+    GRUNEISEN_GAMMA = 30,
 
     /// Used in Mie-Gruneisen equations of state
-    BULK_SOUND_SPEED,
+    BULK_SOUND_SPEED = 31,
 
     /// Linear Hugoniot slope coefficient used in Mie-Gruneisen equation of state
-    HUGONIOT_SLOPE,
+    HUGONIOT_SLOPE = 32,
 
-    RHEOLOGY_YIELDING,
+    RHEOLOGY_YIELDING = 33,
 
-    RHEOLOGY_DAMAGE,
+    RHEOLOGY_DAMAGE = 34,
 
     /// Shear modulus mu (a.k.a Lame's second parameter) of the material
-    SHEAR_MODULUS,
+    SHEAR_MODULUS = 35,
 
-    YOUNG_MODULUS,
+    YOUNG_MODULUS = 36,
 
     /// Elastic modulus lambda (a.k.a Lame's first parameter) of the material
-    ELASTIC_MODULUS,
+    ELASTIC_MODULUS = 37,
 
     /// Elasticity limit of the von Mises yielding criterion
-    ELASTICITY_LIMIT,
+    ELASTICITY_LIMIT = 38,
 
-    MELT_ENERGY,
+    MELT_ENERGY = 39,
 
     /// Cohesion, yield strength at zero pressure
-    COHESION,
+    COHESION = 40,
 
     /// Coefficient of friction for undamaged material
-    INTERNAL_FRICTION,
+    INTERNAL_FRICTION = 41,
 
     /// Coefficient of friction for fully damaged material
-    DRY_FRICTION,
+    DRY_FRICTION = 42,
 
     /// \todo
-    BRITTLE_DUCTILE_TRANSITION_PRESSURE,
+    BRITTLE_DUCTILE_TRANSITION_PRESSURE = 43,
 
     /// \todo
-    BRITTLE_PLASTIC_TRANSITION_PRESSURE,
+    BRITTLE_PLASTIC_TRANSITION_PRESSURE = 44,
 
     /// \todo
-    MOHR_COULOMB_STRESS,
+    MOHR_COULOMB_STRESS = 45,
 
     /// \todo
-    FRICTION_ANGLE,
+    FRICTION_ANGLE = 46,
 
     /// Speed of crack growth, in units of local sound speed.
-    RAYLEIGH_SOUND_SPEED,
+    RAYLEIGH_SOUND_SPEED = 47,
 
-    WEIBULL_COEFFICIENT,
+    WEIBULL_COEFFICIENT = 48,
 
-    WEIBULL_EXPONENT,
+    WEIBULL_EXPONENT = 49,
 
-    BULK_VISCOSITY,
+    BULK_VISCOSITY = 50,
 
-    SHEAR_VISCOSITY,
+    SHEAR_VISCOSITY = 51,
 
-    DAMPING_COEFFICIENT,
+    DAMPING_COEFFICIENT = 52,
 
-    DIFFUSIVITY,
+    DIFFUSIVITY = 53,
 
     /// Coefficient of surface tension
-    SURFACE_TENSION,
+    SURFACE_TENSION = 54,
 
     /// Number of SPH particles in the body
-    PARTICLE_COUNT,
+    PARTICLE_COUNT = 55,
 
     /// Minimal number of particles per one body. Used when creating 'sub-bodies' withing one 'parent' body,
     /// for example when creating rubble-pile asteroids, ice blocks inside an asteroid, etc. Parameter has no
     /// effect for creation of a single monolithic body; the number of particles from PARTICLE_COUNT is used
     /// in any case.
-    MIN_PARTICLE_COUNT,
+    MIN_PARTICLE_COUNT = 56,
 
     /// Initial alpha coefficient of the artificial viscosity. This is only used if the coefficient is
     /// different for each particle. For constant coefficient shared for all particles, use value from global
     /// settings.
-    AV_ALPHA,
+    AV_ALPHA = 57,
 
     /// Lower and upper bound of the alpha coefficient, used only for time-dependent artificial viscosity.
-    AV_ALPHA_RANGE,
-
-    /// Initial beta coefficient of the artificial viscosity.
-    AV_BETA,
-
-    /// Lower and upper bound of the alpha coefficient, used only for time-dependent artificial viscosity.
-    AV_BETA_RANGE,
+    AV_ALPHA_RANGE = 58,
 
     /// Center point of the body. Currently used only by StabilizationSolver.
-    BODY_CENTER,
+    BODY_CENTER = 61,
 
     /// Velocity of the body. `Currently used only by StabilizationSolver.
-    BODY_VELOCITY,
+    BODY_VELOCITY = 62,
 
     /// Angular velocity of the body with a respect to position given by BODY_CENTER. `Currently used only by
     /// StabilizationSolver.
-    BODY_ANGULAR_VELOCITY,
+    BODY_ANGULAR_VELOCITY = 63,
 };
 
 using RunSettings = Settings<RunSettingsId>;

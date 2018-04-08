@@ -7,6 +7,7 @@
 #include "post/StatisticTests.h"
 #include "quantities/Storage.h"
 #include "run/Collision.h"
+#include "system/Factory.h"
 #include "system/Process.h"
 #include "system/Statistics.h"
 #include "thread/Pool.h"
@@ -79,17 +80,18 @@ int pkdgravToMoons(const Path& filePath, const float limit) {
 
 int sphToSfd(const Path& filePath, const Path& settingsPath, const Path& sfdPath) {
     std::cout << "Processing SPH file ... " << std::endl;
-    TextOutput output(TextOutput::Options::EXTENDED_COLUMNS);
+    RunSettings settings;
+    settings.set(RunSettingsId::RUN_OUTPUT_TYPE, OutputEnum::TEXT_FILE);
+    AutoPtr<IOutput> output = Factory::getOutput(settings);
 
     Storage storage;
     Statistics stats;
-    Outcome outcome = output.load(filePath, storage, stats);
+    Outcome outcome = output->load(filePath, storage, stats);
     if (!outcome) {
         std::cout << "Cannot load particle data, " << outcome.error() << std::endl;
         return 0;
     }
 
-    RunSettings settings;
     outcome = settings.loadFromFile(settingsPath);
     if (!outcome) {
         std::cout << "Cannot load settings, " << outcome.error() << std::endl;

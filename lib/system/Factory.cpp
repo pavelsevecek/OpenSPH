@@ -388,7 +388,7 @@ AutoPtr<IOutput> Factory::getOutput(const RunSettings& settings) {
     case OutputEnum::TEXT_FILE:
         return makeAuto<TextOutput>(outputPath / fileMask,
             settings.get<std::string>(RunSettingsId::RUN_NAME),
-            TextOutput::Options::EXTENDED_COLUMNS);
+            settings.getFlags<OutputQuantityFlag>(RunSettingsId::RUN_OUTPUT_QUANTITIES));
     case OutputEnum::BINARY_FILE:
         return makeAuto<BinaryOutput>(outputPath / fileMask);
     case OutputEnum::PKDGRAV_INPUT: {

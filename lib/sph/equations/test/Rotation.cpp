@@ -88,12 +88,12 @@ public:
             .set(RunSettingsId::SPH_PHASE_ANGLE, true)
             .set(RunSettingsId::SPH_PARTICLE_ROTATION, true);
 
-        AutoPtr<TextOutput> textOutput = makeAuto<TextOutput>(Path("out_%d.txt"), "rot");
+        /*AutoPtr<TextOutput> textOutput = makeAuto<TextOutput>(Path("out_%d.txt"), "rot");
 
         textOutput->addColumn(makeAuto<ValueColumn<Vector>>(QuantityId::POSITION));
         textOutput->addColumn(makeAuto<ValueColumn<Vector>>(QuantityId::ANGULAR_VELOCITY));
 
-        output = std::move(textOutput);
+        output = std::move(textOutput);*/
 
         equations += makeTerm<SolidStressForce>(
             settings); /// \todo FIX ROTATION+ makeTerm<SolidStressTorque>(settings);

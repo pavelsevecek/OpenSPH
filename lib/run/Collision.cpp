@@ -154,8 +154,12 @@ void FragmentationRunPhase::tearDown(const Statistics& stats) {
     PkdgravOutput pkdgravOutput(params.outputPath / Path("pkdgrav/pkdgrav.out"), std::move(pkd));
     pkdgravOutput.dump(*storage, stats);
 
-    TextOutput textOutput(
-        params.outputPath / Path("output.txt"), "impact", TextOutput::Options::EXTENDED_COLUMNS);
+    Flags<OutputQuantityFlag> quantities = OutputQuantityFlag::POSITION | OutputQuantityFlag::VELOCITY |
+                                           OutputQuantityFlag::DENSITY | OutputQuantityFlag::PRESSURE |
+                                           OutputQuantityFlag::DEVIATORIC_STRESS | OutputQuantityFlag::MASS |
+                                           OutputQuantityFlag::ENERGY | OutputQuantityFlag::SMOOTHING_LENGTH |
+                                           OutputQuantityFlag::DAMAGE | OutputQuantityFlag::INDEX;
+    TextOutput textOutput(params.outputPath / Path("output.txt"), "impact", quantities);
     textOutput.dump(*storage, stats);
 
     BinaryOutput binaryOutput(params.outputPath / Path("output.ssf"));

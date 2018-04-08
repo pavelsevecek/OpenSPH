@@ -1,6 +1,12 @@
+#include "io/Output.h"
 #include "system/Settings.impl.h"
 
 NAMESPACE_SPH_BEGIN
+
+static auto DEFAULT_QUANTITY_IDS = OutputQuantityFlag::POSITION | OutputQuantityFlag::VELOCITY |
+                                   OutputQuantityFlag::SMOOTHING_LENGTH | OutputQuantityFlag::MASS |
+                                   OutputQuantityFlag::DENSITY | OutputQuantityFlag::PRESSURE |
+                                   OutputQuantityFlag::ENERGY | OutputQuantityFlag::DEVIATORIC_STRESS;
 
 // clang-format off
 template<>
@@ -22,6 +28,9 @@ AutoPtr<RunSettings> RunSettings::instance (new RunSettings {
         "%t which is replaced by current simulation time." },
     { RunSettingsId::RUN_OUTPUT_PATH,               "run.output.path",          std::string("out"),
         "Directory where the output files are saved. Can be either absolute or relative path." },
+    { RunSettingsId::RUN_OUTPUT_QUANTITIES, "run.output.quantitites", DEFAULT_QUANTITY_IDS,
+        "List of quantities to write to text output. Applicable only for text output, binary output always stores "
+        "all quantitites. Can be one or more values from:\n" + EnumMap::getDesc<OutputQuantityFlag>() },
     { RunSettingsId::RUN_THREAD_CNT,                "run.thread.cnt",           0,
         "Number of threads used by the simulation. 0 means all available threads are used." },
     { RunSettingsId::RUN_THREAD_GRANULARITY,        "run.thread.granularity",   1000,
@@ -325,8 +334,10 @@ AutoPtr<BodySettings> BodySettings::instance (new BodySettings {
         "Required number of particles in the body. Note that the actual number of particles may differ, depending "
         "on the selected distribution. " },
     { BodySettingsId::MIN_PARTICLE_COUNT,      "sph.min_particle_count",       100,
-        "Minimal number of particles in a body. Used when generating a secondary body, spheres of rubble-pile body, "
-        "etc." },
+         "Minimal number of particles per one body. Used when creating 'sub-bodies' withing one 'parent' body, "
+         "for example when creating rubble-pile asteroids, ice blocks inside an asteroid, etc. Parameter has no "
+         "effect for creation of a single monolithic body; the number of particles from PARTICLE_COUNT is used "
+         "in any case." },
     { BodySettingsId::AV_ALPHA,                "av.alpha",                     1.5_f,
         "Initial coefficient alpha of the Morris-Monaghan artificial viscosity. Beta coefficient of the viscosity "
         "is derived as 2*alpha." },

@@ -89,6 +89,7 @@ public:
         this->output = makeAuto<GnuplotOutput>(outputDir,
             this->settings.get<std::string>(RunSettingsId::RUN_NAME),
             "sod.plt",
+            OutputQuantityFlag::POSITION,
             GnuplotOutput::Options::SCIENTIFIC);
 
         // 1) setup initial positions, with different spacing in each region

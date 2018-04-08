@@ -666,7 +666,7 @@ public:
 class RadiusColorizer : public TypedColorizer<Vector> {
 public:
     explicit RadiusColorizer(Palette palette)
-        : TypedColorizer<Vector>(QuantityId::SMOOTHING_LENGHT, std::move(palette)) {}
+        : TypedColorizer<Vector>(QuantityId::SMOOTHING_LENGTH, std::move(palette)) {}
 
     virtual void initialize(const Storage& storage, const RefEnum ref) override {
         values = makeArrayRef(storage.getValue<Vector>(QuantityId::POSITION), ref);
@@ -678,7 +678,7 @@ public:
     }
 
     virtual Optional<Particle> getParticle(const Size idx) const override {
-        return Particle(idx).addValue(QuantityId::SMOOTHING_LENGHT, values[idx][H]);
+        return Particle(idx).addValue(QuantityId::SMOOTHING_LENGTH, values[idx][H]);
     }
 
     virtual std::string name() const override {

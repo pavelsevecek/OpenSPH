@@ -10,6 +10,7 @@
 #include "sph/initial/Initial.h"
 #include "tests/Approx.h"
 #include "tests/Setup.h"
+#include "utils/Config.h"
 #include <fstream>
 
 using namespace Sph;
@@ -213,8 +214,6 @@ TEST_CASE("BinaryOutput dump stats", "[output]") {
     REQUIRE(info->version == BinaryOutput::Version::LATEST);
 }
 
-Path resourcePath = Path("/home/pavel/projects/astro/sph/src/test/resources");
-
 Storage generateLatestOutput() {
     BodySettings body1;
     body1.set(BodySettingsId::DENSITY, 1000._f);
@@ -233,7 +232,7 @@ Storage generateLatestOutput() {
     Storage storage(std::move(storage1));
     storage.merge(std::move(storage2));
 
-    Path path = resourcePath / Path(std::to_string(std::size_t(BinaryOutput::Version::LATEST)) + ".ssf");
+    Path path = RESOURCE_PATH / Path(std::to_string(std::size_t(BinaryOutput::Version::LATEST)) + ".ssf");
     BinaryOutput output(path);
     Statistics stats;
     stats.set(StatisticsId::RUN_TIME, 20._f);
@@ -244,7 +243,7 @@ Storage generateLatestOutput() {
 
 static void testVersion(BinaryOutput::Version version) {
     Storage current = generateLatestOutput();
-    Path path = resourcePath / Path(std::to_string(std::size_t(version)) + ".ssf");
+    Path path = RESOURCE_PATH / Path(std::to_string(std::size_t(version)) + ".ssf");
     BinaryOutput output;
     Storage previous;
     Statistics stats;
@@ -272,7 +271,6 @@ static void testVersion(BinaryOutput::Version version) {
                 mat2->getParam<bool>(BodySettingsId::DISTRIBUTE_MODE_SPH5));
     }
 }
-
 
 TEST_CASE("BinaryOutput backward compatibility", "[output]") {
     // generateLatestOutput();

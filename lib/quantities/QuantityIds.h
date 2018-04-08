@@ -12,35 +12,36 @@ NAMESPACE_SPH_BEGIN
 
 /// \brief Unique IDs of basic quantities of SPH particles.
 ///
-/// New quantities should be added to the BOTTOM of the enum in order to allow opening older binary files
-/// (using \ref BinaryOutput).
+/// Values of quantity IDs cannot be changed in order to allow opening older binary files (using \ref
+/// BinaryOutput)! New quantities can be added if they get a unique ID, quantities that are no longer used can
+/// be removed; removed IDs can then be reused again.
 enum class QuantityId {
     /// \name Common quantities
     ///@{
 
     /// Positions (velocities, accelerations) of particles, always a vector quantity,
-    POSITION,
+    POSITION = 0,
 
     /// Paricles masses, always a scalar quantity.
-    MASS,
+    MASS = 1,
 
-    /// Pressure, not affected by yielding or fragmentation model, always a scalar quantity.
-    PRESSURE,
+    /// Pressure, affected by yielding and fragmentation model, always a scalar quantity.
+    PRESSURE = 2,
 
     /// Density, always a scalar quantity.
-    DENSITY,
+    DENSITY = 3,
 
     /// Specific internal energy, always a scalar quantity.
-    ENERGY,
+    ENERGY = 4,
 
     /// Sound speed, always a scalar quantity.
-    SOUND_SPEED,
+    SOUND_SPEED = 5,
 
     /// Deviatoric stress tensor, always a traceless tensor.
-    DEVIATORIC_STRESS,
+    DEVIATORIC_STRESS = 6,
 
     /// Specific entropy, always a scalar quantity.
-    SPECIFIC_ENTROPY,
+    SPECIFIC_ENTROPY = 7,
 
     ///@}
 
@@ -48,10 +49,10 @@ enum class QuantityId {
     ///@{
 
     /// Energy density (energy per unit volume)
-    ENERGY_DENSITY,
+    ENERGY_DENSITY = 8,
 
     /// Internal energy per particle (analogy of particle masses in DISPH)
-    ENERGY_PER_PARTICLE,
+    ENERGY_PER_PARTICLE = 9,
 
     ///@}
 
@@ -59,33 +60,33 @@ enum class QuantityId {
     ///@{
 
     /// Damage
-    DAMAGE,
+    DAMAGE = 10,
 
     /// Activation strait rate
-    EPS_MIN,
+    EPS_MIN = 11,
 
     /// Coefficient M_0 of the stretched Weibull distribution
-    M_ZERO,
+    M_ZERO = 12,
 
     /// Explicit growth of fractures
-    EXPLICIT_GROWTH,
+    EXPLICIT_GROWTH = 13,
 
     /// Number of explicit flaws per particle
-    N_FLAWS,
+    N_FLAWS = 14,
 
     /// Explicitly specified activation 'index' between 0 and N_particles. Lower value mean lower activation
     /// strain rate of a flaw. Used only for testing purposes, by default activation strain rates are
     /// automatically computed from Weibull distribution.
-    FLAW_ACTIVATION_IDX,
+    FLAW_ACTIVATION_IDX = 15,
 
     /// Total stress reduction factor due to damage and yielding. Is always scalar.
-    STRESS_REDUCING,
+    STRESS_REDUCING = 16,
 
     /// \todo
-    MOHR_COULOMB_STRESS,
+    MOHR_COULOMB_STRESS = 17,
 
     /// \todo
-    FRICTION_ANGLE,
+    FRICTION_ANGLE = 18,
 
     ///@}
 
@@ -94,26 +95,26 @@ enum class QuantityId {
 
     /// Gravitational potential; not needed for solution, but needs to be included to the total energy of the
     /// system, otherwise the energy will not be conserved.
-    GRAVITY_POTENTIAL,
+    GRAVITY_POTENTIAL = 19,
 
     /// Angular velocity of particles. Note that SPH particles in standard formulation have no angular
     /// velocity, this quantity is used by solid sphere solvers or by SPH modifications that include particle
     /// rotation.
-    ANGULAR_VELOCITY,
+    ANGULAR_VELOCITY = 20,
 
     /// Angular momentum of particles. Useful replacement of angular velocity quantity as angular momentum is
     /// always conserved.
-    ANGULAR_MOMENTUM,
+    ANGULAR_MOMENTUM = 21,
 
     /// Current rotation state of the particles. This is only needed for testing purposes, as SPH particles
     /// are spherically symmetric.
-    PHASE_ANGLE,
+    PHASE_ANGLE = 22,
 
     /// Moment of inertia of particles, analogy of particle masses for rotation
-    MOMENT_OF_INERTIA,
+    MOMENT_OF_INERTIA = 23,
 
     /// Local coordinates of a particle; moment of inertia is typically expressed in these coordinates.
-    LOCAL_FRAME,
+    LOCAL_FRAME = 24,
 
     ///@}
 
@@ -121,7 +122,7 @@ enum class QuantityId {
     ///@{
 
     /// Displacement vector, a solution of the stress analysis
-    DISPLACEMENT,
+    DISPLACEMENT = 25,
 
     ///@}
 
@@ -129,19 +130,19 @@ enum class QuantityId {
     ///@{
 
     /// Velocity gradient
-    VELOCITY_GRADIENT,
+    VELOCITY_GRADIENT = 26,
 
     /// Velocity divergence
-    VELOCITY_DIVERGENCE,
+    VELOCITY_DIVERGENCE = 27,
 
     /// Velocity rotation
-    VELOCITY_ROTATION,
+    VELOCITY_ROTATION = 28,
 
     /// Correction tensor used to improve conservation of total angular momentum
-    STRAIN_RATE_CORRECTION_TENSOR,
+    STRAIN_RATE_CORRECTION_TENSOR = 29,
 
     /// Laplacian of internal energy, used in heat diffusion equation
-    ENERGY_LAPLACIAN,
+    ENERGY_LAPLACIAN = 30,
 
     ///@}
 
@@ -149,19 +150,16 @@ enum class QuantityId {
     ///@{
 
     /// Coefficient alpha of the artificial viscosity. Coefficient beta is always 2*alpha.
-    AV_ALPHA,
-
-    /// Coefficient beta of the artificial viscosity
-    AV_BETA,
+    AV_ALPHA = 31,
 
     /// Balsara factor
-    AV_BALSARA,
+    AV_BALSARA = 33,
 
     /// Artificial stress by Monaghan \cite Monaghan_1999
-    AV_STRESS,
+    AV_STRESS = 34,
 
     /// Auxiliary quantity needed for evaluating artificial stress
-    INTERPARTICLE_SPACING_KERNEL,
+    INTERPARTICLE_SPACING_KERNEL = 35,
 
     ///@}
 
@@ -170,11 +168,11 @@ enum class QuantityId {
 
     /// Grad-h terms, appear in self-consistent derivation of SPH equatios due to non-uniform smoothing
     /// lenghts.
-    GRAD_H,
+    GRAD_H = 36,
 
     /// XSPH corrections to velocity. Only modifies evolution equation for particle position, velocity (as an
     /// input for velocity divergence, ...) is NOT affected.
-    XSPH_VELOCITIES,
+    XSPH_VELOCITIES = 37,
 
     ///@}
 
@@ -182,18 +180,18 @@ enum class QuantityId {
     ///@{
 
     /// Number of neighbouring particles (in radius h * kernel.radius)
-    NEIGHBOUR_CNT,
+    NEIGHBOUR_CNT = 38,
 
     /// Vector approximating surface normal
-    SURFACE_NORMAL,
+    SURFACE_NORMAL = 39,
 
     /// Initial position of particles, kept constant during the run
-    INITIAL_POSITION,
+    INITIAL_POSITION = 40,
 
     /// Smoothing lengths of particles. Note that ordinarily the smoothing lenghts are stored as 4th component
     /// of position vectors, so this ID cannot be used to obtain smoothing lenghts from Storage object. It can
     /// be useful for other uses of quantities, like data output, visualization etc.
-    SMOOTHING_LENGHT,
+    SMOOTHING_LENGTH = 41,
 
     ///@}
 
@@ -201,43 +199,47 @@ enum class QuantityId {
     ///@{
 
     /// ID of original body, used to implement discontinuities between bodies in SPH
-    FLAG,
+    FLAG = 42,
 
     /// Index of material of the particle. Can be generally different than the flag value.
-    MATERIAL_ID,
+    MATERIAL_ID = 43,
 
     /// Persistent index of the particle that does not change when adding or removing particles in the
     /// storage. Useful when we need to track particle with given index; particle index in storage may change
     /// when some particles from the middle of the storage are removed. Indices of removed particles are made
     /// available again and can be reused by newly created particles.
-    PERSISTENT_INDEX,
+    PERSISTENT_INDEX = 44,
 
     ///@}
 
 
     // TEMPORARY QUANTITIES, TO BE REMOVED
 
-    VELOCITY_LAPLACIAN,
+    VELOCITY_LAPLACIAN = 100,
 
-    VELOCITY_GRADIENT_OF_DIVERGENCE,
+    VELOCITY_GRADIENT_OF_DIVERGENCE = 101,
 
-    FRICTION,
+    FRICTION = 102,
 };
 
-/// Auxiliary information about quantity that aren't stored directly in \ref Quantity
+/// \brief Auxiliary information about quantity that aren't stored directly in \ref Quantity
 struct QuantityMetadata {
 
-    /// Full name of the quantity (i.e. 'Density', 'Deviatoric stress', ...)
+    /// \brief Full name of the quantity (i.e. 'Density', 'Deviatoric stress', ...)
     std::string quantityName;
 
-    /// Name of the 1st derivative. Usually it's just quantityName + 'derivative', but not always (for example
-    /// 'Velocity' instead of 'Position derivative')
+    /// \brief Name of the 1st derivative.
+    ///
+    /// Usually it's just quantityName + 'derivative', but not always (for example 'Velocity' instead of
+    /// 'Position derivative')
     std::string derivativeName;
 
-    /// Name of the second derivative. Usually it's just quantityName + '2nd derivative'
+    /// \brief Name of the second derivative.
+    ///
+    /// Usually it's just quantityName + '2nd derivative'
     std::string secondDerivativeName;
 
-    /// Short designation of the quantiy (i.e. 'rho', 's', ...)
+    /// \brief Short designation of the quantity (i.e. 'rho', 's', ...).
     std::wstring label;
 
     /// \todo Units & dimensional analysis !
@@ -257,10 +259,10 @@ struct QuantityMetadata {
         const std::string& secondDerivativeName = "");
 };
 
-/// Returns the quantity information using quantity ID.
+/// \brief Returns the quantity information using quantity ID.
 QuantityMetadata getMetadata(const QuantityId key);
 
-/// Print full quantity name into the stream.
+/// \brief Print full quantity name into the stream.
 INLINE std::ostream& operator<<(std::ostream& stream, const QuantityId key) {
     stream << getMetadata(key).quantityName;
     return stream;

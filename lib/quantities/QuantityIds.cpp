@@ -1,5 +1,5 @@
 #include "quantities/QuantityIds.h"
-#include "common/Assert.h"
+#include "objects/utility/EnumMap.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -108,7 +108,7 @@ QuantityMetadata getMetadata(const QuantityId key) {
         return QuantityMetadata("Mom. of intertia", L"I", ValueEnum::SCALAR);
     case QuantityId::PHASE_ANGLE:
         return QuantityMetadata("Phase angle", L"\u03C6" /*phi*/, ValueEnum::VECTOR);
-    case QuantityId::SMOOTHING_LENGHT:
+    case QuantityId::SMOOTHING_LENGTH:
         return QuantityMetadata("Smoothing length", L"h", ValueEnum::SCALAR);
     default:
         NOT_IMPLEMENTED;
