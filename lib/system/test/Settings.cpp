@@ -49,7 +49,7 @@ TEST_CASE("Settings enums", "[settings]") {
     RunSettings settings(EMPTY_SETTINGS);
     settings.set(RunSettingsId::RUN_OUTPUT_TYPE, OutputEnum::BINARY_FILE);
     settings.set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONST);
-    settings.setFlags(RunSettingsId::TIMESTEPPING_CRITERION,
+    settings.set(RunSettingsId::TIMESTEPPING_CRITERION,
         TimeStepCriterionEnum::COURANT | TimeStepCriterionEnum::ACCELERATION);
 
     REQUIRE(settings.get<OutputEnum>(RunSettingsId::RUN_OUTPUT_TYPE) == OutputEnum::BINARY_FILE);
@@ -91,7 +91,7 @@ TEST_CASE("Settings save/load basic", "[settings]") {
 
 TEST_CASE("Settings save/load flags", "[settings]") {
     RunSettings settings;
-    settings.setFlags(RunSettingsId::TIMESTEPPING_CRITERION,
+    settings.set(RunSettingsId::TIMESTEPPING_CRITERION,
         TimeStepCriterionEnum::COURANT | TimeStepCriterionEnum::ACCELERATION);
     settings.saveToFile(Path("tmp3.sph"));
     RunSettings loadedSettings;
@@ -145,7 +145,7 @@ TEST_CASE("Settings save/load complete", "[settings]") {
     RunSettings settings1;
     settings1.set(RunSettingsId::DOMAIN_RADIUS, 3.5_f);
     settings1.set(RunSettingsId::RUN_NAME, std::string("lll"));
-    settings1.setFlags(RunSettingsId::TIMESTEPPING_CRITERION, EMPTY_FLAGS);
+    settings1.set(RunSettingsId::TIMESTEPPING_CRITERION, EMPTY_FLAGS);
     settings1.saveToFile(Path("tmp4.sph"));
     RunSettings settings2(EMPTY_SETTINGS);
     REQUIRE(settings2.loadFromFile(Path("tmp4.sph")));

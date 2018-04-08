@@ -29,7 +29,7 @@ TEST_CASE("Component initconds", "[post]") {
     bodySettings.set(BodySettingsId::INITIAL_DISTRIBUTION, DistributionEnum::CUBIC);
     Storage storage;
     InitialConditions conds(RunSettings::getDefaults());
-    bodySettings.set<int>(BodySettingsId::PARTICLE_COUNT, 1000);
+    bodySettings.set(BodySettingsId::PARTICLE_COUNT, 1000);
     conds.addMonolithicBody(storage, SphericalDomain(Vector(0, 0, 0), 1._f), bodySettings);
     conds.addMonolithicBody(storage, SphericalDomain(Vector(-6, 4, 0), 1._f), bodySettings);
     conds.addMonolithicBody(storage, SphericalDomain(Vector(5, 2, 0), 1._f), bodySettings);

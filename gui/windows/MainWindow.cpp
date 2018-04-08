@@ -246,7 +246,7 @@ wxBoxSizer* MainWindow::createToolbar(Controller* parent) {
         /// \todo this is horrible and needs refactoring
         modifiedGui.set(GuiSettingsId::ORTHO_CUTOFF, Float(cutoff));
         parent->setRenderer(makeAuto<ParticleRenderer>(modifiedGui));
-        parent->getParams().set<Float>(GuiSettingsId::ORTHO_CUTOFF, cutoff);
+        parent->getParams().set(GuiSettingsId::ORTHO_CUTOFF, Float(cutoff));
     });
     toolbar->Add(cutoffSpinner);
 

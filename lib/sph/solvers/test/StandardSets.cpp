@@ -96,7 +96,7 @@ TYPED_TEST_CASE_2("StandardSets quantities standard",
 
 TYPED_TEST_CASE_2("StandardSets gass", "[solvers]", TSolver, SymmetricSolver, AsymmetricSolver) {
     RunSettings settings;
-    settings.setFlags(RunSettingsId::SOLVER_FORCES, ForceEnum::PRESSURE);
+    settings.set(RunSettingsId::SOLVER_FORCES, ForceEnum::PRESSURE);
     settings.set(RunSettingsId::SPH_AV_TYPE, ArtificialViscosityEnum::NONE);
     settings.set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONST);
     BodySettings body;
@@ -117,13 +117,13 @@ TYPED_TEST_CASE_2("StandardSets gass", "[solvers]", TSolver, SymmetricSolver, As
     testSolver<TSolver>(storage, settings);
 
     settings.set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH,
-        int(SmoothingLengthEnum::CONTINUITY_EQUATION) | int(SmoothingLengthEnum::SOUND_SPEED_ENFORCING));
+        SmoothingLengthEnum::CONTINUITY_EQUATION | SmoothingLengthEnum::SOUND_SPEED_ENFORCING);
     testSolver<TSolver>(storage, settings);
 }
 
 TYPED_TEST_CASE_2("StandardSets solid", "[solvers]", TSolver, SymmetricSolver, AsymmetricSolver) {
     RunSettings settings;
-    settings.setFlags(RunSettingsId::SOLVER_FORCES, ForceEnum::PRESSURE | ForceEnum::SOLID_STRESS);
+    settings.set(RunSettingsId::SOLVER_FORCES, ForceEnum::PRESSURE | ForceEnum::SOLID_STRESS);
     settings.set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONST);
     settings.set(RunSettingsId::SPH_AV_TYPE, ArtificialViscosityEnum::NONE);
     BodySettings body;
@@ -148,7 +148,7 @@ TYPED_TEST_CASE_2("StandardSets solid", "[solvers]", TSolver, SymmetricSolver, A
     testSolver<TSolver>(storage, settings);
 
     settings.set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH,
-        int(SmoothingLengthEnum::CONTINUITY_EQUATION) | int(SmoothingLengthEnum::SOUND_SPEED_ENFORCING));
+        SmoothingLengthEnum::CONTINUITY_EQUATION | SmoothingLengthEnum::SOUND_SPEED_ENFORCING);
     testSolver<TSolver>(storage, settings);
 }
 
@@ -161,7 +161,7 @@ TYPED_TEST_CASE_2("StandardSets constant smoothing length",
 
     SharedPtr<Storage> storage = makeShared<Storage>(Tests::getSolidStorage(10000));
     RunSettings settings;
-    settings.setFlags(RunSettingsId::SOLVER_FORCES, ForceEnum::PRESSURE | ForceEnum::SOLID_STRESS);
+    settings.set(RunSettingsId::SOLVER_FORCES, ForceEnum::PRESSURE | ForceEnum::SOLID_STRESS);
     settings.set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONST);
 
     TSolver solver(settings, getStandardEquations(settings));

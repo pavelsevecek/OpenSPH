@@ -141,7 +141,7 @@ private:
             .set(GuiSettingsId::PALETTE_RADIUS, Interval(700._f, 3.e3_f))
             .set(GuiSettingsId::PALETTE_GRADV, Interval(0._f, 1.e-5_f))
             .set(GuiSettingsId::PLOT_INITIAL_PERIOD, 1.e-3_f)
-            .setFlags(GuiSettingsId::PLOT_INTEGRALS, PlotEnum::KINETIC_ENERGY | PlotEnum::INTERNAL_ENERGY);
+            .set(GuiSettingsId::PLOT_INTEGRALS, PlotEnum::KINETIC_ENERGY | PlotEnum::INTERNAL_ENERGY);
         /*| PlotEnum::TOTAL_ENERGY |
       PlotEnum::TOTAL_MOMENTUM | PlotEnum::TOTAL_ANGULAR_MOMENTUM |
       PlotEnum::SIZE_FREQUENCY_DISTRIBUTION | PlotEnum::SELECTED_PARTICLE);*/

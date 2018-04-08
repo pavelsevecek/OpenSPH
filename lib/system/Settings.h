@@ -162,6 +162,8 @@ public:
     Settings& set(const TEnum idx,
         TValue&& value,
         std::enable_if_t<!std::is_enum<std::decay_t<TValue>>::value, int> = 0) {
+        // either the values is new or the type is the same as the previous value
+        ASSERT(entries.find(idx) == entries.end() || entries[idx].value.template has<std::decay_t<TValue>>());
         entries[idx].value = std::forward<TValue>(value);
         return *this;
     }
@@ -170,6 +172,8 @@ public:
     Settings& set(const TEnum idx,
         TValue&& value,
         std::enable_if_t<std::is_enum<std::decay_t<TValue>>::value, int> = 0) {
+        // either the values is new or the type is the same as the previous value
+        ASSERT(entries.find(idx) == entries.end() || entries[idx].value.template has<EnumWrapper>());
         entries[idx].value = EnumWrapper(value);
         return *this;
     }
@@ -178,26 +182,15 @@ public:
     ///
     /// This is internally saved as integer. There is no type-checking, flags can be freely converted to the
     /// underlying enum or even int using function \ref setFlags and \ref getFlags.
-    template <typename TValue>
-    Settings& setFlags(const TEnum idx, const Flags<TValue> flags) {
+    template <typename TValue, typename = std::enable_if_t<std::is_enum<TValue>::value>>
+    Settings& set(const TEnum idx, const Flags<TValue> flags) {
+        ASSERT(entries.find(idx) == entries.end() || entries[idx].value.template has<EnumWrapper>());
         entries[idx].value = EnumWrapper(TValue(flags.value()));
         return *this;
     }
 
-    /// \brief Saves a single enum as flag into the settings.
-    ///
-    /// This overload is mostly intended for self-documentation, as we could use \ref set to accomplish the
-    /// same (flags can be stored as enum). However, \ref setFlags issues an assert in case given value is not
-    /// a power of two.
-    template <typename TValue, typename = std::enable_if_t<std::is_enum<std::decay_t<TValue>>::value>>
-    Settings& setFlags(const TEnum idx, TValue&& flag) {
-        ASSERT(isPower2(int(flag)));
-        entries[idx].value = EnumWrapper(flag);
-        return *this;
-    }
-
     /// \brief Clear flags of given parameter in settings.
-    Settings& setFlags(const TEnum idx, EmptyFlags) {
+    Settings& set(const TEnum idx, EmptyFlags) {
         // can be used only if the value is already there and we know the type
         EnumWrapper currentValue = entries[idx].value.template get<EnumWrapper>();
         entries[idx].value = EnumWrapper(0, currentValue.typeHash);
@@ -1348,12 +1341,6 @@ enum class BodySettingsId {
 
     /// Lower and upper bound of the alpha coefficient, used only for time-dependent artificial viscosity.
     AV_ALPHA_RANGE,
-
-    /// Initial beta coefficient of the artificial viscosity.
-    AV_BETA,
-
-    /// Lower and upper bound of the alpha coefficient, used only for time-dependent artificial viscosity.
-    AV_BETA_RANGE,
 
     /// Center point of the body. Currently used only by StabilizationSolver.
     BODY_CENTER,

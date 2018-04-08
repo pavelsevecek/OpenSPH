@@ -42,7 +42,7 @@ TEST_CASE("Unit product and div", "[units]") {
     REQUIRE(u2.dimension() == UnitDimensions::mass() + UnitDimensions::time());
 
     u2 /= 6._g;
-    REQUIRE(u2 == 1000._s);
+    REQUIRE(u2 == approx(1000._s));
 }
 
 TEST_CASE("Unit invalid operations", "[units]") {

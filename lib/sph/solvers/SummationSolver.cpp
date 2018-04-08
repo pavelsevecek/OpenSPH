@@ -31,7 +31,7 @@ SummationSolver::SummationSolver(const RunSettings& settings, const EquationHold
     targetDensityDifference = settings.get<Float>(RunSettingsId::SUMMATION_DENSITY_DELTA);
     densityKernel = Factory::getKernel<DIMENSIONS>(settings);
     Flags<SmoothingLengthEnum> flags =
-        Flags<SmoothingLengthEnum>::fromValue(settings.get<int>(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH));
+        settings.getFlags<SmoothingLengthEnum>(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH);
     adaptiveH = !flags.has(SmoothingLengthEnum::CONST);
     maxIteration = adaptiveH ? settings.get<int>(RunSettingsId::SUMMATION_MAX_ITERATIONS) : 1;
 }

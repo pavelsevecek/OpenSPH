@@ -78,10 +78,10 @@ TEST_CASE("Initial velocity", "[initial]") {
     Storage storage;
     InitialConditions conds(RunSettings::getDefaults());
     BodySettings bodySettings;
-    bodySettings.set<Float>(BodySettingsId::DENSITY, 1._f);
+    bodySettings.set(BodySettingsId::DENSITY, 1._f);
     conds.addMonolithicBody(storage, SphericalDomain(Vector(0._f), 1._f), bodySettings)
         .addVelocity(Vector(2._f, 1._f, -1._f));
-    bodySettings.set<Float>(BodySettingsId::DENSITY, 2._f);
+    bodySettings.set(BodySettingsId::DENSITY, 2._f);
     conds.addMonolithicBody(storage, SphericalDomain(Vector(0._f), 1._f), bodySettings)
         .addVelocity(Vector(0._f, 0._f, 1._f));
     ArrayView<Float> rho = storage.getValue<Float>(QuantityId::DENSITY);

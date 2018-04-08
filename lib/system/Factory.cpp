@@ -128,23 +128,13 @@ AutoPtr<ITimeStepping> Factory::getTimeStepping(const RunSettings& settings,
 }
 
 AutoPtr<ITimeStepCriterion> Factory::getTimeStepCriterion(const RunSettings& settings) {
-    const Size flags = settings.get<int>(RunSettingsId::TIMESTEPPING_CRITERION);
-    if (flags == 0) {
+    const Flags<TimeStepCriterionEnum> flags =
+        settings.getFlags<TimeStepCriterionEnum>(RunSettingsId::TIMESTEPPING_CRITERION);
+    if (flags == EMPTY_FLAGS) {
         // no criterion
         return nullptr;
     }
     return makeAuto<MultiCriterion>(settings);
-    /*switch (flags) {
-    case Size(TimeStepCriterionEnum::COURANT):
-        return makeAuto<CourantCriterion>(settings);
-    case Size(TimeStepCriterionEnum::DERIVATIVES):
-        return makeAuto<DerivativeCriterion>(settings);
-    case Size(TimeStepCriterionEnum::ACCELERATION):
-        return makeAuto<AccelerationCriterion>(settings);
-    default:
-        ASSERT(!isPower2(flags)); // multiple criteria, assert in case we add another criterion
-        return makeAuto<MultiCriterion>(settings);
-    }*/
 }
 
 AutoPtr<ISymmetricFinder> Factory::getFinder(const RunSettings& settings) {
@@ -248,7 +238,8 @@ AutoPtr<IGravity> Factory::getGravity(const RunSettings& settings) {
         return makeAuto<BruteForceGravity>(std::move(kernel));
     case GravityEnum::BARNES_HUT: {
         const Float theta = settings.get<Float>(RunSettingsId::GRAVITY_OPENING_ANGLE);
-        const MultipoleOrder order = settings.get<MultipoleOrder>(RunSettingsId::GRAVITY_MULTIPOLE_ORDER);
+        const MultipoleOrder order =
+            MultipoleOrder(settings.get<int>(RunSettingsId::GRAVITY_MULTIPOLE_ORDER));
         const int leafSize = settings.get<int>(RunSettingsId::GRAVITY_LEAF_SIZE);
         return makeAuto<BarnesHut>(theta, order, std::move(kernel), leafSize);
     }

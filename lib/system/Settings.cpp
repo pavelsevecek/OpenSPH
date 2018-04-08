@@ -328,13 +328,10 @@ AutoPtr<BodySettings> BodySettings::instance (new BodySettings {
         "Minimal number of particles in a body. Used when generating a secondary body, spheres of rubble-pile body, "
         "etc." },
     { BodySettingsId::AV_ALPHA,                "av.alpha",                     1.5_f,
-        "Initial coefficient alpha of the Morris-Monaghan artificial viscosity." },
+        "Initial coefficient alpha of the Morris-Monaghan artificial viscosity. Beta coefficient of the viscosity "
+        "is derived as 2*alpha." },
     { BodySettingsId::AV_ALPHA_RANGE,          "av.alpha.range",               Interval(0.05_f, 1.5_f),
         "Allowed range of the alpha coefficient. Used by Morris-Monaghan artificial viscosity."},
-    { BodySettingsId::AV_BETA,                 "av.beta",                      3._f,
-        "Initial coefficient beta of the Morris-Monaghan artificial viscosity." },
-    { BodySettingsId::AV_BETA_RANGE,          "av.beta.range",                Interval(0.1_f, 3._f),
-        "Allowed range of the alpha coefficient. Used by Morris-Monaghan artificial viscosity." },
     { BodySettingsId::BODY_CENTER,             "body.center",                  Vector(0._f),
         "Center of the body. Needed by stabilization solver to correctly compute velocities in co-moving "
         "(co-rotating) frame." },
