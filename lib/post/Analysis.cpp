@@ -7,7 +7,7 @@
 #include "objects/geometry/Box.h"
 #include "objects/utility/Iterators.h"
 #include "quantities/Storage.h"
-#include "sph/kernel/KernelFactory.h"
+#include "sph/kernel/Kernel.h"
 #include "system/Factory.h"
 
 NAMESPACE_SPH_BEGIN

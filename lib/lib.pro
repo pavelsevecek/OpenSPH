@@ -259,7 +259,6 @@ HEADERS += \
     sph/kernel/GravityKernel.h \
     sph/kernel/Interpolation.h \
     sph/kernel/Kernel.h \
-    sph/kernel/KernelFactory.h \
     sph/solvers/AsymmetricSolver.h \
     sph/solvers/CollisionSolver.h \
     sph/solvers/DensityIndependentSolver.h \

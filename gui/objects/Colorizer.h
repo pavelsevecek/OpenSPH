@@ -14,7 +14,7 @@
 #include "objects/utility/Dynamic.h"
 #include "quantities/IMaterial.h"
 #include "quantities/Particle.h"
-#include "sph/kernel/KernelFactory.h"
+#include "sph/kernel/Kernel.h"
 #include "system/Factory.h"
 
 NAMESPACE_SPH_BEGIN
