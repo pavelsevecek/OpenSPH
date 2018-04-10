@@ -1,6 +1,7 @@
 #include "gui/player/Player.h"
 #include "gui/GuiCallbacks.h"
 #include "gui/Settings.h"
+#include "gui/Uvw.h"
 #include "io/FileSystem.h"
 #include "io/Logger.h"
 #include "objects/utility/StringUtils.h"
@@ -44,6 +45,7 @@ void RunPlayer::setUp() {
     } else {
         loadedTime = stats.get<Float>(StatisticsId::RUN_TIME);
     }
+    // setupUvws(*storage);
 
     callbacks = makeAuto<GuiCallbacks>(*controller);
 }
@@ -92,6 +94,7 @@ void RunPlayer::run() {
                 });
                 break;
             }
+            // setupUvws(*storage);
 
             const Size elapsed = stepTimer.elapsed(TimerUnit::MILLISECOND);
             if (elapsed < stepMilliseconds) {
@@ -157,8 +160,12 @@ bool App::OnInit() {
         .set(GuiSettingsId::SURFACE_RESOLUTION, 2.e3_f)
         .set(GuiSettingsId::CAMERA, CameraEnum::ORTHO)
         .set(GuiSettingsId::ORTHO_PROJECTION, OrthoEnum::XY)
+        .set(GuiSettingsId::PERSPECTIVE_POSITION, Vector(0._f, 0._f, -1.e4_f))
         .set(GuiSettingsId::ORTHO_CUTOFF, 1.e2_f)
+        .set(GuiSettingsId::ORTHO_ZOFFSET, -1.e4_f)
         .set(GuiSettingsId::VIEW_GRID_SIZE, 5.e4_f)
+        .set(GuiSettingsId::RAYTRACE_TEXTURE_PRIMARY, std::string(""))
+        .set(GuiSettingsId::RAYTRACE_TEXTURE_SECONDARY, std::string(""))
         .set(GuiSettingsId::IMAGES_SAVE, false)
         .set(GuiSettingsId::IMAGES_NAME, std::string("frag_%e_%d.png"))
         .set(GuiSettingsId::IMAGES_MOVIE_NAME, std::string("frag_%e.avi"))

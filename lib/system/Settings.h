@@ -529,7 +529,7 @@ static RegisterEnum<ForceEnum> sForce({
         "used together with solid stress force." },
     { ForceEnum::INERTIAL,
         "inertial",
-        "Centrifugal force and Coriolis forces given by angular frequency of the coordinate frame." },
+        "Centrifugal force and Coriolis force given by angular frequency of the coordinate frame." },
     { ForceEnum::GRAVITY, "gravity", "Self-gravity of particles" },
 });
 
@@ -663,8 +663,8 @@ static RegisterEnum<SmoothingLengthEnum> sSmoothingLength({
         "Smoothing length is evolved using continuity equation." },
     { SmoothingLengthEnum::SOUND_SPEED_ENFORCING,
         "sound_speed_enforcing",
-        "Number of neighbours is kept fixed by adding additional derivatives of smoothing length, scaled by "
-        "local sound speed." },
+        "Number of neighbours is kept in the specified range by adding additional derivatives of smoothing "
+        "length, scaled by local sound speed." },
 });
 
 enum class GravityEnum {
@@ -731,9 +731,9 @@ static RegisterEnum<CollisionHandlerEnum> sCollisionHandler({
     { CollisionHandlerEnum::PERFECT_MERGING,
         "perfect_merging",
         "All collided particles merge, creating larger spherical particles. May reject the collision in case "
-        "the particles move two fast (faster than the escape velocity). To ensure that the particles are "
+        "the particles move too fast (faster than the escape velocity). To ensure that the particles are "
         "always merged, set the collision merge limit to zero. Note that this may create unphysically fast "
-        "rotators,  but it is a simple handler, useful for testing." },
+        "rotators, but it is a simple handler, useful for testing." },
     { CollisionHandlerEnum::ELASTIC_BOUNCE,
         "elastic_bounce",
         "Collided particles bounce with some energy dissipation, specified by the coefficients of "

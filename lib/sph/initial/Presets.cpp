@@ -78,9 +78,9 @@ void Presets::Collision::addTarget(Storage& storage) {
     /// \todo the center of rotation (here Vector(0._f)) must match the center of domain above.
     view.addRotation(Vector(0._f, 0._f, _params.targetRotation), Vector(0._f));
 
-    if (!_params.outputPath.empty()) {
+    /*if (!_params.outputPath.empty()) {
         _body.saveToFile(_params.outputPath / Path("target.sph"));
-    }
+    }*/
 }
 
 void Presets::Collision::addImpactor(Storage& storage) {
@@ -146,9 +146,9 @@ void Presets::Collision::addImpactor(Storage& storage) {
         }
     }
 
-    if (!_params.outputPath.empty()) {
+    /*if (!_params.outputPath.empty()) {
         impactorBody.saveToFile(_params.outputPath / Path("impactor.sph"));
-    }
+    }*/
 }
 
 Vector Presets::Collision::getImpactPoint() const {

@@ -194,7 +194,7 @@ void Stabilization::setUp() {
         }
     } else {
 
-        Size N = 200'000;
+        Size N = 10'000;
 
         BodySettings body;
         body.set(BodySettingsId::ENERGY, 0._f)
@@ -262,6 +262,8 @@ void Stabilization::setUp() {
 
         data = makeShared<Presets::Collision>(settings, body, params);
         data->addTarget(*storage);
+
+        // setupUvws(*storage);
         // data->addPrimary(*storage);
     }
 

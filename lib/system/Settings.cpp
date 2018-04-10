@@ -8,6 +8,33 @@ static auto DEFAULT_QUANTITY_IDS = OutputQuantityFlag::POSITION | OutputQuantity
                                    OutputQuantityFlag::DENSITY | OutputQuantityFlag::PRESSURE |
                                    OutputQuantityFlag::ENERGY | OutputQuantityFlag::DEVIATORIC_STRESS;
 
+
+static RegisterEnum<OutputQuantityFlag> sQuantity({
+    { OutputQuantityFlag::POSITION, "position", "Positions of particles, always a vector quantity." },
+    { OutputQuantityFlag::SMOOTHING_LENGTH, "smoothing_length", "Smoothing lenghts of particles." },
+    { OutputQuantityFlag::VELOCITY, "velocity", "Velocities of particles, always a vector quantity." },
+    { OutputQuantityFlag::MASS, "mass", "Particle masses, always a scalar quantity." },
+    { OutputQuantityFlag::PRESSURE,
+        "pressure",
+        "Pressure, reduced by yielding and fracture model (multiplied by 1-damage); always a scalar "
+        "quantity." },
+    { OutputQuantityFlag::DENSITY, "density", "Density, always a scalar quantity." },
+    { OutputQuantityFlag::ENERGY, "energy", "Specific internal energy, always a scalar quantity." },
+    // { QuantityId::SOUND_SPEED, "sound_speed", "Local sound speed, always a scalar quantity." },
+    { OutputQuantityFlag::DEVIATORIC_STRESS,
+        "deviatoric_stress",
+        "Deviatoric stress tensor, always a traceless tensor stored in components xx, yy, xy, xz, yz." },
+    { OutputQuantityFlag::DAMAGE, "damage", "Damage, reducing the pressure and deviatoric stress." },
+    /* { QuantityId::VELOCITY_GRADIENT, "velocity_gradient", "Velocity gradient (strain rate)." },
+     { QuantityId::VELOCITY_DIVERGENCE, "velocity_divergence", "Velocity divergence." },
+     { QuantityId::VELOCITY_ROTATION, "velocity_rotation", "Velocity rotation (rotation rate)." },*/
+    { OutputQuantityFlag::STRAIN_RATE_CORRECTION_TENSOR,
+        "correction_tensor",
+        "Symmetric tensor correcting kernel gradient for linear consistency." },
+    { OutputQuantityFlag::MATERIAL_ID, "material_id", "ID of material, indexed from 0 to (#bodies - 1)." },
+    { OutputQuantityFlag::INDEX, "index", "Index of particle, indexed from 0 to (#particles - 1)." },
+});
+
 // clang-format off
 template<>
 AutoPtr<RunSettings> RunSettings::instance (new RunSettings {
@@ -48,7 +75,7 @@ AutoPtr<RunSettings> RunSettings::instance (new RunSettings {
     { RunSettingsId::RUN_WALLCLOCK_TIME,            "run.wallclock_time",       0._f,
         "Maximum wallclock time of the simulation. If zero, the criterion is not used. " },
     { RunSettingsId::RUN_RNG,                       "run.rng",                  RngEnum::BENZ_ASPHAUG,
-        "Random number generator used by the simulation. Can be one of the following:\n" + EnumMap::getDesc<LoggerEnum>() },
+        "Random number generator used by the simulation. Can be one of the following:\n" + EnumMap::getDesc<RngEnum>() },
     { RunSettingsId::RUN_RNG_SEED,                  "run.rng.seed",             1234,
         "Seed of the random number generator (if applicable)." },
 
@@ -70,9 +97,9 @@ AutoPtr<RunSettings> RunSettings::instance (new RunSettings {
 
     /// Global SPH parameters
     { RunSettingsId::SPH_KERNEL,                    "sph.kernel",               KernelEnum::CUBIC_SPLINE,
-        "Type of the SPH kernel. Can be one or more values from: \n" + EnumMap::getDesc<KernelEnum>() },
+        "Type of the SPH kernel. Can be one of the following:\n" + EnumMap::getDesc<KernelEnum>() },
     { RunSettingsId::SPH_KERNEL_ETA,                "sph.kernel.eta",           1.5_f,
-        "Multiplier of the kernel radius. Lower values means the particles are more localized (better spatial resolution),"
+        "Multiplier of the kernel radius. Lower values means the particles are more localized (better spatial resolution), "
         "but they also have fewer neighbours, so the derivatives are evaluated with lower precision. Values between 1 and 2 "
         "should be used." },
     { RunSettingsId::SPH_NEIGHBOUR_RANGE,           "sph.neighbour.range",      Interval(25._f, 100._f),
@@ -80,7 +107,7 @@ AutoPtr<RunSettings> RunSettings::instance (new RunSettings {
         "smoothing length. Note that even with this parameter set, it is not guaranteed that the number of "
         "neighbours will be within the interval for every particle, the code only tries to do so." },
     { RunSettingsId::SPH_NEIGHBOUR_ENFORCING,       "sph.neighbour.enforcing",  0.2_f,
-        "'Strength' of the neighbour enforcing. The higher number means the derivative of the smoothing"
+        "'Strength' of the neighbour enforcing. The higher number means the derivative of the smoothing "
         "length can be higher, lower values means 'smoother' evolution of smooting length"},
     { RunSettingsId::SPH_AV_ALPHA,                  "sph.av.alpha",             1.5_f,
         "Coefficient alpha_AV of the standard artificial viscosity." },

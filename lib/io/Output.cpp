@@ -49,34 +49,6 @@ IOutput::IOutput(const Path& fileMask)
     ASSERT(!fileMask.empty());
 }
 
-
-static RegisterEnum<OutputQuantityFlag> sQuantity({
-    { OutputQuantityFlag::POSITION, "position", "Positions of particles, always a vector quantity." },
-    { OutputQuantityFlag::SMOOTHING_LENGTH, "smoothing_length", "Smoothing lenghts of particles." },
-    { OutputQuantityFlag::VELOCITY, "velocity", "Velocities of particles, always a vector quantity." },
-    { OutputQuantityFlag::MASS, "mass", "Particle masses, always a scalar quantity." },
-    { OutputQuantityFlag::PRESSURE,
-        "pressure",
-        "Pressure, reduced by yielding and fracture model (multiplied by 1-damage); always a scalar "
-        "quantity." },
-    { OutputQuantityFlag::DENSITY, "density", "Density, always a scalar quantity." },
-    { OutputQuantityFlag::ENERGY, "energy", "Specific internal energy, always a scalar quantity." },
-    // { QuantityId::SOUND_SPEED, "sound_speed", "Local sound speed, always a scalar quantity." },
-    { OutputQuantityFlag::DEVIATORIC_STRESS,
-        "deviatoric_stress",
-        "Deviatoric stress tensor, always a traceless tensor stored in components xx, yy, xy, xz, yz." },
-    { OutputQuantityFlag::DAMAGE, "damage", "Damage, reducing the pressure and deviatoric stress." },
-    /* { QuantityId::VELOCITY_GRADIENT, "velocity_gradient", "Velocity gradient (strain rate)." },
-     { QuantityId::VELOCITY_DIVERGENCE, "velocity_divergence", "Velocity divergence." },
-     { QuantityId::VELOCITY_ROTATION, "velocity_rotation", "Velocity rotation (rotation rate)." },*/
-    { OutputQuantityFlag::STRAIN_RATE_CORRECTION_TENSOR,
-        "correction_tensor",
-        "Symmetric tensor correcting kernel gradient for linear consistency." },
-    { OutputQuantityFlag::MATERIAL_ID, "material_id", "ID of material, indexed from 0 to (#bodies - 1)." },
-    { OutputQuantityFlag::INDEX, "index", "Index of particle, indexed from 0 to (#particles - 1)." },
-});
-
-
 static void printHeader(std::ostream& ofs, const std::string& name, const ValueEnum type) {
     switch (type) {
     case ValueEnum::SCALAR:

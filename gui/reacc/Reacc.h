@@ -122,11 +122,11 @@ private:
                 std::string("/home/pavel/projects/astro/sph/external/surface.jpg"))
             .set(GuiSettingsId::RAYTRACE_TEXTURE_SECONDARY,
                 std::string("/home/pavel/projects/astro/sph/external/surface2.jpg"))
-            .set(GuiSettingsId::CAMERA, int(CameraEnum::ORTHO))
+            .set(GuiSettingsId::CAMERA, CameraEnum::PERSPECTIVE)
             .set(GuiSettingsId::ORTHO_PROJECTION, OrthoEnum::XY)
             .set(GuiSettingsId::ORTHO_CUTOFF, 50._f)
             .set(GuiSettingsId::ORTHO_ZOFFSET, -1.e8_f)
-            .set(GuiSettingsId::PERSPECTIVE_POSITION, Vector(0._f, 0._f, -7.e6_f))
+            .set(GuiSettingsId::PERSPECTIVE_POSITION, Vector(0._f, 0._f, -7.e3_f))
             .set(GuiSettingsId::IMAGES_SAVE, false)
             .set(GuiSettingsId::IMAGES_NAME, std::string("stab_%e_%d.png"))
             .set(GuiSettingsId::IMAGES_MOVIE_NAME, std::string("stab_%e.avi"))

@@ -129,6 +129,8 @@ enum class GuiSettingsId {
     /// Ambient color for surface renderer
     SURFACE_AMBIENT,
 
+    RAYTRACE_SUBSAMPLING,
+
     RAYTRACE_HDRI,
 
     RAYTRACE_TEXTURE_PRIMARY,

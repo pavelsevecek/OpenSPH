@@ -54,6 +54,10 @@ AutoPtr<GuiSettings> GuiSettings::instance (new GuiSettings {
         "Center point of the orthographic camera." },
     { GuiSettingsId::ORTHO_FOV,             "ortho.fov",             1._f,
         "Field of view of the orthographic camera. Specified as distance (not an angle)."},
+    { GuiSettingsId::RAYTRACE_SUBSAMPLING,  "raytrace.subsampling", 1,
+        "Specifies a step in pixels between the two pixels computed by raytracing. Pixels between the computed "
+        "ones are linearly interpolated. Larger value speeds up the rendering at a cost of lower effective "
+        "resolution of the rendered image." },
     { GuiSettingsId::RAYTRACE_HDRI,         "raytrace.hdri",        std::string(""),
         "Optional spherical bitmap used as an environment. Empty means the environment is black." },
     { GuiSettingsId::RAYTRACE_TEXTURE_PRIMARY,      "raytrace.texture_primary",     std::string(""),

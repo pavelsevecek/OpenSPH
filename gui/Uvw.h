@@ -77,6 +77,10 @@ private:
 };
 
 inline void setupUvws(Storage& storage) {
+    if (storage.has(QuantityId(GuiQuantityId::UVW))) {
+        // already done
+        return;
+    }
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     Array<Vector> uvws(r.size());
     for (Size matId = 0; matId < storage.getMaterialCnt(); ++matId) {

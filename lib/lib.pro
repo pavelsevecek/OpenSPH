@@ -11,6 +11,7 @@ DEFINES += SPH_USE_EIGEN
 #QMAKE_LINK = clang++
 
 QMAKE_CXXFLAGS += -Wall -Wextra -Werror -msse4.1 -std=c++14 -pthread
+QMAKE_LFLAGS += -static-libgcc -static-libstdc++
 #QMAKE_CXXFLAGS_RELEASE -= -O2
 #QMAKE_CXXFLAGS_RELEASE += -Os
 #QMAKE_CXXFLAGS_DEBUG += -fsanitize=undefined-trap -fsanitize-undefined-trap-on-error  # -ftime-report

@@ -1,9 +1,10 @@
 TEMPLATE = app
-CONFIG += c++14 thread silent
+CONFIG += c++14 thread silent static
 CONFIG -= app_bundle
 CONFIG -= qt
 
 QMAKE_CXXFLAGS += -Wall -Wextra -Werror -msse4.1 -std=c++14 -pthread
+QMAKE_LFLAGS += -static-libgcc -static-libstdc++
 
 DEPENDPATH += . ../../lib
 INCLUDEPATH += ../../lib

@@ -82,12 +82,16 @@ void StabilizationRunPhase::setUp() {
             .set(BodySettingsId::DISTRIBUTE_MODE_SPH5, true)
             .set(BodySettingsId::STRESS_TENSOR_MIN, 5.e5_f)
             .set(BodySettingsId::ENERGY_MIN, 1._f)
-            .set(BodySettingsId::DAMAGE_MIN, 0.2_f);
+            .set(BodySettingsId::DAMAGE_MIN, 0.2_f)
+            .set(BodySettingsId::PARTICLE_COUNT, 100000);
         body.saveToFile(matPath);
         logger->write("No material settings found, defaults saved to file '", matPath.native(), "'");
     }
 
     solver = makeAuto<StabilizationSolver>(settings);
+
+    // override collision params with value loaded from settings
+    params.targetParticleCnt = body.get<int>(BodySettingsId::PARTICLE_COUNT);
     data = makeShared<Presets::Collision>(settings, body, params);
     storage = makeShared<Storage>();
 
