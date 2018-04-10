@@ -47,11 +47,6 @@ class LutKernel : public Kernel<LutKernel<D>, D> {
 private:
     static constexpr Size NEntries = 40000;
 
-    /*struct {
-        Float values[NEntries + 4096 / sizeof(Float)];
-        Float grads[NEntries + 4096 / sizeof(Float)];
-    } storage;*/
-
     Float values[NEntries];
     Float grads[NEntries];
 
@@ -257,8 +252,21 @@ public:
 /// The kernel values are the same as for cubic spline, but the gradient is modified, adding a small repulsive
 /// force. This attempts to prevent particle clustering.
 template <Size D>
-class ThomasCouchmanKernel : public CubicSpline<D> {
+class ThomasCouchmanKernel : public Kernel<ThomasCouchmanKernel<D>, D> {
+private:
+    const Float normalization[3] = { 2._f / 3._f, 10._f / (7._f * PI), 1._f / PI };
+
 public:
+    INLINE Float radius() const {
+        return 2._f;
+    }
+
+    INLINE Float valueImpl(const Float qSqr) const {
+        /// \todo initializes the normalization array, potentially slow?
+        CubicSpline actKernel;
+        return actKernel.valueImpl(qSqr);
+    }
+
     INLINE Float gradImpl(const Float qSqr) const {
         const Float q = sqrt(qSqr);
         if (q == 0._f) {
@@ -266,16 +274,14 @@ public:
             // undefined (it is a "0/0" expression). To avoid this, let's just return zero.
             return 0._f;
         }
-        TODO("finish");
         if (q < 2._f / 3._f) {
-            return -(1._f / q) * this->normalization[D - 1];
+            return -(1._f / q) * normalization[D - 1];
         }
         if (q < 1._f) {
-            return (1._f / q) * this->normalization[D - 1] *
-                   (-0.75_f * q * pow<2>(2._f - q) + 3._f * pow<2>(1._f - q));
+            return (1._f / q) * normalization[D - 1] * (-0.75_f * q * pow<2>(4._f - 3._f * q));
         }
         if (q < 2._f) {
-            return (1._f / q) * this->normalization[D - 1] * (-0.75f * pow<2>(2.f - q));
+            return (1._f / q) * normalization[D - 1] * (-0.75_f * pow<2>(2._f - q));
         }
         return 0._f;
     }
@@ -403,6 +409,40 @@ public:
         }
         const Float q = sqrt(qSqr);
         return normalization[D - 1] / q * exp(-qSqr) * (-2._f * q);
+    }
+};
+
+/// \brief Triangular (piecewise linear) kernel. 
+///
+/// Does not have continuous derivatives, mainly for testing purposes and non-SPH applications.
+template <Size D>
+class TriangleKernel : public Kernel<TriangleKernel<D>, D> {
+private:
+    const Float normalization[3] = { 1._f, 3._f / PI, 3._f / PI };
+
+public:
+    INLINE Float radius() const {
+        return 1._f;
+    }
+
+    INLINE Float valueImpl(const Float qSqr) const {
+        if (qSqr >= sqr(radius())) {
+            return 0._f;
+        }
+        const Float q = sqrt(qSqr);
+        return normalization[D - 1] * (1._f - q);
+    }
+
+    INLINE Float gradImpl(const Float qSqr) const {
+        if (qSqr >= sqr(radius())) {
+            return 0._f;
+        }
+        // unfortunately this gradient is nonzero at q->0, so grad/q diverges;
+        // let's return a reasonable value to avoid numerical problems
+        if (qSqr == 0._f) {
+            return -1.e3_f;
+        }
+        return -normalization[D - 1] / q;
     }
 };
 
