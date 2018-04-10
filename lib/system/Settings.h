@@ -322,8 +322,14 @@ enum class KernelEnum {
     /// Gaussian function
     GAUSSIAN,
 
+    /// Simple triangle (piecewise linear) kernel
+    TRIANGLE,
+
     /// Core Triangle (CT) kernel by Read et al. (2010)
     CORE_TRIANGLE,
+
+    /// Modification of the standard M4 B-spline kernel, used to avoid particle clustering
+    THOMAS_COUCHMAN,
 
     /// Wendland kernel C2
     WENDLAND_C2,
@@ -338,7 +344,15 @@ static RegisterEnum<KernelEnum> sKernel({
     { KernelEnum::CUBIC_SPLINE, "cubic_spline", "M4 B-spline (piecewise cubic polynomial" },
     { KernelEnum::FOURTH_ORDER_SPLINE, "fourth_order_spline", "M5 B-spline (piecewise 4th-order polynomial" },
     { KernelEnum::GAUSSIAN, "gaussian", "Gaussian function with clamped support" },
+    { KernelEnum::TRIANGLE,
+        "triangle",
+        "Triangular (piecewise linear) kernel. Derivatives are not continuous, the kernel is therefore not "
+        "suitable for SPH, but can be useful for non-SPH interpolations, etc." },
     { KernelEnum::CORE_TRIANGLE, "core_triangle", "Core Triangle (CT) kernel by Read et al. (2010)" },
+    { KernelEnum::THOMAS_COUCHMAN,
+        "thomas_couchman",
+        "Modification of the M4 B-spline kernel by Thomas & Couchman (1992), designed to prevent clustering "
+        "of particles." },
     { KernelEnum::WENDLAND_C2, "wendland_c2", "Wendland kernel C2" },
     { KernelEnum::WENDLAND_C4, "wendland_c4", "Wendland kernel C4" },
     { KernelEnum::WENDLAND_C6, "wendland_c6", "Wendland kernel C6" },
