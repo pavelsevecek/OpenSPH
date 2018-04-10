@@ -15,7 +15,7 @@ enum TextureFiltering {
     BILINEAR,
 };
 
-class Texture {
+class Texture : public Noncopyable {
 private:
     Bitmap bitmap;
     TextureFiltering filtering;
@@ -41,6 +41,18 @@ public:
         default:
             NOT_IMPLEMENTED;
         }
+    }
+
+    Texture clone() const {
+        Texture cloned;
+        cloned.filtering = filtering;
+        cloned.bitmap = Bitmap(bitmap.size());
+        for (int y = 0; y < bitmap.size().y; ++y) {
+            for (int x = 0; x < bitmap.size().x; ++x) {
+                cloned.bitmap[Point(x, y)] = bitmap[Point(x, y)];
+            }
+        }
+        return cloned;
     }
 
     bool empty() const {

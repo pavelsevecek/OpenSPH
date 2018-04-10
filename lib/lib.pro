@@ -129,13 +129,11 @@ HEADERS += \
     io/Serializer.h \
     io/Table.h \
     math/AffineMatrix.h \
-    math/Integrator.h \
     math/Math.h \
     math/Matrix.h \
     math/Means.h \
     math/Morton.h \
     math/Quat.h \
-    math/Roots.h \
     math/SparseMatrix.h \
     math/rng/Rng.h \
     math/rng/VectorRng.h \
@@ -297,4 +295,5 @@ HEADERS += \
     timestepping/TimeStepping.h \
     io/OutOfCore.h \
     objects/utility/EnumMap.h \
-    system/Settings.impl.h
+    system/Settings.impl.h \
+    math/Functional.h

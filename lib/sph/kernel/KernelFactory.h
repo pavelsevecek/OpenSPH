@@ -26,7 +26,7 @@ LutKernel<D> getKernel(const RunSettings& settings) {
         ASSERT(D == 3);
         return CoreTriangle();
     case KernelEnum::THOMAS_COUCHMAN:
-        return ThomasCouchmanKernel();
+        return ThomasCouchmanKernel<D>();
     case KernelEnum::WENDLAND_C2:
         ASSERT(D == 3);
         return WendlandC2();

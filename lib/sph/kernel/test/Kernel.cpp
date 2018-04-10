@@ -1,6 +1,7 @@
 #include "sph/kernel/Kernel.h"
 #include "catch.hpp"
-#include "math/Integrator.h"
+#include "math/Functional.h"
+#include "objects/wrappers/Flags.h"
 #include "tests/Approx.h"
 #include "utils/SequenceTest.h"
 
@@ -13,18 +14,29 @@ enum class KernelTestFlag {
     /// Tests that the derivative computed by finite differences approximately matches the gradient
     VALUE_GRADIENT_CONSISTENCY = 1 << 1,
 
+    /// Checks that kernel values are continuous for q>0
+    VALUES_CONTINUOUS = 1 << 2,
+
+    /// Checks that kernel gradient is continuous for q>0
+    GRADIENT_CONTINUOUS = 1 << 3,
+
     /// Checks that the gradient is continuous at 0
-    GRADIENT_CONTINUOUS = 1 << 2,
+    GRADIENT_CONTINUOUS_AT_0 = 1 << 4,
 
     /// Checks that the exact value approximately matches value from LUT
-    EQUALS_LUT = 1 << 3,
-
-    ALL = NORMALIZATION | VALUE_GRADIENT_CONSISTENCY | GRADIENT_CONTINUOUS | EQUALS_LUT;
+    EQUALS_LUT = 1 << 5,
 };
+
+const auto ALL_TEST_FLAGS = KernelTestFlag::NORMALIZATION | KernelTestFlag::VALUE_GRADIENT_CONSISTENCY |
+                            KernelTestFlag::VALUES_CONTINUOUS | KernelTestFlag::GRADIENT_CONTINUOUS |
+                            KernelTestFlag::GRADIENT_CONTINUOUS_AT_0 | KernelTestFlag::EQUALS_LUT;
 
 /// Test given kernel and its approximation given by LUT
 template <int d, typename TKernel, typename TTest>
-void testKernel(const TKernel& kernel, TTest&& test, Flags<KernelTestFlag> flags = KernelTestFlag::ALL) {
+void testKernel(const TKernel& kernel,
+    TTest&& test,
+    Flags<KernelTestFlag> flags = ALL_TEST_FLAGS,
+    const Float continuousEps = 0.015_f) {
     // compact support
     Float radiusSqr = sqr(kernel.radius());
 
@@ -51,13 +63,38 @@ void testKernel(const TKernel& kernel, TTest&& test, Flags<KernelTestFlag> flags
         }
     }
 
-    // check that kernel gradient is continuous at q->0
-    if (flags.has(KernelTestFlag::GRADIENT_CONTINUOUS)) {
-        REQUIRE(kernel.gradImpl(0._f) == approx(kernel.gradImpl(1.e-8_f), 1.e-3_f));
-    }
-
     // check that kernel and LUT give the same values and gradients
     LutKernel<d> lut(kernel);
+
+    // check that kernel gradient is continuous at q->0
+    if (flags.has(KernelTestFlag::GRADIENT_CONTINUOUS_AT_0)) {
+        REQUIRE(kernel.gradImpl(0._f) == approx(kernel.gradImpl(1.e-8_f), 1.e-3_f));
+        REQUIRE(lut.gradImpl(0._f) == approx(lut.gradImpl(1.e-8_f), 1.e-3_f));
+    }
+
+    if (flags.has(KernelTestFlag::VALUES_CONTINUOUS)) {
+        // values have to be always continuous in the whole interval
+        REQUIRE(isContinuous([&kernel](Float q) { return kernel.valueImpl(sqr(q)); },
+            Interval(0._f, kernel.radius() + 0.1_f),
+            0.01_f,
+            continuousEps));
+        REQUIRE(isContinuous([&lut](Float q) { return lut.valueImpl(sqr(q)); },
+            Interval(0._f, lut.radius() + 0.1_f),
+            0.01_f,
+            continuousEps));
+    }
+
+    if (flags.has(KernelTestFlag::GRADIENT_CONTINUOUS)) {
+        // gradient does not have to be continuous close to 0, hence the other test
+        REQUIRE(isContinuous([&kernel](Float q) { return q * kernel.gradImpl(sqr(q)); },
+            Interval(0.1_f, kernel.radius() + 0.1_f),
+            0.01_f,
+            continuousEps));
+        REQUIRE(isContinuous([&lut](Float q) { return q * lut.gradImpl(sqr(q)); },
+            Interval(0.1_f, lut.radius() + 0.1_f),
+            0.01_f,
+            continuousEps));
+    }
 
     if (flags.has(KernelTestFlag::EQUALS_LUT)) {
         // check that its values match the precise kernels
@@ -170,31 +207,41 @@ TEST_CASE("Wendland C2 kernel", "[kernel]") {
 
 TEST_CASE("Wendland C4 kernel", "[kernel]") {
     WendlandC4 kernel;
-    testKernel<3>(kernel, [](const auto& kernel) { REQUIRE(kernel.radius() == 2._f); });
+    testKernel<3>(
+        kernel, [](const auto& kernel) { REQUIRE(kernel.radius() == 2._f); }, ALL_TEST_FLAGS, 0.03_f);
 }
 
 TEST_CASE("Wendland C6 kernel", "[kernel]") {
     WendlandC6 kernel;
-    testKernel<3>(kernel, [](const auto& kernel) { REQUIRE(kernel.radius() == 2._f); });
+    testKernel<3>(
+        kernel, [](const auto& kernel) { REQUIRE(kernel.radius() == 2._f); }, ALL_TEST_FLAGS, 0.05_f);
 }
 
 TEST_CASE("Thomas-Couchman kernel", "[kernel]") {
-    ThomasCouchmanKernel kernel;
+    ThomasCouchmanKernel<3> kernel;
 
-    // this kernel is NOT consistent on purpose, so we cannot test it
+    // This kernel is NOT consistent on purpose, so we cannot test it. It is also discontinuous in zero (there
+    // is a skip from 1 to -1).
+    auto flags = KernelTestFlag::NORMALIZATION | KernelTestFlag::EQUALS_LUT |
+                 KernelTestFlag::VALUES_CONTINUOUS | KernelTestFlag::GRADIENT_CONTINUOUS;
+
     testKernel<3>(kernel,
         [](const auto& kernel) {
             REQUIRE(kernel.radius() == 2._f);
 
             // check that gradient is const around 0
-                REQUIRE(kernel.grad(Vector(0.1_f, 0._f, 0._f), 0.5_f) == kernel.grad(Vector(0.2_f, 0._f, 0._f), 0.5_f)));
+            REQUIRE(kernel.grad(Vector(0.1_f, 0._f, 0._f), 0.5_f) ==
+                    approx(kernel.grad(Vector(0.2_f, 0._f, 0._f), 0.5_f)));
         },
-        KernelTestFlag::NORMALIZATION | GRADIENT_CONTINUOUS | EQUALS_LUT);
+        flags);
 }
 
 TEST_CASE("Triangle kernel", "[kernel]") {
-    TriangleKernel kernel;
-    testKernel<3>(kernel, [](const auto& kernel) { REQUIRE(kernel.radius() == 1._f); });
+    TriangleKernel<3> kernel;
+    // triangle is continuous, but it has discontinuous derivatives
+    auto flags = KernelTestFlag::VALUE_GRADIENT_CONSISTENCY | KernelTestFlag::NORMALIZATION |
+                 KernelTestFlag::EQUALS_LUT | KernelTestFlag::VALUES_CONTINUOUS;
+    testKernel<3>(kernel, [](const auto& kernel) { REQUIRE(kernel.radius() == 1._f); }, flags, 0.01_f);
 }
 
 TEST_CASE("Lut kernel", "[kernel]") {

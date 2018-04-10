@@ -30,7 +30,7 @@ RayTracer::RayTracer(const GuiSettings& settings)
         if (!secondaryPath.empty()) {
             params.textures.emplaceBack(Path(secondaryPath), TextureFiltering::BILINEAR);
         } else {
-            params.textures.emplaceBack(params.textures.front());
+            params.textures.emplaceBack(params.textures.front().clone());
         }
     }
 }

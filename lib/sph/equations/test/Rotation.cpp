@@ -2,7 +2,7 @@
 #include "catch.hpp"
 #include "io/Column.h"
 #include "io/Output.h"
-#include "math/Integrator.h"
+#include "math/Functional.h"
 #include "physics/Eos.h"
 #include "run/IRun.h"
 #include "run/RunCallbacks.h"

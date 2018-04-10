@@ -1,5 +1,5 @@
 #include "sph/initial/Distribution.h"
-#include "math/Integrator.h"
+#include "math/Functional.h"
 #include "math/Morton.h"
 #include "math/rng/VectorRng.h"
 #include "objects/finders/UniformGrid.h"
