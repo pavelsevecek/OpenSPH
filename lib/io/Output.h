@@ -75,41 +75,75 @@ public:
     virtual Outcome load(const Path& path, Storage& storage, Statistics& stats) = 0;
 };
 
+/// \brief List of quantities we can write to text output.
+///
+/// Unlike QuantityId, this includes derivatives of quantities (for example velocities) and 'virtual'
+/// quantities like smoothing lengths. It can be also stored as flags.
+enum class OutputQuantityFlag {
+    /// Positions of particles, always a vector quantity.
+    POSITION = 1 << 0,
+
+    /// Current velocities of particles, always a vector quantity.
+    VELOCITY = 1 << 1,
+
+    /// Smoothing lenghts of particles.
+    SMOOTHING_LENGTH = 1 << 2,
+
+    /// Particle masses, always a scalar quantity.
+    MASS = 1 << 3,
+
+    /// Pressure, reduced by yielding and fracture model (multiplied by 1-damage); always a scalar quantity.
+    PRESSURE = 1 << 4,
+
+    /// Density, always a scalar quantity.
+    DENSITY = 1 << 5,
+
+    /// Specific internal energy, always a scalar quantity.
+    ENERGY = 1 << 6,
+
+    /// Deviatoric stress tensor, always a traceless tensor stored in components xx, yy, xy, xz, yz.
+    DEVIATORIC_STRESS = 1 << 7,
+
+    /// Damage, reducing the pressure and deviatoric stress.
+    DAMAGE = 1 << 8,
+
+    /// Symmetric tensor correcting kernel gradient for linear consistency.
+    STRAIN_RATE_CORRECTION_TENSOR = 1 << 9,
+
+    /// ID of material, indexed from 0 to (#bodies - 1).
+    MATERIAL_ID = 1 << 10,
+
+    /// Index of particle
+    INDEX = 1 << 11,
+};
 
 /// Output saving data to text (human readable) file.
 class TextOutput : public IOutput {
 public:
     enum class Options {
-        /// No columns are created by default, they have to be added by the user
-        NO_COLUMNS = 0,
-
-        /// Basic columns are created (particle index, positions, velocitites, masses)
-        BASIC_COLUMNS = 1 << 0,
-
-        /// Additional columns for particle quantities are added. This implies option BASIC_COLUMNS.
-        /// Suitable for SPH impact simulations.
-        EXTENDED_COLUMNS = 1 << 1,
-
-        /// Dumps all quantity values from the storage. This option implies BASIC_COLUMNS.
-        DUMP_ALL = 1 << 2,
+        /// Dumps all quantity values from the storage; this overrides the list of selected particles.
+        DUMP_ALL = 1 << 0,
 
         /// Writes all numbers in scientific format
-        SCIENTIFIC = 1 << 3,
+        SCIENTIFIC = 1 << 1,
     };
 
 private:
     std::string runName;
 
     /// Flags of the output
-    Flags<Options> flags;
+    Flags<Options> options;
 
     /// Value columns saved into the file
     Array<AutoPtr<ITextColumn>> columns;
 
 public:
-    TextOutput(const Flags<Options> flags = EMPTY_FLAGS);
+    TextOutput() = default;
 
-    TextOutput(const Path& fileMask, const std::string& runName, const Flags<Options> flags = EMPTY_FLAGS);
+    TextOutput(const Path& fileMask,
+        const std::string& runName,
+        Flags<OutputQuantityFlag> quantities,
+        Flags<Options> options = EMPTY_FLAGS);
 
     ~TextOutput();
 
@@ -135,8 +169,9 @@ public:
     GnuplotOutput(const Path& fileMask,
         const std::string& runName,
         const std::string& scriptPath,
+        const Flags<OutputQuantityFlag> quantities,
         const Flags<Options> flags)
-        : TextOutput(fileMask, runName, flags)
+        : TextOutput(fileMask, runName, quantities, flags)
         , scriptPath(scriptPath) {}
 
     virtual Path dump(Storage& storage, const Statistics& stats) override;
@@ -209,9 +244,15 @@ public:
 ///    the settings it holds. This should be enforced somehow.
 class BinaryOutput : public IOutput {
 private:
-    static constexpr Size PADDING_SIZE = 212;
+    static constexpr Size PADDING_SIZE = 204;
 
 public:
+    enum class Version : uint64_t {
+        FIRST = 0,
+        V2018_04_07 = 20180407,
+        LATEST = V2018_04_07,
+    };
+
     BinaryOutput() = default;
 
     BinaryOutput(const Path& fileMask);
@@ -250,6 +291,9 @@ public:
 
         /// Current timestep of the run
         Float timeStep;
+
+        /// Format version of the file
+        Version version;
     };
 
     /// \brief Opens the file and reads header info without reading the rest of the file.
@@ -311,11 +355,7 @@ public:
 
     virtual Path dump(Storage& storage, const Statistics& stats) override;
 
-    virtual Outcome load(const Path& UNUSED(path),
-        Storage& UNUSED(storage),
-        Statistics& UNUSED(stats)) override {
-        NOT_IMPLEMENTED;
-    }
+    virtual Outcome load(const Path& path, Storage& storage, Statistics& stats) override;
 
 private:
     INLINE Float getRadius(const Float h, const Float m, const Float rho) const {

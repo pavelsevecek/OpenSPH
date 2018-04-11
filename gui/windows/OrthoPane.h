@@ -4,6 +4,7 @@
 #include "gui/Settings.h"
 #include "gui/objects/Point.h"
 #include "gui/windows/IGraphicsPane.h"
+#include "objects/wrappers/Optional.h"
 
 class wxTimer;
 

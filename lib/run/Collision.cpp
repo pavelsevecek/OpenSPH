@@ -23,8 +23,7 @@ static RunSettings getSharedSettings(const Presets::CollisionParams& params, con
         .set(RunSettingsId::RUN_OUTPUT_PATH, params.outputPath.native())
         .set(RunSettingsId::RUN_OUTPUT_NAME, fileMask)
         .set(RunSettingsId::SOLVER_TYPE, SolverEnum::ASYMMETRIC_SOLVER)
-        .setFlags(RunSettingsId::SOLVER_FORCES,
-            ForceEnum::PRESSURE_GRADIENT | ForceEnum::SOLID_STRESS | ForceEnum::GRAVITY)
+        .set(RunSettingsId::SOLVER_FORCES, ForceEnum::PRESSURE | ForceEnum::SOLID_STRESS | ForceEnum::GRAVITY)
         .set(RunSettingsId::SPH_FORMULATION, FormulationEnum::STANDARD)
         .set(RunSettingsId::SPH_FINDER, FinderEnum::KD_TREE)
         .set(RunSettingsId::SPH_AV_TYPE, ArtificialViscosityEnum::STANDARD)
@@ -88,11 +87,15 @@ void StabilizationRunPhase::setUp() {
             .set(BodySettingsId::STRESS_TENSOR_MIN, 4.e6_f)
             .set(BodySettingsId::ENERGY_MIN, 10._f)
             .set(BodySettingsId::DAMAGE_MIN, 0.25_f);
+            .set(BodySettingsId::PARTICLE_COUNT, 100000);
         body.saveToFile(matPath);
         logger->write("No material settings found, defaults saved to file '", matPath.native(), "'");
     }
 
     solver = makeAuto<StabilizationSolver>(settings);
+
+    // override collision params with value loaded from settings
+    params.targetParticleCnt = body.get<int>(BodySettingsId::PARTICLE_COUNT);
     data = makeShared<Presets::Collision>(settings, body, params);
     storage = makeShared<Storage>();
 
@@ -159,8 +162,12 @@ void FragmentationRunPhase::tearDown(const Statistics& stats) {
     PkdgravOutput pkdgravOutput(params.outputPath / Path("pkdgrav/pkdgrav.out"), std::move(pkd));
     pkdgravOutput.dump(*storage, stats);
 
-    TextOutput textOutput(
-        params.outputPath / Path("output.txt"), "impact", TextOutput::Options::EXTENDED_COLUMNS);
+    Flags<OutputQuantityFlag> quantities = OutputQuantityFlag::POSITION | OutputQuantityFlag::VELOCITY |
+                                           OutputQuantityFlag::DENSITY | OutputQuantityFlag::PRESSURE |
+                                           OutputQuantityFlag::DEVIATORIC_STRESS | OutputQuantityFlag::MASS |
+                                           OutputQuantityFlag::ENERGY | OutputQuantityFlag::SMOOTHING_LENGTH |
+                                           OutputQuantityFlag::DAMAGE | OutputQuantityFlag::INDEX;
+    TextOutput textOutput(params.outputPath / Path("output.txt"), "impact", quantities);
     textOutput.dump(*storage, stats);
 
     BinaryOutput binaryOutput(params.outputPath / Path("output.ssf"));

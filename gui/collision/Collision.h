@@ -61,8 +61,6 @@ private:
         GuiSettings gui;
         gui.set(GuiSettingsId::ORTHO_FOV, 3.5e3_f)
             .set(GuiSettingsId::ORTHO_VIEW_CENTER, /*Vector(0, 300, 0)) // */ 0.5_f * Vector(1024, 768, 0))
-            .set(GuiSettingsId::RENDER_WIDTH, 1024)
-            .set(GuiSettingsId::RENDER_HEIGHT, 768)
             .set(GuiSettingsId::VIEW_WIDTH, 1024)
             .set(GuiSettingsId::VIEW_HEIGHT, 768)
             .set(GuiSettingsId::IMAGES_WIDTH, 1024)
@@ -86,7 +84,7 @@ private:
             .set(GuiSettingsId::PALETTE_ENERGY, Interval(0._f, 1.e3_f))
             .set(GuiSettingsId::PALETTE_RADIUS, Interval(700._f, 3.e3_f))
             .set(GuiSettingsId::PALETTE_GRADV, Interval(0._f, 1.e-5_f))
-            .setFlags(GuiSettingsId::PLOT_INTEGRALS,
+            .set(GuiSettingsId::PLOT_INTEGRALS,
                 PlotEnum::KINETIC_ENERGY | PlotEnum::INTERNAL_ENERGY | PlotEnum::TOTAL_ENERGY |
                     PlotEnum::TOTAL_MOMENTUM | PlotEnum::TOTAL_ANGULAR_MOMENTUM |
                     PlotEnum::SELECTED_PARTICLE);

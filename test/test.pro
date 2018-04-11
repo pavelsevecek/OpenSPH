@@ -52,12 +52,10 @@ SOURCES += \
     ../lib/math/rng/test/Rng.cpp \
     ../lib/math/rng/test/VectorRng.cpp \
     ../lib/math/test/AffineMatrix.cpp \
-    ../lib/math/test/Integrator.cpp \
     ../lib/math/test/Math.cpp \
     ../lib/math/test/Means.cpp \
     ../lib/math/test/Morton.cpp \
     ../lib/math/test/Quat.cpp \
-    ../lib/math/test/Roots.cpp \
     ../lib/math/test/SparseMatrix.cpp \
     ../lib/objects/containers/test/Array.cpp \
     ../lib/objects/containers/test/ArrayRef.cpp \
@@ -163,7 +161,8 @@ SOURCES += \
     utils/SequenceTest.cpp \
     utils/Utils.cpp \
     ../lib/sph/equations/test/Fluids.cpp \
-    ../lib/physics/test/Units.cpp
+    ../lib/physics/test/Units.cpp \
+    ../lib/math/test/Functional.cpp
 
 HEADERS += \
     utils/Utils.h \

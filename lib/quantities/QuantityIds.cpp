@@ -1,5 +1,5 @@
 #include "quantities/QuantityIds.h"
-#include "common/Assert.h"
+#include "objects/utility/EnumMap.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -80,8 +80,6 @@ QuantityMetadata getMetadata(const QuantityId key) {
         return QuantityMetadata("Energy laplacian", L"\u0394u" /*Delta u*/, ValueEnum::SCALAR);
     case QuantityId::AV_ALPHA:
         return QuantityMetadata("AV alpha", L"\u03B1_AV" /*alpha_AV*/, ValueEnum::SCALAR);
-    case QuantityId::AV_BETA:
-        return QuantityMetadata("AV beta", L"\u03B2_AV" /*beta_AV*/, ValueEnum::SCALAR);
     case QuantityId::AV_STRESS:
         return QuantityMetadata("Artificial stress", L"R", ValueEnum::SYMMETRIC_TENSOR);
     case QuantityId::AV_BALSARA:
@@ -110,7 +108,7 @@ QuantityMetadata getMetadata(const QuantityId key) {
         return QuantityMetadata("Mom. of intertia", L"I", ValueEnum::SCALAR);
     case QuantityId::PHASE_ANGLE:
         return QuantityMetadata("Phase angle", L"\u03C6" /*phi*/, ValueEnum::VECTOR);
-    case QuantityId::SMOOTHING_LENGHT:
+    case QuantityId::SMOOTHING_LENGTH:
         return QuantityMetadata("Smoothing length", L"h", ValueEnum::SCALAR);
     default:
         NOT_IMPLEMENTED;

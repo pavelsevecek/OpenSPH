@@ -7,7 +7,7 @@
 #include "objects/geometry/Box.h"
 #include "objects/utility/Iterators.h"
 #include "quantities/Storage.h"
-#include "sph/kernel/KernelFactory.h"
+#include "sph/kernel/Kernel.h"
 #include "system/Factory.h"
 
 NAMESPACE_SPH_BEGIN
@@ -586,98 +586,6 @@ Array<Post::SfdPoint> Post::getDifferentialSfd(const Storage& storage, const His
         ASSERT(isReal(histogram[i].value));
     }
     return histogram;
-}
-
-Expected<Storage> Post::parsePkdgravOutput(const Path& path) {
-    TextOutput output;
-
-    // 1) Particle index -- we don't really need that, just add dummy columnm
-    class DummyColumn : public ITextColumn {
-    private:
-        ValueEnum type;
-
-    public:
-        DummyColumn(const ValueEnum type)
-            : type(type) {}
-
-        virtual Dynamic evaluate(const Storage&, const Statistics&, const Size) const override {
-            NOT_IMPLEMENTED;
-        }
-
-        virtual void accumulate(Storage&, const Dynamic, const Size) const override {}
-
-        virtual std::string getName() const override {
-            return "dummy";
-        }
-
-        virtual ValueEnum getType() const override {
-            return type;
-        }
-    };
-    output.addColumn(makeAuto<DummyColumn>(ValueEnum::INDEX));
-
-    // 2) Original index -- not really needed, skip
-    output.addColumn(makeAuto<DummyColumn>(ValueEnum::INDEX));
-
-    // 3) Particle mass
-    output.addColumn(makeAuto<ValueColumn<Float>>(QuantityId::MASS));
-
-    // 4) radius ?  -- skip
-    output.addColumn(makeAuto<ValueColumn<Float>>(QuantityId::DENSITY));
-
-    // 5) Positions (3 components)
-    output.addColumn(makeAuto<ValueColumn<Vector>>(QuantityId::POSITION));
-
-    // 6) Velocities (3 components)
-    output.addColumn(makeAuto<DerivativeColumn<Vector>>(QuantityId::POSITION));
-
-    // 7) Angular velocities (3 components)
-    output.addColumn(makeAuto<ValueColumn<Vector>>(QuantityId::ANGULAR_VELOCITY));
-
-    // 8) Color index -- skip
-    output.addColumn(makeAuto<DummyColumn>(ValueEnum::INDEX));
-
-    Storage storage;
-    Statistics stats;
-    Outcome outcome = output.load(path, storage, stats);
-    if (!outcome) {
-        return makeUnexpected<Storage>(outcome.error());
-    }
-
-    // Convert units -- assuming default conversion values
-    PkdgravParams::Conversion conversion;
-    Array<Vector>& r = storage.getValue<Vector>(QuantityId::POSITION);
-    Array<Vector>& v = storage.getDt<Vector>(QuantityId::POSITION);
-    Array<Float>& m = storage.getValue<Float>(QuantityId::MASS);
-    Array<Float>& rho = storage.getValue<Float>(QuantityId::DENSITY);
-    Array<Vector>& omega = storage.getValue<Vector>(QuantityId::ANGULAR_VELOCITY);
-
-    for (Size i = 0; i < r.size(); ++i) {
-        r[i] *= conversion.distance;
-        v[i] *= conversion.velocity;
-        m[i] *= conversion.mass;
-
-        // compute radius, using the density formula
-        /// \todo here we actually store radius in rho ...
-        rho[i] *= conversion.distance;
-        r[i][H] = root<3>(3.f * m[i] / (2700.f * 4.f * PI));
-
-        // replace the radius with actual density
-        /// \todo too high, fix
-        rho[i] = m[i] / pow<3>(rho[i]);
-
-        omega[i] *= conversion.velocity / conversion.distance;
-    }
-
-    // sort
-    Order order(r.size());
-    order.shuffle([&m](const Size i1, const Size i2) { return m[i1] > m[i2]; });
-    r = order.apply(r);
-    v = order.apply(v);
-    m = order.apply(m);
-    rho = order.apply(rho);
-    omega = order.apply(omega);
-    return std::move(storage);
 }
 
 NAMESPACE_SPH_END

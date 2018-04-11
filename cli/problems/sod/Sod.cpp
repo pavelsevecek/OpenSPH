@@ -64,7 +64,7 @@ public:
             .set(RunSettingsId::TIMESTEPPING_COURANT_NUMBER, 0.5_f)
             .set(RunSettingsId::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::COURANT)
             .set(RunSettingsId::SOLVER_TYPE, SolverEnum::SYMMETRIC_SOLVER)
-            .setFlags(RunSettingsId::SOLVER_FORCES, ForceEnum::PRESSURE_GRADIENT);
+            .set(RunSettingsId::SOLVER_FORCES, ForceEnum::PRESSURE);
     }
 
     virtual void setUp() override {
@@ -89,6 +89,7 @@ public:
         this->output = makeAuto<GnuplotOutput>(outputDir,
             this->settings.get<std::string>(RunSettingsId::RUN_NAME),
             "sod.plt",
+            OutputQuantityFlag::POSITION,
             GnuplotOutput::Options::SCIENTIFIC);
 
         // 1) setup initial positions, with different spacing in each region

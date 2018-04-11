@@ -2,7 +2,7 @@
 #include "objects/finders/NeighbourFinder.h"
 #include "physics/Eos.h"
 #include "sph/equations/EquationTerm.h"
-#include "sph/kernel/KernelFactory.h"
+#include "sph/kernel/Kernel.h"
 #include "system/Factory.h"
 
 NAMESPACE_SPH_BEGIN

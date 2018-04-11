@@ -1,12 +1,13 @@
 #include "io/FileManager.h"
+#include "io/FileSystem.h"
 #include "io/Logger.h"
 #include "io/Output.h"
-#include "io/Path.h"
 #include "objects/utility/StringUtils.h"
 #include "post/Analysis.h"
 #include "post/StatisticTests.h"
 #include "quantities/Storage.h"
 #include "run/Collision.h"
+#include "system/Factory.h"
 #include "system/Process.h"
 #include "system/Statistics.h"
 #include "thread/Pool.h"
@@ -16,9 +17,21 @@
 
 using namespace Sph;
 
+static Expected<Storage> parsePkdgravOutput(const Path& path) {
+    Storage storage;
+    Statistics stats;
+    PkdgravOutput io;
+    Outcome result = io.load(path, storage, stats);
+    if (!result) {
+        return makeUnexpected<Storage>(result.error());
+    } else {
+        return std::move(storage);
+    }
+}
+
 int pkdgravToSfd(const Path& filePath, const Path& sfdPath) {
     std::cout << "Processing pkdgrav file ... " << std::endl;
-    Expected<Storage> storage = Post::parsePkdgravOutput(filePath);
+    Expected<Storage> storage = parsePkdgravOutput(filePath);
     if (!storage) {
         std::cout << "Invalid file: " << storage.error() << std::endl;
         return 0;
@@ -36,7 +49,7 @@ int pkdgravToSfd(const Path& filePath, const Path& sfdPath) {
 
 int pkdgravToOmega(const Path& filePath, const Path& omegaPath) {
     std::cout << "Processing pkdgrav file ... " << std::endl;
-    Expected<Storage> storage = Post::parsePkdgravOutput(filePath);
+    Expected<Storage> storage = parsePkdgravOutput(filePath);
     if (!storage) {
         std::cout << "Invalid file: " << storage.error() << std::endl;
         return 0;
@@ -65,7 +78,7 @@ int pkdgravToOmega(const Path& filePath, const Path& omegaPath) {
 
 int pkdgravToMoons(const Path& filePath, const float limit) {
     std::cout << "Processing pkdgrav file ... " << std::endl;
-    Expected<Storage> storage = Post::parsePkdgravOutput(filePath);
+    Expected<Storage> storage = parsePkdgravOutput(filePath);
     if (!storage) {
         std::cout << "Invalid file: " << storage.error() << std::endl;
         return 0;
@@ -79,17 +92,18 @@ int pkdgravToMoons(const Path& filePath, const float limit) {
 
 int sphToSfd(const Path& filePath, const Path& settingsPath, const Path& sfdPath) {
     std::cout << "Processing SPH file ... " << std::endl;
-    TextOutput output(TextOutput::Options::EXTENDED_COLUMNS);
+    RunSettings settings;
+    settings.set(RunSettingsId::RUN_OUTPUT_TYPE, OutputEnum::TEXT_FILE);
+    AutoPtr<IOutput> output = Factory::getOutput(settings);
 
     Storage storage;
     Statistics stats;
-    Outcome outcome = output.load(filePath, storage, stats);
+    Outcome outcome = output->load(filePath, storage, stats);
     if (!outcome) {
         std::cout << "Cannot load particle data, " << outcome.error() << std::endl;
         return 0;
     }
 
-    RunSettings settings;
     outcome = settings.loadFromFile(settingsPath);
     if (!outcome) {
         std::cout << "Cannot load settings, " << outcome.error() << std::endl;

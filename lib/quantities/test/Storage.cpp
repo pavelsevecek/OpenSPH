@@ -312,7 +312,7 @@ TEST_CASE("Storage material", "[storage]") {
         OrderEnum::SECOND,
         makeArray(Vector(1._f, 0._f, 0._f), Vector(-2._f, 1._f, 1._f)));
 
-    settings.set<Float>(BodySettingsId::ADIABATIC_INDEX, 13._f);
+    settings.set(BodySettingsId::ADIABATIC_INDEX, 13._f);
     Storage other(Factory::getMaterial(settings));
     other.insert<Vector>(QuantityId::POSITION,
         OrderEnum::SECOND,

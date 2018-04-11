@@ -32,7 +32,7 @@ SharedPtr<Storage> solveGassBall(RunSettings settings, Flags<Options> flags) {
     settings.set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 5.e-4_f)
         .set(RunSettingsId::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::NONE)
         .set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::EULER_EXPLICIT)
-        .setFlags(RunSettingsId::SOLVER_FORCES, ForceEnum::PRESSURE_GRADIENT)
+        .set(RunSettingsId::SOLVER_FORCES, ForceEnum::PRESSURE)
         .set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONST)
         .set(RunSettingsId::RUN_THREAD_GRANULARITY, 10);
 

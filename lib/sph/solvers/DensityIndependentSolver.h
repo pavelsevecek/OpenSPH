@@ -8,8 +8,9 @@
 #include "objects/finders/NeighbourFinder.h"
 #include "sph/equations/EquationTerm.h"
 #include "sph/equations/av/Standard.h"
-#include "sph/kernel/KernelFactory.h"
+#include "sph/kernel/Kernel.h"
 #include "sph/solvers/SymmetricSolver.h"
+#include "system/Factory.h"
 
 NAMESPACE_SPH_BEGIN
 

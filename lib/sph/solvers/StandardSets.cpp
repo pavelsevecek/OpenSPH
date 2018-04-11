@@ -11,7 +11,7 @@ EquationHolder getStandardEquations(const RunSettings& settings, const EquationH
     EquationHolder equations;
     /// \todo test that all possible combination (pressure, stress, AV, ...) work and dont assert
     Flags<ForceEnum> forces = settings.getFlags<ForceEnum>(RunSettingsId::SOLVER_FORCES);
-    if (forces.has(ForceEnum::PRESSURE_GRADIENT)) {
+    if (forces.has(ForceEnum::PRESSURE)) {
         equations += makeTerm<PressureForce>();
 
         if (forces.has(ForceEnum::NAVIER_STOKES)) {

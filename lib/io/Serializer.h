@@ -8,36 +8,38 @@
 #include "io/Path.h"
 #include "objects/containers/Array.h"
 #include "objects/wrappers/Optional.h"
+#include "system/Settings.h"
 #include <fstream>
 
 NAMESPACE_SPH_BEGIN
 
 namespace Detail {
-    /// Type trait for serialization/deserialization of types. Every type used in serialization must
-    /// explicitly specialize the class. Only std::string has dedicated member functions in (de)serializer
-    /// classes and does not have to be specialized.
-    template <typename T, typename TEnabler = void>
-    struct SerializedType;
+/// Type trait for serialization/deserialization of types. Every type used in serialization must
+/// explicitly specialize the class. Only std::string has dedicated member functions in (de)serializer
+/// classes and does not have to be specialized.
+template <typename T, typename TEnabler = void>
+struct SerializedType;
 
-    template <typename T>
-    struct SerializedType<T, std::enable_if_t<std::is_integral<T>::value || std::is_enum<T>::value>> {
-        // convert all intergral types and enums to int64_t
-        using Type = int64_t;
-    };
-    template <typename T>
-    struct SerializedType<T, std::enable_if_t<std::is_floating_point<T>::value>> {
-        // convert floating point types to double
-        using Type = double;
-    };
-    template <Size N>
-    struct SerializedType<char[N]> {
-        // keep char[] as is
-        using Type = std::add_lvalue_reference_t<const char[N]>;
-    };
+template <typename T>
+struct SerializedType<T, std::enable_if_t<std::is_integral<T>::value || std::is_enum<T>::value>> {
+    // convert all intergral types and enums to int64_t
+    using Type = int64_t;
+};
+template <typename T>
+struct SerializedType<T, std::enable_if_t<std::is_floating_point<T>::value>> {
+    // convert floating point types to double
+    using Type = double;
+};
+template <Size N>
+struct SerializedType<char[N]> {
+    // keep char[] as is
+    using Type = std::add_lvalue_reference_t<const char[N]>;
+};
 
-    template <typename T>
-    using Serialized = typename SerializedType<T>::Type;
-}
+template <typename T>
+using Serialized = typename SerializedType<T>::Type;
+
+} // namespace Detail
 
 /// \brief Object providing serialization of primitives into a stream
 class Serializer : public Noncopyable {

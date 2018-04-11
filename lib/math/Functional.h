@@ -1,7 +1,7 @@
 #pragma once
 
-/// \file Integrator.h
-/// \author Basic routines for integrating arbitrary functions in N dimensions
+/// \file Functional.h
+/// \author Basic routines for integrating arbitrary functions in N dimensions, finding roots, etc.
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2018
 
@@ -11,9 +11,11 @@
 
 NAMESPACE_SPH_BEGIN
 
-/// Integrate a one-dimensional function using Simpson's rule
+/// \brief Integrates a one-dimensional function using Simpson's rule.
+///
+/// The precision of the integral is currently fixed.
 template <typename TFunctor>
-INLINE Float integrate(const Interval range, TFunctor functor) {
+INLINE Float integrate(const Interval range, const TFunctor& functor) {
     const Size N = 1000;
     const Float h = range.size() / N;
     double result = functor((Float)range.lower()) + functor((Float)range.upper());
@@ -29,7 +31,7 @@ INLINE Float integrate(const Interval range, TFunctor functor) {
 }
 
 
-/// Object for integrating a generic three-dimensional scalar function.
+/// \brief Object for integrating a generic three-dimensional scalar function.
 template <typename TRng = UniformRng, typename TInternal = double>
 class Integrator : public Noncopyable {
 private:
@@ -40,11 +42,12 @@ private:
     static constexpr uint chunk = 100;
 
 public:
-    /// \brief Constructs an integrator given domain of integration.
+    /// \brief Constructs an integrator given the domain of integration.
     Integrator(AutoPtr<IDomain>&& domain)
         : domain(std::move(domain)) {}
 
     /// \brief Integrates a function.
+    ///
     /// \param f Functor with a Vector parameter, returning the integral as a scalar value
     /// \param targetError Precision of the integral. Note that half error means approximately four times the
     ///                    computation time.
@@ -80,5 +83,42 @@ public:
         }
     }
 };
+
+/// \brief Returns a root of a R->R function on given range.
+///
+/// If there is no root or the root cannot be found, returns NOTHING. For functions with multiple roots,
+/// returns one of them; the selection of such root is not specified.
+template <typename TFunctor>
+INLINE Optional<Float> getRoot(const TFunctor& functor, const Interval& range, const Float eps = EPS) {
+    Interval r = range;
+    if (functor(r.lower()) * functor(r.upper()) > 0._f) { // same sign
+        return NOTHING;
+    }
+    while (r.size() > eps * range.size()) {
+        Float x = r.center();
+        if (functor(x) * functor(r.upper()) > 0._f) {
+            r = Interval(r.lower(), x);
+        } else {
+            r = Interval(x, r.upper());
+        }
+    }
+    return r.center();
+}
+
+/// \brief Checks if the given R->R function is continuous in given interval.
+///
+/// The eps and delta values are the same for all values and must be specified by the caller.
+template <typename TFunctor>
+INLINE bool isContinuous(const TFunctor& functor, const Interval& range, const Float delta, const Float eps) {
+    Float y1 = functor(range.lower());
+    for (Float x = range.lower(); x <= range.upper(); x += delta) {
+        const Float y2 = functor(x);
+        if (abs(y1 - y2) > eps) {
+            return false;
+        }
+        y1 = y2;
+    }
+    return true;
+}
 
 NAMESPACE_SPH_END

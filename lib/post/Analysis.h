@@ -219,18 +219,6 @@ Array<SfdPoint> getDifferentialSfd(const Storage& storage, const HistogramParams
 /// \param params Parameters of the histogram.
 Array<SfdPoint> getCummulativeSfd(const Storage& storage, const HistogramParams& params);
 
-
-/// \brief Parses the pkdgrav output file and creates a storage with quantities stored in the file.
-///
-/// Pkdgrav output contains particle positions, their velocities, angular velocities and their masses.
-/// Parsed storage is constructed with these quantities, the radii of the spheres are saved as
-/// H-component (however the radius is NOT equal to the smoothing length). The particles are sorted in the
-/// storage according to their masses, in descending order. The largest remnant (if exists) or largest
-/// fragment is therefore particle with index 0.
-/// \param path Path to the file. The extension of the file shall be ".bt".
-/// \return Storage with created quantities or error message.
-Expected<Storage> parsePkdgravOutput(const Path& path);
-
 } // namespace Post
 
 NAMESPACE_SPH_END

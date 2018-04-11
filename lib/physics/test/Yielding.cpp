@@ -39,7 +39,7 @@ TEST_CASE("VonMises repeated", "[yielding]") {
     // von Mises should not affect already reduced stress tensor
     VonMisesRheology vonMises;
     BodySettings settings;
-    settings.set<Float>(BodySettingsId::ELASTICITY_LIMIT, 0.5_f);
+    settings.set(BodySettingsId::ELASTICITY_LIMIT, 0.5_f);
     Storage storage(Factory::getMaterial(settings));
     Array<Float> energy(1);
     energy.fill(0._f);

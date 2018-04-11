@@ -1,7 +1,7 @@
 #include "sph/solvers/GravitySolver.h"
 #include "gravity/SphericalGravity.h"
 #include "sph/equations/Potentials.h"
-#include "sph/kernel/KernelFactory.h"
+#include "sph/kernel/Kernel.h"
 #include "sph/solvers/AsymmetricSolver.h"
 #include "sph/solvers/SymmetricSolver.h"
 #include "system/Factory.h"

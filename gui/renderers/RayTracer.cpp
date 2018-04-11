@@ -15,6 +15,7 @@ RayTracer::RayTracer(const GuiSettings& settings)
     params.dirToSun = settings.get<Vector>(GuiSettingsId::SURFACE_SUN_POSITION);
     params.brdf = Factory::getBrdf(settings);
     params.ambientLight = settings.get<Float>(GuiSettingsId::SURFACE_AMBIENT);
+    params.subsampling = settings.get<int>(GuiSettingsId::RAYTRACE_SUBSAMPLING);
 
     std::string hdriPath = settings.get<std::string>(GuiSettingsId::RAYTRACE_HDRI);
     if (!hdriPath.empty()) {
@@ -28,6 +29,8 @@ RayTracer::RayTracer(const GuiSettings& settings)
         std::string secondaryPath = settings.get<std::string>(GuiSettingsId::RAYTRACE_TEXTURE_SECONDARY);
         if (!secondaryPath.empty()) {
             params.textures.emplaceBack(Path(secondaryPath), TextureFiltering::BILINEAR);
+        } else {
+            params.textures.emplaceBack(params.textures.front().clone());
         }
     }
 }
@@ -95,15 +98,18 @@ static void drawText(wxBitmap& bitmap, const std::string& text) {
 }
 
 SharedPtr<wxBitmap> RayTracer::render(const ICamera& camera,
-    const RenderParams& params,
+    const RenderParams& renderParams,
     Statistics& UNUSED(stats)) const {
     MEASURE_SCOPE("Rendering frame");
-    Bitmap bitmap(params.size);
+    Point actSize;
+    actSize.x = renderParams.size.x / params.subsampling + sgn(renderParams.size.x % params.subsampling);
+    actSize.y = renderParams.size.y / params.subsampling + sgn(renderParams.size.y % params.subsampling);
+    Bitmap bitmap(actSize);
     Timer timer;
-    parallelFor(pool, 0, Size(params.size.y), [this, &bitmap, &camera, &params](Size y) {
+    parallelFor(pool, 0, Size(bitmap.size().y), [this, &bitmap, &camera, &renderParams](Size y) {
         ThreadData& data = threadData.get();
-        for (Size x = 0; x < Size(params.size.x); ++x) {
-            CameraRay cameraRay = camera.unproject(Point(x, y));
+        for (Size x = 0; x < Size(bitmap.size().x); ++x) {
+            CameraRay cameraRay = camera.unproject(Point(x * params.subsampling, y * params.subsampling));
             const Vector dir = getNormalized(cameraRay.target - cameraRay.origin);
             const Ray ray(cameraRay.origin, dir);
 

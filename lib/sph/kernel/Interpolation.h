@@ -8,7 +8,7 @@
 #include "objects/finders/NeighbourFinder.h"
 #include "objects/wrappers/SharedPtr.h"
 #include "quantities/Storage.h"
-#include "sph/kernel/KernelFactory.h"
+#include "sph/kernel/Kernel.h"
 #include "system/Factory.h"
 #include "system/Settings.h"
 

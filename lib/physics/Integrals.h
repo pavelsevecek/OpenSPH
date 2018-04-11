@@ -10,6 +10,7 @@
 #include "objects/containers/Array.h"
 #include "objects/utility/Dynamic.h"
 #include "objects/wrappers/Function.h"
+#include "quantities/QuantityIds.h"
 #include "system/Settings.h"
 
 NAMESPACE_SPH_BEGIN
@@ -238,9 +239,8 @@ public:
     template <typename TIntegral>
     IntegralWrapper(AutoPtr<TIntegral>&& integral) {
         name = integral->getName();
-        closure = [i = std::move(integral)](const Storage& storage)->Dynamic {
-            return i->evaluate(storage);
-        };
+        closure = [i = std::move(integral)](
+                      const Storage& storage) -> Dynamic { return i->evaluate(storage); };
     }
 
     virtual Float evaluate(const Storage& storage) const override {

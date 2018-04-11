@@ -30,6 +30,7 @@ AsteroidRotation::AsteroidRotation(const RawPtr<Controller> model, const Float p
         .set(RunSettingsId::TIMESTEPPING_COURANT_NUMBER, 1._f)
         .set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 1._f))
         .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 100._f)
+        .set(RunSettingsId::RUN_OUTPUT_PATH, std::string("out"))
         .set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONST)
         .set(RunSettingsId::SPH_FINDER, FinderEnum::UNIFORM_GRID)
         .set(RunSettingsId::SPH_AV_TYPE, ArtificialViscosityEnum::STANDARD)
@@ -140,19 +141,7 @@ void AsteroidRotation::setUp() {
 
 
     // Setup output
-    Path outputDir = Path("out") / Path(settings.get<std::string>(RunSettingsId::RUN_OUTPUT_NAME));
-    AutoPtr<TextOutput> textOutput = makeAuto<TextOutput>(
-        outputDir, settings.get<std::string>(RunSettingsId::RUN_NAME), TextOutput::Options::SCIENTIFIC);
-    textOutput->addColumn(makeAuto<ParticleNumberColumn>());
-    textOutput->addColumn(makeAuto<ValueColumn<Vector>>(QuantityId::POSITION));
-    textOutput->addColumn(makeAuto<DerivativeColumn<Vector>>(QuantityId::POSITION));
-    textOutput->addColumn(makeAuto<SmoothingLengthColumn>());
-    textOutput->addColumn(makeAuto<ValueColumn<Float>>(QuantityId::DENSITY));
-    textOutput->addColumn(makeAuto<ValueColumn<Float>>(QuantityId::PRESSURE));
-    textOutput->addColumn(makeAuto<ValueColumn<Float>>(QuantityId::ENERGY));
-    textOutput->addColumn(makeAuto<ValueColumn<Float>>(QuantityId::DAMAGE));
-    textOutput->addColumn(makeAuto<ValueColumn<TracelessTensor>>(QuantityId::DEVIATORIC_STRESS));
-    output = std::move(textOutput);
+    output = Factory::getOutput(settings);
 
     triggers.pushBack(makeAuto<IntegralsLog>(Path("integrals.txt"), 1));
     triggers.pushBack(makeAuto<CommonStatsLog>(Factory::getLogger(settings)));

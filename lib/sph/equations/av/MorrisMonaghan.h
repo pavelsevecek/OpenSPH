@@ -21,7 +21,7 @@ class MorrisMonaghanAV : public IEquationTerm {
 public:
     class Derivative : public DerivativeTemplate<Derivative> {
     private:
-        ArrayView<const Float> alpha, beta, dalpha, cs, rho, m;
+        ArrayView<const Float> alpha, dalpha, cs, rho, m;
         ArrayView<const Vector> r, v;
         ArrayView<Vector> dv;
         ArrayView<Float> du;
@@ -40,7 +40,6 @@ public:
             ArrayView<const Vector> dummy;
             tie(r, v, dummy) = input.getAll<Vector>(QuantityId::POSITION);
             tie(alpha, dalpha) = input.getAll<Float>(QuantityId::AV_ALPHA);
-            beta = input.getValue<Float>(QuantityId::AV_BETA);
             cs = input.getValue<Float>(QuantityId::SOUND_SPEED);
             rho = input.getValue<Float>(QuantityId::DENSITY);
             m = input.getValue<Float>(QuantityId::MASS);
@@ -72,7 +71,7 @@ public:
             const Float csbar = 0.5_f * (cs[i] + cs[j]);
             const Float rhobar = 0.5_f * (rho[i] + rho[j]);
             const Float alphabar = 0.5_f * (alpha[i] + alpha[j]);
-            const Float betabar = 0.5_f * (beta[i] + beta[j]);
+            const Float betabar = 2._f * alphabar;
             const Float mu = hbar * dvdr / (getSqrLength(r[i] - r[j]) + eps * sqr(hbar));
             return 1._f / rhobar * (-alphabar * csbar * mu + betabar * sqr(mu));
         }
@@ -83,17 +82,7 @@ public:
         derivatives.require(makeAuto<Derivative>(settings));
     }
 
-    virtual void initialize(Storage& storage, ThreadPool& UNUSED(pool)) override {
-        ArrayView<Vector> r, v, dv;
-        tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
-
-        ArrayView<Float> alpha = storage.getValue<Float>(QuantityId::AV_ALPHA);
-        ArrayView<Float> beta = storage.getValue<Float>(QuantityId::AV_BETA);
-        // always keep beta = 2*alpha
-        for (Size i = 0; i < alpha.size(); ++i) {
-            beta[i] = 2._f * alpha[i];
-        }
-    }
+    virtual void initialize(Storage& UNUSED(storage), ThreadPool& UNUSED(pool)) override {}
 
     virtual void finalize(Storage& storage, ThreadPool& UNUSED(pool)) override {
         ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
@@ -119,9 +108,6 @@ public:
     virtual void create(Storage& storage, IMaterial& material) const override {
         storage.insert<Float>(
             QuantityId::AV_ALPHA, OrderEnum::FIRST, material.getParam<Float>(BodySettingsId::AV_ALPHA));
-        /// \todo maybe remove AV_BETA as we are using AV_BETA = 2*AV_ALPHA anyway
-        storage.insert<Float>(
-            QuantityId::AV_BETA, OrderEnum::ZERO, material.getParam<Float>(BodySettingsId::AV_BETA));
 
         storage.insert<Float>(QuantityId::VELOCITY_DIVERGENCE, OrderEnum::ZERO, 0._f);
         const Interval avRange = material.getParam<Interval>(BodySettingsId::AV_ALPHA_RANGE);

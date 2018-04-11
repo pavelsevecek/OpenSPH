@@ -2,6 +2,7 @@
 
 #include "gui/Settings.h"
 #include "objects/containers/FlatMap.h"
+#include "objects/wrappers/AutoPtr.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -10,6 +11,7 @@ class IColorizer;
 class IRenderer;
 class Palette;
 class Point;
+class Interval;
 class IBrdf;
 enum class ColorizerId;
 

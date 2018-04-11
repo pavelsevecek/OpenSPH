@@ -1,10 +1,10 @@
-#include "math/Integrator.h"
+#include "math/Functional.h"
 #include "catch.hpp"
 #include "tests/Approx.h"
 
 using namespace Sph;
 
-TEST_CASE("Simpson's rule", "[integrators]") {
+TEST_CASE("Simpson's rule", "[functional]") {
     const Float two = integrate(Interval(0._f, PI), [](const Float x) { return Sph::sin(x); });
     REQUIRE(two == approx(2._f, 1.e-6_f));
 
@@ -12,7 +12,7 @@ TEST_CASE("Simpson's rule", "[integrators]") {
     REQUIRE(log11 == approx(log(11._f), 1.e-6_f));
 }
 
-TEST_CASE("MC Integrator", "[integrators]") {
+TEST_CASE("MC Integrator", "[functional]") {
     const Float targetError = 1.e-3_f;
 
     // Area of circle / volume of sphere
@@ -35,4 +35,12 @@ TEST_CASE("MC Integrator", "[integrators]") {
     REQUIRE(almostEqual(result,
                               (E<float> - 1.f) / E<float> * PI<float>,
                               2.f * targetError));*/
+}
+
+TEST_CASE("GetRoots", "[functional]") {
+    Optional<Float> root = getRoot([](const Float x) { return cos(x); }, Interval(0._f, PI));
+    REQUIRE(root);
+    REQUIRE(root.value() == approx(0.5_f * PI));
+
+    REQUIRE_FALSE(getRoot([](const Float) { return 1._f; }, Interval(0._f, 1._f)));
 }

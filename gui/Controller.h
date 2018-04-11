@@ -6,6 +6,7 @@
 #include "objects/wrappers/Locking.h"
 #include "objects/wrappers/SharedPtr.h"
 #include "quantities/Particle.h"
+#include "system/Settings.h"
 #include <condition_variable>
 #include <thread>
 

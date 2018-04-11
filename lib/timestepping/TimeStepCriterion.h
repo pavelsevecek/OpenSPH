@@ -109,7 +109,6 @@ public:
 class CourantCriterion : public ITimeStepCriterion {
 private:
     Float courant;
-    Size neighLimit;
 
 public:
     explicit CourantCriterion(const RunSettings& settings);

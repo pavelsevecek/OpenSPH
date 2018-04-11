@@ -1,7 +1,7 @@
 #include "post/MarchingCubes.h"
 #include "objects/finders/NeighbourFinder.h"
 #include "quantities/Storage.h"
-#include "sph/kernel/KernelFactory.h"
+#include "sph/kernel/Kernel.h"
 #include "system/Factory.h"
 #include "system/Settings.h"
 #include "thread/ThreadLocal.h"

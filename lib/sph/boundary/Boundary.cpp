@@ -4,7 +4,7 @@
 #include "quantities/IMaterial.h"
 #include "quantities/Iterate.h"
 #include "sph/initial/Distribution.h"
-#include "sph/kernel/KernelFactory.h"
+#include "sph/kernel/Kernel.h"
 #include "system/Factory.h"
 #include "timestepping/ISolver.h"
 

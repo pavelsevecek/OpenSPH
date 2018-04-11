@@ -6,12 +6,12 @@
 /// \date 2016-2018
 
 #include "objects/geometry/TracelessTensor.h"
+#include "objects/utility/EnumMap.h"
 #include "objects/wrappers/AutoPtr.h"
 #include "objects/wrappers/Flags.h"
 #include "objects/wrappers/Interval.h"
 #include "objects/wrappers/Outcome.h"
 #include "objects/wrappers/Variant.h"
-#include "quantities/QuantityIds.h"
 #include <map>
 
 NAMESPACE_SPH_BEGIN
@@ -27,12 +27,46 @@ struct EmptySettingsTag {};
 
 const EmptySettingsTag EMPTY_SETTINGS;
 
+/// \brief Wrapper of an enum.
+///
+/// Used to store an enum in settings while keeping (to some degree) the type safety.
+struct EnumWrapper {
+    int value;
+    std::size_t typeHash;
+
+    EnumWrapper() = default;
+
+    template <typename TEnum>
+    explicit EnumWrapper(TEnum e)
+        : value(int(e))
+        , typeHash(typeid(TEnum).hash_code()) {
+        static_assert(std::is_enum<TEnum>::value, "Can be used only for enums");
+    }
+
+    EnumWrapper(const int value, const std::size_t hash)
+        : value(value)
+        , typeHash(hash) {}
+
+    explicit operator int() const {
+        return value;
+    }
+
+    bool operator==(const EnumWrapper& other) const {
+        return value == other.value && typeHash == other.typeHash;
+    }
+
+    friend std::ostream& operator<<(std::ostream& ofs, const EnumWrapper& e) {
+        ofs << e.value << " (" << e.typeHash << ")";
+        return ofs;
+    }
+};
 
 /// \brief Generic object containing various settings and parameters of the run.
 ///
 /// Settings is a storage containing pairs key-value objects, where key is one of predefined enums. The value
 /// can have multiple types within the same \ref Settings object. Currently following types can be stored:
-/// bool, int, float, std::string, \ref Interval, \ref Vector, \ref Tensor, \ref TracelessTensor.
+/// bool, int, enums, float (or double), std::string, \ref Interval, \ref Vector, \ref Tensor, \ref
+/// TracelessTensor.
 ///
 /// The template cannot be used directly as it is missing default values of parameters; instead
 /// specializations for specific enums should be used. The code defines two specializations:
@@ -47,18 +81,61 @@ class Settings {
     friend class SettingsIterator;
 
 private:
-    enum Types { BOOL, INT, FLOAT, INTERVAL, STRING, VECTOR, SYMMETRIC_TENSOR, TRACELESS_TENSOR };
+    /// \brief List of types that can be stored in settings
+    enum Types { BOOL, INT, FLOAT, INTERVAL, STRING, VECTOR, SYMMETRIC_TENSOR, TRACELESS_TENSOR, ENUM };
 
-    /// Storage type of settings entries. It is possible to add other types to the settings, but always to the
-    /// end of the variant to keep the backwards compatibility of serializer.
+    /// \brief Storage type of settings entries.
+    ///
+    /// Order of types in the variant must correspond to the values in enum \ref Types. It is possible to add
+    /// other types to the settings, but always to the END of the variant to keep the backwards compatibility
+    /// of serializer.
+    ///
     /// \todo Possibly refactor by using some polymorphic holder (Any-type) rather than variant, this will
     /// allow to add more types for other Settings specializations (GuiSettings, etc.)
-    using Value = Variant<bool, int, Float, Interval, std::string, Vector, SymmetricTensor, TracelessTensor>;
+    using Value = Variant<bool,
+        int,
+        Float,
+        Interval,
+        std::string,
+        Vector,
+        SymmetricTensor,
+        TracelessTensor,
+        EnumWrapper>;
 
     struct Entry {
+        /// Index of the property
         TEnum id;
+
+        /// Unique text identifier of the property
         std::string name;
+
+        /// Current value
         Value value;
+
+        /// Description of the property. Can be empty.
+        std::string desc;
+
+        Entry() = default;
+
+        Entry(TEnum id, const std::string& name, const Value& value, const std::string& desc = "")
+            : id(id)
+            , name(name)
+            , value(value)
+            , desc(desc) {}
+
+        template <typename T, typename = std::enable_if_t<std::is_enum<T>::value>>
+        Entry(TEnum id, const std::string& name, const T& value, const std::string& desc = "")
+            : id(id)
+            , name(name)
+            , value(EnumWrapper(value))
+            , desc(desc) {}
+
+        template <typename T>
+        Entry(TEnum id, const std::string& name, Flags<T> flags, const std::string& desc = "")
+            : id(id)
+            , name(name)
+            , value(EnumWrapper(T(flags.value())))
+            , desc(desc) {}
     };
 
     std::map<TEnum, Entry> entries;
@@ -66,43 +143,44 @@ private:
     static AutoPtr<Settings> instance;
 
     /// Constructs settings from list of key-value pairs.
-    Settings(std::initializer_list<Entry> list) {
-        for (auto& entry : list) {
-            entries[entry.id] = entry;
-        }
-    }
+    Settings(std::initializer_list<Entry> list);
 
 public:
-    /// Initialize settings by settings all value to their defaults.
-    Settings()
-        : Settings(Settings::getDefaults()) {}
+    /// \brief Initialize settings by settings all value to their defaults.
+    Settings();
 
-    /// Initialize empty settings object.
-    Settings(EmptySettingsTag) {}
+    /// \brief Initialize empty settings object.
+    Settings(EmptySettingsTag);
 
-    /// Assigns a list of settings into the object, erasing all previous entries.
-    Settings& operator=(std::initializer_list<Entry> list) {
-        entries.clear();
-        for (auto& entry : list) {
-            entries[entry.id] = entry;
-        }
-        return *this;
-    }
+    /// \brief Assigns a list of settings into the object, erasing all previous entries.
+    Settings& operator=(std::initializer_list<Entry> list);
 
     /// \brief Saves a value into the settings.
     ///
     /// Any previous value of the same ID is overriden.
     /// \tparam TValue Type of the value to be saved. Does not have to be specified, type deduction can be
-    ///                used to determine it. Must be one of types listed in object description, or enum - all
-    ///                enums are explicitly converted into int before saving. Using other types will result in
-    ///                compile error.
+    ///                used to determine it. Must be one of types listed in object description. Using other
+    ///                types will result in compile error.
     /// \param idx Key identifying the value. This key can be used to retrive the value later.
     /// \param value Value being stored into settings.
     /// \returns Reference to the settings object, allowing to queue multiple set functions.
     template <typename TValue>
-    Settings& set(const TEnum idx, TValue&& value) {
-        using StoreType = ConvertToSize<TValue>;
-        entries[idx].value = StoreType(std::forward<TValue>(value));
+    Settings& set(const TEnum idx,
+        TValue&& value,
+        std::enable_if_t<!std::is_enum<std::decay_t<TValue>>::value, int> = 0) {
+        // either the values is new or the type is the same as the previous value
+        ASSERT(entries.find(idx) == entries.end() || entries[idx].value.template has<std::decay_t<TValue>>());
+        entries[idx].value = std::forward<TValue>(value);
+        return *this;
+    }
+
+    template <typename TValue>
+    Settings& set(const TEnum idx,
+        TValue&& value,
+        std::enable_if_t<std::is_enum<std::decay_t<TValue>>::value, int> = 0) {
+        // either the values is new or the type is the same as the previous value
+        ASSERT(entries.find(idx) == entries.end() || entries[idx].value.template has<EnumWrapper>());
+        entries[idx].value = EnumWrapper(value);
         return *this;
     }
 
@@ -110,27 +188,18 @@ public:
     ///
     /// This is internally saved as integer. There is no type-checking, flags can be freely converted to the
     /// underlying enum or even int using function \ref setFlags and \ref getFlags.
-    template <typename TValue>
-    Settings& setFlags(const TEnum idx, const Flags<TValue> flags) {
-        entries[idx].value = int(flags.value());
-        return *this;
-    }
-
-    /// \brief Saves a single enum as flag into the settings.
-    ///
-    /// This overload is mostly intended for self-documentation, as we could use \ref set to accomplish the
-    /// same (flags can be stored as enum). However, \ref setFlags issues an assert in case given value is not
-    /// a power of two.
-    template <typename TValue, typename = std::enable_if_t<std::is_enum<std::decay_t<TValue>>::value>>
-    Settings& setFlags(const TEnum idx, TValue&& flag) {
-        ASSERT(isPower2(int(flag)));
-        entries[idx].value = int(flag);
+    template <typename TValue, typename = std::enable_if_t<std::is_enum<TValue>::value>>
+    Settings& set(const TEnum idx, const Flags<TValue> flags) {
+        ASSERT(entries.find(idx) == entries.end() || entries[idx].value.template has<EnumWrapper>());
+        entries[idx].value = EnumWrapper(TValue(flags.value()));
         return *this;
     }
 
     /// \brief Clear flags of given parameter in settings.
-    Settings& setFlags(const TEnum idx, EmptyFlags) {
-        entries[idx].value = 0;
+    Settings& set(const TEnum idx, EmptyFlags) {
+        // can be used only if the value is already there and we know the type
+        EnumWrapper currentValue = entries[idx].value.template get<EnumWrapper>();
+        entries[idx].value = EnumWrapper(0, currentValue.typeHash);
         return *this;
     }
 
@@ -142,12 +211,19 @@ public:
     /// \param idx Key of the value.
     /// \returns Value correponsing to given key.
     template <typename TValue>
-    TValue get(const TEnum idx) const {
+    TValue get(const TEnum idx, std::enable_if_t<!std::is_enum<std::decay_t<TValue>>::value, int> = 0) const {
         typename std::map<TEnum, Entry>::const_iterator iter = entries.find(idx);
         ASSERT(iter != entries.end(), int(idx));
-        using StoreType = ConvertToSize<TValue>;
-        const StoreType& value = iter->second.value.template get<StoreType>();
-        return TValue(value);
+        return iter->second.value.template get<TValue>();
+    }
+
+    template <typename TValue>
+    TValue get(const TEnum idx, std::enable_if_t<std::is_enum<std::decay_t<TValue>>::value, int> = 0) const {
+        typename std::map<TEnum, Entry>::const_iterator iter = entries.find(idx);
+        ASSERT(iter != entries.end(), int(idx));
+        EnumWrapper wrapper = iter->second.value.template get<EnumWrapper>();
+        ASSERT(wrapper.typeHash == typeid(TValue).hash_code());
+        return TValue(wrapper.value);
     }
 
     /// \brief Returns Flags from underlying value stored in settings.
@@ -160,6 +236,15 @@ public:
         return Flags<TValue>::fromValue(std::underlying_type_t<TValue>(value));
     }
 
+    /// \brief Checks if the given entry has specified type.
+    ///
+    /// Entry must be in settings, checked by assert.
+    template <typename TValue>
+    bool has(const TEnum idx) const {
+        typename std::map<TEnum, Entry>::const_iterator iter = entries.find(idx);
+        ASSERT(iter != entries.end(), int(idx));
+        return iter->second.value.template has<TValue>();
+    }
 
     /// \brief Saves all values stored in settings into file.
     ///
@@ -175,21 +260,22 @@ public:
     ///          returns encountered error.
     Outcome loadFromFile(const Path& path);
 
-    /// Iterator to the first entry of the settings storage.
+    /// \brief Iterator to the first entry of the settings storage.
     SettingsIterator<TEnum> begin() const;
 
-    /// Iterator to the one-past-end entry the settings storage.
+    /// \brief Iterator to the one-past-end entry the settings storage.
     SettingsIterator<TEnum> end() const;
 
-    /// Returns the number of entries in the settings. This includes default entries in case the object was
-    /// not constructed with EMPTY_SETTINGS tag.
+    /// \brief Returns the number of entries in the settings.
+    ///
+    /// This includes default entries in case the object was not constructed with EMPTY_SETTINGS tag.
     Size size() const;
 
-    /// Returns a reference to object containing default values of all settings.
+    /// \\brief Returns a reference to object containing default values of all settings.
     static const Settings& getDefaults();
 
 private:
-    bool setValueByType(Entry& entry, const Size typeIdx, const std::string& str);
+    bool setValueByType(Entry& entry, const Value& defaultValue, const std::string& str);
 };
 
 /// Iterator useful for iterating over all entries in the settings.
@@ -236,16 +322,41 @@ enum class KernelEnum {
     /// Gaussian function
     GAUSSIAN,
 
+    /// Simple triangle (piecewise linear) kernel
+    TRIANGLE,
+
     /// Core Triangle (CT) kernel by Read et al. (2010)
     CORE_TRIANGLE,
 
-    /// Wendland kernels
+    /// Modification of the standard M4 B-spline kernel, used to avoid particle clustering
+    THOMAS_COUCHMAN,
+
+    /// Wendland kernel C2
     WENDLAND_C2,
 
+    /// Wendland kernel C4
     WENDLAND_C4,
 
+    /// Wendland kernel C6
     WENDLAND_C6,
 };
+static RegisterEnum<KernelEnum> sKernel({
+    { KernelEnum::CUBIC_SPLINE, "cubic_spline", "M4 B-spline (piecewise cubic polynomial" },
+    { KernelEnum::FOURTH_ORDER_SPLINE, "fourth_order_spline", "M5 B-spline (piecewise 4th-order polynomial" },
+    { KernelEnum::GAUSSIAN, "gaussian", "Gaussian function with clamped support" },
+    { KernelEnum::TRIANGLE,
+        "triangle",
+        "Triangular (piecewise linear) kernel. Derivatives are not continuous, the kernel is therefore not "
+        "suitable for SPH, but can be useful for non-SPH interpolations, etc." },
+    { KernelEnum::CORE_TRIANGLE, "core_triangle", "Core Triangle (CT) kernel by Read et al. (2010)" },
+    { KernelEnum::THOMAS_COUCHMAN,
+        "thomas_couchman",
+        "Modification of the M4 B-spline kernel by Thomas & Couchman (1992), designed to prevent clustering "
+        "of particles." },
+    { KernelEnum::WENDLAND_C2, "wendland_c2", "Wendland kernel C2" },
+    { KernelEnum::WENDLAND_C4, "wendland_c4", "Wendland kernel C4" },
+    { KernelEnum::WENDLAND_C6, "wendland_c6", "Wendland kernel C6" },
+});
 
 enum class TimesteppingEnum {
     /// Explicit (forward) 1st-order integration
@@ -263,6 +374,13 @@ enum class TimesteppingEnum {
     /// Bulirsch-Stoer integrator
     BULIRSCH_STOER
 };
+static RegisterEnum<TimesteppingEnum> sTimestepping({
+    { TimesteppingEnum::EULER_EXPLICIT, "euler_explicit", "Explicit (forward) 1st-order integration" },
+    { TimesteppingEnum::LEAP_FROG, "leap_frog", "Leap-frog 2nd-order integration" },
+    { TimesteppingEnum::RUNGE_KUTTA, "runge_kutta", "Runge-Kutta 4-th order integration" },
+    { TimesteppingEnum::PREDICTOR_CORRECTOR, "predictor_corrector", "Predictor-corrector scheme" },
+    { TimesteppingEnum::BULIRSCH_STOER, "bulirsch_stoer", "Bulirsch-Stoer integrator" },
+});
 
 enum class TimeStepCriterionEnum {
     /// Constant time step, determined by initial value
@@ -280,6 +398,18 @@ enum class TimeStepCriterionEnum {
     /// Value for using all criteria.
     ALL = COURANT | DERIVATIVES | ACCELERATION,
 };
+static RegisterEnum<TimeStepCriterionEnum> sTimeStepCriterion({
+    { TimeStepCriterionEnum::NONE, "none", "Constant time step, determined by initial value" },
+    { TimeStepCriterionEnum::COURANT, "courant", "Time step determined using CFL condition" },
+    { TimeStepCriterionEnum::DERIVATIVES,
+        "derivatives",
+        "Time step computed by limiting value-to-derivative ratio of quantities" },
+    { TimeStepCriterionEnum::ACCELERATION,
+        "acceleration",
+        "Time step computed from ratio of acceleration and smoothing length." },
+    //{ TimeStepCriterionEnum::ALL, "all", "Value for using all criteria." },
+});
+
 
 enum class FinderEnum {
     /// Brute-force search by going through each pair of particles (O(N^2) complexity)
@@ -300,6 +430,17 @@ enum class FinderEnum {
     /// Selecting most suitable finder automatically
     DYNAMIC
 };
+static RegisterEnum<FinderEnum> sFinder({
+    { FinderEnum::BRUTE_FORCE,
+        "brute_force",
+        "Brute-force search by going through each pair of particles (O(N^2) complexity)" },
+    { FinderEnum::KD_TREE, "kd_tree", "Using K-d tree" },
+    { FinderEnum::OCTREE, "octree", "Using octree" },
+    { FinderEnum::LINKED_LIST, "linked_list", "Using linked list" },
+    { FinderEnum::UNIFORM_GRID, "uniform_grid", "Partitioning particles into a grid uniform in space" },
+    { FinderEnum::DYNAMIC, "dynamic", "Selecting most suitable finder automatically" },
+});
+
 
 enum class BoundaryEnum {
     /// Do not use any boundary conditions (= vacuum conditions)
@@ -320,6 +461,30 @@ enum class BoundaryEnum {
     /// Project all movement onto a line, effectivelly reducing the simulation to 1D
     PROJECT_1D
 };
+static RegisterEnum<BoundaryEnum> sBoundary({
+    { BoundaryEnum::NONE, "none", "Do not use any boundary conditions (= vacuum conditions)" },
+    { BoundaryEnum::FROZEN_PARTICLES,
+        "frozen_particles",
+        "Highest derivatives of all particles close to the boundary are set to zero." },
+    { BoundaryEnum::GHOST_PARTICLES,
+        "ghost_particles",
+        "Create ghosts particles located symmetricaly to the particles near the boundary, in order to keep "
+        "particles inside domain." },
+    { BoundaryEnum::WIND_TUNNEL,
+        "wind_tunnel",
+        "Simulates a wind tunnel by pushing air particles into the domain and removing them on the other "
+        "side of the domain. The air particles are kept inside the domain using Frozen Particles boundary "
+        "conditions." },
+    { BoundaryEnum::PERIODIC,
+        "periodic",
+        "Periodic boundary conditions; particles can interact accross boundaries. When particles leave the "
+        "domain, they re-enter on the other side of the domain. " },
+    { BoundaryEnum::PROJECT_1D,
+        "project_1D",
+        "Debug boundary condition, used to emulate 1D SPH solver. While the solver is still "
+        "three-dimensional under the hood, the particles are projected on a line and can move only in one "
+        "dimension. Note that this has to be supplied by correct kernel normalization, etc." },
+});
 
 enum class DomainEnum {
     /// No computational domain (can only be used with BoundaryEnum::NONE)
@@ -337,19 +502,24 @@ enum class DomainEnum {
     /// Cylindrical domain aligned with z axis
     CYLINDER
 };
+static RegisterEnum<DomainEnum> sDomain({ { DomainEnum::NONE, "none", "No computational domain." },
+    { DomainEnum::SPHERICAL, "spherical", "Sphere with given radius." },
+    { DomainEnum::ELLIPSOIDAL, "ellipsoidal", "Axis-aligned ellipsoidal domain." },
+    { DomainEnum::BLOCK, "block", "Axis-aligned block domain." },
+    { DomainEnum::CYLINDER, "cylinder", "Cylindrical domain aligned with z axis." } });
 
 /// List of forces to compute by the solver. This does not include numerical terms, see
 /// ArtificialViscosityEnum.
 enum class ForceEnum {
-    /// Use force from pressure gradient in the solver
-    PRESSURE_GRADIENT = 1 << 0,
+    /// Use force from pressure gradient in the solver.
+    PRESSURE = 1 << 0,
 
-    /// Use force from stress divergence in the model. Must be used together with PRESSURE_GRADIENT. Stress
-    /// tensor is then evolved in time using Hooke's equation.
+    /// Use force from stress divergence in the model. Must be used together with PRESSURE_GRADIENT.
+    /// Stress tensor is then evolved in time using Hooke's equation.
     SOLID_STRESS = 1 << 1,
 
-    /// Stress tensor for the simulation of fluids. Must be used together with PRESSURE_GRADIENT, cannot be
-    /// used together with solid stress force.
+    /// Stress tensor for the simulation of fluids. Must be used together with PRESSURE_GRADIENT, cannot
+    /// be used together with solid stress force.
     NAVIER_STOKES = 1 << 2,
 
     /// Use internal friction given by the viscosity in the material.
@@ -361,6 +531,21 @@ enum class ForceEnum {
     /// Use gravitational force in the model
     GRAVITY = 1 << 5,
 };
+static RegisterEnum<ForceEnum> sForce({
+    { ForceEnum::PRESSURE, "pressure", "Force given by pressure gradient." },
+    { ForceEnum::SOLID_STRESS,
+        "solid_stress",
+        "Use force from stress divergence in the model. Must be used together with pressure gradient. Stress "
+        "tensor is evolved in time using Hooke's equation." },
+    { ForceEnum::NAVIER_STOKES,
+        "navier_stokes",
+        "Stress tensor for the simulation of fluids. Must be used together with pressure gradient, cannot be "
+        "used together with solid stress force." },
+    { ForceEnum::INERTIAL,
+        "inertial",
+        "Centrifugal force and Coriolis force given by angular frequency of the coordinate frame." },
+    { ForceEnum::GRAVITY, "gravity", "Self-gravity of particles" },
+});
 
 enum class ArtificialViscosityEnum {
     /// No artificial viscosity
@@ -375,6 +560,18 @@ enum class ArtificialViscosityEnum {
     /// Time-dependent artificial viscosity by Morris & Monaghan (1997).
     MORRIS_MONAGHAN,
 };
+static RegisterEnum<ArtificialViscosityEnum> sArtificialViscosity({
+    { ArtificialViscosityEnum::NONE, "none", "No artificial viscosity" },
+    { ArtificialViscosityEnum::STANDARD,
+        "standard",
+        "Standard artificial viscosity term by Monaghan (1989)." },
+    { ArtificialViscosityEnum::RIEMANN,
+        "riemann",
+        "Artificial viscosity term analogous to Riemann solvers by Monaghan (1997)." },
+    { ArtificialViscosityEnum::MORRIS_MONAGHAN,
+        "morris_monaghan",
+        "Time-dependent artificial viscosity by Morris & Monaghan (1997)." },
+});
 
 enum class SolverEnum {
     /// SPH formulation using symmetrized evaluation of derivatives.
@@ -389,6 +586,21 @@ enum class SolverEnum {
     /// Density independent solver by Saitoh & Makino (2013).
     DENSITY_INDEPENDENT,
 };
+static RegisterEnum<SolverEnum> sSolver({
+    { SolverEnum::SYMMETRIC_SOLVER,
+        "symmetric_solver",
+        "SPH solver using symmetrized evaluation of derivatives. Cannot be used together with some "
+        "parameters, for example with strain rate correction tensor!" },
+    { SolverEnum::ASYMMETRIC_SOLVER,
+        "asymmetric_solver",
+        "SPH solver evaluating all derivatives asymmetrically." },
+    { SolverEnum::SUMMATION_SOLVER,
+        "summation_solver",
+        "Solver computing density by direct summation over nearest SPH particles." },
+    { SolverEnum::DENSITY_INDEPENDENT,
+        "density_independent",
+        "Density independent solver by Saitoh & Makino (2013). Experimental!" },
+});
 
 
 enum class FormulationEnum {
@@ -398,6 +610,14 @@ enum class FormulationEnum {
     /// (P_i + P_j) / (rho_i rho_j)
     BENZ_ASPHAUG,
 };
+static RegisterEnum<FormulationEnum> sFormulation({
+    { FormulationEnum::STANDARD,
+        "standard",
+        "Standard discretization of SPH equations. Equations are obtained from Lagrangian." },
+    { FormulationEnum::BENZ_ASPHAUG,
+        "benz_asphaug",
+        "Alternative formulation of SPH, used by Benz & Asphaug (1994, 1995)." },
+});
 
 enum class YieldingEnum {
     /// Gass or material with no stress tensor
@@ -412,6 +632,12 @@ enum class YieldingEnum {
     /// Drucker-Prager pressure dependent yielding stress
     DRUCKER_PRAGER
 };
+static RegisterEnum<YieldingEnum> sYield({
+    { YieldingEnum::NONE, "none", "No stress tensor, gass or material with no stress tensor" },
+    { YieldingEnum::ELASTIC, "elastic", "No yield, just elastic deformations following Hooke's law" },
+    { YieldingEnum::VON_MISES, "von_mises", "Stress yielding using von Mises criterion." },
+    { YieldingEnum::DRUCKER_PRAGER, "drucker_prager", "Drucker-Prager pressure dependent yielding stress." },
+});
 
 enum class FractureEnum {
     /// No fragmentation
@@ -423,6 +649,15 @@ enum class FractureEnum {
     /// Grady-Kipp model of fragmentation using tensor damage
     TENSOR_GRADY_KIPP
 };
+static RegisterEnum<FractureEnum> sFracture({
+    { FractureEnum::NONE, "none", "No fragmentation" },
+    { FractureEnum::SCALAR_GRADY_KIPP,
+        "scalar_grady_kipp",
+        "Grady-Kipp model of fragmentation using scalar damage" },
+    { FractureEnum::TENSOR_GRADY_KIPP,
+        "tensor_grady_kipp",
+        "Grady-Kipp model of fragmentation using tensor damage" },
+});
 
 enum class SmoothingLengthEnum {
     /// Smoothing length is constant and given by initial conditions
@@ -435,6 +670,16 @@ enum class SmoothingLengthEnum {
     /// local sound speed
     SOUND_SPEED_ENFORCING = 1 << 2
 };
+static RegisterEnum<SmoothingLengthEnum> sSmoothingLength({
+    { SmoothingLengthEnum::CONST, "const", "Smoothing length is constant and given by initial conditions." },
+    { SmoothingLengthEnum::CONTINUITY_EQUATION,
+        "continuity_equation",
+        "Smoothing length is evolved using continuity equation." },
+    { SmoothingLengthEnum::SOUND_SPEED_ENFORCING,
+        "sound_speed_enforcing",
+        "Number of neighbours is kept in the specified range by adding additional derivatives of smoothing "
+        "length, scaled by local sound speed." },
+});
 
 enum class GravityEnum {
     /// Approximated gravity, assuming the matter is a simple homogeneous sphere.
@@ -446,6 +691,18 @@ enum class GravityEnum {
     /// Use Barnes-Hut algorithm, approximating gravity by multipole expansion (up to octupole order)
     BARNES_HUT,
 };
+static RegisterEnum<GravityEnum> sGravity({
+    { GravityEnum::SPHERICAL,
+        "spherical",
+        "No self-gravity, particles only move in spherically symmetric gravitational potential. Can be used "
+        "as an approximate gravity for spherically symmetric simulations." },
+    { GravityEnum::BRUTE_FORCE,
+        "brute_force",
+        "Brute-force summation over all particle pairs (O(N^2) complexity)" },
+    { GravityEnum::BARNES_HUT,
+        "barnes_hut",
+        "Barnes-Hut algorithm approximating gravity by multipole expansion (up to octupole order)." },
+});
 
 enum class GravityKernelEnum {
     /// Point-like particles with zero radius
@@ -458,6 +715,16 @@ enum class GravityKernelEnum {
     /// allowed.
     SOLID_SPHERES,
 };
+static RegisterEnum<GravityKernelEnum> sGravityKernel({
+    { GravityKernelEnum::POINT_PARTICLES, "point_particles", "Point-like particles with zero radius." },
+    { GravityKernelEnum::SPH_KERNEL,
+        "sph_kernel",
+        "Smoothing kernel associated with selected SPH kernel. For SPH simulations." },
+    { GravityKernelEnum::SOLID_SPHERES,
+        "solid_spheres",
+        "Kernel representing gravity of solid spheres. Useful for N-body simulations where overlaps are "
+        "allowed." },
+});
 
 enum class CollisionHandlerEnum {
     /// All collided particles merge, creating larger spherical particles. May reject the collision in case
@@ -474,6 +741,22 @@ enum class CollisionHandlerEnum {
     /// merged, otherwise the particle bounce.
     MERGE_OR_BOUNCE,
 };
+static RegisterEnum<CollisionHandlerEnum> sCollisionHandler({
+    { CollisionHandlerEnum::PERFECT_MERGING,
+        "perfect_merging",
+        "All collided particles merge, creating larger spherical particles. May reject the collision in case "
+        "the particles move too fast (faster than the escape velocity). To ensure that the particles are "
+        "always merged, set the collision merge limit to zero. Note that this may create unphysically fast "
+        "rotators, but it is a simple handler, useful for testing." },
+    { CollisionHandlerEnum::ELASTIC_BOUNCE,
+        "elastic_bounce",
+        "Collided particles bounce with some energy dissipation, specified by the coefficients of "
+        "restitution. No merging, number of particles remains constant." },
+    { CollisionHandlerEnum::MERGE_OR_BOUNCE,
+        "merge_or_bounce",
+        "If the relative speed of the collided particles is lower than the escape velocity, the particles "
+        "are merged, otherwise the particle bounce." },
+});
 
 enum class OverlapEnum {
     /// All overlaps are ignored
@@ -494,6 +777,23 @@ enum class OverlapEnum {
 
     PASS_OR_MERGE,
 };
+static RegisterEnum<OverlapEnum> sOverlap({
+    { OverlapEnum::NONE, "none", "All overlaps are ignored." },
+    { OverlapEnum::FORCE_MERGE, "force_merge", "Overlapping particles are merged." },
+    { OverlapEnum::REPEL, "repel", "Particles are shifted until no overlap happens." },
+    { OverlapEnum::REPEL_OR_MERGE,
+        "repel_or_merge",
+        "Particles are either repeled (and bounced) or merged, based on the ratio of their relative velocity "
+        "to the escape velocity (similar to merge_or_bounce collision handler)." },
+    { OverlapEnum::INTERNAL_BOUNCE,
+        "internal_bounce",
+        "If the center of the particles are moving towards each other, particles bounce, otherwise nothing "
+        "happens." },
+    { OverlapEnum::PASS_OR_MERGE,
+        "pass_or_merge",
+        "Overlap is allowed. If the relative velocity of particles is lower than the escape velocity, "
+        "particles are merged, otherwise they simply pass through each other." },
+});
 
 enum class LoggerEnum {
     /// Do not log anything
@@ -507,13 +807,17 @@ enum class LoggerEnum {
 
     /// \todo print using callback to gui application
 };
+static RegisterEnum<LoggerEnum> sLogger({
+    { LoggerEnum::NONE, "none", "Do not log anything." },
+    { LoggerEnum::STD_OUT, "stdout", "Print log to standard output." },
+    { LoggerEnum::FILE, "file", "Print log to a file." },
+});
 
 enum class OutputEnum {
     /// No output
     NONE,
 
     /// Save output data into formatted human-readable text file
-    /// \todo This is pointless to use as user still has to manually add output columns ...
     TEXT_FILE,
 
     /// Extension of text file, additionally executing given gnuplot script, generating a plot from every dump
@@ -526,6 +830,19 @@ enum class OutputEnum {
     /// Generate a pkdgrav input file.
     PKDGRAV_INPUT,
 };
+static RegisterEnum<OutputEnum> sOutput({
+    { OutputEnum::NONE, "none", "No output" },
+    { OutputEnum::TEXT_FILE, "text_file", "Save output data into formatted human-readable text file" },
+    { OutputEnum::GNUPLOT_OUTPUT,
+        "gnuplot_output",
+        "Extension of text file, additionally executing given gnuplot script, generating a plot from every "
+        "dump" },
+    { OutputEnum::BINARY_FILE,
+        "binary_file",
+        "Save output data into binary file. This data dump is lossless and can be use to restart run from "
+        "saved snapshot. Stores values, all derivatives and materials of the storage." },
+    { OutputEnum::PKDGRAV_INPUT, "pkdgrav_input", "Generate a pkdgrav input file." },
+});
 
 enum class RngEnum {
     /// Mersenne Twister PRNG from Standard library
@@ -537,6 +854,11 @@ enum class RngEnum {
     /// Same RNG as used in SPH5, used for 1-1 comparison
     BENZ_ASPHAUG
 };
+static RegisterEnum<RngEnum> sRng({
+    { RngEnum::UNIFORM, "uniform", "Mersenne Twister PRNG from Standard library." },
+    { RngEnum::HALTON, "halton", "Halton sequence for quasi-random numbers." },
+    { RngEnum::BENZ_ASPHAUG, "benz_asphaug", "RNG used in code SPH5, used for 1-1 comparison of codes." },
+});
 
 /// Settings relevant for whole run of the simulation
 enum class RunSettingsId {
@@ -564,6 +886,9 @@ enum class RunSettingsId {
     /// Path where all output files (dumps, logs, ...) will be written
     RUN_OUTPUT_PATH,
 
+    /// List of quantities to write to text output. Binary output always stores all quantitites.
+    RUN_OUTPUT_QUANTITIES,
+
     /// Number of threads used by the code. If 0, all available threads are used.
     RUN_THREAD_CNT,
 
@@ -577,9 +902,6 @@ enum class RunSettingsId {
 
     /// Path of a file where the log is printed, used only when selected logger is LoggerEnum::FILE
     RUN_LOGGER_FILE,
-
-    /// Frequency of statistics evaluation
-    RUN_STATISTICS_STEP,
 
     /// Starting time and ending time of the run. Run does not necessarily have to start at t = 0.
     RUN_TIME_RANGE,
@@ -735,9 +1057,6 @@ enum class RunSettingsId {
     /// Number of spatial dimensions of the problem.
     SOLVER_DIMENSIONS,
 
-    /// Save initial positions of particles to the output
-    OUTPUT_SAVE_INITIAL_POSITION,
-
     /// Maximum number of iterations for self-consistent density computation of summation solver.
     SUMMATION_MAX_ITERATIONS,
 
@@ -751,11 +1070,6 @@ enum class RunSettingsId {
 
     /// Courant number
     TIMESTEPPING_COURANT_NUMBER,
-
-    /// Turns of the Courant criterion for given particle if the number of neighbours is lower than given
-    /// limit. This is used mainly to avoid limitation from single (separated) particles where we don't need
-    /// the Courant criterion.
-    TIMESTEPPING_COURANT_NEIGHBOUR_LIMIT,
 
     /// Upper limit of the time step. The timestep is guaranteed to never exceed this value for any timestep
     /// criterion. The lowest possible timestep is not set, timestep can be any positive value.
@@ -811,9 +1125,6 @@ enum class RunSettingsId {
 
     /// Distance to the boundary in units of smoothing length under which the particles are frozen.
     DOMAIN_FROZEN_DIST,
-
-    /// Threshold for detecting boundary particles. Higher value means more boundary particles.
-    BOUNDARY_THRESHOLD,
 };
 
 
@@ -833,10 +1144,16 @@ enum class DistributionEnum {
     /// Distributes particles uniformly on line
     LINEAR
 };
+static RegisterEnum<DistributionEnum> sDistribution({
+    { DistributionEnum::HEXAGONAL, "hexagonal", "Hexagonally close packing" },
+    { DistributionEnum::CUBIC, "cubic", "Cubic close packing (generally unstable, mainly for tests!)" },
+    { DistributionEnum::RANDOM, "random", "Randomly distributed particles" },
+    { DistributionEnum::DIEHL_ET_AL, "diehl_et_al", "Isotropic uniform distribution by Diehl et al. (2012)" },
+});
 
 
 enum class EosEnum {
-    /// No equation of stats
+    /// No equation of state
     NONE,
 
     /// Equation of state for ideal gas
@@ -857,208 +1174,220 @@ enum class EosEnum {
     /// ANEOS given by look-up table
     ANEOS
 };
+static RegisterEnum<EosEnum> sEos({
+    { EosEnum::NONE,
+        "none",
+        "No equation of state. Implies there is no pressure nor stress in the "
+        "body, can be used to simulate "
+        "dust interacting only by friction or gravity." },
+    { EosEnum::IDEAL_GAS, "ideal_gas", "Equation of state for ideal gas." },
+    { EosEnum::TAIT, "tait", "Tait equation of state for simulations of liquids." },
+    { EosEnum::MIE_GRUNEISEN,
+        "mie_gruneisen",
+        "Mie-Gruneisen equation of state. Simple model for solids without any phase transitions." },
+    { EosEnum::TILLOTSON, "tillotson", "Tillotson equation of stats." },
+    { EosEnum::MURNAGHAN, "murnaghan", "Murnaghan equation of state." },
+    { EosEnum::ANEOS,
+        "aneos",
+        "ANEOS equation of state, requires look-up table of values for given material." },
+});
 
-/// Settings of a single body / gas phase / ...
-/// Combines material parameters and numerical parameters of the SPH method specific for one body.
+/// \brief Settings of a single body / gas phase / ...
+///
+/// Combines material parameters and numerical parameters of the SPH method specific for one body. Values of
+/// parameters CANNOT be changed to preserve backward compatibility of serializer. New IDs can be created as
+/// needed, parameters no longer needed can be removed.
 enum class BodySettingsId {
     /// Equation of state for this material, see EosEnum for options.
-    EOS,
+    EOS = 0,
 
     /// Initial distribution of SPH particles within the domain, see DistributionEnum for options.
-    INITIAL_DISTRIBUTION,
+    INITIAL_DISTRIBUTION = 1,
 
     /// If true, generated particles will be moved so that their center of mass corresponds to the center of
     /// selected domain. Note that this will potentially move some particles outside of the domain, which can
     /// clash with boundary conditions.
-    CENTER_PARTICLES,
+    CENTER_PARTICLES = 2,
 
     /// If true, particles are sorted using Morton code, preserving locality in memory.
-    PARTICLE_SORTING,
+    PARTICLE_SORTING = 3,
 
     /// Turns on 'SPH5 compatibility' mode when generating particle positions. This allows 1-1 comparison of
     /// generated arrays, but results in too many generated particles (by about factor 1.4). The option also
     /// implies CENTER_PARTICLES.
-    DISTRIBUTE_MODE_SPH5,
+    DISTRIBUTE_MODE_SPH5 = 4,
 
     /// Strength parameter of the Diehl's distribution.
-    DIELH_STRENGTH,
+    DIELH_STRENGTH = 5,
 
     /// Maximum allowed difference between the expected number of particles and the actual number of generated
     /// particles. Higher value speed up the generation of particle positions.
-    DIEHL_MAX_DIFFERENCE,
+    DIEHL_MAX_DIFFERENCE = 6,
 
     /// Density at zero pressure
-    DENSITY,
+    DENSITY = 7,
 
     /// Allowed range of density. Densities of all particles all clamped to fit in the range.
-    DENSITY_RANGE,
+    DENSITY_RANGE = 8,
 
     /// Estimated minimal value of density. This value is NOT used to clamp densities, but for
     /// determining error of timestepping.
-    DENSITY_MIN,
+    DENSITY_MIN = 9,
 
     /// Initial specific internal energy
-    ENERGY,
+    ENERGY = 10,
 
     /// Allowed range of specific internal energy.
-    ENERGY_RANGE,
+    ENERGY_RANGE = 11,
 
     /// Estimated minimal value of energy used to determine timestepping error.
-    ENERGY_MIN,
+    ENERGY_MIN = 12,
 
     /// Initial values of the deviatoric stress tensor
-    STRESS_TENSOR,
+    STRESS_TENSOR = 13,
 
     /// Estimated minial value of stress tensor components used to determined timestepping error.
-    STRESS_TENSOR_MIN,
+    STRESS_TENSOR_MIN = 14,
 
     /// Initial damage of the body.
-    DAMAGE,
+    DAMAGE = 15,
 
     /// Allowed range of damage.
-    DAMAGE_RANGE,
+    DAMAGE_RANGE = 16,
 
     /// Estimate minimal value of damage used to determine timestepping error.
-    DAMAGE_MIN,
+    DAMAGE_MIN = 17,
 
     /// Adiabatic index used by some equations of state (such as ideal gas)
-    ADIABATIC_INDEX,
+    ADIABATIC_INDEX = 18,
 
     /// Exponent of density, representing a compressibility of a fluid. Used in Tait equation of state.
-    TAIT_GAMMA,
+    TAIT_GAMMA = 19,
 
     /// Sound speed used in Tait equation of state
-    TAIT_SOUND_SPEED,
+    TAIT_SOUND_SPEED = 20,
 
     /// Bulk modulus of the material
-    BULK_MODULUS,
+    BULK_MODULUS = 21,
 
     /// Coefficient B of the nonlinear compressive term in Tillotson equation
-    TILLOTSON_NONLINEAR_B,
+    TILLOTSON_NONLINEAR_B = 22,
 
     /// "Small a" coefficient in Tillotson equation
-    TILLOTSON_SMALL_A,
+    TILLOTSON_SMALL_A = 23,
 
     /// "Small b" coefficient in Tillotson equation
-    TILLOTSON_SMALL_B,
+    TILLOTSON_SMALL_B = 24,
 
     /// Alpha coefficient in expanded phase of Tillotson equation
-    TILLOTSON_ALPHA,
+    TILLOTSON_ALPHA = 25,
 
     /// Beta coefficient in expanded phase of Tillotson equation
-    TILLOTSON_BETA,
+    TILLOTSON_BETA = 26,
 
     /// Specific sublimation energy
-    TILLOTSON_SUBLIMATION,
+    TILLOTSON_SUBLIMATION = 27,
 
     /// Specific energy of incipient vaporization
-    TILLOTSON_ENERGY_IV,
+    TILLOTSON_ENERGY_IV = 28,
 
     /// Specific energy of complete vaporization
-    TILLOTSON_ENERGY_CV,
+    TILLOTSON_ENERGY_CV = 29,
 
     /// Gruneisen's gamma paraemter used in Mie-Gruneisen equation of state
-    GRUNEISEN_GAMMA,
+    GRUNEISEN_GAMMA = 30,
 
     /// Used in Mie-Gruneisen equations of state
-    BULK_SOUND_SPEED,
+    BULK_SOUND_SPEED = 31,
 
     /// Linear Hugoniot slope coefficient used in Mie-Gruneisen equation of state
-    HUGONIOT_SLOPE,
+    HUGONIOT_SLOPE = 32,
 
-    RHEOLOGY_YIELDING,
+    RHEOLOGY_YIELDING = 33,
 
-    RHEOLOGY_DAMAGE,
+    RHEOLOGY_DAMAGE = 34,
 
     /// Shear modulus mu (a.k.a Lame's second parameter) of the material
-    SHEAR_MODULUS,
+    SHEAR_MODULUS = 35,
 
-    YOUNG_MODULUS,
+    YOUNG_MODULUS = 36,
 
     /// Elastic modulus lambda (a.k.a Lame's first parameter) of the material
-    ELASTIC_MODULUS,
+    ELASTIC_MODULUS = 37,
 
     /// Elasticity limit of the von Mises yielding criterion
-    ELASTICITY_LIMIT,
+    ELASTICITY_LIMIT = 38,
 
-    MELT_ENERGY,
+    MELT_ENERGY = 39,
 
     /// Cohesion, yield strength at zero pressure
-    COHESION,
+    COHESION = 40,
 
     /// Coefficient of friction for undamaged material
-    INTERNAL_FRICTION,
+    INTERNAL_FRICTION = 41,
 
     /// Coefficient of friction for fully damaged material
-    DRY_FRICTION,
+    DRY_FRICTION = 42,
 
     /// \todo
-    BRITTLE_DUCTILE_TRANSITION_PRESSURE,
+    BRITTLE_DUCTILE_TRANSITION_PRESSURE = 43,
 
     /// \todo
-    BRITTLE_PLASTIC_TRANSITION_PRESSURE,
+    BRITTLE_PLASTIC_TRANSITION_PRESSURE = 44,
 
     /// \todo
-    MOHR_COULOMB_STRESS,
+    MOHR_COULOMB_STRESS = 45,
 
     /// \todo
-    FRICTION_ANGLE,
+    FRICTION_ANGLE = 46,
 
     /// Speed of crack growth, in units of local sound speed.
-    RAYLEIGH_SOUND_SPEED,
+    RAYLEIGH_SOUND_SPEED = 47,
 
-    WEIBULL_COEFFICIENT,
+    WEIBULL_COEFFICIENT = 48,
 
-    WEIBULL_EXPONENT,
+    WEIBULL_EXPONENT = 49,
 
-    BULK_VISCOSITY,
+    BULK_VISCOSITY = 50,
 
-    SHEAR_VISCOSITY,
+    SHEAR_VISCOSITY = 51,
 
-    DAMPING_COEFFICIENT,
+    DAMPING_COEFFICIENT = 52,
 
-    DIFFUSIVITY,
+    DIFFUSIVITY = 53,
 
     /// Coefficient of surface tension
-    SURFACE_TENSION,
+    SURFACE_TENSION = 54,
 
     /// Number of SPH particles in the body
-    PARTICLE_COUNT,
+    PARTICLE_COUNT = 55,
 
     /// Minimal number of particles per one body. Used when creating 'sub-bodies' withing one 'parent' body,
     /// for example when creating rubble-pile asteroids, ice blocks inside an asteroid, etc. Parameter has no
     /// effect for creation of a single monolithic body; the number of particles from PARTICLE_COUNT is used
     /// in any case.
-    MIN_PARTICLE_COUNT,
+    MIN_PARTICLE_COUNT = 56,
 
     /// Initial alpha coefficient of the artificial viscosity. This is only used if the coefficient is
     /// different for each particle. For constant coefficient shared for all particles, use value from global
     /// settings.
-    AV_ALPHA,
+    AV_ALPHA = 57,
 
     /// Lower and upper bound of the alpha coefficient, used only for time-dependent artificial viscosity.
-    AV_ALPHA_RANGE,
-
-    /// Initial beta coefficient of the artificial viscosity.
-    AV_BETA,
-
-    /// Lower and upper bound of the alpha coefficient, used only for time-dependent artificial viscosity.
-    AV_BETA_RANGE,
+    AV_ALPHA_RANGE = 58,
 
     /// Center point of the body. Currently used only by StabilizationSolver.
-    BODY_CENTER,
+    BODY_CENTER = 61,
 
     /// Velocity of the body. `Currently used only by StabilizationSolver.
-    BODY_VELOCITY,
+    BODY_VELOCITY = 62,
 
     /// Angular velocity of the body with a respect to position given by BODY_CENTER. `Currently used only by
     /// StabilizationSolver.
-    BODY_ANGULAR_VELOCITY,
+    BODY_ANGULAR_VELOCITY = 63,
 };
 
 using RunSettings = Settings<RunSettingsId>;
 using BodySettings = Settings<BodySettingsId>;
 
 NAMESPACE_SPH_END
-
-#include "system/Settings.inl.h"

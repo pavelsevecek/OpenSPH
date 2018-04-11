@@ -2,6 +2,7 @@
 #include "io/Column.h"
 #include "io/FileSystem.h"
 #include "io/Serializer.h"
+#include "objects/finders/Order.h"
 #include "quantities/IMaterial.h"
 #include "system/Factory.h"
 #include <fstream>
@@ -72,22 +73,43 @@ static void printHeader(std::ostream& ofs, const std::string& name, const ValueE
     }
 }
 
-static void addBasicColumns(Array<AutoPtr<ITextColumn>>& columns) {
-    columns.push(makeAuto<ParticleNumberColumn>());
-    columns.push(makeAuto<ValueColumn<Vector>>(QuantityId::POSITION));
-    columns.push(makeAuto<DerivativeColumn<Vector>>(QuantityId::POSITION));
-    columns.push(makeAuto<ValueColumn<Float>>(QuantityId::MASS));
-}
-
-static void addExtendedColumns(Array<AutoPtr<ITextColumn>>& columns) {
-    addBasicColumns(columns);
-
-    columns.push(makeAuto<SmoothingLengthColumn>());
-    columns.push(makeAuto<ValueColumn<Float>>(QuantityId::DENSITY));
-    columns.push(makeAuto<ValueColumn<Float>>(QuantityId::PRESSURE));
-    columns.push(makeAuto<ValueColumn<Float>>(QuantityId::ENERGY));
-    columns.push(makeAuto<ValueColumn<Float>>(QuantityId::DAMAGE));
-    columns.push(makeAuto<ValueColumn<TracelessTensor>>(QuantityId::DEVIATORIC_STRESS));
+static void addColumns(const Flags<OutputQuantityFlag> quantities, Array<AutoPtr<ITextColumn>>& columns) {
+    if (quantities.has(OutputQuantityFlag::POSITION)) {
+        columns.push(makeAuto<ValueColumn<Vector>>(QuantityId::POSITION));
+    }
+    if (quantities.has(OutputQuantityFlag::VELOCITY)) {
+        columns.push(makeAuto<DerivativeColumn<Vector>>(QuantityId::POSITION));
+    }
+    if (quantities.has(OutputQuantityFlag::SMOOTHING_LENGTH)) {
+        columns.push(makeAuto<SmoothingLengthColumn>());
+    }
+    if (quantities.has(OutputQuantityFlag::MASS)) {
+        columns.push(makeAuto<ValueColumn<Float>>(QuantityId::MASS));
+    }
+    if (quantities.has(OutputQuantityFlag::PRESSURE)) {
+        columns.push(makeAuto<ValueColumn<Float>>(QuantityId::PRESSURE));
+    }
+    if (quantities.has(OutputQuantityFlag::DENSITY)) {
+        columns.push(makeAuto<ValueColumn<Float>>(QuantityId::DENSITY));
+    }
+    if (quantities.has(OutputQuantityFlag::ENERGY)) {
+        columns.push(makeAuto<ValueColumn<Float>>(QuantityId::ENERGY));
+    }
+    if (quantities.has(OutputQuantityFlag::DEVIATORIC_STRESS)) {
+        columns.push(makeAuto<ValueColumn<TracelessTensor>>(QuantityId::DEVIATORIC_STRESS));
+    }
+    if (quantities.has(OutputQuantityFlag::DAMAGE)) {
+        columns.push(makeAuto<ValueColumn<Float>>(QuantityId::DAMAGE));
+    }
+    if (quantities.has(OutputQuantityFlag::STRAIN_RATE_CORRECTION_TENSOR)) {
+        columns.push(makeAuto<ValueColumn<SymmetricTensor>>(QuantityId::STRAIN_RATE_CORRECTION_TENSOR));
+    }
+    if (quantities.has(OutputQuantityFlag::MATERIAL_ID)) {
+        columns.push(makeAuto<ValueColumn<Size>>(QuantityId::MATERIAL_ID));
+    }
+    if (quantities.has(OutputQuantityFlag::INDEX)) {
+        columns.push(makeAuto<ParticleNumberColumn>());
+    }
 }
 
 struct DumpAllVisitor {
@@ -97,39 +119,30 @@ struct DumpAllVisitor {
     }
 };
 
-TextOutput::TextOutput(const Flags<Options> flags)
-    : flags(flags) {
-    if (flags.has(Options::BASIC_COLUMNS)) {
-        addBasicColumns(columns);
-    }
-    if (flags.has(Options::EXTENDED_COLUMNS)) {
-        addExtendedColumns(columns);
-    }
-}
-
-TextOutput::TextOutput(const Path& fileMask, const std::string& runName, const Flags<Options> flags)
+TextOutput::TextOutput(const Path& fileMask,
+    const std::string& runName,
+    const Flags<OutputQuantityFlag> quantities,
+    const Flags<Options> options)
     : IOutput(fileMask)
     , runName(runName)
-    , flags(flags) {
-    if (flags.has(Options::BASIC_COLUMNS)) {
-        addBasicColumns(columns);
-    }
-    if (flags.has(Options::EXTENDED_COLUMNS)) {
-        addExtendedColumns(columns);
-    }
+    , options(options) {
+    addColumns(quantities, columns);
 }
 
 TextOutput::~TextOutput() = default;
 
 Path TextOutput::dump(Storage& storage, const Statistics& stats) {
-    if (flags.has(Options::DUMP_ALL)) {
+    if (options.has(Options::DUMP_ALL)) {
         columns.clear();
-        addBasicColumns(columns);
-        // the one 'extraordinary' quantity
+        // add some 'extraordinary' quantities and position (we want those to be one of the first, not after
+        // density, etc).
+        columns.push(makeAuto<ParticleNumberColumn>());
+        columns.push(makeAuto<ValueColumn<Vector>>(QuantityId::POSITION));
+        columns.push(makeAuto<DerivativeColumn<Vector>>(QuantityId::POSITION));
         columns.push(makeAuto<SmoothingLengthColumn>());
         for (StorageElement e : storage.getQuantities()) {
-            if (e.id == QuantityId::POSITION || e.id == QuantityId::MASS) {
-                // already added as basic columns
+            if (e.id == QuantityId::POSITION) {
+                // already added
                 continue;
             }
             dispatch(e.quantity.getValueEnum(), DumpAllVisitor{}, e.id, columns);
@@ -152,7 +165,7 @@ Path TextOutput::dump(Storage& storage, const Statistics& stats) {
     for (Size i = 0; i < storage.getParticleCnt(); ++i) {
         for (auto& column : columns) {
             // write one extra space to be sure numbers won't merge
-            if (flags.has(Options::SCIENTIFIC)) {
+            if (options.has(Options::SCIENTIFIC)) {
                 ofs << std::scientific << std::setprecision(PRECISION) << column->evaluate(storage, stats, i);
             } else {
                 ofs << std::setprecision(PRECISION) << column->evaluate(storage, stats, i);
@@ -250,7 +263,6 @@ Path GnuplotOutput::dump(Storage& storage, const Statistics& stats) {
     return path;
 }
 
-
 namespace {
 
 /// \todo this should be really part of the serializer/deserializer, otherwise it's kinda pointless
@@ -275,6 +287,9 @@ struct SerializerDispatcher {
     }
     void operator()(const Tensor& t) {
         serializer.write(t(0, 0), t(0, 1), t(0, 2), t(1, 0), t(1, 1), t(1, 2), t(2, 0), t(2, 1), t(2, 2));
+    }
+    void operator()(const EnumWrapper& e) {
+        serializer.write(e.value, e.typeHash);
     }
 };
 struct DeserializerDispatcher {
@@ -302,6 +317,9 @@ struct DeserializerDispatcher {
     }
     void operator()(Tensor& t) {
         deserializer.read(t(0, 0), t(0, 1), t(0, 2), t(1, 0), t(1, 1), t(1, 2), t(2, 0), t(2, 1), t(2, 2));
+    }
+    void operator()(EnumWrapper& e) {
+        deserializer.read(e.value, e.typeHash);
     }
 };
 
@@ -386,11 +404,11 @@ Path BinaryOutput::dump(Storage& storage, const Statistics& stats) {
 
     Serializer serializer(fileName);
     // file format identifier
-    // size: 4 + 8 + 8 + 8 + 8 = 36
     const Size materialCnt = storage.getMaterialCnt();
     const Size quantityCnt = storage.getQuantityCnt() - int(storage.has(QuantityId::MATERIAL_ID));
     const Float timeStep = stats.get<Float>(StatisticsId::TIMESTEP_VALUE);
-    serializer.write("SPH", time, storage.getParticleCnt(), quantityCnt, materialCnt, timeStep);
+    serializer.write(
+        "SPH", time, storage.getParticleCnt(), quantityCnt, materialCnt, timeStep, Version::LATEST);
     // zero bytes until 256 to allow extensions of the header
     serializer.addPadding(PADDING_SIZE);
 
@@ -458,7 +476,8 @@ Path BinaryOutput::dump(Storage& storage, const Statistics& stats) {
 
 static Expected<Storage> loadMaterial(const Size matIdx,
     Deserializer& deserializer,
-    ArrayView<QuantityId> ids) {
+    ArrayView<QuantityId> ids,
+    const BinaryOutput::Version version) {
     Size matIdxCheck;
     std::string identifier;
     deserializer.read(identifier, matIdxCheck);
@@ -479,6 +498,18 @@ static Expected<Storage> loadMaterial(const Size matIdx,
         BodySettingsId paramId;
         Size valueId;
         deserializer.read(paramId, valueId);
+
+        if (version == BinaryOutput::Version::FIRST) {
+            if (valueId == 1 && settings.has<EnumWrapper>(paramId)) {
+                // enums used to be stored as ints (index 1), now we store it as enum wrapper;
+                // convert the value to enum and save manually
+                EnumWrapper e = settings.get<EnumWrapper>(paramId);
+                deserializer.read(e.value);
+                settings.set(paramId, e);
+                continue;
+            }
+        }
+
         /// \todo this is currently the only way to access Settings variant, refactor if possible
         SettingsIterator<BodySettingsId>::IteratorValue iteratorValue{ paramId,
             { CONSTRUCT_TYPE_IDX, valueId } };
@@ -512,15 +543,15 @@ static Expected<Storage> loadMaterial(const Size matIdx,
     return Storage(std::move(material));
 }
 
-
 Outcome BinaryOutput::load(const Path& path, Storage& storage, Statistics& stats) {
     storage.removeAll();
     Deserializer deserializer(path);
     std::string identifier;
     Float time, timeStep;
     Size particleCnt, quantityCnt, materialCnt;
+    Version version;
     try {
-        deserializer.read(identifier, time, particleCnt, quantityCnt, materialCnt, timeStep);
+        deserializer.read(identifier, time, particleCnt, quantityCnt, materialCnt, timeStep, version);
     } catch (SerializerException&) {
         return "Invalid file format";
     }
@@ -552,7 +583,7 @@ Outcome BinaryOutput::load(const Path& path, Storage& storage, Statistics& stats
         Storage bodyStorage;
         if (hasMaterials) {
             try {
-                Expected<Storage> loadedStorage = loadMaterial(matIdx, deserializer, quantityIds);
+                Expected<Storage> loadedStorage = loadMaterial(matIdx, deserializer, quantityIds, version);
                 if (!loadedStorage) {
                     return loadedStorage.error();
                 } else {
@@ -599,8 +630,13 @@ Expected<BinaryOutput::Info> BinaryOutput::getInfo(const Path& path) const {
     std::string identifier;
     Info info;
     try {
-        deserializer.read(
-            identifier, info.runTime, info.particleCnt, info.quantityCnt, info.materialCnt, info.timeStep);
+        deserializer.read(identifier,
+            info.runTime,
+            info.particleCnt,
+            info.quantityCnt,
+            info.materialCnt,
+            info.timeStep,
+            info.version);
     } catch (SerializerException&) {
         return makeUnexpected<Info>("Invalid file format");
     }
@@ -648,6 +684,101 @@ Path PkdgravOutput::dump(Storage& storage, const Statistics& stats) {
         idx++;
     }
     return fileName;
+}
+
+Outcome PkdgravOutput::load(const Path& path, Storage& storage, Statistics& stats) {
+    TextOutput output;
+
+    // 1) Particle index -- we don't really need that, just add dummy columnm
+    class DummyColumn : public ITextColumn {
+    private:
+        ValueEnum type;
+
+    public:
+        DummyColumn(const ValueEnum type)
+            : type(type) {}
+
+        virtual Dynamic evaluate(const Storage&, const Statistics&, const Size) const override {
+            NOT_IMPLEMENTED;
+        }
+
+        virtual void accumulate(Storage&, const Dynamic, const Size) const override {}
+
+        virtual std::string getName() const override {
+            return "dummy";
+        }
+
+        virtual ValueEnum getType() const override {
+            return type;
+        }
+    };
+    output.addColumn(makeAuto<DummyColumn>(ValueEnum::INDEX));
+
+    // 2) Original index -- not really needed, skip
+    output.addColumn(makeAuto<DummyColumn>(ValueEnum::INDEX));
+
+    // 3) Particle mass
+    output.addColumn(makeAuto<ValueColumn<Float>>(QuantityId::MASS));
+
+    // 4) radius ?  -- skip
+    output.addColumn(makeAuto<ValueColumn<Float>>(QuantityId::DENSITY));
+
+    // 5) Positions (3 components)
+    output.addColumn(makeAuto<ValueColumn<Vector>>(QuantityId::POSITION));
+
+    // 6) Velocities (3 components)
+    output.addColumn(makeAuto<DerivativeColumn<Vector>>(QuantityId::POSITION));
+
+    // 7) Angular velocities (3 components)
+    output.addColumn(makeAuto<ValueColumn<Vector>>(QuantityId::ANGULAR_VELOCITY));
+
+    // 8) Color index -- skip
+    output.addColumn(makeAuto<DummyColumn>(ValueEnum::INDEX));
+
+    Outcome outcome = output.load(path, storage, stats);
+
+    if (!outcome) {
+        return outcome;
+    }
+
+    // whole code assumes positions is a 2nd order quantity, so we have to add the acceleration
+    storage.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, Vector(0._f));
+
+    // Convert units -- assuming default conversion values
+    PkdgravParams::Conversion conversion;
+    Array<Vector>& r = storage.getValue<Vector>(QuantityId::POSITION);
+    Array<Vector>& v = storage.getDt<Vector>(QuantityId::POSITION);
+    Array<Float>& m = storage.getValue<Float>(QuantityId::MASS);
+    Array<Float>& rho = storage.getValue<Float>(QuantityId::DENSITY);
+    Array<Vector>& omega = storage.getValue<Vector>(QuantityId::ANGULAR_VELOCITY);
+
+    for (Size i = 0; i < r.size(); ++i) {
+        r[i] *= conversion.distance;
+        v[i] *= conversion.velocity;
+        m[i] *= conversion.mass;
+
+        // compute radius, using the density formula
+        /// \todo here we actually store radius in rho ...
+        rho[i] *= conversion.distance;
+        r[i][H] = root<3>(3.f * m[i] / (2700.f * 4.f * PI));
+
+        // replace the radius with actual density
+        /// \todo too high, fix
+        rho[i] = m[i] / pow<3>(rho[i]);
+
+        omega[i] *= conversion.velocity / conversion.distance;
+    }
+
+    // sort
+    Order order(r.size());
+    order.shuffle([&m](const Size i1, const Size i2) { return m[i1] > m[i2]; });
+    r = order.apply(r);
+    v = order.apply(v);
+    m = order.apply(m);
+    rho = order.apply(rho);
+    omega = order.apply(omega);
+
+    return SUCCESS;
 }
 
 NAMESPACE_SPH_END

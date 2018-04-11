@@ -48,6 +48,9 @@ private:
         /// Cast shadows
         bool shadows = true;
 
+        /// Step between two pixels computed by raytracing.
+        Size subsampling = 1;
+
     } params;
 
     struct ThreadData {

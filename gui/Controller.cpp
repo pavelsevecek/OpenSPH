@@ -38,7 +38,7 @@ void Controller::Vis::initialize(const GuiSettings& gui) {
     renderer = Factory::getRenderer(gui);
     colorizer = Factory::getColorizer(gui, ColorizerId::VELOCITY);
     timer = makeAuto<Timer>(gui.get<int>(GuiSettingsId::VIEW_MAX_FRAMERATE), TimerFlags::START_EXPIRED);
-    const Point size(gui.get<int>(GuiSettingsId::RENDER_WIDTH), gui.get<int>(GuiSettingsId::RENDER_HEIGHT));
+    const Point size(gui.get<int>(GuiSettingsId::VIEW_WIDTH), gui.get<int>(GuiSettingsId::VIEW_HEIGHT));
     camera = Factory::getCamera(gui, size);
 }
 
@@ -216,7 +216,7 @@ void Controller::setParams(const GuiSettings& settings) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
     gui = settings;
     // reset camera
-    const Point size(gui.get<int>(GuiSettingsId::RENDER_WIDTH), gui.get<int>(GuiSettingsId::RENDER_HEIGHT));
+    const Point size(gui.get<int>(GuiSettingsId::VIEW_WIDTH), gui.get<int>(GuiSettingsId::VIEW_HEIGHT));
     vis.camera = Factory::getCamera(gui, size);
     // reset renderer with new params
     /// \todo this needs to be generic

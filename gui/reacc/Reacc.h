@@ -105,8 +105,6 @@ private:
         GuiSettings gui;
         gui.set(GuiSettingsId::ORTHO_FOV, 3.e3_f)
             .set(GuiSettingsId::ORTHO_VIEW_CENTER, /*Vector(0, 300, 0)) // */ 0.5_f * Vector(1024, 768, 0))
-            .set(GuiSettingsId::RENDER_WIDTH, 1024)
-            .set(GuiSettingsId::RENDER_HEIGHT, 768)
             .set(GuiSettingsId::VIEW_WIDTH, 1024)
             .set(GuiSettingsId::VIEW_HEIGHT, 768)
             .set(GuiSettingsId::IMAGES_WIDTH, 1024)
@@ -124,11 +122,11 @@ private:
                 std::string("/home/pavel/projects/astro/sph/external/surface.jpg"))
             .set(GuiSettingsId::RAYTRACE_TEXTURE_SECONDARY,
                 std::string("/home/pavel/projects/astro/sph/external/surface2.jpg"))
-            .set(GuiSettingsId::CAMERA, int(CameraEnum::ORTHO))
+            .set(GuiSettingsId::CAMERA, CameraEnum::PERSPECTIVE)
             .set(GuiSettingsId::ORTHO_PROJECTION, OrthoEnum::XY)
             .set(GuiSettingsId::ORTHO_CUTOFF, 50._f)
             .set(GuiSettingsId::ORTHO_ZOFFSET, -1.e8_f)
-            .set(GuiSettingsId::PERSPECTIVE_POSITION, Vector(0._f, 0._f, -7.e6_f))
+            .set(GuiSettingsId::PERSPECTIVE_POSITION, Vector(0._f, 0._f, -7.e3_f))
             .set(GuiSettingsId::IMAGES_SAVE, false)
             .set(GuiSettingsId::IMAGES_NAME, std::string("stab_%e_%d.png"))
             .set(GuiSettingsId::IMAGES_MOVIE_NAME, std::string("stab_%e.avi"))
@@ -141,7 +139,7 @@ private:
             .set(GuiSettingsId::PALETTE_RADIUS, Interval(700._f, 3.e3_f))
             .set(GuiSettingsId::PALETTE_GRADV, Interval(0._f, 1.e-5_f))
             .set(GuiSettingsId::PLOT_INITIAL_PERIOD, 1.e-3_f)
-            .setFlags(GuiSettingsId::PLOT_INTEGRALS, PlotEnum::KINETIC_ENERGY | PlotEnum::INTERNAL_ENERGY);
+            .set(GuiSettingsId::PLOT_INTEGRALS, PlotEnum::KINETIC_ENERGY | PlotEnum::INTERNAL_ENERGY);
         /*| PlotEnum::TOTAL_ENERGY |
       PlotEnum::TOTAL_MOMENTUM | PlotEnum::TOTAL_ANGULAR_MOMENTUM |
       PlotEnum::SIZE_FREQUENCY_DISTRIBUTION | PlotEnum::SELECTED_PARTICLE);*/
