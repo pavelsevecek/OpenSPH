@@ -15,10 +15,10 @@ static RunSettings getSharedSettings(const Presets::CollisionParams& params, con
         .set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::PREDICTOR_CORRECTOR)
         .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 0.01_f)
         .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 1._f)
-        .set(RunSettingsId::TIMESTEPPING_MAX_CHANGE, 0.1_f)
+        .set(RunSettingsId::TIMESTEPPING_MAX_CHANGE, 0.5_f)
         .set(RunSettingsId::TIMESTEPPING_COURANT_NUMBER, 0.25_f)
         .set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, runTime))
-        .set(RunSettingsId::RUN_OUTPUT_INTERVAL, runTime / 100._f)
+        .set(RunSettingsId::RUN_OUTPUT_INTERVAL, runTime / 20._f)
         .set(RunSettingsId::RUN_OUTPUT_TYPE, OutputEnum::BINARY_FILE)
         .set(RunSettingsId::RUN_OUTPUT_PATH, params.outputPath.native())
         .set(RunSettingsId::RUN_OUTPUT_NAME, fileMask)
@@ -35,6 +35,7 @@ static RunSettings getSharedSettings(const Presets::CollisionParams& params, con
         .set(RunSettingsId::GRAVITY_KERNEL, GravityKernelEnum::SPH_KERNEL)
         .set(RunSettingsId::GRAVITY_OPENING_ANGLE, 0.8_f)
         .set(RunSettingsId::GRAVITY_LEAF_SIZE, 20)
+        .set(RunSettingsId::SPH_STABILIZATION_DAMPING, 0.4_f)
         .set(RunSettingsId::RUN_THREAD_GRANULARITY, 100)
         .set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONST)
         .set(RunSettingsId::SPH_STRAIN_RATE_CORRECTION_TENSOR, true);
@@ -50,8 +51,11 @@ StabilizationRunPhase::StabilizationRunPhase(const Presets::CollisionParams para
         settingsLoaded = true;
     } else {
         settings = getSharedSettings(params, "stab_%d.ssf");
-        settings.set(RunSettingsId::RUN_NAME, std::string("Stabilization"))
-            .set(RunSettingsId::RUN_OUTPUT_TYPE, OutputEnum::NONE);
+        settings
+            .set(RunSettingsId::RUN_NAME, std::string("Stabilization"))
+            // stabilization phase is 5 times longer
+            .set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 5._f * 2._f * params.targetRadius / 1000));
+
         settings.saveToFile(stabPath);
         settingsLoaded = false;
     }
@@ -81,9 +85,9 @@ void StabilizationRunPhase::setUp() {
             .set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::SCALAR_GRADY_KIPP)
             .set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::VON_MISES)
             .set(BodySettingsId::DISTRIBUTE_MODE_SPH5, true)
-            .set(BodySettingsId::STRESS_TENSOR_MIN, 5.e5_f)
-            .set(BodySettingsId::ENERGY_MIN, 1._f)
-            .set(BodySettingsId::DAMAGE_MIN, 0.2_f);
+            .set(BodySettingsId::STRESS_TENSOR_MIN, 4.e6_f)
+            .set(BodySettingsId::ENERGY_MIN, 10._f)
+            .set(BodySettingsId::DAMAGE_MIN, 0.25_f);
         body.saveToFile(matPath);
         logger->write("No material settings found, defaults saved to file '", matPath.native(), "'");
     }
