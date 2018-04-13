@@ -208,6 +208,10 @@ AutoPtr<RunSettings> RunSettings::instance (new RunSettings {
     { RunSettingsId::TIMESTEPPING_MAX_CHANGE,       "timestep.max_change",      INFTY,
         "Maximum relative difference between time steps in subsequent iterations. Use to 'smooth' the integration and "
         "to avoid rapid changes of time steps."},
+    { RunSettingsId::TIMESTEPPING_MIDPOINT_COUNT,   "timestep.midpoint_count",  5,
+        "Applicable for modified midpoint method. Specified the number of sub-steps within one time step." },
+    { RunSettingsId::TIMESTEPPING_BS_ACCURACY,      "timestep.bs.accuracy",     1.e-3_f,
+        "Required relative accuracy (epsilon value) of the Bulirsch-Stoer integrator." },
 
     /// Selected coordinate system, rotation of bodies
     { RunSettingsId::FRAME_ANGULAR_FREQUENCY,       "frame.angular_frequency",  Vector(0._f),

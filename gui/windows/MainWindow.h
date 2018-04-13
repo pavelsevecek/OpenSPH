@@ -16,6 +16,7 @@ NAMESPACE_SPH_BEGIN
 class IColorizer;
 class IGraphicsPane;
 class IPlot;
+class IPluginControls;
 class Controller;
 class OrthoPane;
 class ParticleProbe;
@@ -55,7 +56,7 @@ private:
     Array<SharedPtr<IColorizer>> colorizerList;
 
 public:
-    MainWindow(Controller* controller, const GuiSettings& guiSettings);
+    MainWindow(Controller* controller, const GuiSettings& guiSettings, RawPtr<IPluginControls> plugin);
 
     void runStarted();
 

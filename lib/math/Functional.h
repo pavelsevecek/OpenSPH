@@ -89,7 +89,7 @@ public:
 /// If there is no root or the root cannot be found, returns NOTHING. For functions with multiple roots,
 /// returns one of them; the selection of such root is not specified.
 template <typename TFunctor>
-INLINE Optional<Float> getRoot(const TFunctor& functor, const Interval& range, const Float eps = EPS) {
+INLINE Optional<Float> getRoot(const Interval& range, const Float eps, const TFunctor& functor) {
     Interval r = range;
     if (functor(r.lower()) * functor(r.upper()) > 0._f) { // same sign
         return NOTHING;
@@ -109,7 +109,7 @@ INLINE Optional<Float> getRoot(const TFunctor& functor, const Interval& range, c
 ///
 /// The eps and delta values are the same for all values and must be specified by the caller.
 template <typename TFunctor>
-INLINE bool isContinuous(const TFunctor& functor, const Interval& range, const Float delta, const Float eps) {
+INLINE bool isContinuous(const Interval& range, const Float delta, const Float eps, const TFunctor& functor) {
     Float y1 = functor(range.lower());
     for (Float x = range.lower(); x <= range.upper(); x += delta) {
         const Float y2 = functor(x);

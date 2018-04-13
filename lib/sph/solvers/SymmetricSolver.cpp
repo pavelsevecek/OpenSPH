@@ -98,7 +98,11 @@ void SymmetricSolver::loop(Storage& storage, Statistics& UNUSED(stats)) {
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     finder->build(r);
 
-    auto functor = [this, r](const Size i, ThreadData& data) {
+    // here we use a kernel symmetrized in smoothing lengths:
+    // \f$ W_ij(r_i - r_j, 0.5(h[i] + h[j]) \f$
+    SymmetrizeSmoothingLengths<LutKernel<DIMENSIONS>> symmetrizedKernel(kernel);
+
+    auto functor = [this, r, &symmetrizedKernel](const Size i, ThreadData& data) {
         finder->findLowerRank(i, r[i][H] * kernel.radius(), data.neighs);
         data.grads.clear();
         data.idxs.clear();
@@ -106,11 +110,11 @@ void SymmetricSolver::loop(Storage& storage, Statistics& UNUSED(stats)) {
             const Size j = n.index;
             const Float hbar = 0.5_f * (r[i][H] + r[j][H]);
             ASSERT(hbar > EPS && hbar <= r[i][H], hbar, r[i][H]);
-            if (getSqrLength(r[i] - r[j]) >= sqr(this->kernel.radius() * hbar)) {
+            if (getSqrLength(r[i] - r[j]) >= sqr(kernel.radius() * hbar)) {
                 // aren't actual neighbours
                 continue;
             }
-            const Vector gr = kernel.grad(r[i], r[j]);
+            const Vector gr = symmetrizedKernel.grad(r[i], r[j]);
             ASSERT(isReal(gr) && dot(gr, r[i] - r[j]) <= 0._f, gr, getLength(r[i] - r[j]));
             data.grads.emplaceBack(gr);
             data.idxs.emplaceBack(j);

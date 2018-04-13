@@ -1098,6 +1098,12 @@ enum class RunSettingsId {
     /// MultiCriterion.
     TIMESTEPPING_MAX_CHANGE,
 
+    /// Number of sub-steps in the modified midpoint method.
+    TIMESTEPPING_MIDPOINT_COUNT,
+
+    /// Required relative accuracy of the Bulirsch-Stoer integrator.
+    TIMESTEPPING_BS_ACCURACY,
+
     /// Global rotation of the coordinate system around axis (0, 0, 1) passing through origin. If non-zero,
     /// causes non-intertial acceleration.
     FRAME_ANGULAR_FREQUENCY,

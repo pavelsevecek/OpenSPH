@@ -105,7 +105,8 @@ SOURCES += \
     sph/solvers/SummationSolver.cpp \
     sph/initial/Presets.cpp \
     system/Settings.cpp \
-    run/Collision.cpp
+    run/Collision.cpp \
+    sph/solvers/GradHSolver.cpp
 
 HEADERS += \
     common/Assert.h \
@@ -240,7 +241,6 @@ HEADERS += \
     sph/equations/EquationTerm.h \
     sph/equations/Fluids.h \
     sph/equations/Friction.h \
-    sph/equations/GradH.h \
     sph/equations/Heat.h \
     sph/equations/HelperTerms.h \
     sph/equations/Potentials.h \
@@ -295,4 +295,5 @@ HEADERS += \
     io/OutOfCore.h \
     objects/utility/EnumMap.h \
     system/Settings.impl.h \
-    math/Functional.h
+    math/Functional.h \
+    sph/solvers/GradHSolver.h

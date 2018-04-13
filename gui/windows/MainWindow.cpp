@@ -151,7 +151,7 @@ private:
     }
 };
 
-MainWindow::MainWindow(Controller* parent, const GuiSettings& settings)
+MainWindow::MainWindow(Controller* parent, const GuiSettings& settings, RawPtr<IPluginControls> plugin)
     : controller(parent)
     , gui(settings) {
     // create the frame
@@ -175,6 +175,12 @@ MainWindow::MainWindow(Controller* parent, const GuiSettings& settings)
     mainSizer->Add(sidebarSizer);
 
     sizer->Add(mainSizer);
+
+    if (plugin) {
+        plugin->create(this, sizer);
+    }
+
+    this->Layout();
 
     this->SetSizer(sizer);
 

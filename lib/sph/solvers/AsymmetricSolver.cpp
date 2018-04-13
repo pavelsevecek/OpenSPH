@@ -41,6 +41,9 @@ void AsymmetricSolver::integrate(Storage& storage, Statistics& stats) {
     // main loop over pairs of interacting particles
     this->loop(storage, stats);
 
+    // store results to storage, save statistics, ...
+    this->afterLoop(storage, stats);
+
     // integrate all equations
     equations.finalize(storage, pool);
 
@@ -58,7 +61,7 @@ void AsymmetricSolver::create(Storage& storage, IMaterial& material) const {
     this->sanityCheck(storage);
 }
 
-void AsymmetricSolver::loop(Storage& storage, Statistics& stats) {
+void AsymmetricSolver::loop(Storage& storage, Statistics& UNUSED(stats)) {
     // (re)build neighbour-finding structure; this needs to be done after all equations
     // are initialized in case some of them modify smoothing lengths
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
@@ -73,7 +76,10 @@ void AsymmetricSolver::loop(Storage& storage, Statistics& stats) {
 
     ArrayView<Size> neighs = storage.getValue<Size>(QuantityId::NEIGHBOUR_CNT);
 
-    auto functor = [this, r, &neighs, radius](const Size i, ThreadData& data) {
+    // we need to symmetrize kernel in smoothing lenghts to conserve momentum
+    SymmetrizeSmoothingLengths<LutKernel<DIMENSIONS>> symmetrizedKernel(kernel);
+
+    auto functor = [this, r, &neighs, radius, &symmetrizedKernel](const Size i, ThreadData& data) {
         finder->findAll(i, radius, data.neighs);
         data.grads.clear();
         data.idxs.clear();
@@ -81,11 +87,11 @@ void AsymmetricSolver::loop(Storage& storage, Statistics& stats) {
             const Size j = n.index;
             const Float hbar = 0.5_f * (r[i][H] + r[j][H]);
             ASSERT(hbar > EPS, hbar);
-            if (i == j || getSqrLength(r[i] - r[j]) >= sqr(this->kernel.radius() * hbar)) {
+            if (i == j || getSqrLength(r[i] - r[j]) >= sqr(kernel.radius() * hbar)) {
                 // aren't actual neighbours
                 continue;
             }
-            const Vector gr = kernel.grad(r[i], r[j]);
+            const Vector gr = symmetrizedKernel.grad(r[i], r[j]);
             ASSERT(isReal(gr) && dot(gr, r[i] - r[j]) < 0._f, gr, r[i] - r[j]);
             data.grads.emplaceBack(gr);
             data.idxs.emplaceBack(j);
@@ -95,12 +101,14 @@ void AsymmetricSolver::loop(Storage& storage, Statistics& stats) {
     };
     PROFILE_SCOPE("AsymmetricSolver main loop");
     parallelFor(pool, threadData, 0, r.size(), granularity, functor);
+}
 
-    // store accumulated to storage
+void AsymmetricSolver::afterLoop(Storage& storage, Statistics& stats) {
     Accumulated& accumulated = derivatives.getAccumulated();
     accumulated.store(storage);
 
     // compute neighbour statistics
+    ArrayView<Size> neighs = storage.getValue<Size>(QuantityId::NEIGHBOUR_CNT);
     MinMaxMean neighsStats;
     const Size size = storage.getParticleCnt();
     for (Size i = 0; i < size; ++i) {
