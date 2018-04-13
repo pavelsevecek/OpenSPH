@@ -48,10 +48,10 @@ protected:
     SharedPtr<Storage> storage;
 
     /// Current time step
-    Float dt;
+    Float timeStep;
 
     /// Maximal allowed time step
-    Float maxdt;
+    Float maxTimeStep;
 
     /// Criterion used to compute the time step
     AutoPtr<ITimeStepCriterion> criterion;
@@ -71,7 +71,7 @@ public:
     virtual ~ITimeStepping();
 
     INLINE Float getTimeStep() const {
-        return dt;
+        return timeStep;
     }
 
     void step(ISolver& solver, Statistics& stats);
@@ -139,15 +139,27 @@ protected:
 };
 
 
-class BulirschStoer : public ITimeStepping {
+class ModifiedMidpointMethod : public ITimeStepping {
+private:
+    SharedPtr<Storage> mid;
+    Size n;
+
 public:
-    BulirschStoer(const SharedPtr<Storage>& storage, const RunSettings& settings)
-        : ITimeStepping(storage, settings) {}
+    ModifiedMidpointMethod(const SharedPtr<Storage>& storage, const RunSettings& settings);
 
 protected:
-    virtual void stepImpl(ISolver& UNUSED(solver), Statistics& UNUSED(stats)) override {
-        NOT_IMPLEMENTED
-    }
+    virtual void stepImpl(ISolver& solver, Statistics& stats) override;
+};
+
+class BulirschStoer : public ITimeStepping {
+private:
+    Float eps;
+
+public:
+    BulirschStoer(const SharedPtr<Storage>& storage, const RunSettings& settings);
+
+protected:
+    virtual void stepImpl(ISolver& solver, Statistics& stats) override;
 };
 
 NAMESPACE_SPH_END

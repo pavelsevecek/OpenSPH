@@ -39,24 +39,19 @@ public:
 
     /// \brief Detects the collisions and computes new positions of particles.
     ///
-    /// Default implementation does not handle collisions, function simply advances particle positions:
-    /// \f[\vec r += \vec v {\rm d}t\f]. This is suitable for solvers with no concept of collision (for
-    /// example collisions do not have to be handled explicitly in SPH, they are a result of solving equations
-    /// of hydrodynamics). Function is executed for each drift timestep (may be called more than once in a
-    /// single step).
+    /// The positions and velocities of particles need to be tracked at the beginning of timestep, the actual
+    /// step is done by the calling timestepping. Default implementation does not handle collisions, so the
+    /// particle positions are simply advanced as \f[\vec r += \vec v {\rm d}t\f]. This is suitable for
+    /// solvers with no concept of collision (for example collisions do not have to be handled explicitly in
+    /// SPH, they are a result of solving equations of hydrodynamics). Function is executed for each drift
+    /// timestep (may be called more than once in a single step).
     ///
     /// \param storage Storage containing all quantities.
     /// \param stats Object where the solver saves collision statistics.
     /// \param dt Drift timestep, or time interval in which the collisions should be detected. Note that this
     ///           timestep can be different than the one in statistics, depending on selected timestepping
     ///           algorithm (for example LeapFrog uses drift step dt/2).
-    virtual void collide(Storage& storage, Statistics& UNUSED(stats), const Float dt) {
-        ArrayView<Vector> r, v, dv;
-        tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
-        for (Size i = 0; i < r.size(); ++i) {
-            r[i] += v[i] * dt;
-        }
-    }
+    virtual void collide(Storage& UNUSED(storage), Statistics& UNUSED(stats), const Float UNUSED(dt)) {}
 
     /// \brief Initializes all quantities needed by the solver in the storage.
     ///

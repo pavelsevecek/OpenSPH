@@ -12,60 +12,60 @@
 using namespace Sph;
 
 namespace {
-    struct HomogeneousField : public ISolver {
-        Vector g = Vector(0.f, 0.f, 1._f);
+struct HomogeneousField : public ISolver {
+    Vector g = Vector(0.f, 0.f, 1._f);
 
-        HomogeneousField() = default;
+    HomogeneousField() = default;
 
-        virtual void integrate(Storage& storage, Statistics&) override {
-            ArrayView<Vector> r, v, dv;
-            tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
-            for (Size i = 0; i < r.size(); ++i) {
-                dv[i] = g;
-            }
+    virtual void integrate(Storage& storage, Statistics&) override {
+        ArrayView<Vector> r, v, dv;
+        tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
+        for (Size i = 0; i < r.size(); ++i) {
+            dv[i] = g;
         }
+    }
 
-        virtual void create(Storage&, IMaterial&) const override {
-            NOT_IMPLEMENTED;
+    virtual void create(Storage&, IMaterial&) const override {
+        NOT_IMPLEMENTED;
+    }
+};
+
+struct HarmonicOscillator : public ISolver {
+    Float period = 1._f;
+
+    HarmonicOscillator() = default;
+
+    virtual void integrate(Storage& storage, Statistics&) override {
+        ArrayView<Vector> r, v, dv;
+        tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
+        Float omega = 2._f * PI / period;
+        for (Size i = 0; i < r.size(); ++i) {
+            dv[i] = -sqr(omega) * r[i];
         }
-    };
+    }
 
-    struct HarmonicOscillator : public ISolver {
-        Float period = 1._f;
+    virtual void create(Storage&, IMaterial&) const override {
+        NOT_IMPLEMENTED;
+    }
+};
 
-        HarmonicOscillator() = default;
+struct LorentzForce : public ISolver {
+    const Vector B = Vector(0.f, 0.f, 1.f);
 
-        virtual void integrate(Storage& storage, Statistics&) override {
-            ArrayView<Vector> r, v, dv;
-            tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
-            Float omega = 2._f * PI / period;
-            for (Size i = 0; i < r.size(); ++i) {
-                dv[i] = -sqr(omega) * r[i];
-            }
+    LorentzForce() = default;
+
+    virtual void integrate(Storage& storage, Statistics&) override {
+        ArrayView<Vector> r, v, dv;
+        tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
+        for (Size i = 0; i < r.size(); ++i) {
+            dv[i] = cross(v[i], B);
         }
+    }
 
-        virtual void create(Storage&, IMaterial&) const override {
-            NOT_IMPLEMENTED;
-        }
-    };
-
-    struct LorentzForce : public ISolver {
-        const Vector B = Vector(0.f, 0.f, 1.f);
-
-        LorentzForce() = default;
-
-        virtual void integrate(Storage& storage, Statistics&) override {
-            ArrayView<Vector> r, v, dv;
-            tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
-            for (Size i = 0; i < r.size(); ++i) {
-                dv[i] = cross(v[i], B);
-            }
-        }
-
-        virtual void create(Storage&, IMaterial&) const override {
-            NOT_IMPLEMENTED;
-        }
-    };
+    virtual void create(Storage&, IMaterial&) const override {
+        NOT_IMPLEMENTED;
+    }
+};
 
 } // namespace
 
@@ -203,7 +203,7 @@ struct ClampSolver : public ISolver {
 };
 
 template <typename TTimestepping>
-static void testClamping() {
+static void testClamping(RunSettings settings) {
     SharedPtr<Storage> storage = makeShared<Storage>(getDefaultMaterial());
     storage->insert<Vector>(
         QuantityId::POSITION, OrderEnum::SECOND, Array<Vector>{ Vector(1._f, 0._f, 0._f) });
@@ -212,7 +212,6 @@ static void testClamping() {
     IMaterial& material = storage->getMaterial(0);
     material.setRange(QuantityId::ENERGY, range, 0._f);
 
-    RunSettings settings;
     settings.set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 1._f);
     settings.set(RunSettingsId::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::NONE);
     TTimestepping timestepping(storage, settings);
@@ -234,7 +233,7 @@ static void testClamping() {
 class AddingParticlesSolver : public ISolver {
 public:
     virtual void integrate(Storage& storage, Statistics& UNUSED(stats)) override {
-        storage.resize(storage.getParticleCnt() + 100);
+        storage.resize(storage.getParticleCnt() + 100, Storage::ResizeFlag::KEEP_EMPTY_UNCHANGED);
 
         /// \todo test adding and removing particles from the middle after layered storage is implemented
     }
@@ -243,8 +242,12 @@ public:
 };
 
 
+struct TestContext {
+    Size callsPerStep = 1;
+};
+
 template <typename TTimestepping>
-static void testAddingParticles(const RunSettings& settings) {
+static void testAddingParticles(const RunSettings& settings, TestContext context) {
     // test that solver can add particles during the run without assert/crash
     SharedPtr<Storage> storage = makeShared<Storage>(Tests::getGassStorage(1000));
     const Size particleCnt = storage->getParticleCnt();
@@ -255,27 +258,44 @@ static void testAddingParticles(const RunSettings& settings) {
     for (Size i = 0; i < 5; ++i) {
         REQUIRE_NOTHROW(timestepping.step(solver, stats));
     }
-    REQUIRE(storage->getParticleCnt() == particleCnt + 500);
+    REQUIRE(storage->getParticleCnt() == particleCnt + context.callsPerStep * 500);
 }
 
 template <typename TTimestepping>
-static void testAll() {
-    RunSettings settings;
+static void testAll(RunSettings settings, TestContext context = {}) {
     settings.set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, timeStep);
     settings.set(RunSettingsId::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::NONE);
     testHomogeneousField<TTimestepping>(settings);
     testHarmonicOscillator<TTimestepping>(settings);
     testGyroscopicMotion<TTimestepping>(settings);
-    testClamping<TTimestepping>();
-    testAddingParticles<TTimestepping>(settings);
+    testClamping<TTimestepping>(settings);
+    testAddingParticles<TTimestepping>(settings, context);
 }
 
 TEST_CASE("EulerExplicit", "[timestepping]") {
-    testAll<EulerExplicit>();
+    RunSettings settings;
+    testAll<EulerExplicit>(settings);
 }
 
 TEST_CASE("PredictorCorrector", "[timestepping]") {
-    testAll<PredictorCorrector>();
+    RunSettings settings;
+    testAll<PredictorCorrector>(settings);
+}
+
+TEST_CASE("LeapFrog", "[timestepping]") {
+    RunSettings settings;
+    testAll<LeapFrog>(settings);
+}
+
+TEST_CASE("ModifiedMidpoint", "[timestepping]") {
+    RunSettings settings;
+    TestContext context;
+
+    for (Size n : { 2, 5, 10 }) {
+        settings.set(RunSettingsId::TIMESTEPPING_MIDPOINT_COUNT, int(n));
+        context.callsPerStep = n;
+        testAll<ModifiedMidpointMethod>(settings, context);
+    }
 }
 
 /// \todo test timestepping of other quantities (first order and sanity check that zero-order quantities
