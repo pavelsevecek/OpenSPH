@@ -11,6 +11,8 @@
 #include <thread>
 
 class wxBitmap;
+class wxWindow;
+class wxSizer;
 
 NAMESPACE_SPH_BEGIN
 
@@ -27,6 +29,23 @@ class ICamera;
 class IColorizer;
 enum class ColorizerId;
 
+/// \brief Status of the code
+enum class RunStatus {
+    RUNNING,  ///< Simulation in progress
+    PAUSED,   ///< Run is paused, can be continued or stopped
+    STOPPED,  ///< Run has been stopped by the user
+    QUITTING, ///< \ref quit has been called, waiting for threads to finish
+};
+
+
+class IPluginControls : public Polymorphic {
+public:
+    /// \brief Creates the windows required by the plugin.
+    virtual void create(wxWindow* parent, wxSizer* sizer) = 0;
+
+    /// \brief Called when simulation ends, new simulation is started etc.
+    virtual void statusChanges(const RunStatus newStatus) = 0;
+};
 
 class Controller {
     friend class GuiCallbacks;
@@ -34,6 +53,9 @@ class Controller {
 private:
     /// Main frame of the application
     RawPtr<MainWindow> window;
+
+    /// Additional application-specific controls
+    AutoPtr<IPluginControls> plugin;
 
     /// Settings of the GUI application
     GuiSettings gui;
@@ -87,37 +109,30 @@ private:
         bool isInitialized();
     } vis;
 
-    /// Current status of the code, used for communication between thread
-    enum class Status {
-        RUNNING,  ///< Simulation in progress
-        PAUSED,   ///< Run is paused, can be continued or stopped
-        STOPPED,  ///< Run has been stopped by the user
-        QUITTING, ///< \ref quit has been called, waiting for threads to finish
-    } status = Status::STOPPED;
+    /// Current status used for communication between thread
+    RunStatus status = RunStatus::STOPPED;
 
     /// CV for unpausing run thread
     std::mutex continueMutex;
     std::condition_variable continueVar;
 
 public:
-    /// Initialize the controller.
+    /// \brief Initialize the controller.
+    ///
     /// \param gui Parameters of the application; see \ref GuiSettings.
-    Controller(const GuiSettings& gui);
+    explicit Controller(const GuiSettings& gui, AutoPtr<IPluginControls>&& plugin = nullptr);
 
     ~Controller();
-
-    /// Called every time step.
-    void onTimeStep(const Storage& storage, Statistics& stats);
 
     /// \todo ugly hack, remove
     void setRunning();
 
     /// \addtogroup Run queries
 
-    /// Returns true if the user aborted the run.
+    /// \brief Returns true if the user aborted the run.
     bool shouldAbortRun() const;
 
-    /// Returns true if the application is shutting down.
+    /// \brief Returns true if the application is shutting down.
     bool isQuitting() const;
 
 
@@ -243,6 +258,9 @@ public:
     void quit();
 
 private:
+    /// \brief Called every time step.
+    void onTimeStep(const Storage& storage, Statistics& stats);
+
     SharedPtr<Movie> createMovie(const Storage& storage);
 
     /// \brief Redraws the particles.

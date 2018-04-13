@@ -17,7 +17,8 @@
 
 NAMESPACE_SPH_BEGIN
 
-Controller::Controller(const GuiSettings& settings) {
+Controller::Controller(const GuiSettings& settings, AutoPtr<IPluginControls>&& plugin)
+    : plugin(std::move(plugin)) {
     CHECK_FUNCTION(CheckFunction::ONCE);
 
     // copy settings
@@ -27,7 +28,7 @@ Controller::Controller(const GuiSettings& settings) {
     vis.initialize(gui);
 
     // create main frame of the application
-    window = new MainWindow(this, gui);
+    window = new MainWindow(this, gui, this->plugin.get());
     window->SetAutoLayout(true);
     window->Show();
 }
@@ -52,7 +53,7 @@ void Controller::start(AutoPtr<IRun>&& run) {
     this->stop(true);
 
     // update the status
-    status = Status::RUNNING;
+    status = RunStatus::RUNNING;
 
     // create and start the run
     sph.run = std::move(run);
@@ -62,15 +63,15 @@ void Controller::start(AutoPtr<IRun>&& run) {
 void Controller::restart() {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
     switch (status) {
-    case Status::RUNNING:
-    case Status::QUITTING:
+    case RunStatus::RUNNING:
+    case RunStatus::QUITTING:
         // already running or shutting down, do nothing
         return;
-    case Status::PAUSED:
+    case RunStatus::PAUSED:
         // unpause
         continueVar.notify_one();
         break;
-    case Status::STOPPED:
+    case RunStatus::STOPPED:
         // wait till previous run finishes
         if (sph.thread.joinable()) {
             sph.thread.join();
@@ -81,17 +82,17 @@ void Controller::restart() {
         // notify the window
         window->runStarted();
     }
-    status = Status::RUNNING;
+    status = RunStatus::RUNNING;
 }
 
 void Controller::pause() {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
-    status = Status::PAUSED;
+    status = RunStatus::PAUSED;
 }
 
 void Controller::stop(const bool waitForFinish) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD); // just to make sure there is no race condition on status
-    status = Status::STOPPED;
+    status = RunStatus::STOPPED;
     // notify continue CV to unpause run (if it's paused), otherwise we would get deadlock
     continueVar.notify_one();
 
@@ -112,7 +113,7 @@ void Controller::saveState(const Path& path) {
         output.dump(*storage, stats);
     };
 
-    if (status == Status::RUNNING) {
+    if (status == RunStatus::RUNNING) {
         // cannot directly access the storage during the run, execute it on the time step
         sph.onTimeStepCallbacks->push(dump);
     } else {
@@ -128,21 +129,21 @@ void Controller::loadState(const Path& path) {
     this->stop(true);
 
     // update the status
-    status = Status::RUNNING;
+    status = RunStatus::RUNNING;
 
     // start the run from file
     this->run(path);
 }
 
 void Controller::quit() {
-    if (status == Status::QUITTING) {
+    if (status == RunStatus::QUITTING) {
         // already quitting
         return;
     }
     CHECK_FUNCTION(CheckFunction::ONCE | CheckFunction::MAIN_THREAD);
 
     // set status so that other threads know to quit
-    status = Status::QUITTING;
+    status = RunStatus::QUITTING;
 
     // unpause run
     continueVar.notify_one();
@@ -166,7 +167,7 @@ void Controller::quit() {
 
 void Controller::onTimeStep(const Storage& storage, Statistics& stats) {
     ASSERT(std::this_thread::get_id() == sph.thread.get_id());
-    if (status == Status::QUITTING) {
+    if (status == RunStatus::QUITTING) {
         return;
     }
 
@@ -202,7 +203,7 @@ void Controller::onTimeStep(const Storage& storage, Statistics& stats) {
     }
 
     // pause if we are supposed to
-    if (status == Status::PAUSED) {
+    if (status == RunStatus::PAUSED) {
         std::unique_lock<std::mutex> lock(continueMutex);
         continueVar.wait(lock);
     }
@@ -242,15 +243,15 @@ void Controller::update(const Storage& storage) {
 }
 
 void Controller::setRunning() {
-    status = Status::RUNNING;
+    status = RunStatus::RUNNING;
 }
 
 bool Controller::shouldAbortRun() const {
-    return status == Status::STOPPED || status == Status::QUITTING;
+    return status == RunStatus::STOPPED || status == RunStatus::QUITTING;
 }
 
 bool Controller::isQuitting() const {
-    return status == Status::QUITTING;
+    return status == RunStatus::QUITTING;
 }
 
 Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage,
@@ -427,7 +428,7 @@ void Controller::setColorizer(const SharedPtr<IColorizer>& newColorizer) {
 void Controller::setRenderer(AutoPtr<IRenderer>&& newRenderer) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
     vis.renderer = std::move(newRenderer);
-    if (status != Status::RUNNING) {
+    if (status != RunStatus::RUNNING) {
         ASSERT(sph.run);
         SharedPtr<Storage> storage = sph.run->getStorage();
         if (storage) {
@@ -522,7 +523,7 @@ void Controller::redraw(const Storage& storage, Statistics& stats) {
 
 void Controller::tryRedraw() {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
-    if (status != Status::RUNNING && vis.timer->isExpired()) {
+    if (status != RunStatus::RUNNING && vis.timer->isExpired()) {
         // we can safely access the storage
         ASSERT(sph.run);
         SharedPtr<Storage> storage = sph.run->getStorage();
@@ -570,7 +571,7 @@ void Controller::run(const Path& path) {
         sph.run->run();
 
         // set status to finished
-        status = Status::STOPPED;
+        status = RunStatus::STOPPED;
     });
 }
 

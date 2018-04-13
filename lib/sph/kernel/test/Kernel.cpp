@@ -74,26 +74,24 @@ void testKernel(const TKernel& kernel,
 
     if (flags.has(KernelTestFlag::VALUES_CONTINUOUS)) {
         // values have to be always continuous in the whole interval
-        REQUIRE(isContinuous([&kernel](Float q) { return kernel.valueImpl(sqr(q)); },
-            Interval(0._f, kernel.radius() + 0.1_f),
-            0.01_f,
-            continuousEps));
-        REQUIRE(isContinuous([&lut](Float q) { return lut.valueImpl(sqr(q)); },
-            Interval(0._f, lut.radius() + 0.1_f),
-            0.01_f,
-            continuousEps));
+        REQUIRE(
+            isContinuous(Interval(0._f, kernel.radius() + 0.1_f), 0.01_f, continuousEps, [&kernel](Float q) {
+                return kernel.valueImpl(sqr(q));
+            }));
+        REQUIRE(isContinuous(Interval(0._f, lut.radius() + 0.1_f), 0.01_f, continuousEps, [&lut](Float q) {
+            return lut.valueImpl(sqr(q));
+        }));
     }
 
     if (flags.has(KernelTestFlag::GRADIENT_CONTINUOUS)) {
         // gradient does not have to be continuous close to 0, hence the other test
-        REQUIRE(isContinuous([&kernel](Float q) { return q * kernel.gradImpl(sqr(q)); },
-            Interval(0.1_f, kernel.radius() + 0.1_f),
-            0.01_f,
-            continuousEps));
-        REQUIRE(isContinuous([&lut](Float q) { return q * lut.gradImpl(sqr(q)); },
-            Interval(0.1_f, lut.radius() + 0.1_f),
-            0.01_f,
-            continuousEps));
+        REQUIRE(
+            isContinuous(Interval(0.1_f, kernel.radius() + 0.1_f), 0.01_f, continuousEps, [&kernel](Float q) {
+                return q * kernel.gradImpl(sqr(q));
+            }));
+        REQUIRE(isContinuous(Interval(0.1_f, lut.radius() + 0.1_f), 0.01_f, continuousEps, [&lut](Float q) {
+            return q * lut.gradImpl(sqr(q));
+        }));
     }
 
     if (flags.has(KernelTestFlag::EQUALS_LUT)) {

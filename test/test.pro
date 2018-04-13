@@ -127,7 +127,6 @@ SOURCES += \
     ../lib/sph/equations/test/Derivative.cpp \
     ../lib/sph/equations/test/EquationTerm.cpp \
     ../lib/sph/equations/test/Friction.cpp \
-    ../lib/sph/equations/test/GradH.cpp \
     ../lib/sph/equations/test/Heat.cpp \
     ../lib/sph/equations/test/Potentials.cpp \
     ../lib/sph/equations/test/Rotation.cpp \
@@ -162,7 +161,8 @@ SOURCES += \
     utils/Utils.cpp \
     ../lib/sph/equations/test/Fluids.cpp \
     ../lib/physics/test/Units.cpp \
-    ../lib/math/test/Functional.cpp
+    ../lib/math/test/Functional.cpp \
+    ../lib/physics/test/Functions.cpp
 
 HEADERS += \
     utils/Utils.h \

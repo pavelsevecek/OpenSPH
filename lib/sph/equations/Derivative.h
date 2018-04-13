@@ -374,6 +374,7 @@ AutoPtr<IDerivative> makeDerivative(const RunSettings& settings, Flags<Derivativ
 }
 
 
+/// \brief Container holding derivatives and the storage they accumulate to.
 class DerivativeHolder {
 private:
     Accumulated accumulated;

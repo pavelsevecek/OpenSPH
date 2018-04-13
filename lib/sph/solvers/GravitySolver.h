@@ -23,8 +23,10 @@ private:
     AutoPtr<IGravity> gravity;
 
 public:
+    /// \brief Creates the gravity solver, used implementation of gravity given by settings parameters.
     GravitySolver(const RunSettings& settings, const EquationHolder& equations);
 
+    /// \brief Creates the gravity solver by explicitly specifying the gravity implementation.
     GravitySolver(const RunSettings& settings, const EquationHolder& equations, AutoPtr<IGravity>&& gravity);
 
 protected:
@@ -32,6 +34,7 @@ protected:
 
     virtual void sanityCheck(const Storage& storage) const override;
 
+    /// \brief Returns the accumulated storage, either thread-local or shared one based on SPH solver.
     Accumulated& getAccumulated();
 };
 

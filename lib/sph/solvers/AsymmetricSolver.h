@@ -57,9 +57,8 @@ protected:
     /// Structure used to search for neighbouring particles
     AutoPtr<IBasicFinder> finder;
 
-    /// Selected SPH kernel, symmetrized over smoothing lenghs:
-    /// \f$ W_ij(r_i - r_j, 0.5(h[i] + h[j]) \f$
-    SymmetrizeSmoothingLengths<LutKernel<DIMENSIONS>> kernel;
+    /// Selected SPH kernel
+    LutKernel<DIMENSIONS> kernel;
 
 public:
     AsymmetricSolver(const RunSettings& settings, const EquationHolder& eqs);
@@ -72,6 +71,8 @@ public:
 
 protected:
     virtual void loop(Storage& storage, Statistics& stats);
+
+    virtual void afterLoop(Storage& storage, Statistics& stats);
 
     virtual void sanityCheck(const Storage& storage) const;
 };

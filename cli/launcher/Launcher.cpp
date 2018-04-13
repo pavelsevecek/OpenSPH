@@ -46,33 +46,44 @@ int main(int argc, char* argv[]) {
         return 0;
     }
 
+    // convert to correct units
     Presets::CollisionParams cp;
     cp.targetRadius = params[CollisionParam::TARGET_RADIUS].get<float>();
-    cp.targetRotation = params[CollisionParam::TARGET_PERIOD].get<float>();
-    cp.impactSpeed = params[CollisionParam::IMPACT_SPEED].get<float>();
-    cp.impactAngle = params[CollisionParam::IMPACT_ANGLE].get<float>();
+    cp.targetRotation = 2._f * PI / (3600._f * params[CollisionParam::TARGET_PERIOD].get<float>());
+    cp.impactSpeed = 1000._f * params[CollisionParam::IMPACT_SPEED].get<float>();
+    cp.impactAngle = DEG_TO_RAD * params[CollisionParam::IMPACT_ANGLE].get<float>();
 
     const Float impactEnergy = params[CollisionParam::IMPACT_ENERGY].get<float>();
-    cp.impactorRadius =
-        0.5_f * getImpactorDiameter(2._f * cp.targetRadius, 2700._f, 1000._f * cp.impactSpeed, impactEnergy);
+    cp.impactorRadius = getImpactorRadius(cp.targetRadius,
+        cp.impactSpeed,
+        cp.impactAngle,
+        impactEnergy,
+        2700._f,
+        GetImpactorFlag::EFFECTIVE_ENERGY);
 
-    logger.write("Target radius [m]:      ", cp.targetRadius);
-    logger.write("Impactor radius [m]:    ", cp.impactorRadius);
-    logger.write("Target period [h]:      ", cp.targetRotation);
-    logger.write("Impact speed [km/s]:    ", cp.impactSpeed);
-    logger.write("Impact angle [°]:       ", cp.impactAngle);
-    logger.write("Impact energy [Q/Q*_D]: ", impactEnergy);
+    const Float effectiveEnergy =
+        impactEnergy * getEffectiveImpactArea(cp.targetRadius, cp.impactorRadius, cp.impactAngle);
 
-    const std::string runName =
-        getRunName(cp.targetRadius, cp.impactorRadius, cp.targetRotation, cp.impactSpeed, cp.impactAngle);
+    logger.write("Target radius [m]:             ", cp.targetRadius);
+    logger.write("Impactor radius [m]:           ", cp.impactorRadius);
+    logger.write("Target period [h]:             ", 2._f * PI / (3600._f * cp.targetRotation));
+    logger.write("Impact speed [km/s]:           ", cp.impactSpeed / 1000._f);
+    logger.write("Impact angle [°]:              ", cp.impactAngle * RAD_TO_DEG);
+    logger.write("Impact energy [Q/Q*_D]:        ", impactEnergy);
+    logger.write("Effective energy [Q_eff/Q*_D]: ", effectiveEnergy);
+
+    const std::string runName = getRunName(cp.targetRadius,
+        cp.impactorRadius,
+        2._f * PI / (3600._f * cp.targetRotation),
+        cp.impactSpeed / 1000._f,
+        cp.impactAngle * RAD_TO_DEG);
+
+    cp.outputPath = Path(runName);
+
     logger.write("Starting run ", runName);
     logger.write("");
 
-    // convert to correct units
-    cp.targetRotation = 2._f * PI / (3600._f * cp.targetRotation);
-    cp.impactSpeed = 1000._f * cp.impactSpeed;
-    cp.impactAngle = DEG_TO_RAD * cp.impactAngle;
-    cp.outputPath = Path(runName);
+
     // cp.targetParticleCnt = 1000;
 
     CollisionRun run(cp);

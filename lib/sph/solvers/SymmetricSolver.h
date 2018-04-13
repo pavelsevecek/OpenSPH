@@ -64,9 +64,8 @@ protected:
     /// Structure used to search for neighbouring particles
     AutoPtr<ISymmetricFinder> finder;
 
-    /// Selected SPH kernel, symmetrized over smoothing lenghs:
-    /// \f$ W_ij(r_i - r_j, 0.5(h[i] + h[j]) \f$
-    SymmetrizeSmoothingLengths<LutKernel<DIMENSIONS>> kernel;
+    /// Selected SPH kernel
+    LutKernel<DIMENSIONS> kernel;
 
 public:
     /// \brief Creates the symmetric solver, given the list of equations to solve

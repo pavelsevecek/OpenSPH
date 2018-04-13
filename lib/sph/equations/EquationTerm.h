@@ -76,7 +76,6 @@ public:
     }
 };
 
-
 /// \brief Evolutionary equation for the (scalar) smoothing length
 ///
 /// The smoothing length is evolved using first-order equation, 'mirroring' changes in density in
@@ -258,7 +257,7 @@ public:
 };
 
 
-/// \brief Container holding equation terms
+/// \brief Container holding equation terms.
 ///
 /// Holds an array of equation terms. The object also defines operators for adding more equation
 /// terms and functions \ref initialize, \ref finalize and \ref create, calling corresponding

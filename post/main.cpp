@@ -38,7 +38,7 @@ int pkdgravToSfd(const Path& filePath, const Path& sfdPath) {
     }
     Post::HistogramParams params;
     params.source = Post::HistogramParams::Source::PARTICLES;
-    params.id = Post::HistogramId::RADII;
+    params.id = Post::HistogramId::EQUIVALENT_MASS_RADII;
     Array<Post::SfdPoint> sfd = Post::getCummulativeSfd(storage.value(), params);
     FileLogger logRadiiSfd(sfdPath, FileLogger::Options::KEEP_OPENED);
     for (Post::SfdPoint& p : sfd) {

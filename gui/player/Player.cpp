@@ -6,6 +6,9 @@
 #include "io/Logger.h"
 #include "objects/utility/StringUtils.h"
 #include <wx/msgdlg.h>
+#include <wx/sizer.h>
+#include <wx/slider.h>
+#include <wx/stattext.h>
 
 IMPLEMENT_APP(Sph::App);
 
@@ -48,6 +51,9 @@ void RunPlayer::setUp() {
     // setupUvws(*storage);
 
     callbacks = makeAuto<GuiCallbacks>(*controller);
+
+
+    //     ArrayView<const Float> omega
 }
 
 Size RunPlayer::getFileCount(const Path& pathMask) const {
@@ -102,22 +108,6 @@ void RunPlayer::run() {
             }
         }
 
-        // triggers
-        /*for (auto iter = triggers.begin(); iter != triggers.end();) {
-            ITrigger& trig = **iter;
-            if (trig.condition(*storage, stats)) {
-                AutoPtr<ITrigger> newTrigger = trig.action(*storage, stats);
-                if (newTrigger) {
-                    triggers.pushBack(std::move(newTrigger));
-                }
-                if (trig.type() == TriggerEnum::ONE_TIME) {
-                    iter = triggers.erase(iter);
-                    continue;
-                }
-            }
-            ++iter;
-        }*/
-
         if (callbacks->shouldAbortRun()) {
             break;
         }
@@ -127,6 +117,19 @@ void RunPlayer::run() {
 }
 
 void RunPlayer::tearDown(const Statistics& UNUSED(stats)) {}
+
+class PlayerPlugin : public IPluginControls {
+public:
+    virtual void create(wxWindow* parent, wxSizer* sizer) override {
+        wxSlider* slider = new wxSlider(parent, wxID_ANY, 0, 0, 100);
+        slider->SetSize(wxSize(800, 100));
+        sizer->Add(slider);
+        wxStaticText* text = new wxStaticText(parent, wxID_ANY, "TEST TEST");
+        sizer->Add(text);
+    }
+
+    virtual void statusChanges(const RunStatus UNUSED(newStatus)) override {}
+};
 
 bool App::OnInit() {
     Connect(MAIN_LOOP_TYPE, MainLoopEventHandler(App::processEvents));
@@ -176,9 +179,7 @@ bool App::OnInit() {
         .set(GuiSettingsId::PALETTE_ENERGY, Interval(0._f, 1.e3_f))
         .set(GuiSettingsId::PALETTE_RADIUS, Interval(700._f, 3.e3_f))
         .set(GuiSettingsId::PALETTE_GRADV, Interval(0._f, 1.e-5_f))
-        .set(GuiSettingsId::PLOT_INTEGRALS,
-            PlotEnum::KINETIC_ENERGY | PlotEnum::INTERNAL_ENERGY | PlotEnum::TOTAL_ENERGY |
-                PlotEnum::TOTAL_MOMENTUM | PlotEnum::TOTAL_ANGULAR_MOMENTUM | PlotEnum::SELECTED_PARTICLE);
+        .set(GuiSettingsId::PLOT_INTEGRALS, PlotEnum::ALL);
 
     if (fileMask.native().substr(fileMask.native().size() - 3) == ".bt") {
         // pkdgrav file, override some options
@@ -193,7 +194,7 @@ bool App::OnInit() {
         gui.saveToFile(Path("gui.sph"));
     }*/
 
-    controller = makeAuto<Controller>(gui);
+    controller = makeAuto<Controller>(gui, makeAuto<PlayerPlugin>());
 
     AutoPtr<RunPlayer> run = makeAuto<RunPlayer>(fileMask);
     run->setController(controller.get());
