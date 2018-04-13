@@ -86,7 +86,7 @@ void StabilizationRunPhase::setUp() {
             .set(BodySettingsId::DISTRIBUTE_MODE_SPH5, true)
             .set(BodySettingsId::STRESS_TENSOR_MIN, 4.e6_f)
             .set(BodySettingsId::ENERGY_MIN, 10._f)
-            .set(BodySettingsId::DAMAGE_MIN, 0.25_f);
+            .set(BodySettingsId::DAMAGE_MIN, 0.25_f)
             .set(BodySettingsId::PARTICLE_COUNT, 100000);
         body.saveToFile(matPath);
         logger->write("No material settings found, defaults saved to file '", matPath.native(), "'");
