@@ -67,11 +67,21 @@ INLINE SymmetricTensor parallelAxisTheorem(const SymmetricTensor& I, const Float
 
 } // namespace Rigid
 
+/// \brief Computes the critical (break-up) angular velocity of a body.
+///
+/// This value is only based on the ratio of the gravity and centrifugal force. It is a function of density
+/// only, is does not depend on the radius of the body. Note that bodies rotating above the break-up limit
+/// exist, especially smaller monolithic bodies with D ~ 100m!
+/// \return Angular velocity (in rev/s).
+INLINE Float computeCriticalFrequency(const Float rho) {
+    return sqrt(sphereVolume(1._f) * rho * Constants::gravity);
+}
+
 /// \brief Returns the critical energy Q_D^* as a function of body diameter.
 ///
-/// The critical energy is a kinetic energy for which half of the target is dispersed into the fragments. In
-/// other words, impact with critical energy will produce largest remnant (or fragment), mass of which is 50%
-/// mass of the parent body, The relation follows the scaling law of Benz & Asphaug (1999).
+/// The critical energy is a kinetic energy for which half of the target is dispersed into the fragments.
+/// In other words, impact with critical energy will produce largest remnant (or fragment), mass of which
+/// is 50% mass of the parent body, The relation follows the scaling law of Benz & Asphaug (1999).
 ///
 /// \todo replace D with units, do not enforce SI
 INLINE Float evalBenzAsphaugScalingLaw(const Float D, const Float rho) {
@@ -87,18 +97,16 @@ INLINE Float evalBenzAsphaugScalingLaw(const Float D, const Float rho) {
     return 1.e-4_f * Q_cgs;
 }
 
-/// \brief Returns the the ratio of the cross-sectional area of the impact and the total area of the impactor.
+/// \brief Returns the the ratio of the cross-sectional area of the impact and the total area of the
+/// impactor.
 ///
 /// This value is lower than 1 only at high impact angles, where a part of the impactor misses the target
 /// entirely (hit-and-run collision) and does not deliver its kinetic energy into the target. For the same
-/// Q/Q_D, oblique impacts will therefore look 'artificially' weaker than the impacts and lower impacts angle.
-/// Effective impact area can be used to 'correct' the impact energy, so that impacts at high impact angles
-/// are comparable with head-on impats.
-/// See \ref Sevecek_2017 for details.
-/// \param Q Relative impact energy (kinetic energy of the impactor divided by the impactor mass)
-/// \param R Radius of the target
-/// \param r Radius of the impactor
-/// \param phi Impact angle in radians
+/// Q/Q_D, oblique impacts will therefore look 'artificially' weaker than the impacts and lower impacts
+/// angle. Effective impact area can be used to 'correct' the impact energy, so that impacts at high
+/// impact angles are comparable with head-on impats. See \ref Sevecek_2017 for details. \param Q Relative
+/// impact energy (kinetic energy of the impactor divided by the impactor mass) \param R Radius of the
+/// target \param r Radius of the impactor \param phi Impact angle in radians
 INLINE Float getEffectiveImpactArea(const Float R, const Float r, const Float phi) {
     ASSERT(phi >= 0._f && phi <= PI / 2._f);
     const Float d = (r + R) * sin(phi);
@@ -132,16 +140,16 @@ INLINE Float getImpactorRadius(const Float R_pb,
     const Float rho,
     const Flags<GetImpactorFlag> flags) {
     if (flags.has(GetImpactorFlag::EFFECTIVE_ENERGY)) {
-        // The effective impact energy depends on impactor radius, which is what we want to compute; needs to
-        // be solved by iterative algorithm.
-        // First, get an estimate of the radius by using the regular impact energy
+        // The effective impact energy depends on impactor radius, which is what we want to compute; needs
+        // to be solved by iterative algorithm. First, get an estimate of the radius by using the regular
+        // impact energy
         Float r = getImpactorRadius(R_pb, v_imp, phi, QoverQ_D, rho, EMPTY_FLAGS);
         if (almostEqual(getEffectiveImpactArea(R_pb, r, phi), 1._f, 1.e-4_f)) {
             // (almost) whole impactor hits the target, no need to account for effective energy
             return r;
         }
-        // Effective energy LOWER than the regular energy, so we only need to increase the impactor, no need
-        // to check for smaller values.
+        // Effective energy LOWER than the regular energy, so we only need to increase the impactor, no
+        // need to check for smaller values.
         Float lastR = LARGE;
         const Float eps = 1.e-4_f * r;
         while (abs(r - lastR) > eps) {

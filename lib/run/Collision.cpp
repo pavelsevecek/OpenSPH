@@ -8,8 +8,8 @@
 NAMESPACE_SPH_BEGIN
 
 static RunSettings getSharedSettings(const Presets::CollisionParams& params, const std::string& fileMask) {
-    // for 100km body, run 100 s
-    const Float runTime = 2._f * params.targetRadius / 1000;
+    // for 100km body, run 500 s !
+    const Float runTime = 10._f * params.targetRadius / 1000;
     RunSettings settings;
     settings.set(RunSettingsId::RUN_NAME, std::string("Impact"))
         .set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::PREDICTOR_CORRECTOR)
@@ -18,7 +18,7 @@ static RunSettings getSharedSettings(const Presets::CollisionParams& params, con
         .set(RunSettingsId::TIMESTEPPING_MAX_CHANGE, 0.5_f)
         .set(RunSettingsId::TIMESTEPPING_COURANT_NUMBER, 0.25_f)
         .set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, runTime))
-        .set(RunSettingsId::RUN_OUTPUT_INTERVAL, runTime / 20._f)
+        .set(RunSettingsId::RUN_OUTPUT_INTERVAL, runTime / 100._f)
         .set(RunSettingsId::RUN_OUTPUT_TYPE, OutputEnum::BINARY_FILE)
         .set(RunSettingsId::RUN_OUTPUT_PATH, params.outputPath.native())
         .set(RunSettingsId::RUN_OUTPUT_NAME, fileMask)
@@ -41,6 +41,18 @@ static RunSettings getSharedSettings(const Presets::CollisionParams& params, con
     return settings;
 }
 
+class EnergyLog : public ILogFile {
+public:
+    using ILogFile::ILogFile;
+
+private:
+    virtual void write(const Storage& storage, const Statistics& stats) override {
+        const Float t = stats.get<Float>(StatisticsId::RUN_TIME);
+        const Float e = TotalEnergy().evaluate(storage);
+        logger->write(t, "   ", e);
+    }
+};
+
 StabilizationRunPhase::StabilizationRunPhase(const Presets::CollisionParams params)
     : params(params) {
     const Path stabPath = params.outputPath / Path("stabilization.sph");
@@ -50,17 +62,20 @@ StabilizationRunPhase::StabilizationRunPhase(const Presets::CollisionParams para
         settingsLoaded = true;
     } else {
         settings = getSharedSettings(params, "stab_%d.ssf");
-        settings
-            .set(RunSettingsId::RUN_NAME, std::string("Stabilization"))
-            // stabilization phase is 5 times longer
-            .set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 5._f * 2._f * params.targetRadius / 1000));
+        settings.set(RunSettingsId::RUN_NAME, std::string("Stabilization"));
 
         settings.saveToFile(stabPath);
         settingsLoaded = false;
     }
 
     logger = Factory::getLogger(settings);
-    output = Factory::getOutput(settings);
+    // no output files!
+    output = makeAuto<NullOutput>();
+
+    const Float runTime = settings.get<Interval>(RunSettingsId::RUN_TIME_RANGE).size();
+    SharedPtr<ILogger> energyLogger = makeShared<FileLogger>(params.outputPath / Path("stab_energy.txt"));
+    AutoPtr<EnergyLog> energyFile = makeAuto<EnergyLog>(energyLogger, runTime / 50._f);
+    triggers.pushBack(std::move(energyFile));
 
     if (settingsLoaded) {
         logger->write("Loaded stabilization settings from file '", stabPath.native(), "'");
@@ -83,11 +98,11 @@ void StabilizationRunPhase::setUp() {
             .set(BodySettingsId::EOS, EosEnum::TILLOTSON)
             .set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::SCALAR_GRADY_KIPP)
             .set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::VON_MISES)
-            .set(BodySettingsId::DISTRIBUTE_MODE_SPH5, true)
+            .set(BodySettingsId::DISTRIBUTE_MODE_SPH5, false)
             .set(BodySettingsId::STRESS_TENSOR_MIN, 4.e6_f)
             .set(BodySettingsId::ENERGY_MIN, 10._f)
             .set(BodySettingsId::DAMAGE_MIN, 0.25_f)
-            .set(BodySettingsId::PARTICLE_COUNT, 100000);
+            .set(BodySettingsId::PARTICLE_COUNT, 250000);
         body.saveToFile(matPath);
         logger->write("No material settings found, defaults saved to file '", matPath.native(), "'");
     }

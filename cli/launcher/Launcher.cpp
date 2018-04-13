@@ -28,8 +28,8 @@ std::string getRunName(const Float targetRadius,
     const Float impactSpeed,
     const Float impactAngle) {
     std::stringstream ss;
-    ss << "sph_" << int(targetRadius) << "m_" << int(impactorRadius) << "m_" << int(targetPeriod) << "h_"
-       << int(impactSpeed) << "kms_" << int(impactAngle);
+    ss << "sph_" << round(targetRadius) << "m_" << round(impactorRadius) << "m_" << round(targetPeriod)
+       << "h_" << round(impactSpeed) << "kms_" << round(impactAngle);
     return ss.str();
 }
 
@@ -53,20 +53,22 @@ int main(int argc, char* argv[]) {
     cp.impactSpeed = 1000._f * params[CollisionParam::IMPACT_SPEED].get<float>();
     cp.impactAngle = DEG_TO_RAD * params[CollisionParam::IMPACT_ANGLE].get<float>();
 
-    const Float impactEnergy = params[CollisionParam::IMPACT_ENERGY].get<float>();
+    const Float effectiveEnergy = params[CollisionParam::IMPACT_ENERGY].get<float>();
     cp.impactorRadius = getImpactorRadius(cp.targetRadius,
         cp.impactSpeed,
         cp.impactAngle,
-        impactEnergy,
+        effectiveEnergy,
         2700._f,
         GetImpactorFlag::EFFECTIVE_ENERGY);
 
-    const Float effectiveEnergy =
-        impactEnergy * getEffectiveImpactArea(cp.targetRadius, cp.impactorRadius, cp.impactAngle);
+    const Float impactEnergy =
+        effectiveEnergy / getEffectiveImpactArea(cp.targetRadius, cp.impactorRadius, cp.impactAngle);
 
     logger.write("Target radius [m]:             ", cp.targetRadius);
     logger.write("Impactor radius [m]:           ", cp.impactorRadius);
     logger.write("Target period [h]:             ", 2._f * PI / (3600._f * cp.targetRotation));
+    logger.write(
+        "Critical period [h]:           ", 2._f * PI / (3600._f * computeCriticalFrequency(2700._f)));
     logger.write("Impact speed [km/s]:           ", cp.impactSpeed / 1000._f);
     logger.write("Impact angle [°]:              ", cp.impactAngle * RAD_TO_DEG);
     logger.write("Impact energy [Q/Q*_D]:        ", impactEnergy);
