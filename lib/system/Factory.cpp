@@ -121,6 +121,8 @@ AutoPtr<ITimeStepping> Factory::getTimeStepping(const RunSettings& settings,
         return makeAuto<LeapFrog>(storage, settings);
     case TimesteppingEnum::BULIRSCH_STOER:
         return makeAuto<BulirschStoer>(storage, settings);
+    case TimesteppingEnum::MODIFIED_MIDPOINT:
+        return makeAuto<ModifiedMidpointMethod>(storage, settings);
     case TimesteppingEnum::RUNGE_KUTTA:
         return makeAuto<RungeKutta>(storage, settings);
     default:

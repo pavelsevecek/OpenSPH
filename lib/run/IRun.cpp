@@ -54,7 +54,7 @@ void IRun::run() {
     setNullToDefaults();
 
     // run main loop
-    Float nextOutput = timeRange.lower() + outputInterval;
+    Float nextOutput = timeRange.lower();
     logger->write("Running:");
     Timer runTimer;
     EndingCondition condition(settings.get<Float>(RunSettingsId::RUN_WALLCLOCK_TIME),

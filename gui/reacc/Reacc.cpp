@@ -120,13 +120,13 @@ public:
 RunSettings getSharedSettings() {
     RunSettings settings;
     settings.set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::PREDICTOR_CORRECTOR)
-        .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 1.e-4_f)
+        .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 1.e-2_f)
         .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 100._f)
         .set(RunSettingsId::TIMESTEPPING_MAX_CHANGE, 0.1_f)
-        .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 20._f)
+        .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 5._f)
         .set(RunSettingsId::SOLVER_FORCES,
-            ForceEnum::PRESSURE | ForceEnum::SOLID_STRESS | ForceEnum::GRAVITY) //| ForceEnum::INERTIAL)
-        .set(RunSettingsId::SOLVER_TYPE, SolverEnum::ASYMMETRIC_SOLVER)
+            ForceEnum::PRESSURE | ForceEnum::SOLID_STRESS | ForceEnum::GRAVITY | ForceEnum::INERTIAL)
+        .set(RunSettingsId::SOLVER_TYPE, SolverEnum::SYMMETRIC_SOLVER)
         .set(RunSettingsId::SPH_FINDER, FinderEnum::KD_TREE)
         .set(RunSettingsId::SPH_FORMULATION, FormulationEnum::STANDARD)
         .set(RunSettingsId::SPH_AV_TYPE, ArtificialViscosityEnum::STANDARD)
@@ -142,11 +142,10 @@ RunSettings getSharedSettings() {
         .set(RunSettingsId::TIMESTEPPING_COURANT_NUMBER, 0.25_f)
         .set(RunSettingsId::RUN_THREAD_GRANULARITY, 100)
         .set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONST)
-        .set(RunSettingsId::SPH_STRAIN_RATE_CORRECTION_TENSOR, true)
+        .set(RunSettingsId::SPH_STRAIN_RATE_CORRECTION_TENSOR, false)
         .set(RunSettingsId::SPH_SUM_ONLY_UNDAMAGED, true)
         .set(RunSettingsId::SPH_STABILIZATION_DAMPING, 0.5_f)
-        .set(RunSettingsId::FRAME_ANGULAR_FREQUENCY, Vector(0._f));
-    // Vector(0._f, 0._f, 2._f * PI / (6._f * 3600._f)));
+        .set(RunSettingsId::FRAME_ANGULAR_FREQUENCY, Vector(0._f, 0._f, 2._f * PI / (6._f * 3600._f)));
     return settings;
 }
 
@@ -158,7 +157,7 @@ Stabilization::Stabilization(RawPtr<Controller> newController) {
         // continue run, we don't need to do the stabilization, so skip it by settings the range to zero
         settings.set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 0._f));
     } else {
-        settings.set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 20._f));
+        settings.set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 500._f));
     }
     settings.saveToFile(Path("stabilization.sph"));
 
@@ -194,7 +193,7 @@ void Stabilization::setUp() {
         }
     } else {
 
-        Size N = 10'000;
+        Size N = 100'000;
 
         BodySettings body;
         body.set(BodySettingsId::ENERGY, 0._f)
@@ -205,25 +204,25 @@ void Stabilization::setUp() {
             .set(BodySettingsId::DISTRIBUTE_MODE_SPH5, true)
             .set(BodySettingsId::SHEAR_VISCOSITY, 1.e12_f)
             .set(BodySettingsId::BULK_VISCOSITY, 0._f)
-            .set(BodySettingsId::STRESS_TENSOR_MIN, 5.e5_f)
-            .set(BodySettingsId::ENERGY_MIN, 1._f)
-            .set(BodySettingsId::DAMAGE_MIN, 0.2_f);
+            .set(BodySettingsId::STRESS_TENSOR_MIN, 1.e8_f)
+            .set(BodySettingsId::ENERGY_MIN, 100._f)
+            .set(BodySettingsId::DAMAGE_MIN, 0.5_f);
         //.set(BodySettingsId::DIELH_STRENGTH, 0.1_f);
 
         body.saveToFile(Path("body.sph"));
 
         Presets::CollisionParams params;
-        params.targetRadius = 1e3_f;   // D = 2km
+        params.targetRadius = 0.5e5_f; // D = 2km
         params.impactorRadius = 1e3_f; // D = 2km
-        params.impactAngle = 45._f * DEG_TO_RAD;
-        params.impactSpeed = 0._f; // v_imp = 5km/s
+        params.impactAngle = 15._f * DEG_TO_RAD;
+        params.impactSpeed = 5.e3_f; // v_imp = 5km/s
         params.targetRotation = 0._f;
         params.targetParticleCnt = N;
         params.impactorOffset = 15;
         params.centerOfMassFrame = true;
         params.optimizeImpactor = false;
 
-        Presets::CollisionSettings().saveToFile(Path("impact.sph"));
+        // Presets::CollisionSettings().saveToFile(Path("impact.sph"));
 
 
         /*Presets::CollisionParams params;
@@ -247,7 +246,7 @@ void Stabilization::setUp() {
         params.velocityDirection = Vector(0._f, 0.1_f, 0.6_f);
         params.centerOfMassFrame = false;*/
 
-        /*const Vector impactPoint(params.targetRadius * cos(params.impactAngle),
+        const Vector impactPoint(params.targetRadius * cos(params.impactAngle),
             params.targetRadius * sin(params.impactAngle),
             0._f);
         const Float homogeneousRadius = 0.25_f * params.targetRadius;
@@ -258,7 +257,7 @@ void Stabilization::setUp() {
             } else {
                 return sqr(sqr(homogeneousRadius) / distSqr);
             }
-        };*/
+        };
 
         data = makeShared<Presets::Collision>(settings, body, params);
         data->addTarget(*storage);
@@ -268,7 +267,7 @@ void Stabilization::setUp() {
     }
 
     callbacks = makeAuto<GuiCallbacks>(*controller);
-    triggers.pushBack(makeAuto<CommonStatsLog>(Factory::getLogger(settings)));
+    triggers.pushBack(makeAuto<CommonStatsLog>(Factory::getLogger(settings), settings));
     output = makeAuto<BinaryOutput>(Path("stab_%d.ssf"));
 }
 
@@ -379,7 +378,7 @@ void Fragmentation::setUp() {
       output = makeAuto<BinaryOutput>(Path("out%d.ssf"));*/
 
     // add printing of run progres
-    triggers.pushBack(makeAuto<CommonStatsLog>(Factory::getLogger(settings)));
+    triggers.pushBack(makeAuto<CommonStatsLog>(Factory::getLogger(settings), settings));
     triggers.pushBack(makeAuto<ErrorDump>());
 }
 
@@ -391,7 +390,7 @@ void Fragmentation::handoff(Storage&& input) {
     input = storage->clone(VisitorEnum::ALL_BUFFERS);
     solver = Factory::getSolver(settings);
     // the quantities are already created, no need to call solver->create
-    triggers.pushBack(makeAuto<CommonStatsLog>(Factory::getLogger(settings)));
+    triggers.pushBack(makeAuto<CommonStatsLog>(Factory::getLogger(settings), settings));
     output = makeAuto<BinaryOutput>(Path("frag_%d.ssf"));
 
     /*    ArrayView<const Vector> r = storage->getValue<Vector>(QuantityId::POSITION);
@@ -497,7 +496,7 @@ void Reaccumulation::handoff(Storage&& sph) {
 
     solver->create(*storage, storage->getMaterial(0));
     ASSERT(storage->isValid());
-    triggers.pushBack(makeAuto<CommonStatsLog>(Factory::getLogger(settings)));
+    triggers.pushBack(makeAuto<CommonStatsLog>(Factory::getLogger(settings), settings));
 
     //    onRunStarted(*storage);
 }

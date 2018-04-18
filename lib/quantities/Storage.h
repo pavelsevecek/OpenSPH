@@ -174,17 +174,20 @@ private:
         MatRange(SharedPtr<IMaterial>&& material, const Size from, const Size to);
     };
 
-    /// Materials of particles in the storage.
+    /// \brief Materials of particles in the storage.
     ///
     /// Particles of the same material are stored consecutively; first material always starts with index 0 and
     /// last material ends with index equal to the number of particles.
     Array<MatRange> mats;
 
-    /// Cached view of material IDs of particles, used for fast access of material properties.
+    /// \brief Cached view of material IDs of particles.
+    ///
+    /// Used for fast access of material properties.
     ArrayView<Size> matIds;
 
-    /// Dependent storages, modified every time the number of particles of this storage is changed (in order
-    /// to keep the number of particles in dependent storages the same).
+    /// \brief Dependent storages, modified when the number of particles of this storage is changed.
+    ///
+    /// Needed in order to keep the number of particles in dependent storages the same.
     Array<WeakPtr<Storage>> dependent;
 
 public:

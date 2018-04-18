@@ -325,11 +325,6 @@ void NBodySolver::collide(Storage& storage, Statistics& stats, const Float dt) {
             }
         }
     }
-    // advance all positions to the end of the timestep
-    for (Size i = 0; i < r.size(); ++i) {
-        r[i] += v[i] * dt;
-        ASSERT(isReal(r[i]));
-    }
 
     // apply the removal list
     if (!removed.empty()) {

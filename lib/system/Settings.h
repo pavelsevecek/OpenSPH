@@ -371,6 +371,9 @@ enum class TimesteppingEnum {
     /// Predictor-corrector scheme
     PREDICTOR_CORRECTOR,
 
+    /// Modified midpoint method with constant number of substeps
+    MODIFIED_MIDPOINT,
+
     /// Bulirsch-Stoer integrator
     BULIRSCH_STOER
 };
@@ -379,6 +382,9 @@ static RegisterEnum<TimesteppingEnum> sTimestepping({
     { TimesteppingEnum::LEAP_FROG, "leap_frog", "Leap-frog 2nd-order integration" },
     { TimesteppingEnum::RUNGE_KUTTA, "runge_kutta", "Runge-Kutta 4-th order integration" },
     { TimesteppingEnum::PREDICTOR_CORRECTOR, "predictor_corrector", "Predictor-corrector scheme" },
+    { TimesteppingEnum::MODIFIED_MIDPOINT,
+        "modified_midpoint",
+        "Modified midpoint method with constant number of substeps." },
     { TimesteppingEnum::BULIRSCH_STOER, "bulirsch_stoer", "Bulirsch-Stoer integrator" },
 });
 

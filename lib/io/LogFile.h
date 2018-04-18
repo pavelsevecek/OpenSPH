@@ -44,9 +44,14 @@ protected:
 
 
 class CommonStatsLog : public ILogFile {
+private:
+    std::string name;
+
 public:
-    explicit CommonStatsLog(const SharedPtr<ILogger>& logger)
-        : ILogFile(logger, 0._f) {}
+    explicit CommonStatsLog(const SharedPtr<ILogger>& logger, const RunSettings& settings)
+        : ILogFile(logger, 0._f) {
+        name = settings.get<std::string>(RunSettingsId::RUN_NAME);
+    }
 
     virtual void write(const Storage& storage, const Statistics& stats) {
         // Timestep number and current run time
@@ -54,7 +59,7 @@ public:
         const Float time = stats.get<Float>(StatisticsId::RUN_TIME);
         const int wallclock = stats.get<int>(StatisticsId::WALLCLOCK_TIME);
         const std::string formattedWallclock = getFormattedTime(wallclock);
-        logger->write("Output #", index, "  time = ", time, "  wallclock time: ", formattedWallclock);
+        logger->write(name, " #", index, "  time = ", time, "  wallclock time: ", formattedWallclock);
         if (stats.has(StatisticsId::RELATIVE_PROGRESS)) {
             const Float progress = stats.get<Float>(StatisticsId::RELATIVE_PROGRESS);
             if (progress > 0.05_f) {
