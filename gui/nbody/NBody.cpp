@@ -118,7 +118,7 @@ void NBody::setUp() {
 
     callbacks = makeAuto<GuiCallbacks>(*controller);
 
-    triggers.pushBack(makeAuto<CommonStatsLog>(Factory::getLogger(settings)));
+    triggers.pushBack(makeAuto<CommonStatsLog>(Factory::getLogger(settings), settings));
 }
 
 void NBody::tearDown(const Statistics& UNUSED(stats)) {

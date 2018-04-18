@@ -7,6 +7,7 @@
 
 #include "gui/objects/Color.h"
 #include "gui/objects/Point.h"
+#include "io/FileSystem.h"
 #include "io/Path.h"
 #include "objects/containers/Array.h"
 #include <wx/bitmap.h>
@@ -96,6 +97,7 @@ inline Bitmap toBitmap(wxBitmap& wx) {
 }
 
 inline void saveToFile(const wxBitmap& wx, const Path& path) {
+    FileSystem::createDirectory(path.parentPath());
     wx.SaveFile(path.native().c_str(), wxBITMAP_TYPE_PNG);
 }
 

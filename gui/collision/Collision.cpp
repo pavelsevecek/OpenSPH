@@ -122,7 +122,7 @@ void AsteroidCollision::setUp() {
     callbacks = makeAuto<GuiCallbacks>(*controller);
 
     // add printing of run progres
-    triggers.pushBack(makeAuto<CommonStatsLog>(Factory::getLogger(settings)));
+    triggers.pushBack(makeAuto<CommonStatsLog>(Factory::getLogger(settings), settings));
 }
 
 void AsteroidCollision::tearDown(const Statistics& UNUSED(stats)) {
