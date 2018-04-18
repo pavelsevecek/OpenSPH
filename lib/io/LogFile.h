@@ -17,7 +17,7 @@ protected:
     SharedPtr<ILogger> logger;
 
 public:
-    /// Constructs the log file.
+    /// \brief Constructs the log file.
     ///
     /// This base class actually does not use the logger in any way, it is stored there (and required in the
     /// constructor) because all derived classes are expected to use a logger; this way we can reduce the code
@@ -26,7 +26,7 @@ public:
     /// \param period Log period in run time. Must be a positive value or zero; zero period means the log
     ///               message is written on every time step.
     explicit ILogFile(const SharedPtr<ILogger>& logger, const Float period = 0._f)
-        : PeriodicTrigger(period, -INFTY)
+        : PeriodicTrigger(period, 0._f)
         , logger(logger) {
         ASSERT(this->logger);
     }

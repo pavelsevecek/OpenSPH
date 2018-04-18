@@ -69,13 +69,6 @@ StabilizationRunPhase::StabilizationRunPhase(const Presets::CollisionParams para
     }
 
     logger = Factory::getLogger(settings);
-    // no output files!
-    output = makeAuto<NullOutput>();
-
-    const Float runTime = settings.get<Interval>(RunSettingsId::RUN_TIME_RANGE).size();
-    SharedPtr<ILogger> energyLogger = makeShared<FileLogger>(params.outputPath / Path("stab_energy.txt"));
-    AutoPtr<EnergyLog> energyFile = makeAuto<EnergyLog>(energyLogger, runTime / 50._f);
-    triggers.pushBack(std::move(energyFile));
 
     if (settingsLoaded) {
         logger->write("Loaded stabilization settings from file '", stabPath.native(), "'");
@@ -120,8 +113,16 @@ void StabilizationRunPhase::setUp() {
     logger->write(
         "Running STABILIZATION for ", settings.get<Interval>(RunSettingsId::RUN_TIME_RANGE).size(), " s");
 
+    // no output files!
+    output = makeAuto<NullOutput>();
+
     // add printing of run progress
     triggers.pushBack(makeAuto<CommonStatsLog>(logger));
+
+    const Float runTime = settings.get<Interval>(RunSettingsId::RUN_TIME_RANGE).size();
+    SharedPtr<ILogger> energyLogger = makeShared<FileLogger>(params.outputPath / Path("stab_energy.txt"));
+    AutoPtr<EnergyLog> energyFile = makeAuto<EnergyLog>(energyLogger, runTime / 50._f);
+    triggers.pushBack(std::move(energyFile));
 }
 
 AutoPtr<IRunPhase> StabilizationRunPhase::getNextPhase() const {

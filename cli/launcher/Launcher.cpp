@@ -3,6 +3,7 @@
 #include "run/Collision.h"
 #include "sph/initial/Presets.h"
 #include "system/ArgsParser.h"
+#include "system/Platform.h"
 
 using namespace Sph;
 
@@ -86,6 +87,11 @@ int main(int argc, char* argv[]) {
     logger.write("");
 
 
+    Expected<std::string> gitSha = getGitCommit(Path("/home/pavel/projects/astro/sph/src"));
+    if (gitSha) {
+        FileLogger logger(cp.outputPath / Path("code_commit.txt"));
+        logger.write(gitSha.value());
+    }
     // cp.targetParticleCnt = 1000;
 
     CollisionRun run(cp);
