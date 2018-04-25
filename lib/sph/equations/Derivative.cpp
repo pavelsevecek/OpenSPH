@@ -112,7 +112,7 @@ bool DerivativeHolder::isSymmetric() const {
     return true;
 }
 
-DerivativeHolder DerivativeHolder::getSubset(const QuantityId id, const OrderEnum order) {
+/*DerivativeHolder DerivativeHolder::getSubset(const QuantityId id, const OrderEnum order) {
     DerivativeHolder subset;
     for (const auto& deriv : derivatives) {
         Accumulated a;
@@ -124,6 +124,6 @@ DerivativeHolder DerivativeHolder::getSubset(const QuantityId id, const OrderEnu
         }
     }
     return subset;
-}
+}*/
 
 NAMESPACE_SPH_END

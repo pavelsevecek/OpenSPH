@@ -403,9 +403,6 @@ private:
     bool needsCreate = true;
 
 public:
-    explicit DerivativeHolder(const RunSettings& settings)
-        : accumulated(settings) {}
-
     /// \brief Adds derivative if not already present.
     ///
     /// If the derivative is already stored, new one is NOT stored, it is simply ignored. However, the new
@@ -429,9 +426,6 @@ public:
     /// Only if all derivatives are symmetric, the symmetric evaluation (using \ref evalSymmetric) can be
     /// used, otherwise an assert is issued.
     bool isSymmetric() const;
-
-    /// \brief Returns the derivatives that accumulate given quantity.
-    DerivativeHolder getSubset(const QuantityId id, const OrderEnum order);
 
     INLINE Accumulated& getAccumulated() {
         return accumulated;

@@ -217,7 +217,7 @@ private:
             }
             buffer1[i] += sum;
         };
-        parallelFor(pool, 0, buffer1.size(), granularity, functor);
+        parallelFor(pool, 0, buffer1.size(), functor);
     }
 
     bool hasBuffer(const QuantityId id, const OrderEnum UNUSED_IN_RELEASE(order)) const {
