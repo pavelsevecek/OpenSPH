@@ -28,7 +28,8 @@ enum class DerivativePhase {
     /// Auxiliary quantities needed for evaluation of other derivatives (grad-h, correction tensor, ...)
     PRECOMPUTE,
 
-    /// Evaluation of quantity derivatives. All derivatives from precomputation phase are computed
+    /// Evaluation of quantity derivatives. All derivatives from precomputation phase are already computed and
+    /// may be used for the computation here.
     EVALUATION,
 };
 
@@ -423,21 +424,21 @@ public:
     /// Useful to limit the total number of evaluations - every particle pair can be evaluated only once.
     void evalSymmetric(const Size idx, ArrayView<const Size> neighs, ArrayView<const Vector> grads);
 
+    /// \brief Returns true if all stored derivatives are symmetric.
+    ///
+    /// Only if all derivatives are symmetric, the symmetric evaluation (using \ref evalSymmetric) can be
+    /// used, otherwise an assert is issued.
+    bool isSymmetric() const;
+
+    /// \brief Returns the derivatives that accumulate given quantity.
+    DerivativeHolder getSubset(const QuantityId id, const OrderEnum order);
+
     INLINE Accumulated& getAccumulated() {
         return accumulated;
     }
 
     INLINE Size getDerivativeCnt() const {
         return derivatives.size();
-    }
-
-    INLINE bool isSymmetric() const {
-        for (const auto& deriv : derivatives) {
-            if (!dynamic_cast<SymmetricDerivative*>(&*deriv)) {
-                return false;
-            }
-        }
-        return true;
     }
 };
 

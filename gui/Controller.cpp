@@ -285,6 +285,7 @@ Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage
         colorizerIds.push(ColorizerId::ACCELERATION);
         colorizerIds.push(ColorizerId::RADIUS);
         colorizerIds.push(ColorizerId::ID);
+        colorizerIds.push(ColorizerId::FLAG);
         colorizerIds.push(ColorizerId::UVW);
 
         if (storage.has(QuantityId::NEIGHBOUR_CNT)) {

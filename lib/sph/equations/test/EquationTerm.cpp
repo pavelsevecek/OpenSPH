@@ -86,7 +86,7 @@ struct TestEquation : public IEquationTerm {
 TEST_CASE("Setting derivatives", "[equationterm]") {
     TestDerivative::initialized = false;
     Tests::SingleDerivativeMaker<TestDerivative> eq;
-    DerivativeHolder derivatives(RunSettings::getDefaults());
+    DerivativeHolder derivatives;
     eq.setDerivatives(derivatives, RunSettings::getDefaults());
     Storage storage;
     // add some dummy quantity to set particle count

@@ -279,11 +279,11 @@ void Stabilization::tearDown(const Statistics& UNUSED(stats)) {
     if (wxTheApp->argc == 1) {
         ASSERT(storage->has(QuantityId::POSITION));
         onStabilizationFinished();
-        const Size impactorOffset = storage->getParticleCnt();
+        // const Size impactorOffset = storage->getParticleCnt();
         data->addImpactor(*storage);
 
         // copy quantities from "target" to "impactor" (equal spheres)
-        ASSERT(storage->getParticleCnt() == 2 * impactorOffset);
+        /*ASSERT(storage->getParticleCnt() == 2 * impactorOffset);
         ArrayView<Float> u, rho, p;
         tie(u, rho, p) =
             storage->getValues<Float>(QuantityId::ENERGY, QuantityId::DENSITY, QuantityId::PRESSURE);
@@ -301,7 +301,7 @@ void Stabilization::tearDown(const Statistics& UNUSED(stats)) {
         }
 
         // data->addSecondary(*storage);
-        setupUvws(*storage);
+        setupUvws(*storage);*/
     }
 }
 
@@ -434,7 +434,7 @@ Reaccumulation::Reaccumulation() {
         .set(RunSettingsId::COLLISION_RESTITUTION_NORMAL, 0.1_f)
         .set(RunSettingsId::COLLISION_RESTITUTION_TANGENT, 1._f)
         .set(RunSettingsId::COLLISION_ALLOWED_OVERLAP, 0.1_f)
-        .set(RunSettingsId::COLLISION_MERGING_LIMIT, 10._f)
+        .set(RunSettingsId::COLLISION_MERGING_LIMIT, 1._f)
         .set(RunSettingsId::NBODY_INERTIA_TENSOR, false)
         .set(RunSettingsId::NBODY_MAX_ROTATION_ANGLE, 0.01_f)
         .set(RunSettingsId::RUN_THREAD_GRANULARITY, 100);

@@ -9,9 +9,9 @@
 
 NAMESPACE_SPH_BEGIN
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/// ScalarDamage implementation
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//-----------------------------------------------------------------------------------------------------------
+// ScalarGradyKippModel implementation
+//-----------------------------------------------------------------------------------------------------------
 
 ScalarGradyKippModel::ScalarGradyKippModel(const Float kernelRadius, const ExplicitFlaws options)
     : kernelRadius(kernelRadius)
@@ -181,6 +181,10 @@ void ScalarGradyKippModel::integrate(Storage& storage, const MaterialView materi
         ASSERT(ddamage[i] >= 0.f);
     });
 }
+
+//-----------------------------------------------------------------------------------------------------------
+// TensorGradyKippModel implementation
+//-----------------------------------------------------------------------------------------------------------
 
 void TensorGradyKippModel::setFlaws(Storage& UNUSED(storage),
     IMaterial& UNUSED(material),

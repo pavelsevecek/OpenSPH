@@ -12,9 +12,9 @@
 
 NAMESPACE_SPH_BEGIN
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/// RandomDistribution implementation
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//-----------------------------------------------------------------------------------------------------------
+// RandomDistribution implementation
+//-----------------------------------------------------------------------------------------------------------
 
 RandomDistribution::RandomDistribution(AutoPtr<IRng>&& rng)
     : rng(std::move(rng)) {}
@@ -41,9 +41,9 @@ Array<Vector> RandomDistribution::generate(const Size n, const IDomain& domain) 
     return vecs;
 }
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/// CubicPacking implementation
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//-----------------------------------------------------------------------------------------------------------
+// CubicPacking implementation
+//-----------------------------------------------------------------------------------------------------------
 
 Array<Vector> CubicPacking::generate(const Size n, const IDomain& domain) const {
     PROFILE_SCOPE("CubicPacking::generate")
@@ -68,9 +68,9 @@ Array<Vector> CubicPacking::generate(const Size n, const IDomain& domain) const 
     return vecs;
 }
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/// HexagonalPacking implementation
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//-----------------------------------------------------------------------------------------------------------
+// HexagonalPacking implementation
+//-----------------------------------------------------------------------------------------------------------
 
 HexagonalPacking::HexagonalPacking(const Flags<Options> f)
     : flags(f) {}
@@ -138,9 +138,9 @@ Array<Vector> HexagonalPacking::generate(const Size n, const IDomain& domain) co
     return vecs;
 }
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/// DiehlEtAlDistribution implementation
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//-----------------------------------------------------------------------------------------------------------
+// DiehlEtAlDistribution implementation
+//-----------------------------------------------------------------------------------------------------------
 
 DiehlDistribution::DiehlDistribution(const DiehlDistribution::DensityFunc& particleDensity,
     const Float maxDifference,
@@ -353,9 +353,9 @@ Array<Vector> DiehlDistribution::generate(const Size expectedN, const IDomain& d
     return positions;
 }
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/// LinearDistribution implementation
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//-----------------------------------------------------------------------------------------------------------
+// LinearDistribution implementation
+//-----------------------------------------------------------------------------------------------------------
 
 Array<Vector> LinearDistribution::generate(const Size n, const IDomain& domain) const {
     const Float center = domain.getCenter()[X];

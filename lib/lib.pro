@@ -296,4 +296,6 @@ HEADERS += \
     objects/utility/EnumMap.h \
     system/Settings.impl.h \
     math/Functional.h \
-    sph/solvers/GradHSolver.h
+    sph/solvers/GradHSolver.h \
+    sph/equations/DeltaSph.h \
+    sph/solvers/DifferencedEnergySolver.h

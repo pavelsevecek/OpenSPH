@@ -38,15 +38,21 @@ private:
         /// BRDF used to get the surface reflectance.
         AutoPtr<IBrdf> brdf;
 
-        /// HDRI for the background. Can be empty.
-        Texture hdri;
+        struct {
+
+            Color color = Color::black();
+
+            /// HDRI for the background. Can be empty.
+            Texture hdri;
+
+        } enviro;
 
         /// Textures of the rendered bodies. Can be empty. The textures are assigned to the bodies using their
         /// flags (not material IDs).
         Array<Texture> textures;
 
         /// Cast shadows
-        bool shadows = true;
+        bool shadows = false;
 
         /// Step between two pixels computed by raytracing.
         Size subsampling = 1;
@@ -75,6 +81,7 @@ private:
         /// Particle colors
         Array<Color> colors;
 
+        /// Mapping coordinates. May be empty.
         Array<Vector> uvws;
 
         /// Particle volume (=mass/density)

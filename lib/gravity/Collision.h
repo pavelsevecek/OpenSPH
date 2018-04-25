@@ -108,7 +108,7 @@ public:
 /// The volume of the merger is the sum of volumes of colliders. Particles are only merged if the relative
 /// velocity of collision is lower than the escape velocity and if the angular frequency of the would-be
 /// merger is lower than the break-up frequency; if not, CollisionResult::NONE is returned.
-class PerfectMergingHandler : public ICollisionHandler {
+class MergingCollisionHandler : public ICollisionHandler {
 private:
     ArrayView<Vector> r, v;
     ArrayView<Float> m;
@@ -122,11 +122,11 @@ private:
     Float mergingLimit;
 
 public:
-    explicit PerfectMergingHandler(const RunSettings& settings) {
+    explicit MergingCollisionHandler(const RunSettings& settings) {
         mergingLimit = settings.get<Float>(RunSettingsId::COLLISION_MERGING_LIMIT);
     }
 
-    explicit PerfectMergingHandler(const Float mergingLimit)
+    explicit MergingCollisionHandler(const Float mergingLimit)
         : mergingLimit(mergingLimit) {}
 
     virtual void initialize(Storage& storage) override {
@@ -157,7 +157,10 @@ public:
 
         Vector omega_merger;
 
-        if (I) {
+        // Never modify particle values below UNTIL we know the collision is accepted; save the preliminary
+        // values to _merger variables!
+
+        /*if (I) {
             // compute inertia tensors in inertial frame
             const SymmetricTensor I1 = transform(I[i], convert<AffineMatrix>(E[i]));
             const SymmetricTensor I2 = transform(I[j], convert<AffineMatrix>(E[j]));
@@ -182,21 +185,19 @@ public:
             ASSERT(isReal(E[i]));
 
             L[i] = L_merger;
-            omega[i] = omega_merger;
             ASSERT(isReal(L[i]) && isReal(omega[i]), L[i], omega[i]);
             /// \todo remove, we have unit tests for this
             ASSERT(almostEqual(getSqrLength(E[i].row(0)), 1._f, 1.e-6_f));
             ASSERT(almostEqual(getSqrLength(E[i].row(1)), 1._f, 1.e-6_f));
             ASSERT(almostEqual(getSqrLength(E[i].row(2)), 1._f, 1.e-6_f));
 
-        } else {
-            const Vector L_merger = m[i] * cross(r[i] - r_merger, v[i] - v_merger) + //
-                                    m[j] * cross(r[j] - r_merger, v[j] - v_merger) + //
-                                    Rigid::sphereInertia(m[i], r[i][H]) * omega[i] + //
-                                    Rigid::sphereInertia(m[j], r[j][H]) * omega[j];
-            omega_merger = Rigid::sphereInertia(m_merger, h_merger).inverse() * L_merger;
-            omega[i] = omega_merger;
-        }
+        } else {*/
+        const Vector L_merger = m[i] * cross(r[i] - r_merger, v[i] - v_merger) + //
+                                m[j] * cross(r[j] - r_merger, v[j] - v_merger) + //
+                                Rigid::sphereInertia(m[i], r[i][H]) * omega[i] + //
+                                Rigid::sphereInertia(m[j], r[j][H]) * omega[j];
+        omega_merger = Rigid::sphereInertia(m_merger, h_merger).inverse() * L_merger;
+        //}
         // omega[i] = omega_merger;
 
         if (!this->acceptMerge(i, j, h_merger, omega_merger)) {
@@ -210,6 +211,7 @@ public:
         r[i][H] = h_merger;
         v[i] = v_merger;
         v[i][H] = 0._f;
+        omega[i] = omega_merger;
 
         ASSERT(isReal(v[i]) && isReal(r[i]));
         toRemove.insert(j);
@@ -370,7 +372,7 @@ public:
 /// velocities of particles nor angular frequency of the merger - particles are always merged.
 class MergeOverlapHandler : public IOverlapHandler {
 private:
-    PerfectMergingHandler handler;
+    MergingCollisionHandler handler;
 
 public:
     MergeOverlapHandler()
@@ -487,7 +489,7 @@ public:
 /// is not classified as overlap.
 class MergeBoundHandler : public IOverlapHandler {
 private:
-    PerfectMergingHandler handler;
+    MergingCollisionHandler handler;
 
 public:
     ArrayView<Vector> r, v, omega;

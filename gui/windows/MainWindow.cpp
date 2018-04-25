@@ -370,6 +370,46 @@ wxBoxSizer* MainWindow::createSidebar() {
         list->push(data);
     }
 
+    if (flags.has(PlotEnum::PERIOD_HISTOGRAM)) {
+        data.plot = makeLocking<HistogramPlot>(
+            Post::HistogramId::ROTATIONAL_PERIOD, Interval(0._f, 10._f), "Rotational periods");
+        plots.push(data.plot);
+        data.color = Color(wxColour(255, 255, 0));
+        list->push(data);
+    }
+
+    if (flags.has(PlotEnum::LARGEST_REMNANT_ROTATION)) {
+        class LargestRemnantRotation : public IIntegral<Float> {
+        public:
+            virtual Float evaluate(const Storage& storage) const override {
+                ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
+                if (!storage.has(QuantityId::ANGULAR_VELOCITY)) {
+                    return 0._f;
+                }
+                ArrayView<const Vector> omega = storage.getValue<Vector>(QuantityId::ANGULAR_VELOCITY);
+
+                const Size largestRemnantIdx = std::distance(m.begin(), std::max_element(m.begin(), m.end()));
+                const Float w = getLength(omega[largestRemnantIdx]);
+                if (w == 0._f) {
+                    return 0._f;
+                } else {
+                    return 2._f * PI / (3600._f * w);
+                }
+            }
+
+            virtual std::string getName() const override {
+                return "Largest remnant period";
+            }
+        };
+        integral = makeAuto<LargestRemnantRotation>();
+        auto clonedParams = params;
+        clonedParams.minRangeY = 1.e-2_f;
+        data.plot = makeLocking<TemporalPlot>(integral, clonedParams);
+        plots.push(data.plot);
+        data.color = Color(wxColour(255, 0, 255));
+        list->push(data);
+    }
+
     if (flags.has(PlotEnum::SELECTED_PARTICLE)) {
         selectedParticlePlot = makeLocking<SelectedParticlePlot>();
         data.plot = selectedParticlePlot;

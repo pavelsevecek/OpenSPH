@@ -157,6 +157,10 @@ bool TemporalPlot::isExpired(const Float x, const Float t) const {
 void HistogramPlot::onTimeStep(const Storage& storage, const Statistics& UNUSED(stats)) {
     Post::HistogramParams params;
     params.id = Post::HistogramId(id);
+    params.binCnt = 20;
+    if (interval) {
+        params.range = interval.value();
+    }
     points = Post::getDifferentialSfd(storage, params);
 
     this->clear();

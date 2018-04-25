@@ -103,4 +103,27 @@ void DerivativeHolder::evalSymmetric(const Size idx,
     }
 }
 
+bool DerivativeHolder::isSymmetric() const {
+    for (const auto& deriv : derivatives) {
+        if (!dynamic_cast<SymmetricDerivative*>(&*deriv)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+DerivativeHolder DerivativeHolder::getSubset(const QuantityId id, const OrderEnum order) {
+    DerivativeHolder subset;
+    for (const auto& deriv : derivatives) {
+        Accumulated a;
+        deriv->create(a);
+        if (a.hasBuffer(id, order)) {
+            // required since we don't sort the returned values by phase
+            ASSERT(deriv->phase() == DerivativePhase::EVALUATION);
+            subset.derivatives.insert(deriv);
+        }
+    }
+    return subset;
+}
+
 NAMESPACE_SPH_END

@@ -241,15 +241,30 @@ protected:
     /// Points representing the histogram
     Array<Post::SfdPoint> points;
 
-public:
-    explicit HistogramPlot(const Post::HistogramId id)
-        : id(id) {}
+    /// Interval for which the histogram is constructed.
+    ///
+    /// If NOTHING, the interval is created by enclosing all x values.
+    Optional<Interval> interval;
 
-    explicit HistogramPlot(const QuantityId id)
-        : id(Post::HistogramId(id)) {}
+    /// Displayed name of the histogram.
+    std::string name;
+
+public:
+    explicit HistogramPlot(const Post::HistogramId id,
+        const Optional<Interval> interval,
+        const std::string& name)
+        : id(id)
+        , interval(interval)
+        , name(name) {}
+
+    explicit HistogramPlot(const QuantityId id, const Optional<Interval> interval)
+        : id(Post::HistogramId(id))
+        , interval(interval) {
+        name = getMetadata(id).quantityName;
+    }
 
     virtual std::string getCaption() const override {
-        return getMetadata(QuantityId(id)).quantityName;
+        return name;
     }
 
     virtual void onTimeStep(const Storage& storage, const Statistics& stats) override;
@@ -265,11 +280,7 @@ private:
 
 public:
     SfdPlot()
-        : HistogramPlot(Post::HistogramId::RADII) {}
-
-    virtual std::string getCaption() const override {
-        return "Size-frequency distribution";
-    }
+        : HistogramPlot(Post::HistogramId::RADII, NOTHING, "Size-frequency distribution") {}
 
     virtual void onTimeStep(const Storage& storage, const Statistics& stats) override;
 

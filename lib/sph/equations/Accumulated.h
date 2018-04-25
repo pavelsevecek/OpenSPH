@@ -55,13 +55,7 @@ private:
     /// Debug array, holding IDs of all quantities to check for uniqueness.
     Array<QuantityRecord> records;
 
-    Size granularity;
-
 public:
-    explicit Accumulated(const RunSettings& settings) {
-        granularity = settings.get<int>(RunSettingsId::RUN_THREAD_GRANULARITY);
-    }
-
     /// \brief Creates a new storage with given ID.
     ///
     /// Should be called once for each thread when the solver is initialized.
@@ -154,7 +148,8 @@ public:
     /// \brief Stores accumulated values to corresponding quantities.
     ///
     /// The accumulated quantity must already exist in the storage and its order must be at least the order of
-    /// the accumulated buffer.
+    /// the accumulated buffer. The accumulated buffer is cleared (filled with zeroes) after storing the
+    /// values into the storage.
     void store(Storage& storage) {
         for (Element& e : buffers) {
             forValue(e.buffer, [&e, &storage](auto& buffer) {

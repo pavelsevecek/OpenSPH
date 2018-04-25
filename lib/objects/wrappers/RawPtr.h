@@ -99,11 +99,16 @@ INLINE bool operator!=(const RawPtr<T1> lhs, const RawPtr<T2> rhs) {
     return lhs.get() != rhs.get();
 }
 
+template <typename T>
+INLINE bool operator<(const RawPtr<T>& lhs, const RawPtr<T>& rhs) {
+    return lhs.get() < rhs.get();
+}
+
 NAMESPACE_SPH_END
 
 namespace std {
-    template <typename T>
-    void swap(Sph::RawPtr<T>& p1, Sph::RawPtr<T>& p2) {
-        p1.swap(p2);
-    }
+template <typename T>
+void swap(Sph::RawPtr<T>& p1, Sph::RawPtr<T>& p2) {
+    p1.swap(p2);
 }
+} // namespace std

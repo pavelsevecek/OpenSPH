@@ -143,7 +143,7 @@ void PlotView::drawAxes(wxDC& dc, const Interval rangeX, const Interval rangeY) 
                 const Float dcY = padding.y + (i + 0.5_f) * (size.y - 2 * padding.y) / 6._f;
                 dc.DrawLine(dcX - 2, dcY, dcX + 2, dcY);
                 const PlotPoint p = invMatrix.transformPoint({ dcX, dcY });
-                const std::wstring text = toPrintableString(p.y, 2);
+                const std::wstring text = toPrintableString(p.y, 3);
                 const wxSize extent = dc.GetTextExtent(text);
                 const Float labelX = (dcX > size.x / 2._f) ? dcX - extent.x : dcX;
                 drawTextWithSubscripts(dc, text, wxPoint(labelX, dcY - extent.y / 2));
@@ -161,7 +161,7 @@ void PlotView::drawAxes(wxDC& dc, const Interval rangeX, const Interval rangeY) 
                 const Float dcX = padding.x + (i + 0.5_f) * (size.x - 2 * padding.x) / 6._f;
                 dc.DrawLine(dcX, dcY - 2, dcX, dcY + 2);
                 const PlotPoint p = invMatrix.transformPoint({ dcX, dcY });
-                const std::wstring text = toPrintableString(p.x, 2);
+                const std::wstring text = toPrintableString(p.x, 3);
                 const wxSize extent = dc.GetTextExtent(text);
                 const Float labelY = (dcY < size.y / 2._f) ? dcY : dcY - extent.y;
                 drawTextWithSubscripts(dc, text, wxPoint(dcX - extent.x / 2, labelY));

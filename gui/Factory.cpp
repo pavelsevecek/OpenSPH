@@ -141,6 +141,8 @@ AutoPtr<IColorizer> Factory::getColorizer(const GuiSettings& settings,
         return makeAuto<UvwColorizer>();
     case ColorizerId::ID:
         return makeAuto<IdColorizer>();
+    case ColorizerId::FLAG:
+        return makeAuto<FlagColorizer>();
     case ColorizerId::BEAUTY:
         return makeAuto<BeautyColorizer>();
     default:
