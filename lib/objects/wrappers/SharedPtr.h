@@ -11,85 +11,85 @@
 NAMESPACE_SPH_BEGIN
 
 namespace Detail {
-    class ControlBlockHolder : public Polymorphic {
-    private:
-        std::atomic<int> useCnt;
-        std::atomic<int> weakCnt;
+class ControlBlockHolder : public Polymorphic {
+private:
+    std::atomic<int> useCnt;
+    std::atomic<int> weakCnt;
 
-    public:
-        INLINE ControlBlockHolder() {
-            useCnt = 1;
-            weakCnt = 1;
-        }
+public:
+    INLINE ControlBlockHolder() {
+        useCnt = 1;
+        weakCnt = 1;
+    }
 
-        INLINE int increaseUseCnt() {
-            const int cnt = ++useCnt;
-            ASSERT(cnt > 0);
-            return cnt;
-        }
+    INLINE int increaseUseCnt() {
+        const int cnt = ++useCnt;
+        ASSERT(cnt > 0);
+        return cnt;
+    }
 
-        INLINE int getUseCount() const {
-            return useCnt;
-        }
+    INLINE int getUseCount() const {
+        return useCnt;
+    }
 
-        INLINE int increaseWeakCnt() {
-            const int cnt = ++weakCnt;
-            ASSERT(cnt > 0);
-            return cnt;
-        }
+    INLINE int increaseWeakCnt() {
+        const int cnt = ++weakCnt;
+        ASSERT(cnt > 0);
+        return cnt;
+    }
 
-        INLINE bool increaseUseCntIfNonzero() {
-            while (true) {
-                int cnt = useCnt;
-                if (cnt == 0 || useCnt.compare_exchange_strong(cnt, cnt + 1)) {
-                    return cnt != 0;
-                }
+    INLINE bool increaseUseCntIfNonzero() {
+        while (true) {
+            int cnt = useCnt;
+            if (cnt == 0 || useCnt.compare_exchange_strong(cnt, cnt + 1)) {
+                return cnt != 0;
             }
         }
+    }
 
-        INLINE void decreaseUseCnt() {
-            const int cnt = --useCnt;
-            ASSERT(cnt >= 0);
-            if (cnt == 0) {
-                this->deletePtr();
-            }
+    INLINE void decreaseUseCnt() {
+        const int cnt = --useCnt;
+        ASSERT(cnt >= 0);
+        if (cnt == 0) {
+            this->deletePtr();
         }
+    }
 
-        INLINE void decreaseWeakCnt() {
-            const int cnt = --weakCnt;
-            ASSERT(cnt >= 0);
-            if (cnt == 0) {
-                this->deleteBlock();
-            }
+    INLINE void decreaseWeakCnt() {
+        const int cnt = --weakCnt;
+        ASSERT(cnt >= 0);
+        if (cnt == 0) {
+            this->deleteBlock();
         }
+    }
 
-        virtual void* getPtr() = 0;
+    virtual void* getPtr() = 0;
 
-        virtual void deletePtr() = 0;
+    virtual void deletePtr() = 0;
 
-        INLINE void deleteBlock() {
-            delete this;
-        }
-    };
+    INLINE void deleteBlock() {
+        delete this;
+    }
+};
 
-    template <typename T>
-    class ControlBlock : public ControlBlockHolder {
-    private:
-        T* ptr;
+template <typename T>
+class ControlBlock : public ControlBlockHolder {
+private:
+    T* ptr;
 
-    public:
-        ControlBlock(T* ptr)
-            : ptr(ptr) {}
+public:
+    ControlBlock(T* ptr)
+        : ptr(ptr) {}
 
-        INLINE virtual void* getPtr() override {
-            ASSERT(ptr);
-            return ptr;
-        }
+    INLINE virtual void* getPtr() override {
+        ASSERT(ptr);
+        return ptr;
+    }
 
-        virtual void deletePtr() override {
-            delete ptr;
-        }
-    };
+    virtual void deletePtr() override {
+        delete ptr;
+    }
+};
 } // namespace Detail
 
 template <typename T>
@@ -282,6 +282,11 @@ bool operator==(const SharedPtr<T>& ptr1, const SharedPtr<T>& ptr2) {
 template <typename T>
 bool operator!=(const SharedPtr<T>& ptr1, const SharedPtr<T>& ptr2) {
     return ptr1.get() != ptr2.get();
+}
+
+template <typename T>
+bool operator<(const SharedPtr<T>& ptr1, const SharedPtr<T>& ptr2) {
+    return ptr1.get() < ptr2.get();
 }
 
 template <typename T>

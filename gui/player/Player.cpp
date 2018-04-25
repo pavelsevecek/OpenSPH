@@ -149,7 +149,7 @@ bool App::OnInit() {
     }
 
     GuiSettings gui;
-    gui.set(GuiSettingsId::ORTHO_FOV, 1.e6_f)
+    gui.set(GuiSettingsId::ORTHO_FOV, 5.e5_f)
         .set(GuiSettingsId::ORTHO_VIEW_CENTER, 0.5_f * Vector(1024, 768, 0))
         .set(GuiSettingsId::VIEW_WIDTH, 1024)
         .set(GuiSettingsId::VIEW_HEIGHT, 768)
@@ -160,10 +160,11 @@ bool App::OnInit() {
         .set(GuiSettingsId::PARTICLE_RADIUS, 0.25_f)
         .set(GuiSettingsId::SURFACE_LEVEL, 0.1_f)
         .set(GuiSettingsId::SURFACE_SUN_POSITION, getNormalized(Vector(-0.2f, -0.1f, 1.1f)))
+        .set(GuiSettingsId::SURFACE_SUN_INTENSITY, 0.5_f)
+        .set(GuiSettingsId::SURFACE_AMBIENT, 0.03_f)
         .set(GuiSettingsId::SURFACE_RESOLUTION, 2.e3_f)
         .set(GuiSettingsId::CAMERA, CameraEnum::ORTHO)
         .set(GuiSettingsId::ORTHO_PROJECTION, OrthoEnum::XY)
-        .set(GuiSettingsId::PERSPECTIVE_POSITION, Vector(0._f, 0._f, -1.e4_f))
         .set(GuiSettingsId::ORTHO_CUTOFF, 0._f)
         .set(GuiSettingsId::ORTHO_ZOFFSET, -1.e4_f)
         .set(GuiSettingsId::VIEW_GRID_SIZE, 0._f)
@@ -172,7 +173,7 @@ bool App::OnInit() {
         .set(GuiSettingsId::IMAGES_SAVE, true)
         .set(GuiSettingsId::IMAGES_NAME, std::string("frag_%e_%d.png"))
         .set(GuiSettingsId::IMAGES_MOVIE_NAME, std::string("frag_%e.avi"))
-        .set(GuiSettingsId::IMAGES_TIMESTEP, 10._f)
+        .set(GuiSettingsId::IMAGES_TIMESTEP, 0._f)
         .set(GuiSettingsId::PALETTE_STRESS, Interval(1.e5_f, 3.e6_f))
         .set(GuiSettingsId::PALETTE_VELOCITY, Interval(0.01_f, 1.e2_f))
         .set(GuiSettingsId::PALETTE_PRESSURE, Interval(-5.e4_f, 5.e4_f))
@@ -186,6 +187,12 @@ bool App::OnInit() {
         gui.set(GuiSettingsId::ORTHO_FOV, 1.e6_f)
             .set(GuiSettingsId::ORTHO_CUTOFF, 0._f)
             .set(GuiSettingsId::PARTICLE_RADIUS, 1._f);
+    }
+
+    if (!OutputFile(fileMask).hasWildcard()) {
+        Path name = fileMask.fileName();
+        name.replaceExtension("png");
+        gui.set(GuiSettingsId::IMAGES_NAME, name.native());
     }
 
     /*if (FileSystem::pathExists(Path("gui.sph"))) {

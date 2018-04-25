@@ -9,12 +9,9 @@
 
 NAMESPACE_SPH_BEGIN
 
-SymmetricSolver::ThreadData::ThreadData(const RunSettings& settings)
-    : derivatives(settings) {}
-
 SymmetricSolver::SymmetricSolver(const RunSettings& settings, const EquationHolder& eqs)
     : pool(settings.get<int>(RunSettingsId::RUN_THREAD_CNT))
-    , threadData(pool, settings) {
+    , threadData(pool) {
     /// \todo we have to somehow enforce either conservation of smoothing length or some EquationTerm that
     /// will evolve it. Or maybe just move smoothing length to separate quantity to get rid of these
     /// issues?

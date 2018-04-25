@@ -19,7 +19,7 @@ RayTracer::RayTracer(const GuiSettings& settings)
 
     std::string hdriPath = settings.get<std::string>(GuiSettingsId::RAYTRACE_HDRI);
     if (!hdriPath.empty()) {
-        params.hdri = Texture(Path(hdriPath), TextureFiltering::BILINEAR);
+        params.enviro.hdri = Texture(Path(hdriPath), TextureFiltering::BILINEAR);
     }
 
     std::string primaryPath = settings.get<std::string>(GuiSettingsId::RAYTRACE_TEXTURE_PRIMARY);
@@ -44,7 +44,11 @@ void RayTracer::initialize(const Storage& storage,
     cached.r = storage.getValue<Vector>(QuantityId::POSITION).clone();
     const Size particleCnt = cached.r.size();
 
-    cached.uvws = storage.getValue<Vector>(QuantityId(GuiQuantityId::UVW)).clone();
+    if (storage.has(QuantityId(GuiQuantityId::UVW))) {
+        cached.uvws = storage.getValue<Vector>(QuantityId(GuiQuantityId::UVW)).clone();
+    } else {
+        cached.uvws.clear();
+    }
 
     cached.flags.resize(particleCnt);
     ArrayView<const Size> idxs = storage.getValue<Size>(QuantityId::FLAG);
@@ -212,7 +216,7 @@ Optional<Vector> RayTracer::getSurfaceHit(ThreadData& data,
 
 Color RayTracer::shade(ThreadData& data, const Size index, const Vector& hit, const Vector& dir) const {
     Color color = Color::white();
-    if (!params.textures.empty()) {
+    if (!params.textures.empty() && !cached.uvws.empty()) {
         const Vector uvw = this->evalUvws(data.neighs, hit);
         color = params.textures[cached.flags[index]].eval(uvw) * 2._f;
     }
@@ -322,14 +326,14 @@ Vector RayTracer::evalUvws(ArrayView<const Size> neighs, const Vector& pos1) con
 }
 
 Color RayTracer::getEnviroColor(const Ray& ray) const {
-    if (params.hdri.empty()) {
-        return Color::black();
+    if (params.enviro.hdri.empty()) {
+        return params.enviro.color;
     } else {
         const Vector dir = ray.direction();
         /// \todo deduplicate with setupUvws
         const SphericalCoords spherical = cartensianToSpherical(Vector(dir[X], dir[Z], dir[Y]));
         const Vector uvw(spherical.phi / (2._f * PI) + 0.5_f, spherical.theta / PI, 0._f);
-        return params.hdri.eval(uvw);
+        return params.enviro.hdri.eval(uvw);
     }
 }
 

@@ -591,6 +591,9 @@ enum class SolverEnum {
 
     /// Density independent solver by Saitoh & Makino (2013).
     DENSITY_INDEPENDENT,
+
+    /// Solver advancing internal energy using pair-wise work done by particles, by Owen 2009.
+    DIFFERENED_ENERGY,
 };
 static RegisterEnum<SolverEnum> sSolver({
     { SolverEnum::SYMMETRIC_SOLVER,
@@ -991,6 +994,12 @@ enum class RunSettingsId {
     /// Epsilon-factor of XSPH correction (Monaghan, 1992). Value 0 turns off the correction, epsilon
     /// shouldn't be larger than 1.
     XSPH_EPSILON,
+
+    /// Delta-coefficient of the delta-SPH modification, see Marrone et al. 2011
+    SPH_DENSITY_DIFFUSION_DELTA,
+
+    /// Alpha-coefficient of the delta-SPH modification.
+    SPH_VELOCITY_DIFFUSION_ALPHA,
 
     /// Weighting function exponent n in artificial stress term
     SPH_AV_STRESS_EXPONENT,

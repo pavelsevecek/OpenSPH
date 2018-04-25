@@ -136,7 +136,6 @@ SOURCES += \
     ../lib/sph/kernel/test/GravityKernel.cpp \
     ../lib/sph/kernel/test/Interpolation.cpp \
     ../lib/sph/kernel/test/Kernel.cpp \
-    ../lib/sph/solvers/test/DensityIndependentSolver.cpp \
     ../lib/sph/solvers/test/GravitySolver.cpp \
     ../lib/sph/solvers/test/Impact.cpp \
     ../lib/sph/solvers/test/Solvers.cpp \
@@ -162,7 +161,9 @@ SOURCES += \
     ../lib/sph/equations/test/Fluids.cpp \
     ../lib/physics/test/Units.cpp \
     ../lib/math/test/Functional.cpp \
-    ../lib/physics/test/Functions.cpp
+    ../lib/physics/test/Functions.cpp \
+    ../lib/sph/solvers/test/DensityIndependentSolver.cpp \
+    ../lib/sph/solvers/test/DifferencedEnergySolver.cpp
 
 HEADERS += \
     utils/Utils.h \

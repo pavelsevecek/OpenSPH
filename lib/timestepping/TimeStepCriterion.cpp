@@ -35,9 +35,9 @@ std::ostream& operator<<(std::ostream& stream, const CriterionId id) {
     return stream;
 }
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/// DerivativeCriterion implementation
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//-----------------------------------------------------------------------------------------------------------
+// DerivativeCriterion implementation
+//-----------------------------------------------------------------------------------------------------------
 
 /// Helper class storing a minimal value of time step and corresponding statistics.
 template <typename T>
@@ -202,11 +202,9 @@ Tuple<Float, CriterionId> DerivativeCriterion::computeImpl(Storage& storage,
     return { totalMinStep, minId };
 }
 
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/// AccelerationCriterion implementation
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
+//-----------------------------------------------------------------------------------------------------------
+// AccelerationCriterion implementation
+//-----------------------------------------------------------------------------------------------------------
 
 AccelerationCriterion::AccelerationCriterion(const RunSettings& settings) {
     factor = settings.get<Float>(RunSettingsId::TIMESTEPPING_ADAPTIVE_FACTOR);
@@ -242,11 +240,9 @@ Tuple<Float, CriterionId> AccelerationCriterion::compute(Storage& storage,
     }
 }
 
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/// CourantCriterion implementation
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
+//-----------------------------------------------------------------------------------------------------------
+// CourantCriterion implementation
+//-----------------------------------------------------------------------------------------------------------
 
 CourantCriterion::CourantCriterion(const RunSettings& settings) {
     courant = settings.get<Float>(RunSettingsId::TIMESTEPPING_COURANT_NUMBER);
@@ -289,10 +285,9 @@ Tuple<Float, CriterionId> CourantCriterion::compute(Storage& storage,
     }
 }
 
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/// MultiCriterion implementation
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//-----------------------------------------------------------------------------------------------------------
+// MultiCriterion implementation
+//-----------------------------------------------------------------------------------------------------------
 
 MultiCriterion::MultiCriterion(const RunSettings& settings) {
     const Flags<TimeStepCriterionEnum> flags =

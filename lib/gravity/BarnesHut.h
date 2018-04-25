@@ -36,13 +36,15 @@ protected:
     MultipoleOrder order;
 
 public:
-    /// Constructs the Barnes-Hut gravity assuming point-like particles (with zero radius).
+    /// \brief Constructs the Barnes-Hut gravity assuming point-like particles (with zero radius).
+    ///
     /// \param theta Opening angle; lower value means higher precision, but slower computation
     /// \param order Order of multipole approximation
     /// \param leafSize Maximum number of particles in a leaf
     BarnesHut(const Float theta, const MultipoleOrder order, const Size leafSize = 20);
 
-    /// Constructs the Barnes-Hut gravity with given smoothing kernel
+    /// \brief Constructs the Barnes-Hut gravity with given smoothing kernel
+    ///
     /// \param theta Opening angle; lower value means higher precision, but slower computation
     /// \param order Order of multipole approximation
     /// \param leafSize Maximum number of particles in a leaf

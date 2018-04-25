@@ -24,6 +24,7 @@
 #include "sph/kernel/GravityKernel.h"
 #include "sph/solvers/AsymmetricSolver.h"
 #include "sph/solvers/DensityIndependentSolver.h"
+#include "sph/solvers/DifferencedEnergySolver.h"
 #include "sph/solvers/GravitySolver.h"
 #include "sph/solvers/StandardSets.h"
 #include "sph/solvers/SummationSolver.h"
@@ -202,15 +203,26 @@ static AutoPtr<ISolver> getActualSolver(const RunSettings& settings, EquationHol
 AutoPtr<ISolver> Factory::getSolver(const RunSettings& settings) {
     EquationHolder eqs = getStandardEquations(settings);
     const SolverEnum id = settings.get<SolverEnum>(RunSettingsId::SOLVER_TYPE);
+    auto throwIfGravity = [&settings] {
+        const Flags<ForceEnum> forces = settings.getFlags<ForceEnum>(RunSettingsId::SOLVER_FORCES);
+        if (forces.has(ForceEnum::GRAVITY)) {
+            throw InvalidSetup("Using solver incompatible with gravity.");
+        }
+    };
     switch (id) {
     case SolverEnum::SYMMETRIC_SOLVER:
         return getActualSolver<SymmetricSolver>(settings, std::move(eqs));
     case SolverEnum::ASYMMETRIC_SOLVER:
         return getActualSolver<AsymmetricSolver>(settings, std::move(eqs));
     case SolverEnum::SUMMATION_SOLVER:
+        throwIfGravity();
         return makeAuto<SummationSolver>(settings);
     case SolverEnum::DENSITY_INDEPENDENT:
+        throwIfGravity();
         return makeAuto<DensityIndependentSolver>(settings);
+    case SolverEnum::DIFFERENED_ENERGY:
+        throwIfGravity();
+        return makeAuto<DifferencedEnergySolver>(settings, std::move(eqs));
     default:
         NOT_IMPLEMENTED;
     }
@@ -257,9 +269,9 @@ AutoPtr<ICollisionHandler> Factory::getCollisionHandler(const RunSettings& setti
     case CollisionHandlerEnum::ELASTIC_BOUNCE:
         return makeAuto<ElasticBounceHandler>(settings);
     case CollisionHandlerEnum::PERFECT_MERGING:
-        return makeAuto<PerfectMergingHandler>(0._f);
+        return makeAuto<MergingCollisionHandler>(0._f);
     case CollisionHandlerEnum::MERGE_OR_BOUNCE:
-        return makeAuto<FallbackHandler<PerfectMergingHandler, ElasticBounceHandler>>(settings);
+        return makeAuto<FallbackHandler<MergingCollisionHandler, ElasticBounceHandler>>(settings);
     default:
         NOT_IMPLEMENTED;
     }
@@ -275,7 +287,7 @@ AutoPtr<IOverlapHandler> Factory::getOverlapHandler(const RunSettings& settings)
     case OverlapEnum::REPEL:
         return makeAuto<RepelHandler<ElasticBounceHandler>>(settings);
     case OverlapEnum::REPEL_OR_MERGE:
-        using FollowupHandler = FallbackHandler<PerfectMergingHandler, ElasticBounceHandler>;
+        using FollowupHandler = FallbackHandler<MergingCollisionHandler, ElasticBounceHandler>;
         return makeAuto<RepelHandler<FollowupHandler>>(settings);
     case OverlapEnum::INTERNAL_BOUNCE:
         return makeAuto<InternalBounceHandler>(settings);

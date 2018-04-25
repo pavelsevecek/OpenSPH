@@ -222,6 +222,7 @@ TEST_CASE("Array iterators", "[array]") {
 
     Size idx = 0;
     for (int i : empty) {
+        (void)i;
         idx++;
     }
     REQUIRE(idx == 0);

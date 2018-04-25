@@ -436,7 +436,7 @@ Reaccumulation::Reaccumulation() {
         .set(RunSettingsId::COLLISION_RESTITUTION_NORMAL, 0.1_f)
         .set(RunSettingsId::COLLISION_RESTITUTION_TANGENT, 1._f)
         .set(RunSettingsId::COLLISION_ALLOWED_OVERLAP, 0.1_f)
-        .set(RunSettingsId::COLLISION_MERGING_LIMIT, 10._f)
+        .set(RunSettingsId::COLLISION_MERGING_LIMIT, 1._f)
         .set(RunSettingsId::NBODY_INERTIA_TENSOR, false)
         .set(RunSettingsId::NBODY_MAX_ROTATION_ANGLE, 0.01_f)
         .set(RunSettingsId::RUN_THREAD_GRANULARITY, 100);

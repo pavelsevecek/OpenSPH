@@ -129,5 +129,9 @@ public:
     }
 };
 
+template <typename T>
+INLINE ArrayView<T> getSingleValueView(T& value) {
+    return ArrayView<T>(&value, 1);
+}
 
 NAMESPACE_SPH_END

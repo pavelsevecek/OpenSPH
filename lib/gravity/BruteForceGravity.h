@@ -25,12 +25,12 @@ private:
     GravityLutKernel kernel;
 
 public:
-    /// Default-construced gravity, assuming point-like particles
+    /// \brief Default-construced gravity, assuming point-like particles
     BruteForceGravity() {
         ASSERT(kernel.radius() == 0._f);
     }
 
-    /// Constructs gravity using smoothing kernel
+    /// \brief Constructs gravity using smoothing kernel
     BruteForceGravity(GravityLutKernel&& kernel)
         : kernel(std::move(kernel)) {}
 

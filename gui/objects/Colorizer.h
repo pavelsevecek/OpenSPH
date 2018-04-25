@@ -121,9 +121,10 @@ namespace Detail {
     }
 } // namespace Detail
 
-/// Special colorizers that do not directly correspond to quantities, must have strictly negative values.
-/// Function taking ColorizerId as an argument also acceps QuantityId casted to ColorizerId, interpreting as
-/// TypedColorizer with given quantity ID.
+/// \brief Special colorizers that do not directly correspond to quantities.
+///
+/// Must have strictly negative values. Function taking \ref ColorizerId as an argument also acceps \ref
+/// QuantityId casted to \ref ColorizerId, interpreting as \ref TypedColorizer with given quantity ID.
 enum class ColorizerId {
     VELOCITY = -1,             ///< Particle velocities
     ACCELERATION = -2,         ///< Acceleration of particles
@@ -140,7 +141,8 @@ enum class ColorizerId {
     UVW = -13,                 ///< Shows UV mapping, u-coordinate in red and v-coordinate in blur
     BOUNDARY = -14,            ///< Shows boundary particles
     ID = -15,                  ///< Each particle drawn with different color
-    BEAUTY = -16,              ///< Colorizer attempting to show the real-world look
+    FLAG = -16,                ///< Particles of different bodies are colored differently
+    BEAUTY = -17,              ///< Colorizer attempting to show the real-world look
 };
 
 /// Default colorizer simply converting quantity value to color using defined palette. Vector and tensor
@@ -635,8 +637,10 @@ public:
         const float u_cv = 5.e5_f; // mat.getParam<Float>(BodySettingsId::TILLOTSON_ENERGY_CV);
         palette = Palette({ { 0.01f * u_iv, Color(0.5f, 0.5f, 0.5) },
                               { 0.5f * u_iv, Color(0.5f, 0.5f, 0.5f) },
-                              { u_iv, Color(1.5f, 0.f, 0.f) },
-                              { u_cv, Color(2.f, 2.f, 0.95) } },
+                              /*{ u_iv, Color(1.5f, 0.f, 0.f) },
+                              { u_cv, Color(2.f, 2.f, 0.95) } },*/
+                              { u_iv, Color(0.8f, 0.f, 0.f) },
+                              { u_cv, Color(1.f, 1.f, 0.6) } },
             PaletteScale::LOGARITHMIC);
     }
 
@@ -804,23 +808,30 @@ private:
     }
 };
 
-class IdColorizer : public IColorizer {
-private:
-    /// \todo possibly move elsewhere
-    static uint64_t getHash(const Size value) {
-        // https://stackoverflow.com/questions/8317508/hash-function-for-a-string
-        constexpr int A = 54059;
-        constexpr int B = 76963;
-        constexpr int FIRST = 37;
+/// \todo possibly move elsewhere
+static uint64_t getHash(const Size value) {
+    // https://stackoverflow.com/questions/8317508/hash-function-for-a-string
+    constexpr int A = 54059;
+    constexpr int B = 76963;
+    constexpr int FIRST = 37;
 
-        uint64_t hash = FIRST;
-        uint8_t* ptr = (uint8_t*)&value;
-        for (uint i = 0; i < sizeof(uint64_t); ++i) {
-            hash = (hash * A) ^ (*ptr++ * B);
-        }
-        return hash;
+    uint64_t hash = FIRST;
+    uint8_t* ptr = (uint8_t*)&value;
+    for (uint i = 0; i < sizeof(uint64_t); ++i) {
+        hash = (hash * A) ^ (*ptr++ * B);
     }
+    return hash;
+}
 
+static Color getRandomizedColor(const Size idx) {
+    uint64_t hash = getHash(idx);
+    const uint8_t r = (hash & 0x00000000FFFF);
+    const uint8_t g = (hash & 0x0000FFFF0000) >> 16;
+    const uint8_t b = (hash & 0xFFFF00000000) >> 32;
+    return Color(r / 255.f, g / 255.f, b / 255.f);
+}
+
+class IdColorizer : public IColorizer {
 public:
     virtual void initialize(const Storage& UNUSED(storage), const RefEnum UNUSED(ref)) override {
         // no need to cache anything
@@ -831,11 +842,7 @@ public:
     }
 
     virtual Color evalColor(const Size idx) const override {
-        uint64_t hash = getHash(idx);
-        const uint8_t r = (hash & 0x00000000FFFF);
-        const uint8_t g = (hash & 0x0000FFFF0000) >> 16;
-        const uint8_t b = (hash & 0xFFFF00000000) >> 32;
-        return Color(r / 255.f, g / 255.f, b / 255.f);
+        return getRandomizedColor(idx);
     }
 
     virtual Optional<Particle> getParticle(const Size idx) const override {
@@ -848,6 +855,36 @@ public:
 
     virtual std::string name() const override {
         return "ID";
+    }
+};
+
+class FlagColorizer : public IColorizer {
+private:
+    ArrayRef<const Size> flags;
+
+public:
+    virtual void initialize(const Storage& storage, const RefEnum ref) override {
+        flags = makeArrayRef(storage.getValue<Size>(QuantityId::FLAG), ref);
+    }
+
+    virtual bool isInitialized() const override {
+        return !flags.empty();
+    }
+
+    virtual Color evalColor(const Size idx) const override {
+        return getRandomizedColor(flags[idx]);
+    }
+
+    virtual Optional<Particle> getParticle(const Size idx) const override {
+        return Particle(QuantityId::FLAG, flags[idx], idx);
+    }
+
+    virtual Optional<Palette> getPalette() const override {
+        return NOTHING;
+    }
+
+    virtual std::string name() const override {
+        return "Flags";
     }
 };
 

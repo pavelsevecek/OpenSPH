@@ -159,11 +159,12 @@ enum class HistogramId {
     /// Particle velocities
     VELOCITIES = -3,
 
-    /// Angular velocities of particles
-    ANGULAR_VELOCITIES = -4,
+    /// Rotational periods of particles (in hours)
+    /// \todo it should be in code units and then converted to hours on output!
+    ROTATIONAL_PERIOD = -4,
 };
 
-/// Parameters of the histogram
+/// \brief Parameters of the histogram
 struct HistogramParams {
 
     /// \brief Source data used to construct the histogram.
@@ -177,31 +178,34 @@ struct HistogramParams {
 
     Source source = Source::PARTICLES;
 
+    /// Quantity from which the histogram is constructed.
     HistogramId id = HistogramId::RADII;
 
-    /// Range of values from which the histogram is constructed. Unbounded range means the range is
-    /// selected based on the source data.
+    /// \brief Range of values from which the histogram is constructed.
+    ///
+    /// Unbounded range means the range is selected based on the source data.
     Interval range;
 
-    /// Number of histogram bins. 0 means the number is selected based on the source data. Used only by
-    /// differential SFD.
+    /// \brief Number of histogram bins.
+    ///
+    /// 0 means the number is selected based on the source data. Used only by differential SFD.
     Size binCnt = 0;
 
-    /// Reference density, used when computing particle radii from their masses.
+    /// \brief Reference density, used when computing particle radii from their masses.
     Float referenceDensity = 2700._f;
 
-    /// Parameters used by histogram of components
+    /// \brief Parameters used by histogram of components
     struct ComponentParams {
         Float radius = 2._f;
     } components;
 
-    /// Validator used to determine particles/component included in the histogram
+    /// \brief Validator used to determine particles/component included in the histogram
     ///
     /// By default, all particles/components are included
     Function<bool(const Float value)> validator = [](const Float UNUSED(value)) { return true; };
 };
 
-/// Point in SFD
+/// \brief Point in SFD
 struct SfdPoint {
     /// Radius or value of measured quantity (x coordinate in the plot)
     Float value;

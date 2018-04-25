@@ -46,16 +46,38 @@ static RegisterEnum<OrthoEnum> sOrtho({
 });
 
 enum class PlotEnum {
+    /// Evolution of the total internal energy in time
     INTERNAL_ENERGY = 1 << 0,
+
+    /// Evolution of the total kinetic energy in time
     KINETIC_ENERGY = 1 << 1,
+
+    /// Evolution of the total energy (sum of total kinetic energy and total internal energy) in time
+    /// \todo Currently does not contain potential energy!
     TOTAL_ENERGY = 1 << 2,
+
+    /// Evolution of the total momentum in time
     TOTAL_MOMENTUM = 1 << 3,
+
+    /// Evolution of the total angular momentum in time
     TOTAL_ANGULAR_MOMENTUM = 1 << 4,
+
+    /// Size-frequency distribution of particle radii in given time instant. Only makes sense for NBody
+    /// solver that merges particles on collision, otherwise the SFD would be trivial.
     SIZE_FREQUENCY_DISTRIBUTION = 1 << 5,
-    SELECTED_PARTICLE = 1 << 6,
+
+    /// Differential histogram of rotational periods (in hours) in given time instant.
+    PERIOD_HISTOGRAM = 1 << 6,
+
+    /// Evolution of the rotational period (in hours) of the largest remnant (fragment). Only makes sense for
+    /// NBody solver that merges particles on collisions, othewise the largest remannt is undefined.
+    LARGEST_REMNANT_ROTATION = 1 << 7,
+
+    /// Evolution of the selected quantity for the selected particle in time.
+    SELECTED_PARTICLE = 1 << 8,
 
     ALL = INTERNAL_ENERGY | KINETIC_ENERGY | TOTAL_ENERGY | TOTAL_MOMENTUM | TOTAL_ANGULAR_MOMENTUM |
-          SIZE_FREQUENCY_DISTRIBUTION | SELECTED_PARTICLE,
+          SIZE_FREQUENCY_DISTRIBUTION | PERIOD_HISTOGRAM | LARGEST_REMNANT_ROTATION | SELECTED_PARTICLE,
 };
 static RegisterEnum<PlotEnum> sPlot({
     { PlotEnum::INTERNAL_ENERGY, "internal_energy", "Plots the total internal energy." },

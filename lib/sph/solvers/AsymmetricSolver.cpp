@@ -10,8 +10,7 @@
 NAMESPACE_SPH_BEGIN
 
 AsymmetricSolver::AsymmetricSolver(const RunSettings& settings, const EquationHolder& eqs)
-    : derivatives(settings)
-    , pool(settings.get<int>(RunSettingsId::RUN_THREAD_CNT))
+    : pool(settings.get<int>(RunSettingsId::RUN_THREAD_CNT))
     , threadData(pool) {
     kernel = Factory::getKernel<DIMENSIONS>(settings);
     finder = Factory::getFinder(settings);

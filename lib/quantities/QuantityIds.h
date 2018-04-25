@@ -174,6 +174,8 @@ enum class QuantityId {
     /// input for velocity divergence, ...) is NOT affected.
     XSPH_VELOCITIES = 37,
 
+    DELTASPH_DENSITY_GRADIENT = 45,
+
     ///@}
 
     /// \name SPH statistics & auxiliary data

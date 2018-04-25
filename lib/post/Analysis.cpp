@@ -435,10 +435,19 @@ static Array<Float> getBodiesRadii(const Storage& storage,
             }
             break;
         }
-        case Post::HistogramId::ANGULAR_VELOCITIES: {
+        case Post::HistogramId::ROTATIONAL_PERIOD: {
+            if (!storage.has(QuantityId::ANGULAR_VELOCITY)) {
+                /// \todo should be generalized for all quantities
+                values.fill(0._f);
+                break;
+            }
+            values.clear();
             ArrayView<const Vector> omega = storage.getValue<Vector>(QuantityId::ANGULAR_VELOCITY);
             for (Size i = 0; i < omega.size(); ++i) {
-                values[i] = getLength(omega[i]);
+                const Float w = getLength(omega[i]);
+                if (w > 0._f) {
+                    values.push(2._f * PI / (3600._f * w));
+                }
             }
             break;
         }
