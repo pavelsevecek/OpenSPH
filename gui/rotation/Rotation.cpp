@@ -144,7 +144,7 @@ void AsteroidRotation::setUp() {
     output = Factory::getOutput(settings);
 
     triggers.pushBack(makeAuto<IntegralsLog>(Path("integrals.txt"), 1));
-    triggers.pushBack(makeAuto<CommonStatsLog>(Factory::getLogger(settings)));
+    triggers.pushBack(makeAuto<CommonStatsLog>(Factory::getLogger(settings), settings));
 
     callbacks = makeAuto<GuiCallbacks>(*model);
 }

@@ -8,14 +8,15 @@
 NAMESPACE_SPH_BEGIN
 
 static RunSettings getSharedSettings(const Presets::CollisionParams& params, const std::string& fileMask) {
-    // for 100km body, run 500 s !
-    const Float runTime = 10._f * params.targetRadius / 1000;
+    // for 100km body, run 1000 s !
+    // for 1000km body, run 10000s
+    const Float runTime = 20._f * params.targetRadius / 1000;
     RunSettings settings;
     settings.set(RunSettingsId::RUN_NAME, std::string("Impact"))
         .set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::PREDICTOR_CORRECTOR)
         .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 0.01_f)
-        .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 1._f)
-        .set(RunSettingsId::TIMESTEPPING_MAX_CHANGE, 0.5_f)
+        .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 100._f)
+        //.set(RunSettingsId::TIMESTEPPING_MAX_CHANGE, 0.5_f)
         .set(RunSettingsId::TIMESTEPPING_COURANT_NUMBER, 0.25_f)
         .set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, runTime))
         .set(RunSettingsId::RUN_OUTPUT_INTERVAL, runTime / 100._f)
@@ -62,8 +63,11 @@ StabilizationRunPhase::StabilizationRunPhase(const Presets::CollisionParams para
         settingsLoaded = true;
     } else {
         settings = getSharedSettings(params, "stab_%d.ssf");
-        settings.set(RunSettingsId::RUN_NAME, std::string("Stabilization"));
-
+        const Float runTime = settings.get<Interval>(RunSettingsId::RUN_TIME_RANGE).size();
+        settings.set(RunSettingsId::RUN_NAME, std::string("Stabilization"))
+            .set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 0.5_f * runTime))
+            .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 0.5_f * runTime / 20._f);
+        //    .set(RunSettingsId::RUN_OUTPUT_TYPE, OutputEnum::NONE);
         settings.saveToFile(stabPath);
         settingsLoaded = false;
     }
@@ -113,11 +117,10 @@ void StabilizationRunPhase::setUp() {
     logger->write(
         "Running STABILIZATION for ", settings.get<Interval>(RunSettingsId::RUN_TIME_RANGE).size(), " s");
 
-    // no output files!
-    output = makeAuto<NullOutput>();
+    output = Factory::getOutput(settings);
 
     // add printing of run progress
-    triggers.pushBack(makeAuto<CommonStatsLog>(logger));
+    triggers.pushBack(makeAuto<CommonStatsLog>(logger, settings));
 
     const Float runTime = settings.get<Interval>(RunSettingsId::RUN_TIME_RANGE).size();
     SharedPtr<ILogger> energyLogger = makeShared<FileLogger>(params.outputPath / Path("stab_energy.txt"));
@@ -168,7 +171,7 @@ void FragmentationRunPhase::handoff(Storage&& input) {
     logger->write(
         "Running FRAGMENTATION for ", settings.get<Interval>(RunSettingsId::RUN_TIME_RANGE).size(), " s");
 
-    triggers.pushBack(makeAuto<CommonStatsLog>(logger));
+    triggers.pushBack(makeAuto<CommonStatsLog>(logger, settings));
 }
 
 void FragmentationRunPhase::tearDown(const Statistics& stats) {

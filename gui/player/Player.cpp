@@ -149,7 +149,7 @@ bool App::OnInit() {
     }
 
     GuiSettings gui;
-    gui.set(GuiSettingsId::ORTHO_FOV, 2.e5_f)
+    gui.set(GuiSettingsId::ORTHO_FOV, 1.e6_f)
         .set(GuiSettingsId::ORTHO_VIEW_CENTER, 0.5_f * Vector(1024, 768, 0))
         .set(GuiSettingsId::VIEW_WIDTH, 1024)
         .set(GuiSettingsId::VIEW_HEIGHT, 768)
@@ -164,12 +164,12 @@ bool App::OnInit() {
         .set(GuiSettingsId::CAMERA, CameraEnum::ORTHO)
         .set(GuiSettingsId::ORTHO_PROJECTION, OrthoEnum::XY)
         .set(GuiSettingsId::PERSPECTIVE_POSITION, Vector(0._f, 0._f, -1.e4_f))
-        .set(GuiSettingsId::ORTHO_CUTOFF, 1.e2_f)
+        .set(GuiSettingsId::ORTHO_CUTOFF, 0._f)
         .set(GuiSettingsId::ORTHO_ZOFFSET, -1.e4_f)
-        .set(GuiSettingsId::VIEW_GRID_SIZE, 5.e4_f)
+        .set(GuiSettingsId::VIEW_GRID_SIZE, 0._f)
         .set(GuiSettingsId::RAYTRACE_TEXTURE_PRIMARY, std::string(""))
         .set(GuiSettingsId::RAYTRACE_TEXTURE_SECONDARY, std::string(""))
-        .set(GuiSettingsId::IMAGES_SAVE, false)
+        .set(GuiSettingsId::IMAGES_SAVE, true)
         .set(GuiSettingsId::IMAGES_NAME, std::string("frag_%e_%d.png"))
         .set(GuiSettingsId::IMAGES_MOVIE_NAME, std::string("frag_%e.avi"))
         .set(GuiSettingsId::IMAGES_TIMESTEP, 10._f)

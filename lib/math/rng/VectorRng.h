@@ -91,7 +91,7 @@ public:
 
     Vector operator()() {
         ASSERT(getLength(box.size()) > 0._f);
-        for (Size i = 0; i < 1000; ++i) {
+        for (Size i = 0; i < 10000; ++i) {
             Vector v = vectorRng() * box.size() + box.lower();
             const Float p = vectorRng.getAdditional(4) * maxPdf;
             if (p < pdf(v) * jacobian(v)) {

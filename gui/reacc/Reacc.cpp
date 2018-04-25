@@ -123,7 +123,7 @@ RunSettings getSharedSettings() {
         .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 1.e-2_f)
         .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 100._f)
         .set(RunSettingsId::TIMESTEPPING_MAX_CHANGE, 0.1_f)
-        .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 5._f)
+        .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 10._f)
         .set(RunSettingsId::SOLVER_FORCES,
             ForceEnum::PRESSURE | ForceEnum::SOLID_STRESS | ForceEnum::GRAVITY | ForceEnum::INERTIAL)
         .set(RunSettingsId::SOLVER_TYPE, SolverEnum::SYMMETRIC_SOLVER)
@@ -145,7 +145,7 @@ RunSettings getSharedSettings() {
         .set(RunSettingsId::SPH_STRAIN_RATE_CORRECTION_TENSOR, false)
         .set(RunSettingsId::SPH_SUM_ONLY_UNDAMAGED, true)
         .set(RunSettingsId::SPH_STABILIZATION_DAMPING, 0.5_f)
-        .set(RunSettingsId::FRAME_ANGULAR_FREQUENCY, Vector(0._f, 0._f, 2._f * PI / (6._f * 3600._f)));
+        .set(RunSettingsId::FRAME_ANGULAR_FREQUENCY, Vector(0._f, 0._f, 2._f * PI / (3._f * 3600._f)));
     return settings;
 }
 
@@ -212,13 +212,14 @@ void Stabilization::setUp() {
         body.saveToFile(Path("body.sph"));
 
         Presets::CollisionParams params;
-        params.targetRadius = 0.5e5_f; // D = 2km
-        params.impactorRadius = 1e3_f; // D = 2km
+        params.targetRadius = 0.5e5_f;   // D = 2km
+        params.impactorRadius = 0.5e3_f; // D = 2km
         params.impactAngle = 15._f * DEG_TO_RAD;
         params.impactSpeed = 5.e3_f; // v_imp = 5km/s
         params.targetRotation = 0._f;
         params.targetParticleCnt = N;
         params.impactorOffset = 15;
+        params.impactorParticleCntOverride = 100;
         params.centerOfMassFrame = true;
         params.optimizeImpactor = false;
 
@@ -249,7 +250,7 @@ void Stabilization::setUp() {
         const Vector impactPoint(params.targetRadius * cos(params.impactAngle),
             params.targetRadius * sin(params.impactAngle),
             0._f);
-        const Float homogeneousRadius = 0.25_f * params.targetRadius;
+        const Float homogeneousRadius = 0.2_f * params.targetRadius;
         params.concentration = [impactPoint, homogeneousRadius](const Vector& v) {
             const Float distSqr = getSqrLength(v - impactPoint);
             if (distSqr < sqr(homogeneousRadius)) {
@@ -279,11 +280,11 @@ void Stabilization::tearDown(const Statistics& UNUSED(stats)) {
     if (wxTheApp->argc == 1) {
         ASSERT(storage->has(QuantityId::POSITION));
         onStabilizationFinished();
-        const Size impactorOffset = storage->getParticleCnt();
+        // const Size impactorOffset = storage->getParticleCnt();
         data->addImpactor(*storage);
 
         // copy quantities from "target" to "impactor" (equal spheres)
-        ASSERT(storage->getParticleCnt() == 2 * impactorOffset);
+        /*ASSERT(storage->getParticleCnt() == 2 * impactorOffset);
         ArrayView<Float> u, rho, p;
         tie(u, rho, p) =
             storage->getValues<Float>(QuantityId::ENERGY, QuantityId::DENSITY, QuantityId::PRESSURE);
@@ -301,7 +302,7 @@ void Stabilization::tearDown(const Statistics& UNUSED(stats)) {
         }
 
         // data->addSecondary(*storage);
-        setupUvws(*storage);
+        setupUvws(*storage);*/
     }
 }
 
@@ -311,7 +312,7 @@ Fragmentation::Fragmentation(SharedPtr<Presets::Collision> data, Function<void()
     , onFinished(onFinished) {
     settings = getSharedSettings();
     settings.set(RunSettingsId::RUN_NAME, std::string("Fragmentation"))
-        .set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 10'000'000._f))
+        .set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 20'000._f))
         //.set(RunSettingsId::TIMESTEPPING_ADAPTIVE_FACTOR, 0.8_f)
         .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 1000._f);
 
@@ -394,6 +395,7 @@ void Fragmentation::handoff(Storage&& input) {
     output = makeAuto<BinaryOutput>(Path("frag_%d.ssf"));
 
     /*    ArrayView<const Vector> r = storage->getValue<Vector>(QuantityId::POSITION);
+
         ArrayView<Float> dmg = storage->getValue<Float>(QuantityId::DAMAGE);
         for (Size i = 0; i < r.size(); ++i) {
             if (getLength(r[i] - data->getImpactPoint()) < 5.e3_f) {

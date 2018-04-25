@@ -73,6 +73,8 @@ void IRun::run() {
         ASSERT(progress >= 0._f && progress <= 1._f);
         stats.set(StatisticsId::RELATIVE_PROGRESS, progress);
         stats.set(StatisticsId::INDEX, (int)i);
+        const Float initialDt = settings.get<Float>(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP);
+        stats.set(StatisticsId::TIMESTEP_VALUE, initialDt);
 
         // dump output
         if (output && t >= nextOutput) {

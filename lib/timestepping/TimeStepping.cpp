@@ -551,6 +551,7 @@ BulirschStoer::BulirschStoer(const SharedPtr<Storage>& storage, const RunSetting
 
     // determine the optimal row number of convergence
     Size rowNumber = 0;
+    (void)rowNumber;
     for (Size i = 1; i < BS_SIZE; ++i) {
         ASSERT(isReal(alpha[i - 1][i]));
         if (A[i + 1] > A[i] * alpha[i - 1][i]) {

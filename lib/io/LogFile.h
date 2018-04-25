@@ -62,6 +62,7 @@ public:
         logger->write(name, " #", index, "  time = ", time, "  wallclock time: ", formattedWallclock);
         if (stats.has(StatisticsId::RELATIVE_PROGRESS)) {
             const Float progress = stats.get<Float>(StatisticsId::RELATIVE_PROGRESS);
+            logger->write(" - progress:    ", int(progress * 100), "%");
             if (progress > 0.05_f) {
                 const std::string formattedEta = getFormattedTime(wallclock * (1._f / progress - 1._f));
                 logger->write(" - ETA:         ", formattedEta);
