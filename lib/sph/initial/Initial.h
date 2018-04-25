@@ -216,6 +216,18 @@ private:
     void setQuantities(Storage& storage, IMaterial& material, const Float volume);
 };
 
-void spaceParticles(ArrayView<Vector> r, const Float radius);
+/// \brief Displaces particles so that no two particles overlap.
+///
+/// In case no particles overlap, function does nothing.
+/// \param r Positions of particles
+/// \param radius Radius of the particles in units of smoothing length.
+void repelParticles(ArrayView<Vector> r, const Float radius);
+
+/// \brief Modifies particle positions so that their center of mass lies at origin.
+///
+/// Function can be also used for particle velocities, modifying them so that the total momentum is zero.
+/// \param m Particle masses; must be positive values
+/// \param r Particle positions (or velocities)
+void moveToCenterOfMassSystem(ArrayView<const Float> m, ArrayView<Vector> r);
 
 NAMESPACE_SPH_END

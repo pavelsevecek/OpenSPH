@@ -348,7 +348,7 @@ void InitialConditions::setQuantities(Storage& storage, IMaterial& material, con
     material.create(storage, context);
 }
 
-void spaceParticles(ArrayView<Vector> r, const Float radius) {
+void repelParticles(ArrayView<Vector> r, const Float radius) {
     KdTree finder;
     finder.build(r);
     Array<NeighbourRecord> neighs;
@@ -373,6 +373,21 @@ void spaceParticles(ArrayView<Vector> r, const Float radius) {
             force[H] = 0._f;
             r[i] += force;
         }
+    }
+}
+
+void moveToCenterOfMassSystem(ArrayView<const Float> m, ArrayView<Vector> r) {
+    ASSERT(m.size() == r.size());
+    Vector r_com(0._f);
+    Float m_tot = 0._f;
+    for (Size i = 0; i < r.size(); ++i) {
+        r_com += m[i] * r[i];
+        m_tot += m[i];
+    }
+    r_com /= m_tot;
+    r_com[H] = 0._f; // Dangerous! Do not modify smoothing length!
+    for (Size i = 0; i < r.size(); ++i) {
+        r[i] -= r_com;
     }
 }
 

@@ -37,9 +37,23 @@ public:
         STOP;
     }
 
-    virtual AutoPtr<IRunPhase> getNextPhase() const override {
-        return nullptr;
+    virtual AutoPtr<IRunPhase> getNextPhase() const override;
+
+    virtual void handoff(Storage&& input) override;
+
+private:
+    virtual void tearDown(const Statistics& stats) override;
+};
+
+class ReaccumulationRunPhase : public IRunPhase {
+public:
+    ReaccumulationRunPhase(const Path& outputPath);
+
+    virtual void setUp() override {
+        STOP;
     }
+
+    virtual AutoPtr<IRunPhase> getNextPhase() const override;
 
     virtual void handoff(Storage&& input) override;
 

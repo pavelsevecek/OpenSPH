@@ -1,4 +1,5 @@
 #include "run/Collision.h"
+#include "gravity/NBodySolver.h"
 #include "io/FileSystem.h"
 #include "io/LogFile.h"
 #include "io/Output.h"
@@ -53,6 +54,10 @@ private:
         logger->write(t, "   ", e);
     }
 };
+
+/// ----------------------------------------------------------------------------------------------------------
+/// Stabilization
+/// ----------------------------------------------------------------------------------------------------------
 
 StabilizationRunPhase::StabilizationRunPhase(const Presets::CollisionParams params)
     : params(params) {
@@ -132,6 +137,9 @@ AutoPtr<IRunPhase> StabilizationRunPhase::getNextPhase() const {
     return makeAuto<FragmentationRunPhase>(params, data);
 }
 
+/// ----------------------------------------------------------------------------------------------------------
+/// Fragmentation
+/// ----------------------------------------------------------------------------------------------------------
 
 FragmentationRunPhase::FragmentationRunPhase(Presets::CollisionParams params,
     SharedPtr<Presets::Collision> data)
@@ -152,7 +160,6 @@ FragmentationRunPhase::FragmentationRunPhase(Presets::CollisionParams params,
     }
 
     logger = Factory::getLogger(settings);
-    output = Factory::getOutput(settings);
 
     if (settingsLoaded) {
         logger->write("Loaded fragmentation settings from file '", fragPath.native(), "'");
@@ -161,11 +168,19 @@ FragmentationRunPhase::FragmentationRunPhase(Presets::CollisionParams params,
     }
 }
 
+AutoPtr<IRunPhase> FragmentationRunPhase::getNextPhase() const {
+    return makeAuto<ReaccumulationRunPhase>(params.outputPath);
+}
+
 void FragmentationRunPhase::handoff(Storage&& input) {
     storage = makeShared<Storage>(std::move(input));
     solver = Factory::getSolver(settings);
     const Size targetParticleCnt = storage->getParticleCnt();
     data->addImpactor(*storage);
+
+    logger = Factory::getLogger(settings);
+    output = Factory::getOutput(settings);
+
     logger->write("Created impactor with ", storage->getParticleCnt() - targetParticleCnt, " particles");
 
     logger->write(
@@ -193,5 +208,94 @@ void FragmentationRunPhase::tearDown(const Statistics& stats) {
     binaryOutput.dump(*storage, stats);
 }
 
+/// ----------------------------------------------------------------------------------------------------------
+/// Reaccumulation
+/// ----------------------------------------------------------------------------------------------------------
+
+ReaccumulationRunPhase::ReaccumulationRunPhase(const Path& outputPath) {
+    settings.set(RunSettingsId::RUN_NAME, std::string("Reaccumulation"))
+        .set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::LEAP_FROG)
+        .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 0.01_f)
+        .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 1.e3_f)
+        .set(RunSettingsId::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::ACCELERATION)
+        .set(RunSettingsId::TIMESTEPPING_ADAPTIVE_FACTOR, 0.2_f)
+        .set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 1.e6_f))
+        .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 1.e4_f)
+        .set(RunSettingsId::RUN_OUTPUT_TYPE, OutputEnum::BINARY_FILE)
+        .set(RunSettingsId::RUN_OUTPUT_PATH, outputPath.native())
+        .set(RunSettingsId::RUN_OUTPUT_NAME, std::string("reacc_%d.ssf"))
+        .set(RunSettingsId::SPH_FINDER, FinderEnum::KD_TREE)
+        .set(RunSettingsId::GRAVITY_SOLVER, GravityEnum::BARNES_HUT)
+        .set(RunSettingsId::GRAVITY_KERNEL, GravityKernelEnum::POINT_PARTICLES)
+        .set(RunSettingsId::GRAVITY_OPENING_ANGLE, 0.8_f)
+        .set(RunSettingsId::GRAVITY_LEAF_SIZE, 20)
+        .set(RunSettingsId::COLLISION_HANDLER, CollisionHandlerEnum::MERGE_OR_BOUNCE)
+        .set(RunSettingsId::COLLISION_OVERLAP, OverlapEnum::PASS_OR_MERGE)
+        .set(RunSettingsId::COLLISION_RESTITUTION_NORMAL, 0.5_f)
+        .set(RunSettingsId::COLLISION_RESTITUTION_TANGENT, 1._f)
+        .set(RunSettingsId::COLLISION_ALLOWED_OVERLAP, 0.1_f)
+        .set(RunSettingsId::COLLISION_MERGING_LIMIT, 1._f)
+        .set(RunSettingsId::NBODY_INERTIA_TENSOR, false)
+        .set(RunSettingsId::NBODY_MAX_ROTATION_ANGLE, 0.01_f)
+        .set(RunSettingsId::RUN_THREAD_GRANULARITY, 100);
+}
+
+
+AutoPtr<IRunPhase> ReaccumulationRunPhase::getNextPhase() const {
+    return nullptr;
+}
+
+void ReaccumulationRunPhase::handoff(Storage&& input) {
+    solver = makeAuto<NBodySolver>(settings);
+
+    // we don't need any material, so just pass some dummy
+    storage = makeShared<Storage>(makeAuto<NullMaterial>(EMPTY_SETTINGS));
+
+    // clone required quantities
+    storage->insert<Vector>(
+        QuantityId::POSITION, OrderEnum::SECOND, input.getValue<Vector>(QuantityId::POSITION).clone());
+    storage->getDt<Vector>(QuantityId::POSITION) = input.getDt<Vector>(QuantityId::POSITION).clone();
+    storage->insert<Float>(
+        QuantityId::MASS, OrderEnum::ZERO, input.getValue<Float>(QuantityId::MASS).clone());
+
+    // radii handoff
+    ArrayView<const Float> m = input.getValue<Float>(QuantityId::MASS);
+    ArrayView<const Float> rho = input.getValue<Float>(QuantityId::DENSITY);
+    ArrayView<Vector> r = storage->getValue<Vector>(QuantityId::POSITION);
+    ASSERT(r.size() == rho.size());
+    for (Size i = 0; i < r.size(); ++i) {
+        r[i][H] = cbrt(3._f * m[i] / (4._f * PI * rho[i]));
+    }
+
+    // remove all sublimated particles
+    Array<Size> toRemove;
+    ArrayView<const Float> u = input.getValue<Float>(QuantityId::ENERGY);
+    for (Size matId = 0; matId < input.getMaterialCnt(); ++matId) {
+        MaterialView mat = input.getMaterial(matId);
+        const Float u_max = mat->getParam<Float>(BodySettingsId::TILLOTSON_SUBLIMATION);
+        for (Size i : mat.sequence()) {
+            if (u[i] > u_max) {
+                toRemove.push(i);
+            }
+        }
+    }
+    storage->remove(toRemove);
+
+    // move to COM system
+    ArrayView<Vector> v = storage->getDt<Vector>(QuantityId::POSITION);
+    moveToCenterOfMassSystem(m, v);
+    moveToCenterOfMassSystem(m, r);
+
+    // create additional quantities (angular velocity, ...)
+    solver->create(*storage, storage->getMaterial(0));
+    ASSERT(storage->isValid());
+
+    logger = Factory::getLogger(settings);
+    output = Factory::getOutput(settings);
+
+    triggers.pushBack(makeAuto<CommonStatsLog>(Factory::getLogger(settings), settings));
+}
+
+void ReaccumulationRunPhase::tearDown(const Statistics& UNUSED(stats)) {}
 
 NAMESPACE_SPH_END
