@@ -122,30 +122,30 @@ RunSettings getSharedSettings() {
     settings.set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::PREDICTOR_CORRECTOR)
         .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 1.e-2_f)
         .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 100._f)
-        .set(RunSettingsId::TIMESTEPPING_MAX_CHANGE, 0.1_f)
-        .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 10._f)
-        .set(RunSettingsId::SOLVER_FORCES,
-            ForceEnum::PRESSURE | ForceEnum::SOLID_STRESS | ForceEnum::GRAVITY | ForceEnum::INERTIAL)
-        .set(RunSettingsId::SOLVER_TYPE, SolverEnum::SYMMETRIC_SOLVER)
+        //.set(RunSettingsId::TIMESTEPPING_MAX_CHANGE, 0.1_f)
+        .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 50._f)
+        .set(RunSettingsId::SOLVER_FORCES, ForceEnum::PRESSURE | ForceEnum::SOLID_STRESS | ForceEnum::GRAVITY)
+        .set(RunSettingsId::SOLVER_TYPE, SolverEnum::ASYMMETRIC_SOLVER)
         .set(RunSettingsId::SPH_FINDER, FinderEnum::KD_TREE)
         .set(RunSettingsId::SPH_FORMULATION, FormulationEnum::STANDARD)
         .set(RunSettingsId::SPH_AV_TYPE, ArtificialViscosityEnum::STANDARD)
         .set(RunSettingsId::SPH_AV_ALPHA, 1.5_f)
         .set(RunSettingsId::SPH_AV_BETA, 3._f)
         .set(RunSettingsId::SPH_KERNEL_ETA, 1.3_f)
-        .set(RunSettingsId::GRAVITY_SOLVER, GravityEnum::BARNES_HUT)
+        .set(RunSettingsId::GRAVITY_SOLVER, GravityEnum::CACHED)
         .set(RunSettingsId::GRAVITY_KERNEL, GravityKernelEnum::SPH_KERNEL)
         .set(RunSettingsId::GRAVITY_OPENING_ANGLE, 0.8_f)
         .set(RunSettingsId::GRAVITY_LEAF_SIZE, 20)
+        .set(RunSettingsId::GRAVITY_RECOMPUTATION_PERIOD, 25._f)
         //.set(RunSettingsId::TIMESTEPPING_MEAN_POWER, -0._f)
         .set(RunSettingsId::TIMESTEPPING_ADAPTIVE_FACTOR, 0.2_f)
-        .set(RunSettingsId::TIMESTEPPING_COURANT_NUMBER, 0.25_f)
+        .set(RunSettingsId::TIMESTEPPING_COURANT_NUMBER, 0.2_f)
         .set(RunSettingsId::RUN_THREAD_GRANULARITY, 100)
         .set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONST)
-        .set(RunSettingsId::SPH_STRAIN_RATE_CORRECTION_TENSOR, false)
+        .set(RunSettingsId::SPH_STRAIN_RATE_CORRECTION_TENSOR, true)
         .set(RunSettingsId::SPH_SUM_ONLY_UNDAMAGED, true)
-        .set(RunSettingsId::SPH_STABILIZATION_DAMPING, 0.5_f)
-        .set(RunSettingsId::FRAME_ANGULAR_FREQUENCY, Vector(0._f, 0._f, 2._f * PI / (3._f * 3600._f)));
+        .set(RunSettingsId::SPH_STABILIZATION_DAMPING, 2.5_f)
+        .set(RunSettingsId::FRAME_ANGULAR_FREQUENCY, Vector(0._f));
     return settings;
 }
 
@@ -157,7 +157,7 @@ Stabilization::Stabilization(RawPtr<Controller> newController) {
         // continue run, we don't need to do the stabilization, so skip it by settings the range to zero
         settings.set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 0._f));
     } else {
-        settings.set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 500._f));
+        settings.set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 1000._f));
     }
     settings.saveToFile(Path("stabilization.sph"));
 
@@ -212,16 +212,16 @@ void Stabilization::setUp() {
         body.saveToFile(Path("body.sph"));
 
         Presets::CollisionParams params;
-        params.targetRadius = 0.5e5_f;   // D = 2km
-        params.impactorRadius = 0.5e3_f; // D = 2km
-        params.impactAngle = 15._f * DEG_TO_RAD;
-        params.impactSpeed = 5.e3_f; // v_imp = 5km/s
-        params.targetRotation = 0._f;
+        params.targetRadius = 1e6_f;
+        params.impactorRadius = 5e5_f;
+        params.impactAngle = 85._f * DEG_TO_RAD;
+        params.impactSpeed = 750._f;
+        params.targetRotation = 0._f; // 2._f * PI / (4._f * 3600._f);
         params.targetParticleCnt = N;
-        params.impactorOffset = 15;
-        params.impactorParticleCntOverride = 100;
-        params.centerOfMassFrame = true;
-        params.optimizeImpactor = false;
+        params.impactorOffset = 3;
+        // params.impactorParticleCntOverride = 100;
+        params.centerOfMassFrame = false;
+        params.optimizeImpactor = true;
 
         // Presets::CollisionSettings().saveToFile(Path("impact.sph"));
 
@@ -251,12 +251,15 @@ void Stabilization::setUp() {
             params.targetRadius * sin(params.impactAngle),
             0._f);
         const Float homogeneousRadius = 0.2_f * params.targetRadius;
-        params.concentration = [impactPoint, homogeneousRadius](const Vector& v) {
+        params.concentration = [impactPoint, homogeneousRadius, params](const Vector& v) {
             const Float distSqr = getSqrLength(v - impactPoint);
+            const Float r = getLength(v);
+            const Float boundaryFactor =
+                1.e-6_f * ((params.targetRadius - r < params.targetRadius * 0.2_f) ? 5._f : 1._f);
             if (distSqr < sqr(homogeneousRadius)) {
-                return 1._f;
+                return 5._f;
             } else {
-                return sqr(sqr(homogeneousRadius) / distSqr);
+                return boundaryFactor * sqr(homogeneousRadius) / distSqr;
             }
         };
 
@@ -312,7 +315,7 @@ Fragmentation::Fragmentation(SharedPtr<Presets::Collision> data, Function<void()
     , onFinished(onFinished) {
     settings = getSharedSettings();
     settings.set(RunSettingsId::RUN_NAME, std::string("Fragmentation"))
-        .set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 20'000._f))
+        .set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 2'000'000._f))
         //.set(RunSettingsId::TIMESTEPPING_ADAPTIVE_FACTOR, 0.8_f)
         .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 1000._f);
 

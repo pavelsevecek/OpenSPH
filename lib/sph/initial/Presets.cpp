@@ -83,7 +83,7 @@ void Presets::Collision::addTarget(Storage& storage) {
     }*/
 }
 
-void Presets::Collision::addImpactor(Storage& storage) {
+BodyView Presets::Collision::addImpactor(Storage& storage) {
     const Float targetDensity = _params.targetParticleCnt / pow<3>(_params.targetRadius);
     const Float h = 1.f / root<3>(targetDensity);
     ASSERT(h > 0._f);
@@ -113,7 +113,7 @@ void Presets::Collision::addImpactor(Storage& storage) {
     }
 
     SphericalDomain domain(center, _params.impactorRadius);
-    _ic.addMonolithicBody(storage, domain, impactorBody).addVelocity(v_imp);
+    BodyView impactor = _ic.addMonolithicBody(storage, domain, impactorBody).addVelocity(v_imp);
 
     if (_params.centerOfMassFrame) {
         ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
@@ -145,6 +145,8 @@ void Presets::Collision::addImpactor(Storage& storage) {
                 BodySettingsId::BODY_VELOCITY, mat->getParam<Vector>(BodySettingsId::BODY_VELOCITY) - v_com);
         }
     }
+
+    return impactor;
 
     /*if (!_params.outputPath.empty()) {
         impactorBody.saveToFile(_params.outputPath / Path("impactor.sph"));

@@ -15,9 +15,15 @@
 
 NAMESPACE_SPH_BEGIN
 
-/// Components of the 4D vector. First 3 are simply cartesian coordinates,
-/// the 4th one is the smoothing length
-enum Coordinates { X = 0, Y = 1, Z = 2, H = 3 };
+/// \brief Components of the 4D vector.
+///
+/// First 3 are simply cartesian coordinates, the 4th one is the smoothing length
+enum Coordinate {
+    X = 0,
+    Y = 1,
+    Z = 2,
+    H = 3,
+};
 
 
 /// Helper type trait to determine if the type is a vector of some kind

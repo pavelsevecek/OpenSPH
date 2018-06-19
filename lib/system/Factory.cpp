@@ -1,6 +1,7 @@
 #include "system/Factory.h"
 #include "gravity/BarnesHut.h"
 #include "gravity/BruteForceGravity.h"
+#include "gravity/CachedGravity.h"
 #include "gravity/Collision.h"
 #include "gravity/SphericalGravity.h"
 #include "io/Logger.h"
@@ -246,20 +247,30 @@ AutoPtr<IGravity> Factory::getGravity(const RunSettings& settings) {
         NOT_IMPLEMENTED;
     }
 
+    AutoPtr<IGravity> gravity;
     switch (id) {
     case GravityEnum::SPHERICAL:
-        return makeAuto<SphericalGravity>();
+        gravity = makeAuto<SphericalGravity>();
+        break;
     case GravityEnum::BRUTE_FORCE:
-        return makeAuto<BruteForceGravity>(std::move(kernel));
+        gravity = makeAuto<BruteForceGravity>(std::move(kernel));
+        break;
     case GravityEnum::BARNES_HUT: {
         const Float theta = settings.get<Float>(RunSettingsId::GRAVITY_OPENING_ANGLE);
-        const MultipoleOrder order =
-            MultipoleOrder(settings.get<int>(RunSettingsId::GRAVITY_MULTIPOLE_ORDER));
+        const MultipoleOrder order(settings.get<int>(RunSettingsId::GRAVITY_MULTIPOLE_ORDER));
         const int leafSize = settings.get<int>(RunSettingsId::GRAVITY_LEAF_SIZE);
-        return makeAuto<BarnesHut>(theta, order, std::move(kernel), leafSize);
+        gravity = makeAuto<BarnesHut>(theta, order, std::move(kernel), leafSize);
+        break;
     }
     default:
         NOT_IMPLEMENTED;
+    }
+
+    const Float period = settings.get<Float>(RunSettingsId::GRAVITY_RECOMPUTATION_PERIOD);
+    if (period > 0._f) {
+        return makeAuto<CachedGravity>(period, std::move(gravity));
+    } else {
+        return gravity;
     }
 }
 

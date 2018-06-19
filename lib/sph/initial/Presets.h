@@ -106,7 +106,8 @@ public:
     /// \brief Adds an impactor (secondary body) into the storage.
     ///
     /// Can be called only once for given storage. Must be called after \ref addTarget has been called.
-    void addImpactor(Storage& storage);
+    /// \return View of the impactor particles.
+    BodyView addImpactor(Storage& storage);
 
     /// \bref Returns the position of the impact point.
     Vector getImpactPoint() const;

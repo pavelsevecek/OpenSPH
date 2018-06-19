@@ -88,53 +88,48 @@ static void stepSecondOrder(Storage& storage, const TFunc& stepper) {
 /// passed as const.
 /// \todo It would be easier to simply pass the second storage as const, but currently we don't have \ref
 /// iteratePair with const storages implemented ...
-template <VisitorEnum Visitor>
+template <typename T, VisitorEnum Visitor>
 struct Invoker;
 
-template <>
-struct Invoker<VisitorEnum::ALL_BUFFERS> {
+template <typename T>
+struct Invoker<T, VisitorEnum::ALL_BUFFERS> {
     template <typename TFunc>
-    void operator()(auto& px,
-        auto& pdx,
-        const auto& cx,
-        const auto& cdx,
-        const Size i,
-        const TFunc& stepper) {
+    void operator()(T& px, const T& pdx, const T& cx, const T& cdx, const Size i, const TFunc& stepper) {
         stepper(px[i], pdx[i], cx[i], cdx[i]);
     }
 
     template <typename TFunc>
-    void operator()(auto& pr,
-        auto& pv,
-        const auto& pdv,
-        const auto& cr,
-        const auto& cv,
-        const auto& cdv,
+    void operator()(T& pr,
+        T& pv,
+        const T& pdv,
+        const T& cr,
+        const T& cv,
+        const T& cdv,
         const Size i,
         const TFunc& stepper) {
         stepper(pr[i], pv[i], pdv[i], cr[i], cv[i], cdv[i]);
     }
 };
 
-template <>
-struct Invoker<VisitorEnum::HIGHEST_DERIVATIVES> {
+template <typename T>
+struct Invoker<T, VisitorEnum::HIGHEST_DERIVATIVES> {
     template <typename TFunc>
-    void operator()(auto& px,
-        auto& pdx,
-        const auto& UNUSED(cx),
-        const auto& cdx,
+    void operator()(T& px,
+        const T& pdx,
+        const T& UNUSED(cx),
+        const T& cdx,
         const Size i,
         const TFunc& stepper) {
         stepper(px[i], pdx[i], cdx[i]);
     }
 
     template <typename TFunc>
-    void operator()(auto& pr,
-        auto& pv,
-        const auto& pdv,
-        const auto& UNUSED(cr),
-        const auto& UNUSED(cv),
-        const auto& cdv,
+    void operator()(T& pr,
+        T& pv,
+        const T& pdv,
+        const T& UNUSED(cr),
+        const T& UNUSED(cv),
+        const T& cdv,
         const Size i,
         const TFunc& stepper) {
         stepper(pr[i], pv[i], pdv[i], cdv[i]);
@@ -150,7 +145,9 @@ static void stepPairFirstOrder(Storage& storage1, Storage& storage2, const TFunc
         ASSERT(px.size() == pdx.size());
         ASSERT(cdx.size() == px.size());
         ASSERT(Visitor == VisitorEnum::ALL_BUFFERS ? (cx.size() == cdx.size()) : cx.empty());
-        Invoker<Visitor> invoker;
+
+        using T = std::decay_t<decltype(px)>;
+        Invoker<T, Visitor> invoker;
 
         parallelFor(ThreadPool::getGlobalInstance(), 0, px.size(), [&](const Size i) {
             invoker(px, asConst(pdx), cx, cdx, i, stepper);
@@ -181,7 +178,9 @@ static void stepPairSecondOrder(Storage& storage1, Storage& storage2, const TFun
         ASSERT(cdv.size() == pr.size());
         ASSERT(Visitor == VisitorEnum::ALL_BUFFERS ? (cr.size() == cdv.size()) : cr.empty());
         ASSERT(Visitor == VisitorEnum::ALL_BUFFERS ? (cv.size() == cdv.size()) : cv.empty());
-        Invoker<Visitor> invoker;
+
+        using T = std::decay_t<decltype(pr)>;
+        Invoker<T, Visitor> invoker;
 
         parallelFor(ThreadPool::getGlobalInstance(), 0, pr.size(), [&](const Size i) {
             invoker(pr, pv, pdv, cr, cv, cdv, i, stepper);

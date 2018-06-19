@@ -1035,6 +1035,11 @@ enum class RunSettingsId {
     /// Gravity smoothing kernel
     GRAVITY_KERNEL,
 
+    /// Period of gravity evaluation. If zero, gravity is computed every time step, for any positive value,
+    /// gravitational acceleration is cached for each particle and used each time step until next
+    /// recomputation.
+    GRAVITY_RECOMPUTATION_PERIOD,
+
     /// Specifies how the collisions of particles should be handler; see CollisionHandlerEnum.
     COLLISION_HANDLER,
 

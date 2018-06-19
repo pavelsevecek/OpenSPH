@@ -28,6 +28,13 @@ private:
 public:
     BodyView(Storage& storage, const Size bodyIndex);
 
+    /// \brief Moves the particles of the body in given direction.
+    ///
+    /// The particles are moved relative to the current position.
+    /// \param dr Displacement vector.
+    /// \return Reference to itself.
+    BodyView& displace(const Vector& dr);
+
     /// \brief Adds a velocity vector to all particles of the body.
     ///
     /// If the particles previously had nonzero velocities, the velocities are added; the previous velocities

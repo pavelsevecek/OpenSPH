@@ -28,7 +28,7 @@ struct ConstStorageElement {
     const Quantity& quantity;
 };
 
-/// Helper class for iterating over quantities stored in \ref Storage.
+/// \brief Helper class for iterating over quantities stored in \ref Storage.
 class StorageIterator {
 private:
     using Iterator = std::map<QuantityId, Quantity>::iterator;
@@ -57,7 +57,7 @@ public:
     }
 };
 
-/// Helper class for iterating over quantities stored in \ref Storage, const version.
+/// \brief Helper class for iterating over quantities stored in \ref Storage, const version.
 class ConstStorageIterator {
 private:
     using Iterator = std::map<QuantityId, Quantity>::const_iterator;
@@ -276,14 +276,13 @@ public:
         return q.getValue<TValue>();
     }
 
-    /// Retrieves a quantity values from the storage, given its key and value type, const version.
-    /// \todo test
+    /// \copydoc getValue
     template <typename TValue>
     const Array<TValue>& getValue(const QuantityId key) const {
         return const_cast<Storage*>(this)->getValue<TValue>(key);
     }
 
-    /// Returns the physical values of given quantity.
+    /// \brief Returns the physical values of given quantity.
     template <typename TValue>
     Array<TValue>& getPhysicalValue(const QuantityId key) {
         Quantity& q = this->getQuantity(key);
@@ -296,7 +295,7 @@ public:
         return const_cast<Storage*>(this)->getPhysicalValue<TValue>(key);
     }
 
-    /// Returns all buffers, using physical values instead of stored values.
+    /// \brief Returns all buffers, using physical values instead of stored values.
     template <typename TValue>
     StaticArray<Array<TValue>&, 3> getPhysicalAll(const QuantityId key) {
         Quantity& q = this->getQuantity(key);
@@ -340,7 +339,8 @@ public:
         return q.getD2t<TValue>();
     }
 
-    /// Retrieves a quantity second derivative from the storage, given its key and value type, const version.
+    /// \brief Retrieves a quantity second derivative from the storage, given its key and value type, const
+    /// version.
     template <typename TValue>
     const Array<TValue>& getD2t(const QuantityId key) const {
         return const_cast<Storage*>(this)->getD2t<TValue>(key);
@@ -408,7 +408,7 @@ public:
     ///               material of given particle, use \ref getMaterialOfParticle.
     MaterialView getMaterial(const Size matIdx) const;
 
-    /// Returns material view for material of given particle.
+    /// \brief Returns material view for material of given particle.
     MaterialView getMaterialOfParticle(const Size particleIdx) const;
 
     /// \brief Returns the bounding range of given quantity.
@@ -548,5 +548,17 @@ private:
     /// Updates the cached matIds view.
     void update();
 };
+
+/// \brief Adds or updates a quantity holding particle indices to the storage.
+///
+/// The indices are accessible through quantity QuantityId::PERSISTENT_INDEX. Initially, particle are numbered
+/// from 0 to #particleCnt - 1, but the indices are persistent, meaning they remain unchanged when removing
+/// particles from the storage. When a particle is removed from the storage, its index can be then re-used by
+/// another particle added into the storage.
+///
+/// When merging two storages, indices remain unchanged in the storage where the particles are into, but they
+/// are reset in the storage being merged, as they could be collisions of indices. Same goes to particles
+/// added via \ref duplicate function.
+void setPersistentIndices(Storage& storage);
 
 NAMESPACE_SPH_END

@@ -90,46 +90,46 @@ int pkdgravToMoons(const Path& filePath, const float limit) {
     return 0;
 }
 
-int sphToSfd(const Path& filePath, const Path& settingsPath, const Path& sfdPath) {
+int ssfToSfd(const Path& filePath, const Path& sfdPath) {
     std::cout << "Processing SPH file ... " << std::endl;
-    RunSettings settings;
-    settings.set(RunSettingsId::RUN_OUTPUT_TYPE, OutputEnum::TEXT_FILE);
-    AutoPtr<IOutput> output = Factory::getOutput(settings);
-
+    BinaryOutput output;
     Storage storage;
     Statistics stats;
-    Outcome outcome = output->load(filePath, storage, stats);
+    Outcome outcome = output.load(filePath, storage, stats);
     if (!outcome) {
         std::cout << "Cannot load particle data, " << outcome.error() << std::endl;
         return 0;
     }
 
-    outcome = settings.loadFromFile(settingsPath);
-    if (!outcome) {
-        std::cout << "Cannot load settings, " << outcome.error() << std::endl;
-        return 0;
-    }
-    const Vector omega = settings.get<Vector>(RunSettingsId::FRAME_ANGULAR_FREQUENCY);
-    std::cout << "Adding rotation of P = " << Vector(2._f * PI) / omega << std::endl;
-
-    ArrayView<Vector> r, v;
-    tie(r, v) = storage.getAll<Vector>(QuantityId::POSITION);
-    for (Size i = 0; i < r.size(); ++i) {
-        v[i] += cross(omega, r[i]);
-    }
-
-    // ad-hoc value of particle radius (0.3h)
-    StdOutLogger logger;
-    Storage bodies = Post::findFutureBodies(storage, 1._f, logger);
-
     Post::HistogramParams params;
     params.source = Post::HistogramParams::Source::PARTICLES;
-    Array<Post::SfdPoint> sfd = Post::getCummulativeSfd(bodies, params);
+    params.id = Post::HistogramId::EQUIVALENT_MASS_RADII;
+    Array<Post::SfdPoint> sfd = Post::getCummulativeSfd(storage, params);
     FileLogger logSfd(sfdPath, FileLogger::Options::KEEP_OPENED);
     for (Post::SfdPoint& p : sfd) {
         logSfd.write(p.value, "  ", p.count);
     }
     return 0;
+}
+
+// prints total ejected mass and period of the LR
+void ssfToStats(const Path& filePath) {
+    BinaryOutput output;
+    Storage storage;
+    Statistics stats;
+    Outcome outcome = output.load(filePath, storage, stats);
+    if (!outcome) {
+        std::cout << "Cannot load particle data, " << outcome.error() << std::endl;
+        return;
+    }
+    ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
+    ArrayView<const Vector> omega = storage.getValue<Vector>(QuantityId::ANGULAR_VELOCITY);
+
+    const Size largestIdx = std::distance(m.begin(), std::max_element(m.begin(), m.end()));
+    const Float m_sum = std::accumulate(m.begin(), m.end(), 0._f);
+
+    std::cout << (m_sum - m[largestIdx]) / m_sum << "   "
+              << 2._f * PI / (3600._f * getLength(omega[largestIdx])) << std::endl;
 }
 
 struct HarrisAsteroid {
@@ -365,8 +365,9 @@ void printHelp() {
               << " - pkdgravToMoons - finds satellites of the largest remnant (fragment) from pkdgrav "
                  "output file"
               << std::endl
-              << "- sphToSfd - computes the cummulative SFD from SPH output file" << std::endl
-              << "- harris - TODO" << std::endl;
+              << "- ssfToSfd - computes the cummulative SFD from SPH output file" << std::endl
+              << "- harris - TODO" << std::endl
+              << "- stats - prints ejected mass and the period of the largest remnant" << std::endl;
 }
 
 int main(int argc, char** argv) {
@@ -394,12 +395,14 @@ int main(int argc, char** argv) {
         }
         const float limit = std::atof(argv[3]);
         return pkdgravToMoons(Path(argv[2]), limit);
-    } else if (mode == "sphToSfd") {
-        if (argc < 5) {
-            std::cout << "Expected parameters: post sphToSfd out_0090.txt code.sph sfd.txt";
+    } else if (mode == "ssfToSfd") {
+        if (argc < 4) {
+            std::cout << "Expected parameters: post ssfToSfd output.ssf sfd.txt";
             return 0;
         }
-        return sphToSfd(Path(argv[2]), Path(argv[3]), Path(argv[4]));
+        return ssfToSfd(Path(argv[2]), Path(argv[3]));
+    } else if (mode == "stats") {
+        ssfToStats(Path(argv[2]));
     } else if (mode == "harris") {
         processHarrisFile();
     } else {

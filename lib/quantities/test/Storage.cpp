@@ -456,3 +456,25 @@ TEST_CASE("Storage isValid", "[storage]") {
     storage2.getDt<Float>(QuantityId::FLAG).resize(2);
     REQUIRE_FALSE(storage2.isValid()); // derivatives have different size
 }
+
+TEST_CASE("Storage persistent indices", "[storage]") {
+    Storage storage1;
+    storage1.insert<Size>(QuantityId::FLAG, OrderEnum::ZERO, Array<Size>{ 0, 1, 2, 3 });
+    REQUIRE_FALSE(storage1.has(QuantityId::PERSISTENT_INDEX));
+
+    setPersistentIndices(storage1);
+    REQUIRE(storage1.has(QuantityId::PERSISTENT_INDEX));
+    ArrayView<Size> idxs = storage1.getValue<Size>(QuantityId::PERSISTENT_INDEX);
+    REQUIRE(idxs == Array<Size>({ 0, 1, 2, 3 }));
+    storage1.remove(Array<Size>{ 1 });
+    idxs = storage1.getValue<Size>(QuantityId::PERSISTENT_INDEX);
+    REQUIRE(idxs == Array<Size>({ 0, 2, 3 }));
+
+    Storage storage2;
+    storage2.insert<Size>(QuantityId::FLAG, OrderEnum::ZERO, Array<Size>{ 4, 5, 6 });
+    setPersistentIndices(storage2);
+
+    storage1.merge(std::move(storage2));
+    idxs = storage1.getValue<Size>(QuantityId::PERSISTENT_INDEX);
+    REQUIRE(idxs == Array<Size>({ 0, 2, 3, 4, 5, 6 }));
+}

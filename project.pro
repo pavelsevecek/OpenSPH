@@ -5,6 +5,7 @@ CONFIG += ordered
 SUBDIRS = lib \
           cli/launcher \
           cli/problems \
+          cli/ssftovdb \
           gui \
           gui/collision \
           gui/rotation \
@@ -18,6 +19,7 @@ SUBDIRS = lib \
 run.depends = lib
 launcher.depends = lib
 problems.depends = lib
+ssftovdb.depends = lib
 gui.depends = lib
 collision.depends = lib gui
 player.depends = lib gui

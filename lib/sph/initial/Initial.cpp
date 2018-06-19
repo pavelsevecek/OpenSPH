@@ -19,6 +19,20 @@ BodyView::BodyView(Storage& storage, const Size bodyIndex)
     : storage(storage)
     , bodyIndex(bodyIndex) {}
 
+BodyView& BodyView::displace(const Vector& dr) {
+    // manually clear the h component to make sure we are not modifying smoothing length
+    Vector actDr = dr;
+    actDr[H] = 0.f;
+
+    ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
+    // Body created using InitialConditions always has a material
+    MaterialView material = storage.getMaterial(bodyIndex);
+    for (Size i : material.sequence()) {
+        r[i] += actDr;
+    }
+    return *this;
+}
+
 BodyView& BodyView::addVelocity(const Vector& velocity) {
     ArrayView<Vector> v = storage.getDt<Vector>(QuantityId::POSITION);
     // Body created using InitialConditions always has a material

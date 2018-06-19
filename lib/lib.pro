@@ -298,4 +298,5 @@ HEADERS += \
     math/Functional.h \
     sph/solvers/GradHSolver.h \
     sph/equations/DeltaSph.h \
-    sph/solvers/DifferencedEnergySolver.h
+    sph/solvers/DifferencedEnergySolver.h \
+    gravity/CachedGravity.h

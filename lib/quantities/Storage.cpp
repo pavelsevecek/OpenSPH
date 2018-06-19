@@ -270,6 +270,15 @@ void Storage::merge(Storage&& other) {
         ar1.pushAll(std::move(ar2));
     });
 
+    // update persistent indices
+    if (this->has(QuantityId::PERSISTENT_INDEX)) {
+        ArrayView<Size> idxs = this->getValue<Size>(QuantityId::PERSISTENT_INDEX);
+        const Size idx0 = idxs[partCnt - 1] + 1; // next available index
+        for (Size i = partCnt; i < this->getParticleCnt(); ++i) {
+            idxs[i] = idx0 + (i - partCnt);
+        }
+    }
+
     // merge materials
     this->mats.pushAll(std::move(other.mats));
 
@@ -410,7 +419,7 @@ Array<Size> Storage::duplicate(ArrayView<const Size> idxs) {
     this->update();
     ASSERT(this->isValid());
 
-    TODO("TEST!");
+    TODO("TEST! + implement persistent indices");
     return createdIds;
 }
 
@@ -470,6 +479,15 @@ void Storage::update() {
     } else {
         matIds = nullptr;
     }
+}
+
+void setPersistentIndices(Storage& storage) {
+    const Size n = storage.getParticleCnt();
+    Array<Size> idxs(n);
+    for (Size i = 0; i < n; ++i) {
+        idxs[i] = i;
+    }
+    storage.insert<Size>(QuantityId::PERSISTENT_INDEX, OrderEnum::ZERO, std::move(idxs));
 }
 
 NAMESPACE_SPH_END

@@ -222,7 +222,7 @@ static auto renormalizeDensity(const IDomain& domain, Size& n, const Size error,
     Float particleCnt;
     for (particleCnt = mc.integrate(actDensity); abs(particleCnt - n) > error;) {
         const Float ratio = n / max(particleCnt, 1._f);
-        ASSERT(ratio > EPS);
+        ASSERT(ratio > EPS, ratio);
         multiplier *= ratio;
         particleCnt = mc.integrate(actDensity);
         if (cnt++ > 100) { // break potential infinite loop

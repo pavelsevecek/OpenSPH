@@ -20,7 +20,7 @@ private:
 public:
     DifferencedEnergySolver(const RunSettings& settings, const EquationHolder& eqs)
         : AsymmetricSolver(settings, eqs) {
-        accelerations.derivatives = derivatives.getSubset(QuantityId::POSITION, OrderEnum::SECOND);
+        /// \todo accelerations.derivatives = derivatives.getSubset(QuantityId::POSITION, OrderEnum::SECOND);
         initialDt = settings.get<Float>(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP);
     }
 
@@ -35,7 +35,7 @@ public:
         ArrayView<Float> du = storage.getDt<Float>(QuantityId::ENERGY);
 
         Accumulated& accumulated = accelerations.derivatives.getAccumulated();
-        accumulated.clear();
+        /// \todo accumulated.clear();
         accelerations.derivatives.initialize(storage);
         ArrayView<Vector> dvij = accumulated.getBuffer<Vector>(QuantityId::POSITION, OrderEnum::SECOND);
 

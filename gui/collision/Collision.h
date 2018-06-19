@@ -71,7 +71,7 @@ private:
             .set(GuiSettingsId::SURFACE_LEVEL, 0.1_f)
             .set(GuiSettingsId::SURFACE_SUN_POSITION, getNormalized(Vector(-0.2f, -0.1f, 1.1f)))
             .set(GuiSettingsId::SURFACE_RESOLUTION, 2.e3_f)
-            .set(GuiSettingsId::CAMERA, int(CameraEnum::ORTHO))
+            .set(GuiSettingsId::CAMERA, CameraEnum::ORTHO)
             .set(GuiSettingsId::ORTHO_PROJECTION, OrthoEnum::XY)
             .set(GuiSettingsId::ORTHO_CUTOFF, 0._f)
             .set(GuiSettingsId::IMAGES_SAVE, true)
@@ -84,6 +84,7 @@ private:
             .set(GuiSettingsId::PALETTE_ENERGY, Interval(0._f, 1.e3_f))
             .set(GuiSettingsId::PALETTE_RADIUS, Interval(700._f, 3.e3_f))
             .set(GuiSettingsId::PALETTE_GRADV, Interval(0._f, 1.e-5_f))
+            .set(GuiSettingsId::PLOT_INITIAL_PERIOD, 1.e-4_f)
             .set(GuiSettingsId::PLOT_INTEGRALS,
                 PlotEnum::KINETIC_ENERGY | PlotEnum::INTERNAL_ENERGY | PlotEnum::TOTAL_ENERGY |
                     PlotEnum::TOTAL_MOMENTUM | PlotEnum::TOTAL_ANGULAR_MOMENTUM |

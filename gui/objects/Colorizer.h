@@ -530,7 +530,7 @@ public:
 
     virtual Optional<Float> evalScalar(const Size idx) const {
         ASSERT(this->isInitialized());
-        return u[idx] + 0.5_f * m[idx] * getSqrLength(v[idx]);
+        return m[idx] * u[idx] + 0.5_f * m[idx] * getSqrLength(v[idx]);
     }
 
     virtual Optional<Vector> evalVector(const Size UNUSED(idx)) const {
