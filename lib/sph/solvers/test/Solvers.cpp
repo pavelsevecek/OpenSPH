@@ -140,7 +140,7 @@ TEST_CASE("SymmetricSolver asymmetric derivative", "[solvers]") {
     };
 
     auto eq = makeTerm<Tests::SingleDerivativeMaker<AsymmetricDerivative>>();
-    REQUIRE_THROWS_AS(SymmetricSolver(RunSettings::getDefaults(), eq), InvalidSetup);
+    REQUIRE_THROWS_AS(SymmetricSolver(RunSettings::getDefaults(), eq), InvalidSetup&);
 }
 
 TEST_CASE("SummationSolver gass ball", "[solvers]") {

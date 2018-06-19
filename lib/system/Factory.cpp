@@ -257,7 +257,7 @@ AutoPtr<IGravity> Factory::getGravity(const RunSettings& settings) {
         break;
     case GravityEnum::BARNES_HUT: {
         const Float theta = settings.get<Float>(RunSettingsId::GRAVITY_OPENING_ANGLE);
-        const MultipoleOrder order(settings.get<int>(RunSettingsId::GRAVITY_MULTIPOLE_ORDER));
+        const MultipoleOrder order = settings.get<MultipoleOrder>(RunSettingsId::GRAVITY_MULTIPOLE_ORDER);
         const int leafSize = settings.get<int>(RunSettingsId::GRAVITY_LEAF_SIZE);
         gravity = makeAuto<BarnesHut>(theta, order, std::move(kernel), leafSize);
         break;

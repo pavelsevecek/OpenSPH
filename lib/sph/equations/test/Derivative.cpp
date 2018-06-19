@@ -15,7 +15,7 @@ TEST_CASE("Derivative require", "[derivative]") {
     REQUIRE(derivatives.getDerivativeCnt() == 1);
     REQUIRE_THROWS_AS(
         derivatives.require(makeDerivative<VelocityDivergence>(settings, DerivativeFlag::SUM_ONLY_UNDAMAGED)),
-        InvalidSetup);
+        InvalidSetup&);
     derivatives.require(makeDerivative<VelocityGradient>(settings));
     REQUIRE(derivatives.getDerivativeCnt() == 2);
 }
