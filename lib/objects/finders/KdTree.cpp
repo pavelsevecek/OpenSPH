@@ -19,7 +19,9 @@ struct ProcessedNode {
 /// It is thread_local to allow using KdTree from multiple threads
 thread_local Array<ProcessedNode> nodeStack;
 
-void KdTree::buildImpl(ArrayView<const Vector> points) {
+void KdTree::buildImpl(IScheduler& UNUSED(scheduler), ArrayView<const Vector> points) {
+    /// \todo parallelize!!!
+
     static_assert(sizeof(PlaceHolderNode) == sizeof(InnerNode), "Sizes of nodes must match");
     static_assert(sizeof(LeafNode) == sizeof(InnerNode), "Sizes of nodes must match");
 
@@ -33,11 +35,6 @@ void KdTree::buildImpl(ArrayView<const Vector> points) {
     if (SPH_LIKELY(!points.empty())) {
         this->buildTree(ROOT_PARENT_NODE, 0, points.size(), entireBox, 0);
     }
-}
-
-void KdTree::rebuildImpl(ArrayView<const Vector> points) {
-    /// \todo Could be potentially optimized
-    this->buildImpl(points);
 }
 
 void KdTree::buildTree(const Size parent,
@@ -172,6 +169,7 @@ void KdTree::addLeaf(const Size parent, const Size from, const Size to) noexcept
         return;
     }
     InnerNode& parentNode = (InnerNode&)nodes[parent];
+    ASSERT(!parentNode.isLeaf());
     if (index == parent + 1) {
         // left child
         parentNode.left = index;

@@ -13,6 +13,7 @@
 #include "sph/initial/Initial.h"
 #include "sph/kernel/Interpolation.h"
 #include "sph/solvers/AsymmetricSolver.h"
+#include "sph/solvers/StabilizationSolver.h"
 #include "sph/solvers/StandardSets.h"
 #include "sph/solvers/StaticSolver.h"
 #include "system/Profiler.h"
@@ -21,9 +22,8 @@ IMPLEMENT_APP(Sph::App);
 
 NAMESPACE_SPH_BEGIN
 
-AsteroidRotation::AsteroidRotation(const RawPtr<Controller> model, const Float period)
-    : model(model)
-    , period(period) {
+AsteroidRotation::AsteroidRotation(const RawPtr<Controller> model)
+    : model(model) {
     settings.set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::PREDICTOR_CORRECTOR)
         .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 1.e-7_f)
         .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 4.e-6_f)
@@ -43,49 +43,6 @@ AsteroidRotation::AsteroidRotation(const RawPtr<Controller> model, const Float p
     settings.saveToFile(Path("code.sph"));
 }
 
-class DisableDerivativesSolver : public AsymmetricSolver {
-private:
-    Vector omega;
-
-    Float delta = 0.2_f;
-
-public:
-    DisableDerivativesSolver(const RunSettings& settings,
-        const Vector& omega,
-        const EquationHolder& equations)
-        : AsymmetricSolver(settings, getStandardEquations(settings, equations))
-        , omega(omega) {}
-
-    virtual void integrate(Storage& storage, Statistics& stats) override {
-        AsymmetricSolver::integrate(storage, stats);
-        ArrayView<Vector> r, v, dv;
-        tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
-
-        const Float t = stats.get<Float>(StatisticsId::RUN_TIME);
-        const Float dt = stats.getOr<Float>(StatisticsId::TIMESTEP_VALUE, 1.e-7f);
-        const Float targetTime = 0.01_f;
-        for (Size i = 0; i < v.size(); ++i) {
-            // gradually decrease the delta
-            const Vector rotation = cross(omega, r[i]);
-            const Float factor = 1._f + lerp(delta * dt, 0._f, min(t / targetTime, 1._f));
-            // we have to dump only the deviation of velocities, not the initial rotation!
-            v[i] = (v[i] - rotation) / factor + rotation;
-        }
-        if (storage.has(QuantityId::DAMAGE) && t < targetTime) {
-            ArrayView<Float> D = storage.getValue<Float>(QuantityId::DAMAGE);
-            for (Size i = 0; i < D.size(); ++i) {
-                D[i] = 0._f;
-            }
-        }
-        if (storage.has(QuantityId::STRESS_REDUCING) && t < targetTime) {
-            ArrayView<Float> Y = storage.getValue<Float>(QuantityId::STRESS_REDUCING);
-            for (Size i = 0; i < Y.size(); ++i) {
-                Y[i] = 1._f;
-            }
-        }
-    }
-};
-
 void AsteroidRotation::setUp() {
     BodySettings bodySettings;
     bodySettings.set(BodySettingsId::ENERGY, 0._f)
@@ -101,21 +58,14 @@ void AsteroidRotation::setUp() {
     bodySettings.saveToFile(Path("target.sph"));
 
     storage = makeShared<Storage>();
+    solver = makeAuto<StabilizationSolver>(*scheduler, settings);
 
-    EquationHolder externalForces;
-    // externalForces += makeTerm<SolidStressTorque>(settings);
-    // externalForces += makeTerm<SphericalGravity>();
-    // const Vector omega = 2._f * PI / (3600._f * period) * Vector(0, 1, 0);
-    // externalForces += makeTerm<InertialForce>(omega);
-
-    const Vector omega(0._f, 0._f, 32._f);
-    solver = makeAuto<DisableDerivativesSolver>(settings, omega, externalForces);
-
-    InitialConditions conds(*solver, settings);
+    InitialConditions conds(*scheduler, *solver, settings);
 
     // Parent body
     AffineMatrix tm = AffineMatrix::rotateX(PI / 2._f);
     TransformedDomain<CylindricalDomain> domain1(tm, Vector(0._f), 0.2_f, 1._f, true); // H = 1m
+    const Vector omega(0._f, 0._f, 1._f);
     conds.addMonolithicBody(*storage, domain1, bodySettings).addRotation(omega, Vector(0._f));
     logger = Factory::getLogger(settings);
     logger->write("Particles of target: ", storage->getParticleCnt());
@@ -152,7 +102,7 @@ void AsteroidRotation::setUp() {
 void AsteroidRotation::setInitialStressTensor(Storage& smaller, EquationHolder& equations) {
 
     // Create static solver using different storage (with fewer particles for faster computation)
-    StaticSolver staticSolver(settings, equations);
+    StaticSolver staticSolver(*scheduler, settings, equations);
     staticSolver.create(smaller, smaller.getMaterial(0));
 
     // Solve initial conditions

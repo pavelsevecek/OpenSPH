@@ -15,7 +15,7 @@ class ISymmetricFinder;
 class ICollisionHandler;
 class IOverlapHandler;
 class IGravity;
-class CollisionRecord;
+struct CollisionRecord;
 class CollisionStats;
 enum class CollisionResult;
 enum class OverlapEnum;
@@ -31,8 +31,7 @@ private:
     /// Gravity used by the solver
     AutoPtr<IGravity> gravity;
 
-    /// Thread pool for parallelization
-    ThreadPool pool;
+    IScheduler& scheduler;
 
     struct ThreadData {
         // neighbours for parallelized queries
@@ -49,24 +48,25 @@ private:
     // cached array of removed particles, used to avoid invalidating indices during collision handling
     FlatSet<Size> removed;
 
-    /*FlatSet<Size> ignored;
-    std::mutex ignoredMutex;*/
-
     // holds computed collisions
     FlatSet<CollisionRecord> collisions;
 
     Array<Float> searchRadii;
 
     struct {
+
         AutoPtr<ICollisionHandler> handler;
 
         AutoPtr<ISymmetricFinder> finder;
+
     } collision;
 
     struct {
+
         AutoPtr<IOverlapHandler> handler;
 
         Float allowedRatio;
+
     } overlap;
 
     struct {
@@ -75,6 +75,7 @@ private:
 
         /// Maximum rotation of a particle in a single (sub)step.
         Float maxAngle;
+
     } rigidBody;
 
     /// Cached views of positions of velocities, so that we don't have to pass it to every function
@@ -83,10 +84,10 @@ private:
 
 public:
     /// \brief Creates the solver, using the gravity implementation specified by settings.
-    explicit NBodySolver(const RunSettings& settings);
+    NBodySolver(IScheduler& scheduler, const RunSettings& settings);
 
     /// \brief Creates the solver by passing the user-defined gravity implementation.
-    NBodySolver(const RunSettings& settings, AutoPtr<IGravity>&& gravity);
+    NBodySolver(IScheduler& scheduler, const RunSettings& settings, AutoPtr<IGravity>&& gravity);
 
     ~NBodySolver();
 

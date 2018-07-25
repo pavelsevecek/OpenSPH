@@ -7,6 +7,7 @@
 NAMESPACE_SPH_BEGIN
 
 class Storage;
+class IScheduler;
 
 /// \brief Represents three vertices of the triangle
 class Triangle {
@@ -68,7 +69,7 @@ public:
     }
 };
 
-/// Inferface for a generic scalar field, returning a float for given position.:w
+/// \brief Inferface for a generic scalar field, returning a float for given position.:w
 class IScalarField : public Polymorphic {
 public:
     /// Returns the value of the scalar field at given position
@@ -78,6 +79,8 @@ public:
 /// \brief Marching cubes algorithm for generation of mesh from iso-surface of given scalar field.
 class MarchingCubes {
 private:
+    IScheduler& scheduler;
+
     /// Input values
     Float surfaceLevel;
 
@@ -94,14 +97,18 @@ private:
     } cached;
 
 public:
-    /// Constructs the object using given scalar field.
+    /// \brief Constructs the object using given scalar field.
+    ///
+    /// \param scheduler Scheduler used for parallelization
     /// \param surfaceLevel Defines of the boundary of SPH particle as implicit function \f$ {\rm Boundary} =
     ///                     \Phi(\vec r) - {\rm surfaceLevel}\f$, where \f$\Phi\f$ is the scalar field.
     /// \param field Scalar field used to generate the surface.
-    MarchingCubes(const Float surfaceLevel, const SharedPtr<IScalarField>& field);
+    MarchingCubes(IScheduler& scheduler, const Float surfaceLevel, const SharedPtr<IScalarField>& field);
 
-    /// Adds a triangle mesh representing the boundary of particles inside given bounding box into the
-    /// internal triangle buffer.
+    /// \brief Adds a triangle mesh representing the boundary of particles.
+    ///
+    /// Particles are specified by the given bounding box. The generated mesh is added into the internal
+    /// triangle buffer.
     /// \param box Selected bounding box
     /// \param gridResolution Absolute size of the grid
     void addComponent(const Box& box, const Float gridResolution);
@@ -127,14 +134,19 @@ private:
 };
 
 
-/// Returns the triangle mesh of the body surface (or surfaces of bodies).
+/// \brief Returns the triangle mesh of the body surface (or surfaces of bodies).
+///
+/// \param scheduler Scheduler used for parallelization.
 /// \param storage Particle storage; must contain particle positions.
 /// \param gridResolution Absolute size of each produced triangle.
 /// \param surfaceLevel (Number) density defining the surface. Higher value is more likely to cause SPH
 ///                     particles being separated into smaller groups (droplets), lower value will cause the
 ///                     boundary to be "bulgy" rather than smooth.
 /// \return Array of generated triangles. Can be empty if no boundary exists.
-Array<Triangle> getSurfaceMesh(const Storage& storage, const Float gridResolution, const Float surfaceLevel);
+Array<Triangle> getSurfaceMesh(IScheduler& scheduler,
+    const Storage& storage,
+    const Float gridResolution,
+    const Float surfaceLevel);
 
 
 NAMESPACE_SPH_END

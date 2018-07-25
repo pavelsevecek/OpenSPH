@@ -2,57 +2,152 @@
 #include "catch.hpp"
 #include "objects/utility/ArrayUtils.h"
 #include "system/Timer.h"
-#include "thread/ThreadLocal.h"
 #include "utils/Utils.h"
 
 using namespace Sph;
 
-
-TEST_CASE("Submit task", "[thread]") {
+TEST_CASE("Pool submit task", "[thread]") {
     ThreadPool pool;
-    REQUIRE(pool.getThreadCnt() == std::thread::hardware_concurrency());
+    REQUIRE_THREAD_SAFE(pool.getThreadCnt() == std::thread::hardware_concurrency());
     std::atomic<uint64_t> sum;
     sum = 0;
     for (Size i = 0; i <= 100; ++i) {
-        pool.submit(makeTask([&sum, i] { sum += i; }));
+        pool.submit([&sum, i] { sum += i; });
     }
     pool.waitForAll();
-    REQUIRE(sum == 5050);
-    REQUIRE(pool.remainingTaskCnt() == 0);
+    REQUIRE_THREAD_SAFE(sum == 5050);
+    REQUIRE_THREAD_SAFE(pool.remainingTaskCnt() == 0);
 }
 
 TEST_CASE("Pool thread count", "[thread]") {
     ThreadPool pool1(0);
-    REQUIRE(pool1.getThreadCnt() == std::thread::hardware_concurrency());
+    REQUIRE_THREAD_SAFE(pool1.getThreadCnt() == std::thread::hardware_concurrency());
     ThreadPool pool2(5);
-    REQUIRE(pool2.getThreadCnt() == 5);
+    REQUIRE_THREAD_SAFE(pool2.getThreadCnt() == 5);
 }
 
-TEST_CASE("Submit task from different thread", "[thread]") {
+TEST_CASE("Pool submit task from different thread", "[thread]") {
     ThreadPool pool;
     std::atomic<uint64_t> sum1, sum2;
     sum1 = sum2 = 0;
     std::thread thread([&sum2, &pool] {
         for (Size i = 0; i <= 100; i += 2) { // even numbers
-            pool.submit(makeTask([&sum2, i] { sum2 += i; }));
+            pool.submit([&sum2, i] { sum2 += i; });
         }
     });
     for (Size i = 1; i <= 100; i += 2) {
-        pool.submit(makeTask([&sum1, i] { sum1 += i; }));
+        pool.submit([&sum1, i] { sum1 += i; });
     }
     thread.join();
     pool.waitForAll();
-    REQUIRE(sum1 + sum2 == 5050);
-    REQUIRE(pool.remainingTaskCnt() == 0);
+    REQUIRE_THREAD_SAFE(sum1 + sum2 == 5050);
+    REQUIRE_THREAD_SAFE(pool.remainingTaskCnt() == 0);
 }
 
-TEST_CASE("Submit single", "[thread]") {
+TEST_CASE("Pool submit single", "[thread]") {
     ThreadPool pool;
     bool executed = false;
-    pool.submit(makeTask([&executed] { executed = true; }));
+    pool.submit([&executed] { executed = true; });
     pool.waitForAll();
-    REQUIRE(pool.remainingTaskCnt() == 0);
-    REQUIRE(executed);
+    REQUIRE_THREAD_SAFE(pool.remainingTaskCnt() == 0);
+    REQUIRE_THREAD_SAFE(executed);
+}
+
+TEST_CASE("Pool submit nested", "[thread]") {
+    ThreadPool pool;
+    std::atomic_bool innerRun{ 0 };
+    auto rootTask = pool.submit([&pool, &innerRun] {
+        REQUIRE_THREAD_SAFE(Task::getCurrent());
+        REQUIRE_THREAD_SAFE(Task::getCurrent()->isRoot());
+
+        WeakPtr<Task> parent = Task::getCurrent();
+        pool.submit([parent, &innerRun] {
+            std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+            auto task = Task::getCurrent();
+            REQUIRE_THREAD_SAFE(task);
+            REQUIRE_THREAD_SAFE(!task->isRoot());
+            REQUIRE_THREAD_SAFE(task->getParent() == parent.lock());
+            innerRun = true;
+        });
+    });
+    REQUIRE_THREAD_SAFE(!rootTask->completed());
+    REQUIRE_THREAD_SAFE(!innerRun);
+    rootTask->wait();
+    REQUIRE_THREAD_SAFE(innerRun);
+    REQUIRE_THREAD_SAFE(rootTask->completed());
+    REQUIRE_THREAD_SAFE(pool.remainingTaskCnt() == 0);
+
+    // second doesn't do anything
+    rootTask->wait();
+
+    // pool.waitForAll();
+}
+
+TEST_CASE("Pool submit parallel", "[thread]") {
+    // checks that we can wait for two tasks to finish independently
+    ThreadPool pool;
+    auto task1 = pool.submit([] {
+        REQUIRE_THREAD_SAFE(Task::getCurrent());
+        REQUIRE_THREAD_SAFE(Task::getCurrent()->isRoot());
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+    });
+
+    auto task2 = pool.submit([] {
+        REQUIRE_THREAD_SAFE(Task::getCurrent());
+        REQUIRE_THREAD_SAFE(Task::getCurrent()->isRoot());
+        std::this_thread::sleep_for(std::chrono::milliseconds(60));
+    });
+
+    REQUIRE_THREAD_SAFE(!task1->completed());
+    REQUIRE_THREAD_SAFE(!task2->completed());
+    task1->wait();
+    REQUIRE_THREAD_SAFE(task1->completed());
+    REQUIRE_THREAD_SAFE(!task2->completed());
+    task2->wait();
+    REQUIRE_THREAD_SAFE(task2->completed());
+    REQUIRE_THREAD_SAFE(pool.remainingTaskCnt() == 0);
+
+    // now the same thing, but wait for the second (longer) one
+    task1 = pool.submit([] { std::this_thread::sleep_for(std::chrono::milliseconds(20)); });
+    task2 = pool.submit([] { std::this_thread::sleep_for(std::chrono::milliseconds(60)); });
+    REQUIRE_THREAD_SAFE(!task1->completed());
+    REQUIRE_THREAD_SAFE(!task2->completed());
+    task2->wait();
+    REQUIRE_THREAD_SAFE(task1->completed());
+    REQUIRE_THREAD_SAFE(task2->completed());
+    REQUIRE_THREAD_SAFE(pool.remainingTaskCnt() == 0);
+
+    // pool.waitForAll();
+}
+
+class Exception : public std::exception {
+    virtual const char* what() const noexcept override {
+        return "exception";
+    }
+};
+
+TEST_CASE("Pool task throw", "[thread]") {
+    ThreadPool pool;
+
+    auto task = pool.submit([] {
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        throw Exception();
+    });
+    REQUIRE_THROWS_AS(task->wait(), Exception&);
+}
+
+TEST_CASE("Pool task throw nested", "[thread]") {
+    ThreadPool pool;
+
+    auto task = pool.submit([&pool] {
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        pool.submit([] {
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            throw Exception();
+        });
+    });
+    REQUIRE_THROWS_AS(task->wait(), Exception&);
 }
 
 TEST_CASE("ParallelFor", "[thread]") {
@@ -60,26 +155,26 @@ TEST_CASE("ParallelFor", "[thread]") {
     std::atomic<uint64_t> sum;
     sum = 0;
     parallelFor(pool, 1, 100000, [&sum](Size i) { sum += i; });
-    REQUIRE(sum == 4999950000);
-    REQUIRE(pool.remainingTaskCnt() == 0);
+    REQUIRE_THREAD_SAFE(sum == 4999950000);
+    REQUIRE_THREAD_SAFE(pool.remainingTaskCnt() == 0);
 }
 
 TEST_CASE("GetThreadIdx", "[thread]") {
     ThreadPool pool(2);
-    REQUIRE(pool.getThreadCnt() == 2);
+    REQUIRE_THREAD_SAFE(pool.getThreadCnt() == 2);
     REQUIRE_FALSE(pool.getThreadIdx()); // main thread, not within the pool
 
     std::thread thread([&pool] {
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
-        REQUIRE_FALSE(pool.getThreadIdx()); // also not within the pool
+        REQUIRE_THREAD_SAFE(!pool.getThreadIdx()); // also not within the pool
     });
     thread.join();
 
-    pool.submit(makeTask([&pool] {
+    pool.submit([&pool] {
         const Optional<Size> idx = pool.getThreadIdx();
-        REQUIRE(idx);
-        REQUIRE((idx.value() == 0 || idx.value() == 1));
-    }));
+        REQUIRE_THREAD_SAFE(idx);
+        REQUIRE_THREAD_SAFE((idx.value() == 0 || idx.value() == 1));
+    });
 }
 
 TEST_CASE("WaitForAll", "[thread]") {
@@ -92,69 +187,18 @@ TEST_CASE("WaitForAll", "[thread]") {
     taskIdx = 0;
     // run tasks with different duration
     for (Size i = 0; i < cnt; ++i) {
-        pool.submit(
-            makeTask([&taskIdx] { std::this_thread::sleep_for(std::chrono::milliseconds(50 * ++taskIdx)); }));
+        pool.submit([&taskIdx] { std::this_thread::sleep_for(std::chrono::milliseconds(50 * ++taskIdx)); });
     }
     pool.waitForAll();
-    REQUIRE(timer.elapsed(TimerUnit::MILLISECOND) >= 50 * cnt);
+    REQUIRE_THREAD_SAFE(timer.elapsed(TimerUnit::MILLISECOND) >= 50 * cnt);
     REQUIRE_NOTHROW(pool.waitForAll()); // second does nothing
 }
 
-TEST_CASE("ThreadLocal", "[thread]") {
-    ThreadPool pool;
-    ThreadLocal<uint64_t> partialSum(pool);
-    parallelFor(pool, 1, 100000, [&partialSum](Size i) {
-        uint64_t& value = partialSum.get();
-        value += i;
-    });
-    uint64_t sum = 0;
-    const uint64_t expectedSum = 4999950000;
-    const Size threadCnt = pool.getThreadCnt();
-    const uint64_t sumPerThread = expectedSum / threadCnt;
-
-    partialSum.forEach([&sum, sumPerThread](auto&& value) {
-        // this can be very noisy, so lets be generous
-        REQUIRE(value >= sumPerThread / 2);
-        REQUIRE(value <= sumPerThread * 2);
-        sum += value;
-    });
-    REQUIRE(sum == expectedSum);
-    REQUIRE(pool.remainingTaskCnt() == 0);
-}
-
-TEST_CASE("ThreadLocal parallelFor", "[thread]") {
-    ThreadPool pool;
-    const Size N = 100000;
-    ThreadLocal<Array<Size>> partial(pool, N);
-    partial.forEach([](Array<Size>& value) { value.fill(0); });
-
-    std::atomic<int> executeCnt;
-    executeCnt = 0;
-    parallelFor(pool, partial, 0, N, 1, [&executeCnt](Size i, Array<Size>& value) {
-        executeCnt++;
-        value[i] = 1;
-    });
-    REQUIRE(executeCnt == N);
-    Array<Size> sum(N);
-    sum.fill(0);
-    partial.forEach([&](Array<Size>& value) {
-        Size perThreadSum = 0;
-        for (Size i = 0; i < sum.size(); ++i) {
-            sum[i] += value[i];
-            perThreadSum += value[i];
-        }
-        REQUIRE(perThreadSum > N / pool.getThreadCnt() - 2000);
-        REQUIRE(perThreadSum < N / pool.getThreadCnt() + 2000);
-    });
-    REQUIRE(areAllMatching(sum, [](const Size v) { return v == 1; }));
-    REQUIRE(pool.remainingTaskCnt() == 0);
-}
-
 #ifdef SPH_DEBUG
-TEST_CASE("ParallelFor throw", "[thread]") {
+TEST_CASE("ParallelFor assert", "[thread]") {
     ThreadPool pool(2);
     // throw from worker thread
-    auto lambda = [](Size) { throw Assert::Exception("exception1"); };
+    auto lambda = [](Size) { ASSERT(false); };
 
     REQUIRE_ASSERT(parallelFor(pool, 1, 2, lambda));
 }

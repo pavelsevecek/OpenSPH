@@ -52,12 +52,6 @@ Optional<float> fromString(const std::string& s) {
     }
 }
 
-template Optional<std::string> fromString(const std::string&);
-template Optional<int> fromString(const std::string&);
-template Optional<Size> fromString(const std::string&);
-template Optional<float> fromString(const std::string&);
-
-
 std::string trim(const std::string& s) {
     Size i1 = 0;
     for (; i1 < s.size(); ++i1) {

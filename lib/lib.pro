@@ -3,15 +3,23 @@ CONFIG += c++14 staticlib thread silent
 CONFIG -= app_bundle qt
 
 # disable if you dont have eigen
-INCLUDEPATH += /usr/include/eigen3
 DEFINES += SPH_USE_EIGEN
-#DEFINES += SPH_MPI
+INCLUDEPATH += /usr/include/eigen3
 
-#QMAKE_CXX = clang++
+# disable if you dont have TBB
+DEFINES += SPH_USE_TBB
+INCLUDEPATH += /usr/include/tbb
+
+QMAKE_CXX = clang++
 #QMAKE_LINK = clang++
 
+#LIBS += /usr/lib/libtbb.so /usr/lib/libtbb_debug.so /usr/lib/libtbbmalloc.so /usr/lib/libtbbmalloc_debug.so /usr/lib/libtbbmalloc_proxy.so /usr/lib/libtbbmalloc_proxy_debug.so
+
 QMAKE_CXXFLAGS += -Wall -Wextra -Werror -msse4.1 -std=c++14 -pthread
-QMAKE_LFLAGS += -static-libgcc -static-libstdc++
+QMAKE_LFLAGS += -ltbb -ltbb_debug -ltbbmalloc -ltbbmalloc_debug
+
+
+#QMAKE_LFLAGS += -static-libgcc -static-libstdc++ -ltbb
 #QMAKE_CXXFLAGS_RELEASE -= -O2
 #QMAKE_CXXFLAGS_RELEASE += -Os
 #QMAKE_CXXFLAGS_DEBUG += -fsanitize=undefined-trap -fsanitize-undefined-trap-on-error  # -ftime-report
@@ -106,7 +114,10 @@ SOURCES += \
     sph/initial/Presets.cpp \
     system/Settings.cpp \
     run/Collision.cpp \
-    sph/solvers/GradHSolver.cpp
+    sph/solvers/GradHSolver.cpp \
+    objects/finders/NeighbourFinder.cpp \
+    thread/Scheduler.cpp \
+    thread/Tbb.cpp
 
 HEADERS += \
     common/Assert.h \
@@ -165,7 +176,6 @@ HEADERS += \
     objects/finders/NeighbourFinder.h \
     objects/finders/Octree.h \
     objects/finders/Order.h \
-    objects/finders/PeriodicFinder.h \
     objects/finders/UniformGrid.h \
     objects/geometry/AntisymmetricTensor.h \
     objects/geometry/Box.h \
@@ -204,7 +214,6 @@ HEADERS += \
     objects/wrappers/RawPtr.h \
     objects/wrappers/SafePtr.h \
     objects/wrappers/SharedPtr.h \
-    objects/wrappers/Transient.h \
     objects/wrappers/Variant.h \
     objects/wrappers/VectorizedArray.h \
     physics/Constants.h \
@@ -285,7 +294,6 @@ HEADERS += \
     tests/Setup.h \
     thread/AtomicFloat.h \
     thread/CheckFunction.h \
-    thread/IScheduler.h \
     thread/Pool.h \
     thread/ThreadLocal.h \
     timestepping/ISolver.h \
@@ -299,4 +307,6 @@ HEADERS += \
     sph/solvers/GradHSolver.h \
     sph/equations/DeltaSph.h \
     sph/solvers/DifferencedEnergySolver.h \
-    gravity/CachedGravity.h
+    gravity/CachedGravity.h \
+    thread/Scheduler.h \
+    thread/Tbb.h

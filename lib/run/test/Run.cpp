@@ -7,6 +7,7 @@
 #include "sph/initial/Initial.h"
 #include "system/Statistics.h"
 #include "tests/Approx.h"
+#include "thread/Pool.h"
 #include "timestepping/TimeStepping.h"
 #include "utils/Utils.h"
 
@@ -82,7 +83,8 @@ public:
 
     virtual void setUp() override {
         storage = makeShared<Storage>();
-        InitialConditions conds(settings);
+        scheduler = ThreadPool::getGlobalInstance();
+        InitialConditions conds(*scheduler, settings);
         BodySettings bodySettings;
         bodySettings.set(BodySettingsId::PARTICLE_COUNT, 10);
         conds.addMonolithicBody(*storage, SphericalDomain(Vector(0._f), 1._f), bodySettings);

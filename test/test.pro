@@ -4,6 +4,7 @@ CONFIG -= app_bundle
 CONFIG -= qt
 
 QMAKE_CXXFLAGS += -msse4.1 -Wall -Wextra -Werror -std=c++14 -pthread
+QMAKE_LFLAGS += -ltbb -ltbb_debug -ltbbmalloc -ltbbmalloc_debug
 
 DEFINES += SPH_USE_EIGEN
 LIBS += ../lib/liblib.a
@@ -163,7 +164,8 @@ SOURCES += \
     ../lib/math/test/Functional.cpp \
     ../lib/physics/test/Functions.cpp \
     ../lib/sph/solvers/test/DensityIndependentSolver.cpp \
-    ../lib/sph/solvers/test/DifferencedEnergySolver.cpp
+    ../lib/sph/solvers/test/DifferencedEnergySolver.cpp \
+    ../lib/thread/test/Scheduler.cpp
 
 HEADERS += \
     utils/Utils.h \

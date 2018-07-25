@@ -10,6 +10,7 @@
 #include "math/rng/Rng.h"
 #include "objects/containers/Array.h"
 #include "objects/geometry/Vector.h"
+#include <mutex>
 
 /// Test cases for testing of multiple types
 
@@ -67,6 +68,22 @@
     template <typename T>                                                                                    \
     void INTERNAL_CATCH_UNIQUE_NAME(____C_A_T_C_H____T_E_M_P_L_A_TE____T_E_S_T____)()
 
+#define TYPED_TEST_CASE_3(name, description, T, T1, T2, T3)                                                  \
+    template <typename T>                                                                                    \
+    void INTERNAL_CATCH_UNIQUE_NAME(____C_A_T_C_H____T_E_M_P_L_A_TE____T_E_S_T____)();                       \
+    CATCH_TESTCASE1(CATCH_STRINGIFY(name, #T1), description) {                                               \
+        INTERNAL_CATCH_UNIQUE_NAME(____C_A_T_C_H____T_E_M_P_L_A_TE____T_E_S_T____)<T1>();                    \
+    }                                                                                                        \
+    CATCH_TESTCASE2(CATCH_STRINGIFY(name, #T2), description) {                                               \
+        INTERNAL_CATCH_UNIQUE_NAME(____C_A_T_C_H____T_E_M_P_L_A_TE____T_E_S_T____)<T2>();                    \
+    }                                                                                                        \
+    CATCH_TESTCASE3(CATCH_STRINGIFY(name, #T3), description) {                                               \
+        INTERNAL_CATCH_UNIQUE_NAME(____C_A_T_C_H____T_E_M_P_L_A_TE____T_E_S_T____)<T3>();                    \
+    }                                                                                                        \
+    template <typename T>                                                                                    \
+    void INTERNAL_CATCH_UNIQUE_NAME(____C_A_T_C_H____T_E_M_P_L_A_TE____T_E_S_T____)()
+
+
 #define TYPED_TEST_CASE_4(name, description, T, T1, T2, T3, T4)                                              \
     template <typename T>                                                                                    \
     void INTERNAL_CATCH_UNIQUE_NAME(____C_A_T_C_H____T_E_M_P_L_A_TE____T_E_S_T____)();                       \
@@ -76,10 +93,10 @@
     CATCH_TESTCASE2(CATCH_STRINGIFY(name, #T2), description) {                                               \
         INTERNAL_CATCH_UNIQUE_NAME(____C_A_T_C_H____T_E_M_P_L_A_TE____T_E_S_T____)<T2>();                    \
     }                                                                                                        \
-    CATCH_TESTCASE2(CATCH_STRINGIFY(name, #T3), description) {                                               \
+    CATCH_TESTCASE3(CATCH_STRINGIFY(name, #T3), description) {                                               \
         INTERNAL_CATCH_UNIQUE_NAME(____C_A_T_C_H____T_E_M_P_L_A_TE____T_E_S_T____)<T3>();                    \
     }                                                                                                        \
-    CATCH_TESTCASE2(CATCH_STRINGIFY(name, #T4), description) {                                               \
+    CATCH_TESTCASE4(CATCH_STRINGIFY(name, #T4), description) {                                               \
         INTERNAL_CATCH_UNIQUE_NAME(____C_A_T_C_H____T_E_M_P_L_A_TE____T_E_S_T____)<T4>();                    \
     }                                                                                                        \
     template <typename T>                                                                                    \
@@ -97,6 +114,14 @@
 #else
 #define REQUIRE_ASSERT(func)
 #endif
+
+extern std::mutex globalTestMutex;
+
+#define REQUIRE_THREAD_SAFE(func)                                                                            \
+    {                                                                                                        \
+        std::unique_lock<std::mutex> lock(globalTestMutex);                                                  \
+        REQUIRE(func);                                                                                       \
+    }
 
 extern Sph::Array<std::pair<std::string, int>> skippedTests;
 

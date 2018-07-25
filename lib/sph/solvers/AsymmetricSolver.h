@@ -5,7 +5,6 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2018
 
-#include "sph/Materials.h"
 #include "sph/equations/EquationTerm.h"
 #include "sph/kernel/Kernel.h"
 #include "thread/ThreadLocal.h"
@@ -31,8 +30,8 @@ protected:
     /// Holds all derivatives (shared for all threads)
     DerivativeHolder derivatives;
 
-    /// Thread pool used to parallelize the solver, runs the whole time the solver exists.
-    ThreadPool pool;
+    /// Scheduler used to parallelize the solver.
+    IScheduler& scheduler;
 
     struct ThreadData {
         /// Cached array of neighbours, to avoid allocation every step
@@ -61,7 +60,7 @@ protected:
     LutKernel<DIMENSIONS> kernel;
 
 public:
-    AsymmetricSolver(const RunSettings& settings, const EquationHolder& eqs);
+    AsymmetricSolver(IScheduler& scheduler, const RunSettings& settings, const EquationHolder& eqs);
 
     ~AsymmetricSolver();
 

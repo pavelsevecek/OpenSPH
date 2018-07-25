@@ -89,6 +89,8 @@ static void testHomogeneousField(TArgs&&... args) {
     Statistics stats;
     Size n = 0;
 
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+
     const Size testCnt = Size(3._f / timeStep);
     auto test = [&](const Size i) -> Outcome {
         const Float t = i * timeStep;
@@ -100,7 +102,7 @@ static void testHomogeneousField(TArgs&&... args) {
         if (v[0] != approx(vel, timeStep)) {
             return makeFailed("Invalid velocity: \n", v[0], " == ", vel, "\n t = ", t);
         }
-        timestepping.step(solver, stats);
+        timestepping.step(pool, solver, stats);
         return SUCCESS;
     };
     REQUIRE_SEQUENCE(test, 0, testCnt);
@@ -120,6 +122,8 @@ static void testHarmonicOscillator(TArgs&&... args) {
     Statistics stats;
     Size n = 0;
 
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+
     const Size testCnt = Size(3._f / timeStep);
     auto test = [&](const Size i) -> Outcome {
         const Float t = i * timeStep;
@@ -131,7 +135,7 @@ static void testHarmonicOscillator(TArgs&&... args) {
             return makeFailed(
                 "Invalid velocity: \n", v[0], " == ", Vector(-sin(2.f * PI * t), 0.f, 0.f), "\n t = ", t);
         }
-        timestepping.step(solver, stats);
+        timestepping.step(pool, solver, stats);
         return SUCCESS;
     };
     REQUIRE_SEQUENCE(test, 0, testCnt);
@@ -154,6 +158,9 @@ static void testGyroscopicMotion(TArgs&&... args) {
     TTimestepping timestepping(storage, std::forward<TArgs>(args)...);
     Statistics stats;
     Size n = 0;
+
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+
     const Size testCnt = Size(3._f / timeStep);
     auto test = [&](const Size i) -> Outcome {
         const Float t = i * timeStep;
@@ -165,7 +172,7 @@ static void testGyroscopicMotion(TArgs&&... args) {
         if (v[0] != approx(vel, 3._f * timeStep)) {
             return makeFailed("Invalid velocity: \n", v[0], " == ", vel, "\n t = ", t);
         }
-        timestepping.step(solver, stats);
+        timestepping.step(pool, solver, stats);
         return SUCCESS;
     };
     REQUIRE_SEQUENCE(test, 0, testCnt);
@@ -217,15 +224,17 @@ static void testClamping(RunSettings settings) {
     TTimestepping timestepping(storage, settings);
     Statistics stats;
     ClampSolver solver1(ClampSolver::Direction::INCREASING, range);
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+
     for (Size i = 0; i < 6; ++i) {
-        timestepping.step(solver1, stats);
+        timestepping.step(pool, solver1, stats);
     }
     ArrayView<const Float> u = storage->getValue<Float>(QuantityId::ENERGY);
     REQUIRE(u[0] == range.upper());
 
     ClampSolver solver2(ClampSolver::Direction::DECREASING, range);
     for (Size i = 0; i < 6; ++i) {
-        timestepping.step(solver2, stats);
+        timestepping.step(pool, solver2, stats);
     }
     REQUIRE(u[0] == range.lower());
 }
@@ -253,10 +262,11 @@ static void testAddingParticles(const RunSettings& settings, TestContext context
     const Size particleCnt = storage->getParticleCnt();
 
     TTimestepping timestepping(storage, settings);
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
     AddingParticlesSolver solver;
     Statistics stats;
     for (Size i = 0; i < 5; ++i) {
-        REQUIRE_NOTHROW(timestepping.step(solver, stats));
+        REQUIRE_NOTHROW(timestepping.step(pool, solver, stats));
     }
     REQUIRE(storage->getParticleCnt() == particleCnt + context.callsPerStep * 500);
 }

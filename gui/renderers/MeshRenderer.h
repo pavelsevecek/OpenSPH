@@ -35,13 +35,15 @@ private:
 
     } cached;
 
+    IScheduler& scheduler;
+
     /// Finder used for colorization of the surface
     AutoPtr<IBasicFinder> finder;
 
     LutKernel<3> kernel;
 
 public:
-    explicit MeshRenderer(const GuiSettings& settings);
+    explicit MeshRenderer(IScheduler& scheduler, const GuiSettings& settings);
 
     virtual void initialize(const Storage& storage,
         const IColorizer& colorizer,

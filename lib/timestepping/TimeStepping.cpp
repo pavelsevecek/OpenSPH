@@ -10,7 +10,6 @@
 
 NAMESPACE_SPH_BEGIN
 
-
 ITimeStepping::ITimeStepping(const SharedPtr<Storage>& storage,
     const RunSettings& settings,
     AutoPtr<ITimeStepCriterion>&& criterion)
@@ -25,13 +24,15 @@ ITimeStepping::ITimeStepping(const SharedPtr<Storage>& storage, const RunSetting
 
 ITimeStepping::~ITimeStepping() = default;
 
-void ITimeStepping::step(ISolver& solver, Statistics& stats) {
+void ITimeStepping::step(IScheduler& scheduler, ISolver& solver, Statistics& stats) {
     Timer timer;
-    this->stepImpl(solver, stats);
+    this->stepImpl(scheduler, solver, stats);
     // update time step
     CriterionId criterionId = CriterionId::INITIAL_VALUE;
     if (criterion) {
-        tieToTuple(timeStep, criterionId) = criterion->compute(*storage, maxTimeStep, stats);
+        const TimeStep result = criterion->compute(scheduler, *storage, maxTimeStep, stats);
+        timeStep = result.value;
+        criterionId = result.id;
     }
     stats.set(StatisticsId::TIMESTEP_VALUE, timeStep);
     stats.set(StatisticsId::TIMESTEP_CRITERION, criterionId);
@@ -43,13 +44,13 @@ void ITimeStepping::step(ISolver& solver, Statistics& stats) {
 //-----------------------------------------------------------------------------------------------------------
 
 template <typename TFunc>
-static void stepFirstOrder(Storage& storage, const TFunc& stepper) {
+static void stepFirstOrder(Storage& storage, IScheduler& scheduler, const TFunc& stepper) {
 
     // note that derivatives are not advanced in time, but cannot be const as they might be clamped
     auto process = [&](const QuantityId id, auto& x, auto& dx) {
         ASSERT(x.size() == dx.size());
 
-        parallelFor(ThreadPool::getGlobalInstance(), 0, x.size(), [&](const Size i) INL {
+        parallelFor(scheduler, 0, x.size(), [&](const Size i) INL {
             stepper(x[i], asConst(dx[i]));
             const Interval range = storage.getMaterialOfParticle(i)->range(id);
             if (range != Interval::unbounded()) {
@@ -62,12 +63,12 @@ static void stepFirstOrder(Storage& storage, const TFunc& stepper) {
 }
 
 template <typename TFunc>
-static void stepSecondOrder(Storage& storage, const TFunc& stepper) {
+static void stepSecondOrder(Storage& storage, IScheduler& scheduler, const TFunc& stepper) {
 
     auto process = [&](const QuantityId id, auto& r, auto& v, const auto& dv) {
         ASSERT(r.size() == v.size() && r.size() == dv.size());
 
-        parallelFor(ThreadPool::getGlobalInstance(), 0, r.size(), [&](const Size i) INL {
+        parallelFor(scheduler, 0, r.size(), [&](const Size i) INL {
             stepper(r[i], v[i], dv[i]);
             /// \todo optimize gettings range of materials (same in derivativecriterion for minimals)
             const Interval range = storage.getMaterialOfParticle(i)->range(id);
@@ -137,7 +138,10 @@ struct Invoker<T, VisitorEnum::HIGHEST_DERIVATIVES> {
 };
 
 template <VisitorEnum Visitor, typename TFunc>
-static void stepPairFirstOrder(Storage& storage1, Storage& storage2, const TFunc& stepper) {
+static void stepPairFirstOrder(Storage& storage1,
+    Storage& storage2,
+    IScheduler& scheduler,
+    const TFunc& stepper) {
     static_assert(Visitor == VisitorEnum::ALL_BUFFERS || Visitor == VisitorEnum::HIGHEST_DERIVATIVES,
         "Currently works for all buffers OR highest derivatives only, can be generalized if needed");
 
@@ -149,7 +153,7 @@ static void stepPairFirstOrder(Storage& storage1, Storage& storage2, const TFunc
         using T = std::decay_t<decltype(px)>;
         Invoker<T, Visitor> invoker;
 
-        parallelFor(ThreadPool::getGlobalInstance(), 0, px.size(), [&](const Size i) {
+        parallelFor(scheduler, 0, px.size(), [&](const Size i) {
             invoker(px, asConst(pdx), cx, cdx, i, stepper);
 
             const Interval range = storage1.getMaterialOfParticle(i)->range(id);
@@ -163,7 +167,10 @@ static void stepPairFirstOrder(Storage& storage1, Storage& storage2, const TFunc
 }
 
 template <VisitorEnum Visitor, typename TFunc>
-static void stepPairSecondOrder(Storage& storage1, Storage& storage2, const TFunc& stepper) {
+static void stepPairSecondOrder(Storage& storage1,
+    Storage& storage2,
+    IScheduler& scheduler,
+    const TFunc& stepper) {
     static_assert(Visitor == VisitorEnum::ALL_BUFFERS || Visitor == VisitorEnum::HIGHEST_DERIVATIVES,
         "Currently works for all buffers OR highest derivatives only, can be generalized if needed");
 
@@ -182,7 +189,7 @@ static void stepPairSecondOrder(Storage& storage1, Storage& storage2, const TFun
         using T = std::decay_t<decltype(pr)>;
         Invoker<T, Visitor> invoker;
 
-        parallelFor(ThreadPool::getGlobalInstance(), 0, pr.size(), [&](const Size i) {
+        parallelFor(scheduler, 0, pr.size(), [&](const Size i) {
             invoker(pr, pv, pdv, cr, cv, cdv, i, stepper);
 
             const Interval range = storage1.getMaterialOfParticle(i)->range(id);
@@ -199,7 +206,7 @@ static void stepPairSecondOrder(Storage& storage1, Storage& storage2, const TFun
 // EulerExplicit implementation
 //-----------------------------------------------------------------------------------------------------------
 
-void EulerExplicit::stepImpl(ISolver& solver, Statistics& stats) {
+void EulerExplicit::stepImpl(IScheduler& scheduler, ISolver& solver, Statistics& stats) {
     // MEASURE_SCOPE("EulerExplicit::step");
     // clear derivatives from previous timestep
     storage->zeroHighestDerivatives();
@@ -211,18 +218,18 @@ void EulerExplicit::stepImpl(ISolver& solver, Statistics& stats) {
     const Float dt = timeStep;
 
     // advance velocities
-    stepSecondOrder(*storage, [dt](auto& UNUSED(r), auto& v, const auto& dv) INL { //
+    stepSecondOrder(*storage, scheduler, [dt](auto& UNUSED(r), auto& v, const auto& dv) INL { //
         v += dv * dt;
     });
     // find positions and velocities after collision (at the beginning of the time step
     solver.collide(*storage, stats, timeStep);
     // advance positions
-    stepSecondOrder(*storage, [dt](auto& r, auto& v, const auto& UNUSED(dv)) INL { //
+    stepSecondOrder(*storage, scheduler, [dt](auto& r, auto& v, const auto& UNUSED(dv)) INL { //
         r += v * dt;
     });
 
     // simply advance first order quanties
-    stepFirstOrder(*storage, [dt](auto& x, const auto& dx) INL { //
+    stepFirstOrder(*storage, scheduler, [dt](auto& x, const auto& dx) INL { //
         x += dx * dt;
     });
 
@@ -247,41 +254,44 @@ PredictorCorrector::PredictorCorrector(const SharedPtr<Storage>& storage, const 
 
 PredictorCorrector::~PredictorCorrector() = default;
 
-void PredictorCorrector::makePredictions() {
+void PredictorCorrector::makePredictions(IScheduler& scheduler) {
     PROFILE_SCOPE("PredictorCorrector::predictions")
     const Float dt = timeStep;
     const Float dt2 = 0.5_f * sqr(dt);
     /// \todo this is currently incompatible with NBodySolver, because we advance positions by 0.5 adt^2 ...
-    stepSecondOrder(*storage, [dt, dt2](auto& r, auto& v, const auto& dv) INL {
+    stepSecondOrder(*storage, scheduler, [dt, dt2](auto& r, auto& v, const auto& dv) INL {
         r += v * dt + dv * dt2;
         v += dv * dt;
     });
-    stepFirstOrder(*storage, [dt](auto& x, const auto& dx) INL { //
+    stepFirstOrder(*storage, scheduler, [dt](auto& x, const auto& dx) INL { //
         x += dx * dt;
     });
 }
 
-void PredictorCorrector::makeCorrections() {
+void PredictorCorrector::makeCorrections(IScheduler& scheduler) {
     PROFILE_SCOPE("PredictorCorrector::step   Corrections");
     const Float dt = timeStep;
     const Float dt2 = 0.5_f * sqr(dt);
     constexpr Float a = 1._f / 3._f;
     constexpr Float b = 0.5_f;
 
-    stepPairSecondOrder<VisitorEnum::HIGHEST_DERIVATIVES>(
-        *storage, *predictions, [a, b, dt, dt2](auto& pr, auto& pv, const auto& pdv, const auto& cdv) {
+    stepPairSecondOrder<VisitorEnum::HIGHEST_DERIVATIVES>(*storage,
+        *predictions,
+        scheduler,
+        [a, b, dt, dt2](auto& pr, auto& pv, const auto& pdv, const auto& cdv) {
             pr -= a * (cdv - pdv) * dt2;
             pv -= b * (cdv - pdv) * dt;
         });
 
-    stepPairFirstOrder<VisitorEnum::HIGHEST_DERIVATIVES>(*storage,
-        *predictions,
-        [dt](auto& px, const auto& pdx, const auto& cdx) { px -= 0.5_f * (cdx - pdx) * dt; });
+    stepPairFirstOrder<VisitorEnum::HIGHEST_DERIVATIVES>(
+        *storage, *predictions, scheduler, [dt](auto& px, const auto& pdx, const auto& cdx) {
+            px -= 0.5_f * (cdx - pdx) * dt;
+        });
 }
 
-void PredictorCorrector::stepImpl(ISolver& solver, Statistics& stats) {
+void PredictorCorrector::stepImpl(IScheduler& scheduler, ISolver& solver, Statistics& stats) {
     // make predictions
-    this->makePredictions();
+    this->makePredictions(scheduler);
 
     // save derivatives from predictions
     storage->swap(*predictions, VisitorEnum::HIGHEST_DERIVATIVES);
@@ -296,7 +306,7 @@ void PredictorCorrector::stepImpl(ISolver& solver, Statistics& stats) {
         predictions->getParticleCnt());
 
     // make corrections
-    this->makeCorrections();
+    this->makeCorrections(scheduler);
 
     ASSERT(storage->isValid());
 }
@@ -305,11 +315,11 @@ void PredictorCorrector::stepImpl(ISolver& solver, Statistics& stats) {
 // Leapfrog implementation
 //-----------------------------------------------------------------------------------------------------------
 
-void LeapFrog::stepImpl(ISolver& solver, Statistics& stats) {
+void LeapFrog::stepImpl(IScheduler& scheduler, ISolver& solver, Statistics& stats) {
     // move positions by half a timestep (drift)
     const Float dt = timeStep;
     solver.collide(*storage, stats, 0.5_f * dt);
-    stepSecondOrder(*storage, [dt](auto& r, const auto& v, const auto& UNUSED(dv)) INL { //
+    stepSecondOrder(*storage, scheduler, [dt](auto& r, const auto& v, const auto& UNUSED(dv)) INL { //
         r += v * 0.5_f * dt;
     });
 
@@ -319,13 +329,13 @@ void LeapFrog::stepImpl(ISolver& solver, Statistics& stats) {
 
     // integrate first-order quantities as in Euler
     /// \todo this is not LeapFrog !
-    stepFirstOrder(*storage, [dt](auto& x, const auto& dx) INL { //
+    stepFirstOrder(*storage, scheduler, [dt](auto& x, const auto& dx) INL { //
         x += dx * dt;
     });
 
 
     // move velocities by full timestep (kick)
-    stepSecondOrder(*storage, [dt](auto& UNUSED(r), auto& v, const auto& dv) INL { //
+    stepSecondOrder(*storage, scheduler, [dt](auto& UNUSED(r), auto& v, const auto& dv) INL { //
         v += dv * dt;
     });
 
@@ -333,7 +343,7 @@ void LeapFrog::stepImpl(ISolver& solver, Statistics& stats) {
     solver.collide(*storage, stats, 0.5_f * dt);
 
     // move positions by another half timestep (drift)
-    stepSecondOrder(*storage, [dt](auto& r, auto& v, const auto& UNUSED(dv)) INL { //
+    stepSecondOrder(*storage, scheduler, [dt](auto& r, auto& v, const auto& UNUSED(dv)) INL { //
         r += v * 0.5_f * dt;
     });
 
@@ -388,7 +398,7 @@ void RungeKutta::integrateAndAdvance(ISolver& solver,
         });
 }
 
-void RungeKutta::stepImpl(ISolver& solver, Statistics& stats) {
+void RungeKutta::stepImpl(IScheduler& UNUSED(scheduler), ISolver& solver, Statistics& stats) {
     k1->zeroHighestDerivatives();
     k2->zeroHighestDerivatives();
     k3->zeroHighestDerivatives();
@@ -441,20 +451,23 @@ ModifiedMidpointMethod::ModifiedMidpointMethod(const SharedPtr<Storage>& storage
     mid->addDependent(storage);
 }
 
-void ModifiedMidpointMethod::stepImpl(ISolver& solver, Statistics& stats) {
+void ModifiedMidpointMethod::stepImpl(IScheduler& scheduler, ISolver& solver, Statistics& stats) {
     const Float h = timeStep / n; // current substep
 
     solver.collide(*storage, stats, h);
     // do first (half)step using current derivatives, save values to mid
     stepPairSecondOrder<VisitorEnum::ALL_BUFFERS>(*mid,
         *storage,
+        scheduler,
         [h](auto& pr, auto& pv, const auto&, const auto& cr, const auto& cv, const auto& cdv) INL {
             pv = cv + h * cdv;
             pr = cr + h * cv;
             ASSERT(isReal(pv) && isReal(pr));
         });
-    stepPairFirstOrder<VisitorEnum::ALL_BUFFERS>(
-        *mid, *storage, [h](auto& px, const auto& UNUSED(pdx), const auto& cx, const auto& cdx) INL { //
+    stepPairFirstOrder<VisitorEnum::ALL_BUFFERS>(*mid,
+        *storage,
+        scheduler,
+        [h](auto& px, const auto& UNUSED(pdx), const auto& cx, const auto& cdx) INL { //
             px = cx + h * cdx;
             ASSERT(isReal(px));
         });
@@ -470,6 +483,7 @@ void ModifiedMidpointMethod::stepImpl(ISolver& solver, Statistics& stats) {
         solver.collide(*storage, stats, 2._f * h);
         stepPairSecondOrder<VisitorEnum::ALL_BUFFERS>(*storage,
             *mid,
+            scheduler,
             [h](auto& pr,
                 auto& pv,
                 const auto& UNUSED(pdv),
@@ -482,6 +496,7 @@ void ModifiedMidpointMethod::stepImpl(ISolver& solver, Statistics& stats) {
             });
         stepPairFirstOrder<VisitorEnum::ALL_BUFFERS>(*storage,
             *mid,
+            scheduler,
             [h](auto& px, const auto& UNUSED(pdx), const auto& UNUSED(cx), const auto& cdx) INL { //
                 px += 2._f * h * cdx;
                 ASSERT(isReal(px));
@@ -495,13 +510,16 @@ void ModifiedMidpointMethod::stepImpl(ISolver& solver, Statistics& stats) {
     solver.collide(*storage, stats, h);
     stepPairSecondOrder<VisitorEnum::ALL_BUFFERS>(*storage,
         *mid,
+        scheduler,
         [h](auto& pr, auto& pv, const auto& UNUSED(pdv), auto& cr, const auto& cv, const auto& cdv) INL {
             pv = 0.5_f * (pv + cv + h * cdv);
             pr = 0.5_f * (pr + cr + h * cv);
             ASSERT(isReal(pv) && isReal(pr));
         });
-    stepPairFirstOrder<VisitorEnum::ALL_BUFFERS>(
-        *storage, *mid, [h](auto& px, const auto& UNUSED(pdx), const auto& cx, const auto& cdx) INL {
+    stepPairFirstOrder<VisitorEnum::ALL_BUFFERS>(*storage,
+        *mid,
+        scheduler,
+        [h](auto& px, const auto& UNUSED(pdx), const auto& cx, const auto& cdx) INL {
             px = 0.5_f * (px + cx + h * cdx);
             ASSERT(isReal(px));
         });
@@ -560,7 +578,7 @@ BulirschStoer::BulirschStoer(const SharedPtr<Storage>& storage, const RunSetting
     ASSERT(rowNumber > 0._f);
 }
 
-void BulirschStoer::stepImpl(ISolver& solver, Statistics& stats) {
+void BulirschStoer::stepImpl(IScheduler& UNUSED(scheduler), ISolver& solver, Statistics& stats) {
     (void)solver;
     (void)stats;
 }

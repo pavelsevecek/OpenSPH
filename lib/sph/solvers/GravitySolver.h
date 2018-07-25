@@ -10,6 +10,7 @@
 NAMESPACE_SPH_BEGIN
 
 class IGravity;
+class IScheduler;
 class EquationHolder;
 class Accumulated;
 
@@ -24,10 +25,13 @@ private:
 
 public:
     /// \brief Creates the gravity solver, used implementation of gravity given by settings parameters.
-    GravitySolver(const RunSettings& settings, const EquationHolder& equations);
+    GravitySolver(IScheduler& scheduler, const RunSettings& settings, const EquationHolder& equations);
 
     /// \brief Creates the gravity solver by explicitly specifying the gravity implementation.
-    GravitySolver(const RunSettings& settings, const EquationHolder& equations, AutoPtr<IGravity>&& gravity);
+    GravitySolver(IScheduler& scheduler,
+        const RunSettings& settings,
+        const EquationHolder& equations,
+        AutoPtr<IGravity>&& gravity);
 
 protected:
     virtual void loop(Storage& storage, Statistics& stats) override;

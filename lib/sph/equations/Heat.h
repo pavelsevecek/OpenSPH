@@ -48,9 +48,9 @@ public:
         derivatives.require(makeAuto<EnergyLaplacian>(settings));
     }
 
-    virtual void initialize(Storage& UNUSED(storage), ThreadPool& UNUSED(pool)) override {}
+    virtual void initialize(IScheduler& UNUSED(scheduler), Storage& UNUSED(storage)) override {}
 
-    virtual void finalize(Storage& storage, ThreadPool& UNUSED(pool)) override {
+    virtual void finalize(IScheduler& UNUSED(scheduler), Storage& storage) override {
         ArrayView<Float> du = storage.getDt<Float>(QuantityId::ENERGY);
         ArrayView<const Float> deltaU = storage.getValue<Float>(QuantityId::ENERGY_LAPLACIAN);
         for (Size matIdx = 0; matIdx < storage.getMaterialCnt(); ++matIdx) {

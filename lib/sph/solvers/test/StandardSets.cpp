@@ -12,7 +12,8 @@ using namespace Sph;
 
 template <typename TSolver>
 void testSolver(Storage& storage, const RunSettings& settings) {
-    TSolver solver(settings, getStandardEquations(settings));
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+    TSolver solver(pool, settings, getStandardEquations(settings));
     REQUIRE_NOTHROW(solver.create(storage, storage.getMaterial(0)));
     Statistics stats;
     REQUIRE_NOTHROW(solver.integrate(storage, stats));
@@ -27,9 +28,10 @@ static Storage initStorage(TSolver& solver, BodySettings body) {
 
 TYPED_TEST_CASE_2("StandardSets quantities B&A", "[solvers]", TSolver, SymmetricSolver, AsymmetricSolver) {
     RunSettings settings;
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
     settings.set(RunSettingsId::SPH_FORMULATION, FormulationEnum::BENZ_ASPHAUG);
     settings.set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONTINUITY_EQUATION);
-    TSolver solver(settings, getStandardEquations(settings));
+    TSolver solver(pool, settings, getStandardEquations(settings));
 
     BodySettings body;
     body.set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::NONE);
@@ -69,7 +71,9 @@ TYPED_TEST_CASE_2("StandardSets quantities standard",
     RunSettings settings;
     settings.set(RunSettingsId::SPH_FORMULATION, FormulationEnum::STANDARD);
     settings.set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONTINUITY_EQUATION);
-    TSolver solver(settings, getStandardEquations(settings));
+
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+    TSolver solver(pool, settings, getStandardEquations(settings));
 
     BodySettings body;
     body.set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::NONE);
@@ -164,7 +168,8 @@ TYPED_TEST_CASE_2("StandardSets constant smoothing length",
     settings.set(RunSettingsId::SOLVER_FORCES, ForceEnum::PRESSURE | ForceEnum::SOLID_STRESS);
     settings.set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONST);
 
-    TSolver solver(settings, getStandardEquations(settings));
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+    TSolver solver(pool, settings, getStandardEquations(settings));
     solver.create(*storage, storage->getMaterial(0));
 
     // setup nonzero velocities
@@ -179,7 +184,7 @@ TYPED_TEST_CASE_2("StandardSets constant smoothing length",
 
     EulerExplicit timestepping(storage, settings);
     Statistics stats;
-    timestepping.step(solver, stats);
+    timestepping.step(pool, solver, stats);
     ArrayView<Vector> r = storage->getValue<Vector>(QuantityId::POSITION);
 
     auto test = [&](const Size i) -> Outcome {

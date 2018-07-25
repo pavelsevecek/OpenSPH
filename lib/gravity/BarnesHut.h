@@ -5,6 +5,7 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2018
 
+#include "common/ForwardDecl.h"
 #include "gravity/IGravity.h"
 #include "objects/containers/List.h"
 #include "objects/finders/KdTree.h"
@@ -13,7 +14,6 @@
 
 NAMESPACE_SPH_BEGIN
 
-class IScheduler;
 enum class MultipoleOrder;
 
 /// \brief Multipole approximation of distance particle.
@@ -54,11 +54,9 @@ public:
         const Size leafSize = 20);
 
     /// Masses of particles must be strictly positive, otherwise center of mass would be undefined.
-    virtual void build(const Storage& storage) override;
+    virtual void build(IScheduler& pool, const Storage& storage) override;
 
-    virtual void evalAll(ArrayView<Vector> dv, Statistics& stats) const override;
-
-    virtual void evalAll(ThreadPool& pool, ArrayView<Vector> dv, Statistics& stats) const override;
+    virtual void evalAll(IScheduler& pool, ArrayView<Vector> dv, Statistics& stats) const override;
 
     virtual Vector eval(const Vector& r0, Statistics& stats) const override;
 
@@ -103,7 +101,7 @@ protected:
     /// Treewalk starts at given node and subsequently calls \ref evalNode for children nodes. Function moves
     /// nodes from checkList into interaction lists and in case the node is a leaf, gravity is computed using
     /// constructed interaction lists.
-    /// \param scheduler Scheduler used for parallelization
+    /// \param scheduler Scheduler used for (potential) parallelization
     /// \param dv Output thread-local buffer where computed accelerations are stored
     /// \param nodeIdx Index of the first node evaluated by the function
     /// \param data Checklist nad interaction lists of he node
@@ -124,6 +122,5 @@ protected:
 
     void buildInner(KdNode& node, KdNode& left, KdNode& right);
 };
-
 
 NAMESPACE_SPH_END

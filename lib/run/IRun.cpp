@@ -9,6 +9,7 @@
 #include "system/Factory.h"
 #include "system/Statistics.h"
 #include "system/Timer.h"
+#include "thread/Pool.h"
 #include "timestepping/ISolver.h"
 #include "timestepping/TimeStepping.h"
 
@@ -43,6 +44,39 @@ IRun::IRun() {
 
 IRun::~IRun() = default;
 
+/// \todo currently updates only once every 100 steps
+class EtaTrigger : public ITrigger {
+private:
+    Size stepCounter = 0;
+
+    int lastElapsed = 0;
+    Float lastProgress = 0._f;
+
+    static constexpr Size RECOMPUTE_PERIOD = 100;
+
+public:
+    virtual TriggerEnum type() const override {
+        return TriggerEnum::REPEATING;
+    }
+
+    virtual bool condition(const Storage& UNUSED(storage), const Statistics& UNUSED(stats)) override {
+        return stepCounter++ == RECOMPUTE_PERIOD;
+    }
+
+    virtual AutoPtr<ITrigger> action(Storage& UNUSED(storage), Statistics& stats) override {
+        const int elapsed = stats.get<int>(StatisticsId::WALLCLOCK_TIME);
+        const Float progress = stats.get<Float>(StatisticsId::RELATIVE_PROGRESS);
+
+        const Float speed = (elapsed - lastElapsed) / (progress - lastProgress);
+        const Float eta = speed * (1._f - progress);
+        stats.set(StatisticsId::ETA, eta);
+
+        lastElapsed = elapsed;
+        lastProgress = progress;
+        return nullptr;
+    }
+};
+
 void IRun::run() {
     ASSERT(storage);
     Size i = 0;
@@ -53,7 +87,8 @@ void IRun::run() {
     // set uninitilized variables
     setNullToDefaults();
 
-    // run main loop
+    /// \todo fix! triggers.pushBack(makeAuto<EtaTrigger>());
+
     Float nextOutput = timeRange.lower();
     logger->write("Running:");
     Timer runTimer;
@@ -63,6 +98,8 @@ void IRun::run() {
 
     callbacks->onRunStart(*storage, stats);
     Outcome result = SUCCESS;
+
+    // run main loop
     for (Float t = timeRange.lower(); t < timeRange.upper() && !condition(runTimer, i);
          t += timeStepping->getTimeStep()) {
 
@@ -83,7 +120,7 @@ void IRun::run() {
         }
 
         // make time step
-        timeStepping->step(*solver, stats);
+        timeStepping->step(*scheduler, *solver, stats);
 
         // triggers
         for (auto iter = triggers.begin(); iter != triggers.end();) {
@@ -124,8 +161,13 @@ SharedPtr<Storage> IRun::getStorage() const {
 
 void IRun::setNullToDefaults() {
     ASSERT(storage != nullptr);
+    if (!scheduler) {
+        // default to global thread pool
+        scheduler = ThreadPool::getGlobalInstance();
+    }
+
     if (!solver) {
-        solver = Factory::getSolver(settings);
+        solver = Factory::getSolver(*scheduler, settings);
         for (Size i = 0; i < storage->getMaterialCnt(); ++i) {
             solver->create(*storage, storage->getMaterial(i));
         }

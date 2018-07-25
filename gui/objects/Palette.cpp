@@ -60,9 +60,13 @@ Palette::Palette(Array<Point>&& controlPoints, const PaletteScale scale)
     }
 }
 
-Interval Palette::getRange() const {
+Interval Palette::getInterval() const {
     ASSERT(points.size() >= 2);
     return range;
+}
+
+PaletteScale Palette::getScale() const {
+    return scale;
 }
 
 Color Palette::operator()(const float value) const {
@@ -85,9 +89,9 @@ Color Palette::operator()(const float value) const {
     STOP;
 }
 
-float Palette::getInterpolatedValue(const float value) const {
+float Palette::relativeToPalette(const float value) const {
     ASSERT(value >= 0.f && value <= 1.f);
-    const float interpol = points[0].value * (1.f - value) + points[points.size() - 1].value * value;
+    const float interpol = points[0].value * (1.f - value) + points.back().value * value;
     switch (scale) {
     case PaletteScale::LINEAR:
         return interpol;
@@ -104,6 +108,11 @@ float Palette::getInterpolatedValue(const float value) const {
     default:
         NOT_IMPLEMENTED; // in case new scale is added
     }
+}
+
+float Palette::paletteToRelative(const float value) const {
+    const float linear = linearToPalette(value);
+    return (linear - points[0].value) / (points.back().value - points[0].value);
 }
 
 NAMESPACE_SPH_END

@@ -14,6 +14,7 @@
 NAMESPACE_SPH_BEGIN
 
 struct MaterialInitialContext;
+class IScheduler;
 
 enum class DamageFlag {
     PRESSURE = 1 << 0,         ///< Compute damaged values of pressure in place
@@ -21,18 +22,22 @@ enum class DamageFlag {
     REDUCTION_FACTOR = 1 << 2, ///< Modify reduction factor (QuanityId::REDUCE) due to damage
 };
 
+/// \brief Interface representing a fragmentation model.
 class IFractureModel : public Polymorphic {
 public:
-    /// Sets up all the necessary quantities in the storage given material settings.
+    /// \brief Sets up all the necessary quantities in the storage given material settings.
     virtual void setFlaws(Storage& storage,
         IMaterial& material,
         const MaterialInitialContext& context) const = 0;
 
-    /// Computes modified values of given quantity due to fragmentation.
-    virtual void reduce(Storage& storage, const Flags<DamageFlag> flags, const MaterialView sequence) = 0;
+    /// \brief Computes modified values of given quantity due to fragmentation.
+    virtual void reduce(IScheduler& scheduler,
+        Storage& storage,
+        const Flags<DamageFlag> flags,
+        const MaterialView sequence) = 0;
 
-    /// Compute damage derivatives
-    virtual void integrate(Storage& storage, const MaterialView sequence) = 0;
+    /// \brief Compute damage derivatives
+    virtual void integrate(IScheduler& scheduler, Storage& storage, const MaterialView sequence) = 0;
 };
 
 
@@ -61,11 +66,12 @@ public:
         IMaterial& material,
         const MaterialInitialContext& context) const override;
 
-    virtual void reduce(Storage& storage,
+    virtual void reduce(IScheduler& scheduler,
+        Storage& storage,
         const Flags<DamageFlag> flags,
         const MaterialView material) override;
 
-    virtual void integrate(Storage& storage, const MaterialView material) override;
+    virtual void integrate(IScheduler& scheduler, Storage& storage, const MaterialView material) override;
 };
 
 class TensorGradyKippModel : public IFractureModel {
@@ -75,11 +81,12 @@ public:
         IMaterial& material,
         const MaterialInitialContext& context) const override;
 
-    virtual void reduce(Storage& storage,
+    virtual void reduce(IScheduler& scheduler,
+        Storage& storage,
         const Flags<DamageFlag> flags,
         const MaterialView material) override;
 
-    virtual void integrate(Storage& storage, const MaterialView material) override;
+    virtual void integrate(IScheduler& scheduler, Storage& storage, const MaterialView material) override;
 };
 
 class MohrCoulombModel : public IFractureModel {
@@ -88,7 +95,7 @@ public:
         IMaterial& material,
         const MaterialInitialContext& context) const override;
 
-    virtual void integrate(Storage& storage, const MaterialView material) override;
+    virtual void integrate(IScheduler& scheduler, Storage& storage, const MaterialView material) override;
 };
 
 class NullFracture : public IFractureModel {
@@ -97,11 +104,12 @@ public:
         IMaterial& material,
         const MaterialInitialContext& context) const override;
 
-    virtual void reduce(Storage& storage,
+    virtual void reduce(IScheduler& scheduler,
+        Storage& storage,
         const Flags<DamageFlag> flags,
         const MaterialView material) override;
 
-    virtual void integrate(Storage& storage, const MaterialView material) override;
+    virtual void integrate(IScheduler& scheduler, Storage& storage, const MaterialView material) override;
 };
 
 NAMESPACE_SPH_END

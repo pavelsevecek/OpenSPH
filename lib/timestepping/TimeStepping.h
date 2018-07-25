@@ -12,6 +12,7 @@
 
 NAMESPACE_SPH_BEGIN
 
+class IScheduler;
 
 /// \brief Base object providing integration in time for all quantities.
 ///
@@ -57,13 +58,15 @@ protected:
     AutoPtr<ITimeStepCriterion> criterion;
 
 public:
-    /// Constructs the timestepping, using timestep criteria from parameters in settings.
+    /// \brief Constructs the timestepping, using timestep criteria from parameters in settings.
+    ///
     /// \param storage Storage used during the run
     /// \param settings Settings containing initial and maximal timestep and aslo timestep criteria
     ITimeStepping(const SharedPtr<Storage>& storage, const RunSettings& settings);
 
-    /// Constructs the timestepping, explicitly specifying the timestep criterion used in the run.
-    /// \note Use MultiCriterion if more than one criterion is used
+    /// \brief Constructs the timestepping, explicitly specifying the timestep criterion used in the run.
+    ///
+    /// \note Use MultiCriterion if more than one criterion is used.
     ITimeStepping(const SharedPtr<Storage>& storage,
         const RunSettings& settings,
         AutoPtr<ITimeStepCriterion>&& criterion);
@@ -74,10 +77,10 @@ public:
         return timeStep;
     }
 
-    void step(ISolver& solver, Statistics& stats);
+    void step(IScheduler& scheduler, ISolver& solver, Statistics& stats);
 
 protected:
-    virtual void stepImpl(ISolver& solver, Statistics& stats) = 0;
+    virtual void stepImpl(IScheduler& scheduler, ISolver& solver, Statistics& stats) = 0;
 };
 
 
@@ -87,7 +90,7 @@ public:
     explicit EulerExplicit(const SharedPtr<Storage>& storage, const RunSettings& settings)
         : ITimeStepping(storage, settings) {}
 
-    virtual void stepImpl(ISolver& solver, Statistics& stats) override;
+    virtual void stepImpl(IScheduler& scheduler, ISolver& solver, Statistics& stats) override;
 };
 
 /// \brief Predictor-corrector second-order timestepping
@@ -103,11 +106,11 @@ public:
     ~PredictorCorrector();
 
 protected:
-    virtual void stepImpl(ISolver& solver, Statistics& stats) override;
+    virtual void stepImpl(IScheduler& scheduler, ISolver& solver, Statistics& stats) override;
 
-    void makePredictions();
+    void makePredictions(IScheduler& scheduler);
 
-    void makeCorrections();
+    void makeCorrections(IScheduler& scheduler);
 };
 
 /// \brief Leapfrog timestepping
@@ -120,7 +123,7 @@ public:
         : ITimeStepping(storage, settings) {}
 
 protected:
-    virtual void stepImpl(ISolver& solver, Statistics& stats) override;
+    virtual void stepImpl(IScheduler& scheduler, ISolver& solver, Statistics& stats) override;
 };
 
 class RungeKutta : public ITimeStepping {
@@ -133,7 +136,7 @@ public:
     ~RungeKutta();
 
 protected:
-    virtual void stepImpl(ISolver& solver, Statistics& stats) override;
+    virtual void stepImpl(IScheduler& scheduler, ISolver& solver, Statistics& stats) override;
 
     void integrateAndAdvance(ISolver& solver, Statistics& stats, Storage& k, const float m, const float n);
 };
@@ -148,7 +151,7 @@ public:
     ModifiedMidpointMethod(const SharedPtr<Storage>& storage, const RunSettings& settings);
 
 protected:
-    virtual void stepImpl(ISolver& solver, Statistics& stats) override;
+    virtual void stepImpl(IScheduler& scheduler, ISolver& solver, Statistics& stats) override;
 };
 
 class BulirschStoer : public ITimeStepping {
@@ -159,7 +162,7 @@ public:
     BulirschStoer(const SharedPtr<Storage>& storage, const RunSettings& settings);
 
 protected:
-    virtual void stepImpl(ISolver& solver, Statistics& stats) override;
+    virtual void stepImpl(IScheduler& scheduler, ISolver& solver, Statistics& stats) override;
 };
 
 NAMESPACE_SPH_END

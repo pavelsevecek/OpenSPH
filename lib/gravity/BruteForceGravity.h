@@ -34,20 +34,12 @@ public:
     BruteForceGravity(GravityLutKernel&& kernel)
         : kernel(std::move(kernel)) {}
 
-    virtual void build(const Storage& storage) override {
+    virtual void build(IScheduler& UNUSED(scheduler), const Storage& storage) override {
         r = storage.getValue<Vector>(QuantityId::POSITION);
         m = storage.getValue<Float>(QuantityId::MASS);
     }
 
-    virtual void evalAll(ArrayView<Vector> dv, Statistics& UNUSED(stats)) const override {
-        ASSERT(r.size() == dv.size());
-        SymmetrizeSmoothingLengths<const GravityLutKernel&> actKernel(kernel);
-        for (Size i = 0; i < dv.size(); ++i) {
-            dv[i] += this->evalImpl(actKernel, r[i], i);
-        }
-    }
-
-    virtual void evalAll(ThreadPool& scheduler,
+    virtual void evalAll(IScheduler& scheduler,
         ArrayView<Vector> dv,
         Statistics& UNUSED(stats)) const override {
         ASSERT(r.size() == dv.size());

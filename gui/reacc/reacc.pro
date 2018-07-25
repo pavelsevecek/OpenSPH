@@ -14,7 +14,7 @@ LIBS += `wx-config --libs --gl-libs`
 INCLUDEPATH += /usr/include/eigen3
 DEFINES += SPH_USE_EIGEN
 
-QMAKE_CXXFLAGS += -Wall -Wextra -Werror -msse4.1 -std=c++14 -pthread `wx-config --libs all --cxxflags --gl-libs`
+QMAKE_CXXFLAGS += -Wall -Wextra -Werror -msse4.1 -std=c++14 -pthread `wx-config --cxxflags`
 
 CONFIG(release, debug|profile|assert|release) {
   message( "SPH COLLISION --- Building for Release" )

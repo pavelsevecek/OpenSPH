@@ -51,14 +51,14 @@ void PressureForce::setDerivatives(DerivativeHolder& derivatives, const RunSetti
     }
 }
 
-void PressureForce::initialize(Storage& UNUSED(storage), ThreadPool& UNUSED(pool)) {}
+void PressureForce::initialize(IScheduler& UNUSED(scheduler), Storage& UNUSED(storage)) {}
 
-void PressureForce::finalize(Storage& storage, ThreadPool& pool) {
+void PressureForce::finalize(IScheduler& scheduler, Storage& storage) {
     ArrayView<const Float> p, rho;
     tie(p, rho) = storage.getValues<Float>(QuantityId::PRESSURE, QuantityId::DENSITY);
     ArrayView<Float> du = storage.getDt<Float>(QuantityId::ENERGY);
     ArrayView<const Float> divv = storage.getValue<Float>(QuantityId::VELOCITY_DIVERGENCE);
-    parallelFor(pool, 0, du.size(), [&](const Size i) INL { //
+    parallelFor(scheduler, 0, du.size(), [&](const Size i) INL { //
         du[i] -= p[i] / rho[i] * divv[i];
     });
 }
@@ -141,9 +141,9 @@ void SolidStressForce::setDerivatives(DerivativeHolder& derivatives, const RunSe
     }
 }
 
-void SolidStressForce::initialize(Storage& UNUSED(storage), ThreadPool& UNUSED(pool)) {}
+void SolidStressForce::initialize(IScheduler& UNUSED(scheduler), Storage& UNUSED(storage)) {}
 
-void SolidStressForce::finalize(Storage& storage, ThreadPool& pool) {
+void SolidStressForce::finalize(IScheduler& scheduler, Storage& storage) {
     ArrayView<Float> rho = storage.getValue<Float>(QuantityId::DENSITY);
     ArrayView<TracelessTensor> s, ds;
     tie(s, ds) = storage.getPhysicalAll<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
@@ -156,7 +156,7 @@ void SolidStressForce::finalize(Storage& storage, ThreadPool& pool) {
         MaterialView material = storage.getMaterial(matIdx);
         const Float mu = material->getParam<Float>(BodySettingsId::SHEAR_MODULUS);
         IndexSequence seq = material.sequence();
-        parallelFor(pool, *seq.begin(), *seq.end(), [&](const Size i) INL {
+        parallelFor(scheduler, *seq.begin(), *seq.end(), [&](const Size i) INL {
             if (reduce[i] == 0._f) {
                 return;
             }
@@ -199,11 +199,11 @@ void NavierStokesForce::setDerivatives(DerivativeHolder& derivatives, const RunS
     derivatives.require(makeDerivative<VelocityGradient>(settings, DerivativeFlag::CORRECTED));
 }
 
-void NavierStokesForce::initialize(Storage&, ThreadPool&) {
+void NavierStokesForce::initialize(IScheduler& UNUSED(scheduler), Storage& UNUSED(storage)) {
     TODO("implement");
 }
 
-void NavierStokesForce::finalize(Storage& storage, ThreadPool&) {
+void NavierStokesForce::finalize(IScheduler& UNUSED(scheduler), Storage& storage) {
     ArrayView<Float> rho = storage.getValue<Float>(QuantityId::DENSITY);
     ArrayView<TracelessTensor> s, ds;
     tie(s, ds) = storage.getPhysicalAll<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
@@ -244,9 +244,9 @@ void ContinuityEquation::setDerivatives(DerivativeHolder& derivatives, const Run
     derivatives.require(makeDerivative<VelocityDivergence>(settings));
 }
 
-void ContinuityEquation::initialize(Storage& UNUSED(storage), ThreadPool& UNUSED(pool)) {}
+void ContinuityEquation::initialize(IScheduler& UNUSED(scheduler), Storage& UNUSED(storage)) {}
 
-void ContinuityEquation::finalize(Storage& storage, ThreadPool& pool) {
+void ContinuityEquation::finalize(IScheduler& scheduler, Storage& storage) {
     ArrayView<Float> rho, drho;
     tie(rho, drho) = storage.getAll<Float>(QuantityId::DENSITY);
     ArrayView<const Float> divv = storage.getValue<Float>(QuantityId::VELOCITY_DIVERGENCE);
@@ -255,7 +255,7 @@ void ContinuityEquation::finalize(Storage& storage, ThreadPool& pool) {
         ArrayView<const Float> reduce = storage.getValue<Float>(QuantityId::STRESS_REDUCING);
         ArrayView<const SymmetricTensor> gradv =
             storage.getValue<SymmetricTensor>(QuantityId::VELOCITY_GRADIENT);
-        parallelFor(pool, 0, rho.size(), [&](const Size i) INL {
+        parallelFor(scheduler, 0, rho.size(), [&](const Size i) INL {
             if (reduce[i] > 0._f) {
                 drho[i] = -rho[i] * gradv[i].trace();
             } else {
@@ -263,7 +263,7 @@ void ContinuityEquation::finalize(Storage& storage, ThreadPool& pool) {
             }
         });
     } else {
-        parallelFor(pool, 0, rho.size(), [&](const Size i) INL { //
+        parallelFor(scheduler, 0, rho.size(), [&](const Size i) INL { //
             drho[i] = -rho[i] * divv[i];
         });
     }
@@ -295,7 +295,7 @@ void AdaptiveSmoothingLength::setDerivatives(DerivativeHolder& derivatives, cons
     derivatives.require(makeDerivative<VelocityDivergence>(settings));
 }
 
-void AdaptiveSmoothingLength::initialize(Storage& storage, ThreadPool& UNUSED(pool)) {
+void AdaptiveSmoothingLength::initialize(IScheduler& UNUSED(scheduler), Storage& storage) {
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     // clamp smoothing lengths
     for (Size i = 0; i < r.size(); ++i) {
@@ -303,14 +303,14 @@ void AdaptiveSmoothingLength::initialize(Storage& storage, ThreadPool& UNUSED(po
     }
 }
 
-void AdaptiveSmoothingLength::finalize(Storage& storage, ThreadPool& pool) {
+void AdaptiveSmoothingLength::finalize(IScheduler& scheduler, Storage& storage) {
     ArrayView<const Float> divv, cs;
     tie(divv, cs) = storage.getValues<Float>(QuantityId::VELOCITY_DIVERGENCE, QuantityId::SOUND_SPEED);
     ArrayView<const Size> neighCnt = storage.getValue<Size>(QuantityId::NEIGHBOUR_CNT);
     ArrayView<Vector> r, v, dv;
     tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
 
-    parallelFor(pool, 0, r.size(), [&](const Size i) INL {
+    parallelFor(scheduler, 0, r.size(), [&](const Size i) INL {
         // 'continuity equation' for smoothing lengths
         if (r[i][H] > 2._f * minimal) {
             v[i][H] = r[i][H] / dimensions * divv[i];
@@ -360,12 +360,12 @@ INLINE void AdaptiveSmoothingLength::enforce(const Size i,
 void ConstSmoothingLength::setDerivatives(DerivativeHolder& UNUSED(derivatives),
     const RunSettings& UNUSED(settings)) {}
 
-void ConstSmoothingLength::initialize(Storage& UNUSED(storage), ThreadPool& UNUSED(pool)) {}
+void ConstSmoothingLength::initialize(IScheduler& UNUSED(scheduler), Storage& UNUSED(storage)) {}
 
-void ConstSmoothingLength::finalize(Storage& storage, ThreadPool& pool) {
+void ConstSmoothingLength::finalize(IScheduler& scheduler, Storage& storage) {
     ArrayView<Vector> r, v, dv;
     tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
-    parallelFor(pool, 0, r.size(), [&v, &dv](const Size i) INL {
+    parallelFor(scheduler, 0, r.size(), [&v, &dv](const Size i) INL {
         v[i][H] = 0._f;
         dv[i][H] = 0._f;
     });

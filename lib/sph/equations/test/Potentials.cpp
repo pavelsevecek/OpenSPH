@@ -63,7 +63,7 @@ TEST_CASE("Inertial Centrifugal", "[equationterm]") {
     const Float omega = 1.5_f;
     InertialForce force(Vector(0._f, 0._f, omega));
     Storage storage = Tests::getGassStorage(1000);
-    force.finalize(storage, ThreadPool::getGlobalInstance());
+    force.finalize(SEQUENTIAL, storage);
 
     ArrayView<const Vector> r, v, dv;
     tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
@@ -92,7 +92,7 @@ TEST_CASE("Inertial Coriolis", "[equationterm]") {
     for (Size i = 0; i < v.size(); ++i) {
         v[i] = Vector(v0, 0._f, 0._f);
     }
-    force.finalize(storage, ThreadPool::getGlobalInstance());
+    force.finalize(SEQUENTIAL, storage);
 
     auto test = [&](const Size i) -> Outcome {
         const Float coriolisForce = 2._f * omega * v0;

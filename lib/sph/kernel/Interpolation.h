@@ -11,6 +11,7 @@
 #include "sph/kernel/Kernel.h"
 #include "system/Factory.h"
 #include "system/Settings.h"
+#include "thread/Scheduler.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -80,7 +81,7 @@ public:
 private:
     void build() {
         ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
-        finder->build(r);
+        finder->build(SEQUENTIAL, r);
         searchRadius = 0._f;
         for (Size i = 0; i < r.size(); ++i) {
             searchRadius = max(searchRadius, r[i][H]);

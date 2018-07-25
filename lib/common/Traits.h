@@ -40,6 +40,13 @@ template <typename T0, typename... TArgs>
 constexpr int getTypeIndex = TypeIndex<T0, 0, TArgs...>::value;
 
 
+template <typename... Ts>
+struct MakeVoid {
+    using Type = void;
+};
+template <typename... Ts>
+using VoidType = typename MakeVoid<Ts...>::Type;
+
 /// Function traits
 
 template <typename TSignature>
@@ -72,6 +79,38 @@ struct FunctionTraits<TReturn (*)(TArgs...)> {
 
 template <typename TFunction>
 using ReturnType = typename FunctionTraits<TFunction>::TReturnType;
+
+
+template <typename TCallable, typename TEnabler, typename... TArgs>
+struct IsCallableImpl {
+    static constexpr bool value = false;
+};
+
+template <typename TCallable, typename... TArgs>
+struct IsCallableImpl<TCallable,
+    VoidType<decltype(std::declval<TCallable>()(std::declval<TArgs>()...))>,
+    TArgs...> {
+    static constexpr bool value = true;
+};
+template <typename TCallable, typename... TArgs>
+struct IsCallable {
+    static constexpr bool value = IsCallableImpl<TCallable, void, TArgs...>::value;
+};
+
+
+static_assert(!IsCallable<float>::value, "static test failed");
+static_assert(!IsCallable<float, int>::value, "static test failed");
+
+struct DummyCallable {
+    void operator()(float, int) {}
+    int operator()(double, float) {
+        return 0;
+    }
+};
+static_assert(IsCallable<DummyCallable, float, int>::value, "static test failed");
+static_assert(!IsCallable<DummyCallable, float, float>::value, "static test failed");
+static_assert(IsCallable<DummyCallable, double, float>::value, "static test failed");
+static_assert(!IsCallable<DummyCallable, double, float, int>::value, "static test failed");
 
 
 /// Helper class for storing l-value references. Has a default constructor for convenient usage in containers.
@@ -161,13 +200,13 @@ template <typename T>
 using ConvertToSize = typename ConvertToSizeType<T>::Type;
 
 namespace Detail {
-    enum class TestEnum { DUMMY };
+enum class TestEnum { DUMMY };
 
-    static_assert(std::is_same<int, ConvertToSize<int>>::value, "invalid EnumToInt");
-    static_assert(std::is_same<float, ConvertToSize<float>>::value, "invalid EnumToInt");
-    static_assert(std::is_same<bool, ConvertToSize<bool>>::value, "invalid EnumToInt");
-    static_assert(std::is_same<int, ConvertToSize<TestEnum>>::value, "invalid EnumToInt");
-    static_assert(std::is_same<int&, ConvertToSize<TestEnum&>>::value, "invalid EnumToInt");
+static_assert(std::is_same<int, ConvertToSize<int>>::value, "invalid EnumToInt");
+static_assert(std::is_same<float, ConvertToSize<float>>::value, "invalid EnumToInt");
+static_assert(std::is_same<bool, ConvertToSize<bool>>::value, "invalid EnumToInt");
+static_assert(std::is_same<int, ConvertToSize<TestEnum>>::value, "invalid EnumToInt");
+static_assert(std::is_same<int&, ConvertToSize<TestEnum&>>::value, "invalid EnumToInt");
 } // namespace Detail
 
 template <typename T>
@@ -175,13 +214,6 @@ struct IsEnumClass {
     static constexpr bool value = std::is_enum<T>::value && !std::is_convertible<T, int>::value;
 };
 
-
-template <typename... Ts>
-struct makeVoid {
-    using Type = void;
-};
-template <typename... Ts>
-using voidType = typename makeVoid<Ts...>::Type;
 
 /// Static logical and
 /// \todo Can be replaced by C++17 fold expressions

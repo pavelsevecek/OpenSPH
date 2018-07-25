@@ -108,6 +108,9 @@ enum class StatisticsId {
     /// the run.
     RELATIVE_PROGRESS,
 
+    /// Estimated wallclock time to the end of the simulation
+    ETA,
+
     /// Current value of timestep.
     TIMESTEP_VALUE,
 

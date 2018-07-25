@@ -18,8 +18,8 @@ private:
 
 
 public:
-    DifferencedEnergySolver(const RunSettings& settings, const EquationHolder& eqs)
-        : AsymmetricSolver(settings, eqs) {
+    DifferencedEnergySolver(IScheduler& scheduler, const RunSettings& settings, const EquationHolder& eqs)
+        : AsymmetricSolver(scheduler, settings, eqs) {
         /// \todo accelerations.derivatives = derivatives.getSubset(QuantityId::POSITION, OrderEnum::SECOND);
         initialDt = settings.get<Float>(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP);
     }
@@ -70,7 +70,7 @@ public:
             }
         };
         PROFILE_SCOPE("AsymmetricSolver main loop");
-        parallelFor(pool, threadData, 0, r.size(), granularity, functor);
+        parallelFor(scheduler, threadData, 0, r.size(), granularity, functor);
     }
 };
 

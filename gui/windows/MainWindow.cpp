@@ -265,15 +265,16 @@ wxBoxSizer* MainWindow::createToolbar(Controller* parent) {
     rendererBox->Bind(wxEVT_COMBOBOX, [this, rendererBox](wxCommandEvent& UNUSED(evt)) {
         CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
         const int idx = rendererBox->GetSelection();
+        IScheduler& scheduler = *ThreadPool::getGlobalInstance();
         switch (idx) {
         case 0:
             controller->setRenderer(makeAuto<ParticleRenderer>(gui));
             break;
         case 1:
-            controller->setRenderer(makeAuto<MeshRenderer>(gui));
+            controller->setRenderer(makeAuto<MeshRenderer>(scheduler, gui));
             break;
         case 2:
-            controller->setRenderer(makeAuto<RayTracer>(gui));
+            controller->setRenderer(makeAuto<RayTracer>(scheduler, gui));
             break;
         default:
             NOT_IMPLEMENTED;
@@ -291,7 +292,7 @@ wxBoxSizer* MainWindow::createToolbar(Controller* parent) {
     toolbar->Add(resetView);
 
     wxButton* refresh = new wxButton(this, wxID_ANY, "Refresh");
-    refresh->Bind(wxEVT_BUTTON, [this, parent](wxCommandEvent& UNUSED(evt)) { parent->tryRedraw(); });
+    refresh->Bind(wxEVT_BUTTON, [parent](wxCommandEvent& UNUSED(evt)) { parent->tryRedraw(); });
     toolbar->Add(refresh);
 
     gauge = new wxGauge(this, wxID_ANY, 1000);

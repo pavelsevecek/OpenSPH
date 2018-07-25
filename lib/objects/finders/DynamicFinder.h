@@ -19,9 +19,7 @@ private:
     Float compactThreshold;
 
 protected:
-    virtual void buildImpl(ArrayView<const Vector> points) override;
-
-    virtual void rebuildImpl(ArrayView<const Vector> points) override;
+    virtual void buildImpl(IScheduler& scheduler, ArrayView<const Vector> points) override;
 
 public:
     explicit DynamicFinder(const RunSettings& settings);

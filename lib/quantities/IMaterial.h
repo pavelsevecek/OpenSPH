@@ -15,6 +15,7 @@ NAMESPACE_SPH_BEGIN
 
 class Storage;
 class IMaterial;
+class IScheduler;
 
 
 /// \brief Non-owning wrapper of a material and particles with this material.
@@ -171,10 +172,10 @@ public:
     virtual void create(Storage& storage, const MaterialInitialContext& context) = 0;
 
     /// Initialize all quantities and material parameters. Called once every step before loop.
-    virtual void initialize(Storage& storage, const IndexSequence sequence) = 0;
+    virtual void initialize(IScheduler& scheduler, Storage& storage, const IndexSequence sequence) = 0;
 
     /// Called after derivatives are computed.
-    virtual void finalize(Storage& storage, const IndexSequence sequence) = 0;
+    virtual void finalize(IScheduler& scheduler, Storage& storage, const IndexSequence sequence) = 0;
 };
 
 
@@ -188,9 +189,13 @@ public:
 
     virtual void create(Storage& UNUSED(storage), const MaterialInitialContext& UNUSED(context)) override {}
 
-    virtual void initialize(Storage& UNUSED(storage), const IndexSequence UNUSED(sequence)) override {}
+    virtual void initialize(IScheduler& UNUSED(scheduler),
+        Storage& UNUSED(storage),
+        const IndexSequence UNUSED(sequence)) override {}
 
-    virtual void finalize(Storage& UNUSED(storage), const IndexSequence UNUSED(sequence)) override {}
+    virtual void finalize(IScheduler& UNUSED(scheduler),
+        Storage& UNUSED(storage),
+        const IndexSequence UNUSED(sequence)) override {}
 };
 
 NAMESPACE_SPH_END

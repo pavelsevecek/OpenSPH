@@ -70,11 +70,11 @@ struct TestEquation : public IEquationTerm {
         flags.set(Status::DERIVATIVES_SET);
     }
 
-    virtual void initialize(Storage&, ThreadPool&) override {
+    virtual void initialize(IScheduler&, Storage&) override {
         flags.set(Status::INITIALIZED);
     }
 
-    virtual void finalize(Storage&, ThreadPool&) override {
+    virtual void finalize(IScheduler&, Storage&) override {
         flags.set(Status::FINALIZED);
     }
 
@@ -126,7 +126,8 @@ TYPED_TEST_CASE_2("TestEquation", "[equationterm]", TSolver, SymmetricSolver, As
     EquationHolder equations(eq);
     equations += makeTerm<Tests::SingleDerivativeMaker<TestDerivative>>() + makeTerm<ConstSmoothingLength>();
 
-    TSolver solver(RunSettings::getDefaults(), std::move(equations));
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+    TSolver solver(pool, RunSettings::getDefaults(), std::move(equations));
     REQUIRE(eq->flags == TestEquation::Status::DERIVATIVES_SET);
 
     solver.create(storage, storage.getMaterial(0));
@@ -144,11 +145,12 @@ TYPED_TEST_CASE_2("TestEquation", "[equationterm]", TSolver, SymmetricSolver, As
 
 TYPED_TEST_CASE_2("NeighbourCount", "[equationterm]", TSolver, SymmetricSolver, AsymmetricSolver) {
     Storage storage = Tests::getStorage(10000);
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
     const Size N = storage.getParticleCnt();
     Statistics stats;
     EquationHolder equations;
     equations += makeTerm<ConstSmoothingLength>();
-    TSolver solver(RunSettings::getDefaults(), std::move(equations));
+    TSolver solver(pool, RunSettings::getDefaults(), std::move(equations));
     solver.create(storage, storage.getMaterial(0));
 
     solver.integrate(storage, stats);
@@ -159,7 +161,7 @@ TYPED_TEST_CASE_2("NeighbourCount", "[equationterm]", TSolver, SymmetricSolver, 
     // count neighbours manually and compare
     UniformGridFinder finder;
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
-    finder.build(r);
+    finder.build(pool, r);
     const Float radius = Factory::getKernel<3>(RunSettings::getDefaults()).radius();
     Array<NeighbourRecord> neighs;
     auto test = [&](Size i) -> Outcome {
@@ -473,7 +475,8 @@ TEST_CASE("Strain rate correction", "[equationterm]") {
     RunSettings settings;
     settings.set(RunSettingsId::SPH_STRAIN_RATE_CORRECTION_TENSOR, true);
 
-    AsymmetricSolver solver(settings, getStandardEquations(settings));
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+    AsymmetricSolver solver(pool, settings, getStandardEquations(settings));
     solver.create(storage, storage.getMaterial(0));
     Statistics stats;
     solver.integrate(storage, stats);

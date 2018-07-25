@@ -5,7 +5,6 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2018
 
-#include "sph/Materials.h"
 #include "sph/equations/EquationTerm.h"
 #include "sph/kernel/Kernel.h"
 #include "thread/ThreadLocal.h"
@@ -43,8 +42,8 @@ protected:
         Array<Vector> grads;
     };
 
-    /// Thread pool used to parallelize the solver, runs the whole time the solver exists.
-    ThreadPool pool;
+    /// Scheduler to parallelize the solver.
+    IScheduler& scheduler;
 
     /// Selected granularity of the parallel processing. The more particles in simulation, the higher the
     /// value should be to utilize the solver optimally.
@@ -69,9 +68,10 @@ public:
     /// \brief Creates the symmetric solver, given the list of equations to solve
     ///
     /// Constructor may throw if the list of equations is not consistent with the solver.
+    /// \param scheduler Scheduler used for parallelization.
     /// \param settings Settings containing parameter of the solver (SPH kernel used, etc.)
     /// \param eqs List of equations to solve.
-    SymmetricSolver(const RunSettings& settings, const EquationHolder& eqs);
+    SymmetricSolver(IScheduler& scheduler, const RunSettings& settings, const EquationHolder& eqs);
 
     ~SymmetricSolver();
 

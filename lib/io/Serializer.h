@@ -101,14 +101,14 @@ private:
 class SerializerException : public std::exception {
 private:
     std::string error;
-    Size position;
 
 public:
     /// \param error Error message
     /// \param position Position in the stream where the error appeared
     SerializerException(const std::string& error, const Size position)
-        : error(error)
-        , position(position) {}
+        : error(error) {
+        this->error += " at position " + std::to_string(position);
+    }
 
     virtual const char* what() const noexcept override {
         return error.c_str();

@@ -49,7 +49,8 @@ private:
     ThreadLocal<SecondThreadData> secondData;
 
 public:
-    GradHSolver(const RunSettings& settings,
+    GradHSolver(IScheduler& scheduler,
+        const RunSettings& settings,
         const EquationHolder& basicTerms,
         Array<AutoPtr<IAsymmetricTerm>>&& asymmetricTerms);
 

@@ -5,6 +5,7 @@
 #include "quantities/Storage.h"
 #include "sph/initial/Initial.h"
 #include "tests/Approx.h"
+#include "thread/Pool.h"
 #include "utils/SequenceTest.h"
 
 using namespace Sph;
@@ -21,7 +22,8 @@ TEST_CASE("MarchingCubes sphere", "[marchingcubes]") {
     box.iterate(Vector(1._f), [&r](const Vector& pos) { r.push(pos); });
 
     const Float r0 = 0.4_f;
-    MarchingCubes mc(r0, makeAuto<SphereField>());
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+    MarchingCubes mc(pool, r0, makeAuto<SphereField>());
     mc.addComponent(box, 0.05_f);
     Array<Triangle>& triangles = mc.getTriangles();
 
@@ -43,7 +45,8 @@ TEST_CASE("MarchingCubes sphere", "[marchingcubes]") {
 
 TEST_CASE("MarchingCubes storage", "[marchingcubes]") {
     Storage storage;
-    InitialConditions initial(RunSettings::getDefaults());
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+    InitialConditions initial(pool, RunSettings::getDefaults());
     BodySettings body;
     body.set(BodySettingsId::PARTICLE_COUNT, 10000);
     initial.addMonolithicBody(storage, SphericalDomain(Vector(0._f), 1._f), body);
@@ -54,7 +57,7 @@ TEST_CASE("MarchingCubes storage", "[marchingcubes]") {
         storage, SphericalDomain(sphericalToCartesian(1._f, PI / 4._f, -PI / 4._f), 0.2_f), body);
 
 
-    Array<Triangle> triangles = getSurfaceMesh(storage, 0.05_f, 0.2_f);
+    Array<Triangle> triangles = getSurfaceMesh(pool, storage, 0.05_f, 0.2_f);
 
     PlyFile file;
     REQUIRE(file.save(Path("storage.ply"), triangles));

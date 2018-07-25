@@ -103,7 +103,8 @@ public:
     }
 
     virtual void setUp() override {
-        solver = makeAuto<SymmetricSolver>(settings, equations);
+        scheduler = ThreadPool::getGlobalInstance();
+        solver = makeAuto<SymmetricSolver>(*scheduler, settings, equations);
         IMaterial& material = storage->getMaterial(0);
         solver->create(*storage, material);
 

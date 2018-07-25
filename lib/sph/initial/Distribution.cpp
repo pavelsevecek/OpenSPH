@@ -22,7 +22,9 @@ RandomDistribution::RandomDistribution(AutoPtr<IRng>&& rng)
 RandomDistribution::RandomDistribution(const Size seed)
     : rng(makeRng<UniformRng>(seed)) {}
 
-Array<Vector> RandomDistribution::generate(const Size n, const IDomain& domain) const {
+Array<Vector> RandomDistribution::generate(IScheduler& UNUSED(scheduler),
+    const Size n,
+    const IDomain& domain) const {
     const Box bounds = domain.getBoundingBox();
     VectorRng<IRng&> boxRng(*rng);
     Array<Vector> vecs(0, n);
@@ -45,7 +47,9 @@ Array<Vector> RandomDistribution::generate(const Size n, const IDomain& domain) 
 // CubicPacking implementation
 //-----------------------------------------------------------------------------------------------------------
 
-Array<Vector> CubicPacking::generate(const Size n, const IDomain& domain) const {
+Array<Vector> CubicPacking::generate(IScheduler& UNUSED(scheduler),
+    const Size n,
+    const IDomain& domain) const {
     PROFILE_SCOPE("CubicPacking::generate")
     ASSERT(n > 0);
     const Float volume = domain.getVolume();
@@ -75,7 +79,9 @@ Array<Vector> CubicPacking::generate(const Size n, const IDomain& domain) const 
 HexagonalPacking::HexagonalPacking(const Flags<Options> f)
     : flags(f) {}
 
-Array<Vector> HexagonalPacking::generate(const Size n, const IDomain& domain) const {
+Array<Vector> HexagonalPacking::generate(IScheduler& UNUSED(scheduler),
+    const Size n,
+    const IDomain& domain) const {
     PROFILE_SCOPE("HexagonalPacking::generate")
     ASSERT(n > 0);
     const Float volume = domain.getVolume();
@@ -142,16 +148,8 @@ Array<Vector> HexagonalPacking::generate(const Size n, const IDomain& domain) co
 // DiehlEtAlDistribution implementation
 //-----------------------------------------------------------------------------------------------------------
 
-DiehlDistribution::DiehlDistribution(const DiehlDistribution::DensityFunc& particleDensity,
-    const Float maxDifference,
-    const Size numOfIters,
-    const Float strength,
-    const Float small)
-    : particleDensity(particleDensity)
-    , maxDifference(maxDifference)
-    , numOfIters(numOfIters)
-    , strength(strength)
-    , small(small) {}
+DiehlDistribution::DiehlDistribution(const DiehlParams& params)
+    : params(params) {}
 
 namespace {
 class ForwardingDomain : public IDomain {
@@ -264,10 +262,12 @@ static Storage generateInitial(const IDomain& domain, const Size N, TDensity&& d
     return storage;
 }
 
-Array<Vector> DiehlDistribution::generate(const Size expectedN, const IDomain& domain) const {
+Array<Vector> DiehlDistribution::generate(IScheduler& scheduler,
+    const Size expectedN,
+    const IDomain& domain) const {
     Size N = expectedN;
-    auto actDensity = renormalizeDensity(domain, N, maxDifference, particleDensity);
-    ASSERT(abs(int(N) - int(expectedN)) <= maxDifference);
+    auto actDensity = renormalizeDensity(domain, N, params.maxDifference, params.particleDensity);
+    ASSERT(abs(int(N) - int(expectedN)) <= params.maxDifference);
 
     // generate initial particle positions
     Storage storage = generateInitial(domain, N, actDensity);
@@ -276,16 +276,15 @@ Array<Vector> DiehlDistribution::generate(const Size expectedN, const IDomain& d
     GhostParticles bc(makeAuto<ForwardingDomain>(domain), 2._f, EPS);
 
     UniformGridFinder finder;
-    ThreadPool& pool = ThreadPool::getGlobalInstance();
-    ThreadLocal<Array<NeighbourRecord>> neighs(pool);
-    finder.build(r);
+    ThreadLocal<Array<NeighbourRecord>> neighs(scheduler);
+    finder.build(scheduler, r);
 
-    const Float correction = strength / (1.f + small);
+    const Float correction = params.strength / (1.f + params.small);
     // radius of search, does not have to be equal to radius of used SPH kernel
     const Float kernelRadius = 2._f;
 
     Array<Vector> deltas(N);
-    for (Size k = 0; k < numOfIters; ++k) {
+    for (Size k = 0; k < params.numOfIters; ++k) {
         // gradually decrease the strength of particle dislocation
         const Float converg = 1._f / sqrt(Float(k + 1));
 
@@ -294,7 +293,7 @@ Array<Vector> DiehlDistribution::generate(const Size expectedN, const IDomain& d
 
         // reconstruct finder to allow for variable topology of particles (we need to reset the internal
         // arrayview as we added ghosts)
-        finder.build(r);
+        finder.build(scheduler, r);
 
         // clean up the previous displacements
         deltas.fill(Vector(0._f));
@@ -321,13 +320,14 @@ Array<Vector> DiehlDistribution::generate(const Size expectedN, const IDomain& d
                 ASSERT(length != 0._f);
                 const Vector diffUnit = diff / length;
                 const Float t =
-                    converg * h * (strength / (small + getSqrLength(diff) * hSqrInv) - correction);
+                    converg * h *
+                    (params.strength / (params.small + getSqrLength(diff) * hSqrInv) - correction);
                 deltas[i] += diffUnit * min(t, h); // clamp the displacement to particle distance
                 ASSERT(isReal(deltas[i]));
             }
             deltas[i][H] = 0._f; // do not affect smoothing lengths
         };
-        parallelFor(pool, neighs, 0, N, 100, lambda);
+        parallelFor(scheduler, neighs, 0, N, 100, lambda);
 
         // apply the computed displacements; note that r might be larger than deltas due to ghost particles -
         // we don't need to move them
@@ -357,7 +357,9 @@ Array<Vector> DiehlDistribution::generate(const Size expectedN, const IDomain& d
 // LinearDistribution implementation
 //-----------------------------------------------------------------------------------------------------------
 
-Array<Vector> LinearDistribution::generate(const Size n, const IDomain& domain) const {
+Array<Vector> LinearDistribution::generate(IScheduler& UNUSED(scheduler),
+    const Size n,
+    const IDomain& domain) const {
     const Float center = domain.getCenter()[X];
     const Float radius = 0.5_f * domain.getBoundingBox().size()[X];
     Array<Vector> vs(0, n);

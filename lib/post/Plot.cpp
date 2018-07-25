@@ -1,4 +1,5 @@
 #include "post/Plot.h"
+#include "io/Logger.h"
 #include "post/Point.h"
 #include "quantities/Storage.h"
 #include "system/Statistics.h"
@@ -156,15 +157,14 @@ bool TemporalPlot::isExpired(const Float x, const Float t) const {
 
 void HistogramPlot::onTimeStep(const Storage& storage, const Statistics& UNUSED(stats)) {
     Post::HistogramParams params;
-    params.id = Post::HistogramId(id);
     params.binCnt = 20;
     if (interval) {
         params.range = interval.value();
     }
-    points = Post::getDifferentialSfd(storage, params);
+    points = Post::getDifferentialHistogram(storage, id, Post::HistogramSource::PARTICLES, params);
 
     this->clear();
-    for (Post::SfdPoint& p : points) {
+    for (Post::HistPoint& p : points) {
         ranges.x.extend(p.value);
         ranges.y.extend(p.count);
     }
@@ -188,13 +188,13 @@ void HistogramPlot::plot(IDrawingContext& dc) const {
 
 void SfdPlot::onTimeStep(const Storage& storage, const Statistics& UNUSED(stats)) {
     Post::HistogramParams params;
-    params.id = Post::HistogramId::EQUIVALENT_MASS_RADII;
-    points = Post::getCummulativeSfd(storage, params);
+    points = Post::getCummulativeHistogram(
+        storage, Post::HistogramId::EQUIVALENT_MASS_RADII, Post::HistogramSource::PARTICLES, params);
 
     this->clear();
     sfd.clear();
     sfd.reserve(points.size());
-    for (Post::SfdPoint& p : points) {
+    for (Post::HistPoint& p : points) {
         ASSERT(p.value > 0._f && p.count > 0);
         const Float value = log10(p.value);
         const Float count = log10(Float(p.count));
@@ -202,7 +202,7 @@ void SfdPlot::onTimeStep(const Storage& storage, const Statistics& UNUSED(stats)
         ranges.y.extend(count);
         sfd.emplaceBack(PlotPoint{ value, count });
     }
-    points = Array<Post::SfdPoint>();
+    points = Array<Post::HistPoint>();
 }
 
 void SfdPlot::plot(IDrawingContext& dc) const {
@@ -217,6 +217,60 @@ void SfdPlot::plot(IDrawingContext& dc) const {
     dc.drawPoint(sfd.back());
     path->addPoint(sfd.back());
     path->endPath();
+}
+
+Array<Float> getLinearTics(const Interval& interval, const Size minCount) {
+    Float order = floor(log10(interval.size()));
+
+    auto getTicsInterval = [interval](const Float step) {
+        return Interval(ceil(interval.lower() / step) * step, floor(interval.upper() / step) * step);
+    };
+
+    Float step;
+    while (true) {
+        step = pow(10._f, order);
+        ASSERT(step >= std::numeric_limits<Float>::denorm_min());
+        if (getTicsInterval(step).size() < step * minCount) {
+            order--;
+        } else {
+            break;
+        }
+    }
+
+    // Now we have step 10^order, which might be too small, we thus also allow step 2*10^order (2, 4, 6, ...)
+    // and 5*10^order (5, 10, 15, ...). This can be modified if necessary.
+    if (getTicsInterval(5 * step).size() >= 5 * step * minCount) {
+        step *= 5;
+    } else if (getTicsInterval(2 * step).size() >= 2 * step * minCount) {
+        step *= 2;
+    }
+    const Interval ticsInterval = getTicsInterval(step);
+
+    Array<Float> tics;
+    for (Float x = ticsInterval.lower(); x <= ticsInterval.upper() + EPS * step; x += step) {
+        tics.push(x);
+    }
+    ASSERT(tics.size() >= minCount && tics.size() < 10 * minCount);
+    return tics;
+}
+
+Array<Float> getLogTics(const Interval& interval, const Size minCount) {
+    ASSERT(interval.lower() > 0._f);
+    const Float fromOrder = floor(log10(interval.lower()));
+    const Float toOrder = floor(log10(interval.upper()));
+    ASSERT(toOrder >= fromOrder);
+    Float stepOrder = 1; // try stepping in integer orders (1, 10, 100, ...)
+
+    while (toOrder - fromOrder < minCount * stepOrder) {
+        stepOrder /= 2._f;
+    }
+
+    Array<Float> tics;
+    for (Float order = fromOrder + 1; order <= toOrder; order += stepOrder) {
+        tics.push(pow(10._f, order));
+    }
+    ASSERT(tics.size() >= minCount && tics.size() < 10 * minCount);
+    return tics;
 }
 
 NAMESPACE_SPH_END

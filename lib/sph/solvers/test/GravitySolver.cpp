@@ -15,9 +15,11 @@ static void testGravity(AutoPtr<IGravity>&& gravity) {
     BodySettings settings;
     settings.set(BodySettingsId::DENSITY, 1._f).set(BodySettingsId::ENERGY, 1._f);
     Storage storage = Tests::getGassStorage(2000, settings, Constants::au);
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+
     // no SPH equations, just gravity
     GravitySolver<SymmetricSolver> solver(
-        RunSettings::getDefaults(), makeTerm<ConstSmoothingLength>(), std::move(gravity));
+        pool, RunSettings::getDefaults(), makeTerm<ConstSmoothingLength>(), std::move(gravity));
     REQUIRE_NOTHROW(solver.create(storage, storage.getMaterial(0)));
     Statistics stats;
     REQUIRE_NOTHROW(solver.integrate(storage, stats));
@@ -65,9 +67,10 @@ TEST_CASE("GravitySolver", "[solvers]") {
 
 TEST_CASE("GravitySolver setup", "[solvers]") {
     EquationHolder holder;
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
     holder += makeTerm<SphericalGravityEquation>();
     RunSettings settings;
     Storage storage = Tests::getGassStorage(2);
-    GravitySolver<SymmetricSolver> solver(settings, holder, makeAuto<BruteForceGravity>());
+    GravitySolver<SymmetricSolver> solver(pool, settings, holder, makeAuto<BruteForceGravity>());
     REQUIRE_THROWS_AS(solver.create(storage, storage.getMaterial(0)), InvalidSetup&);
 }

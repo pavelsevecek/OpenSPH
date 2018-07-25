@@ -42,3 +42,16 @@ TEST_CASE("VectorOrder", "[order]") {
         REQUIRE(o[i][2] == expected[i][2]);
     }
 }
+
+TEST_CASE("getOrder", "[order]") {
+    Array<Float> values{ 1.f, 5.f, 3.f, 2.f, 4.f };
+    Order order = getOrder(values);
+    REQUIRE(order[0] == 0);
+    REQUIRE(order[1] == 4);
+    REQUIRE(order[2] == 2);
+    REQUIRE(order[3] == 1);
+    REQUIRE(order[4] == 3);
+
+    Array<Float> sorted{ 1.f, 2.f, 3.f, 4.f, 5.f };
+    REQUIRE(order.apply(sorted) == values);
+}

@@ -48,7 +48,7 @@ AutoPtr<ICamera> Factory::getCamera(const GuiSettings& settings, const Point siz
     }
 }
 
-AutoPtr<IRenderer> Factory::getRenderer(const GuiSettings& settings) {
+AutoPtr<IRenderer> Factory::getRenderer(IScheduler& scheduler, const GuiSettings& settings) {
     RendererEnum id = settings.get<RendererEnum>(GuiSettingsId::RENDERER);
     switch (id) {
     case RendererEnum::NONE:
@@ -64,9 +64,9 @@ AutoPtr<IRenderer> Factory::getRenderer(const GuiSettings& settings) {
     case RendererEnum::PARTICLE:
         return makeAuto<ParticleRenderer>(settings);
     case RendererEnum::MESH:
-        return makeAuto<MeshRenderer>(settings);
+        return makeAuto<MeshRenderer>(scheduler, settings);
     case RendererEnum::RAYTRACER:
-        return makeAuto<RayTracer>(settings);
+        return makeAuto<RayTracer>(scheduler, settings);
     default:
         NOT_IMPLEMENTED;
     }

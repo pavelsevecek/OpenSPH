@@ -8,13 +8,13 @@
 
 NAMESPACE_SPH_BEGIN
 
-NBodySolver::NBodySolver(const RunSettings& settings)
-    : NBodySolver(settings, Factory::getGravity(settings)) {}
+NBodySolver::NBodySolver(IScheduler& scheduler, const RunSettings& settings)
+    : NBodySolver(scheduler, settings, Factory::getGravity(settings)) {}
 
-NBodySolver::NBodySolver(const RunSettings& settings, AutoPtr<IGravity>&& gravity)
+NBodySolver::NBodySolver(IScheduler& scheduler, const RunSettings& settings, AutoPtr<IGravity>&& gravity)
     : gravity(std::move(gravity))
-    , pool(settings.get<int>(RunSettingsId::RUN_THREAD_CNT))
-    , threadData(pool) {
+    , scheduler(scheduler)
+    , threadData(scheduler) {
     collision.handler = Factory::getCollisionHandler(settings);
     collision.finder = Factory::getFinder(settings);
     overlap.handler = Factory::getOverlapHandler(settings);
@@ -102,10 +102,10 @@ void NBodySolver::rotateLocalFrame(Storage& storage, const Float dt) {
 
 void NBodySolver::integrate(Storage& storage, Statistics& stats) {
     Timer timer;
-    gravity->build(storage);
+    gravity->build(scheduler, storage);
 
     ArrayView<Vector> dv = storage.getD2t<Vector>(QuantityId::POSITION);
-    gravity->evalAll(pool, dv, stats);
+    gravity->evalAll(scheduler, dv, stats);
 
     // null all derivatives of smoothing lengths (particle radii)
     ArrayView<Vector> v = storage.getDt<Vector>(QuantityId::POSITION);
@@ -169,7 +169,6 @@ public:
 
 
 struct CollisionRecord {
-public:
     /// Indices of the collided particles.
     Size i;
     Size j;
@@ -225,7 +224,7 @@ void NBodySolver::collide(Storage& storage, Statistics& stats, const Float dt) {
     // const Float searchRadius = getSearchRadius(r, v, dt);
 
     // tree for finding collisions
-    collision.finder->buildWithRank(r, [this, dt](const Size i, const Size j) {
+    collision.finder->buildWithRank(scheduler, r, [this, dt](const Size i, const Size j) {
         return r[i][H] + getLength(v[i]) * dt < r[j][H] + getLength(v[j]) * dt;
     });
 
@@ -238,20 +237,23 @@ void NBodySolver::collide(Storage& storage, Statistics& stats, const Float dt) {
     searchRadii.resize(r.size());
     searchRadii.fill(0._f);
 
-    threadData.forEach([](ThreadData& data) { data.collisions.clear(); });
+    for (ThreadData& data : threadData) {
+        data.collisions.clear();
+    }
+
     // first pass - find all collisions and sort them by collision time
-    parallelFor(pool, threadData, 0, r.size(), [&](const Size i, ThreadData& data) {
+    parallelFor(scheduler, threadData, 0, r.size(), [&](const Size i, ThreadData& data) {
         if (CollisionRecord col =
                 this->findClosestCollision(i, SearchEnum::FIND_LOWER_RANK, Interval(0._f, dt), data.neighs)) {
             ASSERT(isReal(col));
             data.collisions.insert(col);
         }
     });
-    threadData.forEach([this](ThreadData& data) {
+    for (ThreadData& data : threadData) {
         for (auto& col : data.collisions) {
             collisions.insert(col);
         }
-    });
+    }
 
     CollisionStats cs(stats);
     removed.clear();

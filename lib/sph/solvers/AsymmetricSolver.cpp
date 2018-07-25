@@ -9,9 +9,11 @@
 
 NAMESPACE_SPH_BEGIN
 
-AsymmetricSolver::AsymmetricSolver(const RunSettings& settings, const EquationHolder& eqs)
-    : pool(settings.get<int>(RunSettingsId::RUN_THREAD_CNT))
-    , threadData(pool) {
+AsymmetricSolver::AsymmetricSolver(IScheduler& scheduler,
+    const RunSettings& settings,
+    const EquationHolder& eqs)
+    : scheduler(scheduler)
+    , threadData(scheduler) {
     kernel = Factory::getKernel<DIMENSIONS>(settings);
     finder = Factory::getFinder(settings);
     granularity = settings.get<int>(RunSettingsId::RUN_THREAD_GRANULARITY);
@@ -28,11 +30,11 @@ void AsymmetricSolver::integrate(Storage& storage, Statistics& stats) {
     for (Size i = 0; i < storage.getMaterialCnt(); ++i) {
         PROFILE_SCOPE("AsymmetricSolver initialize materials")
         MaterialView material = storage.getMaterial(i);
-        material->initialize(storage, material.sequence());
+        material->initialize(scheduler, storage, material.sequence());
     }
 
     // initialize all equation terms (applies dependencies between quantities)
-    equations.initialize(storage, pool);
+    equations.initialize(scheduler, storage);
 
     // initialize accumulate storages & derivatives
     derivatives.initialize(storage);
@@ -44,13 +46,13 @@ void AsymmetricSolver::integrate(Storage& storage, Statistics& stats) {
     this->afterLoop(storage, stats);
 
     // integrate all equations
-    equations.finalize(storage, pool);
+    equations.finalize(scheduler, storage);
 
     // finalize all materials (integrate fragmentation model)
     for (Size i = 0; i < storage.getMaterialCnt(); ++i) {
         PROFILE_SCOPE("AsymmetricSolver finalize materials")
         MaterialView material = storage.getMaterial(i);
-        material->finalize(storage, material.sequence());
+        material->finalize(scheduler, storage, material.sequence());
     }
 }
 
@@ -64,7 +66,7 @@ void AsymmetricSolver::loop(Storage& storage, Statistics& UNUSED(stats)) {
     // (re)build neighbour-finding structure; this needs to be done after all equations
     // are initialized in case some of them modify smoothing lengths
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
-    finder->build(r);
+    finder->build(scheduler, r);
 
     // find the maximum search radius
     Float maxH = 0._f;
@@ -99,7 +101,7 @@ void AsymmetricSolver::loop(Storage& storage, Statistics& UNUSED(stats)) {
         neighs[i] = data.idxs.size();
     };
     PROFILE_SCOPE("AsymmetricSolver main loop");
-    parallelFor(pool, threadData, 0, r.size(), granularity, functor);
+    parallelFor(scheduler, threadData, 0, r.size(), granularity, functor);
 }
 
 void AsymmetricSolver::afterLoop(Storage& storage, Statistics& stats) {

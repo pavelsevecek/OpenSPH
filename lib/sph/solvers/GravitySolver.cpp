@@ -9,28 +9,32 @@
 NAMESPACE_SPH_BEGIN
 
 template <typename TSphSolver>
-GravitySolver<TSphSolver>::GravitySolver(const RunSettings& settings, const EquationHolder& equations)
-    : GravitySolver(settings, equations, Factory::getGravity(settings)) {}
+GravitySolver<TSphSolver>::GravitySolver(IScheduler& scheduler,
+    const RunSettings& settings,
+    const EquationHolder& equations)
+    : GravitySolver(scheduler, settings, equations, Factory::getGravity(settings)) {}
 
 template <>
-GravitySolver<SymmetricSolver>::GravitySolver(const RunSettings& settings,
+GravitySolver<SymmetricSolver>::GravitySolver(IScheduler& scheduler,
+    const RunSettings& settings,
     const EquationHolder& equations,
     AutoPtr<IGravity>&& gravity)
-    : SymmetricSolver(settings, equations)
+    : SymmetricSolver(scheduler, settings, equations)
     , gravity(std::move(gravity)) {
 
     // make sure acceleration are being accumulated
-    threadData.forEach([&settings](ThreadData& data) { //
+    for (ThreadData& data : threadData) {
         Accumulated& results = data.derivatives.getAccumulated();
         results.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, BufferSource::SHARED);
-    });
+    }
 }
 
 template <>
-GravitySolver<AsymmetricSolver>::GravitySolver(const RunSettings& settings,
+GravitySolver<AsymmetricSolver>::GravitySolver(IScheduler& scheduler,
+    const RunSettings& settings,
     const EquationHolder& equations,
     AutoPtr<IGravity>&& gravity)
-    : AsymmetricSolver(settings, equations)
+    : AsymmetricSolver(scheduler, settings, equations)
     , gravity(std::move(gravity)) {
 
     // make sure acceleration are being accumulated
@@ -43,7 +47,7 @@ void GravitySolver<TSphSolver>::loop(Storage& storage, Statistics& stats) {
     // first, do asymmetric evaluation of gravity:
 
     // build gravity tree
-    gravity->build(storage);
+    gravity->build(this->scheduler, storage);
 
     // get acceleration buffer corresponding to first thread (to save some memory + time)
     Accumulated& accumulated = this->getAccumulated();
@@ -51,7 +55,7 @@ void GravitySolver<TSphSolver>::loop(Storage& storage, Statistics& stats) {
 
     // evaluate gravity for each particle
     Timer timer;
-    gravity->evalAll(this->pool, dv, stats);
+    gravity->evalAll(this->scheduler, dv, stats);
     stats.set(StatisticsId::GRAVITY_EVAL_TIME, int(timer.elapsed(TimerUnit::MILLISECOND)));
 
     // second, compute SPH derivatives using given solver

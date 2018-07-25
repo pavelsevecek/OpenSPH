@@ -4,6 +4,7 @@
 #include "system/Statistics.h"
 #include "tests/Approx.h"
 #include "tests/Setup.h"
+#include "thread/Pool.h"
 #include "timestepping/TimeStepping.h"
 #include "utils/SequenceTest.h"
 
@@ -37,12 +38,13 @@ TEST_CASE("StressAV test", "[av]") {
     EquationHolder eqs;
     eqs += makeTerm<PressureForce>() + makeTerm<SolidStressForce>(settings) + makeTerm<ContinuityEquation>() +
            makeTerm<StressAV>(settings) + makeTerm<ConstSmoothingLength>();
-    SymmetricSolver solver(settings, std::move(eqs));
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+    SymmetricSolver solver(pool, settings, std::move(eqs));
     solver.create(*storage, storage->getMaterial(0));
 
     // do one time step to compute values of stress tensor
     Statistics stats;
-    timestepping.step(solver, stats);
+    timestepping.step(pool, solver, stats);
 
     // sanity check - check components of stress tensor
     // note that artificial stress shouldn't do anything so far as we have zero initial stress tensor
@@ -67,8 +69,8 @@ TEST_CASE("StressAV test", "[av]") {
     // do another step - this time we should get nonzero artificial stress
     // create another solver WITHOUT pressure and stress force to get acceleration only from AS
     eqs = makeTerm<StressAV>(settings) + makeTerm<ConstSmoothingLength>();
-    SymmetricSolver solverAS(settings, std::move(eqs));
-    timestepping.step(solverAS, stats);
+    SymmetricSolver solverAS(pool, settings, std::move(eqs));
+    timestepping.step(pool, solverAS, stats);
 
     tie(r, v, dv) = storage->getAll<Vector>(QuantityId::POSITION);
     as = storage->getValue<SymmetricTensor>(QuantityId::AV_STRESS);

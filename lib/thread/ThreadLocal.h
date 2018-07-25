@@ -5,12 +5,12 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2018
 
-#include "objects/wrappers/AlignedStorage.h"
-#include "thread/Pool.h"
+#include "objects/wrappers/Optional.h"
+#include "thread/Scheduler.h"
 
 NAMESPACE_SPH_BEGIN
 
-/// \brief Template for storing a copy of a value for every thread in given thread pool.
+/// \brief Template for storing a copy of a value for every thread in given scheduler.
 ///
 /// While C++ provides thread_local keyword for creating thread-local storages with static duration,
 /// ThreadLocal template can be used for local variables or (non-static) member variables of classes.
@@ -24,17 +24,18 @@ private:
     /// Array of thread-local values
     Array<Type> values;
 
-    /// Thread pool, threads of which correspond to the values
-    ThreadPool& pool;
+    /// Associated scheduler; one value is allocated for each thread of the scheduler.
+    IScheduler& scheduler;
 
 public:
-    /// Constructs a thread-local storage.
-    /// \param pool Thread pool associated with the object.
+    /// \brief Constructs a thread-local storage.
+    ///
+    /// \param scheduler Scheduler associated with the object.
     /// \param args List of parameters that are passed into the constructor of each thread-local storage.
     template <typename... TArgs>
-    ThreadLocal(ThreadPool& pool, TArgs&&... args)
-        : pool(pool) {
-        const Size threadCnt = pool.getThreadCnt();
+    ThreadLocal(IScheduler& scheduler, TArgs&&... args)
+        : scheduler(scheduler) {
+        const Size threadCnt = scheduler.getThreadCnt();
         values.reserve(threadCnt);
         for (Size i = 0; i < threadCnt; ++i) {
             // intentionally not forwarded, we cannot move parameters if we have more than one object
@@ -45,33 +46,37 @@ public:
     /// \brief Return a value for current thread.
     ///
     /// This thread must belong the the thread pool given in constructor, checked by assert.
-    INLINE Type& get() {
-        const Optional<Size> idx = pool.getThreadIdx();
+    INLINE Type& local() {
+        const Optional<Size> idx = scheduler.getThreadIdx();
         ASSERT(idx && idx.value() < values.size());
         return values[idx.value()];
     }
 
-    /// \copydoc get
-    INLINE const Type& get() const {
-        const Optional<Size> idx = pool.getThreadIdx();
+    /// \copydoc local
+    INLINE const Type& local() const {
+        const Optional<Size> idx = scheduler.getThreadIdx();
         ASSERT(idx && idx.value() < values.size());
         return values[idx.value()];
     }
 
-    /// \brief Enumerate all thread-local storages and pass them into the argument of given functor.
-    template <typename TFunctor>
-    void forEach(TFunctor&& functor) {
-        for (auto& value : values) {
-            functor(value);
-        }
+    /// \brief Returns the iterator to the first element in the thread-local storage.
+    Iterator<Type> begin() {
+        return values.begin();
     }
 
-    /// \copydoc forEach
-    template <typename TFunctor>
-    void forEach(TFunctor&& functor) const {
-        for (const auto& value : values) {
-            functor(value);
-        }
+    /// \copydoc begin
+    Iterator<const Type> begin() const {
+        return values.begin();
+    }
+
+    /// \brief Returns the iterator to the first element in the thread-local storage.
+    Iterator<Type> end() {
+        return values.end();
+    }
+
+    /// \copydoc end
+    Iterator<const Type> end() const {
+        return values.end();
     }
 
     /// \brief Creates another ThreadLocal object by converting each thread-local value of this object.
@@ -80,7 +85,7 @@ public:
     /// default-constructed and assigned to using the given conversion functor.
     template <typename TOther, typename TFunctor>
     ThreadLocal<TOther> convert(TFunctor&& functor) {
-        ThreadLocal<TOther> result(pool);
+        ThreadLocal<TOther> result(scheduler);
         for (Size i = 0; i < result.values.size(); ++i) {
             result.values[i] = functor(values[i]);
         }
@@ -108,35 +113,75 @@ public:
 
 /// \brief Overload of parallelFor that passes thread-local storage into the functor.
 template <typename Type, typename TFunctor>
-INLINE void parallelFor(ThreadPool& pool,
+INLINE void parallelFor(IScheduler& scheduler,
     ThreadLocal<Type>& storage,
     const Size from,
     const Size to,
     TFunctor&& functor) {
-    const Size granularity = pool.getRecommendedGranularity(from, to);
-    parallelFor(pool, storage, from, to, granularity, std::forward<TFunctor>(functor));
+    const Size granularity = scheduler.getRecommendedGranularity(from, to);
+    parallelFor(scheduler, storage, from, to, granularity, std::forward<TFunctor>(functor));
 }
+
+template <typename Type, typename TFunctor>
+class ParallelForTlsTask : public Noncopyable {
+private:
+    Size from;
+    Size to;
+    const Size granularity;
+    IScheduler& scheduler;
+    ThreadLocal<Type>& storage;
+    TFunctor& functor;
+
+public:
+    ParallelForTlsTask(Size from,
+        Size to,
+        Size granularity,
+        IScheduler& scheduler,
+        ThreadLocal<Type>& storage,
+        TFunctor& functor)
+        : from(from)
+        , to(to)
+        , granularity(granularity)
+        , scheduler(scheduler)
+        , storage(storage)
+        , functor(functor) {}
+
+    void operator()() {
+        while (to - from > granularity) {
+            const Size mid = (from + to) / 2;
+            ASSERT(from < mid && mid < to);
+
+            // split the task in half, submit the second half as a new task
+            scheduler.submit(
+                makeShared<ParallelForTlsTask>(mid, to, granularity, scheduler, storage, functor));
+
+            // keep processing the first half in this task
+            to = mid;
+            ASSERT(from < to);
+        }
+
+        ASSERT(from < to);
+        // when below the granularity, process sequentially
+        Type& value = storage.local();
+        for (Size n = from; n < to; ++n) {
+            functor(n, value);
+        }
+    }
+};
 
 /// \brief Overload of parallelFor that passes thread-local storage into the functor.
 template <typename Type, typename TFunctor>
-INLINE void parallelFor(ThreadPool& pool,
+INLINE void parallelFor(IScheduler& scheduler,
     ThreadLocal<Type>& storage,
     const Size from,
     const Size to,
     const Size granularity,
     TFunctor&& functor) {
     ASSERT(from <= to);
-    for (Size i = from; i < to; i += granularity) {
-        const Size n1 = i;
-        const Size n2 = min(i + granularity, to);
-        pool.submit(makeTask([n1, n2, &storage, &functor] {
-            Type& tls = storage.get();
-            for (Size n = n1; n < n2; ++n) {
-                functor(n, tls);
-            }
-        }));
-    }
-    pool.waitForAll();
+
+    SharedPtr<ITask> handle = scheduler.submit(
+        makeShared<ParallelForTlsTask<Type, TFunctor>>(from, to, granularity, scheduler, storage, functor));
+    handle->wait();
 }
 
 NAMESPACE_SPH_END

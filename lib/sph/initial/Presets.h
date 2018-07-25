@@ -96,7 +96,10 @@ private:
     CollisionParams _params;
 
 public:
-    Collision(const RunSettings& settings, const BodySettings& body, const CollisionParams& params);
+    Collision(IScheduler& scheduler,
+        const RunSettings& settings,
+        const BodySettings& body,
+        const CollisionParams& params);
 
     /// \brief Adds a target (primary body) into the storage.
     ///
@@ -139,7 +142,8 @@ private:
     SatelliteParams _params;
 
 public:
-    Satellite(ISolver& solver,
+    Satellite(IScheduler& scheduler,
+        ISolver& solver,
         const RunSettings& settings,
         const BodySettings& body,
         const SatelliteParams& params);

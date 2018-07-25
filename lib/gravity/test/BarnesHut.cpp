@@ -49,14 +49,15 @@ static void testOpeningAngle(const MultipoleOrder order) {
     BarnesHut bh(EPS, order, 5);
     BruteForceGravity bf;
 
-    bf.build(storage1);
-    bh.build(storage2);
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+    bf.build(pool, storage1);
+    bh.build(pool, storage2);
 
     ArrayView<Vector> a_bf = storage1.getD2t<Vector>(QuantityId::POSITION);
     ArrayView<Vector> a_bh = storage2.getD2t<Vector>(QuantityId::POSITION);
     Statistics stats;
-    bf.evalAll(a_bf, stats);
-    bh.evalAll(a_bh, stats);
+    bf.evalAll(pool, a_bf, stats);
+    bh.evalAll(pool, a_bh, stats);
 
     ArrayView<const Vector> r = storage1.getValue<Vector>(QuantityId::POSITION);
     auto test = [&](const Size i) -> Outcome {
@@ -107,7 +108,8 @@ TEST_CASE("BarnesHut simple moments", "[gravity]") {
     Vector r_com;
     tieToTuple(storage, r_com) = getTestParticles();
     BarnesHut bh(0.5_f, MultipoleOrder::OCTUPOLE, 5);
-    bh.build(storage);
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+    bh.build(pool, storage);
 
     MultipoleExpansion<3> moments = bh.getMoments();
     testMoments(moments, storage, r_com);
@@ -118,7 +120,8 @@ TEST_CASE("BarnesHut storage moments", "[gravity]") {
     Storage storage = getGravityStorage();
 
     BarnesHut bh(0.5_f, MultipoleOrder::OCTUPOLE, 5);
-    bh.build(storage);
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+    bh.build(pool, storage);
 
     MultipoleExpansion<3> moments = bh.getMoments();
 
@@ -127,12 +130,13 @@ TEST_CASE("BarnesHut storage moments", "[gravity]") {
 }
 
 static void testSimpleAcceleration(const MultipoleOrder order, const Float eps) {
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
     Storage storage;
     Vector r_com;
     tieToTuple(storage, r_com) = getTestParticles();
 
     BarnesHut bh(0.5_f, order, 1);
-    bh.build(storage);
+    bh.build(pool, storage);
 
     Statistics stats;
     Vector a = bh.eval(Vector(-10, 10, 0, 1), stats) / Constants::gravity;
@@ -148,6 +152,7 @@ TEST_CASE("BarnesHut simple acceleration", "[gravity]") {
 }
 
 static void testStorageAcceleration(const MultipoleOrder order, const Float eps) {
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
     Storage storage1 = getGravityStorage();
 
     BarnesHut bh(0.4_f, order, 5);
@@ -162,14 +167,14 @@ static void testStorageAcceleration(const MultipoleOrder order, const Float eps)
     }
     Storage storage2 = storage1.clone(VisitorEnum::ALL_BUFFERS);
 
-    bf.build(storage1);
-    bh.build(storage2);
+    bf.build(pool, storage1);
+    bh.build(pool, storage2);
 
     ArrayView<Vector> a_bf = storage1.getD2t<Vector>(QuantityId::POSITION);
     ArrayView<Vector> a_bh = storage2.getD2t<Vector>(QuantityId::POSITION);
     Statistics stats;
-    bf.evalAll(a_bf, stats);
-    bh.evalAll(a_bh, stats);
+    bf.evalAll(pool, a_bf, stats);
+    bh.evalAll(pool, a_bh, stats);
     auto test = [&](const Size i) -> Outcome {
         if (a_bf[i] == a_bh[i]) {
             return makeFailed(
@@ -200,25 +205,26 @@ TEST_CASE("BarnesHut storage acceleration", "[gravity]") {
 
 TEST_CASE("BarnesHut opening angle convergence", "[gravity]") {
     Storage storage = getGravityStorage();
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
 
     BarnesHut bh8(0.8_f, MultipoleOrder::OCTUPOLE, 5);
     BarnesHut bh4(0.4_f, MultipoleOrder::OCTUPOLE, 5);
     BarnesHut bh2(0.2_f, MultipoleOrder::OCTUPOLE, 5);
     BruteForceGravity bf;
-    bf.build(storage);
-    bh2.build(storage);
-    bh4.build(storage);
-    bh8.build(storage);
+    bf.build(pool, storage);
+    bh2.build(pool, storage);
+    bh4.build(pool, storage);
+    bh8.build(pool, storage);
 
     Statistics stats;
     Array<Vector> a_bf = storage.getD2t<Vector>(QuantityId::POSITION).clone();
-    bf.evalAll(a_bf, stats);
+    bf.evalAll(pool, a_bf, stats);
     Array<Vector> a_bh2 = storage.getD2t<Vector>(QuantityId::POSITION).clone();
-    bf.evalAll(a_bh2, stats);
+    bf.evalAll(pool, a_bh2, stats);
     Array<Vector> a_bh4 = storage.getD2t<Vector>(QuantityId::POSITION).clone();
-    bf.evalAll(a_bh4, stats);
+    bf.evalAll(pool, a_bh4, stats);
     Array<Vector> a_bh8 = storage.getD2t<Vector>(QuantityId::POSITION).clone();
-    bf.evalAll(a_bh8, stats);
+    bf.evalAll(pool, a_bh8, stats);
 
     auto test = [&](const Size i) -> Outcome {
         const Float diff2 = getLength(a_bh2[i] - a_bf[i]);
@@ -243,14 +249,14 @@ TEST_CASE("BarnesHut opening angle convergence", "[gravity]") {
 /// \todo stolen from bruteforce gravity
 TEST_CASE("BarnesHut parallel", "[gravity]") {
     Storage storage = getGravityStorage();
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
 
     BarnesHut gravity(0.5, MultipoleOrder::OCTUPOLE);
-    gravity.build(storage);
+    gravity.build(pool, storage);
     Array<Vector> dv1 = storage.getD2t<Vector>(QuantityId::POSITION).clone();
     Statistics stats;
-    gravity.evalAll(dv1, stats);
+    gravity.evalAll(pool, dv1, stats);
 
-    ThreadPool pool;
     Array<Vector> dv2(dv1.size());
     dv2.fill(Vector(0._f));
     // evaluate gravity using parallel implementation
@@ -274,10 +280,11 @@ TEST_CASE("BarnesHut symmetrization", "[gravity]") {
         Array<Vector>({ Vector(0.f, 0.f, 0.f, 1.f), Vector(2._f, 0.f, 0.f, 5._f) }));
     storage.insert<Float>(QuantityId::MASS, OrderEnum::ZERO, 1.e10_f);
 
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
     BarnesHut gravity(0.5, MultipoleOrder::OCTUPOLE);
-    gravity.build(storage);
+    gravity.build(pool, storage);
     Statistics stats;
     ArrayView<Vector> dv = storage.getD2t<Vector>(QuantityId::POSITION);
-    gravity.evalAll(dv, stats);
+    gravity.evalAll(pool, dv, stats);
     REQUIRE(dv[0] == -dv[1]);
 }

@@ -133,11 +133,11 @@ public:
         derivatives.require(makeAuto<ColorField>(settings));
     }
 
-    virtual void initialize(Storage& UNUSED(storage), ThreadPool& UNUSED(pool)) override {}
+    virtual void initialize(IScheduler& UNUSED(scheduler), Storage& UNUSED(storage)) override {}
 
-    virtual void finalize(Storage& UNUSED(storage), ThreadPool& UNUSED(pool)) override {}
+    virtual void finalize(IScheduler& UNUSED(scheduler), Storage& UNUSED(storage)) override {}
 
-    virtual void create(Storage& storage, IMaterial& UNUSED(material)) const {
+    virtual void create(Storage& storage, IMaterial& UNUSED(material)) const override {
         storage.insert<Vector>(QuantityId::SURFACE_NORMAL, OrderEnum::ZERO, Vector(0._f));
     }
 };

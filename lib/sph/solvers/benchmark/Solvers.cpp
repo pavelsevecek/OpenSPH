@@ -11,7 +11,9 @@ BENCHMARK("SymmetricSolver simpler", "[solvers]", Benchmark::Context& context) {
     BodySettings settings;
     settings.set(BodySettingsId::DENSITY, 100._f).set(BodySettingsId::ENERGY, 10._f);
     Storage storage = Tests::getSolidStorage(1000, settings);
-    SymmetricSolver solver(RunSettings::getDefaults(), getStandardEquations(RunSettings::getDefaults()));
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+    SymmetricSolver solver(
+        pool, RunSettings::getDefaults(), getStandardEquations(RunSettings::getDefaults()));
     IMaterial& material = storage.getMaterial(0);
     solver.create(storage, material);
 
@@ -25,7 +27,9 @@ BENCHMARK("AsymmetricSolver simpler", "[solvers]", Benchmark::Context& context) 
     BodySettings settings;
     settings.set(BodySettingsId::DENSITY, 100._f).set(BodySettingsId::ENERGY, 10._f);
     Storage storage = Tests::getSolidStorage(1000, settings);
-    AsymmetricSolver solver(RunSettings::getDefaults(), getStandardEquations(RunSettings::getDefaults()));
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+    AsymmetricSolver solver(
+        pool, RunSettings::getDefaults(), getStandardEquations(RunSettings::getDefaults()));
     IMaterial& material = storage.getMaterial(0);
     solver.create(storage, material);
 

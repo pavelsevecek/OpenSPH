@@ -69,7 +69,7 @@ Float startingRadius;
 void NBody::setUp() {
     // we don't need any material, so just pass some dummy
     storage = makeShared<Storage>(makeAuto<NullMaterial>(EMPTY_SETTINGS));
-    solver = makeAuto<NBodySolver>(settings);
+    solver = makeAuto<NBodySolver>(*scheduler, settings);
 
     if (wxTheApp->argc > 1) {
         std::string arg(wxTheApp->argv[1]);
@@ -124,7 +124,7 @@ void NBody::setUp() {
     } else {
         HexagonalPacking packing(EMPTY_FLAGS);
         const Float radius = 1.e3_f;
-        Array<Vector> dist = packing.generate(300000, SphericalDomain(Vector(0._f), radius));
+        Array<Vector> dist = packing.generate(*scheduler, 300000, SphericalDomain(Vector(0._f), radius));
         storage->insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, std::move(dist));
         ArrayView<Vector> r = storage->getValue<Vector>(QuantityId::POSITION);
         const Float dr = getLength(r[50] - r[51]);

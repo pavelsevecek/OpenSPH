@@ -180,9 +180,11 @@ AutoPtr<IDistribution> Factory::getDistribution(const BodySettings& settings) {
         /// \todo user-selected seed?
         return makeAuto<RandomDistribution>(1234);
     case DistributionEnum::DIEHL_ET_AL: {
-        const Float strength = settings.get<Float>(BodySettingsId::DIELH_STRENGTH);
-        const Size maxDiff = settings.get<int>(BodySettingsId::DIEHL_MAX_DIFFERENCE);
-        return makeAuto<DiehlDistribution>([](const Vector&) { return 1._f; }, maxDiff, 50, strength);
+        DiehlParams diehl;
+        diehl.particleDensity = [](const Vector&) { return 1._f; };
+        diehl.strength = settings.get<Float>(BodySettingsId::DIELH_STRENGTH);
+        diehl.maxDifference = settings.get<int>(BodySettingsId::DIEHL_MAX_DIFFERENCE);
+        return makeAuto<DiehlDistribution>(diehl);
     }
     case DistributionEnum::LINEAR:
         return makeAuto<LinearDistribution>();
@@ -192,16 +194,18 @@ AutoPtr<IDistribution> Factory::getDistribution(const BodySettings& settings) {
 }
 
 template <typename TSolver>
-static AutoPtr<ISolver> getActualSolver(const RunSettings& settings, EquationHolder&& eqs) {
+static AutoPtr<ISolver> getActualSolver(IScheduler& scheduler,
+    const RunSettings& settings,
+    EquationHolder&& eqs) {
     const Flags<ForceEnum> forces = settings.getFlags<ForceEnum>(RunSettingsId::SOLVER_FORCES);
     if (forces.has(ForceEnum::GRAVITY)) {
-        return makeAuto<GravitySolver<TSolver>>(settings, std::move(eqs));
+        return makeAuto<GravitySolver<TSolver>>(scheduler, settings, std::move(eqs));
     } else {
-        return makeAuto<TSolver>(settings, std::move(eqs));
+        return makeAuto<TSolver>(scheduler, settings, std::move(eqs));
     }
 }
 
-AutoPtr<ISolver> Factory::getSolver(const RunSettings& settings) {
+AutoPtr<ISolver> Factory::getSolver(IScheduler& scheduler, const RunSettings& settings) {
     EquationHolder eqs = getStandardEquations(settings);
     const SolverEnum id = settings.get<SolverEnum>(RunSettingsId::SOLVER_TYPE);
     auto throwIfGravity = [&settings] {
@@ -212,18 +216,18 @@ AutoPtr<ISolver> Factory::getSolver(const RunSettings& settings) {
     };
     switch (id) {
     case SolverEnum::SYMMETRIC_SOLVER:
-        return getActualSolver<SymmetricSolver>(settings, std::move(eqs));
+        return getActualSolver<SymmetricSolver>(scheduler, settings, std::move(eqs));
     case SolverEnum::ASYMMETRIC_SOLVER:
-        return getActualSolver<AsymmetricSolver>(settings, std::move(eqs));
+        return getActualSolver<AsymmetricSolver>(scheduler, settings, std::move(eqs));
     case SolverEnum::SUMMATION_SOLVER:
         throwIfGravity();
-        return makeAuto<SummationSolver>(settings);
+        return makeAuto<SummationSolver>(scheduler, settings);
     case SolverEnum::DENSITY_INDEPENDENT:
         throwIfGravity();
-        return makeAuto<DensityIndependentSolver>(settings);
+        return makeAuto<DensityIndependentSolver>(scheduler, settings);
     case SolverEnum::DIFFERENED_ENERGY:
         throwIfGravity();
-        return makeAuto<DifferencedEnergySolver>(settings, std::move(eqs));
+        return makeAuto<DifferencedEnergySolver>(scheduler, settings, std::move(eqs));
     default:
         NOT_IMPLEMENTED;
     }
@@ -257,7 +261,8 @@ AutoPtr<IGravity> Factory::getGravity(const RunSettings& settings) {
         break;
     case GravityEnum::BARNES_HUT: {
         const Float theta = settings.get<Float>(RunSettingsId::GRAVITY_OPENING_ANGLE);
-        const MultipoleOrder order = settings.get<MultipoleOrder>(RunSettingsId::GRAVITY_MULTIPOLE_ORDER);
+        const MultipoleOrder order =
+            MultipoleOrder(settings.get<int>(RunSettingsId::GRAVITY_MULTIPOLE_ORDER));
         const int leafSize = settings.get<int>(RunSettingsId::GRAVITY_LEAF_SIZE);
         gravity = makeAuto<BarnesHut>(theta, order, std::move(kernel), leafSize);
         break;

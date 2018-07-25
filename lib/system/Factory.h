@@ -29,6 +29,7 @@ class ILogger;
 class IOutput;
 class IRng;
 class IEquationTerm;
+class IScheduler;
 class Storage;
 enum class FinderFlag;
 template <Size D>
@@ -47,7 +48,7 @@ AutoPtr<IOutput> getOutput(const RunSettings& settings);
 
 AutoPtr<IRng> getRng(const RunSettings& settings);
 
-AutoPtr<ISolver> getSolver(const RunSettings& settings);
+AutoPtr<ISolver> getSolver(IScheduler& scheduler, const RunSettings& settings);
 
 template <Size D>
 LutKernel<D> getKernel(const RunSettings& settings);

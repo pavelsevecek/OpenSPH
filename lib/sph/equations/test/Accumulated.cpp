@@ -1,6 +1,7 @@
 #include "sph/equations/Accumulated.h"
 #include "catch.hpp"
 #include "objects/utility/PerElementWrapper.h"
+#include "thread/Pool.h"
 #include "utils/SequenceTest.h"
 #include "utils/Utils.h"
 
@@ -73,7 +74,7 @@ static Storage getStorage() {
 TEST_CASE("Accumulated sum parallelized", "[accumulated]") {
     Accumulated ac1 = getAccumulated();
     Accumulated ac2 = getAccumulated();
-    ThreadPool pool;
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
     ac1.sum(pool, Array<Accumulated*>{ &ac2 });
     Storage storage = getStorage();
     ac1.store(storage);

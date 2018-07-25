@@ -4,6 +4,21 @@
 
 NAMESPACE_SPH_BEGIN
 
+template <typename T>
+class AutoPtr;
+
+template <typename T>
+class SharedPtr;
+
+template <typename T>
+class Function;
+
+template <typename T>
+class Optional;
+
+class Task;
+class ThreadPool;
+
 class Storage;
 class Quantity;
 enum class QuantityId;

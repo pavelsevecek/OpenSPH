@@ -68,9 +68,9 @@ public:
         derivatives.require(makeAuto<Derivative>(settings));
     }
 
-    virtual void initialize(Storage& UNUSED(storage), ThreadPool& UNUSED(pool)) override {}
+    virtual void initialize(IScheduler& UNUSED(scheduler), Storage& UNUSED(storage)) override {}
 
-    virtual void finalize(Storage& UNUSED(storage), ThreadPool& UNUSED(pool)) override {}
+    virtual void finalize(IScheduler& UNUSED(scheduler), Storage& UNUSED(storage)) override {}
 
     virtual void create(Storage& storage, IMaterial& material) const override {
         // energy density = specific energy * density
@@ -135,8 +135,8 @@ private:
     Array<Float> q;
 
 public:
-    explicit DensityIndependentSolver(const RunSettings& settings)
-        : SymmetricSolver(settings, getEquations(settings)) {
+    explicit DensityIndependentSolver(IScheduler& scheduler, const RunSettings& settings)
+        : SymmetricSolver(scheduler, settings, getEquations(settings)) {
         energyKernel = Factory::getKernel<DIMENSIONS>(settings);
     }
 
@@ -174,9 +174,9 @@ private:
                 q[i] += U[j] * energyKernel.value(r[i] - r[j], r[i][H]);
             }
         };
-        finder->build(r);
+        finder->build(scheduler, r);
         /// \todo this should also be self-consistently solved with smoothing length (as SummationSolver)
-        parallelFor(pool, threadData, 0, r.size(), granularity, functor);
+        parallelFor(scheduler, threadData, 0, r.size(), granularity, functor);
 
         // save computed values
         std::swap(storage.getValue<Float>(QuantityId::ENERGY_DENSITY), q);

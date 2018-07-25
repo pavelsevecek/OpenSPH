@@ -37,11 +37,10 @@ int pkdgravToSfd(const Path& filePath, const Path& sfdPath) {
         return 0;
     }
     Post::HistogramParams params;
-    params.source = Post::HistogramParams::Source::PARTICLES;
-    params.id = Post::HistogramId::EQUIVALENT_MASS_RADII;
-    Array<Post::SfdPoint> sfd = Post::getCummulativeSfd(storage.value(), params);
+    Array<Post::HistPoint> sfd = Post::getCummulativeHistogram(
+        storage.value(), Post::HistogramId::EQUIVALENT_MASS_RADII, Post::HistogramSource::PARTICLES, params);
     FileLogger logRadiiSfd(sfdPath, FileLogger::Options::KEEP_OPENED);
-    for (Post::SfdPoint& p : sfd) {
+    for (Post::HistPoint& p : sfd) {
         logRadiiSfd.write(p.value, "  ", p.count);
     }
     return 0;
@@ -102,13 +101,74 @@ int ssfToSfd(const Path& filePath, const Path& sfdPath) {
     }
 
     Post::HistogramParams params;
-    params.source = Post::HistogramParams::Source::PARTICLES;
-    params.id = Post::HistogramId::EQUIVALENT_MASS_RADII;
-    Array<Post::SfdPoint> sfd = Post::getCummulativeSfd(storage, params);
+    Array<Post::HistPoint> sfd = Post::getCummulativeHistogram(
+        storage, Post::HistogramId::EQUIVALENT_MASS_RADII, Post::HistogramSource::PARTICLES, params);
     FileLogger logSfd(sfdPath, FileLogger::Options::KEEP_OPENED);
-    for (Post::SfdPoint& p : sfd) {
+    for (Post::HistPoint& p : sfd) {
         logSfd.write(p.value, "  ", p.count);
     }
+    return 0;
+}
+
+int ssfToOmega(const Path& filePath,
+    const Path& omegaPath,
+    const Path& omegaDPath,
+    const Path& omegaDirPath) {
+    std::cout << "Processing SPH file ... " << std::endl;
+    BinaryOutput output;
+    Storage storage;
+    Statistics stats;
+    Outcome outcome = output.load(filePath, storage, stats);
+    if (!outcome) {
+        std::cout << "Cannot load particle data, " << outcome.error() << std::endl;
+        return 0;
+    }
+
+    Post::HistogramParams params;
+    params.range = Interval(0._f, 13._f);
+    params.binCnt = 12;
+
+    const Float massCutoff = 1._f / 300000._f;
+    ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
+    const Float m_total = std::accumulate(m.begin(), m.end(), 0._f);
+    params.validator = [m, m_total, massCutoff](const Size i) { //
+        return m[i] >= m_total * massCutoff;
+    };
+
+    Array<Post::HistPoint> sfd = Post::getDifferentialHistogram(
+        storage, Post::HistogramId::ROTATIONAL_FREQUENCY, Post::HistogramSource::PARTICLES, params);
+
+    FileLogger logOmega(omegaPath, FileLogger::Options::KEEP_OPENED);
+    for (Post::HistPoint& p : sfd) {
+        logOmega.write(p.value, "  ", p.count); // / sum);
+    }
+
+    params.range = Interval();
+    Array<Post::HistPoint> dirs = Post::getDifferentialHistogram(
+        storage, Post::HistogramId::ROTATIONAL_AXIS, Post::HistogramSource::PARTICLES, params);
+
+    FileLogger logOmegaDir(omegaDirPath, FileLogger::Options::KEEP_OPENED);
+    for (Post::HistPoint& p : dirs) {
+        logOmegaDir.write(p.value, "  ", p.count);
+    }
+
+    // print omega-D relation
+    Array<Float> h(storage.getParticleCnt());
+    /// ArrayView<const Float> rho = storage.getValue<Float>(QuantityId::DENSITY);
+    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
+    for (Size i = 0; i < m.size(); ++i) {
+        h[i] = r[i][H]; // root<3>(3.f * m[i] / (rho[i] * 4.f * PI));
+    }
+
+    ArrayView<const Vector> w = storage.getValue<Vector>(QuantityId::ANGULAR_VELOCITY);
+    FileLogger logOmegaD(omegaDPath, FileLogger::Options::KEEP_OPENED);
+    for (Size i = 0; i < m.size(); ++i) {
+        if (m[i] > 3._f * params.massCutoff * m_total) {
+            // in m vs. rev/day
+            logOmegaD.write(2._f * h[i], "  ", getLength(w[i]) * 3600._f * 24._f / (2._f * PI));
+        }
+    }
+
     return 0;
 }
 
@@ -256,7 +316,7 @@ static Optional<Post::KsResult> printDvsOmega(const Path& familyData,
             rangeR.extend(harAst->radius.value());
         }
     }
-    if (found.size() < 4) {
+    if (found.size() < 10) {
         // too few data to do any statistics
         return NOTHING;
     }
@@ -286,6 +346,20 @@ static Optional<Post::KsResult> printDvsOmega(const Path& familyData,
 
     Post::KsFunction uniformCdf = Post::getUniformKsFunction(rangeR, rangeOmega);
     Post::KsResult result = Post::kolmogorovSmirnovTest(points, uniformCdf);
+
+    const Path histPath = Path("histogram") / outputPath.fileName();
+    FileSystem::createDirectory(histPath.parentPath());
+    std::ofstream histofs(histPath.native());
+    Array<Float> values;
+    for (PlotPoint& p : points) {
+        values.push(p.y);
+    }
+    Post::HistogramParams params;
+    params.range = Interval(0._f, 13._f);
+    Array<Post::HistPoint> histogram = Post::getDifferentialHistogram(values, params);
+    for (Post::HistPoint p : histogram) {
+        histofs << p.value << "  " << p.count << std::endl;
+    }
 
     outPoints = std::move(points);
     return result;
@@ -320,7 +394,8 @@ void processHarrisFile() {
 
     std::ofstream alls("D_omega_all.txt");
 
-    parallelFor(ThreadPool::getGlobalInstance(), 0, paths.size(), [&](const Size index) {
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+    parallelFor(pool, 0, paths.size(), [&](const Size index) {
         {
             std::unique_lock<std::mutex> lock(printMutex);
             std::cout << paths[index].native() << std::endl;
@@ -349,6 +424,16 @@ void processHarrisFile() {
         gnuplot.wait();
         ASSERT(FileSystem::pathExists(Path("plot.png")));
         FileSystem::copyFile(Path("plot.png"), uniquePaths.getPath(Path(targetPath).replaceExtension("png")));
+
+        if (points.size() > 25) {
+            const Path histPath = Path("histogram") / targetPath.fileName();
+            FileSystem::copyFile(histPath, Path("hist.txt"));
+            Process gnuplot2(Path("/bin/gnuplot"), { "dohistogram.plt" });
+            gnuplot2.wait();
+            ASSERT(FileSystem::pathExists(Path("hist.png")));
+            FileSystem::copyFile(
+                Path("hist.png"), uniquePaths.getPath(Path(histPath).replaceExtension("png")));
+        }
     });
 
     FileSystem::copyFile(Path("D_omega_all.txt"), Path("family.txt"));
@@ -375,38 +460,52 @@ int main(int argc, char** argv) {
         printHelp();
         return 0;
     }
-    std::string mode(argv[1]);
-    if (mode == "pkdgravToSfd") {
-        if (argc < 4) {
-            std::cout << "Expected parameters: post pkdgravToSfd ss.50000.bt sfd.txt";
+    try {
+
+        std::string mode(argv[1]);
+        if (mode == "pkdgravToSfd") {
+            if (argc < 4) {
+                std::cout << "Expected parameters: post pkdgravToSfd ss.50000.bt sfd.txt";
+                return 0;
+            }
+            return pkdgravToSfd(Path(argv[2]), Path(argv[3]));
+        } else if (mode == "pkdgravToOmega") {
+            if (argc < 4) {
+                std::cout << "Expected parameters: post pkdgravToOmega ss.50000.bt omega.txt";
+                return 0;
+            }
+            return pkdgravToOmega(Path(argv[2]), Path(argv[3]));
+        } else if (mode == "pkdgravToMoons") {
+            if (argc < 4) {
+                std::cout << "Expected parameters: post pkdgravToMoons ss.50000.bt 0.1";
+                return 0;
+            }
+            const float limit = std::atof(argv[3]);
+            return pkdgravToMoons(Path(argv[2]), limit);
+        } else if (mode == "ssfToSfd") {
+            if (argc < 4) {
+                std::cout << "Expected parameters: post ssfToSfd output.ssf sfd.txt";
+                return 0;
+            }
+            return ssfToSfd(Path(argv[2]), Path(argv[3]));
+        } else if (mode == "ssfToOmega") {
+            if (argc < 6) {
+                std::cout << "Expected parameters: post ssfToOmega output.ssf omega.txt omega_D.txt "
+                             "omega_dir.txt";
+                return 0;
+            }
+            return ssfToOmega(Path(argv[2]), Path(argv[3]), Path(argv[4]), Path(argv[5]));
+        } else if (mode == "stats") {
+            ssfToStats(Path(argv[2]));
+        } else if (mode == "harris") {
+            processHarrisFile();
+        } else {
+            printHelp();
             return 0;
         }
-        return pkdgravToSfd(Path(argv[2]), Path(argv[3]));
-    } else if (mode == "pkdgravToOmega") {
-        if (argc < 4) {
-            std::cout << "Expected parameters: post pkdgravToOmega ss.50000.bt omega.txt";
-            return 0;
-        }
-        return pkdgravToOmega(Path(argv[2]), Path(argv[3]));
-    } else if (mode == "pkdgravToMoons") {
-        if (argc < 4) {
-            std::cout << "Expected parameters: post pkdgravToMoons ss.50000.bt 0.1";
-            return 0;
-        }
-        const float limit = std::atof(argv[3]);
-        return pkdgravToMoons(Path(argv[2]), limit);
-    } else if (mode == "ssfToSfd") {
-        if (argc < 4) {
-            std::cout << "Expected parameters: post ssfToSfd output.ssf sfd.txt";
-            return 0;
-        }
-        return ssfToSfd(Path(argv[2]), Path(argv[3]));
-    } else if (mode == "stats") {
-        ssfToStats(Path(argv[2]));
-    } else if (mode == "harris") {
-        processHarrisFile();
-    } else {
-        printHelp();
-        return 0;
+
+    } catch (std::exception& e) {
+        std::cout << "ERROR: " << e.what() << std::endl;
+        return -1;
     }
 }

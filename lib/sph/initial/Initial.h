@@ -82,7 +82,7 @@ struct PowerLawSfd {
     ///
     /// For x=0 and x=1, interval.lower() and interval.upper() is returned, respectively. Input value must lie
     /// in unit interval, checked by assert.
-    Float operator()(const Float x) const {
+    INLINE Float operator()(const Float x) const {
         ASSERT(x >= 0._f && x <= 1._f);
         ASSERT(exponent != 1._f);
         const Float Rmin = pow(interval.lower(), 1._f - exponent);
@@ -101,6 +101,9 @@ struct PowerLawSfd {
 /// simulation.
 class InitialConditions : public Noncopyable {
 private:
+    /// Scheduler that can be used to parallelize the generation of the initial conditions.
+    IScheduler& scheduler;
+
     /// Solver used for creating necessary quantities. Does not necessarily have to be the same the solver
     /// used for the actual run, although it is recommended to make sure all the quantities are set up
     /// correctly.
@@ -116,10 +119,11 @@ public:
     /// \brief Constructs object by taking a reference to particle storage.
     ///
     /// Subsequent calls of \ref addBody function fill this storage with particles.
+    /// \param scheduler Scheduler used for parallelization.
     /// \param solver Solver used to create all the necessary quantities. Also must exist for the duration
     ///               of this object as it is stored by reference.
     /// \param settings Run settings
-    InitialConditions(ISolver& solver, const RunSettings& settings);
+    InitialConditions(IScheduler& scheduler, ISolver& solver, const RunSettings& settings);
 
     /// \brief Constructor creating solver from values in settings.
     ///
@@ -128,7 +132,7 @@ public:
     /// quantities. Mostly, this will throw an exception or assert, but in case the custom solver uses the
     /// same quantities as the default one, but it initializes them to different values, this error would go
     /// unnoticed.
-    InitialConditions(const RunSettings& settings);
+    InitialConditions(IScheduler& scheduler, const RunSettings& settings);
 
     ~InitialConditions();
 
@@ -157,7 +161,7 @@ public:
         AutoPtr<IDistribution>&& distribution);
 
 
-    /// Holds data needed to create a single body in \ref addHeterogeneousBody function.
+    /// \brief Holds data needed to create a single body in \ref addHeterogeneousBody function.
     struct BodySetup {
         AutoPtr<IDomain> domain;
         AutoPtr<IMaterial> material;

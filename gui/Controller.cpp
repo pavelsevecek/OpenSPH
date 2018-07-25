@@ -12,14 +12,81 @@
 #include "system/Statistics.h"
 #include "system/Timer.h"
 #include "thread/CheckFunction.h"
+#include <set>
 #include <wx/app.h>
 #include <wx/msgdlg.h>
 
 NAMESPACE_SPH_BEGIN
 
+static wxWindow* sWindow = nullptr;
+
+static bool assertDialog(const std::string& message) {
+    // holds already ignored asserts, to avoid repeated message boxes
+    static std::set<std::string> ignoredMessages;
+
+    if (ignoredMessages.find(message) != ignoredMessages.end()) {
+        // ignore
+        return false;
+    }
+
+    const int retval = wxMessageBox(message, "ASSERT", wxYES_NO, sWindow);
+    if (retval == wxYES) {
+        return true;
+    } else {
+        ignoredMessages.insert(message);
+        return false;
+    }
+}
+
+static bool guiAssertHandler(const std::string& message) {
+
+    // if we are not on main thread, we can wait here till the user responds, on main thread however that's
+    // not possible, so we just continue regardless of the assert
+    // this needs to be improved, ideally we want to block immediately inside the assert, but we also need
+    // to keep the even loop running, otherwise the message box will not be repainted :(
+
+    if (isMainThread()) {
+        executeOnMainThread([message] {
+            static bool reentrant = false;
+            if (reentrant) {
+                return;
+            }
+
+            reentrant = true;
+            if (assertDialog(message + "\n\nQuit the program?")) {
+                // at this point it's too late to break, so just quit the program instead
+                exit(0);
+            }
+            reentrant = false;
+        });
+
+        return false;
+    } else {
+        static std::condition_variable cv;
+        static std::mutex mutex;
+
+        std::unique_lock<std::mutex> lock(mutex);
+
+        std::atomic_bool retval(false);
+        executeOnMainThread([message, &retval] {
+            std::unique_lock<std::mutex> lock(mutex);
+            retval = assertDialog(message + "\n\nBreak the program?");
+            cv.notify_all();
+        });
+
+        // wait till the dialog is dismissed
+        cv.wait(lock);
+
+        return retval;
+    }
+}
+
 Controller::Controller(const GuiSettings& settings, AutoPtr<IPluginControls>&& plugin)
     : plugin(std::move(plugin)) {
     CHECK_FUNCTION(CheckFunction::ONCE);
+
+    // connect asserts to wx message dialog
+    Assert::handler = &guiAssertHandler;
 
     // copy settings
     gui = settings;
@@ -31,12 +98,15 @@ Controller::Controller(const GuiSettings& settings, AutoPtr<IPluginControls>&& p
     window = new MainWindow(this, gui, this->plugin.get());
     window->SetAutoLayout(true);
     window->Show();
+
+    sWindow = window.get();
 }
 
 Controller::~Controller() = default;
 
 void Controller::Vis::initialize(const GuiSettings& gui) {
-    renderer = Factory::getRenderer(gui);
+    /// \todo add Factory::getScheduler and use it here!
+    renderer = Factory::getRenderer(*ThreadPool::getGlobalInstance(), gui);
     colorizer = Factory::getColorizer(gui, ColorizerId::VELOCITY);
     timer = makeAuto<Timer>(gui.get<int>(GuiSettingsId::VIEW_MAX_FRAMERATE), TimerFlags::START_EXPIRED);
     const Point size(gui.get<int>(GuiSettingsId::VIEW_WIDTH), gui.get<int>(GuiSettingsId::VIEW_HEIGHT));
@@ -472,7 +542,7 @@ SharedPtr<Movie> Controller::createMovie(const Storage& storage) {
     Array<SharedPtr<IColorizer>> colorizers;
     GuiSettings guiClone = gui;
     guiClone.set(GuiSettingsId::RENDERER, gui.get<RendererEnum>(GuiSettingsId::IMAGES_RENDERER));
-    AutoPtr<IRenderer> renderer = Factory::getRenderer(guiClone);
+    AutoPtr<IRenderer> renderer = Factory::getRenderer(*ThreadPool::getGlobalInstance(), guiClone);
     // limit colorizer list for slower renderers
     switch (gui.get<RendererEnum>(GuiSettingsId::IMAGES_RENDERER)) {
     case RendererEnum::PARTICLE:

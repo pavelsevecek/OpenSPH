@@ -12,8 +12,21 @@
 NAMESPACE_SPH_BEGIN
 
 struct Assert {
+    /// \brief True if we are in unit test environment.
+    ///
+    /// Assert throws an exception in this case.
     static bool isTest;
+
+    /// \brief True if the assert should break the debugger.
     static bool breakOnFail;
+
+    typedef bool (*Handler)(const std::string& message);
+
+    /// \brief Custom assert handler.
+    ///
+    /// Assert message is passed as an argument. If it returns false, the assert is ignored and the program
+    /// continues. Note that assert can be fired from any thread, so it has to be thread-safe.
+    static Handler handler;
 
     class Exception : public std::exception {
     private:

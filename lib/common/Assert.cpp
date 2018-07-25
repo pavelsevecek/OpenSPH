@@ -29,6 +29,7 @@ static Array<std::string> getStackTrace() {
 
 bool Assert::isTest = false;
 bool Assert::breakOnFail = true;
+Assert::Handler Assert::handler = nullptr;
 
 void Assert::fireParams(const char* message,
     const char* file,
@@ -38,25 +39,46 @@ void Assert::fireParams(const char* message,
     static std::mutex mutex;
     std::unique_lock<std::mutex> lock(mutex);
     if (breakOnFail) {
-        StdOutLogger logger;
-        logger.write(
-            "================================================================================================"
-            "==========");
-        logger.write("Assert fired in file ", file, ", executing function ", func, " on line ", line);
-        logger.write("Condition: ", message);
+        AutoPtr<ILogger> logger;
+        if (handler) {
+            // write the message to string and provide it to the custom handler
+            logger = makeAuto<StringLogger>();
+        } else {
+            // by default, print the message to stdout
+            logger = makeAuto<StdOutLogger>();
+
+            // also add some padding
+            logger->write(
+                "============================================================================================"
+                "==============");
+        }
+
+        logger->write("Assert fired in file ", file, ", executing function ", func, " on line ", line);
+        logger->write("Condition: ", message);
         if (strlen(text) != 0) {
-            logger.write("Assert parameters: ", text);
+            logger->write("Assert parameters: ", text);
         }
         if (false) {
-            logger.write("Stack trace:");
+            logger->write("Stack trace:");
             Array<std::string> trace = getStackTrace();
             for (std::string& s : trace) {
-                logger.write(s);
+                logger->write(s);
             }
         }
-        logger.write(
-            "================================================================================================"
-            "==========");
+
+        if (handler) {
+            // execute the custom assert handler
+            const bool retval = (*handler)(dynamic_cast<StringLogger*>(&*logger)->toString());
+            if (!retval) {
+                // ignore the assert
+                return;
+            }
+        } else {
+            logger->write(
+                "============================================================================================"
+                "==============");
+        }
+
         if (isDebuggerPresent()) {
             raise(SIGTRAP);
         }

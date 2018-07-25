@@ -21,7 +21,6 @@ class IRheology;
 class EosMaterial : public IMaterial {
 private:
     AutoPtr<IEos> eos;
-    ArrayView<Float> rho, u, p, cs;
 
 public:
     /// \brief Creates the material by specifying an equation of state.
@@ -29,6 +28,9 @@ public:
     /// Equation of state must not be nullptr.
     EosMaterial(const BodySettings& body, AutoPtr<IEos>&& eos);
 
+    /// \brief Creates the material.
+    ///
+    /// Equation of state is constructed from parameters in settings.
     explicit EosMaterial(const BodySettings& body);
 
     /// Evaluate holded equation of state.
@@ -42,9 +44,11 @@ public:
 
     virtual void create(Storage& storage, const MaterialInitialContext& context) override;
 
-    virtual void initialize(Storage& storage, const IndexSequence sequence) override;
+    virtual void initialize(IScheduler& scheduler, Storage& storage, const IndexSequence sequence) override;
 
-    virtual void finalize(Storage& UNUSED(storage), const IndexSequence UNUSED(sequence)) override {
+    virtual void finalize(IScheduler& UNUSED(scheduler),
+        Storage& UNUSED(storage),
+        const IndexSequence UNUSED(sequence)) override {
         // nothing
     }
 };
@@ -64,13 +68,12 @@ public:
 
     virtual void create(Storage& storage, const MaterialInitialContext& context) override;
 
-    virtual void initialize(Storage& storage, const IndexSequence sequence) override;
+    virtual void initialize(IScheduler& scheduler, Storage& storage, const IndexSequence sequence) override;
 
-    virtual void finalize(Storage& storage, const IndexSequence sequence) override;
+    virtual void finalize(IScheduler& scheduler, Storage& storage, const IndexSequence sequence) override;
 };
 
-/// Returns material using default settings.
+/// \brief Returns material using default settings.
 AutoPtr<IMaterial> getDefaultMaterial();
-
 
 NAMESPACE_SPH_END

@@ -30,9 +30,9 @@ public:
     virtual void setDerivatives(DerivativeHolder& UNUSED(derivatives),
         const RunSettings& UNUSED(settings)) override {}
 
-    virtual void initialize(Storage& UNUSED(storage)) override {}
+    virtual void initialize(IScheduler& UNUSED(scheduler), Storage& UNUSED(storage)) override {}
 
-    virtual void finalize(Storage& storage) override {
+    virtual void finalize(IScheduler& UNUSED(scheduler), Storage& storage) override {
         ArrayView<Vector> r, v, dv;
         tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
         /// \todo parallelize
@@ -65,9 +65,9 @@ public:
     virtual void setDerivatives(DerivativeHolder& UNUSED(derivatives),
         const RunSettings& UNUSED(settings)) override {}
 
-    virtual void initialize(Storage& UNUSED(storage), ThreadPool& UNUSED(pool)) override {}
+    virtual void initialize(IScheduler& UNUSED(scheduler), Storage& UNUSED(storage)) override {}
 
-    virtual void finalize(Storage& storage, ThreadPool& UNUSED(pool)) override {
+    virtual void finalize(IScheduler& UNUSED(scheduler), Storage& storage) override {
         ArrayView<Vector> r, v, dv;
         tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
         /// \todo parallelize

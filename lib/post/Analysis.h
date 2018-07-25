@@ -66,7 +66,7 @@ struct Tumbler {
 /// accuracy data (Henych, 2013).
 Array<Tumbler> findTumblers(const Storage& storage, const Float limit);
 
-/// Potential relationship of the body with a respect to the largest remnant (fragment).
+/// \brief Potential relationship of the body with a respect to the largest remnant (fragment).
 enum class MoonEnum {
     LARGEST_FRAGMENT, ///< This is the largest fragment (or remnant, depending on definition)
     RUNAWAY,          ///< Body is on hyperbolic trajectory, ejected away from the largest remnant (fragment)
@@ -159,27 +159,29 @@ enum class HistogramId {
     /// Particle velocities
     VELOCITIES = -3,
 
+    /// Rotational frequency in revs/day
+    ROTATIONAL_FREQUENCY = -4,
+
     /// Rotational periods of particles (in hours)
     /// \todo it should be in code units and then converted to hours on output!
-    ROTATIONAL_PERIOD = -4,
+    ROTATIONAL_PERIOD = -5,
+
+    /// Distribution of axis directions, from -pi to pi
+    ROTATIONAL_AXIS = -6,
 };
+
+/// \brief Source data used to construct the histogram.
+enum class HistogramSource {
+    /// Equivalent radii of connected chunks of particles (SPH framework)
+    COMPONENTS,
+
+    /// Radii of individual particles, considering particles as spheres (N-body framework)
+    PARTICLES,
+};
+
 
 /// \brief Parameters of the histogram
 struct HistogramParams {
-
-    /// \brief Source data used to construct the histogram.
-    enum class Source {
-        /// Equivalent radii of connected chunks of particles (SPH framework)
-        COMPONENTS,
-
-        /// Radii of individual particles, considering particles as spheres (N-body framework)
-        PARTICLES,
-    };
-
-    Source source = Source::PARTICLES;
-
-    /// Quantity from which the histogram is constructed.
-    HistogramId id = HistogramId::RADII;
 
     /// \brief Range of values from which the histogram is constructed.
     ///
@@ -194,34 +196,52 @@ struct HistogramParams {
     /// \brief Reference density, used when computing particle radii from their masses.
     Float referenceDensity = 2700._f;
 
+    /// \brief Cutoff value of particle mass for inclusion in the histogram.
+    ///
+    /// Particles with masses below this value are considered "below observational limit".
+    /// Applicable only for particle histogram.
+    Float massCutoff = 0._f;
+
     /// \brief Parameters used by histogram of components
     struct ComponentParams {
+
+        /// Radius of particles in units of their smoothing lengths.
         Float radius = 2._f;
+
     } components;
 
-    /// \brief Validator used to determine particles/component included in the histogram
+    /// \brief Function used for inclusiong/exclusion of values in the histogram.
     ///
-    /// By default, all particles/components are included
-    Function<bool(const Float value)> validator = [](const Float UNUSED(value)) { return true; };
+    /// Works only for particle histograms.
+    Function<bool(Size index)> validator = [](Size UNUSED(index)) { return true; };
 };
 
-/// \brief Point in SFD
-struct SfdPoint {
-    /// Radius or value of measured quantity (x coordinate in the plot)
+/// \brief Point in the histogram
+struct HistPoint {
+    /// Value of the quantity
     Float value;
 
     /// Number of particles/components
     Size count;
 };
 
-/// \brief Computes differential size-frequency distribution of particle radii.
-Array<SfdPoint> getDifferentialSfd(const Storage& storage, const HistogramParams& params);
+/// \brief Computes the differential histogram from given values.
+Array<HistPoint> getDifferentialHistogram(ArrayView<const Float> values, const HistogramParams& params);
 
-/// \brief Computes cummulative size-frequency distribution of body sizes (equivalent diameters).
+/// \brief Computes the differential histogram of particles in the storage.
+Array<HistPoint> getDifferentialHistogram(const Storage& storage,
+    const HistogramId id,
+    const HistogramSource source,
+    const HistogramParams& params);
+
+/// \brief Computes cummulative (integral) histogram of particles in the storage.
 ///
-/// The storage must contain at least particle positions, masses and densities.
+/// The quantity for which the histogram is computed is specified in ??
 /// \param params Parameters of the histogram.
-Array<SfdPoint> getCummulativeSfd(const Storage& storage, const HistogramParams& params);
+Array<HistPoint> getCummulativeHistogram(const Storage& storage,
+    const HistogramId id,
+    const HistogramSource source,
+    const HistogramParams& params);
 
 } // namespace Post
 

@@ -91,7 +91,7 @@ void AsteroidCollision::setUp() {
             }
         }
     } else {
-        Size N = 10000;
+        Size N = 1000;
 
         BodySettings body;
         body.set(BodySettingsId::ENERGY, 0._f)
@@ -113,8 +113,8 @@ void AsteroidCollision::setUp() {
         params.centerOfMassFrame = true;
         params.optimizeImpactor = false;
 
-        solver = Factory::getSolver(settings);
-        Presets::Collision data(settings, body, params);
+        solver = Factory::getSolver(*scheduler, settings);
+        Presets::Collision data(*scheduler, settings, body, params);
         data.addTarget(*storage);
         data.addImpactor(*storage);
     }

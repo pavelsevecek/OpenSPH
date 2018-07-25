@@ -6,6 +6,7 @@
 #include "sph/kernel/Kernel.h"
 #include "system/Factory.h"
 #include "system/Statistics.h"
+#include "thread/Pool.h"
 #include <iostream>
 
 using namespace Sph;
@@ -79,7 +80,7 @@ void convert(const Storage& storage, openvdb::GridPtrVec& grids) {
 
     RunSettings settings;
     AutoPtr<IBasicFinder> finder = Factory::getFinder(settings);
-    finder->build(r);
+    finder->build(SEQUENTIAL, r);
 
     LutKernel<3> kernel = Factory::getKernel<3>(settings);
     const Float u_iv = storage.getMaterial(0)->getParam<Float>(BodySettingsId::TILLOTSON_ENERGY_IV);

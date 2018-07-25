@@ -60,6 +60,7 @@ public:
         const int wallclock = stats.get<int>(StatisticsId::WALLCLOCK_TIME);
         const std::string formattedWallclock = getFormattedTime(wallclock);
         logger->write(name, " #", index, "  time = ", time, "  wallclock time: ", formattedWallclock);
+
         if (stats.has(StatisticsId::RELATIVE_PROGRESS)) {
             const Float progress = stats.get<Float>(StatisticsId::RELATIVE_PROGRESS);
             logger->write(" - progress:    ", int(progress * 100), "%");
@@ -70,6 +71,15 @@ public:
                 logger->write(" - ETA:         N/A");
             }
         }
+
+        /* needs to be fixed
+         * if (stats.has(StatisticsId::ETA)) {
+            const int eta = stats.get<int>(StatisticsId::ETA);
+            const std::string formattedEta = getFormattedTime(eta);
+            logger->write(" - ETA:         ", formattedEta);
+        } else {
+            logger->write(" - ETA:         ", "N/A");
+        }*/
 
         // Timestepping info
         CriterionId id = stats.get<CriterionId>(StatisticsId::TIMESTEP_CRITERION);

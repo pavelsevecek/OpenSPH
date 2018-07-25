@@ -130,7 +130,7 @@ void PlotView::drawPlot(wxPaintDC& dc, IPlot& lockedPlot, const Interval rangeX,
 
 void PlotView::drawAxes(wxDC& dc, const Interval rangeX, const Interval rangeY) {
     const wxSize size = this->GetSize();
-    const AffineMatrix2 invMatrix = this->getPlotTransformMatrix(rangeX, rangeY).inverse();
+    const AffineMatrix2 matrix = this->getPlotTransformMatrix(rangeX, rangeY);
 
     // find point where y-axis appears on the polot
     const Float x0 = -rangeX.lower() / rangeX.size();
@@ -139,14 +139,16 @@ void PlotView::drawAxes(wxDC& dc, const Interval rangeX, const Interval rangeY) 
         const Float dcX = padding.x + x0 * (size.x - 2 * padding.x);
         dc.DrawLine(dcX, size.y - padding.y, dcX, padding.y);
         if (showLabels) {
-            for (Size i = 0; i < 6; ++i) {
-                const Float dcY = padding.y + (i + 0.5_f) * (size.y - 2 * padding.y) / 6._f;
-                dc.DrawLine(dcX - 2, dcY, dcX + 2, dcY);
-                const PlotPoint p = invMatrix.transformPoint({ dcX, dcY });
-                const std::wstring text = toPrintableString(p.y, 3);
+            Array<Float> tics = getLinearTics(rangeY, 6);
+            ASSERT(tics.size() >= 6);
+            for (const Float tic : tics) {
+                const PlotPoint plotPoint(0, tic);
+                const PlotPoint imagePoint = matrix.transformPoint(plotPoint);
+                dc.DrawLine(imagePoint.x - 2, imagePoint.y, imagePoint.x + 2, imagePoint.y);
+                const std::wstring text = toPrintableString(tic, 3);
                 const wxSize extent = dc.GetTextExtent(text);
-                const Float labelX = (dcX > size.x / 2._f) ? dcX - extent.x : dcX;
-                drawTextWithSubscripts(dc, text, wxPoint(labelX, dcY - extent.y / 2));
+                const Float labelX = (imagePoint.x > size.x / 2._f) ? imagePoint.x - extent.x : imagePoint.x;
+                drawTextWithSubscripts(dc, text, wxPoint(labelX, imagePoint.y - extent.y / 2));
             }
         }
     }
@@ -157,14 +159,15 @@ void PlotView::drawAxes(wxDC& dc, const Interval rangeX, const Interval rangeY) 
         const Float dcY = size.y - padding.y - y0 * (size.y - 2 * padding.y);
         dc.DrawLine(padding.x, dcY, size.x - padding.x, dcY);
         if (showLabels) {
-            for (Size i = 0; i < 8; ++i) {
-                const Float dcX = padding.x + (i + 0.5_f) * (size.x - 2 * padding.x) / 6._f;
-                dc.DrawLine(dcX, dcY - 2, dcX, dcY + 2);
-                const PlotPoint p = invMatrix.transformPoint({ dcX, dcY });
-                const std::wstring text = toPrintableString(p.x, 3);
+            Array<Float> tics = getLinearTics(rangeX, 6);
+            for (const Float tic : tics) {
+                const PlotPoint plotPoint(tic, 0);
+                const PlotPoint imagePoint = matrix.transformPoint(plotPoint);
+                dc.DrawLine(imagePoint.x, imagePoint.y - 2, imagePoint.x, imagePoint.y + 2);
+                const std::wstring text = toPrintableString(tic, 3);
                 const wxSize extent = dc.GetTextExtent(text);
-                const Float labelY = (dcY < size.y / 2._f) ? dcY : dcY - extent.y;
-                drawTextWithSubscripts(dc, text, wxPoint(dcX - extent.x / 2, labelY));
+                const Float labelY = (imagePoint.y < size.y / 2._f) ? imagePoint.y : imagePoint.y - extent.y;
+                drawTextWithSubscripts(dc, text, wxPoint(imagePoint.x - extent.x / 2, labelY));
             }
         }
     }

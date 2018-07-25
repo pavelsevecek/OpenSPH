@@ -8,6 +8,7 @@
 #include "quantities/Storage.h"
 #include "system/Settings.h"
 #include "tests/Approx.h"
+#include "thread/Pool.h"
 #include "timestepping/ISolver.h"
 #include "utils/SequenceTest.h"
 
@@ -18,7 +19,8 @@ TEST_CASE("Initial addBody", "[initial]") {
     bodySettings.set(BodySettingsId::PARTICLE_COUNT, 100);
     BlockDomain domain(Vector(0._f), Vector(1._f));
     Storage storage;
-    InitialConditions conds(RunSettings::getDefaults());
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+    InitialConditions conds(pool, RunSettings::getDefaults());
     conds.addMonolithicBody(storage, domain, bodySettings);
 
     const Size size = storage.getValue<Vector>(QuantityId::POSITION).size();
@@ -65,7 +67,8 @@ TEST_CASE("Initial custom solver", "[initial]") {
     };
     Storage storage;
     Solver solver;
-    InitialConditions initial(solver, RunSettings::getDefaults());
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+    InitialConditions initial(pool, solver, RunSettings::getDefaults());
     REQUIRE(solver.createCalled == 0);
     BodySettings body;
     initial.addMonolithicBody(storage, SphericalDomain(Vector(0._f), 1._f), body);
@@ -76,7 +79,8 @@ TEST_CASE("Initial custom solver", "[initial]") {
 
 TEST_CASE("Initial velocity", "[initial]") {
     Storage storage;
-    InitialConditions conds(RunSettings::getDefaults());
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+    InitialConditions conds(pool, RunSettings::getDefaults());
     BodySettings bodySettings;
     bodySettings.set(BodySettingsId::DENSITY, 1._f);
     conds.addMonolithicBody(storage, SphericalDomain(Vector(0._f), 1._f), bodySettings)
@@ -101,7 +105,8 @@ TEST_CASE("Initial velocity", "[initial]") {
 
 TEST_CASE("Initial rotation", "[initial]") {
     Storage storage;
-    InitialConditions conds(RunSettings::getDefaults());
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+    InitialConditions conds(pool, RunSettings::getDefaults());
     conds.addMonolithicBody(storage, SphericalDomain(Vector(0._f), 1._f), BodySettings::getDefaults())
         .addRotation(Vector(1._f, 3._f, -2._f), BodyView::RotationOrigin::FRAME_ORIGIN);
     ArrayView<Vector> r, v, dv;
@@ -133,13 +138,14 @@ TEST_CASE("Initial addHeterogeneousBody single", "[initial]") {
     bodySettings.set(BodySettingsId::PARTICLE_COUNT, 1000);
     AutoPtr<BlockDomain> domain = makeAuto<BlockDomain>(Vector(0._f), Vector(1._f));
     Storage storage1;
-    InitialConditions conds1(RunSettings::getDefaults());
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+    InitialConditions conds1(pool, RunSettings::getDefaults());
 
     InitialConditions::BodySetup body1(std::move(domain), bodySettings);
     conds1.addHeterogeneousBody(storage1, std::move(body1), {}); // this should be equal to addBody
 
     Storage storage2;
-    InitialConditions conds2(RunSettings::getDefaults());
+    InitialConditions conds2(pool, RunSettings::getDefaults());
     BlockDomain domain2(Vector(0._f), Vector(1._f));
     conds2.addMonolithicBody(storage2, domain2, bodySettings);
     REQUIRE(storage1.getQuantityCnt() == storage2.getQuantityCnt());
@@ -163,8 +169,9 @@ TEST_CASE("Initial addHeterogeneousBody multiple", "[initial]") {
     // random to make sure we generate exactly 1000
     bodySettings.set(BodySettingsId::INITIAL_DISTRIBUTION, DistributionEnum::RANDOM);
     RunSettings settings;
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
     Storage storage;
-    InitialConditions conds(RunSettings::getDefaults());
+    InitialConditions conds(pool, RunSettings::getDefaults());
 
     AutoPtr<BlockDomain> domain = makeAuto<BlockDomain>(Vector(0._f), Vector(10._f)); // [-5, 5]
     InitialConditions::BodySetup environment(std::move(domain), bodySettings);
@@ -214,7 +221,8 @@ TEST_CASE("Initial addHeterogeneousBody multiple", "[initial]") {
 }
 
 TEST_CASE("Initial addRubblePileBody", "[initial]") {
-    InitialConditions ic(RunSettings::getDefaults());
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+    InitialConditions ic(pool, RunSettings::getDefaults());
 
     BodySettings body;
     body.set(BodySettingsId::PARTICLE_COUNT, 10000);

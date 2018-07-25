@@ -37,44 +37,30 @@ public:
         ASSERT(this->gravity);
     }
 
-    virtual void build(const Storage& storage) override {
+    virtual void build(IScheduler& scheduler, const Storage& storage) override {
         // here we have to information about the time, so we must build the gravity every time step; that's
         // fine as long as building time is significantly lower than the evaluation time.
-        gravity->build(storage);
+        gravity->build(scheduler, storage);
     }
 
-    virtual void evalAll(ArrayView<Vector> dv, Statistics& stats) const override {
-        this->eval(dv, stats, [this](ArrayView<Vector> dv, Statistics& stats) {
-            return gravity->evalAll(dv, stats);
-        });
-    }
-
-    virtual void evalAll(ThreadPool& pool, ArrayView<Vector> dv, Statistics& stats) const override {
-        this->eval(dv, stats, [this, &pool](ArrayView<Vector> dv, Statistics& stats) {
-            return gravity->evalAll(pool, dv, stats);
-        });
-    }
-
-    virtual Vector eval(const Vector& r0, Statistics& stats) const override {
-        // we could cache this as well, but the function is mainly used for testing and some utilities where
-        // performance does not matter, so it's probably not worth it.
-        return gravity->eval(r0, stats);
-    }
-
-private:
-    template <typename T>
-    void eval(ArrayView<Vector> dv, Statistics& stats, const T& functor) const {
+    virtual void evalAll(IScheduler& scheduler, ArrayView<Vector> dv, Statistics& stats) const override {
         const Float t = stats.get<Float>(StatisticsId::RUN_TIME);
         ASSERT(t >= t_last);
         if (dv.size() == cachedDv.size() && t - t_last < period) {
             std::copy(cachedDv.begin(), cachedDv.end(), dv.begin());
             stats.set(StatisticsId::GRAVITY_EVAL_TIME, 0);
         } else {
-            functor(dv, stats);
+            gravity->evalAll(scheduler, dv, stats);
             cachedDv.resize(dv.size());
             std::copy(dv.begin(), dv.end(), cachedDv.begin());
             t_last = t;
         }
+    }
+
+    virtual Vector eval(const Vector& r0, Statistics& stats) const override {
+        // we could cache this as well, but the function is mainly used for testing and some utilities where
+        // performance does not matter, so it's probably not worth it.
+        return gravity->eval(r0, stats);
     }
 };
 

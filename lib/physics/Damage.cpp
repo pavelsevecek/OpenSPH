@@ -102,7 +102,8 @@ void ScalarGradyKippModel::setFlaws(Storage& storage,
     }
 }
 
-void ScalarGradyKippModel::reduce(Storage& storage,
+void ScalarGradyKippModel::reduce(IScheduler& scheduler,
+    Storage& storage,
     const Flags<DamageFlag> flags,
     const MaterialView material) {
     ArrayView<Float> damage = storage.getValue<Float>(QuantityId::DAMAGE);
@@ -114,7 +115,7 @@ void ScalarGradyKippModel::reduce(Storage& storage,
     tie(s, s_dmg) = storage.modify<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
 
     IndexSequence seq = material.sequence();
-    parallelFor(ThreadPool::getGlobalInstance(), *seq.begin(), *seq.end(), [&](const Size i) INL {
+    parallelFor(scheduler, *seq.begin(), *seq.end(), [&](const Size i) INL {
         const Float d = pow<3>(damage[i]);
         // pressure is reduced only for negative values
         /// \todo could be vectorized, maybe
@@ -133,7 +134,7 @@ void ScalarGradyKippModel::reduce(Storage& storage,
     });
 }
 
-void ScalarGradyKippModel::integrate(Storage& storage, const MaterialView material) {
+void ScalarGradyKippModel::integrate(IScheduler& scheduler, Storage& storage, const MaterialView material) {
     ArrayView<TracelessTensor> s, s_dmg, ds;
     s_dmg = storage.getPhysicalValue<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
     s = storage.getValue<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
@@ -147,7 +148,7 @@ void ScalarGradyKippModel::integrate(Storage& storage, const MaterialView materi
     tie(damage, ddamage) = storage.getAll<Float>(QuantityId::DAMAGE);
 
     IndexSequence seq = material.sequence();
-    parallelFor(ThreadPool::getGlobalInstance(), *seq.begin(), *seq.end(), [&](const Size i) {
+    parallelFor(scheduler, *seq.begin(), *seq.end(), [&](const Size i) {
         // if damage is already on max value, set stress to zero to avoid limiting timestep by
         // non-existent stresses
         const Interval range = material->range(QuantityId::DAMAGE);
@@ -192,13 +193,16 @@ void TensorGradyKippModel::setFlaws(Storage& UNUSED(storage),
     NOT_IMPLEMENTED;
 }
 
-void TensorGradyKippModel::reduce(Storage& UNUSED(storage),
+void TensorGradyKippModel::reduce(IScheduler& UNUSED(scheduler),
+    Storage& UNUSED(storage),
     const Flags<DamageFlag> UNUSED(flags),
     const MaterialView UNUSED(material)) {
     NOT_IMPLEMENTED;
 }
 
-void TensorGradyKippModel::integrate(Storage& UNUSED(storage), const MaterialView UNUSED(material)) {
+void TensorGradyKippModel::integrate(IScheduler& UNUSED(scheduler),
+    Storage& UNUSED(storage),
+    const MaterialView UNUSED(material)) {
     NOT_IMPLEMENTED;
 }
 
@@ -210,7 +214,9 @@ void MohrCoulombModel::setFlaws(Storage& storage,
     storage.insert<Float>(QuantityId::FRICTION_ANGLE, OrderEnum::ZERO, 0._f);
 }
 
-void MohrCoulombModel::integrate(Storage& UNUSED(storage), const MaterialView UNUSED(material)) {
+void MohrCoulombModel::integrate(IScheduler& UNUSED(scheduler),
+    Storage& UNUSED(storage),
+    const MaterialView UNUSED(material)) {
     NOT_IMPLEMENTED;
     /*for (Size i = 0; i < p.size(); ++i) {
         const SymmetricTensor sigma = SymmetricTensor(s_dmg[i]) - p[i] * SymmetricTensor::identity();
@@ -224,18 +230,19 @@ void NullFracture::setFlaws(Storage& UNUSED(storage),
     IMaterial& UNUSED(material),
     const MaterialInitialContext& UNUSED(context)) const {}
 
-void NullFracture::reduce(Storage& storage,
+void NullFracture::reduce(IScheduler& scheduler,
+    Storage& storage,
     const Flags<DamageFlag> UNUSED(flags),
     const MaterialView material) {
     ArrayView<TracelessTensor> s, s_dmg;
     tie(s, s_dmg) = storage.modify<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
 
     IndexSequence seq = material.sequence();
-    parallelFor(ThreadPool::getGlobalInstance(), *seq.begin(), *seq.end(), [&](const Size i) INL {
-        s_dmg[i] = s[i];
-    });
+    parallelFor(scheduler, *seq.begin(), *seq.end(), [&](const Size i) INL { s_dmg[i] = s[i]; });
 }
 
-void NullFracture::integrate(Storage& UNUSED(storage), const MaterialView UNUSED(material)) {}
+void NullFracture::integrate(IScheduler& UNUSED(scheduler),
+    Storage& UNUSED(storage),
+    const MaterialView UNUSED(material)) {}
 
 NAMESPACE_SPH_END

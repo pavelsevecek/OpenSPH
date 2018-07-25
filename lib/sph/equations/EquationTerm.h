@@ -32,12 +32,12 @@ public:
     /// Called at the beginning of every time step. Note that derivatives need not be zeroed out manually,
     /// this is already done by timestepping (for derivatives of quantities) and solver (for accumulated
     /// values).
-    virtual void initialize(Storage& storage, ThreadPool& pool) = 0;
+    virtual void initialize(IScheduler& scheduler, Storage& storage) = 0;
 
     /// \brief Computes all the derivatives and/or quantity values based on accumulated derivatives.
     ///
     /// Called every time step after derivatives are evaluated and saved to storage.
-    virtual void finalize(Storage& storage, ThreadPool& pool) = 0;
+    virtual void finalize(IScheduler& scheduler, Storage& storage) = 0;
 
     /// \brief Creates all quantities needed by the term using given material.
     ///
@@ -110,9 +110,9 @@ public:
 
     virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override;
 
-    virtual void initialize(Storage& storage, ThreadPool& pool) override;
+    virtual void initialize(IScheduler& scheduler, Storage& storage) override;
 
-    virtual void finalize(Storage& storage, ThreadPool& pool) override;
+    virtual void finalize(IScheduler& scheduler, Storage& storage) override;
 
     virtual void create(Storage& storage, IMaterial& material) const override;
 
@@ -144,9 +144,9 @@ class PressureForce : public IEquationTerm {
 public:
     virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override;
 
-    virtual void initialize(Storage& storage, ThreadPool& pool) override;
+    virtual void initialize(IScheduler& scheduler, Storage& storage) override;
 
-    virtual void finalize(Storage& storage, ThreadPool& pool) override;
+    virtual void finalize(IScheduler& scheduler, Storage& storage) override;
 
     virtual void create(Storage& storage, IMaterial& material) const override;
 };
@@ -185,9 +185,9 @@ public:
 
     virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override;
 
-    virtual void initialize(Storage& storage, ThreadPool& pool) override;
+    virtual void initialize(IScheduler& scheduler, Storage& storage) override;
 
-    virtual void finalize(Storage& storage, ThreadPool& pool) override;
+    virtual void finalize(IScheduler& scheduler, Storage& storage) override;
 
     virtual void create(Storage& storage, IMaterial& material) const override;
 };
@@ -199,9 +199,9 @@ class NavierStokesForce : public IEquationTerm {
 public:
     virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override;
 
-    virtual void initialize(Storage& storage, ThreadPool& pool) override;
+    virtual void initialize(IScheduler& scheduler, Storage& storage) override;
 
-    virtual void finalize(Storage& storage, ThreadPool& pool) override;
+    virtual void finalize(IScheduler& scheduler, Storage& storage) override;
 
     virtual void create(Storage& storage, IMaterial& material) const override;
 };
@@ -228,9 +228,9 @@ class ContinuityEquation : public IEquationTerm {
 public:
     virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override;
 
-    virtual void initialize(Storage& storage, ThreadPool& pool) override;
+    virtual void initialize(IScheduler& scheduler, Storage& storage) override;
 
-    virtual void finalize(Storage& storage, ThreadPool& pool) override;
+    virtual void finalize(IScheduler& scheduler, Storage& storage) override;
 
     virtual void create(Storage& storage, IMaterial& material) const override;
 };
@@ -249,9 +249,9 @@ class ConstSmoothingLength : public IEquationTerm {
 public:
     virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override;
 
-    virtual void initialize(Storage& storage, ThreadPool& pool) override;
+    virtual void initialize(IScheduler& scheduler, Storage& storage) override;
 
-    virtual void finalize(Storage& storage, ThreadPool& pool) override;
+    virtual void finalize(IScheduler& scheduler, Storage& storage) override;
 
     virtual void create(Storage& storage, IMaterial& material) const override;
 };
@@ -310,18 +310,18 @@ public:
     }
 
     /// Calls \ref EquationTerm::initialize for all stored equation terms.
-    void initialize(Storage& storage, ThreadPool& pool) {
+    void initialize(IScheduler& scheduler, Storage& storage) {
         PROFILE_SCOPE("EquationHolder::initialize");
         for (auto& t : terms) {
-            t->initialize(storage, pool);
+            t->initialize(scheduler, storage);
         }
     }
 
     /// Calls \ref EquationTerm::finalize for all stored equation terms.
-    void finalize(Storage& storage, ThreadPool& pool) {
+    void finalize(IScheduler& scheduler, Storage& storage) {
         PROFILE_SCOPE("EquationHolder::finalize");
         for (auto& t : terms) {
-            t->finalize(storage, pool);
+            t->finalize(scheduler, storage);
         }
     }
 

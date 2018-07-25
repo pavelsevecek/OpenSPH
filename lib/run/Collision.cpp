@@ -109,11 +109,11 @@ void StabilizationRunPhase::setUp() {
         logger->write("No material settings found, defaults saved to file '", matPath.native(), "'");
     }
 
-    solver = makeAuto<StabilizationSolver>(settings);
+    solver = makeAuto<StabilizationSolver>(*scheduler, settings);
 
     // override collision params with value loaded from settings
     params.targetParticleCnt = body.get<int>(BodySettingsId::PARTICLE_COUNT);
-    data = makeShared<Presets::Collision>(settings, body, params);
+    data = makeShared<Presets::Collision>(*scheduler, settings, body, params);
     storage = makeShared<Storage>();
 
     data->addTarget(*storage);
@@ -174,7 +174,7 @@ AutoPtr<IRunPhase> FragmentationRunPhase::getNextPhase() const {
 
 void FragmentationRunPhase::handoff(Storage&& input) {
     storage = makeShared<Storage>(std::move(input));
-    solver = Factory::getSolver(settings);
+    solver = Factory::getSolver(*scheduler, settings);
     const Size targetParticleCnt = storage->getParticleCnt();
     data->addImpactor(*storage);
 
@@ -246,7 +246,7 @@ AutoPtr<IRunPhase> ReaccumulationRunPhase::getNextPhase() const {
 }
 
 void ReaccumulationRunPhase::handoff(Storage&& input) {
-    solver = makeAuto<NBodySolver>(settings);
+    solver = makeAuto<NBodySolver>(*scheduler, settings);
 
     // we don't need any material, so just pass some dummy
     storage = makeShared<Storage>(makeAuto<NullMaterial>(EMPTY_SETTINGS));

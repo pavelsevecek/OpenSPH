@@ -8,6 +8,7 @@
 #include "objects/utility/ArrayUtils.h"
 #include "sph/initial/Distribution.h"
 #include "tests/Approx.h"
+#include "thread/Pool.h"
 #include "utils/SequenceTest.h"
 
 using namespace Sph;
@@ -50,12 +51,13 @@ static Outcome checkNeighboursEqual(ArrayView<NeighbourRecord> treeNeighs,
 
 static void checkNeighbours(ISymmetricFinder& finder) {
     HexagonalPacking distr;
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
     SphericalDomain domain(Vector(0._f), 2._f);
-    Array<Vector> storage = distr.generate(1000, domain);
-    finder.build(storage);
+    Array<Vector> storage = distr.generate(pool, 1000, domain);
+    finder.build(pool, storage);
 
     BruteForceFinder bf;
-    bf.build(storage);
+    bf.build(pool, storage);
 
     Array<NeighbourRecord> treeNeighs;
     Array<NeighbourRecord> bfNeighs;
@@ -102,8 +104,9 @@ static void checkNeighbours(ISymmetricFinder& finder) {
 
 static void checkEmpty(ISymmetricFinder& finder) {
     Array<Vector> storage;
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
     // build finder on empty array
-    REQUIRE_NOTHROW(finder.build(storage));
+    REQUIRE_NOTHROW(finder.build(pool, storage));
 
     // find in empty
     Array<NeighbourRecord> treeNeighs;
@@ -114,8 +117,9 @@ static void checkEmpty(ISymmetricFinder& finder) {
 /// Tests for one particular bug: single particle with very large components of position vector.
 /// Used to cause assert in UniformGridFinder, due to absolute values of epsilon in bounding box.
 static void checkLargeValues(ISymmetricFinder& finder) {
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
     Array<Vector> storage = { Vector(1.e10_f, 2.e10_f, -3.e10_f, 1._f) };
-    REQUIRE_NOTHROW(finder.build(storage));
+    REQUIRE_NOTHROW(finder.build(pool, storage));
 
     Array<NeighbourRecord> treeNeighs;
     Size nTree = finder.findAll(0, 1.f, treeNeighs);
@@ -125,13 +129,15 @@ static void checkLargeValues(ISymmetricFinder& finder) {
     REQUIRE(nTree == 0);
 }
 
-static void testFindingSmallerH(ISymmetricFinder& finder) {
+/// Tests the ISymmetricFinder::finderLowerRank.
+static void checkFindingSmallerH(ISymmetricFinder& finder) {
     Array<Vector> storage(0, 10);
     for (int i = 0; i < 10; ++i) {
         storage.push(Vector(i, 0, 0, i + 1)); // points on line with increasing H
     }
 
-    finder.build(storage);
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+    finder.build(pool, storage);
     Array<NeighbourRecord> treeNeighs;
     int nAll = finder.findAll(4, 10._f, treeNeighs);
     REQUIRE(nAll == 10); // this should find all particles
@@ -147,19 +153,62 @@ static void testFindingSmallerH(ISymmetricFinder& finder) {
     REQUIRE(allMatching);
 }
 
+static bool neighboursEqual(Array<Array<NeighbourRecord>>& list1, Array<Array<NeighbourRecord>>& list2) {
+    for (Size i = 0; i < list1.size(); ++i) {
+        if (list1[i].size() != list2[i].size()) {
+            return false;
+        }
+        for (Size k = 0; k < list1[i].size(); ++k) {
+            if (list1[i][k] != list2[i][k]) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+/// Tests that sequential and parallelized build result in the same thing
+static void checkParallelization(ISymmetricFinder& finder) {
+    HexagonalPacking distr;
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+    SphericalDomain domain(Vector(0._f), 2._f);
+    Array<Vector> storage = distr.generate(pool, 100, domain);
+
+    finder.build(SEQUENTIAL, storage);
+    Array<Array<NeighbourRecord>> sequential;
+    for (Size i = 0; i < storage.size(); ++i) {
+        Array<NeighbourRecord> neighs;
+        finder.findAll(storage[i], 2 * storage[i][H], neighs);
+        sequential.emplaceBack(std::move(neighs));
+    }
+
+    finder.build(pool, storage);
+    Array<Array<NeighbourRecord>> parallelized;
+    for (Size i = 0; i < storage.size(); ++i) {
+        Array<NeighbourRecord> neighs;
+        finder.findAll(storage[i], 2 * storage[i][H], neighs);
+        parallelized.emplaceBack(std::move(neighs));
+    }
+
+    REQUIRE(sequential.size() == parallelized.size());
+    REQUIRE(neighboursEqual(sequential, parallelized));
+}
+
 static void testFinder(ISymmetricFinder& finder) {
     checkNeighbours(finder);
     checkEmpty(finder);
     checkLargeValues(finder);
-    testFindingSmallerH(finder);
+    checkFindingSmallerH(finder);
+    checkParallelization(finder);
 }
 
 TEST_CASE("KdTree", "[finders]") {
     KdTree finder;
     HexagonalPacking distr;
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
     SphericalDomain domain(Vector(0._f), 2._f);
-    Array<Vector> storage = distr.generate(1000, domain);
-    finder.build(storage);
+    Array<Vector> storage = distr.generate(pool, 1000, domain);
+    finder.build(pool, storage);
     REQUIRE(finder.sanityCheck());
 
     testFinder(finder);

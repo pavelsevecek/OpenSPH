@@ -3,6 +3,7 @@
 #include "gui/objects/Color.h"
 #include "gui/objects/Colorizer.h"
 #include "objects/finders/Order.h"
+#include "post/Plot.h"
 #include "post/Point.h"
 #include "system/Profiler.h"
 #include "system/Statistics.h"
@@ -43,26 +44,54 @@ static void drawPalette(wxDC& dc, const Palette& palette) {
     const int size = 201;
     wxPoint origin(dc.GetSize().x - 50, size + 30);
     wxPen pen = dc.GetPen();
-    wxFont font = dc.GetFont();
-    font.MakeSmaller();
-    dc.SetFont(font);
+
+    // draw palette
     for (Size i = 0; i < size; ++i) {
-        const float value = palette.getInterpolatedValue(float(i) / (size - 1));
+        const float value = palette.relativeToPalette(float(i) / (size - 1));
         wxColour color = wxColour(palette(value));
         pen.SetColour(color);
         dc.SetPen(pen);
         dc.DrawLine(wxPoint(origin.x, origin.y - i), wxPoint(origin.x + 30, origin.y - i));
-        if (i % 50 == 0) {
-            dc.SetPen(*wxWHITE_PEN);
-            dc.DrawLine(wxPoint(origin.x, origin.y - i), wxPoint(origin.x + 6, origin.y - i));
-            dc.DrawLine(wxPoint(origin.x + 24, origin.y - i), wxPoint(origin.x + 30, origin.y - i));
-            dc.SetTextForeground(wxColour(Color::white()));
-            // wxFont font(9, wxFONTFAMILY_MODERN, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL);
+    }
 
-            std::wstring text = toPrintableString(value, 1, 1000);
-            wxSize extent = dc.GetTextExtent(text);
-            drawTextWithSubscripts(dc, text, wxPoint(origin.x - 75, origin.y - i - (extent.y >> 1)));
+    // draw tics
+    const Interval interval = palette.getInterval();
+    const PaletteScale scale = palette.getScale();
+
+    Array<Float> tics;
+    switch (scale) {
+    case PaletteScale::LINEAR:
+        tics = getLinearTics(interval, 4);
+        break;
+    case PaletteScale::LOGARITHMIC:
+        tics = getLogTics(interval, 4);
+        break;
+    case PaletteScale::HYBRID: {
+        const Size ticsCnt = 5;
+        // tics currently not implemented, so just split the range to equidistant steps
+        for (Size i = 0; i < ticsCnt; ++i) {
+            tics.push(palette.relativeToPalette(float(i) / ticsCnt - 1));
         }
+        break;
+    }
+    default:
+        NOT_IMPLEMENTED;
+    }
+
+    wxFont font = dc.GetFont();
+    font.MakeSmaller();
+    dc.SetFont(font);
+    dc.SetPen(*wxWHITE_PEN);
+    dc.SetTextForeground(wxColour(Color::white()));
+    for (Float tic : tics) {
+        const Float value = palette.paletteToRelative(tic);
+        const Size i = value * size;
+        dc.DrawLine(wxPoint(origin.x, origin.y - i), wxPoint(origin.x + 6, origin.y - i));
+        dc.DrawLine(wxPoint(origin.x + 24, origin.y - i), wxPoint(origin.x + 30, origin.y - i));
+
+        std::wstring text = toPrintableString(tic, 1, 1000);
+        wxSize extent = dc.GetTextExtent(text);
+        drawTextWithSubscripts(dc, text, wxPoint(origin.x - 75, origin.y - i - (extent.y >> 1)));
     }
 }
 

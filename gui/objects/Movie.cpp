@@ -66,7 +66,7 @@ void Movie::onTimeStep(const Storage& storage, Statistics& stats) {
         // initialize render with new data (outside main thread)
         renderer->initialize(storage, *e, *camera);
 
-        auto functor = [this, actPath, &storage, &e, &stats] {
+        auto functor = [this, actPath, &stats] {
             std::unique_lock<std::mutex> lock(waitMutex);
 
             // create the bitmap and save it to file

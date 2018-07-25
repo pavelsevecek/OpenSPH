@@ -68,11 +68,12 @@ public:
     }
 };
 
-GradHSolver::GradHSolver(const RunSettings& settings,
+GradHSolver::GradHSolver(IScheduler& scheduler,
+    const RunSettings& settings,
     const EquationHolder& basicTerms,
     Array<AutoPtr<IAsymmetricTerm>>&& asymmetricTerms)
-    : AsymmetricSolver(settings, basicTerms)
-    , secondData(pool) {
+    : AsymmetricSolver(scheduler, settings, basicTerms)
+    , secondData(scheduler) {
     for (auto& term : asymmetricTerms) {
         term->setAsymmetricDerivatives(asymmetricDerivatives);
     }
@@ -91,7 +92,7 @@ void GradHSolver::loop(Storage& storage, Statistics& UNUSED(stats)) {
     }
 
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
-    finder->build(r);
+    finder->build(scheduler, r);
 
     // find the maximum search radius
     Float maxH = 0._f;
@@ -106,7 +107,7 @@ void GradHSolver::loop(Storage& storage, Statistics& UNUSED(stats)) {
         finder->findAll(i, radius, data.neighs);
         gradH.eval(kernel, i, data.neighs);
     };
-    parallelFor(pool, threadData, 0, r.size(), granularity, preFunctor);
+    parallelFor(scheduler, threadData, 0, r.size(), granularity, preFunctor);
 
     ArrayView<Size> neighs = storage.getValue<Size>(QuantityId::NEIGHBOUR_CNT);
     ArrayView<Float> omega = storage.getValue<Float>(QuantityId::GRAD_H);
@@ -116,7 +117,7 @@ void GradHSolver::loop(Storage& storage, Statistics& UNUSED(stats)) {
         data.idxs.clear();
         data.grads.clear();
 
-        Array<Vector>& secondGrads = secondData.get().grads;
+        Array<Vector>& secondGrads = secondData.local().grads;
         secondGrads.clear();
 
         for (auto& n : data.neighs) {
@@ -140,7 +141,7 @@ void GradHSolver::loop(Storage& storage, Statistics& UNUSED(stats)) {
 
         neighs[i] = data.idxs.size();
     };
-    parallelFor(pool, threadData, 0, r.size(), granularity, functor);
+    parallelFor(scheduler, threadData, 0, r.size(), granularity, functor);
 }
 
 NAMESPACE_SPH_END

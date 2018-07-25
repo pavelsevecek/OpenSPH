@@ -239,6 +239,12 @@ public:
         }
     }
 
+    template <typename... TArgs>
+    INLINE decltype(auto) operator()(TArgs&&... args) const {
+        ASSERT(ptr);
+        return (*ptr)(std::forward<TArgs>(args)...);
+    }
+
 private:
     template <typename T2>
     INLINE void copyBlock(const SharedPtr<T2>& other) {
@@ -395,18 +401,16 @@ INLINE SharedPtr<T> makeShared(TArgs&&... args) {
 
 template <typename T>
 class ShareFromThis {
-    template <typename T2>
-    friend std::enable_if_t<std::is_base_of<ShareFromThis<T2>, T2>::value, void> setSharedFromThis(
-        const SharedPtr<T2>& ptr);
-
 private:
     WeakPtr<T> ptr;
+
+public:
+    using SHARE_FROM_THIS_TAG = void;
 
     void setWeakPtr(const WeakPtr<T>& weakPtr) {
         ptr = weakPtr;
     }
 
-public:
     SharedPtr<T> sharedFromThis() {
         SharedPtr<T> sharedPtr = ptr.lock();
         ASSERT(sharedPtr);
@@ -418,15 +422,24 @@ public:
     }
 };
 
+/// \todo this is a weird solution, it must be doable with more standard approach
+
+template <typename T, typename TEnabler = void>
+struct IsShareFromThis {
+    static constexpr bool value = false;
+};
 template <typename T>
-std::enable_if_t<std::is_base_of<ShareFromThis<T>, T>::value, void> setSharedFromThis(
-    const SharedPtr<T>& ptr) {
+struct IsShareFromThis<T, typename T::SHARE_FROM_THIS_TAG> {
+    static constexpr bool value = true;
+};
+
+template <typename T>
+std::enable_if_t<IsShareFromThis<T>::value> setSharedFromThis(const SharedPtr<T>& ptr) {
     ptr->setWeakPtr(ptr);
 }
 
 template <typename T>
-std::enable_if_t<!std::is_base_of<ShareFromThis<T>, T>::value, void> setSharedFromThis(
-    const SharedPtr<T>& UNUSED(ptr)) {
+std::enable_if_t<!IsShareFromThis<T>::value> setSharedFromThis(const SharedPtr<T>& UNUSED(ptr)) {
     // do nothing
 }
 

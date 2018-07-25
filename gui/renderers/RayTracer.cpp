@@ -8,8 +8,9 @@
 
 NAMESPACE_SPH_BEGIN
 
-RayTracer::RayTracer(const GuiSettings& settings)
-    : threadData(pool) {
+RayTracer::RayTracer(IScheduler& scheduler, const GuiSettings& settings)
+    : scheduler(scheduler)
+    , threadData(scheduler) {
     kernel = Factory::getKernel<3>(RunSettings::getDefaults());
     params.surfaceLevel = settings.get<Float>(GuiSettingsId::SURFACE_LEVEL);
     params.dirToSun = settings.get<Vector>(GuiSettingsId::SURFACE_SUN_POSITION);
@@ -84,9 +85,11 @@ void RayTracer::initialize(const Storage& storage,
     bvh.build(std::move(spheres));
 
     finder = makeAuto<KdTree>();
-    finder->build(cached.r);
+    finder->build(scheduler, cached.r);
 
-    threadData.forEach([](ThreadData& data) { data.previousIdx = Size(-1); });
+    for (ThreadData& data : threadData) {
+        data.previousIdx = Size(-1);
+    }
 }
 
 static void drawText(wxBitmap& bitmap, const std::string& text) {
@@ -110,8 +113,9 @@ SharedPtr<wxBitmap> RayTracer::render(const ICamera& camera,
     actSize.y = renderParams.size.y / params.subsampling + sgn(renderParams.size.y % params.subsampling);
     Bitmap bitmap(actSize);
     Timer timer;
-    parallelFor(pool, 0, Size(bitmap.size().y), [this, &bitmap, &camera, &renderParams](Size y) {
-        ThreadData& data = threadData.get();
+
+    parallelFor(scheduler, 0, Size(bitmap.size().y), [this, &bitmap, &camera](Size y) {
+        ThreadData& data = threadData.local();
         for (Size x = 0; x < Size(bitmap.size().x); ++x) {
             CameraRay cameraRay = camera.unproject(Point(x * params.subsampling, y * params.subsampling));
             const Vector dir = getNormalized(cameraRay.target - cameraRay.origin);
@@ -126,6 +130,7 @@ SharedPtr<wxBitmap> RayTracer::render(const ICamera& camera,
             bitmap[Point(x, y)] = wxColour(accumulatedColor);
         }
     });
+
     SharedPtr<wxBitmap> wx = makeShared<wxBitmap>();
     toWxBitmap(bitmap, *wx);
     drawText(*wx, "Rendering took " + std::to_string(timer.elapsed(TimerUnit::MILLISECOND)) + "ms");

@@ -4,12 +4,14 @@
 #include "quantities/Storage.h"
 #include "sph/initial/Initial.h"
 #include "system/Settings.h"
+#include "thread/Pool.h"
 
 using namespace Sph;
 
 TEST_CASE("Pairing", "[diagnostics]") {
     Storage storage;
-    InitialConditions conds(RunSettings::getDefaults());
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+    InitialConditions conds(pool, RunSettings::getDefaults());
     BodySettings settings;
     settings.set(BodySettingsId::PARTICLE_COUNT, 100);
     conds.addMonolithicBody(storage, SphericalDomain(Vector(0._f), 3._f), settings);

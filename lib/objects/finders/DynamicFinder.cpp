@@ -10,14 +10,9 @@ DynamicFinder::DynamicFinder(const RunSettings& settings) {
     compactThreshold = settings.get<Float>(RunSettingsId::SPH_FINDER_COMPACT_THRESHOLD);
 }
 
-void DynamicFinder::buildImpl(ArrayView<const Vector> points) {
+void DynamicFinder::buildImpl(IScheduler& scheduler, ArrayView<const Vector> points) {
     this->updateFinder(points);
-    actual->buildImpl(points);
-}
-
-void DynamicFinder::rebuildImpl(ArrayView<const Vector> points) {
-    this->updateFinder(points);
-    actual->rebuildImpl(points);
+    actual->buildImpl(scheduler, points);
 }
 
 Size DynamicFinder::findAll(const Size index, const Float radius, Array<NeighbourRecord>& neighbours) const {

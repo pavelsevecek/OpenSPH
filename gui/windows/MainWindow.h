@@ -50,7 +50,6 @@ private:
     wxComboBox* quantityBox;
     Size selectedIdx = 0;
     wxGauge* gauge;
-    wxCheckBox* shadingBox;
 
     /// Colorizers corresponding to the items in combobox
     Array<SharedPtr<IColorizer>> colorizerList;

@@ -82,7 +82,7 @@ public:
         bodySettings.set(BodySettingsId::ENERGY, 2.5_f);
         bodySettings.set(BodySettingsId::ENERGY_MIN, 0.1_f);
 
-        InitialConditions initialConditions(this->settings);
+        InitialConditions initialConditions(*scheduler, this->settings);
         initialConditions.addMonolithicBody(*storage, SphericalDomain(Vector(0.5_f), 0.5_f), bodySettings);
 
         Path outputDir("sod/" + this->settings.get<std::string>(RunSettingsId::RUN_OUTPUT_NAME));
@@ -109,7 +109,7 @@ public:
 
         // 3) setup density to be consistent with masses
         AutoPtr<IBasicFinder> finder = Factory::getFinder(this->settings);
-        finder->build(storage->getValue<Vector>(QuantityId::POSITION));
+        finder->build(*scheduler, storage->getValue<Vector>(QuantityId::POSITION));
         LutKernel<1> kernel = Factory::getKernel<1>(settings);
         Array<NeighbourRecord> neighs;
         ArrayView<Float> rho = storage->getValue<Float>(QuantityId::DENSITY);

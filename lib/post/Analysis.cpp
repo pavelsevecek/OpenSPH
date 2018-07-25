@@ -9,6 +9,8 @@
 #include "quantities/Storage.h"
 #include "sph/kernel/Kernel.h"
 #include "system/Factory.h"
+#include "thread/Scheduler.h"
+#include <numeric>
 
 NAMESPACE_SPH_BEGIN
 
@@ -89,7 +91,10 @@ Size Post::findComponents(const Storage& storage,
     const Size unassigned = Size(-1);
     indices.fill(unassigned);
     Size componentIdx = 0;
-    finder->build(r);
+
+    // the build time is probably negligible compared to the actual search of components, so let's just use
+    // the sequential execution here
+    finder->build(SEQUENTIAL, r);
 
     Array<Size> stack;
     Array<NeighbourRecord> neighs;
@@ -256,20 +261,15 @@ Storage Post::findFutureBodies(const Storage& storage, const Float particleRadiu
 Array<Post::MoonEnum> Post::findMoons(const Storage& storage, const Float radius, const Float limit) {
     // first, find the larget one
     ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
-    Size largestIdx = 0;
-    Float largestM = 0._f;
-    for (Size i = 0; i < m.size(); ++i) {
-        if (m[i] > largestM) {
-            largestM = m[i];
-            largestIdx = i;
-        }
-    }
+    const auto largestIter = std::max_element(m.begin(), m.end());
+    const Float largestM = *largestIter;
+    const Size largestIdx = std::distance(m.begin(), largestIter);
 
-    Array<MoonEnum> status(m.size());
+    Array<MoonEnum> statuses(m.size());
 #ifdef SPH_DEBUG
-    status.fill(MoonEnum(-1));
+    statuses.fill(MoonEnum(-1));
 #endif
-    status[largestIdx] = MoonEnum::LARGEST_FRAGMENT;
+    statuses[largestIdx] = MoonEnum::LARGEST_FRAGMENT;
 
     // find the ellipse for all bodies
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
@@ -281,7 +281,7 @@ Array<Post::MoonEnum> Post::findMoons(const Storage& storage, const Float radius
 
         // check for observability
         if (r[i][H] < limit * r[largestIdx][H]) {
-            status[i] = MoonEnum::UNOBSERVABLE;
+            statuses[i] = MoonEnum::UNOBSERVABLE;
             continue;
         }
 
@@ -291,19 +291,19 @@ Array<Post::MoonEnum> Post::findMoons(const Storage& storage, const Float radius
 
         if (!elements) {
             // not bound, mark as ejected body
-            status[i] = MoonEnum::RUNAWAY;
+            statuses[i] = MoonEnum::RUNAWAY;
         } else {
             // if the pericenter is closer than the sum of radii, mark as impactor
             if (elements->pericenterDist() < radius * (r[i][H] + r[largestIdx][H])) {
-                status[i] = MoonEnum::IMPACTOR;
+                statuses[i] = MoonEnum::IMPACTOR;
             } else {
-                // bound and not on colli
-                status[i] = MoonEnum::MOON;
+                // bound and not on collisional trajectory
+                statuses[i] = MoonEnum::MOON;
             }
         }
     }
 
-    return status;
+    return statuses;
 }
 
 Array<Post::Tumbler> Post::findTumblers(const Storage& storage, const Float limit) {
@@ -406,138 +406,187 @@ Optional<Post::KeplerianElements> Post::findKeplerEllipse(const Float M,
     return elements;
 }
 
-
-static Array<Float> getBodiesRadii(const Storage& storage,
+/// \brief Returns the particle values corresponding to given histogram quantity.
+static Array<Float> getParticleValues(const Storage& storage,
     const Post::HistogramParams& params,
     const Post::HistogramId id) {
-    switch (params.source) {
-    case Post::HistogramParams::Source::PARTICLES: {
-        Array<Float> values(storage.getParticleCnt());
-        switch (id) {
-        case Post::HistogramId::RADII: {
-            ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
-            for (Size i = 0; i < r.size(); ++i) {
-                values[i] = r[i][H];
-            }
-            break;
+
+    Array<Float> values(storage.getParticleCnt());
+    switch (id) {
+    case Post::HistogramId::RADII: {
+        ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
+        for (Size i = 0; i < r.size(); ++i) {
+            values[i] = r[i][H];
         }
-        case Post::HistogramId::EQUIVALENT_MASS_RADII: {
-            ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
-            for (Size i = 0; i < m.size(); ++i) {
-                values[i] = root<3>(3.f * m[i] / (params.referenceDensity * 4.f * PI));
-            }
-            break;
-        }
-        case Post::HistogramId::VELOCITIES: {
-            ArrayView<const Vector> v = storage.getDt<Vector>(QuantityId::POSITION);
-            for (Size i = 0; i < v.size(); ++i) {
-                values[i] = getLength(v[i]);
-            }
-            break;
-        }
-        case Post::HistogramId::ROTATIONAL_PERIOD: {
-            if (!storage.has(QuantityId::ANGULAR_VELOCITY)) {
-                /// \todo should be generalized for all quantities
-                values.fill(0._f);
-                break;
-            }
-            values.clear();
-            ArrayView<const Vector> omega = storage.getValue<Vector>(QuantityId::ANGULAR_VELOCITY);
-            for (Size i = 0; i < omega.size(); ++i) {
-                const Float w = getLength(omega[i]);
-                if (w > 0._f) {
-                    values.push(2._f * PI / (3600._f * w));
-                }
-            }
-            break;
-        }
-        default:
-            const QuantityId quantityId = QuantityId(id);
-            ASSERT((int)quantityId >= 0);
-            /// \todo allow also other types
-            values = storage.getValue<Float>(quantityId).clone();
-            break;
-        }
-        std::sort(values.begin(), values.end());
-        return values;
+        break;
     }
-    case Post::HistogramParams::Source::COMPONENTS: {
-        Array<Size> components;
-        const Size numComponents = findComponents(
-            storage, params.components.radius, Post::ComponentConnectivity::OVERLAP, components);
+    case Post::HistogramId::EQUIVALENT_MASS_RADII: {
+        ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
+        for (Size i = 0; i < m.size(); ++i) {
+            values[i] = root<3>(3.f * m[i] / (params.referenceDensity * 4.f * PI));
+        }
+        break;
+    }
+    case Post::HistogramId::VELOCITIES: {
+        ArrayView<const Vector> v = storage.getDt<Vector>(QuantityId::POSITION);
+        for (Size i = 0; i < v.size(); ++i) {
+            values[i] = getLength(v[i]);
+        }
+        break;
+    }
+    case Post::HistogramId::ROTATIONAL_PERIOD: {
+        if (!storage.has(QuantityId::ANGULAR_VELOCITY)) {
+            /// \todo should be generalized for all quantities
+            values.fill(0._f);
+            break;
+        }
+        ArrayView<const Vector> omega = storage.getValue<Vector>(QuantityId::ANGULAR_VELOCITY);
+        for (Size i = 0; i < omega.size(); ++i) {
+            const Float w = getLength(omega[i]);
+            if (w == 0._f) {
+                // placeholder for zero frequency to avoid division by zero
+                values[i] = 0._f;
+            } else {
+                values[i] = 2._f * PI / (3600._f * w);
+            }
+        }
+        break;
+    }
+    case Post::HistogramId::ROTATIONAL_FREQUENCY: {
+        if (!storage.has(QuantityId::ANGULAR_VELOCITY)) {
+            /// \todo should be generalized for all quantities
+            values.fill(0._f);
+            break;
+        }
+        ArrayView<const Vector> omega = storage.getValue<Vector>(QuantityId::ANGULAR_VELOCITY);
+        for (Size i = 0; i < omega.size(); ++i) {
+            const Float w = getLength(omega[i]);
+            values[i] = 3600._f * 24._f * w / (2._f * PI);
+        }
+        break;
+    }
+    case Post::HistogramId::ROTATIONAL_AXIS: {
+        if (!storage.has(QuantityId::ANGULAR_VELOCITY)) {
+            /// \todo should be generalized for all quantities
+            values.fill(0._f);
+            break;
+        }
+        ArrayView<const Vector> omega = storage.getValue<Vector>(QuantityId::ANGULAR_VELOCITY);
+        for (Size i = 0; i < omega.size(); ++i) {
+            const Float w = getLength(omega[i]);
+            if (w == 0._f) {
+                values[i] = 0._f; /// \todo what here??
+            } else {
+                values[i] = acos(omega[i][Z] / w);
+            }
+        }
+        break;
+    }
+    default:
+        const QuantityId quantityId = QuantityId(id);
+        ASSERT((int)quantityId >= 0);
+        /// \todo allow also other types
+        values = storage.getValue<Float>(quantityId).clone();
+        break;
+    }
+    return values;
+}
 
-        Array<Float> values(numComponents);
-        values.fill(0._f);
-        switch (id) {
-        case Post::HistogramId::RADII: {
-            // compute volume of the body
-            ArrayView<const Float> rho, m;
-            tie(rho, m) = storage.getValues<Float>(QuantityId::DENSITY, QuantityId::MASS);
-            for (Size i = 0; i < rho.size(); ++i) {
-                values[components[i]] += m[i] / rho[i];
-            }
+/// \brief Returns the component values corresponding to given histogram quantity.
+static Array<Float> getComponentValues(const Storage& storage,
+    const Post::HistogramParams& params,
+    const Post::HistogramId id) {
 
-            // compute equivalent radii from volumes
-            Array<Float> radii(numComponents);
-            for (Size i = 0; i < numComponents; ++i) {
-                radii[i] = root<3>(values[i]);
-                ASSERT(isReal(radii[i]) && radii[i] > 0._f, radii[i]);
-            }
-            std::sort(radii.begin(), radii.end());
-            return radii;
+    Array<Size> components;
+    const Size numComponents =
+        findComponents(storage, params.components.radius, Post::ComponentConnectivity::OVERLAP, components);
+
+    Array<Float> values(numComponents);
+    values.fill(0._f);
+    switch (id) {
+    case Post::HistogramId::RADII: {
+        // compute volume of the body
+        ArrayView<const Float> rho, m;
+        tie(rho, m) = storage.getValues<Float>(QuantityId::DENSITY, QuantityId::MASS);
+        for (Size i = 0; i < rho.size(); ++i) {
+            values[components[i]] += m[i] / rho[i];
         }
-        case Post::HistogramId::VELOCITIES: {
-            // compute velocity as weighted average
-            ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
-            ArrayView<const Vector> v = storage.getDt<Vector>(QuantityId::POSITION);
-            Array<Vector> sumV(numComponents);
-            Array<Float> weights(numComponents);
-            sumV.fill(Vector(0._f));
-            weights.fill(0._f);
-            for (Size i = 0; i < m.size(); ++i) {
-                const Size componentIdx = components[i];
-                sumV[componentIdx] += m[i] * v[i];
-                weights[componentIdx] += m[i];
-            }
-            for (Size i = 0; i < numComponents; ++i) {
-                ASSERT(weights[i] != 0._f);
-                values[i] = getLength(sumV[i] / weights[i]);
-            }
-            std::sort(values.begin(), values.end());
-            return values;
+
+        // compute equivalent radii from volumes
+        Array<Float> radii(numComponents);
+        for (Size i = 0; i < numComponents; ++i) {
+            radii[i] = root<3>(values[i]);
+            ASSERT(isReal(radii[i]) && radii[i] > 0._f, radii[i]);
         }
-        default:
-            NOT_IMPLEMENTED;
+        return radii;
+    }
+    case Post::HistogramId::VELOCITIES: {
+        // compute velocity as weighted average
+        ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
+        ArrayView<const Vector> v = storage.getDt<Vector>(QuantityId::POSITION);
+        Array<Vector> sumV(numComponents);
+        Array<Float> weights(numComponents);
+        sumV.fill(Vector(0._f));
+        weights.fill(0._f);
+        for (Size i = 0; i < m.size(); ++i) {
+            const Size componentIdx = components[i];
+            sumV[componentIdx] += m[i] * v[i];
+            weights[componentIdx] += m[i];
         }
+        for (Size i = 0; i < numComponents; ++i) {
+            ASSERT(weights[i] != 0._f);
+            values[i] = getLength(sumV[i] / weights[i]);
+        }
+        return values;
     }
     default:
         NOT_IMPLEMENTED;
     }
 }
 
-Array<Post::SfdPoint> Post::getCummulativeSfd(const Storage& storage, const Post::HistogramParams& params) {
-    Array<Float> radii = getBodiesRadii(storage, params, params.id);
+/// \brief Returns the values of particles or components of particles
+static Array<Float> getValues(const Storage& storage,
+    const Post::HistogramId id,
+    const Post::HistogramSource source,
+    const Post::HistogramParams& params) {
+    Array<Float> values;
+    if (source == Post::HistogramSource::PARTICLES) {
+        values = getParticleValues(storage, params, id);
+        ASSERT(values.size() == storage.getParticleCnt());
+    } else {
+        values = getComponentValues(storage, params, id);
+        ASSERT(values.size() <= storage.getParticleCnt());
+    }
+    return values;
+}
+
+Array<Post::HistPoint> Post::getCummulativeHistogram(const Storage& storage,
+    const HistogramId id,
+    const HistogramSource source,
+    const Post::HistogramParams& params) {
+
+    Array<Float> values = getValues(storage, id, source, params);
+    std::sort(values.begin(), values.end());
 
     Interval range = params.range;
     if (range.empty()) {
-        for (Float r : radii) {
-            if (params.validator(r)) {
-                range.extend(r);
-            }
+        for (Size i = 0; i < values.size(); ++i) {
+            range.extend(values[i]);
         }
     }
     ASSERT(!range.empty());
 
-    Array<SfdPoint> histogram;
+    Array<HistPoint> histogram;
     Size count = 1;
     Float lastR = INFTY;
+
     // iterate in reverse order - from largest radii to smallest ones
-    for (Float r : reverse(radii)) {
-        if (r < lastR) {
-            if (range.contains(r) && params.validator(r)) {
-                histogram.push(SfdPoint{ r, count });
+    for (int i = values.size() - 1; i >= 0; --i) {
+        if (values[i] < lastR) {
+            if (range.contains(values[i])) {
+                histogram.push(HistPoint{ values[i], count });
             }
-            lastR = r;
+            lastR = values[i];
         }
         count++;
     }
@@ -546,53 +595,70 @@ Array<Post::SfdPoint> Post::getCummulativeSfd(const Storage& storage, const Post
     return histogram;
 }
 
-Array<Post::SfdPoint> Post::getDifferentialSfd(const Storage& storage, const HistogramParams& params) {
-    Array<Float> radii = getBodiesRadii(storage, params, params.id);
+Array<Post::HistPoint> Post::getDifferentialHistogram(const Storage& storage,
+    const HistogramId id,
+    const HistogramSource source,
+    const HistogramParams& params) {
+
+    Array<Float> values = getValues(storage, id, source, params);
+    return getDifferentialHistogram(values, params);
+}
+
+Array<Post::HistPoint> Post::getDifferentialHistogram(ArrayView<const Float> values,
+    const HistogramParams& params) {
 
     Interval range = params.range;
     if (range.empty()) {
-        for (Float r : radii) {
-            if (params.validator(r)) {
-                range.extend(r);
+        for (Size i = 0; i < values.size(); ++i) {
+            if (params.validator(i)) {
+                range.extend(values[i]);
             }
         }
+        // extend slightly, so that the min/max value is strictly inside the interval
+        range.extend(range.lower() - EPS * range.size());
+        range.extend(range.upper() + EPS * range.size());
     }
     ASSERT(!range.empty());
+    ASSERT(isReal(range.lower()) && isReal(range.upper()));
 
     Size binCnt = params.binCnt;
     if (binCnt == 0) {
         // estimate initial bin count as sqrt of component count
-        binCnt = Size(sqrt(radii.size()));
+        binCnt = Size(sqrt(values.size()));
     }
 
     Array<Size> sfd(binCnt);
     sfd.fill(0);
     // check for case where only one body/particle exists
     const bool singular = range.size() == 0;
-    for (Float r : radii) {
-        if (!params.validator(r)) {
+    for (Size i = 0; i < values.size(); ++i) {
+        if (!params.validator(i)) {
             continue;
         }
+
         // get bin index
         Size binIdx;
         if (singular) {
             binIdx = 0; // just add everything into the first bin to get some reasonable output
         } else {
-            const Float floatIdx = binCnt * (r - range.lower()) / range.size();
+            const Float floatIdx = binCnt * (values[i] - range.lower()) / range.size();
             if (floatIdx >= 0._f && floatIdx < binCnt) {
                 binIdx = Size(floatIdx);
             } else {
                 // out of range, skip
+                // this should not happen if the range was determined
+                ASSERT(!params.range.empty(), floatIdx, binCnt);
                 continue;
             }
         }
         sfd[binIdx]++;
     }
     // convert to SfdPoints
-    Array<SfdPoint> histogram(binCnt);
+    Array<HistPoint> histogram(binCnt);
     for (Size i = 0; i < binCnt; ++i) {
-        histogram[i] = { range.lower() + (i * range.size()) / binCnt, sfd[i] };
-        ASSERT(isReal(histogram[i].value));
+        const Float centerIdx = i + 0.5_f;
+        histogram[i] = { range.lower() + (centerIdx * range.size()) / binCnt, sfd[i] };
+        ASSERT(isReal(histogram[i].value), sfd[i], range);
     }
     return histogram;
 }

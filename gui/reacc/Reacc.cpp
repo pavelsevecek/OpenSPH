@@ -166,7 +166,7 @@ Stabilization::Stabilization(RawPtr<Controller> newController) {
 Stabilization::~Stabilization() {}
 
 void Stabilization::setUp() {
-    solver = makeAuto<StabilizationSolver>(settings);
+    solver = makeAuto<StabilizationSolver>(*scheduler, settings);
     storage = makeShared<Storage>();
 
     if (wxTheApp->argc > 1) {
@@ -262,7 +262,7 @@ void Stabilization::setUp() {
             }
         };
 
-        data = makeShared<Presets::Collision>(settings, body, params);
+        data = makeShared<Presets::Collision>(*scheduler, settings, body, params);
         data->addTarget(*storage);
 
         // setupUvws(*storage);
@@ -391,7 +391,7 @@ void Fragmentation::handoff(Storage&& input) {
     // the buffers back; ugly solution, needs to be done properly (wait till all callbacks are finished before
     // moving the storage)
     input = storage->clone(VisitorEnum::ALL_BUFFERS);
-    solver = Factory::getSolver(settings);
+    solver = Factory::getSolver(*scheduler, settings);
     // the quantities are already created, no need to call solver->create
     triggers.pushBack(makeAuto<CommonStatsLog>(Factory::getLogger(settings), settings));
     output = makeAuto<BinaryOutput>(Path("frag_%d.ssf"));
@@ -451,7 +451,7 @@ void Reaccumulation::setUp() {
 }
 
 void Reaccumulation::handoff(Storage&& sph) {
-    solver = makeAuto<NBodySolver>(settings);
+    solver = makeAuto<NBodySolver>(*scheduler, settings);
 
     // we don't need any material, so just pass some dummy
     // we read material settings in some colorizers, so even though the values do not make sense, it's easier

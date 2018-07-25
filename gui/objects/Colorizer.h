@@ -16,6 +16,7 @@
 #include "quantities/Particle.h"
 #include "sph/kernel/Kernel.h"
 #include "system/Factory.h"
+#include "thread/Pool.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -175,12 +176,12 @@ public:
         return palette(this->evalScalar(idx).value());
     }
 
-    virtual Optional<Float> evalScalar(const Size idx) const {
+    virtual Optional<Float> evalScalar(const Size idx) const override {
         ASSERT(this->isInitialized());
         return Detail::getColorizerValue(values[idx]);
     }
 
-    virtual Optional<Vector> evalVector(const Size idx) const {
+    virtual Optional<Vector> evalVector(const Size idx) const override {
         return Detail::getColorizerVector(values[idx]);
     }
 
@@ -423,7 +424,7 @@ public:
         m = makeArrayRef(storage.getValue<Float>(QuantityId::MASS), ref);
         r = makeArrayRef(storage.getValue<Vector>(QuantityId::POSITION), ref);
 
-        finder->build(r);
+        finder->build(SEQUENTIAL, r);
     }
 
     virtual bool isInitialized() const override {
@@ -479,14 +480,14 @@ public:
         return palette(this->evalScalar(idx).value());
     }
 
-    virtual Optional<Float> evalScalar(const Size idx) const {
+    virtual Optional<Float> evalScalar(const Size idx) const override {
         ASSERT(this->isInitialized());
         SymmetricTensor sigma = SymmetricTensor(s[idx]) - p[idx] * SymmetricTensor::identity();
         StaticArray<Float, 3> eigens = findEigenvalues(sigma);
         return max(abs(eigens[0]), abs(eigens[1]), abs(eigens[2]));
     }
 
-    virtual Optional<Vector> evalVector(const Size UNUSED(idx)) const {
+    virtual Optional<Vector> evalVector(const Size UNUSED(idx)) const override {
         return NOTHING;
     }
 
@@ -528,12 +529,12 @@ public:
         return palette(this->evalScalar(idx).value());
     }
 
-    virtual Optional<Float> evalScalar(const Size idx) const {
+    virtual Optional<Float> evalScalar(const Size idx) const override {
         ASSERT(this->isInitialized());
         return m[idx] * u[idx] + 0.5_f * m[idx] * getSqrLength(v[idx]);
     }
 
-    virtual Optional<Vector> evalVector(const Size UNUSED(idx)) const {
+    virtual Optional<Vector> evalVector(const Size UNUSED(idx)) const override {
         return NOTHING;
     }
 

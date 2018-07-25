@@ -11,11 +11,12 @@ using namespace Sph;
 template <typename TFinder>
 void finderRun(Benchmark::Context& context, TFinder& finder, const Size particleCnt) {
     HexagonalPacking distribution;
-    Array<Vector> r = distribution.generate(particleCnt, SphericalDomain(Vector(0._f), 1._f));
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+    Array<Vector> r = distribution.generate(pool, particleCnt, SphericalDomain(Vector(0._f), 1._f));
     Array<NeighbourRecord> neighs;
     double distSum = 0.;
     while (context.running()) {
-        finder.build(r);
+        finder.build(pool, r);
         for (Size i = 0; i < r.size(); ++i) {
             finder.findAll(i, 2._f * r[i][H], neighs);
             for (NeighbourRecord& n : neighs) {

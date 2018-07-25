@@ -16,12 +16,13 @@ static void benchmarkGravity(IGravity& gravity, Benchmark::Context& context) {
 
     /*ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
     ArrayView<Float> m = storage.getValue<Float>(QuantityId::MASSES);*/
-    gravity.build(storage);
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+    gravity.build(pool, storage);
     Statistics stats;
     ArrayView<Vector> dv = storage.getD2t<Vector>(QuantityId::POSITION);
     context.log("particle count: ", dv.size());
     while (context.running()) {
-        gravity.evalAll(ThreadPool::getGlobalInstance(), dv, stats);
+        gravity.evalAll(pool, dv, stats);
     }
     const int approx = stats.getOr<int>(StatisticsId::GRAVITY_NODES_APPROX, 0);
     const int exact = stats.getOr<int>(StatisticsId::GRAVITY_NODES_EXACT, 0);

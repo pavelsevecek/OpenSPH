@@ -18,9 +18,7 @@ protected:
     /// Multiplier of the number of cells
     Float relativeCellCnt;
 
-    virtual void buildImpl(ArrayView<const Vector> points) override;
-
-    virtual void rebuildImpl(ArrayView<const Vector> points) override;
+    virtual void buildImpl(IScheduler& scheduler, ArrayView<const Vector> points) override;
 
 public:
     /// \param relativeCellCnt Multiplier of the number of constructed voxels. The actual number scales with

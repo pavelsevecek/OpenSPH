@@ -12,6 +12,7 @@
 #include "system/Factory.h"
 #include "tests/Approx.h"
 #include "tests/Setup.h"
+#include "thread/Pool.h"
 #include "utils/Config.h"
 #include "utils/Utils.h"
 #include <fstream>
@@ -159,7 +160,8 @@ TEST_CASE("BinaryOutput dump&accumulate materials", "[output]") {
     settings.set(RunSettingsId::SPH_FORMULATION, FormulationEnum::BENZ_ASPHAUG);
     /*settings.set(RunSettingsId::MODEL_FORCE_PRESSURE_GRADIENT, false);
     settings.set(RunSettingsId::MODEL_FORCE_SOLID_STRESS, false);*/
-    InitialConditions conds(settings);
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+    InitialConditions conds(pool, settings);
     BodySettings body;
     // for exact number of particles
     body.set(BodySettingsId::INITIAL_DISTRIBUTION, DistributionEnum::RANDOM);

@@ -1,8 +1,14 @@
 #pragma once
 
+/// \file KdTree.h
+/// \brief K-d tree for efficient search of neighbouring particles
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz))
+/// \date 2016-2018
+
 #include "objects/finders/NeighbourFinder.h"
 #include "objects/geometry/Box.h"
 #include "objects/geometry/Multipole.h"
+#include "thread/Pool.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -131,77 +137,31 @@ public:
     template <bool FindAll>
     Size find(const Vector& pos, const Size index, const Float radius, Array<NeighbourRecord>& neighs) const;
 
-    enum class Direction {
-        TOP_DOWN,  ///< From root to leaves
-        BOTTOM_UP, ///< From leaves to root
-    };
-
-    /// \brief Calls a functor for every node in specified direction.
-    ///
-    /// The functor is called with the node as a parameter. For top-down direction, functor may return false
-    /// to skip all children nodes from processing, otherwise the iteration proceedes through the tree into
-    /// leaf nodes.
-    /// \param functor Functor executed for every node
-    /// \param nodeIdx Index of the first processed node; use 0 for root node
-    template <Direction Dir, typename TFunctor>
-    void iterate(const TFunctor& functor, const Size nodeIdx = 0) {
-        KdNode& node = nodes[nodeIdx];
-        if (Dir == Direction::TOP_DOWN) {
-            if (node.isLeaf()) {
-                functor(node, nullptr, nullptr);
-            } else {
-                InnerNode& inner = reinterpret_cast<InnerNode&>(node);
-                if (!functor(inner, &nodes[inner.left], &nodes[inner.right])) {
-                    return;
-                }
-            }
-        }
-        if (!node.isLeaf()) {
-            InnerNode& inner = reinterpret_cast<InnerNode&>(node);
-            this->iterate<Dir>(functor, inner.left);
-            this->iterate<Dir>(functor, inner.right);
-        }
-        if (Dir == Direction::BOTTOM_UP) {
-            if (node.isLeaf()) {
-                functor(node, nullptr, nullptr);
-            } else {
-                InnerNode& inner = reinterpret_cast<InnerNode&>(node);
-                functor(inner, &nodes[inner.left], &nodes[inner.right]);
-            }
-        }
+    /// \brief Returns the node with given index
+    INLINE KdNode& getNode(const Size nodeIdx) {
+        return nodes[nodeIdx];
     }
 
-    /// \copydoc iterate
-    template <Direction Dir, typename TFunctor>
-    void iterate(const TFunctor& functor, const Size nodeIdx = 0) const {
-        // use non-const overload using const_cast, but call the functor with const reference
-        auto actFunctor = [&functor](KdNode& node, KdNode* left, KdNode* right)
-                              INL { return functor(asConst(node), left, right); };
-        const_cast<KdTree*>(this)->iterate<Dir>(actFunctor, nodeIdx);
-    }
-
-    /// Returns the node with given index
+    /// \brief Returns the node with given index
     INLINE const KdNode& getNode(const Size nodeIdx) const {
         return nodes[nodeIdx];
     }
 
-    /// Returns the number of nodes in the tree
+    /// \brief Returns the number of nodes in the tree
     INLINE Size getNodeCnt() const {
         return nodes.size();
     }
 
-    /// Returns the sequence of particles indices belonging to given leaf.
+    /// \brief Returns the sequence of particles indices belonging to given leaf.
     INLINE LeafIndexSequence getLeafIndices(const LeafNode& leaf) const {
         return LeafIndexSequence(leaf.from, leaf.to, idxs);
     }
 
-    /// Performs some checks of KdTree consistency, returns true if everything is OK
+    /// \brief Performs some checks of KdTree consistency, returns true if everything is OK
     bool sanityCheck() const;
 
 protected:
-    virtual void buildImpl(ArrayView<const Vector> points) override;
-
-    virtual void rebuildImpl(ArrayView<const Vector> points) override;
+    virtual void buildImpl(IScheduler& scheduler, ArrayView<const Vector> points) override;
 
 private:
     void init();
@@ -216,5 +176,74 @@ private:
 
     bool checkBoxes(const Size from, const Size to, const Size mid, const Box& box1, const Box& box2) const;
 };
+
+
+enum class IterateDirection {
+    TOP_DOWN,  ///< From root to leaves
+    BOTTOM_UP, ///< From leaves to root
+};
+
+/// \brief Calls a functor for every node of a K-d tree tree in specified direction.
+///
+/// The functor is called with the node as a parameter. For top-down direction, functor may return false
+/// to skip all children nodes from processing, otherwise the iteration proceedes through the tree into
+/// leaf nodes.
+/// \param tree KdTree to iterate.
+/// \param scheduler Scheduler used for sequential or parallelized task execution
+/// \param functor Functor executed for every node
+/// \param nodeIdx Index of the first processed node; use 0 for root node
+template <IterateDirection Dir, typename TFunctor>
+void iterateTree(KdTree& tree, IScheduler& scheduler, const TFunctor& functor, const Size nodeIdx = 0) {
+    KdNode& node = tree.getNode(nodeIdx);
+    if (Dir == IterateDirection::TOP_DOWN) {
+        if (node.isLeaf()) {
+            functor(node, nullptr, nullptr);
+        } else {
+            InnerNode& inner = reinterpret_cast<InnerNode&>(node);
+            if (!functor(inner, &tree.getNode(inner.left), &tree.getNode(inner.right))) {
+                return;
+            }
+        }
+    }
+    if (!node.isLeaf()) {
+        InnerNode& inner = reinterpret_cast<InnerNode&>(node);
+
+        scheduler.submit([&tree, &scheduler, &functor, &inner] {
+            iterateTree<Dir>(tree, scheduler, functor, inner.left);
+        });
+        iterateTree<Dir>(tree, scheduler, functor, inner.right);
+    }
+    if (Dir == IterateDirection::BOTTOM_UP) {
+        if (node.isLeaf()) {
+            functor(node, nullptr, nullptr);
+        } else {
+            InnerNode& inner = reinterpret_cast<InnerNode&>(node);
+            functor(inner, &tree.getNode(inner.left), &tree.getNode(inner.right));
+        }
+    }
+}
+
+/// \copydoc iterateTree
+template <IterateDirection Dir, typename TFunctor>
+void iterateTree(const KdTree& tree, IScheduler& scheduler, const TFunctor& functor, const Size nodeIdx = 0) {
+    // use non-const overload using const_cast, but call the functor with const reference
+    auto actFunctor = [&functor](KdNode& node, KdNode* left, KdNode* right)
+                          INL { return functor(asConst(node), left, right); };
+    iterateTree<Dir>(const_cast<KdTree&>(tree), scheduler, actFunctor, nodeIdx);
+}
+
+/// \brief Iterates tree sequentially.
+template <IterateDirection Dir, typename TFunctor>
+void iterateTree(const KdTree& tree, const TFunctor& functor) {
+    SequentialScheduler scheduler;
+    iterateTree<Dir>(tree, scheduler, functor);
+}
+
+/// \copydoc iterateTree
+template <IterateDirection Dir, typename TFunctor>
+void iterateTree(KdTree& tree, const TFunctor& functor) {
+    SequentialScheduler scheduler;
+    iterateTree<Dir>(tree, scheduler, functor);
+}
 
 NAMESPACE_SPH_END

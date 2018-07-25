@@ -156,55 +156,60 @@ public:
         const Vector v_merger = weightedAverage(v[i], m[i], v[j], m[j]);
 
         Vector omega_merger;
+        SymmetricTensor I_merger;
+        Vector L_merger;
+        Tensor E_merger;
 
         // Never modify particle values below UNTIL we know the collision is accepted; save the preliminary
         // values to _merger variables!
 
-        /*if (I) {
+        if (I) {
+            // So far this is just an experimental branch, not intended to be used for "serious" simulations.
+            // This assert is just a check that it does not get enabled by accident.
+            ASSERT(Assert::isTest);
+
             // compute inertia tensors in inertial frame
             const SymmetricTensor I1 = transform(I[i], convert<AffineMatrix>(E[i]));
             const SymmetricTensor I2 = transform(I[j], convert<AffineMatrix>(E[j]));
 
             // sum up the inertia tensors, but first move them to new origin
-            const SymmetricTensor I_merger = Rigid::parallelAxisTheorem(I1, m[i], r_merger - r[i]) +
-                                             Rigid::parallelAxisTheorem(I2, m[j], r_merger - r[j]);
+            I_merger = Rigid::parallelAxisTheorem(I1, m[i], r_merger - r[i]) +
+                       Rigid::parallelAxisTheorem(I2, m[j], r_merger - r[j]);
 
             // compute the total angular momentum - has to be conserved
-            const Vector L_merger = m[i] * cross(r[i] - r_merger, v[i] - v_merger) + //
-                                    m[j] * cross(r[j] - r_merger, v[j] - v_merger) + //
-                                    L[i] + L[j];
+            L_merger = m[i] * cross(r[i] - r_merger, v[i] - v_merger) + //
+                       m[j] * cross(r[j] - r_merger, v[j] - v_merger) + //
+                       L[i] + L[j];
             // L = I*omega  =>  omega = I^-1 * L
             omega_merger = I_merger.inverse() * L_merger;
 
             // compute the new local frame of the merger and inertia tensor in this frame
             Eigen eigen = eigenDecomposition(I_merger);
-            I[i] = SymmetricTensor(eigen.values, Vector(0._f));
-            ASSERT(isReal(I[i]));
+            I_merger = SymmetricTensor(eigen.values, Vector(0._f));
+            ASSERT(isReal(I_merger));
 
-            E[i] = convert<Tensor>(eigen.vectors);
-            ASSERT(isReal(E[i]));
+            E_merger = convert<Tensor>(eigen.vectors);
+            ASSERT(isReal(E_merger));
 
-            L[i] = L_merger;
-            ASSERT(isReal(L[i]) && isReal(omega[i]), L[i], omega[i]);
+            ASSERT(isReal(L_merger) && isReal(omega_merger), L_merger, omega_merger);
             /// \todo remove, we have unit tests for this
-            ASSERT(almostEqual(getSqrLength(E[i].row(0)), 1._f, 1.e-6_f));
-            ASSERT(almostEqual(getSqrLength(E[i].row(1)), 1._f, 1.e-6_f));
-            ASSERT(almostEqual(getSqrLength(E[i].row(2)), 1._f, 1.e-6_f));
+            ASSERT(almostEqual(getSqrLength(E_merger.row(0)), 1._f, 1.e-6_f));
+            ASSERT(almostEqual(getSqrLength(E_merger.row(1)), 1._f, 1.e-6_f));
+            ASSERT(almostEqual(getSqrLength(E_merger.row(2)), 1._f, 1.e-6_f));
 
-        } else {*/
-        const Vector L_merger = m[i] * cross(r[i] - r_merger, v[i] - v_merger) + //
-                                m[j] * cross(r[j] - r_merger, v[j] - v_merger) + //
-                                Rigid::sphereInertia(m[i], r[i][H]) * omega[i] + //
-                                Rigid::sphereInertia(m[j], r[j][H]) * omega[j];
-        omega_merger = Rigid::sphereInertia(m_merger, h_merger).inverse() * L_merger;
-        //}
-        // omega[i] = omega_merger;
+        } else {
+            L_merger = m[i] * cross(r[i] - r_merger, v[i] - v_merger) + //
+                       m[j] * cross(r[j] - r_merger, v[j] - v_merger) + //
+                       Rigid::sphereInertia(m[i], r[i][H]) * omega[i] + //
+                       Rigid::sphereInertia(m[j], r[j][H]) * omega[j];
+            omega_merger = Rigid::sphereInertia(m_merger, h_merger).inverse() * L_merger;
+        }
 
         if (!this->acceptMerge(i, j, h_merger, omega_merger)) {
             return CollisionResult::NONE;
         }
 
-        /// \todo keep track of density as well?
+        // NOW we can save the values
 
         m[i] = m_merger;
         r[i] = r_merger;
@@ -212,6 +217,12 @@ public:
         v[i] = v_merger;
         v[i][H] = 0._f;
         omega[i] = omega_merger;
+
+        if (I) {
+            I[i] = I_merger;
+            L[i] = L_merger;
+            E[i] = E_merger;
+        }
 
         ASSERT(isReal(v[i]) && isReal(r[i]));
         toRemove.insert(j);

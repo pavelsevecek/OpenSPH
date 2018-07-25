@@ -48,10 +48,10 @@ TEST_CASE("AtomicFloat concurrent addition", "[thread]") {
     Atomic<Float> atomicSum = 0._f;
     Float sum = 0;
     for (Size i = 0; i <= 10000; ++i) {
-        pool.submit(makeTask([&sum, &atomicSum, i] {
+        pool.submit([&sum, &atomicSum, i] {
             sum += Float(i);
             atomicSum += Float(i);
-        }));
+        });
     }
     const Float expected = 50'005'000._f; /// \todo ok for doubles, will this be precise even for floats?
     pool.waitForAll();

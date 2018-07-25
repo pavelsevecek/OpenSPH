@@ -92,13 +92,15 @@ public:
     }
 };
 
-InitialConditions::InitialConditions(ISolver& solver, const RunSettings& settings)
-    : solver(makeAuto<ForwardingSolver>(solver)) {
+InitialConditions::InitialConditions(IScheduler& scheduler, ISolver& solver, const RunSettings& settings)
+    : scheduler(scheduler)
+    , solver(makeAuto<ForwardingSolver>(solver)) {
     this->createCommon(settings);
 }
 
-InitialConditions::InitialConditions(const RunSettings& settings)
-    : solver(Factory::getSolver(settings)) {
+InitialConditions::InitialConditions(IScheduler& scheduler, const RunSettings& settings)
+    : scheduler(scheduler)
+    , solver(Factory::getSolver(scheduler, settings)) {
     this->createCommon(settings);
 }
 
@@ -134,7 +136,7 @@ BodyView InitialConditions::addMonolithicBody(Storage& storage,
     const Size n = mat.getParam<int>(BodySettingsId::PARTICLE_COUNT);
 
     // Generate positions of particles
-    Array<Vector> positions = distribution->generate(n, domain);
+    Array<Vector> positions = distribution->generate(scheduler, n, domain);
     ASSERT(positions.size() > 0);
     body.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, std::move(positions));
 
@@ -176,7 +178,7 @@ Array<BodyView> InitialConditions::addHeterogeneousBody(Storage& storage,
     const Size n = environment.material->getParam<int>(BodySettingsId::PARTICLE_COUNT);
 
     // Generate positions of ALL particles
-    Array<Vector> positions = distribution->generate(n, *environment.domain);
+    Array<Vector> positions = distribution->generate(scheduler, n, *environment.domain);
     // Create particle storage per body
     Storage environmentStorage(std::move(environment.material));
     Array<Storage> bodyStorages;
@@ -242,7 +244,7 @@ void InitialConditions::addRubblePileBody(Storage& storage,
 
     // generate the particles that will be eventually turned into spheres
     AutoPtr<IDistribution> distribution = Factory::getDistribution(bodySettings);
-    Array<Vector> positions = distribution->generate(n, domain);
+    Array<Vector> positions = distribution->generate(scheduler, n, domain);
 
     // counter used to exit the loop (when no more spheres can be generated)
     Size bailoutCounter = 0;
@@ -364,7 +366,7 @@ void InitialConditions::setQuantities(Storage& storage, IMaterial& material, con
 
 void repelParticles(ArrayView<Vector> r, const Float radius) {
     KdTree finder;
-    finder.build(r);
+    finder.build(SEQUENTIAL, r);
     Array<NeighbourRecord> neighs;
     Size moveCnt = -1;
     while (moveCnt != 0) {

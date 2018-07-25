@@ -137,10 +137,10 @@ public:
     }
 
     /// \brief Sums values, concurently over different quantities
-    void sum(ThreadPool& pool, ArrayView<Accumulated*> others) {
+    void sum(IScheduler& scheduler, ArrayView<Accumulated*> others) {
         for (Element& e : buffers) {
-            forValue(e.buffer, [this, &pool, &e, &others](auto& buffer) INL { //
-                this->sumBuffer(pool, buffer, e.id, others);
+            forValue(e.buffer, [this, &scheduler, &e, &others](auto& buffer) INL { //
+                this->sumBuffer(scheduler, buffer, e.id, others);
             });
         }
     }
@@ -201,7 +201,7 @@ private:
     }
 
     template <typename Type>
-    void sumBuffer(ThreadPool& pool,
+    void sumBuffer(IScheduler& scheduler,
         Array<Type>& buffer1,
         const QuantityId id,
         ArrayView<Accumulated*> others) {
@@ -217,7 +217,7 @@ private:
             }
             buffer1[i] += sum;
         };
-        parallelFor(pool, 0, buffer1.size(), functor);
+        parallelFor(scheduler, 0, buffer1.size(), functor);
     }
 
     bool hasBuffer(const QuantityId id, const OrderEnum UNUSED_IN_RELEASE(order)) const {

@@ -32,19 +32,19 @@ BarnesHut::BarnesHut(const Float theta,
     ASSERT(theta > 0._f, theta);
 }
 
-void BarnesHut::build(const Storage& storage) {
+void BarnesHut::build(IScheduler& scheduler, const Storage& storage) {
     // save source data
     r = storage.getValue<Vector>(QuantityId::POSITION);
     m = storage.getValue<Float>(QuantityId::MASS);
 
     // build K-d Tree; no need for rank as we are never searching neighbours
-    kdTree.build(r, FinderFlag::SKIP_RANK);
+    kdTree.build(scheduler, r, FinderFlag::SKIP_RANK);
 
     if (SPH_UNLIKELY(r.empty())) {
         return;
     }
     // constructs nodes
-    kdTree.iterate<KdTree::Direction::BOTTOM_UP>([this](KdNode& node, KdNode* left, KdNode* right) INL {
+    auto functor = [this](KdNode& node, KdNode* left, KdNode* right) INL {
         if (node.isLeaf()) {
             ASSERT(left == nullptr && right == nullptr);
             buildLeaf(node);
@@ -54,44 +54,17 @@ void BarnesHut::build(const Storage& storage) {
             buildInner(node, *left, *right);
         }
         return true;
+    };
+    iterateTree<IterateDirection::BOTTOM_UP>(kdTree, scheduler, functor);
+}
+
+void BarnesHut::evalAll(IScheduler& scheduler, ArrayView<Vector> dv, Statistics& stats) const {
+    TreeWalkState data;
+    TreeWalkResult result;
+    SharedPtr<ITask> rootTask = scheduler.submit([this, &scheduler, dv, &data, &result] { //
+        this->evalNode(scheduler, dv, 0, std::move(data), result);
     });
-}
-
-void BarnesHut::evalAll(ArrayView<Vector> dv, Statistics& stats) const {
-    TreeWalkState data;
-    TreeWalkResult result;
-
-    // Dummy scheduler without any parallelization
-    class SequentialScheduler : public IScheduler {
-    public:
-        virtual void submit(AutoPtr<ITask>&& task) override {
-            (*task)();
-        }
-
-        virtual void waitForAll() override {
-            // do nothing
-        }
-    } scheduler;
-
-    this->evalNode(scheduler, dv, 0, std::move(data), result);
-
-    stats.set<int>(StatisticsId::GRAVITY_NODES_APPROX, result.approximatedNodes);
-    stats.set<int>(StatisticsId::GRAVITY_NODES_EXACT, result.exactNodes);
-    stats.set<int>(StatisticsId::GRAVITY_NODE_COUNT, kdTree.getNodeCnt());
-
-    // set correct units
-    for (Size i = 0; i < dv.size(); ++i) {
-        dv[i] *= Constants::gravity;
-    }
-}
-
-void BarnesHut::evalAll(ThreadPool& pool, ArrayView<Vector> dv, Statistics& stats) const {
-    TreeWalkState data;
-    TreeWalkResult result;
-    pool.submit(makeTask([this, &pool, dv, &data, &result] { //
-        this->evalNode(pool, dv, 0, std::move(data), result);
-    }));
-    pool.waitForAll();
+    rootTask->wait();
 
     stats.set<int>(StatisticsId::GRAVITY_NODES_APPROX, result.approximatedNodes);
     stats.set<int>(StatisticsId::GRAVITY_NODES_EXACT, result.exactNodes);
@@ -141,12 +114,12 @@ Vector BarnesHut::evalImpl(const Vector& r0, const Size idx, Statistics& UNUSED(
             }
         }
     };
-    kdTree.iterate<KdTree::Direction::TOP_DOWN>(lambda);
+    iterateTree<IterateDirection::TOP_DOWN>(kdTree, lambda);
 
     return Constants::gravity * f;
 }
 
-class BarnesHut::NodeTask : public ITask {
+class BarnesHut::NodeTask : public Noncopyable {
 private:
     const BarnesHut& bh;
     IScheduler& scheduler;
@@ -169,7 +142,7 @@ public:
         , data(std::move(data))
         , result(result) {}
 
-    virtual void operator()() override {
+    void operator()() {
         bh.evalNode(scheduler, dv, nodeIdx, std::move(data), result);
     }
 };
@@ -183,7 +156,6 @@ BarnesHut::TreeWalkState BarnesHut::TreeWalkState::clone() const {
 }
 
 /// \todo try different containers; we need fast inserting & deletion
-
 void BarnesHut::evalNode(IScheduler& scheduler,
     ArrayView<Vector> dv,
     const Size evaluatedNodeIdx,
@@ -265,8 +237,7 @@ void BarnesHut::evalNode(IScheduler& scheduler,
         // that we don't override the lists when evaluating different node (each node has its own lists).
         TreeWalkState childData = data.clone();
         childData.checkList.pushBack(inner.right);
-        AutoPtr<NodeTask> task =
-            makeAuto<NodeTask>(*this, scheduler, dv, inner.left, std::move(childData), result);
+        auto task = makeShared<NodeTask>(*this, scheduler, dv, inner.left, std::move(childData), result);
         scheduler.submit(std::move(task));
 
         // since we go only once through the tree (we never go 'up'), we can simply move the lists into the

@@ -13,6 +13,7 @@ class Palette;
 class Point;
 class Interval;
 class IBrdf;
+class IScheduler;
 enum class ColorizerId;
 
 namespace Factory {
@@ -21,7 +22,7 @@ namespace Factory {
     /// \param size Resolution of produced image
     AutoPtr<ICamera> getCamera(const GuiSettings& settings, const Point size);
 
-    AutoPtr<IRenderer> getRenderer(const GuiSettings& settings);
+    AutoPtr<IRenderer> getRenderer(IScheduler& scheduler, const GuiSettings& settings);
 
     AutoPtr<IBrdf> getBrdf(const GuiSettings& settings);
 

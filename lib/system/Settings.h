@@ -736,10 +736,8 @@ static RegisterEnum<GravityKernelEnum> sGravityKernel({
 });
 
 enum class CollisionHandlerEnum {
-    /// All collided particles merge, creating larger spherical particles. May reject the collision in case
-    /// the particles move two fast (faster than the escape velocity). To ensure that the particles are always
-    /// merged, set the COLLISION_MERGE_LIMIT to zero. Note that this may create unphysically fast rotators,
-    /// but it is a simple handler, useful for testing.
+    /// All collided particles merge, creating larger spherical particles. Particles are merged
+    /// unconditionally, regardless of their relative velocity or their angular frequencies.
     PERFECT_MERGING,
 
     /// Collided particles bounce with some energy dissipation, specified by the coefficients of restitution.
@@ -747,16 +745,15 @@ enum class CollisionHandlerEnum {
     ELASTIC_BOUNCE,
 
     /// If the relative speed of the collided particles is lower than the escape velocity, the particles are
-    /// merged, otherwise the particle bounce.
+    /// merged, otherwise the particle bounce. To ensure that the particles are always merged, set the
+    /// COLLISION_MERGE_LIMIT to zero, on the other hand large values make particles more difficult to merge.
     MERGE_OR_BOUNCE,
 };
 static RegisterEnum<CollisionHandlerEnum> sCollisionHandler({
     { CollisionHandlerEnum::PERFECT_MERGING,
         "perfect_merging",
-        "All collided particles merge, creating larger spherical particles. May reject the collision in case "
-        "the particles move too fast (faster than the escape velocity). To ensure that the particles are "
-        "always merged, set the collision merge limit to zero. Note that this may create unphysically fast "
-        "rotators, but it is a simple handler, useful for testing." },
+        "All collided particles merge, creating larger spherical particles. Particles are merged "
+        "unconditionally, regardless of their relative velocity or their angular frequencies." },
     { CollisionHandlerEnum::ELASTIC_BOUNCE,
         "elastic_bounce",
         "Collided particles bounce with some energy dissipation, specified by the coefficients of "
@@ -764,7 +761,9 @@ static RegisterEnum<CollisionHandlerEnum> sCollisionHandler({
     { CollisionHandlerEnum::MERGE_OR_BOUNCE,
         "merge_or_bounce",
         "If the relative speed of the collided particles is lower than the escape velocity, the particles "
-        "are merged, otherwise the particle bounce." },
+        "are merged, otherwise the particle bounce. To ensure that the particles are always merged, set the "
+        "collision.merging_limit to zero, on the other hand large values make particles more difficult to "
+        "merge." },
 });
 
 enum class OverlapEnum {

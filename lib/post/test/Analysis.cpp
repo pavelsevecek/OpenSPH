@@ -9,6 +9,7 @@
 #include "quantities/Storage.h"
 #include "sph/initial/Initial.h"
 #include "tests/Approx.h"
+#include "thread/Pool.h"
 #include "utils/Utils.h"
 
 using namespace Sph;
@@ -28,7 +29,8 @@ TEST_CASE("Component initconds", "[post]") {
     BodySettings bodySettings;
     bodySettings.set(BodySettingsId::INITIAL_DISTRIBUTION, DistributionEnum::CUBIC);
     Storage storage;
-    InitialConditions conds(RunSettings::getDefaults());
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+    InitialConditions conds(pool, RunSettings::getDefaults());
     bodySettings.set(BodySettingsId::PARTICLE_COUNT, 1000);
     conds.addMonolithicBody(storage, SphericalDomain(Vector(0, 0, 0), 1._f), bodySettings);
     conds.addMonolithicBody(storage, SphericalDomain(Vector(-6, 4, 0), 1._f), bodySettings);
@@ -105,16 +107,15 @@ TEST_CASE("CummulativeSfd", "[post]") {
     storage.insert<Vector>(QuantityId::POSITION, OrderEnum::ZERO, std::move(r));
 
     Post::HistogramParams params;
-    params.id = Post::HistogramId::RADII;
-    params.source = Post::HistogramParams::Source::PARTICLES;
-    Array<Post::SfdPoint> points = Post::getCummulativeSfd(storage, params);
+    Array<Post::HistPoint> points = Post::getCummulativeHistogram(
+        storage, Post::HistogramId::RADII, Post::HistogramSource::PARTICLES, params);
     // clang-format off
-    Array<Post::SfdPoint> expected{ { 10, 1 }, { 9, 2 }, { 8, 3 }, { 7, 4 }, { 6, 5 },
+    Array<Post::HistPoint> expected{ { 10, 1 }, { 9, 2 }, { 8, 3 }, { 7, 4 }, { 6, 5 },
         { 5, 6 }, { 4, 7 }, { 3, 8 }, { 2, 9 }, { 1, 10 } };
     // clang-format on
     REQUIRE(expected.size() == points.size());
 
-    auto predicate = [](Post::SfdPoint& p1, Post::SfdPoint& p2) { //
+    auto predicate = [](Post::HistPoint& p1, Post::HistPoint& p2) { //
         return p1.value == p2.value && p1.count == p2.count;
     };
     REQUIRE(std::equal(points.begin(), points.end(), expected.begin(), predicate));

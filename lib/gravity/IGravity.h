@@ -10,33 +10,24 @@
 
 NAMESPACE_SPH_BEGIN
 
-class ThreadPool;
-
 /// \brief Interface for evaluators of gravitational interaction
 class IGravity : public Polymorphic {
 public:
     /// \brief Builds the accelerating structure.
     ///
     /// Needs to be called every time step.
-    virtual void build(const Storage& storage) = 0;
-
-    /// \brief Evaluates the gravitational acceleration for all particles in the storage.
-    ///
-    /// The implementation must be either single-threaded or parallelize the computation internally,
-    /// possibly using global \ref ThreadPool instance.
-    /// \param dv Acceleration values, may contain previous values, gravity should add acceleration
-    ///           instead of replacing the previous values.
-    /// \param stats Output statistics of the gravitational solver.
-    virtual void evalAll(ArrayView<Vector> dv, Statistics& stats) const = 0;
+    /// \param scheduler Scheduler used for parallelization of the build. Use \ref SEQUENTAIL for sequential
+    ///                 (single-threaded) execution.
+    virtual void build(IScheduler& scheduler, const Storage& storage) = 0;
 
     /// \brief Evaluates the gravitational acceleration concurrently.
     ///
     /// The function is blocking, it must exit after the gravity is evaluated.
-    /// \param pool Thread pool used for parallelization
+    /// \param scheduler Scheduler used for parallelization.
     /// \param dv Acceleration values, may contain previous values, gravity should add acceleration
     ///           instead of replacing the previous values.
     /// \param stats Output statistics of the gravitational solver.
-    virtual void evalAll(ThreadPool& pool, ArrayView<Vector> dv, Statistics& stats) const = 0;
+    virtual void evalAll(IScheduler& scheduler, ArrayView<Vector> dv, Statistics& stats) const = 0;
 
     /// \brief Evaluates the gravitational acceleration at given point.
     ///

@@ -18,11 +18,10 @@ class EquationHolder;
 class AsteroidRotation : public IRun {
 private:
     RawPtr<Controller> model;
-    Float period;
 
 public:
     /// \param period Rotational period of asteroid in hours
-    AsteroidRotation(const RawPtr<Controller> model, const Float period);
+    AsteroidRotation(const RawPtr<Controller> model);
 
     virtual void setUp() override;
 
@@ -67,7 +66,7 @@ private:
 
         controller = makeAuto<Controller>(gui);
 
-        AutoPtr<AsteroidRotation> run = makeAuto<AsteroidRotation>(controller.get(), 6._f);
+        AutoPtr<AsteroidRotation> run = makeAuto<AsteroidRotation>(controller.get());
 
         controller->start(std::move(run));
         return true;

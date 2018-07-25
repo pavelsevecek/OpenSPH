@@ -12,8 +12,8 @@
 
 NAMESPACE_SPH_BEGIN
 
-class PlotPoint;
-class ErrorPlotPoint;
+struct PlotPoint;
+struct ErrorPlotPoint;
 class AffineMatrix2;
 
 class IDrawPath : public Polymorphic {
@@ -239,7 +239,7 @@ protected:
     Post::HistogramId id;
 
     /// Points representing the histogram
-    Array<Post::SfdPoint> points;
+    Array<Post::HistPoint> points;
 
     /// Interval for which the histogram is constructed.
     ///
@@ -286,5 +286,13 @@ public:
 
     virtual void plot(IDrawingContext& dc) const override;
 };
+
+/// \brief Returns the tics to be drawn on a linear axis of a plot.
+///
+/// The tics are not necessarily equidistant.
+Array<Float> getLinearTics(const Interval& interval, const Size minCount);
+
+/// \brief Returns the tics to be drawn on a logarithmic axis of a plot.
+Array<Float> getLogTics(const Interval& interval, const Size minCount);
 
 NAMESPACE_SPH_END

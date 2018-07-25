@@ -13,7 +13,8 @@ using namespace Sph;
 TEST_CASE("StaticSolver no forces", "[staticsolver]") {
     // tests that with no external forces, the stress tensor is zero
     RunSettings settings;
-    StaticSolver solver(settings, EquationHolder());
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+    StaticSolver solver(pool, settings, EquationHolder());
     BodySettings body;
     body.set(BodySettingsId::ENERGY, 0._f)
         .set(BodySettingsId::ENERGY_RANGE, Interval(0._f, INFTY))
@@ -46,7 +47,8 @@ TEST_CASE("StaticSolver pressure", "[staticsolver]") {
     const Float rho0 = 300._f;
     const Float r0 = 1._f * Constants::au;
     EquationHolder equations = makeTerm<SphericalGravityEquation>();
-    StaticSolver solver(settings, std::move(equations));
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+    StaticSolver solver(pool, settings, std::move(equations));
 
     BodySettings body;
     // body.set(BodySettingsId::INITIAL_DISTRIBUTION, DistributionEnum::DIEHL_ET_AL);
@@ -114,10 +116,11 @@ TEST_CASE("StaticSolver stationary", "[staticsolver]") {
         logger.write(u, "  ", eos.evaluate(2700, u)[0]);
     }*/
 
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
     EquationHolder equations;
     equations += makeTerm<SphericalGravityEquation>();
     equations += makeTerm<InertialForce>(Vector(0._f, 0._f, 2.f * PI / (3600._f * 12._f)));
-    StaticSolver staticSolver(RunSettings::getDefaults(), equations);
+    StaticSolver staticSolver(pool, RunSettings::getDefaults(), equations);
     staticSolver.create(storage, storage.getMaterial(0));
     Statistics stats;
     /*REQUIRE_NOTHROW(staticSolver.solve(storage, stats));

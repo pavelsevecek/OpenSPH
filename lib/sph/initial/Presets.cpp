@@ -5,6 +5,7 @@
 #include "sph/initial/Distribution.h"
 #include "system/Factory.h"
 #include "system/Settings.impl.h"
+#include "thread/Pool.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -42,10 +43,11 @@ bool Presets::CollisionParams::loadFromFile(const Path& path) {
     return true;
 }
 
-Presets::Collision::Collision(const RunSettings& settings,
+Presets::Collision::Collision(IScheduler& scheduler,
+    const RunSettings& settings,
     const BodySettings& body,
     const CollisionParams& params)
-    : _ic(settings)
+    : _ic(scheduler, settings)
     , _body(body)
     , _params(params) {
     ASSERT(params.impactAngle >= 0._f && params.impactAngle < 2._f * PI);
@@ -65,10 +67,12 @@ void Presets::Collision::addTarget(Storage& storage) {
         if (_params.concentration) {
             // concentration specified, we have to use Diehl's distribution (no other distribution can
             // specify concentration)
-            const Float strength = _body.get<Float>(BodySettingsId::DIELH_STRENGTH);
-            const Size diff = _body.get<int>(BodySettingsId::DIEHL_MAX_DIFFERENCE);
-            AutoPtr<DiehlDistribution> distr =
-                makeAuto<DiehlDistribution>(_params.concentration, diff, 50, strength);
+            DiehlParams diehl;
+            diehl.particleDensity = _params.concentration;
+            diehl.maxDifference = _body.get<int>(BodySettingsId::DIEHL_MAX_DIFFERENCE);
+            diehl.strength = _body.get<Float>(BodySettingsId::DIELH_STRENGTH);
+
+            auto distr = makeAuto<DiehlDistribution>(diehl);
             return _ic.addMonolithicBody(storage, domain, Factory::getMaterial(_body), std::move(distr));
         } else {
             // we can use the default distribution
@@ -160,11 +164,12 @@ Vector Presets::Collision::getImpactPoint() const {
     return Vector(x, y, 0._f);
 }
 
-Presets::Satellite::Satellite(ISolver& solver,
+Presets::Satellite::Satellite(IScheduler& scheduler,
+    ISolver& solver,
     const RunSettings& settings,
     const BodySettings& body,
     const SatelliteParams& params)
-    : _ic(solver, settings)
+    : _ic(scheduler, solver, settings)
     , _body(body)
     , _params(params) {
     _body.set(BodySettingsId::PARTICLE_COUNT, int(_params.targetParticleCnt));

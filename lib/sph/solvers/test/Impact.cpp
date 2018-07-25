@@ -16,9 +16,10 @@ using namespace Sph;
 
 template <typename TSolver>
 static void runImpact(EquationHolder eqs, const RunSettings& settings) {
-    TSolver solver(settings, std::move(eqs));
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+    TSolver solver(pool, settings, std::move(eqs));
     SharedPtr<Storage> storage = makeShared<Storage>();
-    InitialConditions initial(solver, settings);
+    InitialConditions initial(pool, solver, settings);
     BodySettings body;
     body.set(BodySettingsId::PARTICLE_COUNT, 1000);
     body.set(BodySettingsId::ENERGY, 0._f);
@@ -38,7 +39,7 @@ static void runImpact(EquationHolder eqs, const RunSettings& settings) {
     // 1. After first step, the StrengthVelocityGradient should be zero, meaning derivatives of stress tensor
     //    and density should be zero as well (and therefore values as well)
 
-    timestepping.step(solver, stats);
+    timestepping.step(pool, solver, stats);
 
     ArrayView<SymmetricTensor> gradv = storage->getValue<SymmetricTensor>(QuantityId::VELOCITY_GRADIENT);
     ArrayView<TracelessTensor> s, ds;
@@ -55,7 +56,7 @@ static void runImpact(EquationHolder eqs, const RunSettings& settings) {
     // 2. Derivatives are nonzero in the second step (as there is already a nonzero velocity gradient inside
     //    each body)
 
-    timestepping.step(solver, stats);
+    timestepping.step(pool, solver, stats);
 
     // arrayviews must be reset as they might be (and were) invalidated
     gradv = storage->getValue<SymmetricTensor>(QuantityId::VELOCITY_GRADIENT);

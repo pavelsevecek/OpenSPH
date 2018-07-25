@@ -8,6 +8,7 @@
 #include "sph/initial/Initial.h"
 #include "system/Settings.h"
 #include "tests/Approx.h"
+#include "thread/Pool.h"
 #include "utils/SequenceTest.h"
 
 using namespace Sph;
@@ -235,7 +236,8 @@ TEST_CASE("GhostParticles empty", "[boundary]") {
 
 TEST_CASE("FrozenParticles by flag", "[boundary]") {
     Storage storage;
-    InitialConditions conds(RunSettings::getDefaults());
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+    InitialConditions conds(pool, RunSettings::getDefaults());
     BodySettings settings;
     settings.set(BodySettingsId::PARTICLE_COUNT, 100);
     conds.addMonolithicBody(storage, SphericalDomain(Vector(0._f), 1._f), settings);
@@ -327,7 +329,8 @@ TEST_CASE("FrozenParticles by flag", "[boundary]") {
 
 TEST_CASE("FrozenParticles by distance", "[boundary]") {
     Storage storage;
-    InitialConditions conds(RunSettings::getDefaults());
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+    InitialConditions conds(pool, RunSettings::getDefaults());
     BodySettings settings;
     settings.set(BodySettingsId::PARTICLE_COUNT, 1000);
     conds.addMonolithicBody(storage, SphericalDomain(Vector(0._f), 1.5_f), settings);

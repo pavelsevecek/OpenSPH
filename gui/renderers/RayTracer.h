@@ -59,6 +59,8 @@ private:
 
     } params;
 
+    IScheduler& scheduler;
+
     struct ThreadData {
         Array<Size> neighs;
 
@@ -66,11 +68,6 @@ private:
 
         Size previousIdx;
     };
-
-    /// Thread pool for parallelization; we need to use a custom instance instead of the global one as there
-    /// is currently no way to wait for just some tasks - using the global instance could clash with the
-    /// simulation tasks,
-    mutable ThreadPool pool;
 
     mutable ThreadLocal<ThreadData> threadData;
 
@@ -93,7 +90,7 @@ private:
     } cached;
 
 public:
-    explicit RayTracer(const GuiSettings& settings);
+    explicit RayTracer(IScheduler& scheduler, const GuiSettings& settings);
 
     ~RayTracer();
 

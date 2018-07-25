@@ -36,7 +36,8 @@ SharedPtr<Storage> solveGassBall(RunSettings settings, Flags<Options> flags) {
         .set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONST)
         .set(RunSettingsId::RUN_THREAD_GRANULARITY, 10);
 
-    TSolver solver(settings, getStandardEquations(settings));
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+    TSolver solver(pool, settings, getStandardEquations(settings));
 
     const Float rho0 = 10._f;
     const Float u0 = 1.e4_f;
@@ -66,7 +67,7 @@ SharedPtr<Storage> solveGassBall(RunSettings settings, Flags<Options> flags) {
     // make few timesteps
     Size stepCnt = 0;
     for (Float t = 0._f; t < 5.e-2_f; t += timestepping.getTimeStep()) {
-        timestepping.step(solver, stats);
+        timestepping.step(pool, solver, stats);
         stepCnt++;
     }
     REQUIRE(stepCnt > 10);
@@ -139,8 +140,9 @@ TEST_CASE("SymmetricSolver asymmetric derivative", "[solvers]") {
             ArrayView<const Vector> UNUSED(grads)) override {}
     };
 
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
     auto eq = makeTerm<Tests::SingleDerivativeMaker<AsymmetricDerivative>>();
-    REQUIRE_THROWS_AS(SymmetricSolver(RunSettings::getDefaults(), eq), InvalidSetup&);
+    REQUIRE_THROWS_AS(SymmetricSolver(pool, RunSettings::getDefaults(), eq), InvalidSetup&);
 }
 
 TEST_CASE("SummationSolver gass ball", "[solvers]") {

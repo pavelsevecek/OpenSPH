@@ -6,12 +6,13 @@
 #include "system/Factory.h"
 #include "system/Settings.h"
 #include "tests/Approx.h"
+#include "thread/Pool.h"
 
 using namespace Sph;
 
-
 TEST_CASE("VonMises reduction", "[yielding]") {
     VonMisesRheology vonMises;
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
     Storage storage(getDefaultMaterial());
 
     Array<Float> energy(10);
@@ -26,18 +27,19 @@ TEST_CASE("VonMises reduction", "[yielding]") {
     storage.insert<TracelessTensor>(QuantityId::DEVIATORIC_STRESS, OrderEnum::ZERO, stress);
     ArrayView<const TracelessTensor> s = storage.getValue<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
     const TracelessTensor unreduced = stress;
-    vonMises.initialize(storage, material);
+    vonMises.initialize(pool, storage, material);
     REQUIRE(unreduced == s[0]); // small stress, elastic material
 
     Array<Float>& u = storage.getValue<Float>(QuantityId::ENERGY);
     u.fill(120._f);
-    vonMises.initialize(storage, material);
+    vonMises.initialize(pool, storage, material);
     REQUIRE(s[0] == TracelessTensor::null()); // u = u_melt, no stress
 }
 
 TEST_CASE("VonMises repeated", "[yielding]") {
     // von Mises should not affect already reduced stress tensor
     VonMisesRheology vonMises;
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
     BodySettings settings;
     settings.set(BodySettingsId::ELASTICITY_LIMIT, 0.5_f);
     Storage storage(Factory::getMaterial(settings));
@@ -51,13 +53,13 @@ TEST_CASE("VonMises repeated", "[yielding]") {
     storage.insert<TracelessTensor>(QuantityId::DEVIATORIC_STRESS, OrderEnum::ZERO, stress);
     ArrayView<const TracelessTensor> s = storage.getValue<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
 
-    vonMises.initialize(storage, storage.getMaterial(0));
+    vonMises.initialize(pool, storage, storage.getMaterial(0));
     const Float unreduced = ddot(stress, stress);
     const Float reduced1 = ddot(s[0], s[0]);
     REQUIRE(reduced1 > 0);
     REQUIRE(reduced1 < unreduced);
 
-    vonMises.initialize(storage, storage.getMaterial(0));
+    vonMises.initialize(pool, storage, storage.getMaterial(0));
     const Float reduced2 = ddot(s[0], s[0]);
     REQUIRE(reduced1 == approx(reduced2));
 }

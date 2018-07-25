@@ -100,7 +100,7 @@ public:
         derivatives.require(makeAuto<Derivative>(settings));
     }
 
-    virtual void initialize(Storage& storage, ThreadPool& UNUSED(pool)) override {
+    virtual void initialize(IScheduler& UNUSED(scheduler), Storage& storage) override {
         ArrayView<SymmetricTensor> as = storage.getValue<SymmetricTensor>(QuantityId::AV_STRESS);
         ArrayView<TracelessTensor> s =
             storage.getPhysicalValue<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
@@ -124,7 +124,7 @@ public:
         }
     }
 
-    virtual void finalize(Storage& UNUSED(storage), ThreadPool& UNUSED(pool)) override {}
+    virtual void finalize(IScheduler& UNUSED(scheduler), Storage& UNUSED(storage)) override {}
 
     virtual void create(Storage& storage, IMaterial& UNUSED(material)) const override {
         Quantity& q = storage.insert<Float>(QuantityId::INTERPARTICLE_SPACING_KERNEL, OrderEnum::ZERO, 0._f);

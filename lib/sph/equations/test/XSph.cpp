@@ -17,7 +17,9 @@ TEST_CASE("XSph", "[solvers]") {
 
     eqs += makeTerm<PressureForce>() + makeTerm<ContinuityEquation>() + makeTerm<XSph>() +
            makeTerm<ConstSmoothingLength>();
-    SymmetricSolver solver(settings, std::move(eqs));
+
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+    SymmetricSolver solver(pool, settings, std::move(eqs));
     REQUIRE_NOTHROW(solver.create(storage, storage.getMaterial(0)));
     Statistics stats;
     REQUIRE_NOTHROW(solver.integrate(storage, stats));

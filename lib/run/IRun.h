@@ -16,6 +16,7 @@ NAMESPACE_SPH_BEGIN
 
 class IRunCallbacks;
 class ILogFile;
+class IScheduler;
 class IOutput;
 class ITrigger;
 
@@ -50,6 +51,9 @@ protected:
 
     /// Stores all SPH particles
     SharedPtr<Storage> storage;
+
+    /// Scheduler used for parallelization.
+    SharedPtr<IScheduler> scheduler;
 
     /// Timestepping
     AutoPtr<ITimeStepping> timeStepping;

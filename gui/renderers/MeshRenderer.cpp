@@ -10,7 +10,8 @@
 
 NAMESPACE_SPH_BEGIN
 
-MeshRenderer::MeshRenderer(const GuiSettings& gui) {
+MeshRenderer::MeshRenderer(IScheduler& scheduler, const GuiSettings& gui)
+    : scheduler(scheduler) {
     surfaceLevel = gui.get<Float>(GuiSettingsId::SURFACE_LEVEL);
     surfaceResolution = gui.get<Float>(GuiSettingsId::SURFACE_RESOLUTION);
     sunPosition = gui.get<Vector>(GuiSettingsId::SURFACE_SUN_POSITION);
@@ -29,7 +30,7 @@ void MeshRenderer::initialize(const Storage& storage,
     cached.colors.clear();
 
     // get the surface as triangles
-    cached.triangles = getSurfaceMesh(storage, surfaceResolution, surfaceLevel);
+    cached.triangles = getSurfaceMesh(scheduler, storage, surfaceResolution, surfaceLevel);
 
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     /*Float maxH = 0._f;
@@ -37,7 +38,7 @@ void MeshRenderer::initialize(const Storage& storage,
         maxH = max(maxH, r[i][H]);
     }*/
 
-    finder->build(r);
+    finder->build(scheduler, r);
     Array<NeighbourRecord> neighs;
 
     for (Triangle& t : cached.triangles) {
