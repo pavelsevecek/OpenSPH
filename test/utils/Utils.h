@@ -108,7 +108,7 @@
 #ifdef SPH_DEBUG
 #define REQUIRE_ASSERT(func)                                                                                 \
     {                                                                                                        \
-        Sph::Assert::ScopedBreakDisabler disabler;                                                           \
+        Sph::Assert::ScopedAssertExceptionEnabler enabler;                                                   \
         REQUIRE_THROWS((void)(func));                                                                        \
     }
 #else

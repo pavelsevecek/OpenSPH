@@ -502,7 +502,7 @@ TYPED_TEST_CASE_2("Collision cloud merge&bounce", "[nbody]", T, EulerExplicit, L
 
     // some particles either bounced away or were repelled in overlap, so we generally don't get 1 particle
     REQUIRE(storage->getParticleCnt() > 1);
-    REQUIRE(storage->getParticleCnt() < 25);
+    REQUIRE(storage->getParticleCnt() < 30);
 }
 
 TYPED_TEST_CASE_2("Collision cloud bounce", "[nbody]", T, EulerExplicit, LeapFrog) {

@@ -9,6 +9,7 @@
 #include "system/Platform.h"
 #include "system/Process.h"
 #include "system/Profiler.h"
+#include "thread/Pool.h"
 #include <fstream>
 #include <wx/msgdlg.h>
 
@@ -67,7 +68,7 @@ AsteroidCollision::AsteroidCollision() {
 
 void AsteroidCollision::setUp() {
     storage = makeShared<Storage>();
-
+    scheduler = ThreadPool::getGlobalInstance();
 
     if (wxTheApp->argc > 1) {
         std::string arg(wxTheApp->argv[1]);

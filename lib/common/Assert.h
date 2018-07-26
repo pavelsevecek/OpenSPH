@@ -12,13 +12,10 @@
 NAMESPACE_SPH_BEGIN
 
 struct Assert {
-    /// \brief True if we are in unit test environment.
-    ///
-    /// Assert throws an exception in this case.
     static bool isTest;
 
-    /// \brief True if the assert should break the debugger.
-    static bool breakOnFail;
+    /// \brief If true, assert throws an exception.
+    static bool throwAssertException;
 
     typedef bool (*Handler)(const std::string& message);
 
@@ -41,15 +38,15 @@ struct Assert {
         }
     };
 
-    struct ScopedBreakDisabler {
+    struct ScopedAssertExceptionEnabler {
         const bool originalValue;
 
-        ScopedBreakDisabler()
-            : originalValue(breakOnFail) {
-            breakOnFail = false;
+        ScopedAssertExceptionEnabler()
+            : originalValue(throwAssertException) {
+            throwAssertException = true;
         }
-        ~ScopedBreakDisabler() {
-            breakOnFail = originalValue;
+        ~ScopedAssertExceptionEnabler() {
+            throwAssertException = originalValue;
         }
     };
 

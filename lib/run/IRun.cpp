@@ -52,6 +52,8 @@ private:
     int lastElapsed = 0;
     Float lastProgress = 0._f;
 
+    Float speed = 0._f;
+
     static constexpr Size RECOMPUTE_PERIOD = 100;
 
 public:
@@ -60,19 +62,25 @@ public:
     }
 
     virtual bool condition(const Storage& UNUSED(storage), const Statistics& UNUSED(stats)) override {
-        return stepCounter++ == RECOMPUTE_PERIOD;
+        return true;
     }
 
     virtual AutoPtr<ITrigger> action(Storage& UNUSED(storage), Statistics& stats) override {
-        const int elapsed = stats.get<int>(StatisticsId::WALLCLOCK_TIME);
         const Float progress = stats.get<Float>(StatisticsId::RELATIVE_PROGRESS);
 
-        const Float speed = (elapsed - lastElapsed) / (progress - lastProgress);
-        const Float eta = speed * (1._f - progress);
-        stats.set(StatisticsId::ETA, eta);
+        if (stepCounter++ == RECOMPUTE_PERIOD) {
+            const int elapsed = stats.get<int>(StatisticsId::WALLCLOCK_TIME);
+            speed = (elapsed - lastElapsed) / (progress - lastProgress);
 
-        lastElapsed = elapsed;
-        lastProgress = progress;
+            lastElapsed = elapsed;
+            lastProgress = progress;
+            stepCounter = 0;
+        }
+
+        if (speed > 0._f) {
+            const Float eta = speed * (1._f - progress);
+            stats.set(StatisticsId::ETA, eta);
+        }
         return nullptr;
     }
 };

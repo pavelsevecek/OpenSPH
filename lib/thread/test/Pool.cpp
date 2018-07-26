@@ -53,6 +53,20 @@ TEST_CASE("Pool submit single", "[thread]") {
     REQUIRE_THREAD_SAFE(executed);
 }
 
+TEST_CASE("Pool one thread", "[thread]") {
+    ThreadPool pool(1);
+    int executed = 0;
+    auto task = [&executed] {
+        std::this_thread::sleep_for(std::chrono::milliseconds(15));
+        ++executed;
+    };
+    for (Size i = 0; i < 4; ++i) {
+        pool.submit(task);
+    }
+    pool.waitForAll();
+    REQUIRE(executed == 4);
+}
+
 TEST_CASE("Pool submit nested", "[thread]") {
     ThreadPool pool;
     std::atomic_bool innerRun{ 0 };
@@ -119,6 +133,24 @@ TEST_CASE("Pool submit parallel", "[thread]") {
     REQUIRE_THREAD_SAFE(pool.remainingTaskCnt() == 0);
 
     // pool.waitForAll();
+}
+
+TEST_CASE("Pool wait for child", "[thread]") {
+    ThreadPool pool;
+    SharedPtr<ITask> taskRoot, taskChild;
+    volatile bool childFinished = false;
+    taskRoot = pool.submit([&pool, &taskChild, &childFinished] {
+        taskChild = pool.submit([&childFinished] {
+            std::this_thread::sleep_for(std::chrono::milliseconds(20));
+            childFinished = true;
+        });
+        taskChild->wait();
+    });
+    taskRoot->wait();
+
+    REQUIRE_THREAD_SAFE(taskRoot->completed());
+    REQUIRE_THREAD_SAFE(taskChild->completed());
+    REQUIRE_THREAD_SAFE(childFinished);
 }
 
 class Exception : public std::exception {

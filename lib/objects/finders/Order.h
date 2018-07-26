@@ -99,10 +99,10 @@ public:
 /// \brief Finds the order of values in given array.
 ///
 /// The returned order, when applied on sorted values, gives the original (unsorted) values
-inline Order getOrder(ArrayView<const Float> values) {
+INLINE Order getOrder(ArrayView<const Float> values) {
     Order order(values.size());
     order.shuffle([values](Size i, Size j) { return values[i] < values[j]; });
-    return order; /// \todo or inverted?
+    return order.getInverted();
 }
 
 /// Order in each component

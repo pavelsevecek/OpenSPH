@@ -6,7 +6,7 @@
 
 using namespace Sph;
 
-TYPED_TEST_CASE_3("ThreadLocal", "[thread]", TScheduler, ThreadPool, Tbb, SequentialScheduler) {
+TYPED_TEST_CASE_2("ThreadLocal", "[thread]", TScheduler, ThreadPool, Tbb) {
     TScheduler& scheduler = *TScheduler::getGlobalInstance();
     ThreadLocal<uint64_t> partialSum(scheduler);
     parallelFor(scheduler, 1, 100000, 10, [&partialSum](Size i) {
@@ -39,7 +39,7 @@ TYPED_TEST_CASE_3("ThreadLocal", "[thread]", TScheduler, ThreadPool, Tbb, Sequen
     // REQUIRE_THREAD_SAFE(pool.remainingTaskCnt() == 0);
 }
 
-TYPED_TEST_CASE_3("ThreadLocal parallelFor", "[thread]", TScheduler, ThreadPool, Tbb, SequentialScheduler) {
+TYPED_TEST_CASE_2("ThreadLocal parallelFor", "[thread]", TScheduler, ThreadPool, Tbb) {
     TScheduler& scheduler = *TScheduler::getGlobalInstance();
     const Size N = 100000;
     ThreadLocal<Array<Size>> partial(scheduler, N);
@@ -72,4 +72,22 @@ TYPED_TEST_CASE_3("ThreadLocal parallelFor", "[thread]", TScheduler, ThreadPool,
         }
     }
     REQUIRE_THREAD_SAFE(areAllMatching(sum, [](const Size v) { return v == 1; }));
+}
+
+TEST_CASE("Concurrent parallelFor", "[thread]") {
+    /// \todo the same for TBBs !!
+    ThreadPool scheduler;
+    std::atomic<uint64_t> sum1{ 0 };
+    std::atomic<uint64_t> sum2{ 0 };
+    auto for1 = scheduler.submit([&scheduler, &sum1] { //
+        parallelFor(scheduler, 0, 10000, 10, [&sum1](Size i) { sum1 += i; });
+    });
+    auto for2 = scheduler.submit([&scheduler, &sum2] { //
+        parallelFor(scheduler, 0, 10000, 10, [&sum2](Size i) { sum2 += i; });
+    });
+    for1->wait();
+    for2->wait();
+    const uint64_t expectedSum = 49995000;
+    REQUIRE_THREAD_SAFE(sum1 == expectedSum);
+    REQUIRE_THREAD_SAFE(sum2 == expectedSum);
 }

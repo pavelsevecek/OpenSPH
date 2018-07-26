@@ -258,11 +258,13 @@ void NBodySolver::collide(Storage& storage, Statistics& stats, const Float dt) {
     CollisionStats cs(stats);
     removed.clear();
 
-    // We have to process the all collision in order, sorted according to collision time, but this is
-    // hardly parallelized. We can however process collisions concurrently, as long as the collided
-    // particles don't intersect the spheres with radius equal to the search radius. Note that this works
-    // as long as the search radius does not increase during collision handling.
-    FlatSet<std::tuple<Size, bool>> invalidIdxs;
+    /// \todo
+    /// We have to process the all collision in order, sorted according to collision time, but this is
+    /// hardly parallelized. We can however process collisions concurrently, as long as the collided
+    /// particles don't intersect the spheres with radius equal to the search radius. Note that this works
+    /// as long as the search radius does not increase during collision handling.
+
+    FlatSet<Size> invalidIdxs;
     while (!collisions.empty()) {
         const CollisionRecord& col = *collisions.begin();
         const Float t_coll = col.collisionTime;
@@ -298,18 +300,15 @@ void NBodySolver::collide(Storage& storage, Statistics& stats, const Float dt) {
         for (auto iter = collisions.begin(); iter != collisions.end();) {
             const CollisionRecord& c = *iter;
             if (c.i == i || c.i == j || c.j == i || c.j == j) {
-                invalidIdxs.insert(std::make_tuple(c.i, true));
-                invalidIdxs.insert(std::make_tuple(c.j, false));
+                invalidIdxs.insert(c.i);
+                invalidIdxs.insert(c.j);
                 iter = collisions.erase(iter);
             } else {
                 ++iter;
             }
         }
 
-        for (auto x : invalidIdxs) {
-            Size idx;
-            bool findLowerRank;
-            std::tie(idx, findLowerRank) = x;
+        for (Size idx : invalidIdxs) {
             // here we shouldn't search any removed particle
             if (removed.find(idx) != removed.end()) {
                 continue;

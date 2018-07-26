@@ -32,7 +32,12 @@ struct KdNode : public Noncopyable {
     Float r_open;
 
     KdNode(const Type& type)
-        : type(type) {}
+        : type(type) {
+#ifdef SPH_DEBUG
+        com = Vector(NAN);
+        r_open = NAN;
+#endif
+    }
 
     INLINE bool isLeaf() const {
         return type == Type::LEAF;
@@ -195,6 +200,8 @@ enum class IterateDirection {
 template <IterateDirection Dir, typename TFunctor>
 void iterateTree(KdTree& tree, IScheduler& scheduler, const TFunctor& functor, const Size nodeIdx = 0) {
     KdNode& node = tree.getNode(nodeIdx);
+    /// \todo it's tricky to parallelize, because in typical use case, we need the child nodes already
+    /// processed when we process this node (for bottom-up direction)
     if (Dir == IterateDirection::TOP_DOWN) {
         if (node.isLeaf()) {
             functor(node, nullptr, nullptr);
@@ -208,9 +215,7 @@ void iterateTree(KdTree& tree, IScheduler& scheduler, const TFunctor& functor, c
     if (!node.isLeaf()) {
         InnerNode& inner = reinterpret_cast<InnerNode&>(node);
 
-        scheduler.submit([&tree, &scheduler, &functor, &inner] {
-            iterateTree<Dir>(tree, scheduler, functor, inner.left);
-        });
+        iterateTree<Dir>(tree, scheduler, functor, inner.left);
         iterateTree<Dir>(tree, scheduler, functor, inner.right);
     }
     if (Dir == IterateDirection::BOTTOM_UP) {

@@ -27,8 +27,10 @@ static Array<std::string> getStackTrace() {
     return trace;
 }
 
+bool Assert::throwAssertException = false;
+
 bool Assert::isTest = false;
-bool Assert::breakOnFail = true;
+
 Assert::Handler Assert::handler = nullptr;
 
 void Assert::fireParams(const char* message,
@@ -38,7 +40,7 @@ void Assert::fireParams(const char* message,
     const char* text) {
     static std::mutex mutex;
     std::unique_lock<std::mutex> lock(mutex);
-    if (breakOnFail) {
+    if (!throwAssertException) {
         AutoPtr<ILogger> logger;
         if (handler) {
             // write the message to string and provide it to the custom handler
@@ -82,8 +84,7 @@ void Assert::fireParams(const char* message,
         if (isDebuggerPresent()) {
             raise(SIGTRAP);
         }
-    }
-    if (!isTest) {
+
         assert(false);
     } else {
         throw Exception(message);

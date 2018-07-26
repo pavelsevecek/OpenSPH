@@ -34,6 +34,8 @@ private:
 public:
     explicit Task(const Function<void()>& callable);
 
+    ~Task();
+
     virtual void wait() override;
 
     virtual bool completed() const override;

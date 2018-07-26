@@ -127,7 +127,7 @@ TEST_CASE("M4 kernel", "[kernel]") {
         Float norm = 1. / PI;
 
         // specific points from kernel
-        REQUIRE(kernel.valueImpl(0._f) == norm);
+        REQUIRE(kernel.valueImpl(0._f) == approx(norm));
         REQUIRE(kernel.valueImpl(1._f) == approx(0.25_f * norm));
         REQUIRE(kernel.gradImpl(1._f) == approx(-0.75_f * norm));
     });

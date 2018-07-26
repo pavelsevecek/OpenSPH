@@ -156,7 +156,7 @@ Stabilization::Stabilization(RawPtr<Controller> newController) {
         // continue run, we don't need to do the stabilization, so skip it by settings the range to zero
         settings.set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 0._f));
     } else {
-        settings.set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 1000._f));
+        settings.set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 100._f));
     }
     settings.saveToFile(Path("stabilization.sph"));
 
@@ -192,7 +192,7 @@ void Stabilization::setUp() {
         }
     } else {
 
-        Size N = 100'000;
+        Size N = 1'000;
 
         BodySettings body;
         body.set(BodySettingsId::ENERGY, 0._f)
@@ -211,15 +211,15 @@ void Stabilization::setUp() {
         body.saveToFile(Path("body.sph"));
 
         Presets::CollisionParams params;
-        params.targetRadius = 1e6_f;
-        params.impactorRadius = 5e5_f;
-        params.impactAngle = 85._f * DEG_TO_RAD;
-        params.impactSpeed = 750._f;
+        params.targetRadius = 50e3_f;
+        params.impactorRadius = 5e3_f;
+        params.impactAngle = 75._f * DEG_TO_RAD;
+        params.impactSpeed = 500._f;
         params.targetRotation = 0._f; // 2._f * PI / (4._f * 3600._f);
         params.targetParticleCnt = N;
-        params.impactorOffset = 3;
+        // params.impactorOffset = 3;
         // params.impactorParticleCntOverride = 100;
-        params.centerOfMassFrame = false;
+        params.centerOfMassFrame = true;
         params.optimizeImpactor = true;
 
         // Presets::CollisionSettings().saveToFile(Path("impact.sph"));
@@ -246,7 +246,7 @@ void Stabilization::setUp() {
         params.velocityDirection = Vector(0._f, 0.1_f, 0.6_f);
         params.centerOfMassFrame = false;*/
 
-        const Vector impactPoint(params.targetRadius * cos(params.impactAngle),
+        /*const Vector impactPoint(params.targetRadius * cos(params.impactAngle),
             params.targetRadius * sin(params.impactAngle),
             0._f);
         const Float homogeneousRadius = 0.2_f * params.targetRadius;
@@ -260,7 +260,7 @@ void Stabilization::setUp() {
             } else {
                 return boundaryFactor * sqr(homogeneousRadius) / distSqr;
             }
-        };
+        };*/
 
         data = makeShared<Presets::Collision>(*scheduler, settings, body, params);
         data->addTarget(*storage);
@@ -283,7 +283,8 @@ void Stabilization::tearDown(const Statistics& UNUSED(stats)) {
         ASSERT(storage->has(QuantityId::POSITION));
         onStabilizationFinished();
         // const Size impactorOffset = storage->getParticleCnt();
-        data->addImpactor(*storage);
+        BodyView view = data->addImpactor(*storage);
+        view.displace(Vector(-10.e3_f, 0._f, 0._f));
 
         // copy quantities from "target" to "impactor" (equal spheres)
         /*ASSERT(storage->getParticleCnt() == 2 * impactorOffset);
@@ -314,7 +315,7 @@ Fragmentation::Fragmentation(SharedPtr<Presets::Collision> data, Function<void()
     , onFinished(onFinished) {
     settings = getSharedSettings();
     settings.set(RunSettingsId::RUN_NAME, std::string("Fragmentation"))
-        .set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 2'000'000._f))
+        .set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 10000._f))
         //.set(RunSettingsId::TIMESTEPPING_ADAPTIVE_FACTOR, 0.8_f)
         .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 1000._f);
 

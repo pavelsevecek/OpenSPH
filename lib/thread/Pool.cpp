@@ -13,14 +13,17 @@ struct ThreadContext {
     Size index = Size(-1);
 
     /// Task currently processed by this thread
-    /// \todo is WeakPtr necessary here
-    WeakPtr<Task> current = nullptr;
+    SharedPtr<Task> current = nullptr;
 };
 
 static thread_local ThreadContext threadLocalContext;
 
 Task::Task(const Function<void()>& callable)
     : callable(callable) {}
+
+Task::~Task() {
+    ASSERT(this->completed());
+}
 
 void Task::wait() {
     std::unique_lock<std::mutex> lock(waitMutex);
@@ -47,7 +50,7 @@ SharedPtr<Task> Task::getParent() const {
 }
 
 SharedPtr<Task> Task::getCurrent() {
-    return threadLocalContext.current.lock();
+    return threadLocalContext.current;
 }
 
 void Task::setParent(SharedPtr<Task> task) {
@@ -70,6 +73,7 @@ void Task::setException(std::exception_ptr exception) {
 }
 
 void Task::runAndNotify() {
+    ASSERT(!threadLocalContext.current);
     threadLocalContext.current = this->sharedFromThis();
     auto guard = finally([this] {
         threadLocalContext.current = nullptr;
@@ -86,17 +90,19 @@ void Task::runAndNotify() {
 
 void Task::addReference() {
     std::unique_lock<std::mutex> lock(waitMutex);
+    ASSERT(tasksLeft > 0);
     tasksLeft++;
 }
 
 void Task::removeReference() {
+    std::unique_lock<std::mutex> lock(waitMutex);
     tasksLeft--;
+    ASSERT(tasksLeft >= 0);
 
     if (tasksLeft == 0) {
         if (!this->isRoot()) {
             parent->removeReference();
         }
-        std::unique_lock<std::mutex> lock(waitMutex);
         waitVar.notify_all();
     }
 }
@@ -119,6 +125,8 @@ ThreadPool::ThreadPool(const Size numThreads)
 
                 std::unique_lock<std::mutex> lock(waitMutex);
                 --tasksLeft;
+            } else {
+                ASSERT(stop);
             }
             waitVar.notify_one();
         }
@@ -148,7 +156,7 @@ ThreadPool::~ThreadPool() {
 
 SharedPtr<ITask> ThreadPool::submit(const Function<void()>& task) {
     SharedPtr<Task> handle = makeShared<Task>(task);
-    handle->setParent(threadLocalContext.current.lock());
+    handle->setParent(threadLocalContext.current);
 
     {
         std::unique_lock<std::mutex> lock(waitMutex);
@@ -158,7 +166,7 @@ SharedPtr<ITask> ThreadPool::submit(const Function<void()>& task) {
         std::unique_lock<std::mutex> lock(taskMutex);
         tasks.emplace(handle);
     }
-    taskVar.notify_one();
+    taskVar.notify_all();
     return handle;
 }
 
@@ -198,11 +206,11 @@ SharedPtr<Task> ThreadPool::getNextTask() {
     std::unique_lock<std::mutex> lock(taskMutex);
 
     // wait till a task is available
-    taskVar.wait(lock, [this] { return tasks.size() || stop; });
+    taskVar.wait(lock, [this] { return !tasks.empty() || stop; });
 
     // remove the task from the queue and return it
     if (!stop && !tasks.empty()) {
-        SharedPtr<Task> task = std::move(tasks.front());
+        SharedPtr<Task> task = tasks.front();
         tasks.pop();
         return task;
     } else {

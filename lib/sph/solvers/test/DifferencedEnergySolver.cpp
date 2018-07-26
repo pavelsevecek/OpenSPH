@@ -2,10 +2,12 @@
 #include "catch.hpp"
 #include "sph/solvers/StandardSets.h"
 #include "tests/Setup.h"
+#include "utils/Utils.h"
 
 using namespace Sph;
 
 TEST_CASE("DifferencedEnergySolver", "[solvers]") {
+    SKIP_TEST;
     RunSettings settings;
     BodySettings body;
     body.set(BodySettingsId::DENSITY, 1._f)

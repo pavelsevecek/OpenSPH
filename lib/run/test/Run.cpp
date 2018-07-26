@@ -108,10 +108,15 @@ TEST_CASE("Simple run", "[run]") {
     REQUIRE_NOTHROW(run.run());
     REQUIRE(run.stepIdx == 10);
     REQUIRE(run.runEnded);
-    REQUIRE(run.outputTimes.size() == 4);
+    REQUIRE(run.outputTimes.size() == 5);
     Size i = 0;
     for (Float t : run.outputTimes) {
-        REQUIRE(t == approx(0.3_f + 0.2_f * i, 1.e-5_f));
+        if (i == 0) {
+            // first output is at t=0 (basically stored initial conditions)
+            REQUIRE(t == 0._f);
+        } else {
+            REQUIRE(t == approx(0.1_f + 0.2_f * i, 1.e-5_f));
+        }
         i++;
     }
 }
@@ -128,13 +133,17 @@ TEST_CASE("Run twice", "[run]") {
     TestRun run;
     REQUIRE_NOTHROW(run.setUp());
     REQUIRE_NOTHROW(run.run());
-    REQUIRE(run.outputTimes.size() == 4);
+    REQUIRE(run.outputTimes.size() == 5);
     REQUIRE_NOTHROW(run.setUp());
     REQUIRE_NOTHROW(run.run());
-    REQUIRE(run.outputTimes.size() == 4);
+    REQUIRE(run.outputTimes.size() == 5);
     Size i = 0;
     for (Float t : run.outputTimes) {
-        REQUIRE(t == approx(0.3_f + 0.2_f * i, 1.e-5_f));
+        if (i == 0) {
+            REQUIRE(t == 0._f);
+        } else {
+            REQUIRE(t == approx(0.1_f + 0.2_f * i, 1.e-5_f));
+        }
         i++;
     }
 }
