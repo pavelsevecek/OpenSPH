@@ -1,12 +1,13 @@
 #include "sph/Diagnostics.h"
 #include "objects/finders/KdTree.h"
 #include "system/Factory.h"
+#include "thread/Scheduler.h"
 
 NAMESPACE_SPH_BEGIN
 
 Array<ParticlePairing::Pair> ParticlePairing::getPairs(const Storage& storage) const {
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
-    KdTree finder;
+    KdTree<KdNode> finder;
     finder.build(SEQUENTIAL, r);
 
     Array<ParticlePairing::Pair> pairs;
@@ -39,7 +40,7 @@ Outcome ParticlePairing::check(const Storage& storage) {
 
 Outcome SmoothingDiscontinuity::check(const Storage& storage) {
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
-    KdTree finder;
+    KdTree<KdNode> finder;
     finder.build(SEQUENTIAL, r);
     Array<NeighbourRecord> neighs;
 

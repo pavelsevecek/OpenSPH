@@ -44,7 +44,7 @@ void BarnesHut::build(IScheduler& scheduler, const Storage& storage) {
         return;
     }
     // constructs nodes
-    auto functor = [this](KdNode& node, KdNode* left, KdNode* right) INL {
+    auto functor = [this](BarnesHutNode& node, BarnesHutNode* left, BarnesHutNode* right) INL {
         if (node.isLeaf()) {
             ASSERT(left == nullptr && right == nullptr);
             buildLeaf(node);
@@ -87,7 +87,8 @@ Vector BarnesHut::evalImpl(const Vector& r0, const Size idx, Statistics& UNUSED(
     }
     Vector f(0._f);
 
-    auto lambda = [this, &r0, &f, idx](const KdNode& node, const KdNode*, const KdNode*) {
+    auto lambda = [this, &r0, &f, idx](
+                      const BarnesHutNode& node, const BarnesHutNode*, const BarnesHutNode*) {
         if (node.box == Box::EMPTY()) {
             // no particles in this node, skip
             return false;
@@ -105,7 +106,7 @@ Vector BarnesHut::evalImpl(const Vector& r0, const Size idx, Statistics& UNUSED(
         } else {
             // too large box; if inner, recurse into children, otherwise sum each particle of the leaf
             if (node.isLeaf()) {
-                const LeafNode& leaf = reinterpret_cast<const LeafNode&>(node);
+                const LeafNode<BarnesHutNode>& leaf = reinterpret_cast<const LeafNode<BarnesHutNode>&>(node);
                 f += this->evalExact(leaf, r0, idx);
                 return false; // return value doesn't matter here
             } else {
@@ -114,7 +115,7 @@ Vector BarnesHut::evalImpl(const Vector& r0, const Size idx, Statistics& UNUSED(
             }
         }
     };
-    iterateTree<IterateDirection::TOP_DOWN>(kdTree, lambda);
+    iterateTree<IterateDirection::TOP_DOWN>(kdTree, SEQUENTIAL, lambda);
 
     return Constants::gravity * f;
 }
@@ -162,7 +163,7 @@ void BarnesHut::evalNode(IScheduler& scheduler,
     TreeWalkState data,
     TreeWalkResult& result) const {
 
-    const KdNode& evaluatedNode = kdTree.getNode(evaluatedNodeIdx);
+    const BarnesHutNode& evaluatedNode = kdTree.getNode(evaluatedNodeIdx);
     const Box& box = evaluatedNode.box;
 
     if (box == Box::EMPTY()) {
@@ -177,7 +178,7 @@ void BarnesHut::evalNode(IScheduler& scheduler,
         ASSERT(areElementsUnique(data.checkList), data.checkList);
 
         const Size idx = *iter;
-        const KdNode& node = kdTree.getNode(idx);
+        const BarnesHutNode& node = kdTree.getNode(idx);
         if (node.r_open == 0.f) {
             // either empty node or a single particle in a leaf, just add it to particle list
             ASSERT(node.isLeaf());
@@ -197,7 +198,8 @@ void BarnesHut::evalNode(IScheduler& scheduler,
                 data.particleList.push(idx);
             } else {
                 // add child nodes into the checklist
-                const InnerNode& inner = reinterpret_cast<const InnerNode&>(node);
+                const InnerNode<BarnesHutNode>& inner =
+                    reinterpret_cast<const InnerNode<BarnesHutNode>&>(node);
                 data.checkList.pushBack(inner.left);
                 data.checkList.pushBack(inner.right);
             }
@@ -220,7 +222,7 @@ void BarnesHut::evalNode(IScheduler& scheduler,
     if (evaluatedNode.isLeaf()) {
         // checklist must be empty, otherwise we forgot something
         ASSERT(data.checkList.empty(), data.checkList);
-        const LeafNode& leaf = reinterpret_cast<const LeafNode&>(evaluatedNode);
+        const LeafNode<BarnesHutNode>& leaf = reinterpret_cast<const LeafNode<BarnesHutNode>&>(evaluatedNode);
 
         // 1) evaluate the particle list:
         this->evalParticleList(leaf, data.particleList, dv);
@@ -231,7 +233,8 @@ void BarnesHut::evalNode(IScheduler& scheduler,
         result.approximatedNodes += data.nodeList.size();
 
     } else {
-        const InnerNode& inner = reinterpret_cast<const InnerNode&>(evaluatedNode);
+        const InnerNode<BarnesHutNode>& inner =
+            reinterpret_cast<const InnerNode<BarnesHutNode>&>(evaluatedNode);
         // recurse into child nodes
         // we evaluate the left one from a (possibly) different thread, we thus have to clone buffers now so
         // that we don't override the lists when evaluating different node (each node has its own lists).
@@ -247,7 +250,7 @@ void BarnesHut::evalNode(IScheduler& scheduler,
     }
 }
 
-void BarnesHut::evalParticleList(const LeafNode& leaf,
+void BarnesHut::evalParticleList(const LeafNode<BarnesHutNode>& leaf,
     ArrayView<Size> particleList,
     ArrayView<Vector> dv) const {
     // needs to symmetrize smoothing length to keep the total momentum conserved
@@ -258,9 +261,10 @@ void BarnesHut::evalParticleList(const LeafNode& leaf,
     for (Size idx : particleList) {
         // the particle lists do not have to be necessarily symmetric, we have to do each node separately
         ASSERT(idx < kdTree.getNodeCnt(), idx, kdTree.getNodeCnt());
-        const KdNode& node = kdTree.getNode(idx);
+        const BarnesHutNode& node = kdTree.getNode(idx);
         ASSERT(node.isLeaf());
-        LeafIndexSequence seq2 = kdTree.getLeafIndices(reinterpret_cast<const LeafNode&>(node));
+        LeafIndexSequence seq2 =
+            kdTree.getLeafIndices(reinterpret_cast<const LeafNode<BarnesHutNode>&>(node));
         for (Size i : seq1) {
             ASSERT(r[i][H] > 0._f, r[i][H]);
             for (Size j : seq2) {
@@ -283,11 +287,13 @@ void BarnesHut::evalParticleList(const LeafNode& leaf,
     }
 }
 
-void BarnesHut::evalNodeList(const LeafNode& leaf, ArrayView<Size> nodeList, ArrayView<Vector> dv) const {
+void BarnesHut::evalNodeList(const LeafNode<BarnesHutNode>& leaf,
+    ArrayView<Size> nodeList,
+    ArrayView<Vector> dv) const {
     ASSERT(areElementsUnique(nodeList), nodeList);
     LeafIndexSequence seq1 = kdTree.getLeafIndices(leaf);
     for (Size idx : nodeList) {
-        const KdNode& node = kdTree.getNode(idx);
+        const BarnesHutNode& node = kdTree.getNode(idx);
         ASSERT(seq1.size() > 0);
         for (Size i : seq1) {
             dv[i] += evaluateGravity(r[i] - node.com, node.moments, order);
@@ -295,7 +301,7 @@ void BarnesHut::evalNodeList(const LeafNode& leaf, ArrayView<Size> nodeList, Arr
     }
 }
 
-Vector BarnesHut::evalExact(const LeafNode& leaf, const Vector& r0, const Size idx) const {
+Vector BarnesHut::evalExact(const LeafNode<BarnesHutNode>& leaf, const Vector& r0, const Size idx) const {
     LeafIndexSequence sequence = kdTree.getLeafIndices(leaf);
     Vector f(0._f);
     for (Size i : sequence) {
@@ -307,8 +313,8 @@ Vector BarnesHut::evalExact(const LeafNode& leaf, const Vector& r0, const Size i
     return f;
 }
 
-void BarnesHut::buildLeaf(KdNode& node) {
-    LeafNode& leaf = (LeafNode&)node;
+void BarnesHut::buildLeaf(BarnesHutNode& node) {
+    LeafNode<BarnesHutNode>& leaf = (LeafNode<BarnesHutNode>&)node;
     if (leaf.size() == 0) {
         // set to zero to correctly compute mass and com of parent nodes
         leaf.com = Vector(0._f);
@@ -365,8 +371,8 @@ void BarnesHut::buildLeaf(KdNode& node) {
     // ASSERT(leaf.size() > 1 || q3 == TracelessMultipole<3>(0._f));
 }
 
-void BarnesHut::buildInner(KdNode& node, KdNode& left, KdNode& right) {
-    InnerNode& inner = (InnerNode&)node;
+void BarnesHut::buildInner(BarnesHutNode& node, BarnesHutNode& left, BarnesHutNode& right) {
+    InnerNode<BarnesHutNode>& inner = (InnerNode<BarnesHutNode>&)node;
 
     // update bounding box
     inner.box = Box::EMPTY();

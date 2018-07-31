@@ -1,9 +1,11 @@
 #include "gravity/NBodySolver.h"
 #include "gravity/BruteForceGravity.h"
 #include "gravity/Collision.h"
+#include "objects/finders/NeighbourFinder.h"
 #include "sph/Diagnostics.h"
 #include "system/Factory.h"
 #include "system/Settings.h"
+#include "system/Statistics.h"
 #include "system/Timer.h"
 
 NAMESPACE_SPH_BEGIN

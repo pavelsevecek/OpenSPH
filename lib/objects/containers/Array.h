@@ -15,7 +15,9 @@ NAMESPACE_SPH_BEGIN
 template <typename T, typename TCounter = Size>
 class CopyableArray;
 
-/// Generic dynamically allocated resizable storage. Can also be used with STL algorithms.
+/// \brief Generic dynamically allocated resizable storage.
+///
+/// Can also be used with STL algorithms.
 template <typename T, typename TCounter = Size>
 class Array : public Noncopyable {
     friend class VectorizedArray; // needs to explicitly set actSize
@@ -34,7 +36,8 @@ public:
 
     Array() = default;
 
-    /// Constructs array of given size.
+    /// \brief Constructs array of given size.
+    ///
     /// \param elementCnt Number of elements to be constructed (using default constructor)
     /// \param allocatedSize Number of allocated elements.
     explicit Array(const TCounter elementCnt, const TCounter allocatedSize = maxValue) {
@@ -63,14 +66,13 @@ public:
         }
     }
 
-    /// Move constructor from array of the same type
+    /// \brief Move constructor from array of the same type
     Array(Array&& other) {
         std::swap(data, other.data);
         std::swap(maxSize, other.maxSize);
         std::swap(actSize, other.actSize);
     }
 
-    /// Destructor
     ~Array() {
         // explicitly destroy all constructed elements
         if (!std::is_trivially_destructible<T>::value) {
@@ -84,7 +86,6 @@ public:
         }
     }
 
-    /// Move operator
     Array& operator=(Array&& other) {
         std::swap(data, other.data);
         std::swap(maxSize, other.maxSize);
@@ -106,8 +107,9 @@ public:
         return *this;
     }
 
-    /// For l-value references assign each value (does not actually move anything). Works only for arrays of
-    /// same size, for simplicity.
+    /// \brief For l-value references assign each value (does not actually move anything).
+    ///
+    /// Works only for arrays of same size, for simplicity.
     template <typename U, typename = std::enable_if_t<std::is_lvalue_reference<T>::value, U>>
     Array& operator=(Array<U>&& other) {
         ASSERT(this->size() == other.size());
@@ -266,7 +268,14 @@ public:
         }
     }
 
-    /// Adds new element to the end of the array, resizing the array if necessary.
+    /// \brief Reallocates the array, removing the unused elements to save memory.
+    void shrink() {
+        Array newArray;
+        newArray.pushAll(std::move(*this));
+        *this = std::move(newArray);
+    }
+
+    /// \brief Adds new element to the end of the array, resizing the array if necessary.
     template <typename U>
     INLINE void push(U&& u) {
         resize(actSize + 1);
@@ -324,7 +333,7 @@ public:
         return value;
     }
 
-    /// Removes an element with given index from the array.
+    /// \brief Removes an element with given index from the array.
     void remove(const TCounter idx) {
         ASSERT(idx < actSize);
         for (TCounter i = idx; i < actSize - 1; ++i) {
@@ -333,7 +342,7 @@ public:
         resize(actSize - 1);
     }
 
-    /// Removes all elements from the array, but does NOT release the memory.
+    /// \brief Removes all elements from the array, but does NOT release the memory.
     void clear() {
         if (!std::is_trivially_destructible<T>::value) {
             for (TCounter i = 0; i < actSize; ++i) {
@@ -343,7 +352,7 @@ public:
         actSize = 0;
     }
 
-    /// Swaps content of two arrays
+    /// \brief Swaps content of two arrays
     void swap(Array<T, TCounter>& other) {
         std::swap(data, other.data);
         std::swap(maxSize, other.maxSize);
@@ -374,38 +383,40 @@ public:
         return Iterator<const StorageType, TCounter>(data + actSize, data, data + actSize);
     }
 
-    /// Implicit conversion to arrayview.
+    /// \brief  Implicit conversion to arrayview.
     INLINE operator ArrayView<T, TCounter>() noexcept {
         return ArrayView<T, TCounter>(data, actSize);
     }
 
-    /// Implicit conversion to arrayview, const version.
+    /// \brief Implicit conversion to arrayview, const version.
     INLINE operator ArrayView<const T, TCounter>() const noexcept {
         return ArrayView<const T, TCounter>(data, actSize);
     }
 
-    /// Explicit conversion to arrayview
+    /// \brief Explicit conversion to arrayview
     ArrayView<T, TCounter> view() noexcept {
         return ArrayView<T, TCounter>(data, actSize);
     }
 
-    /// Explicit conversion to arrayview, const version
+    /// \brief Explicit conversion to arrayview, const version
     ArrayView<const T, TCounter> view() const noexcept {
         return ArrayView<const T, TCounter>(data, actSize);
     }
 
-    /// Comparison operator, comparings array element-by-element. If arrays differ in number of
-    /// constructed elements, the comparison always returns false; allocated size does not play role here.
+    /// \brief Comparison operator, comparings array element-by-element.
+    ///
+    /// If arrays differ in number of constructed elements, the comparison always returns false; allocated
+    /// size does not play role here.
     bool operator==(const Array& other) const noexcept {
         return view() == other.view();
     }
 
-    /// Inequality operator
+    /// \brief Inequality operator
     bool operator!=(const Array& other) const noexcept {
         return view() != other.view();
     }
 
-    /// Prints content of array to stream. Stored values must have overloaded << operator.
+    /// \brief Prints content of array to stream. Stored values must have overloaded << operator.
     template <typename TStream>
     friend TStream& operator<<(TStream& stream, const Array& array) {
         for (const T& t : array) {

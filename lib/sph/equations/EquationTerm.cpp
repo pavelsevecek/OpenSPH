@@ -1,4 +1,7 @@
 #include "sph/equations/EquationTerm.h"
+#include "sph/Materials.h"
+#include "sph/equations/Derivative.h"
+#include "thread/Scheduler.h"
 
 NAMESPACE_SPH_BEGIN
 

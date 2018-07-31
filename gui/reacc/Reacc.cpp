@@ -15,6 +15,8 @@
 #include "sph/solvers/StabilizationSolver.h"
 #include "system/Factory.h"
 #include "system/Platform.h"
+#include "thread/Pool.h"
+#include "thread/Tbb.h"
 #include <fstream>
 #include <wx/msgdlg.h>
 
@@ -135,7 +137,7 @@ RunSettings getSharedSettings() {
         .set(RunSettingsId::GRAVITY_KERNEL, GravityKernelEnum::SPH_KERNEL)
         .set(RunSettingsId::GRAVITY_OPENING_ANGLE, 0.8_f)
         .set(RunSettingsId::GRAVITY_LEAF_SIZE, 20)
-        .set(RunSettingsId::GRAVITY_RECOMPUTATION_PERIOD, 0._f)
+        .set(RunSettingsId::GRAVITY_RECOMPUTATION_PERIOD, 5._f)
         //.set(RunSettingsId::TIMESTEPPING_MEAN_POWER, -0._f)
         .set(RunSettingsId::TIMESTEPPING_ADAPTIVE_FACTOR, 0.2_f)
         .set(RunSettingsId::TIMESTEPPING_COURANT_NUMBER, 0.2_f)
@@ -192,7 +194,7 @@ void Stabilization::setUp() {
         }
     } else {
 
-        Size N = 1'000;
+        Size N = 3'000;
 
         BodySettings body;
         body.set(BodySettingsId::ENERGY, 0._f)
@@ -200,7 +202,7 @@ void Stabilization::setUp() {
             .set(BodySettingsId::EOS, EosEnum::TILLOTSON)
             .set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::SCALAR_GRADY_KIPP)
             .set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::VON_MISES)
-            .set(BodySettingsId::DISTRIBUTE_MODE_SPH5, true)
+            .set(BodySettingsId::DISTRIBUTE_MODE_SPH5, false)
             .set(BodySettingsId::SHEAR_VISCOSITY, 1.e12_f)
             .set(BodySettingsId::BULK_VISCOSITY, 0._f)
             .set(BodySettingsId::STRESS_TENSOR_MIN, 1.e8_f)
@@ -212,15 +214,15 @@ void Stabilization::setUp() {
 
         Presets::CollisionParams params;
         params.targetRadius = 50e3_f;
-        params.impactorRadius = 5e3_f;
-        params.impactAngle = 75._f * DEG_TO_RAD;
-        params.impactSpeed = 500._f;
-        params.targetRotation = 0._f; // 2._f * PI / (4._f * 3600._f);
+        params.impactorRadius = 10e3_f;
+        params.impactAngle = 60._f * DEG_TO_RAD;
+        params.impactSpeed = 100._f;
+        params.targetRotation = 2._f * PI / (2._f * 3600._f);
         params.targetParticleCnt = N;
         // params.impactorOffset = 3;
         // params.impactorParticleCntOverride = 100;
         params.centerOfMassFrame = true;
-        params.optimizeImpactor = true;
+        params.optimizeImpactor = false;
 
         // Presets::CollisionSettings().saveToFile(Path("impact.sph"));
 
@@ -284,7 +286,7 @@ void Stabilization::tearDown(const Statistics& UNUSED(stats)) {
         onStabilizationFinished();
         // const Size impactorOffset = storage->getParticleCnt();
         BodyView view = data->addImpactor(*storage);
-        view.displace(Vector(-10.e3_f, 0._f, 0._f));
+        view.displace(Vector(10.e3_f, 0._f, 0._f));
 
         // copy quantities from "target" to "impactor" (equal spheres)
         /*ASSERT(storage->getParticleCnt() == 2 * impactorOffset);
@@ -315,7 +317,7 @@ Fragmentation::Fragmentation(SharedPtr<Presets::Collision> data, Function<void()
     , onFinished(onFinished) {
     settings = getSharedSettings();
     settings.set(RunSettingsId::RUN_NAME, std::string("Fragmentation"))
-        .set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 10000._f))
+        .set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 1000000._f))
         //.set(RunSettingsId::TIMESTEPPING_ADAPTIVE_FACTOR, 0.8_f)
         .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 1000._f);
 
@@ -387,6 +389,7 @@ void Fragmentation::setUp() {
 }
 
 void Fragmentation::handoff(Storage&& input) {
+
     storage = makeShared<Storage>(std::move(input));
     // there may still be some unprocessed callbacks accessing the storage of the previous phase, so we but
     // the buffers back; ugly solution, needs to be done properly (wait till all callbacks are finished before

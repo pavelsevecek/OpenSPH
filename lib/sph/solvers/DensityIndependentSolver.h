@@ -6,6 +6,7 @@
 /// \date 2016-2018
 
 #include "objects/finders/NeighbourFinder.h"
+#include "sph/Materials.h"
 #include "sph/equations/EquationTerm.h"
 #include "sph/equations/av/Standard.h"
 #include "sph/kernel/Kernel.h"

@@ -5,11 +5,10 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2018
 
+#include "common/ForwardDecl.h"
 #include "objects/wrappers/SharedPtr.h"
 #include "physics/Constants.h"
-#include "sph/Materials.h"
-#include "sph/equations/Derivative.h"
-#include "system/Profiler.h"
+#include "quantities/Storage.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -311,7 +310,6 @@ public:
 
     /// Calls \ref EquationTerm::initialize for all stored equation terms.
     void initialize(IScheduler& scheduler, Storage& storage) {
-        PROFILE_SCOPE("EquationHolder::initialize");
         for (auto& t : terms) {
             t->initialize(scheduler, storage);
         }
@@ -319,7 +317,6 @@ public:
 
     /// Calls \ref EquationTerm::finalize for all stored equation terms.
     void finalize(IScheduler& scheduler, Storage& storage) {
-        PROFILE_SCOPE("EquationHolder::finalize");
         for (auto& t : terms) {
             t->finalize(scheduler, storage);
         }

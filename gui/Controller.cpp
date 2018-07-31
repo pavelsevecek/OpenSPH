@@ -46,7 +46,7 @@ static bool guiAssertHandler(const std::string& message) {
     // to keep the even loop running, otherwise the message box will not be repainted :(
 
     if (isMainThread()) {
-        executeOnMainThread([message] {
+        /*executeOnMainThread([message] {
             static bool reentrant = false;
             if (reentrant) {
                 return;
@@ -58,9 +58,9 @@ static bool guiAssertHandler(const std::string& message) {
                 exit(0);
             }
             reentrant = false;
-        });
+        });*/
 
-        return false;
+        return true;
     } else {
         static std::condition_variable cv;
         static std::mutex mutex;

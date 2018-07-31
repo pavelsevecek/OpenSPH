@@ -6,7 +6,9 @@
 /// \date 2016-2018
 
 #include "objects/geometry/Domain.h"
+#include "quantities/IMaterial.h"
 #include "quantities/Storage.h"
+#include "sph/equations/Derivative.h"
 #include "sph/equations/EquationTerm.h"
 #include "system/Settings.h"
 #include "system/Statistics.h"

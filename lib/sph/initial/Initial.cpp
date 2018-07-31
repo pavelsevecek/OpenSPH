@@ -11,6 +11,7 @@
 #include "sph/initial/Distribution.h"
 #include "system/Factory.h"
 #include "system/Profiler.h"
+#include "thread/Scheduler.h"
 #include "timestepping/ISolver.h"
 
 NAMESPACE_SPH_BEGIN
@@ -365,7 +366,7 @@ void InitialConditions::setQuantities(Storage& storage, IMaterial& material, con
 }
 
 void repelParticles(ArrayView<Vector> r, const Float radius) {
-    KdTree finder;
+    KdTree<KdNode> finder;
     finder.build(SEQUENTIAL, r);
     Array<NeighbourRecord> neighs;
     Size moveCnt = -1;

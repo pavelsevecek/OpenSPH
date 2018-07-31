@@ -1,6 +1,7 @@
 #include "sph/solvers/StaticSolver.h"
 #include "objects/finders/NeighbourFinder.h"
 #include "physics/Eos.h"
+#include "sph/Materials.h"
 #include "sph/equations/EquationTerm.h"
 #include "sph/kernel/Kernel.h"
 #include "system/Factory.h"
@@ -90,6 +91,8 @@ StaticSolver::StaticSolver(IScheduler& scheduler,
     boundaryThreshold = 18;
     // settings.get<int>(RunSettingsId::BOUNDARY_THRESHOLD);
 }
+
+StaticSolver::~StaticSolver() = default;
 
 Outcome StaticSolver::solve(Storage& storage, Statistics& stats) {
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);

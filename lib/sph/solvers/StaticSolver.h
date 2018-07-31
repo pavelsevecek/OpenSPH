@@ -41,6 +41,8 @@ public:
     ///                  other quantities than the total stress tensor.
     StaticSolver(IScheduler& scheduler, const RunSettings& settings, const EquationHolder& equations);
 
+    ~StaticSolver();
+
     /// \brief Computed pressure and deviatoric stress are placed into the storage.
     ///
     /// This overrides previously stored values. Values of internal energy are computed using an equation of

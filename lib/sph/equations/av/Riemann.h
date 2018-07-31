@@ -6,6 +6,7 @@
 /// \date 2016-2018
 
 #include "quantities/Storage.h"
+#include "sph/equations/Derivative.h"
 #include "sph/equations/EquationTerm.h"
 
 NAMESPACE_SPH_BEGIN

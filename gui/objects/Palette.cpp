@@ -9,7 +9,13 @@ float Palette::linearToPalette(const float value) const {
         palette = value;
         break;
     case PaletteScale::LOGARITHMIC:
-        palette = log10(value + Eps<float>::value);
+        // we allow calling this function with zero or negative value, it should simply map to the lowest
+        // value on the palette
+        if (value < EPS) {
+            palette = -LARGE;
+        } else {
+            palette = log10(value);
+        }
         break;
     case PaletteScale::HYBRID:
         if (value > 1.f) {

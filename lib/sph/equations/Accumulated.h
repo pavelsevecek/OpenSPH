@@ -5,14 +5,13 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2018
 
-#include "common/Assert.h"
 #include "objects/containers/Array.h"
 #include "objects/geometry/TracelessTensor.h"
 #include "objects/wrappers/Variant.h"
 #include "quantities/QuantityIds.h"
 #include "quantities/Storage.h"
 #include "system/Settings.h"
-#include "thread/ThreadLocal.h"
+#include "thread/Scheduler.h"
 
 NAMESPACE_SPH_BEGIN
 

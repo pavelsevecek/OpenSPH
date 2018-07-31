@@ -59,8 +59,8 @@ Float DynamicFinder::updateFinder(ArrayView<const Vector> points) {
             actual = makeAuto<UniformGridFinder>();
         }
     } else {
-        if (!actual || dynamic_cast<KdTree*>(&*actual)) {
-            actual = makeAuto<KdTree>();
+        if (!actual || dynamic_cast<KdTree<KdNode>*>(&*actual)) {
+            actual = makeAuto<KdTree<KdNode>>();
         }
     }
     ASSERT(actual != nullptr);

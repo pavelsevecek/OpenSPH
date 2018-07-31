@@ -24,7 +24,7 @@ protected:
     ArrayView<const Float> m;
 
     /// K-d tree storing gravitational moments
-    KdTree kdTree;
+    KdTree<BarnesHutNode> kdTree;
 
     /// Kernel used to evaluate gravity of close particles
     GravityLutKernel kernel;
@@ -112,15 +112,19 @@ protected:
         TreeWalkState data,
         TreeWalkResult& result) const;
 
-    void evalParticleList(const LeafNode& leaf, ArrayView<Size> particleList, ArrayView<Vector> dv) const;
+    void evalParticleList(const LeafNode<BarnesHutNode>& leaf,
+        ArrayView<Size> particleList,
+        ArrayView<Vector> dv) const;
 
-    void evalNodeList(const LeafNode& leaf, ArrayView<Size> nodeList, ArrayView<Vector> dv) const;
+    void evalNodeList(const LeafNode<BarnesHutNode>& leaf,
+        ArrayView<Size> nodeList,
+        ArrayView<Vector> dv) const;
 
-    Vector evalExact(const LeafNode& node, const Vector& r0, const Size idx) const;
+    Vector evalExact(const LeafNode<BarnesHutNode>& node, const Vector& r0, const Size idx) const;
 
-    void buildLeaf(KdNode& node);
+    void buildLeaf(BarnesHutNode& node);
 
-    void buildInner(KdNode& node, KdNode& left, KdNode& right);
+    void buildInner(BarnesHutNode& node, BarnesHutNode& left, BarnesHutNode& right);
 };
 
 NAMESPACE_SPH_END

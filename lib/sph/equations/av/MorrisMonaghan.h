@@ -7,6 +7,7 @@
 
 #include "quantities/IMaterial.h"
 #include "quantities/Storage.h"
+#include "sph/equations/Derivative.h"
 #include "sph/equations/EquationTerm.h"
 #include "system/Settings.h"
 

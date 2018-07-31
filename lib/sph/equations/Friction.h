@@ -1,5 +1,7 @@
 #pragma once
 
+#include "quantities/IMaterial.h"
+#include "sph/equations/Derivative.h"
 #include "sph/equations/EquationTerm.h"
 #include "sph/kernel/Kernel.h"
 

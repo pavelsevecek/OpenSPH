@@ -5,6 +5,7 @@
 #include "sph/solvers/AsymmetricSolver.h"
 #include "sph/solvers/SymmetricSolver.h"
 #include "system/Factory.h"
+#include "system/Statistics.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -67,7 +68,7 @@ void GravitySolver<TSphSolver>::loop(Storage& storage, Statistics& stats) {
 template <>
 Accumulated& GravitySolver<SymmetricSolver>::getAccumulated() {
     // gravity is evaluated asymmetrically, so we can simply put everything in the first (or any) accumulated
-    ThreadData& data = this->threadData.first();
+    ThreadData& data = this->threadData.value(0);
     return data.derivatives.getAccumulated();
 }
 

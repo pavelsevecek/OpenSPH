@@ -1,11 +1,13 @@
 #include "objects/finders/KdTree.h"
 #include "objects/utility/ArrayUtils.h"
 #include "objects/wrappers/Function.h"
+#include "objects/wrappers/Optional.h"
+#include "thread/Scheduler.h"
 #include <set>
 
 NAMESPACE_SPH_BEGIN
 
-/// Object holding index of the node and squared distance of the bounding box
+/// \brief Object used during traversal, holding index of the node and squared distance of the bounding box.
 struct ProcessedNode {
     /// Index into the nodeStack array. We cannot use pointers because the array might get reallocated.
     Size idx;
@@ -15,33 +17,53 @@ struct ProcessedNode {
     Float distanceSqr;
 };
 
-/// Cached stack to avoid reallocation
+/// \brief Cached stack to avoid reallocation
+///
 /// It is thread_local to allow using KdTree from multiple threads
 thread_local Array<ProcessedNode> nodeStack;
 
-void KdTree::buildImpl(IScheduler& UNUSED(scheduler), ArrayView<const Vector> points) {
-    /// \todo parallelize!!!
+enum class KdChild {
+    LEFT = 0,
+    RIGHT = 1,
+};
 
-    static_assert(sizeof(PlaceHolderNode) == sizeof(InnerNode), "Sizes of nodes must match");
-    static_assert(sizeof(LeafNode) == sizeof(InnerNode), "Sizes of nodes must match");
+template <typename TNode>
+void KdTree<TNode>::buildImpl(IScheduler& scheduler, ArrayView<const Vector> points) {
+    static_assert(sizeof(LeafNode<TNode>) == sizeof(InnerNode<TNode>), "Sizes of nodes must match");
 
     this->init();
 
-    for (const auto i : iterateWithIndex(points)) {
+    for (const auto& i : iterateWithIndex(points)) {
         entireBox.extend(i.value());
         idxs.push(i.index());
     }
 
-    if (SPH_LIKELY(!points.empty())) {
-        this->buildTree(ROOT_PARENT_NODE, 0, points.size(), entireBox, 0);
+    if (SPH_UNLIKELY(points.empty())) {
+        return;
     }
+
+    const bool needsLocking = (typeid(scheduler) != typeid(SequentialScheduler));
+
+    SharedPtr<ITask> rootTask = scheduler.submit([this, needsLocking, &points, &scheduler] { //
+        this->buildTree(
+            scheduler, needsLocking, ROOT_PARENT_NODE, KdChild(-1), 0, points.size(), entireBox, 0);
+    });
+    rootTask->wait();
+
+    // free the unused memory
+    // nodes.shrink();
 }
 
-void KdTree::buildTree(const Size parent,
+template <typename TNode>
+void KdTree<TNode>::buildTree(IScheduler& scheduler,
+    const bool needsLocking,
+    const Size parent,
+    const KdChild child,
     const Size from,
     const Size to,
     const Box& box,
     const Size slidingCnt) {
+
     Box box1, box2;
     Vector boxSize = box.size();
 
@@ -53,7 +75,7 @@ void KdTree::buildTree(const Size parent,
 
     if (to - from <= leafSize) {
         // enough points to fit inside one leaf
-        this->addLeaf(parent, from, to);
+        this->addLeaf(needsLocking, parent, child, from, to);
         return;
     } else {
         // check for singularity of dimensions
@@ -81,9 +103,9 @@ void KdTree::buildTree(const Size parent,
 
         if (slidingCnt <= 5 && !degeneratedBox) {
             for (;; std::swap(idxs[n1], idxs[n2])) {
-                for (; n1 < int(to) && values[idxs[n1]][splitIdx] <= splitPosition; ++n1)
+                for (; n1 < int(to) && this->values[idxs[n1]][splitIdx] <= splitPosition; ++n1)
                     ;
-                for (; n2 >= int(from) && values[idxs[n2]][splitIdx] >= splitPosition; --n2)
+                for (; n2 >= int(from) && this->values[idxs[n2]][splitIdx] >= splitPosition; --n2)
                     ;
                 if (n1 >= n2) {
                     break;
@@ -92,9 +114,9 @@ void KdTree::buildTree(const Size parent,
 
             if (n1 == int(from)) {
                 Size idx = from;
-                splitPosition = values[idxs[from]][splitIdx];
+                splitPosition = this->values[idxs[from]][splitIdx];
                 for (Size i = from + 1; i < to; ++i) {
-                    const Float x1 = values[idxs[i]][splitIdx];
+                    const Float x1 = this->values[idxs[i]][splitIdx];
                     if (x1 < splitPosition) {
                         idx = i;
                         splitPosition = x1;
@@ -105,9 +127,9 @@ void KdTree::buildTree(const Size parent,
                 slidingMidpoint = true;
             } else if (n1 == int(to)) {
                 Size idx = from;
-                splitPosition = values[idxs[from]][splitIdx];
+                splitPosition = this->values[idxs[from]][splitIdx];
                 for (Size i = from + 1; i < to; ++i) {
-                    const Float x2 = values[idxs[i]][splitIdx];
+                    const Float x2 = this->values[idxs[i]][splitIdx];
                     if (x2 > splitPosition) {
                         idx = i;
                         splitPosition = x2;
@@ -125,30 +147,65 @@ void KdTree::buildTree(const Size parent,
             Iterator<Size> iter = idxs.begin();
             if (!degeneratedBox) {
                 std::nth_element(iter + from, iter + n1, iter + to, [this, splitIdx](Size i1, Size i2) {
-                    return values[i1][splitIdx] < values[i2][splitIdx];
+                    return this->values[i1][splitIdx] < this->values[i2][splitIdx];
                 });
             }
 
-            tie(box1, box2) = box.split(splitIdx, values[idxs[n1]][splitIdx]);
+            tie(box1, box2) = box.split(splitIdx, this->values[idxs[n1]][splitIdx]);
         }
 
         // sanity check
         ASSERT(this->checkBoxes(from, to, n1, box1, box2));
 
-        // add inner node and set connect to the parenet
-        this->addInner(parent, splitPosition, splitIdx);
+        // add inner node and connect it to the parent
+        const Size index = this->addInner(needsLocking, parent, child, splitPosition, splitIdx);
 
         // recurse to left and right subtree
-        const Size index = nodes.size() - 1;
-        this->buildTree(index, from, n1, box1, slidingMidpoint ? slidingCnt + 1 : 0);
-        this->buildTree(index, n1, to, box2, slidingMidpoint ? slidingCnt + 1 : 0);
+        const Size nextSlidingCnt = slidingMidpoint ? slidingCnt + 1 : 0;
+
+        scheduler.submit([this, &scheduler, needsLocking, index, to, n1, box2, nextSlidingCnt] { //
+            this->buildTree(scheduler, needsLocking, index, KdChild::RIGHT, n1, to, box2, nextSlidingCnt);
+        });
+        this->buildTree(scheduler, needsLocking, index, KdChild::LEFT, from, n1, box1, nextSlidingCnt);
     }
 }
 
-void KdTree::addLeaf(const Size parent, const Size from, const Size to) noexcept {
-    nodes.emplaceBack(KdNode::Type::LEAF);
-    const Size index = nodes.size() - 1;
-    LeafNode& node = (LeafNode&)nodes[index];
+class ConditionalLock {
+private:
+    std::mutex& mutex;
+    bool condition;
+
+public:
+    ConditionalLock(std::mutex& mutex, const bool condition)
+        : mutex(mutex)
+        , condition(condition) {
+        if (condition) {
+            mutex.lock();
+        }
+    }
+
+    ~ConditionalLock() {
+        if (condition) {
+            mutex.unlock();
+        }
+    }
+};
+
+template <typename TNode>
+Size KdTree<TNode>::addLeaf(const bool needsLocking,
+    const Size parent,
+    const KdChild child,
+    const Size from,
+    const Size to) {
+
+    Size index;
+    {
+        ConditionalLock lock(mutex, needsLocking);
+        nodes.emplace_back(KdNode::Type::LEAF);
+        index = nodes.size() - 1;
+    }
+
+    LeafNode<TNode>& node = (LeafNode<TNode>&)nodes[index];
     ASSERT(node.isLeaf());
 
 #ifdef SPH_DEBUG
@@ -161,31 +218,43 @@ void KdTree::addLeaf(const Size parent, const Size from, const Size to) noexcept
     // find the bounding box of the leaf
     Box box;
     for (Size i = from; i < to; ++i) {
-        box.extend(values[idxs[i]]);
+        box.extend(this->values[idxs[i]]);
     }
     node.box = box;
 
     if (parent == ROOT_PARENT_NODE) {
-        return;
+        return index;
     }
-    InnerNode& parentNode = (InnerNode&)nodes[parent];
+    InnerNode<TNode>& parentNode = (InnerNode<TNode>&)nodes[parent];
     ASSERT(!parentNode.isLeaf());
-    if (index == parent + 1) {
+    if (child == KdChild::LEFT) {
         // left child
         parentNode.left = index;
     } else {
+        ASSERT(child == KdChild::RIGHT);
         // right child
         parentNode.right = index;
     }
+    return index;
 }
 
-void KdTree::addInner(const Size parent, const Float splitPosition, const Size splitIdx) noexcept {
+template <typename TNode>
+Size KdTree<TNode>::addInner(const bool needsLocking,
+    const Size parent,
+    const KdChild child,
+    const Float splitPosition,
+    const Size splitIdx) {
     static_assert(int(KdNode::Type::X) == 0 && int(KdNode::Type::Y) == 1 && int(KdNode::Type::Z) == 2,
         "Invalid values of KdNode::Type enum");
 
-    nodes.emplaceBack(KdNode::Type(splitIdx));
-    const Size index = nodes.size() - 1;
-    InnerNode& node = (InnerNode&)nodes[index];
+    Size index;
+    {
+        ConditionalLock lock(mutex, needsLocking);
+        nodes.emplace_back(KdNode::Type(splitIdx));
+        index = nodes.size() - 1;
+    }
+
+    InnerNode<TNode>& node = (InnerNode<TNode>&)nodes[index];
     ASSERT(!node.isLeaf());
 
 #ifdef SPH_DEBUG
@@ -198,53 +267,59 @@ void KdTree::addInner(const Size parent, const Float splitPosition, const Size s
 
     if (parent == ROOT_PARENT_NODE) {
         // no need to set up parents
-        return;
+        return index;
     }
-    InnerNode& parentNode = (InnerNode&)nodes[parent];
-    if (index == parent + 1) {
+    InnerNode<TNode>& parentNode = (InnerNode<TNode>&)nodes[parent];
+    if (child == KdChild::LEFT) {
         // left child
         ASSERT(parentNode.left == Size(-1));
         parentNode.left = index;
     } else {
+        ASSERT(child == KdChild::RIGHT);
         // right child
         ASSERT(parentNode.right == Size(-1));
         parentNode.right = index;
     }
+    return index;
 }
 
-void KdTree::init() {
+template <typename TNode>
+void KdTree<TNode>::init() {
     entireBox = Box();
     idxs.clear();
     nodes.clear();
 }
 
-bool KdTree::isSingular(const Size from, const Size to, const Size splitIdx) const {
+template <typename TNode>
+bool KdTree<TNode>::isSingular(const Size from, const Size to, const Size splitIdx) const {
     for (Size i = from; i < to; ++i) {
-        if (values[idxs[i]][splitIdx] != values[idxs[to - 1]][splitIdx]) {
+        if (this->values[idxs[i]][splitIdx] != this->values[idxs[to - 1]][splitIdx]) {
             return false;
         }
     }
     return true;
 }
 
-bool KdTree::checkBoxes(const Size from,
+template <typename TNode>
+bool KdTree<TNode>::checkBoxes(const Size from,
     const Size to,
     const Size mid,
     const Box& box1,
     const Box& box2) const {
     for (Size i = from; i < to; ++i) {
-        if (i < mid && !box1.contains(values[idxs[i]])) {
+        if (i < mid && !box1.contains(this->values[idxs[i]])) {
             return false;
         }
-        if (i >= mid && !box2.contains(values[idxs[i]])) {
+        if (i >= mid && !box2.contains(this->values[idxs[i]])) {
             return false;
         }
     }
     return true;
 }
 
+template <typename TNode>
 template <bool FindAll>
-Size KdTree::find(const Vector& r0,
+Size KdTree<TNode>::find(const Vector& r0,
     const Size index,
     const Float radius,
     Array<NeighbourRecord>& neighbours) const {
@@ -261,7 +336,7 @@ Size KdTree::find(const Vector& r0,
     while (node.distanceSqr < radiusSqr) {
         if (nodes[node.idx].isLeaf()) {
             // for leaf just add all
-            const LeafNode& leaf = (const LeafNode&)nodes[node.idx];
+            const LeafNode<TNode>& leaf = (const LeafNode<TNode>&)nodes[node.idx];
             if (leaf.size() > 0) {
                 const Float leafDistSqr =
                     getSqrLength(max(Vector(0._f), leaf.box.lower() - r0, r0 - leaf.box.upper()));
@@ -269,8 +344,8 @@ Size KdTree::find(const Vector& r0,
                     // leaf intersects the sphere
                     for (Size i = leaf.from; i < leaf.to; ++i) {
                         const Size actIndex = idxs[i];
-                        const Float distSqr = getSqrLength(values[actIndex] - r0);
-                        if (distSqr < radiusSqr && (FindAll || rank[actIndex] < rank[index])) {
+                        const Float distSqr = getSqrLength(this->values[actIndex] - r0);
+                        if (distSqr < radiusSqr && (FindAll || this->rank[actIndex] < this->rank[index])) {
                             /// \todo order part
                             neighbours.push(NeighbourRecord{ actIndex, distSqr });
                         }
@@ -283,7 +358,7 @@ Size KdTree::find(const Vector& r0,
             node = nodeStack.pop();
         } else {
             // inner node
-            const InnerNode& inner = (InnerNode&)nodes[node.idx];
+            const InnerNode<TNode>& inner = (InnerNode<TNode>&)nodes[node.idx];
             const Size splitDimension = Size(inner.type);
             ASSERT(splitDimension < 3);
             const Float splitPosition = inner.splitPosition;
@@ -296,7 +371,7 @@ Size KdTree::find(const Vector& r0,
                 right.distanceSqr += sqr(dx) - right.sizeSqr[splitDimension];
                 right.sizeSqr[splitDimension] = sqr(dx);
                 if (right.distanceSqr < radiusSqr) {
-                    const InnerNode& next = (const InnerNode&)nodes[right.idx];
+                    const InnerNode<TNode>& next = (const InnerNode<TNode>&)nodes[right.idx];
                     right.idx = next.right;
                     nodeStack.push(right);
                 }
@@ -308,7 +383,7 @@ Size KdTree::find(const Vector& r0,
                 left.distanceSqr += sqr(dx) - left.sizeSqr[splitDimension];
                 left.sizeSqr[splitDimension] = sqr(dx);
                 if (left.distanceSqr < radiusSqr) {
-                    const InnerNode& next = (const InnerNode&)nodes[left.idx];
+                    const InnerNode<TNode>& next = (const InnerNode<TNode>&)nodes[left.idx];
                     left.idx = next.left;
                     nodeStack.push(left);
                 }
@@ -319,13 +394,14 @@ Size KdTree::find(const Vector& r0,
     return neighbours.size();
 }
 
-bool KdTree::sanityCheck() const {
-    if (values.size() != idxs.size()) {
+template <typename TNode>
+bool KdTree<TNode>::sanityCheck() const {
+    if (this->values.size() != idxs.size()) {
         return false;
     }
 
     // check bounding box
-    for (const Vector& v : values) {
+    for (const Vector& v : this->values) {
         if (!entireBox.contains(v)) {
             return false;
         }
@@ -346,21 +422,17 @@ bool KdTree::sanityCheck() const {
 
         // if inner node, count children
         if (!nodes[idx].isLeaf()) {
-            const InnerNode& inner = (const InnerNode&)nodes[idx];
-            // left node should always be parent + 1 (pointless to store, just for checking)
-            if (inner.left != idx + 1) {
-                return false;
-            }
+            const InnerNode<TNode>& inner = (const InnerNode<TNode>&)nodes[idx];
             return countNodes(inner.left) && countNodes(inner.right);
         } else {
             // check that all points fit inside the bounding box of the leaf
-            const LeafNode& leaf = (const LeafNode&)nodes[idx];
-            if (leaf.to - leaf.from <= 1) {
+            const LeafNode<TNode>& leaf = (const LeafNode<TNode>&)nodes[idx];
+            if (leaf.to == leaf.from) {
                 // empty leaf?
                 return false;
             }
             for (Size i = leaf.from; i < leaf.to; ++i) {
-                if (!leaf.box.contains(values[idxs[i]])) {
+                if (!leaf.box.contains(this->values[idxs[i]])) {
                     return false;
                 }
                 if (indices.find(i) != indices.end()) {
@@ -391,5 +463,8 @@ bool KdTree::sanityCheck() const {
     }
     return true;
 }
+
+template class KdTree<KdNode>;
+template class KdTree<BarnesHutNode>;
 
 NAMESPACE_SPH_END

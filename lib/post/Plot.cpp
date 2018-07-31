@@ -3,6 +3,7 @@
 #include "post/Point.h"
 #include "quantities/Storage.h"
 #include "system/Statistics.h"
+#include <set>
 
 NAMESPACE_SPH_BEGIN
 
@@ -255,22 +256,42 @@ Array<Float> getLinearTics(const Interval& interval, const Size minCount) {
 }
 
 Array<Float> getLogTics(const Interval& interval, const Size minCount) {
-    ASSERT(interval.lower() > 0._f);
+    ASSERT(interval.lower() > EPS); // could be relaxed if we need to plot some very low quantities
     const Float fromOrder = floor(log10(interval.lower()));
-    const Float toOrder = floor(log10(interval.upper()));
-    ASSERT(toOrder >= fromOrder);
-    Float stepOrder = 1; // try stepping in integer orders (1, 10, 100, ...)
+    const Float toOrder = ceil(log10(interval.upper()));
+    ASSERT(isReal(fromOrder) && isReal(toOrder) && toOrder >= fromOrder);
 
-    while (toOrder - fromOrder < minCount * stepOrder) {
-        stepOrder /= 2._f;
+    std::set<Float> tics;
+    // try stepping in integer orders (1, 10, 100, ...)
+    for (Float order = fromOrder; order <= toOrder; order++) {
+        const Float value = pow(10._f, order);
+        if (interval.contains(value)) {
+            tics.insert(value);
+        }
     }
 
-    Array<Float> tics;
-    for (Float order = fromOrder + 1; order <= toOrder; order += stepOrder) {
-        tics.push(pow(10._f, order));
+    if (tics.size() < minCount) {
+        // add 2, 5, 20, 50, ...
+        for (Float order = fromOrder; order <= toOrder; order++) {
+            const Float value = pow(10._f, order);
+            if (interval.contains(2.f * value)) {
+                tics.insert(2.f * value);
+            }
+            if (interval.contains(5.f * value)) {
+                tics.insert(5.f * value);
+            }
+        }
     }
-    ASSERT(tics.size() >= minCount && tics.size() < 10 * minCount);
-    return tics;
+
+    // sanity check that we do not create a large number of tics - increase the 20 if more tics is ever
+    // actually needed
+    ASSERT(tics.size() >= minCount && tics.size() < 20);
+
+    Array<Float> result;
+    for (Float t : tics) {
+        result.push(t);
+    }
+    return result;
 }
 
 NAMESPACE_SPH_END

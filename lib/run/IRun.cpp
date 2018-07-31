@@ -40,6 +40,9 @@ IRun::IRun() {
 #ifndef SPH_DEBUG
     ASSERT(false, "Invalid configuration, asserts should be only enabled in debug builds");
 #endif
+
+    // setup the default scheduler, this can be overriden in \ref setUp if needed
+    scheduler = ThreadPool::getGlobalInstance();
 }
 
 IRun::~IRun() = default;

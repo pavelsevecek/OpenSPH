@@ -148,7 +148,7 @@ AutoPtr<ISymmetricFinder> Factory::getFinder(const RunSettings& settings) {
     case FinderEnum::BRUTE_FORCE:
         return makeAuto<BruteForceFinder>();
     case FinderEnum::KD_TREE:
-        return makeAuto<KdTree>();
+        return makeAuto<KdTree<KdNode>>();
     case FinderEnum::OCTREE:
         NOT_IMPLEMENTED;
         // return makeAuto<Octree>();

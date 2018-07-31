@@ -5,8 +5,8 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2018
 
-#include "objects/finders/KdTree.h"
-#include "system/Statistics.h"
+#include "common/ForwardDecl.h"
+#include "objects/geometry/Vector.h"
 
 NAMESPACE_SPH_BEGIN
 

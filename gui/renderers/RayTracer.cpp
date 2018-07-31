@@ -84,7 +84,7 @@ void RayTracer::initialize(const Storage& storage,
     }
     bvh.build(std::move(spheres));
 
-    finder = makeAuto<KdTree>();
+    finder = makeAuto<KdTree<KdNode>>();
     finder->build(scheduler, cached.r);
 
     for (ThreadData& data : threadData) {

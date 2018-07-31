@@ -100,14 +100,12 @@ public:
         return this->convert<TOther>([](Type& value) -> TOther { return value; });
     }
 
-    /// \brief Returns the storage corresponding to the first thread in the thread pool.
+    /// \brief Returns the storage corresponding to the thread with given index.
     ///
     /// Can be called from any thread. There is no synchronization, so accessing the storage from the
-    /// associated worker at the same time might cause a race condition. Useful to share data between
-    /// parallelized and single-threaded code without creating auxiliary storage for single-threaded
-    /// usage.
-    Type& first() {
-        return values[0];
+    /// associated worker at the same time might cause a race condition.
+    Type& value(const Size threadId) {
+        return values[threadId];
     }
 };
 

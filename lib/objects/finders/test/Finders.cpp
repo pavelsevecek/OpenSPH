@@ -202,16 +202,76 @@ static void testFinder(ISymmetricFinder& finder) {
     checkParallelization(finder);
 }
 
+
+struct NodeData {
+    KdNode::Type type = KdNode::Type::LEAF;
+    float split = 0.f;
+    Size from = 0;
+    Size to = 0;
+
+    bool operator!=(const NodeData& other) const {
+        /*REQUIRE(split == other.split);
+        REQUIRE(type == other.type);
+        REQUIRE(from == other.from);
+        REQUIRE(to == other.to);*/
+
+        return split != other.split || type != other.type || from != other.from || to != other.to;
+    }
+
+    friend std::ostream& operator<<(std::ostream& stream, const NodeData& data) {
+        stream << int(data.type) << " " << data.split << " " << data.from << " " << data.to;
+        return stream;
+    }
+};
+
+static void checkTreesEqual(KdTree<KdNode>& tree1, KdTree<KdNode>& tree2) {
+    // indices of child nodes can be different, but otherwise the split dimensions/positions, bounding boxes,
+    // etc. should be the same
+
+    auto getNodeData = [](KdTree<KdNode>& tree) {
+        Array<NodeData> data;
+        auto functor = [&data](KdNode& node, const KdNode*, const KdNode*) {
+            NodeData d;
+            d.type = node.type;
+            if (node.isLeaf()) {
+                LeafNode<KdNode>& leaf = (LeafNode<KdNode>&)node;
+                d.from = leaf.from;
+                d.to = leaf.to;
+            } else {
+                InnerNode<KdNode>& inner = (InnerNode<KdNode>&)node;
+                d.split = inner.splitPosition;
+            }
+            data.push(d);
+            return true;
+        };
+        iterateTree<IterateDirection::TOP_DOWN>(tree, SEQUENTIAL, functor);
+        return data;
+    };
+
+    Array<NodeData> data1 = getNodeData(tree1);
+    Array<NodeData> data2 = getNodeData(tree2);
+    REQUIRE(data1.size() == data2.size());
+
+    REQUIRE(data1 == data2);
+}
+
 TEST_CASE("KdTree", "[finders]") {
-    KdTree finder;
     HexagonalPacking distr;
     ThreadPool& pool = *ThreadPool::getGlobalInstance();
     SphericalDomain domain(Vector(0._f), 2._f);
     Array<Vector> storage = distr.generate(pool, 1000, domain);
-    finder.build(pool, storage);
-    REQUIRE(finder.sanityCheck());
+    KdTree<KdNode> finder1;
+    finder1.build(pool, storage);
+    REQUIRE(finder1.sanityCheck());
 
-    testFinder(finder);
+    KdTree<KdNode> finder2;
+    finder2.build(SEQUENTIAL, storage);
+    REQUIRE(finder2.sanityCheck());
+
+    checkTreesEqual(finder1, finder2);
+
+    testFinder(finder1);
+    testFinder(finder2);
 }
 
 /*TEST_CASE("LinkedList", "[finders]") {

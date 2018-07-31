@@ -103,7 +103,7 @@ private:
         Connect(MAIN_LOOP_TYPE, MainLoopEventHandler(App::processEvents));
 
         GuiSettings gui;
-        gui.set(GuiSettingsId::ORTHO_FOV, 3.e6_f)
+        gui.set(GuiSettingsId::ORTHO_FOV, 1.e6_f)
             .set(GuiSettingsId::ORTHO_VIEW_CENTER, /*Vector(0, 300, 0)) // */ 0.5_f * Vector(1024, 768, 0))
             .set(GuiSettingsId::VIEW_WIDTH, 1024)
             .set(GuiSettingsId::VIEW_HEIGHT, 768)
@@ -135,7 +135,7 @@ private:
             .set(GuiSettingsId::PALETTE_STRESS, Interval(1.e5_f, 3.e6_f))
             .set(GuiSettingsId::PALETTE_VELOCITY, Interval(0.01_f, 1.e2_f))
             .set(GuiSettingsId::PALETTE_PRESSURE, Interval(-5.e4_f, 5.e4_f))
-            .set(GuiSettingsId::PALETTE_ENERGY, Interval(0._f, 1.e3_f))
+            .set(GuiSettingsId::PALETTE_ENERGY, Interval(1.e-1_f, 1.e3_f))
             .set(GuiSettingsId::PALETTE_RADIUS, Interval(700._f, 3.e3_f))
             .set(GuiSettingsId::PALETTE_GRADV, Interval(0._f, 1.e-5_f))
             .set(GuiSettingsId::PLOT_INITIAL_PERIOD, 1.e-3_f)
@@ -152,8 +152,8 @@ private:
         phase1->onStabilizationFinished = [gui, this] {
             executeOnMainThread([gui, this] {
                 GuiSettings newGui = gui;
-                newGui.set(GuiSettingsId::IMAGES_SAVE, false)
-                    .set(GuiSettingsId::IMAGES_TIMESTEP, 100._f)
+                newGui.set(GuiSettingsId::IMAGES_SAVE, true)
+                    .set(GuiSettingsId::IMAGES_TIMESTEP, 50._f)
                     .set(GuiSettingsId::ORTHO_CUTOFF, 0._f)
                     //.set(GuiSettingsId::IMAGES_RENDERER, int(RendererEnum::RAYTRACER))
                     .set(GuiSettingsId::IMAGES_NAME, std::string("frag_%e_%d.png"))

@@ -55,9 +55,7 @@ std::wstring toPrintableString(const float value, const Size precision, const fl
     const float absValue = abs(value);
     std::stringstream ss;
     if (absValue == 0.f || (absValue >= 1.f / decimalThreshold && absValue <= decimalThreshold)) {
-        // for value aroung 1, return the decimal representation
-        // if we don't print the exponential part, we can use more precision here
-        ss << std::setprecision(max(5, int(precision))) << std::fixed << value;
+        ss << value;
     } else {
         ss << std::setprecision(precision) << std::scientific << value;
     }

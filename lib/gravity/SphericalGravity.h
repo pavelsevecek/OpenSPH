@@ -9,6 +9,7 @@
 #include "physics/Functions.h"
 #include "sph/Materials.h"
 #include "sph/equations/EquationTerm.h"
+#include "thread/Scheduler.h"
 
 NAMESPACE_SPH_BEGIN
 

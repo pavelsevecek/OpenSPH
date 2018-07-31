@@ -33,7 +33,7 @@ public:
     }
 
     virtual void wait() override {
-        group.wait();
+        arena.execute([this] { group.wait(); });
     }
 
     virtual bool completed() const override {
@@ -63,7 +63,7 @@ struct TbbData {
     tbb::task_arena arena;
 
     TbbData() {
-        arena.initialize(tbb::task_scheduler_init::default_num_threads(), 0);
+        arena.initialize(tbb::task_scheduler_init::default_num_threads());
     }
 };
 

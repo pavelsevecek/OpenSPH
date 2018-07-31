@@ -7,6 +7,7 @@
 
 #include "gravity/IGravity.h"
 #include "system/Settings.h"
+#include "system/Statistics.h"
 
 NAMESPACE_SPH_BEGIN
 

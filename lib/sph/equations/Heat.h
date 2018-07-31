@@ -5,6 +5,8 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2018
 
+#include "quantities/IMaterial.h"
+#include "sph/equations/Derivative.h"
 #include "sph/equations/EquationTerm.h"
 #include "sph/kernel/Kernel.h"
 

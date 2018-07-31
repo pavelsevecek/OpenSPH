@@ -70,7 +70,7 @@ static void drawPalette(wxDC& dc, const Palette& palette) {
         const Size ticsCnt = 5;
         // tics currently not implemented, so just split the range to equidistant steps
         for (Size i = 0; i < ticsCnt; ++i) {
-            tics.push(palette.relativeToPalette(float(i) / ticsCnt - 1));
+            tics.push(palette.relativeToPalette(float(i) / (ticsCnt - 1)));
         }
         break;
     }
@@ -91,7 +91,12 @@ static void drawPalette(wxDC& dc, const Palette& palette) {
 
         std::wstring text = toPrintableString(tic, 1, 1000);
         wxSize extent = dc.GetTextExtent(text);
-        drawTextWithSubscripts(dc, text, wxPoint(origin.x - 75, origin.y - i - (extent.y >> 1)));
+        if (text.find(L"^") != std::string::npos) {
+            // number with superscript is actually a bit shorter, shrink it
+            /// \todo this should be done more correctly
+            extent.x -= 6;
+        }
+        drawTextWithSubscripts(dc, text, wxPoint(origin.x - 15 - extent.x, origin.y - i - (extent.y >> 1)));
     }
 }
 

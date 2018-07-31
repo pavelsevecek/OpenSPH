@@ -2,6 +2,7 @@
 #include "objects/geometry/Domain.h"
 #include "physics/Eos.h"
 #include "physics/Rheology.h"
+#include "sph/Materials.h"
 #include "sph/initial/Distribution.h"
 #include "system/Factory.h"
 

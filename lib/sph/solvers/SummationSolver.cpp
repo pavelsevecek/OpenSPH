@@ -1,5 +1,6 @@
 #include "sph/solvers/SummationSolver.h"
 #include "objects/finders/NeighbourFinder.h"
+#include "quantities/IMaterial.h"
 #include "sph/equations/av/Standard.h"
 #include "sph/kernel/Kernel.h"
 #include "system/Factory.h"

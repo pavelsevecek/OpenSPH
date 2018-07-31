@@ -1,5 +1,6 @@
 #include "sph/solvers/AsymmetricSolver.h"
 #include "objects/finders/NeighbourFinder.h"
+#include "quantities/IMaterial.h"
 #include "sph/equations/Accumulated.h"
 #include "sph/equations/HelperTerms.h"
 #include "sph/kernel/Kernel.h"

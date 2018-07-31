@@ -56,5 +56,5 @@ TEST_CASE("AtomicFloat concurrent addition", "[thread]") {
     const Float expected = 50'005'000._f; /// \todo ok for doubles, will this be precise even for floats?
     pool.waitForAll();
     REQUIRE(atomicSum == expected);
-    REQUIRE(sum < expected);
+    REQUIRE(sum <= expected);
 }

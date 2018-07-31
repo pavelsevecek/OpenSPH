@@ -117,7 +117,8 @@ SOURCES += \
     sph/solvers/GradHSolver.cpp \
     objects/finders/NeighbourFinder.cpp \
     thread/Scheduler.cpp \
-    thread/Tbb.cpp
+    thread/Tbb.cpp \
+    objects/finders/SharedFinder.cpp
 
 HEADERS += \
     common/Assert.h \
@@ -309,4 +310,6 @@ HEADERS += \
     sph/solvers/DifferencedEnergySolver.h \
     gravity/CachedGravity.h \
     thread/Scheduler.h \
-    thread/Tbb.h
+    thread/Tbb.h \
+    objects/finders/SharedFinder.h \
+    objects/containers/Queue.h

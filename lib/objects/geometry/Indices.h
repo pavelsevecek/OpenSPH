@@ -7,7 +7,6 @@
 
 #include "objects/Object.h"
 #include "objects/geometry/Vector.h"
-//#include <functional>
 
 NAMESPACE_SPH_BEGIN
 
