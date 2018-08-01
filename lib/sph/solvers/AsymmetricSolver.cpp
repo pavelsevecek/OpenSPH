@@ -67,7 +67,7 @@ void AsymmetricSolver::loop(Storage& storage, Statistics& UNUSED(stats)) {
     // (re)build neighbour-finding structure; this needs to be done after all equations
     // are initialized in case some of them modify smoothing lengths
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
-    finder->build(scheduler, r);
+    const IBasicFinder& actFinder = this->getFinder(r);
 
     // find the maximum search radius
     Float maxH = 0._f;
@@ -81,8 +81,8 @@ void AsymmetricSolver::loop(Storage& storage, Statistics& UNUSED(stats)) {
     // we need to symmetrize kernel in smoothing lenghts to conserve momentum
     SymmetrizeSmoothingLengths<LutKernel<DIMENSIONS>> symmetrizedKernel(kernel);
 
-    auto functor = [this, r, &neighs, radius, &symmetrizedKernel](const Size i, ThreadData& data) {
-        finder->findAll(i, radius, data.neighs);
+    auto functor = [this, r, &neighs, radius, &symmetrizedKernel, &actFinder](Size i, ThreadData& data) {
+        actFinder.findAll(i, radius, data.neighs);
         data.grads.clear();
         data.idxs.clear();
         for (auto& n : data.neighs) {
@@ -117,6 +117,11 @@ void AsymmetricSolver::afterLoop(Storage& storage, Statistics& stats) {
         neighsStats.accumulate(neighs[i]);
     }
     stats.set(StatisticsId::NEIGHBOUR_COUNT, neighsStats);
+}
+
+const IBasicFinder& AsymmetricSolver::getFinder(ArrayView<const Vector> r) {
+    finder->build(scheduler, r);
+    return *finder;
 }
 
 void AsymmetricSolver::sanityCheck(const Storage& UNUSED(storage)) const {

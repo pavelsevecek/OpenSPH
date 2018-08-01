@@ -60,6 +60,10 @@ public:
         return this->evalImpl(NoSymmetrization{ kernel }, r0, Size(-1));
     }
 
+    virtual RawPtr<const IBasicFinder> getFinder() const override {
+        return nullptr;
+    }
+
 private:
     template <typename TKernel>
     INLINE Vector evalImpl(const TKernel& actKernel, const Vector& r0, const Size idx) const {

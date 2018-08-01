@@ -1,5 +1,5 @@
 #include "sph/Diagnostics.h"
-#include "objects/finders/KdTree.h"
+#include "objects/finders/NeighbourFinder.h"
 #include "system/Factory.h"
 #include "thread/Scheduler.h"
 
@@ -7,8 +7,8 @@ NAMESPACE_SPH_BEGIN
 
 Array<ParticlePairing::Pair> ParticlePairing::getPairs(const Storage& storage) const {
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
-    KdTree<KdNode> finder;
-    finder.build(SEQUENTIAL, r);
+    AutoPtr<ISymmetricFinder> finder = Factory::getFinder(RunSettings::getDefaults());
+    finder->build(SEQUENTIAL, r);
 
     Array<ParticlePairing::Pair> pairs;
     Array<NeighbourRecord> neighs;
@@ -16,7 +16,7 @@ Array<ParticlePairing::Pair> ParticlePairing::getPairs(const Storage& storage) c
     /// \todo symmetrized h
     for (Size i = 0; i < r.size(); ++i) {
         // only smaller h to go through each pair only once
-        finder.findLowerRank(i, r[i][H] * radius, neighs);
+        finder->findLowerRank(i, r[i][H] * radius, neighs);
         for (auto& n : neighs) {
             if (getSqrLength(r[i] - r[n.index]) < sqr(limit * (r[i][H] + r[n.index][H]))) {
                 pairs.push(ParticlePairing::Pair{ i, n.index });
@@ -40,8 +40,8 @@ Outcome ParticlePairing::check(const Storage& storage) {
 
 Outcome SmoothingDiscontinuity::check(const Storage& storage) {
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
-    KdTree<KdNode> finder;
-    finder.build(SEQUENTIAL, r);
+    AutoPtr<ISymmetricFinder> finder = Factory::getFinder(RunSettings::getDefaults());
+    finder->build(SEQUENTIAL, r);
     Array<NeighbourRecord> neighs;
 
     struct Pair {
@@ -49,7 +49,7 @@ Outcome SmoothingDiscontinuity::check(const Storage& storage) {
     };
     Array<Pair> pairs;
     for (Size i = 0; i < r.size(); ++i) {
-        finder.findLowerRank(i, r[i][H] * radius, neighs);
+        finder->findLowerRank(i, r[i][H] * radius, neighs);
         for (auto& n : neighs) {
             const Size j = n.index;
             if (abs(r[i][H] - r[j][H]) > limit * (r[i][H] + r[j][H])) {

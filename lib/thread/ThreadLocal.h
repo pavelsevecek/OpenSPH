@@ -5,6 +5,7 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2018
 
+#include "objects/utility/Iterators.h"
 #include "objects/wrappers/Optional.h"
 #include "thread/Scheduler.h"
 
@@ -21,8 +22,18 @@ class ThreadLocal {
     friend class ThreadLocal;
 
 private:
+    struct Local {
+        uint8_t padd1[64];
+        Type value;
+        uint8_t padd2[64];
+
+        template <typename... TArgs>
+        Local(TArgs&&... args)
+            : value(std::forward<TArgs>(args)...) {}
+    };
+
     /// Array of thread-local values
-    Array<Type> values;
+    Array<Local> locals;
 
     /// Associated scheduler; one value is allocated for each thread of the scheduler.
     IScheduler& scheduler;
@@ -36,10 +47,10 @@ public:
     ThreadLocal(IScheduler& scheduler, TArgs&&... args)
         : scheduler(scheduler) {
         const Size threadCnt = scheduler.getThreadCnt();
-        values.reserve(threadCnt);
+        locals.reserve(threadCnt);
         for (Size i = 0; i < threadCnt; ++i) {
             // intentionally not forwarded, we cannot move parameters if we have more than one object
-            values.emplaceBack(args...);
+            locals.emplaceBack(args...);
         }
     }
 
@@ -48,35 +59,15 @@ public:
     /// This thread must belong the the thread pool given in constructor, checked by assert.
     INLINE Type& local() {
         const Optional<Size> idx = scheduler.getThreadIdx();
-        ASSERT(idx && idx.value() < values.size());
-        return values[idx.value()];
+        ASSERT(idx && idx.value() < locals.size());
+        return locals[idx.value()].value;
     }
 
     /// \copydoc local
     INLINE const Type& local() const {
         const Optional<Size> idx = scheduler.getThreadIdx();
-        ASSERT(idx && idx.value() < values.size());
-        return values[idx.value()];
-    }
-
-    /// \brief Returns the iterator to the first element in the thread-local storage.
-    Iterator<Type> begin() {
-        return values.begin();
-    }
-
-    /// \copydoc begin
-    Iterator<const Type> begin() const {
-        return values.begin();
-    }
-
-    /// \brief Returns the iterator to the first element in the thread-local storage.
-    Iterator<Type> end() {
-        return values.end();
-    }
-
-    /// \copydoc end
-    Iterator<const Type> end() const {
-        return values.end();
+        ASSERT(idx && idx.value() < locals.size());
+        return locals[idx.value()].value;
     }
 
     /// \brief Creates another ThreadLocal object by converting each thread-local value of this object.
@@ -86,8 +77,8 @@ public:
     template <typename TOther, typename TFunctor>
     ThreadLocal<TOther> convert(TFunctor&& functor) {
         ThreadLocal<TOther> result(scheduler);
-        for (Size i = 0; i < result.values.size(); ++i) {
-            result.values[i] = functor(values[i]);
+        for (Size i = 0; i < result.locals.size(); ++i) {
+            result.locals[i].value = functor(locals[i].value);
         }
         return result;
     }
@@ -105,7 +96,41 @@ public:
     /// Can be called from any thread. There is no synchronization, so accessing the storage from the
     /// associated worker at the same time might cause a race condition.
     Type& value(const Size threadId) {
-        return values[threadId];
+        return locals[threadId].value;
+    }
+
+    template <typename T>
+    class LocalIterator : public Iterator<T> {
+    public:
+        LocalIterator(Iterator<T> iter)
+            : Iterator<T>(iter) {}
+
+        INLINE const Type& operator*() const {
+            return this->data->value;
+        }
+        INLINE Type& operator*() {
+            return this->data->value;
+        }
+    };
+
+    /// \brief Returns the iterator to the first element in the thread-local storage.
+    LocalIterator<Local> begin() {
+        return locals.begin();
+    }
+
+    /// \copydoc begin
+    LocalIterator<const Local> begin() const {
+        return locals.begin();
+    }
+
+    /// \brief Returns the iterator to the first element in the thread-local storage.
+    LocalIterator<Local> end() {
+        return locals.end();
+    }
+
+    /// \copydoc end
+    LocalIterator<const Local> end() const {
+        return locals.end();
     }
 };
 

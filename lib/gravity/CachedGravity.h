@@ -63,6 +63,10 @@ public:
         // performance does not matter, so it's probably not worth it.
         return gravity->eval(r0, stats);
     }
+
+    virtual RawPtr<const IBasicFinder> getFinder() const override {
+        return gravity->getFinder();
+    }
 };
 
 NAMESPACE_SPH_END

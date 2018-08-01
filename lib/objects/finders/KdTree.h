@@ -1,15 +1,17 @@
 #pragma once
 
 /// \file KdTree.h
-/// \brief K-d tree for efficient search of neighbouring particles
+/// \brief K-d tree for efficient search of neighbouring particles.
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz))
 /// \date 2016-2018
 
 #include "objects/finders/NeighbourFinder.h"
 #include "objects/geometry/Box.h"
-#include "objects/geometry/Multipole.h"
+#include "objects/wrappers/Function.h"
+#include "objects/wrappers/Optional.h"
+#include "thread/ThreadLocal.h"
 #include <deque>
-#include <mutex>
+#include <set>
 
 NAMESPACE_SPH_BEGIN
 
@@ -32,30 +34,10 @@ struct KdNode : public Noncopyable {
     }
 };
 
-/// \todo move to BarnesHut.h, we somehow have to instantiate the KdTree for this object. So either make
-/// KdTree header only, add some "user data" member to KdNode, or something else ...
-struct BarnesHutNode : public KdNode {
-    /// Center of mass of contained particles
-    Vector com;
-
-    /// Gravitational moments with a respect to the center of mass, using expansion to octupole order.
-    MultipoleExpansion<3> moments;
-
-    /// Opening radius of the node; see Eq. (2.36) of Stadel PhD thesis
-    /// \todo can be stored as 4th component of com.
-    Float r_open;
-
-    BarnesHutNode(const Type& type)
-        : KdNode(type) {
-#ifdef SPH_DEBUG
-        com = Vector(NAN);
-        r_open = NAN;
-#endif
-    }
-};
-
-
 enum class KdChild;
+struct NodeIdx;
+template <typename TNode>
+struct ThreadTree;
 
 /// \brief Inner node of K-d tree
 template <typename TBase>
@@ -145,10 +127,7 @@ private:
     Array<Size> idxs;
 
     /// Holds all nodes, either \ref InnerNode or \ref LeafNode (depending on the value of \ref type).
-    std::deque<InnerNode<TNode>> nodes;
-
-    /// Mutex for synchronization of tree build
-    std::mutex mutex;
+    Array<InnerNode<TNode>> nodes;
 
     static constexpr Size ROOT_PARENT_NODE = -1;
 
@@ -190,23 +169,22 @@ protected:
 private:
     void init();
 
-    void buildTree(IScheduler& scheduler,
-        const bool needsLocking,
-        const Size parent,
+    void buildTree(ThreadTree<TNode>& tree,
+        const NodeIdx parent,
         const KdChild child,
         const Size from,
         const Size to,
         const Box& box,
         const Size slidingCnt);
 
-    Size addLeaf(const bool needsLocking,
-        const Size parent,
+    void addLeaf(ThreadTree<TNode>& tree,
+        const NodeIdx parent,
         const KdChild child,
         const Size from,
         const Size to);
 
-    Size addInner(const bool needsLocking,
-        const Size parent,
+    NodeIdx addInner(ThreadTree<TNode>& tree,
+        const NodeIdx parent,
         const KdChild child,
         const Float splitPosition,
         const Size splitIdx);
@@ -235,46 +213,17 @@ template <IterateDirection Dir, typename TNode, typename TFunctor>
 void iterateTree(KdTree<TNode>& tree,
     IScheduler& scheduler,
     const TFunctor& functor,
-    const Size nodeIdx = 0) {
-    TNode& node = tree.getNode(nodeIdx);
-    /// \todo it's tricky to parallelize, because in typical use case, we need the child nodes already
-    /// processed when we process this node (for bottom-up direction)
-    if (Dir == IterateDirection::TOP_DOWN) {
-        if (node.isLeaf()) {
-            functor(node, nullptr, nullptr);
-        } else {
-            InnerNode<TNode>& inner = reinterpret_cast<InnerNode<TNode>&>(node);
-            if (!functor(inner, &tree.getNode(inner.left), &tree.getNode(inner.right))) {
-                return;
-            }
-        }
-    }
-    if (!node.isLeaf()) {
-        InnerNode<TNode>& inner = reinterpret_cast<InnerNode<TNode>&>(node);
-
-        iterateTree<Dir>(tree, scheduler, functor, inner.left);
-        iterateTree<Dir>(tree, scheduler, functor, inner.right);
-    }
-    if (Dir == IterateDirection::BOTTOM_UP) {
-        if (node.isLeaf()) {
-            functor(node, nullptr, nullptr);
-        } else {
-            InnerNode<TNode>& inner = reinterpret_cast<InnerNode<TNode>&>(node);
-            functor(inner, &tree.getNode(inner.left), &tree.getNode(inner.right));
-        }
-    }
-}
+    const Size nodeIdx = 0,
+    const Size depth = 0);
 
 /// \copydoc iterateTree
 template <IterateDirection Dir, typename TNode, typename TFunctor>
 void iterateTree(const KdTree<TNode>& tree,
     IScheduler& scheduler,
     const TFunctor& functor,
-    const Size nodeIdx = 0) {
-    // use non-const overload using const_cast, but call the functor with const reference
-    auto actFunctor = [&functor](TNode& node, TNode* left, TNode* right)
-                          INL { return functor(asConst(node), left, right); };
-    iterateTree<Dir>(const_cast<KdTree<TNode>&>(tree), scheduler, actFunctor, nodeIdx);
-}
+    const Size nodeIdx = 0,
+    const Size depth = 0);
 
 NAMESPACE_SPH_END
+
+#include "objects/finders/KdTree.inl.h"

@@ -77,6 +77,23 @@ Accumulated& GravitySolver<AsymmetricSolver>::getAccumulated() {
     return this->derivatives.getAccumulated();
 }
 
+template <>
+const IBasicFinder& GravitySolver<AsymmetricSolver>::getFinder(ArrayView<const Vector> r) {
+    RawPtr<const IBasicFinder> finder = gravity->getFinder();
+    if (!finder) {
+        // no finder provided, just call the default implementation
+        return AsymmetricSolver::getFinder(r);
+    } else {
+        return *finder;
+    }
+}
+
+template <>
+const IBasicFinder& GravitySolver<SymmetricSolver>::getFinder(ArrayView<const Vector> UNUSED(r)) {
+    // symmetric solver currently does not use this, we just implement it to make the templates work ...
+    NOT_IMPLEMENTED;
+}
+
 template <typename TSphSolver>
 void GravitySolver<TSphSolver>::sanityCheck(const Storage& storage) const {
     TSphSolver::sanityCheck(storage);

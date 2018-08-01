@@ -5,6 +5,8 @@
 NAMESPACE_SPH_BEGIN
 
 template <typename T>
+class RawPtr;
+template <typename T>
 class AutoPtr;
 template <typename T>
 class SharedPtr;

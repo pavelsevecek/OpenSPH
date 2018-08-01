@@ -9,6 +9,7 @@
 #include "sph/initial/Distribution.h"
 #include "tests/Approx.h"
 #include "thread/Pool.h"
+#include "thread/Tbb.h"
 #include "utils/SequenceTest.h"
 
 using namespace Sph;
@@ -257,21 +258,63 @@ static void checkTreesEqual(KdTree<KdNode>& tree1, KdTree<KdNode>& tree2) {
 
 TEST_CASE("KdTree", "[finders]") {
     HexagonalPacking distr;
-    ThreadPool& pool = *ThreadPool::getGlobalInstance();
     SphericalDomain domain(Vector(0._f), 2._f);
-    Array<Vector> storage = distr.generate(pool, 1000, domain);
+    Array<Vector> storage = distr.generate(SEQUENTIAL, 1000, domain);
+
     KdTree<KdNode> finder1;
-    finder1.build(pool, storage);
+    finder1.build(*ThreadPool::getGlobalInstance(), storage);
     REQUIRE(finder1.sanityCheck());
 
     KdTree<KdNode> finder2;
-    finder2.build(SEQUENTIAL, storage);
+    finder2.build(*Tbb::getGlobalInstance(), storage);
     REQUIRE(finder2.sanityCheck());
 
-    checkTreesEqual(finder1, finder2);
+    KdTree<KdNode> finder3;
+    finder3.build(SEQUENTIAL, storage);
+    REQUIRE(finder3.sanityCheck());
 
     testFinder(finder1);
     testFinder(finder2);
+    testFinder(finder3);
+
+    checkTreesEqual(finder1, finder3);
+    checkTreesEqual(finder2, finder3);
+}
+
+TEST_CASE("KdTree iterateTree", "[finders]") {
+    HexagonalPacking distr;
+    SphericalDomain domain(Vector(0._f), 2._f);
+    Array<Vector> storage = distr.generate(SEQUENTIAL, 100000, domain);
+
+    struct TestNode : public KdNode {
+        bool visited;
+
+        TestNode(KdNode::Type type)
+            : KdNode(type) {
+            visited = false;
+        }
+    };
+
+    KdTree<TestNode> tree;
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+    tree.build(pool, storage);
+
+    std::atomic_bool success{ true };
+    std::atomic_int visitedCnt{ 0 };
+    iterateTree<IterateDirection::BOTTOM_UP>(
+        tree, pool, [&](TestNode& node, const TestNode* left, const TestNode* right) {
+            if (node.isLeaf()) {
+                success = success && (left == nullptr) && (right == nullptr);
+            } else {
+                success = success && (left != nullptr) && (right != nullptr);
+                success = success && left->visited && right->visited;
+            }
+            node.visited = true;
+            visitedCnt++;
+            return true;
+        });
+    REQUIRE(success);
+    REQUIRE(visitedCnt == tree.getNodeCnt());
 }
 
 /*TEST_CASE("LinkedList", "[finders]") {

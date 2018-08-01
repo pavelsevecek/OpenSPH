@@ -4,6 +4,7 @@
 #include "gravity/Moments.h"
 #include "system/Settings.h"
 #include "tests/Setup.h"
+#include "thread/Tbb.h"
 
 using namespace Sph;
 
@@ -20,16 +21,16 @@ static void benchmarkGravity(IGravity& gravity, Benchmark::Context& context) {
     gravity.build(pool, storage);
     Statistics stats;
     ArrayView<Vector> dv = storage.getD2t<Vector>(QuantityId::POSITION);
-    context.log("particle count: ", dv.size());
+    // context.log("particle count: ", dv.size());
     while (context.running()) {
         gravity.evalAll(pool, dv, stats);
     }
-    const int approx = stats.getOr<int>(StatisticsId::GRAVITY_NODES_APPROX, 0);
+    /*const int approx = stats.getOr<int>(StatisticsId::GRAVITY_NODES_APPROX, 0);
     const int exact = stats.getOr<int>(StatisticsId::GRAVITY_NODES_EXACT, 0);
     const int total = stats.getOr<int>(StatisticsId::GRAVITY_NODE_COUNT, 0);
     context.log("approx: ", approx);
     context.log("exact: ", exact);
-    context.log("total: ", total);
+    context.log("total: ", total);*/
 }
 
 BENCHMARK("BruteForceGravity", "[gravity]", Benchmark::Context& context) {
@@ -65,4 +66,25 @@ BENCHMARK("BarnesHut Octupole 5", "[gravity]", Benchmark::Context& context) {
 BENCHMARK("BarnesHut Monopole 0.5", "[gravity]", Benchmark::Context& context) {
     BarnesHut gravity(0.5_f, MultipoleOrder::MONOPOLE);
     benchmarkGravity(gravity, context);
+}
+
+static void benchmarkGravity(IGravity& gravity, IScheduler& scheduler, Benchmark::Context& context) {
+    BodySettings settings;
+    settings.set(BodySettingsId::DENSITY, 100._f).set(BodySettingsId::ENERGY, 10._f);
+    Storage storage = Tests::getGassStorage(1000000, settings, 5.e3_f);
+
+    while (context.running()) {
+        gravity.build(scheduler, storage);
+        Benchmark::clobberMemory();
+    }
+}
+
+BENCHMARK("BarnesHut build Sequential", "[gravity]", Benchmark::Context& context) {
+    BarnesHut gravity(0.5_f, MultipoleOrder::OCTUPOLE);
+    benchmarkGravity(gravity, SEQUENTIAL, context);
+}
+
+BENCHMARK("BarnesHut build ThreadPool", "[gravity]", Benchmark::Context& context) {
+    BarnesHut gravity(0.5_f, MultipoleOrder::OCTUPOLE);
+    benchmarkGravity(gravity, *ThreadPool::getGlobalInstance(), context);
 }

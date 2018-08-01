@@ -89,6 +89,8 @@ protected:
 
     virtual void afterLoop(Storage& storage, Statistics& stats);
 
+    virtual const IBasicFinder& getFinder(ArrayView<const Vector> r);
+
     /// \brief Used to check internal consistency of the solver.
     ///
     /// Ran when the solver is created. Function throws an exception if there are conflicting equations or the

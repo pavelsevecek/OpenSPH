@@ -9,12 +9,34 @@
 #include "gravity/IGravity.h"
 #include "objects/containers/List.h"
 #include "objects/finders/KdTree.h"
+#include "objects/geometry/Multipole.h"
 #include "sph/kernel/GravityKernel.h"
 #include <atomic>
 
 NAMESPACE_SPH_BEGIN
 
 enum class MultipoleOrder;
+
+struct BarnesHutNode : public KdNode {
+    /// Center of mass of contained particles
+    Vector com;
+
+    /// Gravitational moments with a respect to the center of mass, using expansion to octupole order.
+    MultipoleExpansion<3> moments;
+
+    /// Opening radius of the node; see Eq. (2.36) of Stadel PhD thesis
+    /// \todo can be stored as 4th component of com.
+    Float r_open;
+
+    BarnesHutNode(const Type& type)
+        : KdNode(type) {
+#ifdef SPH_DEBUG
+        com = Vector(NAN);
+        r_open = NAN;
+#endif
+    }
+};
+
 
 /// \brief Multipole approximation of distance particle.
 class BarnesHut : public IGravity {
@@ -60,6 +82,8 @@ public:
 
     virtual Vector eval(const Vector& r0, Statistics& stats) const override;
 
+    virtual RawPtr<const IBasicFinder> getFinder() const override;
+
     /// Returns the multipole moments computed from root node.
     MultipoleExpansion<3> getMoments() const;
 
@@ -83,6 +107,9 @@ protected:
 
         /// Indices of nodes that shall be evaluated using multipole approximation.
         Array<Size> nodeList;
+
+        /// Current depth in the tree; root node has depth equal to zero.
+        Size depth = 0;
 
         /// Clones all lists in the state object
         TreeWalkState clone() const;

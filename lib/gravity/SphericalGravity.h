@@ -48,6 +48,10 @@ public:
         Analytic::StaticSphere sphere(INFTY, rho0);
         return sphere.getAcceleration(r0 - center);
     }
+
+    virtual RawPtr<const IBasicFinder> getFinder() const override {
+        return nullptr;
+    }
 };
 
 /// \brief Implements IEquationTerm interface using SphericalGravity.

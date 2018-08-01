@@ -457,13 +457,13 @@ INLINE CopyableArray<T, TCounter> copyable(const Array<T, TCounter>& array) {
     return CopyableArray<T, TCounter>(array);
 }
 
-/// Creates an array from a list of parameters.
+/// \brief Creates an array from a list of parameters.
 template <typename T0, typename... TArgs>
 Array<std::decay_t<T0>> makeArray(T0&& t0, TArgs&&... rest) {
     return Array<std::decay_t<T0>>{ std::forward<T0>(t0), std::forward<TArgs>(rest)... };
 }
 
-/// Creates a l-value reference array from a list of l-value references.
+/// \brief Creates a l-value reference array from a list of l-value references.
 template <typename T0, typename... TArgs>
 Array<T0&> tieToArray(T0& t0, TArgs&... rest) {
     return Array<T0&>{ t0, rest... };

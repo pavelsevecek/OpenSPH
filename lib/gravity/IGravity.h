@@ -35,6 +35,16 @@ public:
     /// acceleration if no smoothing kernel is used.
     /// \param r0 Point where the gravity is evaluated.
     virtual Vector eval(const Vector& r0, Statistics& stats) const = 0;
+
+    /// \brief Optionally returns a finder used by the gravity implementation.
+    ///
+    /// If the gravity uses an acceleration structure that implements the \ref IBasicFinder interface, this
+    /// function allows the user to obtain the object and re-use in other parts of the code. Finder is assumed
+    /// to be initialized after \ref build is called.
+    ///
+    /// If the gravity does not use any such structure or it simply does not implement the \ref IBasicFinder
+    /// interface, the function returns nullptr.
+    virtual RawPtr<const IBasicFinder> getFinder() const = 0;
 };
 
 NAMESPACE_SPH_END

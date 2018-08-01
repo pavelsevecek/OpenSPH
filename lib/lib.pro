@@ -63,7 +63,6 @@ SOURCES += \
     objects/containers/String.cpp \
     objects/finders/Bvh.cpp \
     objects/finders/DynamicFinder.cpp \
-    objects/finders/KdTree.cpp \
     objects/finders/UniformGrid.cpp \
     objects/geometry/Domain.cpp \
     objects/geometry/SymmetricTensor.cpp \
@@ -118,7 +117,7 @@ SOURCES += \
     objects/finders/NeighbourFinder.cpp \
     thread/Scheduler.cpp \
     thread/Tbb.cpp \
-    objects/finders/SharedFinder.cpp
+    objects/finders/KdTree.cpp
 
 HEADERS += \
     common/Assert.h \
@@ -311,5 +310,5 @@ HEADERS += \
     gravity/CachedGravity.h \
     thread/Scheduler.h \
     thread/Tbb.h \
-    objects/finders/SharedFinder.h \
-    objects/containers/Queue.h
+    objects/containers/Queue.h \
+    objects/finders/KdTree.inl.h

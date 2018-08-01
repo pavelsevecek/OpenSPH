@@ -33,6 +33,7 @@ public:
     }
 
     virtual void wait() override {
+        ASSERT(!tbbThreadContext.task, "waiting on child tasks is currently not implemented");
         arena.execute([this] { group.wait(); });
     }
 

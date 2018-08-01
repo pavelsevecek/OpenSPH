@@ -74,6 +74,10 @@ protected:
 
     virtual void afterLoop(Storage& storage, Statistics& stats);
 
+    /// Little hack to allow using different finders by derived classes.
+    /// \todo generalize somehow
+    virtual const IBasicFinder& getFinder(ArrayView<const Vector> r);
+
     virtual void sanityCheck(const Storage& storage) const;
 };
 

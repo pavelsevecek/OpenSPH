@@ -53,7 +53,7 @@ BENCHMARK(linkedListRun);*/
 
 static void finderBuild(Benchmark::Context& context, IBasicFinder& finder, IScheduler& scheduler) {
     HexagonalPacking distribution;
-    Array<Vector> r = distribution.generate(scheduler, 100000, SphericalDomain(Vector(0._f), 1._f));
+    Array<Vector> r = distribution.generate(scheduler, 1000000, SphericalDomain(Vector(0._f), 1._f));
     while (context.running()) {
         finder.build(scheduler, r);
         Benchmark::clobberMemory();

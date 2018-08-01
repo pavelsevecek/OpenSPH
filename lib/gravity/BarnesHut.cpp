@@ -153,6 +153,7 @@ BarnesHut::TreeWalkState BarnesHut::TreeWalkState::clone() const {
     cloned.checkList = checkList.clone();
     cloned.particleList = particleList.clone();
     cloned.nodeList = nodeList.clone();
+    cloned.depth = depth;
     return cloned;
 }
 
@@ -240,12 +241,23 @@ void BarnesHut::evalNode(IScheduler& scheduler,
         // that we don't override the lists when evaluating different node (each node has its own lists).
         TreeWalkState childData = data.clone();
         childData.checkList.pushBack(inner.right);
+        childData.depth++;
         auto task = makeShared<NodeTask>(*this, scheduler, dv, inner.left, std::move(childData), result);
-        scheduler.submit(std::move(task));
+        if (childData.depth <= ceil(log2(scheduler.getThreadCnt()))) {
+            // Ad-hoc decision (see also KdTree.cpp where we do the same trick);
+            // only split the build in the topmost nodes, process the bottom nodes in the same thread to avoid
+            // high scheduling overhead of ThreadPool (TBBs deal with this quite well)
+            //
+            // The expression above can be modified to get optimal performance.
+            scheduler.submit(std::move(task));
+        } else {
+            task();
+        }
 
         // since we go only once through the tree (we never go 'up'), we can simply move the lists into the
         // right child and modify them for the child node
         data.checkList.pushBack(inner.left);
+        data.depth++;
         this->evalNode(scheduler, dv, inner.right, std::move(data), result);
     }
 }
@@ -425,6 +437,10 @@ void BarnesHut::buildInner(BarnesHutNode& node, BarnesHutNode& left, BarnesHutNo
 
 MultipoleExpansion<3> BarnesHut::getMoments() const {
     return kdTree.getNode(0).moments;
+}
+
+RawPtr<const IBasicFinder> BarnesHut::getFinder() const {
+    return &kdTree;
 }
 
 NAMESPACE_SPH_END

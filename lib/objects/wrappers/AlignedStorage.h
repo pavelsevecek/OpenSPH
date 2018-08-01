@@ -64,8 +64,8 @@ public:
     }
 };
 
-/// Specialization for l-value references, a simple wrapper of ReferenceWrapper with same interface to allow
-/// generic usage of AlignedStorage for both values and references.
+/// \brief Specialization for l-value references, a simple wrapper of ReferenceWrapper with same interface to
+/// allow generic usage of AlignedStorage for both values and references.
 template <typename Type>
 class AlignedStorage<Type&> {
     using StorageType = ReferenceWrapper<Type>;

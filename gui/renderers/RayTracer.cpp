@@ -2,7 +2,6 @@
 #include "gui/objects/Bitmap.h"
 #include "gui/objects/Camera.h"
 #include "gui/objects/Colorizer.h"
-#include "objects/finders/KdTree.h"
 #include "system/Profiler.h"
 #include <wx/dcmemory.h>
 
@@ -84,7 +83,7 @@ void RayTracer::initialize(const Storage& storage,
     }
     bvh.build(std::move(spheres));
 
-    finder = makeAuto<KdTree<KdNode>>();
+    finder = Factory::getFinder(RunSettings::getDefaults());
     finder->build(scheduler, cached.r);
 
     for (ThreadData& data : threadData) {

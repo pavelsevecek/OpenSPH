@@ -1,6 +1,5 @@
 #pragma once
 
-#include "objects/finders/KdTree.h"
 #include "objects/geometry/Multipole.h"
 
 NAMESPACE_SPH_BEGIN
@@ -138,15 +137,15 @@ std::enable_if_t<(M > N), TracelessMultipole<M>> computeMultipolePotential(
 
 
 namespace Detail {
-    template <Size N>
-    INLINE Multipole<N> computeMultipoleImpl(const Vector& dr, const Float m) {
-        return makeMultipole<N>(MomentOperators::OuterProduct<N>{ dr }) * m;
-    }
+template <Size N>
+INLINE Multipole<N> computeMultipoleImpl(const Vector& dr, const Float m) {
+    return makeMultipole<N>(MomentOperators::OuterProduct<N>{ dr }) * m;
+}
 
-    template <>
-    INLINE Multipole<0> computeMultipoleImpl(const Vector& UNUSED(dr), const Float m) {
-        return m;
-    }
+template <>
+INLINE Multipole<0> computeMultipoleImpl(const Vector& UNUSED(dr), const Float m) {
+    return m;
+}
 } // namespace Detail
 
 template <Size N, typename TSequence>
@@ -179,90 +178,90 @@ INLINE TracelessMultipole<2> parallelAxisTheorem(const TracelessMultipole<2>& Qi
 }
 
 namespace MomentOperators {
-    struct Term2 {
-        const TracelessMultipole<2>& Q;
-        const Vector& d;
+struct Term2 {
+    const TracelessMultipole<2>& Q;
+    const Vector& d;
 
-        template <Size I, Size J, Size K, Size L>
-        INLINE Float perm() const {
-            const Delta<2> delta;
-            return delta.value<I, J>() * Q.value<K, L>() + delta.value<I, K>() * Q.value<J, L>() +
-                   delta.value<J, K>() * Q.value<I, L>();
-        }
+    template <Size I, Size J, Size K, Size L>
+    INLINE Float perm() const {
+        const Delta<2> delta;
+        return delta.value<I, J>() * Q.value<K, L>() + delta.value<I, K>() * Q.value<J, L>() +
+               delta.value<J, K>() * Q.value<I, L>();
+    }
 
-        template <Size I, Size J, Size K>
-        INLINE Float value() const {
-            return -2._f / 5._f *
-                   (perm<I, J, K, 0>() * d[0] + perm<I, J, K, 1>() * d[1] + perm<I, J, K, 2>() * d[2]);
-        }
-    };
+    template <Size I, Size J, Size K>
+    INLINE Float value() const {
+        return -2._f / 5._f *
+               (perm<I, J, K, 0>() * d[0] + perm<I, J, K, 1>() * d[1] + perm<I, J, K, 2>() * d[2]);
+    }
+};
 
-    struct Term30 {
-        const TracelessMultipole<3>& Q;
-        const Vector& d;
+struct Term30 {
+    const TracelessMultipole<3>& Q;
+    const Vector& d;
 
-        template <Size I, Size J, Size K, Size L, Size M>
-        INLINE Float perm() const {
-            const Delta<2> delta;
-            return delta.value<I, J>() * Q.value<K, L, M>() + delta.value<I, K>() * Q.value<J, L, M>() +
-                   delta.value<I, L>() * Q.value<J, K, M>() + delta.value<J, K>() * Q.value<I, L, M>() +
-                   delta.value<J, L>() * Q.value<I, K, M>() + delta.value<K, L>() * Q.value<I, J, M>();
-        }
+    template <Size I, Size J, Size K, Size L, Size M>
+    INLINE Float perm() const {
+        const Delta<2> delta;
+        return delta.value<I, J>() * Q.value<K, L, M>() + delta.value<I, K>() * Q.value<J, L, M>() +
+               delta.value<I, L>() * Q.value<J, K, M>() + delta.value<J, K>() * Q.value<I, L, M>() +
+               delta.value<J, L>() * Q.value<I, K, M>() + delta.value<K, L>() * Q.value<I, J, M>();
+    }
 
-        template <Size I, Size J, Size K, Size L>
-        INLINE Float value() const {
-            return perm<I, J, K, L, 0>() * d[0] + perm<I, J, K, L, 1>() * d[1] + perm<I, J, K, L, 2>() * d[2];
-        }
-    };
+    template <Size I, Size J, Size K, Size L>
+    INLINE Float value() const {
+        return perm<I, J, K, L, 0>() * d[0] + perm<I, J, K, L, 1>() * d[1] + perm<I, J, K, L, 2>() * d[2];
+    }
+};
 
-    struct Term31 {
-        const TracelessMultipole<2>& Q;
-        const TracelessMultipole<2>& f2;
+struct Term31 {
+    const TracelessMultipole<2>& Q;
+    const TracelessMultipole<2>& f2;
 
-        const static Delta<2> delta1, delta2;
+    const static Delta<2> delta1, delta2;
 
-        template <Size I, Size J, Size K, Size L, Size M, Size N>
-        INLINE Float ddq() const {
-            return delta1.template value<I, J>() * delta2.template value<K, M>() * Q.template value<L, N>();
-        }
+    template <Size I, Size J, Size K, Size L, Size M, Size N>
+    INLINE Float ddq() const {
+        return delta1.template value<I, J>() * delta2.template value<K, M>() * Q.template value<L, N>();
+    }
 
-        template <Size I, Size J, Size K, Size L, Size M, Size N>
-        INLINE Float perm() const {
+    template <Size I, Size J, Size K, Size L, Size M, Size N>
+    INLINE Float perm() const {
 #if 0
             return ddq<I, J, K, L, M, N>() + ddq<I, J, L, K, M, N>() + ddq<I, L, J, K, M, N>() +
                    ddq<I, L, K, J, M, N>() + ddq<I, K, J, L, M, N>() + ddq<I, K, L, J, M, N>() +
                    ddq<J, K, L, I, M, N>() + ddq<J, K, I, L, M, N>() + ddq<J, L, I, K, M, N>() +
                    ddq<J, L, K, I, M, N>() + ddq<K, L, I, J, M, N>() + ddq<K, L, J, I, M, N>();
 #else
-            return ddq<I, J, K, L, M, N>() + ddq<I, L, J, K, M, N>() + ddq<I, K, J, L, M, N>() +
-                   ddq<J, K, L, I, M, N>() + ddq<J, L, I, K, M, N>() + ddq<K, L, I, J, M, N>();
+        return ddq<I, J, K, L, M, N>() + ddq<I, L, J, K, M, N>() + ddq<I, K, J, L, M, N>() +
+               ddq<J, K, L, I, M, N>() + ddq<J, L, I, K, M, N>() + ddq<K, L, I, J, M, N>();
 #endif
-        }
+    }
 
-        template <Size I, Size J, Size K, Size L>
-        INLINE Float value() const {
-            return perm<I, J, K, L, 0, 0>() * f2.template value<0, 0>() +
-                   perm<I, J, K, L, 0, 1>() * f2.template value<0, 1>() +
-                   perm<I, J, K, L, 0, 2>() * f2.template value<0, 2>() +
-                   perm<I, J, K, L, 1, 0>() * f2.template value<1, 0>() +
-                   perm<I, J, K, L, 1, 1>() * f2.template value<1, 1>() +
-                   perm<I, J, K, L, 1, 2>() * f2.template value<1, 2>() +
-                   perm<I, J, K, L, 2, 0>() * f2.template value<2, 0>() +
-                   perm<I, J, K, L, 2, 1>() * f2.template value<2, 1>() +
-                   perm<I, J, K, L, 2, 2>() * f2.template value<2, 2>();
-        }
-    };
+    template <Size I, Size J, Size K, Size L>
+    INLINE Float value() const {
+        return perm<I, J, K, L, 0, 0>() * f2.template value<0, 0>() +
+               perm<I, J, K, L, 0, 1>() * f2.template value<0, 1>() +
+               perm<I, J, K, L, 0, 2>() * f2.template value<0, 2>() +
+               perm<I, J, K, L, 1, 0>() * f2.template value<1, 0>() +
+               perm<I, J, K, L, 1, 1>() * f2.template value<1, 1>() +
+               perm<I, J, K, L, 1, 2>() * f2.template value<1, 2>() +
+               perm<I, J, K, L, 2, 0>() * f2.template value<2, 0>() +
+               perm<I, J, K, L, 2, 1>() * f2.template value<2, 1>() +
+               perm<I, J, K, L, 2, 2>() * f2.template value<2, 2>();
+    }
+};
 
-    struct Term32 {
-        const TracelessMultipole<2>& Q;
-        const TracelessMultipole<2>& f2;
+struct Term32 {
+    const TracelessMultipole<2>& Q;
+    const TracelessMultipole<2>& f2;
 
-        template <Size I, Size J, Size K, Size L>
-        INLINE Float value() const {
-            return makePermutations(Delta<2>{}, Delta<2>{}).template value<I, J, K, L>() *
-                   makeInner<2>(Q, f2).value() * (-1._f / 5._f);
-        }
-    };
+    template <Size I, Size J, Size K, Size L>
+    INLINE Float value() const {
+        return makePermutations(Delta<2>{}, Delta<2>{}).template value<I, J, K, L>() *
+               makeInner<2>(Q, f2).value() * (-1._f / 5._f);
+    }
+};
 } // namespace MomentOperators
 
 INLINE TracelessMultipole<3> parallelAxisTheorem(const TracelessMultipole<3>& Qijk,
