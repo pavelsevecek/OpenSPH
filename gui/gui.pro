@@ -50,7 +50,8 @@ SOURCES += \
     windows/OrthoPane.cpp \
     windows/PlotView.cpp \
     renderers/RayTracer.cpp \
-    renderers/MeshRenderer.cpp
+    renderers/MeshRenderer.cpp \
+    objects/Camera.cpp
 
 HEADERS += \
     ArcBall.h \

@@ -1,6 +1,7 @@
 #include "gui/collision/Collision.h"
 #include "gui/GuiCallbacks.h"
 #include "gui/Settings.h"
+#include "gui/Uvw.h"
 #include "io/FileSystem.h"
 #include "io/LogFile.h"
 #include "sph/initial/Presets.h"
@@ -21,7 +22,7 @@ AsteroidCollision::AsteroidCollision() {
     settings.set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::PREDICTOR_CORRECTOR)
         .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 0.01_f)
         .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 100._f)
-        .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 100._f)
+        .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 10000._f)
         .set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 10000._f))
         .set(RunSettingsId::SOLVER_FORCES,
             ForceEnum::PRESSURE | ForceEnum::SOLID_STRESS | ForceEnum::GRAVITY) //| ForceEnum::INERTIAL)
@@ -36,7 +37,9 @@ AsteroidCollision::AsteroidCollision() {
         .set(RunSettingsId::GRAVITY_KERNEL, GravityKernelEnum::SPH_KERNEL)
         .set(RunSettingsId::GRAVITY_OPENING_ANGLE, 0.8_f)
         .set(RunSettingsId::GRAVITY_LEAF_SIZE, 20)
+        .set(RunSettingsId::GRAVITY_RECOMPUTATION_PERIOD, 5._f)
         .set(RunSettingsId::TIMESTEPPING_ADAPTIVE_FACTOR, 0.2_f)
+        .set(RunSettingsId::TIMESTEPPING_COURANT_NUMBER, 0.15_f)
         .set(RunSettingsId::RUN_THREAD_GRANULARITY, 100)
         .set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONST)
         .set(RunSettingsId::SPH_STRAIN_RATE_CORRECTION_TENSOR, true)
@@ -92,7 +95,7 @@ void AsteroidCollision::setUp() {
             }
         }
     } else {
-        Size N = 1000;
+        Size N = 500000;
 
         BodySettings body;
         body.set(BodySettingsId::ENERGY, 0._f)
@@ -100,24 +103,28 @@ void AsteroidCollision::setUp() {
             .set(BodySettingsId::EOS, EosEnum::TILLOTSON)
             .set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::SCALAR_GRADY_KIPP)
             .set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::VON_MISES)
-            .set(BodySettingsId::DISTRIBUTE_MODE_SPH5, true)
-            .set(BodySettingsId::ENERGY_MIN, 10._f)
-            .set(BodySettingsId::DAMAGE_MIN, 0.5_f);
+            .set(BodySettingsId::DISTRIBUTE_MODE_SPH5, false)
+            .set(BodySettingsId::INITIAL_DISTRIBUTION, DistributionEnum::DIEHL_ET_AL)
+            .set(BodySettingsId::ENERGY_MIN, 1.e10_f)
+            .set(BodySettingsId::STRESS_TENSOR_MIN, 1.e10_f)
+            .set(BodySettingsId::DAMAGE_MIN, 10._f);
 
         Presets::CollisionParams params;
-        params.targetRadius = 1e3_f;   // D = 2km
-        params.impactorRadius = 1e3_f; // D = 2km
-        params.impactAngle = 45._f * DEG_TO_RAD;
-        params.impactSpeed = 5._f; // v_imp = 5km/s
+        params.targetRadius = 4e5_f;
+        params.impactorRadius = 1e5_f;
+        params.impactAngle = 30._f * DEG_TO_RAD;
+        params.impactSpeed = 5.e3_f;
         params.targetRotation = 0._f;
         params.targetParticleCnt = N;
         params.centerOfMassFrame = true;
-        params.optimizeImpactor = false;
+        params.optimizeImpactor = true;
 
         solver = Factory::getSolver(*scheduler, settings);
         Presets::Collision data(*scheduler, settings, body, params);
         data.addTarget(*storage);
         data.addImpactor(*storage);
+
+        setupUvws(*storage);
     }
 
     callbacks = makeAuto<GuiCallbacks>(*controller);

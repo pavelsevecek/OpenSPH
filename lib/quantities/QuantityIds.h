@@ -222,6 +222,8 @@ enum class QuantityId {
     VELOCITY_GRADIENT_OF_DIVERGENCE = 101,
 
     FRICTION = 102,
+
+    TEMPERATURE = 103,
 };
 
 /// \brief Auxiliary information about quantity that aren't stored directly in \ref Quantity

@@ -26,7 +26,7 @@ public:
             // Use force from the divergence of the stress tensor in the run. This automatically adds equation
             // of motion, corresponding energy equation and evolution equation for the stress tensor to the
             // solver.
-            .setFlags(RunSettingsId::SOLVER_FORCES, ForceEnum::PRESSURE_GRADIENT | ForceEnum::SOLID_STRESS)
+            .set(RunSettingsId::SOLVER_FORCES, ForceEnum::PRESSURE | ForceEnum::SOLID_STRESS)
 
             // Structure for finding neighbouring particles
             .set(RunSettingsId::SPH_FINDER, FinderEnum::UNIFORM_GRID)
@@ -46,7 +46,7 @@ public:
 
         // Creates output files - save as text
         AutoPtr<TextOutput> textOutput =
-            makeAuto<TextOutput>(outputName, runName, TextOutput::Options::SCIENTIFIC);
+            makeAuto<TextOutput>(outputName, runName, EMPTY_FLAGS, TextOutput::Options::SCIENTIFIC);
 
         // Defines columns in the output file
         textOutput->addColumn(makeAuto<ParticleNumberColumn>());                    // number of particles
@@ -59,7 +59,7 @@ public:
         storage = makeShared<Storage>();
 
         // Prepares an object for generating initial conditions
-        InitialConditions conds(settings);
+        InitialConditions conds(*scheduler, settings);
 
         // Set up material parameters of the bodies; see BodySettingsId enum for all options
         BodySettings body;
@@ -94,7 +94,7 @@ public:
     }
 
 protected:
-    virtual void tearDown() override {
+    virtual void tearDown(const Statistics& UNUSED(stats)) override {
         // Print run statistics
 
         Profiler& profiler = Profiler::getInstance();

@@ -55,7 +55,8 @@ void BarnesHut::build(IScheduler& scheduler, const Storage& storage) {
         }
         return true;
     };
-    iterateTree<IterateDirection::BOTTOM_UP>(kdTree, scheduler, functor);
+    /// \todo sequential needed because TBB cannot wait on child tasks yet
+    iterateTree<IterateDirection::BOTTOM_UP>(kdTree, SEQUENTIAL, functor);
 }
 
 void BarnesHut::evalAll(IScheduler& scheduler, ArrayView<Vector> dv, Statistics& stats) const {

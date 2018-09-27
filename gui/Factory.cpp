@@ -14,7 +14,13 @@ AutoPtr<ICamera> Factory::getCamera(const GuiSettings& settings, const Point siz
     case CameraEnum::ORTHO: {
         OrthoEnum id = settings.get<OrthoEnum>(GuiSettingsId::ORTHO_PROJECTION);
         OrthoCameraData data;
-        data.fov = 0.5_f * size.y / settings.get<Float>(GuiSettingsId::ORTHO_FOV);
+        const float fov = settings.get<Float>(GuiSettingsId::ORTHO_FOV);
+        if (fov != 0.f) {
+            ASSERT(fov > 0.f);
+            data.fov = 0.5_f * size.y / fov;
+        } else {
+            data.fov = NOTHING;
+        }
         data.zoffset = settings.get<Float>(GuiSettingsId::ORTHO_ZOFFSET);
         switch (id) {
         case OrthoEnum::XY:

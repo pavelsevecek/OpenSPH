@@ -104,7 +104,7 @@ enum class GuiSettingsId {
     /// Center point of the view
     ORTHO_VIEW_CENTER,
 
-    /// View field of view (zoom)
+    /// View field of view (zoom). Special value 0 means the field of view is computed from the bounding box.
     ORTHO_FOV,
 
     /// Z-offset of the camera (from origin)

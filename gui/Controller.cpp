@@ -302,6 +302,10 @@ void Controller::update(const Storage& storage) {
         window->setColorizerList(this->getColorizerList(storage, false, {}));
     });
 
+    // setup camera
+    ASSERT(vis.camera);
+    vis.camera->initialize(storage);
+
     // draw initial positions of particles
     /// \todo generalize stats
     Statistics stats;

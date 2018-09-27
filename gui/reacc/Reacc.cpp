@@ -125,7 +125,7 @@ RunSettings getSharedSettings() {
         .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 1.e-2_f)
         .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 100._f)
         //.set(RunSettingsId::TIMESTEPPING_MAX_CHANGE, 0.1_f)
-        .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 50._f)
+        .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 40._f)
         .set(RunSettingsId::SOLVER_FORCES, ForceEnum::PRESSURE | ForceEnum::SOLID_STRESS | ForceEnum::GRAVITY)
         .set(RunSettingsId::SOLVER_TYPE, SolverEnum::ASYMMETRIC_SOLVER)
         .set(RunSettingsId::SPH_FINDER, FinderEnum::KD_TREE)
@@ -141,7 +141,7 @@ RunSettings getSharedSettings() {
         //.set(RunSettingsId::TIMESTEPPING_MEAN_POWER, -0._f)
         .set(RunSettingsId::TIMESTEPPING_ADAPTIVE_FACTOR, 0.2_f)
         .set(RunSettingsId::TIMESTEPPING_COURANT_NUMBER, 0.2_f)
-        .set(RunSettingsId::RUN_THREAD_GRANULARITY, 100)
+        .set(RunSettingsId::RUN_THREAD_GRANULARITY, 2000)
         .set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONST)
         .set(RunSettingsId::SPH_STRAIN_RATE_CORRECTION_TENSOR, true)
         .set(RunSettingsId::SPH_SUM_ONLY_UNDAMAGED, true)
@@ -168,6 +168,8 @@ Stabilization::Stabilization(RawPtr<Controller> newController) {
 Stabilization::~Stabilization() {}
 
 void Stabilization::setUp() {
+    scheduler = Tbb::getGlobalInstance();
+
     solver = makeAuto<StabilizationSolver>(*scheduler, settings);
     storage = makeShared<Storage>();
 
@@ -194,7 +196,7 @@ void Stabilization::setUp() {
         }
     } else {
 
-        Size N = 3'000;
+        Size N = 80'000;
 
         BodySettings body;
         body.set(BodySettingsId::ENERGY, 0._f)
@@ -202,6 +204,7 @@ void Stabilization::setUp() {
             .set(BodySettingsId::EOS, EosEnum::TILLOTSON)
             .set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::SCALAR_GRADY_KIPP)
             .set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::VON_MISES)
+            //.set(BodySettingsId::INITIAL_DISTRIBUTION, DistributionEnum::DIEHL_ET_AL)
             .set(BodySettingsId::DISTRIBUTE_MODE_SPH5, false)
             .set(BodySettingsId::SHEAR_VISCOSITY, 1.e12_f)
             .set(BodySettingsId::BULK_VISCOSITY, 0._f)
@@ -214,10 +217,10 @@ void Stabilization::setUp() {
 
         Presets::CollisionParams params;
         params.targetRadius = 50e3_f;
-        params.impactorRadius = 10e3_f;
-        params.impactAngle = 60._f * DEG_TO_RAD;
+        params.impactorRadius = 20e3_f;
+        params.impactAngle = 45._f * DEG_TO_RAD;
         params.impactSpeed = 100._f;
-        params.targetRotation = 2._f * PI / (2._f * 3600._f);
+        params.targetRotation = 2._f * PI / (3._f * 3600._f);
         params.targetParticleCnt = N;
         // params.impactorOffset = 3;
         // params.impactorParticleCntOverride = 100;
@@ -286,7 +289,7 @@ void Stabilization::tearDown(const Statistics& UNUSED(stats)) {
         onStabilizationFinished();
         // const Size impactorOffset = storage->getParticleCnt();
         BodyView view = data->addImpactor(*storage);
-        view.displace(Vector(10.e3_f, 0._f, 0._f));
+        view.displace(Vector(200.e3_f, 0._f, 0._f));
 
         // copy quantities from "target" to "impactor" (equal spheres)
         /*ASSERT(storage->getParticleCnt() == 2 * impactorOffset);
@@ -389,6 +392,8 @@ void Fragmentation::setUp() {
 }
 
 void Fragmentation::handoff(Storage&& input) {
+
+    scheduler = Tbb::getGlobalInstance();
 
     storage = makeShared<Storage>(std::move(input));
     // there may still be some unprocessed callbacks accessing the storage of the previous phase, so we but

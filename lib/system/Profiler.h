@@ -106,8 +106,9 @@ public:
         return *instance;
     }
 
-    /// Creates a new scoped timer of given name. The timer will automatically adds elapsed time to the
-    /// profile when being destroyed.
+    /// \brief Creates a new scoped timer of given name.
+    ///
+    /// The timer will automatically adds elapsed time to the profile when being destroyed.
     ScopedTimer makeScopedTimer(const std::string& name) {
         return ScopedTimer(name, [this](const std::string& n, const uint64_t elapsed) { //
             map[n].time += elapsed;

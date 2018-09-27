@@ -6,6 +6,8 @@
 
 #include <string.h>
 #include <sys/stat.h>
+#include <sys/times.h>
+#include <sys/vtimes.h>
 #include <unistd.h>
 
 NAMESPACE_SPH_BEGIN
@@ -72,6 +74,59 @@ Expected<std::string> getGitCommit(const Path& pathToGitRoot, const Size prev) {
     } else {
         return result;
     }
+}
+
+class CpuUsage {
+private:
+    clock_t lastCpu;
+    clock_t lastSysCpu;
+    clock_t lastUserCpu;
+    Size numProcessors;
+
+public:
+    CpuUsage() {
+        FILE* file;
+        struct tms timeSample;
+        char line[128];
+
+        lastCpu = times(&timeSample);
+        lastSysCpu = timeSample.tms_stime;
+        lastUserCpu = timeSample.tms_utime;
+
+        file = fopen("/proc/cpuinfo", "r");
+        numProcessors = 0;
+        while (fgets(line, 128, file) != NULL) {
+            if (strncmp(line, "processor", 9) == 0)
+                numProcessors++;
+        }
+        fclose(file);
+    }
+
+    Optional<Float> getUsage() {
+        tms timeSample;
+        clock_t now;
+        Optional<Float> usage;
+
+        now = times(&timeSample);
+        if (now <= lastCpu || timeSample.tms_stime < lastSysCpu || timeSample.tms_utime < lastUserCpu) {
+            // Overflow detection. Just skip this value.
+            usage = NOTHING;
+        } else {
+            usage = (timeSample.tms_stime - lastSysCpu) + (timeSample.tms_utime - lastUserCpu);
+            usage.value() /= (now - lastCpu);
+            usage.value() /= numProcessors;
+        }
+        lastCpu = now;
+        lastSysCpu = timeSample.tms_stime;
+        lastUserCpu = timeSample.tms_utime;
+
+        return usage;
+    }
+};
+
+Optional<Float> getCpuUsage() {
+    static CpuUsage cpu;
+    return cpu.getUsage();
 }
 
 bool isDebuggerPresent() {

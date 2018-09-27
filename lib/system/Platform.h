@@ -29,6 +29,8 @@ Outcome showNotification(const std::string& title, const std::string& message);
 /// \param prev Number of commits into the history. For 0, the current commit is returned.
 Expected<std::string> getGitCommit(const Path& pathToGitRoot, const Size prev = 0);
 
+Optional<Float> getCpuUsage();
+
 /// Returns true if the program is running with attached debugger.
 bool isDebuggerPresent();
 

@@ -63,6 +63,7 @@ SOURCES += \
     ../lib/objects/containers/test/BufferedArray.cpp \
     ../lib/objects/containers/test/FlatMap.cpp \
     ../lib/objects/containers/test/FlatSet.cpp \
+    ../lib/objects/containers/test/Grid.cpp \
     ../lib/objects/containers/test/List.cpp \
     ../lib/objects/containers/test/StaticArray.cpp \
     ../lib/objects/containers/test/String.cpp \

@@ -130,6 +130,8 @@ TEST_CASE("Pool submit parallel", "[thread]") {
     task2->wait();
     REQUIRE_THREAD_SAFE(task1->completed());
     REQUIRE_THREAD_SAFE(task2->completed());
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(5));
     REQUIRE_THREAD_SAFE(pool.remainingTaskCnt() == 0);
 
     // pool.waitForAll();

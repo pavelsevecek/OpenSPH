@@ -311,4 +311,6 @@ HEADERS += \
     thread/Scheduler.h \
     thread/Tbb.h \
     objects/containers/Queue.h \
-    objects/finders/KdTree.inl.h
+    objects/finders/KdTree.inl.h \
+    objects/containers/Grid.h \
+    Sph.h

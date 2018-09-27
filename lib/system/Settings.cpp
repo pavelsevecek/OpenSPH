@@ -130,7 +130,7 @@ AutoPtr<RunSettings> RunSettings::instance (new RunSettings {
         "with rotating SPH particles. EXPERIMENTAL!" },
     { RunSettingsId::SPH_PHASE_ANGLE,               "sph.phase_angle",                  false,
         "If true, phase angle of each particle is saved in storage and evolved in time. "},
-    { RunSettingsId::SPH_FINDER,                    "sph.finder",                       FinderEnum::UNIFORM_GRID,
+    { RunSettingsId::SPH_FINDER,                    "sph.finder",                       FinderEnum::KD_TREE,
         "Acceleration structure used for finding neighbours (Kn queries). Can be one of the following:\n" + EnumMap::getDesc<FinderEnum>() },
     { RunSettingsId::SPH_FINDER_COMPACT_THRESHOLD,  "sph.finder.compact_threshold",     0.5_f,
         "Used by dynamic finder. Threshold value for switching between grid finder and K-d tree." },
@@ -147,7 +147,7 @@ AutoPtr<RunSettings> RunSettings::instance (new RunSettings {
         "Used in stabilization phase. Specifies the damping coefficient of particle velocities." },
 
     /// Global parameters of N-body simulations
-    { RunSettingsId::NBODY_INERTIA_TENSOR,          "nbody.inertia_tensor",     true,
+    { RunSettingsId::NBODY_INERTIA_TENSOR,          "nbody.inertia_tensor",     false,
         "If true, each particle has generally non-isotropic inertia tensor. The inertia tensor is evolved using "
         "Euler's equations. Particle geometry is still spherical though; particles always collide as two spheres "
         "and merge into a larger sphere, the inertia tensor is summed up using parallel axis theorem." },
@@ -248,7 +248,7 @@ AutoPtr<RunSettings> RunSettings::instance (new RunSettings {
 template<>
 AutoPtr<BodySettings> BodySettings::instance (new BodySettings {
     /// Equation of state
-    { BodySettingsId::EOS,                     "eos",                          EosEnum::IDEAL_GAS,
+    { BodySettingsId::EOS,                     "eos",                          EosEnum::TILLOTSON,
         "Equation of state for this material. Can be one of the following:\n" + EnumMap::getDesc<EosEnum>() },
     { BodySettingsId::ADIABATIC_INDEX,         "eos.adiabatic_index",          1.4_f,
         "Adiabatic index of gass, applicable for ideal gass EoS." },
@@ -282,7 +282,7 @@ AutoPtr<BodySettings> BodySettings::instance (new BodySettings {
     /// Yielding & Damage
     { BodySettingsId::RHEOLOGY_YIELDING,    "rheology.yielding",            YieldingEnum::VON_MISES,
         "Specifies the rheology of this material. Can be one of the following:\n" + EnumMap::getDesc<YieldingEnum>() },
-    { BodySettingsId::RHEOLOGY_DAMAGE,      "rheology.damage",              FractureEnum::NONE,
+    { BodySettingsId::RHEOLOGY_DAMAGE,      "rheology.damage",              FractureEnum::SCALAR_GRADY_KIPP,
         "Fracture model of this material. Can be one of the following:\n" + EnumMap::getDesc<FractureEnum>() },
     { BodySettingsId::ELASTICITY_LIMIT,     "rheology.elasticity_limit",    3.5e9_f,
         "Elasticity limit of the von Mises yielding criterion, specifying the stress of transition between elastic "

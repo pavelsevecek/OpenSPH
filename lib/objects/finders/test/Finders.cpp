@@ -281,19 +281,20 @@ TEST_CASE("KdTree", "[finders]") {
     checkTreesEqual(finder2, finder3);
 }
 
-TEST_CASE("KdTree iterateTree", "[finders]") {
+
+struct TestNode : public KdNode {
+    bool visited;
+
+    TestNode(KdNode::Type type)
+        : KdNode(type) {
+        visited = false;
+    }
+};
+
+TEST_CASE("KdTree iterateTree bottomUp", "[finders]") {
     HexagonalPacking distr;
     SphericalDomain domain(Vector(0._f), 2._f);
     Array<Vector> storage = distr.generate(SEQUENTIAL, 100000, domain);
-
-    struct TestNode : public KdNode {
-        bool visited;
-
-        TestNode(KdNode::Type type)
-            : KdNode(type) {
-            visited = false;
-        }
-    };
 
     KdTree<TestNode> tree;
     ThreadPool& pool = *ThreadPool::getGlobalInstance();
@@ -308,6 +309,34 @@ TEST_CASE("KdTree iterateTree", "[finders]") {
             } else {
                 success = success && (left != nullptr) && (right != nullptr);
                 success = success && left->visited && right->visited;
+            }
+            node.visited = true;
+            visitedCnt++;
+            return true;
+        });
+    REQUIRE(success);
+    REQUIRE(visitedCnt == tree.getNodeCnt());
+}
+
+TEST_CASE("KdTree iterateTree topDown", "[finders]") {
+    HexagonalPacking distr;
+    SphericalDomain domain(Vector(0._f), 2._f);
+    Array<Vector> storage = distr.generate(SEQUENTIAL, 100000, domain);
+
+    KdTree<TestNode> tree;
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+    tree.build(pool, storage);
+
+    std::atomic_bool success{ true };
+    std::atomic_int visitedCnt{ 0 };
+
+    iterateTree<IterateDirection::TOP_DOWN>(
+        tree, pool, [&](TestNode& node, const TestNode* left, const TestNode* right) {
+            if (node.isLeaf()) {
+                success = success && (left == nullptr) && (right == nullptr);
+            } else {
+                success = success && (left != nullptr) && (right != nullptr);
+                success = success && !left->visited && !right->visited;
             }
             node.visited = true;
             visitedCnt++;

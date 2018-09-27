@@ -52,8 +52,9 @@ AutoPtr<GuiSettings> GuiSettings::instance (new GuiSettings {
         "Relative intensity of an ambient light, illuminating all shaded points." },
     { GuiSettingsId::ORTHO_VIEW_CENTER,     "ortho.center",          Vector(0._f),
         "Center point of the orthographic camera." },
-    { GuiSettingsId::ORTHO_FOV,             "ortho.fov",             1._f,
-        "Field of view of the orthographic camera. Specified as distance (not an angle)."},
+    { GuiSettingsId::ORTHO_FOV,             "ortho.fov",             0._f,
+        "Field of view of the orthographic camera. Specified as distance (not an angle). Value 0 means the "
+        "field of view is computed automatically to fit all particles inside the view."},
     { GuiSettingsId::RAYTRACE_SUBSAMPLING,  "raytrace.subsampling", 1,
         "Specifies a step in pixels between the two pixels computed by raytracing. Pixels between the computed "
         "ones are linearly interpolated. Larger value speeds up the rendering at a cost of lower effective "

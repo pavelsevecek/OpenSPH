@@ -336,7 +336,11 @@ static Optional<Post::KsResult> printDvsOmega(const Path& familyData,
     for (HarrisAsteroid& ast : found) {
         const Float omega = periodToOmega(ast.period.value());
         if (&ast != &*largestRemnant) {
-            ofs << ast.radius.value() << "  " << omega << std::endl;
+            std::string printedName = ast.name;
+            if (ast.number) {
+                printedName = "(" + std::to_string(ast.number.value()) + ") " + printedName;
+            }
+            ofs << ast.radius.value() << "  " << omega << "   " << printedName << std::endl;
         }
         points.push(PlotPoint(ast.radius.value(), omega));
     }
@@ -379,6 +383,27 @@ void processHarrisFile() {
     std::ifstream ifs(harrisPath.native());
     Array<HarrisAsteroid> harris = loadHarris(ifs);
     ifs.close();
+
+    Size below3 = 0, below7 = 0, below12 = 0, total = 0;
+    for (auto& h : harris) {
+        if (!h.period) {
+            continue;
+        }
+
+        if (h.period.value() < 3) {
+            below3++;
+        }
+        if (h.period.value() < 7) {
+            below7++;
+        }
+        if (h.period.value() < 12) {
+            below12++;
+        }
+        total++;
+    }
+    std::cout << "Below 3h: " << (100.f * below3) / total << "%" << std::endl;
+    std::cout << "Below 7h: " << (100.f * below7) / total << "%" << std::endl;
+    std::cout << "Below 12h: " << (100.f * below12) / total << "%" << std::endl;
 
     Array<PlotPoint> points;
     printDvsOmega(

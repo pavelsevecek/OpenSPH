@@ -127,7 +127,7 @@ private:
             .set(GuiSettingsId::ORTHO_CUTOFF, 0._f)
             .set(GuiSettingsId::ORTHO_ZOFFSET, -1.e8_f)
             .set(GuiSettingsId::PERSPECTIVE_POSITION, Vector(0._f, 0._f, -7.e3_f))
-            .set(GuiSettingsId::IMAGES_SAVE, true)
+            .set(GuiSettingsId::IMAGES_SAVE, false)
             .set(GuiSettingsId::IMAGES_NAME, std::string("stab_%e_%d.png"))
             .set(GuiSettingsId::IMAGES_MOVIE_NAME, std::string("stab_%e.avi"))
             .set(GuiSettingsId::IMAGES_TIMESTEP, 100._f)
@@ -152,7 +152,7 @@ private:
         phase1->onStabilizationFinished = [gui, this] {
             executeOnMainThread([gui, this] {
                 GuiSettings newGui = gui;
-                newGui.set(GuiSettingsId::IMAGES_SAVE, true)
+                newGui.set(GuiSettingsId::IMAGES_SAVE, false)
                     .set(GuiSettingsId::IMAGES_TIMESTEP, 50._f)
                     .set(GuiSettingsId::ORTHO_CUTOFF, 0._f)
                     //.set(GuiSettingsId::IMAGES_RENDERER, int(RendererEnum::RAYTRACER))

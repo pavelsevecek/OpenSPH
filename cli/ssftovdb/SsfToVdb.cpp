@@ -1,11 +1,15 @@
+#include "io/FileSystem.h"
 #include "io/Output.h"
+#include "objects/containers/Grid.h"
 #include "objects/finders/NeighbourFinder.h"
 #include "objects/geometry/Box.h"
+#include "objects/geometry/Indices.h"
 #include "openvdb/openvdb.h"
 #include "quantities/IMaterial.h"
 #include "sph/kernel/Kernel.h"
 #include "system/Factory.h"
 #include "system/Statistics.h"
+#include "system/Timer.h"
 #include "thread/Pool.h"
 #include <iostream>
 
@@ -23,41 +27,36 @@ INLINE openvdb::Vec3R vectorToVec3R(const Vector& v) {
     return openvdb::Vec3R(v[X], v[Y], v[Z]);
 }
 
-static constexpr Float SURFACE_LEVEL = 0.13_f;
-static constexpr Float SCALE = 1.5e6_f;
-static constexpr Size GRID_DIM = 200;
+struct VdbParams {
 
-template <typename TFunctor>
-void iterateBox(const Box& bbox, const TFunctor& functor) {
-    const Float step = SCALE / GRID_DIM;
+    Box box = Box(Vector(-5.e5_f, -5.e5_f, -3.e5_f), Vector(5.e5_f, 5.e5_f, 3.e5_f));
 
-    auto iterateDim = [&bbox, step](const Coordinate dim, const auto& functor) {
-        int i;
-        Float x;
-        for (x = 0, i = 0; x < bbox.upper()[dim]; x += step, ++i) {
-            functor(x, i);
-        }
-        for (x = -step, i = -1; x > bbox.lower()[dim]; x -= step, --i) {
-            functor(x, i);
-        }
-    };
+    Indices gridDims = Indices(1024);
 
-    Size count = bbox.size()[X] / step;
-    Size idx = 0;
-    std::cout << std::endl;
-    iterateDim(X, [&](Float x, int i) {
-        std::cout << "\rProgress = " << (idx * 100 / count) << std::flush;
-        idx++;
-        iterateDim(Y, [&](Float y, int j) {
-            iterateDim(Z, [&](Float z, int k) { //
-                functor(Vector(x, y, z), Indices(i, j, k));
-            });
-        });
-    });
+    Float surfaceLevel = 0.13_f;
+};
+
+Vector worldToRelative(const Vector& r, const VdbParams& params) {
+    return (r - params.box.lower()) / params.box.size() * Vector(params.gridDims);
 }
 
+Vector relativeToWorld(const Vector& r, const VdbParams& params) {
+    return r * params.box.size() / Vector(params.gridDims) + params.box.lower();
+}
 
-void convert(const Storage& storage, openvdb::GridPtrVec& grids) {
+Tuple<Indices, Indices> getParticleBox(const Vector& r, const VdbParams& params) {
+    const Vector from = worldToRelative(r - Vector(2._f * r[H]), params);
+    const Vector to = worldToRelative(r + Vector(2._f * r[H]), params);
+    const Indices fromIdxs(ceil(from[X]), ceil(from[Y]), ceil(from[Z]));
+    const Indices toIdxs(floor(to[X]), floor(to[Y]), floor(to[Z]));
+    return { max(fromIdxs, Indices(0._f)), min(toIdxs, params.gridDims - Indices(1)) };
+}
+
+void convert(const Path& path, const VdbParams params) {
+    const Storage storage = loadSsf(path);
+    openvdb::GridPtrVec vdbGrids;
+
+
     openvdb::FloatGrid::Ptr colorField = openvdb::FloatGrid::create(0._f);
     openvdb::Vec3SGrid::Ptr velocityField = openvdb::Vec3SGrid::create(vectorToVec3R(Vector(0._f)));
     openvdb::FloatGrid::Ptr energyField = openvdb::FloatGrid::create(0._f);
@@ -74,92 +73,119 @@ void convert(const Storage& storage, openvdb::GridPtrVec& grids) {
 
 
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
-    ArrayView<const Vector> v = storage.getDt<Vector>(QuantityId::POSITION);
+    // ArrayView<const Vector> v = storage.getDt<Vector>(QuantityId::POSITION);
     ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
     ArrayView<const Float> u = storage.getValue<Float>(QuantityId::ENERGY);
 
-    RunSettings settings;
-    AutoPtr<IBasicFinder> finder = Factory::getFinder(settings);
-    finder->build(SEQUENTIAL, r);
-
-    LutKernel<3> kernel = Factory::getKernel<3>(settings);
     const Float u_iv = storage.getMaterial(0)->getParam<Float>(BodySettingsId::TILLOTSON_ENERGY_IV);
 
-    Box bbox;
-    Float radius = 0._f;
+
+    const Size gridSize = max(params.gridDims[0], params.gridDims[1], params.gridDims[2]);
+
+    struct Record {
+        float density = 0.f;
+        float energy = 0.f;
+    };
+
+    SparseGrid<Record> grid(gridSize);
+    // Grid<Vector> velocity(params.gridDims, Vector(0._f));
+
+    LutKernel<3> kernel = Factory::getKernel<3>(RunSettings::getDefaults());
+
+    // Timer timer;
+
     for (Size i = 0; i < r.size(); ++i) {
-        bbox.extend(r[i]);
-        radius = max(radius, r[i][H]);
-    }
-
-    radius *= kernel.radius();
-    bbox.extend(bbox.lower() - Vector(radius));
-    bbox.extend(bbox.upper() + Vector(radius));
-
-    bbox = Box(max(bbox.lower(), Vector(-4.e6_f)), min(bbox.upper(), Vector(4.e6_f)));
-
-    // openvdb::Mat4R transform;
-    // const Vector center = bbox.center() / maxElement(bbox.size());
-    // const Vector scale = bbox.size() / maxElement(bbox.size());
-    // transform.setToScale(openvdb::Vec3R(scale[X], scale[Y], scale[Z]));
-    // transform.setTranslation(openvdb::Vec3R(center[X], center[Y], center[Z]));
-    // auto tr = openvdb::math::Transform::createLinearTransform(transform);
-    /*colorField->setTransform(tr);
-    velocityField->setTransform(tr);
-    energyField->setTransform(tr);*/
-
-
-    Array<NeighbourRecord> neighs;
-
-    iterateBox(bbox, [&](const Vector& pos, const Indices& idxs) {
-        finder->findAll(pos, radius, neighs);
-        Float field = 0._f;
-        Float energy = 0._f;
-        Vector velocity(0._f);
-        Float wsum = 0._f;
-        for (auto& n : neighs) {
-            const Size j = n.index;
-            const Float w = kernel.value(r[j] - pos, r[j][H]);
-            const Float p = m[j] / 2700._f;
-            field += p * w;
-            energy += u[j] * p * w;
-            velocity += v[j] * p * w;
-            wsum += p * w;
+        Indices from, to;
+        tieToTuple(from, to) = getParticleBox(r[i], params);
+        for (int x = from[X]; x <= to[X]; ++x) {
+            for (int y = from[Y]; y <= to[Y]; ++y) {
+                for (int z = from[Z]; z <= to[Z]; ++z) {
+                    const Indices idxs(x, y, z);
+                    const Vector pos = relativeToWorld(idxs, params);
+                    const Float w = kernel.value(r[i] - pos, r[i][H]);
+                    const Float p = m[i] / 2700._f;
+                    Record& record = grid[idxs];
+                    record.density += p * w;
+                    record.energy += u[i] * p * w;
+                    // velocity[idxs] += v[j] * p * w;
+                }
+            }
         }
-        if (wsum == 0._f) {
+    }
+    // std::cout << "Grid created in " << timer.elapsed(TimerUnit::MILLISECOND) << "ms" << std::endl;
+
+    // timer.restart();
+    /*    for (int x = 0; x < params.gridDims[X]; ++x) {
+            for (int y = 0; y < params.gridDims[Y]; ++y) {
+                for (int z = 0; z < params.gridDims[Z]; ++z) {*/
+    grid.iterate([&](const Record& record, const Indices idxs) {
+        ASSERT(isReal(record.density));
+        ASSERT(isReal(record.energy));
+        openvdb::Coord coords(idxs[0], idxs[1], idxs[2]);
+
+        if (record.density < params.surfaceLevel) {
             return;
         }
-        openvdb::Coord coords(idxs[0], idxs[1], idxs[2]);
-        ASSERT(isReal(field));
-        if (field > SURFACE_LEVEL) {
-            colorAccessor.setValue(coords, field - SURFACE_LEVEL);
-            velocityAccessor.setValue(coords, vectorToVec3R(velocity / wsum));
+        colorAccessor.setValue(coords, record.density - params.surfaceLevel);
 
-            const Float logEnergy = log(1._f + energy / wsum / u_iv);
-            energyAccessor.setValue(coords, logEnergy);
-        }
+        // const Vector v = velocity[idxs] / field;
+        // velocityAccessor.setValue(coords, vectorToVec3R(v));
+
+        const Float e = log(1._f + record.energy / record.density / u_iv);
+        energyAccessor.setValue(coords, e);
     });
 
-    grids.push_back(colorField);
+    // zstd::cout << "Converted to VDB grid in " << timer.elapsed(TimerUnit::MILLISECOND) << "ms" <<
+    // std::endl;
+
+    /*            }
+            }
+        }*/
+
+
+    vdbGrids.push_back(colorField);
     // grids.push_back(velocityField);
-    grids.push_back(energyField);
+    vdbGrids.push_back(energyField);
+
+    Path vdbPath = path;
+    vdbPath.replaceExtension("vdb");
+    openvdb::io::File vdbFile(vdbPath.native());
+    vdbFile.write(vdbGrids);
+    vdbFile.close();
 }
 
 int main(int argc, char* argv[]) {
-    if (argc != 3) {
-        std::cout << "Usage: ssftovdb output.ssf grid.vdb" << std::endl;
+    if (argc != 2) {
+        std::cout << "Usage: ssftovdb parentDir" << std::endl;
         return 0;
     }
-    Storage storage = loadSsf(Path(argv[1]));
-
     openvdb::initialize();
 
-    openvdb::GridPtrVec grids;
-    convert(storage, grids);
+    VdbParams params;
 
-    openvdb::io::File file(argv[2]);
-    file.write(grids);
-    file.close();
+    const Path directory(argv[1]);
+    std::set<Path> paths;
+    for (Path file : FileSystem::iterateDirectory(directory)) {
+        if (file.extension() != Path("ssf")) {
+            continue;
+        }
+        paths.insert(file);
+    }
+
+    std::mutex mutex;
+    ThreadPool pool;
+    for (Path file : paths) {
+        pool.submit([&params, &mutex, file] {
+            {
+                std::unique_lock<std::mutex> lock(mutex);
+                std::cout << "Processing: " << file.native() << std::endl;
+            }
+
+            convert(file, params);
+        });
+    }
+
+    pool.waitForAll();
 
     openvdb::uninitialize();
     return 0;

@@ -30,6 +30,8 @@ static AutoPtr<IOutput> getOutput(const Path& path) {
 }
 
 void RunPlayer::setUp() {
+    logger = makeAuto<StdOutLogger>();
+
     files = OutputFile(fileMask);
     fileCnt = this->getFileCount(fileMask);
 
@@ -48,6 +50,8 @@ void RunPlayer::setUp() {
     } else {
         loadedTime = stats.get<Float>(StatisticsId::RUN_TIME);
     }
+    logger->write("Loaded ", storage->getParticleCnt(), " particles");
+
     // setupUvws(*storage);
 
     callbacks = makeAuto<GuiCallbacks>(*controller);
@@ -92,6 +96,7 @@ void RunPlayer::run() {
         if (i != fileCnt - 1) {
             storage = makeShared<Storage>();
             const Path path = files.getNextPath(stats);
+            Timer loadTimer;
             AutoPtr<IOutput> io = getOutput(path);
             const Outcome result = io->load(path, *storage, stats);
             if (!result) {
@@ -100,6 +105,7 @@ void RunPlayer::run() {
                 });
                 break;
             }
+            logger->write("Loaded ", path.native(), " in ", loadTimer.elapsed(TimerUnit::MILLISECOND), " ms");
             // setupUvws(*storage);
 
             const Size elapsed = stepTimer.elapsed(TimerUnit::MILLISECOND);
@@ -149,15 +155,15 @@ bool App::OnInit() {
     }
 
     GuiSettings gui;
-    gui.set(GuiSettingsId::ORTHO_FOV, 1.e5_f)
-        .set(GuiSettingsId::ORTHO_VIEW_CENTER, 0.5_f * Vector(1024, 768, 0))
+    gui.set(GuiSettingsId::ORTHO_FOV, 2.e5_f) // 4.e8_f) // 2.e5_f)
+        .set(GuiSettingsId::ORTHO_VIEW_CENTER, 0.5_f * Vector(768, 768, 0))
         .set(GuiSettingsId::VIEW_WIDTH, 1024)
         .set(GuiSettingsId::VIEW_HEIGHT, 768)
         .set(GuiSettingsId::IMAGES_WIDTH, 1024)
         .set(GuiSettingsId::IMAGES_HEIGHT, 768)
         .set(GuiSettingsId::WINDOW_WIDTH, 1334)
         .set(GuiSettingsId::WINDOW_HEIGHT, 768)
-        .set(GuiSettingsId::PARTICLE_RADIUS, 0.25_f)
+        .set(GuiSettingsId::PARTICLE_RADIUS, 0.35_f)
         .set(GuiSettingsId::SURFACE_LEVEL, 0.15_f)
         .set(GuiSettingsId::SURFACE_SUN_POSITION, getNormalized(Vector(-0.2f, -0.1f, 1.1f)))
         .set(GuiSettingsId::SURFACE_SUN_INTENSITY, 0.5_f)
@@ -165,19 +171,21 @@ bool App::OnInit() {
         .set(GuiSettingsId::SURFACE_RESOLUTION, 2.e3_f)
         .set(GuiSettingsId::CAMERA, CameraEnum::ORTHO)
         .set(GuiSettingsId::ORTHO_PROJECTION, OrthoEnum::XY)
-        .set(GuiSettingsId::ORTHO_CUTOFF, 0._f)
+        .set(GuiSettingsId::ORTHO_CUTOFF, 10000._f) // 0._f) // 10000._f)
         .set(GuiSettingsId::ORTHO_ZOFFSET, -4.e6_f)
         .set(GuiSettingsId::VIEW_GRID_SIZE, 0._f)
         .set(GuiSettingsId::RAYTRACE_TEXTURE_PRIMARY, std::string(""))
         .set(GuiSettingsId::RAYTRACE_TEXTURE_SECONDARY, std::string(""))
-        .set(GuiSettingsId::IMAGES_SAVE, false)
+        .set(GuiSettingsId::IMAGES_WIDTH, 800)
+        .set(GuiSettingsId::IMAGES_HEIGHT, 800)
+        .set(GuiSettingsId::IMAGES_SAVE, true)
         .set(GuiSettingsId::IMAGES_NAME, std::string("frag_%e_%d.png"))
         .set(GuiSettingsId::IMAGES_MOVIE_NAME, std::string("frag_%e.avi"))
         .set(GuiSettingsId::IMAGES_TIMESTEP, 0._f)
         .set(GuiSettingsId::PALETTE_STRESS, Interval(1.e5_f, 3.e6_f))
-        .set(GuiSettingsId::PALETTE_VELOCITY, Interval(0.01_f, 1.e2_f))
+        .set(GuiSettingsId::PALETTE_VELOCITY, Interval(0.01_f, 1000._f))
         .set(GuiSettingsId::PALETTE_PRESSURE, Interval(-5.e6_f, 5.e6_f))
-        .set(GuiSettingsId::PALETTE_ENERGY, Interval(0._f, 1.e3_f))
+        .set(GuiSettingsId::PALETTE_ENERGY, Interval(0.1_f, 1.e3_f))
         .set(GuiSettingsId::PALETTE_RADIUS, Interval(700._f, 3.e3_f))
         .set(GuiSettingsId::PALETTE_GRADV, Interval(0._f, 1.e-5_f))
         .set(GuiSettingsId::PLOT_INTEGRALS, PlotEnum::ALL);
@@ -189,11 +197,11 @@ bool App::OnInit() {
             .set(GuiSettingsId::PARTICLE_RADIUS, 1._f);
     }
 
-    if (!OutputFile(fileMask).hasWildcard()) {
+    /*if (!OutputFile(fileMask).hasWildcard()) {
         Path name = fileMask.fileName();
         name.replaceExtension("png");
         gui.set(GuiSettingsId::IMAGES_NAME, name.native());
-    }
+    }*/
 
     /*if (FileSystem::pathExists(Path("gui.sph"))) {
         gui.loadFromFile(Path("gui.sph"));

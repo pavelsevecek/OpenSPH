@@ -565,7 +565,6 @@ Outcome BinaryOutput::load(const Path& path, Storage& storage, Statistics& stats
     } catch (SerializerException&) {
         return "Incorrect header size";
     }
-
     Array<QuantityId> quantityIds(quantityCnt);
     Array<OrderEnum> orders(quantityCnt);
     Array<ValueEnum> valueTypes(quantityCnt);
