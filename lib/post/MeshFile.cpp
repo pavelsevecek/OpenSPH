@@ -4,10 +4,13 @@
 
 NAMESPACE_SPH_BEGIN
 
-void PlyFile::getVerticesAndIndices(ArrayView<const Triangle> triangles,
+void getVerticesAndIndices(ArrayView<const Triangle> triangles,
     Array<Vector>& vertices,
     Array<Size>& indices,
     const Float eps) {
+    vertices.clear();
+    indices.clear();
+
     // get order of vertices sorted lexicographically
     Order lexicographicalOrder(triangles.size() * 3);
     lexicographicalOrder.shuffle([&triangles](const Size i1, const Size i2) {
@@ -88,7 +91,7 @@ Outcome PlyFile::save(const Path& path, ArrayView<const Triangle> triangles) {
 
         Array<Vector> vtxs;
         Array<Size> idxs;
-        this->getVerticesAndIndices(triangles, vtxs, idxs, 0._f);
+        getVerticesAndIndices(triangles, vtxs, idxs, 0._f);
         ASSERT(vtxs.size() <= idxs.size() && (idxs.size() % 3 == 0)); // sanity check
 
         ofs << "element vertex " << vtxs.size() << "\n";
@@ -173,6 +176,7 @@ Expected<Array<Triangle>> PlyFile::load(const Path& path) {
             }
             Vector v;
             std::stringstream ss(line);
+            /// \todo can be read directly from ifs, no need to go through stringstream
             ss >> v[X] >> v[Y] >> v[Z];
             // skip the other properties
             for (Size i = 0; i < properties.size() - 3; ++i) {
@@ -202,6 +206,47 @@ Expected<Array<Triangle>> PlyFile::load(const Path& path) {
                 throw IoError("Invalid line format when reading the index data");
             }
             triangles.emplaceBack(vertices[i], vertices[j], vertices[k]);
+        }
+        return triangles;
+
+    } catch (std::exception& e) {
+        return makeUnexpected<Array<Triangle>>(e.what());
+    }
+}
+
+TabFile::TabFile(const Float lengthUnit)
+    : lengthUnit(lengthUnit) {}
+
+Outcome TabFile::save(const Path& path, ArrayView<const Triangle> triangles) {
+    (void)path;
+    (void)triangles;
+    NOT_IMPLEMENTED;
+}
+
+Expected<Array<Triangle>> TabFile::load(const Path& path) {
+    try {
+        std::ifstream ifs(path.native());
+        Size vertexCnt, triangleCnt;
+        ifs >> vertexCnt >> triangleCnt;
+        if (!ifs) {
+            throw IoError("Invalid format: cannot read file header");
+        }
+
+        Array<Vector> vertices;
+        Vector v;
+        Size dummy;
+        for (Size vertexIdx = 0; vertexIdx < vertexCnt; ++vertexIdx) {
+            ifs >> dummy >> v[X] >> v[Y] >> v[Z];
+            v *= lengthUnit;
+            vertices.push(v);
+        }
+
+        Array<Triangle> triangles;
+        Size i, j, k;
+        for (Size triangleIdx = 0; triangleIdx < triangleCnt; ++triangleIdx) {
+            ifs >> dummy >> i >> j >> k;
+            // indices start at 1 in .tab
+            triangles.emplaceBack(vertices[i - 1], vertices[j - 1], vertices[k - 1]);
         }
         return triangles;
 

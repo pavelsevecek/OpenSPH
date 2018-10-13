@@ -6,7 +6,9 @@
 #include "objects/utility/ArrayUtils.h"
 #include "objects/utility/PerElementWrapper.h"
 #include "physics/Constants.h"
+#include "physics/Functions.h"
 #include "quantities/Storage.h"
+#include "sph/initial/Distribution.h"
 #include "sph/initial/Initial.h"
 #include "tests/Approx.h"
 #include "thread/Pool.h"
@@ -156,4 +158,38 @@ TEST_CASE("FindMoons", "[post]") {
     REQUIRE(status.size() == 2);
     REQUIRE(status[0] == Post::MoonEnum::LARGEST_FRAGMENT);
     REQUIRE(status[1] == Post::MoonEnum::MOON);
+}
+
+TEST_CASE("Inertia Tensor Sphere", "[post]") {
+    const Float r_sphere = 5._f;
+    const Float m_tot = 1234._f;
+    SphericalDomain sphere(Vector(0._f), r_sphere);
+    HexagonalPacking dist;
+    Array<Vector> r = dist.generate(SEQUENTIAL, 10000, sphere);
+    Array<Float> m(r.size());
+    m.fill(m_tot / r.size());
+
+    SymmetricTensor I_sphere = Post::getInertiaTensor(m, r);
+    SymmetricTensor I_expected = Rigid::sphereInertia(m_tot, r_sphere);
+    REQUIRE(I_sphere.diagonal() == approx(I_expected.diagonal(), 2.e-3_f));
+    // the off-diagonal components are generally not zeroes, of course, so just test that they are small
+    // compared to the diagonal elements
+    REQUIRE(norm(I_sphere.offDiagonal()) < 1.e-3_f * norm(I_sphere.diagonal()));
+}
+
+TEST_CASE("Angular Frequency", "[post]") {
+    SphericalDomain sphere(Vector(0._f), 4._f);
+    HexagonalPacking dist;
+    Array<Vector> r = dist.generate(SEQUENTIAL, 10000, sphere);
+    Array<Float> m(r.size());
+    m.fill(7._f);
+
+    Vector omega(4._f, -7._f, 8._f);
+    Array<Vector> v(r.size());
+    for (Size i = 0; i < r.size(); ++i) {
+        v[i] = Vector(-1._f, 2._f, 1._f) + cross(omega, r[i]);
+    }
+
+    const Vector w = Post::getAngularFrequency(m, r, v, Vector(0._f), Vector(0._f));
+    REQUIRE(w == approx(omega, 1.e-3_f));
 }

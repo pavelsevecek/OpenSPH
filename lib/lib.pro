@@ -118,7 +118,9 @@ SOURCES += \
     thread/Scheduler.cpp \
     thread/Tbb.cpp \
     objects/finders/KdTree.cpp \
-    gravity/AggregateSolver.cpp
+    gravity/AggregateSolver.cpp \
+    sph/initial/MeshDomain.cpp \
+    sph/handoff/Handoff.cpp
 
 HEADERS += \
     common/Assert.h \
@@ -318,4 +320,5 @@ HEADERS += \
     gravity/AggregateSolver.h \
     thread/Locks.h \
     objects/geometry/Triangle.h \
-    post/MeshDomain.h
+    sph/initial/MeshDomain.h \
+    sph/handoff/Handoff.h

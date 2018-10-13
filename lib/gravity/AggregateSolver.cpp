@@ -17,6 +17,8 @@ NAMESPACE_SPH_BEGIN
 /// Not owning the particles, bound to a \ref Storage object. Not compatible with mergers.
 class Aggregate : public Noncopyable {
 private:
+    RawPtr<Storage> storage;
+
     /// Indices of particles belonging to this aggregate
     FlatSet<Size> idxs;
 
@@ -28,7 +30,8 @@ public:
     /// Needed due to resize
     Aggregate() = default;
 
-    explicit Aggregate(const Size particleIdx) {
+    explicit Aggregate(Storage& storage, const Size particleIdx)
+        : storage(addressOf(storage)) {
         idxs.insert(particleIdx);
         persistentId = particleIdx;
     }
@@ -80,13 +83,13 @@ public:
     }
 
     /// Called after accelerations are computed
-    void integrate(Storage& storage) {
+    void integrate() {
         if (this->size() == 1) {
             return;
         }
         ArrayView<Vector> r, v, dv;
-        tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
-        ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
+        tie(r, v, dv) = storage->getAll<Vector>(QuantityId::POSITION);
+        ArrayView<const Float> m = storage->getValue<Float>(QuantityId::MASS);
 
         Float m_ag = 0._f;
         Vector r_com(0._f);
@@ -111,6 +114,37 @@ public:
         for (Size i : idxs) {
             v[i] = v_com;
             dv[i] = F / m_ag;
+        }
+    }
+
+    Float mass() const {
+        ArrayView<const Float> m = storage->getValue<Float>(QuantityId::MASS);
+        Float m_ag = 0._f;
+        for (Size i : idxs) {
+            m_ag += m[i];
+        }
+        return m_ag;
+    }
+
+    Vector velocity() const {
+        ArrayView<Vector> r, v, dv;
+        tie(r, v, dv) = storage->getAll<Vector>(QuantityId::POSITION);
+        ArrayView<const Float> m = storage->getValue<Float>(QuantityId::MASS);
+
+        Float m_ag = 0._f;
+        Vector v_com(0._f);
+        for (Size i : idxs) {
+            v_com += m[i] * v[i];
+            m_ag += m[i];
+        }
+        v_com /= m_ag;
+        return v_com;
+    }
+
+    void setVelocity(const Vector& newV) {
+        ArrayView<Vector> v = storage->getDt<Vector>(QuantityId::POSITION);
+        for (Size i : idxs) {
+            v[i] = newV;
         }
     }
 };
@@ -138,7 +172,7 @@ public:
         const Size n = storage.getParticleCnt();
         aggregates.reserve(n); // so that it doesn't reallocate and invalidate pointers
         for (Size i = 0; i < n; ++i) {
-            Aggregate& ag = aggregates.emplaceBack(i);
+            Aggregate& ag = aggregates.emplaceBack(storage, i);
             particleToAggregate.emplaceBack(addressOf(ag));
         }
     }
@@ -178,10 +212,10 @@ public:
     }
 
     /// \brief Integrates all aggregates
-    void integrate(Storage& storage) {
+    void integrate() {
         // std::unique_lock<std::mutex> lock(mutex);
         for (Aggregate& ag : aggregates) {
-            ag.integrate(storage);
+            ag.integrate();
         }
     }
 
@@ -214,35 +248,35 @@ public:
 
 class AggregateCollisionHandler : public ICollisionHandler {
 private:
-    ElasticBounceHandler bounce;
-
-    /// \todo somehow hide inside ElasticBounceHandler
     ArrayView<const Vector> r;
     ArrayView<const Vector> v;
     ArrayView<const Float> m;
     Float mergingLimit;
 
-    RawPtr<Storage> storagePtr;
+    struct {
+        Float n;
+        Float t;
+    } restitution;
+
     RawPtr<AggregateHolder> holder;
 
 public:
-    explicit AggregateCollisionHandler(const RunSettings& settings)
-        : bounce(settings) {
+    explicit AggregateCollisionHandler(const RunSettings& settings) {
         mergingLimit = settings.get<Float>(RunSettingsId::COLLISION_MERGING_LIMIT);
+        restitution.n = settings.get<Float>(RunSettingsId::COLLISION_RESTITUTION_NORMAL);
+        restitution.t = settings.get<Float>(RunSettingsId::COLLISION_RESTITUTION_TANGENT);
     }
 
     virtual void initialize(Storage& storage) override {
-        storagePtr = addressOf(storage);
         holder = dynamicCast<AggregateHolder>(storage.getUserData().get());
         ASSERT(holder);
 
-        bounce.initialize(storage);
         r = storage.getValue<Vector>(QuantityId::POSITION);
         v = storage.getDt<Vector>(QuantityId::POSITION);
         m = storage.getValue<Float>(QuantityId::MASS);
     }
 
-    virtual CollisionResult collide(const Size i, const Size j, FlatSet<Size>& toRemove) override {
+    virtual CollisionResult collide(const Size i, const Size j, FlatSet<Size>& UNUSED(toRemove)) override {
         // this function SHOULD be called by one thread only, so we do not need to lock here
         CHECK_FUNCTION(CheckFunction::NON_REENRANT);
 
@@ -257,22 +291,43 @@ public:
         if (areParticlesBound(m[i] + m[j], r[i][H] + r[j][H], v[i] - v[j], mergingLimit)) {
             // add to aggregate
             holder->merge(ag_i, ag_j);
-            ag_i.integrate(*storagePtr);
+            ag_i.integrate();
             return CollisionResult::NONE;
         } else {
-            return bounce.collide(i, j, toRemove);
+            const Float m_i = ag_i.mass();
+            const Vector v_i = ag_i.velocity();
+            const Float m_j = ag_j.mass();
+            const Vector v_j = ag_j.velocity();
+
+            const Vector dr = getNormalized(r[i] - r[j]);
+            const Vector v_com = weightedAverage(v_i, m_i, v_j, m_j);
+            ag_i.setVelocity(this->reflect(v_i, v_com, -dr));
+            ag_j.setVelocity(this->reflect(v_j, v_com, dr));
+
+            return CollisionResult::BOUNCE;
         }
+    }
+
+private:
+    /// \todo copied from bounce handler, deduplicate!!
+    INLINE Vector reflect(const Vector& v, const Vector& v_com, const Vector& dir) {
+        ASSERT(almostEqual(getSqrLength(dir), 1._f), dir);
+        const Vector v_rel = v - v_com;
+        const Float proj = dot(v_rel, dir);
+        const Vector v_t = v_rel - proj * dir;
+        const Vector v_n = proj * dir;
+
+        // flip the orientation of normal component (bounce) and apply coefficients of restitution
+        return restitution.t * v_t - restitution.n * v_n + v_com;
     }
 };
 
 class AggregateOverlapHandler : public IOverlapHandler {
 private:
-    RawPtr<Storage> storagePtr;
     RawPtr<AggregateHolder> holder;
 
 public:
     virtual void initialize(Storage& storage) override {
-        storagePtr = addressOf(storage);
         holder = dynamicCast<AggregateHolder>(storage.getUserData().get());
         ASSERT(holder);
     }
@@ -299,7 +354,7 @@ public:
         // assinged to the same aggregate during collision processing, so we have to check again
         if (addressOf(ag_i) != addressOf(ag_j)) {
             holder->merge(ag_i, ag_j);
-            ag_i.integrate(*storagePtr);
+            ag_i.integrate();
         }
     }
 };
@@ -309,15 +364,16 @@ AggregateSolver::AggregateSolver(IScheduler& scheduler, const RunSettings& setti
           settings,
           Factory::getGravity(settings),
           makeAuto<AggregateCollisionHandler>(settings),
-          makeAuto<RepelHandler<ElasticBounceHandler>>(settings)) {}
-// makeAuto<AggregateOverlapHandler>()) {}
+          makeAuto<AggregateOverlapHandler>()) {}
+
+//  //RepelHandler<ElasticBounceHandler>>(settings)) {}
 
 AggregateSolver::~AggregateSolver() = default;
 
 void AggregateSolver::integrate(Storage& storage, Statistics& stats) {
     createLazy(storage);
     NBodySolver::integrate(storage, stats);
-    holder->integrate(storage);
+    holder->integrate();
 
     stats.set(StatisticsId::AGGREGATE_COUNT, int(holder->count()));
 }
@@ -325,7 +381,7 @@ void AggregateSolver::integrate(Storage& storage, Statistics& stats) {
 void AggregateSolver::collide(Storage& storage, Statistics& stats, const Float dt) {
     createLazy(storage);
     NBodySolver::collide(storage, stats, dt);
-    holder->integrate(storage);
+    holder->integrate();
 }
 
 void AggregateSolver::createLazy(Storage& storage) {

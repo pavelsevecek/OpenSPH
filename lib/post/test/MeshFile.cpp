@@ -9,14 +9,7 @@
 
 using namespace Sph;
 
-TEST_CASE("MeshFile Triangle conversion", "[meshfile]") {
-    struct DummyPlyFile : public PlyFile { // hack to access protected member function
-    public:
-        void convert(ArrayView<const Triangle> triangles, Array<Vector>& vertices, Array<Size>& indices) {
-            this->getVerticesAndIndices(triangles, vertices, indices, 0.f);
-        }
-    };
-
+TEST_CASE("MeshFile getVerticesAndIndices", "[meshfile]") {
     // simple tetrahedron
     Array<Vector> vertices{ Vector(-1, 0, 0), Vector(1, 0, 0), Vector(0, 1, 0), Vector(0, 0.3, 1) };
     Array<Triangle> triangles{ Triangle(vertices[0], vertices[1], vertices[2]),
@@ -26,7 +19,7 @@ TEST_CASE("MeshFile Triangle conversion", "[meshfile]") {
 
     Array<Vector> outVtxs;
     Array<Size> outIdxs;
-    DummyPlyFile().convert(triangles, outVtxs, outIdxs);
+    getVerticesAndIndices(triangles, outVtxs, outIdxs, 0.f);
 
     REQUIRE(outVtxs == vertices);
     REQUIRE(outIdxs == Array<Size>({ 0, 1, 2, 0, 1, 3, 0, 2, 3, 1, 2, 3 }));

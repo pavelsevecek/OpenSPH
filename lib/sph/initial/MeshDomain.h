@@ -1,14 +1,17 @@
 #pragma once
 
+/// \file MeshDomain.h
+/// \brief Domain represented by triangular mesh.
+/// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
+/// \date 2016-2018
+
 #include "objects/finders/Bvh.h"
 #include "objects/geometry/Domain.h"
 #include "objects/geometry/Triangle.h"
 
 NAMESPACE_SPH_BEGIN
 
-/// \todo doesn't really belong to Post
-
-
+/// \brief Domain represented by triangular mesh.
 class MeshDomain : public IDomain {
 private:
     Bvh<BvhTriangle> bvh;
@@ -20,8 +23,7 @@ private:
     } cached;
 
 public:
-    explicit MeshDomain(Array<Triangle>&& triangles, const AffineMatrix matrix = AffineMatrix::identity())
-        : IDomain(Vector(0._f)) {
+    explicit MeshDomain(Array<Triangle>&& triangles, const AffineMatrix matrix = AffineMatrix::identity()) {
         Array<BvhTriangle> bvhTriangles;
         for (Triangle& t : triangles) {
             // transform vertices in place
@@ -32,7 +34,7 @@ public:
             bvhTriangles.emplaceBack(t[0], t[1], t[2]);
             cached.box.extend(t.getBBox());
         }
-        center = cached.box.center();
+        const Vector center = cached.box.center();
 
         // compute volume (using center for optimal accuracy)
         cached.volume = 0._f;
@@ -40,6 +42,10 @@ public:
             cached.volume += dot(t[0] - center, cross(t[1] - center, t[2] - center)) / 6._f;
         }
         bvh.build(std::move(bvhTriangles));
+    }
+
+    virtual Vector getCenter() const override {
+        return cached.box.center();
     }
 
     virtual Box getBoundingBox() const override {

@@ -35,10 +35,10 @@ NBody::NBody() {
         .set(RunSettingsId::GRAVITY_LEAF_SIZE, 20)
         .set(RunSettingsId::COLLISION_HANDLER, CollisionHandlerEnum::MERGE_OR_BOUNCE)
         .set(RunSettingsId::COLLISION_OVERLAP, OverlapEnum::PASS_OR_MERGE)
-        .set(RunSettingsId::COLLISION_RESTITUTION_NORMAL, 0.9_f)
+        .set(RunSettingsId::COLLISION_RESTITUTION_NORMAL, 0.8_f)
         .set(RunSettingsId::COLLISION_RESTITUTION_TANGENT, 1._f)
-        .set(RunSettingsId::COLLISION_ALLOWED_OVERLAP, 0.1_f)
-        .set(RunSettingsId::COLLISION_MERGING_LIMIT, 1._f)
+        .set(RunSettingsId::COLLISION_ALLOWED_OVERLAP, 0.01_f)
+        .set(RunSettingsId::COLLISION_MERGING_LIMIT, 10000._f)
         .set(RunSettingsId::NBODY_INERTIA_TENSOR, false)
         .set(RunSettingsId::NBODY_MAX_ROTATION_ANGLE, 0.01_f)
         .set(RunSettingsId::RUN_THREAD_GRANULARITY, 100);
@@ -124,9 +124,9 @@ void NBody::setUp() {
 
     } else {
         Presets::CloudParams params;
-        params.particleCnt = 100;
+        params.particleCnt = 10000;
         params.cloudRadius = 1.e5_f;
-        params.particleRadius = 3.e3_f;
+        params.particleRadius = 1.e2_f;
         params.totalMass = 2.e11_f;
 
         BodySettings body;

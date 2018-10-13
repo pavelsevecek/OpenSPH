@@ -31,6 +31,7 @@ enum class ComponentConnectivity {
 
 /// \brief Finds and marks connected components (a.k.a. separated bodies) in the array of vertices.
 ///
+/// It is a useful function for finding bodies in simulations where we do not merge particles.
 /// \param storage Storage containing the particles. Must also contain QuantityId::FLAG if
 ///                SEPARATE_BY_FLAG option is used.
 /// \param particleRadius Size of particles in smoothing lengths.
@@ -43,13 +44,11 @@ Size findComponents(const Storage& storage,
     const ComponentConnectivity connectivity,
     Array<Size>& indices);
 
-/// \todo docs
+/// \brief Returns the indices of particles belonging to the largest remnant.
 ///
-/// \todo escape velocity
-Storage findFutureBodies(const Storage& storage, const Float particleRadius, ILogger& logger);
+/// The returned indices are sorted.
+Array<Size> findLargestComponent(const Storage& storage, const Float particleRadius);
 
-/// \todo TEMPORARY FUNCTION, REMOVE
-Storage findFutureBodies2(const Storage& storage, ILogger& logger);
 
 struct Tumbler {
     /// Index of particle (body)
@@ -98,11 +97,20 @@ enum class MoonEnum {
 /// \return Array of the same size of storage, marking each body in the storage; see MoonEnum.
 Array<MoonEnum> findMoons(const Storage& storage, const Float radius = 1._f, const Float limit = 0._f);
 
-/// \brief Computes the total inertia tensor of particles with respect to given center
+
+/// \brief Computes the total inertia tensor of particles with respect to given center.
 SymmetricTensor getInertiaTensor(ArrayView<const Float> m, ArrayView<const Vector> r, const Vector& r0);
 
 /// \brief Computes the total inertia tensor of particle with respect to their center of mass.
 SymmetricTensor getInertiaTensor(ArrayView<const Float> m, ArrayView<const Vector> r);
+
+/// \brief Computes the immediate vector of angular frequency of a rigid body.
+Vector getAngularFrequency(ArrayView<const Float> m,
+    ArrayView<const Vector> r,
+    ArrayView<const Vector> v,
+    const Vector& r0,
+    const Vector& v0);
+
 
 /// \brief Object holding Keplerian orbital elements of a body
 ///

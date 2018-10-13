@@ -6,7 +6,6 @@ SUBDIRS = lib \
           cli \
           cli/launcher \
           cli/problems \
-          cli/ssftovdb \
           gui \
           gui/collision \
           gui/rotation \
@@ -21,7 +20,6 @@ run.depends = lib
 cli.depends = lib
 launcher.depends = lib
 problems.depends = lib
-ssftovdb.depends = lib
 gui.depends = lib
 collision.depends = lib gui
 player.depends = lib gui

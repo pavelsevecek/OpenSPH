@@ -17,8 +17,9 @@ using namespace Sph;
 /// ghost particles are implemented.
 class WallDomain : public IDomain {
 public:
-    WallDomain()
-        : IDomain(Vector(0._f)) {}
+    virtual Vector getCenter() const override {
+        NOT_IMPLEMENTED
+    }
 
     virtual Float getVolume() const override {
         NOT_IMPLEMENTED;

@@ -26,18 +26,9 @@ struct Ghost {
 
 /// \brief Base class for computational domains.
 class IDomain : public Polymorphic {
-protected:
-    Vector center;
-
 public:
-    /// \brief Constructs the domain given its center point.
-    IDomain(const Vector& center)
-        : center(center) {}
-
     /// \brief Returns the center of the domain.
-    virtual Vector getCenter() const {
-        return this->center;
-    }
+    virtual Vector getCenter() const = 0;
 
     /// \brief Returns the bounding box of the domain.
     virtual Box getBoundingBox() const = 0;
@@ -103,10 +94,13 @@ public:
 /// \brief Spherical domain, defined by the center of sphere and its radius.
 class SphericalDomain : public IDomain {
 private:
+    Vector center;
     Float radius;
 
 public:
     SphericalDomain(const Vector& center, const Float& radius);
+
+    virtual Vector getCenter() const override;
 
     virtual Float getVolume() const override;
 
@@ -136,6 +130,8 @@ private:
 /// \brief Axis aligned ellipsoidal domain, defined by the center of sphere and lengths of three axes.
 class EllipsoidalDomain : public IDomain {
 private:
+    Vector center;
+
     /// Lengths of axes
     Vector radii;
 
@@ -144,6 +140,8 @@ private:
 
 public:
     EllipsoidalDomain(const Vector& center, const Vector& axes);
+
+    virtual Vector getCenter() const override;
 
     virtual Float getVolume() const override;
 
@@ -166,7 +164,7 @@ public:
 
 private:
     INLINE bool isInsideImpl(const Vector& v) const {
-        return getSqrLength((v - this->center) / radii) <= 1.f;
+        return getSqrLength((v - center) / radii) <= 1.f;
     }
 };
 
@@ -179,6 +177,8 @@ private:
 
 public:
     BlockDomain(const Vector& center, const Vector& edges);
+
+    virtual Vector getCenter() const override;
 
     virtual Float getVolume() const override;
 
@@ -204,12 +204,15 @@ public:
 /// \brief Cylinder aligned with z-axis, optionally including bases (can be either open or close cylinder).
 class CylindricalDomain : public IDomain {
 private:
+    Vector center;
     Float radius;
     Float height;
     bool includeBases;
 
 public:
     CylindricalDomain(const Vector& center, const Float radius, const Float height, const bool includeBases);
+
+    virtual Vector getCenter() const override;
 
     virtual Float getVolume() const override;
 
@@ -232,8 +235,8 @@ public:
 
 private:
     INLINE bool isInsideImpl(const Vector& v) const {
-        return getSqrLength(Vector(v[X], v[Y], this->center[Z]) - center) <= sqr(radius) &&
-               sqr(v[Z] - this->center[Z]) <= sqr(0.5_f * height);
+        return getSqrLength(Vector(v[X], v[Y], center[Z]) - center) <= sqr(radius) &&
+               sqr(v[Z] - center[Z]) <= sqr(0.5_f * height);
     }
 };
 
@@ -244,6 +247,7 @@ private:
 /// \todo could be easily generalized to any polygon, currently not needed though
 class HexagonalDomain : public IDomain {
 private:
+    Vector center;
     Float outerRadius; // bounding radius of the base
     Float innerRadius;
     Float height;
@@ -251,6 +255,8 @@ private:
 
 public:
     HexagonalDomain(const Vector& center, const Float radius, const Float height, const bool includeBases);
+
+    virtual Vector getCenter() const override;
 
     virtual Float getVolume() const override;
 
@@ -273,7 +279,7 @@ public:
 
 private:
     INLINE bool isInsideImpl(const Vector& v) const {
-        if (sqr(v[Z] - this->center[Z]) > sqr(0.5_f * height)) {
+        if (sqr(v[Z] - center[Z]) > sqr(0.5_f * height)) {
             return false;
         }
         const Float sqrLength = getSqrLength(v);
@@ -305,10 +311,13 @@ private:
 public:
     template <typename... TArgs>
     TransformedDomain(const AffineMatrix& matrix, const Vector& center, TArgs&&... args)
-        : IDomain(matrix.inverse() * center)
-        , domain(matrix.inverse() * center, std::forward<TArgs>(args)...) {
+        : domain(matrix.inverse() * center, std::forward<TArgs>(args)...) {
         tm = matrix;
         tmInv = matrix.inverse();
+    }
+
+    virtual Vector getCenter() const override {
+        return domain.getCenter() + tm.translation();
     }
 
     virtual Float getVolume() const override {

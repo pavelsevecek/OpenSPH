@@ -7,8 +7,12 @@ NAMESPACE_SPH_BEGIN
 //-----------------------------------------------------------------------------------------------------------
 
 SphericalDomain::SphericalDomain(const Vector& center, const Float& radius)
-    : IDomain(center)
+    : center(center)
     , radius(radius) {}
+
+Vector SphericalDomain::getCenter() const {
+    return center;
+}
 
 Float SphericalDomain::getVolume() const {
     return sphereVolume(radius);
@@ -103,10 +107,14 @@ void SphericalDomain::addGhosts(ArrayView<const Vector> vs,
 //-----------------------------------------------------------------------------------------------------------
 
 EllipsoidalDomain::EllipsoidalDomain(const Vector& center, const Vector& axes)
-    : IDomain(center)
+    : center(center)
     , radii(axes) {
     effectiveRadius = cbrt(radii[X] * radii[Y] * radii[Z]);
     ASSERT(isReal(effectiveRadius));
+}
+
+Vector EllipsoidalDomain::getCenter() const {
+    return center;
 }
 
 Float EllipsoidalDomain::getVolume() const {
@@ -114,7 +122,7 @@ Float EllipsoidalDomain::getVolume() const {
 }
 
 Box EllipsoidalDomain::getBoundingBox() const {
-    return Box(this->center - radii, this->center + radii);
+    return Box(center - radii, center + radii);
 }
 
 bool EllipsoidalDomain::contains(const Vector& v) const {
@@ -188,8 +196,11 @@ void EllipsoidalDomain::addGhosts(ArrayView<const Vector> UNUSED(vs),
 //-----------------------------------------------------------------------------------------------------------
 
 BlockDomain::BlockDomain(const Vector& center, const Vector& edges)
-    : IDomain(center)
-    , box(center - 0.5_f * edges, center + 0.5_f * edges) {}
+    : box(center - 0.5_f * edges, center + 0.5_f * edges) {}
+
+Vector BlockDomain::getCenter() const {
+    return box.center();
+}
 
 Float BlockDomain::getVolume() const {
     return box.volume();
@@ -321,10 +332,14 @@ CylindricalDomain::CylindricalDomain(const Vector& center,
     const Float radius,
     const Float height,
     const bool includeBases)
-    : IDomain(center)
+    : center(center)
     , radius(radius)
     , height(height)
     , includeBases(includeBases) {}
+
+Vector CylindricalDomain::getCenter() const {
+    return center;
+}
 
 Float CylindricalDomain::getVolume() const {
     return PI * sqr(radius) * height;
@@ -440,11 +455,15 @@ HexagonalDomain::HexagonalDomain(const Vector& center,
     const Float radius,
     const Float height,
     const bool includeBases)
-    : IDomain(center)
+    : center(center)
     , outerRadius(radius)
     , innerRadius(sqrt(0.75_f) * outerRadius)
     , height(height)
     , includeBases(includeBases) {}
+
+Vector HexagonalDomain::getCenter() const {
+    return center;
+}
 
 Float HexagonalDomain::getVolume() const {
     // 6 equilateral triangles

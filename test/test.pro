@@ -166,7 +166,8 @@ SOURCES += \
     ../lib/physics/test/Functions.cpp \
     ../lib/sph/solvers/test/DensityIndependentSolver.cpp \
     ../lib/sph/solvers/test/DifferencedEnergySolver.cpp \
-    ../lib/thread/test/Scheduler.cpp
+    ../lib/thread/test/Scheduler.cpp \
+    ../lib/sph/handoff/test/Handoff.cpp
 
 HEADERS += \
     utils/Utils.h \

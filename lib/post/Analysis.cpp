@@ -178,7 +178,35 @@ Size Post::findComponents(const Storage& storage,
     return componentCnt;
 }
 
-static Storage clone(const Storage& storage) {
+Array<Size> Post::findLargestComponent(const Storage& storage, const Float particleRadius) {
+    Array<Size> componentIdxs;
+    const Size componentCnt =
+        Post::findComponents(storage, particleRadius, ComponentConnectivity::OVERLAP, componentIdxs);
+
+    // find the masses of each component
+    ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
+    Array<Float> masses(componentCnt);
+    masses.fill(0);
+    for (Size i = 0; i < m.size(); ++i) {
+        masses[componentIdxs[i]] += m[i];
+    }
+
+    // find the largest remnant
+    const Size largestComponentIdx =
+        Size(std::distance(masses.begin(), std::max_element(masses.begin(), masses.end())));
+
+    // get the indices
+    Array<Size> idxs;
+    for (Size i = 0; i < m.size(); ++i) {
+        if (componentIdxs[i] == largestComponentIdx) {
+            idxs.push(i);
+        }
+    }
+    return idxs;
+}
+
+
+/*static Storage clone(const Storage& storage) {
     Storage cloned;
     const Array<Vector>& r = storage.getValue<Vector>(QuantityId::POSITION);
     cloned.insert<Vector>(QuantityId::POSITION, OrderEnum::FIRST, r.clone());
@@ -203,9 +231,9 @@ static Storage clone(const Storage& storage) {
     }
 
     return cloned;
-}
+}*/
 
-Storage Post::findFutureBodies2(const Storage& storage, ILogger& logger) {
+/*Storage Post::findFutureBodies2(const Storage& storage, ILogger& logger) {
     Array<Vector> r = storage.getValue<Vector>(QuantityId::POSITION).clone();
     Array<Vector> v = storage.getDt<Vector>(QuantityId::POSITION).clone();
     const Float m = sphereVolume(5.e3_f) * 2700.f / r.size();
@@ -310,7 +338,7 @@ Storage Post::findFutureBodies(const Storage& storage, const Float particleRadiu
     } while (numComponents != prevNumComponents);
 
     return cloned;
-}
+}*/
 
 Array<Post::MoonEnum> Post::findMoons(const Storage& storage, const Float radius, const Float limit) {
     // first, find the larget one
@@ -383,7 +411,6 @@ Array<Post::Tumbler> Post::findTumblers(const Storage& storage, const Float limi
 SymmetricTensor Post::getInertiaTensor(ArrayView<const Float> m,
     ArrayView<const Vector> r,
     const Vector& r0) {
-    TODO("test!");
     SymmetricTensor I = SymmetricTensor::null();
     for (Size i = 0; i < r.size(); ++i) {
         const Vector dr = r[i] - r0;
@@ -402,6 +429,22 @@ SymmetricTensor Post::getInertiaTensor(ArrayView<const Float> m, ArrayView<const
     com /= m_tot;
 
     return getInertiaTensor(m, r, com);
+}
+
+Vector Post::getAngularFrequency(ArrayView<const Float> m,
+    ArrayView<const Vector> r,
+    ArrayView<const Vector> v,
+    const Vector& r0,
+    const Vector& v0) {
+    SymmetricTensor I = getInertiaTensor(m, r, r0);
+    Vector L(0._f);
+    for (Size i = 0; i < r.size(); ++i) {
+        L += m[i] * cross(r[i] - r0, v[i] - v0);
+    }
+    // L = I * omega => omega = I^-1 * L)
+    const SymmetricTensor I_inv = I.inverse();
+    ASSERT(isReal(I_inv));
+    return I_inv * L;
 }
 
 Float Post::KeplerianElements::ascendingNode() const {

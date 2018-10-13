@@ -152,14 +152,18 @@ DiehlDistribution::DiehlDistribution(const DiehlParams& params)
     : params(params) {}
 
 namespace {
+
 class ForwardingDomain : public IDomain {
 private:
     const IDomain& domain;
 
 public:
     explicit ForwardingDomain(const IDomain& domain)
-        : IDomain(domain.getCenter())
-        , domain(domain) {}
+        : domain(domain) {}
+
+    virtual Vector getCenter() const override {
+        return domain.getCenter();
+    }
 
     virtual Box getBoundingBox() const override {
         return domain.getBoundingBox();
@@ -193,6 +197,7 @@ public:
         domain.addGhosts(vs, ghosts, radius, eps);
     }
 };
+
 } // namespace
 
 /// Renormalizes particle density so that integral matches expected particle count.
