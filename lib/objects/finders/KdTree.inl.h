@@ -75,8 +75,8 @@ static Size iterateThreadTree(ThreadTree<TNode>& tree,
     return nextIdx;
 }
 
-template <typename TNode>
-void KdTree<TNode>::buildImpl(IScheduler& scheduler, ArrayView<const Vector> points) {
+template <typename TNode, typename TMetric>
+void KdTree<TNode, TMetric>::buildImpl(IScheduler& scheduler, ArrayView<const Vector> points) {
     static_assert(sizeof(LeafNode<TNode>) == sizeof(InnerNode<TNode>), "Sizes of nodes must match");
 
     // clean the current tree
@@ -126,8 +126,8 @@ void KdTree<TNode>::buildImpl(IScheduler& scheduler, ArrayView<const Vector> poi
     iterateThreadTree(tree, { 0, rootThread }, 0, accumulateNodes);
 }
 
-template <typename TNode>
-void KdTree<TNode>::buildTree(ThreadTree<TNode>& tree,
+template <typename TNode, typename TMetric>
+void KdTree<TNode, TMetric>::buildTree(ThreadTree<TNode>& tree,
     const NodeIdx parent,
     const KdChild child,
     const Size from,
@@ -237,7 +237,7 @@ void KdTree<TNode>::buildTree(ThreadTree<TNode>& tree,
         auto processRightSubTree = [this, &tree, nextIdx, to, n1, box2, nextSlidingCnt] { //
             this->buildTree(tree, nextIdx, KdChild::RIGHT, n1, to, box2, nextSlidingCnt);
         };
-        if (nextIdx.index < tree.scheduler.getThreadCnt() / 2) {
+        if (to - from >= idxs.size() / (10 * tree.scheduler.getThreadCnt())) {
             // ad hoc decision - split the build only for few topmost nodes, there is no point in splitting
             // the work for child node in the bottom, it would only overburden the ThreadPool.
             tree.scheduler.submit(processRightSubTree);
@@ -249,8 +249,8 @@ void KdTree<TNode>::buildTree(ThreadTree<TNode>& tree,
     }
 }
 
-template <typename TNode>
-void KdTree<TNode>::addLeaf(ThreadTree<TNode>& tree,
+template <typename TNode, typename TMetric>
+void KdTree<TNode, TMetric>::addLeaf(ThreadTree<TNode>& tree,
     const NodeIdx parent,
     const KdChild child,
     const Size from,
@@ -293,8 +293,8 @@ void KdTree<TNode>::addLeaf(ThreadTree<TNode>& tree,
     }
 }
 
-template <typename TNode>
-NodeIdx KdTree<TNode>::addInner(ThreadTree<TNode>& tree,
+template <typename TNode, typename TMetric>
+NodeIdx KdTree<TNode, TMetric>::addInner(ThreadTree<TNode>& tree,
     const NodeIdx parent,
     const KdChild child,
     const Float splitPosition,
@@ -337,15 +337,15 @@ NodeIdx KdTree<TNode>::addInner(ThreadTree<TNode>& tree,
     return NodeIdx{ index, threadIdx };
 }
 
-template <typename TNode>
-void KdTree<TNode>::init() {
+template <typename TNode, typename TMetric>
+void KdTree<TNode, TMetric>::init() {
     entireBox = Box();
     idxs.clear();
     nodes.clear();
 }
 
-template <typename TNode>
-bool KdTree<TNode>::isSingular(const Size from, const Size to, const Size splitIdx) const {
+template <typename TNode, typename TMetric>
+bool KdTree<TNode, TMetric>::isSingular(const Size from, const Size to, const Size splitIdx) const {
     for (Size i = from; i < to; ++i) {
         if (this->values[idxs[i]][splitIdx] != this->values[idxs[to - 1]][splitIdx]) {
             return false;
@@ -354,8 +354,8 @@ bool KdTree<TNode>::isSingular(const Size from, const Size to, const Size splitI
     return true;
 }
 
-template <typename TNode>
-bool KdTree<TNode>::checkBoxes(const Size from,
+template <typename TNode, typename TMetric>
+bool KdTree<TNode, TMetric>::checkBoxes(const Size from,
     const Size to,
     const Size mid,
     const Box& box1,
@@ -388,9 +388,9 @@ struct ProcessedNode {
 /// It is thread_local to allow using KdTree from multiple threads
 extern thread_local Array<ProcessedNode> nodeStack;
 
-template <typename TNode>
+template <typename TNode, typename TMetric>
 template <bool FindAll>
-Size KdTree<TNode>::find(const Vector& r0,
+Size KdTree<TNode, TMetric>::find(const Vector& r0,
     const Size index,
     const Float radius,
     Array<NeighbourRecord>& neighbours) const {
@@ -405,18 +405,19 @@ Size KdTree<TNode>::find(const Vector& r0,
 
     ASSERT(nodeStack.empty()); // not sure if there can be some nodes from previous search ...
 
+    TMetric metric;
     while (node.distanceSqr < radiusSqr) {
         if (nodes[node.idx].isLeaf()) {
             // for leaf just add all
             const LeafNode<TNode>& leaf = (const LeafNode<TNode>&)nodes[node.idx];
             if (leaf.size() > 0) {
                 const Float leafDistSqr =
-                    getSqrLength(max(Vector(0._f), leaf.box.lower() - r0, r0 - leaf.box.upper()));
+                    metric(max(Vector(0._f), leaf.box.lower() - r0, r0 - leaf.box.upper()));
                 if (leafDistSqr < radiusSqr) {
                     // leaf intersects the sphere
                     for (Size i = leaf.from; i < leaf.to; ++i) {
                         const Size actIndex = idxs[i];
-                        const Float distSqr = getSqrLength(this->values[actIndex] - r0);
+                        const Float distSqr = metric(this->values[actIndex] - r0);
                         if (distSqr < radiusSqr && (FindAll || this->rank[actIndex] < this->rank[index])) {
                             /// \todo order part
                             neighbours.push(NeighbourRecord{ actIndex, distSqr });
@@ -466,8 +467,8 @@ Size KdTree<TNode>::find(const Vector& r0,
     return neighbours.size();
 }
 
-template <typename TNode>
-bool KdTree<TNode>::sanityCheck() const {
+template <typename TNode, typename TMetric>
+bool KdTree<TNode, TMetric>::sanityCheck() const {
     if (this->values.size() != idxs.size()) {
         return false;
     }
@@ -536,8 +537,8 @@ bool KdTree<TNode>::sanityCheck() const {
     return true;
 }
 
-template <IterateDirection Dir, typename TNode, typename TFunctor>
-void iterateTree(KdTree<TNode>& tree,
+template <IterateDirection Dir, typename TNode, typename TMetric, typename TFunctor>
+void iterateTree(KdTree<TNode, TMetric>& tree,
     IScheduler& scheduler,
     const TFunctor& functor,
     const Size nodeIdx,
@@ -581,8 +582,8 @@ void iterateTree(KdTree<TNode>& tree,
 }
 
 /// \copydoc iterateTree
-template <IterateDirection Dir, typename TNode, typename TFunctor>
-void iterateTree(const KdTree<TNode>& tree,
+template <IterateDirection Dir, typename TNode, typename TMetric, typename TFunctor>
+void iterateTree(const KdTree<TNode, TMetric>& tree,
     IScheduler& scheduler,
     const TFunctor& functor,
     const Size nodeIdx,
@@ -590,7 +591,7 @@ void iterateTree(const KdTree<TNode>& tree,
     // use non-const overload using const_cast, but call the functor with const reference
     auto actFunctor = [&functor](TNode& node, TNode* left, TNode* right)
                           INL { return functor(asConst(node), left, right); };
-    iterateTree<Dir>(const_cast<KdTree<TNode>&>(tree), scheduler, actFunctor, nodeIdx, depth);
+    iterateTree<Dir>(const_cast<KdTree<TNode, TMetric>&>(tree), scheduler, actFunctor, nodeIdx, depth);
 }
 
 NAMESPACE_SPH_END

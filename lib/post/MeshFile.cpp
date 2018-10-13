@@ -1,4 +1,5 @@
 #include "post/MeshFile.h"
+#include "io/Logger.h"
 #include <fstream>
 
 NAMESPACE_SPH_BEGIN
@@ -108,6 +109,104 @@ Outcome PlyFile::save(const Path& path, ArrayView<const Triangle> triangles) {
         return SUCCESS;
     } catch (std::exception& e) {
         return e.what();
+    }
+}
+
+static Optional<std::string> stripStart(const std::string& line, const std::string& format) {
+    if (line.size() < format.size()) {
+        return NOTHING;
+    }
+    if (line.substr(0, format.size()) == format) {
+        // remove the following space, if there is one
+        return line.substr(min(line.size(), format.size() + 1));
+    } else {
+        return NOTHING;
+    }
+}
+
+Expected<Array<Triangle>> PlyFile::load(const Path& path) {
+    try {
+        std::ifstream ifs(path.native());
+        std::string line;
+
+        // check for the file format
+        if (!std::getline(ifs, line) || line != "ply") {
+            throw IoError("File does not have a valid .ply format");
+        }
+        if (!std::getline(ifs, line) || line != "format ascii 1.0") {
+            throw IoError("Only ascii format of the .ply file is currently supported");
+        }
+
+        // parse the header
+        Size vertexCnt = Size(-1);
+        Size faceCnt = Size(-1);
+        Array<std::string> properties;
+        while (std::getline(ifs, line)) {
+            if (stripStart(line, "comment")) {
+                continue;
+            } else if (stripStart(line, "end_header")) {
+                break;
+            } else if (Optional<std::string> vertexStr = stripStart(line, "element vertex")) {
+                vertexCnt = std::stoul(vertexStr.value());
+            } else if (Optional<std::string> faceStr = stripStart(line, "element face")) {
+                faceCnt = std::stoul(faceStr.value());
+            } else if (Optional<std::string> property = stripStart(line, "property float")) {
+                properties.push(property.value());
+            }
+        }
+
+        // check validity of the header info
+        if (faceCnt == Size(-1) || vertexCnt == Size(-1)) {
+            throw IoError("Header did not contain number of faces or vertices");
+        } else if (properties.size() < 3 || properties[0] != "x" || properties[1] != "y" ||
+                   properties[2] != "z") {
+            throw IoError(
+                "Currently, only files where x, y, z are the first 3 float properties are supported");
+        }
+
+        // parse the vertex data
+        Array<Vector> vertices;
+        while (vertices.size() < vertexCnt) {
+            std::getline(ifs, line);
+            if (ifs.fail()) {
+                break;
+            }
+            Vector v;
+            std::stringstream ss(line);
+            ss >> v[X] >> v[Y] >> v[Z];
+            // skip the other properties
+            for (Size i = 0; i < properties.size() - 3; ++i) {
+                Float dummy;
+                ss >> dummy;
+            }
+            if (!ss) {
+                throw IoError("Invalid line format when reading the vertex data");
+            }
+            vertices.push(v);
+        }
+        if (vertices.size() != vertexCnt) {
+            throw IoError("Incorrect number of vertices in the file");
+        }
+
+        // parse the faces and generate the list of triangles
+        Array<Triangle> triangles;
+        while (triangles.size() < faceCnt) {
+            std::getline(ifs, line);
+            if (ifs.fail()) {
+                break;
+            }
+            Size cnt, i, j, k;
+            std::stringstream ss(line);
+            ss >> cnt >> i >> j >> k;
+            if (!ss || cnt != 3) {
+                throw IoError("Invalid line format when reading the index data");
+            }
+            triangles.emplaceBack(vertices[i], vertices[j], vertices[k]);
+        }
+        return triangles;
+
+    } catch (std::exception& e) {
+        return makeUnexpected<Array<Triangle>>(e.what());
     }
 }
 

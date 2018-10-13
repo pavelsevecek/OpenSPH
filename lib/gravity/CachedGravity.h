@@ -39,7 +39,7 @@ public:
     }
 
     virtual void build(IScheduler& scheduler, const Storage& storage) override {
-        // here we have to information about the time, so we must build the gravity every time step; that's
+        // here we have no information about the time, so we must build the gravity every time step; that's
         // fine as long as building time is significantly lower than the evaluation time.
         gravity->build(scheduler, storage);
     }

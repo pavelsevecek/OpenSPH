@@ -245,11 +245,15 @@ SharedPtr<wxBitmap> ParticleRenderer::render(const ICamera& camera,
 
         const Optional<ProjectedPoint> p = camera.project(cached.positions[i]);
         ASSERT(p); // cached values must be visible by the camera
-        const int size = round(p->radius * params.particles.scale);
-        if (size == 0) {
+        const Float size = p->radius * params.particles.scale;
+        if (size < 0.75_f) {
+            // just a single pixel
             dc.DrawPoint(p->point);
+        } else if (size < 1.5_f) {
+            // draw a 2x2 square - the circle would come out as 3x3 square
+            dc.DrawRectangle(p->point, wxSize(2, 2));
         } else {
-            dc.DrawCircle(p->point, size);
+            dc.DrawCircle(p->point, round(size));
         }
     }
     // after all particles are drawn, draw the velocity vector over
@@ -261,6 +265,7 @@ SharedPtr<wxBitmap> ParticleRenderer::render(const ICamera& camera,
         drawPalette(dc, cached.palette.value());
     }
     const Float time = stats.get<Float>(StatisticsId::RUN_TIME);
+    dc.SetPen(*wxWHITE_PEN);
     dc.DrawText(("t = " + std::to_string(time) + "s").c_str(), wxPoint(0, 0));
 
     dc.SelectObject(wxNullBitmap);

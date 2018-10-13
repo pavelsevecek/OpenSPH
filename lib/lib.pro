@@ -117,7 +117,8 @@ SOURCES += \
     objects/finders/NeighbourFinder.cpp \
     thread/Scheduler.cpp \
     thread/Tbb.cpp \
-    objects/finders/KdTree.cpp
+    objects/finders/KdTree.cpp \
+    gravity/AggregateSolver.cpp
 
 HEADERS += \
     common/Assert.h \
@@ -313,4 +314,8 @@ HEADERS += \
     objects/containers/Queue.h \
     objects/finders/KdTree.inl.h \
     objects/containers/Grid.h \
-    Sph.h
+    Sph.h \
+    gravity/AggregateSolver.h \
+    thread/Locks.h \
+    objects/geometry/Triangle.h \
+    post/MeshDomain.h

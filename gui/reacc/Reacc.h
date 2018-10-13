@@ -138,7 +138,7 @@ private:
             .set(GuiSettingsId::PALETTE_ENERGY, Interval(1.e-1_f, 1.e3_f))
             .set(GuiSettingsId::PALETTE_RADIUS, Interval(700._f, 3.e3_f))
             .set(GuiSettingsId::PALETTE_GRADV, Interval(0._f, 1.e-5_f))
-            .set(GuiSettingsId::PLOT_INITIAL_PERIOD, 1.e-3_f)
+            .set(GuiSettingsId::PLOT_INITIAL_PERIOD, 10._f)
             .set(GuiSettingsId::PLOT_INTEGRALS, PlotEnum::KINETIC_ENERGY | PlotEnum::INTERNAL_ENERGY);
         /*| PlotEnum::TOTAL_ENERGY |
       PlotEnum::TOTAL_MOMENTUM | PlotEnum::TOTAL_ANGULAR_MOMENTUM |
@@ -165,7 +165,8 @@ private:
         phase1->onSphFinished = [gui, this] {
             executeOnMainThread([gui, this] {
                 GuiSettings newGui = gui;
-                newGui.set(GuiSettingsId::PARTICLE_RADIUS, 1._f)
+                newGui
+                    .set(GuiSettingsId::PARTICLE_RADIUS, 0.3_f) // 1._f
                     .set(GuiSettingsId::PALETTE_VELOCITY, Interval(1._f, 1.e4_f))
                     .set(GuiSettingsId::ORTHO_CUTOFF, 0._f)
                     .set(GuiSettingsId::IMAGES_NAME, std::string("reac_%e_%d.png"));

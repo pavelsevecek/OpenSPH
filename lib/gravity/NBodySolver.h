@@ -20,12 +20,7 @@ class CollisionStats;
 enum class CollisionResult;
 enum class OverlapEnum;
 
-/// TODO unit tests!
-///  perfect bounce, perfect sticking, merging - just check for asserts, it shows enough problems
-
 /// \brief Solver computing gravitational interaction of particles.
-///
-/// The particles are assumed to be point masses. No hydrodynamics or collisions are considered.
 class NBodySolver : public ISolver {
 private:
     /// Gravity used by the solver
@@ -34,37 +29,45 @@ private:
     IScheduler& scheduler;
 
     struct ThreadData {
-        // neighbours for parallelized queries
+        /// Neighbours for parallelized queries
         Array<NeighbourRecord> neighs;
 
+        /// Collisions detected by this thread
         FlatSet<CollisionRecord> collisions;
     };
 
     ThreadLocal<ThreadData> threadData;
 
-    // for single-threaded search (should be parallelized in the future)
+    /// List of neighbours, used for single-threaded search
+    ///
+    /// \note Should be removed in the future.
     Array<NeighbourRecord> neighs;
 
-    // cached array of removed particles, used to avoid invalidating indices during collision handling
+    /// Cached array of removed particles, used to avoid invalidating indices during collision handling.
     FlatSet<Size> removed;
 
-    // holds computed collisions
+    /// Holds all detected collisions.
     FlatSet<CollisionRecord> collisions;
 
+    /// Maximum distance to search for impactors, per particle.
     Array<Float> searchRadii;
 
     struct {
 
+        /// Handler used to resolve particle collisions
         AutoPtr<ICollisionHandler> handler;
 
+        /// Finder for searching the neighbours
         AutoPtr<ISymmetricFinder> finder;
 
     } collision;
 
     struct {
 
+        /// Handler used to resolve particle overlaps
         AutoPtr<IOverlapHandler> handler;
 
+        /// Limit ovelap of particle to be classified as "overlap" rather than "collision".
         Float allowedRatio;
 
     } overlap;
@@ -88,6 +91,13 @@ public:
 
     /// \brief Creates the solver by passing the user-defined gravity implementation.
     NBodySolver(IScheduler& scheduler, const RunSettings& settings, AutoPtr<IGravity>&& gravity);
+
+    /// \brief Creates the solver by specifying gravity and handlers for collision and overlaps.
+    NBodySolver(IScheduler& scheduler,
+        const RunSettings& settings,
+        AutoPtr<IGravity>&& gravity,
+        AutoPtr<ICollisionHandler>&& collisionHandler,
+        AutoPtr<IOverlapHandler>&& overlapHandler);
 
     ~NBodySolver();
 

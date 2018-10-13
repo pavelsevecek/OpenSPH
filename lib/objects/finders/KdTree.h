@@ -76,6 +76,8 @@ struct LeafNode : public TBase {
     }
 };
 
+static_assert(sizeof(Size) == sizeof(float), "Sizes must match to keep this layout");
+
 /// \brief Index iterator with given mapping (index permutation).
 ///
 /// Returns value mapping[index] when dereferenced,
@@ -114,11 +116,21 @@ public:
     }
 };
 
-/// \brief KdTree structure, used for hierarchical clustering of particles and Kn queries.
+struct EuclideanMetric {
+    INLINE Float operator()(const Vector& v) const {
+        return getSqrLength(v);
+    }
+};
+
+/// \brief K-d tree, used for hierarchical clustering of particles and accelerated Kn queries.
+///
+/// Allows storing arbitrary data at each node of the tree.
 ///
 /// https://www.cs.umd.edu/~mount/Papers/cgc99-smpack.pdf
-template <typename TNode>
-class KdTree : public FinderTemplate<KdTree<TNode>> {
+/// \tparam TNode Nodes of the tree, should always derive from KdNode and should be POD structs.
+/// \tparam TMetric Functor returning the squared distance of two vectors.
+template <typename TNode, typename TMetric = EuclideanMetric>
+class KdTree : public FinderTemplate<KdTree<TNode, TMetric>> {
 private:
     const Size leafSize;
 
@@ -209,16 +221,16 @@ enum class IterateDirection {
 /// \param scheduler Scheduler used for sequential or parallelized task execution
 /// \param functor Functor executed for every node
 /// \param nodeIdx Index of the first processed node; use 0 for root node
-template <IterateDirection Dir, typename TNode, typename TFunctor>
-void iterateTree(KdTree<TNode>& tree,
+template <IterateDirection Dir, typename TNode, typename TMetric, typename TFunctor>
+void iterateTree(KdTree<TNode, TMetric>& tree,
     IScheduler& scheduler,
     const TFunctor& functor,
     const Size nodeIdx = 0,
     const Size depth = 0);
 
 /// \copydoc iterateTree
-template <IterateDirection Dir, typename TNode, typename TFunctor>
-void iterateTree(const KdTree<TNode>& tree,
+template <IterateDirection Dir, typename TNode, typename TMetric, typename TFunctor>
+void iterateTree(const KdTree<TNode, TMetric>& tree,
     IScheduler& scheduler,
     const TFunctor& functor,
     const Size nodeIdx = 0,

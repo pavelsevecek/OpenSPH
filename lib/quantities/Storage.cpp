@@ -240,6 +240,8 @@ Size Storage::getParticleCnt() const {
 }
 
 void Storage::merge(Storage&& other) {
+    ASSERT(!userData && !other.userData, "Merging storages with user data is currently not supported");
+
     // allow merging into empty storage for convenience
     if (this->getQuantityCnt() == 0) {
         *this = std::move(other);
@@ -297,6 +299,7 @@ void Storage::zeroHighestDerivatives() {
 }
 
 Storage Storage::clone(const Flags<VisitorEnum> buffers) const {
+    ASSERT(!userData, "Cloning storages with user data is currently not supported");
     Storage cloned;
     for (const auto& q : quantities) {
         cloned.quantities[q.first] = q.second.clone(buffers);
@@ -313,6 +316,8 @@ Storage Storage::clone(const Flags<VisitorEnum> buffers) const {
 
 void Storage::resize(const Size newParticleCnt, const Flags<ResizeFlag> flags) {
     ASSERT(getQuantityCnt() > 0 && getMaterialCnt() <= 1);
+    ASSERT(!userData, "Cloning storages with user data is currently not supported");
+
     iterate<VisitorEnum::ALL_BUFFERS>(*this, [newParticleCnt, flags](auto& buffer) { //
         if (!flags.has(ResizeFlag::KEEP_EMPTY_UNCHANGED) || !buffer.empty()) {
             using Type = typename std::decay_t<decltype(buffer)>::Type;
@@ -388,6 +393,8 @@ bool Storage::isValid(const Flags<ValidFlag> flags) const {
 }
 
 Array<Size> Storage::duplicate(ArrayView<const Size> idxs) {
+    ASSERT(!userData, "Duplicating particles in storages with user data is currently not supported");
+
     // first, sort the indices, so that we start with the backmost particles, that way the lower indices
     // won't get invalidated.
     Array<Size> sorted(0, idxs.size());
@@ -424,6 +431,8 @@ Array<Size> Storage::duplicate(ArrayView<const Size> idxs) {
 }
 
 void Storage::remove(ArrayView<const Size> idxs, const Flags<RemoveFlag> flags) {
+    ASSERT(!userData, "Removing particles from storages with user data is currently not supported");
+
     Size particlesRemoved = 0;
     for (Size matId = 0; matId < mats.size();) {
         MatRange& mat = mats[matId];
@@ -469,6 +478,7 @@ void Storage::remove(ArrayView<const Size> idxs, const Flags<RemoveFlag> flags) 
 }
 
 void Storage::removeAll() {
+    ASSERT(!userData, "Removing particles from storages with user data is currently not supported");
     this->propagate([](Storage& storage) { storage.removeAll(); });
     *this = Storage();
 }
@@ -488,6 +498,14 @@ void setPersistentIndices(Storage& storage) {
         idxs[i] = i;
     }
     storage.insert<Size>(QuantityId::PERSISTENT_INDEX, OrderEnum::ZERO, std::move(idxs));
+}
+
+void Storage::setUserData(SharedPtr<IStorageUserData> newData) {
+    userData = std::move(newData);
+}
+
+SharedPtr<IStorageUserData> Storage::getUserData() const {
+    return userData;
 }
 
 NAMESPACE_SPH_END

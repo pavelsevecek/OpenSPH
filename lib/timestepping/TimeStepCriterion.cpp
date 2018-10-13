@@ -271,7 +271,8 @@ TimeStep CourantCriterion::compute(IScheduler& scheduler,
     };
 
     auto functor = [&](const Size i, Tl& tl) {
-        if (cs[i] > 0._f) {
+        /// \todo generalize this limit (5) or remove it
+        if (cs[i] > 0._f && (!neighs || neighs[i] > 5)) {
             const Float value = courant * r[i][H] / cs[i];
             ASSERT(isReal(value) && value > 0._f && value < INFTY);
             tl.minStep = min(tl.minStep, value);
@@ -308,7 +309,7 @@ MultiCriterion::MultiCriterion(const RunSettings& settings) {
         criteria.push(makeAuto<AccelerationCriterion>(settings));
     }
 
-    maxChange = settings.get<Float>(RunSettingsId::TIMESTEPPING_MAX_CHANGE);
+    maxChange = settings.get<Float>(RunSettingsId::TIMESTEPPING_MAX_INCREASE);
     lastStep = settings.get<Float>(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP);
 }
 
@@ -337,10 +338,7 @@ TimeStep MultiCriterion::compute(IScheduler& scheduler,
 
     // smooth the timestep if required
     if (maxChange < INFTY) {
-        if (minStep < lastStep * (1._f - maxChange)) {
-            minStep = lastStep * (1._f - maxChange);
-            minId = CriterionId::MAX_CHANGE;
-        } else if (minStep > lastStep * (1._f + maxChange)) {
+        if (minStep > lastStep * (1._f + maxChange)) {
             minStep = lastStep * (1._f + maxChange);
             minId = CriterionId::MAX_CHANGE;
         }

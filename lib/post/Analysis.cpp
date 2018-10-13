@@ -14,24 +14,62 @@
 
 NAMESPACE_SPH_BEGIN
 
+// Checks if two particles belong to the same component
+struct IComponentChecker : public Polymorphic {
+    virtual bool belong(const Size i, const Size j) = 0;
+};
+
+static Size findComponentsImpl(IComponentChecker& checker,
+    ArrayView<const Vector> r,
+    const Float radius,
+    Array<Size>& indices) {
+    // initialize stuff
+    indices.resize(r.size());
+    const Size unassigned = Size(-1);
+    indices.fill(unassigned);
+    Size componentIdx = 0;
+
+    Array<Size> stack;
+    Array<NeighbourRecord> neighs;
+
+    AutoPtr<IBasicFinder> finder = Factory::getFinder(RunSettings::getDefaults());
+    // the build time is probably negligible compared to the actual search of components, so let's just use
+    // the sequential execution here
+    finder->build(SEQUENTIAL, r);
+
+    for (Size i = 0; i < r.size(); ++i) {
+        if (indices[i] == unassigned) {
+            indices[i] = componentIdx;
+            stack.push(i);
+            // find new neigbours recursively until we find all particles in the component
+            while (!stack.empty()) {
+                const Size index = stack.pop();
+                finder->findAll(index, r[index][H] * radius, neighs);
+                for (auto& n : neighs) {
+                    if (!checker.belong(index, n.index)) {
+                        // do not count as neighbours
+                        continue;
+                    }
+                    if (indices[n.index] == unassigned) {
+                        indices[n.index] = componentIdx;
+                        stack.push(n.index);
+                    }
+                }
+            }
+            componentIdx++;
+        }
+    }
+
+    return componentIdx;
+}
+
 Size Post::findComponents(const Storage& storage,
     const Float radius,
     const ComponentConnectivity connectivity,
     Array<Size>& indices) {
     ASSERT(radius > 0._f);
-    // get values from storage
-    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
-
-    AutoPtr<IBasicFinder> finder = makeAuto<UniformGridFinder>();
-    Float actRadius = radius;
-
-    // Checks if two particles belong to the same component
-    struct IComponentChecker : public Polymorphic {
-        virtual bool belong(const Size i, const Size j) = 0;
-    };
 
     AutoPtr<IComponentChecker> checker;
-
     switch (connectivity) {
     case ComponentConnectivity::SEPARATE_BY_FLAG:
         class FlagComponentChecker : public IComponentChecker {
@@ -48,6 +86,7 @@ Size Post::findComponents(const Storage& storage,
         checker = makeAuto<FlagComponentChecker>(storage);
         break;
     case ComponentConnectivity::OVERLAP:
+    case ComponentConnectivity::ESCAPE_VELOCITY:
         class AnyChecker : public IComponentChecker {
         public:
             virtual bool belong(const Size UNUSED(i), const Size UNUSED(j)) override {
@@ -57,71 +96,86 @@ Size Post::findComponents(const Storage& storage,
         };
         checker = makeAuto<AnyChecker>();
         break;
-    case ComponentConnectivity::ESCAPE_VELOCITY:
-        class EscapeVelocityComponentChecker : public IComponentChecker {
+    default:
+        NOT_IMPLEMENTED;
+    }
+
+    ASSERT(checker);
+
+    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
+
+    Size componentCnt = findComponentsImpl(*checker, r, radius, indices);
+
+    if (connectivity == ComponentConnectivity::ESCAPE_VELOCITY) {
+        // now we have to merge components with relative velocity lower than the (mutual) escape velocity
+
+        // first, compute the total mass and the average velocity of each component
+        Array<Float> masses(componentCnt);
+        Array<Vector> positions(componentCnt);
+        Array<Vector> velocities(componentCnt);
+        Array<Float> volumes(componentCnt);
+
+        masses.fill(0._f);
+        positions.fill(Vector(0._f));
+        velocities.fill(Vector(0._f));
+        volumes.fill(0._f);
+
+        ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
+        ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
+        ArrayView<const Vector> v = storage.getDt<Vector>(QuantityId::POSITION);
+
+        for (Size i = 0; i < r.size(); ++i) {
+            masses[indices[i]] += m[i];
+            positions[indices[i]] += m[i] * r[i];
+            velocities[indices[i]] += m[i] * v[i];
+            volumes[indices[i]] += pow<3>(r[i][H]);
+        }
+        for (Size k = 0; k < componentCnt; ++k) {
+            ASSERT(masses[k] > 0._f);
+            positions[k] /= masses[k];
+            positions[k][H] = cbrt(3._f * volumes[k] / (4._f * PI));
+            velocities[k] /= masses[k];
+        }
+
+        // Helper checker connecting components with relative velocity lower than v_esc
+        struct EscapeVelocityComponentChecker : public IComponentChecker {
             ArrayView<const Vector> r;
             ArrayView<const Vector> v;
             ArrayView<const Float> m;
             Float radius;
 
-        public:
-            explicit EscapeVelocityComponentChecker(const Storage& storage, const Float radius)
-                : radius(radius) {
-                r = storage.getValue<Vector>(QuantityId::POSITION);
-                v = storage.getDt<Vector>(QuantityId::POSITION);
-                m = storage.getValue<Float>(QuantityId::MASS);
-            }
             virtual bool belong(const Size i, const Size j) override {
                 const Float dv = getLength(v[i] - v[j]);
                 const Float dr = getLength(r[i] - r[j]);
                 const Float m_tot = m[i] + m[j];
                 const Float v_esc = sqrt(2._f * Constants::gravity * m_tot / dr);
-                return dr < 0.5_f * radius * (r[i][H] + r[j][H]) || dv < v_esc;
+                return dv < v_esc;
             }
         };
-        checker = makeAuto<EscapeVelocityComponentChecker>(storage, radius);
-        actRadius = 10._f * radius;
-        break;
-    }
+        EscapeVelocityComponentChecker velocityChecker;
+        velocityChecker.r = positions;
+        velocityChecker.v = velocities;
+        velocityChecker.m = masses;
+        velocityChecker.radius = radius;
 
-    ASSERT(finder && checker);
+        // run the component finder again, this time for the components found in the first step
+        Array<Size> velocityIndices;
+        componentCnt = findComponentsImpl(velocityChecker, positions, 50._f, velocityIndices);
 
-    // initialize stuff
-    indices.resize(r.size());
-    const Size unassigned = Size(-1);
-    indices.fill(unassigned);
-    Size componentIdx = 0;
+        // We should keep merging the components, as now we could have created a new component that was
+        // previously undetected (three bodies bound to their center of gravity, where each two bodies move
+        // faster than the escape velocity of those two bodies). That is not very probable, though, so we end
+        // the process here.
 
-    // the build time is probably negligible compared to the actual search of components, so let's just use
-    // the sequential execution here
-    finder->build(SEQUENTIAL, r);
-
-    Array<Size> stack;
-    Array<NeighbourRecord> neighs;
-
-    for (Size i = 0; i < r.size(); ++i) {
-        if (indices[i] == unassigned) {
-            indices[i] = componentIdx;
-            stack.push(i);
-            // find new neigbours recursively until we find all particles in the component
-            while (!stack.empty()) {
-                const Size index = stack.pop();
-                finder->findAll(index, r[index][H] * actRadius, neighs);
-                for (auto& n : neighs) {
-                    if (!checker->belong(index, n.index)) {
-                        // do not count as neighbours
-                        continue;
-                    }
-                    if (indices[n.index] == unassigned) {
-                        indices[n.index] = componentIdx;
-                        stack.push(n.index);
-                    }
-                }
-            }
-            componentIdx++;
+        // Last thing - we have to reindex the components found in the first step, using the indices from the
+        // second step.
+        ASSERT(r.size() == indices.size());
+        for (Size i = 0; i < r.size(); ++i) {
+            indices[i] = velocityIndices[indices[i]];
         }
     }
-    return componentIdx;
+
+    return componentCnt;
 }
 
 static Storage clone(const Storage& storage) {
@@ -504,18 +558,25 @@ static Array<Float> getComponentValues(const Storage& storage,
     Array<Float> values(numComponents);
     values.fill(0._f);
     switch (id) {
+    case Post::HistogramId::EQUIVALENT_MASS_RADII:
     case Post::HistogramId::RADII: {
         // compute volume of the body
         ArrayView<const Float> rho, m;
         tie(rho, m) = storage.getValues<Float>(QuantityId::DENSITY, QuantityId::MASS);
         for (Size i = 0; i < rho.size(); ++i) {
-            values[components[i]] += m[i] / rho[i];
+            Float density;
+            if (id == Post::HistogramId::EQUIVALENT_MASS_RADII) {
+                density = params.referenceDensity;
+            } else {
+                density = rho[i];
+            }
+            values[components[i]] += m[i] / density;
         }
 
         // compute equivalent radii from volumes
         Array<Float> radii(numComponents);
         for (Size i = 0; i < numComponents; ++i) {
-            radii[i] = root<3>(values[i]);
+            radii[i] = root<3>(3._f * values[i] / (4._f * PI));
             ASSERT(isReal(radii[i]) && radii[i] > 0._f, radii[i]);
         }
         return radii;
@@ -656,7 +717,7 @@ Array<Post::HistPoint> Post::getDifferentialHistogram(ArrayView<const Float> val
     // convert to SfdPoints
     Array<HistPoint> histogram(binCnt);
     for (Size i = 0; i < binCnt; ++i) {
-        const Float centerIdx = i + 0.5_f;
+        const Float centerIdx = i + int(params.centerBins) * 0.5_f;
         histogram[i] = { range.lower() + (centerIdx * range.size()) / binCnt, sfd[i] };
         ASSERT(isReal(histogram[i].value), sfd[i], range);
     }

@@ -47,6 +47,12 @@ AutoPtr<ICamera> Factory::getCamera(const GuiSettings& settings, const Point siz
         data.target = settings.get<Vector>(GuiSettingsId::PERSPECTIVE_TARGET);
         data.up = settings.get<Vector>(GuiSettingsId::PERSPECTIVE_UP);
         data.fov = settings.get<Float>(GuiSettingsId::PERSPECTIVE_FOV);
+        data.clipping = Interval(settings.get<Float>(GuiSettingsId::PERSPECTIVE_CLIP_NEAR),
+            settings.get<Float>(GuiSettingsId::PERSPECTIVE_CLIP_FAR));
+        const int trackedIndex = settings.get<int>(GuiSettingsId::PERSPECTIVE_TRACKED_PARTICLE);
+        if (trackedIndex >= 0) {
+            data.tracker = makeClone<ParticleTracker>(trackedIndex);
+        }
         return makeAuto<PerspectiveCamera>(size, data);
     }
     default:
@@ -145,8 +151,14 @@ AutoPtr<IColorizer> Factory::getColorizer(const GuiSettings& settings,
         return makeAuto<BoundaryColorizer>(BoundaryColorizer::Detection::NEIGBOUR_THRESHOLD, 40);
     case ColorizerId::UVW:
         return makeAuto<UvwColorizer>();
-    case ColorizerId::ID:
-        return makeAuto<IdColorizer>();
+    case ColorizerId::PARTICLE_ID:
+        return makeAuto<ParticleIdColorizer>();
+    case ColorizerId::COMPONENT_ID:
+        return makeAuto<ComponentIdColorizer>(Post::ComponentConnectivity::OVERLAP);
+    case ColorizerId::BOUND_COMPONENT_ID:
+        return makeAuto<ComponentIdColorizer>(Post::ComponentConnectivity::ESCAPE_VELOCITY);
+    case ColorizerId::AGGREGATE_ID:
+        return makeAuto<AggregateIdColorizer>();
     case ColorizerId::FLAG:
         return makeAuto<FlagColorizer>();
     case ColorizerId::BEAUTY:

@@ -81,7 +81,7 @@ class BalsaraSwitch : public IEquationTerm {
 
             dv = results.getBuffer<Vector>(QuantityId::POSITION, OrderEnum::SECOND);
             du = results.getBuffer<Float>(QuantityId::ENERGY, OrderEnum::FIRST);
-            av.template initialize(input, results);
+            av.initialize(input, results);
         }
 
         template <bool Symmetrize>

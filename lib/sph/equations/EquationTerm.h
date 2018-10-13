@@ -44,37 +44,6 @@ public:
     virtual void create(Storage& storage, IMaterial& material) const = 0;
 };
 
-
-/// \brief Discretization of pressure term in standard SPH formulation.
-class StandardForceDiscr {
-    ArrayView<const Float> rho;
-
-public:
-    void initialize(const Storage& input) {
-        rho = input.getValue<Float>(QuantityId::DENSITY);
-    }
-
-    template <typename T>
-    INLINE T eval(const Size i, const Size j, const T& vi, const T& vj) {
-        return vi / sqr(rho[i]) + vj / sqr(rho[j]);
-    }
-};
-
-/// \brief Discretization of pressure term in code SPH5
-class BenzAsphaugForceDiscr {
-    ArrayView<const Float> rho;
-
-public:
-    void initialize(const Storage& input) {
-        rho = input.getValue<Float>(QuantityId::DENSITY);
-    }
-
-    template <typename T>
-    INLINE T eval(const Size i, const Size j, const T& vi, const T& vj) {
-        return (vi + vj) / (rho[i] * rho[j]);
-    }
-};
-
 /// \brief Evolutionary equation for the (scalar) smoothing length
 ///
 /// The smoothing length is evolved using first-order equation, 'mirroring' changes in density in

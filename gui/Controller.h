@@ -159,7 +159,8 @@ public:
     /// \brief Returns the colorizer currently used for rendering into the window.
     SharedPtr<IColorizer> getCurrentColorizer() const;
 
-    /// Returns the particle under given image position, or NOTHING if such particle exists.
+    /// \brief Returns the particle under given image position, or NOTHING if such particle exists.
+    ///
     /// \param position Position in image coordinates, corresponding to the latest rendered image.
     /// \param toleranceEps Relative addition to effective radius of a particle; particles are considered to
     ///                     be under the point of they are closer than (displayedRadius * (1+toleranceEps)).

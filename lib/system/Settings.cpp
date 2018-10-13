@@ -194,7 +194,7 @@ AutoPtr<RunSettings> RunSettings::instance (new RunSettings {
     /// Timestepping parameters
     { RunSettingsId::TIMESTEPPING_INTEGRATOR,       "timestep.integrator",      TimesteppingEnum::PREDICTOR_CORRECTOR,
         "Integrator performing evolution in time. Can be one of the following:\n" + EnumMap::getDesc<TimesteppingEnum>() },
-    { RunSettingsId::TIMESTEPPING_COURANT_NUMBER,   "timestep.courant_number",         1._f,
+    { RunSettingsId::TIMESTEPPING_COURANT_NUMBER,   "timestep.courant_number",         0.2_f,
         "Courant number limiting the time step value. Needed for numerical stability of the integrator. Always keep <= 1!" },
     { RunSettingsId::TIMESTEPPING_MAX_TIMESTEP,     "timestep.max_step",        0.1_f,
         "Maximal allowed value of the time step." },
@@ -209,7 +209,7 @@ AutoPtr<RunSettings> RunSettings::instance (new RunSettings {
         "particles. Negative infinity means the minimal timestep is used. This value will also set statistics "
         "of the restricting particle, namely the particle index and the quantity value and corresponding "
         "derivative of the particle; these statistics are not saved for other powers." },
-    { RunSettingsId::TIMESTEPPING_MAX_CHANGE,       "timestep.max_change",      INFTY,
+    { RunSettingsId::TIMESTEPPING_MAX_INCREASE,       "timestep.max_change",      INFTY,
         "Maximum relative difference between time steps in subsequent iterations. Use to 'smooth' the integration and "
         "to avoid rapid changes of time steps."},
     { RunSettingsId::TIMESTEPPING_MIDPOINT_COUNT,   "timestep.midpoint_count",  5,

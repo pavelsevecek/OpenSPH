@@ -394,7 +394,7 @@ public:
         return get<TValue>().getPhysicalValue();
     }
 
-    /// /// Returns a reference to array of physical values, const version.
+    /// \brief Returns a reference to array of physical values, const version.
     template <typename TValue>
     INLINE const Array<TValue>& getPhysicalValue() const {
         return get<TValue>().getPhysicalValue();

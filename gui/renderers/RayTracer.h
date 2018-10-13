@@ -18,9 +18,7 @@ private:
     /// BVH for finding intersections of rays with particles
     Bvh<BvhSphere> bvh;
 
-    /// Finds for finding neighbours of intersected particles
-    /// \todo we need to share finders! Right now we can have finder in SPH, gravity, density sum colorizer
-    /// and here
+    /// Finder for finding neighbours of intersected particles
     AutoPtr<IBasicFinder> finder;
 
     LutKernel<3> kernel;
@@ -52,7 +50,7 @@ private:
         Array<Texture> textures;
 
         /// Cast shadows
-        bool shadows = false;
+        bool shadows = true;
 
         /// Step between two pixels computed by raytracing.
         Size subsampling = 1;

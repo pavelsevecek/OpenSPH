@@ -18,6 +18,9 @@ const Float atomicMass = 1.660539040e-27_f; // kg
 /// Boltzmann constant
 const Float boltzmann = 1.380648e-23_f; // J K^-1
 
+/// Stefan-Boltzmann constant
+const Float stefanBoltzmann = 5.670367e-8_f; // W m^2 K^-4
+
 /// Gravitational constant (CODATA 2014)
 const Float gravity = 6.67408e-11_f; // m^3 kg^-1 s^-2
 

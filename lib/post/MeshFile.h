@@ -2,8 +2,9 @@
 
 #include "io/Path.h"
 #include "objects/finders/Order.h"
+#include "objects/geometry/Triangle.h"
+#include "objects/wrappers/Expected.h"
 #include "objects/wrappers/Outcome.h"
-#include "post/MarchingCubes.h" /// \todo move Triangle elsewhere so that we don't have to include whole MC
 
 NAMESPACE_SPH_BEGIN
 
@@ -11,12 +12,16 @@ NAMESPACE_SPH_BEGIN
 class IMeshFile : public Polymorphic {
 public:
     virtual Outcome save(const Path& path, ArrayView<const Triangle> triangles) = 0;
+
+    virtual Expected<Array<Triangle>> load(const Path& path) = 0;
 };
 
 /// \brief Exported of meshes into a ply format.
 class PlyFile : public IMeshFile {
 public:
     virtual Outcome save(const Path& path, ArrayView<const Triangle> triangles) override;
+
+    virtual Expected<Array<Triangle>> load(const Path& path) override;
 
 protected:
     void getVerticesAndIndices(ArrayView<const Triangle> triangles,

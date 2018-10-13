@@ -1,5 +1,5 @@
 #include "gui/nbody/NBody.h"
-#include "gravity/NBodySolver.h"
+#include "gravity/AggregateSolver.h"
 #include "gui/GuiCallbacks.h"
 #include "gui/Settings.h"
 #include "io/FileSystem.h"
@@ -9,6 +9,7 @@
 #include "quantities/IMaterial.h"
 #include "sph/initial/Distribution.h"
 #include "sph/initial/Initial.h"
+#include "sph/initial/Presets.h"
 #include "system/Factory.h"
 #include "system/Platform.h"
 #include <wx/msgdlg.h>
@@ -21,12 +22,12 @@ NBody::NBody() {
     settings.set(RunSettingsId::RUN_NAME, std::string("NBody"))
         .set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::LEAP_FROG)
         .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 1.e-2_f)
-        .set(RunSettingsId::TIMESTEPPING_MAX_CHANGE, 0.01_f)
+        .set(RunSettingsId::TIMESTEPPING_MAX_INCREASE, 0.1_f)
         .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 1.e3_f)
         .set(RunSettingsId::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::ACCELERATION)
         .set(RunSettingsId::TIMESTEPPING_ADAPTIVE_FACTOR, 1._f)
-        .set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 1.e6_f))
-        .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 1.e4_f)
+        .set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 1.e10_f))
+        .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 1.e20_f)
         .set(RunSettingsId::SPH_FINDER, FinderEnum::KD_TREE)
         .set(RunSettingsId::GRAVITY_SOLVER, GravityEnum::BARNES_HUT)
         .set(RunSettingsId::GRAVITY_KERNEL, GravityKernelEnum::POINT_PARTICLES)
@@ -34,7 +35,7 @@ NBody::NBody() {
         .set(RunSettingsId::GRAVITY_LEAF_SIZE, 20)
         .set(RunSettingsId::COLLISION_HANDLER, CollisionHandlerEnum::MERGE_OR_BOUNCE)
         .set(RunSettingsId::COLLISION_OVERLAP, OverlapEnum::PASS_OR_MERGE)
-        .set(RunSettingsId::COLLISION_RESTITUTION_NORMAL, 0.25_f)
+        .set(RunSettingsId::COLLISION_RESTITUTION_NORMAL, 0.9_f)
         .set(RunSettingsId::COLLISION_RESTITUTION_TANGENT, 1._f)
         .set(RunSettingsId::COLLISION_ALLOWED_OVERLAP, 0.1_f)
         .set(RunSettingsId::COLLISION_MERGING_LIMIT, 1._f)
@@ -69,7 +70,7 @@ Float startingRadius;
 void NBody::setUp() {
     // we don't need any material, so just pass some dummy
     storage = makeShared<Storage>(makeAuto<NullMaterial>(EMPTY_SETTINGS));
-    solver = makeAuto<NBodySolver>(*scheduler, settings);
+    solver = makeAuto<AggregateSolver>(*scheduler, settings);
 
     if (wxTheApp->argc > 1) {
         std::string arg(wxTheApp->argv[1]);
@@ -122,24 +123,15 @@ void NBody::setUp() {
 
 
     } else {
-        HexagonalPacking packing(EMPTY_FLAGS);
-        const Float radius = 1.e3_f;
-        Array<Vector> dist = packing.generate(*scheduler, 300000, SphericalDomain(Vector(0._f), radius));
-        storage->insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, std::move(dist));
-        ArrayView<Vector> r = storage->getValue<Vector>(QuantityId::POSITION);
-        const Float dr = getLength(r[50] - r[51]);
-        for (Size i = 0; i < r.size(); ++i) {
-            r[i][H] = 0.499_f * dr;
-        }
+        Presets::CloudParams params;
+        params.particleCnt = 100;
+        params.cloudRadius = 1.e5_f;
+        params.particleRadius = 3.e3_f;
+        params.totalMass = 2.e11_f;
 
-        startingRadius = 1.e3_f + r[0][H]; // getBoundingRadius(r);
-        for (Size i = 0; i < r.size(); ++i) {
-            ASSERT(getLength(r[i]) <= startingRadius);
-        }
-
-        storage->insert<Float>(QuantityId::MASS, OrderEnum::ZERO, 2.e5_f);
+        BodySettings body;
+        Presets::addCloud(*storage, *solver, settings, body, params);
     }
-    solver->create(*storage, storage->getMaterial(0));
 
     ASSERT(storage->isValid());
 
@@ -153,13 +145,7 @@ void NBody::setUp() {
     logger->write("Particles: ", storage->getParticleCnt());
 }
 
-void NBody::tearDown(const Statistics& UNUSED(stats)) {
-    showNotification("NBody", "Run finished");
-    ArrayView<Vector> r = storage->getValue<Vector>(QuantityId::POSITION);
-    logger->write("Start radius = ", startingRadius);
-    logger->write("Final radius = ", r[0][H]);
-    logger->write("Shrink factor = ", int(100._f * (1._f - r[0][H] / startingRadius)), "%");
-}
+void NBody::tearDown(const Statistics& UNUSED(stats)) {}
 
 
 NAMESPACE_SPH_END

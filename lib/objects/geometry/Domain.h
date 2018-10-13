@@ -312,7 +312,7 @@ public:
     }
 
     virtual Float getVolume() const override {
-        return domain.getVolume();
+        return domain.getVolume() * tm.determinant();
     }
 
     virtual Box getBoundingBox() const override {

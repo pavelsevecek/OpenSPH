@@ -105,6 +105,7 @@ public:
         printStat<int>(stats, StatisticsId::MERGER_COUNT,                 "    * mergers:  ");
         printStat<int>(stats, StatisticsId::BREAKUP_COUNT,                "    * breakups: ");
         printStat<int>(stats, StatisticsId::OVERLAP_COUNT,                " - overlaps:    ");
+        printStat<int>(stats, StatisticsId::AGGREGATE_COUNT,              " - aggregates:  ");
         printStat<int>(stats, StatisticsId::SOLVER_SUMMATION_ITERATIONS,  " - iteration #: ");
         // clang-format on
     }

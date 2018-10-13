@@ -159,6 +159,25 @@ public:
     void addSecondary(Storage& storage);
 };
 
+
+struct CloudParams {
+    Float cloudRadius;
+
+    Float totalMass;
+
+    Float particleRadius;
+
+    Size particleCnt;
+
+    Float radialExponent = 0.5_f;
+};
+
+void addCloud(Storage& storage,
+    ISolver& solver,
+    const RunSettings& settings,
+    const BodySettings& body,
+    const CloudParams& params);
+
 } // namespace Presets
 
 NAMESPACE_SPH_END

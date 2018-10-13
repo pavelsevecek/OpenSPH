@@ -5,6 +5,7 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2018
 
+#include "gravity/AggregateSolver.h"
 #include "gui/Factory.h"
 #include "gui/Uvw.h"
 #include "gui/objects/Palette.h"
@@ -12,6 +13,7 @@
 #include "objects/containers/ArrayRef.h"
 #include "objects/finders/NeighbourFinder.h"
 #include "objects/utility/Dynamic.h"
+#include "post/Analysis.h"
 #include "quantities/IMaterial.h"
 #include "quantities/Particle.h"
 #include "sph/kernel/Kernel.h"
@@ -76,13 +78,11 @@ public:
     virtual std::string name() const = 0;
 };
 
+/// \todo
 /// Types
 /// Scalar -> scalar
 /// Vector -> size, x, y, z
 /// Tensor -> trace, 2nd inv, xx, yy, zz, xy, xz, yz, largest eigen, smallest eigen
-///
-///
-
 
 namespace Detail {
     /// Helper function returning a scalar representation of given quantity.
@@ -141,13 +141,17 @@ enum class ColorizerId {
     RADIUS = -12,              ///< Radii/smoothing lenghts of particles
     UVW = -13,                 ///< Shows UV mapping, u-coordinate in red and v-coordinate in blur
     BOUNDARY = -14,            ///< Shows boundary particles
-    ID = -15,                  ///< Each particle drawn with different color
-    FLAG = -16,                ///< Particles of different bodies are colored differently
-    BEAUTY = -17,              ///< Colorizer attempting to show the real-world look
+    PARTICLE_ID = -15,         ///< Each particle drawn with different color
+    COMPONENT_ID = -16,        ///< Color assigned to each component (group of connected particles)
+    BOUND_COMPONENT_ID = -17,  ///< Color assigned to each group of gravitationally bound particles
+    AGGREGATE_ID = -18,        ///< Color assigned to each aggregate
+    FLAG = -19,                ///< Particles of different bodies are colored differently
+    BEAUTY = -20,              ///< Colorizer attempting to show the real-world look
 };
 
-/// Default colorizer simply converting quantity value to color using defined palette. Vector and tensor
-/// quantities are converted to floats using suitable norm.
+/// \brief Default colorizer simply converting quantity value to color using defined palette.
+///
+/// Vector and tensor quantities are converted to floats using suitable norm.
 template <typename Type>
 class TypedColorizer : public IColorizer {
 protected:
@@ -198,7 +202,7 @@ public:
     }
 };
 
-/// Displays particle velocities.
+/// \brief Displays the magnitudes of particle velocities.
 class VelocityColorizer : public TypedColorizer<Vector> {
 public:
     explicit VelocityColorizer(Palette palette)
@@ -221,6 +225,7 @@ public:
     }
 };
 
+/// \brief Displays the magnitudes of accelerations.
 class AccelerationColorizer : public TypedColorizer<Vector> {
 public:
     explicit AccelerationColorizer(Palette palette)
@@ -239,7 +244,7 @@ public:
     }
 };
 
-/// Shows direction of particle movement in color
+/// \brief Shows direction of particle movement in color.
 class DirectionColorizer : public IColorizer {
 private:
     Palette palette;
@@ -832,7 +837,7 @@ static Color getRandomizedColor(const Size idx) {
     return Color(r / 255.f, g / 255.f, b / 255.f);
 }
 
-class IdColorizer : public IColorizer {
+class ParticleIdColorizer : public IColorizer {
 public:
     virtual void initialize(const Storage& UNUSED(storage), const RefEnum UNUSED(ref)) override {
         // no need to cache anything
@@ -855,9 +860,93 @@ public:
     }
 
     virtual std::string name() const override {
-        return "ID";
+        return "Particle ID";
     }
 };
+
+class ComponentIdColorizer : public IColorizer {
+private:
+    Array<Size> components;
+    Post::ComponentConnectivity connectivity;
+
+public:
+    explicit ComponentIdColorizer(const Post::ComponentConnectivity connectivity)
+        : connectivity(connectivity) {}
+
+    virtual void initialize(const Storage& storage, const RefEnum UNUSED(ref)) override {
+        Post::findComponents(storage, 2._f, connectivity, components);
+    }
+
+    virtual bool isInitialized() const override {
+        return !components.empty();
+    }
+
+    virtual Color evalColor(const Size idx) const override {
+        return getRandomizedColor(components[idx]);
+    }
+
+    virtual Optional<Particle> getParticle(const Size idx) const override {
+        return Particle(idx).addValue(QuantityId::FLAG, components[idx]);
+    }
+
+    virtual Optional<Palette> getPalette() const override {
+        return NOTHING;
+    }
+
+    virtual std::string name() const override {
+        switch (connectivity) {
+        case Post::ComponentConnectivity::OVERLAP:
+            return "Component ID";
+        case Post::ComponentConnectivity::SEPARATE_BY_FLAG:
+            return "Component ID (flag)";
+        case Post::ComponentConnectivity::ESCAPE_VELOCITY:
+            return "Bound component ID";
+        default:
+            STOP;
+        }
+    }
+};
+
+class AggregateIdColorizer : public IColorizer {
+private:
+    RawPtr<IAggregateObserver> aggregates;
+
+public:
+    virtual void initialize(const Storage& storage, const RefEnum UNUSED(ref)) override {
+        aggregates = dynamicCast<IAggregateObserver>(storage.getUserData().get());
+    }
+
+    virtual bool isInitialized() const override {
+        return aggregates != nullptr;
+    }
+
+    virtual Color evalColor(const Size idx) const override {
+        const Optional<Size> id = aggregates->getAggregateId(idx);
+        if (id) {
+            return getRandomizedColor(id.value());
+        } else {
+            return Color::gray();
+        }
+    }
+
+    virtual Optional<Particle> getParticle(const Size idx) const override {
+        const Optional<Size> id = aggregates->getAggregateId(idx);
+        if (id) {
+            return Particle(idx).addValue(QuantityId::FLAG, id.value());
+        } else {
+            return Particle(idx);
+        }
+    }
+
+    virtual Optional<Palette> getPalette() const override {
+        return NOTHING;
+    }
+
+    virtual std::string name() const override {
+        return "Aggregate ID";
+    }
+};
+
 
 class FlagColorizer : public IColorizer {
 private:

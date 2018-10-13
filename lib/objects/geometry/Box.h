@@ -72,64 +72,67 @@ public:
         return true;
     }
 
-    /// Clamps all components of the vector to fit within the box
+    /// \brief Clamps all components of the vector to fit within the box
     INLINE Vector clamp(const Vector& v) const {
         ASSERT(isValid());
         return Sph::clamp(v, minBound, maxBound);
     }
 
-    /// Returns lower bounds of the box.
+    /// \brief Returns lower bounds of the box.
     INLINE const Vector& lower() const {
         ASSERT(isValid());
         return minBound;
     }
 
-    /// Returns lower bounds of the box.
+    /// \brief Returns lower bounds of the box.
     INLINE Vector& lower() {
         ASSERT(isValid());
         return minBound;
     }
 
-    /// Returns upper bounds of the box
+    /// \brief Returns upper bounds of the box
     INLINE const Vector& upper() const {
         ASSERT(isValid());
         return maxBound;
     }
 
-    /// Returns upper bounds of the box
+    /// \brief Returns upper bounds of the box
     INLINE Vector& upper() {
         ASSERT(isValid());
         return maxBound;
     }
 
-    /// Returns box dimensions.
+    /// \brief Returns box dimensions.
     INLINE Vector size() const {
         ASSERT(isValid());
         return maxBound - minBound;
     }
 
-    /// Returns the center of the box.
+    /// \brief Returns the center of the box.
     INLINE Vector center() const {
         ASSERT(isValid());
         return 0.5_f * (minBound + maxBound);
     }
 
-    /// Returns the volume of the box.
+    /// \brief Returns the volume of the box.
     INLINE Float volume() const {
         const Vector s = size();
         return s[X] * s[Y] * s[Z];
     }
 
-    /// Compares two boxes, return true if box lower and upper bounds are equal.
+    /// \brief Compares two boxes, return true if box lower and upper bounds are equal.
     INLINE bool operator==(const Box& other) const {
         return minBound == other.minBound && maxBound == other.maxBound;
     }
 
+    /// \brief Checks for inequality of boxes.
     INLINE bool operator!=(const Box& other) const {
         return minBound != other.minBound || maxBound != other.maxBound;
     }
 
-    /// Splits the box along given coordinate. The splitting plane must pass through the box.
+    /// \brief Splits the box along given coordinate.
+    ///
+    /// The splitting plane must pass through the box.
     /// \param dim Dimension, can be X, Y or Z.
     /// \param x Coordinate in given dimension used for the split
     /// \return Two boxes created by the split.
@@ -144,7 +147,7 @@ public:
     }
 
 
-    /// Execute functor for all possible values of vector (with constant stepping)
+    /// \brief Execute functor for all possible values of vector (with constant stepping)
     template <typename TFunctor>
     void iterate(const Vector& step, TFunctor&& functor) const {
         ASSERT(isValid());
@@ -157,8 +160,8 @@ public:
         }
     }
 
-    /// Execute functor for all possible values of vector (with constant stepping), passing auxiliary indices
-    /// together with the vector
+    /// \brief Execute functor for all possible values of vector (with constant stepping), passing auxiliary
+    /// indices together with the vector
     template <typename TFunctor>
     void iterateWithIndices(const Vector& step, TFunctor&& functor) const {
         ASSERT(isValid());
@@ -175,8 +178,9 @@ public:
         }
     }
 
-    /// Prints the bounds of the box into the stream. The box can be empty, in which case EMPTY is written
-    /// instead of the bounds.
+    /// \brief Prints the bounds of the box into the stream.
+    ///
+    /// The box can be empty, in which case EMPTY is written instead of the bounds.
     friend std::ostream& operator<<(std::ostream& stream, const Box& box) {
         if (box == Box::EMPTY()) {
             stream << "EMPTY";

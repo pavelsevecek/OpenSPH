@@ -14,12 +14,23 @@ NBodySolver::NBodySolver(IScheduler& scheduler, const RunSettings& settings)
     : NBodySolver(scheduler, settings, Factory::getGravity(settings)) {}
 
 NBodySolver::NBodySolver(IScheduler& scheduler, const RunSettings& settings, AutoPtr<IGravity>&& gravity)
+    : NBodySolver(scheduler,
+          settings,
+          std::move(gravity),
+          Factory::getCollisionHandler(settings),
+          Factory::getOverlapHandler(settings)) {}
+
+NBodySolver::NBodySolver(IScheduler& scheduler,
+    const RunSettings& settings,
+    AutoPtr<IGravity>&& gravity,
+    AutoPtr<ICollisionHandler>&& collisionHandler,
+    AutoPtr<IOverlapHandler>&& overlapHandler)
     : gravity(std::move(gravity))
     , scheduler(scheduler)
     , threadData(scheduler) {
-    collision.handler = Factory::getCollisionHandler(settings);
+    collision.handler = std::move(collisionHandler);
     collision.finder = Factory::getFinder(settings);
-    overlap.handler = Factory::getOverlapHandler(settings);
+    overlap.handler = std::move(overlapHandler);
     overlap.allowedRatio = settings.get<Float>(RunSettingsId::COLLISION_ALLOWED_OVERLAP);
     rigidBody.use = settings.get<bool>(RunSettingsId::NBODY_INERTIA_TENSOR);
     rigidBody.maxAngle = settings.get<Float>(RunSettingsId::NBODY_MAX_ROTATION_ANGLE);
@@ -226,11 +237,11 @@ void NBodySolver::collide(Storage& storage, Statistics& stats, const Float dt) {
     // const Float searchRadius = getSearchRadius(r, v, dt);
 
     // tree for finding collisions
-    collision.finder->buildWithRank(scheduler, r, [this, dt](const Size i, const Size j) {
+    collision.finder->buildWithRank(SEQUENTIAL, r, [this, dt](const Size i, const Size j) {
         return r[i][H] + getLength(v[i]) * dt < r[j][H] + getLength(v[j]) * dt;
     });
 
-    // handler determining collison outcomes
+    // handler determining collision outcomes
     collision.handler->initialize(storage);
     overlap.handler->initialize(storage);
 
@@ -290,12 +301,17 @@ void NBodySolver::collide(Storage& storage, Statistics& stats, const Float dt) {
             result = collision.handler->collide(i, j, removed);
             cs.clasify(result);
         }
-        ASSERT(result != CollisionResult::NONE);
 
         // move the positions back to the beginning of the timestep
         r[i] -= v[i] * t_coll;
         r[j] -= v[j] * t_coll;
         ASSERT(isReal(r[i]) && isReal(r[j]));
+
+        if (result == CollisionResult::NONE) {
+            // no collision to process
+            collisions.erase(collisions.begin());
+            continue;
+        }
 
         // remove all collisions containing either i or j
         invalidIdxs.clear();

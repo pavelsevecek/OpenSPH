@@ -59,6 +59,10 @@ public:
         data.insert(from, std::forward<U>(value));
     }
 
+    void reserve(const Size capacity) {
+        data.reserve(capacity);
+    }
+
     Iterator<T> find(const T& value) {
         Size from = 0;
         Size to = data.size();

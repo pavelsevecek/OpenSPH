@@ -202,6 +202,10 @@ struct HistogramParams {
     /// Applicable only for particle histogram.
     Float massCutoff = 0._f;
 
+    /// If true, the bin values of the differential histogram are in the centers of the corresponding
+    /// intervals, otherwise they correspond to the lower bound of the interval.
+    bool centerBins = true;
+
     /// \brief Parameters used by histogram of components
     struct ComponentParams {
 

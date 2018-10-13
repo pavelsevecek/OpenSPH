@@ -159,6 +159,9 @@ enum class StatisticsId {
     /// Number of particle overlaps detected during collision evaluation
     OVERLAP_COUNT,
 
+    /// Number of aggregates in the simulation (single particles are not counted as aggregates).
+    AGGREGATE_COUNT,
+
     /// Current angular position of the non-inertial frame
     FRAME_ANGLE,
 

@@ -25,6 +25,12 @@ AutoPtr<GuiSettings> GuiSettings::instance (new GuiSettings {
         "Look-at point of the perspective camera. Actual distance from the camera does not matter." },
     { GuiSettingsId::PERSPECTIVE_UP,        "perspective.up",       Vector(0._f, 1._f, 0._f),
         "Up-vector of the perspective camera. Does not have to be normalized." },
+    { GuiSettingsId::PERSPECTIVE_CLIP_NEAR, "perspective.clip.near", EPS,
+        "Nearest distance that can be projected by the perspective camera" },
+    { GuiSettingsId::PERSPECTIVE_CLIP_FAR,  "perspective.clip.far",  INFTY,
+        "Farthest distance that can be projected by the perspective camera" },
+    { GuiSettingsId::PERSPECTIVE_TRACKED_PARTICLE, "perspective.tracked_particle",  -1,
+        "Index of the particle tracked by the camera. -1 means no tracking is used. " },
 
     /// Particle visualization
     { GuiSettingsId::RENDERER,              "renderer",             RendererEnum::PARTICLE,

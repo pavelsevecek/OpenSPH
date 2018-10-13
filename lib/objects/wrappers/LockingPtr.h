@@ -13,10 +13,10 @@
 NAMESPACE_SPH_BEGIN
 
 namespace Detail {
-template <typename T>
+template <typename T, typename TMutex = std::mutex>
 class LockingControlBlock : public ControlBlock<T> {
 private:
-    std::mutex mutex;
+    TMutex mutex;
     bool locked = false;
 
 public:

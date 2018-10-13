@@ -361,7 +361,7 @@ template <Size N, typename T0, typename... TArgs>
 struct ForValue {
     template <typename TVariant, typename TFunctor>
     INLINE static decltype(auto) action(TVariant&& variant, TFunctor&& functor) {
-        if (variant.template getTypeIdx() == N) {
+        if (variant.getTypeIdx() == N) {
             return functor(variant.template get<T0>());
         } else {
             return ForValue<N + 1, TArgs...>::action(
@@ -375,7 +375,7 @@ template <Size N, typename... TArgs>
 struct ForValue<N, NothingType, TArgs...> {
     template <typename TVariant, typename TFunctor>
     INLINE static decltype(auto) action(TVariant&& variant, TFunctor&& functor) {
-        if (variant.template getTypeIdx() != N) {
+        if (variant.getTypeIdx() != N) {
             return ForValue<N + 1, TArgs...>::action(
                 std::forward<TVariant>(variant), std::forward<TFunctor>(functor));
         }

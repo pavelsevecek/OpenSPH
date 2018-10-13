@@ -108,9 +108,12 @@ public:
 
     /// Explicitly create a new copy
     ClonePtr<T> clone() const {
-        ASSERT(cloner);
-        AutoPtr<T> cloned(static_cast<T*>(cloner->clonePtr()));
-        return ClonePtr<T>(std::move(cloned), cloner->cloneThis());
+        if (!ptr) {
+            return nullptr;
+        } else {
+            AutoPtr<T> cloned(static_cast<T*>(cloner->clonePtr()));
+            return ClonePtr<T>(std::move(cloned), cloner->cloneThis());
+        }
     }
 
     T& operator*() const {

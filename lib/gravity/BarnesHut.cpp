@@ -238,13 +238,13 @@ void BarnesHut::evalNode(IScheduler& scheduler,
         const InnerNode<BarnesHutNode>& inner =
             reinterpret_cast<const InnerNode<BarnesHutNode>&>(evaluatedNode);
         // recurse into child nodes
+        data.depth++;
         // we evaluate the left one from a (possibly) different thread, we thus have to clone buffers now so
         // that we don't override the lists when evaluating different node (each node has its own lists).
         TreeWalkState childData = data.clone();
         childData.checkList.pushBack(inner.right);
-        childData.depth++;
         auto task = makeShared<NodeTask>(*this, scheduler, dv, inner.left, std::move(childData), result);
-        if (childData.depth <= ceil(log2(scheduler.getThreadCnt()))) {
+        if (childData.depth < maxDepth) {
             // Ad-hoc decision (see also KdTree.cpp where we do the same trick);
             // only split the build in the topmost nodes, process the bottom nodes in the same thread to avoid
             // high scheduling overhead of ThreadPool (TBBs deal with this quite well)
@@ -258,7 +258,6 @@ void BarnesHut::evalNode(IScheduler& scheduler,
         // since we go only once through the tree (we never go 'up'), we can simply move the lists into the
         // right child and modify them for the child node
         data.checkList.pushBack(inner.left);
-        data.depth++;
         this->evalNode(scheduler, dv, inner.right, std::move(data), result);
     }
 }

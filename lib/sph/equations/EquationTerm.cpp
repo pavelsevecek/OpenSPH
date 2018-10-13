@@ -5,6 +5,36 @@
 
 NAMESPACE_SPH_BEGIN
 
+/// \brief Discretization of pressure term in standard SPH formulation.
+class StandardForceDiscr {
+    ArrayView<const Float> rho;
+
+public:
+    void initialize(const Storage& input) {
+        rho = input.getValue<Float>(QuantityId::DENSITY);
+    }
+
+    template <typename T>
+    INLINE T eval(const Size i, const Size j, const T& vi, const T& vj) {
+        return vi / sqr(rho[i]) + vj / sqr(rho[j]);
+    }
+};
+
+/// \brief Discretization of pressure term in code SPH5
+class BenzAsphaugForceDiscr {
+    ArrayView<const Float> rho;
+
+public:
+    void initialize(const Storage& input) {
+        rho = input.getValue<Float>(QuantityId::DENSITY);
+    }
+
+    template <typename T>
+    INLINE T eval(const Size i, const Size j, const T& vi, const T& vj) {
+        return (vi + vj) / (rho[i] * rho[j]);
+    }
+};
+
 template <typename Discr>
 class PressureGradient : public DerivativeTemplate<PressureGradient<Discr>> {
 private:

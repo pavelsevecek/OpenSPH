@@ -86,7 +86,7 @@ public:
     }
 };
 
-/// Helper class, provides functions \ref begin and \ref end, returning iterators to the first and last
+/// \brief Helper class, provides functions \ref begin and \ref end, returning iterators to the first and last
 /// quantity in \ref Storage, respectively.
 class StorageSequence {
 private:
@@ -106,8 +106,8 @@ public:
     Size size() const;
 };
 
-/// Helper class, provides functions \ref begin and \ref end, returning const iterators to the first and last
-/// quantity in \ref Storage, respectively.
+/// \brief Helper class, provides functions \ref begin and \ref end, returning const iterators to the first
+/// and last quantity in \ref Storage, respectively.
 class ConstStorageSequence {
 private:
     const Storage& storage;
@@ -125,6 +125,9 @@ public:
     /// Returns the number of quantities.
     Size size() const;
 };
+
+/// \brief Base class for arbitrary data stored in the storage alongside particles
+class IStorageUserData : public Polymorphic {};
 
 /// \brief Container storing all quantities used within the simulations.
 ///
@@ -155,10 +158,10 @@ class Storage : public Noncopyable, public ShareFromThis<Storage> {
     friend class ConstStorageSequence;
 
 private:
-    /// Stored quantities (array of arrays). All arrays must be the same size at all times.
+    /// \brief Stored quantities (array of arrays). All arrays must be the same size at all times.
     std::map<QuantityId, Quantity> quantities;
 
-    /// Holds information about a material and particles with this material.
+    /// \brief Holds information about a material and particles with this material.
     struct MatRange {
         /// Actual implementation of the material
         SharedPtr<IMaterial> material;
@@ -189,6 +192,11 @@ private:
     ///
     /// Needed in order to keep the number of particles in dependent storages the same.
     Array<WeakPtr<Storage>> dependent;
+
+    /// \brief Arbitrary data set by \ref setUserData.
+    ///
+    /// May be nullptr.
+    SharedPtr<IStorageUserData> userData;
 
 public:
     /// \brief Creates a storage with no material.
@@ -290,6 +298,7 @@ public:
         return q.getPhysicalValue<TValue>();
     }
 
+    /// \copydoc getPhysicalValue
     template <typename TValue>
     const Array<TValue>& getPhysicalValue(const QuantityId key) const {
         return const_cast<Storage*>(this)->getPhysicalValue<TValue>(key);
@@ -311,6 +320,7 @@ public:
     }
 
     /// \brief Retrieves a quantity derivative from the storage, given its key and value type.
+    ///
     /// The stored quantity must be of type TValue, checked by assert. Quantity must already exist in the
     /// storage and must be first or second order, checked by assert.
     /// \return Array reference containing quantity derivatives.
@@ -321,7 +331,7 @@ public:
         return q.getDt<TValue>();
     }
 
-    /// Retrieves a quantity derivative from the storage, given its key and value type, const version.
+    /// \brief Retrieves a quantity derivative from the storage, given its key and value type, const version.
     template <typename TValue>
     const Array<TValue>& getDt(const QuantityId key) const {
         return const_cast<Storage*>(this)->getDt<TValue>(key);
@@ -339,8 +349,7 @@ public:
         return q.getD2t<TValue>();
     }
 
-    /// \brief Retrieves a quantity second derivative from the storage, given its key and value type, const
-    /// version.
+    /// \copydoc getD2t
     template <typename TValue>
     const Array<TValue>& getD2t(const QuantityId key) const {
         return const_cast<Storage*>(this)->getD2t<TValue>(key);
@@ -543,6 +552,16 @@ public:
     /// consecutively in the storage. This should be handled automatically, the function is mainly for
     /// debugging purposes.
     bool isValid(const Flags<ValidFlag> flags = ValidFlag::COMPLETE) const;
+
+    /// \brief Stores new user data into the storage.
+    ///
+    /// Previous user data are overriden.
+    void setUserData(SharedPtr<IStorageUserData> newData);
+
+    /// \brief Returns the stored user data.
+    ///
+    /// If no data are stored, the function returns nullptr.
+    SharedPtr<IStorageUserData> getUserData() const;
 
 private:
     /// Updates the cached matIds view.

@@ -13,7 +13,7 @@ static void benchmarkGravity(IGravity& gravity, Benchmark::Context& context) {
     settings.set(BodySettingsId::DENSITY, 100._f)
         .set(BodySettingsId::ENERGY, 10._f)
         .set(BodySettingsId::DISTRIBUTE_MODE_SPH5, true);
-    Storage storage = Tests::getGassStorage(1000, settings, 5.e3_f);
+    Storage storage = Tests::getGassStorage(100000, settings, 5.e3_f);
 
     /*ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITIONS);
     ArrayView<Float> m = storage.getValue<Float>(QuantityId::MASSES);*/
@@ -24,6 +24,7 @@ static void benchmarkGravity(IGravity& gravity, Benchmark::Context& context) {
     // context.log("particle count: ", dv.size());
     while (context.running()) {
         gravity.evalAll(pool, dv, stats);
+        Benchmark::clobberMemory();
     }
     /*const int approx = stats.getOr<int>(StatisticsId::GRAVITY_NODES_APPROX, 0);
     const int exact = stats.getOr<int>(StatisticsId::GRAVITY_NODES_EXACT, 0);

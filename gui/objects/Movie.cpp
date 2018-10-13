@@ -63,6 +63,9 @@ void Movie::onTimeStep(const Storage& storage, Statistics& stats) {
         // initialize the colorizer
         e->initialize(storage, RefEnum::WEAK);
 
+        // initialize the camera
+        camera->initialize(storage);
+
         // initialize render with new data (outside main thread)
         renderer->initialize(storage, *e, *camera);
 

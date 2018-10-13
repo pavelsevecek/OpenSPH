@@ -123,10 +123,11 @@ RunSettings getSharedSettings() {
     RunSettings settings;
     settings.set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::PREDICTOR_CORRECTOR)
         .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 1.e-2_f)
-        .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 100._f)
+        .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 1000._f)
         //.set(RunSettingsId::TIMESTEPPING_MAX_CHANGE, 0.1_f)
-        .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 40._f)
-        .set(RunSettingsId::SOLVER_FORCES, ForceEnum::PRESSURE | ForceEnum::SOLID_STRESS | ForceEnum::GRAVITY)
+        .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 4000._f)
+        .set(RunSettingsId::SOLVER_FORCES,
+            ForceEnum::PRESSURE | ForceEnum::SOLID_STRESS | ForceEnum::GRAVITY) // | ForceEnum::INERTIAL)
         .set(RunSettingsId::SOLVER_TYPE, SolverEnum::ASYMMETRIC_SOLVER)
         .set(RunSettingsId::SPH_FINDER, FinderEnum::KD_TREE)
         .set(RunSettingsId::SPH_FORMULATION, FormulationEnum::STANDARD)
@@ -145,8 +146,8 @@ RunSettings getSharedSettings() {
         .set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONST)
         .set(RunSettingsId::SPH_STRAIN_RATE_CORRECTION_TENSOR, true)
         .set(RunSettingsId::SPH_SUM_ONLY_UNDAMAGED, true)
-        .set(RunSettingsId::SPH_STABILIZATION_DAMPING, 2.5_f)
-        .set(RunSettingsId::FRAME_ANGULAR_FREQUENCY, Vector(0._f));
+        .set(RunSettingsId::SPH_STABILIZATION_DAMPING, 1._f)
+        .set(RunSettingsId::FRAME_ANGULAR_FREQUENCY, Vector(0._f, 0._f, 0._f));
     return settings;
 }
 
@@ -158,7 +159,7 @@ Stabilization::Stabilization(RawPtr<Controller> newController) {
         // continue run, we don't need to do the stabilization, so skip it by settings the range to zero
         settings.set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 0._f));
     } else {
-        settings.set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 100._f));
+        settings.set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 2000._f));
     }
     settings.saveToFile(Path("stabilization.sph"));
 
@@ -168,7 +169,7 @@ Stabilization::Stabilization(RawPtr<Controller> newController) {
 Stabilization::~Stabilization() {}
 
 void Stabilization::setUp() {
-    scheduler = Tbb::getGlobalInstance();
+    // scheduler = Tbb::getGlobalInstance();
 
     solver = makeAuto<StabilizationSolver>(*scheduler, settings);
     storage = makeShared<Storage>();
@@ -196,7 +197,7 @@ void Stabilization::setUp() {
         }
     } else {
 
-        Size N = 80'000;
+        Size N = 200'000;
 
         BodySettings body;
         body.set(BodySettingsId::ENERGY, 0._f)
@@ -216,16 +217,17 @@ void Stabilization::setUp() {
         body.saveToFile(Path("body.sph"));
 
         Presets::CollisionParams params;
-        params.targetRadius = 50e3_f;
-        params.impactorRadius = 20e3_f;
-        params.impactAngle = 45._f * DEG_TO_RAD;
-        params.impactSpeed = 100._f;
-        params.targetRotation = 2._f * PI / (3._f * 3600._f);
+        params.targetRadius = 1.e5_f;
+        params.impactorRadius = 1.3e4_f;
+        params.impactAngle = 0._f * DEG_TO_RAD;
+        params.impactSpeed = 5.e3_f;
+        params.targetRotation = 2._f * PI / (3600._f * 2._f);
+        // params.targetRotation = 2._f * PI / (3._f * 3600._f);
         params.targetParticleCnt = N;
         // params.impactorOffset = 3;
         // params.impactorParticleCntOverride = 100;
-        params.centerOfMassFrame = true;
-        params.optimizeImpactor = false;
+        params.centerOfMassFrame = false;
+        params.optimizeImpactor = true;
 
         // Presets::CollisionSettings().saveToFile(Path("impact.sph"));
 
@@ -287,30 +289,37 @@ void Stabilization::tearDown(const Statistics& UNUSED(stats)) {
     if (wxTheApp->argc == 1) {
         ASSERT(storage->has(QuantityId::POSITION));
         onStabilizationFinished();
+
         // const Size impactorOffset = storage->getParticleCnt();
-        BodyView view = data->addImpactor(*storage);
-        view.displace(Vector(200.e3_f, 0._f, 0._f));
+
+        /*BodyView view =*/data->addImpactor(*storage);
+        // view.displace(Vector(5.e5_f, 0._f, 0._f));
 
         // copy quantities from "target" to "impactor" (equal spheres)
         /*ASSERT(storage->getParticleCnt() == 2 * impactorOffset);
+        ArrayView<Vector> r = storage->getValue<Vector>(QuantityId::POSITION);
         ArrayView<Float> u, rho, p;
         tie(u, rho, p) =
             storage->getValues<Float>(QuantityId::ENERGY, QuantityId::DENSITY, QuantityId::PRESSURE);
         ArrayView<TracelessTensor> s = storage->getValue<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
-        ArrayView<Vector> v = storage->getDt<Vector>(QuantityId::POSITION);
-        const Vector v1 = storage->getMaterial(0)->getParam<Vector>(BodySettingsId::BODY_VELOCITY);
-        const Vector v2 = storage->getMaterial(1)->getParam<Vector>(BodySettingsId::BODY_VELOCITY);
+        // ArrayView<Vector> v = storage->getDt<Vector>(QuantityId::POSITION);
+        // const Vector v1 = storage->getMaterial(0)->getParam<Vector>(BodySettingsId::BODY_VELOCITY);
+        // const Vector v2 = storage->getMaterial(1)->getParam<Vector>(BodySettingsId::BODY_VELOCITY);
 
         for (Size i = 0; i < impactorOffset; ++i) {
             u[i + impactorOffset] = u[i];
             rho[i + impactorOffset] = rho[i];
             p[i + impactorOffset] = p[i];
             s[i + impactorOffset] = s[i];
-            v[i + impactorOffset] = v[i] - v1 + v2;
+            //  v[i + impactorOffset] = v[i] - v1 + v2;
         }
 
+        for (Size i = 0; i < r.size(); ++i) {
+            r[i] -= Vector(2.5e5_f, 0._f, 0._f, 0._f);
+        }*/
+
         // data->addSecondary(*storage);
-        setupUvws(*storage);*/
+        // setupUvws(*storage);
     }
 }
 
@@ -320,9 +329,16 @@ Fragmentation::Fragmentation(SharedPtr<Presets::Collision> data, Function<void()
     , onFinished(onFinished) {
     settings = getSharedSettings();
     settings.set(RunSettingsId::RUN_NAME, std::string("Fragmentation"))
-        .set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 1000000._f))
+        .set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 10100._f))
         //.set(RunSettingsId::TIMESTEPPING_ADAPTIVE_FACTOR, 0.8_f)
-        .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 1000._f);
+        .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 1000._f)
+        .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 100._f);
+
+
+    if (wxTheApp->argc > 1) {
+        // continue run, we don't need to do the stabilization, so skip it by settings the range to zero
+        settings.set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 0._f));
+    }
 
     settings.saveToFile(Path("fragmentation.sph"));
 }
@@ -393,7 +409,7 @@ void Fragmentation::setUp() {
 
 void Fragmentation::handoff(Storage&& input) {
 
-    scheduler = Tbb::getGlobalInstance();
+    //    scheduler = Tbb::getGlobalInstance();
 
     storage = makeShared<Storage>(std::move(input));
     // there may still be some unprocessed callbacks accessing the storage of the previous phase, so we but
@@ -432,22 +448,23 @@ Reaccumulation::Reaccumulation() {
         .set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::LEAP_FROG)
         .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 0.1_f)
         .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 500._f)
-        .set(RunSettingsId::TIMESTEPPING_MAX_CHANGE, 0.001_f)
+        .set(RunSettingsId::TIMESTEPPING_MAX_INCREASE, 0.1_f)
         .set(RunSettingsId::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::ACCELERATION)
         .set(RunSettingsId::TIMESTEPPING_ADAPTIVE_FACTOR, 0.5_f)
-        .set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 30.f * 24._f * 3600._f))
-        .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 1.e10_f)
+        .set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 83000._f))
+        .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 200._f)
         .set(RunSettingsId::SPH_FINDER, FinderEnum::KD_TREE)
         .set(RunSettingsId::GRAVITY_SOLVER, GravityEnum::BARNES_HUT)
         .set(RunSettingsId::GRAVITY_KERNEL, GravityKernelEnum::SOLID_SPHERES)
         .set(RunSettingsId::GRAVITY_OPENING_ANGLE, 0.8_f)
         .set(RunSettingsId::GRAVITY_LEAF_SIZE, 20)
-        .set(RunSettingsId::COLLISION_HANDLER, CollisionHandlerEnum::MERGE_OR_BOUNCE)
+        .set(RunSettingsId::GRAVITY_RECOMPUTATION_PERIOD, 10._f)
+        .set(RunSettingsId::COLLISION_HANDLER, CollisionHandlerEnum::ELASTIC_BOUNCE)
         .set(RunSettingsId::COLLISION_OVERLAP, OverlapEnum::PASS_OR_MERGE)
-        .set(RunSettingsId::COLLISION_RESTITUTION_NORMAL, 0.1_f)
+        .set(RunSettingsId::COLLISION_RESTITUTION_NORMAL, 0.2_f)
         .set(RunSettingsId::COLLISION_RESTITUTION_TANGENT, 1._f)
         .set(RunSettingsId::COLLISION_ALLOWED_OVERLAP, 0.1_f)
-        .set(RunSettingsId::COLLISION_MERGING_LIMIT, 1._f)
+        .set(RunSettingsId::COLLISION_MERGING_LIMIT, 25._f)
         .set(RunSettingsId::NBODY_INERTIA_TENSOR, false)
         .set(RunSettingsId::NBODY_MAX_ROTATION_ANGLE, 0.01_f)
         .set(RunSettingsId::RUN_THREAD_GRANULARITY, 100);
@@ -473,11 +490,11 @@ void Reaccumulation::handoff(Storage&& sph) {
 
     // radii handoff
     ArrayView<const Float> m = sph.getValue<Float>(QuantityId::MASS);
-    ArrayView<const Float> rho = sph.getValue<Float>(QuantityId::DENSITY);
+    // ArrayView<const Float> rho = sph.getValue<Float>(QuantityId::DENSITY);
     ArrayView<Vector> r_nbody = storage->getValue<Vector>(QuantityId::POSITION);
-    ASSERT(r_nbody.size() == rho.size());
+    // ASSERT(r_nbody.size() == rho.size());
     for (Size i = 0; i < r_nbody.size(); ++i) {
-        r_nbody[i][H] = cbrt(3._f * m[i] / (4._f * PI * rho[i]));
+        r_nbody[i][H] = cbrt(3._f * m[i] / (4._f * PI * 2700._f)); // rho[i]));
     }
 
     Array<Size> toRemove;
@@ -510,6 +527,8 @@ void Reaccumulation::handoff(Storage&& sph) {
     solver->create(*storage, storage->getMaterial(0));
     ASSERT(storage->isValid());
     triggers.pushBack(makeAuto<CommonStatsLog>(Factory::getLogger(settings), settings));
+
+    output = makeAuto<BinaryOutput>(Path("reacc_%d.ssf"));
 
     //    onRunStarted(*storage);
 }

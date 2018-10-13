@@ -89,7 +89,7 @@ int pkdgravToMoons(const Path& filePath, const float limit) {
     return 0;
 }
 
-int ssfToSfd(const Path& filePath, const Path& sfdPath) {
+int ssfToSfd(const Post::HistogramSource source, const Path& filePath, const Path& sfdPath) {
     std::cout << "Processing SPH file ... " << std::endl;
     BinaryOutput output;
     Storage storage;
@@ -101,8 +101,8 @@ int ssfToSfd(const Path& filePath, const Path& sfdPath) {
     }
 
     Post::HistogramParams params;
-    Array<Post::HistPoint> sfd = Post::getCummulativeHistogram(
-        storage, Post::HistogramId::EQUIVALENT_MASS_RADII, Post::HistogramSource::PARTICLES, params);
+    Array<Post::HistPoint> sfd =
+        Post::getCummulativeHistogram(storage, Post::HistogramId::EQUIVALENT_MASS_RADII, source, params);
     FileLogger logSfd(sfdPath, FileLogger::Options::KEEP_OPENED);
     for (Post::HistPoint& p : sfd) {
         logSfd.write(p.value, "  ", p.count);
@@ -128,12 +128,15 @@ int ssfToOmega(const Path& filePath,
     params.range = Interval(0._f, 13._f);
     params.binCnt = 12;
 
-    const Float massCutoff = 1._f / 300000._f;
+    ArrayView<const Vector> w = storage.getValue<Vector>(QuantityId::ANGULAR_VELOCITY);
     ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
+    // const Float massCutoff = 1._f / 300000._f;
     const Float m_total = std::accumulate(m.begin(), m.end(), 0._f);
-    params.validator = [m, m_total, massCutoff](const Size i) { //
-        return m[i] >= m_total * massCutoff;
+    params.validator = [w](const Size i) { //
+        return getSqrLength(w[i]) > 0._f;  //= m_total * massCutoff;
     };
+
+    params.centerBins = false;
 
     Array<Post::HistPoint> sfd = Post::getDifferentialHistogram(
         storage, Post::HistogramId::ROTATIONAL_FREQUENCY, Post::HistogramSource::PARTICLES, params);
@@ -160,7 +163,7 @@ int ssfToOmega(const Path& filePath,
         h[i] = r[i][H]; // root<3>(3.f * m[i] / (rho[i] * 4.f * PI));
     }
 
-    ArrayView<const Vector> w = storage.getValue<Vector>(QuantityId::ANGULAR_VELOCITY);
+
     FileLogger logOmegaD(omegaDPath, FileLogger::Options::KEEP_OPENED);
     for (Size i = 0; i < m.size(); ++i) {
         if (m[i] > 3._f * params.massCutoff * m_total) {
@@ -351,18 +354,21 @@ static Optional<Post::KsResult> printDvsOmega(const Path& familyData,
     Post::KsFunction uniformCdf = Post::getUniformKsFunction(rangeR, rangeOmega);
     Post::KsResult result = Post::kolmogorovSmirnovTest(points, uniformCdf);
 
-    const Path histPath = Path("histogram") / outputPath.fileName();
-    FileSystem::createDirectory(histPath.parentPath());
-    std::ofstream histofs(histPath.native());
-    Array<Float> values;
-    for (PlotPoint& p : points) {
-        values.push(p.y);
-    }
-    Post::HistogramParams params;
-    params.range = Interval(0._f, 13._f);
-    Array<Post::HistPoint> histogram = Post::getDifferentialHistogram(values, params);
-    for (Post::HistPoint p : histogram) {
-        histofs << p.value << "  " << p.count << std::endl;
+
+    if (points.size() > 36) {
+        const Path histPath = Path("histogram") / outputPath.fileName();
+        FileSystem::createDirectory(histPath.parentPath());
+        std::ofstream histofs(histPath.native());
+        Array<Float> values;
+        for (PlotPoint& p : points) {
+            values.push(p.y);
+        }
+        Post::HistogramParams params;
+        params.range = Interval(0._f, 13._f);
+        Array<Post::HistPoint> histogram = Post::getDifferentialHistogram(values, params);
+        for (Post::HistPoint p : histogram) {
+            histofs << p.value << "  " << p.count << std::endl;
+        }
     }
 
     outPoints = std::move(points);
@@ -509,10 +515,14 @@ int main(int argc, char** argv) {
             return pkdgravToMoons(Path(argv[2]), limit);
         } else if (mode == "ssfToSfd") {
             if (argc < 4) {
-                std::cout << "Expected parameters: post ssfToSfd output.ssf sfd.txt";
+                std::cout << "Expected parameters: post ssfToSfd [--components] output.ssf sfd.txt";
                 return 0;
             }
-            return ssfToSfd(Path(argv[2]), Path(argv[3]));
+            if (std::string(argv[2]) == "--components") {
+                return ssfToSfd(Post::HistogramSource::COMPONENTS, Path(argv[3]), Path(argv[4]));
+            } else {
+                return ssfToSfd(Post::HistogramSource::PARTICLES, Path(argv[2]), Path(argv[3]));
+            }
         } else if (mode == "ssfToOmega") {
             if (argc < 6) {
                 std::cout << "Expected parameters: post ssfToOmega output.ssf omega.txt omega_D.txt "

@@ -7,13 +7,15 @@
 
 #include "gui/objects/Point.h"
 #include "math/AffineMatrix.h"
+#include "objects/wrappers/ClonePtr.h"
 #include "objects/wrappers/Optional.h"
+#include "quantities/Storage.h"
 
 NAMESPACE_SPH_BEGIN
 
 class Storage;
 
-/// Represents a particle projected onto image plane
+/// \brief Represents a particle projected onto image plane
 struct ProjectedPoint {
 
     /// Point in image coordinates
@@ -23,7 +25,7 @@ struct ProjectedPoint {
     float radius;
 };
 
-/// Ray given by origin and target point
+/// \brief Ray given by origin and target point
 struct CameraRay {
     Vector origin;
     Vector target;
@@ -112,18 +114,54 @@ public:
     virtual void pan(const Point offset) override;
 };
 
+class ITracker : public Polymorphic {
+public:
+    virtual Vector position(const Storage& storage) const = 0;
+};
+
+class ConstTracker : public ITracker {
+private:
+    Vector pos;
+
+public:
+    explicit ConstTracker(const Vector& pos)
+        : pos(pos) {}
+
+    virtual Vector position(const Storage& UNUSED(storage)) const override {
+        return pos;
+    }
+};
+
+class ParticleTracker : public ITracker {
+private:
+    Size index;
+
+public:
+    explicit ParticleTracker(const Size index)
+        : index(index) {}
+
+    virtual Vector position(const Storage& storage) const override {
+        return storage.getValue<Vector>(QuantityId::POSITION)[index];
+    }
+};
+
 struct PerspectiveCameraData {
     /// Field of view (angle)
-    float fov;
+    Float fov = PI / 3._f;
 
     /// Camera position in space
-    Vector position;
+    Vector position = Vector(0._f, 0._f, -1._f);
 
     /// Look-at point in space
-    Vector target;
+    Vector target = Vector(0._f);
 
     /// Up vector of the camera (direction)
-    Vector up;
+    Vector up = Vector(0._f, 1._f, 0._f);
+
+    /// Defines the clipping planes of the camera.
+    Interval clipping = Interval(0._f, INFTY);
+
+    ClonePtr<ITracker> tracker = nullptr;
 };
 
 /// \brief Perspective camera
@@ -144,6 +182,7 @@ private:
 
         /// Last matrix set by \ref transform.
         AffineMatrix matrix = AffineMatrix::identity();
+
     } cached;
 
 public:

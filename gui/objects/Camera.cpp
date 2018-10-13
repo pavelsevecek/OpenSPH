@@ -19,7 +19,7 @@ OrthoCamera::OrthoCamera(const Point imageSize, const Point center, OrthoCameraD
 
 void OrthoCamera::initialize(const Storage& storage) {
     if (data.fov) {
-        // fov specified explicitly, we don't have to initialize anything
+        // fov either specified explicitly or already computed
         return;
     }
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
@@ -73,18 +73,27 @@ void OrthoCamera::pan(const Point offset) {
 PerspectiveCamera::PerspectiveCamera(const Point imageSize, const PerspectiveCameraData& data)
     : imageSize(imageSize)
     , data(data) {
+    ASSERT(data.clipping.lower() > 0._f && data.clipping.size() > EPS);
+
     this->update();
 }
 
-void PerspectiveCamera::initialize(const Storage& UNUSED(storage)) {
-    /// \todo auto-view, like OrthoCamera
+void PerspectiveCamera::initialize(const Storage& storage) {
+    /// \todo auto-view, like OrthoCamera ?
+
+    if (data.tracker) {
+        const Vector newTarget = data.tracker->position(storage);
+        data.position += newTarget - data.target;
+        data.target = newTarget;
+        this->update();
+    }
 }
 
 Optional<ProjectedPoint> PerspectiveCamera::project(const Vector& r) const {
     const Vector dr = r - data.position;
     const Float proj = dot(dr, cached.dir);
-    if (proj <= 0._f) {
-        // point on the other side of the camera view
+    if (!data.clipping.contains(proj)) {
+        // point clipped by the clipping planes
         return NOTHING;
     }
     const Vector r0 = dr / proj;
@@ -123,7 +132,7 @@ Vector PerspectiveCamera::getDirection() const {
 
 void PerspectiveCamera::zoom(const Point UNUSED(fixedPoint), const float magnitude) {
     ASSERT(magnitude > 0.f);
-    data.fov *= 0.1_f * magnitude;
+    data.fov *= 1._f + 0.01_f * magnitude;
     this->transform(cached.matrix);
 }
 
@@ -148,10 +157,15 @@ void PerspectiveCamera::pan(const Point offset) {
 void PerspectiveCamera::update() {
     cached.dir = getNormalized(data.target - data.position);
 
+    // make sure the up vector is perpendicular
+    Vector up = data.up;
+    up = getNormalized(up - dot(up, cached.dir) * cached.dir);
+    ASSERT(abs(dot(up, cached.dir)) < EPS);
+
     const Float aspect = Float(imageSize.x) / Float(imageSize.y);
     ASSERT(aspect >= 1._f); // not really required, using for simplicity
     const Float tgfov = tan(0.5_f * data.fov);
-    cached.up = tgfov / aspect * getNormalized(data.up);
+    cached.up = tgfov / aspect * up;
     cached.left = tgfov * getNormalized(cross(cached.up, cached.dir));
 }
 

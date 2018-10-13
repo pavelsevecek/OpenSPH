@@ -257,8 +257,11 @@ void Controller::onTimeStep(const Storage& storage, Statistics& stats) {
         this->redraw(storage, stats);
         vis.timer->restart();
 
-        // update particle probe - has to be done after we redraw the image as it initializes the colorizer
-        executeOnMainThread([this] { this->setSelectedParticle(vis.selectedParticle); });
+        executeOnMainThread([this] {
+            // update particle probe - has to be done after we redraw the image as it initializes
+            // the colorizer
+            this->setSelectedParticle(vis.selectedParticle);
+        });
     }
 
     // executed all waiting callbacks
@@ -301,10 +304,6 @@ void Controller::update(const Storage& storage) {
         window->runStarted();
         window->setColorizerList(this->getColorizerList(storage, false, {}));
     });
-
-    // setup camera
-    ASSERT(vis.camera);
-    vis.camera->initialize(storage);
 
     // draw initial positions of particles
     /// \todo generalize stats
@@ -358,7 +357,11 @@ Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage
         colorizerIds.push(ColorizerId::MOVEMENT_DIRECTION);
         colorizerIds.push(ColorizerId::ACCELERATION);
         colorizerIds.push(ColorizerId::RADIUS);
-        colorizerIds.push(ColorizerId::ID);
+        colorizerIds.push(ColorizerId::PARTICLE_ID);
+        colorizerIds.push(ColorizerId::COMPONENT_ID);
+        colorizerIds.push(ColorizerId::BOUND_COMPONENT_ID);
+        colorizerIds.push(ColorizerId::AGGREGATE_ID);
+
         colorizerIds.push(ColorizerId::FLAG);
         colorizerIds.push(ColorizerId::UVW);
 
@@ -575,6 +578,10 @@ void Controller::redraw(const Storage& storage, Statistics& stats) {
         std::unique_lock<std::mutex> lock(vis.mainThreadMutex);
         vis.stats = makeAuto<Statistics>(stats);
         vis.positions = copyable(storage.getValue<Vector>(QuantityId::POSITION));
+
+        // setup camera
+        ASSERT(vis.camera);
+        vis.camera->initialize(storage);
 
         // initialize the currently selected colorizer
         ASSERT(vis.isInitialized());

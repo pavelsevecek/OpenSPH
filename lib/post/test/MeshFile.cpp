@@ -2,6 +2,11 @@
 #include "catch.hpp"
 #include "io/FileSystem.h"
 
+/*#include "io/Logger.h"
+#include "post/MeshDomain.h"
+#include "sph/initial/Distribution.h"
+#include "thread/Scheduler.h"*/
+
 using namespace Sph;
 
 TEST_CASE("MeshFile Triangle conversion", "[meshfile]") {
@@ -27,7 +32,7 @@ TEST_CASE("MeshFile Triangle conversion", "[meshfile]") {
     REQUIRE(outIdxs == Array<Size>({ 0, 1, 2, 0, 1, 3, 0, 2, 3, 1, 2, 3 }));
 }
 
-TEST_CASE("Ply cube", "[meshfile]") {
+TEST_CASE("Ply save cube", "[meshfile]") {
     PlyFile file;
 
     Array<Vector> vertices{
@@ -76,3 +81,25 @@ TEST_CASE("Ply cube", "[meshfile]") {
     Size faceCnt = std::stoi(plyData.substr(n + 13, 3));
     REQUIRE(faceCnt == 12);
 }
+
+TEST_CASE("Ply load cube", "[meshfile]") {
+    PlyFile file;
+    Expected<Array<Triangle>> triangles = file.load(Path("cube.ply"));
+    REQUIRE(triangles);
+    REQUIRE(triangles->size() == 12); // six squares -> 12 triangles
+}
+
+/*TEST_CASE("Test bunny", "[meshfile]") {
+    PlyFile file;
+    Path bunnyPath("/home/pavel/projects/astro/sph/external/bunny/reconstruction/bun_zipper.ply");
+    Expected<Array<Triangle>> triangles = file.load(bunnyPath);
+    REQUIRE(triangles);
+
+    MeshDomain domain(std::move(triangles.value()), AffineMatrix::rotateX(PI / 2._f));
+    HexagonalPacking packing;
+    Array<Vector> r = packing.generate(SEQUENTIAL, 300000, domain);
+    FileLogger logger(Path("bunny.txt"));
+    for (Size i = 0; i < r.size(); ++i) {
+        logger.write(r[i][X], "  ", r[i][Y], "  ", r[i][Z]);
+    }
+}*/

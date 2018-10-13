@@ -1112,10 +1112,10 @@ enum class RunSettingsId {
     /// derivative of the particle; these statistics are not saved for other powers.
     TIMESTEPPING_MEAN_POWER,
 
-    /// Maximum relative change of a timestep in two subsequent timesteps. Used to 'smooth' the timesteps and
-    /// avoid large oscillations of timesteps to both very low and very high values. Used only by
-    /// MultiCriterion.
-    TIMESTEPPING_MAX_CHANGE,
+    /// Maximum relative increase of a timestep in two subsequent timesteps. Used to 'smooth' the timesteps,
+    /// as it prevents very fast increase of the time step, especially if the initial time step is very low.
+    /// Used only by \ref MultiCriterion.
+    TIMESTEPPING_MAX_INCREASE,
 
     /// Number of sub-steps in the modified midpoint method.
     TIMESTEPPING_MIDPOINT_COUNT,

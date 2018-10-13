@@ -6,6 +6,7 @@
 #include "system/Factory.h"
 #include "system/Settings.impl.h"
 #include "thread/Pool.h"
+#include "timestepping/ISolver.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -215,6 +216,38 @@ void Presets::Satellite::addSecondary(Storage& storage) {
 
     view.addVelocity(v);
     view.addRotation(_params.satelliteRotation, BodyView::RotationOrigin::CENTER_OF_MASS);
+}
+
+void Presets::addCloud(Storage& storage,
+    ISolver& solver,
+    const RunSettings& settings,
+    const BodySettings& body,
+    const CloudParams& params) {
+
+    AutoPtr<IRng> rng = Factory::getRng(settings);
+    Array<Vector> r, v;
+
+    for (Size i = 0; i < params.particleCnt; ++i) {
+        const Float phi = 2._f * PI * (*rng)(0);
+        const Float rad = params.cloudRadius * pow((*rng)(1), params.radialExponent);
+        const Vector pos(rad * cos(phi), rad * sin(phi), 0._f, params.particleRadius);
+        r.push(pos);
+
+        /// \todo this is only true for uniform distribution!!
+        const Float M = params.totalMass * sqr(rad) / sqr(params.cloudRadius);
+        const Float v_kep = sqrt(Constants::gravity * M / rad);
+        v.push(v_kep * cross(Vector(0._f, 0._f, 1._f), pos / rad));
+    }
+    repelParticles(r, 4._f);
+
+    Storage cloud(Factory::getMaterial(body));
+    cloud.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, std::move(r));
+    cloud.getDt<Vector>(QuantityId::POSITION) = std::move(v);
+
+    cloud.insert<Float>(QuantityId::MASS, OrderEnum::ZERO, params.totalMass / params.particleCnt);
+    solver.create(cloud, cloud.getMaterial(0));
+
+    storage.merge(std::move(cloud));
 }
 
 NAMESPACE_SPH_END
