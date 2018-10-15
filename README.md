@@ -1,7 +1,7 @@
 # SPH
 
 ## About
-UnnamedSPH is an integrator of hydrodynamic equations using SPH discretization in space, 
+<name here> is an integrator of hydrodynamic equations using SPH discretization in space, 
 currently specialized on simulations of asteroid impacts. The code is being developed 
 on Astronomical Institute of Charles University in Prague. It aims to provide a fast, 
 versatile and easily extensible SPH solver utilizing modern CPU features (SSE/AVX 
