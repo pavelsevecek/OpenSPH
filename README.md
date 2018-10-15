@@ -60,7 +60,10 @@ For the impact experiment, this can be easily done with InitialConditions object
 See file cli/main.cpp for an example of a simple impact simulation.
 
 ## Implemented components of the code
-See [documentation](http://sirrah.troja.mff.cuni.cz/~sevecek/sph/docs/List.html)
+See [list](http://sirrah.troja.mff.cuni.cz/~sevecek/sph/docs/List.html)
+
+## Examples of the code usage
+See [examples](http://sirrah.troja.mff.cuni.cz/~sevecek/sph/docs/Examples.html)
 
 ## Bug reports, ideas, question
 Feel free to contact me at <a href="mailto:sevecek@sirrah.troja.mff.cuni.cz">sevecek@sirrah.troja.mff.cuni.cz</a>. 
