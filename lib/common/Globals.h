@@ -18,7 +18,7 @@ using Size = uint32_t;
 /// Signed integral type, used where negative numbers are necessary. Should match Size.
 using SignedSize = int32_t;
 
-/// Number of spatial dimensions using in the code.
+/// Number of spatial dimensions in the code.
 constexpr int DIMENSIONS = 3;
 
 /// Number of valid digits of numbers on output
@@ -29,7 +29,6 @@ INLINE constexpr Float operator"" _f(const long double v) {
     return Float(v);
 }
 
-/// Rename to something
-constexpr char CODE_NAME[] = "SPH";
+constexpr char CODE_NAME[] = "OpenSPH";
 
 NAMESPACE_SPH_END

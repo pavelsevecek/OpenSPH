@@ -60,6 +60,11 @@ public:
         return *this;
     }
 
+    /// \brief Returns the average intensity of the color.
+    float intensity() const {
+        return (data[0] + data[1] + data[2]) / 3.f;
+    }
+
     /// \brief Returns a color darker by given factor.
     ///
     /// \param amount Value in interval [0, 1], where 0 = current color, 1 = black.
@@ -73,12 +78,12 @@ public:
     /// \param amount Value in interval [0, INFTY], where 0 = current color, 1 = 100% more brighter, etc.
     Color brighten(const float amount) const {
         ASSERT(amount >= 0.f);
-        return (1._f + amount) * data;
+        return (1.f + amount) * data;
     }
 
     /// \brief Returns an inverse color.
     Color inverse() const {
-        return max(BasicVector<float>(1._f) - data, BasicVector<float>(0._f));
+        return max(BasicVector<float>(1.f) - data, BasicVector<float>(0.f));
     }
 
     static Color red() {
