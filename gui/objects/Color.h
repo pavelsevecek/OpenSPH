@@ -60,17 +60,25 @@ public:
         return *this;
     }
 
-    /// Returns a color darker by given factor (in interval [0, 1], where 0 = current color, 1 = black)
+    /// \brief Returns a color darker by given factor.
+    ///
+    /// \param amount Value in interval [0, 1], where 0 = current color, 1 = black.
     Color darken(const float amount) const {
         ASSERT(amount >= 0.f && amount <= 1.f);
         return (1.f - amount) * data;
     }
 
-    /// Returns a color brighter by given factor (in interval [0, INFTY], where 0 = current color, 1 = 100%
-    /// more brighter, etc.)
+    /// \brief Returns a color brighter by given factor.
+    ///
+    /// \param amount Value in interval [0, INFTY], where 0 = current color, 1 = 100% more brighter, etc.
     Color brighten(const float amount) const {
         ASSERT(amount >= 0.f);
         return (1._f + amount) * data;
+    }
+
+    /// \brief Returns an inverse color.
+    Color inverse() const {
+        return max(BasicVector<float>(1._f) - data, BasicVector<float>(0._f));
     }
 
     static Color red() {

@@ -197,7 +197,7 @@ void Stabilization::setUp() {
         }
     } else {
 
-        Size N = 200'000;
+        Size N = 20'000;
 
         BodySettings body;
         body.set(BodySettingsId::ENERGY, 0._f)
@@ -221,7 +221,7 @@ void Stabilization::setUp() {
         params.impactorRadius = 1.3e4_f;
         params.impactAngle = 0._f * DEG_TO_RAD;
         params.impactSpeed = 5.e3_f;
-        params.targetRotation = 2._f * PI / (3600._f * 2._f);
+        params.targetRotation = 0._f; // 2._f * PI / (3600._f * 2._f);
         // params.targetRotation = 2._f * PI / (3._f * 3600._f);
         params.targetParticleCnt = N;
         // params.impactorOffset = 3;
@@ -329,7 +329,7 @@ Fragmentation::Fragmentation(SharedPtr<Presets::Collision> data, Function<void()
     , onFinished(onFinished) {
     settings = getSharedSettings();
     settings.set(RunSettingsId::RUN_NAME, std::string("Fragmentation"))
-        .set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 10100._f))
+        .set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 1000000._f))
         //.set(RunSettingsId::TIMESTEPPING_ADAPTIVE_FACTOR, 0.8_f)
         .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 1000._f)
         .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 100._f);

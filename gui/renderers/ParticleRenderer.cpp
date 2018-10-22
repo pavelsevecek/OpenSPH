@@ -3,6 +3,7 @@
 #include "gui/objects/Color.h"
 #include "gui/objects/Colorizer.h"
 #include "objects/finders/Order.h"
+#include "objects/wrappers/Finally.h"
 #include "post/Plot.h"
 #include "post/Point.h"
 #include "system/Profiler.h"
@@ -40,7 +41,7 @@ static void drawVector(wxDC& dc, const ICamera& camera, const Vector& r, const V
     dc.DrawLine(p2->point, p2->point + Point(a2.x, a2.y));
 }
 
-static void drawPalette(wxDC& dc, const Palette& palette) {
+static void drawPalette(wxDC& dc, const Color& lineColor, const Palette& palette) {
     const int size = 201;
     wxPoint origin(dc.GetSize().x - 50, size + 30);
     wxPen pen = dc.GetPen();
@@ -79,10 +80,13 @@ static void drawPalette(wxDC& dc, const Palette& palette) {
     }
 
     wxFont font = dc.GetFont();
+    // changing the font would be an unwanted side-effect
+    auto guard = finally([font, &dc] { dc.SetFont(font); });
     font.MakeSmaller();
     dc.SetFont(font);
-    dc.SetPen(*wxWHITE_PEN);
-    dc.SetTextForeground(wxColour(Color::white()));
+    pen.SetColour(wxColour(lineColor));
+    dc.SetPen(pen);
+    dc.SetTextForeground(wxColour(lineColor));
     for (Float tic : tics) {
         const Float value = palette.paletteToRelative(tic);
         const Size i = value * size;
@@ -137,6 +141,12 @@ static void drawGrid(wxDC& dc, const ICamera& camera, const float grid) {
 ParticleRenderer::ParticleRenderer(const GuiSettings& settings) {
     cutoff = settings.get<Float>(GuiSettingsId::ORTHO_CUTOFF);
     grid = settings.get<Float>(GuiSettingsId::VIEW_GRID_SIZE);
+
+    /// \todo better saving of colors in settings
+    const Vector color = settings.get<Vector>(GuiSettingsId::BACKGROUND_COLOR);
+    background[X] = color[X];
+    background[Y] = color[Y];
+    background[Z] = color[Z];
 }
 
 bool ParticleRenderer::isCutOff(const ICamera& camera, const Vector& r) {
@@ -201,7 +211,9 @@ SharedPtr<wxBitmap> ParticleRenderer::render(const ICamera& camera,
     wxMemoryDC dc(*bitmap);
 
     // draw black background (there is no fill method?)
-    dc.SetBrush(*wxBLACK_BRUSH);
+    wxBrush brush(*wxBLACK_BRUSH);
+    brush.SetColour(wxColour(background));
+    dc.SetBrush(brush);
     dc.DrawRectangle(wxPoint(0, 0), size);
 
     if (grid > 0.f) {
@@ -214,7 +226,6 @@ SharedPtr<wxBitmap> ParticleRenderer::render(const ICamera& camera,
         bool used = false;
     } dir;
 
-    wxBrush brush(*wxBLACK_BRUSH);
     wxPen pen(*wxBLACK_PEN);
 
     // draw particles
@@ -246,10 +257,10 @@ SharedPtr<wxBitmap> ParticleRenderer::render(const ICamera& camera,
         const Optional<ProjectedPoint> p = camera.project(cached.positions[i]);
         ASSERT(p); // cached values must be visible by the camera
         const Float size = p->radius * params.particles.scale;
-        if (size < 0.75_f) {
+        if (size < 0.5_f) {
             // just a single pixel
             dc.DrawPoint(p->point);
-        } else if (size < 1.5_f) {
+        } else if (size < 1._f) {
             // draw a 2x2 square - the circle would come out as 3x3 square
             dc.DrawRectangle(p->point, wxSize(2, 2));
         } else {
@@ -262,10 +273,13 @@ SharedPtr<wxBitmap> ParticleRenderer::render(const ICamera& camera,
     }
 
     if (cached.palette) {
-        drawPalette(dc, cached.palette.value());
+        drawPalette(dc, background.inverse(), cached.palette.value());
     }
     const Float time = stats.get<Float>(StatisticsId::RUN_TIME);
-    dc.SetPen(*wxWHITE_PEN);
+    dc.SetTextForeground(wxColour(background.inverse()));
+    wxFont font = dc.GetFont();
+    font.MakeSmaller();
+    dc.SetFont(font);
     dc.DrawText(("t = " + std::to_string(time) + "s").c_str(), wxPoint(0, 0));
 
     dc.SelectObject(wxNullBitmap);

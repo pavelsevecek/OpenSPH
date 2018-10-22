@@ -6,8 +6,7 @@
 #include "system/Factory.h"
 #include "system/Statistics.h"
 #include "thread/CheckFunction.h"
-#include "thread/Locks.h"
-//#include <set>
+#include <mutex>
 
 NAMESPACE_SPH_BEGIN
 
@@ -20,6 +19,7 @@ private:
     RawPtr<Storage> storage;
 
     /// Indices of particles belonging to this aggregate
+    /// \todo check performance compared to std::set
     FlatSet<Size> idxs;
 
     /// Index of the aggregate. Does not generally correspond to the index of the aggregate in the parent \ref
@@ -66,23 +66,47 @@ public:
         return idxs.find(idx) != idxs.end();
     }
 
-    Size size() const {
-        return idxs.size();
-    }
-
-    auto begin() const {
-        return idxs.begin();
-    }
-
-    auto end() const {
-        return idxs.end();
-    }
-
     Size getId() const {
         return persistentId;
     }
 
+    /// Called at the beginning of time step
+    ///
+    /// Assigns particle velocities using COM velocity and bulk rotation
+    void initialize() {
+
+        ArrayView<Vector> a = storage->getValue<Vector>(QuantityId::PHASE_ANGLE);
+
+        ArrayView<Vector> r, v, dv;
+        tie(r, v, dv) = storage->getAll<Vector>(QuantityId::POSITION);
+        ArrayView<const Float> m = storage->getValue<Float>(QuantityId::MASS);
+
+        /// \todo compute COM once and cache?
+        Float m_ag = 0._f;
+        Vector r_com(0._f);
+        for (Size i : idxs) {
+            r_com += m[i] * r[i];
+            m_ag += m[i];
+        }
+        r_com /= m_ag;
+
+        for (Size i : idxs) {
+            r[i] += cross(a[i], r[i] - r_com);
+            a[i] = Vector(0._f);
+        }
+    }
+
+    /// Velocities back to COM + rotation
+    void finalize() {
+        /*for (Size i : idxs) {
+            v[i] = v_com;
+            dv[i] = dv_com;
+        } */
+    }
+
     /// Called after accelerations are computed
+    ///
+    /// \todo better name
     void integrate() {
         if (this->size() == 1) {
             return;
@@ -94,26 +118,60 @@ public:
         Float m_ag = 0._f;
         Vector r_com(0._f);
         Vector v_com(0._f);
-        Vector F(0._f);
+        Vector dv_com(0._f);
         for (Size i : idxs) {
-            F += m[i] * dv[i];
+            dv_com += m[i] * dv[i];
             v_com += m[i] * v[i];
             r_com += m[i] * r[i];
             m_ag += m[i];
         }
+        dv_com /= m_ag;
         v_com /= m_ag;
         r_com /= m_ag;
 
         Vector L(0._f);
+        SymmetricTensor I = SymmetricTensor::null(); // inertia tensor
+        Vector M(0._f);                              // torque
         for (Size i : idxs) {
-            L += m[i] * cross(r[i] - r_com, v[i] - v_com);
+            const Vector dr = r[i] - r_com;
+            L += m[i] * cross(dr, v[i] - v_com);
+            I += m[i] * (SymmetricTensor::identity() * getSqrLength(dr) - outer(dr, dr));
+            M += m[i] * cross(dr, dv[i] - dv_com);
         }
+
+        // compute local frame
+        const AffineMatrix Em = eigenDecomposition(I).vectors;
+
+        Vector M_loc = Em.transpose() * M;
+
+        ArrayView<Vector> w, dw;
+        tie(w, dw) = storage->getAll<Vector>(QuantityId::ANGULAR_VELOCITY);
+
+        // we save the angular accelerations into the first particle in the aggregate
+        const Size index = idxs[0];
+        /*if (w[i] == Vector(0._f)) {
+            continue;
+        }*/
+        SymmetricTensor Iinv = I.inverse();
+        // convert the angular frequency to the local frame;
+        // note the E is always orthogonal, so we can use transpose instead of inverse
+        ASSERT(Em.isOrthogonal());
+        const Vector w_loc = Em.transpose() * w[index];
+
+        // compute the change of angular velocity using Euler's equations
+        const Vector dw_loc = Iinv * (M_loc - cross(w_loc, I * w_loc));
+
+        // now dw[i] is also in local space, convert to inertial space
+        // (note that dw_in = dw_loc as omega x omega is obviously zero)
+        dw[index] = Em * dw_loc;
+
+
         /*const SymmetricTensor I = Post::getInertiaTensor(m, r, r_com);
         (void)I;*/
 
         for (Size i : idxs) {
             v[i] = v_com;
-            dv[i] = F / m_ag;
+            dv[i] = dv_com;
         }
     }
 
@@ -146,6 +204,61 @@ public:
         for (Size i : idxs) {
             v[i] = newV;
         }
+    }
+
+    Size size() const {
+        return idxs.size();
+    }
+
+    auto begin() const {
+        return idxs.begin();
+    }
+
+    auto end() const {
+        return idxs.end();
+    }
+
+private:
+    struct Integrals {
+        Float m;
+        Vector r_com;
+        Vector v_com;
+        Vector omega;
+        SymmetricTensor I;
+        SymmetricTensor L;
+    };
+
+    Integrals getIntegrals() const {
+        ASSERT(this->size() > 1);
+        ArrayView<Vector> r, v, dv;
+        tie(r, v, dv) = storage->getAll<Vector>(QuantityId::POSITION);
+        ArrayView<const Float> m = storage->getValue<Float>(QuantityId::MASS);
+
+        Float m_ag = 0._f;
+        Vector r_com(0._f);
+        Vector v_com(0._f);
+        Vector dv_com(0._f);
+        for (Size i : idxs) {
+            dv_com += m[i] * dv[i];
+            v_com += m[i] * v[i];
+            r_com += m[i] * r[i];
+            m_ag += m[i];
+        }
+        dv_com /= m_ag;
+        v_com /= m_ag;
+        r_com /= m_ag;
+
+        Vector L(0._f);
+        SymmetricTensor I = SymmetricTensor::null(); // inertia tensor
+        for (Size i : idxs) {
+            const Vector dr = r[i] - r_com;
+            L += m[i] * cross(dr, v[i] - v_com);
+            I += m[i] * (SymmetricTensor::identity() * getSqrLength(dr) - outer(dr, dr));
+        }
+
+        Integrals value;
+        value.omega = I.inverse() * L;
+        return value;
     }
 };
 

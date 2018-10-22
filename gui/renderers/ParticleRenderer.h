@@ -20,6 +20,9 @@ private:
     /// Grid size
     float grid;
 
+    /// Background color
+    Color background;
+
     /// Cached values of visible particles, used for faster drawing.
     struct {
         /// Positions of particles

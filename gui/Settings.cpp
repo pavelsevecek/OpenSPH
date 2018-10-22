@@ -71,6 +71,8 @@ AutoPtr<GuiSettings> GuiSettings::instance (new GuiSettings {
         "Optional bitmap used as a texture for the primary body (target). Applicable for raytracer." },
     { GuiSettingsId::RAYTRACE_TEXTURE_SECONDARY,    "raytrace.texture_secondary",   std::string(""),
         "Optional bitmap used as a texture for the secondary body (impactor). Applicable for raytracer." },
+    { GuiSettingsId::BACKGROUND_COLOR,      "background_color",     Vector(0._f),
+        "Background color of the rendered image." },
 
     /// Window settings
     { GuiSettingsId::WINDOW_TITLE,          "window.title",         std::string("SPH"),

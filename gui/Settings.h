@@ -134,6 +134,8 @@ enum class GuiSettingsId {
     /// Size of the grid cell in simulation units (not window units); if zero, no grid is drawn
     VIEW_GRID_SIZE,
 
+    BACKGROUND_COLOR,
+
     /// Displayed radius of particle in units of smoothing length
     PARTICLE_RADIUS,
 

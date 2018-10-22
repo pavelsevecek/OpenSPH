@@ -332,6 +332,12 @@ Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage
     const FlatMap<ColorizerId, Palette>& overrides) const {
     // Available colorizers for display and movie are currently hardcoded
     Array<ColorizerId> colorizerIds;
+    Array<QuantityId> quantityColorizerIds;
+
+
+    /// \todo custom colorizer lists
+
+
     colorizerIds.push(ColorizerId::COROTATING_VELOCITY);
     if (storage.has(QuantityId::DENSITY)) {
         colorizerIds.push(ColorizerId::DENSITY_PERTURBATION);
@@ -347,6 +353,9 @@ Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage
         colorizerIds.push(ColorizerId::BEAUTY);
     }
 
+
+    colorizerIds.push(ColorizerId::BOUND_COMPONENT_ID);
+
     if (!forMovie) {
         if (storage.has(QuantityId::MASS)) {
             colorizerIds.push(ColorizerId::SUMMED_DENSITY);
@@ -359,7 +368,6 @@ Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage
         colorizerIds.push(ColorizerId::RADIUS);
         colorizerIds.push(ColorizerId::PARTICLE_ID);
         colorizerIds.push(ColorizerId::COMPONENT_ID);
-        colorizerIds.push(ColorizerId::BOUND_COMPONENT_ID);
         colorizerIds.push(ColorizerId::AGGREGATE_ID);
 
         colorizerIds.push(ColorizerId::FLAG);
@@ -370,7 +378,7 @@ Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage
         }
     }
 
-    Array<QuantityId> quantityColorizerIds{
+    quantityColorizerIds.pushAll(Array<QuantityId>{
         QuantityId::PRESSURE,
         QuantityId::ENERGY,
         QuantityId::DEVIATORIC_STRESS,
@@ -380,7 +388,7 @@ Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage
         QuantityId::VELOCITY_LAPLACIAN,
         QuantityId::VELOCITY_GRADIENT_OF_DIVERGENCE,
         QuantityId::FRICTION,
-    };
+    });
     if (!forMovie) {
         quantityColorizerIds.push(QuantityId::DENSITY);
         quantityColorizerIds.push(QuantityId::MASS);

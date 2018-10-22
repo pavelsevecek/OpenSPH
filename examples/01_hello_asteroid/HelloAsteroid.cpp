@@ -3,7 +3,7 @@
 using namespace Sph;
 
 // Simulations are performed by IRun object. User must derive the class and implement functions setUp, which
-// sets up the simulation parameters and initial conditions af the simulation, and tearDown, which is called
+// sets up the simulation parameters and initial conditions of the simulation, and tearDown, which is called
 // after the simulation ends.
 class HelloAsteroid : public IRun {
 public:

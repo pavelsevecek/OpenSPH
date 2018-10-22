@@ -837,6 +837,25 @@ static Color getRandomizedColor(const Size idx) {
     return Color(r / 255.f, g / 255.f, b / 255.f);
 }
 
+template <typename TDerived>
+class IdColorizer : public IColorizer {
+private:
+    Color backgroundColor;
+
+public:
+    virtual Color evalColor(const Size idx) const override {
+        const Size id = static_cast<const TDerived*>(this)->evalId(idx);
+        const Color color = getRandomizedColor(id);
+        if (backgroundColor.intensity() < 0.5f) {
+            // dark background, brighten the particle color
+            return color.brighten(0.4f);
+        } else {
+            // light background, darken the particle color
+            return color.darken(0.4f);
+        }
+    }
+};
+
 class ParticleIdColorizer : public IColorizer {
 public:
     virtual void initialize(const Storage& UNUSED(storage), const RefEnum UNUSED(ref)) override {

@@ -124,9 +124,9 @@ void NBody::setUp() {
 
     } else {
         Presets::CloudParams params;
-        params.particleCnt = 10000;
+        params.particleCnt = 100;
         params.cloudRadius = 1.e5_f;
-        params.particleRadius = 1.e2_f;
+        params.particleRadius = 1.e3_f;
         params.totalMass = 2.e11_f;
 
         BodySettings body;
