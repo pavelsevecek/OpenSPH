@@ -1,7 +1,9 @@
-# SPH
+# OpenSPH
+
+![alt text](http://sirrah.troja.mff.cuni.cz/~sevecek/sph/snapshot.png "Graphical interface")
 
 ## About
-UnnamedSPH is an integrator of hydrodynamic equations using SPH discretization in space, 
+OpenSPH is an integrator of hydrodynamic equations using SPH discretization in space, 
 currently specialized on simulations of asteroid impacts. The code is being developed 
 on Astronomical Institute of Charles University in Prague. It aims to provide a fast, 
 versatile and easily extensible SPH solver utilizing modern CPU features (SSE/AVX 
@@ -59,8 +61,11 @@ For the impact experiment, this can be easily done with InitialConditions object
 
 See file cli/main.cpp for an example of a simple impact simulation.
 
-## Implemented components of the code
-See [documentation](http://sirrah.troja.mff.cuni.cz/~sevecek/sph/docs/List.html)
+## Documentation
+See [documentation](http://sirrah.troja.mff.cuni.cz/~sevecek/sph/docs/index.html)
+
+## Examples of the code usage
+See [examples](http://sirrah.troja.mff.cuni.cz/~sevecek/sph/docs/Examples.html)
 
 ## Bug reports, ideas, question
 Feel free to contact me at <a href="mailto:sevecek@sirrah.troja.mff.cuni.cz">sevecek@sirrah.troja.mff.cuni.cz</a>. 
