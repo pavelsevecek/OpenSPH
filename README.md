@@ -35,7 +35,7 @@ Another optional dependencies of the code are:
 
 The compilation should be as easy as
 ```bash
-qmake CONFIG+=version sph.pro
+qmake CONFIG+=version project.pro
 make
 ```
 where *version* can be one of:
