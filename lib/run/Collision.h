@@ -17,9 +17,7 @@ public:
 
     virtual AutoPtr<IRunPhase> getNextPhase() const override;
 
-    virtual void handoff(Storage&& UNUSED(input)) override {
-        STOP;
-    }
+    virtual void handoff(Storage&& input) override;
 
 private:
     virtual void tearDown(const Statistics& UNUSED(stats)) override {}

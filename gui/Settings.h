@@ -1,9 +1,15 @@
 #pragma once
 
 #include "common/ForwardDecl.h"
+#include "gui/objects/Color.h"
+#include "gui/objects/Point.h"
+#include "objects/geometry/Vector.h"
 #include "objects/utility/EnumMap.h"
+#include "system/Settings.h"
 
 NAMESPACE_SPH_BEGIN
+
+class Color;
 
 /// \todo currently mixing rendered geometry (spheres, mesh from marching cubes, iso-surface) with renderer
 /// (wx, opengl, raytracer, ...)
@@ -240,6 +246,26 @@ enum class GuiSettingsId {
     PALETTE_TOTAL_ENERGY,
 };
 
-using GuiSettings = Settings<GuiSettingsId>;
+class GuiSettings : public Settings<GuiSettingsId> {
+public:
+    using Settings<GuiSettingsId>::Settings;
+
+    template <typename TValue>
+    INLINE TValue get(const GuiSettingsId id) const {
+        return Settings<GuiSettingsId>::get<TValue>(id);
+    }
+};
+
+template <>
+INLINE Point GuiSettings::get<Point>(const GuiSettingsId id) const {
+    const Interval i = this->get<Interval>(id);
+    return Point(i.lower(), i.upper());
+}
+
+template <>
+INLINE Color GuiSettings::get<Color>(const GuiSettingsId id) const {
+    const Vector v = this->get<Vector>(id);
+    return Color(v[X], v[Y], v[Z]);
+}
 
 NAMESPACE_SPH_END

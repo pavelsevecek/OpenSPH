@@ -11,6 +11,7 @@ SUBDIRS = lib \
           gui/rotation \
           gui/nbody \
           gui/reacc \
+          gui/rubblepile \
           gui/player \
           test \
           bench \
@@ -26,5 +27,6 @@ player.depends = lib gui
 rotation.depends = lib gui
 nbody.depends = lib gui
 reacc.depends = lib gui
+rubblepile.depends = lib gui
 test.depends = lib
 bench.depends = lib

@@ -1,10 +1,17 @@
 #include "quantities/IMaterial.h"
+#include "sph/kernel/Kernel.h"
+#include "system/Factory.h"
 
 NAMESPACE_SPH_BEGIN
 
 const Interval IMaterial::DEFAULT_RANGE = Interval::unbounded();
 const Float IMaterial::DEFAULT_MINIMAL = 0._f;
 
+MaterialInitialContext::MaterialInitialContext(const RunSettings& settings) {
+    rng = Factory::getRng(settings);
+    eta = settings.get<Float>(RunSettingsId::SPH_KERNEL_ETA);
+    kernelRadius = Factory::getKernel<3>(settings).radius();
+}
 
 void IMaterial::setRange(const QuantityId id, const Interval& range, const Float minimal) {
     auto rangeIter = ranges.find(id);

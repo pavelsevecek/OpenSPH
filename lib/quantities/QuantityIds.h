@@ -97,10 +97,10 @@ enum class QuantityId {
     /// system, otherwise the energy will not be conserved.
     GRAVITY_POTENTIAL = 19,
 
-    /// Angular velocity of particles. Note that SPH particles in standard formulation have no angular
-    /// velocity, this quantity is used by solid sphere solvers or by SPH modifications that include particle
+    /// Angular frequency of particles. Note that SPH particles in standard formulation have no angular
+    /// frequency, this quantity is used by solid sphere solvers or by SPH modifications that include particle
     /// rotation.
-    ANGULAR_VELOCITY = 20,
+    ANGULAR_FREQUENCY = 20,
 
     /// Angular momentum of particles. Useful replacement of angular velocity quantity as angular momentum is
     /// always conserved.

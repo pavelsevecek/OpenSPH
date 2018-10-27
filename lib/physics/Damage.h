@@ -53,14 +53,10 @@ enum class ExplicitFlaws {
 /// Scalar damage describing fragmentation of the body according to Grady-Kipp model (Grady and Kipp, 1980)
 class ScalarGradyKippModel : public IFractureModel {
 private:
-    Float kernelRadius;
-
     ExplicitFlaws options;
 
 public:
-    ScalarGradyKippModel(const Float kernelRadius, const ExplicitFlaws options = ExplicitFlaws::UNIFORM);
-
-    ScalarGradyKippModel(const RunSettings& settings, const ExplicitFlaws options = ExplicitFlaws::UNIFORM);
+    explicit ScalarGradyKippModel(const ExplicitFlaws options = ExplicitFlaws::UNIFORM);
 
     virtual void setFlaws(Storage& storage,
         IMaterial& material,
@@ -75,7 +71,6 @@ public:
 };
 
 class TensorGradyKippModel : public IFractureModel {
-private:
 public:
     virtual void setFlaws(Storage& storage,
         IMaterial& material,

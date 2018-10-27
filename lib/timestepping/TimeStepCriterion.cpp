@@ -271,8 +271,7 @@ TimeStep CourantCriterion::compute(IScheduler& scheduler,
     };
 
     auto functor = [&](const Size i, Tl& tl) {
-        /// \todo generalize this limit (5) or remove it
-        if (cs[i] > 0._f && (!neighs || neighs[i] > 5)) {
+        if (cs[i] > 0._f) {
             const Float value = courant * r[i][H] / cs[i];
             ASSERT(isReal(value) && value > 0._f && value < INFTY);
             tl.minStep = min(tl.minStep, value);

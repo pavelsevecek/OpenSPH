@@ -7,7 +7,7 @@ SharedPtr<ThreadPool> ThreadPool::globalInstance;
 
 struct ThreadContext {
     /// Owner of this thread
-    const ThreadPool* parentPool = nullptr;
+    ThreadPool* parentPool = nullptr;
 
     /// Index of this thread in the parent thread pool (not std::this_thread::get_id() !)
     Size index = Size(-1);
@@ -26,9 +26,17 @@ Task::~Task() {
 }
 
 void Task::wait() {
-    std::unique_lock<std::mutex> lock(waitMutex);
-    if (tasksLeft > 0) {
-        waitVar.wait(lock, [this] { return tasksLeft == 0; });
+    if (threadLocalContext.parentPool) {
+        // worker thread, we can work on tasks
+        while (tasksLeft > 0) {
+            threadLocalContext.parentPool->processTask(false);
+        }
+    } else {
+        std::unique_lock<std::mutex> lock(waitMutex);
+        if (tasksLeft > 0) {
+            // non-worker thread, simply wait until no tasks are left
+            waitVar.wait(lock, [this] { return tasksLeft == 0; });
+        }
     }
     ASSERT(tasksLeft == 0);
 
@@ -73,10 +81,12 @@ void Task::setException(std::exception_ptr exception) {
 }
 
 void Task::runAndNotify() {
-    ASSERT(!threadLocalContext.current);
+    // this may be called from within another task, so we override the threadLocalContext.current for
+    // this scope only
+    SharedPtr<Task> callingTask = threadLocalContext.current;
     threadLocalContext.current = this->sharedFromThis();
-    auto guard = finally([this] {
-        threadLocalContext.current = nullptr;
+    auto guard = finally([this, callingTask] {
+        threadLocalContext.current = callingTask;
         this->removeReference();
     });
 
@@ -107,7 +117,6 @@ void Task::removeReference() {
     }
 }
 
-
 ThreadPool::ThreadPool(const Size numThreads)
     : threads(numThreads == 0 ? std::thread::hardware_concurrency() : numThreads) {
     ASSERT(!threads.empty());
@@ -118,17 +127,7 @@ ThreadPool::ThreadPool(const Size numThreads)
 
         // run the loop
         while (!stop) {
-            SharedPtr<Task> task = this->getNextTask();
-            if (task) {
-                // run the task
-                task->runAndNotify();
-
-                std::unique_lock<std::mutex> lock(waitMutex);
-                --tasksLeft;
-            } else {
-                ASSERT(stop);
-            }
-            waitVar.notify_one();
+            this->processTask(true);
         }
     };
     stop = false;
@@ -170,6 +169,20 @@ SharedPtr<ITask> ThreadPool::submit(const Function<void()>& task) {
     return handle;
 }
 
+void ThreadPool::processTask(const bool wait) {
+    SharedPtr<Task> task = this->getNextTask(wait);
+    if (task) {
+        // run the task
+        task->runAndNotify();
+
+        std::unique_lock<std::mutex> lock(waitMutex);
+        --tasksLeft;
+    } else {
+        ASSERT(!wait || stop);
+    }
+    waitVar.notify_one();
+}
+
 void ThreadPool::waitForAll() {
     std::unique_lock<std::mutex> lock(waitMutex);
     if (tasksLeft > 0) {
@@ -202,11 +215,13 @@ SharedPtr<ThreadPool> ThreadPool::getGlobalInstance() {
     return globalInstance;
 }
 
-SharedPtr<Task> ThreadPool::getNextTask() {
+SharedPtr<Task> ThreadPool::getNextTask(const bool wait) {
     std::unique_lock<std::mutex> lock(taskMutex);
 
-    // wait till a task is available
-    taskVar.wait(lock, [this] { return !tasks.empty() || stop; });
+    if (wait) {
+        // wait till a task is available
+        taskVar.wait(lock, [this] { return !tasks.empty() || stop; });
+    }
 
     // remove the task from the queue and return it
     if (!stop && !tasks.empty()) {

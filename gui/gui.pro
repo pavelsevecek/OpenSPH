@@ -14,6 +14,11 @@ DEFINES += SPH_USE_EIGEN
 
 QMAKE_CXXFLAGS += -Wall -Werror -msse4.1 -std=c++14 `wx-config --cxxflags`
 
+linux-g++ {
+    # disabling maybe-uninitialized because of Factory::getCamera, either gcc bug or some weird behavior
+    QMAKE_CXXFLAGS += -Wno-maybe-uninitialized
+}
+
 CONFIG(release, debug|profile|assert|release) {
   message( "SPH GUI --- Building for Release" )
   QMAKE_CXXFLAGS += -O2

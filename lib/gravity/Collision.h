@@ -139,7 +139,7 @@ public:
         ArrayView<Vector> dv;
         tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
         m = storage.getValue<Float>(QuantityId::MASS);
-        omega = storage.getValue<Vector>(QuantityId::ANGULAR_VELOCITY);
+        omega = storage.getValue<Vector>(QuantityId::ANGULAR_FREQUENCY);
 
         if (storage.has(QuantityId::MOMENT_OF_INERTIA)) {
             I = storage.getValue<SymmetricTensor>(QuantityId::MOMENT_OF_INERTIA);
@@ -522,7 +522,7 @@ public:
     virtual void initialize(Storage& storage) override {
         ArrayView<Vector> dv;
         tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
-        omega = storage.getValue<Vector>(QuantityId::ANGULAR_VELOCITY);
+        omega = storage.getValue<Vector>(QuantityId::ANGULAR_FREQUENCY);
         m = storage.getValue<Float>(QuantityId::MASS);
 
         handler.initialize(storage);

@@ -145,7 +145,7 @@ public:
         Vector M_loc = Em.transpose() * M;
 
         ArrayView<Vector> w, dw;
-        tie(w, dw) = storage->getAll<Vector>(QuantityId::ANGULAR_VELOCITY);
+        tie(w, dw) = storage->getAll<Vector>(QuantityId::ANGULAR_FREQUENCY);
 
         // we save the angular accelerations into the first particle in the aggregate
         const Size index = idxs[0];

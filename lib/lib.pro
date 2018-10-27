@@ -8,22 +8,10 @@ INCLUDEPATH += /usr/include/eigen3
 
 # disable if you dont have TBB
 DEFINES += SPH_USE_TBB
-INCLUDEPATH += /usr/include/tbb
-
-QMAKE_CXX = clang++
-#QMAKE_LINK = clang++
-
-#LIBS += /usr/lib/libtbb.so /usr/lib/libtbb_debug.so /usr/lib/libtbbmalloc.so /usr/lib/libtbbmalloc_debug.so /usr/lib/libtbbmalloc_proxy.so /usr/lib/libtbbmalloc_proxy_debug.so
-
-QMAKE_CXXFLAGS += -Wall -Wextra -Werror -msse4.1 -std=c++14 -pthread
+INCLUDEPATH += /usr/include/tb
 QMAKE_LFLAGS += -ltbb -ltbb_debug -ltbbmalloc -ltbbmalloc_debug
 
-
-#QMAKE_LFLAGS += -static-libgcc -static-libstdc++ -ltbb
-#QMAKE_CXXFLAGS_RELEASE -= -O2
-#QMAKE_CXXFLAGS_RELEASE += -Os
-#QMAKE_CXXFLAGS_DEBUG += -fsanitize=undefined-trap -fsanitize-undefined-trap-on-error  # -ftime-report
-
+QMAKE_CXXFLAGS += -Wall -Wextra -Werror -msse4.1 -std=c++14 -pthread
 
 CONFIG(release, debug|profile|assert|release) {
   message( "SPH LIB --- Building for Release" )
@@ -120,7 +108,8 @@ SOURCES += \
     objects/finders/KdTree.cpp \
     gravity/AggregateSolver.cpp \
     sph/initial/MeshDomain.cpp \
-    sph/handoff/Handoff.cpp
+    sph/handoff/Handoff.cpp \
+    run/RubblePile.cpp
 
 HEADERS += \
     common/Assert.h \
@@ -321,4 +310,5 @@ HEADERS += \
     thread/Locks.h \
     objects/geometry/Triangle.h \
     sph/initial/MeshDomain.h \
-    sph/handoff/Handoff.h
+    sph/handoff/Handoff.h \
+    run/RubblePile.h

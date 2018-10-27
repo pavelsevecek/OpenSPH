@@ -31,7 +31,7 @@ private:
 
 public:
     /// \brief Constructs the interpolation object from settings.
-    Interpolation(const Storage& storage, const RunSettings& settings = RunSettings::getDefaults())
+    explicit Interpolation(const Storage& storage, const RunSettings& settings = RunSettings::getDefaults())
         : finder(Factory::getFinder(settings))
         , kernel(Factory::getKernel<3>(settings))
         , storage(storage) {

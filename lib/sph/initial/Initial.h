@@ -71,8 +71,10 @@ private:
 
 /// \brief Holds the information about a power-law size-frequency distributions.
 struct PowerLawSfd {
-    /// Exponent alpha of the power-law x^-alpha. Can be lower than 1 or negative, meaning there is more
-    /// larger modies than smaller bodies. Cannot be exactly 1.
+    /// Exponent alpha of the power-law x^-alpha.
+    ///
+    /// Can be lower than 1 or negative, meaning there is more larger modies than smaller bodies. Cannot be
+    /// exactly 1.
     Float exponent;
 
     /// Minimal and maximal value of the SFD
@@ -147,9 +149,9 @@ public:
     /// \param domain Spatial domain where the particles are placed. The domain should not overlap a body
     ///               already added into the storage as that would lead to incorrect density estimating in
     ///               overlapping regions.
-    /// \param bodySettings Parameters of the body
+    /// \param body Parameters of the body
     /// \todo generalize for entropy solver
-    BodyView addMonolithicBody(Storage& storage, const IDomain& domain, const BodySettings& bodySettings);
+    BodyView addMonolithicBody(Storage& storage, const IDomain& domain, const BodySettings& body);
 
     /// Adds a body by explicitly specifying its material.
     /// \copydoc addBody
@@ -173,7 +175,7 @@ public:
         BodySetup(AutoPtr<IDomain>&& domain, AutoPtr<IMaterial>&& material);
 
         /// Creates a body by specifying its domain; material is created from parameters in settings
-        BodySetup(AutoPtr<IDomain>&& domain, const BodySettings& settings);
+        BodySetup(AutoPtr<IDomain>&& domain, const BodySettings& body);
 
         /// Move constructor
         BodySetup(BodySetup&& other);
@@ -222,8 +224,6 @@ public:
         const BodySettings& bodySettings);
 
 private:
-    void createCommon(const RunSettings& settings);
-
     void setQuantities(Storage& storage, IMaterial& material, const Float volume);
 };
 

@@ -42,7 +42,7 @@ TEST_CASE("Local frame rotation", "[nbody]") {
     storage->insert<Float>(QuantityId::MASS, OrderEnum::ZERO, 1._f);
     solver.create(*storage, storage->getMaterial(0));
 
-    ArrayView<Vector> w = storage->getValue<Vector>(QuantityId::ANGULAR_VELOCITY);
+    ArrayView<Vector> w = storage->getValue<Vector>(QuantityId::ANGULAR_FREQUENCY);
     ArrayView<Vector> L = storage->getValue<Vector>(QuantityId::ANGULAR_MOMENTUM);
     ArrayView<SymmetricTensor> I = storage->getValue<SymmetricTensor>(QuantityId::MOMENT_OF_INERTIA);
     w[0] = Vector(0._f, 0._f, 2._f * PI); // 1 rotation in 1s
@@ -82,7 +82,7 @@ static void flywheel(const Float dt, const Float eps) {
 
     ArrayView<SymmetricTensor> I = storage->getValue<SymmetricTensor>(QuantityId::MOMENT_OF_INERTIA);
     ArrayView<Tensor> E = storage->getValue<Tensor>(QuantityId::LOCAL_FRAME);
-    ArrayView<Vector> w = storage->getValue<Vector>(QuantityId::ANGULAR_VELOCITY);
+    ArrayView<Vector> w = storage->getValue<Vector>(QuantityId::ANGULAR_FREQUENCY);
     ArrayView<Vector> L = storage->getValue<Vector>(QuantityId::ANGULAR_MOMENTUM);
     w[0] = Vector(2.5_f, -4._f, 9._f);
     const Float I1 = 3._f;
@@ -162,7 +162,7 @@ TYPED_TEST_CASE_2("Collision bounce two", "[nbody]", T, EulerExplicit, LeapFrog)
     ArrayView<const Vector> r, v, dv;
     tie(r, v, dv) = storage->getAll<Vector>(QuantityId::POSITION);
     ArrayView<const SymmetricTensor> I = storage->getValue<SymmetricTensor>(QuantityId::MOMENT_OF_INERTIA);
-    ArrayView<const Vector> w = storage->getValue<Vector>(QuantityId::ANGULAR_VELOCITY);
+    ArrayView<const Vector> w = storage->getValue<Vector>(QuantityId::ANGULAR_FREQUENCY);
 
     const Float dist = getLength(r[0] - r[1]) - r[0][H] - r[1][H];
     const Float v_rel = getLength(v[0] - v[1]);
@@ -239,7 +239,7 @@ TYPED_TEST_CASE_2("Collision merge two", "[nbody]", T, EulerExplicit, LeapFrog) 
     ArrayView<const Vector> r, v, dv;
     tie(r, v, dv) = storage->getAll<Vector>(QuantityId::POSITION);
     ArrayView<const SymmetricTensor> I = storage->getValue<SymmetricTensor>(QuantityId::MOMENT_OF_INERTIA);
-    ArrayView<const Vector> w = storage->getValue<Vector>(QuantityId::ANGULAR_VELOCITY);
+    ArrayView<const Vector> w = storage->getValue<Vector>(QuantityId::ANGULAR_FREQUENCY);
 
     const Float dist = getLength(r[0] - r[1]) - r[0][H] - r[1][H];
     const Float v_rel = getLength(v[0] - v[1]);
@@ -286,7 +286,7 @@ TYPED_TEST_CASE_2("Collision merge two", "[nbody]", T, EulerExplicit, LeapFrog) 
             if (!didMerge) {
                 tie(r, v, dv) = storage->getAll<Vector>(QuantityId::POSITION);
                 I = storage->getValue<SymmetricTensor>(QuantityId::MOMENT_OF_INERTIA);
-                w = storage->getValue<Vector>(QuantityId::ANGULAR_VELOCITY);
+                w = storage->getValue<Vector>(QuantityId::ANGULAR_FREQUENCY);
             }
             didMerge = true;
             if (storage->getParticleCnt() != 1) {
@@ -349,7 +349,7 @@ TYPED_TEST_CASE_2("Collision merge off-center", "[nbody]", T, EulerExplicit, Lea
             return Outcome(false);
         }
         didMerge = true;
-        ArrayView<const Vector> w = storage->getValue<Vector>(QuantityId::ANGULAR_VELOCITY);
+        ArrayView<const Vector> w = storage->getValue<Vector>(QuantityId::ANGULAR_FREQUENCY);
         ArrayView<const SymmetricTensor> I =
             storage->getValue<SymmetricTensor>(QuantityId::MOMENT_OF_INERTIA);
         ArrayView<const Tensor> E = storage->getValue<Tensor>(QuantityId::LOCAL_FRAME);
@@ -413,14 +413,14 @@ TYPED_TEST_CASE_2("Collision merge rejection", "[nbody]", T, EulerExplicit, Leap
     solver.create(*storage, storage->getMaterial(0));
 
     Array<Float> m0 = storage->getValue<Float>(QuantityId::MASS).clone();
-    Array<Vector> w0 = storage->getValue<Vector>(QuantityId::ANGULAR_VELOCITY).clone();
+    Array<Vector> w0 = storage->getValue<Vector>(QuantityId::ANGULAR_FREQUENCY).clone();
     Array<SymmetricTensor> I0 = storage->getValue<SymmetricTensor>(QuantityId::MOMENT_OF_INERTIA).clone();
 
     auto test = [&](Size) -> Outcome { return SUCCESS; };
     integrate<T>(storage, solver, 1.e-4_f, test);
 
     Array<Float> m1 = storage->getValue<Float>(QuantityId::MASS).clone();
-    Array<Vector> w1 = storage->getValue<Vector>(QuantityId::ANGULAR_VELOCITY).clone();
+    Array<Vector> w1 = storage->getValue<Vector>(QuantityId::ANGULAR_FREQUENCY).clone();
     Array<SymmetricTensor> I1 = storage->getValue<SymmetricTensor>(QuantityId::MOMENT_OF_INERTIA).clone();
 
     // collision rejected, no quantities should be changed

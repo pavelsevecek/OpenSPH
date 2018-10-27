@@ -38,8 +38,8 @@ Size ConstStorageSequence::size() const {
 }
 
 
-Storage::MatRange::MatRange(SharedPtr<IMaterial>&& material, const Size from, const Size to)
-    : material(std::move(material))
+Storage::MatRange::MatRange(const SharedPtr<IMaterial>& material, const Size from, const Size to)
+    : material(material)
     , from(from)
     , to(to) {
     ASSERT(from < to || (from == 0 && to == 0));
@@ -47,8 +47,8 @@ Storage::MatRange::MatRange(SharedPtr<IMaterial>&& material, const Size from, co
 
 Storage::Storage() = default;
 
-Storage::Storage(AutoPtr<IMaterial>&& material) {
-    mats.emplaceBack(std::move(material), 0, 0);
+Storage::Storage(const SharedPtr<IMaterial>& material) {
+    mats.emplaceBack(material, 0, 0);
 }
 
 Storage::~Storage() = default;
@@ -61,6 +61,7 @@ Storage& Storage::operator=(Storage&& other) {
     quantities = std::move(other.quantities);
     mats = std::move(other.mats);
     dependent = std::move(other.dependent);
+    userData = std::move(other.userData);
 
     if (this->getParticleCnt() > 0) {
         this->update();
@@ -283,6 +284,26 @@ void Storage::merge(Storage&& other) {
 
     // merge materials
     this->mats.pushAll(std::move(other.mats));
+
+    // remove duplicate materials (only consecutive, otherwise we would have to reorder particles)
+    for (Size matId = 1; matId < this->getMaterialCnt();) {
+        if (mats[matId].material == mats[matId - 1].material) {
+            // same material, we can merge them
+            mats[matId - 1].to = mats[matId].to;
+            mats.remove(matId);
+
+            if (this->has(QuantityId::MATERIAL_ID)) {
+                ArrayView<Size> id = this->getValue<Size>(QuantityId::MATERIAL_ID);
+                for (Size i = 0; i < id.size(); ++i) {
+                    if (id[i] >= matId) {
+                        id[i]--;
+                    }
+                }
+            }
+        } else {
+            ++matId;
+        }
+    }
 
     // cache the view
     this->update();

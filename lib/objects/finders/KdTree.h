@@ -8,7 +8,7 @@
 #include "objects/finders/NeighbourFinder.h"
 #include "objects/geometry/Box.h"
 #include "objects/wrappers/Function.h"
-#include "objects/wrappers/Optional.h"
+#include "objects/wrappers/Outcome.h"
 #include "thread/ThreadLocal.h"
 #include <deque>
 #include <set>
@@ -172,8 +172,8 @@ public:
         return LeafIndexSequence(leaf.from, leaf.to, idxs);
     }
 
-    /// \brief Performs some checks of KdTree consistency, returns true if everything is OK
-    bool sanityCheck() const;
+    /// \brief Performs some checks of KdTree consistency, returns SUCCESS if everything is OK
+    Outcome sanityCheck() const;
 
 protected:
     virtual void buildImpl(IScheduler& scheduler, ArrayView<const Vector> points) override;

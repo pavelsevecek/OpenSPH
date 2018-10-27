@@ -19,10 +19,11 @@
 
 using namespace Sph;
 
-static void addColumns(TextOutput& output) {
-    output.addColumn(makeAuto<ValueColumn<Float>>(QuantityId::DENSITY));
-    output.addColumn(makeAuto<ValueColumn<Vector>>(QuantityId::POSITION));
-    output.addColumn(makeAuto<DerivativeColumn<Vector>>(QuantityId::POSITION));
+template <typename TIo>
+static void addColumns(TIo& io) {
+    io.addColumn(makeAuto<ValueColumn<Float>>(QuantityId::DENSITY));
+    io.addColumn(makeAuto<ValueColumn<Vector>>(QuantityId::POSITION));
+    io.addColumn(makeAuto<DerivativeColumn<Vector>>(QuantityId::POSITION));
 }
 
 TEST_CASE("TextOutput dump", "[output]") {
@@ -74,7 +75,9 @@ TEST_CASE("TextOutput dump&accumulate", "[output]") {
     output.dump(storage, stats);
 
     Storage loaded;
-    output.load(path, loaded, stats);
+    TextInput input(EMPTY_FLAGS);
+    addColumns(input);
+    input.load(path, loaded, stats);
     REQUIRE(loaded.getQuantityCnt() == 3); // density + position + flags
 
     Quantity& positions = loaded.getQuantity(QuantityId::POSITION);
@@ -93,7 +96,7 @@ TEST_CASE("TextOutput create from settings", "[output]") {
     RandomPathManager manager;
     RunSettings settings;
     Path path = manager.getPath("txt");
-    settings.set(RunSettingsId::RUN_OUTPUT_TYPE, OutputEnum::TEXT_FILE);
+    settings.set(RunSettingsId::RUN_OUTPUT_TYPE, IoEnum::TEXT_FILE);
     settings.set(RunSettingsId::RUN_OUTPUT_PATH, std::string(""));
     settings.set(RunSettingsId::RUN_OUTPUT_NAME, path.native());
     AutoPtr<IOutput> output = Factory::getOutput(settings);
@@ -105,7 +108,8 @@ TEST_CASE("TextOutput create from settings", "[output]") {
     output->dump(storage, stats);
 
     Storage loaded;
-    REQUIRE(output->load(path, loaded, stats));
+    TextInput input(settings.getFlags<OutputQuantityFlag>(RunSettingsId::RUN_OUTPUT_QUANTITIES));
+    REQUIRE(input.load(path, loaded, stats));
     REQUIRE(loaded.getParticleCnt() == storage.getParticleCnt());
     // check that the basic quantities are saved
     REQUIRE(loaded.has(QuantityId::POSITION));
@@ -135,7 +139,8 @@ TEST_CASE("BinaryOutput dump&accumulate simple", "[output]") {
     output.dump(storage1, stats);
 
     Storage storage2;
-    REQUIRE(output.load(path, storage2, stats));
+    BinaryInput input;
+    REQUIRE(input.load(path, storage2, stats));
     REQUIRE(storage2.getParticleCnt() == storage1.getParticleCnt());
     REQUIRE(storage2.getQuantityCnt() == storage2.getQuantityCnt());
 
@@ -167,6 +172,8 @@ TEST_CASE("BinaryOutput dump&accumulate materials", "[output]") {
     body.set(BodySettingsId::INITIAL_DISTRIBUTION, DistributionEnum::RANDOM);
     body.set(BodySettingsId::PARTICLE_COUNT, 10);
     body.set(BodySettingsId::EOS, EosEnum::TILLOTSON);
+    body.set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::NONE);
+    body.set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum ::ELASTIC);
     body.set(BodySettingsId::DENSITY_RANGE, Interval(4._f, 6._f));
     body.set(BodySettingsId::DENSITY_MIN, 3._f);
     conds.addMonolithicBody(storage, SphericalDomain(Vector(0._f), 2._f), body);
@@ -197,14 +204,15 @@ TEST_CASE("BinaryOutput dump&accumulate materials", "[output]") {
     // velocity divergence, velocity gradient, neighbour count, flags, material count
     REQUIRE(storage.getQuantityCnt() == 13);
 
-    Expected<BinaryOutput::Info> info = output.getInfo(path);
+    BinaryInput input;
+    Expected<BinaryInput::Info> info = input.getInfo(path);
     REQUIRE(info);
     REQUIRE(info->materialCnt == 3);
     REQUIRE(info->particleCnt == 35);
     REQUIRE(info->quantityCnt == 12); // matIds not stored
 
     Storage loaded;
-    REQUIRE(output.load(path, loaded, stats));
+    REQUIRE(input.load(path, loaded, stats));
     REQUIRE(loaded.getMaterialCnt() == storage.getMaterialCnt());
     REQUIRE(loaded.getParticleCnt() == storage.getParticleCnt());
     REQUIRE(loaded.getQuantityCnt() == storage.getQuantityCnt());
@@ -240,20 +248,22 @@ TEST_CASE("BinaryOutput dump stats", "[output]") {
     stats.set(StatisticsId::TIMESTEP_VALUE, 0.1_f);
     RandomPathManager manager;
     Path path = manager.getPath("out");
-    BinaryOutput output(path);
+    BinaryOutput output(path, RunTypeEnum::RUBBLE_PILE);
     output.dump(storage, stats);
 
     storage.removeAll();
     Statistics loadedStats;
-    REQUIRE(output.load(path, storage, loadedStats));
+    BinaryInput input;
+    REQUIRE(input.load(path, storage, loadedStats));
     REQUIRE(loadedStats.get<Float>(StatisticsId::RUN_TIME) == 24._f);
     REQUIRE(loadedStats.get<Float>(StatisticsId::TIMESTEP_VALUE) == 0.1_f);
 
-    Expected<BinaryOutput::Info> info = output.getInfo(path);
+    Expected<BinaryInput::Info> info = input.getInfo(path);
     REQUIRE(info);
     REQUIRE(info->runTime == 24._f);
     REQUIRE(info->timeStep == 0.1_f);
-    REQUIRE(info->version == BinaryOutput::Version::LATEST);
+    REQUIRE(info->version == BinaryIoVersion::LATEST);
+    REQUIRE(info->runType == RunTypeEnum::RUBBLE_PILE);
 }
 
 Storage generateLatestOutput() {
@@ -274,7 +284,7 @@ Storage generateLatestOutput() {
     Storage storage(std::move(storage1));
     storage.merge(std::move(storage2));
 
-    Path path = RESOURCE_PATH / Path(std::to_string(std::size_t(BinaryOutput::Version::LATEST)) + ".ssf");
+    Path path = RESOURCE_PATH / Path(std::to_string(std::size_t(BinaryIoVersion::LATEST)) + ".ssf");
     BinaryOutput output(path);
     Statistics stats;
     stats.set(StatisticsId::RUN_TIME, 20._f);
@@ -283,13 +293,13 @@ Storage generateLatestOutput() {
     return storage;
 }
 
-static void testVersion(BinaryOutput::Version version) {
+static void testVersion(BinaryIoVersion version) {
     Storage current = generateLatestOutput();
     Path path = RESOURCE_PATH / Path(std::to_string(std::size_t(version)) + ".ssf");
-    BinaryOutput output;
+    BinaryInput input;
     Storage previous;
     Statistics stats;
-    REQUIRE(output.load(path, previous, stats));
+    REQUIRE(input.load(path, previous, stats));
 
     REQUIRE(previous.getMaterialCnt() == current.getMaterialCnt());
     REQUIRE(previous.getParticleCnt() == current.getParticleCnt());
@@ -316,8 +326,9 @@ static void testVersion(BinaryOutput::Version version) {
 
 TEST_CASE("BinaryOutput backward compatibility", "[output]") {
     // generateLatestOutput();
-    testVersion(BinaryOutput::Version::FIRST);
-    testVersion(BinaryOutput::Version::V2018_04_07);
+    testVersion(BinaryIoVersion::FIRST);
+    testVersion(BinaryIoVersion::V2018_04_07);
+    testVersion(BinaryIoVersion::V2018_10_24);
 }
 
 TEST_CASE("Pkdgrav output", "[output]") {
@@ -351,7 +362,7 @@ TEST_CASE("Pkdgrav load", "[output]") {
 
     Storage storage;
     Statistics stats;
-    PkdgravOutput io;
+    PkdgravInput io;
     REQUIRE(io.load(path, storage, stats));
     REQUIRE(storage.getParticleCnt() > 5000);
 

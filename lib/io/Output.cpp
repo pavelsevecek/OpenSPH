@@ -1,4 +1,4 @@
-﻿#include "io/Output.h"
+#include "io/Output.h"
 #include "io/Column.h"
 #include "io/FileSystem.h"
 #include "io/Serializer.h"
@@ -8,6 +8,10 @@
 #include <fstream>
 
 NAMESPACE_SPH_BEGIN
+
+/// ----------------------------------------------------------------------------------------------------------
+/// OutputFile
+/// ----------------------------------------------------------------------------------------------------------
 
 OutputFile::OutputFile(const Path& pathMask)
     : pathMask(pathMask) {
@@ -48,6 +52,10 @@ IOutput::IOutput(const Path& fileMask)
     : paths(fileMask) {
     ASSERT(!fileMask.empty());
 }
+
+/// ----------------------------------------------------------------------------------------------------------
+/// TextOutput/Input
+/// ----------------------------------------------------------------------------------------------------------
 
 static void printHeader(std::ostream& ofs, const std::string& name, const ValueEnum type) {
     switch (type) {
@@ -177,7 +185,16 @@ Path TextOutput::dump(Storage& storage, const Statistics& stats) {
     return fileName;
 }
 
-Outcome TextOutput::load(const Path& path, Storage& storage, Statistics& UNUSED(stats)) {
+TextOutput& TextOutput::addColumn(AutoPtr<ITextColumn>&& column) {
+    columns.push(std::move(column));
+    return *this;
+}
+
+TextInput::TextInput(Flags<OutputQuantityFlag> quantities) {
+    addColumns(quantities, columns);
+}
+
+Outcome TextInput::load(const Path& path, Storage& storage, Statistics& UNUSED(stats)) {
     try {
         std::ifstream ifs(path.native());
         if (!ifs) {
@@ -246,11 +263,14 @@ Outcome TextOutput::load(const Path& path, Storage& storage, Statistics& UNUSED(
     return SUCCESS;
 }
 
-TextOutput& TextOutput::addColumn(AutoPtr<ITextColumn>&& column) {
+TextInput& TextInput::addColumn(AutoPtr<ITextColumn>&& column) {
     columns.push(std::move(column));
     return *this;
 }
 
+/// ----------------------------------------------------------------------------------------------------------
+/// GnuplotOutput
+/// ----------------------------------------------------------------------------------------------------------
 
 Path GnuplotOutput::dump(Storage& storage, const Statistics& stats) {
     const Path path = TextOutput::dump(storage, stats);
@@ -262,6 +282,10 @@ Path GnuplotOutput::dump(Storage& storage, const Statistics& stats) {
     MARK_USED(returned);
     return path;
 }
+
+/// ----------------------------------------------------------------------------------------------------------
+/// BinaryOutput/Input
+/// ----------------------------------------------------------------------------------------------------------
 
 namespace {
 
@@ -289,7 +313,12 @@ struct SerializerDispatcher {
         serializer.write(t(0, 0), t(0, 1), t(0, 2), t(1, 0), t(1, 1), t(1, 2), t(2, 0), t(2, 1), t(2, 2));
     }
     void operator()(const EnumWrapper& e) {
-        serializer.write(e.value, e.typeHash);
+        // Type hash can be different between invocations, so we cannot serialize it. Write 0 (for backward
+        // compatibility)
+        serializer.write(e.value, 0);
+    }
+    void operator()(const ClonePtr<ISettingsValue>&) {
+        NOT_IMPLEMENTED;
     }
 };
 struct DeserializerDispatcher {
@@ -320,6 +349,9 @@ struct DeserializerDispatcher {
     }
     void operator()(EnumWrapper& e) {
         deserializer.read(e.value, e.typeHash);
+    }
+    void operator()(ClonePtr<ISettingsValue>&) {
+        NOT_IMPLEMENTED;
     }
 };
 
@@ -395,8 +427,9 @@ struct LoadBuffersVisitor {
 };
 } // namespace
 
-BinaryOutput::BinaryOutput(const Path& fileMask)
-    : IOutput(fileMask) {}
+BinaryOutput::BinaryOutput(const Path& fileMask, const RunTypeEnum runTypeId)
+    : IOutput(fileMask)
+    , runTypeId(runTypeId) {}
 
 Path BinaryOutput::dump(Storage& storage, const Statistics& stats) {
     const Path fileName = paths.getNextPath(stats);
@@ -408,7 +441,19 @@ Path BinaryOutput::dump(Storage& storage, const Statistics& stats) {
     const Size quantityCnt = storage.getQuantityCnt() - int(storage.has(QuantityId::MATERIAL_ID));
     const Float timeStep = stats.get<Float>(StatisticsId::TIMESTEP_VALUE);
     serializer.write(
-        "SPH", time, storage.getParticleCnt(), quantityCnt, materialCnt, timeStep, Version::LATEST);
+        "SPH", time, storage.getParticleCnt(), quantityCnt, materialCnt, timeStep, BinaryIoVersion::LATEST);
+    // write run type
+    char runTypeBuffer[16];
+    const std::string runTypeStr = EnumMap::toString(runTypeId);
+    for (Size i = 0; i < 16; ++i) {
+        if (i < runTypeStr.size()) {
+            runTypeBuffer[i] = runTypeStr[i];
+        } else {
+            runTypeBuffer[i] = '\0';
+        }
+    }
+    serializer.write(runTypeBuffer);
+
     // zero bytes until 256 to allow extensions of the header
     serializer.addPadding(PADDING_SIZE);
 
@@ -473,11 +518,24 @@ Path BinaryOutput::dump(Storage& storage, const Statistics& stats) {
     return fileName;
 }
 
+template <typename T>
+static void setTypeHash(const BodySettings& UNUSED(settings),
+    const BodySettingsId UNUSED(paramId),
+    T& UNUSED(entry)) {
+    // do nothing for other types
+}
+
+template <>
+void setTypeHash(const BodySettings& settings, const BodySettingsId paramId, EnumWrapper& entry) {
+    EnumWrapper current = settings.get<EnumWrapper>(paramId);
+    entry.typeHash = current.typeHash;
+}
+
 
 static Expected<Storage> loadMaterial(const Size matIdx,
     Deserializer& deserializer,
     ArrayView<QuantityId> ids,
-    const BinaryOutput::Version version) {
+    const BinaryIoVersion version) {
     Size matIdxCheck;
     std::string identifier;
     deserializer.read(identifier, matIdxCheck);
@@ -492,20 +550,20 @@ static Expected<Storage> loadMaterial(const Size matIdx,
 
     Size matParamCnt;
     deserializer.read(matParamCnt);
-    BodySettings settings;
+    BodySettings body;
     for (Size i = 0; i < matParamCnt; ++i) {
         // read body settings
         BodySettingsId paramId;
         Size valueId;
         deserializer.read(paramId, valueId);
 
-        if (version == BinaryOutput::Version::FIRST) {
-            if (valueId == 1 && settings.has<EnumWrapper>(paramId)) {
+        if (version == BinaryIoVersion::FIRST) {
+            if (valueId == 1 && body.has<EnumWrapper>(paramId)) {
                 // enums used to be stored as ints (index 1), now we store it as enum wrapper;
                 // convert the value to enum and save manually
-                EnumWrapper e = settings.get<EnumWrapper>(paramId);
+                EnumWrapper e = body.get<EnumWrapper>(paramId);
                 deserializer.read(e.value);
-                settings.set(paramId, e);
+                body.set(paramId, e);
                 continue;
             }
         }
@@ -513,14 +571,18 @@ static Expected<Storage> loadMaterial(const Size matIdx,
         /// \todo this is currently the only way to access Settings variant, refactor if possible
         SettingsIterator<BodySettingsId>::IteratorValue iteratorValue{ paramId,
             { CONSTRUCT_TYPE_IDX, valueId } };
-        forValue(iteratorValue.value, [&deserializer, &settings, paramId](auto& entry) {
+
+        forValue(iteratorValue.value, [&deserializer, &body, paramId](auto& entry) {
             DeserializerDispatcher{ deserializer }(entry);
-            settings.set(paramId, entry);
+            // little hack: EnumWrapper is loaded with typeHash 0 (as it cannot be serialized, so we have to
+            // set it to correct value, otherwise it would trigger asserts in set function.
+            setTypeHash(body, paramId, entry);
+            body.set(paramId, entry);
         });
     }
 
     // create material based on settings
-    AutoPtr<IMaterial> material = Factory::getMaterial(settings);
+    AutoPtr<IMaterial> material = Factory::getMaterial(body);
     // read all ranges and minimal values for timestepping
     for (Size i = 0; i < ids.size(); ++i) {
         QuantityId id;
@@ -543,15 +605,27 @@ static Expected<Storage> loadMaterial(const Size matIdx,
     return Storage(std::move(material));
 }
 
-Outcome BinaryOutput::load(const Path& path, Storage& storage, Statistics& stats) {
+static Optional<RunTypeEnum> readRunType(char* buffer, const BinaryIoVersion UNUSED_IN_RELEASE(version)) {
+    std::string runTypeStr(buffer);
+    if (!runTypeStr.empty()) {
+        return EnumMap::fromString<RunTypeEnum>(runTypeStr).value();
+    } else {
+        ASSERT(version < BinaryIoVersion::V2018_10_24);
+        return NOTHING;
+    }
+}
+
+Outcome BinaryInput::load(const Path& path, Storage& storage, Statistics& stats) {
     storage.removeAll();
     Deserializer deserializer(path);
     std::string identifier;
     Float time, timeStep;
     Size particleCnt, quantityCnt, materialCnt;
-    Version version;
+    BinaryIoVersion version;
+    char runTypeBuffer[16];
     try {
-        deserializer.read(identifier, time, particleCnt, quantityCnt, materialCnt, timeStep, version);
+        deserializer.read(
+            identifier, time, particleCnt, quantityCnt, materialCnt, timeStep, version, runTypeBuffer);
     } catch (SerializerException&) {
         return "Invalid file format";
     }
@@ -561,7 +635,7 @@ Outcome BinaryOutput::load(const Path& path, Storage& storage, Statistics& stats
     stats.set(StatisticsId::RUN_TIME, time);
     stats.set(StatisticsId::TIMESTEP_VALUE, timeStep);
     try {
-        deserializer.skip(PADDING_SIZE);
+        deserializer.skip(BinaryOutput::PADDING_SIZE);
     } catch (SerializerException&) {
         return "Incorrect header size";
     }
@@ -624,10 +698,11 @@ Outcome BinaryOutput::load(const Path& path, Storage& storage, Statistics& stats
     return SUCCESS;
 }
 
-Expected<BinaryOutput::Info> BinaryOutput::getInfo(const Path& path) const {
+Expected<BinaryInput::Info> BinaryInput::getInfo(const Path& path) const {
     Deserializer deserializer(path);
     std::string identifier;
     Info info;
+    char runTypeBuffer[16];
     try {
         deserializer.read(identifier,
             info.runTime,
@@ -635,15 +710,21 @@ Expected<BinaryOutput::Info> BinaryOutput::getInfo(const Path& path) const {
             info.quantityCnt,
             info.materialCnt,
             info.timeStep,
-            info.version);
+            info.version,
+            runTypeBuffer);
     } catch (SerializerException&) {
         return makeUnexpected<Info>("Invalid file format");
     }
     if (identifier != "SPH") {
         return makeUnexpected<Info>("Invalid format specifier: expected SPH, got " + identifier);
     }
+    info.runType = readRunType(runTypeBuffer, info.version);
     return std::move(info);
 }
+
+/// ----------------------------------------------------------------------------------------------------------
+/// PkdgravOutput/Input
+/// ----------------------------------------------------------------------------------------------------------
 
 PkdgravOutput::PkdgravOutput(const Path& fileMask, PkdgravParams&& params)
     : IOutput(fileMask)
@@ -685,8 +766,8 @@ Path PkdgravOutput::dump(Storage& storage, const Statistics& stats) {
     return fileName;
 }
 
-Outcome PkdgravOutput::load(const Path& path, Storage& storage, Statistics& stats) {
-    TextOutput output;
+Outcome PkdgravInput::load(const Path& path, Storage& storage, Statistics& stats) {
+    TextInput input(EMPTY_FLAGS);
 
     // 1) Particle index -- we don't really need that, just add dummy columnm
     class DummyColumn : public ITextColumn {
@@ -711,30 +792,30 @@ Outcome PkdgravOutput::load(const Path& path, Storage& storage, Statistics& stat
             return type;
         }
     };
-    output.addColumn(makeAuto<DummyColumn>(ValueEnum::INDEX));
+    input.addColumn(makeAuto<DummyColumn>(ValueEnum::INDEX));
 
     // 2) Original index -- not really needed, skip
-    output.addColumn(makeAuto<DummyColumn>(ValueEnum::INDEX));
+    input.addColumn(makeAuto<DummyColumn>(ValueEnum::INDEX));
 
     // 3) Particle mass
-    output.addColumn(makeAuto<ValueColumn<Float>>(QuantityId::MASS));
+    input.addColumn(makeAuto<ValueColumn<Float>>(QuantityId::MASS));
 
     // 4) radius ?  -- skip
-    output.addColumn(makeAuto<ValueColumn<Float>>(QuantityId::DENSITY));
+    input.addColumn(makeAuto<ValueColumn<Float>>(QuantityId::DENSITY));
 
     // 5) Positions (3 components)
-    output.addColumn(makeAuto<ValueColumn<Vector>>(QuantityId::POSITION));
+    input.addColumn(makeAuto<ValueColumn<Vector>>(QuantityId::POSITION));
 
     // 6) Velocities (3 components)
-    output.addColumn(makeAuto<DerivativeColumn<Vector>>(QuantityId::POSITION));
+    input.addColumn(makeAuto<DerivativeColumn<Vector>>(QuantityId::POSITION));
 
     // 7) Angular velocities (3 components)
-    output.addColumn(makeAuto<ValueColumn<Vector>>(QuantityId::ANGULAR_VELOCITY));
+    input.addColumn(makeAuto<ValueColumn<Vector>>(QuantityId::ANGULAR_FREQUENCY));
 
     // 8) Color index -- skip
-    output.addColumn(makeAuto<DummyColumn>(ValueEnum::INDEX));
+    input.addColumn(makeAuto<DummyColumn>(ValueEnum::INDEX));
 
-    Outcome outcome = output.load(path, storage, stats);
+    Outcome outcome = input.load(path, storage, stats);
 
     if (!outcome) {
         return outcome;
@@ -749,7 +830,7 @@ Outcome PkdgravOutput::load(const Path& path, Storage& storage, Statistics& stat
     Array<Vector>& v = storage.getDt<Vector>(QuantityId::POSITION);
     Array<Float>& m = storage.getValue<Float>(QuantityId::MASS);
     Array<Float>& rho = storage.getValue<Float>(QuantityId::DENSITY);
-    Array<Vector>& omega = storage.getValue<Vector>(QuantityId::ANGULAR_VELOCITY);
+    Array<Vector>& omega = storage.getValue<Vector>(QuantityId::ANGULAR_FREQUENCY);
 
     for (Size i = 0; i < r.size(); ++i) {
         r[i] *= conversion.distance;

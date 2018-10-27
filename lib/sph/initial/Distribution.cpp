@@ -94,6 +94,7 @@ Array<Vector> HexagonalPacking::generate(IScheduler& UNUSED(scheduler),
     const Float dz = sqrt(6._f) / 3._f * dx;
 
     const Box boundingBox = domain.getBoundingBox();
+    ASSERT(boundingBox.volume() > 0._f && boundingBox.volume() < LARGE);
     const Vector step(dx, dy, dz);
     const Box box = flags.has(Options::SPH5_COMPATIBILITY)
                         ? boundingBox

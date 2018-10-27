@@ -5,7 +5,7 @@ NAMESPACE_SPH_BEGIN
 
 // clang-format off
 template<>
-AutoPtr<GuiSettings> GuiSettings::instance (new GuiSettings {
+AutoPtr<Settings<GuiSettingsId>> Settings<GuiSettingsId>::instance (new Settings<GuiSettingsId> {
     /// Camera pameters
     { GuiSettingsId::CAMERA,                "camera",               CameraEnum::ORTHO,
         "Specifies the projection of the particles to the image. Can be one of the following:\n" + EnumMap::getDesc<CameraEnum>() },

@@ -79,9 +79,9 @@ void NBody::setUp() {
             wxMessageBox("Cannot locate file " + path.native(), "Error", wxOK);
             return;
         }
-        BinaryOutput io;
+        BinaryInput input;
         Statistics stats;
-        Outcome result = io.load(path, *storage, stats);
+        Outcome result = input.load(path, *storage, stats);
         if (!result) {
             wxMessageBox("Cannot load the run state file " + path.native(), "Error", wxOK);
             return;

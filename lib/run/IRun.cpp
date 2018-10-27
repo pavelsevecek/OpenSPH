@@ -6,6 +6,7 @@
 #include "quantities/IMaterial.h"
 #include "run/RunCallbacks.h"
 #include "run/Trigger.h"
+#include "sph/Diagnostics.h"
 #include "system/Factory.h"
 #include "system/Statistics.h"
 #include "system/Timer.h"
@@ -88,6 +89,41 @@ public:
     }
 };
 
+class DiagnosticsTrigger : public PeriodicTrigger {
+private:
+    ArrayView<const AutoPtr<IDiagnostics>> diagnostics;
+
+    RawPtr<IRunCallbacks> callbacks;
+    SharedPtr<ILogger> logger;
+
+public:
+    DiagnosticsTrigger(ArrayView<const AutoPtr<IDiagnostics>> diagnostics,
+        RawPtr<IRunCallbacks> callbacks,
+        SharedPtr<ILogger> logger,
+        const Float period)
+        : PeriodicTrigger(period, 0._f)
+        , diagnostics(diagnostics)
+        , callbacks(callbacks)
+        , logger(logger) {}
+
+    virtual AutoPtr<ITrigger> action(Storage& storage, Statistics& stats) {
+        logger->write("Running simulation diagnostics");
+        bool passed = true;
+        for (auto& diag : diagnostics) {
+            const DiagnosticsReport result = diag->check(storage, stats);
+            if (!result) {
+                logger->write(result.error().description);
+                callbacks->onRunFailure(result.error(), stats);
+                passed = false;
+            }
+        }
+        if (passed) {
+            logger->write(" - no problems detected");
+        }
+        return nullptr;
+    }
+};
+
 void IRun::run() {
     ASSERT(storage);
     Size i = 0;
@@ -98,7 +134,13 @@ void IRun::run() {
     // set uninitilized variables
     setNullToDefaults();
 
+    // add internal triggers
     /// \todo fix! triggers.pushBack(makeAuto<EtaTrigger>());
+    const Float diagnosticsInterval = settings.get<Float>(RunSettingsId::RUN_DIAGNOSTICS_INTERVAL);
+    if (!diagnostics.empty()) {
+        triggers.pushBack(
+            makeAuto<DiagnosticsTrigger>(diagnostics, callbacks.get(), logger, diagnosticsInterval));
+    }
 
     Float nextOutput = timeRange.lower();
     logger->write("Running:");
@@ -113,7 +155,6 @@ void IRun::run() {
     // run main loop
     for (Float t = timeRange.lower(); t < timeRange.upper() && !condition(runTimer, i);
          t += timeStepping->getTimeStep()) {
-
         // save current statistics
         stats.set(StatisticsId::RUN_TIME, t);
         stats.set(StatisticsId::WALLCLOCK_TIME, int(runTimer.elapsed(TimerUnit::MILLISECOND)));

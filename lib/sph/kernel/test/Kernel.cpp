@@ -234,6 +234,11 @@ TEST_CASE("Thomas-Couchman kernel", "[kernel]") {
         flags);
 }
 
+TEST_CASE("CoreTriangle kernel", "[kernel]") {
+    CoreTriangle kernel;
+    testKernel<3>(kernel, [](const auto& kernel) { REQUIRE(kernel.radius() == 1._f); });
+}
+
 TEST_CASE("Triangle kernel", "[kernel]") {
     TriangleKernel<3> kernel;
     // triangle is continuous, but it has discontinuous derivatives

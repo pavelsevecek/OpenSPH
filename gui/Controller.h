@@ -27,6 +27,7 @@ class IRun;
 class IRenderer;
 class ICamera;
 class IColorizer;
+struct DiagnosticsError;
 enum class ColorizerId;
 
 /// \brief Status of the code
@@ -261,6 +262,9 @@ public:
 private:
     /// \brief Called every time step.
     void onTimeStep(const Storage& storage, Statistics& stats);
+
+    /// \brief Called when a problem is reported by the run.
+    void onRunFailure(const DiagnosticsError& error, const Statistics& stats);
 
     SharedPtr<Movie> createMovie(const Storage& storage);
 

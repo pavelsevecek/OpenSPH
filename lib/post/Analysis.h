@@ -18,6 +18,16 @@ class ILogger;
 
 namespace Post {
 
+/// \brief Finds the number of neighbours of each particle.
+///
+/// Note that each particle searches neighbours up to the distance given by their smoothing length, so the
+/// relation "A is a neighbour of B" might not be symmetrical.
+/// \param storage Storage containing the particles.
+/// \param particleRadius Size of particles in smoothing lengths.
+/// \return Number of neighbours of each particle.
+Array<Size> findNeighbourCounts(const Storage& storage, const Float particleRadius);
+
+
 enum class ComponentConnectivity {
     /// Overlapping particles belong into the same component
     OVERLAP,

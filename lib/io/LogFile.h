@@ -37,8 +37,10 @@ public:
     }
 
 protected:
-    /// Syntactic suggar, used for const-correctness (loggers should not modify storage nor stats) and
-    /// throwing out the return value (loggers do not create more triggers)
+    /// \brief Writes to the log using provided storage and statistics.
+    ///
+    /// Used for const-correctness (loggers should not modify storage nor stats) and returning another
+    /// (non-nullptr) trigger (loggers do not create more triggers).
     virtual void write(const Storage& storage, const Statistics& stats) = 0;
 };
 

@@ -12,29 +12,38 @@ NAMESPACE_SPH_BEGIN
 class Storage;
 class Statistics;
 class Interval;
+struct DiagnosticsError;
 
 class IRunCallbacks : public Polymorphic {
 public:
-    /// Called every timestep.
-    virtual void onTimeStep(const Storage& storage, Statistics& stats) = 0;
-
-    /// Called right before the run starts, i.e. after initial conditions are set up.
+    /// \brief Called right before the run starts, i.e. after initial conditions are set up.
     virtual void onRunStart(const Storage& storage, Statistics& stats) = 0;
 
-    /// Called after run ends. Does not get called if run is aborted.
+    /// \brief Called after run ends. Does not get called if run is aborted.
     virtual void onRunEnd(const Storage& storage, Statistics& stats) = 0;
 
-    /// Returns whether current run should be aborted or not. Can be called any time.
+    /// \brief Called every timestep.
+    virtual void onTimeStep(const Storage& storage, Statistics& stats) = 0;
+
+    /// \brief Called if one of the run diagnostics reports a problem.
+    virtual void onRunFailure(const DiagnosticsError& error, const Statistics& stats) const = 0;
+
+    /// \brief Returns whether current run should be aborted or not.
+    ///
+    /// Can be called any time.
     virtual bool shouldAbortRun() const = 0;
 };
 
 class NullCallbacks : public IRunCallbacks {
 public:
-    virtual void onTimeStep(const Storage&, Statistics&) override {}
-
     virtual void onRunStart(const Storage&, Statistics&) override {}
 
     virtual void onRunEnd(const Storage&, Statistics&) override {}
+
+    virtual void onTimeStep(const Storage&, Statistics&) override {}
+
+    virtual void onRunFailure(const DiagnosticsError& UNUSED(error),
+        const Statistics& UNUSED(stats)) const override {}
 
     virtual bool shouldAbortRun() const override {
         return false;

@@ -34,19 +34,19 @@
 
 NAMESPACE_SPH_BEGIN
 
-AutoPtr<IEos> Factory::getEos(const BodySettings& settings) {
-    const EosEnum id = settings.get<EosEnum>(BodySettingsId::EOS);
+AutoPtr<IEos> Factory::getEos(const BodySettings& body) {
+    const EosEnum id = body.get<EosEnum>(BodySettingsId::EOS);
     switch (id) {
     case EosEnum::IDEAL_GAS:
-        return makeAuto<IdealGasEos>(settings.get<Float>(BodySettingsId::ADIABATIC_INDEX));
+        return makeAuto<IdealGasEos>(body.get<Float>(BodySettingsId::ADIABATIC_INDEX));
     case EosEnum::TAIT:
-        return makeAuto<TaitEos>(settings);
+        return makeAuto<TaitEos>(body);
     case EosEnum::MIE_GRUNEISEN:
-        return makeAuto<MieGruneisenEos>(settings);
+        return makeAuto<MieGruneisenEos>(body);
     case EosEnum::TILLOTSON:
-        return makeAuto<TillotsonEos>(settings);
+        return makeAuto<TillotsonEos>(body);
     case EosEnum::MURNAGHAN:
-        return makeAuto<MurnaghanEos>(settings);
+        return makeAuto<MurnaghanEos>(body);
     case EosEnum::NONE:
         return nullptr;
     default:
@@ -54,30 +54,29 @@ AutoPtr<IEos> Factory::getEos(const BodySettings& settings) {
     }
 }
 
-AutoPtr<IRheology> Factory::getRheology(const BodySettings& settings) {
-    const YieldingEnum id = settings.get<YieldingEnum>(BodySettingsId::RHEOLOGY_YIELDING);
+AutoPtr<IRheology> Factory::getRheology(const BodySettings& body) {
+    const YieldingEnum id = body.get<YieldingEnum>(BodySettingsId::RHEOLOGY_YIELDING);
     switch (id) {
     case YieldingEnum::NONE:
         return nullptr;
     case YieldingEnum::ELASTIC:
         return makeAuto<ElasticRheology>();
     case YieldingEnum::VON_MISES:
-        return makeAuto<VonMisesRheology>(Factory::getDamage(settings));
+        return makeAuto<VonMisesRheology>(Factory::getDamage(body));
     case YieldingEnum::DRUCKER_PRAGER:
-        return makeAuto<DruckerPragerRheology>(Factory::getDamage(settings));
+        return makeAuto<DruckerPragerRheology>(Factory::getDamage(body));
     default:
         NOT_IMPLEMENTED;
     }
 }
 
-AutoPtr<IFractureModel> Factory::getDamage(const BodySettings& settings) {
-    const FractureEnum id = settings.get<FractureEnum>(BodySettingsId::RHEOLOGY_DAMAGE);
+AutoPtr<IFractureModel> Factory::getDamage(const BodySettings& body) {
+    const FractureEnum id = body.get<FractureEnum>(BodySettingsId::RHEOLOGY_DAMAGE);
     switch (id) {
     case FractureEnum::NONE:
         return makeAuto<NullFracture>();
     case FractureEnum::SCALAR_GRADY_KIPP:
-        /// \todo  where to get kernel radius from??
-        return makeAuto<ScalarGradyKippModel>(2._f);
+        return makeAuto<ScalarGradyKippModel>();
     case FractureEnum::TENSOR_GRADY_KIPP:
         return makeAuto<TensorGradyKippModel>();
     default:
@@ -161,11 +160,11 @@ AutoPtr<ISymmetricFinder> Factory::getFinder(const RunSettings& settings) {
     }
 }
 
-AutoPtr<IDistribution> Factory::getDistribution(const BodySettings& settings) {
-    const DistributionEnum id = settings.get<DistributionEnum>(BodySettingsId::INITIAL_DISTRIBUTION);
-    const bool center = settings.get<bool>(BodySettingsId::CENTER_PARTICLES);
-    const bool sort = settings.get<bool>(BodySettingsId::PARTICLE_SORTING);
-    const bool sph5mode = settings.get<bool>(BodySettingsId::DISTRIBUTE_MODE_SPH5);
+AutoPtr<IDistribution> Factory::getDistribution(const BodySettings& body) {
+    const DistributionEnum id = body.get<DistributionEnum>(BodySettingsId::INITIAL_DISTRIBUTION);
+    const bool center = body.get<bool>(BodySettingsId::CENTER_PARTICLES);
+    const bool sort = body.get<bool>(BodySettingsId::PARTICLE_SORTING);
+    const bool sph5mode = body.get<bool>(BodySettingsId::DISTRIBUTE_MODE_SPH5);
     switch (id) {
     case DistributionEnum::HEXAGONAL: {
         Flags<HexagonalPacking::Options> flags;
@@ -182,8 +181,8 @@ AutoPtr<IDistribution> Factory::getDistribution(const BodySettings& settings) {
     case DistributionEnum::DIEHL_ET_AL: {
         DiehlParams diehl;
         diehl.particleDensity = [](const Vector&) { return 1._f; };
-        diehl.strength = settings.get<Float>(BodySettingsId::DIELH_STRENGTH);
-        diehl.maxDifference = settings.get<int>(BodySettingsId::DIEHL_MAX_DIFFERENCE);
+        diehl.strength = body.get<Float>(BodySettingsId::DIELH_STRENGTH);
+        diehl.maxDifference = body.get<int>(BodySettingsId::DIEHL_MAX_DIFFERENCE);
         return makeAuto<DiehlDistribution>(diehl);
     }
     case DistributionEnum::LINEAR:
@@ -372,20 +371,20 @@ AutoPtr<IBoundaryCondition> Factory::getBoundaryConditions(const RunSettings& se
     }
 }
 
-AutoPtr<IMaterial> Factory::getMaterial(const BodySettings& settings) {
-    const YieldingEnum yieldId = settings.get<YieldingEnum>(BodySettingsId::RHEOLOGY_YIELDING);
-    const EosEnum eosId = settings.get<EosEnum>(BodySettingsId::EOS);
+AutoPtr<IMaterial> Factory::getMaterial(const BodySettings& body) {
+    const YieldingEnum yieldId = body.get<YieldingEnum>(BodySettingsId::RHEOLOGY_YIELDING);
+    const EosEnum eosId = body.get<EosEnum>(BodySettingsId::EOS);
     switch (yieldId) {
     case YieldingEnum::DRUCKER_PRAGER:
     case YieldingEnum::VON_MISES:
     case YieldingEnum::ELASTIC:
-        return makeAuto<SolidMaterial>(settings);
+        return makeAuto<SolidMaterial>(body);
     case YieldingEnum::NONE:
         switch (eosId) {
         case EosEnum::NONE:
-            return makeAuto<NullMaterial>(settings);
+            return makeAuto<NullMaterial>(body);
         default:
-            return makeAuto<EosMaterial>(settings);
+            return makeAuto<EosMaterial>(body);
         }
 
     default:
@@ -410,19 +409,19 @@ AutoPtr<ILogger> Factory::getLogger(const RunSettings& settings) {
 }
 
 AutoPtr<IOutput> Factory::getOutput(const RunSettings& settings) {
-    const OutputEnum id = settings.get<OutputEnum>(RunSettingsId::RUN_OUTPUT_TYPE);
+    const IoEnum id = settings.get<IoEnum>(RunSettingsId::RUN_OUTPUT_TYPE);
     const Path outputPath(settings.get<std::string>(RunSettingsId::RUN_OUTPUT_PATH));
     const Path fileMask(settings.get<std::string>(RunSettingsId::RUN_OUTPUT_NAME));
     switch (id) {
-    case OutputEnum::NONE:
+    case IoEnum::NONE:
         return makeAuto<NullOutput>();
-    case OutputEnum::TEXT_FILE:
+    case IoEnum::TEXT_FILE:
         return makeAuto<TextOutput>(outputPath / fileMask,
             settings.get<std::string>(RunSettingsId::RUN_NAME),
             settings.getFlags<OutputQuantityFlag>(RunSettingsId::RUN_OUTPUT_QUANTITIES));
-    case OutputEnum::BINARY_FILE:
+    case IoEnum::BINARY_FILE:
         return makeAuto<BinaryOutput>(outputPath / fileMask);
-    case OutputEnum::PKDGRAV_INPUT: {
+    case IoEnum::PKDGRAV_INPUT: {
         PkdgravParams pkd;
         pkd.omega = settings.get<Vector>(RunSettingsId::FRAME_ANGULAR_FREQUENCY);
         return makeAuto<PkdgravOutput>(outputPath / fileMask, std::move(pkd));

@@ -6,86 +6,15 @@
 /// \date 2016-2018
 
 #include "gui/Controller.h"
+#include "gui/GuiCallbacks.h"
 #include "gui/MainLoop.h"
 #include "io/FileSystem.h"
 #include "physics/Constants.h"
-#include "run/CompositeRun.h"
+#include "run/RubblePile.h"
+
 #include <wx/app.h>
 
 NAMESPACE_SPH_BEGIN
-
-class Reaccumulation;
-class Fragmentation;
-
-namespace Presets {
-    class Collision;
-} // namespace Presets
-
-class Stabilization : public IRunPhase {
-private:
-    RawPtr<Controller> controller;
-    SharedPtr<Presets::Collision> data;
-
-public:
-    Function<void()> onSphFinished;
-
-    Function<void()> onStabilizationFinished;
-
-    Stabilization(RawPtr<Controller> newController);
-
-    ~Stabilization();
-
-    virtual void setUp() override;
-
-    virtual AutoPtr<IRunPhase> getNextPhase() const override;
-
-    virtual void handoff(Storage&& UNUSED(input)) override {
-        STOP; // this is the first phase, no handoff needed
-    }
-
-protected:
-    virtual void tearDown(const Statistics& stats) override;
-};
-
-
-class Fragmentation : public IRunPhase {
-private:
-    SharedPtr<Presets::Collision> data;
-
-    Function<void()> onFinished;
-
-public:
-    Fragmentation(SharedPtr<Presets::Collision> data, Function<void()> onFinished);
-
-    ~Fragmentation();
-
-    virtual void setUp() override;
-
-    virtual AutoPtr<IRunPhase> getNextPhase() const override;
-
-    virtual void handoff(Storage&& input) override;
-
-protected:
-    virtual void tearDown(const Statistics& stats) override;
-};
-
-
-class Reaccumulation : public IRunPhase {
-public:
-    Reaccumulation();
-
-    virtual void setUp() override;
-
-    virtual AutoPtr<IRunPhase> getNextPhase() const override {
-        return nullptr;
-    }
-
-    virtual void handoff(Storage&& input) override;
-
-protected:
-    virtual void tearDown(const Statistics& stats) override;
-};
-
 class App : public wxApp {
 private:
     AutoPtr<Controller> controller;
@@ -109,8 +38,8 @@ private:
             .set(GuiSettingsId::IMAGES_WIDTH, 1024)
             .set(GuiSettingsId::IMAGES_HEIGHT, 768)
             .set(GuiSettingsId::WINDOW_WIDTH, 1334)
-            .set(GuiSettingsId::WINDOW_HEIGHT, 768)
-            .set(GuiSettingsId::PARTICLE_RADIUS, 0.25_f)
+            .set(GuiSettingsId::WINDOW_HEIGHT, 1030)
+            .set(GuiSettingsId::PARTICLE_RADIUS, 1._f) // 0.25_f)
             .set(GuiSettingsId::SURFACE_RESOLUTION, 1.e2_f)
             .set(GuiSettingsId::SURFACE_LEVEL, 0.1_f)
             .set(GuiSettingsId::SURFACE_AMBIENT, 0.1_f)
@@ -138,17 +67,28 @@ private:
             .set(GuiSettingsId::PALETTE_RADIUS, Interval(700._f, 3.e3_f))
             .set(GuiSettingsId::PALETTE_GRADV, Interval(0._f, 1.e-5_f))
             .set(GuiSettingsId::PLOT_INITIAL_PERIOD, 10._f)
-            .set(GuiSettingsId::PLOT_INTEGRALS, PlotEnum::KINETIC_ENERGY | PlotEnum::INTERNAL_ENERGY);
-        /*| PlotEnum::TOTAL_ENERGY |
-      PlotEnum::TOTAL_MOMENTUM | PlotEnum::TOTAL_ANGULAR_MOMENTUM |
-      PlotEnum::SIZE_FREQUENCY_DISTRIBUTION | PlotEnum::SELECTED_PARTICLE);*/
+            .set(GuiSettingsId::PLOT_INTEGRALS, PlotEnum::ALL);
 
-        gui.saveToFile(Path("gui.sph"));
         controller = makeAuto<Controller>(gui);
 
-        AutoPtr<Stabilization> phase1 = makeAuto<Stabilization>(controller.get());
+        Presets::CollisionParams params;
+        params.targetParticleCnt = 10000;
+        params.targetRadius = 1.e5_f;
+        params.impactorRadius = 2.e4_f;
+        params.impactAngle = 0._f * DEG_TO_RAD;
+        params.impactSpeed = 3.e3_f;
+        params.impactorParticleCntOverride = 130;
 
-        phase1->onStabilizationFinished = [gui, this] {
+        params.body.set(BodySettingsId::STRESS_TENSOR_MIN, 2.e8_f)
+            .set(BodySettingsId::ENERGY_MIN, 100._f)
+            .set(BodySettingsId::DAMAGE_MIN, 1._f)
+            .set(BodySettingsId::MIN_PARTICLE_COUNT, 100)
+            .set(BodySettingsId::BULK_POROSITY, 0.3_f);
+
+        SharedPtr<GuiCallbacks> callbacks = makeShared<GuiCallbacks>(*controller);
+        AutoPtr<RubblePileRunPhase> phase1 = makeAuto<RubblePileRunPhase>(params, callbacks);
+
+        /*phase1->onStabilizationFinished = [gui, this] {
             executeOnMainThread([gui, this] {
                 GuiSettings newGui = gui;
                 newGui.set(GuiSettingsId::IMAGES_SAVE, false)
@@ -171,10 +111,17 @@ private:
                     .set(GuiSettingsId::IMAGES_NAME, std::string("reac_%e_%d.png"));
                 controller->setParams(newGui);
             });
-        };
+        };*/
 
         AutoPtr<CompositeRun> allRuns = makeAuto<CompositeRun>(std::move(phase1));
-        allRuns->setPhaseCallback([this](const Storage& storage) { controller->update(storage); });
+        allRuns->setPhaseCallback([gui, this](const Storage& storage) {
+            executeOnMainThread([gui, this] {
+                GuiSettings newGui = gui;
+                newGui.set(GuiSettingsId::PARTICLE_RADIUS, 0.3_f);
+                controller->setParams(newGui);
+            });
+            controller->update(storage);
+        });
         controller->start(std::move(allRuns));
         return true;
     }

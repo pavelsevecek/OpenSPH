@@ -223,6 +223,11 @@ public:
 ///
 /// Defined only for 3 dimensions.
 class CoreTriangle : public Kernel<CoreTriangle, 3> {
+private:
+    const Float alpha = 1._f / 3._f;
+    const Float beta = 1._f + 6._f * sqr(alpha) - 12._f * pow<3>(alpha);
+    const Float normalization = 8._f / (PI * (6.4_f * pow<5>(alpha) - 16._f * pow<6>(alpha) + 1._f));
+
 public:
     INLINE Float radius() const {
         return 1._f;
@@ -230,13 +235,11 @@ public:
 
     INLINE Float valueImpl(const Float qSqr) const {
         const Float q = sqrt(qSqr);
-        const Float alpha = 1._f / 3._f;
-        const Float beta = 1._f + 6._f * sqr(alpha) - 12._f * pow<3>(alpha);
-        const Float normalization = 8._f / (PI * (6.4_f * pow<5>(alpha) - 16._f * pow<6>(alpha) + 1._f));
+
         if (q < alpha) {
             return normalization * ((-12._f * alpha + 18._f * sqr(alpha)) * q + beta);
         } else if (q < 0.5_f) {
-            return normalization * (1._f - 6._f * q * q * (1._f - q));
+            return normalization * (1._f - 6._f * sqr(q) * (1._f - q));
         } else if (q < 1._f) {
             return normalization * 2._f * pow<3>(1._f - q);
         } else {
@@ -244,8 +247,17 @@ public:
         }
     }
 
-    INLINE Float gradImpl(const Float UNUSED(qSqr)) const {
-        NOT_IMPLEMENTED;
+    INLINE Float gradImpl(const Float qSqr) const {
+        const Float q = sqrt(qSqr);
+        if (q < alpha) {
+            return normalization / q * (-12._f * alpha + 18._f * sqr(alpha));
+        } else if (q < 0.5_f) {
+            return normalization / q * (-12._f * q + 18._f * sqr(q));
+        } else if (q < 1._f) {
+            return normalization / q * (-6._f * sqr(1._f - q));
+        } else {
+            return 0._f;
+        }
     }
 };
 

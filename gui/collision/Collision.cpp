@@ -80,9 +80,9 @@ void AsteroidCollision::setUp() {
             wxMessageBox("Cannot locate file " + path.native(), "Error", wxOK);
             return;
         } else {
-            BinaryOutput io;
+            BinaryInput input;
             Statistics stats;
-            Outcome result = io.load(path, *storage, stats);
+            Outcome result = input.load(path, *storage, stats);
             if (!result) {
                 wxMessageBox("Cannot load the run state file " + path.native(), "Error", wxOK);
                 return;
@@ -118,9 +118,10 @@ void AsteroidCollision::setUp() {
         params.targetParticleCnt = N;
         params.centerOfMassFrame = true;
         params.optimizeImpactor = true;
+        params.body = body;
 
         solver = Factory::getSolver(*scheduler, settings);
-        Presets::Collision data(*scheduler, settings, body, params);
+        Presets::Collision data(*scheduler, settings, params);
         data.addTarget(*storage);
         data.addImpactor(*storage);
 

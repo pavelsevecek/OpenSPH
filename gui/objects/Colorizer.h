@@ -838,14 +838,21 @@ static Color getRandomizedColor(const Size idx) {
 }
 
 template <typename TDerived>
-class IdColorizer : public IColorizer {
+class IdColorizerTemplate : public IColorizer {
 private:
     Color backgroundColor;
 
 public:
+    explicit IdColorizerTemplate(const GuiSettings& gui) {
+        backgroundColor = gui.get<Color>(GuiSettingsId::BACKGROUND_COLOR);
+    }
+
     virtual Color evalColor(const Size idx) const override {
-        const Size id = static_cast<const TDerived*>(this)->evalId(idx);
-        const Color color = getRandomizedColor(id);
+        const Optional<Size> id = static_cast<const TDerived*>(this)->evalId(idx);
+        if (!id) {
+            return Color::gray();
+        }
+        const Color color = getRandomizedColor(id.value());
         if (backgroundColor.intensity() < 0.5f) {
             // dark background, brighten the particle color
             return color.brighten(0.4f);
@@ -854,10 +861,29 @@ public:
             return color.darken(0.4f);
         }
     }
+
+    virtual Optional<Particle> getParticle(const Size idx) const override {
+        Particle particle(idx);
+        const Optional<Size> id = static_cast<const TDerived*>(this)->evalId(idx);
+        if (id) {
+            particle.addValue(QuantityId::FLAG, id.value());
+        }
+        return particle;
+    }
+
+    virtual Optional<Palette> getPalette() const override {
+        return NOTHING;
+    }
 };
 
-class ParticleIdColorizer : public IColorizer {
+class ParticleIdColorizer : public IdColorizerTemplate<ParticleIdColorizer> {
 public:
+    using IdColorizerTemplate<ParticleIdColorizer>::IdColorizerTemplate;
+
+    INLINE Optional<Size> evalId(const Size idx) const {
+        return idx;
+    }
+
     virtual void initialize(const Storage& UNUSED(storage), const RefEnum UNUSED(ref)) override {
         // no need to cache anything
     }
@@ -866,31 +892,24 @@ public:
         return true;
     }
 
-    virtual Color evalColor(const Size idx) const override {
-        return getRandomizedColor(idx);
-    }
-
-    virtual Optional<Particle> getParticle(const Size idx) const override {
-        return Particle(idx);
-    }
-
-    virtual Optional<Palette> getPalette() const override {
-        return NOTHING;
-    }
-
     virtual std::string name() const override {
         return "Particle ID";
     }
 };
 
-class ComponentIdColorizer : public IColorizer {
+class ComponentIdColorizer : public IdColorizerTemplate<ComponentIdColorizer> {
 private:
     Array<Size> components;
     Post::ComponentConnectivity connectivity;
 
 public:
-    explicit ComponentIdColorizer(const Post::ComponentConnectivity connectivity)
-        : connectivity(connectivity) {}
+    explicit ComponentIdColorizer(const GuiSettings& gui, const Post::ComponentConnectivity connectivity)
+        : IdColorizerTemplate<ComponentIdColorizer>(gui)
+        , connectivity(connectivity) {}
+
+    INLINE Optional<Size> evalId(const Size idx) const {
+        return components[idx];
+    }
 
     virtual void initialize(const Storage& storage, const RefEnum UNUSED(ref)) override {
         Post::findComponents(storage, 2._f, connectivity, components);
@@ -898,18 +917,6 @@ public:
 
     virtual bool isInitialized() const override {
         return !components.empty();
-    }
-
-    virtual Color evalColor(const Size idx) const override {
-        return getRandomizedColor(components[idx]);
-    }
-
-    virtual Optional<Particle> getParticle(const Size idx) const override {
-        return Particle(idx).addValue(QuantityId::FLAG, components[idx]);
-    }
-
-    virtual Optional<Palette> getPalette() const override {
-        return NOTHING;
     }
 
     virtual std::string name() const override {
@@ -926,11 +933,17 @@ public:
     }
 };
 
-class AggregateIdColorizer : public IColorizer {
+class AggregateIdColorizer : public IdColorizerTemplate<AggregateIdColorizer> {
 private:
     RawPtr<IAggregateObserver> aggregates;
 
 public:
+    using IdColorizerTemplate<AggregateIdColorizer>::IdColorizerTemplate;
+
+    INLINE Optional<Size> evalId(const Size idx) const {
+        return aggregates->getAggregateId(idx);
+    }
+
     virtual void initialize(const Storage& storage, const RefEnum UNUSED(ref)) override {
         aggregates = dynamicCast<IAggregateObserver>(storage.getUserData().get());
     }
@@ -939,57 +952,29 @@ public:
         return aggregates != nullptr;
     }
 
-    virtual Color evalColor(const Size idx) const override {
-        const Optional<Size> id = aggregates->getAggregateId(idx);
-        if (id) {
-            return getRandomizedColor(id.value());
-        } else {
-            return Color::gray();
-        }
-    }
-
-    virtual Optional<Particle> getParticle(const Size idx) const override {
-        const Optional<Size> id = aggregates->getAggregateId(idx);
-        if (id) {
-            return Particle(idx).addValue(QuantityId::FLAG, id.value());
-        } else {
-            return Particle(idx);
-        }
-    }
-
-    virtual Optional<Palette> getPalette() const override {
-        return NOTHING;
-    }
-
     virtual std::string name() const override {
         return "Aggregate ID";
     }
 };
 
 
-class FlagColorizer : public IColorizer {
+class FlagColorizer : public IdColorizerTemplate<FlagColorizer> {
 private:
     ArrayRef<const Size> flags;
 
 public:
+    using IdColorizerTemplate<FlagColorizer>::IdColorizerTemplate;
+
+    INLINE Optional<Size> evalId(const Size idx) const {
+        return flags[idx];
+    }
+
     virtual void initialize(const Storage& storage, const RefEnum ref) override {
         flags = makeArrayRef(storage.getValue<Size>(QuantityId::FLAG), ref);
     }
 
     virtual bool isInitialized() const override {
         return !flags.empty();
-    }
-
-    virtual Color evalColor(const Size idx) const override {
-        return getRandomizedColor(flags[idx]);
-    }
-
-    virtual Optional<Particle> getParticle(const Size idx) const override {
-        return Particle(QuantityId::FLAG, flags[idx], idx);
-    }
-
-    virtual Optional<Palette> getPalette() const override {
-        return NOTHING;
     }
 
     virtual std::string name() const override {

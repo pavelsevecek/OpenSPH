@@ -282,6 +282,11 @@ void Controller::onTimeStep(const Storage& storage, Statistics& stats) {
     }
 }
 
+void Controller::onRunFailure(const DiagnosticsError& error, const Statistics& stats) {
+    ASSERT(std::this_thread::get_id() == sph.thread.get_id());
+    window->onRunFailure(error, stats);
+}
+
 GuiSettings& Controller::getParams() {
     return gui;
 }
@@ -368,10 +373,16 @@ Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage
         colorizerIds.push(ColorizerId::RADIUS);
         colorizerIds.push(ColorizerId::PARTICLE_ID);
         colorizerIds.push(ColorizerId::COMPONENT_ID);
-        colorizerIds.push(ColorizerId::AGGREGATE_ID);
+
+        if (storage.getUserData()) {
+            colorizerIds.push(ColorizerId::AGGREGATE_ID);
+        }
 
         colorizerIds.push(ColorizerId::FLAG);
-        colorizerIds.push(ColorizerId::UVW);
+
+        if (storage.has(QuantityId(GuiQuantityId::UVW))) {
+            colorizerIds.push(ColorizerId::UVW);
+        }
 
         if (storage.has(QuantityId::NEIGHBOUR_CNT)) {
             colorizerIds.push(ColorizerId::BOUNDARY);
@@ -394,10 +405,11 @@ Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage
         quantityColorizerIds.push(QuantityId::MASS);
         quantityColorizerIds.push(QuantityId::AV_ALPHA);
         quantityColorizerIds.push(QuantityId::AV_BALSARA);
-        quantityColorizerIds.push(QuantityId::ANGULAR_VELOCITY);
+        quantityColorizerIds.push(QuantityId::ANGULAR_FREQUENCY);
         quantityColorizerIds.push(QuantityId::MOMENT_OF_INERTIA);
         quantityColorizerIds.push(QuantityId::STRAIN_RATE_CORRECTION_TENSOR);
         quantityColorizerIds.push(QuantityId::EPS_MIN);
+        quantityColorizerIds.push(QuantityId::NEIGHBOUR_CNT);
     }
 
     Array<SharedPtr<IColorizer>> colorizers;
@@ -643,9 +655,9 @@ void Controller::run(const Path& path) {
 
         // if we want to resume run from state file, load the storage
         if (!path.empty()) {
-            BinaryOutput io;
+            BinaryInput input;
             Statistics stats;
-            Outcome result = io.load(path, *storage, stats);
+            Outcome result = input.load(path, *storage, stats);
             if (!result) {
                 executeOnMainThread([result] {
                     wxMessageBox("Cannot resume the run: " + result.error(), "Error", wxOK | wxCENTRE);

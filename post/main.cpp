@@ -20,7 +20,7 @@ using namespace Sph;
 static Expected<Storage> parsePkdgravOutput(const Path& path) {
     Storage storage;
     Statistics stats;
-    PkdgravOutput io;
+    PkdgravInput io;
     Outcome result = io.load(path, storage, stats);
     if (!result) {
         return makeUnexpected<Storage>(result.error());
@@ -64,7 +64,7 @@ int pkdgravToOmega(const Path& filePath, const Path& omegaPath) {
     /*for (Post::SfdPoint& p : sfd) {
         logOmegaSfd.write(p.value, "  ", p.count);
     }*/
-    ArrayView<Vector> omega = storage->getValue<Vector>(QuantityId::ANGULAR_VELOCITY);
+    ArrayView<Vector> omega = storage->getValue<Vector>(QuantityId::ANGULAR_FREQUENCY);
     std::sort(
         omega.begin(), omega.end(), [](Vector& v1, Vector& v2) { return getLength(v1) > getLength(v2); });
     for (Vector v : omega) {
@@ -91,10 +91,10 @@ int pkdgravToMoons(const Path& filePath, const float limit) {
 
 int ssfToSfd(const Post::HistogramSource source, const Path& filePath, const Path& sfdPath) {
     std::cout << "Processing SPH file ... " << std::endl;
-    BinaryOutput output;
+    BinaryInput input;
     Storage storage;
     Statistics stats;
-    Outcome outcome = output.load(filePath, storage, stats);
+    Outcome outcome = input.load(filePath, storage, stats);
     if (!outcome) {
         std::cout << "Cannot load particle data, " << outcome.error() << std::endl;
         return 0;
@@ -115,10 +115,10 @@ int ssfToOmega(const Path& filePath,
     const Path& omegaDPath,
     const Path& omegaDirPath) {
     std::cout << "Processing SPH file ... " << std::endl;
-    BinaryOutput output;
+    BinaryInput input;
     Storage storage;
     Statistics stats;
-    Outcome outcome = output.load(filePath, storage, stats);
+    Outcome outcome = input.load(filePath, storage, stats);
     if (!outcome) {
         std::cout << "Cannot load particle data, " << outcome.error() << std::endl;
         return 0;
@@ -128,7 +128,7 @@ int ssfToOmega(const Path& filePath,
     params.range = Interval(0._f, 13._f);
     params.binCnt = 12;
 
-    ArrayView<const Vector> w = storage.getValue<Vector>(QuantityId::ANGULAR_VELOCITY);
+    ArrayView<const Vector> w = storage.getValue<Vector>(QuantityId::ANGULAR_FREQUENCY);
     ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
     // const Float massCutoff = 1._f / 300000._f;
     const Float m_total = std::accumulate(m.begin(), m.end(), 0._f);
@@ -177,16 +177,16 @@ int ssfToOmega(const Path& filePath,
 
 // prints total ejected mass and period of the LR
 void ssfToStats(const Path& filePath) {
-    BinaryOutput output;
+    BinaryInput input;
     Storage storage;
     Statistics stats;
-    Outcome outcome = output.load(filePath, storage, stats);
+    Outcome outcome = input.load(filePath, storage, stats);
     if (!outcome) {
         std::cout << "Cannot load particle data, " << outcome.error() << std::endl;
         return;
     }
     ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
-    ArrayView<const Vector> omega = storage.getValue<Vector>(QuantityId::ANGULAR_VELOCITY);
+    ArrayView<const Vector> omega = storage.getValue<Vector>(QuantityId::ANGULAR_FREQUENCY);
 
     const Size largestIdx = std::distance(m.begin(), std::max_element(m.begin(), m.end()));
     const Float m_sum = std::accumulate(m.begin(), m.end(), 0._f);

@@ -10,13 +10,10 @@
 #include "io/Output.h"
 #include <condition_variable>
 
-
 NAMESPACE_SPH_BEGIN
 
-
 class IRenderer;
-enum class GuiSettingsId;
-using GuiSettings = Settings<GuiSettingsId>;
+class GuiSettings;
 
 /// \brief Object managing periodic rendering of images and saving them to given paths.
 ///

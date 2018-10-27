@@ -3,6 +3,7 @@
 #include "io/FileSystem.h"
 #include "io/LogFile.h"
 #include "io/Output.h"
+#include "sph/Diagnostics.h"
 #include "sph/solvers/StabilizationSolver.h"
 #include "system/Factory.h"
 
@@ -17,11 +18,10 @@ static RunSettings getSharedSettings(const Presets::CollisionParams& params, con
         .set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::PREDICTOR_CORRECTOR)
         .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 0.01_f)
         .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 100._f)
-        //.set(RunSettingsId::TIMESTEPPING_MAX_CHANGE, 0.5_f)
-        .set(RunSettingsId::TIMESTEPPING_COURANT_NUMBER, 0.25_f)
+        .set(RunSettingsId::TIMESTEPPING_COURANT_NUMBER, 0.2_f)
         .set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, runTime))
         .set(RunSettingsId::RUN_OUTPUT_INTERVAL, runTime / 2000._f)
-        .set(RunSettingsId::RUN_OUTPUT_TYPE, OutputEnum::BINARY_FILE)
+        .set(RunSettingsId::RUN_OUTPUT_TYPE, IoEnum::BINARY_FILE)
         .set(RunSettingsId::RUN_OUTPUT_PATH, params.outputPath.native())
         .set(RunSettingsId::RUN_OUTPUT_NAME, fileMask)
         .set(RunSettingsId::SOLVER_TYPE, SolverEnum::ASYMMETRIC_SOLVER)
@@ -31,15 +31,18 @@ static RunSettings getSharedSettings(const Presets::CollisionParams& params, con
         .set(RunSettingsId::SPH_AV_TYPE, ArtificialViscosityEnum::STANDARD)
         .set(RunSettingsId::SPH_AV_ALPHA, 1.5_f)
         .set(RunSettingsId::SPH_AV_BETA, 3._f)
+        .set(RunSettingsId::SPH_KERNEL, KernelEnum::CUBIC_SPLINE)
         .set(RunSettingsId::SPH_KERNEL_ETA, 1.3_f)
         .set(RunSettingsId::GRAVITY_SOLVER, GravityEnum::BARNES_HUT)
         .set(RunSettingsId::GRAVITY_KERNEL, GravityKernelEnum::SPH_KERNEL)
         .set(RunSettingsId::GRAVITY_OPENING_ANGLE, 0.8_f)
+        .set(RunSettingsId::GRAVITY_RECOMPUTATION_PERIOD, 10._f)
         .set(RunSettingsId::GRAVITY_LEAF_SIZE, 20)
         .set(RunSettingsId::SPH_STABILIZATION_DAMPING, 0.4_f)
-        .set(RunSettingsId::RUN_THREAD_GRANULARITY, 100)
+        .set(RunSettingsId::RUN_THREAD_GRANULARITY, 1000)
         .set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONST)
-        .set(RunSettingsId::SPH_STRAIN_RATE_CORRECTION_TENSOR, true);
+        .set(RunSettingsId::SPH_STRAIN_RATE_CORRECTION_TENSOR, true)
+        .set(RunSettingsId::RUN_DIAGNOSTICS_INTERVAL, 1._f);
     return settings;
 }
 
@@ -63,7 +66,7 @@ StabilizationRunPhase::StabilizationRunPhase(const Presets::CollisionParams para
     : params(params) {
     const Path stabPath = params.outputPath / Path("stabilization.sph");
     bool settingsLoaded;
-    if (FileSystem::pathExists(stabPath)) {
+    if (false && FileSystem::pathExists(stabPath)) {
         settings.loadFromFile(stabPath);
         settingsLoaded = true;
     } else {
@@ -71,7 +74,8 @@ StabilizationRunPhase::StabilizationRunPhase(const Presets::CollisionParams para
         const Float runTime = settings.get<Interval>(RunSettingsId::RUN_TIME_RANGE).size();
         settings.set(RunSettingsId::RUN_NAME, std::string("Stabilization"))
             .set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 0.1_f * runTime))
-            .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 0.2_f * runTime / 20._f);
+            .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 0.2_f * runTime / 20._f)
+            .set(RunSettingsId::TIMESTEPPING_COURANT_NUMBER, 0.2_f);
         //    .set(RunSettingsId::RUN_OUTPUT_TYPE, OutputEnum::NONE);
         settings.saveToFile(stabPath);
         settingsLoaded = false;
@@ -113,7 +117,8 @@ void StabilizationRunPhase::setUp() {
 
     // override collision params with value loaded from settings
     params.targetParticleCnt = body.get<int>(BodySettingsId::PARTICLE_COUNT);
-    data = makeShared<Presets::Collision>(*scheduler, settings, body, params);
+    params.body = body;
+    data = makeShared<Presets::Collision>(*scheduler, settings, params);
     storage = makeShared<Storage>();
 
     data->addTarget(*storage);
@@ -131,6 +136,31 @@ void StabilizationRunPhase::setUp() {
     SharedPtr<ILogger> energyLogger = makeShared<FileLogger>(params.outputPath / Path("stab_energy.txt"));
     AutoPtr<EnergyLog> energyFile = makeAuto<EnergyLog>(energyLogger, runTime / 50._f);
     triggers.pushBack(std::move(energyFile));
+
+    diagnostics.push(makeAuto<CourantInstability>(20._f));
+}
+
+void StabilizationRunPhase::handoff(Storage&& input) {
+    storage = makeShared<Storage>();
+    storage->merge(std::move(input));
+    solver = makeAuto<StabilizationSolver>(*scheduler, settings);
+
+    IMaterial& material = storage->getMaterial(0);
+    solver->create(*storage, material);
+    MaterialInitialContext context(settings);
+    material.create(*storage, context);
+
+    logger = Factory::getLogger(settings);
+    triggers.pushBack(makeAuto<CommonStatsLog>(logger, settings));
+
+    data = makeShared<Presets::Collision>(*scheduler, settings, params);
+
+    // we need to create a "dummy" target, otherwise impactor would be created with flag 0
+    /// \todo this is really dumb
+    Storage dummy;
+    data->addTarget(dummy);
+
+    diagnostics.push(makeAuto<CourantInstability>(20._f));
 }
 
 AutoPtr<IRunPhase> StabilizationRunPhase::getNextPhase() const {
@@ -148,7 +178,7 @@ FragmentationRunPhase::FragmentationRunPhase(Presets::CollisionParams params,
 
     const Path fragPath = params.outputPath / Path("fragmentation.sph");
     bool settingsLoaded;
-    if (FileSystem::pathExists(fragPath)) {
+    if (false && FileSystem::pathExists(fragPath)) {
         settings.loadFromFile(fragPath);
         settingsLoaded = true;
     } else {
@@ -187,6 +217,8 @@ void FragmentationRunPhase::handoff(Storage&& input) {
         "Running FRAGMENTATION for ", settings.get<Interval>(RunSettingsId::RUN_TIME_RANGE).size(), " s");
 
     triggers.pushBack(makeAuto<CommonStatsLog>(logger, settings));
+
+    diagnostics.push(makeAuto<CourantInstability>(0.5_f));
 }
 
 void FragmentationRunPhase::tearDown(const Statistics& stats) {
@@ -221,7 +253,7 @@ ReaccumulationRunPhase::ReaccumulationRunPhase(const Path& outputPath) {
         .set(RunSettingsId::TIMESTEPPING_ADAPTIVE_FACTOR, 0.2_f)
         .set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 1.e6_f))
         .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 1.e4_f)
-        .set(RunSettingsId::RUN_OUTPUT_TYPE, OutputEnum::BINARY_FILE)
+        .set(RunSettingsId::RUN_OUTPUT_TYPE, IoEnum::BINARY_FILE)
         .set(RunSettingsId::RUN_OUTPUT_PATH, outputPath.native())
         .set(RunSettingsId::RUN_OUTPUT_NAME, std::string("reacc_%d.ssf"))
         .set(RunSettingsId::SPH_FINDER, FinderEnum::KD_TREE)

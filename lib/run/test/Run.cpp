@@ -36,6 +36,9 @@ public:
         runEnded = true;
     }
 
+    virtual void onRunFailure(const DiagnosticsError& UNUSED(error),
+        const Statistics& UNUSED(stats)) const override {}
+
     virtual bool shouldAbortRun() const override {
         return (stepIdx >= abortAfterStep);
     }
@@ -53,12 +56,6 @@ public:
     virtual Path dump(Storage& UNUSED(storage), const Statistics& stats) override {
         outputTimes.push(stats.get<Float>(StatisticsId::RUN_TIME));
         return Path();
-    }
-
-    virtual Outcome load(const Path& UNUSED(path),
-        Storage& UNUSED(storage),
-        Statistics& UNUSED(stats)) override {
-        NOT_IMPLEMENTED;
     }
 };
 

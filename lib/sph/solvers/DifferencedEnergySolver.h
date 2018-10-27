@@ -20,7 +20,7 @@ private:
 public:
     DifferencedEnergySolver(IScheduler& scheduler, const RunSettings& settings, const EquationHolder& eqs)
         : AsymmetricSolver(scheduler, settings, eqs) {
-        /// \todo accelerations.derivatives = derivatives.getSubset(QuantityId::POSITION, OrderEnum::SECOND);
+        // accelerations.derivatives = derivatives.getSubset(QuantityId::POSITION, OrderEnum::SECOND);
         initialDt = settings.get<Float>(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP);
     }
 

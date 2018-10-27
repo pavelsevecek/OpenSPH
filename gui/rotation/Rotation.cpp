@@ -70,8 +70,8 @@ void AsteroidRotation::setUp() {
     logger = Factory::getLogger(settings);
     logger->write("Particles of target: ", storage->getParticleCnt());
 
-    if (storage->has(QuantityId::ANGULAR_VELOCITY)) {
-        ArrayView<Vector> w = storage->getValue<Vector>(QuantityId::ANGULAR_VELOCITY);
+    if (storage->has(QuantityId::ANGULAR_FREQUENCY)) {
+        ArrayView<Vector> w = storage->getValue<Vector>(QuantityId::ANGULAR_FREQUENCY);
         for (Size i = 0; i < w.size(); ++i) {
             w[i] = omega;
         }

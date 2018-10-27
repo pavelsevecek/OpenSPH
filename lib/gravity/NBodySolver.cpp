@@ -67,7 +67,7 @@ NBodySolver::~NBodySolver() = default;
 void NBodySolver::rotateLocalFrame(Storage& storage, const Float dt) {
     ArrayView<Tensor> E = storage.getValue<Tensor>(QuantityId::LOCAL_FRAME);
     ArrayView<Vector> L = storage.getValue<Vector>(QuantityId::ANGULAR_MOMENTUM);
-    ArrayView<Vector> w = storage.getValue<Vector>(QuantityId::ANGULAR_VELOCITY);
+    ArrayView<Vector> w = storage.getValue<Vector>(QuantityId::ANGULAR_FREQUENCY);
     ArrayView<SymmetricTensor> I = storage.getValue<SymmetricTensor>(QuantityId::MOMENT_OF_INERTIA);
 
     for (Size i = 0; i < L.size(); ++i) {
@@ -360,7 +360,7 @@ void NBodySolver::create(Storage& storage, IMaterial& UNUSED(material)) const {
     storage.insert<Vector>(QuantityId::ANGULAR_MOMENTUM, OrderEnum::ZERO, Vector(0._f));
 
     // dependent quantity, computed from angular momentum
-    storage.insert<Vector>(QuantityId::ANGULAR_VELOCITY, OrderEnum::ZERO, Vector(0._f));
+    storage.insert<Vector>(QuantityId::ANGULAR_FREQUENCY, OrderEnum::ZERO, Vector(0._f));
 
     if (rigidBody.use) {
         storage.insert<SymmetricTensor>(

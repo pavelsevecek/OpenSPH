@@ -125,7 +125,7 @@ RunSettings getSharedSettings() {
         .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 1.e-2_f)
         .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 1000._f)
         //.set(RunSettingsId::TIMESTEPPING_MAX_CHANGE, 0.1_f)
-        .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 4000._f)
+        .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 50._f)
         .set(RunSettingsId::SOLVER_FORCES,
             ForceEnum::PRESSURE | ForceEnum::SOLID_STRESS | ForceEnum::GRAVITY) // | ForceEnum::INERTIAL)
         .set(RunSettingsId::SOLVER_TYPE, SolverEnum::ASYMMETRIC_SOLVER)
@@ -146,7 +146,7 @@ RunSettings getSharedSettings() {
         .set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONST)
         .set(RunSettingsId::SPH_STRAIN_RATE_CORRECTION_TENSOR, true)
         .set(RunSettingsId::SPH_SUM_ONLY_UNDAMAGED, true)
-        .set(RunSettingsId::SPH_STABILIZATION_DAMPING, 1._f)
+        .set(RunSettingsId::SPH_STABILIZATION_DAMPING, 0.4_f)
         .set(RunSettingsId::FRAME_ANGULAR_FREQUENCY, Vector(0._f, 0._f, 0._f));
     return settings;
 }
@@ -181,9 +181,9 @@ void Stabilization::setUp() {
             wxMessageBox("Cannot locate file " + path.native(), "Error", wxOK);
             return;
         } else {
-            BinaryOutput io;
+            BinaryInput input;
             Statistics stats;
-            Outcome result = io.load(path, *storage, stats);
+            Outcome result = input.load(path, *storage, stats);
             if (!result) {
                 wxMessageBox("Cannot load the run state file " + path.native(), "Error", wxOK);
                 return;
@@ -197,7 +197,7 @@ void Stabilization::setUp() {
         }
     } else {
 
-        Size N = 20'000;
+        Size N = 30'000;
 
         BodySettings body;
         body.set(BodySettingsId::ENERGY, 0._f)
@@ -211,16 +211,17 @@ void Stabilization::setUp() {
             .set(BodySettingsId::BULK_VISCOSITY, 0._f)
             .set(BodySettingsId::STRESS_TENSOR_MIN, 1.e8_f)
             .set(BodySettingsId::ENERGY_MIN, 100._f)
-            .set(BodySettingsId::DAMAGE_MIN, 0.5_f);
+            .set(BodySettingsId::DAMAGE_MIN, 0.5_f)
+            .set(BodySettingsId::MIN_PARTICLE_COUNT, 100);
         //.set(BodySettingsId::DIELH_STRENGTH, 0.1_f);
 
         body.saveToFile(Path("body.sph"));
 
         Presets::CollisionParams params;
         params.targetRadius = 1.e5_f;
-        params.impactorRadius = 1.3e4_f;
+        params.impactorRadius = 2.e4_f;
         params.impactAngle = 0._f * DEG_TO_RAD;
-        params.impactSpeed = 5.e3_f;
+        params.impactSpeed = 7.e3_f;
         params.targetRotation = 0._f; // 2._f * PI / (3600._f * 2._f);
         // params.targetRotation = 2._f * PI / (3._f * 3600._f);
         params.targetParticleCnt = N;
@@ -228,6 +229,10 @@ void Stabilization::setUp() {
         // params.impactorParticleCntOverride = 100;
         params.centerOfMassFrame = false;
         params.optimizeImpactor = true;
+
+        // params.pebbleSfd = PowerLawSfd{ 2._f, Interval(4.e2_f, 5.e4_f) };
+
+        params.body = body;
 
         // Presets::CollisionSettings().saveToFile(Path("impact.sph"));
 
@@ -269,7 +274,7 @@ void Stabilization::setUp() {
             }
         };*/
 
-        data = makeShared<Presets::Collision>(*scheduler, settings, body, params);
+        data = makeShared<Presets::Collision>(*scheduler, settings, params);
         data->addTarget(*storage);
 
         // setupUvws(*storage);

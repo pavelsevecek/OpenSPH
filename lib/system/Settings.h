@@ -7,7 +7,7 @@
 
 #include "objects/geometry/TracelessTensor.h"
 #include "objects/utility/EnumMap.h"
-#include "objects/wrappers/AutoPtr.h"
+#include "objects/wrappers/ClonePtr.h"
 #include "objects/wrappers/Flags.h"
 #include "objects/wrappers/Interval.h"
 #include "objects/wrappers/Outcome.h"
@@ -61,11 +61,42 @@ struct EnumWrapper {
     }
 };
 
+/// \brief Interface for storing arbitrary values in \ref Settings.
+///
+/// Primitive types (float, vector, string, etc.) are already implemented efficiently, this class is mainly
+/// intended for storing additional types that cannot be represented by one of the primitives. Values must be
+/// stored in specializations of \ref SettingsValue below.
+class ISettingsValue : public Polymorphic {
+public:
+    /// \brief Serializes the value to an output stream.
+    virtual void save(std::ostream& os) = 0;
+
+    /// \brief Deserializes the value from an input stream.
+    virtual void load(std::istream& is) = 0;
+
+    /// \brief Checks for equality with other value.
+    virtual bool operator==(const ISettingsValue& other) const = 0;
+};
+
+/// \brief Operator for printing a \ref ISettingsValue pointer into a stream.
+std::ostream& operator<<(std::ostream& os, const ClonePtr<ISettingsValue>& value);
+
+/// \brief Operator for reading a \ref ISettingsValue pointer from a stream.
+std::istream& operator>>(std::istream& is, ClonePtr<ISettingsValue>& value);
+
+/// \brief "Placeholder" class, used to access the value.
+///
+/// The default implementation should never be used. To store a value of specific type, specialize the
+/// template and implement functions TValue get() and set(const TValue&), and also the functions of \ref
+/// ISettingsValue interface.
+template <typename TValue>
+class SettingsValue : public ISettingsValue {};
+
 /// \brief Generic object containing various settings and parameters of the run.
 ///
 /// Settings is a storage containing pairs key-value objects, where key is one of predefined enums. The value
 /// can have multiple types within the same \ref Settings object. Currently following types can be stored:
-/// bool, int, enums, float (or double), std::string, \ref Interval, \ref Vector, \ref Tensor, \ref
+/// bool, int, enums, float (or double), std::string, \ref Interval, \ref Vector, \ref SymmetricTensor, \ref
 /// TracelessTensor.
 ///
 /// The template cannot be used directly as it is missing default values of parameters; instead
@@ -82,7 +113,18 @@ class Settings {
 
 private:
     /// \brief List of types that can be stored in settings
-    enum Types { BOOL, INT, FLOAT, INTERVAL, STRING, VECTOR, SYMMETRIC_TENSOR, TRACELESS_TENSOR, ENUM };
+    enum Types {
+        BOOL,
+        INT,
+        FLOAT,
+        INTERVAL,
+        STRING,
+        VECTOR,
+        SYMMETRIC_TENSOR,
+        TRACELESS_TENSOR,
+        ENUM,
+        VALUE,
+    };
 
     /// \brief Storage type of settings entries.
     ///
@@ -100,7 +142,8 @@ private:
         Vector,
         SymmetricTensor,
         TracelessTensor,
-        EnumWrapper>;
+        EnumWrapper,
+        ClonePtr<ISettingsValue>>;
 
     struct Entry {
         /// Index of the property
@@ -174,6 +217,7 @@ public:
         return *this;
     }
 
+    /// \copydoc set
     template <typename TValue>
     Settings& set(const TEnum idx,
         TValue&& value,
@@ -200,6 +244,18 @@ public:
         // can be used only if the value is already there and we know the type
         EnumWrapper currentValue = entries[idx].value.template get<EnumWrapper>();
         entries[idx].value = EnumWrapper(0, currentValue.typeHash);
+        return *this;
+    }
+
+    /// \brief todo
+    Settings& set(const TEnum idx, const EnumWrapper ew) {
+#ifdef SPH_DEBUG
+        if (entries.find(idx) != entries.end()) {
+            const EnumWrapper current = entries[idx].value.template get<EnumWrapper>();
+            ASSERT(current.typeHash == ew.typeHash, current.typeHash, ew.typeHash);
+        }
+#endif
+        entries[idx].value = ew;
         return *this;
     }
 
@@ -278,7 +334,7 @@ private:
     bool setValueByType(Entry& entry, const Value& defaultValue, const std::string& str);
 };
 
-/// Iterator useful for iterating over all entries in the settings.
+/// \brief Iterator useful for iterating over all entries in the settings.
 template <typename TEnum>
 class SettingsIterator {
 private:
@@ -821,35 +877,36 @@ static RegisterEnum<LoggerEnum> sLogger({
     { LoggerEnum::FILE, "file", "Print log to a file." },
 });
 
-enum class OutputEnum {
-    /// No output
+enum class IoEnum {
+    /// No input/output
     NONE,
 
-    /// Save output data into formatted human-readable text file
+    /// Formatted human-readable text file
     TEXT_FILE,
 
-    /// Extension of text file, additionally executing given gnuplot script, generating a plot from every dump
+    /// Extension of text file, additionally executing given gnuplot script, generating a plot from every
+    /// dump.
     GNUPLOT_OUTPUT,
 
-    /// Save output data into binary file. This data dump is lossless and can be use to restart run from saved
-    /// snapshot. Stores values, all derivatives and materials of the storage.
+    /// Binary file. This data dump is lossless and can be use to restart run from saved snapshot. Stores
+    /// values, all derivatives and materials of the storage.
     BINARY_FILE,
 
-    /// Generate a pkdgrav input file.
+    /// Pkdgrav input file.
     PKDGRAV_INPUT,
 };
-static RegisterEnum<OutputEnum> sOutput({
-    { OutputEnum::NONE, "none", "No output" },
-    { OutputEnum::TEXT_FILE, "text_file", "Save output data into formatted human-readable text file" },
-    { OutputEnum::GNUPLOT_OUTPUT,
+static RegisterEnum<IoEnum> sIo({
+    { IoEnum::NONE, "none", "No output" },
+    { IoEnum::TEXT_FILE, "text_file", "Save output data into formatted human-readable text file" },
+    { IoEnum::GNUPLOT_OUTPUT,
         "gnuplot_output",
         "Extension of text file, additionally executing given gnuplot script, generating a plot from every "
         "dump" },
-    { OutputEnum::BINARY_FILE,
+    { IoEnum::BINARY_FILE,
         "binary_file",
         "Save output data into binary file. This data dump is lossless and can be use to restart run from "
         "saved snapshot. Stores values, all derivatives and materials of the storage." },
-    { OutputEnum::PKDGRAV_INPUT, "pkdgrav_input", "Generate a pkdgrav input file." },
+    { IoEnum::PKDGRAV_INPUT, "pkdgrav_input", "Generate a pkdgrav input file." },
 });
 
 enum class RngEnum {
@@ -928,6 +985,10 @@ enum class RunSettingsId {
 
     /// Seed for the random-number generator
     RUN_RNG_SEED,
+
+    /// Time period (in run time) of running diagnostics of the run. 0 means the diagnostics are run every
+    /// time step.
+    RUN_DIAGNOSTICS_INTERVAL,
 
     /// Index of SPH Kernel, see KernelEnum
     SPH_KERNEL,
@@ -1410,6 +1471,9 @@ enum class BodySettingsId {
     /// Angular velocity of the body with a respect to position given by BODY_CENTER. `Currently used only by
     /// StabilizationSolver.
     BODY_ANGULAR_VELOCITY = 63,
+
+    /// Bulk (macro)porosity of the body
+    BULK_POROSITY = 64,
 };
 
 using RunSettings = Settings<RunSettingsId>;

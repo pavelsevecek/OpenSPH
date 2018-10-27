@@ -1,4 +1,5 @@
 #include "objects/finders/NeighbourFinder.h"
+#include "thread/Scheduler.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -17,10 +18,12 @@ static Order makeRankH(ArrayView<const Vector> values, Flags<FinderFlag> flags) 
     }
 }
 
-void ISymmetricFinder::build(IScheduler& scheduler, ArrayView<const Vector> points, Flags<FinderFlag> flags) {
+void ISymmetricFinder::build(IScheduler& UNUSED(scheduler),
+    ArrayView<const Vector> points,
+    Flags<FinderFlag> flags) {
     values = points;
     rank = makeRankH(values, flags);
-    this->buildImpl(scheduler, values);
+    this->buildImpl(SEQUENTIAL, values);
 }
 
 NAMESPACE_SPH_END

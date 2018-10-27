@@ -10,6 +10,7 @@ class wxComboBox;
 class wxBoxSizer;
 class wxGauge;
 class wxCheckBox;
+class wxTextCtrl;
 
 NAMESPACE_SPH_BEGIN
 
@@ -25,10 +26,13 @@ class Particle;
 class Color;
 class Statistics;
 class Storage;
+struct DiagnosticsError;
 class SelectedParticlePlot;
 
-/// Main frame of the application. Run is coupled with the window; currently there can only be one window and
-/// one run at the same time. Run is ended when user closes the window.
+/// \brief Main frame of the application.
+///
+/// Run is coupled with the window; currently there can only be one window and one run at the same time. Run
+/// is ended when user closes the window.
 class MainWindow : public wxFrame {
 private:
     /// Parent control object
@@ -46,6 +50,10 @@ private:
 
     LockingPtr<SelectedParticlePlot> selectedParticlePlot;
 
+    wxTextCtrl* status = nullptr;
+    wxTextCtrl* errors = nullptr;
+    bool errorReported = false;
+
     /// Additional wx controls
     wxComboBox* quantityBox;
     Size selectedIdx = 0;
@@ -61,6 +69,8 @@ public:
 
     void onTimeStep(const Storage& storage, const Statistics& stats);
 
+    void onRunFailure(const DiagnosticsError& error, const Statistics& stats);
+
     void setProgress(const float progress);
 
     void setColorizerList(Array<SharedPtr<IColorizer>>&& colorizers);
@@ -73,6 +83,8 @@ private:
     wxBoxSizer* createToolbar(Controller* parent);
 
     wxBoxSizer* createSidebar();
+
+    wxBoxSizer* createStatusbar();
 
     /// wx event handlers
 

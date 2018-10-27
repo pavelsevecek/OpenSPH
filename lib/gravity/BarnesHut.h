@@ -57,8 +57,9 @@ protected:
     /// Order of multipole approximation
     MultipoleOrder order;
 
-    /// Maximum depth at which the nodes evaluation is parallelized. Child nodes are then evaluated serially
-    /// on the same thread.
+    /// Maximum depth at which the nodes evaluation is parallelized.
+    ///
+    /// Child nodes are then evaluated serially on the same thread.
     Size maxDepth = 12;
 
 public:

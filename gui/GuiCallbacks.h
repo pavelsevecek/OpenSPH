@@ -17,12 +17,6 @@ public:
     GuiCallbacks(Controller& controller)
         : controller(controller) {}
 
-    virtual void onTimeStep(const Storage& storage, Statistics& stats) override {
-        Timer timer;
-        controller.onTimeStep(storage, stats);
-        stats.set(StatisticsId::POSTPROCESS_EVAL_TIME, int(timer.elapsed(TimerUnit::MILLISECOND)));
-    }
-
     virtual void onRunStart(const Storage& UNUSED(storage), Statistics& UNUSED(stats)) override {
         controller.setRunning();
     }
@@ -31,6 +25,16 @@ public:
         if (controller.movie) {
             controller.movie->finalize();
         }
+    }
+
+    virtual void onTimeStep(const Storage& storage, Statistics& stats) override {
+        Timer timer;
+        controller.onTimeStep(storage, stats);
+        stats.set(StatisticsId::POSTPROCESS_EVAL_TIME, int(timer.elapsed(TimerUnit::MILLISECOND)));
+    }
+
+    virtual void onRunFailure(const DiagnosticsError& error, const Statistics& stats) const override {
+        controller.onRunFailure(error, stats);
     }
 
     virtual bool shouldAbortRun() const override {

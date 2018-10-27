@@ -14,6 +14,18 @@
 
 NAMESPACE_SPH_BEGIN
 
+Array<Size> Post::findNeighbourCounts(const Storage& storage, const Float particleRadius) {
+    Array<NeighbourRecord> neighs;
+    AutoPtr<IBasicFinder> finder = Factory::getFinder(RunSettings::getDefaults());
+    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
+    finder->build(SEQUENTIAL, r);
+    Array<Size> counts(r.size());
+    for (Size i = 0; i < r.size(); ++i) {
+        counts[i] = finder->findAll(i, r[i][H] * particleRadius, neighs);
+    }
+    return counts;
+}
+
 // Checks if two particles belong to the same component
 struct IComponentChecker : public Polymorphic {
     virtual bool belong(const Size i, const Size j) = 0;
@@ -390,7 +402,7 @@ Array<Post::MoonEnum> Post::findMoons(const Storage& storage, const Float radius
 
 Array<Post::Tumbler> Post::findTumblers(const Storage& storage, const Float limit) {
     Array<Tumbler> tumblers;
-    ArrayView<const Vector> omega = storage.getValue<Vector>(QuantityId::ANGULAR_VELOCITY);
+    ArrayView<const Vector> omega = storage.getValue<Vector>(QuantityId::ANGULAR_FREQUENCY);
     ArrayView<const SymmetricTensor> I = storage.getValue<SymmetricTensor>(QuantityId::MOMENT_OF_INERTIA);
 
     for (Size i = 0; i < omega.size(); ++i) {
@@ -532,12 +544,12 @@ static Array<Float> getParticleValues(const Storage& storage,
         break;
     }
     case Post::HistogramId::ROTATIONAL_PERIOD: {
-        if (!storage.has(QuantityId::ANGULAR_VELOCITY)) {
+        if (!storage.has(QuantityId::ANGULAR_FREQUENCY)) {
             /// \todo should be generalized for all quantities
             values.fill(0._f);
             break;
         }
-        ArrayView<const Vector> omega = storage.getValue<Vector>(QuantityId::ANGULAR_VELOCITY);
+        ArrayView<const Vector> omega = storage.getValue<Vector>(QuantityId::ANGULAR_FREQUENCY);
         for (Size i = 0; i < omega.size(); ++i) {
             const Float w = getLength(omega[i]);
             if (w == 0._f) {
@@ -550,12 +562,12 @@ static Array<Float> getParticleValues(const Storage& storage,
         break;
     }
     case Post::HistogramId::ROTATIONAL_FREQUENCY: {
-        if (!storage.has(QuantityId::ANGULAR_VELOCITY)) {
+        if (!storage.has(QuantityId::ANGULAR_FREQUENCY)) {
             /// \todo should be generalized for all quantities
             values.fill(0._f);
             break;
         }
-        ArrayView<const Vector> omega = storage.getValue<Vector>(QuantityId::ANGULAR_VELOCITY);
+        ArrayView<const Vector> omega = storage.getValue<Vector>(QuantityId::ANGULAR_FREQUENCY);
         for (Size i = 0; i < omega.size(); ++i) {
             const Float w = getLength(omega[i]);
             values[i] = 3600._f * 24._f * w / (2._f * PI);
@@ -563,12 +575,12 @@ static Array<Float> getParticleValues(const Storage& storage,
         break;
     }
     case Post::HistogramId::ROTATIONAL_AXIS: {
-        if (!storage.has(QuantityId::ANGULAR_VELOCITY)) {
+        if (!storage.has(QuantityId::ANGULAR_FREQUENCY)) {
             /// \todo should be generalized for all quantities
             values.fill(0._f);
             break;
         }
-        ArrayView<const Vector> omega = storage.getValue<Vector>(QuantityId::ANGULAR_VELOCITY);
+        ArrayView<const Vector> omega = storage.getValue<Vector>(QuantityId::ANGULAR_FREQUENCY);
         for (Size i = 0; i < omega.size(); ++i) {
             const Float w = getLength(omega[i]);
             if (w == 0._f) {

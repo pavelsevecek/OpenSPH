@@ -12,7 +12,6 @@ AutoPtr<ICamera> Factory::getCamera(const GuiSettings& settings, const Point siz
     CameraEnum cameraId = settings.get<CameraEnum>(GuiSettingsId::CAMERA);
     switch (cameraId) {
     case CameraEnum::ORTHO: {
-        OrthoEnum id = settings.get<OrthoEnum>(GuiSettingsId::ORTHO_PROJECTION);
         OrthoCameraData data;
         const float fov = settings.get<Float>(GuiSettingsId::ORTHO_FOV);
         if (fov != 0.f) {
@@ -22,6 +21,7 @@ AutoPtr<ICamera> Factory::getCamera(const GuiSettings& settings, const Point siz
             data.fov = NOTHING;
         }
         data.zoffset = settings.get<Float>(GuiSettingsId::ORTHO_ZOFFSET);
+        const OrthoEnum id = settings.get<OrthoEnum>(GuiSettingsId::ORTHO_PROJECTION);
         switch (id) {
         case OrthoEnum::XY:
             data.u = Vector(1._f, 0._f, 0._f);
@@ -152,15 +152,15 @@ AutoPtr<IColorizer> Factory::getColorizer(const GuiSettings& settings,
     case ColorizerId::UVW:
         return makeAuto<UvwColorizer>();
     case ColorizerId::PARTICLE_ID:
-        return makeAuto<ParticleIdColorizer>();
+        return makeAuto<ParticleIdColorizer>(settings);
     case ColorizerId::COMPONENT_ID:
-        return makeAuto<ComponentIdColorizer>(Post::ComponentConnectivity::OVERLAP);
+        return makeAuto<ComponentIdColorizer>(settings, Post::ComponentConnectivity::OVERLAP);
     case ColorizerId::BOUND_COMPONENT_ID:
-        return makeAuto<ComponentIdColorizer>(Post::ComponentConnectivity::ESCAPE_VELOCITY);
+        return makeAuto<ComponentIdColorizer>(settings, Post::ComponentConnectivity::ESCAPE_VELOCITY);
     case ColorizerId::AGGREGATE_ID:
-        return makeAuto<AggregateIdColorizer>();
+        return makeAuto<AggregateIdColorizer>(settings);
     case ColorizerId::FLAG:
-        return makeAuto<FlagColorizer>();
+        return makeAuto<FlagColorizer>(settings);
     case ColorizerId::BEAUTY:
         return makeAuto<BeautyColorizer>();
     default:
@@ -210,7 +210,7 @@ AutoPtr<IColorizer> Factory::getColorizer(const GuiSettings& settings,
         case QuantityId::VELOCITY_ROTATION:
             rangeVariant = GuiSettingsId::PALETTE_ROTV;
             break;
-        case QuantityId::ANGULAR_VELOCITY:
+        case QuantityId::ANGULAR_FREQUENCY:
             rangeVariant = GuiSettingsId::PALETTE_ANGULAR_VELOCITY;
             break;
         case QuantityId::STRAIN_RATE_CORRECTION_TENSOR:
@@ -218,6 +218,9 @@ AutoPtr<IColorizer> Factory::getColorizer(const GuiSettings& settings,
             break;
         case QuantityId::MOMENT_OF_INERTIA:
             rangeVariant = GuiSettingsId::PALETTE_MOMENT_OF_INERTIA;
+            break;
+        case QuantityId::NEIGHBOUR_CNT:
+            rangeVariant = Interval(0._f, 100._f);
             break;
         default:
             NOT_IMPLEMENTED;
@@ -320,7 +323,7 @@ Palette Factory::getPalette(const ColorizerId id, const Interval range) {
                                { 0.2f * dx, Color(0.8f, 0.8f, 0.8f) },
                                { dx, Color(1.0f, 0.6f, 0.f) } },
                 PaletteScale::HYBRID);
-        case QuantityId::ANGULAR_VELOCITY:
+        case QuantityId::ANGULAR_FREQUENCY:
             ASSERT(x0 == 0._f);
             return Palette({ { 0._f, Color(0.3f, 0.3f, 0.8f) },
                                { 0.25f * dx, Color(0.f, 0.f, 0.2f) },

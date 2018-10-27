@@ -131,7 +131,7 @@ class IStorageUserData : public Polymorphic {};
 
 /// \brief Container storing all quantities used within the simulations.
 ///
-/// Storage provides a convenient way to store quantities, iterate over specified subset of quantnties, modify
+/// Storage provides a convenient way to store quantities, iterate over specified subset of quantities, modify
 /// quantities etc. Every quantity is a \ref Quantity object and is identified by \ref QuantityId key. The
 /// quantities are stored as key-value pairs; for every \ref QuantityId there can be at most one \ref Quantity
 /// stored.
@@ -153,7 +153,81 @@ class IStorageUserData : public Polymorphic {};
 ///
 /// Storage is not thread-safe. If used in multithreaded context, any calls of member functions must be
 /// synchonized by the caller.
-class Storage : public Noncopyable, public ShareFromThis<Storage> {
+///
+/// The following demostrates how to access the particle data:
+/// \code
+/// // Get particle masses from the storage
+/// ArrayView<Float> m = storage.getValue<Float>(QuantityId::MASS);
+/// std::cout << "Mass of 5th particle = " << m[5] << std::endl;
+///
+/// // Get particle velocities (=derivative of positions) and accelerations (=second derivative of positions)
+/// ArrayView<Vector> v = storage.getDt<Vector>(QuantityId::POSITION);
+/// ArrayView<Vector> dv = storage.getD2t<Vector>(QuantityId::POSITION);
+///
+/// // To get values and all derivatives at once, we can use the getAll function. The function returns an
+/// // array containing all buffers, which can be "decomposed" into individual variables using tie function
+/// // (similarly to std::tie).
+/// ArrayView<Vector> r;
+/// tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION); // return value is "decomposed"
+///
+/// // Lastly, if we want to get multiple values (not derivatives) of the same type, we can use getValues. We
+/// // can also utilize the function tie; make sure to list the variables in the same order as the IDs.
+/// ArrayView<Float> rho, u;
+/// tie(rho, u, m) = storage.getValues<Float>(QuantityId::DENSITY, QuantityId::ENERGY, QuantityId::MASS);
+/// \endcode
+///
+/// When adding a new quantity into the storage, it is necessary to specify the type of the quantity and the
+/// number of derivatives using \ref OrderEnum. Quantity can be either initialized by providing a single
+/// default value (used for all particles), or an array of values; see functions \ref insert. To add arbitrary
+/// quantity, use:
+/// \code
+/// // Fill the array of angular frequencies
+/// Array<Vector> omega(storage.getParticleCnt());
+/// omega.fill(Vector(0, 0, 5)); // initialize it to 5 rad/s parallel to z-axis.
+/// // Add angular frequencies to the storage, evolved as first-order quantity
+/// storage.insert<Vector>(QuantityId::ANGULAR_FREQUENCY, OrderEnum::FIRST, std::move(omega));
+///
+/// // Add moment of inertia (with no derivatives)
+/// const SymmetricTensor I = Rigid::sphereInertia(3, 2); // moment of a sphere with mass 3kg and radius 2m
+/// storage.insert<SymmetricTensor>(QuantityId::MOMENT_OF_INERTIA, OrderEnum::ZERO, I);
+/// \endcode
+///
+/// In some cases, it is useful to read or modify all quantities in the storage, without the need to fetch
+/// them manually using \ref getValue and related function. There are two different ways to iterate over
+/// quantities stored in storage. You can use the function \ref getQuantities, which returns a range (pair of
+/// iterators) and thus allows to visit quantities in a for-loop:
+/// \code
+/// for (StorageElement element : storage.getQuantities()) {
+///     std::cout << "Quantity " << element.id << std::endl
+///     std::cout << " - order " << int(element.quantity.getOrderEnum()) << std::endl;
+///     std::cout << " - type  " << int(element.quantity.getValueEnum()) << std::endl;
+/// }
+/// \endcode
+/// This approach can be utilized to access properties of the quantities (as in the example above), clone
+/// quantities, etc. The downside is that we still need to know the value type to actually access the quantity
+/// values. To overcome this problem and access the quantity values in generic (type-agnostic) way, consider
+/// using the function \ref iterate:
+/// \code
+/// // Iterate over all first order quantities in the storage
+/// iterate<VisitorEnum::FIRST_ORDER>(storage, [](QuantityId id, auto& values, auto& derivatives) {
+///     // Values and derivatives are arrays with quantity values. The type of the values can be Float,
+///     // Vector, SymmetricTensor, etc., depending on the actual type of the stored quantity. Therefore, we
+///     // can only use generic code here (functions overload for all quantity types).
+///     std::cout << "Quantity " << id << std::endl;
+///     std::cout << "Particle 0: " << values[0] << ", derivative ", derivatives[0] << std::endl;
+/// });
+///
+/// // Iterates over all arrays in the storage, meaning all quantity values and derivatives.
+/// iterate<VisitorEnum::ALL_BUFFERS>(storage, [](auto& array) {
+///     // Use decltype to determine the type of the array
+///     using Type = std::decay_t<decltype(array)>::Type;
+///
+///     // Set all values and all derivatives to zero (zero vector, zero tensor)
+///     array.fill(Type(0._f));
+/// });
+/// \endcode
+/// Note that arguments of the provided functor differ for each \ref VisitorEnum.
+class Storage : public Noncopyable {
     friend class StorageSequence;
     friend class ConstStorageSequence;
 
@@ -174,7 +248,7 @@ private:
 
         MatRange() = default;
 
-        MatRange(SharedPtr<IMaterial>&& material, const Size from, const Size to);
+        MatRange(const SharedPtr<IMaterial>& material, const Size from, const Size to);
     };
 
     /// \brief Materials of particles in the storage.
@@ -208,7 +282,7 @@ public:
     ///
     /// All particles of the storage will have the same material. To create a heterogeneous storage, it is
     /// necessary to merge another storage object into this one, using \ref merge function.
-    Storage(AutoPtr<IMaterial>&& material);
+    Storage(const SharedPtr<IMaterial>& material);
 
     ~Storage();
 

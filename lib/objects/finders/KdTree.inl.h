@@ -124,6 +124,8 @@ void KdTree<TNode, TMetric>::buildImpl(IScheduler& scheduler, ArrayView<const Ve
         }
     };
     iterateThreadTree(tree, { 0, rootThread }, 0, accumulateNodes);
+
+    ASSERT(this->sanityCheck());
 }
 
 template <typename TNode, typename TMetric>
@@ -207,7 +209,7 @@ void KdTree<TNode, TMetric>::buildTree(ThreadTree<TNode>& tree,
                     }
                 }
                 std::swap(idxs[to - 1], idxs[idx]);
-                n2--;
+                n1--;
                 slidingMidpoint = true;
             }
 
@@ -255,6 +257,7 @@ void KdTree<TNode, TMetric>::addLeaf(ThreadTree<TNode>& tree,
     const KdChild child,
     const Size from,
     const Size to) {
+    ASSERT(to - from >= 1, from, to);
     std::deque<BuildNode<TNode>>& localNodes = tree.threadData.local();
     localNodes.emplace_back(KdNode::Type::LEAF);
     const Size index = localNodes.size() - 1;
@@ -468,15 +471,15 @@ Size KdTree<TNode, TMetric>::find(const Vector& r0,
 }
 
 template <typename TNode, typename TMetric>
-bool KdTree<TNode, TMetric>::sanityCheck() const {
+Outcome KdTree<TNode, TMetric>::sanityCheck() const {
     if (this->values.size() != idxs.size()) {
-        return false;
+        return makeFailed("Number of values does not match the number of indices");
     }
 
     // check bounding box
     for (const Vector& v : this->values) {
         if (!entireBox.contains(v)) {
-            return false;
+            return makeFailed("Points are not strictly within the bounding box");
         }
     }
 
@@ -484,13 +487,14 @@ bool KdTree<TNode, TMetric>::sanityCheck() const {
     Size counter = 0;
     std::set<Size> indices;
 
-    Function<bool(const Size idx)> countNodes([this, &indices, &counter, &countNodes](const Size idx) {
+    Function<Outcome(const Size idx)> countNodes = [this, &indices, &counter, &countNodes](
+                                                       const Size idx) -> Outcome {
         // count this
         counter++;
 
         // check index validity
         if (idx >= nodes.size()) {
-            return false;
+            return makeFailed("Invalid index found: ", idx, " (", nodes.size(), ")");
         }
 
         // if inner node, count children
@@ -502,39 +506,39 @@ bool KdTree<TNode, TMetric>::sanityCheck() const {
             const LeafNode<TNode>& leaf = (const LeafNode<TNode>&)nodes[idx];
             if (leaf.to == leaf.from) {
                 // empty leaf?
-                return false;
+                return makeFailed("Empty leaf: ", leaf.to);
             }
             for (Size i = leaf.from; i < leaf.to; ++i) {
                 if (!leaf.box.contains(this->values[idxs[i]])) {
-                    return false;
+                    return makeFailed("Leaf points do not fit inside the bounding box");
                 }
                 if (indices.find(i) != indices.end()) {
                     // child referenced twice?
-                    return false;
+                    return makeFailed("Index repeated: ", i);
                 }
                 indices.insert(i);
             }
         }
-        return true;
-    });
-    if (!countNodes(0)) {
-        // invalid index encountered
-        return false;
+        return SUCCESS;
+    };
+    const Outcome result = countNodes(0);
+    if (!result) {
+        return result;
     }
     // we should count exactly nodes.size()
     if (counter != nodes.size()) {
-        return false;
+        return makeFailed("Unexpected number of nodes: ", counter, " == ", nodes.size());
     }
     // each index should have been inserted exactly once
     Size i = 0;
     for (Size idx : indices) {
         // std::set is sorted, so we can check sequentially
         if (idx != i) {
-            return false;
+            return makeFailed("Invalid index: ", idx, " == ", i);
         }
         ++i;
     }
-    return true;
+    return SUCCESS;
 }
 
 template <IterateDirection Dir, typename TNode, typename TMetric, typename TFunctor>

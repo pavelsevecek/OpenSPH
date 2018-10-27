@@ -54,6 +54,10 @@ public:
         return getSqrLength(this->center() - v) < sqr(this->radius());
     }
 
+    INLINE Box getBBox() const {
+        return Box(this->center() - Vector(this->radius()), this->center() + Vector(this->radius()));
+    }
+
     /// \brief Checks if the sphere intersects another sphere.
     ///
     /// If one sphere contains the other one entirely, it counts as an intersections.

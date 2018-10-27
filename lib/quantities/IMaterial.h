@@ -82,14 +82,23 @@ public:
 };
 
 
-/// Shared data used when creating all bodies in the simulation
+/// \brief Shared data used when creating all bodies in the simulation.
+///
 /// \todo possibly generalize, allowing to create generic context as needed by components of the run
 struct MaterialInitialContext {
-    /// Random number generator
+    /// \brief Random number generator
     AutoPtr<IRng> rng;
 
-    /// Multiplier of smoothing length of all particles
+    /// \brief Multiplier of smoothing length of all particles
     Float eta = 1._f;
+
+    /// \brief Kernel radius in units of smoothing length.
+    Float kernelRadius = 2._f;
+
+    MaterialInitialContext() = default;
+
+    /// \brief Initializes the context using the values provided in the settings.
+    explicit MaterialInitialContext(const RunSettings& settings);
 };
 
 /// \brief Material settings and functions specific for one material.

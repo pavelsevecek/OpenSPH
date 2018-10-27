@@ -14,9 +14,10 @@
 NAMESPACE_SPH_BEGIN
 
 namespace Detail {
-/// Type trait for serialization/deserialization of types. Every type used in serialization must
-/// explicitly specialize the class. Only std::string has dedicated member functions in (de)serializer
-/// classes and does not have to be specialized.
+/// \brief Type trait for serialization/deserialization of types.
+///
+/// Every type used in serialization must explicitly specialize the class. Only std::string has dedicated
+/// member functions in (de)serializer classes and does not have to be specialized.
 template <typename T, typename TEnabler = void>
 struct SerializedType;
 
@@ -73,6 +74,7 @@ private:
     void serializeImpl(Array<char>& bytes, const T0& t0, const TArgs&... args) {
         const Size size = bytes.size();
         using ActType = Detail::Serialized<T0>;
+
         bytes.resize(size + sizeof(ActType));
         ActType serializable = static_cast<ActType>(t0);
         const char* c = reinterpret_cast<const char*>(&serializable);
@@ -93,6 +95,7 @@ private:
         ASSERT(bytes[bytes.size() - 1] == '\0');
         this->serializeImpl(bytes, args...);
     }
+
 
     void serializeImpl(Array<char>& UNUSED(bytes)) {}
 };
@@ -158,6 +161,14 @@ private:
             this->fail("Failed to read a primitive of size " + std::to_string(sizeof(ActType)));
         }
         t0 = T0(reinterpret_cast<ActType&>(buffer[0]));
+        this->readImpl(args...);
+    }
+
+    template <std::size_t N, typename... TArgs>
+    void readImpl(char (&ar)[N], TArgs&... args) {
+        if (!ifs.read(ar, N)) {
+            this->fail("Failed to read an array of size " + std::to_string(N));
+        }
         this->readImpl(args...);
     }
 

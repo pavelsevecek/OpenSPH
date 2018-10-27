@@ -19,6 +19,7 @@ class ILogFile;
 class IScheduler;
 class IOutput;
 class ITrigger;
+class IDiagnostics;
 
 /// \brief Defines the interface for a run.
 ///
@@ -64,6 +65,9 @@ protected:
     /// Triggers
     List<AutoPtr<ITrigger>> triggers;
 
+    /// Diagnostics
+    Array<AutoPtr<IDiagnostics>> diagnostics;
+
 public:
     IRun();
 
@@ -75,6 +79,7 @@ public:
     /// \brief Starts the run.
     ///
     /// Function assumes that \ref setUp has been called (at least once).
+    /// \todo remove the virtual
     virtual void run();
 
     virtual SharedPtr<Storage> getStorage() const;

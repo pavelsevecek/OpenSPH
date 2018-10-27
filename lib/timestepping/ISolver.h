@@ -27,11 +27,11 @@ public:
     /// (such as the summation equation for density in SPH), clamping of values etc. It is also possible to
     /// add or remove particles in the storage and modify materials. Threads running concurrently with the
     /// solver must assume the solver can modify the storage at any time, so accessing the storage from
-    /// different threads is only allowed before or after \ref ISolver::integrate; the is no locking for
-    /// performance reasons.
+    /// different threads is only allowed before or after \ref integrate; the is no locking for performance
+    /// reasons.
     ///
-    /// All highest order derivatives are guaranteed to be set to zero when \ref ISolver::integrate is called
-    /// (this is a responsibility of \ref ITimeStepping implementation).
+    /// All highest order derivatives are guaranteed to be set to zero when \ref integrate is called (this is
+    /// a responsibility of \ref ITimeStepping implementation).
     ///
     /// \param storage Storage containing all quantities.
     /// \param stats Object where the solver saves all computed statistics of the run.
@@ -41,10 +41,10 @@ public:
     ///
     /// The positions and velocities of particles need to be tracked at the beginning of timestep, the actual
     /// step is done by the calling timestepping. Default implementation does not handle collisions, so the
-    /// particle positions are simply advanced as \f[\vec r += \vec v {\rm d}t\f]. This is suitable for
-    /// solvers with no concept of collision (for example collisions do not have to be handled explicitly in
-    /// SPH, they are a result of solving equations of hydrodynamics). Function is executed for each drift
-    /// timestep (may be called more than once in a single step).
+    /// particle positions are simply advanced as \f[\vec r \mathrel{+}= \vec v {\rm d}t \,.\f]
+    /// This is suitable for solvers with no concept of collision (for example collisions do not have to be
+    /// handled explicitly in SPH, they are a result of solving equations of hydrodynamics). Function is
+    /// executed for each drift timestep (may be called more than once in a single step).
     ///
     /// \param storage Storage containing all quantities.
     /// \param stats Object where the solver saves collision statistics.
@@ -61,8 +61,8 @@ public:
     ///
     /// Note that when settings up initial condition using \ref InitialConditions object, the instance of \ref
     /// ISolver used for creating quantities can be different than the one used during the run. It is not
-    /// recommended to set up or modify member variables of the solver from \ref ISolver::create function or
-    /// keep a reference to the calling solver elsewhere.
+    /// recommended to set up or modify member variables of the solver from \ref create function or keep a
+    /// reference to the calling solver elsewhere.
     ///
     /// \param storage Particle storage that shall be modified as needed by the solver.
     /// \param material Material containing parameters of the body being created. The solver can also set up

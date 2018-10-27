@@ -54,12 +54,12 @@ TEST_CASE("Settings iterator", "[settings]") {
 
 TEST_CASE("Settings enums", "[settings]") {
     RunSettings settings(EMPTY_SETTINGS);
-    settings.set(RunSettingsId::RUN_OUTPUT_TYPE, OutputEnum::BINARY_FILE);
+    settings.set(RunSettingsId::RUN_OUTPUT_TYPE, IoEnum::BINARY_FILE);
     settings.set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONST);
     settings.set(RunSettingsId::TIMESTEPPING_CRITERION,
         TimeStepCriterionEnum::COURANT | TimeStepCriterionEnum::ACCELERATION);
 
-    REQUIRE(settings.get<OutputEnum>(RunSettingsId::RUN_OUTPUT_TYPE) == OutputEnum::BINARY_FILE);
+    REQUIRE(settings.get<IoEnum>(RunSettingsId::RUN_OUTPUT_TYPE) == IoEnum::BINARY_FILE);
     REQUIRE(settings.get<SmoothingLengthEnum>(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH) ==
             SmoothingLengthEnum::CONST);
     Flags<TimeStepCriterionEnum> flags =
@@ -74,7 +74,7 @@ TEST_CASE("Settings save/load basic", "[settings]") {
     settings.set(RunSettingsId::DOMAIN_CENTER, Vector(1._f, 2._f, 3._f));
     settings.set(RunSettingsId::DOMAIN_RADIUS, 3.5_f);
     settings.set(RunSettingsId::RUN_NAME, std::string("test"));
-    settings.set(RunSettingsId::RUN_OUTPUT_TYPE, OutputEnum::BINARY_FILE);
+    settings.set(RunSettingsId::RUN_OUTPUT_TYPE, IoEnum::BINARY_FILE);
 
     RandomPathManager manager;
     Path path = manager.getPath("sph");
@@ -89,8 +89,8 @@ TEST_CASE("Settings save/load basic", "[settings]") {
     REQUIRE(radius == 3.5_f);
     const std::string name = loadedSettings.get<std::string>(RunSettingsId::RUN_NAME);
     REQUIRE(name == "test");
-    const OutputEnum output = loadedSettings.get<OutputEnum>(RunSettingsId::RUN_OUTPUT_TYPE);
-    REQUIRE(output == OutputEnum::BINARY_FILE);
+    const IoEnum output = loadedSettings.get<IoEnum>(RunSettingsId::RUN_OUTPUT_TYPE);
+    REQUIRE(output == IoEnum::BINARY_FILE);
 
     REQUIRE_FALSE(loadedSettings.loadFromFile(Path("nonexistingFile.sph")));
 

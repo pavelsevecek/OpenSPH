@@ -16,7 +16,7 @@
 using namespace Sph;
 
 TEST_CASE("Distribute flaws", "[damage]") {
-    ScalarGradyKippModel model(2._f);
+    ScalarGradyKippModel model;
     BodySettings bodySettings;
     Storage storage(getDefaultMaterial());
     HexagonalPacking distribution;
@@ -59,7 +59,7 @@ TEST_CASE("Distribute flaws", "[damage]") {
 
 TEST_CASE("Fracture growth", "[damage]") {
     /// \todo some better test, for now just testing that integrate will work without asserts
-    ScalarGradyKippModel damage(2._f);
+    ScalarGradyKippModel damage;
     Storage storage;
     ThreadPool& pool = *ThreadPool::getGlobalInstance();
     InitialConditions conds(pool, RunSettings::getDefaults());

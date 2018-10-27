@@ -46,49 +46,59 @@ bool Presets::CollisionParams::loadFromFile(const Path& path) {
 
 Presets::Collision::Collision(IScheduler& scheduler,
     const RunSettings& settings,
-    const BodySettings& body,
     const CollisionParams& params)
     : _ic(scheduler, settings)
-    , _body(body)
     , _params(params) {
     ASSERT(params.impactAngle >= 0._f && params.impactAngle < 2._f * PI);
     ASSERT(params.impactSpeed >= 0._f);
-    _body.set(BodySettingsId::PARTICLE_COUNT, int(_params.targetParticleCnt));
+    _params.body.set(BodySettingsId::PARTICLE_COUNT, int(_params.targetParticleCnt));
     // this has to match the actual center/velocity/rotation of the target below
-    _body.set(BodySettingsId::BODY_CENTER, Vector(0._f));
-    _body.set(BodySettingsId::BODY_VELOCITY, Vector(0._f));
-    _body.set(BodySettingsId::BODY_ANGULAR_VELOCITY, Vector(0._f, 0._f, _params.targetRotation));
+    _params.body.set(BodySettingsId::BODY_CENTER, Vector(0._f));
+    _params.body.set(BodySettingsId::BODY_VELOCITY, Vector(0._f));
+    _params.body.set(BodySettingsId::BODY_ANGULAR_VELOCITY, Vector(0._f, 0._f, _params.targetRotation));
 }
 
 void Presets::Collision::addTarget(Storage& storage) {
     // make sure the value in settings is the came that's passed to params
-    ASSERT(int(_params.targetParticleCnt) == _body.get<int>(BodySettingsId::PARTICLE_COUNT));
+    ASSERT(int(_params.targetParticleCnt) == _params.body.get<int>(BodySettingsId::PARTICLE_COUNT));
+    ASSERT(_params.targetRadius > 0._f, "Target radius has not been initialized");
     SphericalDomain domain(Vector(0._f), _params.targetRadius);
-    BodyView view = [&] {
-        if (_params.concentration) {
-            // concentration specified, we have to use Diehl's distribution (no other distribution can
-            // specify concentration)
-            DiehlParams diehl;
-            diehl.particleDensity = _params.concentration;
-            diehl.maxDifference = _body.get<int>(BodySettingsId::DIEHL_MAX_DIFFERENCE);
-            diehl.strength = _body.get<Float>(BodySettingsId::DIELH_STRENGTH);
 
-            auto distr = makeAuto<DiehlDistribution>(diehl);
-            return _ic.addMonolithicBody(storage, domain, Factory::getMaterial(_body), std::move(distr));
-        } else {
-            // we can use the default distribution
-            return _ic.addMonolithicBody(storage, domain, _body);
-        }
-    }();
-    /// \todo the center of rotation (here Vector(0._f)) must match the center of domain above.
-    view.addRotation(Vector(0._f, 0._f, _params.targetRotation), Vector(0._f));
+    if (_params.pebbleSfd) {
+        ASSERT(!_params.concentration,
+            "Arbitrary concentration is currently incompatible with rubble-pile target");
+        ASSERT(_params.targetRotation == 0._f, "Rotation is currently incompatible with rubble-pile target");
 
+        return _ic.addRubblePileBody(storage, domain, _params.pebbleSfd.value(), _params.body);
+    } else {
+
+        BodyView view = [&] {
+            if (_params.concentration) {
+                // concentration specified, we have to use Diehl's distribution (no other distribution can
+                // specify concentration)
+                DiehlParams diehl;
+                diehl.particleDensity = _params.concentration;
+                diehl.maxDifference = _params.body.get<int>(BodySettingsId::DIEHL_MAX_DIFFERENCE);
+                diehl.strength = _params.body.get<Float>(BodySettingsId::DIELH_STRENGTH);
+
+                auto distr = makeAuto<DiehlDistribution>(diehl);
+                return _ic.addMonolithicBody(
+                    storage, domain, Factory::getMaterial(_params.body), std::move(distr));
+            } else {
+                // we can use the default distribution
+                return _ic.addMonolithicBody(storage, domain, _params.body);
+            }
+        }();
+        /// \todo the center of rotation (here Vector(0._f)) must match the center of domain above.
+        view.addRotation(Vector(0._f, 0._f, _params.targetRotation), Vector(0._f));
+    }
     /*if (!_params.outputPath.empty()) {
-        _body.saveToFile(_params.outputPath / Path("target.sph"));
+        _params.body.saveToFile(_params.outputPath / Path("target.sph"));
     }*/
 }
 
 BodyView Presets::Collision::addImpactor(Storage& storage) {
+    ASSERT(_params.impactorRadius > 0._f, "Impactor radius has not been initialized");
     const Float targetDensity = _params.targetParticleCnt / pow<3>(_params.targetRadius);
     const Float h = 1.f / root<3>(targetDensity);
     ASSERT(h > 0._f);
@@ -106,7 +116,7 @@ BodyView Presets::Collision::addImpactor(Storage& storage) {
     center[X] += _params.impactorOffset * h;
     const Vector v_imp(-_params.impactSpeed, 0._f, 0._f);
 
-    BodySettings impactorBody = _body;
+    BodySettings impactorBody = _params.body;
     impactorBody.set(BodySettingsId::PARTICLE_COUNT, int(impactorParticleCnt))
         .set(BodySettingsId::BODY_CENTER, center)
         .set(BodySettingsId::BODY_VELOCITY, v_imp)

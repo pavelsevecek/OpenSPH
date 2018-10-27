@@ -68,6 +68,8 @@ private:
 
 /// \brief Thread pool capable of executing tasks concurrently.
 class ThreadPool : public IScheduler {
+    friend class Task;
+
 private:
     /// Threads managed by this pool
     Array<AutoPtr<std::thread>> threads;
@@ -132,7 +134,9 @@ public:
     static SharedPtr<ThreadPool> getGlobalInstance();
 
 private:
-    SharedPtr<Task> getNextTask();
+    SharedPtr<Task> getNextTask(const bool wait);
+
+    void processTask(const bool wait);
 };
 
 NAMESPACE_SPH_END

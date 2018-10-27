@@ -95,27 +95,20 @@ public:
 
 InitialConditions::InitialConditions(IScheduler& scheduler, ISolver& solver, const RunSettings& settings)
     : scheduler(scheduler)
-    , solver(makeAuto<ForwardingSolver>(solver)) {
-    this->createCommon(settings);
-}
+    , solver(makeAuto<ForwardingSolver>(solver))
+    , context(settings) {}
 
 InitialConditions::InitialConditions(IScheduler& scheduler, const RunSettings& settings)
     : scheduler(scheduler)
-    , solver(Factory::getSolver(scheduler, settings)) {
-    this->createCommon(settings);
-}
+    , solver(Factory::getSolver(scheduler, settings))
+    , context(settings) {}
 
 InitialConditions::~InitialConditions() = default;
 
-void InitialConditions::createCommon(const RunSettings& settings) {
-    context.rng = Factory::getRng(settings);
-    context.eta = settings.get<Float>(RunSettingsId::SPH_KERNEL_ETA);
-}
-
 BodyView InitialConditions::addMonolithicBody(Storage& storage,
     const IDomain& domain,
-    const BodySettings& settings) {
-    AutoPtr<IMaterial> material = Factory::getMaterial(settings);
+    const BodySettings& body) {
+    AutoPtr<IMaterial> material = Factory::getMaterial(body);
     return this->addMonolithicBody(storage, domain, std::move(material));
 }
 
@@ -158,9 +151,9 @@ InitialConditions::BodySetup::BodySetup(AutoPtr<IDomain>&& domain, AutoPtr<IMate
     : domain(std::move(domain))
     , material(std::move(material)) {}
 
-InitialConditions::BodySetup::BodySetup(AutoPtr<IDomain>&& domain, const BodySettings& settings)
+InitialConditions::BodySetup::BodySetup(AutoPtr<IDomain>&& domain, const BodySettings& body)
     : domain(std::move(domain))
-    , material(Factory::getMaterial(settings)) {}
+    , material(Factory::getMaterial(body)) {}
 
 InitialConditions::BodySetup::BodySetup(BodySetup&& other)
     : domain(std::move(other.domain))
@@ -246,6 +239,7 @@ void InitialConditions::addRubblePileBody(Storage& storage,
     // generate the particles that will be eventually turned into spheres
     AutoPtr<IDistribution> distribution = Factory::getDistribution(bodySettings);
     Array<Vector> positions = distribution->generate(scheduler, n, domain);
+    SharedPtr<IMaterial> material = Factory::getMaterial(bodySettings);
 
     // counter used to exit the loop (when no more spheres can be generated)
     Size bailoutCounter = 0;
@@ -311,9 +305,9 @@ void InitialConditions::addRubblePileBody(Storage& storage,
         spheres.push(sphere);
 
         // create the body
-        Storage body(Factory::getMaterial(bodySettings));
-        body.insert<Vector>(QuantityId::POSITION, OrderEnum::ZERO, std::move(spherePositions));
-        this->setQuantities(body, body.getMaterial(0), sphere.volume());
+        Storage body(material);
+        body.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, std::move(spherePositions));
+        this->setQuantities(body, *material, sphere.volume());
 
         // add it to the storage
         storage.merge(std::move(body));
@@ -322,9 +316,11 @@ void InitialConditions::addRubblePileBody(Storage& storage,
         // we are still adding spheres, reset the counter
         bailoutCounter = 0;
     }
+
+    ASSERT(!spheres.empty());
 }
 
-/// Creates array of particles masses, assuming relation m ~ h^3.
+/// \brief Creates array of particles masses, assuming relation m ~ h^3.
 ///
 /// This is equal to totalM / r.size() if all particles in the body have the same smoothing length.
 static Array<Float> getMasses(ArrayView<const Vector> r, const Float totalM) {

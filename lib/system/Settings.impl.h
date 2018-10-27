@@ -144,7 +144,7 @@ bool Settings<TEnum>::setValueByType(Entry& entry, const Value& defaultValue, co
             if (ss.fail()) {
                 return false;
             }
-            Optional<std::size_t> value = EnumMap::fromString(textValue, id);
+            Optional<int> value = EnumMap::fromString(textValue, id);
             if (!value) {
                 return false;
             } else {

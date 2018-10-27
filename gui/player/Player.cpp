@@ -17,13 +17,14 @@ NAMESPACE_SPH_BEGIN
 RunPlayer::RunPlayer(const Path& fileMask)
     : fileMask(fileMask) {}
 
-static AutoPtr<IOutput> getOutput(const Path& path) {
+/// \todo possibly move to Factory
+static AutoPtr<IInput> getInput(const Path& path) {
     if (path.extension() == Path("ssf")) {
-        return makeAuto<BinaryOutput>();
+        return makeAuto<BinaryInput>();
     } else {
         std::string str = path.native();
         if (str.substr(str.size() - 3) == ".bt") {
-            return makeAuto<PkdgravOutput>();
+            return makeAuto<PkdgravInput>();
         }
     }
     throw InvalidSetup("Unknown file type: " + path.native());
@@ -43,8 +44,8 @@ void RunPlayer::setUp() {
     }
 
     storage = makeShared<Storage>();
-    AutoPtr<IOutput> io = getOutput(firstPath);
-    Outcome result = io->load(firstPath, *storage, stats);
+    AutoPtr<IInput> input = getInput(firstPath);
+    Outcome result = input->load(firstPath, *storage, stats);
     if (!result) {
         throw InvalidSetup("Cannot load the run state file " + firstPath.native());
     } else {
@@ -97,7 +98,7 @@ void RunPlayer::run() {
             storage = makeShared<Storage>();
             const Path path = files.getNextPath(stats);
             Timer loadTimer;
-            AutoPtr<IOutput> io = getOutput(path);
+            AutoPtr<IInput> io = getInput(path);
             const Outcome result = io->load(path, *storage, stats);
             if (!result) {
                 executeOnMainThread([path] {
@@ -130,8 +131,6 @@ public:
         wxSlider* slider = new wxSlider(parent, wxID_ANY, 0, 0, 100);
         slider->SetSize(wxSize(800, 100));
         sizer->Add(slider);
-        wxStaticText* text = new wxStaticText(parent, wxID_ANY, "TEST TEST");
-        sizer->Add(text);
     }
 
     virtual void statusChanges(const RunStatus UNUSED(newStatus)) override {}
@@ -154,8 +153,19 @@ bool App::OnInit() {
         fileMask = Path(std::string(wxTheApp->argv[1]));
     }
 
+    RunTypeEnum runType = RunTypeEnum::SPH;
+
+    OutputFile files(fileMask);
+    Statistics stats;
+    Path path = files.getNextPath(stats);
+    BinaryInput input;
+    if (Expected<BinaryInput::Info> info = input.getInfo(path)) {
+        runType = info->runType.valueOr(RunTypeEnum::SPH);
+    }
+    const bool isNBody = (runType == RunTypeEnum::NBODY) || (runType == RunTypeEnum::RUBBLE_PILE);
+
     GuiSettings gui;
-    gui.set(GuiSettingsId::ORTHO_FOV, 1.e6_f) // 4.e8_f) // 2.e5_f)
+    gui.set(GuiSettingsId::ORTHO_FOV, 5.e5_f) // 4.e8_f) // 2.e5_f)
         .set(GuiSettingsId::ORTHO_VIEW_CENTER, 0.5_f * Vector(768, 768, 0))
         .set(GuiSettingsId::VIEW_WIDTH, 1024)
         .set(GuiSettingsId::VIEW_HEIGHT, 768)
@@ -163,7 +173,7 @@ bool App::OnInit() {
         .set(GuiSettingsId::IMAGES_HEIGHT, 768)
         .set(GuiSettingsId::WINDOW_WIDTH, 1334)
         .set(GuiSettingsId::WINDOW_HEIGHT, 768)
-        .set(GuiSettingsId::PARTICLE_RADIUS, 0.5_f)
+        .set(GuiSettingsId::PARTICLE_RADIUS, isNBody ? 1._f : 0.35_f)
         .set(GuiSettingsId::SURFACE_LEVEL, 0.12_f)
         .set(GuiSettingsId::SURFACE_SUN_POSITION, getNormalized(Vector(-1.e6_f, -1.5e6_f, 0._f)))
         .set(GuiSettingsId::SURFACE_SUN_INTENSITY, 0.9_f)
@@ -178,7 +188,7 @@ bool App::OnInit() {
         //.set(GuiSettingsId::PERSPECTIVE_TARGET, Vector(0._f, 0._f, 0._f))
         //.set(GuiSettingsId::PERSPECTIVE_UP, Vector(0._f, 1._f, 0._f))
         .set(GuiSettingsId::PERSPECTIVE_CLIP_NEAR, 5.e5_f)
-        .set(GuiSettingsId::BACKGROUND_COLOR, Vector(1._f))
+        .set(GuiSettingsId::BACKGROUND_COLOR, Vector(0._f))
         .set(GuiSettingsId::ORTHO_PROJECTION, OrthoEnum::XY)
         .set(GuiSettingsId::ORTHO_CUTOFF, 0._f) // 10000._f)
         .set(GuiSettingsId::ORTHO_ZOFFSET, -4.e6_f)

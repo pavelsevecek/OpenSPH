@@ -440,6 +440,7 @@ MultipoleExpansion<3> BarnesHut::getMoments() const {
 }
 
 RawPtr<const IBasicFinder> BarnesHut::getFinder() const {
+    ASSERT(kdTree.getNodeCnt() > 0 && kdTree.sanityCheck(), kdTree.sanityCheck());
     return &kdTree;
 }
 

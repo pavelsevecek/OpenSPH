@@ -6,7 +6,9 @@
 #include "objects/finders/UniformGrid.h"
 #include "objects/geometry/Domain.h"
 #include "objects/utility/ArrayUtils.h"
+#include "quantities/Storage.h"
 #include "sph/initial/Distribution.h"
+#include "sph/initial/Presets.h"
 #include "tests/Approx.h"
 #include "thread/Pool.h"
 #include "thread/Tbb.h"
@@ -344,6 +346,30 @@ TEST_CASE("KdTree iterateTree topDown", "[finders]") {
         });
     REQUIRE(success);
     REQUIRE(visitedCnt == tree.getNodeCnt());
+}
+
+TEST_CASE("KdTree empty leaf bug", "[finders]") {
+    // before 2018-10-23, this test would produce empty leafs in KdTree and fail a sanity check
+
+    RunSettings settings;
+    BodySettings body;
+    Size N = 1000;
+
+    Presets::CollisionParams params;
+    params.targetRadius = 1.e5_f;
+    params.impactorRadius = 1.3e4_f;
+    params.impactAngle = 0._f * DEG_TO_RAD;
+    params.impactSpeed = 5.e3_f;
+    params.body = body;
+
+    Storage storage;
+    Presets::Collision collision(SEQUENTIAL, settings, params);
+    collision.addTarget(storage);
+    collision.addImpactor(storage);
+
+    KdTree<KdNode> tree;
+    REQUIRE_NOTHROW(tree.build(SEQUENTIAL, storage.getValue<Vector>(QuantityId::POSITION)));
+    REQUIRE(tree.sanityCheck());
 }
 
 /*TEST_CASE("LinkedList", "[finders]") {

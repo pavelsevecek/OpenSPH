@@ -34,7 +34,7 @@ public:
     virtual Array<Vector> generate(IScheduler& scheduler, const Size n, const IDomain& domain) const = 0;
 };
 
-/// Generating random positions withing the domain.
+/// \brief Generating random positions withing the domain.
 class RandomDistribution : public IDistribution {
 private:
     AutoPtr<IRng> rng;
@@ -51,7 +51,7 @@ public:
     virtual Array<Vector> generate(IScheduler& scheduler, const Size n, const IDomain& domain) const override;
 };
 
-/// Cubic close packing
+/// \brief Cubic close packing
 class CubicPacking : public IDistribution {
 public:
     virtual Array<Vector> generate(IScheduler& scheduler, const Size n, const IDomain& domain) const override;
@@ -61,17 +61,22 @@ public:
 class HexagonalPacking : public IDistribution {
 public:
     enum class Options {
-        /// Particles are sorted using its Morton code, particles close in space are also close in  memory. By
-        /// default, particles are sorted along x axis, secondary along y and z axes.
+        /// \brief Particles are sorted using its Morton code.
+        ///
+        /// If used, particles close in space are also close in memory. Otherwise, particles are sorted along
+        /// x axis, secondary along y and z axes.
         SORTED = 1 << 0,
 
-        /// Move particle lattice so that their center of mass matches center of domain. This assumes all
-        /// particles have the same mass. Note that with this options, generated particles does not have to be
-        /// strictly inside given domain.
+        /// \brief Move particle lattice so that their center of mass matches center of domain.
+        ///
+        /// This assumes all particles have the same mass. Note that with this options, generated particles
+        /// does not have to be strictly inside given domain.
         CENTER = 1 << 1,
 
-        /// Generates the grid to match code SPH5 for 1-1 comparison. Not that this will generate
-        /// significantly more particles than requested (approximately by factor 1.4).
+        /// \brief Generates the grid to match code SPH5 for 1-1 comparison.
+        ///
+        /// Not that this will generate significantly more particles than requested (approximately by
+        /// factor 1.4).
         SPH5_COMPATIBILITY = 1 << 2
     };
 

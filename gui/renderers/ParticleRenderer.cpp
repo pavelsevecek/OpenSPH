@@ -141,12 +141,7 @@ static void drawGrid(wxDC& dc, const ICamera& camera, const float grid) {
 ParticleRenderer::ParticleRenderer(const GuiSettings& settings) {
     cutoff = settings.get<Float>(GuiSettingsId::ORTHO_CUTOFF);
     grid = settings.get<Float>(GuiSettingsId::VIEW_GRID_SIZE);
-
-    /// \todo better saving of colors in settings
-    const Vector color = settings.get<Vector>(GuiSettingsId::BACKGROUND_COLOR);
-    background[X] = color[X];
-    background[Y] = color[Y];
-    background[Z] = color[Z];
+    background = settings.get<Color>(GuiSettingsId::BACKGROUND_COLOR);
 }
 
 bool ParticleRenderer::isCutOff(const ICamera& camera, const Vector& r) {

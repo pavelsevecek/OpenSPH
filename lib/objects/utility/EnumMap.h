@@ -47,6 +47,11 @@ public:
         return instance;
     }
 
+    template <typename TEnum>
+    static std::string toString(const TEnum value) {
+        return toString(int(value), typeid(TEnum).hash_code());
+    }
+
     static std::string toString(const int value, const std::size_t id) {
         EnumMap& instance = getInstance();
         Optional<EnumRecord&> record = instance.records.tryGet(id);
@@ -72,7 +77,13 @@ public:
         }
     }
 
-    static Optional<std::size_t> fromString(const std::string& value, const std::size_t id) {
+    template <typename TEnum>
+    static Optional<TEnum> fromString(const std::string& value) {
+        Optional<int> id = fromString(value, typeid(TEnum).hash_code());
+        return optionalCast<TEnum>(id);
+    }
+
+    static Optional<int> fromString(const std::string& value, const std::size_t id) {
         EnumMap& instance = getInstance();
         Optional<EnumRecord&> record = instance.records.tryGet(id);
         ASSERT(record);

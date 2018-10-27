@@ -11,6 +11,8 @@
 #include "gui/windows/OrthoPane.h"
 #include "gui/windows/ParticleProbe.h"
 #include "gui/windows/PlotView.h"
+#include "io/LogFile.h"
+#include "sph/Diagnostics.h"
 #include "thread/CheckFunction.h"
 #include <wx/button.h>
 #include <wx/combobox.h>
@@ -18,6 +20,7 @@
 #include <wx/sizer.h>
 #include <wx/spinctrl.h>
 #include <wx/statline.h>
+#include <wx/textctrl.h>
 
 NAMESPACE_SPH_BEGIN
 
@@ -168,21 +171,25 @@ MainWindow::MainWindow(Controller* parent, const GuiSettings& settings, RawPtr<I
     // everything below toolbar
     wxBoxSizer* mainSizer = new wxBoxSizer(wxHORIZONTAL);
     pane = new OrthoPane(this, parent, settings);
-    mainSizer->Add(pane.get(), 1, wxEXPAND);
+    mainSizer->Add(pane.get(), 4);
     mainSizer->AddSpacer(5);
 
     wxBoxSizer* sidebarSizer = createSidebar();
     mainSizer->Add(sidebarSizer);
-
     sizer->Add(mainSizer);
 
+    /// \todo generalize window setup
     if (plugin) {
         plugin->create(this, sizer);
+    } else {
+        // status bar
+        sizer->AddSpacer(5);
+        wxBoxSizer* statusSizer = createStatusbar();
+        sizer->Add(statusSizer);
     }
 
-    this->Layout();
-
     this->SetSizer(sizer);
+    this->Layout();
 
     // connect event handlers
     Connect(wxEVT_CLOSE_WINDOW, wxCloseEventHandler(MainWindow::onClose));
@@ -384,10 +391,10 @@ wxBoxSizer* MainWindow::createSidebar() {
         public:
             virtual Float evaluate(const Storage& storage) const override {
                 ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
-                if (!storage.has(QuantityId::ANGULAR_VELOCITY)) {
+                if (!storage.has(QuantityId::ANGULAR_FREQUENCY)) {
                     return 0._f;
                 }
-                ArrayView<const Vector> omega = storage.getValue<Vector>(QuantityId::ANGULAR_VELOCITY);
+                ArrayView<const Vector> omega = storage.getValue<Vector>(QuantityId::ANGULAR_FREQUENCY);
 
                 const Size largestRemnantIdx = std::distance(m.begin(), std::max_element(m.begin(), m.end()));
                 const Float w = getLength(omega[largestRemnantIdx]);
@@ -433,6 +440,55 @@ wxBoxSizer* MainWindow::createSidebar() {
     return sidebarSizer;
 }
 
+wxBoxSizer* MainWindow::createStatusbar() {
+    wxBoxSizer* statusSizer = new wxBoxSizer(wxHORIZONTAL);
+    wxSize size;
+    size.x = gui.get<int>(GuiSettingsId::VIEW_WIDTH) / 2 - 2;
+    size.y = 215;
+
+    status = new wxTextCtrl(this, wxID_ANY, "", wxDefaultPosition, size, wxTE_READONLY | wxTE_MULTILINE);
+    wxTextAttr attr;
+    attr.SetFontSize(9);
+    status->SetDefaultStyle(attr);
+    status->ChangeValue("No log");
+
+    errors = new wxTextCtrl(this, wxID_ANY, "", wxDefaultPosition, size, wxTE_READONLY | wxTE_MULTILINE);
+    attr.SetTextColour(*wxGREEN);
+    errors->SetDefaultStyle(attr);
+    errors->ChangeValue("No problems detected");
+    errors->Bind(wxEVT_LEFT_UP, [this](wxMouseEvent& evt) {
+        wxPoint pos = evt.GetPosition();
+        long index;
+        wxTextCtrlHitTestResult result = errors->HitTest(pos, &index);
+        if (result != wxTE_HT_ON_TEXT) {
+            return;
+        }
+
+        const std::string text(errors->GetValue().mb_str());
+        if (index >= 0 && index < int(text.size()) && std::isdigit(text[index])) {
+            // this relies on leading '#' and trailing ':'; see below
+            int startIdx = index;
+            while (startIdx >= 0 && std::isdigit(text[startIdx])) {
+                startIdx--;
+            }
+            int endIdx = index;
+            while (endIdx < int(text.size()) && std::isdigit(text[endIdx])) {
+                endIdx++;
+            }
+            if (startIdx >= 0 && text[startIdx] == '#' && endIdx < int(text.size()) && text[endIdx] == ':') {
+                const int particleIdx = std::stoi(text.substr(startIdx + 1, endIdx - startIdx - 1));
+                controller->setSelectedParticle(particleIdx);
+                pane->Refresh();
+            }
+        }
+    });
+
+    statusSizer->Add(status);
+    statusSizer->AddSpacer(4);
+    statusSizer->Add(errors);
+    return statusSizer;
+}
+
 void MainWindow::setProgress(const float progress) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
     gauge->SetValue(int(progress * 1000.f));
@@ -444,7 +500,42 @@ void MainWindow::runStarted() {
     }
 }
 
+class LinesLogger : public ILogger {
+private:
+    Array<std::string> lines;
+
+public:
+    virtual void writeString(const std::string& s) override {
+        lines.push(s);
+    }
+
+    void setText(wxTextCtrl* text) {
+        text->Clear();
+        // remove the last newline
+        if (!lines.empty() && !lines.back().empty() && lines.back().back() == '\n') {
+            lines.back() = lines.back().substr(0, lines.back().size() - 1);
+        }
+        for (const std::string& line : lines) {
+            text->AppendText(line);
+        }
+    }
+};
+
 void MainWindow::onTimeStep(const Storage& storage, const Statistics& stats) {
+    // this is called from run thread (NOT main thread)
+
+    if (status) {
+        // we get the data using CommonStatsLog (even though it's not really designed for it), in order to
+        // avoid code duplication
+        /// \todo how to access settings here??
+        SharedPtr<LinesLogger> logger = makeShared<LinesLogger>();
+        CommonStatsLog statsLog(logger, RunSettings::getDefaults());
+        /// \todo remove const cast!!!
+        statsLog.action(const_cast<Storage&>(storage), const_cast<Statistics&>(stats));
+        // we have to modify wxTextCtrl from main thread!!
+        executeOnMainThread([this, logger] { logger->setText(status); });
+    }
+
     if (selectedParticlePlot) {
         selectedParticlePlot->selectParticle(controller->getSelectedParticle());
 
@@ -456,6 +547,37 @@ void MainWindow::onTimeStep(const Storage& storage, const Statistics& stats) {
     for (auto plot : plots) {
         plot->onTimeStep(storage, stats);
     }
+}
+
+void MainWindow::onRunFailure(const DiagnosticsError& error, const Statistics& stats) {
+    if (!errors) {
+        return;
+    }
+    const Float t = stats.get<Float>(StatisticsId::RUN_TIME);
+    executeOnMainThread([this, error, t] {
+        if (!errorReported) {
+            errors->Clear(); // clear the "no problems" message
+            errorReported = true;
+        }
+        errors->SetForegroundColour(*wxRED);
+        std::string message = "t = " + std::to_string(t) + ":  " + error.description + "\n";
+        Size counter = 0;
+        for (auto idxAndMessage : error.offendingParticles) {
+            message +=
+                "  * particle #" + std::to_string(idxAndMessage.first) + ": " + idxAndMessage.second + "\n";
+            if (counter++ >= 8) {
+                // skip the rest, probably no point of listing ALL the particles
+                message += "    ... " + std::to_string(error.offendingParticles.size()) + " total\n";
+                break;
+            }
+        }
+        errors->AppendText(message);
+        if (errors->GetNumberOfLines() > 100) {
+            // prevent displaying a huge log by deleting the first half
+            const Size size = errors->GetLastPosition();
+            errors->Remove(0, size / 2);
+        }
+    });
 }
 
 void MainWindow::setColorizerList(Array<SharedPtr<IColorizer>>&& colorizers) {
