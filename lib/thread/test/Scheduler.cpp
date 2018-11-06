@@ -91,3 +91,16 @@ TEST_CASE("Concurrent parallelFor", "[thread]") {
     REQUIRE_THREAD_SAFE(sum1 == expectedSum);
     REQUIRE_THREAD_SAFE(sum2 == expectedSum);
 }
+
+TYPED_TEST_CASE_2("ThreadLocal accumulate", "[thread]", TScheduler, ThreadPool, Tbb) {
+    TScheduler& scheduler = *TScheduler::getGlobalInstance();
+    ThreadLocal<int64_t> sumTl(scheduler, 0._f);
+    parallelFor(scheduler, sumTl, 0, 10000, 10, [](Size i, int64_t& value) { value += i; });
+    const int64_t sum = sumTl.accumulate(12);
+    const int64_t expectedSum = 49995012;
+    REQUIRE_THREAD_SAFE(sum == expectedSum);
+
+    const int64_t sum2 = sumTl.accumulate(25, [](int64_t i1, int64_t i2) { return i1 - i2; });
+    const int64_t expectedSum2 = -49994975;
+    REQUIRE_THREAD_SAFE(sum2 == expectedSum2);
+}

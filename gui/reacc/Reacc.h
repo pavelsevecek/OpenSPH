@@ -102,10 +102,11 @@ private:
         Connect(MAIN_LOOP_TYPE, MainLoopEventHandler(App::processEvents));
 
         GuiSettings gui;
-        gui.set(GuiSettingsId::ORTHO_FOV, 1.5e5_f)
+        gui.set(GuiSettingsId::ORTHO_FOV, 3.5e5_f)
             .set(GuiSettingsId::ORTHO_VIEW_CENTER, /*Vector(0, 300, 0)) // */ 0.5_f * Vector(1024, 768, 0))
             .set(GuiSettingsId::VIEW_WIDTH, 1024)
             .set(GuiSettingsId::VIEW_HEIGHT, 768)
+            .set(GuiSettingsId::VIEW_MAX_FRAMERATE, 1000)
             .set(GuiSettingsId::IMAGES_WIDTH, 1024)
             .set(GuiSettingsId::IMAGES_HEIGHT, 768)
             .set(GuiSettingsId::WINDOW_WIDTH, 1334)
@@ -137,8 +138,13 @@ private:
             .set(GuiSettingsId::PALETTE_ENERGY, Interval(1.e-1_f, 1.e3_f))
             .set(GuiSettingsId::PALETTE_RADIUS, Interval(700._f, 3.e3_f))
             .set(GuiSettingsId::PALETTE_GRADV, Interval(0._f, 1.e-5_f))
-            .set(GuiSettingsId::PLOT_INITIAL_PERIOD, 10._f)
-            .set(GuiSettingsId::PLOT_INTEGRALS, PlotEnum::KINETIC_ENERGY | PlotEnum::INTERNAL_ENERGY);
+            .set(GuiSettingsId::PLOT_INITIAL_PERIOD, 200._f)
+            .set(GuiSettingsId::PLOT_OVERPLOT_SFD,
+                std::string("/home/pavel/projects/astro/asteroids/hygiea/main_belt_families_2018/10_Hygiea/"
+                            "size_distribution/family.dat_hc"))
+            .set(GuiSettingsId::PLOT_INTEGRALS,
+                PlotEnum::CURRENT_SFD | PlotEnum::PREDICTED_SFD | PlotEnum::TOTAL_ENERGY |
+                    PlotEnum::KINETIC_ENERGY | PlotEnum::INTERNAL_ENERGY);
         /*| PlotEnum::TOTAL_ENERGY |
       PlotEnum::TOTAL_MOMENTUM | PlotEnum::TOTAL_ANGULAR_MOMENTUM |
       PlotEnum::SIZE_FREQUENCY_DISTRIBUTION | PlotEnum::SELECTED_PARTICLE);*/

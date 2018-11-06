@@ -68,15 +68,15 @@ struct Base : public Polymorphic {
 };
 
 namespace {
-    struct Derived : public Base {
-        static bool destroyed;
-        ~Derived() {
-            destroyed = true;
-        }
-    };
+struct Derived : public Base {
+    static bool destroyed;
+    ~Derived() {
+        destroyed = true;
+    }
+};
 
-    bool Derived::destroyed = false;
-}
+bool Derived::destroyed = false;
+} // namespace
 
 TEST_CASE("AutoPtr cast", "[autoptr]") {
     {
@@ -129,4 +129,22 @@ TEST_CASE("AutoPtr comparison", "[autoptr]") {
     REQUIRE_FALSE(nullptr == p1);
     REQUIRE(p1 != nullptr);
     REQUIRE(nullptr != p1);
+}
+
+TEST_CASE("AutoPtr dynamicCast", "[autoptr]") {
+    AutoPtr<Base> ptr = makeAuto<Derived>();
+    REQUIRE(ptr);
+    ptr->value = 5;
+
+    struct Derived2 : public Base {};
+
+    AutoPtr<Derived2> d2 = dynamicCast<Derived2>(std::move(ptr));
+    REQUIRE_FALSE(d2);
+    REQUIRE(ptr);
+    REQUIRE(ptr->value == 5);
+
+    AutoPtr<Derived> d = dynamicCast<Derived>(std::move(ptr));
+    REQUIRE(d);
+    REQUIRE_FALSE(ptr);
+    REQUIRE(d->value == 5);
 }

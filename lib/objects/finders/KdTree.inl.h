@@ -36,7 +36,7 @@ struct ThreadTree {
     /// Scheduler used for parallelization.
     IScheduler& scheduler;
 
-    /// Array of nodes constructed by each thread.
+    /// \brief Array of nodes constructed by each thread.
     ///
     /// Must be a std::deque to safely modify values of parent nodes on array belonging to a different thread
     /// - ordinary Array might get reallocated and thus invalidate the reference under our hands.
@@ -76,7 +76,7 @@ static Size iterateThreadTree(ThreadTree<TNode>& tree,
 }
 
 template <typename TNode, typename TMetric>
-void KdTree<TNode, TMetric>::buildImpl(IScheduler& scheduler, ArrayView<const Vector> points) {
+void KdTree<TNode, TMetric>::buildImpl(IScheduler& UNUSED(scheduler), ArrayView<const Vector> points) {
     static_assert(sizeof(LeafNode<TNode>) == sizeof(InnerNode<TNode>), "Sizes of nodes must match");
 
     // clean the current tree
@@ -91,6 +91,7 @@ void KdTree<TNode, TMetric>::buildImpl(IScheduler& scheduler, ArrayView<const Ve
         return;
     }
 
+    SequentialScheduler scheduler; /// \todo fix the parallelization!!
     ThreadTree<TNode> tree(scheduler);
     Size rootThread = Size(-1);
 

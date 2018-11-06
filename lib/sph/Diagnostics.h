@@ -28,13 +28,13 @@ using DiagnosticsReport = BasicOutcome<DiagnosticsError>;
 ///
 /// Compared to \brief IIntegral, the diagnostics returns a boolean result, indicating whether everything is
 /// OK or an error occured.
-class IDiagnostics : public Polymorphic {
+class IDiagnostic : public Polymorphic {
 public:
     virtual DiagnosticsReport check(const Storage& storage, const Statistics& stats) const = 0;
 };
 
 /// \brief Checks for particle pairs, indicating a pairing instability.
-class ParticlePairing : public IDiagnostics {
+class ParticlePairingDiagnostic : public IDiagnostic {
 private:
     Float radius;
     Float limit;
@@ -47,7 +47,7 @@ public:
     /// \param radius Search radius for pairs in units of smoothing length. This should correspond to radius
     ///               of selected smoothing kernel.
     /// \param limit Maximal distance of two particles forming a pair in units of smoothing length.
-    ParticlePairing(const Float radius = 2._f, const Float limit = 1.e-2_f)
+    explicit ParticlePairingDiagnostic(const Float radius = 2._f, const Float limit = 1.e-2_f)
         : radius(radius)
         , limit(limit) {}
 
@@ -67,14 +67,14 @@ public:
 };
 
 /// \brief Checks for large differences of smoothing length between neighbouring particles.
-class SmoothingDiscontinuity : public IDiagnostics {
+class SmoothingDiscontinuityDiagnostic : public IDiagnostic {
     Float radius;
     Float limit;
 
 public:
     /// \param limit Limit of relative difference defining the discontinuity. If smoothing lengths h[i] and
     /// h[j] satisfy inequality abs(h[i] - h[j]) > limit * (h[i] + h[j]), an error is reported.
-    SmoothingDiscontinuity(const Float radius, const Float limit = 0.5_f)
+    SmoothingDiscontinuityDiagnostic(const Float radius, const Float limit = 0.5_f)
         : radius(radius)
         , limit(limit) {}
 
@@ -85,14 +85,22 @@ public:
 ///
 /// This is usually caused by violating the CFL criterion. To resolve the problem, try decreasing the Courant
 /// number of the simulation.
-class CourantInstability : public IDiagnostics {
+class CourantInstabilityDiagnostic : public IDiagnostic {
 private:
     Float factor;
 
 public:
     /// \param factor Limit of the acceleration (in seconds).
-    explicit CourantInstability(const Float timescaleFactor);
+    explicit CourantInstabilityDiagnostic(const Float timescaleFactor);
 
+    virtual DiagnosticsReport check(const Storage& storage, const Statistics& stats) const override;
+};
+
+/// \brief Checks for clamping of excesivelly low values of internal energy.
+///
+/// This breaks the conservation of total energy and suggests a problem in the simulation setup.
+class OvercoolingDiagnostic : public IDiagnostic {
+public:
     virtual DiagnosticsReport check(const Storage& storage, const Statistics& stats) const override;
 };
 

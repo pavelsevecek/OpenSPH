@@ -64,6 +64,10 @@ public:
         return gravity->eval(r0, stats);
     }
 
+    virtual Float evalEnergy(IScheduler& scheduler, Statistics& stats) const override {
+        return gravity->evalEnergy(scheduler, stats);
+    }
+
     virtual RawPtr<const IBasicFinder> getFinder() const override {
         return gravity->getFinder();
     }

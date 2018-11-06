@@ -1,6 +1,6 @@
-#include "sph/equations/Derivative.h"
 #include "catch.hpp"
 #include "objects/utility/PerElementWrapper.h"
+#include "sph/equations/DerivativeHelpers.h"
 #include "utils/Utils.h"
 
 using namespace Sph;

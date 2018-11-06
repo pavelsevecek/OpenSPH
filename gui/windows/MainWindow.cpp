@@ -14,6 +14,7 @@
 #include "io/LogFile.h"
 #include "sph/Diagnostics.h"
 #include "thread/CheckFunction.h"
+#include <fstream>
 #include <wx/button.h>
 #include <wx/combobox.h>
 #include <wx/gauge.h>
@@ -145,7 +146,7 @@ public:
     }
 
 private:
-    /// Sinces range getters are not virtual, we have to update ranges manually.
+    /// Since range getters are not virtual, we have to update ranges manually.
     void syncRanges() {
         if (currentPlot) {
             ranges.x = currentPlot->rangeX();
@@ -310,6 +311,62 @@ wxBoxSizer* MainWindow::createToolbar(Controller* parent) {
     return toolbar;
 }
 
+/// \brief Helper object used for drawing multiple plots into the same device.
+class MultiPlot : public IPlot {
+private:
+    Array<AutoPtr<IPlot>> plots;
+
+public:
+    explicit MultiPlot(Array<AutoPtr<IPlot>>&& plots)
+        : plots(std::move(plots)) {}
+
+    virtual std::string getCaption() const override {
+        return plots[0]->getCaption(); /// ??
+    }
+
+    virtual void onTimeStep(const Storage& storage, const Statistics& stats) override {
+        ranges.x = ranges.y = Interval();
+        for (auto& plot : plots) {
+            plot->onTimeStep(storage, stats);
+            ranges.x.extend(plot->rangeX());
+            ranges.y.extend(plot->rangeY());
+        }
+    }
+
+    virtual void clear() override {
+        ranges.x = ranges.y = Interval();
+        for (auto& plot : plots) {
+            plot->clear();
+        }
+    }
+
+    virtual void plot(IDrawingContext& dc) const override {
+        for (auto plotAndIndex : iterateWithIndex(plots)) {
+            dc.setStyle(plotAndIndex.index());
+            plotAndIndex.value()->plot(dc);
+        }
+    }
+};
+
+static Array<Post::HistPoint> getOverplotSfd(const GuiSettings& gui) {
+    const Path overplotPath(gui.get<std::string>(GuiSettingsId::PLOT_OVERPLOT_SFD));
+    if (overplotPath.empty()) {
+        return {};
+    }
+    Array<Post::HistPoint> overplotSfd;
+    std::ifstream is(overplotPath.native());
+    while (true) {
+        float value, count;
+        is >> value >> count;
+        if (!is) {
+            break;
+        }
+        value *= 0.5 /*D->R*/ * 1000 /*km->m*/; // super-specific, should be generalized somehow
+        overplotSfd.emplaceBack(Post::HistPoint{ value, Size(round(count)) });
+    };
+    return overplotSfd;
+}
+
 wxBoxSizer* MainWindow::createSidebar() {
     wxBoxSizer* sidebarSizer = new wxBoxSizer(wxVERTICAL);
     probe = new ParticleProbe(this, wxSize(300, 155));
@@ -328,6 +385,8 @@ wxBoxSizer* MainWindow::createSidebar() {
     PlotData data;
     IntegralWrapper integral;
     Flags<PlotEnum> flags = gui.getFlags<PlotEnum>(GuiSettingsId::PLOT_INTEGRALS);
+
+    Array<Post::HistPoint> overplotSfd = getOverplotSfd(gui);
 
     /// \todo this plots should really be set somewhere outside of main window, they are problem-specific
     if (flags.has(PlotEnum::TOTAL_ENERGY)) {
@@ -371,10 +430,37 @@ wxBoxSizer* MainWindow::createSidebar() {
         list->push(data);
     }
 
-    if (flags.has(PlotEnum::SIZE_FREQUENCY_DISTRIBUTION)) {
-        data.plot = makeLocking<SfdPlot>();
+    if (flags.has(PlotEnum::PARTICLE_SFD)) {
+        data.plot = makeLocking<SfdPlot>(NOTHING, 0._f);
         plots.push(data.plot);
         data.color = Color(wxColour(0, 190, 255));
+        list->push(data);
+    }
+
+    if (flags.has(PlotEnum::CURRENT_SFD)) {
+        Array<AutoPtr<IPlot>> multiplot;
+        multiplot.emplaceBack(makeAuto<SfdPlot>(Post::ComponentConnectivity::OVERLAP, params.period));
+        if (!overplotSfd.empty()) {
+            multiplot.emplaceBack(
+                makeAuto<DataPlot>(overplotSfd, AxisScaleEnum::LOG_X | AxisScaleEnum::LOG_Y, "Overplot"));
+        }
+        data.plot = makeLocking<MultiPlot>(std::move(multiplot));
+        plots.push(data.plot);
+        data.color = Color(wxColour(255, 40, 255));
+        list->push(data);
+    }
+
+    if (flags.has(PlotEnum::PREDICTED_SFD)) {
+        /// \todo could be deduplicated a bit
+        Array<AutoPtr<IPlot>> multiplot;
+        multiplot.emplaceBack(makeAuto<SfdPlot>(Post::ComponentConnectivity::ESCAPE_VELOCITY, params.period));
+        if (!overplotSfd.empty()) {
+            multiplot.emplaceBack(
+                makeAuto<DataPlot>(overplotSfd, AxisScaleEnum::LOG_X | AxisScaleEnum::LOG_Y, "Overplot"));
+        }
+        data.plot = makeLocking<MultiPlot>(std::move(multiplot));
+        plots.push(data.plot);
+        data.color = Color(wxColour(80, 150, 255));
         list->push(data);
     }
 

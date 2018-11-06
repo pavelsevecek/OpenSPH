@@ -98,14 +98,14 @@ void DerivativeHolder::evalSymmetric(const Size idx,
     ASSERT(neighs.size() == grads.size());
     ASSERT(isSymmetric());
     for (const auto& deriv : derivatives) {
-        SymmetricDerivative* symmetric = assert_cast<SymmetricDerivative*>(&*deriv);
+        ISymmetricDerivative* symmetric = assert_cast<ISymmetricDerivative*>(&*deriv);
         symmetric->evalSymmetric(idx, neighs, grads);
     }
 }
 
 bool DerivativeHolder::isSymmetric() const {
     for (const auto& deriv : derivatives) {
-        if (!dynamic_cast<SymmetricDerivative*>(&*deriv)) {
+        if (!dynamic_cast<ISymmetricDerivative*>(&*deriv)) {
             return false;
         }
     }

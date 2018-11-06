@@ -6,6 +6,7 @@
 /// \date 2016-2018
 
 #include "common/Globals.h"
+#include "gui/Settings.h"
 #include "gui/renderers/IRenderer.h"
 #include "io/Output.h"
 #include <condition_variable>
@@ -13,7 +14,6 @@
 NAMESPACE_SPH_BEGIN
 
 class IRenderer;
-class GuiSettings;
 
 /// \brief Object managing periodic rendering of images and saving them to given paths.
 ///

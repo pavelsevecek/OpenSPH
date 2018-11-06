@@ -17,7 +17,7 @@ TEST_CASE("Pairing", "[diagnostics]") {
     conds.addMonolithicBody(storage, SphericalDomain(Vector(0._f), 3._f), settings);
     Array<Vector>& r = storage.getValue<Vector>(QuantityId::POSITION);
 
-    ParticlePairing diag(2, 1.e-1_f);
+    ParticlePairingDiagnostic diag(2, 1.e-1_f);
     REQUIRE(diag.getPairs(storage).empty());
 
     const Size n = r.size();
@@ -25,8 +25,8 @@ TEST_CASE("Pairing", "[diagnostics]") {
     r.push(r[68]); // -> pair n+1, 68
     r.push(r[12]); // -> pair n+2, 12
 
-    diag = ParticlePairing(2, 1.e-2_f);
-    Array<ParticlePairing::Pair> pairs = diag.getPairs(storage);
+    diag = ParticlePairingDiagnostic(2, 1.e-2_f);
+    Array<ParticlePairingDiagnostic::Pair> pairs = diag.getPairs(storage);
     REQUIRE(pairs.size() == 3);
     std::sort(pairs.begin(), pairs.end(), [](auto&& p1, auto&& p2) {
         // sort by lower indices

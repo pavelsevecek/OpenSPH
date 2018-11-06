@@ -2,6 +2,7 @@
 #include "objects/finders/NeighbourFinder.h"
 #include "physics/Eos.h"
 #include "sph/Materials.h"
+#include "sph/equations/DerivativeHelpers.h"
 #include "sph/equations/EquationTerm.h"
 #include "sph/kernel/Kernel.h"
 #include "system/Factory.h"
@@ -22,12 +23,12 @@ public:
     DisplacementGradient(const RunSettings& settings)
         : DerivativeTemplate<DisplacementGradient>(settings) {}
 
-    virtual void create(Accumulated& results) override {
+    INLINE void additionalCreate(Accumulated& results) {
         results.insert<Float>(QuantityId::PRESSURE, OrderEnum::ZERO, BufferSource::UNIQUE);
         results.insert<TracelessTensor>(QuantityId::DEVIATORIC_STRESS, OrderEnum::ZERO, BufferSource::UNIQUE);
     }
 
-    INLINE void init(const Storage& input, Accumulated& results) {
+    INLINE void additionalInitialize(const Storage& input, Accumulated& results) {
         u = input.getValue<Vector>(QuantityId::DISPLACEMENT);
         tie(m, rho) = input.getValues<Float>(QuantityId::MASS, QuantityId::DENSITY);
 
@@ -38,6 +39,10 @@ public:
         IMaterial& material = input.getMaterial(0);
         lambda = material.getParam<Float>(BodySettingsId::ELASTIC_MODULUS);
         mu = material.getParam<Float>(BodySettingsId::SHEAR_MODULUS);
+    }
+
+    INLINE bool additionalEquals(const DisplacementGradient& UNUSED(other)) const {
+        return true;
     }
 
     template <bool Symmetrize>

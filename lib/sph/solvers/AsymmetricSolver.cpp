@@ -10,57 +10,82 @@
 
 NAMESPACE_SPH_BEGIN
 
-AsymmetricSolver::AsymmetricSolver(IScheduler& scheduler,
+IAsymmetricSolver::IAsymmetricSolver(IScheduler& scheduler,
     const RunSettings& settings,
     const EquationHolder& eqs)
-    : scheduler(scheduler)
-    , threadData(scheduler) {
+    : scheduler(scheduler) {
     kernel = Factory::getKernel<DIMENSIONS>(settings);
     finder = Factory::getFinder(settings);
     granularity = settings.get<int>(RunSettingsId::RUN_THREAD_GRANULARITY);
     equations += eqs;
-
-    // initialize all derivatives
-    equations.setDerivatives(derivatives, settings);
 }
 
-AsymmetricSolver::~AsymmetricSolver() = default;
 
-void AsymmetricSolver::integrate(Storage& storage, Statistics& stats) {
+void IAsymmetricSolver::integrate(Storage& storage, Statistics& stats) {
     // initialize all materials (compute pressure, apply yielding and damage, ...)
     for (Size i = 0; i < storage.getMaterialCnt(); ++i) {
-        PROFILE_SCOPE("AsymmetricSolver initialize materials")
+        PROFILE_SCOPE("IAsymmetricSolver initialize materials")
         MaterialView material = storage.getMaterial(i);
         material->initialize(scheduler, storage, material.sequence());
     }
 
-    // initialize all equation terms (applies dependencies between quantities)
-    equations.initialize(scheduler, storage);
-
-    // initialize accumulate storages & derivatives
-    derivatives.initialize(storage);
+    // initialize equations, derivatives, accumulate storages, ...
+    this->beforeLoop(storage, stats);
 
     // main loop over pairs of interacting particles
     this->loop(storage, stats);
 
-    // store results to storage, save statistics, ...
+    // store results to storage, finalizes equations, save statistics, ...
     this->afterLoop(storage, stats);
-
-    // integrate all equations
-    equations.finalize(scheduler, storage);
 
     // finalize all materials (integrate fragmentation model)
     for (Size i = 0; i < storage.getMaterialCnt(); ++i) {
-        PROFILE_SCOPE("AsymmetricSolver finalize materials")
+        PROFILE_SCOPE("IAsymmetricSolver finalize materials")
         MaterialView material = storage.getMaterial(i);
         material->finalize(scheduler, storage, material.sequence());
     }
 }
 
-void AsymmetricSolver::create(Storage& storage, IMaterial& material) const {
+void IAsymmetricSolver::create(Storage& storage, IMaterial& material) const {
     storage.insert<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO, 0);
     equations.create(storage, material);
     this->sanityCheck(storage);
+}
+
+Float IAsymmetricSolver::getSearchRadius(const Storage& storage) const {
+    ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
+    Float maxH = 0._f;
+    for (Size i = 0; i < r.size(); ++i) {
+        maxH = max(maxH, r[i][H]);
+    }
+    return maxH * kernel.radius();
+}
+
+const IBasicFinder& IAsymmetricSolver::getFinder(ArrayView<const Vector> r) {
+    finder->build(scheduler, r);
+    return *finder;
+}
+
+AsymmetricSolver::AsymmetricSolver(IScheduler& scheduler,
+    const RunSettings& settings,
+    const EquationHolder& eqs)
+    : IAsymmetricSolver(scheduler, settings, eqs)
+    , threadData(scheduler) {
+
+    // creates all derivatives required by the equation terms
+    equations.setDerivatives(derivatives, settings);
+}
+
+
+AsymmetricSolver::~AsymmetricSolver() = default;
+
+
+void AsymmetricSolver::beforeLoop(Storage& storage, Statistics& UNUSED(stats)) {
+    // initialize all equation terms (applies dependencies between quantities)
+    equations.initialize(scheduler, storage);
+
+    // sets up references to storage buffers for all derivatives
+    derivatives.initialize(storage);
 }
 
 void AsymmetricSolver::loop(Storage& storage, Statistics& UNUSED(stats)) {
@@ -70,11 +95,7 @@ void AsymmetricSolver::loop(Storage& storage, Statistics& UNUSED(stats)) {
     const IBasicFinder& actFinder = this->getFinder(r);
 
     // find the maximum search radius
-    Float maxH = 0._f;
-    for (Size i = 0; i < r.size(); ++i) {
-        maxH = max(maxH, r[i][H]);
-    }
-    const Float radius = maxH * kernel.radius();
+    const Float radius = this->getSearchRadius(storage);
 
     ArrayView<Size> neighs = storage.getValue<Size>(QuantityId::NEIGHBOUR_CNT);
 
@@ -106,8 +127,12 @@ void AsymmetricSolver::loop(Storage& storage, Statistics& UNUSED(stats)) {
 }
 
 void AsymmetricSolver::afterLoop(Storage& storage, Statistics& stats) {
+    // store the computed values into the storage
     Accumulated& accumulated = derivatives.getAccumulated();
     accumulated.store(storage);
+
+    // using the stored values, integrates all equation terms
+    equations.finalize(scheduler, storage);
 
     // compute neighbour statistics
     ArrayView<Size> neighs = storage.getValue<Size>(QuantityId::NEIGHBOUR_CNT);
@@ -117,11 +142,6 @@ void AsymmetricSolver::afterLoop(Storage& storage, Statistics& stats) {
         neighsStats.accumulate(neighs[i]);
     }
     stats.set(StatisticsId::NEIGHBOUR_COUNT, neighsStats);
-}
-
-const IBasicFinder& AsymmetricSolver::getFinder(ArrayView<const Vector> r) {
-    finder->build(scheduler, r);
-    return *finder;
 }
 
 void AsymmetricSolver::sanityCheck(const Storage& UNUSED(storage)) const {

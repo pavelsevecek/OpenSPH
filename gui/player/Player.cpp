@@ -104,7 +104,6 @@ void RunPlayer::run() {
                 executeOnMainThread([path] {
                     wxMessageBox("Cannot load the run state file " + path.native(), "Error", wxOK);
                 });
-                break;
             }
             logger->write("Loaded ", path.native(), " in ", loadTimer.elapsed(TimerUnit::MILLISECOND), " ms");
             // setupUvws(*storage);
@@ -165,7 +164,7 @@ bool App::OnInit() {
     const bool isNBody = (runType == RunTypeEnum::NBODY) || (runType == RunTypeEnum::RUBBLE_PILE);
 
     GuiSettings gui;
-    gui.set(GuiSettingsId::ORTHO_FOV, 5.e5_f) // 4.e8_f) // 2.e5_f)
+    gui.set(GuiSettingsId::ORTHO_FOV, 2.e6_f) // 4.e8_f) // 2.e5_f)
         .set(GuiSettingsId::ORTHO_VIEW_CENTER, 0.5_f * Vector(768, 768, 0))
         .set(GuiSettingsId::VIEW_WIDTH, 1024)
         .set(GuiSettingsId::VIEW_HEIGHT, 768)
@@ -174,13 +173,13 @@ bool App::OnInit() {
         .set(GuiSettingsId::WINDOW_WIDTH, 1334)
         .set(GuiSettingsId::WINDOW_HEIGHT, 768)
         .set(GuiSettingsId::PARTICLE_RADIUS, isNBody ? 1._f : 0.35_f)
-        .set(GuiSettingsId::SURFACE_LEVEL, 0.12_f)
+        .set(GuiSettingsId::SURFACE_LEVEL, 0.14_f)
         .set(GuiSettingsId::SURFACE_SUN_POSITION, getNormalized(Vector(-1.e6_f, -1.5e6_f, 0._f)))
-        .set(GuiSettingsId::SURFACE_SUN_INTENSITY, 0.9_f)
-        .set(GuiSettingsId::SURFACE_AMBIENT, 0.05_f)
+        .set(GuiSettingsId::SURFACE_SUN_INTENSITY, 0.7_f)
+        .set(GuiSettingsId::SURFACE_AMBIENT, 0.3_f)
         .set(GuiSettingsId::SURFACE_RESOLUTION, 2.e3_f)
-        .set(GuiSettingsId::CAMERA, CameraEnum::ORTHO)
-        //.set(GuiSettingsId::PERSPECTIVE_TRACKED_PARTICLE, 58325)
+        .set(GuiSettingsId::CAMERA, CameraEnum::PERSPECTIVE)
+        .set(GuiSettingsId::PERSPECTIVE_TRACKED_PARTICLE, 729082)
         .set(GuiSettingsId::PERSPECTIVE_POSITION, Vector(-3.e6_f, 4.e6_f, 0._f))
         .set(GuiSettingsId::PERSPECTIVE_POSITION, Vector(5.e6_f, 0._f, 0._f))
         .set(GuiSettingsId::PERSPECTIVE_TARGET, Vector(0._f, -2.e6_f, 0._f))
@@ -201,14 +200,17 @@ bool App::OnInit() {
         .set(GuiSettingsId::IMAGES_NAME, std::string("frag_%e_%d.png"))
         .set(GuiSettingsId::IMAGES_MOVIE_NAME, std::string("frag_%e.avi"))
         .set(GuiSettingsId::IMAGES_TIMESTEP, 0._f)
-        //.set(GuiSettingsId::IMAGES_RENDERER, RendererEnum::RAYTRACER)
+        .set(GuiSettingsId::IMAGES_RENDERER, RendererEnum::RAYTRACER)
         .set(GuiSettingsId::PALETTE_STRESS, Interval(1.e5_f, 3.e6_f))
         .set(GuiSettingsId::PALETTE_VELOCITY, Interval(1._f, 100._f))
         .set(GuiSettingsId::PALETTE_PRESSURE, Interval(-5.e6_f, 5.e6_f))
         .set(GuiSettingsId::PALETTE_ENERGY, Interval(100._f, 5.e4_f))
         .set(GuiSettingsId::PALETTE_RADIUS, Interval(700._f, 3.e3_f))
         .set(GuiSettingsId::PALETTE_GRADV, Interval(0._f, 1.e-5_f))
-        .set(GuiSettingsId::PLOT_INTEGRALS, PlotEnum::ALL);
+        .set(GuiSettingsId::PLOT_INTEGRALS, PlotEnum::ALL)
+        .set(GuiSettingsId::PLOT_OVERPLOT_SFD,
+            std::string("/home/pavel/projects/astro/asteroids/hygiea/main_belt_families_2018/10_Hygiea/"
+                        "size_distribution/family.dat_hc"));
 
     if (fileMask.native().substr(fileMask.native().size() - 3) == ".bt") {
         // pkdgrav file, override some options

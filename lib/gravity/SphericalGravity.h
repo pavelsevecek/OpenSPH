@@ -49,6 +49,11 @@ public:
         return sphere.getAcceleration(r0 - center);
     }
 
+    virtual Float evalEnergy(IScheduler& UNUSED(scheduler), Statistics& UNUSED(stats)) const override {
+        Analytic::StaticSphere sphere(INFTY, rho0);
+        return sphere.getEnergy();
+    }
+
     virtual RawPtr<const IBasicFinder> getFinder() const override {
         return nullptr;
     }

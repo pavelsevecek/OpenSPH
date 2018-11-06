@@ -515,90 +515,135 @@ Optional<Post::KeplerianElements> Post::findKeplerEllipse(const Float M,
     return elements;
 }
 
+bool Post::HistPoint::operator==(const HistPoint& other) const {
+    return value == other.value && count == other.count;
+}
+
+/// \brief Filters the input values using cut-offs specified in params.
+template <typename TValueFunctor>
+static Array<Float> processParticleCutoffs(const Storage& storage,
+    const Post::HistogramParams& params,
+    const TValueFunctor& functor) {
+    ArrayView<const Float> m;
+    ArrayView<const Vector> v;
+
+    // only require mass/velocity if the correpsonding cutoff is specified
+    if (params.massCutoff > 0._f) {
+        m = storage.getValue<Float>(QuantityId::MASS);
+    }
+    if (params.velocityCutoff < INFTY) {
+        v = storage.getDt<Vector>(QuantityId::POSITION);
+    }
+    Array<Float> filtered;
+    for (Size i = 0; i < storage.getParticleCnt(); ++i) {
+        if (m && m[i] < params.massCutoff) {
+            continue;
+        }
+        if (v && getLength(v[i]) > params.velocityCutoff) {
+            continue;
+        }
+        if (params.validator(i)) {
+            filtered.push(functor(i));
+        }
+    }
+    return filtered;
+}
+
 /// \brief Returns the particle values corresponding to given histogram quantity.
 static Array<Float> getParticleValues(const Storage& storage,
     const Post::HistogramParams& params,
     const Post::HistogramId id) {
 
-    Array<Float> values(storage.getParticleCnt());
     switch (id) {
     case Post::HistogramId::RADII: {
         ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
-        for (Size i = 0; i < r.size(); ++i) {
-            values[i] = r[i][H];
-        }
-        break;
+        return processParticleCutoffs(storage, params, [r](Size i) { return r[i][H]; });
     }
     case Post::HistogramId::EQUIVALENT_MASS_RADII: {
         ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
-        for (Size i = 0; i < m.size(); ++i) {
-            values[i] = root<3>(3.f * m[i] / (params.referenceDensity * 4.f * PI));
-        }
-        break;
+        return processParticleCutoffs(storage, params, [m, &params](Size i) {
+            return root<3>(3.f * m[i] / (params.referenceDensity * 4.f * PI));
+        });
     }
     case Post::HistogramId::VELOCITIES: {
         ArrayView<const Vector> v = storage.getDt<Vector>(QuantityId::POSITION);
-        for (Size i = 0; i < v.size(); ++i) {
-            values[i] = getLength(v[i]);
-        }
-        break;
+        return processParticleCutoffs(storage, params, [v](Size i) { return getLength(v[i]); });
     }
     case Post::HistogramId::ROTATIONAL_PERIOD: {
         if (!storage.has(QuantityId::ANGULAR_FREQUENCY)) {
-            /// \todo should be generalized for all quantities
-            values.fill(0._f);
-            break;
+            return {};
         }
         ArrayView<const Vector> omega = storage.getValue<Vector>(QuantityId::ANGULAR_FREQUENCY);
-        for (Size i = 0; i < omega.size(); ++i) {
+        return processParticleCutoffs(storage, params, [omega](Size i) {
             const Float w = getLength(omega[i]);
             if (w == 0._f) {
                 // placeholder for zero frequency to avoid division by zero
-                values[i] = 0._f;
+                return 0._f;
             } else {
-                values[i] = 2._f * PI / (3600._f * w);
+                return 2._f * PI / (3600._f * w);
             }
-        }
-        break;
+        });
     }
     case Post::HistogramId::ROTATIONAL_FREQUENCY: {
         if (!storage.has(QuantityId::ANGULAR_FREQUENCY)) {
-            /// \todo should be generalized for all quantities
-            values.fill(0._f);
-            break;
+            return {};
         }
         ArrayView<const Vector> omega = storage.getValue<Vector>(QuantityId::ANGULAR_FREQUENCY);
-        for (Size i = 0; i < omega.size(); ++i) {
+        return processParticleCutoffs(storage, params, [omega](Size i) {
             const Float w = getLength(omega[i]);
-            values[i] = 3600._f * 24._f * w / (2._f * PI);
-        }
-        break;
+            return 3600._f * 24._f * w / (2._f * PI);
+        });
     }
     case Post::HistogramId::ROTATIONAL_AXIS: {
         if (!storage.has(QuantityId::ANGULAR_FREQUENCY)) {
-            /// \todo should be generalized for all quantities
-            values.fill(0._f);
-            break;
+            return {};
         }
         ArrayView<const Vector> omega = storage.getValue<Vector>(QuantityId::ANGULAR_FREQUENCY);
-        for (Size i = 0; i < omega.size(); ++i) {
+        return processParticleCutoffs(storage, params, [omega](Size i) {
             const Float w = getLength(omega[i]);
             if (w == 0._f) {
-                values[i] = 0._f; /// \todo what here??
+                return 0._f; /// \todo what here??
             } else {
-                values[i] = acos(omega[i][Z] / w);
+                return acos(omega[i][Z] / w);
             }
-        }
-        break;
+        });
     }
     default:
         const QuantityId quantityId = QuantityId(id);
         ASSERT((int)quantityId >= 0);
         /// \todo allow also other types
-        values = storage.getValue<Float>(quantityId).clone();
-        break;
+        Array<Float> values = storage.getValue<Float>(quantityId).clone();
+        return processParticleCutoffs(storage, params, [&values](Size i) { return values[i]; });
     }
-    return values;
+}
+
+/// \brief Returns indices of components to remove from the histogram.
+static Array<Size> processComponentCutoffs(const Storage& storage,
+    ArrayView<const Size> components,
+    const Size numComponents,
+    const Post::HistogramParams& params) {
+    ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
+    ArrayView<const Vector> v = storage.getDt<Vector>(QuantityId::POSITION);
+    Array<Vector> velocities(numComponents);
+    Array<Float> masses(numComponents);
+    velocities.fill(Vector(0._f));
+    masses.fill(0._f);
+
+    for (Size i = 0; i < m.size(); ++i) {
+        velocities[components[i]] += m[i] * v[i];
+        masses[components[i]] += m[i];
+    }
+
+    Array<Size> toRemove;
+    for (Size idx = 0; idx < numComponents; ++idx) {
+        ASSERT(masses[idx] > 0._f);
+        velocities[idx] /= masses[idx];
+
+        if (masses[idx] < params.massCutoff || getLength(velocities[idx]) > params.velocityCutoff) {
+            toRemove.push(idx);
+        }
+    }
+    return toRemove;
 }
 
 /// \brief Returns the component values corresponding to given histogram quantity.
@@ -608,16 +653,19 @@ static Array<Float> getComponentValues(const Storage& storage,
 
     Array<Size> components;
     const Size numComponents =
-        findComponents(storage, params.components.radius, Post::ComponentConnectivity::OVERLAP, components);
+        findComponents(storage, params.components.radius, params.components.connectivity, components);
 
-    Array<Float> values(numComponents);
-    values.fill(0._f);
+    Array<Size> toRemove = processComponentCutoffs(storage, components, numComponents, params);
+
     switch (id) {
     case Post::HistogramId::EQUIVALENT_MASS_RADII:
     case Post::HistogramId::RADII: {
         // compute volume of the body
         ArrayView<const Float> rho, m;
         tie(rho, m) = storage.getValues<Float>(QuantityId::DENSITY, QuantityId::MASS);
+
+        Array<Float> values(numComponents);
+        values.fill(0._f);
         for (Size i = 0; i < rho.size(); ++i) {
             Float density;
             if (id == Post::HistogramId::EQUIVALENT_MASS_RADII) {
@@ -628,9 +676,14 @@ static Array<Float> getComponentValues(const Storage& storage,
             values[components[i]] += m[i] / density;
         }
 
+        // remove the components we cut off (in reverse to avoid invalidating indices)
+        for (Size i : reverse(toRemove)) {
+            values.remove(i);
+        }
+
         // compute equivalent radii from volumes
-        Array<Float> radii(numComponents);
-        for (Size i = 0; i < numComponents; ++i) {
+        Array<Float> radii(values.size());
+        for (Size i = 0; i < values.size(); ++i) {
             radii[i] = root<3>(3._f * values[i] / (4._f * PI));
             ASSERT(isReal(radii[i]) && radii[i] > 0._f, radii[i]);
         }
@@ -649,11 +702,19 @@ static Array<Float> getComponentValues(const Storage& storage,
             sumV[componentIdx] += m[i] * v[i];
             weights[componentIdx] += m[i];
         }
-        for (Size i = 0; i < numComponents; ++i) {
-            ASSERT(weights[i] != 0._f);
-            values[i] = getLength(sumV[i] / weights[i]);
+
+        // remove the components we cut off (in reverse to avoid invalidating indices)
+        for (Size i : reverse(toRemove)) {
+            sumV.remove(i);
+            weights.remove(i);
         }
-        return values;
+
+        Array<Float> velocities(sumV.size());
+        for (Size i = 0; i < sumV.size(); ++i) {
+            ASSERT(weights[i] != 0._f);
+            velocities[i] = getLength(sumV[i] / weights[i]);
+        }
+        return velocities;
     }
     default:
         NOT_IMPLEMENTED;
@@ -668,7 +729,7 @@ static Array<Float> getValues(const Storage& storage,
     Array<Float> values;
     if (source == Post::HistogramSource::PARTICLES) {
         values = getParticleValues(storage, params, id);
-        ASSERT(values.size() == storage.getParticleCnt());
+        ASSERT(values.size() <= storage.getParticleCnt()); // can be < due to cutoffs
     } else {
         values = getComponentValues(storage, params, id);
         ASSERT(values.size() <= storage.getParticleCnt());
@@ -676,12 +737,15 @@ static Array<Float> getValues(const Storage& storage,
     return values;
 }
 
-Array<Post::HistPoint> Post::getCummulativeHistogram(const Storage& storage,
+Array<Post::HistPoint> Post::getCumulativeHistogram(const Storage& storage,
     const HistogramId id,
     const HistogramSource source,
     const Post::HistogramParams& params) {
 
     Array<Float> values = getValues(storage, id, source, params);
+    if (values.empty()) {
+        return {}; // no values, trivially empty histogram
+    }
     std::sort(values.begin(), values.end());
 
     Interval range = params.range;
@@ -726,9 +790,7 @@ Array<Post::HistPoint> Post::getDifferentialHistogram(ArrayView<const Float> val
     Interval range = params.range;
     if (range.empty()) {
         for (Size i = 0; i < values.size(); ++i) {
-            if (params.validator(i)) {
-                range.extend(values[i]);
-            }
+            range.extend(values[i]);
         }
         // extend slightly, so that the min/max value is strictly inside the interval
         range.extend(range.lower() - EPS * range.size());
@@ -748,10 +810,6 @@ Array<Post::HistPoint> Post::getDifferentialHistogram(ArrayView<const Float> val
     // check for case where only one body/particle exists
     const bool singular = range.size() == 0;
     for (Size i = 0; i < values.size(); ++i) {
-        if (!params.validator(i)) {
-            continue;
-        }
-
         // get bin index
         Size binIdx;
         if (singular) {
@@ -769,7 +827,7 @@ Array<Post::HistPoint> Post::getDifferentialHistogram(ArrayView<const Float> val
         }
         sfd[binIdx]++;
     }
-    // convert to SfdPoints
+    // convert to HistPoints
     Array<HistPoint> histogram(binCnt);
     for (Size i = 0; i < binCnt; ++i) {
         const Float centerIdx = i + int(params.centerBins) * 0.5_f;

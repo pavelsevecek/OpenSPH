@@ -50,7 +50,7 @@ private:
         Array<Texture> textures;
 
         /// Cast shadows
-        bool shadows = true;
+        bool shadows = false;
 
         /// Step between two pixels computed by raytracing.
         Size subsampling = 1;

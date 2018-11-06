@@ -61,22 +61,23 @@ private:
     /// Point radius in pixels
     const Float ps = 3._f;
 
+    /// Selected color of the plot, corresponding to drawing style 0.
+    Color color;
+
 public:
-    /// Constructs the drawing context from wxPaintDC
+    /// \brief Constructs the drawing context from wxPaintDC.
     GraphicsContext(wxPaintDC& dc, const Color color)
-        : gc(wxGraphicsContext::Create(dc)) {
-        wxPen pen;
-        pen.SetColour(wxColour(color));
-        gc->SetPen(pen);
+        : gc(wxGraphicsContext::Create(dc))
+        , color(color) {
+        this->setStyle(0);
         matrix = gc->CreateMatrix();
     }
 
-    /// Constructs the drawing context from wxMemoryDC
+    /// \brief Constructs the drawing context from wxMemoryDC.
     GraphicsContext(wxMemoryDC& dc, const Color color)
-        : gc(wxGraphicsContext::Create(dc)) {
-        wxPen pen;
-        pen.SetColour(wxColour(color));
-        gc->SetPen(pen);
+        : gc(wxGraphicsContext::Create(dc))
+        , color(color) {
+        this->setStyle(0);
         matrix = gc->CreateMatrix();
     }
 
@@ -100,6 +101,20 @@ public:
 
     virtual AutoPtr<IDrawPath> drawPath() override {
         return makeAuto<GraphicsPath>(gc, matrix);
+    }
+
+    virtual void setStyle(const Size index) override {
+        // we currently only distinguish between style 0 and any positive value; this can be generalized in
+        // the future if needed.
+        wxPen pen;
+        if (index == 0) {
+            // selected color
+            pen.SetColour(wxColour(color));
+        } else {
+            // black
+            pen.SetColour(*wxBLACK);
+        }
+        gc->SetPen(pen);
     }
 
     virtual void setTransformMatrix(const AffineMatrix2& m) override {

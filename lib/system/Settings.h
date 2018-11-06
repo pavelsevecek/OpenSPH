@@ -648,8 +648,8 @@ enum class SolverEnum {
     /// Density independent solver by Saitoh & Makino (2013).
     DENSITY_INDEPENDENT,
 
-    /// Solver advancing internal energy using pair-wise work done by particles, by Owen 2009.
-    DIFFERENED_ENERGY,
+    /// Solver advancing internal energy using pair-wise work done by particles, by Owen (2009).
+    ENERGY_CONSERVING_SOLVER,
 };
 static RegisterEnum<SolverEnum> sSolver({
     { SolverEnum::SYMMETRIC_SOLVER,
@@ -665,6 +665,10 @@ static RegisterEnum<SolverEnum> sSolver({
     { SolverEnum::DENSITY_INDEPENDENT,
         "density_independent",
         "Density independent solver by Saitoh & Makino (2013). Experimental!" },
+    { SolverEnum::ENERGY_CONSERVING_SOLVER,
+        "energy_conserving_solver",
+        "Solver advancing internal energy using pair-wise work done by particles, by Owen (2009). "
+        "Experimental!" },
 });
 
 

@@ -95,6 +95,8 @@ private:
     wxBoxSizer* createToolbar(const Size toolbarHeight);
 
     void saveImage(const std::string& path, const int fileIndex);
+
+    void saveData(const std::string& pathStr);
 };
 
 

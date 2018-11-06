@@ -92,7 +92,7 @@ void GradHSolver::loop(Storage& storage, Statistics& UNUSED(stats)) {
     }
 
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
-    finder->build(scheduler, r);
+    const IBasicFinder& finder = getFinder(r);
 
     // find the maximum search radius
     Float maxH = 0._f;
@@ -103,8 +103,8 @@ void GradHSolver::loop(Storage& storage, Statistics& UNUSED(stats)) {
 
     // compute the grad-h terms
     GradH gradH(storage);
-    auto preFunctor = [this, radius, &gradH](const Size i, ThreadData& data) {
-        finder->findAll(i, radius, data.neighs);
+    auto preFunctor = [this, radius, &finder, &gradH](const Size i, ThreadData& data) {
+        finder.findAll(i, radius, data.neighs);
         gradH.eval(kernel, i, data.neighs);
     };
     parallelFor(scheduler, threadData, 0, r.size(), granularity, preFunctor);
@@ -112,8 +112,8 @@ void GradHSolver::loop(Storage& storage, Statistics& UNUSED(stats)) {
     ArrayView<Size> neighs = storage.getValue<Size>(QuantityId::NEIGHBOUR_CNT);
     ArrayView<Float> omega = storage.getValue<Float>(QuantityId::GRAD_H);
 
-    auto functor = [this, r, &neighs, omega, radius](const Size i, ThreadData& data) {
-        finder->findAll(i, radius, data.neighs);
+    auto functor = [this, r, &finder, &neighs, omega, radius](const Size i, ThreadData& data) {
+        finder.findAll(i, radius, data.neighs);
         data.idxs.clear();
         data.grads.clear();
 

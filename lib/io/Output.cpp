@@ -13,8 +13,9 @@ NAMESPACE_SPH_BEGIN
 /// OutputFile
 /// ----------------------------------------------------------------------------------------------------------
 
-OutputFile::OutputFile(const Path& pathMask)
+OutputFile::OutputFile(const Path& pathMask, const Size firstDumpIdx)
     : pathMask(pathMask) {
+    dumpNum = firstDumpIdx;
     ASSERT(!pathMask.empty());
 }
 
@@ -48,9 +49,9 @@ Path OutputFile::getMask() const {
     return pathMask;
 }
 
-IOutput::IOutput(const Path& fileMask)
+IOutput::IOutput(const OutputFile& fileMask)
     : paths(fileMask) {
-    ASSERT(!fileMask.empty());
+    ASSERT(!fileMask.getMask().empty());
 }
 
 /// ----------------------------------------------------------------------------------------------------------
@@ -127,7 +128,7 @@ struct DumpAllVisitor {
     }
 };
 
-TextOutput::TextOutput(const Path& fileMask,
+TextOutput::TextOutput(const OutputFile& fileMask,
     const std::string& runName,
     const Flags<OutputQuantityFlag> quantities,
     const Flags<Options> options)
@@ -427,7 +428,7 @@ struct LoadBuffersVisitor {
 };
 } // namespace
 
-BinaryOutput::BinaryOutput(const Path& fileMask, const RunTypeEnum runTypeId)
+BinaryOutput::BinaryOutput(const OutputFile& fileMask, const RunTypeEnum runTypeId)
     : IOutput(fileMask)
     , runTypeId(runTypeId) {}
 
@@ -726,7 +727,7 @@ Expected<BinaryInput::Info> BinaryInput::getInfo(const Path& path) const {
 /// PkdgravOutput/Input
 /// ----------------------------------------------------------------------------------------------------------
 
-PkdgravOutput::PkdgravOutput(const Path& fileMask, PkdgravParams&& params)
+PkdgravOutput::PkdgravOutput(const OutputFile& fileMask, PkdgravParams&& params)
     : IOutput(fileMask)
     , params(std::move(params)) {
     ASSERT(almostEqual(this->params.conversion.velocity, 2.97853e4_f, 1.e-4_f));

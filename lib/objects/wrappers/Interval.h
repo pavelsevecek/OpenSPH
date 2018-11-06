@@ -45,6 +45,14 @@ public:
         maxBound = max(maxBound, value);
     }
 
+    /// \brief Extends the interval to contain another interval.
+    ///
+    /// If the other interval is already inside this interval, nothing changes.
+    INLINE void extend(const Interval& other) {
+        minBound = min(minBound, other.minBound);
+        maxBound = max(maxBound, other.maxBound);
+    }
+
     /// \brief Checks whether value is inside the interval.
     INLINE bool contains(const Float& value) const {
         return minBound <= value && value <= maxBound;

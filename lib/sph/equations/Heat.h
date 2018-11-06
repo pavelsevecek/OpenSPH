@@ -6,7 +6,7 @@
 /// \date 2016-2018
 
 #include "quantities/IMaterial.h"
-#include "sph/equations/Derivative.h"
+#include "sph/equations/DerivativeHelpers.h"
 #include "sph/equations/EquationTerm.h"
 #include "sph/kernel/Kernel.h"
 
@@ -22,14 +22,18 @@ public:
     explicit EnergyLaplacian(const RunSettings& settings)
         : DerivativeTemplate<EnergyLaplacian>(settings) {}
 
-    virtual void create(Accumulated& results) override {
+    INLINE void additionalCreate(Accumulated& results) {
         results.insert<Float>(QuantityId::ENERGY_LAPLACIAN, OrderEnum::ZERO, BufferSource::UNIQUE);
     }
 
-    INLINE void init(const Storage& input, Accumulated& results) {
+    INLINE void additionalInitialize(const Storage& input, Accumulated& results) {
         tie(u, m, rho) = input.getValues<Float>(QuantityId::ENERGY, QuantityId::MASS, QuantityId::DENSITY);
         r = input.getValue<Vector>(QuantityId::POSITION);
         deltaU = results.getBuffer<Float>(QuantityId::ENERGY_LAPLACIAN, OrderEnum::ZERO);
+    }
+
+    INLINE bool additionalEquals(const EnergyLaplacian& UNUSED(other)) const {
+        return true;
     }
 
     template <bool Symmetric>

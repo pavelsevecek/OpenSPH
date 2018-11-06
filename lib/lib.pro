@@ -109,7 +109,8 @@ SOURCES += \
     gravity/AggregateSolver.cpp \
     sph/initial/MeshDomain.cpp \
     sph/handoff/Handoff.cpp \
-    run/RubblePile.cpp
+    run/RubblePile.cpp \
+    sph/solvers/EnergyConservingSolver.cpp
 
 HEADERS += \
     common/Assert.h \
@@ -298,7 +299,6 @@ HEADERS += \
     math/Functional.h \
     sph/solvers/GradHSolver.h \
     sph/equations/DeltaSph.h \
-    sph/solvers/DifferencedEnergySolver.h \
     gravity/CachedGravity.h \
     thread/Scheduler.h \
     thread/Tbb.h \
@@ -311,4 +311,6 @@ HEADERS += \
     objects/geometry/Triangle.h \
     sph/initial/MeshDomain.h \
     sph/handoff/Handoff.h \
-    run/RubblePile.h
+    run/RubblePile.h \
+    sph/solvers/EnergyConservingSolver.h \
+    sph/equations/DerivativeHelpers.h

@@ -91,13 +91,13 @@ public:
 
 class DiagnosticsTrigger : public PeriodicTrigger {
 private:
-    ArrayView<const AutoPtr<IDiagnostics>> diagnostics;
+    ArrayView<const AutoPtr<IDiagnostic>> diagnostics;
 
     RawPtr<IRunCallbacks> callbacks;
     SharedPtr<ILogger> logger;
 
 public:
-    DiagnosticsTrigger(ArrayView<const AutoPtr<IDiagnostics>> diagnostics,
+    DiagnosticsTrigger(ArrayView<const AutoPtr<IDiagnostic>> diagnostics,
         RawPtr<IRunCallbacks> callbacks,
         SharedPtr<ILogger> logger,
         const Float period)
@@ -148,6 +148,8 @@ void IRun::run() {
     EndingCondition condition(settings.get<Float>(RunSettingsId::RUN_WALLCLOCK_TIME),
         settings.get<int>(RunSettingsId::RUN_TIMESTEP_CNT));
     Statistics stats;
+    const Float initialDt = settings.get<Float>(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP);
+    stats.set(StatisticsId::TIMESTEP_VALUE, initialDt);
 
     callbacks->onRunStart(*storage, stats);
     Outcome result = SUCCESS;
@@ -162,8 +164,6 @@ void IRun::run() {
         ASSERT(progress >= 0._f && progress <= 1._f);
         stats.set(StatisticsId::RELATIVE_PROGRESS, progress);
         stats.set(StatisticsId::INDEX, (int)i);
-        const Float initialDt = settings.get<Float>(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP);
-        stats.set(StatisticsId::TIMESTEP_VALUE, initialDt);
 
         // dump output
         if (output && t >= nextOutput) {

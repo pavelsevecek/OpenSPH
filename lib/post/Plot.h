@@ -32,7 +32,6 @@ public:
 ///
 /// Object operates in plot coordinates.
 class IDrawingContext : public Polymorphic {
-private:
 public:
     /// \brief Adds a single point to the plot
     ///
@@ -53,6 +52,14 @@ public:
     /// The path copies the state from the parent drawing context, so if a drawing style of the context
     /// changes, the change does not affect already existing paths.
     virtual AutoPtr<IDrawPath> drawPath() = 0;
+
+    /// \brief Changes the current drawing style.
+    ///
+    /// Interpretation of the style is implementation-defined. It is assumed that the derived classes will
+    /// have a predefined set of drawing styles, this function will then selects the style with appropriate
+    /// index.
+    /// \param index Index of the selected style.
+    virtual void setStyle(const Size index) = 0;
 
     /// \brief Applies the given tranformation matrix on all primitives.
     ///
@@ -97,7 +104,6 @@ public:
     /// \brief Draws the plot into the drawing context
     virtual void plot(IDrawingContext& dc) const = 0;
 };
-
 
 /// \brief Base class for plots showing a dependence of given quantity on a spatial coordinate.
 ///
@@ -274,15 +280,47 @@ public:
     virtual void plot(IDrawingContext& dc) const override;
 };
 
-class SfdPlot : public HistogramPlot {
+class SfdPlot : public IPlot {
 private:
+    Post::HistogramSource source;
+    Post::ComponentConnectivity connect;
+    Float period;
+    std::string name;
+
+    Float lastTime = 0._f;
     Array<PlotPoint> sfd;
 
 public:
-    SfdPlot()
-        : HistogramPlot(Post::HistogramId::RADII, NOTHING, "Size-frequency distribution") {}
+    SfdPlot(const Optional<Post::ComponentConnectivity> connectivity, const Float period);
+
+    virtual std::string getCaption() const override;
 
     virtual void onTimeStep(const Storage& storage, const Statistics& stats) override;
+
+    virtual void clear() override;
+
+    virtual void plot(IDrawingContext& dc) const override;
+};
+
+enum class AxisScaleEnum {
+    LOG_X = 1 << 0,
+    LOG_Y = 1 << 1,
+};
+
+/// \brief Plots given array of points.
+class DataPlot : public IPlot {
+private:
+    Array<PlotPoint> values;
+    std::string name;
+
+public:
+    DataPlot(const Array<Post::HistPoint>& points, const Flags<AxisScaleEnum> scale, const std::string& name);
+
+    virtual std::string getCaption() const override;
+
+    virtual void onTimeStep(const Storage& storage, const Statistics& stats) override;
+
+    virtual void clear() override;
 
     virtual void plot(IDrawingContext& dc) const override;
 };

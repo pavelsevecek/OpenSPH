@@ -1,6 +1,6 @@
 #include "sph/equations/EquationTerm.h"
 #include "sph/Materials.h"
-#include "sph/equations/Derivative.h"
+#include "sph/equations/DerivativeHelpers.h"
 #include "thread/Scheduler.h"
 
 NAMESPACE_SPH_BEGIN
@@ -15,7 +15,7 @@ public:
     }
 
     template <typename T>
-    INLINE T eval(const Size i, const Size j, const T& vi, const T& vj) {
+    INLINE T eval(const Size i, const Size j, const T& vi, const T& vj) const {
         return vi / sqr(rho[i]) + vj / sqr(rho[j]);
     }
 };
@@ -30,41 +30,36 @@ public:
     }
 
     template <typename T>
-    INLINE T eval(const Size i, const Size j, const T& vi, const T& vj) {
+    INLINE T eval(const Size i, const Size j, const T& vi, const T& vj) const {
         return (vi + vj) / (rho[i] * rho[j]);
     }
 };
 
 template <typename Discr>
-class PressureGradient : public DerivativeTemplate<PressureGradient<Discr>> {
+class PressureGradient : public AccelerationTemplate<PressureGradient<Discr>> {
 private:
-    ArrayView<const Float> p, m;
+    ArrayView<const Float> p;
     Discr discr;
 
-    ArrayView<Vector> dv;
-
 public:
-    using DerivativeTemplate<PressureGradient<Discr>>::DerivativeTemplate;
+    using AccelerationTemplate<PressureGradient<Discr>>::AccelerationTemplate;
 
-    virtual void create(Accumulated& results) override {
-        results.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, BufferSource::SHARED);
-    }
+    INLINE void additionalCreate(Accumulated& UNUSED(results)) {}
 
-    INLINE void init(const Storage& input, Accumulated& results) {
-        tie(p, m) = input.getValues<Float>(QuantityId::PRESSURE, QuantityId::MASS);
+    INLINE void additionalInitialize(const Storage& input, Accumulated& UNUSED(results)) {
+        p = input.getValue<Float>(QuantityId::PRESSURE);
         discr.initialize(input);
-
-        dv = results.getBuffer<Vector>(QuantityId::POSITION, OrderEnum::SECOND);
     }
 
-    template <bool Symmetrize>
-    INLINE void eval(const Size i, const Size j, const Vector& grad) {
+    INLINE bool additionalEquals(const PressureGradient& UNUSED(other)) const {
+        return true;
+    }
+
+    template <bool Symmetric>
+    INLINE Tuple<Vector, Float> eval(const Size i, const Size j, const Vector& grad) {
         const Vector f = discr.eval(i, j, p[i], p[j]) * grad;
         ASSERT(isReal(f));
-        dv[i] -= m[j] * f;
-        if (Symmetrize) {
-            dv[j] += m[i] * f;
-        }
+        return { -f, 0._f };
     }
 };
 
@@ -109,38 +104,31 @@ void PressureForce::create(Storage& storage, IMaterial& material) const {
 
 
 template <typename Discr>
-class StressDivergence : public DerivativeTemplate<StressDivergence<Discr>> {
+class StressDivergence : public AccelerationTemplate<StressDivergence<Discr>> {
 private:
-    ArrayView<const Float> m;
     ArrayView<const TracelessTensor> s;
     Discr discr;
 
-    ArrayView<Vector> dv;
-
 public:
     explicit StressDivergence(const RunSettings& settings)
-        : DerivativeTemplate<StressDivergence<Discr>>(settings, DerivativeFlag::SUM_ONLY_UNDAMAGED) {}
+        : AccelerationTemplate<StressDivergence<Discr>>(settings, DerivativeFlag::SUM_ONLY_UNDAMAGED) {}
 
-    virtual void create(Accumulated& results) override {
-        results.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, BufferSource::SHARED);
-    }
+    INLINE void additionalCreate(Accumulated& UNUSED(results)) {}
 
-    INLINE void init(const Storage& input, Accumulated& results) {
-        m = input.getValue<Float>(QuantityId::MASS);
+    INLINE void additionalInitialize(const Storage& input, Accumulated& UNUSED(results)) {
         s = input.getPhysicalValue<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
         discr.initialize(input);
+    }
 
-        dv = results.getBuffer<Vector>(QuantityId::POSITION, OrderEnum::SECOND);
+    INLINE bool additionalEquals(const StressDivergence& UNUSED(other)) const {
+        return true;
     }
 
     template <bool Symmetrize>
-    INLINE void eval(const Size i, const Size j, const Vector& grad) {
+    INLINE Tuple<Vector, Float> eval(const Size i, const Size j, const Vector& grad) {
         const Vector f = discr.eval(i, j, s[i], s[j]) * grad;
         ASSERT(isReal(f));
-        dv[i] += m[j] * f;
-        if (Symmetrize) {
-            dv[j] -= m[i] * f;
-        }
+        return { f, 0._f };
     }
 };
 

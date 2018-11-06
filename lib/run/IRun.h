@@ -19,7 +19,7 @@ class ILogFile;
 class IScheduler;
 class IOutput;
 class ITrigger;
-class IDiagnostics;
+class IDiagnostic;
 
 /// \brief Defines the interface for a run.
 ///
@@ -66,7 +66,7 @@ protected:
     List<AutoPtr<ITrigger>> triggers;
 
     /// Diagnostics
-    Array<AutoPtr<IDiagnostics>> diagnostics;
+    Array<AutoPtr<IDiagnostic>> diagnostics;
 
 public:
     IRun();

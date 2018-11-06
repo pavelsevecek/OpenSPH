@@ -1,3 +1,7 @@
+/// Just a cluster of auxiliary tools, used for analysis of the result.
+///
+/// Currently fixed for my machine, sorry :(
+
 #include "io/FileManager.h"
 #include "io/FileSystem.h"
 #include "io/Logger.h"
@@ -37,7 +41,7 @@ int pkdgravToSfd(const Path& filePath, const Path& sfdPath) {
         return 0;
     }
     Post::HistogramParams params;
-    Array<Post::HistPoint> sfd = Post::getCummulativeHistogram(
+    Array<Post::HistPoint> sfd = Post::getCumulativeHistogram(
         storage.value(), Post::HistogramId::EQUIVALENT_MASS_RADII, Post::HistogramSource::PARTICLES, params);
     FileLogger logRadiiSfd(sfdPath, FileLogger::Options::KEEP_OPENED);
     for (Post::HistPoint& p : sfd) {
@@ -102,7 +106,7 @@ int ssfToSfd(const Post::HistogramSource source, const Path& filePath, const Pat
 
     Post::HistogramParams params;
     Array<Post::HistPoint> sfd =
-        Post::getCummulativeHistogram(storage, Post::HistogramId::EQUIVALENT_MASS_RADII, source, params);
+        Post::getCumulativeHistogram(storage, Post::HistogramId::EQUIVALENT_MASS_RADII, source, params);
     FileLogger logSfd(sfdPath, FileLogger::Options::KEEP_OPENED);
     for (Post::HistPoint& p : sfd) {
         logSfd.write(p.value, "  ", p.count);
@@ -475,13 +479,13 @@ void processHarrisFile() {
 void printHelp() {
     std::cout << "Expected usage: post mode [parameters]" << std::endl
               << " where 'mode' is one of:" << std::endl
-              << " - pkdgravToSfd   - computes the cummulative SFD from pkdgrav output file" << std::endl
+              << " - pkdgravToSfd   - computes the cumulative SFD from pkdgrav output file" << std::endl
               << " - pkdgravToOmega - computes the spin rate distribution from pkdgrav output file"
               << std::endl
               << " - pkdgravToMoons - finds satellites of the largest remnant (fragment) from pkdgrav "
                  "output file"
               << std::endl
-              << "- ssfToSfd - computes the cummulative SFD from SPH output file" << std::endl
+              << "- ssfToSfd - computes the cumulative SFD from SPH output file" << std::endl
               << "- harris - TODO" << std::endl
               << "- stats - prints ejected mass and the period of the largest remnant" << std::endl;
 }

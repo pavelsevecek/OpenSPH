@@ -60,7 +60,7 @@ protected:
     /// Maximum depth at which the nodes evaluation is parallelized.
     ///
     /// Child nodes are then evaluated serially on the same thread.
-    Size maxDepth = 12;
+    Size maxDepth = Size(-1);
 
 public:
     /// \brief Constructs the Barnes-Hut gravity assuming point-like particles (with zero radius).
@@ -86,6 +86,8 @@ public:
     virtual void evalAll(IScheduler& pool, ArrayView<Vector> dv, Statistics& stats) const override;
 
     virtual Vector eval(const Vector& r0, Statistics& stats) const override;
+
+    virtual Float evalEnergy(IScheduler& scheduler, Statistics& stats) const override;
 
     virtual RawPtr<const IBasicFinder> getFinder() const override;
 

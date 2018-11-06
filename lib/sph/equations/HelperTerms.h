@@ -5,7 +5,7 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2018
 
-#include "sph/equations/Derivative.h"
+#include "sph/equations/DerivativeHelpers.h"
 #include "sph/equations/EquationTerm.h"
 
 NAMESPACE_SPH_BEGIN
@@ -21,12 +21,16 @@ private:
         explicit Derivative(const RunSettings& settings)
             : DerivativeTemplate<Derivative>(settings) {}
 
-        virtual void create(Accumulated& results) override {
+        INLINE void additionalCreate(Accumulated& results) {
             results.insert<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO, BufferSource::UNIQUE);
         }
 
-        INLINE void init(const Storage& UNUSED(input), Accumulated& results) {
+        INLINE void additionalInitialize(const Storage& UNUSED(input), Accumulated& results) {
             neighCnts = results.getBuffer<Size>(QuantityId::NEIGHBOUR_CNT, OrderEnum::ZERO);
+        }
+
+        INLINE bool additionalEquals(const Derivative& UNUSED(other)) const {
+            return true;
         }
 
         template <bool Symmetrize>
@@ -68,13 +72,17 @@ private:
         explicit Derivative(const RunSettings& settings)
             : DerivativeTemplate<Derivative>(settings) {}
 
-        virtual void create(Accumulated& results) override {
+        INLINE void additionalCreate(Accumulated& results) {
             results.insert<Vector>(QuantityId::SURFACE_NORMAL, OrderEnum::ZERO, BufferSource::UNIQUE);
         }
 
-        INLINE void init(const Storage& input, Accumulated& results) {
+        INLINE void additionalInitialize(const Storage& input, Accumulated& results) {
             r = input.getValue<Vector>(QuantityId::POSITION);
             n = results.getBuffer<Vector>(QuantityId::SURFACE_NORMAL, OrderEnum::ZERO);
+        }
+
+        INLINE bool additionalEquals(const Derivative& UNUSED(other)) const {
+            return true;
         }
 
         template <bool Symmetrize>

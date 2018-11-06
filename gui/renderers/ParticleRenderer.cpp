@@ -275,7 +275,7 @@ SharedPtr<wxBitmap> ParticleRenderer::render(const ICamera& camera,
     wxFont font = dc.GetFont();
     font.MakeSmaller();
     dc.SetFont(font);
-    dc.DrawText(("t = " + std::to_string(time) + "s").c_str(), wxPoint(0, 0));
+    dc.DrawText(("t = " + getFormattedTime(1.e3_f * time)).c_str(), wxPoint(0, 0));
 
     dc.SelectObject(wxNullBitmap);
     return bitmap;

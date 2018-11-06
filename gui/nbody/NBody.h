@@ -72,7 +72,7 @@ private:
             .set(GuiSettingsId::PALETTE_GRADV, Interval(0._f, 1.e-5_f))
             .set(GuiSettingsId::PLOT_INTEGRALS,
                 PlotEnum::TOTAL_MOMENTUM | PlotEnum::TOTAL_ANGULAR_MOMENTUM | PlotEnum::PERIOD_HISTOGRAM |
-                    PlotEnum::SIZE_FREQUENCY_DISTRIBUTION)
+                    PlotEnum::PARTICLE_SFD)
             .set(GuiSettingsId::PALETTE_VELOCITY, Interval(1.e-4_f, 1.e-2_f));
 
         AutoPtr<NBody> run = makeAuto<NBody>();

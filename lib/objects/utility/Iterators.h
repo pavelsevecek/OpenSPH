@@ -577,6 +577,37 @@ IndexAdapter<TContainer> iterateWithIndex(TContainer&& container) {
     return IndexAdapter<TContainer>(std::forward<TContainer>(container));
 }
 
+//-----------------------------------------------------------------------------------------------------------
+// Subrange
+//-----------------------------------------------------------------------------------------------------------
+
+template <typename TIterator>
+struct SubRange : public Noncopyable {
+private:
+    TIterator first;
+    TIterator last;
+
+public:
+    template <typename TContainer>
+    explicit SubRange(const TContainer& container, const Size firstIdx, const Size lastIdx) {
+        ASSERT(lastIdx <= container.size());
+        first = container.begin() + firstIdx;
+        last = container.begin() + lastIdx;
+    }
+
+    INLINE TIterator begin() const {
+        return first;
+    }
+
+    INLINE TIterator end() const {
+        return last;
+    }
+};
+
+template <typename TContainer>
+INLINE auto subrange(const TContainer& container, const Size firstIdx, const Size lastIdx) {
+    return SubRange<TContainer>(container, firstIdx, lastIdx);
+}
 
 //-----------------------------------------------------------------------------------------------------------
 // SubsetIterator

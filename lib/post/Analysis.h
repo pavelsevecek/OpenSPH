@@ -214,11 +214,18 @@ struct HistogramParams {
     /// \brief Reference density, used when computing particle radii from their masses.
     Float referenceDensity = 2700._f;
 
-    /// \brief Cutoff value of particle mass for inclusion in the histogram.
+    /// \brief Cutoff value (lower bound) of particle mass for inclusion in the histogram.
     ///
     /// Particles with masses below this value are considered "below observational limit".
-    /// Applicable only for particle histogram.
+    /// Applicable for both component and particle histogram.
     Float massCutoff = 0._f;
+
+    /// \brief Cutoff value (upper bound) of particle velocity for inclusion in the histogram
+    ///
+    /// Particles moving faster than the cutoff are considered as fragments of projectile and excluded from
+    /// histogram, as they are (most probably) not part of any observed family. Applicable for both component
+    /// and particle histogram.
+    Float velocityCutoff = INFTY;
 
     /// If true, the bin values of the differential histogram are in the centers of the corresponding
     /// intervals, otherwise they correspond to the lower bound of the interval.
@@ -229,6 +236,9 @@ struct HistogramParams {
 
         /// Radius of particles in units of their smoothing lengths.
         Float radius = 2._f;
+
+        /// Determines how the particles are clustered into the components.
+        Post::ComponentConnectivity connectivity = Post::ComponentConnectivity::OVERLAP;
 
     } components;
 
@@ -245,9 +255,13 @@ struct HistPoint {
 
     /// Number of particles/components
     Size count;
+
+    bool operator==(const HistPoint& other) const;
 };
 
 /// \brief Computes the differential histogram from given values.
+///
+/// Note that only bin count and input range are used from the histogram parameters. No cut-offs are applied.
 Array<HistPoint> getDifferentialHistogram(ArrayView<const Float> values, const HistogramParams& params);
 
 /// \brief Computes the differential histogram of particles in the storage.
@@ -256,11 +270,13 @@ Array<HistPoint> getDifferentialHistogram(const Storage& storage,
     const HistogramSource source,
     const HistogramParams& params);
 
-/// \brief Computes cummulative (integral) histogram of particles in the storage.
+/// \brief Computes cumulative (integral) histogram of particles in the storage.
 ///
-/// The quantity for which the histogram is computed is specified in ??
+/// \param storage Storage containing particle data.
+/// \param id Specifies the quantity for which the histogram is constructed.
+/// \param source Specifies the input bodies, see \ref HistogramSource.
 /// \param params Parameters of the histogram.
-Array<HistPoint> getCummulativeHistogram(const Storage& storage,
+Array<HistPoint> getCumulativeHistogram(const Storage& storage,
     const HistogramId id,
     const HistogramSource source,
     const HistogramParams& params);

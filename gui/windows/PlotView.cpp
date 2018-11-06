@@ -1,6 +1,7 @@
 #include "gui/windows/PlotView.h"
 #include "gui/Utils.h"
 #include "gui/objects/SvgContext.h"
+#include "io/Logger.h"
 #include "io/Path.h"
 #include <wx/button.h>
 #include <wx/checkbox.h>
@@ -206,8 +207,8 @@ PlotFrame::PlotFrame(wxWindow* parent, const wxSize size, const wxSize padding, 
 wxBoxSizer* PlotFrame::createToolbar(const Size UNUSED(toolbarHeight)) {
     wxBoxSizer* sizer = new wxBoxSizer(wxHORIZONTAL);
 
-    wxButton* saveButton = new wxButton(this, wxID_ANY, "Save");
-    saveButton->Bind(wxEVT_BUTTON, [this](wxCommandEvent& UNUSED(evt)) {
+    wxButton* savePlotButton = new wxButton(this, wxID_ANY, "Save Plot");
+    savePlotButton->Bind(wxEVT_BUTTON, [this](wxCommandEvent& UNUSED(evt)) {
         wxFileDialog saveFile(this,
             "Save image",
             "",
@@ -218,7 +219,17 @@ wxBoxSizer* PlotFrame::createToolbar(const Size UNUSED(toolbarHeight)) {
             this->saveImage(std::string(saveFile.GetPath()), saveFile.GetFilterIndex());
         }
     });
-    sizer->Add(saveButton, 0, wxALIGN_CENTER_VERTICAL);
+    sizer->Add(savePlotButton, 0, wxALIGN_CENTER_VERTICAL);
+
+    wxButton* saveDataButton = new wxButton(this, wxID_ANY, "Save Data");
+    saveDataButton->Bind(wxEVT_BUTTON, [this](wxCommandEvent& UNUSED(evt)) {
+        wxFileDialog saveFile(
+            this, "Save data", "", "", "Text file (*.txt)|*.txt", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+        if (saveFile.ShowModal() == wxID_OK) {
+            this->saveData(std::string(saveFile.GetPath()));
+        }
+    });
+    sizer->Add(saveDataButton, 0, wxALIGN_CENTER_VERTICAL);
 
     wxButton* refreshButton = new wxButton(this, wxID_ANY, "Refresh");
     refreshButton->Bind(wxEVT_BUTTON, [this](wxCommandEvent& UNUSED(evt)) { this->Refresh(); });
@@ -283,6 +294,63 @@ void PlotFrame::saveImage(const std::string& pathStr, const int fileIndex) {
         proxy->plot(gc);
     }
     }
+}
+
+class TextContext : public IDrawingContext {
+private:
+    FileLogger logger;
+
+public:
+    explicit TextContext(const Path& path)
+        : logger(path) {}
+
+    virtual void drawPoint(const PlotPoint& point) override {
+        logger.write(point.x, "  ", point.y);
+    }
+
+    virtual void drawErrorPoint(const ErrorPlotPoint& point) override {
+        logger.write(point.x, "  ", point.y);
+    }
+
+    virtual void drawLine(const PlotPoint& UNUSED(from), const PlotPoint& UNUSED(to)) override {
+        NOT_IMPLEMENTED;
+    }
+
+    class TextPath : public IDrawPath {
+    public:
+        virtual void addPoint(const PlotPoint& UNUSED(point)) override {
+            // N/A
+        }
+
+        virtual void closePath() override {
+            // N/A
+        }
+
+        virtual void endPath() override {
+            // N/A
+        }
+    };
+
+    virtual AutoPtr<IDrawPath> drawPath() override {
+        return makeAuto<TextPath>();
+    }
+
+    virtual void setStyle(const Size UNUSED(index)) override {
+        // possibly new plot, separate by newline
+        logger.write("");
+    }
+
+    virtual void setTransformMatrix(const AffineMatrix2& UNUSED(matrix)) override {
+        // not applicable for text output
+    }
+};
+
+void PlotFrame::saveData(const std::string& pathStr) {
+    Path path(pathStr);
+    path.replaceExtension("txt");
+    auto proxy = plot.lock();
+    TextContext context(path);
+    proxy->plot(context);
 }
 
 NAMESPACE_SPH_END

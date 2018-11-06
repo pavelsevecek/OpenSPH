@@ -7,6 +7,7 @@
 #include "io/LogFile.h"
 #include "math/rng/VectorRng.h"
 #include "objects/geometry/Domain.h"
+#include "physics/Functions.h"
 #include "quantities/IMaterial.h"
 #include "quantities/Iterate.h"
 #include "sph/initial/Distribution.h"
@@ -125,7 +126,7 @@ RunSettings getSharedSettings() {
         .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 1.e-2_f)
         .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 1000._f)
         //.set(RunSettingsId::TIMESTEPPING_MAX_CHANGE, 0.1_f)
-        .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 50._f)
+        .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 200._f)
         .set(RunSettingsId::SOLVER_FORCES,
             ForceEnum::PRESSURE | ForceEnum::SOLID_STRESS | ForceEnum::GRAVITY) // | ForceEnum::INERTIAL)
         .set(RunSettingsId::SOLVER_TYPE, SolverEnum::ASYMMETRIC_SOLVER)
@@ -138,7 +139,7 @@ RunSettings getSharedSettings() {
         .set(RunSettingsId::GRAVITY_KERNEL, GravityKernelEnum::SPH_KERNEL)
         .set(RunSettingsId::GRAVITY_OPENING_ANGLE, 0.8_f)
         .set(RunSettingsId::GRAVITY_LEAF_SIZE, 20)
-        .set(RunSettingsId::GRAVITY_RECOMPUTATION_PERIOD, 5._f)
+        .set(RunSettingsId::GRAVITY_RECOMPUTATION_PERIOD, 10._f)
         //.set(RunSettingsId::TIMESTEPPING_MEAN_POWER, -0._f)
         .set(RunSettingsId::TIMESTEPPING_ADAPTIVE_FACTOR, 0.2_f)
         .set(RunSettingsId::TIMESTEPPING_COURANT_NUMBER, 0.2_f)
@@ -146,7 +147,7 @@ RunSettings getSharedSettings() {
         .set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONST)
         .set(RunSettingsId::SPH_STRAIN_RATE_CORRECTION_TENSOR, true)
         .set(RunSettingsId::SPH_SUM_ONLY_UNDAMAGED, true)
-        .set(RunSettingsId::SPH_STABILIZATION_DAMPING, 0.4_f)
+        .set(RunSettingsId::SPH_STABILIZATION_DAMPING, 0.01_f)
         .set(RunSettingsId::FRAME_ANGULAR_FREQUENCY, Vector(0._f, 0._f, 0._f));
     return settings;
 }
@@ -197,10 +198,10 @@ void Stabilization::setUp() {
         }
     } else {
 
-        Size N = 30'000;
+        Size N = 2'000;
 
         BodySettings body;
-        body.set(BodySettingsId::ENERGY, 0._f)
+        body.set(BodySettingsId::ENERGY, 1.e3_f)
             .set(BodySettingsId::ENERGY_RANGE, Interval(0._f, INFTY))
             .set(BodySettingsId::EOS, EosEnum::TILLOTSON)
             .set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::SCALAR_GRADY_KIPP)
@@ -218,14 +219,15 @@ void Stabilization::setUp() {
         body.saveToFile(Path("body.sph"));
 
         Presets::CollisionParams params;
-        params.targetRadius = 1.e5_f;
-        params.impactorRadius = 2.e4_f;
-        params.impactAngle = 0._f * DEG_TO_RAD;
+        params.targetRadius = 0.5_f * 550.e3_f;
+        params.impactAngle = 15._f * DEG_TO_RAD;
         params.impactSpeed = 7.e3_f;
-        params.targetRotation = 0._f; // 2._f * PI / (3600._f * 2._f);
+        params.impactorRadius = getImpactorRadius(
+            params.targetRadius, params.impactSpeed, params.impactAngle, 0.2_f, 2700._f, EMPTY_FLAGS);
+        params.targetRotation = 2._f * PI / (3600._f * 2._f);
         // params.targetRotation = 2._f * PI / (3._f * 3600._f);
         params.targetParticleCnt = N;
-        // params.impactorOffset = 3;
+        params.impactorOffset = 12;
         // params.impactorParticleCntOverride = 100;
         params.centerOfMassFrame = false;
         params.optimizeImpactor = true;
@@ -283,7 +285,7 @@ void Stabilization::setUp() {
 
     callbacks = makeAuto<GuiCallbacks>(*controller);
     triggers.pushBack(makeAuto<CommonStatsLog>(Factory::getLogger(settings), settings));
-    output = makeAuto<BinaryOutput>(Path("stab_%d.ssf"));
+    output = makeAuto<BinaryOutput>(Path("stab_test_%d.ssf"));
 }
 
 AutoPtr<IRunPhase> Stabilization::getNextPhase() const {
@@ -336,8 +338,8 @@ Fragmentation::Fragmentation(SharedPtr<Presets::Collision> data, Function<void()
     settings.set(RunSettingsId::RUN_NAME, std::string("Fragmentation"))
         .set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 1000000._f))
         //.set(RunSettingsId::TIMESTEPPING_ADAPTIVE_FACTOR, 0.8_f)
-        .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 1000._f)
-        .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 100._f);
+        .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 1000._f);
+    //.set(RunSettingsId::RUN_OUTPUT_INTERVAL, 100._f);
 
 
     if (wxTheApp->argc > 1) {
@@ -424,7 +426,15 @@ void Fragmentation::handoff(Storage&& input) {
     solver = Factory::getSolver(*scheduler, settings);
     // the quantities are already created, no need to call solver->create
     triggers.pushBack(makeAuto<CommonStatsLog>(Factory::getLogger(settings), settings));
-    output = makeAuto<BinaryOutput>(Path("frag_%d.ssf"));
+
+    if (wxTheApp->argc > 1) {
+        std::string arg(wxTheApp->argv[1]);
+        Path path(arg);
+        Path filename = path.fileName().removeExtension();
+        // if ()
+    }
+
+    output = makeAuto<BinaryOutput>(Path("frag_test_%d.ssf"));
 
     /*    ArrayView<const Vector> r = storage->getValue<Vector>(QuantityId::POSITION);
 

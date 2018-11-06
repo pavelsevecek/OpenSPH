@@ -145,7 +145,7 @@ void AsteroidCollision::tearDown(const Statistics& UNUSED(stats)) {
     }
 
     // get SFD from pkdgrav output
-    Array<Post::SfdPoint> sfd = Post::getCummulativeSfd(output, {});
+    Array<Post::SfdPoint> sfd = Post::getCumulativeSfd(output, {});
     FileLogger logSfd(outputDir / Path("sfd.txt"), FileLogger::Options::KEEP_OPENED);
     for (Post::SfdPoint& p : sfd) {
         logSfd.write(p.value, "  ", p.count);

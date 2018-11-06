@@ -9,7 +9,7 @@
 #include "physics/Constants.h"
 #include "quantities/Storage.h"
 #include "sph/kernel/GravityKernel.h"
-#include "thread/Pool.h"
+#include "thread/ThreadLocal.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -58,6 +58,19 @@ public:
             }
         };
         return this->evalImpl(NoSymmetrization{ kernel }, r0, Size(-1));
+    }
+
+    virtual Float evalEnergy(IScheduler& scheduler, Statistics& UNUSED(stats)) const override {
+        SymmetrizeSmoothingLengths<const GravityLutKernel&> actKernel(kernel);
+        ThreadLocal<Float> energy(scheduler, 0._f);
+        parallelFor(scheduler, energy, 0, r.size(), [&actKernel, this](const Size i, Float& e) {
+            for (Size j = 0; j < m.size(); ++j) {
+                if (i != j) {
+                    e += m[i] * m[j] * actKernel.value(r[i], r[j]);
+                }
+            }
+        });
+        return 0.5_f * Constants::gravity * energy.accumulate();
     }
 
     virtual RawPtr<const IBasicFinder> getFinder() const override {

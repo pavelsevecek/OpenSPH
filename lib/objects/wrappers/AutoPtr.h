@@ -119,11 +119,25 @@ INLINE AutoPtr<T> makeAuto(TArgs&&... args) {
     return AutoPtr<T>(new T(std::forward<TArgs>(args)...));
 }
 
+/// \brief Performs a dynamic_cast on an AutoPtr, moving the ownership of the resource to the created object.
+///
+/// If the dynamic type of given pointer is not T1 (or derived from T1), the function return nullptr and the
+/// resource remains owned by the input \ref AutoPtr (no move is performed).
+template <typename T1, typename T2>
+INLINE AutoPtr<T1> dynamicCast(AutoPtr<T2>&& source) {
+    if (RawPtr<T1> ptr = dynamicCast<T1>(source.get())) {
+        source.release();
+        return AutoPtr<T1>(ptr.get());
+    } else {
+        return nullptr;
+    }
+}
+
 NAMESPACE_SPH_END
 
 namespace std {
-    template <typename T>
-    void swap(Sph::AutoPtr<T>& p1, Sph::AutoPtr<T>& p2) {
-        p1.swap(p2);
-    }
+template <typename T>
+void swap(Sph::AutoPtr<T>& p1, Sph::AutoPtr<T>& p2) {
+    p1.swap(p2);
 }
+} // namespace std

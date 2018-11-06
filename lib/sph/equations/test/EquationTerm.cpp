@@ -21,7 +21,7 @@ using namespace Sph;
 
 /// \todo Move to some common place (utils.h)
 
-struct TestDerivative : public SymmetricDerivative {
+struct TestDerivative : public ISymmetricDerivative {
     static bool initialized;
     static bool created;
 
@@ -338,15 +338,19 @@ public:
     explicit VelocityLaplacian(const RunSettings& settings)
         : DerivativeTemplate<VelocityLaplacian>(settings) {}
 
-    virtual void create(Accumulated& results) override {
+    INLINE void additionalCreate(Accumulated& results) {
         results.insert<Vector>(QuantityId::VELOCITY_LAPLACIAN, OrderEnum::ZERO, BufferSource::UNIQUE);
     }
 
-    INLINE void init(const Storage& input, Accumulated& results) {
+    INLINE void additionalInitialize(const Storage& input, Accumulated& results) {
         ArrayView<const Vector> dummy;
         tie(r, v, dummy) = input.getAll<Vector>(QuantityId::POSITION);
         tie(m, rho) = input.getValues<Float>(QuantityId::MASS, QuantityId::DENSITY);
         divGradV = results.getBuffer<Vector>(QuantityId::VELOCITY_LAPLACIAN, OrderEnum::ZERO);
+    }
+
+    INLINE bool additionalEquals(const VelocityLaplacian& UNUSED(other)) const {
+        return true;
     }
 
     template <bool Symmetrize>
@@ -406,16 +410,20 @@ public:
     explicit GradientOfVelocityDivergence(const RunSettings& settings)
         : DerivativeTemplate<GradientOfVelocityDivergence>(settings) {}
 
-    virtual void create(Accumulated& results) override {
+    INLINE void additionalCreate(Accumulated& results) {
         results.insert<Vector>(
             QuantityId::VELOCITY_GRADIENT_OF_DIVERGENCE, OrderEnum::ZERO, BufferSource::UNIQUE);
     }
 
-    INLINE void init(const Storage& input, Accumulated& results) {
+    INLINE void additionalInitialize(const Storage& input, Accumulated& results) {
         ArrayView<const Vector> dummy;
         tie(r, v, dummy) = input.getAll<Vector>(QuantityId::POSITION);
         tie(m, rho) = input.getValues<Float>(QuantityId::MASS, QuantityId::DENSITY);
         gradDivV = results.getBuffer<Vector>(QuantityId::VELOCITY_GRADIENT_OF_DIVERGENCE, OrderEnum::ZERO);
+    }
+
+    INLINE bool additionalEquals(const GradientOfVelocityDivergence& UNUSED(other)) const {
+        return true;
     }
 
     template <bool Symmetrize>

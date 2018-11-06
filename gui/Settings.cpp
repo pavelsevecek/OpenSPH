@@ -86,6 +86,9 @@ AutoPtr<Settings<GuiSettingsId>> Settings<GuiSettingsId>::instance (new Settings
         + EnumMap::getDesc<PlotEnum>() },
     { GuiSettingsId::PLOT_INITIAL_PERIOD,   "plot.initial_period",  0.1_f,
         "Initial period of time-dependent plots." },
+    { GuiSettingsId::PLOT_OVERPLOT_SFD,     "plot.overplot_sfd",    std::string(""),
+        "Path to the file containing SFD to plot over the computed one. The file must contain lines with value "
+        "N(>D) and D [km]. If empty, no SFD is drawn."},
 
     /// Saved animation frames
     { GuiSettingsId::IMAGES_RENDERER,       "images.renderer",      RendererEnum::PARTICLE,

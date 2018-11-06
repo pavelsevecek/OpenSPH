@@ -25,7 +25,18 @@ private:
 public:
     OutputFile() = default;
 
-    explicit OutputFile(const Path& pathMask);
+    /// \brief Creates a new filename generator using provided path mask.
+    ///
+    /// If the input mask is a regular path, all calls to \ref getNextPath will simply return the input path.
+    /// Note that output generated using such \ref OutputFile will override the previous one. To avoid this,
+    /// the \ref pathMask can contain following wildcards:
+    /// - '%d' - replaced by the dump number, starting from arbitrary index, incremented every dump.
+    /// - '%t' - replaced by current simulation time (with _ instead of decimal separator).
+    ///
+    /// \param pathMask Path possibly containing wildcards, used to determine the actual path for the dump.
+    /// \param firstDumpIdx Index of the first dump. Can be non-zero if the simulation is resumed from
+    ///                     previously generated snapshot, in order to continue in the sequence.
+    OutputFile(const Path& pathMask, const Size firstDumpIdx = 0);
 
     /// \brief Returns path to the next output file.
     ///
@@ -53,12 +64,7 @@ protected:
 
 public:
     /// \brief Constructs output given the file name of the output.
-    ///
-    /// The name is used for all output files, meaning if \ref dump is called twice, the second output
-    /// file will override the previous one. To avoid this, the fileMask can contain following wildcards:
-    /// - '%d' - replaced by the dump number, starting from 0, incremented every dump.
-    /// - '%t' - replaced by current simulation time (with _ instead of decimal separator).
-    explicit IOutput(const Path& fileMask);
+    explicit IOutput(const OutputFile& fileMask);
 
     /// \brief Saves data from particle storage into the file.
     ///
@@ -152,7 +158,7 @@ public:
     /// \param quantities List of quantities to store. Note that arbitrary quantities can be later added using
     ///                   \ref addColumn.
     /// \param options Parameters of the file, see \ref Options enum.
-    TextOutput(const Path& fileMask,
+    TextOutput(const OutputFile& fileMask,
         const std::string& runName,
         Flags<OutputQuantityFlag> quantities,
         Flags<Options> options = EMPTY_FLAGS);
@@ -192,7 +198,7 @@ private:
     std::string scriptPath;
 
 public:
-    GnuplotOutput(const Path& fileMask,
+    GnuplotOutput(const OutputFile& fileMask,
         const std::string& runName,
         const std::string& scriptPath,
         const Flags<OutputQuantityFlag> quantities,
@@ -313,7 +319,7 @@ private:
     RunTypeEnum runTypeId;
 
 public:
-    explicit BinaryOutput(const Path& fileMask, const RunTypeEnum runTypeId = RunTypeEnum::SPH);
+    explicit BinaryOutput(const OutputFile& fileMask, const RunTypeEnum runTypeId = RunTypeEnum::SPH);
 
     virtual Path dump(Storage& storage, const Statistics& stats) override;
 };
@@ -418,7 +424,7 @@ private:
     PkdgravParams params;
 
 public:
-    PkdgravOutput(const Path& fileMask, PkdgravParams&& params);
+    PkdgravOutput(const OutputFile& fileMask, PkdgravParams&& params);
 
     virtual Path dump(Storage& storage, const Statistics& stats) override;
 

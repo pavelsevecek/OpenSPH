@@ -5,7 +5,7 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2018
 
-#include "sph/equations/Derivative.h"
+#include "sph/equations/DerivativeHelpers.h"
 #include "sph/equations/EquationTerm.h"
 #include "sph/kernel/Kernel.h"
 #include "system/Factory.h"
@@ -23,7 +23,7 @@ class StressAV : public IEquationTerm {
 private:
     LutKernel<3> kernel;
 
-    class Derivative : public DerivativeTemplate<Derivative> {
+    class Derivative : public AccelerationTemplate<Derivative> {
     private:
         SymmetrizeSmoothingLengths<LutKernel<3>> kernel;
         Float n;  ///< exponent of the weighting function
@@ -31,47 +31,35 @@ private:
 
         ArrayView<const Float> wp;
         ArrayView<const SymmetricTensor> as;
-        ArrayView<const Float> m, rho;
+        ArrayView<const Float> rho;
         ArrayView<const Vector> r, v;
-
-        ArrayView<Vector> dv;
-        ArrayView<Float> du;
 
     public:
         explicit Derivative(const RunSettings& settings)
-            : DerivativeTemplate<Derivative>(settings) {
+            : AccelerationTemplate<Derivative>(settings) {
             kernel = Factory::getKernel<3>(settings);
             n = settings.get<Float>(RunSettingsId::SPH_AV_STRESS_EXPONENT);
             xi = settings.get<Float>(RunSettingsId::SPH_AV_STRESS_FACTOR);
         }
 
-        virtual void create(Accumulated& results) override {
-            results.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, BufferSource::SHARED);
-            results.insert<Float>(QuantityId::ENERGY, OrderEnum::FIRST, BufferSource::SHARED);
+        INLINE bool additionalCreate(Accumulated& UNUSED(results)) const {
+            return true;
         }
 
-        virtual bool equals(const IDerivative& other) const override {
-            if (!DerivativeTemplate<Derivative>::equals(other)) {
-                return false;
-            }
-            const Derivative* actOther = assert_cast<const Derivative*>(&other);
-            return n == actOther->n && xi == actOther->xi;
-        }
-
-        INLINE void init(const Storage& input, Accumulated& results) {
+        INLINE void additionalInitialize(const Storage& input, Accumulated& UNUSED(results)) {
             wp = input.getValue<Float>(QuantityId::INTERPARTICLE_SPACING_KERNEL);
             as = input.getValue<SymmetricTensor>(QuantityId::AV_STRESS);
-            m = input.getValue<Float>(QuantityId::MASS);
             rho = input.getValue<Float>(QuantityId::DENSITY);
             ArrayView<const Vector> dummy;
             tie(r, v, dummy) = input.getAll<Vector>(QuantityId::POSITION);
+        }
 
-            dv = results.getBuffer<Vector>(QuantityId::POSITION, OrderEnum::SECOND);
-            du = results.getBuffer<Float>(QuantityId::ENERGY, OrderEnum::FIRST);
+        INLINE bool additionalEquals(const Derivative& other) const {
+            return n == other.n && xi == other.xi;
         }
 
         template <bool Symmetrize>
-        INLINE void eval(const Size i, const Size j, const Vector& grad) {
+        INLINE Tuple<Vector, Float> eval(const Size i, const Size j, const Vector& grad) {
             const Float w = kernel.value(r[i], r[j]);
 
             // weighting function
@@ -82,12 +70,7 @@ private:
             const SymmetricTensor Pi = phi * (as[i] + as[j]) / (rho[i] * rho[j]);
             const Vector f = Pi * grad;
             const Float heating = 0.5_f * dot(Pi * (v[i] - v[j]), grad);
-            dv[i] += m[j] * f;
-            du[i] += m[j] * heating;
-            if (Symmetrize) {
-                dv[j] -= m[i] * f;
-                du[j] += m[i] * heating;
-            }
+            return { f, heating };
         }
     };
 

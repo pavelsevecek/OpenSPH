@@ -5,6 +5,7 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2018
 
+#include "objects/containers/Array.h"
 #include "objects/utility/Iterators.h"
 #include "objects/wrappers/Optional.h"
 #include "thread/Scheduler.h"
@@ -38,6 +39,12 @@ private:
     /// Associated scheduler; one value is allocated for each thread of the scheduler.
     IScheduler& scheduler;
 
+    struct Sum {
+        INLINE constexpr Type operator()(const Type& t1, const Type& t2) const {
+            return t1 + t2;
+        }
+    };
+
 public:
     /// \brief Constructs a thread-local storage.
     ///
@@ -70,33 +77,34 @@ public:
         return locals[idx.value()].value;
     }
 
-    /// \brief Creates another ThreadLocal object by converting each thread-local value of this object.
-    ///
-    /// The constructed object can have a different type than this object. The created thread-local values are
-    /// default-constructed and assigned to using the given conversion functor.
-    template <typename TOther, typename TFunctor>
-    ThreadLocal<TOther> convert(TFunctor&& functor) {
-        ThreadLocal<TOther> result(scheduler);
-        for (Size i = 0; i < result.locals.size(); ++i) {
-            result.locals[i].value = functor(locals[i].value);
-        }
-        return result;
-    }
-
-    /// \brief Creates another ThreadLocal object by converting each thread-local value of this object.
-    ///
-    /// This overload of the function uses explicit conversion defined by the type.
-    template <typename TOther>
-    ThreadLocal<TOther> convert() {
-        return this->convert<TOther>([](Type& value) -> TOther { return value; });
-    }
-
     /// \brief Returns the storage corresponding to the thread with given index.
     ///
     /// Can be called from any thread. There is no synchronization, so accessing the storage from the
     /// associated worker at the same time might cause a race condition.
-    Type& value(const Size threadId) {
+    INLINE Type& value(const Size threadId) {
         return locals[threadId].value;
+    }
+
+    /// \brief Performs an accumulation of thread-local values.
+    ///
+    /// Uses operator + to sum up the elements.
+    /// \param initial Value to which the accumulated result is initialized.
+    Type accumulate(const Type& initial = Type(0._f)) const {
+        return this->accumulate(initial, Sum{});
+    }
+
+    /// \brief Performs an accumulation of thread-local values.
+    ///
+    /// Uses provided binary predicate to accumulate the values.
+    /// \param initial Value to which the accumulated result is initialized.
+    /// \param predicate Callable object with signature Type operator()(const Type&, const Type&).
+    template <typename TPredicate>
+    Type accumulate(const Type& initial, const TPredicate& predicate) const {
+        Type sum = initial;
+        for (const Type& value : *this) {
+            sum = predicate(sum, value);
+        }
+        return sum;
     }
 
     template <typename T>
@@ -105,10 +113,9 @@ public:
         LocalIterator(Iterator<T> iter)
             : Iterator<T>(iter) {}
 
-        INLINE const Type& operator*() const {
-            return this->data->value;
-        }
-        INLINE Type& operator*() {
+        using Return = std::conditional_t<std::is_const<T>::value, const Type&, Type&>;
+
+        INLINE Return operator*() const {
             return this->data->value;
         }
     };

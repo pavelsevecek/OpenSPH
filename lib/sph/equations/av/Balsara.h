@@ -5,7 +5,7 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2018
 
-#include "sph/equations/Derivative.h"
+#include "sph/equations/DerivativeHelpers.h"
 #include "sph/equations/EquationTerm.h"
 #include "system/Settings.h"
 
@@ -49,53 +49,44 @@ class BalsaraSwitch : public IEquationTerm {
 
     static_assert(std::is_base_of<IEquationTerm, AV>::value, "AV must be derived from IEquationTerm");
 
-    class Derivative : public DerivativeTemplate<Derivative> {
+    class Derivative : public AccelerationTemplate<Derivative> {
     private:
-        ArrayView<const Float> m;
         ArrayView<const Float> cs;
         ArrayView<const Vector> r, v;
         ArrayView<const Float> divv;
         ArrayView<const Vector> rotv;
-        ArrayView<Vector> dv;
-        ArrayView<Float> du;
         typename AV::Derivative av;
         const Float eps = 1.e-4_f;
 
     public:
         explicit Derivative(const RunSettings& settings)
-            : DerivativeTemplate<Derivative>(settings)
+            : AccelerationTemplate<Derivative>(settings)
             , av(settings) {}
 
-        virtual void create(Accumulated& results) override {
-            results.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, BufferSource::SHARED);
-            results.insert<Float>(QuantityId::ENERGY, OrderEnum::FIRST, BufferSource::SHARED);
+        INLINE void additionalCreate(Accumulated& results) {
+            av.create(results);
         }
 
-        void init(const Storage& input, Accumulated& results) {
-            m = input.getValue<Float>(QuantityId::MASS);
+        INLINE void additionalInitialize(const Storage& input, Accumulated& results) {
             ArrayView<const Vector> dummy;
             tie(r, v, dummy) = input.getAll<Vector>(QuantityId::POSITION);
             cs = input.getValue<Float>(QuantityId::SOUND_SPEED);
             divv = input.getValue<Float>(QuantityId::VELOCITY_DIVERGENCE);
             rotv = input.getValue<Vector>(QuantityId::VELOCITY_ROTATION);
 
-            dv = results.getBuffer<Vector>(QuantityId::POSITION, OrderEnum::SECOND);
-            du = results.getBuffer<Float>(QuantityId::ENERGY, OrderEnum::FIRST);
             av.initialize(input, results);
         }
 
-        template <bool Symmetrize>
-        INLINE void eval(const Size i, const Size j, const Vector& grad) {
-            const Float Pi = 0.5_f * (factor(i) + factor(j)) * av(i, j);
-            ASSERT(isReal(Pi));
-            dv[i] += m[j] * Pi * grad;
-            const Float heating = 0.5_f * Pi * dot(v[i] - v[j], grad);
-            du[i] += m[j] * heating;
+        INLINE bool additionalEquals(const Derivative& other) const {
+            return av.equals(other.av);
+        }
 
-            if (Symmetrize) {
-                dv[j] -= m[i] * Pi * grad;
-                du[j] += m[i] * heating;
-            }
+        template <bool Symmetrize>
+        INLINE Tuple<Vector, Float> eval(const Size i, const Size j, const Vector& grad) {
+            const Float Pi = 0.5_f * (factor(i) + factor(j)) * av.evalAv(i, j);
+            ASSERT(isReal(Pi));
+            const Float heating = 0.5_f * Pi * dot(v[i] - v[j], grad);
+            return { Pi * grad, heating };
         }
 
         INLINE Float factor(const Size i) {

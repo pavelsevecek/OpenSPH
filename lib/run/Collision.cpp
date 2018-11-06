@@ -137,7 +137,7 @@ void StabilizationRunPhase::setUp() {
     AutoPtr<EnergyLog> energyFile = makeAuto<EnergyLog>(energyLogger, runTime / 50._f);
     triggers.pushBack(std::move(energyFile));
 
-    diagnostics.push(makeAuto<CourantInstability>(20._f));
+    diagnostics.push(makeAuto<CourantInstabilityDiagnostic>(20._f));
 }
 
 void StabilizationRunPhase::handoff(Storage&& input) {
@@ -160,7 +160,7 @@ void StabilizationRunPhase::handoff(Storage&& input) {
     Storage dummy;
     data->addTarget(dummy);
 
-    diagnostics.push(makeAuto<CourantInstability>(20._f));
+    diagnostics.push(makeAuto<CourantInstabilityDiagnostic>(20._f));
 }
 
 AutoPtr<IRunPhase> StabilizationRunPhase::getNextPhase() const {
@@ -184,7 +184,10 @@ FragmentationRunPhase::FragmentationRunPhase(Presets::CollisionParams params,
     } else {
         settings = getSharedSettings(params, "frag_%d.ssf");
         settings.set(RunSettingsId::RUN_NAME, std::string("Fragmentation"))
-            .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 1000._f);
+            .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 1000._f)
+            .set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::EULER_EXPLICIT)
+            .set(RunSettingsId::SOLVER_FORCES, ForceEnum::PRESSURE | ForceEnum::SOLID_STRESS)
+            .set(RunSettingsId::SOLVER_TYPE, SolverEnum::ENERGY_CONSERVING_SOLVER);
         settings.saveToFile(fragPath);
         settingsLoaded = false;
     }
@@ -218,7 +221,8 @@ void FragmentationRunPhase::handoff(Storage&& input) {
 
     triggers.pushBack(makeAuto<CommonStatsLog>(logger, settings));
 
-    diagnostics.push(makeAuto<CourantInstability>(0.5_f));
+    diagnostics.push(makeAuto<CourantInstabilityDiagnostic>(0.5_f));
+    diagnostics.push(makeAuto<OvercoolingDiagnostic>());
 }
 
 void FragmentationRunPhase::tearDown(const Statistics& stats) {

@@ -25,7 +25,7 @@
 #include "sph/kernel/GravityKernel.h"
 #include "sph/solvers/AsymmetricSolver.h"
 #include "sph/solvers/DensityIndependentSolver.h"
-#include "sph/solvers/DifferencedEnergySolver.h"
+#include "sph/solvers/EnergyConservingSolver.h"
 #include "sph/solvers/GravitySolver.h"
 #include "sph/solvers/StandardSets.h"
 #include "sph/solvers/SummationSolver.h"
@@ -224,9 +224,9 @@ AutoPtr<ISolver> Factory::getSolver(IScheduler& scheduler, const RunSettings& se
     case SolverEnum::DENSITY_INDEPENDENT:
         throwIfGravity();
         return makeAuto<DensityIndependentSolver>(scheduler, settings);
-    case SolverEnum::DIFFERENED_ENERGY:
+    case SolverEnum::ENERGY_CONSERVING_SOLVER:
         throwIfGravity();
-        return makeAuto<DifferencedEnergySolver>(scheduler, settings, std::move(eqs));
+        return makeAuto<EnergyConservingSolver>(scheduler, settings, std::move(eqs));
     default:
         NOT_IMPLEMENTED;
     }

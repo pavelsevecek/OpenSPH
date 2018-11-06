@@ -7,6 +7,10 @@
 
 NAMESPACE_SPH_BEGIN
 
+/// ----------------------------------------------------------------------------------------------------------
+/// SpatialPlot
+/// ----------------------------------------------------------------------------------------------------------
+
 /// \note SpatialPlot should be only used through derived classes, so it's ok to put templated functions here
 template <typename TDerived>
 void SpatialPlot<TDerived>::onTimeStep(const Storage& storage, const Statistics& UNUSED(stats)) {
@@ -69,6 +73,10 @@ void SpatialPlot<TDerived>::plot(IDrawingContext& dc) const {
 RadialDistributionPlot::RadialDistributionPlot(const QuantityId id, const Optional<Size> binCnt)
     : SpatialPlot<RadialDistributionPlot>(id, binCnt) {}
 
+
+/// ----------------------------------------------------------------------------------------------------------
+/// TemporalPlot
+/// ----------------------------------------------------------------------------------------------------------
 
 void TemporalPlot::onTimeStep(const Storage& storage, const Statistics& stats) {
     // add new point to the queue
@@ -156,6 +164,10 @@ bool TemporalPlot::isExpired(const Float x, const Float t) const {
     }
 }
 
+/// ----------------------------------------------------------------------------------------------------------
+/// HistogramPlot
+/// ----------------------------------------------------------------------------------------------------------
+
 void HistogramPlot::onTimeStep(const Storage& storage, const Statistics& UNUSED(stats)) {
     Post::HistogramParams params;
     params.binCnt = 20;
@@ -187,12 +199,39 @@ void HistogramPlot::plot(IDrawingContext& dc) const {
     }
 }
 
-void SfdPlot::onTimeStep(const Storage& storage, const Statistics& UNUSED(stats)) {
-    Post::HistogramParams params;
-    points = Post::getCummulativeHistogram(
-        storage, Post::HistogramId::EQUIVALENT_MASS_RADII, Post::HistogramSource::PARTICLES, params);
+/// ----------------------------------------------------------------------------------------------------------
+/// SfdPlot
+/// ----------------------------------------------------------------------------------------------------------
 
-    this->clear();
+SfdPlot::SfdPlot(const Optional<Post::ComponentConnectivity> connectivity, const Float period)
+    : period(period) {
+    if (connectivity) {
+        source = Post::HistogramSource::COMPONENTS;
+        connect = connectivity.value();
+        name = (connect == Post::ComponentConnectivity::OVERLAP) ? "Current SFD" : "Predicted SFD";
+    } else {
+        source = Post::HistogramSource::PARTICLES;
+        name = "Particle SFD";
+    }
+}
+
+std::string SfdPlot::getCaption() const {
+    return name;
+}
+
+void SfdPlot::onTimeStep(const Storage& storage, const Statistics& stats) {
+    const Float time = stats.get<Float>(StatisticsId::RUN_TIME);
+    if (time - lastTime < period) {
+        return;
+    }
+    lastTime = time;
+    Post::HistogramParams params;
+    params.components.connectivity = connect;
+    params.velocityCutoff = 3.e3_f; // km/s  /// \todo generalize
+    Array<Post::HistPoint> points =
+        Post::getCumulativeHistogram(storage, Post::HistogramId::EQUIVALENT_MASS_RADII, source, params);
+
+    ranges.x = ranges.y = Interval();
     sfd.clear();
     sfd.reserve(points.size());
     for (Post::HistPoint& p : points) {
@@ -203,22 +242,78 @@ void SfdPlot::onTimeStep(const Storage& storage, const Statistics& UNUSED(stats)
         ranges.y.extend(count);
         sfd.emplaceBack(PlotPoint{ value, count });
     }
-    points = Array<Post::HistPoint>();
+}
+
+void SfdPlot::clear() {
+    ranges.x = ranges.y = Interval();
+    lastTime = 0._f;
+    sfd.clear();
 }
 
 void SfdPlot::plot(IDrawingContext& dc) const {
-    if (sfd.empty()) {
-        return;
+    if (!sfd.empty()) {
+        AutoPtr<IDrawPath> path = dc.drawPath();
+        for (Size i = 0; i < sfd.size() - 1; ++i) {
+            dc.drawPoint(sfd[i]);
+            path->addPoint(sfd[i]);
+        }
+        dc.drawPoint(sfd.back());
+        path->addPoint(sfd.back());
+        path->endPath();
     }
-    AutoPtr<IDrawPath> path = dc.drawPath();
-    for (Size i = 0; i < sfd.size() - 1; ++i) {
-        dc.drawPoint(sfd[i]);
-        path->addPoint(sfd[i]);
-    }
-    dc.drawPoint(sfd.back());
-    path->addPoint(sfd.back());
-    path->endPath();
 }
+
+/// ----------------------------------------------------------------------------------------------------------
+/// DataPlot
+/// ----------------------------------------------------------------------------------------------------------
+
+DataPlot::DataPlot(const Array<Post::HistPoint>& points,
+    const Flags<AxisScaleEnum> scale,
+    const std::string& name)
+    : name(name) {
+    for (const Post::HistPoint& p : points) {
+        if (scale.has(AxisScaleEnum::LOG_X) && p.value <= 0._f) {
+            continue;
+        }
+        if (scale.has(AxisScaleEnum::LOG_Y) && p.count <= 0) {
+            continue;
+        }
+        const Float value = scale.has(AxisScaleEnum::LOG_X) ? log10(p.value) : p.value;
+        const Float count = scale.has(AxisScaleEnum::LOG_Y) ? log10(Float(p.count)) : Float(p.count);
+        ranges.x.extend(value);
+        ranges.y.extend(count);
+        values.emplaceBack(PlotPoint{ value, count });
+    }
+}
+
+std::string DataPlot::getCaption() const {
+    return name;
+}
+
+void DataPlot::onTimeStep(const Storage& UNUSED(storage), const Statistics& UNUSED(stats)) {
+    // plot is contant
+}
+
+void DataPlot::clear() {
+    // data are fixed, we cannot clear anything
+}
+
+void DataPlot::plot(IDrawingContext& dc) const {
+    if (!values.empty()) {
+        AutoPtr<IDrawPath> path = dc.drawPath();
+        for (Size i = 0; i < values.size() - 1; ++i) {
+            dc.drawPoint(values[i]);
+            path->addPoint(values[i]);
+        }
+        dc.drawPoint(values.back());
+        path->addPoint(values.back());
+        path->endPath();
+    }
+}
+
+/// ----------------------------------------------------------------------------------------------------------
+/// getTics
+/// ----------------------------------------------------------------------------------------------------------
 
 Array<Float> getLinearTics(const Interval& interval, const Size minCount) {
     Float order = floor(log10(interval.size()));

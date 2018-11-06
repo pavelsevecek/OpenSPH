@@ -10,7 +10,7 @@
 
 NAMESPACE_SPH_BEGIN
 
-/// \brief Interface for evaluators of gravitational interaction
+/// \brief Interface for computing gravitational interactions of particles.
 class IGravity : public Polymorphic {
 public:
     /// \brief Builds the accelerating structure.
@@ -24,8 +24,8 @@ public:
     ///
     /// The function is blocking, it must exit after the gravity is evaluated.
     /// \param scheduler Scheduler used for parallelization.
-    /// \param dv Acceleration values, may contain previous values, gravity should add acceleration
-    ///           instead of replacing the previous values.
+    /// \param dv Acceleration values; it may already contain some accelerations computed by other code
+    ///           components, gravity should add acceleration instead of replacing the current values.
     /// \param stats Output statistics of the gravitational solver.
     virtual void evalAll(IScheduler& scheduler, ArrayView<Vector> dv, Statistics& stats) const = 0;
 
@@ -35,6 +35,13 @@ public:
     /// acceleration if no smoothing kernel is used.
     /// \param r0 Point where the gravity is evaluated.
     virtual Vector eval(const Vector& r0, Statistics& stats) const = 0;
+
+    /// \brief Computes the total potential energy of the particles.
+    ///
+    /// The zero point is implementation-specific; it is not required that the energy is strictly negative.
+    /// \param scheduler Scheduler used for parallelization.
+    /// \param stats Output statistics of the gravitational solver.
+    virtual Float evalEnergy(IScheduler& scheduler, Statistics& stats) const = 0;
 
     /// \brief Optionally returns a finder used by the gravity implementation.
     ///

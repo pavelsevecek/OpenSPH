@@ -1,17 +1,18 @@
 #include "sph/Diagnostics.h"
 #include "objects/finders/NeighbourFinder.h"
+#include "quantities/IMaterial.h"
 #include "system/Factory.h"
 #include "system/Statistics.h"
 #include "thread/Scheduler.h"
 
 NAMESPACE_SPH_BEGIN
 
-Array<ParticlePairing::Pair> ParticlePairing::getPairs(const Storage& storage) const {
+Array<ParticlePairingDiagnostic::Pair> ParticlePairingDiagnostic::getPairs(const Storage& storage) const {
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     AutoPtr<ISymmetricFinder> finder = Factory::getFinder(RunSettings::getDefaults());
     finder->build(SEQUENTIAL, r);
 
-    Array<ParticlePairing::Pair> pairs;
+    Array<ParticlePairingDiagnostic::Pair> pairs;
     Array<NeighbourRecord> neighs;
 
     /// \todo symmetrized h
@@ -20,14 +21,15 @@ Array<ParticlePairing::Pair> ParticlePairing::getPairs(const Storage& storage) c
         finder->findLowerRank(i, r[i][H] * radius, neighs);
         for (auto& n : neighs) {
             if (getSqrLength(r[i] - r[n.index]) < sqr(limit * (r[i][H] + r[n.index][H]))) {
-                pairs.push(ParticlePairing::Pair{ i, n.index });
+                pairs.push(ParticlePairingDiagnostic::Pair{ i, n.index });
             }
         }
     }
     return pairs;
 }
 
-DiagnosticsReport ParticlePairing::check(const Storage& storage, const Statistics& UNUSED(stats)) const {
+DiagnosticsReport ParticlePairingDiagnostic::check(const Storage& storage,
+    const Statistics& UNUSED(stats)) const {
     Array<Pair> pairs = getPairs(storage);
     if (pairs.empty()) {
         return SUCCESS;
@@ -42,7 +44,7 @@ DiagnosticsReport ParticlePairing::check(const Storage& storage, const Statistic
     }
 }
 
-DiagnosticsReport SmoothingDiscontinuity::check(const Storage& storage,
+DiagnosticsReport SmoothingDiscontinuityDiagnostic::check(const Storage& storage,
     const Statistics& UNUSED(stats)) const {
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     AutoPtr<ISymmetricFinder> finder = Factory::getFinder(RunSettings::getDefaults());
@@ -79,10 +81,11 @@ DiagnosticsReport SmoothingDiscontinuity::check(const Storage& storage,
     }
 }
 
-CourantInstability::CourantInstability(const Float timescaleFactor)
+CourantInstabilityDiagnostic::CourantInstabilityDiagnostic(const Float timescaleFactor)
     : factor(timescaleFactor) {}
 
-DiagnosticsReport CourantInstability::check(const Storage& storage, const Statistics& UNUSED(stats)) const {
+DiagnosticsReport CourantInstabilityDiagnostic::check(const Storage& storage,
+    const Statistics& UNUSED(stats)) const {
     const Float dt2 = sqr(factor);
     ArrayView<const Vector> r, v, dv;
     tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
@@ -93,6 +96,30 @@ DiagnosticsReport CourantInstability::check(const Storage& storage, const Statis
         if (getLength(dv[i]) > limit) {
             error.offendingParticles[i] =
                 "dv = " + std::to_string(getLength(dv[i])) + " (limit = " + std::to_string(limit) + ")";
+        }
+    }
+    if (error.offendingParticles.empty()) {
+        return SUCCESS;
+    } else {
+        return error;
+    }
+}
+
+DiagnosticsReport OvercoolingDiagnostic::check(const Storage& storage, const Statistics& stats) const {
+    const Float dt = stats.get<Float>(StatisticsId::TIMESTEP_VALUE);
+    ArrayView<const Float> u, du;
+    tie(u, du) = storage.getAll<Float>(QuantityId::ENERGY);
+    DiagnosticsError error;
+    error.description = "Particle overcooling detected";
+    for (Size matId = 0; matId < storage.getMaterialCnt(); ++matId) {
+        MaterialView material = storage.getMaterial(matId);
+        const Interval range = material->range(QuantityId::ENERGY);
+        for (Size i : material.sequence()) {
+            const Float u1 = u[i] + du[i] * dt;
+            if (u1 < range.lower()) {
+                error.offendingParticles[i] =
+                    "u = " + std::to_string(u1) + " (limit = " + std::to_string(range.lower()) + ")";
+            }
         }
     }
     if (error.offendingParticles.empty()) {

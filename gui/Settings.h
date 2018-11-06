@@ -70,20 +70,31 @@ enum class PlotEnum {
 
     /// Size-frequency distribution of particle radii in given time instant. Only makes sense for NBody
     /// solver that merges particles on collision, otherwise the SFD would be trivial.
-    SIZE_FREQUENCY_DISTRIBUTION = 1 << 5,
+    PARTICLE_SFD = 1 << 5,
+
+    /// Size-frequency distribution of particle components, i.e. groups of particles in mutual contact.
+    /// Useful for both NBody solvers and SPH solvers. Note that construcing the SFD has non-negligible
+    /// overhead, so it is recommended to specify plot period significantly larger than the time step.
+    CURRENT_SFD = 1 << 6,
+
+    /// Size-frequency distribution that would be realized if we merged all particles that are currently
+    /// gravitationally bounded. It allows to roughly predict the final SFD after reaccumulation. Useful for
+    /// both NBody solvers and SPH solvers.
+    PREDICTED_SFD = 1 << 7,
 
     /// Differential histogram of rotational periods (in hours) in given time instant.
-    PERIOD_HISTOGRAM = 1 << 6,
+    PERIOD_HISTOGRAM = 1 << 8,
 
     /// Evolution of the rotational period (in hours) of the largest remnant (fragment). Only makes sense for
     /// NBody solver that merges particles on collisions, othewise the largest remannt is undefined.
-    LARGEST_REMNANT_ROTATION = 1 << 7,
+    LARGEST_REMNANT_ROTATION = 1 << 9,
 
     /// Evolution of the selected quantity for the selected particle in time.
-    SELECTED_PARTICLE = 1 << 8,
+    SELECTED_PARTICLE = 1 << 10,
 
     ALL = INTERNAL_ENERGY | KINETIC_ENERGY | TOTAL_ENERGY | TOTAL_MOMENTUM | TOTAL_ANGULAR_MOMENTUM |
-          SIZE_FREQUENCY_DISTRIBUTION | PERIOD_HISTOGRAM | LARGEST_REMNANT_ROTATION | SELECTED_PARTICLE,
+          PARTICLE_SFD | CURRENT_SFD | PREDICTED_SFD | PERIOD_HISTOGRAM | LARGEST_REMNANT_ROTATION |
+          SELECTED_PARTICLE,
 };
 static RegisterEnum<PlotEnum> sPlot({
     { PlotEnum::INTERNAL_ENERGY, "internal_energy", "Plots the total internal energy." },
@@ -91,9 +102,19 @@ static RegisterEnum<PlotEnum> sPlot({
     { PlotEnum::TOTAL_ENERGY, "total_energy", "Plots the sum of the internal and kinetic energy." },
     { PlotEnum::TOTAL_MOMENTUM, "total_momentum", "Plots the total momentum." },
     { PlotEnum::TOTAL_ANGULAR_MOMENTUM, "total_angular_momentum", "Plots the total angular momentum." },
-    { PlotEnum::SIZE_FREQUENCY_DISTRIBUTION,
-        "size_distribution",
+    { PlotEnum::PARTICLE_SFD,
+        "particle_sfd",
         "Current cumulative size-frequency distribution of bodies in the simulation." },
+    { PlotEnum::PREDICTED_SFD,
+        "predicted_sfd",
+        "Size-frequency distribution that would be realized if we merged all particles that are currently "
+        "gravitationally bounded. It allows to roughly predict the final SFD after reaccumulation. Useful "
+        "for both NBody solvers and SPH solvers." },
+    { PlotEnum::CURRENT_SFD,
+        "current_sfd",
+        "Size-frequency distribution of particle components, i.e. groups of particles in mutual contact. "
+        "Useful for both NBody solvers and SPH solvers. Note that construcing the SFD has non-negligible "
+        "overhead, so it is recommended to specify plot period significantly larger than the time step." },
     { PlotEnum::SELECTED_PARTICLE,
         "selected_particle",
         "Plots the current quantity of the selected particle." },
@@ -183,6 +204,8 @@ enum class GuiSettingsId {
     PLOT_INTEGRALS,
 
     PLOT_INITIAL_PERIOD,
+
+    PLOT_OVERPLOT_SFD,
 
     IMAGES_RENDERER,
 

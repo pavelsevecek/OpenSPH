@@ -77,6 +77,10 @@ public:
         return makeAuto<SvgPath>(dc, matrix);
     }
 
+    virtual void setStyle(const Size UNUSED(index)) override {
+        // currently not implemented
+    }
+
     virtual void setTransformMatrix(const AffineMatrix2& newMatrix) override {
         matrix = newMatrix;
     }

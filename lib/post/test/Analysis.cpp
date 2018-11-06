@@ -99,28 +99,55 @@ TEST_CASE("Component by v_esc", "[post]") {
     REQUIRE(components == Array<Size>({ 0, 1, 1, 1 }));
 }
 
-
-TEST_CASE("CummulativeSfd", "[post]") {
+static Storage getHistogramStorage() {
     Array<Vector> r(10);
     for (Size i = 0; i < r.size(); ++i) {
         r[i] = Vector(0._f, 0._f, 0._f, i + 1);
     }
     Storage storage;
     storage.insert<Vector>(QuantityId::POSITION, OrderEnum::ZERO, std::move(r));
+    return storage;
+}
 
+TEST_CASE("CumulativeSfd", "[post]") {
+    Storage storage = getHistogramStorage();
     Post::HistogramParams params;
-    Array<Post::HistPoint> points = Post::getCummulativeHistogram(
+    Array<Post::HistPoint> points = Post::getCumulativeHistogram(
         storage, Post::HistogramId::RADII, Post::HistogramSource::PARTICLES, params);
+
     // clang-format off
-    Array<Post::HistPoint> expected{ { 10, 1 }, { 9, 2 }, { 8, 3 }, { 7, 4 }, { 6, 5 },
+    static Array<Post::HistPoint> expected{ { 10, 1 }, { 9, 2 }, { 8, 3 }, { 7, 4 }, { 6, 5 },
         { 5, 6 }, { 4, 7 }, { 3, 8 }, { 2, 9 }, { 1, 10 } };
     // clang-format on
     REQUIRE(expected.size() == points.size());
 
-    auto predicate = [](Post::HistPoint& p1, Post::HistPoint& p2) { //
-        return p1.value == p2.value && p1.count == p2.count;
-    };
-    REQUIRE(std::equal(points.begin(), points.end(), expected.begin(), predicate));
+    REQUIRE(std::equal(points.begin(), points.end(), expected.begin()));
+}
+
+TEST_CASE("CumulativeSfd mass cutoff", "[post]") {
+    Storage storage = getHistogramStorage();
+    storage.insert<Float>(QuantityId::MASS, OrderEnum::ZERO, Array<Float>{ 0, 0, 4, 1, 0, 1, 3, 3, 5, 0 });
+    Post::HistogramParams params;
+    params.massCutoff = 2._f;
+    Array<Post::HistPoint> points = Post::getCumulativeHistogram(
+        storage, Post::HistogramId::RADII, Post::HistogramSource::PARTICLES, params);
+
+    static Array<Post::HistPoint> expected{ { 9, 1 }, { 8, 2 }, { 7, 3 }, { 3, 4 } };
+    REQUIRE(expected.size() == points.size());
+
+    REQUIRE(std::equal(points.begin(), points.end(), expected.begin()));
+}
+
+TEST_CASE("CumulativeSfd empty", "[post]") {
+    // no values due to too strict cutoffs, make sure to return empty histogram without asserts
+    Storage storage = getHistogramStorage();
+    storage.insert<Float>(QuantityId::MASS, OrderEnum::ZERO, 1._f);
+    Post::HistogramParams params;
+    params.massCutoff = 10._f;
+
+    Array<Post::HistPoint> points = Post::getCumulativeHistogram(
+        storage, Post::HistogramId::RADII, Post::HistogramSource::PARTICLES, params);
+    REQUIRE(points.empty());
 }
 
 TEST_CASE("KeplerianElements", "[post]") {

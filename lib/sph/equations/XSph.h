@@ -5,7 +5,7 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2018
 
-#include "sph/equations/Derivative.h"
+#include "sph/equations/DerivativeHelpers.h"
 #include "sph/equations/EquationTerm.h"
 #include "sph/kernel/Kernel.h"
 #include "system/Factory.h"
@@ -39,15 +39,19 @@ private:
             epsilon = settings.get<Float>(RunSettingsId::XSPH_EPSILON);
         }
 
-        virtual void create(Accumulated& results) override {
+        INLINE void additionalCreate(Accumulated& results) {
             results.insert<Vector>(QuantityId::XSPH_VELOCITIES, OrderEnum::ZERO, BufferSource::UNIQUE);
         }
 
-        INLINE void init(const Storage& input, Accumulated& results) {
+        INLINE void additionalInitialize(const Storage& input, Accumulated& results) {
             dr = results.getBuffer<Vector>(QuantityId::XSPH_VELOCITIES, OrderEnum::ZERO);
             tie(rho, m) = input.getValues<Float>(QuantityId::DENSITY, QuantityId::MASS);
             ArrayView<const Vector> dummy;
             tie(r, v, dummy) = input.getAll<Vector>(QuantityId::POSITION);
+        }
+
+        INLINE bool additionalEquals(const Derivative& other) const {
+            return epsilon == other.epsilon;
         }
 
         template <bool Symmetric>

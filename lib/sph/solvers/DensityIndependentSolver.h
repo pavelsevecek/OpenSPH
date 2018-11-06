@@ -17,6 +17,10 @@ NAMESPACE_SPH_BEGIN
 
 class DensityIndependentPressureForce : public IEquationTerm {
 private:
+    // Not using AccelerationTemplate, because 1) we use ENERGY_PER_PARTICLE rather than ENERGY, and 2)
+    // interface IAcceleration is needed by EnergyConservingSolver, this term is exclusively for
+    // DensityIndependentSolver.
+
     class Derivative : public DerivativeTemplate<Derivative> {
     private:
         ArrayView<const Float> q, U, m;
@@ -29,11 +33,11 @@ private:
         explicit Derivative(const RunSettings& settings)
             : DerivativeTemplate<Derivative>(settings) {}
 
-        virtual void create(Accumulated& results) override {
+        INLINE void additionalCreate(Accumulated& results) {
             results.insert<Float>(QuantityId::ENERGY_PER_PARTICLE, OrderEnum::FIRST, BufferSource::SHARED);
         }
 
-        INLINE void init(const Storage& input, Accumulated& results) {
+        INLINE void additionalInitialize(const Storage& input, Accumulated& results) {
             tie(m, q, U) = input.getValues<Float>(
                 QuantityId::MASS, QuantityId::ENERGY_DENSITY, QuantityId::ENERGY_PER_PARTICLE);
             ArrayView<const Vector> dummy;
@@ -45,6 +49,11 @@ private:
             /// DISPH would need to be generalized for particles with different gamma.
             gamma = input.getMaterial(0)->getParam<Float>(BodySettingsId::ADIABATIC_INDEX);
             ASSERT(gamma > 1._f);
+        }
+
+        INLINE bool additionalEquals(const Derivative& UNUSED(other)) const {
+            // gamma is material property, not property of the derivative itself
+            return true;
         }
 
         template <bool Symmetric>

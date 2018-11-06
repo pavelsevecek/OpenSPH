@@ -66,21 +66,25 @@ private:
             .set(GuiSettingsId::PALETTE_ENERGY, Interval(1.e-1_f, 1.e3_f))
             .set(GuiSettingsId::PALETTE_RADIUS, Interval(700._f, 3.e3_f))
             .set(GuiSettingsId::PALETTE_GRADV, Interval(0._f, 1.e-5_f))
-            .set(GuiSettingsId::PLOT_INITIAL_PERIOD, 10._f)
-            .set(GuiSettingsId::PLOT_INTEGRALS, PlotEnum::ALL);
+            .set(GuiSettingsId::PLOT_INITIAL_PERIOD, 1._f)
+            .set(GuiSettingsId::PLOT_INTEGRALS,
+                PlotEnum::TOTAL_ENERGY | PlotEnum::KINETIC_ENERGY | PlotEnum::INTERNAL_ENERGY);
 
         controller = makeAuto<Controller>(gui);
 
         Presets::CollisionParams params;
-        params.targetParticleCnt = 10000;
+        params.targetParticleCnt = 100000;
         params.targetRadius = 1.e5_f;
         params.impactorRadius = 2.e4_f;
         params.impactAngle = 0._f * DEG_TO_RAD;
         params.impactSpeed = 3.e3_f;
         params.impactorParticleCntOverride = 130;
 
-        params.body.set(BodySettingsId::STRESS_TENSOR_MIN, 2.e8_f)
+        params.body
+            .set(BodySettingsId::STRESS_TENSOR_MIN, 2.e8_f)
+            //.set(BodySettingsId::ENERGY, 2000._f)
             .set(BodySettingsId::ENERGY_MIN, 100._f)
+            .set(BodySettingsId::ENERGY_RANGE, Interval::unbounded())
             .set(BodySettingsId::DAMAGE_MIN, 1._f)
             .set(BodySettingsId::MIN_PARTICLE_COUNT, 100)
             .set(BodySettingsId::BULK_POROSITY, 0.3_f);

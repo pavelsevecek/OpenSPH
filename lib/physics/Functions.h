@@ -12,10 +12,10 @@
 
 NAMESPACE_SPH_BEGIN
 
-/// Contains analytic solutions of equations
+/// Contains analytic solutions of equations.
 namespace Analytic {
 
-/// Properties of a homogeneous sphere in rest (no temporal derivatives)
+/// \brief Properties of a homogeneous sphere in rest (no temporal derivatives)
 class StaticSphere {
 private:
     /// Radius
@@ -29,7 +29,7 @@ public:
         : r0(r0)
         , rho(rho) {}
 
-    /// Return the pressure at given radius r of a sphere self-compressed by gravity.
+    /// \brief Return the pressure at given radius r of a sphere self-compressed by gravity.
     INLINE Float getPressure(const Float r) const {
         if (r > r0) {
             return 0._f;
@@ -37,12 +37,18 @@ public:
         return 2._f / 3._f * PI * Constants::gravity * sqr(rho) * (sqr(r0) - sqr(r));
     }
 
-    /// Returns the gravitational acceleration at given radius r. The acceleration increases linearily up
-    /// to r0 and then decreases with r^2.
+    /// \brief Returns the gravitational acceleration at given radius r.
+    ///
+    /// The acceleration increases linearily up to r0 and then decreases with r^2.
     INLINE Vector getAcceleration(const Vector& r) const {
         const Float l = getLength(r);
         const Float l0 = min(r0, l);
         return -Constants::gravity * rho * sphereVolume(l0) * r / pow<3>(l);
+    }
+
+    /// \brief Returns the gravitational potential energy of the sphere.
+    INLINE Float getEnergy() const {
+        return -16._f / 15._f * sqr(PI) * sqr(rho) * Constants::gravity * pow<5>(r0);
     }
 };
 

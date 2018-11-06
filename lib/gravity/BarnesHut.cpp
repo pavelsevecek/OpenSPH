@@ -82,6 +82,10 @@ Vector BarnesHut::eval(const Vector& r0, Statistics& stats) const {
     return this->evalImpl(r0, Size(-1), stats);
 }
 
+Float BarnesHut::evalEnergy(IScheduler& UNUSED(scheduler), Statistics& UNUSED(stats)) const {
+    NOT_IMPLEMENTED;
+}
+
 Vector BarnesHut::evalImpl(const Vector& r0, const Size idx, Statistics& UNUSED(stats)) const {
     if (SPH_UNLIKELY(r.empty())) {
         return Vector(0._f);
