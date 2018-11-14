@@ -20,7 +20,7 @@ private:
     Optional<Particle> particle;
 
     /// Color used to draw the particle by the renderer
-    Color color;
+    Rgba color;
 
     struct {
 
@@ -46,7 +46,7 @@ public:
         Connect(wxEVT_PAINT, wxPaintEventHandler(ParticleProbe::onPaint));
     }
 
-    void update(const Particle& selectedParticle, const Color colorizerColor) {
+    void update(const Particle& selectedParticle, const Rgba colorizerColor) {
         particle = selectedParticle;
         color = colorizerColor;
         this->Refresh();
@@ -63,7 +63,7 @@ private:
         wxSize canvasSize = dc.GetSize();
 
         // draw background
-        Color backgroundColor = Color(this->GetParent()->GetBackgroundColour());
+        Rgba backgroundColor = Rgba(this->GetParent()->GetBackgroundColour());
         wxBrush brush;
         brush.SetColour(wxColour(backgroundColor.darken(0.2_f)));
         dc.SetBrush(brush);
@@ -80,7 +80,7 @@ private:
         dc.DrawRectangle(offset, wxSize(15, 15));
 
         // particle index
-        dc.SetTextForeground(wxColour(Color(0.8f, 0.8f, 0.8f)));
+        dc.SetTextForeground(wxColour(Rgba(0.8f, 0.8f, 0.8f)));
         dc.DrawText("Particle " + std::to_string(particle->getIndex()), wxPoint(24, 4));
 
         // particle position

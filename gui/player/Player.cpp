@@ -173,16 +173,16 @@ bool App::OnInit() {
         .set(GuiSettingsId::WINDOW_WIDTH, 1334)
         .set(GuiSettingsId::WINDOW_HEIGHT, 768)
         .set(GuiSettingsId::PARTICLE_RADIUS, isNBody ? 1._f : 0.35_f)
-        .set(GuiSettingsId::SURFACE_LEVEL, 0.14_f)
+        .set(GuiSettingsId::SURFACE_LEVEL, 0.13_f)
         .set(GuiSettingsId::SURFACE_SUN_POSITION, getNormalized(Vector(-1.e6_f, -1.5e6_f, 0._f)))
-        .set(GuiSettingsId::SURFACE_SUN_INTENSITY, 0.7_f)
-        .set(GuiSettingsId::SURFACE_AMBIENT, 0.3_f)
-        .set(GuiSettingsId::SURFACE_RESOLUTION, 2.e3_f)
-        .set(GuiSettingsId::CAMERA, CameraEnum::PERSPECTIVE)
+        .set(GuiSettingsId::SURFACE_SUN_INTENSITY, 0.9_f)
+        .set(GuiSettingsId::SURFACE_AMBIENT, 0.4_f)
+        .set(GuiSettingsId::SURFACE_RESOLUTION, 4.e3_f)
+        .set(GuiSettingsId::CAMERA, CameraEnum::ORTHO)
         .set(GuiSettingsId::PERSPECTIVE_TRACKED_PARTICLE, 729082)
-        .set(GuiSettingsId::PERSPECTIVE_POSITION, Vector(-3.e6_f, 4.e6_f, 0._f))
-        .set(GuiSettingsId::PERSPECTIVE_POSITION, Vector(5.e6_f, 0._f, 0._f))
-        .set(GuiSettingsId::PERSPECTIVE_TARGET, Vector(0._f, -2.e6_f, 0._f))
+        //.set(GuiSettingsId::PERSPECTIVE_POSITION, Vector(-3.e6_f, 4.e6_f, 0._f))
+        .set(GuiSettingsId::PERSPECTIVE_POSITION, Vector(2.5e6_f, 0._f, 0._f))
+        .set(GuiSettingsId::PERSPECTIVE_TARGET, Vector(0._f, -1.e6_f, 0._f))
         //.set(GuiSettingsId::PERSPECTIVE_POSITION, Vector(0._f, 0._f, 3.e6_f))
         //.set(GuiSettingsId::PERSPECTIVE_TARGET, Vector(0._f, 0._f, 0._f))
         //.set(GuiSettingsId::PERSPECTIVE_UP, Vector(0._f, 1._f, 0._f))
@@ -192,11 +192,14 @@ bool App::OnInit() {
         .set(GuiSettingsId::ORTHO_CUTOFF, 0._f) // 10000._f)
         .set(GuiSettingsId::ORTHO_ZOFFSET, -4.e6_f)
         .set(GuiSettingsId::VIEW_GRID_SIZE, 0._f)
+        .set(GuiSettingsId::RENDERER, RendererEnum::PARTICLE)
         .set(GuiSettingsId::RAYTRACE_TEXTURE_PRIMARY, std::string(""))
         .set(GuiSettingsId::RAYTRACE_TEXTURE_SECONDARY, std::string(""))
+        .set(GuiSettingsId::RAYTRACE_SUBSAMPLING, 3)
+        .set(GuiSettingsId::RAYTRACE_ITERATION_LIMIT, 100)
         .set(GuiSettingsId::IMAGES_WIDTH, 800)
         .set(GuiSettingsId::IMAGES_HEIGHT, 800)
-        .set(GuiSettingsId::IMAGES_SAVE, true)
+        .set(GuiSettingsId::IMAGES_SAVE, false)
         .set(GuiSettingsId::IMAGES_NAME, std::string("frag_%e_%d.png"))
         .set(GuiSettingsId::IMAGES_MOVIE_NAME, std::string("frag_%e.avi"))
         .set(GuiSettingsId::IMAGES_TIMESTEP, 0._f)
@@ -207,10 +210,10 @@ bool App::OnInit() {
         .set(GuiSettingsId::PALETTE_ENERGY, Interval(100._f, 5.e4_f))
         .set(GuiSettingsId::PALETTE_RADIUS, Interval(700._f, 3.e3_f))
         .set(GuiSettingsId::PALETTE_GRADV, Interval(0._f, 1.e-5_f))
-        .set(GuiSettingsId::PLOT_INTEGRALS, PlotEnum::ALL)
-        .set(GuiSettingsId::PLOT_OVERPLOT_SFD,
-            std::string("/home/pavel/projects/astro/asteroids/hygiea/main_belt_families_2018/10_Hygiea/"
-                        "size_distribution/family.dat_hc"));
+        .set(GuiSettingsId::PLOT_INTEGRALS, PlotEnum::KINETIC_ENERGY);
+    /*.set(GuiSettingsId::PLOT_OVERPLOT_SFD,
+        std::string("/home/pavel/projects/astro/asteroids/hygiea/main_belt_families_2018/10_Hygiea/"
+                    "size_distribution/family.dat_hc"));*/
 
     if (fileMask.native().substr(fileMask.native().size() - 3) == ".bt") {
         // pkdgrav file, override some options

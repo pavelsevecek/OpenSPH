@@ -56,7 +56,8 @@ SOURCES += \
     windows/PlotView.cpp \
     renderers/RayTracer.cpp \
     renderers/MeshRenderer.cpp \
-    objects/Camera.cpp
+    objects/Camera.cpp \
+    objects/RenderContext.cpp
 
 HEADERS += \
     ArcBall.h \
@@ -84,8 +85,9 @@ HEADERS += \
     windows/OrthoPane.h \
     windows/ParticleProbe.h \
     windows/PlotView.h \
-    renderers/RenderContext.h \
     renderers/RayTracer.h \
     renderers/Brdf.h \
     Uvw.h \
-    renderers/MeshRenderer.h
+    renderers/MeshRenderer.h \
+    renderers/FrameBuffer.h \
+    objects/RenderContext.h

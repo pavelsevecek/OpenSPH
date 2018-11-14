@@ -54,7 +54,7 @@ private:
     AffineMatrix2 matrix;
 
 public:
-    SvgContext(const Path& path, const Point size, const double dpi = 72)
+    SvgContext(const Path& path, const Pixel size, const double dpi = 72)
         : dc(path.native(), size.x, size.y, dpi) {}
 
     virtual void drawPoint(const PlotPoint& point) override {

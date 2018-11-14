@@ -36,7 +36,6 @@ public:
         return nullptr;
     }
 
-protected:
     /// \brief Writes to the log using provided storage and statistics.
     ///
     /// Used for const-correctness (loggers should not modify storage nor stats) and returning another

@@ -171,3 +171,21 @@ TEST_CASE("ClonePtr comparison", "[cloneptr]") {
     REQUIRE(p1 != nullptr);
     REQUIRE(nullptr != p1);
 }
+
+TEST_CASE("ClonePtr convert to AutoPtr", "[cloneptr]") {
+    ClonePtr<RecordType> p1 = makeClone<RecordType>(5);
+    AutoPtr<RecordType> a1 = p1;
+    REQUIRE(a1);
+    REQUIRE(a1->value == 5);
+    p1->value = 3;
+    REQUIRE(a1->value == 5); // really unique value
+
+    AutoPtr<RecordType> a2 = std::move(p1);
+    REQUIRE(a2);
+    REQUIRE(a2->value == 3);
+    REQUIRE_FALSE(p1);
+    REQUIRE_FALSE(p1.clone());
+
+    AutoPtr<Base> a3 = makeClone<Derived>();
+    REQUIRE(a3);
+}

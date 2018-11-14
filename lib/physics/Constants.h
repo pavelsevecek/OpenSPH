@@ -27,6 +27,9 @@ const Float gravity = 6.67408e-11_f; // m^3 kg^-1 s^-2
 /// Astronomical unit (exactly)
 const Float au = 149597870700._f; // m
 
+/// Number of seconds in year
+const Float year = 3.154e7_f; // s
+
 /// Solar mass
 /// http://asa.usno.navy.mil/static/files/2014/Astronomical_Constants_2014.pdf
 const Float M_sun = 1.9884e30_f; // kg

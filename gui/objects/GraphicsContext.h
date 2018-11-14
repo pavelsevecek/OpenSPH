@@ -62,11 +62,11 @@ private:
     const Float ps = 3._f;
 
     /// Selected color of the plot, corresponding to drawing style 0.
-    Color color;
+    Rgba color;
 
 public:
     /// \brief Constructs the drawing context from wxPaintDC.
-    GraphicsContext(wxPaintDC& dc, const Color color)
+    GraphicsContext(wxPaintDC& dc, const Rgba color)
         : gc(wxGraphicsContext::Create(dc))
         , color(color) {
         this->setStyle(0);
@@ -74,7 +74,7 @@ public:
     }
 
     /// \brief Constructs the drawing context from wxMemoryDC.
-    GraphicsContext(wxMemoryDC& dc, const Color color)
+    GraphicsContext(wxMemoryDC& dc, const Rgba color)
         : gc(wxGraphicsContext::Create(dc))
         , color(color) {
         this->setStyle(0);

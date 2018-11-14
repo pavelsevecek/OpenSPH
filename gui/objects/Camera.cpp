@@ -8,7 +8,7 @@ NAMESPACE_SPH_BEGIN
 /// OrthoCamera
 /// ----------------------------------------------------------------------------------------------------------
 
-OrthoCamera::OrthoCamera(const Point imageSize, const Point center, OrthoCameraData data)
+OrthoCamera::OrthoCamera(const Pixel imageSize, const Pixel center, OrthoCameraData data)
     : imageSize(imageSize)
     , center(center)
     , data(data) {
@@ -31,17 +31,17 @@ void OrthoCamera::initialize(const Storage& storage) {
 }
 
 Optional<ProjectedPoint> OrthoCamera::project(const Vector& r) const {
-    const int x = center.x + dot(r, cached.u) * data.fov.value();
-    const int y = center.y + dot(r, cached.v) * data.fov.value();
-    const Point point(x, imageSize.y - y - 1);
+    const float x = center.x + dot(r, cached.u) * data.fov.value();
+    const float y = center.y + dot(r, cached.v) * data.fov.value();
+    const Coords point(x, imageSize.y - y - 1);
     return { { point, data.fov.value() * float(r[H]) } };
 }
 
-CameraRay OrthoCamera::unproject(const Point point) const {
-    const float x = (point.x - center.x) / data.fov.value();
-    const float y = ((imageSize.y - point.y - 1) - center.y) / data.fov.value();
+CameraRay OrthoCamera::unproject(const Coords& coords) const {
+    const float rx = (coords.x - center.x) / data.fov.value();
+    const float ry = ((imageSize.y - coords.y - 1) - center.y) / data.fov.value();
     CameraRay ray;
-    ray.origin = cached.u * x + cached.v * y + cached.w * data.zoffset;
+    ray.origin = cached.u * rx + cached.v * ry + cached.w * data.zoffset;
     ray.target = ray.origin + cached.w;
     return ray;
 }
@@ -50,7 +50,7 @@ Vector OrthoCamera::getDirection() const {
     return cached.w;
 }
 
-void OrthoCamera::zoom(const Point fixedPoint, const float magnitude) {
+void OrthoCamera::zoom(const Pixel fixedPoint, const float magnitude) {
     ASSERT(magnitude > 0.f);
     center += (fixedPoint - center) * (1.f - magnitude);
     data.fov.value() *= magnitude;
@@ -62,7 +62,7 @@ void OrthoCamera::transform(const AffineMatrix& matrix) {
     cached.w = cross(cached.u, cached.v);
 }
 
-void OrthoCamera::pan(const Point offset) {
+void OrthoCamera::pan(const Pixel offset) {
     center += offset;
 }
 
@@ -70,7 +70,7 @@ void OrthoCamera::pan(const Point offset) {
 /// PerspectiveCamera
 /// ----------------------------------------------------------------------------------------------------------
 
-PerspectiveCamera::PerspectiveCamera(const Point imageSize, const PerspectiveCameraData& data)
+PerspectiveCamera::PerspectiveCamera(const Pixel imageSize, const PerspectiveCameraData& data)
     : imageSize(imageSize)
     , data(data) {
     ASSERT(data.clipping.lower() > 0._f && data.clipping.size() > EPS);
@@ -104,25 +104,23 @@ Optional<ProjectedPoint> PerspectiveCamera::project(const Vector& r) const {
     Vector up0;
     Float upLength;
     tieToTuple(up0, upLength) = getNormalizedWithLength(cached.up);
-    const Float leftRel = dot(left0, r0) / leftLength;
-    // ASSERT(leftRel >= -1._f && leftRel <= 1._f);
-    const Float upRel = dot(up0, r0) / upLength;
-    // ASSERT(upRel >= -1._f && upRel <= 1._f);
-    const int x = 0.5_f * (1._f + leftRel) * imageSize.x;
-    const int y = 0.5_f * (1._f + upRel) * imageSize.y;
-    const Float hAtUnitDist = r[H] / proj;
-    const Float h = hAtUnitDist / leftLength * imageSize.x;
+    const float leftRel = dot(left0, r0) / leftLength;
+    const float upRel = dot(up0, r0) / upLength;
+    const float x = 0.5f * (1.f + leftRel) * imageSize.x;
+    const float y = 0.5f * (1.f + upRel) * imageSize.y;
+    const float hAtUnitDist = r[H] / proj;
+    const float h = hAtUnitDist / leftLength * imageSize.x;
 
     // if (x >= -h && x < imageSize.x + h && y >= -h && y < imageSize.y )
     return ProjectedPoint{ { x, imageSize.y - y - 1 }, max(float(h), 1.f) };
 }
 
-CameraRay PerspectiveCamera::unproject(const Point point) const {
-    const Float x = 2._f * Float(point.x) / imageSize.x - 1._f;
-    const Float y = 2._f * Float(point.y) / imageSize.y - 1._f;
+CameraRay PerspectiveCamera::unproject(const Coords& coords) const {
+    const float rx = 2.f * coords.x / imageSize.x - 1.f;
+    const float ry = 2.f * coords.y / imageSize.y - 1.f;
     CameraRay ray;
     ray.origin = data.position;
-    ray.target = ray.origin + cached.dir + cached.left * x - cached.up * y;
+    ray.target = ray.origin + cached.dir + cached.left * rx - cached.up * ry;
     return ray;
 }
 
@@ -130,7 +128,7 @@ Vector PerspectiveCamera::getDirection() const {
     return cached.dir;
 }
 
-void PerspectiveCamera::zoom(const Point UNUSED(fixedPoint), const float magnitude) {
+void PerspectiveCamera::zoom(const Pixel UNUSED(fixedPoint), const float magnitude) {
     ASSERT(magnitude > 0.f);
     data.fov *= 1._f + 0.01_f * magnitude;
     this->transform(cached.matrix);
@@ -146,7 +144,7 @@ void PerspectiveCamera::transform(const AffineMatrix& matrix) {
     cached.matrix = matrix;
 }
 
-void PerspectiveCamera::pan(const Point offset) {
+void PerspectiveCamera::pan(const Pixel offset) {
     const Float x = Float(offset.x) / imageSize.x;
     const Float y = Float(offset.y) / imageSize.y;
     const Vector worldOffset = getLength(data.target - data.position) * (cached.left * x + cached.up * y);

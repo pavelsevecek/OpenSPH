@@ -2,20 +2,22 @@
 #include "gui/objects/Bitmap.h"
 #include "gui/objects/Camera.h"
 #include "gui/objects/Colorizer.h"
+#include "gui/renderers/FrameBuffer.h"
 #include "system/Profiler.h"
-#include <wx/dcmemory.h>
 
 NAMESPACE_SPH_BEGIN
 
 RayTracer::RayTracer(IScheduler& scheduler, const GuiSettings& settings)
     : scheduler(scheduler)
     , threadData(scheduler) {
-    kernel = Factory::getKernel<3>(RunSettings::getDefaults());
+    kernel = CubicSpline<3>();
     params.surfaceLevel = settings.get<Float>(GuiSettingsId::SURFACE_LEVEL);
     params.dirToSun = settings.get<Vector>(GuiSettingsId::SURFACE_SUN_POSITION);
     params.brdf = Factory::getBrdf(settings);
     params.ambientLight = settings.get<Float>(GuiSettingsId::SURFACE_AMBIENT);
+    params.sunLight = settings.get<Float>(GuiSettingsId::SURFACE_SUN_INTENSITY);
     params.subsampling = settings.get<int>(GuiSettingsId::RAYTRACE_SUBSAMPLING);
+    params.iterationLimit = settings.get<int>(GuiSettingsId::RAYTRACE_ITERATION_LIMIT);
 
     std::string hdriPath = settings.get<std::string>(GuiSettingsId::RAYTRACE_HDRI);
     if (!hdriPath.empty()) {
@@ -33,6 +35,8 @@ RayTracer::RayTracer(IScheduler& scheduler, const GuiSettings& settings)
             params.textures.emplaceBack(params.textures.front().clone());
         }
     }
+
+    shouldContinue = true;
 }
 
 RayTracer::~RayTracer() = default;
@@ -89,58 +93,78 @@ void RayTracer::initialize(const Storage& storage,
     for (ThreadData& data : threadData) {
         data.previousIdx = Size(-1);
     }
+
+    shouldContinue = true;
 }
 
-static void drawText(wxBitmap& bitmap, const std::string& text) {
-    wxMemoryDC dc(bitmap);
-    wxFont font = dc.GetFont();
-    font.MakeSmaller();
-    dc.SetFont(font);
-
-    dc.SetTextForeground(*wxWHITE);
-    dc.DrawText(text, 10, 10);
-
-    dc.SelectObject(wxNullBitmap);
+void RayTracer::render(const RenderParams& renderParams,
+    Statistics& UNUSED(stats),
+    IRenderOutput& output) const {
+    shouldContinue = true;
+    ASSERT(finder && bvh.getBoundingBox().volume() > 0._f);
+    FrameBuffer fb(renderParams.size);
+    for (Size iteration = 0; iteration < params.iterationLimit && shouldContinue; ++iteration) {
+        this->refine(renderParams, iteration, fb);
+        output.update(fb.bitmap(), {});
+    }
 }
 
-SharedPtr<wxBitmap> RayTracer::render(const ICamera& camera,
-    const RenderParams& renderParams,
-    Statistics& UNUSED(stats)) const {
+void RayTracer::refine(const RenderParams& renderParams, const Size iteration, FrameBuffer& fb) const {
     MEASURE_SCOPE("Rendering frame");
-    Point actSize;
-    actSize.x = renderParams.size.x / params.subsampling + sgn(renderParams.size.x % params.subsampling);
-    actSize.y = renderParams.size.y / params.subsampling + sgn(renderParams.size.y % params.subsampling);
-    Bitmap bitmap(actSize);
-    Timer timer;
+    const Size level = max((1 << int(params.subsampling)) - int(iteration), 1);
+    Pixel actSize;
+    actSize.x = renderParams.size.x / level + sgn(renderParams.size.x % level);
+    actSize.y = renderParams.size.y / level + sgn(renderParams.size.y % level);
+    Bitmap<Rgba> bitmap(actSize);
 
-    parallelFor(scheduler, 0, Size(bitmap.size().y), [this, &bitmap, &camera](Size y) {
-        ThreadData& data = threadData.local();
-        for (Size x = 0; x < Size(bitmap.size().x); ++x) {
-            CameraRay cameraRay = camera.unproject(Point(x * params.subsampling, y * params.subsampling));
-            const Vector dir = getNormalized(cameraRay.target - cameraRay.origin);
-            const Ray ray(cameraRay.origin, dir);
-
-            Color accumulatedColor;
-            if (Optional<Vector> hit = this->intersect(data, ray, false)) {
-                accumulatedColor = this->shade(data, data.previousIdx, hit.value(), ray.direction());
-            } else {
-                accumulatedColor = this->getEnviroColor(ray);
+    const bool first = (iteration == 0);
+    parallelFor(scheduler,
+        threadData,
+        0,
+        Size(bitmap.size().y),
+        [this, &bitmap, &renderParams, level, first](Size y, ThreadData& data) {
+            if (!shouldContinue && !first) {
+                return;
             }
-            bitmap[Point(x, y)] = wxColour(accumulatedColor);
-        }
-    });
+            for (Size x = 0; x < Size(bitmap.size().x); ++x) {
+                /// \todo generalize
+                const float rx = x * level + (level == 1 ? data.rng() : 0.5f);
+                const float ry = y * level + (level == 1 ? data.rng() : 0.5f);
+                CameraRay cameraRay = renderParams.camera->unproject(Coords(rx, ry));
+                const Vector dir = getNormalized(cameraRay.target - cameraRay.origin);
+                const Ray ray(cameraRay.origin, dir);
 
-    SharedPtr<wxBitmap> wx = makeShared<wxBitmap>();
-    toWxBitmap(bitmap, *wx);
-    drawText(*wx, "Rendering took " + std::to_string(timer.elapsed(TimerUnit::MILLISECOND)) + "ms");
-    return wx;
+                Rgba accumulatedColor;
+                if (Optional<Vector> hit = this->intersect(data, ray, false)) {
+                    accumulatedColor = this->shade(data, data.previousIdx, hit.value(), ray.direction());
+                } else {
+                    accumulatedColor = this->getEnviroColor(ray);
+                }
+                bitmap[Pixel(x, y)] = accumulatedColor;
+            }
+        });
+
+    if (!shouldContinue && !first) {
+        return;
+    }
+    if (level == 1) {
+        fb.accumulate(bitmap);
+    } else {
+        Bitmap<Rgba> full(renderParams.size);
+        for (Size y = 0; y < Size(full.size().y); ++y) {
+            for (Size x = 0; x < Size(full.size().x); ++x) {
+                full[Pixel(x, y)] = bitmap[Pixel(x / level, y / level)];
+            }
+        }
+        fb.override(std::move(full));
+    }
 }
 
 ArrayView<const Size> RayTracer::getNeighbourList(ThreadData& data, const Size index) const {
     // look for neighbours only if the intersected particle differs from the previous one
     if (index != data.previousIdx) {
         Array<NeighbourRecord> neighs;
-        finder->findAll(index, 2._f * cached.r[index][H], neighs);
+        finder->findAll(index, kernel.radius() * cached.r[index][H], neighs);
         data.previousIdx = index;
 
         // find the actual list of neighbours
@@ -218,12 +242,15 @@ Optional<Vector> RayTracer::getSurfaceHit(ThreadData& data,
     }
 }
 
-Color RayTracer::shade(ThreadData& data, const Size index, const Vector& hit, const Vector& dir) const {
-    Color color = Color::white();
+Rgba RayTracer::shade(ThreadData& data, const Size index, const Vector& hit, const Vector& dir) const {
+    Rgba color = Rgba::white();
     if (!params.textures.empty() && !cached.uvws.empty()) {
         const Vector uvw = this->evalUvws(data.neighs, hit);
         color = params.textures[cached.flags[index]].eval(uvw) * 2._f;
     }
+
+    // evaluate color before checking for occlusion as that invalidates the neighbour list
+    const Rgba colorizerValue = this->evalColor(data.neighs, hit) * color;
 
     // compute normal = gradient of the field
     const Vector n = this->evalGradient(data.neighs, hit);
@@ -232,25 +259,22 @@ Color RayTracer::shade(ThreadData& data, const Size index, const Vector& hit, co
     const Float cosPhi = dot(n_norm, params.dirToSun);
     if (cosPhi <= 0._f) {
         // not illuminated
-        return Color(params.ambientLight) * color;
+        return colorizerValue * params.ambientLight;
     }
-
-    // evaluate color before checking for occlusion as that invalidates the neighbour list
-    const Color colorizerValue = this->evalColor(data.neighs, hit);
 
     // check for occlusion
     if (params.shadows) {
         Ray rayToSun(hit - 1.e-3_f * params.dirToSun, -params.dirToSun);
         if (this->intersect(data, rayToSun, true)) {
             // casted shadow
-            return Color(params.ambientLight) * color;
+            return colorizerValue * params.ambientLight;
         }
     }
 
     // evaluate BRDF
     const Float f = params.brdf->transport(n_norm, -dir, params.dirToSun);
 
-    return color * (colorizerValue * PI * f * cosPhi + Color(params.ambientLight));
+    return colorizerValue * (PI * f * cosPhi * params.sunLight + params.ambientLight);
 }
 
 Float RayTracer::evalField(ArrayView<const Size> neighs, const Vector& pos1) const {
@@ -275,9 +299,9 @@ Vector RayTracer::evalGradient(ArrayView<const Size> neighs, const Vector& pos1)
     return value;
 }
 
-Color RayTracer::evalColor(ArrayView<const Size> neighs, const Vector& pos1) const {
+Rgba RayTracer::evalColor(ArrayView<const Size> neighs, const Vector& pos1) const {
     ASSERT(!neighs.empty());
-    Color color = Color::black();
+    Rgba color = Rgba::black();
     Float weightSum = 0._f;
     for (Size index : neighs) {
         const Vector& pos2 = cached.r[index];
@@ -329,7 +353,7 @@ Vector RayTracer::evalUvws(ArrayView<const Size> neighs, const Vector& pos1) con
     }
 }
 
-Color RayTracer::getEnviroColor(const Ray& ray) const {
+Rgba RayTracer::getEnviroColor(const Ray& ray) const {
     if (params.enviro.hdri.empty()) {
         return params.enviro.color;
     } else {

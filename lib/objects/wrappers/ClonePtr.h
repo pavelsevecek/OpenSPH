@@ -99,12 +99,16 @@ public:
         return *this;
     }
 
-    /// Conversion operator to AutoPtr
-    operator AutoPtr<T>() && {
+    template <typename T2, typename = std::enable_if_t<std::is_convertible<T*, T2*>::value>>
+    operator AutoPtr<T2>() && {
+        cloner.reset();
         return std::move(ptr);
     }
 
-    operator AutoPtr<T>() & = delete;
+    template <typename T2, typename = std::enable_if_t<std::is_convertible<T*, T2*>::value>>
+    operator AutoPtr<T2>() const& {
+        return this->clone();
+    }
 
     /// Explicitly create a new copy
     ClonePtr<T> clone() const {
@@ -136,14 +140,6 @@ public:
 
     bool operator!() const {
         return !ptr;
-    }
-
-    /// Compares objects rather than pointers.
-    bool operator==(const ClonePtr& other) const {
-        if (!*this || !other) {
-            return !*this && !other; // if both are nullptr, return true
-        }
-        return **this == *other;
     }
 };
 

@@ -10,7 +10,7 @@ class ICamera;
 class IColorizer;
 class IRenderer;
 class Palette;
-class Point;
+struct Pixel;
 class Interval;
 class IBrdf;
 class IScheduler;
@@ -20,7 +20,7 @@ namespace Factory {
 
     /// Creates a camera
     /// \param size Resolution of produced image
-    AutoPtr<ICamera> getCamera(const GuiSettings& settings, const Point size);
+    AutoPtr<ICamera> getCamera(const GuiSettings& settings, const Pixel size);
 
     AutoPtr<IRenderer> getRenderer(IScheduler& scheduler, const GuiSettings& settings);
 

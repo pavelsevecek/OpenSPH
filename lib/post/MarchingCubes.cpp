@@ -483,22 +483,19 @@ public:
         Array<NeighbourRecord>& neighsTl = neighs.local();
         /// \todo for now let's just search some random multiple of smoothing length, we should use the
         /// largest singular value here
-        finder->findAll(pos, 4._f * maxH * kernel.radius(), neighsTl);
+        finder->findAll(pos, maxH * kernel.radius(), neighsTl);
         Float phi = 0._f;
 
         // find average h of neighbours and the flag of the closest particle
         Size closestFlag = 0;
         Float flagDistSqr = INFTY;
-        Float avgH = 0._f;
         for (NeighbourRecord& n : neighsTl) {
             const Size j = n.index;
-            avgH += r[j][H];
             if (n.distanceSqr < flagDistSqr) {
                 closestFlag = flag[j];
                 flagDistSqr = n.distanceSqr;
             }
         }
-        avgH /= neighsTl.size();
 
         // interpolate values of neighbours
         for (NeighbourRecord& n : neighsTl) {
@@ -506,9 +503,9 @@ public:
             if (flag[j] != closestFlag) {
                 continue;
             }
-            // phi += m[j] / rho[j] * kernel.value(pos - r[j], avgH);
-            phi += m[j] / rho[j] * aniso[j].determinant() *
-                   kernel.valueImpl(getSqrLength(aniso[j] * (pos - r[j])));
+            phi += m[j] / rho[j] * kernel.value(pos - r[j], r[j][H]);
+            /*phi += m[j] / rho[j] * aniso[j].determinant() *
+                   kernel.valueImpl(getSqrLength(aniso[j] * (pos - r[j])));*/
         }
         return phi;
     }
@@ -602,7 +599,7 @@ Array<Triangle> getSurfaceMesh(IScheduler& scheduler,
 
         // C[i] = SymmetricTensor::identity();
         // C[i] = C[i].inverse();
-        C[i] = C[i] / (root<3>(C[i].determinant()) * r[i][H]);
+        // C[i] = C[i] / (root<3>(C[i].determinant()) * r[i][H]);
     });
 
     /// \todo we skip the anisotropy correction for now
@@ -613,13 +610,13 @@ Array<Triangle> getSurfaceMesh(IScheduler& scheduler,
         /*if (neighCnt[i] < 10) {
             continue; // don't mesh separated particles
         }*/
-        const Vector dr = Vector(r_bar[i][H] * kernel.radius());
-        box.extend(r_bar[i] + dr);
-        box.extend(r_bar[i] - dr);
+        const Vector dr = Vector(r[i][H] * kernel.radius());
+        box.extend(r[i] + dr);
+        box.extend(r[i] - dr);
         maxH = max(maxH, r_bar[i][H]);
     }
     SharedPtr<NumberDensityField> field =
-        makeShared<NumberDensityField>(storage, scheduler, r_bar, C, std::move(kernel), std::move(finder));
+        makeShared<NumberDensityField>(storage, scheduler, r, C, std::move(kernel), std::move(finder));
     field->maxH = maxH;
     MarchingCubes mc(scheduler, surfaceLevel, field);
 

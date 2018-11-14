@@ -98,7 +98,7 @@ void PlotView::onPaint(wxPaintEvent& UNUSED(evt)) {
     wxSize canvasSize = dc.GetSize();
 
     // draw background
-    Color backgroundColor = Color(this->GetParent()->GetBackgroundColour());
+    Rgba backgroundColor = Rgba(this->GetParent()->GetBackgroundColour());
     wxBrush brush;
     brush.SetColour(wxColour(backgroundColor.darken(0.2_f)));
     dc.SetBrush(brush);
@@ -191,7 +191,7 @@ PlotFrame::PlotFrame(wxWindow* parent, const wxSize size, const wxSize padding, 
     , padding(padding) {
     this->SetMinSize(size);
     SharedPtr<Array<PlotData>> data = makeShared<Array<PlotData>>();
-    data->push(PlotData{ plot, Color(0.7f, 0.7f, 0.7f) });
+    data->push(PlotData{ plot, Rgba(0.7f, 0.7f, 0.7f) });
 
     wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
     const Size toolbarHeight = 20;
@@ -266,7 +266,7 @@ void PlotFrame::saveImage(const std::string& pathStr, const int fileIndex) {
         dc.DrawRectangle(0, 0, 800, 600);
 
         auto proxy = plot.lock();
-        GraphicsContext gc(dc, Color(0.f, 0.f, 0.5f));
+        GraphicsContext gc(dc, Rgba(0.f, 0.f, 0.5f));
         const Interval actRangeX = extendRange(proxy->rangeX(), plotView->addZeroX);
         const Interval actRangeY = extendRange(proxy->rangeY(), plotView->addZeroY);
         AffineMatrix2 matrix = plotView->getPlotTransformMatrix(actRangeX, actRangeY);
@@ -288,7 +288,7 @@ void PlotFrame::saveImage(const std::string& pathStr, const int fileIndex) {
         path.replaceExtension("svg");
 
         auto proxy = plot.lock();
-        SvgContext gc(path, Point(800, 600));
+        SvgContext gc(path, Pixel(800, 600));
         AffineMatrix2 matrix = plotView->getPlotTransformMatrix(proxy->rangeX(), proxy->rangeY());
         gc.setTransformMatrix(matrix);
         proxy->plot(gc);

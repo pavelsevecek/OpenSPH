@@ -15,29 +15,47 @@
 
 NAMESPACE_SPH_BEGIN
 
+template <typename Type>
 class Bitmap : public Noncopyable {
 private:
-    Array<wxColour> values;
-    Point res;
+    Array<Type> values;
+    Pixel res;
 
 public:
     Bitmap()
         : res(0, 0) {}
 
-    explicit Bitmap(const Point res)
-        : res(res) {
+    explicit Bitmap(const Pixel resolution)
+        : res(resolution) {
         values.resize(res.x * res.y);
     }
 
-    wxColour& operator[](const Point p) {
+    Bitmap clone() const {
+        Bitmap cloned;
+        cloned.values = values.clone();
+        cloned.res = res;
+        return cloned;
+    }
+
+    void resize(const Pixel newResolution, const Type& value) {
+        res = newResolution;
+        values.resize(res.x * res.y);
+        this->fill(value);
+    }
+
+    void fill(const Type& value) {
+        values.fill(value);
+    }
+
+    Type& operator[](const Pixel p) {
         return values[map(p)];
     }
 
-    const wxColour& operator[](const Point p) const {
+    const Type& operator[](const Pixel p) const {
         return values[map(p)];
     }
 
-    Point size() const {
+    Pixel size() const {
         return res;
     }
 
@@ -46,13 +64,13 @@ public:
     }
 
 private:
-    Size map(const Point p) const {
+    Size map(const Pixel p) const {
         return p.y * res.x + p.x;
     }
 };
 
 
-inline void toWxBitmap(const Bitmap& bitmap, wxBitmap& wx) {
+inline void toWxBitmap(const Bitmap<Rgba>& bitmap, wxBitmap& wx) {
     wx.Create(bitmap.size().x, bitmap.size().y);
     ASSERT(wx.IsOk());
 
@@ -65,7 +83,7 @@ inline void toWxBitmap(const Bitmap& bitmap, wxBitmap& wx) {
 
     for (int y = 0; y < bitmap.size().y; ++y) {
         for (int x = 0; x < bitmap.size().x; ++x) {
-            wxColour color = bitmap[Point(x, y)];
+            wxColour color(bitmap[Pixel(x, y)]);
             iterator.Red() = color.Red();
             iterator.Green() = color.Green();
             iterator.Blue() = color.Blue();
@@ -76,8 +94,8 @@ inline void toWxBitmap(const Bitmap& bitmap, wxBitmap& wx) {
     ASSERT(wx.IsOk());
 }
 
-inline Bitmap toBitmap(wxBitmap& wx) {
-    Bitmap bitmap(Point(wx.GetWidth(), wx.GetHeight()));
+inline Bitmap<Rgba> toBitmap(wxBitmap& wx) {
+    Bitmap<Rgba> bitmap(Pixel(wx.GetWidth(), wx.GetHeight()));
 
     wxNativePixelData pixels(wx);
     ASSERT(pixels);
@@ -88,7 +106,7 @@ inline Bitmap toBitmap(wxBitmap& wx) {
 
     for (int y = 0; y < bitmap.size().y; ++y) {
         for (int x = 0; x < bitmap.size().x; ++x) {
-            bitmap[Point(x, y)] = wxColour(iterator.Red(), iterator.Green(), iterator.Blue());
+            bitmap[Pixel(x, y)] = Rgba(wxColour(iterator.Red(), iterator.Green(), iterator.Blue()));
             ++iterator;
         }
     }
@@ -101,13 +119,13 @@ inline void saveToFile(const wxBitmap& wx, const Path& path) {
     wx.SaveFile(path.native().c_str(), wxBITMAP_TYPE_PNG);
 }
 
-inline void saveToFile(const Bitmap& bitmap, const Path& path) {
+inline void saveToFile(const Bitmap<Rgba>& bitmap, const Path& path) {
     wxBitmap wx;
     toWxBitmap(bitmap, wx);
     saveToFile(wx, path);
 }
 
-inline Bitmap loadBitmapFromFile(const Path& path) {
+inline Bitmap<Rgba> loadBitmapFromFile(const Path& path) {
     wxBitmap wx;
     if (!wx.LoadFile(path.native().c_str())) {
         ASSERT(false, "Cannot load bitmap");

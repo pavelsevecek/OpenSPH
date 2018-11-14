@@ -11,39 +11,91 @@
 
 NAMESPACE_SPH_BEGIN
 
-/// \brief Two-dimensional point with integral coordinates
-class Point {
-public:
-    int x, y;
+template <typename T, typename TDerived>
+struct BasicPoint {
+    T x, y;
 
-    Point() = default;
+    BasicPoint() = default;
 
-    Point(const int x, const int y)
+    BasicPoint(const T& x, const T& y)
         : x(x)
         , y(y) {}
 
-    Point(const wxPoint point)
-        : x(point.x)
-        , y(point.y) {}
-
-    operator wxPoint() const {
-        return wxPoint(x, y);
+    T& operator[](const Size index) {
+        ASSERT(index < 2);
+        return reinterpret_cast<T*>(this)[index];
     }
 
-    Point& operator+=(const Point other) {
+    const T& operator[](const Size index) const {
+        ASSERT(index < 2);
+        return reinterpret_cast<const T*>(this)[index];
+    }
+
+    TDerived& operator+=(const TDerived& other) {
         x += other.x;
         y += other.y;
-        return *this;
+        return static_cast<TDerived&>(*this);
     }
 
-    Point& operator-=(const Point other) {
+    TDerived& operator-=(const TDerived& other) {
         x -= other.x;
         y -= other.y;
-        return *this;
+        return static_cast<TDerived&>(*this);
+    }
+
+    TDerived& operator*=(const float factor) {
+        x *= factor;
+        y *= factor;
+        return static_cast<TDerived&>(*this);
+    }
+
+    TDerived operator+(const TDerived& other) const {
+        TDerived result(static_cast<const TDerived&>(*this));
+        result += other;
+        return result;
+    }
+
+    TDerived operator-(const TDerived& other) const {
+        TDerived result(static_cast<const TDerived&>(*this));
+        result -= other;
+        return result;
+    }
+
+    TDerived operator*(const float factor) const {
+        TDerived result(static_cast<const TDerived&>(*this));
+        result *= factor;
+        return result;
+    }
+
+    bool operator==(const TDerived& other) const {
+        return x == other.x && y == other.y;
     }
 };
 
-inline float getLength(const Point p) {
+struct Pixel : public BasicPoint<int, Pixel> {
+    using BasicPoint<int, Pixel>::BasicPoint;
+
+    explicit Pixel(const wxPoint point)
+        : BasicPoint<int, Pixel>(point.x, point.y) {}
+
+    explicit operator wxPoint() const {
+        return wxPoint(this->x, this->y);
+    }
+};
+
+struct Coords : public BasicPoint<float, Coords> {
+    using BasicPoint<float, Coords>::BasicPoint;
+
+    explicit Coords(const Pixel p)
+        : BasicPoint<float, Coords>(p.x, p.y) {}
+
+    explicit operator Pixel() const {
+        return Pixel(int(x), int(y));
+    }
+};
+
+template <typename T, typename TDerived>
+INLINE float getLength(const BasicPoint<T, TDerived>& p) {
     return sqrt(sqr(p.x) + sqr(p.y));
 }
 

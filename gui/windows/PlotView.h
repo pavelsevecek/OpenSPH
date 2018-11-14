@@ -23,7 +23,7 @@ struct PlotData {
     LockingPtr<IPlot> plot;
 
     /// Color of the plot
-    Color color;
+    Rgba color;
 };
 
 class PlotFrame;
@@ -35,7 +35,7 @@ private:
 
     struct {
         LockingPtr<IPlot> plot;
-        Color color;
+        Rgba color;
     } cached;
 
     bool showLabels;

@@ -476,6 +476,46 @@ void processHarrisFile() {
     gnuplot.wait();
 }
 
+void makeTp(const Path& filePath) {
+    // for Hygiea
+    const Float a = 3.14178_f;
+    const Float e = 0.135631_f;
+    const Float I = asin(0.0889622);
+    const Float W = 64.621768_f * DEG_TO_RAD;
+    const Float w = 128.543611_f * DEG_TO_RAD;
+    const Float u = 0._f;
+
+    const Float X = (cos(W) * cos(w) - sin(W) * cos(I) * sin(w)) * a * (cos(u) - e) -
+                    (cos(W) * sin(w) + sin(W) * cos(I) * cos(w)) * a * sqrt(1 - sqr(e)) * sin(u);
+    const Float Y = (sin(W) * cos(w) + cos(W) * cos(I) * sin(w)) * a * (cos(u) - e) +
+                    (-sin(W) * sin(w) + cos(W) * cos(I) * cos(w)) * a * sqrt(1 - sqr(e)) * sin(u);
+    const Float Z = sin(I) * sin(w) * a * (cos(u) - e) + sin(I) * cos(w) * a * sqrt(1 - sqr(e)) * sin(u);
+
+    const Vector r = Vector(X, Y, Z);
+
+    const Float npart = 1500;
+
+    BinaryInput input;
+    Storage storage;
+    Statistics stats;
+    if (!input.load(filePath, storage, stats)) {
+        std::cout << "Cannot parse ssf file" << std::endl;
+    }
+
+    ArrayView<const Vector> v = storage.getDt<Vector>(QuantityId::POSITION);
+
+    FileLogger logger(Path("tp.in"));
+    UniformRng rng;
+    logger.write(npart);
+    for (Size i = 0; i < npart; ++i) {
+        logger.write(r / Constants::au);
+        const Size idx = clamp<Size>(Size(rng() * v.size()), 0, storage.getParticleCnt() - 1);
+        logger.write(v[idx] / Constants::au * Constants::year);
+        logger.write("0");
+        logger.write("0.0");
+    }
+}
+
 void printHelp() {
     std::cout << "Expected usage: post mode [parameters]" << std::endl
               << " where 'mode' is one of:" << std::endl
@@ -487,7 +527,8 @@ void printHelp() {
               << std::endl
               << "- ssfToSfd - computes the cumulative SFD from SPH output file" << std::endl
               << "- harris - TODO" << std::endl
-              << "- stats - prints ejected mass and the period of the largest remnant" << std::endl;
+              << "- stats - prints ejected mass and the period of the largest remnant" << std::endl
+              << "- maketp - makes tp.in input file for swift" << std::endl;
 }
 
 int main(int argc, char** argv) {
@@ -538,6 +579,12 @@ int main(int argc, char** argv) {
             ssfToStats(Path(argv[2]));
         } else if (mode == "harris") {
             processHarrisFile();
+        } else if (mode == "maketp") {
+            if (argc < 3) {
+                std::cout << "Expected parameters: post maketp frag.ssf";
+                return 0;
+            }
+            makeTp(Path(argv[2]));
         } else {
             printHelp();
             return 0;

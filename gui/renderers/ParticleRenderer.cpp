@@ -1,7 +1,9 @@
 #include "gui/renderers/ParticleRenderer.h"
+#include "gui/Utils.h"
 #include "gui/objects/Camera.h"
 #include "gui/objects/Color.h"
 #include "gui/objects/Colorizer.h"
+#include "gui/objects/RenderContext.h"
 #include "objects/finders/Order.h"
 #include "objects/wrappers/Finally.h"
 #include "post/Plot.h"
@@ -9,12 +11,10 @@
 #include "system/Profiler.h"
 #include "system/Statistics.h"
 #include "thread/CheckFunction.h"
-#include <wx/dcmemory.h>
 
 NAMESPACE_SPH_BEGIN
 
-
-static void drawVector(wxDC& dc, const ICamera& camera, const Vector& r, const Vector& v) {
+static void drawVector(IRenderContext& context, const ICamera& camera, const Vector& r, const Vector& v) {
     const Float scale = getLength(v);
     if (scale < EPS) {
         return;
@@ -24,35 +24,30 @@ static void drawVector(wxDC& dc, const ICamera& camera, const Vector& r, const V
     if (!p1 || !p2) {
         return;
     }
-    wxPen pen = dc.GetPen();
-    pen.SetColour(wxColour(255, 165, 0));
-    pen.SetWidth(2);
-    dc.SetPen(pen);
-    dc.DrawLine(p1->point, p2->point);
+    context.setColor(Rgba(1.f, 0.65f, 0.f), ColorFlag::LINE);
+    context.setThickness(2.f);
+    context.drawLine(p1->coords, p2->coords);
 
     // make an arrow
     AffineMatrix2 rot = AffineMatrix2::rotate(20._f * DEG_TO_RAD);
-    Point dp = p1->point - p2->point;
+    Coords dp = p1->coords - p2->coords;
     PlotPoint dir(dp.x, dp.y);
     PlotPoint a1 = rot.transformPoint(dir) * 0.1f;
     PlotPoint a2 = rot.transpose().transformPoint(dir) * 0.1f;
 
-    dc.DrawLine(p2->point, p2->point + Point(a1.x, a1.y));
-    dc.DrawLine(p2->point, p2->point + Point(a2.x, a2.y));
+    context.drawLine(p2->coords, p2->coords + Coords(a1.x, a1.y));
+    context.drawLine(p2->coords, p2->coords + Coords(a2.x, a2.y));
 }
 
-static void drawPalette(wxDC& dc, const Color& lineColor, const Palette& palette) {
+static void drawPalette(IRenderContext& context, const Rgba& lineColor, const Palette& palette) {
     const int size = 201;
-    wxPoint origin(dc.GetSize().x - 50, size + 30);
-    wxPen pen = dc.GetPen();
+    Pixel origin(context.size().x - 50, size + 30);
 
     // draw palette
     for (Size i = 0; i < size; ++i) {
         const float value = palette.relativeToPalette(float(i) / (size - 1));
-        wxColour color = wxColour(palette(value));
-        pen.SetColour(color);
-        dc.SetPen(pen);
-        dc.DrawLine(wxPoint(origin.x, origin.y - i), wxPoint(origin.x + 30, origin.y - i));
+        context.setColor(palette(value), ColorFlag::LINE);
+        context.drawLine(Coords(origin.x, origin.y - i), Coords(origin.x + 30, origin.y - i));
     }
 
     // draw tics
@@ -78,35 +73,22 @@ static void drawPalette(wxDC& dc, const Color& lineColor, const Palette& palette
     default:
         NOT_IMPLEMENTED;
     }
-
-    wxFont font = dc.GetFont();
-    // changing the font would be an unwanted side-effect
-    auto guard = finally([font, &dc] { dc.SetFont(font); });
-    font.MakeSmaller();
-    dc.SetFont(font);
-    pen.SetColour(wxColour(lineColor));
-    dc.SetPen(pen);
-    dc.SetTextForeground(wxColour(lineColor));
+    context.setColor(lineColor, ColorFlag::LINE | ColorFlag::TEXT);
     for (Float tic : tics) {
         const Float value = palette.paletteToRelative(tic);
         const Size i = value * size;
-        dc.DrawLine(wxPoint(origin.x, origin.y - i), wxPoint(origin.x + 6, origin.y - i));
-        dc.DrawLine(wxPoint(origin.x + 24, origin.y - i), wxPoint(origin.x + 30, origin.y - i));
+        context.drawLine(Coords(origin.x, origin.y - i), Coords(origin.x + 6, origin.y - i));
+        context.drawLine(Coords(origin.x + 24, origin.y - i), Coords(origin.x + 30, origin.y - i));
 
         std::wstring text = toPrintableString(tic, 1, 1000);
-        wxSize extent = dc.GetTextExtent(text);
-        if (text.find(L"^") != std::string::npos) {
-            // number with superscript is actually a bit shorter, shrink it
-            /// \todo this should be done more correctly
-            extent.x -= 6;
-        }
-        drawTextWithSubscripts(dc, text, wxPoint(origin.x - 15 - extent.x, origin.y - i - (extent.y >> 1)));
+        context.drawText(
+            Coords(origin.x - 15, origin.y - i), TextAlign::LEFT | TextAlign::VERTICAL_CENTER, text);
     }
 }
 
-static void drawGrid(wxDC& dc, const ICamera& camera, const float grid) {
+static void drawGrid(IRenderContext& context, const ICamera& camera, const float grid) {
     // find (any) direction in the camera plane
-    const CameraRay originRay = camera.unproject(Point(0, 0));
+    const CameraRay originRay = camera.unproject(Coords(0, 0));
     const Vector dir = getNormalized(originRay.target - originRay.origin);
     Vector perpDir;
     if (dir == Vector(0._f, 0._f, 1._f)) {
@@ -116,32 +98,32 @@ static void drawGrid(wxDC& dc, const ICamera& camera, const float grid) {
     }
 
     // find how much is projected grid distance
-    const Point shifted = camera.project(originRay.origin + grid * perpDir)->point;
+    const Coords shifted = camera.project(originRay.origin + grid * perpDir)->coords;
     const float dx = getLength(shifted);
     const float dy = dx;
-    const Point origin = camera.project(Vector(0._f))->point;
+    const Coords origin = camera.project(Vector(0._f))->coords;
 
-    wxPen pen(*wxWHITE_PEN);
-    pen.SetColour(wxColour(40, 40, 40));
-    dc.SetPen(pen);
-    for (float x = origin.x; x < dc.GetSize().x; x += dx) {
-        dc.DrawLine(wxPoint(x, 0), wxPoint(x, dc.GetSize().y));
+    context.setColor(Rgba(0.16_f), ColorFlag::LINE);
+    const Pixel size = context.size();
+    for (float x = origin.x; x < size.x; x += dx) {
+        context.drawLine(Coords(x, 0), Coords(x, size.y));
     }
     for (float x = origin.x - dx; x >= 0; x -= dx) {
-        dc.DrawLine(wxPoint(x, 0), wxPoint(x, dc.GetSize().y));
+        context.drawLine(Coords(x, 0), Coords(x, size.y));
     }
-    for (float y = origin.y; y < dc.GetSize().y; y += dy) {
-        dc.DrawLine(wxPoint(0, y), wxPoint(dc.GetSize().x, y));
+    for (float y = origin.y; y < size.y; y += dy) {
+        context.drawLine(Coords(0, y), Coords(size.x, y));
     }
     for (float y = origin.y - dy; y >= 0; y -= dy) {
-        dc.DrawLine(wxPoint(0, y), wxPoint(dc.GetSize().x, y));
+        context.drawLine(Coords(0, y), Coords(size.x, y));
     }
 }
 
 ParticleRenderer::ParticleRenderer(const GuiSettings& settings) {
     cutoff = settings.get<Float>(GuiSettingsId::ORTHO_CUTOFF);
     grid = settings.get<Float>(GuiSettingsId::VIEW_GRID_SIZE);
-    background = settings.get<Color>(GuiSettingsId::BACKGROUND_COLOR);
+    background = settings.get<Rgba>(GuiSettingsId::BACKGROUND_COLOR);
+    shouldContinue = true;
 }
 
 bool ParticleRenderer::isCutOff(const ICamera& camera, const Vector& r) {
@@ -160,7 +142,7 @@ void ParticleRenderer::initialize(const Storage& storage,
     bool hasVectorData = false;
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     for (Size i = 0; i < r.size(); ++i) {
-        const Color color = colorizer.evalColor(i);
+        const Rgba color = colorizer.evalColor(i);
         const Optional<ProjectedPoint> p = camera.project(r[i]);
         if (p && !this->isCutOff(camera, r[i])) {
             cached.idxs.push(i);
@@ -196,23 +178,16 @@ void ParticleRenderer::initialize(const Storage& storage,
     cached.palette = colorizer.getPalette();
 }
 
-SharedPtr<wxBitmap> ParticleRenderer::render(const ICamera& camera,
-    const RenderParams& params,
-    Statistics& stats) const {
-    CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
+void ParticleRenderer::render(const RenderParams& params, Statistics& stats, IRenderOutput& output) const {
     MEASURE_SCOPE("ParticleRenderer::render");
-    const wxSize size(params.size.x, params.size.y);
-    SharedPtr<wxBitmap> bitmap = makeShared<wxBitmap>(size, 24);
-    wxMemoryDC dc(*bitmap);
+    Bitmap<Rgba> bitmap(params.size);
+    PreviewRenderContext context(bitmap);
 
-    // draw black background (there is no fill method?)
-    wxBrush brush(*wxBLACK_BRUSH);
-    brush.SetColour(wxColour(background));
-    dc.SetBrush(brush);
-    dc.DrawRectangle(wxPoint(0, 0), size);
+    // draw black background
+    context.fill(Rgba::black());
 
     if (grid > 0.f) {
-        drawGrid(dc, camera, grid);
+        drawGrid(context, *params.camera, grid);
     }
 
     struct {
@@ -221,14 +196,15 @@ SharedPtr<wxBitmap> ParticleRenderer::render(const ICamera& camera,
         bool used = false;
     } dir;
 
-    wxPen pen(*wxBLACK_PEN);
+    context.setColor(Rgba::black(), ColorFlag::LINE);
 
+    shouldContinue = true;
     // draw particles
-    for (Size i = 0; i < cached.positions.size(); ++i) {
+    for (Size i = 0; i < cached.positions.size() /* && shouldContinue*/; ++i) {
         if (params.selectedParticle && cached.idxs[i] == params.selectedParticle.value()) {
             // highlight the selected particle
-            brush.SetColour(*wxRED);
-            pen.SetColour(*wxWHITE);
+            context.setColor(Rgba::red(), ColorFlag::FILL);
+            context.setColor(Rgba::white(), ColorFlag::LINE);
 
             if (!cached.vectors.empty()) {
                 dir.used = true;
@@ -242,43 +218,33 @@ SharedPtr<wxBitmap> ParticleRenderer::render(const ICamera& camera,
                 dir.r = cached.positions[i];
             }
         } else {
-            wxColour color(cached.colors[i]);
-            brush.SetColour(color);
-            pen.SetColour(color);
+            context.setColor(cached.colors[i], ColorFlag::FILL | ColorFlag::LINE);
         }
-        dc.SetBrush(brush);
-        dc.SetPen(pen);
 
-        const Optional<ProjectedPoint> p = camera.project(cached.positions[i]);
+        const Optional<ProjectedPoint> p = params.camera->project(cached.positions[i]);
         ASSERT(p); // cached values must be visible by the camera
         const Float size = p->radius * params.particles.scale;
-        if (size < 0.5_f) {
-            // just a single pixel
-            dc.DrawPoint(p->point);
-        } else if (size < 1._f) {
-            // draw a 2x2 square - the circle would come out as 3x3 square
-            dc.DrawRectangle(p->point, wxSize(2, 2));
-        } else {
-            dc.DrawCircle(p->point, round(size));
-        }
+        context.drawCircle(p->coords, size);
     }
     // after all particles are drawn, draw the velocity vector over
     if (dir.used) {
-        drawVector(dc, camera, dir.r, dir.v);
+        drawVector(context, *params.camera, dir.r, dir.v);
     }
 
     if (cached.palette) {
-        drawPalette(dc, background.inverse(), cached.palette.value());
+        drawPalette(context, background.inverse(), cached.palette.value());
     }
-    const Float time = stats.get<Float>(StatisticsId::RUN_TIME);
-    dc.SetTextForeground(wxColour(background.inverse()));
-    wxFont font = dc.GetFont();
-    font.MakeSmaller();
-    dc.SetFont(font);
-    dc.DrawText(("t = " + getFormattedTime(1.e3_f * time)).c_str(), wxPoint(0, 0));
 
-    dc.SelectObject(wxNullBitmap);
-    return bitmap;
+    const Float time = stats.get<Float>(StatisticsId::RUN_TIME);
+    context.setColor(background.inverse(), ColorFlag::TEXT);
+    context.drawText(
+        Coords(0, 0), TextAlign::RIGHT | TextAlign::BOTTOM, "t = " + getFormattedTime(1.e3_f * time));
+
+    output.update(bitmap, context.getLabels());
+}
+
+void ParticleRenderer::cancelRender() {
+    shouldContinue = false;
 }
 
 NAMESPACE_SPH_END

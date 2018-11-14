@@ -8,9 +8,11 @@
 #include "objects/finders/Bvh.h"
 #include "sph/kernel/Kernel.h"
 #include "thread/ThreadLocal.h"
+#include <atomic>
 
 NAMESPACE_SPH_BEGIN
 
+class FrameBuffer;
 class IBrdf;
 
 class RayTracer : public IRenderer {
@@ -30,15 +32,18 @@ private:
         /// Direction to sun; sun is assumed to be a point light source.
         Vector dirToSun;
 
-        /// Ambient light illuminating every point unconditionally.
+        /// Intensity of the ambient light, illuminating every point unconditionally.
         Float ambientLight;
+
+        /// Intensity of the sunlight.
+        Float sunLight;
 
         /// BRDF used to get the surface reflectance.
         AutoPtr<IBrdf> brdf;
 
         struct {
 
-            Color color = Color::black();
+            Rgba color = Rgba::black();
 
             /// HDRI for the background. Can be empty.
             Texture hdri;
@@ -52,19 +57,28 @@ private:
         /// Cast shadows
         bool shadows = false;
 
-        /// Step between two pixels computed by raytracing.
-        Size subsampling = 1;
+        /// Number of iterations of the progressive renderer.
+        Size iterationLimit;
+
+        /// Number of subsampled iterations.
+        Size subsampling;
 
     } params;
 
     IScheduler& scheduler;
 
     struct ThreadData {
+        /// Neighbour indices of the current particle
         Array<Size> neighs;
 
+        /// Intersection for the current ray
         std::set<IntersectionInfo> intersections;
 
+        /// Cached index of the previously evaluated particle, used for optimizations.
         Size previousIdx;
+
+        /// Random-number generator for this thread.
+        UniformRng rng;
     };
 
     mutable ThreadLocal<ThreadData> threadData;
@@ -74,7 +88,7 @@ private:
         Array<Vector> r;
 
         /// Particle colors
-        Array<Color> colors;
+        Array<Rgba> colors;
 
         /// Mapping coordinates. May be empty.
         Array<Vector> uvws;
@@ -87,6 +101,8 @@ private:
 
     } cached;
 
+    mutable std::atomic_bool shouldContinue;
+
 public:
     explicit RayTracer(IScheduler& scheduler, const GuiSettings& settings);
 
@@ -96,11 +112,15 @@ public:
         const IColorizer& colorizer,
         const ICamera& camera) override;
 
-    virtual SharedPtr<wxBitmap> render(const ICamera& camera,
-        const RenderParams& params,
-        Statistics& stats) const override;
+    virtual void render(const RenderParams& params, Statistics& stats, IRenderOutput& output) const override;
+
+    virtual void cancelRender() override {
+        shouldContinue = false;
+    }
 
 private:
+    void refine(const RenderParams& params, const Size iteration, FrameBuffer& fb) const;
+
     struct ShadeContext {
         /// Particle hit by the ray
         Size index;
@@ -129,15 +149,15 @@ private:
     Optional<Vector> getSurfaceHit(ThreadData& data, const ShadeContext& context, const bool occlusion) const;
 
     /// \brief Returns the color of given hit point.
-    Color shade(ThreadData& data, const Size index, const Vector& hit, const Vector& dir) const;
+    Rgba shade(ThreadData& data, const Size index, const Vector& hit, const Vector& dir) const;
 
-    Color getEnviroColor(const Ray& ray) const;
+    Rgba getEnviroColor(const Ray& ray) const;
 
     Float evalField(ArrayView<const Size> neighs, const Vector& pos) const;
 
     Vector evalGradient(ArrayView<const Size> neighs, const Vector& pos) const;
 
-    Color evalColor(ArrayView<const Size> neighs, const Vector& pos1) const;
+    Rgba evalColor(ArrayView<const Size> neighs, const Vector& pos1) const;
 
     Vector evalUvws(ArrayView<const Size> neighs, const Vector& pos1) const;
 };

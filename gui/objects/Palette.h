@@ -22,7 +22,7 @@ class Palette {
 private:
     struct Point {
         float value;
-        Color color;
+        Rgba color;
     };
     Array<Point> points;
     Interval range;
@@ -54,7 +54,7 @@ public:
     PaletteScale getScale() const;
 
     /// \brief Returns the color mapped to given number.
-    Color operator()(const float value) const;
+    Rgba operator()(const float value) const;
 
     /// \brief Converts a relative position to an absolute position on a palette.
     ///

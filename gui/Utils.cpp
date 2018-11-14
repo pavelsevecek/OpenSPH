@@ -2,6 +2,7 @@
 #include "common/Assert.h"
 #include "objects/utility/StringUtils.h"
 #include <iomanip>
+#include <wx/dcmemory.h>
 
 NAMESPACE_SPH_BEGIN
 
@@ -93,5 +94,40 @@ std::wstring toPrintableString(const float value, const Size precision, const fl
     return printable;
 }
 
+static Pixel getOriginOffset(wxDC& dc, Flags<TextAlign> align, const std::wstring& text) {
+    wxSize extent = dc.GetTextExtent(text);
+    if (text.find(L"^") != std::string::npos) {
+        // number with superscript is actually a bit shorter, shrink it
+        /// \todo this should be done more correctly
+        extent.x -= 6;
+    }
+    Pixel offset(0, 0);
+    if (align.has(TextAlign::LEFT)) {
+        offset.x -= extent.x;
+    }
+    if (align.has(TextAlign::HORIZONTAL_CENTER)) {
+        offset.x -= extent.x / 2;
+    }
+    if (align.has(TextAlign::TOP)) {
+        offset.y -= extent.y;
+    }
+    if (align.has(TextAlign::VERTICAL_CENTER)) {
+        offset.y -= extent.y / 2;
+    }
+    return offset;
+}
+
+void printLabels(wxBitmap& bitmap, ArrayView<const IRenderOutput::Label> labels) {
+    wxMemoryDC dc(bitmap);
+    wxFont font = dc.GetFont();
+    for (const IRenderOutput::Label& label : labels) {
+        dc.SetTextForeground(wxColour(label.color));
+        font.SetPointSize(label.fontSize);
+        dc.SetFont(font);
+        const wxPoint origin(label.position + getOriginOffset(dc, label.align, label.text));
+        drawTextWithSubscripts(dc, label.text, origin);
+    }
+    dc.SelectObject(wxNullBitmap);
+}
 
 NAMESPACE_SPH_END

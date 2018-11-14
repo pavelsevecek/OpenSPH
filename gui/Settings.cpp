@@ -62,9 +62,10 @@ AutoPtr<Settings<GuiSettingsId>> Settings<GuiSettingsId>::instance (new Settings
         "Field of view of the orthographic camera. Specified as distance (not an angle). Value 0 means the "
         "field of view is computed automatically to fit all particles inside the view."},
     { GuiSettingsId::RAYTRACE_SUBSAMPLING,  "raytrace.subsampling", 1,
-        "Specifies a step in pixels between the two pixels computed by raytracing. Pixels between the computed "
-        "ones are linearly interpolated. Larger value speeds up the rendering at a cost of lower effective "
-        "resolution of the rendered image." },
+        "Specifies a number of subsampled iterations of the progressive renderer. Larger values speed up the "
+        "start-up of the render at a cost of lower resolution of the render." },
+    { GuiSettingsId::RAYTRACE_ITERATION_LIMIT, "raytrace.iteration_limit", 10,
+        "Number of iterations of the render, including the subsampled iterations. " },
     { GuiSettingsId::RAYTRACE_HDRI,         "raytrace.hdri",        std::string(""),
         "Optional spherical bitmap used as an environment. Empty means the environment is black." },
     { GuiSettingsId::RAYTRACE_TEXTURE_PRIMARY,      "raytrace.texture_primary",     std::string(""),

@@ -45,7 +45,7 @@ public:
     virtual bool isInitialized() const = 0;
 
     /// \brief Returns the color of idx-th particle.
-    virtual Color evalColor(const Size idx) const = 0;
+    virtual Rgba evalColor(const Size idx) const = 0;
 
     /// \brief Returns the scalar representation of the colorized quantity for idx-th particle.
     ///
@@ -146,7 +146,8 @@ enum class ColorizerId {
     BOUND_COMPONENT_ID = -17,  ///< Color assigned to each group of gravitationally bound particles
     AGGREGATE_ID = -18,        ///< Color assigned to each aggregate
     FLAG = -19,                ///< Particles of different bodies are colored differently
-    BEAUTY = -20,              ///< Colorizer attempting to show the real-world look
+    BEAUTY = -20,              ///< Attempts to show the real-world look
+    MARKER = -21, ///< Simple colorizer assigning given color to all particles, creating particle "mask".
 };
 
 /// \brief Default colorizer simply converting quantity value to color using defined palette.
@@ -176,7 +177,7 @@ public:
         return !values.empty();
     }
 
-    virtual Color evalColor(const Size idx) const override {
+    virtual Rgba evalColor(const Size idx) const override {
         return palette(this->evalScalar(idx).value());
     }
 
@@ -278,7 +279,7 @@ public:
         return !values.empty();
     }
 
-    virtual Color evalColor(const Size idx) const override {
+    virtual Rgba evalColor(const Size idx) const override {
         ASSERT(this->isInitialized());
         const Vector projected = values[idx] - dot(values[idx], axis) * axis;
         const Float x = dot(projected, dir1);
@@ -338,7 +339,7 @@ public:
         return !v.empty();
     }
 
-    virtual Color evalColor(const Size idx) const override {
+    virtual Rgba evalColor(const Size idx) const override {
         ASSERT(!v.empty() && !r.empty());
         return palette(getLength(this->getCorotatingVelocity(idx)));
     }
@@ -389,7 +390,7 @@ public:
         return !rho.empty();
     }
 
-    virtual Color evalColor(const Size idx) const override {
+    virtual Rgba evalColor(const Size idx) const override {
         ASSERT(this->isInitialized());
         return palette(rho[idx] / rho0[idx] - 1.f);
     }
@@ -436,7 +437,7 @@ public:
         return !m.empty();
     }
 
-    virtual Color evalColor(const Size idx) const override {
+    virtual Rgba evalColor(const Size idx) const override {
         return palette(sum(idx));
     }
 
@@ -481,7 +482,7 @@ public:
         return !s.empty() && !p.empty();
     }
 
-    virtual Color evalColor(const Size idx) const override {
+    virtual Rgba evalColor(const Size idx) const override {
         return palette(this->evalScalar(idx).value());
     }
 
@@ -530,7 +531,7 @@ public:
         return !m.empty();
     }
 
-    virtual Color evalColor(const Size idx) const override {
+    virtual Rgba evalColor(const Size idx) const override {
         return palette(this->evalScalar(idx).value());
     }
 
@@ -562,7 +563,7 @@ public:
     explicit YieldReductionColorizer(Palette palette)
         : TypedColorizer<Float>(QuantityId::STRESS_REDUCING, std::move(palette)) {}
 
-    virtual Color evalColor(const Size idx) const override {
+    virtual Rgba evalColor(const Size idx) const override {
         ASSERT(this->isInitialized());
         ASSERT(values[idx] >= 0._f && values[idx] <= 1._f);
         return palette(1._f - values[idx]);
@@ -612,7 +613,7 @@ public:
         return !ratio.empty();
     }
 
-    virtual Color evalColor(const Size idx) const override {
+    virtual Rgba evalColor(const Size idx) const override {
         return palette(ratio[idx]);
     }
 
@@ -641,12 +642,12 @@ public:
         // IMaterial& mat = storage.getMaterial(0).material();
         const float u_iv = 3.e4_f; // mat.getParam<Float>(BodySettingsId::TILLOTSON_ENERGY_IV);
         const float u_cv = 5.e5_f; // mat.getParam<Float>(BodySettingsId::TILLOTSON_ENERGY_CV);
-        palette = Palette({ { 0.01f * u_iv, Color(0.5f, 0.5f, 0.5) },
-                              { 0.5f * u_iv, Color(0.5f, 0.5f, 0.5f) },
+        palette = Palette({ { 0.01f * u_iv, Rgba(0.5f, 0.5f, 0.5) },
+                              { 0.5f * u_iv, Rgba(0.5f, 0.5f, 0.5f) },
                               /*{ u_iv, Color(1.5f, 0.f, 0.f) },
                               { u_cv, Color(2.f, 2.f, 0.95) } },*/
-                              { u_iv, Color(0.8f, 0.f, 0.f) },
-                              { u_cv, Color(1.f, 1.f, 0.6) } },
+                              { u_iv, Rgba(0.8f, 0.f, 0.f) },
+                              { u_cv, Rgba(1.f, 1.f, 0.6) } },
             PaletteScale::LOGARITHMIC);
     }
 
@@ -654,7 +655,7 @@ public:
         return !u.empty();
     }
 
-    virtual Color evalColor(const Size idx) const override {
+    virtual Rgba evalColor(const Size idx) const override {
         ASSERT(this->isInitialized());
         return palette(u[idx]);
     }
@@ -682,7 +683,7 @@ public:
         values = makeArrayRef(storage.getValue<Vector>(QuantityId::POSITION), ref);
     }
 
-    virtual Color evalColor(const Size idx) const override {
+    virtual Rgba evalColor(const Size idx) const override {
         ASSERT(this->isInitialized());
         return palette(values[idx][H]);
     }
@@ -709,9 +710,9 @@ public:
         return !uvws.empty();
     }
 
-    virtual Color evalColor(const Size idx) const override {
+    virtual Rgba evalColor(const Size idx) const override {
         ASSERT(this->isInitialized());
-        return Color(uvws[idx][X], 0._f, uvws[idx][Y]);
+        return Rgba(uvws[idx][X], 0._f, uvws[idx][Y]);
     }
 
     virtual Optional<Particle> getParticle(const Size UNUSED(idx)) const override {
@@ -778,11 +779,11 @@ public:
                (detection == Detection::NEIGBOUR_THRESHOLD && !neighbours.values.empty());
     }
 
-    virtual Color evalColor(const Size idx) const override {
+    virtual Rgba evalColor(const Size idx) const override {
         if (isBoundary(idx)) {
-            return Color::red();
+            return Rgba::red();
         } else {
-            return Color::gray();
+            return Rgba::gray();
         }
     }
 
@@ -814,6 +815,38 @@ private:
     }
 };
 
+class MarkerColorizer : public IColorizer {
+private:
+    Rgba color;
+
+public:
+    explicit MarkerColorizer(const Rgba& color)
+        : color(color) {}
+
+    virtual void initialize(const Storage& UNUSED(storage), const RefEnum UNUSED(ref)) override {}
+
+    virtual bool isInitialized() const override {
+        return true;
+    }
+
+    virtual Rgba evalColor(const Size UNUSED(idx)) const override {
+        return color;
+    }
+
+    virtual Optional<Particle> getParticle(const Size UNUSED(idx)) const override {
+        return NOTHING;
+    }
+
+
+    virtual Optional<Palette> getPalette() const override {
+        return NOTHING;
+    }
+
+    virtual std::string name() const override {
+        return "Marker";
+    }
+};
+
 /// \todo possibly move elsewhere
 static uint64_t getHash(const Size value) {
     // https://stackoverflow.com/questions/8317508/hash-function-for-a-string
@@ -829,30 +862,30 @@ static uint64_t getHash(const Size value) {
     return hash;
 }
 
-static Color getRandomizedColor(const Size idx) {
+static Rgba getRandomizedColor(const Size idx) {
     uint64_t hash = getHash(idx);
     const uint8_t r = (hash & 0x00000000FFFF);
     const uint8_t g = (hash & 0x0000FFFF0000) >> 16;
     const uint8_t b = (hash & 0xFFFF00000000) >> 32;
-    return Color(r / 255.f, g / 255.f, b / 255.f);
+    return Rgba(r / 255.f, g / 255.f, b / 255.f);
 }
 
 template <typename TDerived>
 class IdColorizerTemplate : public IColorizer {
 private:
-    Color backgroundColor;
+    Rgba backgroundColor;
 
 public:
     explicit IdColorizerTemplate(const GuiSettings& gui) {
-        backgroundColor = gui.get<Color>(GuiSettingsId::BACKGROUND_COLOR);
+        backgroundColor = gui.get<Rgba>(GuiSettingsId::BACKGROUND_COLOR);
     }
 
-    virtual Color evalColor(const Size idx) const override {
+    virtual Rgba evalColor(const Size idx) const override {
         const Optional<Size> id = static_cast<const TDerived*>(this)->evalId(idx);
         if (!id) {
-            return Color::gray();
+            return Rgba::gray();
         }
-        const Color color = getRandomizedColor(id.value());
+        const Rgba color = getRandomizedColor(id.value());
         if (backgroundColor.intensity() < 0.5f) {
             // dark background, brighten the particle color
             return color.brighten(0.4f);

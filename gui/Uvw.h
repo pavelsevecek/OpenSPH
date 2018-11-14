@@ -17,13 +17,13 @@ enum TextureFiltering {
 
 class Texture : public Noncopyable {
 private:
-    Bitmap bitmap;
+    Bitmap<Rgba> bitmap;
     TextureFiltering filtering;
 
 public:
     Texture() = default;
 
-    explicit Texture(Bitmap&& bitmap, const TextureFiltering filtering)
+    explicit Texture(Bitmap<Rgba>&& bitmap, const TextureFiltering filtering)
         : bitmap(std::move(bitmap))
         , filtering(filtering) {}
 
@@ -32,7 +32,7 @@ public:
         bitmap = loadBitmapFromFile(path);
     }
 
-    Color eval(const Vector& uvw) const {
+    Rgba eval(const Vector& uvw) const {
         switch (filtering) {
         case TextureFiltering::NEAREST_NEIGHBOUR:
             return this->evalNearestNeighbour(uvw);
@@ -46,10 +46,10 @@ public:
     Texture clone() const {
         Texture cloned;
         cloned.filtering = filtering;
-        cloned.bitmap = Bitmap(bitmap.size());
+        cloned.bitmap = Bitmap<Rgba>(bitmap.size());
         for (int y = 0; y < bitmap.size().y; ++y) {
             for (int x = 0; x < bitmap.size().x; ++x) {
-                cloned.bitmap[Point(x, y)] = bitmap[Point(x, y)];
+                cloned.bitmap[Pixel(x, y)] = bitmap[Pixel(x, y)];
             }
         }
         return cloned;
@@ -60,15 +60,15 @@ public:
     }
 
 private:
-    Color evalNearestNeighbour(const Vector& uvw) const {
-        const Point size = bitmap.size();
+    Rgba evalNearestNeighbour(const Vector& uvw) const {
+        const Pixel size = bitmap.size();
         const Size u = clamp(int(uvw[X] * size.x), 0, size.x - 1);
         const Size v = clamp(int(uvw[Y] * size.y), 0, size.y - 1);
-        return Color(bitmap[Point(u, v)]);
+        return Rgba(bitmap[Pixel(u, v)]);
     }
 
-    Color evalBilinear(const Vector& uvw) const {
-        const Point size = bitmap.size();
+    Rgba evalBilinear(const Vector& uvw) const {
+        const Pixel size = bitmap.size();
         const Vector textureUvw = clamp(Vector(uvw[X] * size.x, uvw[Y] * size.y, 0._f),
             Vector(0._f),
             Vector(size.x - 1, size.y - 1, 0._f) - Vector(EPS));
@@ -81,10 +81,10 @@ private:
         ASSERT(a >= 0._f && a < 1._f, a);
         ASSERT(b >= 0._f && b < 1._f, b);
 
-        return Color(bitmap[Point(u1, v1)]) * (1._f - a) * (1._f - b) +
-               Color(bitmap[Point(u2, v1)]) * a * (1._f - b) + //
-               Color(bitmap[Point(u1, v2)]) * (1._f - a) * b + //
-               Color(bitmap[Point(u2, v2)]) * a * b;
+        return Rgba(bitmap[Pixel(u1, v1)]) * (1._f - a) * (1._f - b) +
+               Rgba(bitmap[Pixel(u2, v1)]) * a * (1._f - b) + //
+               Rgba(bitmap[Pixel(u1, v2)]) * (1._f - a) * b + //
+               Rgba(bitmap[Pixel(u2, v2)]) * a * b;
     }
 };
 

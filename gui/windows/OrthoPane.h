@@ -6,11 +6,10 @@
 #include "gui/windows/IGraphicsPane.h"
 #include "objects/wrappers/Optional.h"
 
-class wxTimer;
-
 NAMESPACE_SPH_BEGIN
 
 class Controller;
+class ICamera;
 
 class OrthoPane : public IGraphicsPane {
 private:
@@ -19,9 +18,11 @@ private:
     /// Helper for rotation
     ArcBall arcBall;
 
+    AutoPtr<ICamera> camera;
+
     struct {
         /// Cached last mouse position when dragging the window
-        Point position;
+        Pixel position;
 
         /// Camera rotation matrix when dragging started.
         AffineMatrix initialMatrix = AffineMatrix::identity();
@@ -36,9 +37,7 @@ public:
 
     ~OrthoPane();
 
-    virtual void resetView() override {
-        dragging.initialMatrix = AffineMatrix::identity();
-    }
+    virtual void resetView() override;
 
 private:
     /// wx event handlers

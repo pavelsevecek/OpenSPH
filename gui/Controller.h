@@ -5,12 +5,10 @@
 #include "objects/containers/FlatMap.h"
 #include "objects/wrappers/Locking.h"
 #include "objects/wrappers/SharedPtr.h"
-#include "quantities/Particle.h"
 #include "system/Settings.h"
 #include <condition_variable>
 #include <thread>
 
-class wxBitmap;
 class wxWindow;
 class wxSizer;
 
@@ -21,7 +19,7 @@ class Movie;
 class Storage;
 class Statistics;
 class Timer;
-class Point;
+struct Pixel;
 class Palette;
 class IRun;
 class IRenderer;
@@ -48,6 +46,7 @@ public:
     virtual void statusChanges(const RunStatus newStatus) = 0;
 };
 
+/// \brief Main GUI class connection the simulation with UI controls.
 class Controller {
     friend class GuiCallbacks;
 
@@ -79,6 +78,7 @@ private:
     /// Object for saving image snapshots of the simulations
     SharedPtr<Movie> movie;
 
+    /// \brief Components used to render particles into the window.
     struct Vis {
         /// Cached positions of particles for visualization.
         Array<Vector> positions;
@@ -86,28 +86,51 @@ private:
         /// Copy of statistics when the colorizer was initialized
         AutoPtr<Statistics> stats;
 
-        /// Rendered used for rendering the view
+        /// \brief Rendered used for rendering the view
+        ///
+        /// Accessed from run thread and render thread, guarded by renderThreadMutex.
         AutoPtr<IRenderer> renderer;
 
-        /// Currently selected colorizer
+        /// \brief Currently selected colorizer
+        ///
+        /// Accessed from run thread and render thread, guarded by renderThreadMutex.
         SharedPtr<IColorizer> colorizer;
 
-        /// Current camera of the view. The object is shared with parent model.
-        SharedPtr<ICamera> camera;
+        /// \brief Current camera of the view.
+        ///
+        /// Accessed from multiple threads, needs to be always guarded by cameraMutex.
+        AutoPtr<ICamera> camera;
+        mutable std::mutex cameraMutex;
 
         /// Currently selected particle.
         Optional<Size> selectedParticle;
 
-        /// CV for waiting till main thread events are processed
-        std::mutex mainThreadMutex;
-        std::condition_variable mainThreadVar;
+        /// \brief Last rendered bitmap.
+        ///
+        /// This object is only accessed from main thread!
+        /// \note AutoPtr just to avoid the include.
+        AutoPtr<wxBitmap> bitmap;
+
+        /// Thread used for rendering.
+        std::thread renderThread;
+
+        /// True if some render parameter has changed.
+        std::atomic_bool needsRefresh;
+
+        /// CV for waiting till render thread events are processed
+        std::mutex renderThreadMutex;
+        std::condition_variable renderThreadVar;
 
         /// Timer controlling refreshing rate of the view
         AutoPtr<Timer> timer;
 
+        Vis();
+
         void initialize(const GuiSettings& settings);
 
         bool isInitialized();
+
+        void refresh();
     } vis;
 
     /// Current status used for communication between thread
@@ -152,10 +175,10 @@ public:
     /// \brief Renders a bitmap of current view.
     ///
     /// Can only be called from main thread.
-    SharedPtr<wxBitmap> getRenderedBitmap();
+    const wxBitmap& getRenderedBitmap() const;
 
-    /// \brief Returns the camera currently used for the rendering
-    SharedPtr<ICamera> getCurrentCamera() const;
+    /// \brief Returns the camera currently used for the rendering.
+    AutoPtr<ICamera> getCurrentCamera() const;
 
     /// \brief Returns the colorizer currently used for rendering into the window.
     SharedPtr<IColorizer> getCurrentColorizer() const;
@@ -165,7 +188,7 @@ public:
     /// \param position Position in image coordinates, corresponding to the latest rendered image.
     /// \param toleranceEps Relative addition to effective radius of a particle; particles are considered to
     ///                     be under the point of they are closer than (displayedRadius * (1+toleranceEps)).
-    Optional<Size> getIntersectedParticle(const Point position, const float toleranceEps = 1.f);
+    Optional<Size> getIntersectedParticle(const Pixel position, const float toleranceEps = 1.f);
 
     Optional<Size> getSelectedParticle() const;
 
@@ -217,6 +240,13 @@ public:
     /// time step; function does nothing during the run. Needs to be called from main thread.
     void tryRedraw();
 
+    /// \brief Re-renders the particles with given camera.
+    ///
+    /// Other input data for the render (particles, colors, ...) remain unchanged. Function is non-blocking,
+    /// it only flags the current render as "dirty" and exits, the image is later re-rendered from render
+    /// thread. Can be called from any thread.
+    void refresh(AutoPtr<ICamera>&& camera);
+
     /// \addtogroup Controlling the run
 
     /// \brief Sets up and starts a new simulation.
@@ -241,8 +271,8 @@ public:
     /// \brief Stops the current simulation.
     ///
     /// If no simulation is running, the function does nothing. Next usage of \ref start will start the
-    /// simulation from the beginning. \param waitForFinish If true, the function will block until the run is
-    /// finished. Otherwise the
+    /// simulation from the beginning.
+    /// \param waitForFinish If true, the function will block until the run is finished. Otherwise the
     ///                      function is nonblocking.
     void stop(bool waitForFinish = false);
 
@@ -273,7 +303,9 @@ private:
     /// Can be called from any thread. Function blocks until the particles are redrawn.
     void redraw(const Storage& storage, Statistics& stats);
 
-    void run(const Path& path = Path());
+    void startRunThread(const Path& path = Path());
+
+    void startRenderThread();
 };
 
 NAMESPACE_SPH_END

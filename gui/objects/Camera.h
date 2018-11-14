@@ -19,7 +19,7 @@ class Storage;
 struct ProjectedPoint {
 
     /// Point in image coordinates
-    Point point;
+    Coords coords;
 
     /// Projected radius of the particle
     float radius;
@@ -45,8 +45,8 @@ public:
     /// If the particle is outside of the image region or is clipped by the projection, returns NOTHING.
     virtual Optional<ProjectedPoint> project(const Vector& r) const = 0;
 
-    /// \brief Returns a ray in particle coordinates corresponding to given point in the image plane.
-    virtual CameraRay unproject(const Point point) const = 0;
+    /// \brief Returns a ray in particle coordinates corresponding to given coordinates in the image plane.
+    virtual CameraRay unproject(const Coords& coords) const = 0;
 
     /// \brief Returns the direction of the camera.
     virtual Vector getDirection() const = 0;
@@ -57,7 +57,7 @@ public:
     /// differently.
     /// \param fixedPoint Point that remains fixed after the zoom (for magnitude != 1, there is exactly one)
     /// \param magnitude Relative zoom amount, value <1 means zooming out, value >1 means zooming in.
-    virtual void zoom(const Point fixedPoint, const float magnitude) = 0;
+    virtual void zoom(const Pixel fixedPoint, const float magnitude) = 0;
 
     /// \brief Transforms the current view by given matrix.
     ///
@@ -66,7 +66,10 @@ public:
     virtual void transform(const AffineMatrix& matrix) = 0;
 
     /// \brief Moves the camera by relative offset
-    virtual void pan(const Point offset) = 0;
+    virtual void pan(const Pixel offset) = 0;
+
+    /// \todo revert to ClonePtr!
+    virtual AutoPtr<ICamera> clone() const = 0;
 };
 
 
@@ -86,8 +89,8 @@ struct OrthoCameraData {
 /// \brief Orthographic camera.
 class OrthoCamera : public ICamera {
 private:
-    Point imageSize;
-    Point center;
+    Pixel imageSize;
+    Pixel center;
 
     OrthoCameraData data;
 
@@ -97,21 +100,25 @@ private:
     } cached;
 
 public:
-    OrthoCamera(const Point imageSize, const Point center, OrthoCameraData data);
+    OrthoCamera(const Pixel imageSize, const Pixel center, OrthoCameraData data);
 
     virtual void initialize(const Storage& storage) override;
 
     virtual Optional<ProjectedPoint> project(const Vector& r) const override;
 
-    virtual CameraRay unproject(const Point point) const override;
+    virtual CameraRay unproject(const Coords& coords) const override;
 
     virtual Vector getDirection() const override;
 
-    virtual void zoom(const Point fixedPoint, const float magnitude) override;
+    virtual void zoom(const Pixel fixedPoint, const float magnitude) override;
 
     virtual void transform(const AffineMatrix& matrix) override;
 
-    virtual void pan(const Point offset) override;
+    virtual void pan(const Pixel offset) override;
+
+    virtual AutoPtr<ICamera> clone() const override {
+        return makeAuto<OrthoCamera>(*this);
+    }
 };
 
 class ITracker : public Polymorphic {
@@ -141,7 +148,11 @@ public:
         : index(index) {}
 
     virtual Vector position(const Storage& storage) const override {
-        return storage.getValue<Vector>(QuantityId::POSITION)[index];
+        if (index < storage.getParticleCnt()) {
+            return storage.getValue<Vector>(QuantityId::POSITION)[index];
+        } else {
+            return Vector(0._f);
+        }
     }
 };
 
@@ -167,7 +178,7 @@ struct PerspectiveCameraData {
 /// \brief Perspective camera
 class PerspectiveCamera : public ICamera {
 private:
-    Point imageSize;
+    Pixel imageSize;
     PerspectiveCameraData data;
 
     struct {
@@ -186,21 +197,25 @@ private:
     } cached;
 
 public:
-    PerspectiveCamera(const Point imageSize, const PerspectiveCameraData& data);
+    PerspectiveCamera(const Pixel imageSize, const PerspectiveCameraData& data);
 
     virtual void initialize(const Storage& storage) override;
 
     virtual Optional<ProjectedPoint> project(const Vector& r) const override;
 
-    virtual CameraRay unproject(const Point point) const override;
+    virtual CameraRay unproject(const Coords& coords) const override;
 
     virtual Vector getDirection() const override;
 
-    virtual void zoom(const Point UNUSED(fixedPoint), const float magnitude) override;
+    virtual void zoom(const Pixel UNUSED(fixedPoint), const float magnitude) override;
 
     virtual void transform(const AffineMatrix& matrix) override;
 
-    virtual void pan(const Point offset) override;
+    virtual void pan(const Pixel offset) override;
+
+    virtual AutoPtr<ICamera> clone() const override {
+        return makeAuto<PerspectiveCamera>(*this);
+    }
 
 private:
     void update();

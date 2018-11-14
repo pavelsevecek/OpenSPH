@@ -75,7 +75,7 @@ PaletteScale Palette::getScale() const {
     return scale;
 }
 
-Color Palette::operator()(const float value) const {
+Rgba Palette::operator()(const float value) const {
     ASSERT(points.size() >= 2);
     ASSERT(scale != PaletteScale::LOGARITHMIC || value >= 0.f);
     const float palette = linearToPalette(value);

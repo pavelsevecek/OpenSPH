@@ -23,7 +23,7 @@ class OrthoPane;
 class ParticleProbe;
 class PlotView;
 class Particle;
-class Color;
+class Rgba;
 class Statistics;
 class Storage;
 struct DiagnosticsError;
@@ -75,7 +75,7 @@ public:
 
     void setColorizerList(Array<SharedPtr<IColorizer>>&& colorizers);
 
-    void setSelectedParticle(const Particle& particle, const Color color);
+    void setSelectedParticle(const Particle& particle, const Rgba color);
 
     void deselectParticle();
 

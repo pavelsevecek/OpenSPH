@@ -23,29 +23,29 @@ private:
     Vector start{ NAN };
 
     /// Size of the image
-    Point size;
+    Pixel size;
 
 public:
     ArcBall() {
-        size = Point(0, 0);
+        size = Pixel(0, 0);
     }
 
-    explicit ArcBall(const Point size)
+    explicit ArcBall(const Pixel size)
         : size(size) {}
 
-    void resize(const Point newSize) {
+    void resize(const Pixel newSize) {
         size = newSize;
     }
 
     /// \brief Called on mouse click, starting the rotation
-    void click(const Point point) {
+    void click(const Pixel point) {
         start = this->mapToSphere(point);
     }
 
     /// \brief Called when mouse moves, rotating the object
     ///
     /// \return New rotation matrix of the object
-    AffineMatrix drag(const Point point) {
+    AffineMatrix drag(const Pixel point) {
         ASSERT(isReal(start));
         const Vector end = this->mapToSphere(point);
         const Vector perp = cross(start, end);
@@ -62,7 +62,7 @@ public:
     }
 
 private:
-    Vector mapToSphere(const Point point) {
+    Vector mapToSphere(const Pixel point) {
         // rescale to <-1, 1> and invert y
         ASSERT(size.x > 0 && size.y > 0);
         const Vector p(2.f * float(point.x) / size.x - 1.f, 1.f - 2.f * float(point.y) / size.y, 0._f);

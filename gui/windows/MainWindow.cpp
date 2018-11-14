@@ -292,10 +292,10 @@ wxBoxSizer* MainWindow::createToolbar(Controller* parent) {
 
     wxButton* resetView = new wxButton(this, wxID_ANY, "Reset view");
     resetView->Bind(wxEVT_BUTTON, [this, parent](wxCommandEvent& UNUSED(evt)) {
-        SharedPtr<ICamera> camera = parent->getCurrentCamera();
-        camera->transform(AffineMatrix::identity());
         pane->resetView();
-        // parent->tryRedraw();
+        AutoPtr<ICamera> camera = parent->getCurrentCamera();
+        camera->transform(AffineMatrix::identity());
+        parent->refresh(std::move(camera));
     });
     toolbar->Add(resetView);
 
@@ -393,7 +393,7 @@ wxBoxSizer* MainWindow::createSidebar() {
         integral = makeAuto<TotalEnergy>();
         data.plot = makeLocking<TemporalPlot>(integral, params);
         plots.push(data.plot);
-        data.color = Color(wxColour(240, 255, 80));
+        data.color = Rgba(wxColour(240, 255, 80));
         list->push(data);
     }
 
@@ -401,7 +401,7 @@ wxBoxSizer* MainWindow::createSidebar() {
         integral = makeAuto<TotalKineticEnergy>();
         data.plot = makeLocking<TemporalPlot>(integral, params);
         plots.push(data.plot);
-        data.color = Color(wxColour(200, 0, 0));
+        data.color = Rgba(wxColour(200, 0, 0));
         list->push(data);
     }
 
@@ -409,7 +409,7 @@ wxBoxSizer* MainWindow::createSidebar() {
         integral = makeAuto<TotalInternalEnergy>();
         data.plot = makeLocking<TemporalPlot>(integral, params);
         plots.push(data.plot);
-        data.color = Color(wxColour(255, 50, 50));
+        data.color = Rgba(wxColour(255, 50, 50));
         list->push(data);
     }
 
@@ -418,7 +418,7 @@ wxBoxSizer* MainWindow::createSidebar() {
         params.minRangeY = 1.e6_f;
         data.plot = makeLocking<TemporalPlot>(integral, params);
         plots.push(data.plot);
-        data.color = Color(wxColour(100, 200, 0));
+        data.color = Rgba(wxColour(100, 200, 0));
         list->push(data);
     }
 
@@ -426,14 +426,14 @@ wxBoxSizer* MainWindow::createSidebar() {
         integral = makeAuto<TotalAngularMomentum>();
         data.plot = makeLocking<TemporalPlot>(integral, params);
         plots.push(data.plot);
-        data.color = Color(wxColour(130, 80, 255));
+        data.color = Rgba(wxColour(130, 80, 255));
         list->push(data);
     }
 
     if (flags.has(PlotEnum::PARTICLE_SFD)) {
         data.plot = makeLocking<SfdPlot>(NOTHING, 0._f);
         plots.push(data.plot);
-        data.color = Color(wxColour(0, 190, 255));
+        data.color = Rgba(wxColour(0, 190, 255));
         list->push(data);
     }
 
@@ -446,7 +446,7 @@ wxBoxSizer* MainWindow::createSidebar() {
         }
         data.plot = makeLocking<MultiPlot>(std::move(multiplot));
         plots.push(data.plot);
-        data.color = Color(wxColour(255, 40, 255));
+        data.color = Rgba(wxColour(255, 40, 255));
         list->push(data);
     }
 
@@ -460,7 +460,7 @@ wxBoxSizer* MainWindow::createSidebar() {
         }
         data.plot = makeLocking<MultiPlot>(std::move(multiplot));
         plots.push(data.plot);
-        data.color = Color(wxColour(80, 150, 255));
+        data.color = Rgba(wxColour(80, 150, 255));
         list->push(data);
     }
 
@@ -468,7 +468,7 @@ wxBoxSizer* MainWindow::createSidebar() {
         data.plot = makeLocking<HistogramPlot>(
             Post::HistogramId::ROTATIONAL_PERIOD, Interval(0._f, 10._f), "Rotational periods");
         plots.push(data.plot);
-        data.color = Color(wxColour(255, 255, 0));
+        data.color = Rgba(wxColour(255, 255, 0));
         list->push(data);
     }
 
@@ -500,7 +500,7 @@ wxBoxSizer* MainWindow::createSidebar() {
         clonedParams.minRangeY = 1.e-2_f;
         data.plot = makeLocking<TemporalPlot>(integral, clonedParams);
         plots.push(data.plot);
-        data.color = Color(wxColour(255, 0, 255));
+        data.color = Rgba(wxColour(255, 0, 255));
         list->push(data);
     }
 
@@ -508,7 +508,7 @@ wxBoxSizer* MainWindow::createSidebar() {
         selectedParticlePlot = makeLocking<SelectedParticlePlot>();
         data.plot = selectedParticlePlot;
         plots.push(data.plot);
-        data.color = Color(wxColour(255, 255, 255));
+        data.color = Rgba(wxColour(255, 255, 255));
         list->push(data);
     } else {
         selectedParticlePlot.reset();
@@ -616,8 +616,7 @@ void MainWindow::onTimeStep(const Storage& storage, const Statistics& stats) {
         /// \todo how to access settings here??
         SharedPtr<LinesLogger> logger = makeShared<LinesLogger>();
         CommonStatsLog statsLog(logger, RunSettings::getDefaults());
-        /// \todo remove const cast!!!
-        statsLog.action(const_cast<Storage&>(storage), const_cast<Statistics&>(stats));
+        statsLog.write(storage, stats);
         // we have to modify wxTextCtrl from main thread!!
         executeOnMainThread([this, logger] { logger->setText(status); });
     }
@@ -625,6 +624,7 @@ void MainWindow::onTimeStep(const Storage& storage, const Statistics& stats) {
     if (selectedParticlePlot) {
         selectedParticlePlot->selectParticle(controller->getSelectedParticle());
 
+        /// \todo we should only touch colorizer from main thread!
         SharedPtr<IColorizer> colorizer = controller->getCurrentColorizer();
         // we need validity of arrayrefs only for the duration of this function, so weak reference is OK
         colorizer->initialize(storage, RefEnum::WEAK);
@@ -678,7 +678,7 @@ void MainWindow::setColorizerList(Array<SharedPtr<IColorizer>>&& colorizers) {
     quantityBox->SetSelection(actSelectedIdx);
 }
 
-void MainWindow::setSelectedParticle(const Particle& particle, const Color color) {
+void MainWindow::setSelectedParticle(const Particle& particle, const Rgba color) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
     probe->update(particle, color);
 }

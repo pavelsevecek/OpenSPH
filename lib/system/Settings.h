@@ -142,8 +142,9 @@ private:
         Vector,
         SymmetricTensor,
         TracelessTensor,
-        EnumWrapper,
-        ClonePtr<ISettingsValue>>;
+        EnumWrapper>;
+    //,
+    //    ClonePtr<ISettingsValue>>;
 
     struct Entry {
         /// Index of the property

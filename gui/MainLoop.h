@@ -5,8 +5,7 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2018
 
-#include "objects/wrappers/SharedPtr.h"
-#include <functional>
+#include "objects/wrappers/Function.h"
 
 #include <wx/event.h>
 
@@ -26,10 +25,10 @@ NAMESPACE_SPH_BEGIN
 /// MainLoopEvent::execute().
 class MainLoopEvent : public wxCommandEvent {
 private:
-    std::function<void()> callback;
+    Function<void()> callback;
 
 public:
-    MainLoopEvent(const std::function<void()>& callback)
+    MainLoopEvent(const Function<void()>& callback)
         : wxCommandEvent(MAIN_LOOP_TYPE, 0)
         , callback(callback) {}
 
@@ -51,7 +50,7 @@ public:
 /// The function does not wait for the callback to be executed. The callback is executed by wxWidget
 /// framework; that means the event loop must be running and there must be an event handler executing the
 /// callback.
-void executeOnMainThread(std::function<void()> function);
+void executeOnMainThread(const Function<void()>& function);
 
 /// \brief Executes a callback in main thread, passing a shared pointer to given object as its argument.
 ///
@@ -59,7 +58,7 @@ void executeOnMainThread(std::function<void()> function);
 /// is ignored.
 template <typename Type, typename TFunctor>
 void executeOnMainThread(const SharedPtr<Type>& ptr, TFunctor functor) {
-    executeOnMainThread([ weakPtr = WeakPtr<Type>(ptr), f = std::move(functor) ] {
+    executeOnMainThread([weakPtr = WeakPtr<Type>(ptr), f = std::move(functor)] {
         if (auto ptr = weakPtr.lock()) {
             f(ptr);
         }

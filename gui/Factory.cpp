@@ -8,7 +8,7 @@
 
 NAMESPACE_SPH_BEGIN
 
-AutoPtr<ICamera> Factory::getCamera(const GuiSettings& settings, const Point size) {
+AutoPtr<ICamera> Factory::getCamera(const GuiSettings& settings, const Pixel size) {
     CameraEnum cameraId = settings.get<CameraEnum>(GuiSettingsId::CAMERA);
     switch (cameraId) {
     case CameraEnum::ORTHO: {
@@ -39,7 +39,7 @@ AutoPtr<ICamera> Factory::getCamera(const GuiSettings& settings, const Point siz
             NOT_IMPLEMENTED;
         }
         const Vector center(settings.get<Vector>(GuiSettingsId::ORTHO_VIEW_CENTER));
-        return makeAuto<OrthoCamera>(size, Point(int(center[X]), int(center[Y])), data);
+        return makeAuto<OrthoCamera>(size, Pixel(int(center[X]), int(center[Y])), data);
     }
     case CameraEnum::PERSPECTIVE: {
         PerspectiveCameraData data;
@@ -66,11 +66,8 @@ AutoPtr<IRenderer> Factory::getRenderer(IScheduler& scheduler, const GuiSettings
     case RendererEnum::NONE:
         class NullRenderer : public IRenderer {
             virtual void initialize(const Storage&, const IColorizer&, const ICamera&) override {}
-            virtual SharedPtr<wxBitmap> render(const ICamera&,
-                const RenderParams&,
-                Statistics&) const override {
-                return nullptr;
-            }
+            virtual void render(const RenderParams&, Statistics&, IRenderOutput&) const override {}
+            virtual void cancelRender() override {}
         };
         return makeAuto<NullRenderer>();
     case RendererEnum::PARTICLE:
@@ -163,6 +160,8 @@ AutoPtr<IColorizer> Factory::getColorizer(const GuiSettings& settings,
         return makeAuto<FlagColorizer>(settings);
     case ColorizerId::BEAUTY:
         return makeAuto<BeautyColorizer>();
+    case ColorizerId::MARKER:
+        return makeAuto<MarkerColorizer>(Rgba::gray(1.e6_f));
     default:
         QuantityId quantity = QuantityId(id);
         ASSERT(int(quantity) >= 0);
@@ -247,11 +246,11 @@ AutoPtr<IColorizer> Factory::getColorizer(const GuiSettings& settings,
 static Palette getDefaultPalette(const Interval range) {
     const float x0 = float(range.lower());
     const float dx = float(range.size());
-    return Palette({ { x0, Color(0.f, 0.f, 0.6f) },
-                       { x0 + 0.2f * dx, Color(0.1f, 0.1f, 0.1f) },
-                       { x0 + 0.6f * dx, Color(0.9f, 0.9f, 0.9f) },
-                       { x0 + 0.8f * dx, Color(1.f, 1.f, 0.f) },
-                       { x0 + dx, Color(0.6f, 0.f, 0.f) } },
+    return Palette({ { x0, Rgba(0.f, 0.f, 0.6f) },
+                       { x0 + 0.2f * dx, Rgba(0.1f, 0.1f, 0.1f) },
+                       { x0 + 0.6f * dx, Rgba(0.9f, 0.9f, 0.9f) },
+                       { x0 + 0.8f * dx, Rgba(1.f, 1.f, 0.f) },
+                       { x0 + dx, Rgba(0.6f, 0.f, 0.f) } },
         PaletteScale::LINEAR);
 }
 
@@ -263,19 +262,19 @@ Palette Factory::getPalette(const ColorizerId id, const Interval range) {
         switch (quantity) {
         case QuantityId::PRESSURE:
             ASSERT(x0 < -1.f);
-            return Palette({ { x0, Color(0.3f, 0.3f, 0.8f) },
-                               { -1.e4f, Color(0.f, 0.f, 0.2f) },
-                               { 0.f, Color(0.2f, 0.2f, 0.2f) },
-                               { 1.e4f, Color(0.8f, 0.8f, 0.8f) },
-                               { 2.e4f, Color(1.f, 1.f, 0.2f) },
-                               { x0 + dx, Color(0.5f, 0.f, 0.f) } },
+            return Palette({ { x0, Rgba(0.3f, 0.3f, 0.8f) },
+                               { -1.e4f, Rgba(0.f, 0.f, 0.2f) },
+                               { 0.f, Rgba(0.2f, 0.2f, 0.2f) },
+                               { 1.e4f, Rgba(0.8f, 0.8f, 0.8f) },
+                               { 2.e4f, Rgba(1.f, 1.f, 0.2f) },
+                               { x0 + dx, Rgba(0.5f, 0.f, 0.f) } },
                 PaletteScale::LINEAR);
         case QuantityId::ENERGY:
-            return Palette({ { x0, Color(0.7f, 0.7f, 0.7) },
-                               { x0 + 0.001f * dx, Color(0.1f, 0.1f, 1.f) },
-                               { x0 + 0.01f * dx, Color(1.f, 0.f, 0.f) },
-                               { x0 + 0.1f * dx, Color(1.0f, 0.6f, 0.4f) },
-                               { x0 + dx, Color(1.f, 1.f, 0.f) } },
+            return Palette({ { x0, Rgba(0.7f, 0.7f, 0.7) },
+                               { x0 + 0.001f * dx, Rgba(0.1f, 0.1f, 1.f) },
+                               { x0 + 0.01f * dx, Rgba(1.f, 0.f, 0.f) },
+                               { x0 + 0.1f * dx, Rgba(1.0f, 0.6f, 0.4f) },
+                               { x0 + dx, Rgba(1.f, 1.f, 0.f) } },
                 PaletteScale::LOGARITHMIC);
             /*    return Palette({ { x0, Color(0.7f, 0.7f, 0.7) },
                                    { x0 + 0.01f * dx, Color(0.5f, 0.5f, 0.5f) },
@@ -285,71 +284,71 @@ Palette Factory::getPalette(const ColorizerId id, const Interval range) {
                     PaletteScale::LOGARITHMIC);*/
 
         case QuantityId::DEVIATORIC_STRESS:
-            return Palette({ { x0, Color(0.f, 0.f, 0.2f) },
-                               { x0 + 0.1f * dx, Color(0.9f, 0.9f, 0.9f) },
-                               { x0 + 0.25f * dx, Color(1.f, 1.f, 0.2f) },
-                               { x0 + 0.5f * dx, Color(1.f, 0.5f, 0.f) },
-                               { x0 + dx, Color(0.5f, 0.f, 0.f) } },
+            return Palette({ { x0, Rgba(0.f, 0.f, 0.2f) },
+                               { x0 + 0.1f * dx, Rgba(0.9f, 0.9f, 0.9f) },
+                               { x0 + 0.25f * dx, Rgba(1.f, 1.f, 0.2f) },
+                               { x0 + 0.5f * dx, Rgba(1.f, 0.5f, 0.f) },
+                               { x0 + dx, Rgba(0.5f, 0.f, 0.f) } },
                 PaletteScale::LOGARITHMIC);
         case QuantityId::DENSITY:
         case QuantityId::VELOCITY_LAPLACIAN:
         case QuantityId::FRICTION:
         case QuantityId::VELOCITY_GRADIENT_OF_DIVERGENCE:
-            return Palette({ { x0, Color(0.1f, 0.1f, 0.1f) },
-                               { x0 + 0.4f * dx, Color(0.2_f, 0.2_f, 1._f) },
-                               { x0 + 0.5f * dx, Color(0.9f, 0.9f, 0.9f) },
-                               { x0 + 0.6f * dx, Color(1.f, 0.f, 0.f) },
-                               { x0 + dx, Color(1.f, 1.f, 0.f) } },
+            return Palette({ { x0, Rgba(0.1f, 0.1f, 0.1f) },
+                               { x0 + 0.4f * dx, Rgba(0.2_f, 0.2_f, 1._f) },
+                               { x0 + 0.5f * dx, Rgba(0.9f, 0.9f, 0.9f) },
+                               { x0 + 0.6f * dx, Rgba(1.f, 0.f, 0.f) },
+                               { x0 + dx, Rgba(1.f, 1.f, 0.f) } },
                 PaletteScale::LINEAR);
         case QuantityId::DAMAGE:
-            return Palette({ { x0, Color(0.1f, 0.1f, 0.1f) }, { x0 + dx, Color(0.9f, 0.9f, 0.9f) } },
+            return Palette({ { x0, Rgba(0.1f, 0.1f, 0.1f) }, { x0 + dx, Rgba(0.9f, 0.9f, 0.9f) } },
                 PaletteScale::LINEAR);
         case QuantityId::MASS:
-            return Palette({ { x0, Color(0.1f, 0.1f, 0.1f) }, { x0 + dx, Color(0.9f, 0.9f, 0.9f) } },
+            return Palette({ { x0, Rgba(0.1f, 0.1f, 0.1f) }, { x0 + dx, Rgba(0.9f, 0.9f, 0.9f) } },
                 PaletteScale::LINEAR);
         case QuantityId::VELOCITY_DIVERGENCE:
             ASSERT(x0 < 0._f);
-            return Palette({ { x0, Color(0.3f, 0.3f, 0.8f) },
-                               { 0.1f * x0, Color(0.f, 0.f, 0.2f) },
-                               { 0.f, Color(0.2f, 0.2f, 0.2f) },
-                               { 0.1f * (x0 + dx), Color(0.8f, 0.8f, 0.8f) },
-                               { x0 + dx, Color(1.0f, 0.6f, 0.f) } },
+            return Palette({ { x0, Rgba(0.3f, 0.3f, 0.8f) },
+                               { 0.1f * x0, Rgba(0.f, 0.f, 0.2f) },
+                               { 0.f, Rgba(0.2f, 0.2f, 0.2f) },
+                               { 0.1f * (x0 + dx), Rgba(0.8f, 0.8f, 0.8f) },
+                               { x0 + dx, Rgba(1.0f, 0.6f, 0.f) } },
                 PaletteScale::HYBRID);
         case QuantityId::VELOCITY_GRADIENT:
             ASSERT(x0 == 0._f);
-            return Palette({ { 0._f, Color(0.3f, 0.3f, 0.8f) },
-                               { 0.01f * dx, Color(0.f, 0.f, 0.2f) },
-                               { 0.05f * dx, Color(0.2f, 0.2f, 0.2f) },
-                               { 0.2f * dx, Color(0.8f, 0.8f, 0.8f) },
-                               { dx, Color(1.0f, 0.6f, 0.f) } },
+            return Palette({ { 0._f, Rgba(0.3f, 0.3f, 0.8f) },
+                               { 0.01f * dx, Rgba(0.f, 0.f, 0.2f) },
+                               { 0.05f * dx, Rgba(0.2f, 0.2f, 0.2f) },
+                               { 0.2f * dx, Rgba(0.8f, 0.8f, 0.8f) },
+                               { dx, Rgba(1.0f, 0.6f, 0.f) } },
                 PaletteScale::HYBRID);
         case QuantityId::ANGULAR_FREQUENCY:
             ASSERT(x0 == 0._f);
-            return Palette({ { 0._f, Color(0.3f, 0.3f, 0.8f) },
-                               { 0.25f * dx, Color(0.f, 0.f, 0.2f) },
-                               { 0.5f * dx, Color(0.2f, 0.2f, 0.2f) },
-                               { 0.75f * dx, Color(0.8f, 0.8f, 0.8f) },
-                               { dx, Color(1.0f, 0.6f, 0.f) } },
+            return Palette({ { 0._f, Rgba(0.3f, 0.3f, 0.8f) },
+                               { 0.25f * dx, Rgba(0.f, 0.f, 0.2f) },
+                               { 0.5f * dx, Rgba(0.2f, 0.2f, 0.2f) },
+                               { 0.75f * dx, Rgba(0.8f, 0.8f, 0.8f) },
+                               { dx, Rgba(1.0f, 0.6f, 0.f) } },
                 PaletteScale::LINEAR);
         case QuantityId::STRAIN_RATE_CORRECTION_TENSOR:
             ASSERT(x0 > 0._f);
-            return Palette({ { x0, Color(0.f, 0.f, 0.5f) },
-                               { x0 + 0.01f, Color(0.1f, 0.1f, 0.1f) },
-                               { x0 + 0.6f * dx, Color(0.9f, 0.9f, 0.9f) },
-                               { x0 + dx, Color(0.6f, 0.0f, 0.0f) } },
+            return Palette({ { x0, Rgba(0.f, 0.f, 0.5f) },
+                               { x0 + 0.01f, Rgba(0.1f, 0.1f, 0.1f) },
+                               { x0 + 0.6f * dx, Rgba(0.9f, 0.9f, 0.9f) },
+                               { x0 + dx, Rgba(0.6f, 0.0f, 0.0f) } },
                 PaletteScale::LOGARITHMIC);
         case QuantityId::AV_BALSARA:
-            return Palette({ { x0, Color(0.1f, 0.1f, 0.1f) }, { x0 + dx, Color(0.9f, 0.9f, 0.9f) } },
+            return Palette({ { x0, Rgba(0.1f, 0.1f, 0.1f) }, { x0 + dx, Rgba(0.9f, 0.9f, 0.9f) } },
                 PaletteScale::LINEAR);
         case QuantityId::EPS_MIN:
-            return Palette({ { x0, Color(0.1f, 0.1f, 1.f) },
-                               { x0 + 0.5f * dx, Color(0.7f, 0.7f, 0.7f) },
-                               { x0 + dx, Color(1.f, 0.1f, 0.1f) } },
+            return Palette({ { x0, Rgba(0.1f, 0.1f, 1.f) },
+                               { x0 + 0.5f * dx, Rgba(0.7f, 0.7f, 0.7f) },
+                               { x0 + dx, Rgba(1.f, 0.1f, 0.1f) } },
                 PaletteScale::LINEAR);
         case QuantityId::MOMENT_OF_INERTIA:
-            return Palette({ { x0, Color(0.1f, 0.1f, 1.f) },
-                               { x0 + 0.5f * dx, Color(0.7f, 0.7f, 0.7f) },
-                               { x0 + dx, Color(1.f, 0.1f, 0.1f) } },
+            return Palette({ { x0, Rgba(0.1f, 0.1f, 1.f) },
+                               { x0 + 0.5f * dx, Rgba(0.7f, 0.7f, 0.7f) },
+                               { x0 + dx, Rgba(1.f, 0.1f, 0.1f) } },
                 PaletteScale::LINEAR);
         default:
             return getDefaultPalette(Interval(x0, x0 + dx));
@@ -357,53 +356,53 @@ Palette Factory::getPalette(const ColorizerId id, const Interval range) {
     } else {
         switch (id) {
         case ColorizerId::VELOCITY:
-            return Palette({ { x0, Color(0.5f, 0.5f, 0.5f) },
-                               { x0 + 0.001f * dx, Color(0.0f, 0.0f, 0.2f) },
-                               { x0 + 0.01f * dx, Color(0.0f, 0.0f, 1.0f) },
-                               { x0 + 0.1f * dx, Color(1.0f, 0.0f, 0.2f) },
-                               { x0 + dx, Color(1.0f, 1.0f, 0.2f) } },
+            return Palette({ { x0, Rgba(0.5f, 0.5f, 0.5f) },
+                               { x0 + 0.001f * dx, Rgba(0.0f, 0.0f, 0.2f) },
+                               { x0 + 0.01f * dx, Rgba(0.0f, 0.0f, 1.0f) },
+                               { x0 + 0.1f * dx, Rgba(1.0f, 0.0f, 0.2f) },
+                               { x0 + dx, Rgba(1.0f, 1.0f, 0.2f) } },
                 PaletteScale::LOGARITHMIC);
         case ColorizerId::ACCELERATION:
-            return Palette({ { x0, Color(0.5f, 0.5f, 0.5f) },
-                               { x0 + 0.001f * dx, Color(0.0f, 0.0f, 0.2f) },
-                               { x0 + 0.01f * dx, Color(0.0f, 0.0f, 1.0f) },
-                               { x0 + 0.1f * dx, Color(1.0f, 0.0f, 0.2f) },
-                               { x0 + dx, Color(1.0f, 1.0f, 0.2f) } },
+            return Palette({ { x0, Rgba(0.5f, 0.5f, 0.5f) },
+                               { x0 + 0.001f * dx, Rgba(0.0f, 0.0f, 0.2f) },
+                               { x0 + 0.01f * dx, Rgba(0.0f, 0.0f, 1.0f) },
+                               { x0 + 0.1f * dx, Rgba(1.0f, 0.0f, 0.2f) },
+                               { x0 + dx, Rgba(1.0f, 1.0f, 0.2f) } },
                 PaletteScale::LOGARITHMIC);
         case ColorizerId::MOVEMENT_DIRECTION:
             ASSERT(range == Interval(0.f, 2.f * PI)); // in radians
-            return Palette({ { 0.f, Color(0.1f, 0.1f, 1.f) },
-                               { PI / 3.f, Color(1.f, 0.1f, 1.f) },
-                               { 2.f * PI / 3.f, Color(1.f, 0.1f, 0.1f) },
-                               { 3.f * PI / 3.f, Color(1.f, 1.f, 0.1f) },
-                               { 4.f * PI / 3.f, Color(0.1f, 1.f, 0.1f) },
-                               { 5.f * PI / 3.f, Color(0.1f, 1.f, 1.f) },
-                               { 2.f * PI, Color(0.1f, 0.1f, 1.f) } },
+            return Palette({ { 0.f, Rgba(0.1f, 0.1f, 1.f) },
+                               { PI / 3.f, Rgba(1.f, 0.1f, 1.f) },
+                               { 2.f * PI / 3.f, Rgba(1.f, 0.1f, 0.1f) },
+                               { 3.f * PI / 3.f, Rgba(1.f, 1.f, 0.1f) },
+                               { 4.f * PI / 3.f, Rgba(0.1f, 1.f, 0.1f) },
+                               { 5.f * PI / 3.f, Rgba(0.1f, 1.f, 1.f) },
+                               { 2.f * PI, Rgba(0.1f, 0.1f, 1.f) } },
                 PaletteScale::LINEAR);
         case ColorizerId::DENSITY_PERTURBATION:
-            return Palette({ { x0, Color(0.1f, 0.1f, 1.f) },
-                               { x0 + 0.5f * dx, Color(0.7f, 0.7f, 0.7f) },
-                               { x0 + dx, Color(1.f, 0.1f, 0.1f) } },
+            return Palette({ { x0, Rgba(0.1f, 0.1f, 1.f) },
+                               { x0 + 0.5f * dx, Rgba(0.7f, 0.7f, 0.7f) },
+                               { x0 + dx, Rgba(1.f, 0.1f, 0.1f) } },
                 PaletteScale::LINEAR);
         case ColorizerId::TOTAL_ENERGY:
-            return Palette({ { x0, Color(0.f, 0.f, 0.6f) },
-                               { x0 + 0.01f * dx, Color(0.1f, 0.1f, 0.1f) },
-                               { x0 + 0.05f * dx, Color(0.9f, 0.9f, 0.9f) },
-                               { x0 + 0.2f * dx, Color(1.f, 1.f, 0.f) },
-                               { x0 + dx, Color(0.6f, 0.f, 0.f) } },
+            return Palette({ { x0, Rgba(0.f, 0.f, 0.6f) },
+                               { x0 + 0.01f * dx, Rgba(0.1f, 0.1f, 0.1f) },
+                               { x0 + 0.05f * dx, Rgba(0.9f, 0.9f, 0.9f) },
+                               { x0 + 0.2f * dx, Rgba(1.f, 1.f, 0.f) },
+                               { x0 + dx, Rgba(0.6f, 0.f, 0.f) } },
                 PaletteScale::LOGARITHMIC);
         case ColorizerId::YIELD_REDUCTION:
-            return Palette({ { 0._f, Color(0.1f, 0.1f, 0.1f) }, { 1._f, Color(0.9f, 0.9f, 0.9f) } },
-                PaletteScale::LINEAR);
+            return Palette(
+                { { 0._f, Rgba(0.1f, 0.1f, 0.1f) }, { 1._f, Rgba(0.9f, 0.9f, 0.9f) } }, PaletteScale::LINEAR);
         case ColorizerId::DAMAGE_ACTIVATION:
-            return Palette({ { x0, Color(0.1f, 0.1f, 1.f) },
-                               { x0 + 0.5f * dx, Color(0.7f, 0.7f, 0.7f) },
-                               { x0 + dx, Color(1.f, 0.1f, 0.1f) } },
+            return Palette({ { x0, Rgba(0.1f, 0.1f, 1.f) },
+                               { x0 + 0.5f * dx, Rgba(0.7f, 0.7f, 0.7f) },
+                               { x0 + dx, Rgba(1.f, 0.1f, 0.1f) } },
                 PaletteScale::LINEAR);
         case ColorizerId::RADIUS:
-            return Palette({ { x0, Color(0.1f, 0.1f, 1.f) },
-                               { x0 + 0.5f * dx, Color(0.7f, 0.7f, 0.7f) },
-                               { x0 + dx, Color(1.f, 0.1f, 0.1f) } },
+            return Palette({ { x0, Rgba(0.1f, 0.1f, 1.f) },
+                               { x0 + 0.5f * dx, Rgba(0.7f, 0.7f, 0.7f) },
+                               { x0 + dx, Rgba(1.f, 0.1f, 0.1f) } },
                 PaletteScale::LINEAR);
         default:
             return getDefaultPalette(Interval(x0, x0 + dx));

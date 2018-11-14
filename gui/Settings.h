@@ -9,19 +9,17 @@
 
 NAMESPACE_SPH_BEGIN
 
-class Color;
-
-/// \todo currently mixing rendered geometry (spheres, mesh from marching cubes, iso-surface) with renderer
-/// (wx, opengl, raytracer, ...)
 enum class RendererEnum {
+    /// No particle visualization
     NONE,
 
     /// 2D section showing particles as points
     PARTICLE,
 
-    /// Reconstructed surface of bodies
+    /// Surfaces of bodies are meshed using Marching cubes and drawed as triangles.
     MESH,
 
+    /// Raytracer that computes intersections with implicit surface.
     RAYTRACER,
 
 };
@@ -171,7 +169,7 @@ enum class GuiSettingsId {
 
     ORTHO_PROJECTION,
 
-    /// Size of the grid used in MarchingCubes (in code units, not h)
+    /// Size of the grid used in MarchingCubes (in code units, not h).
     SURFACE_RESOLUTION,
 
     /// Value of iso-surface being constructed; lower value means larget bodies
@@ -187,6 +185,8 @@ enum class GuiSettingsId {
     SURFACE_AMBIENT,
 
     RAYTRACE_SUBSAMPLING,
+
+    RAYTRACE_ITERATION_LIMIT,
 
     RAYTRACE_HDRI,
 
@@ -280,15 +280,15 @@ public:
 };
 
 template <>
-INLINE Point GuiSettings::get<Point>(const GuiSettingsId id) const {
+INLINE Pixel GuiSettings::get<Pixel>(const GuiSettingsId id) const {
     const Interval i = this->get<Interval>(id);
-    return Point(i.lower(), i.upper());
+    return Pixel(i.lower(), i.upper());
 }
 
 template <>
-INLINE Color GuiSettings::get<Color>(const GuiSettingsId id) const {
+INLINE Rgba GuiSettings::get<Rgba>(const GuiSettingsId id) const {
     const Vector v = this->get<Vector>(id);
-    return Color(v[X], v[Y], v[Z]);
+    return Rgba(v[X], v[Y], v[Z]);
 }
 
 NAMESPACE_SPH_END
