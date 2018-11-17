@@ -168,10 +168,9 @@ AutoPtr<IColorizer> Factory::getColorizer(const GuiSettings& settings,
         Variant<GuiSettingsId, Interval> rangeVariant;
 
         switch (quantity) {
-        case QuantityId::DEVIATORIC_STRESS: {
+        case QuantityId::DEVIATORIC_STRESS:
             rangeVariant = GuiSettingsId::PALETTE_STRESS;
             break;
-        }
         case QuantityId::DENSITY:
             rangeVariant = GuiSettingsId::PALETTE_DENSITY;
             break;
@@ -196,6 +195,9 @@ AutoPtr<IColorizer> Factory::getColorizer(const GuiSettings& settings,
             break;
         case QuantityId::FRICTION:
             rangeVariant = Interval(0._f, 50._f);
+            break;
+        case QuantityId::AV_STRESS:
+            rangeVariant = GuiSettingsId::PALETTE_AV_STRESS;
             break;
         case QuantityId::AV_BALSARA:
             rangeVariant = Interval(0._f, 1._f);

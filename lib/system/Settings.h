@@ -397,23 +397,6 @@ enum class KernelEnum {
     /// Wendland kernel C6
     WENDLAND_C6,
 };
-static RegisterEnum<KernelEnum> sKernel({
-    { KernelEnum::CUBIC_SPLINE, "cubic_spline", "M4 B-spline (piecewise cubic polynomial" },
-    { KernelEnum::FOURTH_ORDER_SPLINE, "fourth_order_spline", "M5 B-spline (piecewise 4th-order polynomial" },
-    { KernelEnum::GAUSSIAN, "gaussian", "Gaussian function with clamped support" },
-    { KernelEnum::TRIANGLE,
-        "triangle",
-        "Triangular (piecewise linear) kernel. Derivatives are not continuous, the kernel is therefore not "
-        "suitable for SPH, but can be useful for non-SPH interpolations, etc." },
-    { KernelEnum::CORE_TRIANGLE, "core_triangle", "Core Triangle (CT) kernel by Read et al. (2010)" },
-    { KernelEnum::THOMAS_COUCHMAN,
-        "thomas_couchman",
-        "Modification of the M4 B-spline kernel by Thomas & Couchman (1992), designed to prevent clustering "
-        "of particles." },
-    { KernelEnum::WENDLAND_C2, "wendland_c2", "Wendland kernel C2" },
-    { KernelEnum::WENDLAND_C4, "wendland_c4", "Wendland kernel C4" },
-    { KernelEnum::WENDLAND_C6, "wendland_c6", "Wendland kernel C6" },
-});
 
 enum class TimesteppingEnum {
     /// Explicit (forward) 1st-order integration
@@ -434,16 +417,6 @@ enum class TimesteppingEnum {
     /// Bulirsch-Stoer integrator
     BULIRSCH_STOER
 };
-static RegisterEnum<TimesteppingEnum> sTimestepping({
-    { TimesteppingEnum::EULER_EXPLICIT, "euler_explicit", "Explicit (forward) 1st-order integration" },
-    { TimesteppingEnum::LEAP_FROG, "leap_frog", "Leap-frog 2nd-order integration" },
-    { TimesteppingEnum::RUNGE_KUTTA, "runge_kutta", "Runge-Kutta 4-th order integration" },
-    { TimesteppingEnum::PREDICTOR_CORRECTOR, "predictor_corrector", "Predictor-corrector scheme" },
-    { TimesteppingEnum::MODIFIED_MIDPOINT,
-        "modified_midpoint",
-        "Modified midpoint method with constant number of substeps." },
-    { TimesteppingEnum::BULIRSCH_STOER, "bulirsch_stoer", "Bulirsch-Stoer integrator" },
-});
 
 enum class TimeStepCriterionEnum {
     /// Constant time step, determined by initial value
@@ -461,18 +434,6 @@ enum class TimeStepCriterionEnum {
     /// Value for using all criteria.
     ALL = COURANT | DERIVATIVES | ACCELERATION,
 };
-static RegisterEnum<TimeStepCriterionEnum> sTimeStepCriterion({
-    { TimeStepCriterionEnum::NONE, "none", "Constant time step, determined by initial value" },
-    { TimeStepCriterionEnum::COURANT, "courant", "Time step determined using CFL condition" },
-    { TimeStepCriterionEnum::DERIVATIVES,
-        "derivatives",
-        "Time step computed by limiting value-to-derivative ratio of quantities" },
-    { TimeStepCriterionEnum::ACCELERATION,
-        "acceleration",
-        "Time step computed from ratio of acceleration and smoothing length." },
-    //{ TimeStepCriterionEnum::ALL, "all", "Value for using all criteria." },
-});
-
 
 enum class FinderEnum {
     /// Brute-force search by going through each pair of particles (O(N^2) complexity)
@@ -493,17 +454,6 @@ enum class FinderEnum {
     /// Selecting most suitable finder automatically
     DYNAMIC
 };
-static RegisterEnum<FinderEnum> sFinder({
-    { FinderEnum::BRUTE_FORCE,
-        "brute_force",
-        "Brute-force search by going through each pair of particles (O(N^2) complexity)" },
-    { FinderEnum::KD_TREE, "kd_tree", "Using K-d tree" },
-    { FinderEnum::OCTREE, "octree", "Using octree" },
-    { FinderEnum::LINKED_LIST, "linked_list", "Using linked list" },
-    { FinderEnum::UNIFORM_GRID, "uniform_grid", "Partitioning particles into a grid uniform in space" },
-    { FinderEnum::DYNAMIC, "dynamic", "Selecting most suitable finder automatically" },
-});
-
 
 enum class BoundaryEnum {
     /// Do not use any boundary conditions (= vacuum conditions)
@@ -524,30 +474,6 @@ enum class BoundaryEnum {
     /// Project all movement onto a line, effectivelly reducing the simulation to 1D
     PROJECT_1D
 };
-static RegisterEnum<BoundaryEnum> sBoundary({
-    { BoundaryEnum::NONE, "none", "Do not use any boundary conditions (= vacuum conditions)" },
-    { BoundaryEnum::FROZEN_PARTICLES,
-        "frozen_particles",
-        "Highest derivatives of all particles close to the boundary are set to zero." },
-    { BoundaryEnum::GHOST_PARTICLES,
-        "ghost_particles",
-        "Create ghosts particles located symmetricaly to the particles near the boundary, in order to keep "
-        "particles inside domain." },
-    { BoundaryEnum::WIND_TUNNEL,
-        "wind_tunnel",
-        "Simulates a wind tunnel by pushing air particles into the domain and removing them on the other "
-        "side of the domain. The air particles are kept inside the domain using Frozen Particles boundary "
-        "conditions." },
-    { BoundaryEnum::PERIODIC,
-        "periodic",
-        "Periodic boundary conditions; particles can interact accross boundaries. When particles leave the "
-        "domain, they re-enter on the other side of the domain. " },
-    { BoundaryEnum::PROJECT_1D,
-        "project_1D",
-        "Debug boundary condition, used to emulate 1D SPH solver. While the solver is still "
-        "three-dimensional under the hood, the particles are projected on a line and can move only in one "
-        "dimension. Note that this has to be supplied by correct kernel normalization, etc." },
-});
 
 enum class DomainEnum {
     /// No computational domain (can only be used with BoundaryEnum::NONE)
@@ -565,11 +491,6 @@ enum class DomainEnum {
     /// Cylindrical domain aligned with z axis
     CYLINDER
 };
-static RegisterEnum<DomainEnum> sDomain({ { DomainEnum::NONE, "none", "No computational domain." },
-    { DomainEnum::SPHERICAL, "spherical", "Sphere with given radius." },
-    { DomainEnum::ELLIPSOIDAL, "ellipsoidal", "Axis-aligned ellipsoidal domain." },
-    { DomainEnum::BLOCK, "block", "Axis-aligned block domain." },
-    { DomainEnum::CYLINDER, "cylinder", "Cylindrical domain aligned with z axis." } });
 
 /// List of forces to compute by the solver. This does not include numerical terms, see
 /// ArtificialViscosityEnum.
@@ -594,21 +515,6 @@ enum class ForceEnum {
     /// Use gravitational force in the model
     GRAVITY = 1 << 5,
 };
-static RegisterEnum<ForceEnum> sForce({
-    { ForceEnum::PRESSURE, "pressure", "Force given by pressure gradient." },
-    { ForceEnum::SOLID_STRESS,
-        "solid_stress",
-        "Use force from stress divergence in the model. Must be used together with pressure gradient. Stress "
-        "tensor is evolved in time using Hooke's equation." },
-    { ForceEnum::NAVIER_STOKES,
-        "navier_stokes",
-        "Stress tensor for the simulation of fluids. Must be used together with pressure gradient, cannot be "
-        "used together with solid stress force." },
-    { ForceEnum::INERTIAL,
-        "inertial",
-        "Centrifugal force and Coriolis force given by angular frequency of the coordinate frame." },
-    { ForceEnum::GRAVITY, "gravity", "Self-gravity of particles" },
-});
 
 enum class ArtificialViscosityEnum {
     /// No artificial viscosity
@@ -623,18 +529,6 @@ enum class ArtificialViscosityEnum {
     /// Time-dependent artificial viscosity by Morris & Monaghan (1997).
     MORRIS_MONAGHAN,
 };
-static RegisterEnum<ArtificialViscosityEnum> sArtificialViscosity({
-    { ArtificialViscosityEnum::NONE, "none", "No artificial viscosity" },
-    { ArtificialViscosityEnum::STANDARD,
-        "standard",
-        "Standard artificial viscosity term by Monaghan (1989)." },
-    { ArtificialViscosityEnum::RIEMANN,
-        "riemann",
-        "Artificial viscosity term analogous to Riemann solvers by Monaghan (1997)." },
-    { ArtificialViscosityEnum::MORRIS_MONAGHAN,
-        "morris_monaghan",
-        "Time-dependent artificial viscosity by Morris & Monaghan (1997)." },
-});
 
 enum class SolverEnum {
     /// SPH formulation using symmetrized evaluation of derivatives.
@@ -652,42 +546,14 @@ enum class SolverEnum {
     /// Solver advancing internal energy using pair-wise work done by particles, by Owen (2009).
     ENERGY_CONSERVING_SOLVER,
 };
-static RegisterEnum<SolverEnum> sSolver({
-    { SolverEnum::SYMMETRIC_SOLVER,
-        "symmetric_solver",
-        "SPH solver using symmetrized evaluation of derivatives. Cannot be used together with some "
-        "parameters, for example with strain rate correction tensor!" },
-    { SolverEnum::ASYMMETRIC_SOLVER,
-        "asymmetric_solver",
-        "SPH solver evaluating all derivatives asymmetrically." },
-    { SolverEnum::SUMMATION_SOLVER,
-        "summation_solver",
-        "Solver computing density by direct summation over nearest SPH particles." },
-    { SolverEnum::DENSITY_INDEPENDENT,
-        "density_independent",
-        "Density independent solver by Saitoh & Makino (2013). Experimental!" },
-    { SolverEnum::ENERGY_CONSERVING_SOLVER,
-        "energy_conserving_solver",
-        "Solver advancing internal energy using pair-wise work done by particles, by Owen (2009). "
-        "Experimental!" },
-});
 
-
-enum class FormulationEnum {
+enum class DiscretizationEnum {
     /// P_i / rho_i^2 + P_j / rho_j^2
     STANDARD,
 
     /// (P_i + P_j) / (rho_i rho_j)
     BENZ_ASPHAUG,
 };
-static RegisterEnum<FormulationEnum> sFormulation({
-    { FormulationEnum::STANDARD,
-        "standard",
-        "Standard discretization of SPH equations. Equations are obtained from Lagrangian." },
-    { FormulationEnum::BENZ_ASPHAUG,
-        "benz_asphaug",
-        "Alternative formulation of SPH, used by Benz & Asphaug (1994, 1995)." },
-});
 
 enum class YieldingEnum {
     /// Gass or material with no stress tensor
@@ -702,12 +568,6 @@ enum class YieldingEnum {
     /// Drucker-Prager pressure dependent yielding stress
     DRUCKER_PRAGER
 };
-static RegisterEnum<YieldingEnum> sYield({
-    { YieldingEnum::NONE, "none", "No stress tensor, gass or material with no stress tensor" },
-    { YieldingEnum::ELASTIC, "elastic", "No yield, just elastic deformations following Hooke's law" },
-    { YieldingEnum::VON_MISES, "von_mises", "Stress yielding using von Mises criterion." },
-    { YieldingEnum::DRUCKER_PRAGER, "drucker_prager", "Drucker-Prager pressure dependent yielding stress." },
-});
 
 enum class FractureEnum {
     /// No fragmentation
@@ -719,15 +579,6 @@ enum class FractureEnum {
     /// Grady-Kipp model of fragmentation using tensor damage
     TENSOR_GRADY_KIPP
 };
-static RegisterEnum<FractureEnum> sFracture({
-    { FractureEnum::NONE, "none", "No fragmentation" },
-    { FractureEnum::SCALAR_GRADY_KIPP,
-        "scalar_grady_kipp",
-        "Grady-Kipp model of fragmentation using scalar damage" },
-    { FractureEnum::TENSOR_GRADY_KIPP,
-        "tensor_grady_kipp",
-        "Grady-Kipp model of fragmentation using tensor damage" },
-});
 
 enum class SmoothingLengthEnum {
     /// Smoothing length is constant and given by initial conditions
@@ -740,16 +591,6 @@ enum class SmoothingLengthEnum {
     /// local sound speed
     SOUND_SPEED_ENFORCING = 1 << 2
 };
-static RegisterEnum<SmoothingLengthEnum> sSmoothingLength({
-    { SmoothingLengthEnum::CONST, "const", "Smoothing length is constant and given by initial conditions." },
-    { SmoothingLengthEnum::CONTINUITY_EQUATION,
-        "continuity_equation",
-        "Smoothing length is evolved using continuity equation." },
-    { SmoothingLengthEnum::SOUND_SPEED_ENFORCING,
-        "sound_speed_enforcing",
-        "Number of neighbours is kept in the specified range by adding additional derivatives of smoothing "
-        "length, scaled by local sound speed." },
-});
 
 enum class GravityEnum {
     /// Approximated gravity, assuming the matter is a simple homogeneous sphere.
@@ -761,18 +602,6 @@ enum class GravityEnum {
     /// Use Barnes-Hut algorithm, approximating gravity by multipole expansion (up to octupole order)
     BARNES_HUT,
 };
-static RegisterEnum<GravityEnum> sGravity({
-    { GravityEnum::SPHERICAL,
-        "spherical",
-        "No self-gravity, particles only move in spherically symmetric gravitational potential. Can be used "
-        "as an approximate gravity for spherically symmetric simulations." },
-    { GravityEnum::BRUTE_FORCE,
-        "brute_force",
-        "Brute-force summation over all particle pairs (O(N^2) complexity)" },
-    { GravityEnum::BARNES_HUT,
-        "barnes_hut",
-        "Barnes-Hut algorithm approximating gravity by multipole expansion (up to octupole order)." },
-});
 
 enum class GravityKernelEnum {
     /// Point-like particles with zero radius
@@ -785,16 +614,6 @@ enum class GravityKernelEnum {
     /// allowed.
     SOLID_SPHERES,
 };
-static RegisterEnum<GravityKernelEnum> sGravityKernel({
-    { GravityKernelEnum::POINT_PARTICLES, "point_particles", "Point-like particles with zero radius." },
-    { GravityKernelEnum::SPH_KERNEL,
-        "sph_kernel",
-        "Smoothing kernel associated with selected SPH kernel. For SPH simulations." },
-    { GravityKernelEnum::SOLID_SPHERES,
-        "solid_spheres",
-        "Kernel representing gravity of solid spheres. Useful for N-body simulations where overlaps are "
-        "allowed." },
-});
 
 enum class CollisionHandlerEnum {
     /// All collided particles merge, creating larger spherical particles. Particles are merged
@@ -810,22 +629,6 @@ enum class CollisionHandlerEnum {
     /// COLLISION_MERGE_LIMIT to zero, on the other hand large values make particles more difficult to merge.
     MERGE_OR_BOUNCE,
 };
-static RegisterEnum<CollisionHandlerEnum> sCollisionHandler({
-    { CollisionHandlerEnum::PERFECT_MERGING,
-        "perfect_merging",
-        "All collided particles merge, creating larger spherical particles. Particles are merged "
-        "unconditionally, regardless of their relative velocity or their angular frequencies." },
-    { CollisionHandlerEnum::ELASTIC_BOUNCE,
-        "elastic_bounce",
-        "Collided particles bounce with some energy dissipation, specified by the coefficients of "
-        "restitution. No merging, number of particles remains constant." },
-    { CollisionHandlerEnum::MERGE_OR_BOUNCE,
-        "merge_or_bounce",
-        "If the relative speed of the collided particles is lower than the escape velocity, the particles "
-        "are merged, otherwise the particle bounce. To ensure that the particles are always merged, set the "
-        "collision.merging_limit to zero, on the other hand large values make particles more difficult to "
-        "merge." },
-});
 
 enum class OverlapEnum {
     /// All overlaps are ignored
@@ -846,23 +649,6 @@ enum class OverlapEnum {
 
     PASS_OR_MERGE,
 };
-static RegisterEnum<OverlapEnum> sOverlap({
-    { OverlapEnum::NONE, "none", "All overlaps are ignored." },
-    { OverlapEnum::FORCE_MERGE, "force_merge", "Overlapping particles are merged." },
-    { OverlapEnum::REPEL, "repel", "Particles are shifted until no overlap happens." },
-    { OverlapEnum::REPEL_OR_MERGE,
-        "repel_or_merge",
-        "Particles are either repeled (and bounced) or merged, based on the ratio of their relative velocity "
-        "to the escape velocity (similar to merge_or_bounce collision handler)." },
-    { OverlapEnum::INTERNAL_BOUNCE,
-        "internal_bounce",
-        "If the center of the particles are moving towards each other, particles bounce, otherwise nothing "
-        "happens." },
-    { OverlapEnum::PASS_OR_MERGE,
-        "pass_or_merge",
-        "Overlap is allowed. If the relative velocity of particles is lower than the escape velocity, "
-        "particles are merged, otherwise they simply pass through each other." },
-});
 
 enum class LoggerEnum {
     /// Do not log anything
@@ -876,11 +662,6 @@ enum class LoggerEnum {
 
     /// \todo print using callback to gui application
 };
-static RegisterEnum<LoggerEnum> sLogger({
-    { LoggerEnum::NONE, "none", "Do not log anything." },
-    { LoggerEnum::STD_OUT, "stdout", "Print log to standard output." },
-    { LoggerEnum::FILE, "file", "Print log to a file." },
-});
 
 enum class IoEnum {
     /// No input/output
@@ -900,19 +681,6 @@ enum class IoEnum {
     /// Pkdgrav input file.
     PKDGRAV_INPUT,
 };
-static RegisterEnum<IoEnum> sIo({
-    { IoEnum::NONE, "none", "No output" },
-    { IoEnum::TEXT_FILE, "text_file", "Save output data into formatted human-readable text file" },
-    { IoEnum::GNUPLOT_OUTPUT,
-        "gnuplot_output",
-        "Extension of text file, additionally executing given gnuplot script, generating a plot from every "
-        "dump" },
-    { IoEnum::BINARY_FILE,
-        "binary_file",
-        "Save output data into binary file. This data dump is lossless and can be use to restart run from "
-        "saved snapshot. Stores values, all derivatives and materials of the storage." },
-    { IoEnum::PKDGRAV_INPUT, "pkdgrav_input", "Generate a pkdgrav input file." },
-});
 
 enum class RngEnum {
     /// Mersenne Twister PRNG from Standard library
@@ -924,11 +692,6 @@ enum class RngEnum {
     /// Same RNG as used in SPH5, used for 1-1 comparison
     BENZ_ASPHAUG
 };
-static RegisterEnum<RngEnum> sRng({
-    { RngEnum::UNIFORM, "uniform", "Mersenne Twister PRNG from Standard library." },
-    { RngEnum::HALTON, "halton", "Halton sequence for quasi-random numbers." },
-    { RngEnum::BENZ_ASPHAUG, "benz_asphaug", "RNG used in code SPH5, used for 1-1 comparison of codes." },
-});
 
 /// Settings relevant for whole run of the simulation
 enum class RunSettingsId {
@@ -1006,7 +769,8 @@ enum class RunSettingsId {
     /// instead.
     SPH_FINDER_COMPACT_THRESHOLD,
 
-    SPH_FORMULATION,
+    /// Specifies a discretization of SPH equations; see \ref DiscretizationEnum.
+    SPH_DISCRETIZATION,
 
     /// If true, the kernel gradient for evaluation of strain rate will be corrected for each particle by an
     /// inversion of an SPH-discretized identity matrix. This generally improves stability of the run and
@@ -1018,6 +782,12 @@ enum class RunSettingsId {
     /// particles belonging to the same body. Otherwise, all particle are evaluated, regardless of derivative
     /// flags.
     SPH_SUM_ONLY_UNDAMAGED,
+
+    /// If true, the density derivative is computed from undamaged particles of the same body. Deformations of
+    /// different bodies (even though they are in contact with the evaluated particle) or damaged particles
+    /// have no effect on the density. Should be false, unless some problems in the simulation appear
+    /// (instabilities, rapid growth of total energy, etc.).
+    SPH_CONTINUITY_USING_UNDAMAGED,
 
     /// Add equations evolving particle angular velocity
     SPH_PARTICLE_ROTATION,
@@ -1051,7 +821,7 @@ enum class RunSettingsId {
 
     /// Whether to use balsara switch for computing artificial viscosity dissipation. If no artificial
     /// viscosity is used, the value has no effect.
-    SPH_AV_BALSARA,
+    SPH_AV_USE_BALSARA,
 
     /// If true, Balsara factors will be saved as quantity AV_BALSARA. Mainly for debugging purposes.
     SPH_AV_BALSARA_STORE,
@@ -1065,6 +835,9 @@ enum class RunSettingsId {
 
     /// Alpha-coefficient of the delta-SPH modification.
     SPH_VELOCITY_DIFFUSION_ALPHA,
+
+    /// Whether to use artificial stress.
+    SPH_AV_USE_STRESS,
 
     /// Weighting function exponent n in artificial stress term
     SPH_AV_STRESS_EXPONENT,
@@ -1235,12 +1008,6 @@ enum class DistributionEnum {
     /// Distributes particles uniformly on line
     LINEAR
 };
-static RegisterEnum<DistributionEnum> sDistribution({
-    { DistributionEnum::HEXAGONAL, "hexagonal", "Hexagonally close packing" },
-    { DistributionEnum::CUBIC, "cubic", "Cubic close packing (generally unstable, mainly for tests!)" },
-    { DistributionEnum::RANDOM, "random", "Randomly distributed particles" },
-    { DistributionEnum::DIEHL_ET_AL, "diehl_et_al", "Isotropic uniform distribution by Diehl et al. (2012)" },
-});
 
 
 enum class EosEnum {
@@ -1265,23 +1032,6 @@ enum class EosEnum {
     /// ANEOS given by look-up table
     ANEOS
 };
-static RegisterEnum<EosEnum> sEos({
-    { EosEnum::NONE,
-        "none",
-        "No equation of state. Implies there is no pressure nor stress in the "
-        "body, can be used to simulate "
-        "dust interacting only by friction or gravity." },
-    { EosEnum::IDEAL_GAS, "ideal_gas", "Equation of state for ideal gas." },
-    { EosEnum::TAIT, "tait", "Tait equation of state for simulations of liquids." },
-    { EosEnum::MIE_GRUNEISEN,
-        "mie_gruneisen",
-        "Mie-Gruneisen equation of state. Simple model for solids without any phase transitions." },
-    { EosEnum::TILLOTSON, "tillotson", "Tillotson equation of stats." },
-    { EosEnum::MURNAGHAN, "murnaghan", "Murnaghan equation of state." },
-    { EosEnum::ANEOS,
-        "aneos",
-        "ANEOS equation of state, requires look-up table of values for given material." },
-});
 
 /// \brief Settings of a single body / gas phase / ...
 ///

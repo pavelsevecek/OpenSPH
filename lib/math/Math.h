@@ -113,7 +113,7 @@ INLINE constexpr bool isPower2(const Size n) noexcept {
 /// Return a squared root of a value.
 template <typename T>
 INLINE T sqrt(const T f) {
-    ASSERT(f >= 0._f);
+    ASSERT(f >= 0._f, f);
     return std::sqrt(f);
 }
 

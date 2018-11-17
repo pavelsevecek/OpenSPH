@@ -105,7 +105,7 @@ namespace Detail {
     }
     template <>
     INLINE float getColorizerValue(const SymmetricTensor& value) {
-        return value.trace();
+        return sqrt(ddot(value, value));
     }
 
     /// Helper function returning vector representation of given quantity.

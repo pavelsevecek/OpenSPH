@@ -90,7 +90,7 @@ TYPED_TEST_CASE_2("Impact standard SPH", "[impact]]", TSolver, SymmetricSolver, 
     settings.set(RunSettingsId::SOLVER_FORCES, ForceEnum::PRESSURE | ForceEnum::SOLID_STRESS);
     settings.set(RunSettingsId::SPH_AV_TYPE, ArtificialViscosityEnum::STANDARD);
     settings.set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONST);
-    settings.set(RunSettingsId::SPH_FORMULATION, FormulationEnum::STANDARD);
+    settings.set(RunSettingsId::SPH_DISCRETIZATION, DiscretizationEnum::STANDARD);
     EquationHolder eqs = getStandardEquations(settings);
 
     runImpact<TSolver>(std::move(eqs), settings);
@@ -101,7 +101,7 @@ TYPED_TEST_CASE_2("Impact B&A SPH", "[impact]]", TSolver, SymmetricSolver, Asymm
     settings.set(RunSettingsId::SOLVER_FORCES, ForceEnum::PRESSURE | ForceEnum::SOLID_STRESS);
     settings.set(RunSettingsId::SPH_AV_TYPE, ArtificialViscosityEnum::STANDARD);
     settings.set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONST);
-    settings.set(RunSettingsId::SPH_FORMULATION, FormulationEnum::BENZ_ASPHAUG);
+    settings.set(RunSettingsId::SPH_DISCRETIZATION, DiscretizationEnum::BENZ_ASPHAUG);
     EquationHolder eqs = getStandardEquations(settings);
 
     runImpact<TSolver>(std::move(eqs), settings);

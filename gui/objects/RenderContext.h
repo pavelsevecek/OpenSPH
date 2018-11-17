@@ -53,6 +53,7 @@ public:
 
 
 class PreviewRenderContext : public IRenderContext {
+protected:
     Bitmap<Rgba>& bitmap;
 
     Array<IRenderOutput::Label> labels;
@@ -111,8 +112,18 @@ private:
     }
 };
 
-class AntiAliasedRenderContext : public IRenderContext {
-    /// \todo
+class AntiAliasedRenderContext : public PreviewRenderContext {
+public:
+    using PreviewRenderContext::PreviewRenderContext;
+
+    virtual void drawCircle(const Coords center, const float radius) override;
+
+private:
+    void drawSafe(const Pixel p, const Rgba c) {
+        if (p.x >= 0 && p.y >= 0 && p.x < bitmap.size().x && p.y < bitmap.size().y) {
+            bitmap[Pixel(p)] = c.over(bitmap[Pixel(p)]);
+        }
+    }
 };
 
 class WxRenderContext : public IRenderContext {

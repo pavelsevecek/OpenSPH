@@ -95,7 +95,7 @@ AutoPtr<IEquationTerm> makeAV(const RunSettings& settings, const bool balsara) {
 
 AutoPtr<IEquationTerm> Factory::getArtificialViscosity(const RunSettings& settings) {
     const ArtificialViscosityEnum id = settings.get<ArtificialViscosityEnum>(RunSettingsId::SPH_AV_TYPE);
-    const bool balsara = settings.get<bool>(RunSettingsId::SPH_AV_BALSARA);
+    const bool balsara = settings.get<bool>(RunSettingsId::SPH_AV_USE_BALSARA);
     switch (id) {
     case ArtificialViscosityEnum::NONE:
         return nullptr;
@@ -218,15 +218,14 @@ AutoPtr<ISolver> Factory::getSolver(IScheduler& scheduler, const RunSettings& se
         return getActualSolver<SymmetricSolver>(scheduler, settings, std::move(eqs));
     case SolverEnum::ASYMMETRIC_SOLVER:
         return getActualSolver<AsymmetricSolver>(scheduler, settings, std::move(eqs));
+    case SolverEnum::ENERGY_CONSERVING_SOLVER:
+        return getActualSolver<EnergyConservingSolver>(scheduler, settings, std::move(eqs));
     case SolverEnum::SUMMATION_SOLVER:
         throwIfGravity();
         return makeAuto<SummationSolver>(scheduler, settings);
     case SolverEnum::DENSITY_INDEPENDENT:
         throwIfGravity();
         return makeAuto<DensityIndependentSolver>(scheduler, settings);
-    case SolverEnum::ENERGY_CONSERVING_SOLVER:
-        throwIfGravity();
-        return makeAuto<EnergyConservingSolver>(scheduler, settings, std::move(eqs));
     default:
         NOT_IMPLEMENTED;
     }

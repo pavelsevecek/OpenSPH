@@ -44,7 +44,7 @@ public:
 
 /// See Owen 2009: A compatibly differenced total energy conserving form of SPH
 class EnergyConservingSolver : public IAsymmetricSolver {
-private:
+protected:
     AccelerationSeparatingHolder derivatives;
 
     Float initialDt;
@@ -72,7 +72,7 @@ private:
 public:
     EnergyConservingSolver(IScheduler& scheduler, const RunSettings& settings, const EquationHolder& eqs);
 
-private:
+protected: /// \todo needed by GravitySolver; should be fixed
     virtual void beforeLoop(Storage& storage, Statistics& stats) override;
 
     virtual void loop(Storage& storage, Statistics& stats) override;

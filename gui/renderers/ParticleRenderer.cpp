@@ -14,9 +14,12 @@
 
 NAMESPACE_SPH_BEGIN
 
-static void drawVector(IRenderContext& context, const ICamera& camera, const Vector& r, const Vector& v) {
-    const Float scale = getLength(v);
-    if (scale < EPS) {
+static void drawVector(IRenderContext& context,
+    const ICamera& camera,
+    const Vector& r,
+    const Vector& v,
+    const float length) {
+    if (getSqrLength(v) == 0._f) {
         return;
     }
     const Optional<ProjectedPoint> p1 = camera.project(r);
@@ -24,19 +27,26 @@ static void drawVector(IRenderContext& context, const ICamera& camera, const Vec
     if (!p1 || !p2) {
         return;
     }
+
+    Coords dir = p2->coords - p1->coords;
+    const Float l = getLength(dir);
+    ASSERT(l != 0._f);
+    dir *= length / l;
+    const Coords c1 = p1->coords;
+    const Coords c2 = p1->coords + dir;
+
     context.setColor(Rgba(1.f, 0.65f, 0.f), ColorFlag::LINE);
     context.setThickness(2.f);
-    context.drawLine(p1->coords, p2->coords);
+    context.drawLine(c1, c2);
 
     // make an arrow
-    AffineMatrix2 rot = AffineMatrix2::rotate(20._f * DEG_TO_RAD);
-    Coords dp = p1->coords - p2->coords;
-    PlotPoint dir(dp.x, dp.y);
-    PlotPoint a1 = rot.transformPoint(dir) * 0.1f;
-    PlotPoint a2 = rot.transpose().transformPoint(dir) * 0.1f;
+    AffineMatrix2 rot = AffineMatrix2::rotate(160._f * DEG_TO_RAD);
+    PlotPoint dp(dir.x, dir.y);
+    PlotPoint a1 = rot.transformPoint(dp) * 0.1f;
+    PlotPoint a2 = rot.transpose().transformPoint(dp) * 0.1f;
 
-    context.drawLine(p2->coords, p2->coords + Coords(a1.x, a1.y));
-    context.drawLine(p2->coords, p2->coords + Coords(a2.x, a2.y));
+    context.drawLine(c2, c2 + Coords(a1.x, a1.y));
+    context.drawLine(c2, c2 + Coords(a2.x, a2.y));
 }
 
 static void drawPalette(IRenderContext& context, const Rgba& lineColor, const Palette& palette) {
@@ -208,13 +218,7 @@ void ParticleRenderer::render(const RenderParams& params, Statistics& stats, IRe
 
             if (!cached.vectors.empty()) {
                 dir.used = true;
-                if (params.vectors.toLog) {
-                    Float len;
-                    tieToTuple(dir.v, len) = getNormalizedWithLength(cached.vectors[i]);
-                    dir.v = dir.v * log(1._f + len) * params.vectors.scale;
-                } else {
-                    dir.v = cached.vectors[i] * params.vectors.scale;
-                }
+                dir.v = cached.vectors[i];
                 dir.r = cached.positions[i];
             }
         } else {
@@ -228,7 +232,7 @@ void ParticleRenderer::render(const RenderParams& params, Statistics& stats, IRe
     }
     // after all particles are drawn, draw the velocity vector over
     if (dir.used) {
-        drawVector(context, *params.camera, dir.r, dir.v);
+        drawVector(context, *params.camera, dir.r, dir.v, params.vectors.length);
     }
 
     if (cached.palette) {

@@ -25,6 +25,7 @@ SymmetricTensor SymmetricTensor::pseudoInverse(const Float eps) const {
 constexpr int n = 3;
 
 INLINE static double hypot2(double x, double y) {
+    ASSERT(isReal(x) && isReal(y), x, y);
     return sqrt(x * x + y * y);
 }
 
@@ -60,6 +61,7 @@ static void tred2(double V[n][n], double d[n], double e[n]) {
                 h += d[k] * d[k];
             }
             double f = d[i - 1];
+            ASSERT(h >= 0._f, h);
             double g = sqrt(h);
             if (f > 0) {
                 g = -g;
@@ -83,6 +85,7 @@ static void tred2(double V[n][n], double d[n], double e[n]) {
                 e[j] = g;
             }
             f = 0.0;
+            ASSERT(h != 0._f);
             for (int j = 0; j < i; j++) {
                 e[j] /= h;
                 f += e[j] * d[j];
@@ -136,7 +139,6 @@ static void tred2(double V[n][n], double d[n], double e[n]) {
 }
 
 // Symmetric tridiagonal QL algorithm.
-
 static void tql2(double V[n][n], double d[n], double e[n]) {
     //  This is derived from the Algol procedures tql2, by
     //  Bowdler, Martin, Reinsch, and Wilkinson, Handbook for
@@ -170,6 +172,7 @@ static void tql2(double V[n][n], double d[n], double e[n]) {
                 // Compute implicit shift
                 double g = d[l];
                 double p = (d[l + 1] - g) / (2.0 * e[l]);
+                ASSERT(isReal(p), p, e[l], t);
                 double r = hypot2(p, 1.0);
                 if (p < 0) {
                     r = -r;
@@ -185,6 +188,7 @@ static void tql2(double V[n][n], double d[n], double e[n]) {
 
                 // Implicit QL transformation.
                 p = d[m];
+                ASSERT(isReal(p), p, t);
                 double c = 1.0;
                 double c2 = c;
                 double c3 = c;
@@ -202,6 +206,7 @@ static void tql2(double V[n][n], double d[n], double e[n]) {
                     s = e[i] / r;
                     c = p / r;
                     p = c * d[i] - s * g;
+                    ASSERT(isReal(p), p);
                     d[i + 1] = h + s * (c * g + s * d[i]);
 
                     // Accumulate transformation.
@@ -242,6 +247,14 @@ static void tql2(double V[n][n], double d[n], double e[n]) {
 }
 
 Eigen eigenDecomposition(const SymmetricTensor& t) {
+    ASSERT(isReal(t), t);
+    const Float scale = maxElement(abs(t));
+    if (scale < 1.e-20_f) {
+        // algorithm is unstable for very small values, just return the diagonal elements + identity matrix
+        return Eigen{ AffineMatrix::identity(), t.diagonal() };
+    }
+    ASSERT(isReal(scale));
+
     double e[n];
     double d[n];
     double V[n][n];
@@ -267,13 +280,16 @@ INLINE static double PYTHAG(double a, double b) {
 
     if (at > bt) {
         ct = bt / at;
+        ASSERT(isReal(ct));
         result = at * sqrt(1.0 + ct * ct);
     } else if (bt > 0.0) {
         ct = at / bt;
+        ASSERT(isReal(ct));
         result = bt * sqrt(1.0 + ct * ct);
-    } else
+    } else {
         result = 0.0;
-    return (result);
+    }
+    return result;
 }
 
 
@@ -302,6 +318,7 @@ int dsvd(float (&a)[3][3], float* w, float (&v)[3][3]) {
                     a[k][i] = (float)((double)a[k][i] / scale);
                     s += ((double)a[k][i] * (double)a[k][i]);
                 }
+                ASSERT(s >= 0._f, s);
                 f = (double)a[i][i];
                 g = -SIGN(sqrt(s), f);
                 h = f * g - s;
@@ -331,6 +348,7 @@ int dsvd(float (&a)[3][3], float* w, float (&v)[3][3]) {
                     a[i][k] = (float)((double)a[i][k] / scale);
                     s += ((double)a[i][k] * (double)a[i][k]);
                 }
+                ASSERT(s >= 0._f, s);
                 f = (double)a[i][l];
                 g = -SIGN(sqrt(s), f);
                 h = f * g - s;

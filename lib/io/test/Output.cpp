@@ -162,7 +162,7 @@ TEST_CASE("BinaryOutput dump&accumulate simple", "[output]") {
 TEST_CASE("BinaryOutput dump&accumulate materials", "[output]") {
     Storage storage;
     RunSettings settings;
-    settings.set(RunSettingsId::SPH_FORMULATION, FormulationEnum::BENZ_ASPHAUG);
+    settings.set(RunSettingsId::SPH_DISCRETIZATION, DiscretizationEnum::BENZ_ASPHAUG);
     /*settings.set(RunSettingsId::MODEL_FORCE_PRESSURE_GRADIENT, false);
     settings.set(RunSettingsId::MODEL_FORCE_SOLID_STRESS, false);*/
     ThreadPool& pool = *ThreadPool::getGlobalInstance();

@@ -33,13 +33,14 @@ EquationHolder getStandardEquations(const RunSettings& settings, const EquationH
         equations += makeTerm<InertialForce>(omega);
     }
 
-    equations += makeTerm<ContinuityEquation>();
+    equations += makeTerm<ContinuityEquation>(settings);
 
     // artificial viscosity
     equations += EquationHolder(Factory::getArtificialViscosity(settings));
 
-    // equations += makeTerm<EffectiveNeighbourCountTerm>();
-    // equations += makeTerm<StressAV>(settings);
+    if (settings.get<bool>(RunSettingsId::SPH_AV_USE_STRESS)) {
+        equations += makeTerm<StressAV>(settings);
+    }
 
     // add all the additional equations
     equations += other;

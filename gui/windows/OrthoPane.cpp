@@ -80,7 +80,7 @@ void OrthoPane::onRightUp(wxMouseEvent& evt) {
 void OrthoPane::onLeftUp(wxMouseEvent& evt) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
     Pixel position(evt.GetPosition());
-    Optional<Size> selectedIdx = controller->getIntersectedParticle(position);
+    Optional<Size> selectedIdx = controller->getIntersectedParticle(position, 1.f);
     if (selectedIdx.valueOr(-1) != particle.lastIdx.valueOr(-1)) {
         particle.lastIdx = selectedIdx;
         controller->setSelectedParticle(selectedIdx);

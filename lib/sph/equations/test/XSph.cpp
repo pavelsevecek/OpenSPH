@@ -15,7 +15,7 @@ TEST_CASE("XSph", "[solvers]") {
     RunSettings settings;
     settings.set(RunSettingsId::SOLVER_FORCES, ForceEnum::PRESSURE);
 
-    eqs += makeTerm<PressureForce>() + makeTerm<ContinuityEquation>() + makeTerm<XSph>() +
+    eqs += makeTerm<PressureForce>() + makeTerm<ContinuityEquation>(settings) + makeTerm<XSph>() +
            makeTerm<ConstSmoothingLength>();
 
     ThreadPool& pool = *ThreadPool::getGlobalInstance();

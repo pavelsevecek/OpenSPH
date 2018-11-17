@@ -46,6 +46,7 @@ Controller::~Controller() = default;
 Controller::Vis::Vis() {
     bitmap = makeAuto<wxBitmap>();
     needsRefresh = false;
+    refreshPending = false;
 }
 
 void Controller::Vis::initialize(const GuiSettings& gui) {
@@ -345,11 +346,12 @@ Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage
         QuantityId::DEVIATORIC_STRESS,
         QuantityId::DAMAGE,
         QuantityId::VELOCITY_DIVERGENCE,
-        QuantityId::VELOCITY_GRADIENT,
-        QuantityId::VELOCITY_LAPLACIAN,
-        QuantityId::VELOCITY_GRADIENT_OF_DIVERGENCE,
         QuantityId::FRICTION,
     });
+
+    /// \todo temporarily outside forMovie
+    quantityColorizerIds.push(QuantityId::AV_STRESS);
+
     if (!forMovie) {
         quantityColorizerIds.push(QuantityId::DENSITY);
         quantityColorizerIds.push(QuantityId::MASS);
@@ -360,6 +362,9 @@ Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage
         quantityColorizerIds.push(QuantityId::STRAIN_RATE_CORRECTION_TENSOR);
         quantityColorizerIds.push(QuantityId::EPS_MIN);
         quantityColorizerIds.push(QuantityId::NEIGHBOUR_CNT);
+        quantityColorizerIds.push(QuantityId::VELOCITY_GRADIENT);
+        quantityColorizerIds.push(QuantityId::VELOCITY_LAPLACIAN);
+        quantityColorizerIds.push(QuantityId::VELOCITY_GRADIENT_OF_DIVERGENCE);
     }
 
     Array<SharedPtr<IColorizer>> colorizers;
@@ -384,6 +389,7 @@ Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage
 
 const wxBitmap& Controller::getRenderedBitmap() const {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
+    vis.refreshPending = false;
     return *vis.bitmap;
 }
 
@@ -641,11 +647,15 @@ void Controller::startRenderThread() {
             , window(window) {}
 
         virtual void update(const Bitmap<Rgba>& bitmap, Array<Label>&& labels) override {
+            if (vis.refreshPending) {
+                return;
+            }
 
             auto callback = [this, bitmap = bitmap.clone(), labels = std::move(labels)] {
                 toWxBitmap(bitmap, *vis.bitmap);
                 printLabels(*vis.bitmap, labels);
                 window->Refresh();
+                vis.refreshPending = true;
             };
 
             executeOnMainThread(std::move(callback));

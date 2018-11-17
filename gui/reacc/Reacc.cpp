@@ -131,7 +131,7 @@ RunSettings getSharedSettings() {
             ForceEnum::PRESSURE | ForceEnum::SOLID_STRESS | ForceEnum::GRAVITY) // | ForceEnum::INERTIAL)
         .set(RunSettingsId::SOLVER_TYPE, SolverEnum::ASYMMETRIC_SOLVER)
         .set(RunSettingsId::SPH_FINDER, FinderEnum::KD_TREE)
-        .set(RunSettingsId::SPH_FORMULATION, FormulationEnum::STANDARD)
+        .set(RunSettingsId::SPH_DISCRETIZATION, DiscretizationEnum::STANDARD)
         .set(RunSettingsId::SPH_AV_TYPE, ArtificialViscosityEnum::STANDARD)
         .set(RunSettingsId::SPH_AV_ALPHA, 1.5_f)
         .set(RunSettingsId::SPH_AV_BETA, 3._f)

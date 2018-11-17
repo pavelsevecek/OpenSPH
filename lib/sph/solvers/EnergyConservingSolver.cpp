@@ -137,8 +137,6 @@ EnergyConservingSolver::EnergyConservingSolver(IScheduler& scheduler,
 
 void EnergyConservingSolver::loop(Storage& storage, Statistics& UNUSED(stats)) {
 
-    Timer timer;
-
     ArrayView<const Vector> r, v, dummy;
     tie(r, v, dummy) = storage.getAll<Vector>(QuantityId::POSITION);
 
@@ -179,19 +177,6 @@ void EnergyConservingSolver::loop(Storage& storage, Statistics& UNUSED(stats)) {
         derivatives.eval(i, neighList[i], gradList[i]);
     };
     parallelFor(scheduler, threadData, 0, r.size(), granularity, evalDerivatives);
-
-
-    StdOutLogger().write("Loop: ", timer.elapsed(TimerUnit::MILLISECOND));
-    /* f.resize(e.size());
-#ifdef SPH_DEBUG
-     f.fill(NAN);
-#endif*/
-    // partitioner->compute(i, data.idxs, e, f);
-
-    /*        for (Size j = 0; j < e.size(); ++j) {
-                du[i] += f[j] * e[j] / m[i];
-            }
-            ASSERT(isReal(du[i]));*/
 }
 
 void EnergyConservingSolver::beforeLoop(Storage& storage, Statistics& UNUSED(stats)) {
@@ -202,114 +187,8 @@ void EnergyConservingSolver::beforeLoop(Storage& storage, Statistics& UNUSED(sta
         data.energyChange.resize(particleCnt);
         data.energyChange.fill(0._f);
     }
-
-    //   neighList.resize(storage.getParticleCnt());
 }
 
-/*void EnergyConservingSolver::loop(Storage& storage, Statistics& stats) {
-    ArrayView<const Vector> r, v, dummy;
-    tie(r, v, dummy) = storage.getAll<Vector>(QuantityId::POSITION);
-    ArrayView<Vector> dv =
-        derivatives.getAccumulated().getBuffer<Vector>(QuantityId::POSITION, OrderEnum::SECOND);
-
-    ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
-    ArrayView<Float> du = storage.getDt<Float>(QuantityId::ENERGY);
-
-    const IBasicFinder& actFinder = this->getFinder(r);
-
-    partitioner->initialize(storage);
-
-    // find the maximum search radius
-    const Float radius = this->getSearchRadius(storage);
-    const Float dt = stats.getOr<Float>(StatisticsId::TIMESTEP_VALUE, initialDt);
-
-    //    ArrayView<Size> neighs = storage.getValue<Size>(QuantityId::NEIGHBOUR_CNT);
-
-    // we need to symmetrize kernel in smoothing lenghts to conserve momentum
-    SymmetrizeSmoothingLengths<LutKernel<DIMENSIONS>> symmetrizedKernel(kernel);
-
-    auto evalDerivatives = [this, r, v, &dv, m, radius, &symmetrizedKernel, &actFinder](
-                               Size i, ThreadData& data) {
-        actFinder.findAll(i, radius, data.neighs);
-        data.grads.clear();
-        data.idxs.clear();
-
-        // find real neighbours and compute kernel gradients
-        for (auto& n : data.neighs) {
-            const Size j = n.index;
-            const Float hbar = 0.5_f * (r[i][H] + r[j][H]);
-            ASSERT(hbar > EPS, hbar);
-            if (i == j || getSqrLength(r[i] - r[j]) >= sqr(kernel.radius() * hbar)) {
-                // aren't actual neighbours
-                continue;
-            }
-            const Vector gr = symmetrizedKernel.grad(r[i], r[j]);
-            ASSERT(isReal(gr) && dot(gr, r[i] - r[j]) < 0._f, gr, r[i] - r[j]);
-            data.grads.emplaceBack(gr);
-            data.idxs.emplaceBack(j);
-        }
-        neighList[i].resize(data.idxs.size());
-
-        // first evaluate non-acceleration derivatives
-        derivatives.eval(i, data.idxs, data.grads);
-
-        // then evaluate accelerations
-        data.accelerations.resize(data.idxs.size());
-        data.accelerations.fill(Vector(0._f));
-        dv[i] = derivatives.evalAccelerations(i, data.idxs, data.grads, data.accelerations);
-        ASSERT(isReal(dv[i]), dv[i]);
-
-        neighList[i] = std::move(data.idxs);
-    };
-    PROFILE_SCOPE("AsymmetricSolver main loop");
-    parallelFor(scheduler, threadData, 0, r.size(), granularity, evalDerivatives);
-
-
-
-// now we can compute the energy "derivative" (or change to be exact)
-
-auto evalEnergy = [&](Size i, ThreadData& data) {
-    data.partitions.resize(neighList[i].size());
-    data.energyChange.resize(neighList[i].size());
-    data.energyChange.fill(0._f);
-     /// \todo
-     Array<Float> el(neighList[i].size());
-     for (Size k = 0; k < neighList[i].size(); ++k) {
-         el[k] = e[neighList[i][k]];
-     }
-    data.accelerations.resize(neighList[i].size());
-    data.accelerations.fill(Vector(0._f));
-    data.grads.clear();
-
-    for (Size k = 0; k < neighList[i].size(); ++k) {
-        const Size j = neighList[i][k];
-        const Vector gr = symmetrizedKernel.grad(r[i], r[j]);
-        data.grads.emplaceBack(gr);
-    }
-
-    dv[i] = derivatives.evalAccelerations(i, neighList[i], data.grads, data.accelerations);
-
-    for (Size k = 0; k < neighList[i].size(); ++k) {
-        const Size j = neighList[i][k];
-        const Vector vi12 = v[i] + 0.5_f * dv[i] * dt;
-        const Vector vj12 = v[j] + 0.5_f * dv[j] * dt;
-        const Float de = dot(data.accelerations[k], vj12 - vi12);
-
-        data.energyChange[k] = m[i] * de;
-    }
-
-    partitioner->compute(i, neighList[i], data.energyChange, data.partitions);
-
-    ASSERT(du[i] == 0._f);
-    for (Size k = 0; k < data.energyChange.size(); ++k) {
-        du[i] += data.partitions[k] * data.energyChange[k] / m[i];
-    }
-};
-
-parallelFor(scheduler, threadData, 0, r.size(), granularity, evalEnergy);
-}
-* /
-*/
 void EnergyConservingSolver::afterLoop(Storage& storage, Statistics& stats) {
 
     Accumulated& accumulated = derivatives.getAccumulated();
@@ -383,8 +262,6 @@ void EnergyConservingSolver::afterLoop(Storage& storage, Statistics& stats) {
         ASSERT(isReal(du[i]));
     };
     parallelFor(scheduler, threadData, 0, r.size(), granularity, evalAccelerations);
-
-    StdOutLogger().write("After Loop: ", timer.elapsed(TimerUnit::MILLISECOND));
 }
 
 void EnergyConservingSolver::sanityCheck(const Storage& UNUSED(storage)) const {}

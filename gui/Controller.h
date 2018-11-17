@@ -110,6 +110,7 @@ private:
         /// This object is only accessed from main thread!
         /// \note AutoPtr just to avoid the include.
         AutoPtr<wxBitmap> bitmap;
+        mutable std::atomic_bool refreshPending;
 
         /// Thread used for rendering.
         std::thread renderThread;
@@ -188,7 +189,7 @@ public:
     /// \param position Position in image coordinates, corresponding to the latest rendered image.
     /// \param toleranceEps Relative addition to effective radius of a particle; particles are considered to
     ///                     be under the point of they are closer than (displayedRadius * (1+toleranceEps)).
-    Optional<Size> getIntersectedParticle(const Pixel position, const float toleranceEps = 1.f);
+    Optional<Size> getIntersectedParticle(const Pixel position, const float toleranceEps);
 
     Optional<Size> getSelectedParticle() const;
 

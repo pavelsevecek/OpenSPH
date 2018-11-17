@@ -267,6 +267,8 @@ enum class GuiSettingsId {
     PALETTE_ACTIVATION_STRAIN,
 
     PALETTE_TOTAL_ENERGY,
+
+    PALETTE_AV_STRESS
 };
 
 class GuiSettings : public Settings<GuiSettingsId> {

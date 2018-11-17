@@ -4,6 +4,7 @@
 #include "gui/Uvw.h"
 #include "io/FileSystem.h"
 #include "io/LogFile.h"
+#include "objects/geometry/Domain.h"
 #include "sph/initial/Presets.h"
 #include "sph/solvers/GravitySolver.h"
 #include "system/Factory.h"
@@ -20,18 +21,21 @@ NAMESPACE_SPH_BEGIN
 
 AsteroidCollision::AsteroidCollision() {
     settings.set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::PREDICTOR_CORRECTOR)
-        .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 0.01_f)
+        .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 1.e-8_f)
         .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 100._f)
         .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 10000._f)
-        .set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 10000._f))
+        .set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 2.e-3_f))
         .set(RunSettingsId::SOLVER_FORCES,
-            ForceEnum::PRESSURE | ForceEnum::SOLID_STRESS | ForceEnum::GRAVITY) //| ForceEnum::INERTIAL)
+            ForceEnum::PRESSURE | ForceEnum::SOLID_STRESS) //| ForceEnum::GRAVITY) //| ForceEnum::INERTIAL)
         .set(RunSettingsId::SOLVER_TYPE, SolverEnum::ASYMMETRIC_SOLVER)
         .set(RunSettingsId::SPH_FINDER, FinderEnum::KD_TREE)
-        .set(RunSettingsId::SPH_FORMULATION, FormulationEnum::STANDARD)
+        .set(RunSettingsId::SPH_DISCRETIZATION, DiscretizationEnum::STANDARD)
         .set(RunSettingsId::SPH_AV_TYPE, ArtificialViscosityEnum::STANDARD)
+        .set(RunSettingsId::SPH_AV_USE_STRESS, true)
+        .set(RunSettingsId::SPH_AV_STRESS_FACTOR, 0.04_f)
         .set(RunSettingsId::SPH_AV_ALPHA, 1.5_f)
         .set(RunSettingsId::SPH_AV_BETA, 3._f)
+        .set(RunSettingsId::SPH_KERNEL, KernelEnum::CUBIC_SPLINE)
         .set(RunSettingsId::SPH_KERNEL_ETA, 1.3_f)
         .set(RunSettingsId::GRAVITY_SOLVER, GravityEnum::BARNES_HUT)
         .set(RunSettingsId::GRAVITY_KERNEL, GravityKernelEnum::SPH_KERNEL)
@@ -39,10 +43,10 @@ AsteroidCollision::AsteroidCollision() {
         .set(RunSettingsId::GRAVITY_LEAF_SIZE, 20)
         .set(RunSettingsId::GRAVITY_RECOMPUTATION_PERIOD, 5._f)
         .set(RunSettingsId::TIMESTEPPING_ADAPTIVE_FACTOR, 0.2_f)
-        .set(RunSettingsId::TIMESTEPPING_COURANT_NUMBER, 0.15_f)
+        .set(RunSettingsId::TIMESTEPPING_COURANT_NUMBER, 0.2_f)
         .set(RunSettingsId::RUN_THREAD_GRANULARITY, 100)
         .set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONST)
-        .set(RunSettingsId::SPH_STRAIN_RATE_CORRECTION_TENSOR, true)
+        .set(RunSettingsId::SPH_STRAIN_RATE_CORRECTION_TENSOR, false)
         .set(RunSettingsId::SPH_STABILIZATION_DAMPING, 0.1_f)
         .set(RunSettingsId::FRAME_ANGULAR_FREQUENCY, Vector(0._f));
 
@@ -69,9 +73,63 @@ AsteroidCollision::AsteroidCollision() {
     info.write("Git commit: ", gitSha);*/
 }
 
+class SubtractDomain : public IDomain {
+private:
+    IDomain& primary;
+    IDomain& subtracted;
+
+public:
+    SubtractDomain(IDomain& primary, IDomain& subtracted)
+        : primary(primary)
+        , subtracted(subtracted) {}
+
+    virtual Vector getCenter() const override {
+        // It does not have to be the EXACT geometric center, so let's return the center of
+        // the primary domain for simplicity
+        return primary.getCenter();
+    }
+
+    virtual Box getBoundingBox() const override {
+        // Subtracted domain can only shrink the bounding box, so it's OK to return the primary one
+        return primary.getBoundingBox();
+    }
+
+    virtual Float getVolume() const override {
+        return primary.getVolume() - subtracted.getVolume();
+    }
+
+    virtual bool contains(const Vector& v) const override {
+        // The main part - vector is contained in the domain if it is contained in the primary domain
+        // and NOT contained in the subtracted domain
+        return primary.contains(v) && !subtracted.contains(v);
+    }
+
+    // Additional functions needed by some components of the code that utilize the IDomain interface (such as
+    // boundary conditions); they are not needed in this example, so let's simply mark them as not
+    // implemented.
+
+    virtual void getSubset(ArrayView<const Vector>, Array<Size>&, const SubsetType) const override {
+        NOT_IMPLEMENTED
+    }
+
+    virtual void getDistanceToBoundary(ArrayView<const Vector>, Array<Float>&) const override {
+        NOT_IMPLEMENTED
+    }
+
+    virtual void project(ArrayView<Vector>, Optional<ArrayView<Size>>) const override {
+        NOT_IMPLEMENTED
+    }
+
+    virtual void addGhosts(ArrayView<const Vector>, Array<Ghost>&, const Float, const Float) const override {
+        NOT_IMPLEMENTED
+    }
+};
+
 void AsteroidCollision::setUp() {
     storage = makeShared<Storage>();
     scheduler = ThreadPool::getGlobalInstance();
+
+    solver = Factory::getSolver(*scheduler, settings);
 
     if (wxTheApp->argc > 1) {
         std::string arg(wxTheApp->argv[1]);
@@ -95,21 +153,35 @@ void AsteroidCollision::setUp() {
             }
         }
     } else {
-        Size N = 500000;
+        Size N = 150000;
 
         BodySettings body;
-        body.set(BodySettingsId::ENERGY, 0._f)
+        body.set(BodySettingsId::ENERGY, 10._f)
             .set(BodySettingsId::ENERGY_RANGE, Interval(0._f, INFTY))
-            .set(BodySettingsId::EOS, EosEnum::TILLOTSON)
-            .set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::SCALAR_GRADY_KIPP)
-            .set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::VON_MISES)
+            .set(BodySettingsId::EOS, EosEnum::MURNAGHAN)
+            .set(BodySettingsId::SHEAR_MODULUS, 1.e9_f)
+            .set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::NONE)
+            .set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::ELASTIC)
             .set(BodySettingsId::DISTRIBUTE_MODE_SPH5, false)
-            .set(BodySettingsId::INITIAL_DISTRIBUTION, DistributionEnum::DIEHL_ET_AL)
-            .set(BodySettingsId::ENERGY_MIN, 1.e10_f)
-            .set(BodySettingsId::STRESS_TENSOR_MIN, 1.e10_f)
-            .set(BodySettingsId::DAMAGE_MIN, 10._f);
+            .set(BodySettingsId::INITIAL_DISTRIBUTION, DistributionEnum::HEXAGONAL)
+            .set(BodySettingsId::ENERGY_MIN, 100._f)
+            .set(BodySettingsId::STRESS_TENSOR_MIN, 1.e6_f)
+            .set(BodySettingsId::DAMAGE_MIN, 10._f)
+            .set(BodySettingsId::PARTICLE_COUNT, int(N));
 
-        Presets::CollisionParams params;
+        InitialConditions ic(*scheduler, *solver, settings);
+
+        CylindricalDomain outerRing(Vector(0._f), 0.04_f, 0.01_f, true);
+        CylindricalDomain innerRing(Vector(0._f), 0.03_f, 0.01_f, true);
+        SubtractDomain domain(outerRing, innerRing);
+        ic.addMonolithicBody(*storage, domain, body)
+            .displace(Vector(-0.042_f, 0._f, 0._f))
+            .addVelocity(Vector(80._f, 0._f, 0._f));
+        ic.addMonolithicBody(*storage, domain, body)
+            .displace(Vector(0.042_f, 0._f, 0._f))
+            .addVelocity(Vector(-80._f, 0._f, 0._f));
+
+        /*Presets::CollisionParams params;
         params.targetRadius = 4e5_f;
         params.impactorRadius = 1e5_f;
         params.impactAngle = 30._f * DEG_TO_RAD;
@@ -125,7 +197,7 @@ void AsteroidCollision::setUp() {
         data.addTarget(*storage);
         data.addImpactor(*storage);
 
-        setupUvws(*storage);
+        setupUvws(*storage);*/
     }
 
     callbacks = makeAuto<GuiCallbacks>(*controller);

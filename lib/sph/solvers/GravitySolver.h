@@ -16,7 +16,7 @@ class Accumulated;
 
 /// \brief Extension of a generic SPH solver, including gravitational interactions of particles.
 ///
-/// Can be used with symmetric solver or asymmetric solver.
+/// Explicitly specialized for \ref AsymmetricSolver, \ref SymmetricSolver and \ref EnergyConservingSolver.
 template <typename TSphSolver>
 class GravitySolver : public TSphSolver {
 private:

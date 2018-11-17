@@ -139,5 +139,21 @@ void PreviewRenderContext::drawText(const Coords p, const Flags<TextAlign> align
     labels.push(IRenderOutput::Label{ s, colors.text, fontSize, align, Pixel(p) });
 }
 
+void AntiAliasedRenderContext::drawCircle(const Coords center, const float radius) {
+    if (center.x < -radius || center.x > bitmap.size().x + radius || center.y < -radius ||
+        center.y > bitmap.size().y + radius) {
+        return;
+    }
+    for (float y = center.y - radius - 1; y <= center.y + radius + 1; ++y) {
+        for (float x = center.x - radius - 1; x <= center.x + radius + 1; ++x) {
+            const float distSqr = sqr(x - center.x) + sqr(y - center.y);
+            if (distSqr <= sqr(radius + 1)) {
+                Rgba color = colors.fill;
+                color[3] = clamp(radius - sqrt(distSqr), 0.f, 1.f);
+                drawSafe(Pixel(x, y), color);
+            }
+        }
+    }
+}
 
 NAMESPACE_SPH_END

@@ -396,11 +396,11 @@ using VelocityGradient = VelocityTemplate<QuantityId::VELOCITY_GRADIENT, Discr, 
 /// discretization is defined.
 template <template <class> class TVelocityDerivative>
 AutoPtr<IDerivative> makeDerivative(const RunSettings& settings, Flags<DerivativeFlag> flags = EMPTY_FLAGS) {
-    const FormulationEnum formulation = settings.get<FormulationEnum>(RunSettingsId::SPH_FORMULATION);
+    const DiscretizationEnum formulation = settings.get<DiscretizationEnum>(RunSettingsId::SPH_DISCRETIZATION);
     switch (formulation) {
-    case FormulationEnum::STANDARD:
+    case DiscretizationEnum::STANDARD:
         return makeAuto<TVelocityDerivative<CenterDensityDiscr>>(settings, flags);
-    case FormulationEnum::BENZ_ASPHAUG:
+    case DiscretizationEnum::BENZ_ASPHAUG:
         return makeAuto<TVelocityDerivative<NeighbourDensityDiscr>>(settings, flags);
     default:
         NOT_IMPLEMENTED;

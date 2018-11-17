@@ -170,7 +170,7 @@ template <typename... TArgs>
 class Variant {
 private:
     AlignedUnion<TArgs...> storage;
-    Size typeIdx;
+    int typeIdx;
 
     void destroy() {
         VariantHelpers::Delete<TArgs...> deleter{ storage };

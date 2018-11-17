@@ -29,7 +29,7 @@ static Storage initStorage(TSolver& solver, BodySettings body) {
 TYPED_TEST_CASE_2("StandardSets quantities B&A", "[solvers]", TSolver, SymmetricSolver, AsymmetricSolver) {
     RunSettings settings;
     ThreadPool& pool = *ThreadPool::getGlobalInstance();
-    settings.set(RunSettingsId::SPH_FORMULATION, FormulationEnum::BENZ_ASPHAUG);
+    settings.set(RunSettingsId::SPH_DISCRETIZATION, DiscretizationEnum::BENZ_ASPHAUG);
     settings.set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONTINUITY_EQUATION);
     TSolver solver(pool, settings, getStandardEquations(settings));
 
@@ -69,7 +69,7 @@ TYPED_TEST_CASE_2("StandardSets quantities standard",
     SymmetricSolver,
     AsymmetricSolver) {
     RunSettings settings;
-    settings.set(RunSettingsId::SPH_FORMULATION, FormulationEnum::STANDARD);
+    settings.set(RunSettingsId::SPH_DISCRETIZATION, DiscretizationEnum::STANDARD);
     settings.set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONTINUITY_EQUATION);
 
     ThreadPool& pool = *ThreadPool::getGlobalInstance();
@@ -114,7 +114,7 @@ TYPED_TEST_CASE_2("StandardSets gass", "[solvers]", TSolver, SymmetricSolver, As
     settings.set(RunSettingsId::SPH_AV_TYPE, ArtificialViscosityEnum::STANDARD);
     testSolver<TSolver>(storage, settings);
 
-    settings.set(RunSettingsId::SPH_AV_BALSARA, true);
+    settings.set(RunSettingsId::SPH_AV_USE_BALSARA, true);
     testSolver<TSolver>(storage, settings);
 
     settings.set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONTINUITY_EQUATION);

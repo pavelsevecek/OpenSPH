@@ -64,13 +64,14 @@ public:
 };
 
 void PressureForce::setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) {
-    const FormulationEnum formulation = settings.get<FormulationEnum>(RunSettingsId::SPH_FORMULATION);
+    const DiscretizationEnum formulation =
+        settings.get<DiscretizationEnum>(RunSettingsId::SPH_DISCRETIZATION);
     switch (formulation) {
-    case FormulationEnum::STANDARD:
+    case DiscretizationEnum::STANDARD:
         derivatives.require(makeAuto<VelocityDivergence<CenterDensityDiscr>>(settings));
         derivatives.require(makeAuto<PressureGradient<StandardForceDiscr>>(settings));
         break;
-    case FormulationEnum::BENZ_ASPHAUG:
+    case DiscretizationEnum::BENZ_ASPHAUG:
         derivatives.require(makeAuto<VelocityDivergence<NeighbourDensityDiscr>>(settings));
         derivatives.require(makeAuto<PressureGradient<BenzAsphaugForceDiscr>>(settings));
         break;
@@ -149,12 +150,13 @@ void SolidStressForce::setDerivatives(DerivativeHolder& derivatives, const RunSe
         derivatives.require(makeAuto<CorrectionTensor>());
     }
 
-    const FormulationEnum formulation = settings.get<FormulationEnum>(RunSettingsId::SPH_FORMULATION);
+    const DiscretizationEnum formulation =
+        settings.get<DiscretizationEnum>(RunSettingsId::SPH_DISCRETIZATION);
     switch (formulation) {
-    case FormulationEnum::STANDARD:
+    case DiscretizationEnum::STANDARD:
         derivatives.require(makeAuto<StressDivergence<StandardForceDiscr>>(settings));
         break;
-    case FormulationEnum::BENZ_ASPHAUG:
+    case DiscretizationEnum::BENZ_ASPHAUG:
         derivatives.require(makeAuto<StressDivergence<BenzAsphaugForceDiscr>>(settings));
         break;
     default:
@@ -253,6 +255,10 @@ void NavierStokesForce::create(Storage& storage, IMaterial& material) const {
 }
 
 
+ContinuityEquation::ContinuityEquation(const RunSettings& settings) {
+    useUndamaged = settings.get<bool>(RunSettingsId::SPH_CONTINUITY_USING_UNDAMAGED);
+}
+
 void ContinuityEquation::setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) {
     // this formulation uses equation \dot \rho_i = m_i \sum_j m_j/rho_j \nabla \cdot \vec  v where the
     // velocity divergence is taken either directly, or as a trace of strength velocity gradient, see
@@ -272,7 +278,7 @@ void ContinuityEquation::finalize(IScheduler& scheduler, Storage& storage) {
     tie(rho, drho) = storage.getAll<Float>(QuantityId::DENSITY);
     ArrayView<const Float> divv = storage.getValue<Float>(QuantityId::VELOCITY_DIVERGENCE);
 
-    if (storage.has(QuantityId::VELOCITY_GRADIENT)) {
+    if (useUndamaged && storage.has(QuantityId::VELOCITY_GRADIENT)) {
         ArrayView<const Float> reduce = storage.getValue<Float>(QuantityId::STRESS_REDUCING);
         ArrayView<const SymmetricTensor> gradv =
             storage.getValue<SymmetricTensor>(QuantityId::VELOCITY_GRADIENT);

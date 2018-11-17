@@ -18,12 +18,14 @@ NAMESPACE_SPH_BEGIN
 /// of 'standard' artificial viscosity, both terms serve different purposes and they complement each other.
 /// The implementation more or less follows paper 'SPH without a tensile instability' by Monaghan \cite
 /// Monaghan_1999.
+///
 /// \note This object cannot be used within Balsara switch
 class StressAV : public IEquationTerm {
 private:
     LutKernel<3> kernel;
 
-    class Derivative : public AccelerationTemplate<Derivative> {
+    template <typename Discr>
+    class Derivative : public AccelerationTemplate<Derivative<Discr>> {
     private:
         SymmetrizeSmoothingLengths<LutKernel<3>> kernel;
         Float n;  ///< exponent of the weighting function
@@ -34,17 +36,17 @@ private:
         ArrayView<const Float> rho;
         ArrayView<const Vector> r, v;
 
+        Discr discr;
+
     public:
         explicit Derivative(const RunSettings& settings)
-            : AccelerationTemplate<Derivative>(settings) {
+            : AccelerationTemplate<Derivative<Discr>>(settings, DerivativeFlag::SUM_ONLY_UNDAMAGED) {
             kernel = Factory::getKernel<3>(settings);
             n = settings.get<Float>(RunSettingsId::SPH_AV_STRESS_EXPONENT);
             xi = settings.get<Float>(RunSettingsId::SPH_AV_STRESS_FACTOR);
         }
 
-        INLINE bool additionalCreate(Accumulated& UNUSED(results)) const {
-            return true;
-        }
+        INLINE void additionalCreate(Accumulated& UNUSED(results)) const {}
 
         INLINE void additionalInitialize(const Storage& input, Accumulated& UNUSED(results)) {
             wp = input.getValue<Float>(QuantityId::INTERPARTICLE_SPACING_KERNEL);
@@ -65,9 +67,8 @@ private:
             // weighting function
             const Float phi = xi * pow(w / wp[i], n);
 
-            // AV term, discretized as stress force (i.e. differently than in \cite Monaghan_1999) for
-            // internally consistent SPH formulation
-            const SymmetricTensor Pi = phi * (as[i] + as[j]) / (rho[i] * rho[j]);
+            // AV term, discretized consistently with the selected SPH formulation
+            const SymmetricTensor Pi = phi * discr(as[i], as[j], rho[i], rho[j]);
             const Vector f = Pi * grad;
             const Float heating = 0.5_f * dot(Pi * (v[i] - v[j]), grad);
             return { f, heating };
@@ -81,17 +82,43 @@ public:
     }
 
     virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override {
-        derivatives.require(makeAuto<Derivative>(settings));
+        const DiscretizationEnum formulation = settings.get<DiscretizationEnum>(RunSettingsId::SPH_DISCRETIZATION);
+        /// \todo partially duplicates stuff from EquationTerm.cpp
+        switch (formulation) {
+        case DiscretizationEnum::STANDARD:
+            struct StandardDiscr {
+                INLINE SymmetricTensor operator()(const SymmetricTensor& asi,
+                    const SymmetricTensor& asj,
+                    const Float rhoi,
+                    const Float rhoj) const {
+                    return asi / sqr(rhoi) + asj / sqr(rhoj);
+                }
+            };
+            derivatives.require(makeAuto<Derivative<StandardDiscr>>(settings));
+            break;
+        case DiscretizationEnum::BENZ_ASPHAUG:
+            struct BenzAsphaugDiscr {
+                INLINE SymmetricTensor operator()(const SymmetricTensor& asi,
+                    const SymmetricTensor& asj,
+                    const Float rhoi,
+                    const Float rhoj) const {
+                    return (asi + asj) / (rhoi * rhoj);
+                }
+            };
+            derivatives.require(makeAuto<Derivative<BenzAsphaugDiscr>>(settings));
+            break;
+        default:
+            NOT_IMPLEMENTED;
+        }
     }
 
-    virtual void initialize(IScheduler& UNUSED(scheduler), Storage& storage) override {
+    virtual void initialize(IScheduler& scheduler, Storage& storage) override {
         ArrayView<SymmetricTensor> as = storage.getValue<SymmetricTensor>(QuantityId::AV_STRESS);
-        ArrayView<TracelessTensor> s =
+        ArrayView<const TracelessTensor> s =
             storage.getPhysicalValue<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
-        ArrayView<Float> p = storage.getValue<Float>(QuantityId::PRESSURE);
+        ArrayView<const Float> p = storage.getValue<Float>(QuantityId::PRESSURE);
 
-        /// \todo parallelize
-        for (Size i = 0; i < p.size(); ++i) {
+        parallelFor(scheduler, 0, p.size(), [&as, &s, &p](const Size i) {
             // compute total stress tesor
             const SymmetricTensor sigma = SymmetricTensor(s[i]) - p[i] * SymmetricTensor::identity();
 
@@ -105,7 +132,7 @@ public:
 
             // transform back to original coordinates
             as[i] = transform(SymmetricTensor(as_diag, Vector(0._f)), matrix.transpose());
-        }
+        });
     }
 
     virtual void finalize(IScheduler& UNUSED(scheduler), Storage& UNUSED(storage)) override {}

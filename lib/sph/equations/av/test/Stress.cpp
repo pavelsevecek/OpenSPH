@@ -36,8 +36,9 @@ TEST_CASE("StressAV test", "[av]") {
 
     // solver with some basic forces and artificial stress
     EquationHolder eqs;
-    eqs += makeTerm<PressureForce>() + makeTerm<SolidStressForce>(settings) + makeTerm<ContinuityEquation>() +
-           makeTerm<StressAV>(settings) + makeTerm<ConstSmoothingLength>();
+    eqs += makeTerm<PressureForce>() + makeTerm<SolidStressForce>(settings) +
+           makeTerm<ContinuityEquation>(settings) + makeTerm<StressAV>(settings) +
+           makeTerm<ConstSmoothingLength>();
     ThreadPool& pool = *ThreadPool::getGlobalInstance();
     SymmetricSolver solver(pool, settings, std::move(eqs));
     solver.create(*storage, storage->getMaterial(0));

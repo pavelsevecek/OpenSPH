@@ -36,7 +36,10 @@ NAMESPACE_SPH_BEGIN
 
 #define UNUSED(x)
 
-#define MARK_USED(x) (void)x
+/// \brief Silences the "unused variable" warning for given variable.
+///
+/// \note sizeof is used to make sure x is not evaluated.
+#define MARK_USED(x) (void)sizeof(x)
 
 #ifdef SPH_DEBUG
 #define UNUSED_IN_RELEASE(x) x

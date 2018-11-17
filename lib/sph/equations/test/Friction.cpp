@@ -14,7 +14,8 @@ TEST_CASE("InternalFriction", "[friction]") {
     EquationHolder eqs;
     RunSettings settings;
     settings.set(RunSettingsId::SOLVER_FORCES, ForceEnum::PRESSURE);
-    eqs += makeTerm<ViscousStress>() + makeTerm<ContinuityEquation>() + makeTerm<ConstSmoothingLength>();
+    eqs +=
+        makeTerm<ViscousStress>() + makeTerm<ContinuityEquation>(settings) + makeTerm<ConstSmoothingLength>();
 
     ThreadPool& pool = *ThreadPool::getGlobalInstance();
     SymmetricSolver solver(pool, settings, std::move(eqs));

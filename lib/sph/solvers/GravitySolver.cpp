@@ -3,6 +3,7 @@
 #include "sph/equations/Potentials.h"
 #include "sph/kernel/Kernel.h"
 #include "sph/solvers/AsymmetricSolver.h"
+#include "sph/solvers/EnergyConservingSolver.h"
 #include "sph/solvers/SymmetricSolver.h"
 #include "system/Factory.h"
 #include "system/Statistics.h"
@@ -36,6 +37,19 @@ GravitySolver<AsymmetricSolver>::GravitySolver(IScheduler& scheduler,
     const EquationHolder& equations,
     AutoPtr<IGravity>&& gravity)
     : AsymmetricSolver(scheduler, settings, equations)
+    , gravity(std::move(gravity)) {
+
+    // make sure acceleration are being accumulated
+    Accumulated& results = derivatives.getAccumulated();
+    results.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, BufferSource::SHARED);
+}
+
+template <>
+GravitySolver<EnergyConservingSolver>::GravitySolver(IScheduler& scheduler,
+    const RunSettings& settings,
+    const EquationHolder& equations,
+    AutoPtr<IGravity>&& gravity)
+    : EnergyConservingSolver(scheduler, settings, equations)
     , gravity(std::move(gravity)) {
 
     // make sure acceleration are being accumulated
@@ -78,11 +92,27 @@ Accumulated& GravitySolver<AsymmetricSolver>::getAccumulated() {
 }
 
 template <>
+Accumulated& GravitySolver<EnergyConservingSolver>::getAccumulated() {
+    return this->derivatives.getAccumulated();
+}
+
+template <>
 const IBasicFinder& GravitySolver<AsymmetricSolver>::getFinder(ArrayView<const Vector> r) {
     RawPtr<const IBasicFinder> finder = gravity->getFinder();
     if (!finder) {
         // no finder provided, just call the default implementation
         return AsymmetricSolver::getFinder(r);
+    } else {
+        return *finder;
+    }
+}
+
+template <>
+const IBasicFinder& GravitySolver<EnergyConservingSolver>::getFinder(ArrayView<const Vector> r) {
+    RawPtr<const IBasicFinder> finder = gravity->getFinder();
+    if (!finder) {
+        // no finder provided, just call the default implementation
+        return EnergyConservingSolver::getFinder(r);
     } else {
         return *finder;
     }
@@ -107,5 +137,6 @@ void GravitySolver<TSphSolver>::sanityCheck(const Storage& storage) const {
 
 template class GravitySolver<SymmetricSolver>;
 template class GravitySolver<AsymmetricSolver>;
+template class GravitySolver<EnergyConservingSolver>;
 
 NAMESPACE_SPH_END

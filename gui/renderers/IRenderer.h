@@ -62,15 +62,13 @@ struct RenderParams {
     } particles;
 
     struct {
-        /// Multiplier of the rendered vector field
-        float scale = 1.e4_f;
 
-        /// Size of the vector proportional to the logarithm of velocity
-        bool toLog = true;
+        /// Length of the drawn vectors in pixels;
+        float length = 100.f;
 
     } vectors;
 
-    /// Highlighted particle (only for interactive view). If NOTHING, no particle is selected.
+    /// \brief Highlighted particle (only for interactive view). If NOTHING, no particle is selected.
     Optional<Size> selectedParticle = NOTHING;
 };
 

@@ -7,7 +7,6 @@
 using namespace Sph;
 
 TEST_CASE("EnergyConservingSolver", "[solvers]") {
-    SKIP_TEST;
     RunSettings settings;
     BodySettings body;
     body.set(BodySettingsId::DENSITY, 1._f)

@@ -193,7 +193,12 @@ public:
 /// summation (see \ref SummationSolver) or SPH formulation without solving the density (see \ref
 /// DensityIndependentSolver).
 class ContinuityEquation : public IEquationTerm {
+private:
+    bool useUndamaged;
+
 public:
+    explicit ContinuityEquation(const RunSettings& settings);
+
     virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override;
 
     virtual void initialize(IScheduler& scheduler, Storage& storage) override;
