@@ -14,6 +14,7 @@ TEST_CASE("StressAV test", "[av]") {
     // prepare storage, two hemispheres moving towards each other in x direction
     const Float u0 = 0._f;
     BodySettings body;
+    body.set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::NONE);
     body.set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::NONE);
     /// \todo this test is HIGHLY sensitive on initial distribution!
     body.set(BodySettingsId::INITIAL_DISTRIBUTION, DistributionEnum::HEXAGONAL)
@@ -31,6 +32,7 @@ TEST_CASE("StressAV test", "[av]") {
     RunSettings settings;
     settings.set(RunSettingsId::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::NONE);
     settings.set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 0.1_f * r[0][H] / cs);
+    settings.set(RunSettingsId::SPH_DISCRETIZATION, DiscretizationEnum::BENZ_ASPHAUG);
     settings.set(RunSettingsId::SOLVER_FORCES, ForceEnum::PRESSURE | ForceEnum::SOLID_STRESS);
     EulerExplicit timestepping(storage, settings);
 

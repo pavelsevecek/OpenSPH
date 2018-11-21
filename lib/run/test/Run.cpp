@@ -53,7 +53,7 @@ public:
         : IOutput(Path("%d"))
         , outputTimes(outputTimes) {}
 
-    virtual Path dump(Storage& UNUSED(storage), const Statistics& stats) override {
+    virtual Path dump(const Storage& UNUSED(storage), const Statistics& stats) override {
         outputTimes.push(stats.get<Float>(StatisticsId::RUN_TIME));
         return Path();
     }

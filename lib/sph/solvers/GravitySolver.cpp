@@ -58,6 +58,9 @@ GravitySolver<EnergyConservingSolver>::GravitySolver(IScheduler& scheduler,
 }
 
 template <typename TSphSolver>
+GravitySolver<TSphSolver>::~GravitySolver() = default;
+
+template <typename TSphSolver>
 void GravitySolver<TSphSolver>::loop(Storage& storage, Statistics& stats) {
     // first, do asymmetric evaluation of gravity:
 

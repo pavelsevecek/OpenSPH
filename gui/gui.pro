@@ -12,7 +12,7 @@ LIBS += ../lib/liblib.a
 
 DEFINES += SPH_USE_EIGEN
 
-QMAKE_CXXFLAGS += -Wall -Werror -msse4.1 -std=c++14 `wx-config --cxxflags`
+QMAKE_CXXFLAGS += -Wall -Werror -msse4.1 -mavx -std=c++14 `wx-config --cxxflags`
 
 linux-g++ {
     # disabling maybe-uninitialized because of Factory::getCamera, either gcc bug or some weird behavior
@@ -32,13 +32,13 @@ CONFIG(profile, debug|profile|assert|release) {
 
 CONFIG(assert, debug|profile|assert|release) {
   message( "SPH GUI --- Building for Assert" )
-  DEFINES += SPH_DEBUG SPH_PROFILE
+  DEFINES += SPH_DEBUG
   QMAKE_CXXFLAGS += -O2
 }
 
 CONFIG(debug, debug|profile|assert|release) {
   message( "SPH GUI --- Building for Debug" )
-  DEFINES += SPH_DEBUG SPH_PROFILE
+  DEFINES += SPH_DEBUG
 }
 
 SOURCES += \

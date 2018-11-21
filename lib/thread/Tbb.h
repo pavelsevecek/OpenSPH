@@ -33,6 +33,11 @@ public:
 
     virtual Size getRecommendedGranularity(const Size from, const Size to) const override;
 
+    virtual void parallelFor(const Size from,
+        const Size to,
+        const Size granularity,
+        const Function<void(Size n1, Size n2)>& functor) override;
+
     static SharedPtr<Tbb> getGlobalInstance();
 };
 

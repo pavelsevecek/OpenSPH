@@ -71,6 +71,8 @@ TEST_CASE("Initial custom solver", "[initial]") {
     InitialConditions initial(pool, solver, RunSettings::getDefaults());
     REQUIRE(solver.createCalled == 0);
     BodySettings body;
+    body.set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::NONE);
+    body.set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::NONE);
     initial.addMonolithicBody(storage, SphericalDomain(Vector(0._f), 1._f), body);
     REQUIRE(solver.createCalled == 1);
     initial.addMonolithicBody(storage, SphericalDomain(Vector(0._f), 2._f), body);

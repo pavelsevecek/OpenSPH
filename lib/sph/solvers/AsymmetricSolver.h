@@ -38,7 +38,7 @@ protected:
 public:
     IAsymmetricSolver(IScheduler& scheduler, const RunSettings& settings, const EquationHolder& eqs);
 
-    virtual void integrate(Storage& storage, Statistics& stats) override final;
+    virtual void integrate(Storage& storage, Statistics& stats) override;
 
     virtual void create(Storage& storage, IMaterial& material) const override;
 
@@ -51,6 +51,7 @@ protected:
     /// finder, implementations should therefore use this function instead of accessing the finder directly.
     virtual const IBasicFinder& getFinder(ArrayView<const Vector> r);
 
+    /// \todo this structure is probably not needed, we only use it by EnergyConservingSolver anyway
     virtual void beforeLoop(Storage& storage, Statistics& stats) = 0;
 
     virtual void loop(Storage& storage, Statistics& stats) = 0;

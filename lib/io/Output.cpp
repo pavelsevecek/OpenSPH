@@ -140,7 +140,7 @@ TextOutput::TextOutput(const OutputFile& fileMask,
 
 TextOutput::~TextOutput() = default;
 
-Path TextOutput::dump(Storage& storage, const Statistics& stats) {
+Path TextOutput::dump(const Storage& storage, const Statistics& stats) {
     if (options.has(Options::DUMP_ALL)) {
         columns.clear();
         // add some 'extraordinary' quantities and position (we want those to be one of the first, not after
@@ -149,7 +149,7 @@ Path TextOutput::dump(Storage& storage, const Statistics& stats) {
         columns.push(makeAuto<ValueColumn<Vector>>(QuantityId::POSITION));
         columns.push(makeAuto<DerivativeColumn<Vector>>(QuantityId::POSITION));
         columns.push(makeAuto<SmoothingLengthColumn>());
-        for (StorageElement e : storage.getQuantities()) {
+        for (ConstStorageElement e : storage.getQuantities()) {
             if (e.id == QuantityId::POSITION) {
                 // already added
                 continue;
@@ -212,7 +212,7 @@ Outcome TextInput::load(const Path& path, Storage& storage, Statistics& UNUSED(s
                 continue;
             }
             std::stringstream ss(line);
-            for (auto& column : columns) {
+            for (AutoPtr<ITextColumn>& column : columns) {
                 switch (column->getType()) {
                 /// \todo de-duplicate the loading (used in Settings)
                 case ValueEnum::INDEX: {
@@ -273,7 +273,7 @@ TextInput& TextInput::addColumn(AutoPtr<ITextColumn>&& column) {
 /// GnuplotOutput
 /// ----------------------------------------------------------------------------------------------------------
 
-Path GnuplotOutput::dump(Storage& storage, const Statistics& stats) {
+Path GnuplotOutput::dump(const Storage& storage, const Statistics& stats) {
     const Path path = TextOutput::dump(storage, stats);
     const Path pathWithoutExt = Path(path).removeExtension();
     const Float time = stats.get<Float>(StatisticsId::RUN_TIME);
@@ -358,9 +358,9 @@ struct DeserializerDispatcher {
 
 struct StoreBuffersVisitor {
     template <typename TValue>
-    void visit(Quantity& q, Serializer& serializer, const IndexSequence& sequence) {
+    void visit(const Quantity& q, Serializer& serializer, const IndexSequence& sequence) {
         SerializerDispatcher dispatcher{ serializer };
-        StaticArray<Array<TValue>&, 3> buffers = q.getAll<TValue>();
+        StaticArray<const Array<TValue>&, 3> buffers = q.getAll<TValue>();
         for (Size i : sequence) {
             dispatcher(buffers[0][i]);
         }
@@ -432,8 +432,10 @@ BinaryOutput::BinaryOutput(const OutputFile& fileMask, const RunTypeEnum runType
     : IOutput(fileMask)
     , runTypeId(runTypeId) {}
 
-Path BinaryOutput::dump(Storage& storage, const Statistics& stats) {
+Path BinaryOutput::dump(const Storage& storage, const Statistics& stats) {
     const Path fileName = paths.getNextPath(stats);
+    FileSystem::createDirectory(fileName.parentPath());
+
     const Float time = stats.get<Float>(StatisticsId::RUN_TIME);
 
     Serializer serializer(fileName);
@@ -462,7 +464,7 @@ Path BinaryOutput::dump(Storage& storage, const Statistics& stats) {
     Array<QuantityId> cachedIds;
     for (auto i : storage.getQuantities()) {
         // first 3 values: quantity ID, order (number of derivatives), type
-        Quantity& q = i.quantity;
+        const Quantity& q = i.quantity;
         if (i.id != QuantityId::MATERIAL_ID) {
             // no need to dump material IDs, they are always consecutive
             cachedIds.push(i.id);
@@ -509,7 +511,7 @@ Path BinaryOutput::dump(Storage& storage, const Statistics& stats) {
 
         for (auto i : storage.getQuantities()) {
             if (i.id != QuantityId::MATERIAL_ID) {
-                Quantity& q = i.quantity;
+                const Quantity& q = i.quantity;
                 StoreBuffersVisitor visitor;
                 dispatch(q.getValueEnum(), visitor, q, serializer, sequence);
             }
@@ -733,15 +735,15 @@ PkdgravOutput::PkdgravOutput(const OutputFile& fileMask, PkdgravParams&& params)
     ASSERT(almostEqual(this->params.conversion.velocity, 2.97853e4_f, 1.e-4_f));
 }
 
-Path PkdgravOutput::dump(Storage& storage, const Statistics& stats) {
+Path PkdgravOutput::dump(const Storage& storage, const Statistics& stats) {
     const Path fileName = paths.getNextPath(stats);
     FileSystem::createDirectory(fileName.parentPath());
 
-    ArrayView<Float> m, rho, u;
+    ArrayView<const Float> m, rho, u;
     tie(m, rho, u) = storage.getValues<Float>(QuantityId::MASS, QuantityId::DENSITY, QuantityId::ENERGY);
-    ArrayView<Vector> r, v, dv;
+    ArrayView<const Vector> r, v, dv;
     tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
-    ArrayView<Size> flags = storage.getValue<Size>(QuantityId::FLAG);
+    ArrayView<const Size> flags = storage.getValue<Size>(QuantityId::FLAG);
 
     std::ofstream ofs(fileName.native());
     ofs << std::setprecision(PRECISION) << std::scientific;
@@ -823,7 +825,8 @@ Outcome PkdgravInput::load(const Path& path, Storage& storage, Statistics& stats
     }
 
     // whole code assumes positions is a 2nd order quantity, so we have to add the acceleration
-    storage.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, Vector(0._f));
+    ASSERT(storage.has<Vector>(QuantityId::POSITION, OrderEnum::FIRST));
+    storage.getQuantity(QuantityId::POSITION).setOrder(OrderEnum::SECOND);
 
     // Convert units -- assuming default conversion values
     PkdgravParams::Conversion conversion;

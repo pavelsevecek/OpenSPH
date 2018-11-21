@@ -6,6 +6,9 @@
 
 NAMESPACE_SPH_BEGIN
 
+template <typename T>
+class GravitySolver;
+
 /// \brief Abstraction of the \f[f_{ij}\f] terms in \cite Owen_2009.
 class IEnergyPartitioner : public Polymorphic {
 public:
@@ -44,7 +47,9 @@ public:
 
 /// See Owen 2009: A compatibly differenced total energy conserving form of SPH
 class EnergyConservingSolver : public IAsymmetricSolver {
-protected:
+    friend class GravitySolver<EnergyConservingSolver>;
+
+private:
     AccelerationSeparatingHolder derivatives;
 
     Float initialDt;
@@ -72,14 +77,14 @@ protected:
 public:
     EnergyConservingSolver(IScheduler& scheduler, const RunSettings& settings, const EquationHolder& eqs);
 
-protected: /// \todo needed by GravitySolver; should be fixed
+private:
+    virtual void sanityCheck(const Storage& storage) const override;
+
     virtual void beforeLoop(Storage& storage, Statistics& stats) override;
 
     virtual void loop(Storage& storage, Statistics& stats) override;
 
     virtual void afterLoop(Storage& storage, Statistics& stats) override;
-
-    virtual void sanityCheck(const Storage& storage) const override;
 };
 
 NAMESPACE_SPH_END

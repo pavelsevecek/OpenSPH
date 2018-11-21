@@ -7,76 +7,8 @@ enum class KdChild {
     RIGHT = 1,
 };
 
-struct NodeIdx {
-    Size index;
-    Size thread;
-};
-
-template <typename TNode>
-struct BuildNode : public InnerNode<TNode> {
-
-    /// Index of a thread that created the left child. Unused for leaf node
-    Size leftThread;
-
-    /// Index of a thread that created the right child. Unused for leaf node
-    Size rightThread;
-
-    BuildNode(KdNode::Type type)
-        : InnerNode<TNode>(type) {
-#ifdef SPH_DEBUG
-        leftThread = Size(-1);
-        rightThread = Size(-1);
-#endif
-    }
-};
-
-/// \brief Holds data shared by nodes during the construction of KdTree.
-template <typename TNode>
-struct ThreadTree {
-    /// Scheduler used for parallelization.
-    IScheduler& scheduler;
-
-    /// \brief Array of nodes constructed by each thread.
-    ///
-    /// Must be a std::deque to safely modify values of parent nodes on array belonging to a different thread
-    /// - ordinary Array might get reallocated and thus invalidate the reference under our hands.
-    ThreadLocal<std::deque<BuildNode<TNode>>> threadData;
-
-    ThreadTree(IScheduler& scheduler)
-        : scheduler(scheduler)
-        , threadData(scheduler) {}
-
-    BuildNode<TNode>& operator[](const NodeIdx& node) {
-        return threadData.value(node.thread)[node.index];
-    }
-};
-
-template <typename TNode, typename TFunctor>
-static Size iterateThreadTree(ThreadTree<TNode>& tree,
-    NodeIdx nodeIdx,
-    const Size globalIdx,
-    const TFunctor& functor) {
-    BuildNode<TNode>& node = tree[nodeIdx];
-    Size nextIdx = Size(-1);
-    if (!node.isLeaf()) {
-        Size leftIdx = globalIdx + 1;
-
-        ASSERT(node.left != Size(-1) && node.leftThread != Size(-1), node.left, node.leftThread);
-        const Size rightIdx = iterateThreadTree(tree, { node.left, node.leftThread }, leftIdx, functor);
-
-        ASSERT(node.right != Size(-1) && node.rightThread != Size(-1), node.right, node.rightThread);
-        nextIdx = iterateThreadTree(tree, { node.right, node.rightThread }, rightIdx, functor);
-
-        functor(node, globalIdx, leftIdx, rightIdx);
-    } else {
-        nextIdx = globalIdx + 1;
-        functor(node, globalIdx, Size(-1), Size(-1));
-    }
-    return nextIdx;
-}
-
 template <typename TNode, typename TMetric>
-void KdTree<TNode, TMetric>::buildImpl(IScheduler& UNUSED(scheduler), ArrayView<const Vector> points) {
+void KdTree<TNode, TMetric>::buildImpl(IScheduler& scheduler, ArrayView<const Vector> points) {
     static_assert(sizeof(LeafNode<TNode>) == sizeof(InnerNode<TNode>), "Sizes of nodes must match");
 
     // clean the current tree
@@ -91,47 +23,23 @@ void KdTree<TNode, TMetric>::buildImpl(IScheduler& UNUSED(scheduler), ArrayView<
         return;
     }
 
-    SequentialScheduler scheduler; /// \todo fix the parallelization!!
-    ThreadTree<TNode> tree(scheduler);
-    Size rootThread = Size(-1);
+    const Size nodeCnt = 2 * points.size() / leafSize + 1;
+    nodes.resize(nodeCnt);
 
-    // Build the tree concurrently, using the provided scheduler.
-    // Nodes are added to thread-local arrays.
-    SharedPtr<ITask> rootTask = scheduler.submit([this, &tree, &points, &rootThread] { //
-        NodeIdx root{ ROOT_PARENT_NODE, tree.scheduler.getThreadIdx().value() };
-        this->buildTree(tree, root, KdChild(-1), 0, points.size(), entireBox, 0);
-        rootThread = root.thread;
+    SharedPtr<ITask> rootTask = scheduler.submit([this, &scheduler, points] {
+        this->buildTree(scheduler, ROOT_PARENT_NODE, KdChild(-1), 0, points.size(), entireBox, 0);
     });
     rootTask->wait();
 
-    // Create the final tree by merging the thread-local values:
-    // first count the total number of nodes
-    Size totalNodeCnt = 0;
-    for (std::deque<BuildNode<TNode>>& localNodes : tree.threadData) {
-        totalNodeCnt += localNodes.size();
-    }
+    // shrink nodes to only the constructed ones
+    nodes.resize(counter);
 
-    // second, KdNodes are not default-constructible, so we have to initialize them on some value
-    for (Size i = 0; i < totalNodeCnt; ++i) {
-        nodes.emplaceBack(KdNode::Type(-1));
-    }
-
-    // now copy the thread-local nodes to correct position in the tree and setup child nodes
-    auto accumulateNodes = [this](InnerNode<TNode>& node, Size idx, Size leftIdx, Size rightIdx) {
-        memcpy((void*)&nodes[idx], (void*)&node, sizeof(InnerNode<TNode>));
-        if (!node.isLeaf()) {
-            nodes[idx].left = leftIdx;
-            nodes[idx].right = rightIdx;
-        }
-    };
-    iterateThreadTree(tree, { 0, rootThread }, 0, accumulateNodes);
-
-    ASSERT(this->sanityCheck());
+    ASSERT(this->sanityCheck(), this->sanityCheck().error());
 }
 
 template <typename TNode, typename TMetric>
-void KdTree<TNode, TMetric>::buildTree(ThreadTree<TNode>& tree,
-    const NodeIdx parent,
+void KdTree<TNode, TMetric>::buildTree(IScheduler& scheduler,
+    const Size parent,
     const KdChild child,
     const Size from,
     const Size to,
@@ -149,7 +57,7 @@ void KdTree<TNode, TMetric>::buildTree(ThreadTree<TNode>& tree,
 
     if (to - from <= leafSize) {
         // enough points to fit inside one leaf
-        this->addLeaf(tree, parent, child, from, to);
+        this->addLeaf(parent, child, from, to);
         return;
     } else {
         // check for singularity of dimensions
@@ -232,38 +140,41 @@ void KdTree<TNode, TMetric>::buildTree(ThreadTree<TNode>& tree,
         ASSERT(this->checkBoxes(from, to, n1, box1, box2));
 
         // add inner node and connect it to the parent
-        const NodeIdx nextIdx = this->addInner(tree, parent, child, splitPosition, splitIdx);
+        const Size index = this->addInner(parent, child, splitPosition, splitIdx);
 
         // recurse to left and right subtree
         const Size nextSlidingCnt = slidingMidpoint ? slidingCnt + 1 : 0;
-
-        auto processRightSubTree = [this, &tree, nextIdx, to, n1, box2, nextSlidingCnt] { //
-            this->buildTree(tree, nextIdx, KdChild::RIGHT, n1, to, box2, nextSlidingCnt);
+        auto processRightSubTree = [this, &scheduler, index, to, n1, box2, nextSlidingCnt] {
+            this->buildTree(scheduler, index, KdChild::RIGHT, n1, to, box2, nextSlidingCnt);
         };
-        if (to - from >= idxs.size() / (10 * tree.scheduler.getThreadCnt())) {
+        if (to - from >= idxs.size() / (4 * scheduler.getThreadCnt())) {
             // ad hoc decision - split the build only for few topmost nodes, there is no point in splitting
             // the work for child node in the bottom, it would only overburden the ThreadPool.
-            tree.scheduler.submit(processRightSubTree);
+            scheduler.submit(processRightSubTree);
         } else {
             // otherwise simply process both subtrees in the same thread
             processRightSubTree();
         }
-        this->buildTree(tree, nextIdx, KdChild::LEFT, from, n1, box1, nextSlidingCnt);
+        this->buildTree(scheduler, index, KdChild::LEFT, from, n1, box1, nextSlidingCnt);
     }
 }
 
 template <typename TNode, typename TMetric>
-void KdTree<TNode, TMetric>::addLeaf(ThreadTree<TNode>& tree,
-    const NodeIdx parent,
-    const KdChild child,
-    const Size from,
-    const Size to) {
-    ASSERT(to - from >= 1, from, to);
-    std::deque<BuildNode<TNode>>& localNodes = tree.threadData.local();
-    localNodes.emplace_back(KdNode::Type::LEAF);
-    const Size index = localNodes.size() - 1;
+void KdTree<TNode, TMetric>::addLeaf(const Size parent, const KdChild child, const Size from, const Size to) {
+    const Size index = counter++;
+    if (index >= nodes.size()) {
+        // needs more nodes than estimated; allocate up to 2x more than necessary to avoid frequent
+        // reallocations
+        nodesMutex.lock();
+        nodes.resize(2 * index);
+        nodesMutex.unlock();
+    }
 
-    LeafNode<TNode>& node = (LeafNode<TNode>&)localNodes[index];
+    nodesMutex.lock_shared();
+    auto releaseLock = finally([this] { nodesMutex.unlock_shared(); });
+
+    LeafNode<TNode>& node = (LeafNode<TNode>&)nodes[index];
+    node.type = KdNode::Type::LEAF;
     ASSERT(node.isLeaf());
 
 #ifdef SPH_DEBUG
@@ -280,37 +191,42 @@ void KdTree<TNode, TMetric>::addLeaf(ThreadTree<TNode>& tree,
     }
     node.box = box;
 
-    if (parent.index == ROOT_PARENT_NODE) {
+    if (parent == ROOT_PARENT_NODE) {
         return;
     }
-    BuildNode<TNode>& parentNode = tree[parent];
+    InnerNode<TNode>& parentNode = (InnerNode<TNode>&)nodes[parent];
     ASSERT(!parentNode.isLeaf());
     if (child == KdChild::LEFT) {
         // left child
         parentNode.left = index;
-        parentNode.leftThread = tree.scheduler.getThreadIdx().value();
     } else {
         ASSERT(child == KdChild::RIGHT);
         // right child
         parentNode.right = index;
-        parentNode.rightThread = tree.scheduler.getThreadIdx().value();
     }
 }
 
 template <typename TNode, typename TMetric>
-NodeIdx KdTree<TNode, TMetric>::addInner(ThreadTree<TNode>& tree,
-    const NodeIdx parent,
+Size KdTree<TNode, TMetric>::addInner(const Size parent,
     const KdChild child,
     const Float splitPosition,
     const Size splitIdx) {
     static_assert(int(KdNode::Type::X) == 0 && int(KdNode::Type::Y) == 1 && int(KdNode::Type::Z) == 2,
         "Invalid values of KdNode::Type enum");
 
-    std::deque<BuildNode<TNode>>& localNodes = tree.threadData.local();
-    localNodes.emplace_back(KdNode::Type(splitIdx));
-    const Size index = localNodes.size() - 1;
+    const Size index = counter++;
+    if (index >= nodes.size()) {
+        // needs more nodes than estimated; allocate up to 2x more than necessary to avoid frequent
+        // reallocations
+        nodesMutex.lock();
+        nodes.resize(2 * index);
+        nodesMutex.unlock();
+    }
 
-    InnerNode<TNode>& node = (InnerNode<TNode>&)localNodes[index];
+    nodesMutex.lock_shared();
+    auto releaseLock = finally([this] { nodesMutex.unlock_shared(); });
+    InnerNode<TNode>& node = (InnerNode<TNode>&)nodes[index];
+    node.type = KdNode::Type(splitIdx);
     ASSERT(!node.isLeaf());
 
 #ifdef SPH_DEBUG
@@ -320,25 +236,23 @@ NodeIdx KdTree<TNode, TMetric>::addInner(ThreadTree<TNode>& tree,
 
     node.splitPosition = splitPosition;
 
-    const Size threadIdx = tree.scheduler.getThreadIdx().value();
-    if (parent.index == ROOT_PARENT_NODE) {
+    if (parent == ROOT_PARENT_NODE) {
         // no need to set up parents
-        return NodeIdx{ index, threadIdx };
+        return index;
     }
-    BuildNode<TNode>& parentNode = tree[parent];
+    InnerNode<TNode>& parentNode = (InnerNode<TNode>&)nodes[parent];
     if (child == KdChild::LEFT) {
         // left child
-        ASSERT(parentNode.left == Size(-1) && parentNode.leftThread == Size(-1));
+        ASSERT(parentNode.left == Size(-1));
         parentNode.left = index;
-        parentNode.leftThread = threadIdx;
     } else {
         ASSERT(child == KdChild::RIGHT);
         // right child
-        ASSERT(parentNode.right == Size(-1) && parentNode.rightThread == Size(-1));
+        ASSERT(parentNode.right == Size(-1));
         parentNode.right = index;
-        parentNode.rightThread = threadIdx;
     }
-    return NodeIdx{ index, threadIdx };
+
+    return index;
 }
 
 template <typename TNode, typename TMetric>
@@ -346,6 +260,7 @@ void KdTree<TNode, TMetric>::init() {
     entireBox = Box();
     idxs.clear();
     nodes.clear();
+    counter = 0;
 }
 
 template <typename TNode, typename TMetric>

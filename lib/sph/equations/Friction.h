@@ -152,7 +152,9 @@ public:
 
     virtual void finalize(IScheduler& UNUSED(scheduler), Storage& UNUSED(storage)) override {}
 
-    virtual void create(Storage& storage, IMaterial& UNUSED(material)) const override {
+    virtual void create(Storage& storage, IMaterial& material) const override {
+        const Float u0 = material.getParam<Float>(BodySettingsId::ENERGY);
+        storage.insert<Float>(QuantityId::ENERGY, OrderEnum::FIRST, u0);
         storage.insert<Vector>(QuantityId::FRICTION, OrderEnum::ZERO, Vector(0._f));
         storage.insert<SymmetricTensor>(
             QuantityId::VELOCITY_GRADIENT, OrderEnum::ZERO, SymmetricTensor::null());

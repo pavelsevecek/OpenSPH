@@ -1,13 +1,6 @@
-#include "io/Column.h"
-#include "io/Logger.h"
-#include "io/Output.h"
-#include "objects/geometry/Domain.h"
-#include "run/IRun.h"
-#include "sph/initial/Initial.h"
-#include "system/Profiler.h"
+#include "Sph.h"
 
 using namespace Sph;
-
 
 // Simple example of code usage, runs a single simulation of asteroid impact.
 
@@ -94,12 +87,7 @@ public:
     }
 
 protected:
-    virtual void tearDown(const Statistics& UNUSED(stats)) override {
-        // Print run statistics
-
-        Profiler& profiler = Profiler::getInstance();
-        profiler.printStatistics(*logger);
-    }
+    virtual void tearDown(const Statistics& UNUSED(stats)) override {}
 };
 
 

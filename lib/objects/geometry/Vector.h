@@ -202,7 +202,7 @@ public:
 
 /// specialization for doubles or units of double precision
 
-//#define SPH_VECTOR_AVX
+// #define SPH_VECTOR_AVX
 
 #ifdef SPH_VECTOR_AVX
 template <>
@@ -340,14 +340,6 @@ public:
         return (*this)[X] * other[X] + (*this)[Y] * other[Y] + (*this)[Z] * other[Z];
     }
 
-    INLINE auto cross(const BasicVector& other) const {
-        return BasicVector(
-            _mm256_sub_pd(_mm256_mul_pd(_mm256_shuffle_pd(data, data, _MM_SHUFFLE(3, 0, 2, 1)),
-                              _mm256_shuffle_pd(other.data, other.data, _MM_SHUFFLE(3, 1, 0, 2))),
-                _mm256_mul_pd(_mm256_shuffle_pd(data, data, _MM_SHUFFLE(3, 1, 0, 2)),
-                    _mm256_shuffle_pd(other.data, other.data, _MM_SHUFFLE(3, 0, 2, 1)))));
-    }
-
     // component-wise minimum
     INLINE BasicVector min(const BasicVector& other) const {
         return BasicVector(_mm256_min_pd(data, other.data));
@@ -358,11 +350,16 @@ public:
         return BasicVector(_mm256_max_pd(data, other.data));
     }
 
+    INLINE const __m256d& sse() const {
+        return data;
+    }
+
     friend std::ostream& operator<<(std::ostream& stream, const BasicVector& v) {
         constexpr int digits = PRECISION;
         for (int i = 0; i < 3; ++i) {
             stream << std::setprecision(digits) << v[i];
         }
+        return stream;
     }
 };
 
@@ -606,21 +603,32 @@ INLINE BasicVector<float> min(const BasicVector<float>& v1, const BasicVector<fl
     return _mm_min_ps(v1.sse(), v2.sse());
 }
 
-template <>
-INLINE BasicVector<double> min(const BasicVector<double>& v1, const BasicVector<double>& v2) {
-    return { _mm_min_pd(v1.sse<0>(), v2.sse<0>()), _mm_min_pd(v1.sse<1>(), v2.sse<1>()) };
-}
-
 /// Component-wise maximum
 template <>
 INLINE BasicVector<float> max(const BasicVector<float>& v1, const BasicVector<float>& v2) {
     return _mm_max_ps(v1.sse(), v2.sse());
 }
 
+#ifdef SPH_VECTOR_AVX
+template <>
+INLINE BasicVector<double> min(const BasicVector<double>& v1, const BasicVector<double>& v2) {
+    return v1.min(v2);
+}
+
+INLINE BasicVector<double> max(const BasicVector<double>& v1, const BasicVector<double>& v2) {
+    return v1.max(v2);
+}
+#else
+template <>
+INLINE BasicVector<double> min(const BasicVector<double>& v1, const BasicVector<double>& v2) {
+    return { _mm_min_pd(v1.sse<0>(), v2.sse<0>()), _mm_min_pd(v1.sse<1>(), v2.sse<1>()) };
+}
+
 template <>
 INLINE BasicVector<double> max(const BasicVector<double>& v1, const BasicVector<double>& v2) {
     return { _mm_max_pd(v1.sse<0>(), v2.sse<0>()), _mm_max_pd(v1.sse<1>(), v2.sse<1>()) };
 }
+#endif
 
 
 /// Component-wise clamping
@@ -699,11 +707,19 @@ INLINE auto abs(const BasicVector<float>& v) {
     return BasicVector<float>(_mm_andnot_ps(_mm_set1_ps(-0.f), v.sse()));
 }
 
+#ifdef SPH_VECTOR_AVX
+template <>
+INLINE auto abs(const BasicVector<double>& v) {
+    /// \todo optimize
+    return BasicVector<double>(abs(v[X]), abs(v[Y]), abs(v[Z]), abs(v[H]));
+}
+#else
 template <>
 INLINE auto abs(const BasicVector<double>& v) {
     return BasicVector<double>(
         _mm_andnot_pd(_mm_set1_pd(-0.), v.sse<0>()), _mm_andnot_pd(_mm_set1_pd(-0.), v.sse<1>()));
 }
+#endif
 
 /// Returns the L1 norm (sum of absolute values) of the vector
 INLINE Float l1Norm(const Vector& v) {

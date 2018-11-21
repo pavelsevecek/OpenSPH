@@ -172,7 +172,7 @@ static void tql2(double V[n][n], double d[n], double e[n]) {
                 // Compute implicit shift
                 double g = d[l];
                 double p = (d[l + 1] - g) / (2.0 * e[l]);
-                ASSERT(isReal(p), p, e[l], t);
+                ASSERT(isReal(p), p, e[l]);
                 double r = hypot2(p, 1.0);
                 if (p < 0) {
                     r = -r;
@@ -188,7 +188,7 @@ static void tql2(double V[n][n], double d[n], double e[n]) {
 
                 // Implicit QL transformation.
                 p = d[m];
-                ASSERT(isReal(p), p, t);
+                ASSERT(isReal(p), p);
                 double c = 1.0;
                 double c2 = c;
                 double c3 = c;

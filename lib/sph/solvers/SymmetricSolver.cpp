@@ -93,6 +93,7 @@ void SymmetricSolver::create(Storage& storage, IMaterial& material) const {
 }
 
 void SymmetricSolver::loop(Storage& storage, Statistics& UNUSED(stats)) {
+    MEASURE_SCOPE("SymmetricSolver::loop");
     // (re)build neighbour-finding structure; this needs to be done after all equations
     // are initialized in case some of them modify smoothing lengths
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);

@@ -103,9 +103,13 @@ public:
     }
 
     virtual void accumulate(Storage& storage, const Dynamic value, const Size particleIdx) const override {
-        if (!storage.has<TValue>(id, OrderEnum::FIRST)) {
+        if (!storage.has(id)) {
             // lazy initialization
             storage.insert<TValue>(id, OrderEnum::FIRST, TValue(0._f));
+        } else if (storage.getQuantity(id).getOrder() == OrderEnum::ZERO()) {
+            // has the quantity, but not derivatives; we need to resize it manually to side-step the check
+            // of equality in Storage::insert.
+            storage.getQuantity(id).setOrder(OrderEnum::FIRST);
         }
         Array<TValue>& array = storage.getDt<TValue>(id);
         array.resize(particleIdx + 1);
@@ -141,9 +145,13 @@ public:
     }
 
     virtual void accumulate(Storage& storage, const Dynamic value, const Size particleIdx) const override {
-        if (!storage.has<TValue>(id, OrderEnum::SECOND)) {
+        if (!storage.has(id)) {
             // lazy initialization
             storage.insert<TValue>(id, OrderEnum::SECOND, TValue(0._f));
+        } else if (storage.getQuantity(id).getOrder() < OrderEnum::SECOND()) {
+            // has the quantity, but not derivatives; we need to resize it manually to side-step the check
+            // of equality in Storage::insert.
+            storage.getQuantity(id).setOrder(OrderEnum::SECOND);
         }
         Array<TValue>& array = storage.getD2t<TValue>(id);
         array.resize(particleIdx + 1);

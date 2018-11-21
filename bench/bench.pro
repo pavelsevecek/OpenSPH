@@ -3,7 +3,7 @@ CONFIG += c++14 thread silent
 CONFIG -= app_bundle
 CONFIG -= qt
 
-QMAKE_CXXFLAGS += -Wall -Werror -msse4.1 -std=c++14 -pthread
+QMAKE_CXXFLAGS += -Wall -Werror -msse4.1 -mavx -std=c++14 -pthread
 QMAKE_LFLAGS += -ltbb -ltbb_debug -ltbbmalloc -ltbbmalloc_debug
 
 INCLUDEPATH += ../lib ..
@@ -23,13 +23,13 @@ CONFIG(profile, debug|profile|assert|release) {
 
 CONFIG(assert, debug|profile|assert|release) {
   message( "SPH BENCHMARK --- Building for Assert" )
-  DEFINES += SPH_DEBUG SPH_PROFILE
+  DEFINES += SPH_DEBUG
   QMAKE_CXXFLAGS += -O2
 }
 
 CONFIG(debug, debug|profile|assert|release) {
   message( "SPH BENCHMARK --- Building for Debug" )
-  DEFINES += SPH_DEBUG SPH_PROFILE
+  DEFINES += SPH_DEBUG
 }
 
 SOURCES += main.cpp \

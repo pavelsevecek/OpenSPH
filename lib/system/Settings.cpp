@@ -379,7 +379,7 @@ AutoPtr<RunSettings> RunSettings::instance (new RunSettings {
         "Whether to use artificial stress. "},
     { RunSettingsId::SPH_AV_STRESS_EXPONENT,        "sph.av.stress.exponent",   4._f,
         "Kernel exponent of the artificial stress. "},
-    { RunSettingsId::SPH_AV_STRESS_FACTOR,          "sph.av.stress.factor",     0.15_f,
+    { RunSettingsId::SPH_AV_STRESS_FACTOR,          "sph.av.stress.factor",     0.04_f,
         "Multiplicative factor of the artificial stress. "},
     { RunSettingsId::SPH_SMOOTHING_LENGTH_MIN,      "sph.smoothing_length.min",         1e-5_f,
         "Minimal value of the smoothing length (in meters). "},

@@ -126,7 +126,7 @@ RunSettings getSharedSettings() {
         .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 1.e-2_f)
         .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 1000._f)
         //.set(RunSettingsId::TIMESTEPPING_MAX_CHANGE, 0.1_f)
-        .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 200._f)
+        .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 200000._f)
         .set(RunSettingsId::SOLVER_FORCES,
             ForceEnum::PRESSURE | ForceEnum::SOLID_STRESS | ForceEnum::GRAVITY) // | ForceEnum::INERTIAL)
         .set(RunSettingsId::SOLVER_TYPE, SolverEnum::ASYMMETRIC_SOLVER)
@@ -136,10 +136,12 @@ RunSettings getSharedSettings() {
         .set(RunSettingsId::SPH_AV_ALPHA, 1.5_f)
         .set(RunSettingsId::SPH_AV_BETA, 3._f)
         .set(RunSettingsId::SPH_KERNEL_ETA, 1.3_f)
+        .set(RunSettingsId::GRAVITY_SOLVER, GravityEnum::BARNES_HUT)
         .set(RunSettingsId::GRAVITY_KERNEL, GravityKernelEnum::SPH_KERNEL)
         .set(RunSettingsId::GRAVITY_OPENING_ANGLE, 0.8_f)
         .set(RunSettingsId::GRAVITY_LEAF_SIZE, 20)
-        .set(RunSettingsId::GRAVITY_RECOMPUTATION_PERIOD, 10._f)
+        .set(RunSettingsId::SPH_AV_USE_STRESS, true)
+        .set(RunSettingsId::GRAVITY_RECOMPUTATION_PERIOD, 0._f)
         //.set(RunSettingsId::TIMESTEPPING_MEAN_POWER, -0._f)
         .set(RunSettingsId::TIMESTEPPING_ADAPTIVE_FACTOR, 0.2_f)
         .set(RunSettingsId::TIMESTEPPING_COURANT_NUMBER, 0.2_f)
@@ -170,7 +172,7 @@ Stabilization::Stabilization(RawPtr<Controller> newController) {
 Stabilization::~Stabilization() {}
 
 void Stabilization::setUp() {
-    // scheduler = Tbb::getGlobalInstance();
+    scheduler = Tbb::getGlobalInstance();
 
     solver = makeAuto<StabilizationSolver>(*scheduler, settings);
     storage = makeShared<Storage>();
@@ -198,7 +200,7 @@ void Stabilization::setUp() {
         }
     } else {
 
-        Size N = 2'000;
+        Size N = 250'000;
 
         BodySettings body;
         body.set(BodySettingsId::ENERGY, 1.e3_f)
@@ -219,18 +221,18 @@ void Stabilization::setUp() {
         body.saveToFile(Path("body.sph"));
 
         Presets::CollisionParams params;
-        params.targetRadius = 0.5_f * 550.e3_f;
-        params.impactAngle = 15._f * DEG_TO_RAD;
-        params.impactSpeed = 7.e3_f;
+        params.targetRadius = 100.e3_f; // 0.5_f * 550.e3_f;
+        params.impactAngle = 60._f * DEG_TO_RAD;
+        params.impactSpeed = 500._f; // 7.e3_f;
         params.impactorRadius = getImpactorRadius(
-            params.targetRadius, params.impactSpeed, params.impactAngle, 0.2_f, 2700._f, EMPTY_FLAGS);
-        params.targetRotation = 2._f * PI / (3600._f * 2._f);
+            params.targetRadius, params.impactSpeed, params.impactAngle, 0.05_f, 2700._f, EMPTY_FLAGS);
+        params.targetRotation = 2._f * PI / (3600._f * 1000._f);
         // params.targetRotation = 2._f * PI / (3._f * 3600._f);
         params.targetParticleCnt = N;
         params.impactorOffset = 12;
         // params.impactorParticleCntOverride = 100;
         params.centerOfMassFrame = false;
-        params.optimizeImpactor = true;
+        params.optimizeImpactor = false;
 
         // params.pebbleSfd = PowerLawSfd{ 2._f, Interval(4.e2_f, 5.e4_f) };
 
@@ -467,7 +469,7 @@ Reaccumulation::Reaccumulation() {
         .set(RunSettingsId::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::ACCELERATION)
         .set(RunSettingsId::TIMESTEPPING_ADAPTIVE_FACTOR, 0.5_f)
         .set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 83000._f))
-        .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 200._f)
+        .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 200000._f)
         .set(RunSettingsId::SPH_FINDER, FinderEnum::KD_TREE)
         .set(RunSettingsId::GRAVITY_SOLVER, GravityEnum::BARNES_HUT)
         .set(RunSettingsId::GRAVITY_KERNEL, GravityKernelEnum::SOLID_SPHERES)

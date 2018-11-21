@@ -76,7 +76,7 @@ AutoPtr<Settings<GuiSettingsId>> Settings<GuiSettingsId>::instance (new Settings
         "Background color of the rendered image." },
 
     /// Window settings
-    { GuiSettingsId::WINDOW_TITLE,          "window.title",         std::string("SPH"),
+    { GuiSettingsId::WINDOW_TITLE,          "window.title",         std::string("OpenSPH"),
         "Title of the main window of the application." },
     { GuiSettingsId::WINDOW_WIDTH,          "window.width",         1110,
         "Width of the main window." },

@@ -395,7 +395,7 @@ AutoPtr<ILogger> Factory::getLogger(const RunSettings& settings) {
     const LoggerEnum id = settings.get<LoggerEnum>(RunSettingsId::RUN_LOGGER);
     switch (id) {
     case LoggerEnum::NONE:
-        return makeAuto<DummyLogger>();
+        return makeAuto<NullLogger>();
     case LoggerEnum::STD_OUT:
         return makeAuto<StdOutLogger>();
     case LoggerEnum::FILE: {

@@ -449,10 +449,12 @@ public:
     /// Quantity is resized and filled with default value. This cannot be used to set number of particles, the
     /// size of the quantity is set to match current particle number.
     /// If a quantity with given key already exists in the storage, function checks that the quantity type is
-    /// the same; if it isn't, InvalidSetup exception is thrown. If the required order of quantity is larger
-    /// than the one currently stored, additional derivatives are created with no assert nor exception,
-    /// otherwise the order is unchanged. Value of the quantity is unchanged, there is no check that the
-    /// current value is the same as the default value given as parameter.
+    /// the same and that all values of the quantity match the provided defaultValue. If not, \ref
+    /// InvalidSetup exception is thrown to ensure the quantity is always set up consistenly, i.e. two terms
+    /// do not create the same quantity with different types or different values.
+    ///
+    /// If the required order of quantity is larger than the one currently stored, additional derivatives are
+    /// created with no assert nor exception, otherwise the order is unchanged.
     /// \tparam TValue Type of the quantity. Can be scalar, vector, tensor or traceless tensor.
     /// \param key Unique key of the quantity.
     /// \param TOrder Order (number of derivatives) associated with the quantity.

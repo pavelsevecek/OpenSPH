@@ -77,7 +77,7 @@ TEST_CASE("TextOutput dump&accumulate", "[output]") {
     Storage loaded;
     TextInput input(EMPTY_FLAGS);
     addColumns(input);
-    input.load(path, loaded, stats);
+    REQUIRE(input.load(path, loaded, stats));
     REQUIRE(loaded.getQuantityCnt() == 3); // density + position + flags
 
     Quantity& positions = loaded.getQuantity(QuantityId::POSITION);

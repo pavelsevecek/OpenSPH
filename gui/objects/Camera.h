@@ -9,7 +9,6 @@
 #include "math/AffineMatrix.h"
 #include "objects/wrappers/ClonePtr.h"
 #include "objects/wrappers/Optional.h"
-#include "quantities/Storage.h"
 
 NAMESPACE_SPH_BEGIN
 
@@ -36,8 +35,9 @@ class ICamera : public Polymorphic {
 public:
     /// \brief Initializes the camera, using the provided particle storage.
     ///
-    /// Called once at the beginning of the simulation. If the camera does not depend on particle positions or
-    /// any quantity, function can be empty.
+    /// Called every time step. Useful if camera co-moves with the particles, the field of view changes during
+    /// the simulation, etc. If the camera does not depend on particle positions or any quantity, function can
+    /// be empty.
     virtual void initialize(const Storage& storage) = 0;
 
     /// \brief Returns projected position of particle on the image.
@@ -50,6 +50,13 @@ public:
 
     /// \brief Returns the direction of the camera.
     virtual Vector getDirection() const = 0;
+
+    /// \brief Returns the clipping distance from plane passing through origin, perpendicular to camera
+    /// direction.
+    ///
+    /// If no clipping is used, the function returns NOTHING. Useful to view a section through a body rather
+    /// than its surface.
+    virtual Optional<float> getCutoff() const = 0;
 
     /// \param Applies zoom to the camera.
     ///
@@ -77,6 +84,9 @@ struct OrthoCameraData {
     /// Field of view (zoom)
     Optional<float> fov = NOTHING;
 
+    /// Cutoff distance of the camera.
+    Optional<float> cutoff = NOTHING;
+
     /// Z-offset of the camera
     float zoffset = 0.f;
 
@@ -102,6 +112,10 @@ private:
 public:
     OrthoCamera(const Pixel imageSize, const Pixel center, OrthoCameraData data);
 
+    void setCutoff(const Optional<float> cutoff) {
+        data.cutoff = cutoff;
+    }
+
     virtual void initialize(const Storage& storage) override;
 
     virtual Optional<ProjectedPoint> project(const Vector& r) const override;
@@ -109,6 +123,8 @@ public:
     virtual CameraRay unproject(const Coords& coords) const override;
 
     virtual Vector getDirection() const override;
+
+    virtual Optional<float> getCutoff() const override;
 
     virtual void zoom(const Pixel fixedPoint, const float magnitude) override;
 
@@ -147,13 +163,7 @@ public:
     explicit ParticleTracker(const Size index)
         : index(index) {}
 
-    virtual Vector position(const Storage& storage) const override {
-        if (index < storage.getParticleCnt()) {
-            return storage.getValue<Vector>(QuantityId::POSITION)[index];
-        } else {
-            return Vector(0._f);
-        }
-    }
+    virtual Vector position(const Storage& storage) const override;
 };
 
 struct PerspectiveCameraData {
@@ -206,6 +216,8 @@ public:
     virtual CameraRay unproject(const Coords& coords) const override;
 
     virtual Vector getDirection() const override;
+
+    virtual Optional<float> getCutoff() const override;
 
     virtual void zoom(const Pixel UNUSED(fixedPoint), const float magnitude) override;
 

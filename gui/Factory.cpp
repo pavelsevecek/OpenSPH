@@ -272,7 +272,7 @@ Palette Factory::getPalette(const ColorizerId id, const Interval range) {
                                { x0 + dx, Rgba(0.5f, 0.f, 0.f) } },
                 PaletteScale::LINEAR);
         case QuantityId::ENERGY:
-            return Palette({ { x0, Rgba(0.7f, 0.7f, 0.7) },
+            return Palette({ { x0, Rgba(0.1f, 0.1f, 0.1f) },
                                { x0 + 0.001f * dx, Rgba(0.1f, 0.1f, 1.f) },
                                { x0 + 0.01f * dx, Rgba(1.f, 0.f, 0.f) },
                                { x0 + 0.1f * dx, Rgba(1.0f, 0.6f, 0.4f) },

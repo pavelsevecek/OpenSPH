@@ -44,6 +44,21 @@ public:
     /// \brief Returns a value of granularity for (to - from) tasks that is expected to perform well with
     /// the current thread count.
     virtual Size getRecommendedGranularity(const Size from, const Size to) const = 0;
+
+    /// \brief Processes the given range concurrently.
+    ///
+    /// Default implementation simply divides the range into chunks with size specified by granularity and
+    /// submits them into the scheduler. It can be overriden by the derived class to provide an optimized
+    /// variant of the parallel for.
+    /// \param from First index of the processed range.
+    /// \param to One-past-last index of the processed range.
+    /// \param granularity Recommended size of the chunks passed to the functor.
+    /// \param functor Functor executed concurrently by the worker threads. Takes the first and the
+    ///                one-past-last index of the chunk to process sequentially within the thread.
+    virtual void parallelFor(const Size from,
+        const Size to,
+        const Size granularity,
+        const Function<void(Size n1, Size n2)>& functor);
 };
 
 /// \brief Dummy scheduler that simply executes the submitted tasks sequentially on calling thread.
@@ -85,44 +100,6 @@ INLINE void parallelFor(IScheduler& scheduler, const Size from, const Size to, T
     parallelFor(scheduler, from, to, granularity, std::forward<TFunctor>(functor));
 }
 
-template <typename TFunctor>
-class ParallelForTask : public Noncopyable {
-private:
-    Size from;
-    Size to;
-    const Size granularity;
-    IScheduler& scheduler;
-    TFunctor& functor;
-
-public:
-    ParallelForTask(Size from, Size to, Size granularity, IScheduler& scheduler, TFunctor& functor)
-        : from(from)
-        , to(to)
-        , granularity(granularity)
-        , scheduler(scheduler)
-        , functor(functor) {}
-
-    void operator()() {
-        while (to - from > granularity) {
-            const Size mid = (from + to) / 2;
-            ASSERT(from < mid && mid < to);
-
-            // split the task in half, submit the second half as a new task
-            scheduler.submit(makeShared<ParallelForTask>(mid, to, granularity, scheduler, functor));
-
-            // keep processing the first half in this task
-            to = mid;
-            ASSERT(from < to);
-        }
-
-        ASSERT(from < to);
-        // when below the granularity, process sequentially
-        for (Size n = from; n < to; ++n) {
-            functor(n);
-        }
-    }
-};
-
 /// \brief Executes a functor concurrently with given granularity.
 ///
 /// Overload allowing to specify the granularity.
@@ -131,21 +108,19 @@ public:
 /// \param to One-past-last processed index.
 /// \param granularity Number of indices processed by the functor at once. It shall be a positive number less
 ///                    than or equal to (to-from).
-/// \param functor Functor executed concurrently, takes two parameters as arguments, defining range of
-///                assigned indices.
+/// \param functor Functor executed concurrently, takes an index as an argument.
 template <typename TFunctor>
 INLINE void parallelFor(IScheduler& scheduler,
     const Size from,
     const Size to,
     const Size granularity,
     TFunctor&& functor) {
-    ASSERT(to > from);
-    ASSERT(granularity > 0);
-
-    SharedPtr<ITask> handle =
-        scheduler.submit(makeShared<ParallelForTask<TFunctor>>(from, to, granularity, scheduler, functor));
-    handle->wait();
-    ASSERT(handle->completed());
+    scheduler.parallelFor(from, to, granularity, [&functor](Size n1, Size n2) {
+        ASSERT(n1 < n2);
+        for (Size i = n1; i < n2; ++i) {
+            functor(i);
+        }
+    });
 }
 
 

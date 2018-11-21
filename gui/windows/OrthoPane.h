@@ -39,6 +39,8 @@ public:
 
     virtual void resetView() override;
 
+    virtual void onTimeStep(const Storage& storage, const Statistics& stats) override;
+
 private:
     /// wx event handlers
     void onPaint(wxPaintEvent& evt);

@@ -395,6 +395,8 @@ void processHarrisFile() {
     ifs.close();
 
     Size below3 = 0, below7 = 0, below12 = 0, total = 0;
+    Float avgPeriod = 0._f;
+    Size count = 0;
     for (auto& h : harris) {
         if (!h.period) {
             continue;
@@ -409,11 +411,22 @@ void processHarrisFile() {
         if (h.period.value() < 12) {
             below12++;
         }
+
+        if (h.radius.valueOr(0._f) > 100._f) {
+            avgPeriod += h.period.value();
+            count++;
+        }
         total++;
     }
     std::cout << "Below 3h: " << (100.f * below3) / total << "%" << std::endl;
     std::cout << "Below 7h: " << (100.f * below7) / total << "%" << std::endl;
     std::cout << "Below 12h: " << (100.f * below12) / total << "%" << std::endl;
+
+    if (count > 0) {
+        std::cout << "Average period for R>100km: " << avgPeriod / count << std::endl;
+    } else {
+        ASSERT(false);
+    }
 
     Array<PlotPoint> points;
     printDvsOmega(
@@ -476,9 +489,24 @@ void processHarrisFile() {
     gnuplot.wait();
 }
 
-void makeTp(const Path& filePath) {
+static Float maxwellBoltzmann(const Float x, const Float a) {
+    return sqrt(2._f / PI) * sqr(x) * exp(-sqr(x) / (2._f * sqr(a))) / pow<3>(a);
+}
+
+static Float sampleMaxwellBoltzmann(UniformRng& rng, const Float a) {
+    while (true) {
+        const Float x = rng() * a * 10._f;
+        const Float y = rng() / a;
+
+        if (maxwellBoltzmann(x, a) > y) {
+            return x;
+        }
+    }
+}
+
+void makeSwift(const Path& filePath) {
     // for Hygiea
-    const Float a = 3.14178_f;
+    /*const Float a = 3.14178_f;
     const Float e = 0.135631_f;
     const Float I = asin(0.0889622);
     const Float W = 64.621768_f * DEG_TO_RAD;
@@ -513,6 +541,36 @@ void makeTp(const Path& filePath) {
         logger.write(v[idx] / Constants::au * Constants::year);
         logger.write("0");
         logger.write("0.0");
+    }*/
+    std::ifstream ifs(filePath.native());
+    std::string line;
+
+    Array<Float> rs;
+    while (std::getline(ifs, line)) {
+        const Float d = std::stof(line);
+        rs.push(d / 2 * 1000);
+    }
+
+    std::ofstream yarko("yarko.in");
+    yarko << rs.size() << std::endl;
+    for (Float r : rs) {
+        yarko << r << " 2860.0 1500.0 0.0010 680.0 0.10 0.90" << std::endl;
+    }
+
+    std::ofstream spin("spin.in");
+    spin << rs.size() << "\n-1\n1\n";
+    UniformRng rng;
+    for (Size i = 0; i < rs.size(); ++i) {
+        const Float phi = rng() * 2._f * PI;
+        const Float cosTheta = rng() * 2._f - 1._f;
+        const Float theta = acos(cosTheta);
+        spin << sphericalToCartesian(1._f, theta, phi) << "  " << sampleMaxwellBoltzmann(rng, 0.0001_f)
+             << std::endl;
+    }
+
+    std::ofstream yorp("yorp.in");
+    for (Size i = 1; i <= rs.size(); ++i) {
+        yorp << i << "  " << clamp(int(rng() * 200), 0, 199) << std::endl;
     }
 }
 
@@ -528,7 +586,7 @@ void printHelp() {
               << "- ssfToSfd - computes the cumulative SFD from SPH output file" << std::endl
               << "- harris - TODO" << std::endl
               << "- stats - prints ejected mass and the period of the largest remnant" << std::endl
-              << "- maketp - makes tp.in input file for swift" << std::endl;
+              << "- swift - makes yarko.in, yorp.in and spin.in input file for swift" << std::endl;
 }
 
 int main(int argc, char** argv) {
@@ -579,12 +637,12 @@ int main(int argc, char** argv) {
             ssfToStats(Path(argv[2]));
         } else if (mode == "harris") {
             processHarrisFile();
-        } else if (mode == "maketp") {
+        } else if (mode == "swift") {
             if (argc < 3) {
-                std::cout << "Expected parameters: post maketp frag.ssf";
+                std::cout << "Expected parameters: post maketp D.dat";
                 return 0;
             }
-            makeTp(Path(argv[2]));
+            makeSwift(Path(argv[2]));
         } else {
             printHelp();
             return 0;

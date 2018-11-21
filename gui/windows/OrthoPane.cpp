@@ -36,6 +36,10 @@ void OrthoPane::resetView() {
     camera->transform(AffineMatrix::identity());
 }
 
+void OrthoPane::onTimeStep(const Storage& storage, const Statistics& UNUSED(stats)) {
+    camera->initialize(storage);
+}
+
 void OrthoPane::onPaint(wxPaintEvent& UNUSED(evt)) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
 

@@ -20,7 +20,7 @@ static RunSettings getSharedSettings(const Presets::CollisionParams& params, con
         .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 100._f)
         .set(RunSettingsId::TIMESTEPPING_COURANT_NUMBER, 0.2_f)
         .set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, runTime))
-        .set(RunSettingsId::RUN_OUTPUT_INTERVAL, runTime / 2000._f)
+        .set(RunSettingsId::RUN_OUTPUT_INTERVAL, runTime / 10._f)
         .set(RunSettingsId::RUN_OUTPUT_TYPE, IoEnum::BINARY_FILE)
         .set(RunSettingsId::RUN_OUTPUT_PATH, params.outputPath.native())
         .set(RunSettingsId::RUN_OUTPUT_NAME, fileMask)
@@ -255,14 +255,14 @@ ReaccumulationRunPhase::ReaccumulationRunPhase(const Path& outputPath) {
         .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 1.e3_f)
         .set(RunSettingsId::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::ACCELERATION)
         .set(RunSettingsId::TIMESTEPPING_ADAPTIVE_FACTOR, 0.2_f)
-        .set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 1.e6_f))
+        .set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 2.e5_f))
         .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 1.e4_f)
         .set(RunSettingsId::RUN_OUTPUT_TYPE, IoEnum::BINARY_FILE)
         .set(RunSettingsId::RUN_OUTPUT_PATH, outputPath.native())
         .set(RunSettingsId::RUN_OUTPUT_NAME, std::string("reacc_%d.ssf"))
         .set(RunSettingsId::SPH_FINDER, FinderEnum::KD_TREE)
         .set(RunSettingsId::GRAVITY_SOLVER, GravityEnum::BARNES_HUT)
-        .set(RunSettingsId::GRAVITY_KERNEL, GravityKernelEnum::POINT_PARTICLES)
+        .set(RunSettingsId::GRAVITY_KERNEL, GravityKernelEnum::SOLID_SPHERES)
         .set(RunSettingsId::GRAVITY_OPENING_ANGLE, 0.8_f)
         .set(RunSettingsId::GRAVITY_LEAF_SIZE, 20)
         .set(RunSettingsId::COLLISION_HANDLER, CollisionHandlerEnum::MERGE_OR_BOUNCE)
@@ -318,7 +318,9 @@ void ReaccumulationRunPhase::handoff(Storage&& input) {
     storage->remove(toRemove);
 
     // move to COM system
-    ArrayView<Vector> v = storage->getDt<Vector>(QuantityId::POSITION);
+    ArrayView<Vector> v, dummy;
+    tie(r, v, dummy) = storage->getAll<Vector>(QuantityId::POSITION);
+    m = input.getValue<Float>(QuantityId::MASS);
     moveToCenterOfMassSystem(m, v);
     moveToCenterOfMassSystem(m, r);
 

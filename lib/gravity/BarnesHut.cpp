@@ -70,11 +70,6 @@ void BarnesHut::evalAll(IScheduler& scheduler, ArrayView<Vector> dv, Statistics&
     stats.set<int>(StatisticsId::GRAVITY_NODES_APPROX, result.approximatedNodes);
     stats.set<int>(StatisticsId::GRAVITY_NODES_EXACT, result.exactNodes);
     stats.set<int>(StatisticsId::GRAVITY_NODE_COUNT, kdTree.getNodeCnt());
-
-    // set correct units
-    for (Size i = 0; i < dv.size(); ++i) {
-        dv[i] *= Constants::gravity;
-    }
 }
 
 
@@ -286,7 +281,7 @@ void BarnesHut::evalParticleList(const LeafNode<BarnesHutNode>& leaf,
             for (Size j : seq2) {
                 ASSERT(r[j][H] > 0._f, r[j][H]);
                 const Vector grad = actKernel.grad(r[j], r[i]);
-                dv[i] += m[j] * grad;
+                dv[i] += Constants::gravity * m[j] * grad;
             }
         }
     }
@@ -298,7 +293,7 @@ void BarnesHut::evalParticleList(const LeafNode<BarnesHutNode>& leaf,
                 continue;
             }
             const Vector grad = actKernel.grad(r[j], r[i]);
-            dv[i] += m[j] * grad;
+            dv[i] += Constants::gravity * m[j] * grad;
         }
     }
 }
@@ -312,7 +307,7 @@ void BarnesHut::evalNodeList(const LeafNode<BarnesHutNode>& leaf,
         const BarnesHutNode& node = kdTree.getNode(idx);
         ASSERT(seq1.size() > 0);
         for (Size i : seq1) {
-            dv[i] += evaluateGravity(r[i] - node.com, node.moments, order);
+            dv[i] += Constants::gravity * evaluateGravity(r[i] - node.com, node.moments, order);
         }
     }
 }

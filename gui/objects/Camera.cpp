@@ -27,7 +27,7 @@ void OrthoCamera::initialize(const Storage& storage) {
     for (Size i = 0; i < r.size(); ++i) {
         box.extend(r[i]);
     }
-    data.fov = 0.5f * imageSize.y / maxElement(box.size());
+    data.fov = imageSize.y / maxElement(box.size());
 }
 
 Optional<ProjectedPoint> OrthoCamera::project(const Vector& r) const {
@@ -50,6 +50,10 @@ Vector OrthoCamera::getDirection() const {
     return cached.w;
 }
 
+Optional<float> OrthoCamera::getCutoff() const {
+    return data.cutoff;
+}
+
 void OrthoCamera::zoom(const Pixel fixedPoint, const float magnitude) {
     ASSERT(magnitude > 0.f);
     center += (fixedPoint - center) * (1.f - magnitude);
@@ -69,6 +73,14 @@ void OrthoCamera::pan(const Pixel offset) {
 /// ----------------------------------------------------------------------------------------------------------
 /// PerspectiveCamera
 /// ----------------------------------------------------------------------------------------------------------
+
+Vector ParticleTracker::position(const Storage& storage) const {
+    if (index < storage.getParticleCnt()) {
+        return storage.getValue<Vector>(QuantityId::POSITION)[index];
+    } else {
+        return Vector(0._f);
+    }
+}
 
 PerspectiveCamera::PerspectiveCamera(const Pixel imageSize, const PerspectiveCameraData& data)
     : imageSize(imageSize)
@@ -126,6 +138,11 @@ CameraRay PerspectiveCamera::unproject(const Coords& coords) const {
 
 Vector PerspectiveCamera::getDirection() const {
     return cached.dir;
+}
+
+Optional<float> PerspectiveCamera::getCutoff() const {
+    // not implemented yet
+    return NOTHING;
 }
 
 void PerspectiveCamera::zoom(const Pixel UNUSED(fixedPoint), const float magnitude) {

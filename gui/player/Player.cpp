@@ -5,6 +5,7 @@
 #include "io/FileSystem.h"
 #include "io/Logger.h"
 #include "objects/utility/StringUtils.h"
+#include "timestepping/ISolver.h"
 #include <wx/msgdlg.h>
 #include <wx/sizer.h>
 #include <wx/slider.h>
@@ -56,6 +57,14 @@ void RunPlayer::setUp() {
     // setupUvws(*storage);
 
     callbacks = makeAuto<GuiCallbacks>(*controller);
+
+    // dummy solver, used to avoid calling create on stuff
+    struct PlayerSolver : public ISolver {
+        virtual void integrate(Storage& UNUSED(storage), Statistics& UNUSED(stats)) override {}
+
+        virtual void create(Storage& UNUSED(storage), IMaterial& UNUSED(material)) const override {}
+    };
+    solver = makeAuto<PlayerSolver>();
 
 
     //     ArrayView<const Float> omega
@@ -118,6 +127,9 @@ void RunPlayer::run() {
             break;
         }
     }
+    if (fileCnt > 1) {
+        logger->write("File sequence finished");
+    }
     callbacks->onRunEnd(*storage, stats);
     this->tearDownInternal(stats);
 }
@@ -164,7 +176,7 @@ bool App::OnInit() {
     const bool isNBody = (runType == RunTypeEnum::NBODY) || (runType == RunTypeEnum::RUBBLE_PILE);
 
     GuiSettings gui;
-    gui.set(GuiSettingsId::ORTHO_FOV, 2.e6_f) // 4.e8_f) // 2.e5_f)
+    gui.set(GuiSettingsId::ORTHO_FOV, 0._f) // 1.e6_f)
         .set(GuiSettingsId::ORTHO_VIEW_CENTER, 0.5_f * Vector(768, 768, 0))
         .set(GuiSettingsId::VIEW_WIDTH, 1024)
         .set(GuiSettingsId::VIEW_HEIGHT, 768)
@@ -172,20 +184,20 @@ bool App::OnInit() {
         .set(GuiSettingsId::IMAGES_HEIGHT, 768)
         .set(GuiSettingsId::WINDOW_WIDTH, 1334)
         .set(GuiSettingsId::WINDOW_HEIGHT, 768)
+        .set(GuiSettingsId::WINDOW_TITLE, std::string("OpenSPH viewer - ") + path.native())
         .set(GuiSettingsId::PARTICLE_RADIUS, isNBody ? 1._f : 0.35_f)
         .set(GuiSettingsId::SURFACE_LEVEL, 0.13_f)
         .set(GuiSettingsId::SURFACE_SUN_POSITION, getNormalized(Vector(-1.e6_f, -1.5e6_f, 0._f)))
-        .set(GuiSettingsId::SURFACE_SUN_INTENSITY, 0.9_f)
-        .set(GuiSettingsId::SURFACE_AMBIENT, 0.4_f)
+        .set(GuiSettingsId::SURFACE_SUN_INTENSITY, 1.5_f)
+        .set(GuiSettingsId::SURFACE_AMBIENT, 0.8_f)
         .set(GuiSettingsId::SURFACE_RESOLUTION, 4.e3_f)
         .set(GuiSettingsId::CAMERA, CameraEnum::ORTHO)
-        .set(GuiSettingsId::PERSPECTIVE_TRACKED_PARTICLE, 729082)
+        .set(GuiSettingsId::PERSPECTIVE_TRACKED_PARTICLE, 776703)
         //.set(GuiSettingsId::PERSPECTIVE_POSITION, Vector(-3.e6_f, 4.e6_f, 0._f))
-        .set(GuiSettingsId::PERSPECTIVE_POSITION, Vector(2.5e6_f, 0._f, 0._f))
-        .set(GuiSettingsId::PERSPECTIVE_TARGET, Vector(0._f, -1.e6_f, 0._f))
-        //.set(GuiSettingsId::PERSPECTIVE_POSITION, Vector(0._f, 0._f, 3.e6_f))
-        //.set(GuiSettingsId::PERSPECTIVE_TARGET, Vector(0._f, 0._f, 0._f))
-        //.set(GuiSettingsId::PERSPECTIVE_UP, Vector(0._f, 1._f, 0._f))
+        .set(GuiSettingsId::PERSPECTIVE_POSITION, Vector(0._f, 2.e6_f, -4.e6_f))
+        .set(GuiSettingsId::PERSPECTIVE_TARGET, Vector(0._f, 0._f, 0._f))
+        //.set(GuiSettingsId::PERSPECTIVE_TARGET, Vector(0._f, -1.e6_f, 0._f))
+
         .set(GuiSettingsId::PERSPECTIVE_CLIP_NEAR, 5.e5_f)
         .set(GuiSettingsId::BACKGROUND_COLOR, Vector(0._f))
         .set(GuiSettingsId::ORTHO_PROJECTION, OrthoEnum::XY)
@@ -196,14 +208,14 @@ bool App::OnInit() {
         .set(GuiSettingsId::RAYTRACE_TEXTURE_PRIMARY, std::string(""))
         .set(GuiSettingsId::RAYTRACE_TEXTURE_SECONDARY, std::string(""))
         .set(GuiSettingsId::RAYTRACE_SUBSAMPLING, 3)
-        .set(GuiSettingsId::RAYTRACE_ITERATION_LIMIT, 100)
+        .set(GuiSettingsId::RAYTRACE_ITERATION_LIMIT, 12)
         .set(GuiSettingsId::IMAGES_WIDTH, 800)
         .set(GuiSettingsId::IMAGES_HEIGHT, 800)
-        .set(GuiSettingsId::IMAGES_SAVE, false)
+        .set(GuiSettingsId::IMAGES_SAVE, true)
         .set(GuiSettingsId::IMAGES_NAME, std::string("frag_%e_%d.png"))
         .set(GuiSettingsId::IMAGES_MOVIE_NAME, std::string("frag_%e.avi"))
         .set(GuiSettingsId::IMAGES_TIMESTEP, 0._f)
-        .set(GuiSettingsId::IMAGES_RENDERER, RendererEnum::RAYTRACER)
+        .set(GuiSettingsId::IMAGES_RENDERER, RendererEnum::PARTICLE)
         .set(GuiSettingsId::PALETTE_STRESS, Interval(1.e5_f, 3.e6_f))
         .set(GuiSettingsId::PALETTE_VELOCITY, Interval(1._f, 100._f))
         .set(GuiSettingsId::PALETTE_PRESSURE, Interval(-5.e6_f, 5.e6_f))

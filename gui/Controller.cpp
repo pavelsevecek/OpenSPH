@@ -124,13 +124,9 @@ void Controller::stop(const bool waitForFinish) {
 void Controller::saveState(const Path& path) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
     ASSERT(path.extension() == Path("ssf"));
-    auto dump = [this, path](const Float time, const Float step) {
-        SharedPtr<Storage> storage = sph.run->getStorage();
+    auto dump = [path](const Storage& storage, const Statistics& stats) {
         BinaryOutput output(path);
-        Statistics stats;
-        stats.set(StatisticsId::RUN_TIME, time);
-        stats.set(StatisticsId::TIMESTEP_VALUE, step);
-        output.dump(*storage, stats);
+        output.dump(storage, stats);
     };
 
     if (status == RunStatus::RUNNING) {
@@ -139,7 +135,10 @@ void Controller::saveState(const Path& path) {
     } else {
         // if not running, we can safely save the storage from main thread
         /// \todo somehow remember the time of the last simulation?
-        dump(0._f, 0.1_f);
+        Statistics stats;
+        stats.set(StatisticsId::RUN_TIME, 0._f);
+        stats.set(StatisticsId::TIMESTEP_VALUE, 0.1_f);
+        dump(*sph.run->getStorage(), stats);
     }
 }
 
@@ -202,6 +201,15 @@ void Controller::onTimeStep(const Storage& storage, Statistics& stats) {
     ASSERT(movie);
     movie->onTimeStep(storage, stats);
 
+    // executed all waiting callbacks (before redrawing as it is used to change renderers)
+    if (!sph.onTimeStepCallbacks->empty()) {
+        auto onTimeStepProxy = sph.onTimeStepCallbacks.lock();
+        for (auto& func : onTimeStepProxy.get()) {
+            func(storage, stats);
+        }
+        onTimeStepProxy->clear();
+    }
+
     // update the data for rendering
     if (vis.timer->isExpired()) {
         this->redraw(storage, stats);
@@ -212,17 +220,6 @@ void Controller::onTimeStep(const Storage& storage, Statistics& stats) {
             // the colorizer
             this->setSelectedParticle(vis.selectedParticle);
         });
-    }
-
-    // executed all waiting callbacks
-    if (!sph.onTimeStepCallbacks->empty()) {
-        const Float time = stats.get<Float>(StatisticsId::RUN_TIME);
-        const Float step = stats.get<Float>(StatisticsId::TIMESTEP_VALUE);
-        auto onTimeStepProxy = sph.onTimeStepCallbacks.lock();
-        for (auto& func : onTimeStepProxy.get()) {
-            func(time, step);
-        }
-        onTimeStepProxy->clear();
     }
 
     // pause if we are supposed to
@@ -271,6 +268,8 @@ void Controller::update(const Storage& storage) {
 }
 
 void Controller::setRunning() {
+    // make sure we don't swith the status while rendering
+    std::unique_lock<std::mutex> lock(vis.renderThreadMutex);
     status = RunStatus::RUNNING;
 }
 
@@ -472,18 +471,26 @@ void Controller::setColorizer(const SharedPtr<IColorizer>& newColorizer) {
 
 void Controller::setRenderer(AutoPtr<IRenderer>&& newRenderer) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
-    vis.renderer->cancelRender();
 
-    std::unique_lock<std::mutex> renderLock(vis.renderThreadMutex);
-    vis.renderer = std::move(newRenderer);
-    if (status != RunStatus::RUNNING) {
+    auto func = [this, renderer = std::move(newRenderer)](
+                    const Storage& storage, const Statistics& UNUSED(stats)) mutable {
         ASSERT(sph.run);
-        SharedPtr<Storage> storage = sph.run->getStorage();
-        if (storage) {
-            vis.colorizer->initialize(*storage, RefEnum::STRONG);
-            vis.renderer->initialize(*storage, *vis.colorizer, *vis.camera);
-        }
+        // if no simulation is running, it's safe to switch renderers and access storage
+        vis.renderer = std::move(renderer);
+        vis.colorizer->initialize(storage, RefEnum::STRONG);
+        vis.renderer->initialize(storage, *vis.colorizer, *vis.camera);
         vis.refresh();
+    };
+
+    vis.renderer->cancelRender();
+    std::unique_lock<std::mutex> renderLock(vis.renderThreadMutex);
+    if (status != RunStatus::RUNNING) {
+        // if no simulation is running, it's safe to switch renderers and access storage directly
+        Statistics dummy;
+        func(*sph.run->getStorage(), dummy);
+    } else {
+        // if running, we have to switch renderers on next timestep
+        sph.onTimeStepCallbacks->push(std::move(func));
     }
 }
 
@@ -519,7 +526,8 @@ SharedPtr<Movie> Controller::createMovie(const Storage& storage) {
 
     Array<SharedPtr<IColorizer>> colorizers;
     GuiSettings guiClone = gui;
-    guiClone.set(GuiSettingsId::RENDERER, gui.get<RendererEnum>(GuiSettingsId::IMAGES_RENDERER));
+    guiClone.set(GuiSettingsId::RENDERER, gui.get<RendererEnum>(GuiSettingsId::IMAGES_RENDERER))
+        .set(GuiSettingsId::RAYTRACE_SUBSAMPLING, 1);
     AutoPtr<IRenderer> renderer = Factory::getRenderer(*ThreadPool::getGlobalInstance(), guiClone);
     // limit colorizer list for slower renderers
     switch (gui.get<RendererEnum>(GuiSettingsId::IMAGES_RENDERER)) {

@@ -12,7 +12,7 @@ LIBS += `wx-config --libs --gl-libs`
 
 DEFINES += SPH_USE_EIGEN
 
-QMAKE_CXXFLAGS += -Wall -Werror -msse4.1 -std=c++14 -pthread `wx-config --cxxflags`
+QMAKE_CXXFLAGS += -Wall -Werror -msse4.1 -mavx -std=c++14 -pthread `wx-config --cxxflags`
 
 CONFIG(release, debug|profile|assert|release) {
   message( "SPH ROTATION --- Building for Release" )

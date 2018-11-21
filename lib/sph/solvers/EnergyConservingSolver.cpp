@@ -111,7 +111,6 @@ public:
             primary.compute(i, getSingleValueView(j), getSingleValueView(e[k]), getSingleValueView(f1));
             Float f2;
             secondary.compute(i, getSingleValueView(j), getSingleValueView(e[k]), getSingleValueView(f2));
-            /// \todo !!! opposite convention, compared to the paper!!!
             f[k] = lerp(f1, f2, chi);
             ASSERT(f[k] >= 0._f && f[k] <= 1._f, f[k]);
         }
@@ -129,13 +128,14 @@ EnergyConservingSolver::EnergyConservingSolver(IScheduler& scheduler,
     , threadData(scheduler) {
     initialDt = settings.get<Float>(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP);
 
-    partitioner = // makeAuto<SmoothlyDiminishingPartitioner>();
+    partitioner =
         makeAuto<BlendingPartitioner<SmoothlyDiminishingPartitioner, MonotonicDiminishingPartitioner>>();
 
     eqs.setDerivatives(derivatives, settings);
 }
 
 void EnergyConservingSolver::loop(Storage& storage, Statistics& UNUSED(stats)) {
+    MEASURE_SCOPE("EnergyConservingSolver::loop");
 
     ArrayView<const Vector> r, v, dummy;
     tie(r, v, dummy) = storage.getAll<Vector>(QuantityId::POSITION);
@@ -154,8 +154,6 @@ void EnergyConservingSolver::loop(Storage& storage, Statistics& UNUSED(stats)) {
     auto evalDerivatives = [&](const Size i, ThreadData& data) {
         finder.findAll(i, radius, data.neighs);
 
-        /*data.idxs.clear();
-        data.grads.clear();*/
         neighList[i].clear();
         gradList[i].clear();
 
@@ -191,56 +189,29 @@ void EnergyConservingSolver::beforeLoop(Storage& storage, Statistics& UNUSED(sta
 
 void EnergyConservingSolver::afterLoop(Storage& storage, Statistics& stats) {
 
+    MEASURE_SCOPE("EnergyConservingSolver::afterLoop");
+
     Accumulated& accumulated = derivatives.getAccumulated();
     accumulated.store(storage);
     equations.finalize(scheduler, storage);
 
-    Timer timer;
-
     // now, we have computed everything that modifies the energy derivatives, so we can override it with stuff
     // below
-
     ArrayView<const Vector> r, v, dv;
     tie(r, v, dv) = storage.getAll<Vector>(QuantityId::POSITION);
-
     ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
 
     // we need to symmetrize kernel in smoothing lenghts to conserve momentum
     SymmetrizeSmoothingLengths<LutKernel<DIMENSIONS>&> symmetrizedKernel(kernel);
 
-    // const Float radius = this->getSearchRadius(storage);
-
     partitioner->initialize(storage);
-
-    /// \todo avoid building the finder twice
-    // const IBasicFinder& actFinder = this->getFinder(r);
 
     /// \todo maybe simply pass the timestep into the function?
     Float dt = stats.getOr<Float>(StatisticsId::TIMESTEP_VALUE, initialDt);
     ArrayView<Float> du = storage.getDt<Float>(QuantityId::ENERGY);
 
     auto evalAccelerations = [&](const Size i, ThreadData& data) {
-        /*actFinder.findAll(i, radius, data.neighs);
-
-        data.idxs.clear();
-        data.grads.clear();*/
-
-        /*for (auto& n : data.neighs) {
-            const Size j = n.index;
-            const Float hbar = 0.5_f * (r[i][H] + r[j][H]);
-            ASSERT(hbar > EPS, hbar);
-            if (i == j || getSqrLength(r[i] - r[j]) >= sqr(kernel.radius() * hbar)) {
-                // aren't actual neighbours
-                continue;
-            }
-            const Vector gr = symmetrizedKernel.grad(r[i], r[j]);
-            ASSERT(isReal(gr) && dot(gr, r[i] - r[j]) < 0._f, gr, r[i] - r[j]);
-
-            data.idxs.push(j);
-            data.grads.push(gr);
-       }*/
-
-        data.accelerations.resize(neighList[i].size()); // data.idxs.size());
+        data.accelerations.resize(neighList[i].size());
         derivatives.evalAccelerations(i, neighList[i], gradList[i], data.accelerations);
 
         data.energyChange.resize(neighList[i].size());

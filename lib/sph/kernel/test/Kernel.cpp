@@ -2,8 +2,11 @@
 #include "catch.hpp"
 #include "math/Functional.h"
 #include "objects/wrappers/Flags.h"
+#include "system/Factory.h"
+#include "system/Settings.h"
 #include "tests/Approx.h"
 #include "utils/SequenceTest.h"
+#include <fstream>
 
 using namespace Sph;
 
@@ -98,20 +101,22 @@ void testKernel(const TKernel& kernel,
         // check that its values match the precise kernels
         const Size testCnt = Size(kernel.radius() / 0.001_f);
         auto test1 = [&](const Size i) -> Outcome {
-            Float x = i * 0.5001_f;
+            Float x = i * 0.001_f;
             // clang-format off
-        if (lut.valueImpl(sqr(x)) != approx(kernel.valueImpl(sqr(x)), 1.e-6_f)) {
-            return makeFailed("LUT not matching kernel at q = ", x,
-                              "\n ", lut.valueImpl(sqr(x)), " == ", kernel.valueImpl(sqr(x)));
-        }
-        if (lut.gradImpl(sqr(x)) != approx(kernel.gradImpl(sqr(x)), 1.e-6_f)) {
-            return makeFailed("LUT gradient not matching kernel gradient at q = ", x,
-                              "\n ", lut.gradImpl(sqr(x)), " == ", kernel.gradImpl(sqr(x)));
-        }
+            if (lut.valueImpl(sqr(x)) != approx(kernel.valueImpl(sqr(x)), 1.e-6_f)) {
+                return makeFailed("LUT not matching kernel at q = ", x,
+                                "\n ", lut.valueImpl(sqr(x)), " == ", kernel.valueImpl(sqr(x)));
+            }
+            if (x * lut.gradImpl(sqr(x)) != approx(x * kernel.gradImpl(sqr(x)), 1.e-4_f)) {
+                return makeFailed("LUT gradient not matching kernel gradient at q = ", x,
+                                  "\n ", lut.gradImpl(sqr(x)), " == ", kernel.gradImpl(sqr(x)));
+            }
             // clang-format on
             return SUCCESS;
         };
-        REQUIRE_SEQUENCE(test1, 0, testCnt);
+        // cannot hope to reproduce discontinuous kernel
+        const Size startIdx = flags.has(KernelTestFlag::GRADIENT_CONTINUOUS_AT_0) ? 0 : 100;
+        REQUIRE_SEQUENCE(test1, startIdx, testCnt);
     }
 
     // run given tests for both the kernel and LUT
@@ -236,7 +241,12 @@ TEST_CASE("Thomas-Couchman kernel", "[kernel]") {
 
 TEST_CASE("CoreTriangle kernel", "[kernel]") {
     CoreTriangle kernel;
-    testKernel<3>(kernel, [](const auto& kernel) { REQUIRE(kernel.radius() == 1._f); });
+    // gradient not 0 at q=0; it's constructed in a way that for q>alpha it's similar to cubic spline and for
+    // q<alpha, dW/dq is constant (W has triangular shape at the core, hence core triangle).
+    auto flags = KernelTestFlag::EQUALS_LUT | KernelTestFlag::GRADIENT_CONTINUOUS |
+                 KernelTestFlag::NORMALIZATION | KernelTestFlag::VALUES_CONTINUOUS |
+                 KernelTestFlag::VALUE_GRADIENT_CONSISTENCY;
+    testKernel<3>(kernel, [](const auto& kernel) { REQUIRE(kernel.radius() == 1._f); }, flags, 0.2_f);
 }
 
 TEST_CASE("Triangle kernel", "[kernel]") {
@@ -264,3 +274,26 @@ TEST_CASE("Lut kernel", "[kernel]") {
     REQUIRE(lut3.grad(Vector(0.8_f, 0._f, 0._f), 1.5_f) == grad);
     REQUIRE(lut3.radius() == 2._f);
 }
+
+/*TEST_CASE("Print kernels", "[kernel]") {
+    std::ofstream valueOfs("kernels.txt");
+    std::ofstream gradOfs("grads.txt");
+    Array<LutKernel<3>> kernels;
+    RunSettings settings;
+    for (KernelEnum id : EnumMap::getAll<KernelEnum>()) {
+        settings.set(RunSettingsId::SPH_KERNEL, id);
+        kernels.emplaceBack(Factory::getKernel<3>(settings));
+    }
+
+    for (Float q = 0._f; q <= 1._f; q += 0.01_f) {
+        valueOfs << q << " ";
+        gradOfs << q << " ";
+        for (auto& kernel : kernels) {
+            const Float radius = kernel.radius();
+            valueOfs << pow<3>(radius) * kernel.valueImpl(sqr(q * radius)) << " ";
+            gradOfs << pow<5>(radius) * q * kernel.gradImpl(sqr(q * radius)) << " ";
+        }
+        valueOfs << std::endl;
+        gradOfs << std::endl;
+    }
+}*/

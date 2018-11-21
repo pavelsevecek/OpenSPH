@@ -254,13 +254,14 @@ wxBoxSizer* MainWindow::createToolbar(Controller* parent) {
     wxSpinCtrl* cutoffSpinner = new wxSpinCtrl(this, wxID_ANY, "", wxDefaultPosition, wxSize(80, -1));
     cutoffSpinner->SetRange(0, 1000000);
     cutoffSpinner->SetValue(int(cutoff));
-    cutoffSpinner->Bind(wxEVT_SPINCTRL, [this, parent](wxSpinEvent& evt) {
+    cutoffSpinner->Bind(wxEVT_SPINCTRL, [parent](wxSpinEvent& evt) {
         int cutoff = evt.GetPosition();
-        GuiSettings modifiedGui = gui;
-        /// \todo this is horrible and needs refactoring
-        modifiedGui.set(GuiSettingsId::ORTHO_CUTOFF, Float(cutoff));
-        parent->setRenderer(makeAuto<ParticleRenderer>(modifiedGui));
-        parent->getParams().set(GuiSettingsId::ORTHO_CUTOFF, Float(cutoff));
+        // has to be generalized if perspective camera gets cutoff
+        AutoPtr<ICamera> camera = parent->getCurrentCamera();
+        if (RawPtr<OrthoCamera> ortho = dynamicCast<OrthoCamera>(camera.get())) {
+            ortho->setCutoff(cutoff > 0 ? Optional<float>(cutoff) : NOTHING);
+            parent->refresh(std::move(camera));
+        }
     });
     toolbar->Add(cutoffSpinner);
 
@@ -620,6 +621,8 @@ void MainWindow::onTimeStep(const Storage& storage, const Statistics& stats) {
         // we have to modify wxTextCtrl from main thread!!
         executeOnMainThread([this, logger] { logger->setText(status); });
     }
+
+    pane->onTimeStep(storage, stats);
 
     if (selectedParticlePlot) {
         selectedParticlePlot->selectParticle(controller->getSelectedParticle());

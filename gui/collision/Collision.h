@@ -78,8 +78,10 @@ private:
             .set(GuiSettingsId::PERSPECTIVE_UP, Vector(0._f, 1._f, 0._f))
             .set(GuiSettingsId::ORTHO_PROJECTION, OrthoEnum::XY)
             .set(GuiSettingsId::ORTHO_CUTOFF, 0._f)
-            .set(GuiSettingsId::ORTHO_ZOFFSET, 0._f)
-            .set(GuiSettingsId::SURFACE_AMBIENT, 0.1_f)
+            .set(GuiSettingsId::ORTHO_ZOFFSET, -1._f)
+            .set(GuiSettingsId::SURFACE_SUN_INTENSITY, 0.5_f)
+            .set(GuiSettingsId::SURFACE_AMBIENT, 0.5_f)
+            .set(GuiSettingsId::RAYTRACE_SUBSAMPLING, 3)
             .set(GuiSettingsId::RAYTRACE_TEXTURE_PRIMARY,
                 std::string("/home/pavel/projects/astro/sph/external/surface.jpg"))
             .set(GuiSettingsId::RAYTRACE_TEXTURE_SECONDARY,
@@ -87,7 +89,7 @@ private:
             .set(GuiSettingsId::IMAGES_SAVE, true)
             .set(GuiSettingsId::IMAGES_NAME, std::string("frag_%e_%d.png"))
             .set(GuiSettingsId::IMAGES_MOVIE_NAME, std::string("frag_%e.avi"))
-            .set(GuiSettingsId::IMAGES_TIMESTEP, 5.e-5_f)
+            .set(GuiSettingsId::IMAGES_TIMESTEP, 2.e-6_f)
             .set(GuiSettingsId::PALETTE_STRESS, Interval(1.e5_f, 3.e6_f))
             .set(GuiSettingsId::PALETTE_VELOCITY, Interval(0.0125_f, 3.4e2_f))
             .set(GuiSettingsId::PALETTE_PRESSURE, Interval(-5.e4_f, 5.e4_f))

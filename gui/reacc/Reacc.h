@@ -122,6 +122,8 @@ private:
                 std::string("/home/pavel/projects/astro/sph/external/surface.jpg"))
             .set(GuiSettingsId::RAYTRACE_TEXTURE_SECONDARY,
                 std::string("/home/pavel/projects/astro/sph/external/surface2.jpg"))
+            .set(GuiSettingsId::RAYTRACE_ITERATION_LIMIT, 10)
+            .set(GuiSettingsId::RAYTRACE_SUBSAMPLING, 4)
             .set(GuiSettingsId::CAMERA, CameraEnum::ORTHO)
             .set(GuiSettingsId::ORTHO_PROJECTION, OrthoEnum::XY)
             .set(GuiSettingsId::ORTHO_CUTOFF, 0._f)

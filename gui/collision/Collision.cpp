@@ -24,7 +24,7 @@ AsteroidCollision::AsteroidCollision() {
         .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 1.e-8_f)
         .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 100._f)
         .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 10000._f)
-        .set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 2.e-3_f))
+        .set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 5.e-3_f))
         .set(RunSettingsId::SOLVER_FORCES,
             ForceEnum::PRESSURE | ForceEnum::SOLID_STRESS) //| ForceEnum::GRAVITY) //| ForceEnum::INERTIAL)
         .set(RunSettingsId::SOLVER_TYPE, SolverEnum::ASYMMETRIC_SOLVER)
@@ -73,57 +73,6 @@ AsteroidCollision::AsteroidCollision() {
     info.write("Git commit: ", gitSha);*/
 }
 
-class SubtractDomain : public IDomain {
-private:
-    IDomain& primary;
-    IDomain& subtracted;
-
-public:
-    SubtractDomain(IDomain& primary, IDomain& subtracted)
-        : primary(primary)
-        , subtracted(subtracted) {}
-
-    virtual Vector getCenter() const override {
-        // It does not have to be the EXACT geometric center, so let's return the center of
-        // the primary domain for simplicity
-        return primary.getCenter();
-    }
-
-    virtual Box getBoundingBox() const override {
-        // Subtracted domain can only shrink the bounding box, so it's OK to return the primary one
-        return primary.getBoundingBox();
-    }
-
-    virtual Float getVolume() const override {
-        return primary.getVolume() - subtracted.getVolume();
-    }
-
-    virtual bool contains(const Vector& v) const override {
-        // The main part - vector is contained in the domain if it is contained in the primary domain
-        // and NOT contained in the subtracted domain
-        return primary.contains(v) && !subtracted.contains(v);
-    }
-
-    // Additional functions needed by some components of the code that utilize the IDomain interface (such as
-    // boundary conditions); they are not needed in this example, so let's simply mark them as not
-    // implemented.
-
-    virtual void getSubset(ArrayView<const Vector>, Array<Size>&, const SubsetType) const override {
-        NOT_IMPLEMENTED
-    }
-
-    virtual void getDistanceToBoundary(ArrayView<const Vector>, Array<Float>&) const override {
-        NOT_IMPLEMENTED
-    }
-
-    virtual void project(ArrayView<Vector>, Optional<ArrayView<Size>>) const override {
-        NOT_IMPLEMENTED
-    }
-
-    virtual void addGhosts(ArrayView<const Vector>, Array<Ghost>&, const Float, const Float) const override {
-        NOT_IMPLEMENTED
-    }
-};
 
 void AsteroidCollision::setUp() {
     storage = makeShared<Storage>();
@@ -169,19 +118,8 @@ void AsteroidCollision::setUp() {
             .set(BodySettingsId::DAMAGE_MIN, 10._f)
             .set(BodySettingsId::PARTICLE_COUNT, int(N));
 
-        InitialConditions ic(*scheduler, *solver, settings);
 
-        CylindricalDomain outerRing(Vector(0._f), 0.04_f, 0.01_f, true);
-        CylindricalDomain innerRing(Vector(0._f), 0.03_f, 0.01_f, true);
-        SubtractDomain domain(outerRing, innerRing);
-        ic.addMonolithicBody(*storage, domain, body)
-            .displace(Vector(-0.042_f, 0._f, 0._f))
-            .addVelocity(Vector(80._f, 0._f, 0._f));
-        ic.addMonolithicBody(*storage, domain, body)
-            .displace(Vector(0.042_f, 0._f, 0._f))
-            .addVelocity(Vector(-80._f, 0._f, 0._f));
-
-        /*Presets::CollisionParams params;
+        Presets::CollisionParams params;
         params.targetRadius = 4e5_f;
         params.impactorRadius = 1e5_f;
         params.impactAngle = 30._f * DEG_TO_RAD;
@@ -196,8 +134,6 @@ void AsteroidCollision::setUp() {
         Presets::Collision data(*scheduler, settings, params);
         data.addTarget(*storage);
         data.addImpactor(*storage);
-
-        setupUvws(*storage);*/
     }
 
     callbacks = makeAuto<GuiCallbacks>(*controller);

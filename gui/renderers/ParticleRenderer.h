@@ -14,9 +14,6 @@ NAMESPACE_SPH_BEGIN
 
 class ParticleRenderer : public IRenderer {
 private:
-    /// Cutoff distance of visible particles.
-    float cutoff;
-
     /// Grid size
     float grid;
 
@@ -54,9 +51,6 @@ public:
     virtual void render(const RenderParams& params, Statistics& stats, IRenderOutput& output) const override;
 
     virtual void cancelRender() override;
-
-private:
-    bool isCutOff(const ICamera& camera, const Vector& r);
 };
 
 NAMESPACE_SPH_END

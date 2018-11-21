@@ -42,7 +42,7 @@ TEST_CASE("Storage insert with material", "[storage]") {
 TEST_CASE("Storage insert existing by value", "[storage]") {
     Storage storage;
     storage.insert<Float>(QuantityId::DENSITY, OrderEnum::FIRST, Array<Float>{ 1._f });
-    storage.insert<Float>(QuantityId::DENSITY, OrderEnum::ZERO, 2._f);
+    storage.insert<Float>(QuantityId::DENSITY, OrderEnum::ZERO, 1._f);
     REQUIRE(storage.getQuantityCnt() == 1);
     REQUIRE(storage.getQuantity(QuantityId::DENSITY).getOrderEnum() == OrderEnum::FIRST);
     REQUIRE(storage.getValue<Float>(QuantityId::DENSITY)[0] == 1._f);
@@ -51,6 +51,9 @@ TEST_CASE("Storage insert existing by value", "[storage]") {
     REQUIRE(storage.getQuantityCnt() == 1);
     REQUIRE(storage.getQuantity(QuantityId::DENSITY).getOrderEnum() == OrderEnum::SECOND);
     REQUIRE(storage.getParticleCnt() == 1);
+
+    REQUIRE_THROWS_AS(
+        storage.insert<Float>(QuantityId::DENSITY, OrderEnum::FIRST, 2._f), const InvalidSetup&);
 }
 
 TEST_CASE("Storage insert existing by array", "[storage]") {

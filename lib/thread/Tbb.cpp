@@ -107,6 +107,14 @@ Size Tbb::getRecommendedGranularity(const Size from, const Size to) const {
     return min<Size>(1000, max<Size>((to - from) / threadCnt, 1));
 }
 
+void Tbb::parallelFor(const Size from,
+    const Size to,
+    const Size granularity,
+    const Function<void(Size, Size)>& functor) {
+    tbb::parallel_for(tbb::blocked_range<Size>(from, to, granularity),
+        [&functor](const tbb::blocked_range<Size> range) { functor(range.begin(), range.end()); });
+}
+
 SharedPtr<Tbb> Tbb::getGlobalInstance() {
     if (!globalInstance) {
         globalInstance = makeShared<Tbb>();

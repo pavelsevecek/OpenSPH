@@ -62,6 +62,7 @@ Float IAsymmetricSolver::getSearchRadius(const Storage& storage) const {
 }
 
 const IBasicFinder& IAsymmetricSolver::getFinder(ArrayView<const Vector> r) {
+    PROFILE_SCOPE("AsymmetricSolver::getFinder");
     finder->build(scheduler, r);
     return *finder;
 }
@@ -81,6 +82,8 @@ AsymmetricSolver::~AsymmetricSolver() = default;
 
 
 void AsymmetricSolver::beforeLoop(Storage& storage, Statistics& UNUSED(stats)) {
+    PROFILE_SCOPE("AsymmetricSolver::beforeLoop ");
+
     // initialize all equation terms (applies dependencies between quantities)
     equations.initialize(scheduler, storage);
 
@@ -89,6 +92,7 @@ void AsymmetricSolver::beforeLoop(Storage& storage, Statistics& UNUSED(stats)) {
 }
 
 void AsymmetricSolver::loop(Storage& storage, Statistics& UNUSED(stats)) {
+
     // (re)build neighbour-finding structure; this needs to be done after all equations
     // are initialized in case some of them modify smoothing lengths
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
@@ -122,11 +126,13 @@ void AsymmetricSolver::loop(Storage& storage, Statistics& UNUSED(stats)) {
         derivatives.eval(i, data.idxs, data.grads);
         neighs[i] = data.idxs.size();
     };
-    PROFILE_SCOPE("AsymmetricSolver main loop");
+    PROFILE_SCOPE("AsymmetricSolver::loop");
     parallelFor(scheduler, threadData, 0, r.size(), granularity, functor);
 }
 
 void AsymmetricSolver::afterLoop(Storage& storage, Statistics& stats) {
+    PROFILE_SCOPE("AsymmetricSolver::afterLoop");
+
     // store the computed values into the storage
     Accumulated& accumulated = derivatives.getAccumulated();
     accumulated.store(storage);

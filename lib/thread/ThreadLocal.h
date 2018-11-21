@@ -152,53 +152,6 @@ INLINE void parallelFor(IScheduler& scheduler,
     parallelFor(scheduler, storage, from, to, granularity, std::forward<TFunctor>(functor));
 }
 
-template <typename Type, typename TFunctor>
-class ParallelForTlsTask : public Noncopyable {
-private:
-    Size from;
-    Size to;
-    const Size granularity;
-    IScheduler& scheduler;
-    ThreadLocal<Type>& storage;
-    TFunctor& functor;
-
-public:
-    ParallelForTlsTask(Size from,
-        Size to,
-        Size granularity,
-        IScheduler& scheduler,
-        ThreadLocal<Type>& storage,
-        TFunctor& functor)
-        : from(from)
-        , to(to)
-        , granularity(granularity)
-        , scheduler(scheduler)
-        , storage(storage)
-        , functor(functor) {}
-
-    void operator()() {
-        while (to - from > granularity) {
-            const Size mid = (from + to) / 2;
-            ASSERT(from < mid && mid < to);
-
-            // split the task in half, submit the second half as a new task
-            scheduler.submit(
-                makeShared<ParallelForTlsTask>(mid, to, granularity, scheduler, storage, functor));
-
-            // keep processing the first half in this task
-            to = mid;
-            ASSERT(from < to);
-        }
-
-        ASSERT(from < to);
-        // when below the granularity, process sequentially
-        Type& value = storage.local();
-        for (Size n = from; n < to; ++n) {
-            functor(n, value);
-        }
-    }
-};
-
 /// \brief Overload of parallelFor that passes thread-local storage into the functor.
 template <typename Type, typename TFunctor>
 INLINE void parallelFor(IScheduler& scheduler,
@@ -209,9 +162,13 @@ INLINE void parallelFor(IScheduler& scheduler,
     TFunctor&& functor) {
     ASSERT(from <= to);
 
-    SharedPtr<ITask> handle = scheduler.submit(
-        makeShared<ParallelForTlsTask<Type, TFunctor>>(from, to, granularity, scheduler, storage, functor));
-    handle->wait();
+    scheduler.parallelFor(from, to, granularity, [&storage, &functor](Size n1, Size n2) {
+        ASSERT(n1 < n2);
+        Type& value = storage.local();
+        for (Size i = n1; i < n2; ++i) {
+            functor(i, value);
+        }
+    });
 }
 
 NAMESPACE_SPH_END

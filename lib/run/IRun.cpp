@@ -126,7 +126,6 @@ public:
 
 void IRun::run() {
     ASSERT(storage);
-    Size i = 0;
     // fetch parameters of run from settings
     const Float outputInterval = settings.get<Float>(RunSettingsId::RUN_OUTPUT_INTERVAL);
     const Interval timeRange = settings.get<Interval>(RunSettingsId::RUN_TIME_RANGE);
@@ -143,7 +142,7 @@ void IRun::run() {
     }
 
     Float nextOutput = timeRange.lower();
-    logger->write("Running:");
+    logger->write("Running ", settings.get<std::string>(RunSettingsId::RUN_NAME));
     Timer runTimer;
     EndingCondition condition(settings.get<Float>(RunSettingsId::RUN_WALLCLOCK_TIME),
         settings.get<int>(RunSettingsId::RUN_TIMESTEP_CNT));
@@ -155,6 +154,7 @@ void IRun::run() {
     Outcome result = SUCCESS;
 
     // run main loop
+    Size i = 0;
     for (Float t = timeRange.lower(); t < timeRange.upper() && !condition(runTimer, i);
          t += timeStepping->getTimeStep()) {
         // save current statistics
@@ -231,7 +231,7 @@ void IRun::setNullToDefaults() {
         timeStepping = Factory::getTimeStepping(settings, storage);
     }
     if (!output) {
-        output = makeAuto<NullOutput>();
+        output = Factory::getOutput(settings);
     }
     if (!callbacks) {
         callbacks = makeAuto<NullCallbacks>();

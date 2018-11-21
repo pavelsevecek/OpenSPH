@@ -63,7 +63,9 @@ TEST_CASE("Fracture growth", "[damage]") {
     Storage storage;
     ThreadPool& pool = *ThreadPool::getGlobalInstance();
     InitialConditions conds(pool, RunSettings::getDefaults());
-    conds.addMonolithicBody(storage, SphericalDomain(Vector(0._f), 1._f), BodySettings::getDefaults());
+    BodySettings body;
+    body.set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::NONE);
+    conds.addMonolithicBody(storage, SphericalDomain(Vector(0._f), 1._f), body);
 
     MaterialInitialContext context;
     context.rng = makeAuto<RngWrapper<BenzAsphaugRng>>(1234);

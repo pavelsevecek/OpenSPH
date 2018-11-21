@@ -76,6 +76,12 @@ Quantity& Storage::insert(const QuantityId key, const OrderEnum order, const TVa
         if (q.getValueEnum() != GetValueEnum<TValue>::type) {
             throw InvalidSetup("Inserting quantity already stored with different type");
         }
+        Array<TValue>& values = q.getValue<TValue>();
+        if (!std::all_of(values.begin(), values.end(), [&defaultValue](const TValue& value) { //
+                return value == defaultValue;
+            })) {
+            throw InvalidSetup("Re-creating quantity with different values.");
+        }
         if (q.getOrderEnum() < order) {
             q.setOrder(order);
         }

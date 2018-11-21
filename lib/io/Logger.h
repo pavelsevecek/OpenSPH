@@ -220,7 +220,7 @@ public:
     }
 };
 
-class DummyLogger : public ILogger {
+class NullLogger : public ILogger {
     virtual void writeString(const std::string& UNUSED(s)) override {}
 };
 

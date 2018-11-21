@@ -288,3 +288,25 @@ TEST_CASE("BarnesHut symmetrization", "[gravity]") {
     gravity.evalAll(pool, dv, stats);
     REQUIRE(dv[0] == -dv[1]);
 }
+
+TEST_CASE("BarnesHut override accelerations bug", "[gravity]") {
+    // checks that BarnesHut gravity does not override accelerations already stored in dv
+    Storage storage;
+    storage.insert<Vector>(QuantityId::POSITION,
+        OrderEnum::SECOND,
+        Array<Vector>({ Vector(0.f, 0.f, 0.f, 1.f), Vector(2._f, 0.f, 0.f, 5._f) }));
+    storage.insert<Float>(QuantityId::MASS, OrderEnum::ZERO, EPS); // cannot be zero, COM would be undefined
+    ArrayView<Vector> dv = storage.getD2t<Vector>(QuantityId::POSITION);
+    dv[0] = Vector(3._f, 1._f, 1._f);
+    dv[1] = Vector(4._f, -2._f, 10._f);
+
+    ThreadPool& pool = *ThreadPool::getGlobalInstance();
+    BarnesHut gravity(0.5, MultipoleOrder::OCTUPOLE);
+    gravity.build(pool, storage);
+
+    Statistics stats;
+    gravity.evalAll(pool, dv, stats);
+
+    REQUIRE(dv[0] == Vector(3._f, 1._f, 1._f));
+    REQUIRE(dv[1] == Vector(4._f, -2._f, 10._f));
+}

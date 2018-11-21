@@ -23,7 +23,7 @@ private:
     OutputFile files;
     Size fileCnt;
 
-    Float fps = 100._f;
+    Float fps = 10._f;
 
     Float loadedTime;
 

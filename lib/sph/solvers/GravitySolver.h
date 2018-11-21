@@ -33,6 +33,8 @@ public:
         const EquationHolder& equations,
         AutoPtr<IGravity>&& gravity);
 
+    ~GravitySolver();
+
 protected:
     virtual void loop(Storage& storage, Statistics& stats) override;
 

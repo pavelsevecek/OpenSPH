@@ -7,11 +7,12 @@
 
 #include "objects/finders/NeighbourFinder.h"
 #include "objects/geometry/Box.h"
+#include "objects/wrappers/Finally.h"
 #include "objects/wrappers/Function.h"
 #include "objects/wrappers/Outcome.h"
 #include "thread/ThreadLocal.h"
-#include <deque>
 #include <set>
+#include <shared_mutex>
 
 NAMESPACE_SPH_BEGIN
 
@@ -20,7 +21,7 @@ NAMESPACE_SPH_BEGIN
 /// Can be derived to include additional user data for each node.
 struct KdNode : public Noncopyable {
     /// Here X, Y, Z must be 0, 1, 2
-    enum class Type { X, Y, Z, LEAF };
+    enum class Type : Size { X, Y, Z, LEAF };
     Type type;
 
     /// Bounding box of particles in the node
@@ -34,11 +35,6 @@ struct KdNode : public Noncopyable {
     }
 };
 
-enum class KdChild;
-struct NodeIdx;
-template <typename TNode>
-struct ThreadTree;
-
 /// \brief Inner node of K-d tree
 template <typename TBase>
 struct InnerNode : public TBase {
@@ -50,6 +46,9 @@ struct InnerNode : public TBase {
 
     /// Index of right child node
     Size right;
+
+    InnerNode()
+        : TBase(KdNode::Type(-1)) {}
 
     InnerNode(const KdNode::Type& type)
         : TBase(type) {}
@@ -122,6 +121,8 @@ struct EuclideanMetric {
     }
 };
 
+enum class KdChild;
+
 /// \brief K-d tree, used for hierarchical clustering of particles and accelerated Kn queries.
 ///
 /// Allows storing arbitrary data at each node of the tree.
@@ -140,6 +141,8 @@ private:
 
     /// Holds all nodes, either \ref InnerNode or \ref LeafNode (depending on the value of \ref type).
     Array<InnerNode<TNode>> nodes;
+    std::atomic_int counter;
+    std::shared_timed_mutex nodesMutex;
 
     static constexpr Size ROOT_PARENT_NODE = -1;
 
@@ -181,25 +184,17 @@ protected:
 private:
     void init();
 
-    void buildTree(ThreadTree<TNode>& tree,
-        const NodeIdx parent,
+    void buildTree(IScheduler& scheduler,
+        const Size parent,
         const KdChild child,
         const Size from,
         const Size to,
         const Box& box,
         const Size slidingCnt);
 
-    void addLeaf(ThreadTree<TNode>& tree,
-        const NodeIdx parent,
-        const KdChild child,
-        const Size from,
-        const Size to);
+    void addLeaf(const Size parent, const KdChild child, const Size from, const Size to);
 
-    NodeIdx addInner(ThreadTree<TNode>& tree,
-        const NodeIdx parent,
-        const KdChild child,
-        const Float splitPosition,
-        const Size splitIdx);
+    Size addInner(const Size parent, const KdChild child, const Float splitPosition, const Size splitIdx);
 
     bool isSingular(const Size from, const Size to, const Size splitIdx) const;
 

@@ -113,6 +113,20 @@ public:
         return desc;
     }
 
+    template <typename TEnum>
+    static Array<TEnum> getAll() {
+        EnumMap& instance = getInstance();
+        const std::size_t id = typeid(TEnum).hash_code();
+        Optional<EnumRecord&> record = instance.records.tryGet(id);
+        ASSERT(record);
+
+        Array<TEnum> enums;
+        for (auto pair : record.value()) {
+            enums.push(TEnum(pair.key));
+        }
+        return enums;
+    }
+
 private:
     static EnumMap& getInstance() {
         static EnumMap instance;

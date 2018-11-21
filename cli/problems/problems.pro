@@ -3,7 +3,7 @@ CONFIG += c++14 thread silent
 CONFIG -= app_bundle
 CONFIG -= qt
 
-QMAKE_CXXFLAGS += -msse4.1 -Wall -Werror -std=c++14 -pthread
+QMAKE_CXXFLAGS += -msse4.1 -mavx -Wall -Werror -std=c++14 -pthread
 
 
 INCLUDEPATH += ../../lib ../../../external/Catch/include
@@ -35,7 +35,8 @@ CONFIG(debug, debug|profile|assert|release) {
 SOURCES += \
     main.cpp \
     sod/Sod.cpp \
-    wave/SoundWave.cpp
+    wave/SoundWave.cpp \
+    elastic_bands/ElasticBands.cpp
 
 HEADERS += \  
     sod/solution.h

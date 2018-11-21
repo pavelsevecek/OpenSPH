@@ -10,12 +10,17 @@
 
 NAMESPACE_SPH_BEGIN
 
+class Storage;
+class Statistics;
+
 class IGraphicsPane : public wxPanel {
 public:
     IGraphicsPane(wxWindow* parent)
         : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize) {}
 
     virtual void resetView() = 0;
+
+    virtual void onTimeStep(const Storage& storage, const Statistics& stats) = 0;
 };
 
 NAMESPACE_SPH_END

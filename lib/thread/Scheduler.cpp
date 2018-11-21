@@ -1,4 +1,5 @@
 #include "thread/Scheduler.h"
+#include "math/Math.h"
 #include "objects/wrappers/Optional.h"
 
 NAMESPACE_SPH_BEGIN
@@ -42,5 +43,24 @@ SharedPtr<SequentialScheduler> SequentialScheduler::getGlobalInstance() {
 }
 
 SequentialScheduler SEQUENTIAL;
+
+
+void IScheduler::parallelFor(const Size from,
+    const Size to,
+    const Size granularity,
+    const Function<void(Size n1, Size n2)>& functor) {
+    ASSERT(to > from);
+    ASSERT(granularity > 0);
+
+    SharedPtr<ITask> handle = this->submit([this, from, to, granularity, &functor] {
+        for (Size n = from; n < to; n += granularity) {
+            const Size n1 = n;
+            const Size n2 = min(n1 + granularity, to);
+            this->submit([n1, n2, &functor] { functor(n1, n2); });
+        }
+    });
+    handle->wait();
+    ASSERT(handle->completed());
+}
 
 NAMESPACE_SPH_END

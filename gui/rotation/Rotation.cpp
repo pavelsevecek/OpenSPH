@@ -124,9 +124,6 @@ void AsteroidRotation::setInitialStressTensor(Storage& smaller, EquationHolder& 
     }
 }
 
-void AsteroidRotation::tearDown(const Statistics& UNUSED(stats)) {
-    Profiler& profiler = Profiler::getInstance();
-    profiler.printStatistics(*logger);
-}
+void AsteroidRotation::tearDown(const Statistics& UNUSED(stats)) {}
 
 NAMESPACE_SPH_END

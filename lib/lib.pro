@@ -11,7 +11,7 @@ DEFINES += SPH_USE_TBB
 INCLUDEPATH += /usr/include/tb
 QMAKE_LFLAGS += -ltbb -ltbb_debug -ltbbmalloc -ltbbmalloc_debug
 
-QMAKE_CXXFLAGS += -Wall -Wextra -Werror -msse4.1 -std=c++14 -pthread
+QMAKE_CXXFLAGS += -Wall -Wextra -Werror -msse4.1 -mavx -std=c++14 -pthread
 
 CONFIG(release, debug|profile|assert|release) {
   message( "SPH LIB --- Building for Release" )
@@ -26,13 +26,13 @@ CONFIG(profile, debug|profile|assert|release) {
 
 CONFIG(assert, debug|profile|assert|release) {
   message( "SPH LIB --- Building for Assert" )
-  DEFINES += SPH_DEBUG SPH_PROFILE
+  DEFINES += SPH_DEBUG
   QMAKE_CXXFLAGS += -O2
 }
 
 CONFIG(debug, debug|profile|assert|release) {
   message( "SPH LIB --- Building for Debug" )
-  DEFINES += SPH_PROFILE SPH_DEBUG
+  DEFINES += SPH_DEBUG
 }
 
 SOURCES += \
@@ -307,7 +307,6 @@ HEADERS += \
     objects/containers/Grid.h \
     Sph.h \
     gravity/AggregateSolver.h \
-    thread/Locks.h \
     objects/geometry/Triangle.h \
     sph/initial/MeshDomain.h \
     sph/handoff/Handoff.h \

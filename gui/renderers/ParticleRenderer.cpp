@@ -130,14 +130,14 @@ static void drawGrid(IRenderContext& context, const ICamera& camera, const float
 }
 
 ParticleRenderer::ParticleRenderer(const GuiSettings& settings) {
-    cutoff = settings.get<Float>(GuiSettingsId::ORTHO_CUTOFF);
     grid = settings.get<Float>(GuiSettingsId::VIEW_GRID_SIZE);
     background = settings.get<Rgba>(GuiSettingsId::BACKGROUND_COLOR);
     shouldContinue = true;
 }
 
-bool ParticleRenderer::isCutOff(const ICamera& camera, const Vector& r) {
-    return cutoff != 0._f && abs(dot(camera.getDirection(), r)) > cutoff;
+static bool isCutOff(const ICamera& camera, const Vector& r) {
+    const Optional<float> cutoff = camera.getCutoff();
+    return cutoff && abs(dot(camera.getDirection(), r)) > cutoff.value();
 }
 
 void ParticleRenderer::initialize(const Storage& storage,
@@ -154,7 +154,7 @@ void ParticleRenderer::initialize(const Storage& storage,
     for (Size i = 0; i < r.size(); ++i) {
         const Rgba color = colorizer.evalColor(i);
         const Optional<ProjectedPoint> p = camera.project(r[i]);
-        if (p && !this->isCutOff(camera, r[i])) {
+        if (p && !isCutOff(camera, r[i])) {
             cached.idxs.push(i);
             cached.positions.push(r[i]);
             cached.colors.push(color);
@@ -193,8 +193,15 @@ void ParticleRenderer::render(const RenderParams& params, Statistics& stats, IRe
     Bitmap<Rgba> bitmap(params.size);
     PreviewRenderContext context(bitmap);
 
-    // draw black background
-    context.fill(Rgba::black());
+    // fill with the background color
+    context.fill(background);
+
+    // black frame
+    context.setColor(Rgba::black(), ColorFlag::LINE);
+    context.drawLine(Coords(0, 0), Coords(params.size.x - 1, 0));
+    context.drawLine(Coords(params.size.x - 1, 0), Coords(params.size.x - 1, params.size.y - 1));
+    context.drawLine(Coords(params.size.x - 1, params.size.y - 1), Coords(0, params.size.y - 1));
+    context.drawLine(Coords(0, params.size.y - 1), Coords(0, 0));
 
     if (grid > 0.f) {
         drawGrid(context, *params.camera, grid);

@@ -111,7 +111,7 @@ void RayTracer::render(const RenderParams& renderParams,
 
 void RayTracer::refine(const RenderParams& renderParams, const Size iteration, FrameBuffer& fb) const {
     MEASURE_SCOPE("Rendering frame");
-    const Size level = max((1 << int(params.subsampling)) - int(iteration), 1);
+    const Size level = 1 << max(int(params.subsampling) - int(iteration), 0);
     Pixel actSize;
     actSize.x = renderParams.size.x / level + sgn(renderParams.size.x % level);
     actSize.y = renderParams.size.y / level + sgn(renderParams.size.y % level);

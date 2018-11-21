@@ -67,11 +67,10 @@ private:
         /// SPH simulation
         AutoPtr<IRun> run;
 
-        /// List of callbacks executed on the next timestep (on run thread).
+        /// \brief List of callbacks executed on the next timestep (on run thread).
         ///
-        /// Callbacks take current run time as an argument. The list is cleared every timestep, only callbacks
-        /// added between timesteps are executed.
-        using TimeStepCallback = Function<void(const Float runTime, const Float timeStep)>;
+        /// The list is cleared every timestep, only callbacks added between timesteps are executed.
+        using TimeStepCallback = Function<void(const Storage& storage, const Statistics& stats)>;
         Locking<Array<TimeStepCallback>> onTimeStepCallbacks;
     } sph;
 
@@ -149,7 +148,7 @@ public:
 
     ~Controller();
 
-    /// \todo ugly hack, remove
+    /// \todo ugly hack, needed to continue render loop after handoff; remove!
     void setRunning();
 
     /// \addtogroup Run queries
