@@ -8,11 +8,11 @@
 #include "common/ForwardDecl.h"
 #include "objects/Exceptions.h"
 #include "objects/containers/Array.h"
+#include "objects/containers/FlatMap.h"
 #include "objects/wrappers/Function.h"
 #include "objects/wrappers/SharedPtr.h"
 #include "quantities/Quantity.h"
 #include "quantities/QuantityIds.h"
-#include <map>
 
 NAMESPACE_SPH_BEGIN
 
@@ -31,12 +31,12 @@ struct ConstStorageElement {
 /// \brief Helper class for iterating over quantities stored in \ref Storage.
 class StorageIterator {
 private:
-    using Iterator = std::map<QuantityId, Quantity>::iterator;
+    using ActIterator = Iterator<FlatMap<QuantityId, Quantity>::Element>;
 
-    Iterator iter;
+    ActIterator iter;
 
 public:
-    StorageIterator(const Iterator iterator)
+    StorageIterator(const ActIterator iterator)
         : iter(iterator) {}
 
     StorageIterator& operator++() {
@@ -45,7 +45,7 @@ public:
     }
 
     StorageElement operator*() {
-        return { iter->first, iter->second };
+        return { iter->key, iter->value };
     }
 
     bool operator==(const StorageIterator& other) const {
@@ -60,12 +60,12 @@ public:
 /// \brief Helper class for iterating over quantities stored in \ref Storage, const version.
 class ConstStorageIterator {
 private:
-    using Iterator = std::map<QuantityId, Quantity>::const_iterator;
+    using ActIterator = Iterator<const FlatMap<QuantityId, Quantity>::Element>;
 
-    Iterator iter;
+    ActIterator iter;
 
 public:
-    ConstStorageIterator(const Iterator iterator)
+    ConstStorageIterator(const ActIterator iterator)
         : iter(iterator) {}
 
     ConstStorageIterator& operator++() {
@@ -74,7 +74,7 @@ public:
     }
 
     ConstStorageElement operator*() {
-        return { iter->first, iter->second };
+        return { iter->key, iter->value };
     }
 
     bool operator==(const ConstStorageIterator& other) const {
@@ -233,7 +233,7 @@ class Storage : public Noncopyable {
 
 private:
     /// \brief Stored quantities (array of arrays). All arrays must be the same size at all times.
-    std::map<QuantityId, Quantity> quantities;
+    FlatMap<QuantityId, Quantity> quantities;
 
     /// \brief Holds information about a material and particles with this material.
     struct MatRange {
@@ -294,34 +294,33 @@ public:
     ///
     /// Type or order of unit is not specified, any quantity with this key will match.
     bool has(const QuantityId key) const {
-        return quantities.find(key) != quantities.end();
+        return quantities.contains(key);
     }
 
     /// \brief Checks if the storage contains quantity with given key, value type and order.
     template <typename TValue>
     bool has(const QuantityId key, const OrderEnum order) const {
-        auto iter = quantities.find(key);
-        if (iter == quantities.end()) {
+        Optional<const Quantity&> quantity = quantities.tryGet(key);
+        if (!quantity) {
             return false;
         }
-        const Quantity& q = iter->second;
-        return q.getOrderEnum() == order && q.getValueEnum() == GetValueEnum<TValue>::type;
+        return quantity->getOrderEnum() == order && quantity->getValueEnum() == GetValueEnum<TValue>::type;
     }
 
     /// \brief Retrieves quantity with given key from the storage.
     ///
     /// Quantity must be already stored, checked by assert.
     Quantity& getQuantity(const QuantityId key) {
-        auto iter = quantities.find(key);
-        ASSERT(iter != quantities.end(), getMetadata(key).quantityName);
-        return iter->second;
+        Optional<Quantity&> quantity = quantities.tryGet(key);
+        ASSERT(quantity, getMetadata(key).quantityName);
+        return quantity.value();
     }
 
     /// \brief Retrieves quantity with given key from the storage, const version.
     const Quantity& getQuantity(const QuantityId key) const {
-        auto iter = quantities.find(key);
-        ASSERT(iter != quantities.end());
-        return iter->second;
+        Optional<const Quantity&> quantity = quantities.tryGet(key);
+        ASSERT(quantity, getMetadata(key).quantityName);
+        return quantity.value();
     }
 
     /// \brief Retrieves quantity buffers from the storage, given its key and value type.

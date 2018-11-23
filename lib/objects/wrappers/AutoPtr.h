@@ -5,6 +5,7 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2018
 
+#include "objects/wrappers/AlignedStorage.h"
 #include "objects/wrappers/RawPtr.h"
 
 NAMESPACE_SPH_BEGIN
@@ -116,7 +117,7 @@ bool operator!=(std::nullptr_t, const AutoPtr<T>& ptr) {
 
 template <typename T, typename... TArgs>
 INLINE AutoPtr<T> makeAuto(TArgs&&... args) {
-    return AutoPtr<T>(new T(std::forward<TArgs>(args)...));
+    return AutoPtr<T>(alignedNew<T>(std::forward<TArgs>(args)...));
 }
 
 /// \brief Performs a dynamic_cast on an AutoPtr, moving the ownership of the resource to the created object.

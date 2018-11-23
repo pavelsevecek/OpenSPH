@@ -41,9 +41,11 @@ struct BarnesHutNode : public KdNode {
 /// \brief Multipole approximation of distance particle.
 class BarnesHut : public IGravity {
 protected:
-    /// Source data
+    /// View of a position buffer in the storage
     ArrayView<const Vector> r;
-    ArrayView<const Float> m;
+
+    /// Particle masses multiplied by gravitational constant.
+    Array<Float> m;
 
     /// K-d tree storing gravitational moments
     KdTree<BarnesHutNode> kdTree;

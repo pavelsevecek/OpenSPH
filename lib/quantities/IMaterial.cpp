@@ -14,24 +14,18 @@ MaterialInitialContext::MaterialInitialContext(const RunSettings& settings) {
 }
 
 void IMaterial::setRange(const QuantityId id, const Interval& range, const Float minimal) {
-    auto rangeIter = ranges.find(id);
     if (range == DEFAULT_RANGE) {
         // for unbounded range, we don't have to store the value (unbounded range is default)
-        if (rangeIter != ranges.end()) {
-            ranges.erase(rangeIter);
-        }
+        ranges.tryRemove(id);
     } else {
-        ranges[id] = range;
+        ranges.insert(id, range);
     }
 
-    auto minimalIter = minimals.find(id);
     if (minimal == DEFAULT_MINIMAL) {
         // same thing with minimals - no need to store 0
-        if (minimalIter != minimals.end()) {
-            minimals.erase(minimalIter);
-        }
+        minimals.tryRemove(id);
     } else {
-        minimals[id] = minimal;
+        minimals.insert(id, minimal);
     }
 }
 

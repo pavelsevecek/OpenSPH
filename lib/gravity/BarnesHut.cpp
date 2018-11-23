@@ -35,7 +35,12 @@ BarnesHut::BarnesHut(const Float theta,
 void BarnesHut::build(IScheduler& scheduler, const Storage& storage) {
     // save source data
     r = storage.getValue<Vector>(QuantityId::POSITION);
-    m = storage.getValue<Float>(QuantityId::MASS);
+
+    m.resize(r.size());
+    ArrayView<const Float> masses = storage.getValue<Float>(QuantityId::MASS);
+    for (Size i = 0; i < m.size(); ++i) {
+        m[i] = Constants::gravity * masses[i];
+    }
 
     // build K-d Tree; no need for rank as we are never searching neighbours
     kdTree.build(scheduler, r, FinderFlag::SKIP_RANK);
@@ -117,7 +122,7 @@ Vector BarnesHut::evalImpl(const Vector& r0, const Size idx, Statistics& UNUSED(
     };
     iterateTree<IterateDirection::TOP_DOWN>(kdTree, SEQUENTIAL, lambda);
 
-    return Constants::gravity * f;
+    return f;
 }
 
 class BarnesHut::NodeTask : public Noncopyable {
@@ -281,7 +286,7 @@ void BarnesHut::evalParticleList(const LeafNode<BarnesHutNode>& leaf,
             for (Size j : seq2) {
                 ASSERT(r[j][H] > 0._f, r[j][H]);
                 const Vector grad = actKernel.grad(r[j], r[i]);
-                dv[i] += Constants::gravity * m[j] * grad;
+                dv[i] += m[j] * grad;
             }
         }
     }
@@ -293,7 +298,7 @@ void BarnesHut::evalParticleList(const LeafNode<BarnesHutNode>& leaf,
                 continue;
             }
             const Vector grad = actKernel.grad(r[j], r[i]);
-            dv[i] += Constants::gravity * m[j] * grad;
+            dv[i] += m[j] * grad;
         }
     }
 }
@@ -307,7 +312,7 @@ void BarnesHut::evalNodeList(const LeafNode<BarnesHutNode>& leaf,
         const BarnesHutNode& node = kdTree.getNode(idx);
         ASSERT(seq1.size() > 0);
         for (Size i : seq1) {
-            dv[i] += Constants::gravity * evaluateGravity(r[i] - node.com, node.moments, order);
+            dv[i] += evaluateGravity(r[i] - node.com, node.moments, order);
         }
     }
 }

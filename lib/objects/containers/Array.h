@@ -6,9 +6,9 @@
 /// \date 2016-2018
 
 #include "math/Math.h"
-#include "objects/containers/Allocators.h"
 #include "objects/containers/ArrayView.h"
 #include <limits>
+#include <mm_malloc.h>
 
 NAMESPACE_SPH_BEGIN
 
@@ -58,7 +58,7 @@ public:
     Array(std::initializer_list<StorageType> list) {
         actSize = list.size();
         maxSize = actSize;
-        data = (StorageType*)malloc(maxSize * sizeof(StorageType));
+        data = (StorageType*)_mm_malloc(maxSize * sizeof(StorageType), alignof(StorageType));
         TCounter i = 0;
         for (auto& l : list) {
             new (data + i) StorageType(l);
@@ -81,7 +81,7 @@ public:
             }
         }
         if (data) {
-            free(data);
+            _mm_free(data);
             data = nullptr;
         }
     }
@@ -433,7 +433,7 @@ private:
             maxSize = actSize;
         }
         // allocate maxSize elements
-        data = (StorageType*)malloc(maxSize * sizeof(StorageType));
+        data = (StorageType*)_mm_malloc(maxSize * sizeof(StorageType), alignof(StorageType));
     }
 };
 

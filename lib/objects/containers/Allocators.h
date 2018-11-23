@@ -6,7 +6,6 @@
 /// \date 2016-2018
 
 #include "common/Assert.h"
-#include "objects/wrappers/AlignedStorage.h"
 
 NAMESPACE_SPH_BEGIN
 

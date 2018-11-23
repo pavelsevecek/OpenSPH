@@ -116,6 +116,7 @@ public:
         } else {
             const Size index = element - &data[0];
             data.remove(index);
+            return true;
         }
     }
 
@@ -189,6 +190,12 @@ public:
 
     INLINE operator ArrayView<const Element>() const {
         return data;
+    }
+
+    FlatMap clone() const {
+        FlatMap cloned;
+        cloned.data = data.clone();
+        return cloned;
     }
 
 private:

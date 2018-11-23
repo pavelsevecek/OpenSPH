@@ -12,7 +12,7 @@ NAMESPACE_SPH_BEGIN
 template <typename TEnum>
 Settings<TEnum>::Settings(std::initializer_list<Entry> list) {
     for (auto& entry : list) {
-        entries[entry.id] = entry;
+        entries.insert(entry.id, entry);
     }
 }
 
@@ -24,11 +24,31 @@ template <typename TEnum>
 Settings<TEnum>::Settings(EmptySettingsTag) {}
 
 template <typename TEnum>
+Settings<TEnum>::Settings(const Settings& other)
+    : entries(other.entries.clone()) {}
+
+template <typename TEnum>
+Settings<TEnum>::Settings(Settings&& other)
+    : entries(std::move(other.entries)) {}
+
+template <typename TEnum>
 Settings<TEnum>& Settings<TEnum>::operator=(std::initializer_list<Entry> list) {
     entries.clear();
     for (auto& entry : list) {
-        entries[entry.id] = entry;
+        entries.insert(entry.id, entry);
     }
+    return *this;
+}
+
+template <typename TEnum>
+Settings<TEnum>& Settings<TEnum>::operator=(const Settings& other) {
+    entries = other.entries.clone();
+    return *this;
+}
+
+template <typename TEnum>
+Settings<TEnum>& Settings<TEnum>::operator=(Settings&& other) {
+    entries = std::move(other.entries);
     return *this;
 }
 
@@ -187,8 +207,8 @@ Outcome Settings<TEnum>::loadFromFile(const Path& path) {
         // find the key in decriptor settings
         bool found = false;
         for (auto& e : descriptors.entries) {
-            if (e.second.name == trimmedKey) {
-                if (!setValueByType(this->entries[e.second.id], e.second.value, value)) {
+            if (e.value.name == trimmedKey) {
+                if (!setValueByType(this->entries[e.value.id], e.value.value, value)) {
                     return "Invalid value of key " + trimmedKey + ": " + value;
                 }
                 found = true;
@@ -208,7 +228,7 @@ void Settings<TEnum>::saveToFile(const Path& path) const {
     FileSystem::createDirectory(path.parentPath());
     std::ofstream ofs(path.native());
     for (auto& e : entries) {
-        const Entry& entry = e.second;
+        const Entry& entry = e.value;
         if (!entry.desc.empty()) {
             std::string desc = "# " + entry.desc;
             desc = setLineBreak(desc, 120);
@@ -277,12 +297,12 @@ const Settings<TEnum>& Settings<TEnum>::getDefaults() {
 }
 
 template <typename TEnum>
-SettingsIterator<TEnum>::SettingsIterator(const Iterator& iter)
+SettingsIterator<TEnum>::SettingsIterator(const ActIterator& iter)
     : iter(iter) {}
 
 template <typename TEnum>
 typename SettingsIterator<TEnum>::IteratorValue SettingsIterator<TEnum>::operator*() const {
-    return { iter->first, iter->second.value };
+    return { iter->key, iter->value.value };
 }
 
 template <typename TEnum>

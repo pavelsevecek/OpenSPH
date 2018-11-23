@@ -32,7 +32,7 @@ Controller::Controller(const GuiSettings& settings, AutoPtr<IPluginControls>&& p
     vis.initialize(gui);
 
     // create main frame of the application
-    window = new MainWindow(this, gui, this->plugin.get());
+    window = alignedNew<MainWindow>(this, gui, this->plugin.get());
     window->SetAutoLayout(true);
     window->Show();
 

@@ -22,7 +22,7 @@ private:
         Dynamic d2t;
     };
 
-    std::map<QuantityId, InternalQuantityData> data;
+    FlatMap<QuantityId, InternalQuantityData> data;
 
 public:
     /// \brief Default constructor, defined only for convenient usage in containers, etc.
@@ -50,6 +50,14 @@ public:
     /// \param idx Index of particle; although this constructor is not necessarily bound to a particle
     ///            storage, this represents index to storage associated with the particle.
     Particle(const QuantityId id, const Dynamic& value, const Size idx);
+
+    Particle(const Particle& other);
+
+    Particle(Particle&& other);
+
+    Particle& operator=(const Particle& other);
+
+    Particle& operator=(Particle&& other);
 
     /// \brief Adds another quantity value or updates the value of quantity previously stored.
     ///
@@ -118,15 +126,15 @@ public:
     /// \brief Iterator used to enumerate all stored quantities.
     class ValueIterator {
     private:
-        using Iterator = std::map<QuantityId, InternalQuantityData>::const_iterator;
+        using ActIterator = Iterator<const FlatMap<QuantityId, InternalQuantityData>::Element>;
 
-        Iterator iter;
+        ActIterator iter;
 
     public:
         /// \brief Constructs the iterator from internal type.
         ///
         /// Use \ref Particle::begin and \ref Particle::end to obtain iterators.
-        ValueIterator(const Iterator iterator);
+        ValueIterator(const ActIterator iterator);
 
         /// Advances the iterator to next quantity.
         ValueIterator& operator++();

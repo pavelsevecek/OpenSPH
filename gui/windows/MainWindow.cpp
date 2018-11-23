@@ -171,7 +171,7 @@ MainWindow::MainWindow(Controller* parent, const GuiSettings& settings, RawPtr<I
 
     // everything below toolbar
     wxBoxSizer* mainSizer = new wxBoxSizer(wxHORIZONTAL);
-    pane = new OrthoPane(this, parent, settings);
+    pane = alignedNew<OrthoPane>(this, parent, settings);
     mainSizer->Add(pane.get(), 4);
     mainSizer->AddSpacer(5);
 

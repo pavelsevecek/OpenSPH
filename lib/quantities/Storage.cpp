@@ -88,7 +88,7 @@ Quantity& Storage::insert(const QuantityId key, const OrderEnum order, const TVa
     } else {
         const Size particleCnt = getParticleCnt();
         ASSERT(particleCnt);
-        quantities[key] = Quantity(order, defaultValue, particleCnt);
+        quantities.insert(key, Quantity(order, defaultValue, particleCnt));
     }
     return quantities[key];
 }
@@ -119,7 +119,7 @@ Quantity& Storage::insert(const QuantityId key, const OrderEnum order, Array<TVa
     } else {
         Quantity q(order, std::move(values));
         UNUSED_IN_RELEASE(const Size size = q.size();)
-        quantities[key] = std::move(q);
+        quantities.insert(key, std::move(q));
         ASSERT(quantities.empty() || size == getParticleCnt()); // size must match sizes of other quantities
 
         if (this->getQuantityCnt() == 1 && this->getMaterialCnt() > 0) {
@@ -242,7 +242,7 @@ Size Storage::getParticleCnt() const {
     if (quantities.empty()) {
         return 0;
     } else {
-        return quantities.begin()->second.size();
+        return quantities.begin()->value.size();
     }
 }
 
@@ -329,7 +329,7 @@ Storage Storage::clone(const Flags<VisitorEnum> buffers) const {
     ASSERT(!userData, "Cloning storages with user data is currently not supported");
     Storage cloned;
     for (const auto& q : quantities) {
-        cloned.quantities[q.first] = q.second.clone(buffers);
+        cloned.quantities.insert(q.key, q.value.clone(buffers));
     }
 
     // clone the materials if we cloned MATERIAL_IDs.
@@ -367,7 +367,7 @@ void Storage::resize(const Size newParticleCnt, const Flags<ResizeFlag> flags) {
 void Storage::swap(Storage& other, const Flags<VisitorEnum> flags) {
     ASSERT(this->getQuantityCnt() == other.getQuantityCnt());
     for (auto i1 = quantities.begin(), i2 = other.quantities.begin(); i1 != quantities.end(); ++i1, ++i2) {
-        i1->second.swap(i2->second, flags);
+        i1->value.swap(i2->value, flags);
     }
 }
 

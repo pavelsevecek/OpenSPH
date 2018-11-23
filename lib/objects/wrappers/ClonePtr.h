@@ -33,7 +33,7 @@ public:
             return nullptr;
         } else {
             // clone the resource and itself
-            return new T(*ptr);
+            return alignedNew<T>(*ptr);
         }
     }
 

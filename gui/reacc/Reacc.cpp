@@ -140,8 +140,8 @@ RunSettings getSharedSettings() {
         .set(RunSettingsId::GRAVITY_KERNEL, GravityKernelEnum::SPH_KERNEL)
         .set(RunSettingsId::GRAVITY_OPENING_ANGLE, 0.8_f)
         .set(RunSettingsId::GRAVITY_LEAF_SIZE, 20)
-        .set(RunSettingsId::SPH_AV_USE_STRESS, true)
-        .set(RunSettingsId::GRAVITY_RECOMPUTATION_PERIOD, 0._f)
+        .set(RunSettingsId::SPH_AV_USE_STRESS, false)
+        .set(RunSettingsId::GRAVITY_RECOMPUTATION_PERIOD, 10._f)
         //.set(RunSettingsId::TIMESTEPPING_MEAN_POWER, -0._f)
         .set(RunSettingsId::TIMESTEPPING_ADAPTIVE_FACTOR, 0.2_f)
         .set(RunSettingsId::TIMESTEPPING_COURANT_NUMBER, 0.2_f)
@@ -200,7 +200,7 @@ void Stabilization::setUp() {
         }
     } else {
 
-        Size N = 250'000;
+        Size N = 5'000;
 
         BodySettings body;
         body.set(BodySettingsId::ENERGY, 1.e3_f)

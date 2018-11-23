@@ -7,11 +7,11 @@
 
 #include "common/ForwardDecl.h"
 #include "math/Means.h"
+#include "objects/containers/FlatMap.h"
 #include "objects/utility/Dynamic.h"
 #include "objects/wrappers/Interval.h"
 #include "objects/wrappers/Variant.h"
 #include "quantities/QuantityIds.h"
-#include <map>
 
 NAMESPACE_SPH_BEGIN
 
@@ -25,33 +25,44 @@ private:
 
     using ValueType = Variant<bool, int, Float, MinMaxMean, Dynamic, Interval>;
 
-    std::map<StatisticsId, ValueType> entries;
+    FlatMap<StatisticsId, ValueType> entries;
 
 public:
     Statistics() = default;
+
+    Statistics(const Statistics& other)
+        : entries(other.entries.clone()) {}
+
+    Statistics& operator=(const Statistics& other) {
+        entries = other.entries.clone();
+        return *this;
+    }
 
     /// \brief Checks if the object contains a statistic with given ID
     ///
     /// By default, the object is empty, it contains no data.
     bool has(const StatisticsId idx) const {
-        return entries.find(idx) != entries.end();
+        return entries.contains(idx);
     }
 
     /// \brief Sets new values of a statistic.
     ///
-    /// If the statistic is not stored in the object, the statistic is created using default constructor
-    /// before assigning new value into it.
+    /// This overrides any previously stored value.
     template <typename TValue>
     void set(const StatisticsId idx, TValue&& value) {
         using StoreType = ConvertToSize<TValue>;
-        entries[idx] = StoreType(std::forward<TValue>(value));
+        entries.insert(idx, StoreType(std::forward<TValue>(value)));
     }
 
     /// \brief Increments an integer statistic by given amount
     ///
-    /// Syntatic suggar, equivalent to get<int>(idx) += amount.
+    /// Syntatic suggar, equivalent to set(idx, get<int>(idx) + amount).
     void increment(const StatisticsId idx, const Size amount) {
-        entries[idx].get<int>() += amount;
+        if (entries.contains(idx)) {
+            entries[idx].template get<int>() += amount;
+        } else {
+            entries.insert(idx, int(amount));
+        }
     }
 
     /// \brief Accumulate a value into means of given idx.
@@ -59,14 +70,13 @@ public:
     /// Value does not have to be stored. If there is no value of given idx, it is created with default
     /// constructor prior to accumulating.
     void accumulate(const StatisticsId idx, const Float value) {
-        auto iter = entries.find(idx);
-        if (iter != entries.end()) {
-            ValueType& entry = iter->second;
-            entry.template get<MinMaxMean>().accumulate(value);
+        Optional<ValueType&> entry = entries.tryGet(idx);
+        if (entry) {
+            entry->template get<MinMaxMean>().accumulate(value);
         } else {
             MinMaxMean means;
             means.accumulate(value);
-            entries.insert({ idx, means });
+            entries.insert(idx, means);
         }
     }
 
@@ -75,10 +85,10 @@ public:
     /// The value must be stored in the object and must have type TValue, checked by assert.
     template <typename TValue>
     TValue get(const StatisticsId idx) const {
-        auto iter = entries.find(idx);
-        ASSERT(iter != entries.end(), int(idx));
+        Optional<const ValueType&> entry = entries.tryGet(idx);
+        ASSERT(entry, int(idx));
         using StoreType = ConvertToSize<TValue>;
-        const StoreType& value = iter->second.template get<StoreType>();
+        const StoreType& value = entry->template get<StoreType>();
         return TValue(value);
     }
 

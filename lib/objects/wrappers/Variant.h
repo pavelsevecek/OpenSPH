@@ -25,6 +25,7 @@ public:
     /// Does not check whether another object has already been created.
     template <typename T, typename... Ts>
     INLINE void emplace(Ts&&... args) {
+        ASSERT(isAligned(storage));
         new (&storage) T(std::forward<Ts>(args)...);
     }
 

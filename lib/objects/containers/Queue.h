@@ -7,6 +7,7 @@
 
 #include "math/Math.h"
 #include "objects/containers/ArrayView.h"
+#include <mm_malloc.h>
 
 NAMESPACE_SPH_BEGIN
 
@@ -70,7 +71,7 @@ public:
             data[i].~StorageType();
         }
         if (data) {
-            free(data);
+            _mm_free(data);
             data = nullptr;
         }
     }
@@ -243,7 +244,7 @@ private:
         maxSize = size + extraFront + extraBack;
         first = last = extraFront;
 
-        data = (StorageType*)malloc(maxSize * sizeof(StorageType));
+        data = (StorageType*)_mm_malloc(maxSize * sizeof(StorageType), alignof(StorageType));
     }
 
     /// If there is currently less than num free elements in the front, reallocates the queue, adding at least

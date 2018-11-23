@@ -3,7 +3,7 @@
 NAMESPACE_SPH_BEGIN
 
 struct ParticleVisitor {
-    std::map<QuantityId, Particle::InternalQuantityData>& data;
+    FlatMap<QuantityId, Particle::InternalQuantityData>& data;
 
     template <typename TValue>
     void visit(const QuantityId id, const Quantity& q, const Size idx) {
@@ -38,6 +38,26 @@ Particle::Particle(const QuantityId id, const Dynamic& value, const Size idx)
     data[id].value = value;
 }
 
+Particle::Particle(const Particle& other) {
+    *this = other;
+}
+
+Particle::Particle(Particle&& other) {
+    *this = std::move(other);
+}
+
+Particle& Particle::operator=(const Particle& other) {
+    data = other.data.clone();
+    idx = other.idx;
+    return *this;
+}
+
+Particle& Particle::operator=(Particle&& other) {
+    data = std::move(other.data);
+    idx = other.idx;
+    return *this;
+}
+
 Particle& Particle::addValue(const QuantityId id, const Dynamic& value) {
     data[id].value = value;
     return *this;
@@ -54,24 +74,24 @@ Particle& Particle::addD2t(const QuantityId id, const Dynamic& value) {
 }
 
 Dynamic Particle::getValue(const QuantityId id) const {
-    auto iter = data.find(id);
-    ASSERT(iter != data.end());
-    return iter->second.value;
+    Optional<const InternalQuantityData&> quantity = data.tryGet(id);
+    ASSERT(quantity);
+    return quantity->value;
 }
 
 Dynamic Particle::getDt(const QuantityId id) const {
-    auto iter = data.find(id);
-    ASSERT(iter != data.end());
-    return iter->second.dt;
+    Optional<const InternalQuantityData&> quantity = data.tryGet(id);
+    ASSERT(quantity);
+    return quantity->dt;
 }
 
 Dynamic Particle::getD2t(const QuantityId id) const {
-    auto iter = data.find(id);
-    ASSERT(iter != data.end());
-    return iter->second.d2t;
+    Optional<const InternalQuantityData&> quantity = data.tryGet(id);
+    ASSERT(quantity);
+    return quantity->d2t;
 }
 
-Particle::ValueIterator::ValueIterator(const Iterator iterator)
+Particle::ValueIterator::ValueIterator(const ActIterator iterator)
     : iter(iterator) {}
 
 Particle::ValueIterator& Particle::ValueIterator::operator++() {
@@ -80,7 +100,7 @@ Particle::ValueIterator& Particle::ValueIterator::operator++() {
 }
 
 Particle::QuantityData Particle::ValueIterator::operator*() const {
-    const InternalQuantityData& internal = iter->second;
+    const InternalQuantityData& internal = iter->value;
     DynamicId type;
     if (internal.value) {
         type = internal.value.getType();
@@ -93,7 +113,7 @@ Particle::QuantityData Particle::ValueIterator::operator*() const {
         ASSERT(internal.d2t);
         type = internal.d2t.getType();
     }
-    return { iter->first, type, internal.value, internal.dt, internal.d2t };
+    return { iter->key, type, internal.value, internal.dt, internal.d2t };
 }
 
 bool Particle::ValueIterator::operator!=(const ValueIterator& other) const {

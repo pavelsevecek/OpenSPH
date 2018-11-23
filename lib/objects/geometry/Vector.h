@@ -356,12 +356,15 @@ public:
 
     friend std::ostream& operator<<(std::ostream& stream, const BasicVector& v) {
         constexpr int digits = PRECISION;
+        stream << std::setprecision(digits);
         for (int i = 0; i < 3; ++i) {
-            stream << std::setprecision(digits) << v[i];
+            stream << std::setw(20) << v[i];
         }
         return stream;
     }
 };
+
+static_assert(alignof(BasicVector<double>) == 32, "Incorrect alignment of Vector");
 
 #else
 
@@ -529,6 +532,9 @@ public:
         return stream;
     }
 };
+
+static_assert(alignof(BasicVector<double>) == 16, "Incorrect alignment of Vector");
+
 #endif
 
 

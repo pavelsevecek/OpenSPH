@@ -110,10 +110,10 @@ protected:
     BodySettings params;
 
     /// Minimal values used in timestepping, do not affect values of quantities themselves.
-    std::map<QuantityId, Float> minimals;
+    FlatMap<QuantityId, Float> minimals;
 
     /// Allowed range of quantities.
-    std::map<QuantityId, Interval> ranges;
+    FlatMap<QuantityId, Interval> ranges;
 
     /// Default values
     const static Interval DEFAULT_RANGE;
@@ -157,11 +157,7 @@ public:
     /// This value is used by timestepping algorithms to determine the time step. The value can be
     /// specified by \ref setRange; if no value is specified, the fuction defaults to 0.
     INLINE Float minimal(const QuantityId id) const {
-        auto iter = minimals.find(id);
-        if (iter == minimals.end()) {
-            return DEFAULT_MINIMAL;
-        }
-        return iter->second;
+        return minimals.tryGet(id).valueOr(DEFAULT_MINIMAL);
     }
 
     /// \brief Returns the range of allowed quantity values.
@@ -170,11 +166,7 @@ public:
     /// the solver or elsewhere. The range can be specified by \ref setRange; if no range is specified,
     /// the function defaults to unbounded interval.
     INLINE const Interval range(const QuantityId id) const {
-        auto iter = ranges.find(id);
-        if (iter == ranges.end()) {
-            return DEFAULT_RANGE;
-        }
-        return iter->second;
+        return ranges.tryGet(id).valueOr(DEFAULT_RANGE);
     }
 
     /// \brief Create all quantities needed by the material.

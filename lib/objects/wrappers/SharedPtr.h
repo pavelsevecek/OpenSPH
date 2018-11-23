@@ -119,7 +119,7 @@ public:
     explicit SharedPtr(T* ptr)
         : ptr(ptr) {
         if (ptr) {
-            block = new Detail::ControlBlock<T>(ptr);
+            block = alignedNew<Detail::ControlBlock<T>>(ptr);
         } else {
             block = nullptr;
         }
@@ -396,7 +396,7 @@ public:
 
 template <typename T, typename... TArgs>
 INLINE SharedPtr<T> makeShared(TArgs&&... args) {
-    return SharedPtr<T>(new T(std::forward<TArgs>(args)...));
+    return SharedPtr<T>(alignedNew<T>(std::forward<TArgs>(args)...));
 }
 
 template <typename T>

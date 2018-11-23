@@ -106,7 +106,7 @@ public:
         if (!storage.has(id)) {
             // lazy initialization
             storage.insert<TValue>(id, OrderEnum::FIRST, TValue(0._f));
-        } else if (storage.getQuantity(id).getOrder() == OrderEnum::ZERO()) {
+        } else if (storage.getQuantity(id).getOrderEnum() == OrderEnum::ZERO) {
             // has the quantity, but not derivatives; we need to resize it manually to side-step the check
             // of equality in Storage::insert.
             storage.getQuantity(id).setOrder(OrderEnum::FIRST);
@@ -148,7 +148,7 @@ public:
         if (!storage.has(id)) {
             // lazy initialization
             storage.insert<TValue>(id, OrderEnum::SECOND, TValue(0._f));
-        } else if (storage.getQuantity(id).getOrder() < OrderEnum::SECOND()) {
+        } else if (storage.getQuantity(id).getOrderEnum() < OrderEnum::SECOND) {
             // has the quantity, but not derivatives; we need to resize it manually to side-step the check
             // of equality in Storage::insert.
             storage.getQuantity(id).setOrder(OrderEnum::SECOND);

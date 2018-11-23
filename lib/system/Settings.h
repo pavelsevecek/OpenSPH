@@ -12,7 +12,6 @@
 #include "objects/wrappers/Interval.h"
 #include "objects/wrappers/Outcome.h"
 #include "objects/wrappers/Variant.h"
-#include <map>
 
 NAMESPACE_SPH_BEGIN
 
@@ -182,7 +181,7 @@ private:
             , desc(desc) {}
     };
 
-    std::map<TEnum, Entry> entries;
+    FlatMap<TEnum, Entry> entries;
 
     static AutoPtr<Settings> instance;
 
@@ -196,8 +195,16 @@ public:
     /// \brief Initialize empty settings object.
     Settings(EmptySettingsTag);
 
+    Settings(const Settings& other);
+
+    Settings(Settings&& other);
+
     /// \brief Assigns a list of settings into the object, erasing all previous entries.
     Settings& operator=(std::initializer_list<Entry> list);
+
+    Settings& operator=(const Settings& other);
+
+    Settings& operator=(Settings&& other);
 
     /// \brief Saves a value into the settings.
     ///
@@ -213,7 +220,10 @@ public:
         TValue&& value,
         std::enable_if_t<!std::is_enum<std::decay_t<TValue>>::value, int> = 0) {
         // either the values is new or the type is the same as the previous value
-        ASSERT(entries.find(idx) == entries.end() || entries[idx].value.template has<std::decay_t<TValue>>());
+        ASSERT(!entries.contains(idx) || entries[idx].value.template has<std::decay_t<TValue>>());
+        if (!entries.contains(idx)) {
+            entries.insert(idx, Entry{});
+        }
         entries[idx].value = std::forward<TValue>(value);
         return *this;
     }
@@ -224,7 +234,10 @@ public:
         TValue&& value,
         std::enable_if_t<std::is_enum<std::decay_t<TValue>>::value, int> = 0) {
         // either the values is new or the type is the same as the previous value
-        ASSERT(entries.find(idx) == entries.end() || entries[idx].value.template has<EnumWrapper>());
+        ASSERT(!entries.contains(idx) || entries[idx].value.template has<EnumWrapper>());
+        if (!entries.contains(idx)) {
+            entries.insert(idx, Entry{});
+        }
         entries[idx].value = EnumWrapper(value);
         return *this;
     }
@@ -235,7 +248,10 @@ public:
     /// underlying enum or even int using function \ref setFlags and \ref getFlags.
     template <typename TValue, typename = std::enable_if_t<std::is_enum<TValue>::value>>
     Settings& set(const TEnum idx, const Flags<TValue> flags) {
-        ASSERT(entries.find(idx) == entries.end() || entries[idx].value.template has<EnumWrapper>());
+        ASSERT(!entries.contains(idx) || entries[idx].value.template has<EnumWrapper>());
+        if (!entries.contains(idx)) {
+            entries.insert(idx, Entry{});
+        }
         entries[idx].value = EnumWrapper(TValue(flags.value()));
         return *this;
     }
@@ -244,6 +260,9 @@ public:
     Settings& set(const TEnum idx, EmptyFlags) {
         // can be used only if the value is already there and we know the type
         EnumWrapper currentValue = entries[idx].value.template get<EnumWrapper>();
+        if (!entries.contains(idx)) {
+            entries.insert(idx, Entry{});
+        }
         entries[idx].value = EnumWrapper(0, currentValue.typeHash);
         return *this;
     }
@@ -251,11 +270,14 @@ public:
     /// \brief todo
     Settings& set(const TEnum idx, const EnumWrapper ew) {
 #ifdef SPH_DEBUG
-        if (entries.find(idx) != entries.end()) {
+        if (entries.contains(idx)) {
             const EnumWrapper current = entries[idx].value.template get<EnumWrapper>();
             ASSERT(current.typeHash == ew.typeHash, current.typeHash, ew.typeHash);
         }
 #endif
+        if (!entries.contains(idx)) {
+            entries.insert(idx, Entry{});
+        }
         entries[idx].value = ew;
         return *this;
     }
@@ -269,16 +291,16 @@ public:
     /// \returns Value correponsing to given key.
     template <typename TValue>
     TValue get(const TEnum idx, std::enable_if_t<!std::is_enum<std::decay_t<TValue>>::value, int> = 0) const {
-        typename std::map<TEnum, Entry>::const_iterator iter = entries.find(idx);
-        ASSERT(iter != entries.end(), int(idx));
-        return iter->second.value.template get<TValue>();
+        Optional<const Entry&> entry = entries.tryGet(idx);
+        ASSERT(entry, int(idx));
+        return entry->value.template get<TValue>();
     }
 
     template <typename TValue>
     TValue get(const TEnum idx, std::enable_if_t<std::is_enum<std::decay_t<TValue>>::value, int> = 0) const {
-        typename std::map<TEnum, Entry>::const_iterator iter = entries.find(idx);
-        ASSERT(iter != entries.end(), int(idx));
-        EnumWrapper wrapper = iter->second.value.template get<EnumWrapper>();
+        Optional<const Entry&> entry = entries.tryGet(idx);
+        ASSERT(entry, int(idx));
+        EnumWrapper wrapper = entry->value.template get<EnumWrapper>();
         ASSERT(wrapper.typeHash == typeid(TValue).hash_code());
         return TValue(wrapper.value);
     }
@@ -298,9 +320,9 @@ public:
     /// Entry must be in settings, checked by assert.
     template <typename TValue>
     bool has(const TEnum idx) const {
-        typename std::map<TEnum, Entry>::const_iterator iter = entries.find(idx);
-        ASSERT(iter != entries.end(), int(idx));
-        return iter->second.value.template has<TValue>();
+        Optional<const Entry&> entry = entries.tryGet(idx);
+        ASSERT(entry, int(idx));
+        return entry->value.template has<TValue>();
     }
 
     /// \brief Saves all values stored in settings into file.
@@ -339,13 +361,13 @@ private:
 template <typename TEnum>
 class SettingsIterator {
 private:
-    using Iterator = typename std::map<TEnum, typename Settings<TEnum>::Entry>::const_iterator;
+    using ActIterator = Iterator<const typename FlatMap<TEnum, typename Settings<TEnum>::Entry>::Element>;
 
-    Iterator iter;
+    ActIterator iter;
 
 public:
     /// Constructs an iterator from iternal implementation; use Settings::begin and Settings::end.
-    SettingsIterator(const Iterator& iter);
+    SettingsIterator(const ActIterator& iter);
 
     struct IteratorValue {
         /// ID of settings entry

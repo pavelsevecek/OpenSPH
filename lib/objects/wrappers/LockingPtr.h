@@ -52,7 +52,7 @@ public:
     LockingPtr() = default;
 
     LockingPtr(T* ptr)
-        : resource(ptr, ptr ? new Detail::LockingControlBlock<T>(ptr) : nullptr) {
+        : resource(ptr, ptr ? alignedNew<Detail::LockingControlBlock<T>>(ptr) : nullptr) {
         block = static_cast<Detail::LockingControlBlock<T>*>(resource.block);
     }
 
@@ -212,7 +212,7 @@ public:
 
 template <typename T, typename... TArgs>
 LockingPtr<T> makeLocking(TArgs&&... args) {
-    return LockingPtr<T>(new T(std::forward<TArgs>(args)...));
+    return LockingPtr<T>(alignedNew<T>(std::forward<TArgs>(args)...));
 }
 
 NAMESPACE_SPH_END

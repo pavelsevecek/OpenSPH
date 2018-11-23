@@ -5,10 +5,25 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2018
 
+#include "common/Assert.h"
 #include "common/Traits.h"
+#include <mm_malloc.h>
 
 NAMESPACE_SPH_BEGIN
 
+template <typename T, typename... TArgs>
+INLINE T* alignedNew(TArgs&&... args) {
+    constexpr Size size = sizeof(T);
+    constexpr Size alignment = alignof(T);
+    void* ptr = _mm_malloc(size, alignment);
+    ASSERT(ptr);
+    return new (ptr) T(std::forward<TArgs>(args)...);
+}
+
+template <typename T>
+INLINE bool isAligned(const T& value) {
+    return reinterpret_cast<std::size_t>(std::addressof(value)) % alignof(T) == 0;
+}
 
 /// \brief Simple block of memory on stack with size and alignment given by template type
 
