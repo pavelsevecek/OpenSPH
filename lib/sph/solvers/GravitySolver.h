@@ -35,15 +35,12 @@ public:
 
     ~GravitySolver();
 
-protected:
-    virtual void loop(Storage& storage, Statistics& stats) override;
+    virtual void integrate(Storage& storage, Statistics& stats) override;
 
+protected:
     virtual void sanityCheck(const Storage& storage) const override;
 
     virtual const IBasicFinder& getFinder(ArrayView<const Vector> r) override;
-
-    /// \brief Returns the accumulated storage, either thread-local or shared one based on SPH solver.
-    Accumulated& getAccumulated();
 };
 
 NAMESPACE_SPH_END

@@ -87,19 +87,19 @@ Particle& Particle::addD2t(const QuantityId id, const Dynamic& value) {
 
 Dynamic Particle::getValue(const QuantityId id) const {
     Optional<const InternalQuantityData&> quantity = data.tryGet(id);
-    ASSERT(quantity && !quantity->value.empty());
+    ASSERT(quantity);
     return quantity->value;
 }
 
 Dynamic Particle::getDt(const QuantityId id) const {
     Optional<const InternalQuantityData&> quantity = data.tryGet(id);
-    ASSERT(quantity && !quantity->dt.empty());
+    ASSERT(quantity);
     return quantity->dt;
 }
 
 Dynamic Particle::getD2t(const QuantityId id) const {
     Optional<const InternalQuantityData&> quantity = data.tryGet(id);
-    ASSERT(quantity && !quantity->d2t.empty());
+    ASSERT(quantity);
     return quantity->d2t;
 }
 

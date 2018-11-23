@@ -48,13 +48,19 @@ public:
         const Float t = stats.get<Float>(StatisticsId::RUN_TIME);
         ASSERT(t >= t_last);
         if (dv.size() == cachedDv.size() && t - t_last < period) {
-            std::copy(cachedDv.begin(), cachedDv.end(), dv.begin());
+            // we can re-use the cached accelerations
             stats.set(StatisticsId::GRAVITY_EVAL_TIME, 0);
         } else {
-            gravity->evalAll(scheduler, dv, stats);
+            // recompute and cache gravity
             cachedDv.resize(dv.size());
-            std::copy(dv.begin(), dv.end(), cachedDv.begin());
+            cachedDv.fill(Vector(0._f));
+            gravity->evalAll(scheduler, cachedDv, stats);
             t_last = t;
+        }
+
+        // note that dv might already contain some accelerations, thus sum, not assign!
+        for (Size i = 0; i < dv.size(); ++i) {
+            dv[i] += cachedDv[i];
         }
     }
 

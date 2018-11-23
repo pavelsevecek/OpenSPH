@@ -23,6 +23,7 @@ static void benchmarkGravity(IGravity& gravity, Benchmark::Context& context) {
     ArrayView<Vector> dv = storage.getD2t<Vector>(QuantityId::POSITION);
     // context.log("particle count: ", dv.size());
     while (context.running()) {
+        std::fill(dv.begin(), dv.end(), Vector(0._f));
         gravity.evalAll(pool, dv, stats);
         Benchmark::clobberMemory();
     }

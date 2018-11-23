@@ -200,7 +200,7 @@ void Stabilization::setUp() {
         }
     } else {
 
-        Size N = 5'000;
+        Size N = 2000;
 
         BodySettings body;
         body.set(BodySettingsId::ENERGY, 1.e3_f)
@@ -222,11 +222,11 @@ void Stabilization::setUp() {
 
         Presets::CollisionParams params;
         params.targetRadius = 100.e3_f; // 0.5_f * 550.e3_f;
-        params.impactAngle = 60._f * DEG_TO_RAD;
-        params.impactSpeed = 500._f; // 7.e3_f;
+        params.impactAngle = 45._f * DEG_TO_RAD;
+        params.impactSpeed = 200._f; // 7.e3_f;
         params.impactorRadius = getImpactorRadius(
-            params.targetRadius, params.impactSpeed, params.impactAngle, 0.05_f, 2700._f, EMPTY_FLAGS);
-        params.targetRotation = 2._f * PI / (3600._f * 1000._f);
+            params.targetRadius, params.impactSpeed, params.impactAngle, 0.01_f, 2700._f, EMPTY_FLAGS);
+        params.targetRotation = 0._f; // 2._f * PI / (3600._f * 1000._f);
         // params.targetRotation = 2._f * PI / (3._f * 3600._f);
         params.targetParticleCnt = N;
         params.impactorOffset = 12;

@@ -118,6 +118,7 @@ void NBodySolver::integrate(Storage& storage, Statistics& stats) {
     gravity->build(scheduler, storage);
 
     ArrayView<Vector> dv = storage.getD2t<Vector>(QuantityId::POSITION);
+    ASSERT(std::all_of(dv.begin(), dv.end(), [](Vector& a) { return a == Vector(0._f); }));
     gravity->evalAll(scheduler, dv, stats);
 
     // null all derivatives of smoothing lengths (particle radii)

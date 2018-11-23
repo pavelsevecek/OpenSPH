@@ -1,7 +1,5 @@
 #include "sph/solvers/GravitySolver.h"
 #include "gravity/SphericalGravity.h"
-#include "sph/equations/Potentials.h"
-#include "sph/kernel/Kernel.h"
 #include "sph/solvers/AsymmetricSolver.h"
 #include "sph/solvers/EnergyConservingSolver.h"
 #include "sph/solvers/SymmetricSolver.h"
@@ -16,87 +14,32 @@ GravitySolver<TSphSolver>::GravitySolver(IScheduler& scheduler,
     const EquationHolder& equations)
     : GravitySolver(scheduler, settings, equations, Factory::getGravity(settings)) {}
 
-template <>
-GravitySolver<SymmetricSolver>::GravitySolver(IScheduler& scheduler,
+template <typename TSphSolver>
+GravitySolver<TSphSolver>::GravitySolver(IScheduler& scheduler,
     const RunSettings& settings,
     const EquationHolder& equations,
     AutoPtr<IGravity>&& gravity)
-    : SymmetricSolver(scheduler, settings, equations)
-    , gravity(std::move(gravity)) {
-
-    // make sure acceleration are being accumulated
-    for (ThreadData& data : threadData) {
-        Accumulated& results = data.derivatives.getAccumulated();
-        results.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, BufferSource::SHARED);
-    }
-}
-
-template <>
-GravitySolver<AsymmetricSolver>::GravitySolver(IScheduler& scheduler,
-    const RunSettings& settings,
-    const EquationHolder& equations,
-    AutoPtr<IGravity>&& gravity)
-    : AsymmetricSolver(scheduler, settings, equations)
-    , gravity(std::move(gravity)) {
-
-    // make sure acceleration are being accumulated
-    Accumulated& results = derivatives.getAccumulated();
-    results.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, BufferSource::SHARED);
-}
-
-template <>
-GravitySolver<EnergyConservingSolver>::GravitySolver(IScheduler& scheduler,
-    const RunSettings& settings,
-    const EquationHolder& equations,
-    AutoPtr<IGravity>&& gravity)
-    : EnergyConservingSolver(scheduler, settings, equations)
-    , gravity(std::move(gravity)) {
-
-    // make sure acceleration are being accumulated
-    Accumulated& results = derivatives.getAccumulated();
-    results.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, BufferSource::SHARED);
-}
+    : TSphSolver(scheduler, settings, equations)
+    , gravity(std::move(gravity)) {}
 
 template <typename TSphSolver>
 GravitySolver<TSphSolver>::~GravitySolver() = default;
 
 template <typename TSphSolver>
-void GravitySolver<TSphSolver>::loop(Storage& storage, Statistics& stats) {
-    // first, do asymmetric evaluation of gravity:
-
-    // build gravity tree
+void GravitySolver<TSphSolver>::integrate(Storage& storage, Statistics& stats) {
+    // build gravity tree first, so that the KdTree can be used in SPH
     gravity->build(this->scheduler, storage);
 
-    // get acceleration buffer corresponding to first thread (to save some memory + time)
-    Accumulated& accumulated = this->getAccumulated();
-    ArrayView<Vector> dv = accumulated.getBuffer<Vector>(QuantityId::POSITION, OrderEnum::SECOND);
-
-    // evaluate gravity for each particle
+    // second, compute everything SPH, using the parent solver
     Timer timer;
+    TSphSolver::integrate(storage, stats);
+    stats.set(StatisticsId::SPH_EVAL_TIME, int(timer.elapsed(TimerUnit::MILLISECOND)));
+
+    // finally evaluate gravity for each particle
+    timer.restart();
+    ArrayView<Vector> dv = storage.getD2t<Vector>(QuantityId::POSITION);
     gravity->evalAll(this->scheduler, dv, stats);
     stats.set(StatisticsId::GRAVITY_EVAL_TIME, int(timer.elapsed(TimerUnit::MILLISECOND)));
-
-    // second, compute SPH derivatives using given solver
-    timer.restart();
-    TSphSolver::loop(storage, stats);
-    stats.set(StatisticsId::SPH_EVAL_TIME, int(timer.elapsed(TimerUnit::MILLISECOND)));
-}
-
-template <>
-Accumulated& GravitySolver<SymmetricSolver>::getAccumulated() {
-    // gravity is evaluated asymmetrically, so we can simply put everything in the first (or any) accumulated
-    ThreadData& data = this->threadData.value(0);
-    return data.derivatives.getAccumulated();
-}
-
-template <>
-Accumulated& GravitySolver<AsymmetricSolver>::getAccumulated() {
-    return this->derivatives.getAccumulated();
-}
-
-template <>
-Accumulated& GravitySolver<EnergyConservingSolver>::getAccumulated() {
-    return this->derivatives.getAccumulated();
 }
 
 template <>

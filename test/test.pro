@@ -167,7 +167,8 @@ SOURCES += \
     ../lib/sph/solvers/test/DensityIndependentSolver.cpp \
     ../lib/thread/test/Scheduler.cpp \
     ../lib/sph/handoff/test/Handoff.cpp \
-    ../lib/sph/solvers/test/EnergyConservingSolver.cpp
+    ../lib/sph/solvers/test/EnergyConservingSolver.cpp \
+    ../lib/gravity/test/CachedGravity.cpp
 
 HEADERS += \
     utils/Utils.h \

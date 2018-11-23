@@ -24,7 +24,8 @@ TEST_CASE("Particle from values", "[particle]") {
     Particle p(QuantityId::MASS, Vector(4._f), 3);
     REQUIRE(p.getIndex() == 3);
     REQUIRE(p.getValue(QuantityId::MASS) == Vector(4._f));
-    REQUIRE_ASSERT(p.getDt(QuantityId::MASS));
+    REQUIRE(p.getDt(QuantityId::MASS).empty());
+    REQUIRE_ASSERT(p.getValue(QuantityId::DENSITY));
 }
 
 TEST_CASE("Particle explicit", "[particle]") {
@@ -35,8 +36,8 @@ TEST_CASE("Particle explicit", "[particle]") {
     REQUIRE(p.getIndex() == 5);
     REQUIRE(p.getValue(QuantityId::AV_ALPHA) == 5._f);
     REQUIRE(p.getD2t(QuantityId::DAMAGE) == SymmetricTensor(3._f));
-    REQUIRE_ASSERT(p.getDt(QuantityId::DAMAGE));
-    REQUIRE_ASSERT(p.getValue(QuantityId::DAMAGE));
+    REQUIRE(p.getDt(QuantityId::DAMAGE).empty());
+    REQUIRE_ASSERT(p.getValue(QuantityId::ENERGY));
 }
 
 TEST_CASE("Particle iterate", "[particle]") {
