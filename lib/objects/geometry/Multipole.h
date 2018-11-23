@@ -24,60 +24,60 @@ constexpr auto sortIndices() {
 }
 
 namespace Detail {
-    constexpr Size multipoleComponentCnt(Size order) {
-        return (order + 1) * (order + 2) / 2;
-    }
-    template <Size Last>
-    constexpr Size sum() {
-        return Last;
-    }
-    template <Size First, Size Second, Size... Idxs>
-    constexpr Size sum() {
-        return First + sum<Second, Idxs...>();
-    }
+constexpr Size multipoleComponentCnt(Size order) {
+    return (order + 1) * (order + 2) / 2;
+}
+template <Size Last>
+constexpr Size sum() {
+    return Last;
+}
+template <Size First, Size Second, Size... Idxs>
+constexpr Size sum() {
+    return First + sum<Second, Idxs...>();
+}
 
-    template <Size... Idxs>
-    struct MultipoleMappingImpl;
+template <Size... Idxs>
+struct MultipoleMappingImpl;
 
-    template <Size Second, Size... Idxs>
-    struct MultipoleMappingImpl<X, Second, Idxs...> {
-        static constexpr Size value = MultipoleMappingImpl<Second, Idxs...>::value;
-    };
-    template <Size I>
-    struct MultipoleMappingImpl<I> {
-        static constexpr Size value = I;
-    };
-    template <Size Second, Size... Idxs>
-    struct MultipoleMappingImpl<Y, Second, Idxs...> {
-        static constexpr Size value =
-            multipoleComponentCnt(sizeof...(Idxs) + 1) - 1 - sizeof...(Idxs) + sum<Second, Idxs...>();
-    };
-    template <Size Second, Size... Idxs>
-    struct MultipoleMappingImpl<Z, Second, Idxs...> {
-        static constexpr Size value = multipoleComponentCnt(sizeof...(Idxs) + 2) - 1;
-    };
+template <Size Second, Size... Idxs>
+struct MultipoleMappingImpl<X, Second, Idxs...> {
+    static constexpr Size value = MultipoleMappingImpl<Second, Idxs...>::value;
+};
+template <Size I>
+struct MultipoleMappingImpl<I> {
+    static constexpr Size value = I;
+};
+template <Size Second, Size... Idxs>
+struct MultipoleMappingImpl<Y, Second, Idxs...> {
+    static constexpr Size value =
+        multipoleComponentCnt(sizeof...(Idxs) + 1) - 1 - sizeof...(Idxs) + sum<Second, Idxs...>();
+};
+template <Size Second, Size... Idxs>
+struct MultipoleMappingImpl<Z, Second, Idxs...> {
+    static constexpr Size value = multipoleComponentCnt(sizeof...(Idxs) + 2) - 1;
+};
 
-    template <std::size_t... Idxs, std::size_t... Is>
-    constexpr Size expandMultipoleArray(std::index_sequence<Is...>) {
-        constexpr ConstexprArray<Size, sizeof...(Idxs)> ar = sortIndices<Idxs...>();
-        return MultipoleMappingImpl<ar[Is]...>::value;
-    }
+template <std::size_t... Idxs, std::size_t... Is>
+constexpr Size expandMultipoleArray(std::index_sequence<Is...>) {
+    constexpr ConstexprArray<Size, sizeof...(Idxs)> ar = sortIndices<Idxs...>();
+    return MultipoleMappingImpl<ar[Is]...>::value;
+}
 
-    template <Size... Idxs>
-    struct MultipoleMapping {
-        using Sequence = std::make_index_sequence<sizeof...(Idxs)>;
+template <Size... Idxs>
+struct MultipoleMapping {
+    using Sequence = std::make_index_sequence<sizeof...(Idxs)>;
 
-        static constexpr Size value = expandMultipoleArray<Idxs...>(Sequence{});
-    };
+    static constexpr Size value = expandMultipoleArray<Idxs...>(Sequence{});
+};
 
-    template <Size I>
-    struct MultipoleMapping<I> {
-        static constexpr Size value = I;
-    };
-    template <>
-    struct MultipoleMapping<> {
-        static constexpr Size value = 0;
-    };
+template <Size I>
+struct MultipoleMapping<I> {
+    static constexpr Size value = I;
+};
+template <>
+struct MultipoleMapping<> {
+    static constexpr Size value = 0;
+};
 } // namespace Detail
 
 template <Size Order>
@@ -259,43 +259,43 @@ Multipole<N> makeMultipole(const TValue& v) {
 
 
 namespace Detail {
-    constexpr Size tracelessMultipoleComponentCnt(Size order) {
-        return 2 * order + 1;
-    }
+constexpr Size tracelessMultipoleComponentCnt(Size order) {
+    return 2 * order + 1;
+}
 
-    template <Size... Idxs>
-    struct TracelessMultipoleMappingImpl;
+template <Size... Idxs>
+struct TracelessMultipoleMappingImpl;
 
-    template <Size Second, Size... Idxs>
-    struct TracelessMultipoleMappingImpl<X, Second, Idxs...> {
-        static constexpr Size value = TracelessMultipoleMappingImpl<Second, Idxs...>::value;
-    };
-    template <Size Second, Size... Idxs>
-    struct TracelessMultipoleMappingImpl<Y, Second, Idxs...> {
-        static constexpr Size value = tracelessMultipoleComponentCnt(sizeof...(Idxs) + 1) - 1 -
-                                      sizeof...(Idxs) + sum<Second, Idxs...>();
-    };
-    template <Size I>
-    struct TracelessMultipoleMappingImpl<I> {
-        static constexpr Size value = I;
-    };
+template <Size Second, Size... Idxs>
+struct TracelessMultipoleMappingImpl<X, Second, Idxs...> {
+    static constexpr Size value = TracelessMultipoleMappingImpl<Second, Idxs...>::value;
+};
+template <Size Second, Size... Idxs>
+struct TracelessMultipoleMappingImpl<Y, Second, Idxs...> {
+    static constexpr Size value =
+        tracelessMultipoleComponentCnt(sizeof...(Idxs) + 1) - 1 - sizeof...(Idxs) + sum<Second, Idxs...>();
+};
+template <Size I>
+struct TracelessMultipoleMappingImpl<I> {
+    static constexpr Size value = I;
+};
 
-    template <std::size_t... Idxs, std::size_t... Is>
-    constexpr Size expandTracelessMultipoleArray(std::index_sequence<Is...>) {
-        constexpr ConstexprArray<Size, sizeof...(Idxs)> ar = sortIndices<Idxs...>();
-        return TracelessMultipoleMappingImpl<ar[Is]...>::value;
-    }
+template <std::size_t... Idxs, std::size_t... Is>
+constexpr Size expandTracelessMultipoleArray(std::index_sequence<Is...>) {
+    constexpr ConstexprArray<Size, sizeof...(Idxs)> ar = sortIndices<Idxs...>();
+    return TracelessMultipoleMappingImpl<ar[Is]...>::value;
+}
 
-    template <Size... Idxs>
-    struct TracelessMultipoleMapping {
-        using Sequence = std::make_index_sequence<sizeof...(Idxs)>;
+template <Size... Idxs>
+struct TracelessMultipoleMapping {
+    using Sequence = std::make_index_sequence<sizeof...(Idxs)>;
 
-        static constexpr Size value = expandTracelessMultipoleArray<Idxs...>(Sequence{});
-    };
-    template <Size I>
-    struct TracelessMultipoleMapping<I> {
-        static constexpr Size value = I;
-    };
+    static constexpr Size value = expandTracelessMultipoleArray<Idxs...>(Sequence{});
+};
+template <Size I>
+struct TracelessMultipoleMapping<I> {
+    static constexpr Size value = I;
+};
 } // namespace Detail
 
 template <Size... Idxs>
@@ -343,6 +343,15 @@ public:
     INLINE constexpr Float operator[](const Size idx) const {
         ASSERT(idx < COMPONENT_CNT, idx);
         return data[idx];
+    }
+
+    INLINE Float& operator[](const Size idx) {
+        ASSERT(idx < COMPONENT_CNT, idx);
+        return data[idx];
+    }
+
+    INLINE constexpr Size size() const {
+        return COMPONENT_CNT;
     }
 
     TracelessMultipole& operator+=(const TracelessMultipole& other) {
@@ -397,6 +406,15 @@ public:
         return data[idx];
     }
 
+    INLINE Float& operator[](const Size idx) {
+        ASSERT(idx < 3, idx);
+        return data[idx];
+    }
+
+    INLINE constexpr Size size() const {
+        return 3;
+    }
+
     Vector vector() const {
         return data;
     }
@@ -441,6 +459,10 @@ public:
     INLINE Float operator[](const Size UNUSED_IN_RELEASE(idx)) const {
         ASSERT(idx == 0);
         return data;
+    }
+
+    INLINE constexpr Size size() const {
+        return 1;
     }
 
     INLINE constexpr operator Float() const {
@@ -615,340 +637,337 @@ static_assert(doubleFactorial(5) == 15, "static test failed");
 
 namespace MomentOperators {
 
-    template <Size Order>
-    struct Delta {
-        static constexpr Size ORDER = Order;
+template <Size Order>
+struct Delta {
+    static constexpr Size ORDER = Order;
 
-        template <Size I, Size J, Size K, Size L, Size... Rest>
-        INLINE static constexpr int value() {
-            static_assert(sizeof...(Rest) + 4 == Order, "Invalid number of indices");
-            return ((I == J) ? 1 : 0) * Delta<Order - 2>::template value<K, L, Rest...>();
-        }
-        template <Size I, Size J>
-        INLINE static constexpr int value() {
-            static_assert(Order == 2, "Invalid number of indices");
-            return ((I == J) ? 1 : 0);
-        }
-    };
+    template <Size I, Size J, Size K, Size L, Size... Rest>
+    INLINE static constexpr int value() {
+        static_assert(sizeof...(Rest) + 4 == Order, "Invalid number of indices");
+        return ((I == J) ? 1 : 0) * Delta<Order - 2>::template value<K, L, Rest...>();
+    }
+    template <Size I, Size J>
+    INLINE static constexpr int value() {
+        static_assert(Order == 2, "Invalid number of indices");
+        return ((I == J) ? 1 : 0);
+    }
+};
 
 
-    template <Size N1, Size N2, typename Value1, typename Value2>
-    struct Permutations;
+template <Size N1, Size N2, typename Value1, typename Value2>
+struct Permutations;
 
-    template <Size N, typename Value1, typename Value2>
-    struct Permutations<N, 0, Value1, Value2> {
-        const Value1& v1;
-        const Value2& v2;
-        static constexpr Size ORDER = N;
+template <Size N, typename Value1, typename Value2>
+struct Permutations<N, 0, Value1, Value2> {
+    const Value1& v1;
+    const Value2& v2;
+    static constexpr Size ORDER = N;
 
-        template <Size... Is>
-        INLINE constexpr Float value() const {
-            static_assert(sizeof...(Is) == N, "Invalid number of indices");
-            return v1.template value<Is...>() * v2.value();
-        }
-    };
-    template <Size N, typename Value1, typename Value2>
-    struct Permutations<0, N, Value1, Value2> {
-        const Value1& v1;
-        const Value2& v2;
-        static constexpr Size ORDER = N;
+    template <Size... Is>
+    INLINE constexpr Float value() const {
+        static_assert(sizeof...(Is) == N, "Invalid number of indices");
+        return v1.template value<Is...>() * v2.value();
+    }
+};
+template <Size N, typename Value1, typename Value2>
+struct Permutations<0, N, Value1, Value2> {
+    const Value1& v1;
+    const Value2& v2;
+    static constexpr Size ORDER = N;
 
-        template <Size... Is>
-        INLINE constexpr Float value() const {
-            static_assert(sizeof...(Is) == N, "Invalid number of indices");
-            return v1.value() * v2.template value<Is...>();
-        }
-    };
-    template <typename Value1, typename Value2>
-    struct Permutations<2, 2, Value1, Value2> {
-        const Value1& v1;
-        const Value2& v2;
-        static constexpr Size ORDER = 4;
+    template <Size... Is>
+    INLINE constexpr Float value() const {
+        static_assert(sizeof...(Is) == N, "Invalid number of indices");
+        return v1.value() * v2.template value<Is...>();
+    }
+};
+template <typename Value1, typename Value2>
+struct Permutations<2, 2, Value1, Value2> {
+    const Value1& v1;
+    const Value2& v2;
+    static constexpr Size ORDER = 4;
 
-        template <Size I, Size J, Size K, Size L>
-        INLINE constexpr Float value() const {
-            return v1.template value<I, J>() * v2.template value<K, L>() +
-                   v1.template value<I, K>() * v2.template value<J, L>() +
-                   v1.template value<I, L>() * v2.template value<J, K>() +
-                   v1.template value<J, K>() * v2.template value<I, L>() +
-                   v1.template value<J, L>() * v2.template value<I, K>() +
-                   v1.template value<K, L>() * v2.template value<I, J>();
-        }
-    };
-    template <typename Value1, typename Value2>
-    struct Permutations<3, 1, Value1, Value2> {
-        const Value1& v1;
-        const Value2& v2;
-        static constexpr Size ORDER = 4;
+    template <Size I, Size J, Size K, Size L>
+    INLINE constexpr Float value() const {
+        return v1.template value<I, J>() * v2.template value<K, L>() +
+               v1.template value<I, K>() * v2.template value<J, L>() +
+               v1.template value<I, L>() * v2.template value<J, K>() +
+               v1.template value<J, K>() * v2.template value<I, L>() +
+               v1.template value<J, L>() * v2.template value<I, K>() +
+               v1.template value<K, L>() * v2.template value<I, J>();
+    }
+};
+template <typename Value1, typename Value2>
+struct Permutations<3, 1, Value1, Value2> {
+    const Value1& v1;
+    const Value2& v2;
+    static constexpr Size ORDER = 4;
 
-        template <Size I, Size J, Size K, Size L>
-        INLINE constexpr Float value() const {
-            return v1.template value<I, J, K>() * v2.template value<L>() +
-                   v1.template value<I, J, L>() * v2.template value<K>() +
-                   v1.template value<I, K, L>() * v2.template value<J>() +
-                   v1.template value<J, K, L>() * v2.template value<I>();
-        }
-    };
-    template <typename Value1, typename Value2>
-    struct Permutations<2, 1, Value1, Value2> {
-        const Value1& v1;
-        const Value2& v2;
-        static constexpr Size ORDER = 3;
+    template <Size I, Size J, Size K, Size L>
+    INLINE constexpr Float value() const {
+        return v1.template value<I, J, K>() * v2.template value<L>() +
+               v1.template value<I, J, L>() * v2.template value<K>() +
+               v1.template value<I, K, L>() * v2.template value<J>() +
+               v1.template value<J, K, L>() * v2.template value<I>();
+    }
+};
+template <typename Value1, typename Value2>
+struct Permutations<2, 1, Value1, Value2> {
+    const Value1& v1;
+    const Value2& v2;
+    static constexpr Size ORDER = 3;
 
-        template <Size I, Size J, Size K>
-        INLINE constexpr Float value() const {
-            return v1.template value<I, J>() * v2.template value<K>() +
-                   v1.template value<J, K>() * v2.template value<I>() +
-                   v1.template value<K, I>() * v2.template value<J>();
-        }
-    };
-    template <typename Value1, typename Value2>
-    struct Permutations<1, 2, Value1, Value2> {
-        const Value1& v1;
-        const Value2& v2;
-        static constexpr Size ORDER = 3;
+    template <Size I, Size J, Size K>
+    INLINE constexpr Float value() const {
+        return v1.template value<I, J>() * v2.template value<K>() +
+               v1.template value<J, K>() * v2.template value<I>() +
+               v1.template value<K, I>() * v2.template value<J>();
+    }
+};
+template <typename Value1, typename Value2>
+struct Permutations<1, 2, Value1, Value2> {
+    const Value1& v1;
+    const Value2& v2;
+    static constexpr Size ORDER = 3;
 
-        template <Size I, Size J, Size K>
-        INLINE constexpr Float value() const {
-            return v1.template value<I>() * v2.template value<J, K>() +
-                   v1.template value<J>() * v2.template value<K, I>() +
-                   v1.template value<K>() * v2.template value<I, J>();
-        }
-    };
+    template <Size I, Size J, Size K>
+    INLINE constexpr Float value() const {
+        return v1.template value<I>() * v2.template value<J, K>() +
+               v1.template value<J>() * v2.template value<K, I>() +
+               v1.template value<K>() * v2.template value<I, J>();
+    }
+};
 
-    template <typename Value1, typename Value2>
-    Permutations<Value1::ORDER, Value2::ORDER, Value1, Value2> makePermutations(const Value1& v1,
-        const Value2& v2) {
-        return Permutations<Value1::ORDER, Value2::ORDER, Value1, Value2>{ v1, v2 };
+template <typename Value1, typename Value2>
+Permutations<Value1::ORDER, Value2::ORDER, Value1, Value2> makePermutations(const Value1& v1,
+    const Value2& v2) {
+    return Permutations<Value1::ORDER, Value2::ORDER, Value1, Value2>{ v1, v2 };
+}
+
+template <typename TValue>
+struct Contraction {
+    const TValue& v;
+
+    template <Size... Is>
+    INLINE constexpr Float value() const {
+        return v.template value<0, 0, Is...>() + v.template value<1, 1, Is...>() +
+               v.template value<2, 2, Is...>();
+    }
+};
+
+template <typename TValue>
+Contraction<TValue> makeContraction(const TValue& v) {
+    return Contraction<TValue>{ v };
+}
+
+template <Size N, Size O1, typename TValue1, typename TValue2>
+struct InnerProduct;
+
+template <typename TValue1, typename TValue2>
+struct InnerProduct<1, 2, TValue1, TValue2> {
+    const TValue1& v1;
+    const TValue2& v2;
+
+    template <Size I, Size... Is>
+    INLINE constexpr Float value() const {
+        static_assert(TValue1::ORDER == 2, "Invalid number of indices");
+        static_assert(TValue2::ORDER == sizeof...(Is) + 1, "Invalid number of indices");
+        return v1.template value<0, I>() * v2.template value<0, Is...>() +
+               v1.template value<1, I>() * v2.template value<1, Is...>() +
+               v1.template value<2, I>() * v2.template value<2, Is...>();
+    }
+};
+template <typename TValue1, typename TValue2>
+struct InnerProduct<1, 1, TValue1, TValue2> {
+    const TValue1& v1;
+    const TValue2& v2;
+
+    template <Size... Is>
+    INLINE constexpr Float value() const {
+        static_assert(TValue1::ORDER == 1, "Invalid number of indices");
+        static_assert(TValue2::ORDER == sizeof...(Is) + 1, "Invalid number of indices");
+        return v1.template value<0>() * v2.template value<0, Is...>() +
+               v1.template value<1>() * v2.template value<1, Is...>() +
+               v1.template value<2>() * v2.template value<2, Is...>();
+    }
+};
+
+template <typename TValue1, typename TValue2>
+struct InnerProduct<2, 2, TValue1, TValue2> {
+    const TValue1& v1;
+    const TValue2& v2;
+
+    template <Size... Is>
+    INLINE constexpr Float value() const {
+        static_assert(TValue1::ORDER == 2, "Invalid number of indices");
+        static_assert(TValue2::ORDER == sizeof...(Is) + 2, "Invalid number of indices");
+        return v1.template value<0, 0>() * v2.template value<0, 0, Is...>() +
+               v1.template value<0, 1>() * v2.template value<0, 1, Is...>() +
+               v1.template value<0, 2>() * v2.template value<0, 2, Is...>() +
+               v1.template value<1, 0>() * v2.template value<1, 0, Is...>() +
+               v1.template value<1, 1>() * v2.template value<1, 1, Is...>() +
+               v1.template value<1, 2>() * v2.template value<1, 2, Is...>() +
+               v1.template value<2, 0>() * v2.template value<2, 0, Is...>() +
+               v1.template value<2, 1>() * v2.template value<2, 1, Is...>() +
+               v1.template value<2, 2>() * v2.template value<2, 2, Is...>();
+    }
+};
+
+template <typename TValue1, typename TValue2>
+struct InnerProduct<3, 3, TValue1, TValue2> {
+    const TValue1& v1;
+    const TValue2& v2;
+
+    template <Size... Is>
+    INLINE constexpr Float value() const {
+        static_assert(TValue1::ORDER == 3, "Invalid number of indices");
+        static_assert(TValue2::ORDER == sizeof...(Is) + 3, "Invalid number of indices");
+        return v1.template value<0, 0, 0>() * v2.template value<0, 0, 0, Is...>() +
+               v1.template value<0, 0, 1>() * v2.template value<0, 0, 1, Is...>() +
+               v1.template value<0, 0, 2>() * v2.template value<0, 0, 2, Is...>() +
+               v1.template value<0, 1, 0>() * v2.template value<0, 1, 0, Is...>() +
+               v1.template value<0, 1, 1>() * v2.template value<0, 1, 1, Is...>() +
+               v1.template value<0, 1, 2>() * v2.template value<0, 1, 2, Is...>() +
+               v1.template value<0, 2, 0>() * v2.template value<0, 2, 0, Is...>() +
+               v1.template value<0, 2, 1>() * v2.template value<0, 2, 1, Is...>() +
+               v1.template value<0, 2, 2>() * v2.template value<0, 2, 2, Is...>() +
+               v1.template value<1, 0, 0>() * v2.template value<1, 0, 0, Is...>() +
+               v1.template value<1, 0, 1>() * v2.template value<1, 0, 1, Is...>() +
+               v1.template value<1, 0, 2>() * v2.template value<1, 0, 2, Is...>() +
+               v1.template value<1, 1, 0>() * v2.template value<1, 1, 0, Is...>() +
+               v1.template value<1, 1, 1>() * v2.template value<1, 1, 1, Is...>() +
+               v1.template value<1, 1, 2>() * v2.template value<1, 1, 2, Is...>() +
+               v1.template value<1, 2, 0>() * v2.template value<1, 2, 0, Is...>() +
+               v1.template value<1, 2, 1>() * v2.template value<1, 2, 1, Is...>() +
+               v1.template value<1, 2, 2>() * v2.template value<1, 2, 2, Is...>() +
+               v1.template value<2, 0, 0>() * v2.template value<2, 0, 0, Is...>() +
+               v1.template value<2, 0, 1>() * v2.template value<2, 0, 1, Is...>() +
+               v1.template value<2, 0, 2>() * v2.template value<2, 0, 2, Is...>() +
+               v1.template value<2, 1, 0>() * v2.template value<2, 1, 0, Is...>() +
+               v1.template value<2, 1, 1>() * v2.template value<2, 1, 1, Is...>() +
+               v1.template value<2, 1, 2>() * v2.template value<2, 1, 2, Is...>() +
+               v1.template value<2, 2, 0>() * v2.template value<2, 2, 0, Is...>() +
+               v1.template value<2, 2, 1>() * v2.template value<2, 2, 1, Is...>() +
+               v1.template value<2, 2, 2>() * v2.template value<2, 2, 2, Is...>();
+    }
+};
+
+template <Size N, typename TValue1, typename TValue2>
+InnerProduct<N, TValue1::ORDER, TValue1, TValue2> makeInner(const TValue1& v1, const TValue2& v2) {
+    return InnerProduct<N, TValue1::ORDER, TValue1, TValue2>{ v1, v2 };
+}
+
+
+template <typename TValue>
+struct MultiplyByScalar {
+    const TValue& v;
+    const Float f;
+
+    template <Size... Is>
+    INLINE constexpr Float value() const {
+        return f * v.template value<Is...>();
+    }
+};
+
+template <Size O1, typename TValue1, typename TValue2>
+struct MultiplyTwo;
+
+template <typename TValue1, typename TValue2>
+struct MultiplyTwo<1, TValue1, TValue2> {
+    const TValue1& v1;
+    const TValue2& v2;
+
+    template <Size I, Size... Is>
+    INLINE constexpr Float value() const {
+        static_assert(TValue1::ORDER == 1 && TValue2::ORDER == sizeof...(Is), "Invalid number of indices");
+        return v1.template value<I>() * v2.template value<Is...>();
+    }
+};
+
+template <typename TValue1, typename TValue2>
+struct MultiplyTwo<2, TValue1, TValue2> {
+    const TValue1& v1;
+    const TValue2& v2;
+
+    template <Size I, Size J, Size... Is>
+    INLINE constexpr Float value() const {
+        static_assert(TValue1::ORDER == 2 && TValue2::ORDER == sizeof...(Is), "Invalid number of indices");
+        return v1.template value<I, J>() * v2.template value<Is...>();
+    }
+};
+
+template <typename TValue1, typename TValue2>
+struct MultiplyTwo<4, TValue1, TValue2> {
+    const TValue1& v1;
+    const TValue2& v2;
+
+    template <Size I, Size J, Size K, Size L, Size... Is>
+    INLINE constexpr Float value() const {
+        static_assert(TValue1::ORDER == 4 && TValue2::ORDER == sizeof...(Is), "Invalid number of indices");
+        return v1.template value<I, J, K, L>() * v2.template value<Is...>();
+    }
+};
+
+template <typename TValue>
+MultiplyByScalar<TValue> operator*(const TValue& v, const Float f) {
+    return MultiplyByScalar<TValue>{ v, f };
+}
+
+template <typename TValue1, typename TValue2>
+MultiplyTwo<TValue1::ORDER, TValue1, TValue2> makeMultiply(const TValue1& v1, const TValue2& v2) {
+    return MultiplyTwo<TValue1::ORDER, TValue1, TValue2>{ v1, v2 };
+}
+
+template <typename TValue1, typename TValue2>
+struct Sum {
+    const TValue1& v1;
+    const TValue2& v2;
+
+    template <Size... Is>
+    INLINE constexpr Float value() const {
+        return v1.template value<Is...>() + v2.template value<Is...>();
+    }
+};
+
+template <typename TValue1, typename TValue2>
+Sum<TValue1, TValue2> operator+(const TValue1& v1, const TValue2& v2) {
+    return Sum<TValue1, TValue2>{ v1, v2 };
+}
+
+template <typename TValue1, typename TValue2>
+struct Difference {
+    const TValue1& v1;
+    const TValue2& v2;
+
+    template <Size... Is>
+    INLINE constexpr Float value() const {
+        return v1.template value<Is...>() - v2.template value<Is...>();
+    }
+};
+
+template <typename TValue1, typename TValue2>
+Difference<TValue1, TValue2> operator-(const TValue1& v1, const TValue2& v2) {
+    return Difference<TValue1, TValue2>{ v1, v2 };
+}
+
+template <Size Order>
+struct OuterProduct {
+    static constexpr Size ORDER = Order;
+
+    const Vector& v;
+
+    template <Size I, Size J, Size... Is>
+    INLINE constexpr Float value() const {
+        static_assert(sizeof...(Is) + 2 == Order, "Invalid number of indices");
+        return v[I] * OuterProduct<Order - 1>{ v }.template value<J, Is...>();
     }
 
-    template <typename TValue>
-    struct Contraction {
-        const TValue& v;
-
-        template <Size... Is>
-        INLINE constexpr Float value() const {
-            return v.template value<0, 0, Is...>() + v.template value<1, 1, Is...>() +
-                   v.template value<2, 2, Is...>();
-        }
-    };
-
-    template <typename TValue>
-    Contraction<TValue> makeContraction(const TValue& v) {
-        return Contraction<TValue>{ v };
+    template <Size I>
+    INLINE constexpr Float value() const {
+        static_assert(Order == 1, "Invalid number of indices");
+        return v[I];
     }
-
-    template <Size N, Size O1, typename TValue1, typename TValue2>
-    struct InnerProduct;
-
-    template <typename TValue1, typename TValue2>
-    struct InnerProduct<1, 2, TValue1, TValue2> {
-        const TValue1& v1;
-        const TValue2& v2;
-
-        template <Size I, Size... Is>
-        INLINE constexpr Float value() const {
-            static_assert(TValue1::ORDER == 2, "Invalid number of indices");
-            static_assert(TValue2::ORDER == sizeof...(Is) + 1, "Invalid number of indices");
-            return v1.template value<0, I>() * v2.template value<0, Is...>() +
-                   v1.template value<1, I>() * v2.template value<1, Is...>() +
-                   v1.template value<2, I>() * v2.template value<2, Is...>();
-        }
-    };
-    template <typename TValue1, typename TValue2>
-    struct InnerProduct<1, 1, TValue1, TValue2> {
-        const TValue1& v1;
-        const TValue2& v2;
-
-        template <Size... Is>
-        INLINE constexpr Float value() const {
-            static_assert(TValue1::ORDER == 1, "Invalid number of indices");
-            static_assert(TValue2::ORDER == sizeof...(Is) + 1, "Invalid number of indices");
-            return v1.template value<0>() * v2.template value<0, Is...>() +
-                   v1.template value<1>() * v2.template value<1, Is...>() +
-                   v1.template value<2>() * v2.template value<2, Is...>();
-        }
-    };
-
-    template <typename TValue1, typename TValue2>
-    struct InnerProduct<2, 2, TValue1, TValue2> {
-        const TValue1& v1;
-        const TValue2& v2;
-
-        template <Size... Is>
-        INLINE constexpr Float value() const {
-            static_assert(TValue1::ORDER == 2, "Invalid number of indices");
-            static_assert(TValue2::ORDER == sizeof...(Is) + 2, "Invalid number of indices");
-            return v1.template value<0, 0>() * v2.template value<0, 0, Is...>() +
-                   v1.template value<0, 1>() * v2.template value<0, 1, Is...>() +
-                   v1.template value<0, 2>() * v2.template value<0, 2, Is...>() +
-                   v1.template value<1, 0>() * v2.template value<1, 0, Is...>() +
-                   v1.template value<1, 1>() * v2.template value<1, 1, Is...>() +
-                   v1.template value<1, 2>() * v2.template value<1, 2, Is...>() +
-                   v1.template value<2, 0>() * v2.template value<2, 0, Is...>() +
-                   v1.template value<2, 1>() * v2.template value<2, 1, Is...>() +
-                   v1.template value<2, 2>() * v2.template value<2, 2, Is...>();
-        }
-    };
-
-    template <typename TValue1, typename TValue2>
-    struct InnerProduct<3, 3, TValue1, TValue2> {
-        const TValue1& v1;
-        const TValue2& v2;
-
-        template <Size... Is>
-        INLINE constexpr Float value() const {
-            static_assert(TValue1::ORDER == 3, "Invalid number of indices");
-            static_assert(TValue2::ORDER == sizeof...(Is) + 3, "Invalid number of indices");
-            return v1.template value<0, 0, 0>() * v2.template value<0, 0, 0, Is...>() +
-                   v1.template value<0, 0, 1>() * v2.template value<0, 0, 1, Is...>() +
-                   v1.template value<0, 0, 2>() * v2.template value<0, 0, 2, Is...>() +
-                   v1.template value<0, 1, 0>() * v2.template value<0, 1, 0, Is...>() +
-                   v1.template value<0, 1, 1>() * v2.template value<0, 1, 1, Is...>() +
-                   v1.template value<0, 1, 2>() * v2.template value<0, 1, 2, Is...>() +
-                   v1.template value<0, 2, 0>() * v2.template value<0, 2, 0, Is...>() +
-                   v1.template value<0, 2, 1>() * v2.template value<0, 2, 1, Is...>() +
-                   v1.template value<0, 2, 2>() * v2.template value<0, 2, 2, Is...>() +
-                   v1.template value<1, 0, 0>() * v2.template value<1, 0, 0, Is...>() +
-                   v1.template value<1, 0, 1>() * v2.template value<1, 0, 1, Is...>() +
-                   v1.template value<1, 0, 2>() * v2.template value<1, 0, 2, Is...>() +
-                   v1.template value<1, 1, 0>() * v2.template value<1, 1, 0, Is...>() +
-                   v1.template value<1, 1, 1>() * v2.template value<1, 1, 1, Is...>() +
-                   v1.template value<1, 1, 2>() * v2.template value<1, 1, 2, Is...>() +
-                   v1.template value<1, 2, 0>() * v2.template value<1, 2, 0, Is...>() +
-                   v1.template value<1, 2, 1>() * v2.template value<1, 2, 1, Is...>() +
-                   v1.template value<1, 2, 2>() * v2.template value<1, 2, 2, Is...>() +
-                   v1.template value<2, 0, 0>() * v2.template value<2, 0, 0, Is...>() +
-                   v1.template value<2, 0, 1>() * v2.template value<2, 0, 1, Is...>() +
-                   v1.template value<2, 0, 2>() * v2.template value<2, 0, 2, Is...>() +
-                   v1.template value<2, 1, 0>() * v2.template value<2, 1, 0, Is...>() +
-                   v1.template value<2, 1, 1>() * v2.template value<2, 1, 1, Is...>() +
-                   v1.template value<2, 1, 2>() * v2.template value<2, 1, 2, Is...>() +
-                   v1.template value<2, 2, 0>() * v2.template value<2, 2, 0, Is...>() +
-                   v1.template value<2, 2, 1>() * v2.template value<2, 2, 1, Is...>() +
-                   v1.template value<2, 2, 2>() * v2.template value<2, 2, 2, Is...>();
-        }
-    };
-
-    template <Size N, typename TValue1, typename TValue2>
-    InnerProduct<N, TValue1::ORDER, TValue1, TValue2> makeInner(const TValue1& v1, const TValue2& v2) {
-        return InnerProduct<N, TValue1::ORDER, TValue1, TValue2>{ v1, v2 };
-    }
-
-
-    template <typename TValue>
-    struct MultiplyByScalar {
-        const TValue& v;
-        const Float f;
-
-        template <Size... Is>
-        INLINE constexpr Float value() const {
-            return f * v.template value<Is...>();
-        }
-    };
-
-    template <Size O1, typename TValue1, typename TValue2>
-    struct MultiplyTwo;
-
-    template <typename TValue1, typename TValue2>
-    struct MultiplyTwo<1, TValue1, TValue2> {
-        const TValue1& v1;
-        const TValue2& v2;
-
-        template <Size I, Size... Is>
-        INLINE constexpr Float value() const {
-            static_assert(
-                TValue1::ORDER == 1 && TValue2::ORDER == sizeof...(Is), "Invalid number of indices");
-            return v1.template value<I>() * v2.template value<Is...>();
-        }
-    };
-
-    template <typename TValue1, typename TValue2>
-    struct MultiplyTwo<2, TValue1, TValue2> {
-        const TValue1& v1;
-        const TValue2& v2;
-
-        template <Size I, Size J, Size... Is>
-        INLINE constexpr Float value() const {
-            static_assert(
-                TValue1::ORDER == 2 && TValue2::ORDER == sizeof...(Is), "Invalid number of indices");
-            return v1.template value<I, J>() * v2.template value<Is...>();
-        }
-    };
-
-    template <typename TValue1, typename TValue2>
-    struct MultiplyTwo<4, TValue1, TValue2> {
-        const TValue1& v1;
-        const TValue2& v2;
-
-        template <Size I, Size J, Size K, Size L, Size... Is>
-        INLINE constexpr Float value() const {
-            static_assert(
-                TValue1::ORDER == 4 && TValue2::ORDER == sizeof...(Is), "Invalid number of indices");
-            return v1.template value<I, J, K, L>() * v2.template value<Is...>();
-        }
-    };
-
-    template <typename TValue>
-    MultiplyByScalar<TValue> operator*(const TValue& v, const Float f) {
-        return MultiplyByScalar<TValue>{ v, f };
-    }
-
-    template <typename TValue1, typename TValue2>
-    MultiplyTwo<TValue1::ORDER, TValue1, TValue2> makeMultiply(const TValue1& v1, const TValue2& v2) {
-        return MultiplyTwo<TValue1::ORDER, TValue1, TValue2>{ v1, v2 };
-    }
-
-    template <typename TValue1, typename TValue2>
-    struct Sum {
-        const TValue1& v1;
-        const TValue2& v2;
-
-        template <Size... Is>
-        INLINE constexpr Float value() const {
-            return v1.template value<Is...>() + v2.template value<Is...>();
-        }
-    };
-
-    template <typename TValue1, typename TValue2>
-    Sum<TValue1, TValue2> operator+(const TValue1& v1, const TValue2& v2) {
-        return Sum<TValue1, TValue2>{ v1, v2 };
-    }
-
-    template <typename TValue1, typename TValue2>
-    struct Difference {
-        const TValue1& v1;
-        const TValue2& v2;
-
-        template <Size... Is>
-        INLINE constexpr Float value() const {
-            return v1.template value<Is...>() - v2.template value<Is...>();
-        }
-    };
-
-    template <typename TValue1, typename TValue2>
-    Difference<TValue1, TValue2> operator-(const TValue1& v1, const TValue2& v2) {
-        return Difference<TValue1, TValue2>{ v1, v2 };
-    }
-
-    template <Size Order>
-    struct OuterProduct {
-        static constexpr Size ORDER = Order;
-
-        const Vector& v;
-
-        template <Size I, Size J, Size... Is>
-        INLINE constexpr Float value() const {
-            static_assert(sizeof...(Is) + 2 == Order, "Invalid number of indices");
-            return v[I] * OuterProduct<Order - 1>{ v }.template value<J, Is...>();
-        }
-
-        template <Size I>
-        INLINE constexpr Float value() const {
-            static_assert(Order == 1, "Invalid number of indices");
-            return v[I];
-        }
-    };
+};
 } // namespace MomentOperators
 
 template <Size N>
@@ -972,6 +991,14 @@ struct MultipoleExpansion {
     INLINE std::enable_if_t<M == N, const TracelessMultipole<M>&> order() const {
         return Qn;
     }
+    MultipoleExpansion multiply(const Float factor) const {
+        MultipoleExpansion m = *this;
+        m.lower = lower.multiply(factor);
+        for (Size i = 0; i < Qn.size(); ++i) {
+            m.Qn[i] *= factor;
+        }
+        return m;
+    }
 };
 
 template <>
@@ -988,6 +1015,11 @@ struct MultipoleExpansion<0> {
     INLINE const TracelessMultipole<0>& order() const {
         static_assert(M == 0, "Invalid index");
         return Qn;
+    }
+    MultipoleExpansion multiply(const Float factor) const {
+        MultipoleExpansion m = *this;
+        m.Qn.value() *= factor;
+        return m;
     }
 };
 
@@ -1200,16 +1232,16 @@ public:
 };*/
 
 namespace Experimental {
-    template <Size N>
-    class MultipoleBase {
-    protected:
-        static constexpr Size COMPONENT_CNT = (N + 1) * (N + 2) / 2;
+template <Size N>
+class MultipoleBase {
+protected:
+    static constexpr Size COMPONENT_CNT = (N + 1) * (N + 2) / 2;
 
-        Float data[COMPONENT_CNT];
+    Float data[COMPONENT_CNT];
 
-    public:
-        // inner
-    };
+public:
+    // inner
+};
 } // namespace Experimental
 
 

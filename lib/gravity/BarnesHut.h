@@ -93,7 +93,9 @@ public:
 
     virtual RawPtr<const IBasicFinder> getFinder() const override;
 
-    /// Returns the multipole moments computed from root node.
+    /// \brief Returns the multipole moments computed from root node.
+    ///
+    /// Mostly for testing purposes.
     MultipoleExpansion<3> getMoments() const;
 
 protected:

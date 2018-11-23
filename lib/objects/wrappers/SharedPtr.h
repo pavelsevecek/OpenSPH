@@ -68,7 +68,7 @@ public:
     virtual void deletePtr() = 0;
 
     INLINE void deleteBlock() {
-        delete this;
+        alignedDelete(this);
     }
 };
 
@@ -87,7 +87,7 @@ public:
     }
 
     virtual void deletePtr() override {
-        delete ptr;
+        alignedDelete(ptr);
     }
 };
 } // namespace Detail

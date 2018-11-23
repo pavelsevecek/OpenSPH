@@ -208,7 +208,8 @@ Outcome Settings<TEnum>::loadFromFile(const Path& path) {
         bool found = false;
         for (auto& e : descriptors.entries) {
             if (e.value.name == trimmedKey) {
-                if (!setValueByType(this->entries[e.value.id], e.value.value, value)) {
+                entries.insert(e.value.id, Entry{});
+                if (!setValueByType(entries[e.value.id], e.value.value, value)) {
                     return "Invalid value of key " + trimmedKey + ": " + value;
                 }
                 found = true;

@@ -440,7 +440,8 @@ void BarnesHut::buildInner(BarnesHutNode& node, BarnesHutNode& left, BarnesHutNo
 }
 
 MultipoleExpansion<3> BarnesHut::getMoments() const {
-    return kdTree.getNode(0).moments;
+    // masses are premultiplied by gravitational constants, so we have to divide
+    return kdTree.getNode(0).moments.multiply(1._f / Constants::gravity);
 }
 
 RawPtr<const IBasicFinder> BarnesHut::getFinder() const {

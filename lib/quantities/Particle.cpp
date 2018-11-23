@@ -28,6 +28,8 @@ struct ParticleVisitor {
 Particle::Particle(const Storage& storage, const Size idx)
     : idx(idx) {
     for (ConstStorageElement i : storage.getQuantities()) {
+        data.insert(i.id, InternalQuantityData{});
+
         ParticleVisitor visitor{ data };
         dispatch(i.quantity.getValueEnum(), visitor, i.id, i.quantity, idx);
     }
@@ -35,6 +37,7 @@ Particle::Particle(const Storage& storage, const Size idx)
 
 Particle::Particle(const QuantityId id, const Dynamic& value, const Size idx)
     : idx(idx) {
+    data.insert(id, InternalQuantityData{});
     data[id].value = value;
 }
 
@@ -59,35 +62,44 @@ Particle& Particle::operator=(Particle&& other) {
 }
 
 Particle& Particle::addValue(const QuantityId id, const Dynamic& value) {
+    if (!data.contains(id)) {
+        data.insert(id, InternalQuantityData{});
+    }
     data[id].value = value;
     return *this;
 }
 
 Particle& Particle::addDt(const QuantityId id, const Dynamic& value) {
+    if (!data.contains(id)) {
+        data.insert(id, InternalQuantityData{});
+    }
     data[id].dt = value;
     return *this;
 }
 
 Particle& Particle::addD2t(const QuantityId id, const Dynamic& value) {
+    if (!data.contains(id)) {
+        data.insert(id, InternalQuantityData{});
+    }
     data[id].d2t = value;
     return *this;
 }
 
 Dynamic Particle::getValue(const QuantityId id) const {
     Optional<const InternalQuantityData&> quantity = data.tryGet(id);
-    ASSERT(quantity);
+    ASSERT(quantity && !quantity->value.empty());
     return quantity->value;
 }
 
 Dynamic Particle::getDt(const QuantityId id) const {
     Optional<const InternalQuantityData&> quantity = data.tryGet(id);
-    ASSERT(quantity);
+    ASSERT(quantity && !quantity->dt.empty());
     return quantity->dt;
 }
 
 Dynamic Particle::getD2t(const QuantityId id) const {
     Optional<const InternalQuantityData&> quantity = data.tryGet(id);
-    ASSERT(quantity);
+    ASSERT(quantity && !quantity->d2t.empty());
     return quantity->d2t;
 }
 
@@ -107,7 +119,7 @@ Particle::QuantityData Particle::ValueIterator::operator*() const {
         ASSERT(internal.dt.empty() || internal.dt.getType() == type);
         ASSERT(internal.d2t.empty() || internal.d2t.getType() == type);
     } else if (internal.dt) {
-        type = internal.value.getType();
+        type = internal.dt.getType();
         ASSERT(internal.d2t.empty() || internal.d2t.getType() == type);
     } else {
         ASSERT(internal.d2t);

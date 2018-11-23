@@ -11,6 +11,7 @@
 
 NAMESPACE_SPH_BEGIN
 
+/// \brief Creates a new object of type T on heap, using aligned allocation.
 template <typename T, typename... TArgs>
 INLINE T* alignedNew(TArgs&&... args) {
     constexpr Size size = sizeof(T);
@@ -18,6 +19,18 @@ INLINE T* alignedNew(TArgs&&... args) {
     void* ptr = _mm_malloc(size, alignment);
     ASSERT(ptr);
     return new (ptr) T(std::forward<TArgs>(args)...);
+}
+
+/// \brief Deletes an object previously allocated using \ref alignedNew.
+template <typename T>
+INLINE void alignedDelete(T* ptr) {
+    if (!ptr) {
+        return;
+    }
+
+    ptr->~T();
+    _mm_free(ptr);
+    ptr = nullptr;
 }
 
 template <typename T>

@@ -204,7 +204,7 @@ Outcome TextInput::load(const Path& path, Storage& storage, Statistics& UNUSED(s
         std::string line;
         storage.removeAll();
         // storage currently requires at least one quantity for insertion by value
-        Quantity& flags = storage.insert<Size>(QuantityId::FLAG, OrderEnum::ZERO, Array<Size>{ 0 });
+        storage.insert<Size>(QuantityId::FLAG, OrderEnum::ZERO, Array<Size>{ 0 });
 
         Size particleCnt = 0;
         while (std::getline(ifs, line)) {
@@ -249,6 +249,7 @@ Outcome TextInput::load(const Path& path, Storage& storage, Statistics& UNUSED(s
         ifs.close();
 
         // resize the flag quantity to make the storage consistent
+        Quantity& flags = storage.getQuantity(QuantityId::FLAG);
         for (Array<Size>& buffer : flags.getAll<Size>()) {
             buffer.resize(particleCnt);
         }

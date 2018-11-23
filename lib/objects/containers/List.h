@@ -216,7 +216,7 @@ public:
             // erasing last element, adjust pointer
             last = last->prev;
         }
-        delete node.get();
+        alignedDelete(node.get());
         return next;
     }
 
@@ -224,7 +224,7 @@ public:
     void clear() {
         for (RawPtr<ListNode<T>> ptr = first; ptr != nullptr;) {
             RawPtr<ListNode<T>> next = ptr->next;
-            delete ptr.get();
+            alignedDelete(ptr.get());
             ptr = next;
         }
         first = last = nullptr;

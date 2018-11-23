@@ -108,20 +108,27 @@ TYPED_TEST_CASE_2("StandardSets gass", "[solvers]", TSolver, SymmetricSolver, As
         .set(BodySettingsId::ENERGY, 1._f)
         .set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::NONE)
         .set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::NONE);
-    Storage storage = Tests::getGassStorage(100, body, 1._f);
+    Storage storage;
+
+    storage = Tests::getGassStorage(100, body, 1._f);
     testSolver<TSolver>(storage, settings);
 
     settings.set(RunSettingsId::SPH_AV_TYPE, ArtificialViscosityEnum::STANDARD);
+    // recreate storage, solver needs to re-create the quantities (would assert otherwise)
+    storage = Tests::getGassStorage(100, body, 1._f);
     testSolver<TSolver>(storage, settings);
 
     settings.set(RunSettingsId::SPH_AV_USE_BALSARA, true);
+    storage = Tests::getGassStorage(100, body, 1._f);
     testSolver<TSolver>(storage, settings);
 
     settings.set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH, SmoothingLengthEnum::CONTINUITY_EQUATION);
+    storage = Tests::getGassStorage(100, body, 1._f);
     testSolver<TSolver>(storage, settings);
 
     settings.set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH,
         SmoothingLengthEnum::CONTINUITY_EQUATION | SmoothingLengthEnum::SOUND_SPEED_ENFORCING);
+    storage = Tests::getGassStorage(100, body, 1._f);
     testSolver<TSolver>(storage, settings);
 }
 
@@ -148,11 +155,12 @@ TYPED_TEST_CASE_2("StandardSets solid", "[solvers]", TSolver, SymmetricSolver, A
 
     body.set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::SCALAR_GRADY_KIPP);
     body.set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::VON_MISES);
-    testSolver<TSolver>(storage, settings);
+    storage = Tests::getSolidStorage(100, body, 1._f);
     testSolver<TSolver>(storage, settings);
 
     settings.set(RunSettingsId::ADAPTIVE_SMOOTHING_LENGTH,
         SmoothingLengthEnum::CONTINUITY_EQUATION | SmoothingLengthEnum::SOUND_SPEED_ENFORCING);
+    storage = Tests::getSolidStorage(100, body, 1._f);
     testSolver<TSolver>(storage, settings);
 }
 

@@ -38,7 +38,7 @@ public:
     }
 
     ~AutoPtr() {
-        delete ptr;
+        alignedDelete(ptr);
     }
 
     INLINE AutoPtr& operator=(const AutoPtr& other) = delete;
@@ -80,7 +80,7 @@ public:
     }
 
     INLINE void reset() {
-        delete ptr;
+        alignedDelete(ptr);
         ptr = nullptr;
     }
 
