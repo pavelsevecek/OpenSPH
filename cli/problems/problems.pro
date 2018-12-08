@@ -38,7 +38,8 @@ SOURCES += \
     wave/SoundWave.cpp \
     elastic_bands/ElasticBands.cpp \
     cliff_collapse/CliffCollapse.cpp \
-    collision/Collision.cpp
+    collision/Collision.cpp \
+    Common.cpp
 
 HEADERS += \  
     sod/solution.h \

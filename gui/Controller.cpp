@@ -619,6 +619,7 @@ void Controller::tryRedraw() {
 }
 
 void Controller::refresh(AutoPtr<ICamera>&& camera) {
+    // invalidate camera, render will be restarted on next timestep
     vis.renderer->cancelRender();
     std::unique_lock<std::mutex> lock(vis.cameraMutex);
     vis.camera = std::move(camera);

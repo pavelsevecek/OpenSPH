@@ -135,6 +135,6 @@ TEST_CASE("Elastic Bands", "[elastic]") {
     run.run();
 
     for (Path file : filesToCheck) {
-        REQUIRE(areFilesEqual(file, REFERENCE_DIR / file.fileName()));
+        REQUIRE(areFilesApproxEqual(file, REFERENCE_DIR / file.fileName()) == SUCCESS);
     }
 }

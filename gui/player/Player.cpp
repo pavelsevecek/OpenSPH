@@ -129,8 +129,9 @@ void RunPlayer::run() {
     }
     if (fileCnt > 1) {
         logger->write("File sequence finished");
+    } else {
+        logger->write("File finished");
     }
-    callbacks->onRunEnd(*storage, stats);
     this->tearDownInternal(stats);
 }
 
@@ -184,7 +185,8 @@ bool App::OnInit() {
         .set(GuiSettingsId::IMAGES_HEIGHT, 768)
         .set(GuiSettingsId::WINDOW_WIDTH, 1334)
         .set(GuiSettingsId::WINDOW_HEIGHT, 768)
-        .set(GuiSettingsId::WINDOW_TITLE, std::string("OpenSPH viewer - ") + path.native())
+        .set(GuiSettingsId::WINDOW_TITLE,
+            std::string("OpenSPH viewer - ") + path.native() + " (build: " + __DATE__ + ")")
         .set(GuiSettingsId::PARTICLE_RADIUS, isNBody ? 1._f : 0.35_f)
         .set(GuiSettingsId::SURFACE_LEVEL, 0.13_f)
         .set(GuiSettingsId::SURFACE_SUN_POSITION, getNormalized(Vector(-1.e6_f, -1.5e6_f, 0._f)))

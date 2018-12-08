@@ -259,14 +259,17 @@ wxBoxSizer* MainWindow::createToolbar(Controller* parent) {
     wxSpinCtrl* cutoffSpinner = new wxSpinCtrl(this, wxID_ANY, "", wxDefaultPosition, wxSize(80, -1));
     cutoffSpinner->SetRange(0, 1000000);
     cutoffSpinner->SetValue(int(cutoff));
-    cutoffSpinner->Bind(wxEVT_SPINCTRL, [parent](wxSpinEvent& evt) {
-        int cutoff = evt.GetPosition();
-        // has to be generalized if perspective camera gets cutoff
-        AutoPtr<ICamera> camera = parent->getCurrentCamera();
-        if (RawPtr<OrthoCamera> ortho = dynamicCast<OrthoCamera>(camera.get())) {
-            ortho->setCutoff(cutoff > 0 ? Optional<float>(cutoff) : NOTHING);
-            parent->refresh(std::move(camera));
+    cutoffSpinner->Bind(wxEVT_SPINCTRL, [this](wxSpinEvent& evt) { this->updateCutoff(evt.GetPosition()); });
+    cutoffSpinner->Bind(wxEVT_MOTION, [this, cutoffSpinner](wxMouseEvent& evt) {
+        static wxPoint prevPos = evt.GetPosition();
+        if (evt.Dragging()) {
+            wxPoint drag = evt.GetPosition() - prevPos;
+            const int value = cutoffSpinner->GetValue();
+            const int cutoff = max(int(value * (1.f + float(drag.y) / 500.f)), 0);
+            cutoffSpinner->SetValue(cutoff);
+            this->updateCutoff(cutoff);
         }
+        prevPos = evt.GetPosition();
     });
     toolbar->Add(cutoffSpinner);
 
@@ -315,6 +318,16 @@ wxBoxSizer* MainWindow::createToolbar(Controller* parent) {
     toolbar->AddSpacer(10);
     toolbar->Add(gauge, 0, wxALIGN_CENTER_VERTICAL);
     return toolbar;
+}
+
+void MainWindow::updateCutoff(const int cutoff) {
+    // has to be generalized if perspective camera gets cutoff
+    AutoPtr<ICamera> camera = controller->getCurrentCamera();
+    if (RawPtr<OrthoCamera> ortho = dynamicCast<OrthoCamera>(camera.get())) {
+        ortho->setCutoff(cutoff > 0 ? Optional<float>(cutoff) : NOTHING);
+        controller->refresh(std::move(camera));
+        controller->tryRedraw();
+    }
 }
 
 /// \brief Helper object used for drawing multiple plots into the same device.
