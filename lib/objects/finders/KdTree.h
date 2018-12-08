@@ -141,7 +141,7 @@ private:
 
     /// Holds all nodes, either \ref InnerNode or \ref LeafNode (depending on the value of \ref type).
     Array<InnerNode<TNode>> nodes;
-    std::atomic_int counter;
+    std::atomic_int nodeCounter;
     std::shared_timed_mutex nodesMutex;
 
     static constexpr Size ROOT_PARENT_NODE = -1;

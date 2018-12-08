@@ -12,6 +12,7 @@ void KdTree<TNode, TMetric>::buildImpl(IScheduler& scheduler, ArrayView<const Ve
     static_assert(sizeof(LeafNode<TNode>) == sizeof(InnerNode<TNode>), "Sizes of nodes must match");
 
     // clean the current tree
+    const Size currentCnt = nodes.size();
     this->init();
 
     for (const auto& i : iterateWithIndex(points)) {
@@ -23,7 +24,7 @@ void KdTree<TNode, TMetric>::buildImpl(IScheduler& scheduler, ArrayView<const Ve
         return;
     }
 
-    const Size nodeCnt = 2 * points.size() / leafSize + 1;
+    const Size nodeCnt = max(2 * points.size() / leafSize + 1, currentCnt);
     nodes.resize(nodeCnt);
 
     SharedPtr<ITask> rootTask = scheduler.submit([this, &scheduler, points] {
@@ -32,7 +33,7 @@ void KdTree<TNode, TMetric>::buildImpl(IScheduler& scheduler, ArrayView<const Ve
     rootTask->wait();
 
     // shrink nodes to only the constructed ones
-    nodes.resize(counter);
+    nodes.resize(nodeCounter);
 
     ASSERT(this->sanityCheck(), this->sanityCheck().error());
 }
@@ -147,7 +148,7 @@ void KdTree<TNode, TMetric>::buildTree(IScheduler& scheduler,
         auto processRightSubTree = [this, &scheduler, index, to, n1, box2, nextSlidingCnt] {
             this->buildTree(scheduler, index, KdChild::RIGHT, n1, to, box2, nextSlidingCnt);
         };
-        if (to - from >= idxs.size() / (4 * scheduler.getThreadCnt())) {
+        if (to - from >= 16) {
             // ad hoc decision - split the build only for few topmost nodes, there is no point in splitting
             // the work for child node in the bottom, it would only overburden the ThreadPool.
             scheduler.submit(processRightSubTree);
@@ -161,12 +162,12 @@ void KdTree<TNode, TMetric>::buildTree(IScheduler& scheduler,
 
 template <typename TNode, typename TMetric>
 void KdTree<TNode, TMetric>::addLeaf(const Size parent, const KdChild child, const Size from, const Size to) {
-    const Size index = counter++;
+    const Size index = nodeCounter++;
     if (index >= nodes.size()) {
         // needs more nodes than estimated; allocate up to 2x more than necessary to avoid frequent
         // reallocations
         nodesMutex.lock();
-        nodes.resize(2 * index);
+        nodes.resize(max(2 * index, nodes.size()));
         nodesMutex.unlock();
     }
 
@@ -214,12 +215,12 @@ Size KdTree<TNode, TMetric>::addInner(const Size parent,
     static_assert(int(KdNode::Type::X) == 0 && int(KdNode::Type::Y) == 1 && int(KdNode::Type::Z) == 2,
         "Invalid values of KdNode::Type enum");
 
-    const Size index = counter++;
+    const Size index = nodeCounter++;
     if (index >= nodes.size()) {
         // needs more nodes than estimated; allocate up to 2x more than necessary to avoid frequent
         // reallocations
         nodesMutex.lock();
-        nodes.resize(2 * index);
+        nodes.resize(max(2 * index, nodes.size()));
         nodesMutex.unlock();
     }
 
@@ -260,7 +261,7 @@ void KdTree<TNode, TMetric>::init() {
     entireBox = Box();
     idxs.clear();
     nodes.clear();
-    counter = 0;
+    nodeCounter = 0;
 }
 
 template <typename TNode, typename TMetric>

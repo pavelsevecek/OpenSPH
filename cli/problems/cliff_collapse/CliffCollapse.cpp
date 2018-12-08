@@ -97,8 +97,8 @@ protected:
 };
 
 TEST_CASE("Cliff Collapse", "[rheology]") {
-    Array<Path> filesToCheck = { Path("cliff_collapse/cliff_0007.ssf"),
-        Path("cliff_collapse/cliff_0014.ssf") };
+    Array<Path> filesToCheck = { Path("cliff_collapse/cliff_0004.ssf"),
+        Path("cliff_collapse/cliff_0009.ssf") };
 
     for (Path file : filesToCheck) {
         FileSystem::removePath(file);

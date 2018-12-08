@@ -22,12 +22,33 @@ void OrthoCamera::initialize(const Storage& storage) {
         // fov either specified explicitly or already computed
         return;
     }
+
+
+    /// \todo also auto-center?
+
     ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
-    Box box;
+    ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
+    Float m_sum = 0._f;
+    Vector r_com(0._f);
+
     for (Size i = 0; i < r.size(); ++i) {
-        box.extend(r[i]);
+        m_sum += m[i];
+        r_com += m[i] * r[i];
     }
-    data.fov = imageSize.y / maxElement(box.size());
+    r_com /= m_sum;
+
+    Array<Float> distances(r.size());
+    for (Size i = 0; i < r.size(); ++i) {
+        const Vector dr = r[i] - r_com;
+        distances[i] = getLength(dr - cached.w * dot(cached.w, dr));
+    }
+    // find median distance
+    const Size mid = r.size() / 2;
+    std::nth_element(distances.begin(), distances.begin() + mid, distances.end());
+    const Float fov = 2._f * distances[mid];
+    ASSERT(fov > EPS);
+
+    data.fov = imageSize.y / fov;
 }
 
 Optional<ProjectedPoint> OrthoCamera::project(const Vector& r) const {

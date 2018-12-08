@@ -37,7 +37,7 @@ static RunSettings getSphSettings(const Interval timeRange,
         .set(RunSettingsId::GRAVITY_SOLVER, GravityEnum::BARNES_HUT)
         .set(RunSettingsId::GRAVITY_KERNEL, GravityKernelEnum::SPH_KERNEL)
         .set(RunSettingsId::GRAVITY_OPENING_ANGLE, 0.8_f)
-        .set(RunSettingsId::GRAVITY_RECOMPUTATION_PERIOD, 1._f)
+        .set(RunSettingsId::GRAVITY_RECOMPUTATION_PERIOD, 5._f)
         .set(RunSettingsId::GRAVITY_LEAF_SIZE, 20)
         .set(RunSettingsId::SPH_STABILIZATION_DAMPING, 0.1_f)
         .set(RunSettingsId::RUN_THREAD_GRANULARITY, 1000)

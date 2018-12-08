@@ -62,7 +62,7 @@ protected:
     /// Maximum depth at which the nodes evaluation is parallelized.
     ///
     /// Child nodes are then evaluated serially on the same thread.
-    Size maxDepth = Size(-1);
+    Size maxDepth = 50;
 
 public:
     /// \brief Constructs the Barnes-Hut gravity assuming point-like particles (with zero radius).
