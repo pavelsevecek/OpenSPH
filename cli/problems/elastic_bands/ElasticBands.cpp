@@ -116,7 +116,7 @@ public:
             .displace(Vector(0.06_f, 0._f, 0._f))
             .addVelocity(Vector(-80._f, 0._f, 0._f));
 
-        triggers.pushBack(makeAuto<ProgressLog>());
+        triggers.pushBack(makeAuto<ProgressLog>(2.e-4_f));
     }
 
 protected:
@@ -124,7 +124,17 @@ protected:
 };
 
 TEST_CASE("Elastic Bands", "[elastic]") {
+    Array<Path> filesToCheck = { Path("elastic_bands/bands_0004.ssf"), Path("elastic_bands/bands_0009.ssf") };
+
+    for (Path file : filesToCheck) {
+        FileSystem::removePath(file);
+    }
+
     ElasticBands run;
     run.setUp();
     run.run();
+
+    for (Path file : filesToCheck) {
+        REQUIRE(areFilesEqual(file, REFERENCE_DIR / file.fileName()));
+    }
 }

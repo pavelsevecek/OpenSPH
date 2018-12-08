@@ -5,6 +5,7 @@
 
 #include "gravity/NBodySolver.h"
 #include "io/Column.h"
+#include "io/FileSystem.h"
 #include "io/LogFile.h"
 #include "io/Output.h"
 #include "objects/finders/NeighbourFinder.h"

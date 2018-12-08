@@ -88,7 +88,7 @@ public:
         InitialConditions ic(*scheduler, settings);
         ic.addMonolithicBody(*storage, block, body);
 
-        triggers.pushBack(makeAuto<ProgressLog>());
+        triggers.pushBack(makeAuto<ProgressLog>(10._f));
     }
 
 protected:
@@ -96,7 +96,18 @@ protected:
 };
 
 TEST_CASE("Cliff Collapse", "[rheology]") {
+    Array<Path> filesToCheck = { Path("cliff_collapse/cliff_0007.ssf"),
+        Path("cliff_collapse/cliff_0014.ssf") };
+
+    for (Path file : filesToCheck) {
+        FileSystem::removePath(file);
+    }
+
     CliffCollapse run;
     run.setUp();
     run.run();
+
+    for (Path file : filesToCheck) {
+        REQUIRE(areFilesEqual(file, REFERENCE_DIR / file.fileName()));
+    }
 }

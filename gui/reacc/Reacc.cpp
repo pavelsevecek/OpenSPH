@@ -54,25 +54,24 @@ bool App::OnInit() {
         .set(GuiSettingsId::PLOT_OVERPLOT_SFD,
             std::string("/home/pavel/projects/astro/asteroids/hygiea/main_belt_families_2018/10_Hygiea/"
                         "size_distribution/family.dat_hc"))
-        .set(GuiSettingsId::PLOT_INTEGRALS,
-            PlotEnum::KINETIC_ENERGY | PlotEnum::INTERNAL_ENERGY | PlotEnum::TOTAL_ENERGY);
+        .set(GuiSettingsId::PLOT_INTEGRALS, PlotEnum::ALL);
 
     controller = makeAuto<Controller>(gui);
 
 
     Presets::CollisionParams cp;
-    cp.targetRadius = 100.e3_f; // 0.5_f * 550.e3_f;
+    cp.targetParticleCnt = 10000;
+    cp.targetRadius = 0.5_f * 428.e3_f;
     cp.impactAngle = 45._f * DEG_TO_RAD;
-    cp.impactSpeed = 200._f; // 7.e3_f;
-    cp.impactorRadius = 50.e3_f;
+    cp.impactSpeed = 7.e3_f;
+    cp.impactorRadius = 0.5_f * 100.e3_f;
     cp.targetRotation = 0._f;
-    cp.targetParticleCnt = 1000;
     cp.impactorOffset = 6;
     cp.centerOfMassFrame = false;
-    cp.optimizeImpactor = false;
+    cp.optimizeImpactor = true;
     PhaseParams phaseParams;
-    phaseParams.stab.range = Interval(0._f, 100._f);
-    phaseParams.frag.range = Interval(0._f, 200._f);
+    phaseParams.stab.range = Interval(0._f, 200._f);
+    phaseParams.frag.range = Interval(0._f, 500._f); // 3._f * 24 * 3600);
     phaseParams.reacc.range = Interval(0._f, 1.e10_f);
 
 
