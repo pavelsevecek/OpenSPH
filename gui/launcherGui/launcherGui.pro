@@ -38,8 +38,8 @@ CONFIG(debug, debug|profile|assert|release) {
 }
 
 SOURCES += \
-    Reacc.cpp
+    LauncherGui.cpp
 
-HEADERS += \  
-    Reacc.h
+HEADERS += \   
+    LauncherGui.h
 
