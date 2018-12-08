@@ -118,7 +118,7 @@ Quantity& Storage::insert(const QuantityId key, const OrderEnum order, Array<TVa
         }
     } else {
         Quantity q(order, std::move(values));
-        UNUSED_IN_RELEASE(const Size size = q.size();)
+        const Size size = q.size();
         quantities.insert(key, std::move(q));
         ASSERT(quantities.empty() || size == getParticleCnt()); // size must match sizes of other quantities
 
@@ -371,93 +371,142 @@ void Storage::swap(Storage& other, const Flags<VisitorEnum> flags) {
     }
 }
 
-bool Storage::isValid(const Flags<ValidFlag> flags) const {
+Outcome Storage::isValid(const Flags<ValidFlag> flags) const {
     const Size cnt = this->getParticleCnt();
-    bool valid = true;
+    Outcome result = SUCCESS;
     // check that all buffers have the same number of particles
-    iterate<VisitorEnum::ALL_BUFFERS>(*this, [cnt, &valid, flags](const auto& buffer) {
+    iterate<VisitorEnum::ALL_BUFFERS>(*this, [cnt, &result, flags](const auto& buffer) {
         if (buffer.size() != cnt && (flags.has(ValidFlag::COMPLETE) || !buffer.empty())) {
-            valid = false;
+            result =
+                "One or more buffers have different number of particles:\nExpected: " + std::to_string(cnt) +
+                ", actual: " + std::to_string(buffer.size());
         }
     });
-    if (!valid) {
-        return false;
+    if (!result) {
+        return result;
     }
 
     // check that materials are set up correctly
     if (this->getMaterialCnt() == 0 || this->getQuantityCnt() == 0) {
         // no materials are a valid state, all OK
-        return true;
+        return SUCCESS;
     }
     if (bool(matIds) != this->has(QuantityId::MATERIAL_ID)) {
         // checks that either both matIds and quantity MATERIAL_ID exist, or neither of them do;
         // if we cloned just some buffers, quantity MATERIAL_ID might not be there even though the storage has
         // materials, so we don't report it as an error.
-        return false;
+        return "MaterialID view not present";
     }
 
     if (ArrayView<const Size>(matIds) != this->getValue<Size>(QuantityId::MATERIAL_ID)) {
         // WTF did I cache?
-        return false;
+        return "Cached view of MaterialID does not reference the stored quantity. Did you forget to call "
+               "update?";
     }
 
     for (Size matId = 0; matId < mats.size(); ++matId) {
         const MatRange& mat = mats[matId];
         for (Size i = mat.from; i < mat.to; ++i) {
             if (matIds[i] != matId) {
-                return false;
+                return "MaterialID of particle does not belong to the material range.\nExpected: " +
+                       std::to_string(matId) + ", actual: " + std::to_string(matIds[i]);
             }
         }
         if ((matId != mats.size() - 1) && (mat.to != mats[matId + 1].from)) {
-            return false;
+            return "Material are not stored consecutively.\nLast index: " + std::to_string(mat.to) +
+                   ", first index: " + std::to_string(mats[matId + 1].from);
         }
     }
     if (mats[0].from != 0 || mats[mats.size() - 1].to != cnt) {
-        return false;
+        return "Materials do not cover all particles.\nFirst: " + std::to_string(mats[0].from) +
+               ", last: " + std::to_string(mats[mats.size() - 1].to) + " (size: " + std::to_string(cnt) +
+               ").";
     }
 
-    return true;
+    return SUCCESS;
 }
 
-Array<Size> Storage::duplicate(ArrayView<const Size> idxs) {
+Array<Size> Storage::duplicate(ArrayView<const Size> idxs, const Flags<IndicesFlag> flags) {
     ASSERT(!userData, "Duplicating particles in storages with user data is currently not supported");
+    Array<Size> sortedHolder;
+    ArrayView<const Size> sorted;
+    if (flags.has(IndicesFlag::INDICES_SORTED)) {
+        ASSERT(std::is_sorted(idxs.begin(), idxs.end()));
+        sorted = idxs;
+    } else {
+        sortedHolder.reserve(idxs.size());
+        sortedHolder.pushAll(idxs.begin(), idxs.end());
+        std::sort(sortedHolder.begin(), sortedHolder.end());
+        sorted = sortedHolder;
+    }
 
-    // first, sort the indices, so that we start with the backmost particles, that way the lower indices
-    // won't get invalidated.
-    Array<Size> sorted(0, idxs.size());
-    sorted.pushAll(idxs.begin(), idxs.end());
-    std::sort(sorted.begin(), sorted.end());
+    Array<Size> createdIdxs;
+    if (this->has(QuantityId::MATERIAL_ID)) {
 
-    Array<Size> createdIds;
-
-    // get reference to matIds array, to avoid having to update arrayview over and over
-    Array<Size>& matIdsRef = this->getValue<Size>(QuantityId::MATERIAL_ID);
-
-    // duplicate all the quantities
-    iterate<VisitorEnum::ALL_BUFFERS>(*this, [this, &matIdsRef, &sorted, &createdIds](auto& buffer) {
+        // split by material
+        Array<Array<Size>> idxsPerMaterial(this->getMaterialCnt());
+        Array<Size>& matIdsRef = this->getValue<Size>(QuantityId::MATERIAL_ID);
         for (Size i : sorted) {
-            MatRange& mat = mats[matIdsRef[i]];
-            auto value = buffer[i];
-            buffer.insert(mat.to, value);
+            idxsPerMaterial[matIdsRef[i]].push(i);
+        }
 
-            createdIds.push(mat.to);
+        // add the new values after the last value of each material
+        for (Array<Size>& idxs : reverse(idxsPerMaterial)) {
+            if (idxs.empty()) {
+                // no duplicates from this material
+                continue;
+            }
+            const Size matId = matIdsRef[idxs[0]];
+            iterate<VisitorEnum::ALL_BUFFERS>(*this, [this, &idxs, matId](auto& buffer) {
+                using Type = typename std::decay_t<decltype(buffer)>::Type;
+                Array<Type> duplicates;
+                for (Size i : idxs) {
+                    Type value = buffer[i];
+                    duplicates.push(value);
+                }
+                buffer.insert(mats[matId].to, duplicates.begin(), duplicates.end());
+            });
 
-            mat.to++;
-            if (matIdsRef[i] < mats.size() - 1) {
-                // we also have to correct the starting index of the following material
-                mats[matIdsRef[i] + 1].from++;
+            for (Size& createdIdx : createdIdxs) {
+                createdIdx += idxs.size();
+            }
+            for (Size i = 0; i < idxs.size(); ++i) {
+                createdIdxs.push(mats[matId].to + i);
             }
         }
-    });
+
+        // fix material ranges
+        ASSERT(std::is_sorted(matIdsRef.begin(), matIdsRef.end()));
+        for (Size matId = 0; matId < this->getMaterialCnt(); ++matId) {
+            std::pair<Iterator<Size>, Iterator<Size>> range =
+                std::equal_range(matIdsRef.begin(), matIdsRef.end(), matId);
+            mats[matId].from = std::distance(matIdsRef.begin(), range.first);
+            mats[matId].to = std::distance(matIdsRef.begin(), range.second);
+        }
+    } else {
+        // just duplicate the particles
+        const Size n0 = this->getParticleCnt();
+        for (Size i = 0; i < sorted.size(); ++i) {
+            createdIdxs.push(n0 + i);
+        }
+        iterate<VisitorEnum::ALL_BUFFERS>(*this, [this, &sorted](auto& buffer) {
+            using Type = typename std::decay_t<decltype(buffer)>::Type;
+            Array<Type> duplicates;
+            for (Size i : sorted) {
+                Type value = buffer[i];
+                duplicates.push(value);
+            }
+            buffer.pushAll(duplicates.cbegin(), duplicates.cend());
+        });
+    }
 
     this->update();
-    ASSERT(this->isValid());
+    ASSERT(this->isValid(), this->isValid().error());
 
-    TODO("TEST! + implement persistent indices");
-    return createdIds;
+    return createdIdxs;
 }
 
-void Storage::remove(ArrayView<const Size> idxs, const Flags<RemoveFlag> flags) {
+void Storage::remove(ArrayView<const Size> idxs, const Flags<IndicesFlag> flags) {
     ASSERT(!userData, "Removing particles from storages with user data is currently not supported");
 
     Size particlesRemoved = 0;
@@ -485,7 +534,7 @@ void Storage::remove(ArrayView<const Size> idxs, const Flags<RemoveFlag> flags) 
 
     ArrayView<const Size> sortedIdxs;
     Array<Size> sortedHolder;
-    if (flags.has(RemoveFlag::INDICES_SORTED)) {
+    if (flags.has(IndicesFlag::INDICES_SORTED)) {
         ASSERT(std::is_sorted(idxs.begin(), idxs.end()));
         sortedIdxs = idxs;
     } else {

@@ -121,7 +121,7 @@ void TemporalPlot::onTimeStep(const Storage& storage, const Statistics& stats) {
     // make sure the y-range is larger than the minimal allowed value
     if (ranges.y.size() < params.minRangeY) {
         const Float dy = 0.5_f * (params.minRangeY - ranges.y.size());
-        ASSERT(dy > 0._f);
+        ASSERT(dy >= 0._f, params.minRangeY, ranges.y);
         ranges.y.extend(ranges.y.upper() + dy);
         ranges.y.extend(ranges.y.lower() - dy);
     }

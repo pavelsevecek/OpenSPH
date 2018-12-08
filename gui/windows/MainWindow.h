@@ -4,6 +4,7 @@
 #include "objects/containers/Array.h"
 #include "objects/wrappers/LockingPtr.h"
 #include "system/Settings.h"
+#include "system/Timer.h"
 #include <wx/frame.h>
 
 class wxComboBox;
@@ -53,6 +54,7 @@ private:
     wxTextCtrl* status = nullptr;
     wxTextCtrl* errors = nullptr;
     bool errorReported = false;
+    Timer statusTimer;
 
     /// Additional wx controls
     wxComboBox* quantityBox;

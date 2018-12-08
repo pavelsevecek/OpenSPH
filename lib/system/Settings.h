@@ -20,7 +20,6 @@ class Path;
 template <typename TEnum>
 class SettingsIterator;
 
-
 /// Tag for initialization of empty settings object.
 struct EmptySettingsTag {};
 
@@ -122,7 +121,6 @@ private:
         SYMMETRIC_TENSOR,
         TRACELESS_TENSOR,
         ENUM,
-        VALUE,
     };
 
     /// \brief Storage type of settings entries.
@@ -142,8 +140,6 @@ private:
         SymmetricTensor,
         TracelessTensor,
         EnumWrapper>;
-    //,
-    //    ClonePtr<ISettingsValue>>;
 
     struct Entry {
         /// Index of the property
@@ -280,6 +276,18 @@ public:
         }
         entries[idx].value = ew;
         return *this;
+    }
+
+    /// \brief Adds entries from different \ref Settings object into this one, overriding current entries.
+    ///
+    /// Entries not stored in the given settings are kept unchanged.
+    void addEntries(const Settings& settings) {
+        for (const typename SettingsIterator<TEnum>::IteratorValue& iv : settings) {
+            if (!entries.contains(iv.id)) {
+                entries.insert(iv.id, getDefaults().entries[iv.id]);
+            }
+            entries[iv.id].value = iv.value;
+        }
     }
 
     /// \brief Returns a value of given type from the settings.
@@ -484,8 +492,11 @@ enum class BoundaryEnum {
     /// Highest derivatives of all particles close to the boundary are set to zero.
     FROZEN_PARTICLES,
 
-    /// Create ghosts to keep particles inside domain
+    /// Create ghosts to keep particles inside domain.
     GHOST_PARTICLES,
+
+    /// Creates dummy particles along the boundary.
+    FIXED_PARTICLES,
 
     /// Extension of Frozen Particles, pushing particles inside the domain and removing them on the other end.
     WIND_TUNNEL,
@@ -726,14 +737,21 @@ enum class RunSettingsId {
     /// Name of the person running the simulation
     RUN_AUTHOR,
 
-    /// E-mail of the person running the simulation
+    /// E-mail of the person running the simulation.
     RUN_EMAIL,
+
+    /// Specifies the type of the simulation. Does not have to be specified to run the simulation; this
+    /// information is saved in output files and taken into account by visualization tools, for example.
+    RUN_TYPE,
 
     /// Selected format of the output file, see OutputEnum
     RUN_OUTPUT_TYPE,
 
     /// Time interval of dumping data to disk.
     RUN_OUTPUT_INTERVAL,
+
+    /// Index of the first generated output file. Might not be zero if the simulation is resumed.
+    RUN_OUTPUT_FIRST_INDEX,
 
     /// File name of the output file (including extension), where %d is a placeholder for output number.
     RUN_OUTPUT_NAME,
@@ -1251,6 +1269,9 @@ enum class BodySettingsId {
 
     /// Bulk (macro)porosity of the body
     BULK_POROSITY = 64,
+
+    /// Heat capacity at constant pressure,
+    HEAT_CAPACITY = 65,
 };
 
 using RunSettings = Settings<RunSettingsId>;

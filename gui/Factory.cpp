@@ -89,7 +89,6 @@ static Palette getRealPalette(ColorizerId id,
     Variant<GuiSettingsId, Interval> rangeVariant,
     const GuiSettings& settings,
     const FlatMap<ColorizerId, Palette>& overrides) {
-    Palette palette;
     if (auto overridenPalette = overrides.tryGet(id)) {
         return overridenPalette.value();
     } else {
@@ -132,6 +131,9 @@ AutoPtr<IColorizer> Factory::getColorizer(const GuiSettings& settings,
     case ColorizerId::TOTAL_ENERGY:
         return makeAuto<EnergyColorizer>(getRealPalette(
             ColorizerId::TOTAL_ENERGY, GuiSettingsId::PALETTE_TOTAL_ENERGY, settings, overrides));
+    case ColorizerId::TEMPERATURE:
+        return makeAuto<TemperatureColorizer>(getRealPalette(
+            ColorizerId::TEMPERATURE, GuiSettingsId::PALETTE_TEMPERATURE, settings, overrides));
     case ColorizerId::TOTAL_STRESS:
         return makeAuto<StressColorizer>(
             getRealPalette(ColorizerId::TOTAL_STRESS, GuiSettingsId::PALETTE_STRESS, settings, overrides));
@@ -284,7 +286,6 @@ Palette Factory::getPalette(const ColorizerId id, const Interval range) {
                                    { x0 + 0.3f * dx, Color(1.f, 0.f, 0.f) },
                                    { x0 + dx, Color(1.f, 1.f, 0.5) } },
                     PaletteScale::LOGARITHMIC);*/
-
         case QuantityId::DEVIATORIC_STRESS:
             return Palette({ { x0, Rgba(0.f, 0.f, 0.2f) },
                                { x0 + 0.1f * dx, Rgba(0.9f, 0.9f, 0.9f) },
@@ -392,6 +393,13 @@ Palette Factory::getPalette(const ColorizerId id, const Interval range) {
                                { x0 + 0.05f * dx, Rgba(0.9f, 0.9f, 0.9f) },
                                { x0 + 0.2f * dx, Rgba(1.f, 1.f, 0.f) },
                                { x0 + dx, Rgba(0.6f, 0.f, 0.f) } },
+                PaletteScale::LOGARITHMIC);
+        case ColorizerId::TEMPERATURE:
+            return Palette({ { x0, Rgba(0.1f, 0.1f, 0.1f) },
+                               { x0 + 0.001f * dx, Rgba(0.1f, 0.1f, 1.f) },
+                               { x0 + 0.01f * dx, Rgba(1.f, 0.f, 0.f) },
+                               { x0 + 0.1f * dx, Rgba(1.0f, 0.6f, 0.4f) },
+                               { x0 + dx, Rgba(1.f, 1.f, 0.f) } },
                 PaletteScale::LOGARITHMIC);
         case ColorizerId::YIELD_REDUCTION:
             return Palette(

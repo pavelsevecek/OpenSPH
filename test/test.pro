@@ -119,7 +119,6 @@ SOURCES += \
     ../lib/quantities/test/Quantity.cpp \
     ../lib/quantities/test/QuantityHelpers.cpp \
     ../lib/quantities/test/Storage.cpp \
-    ../lib/run/test/Run.cpp \
     ../lib/sph/boundary/test/Boundary.cpp \
     ../lib/sph/equations/av/test/AV.cpp \
     ../lib/sph/equations/av/test/Balsara.cpp \
@@ -168,7 +167,9 @@ SOURCES += \
     ../lib/thread/test/Scheduler.cpp \
     ../lib/sph/handoff/test/Handoff.cpp \
     ../lib/sph/solvers/test/EnergyConservingSolver.cpp \
-    ../lib/gravity/test/CachedGravity.cpp
+    ../lib/gravity/test/CachedGravity.cpp \
+    ../lib/run/test/IRun.cpp \
+    ../lib/run/test/Collision.cpp
 
 HEADERS += \
     utils/Utils.h \

@@ -15,7 +15,7 @@ NAMESPACE_SPH_BEGIN
 
 RubblePileRunPhase::RubblePileRunPhase(const Presets::CollisionParams params,
     SharedPtr<IRunCallbacks> callbacks)
-    : params(params) {
+    : collisionParams(params) {
     this->callbacks = callbacks;
     settings.set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 5.e4_f))
         .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 1.e3_f)
@@ -56,7 +56,7 @@ void RubblePileRunPhase::setUp() {
     solver = makeAuto<NBodySolver>(*scheduler, settings);
     logger = Factory::getLogger(settings);
 
-    const Float radius = 1.4_f * params.targetRadius;
+    const Float radius = 1.4_f * collisionParams.targetRadius;
     const PowerLawSfd sfd{ 2._f, Interval(0.2_f * radius, 0.4_f * radius) };
 
     UniformRng rng;
@@ -88,7 +88,7 @@ void RubblePileRunPhase::setUp() {
     logger->write("Generating finished");
 
     // assign masses
-    const Float rho = params.body.get<Float>(BodySettingsId::DENSITY);
+    const Float rho = collisionParams.body.get<Float>(BodySettingsId::DENSITY);
     Array<Float> masses(positions.size());
     for (Size i = 0; i < positions.size(); ++i) {
         masses[i] = rho * sphereVolume(positions[i][H]);
@@ -191,23 +191,24 @@ private:
 
 void RubblePileRunPhase::tearDown(const Statistics& UNUSED(stats)) {
     // convert spheres to SPH particles (in place)
-    AutoPtr<IDistribution> distribution = Factory::getDistribution(params.body);
-    const Float bulkPorosity = params.body.get<Float>(BodySettingsId::BULK_POROSITY);
-    SpheresDomain domain(storage->getValue<Vector>(QuantityId::POSITION), params.targetRadius, bulkPorosity);
+    AutoPtr<IDistribution> distribution = Factory::getDistribution(collisionParams.body);
+    const Float bulkPorosity = collisionParams.body.get<Float>(BodySettingsId::BULK_POROSITY);
+    SpheresDomain domain(
+        storage->getValue<Vector>(QuantityId::POSITION), collisionParams.targetRadius, bulkPorosity);
     // SphericalDomain domain(Vector(0._f), params.targetRadius);
 
     // this domain is currently not thread-safe, so we need to generate particles sequentially
-    Array<Vector> positions = distribution->generate(SEQUENTIAL, params.targetParticleCnt, domain);
+    Array<Vector> positions = distribution->generate(SEQUENTIAL, collisionParams.targetParticleCnt, domain);
     /// \todo multiply this automatically? (it is done in InitialConditions, but not elsewhere)
     const Float eta = settings.get<Float>(RunSettingsId::SPH_KERNEL_ETA);
     for (Size i = 0; i < positions.size(); ++i) {
         positions[i][H] *= eta;
     }
 
-    Storage sph(Factory::getMaterial(params.body));
+    Storage sph(Factory::getMaterial(collisionParams.body));
     sph.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, std::move(positions));
 
-    const Float density = params.body.get<Float>(BodySettingsId::DENSITY);
+    const Float density = collisionParams.body.get<Float>(BodySettingsId::DENSITY);
     sph.insert<Float>(QuantityId::MASS, OrderEnum::ZERO, density * domain.getVolume() / sph.getParticleCnt());
     sph.insert<Size>(QuantityId::FLAG, OrderEnum::ZERO, 0);
 
@@ -229,7 +230,8 @@ void RubblePileRunPhase::handoff(Storage&& UNUSED(input)) {
 }
 
 AutoPtr<IRunPhase> RubblePileRunPhase::getNextPhase() const {
-    return makeAuto<StabilizationRunPhase>(params);
+    TODO("Properly add into the pipeline");
+    return makeAuto<StabilizationRunPhase>(collisionParams, PhaseParams{});
 }
 
 NAMESPACE_SPH_END

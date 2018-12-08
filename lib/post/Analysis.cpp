@@ -646,6 +646,22 @@ static Array<Size> processComponentCutoffs(const Storage& storage,
     return toRemove;
 }
 
+/// \todo move directly to Storage?
+struct MissingQuantityException : public std::exception {
+private:
+    std::string message;
+
+public:
+    explicit MissingQuantityException(const QuantityId id) {
+        message = "Attempting to access missing quantity " + getMetadata(id).quantityName;
+    }
+
+
+    virtual const char* what() const noexcept override {
+        return message.c_str();
+    }
+};
+
 /// \brief Returns the component values corresponding to given histogram quantity.
 static Array<Float> getComponentValues(const Storage& storage,
     const Post::HistogramParams& params,
@@ -661,8 +677,15 @@ static Array<Float> getComponentValues(const Storage& storage,
     case Post::HistogramId::EQUIVALENT_MASS_RADII:
     case Post::HistogramId::RADII: {
         // compute volume of the body
-        ArrayView<const Float> rho, m;
-        tie(rho, m) = storage.getValues<Float>(QuantityId::DENSITY, QuantityId::MASS);
+        ArrayView<const Float> m = storage.getValue<Float>(QuantityId::MASS);
+        ArrayView<const Float> rho;
+        if (id == Post::HistogramId::RADII) {
+            if (storage.has(QuantityId::DENSITY)) {
+                rho = storage.getValue<Float>(QuantityId::DENSITY);
+            } else {
+                throw MissingQuantityException(QuantityId::DENSITY);
+            }
+        }
 
         Array<Float> values(numComponents);
         values.fill(0._f);
@@ -673,6 +696,7 @@ static Array<Float> getComponentValues(const Storage& storage,
             } else {
                 density = rho[i];
             }
+            ASSERT(m[i] > 0._f && density > 0._f);
             values[components[i]] += m[i] / density;
         }
 
@@ -685,7 +709,7 @@ static Array<Float> getComponentValues(const Storage& storage,
         Array<Float> radii(values.size());
         for (Size i = 0; i < values.size(); ++i) {
             radii[i] = root<3>(3._f * values[i] / (4._f * PI));
-            ASSERT(isReal(radii[i]) && radii[i] > 0._f, radii[i]);
+            ASSERT(isReal(radii[i]) && radii[i] > 0._f, values[i]);
         }
         return radii;
     }

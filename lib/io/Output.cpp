@@ -40,6 +40,29 @@ Path OutputFile::getNextPath(const Statistics& stats) const {
     return Path(path);
 }
 
+Optional<Size> OutputFile::getDumpIdx(const Path& path) {
+    // look for 4 consecutive digits.
+    const std::string s = path.fileName().native();
+    for (int i = 0; i < int(s.size()) - 3; ++i) {
+        if (std::isdigit(s[i]) && std::isdigit(s[i + 1]) && std::isdigit(s[i + 2]) &&
+            std::isdigit(s[i + 3])) {
+            // next digit must NOT be a number
+            if (i + 4 < int(s.size()) && std::isdigit(s[i + 4])) {
+                // 4-digit sequence is not unique, report error
+                return NOTHING;
+            }
+            try {
+                Size index = std::stoul(s.substr(i, 4));
+                return index;
+            } catch (std::exception& e) {
+                ASSERT(false, e.what());
+                return NOTHING;
+            }
+        }
+    }
+    return NOTHING;
+}
+
 bool OutputFile::hasWildcard() const {
     std::string path = pathMask.native();
     return path.find("%d") != std::string::npos || path.find("%t") != std::string::npos;
@@ -83,11 +106,17 @@ static void printHeader(std::ostream& ofs, const std::string& name, const ValueE
 }
 
 static void addColumns(const Flags<OutputQuantityFlag> quantities, Array<AutoPtr<ITextColumn>>& columns) {
+    if (quantities.has(OutputQuantityFlag::INDEX)) {
+        columns.push(makeAuto<ParticleNumberColumn>());
+    }
     if (quantities.has(OutputQuantityFlag::POSITION)) {
         columns.push(makeAuto<ValueColumn<Vector>>(QuantityId::POSITION));
     }
     if (quantities.has(OutputQuantityFlag::VELOCITY)) {
         columns.push(makeAuto<DerivativeColumn<Vector>>(QuantityId::POSITION));
+    }
+    if (quantities.has(OutputQuantityFlag::ANGULAR_FREQUENCY)) {
+        columns.push(makeAuto<ValueColumn<Vector>>(QuantityId::ANGULAR_FREQUENCY));
     }
     if (quantities.has(OutputQuantityFlag::SMOOTHING_LENGTH)) {
         columns.push(makeAuto<SmoothingLengthColumn>());
@@ -115,9 +144,6 @@ static void addColumns(const Flags<OutputQuantityFlag> quantities, Array<AutoPtr
     }
     if (quantities.has(OutputQuantityFlag::MATERIAL_ID)) {
         columns.push(makeAuto<ValueColumn<Size>>(QuantityId::MATERIAL_ID));
-    }
-    if (quantities.has(OutputQuantityFlag::INDEX)) {
-        columns.push(makeAuto<ParticleNumberColumn>());
     }
 }
 
@@ -609,7 +635,7 @@ static Expected<Storage> loadMaterial(const Size matIdx,
     return Storage(std::move(material));
 }
 
-static Optional<RunTypeEnum> readRunType(char* buffer, const BinaryIoVersion UNUSED_IN_RELEASE(version)) {
+static Optional<RunTypeEnum> readRunType(char* buffer, const BinaryIoVersion version) {
     std::string runTypeStr(buffer);
     if (!runTypeStr.empty()) {
         return EnumMap::fromString<RunTypeEnum>(runTypeStr).value();

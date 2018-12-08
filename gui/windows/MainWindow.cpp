@@ -213,7 +213,7 @@ wxBoxSizer* MainWindow::createToolbar(Controller* parent) {
     button->Bind(wxEVT_BUTTON, [parent](wxCommandEvent& UNUSED(evt)) { parent->stop(); });
 
 
-    static wxString fileDesc = "SPH state files (*.ssf)|*.ssf";
+    static wxString fileDesc = "SPH state file (*.ssf)|*.ssf|Text file (*.txt)|*.txt";
     button = new wxButton(this, wxID_ANY, "Save");
     toolbar->Add(button);
     button->Bind(wxEVT_BUTTON, [parent, this](wxCommandEvent& UNUSED(evt)) {
@@ -222,8 +222,13 @@ wxBoxSizer* MainWindow::createToolbar(Controller* parent) {
         if (saveFileDialog.ShowModal() == wxID_CANCEL) {
             return;
         }
-        const std::string path(saveFileDialog.GetPath());
-        parent->saveState(Path(path).replaceExtension("ssf"));
+        Path path(std::string(saveFileDialog.GetPath()));
+        if (saveFileDialog.GetFilterIndex() == 0) {
+            path.replaceExtension("ssf");
+        } else {
+            path.replaceExtension("txt");
+        }
+        parent->saveState(path);
     });
 
     button = new wxButton(this, wxID_ANY, "Load");
@@ -351,7 +356,7 @@ public:
 
 static Array<Post::HistPoint> getOverplotSfd(const GuiSettings& gui) {
     const Path overplotPath(gui.get<std::string>(GuiSettingsId::PLOT_OVERPLOT_SFD));
-    if (overplotPath.empty()) {
+    if (overplotPath.empty() || !FileSystem::pathExists(overplotPath)) {
         return {};
     }
     Array<Post::HistPoint> overplotSfd;
@@ -611,7 +616,8 @@ public:
 void MainWindow::onTimeStep(const Storage& storage, const Statistics& stats) {
     // this is called from run thread (NOT main thread)
 
-    if (status) {
+    // limit the refresh rate to avoid blocking the main thread
+    if (status && statusTimer.elapsed(TimerUnit::MILLISECOND) > 10) {
         // we get the data using CommonStatsLog (even though it's not really designed for it), in order to
         // avoid code duplication
         /// \todo how to access settings here??
@@ -620,6 +626,7 @@ void MainWindow::onTimeStep(const Storage& storage, const Statistics& stats) {
         statsLog.write(storage, stats);
         // we have to modify wxTextCtrl from main thread!!
         executeOnMainThread([this, logger] { logger->setText(status); });
+        statusTimer.restart();
     }
 
     pane->onTimeStep(storage, stats);

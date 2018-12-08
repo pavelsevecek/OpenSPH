@@ -14,40 +14,58 @@ NAMESPACE_SPH_BEGIN
 
 /// \brief Base class for conversion of quantities into the output data.
 ///
-/// When TextOutput is selected, this represents a single column of values in the file,
-/// hence the name.
-/// Ordinarily, we need to store the quantity values and their derivatives directly,
-/// derived classes ValueColumn and DerivativeColumn can be used for this purpose.
-/// Other implementations can be used to store values that are not directly saved in any quantity,
-/// such as smoothing lenghts (stored as 4th component of the position vectors), or actual
-/// values of stress tensor (quantity contains undamaged values).
-/// The class can also be used to save arbitrary data, such as particle index, current
-/// time of the simulation, etc. This can be useful when using the output files in additional
-/// scripts, for example when creating plots in Gnuplot.
+/// When TextOutput is selected, this represents a single column of values in the file, hence the name.
+/// Ordinarily, we need to store the quantity values and their derivatives directly, derived classes
+/// \ref ValueColumn and \ref DerivativeColumn can be used for this purpose. Other implementations can be used
+/// to store values that are not directly saved in any quantity, such as smoothing lenghts (they are actually
+/// stored as 4th component of the position vectors), or actual values of stress tensor (quantity contains
+/// undamaged values).
+///
+/// The class can also be used to save arbitrary data, such as particle index, current time
+/// of the simulation, etc. This can be useful when using the output files in additional scripts, for example
+/// when creating plots in Gnuplot.
+///
 /// \todo There should also be a conversion from code units to user-selected output units
 class ITextColumn : public Polymorphic {
 public:
-    /// Returns the value of the output column for given particle.
+    /// \brief Returns the value of the output column for given particle.
+    ///
+    /// \param storage Storage containing all particle data
+    /// \param stats Holds simulation time as well as additional solver-specific statistics.
+    /// \param particleIdx Index of the particle to evaluate.
     virtual Dynamic evaluate(const Storage& storage,
         const Statistics& stats,
         const Size particleIdx) const = 0;
 
-    /// Reads the value of the column and saves it into the storage, if possible.
+    /// \brief Reads the value of the column and saves it into the storage, if possible.
+    ///
     /// \param storage Particle storage where the value is stored
     /// \param value Accumulated value, must be the same type as this column. Checked by assert.
     /// \param particleIdx Index of accumulated particle; if larger than current size of the storage, the
     ///                    storage is resized accordingly.
     virtual void accumulate(Storage& storage, const Dynamic value, const Size particleIdx) const = 0;
 
-    /// Returns a name of the column. The name is printed in the header of the output file.
+    /// \brief Returns a name of the column.
+    ///
+    /// The name is printed in the header of the output file.
     virtual std::string getName() const = 0;
 
-    /// Returns the value type of the column.
+    /// \brief Returns the value type of the column.
     virtual ValueEnum getType() const = 0;
 };
 
 
 /// \brief Returns values of given quantity as stored in storage.
+///
+/// This is the most common column. Most columns for quantities can be added using \ref OutputQuantityFlag,
+/// however if additional quantities need to be saved, it can be done using:
+/// \code
+/// TextOutput output(outputPath, "run name", EMPTY_FLAGS);
+/// // add temperature (scalar quantity)
+/// output.addColumn(makeAuto<ValueColumn<Float>>(QuantityId::TEMPERATURE));
+/// // add surface normal (vector quantity)
+/// output.addColumn(makeAuto<ValueColumn<Vector>>(QuantityId::SURFACE_NORMAL));
+/// \endcode
 template <typename TValue>
 class ValueColumn : public ITextColumn {
 private:

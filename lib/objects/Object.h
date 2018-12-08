@@ -41,12 +41,6 @@ NAMESPACE_SPH_BEGIN
 /// \note sizeof is used to make sure x is not evaluated.
 #define MARK_USED(x) (void)sizeof(x)
 
-#ifdef SPH_DEBUG
-#define UNUSED_IN_RELEASE(x) x
-#else
-#define UNUSED_IN_RELEASE(x)
-#endif
-
 #define SPH_CPP17
 
 #ifdef SPH_CPP17

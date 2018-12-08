@@ -17,9 +17,7 @@ public:
     GuiCallbacks(Controller& controller)
         : controller(controller) {}
 
-    virtual void onRunStart(const Storage& UNUSED(storage), Statistics& UNUSED(stats)) override {
-        controller.setRunning();
-    }
+    virtual void onRunStart(const Storage& UNUSED(storage), Statistics& UNUSED(stats)) override {}
 
     virtual void onRunEnd(const Storage& UNUSED(storage), Statistics& UNUSED(stats)) override {
         if (controller.movie) {

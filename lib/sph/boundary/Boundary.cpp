@@ -17,53 +17,26 @@ NAMESPACE_SPH_BEGIN
 
 GhostParticles::GhostParticles(AutoPtr<IDomain>&& domain, const Float searchRadius, const Float minimalDist)
     : domain(std::move(domain)) {
+    ASSERT(this->domain);
     params.searchRadius = searchRadius;
     params.minimalDist = minimalDist;
 }
 
 GhostParticles::GhostParticles(AutoPtr<IDomain>&& domain, const RunSettings& settings)
     : domain(std::move(domain)) {
+    ASSERT(this->domain);
     params.searchRadius = Factory::getKernel<3>(settings).radius();
     params.minimalDist = settings.get<Float>(RunSettingsId::DOMAIN_GHOST_MIN_DIST);
 }
 
-
-/// Functor copying quantities on ghost particles. Vector quantities are copied symmetrically with a respect
-/// to the boundary.
-struct GhostFunctor {
-    Array<Ghost>& ghosts;
-    Array<Size>& ghostIdxs;
-    IDomain& domain;
-
-    /// Generic operator, simply copies value onto the ghost
-    template <typename T>
-    void operator()(Array<T>& v, Array<Vector>& UNUSED(r)) {
-        for (auto& g : ghosts) {
-            auto ghost = v[g.index];
-            v.push(ghost);
-        }
-    }
-
-    /// Specialization for vectors, copies parallel component of the vector along the boundary and inverts
-    /// perpendicular component.
-    void operator()(Array<Vector>& v, Array<Vector>& r) {
-        for (auto& g : ghosts) {
-            Float length = getLength(v[g.index]);
-            if (length == 0._f) {
-                v.push(Vector(0._f)); // simply copy zero vector
-                continue;
-            }
-            const Vector deltaR = r[g.index] - g.position; // offset between particle and its ghost
-            ASSERT(getLength(deltaR) > 0.f);
-            const Vector normal = getNormalized(deltaR);
-            const Float perp = dot(normal, v[g.index]);
-            // mirror vector by copying parallel component and inverting perpendicular component
-            v.push(v[g.index] - 2._f * normal * perp);
-        }
-    }
-};
-
 void GhostParticles::initialize(Storage& storage) {
+    // note that there is no need to also add particles to dependent storages as we remove ghosts in
+    // finalization; however, it might cause problems when there is another BC or equation that DOES need to
+    // propagate to dependents. So far no such thing is used, but it would have to be done carefully in case
+    // multiple objects add or remove particles from the storage.
+
+    storage.setUserData(nullptr); // clear previous data
+
     ASSERT(ghosts.empty() && ghostIdxs.empty());
 
     // project particles outside of the domain on the boundary
@@ -73,23 +46,49 @@ void GhostParticles::initialize(Storage& storage) {
     // find particles close to boundary and create necessary ghosts
     domain->addGhosts(r, ghosts, params.searchRadius, params.minimalDist);
 
-    // there is no need to also add particles to dependent storages as we remove ghosts in finalization;
-    // however, it might cause problems when there is another BC or equation that DOES need to propagate to
-    // dependents. So far no such thing is used, but it would have to be done carefully in case multiple
-    // objects add or remove particles from the storage.
-    const Size ghostStartIdx = r.size();
-    for (Size i = 0; i < ghosts.size(); ++i) {
-        ghostIdxs.push(ghostStartIdx + i);
-        // push ghosts into the position buffer
-        r.push(ghosts[i].position);
+    // extract the indices for duplication
+    Array<Size> idxs;
+    for (Ghost& g : ghosts) {
+        idxs.push(g.index);
     }
-    // copy all quantities on ghosts
-    GhostFunctor functor{ ghosts, ghostIdxs, *domain };
-    iterateWithPositions(storage, functor);
+    // duplicate all particles that create ghosts to make sure we have correct materials in the storage
+    ghostIdxs = storage.duplicate(idxs);
+
+    // set correct positions of ghosts
+    ASSERT(ghostIdxs.size() == ghosts.size());
+    for (Size i = 0; i < ghosts.size(); ++i) {
+        const Size ghostIdx = ghostIdxs[i];
+        r[ghostIdx] = ghosts[i].position;
+    }
+
+    // reflect velocities (only if we have velocities, GP are also used in Diehl's distribution, for example)
+    if (storage.has<Vector>(QuantityId::POSITION, OrderEnum::SECOND)) {
+        Array<Vector>& v = storage.getDt<Vector>(QuantityId::POSITION);
+        for (Size i = 0; i < ghosts.size(); ++i) {
+            const Size ghostIdx = ghostIdxs[i];
+            // offset between particle and its ghost
+            const Vector deltaR = r[ghosts[i].index] - ghosts[i].position;
+            ASSERT(getLength(deltaR) > 0.f);
+            const Vector normal = getNormalized(deltaR);
+            const Float perp = dot(normal, v[ghosts[i].index]);
+            // mirror vector by copying parallel component and inverting perpendicular component
+            const Vector v0 = v[ghostIdx] - 2._f * normal * perp;
+            if (ghostVelocity) {
+                v[ghostIdx] = ghostVelocity(ghosts[i].position).valueOr(v0);
+            } else {
+                v[ghostIdx] = v0;
+            }
+            ASSERT(getLength(v[ghostIdx]) < 1.e50_f);
+        }
+    }
 
     ASSERT(storage.isValid());
 
     particleCnt = storage.getParticleCnt();
+}
+
+void GhostParticles::setVelocityOverride(Function<Optional<Vector>(const Vector& r)> newGhostVelocity) {
+    ghostVelocity = newGhostVelocity;
 }
 
 void GhostParticles::finalize(Storage& storage) {
@@ -100,14 +99,15 @@ void GhostParticles::finalize(Storage& storage) {
     // remove ghosts by indices
     storage.remove(ghostIdxs);
     ghostIdxs.clear();
-    ghosts.clear();
+
+    storage.setUserData(makeShared<GhostParticlesData>(std::move(ghosts)));
 }
 
 //-----------------------------------------------------------------------------------------------------------
 // FixedParticles implementation
 //-----------------------------------------------------------------------------------------------------------
 
-FixedParticles::FixedParticles(Params&& params)
+FixedParticles::FixedParticles(const RunSettings& settings, Params&& params)
     : fixedParticles(std::move(params.material)) {
     ASSERT(isReal(params.thickness));
     Box box = params.domain->getBoundingBox();
@@ -124,16 +124,18 @@ FixedParticles::FixedParticles(Params&& params)
     Array<Vector> dummies = params.distribution->generate(
         SEQUENTIAL, box.volume() / pow<3>(0.5_f * params.thickness), boundingDomain);
     // remove all particles inside the actual domain or too far away
-    Array<Float> distances;
-    params.domain->getDistanceToBoundary(dummies, distances);
+    /*Array<Float> distances;
+    params.domain->getDistanceToBoundary(dummies, distances);*/
     for (Size i = 0; i < dummies.size();) {
-        if (distances[i] >= 0._f || distances[i] < -params.thickness) {
+        if (params.domain->contains(dummies[i])) {
+            // if (distances[i] >= 0._f || distances[i] < -params.thickness) {
             dummies.remove(i);
         } else {
             ++i;
         }
     }
-    fixedParticles.insert<Vector>(QuantityId::POSITION, OrderEnum::ZERO, std::move(dummies));
+    // although we never use the derivatives, the second order is needed to properly merge the storages
+    fixedParticles.insert<Vector>(QuantityId::POSITION, OrderEnum::SECOND, std::move(dummies));
 
     // create all quantities
     MaterialView mat = fixedParticles.getMaterial(0);
@@ -142,14 +144,19 @@ FixedParticles::FixedParticles(Params&& params)
     fixedParticles.insert<Float>(QuantityId::MASS, OrderEnum::ZERO, m0);
     // use negative flag to separate the dummy particles from the real ones
     fixedParticles.insert<Size>(QuantityId::FLAG, OrderEnum::ZERO, Size(-1));
-    params.solver->create(fixedParticles, mat);
-    MaterialInitialContext context;
+
+    AutoPtr<ISolver> solver = Factory::getSolver(SEQUENTIAL, settings);
+    solver->create(fixedParticles, mat);
+    MaterialInitialContext context(settings);
     mat->create(fixedParticles, context);
 }
 
 void FixedParticles::initialize(Storage& storage) {
     // add all fixed particles into the storage
     storage.merge(fixedParticles.clone(VisitorEnum::ALL_BUFFERS));
+    ASSERT(storage.isValid());
+    ASSERT(storage.getValue<TracelessTensor>(QuantityId::DEVIATORIC_STRESS).size() ==
+           storage.getValue<Vector>(QuantityId::POSITION).size());
 }
 
 void FixedParticles::finalize(Storage& storage) {
@@ -162,7 +169,8 @@ void FixedParticles::finalize(Storage& storage) {
         }
     }
 
-    storage.remove(toRemove, Storage::RemoveFlag::INDICES_SORTED);
+    storage.remove(toRemove, Storage::IndicesFlag::INDICES_SORTED);
+    ASSERT(storage.isValid());
 }
 
 //-----------------------------------------------------------------------------------------------------------

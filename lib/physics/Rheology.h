@@ -85,11 +85,13 @@ class DruckerPragerRheology : public IRheology {
 private:
     AutoPtr<IFractureModel> damage;
 
-    /// \todo Fix implementation according to von Mises
-
-    Array<Float> yieldingStress;
-
 public:
+    /// \brief Constructs a rheology with no fragmentation model.
+    ///
+    /// Stress tensor is only modified by von Mises criterion, yielding strength does not depend on damage.
+    DruckerPragerRheology();
+
+    /// \brief Constructs a rheology with given fragmentation model.
     DruckerPragerRheology(AutoPtr<IFractureModel>&& damage);
 
     ~DruckerPragerRheology();
@@ -101,20 +103,6 @@ public:
     virtual void initialize(IScheduler& scheduler, Storage& storage, const MaterialView material) override;
 
     virtual void integrate(IScheduler& scheduler, Storage& storage, const MaterialView material) override;
-
-    /// \todo code duplication
-    INLINE TracelessTensor reduce(const TracelessTensor& s, const int i) const {
-        ASSERT(yieldingStress[i] > EPS);
-        const Float inv = 0.5_f * ddot(s, s) / sqr(yieldingStress[i]);
-        if (inv < EPS) {
-            return s;
-        } else {
-            ASSERT(isReal(inv));
-            const TracelessTensor s_red = s * min(sqrt(1._f / (3._f * inv)), 1._f);
-            ASSERT(isReal(s_red));
-            return s_red;
-        }
-    }
 };
 
 /// Perfectly elastic material, no yielding nor fragmentation

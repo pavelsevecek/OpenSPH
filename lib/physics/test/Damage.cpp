@@ -71,8 +71,6 @@ TEST_CASE("Fracture growth", "[damage]") {
     context.rng = makeAuto<RngWrapper<BenzAsphaugRng>>(1234);
     MaterialView material = storage.getMaterial(0);
     damage.setFlaws(storage, material, context);
-    auto flags = DamageFlag::PRESSURE | DamageFlag::STRESS_TENSOR | DamageFlag::REDUCTION_FACTOR;
-    REQUIRE_NOTHROW(damage.reduce(pool, storage, flags, material));
     REQUIRE_NOTHROW(damage.integrate(pool, storage, material));
 
     /// \todo check that if the strain if below eps_min, damage wont increase

@@ -56,7 +56,9 @@ public:
     virtual void update(const Bitmap<Rgba>& bitmap, Array<Label>&& labels) override {
         CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
         toWxBitmap(bitmap, wx);
-        printLabels(wx, labels);
+        wxMemoryDC dc(wx);
+        printLabels(dc, labels);
+        dc.SelectObject(wxNullBitmap);
     }
 };
 

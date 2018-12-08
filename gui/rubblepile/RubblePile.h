@@ -89,43 +89,20 @@ private:
             .set(BodySettingsId::MIN_PARTICLE_COUNT, 100)
             .set(BodySettingsId::BULK_POROSITY, 0.3_f);
 
-        SharedPtr<GuiCallbacks> callbacks = makeShared<GuiCallbacks>(*controller);
-        AutoPtr<RubblePileRunPhase> phase1 = makeAuto<RubblePileRunPhase>(params, callbacks);
+        /*SharedPtr<GuiCallbacks> callbacks = makeShared<GuiCallbacks>(*controller);
+        AutoPtr<RubblePileRunPhase> phase1 = makeAuto<RubblePileRunPhase>(params, callbacks);*/
 
-        /*phase1->onStabilizationFinished = [gui, this] {
-            executeOnMainThread([gui, this] {
-                GuiSettings newGui = gui;
-                newGui.set(GuiSettingsId::IMAGES_SAVE, false)
-                    .set(GuiSettingsId::IMAGES_TIMESTEP, 50._f)
-                    .set(GuiSettingsId::ORTHO_CUTOFF, 0._f)
-                    //.set(GuiSettingsId::IMAGES_RENDERER, int(RendererEnum::RAYTRACER))
-                    .set(GuiSettingsId::IMAGES_NAME, std::string("frag_%e_%d.png"))
-                    .set(GuiSettingsId::IMAGES_MOVIE_NAME, std::string("frag_%e.avi"));
-                controller->setParams(newGui);
-            });
-        };
 
-        phase1->onSphFinished = [gui, this] {
-            executeOnMainThread([gui, this] {
-                GuiSettings newGui = gui;
-                newGui
-                    .set(GuiSettingsId::PARTICLE_RADIUS, 0.3_f) // 1._f
-                    .set(GuiSettingsId::PALETTE_VELOCITY, Interval(1._f, 1.e4_f))
-                    .set(GuiSettingsId::ORTHO_CUTOFF, 0._f)
-                    .set(GuiSettingsId::IMAGES_NAME, std::string("reac_%e_%d.png"));
-                controller->setParams(newGui);
-            });
-        };*/
-
-        AutoPtr<CompositeRun> allRuns = makeAuto<CompositeRun>(std::move(phase1));
-        allRuns->setPhaseCallback([gui, this](const Storage& storage) {
+        AutoPtr<CompositeRun> allRuns;
+        /// \todo fix
+        /*makeAuto<CompositeRun>(std::move(phase1), [gui, this](const Storage& storage) {
             executeOnMainThread([gui, this] {
                 GuiSettings newGui = gui;
                 newGui.set(GuiSettingsId::PARTICLE_RADIUS, 0.3_f);
                 controller->setParams(newGui);
             });
             controller->update(storage);
-        });
+        });*/
         controller->start(std::move(allRuns));
         return true;
     }

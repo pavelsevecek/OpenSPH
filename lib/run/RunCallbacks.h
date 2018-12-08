@@ -14,15 +14,28 @@ class Statistics;
 class Interval;
 struct DiagnosticsError;
 
+/// \brief Callbacks executed by the simulation to provide feedback to the user.
+///
+/// All functions are called from the same thread that called \ref IRun::run.
 class IRunCallbacks : public Polymorphic {
 public:
     /// \brief Called right before the run starts, i.e. after initial conditions are set up.
+    ///
+    /// Since this call, the run can arbitrarily modify the storage, so it is only safe to access the
+    /// quantities from \ref onTimeStep calls.
     virtual void onRunStart(const Storage& storage, Statistics& stats) = 0;
 
-    /// \brief Called after run ends. Does not get called if run is aborted.
+    /// \brief Called after run ends and the storage is finalized.
+    ///
+    /// This is called after \ref IRun::tearDown. Since this call, run no longer modifies the storage and it
+    /// is therefore safe to access the storage from different thread.
     virtual void onRunEnd(const Storage& storage, Statistics& stats) = 0;
 
     /// \brief Called every timestep.
+    ///
+    /// This is a blocking call, run is paused until the function returns. This allows to safely access the
+    /// storage and run statistics. Note that accessing the storage from different thread during run is
+    /// generally unsafe, as the storage can be resized during the run.
     virtual void onTimeStep(const Storage& storage, Statistics& stats) = 0;
 
     /// \brief Called if one of the run diagnostics reports a problem.

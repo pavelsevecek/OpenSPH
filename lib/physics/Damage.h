@@ -16,12 +16,6 @@ NAMESPACE_SPH_BEGIN
 struct MaterialInitialContext;
 class IScheduler;
 
-enum class DamageFlag {
-    PRESSURE = 1 << 0,         ///< Compute damaged values of pressure in place
-    STRESS_TENSOR = 1 << 1,    ///< Compute damaged stress tensor and save them as quantity modification
-    REDUCTION_FACTOR = 1 << 2, ///< Modify reduction factor (QuanityId::REDUCE) due to damage
-};
-
 /// \brief Interface representing a fragmentation model.
 class IFractureModel : public Polymorphic {
 public:
@@ -29,12 +23,6 @@ public:
     virtual void setFlaws(Storage& storage,
         IMaterial& material,
         const MaterialInitialContext& context) const = 0;
-
-    /// \brief Computes modified values of given quantity due to fragmentation.
-    virtual void reduce(IScheduler& scheduler,
-        Storage& storage,
-        const Flags<DamageFlag> flags,
-        const MaterialView sequence) = 0;
 
     /// \brief Compute damage derivatives
     virtual void integrate(IScheduler& scheduler, Storage& storage, const MaterialView sequence) = 0;
@@ -62,11 +50,6 @@ public:
         IMaterial& material,
         const MaterialInitialContext& context) const override;
 
-    virtual void reduce(IScheduler& scheduler,
-        Storage& storage,
-        const Flags<DamageFlag> flags,
-        const MaterialView material) override;
-
     virtual void integrate(IScheduler& scheduler, Storage& storage, const MaterialView material) override;
 };
 
@@ -75,11 +58,6 @@ public:
     virtual void setFlaws(Storage& storage,
         IMaterial& material,
         const MaterialInitialContext& context) const override;
-
-    virtual void reduce(IScheduler& scheduler,
-        Storage& storage,
-        const Flags<DamageFlag> flags,
-        const MaterialView material) override;
 
     virtual void integrate(IScheduler& scheduler, Storage& storage, const MaterialView material) override;
 };
@@ -98,11 +76,6 @@ public:
     virtual void setFlaws(Storage& storage,
         IMaterial& material,
         const MaterialInitialContext& context) const override;
-
-    virtual void reduce(IScheduler& scheduler,
-        Storage& storage,
-        const Flags<DamageFlag> flags,
-        const MaterialView material) override;
 
     virtual void integrate(IScheduler& scheduler, Storage& storage, const MaterialView material) override;
 };

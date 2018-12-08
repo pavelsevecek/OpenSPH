@@ -118,7 +118,7 @@ void NBodySolver::integrate(Storage& storage, Statistics& stats) {
     gravity->build(scheduler, storage);
 
     ArrayView<Vector> dv = storage.getD2t<Vector>(QuantityId::POSITION);
-    ASSERT(std::all_of(dv.begin(), dv.end(), [](Vector& a) { return a == Vector(0._f); }));
+    ASSERT_UNEVAL(std::all_of(dv.begin(), dv.end(), [](Vector& a) { return a == Vector(0._f); }));
     gravity->evalAll(scheduler, dv, stats);
 
     // null all derivatives of smoothing lengths (particle radii)
@@ -348,7 +348,7 @@ void NBodySolver::collide(Storage& storage, Statistics& stats, const Float dt) {
 
     // apply the removal list
     if (!removed.empty()) {
-        storage.remove(removed, Storage::RemoveFlag::INDICES_SORTED);
+        storage.remove(removed, Storage::IndicesFlag::INDICES_SORTED);
         // remove it also from all dependent storages, since this is a permanent action
         storage.propagate([this](Storage& dependent) { dependent.remove(removed); });
     }
@@ -358,12 +358,11 @@ void NBodySolver::collide(Storage& storage, Statistics& stats, const Float dt) {
 }
 
 void NBodySolver::create(Storage& storage, IMaterial& UNUSED(material)) const {
-    storage.insert<Vector>(QuantityId::ANGULAR_MOMENTUM, OrderEnum::ZERO, Vector(0._f));
-
     // dependent quantity, computed from angular momentum
     storage.insert<Vector>(QuantityId::ANGULAR_FREQUENCY, OrderEnum::ZERO, Vector(0._f));
 
     if (rigidBody.use) {
+        storage.insert<Vector>(QuantityId::ANGULAR_MOMENTUM, OrderEnum::ZERO, Vector(0._f));
         storage.insert<SymmetricTensor>(
             QuantityId::MOMENT_OF_INERTIA, OrderEnum::ZERO, SymmetricTensor::null());
         ArrayView<const Vector> r = storage.getValue<Vector>(QuantityId::POSITION);

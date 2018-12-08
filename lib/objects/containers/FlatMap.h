@@ -71,7 +71,7 @@ public:
     ///
     /// The element must exists in the map, checked by assert.
     INLINE const TValue& operator[](const TKey& key) const {
-        Element* element = this->find(key);
+        const Element* element = this->find(key);
         ASSERT(element);
         return element->value;
     }

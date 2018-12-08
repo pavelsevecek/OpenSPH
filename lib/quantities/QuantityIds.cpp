@@ -36,6 +36,8 @@ QuantityMetadata getMetadata(const QuantityId key) {
         return QuantityMetadata("Density", L"\u03C1" /*rho*/, ValueEnum::SCALAR);
     case QuantityId::ENERGY:
         return QuantityMetadata("Specific energy", L"u", ValueEnum::SCALAR);
+    case QuantityId::TEMPERATURE:
+        return QuantityMetadata("Temperature", L"T", ValueEnum::SCALAR);
     case QuantityId::SOUND_SPEED:
         return QuantityMetadata("Sound speed", L"c_s", ValueEnum::SCALAR);
     case QuantityId::DEVIATORIC_STRESS:
@@ -100,6 +102,8 @@ QuantityMetadata getMetadata(const QuantityId key) {
         return QuantityMetadata("Grav. potential", L"\u03A6" /*Phi*/, ValueEnum::SCALAR);
     case QuantityId::ANGULAR_FREQUENCY:
         return QuantityMetadata("Angular frequency", L"\u03C9" /*omega*/, ValueEnum::VECTOR);
+    case QuantityId::ANGULAR_MOMENTUM:
+        return QuantityMetadata("Angular momentum", L"L", ValueEnum::VECTOR);
     case QuantityId::NEIGHBOUR_CNT:
         return QuantityMetadata("Neigh. cnt", L"N_neigh", ValueEnum::INDEX);
     case QuantityId::SURFACE_NORMAL:

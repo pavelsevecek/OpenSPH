@@ -11,6 +11,9 @@ LIBS += ../../gui/libgui.a
 LIBS += ../../lib/liblib.a # must be used after libgui
 LIBS += `wx-config --libs --gl-libs`
 
+INCLUDEPATH += /usr/include/tb
+QMAKE_LFLAGS += -ltbb -ltbb_debug -ltbbmalloc -ltbbmalloc_debug
+
 
 INCLUDEPATH += /usr/include/eigen3
 DEFINES += SPH_USE_EIGEN

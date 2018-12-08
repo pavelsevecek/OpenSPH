@@ -92,6 +92,10 @@ struct Coords : public BasicPoint<float, Coords> {
     explicit operator Pixel() const {
         return Pixel(int(x), int(y));
     }
+
+    explicit operator wxPoint() const {
+        return wxPoint(int(x), int(y));
+    }
 };
 
 template <typename T, typename TDerived>

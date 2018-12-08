@@ -12,6 +12,11 @@
 
 NAMESPACE_SPH_BEGIN
 
+class IRenderContext;
+
+/// \todo exposed for PaletteDialog, should be possibly generalized, used by other renderers, etc.
+void drawPalette(IRenderContext& context, const Pixel origin, const Rgba& lineColor, const Palette& palette);
+
 class ParticleRenderer : public IRenderer {
 private:
     /// Grid size
@@ -19,6 +24,9 @@ private:
 
     /// Background color
     Rgba background;
+
+    /// Show ghost particles
+    bool renderGhosts;
 
     /// Cached values of visible particles, used for faster drawing.
     struct {

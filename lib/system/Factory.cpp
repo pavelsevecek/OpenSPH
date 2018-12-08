@@ -348,6 +348,8 @@ AutoPtr<IBoundaryCondition> Factory::getBoundaryConditions(const RunSettings& se
     case BoundaryEnum::GHOST_PARTICLES:
         ASSERT(domain != nullptr);
         return makeAuto<GhostParticles>(std::move(domain), settings);
+    case BoundaryEnum::FIXED_PARTICLES:
+        throw InvalidSetup("FixedParticles cannot be create from Factory, use manual setup.");
     case BoundaryEnum::FROZEN_PARTICLES:
         if (domain) {
             const Float radius = settings.get<Float>(RunSettingsId::DOMAIN_FROZEN_DIST);
@@ -411,19 +413,25 @@ AutoPtr<IOutput> Factory::getOutput(const RunSettings& settings) {
     const IoEnum id = settings.get<IoEnum>(RunSettingsId::RUN_OUTPUT_TYPE);
     const Path outputPath(settings.get<std::string>(RunSettingsId::RUN_OUTPUT_PATH));
     const Path fileMask(settings.get<std::string>(RunSettingsId::RUN_OUTPUT_NAME));
+    const Size firstIndex = settings.get<int>(RunSettingsId::RUN_OUTPUT_FIRST_INDEX);
+    const OutputFile file(outputPath / fileMask, firstIndex);
     switch (id) {
     case IoEnum::NONE:
         return makeAuto<NullOutput>();
-    case IoEnum::TEXT_FILE:
-        return makeAuto<TextOutput>(outputPath / fileMask,
-            settings.get<std::string>(RunSettingsId::RUN_NAME),
-            settings.getFlags<OutputQuantityFlag>(RunSettingsId::RUN_OUTPUT_QUANTITIES));
-    case IoEnum::BINARY_FILE:
-        return makeAuto<BinaryOutput>(outputPath / fileMask);
+    case IoEnum::TEXT_FILE: {
+        const std::string name = settings.get<std::string>(RunSettingsId::RUN_NAME);
+        const Flags<OutputQuantityFlag> flags =
+            settings.getFlags<OutputQuantityFlag>(RunSettingsId::RUN_OUTPUT_QUANTITIES);
+        return makeAuto<TextOutput>(file, name, flags);
+    }
+    case IoEnum::BINARY_FILE: {
+        const RunTypeEnum runType = settings.get<RunTypeEnum>(RunSettingsId::RUN_TYPE);
+        return makeAuto<BinaryOutput>(file, runType);
+    }
     case IoEnum::PKDGRAV_INPUT: {
         PkdgravParams pkd;
         pkd.omega = settings.get<Vector>(RunSettingsId::FRAME_ANGULAR_FREQUENCY);
-        return makeAuto<PkdgravOutput>(outputPath / fileMask, std::move(pkd));
+        return makeAuto<PkdgravOutput>(file, std::move(pkd));
     }
     default:
         NOT_IMPLEMENTED;
@@ -459,7 +467,8 @@ LutKernel<D> Factory::getKernel(const RunSettings& settings) {
         return TriangleKernel<D>();
     case KernelEnum::CORE_TRIANGLE:
         ASSERT(D == 3);
-        return CoreTriangle();
+        // original core triangle has radius 1, rescale to 2 for drop-in replacement of cubic spline
+        return ScalingKernel<3, CoreTriangle>(2._f);
     case KernelEnum::THOMAS_COUCHMAN:
         return ThomasCouchmanKernel<D>();
     case KernelEnum::WENDLAND_C2:

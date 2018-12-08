@@ -42,10 +42,12 @@ public:
         start = this->mapToSphere(point);
     }
 
-    /// \brief Called when mouse moves, rotating the object
+    /// \brief Called when mouse moves, rotating the object.
     ///
+    /// \param point Current mouse position in image space.
+    /// \param pivot Center of rotation.
     /// \return New rotation matrix of the object
-    AffineMatrix drag(const Pixel point) {
+    AffineMatrix drag(const Pixel point, const Vector& pivot) {
         ASSERT(isReal(start));
         const Vector end = this->mapToSphere(point);
         const Vector perp = cross(start, end);
@@ -55,7 +57,12 @@ public:
             q[1] = perp[1];
             q[2] = perp[2];
             q[3] = dot(start, end);
-            return q.convert();
+
+            AffineMatrix result = AffineMatrix::identity();
+            result.translate(pivot);
+            result = result * q.convert();
+            result.translate(-pivot);
+            return result;
         } else {
             return AffineMatrix::identity();
         }

@@ -352,7 +352,6 @@ TEST_CASE("Pkdgrav output", "[output]") {
     REQUIRE(FileSystem::fileSize(path2) == 0);
 }
 
-
 TEST_CASE("Pkdgrav load", "[output]") {
     // hardcoded path to pkdgrav output
     Path path("/home/pavel/projects/astro/sph/external/sph_0.541_5_45/pkdgrav_run/ss.last.bt");
@@ -387,4 +386,14 @@ TEST_CASE("Pkdgrav load", "[output]") {
     /*Array<Float>& rho = storage->getValue<Float>(QuantityId::DENSITY);
     REQUIRE(perElement(rho) < 2800._f);
     REQUIRE(perElement(rho) > 2600._f);*/
+}
+
+TEST_CASE("OutputFile getDumpIdx", "[output]") {
+    REQUIRE(OutputFile::getDumpIdx(Path("test_0005")).valueOr(0) == 5);
+    REQUIRE(OutputFile::getDumpIdx(Path("0013")).valueOr(0) == 13);
+    REQUIRE(OutputFile::getDumpIdx(Path("out-0242.txt")).valueOr(0) == 242);
+    REQUIRE(OutputFile::getDumpIdx(Path("directory0124/out_5131.txt")).valueOr(0) == 5131);
+    REQUIRE_FALSE(OutputFile::getDumpIdx(Path("out_244.txt")));
+    REQUIRE_FALSE(OutputFile::getDumpIdx(Path("")));
+    REQUIRE_FALSE(OutputFile::getDumpIdx(Path("45786")));
 }

@@ -81,11 +81,15 @@ public:
 
     template <bool Symmetrize>
     INLINE Tuple<Vector, Float> eval(const Size i, const Size j, const Vector& UNUSED(grad)) {
+        if (SPH_UNLIKELY(r[i] == r[j])) {
+            return { Vector(0._f), 0._f };
+        }
         const Vector dr = getNormalized(r[i] - r[j]);
         const Float C = kernel.value(r[i], r[j]);
 
         // cohesive term + surface area normalizing term
         const Vector f = -gamma * C * dr - gamma * (n[i] - n[j]);
+        ASSERT(isReal(f));
 
         return { f, 0._f }; /// \todo heating?
     }

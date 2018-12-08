@@ -14,6 +14,8 @@ template <typename T>
 class Function;
 template <typename T>
 class Optional;
+template <typename T>
+class BasicOutcome;
 
 class IScheduler;
 class Task;

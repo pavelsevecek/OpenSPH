@@ -47,8 +47,8 @@ public:
 /// Helper function to create ExternalForce utilizing type deduction. This way, we can use lambda as the
 /// template functor.
 template <typename TFunctor>
-AutoPtr<ExternalForce<TFunctor>> makeExternalForce(TFunctor&& functor) {
-    return makeAuto<ExternalForce<TFunctor>>(std::forward<TFunctor>(functor));
+EquationHolder makeExternalForce(TFunctor&& functor) {
+    return EquationHolder(makeShared<ExternalForce<TFunctor>>(std::forward<TFunctor>(functor)));
 }
 
 /// \brief Centrifugal and Coriolis force

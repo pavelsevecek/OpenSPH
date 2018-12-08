@@ -161,6 +161,8 @@ enum class GuiSettingsId {
 
     BACKGROUND_COLOR,
 
+    RENDER_GHOST_PARTICLES,
+
     /// Displayed radius of particle in units of smoothing length
     PARTICLE_RADIUS,
 
@@ -267,6 +269,8 @@ enum class GuiSettingsId {
     PALETTE_ACTIVATION_STRAIN,
 
     PALETTE_TOTAL_ENERGY,
+
+    PALETTE_TEMPERATURE,
 
     PALETTE_AV_STRESS
 };

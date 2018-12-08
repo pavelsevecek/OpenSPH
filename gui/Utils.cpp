@@ -117,8 +117,7 @@ static Pixel getOriginOffset(wxDC& dc, Flags<TextAlign> align, const std::wstrin
     return offset;
 }
 
-void printLabels(wxBitmap& bitmap, ArrayView<const IRenderOutput::Label> labels) {
-    wxMemoryDC dc(bitmap);
+void printLabels(wxDC& dc, ArrayView<const IRenderOutput::Label> labels) {
     wxFont font = dc.GetFont();
     for (const IRenderOutput::Label& label : labels) {
         dc.SetTextForeground(wxColour(label.color));
@@ -127,7 +126,6 @@ void printLabels(wxBitmap& bitmap, ArrayView<const IRenderOutput::Label> labels)
         const wxPoint origin(label.position + getOriginOffset(dc, label.align, label.text));
         drawTextWithSubscripts(dc, label.text, origin);
     }
-    dc.SelectObject(wxNullBitmap);
 }
 
 NAMESPACE_SPH_END

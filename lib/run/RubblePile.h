@@ -7,10 +7,11 @@ NAMESPACE_SPH_BEGIN
 
 class RubblePileRunPhase : public IRunPhase {
 private:
-    Presets::CollisionParams params;
+    Presets::CollisionParams collisionParams;
 
 public:
-    explicit RubblePileRunPhase(const Presets::CollisionParams params, SharedPtr<IRunCallbacks> callbacks);
+    explicit RubblePileRunPhase(const Presets::CollisionParams collisionParams,
+        SharedPtr<IRunCallbacks> callbacks);
 
     virtual void setUp() override;
 

@@ -53,6 +53,8 @@ private:
 
     void onRightUp(wxMouseEvent& evt);
 
+    void onDoubleClick(wxMouseEvent& evt);
+
     void onMouseWheel(wxMouseEvent& evt);
 };
 

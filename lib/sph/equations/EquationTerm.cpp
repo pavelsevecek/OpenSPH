@@ -117,7 +117,7 @@ public:
     INLINE void additionalCreate(Accumulated& UNUSED(results)) {}
 
     INLINE void additionalInitialize(const Storage& input, Accumulated& UNUSED(results)) {
-        s = input.getPhysicalValue<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
+        s = input.getValue<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
         discr.initialize(input);
     }
 
@@ -169,31 +169,20 @@ void SolidStressForce::initialize(IScheduler& UNUSED(scheduler), Storage& UNUSED
 void SolidStressForce::finalize(IScheduler& scheduler, Storage& storage) {
     ArrayView<Float> rho = storage.getValue<Float>(QuantityId::DENSITY);
     ArrayView<TracelessTensor> s, ds;
-    tie(s, ds) = storage.getPhysicalAll<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
+    tie(s, ds) = storage.getAll<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
     ArrayView<Float> du = storage.getDt<Float>(QuantityId::ENERGY);
     ArrayView<SymmetricTensor> gradv = storage.getValue<SymmetricTensor>(QuantityId::VELOCITY_GRADIENT);
-    // ArrayView<Vector> rhoRotV = storage.getValue<Vector>(QuantityId::STRENGTH_DENSITY_VELOCITY_ROTATION);
-    ArrayView<Float> reduce = storage.getValue<Float>(QuantityId::STRESS_REDUCING);
 
     for (Size matIdx = 0; matIdx < storage.getMaterialCnt(); ++matIdx) {
         MaterialView material = storage.getMaterial(matIdx);
         const Float mu = material->getParam<Float>(BodySettingsId::SHEAR_MODULUS);
         IndexSequence seq = material.sequence();
         parallelFor(scheduler, *seq.begin(), *seq.end(), [&](const Size i) INL {
-            if (reduce[i] == 0._f) {
-                return;
-            }
             du[i] += 1._f / rho[i] * ddot(s[i], gradv[i]);
 
             // Hooke's law
             TracelessTensor dev(gradv[i] - SymmetricTensor::identity() * gradv[i].trace() / 3._f);
             ds[i] += 2._f * mu * dev;
-
-            // add rotation terms for independence of reference frame
-            /*const AffineMatrix R = 0.5_f * AffineMatrix::crossProductOperator(rhoRotV[i]);
-            const AffineMatrix S = convert<AffineMatrix>(s[i]);
-            const TracelessTensor ds_rot = convert<TracelessTensor>(1._f / rho[i] * (S * R - R * S));
-            ds[i] += ds_rot;*/
             ASSERT(isReal(du[i]) && isReal(ds[i]));
         });
     }
@@ -229,7 +218,7 @@ void NavierStokesForce::initialize(IScheduler& UNUSED(scheduler), Storage& UNUSE
 void NavierStokesForce::finalize(IScheduler& UNUSED(scheduler), Storage& storage) {
     ArrayView<Float> rho = storage.getValue<Float>(QuantityId::DENSITY);
     ArrayView<TracelessTensor> s, ds;
-    tie(s, ds) = storage.getPhysicalAll<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
+    tie(s, ds) = storage.getAll<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
     ArrayView<Float> du = storage.getDt<Float>(QuantityId::ENERGY);
     ArrayView<SymmetricTensor> gradv = storage.getValue<SymmetricTensor>(QuantityId::VELOCITY_GRADIENT);
 

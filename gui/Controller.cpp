@@ -111,22 +111,32 @@ void Controller::pause() {
 }
 
 void Controller::stop(const bool waitForFinish) {
-    CHECK_FUNCTION(CheckFunction::MAIN_THREAD); // just to make sure there is no race condition on status
-    status = RunStatus::STOPPED;
+    CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
+
+    sph.shouldContinue = false;
+
     // notify continue CV to unpause run (if it's paused), otherwise we would get deadlock
     continueVar.notify_one();
 
     if (waitForFinish && sph.thread.joinable()) {
         sph.thread.join();
+        ASSERT(status == RunStatus::STOPPED);
     }
 }
 
 void Controller::saveState(const Path& path) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
-    ASSERT(path.extension() == Path("ssf"));
     auto dump = [path](const Storage& storage, const Statistics& stats) {
-        BinaryOutput output(path);
-        output.dump(storage, stats);
+        if (path.extension() == Path("ssf")) {
+            BinaryOutput output(path);
+            output.dump(storage, stats);
+        } else {
+            ASSERT(path.extension() == Path("txt"));
+            TextOutput output(path,
+                "unnamed",
+                OutputQuantityFlag::INDEX | OutputQuantityFlag::POSITION | OutputQuantityFlag::VELOCITY);
+            output.dump(storage, stats);
+        }
     };
 
     if (status == RunStatus::RUNNING) {
@@ -239,14 +249,14 @@ GuiSettings& Controller::getParams() {
 }
 
 void Controller::setParams(const GuiSettings& settings) {
-    CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
+    // CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
     gui = settings;
     // reset camera
     const Pixel size(gui.get<int>(GuiSettingsId::VIEW_WIDTH), gui.get<int>(GuiSettingsId::VIEW_HEIGHT));
+    std::unique_lock<std::mutex> cameraLock(vis.cameraMutex);
     vis.camera = Factory::getCamera(gui, size);
     // reset renderer with new params
-    /// \todo this needs to be generic
-    this->setRenderer(makeAuto<ParticleRenderer>(gui));
+    this->setRenderer(Factory::getRenderer(*ThreadPool::getGlobalInstance(), gui));
 }
 
 void Controller::update(const Storage& storage) {
@@ -254,7 +264,7 @@ void Controller::update(const Storage& storage) {
     /// \todo can we do this safely from run thread?
     executeOnMainThread([this, &storage] { //
         window->runStarted();
-        window->setColorizerList(this->getColorizerList(storage, false, {}));
+        window->setColorizerList(this->getColorizerList(storage, false, vis.paletteOverrides));
     });
 
     // draw initial positions of particles
@@ -265,16 +275,12 @@ void Controller::update(const Storage& storage) {
 
     // set up animation object
     movie = this->createMovie(storage);
-}
 
-void Controller::setRunning() {
-    // make sure we don't swith the status while rendering
-    std::unique_lock<std::mutex> lock(vis.renderThreadMutex);
-    status = RunStatus::RUNNING;
+    sph.shouldContinue = true;
 }
 
 bool Controller::shouldAbortRun() const {
-    return status == RunStatus::STOPPED || status == RunStatus::QUITTING;
+    return !sph.shouldContinue;
 }
 
 bool Controller::isQuitting() const {
@@ -307,7 +313,6 @@ Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage
         colorizerIds.push(ColorizerId::BEAUTY);
     }
 
-
     colorizerIds.push(ColorizerId::BOUND_COMPONENT_ID);
 
     if (!forMovie) {
@@ -323,6 +328,10 @@ Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage
         colorizerIds.push(ColorizerId::PARTICLE_ID);
         colorizerIds.push(ColorizerId::COMPONENT_ID);
         colorizerIds.push(ColorizerId::MARKER);
+
+        if (storage.has(QuantityId::ENERGY)) {
+            colorizerIds.push(ColorizerId::TEMPERATURE);
+        }
 
         if (storage.getUserData()) {
             colorizerIds.push(ColorizerId::AGGREGATE_ID);
@@ -348,14 +357,12 @@ Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage
         QuantityId::FRICTION,
     });
 
-    /// \todo temporarily outside forMovie
-    quantityColorizerIds.push(QuantityId::AV_STRESS);
-
     if (!forMovie) {
         quantityColorizerIds.push(QuantityId::DENSITY);
         quantityColorizerIds.push(QuantityId::MASS);
         quantityColorizerIds.push(QuantityId::AV_ALPHA);
         quantityColorizerIds.push(QuantityId::AV_BALSARA);
+        quantityColorizerIds.push(QuantityId::AV_STRESS);
         quantityColorizerIds.push(QuantityId::ANGULAR_FREQUENCY);
         quantityColorizerIds.push(QuantityId::MOMENT_OF_INERTIA);
         quantityColorizerIds.push(QuantityId::STRAIN_RATE_CORRECTION_TENSOR);
@@ -368,20 +375,22 @@ Array<SharedPtr<IColorizer>> Controller::getColorizerList(const Storage& storage
 
     Array<SharedPtr<IColorizer>> colorizers;
     // add velocity (always present)
-    colorizers.push(Factory::getColorizer(gui, ColorizerId::VELOCITY));
+    colorizers.push(Factory::getColorizer(gui, ColorizerId::VELOCITY, overrides));
 
-    // add all quantity colorizers (sorted by the key)
-    std::sort(quantityColorizerIds.begin(), quantityColorizerIds.end());
-    for (QuantityId id : quantityColorizerIds) {
-        if (storage.has(id)) {
-            colorizers.push(Factory::getColorizer(gui, ColorizerId(id)));
+    if (!forMovie) {
+        // add all quantity colorizers (sorted by the key)
+        std::sort(quantityColorizerIds.begin(), quantityColorizerIds.end());
+        for (QuantityId id : quantityColorizerIds) {
+            if (storage.has(id)) {
+                colorizers.push(Factory::getColorizer(gui, ColorizerId(id), overrides));
+            }
         }
-    }
 
-    // add all auxiliary colorizers (sorted by the key)
-    std::sort(colorizerIds.begin(), colorizerIds.end());
-    for (ColorizerId id : colorizerIds) {
-        colorizers.push(Factory::getColorizer(gui, id, overrides));
+        // add all auxiliary colorizers (sorted by the key)
+        std::sort(colorizerIds.begin(), colorizerIds.end());
+        for (ColorizerId id : colorizerIds) {
+            colorizers.push(Factory::getColorizer(gui, id, overrides));
+        }
     }
     return colorizers;
 }
@@ -470,12 +479,12 @@ void Controller::setColorizer(const SharedPtr<IColorizer>& newColorizer) {
 }
 
 void Controller::setRenderer(AutoPtr<IRenderer>&& newRenderer) {
-    CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
+    // CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
 
     auto func = [this, renderer = std::move(newRenderer)](
                     const Storage& storage, const Statistics& UNUSED(stats)) mutable {
         ASSERT(sph.run);
-        // if no simulation is running, it's safe to switch renderers and access storage
+        std::unique_lock<std::mutex> renderLock(vis.renderThreadMutex);
         vis.renderer = std::move(renderer);
         vis.colorizer->initialize(storage, RefEnum::STRONG);
         vis.renderer->initialize(storage, *vis.colorizer, *vis.camera);
@@ -483,7 +492,6 @@ void Controller::setRenderer(AutoPtr<IRenderer>&& newRenderer) {
     };
 
     vis.renderer->cancelRender();
-    std::unique_lock<std::mutex> renderLock(vis.renderThreadMutex);
     if (status != RunStatus::RUNNING) {
         // if no simulation is running, it's safe to switch renderers and access storage directly
         Statistics dummy;
@@ -513,6 +521,18 @@ void Controller::setSelectedParticle(const Optional<Size>& particleIdx) {
     window->deselectParticle();
 }
 
+void Controller::setPaletteOverride(const ColorizerId id, const Palette palette) {
+    CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
+
+    vis.paletteOverrides.insert(id, palette);
+    /// \todo accessing storage from main thread! (should be ok as we only check whether quantities exist, but
+    /// ...)
+    Array<SharedPtr<IColorizer>> colorizers =
+        this->getColorizerList(*sph.run->getStorage(), false, vis.paletteOverrides);
+    window->setColorizerList(colorizers.clone());
+    this->setColorizer(colorizers[0]);
+}
+
 Optional<Size> Controller::getSelectedParticle() const {
     return vis.selectedParticle;
 }
@@ -538,7 +558,7 @@ SharedPtr<Movie> Controller::createMovie(const Storage& storage) {
         colorizers = { Factory::getColorizer(gui, ColorizerId::VELOCITY) };
         break;
     case RendererEnum::RAYTRACER:
-        colorizers = { Factory::getColorizer(gui, ColorizerId::BEAUTY) };
+        colorizers = { Factory::getColorizer(gui, ColorizerId::VELOCITY) };
         break;
     default:
         STOP;
@@ -607,6 +627,8 @@ void Controller::refresh(AutoPtr<ICamera>&& camera) {
 
 void Controller::startRunThread(const Path& path) {
     sph.thread = std::thread([this, path] {
+        sph.shouldContinue = true;
+
         try {
             // create storage and set up initial conditions
             sph.run->setUp();
@@ -661,7 +683,9 @@ void Controller::startRenderThread() {
 
             auto callback = [this, bitmap = bitmap.clone(), labels = std::move(labels)] {
                 toWxBitmap(bitmap, *vis.bitmap);
-                printLabels(*vis.bitmap, labels);
+                wxMemoryDC dc(*vis.bitmap);
+                printLabels(dc, labels);
+                dc.SelectObject(wxNullBitmap);
                 window->Refresh();
                 vis.refreshPending = true;
             };

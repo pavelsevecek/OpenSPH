@@ -40,10 +40,9 @@ public:
         ASSERT(contains(getId()));
         ASSERT(other.contains(other.getId()));
 
-#ifdef SPH_DEBUG
         Size n1 = size();
         Size n2 = other.size();
-#endif
+
         // preserve ID of the aggregate containing more particles
         if (other.size() > this->size()) {
             persistentId = other.persistentId;

@@ -56,15 +56,9 @@ void RayTracer::initialize(const Storage& storage,
 
     cached.flags.resize(particleCnt);
     ArrayView<const Size> idxs = storage.getValue<Size>(QuantityId::FLAG);
-    ArrayView<const Float> reduce = storage.getValue<Float>(QuantityId::STRESS_REDUCING);
     // assign separate flag to fully damaged particles so that they do not blend with other particles
-    // Size damagedIdx = 5;
     for (Size i = 0; i < particleCnt; ++i) {
-        if (reduce[i] == 0._f) {
-            cached.flags[i] = idxs[i]; // damagedIdx++;
-        } else {
-            cached.flags[i] = idxs[i];
-        }
+        cached.flags[i] = idxs[i];
     }
 
     ArrayView<const Float> rho, m;

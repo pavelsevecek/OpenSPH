@@ -30,6 +30,11 @@ PlotView::PlotView(wxWindow* parent,
     this->updatePlot(defaultSelectedIdx);
 }
 
+void PlotView::resize(const Pixel size) {
+    //    this->SetMaxSize(wxSize(size.x, size.y));
+    this->SetSize(wxSize(size.x, size.y));
+}
+
 static Interval extendRange(const Interval& range, const bool addZero) {
     Interval actRange = range;
     if (addZero) {
@@ -201,7 +206,12 @@ PlotFrame::PlotFrame(wxWindow* parent, const wxSize size, const wxSize padding, 
     wxSize viewSize(size.x, size.y - toolbarHeight);
     plotView = new PlotView(this, viewSize, padding, data, 0, true);
     sizer->Add(plotView);
-    this->SetSizer(sizer);
+    this->SetSizerAndFit(sizer);
+
+    this->Bind(wxEVT_SIZE, [this, toolbarHeight](wxSizeEvent& UNUSED(evt)) {
+        const wxSize size = evt.GetSize();
+        plotView->resize(Pixel(size.x, size.y - toolbarHeight));
+    });
 }
 
 wxBoxSizer* PlotFrame::createToolbar(const Size UNUSED(toolbarHeight)) {

@@ -16,7 +16,7 @@
 using namespace Sph;
 
 Storage loadSsf(const Path& path) {
-    BinaryOutput io;
+    BinaryInput io;
     Storage storage;
     Statistics stats;
     io.load(path, storage, stats);

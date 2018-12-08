@@ -8,6 +8,7 @@
 #include "objects/wrappers/Finally.h"
 #include "post/Plot.h"
 #include "post/Point.h"
+#include "sph/boundary/Boundary.h"
 #include "system/Profiler.h"
 #include "system/Statistics.h"
 #include "thread/CheckFunction.h"
@@ -49,9 +50,8 @@ static void drawVector(IRenderContext& context,
     context.drawLine(c2, c2 + Coords(a2.x, a2.y));
 }
 
-static void drawPalette(IRenderContext& context, const Rgba& lineColor, const Palette& palette) {
+void drawPalette(IRenderContext& context, const Pixel origin, const Rgba& lineColor, const Palette& palette) {
     const int size = 201;
-    Pixel origin(context.size().x - 50, size + 30);
 
     // draw palette
     for (Size i = 0; i < size; ++i) {
@@ -132,6 +132,7 @@ static void drawGrid(IRenderContext& context, const ICamera& camera, const float
 ParticleRenderer::ParticleRenderer(const GuiSettings& settings) {
     grid = settings.get<Float>(GuiSettingsId::VIEW_GRID_SIZE);
     background = settings.get<Rgba>(GuiSettingsId::BACKGROUND_COLOR);
+    renderGhosts = settings.get<bool>(GuiSettingsId::RENDER_GHOST_PARTICLES);
     shouldContinue = true;
 }
 
@@ -167,6 +168,23 @@ void ParticleRenderer::initialize(const Storage& storage,
             }
         }
     }
+
+    if (renderGhosts) {
+        SharedPtr<IStorageUserData> data = storage.getUserData();
+        if (RawPtr<GhostParticlesData> ghosts = dynamicCast<GhostParticlesData>(data.get())) {
+            for (Size i = 0; i < ghosts->size(); ++i) {
+                const Vector pos = ghosts->getGhost(i).position;
+                const Optional<ProjectedPoint> p = camera.project(pos);
+                if (p && !isCutOff(camera, pos)) {
+                    cached.idxs.push(Size(-1));
+                    cached.positions.push(pos);
+                    cached.colors.push(Rgba::transparent());
+                    cached.vectors.push(Vector(0._f));
+                }
+            }
+        }
+    }
+
     // sort in z-order
     const Vector dir = camera.getDirection();
     Order order(cached.positions.size());
@@ -230,6 +248,10 @@ void ParticleRenderer::render(const RenderParams& params, Statistics& stats, IRe
             }
         } else {
             context.setColor(cached.colors[i], ColorFlag::FILL | ColorFlag::LINE);
+            if (cached.idxs[i] == Size(-1)) {
+                // ghost
+                context.setColor(Rgba::gray(0.7_f), ColorFlag::LINE);
+            }
         }
 
         const Optional<ProjectedPoint> p = params.camera->project(cached.positions[i]);
@@ -243,7 +265,8 @@ void ParticleRenderer::render(const RenderParams& params, Statistics& stats, IRe
     }
 
     if (cached.palette) {
-        drawPalette(context, background.inverse(), cached.palette.value());
+        const Pixel origin(context.size().x - 50, 231);
+        drawPalette(context, origin, background.inverse(), cached.palette.value());
     }
 
     const Float time = stats.get<Float>(StatisticsId::RUN_TIME);

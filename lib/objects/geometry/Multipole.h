@@ -456,7 +456,7 @@ public:
         return data;
     }
 
-    INLINE Float operator[](const Size UNUSED_IN_RELEASE(idx)) const {
+    INLINE Float operator[](const Size idx) const {
         ASSERT(idx == 0);
         return data;
     }

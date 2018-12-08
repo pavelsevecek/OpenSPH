@@ -111,7 +111,7 @@ public:
     /// buffer, but it is required to check that we are indeed returning the required order of quantity. It
     /// also makes the code more readable.
     template <typename TValue>
-    Array<TValue>& getBuffer(const QuantityId id, const OrderEnum UNUSED_IN_RELEASE(order)) {
+    Array<TValue>& getBuffer(const QuantityId id, const OrderEnum order) {
         for (Element& e : buffers) {
             if (e.id == id) {
                 ASSERT(e.order == order);
@@ -219,7 +219,7 @@ private:
         parallelFor(scheduler, 0, buffer1.size(), functor);
     }
 
-    bool hasBuffer(const QuantityId id, const OrderEnum UNUSED_IN_RELEASE(order)) const {
+    bool hasBuffer(const QuantityId id, const OrderEnum order) const {
         for (const Element& e : buffers) {
             if (e.id == id) {
                 // already used

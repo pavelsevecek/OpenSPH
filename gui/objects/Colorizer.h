@@ -136,18 +136,19 @@ enum class ColorizerId {
     SUMMED_DENSITY = -7,       ///< Density computed from particle masses by direct summation of neighbours
     TOTAL_STRESS = -8,         ///< Total stress (sigma = S - pI)
     TOTAL_ENERGY = -9,         ///< Sum of kinetic and internal energy for given particle
-    YIELD_REDUCTION = -10,     ///< Reduction of stress tensor due to yielding (1 - f_vonMises)
-    DAMAGE_ACTIVATION = -11,   ///< Ratio of the stress and the activation strain
-    RADIUS = -12,              ///< Radii/smoothing lenghts of particles
-    UVW = -13,                 ///< Shows UV mapping, u-coordinate in red and v-coordinate in blur
-    BOUNDARY = -14,            ///< Shows boundary particles
-    PARTICLE_ID = -15,         ///< Each particle drawn with different color
-    COMPONENT_ID = -16,        ///< Color assigned to each component (group of connected particles)
-    BOUND_COMPONENT_ID = -17,  ///< Color assigned to each group of gravitationally bound particles
-    AGGREGATE_ID = -18,        ///< Color assigned to each aggregate
-    FLAG = -19,                ///< Particles of different bodies are colored differently
-    BEAUTY = -20,              ///< Attempts to show the real-world look
-    MARKER = -21, ///< Simple colorizer assigning given color to all particles, creating particle "mask".
+    TEMPERATURE = -10,         ///< Temperature, computed from internal energy
+    YIELD_REDUCTION = -11,     ///< Reduction of stress tensor due to yielding (1 - f_vonMises)
+    DAMAGE_ACTIVATION = -12,   ///< Ratio of the stress and the activation strain
+    RADIUS = -13,              ///< Radii/smoothing lenghts of particles
+    UVW = -14,                 ///< Shows UV mapping, u-coordinate in red and v-coordinate in blur
+    BOUNDARY = -15,            ///< Shows boundary particles
+    PARTICLE_ID = -16,         ///< Each particle drawn with different color
+    COMPONENT_ID = -17,        ///< Color assigned to each component (group of connected particles)
+    BOUND_COMPONENT_ID = -18,  ///< Color assigned to each group of gravitationally bound particles
+    AGGREGATE_ID = -19,        ///< Color assigned to each aggregate
+    FLAG = -20,                ///< Particles of different bodies are colored differently
+    BEAUTY = -21,              ///< Attempts to show the real-world look
+    MARKER = -22, ///< Simple colorizer assigning given color to all particles, creating particle "mask".
 };
 
 /// \brief Default colorizer simply converting quantity value to color using defined palette.
@@ -170,7 +171,7 @@ public:
         , palette(Factory::getPalette(colorizerId, range)) {}
 
     virtual void initialize(const Storage& storage, const RefEnum ref) override {
-        values = makeArrayRef(storage.getPhysicalValue<Type>(id), ref);
+        values = makeArrayRef(storage.getValue<Type>(id), ref);
     }
 
     virtual bool isInitialized() const override {
@@ -474,7 +475,7 @@ public:
         : palette(std::move(palette)) {}
 
     virtual void initialize(const Storage& storage, const RefEnum ref) override {
-        s = makeArrayRef(storage.getPhysicalValue<TracelessTensor>(QuantityId::DEVIATORIC_STRESS), ref);
+        s = makeArrayRef(storage.getValue<TracelessTensor>(QuantityId::DEVIATORIC_STRESS), ref);
         p = makeArrayRef(storage.getValue<Float>(QuantityId::PRESSURE), ref);
     }
 
@@ -558,6 +559,37 @@ public:
     }
 };
 
+class TemperatureColorizer : public TypedColorizer<Float> {
+    Float cp;
+
+public:
+    explicit TemperatureColorizer(Palette palette)
+        : TypedColorizer<Float>(QuantityId::ENERGY, std::move(palette)) {}
+
+    virtual void initialize(const Storage& storage, const RefEnum ref) override {
+        TypedColorizer<Float>::initialize(storage, ref);
+        cp = storage.getMaterial(0)->getParam<Float>(BodySettingsId::HEAT_CAPACITY);
+    }
+
+    virtual Optional<Float> evalScalar(const Size idx) const override {
+        ASSERT(this->isInitialized());
+        return this->values[idx] / cp;
+    }
+
+    virtual Optional<Particle> getParticle(const Size idx) const override {
+        return Particle(QuantityId::TEMPERATURE, values[idx] / cp, idx);
+    }
+
+    virtual Optional<Palette> getPalette() const override {
+        return palette;
+    }
+
+    virtual std::string name() const override {
+        return "Temperature";
+    }
+};
+
+
 class YieldReductionColorizer : public TypedColorizer<Float> {
 public:
     explicit YieldReductionColorizer(Palette palette)
@@ -584,8 +616,7 @@ public:
         : palette(std::move(palette)) {}
 
     virtual void initialize(const Storage& storage, const RefEnum UNUSED(ref)) override {
-        ArrayView<const TracelessTensor> s =
-            storage.getPhysicalValue<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
+        ArrayView<const TracelessTensor> s = storage.getValue<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
         ArrayView<const Float> p = storage.getValue<Float>(QuantityId::PRESSURE);
         ArrayView<const Float> eps_min = storage.getValue<Float>(QuantityId::EPS_MIN);
         ArrayView<const Float> damage = storage.getValue<Float>(QuantityId::DAMAGE);

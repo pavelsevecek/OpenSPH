@@ -36,7 +36,9 @@ SOURCES += \
     main.cpp \
     sod/Sod.cpp \
     wave/SoundWave.cpp \
-    elastic_bands/ElasticBands.cpp
+    elastic_bands/ElasticBands.cpp \
+    cliff_collapse/CliffCollapse.cpp
 
 HEADERS += \  
-    sod/solution.h
+    sod/solution.h \
+    Common.h

@@ -34,7 +34,7 @@ protected:
 public:
     Iterator() = default;
 
-    Iterator(T* data, const T* UNUSED_IN_RELEASE(begin), const T* UNUSED_IN_RELEASE(end))
+    Iterator(T* data, const T* begin, const T* end)
         : data(data)
 #ifdef SPH_DEBUG
         , begin(begin)
@@ -45,19 +45,19 @@ public:
     }
 
     INLINE const TValue& operator*() const {
-        ASSERT(data >= begin && data < end);
+        ASSERT_UNEVAL(data >= begin && data < end);
         return *data;
     }
     INLINE TValue& operator*() {
-        ASSERT(data >= begin && data < end);
+        ASSERT_UNEVAL(data >= begin && data < end);
         return *data;
     }
     INLINE T* operator->() {
-        ASSERT(data >= begin && data < end);
+        ASSERT_UNEVAL(data >= begin && data < end);
         return data;
     }
     INLINE const T* operator->() const {
-        ASSERT(data >= begin && data < end);
+        ASSERT_UNEVAL(data >= begin && data < end);
         return data;
     }
 

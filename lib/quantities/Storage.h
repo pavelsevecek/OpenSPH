@@ -10,6 +10,7 @@
 #include "objects/containers/Array.h"
 #include "objects/containers/FlatMap.h"
 #include "objects/wrappers/Function.h"
+#include "objects/wrappers/Outcome.h"
 #include "objects/wrappers/SharedPtr.h"
 #include "quantities/Quantity.h"
 #include "quantities/QuantityIds.h"
@@ -140,7 +141,7 @@ class IStorageUserData : public Polymorphic {};
 /// one or two derivatives. There is no constraint on quantity order or type for given \ref QuantityId, i.e.
 /// as far as \ref Storage object is concerned, one can create a QuantityId::ENERGY tensor quantity with
 /// second derivatives or integer quantity QuantityId::SOUND_SPEED. Different parts of the code require
-/// certain types for some quantities, though. Particle positions, QuantityId::POSITIONS, are mostly assumed
+/// certain types for some quantities, though. Particle positions, QuantityId::POSITION, are mostly assumed
 /// to be vector quantities of second order. Inconsistency of types will cause an assert when encountered.
 ///
 /// Storage can hold arbitrary number of materials, objects derived from \ref IMaterial. In theory,
@@ -346,9 +347,7 @@ public:
     /// \brief Retrieves a quantity values from the storage, given its key and value type.
     ///
     /// The stored quantity must be of type TValue, checked by assert. Quantity must already exist in the
-    /// storage, checked by assert. Note that values of quantity are returned as stored and need not have
-    /// physical meaning; physical values of quantity might be modified by material (rheology, damage model,
-    /// ...). To get physical values of quantity for use in equations, use \ref getPhysicalValue.
+    /// storage, checked by assert.
     /// \return Array reference containing stored quantity values.
     template <typename TValue>
     Array<TValue>& getValue(const QuantityId key) {
@@ -361,35 +360,6 @@ public:
     template <typename TValue>
     const Array<TValue>& getValue(const QuantityId key) const {
         return const_cast<Storage*>(this)->getValue<TValue>(key);
-    }
-
-    /// \brief Returns the physical values of given quantity.
-    template <typename TValue>
-    Array<TValue>& getPhysicalValue(const QuantityId key) {
-        Quantity& q = this->getQuantity(key);
-        ASSERT(q.getValueEnum() == GetValueEnum<TValue>::type);
-        return q.getPhysicalValue<TValue>();
-    }
-
-    /// \copydoc getPhysicalValue
-    template <typename TValue>
-    const Array<TValue>& getPhysicalValue(const QuantityId key) const {
-        return const_cast<Storage*>(this)->getPhysicalValue<TValue>(key);
-    }
-
-    /// \brief Returns all buffers, using physical values instead of stored values.
-    template <typename TValue>
-    StaticArray<Array<TValue>&, 3> getPhysicalAll(const QuantityId key) {
-        Quantity& q = this->getQuantity(key);
-        ASSERT(q.getValueEnum() == GetValueEnum<TValue>::type);
-        return q.getPhysicalAll<TValue>();
-    }
-
-    template <typename TValue>
-    StaticArray<Array<TValue>&, 2> modify(const QuantityId key) {
-        Quantity& q = this->getQuantity(key);
-        ASSERT(q.getValueEnum() == GetValueEnum<TValue>::type);
-        return q.modify<TValue>();
     }
 
     /// \brief Retrieves a quantity derivative from the storage, given its key and value type.
@@ -556,6 +526,11 @@ public:
     /// Other values are unchanged.
     void zeroHighestDerivatives();
 
+    enum class IndicesFlag {
+        /// Use if the given array is already sorted (optimization)
+        INDICES_SORTED = 1 << 0,
+    };
+
     /// \brief Duplicates some particles in the storage.
     ///
     /// New particles are added to an unspecified positions in the storage, copying all the quantities and
@@ -566,19 +541,14 @@ public:
     /// \param idxs Indices of the particles to duplicate.
     /// \return Indices of the newly created particles (in the modified storage). Note that the original
     ///         indices passed into the storage are no longer valid after the function is called.
-    Array<Size> duplicate(ArrayView<const Size> idxs);
-
-    enum class RemoveFlag {
-        /// Use if the given array is already sorted (optimization)
-        INDICES_SORTED = 1 << 0,
-    };
+    Array<Size> duplicate(ArrayView<const Size> idxs, const Flags<IndicesFlag> flags = EMPTY_FLAGS);
 
     /// \brief Removes specified particles from the storage.
     ///
     /// If all particles of some material are removed by this, the material is also removed from the storage.
     /// Same particles are also removed from all dependent storages.
-    /// \param idsx Indices of particles to remove. No need to sort the indices.
-    void remove(ArrayView<const Size> idxs, const Flags<RemoveFlag> flags = EMPTY_FLAGS);
+    /// \param idxs Indices of particles to remove. No need to sort the indices.
+    void remove(ArrayView<const Size> idxs, const Flags<IndicesFlag> flags = EMPTY_FLAGS);
 
     /// \brief Removes all particles with all quantities (including materials) from the storage.
     ///
@@ -626,7 +596,7 @@ public:
     /// The valid state means that all quantities have the same number of particles and materials are stored
     /// consecutively in the storage. This should be handled automatically, the function is mainly for
     /// debugging purposes.
-    bool isValid(const Flags<ValidFlag> flags = ValidFlag::COMPLETE) const;
+    Outcome isValid(const Flags<ValidFlag> flags = ValidFlag::COMPLETE) const;
 
     /// \brief Stores new user data into the storage.
     ///

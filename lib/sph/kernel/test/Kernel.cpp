@@ -257,6 +257,31 @@ TEST_CASE("Triangle kernel", "[kernel]") {
     testKernel<3>(kernel, [](const auto& kernel) { REQUIRE(kernel.radius() == 1._f); }, flags, 0.01_f);
 }
 
+TEST_CASE("Scaling kernel", "[kernel]") {
+    CubicSpline<3> kernel1;
+    ScalingKernel<3, CoreTriangle> kernel2(2._f);
+    REQUIRE(kernel2.radius() == kernel1.radius());
+
+    auto test = [&](Size i) -> Outcome {
+        Float x = Float(i) / 100._f;
+        if (x < 0.7_f) {
+            return SUCCESS;
+        }
+        const Float W1 = kernel1.valueImpl(sqr(x));
+        const Float W2 = kernel2.valueImpl(sqr(x));
+        if (W1 != approx(W2, 0.005_f)) {
+            return makeFailed("Incorrect kernel value:\n", W1, " == ", W2);
+        }
+        const Float G1 = x * kernel1.gradImpl(sqr(x));
+        const Float G2 = x * kernel2.gradImpl(sqr(x));
+        if (G1 != approx(G2, 0.005_f)) {
+            return makeFailed("Incorrect kernel gradient:\n", G1, " == ", G2);
+        }
+        return SUCCESS;
+    };
+    REQUIRE_SEQUENCE(test, 0, 200._f);
+}
+
 TEST_CASE("Lut kernel", "[kernel]") {
     // test that LUT is moveable
     LutKernel<3> lut(CubicSpline<3>{});
@@ -285,13 +310,12 @@ TEST_CASE("Lut kernel", "[kernel]") {
         kernels.emplaceBack(Factory::getKernel<3>(settings));
     }
 
-    for (Float q = 0._f; q <= 1._f; q += 0.01_f) {
+    for (Float q = 0._f; q <= 2.5_f; q += 0.01_f) {
         valueOfs << q << " ";
         gradOfs << q << " ";
         for (auto& kernel : kernels) {
-            const Float radius = kernel.radius();
-            valueOfs << pow<3>(radius) * kernel.valueImpl(sqr(q * radius)) << " ";
-            gradOfs << pow<5>(radius) * q * kernel.gradImpl(sqr(q * radius)) << " ";
+            valueOfs << kernel.valueImpl(sqr(q)) << " ";
+            gradOfs << q * kernel.gradImpl(sqr(q)) << " ";
         }
         valueOfs << std::endl;
         gradOfs << std::endl;

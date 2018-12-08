@@ -89,9 +89,11 @@ struct Assert {
         Assert::fire(#x, __FILE__, __FUNCTION__, __LINE__, ##__VA_ARGS__);                                   \
     }
 #define CONSTEXPR_ASSERT(x) assert(x)
+#define ASSERT_UNEVAL(x, ...) ASSERT(x, ##__VA_ARGS__)
 #else
-#define ASSERT(x, ...)
-#define CONSTEXPR_ASSERT(x)
+#define ASSERT(x, ...) MARK_USED(x)
+#define CONSTEXPR_ASSERT(x) MARK_USED(x)
+#define ASSERT_UNEVAL(x, ...)
 #endif
 
 /// Helper macro marking missing implementation

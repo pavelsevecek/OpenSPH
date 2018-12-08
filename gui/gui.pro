@@ -57,7 +57,8 @@ SOURCES += \
     renderers/RayTracer.cpp \
     renderers/MeshRenderer.cpp \
     objects/Camera.cpp \
-    objects/RenderContext.cpp
+    objects/RenderContext.cpp \
+    windows/ParticleProbe.cpp
 
 HEADERS += \
     ArcBall.h \
@@ -90,4 +91,5 @@ HEADERS += \
     Uvw.h \
     renderers/MeshRenderer.h \
     renderers/FrameBuffer.h \
-    objects/RenderContext.h
+    objects/RenderContext.h \
+    windows/PaletteDialog.h

@@ -97,7 +97,14 @@ int main(int argc, char* argv[]) {
     logger.write("Starting run ", runName);
     logger.write("");
 
-    CollisionRun run(cp);
+    PhaseParams pp;
+    pp.outputPath = Path(runName);
+    const Float runTime = 50._f * cp.targetRadius / 1000._f;
+    pp.stab.range = Interval(0._f, 0.2_f * runTime);
+    pp.frag.range = Interval(0._f, runTime);
+    pp.reacc.range = Interval(0._f, 3600._f * 24._f * 4._f); // 4 days
+
+    CollisionRun run(cp, pp, makeShared<NullCallbacks>());
     run.setUp();
     run.run();
 

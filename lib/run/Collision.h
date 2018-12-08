@@ -5,64 +5,159 @@
 
 NAMESPACE_SPH_BEGIN
 
+/// \brief Holds parameters of each phase.
+struct PhaseParams {
+
+    struct Stabilization {
+
+        /// Duration of the phase in seconds.
+        Interval range = Interval(0._f, 100._f);
+
+        /// Settings that override the default parameters.
+        RunSettings overrides = EMPTY_SETTINGS;
+
+    } stab;
+
+    struct Fragmentation {
+
+        /// Duration of the phase in seconds.
+        Interval range = Interval(0._f, 100._f);
+
+        /// Number of output files generated during the phase.
+        Size dumpCnt = 10;
+
+        /// Settings that override the default parameters.
+        RunSettings overrides = EMPTY_SETTINGS;
+
+    } frag;
+
+    struct Reaccumulation {
+
+        /// Duration of the phase in seconds.
+        Interval range = Interval(0._f, 100._f);
+
+        /// Number of output files generated during the phase.
+        Size dumpCnt = 10;
+
+        /// Settings that override the default parameters.
+        RunSettings overrides = EMPTY_SETTINGS;
+
+    } reacc;
+
+    /// Directory where the output files are generated.
+    Path outputPath;
+};
+
 class StabilizationRunPhase : public IRunPhase {
+    friend class FragmentationRunPhase;
+
 private:
-    Presets::CollisionParams params;
-    SharedPtr<Presets::Collision> data;
+    Presets::CollisionParams collisionParams;
+    PhaseParams phaseParams;
+
+    Path resumePath;
+
+    SharedPtr<Presets::Collision> collision;
 
 public:
-    explicit StabilizationRunPhase(Presets::CollisionParams params);
+    /// \brief Creates a stabilization phase, given the collision setup.
+    ///
+    /// This is used when the stabilization is the first phase in the run.
+    StabilizationRunPhase(const Presets::CollisionParams collisionParams, const PhaseParams phaseParams);
+
+    /// \brief Creates a stabilization phase that continues from provided snapshot.
+    StabilizationRunPhase(const Path& resumePath, const PhaseParams phaseParams);
 
     virtual void setUp() override;
 
-    virtual AutoPtr<IRunPhase> getNextPhase() const override;
-
     virtual void handoff(Storage&& input) override;
+
+    virtual AutoPtr<IRunPhase> getNextPhase() const override;
 
 private:
     virtual void tearDown(const Statistics& UNUSED(stats)) override {}
+
+    void create(const PhaseParams phaseParams);
 };
 
 class FragmentationRunPhase : public IRunPhase {
+    friend class ReaccumulationRunPhase;
+
 private:
-    Presets::CollisionParams params;
-    SharedPtr<Presets::Collision> data;
+    Presets::CollisionParams collisionParams;
+    PhaseParams phaseParams;
+
+    Path resumePath;
+
+    SharedPtr<Presets::Collision> collision;
 
 public:
-    explicit FragmentationRunPhase(Presets::CollisionParams params, SharedPtr<Presets::Collision> data);
+    /// \brief Creates fragmentation phase that follows a stabilization phase.
+    explicit FragmentationRunPhase(const StabilizationRunPhase& stabilization);
 
-    virtual void setUp() override {
-        STOP;
-    }
+    /// \brief Creates a fragmentation phase that continues from provided snapshot.
+    FragmentationRunPhase(const Path& resumePath, const PhaseParams phaseParams);
 
-    virtual AutoPtr<IRunPhase> getNextPhase() const override;
+    virtual void setUp() override;
 
     virtual void handoff(Storage&& input) override;
 
+    virtual AutoPtr<IRunPhase> getNextPhase() const override;
+
 private:
     virtual void tearDown(const Statistics& stats) override;
+
+    void create(const PhaseParams phaseParams);
 };
 
 class ReaccumulationRunPhase : public IRunPhase {
+private:
+    PhaseParams phaseParams;
+
+    Path resumePath;
+
 public:
-    ReaccumulationRunPhase(const Path& outputPath);
+    /// \brief Creates reaccumulation phase that follows a fragmentation phase.
+    explicit ReaccumulationRunPhase(const FragmentationRunPhase& fragmentation);
 
-    virtual void setUp() override {
-        STOP;
-    }
+    /// \brief Creates a reaccumulation phase that continues from provided snapshot.
+    ReaccumulationRunPhase(const Path& resumePath, const PhaseParams phaseParams);
 
-    virtual AutoPtr<IRunPhase> getNextPhase() const override;
+    virtual void setUp() override;
 
     virtual void handoff(Storage&& input) override;
 
+    virtual AutoPtr<IRunPhase> getNextPhase() const override;
+
 private:
     virtual void tearDown(const Statistics& stats) override;
+
+    void create(const PhaseParams phaseParams);
 };
 
 class CollisionRun : public CompositeRun {
 public:
-    explicit CollisionRun(const Presets::CollisionParams params)
-        : CompositeRun(makeAuto<StabilizationRunPhase>(params)) {}
+    /// \brief Creates a collision simulation, given parameters of the collision.
+    ///
+    /// \param collisionParams Parameters specifying the initial conditions of the simulation.
+    /// \param phaseParams Additional parameters of the simulation.
+    /// \param runCallbacks Run callbacks used by all phases.
+    explicit CollisionRun(Presets::CollisionParams collisionParams,
+        PhaseParams phaseParams,
+        SharedPtr<IRunCallbacks> runCallbacks);
+
+    /// \brief Creates a simulation that continues from given snapshot.
+    ///
+    /// The simulation automatically selects a correct phase, i.e. when the snapshot has been saved during
+    /// fragmentation phase, the \ref CollisionRun starts with fragmentation.
+    /// \param path Path to the snapshot file (created with \ref BinaryOutput).
+    /// \param phaseParams Additional parameters of the simulation.
+    /// \param runCallbacks Run callbacks used by all phases.
+    /// \throws InvalidSetup if the file cannot be loaded or has invalid format.
+    explicit CollisionRun(const Path& path, PhaseParams phaseParams, SharedPtr<IRunCallbacks> runCallbacks);
+
+    /// \brief Sets an arbitrary callback executed when a phase ends.
+    void setOnNextPhase(Function<void(const IRunPhase&)> newOnPhasePhase);
 };
 
 NAMESPACE_SPH_END

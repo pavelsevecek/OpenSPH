@@ -98,47 +98,14 @@ void ScalarGradyKippModel::setFlaws(Storage& storage,
     }
 }
 
-void ScalarGradyKippModel::reduce(IScheduler& scheduler,
-    Storage& storage,
-    const Flags<DamageFlag> flags,
-    const MaterialView material) {
-    ArrayView<Float> damage = storage.getValue<Float>(QuantityId::DAMAGE);
-    // we can reduce pressure in place as the original value can be computed from equation of state
-    ArrayView<Float> p = storage.getValue<Float>(QuantityId::PRESSURE);
-    ArrayView<Float> reduce = storage.getValue<Float>(QuantityId::STRESS_REDUCING);
-    // stress tensor is evolved in time, so we need to keep unchanged value; create modified value
-    ArrayView<TracelessTensor> s, s_dmg;
-    tie(s, s_dmg) = storage.modify<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
-
-    IndexSequence seq = material.sequence();
-    parallelFor(scheduler, *seq.begin(), *seq.end(), [&](const Size i) INL {
-        const Float d = pow<3>(damage[i]);
-        // pressure is reduced only for negative values
-        /// \todo could be vectorized, maybe
-        if (flags.has(DamageFlag::PRESSURE)) {
-            if (p[i] < 0._f) {
-                p[i] = (1._f - d) * p[i];
-            }
-        }
-        // stress is reduced for both positive and negative values
-        if (flags.has(DamageFlag::STRESS_TENSOR)) {
-            s_dmg[i] = (1._f - d) * s[i];
-        }
-        if (flags.has(DamageFlag::REDUCTION_FACTOR)) {
-            reduce[i] = (1._f - d) * reduce[i];
-        }
-    });
-}
-
 void ScalarGradyKippModel::integrate(IScheduler& scheduler, Storage& storage, const MaterialView material) {
-    ArrayView<TracelessTensor> s, s_dmg, ds;
-    s_dmg = storage.getPhysicalValue<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
+    ArrayView<TracelessTensor> s, ds;
     s = storage.getValue<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
     ds = storage.getDt<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
     ArrayView<Float> p, eps_min, m_zero, growth;
     tie(eps_min, m_zero, growth) =
         storage.getValues<Float>(QuantityId::EPS_MIN, QuantityId::M_ZERO, QuantityId::EXPLICIT_GROWTH);
-    p = storage.getPhysicalValue<Float>(QuantityId::PRESSURE);
+    p = storage.getValue<Float>(QuantityId::PRESSURE);
     ArrayView<Size> n_flaws = storage.getValue<Size>(QuantityId::N_FLAWS);
     ArrayView<Float> damage, ddamage;
     tie(damage, ddamage) = storage.getAll<Float>(QuantityId::DAMAGE);
@@ -161,7 +128,7 @@ void ScalarGradyKippModel::integrate(IScheduler& scheduler, Storage& storage, co
             ds[i] = TracelessTensor::null(); /// \todo this is the derivative used for computing time step
             return;
         }
-        const SymmetricTensor sigma = SymmetricTensor(s_dmg[i]) - p[i] * SymmetricTensor::identity();
+        const SymmetricTensor sigma = SymmetricTensor(s[i]) - p[i] * SymmetricTensor::identity();
         Float sig1, sig2, sig3;
         tie(sig1, sig2, sig3) = findEigenvalues(sigma);
         const Float sigMax = max(sig1, sig2, sig3);
@@ -189,7 +156,7 @@ void TensorGradyKippModel::setFlaws(Storage& UNUSED(storage),
     NOT_IMPLEMENTED;
 }
 
-void TensorGradyKippModel::reduce(IScheduler& scheduler,
+/*void TensorGradyKippModel::reduce(IScheduler& scheduler,
     Storage& storage,
     const Flags<DamageFlag> flags,
     const MaterialView material) {
@@ -230,7 +197,7 @@ void TensorGradyKippModel::reduce(IScheduler& scheduler,
             reduce[i] = (1._f - d.trace()) * reduce[i];
         }
     });
-}
+}*/
 
 void TensorGradyKippModel::integrate(IScheduler& UNUSED(scheduler),
     Storage& UNUSED(storage),
@@ -261,17 +228,6 @@ void MohrCoulombModel::integrate(IScheduler& UNUSED(scheduler),
 void NullFracture::setFlaws(Storage& UNUSED(storage),
     IMaterial& UNUSED(material),
     const MaterialInitialContext& UNUSED(context)) const {}
-
-void NullFracture::reduce(IScheduler& scheduler,
-    Storage& storage,
-    const Flags<DamageFlag> UNUSED(flags),
-    const MaterialView material) {
-    ArrayView<TracelessTensor> s, s_dmg;
-    tie(s, s_dmg) = storage.modify<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
-
-    IndexSequence seq = material.sequence();
-    parallelFor(scheduler, *seq.begin(), *seq.end(), [&](const Size i) INL { s_dmg[i] = s[i]; });
-}
 
 void NullFracture::integrate(IScheduler& UNUSED(scheduler),
     Storage& UNUSED(storage),

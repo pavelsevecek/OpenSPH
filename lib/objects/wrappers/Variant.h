@@ -156,7 +156,7 @@ struct VariantIterator {
 template <typename T0>
 struct VariantIterator<T0> {
     template <typename TVisitor, typename... Ts>
-    static void visit(Size UNUSED_IN_RELEASE(idx), TVisitor&& visitor, Ts&&... args) {
+    static void visit(Size idx, TVisitor&& visitor, Ts&&... args) {
         ASSERT(idx == 0);
         visitor.template visit<T0>(std::forward<Ts>(args)...);
     }

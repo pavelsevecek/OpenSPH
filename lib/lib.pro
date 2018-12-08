@@ -11,7 +11,7 @@ DEFINES += SPH_USE_TBB
 INCLUDEPATH += /usr/include/tb
 QMAKE_LFLAGS += -ltbb -ltbb_debug -ltbbmalloc -ltbbmalloc_debug
 
-QMAKE_CXXFLAGS += -Wall -Wextra -Werror -msse4.1 -std=c++14 -pthread
+QMAKE_CXXFLAGS += -Wall -Wextra -Werror -msse4.1 -ffast-math -std=c++14 -pthread
 
 CONFIG(release, debug|profile|assert|release) {
   message( "SPH LIB --- Building for Release" )

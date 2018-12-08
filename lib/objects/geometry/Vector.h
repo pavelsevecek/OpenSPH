@@ -364,13 +364,11 @@ public:
     }
 };
 
-static_assert(alignof(BasicVector<double>) == 32, "Incorrect alignment of Vector");
-
 #else
 
+// also align to 32 to have the same memory layout
 template <>
-class BasicVector<double> {
-
+class alignas(32) BasicVector<double> {
 private:
     __m128d data[2];
 
@@ -533,9 +531,9 @@ public:
     }
 };
 
-static_assert(alignof(BasicVector<double>) == 16, "Incorrect alignment of Vector");
-
 #endif
+
+static_assert(alignof(BasicVector<double>) == 32, "Incorrect alignment of Vector");
 
 
 using Vector = BasicVector<Float>;

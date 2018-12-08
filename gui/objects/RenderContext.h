@@ -1,8 +1,10 @@
 #pragma once
 
+#include "gui/Utils.h"
 #include "gui/objects/Bitmap.h"
 #include "gui/objects/Color.h"
 #include "gui/renderers/IRenderer.h"
+#include <wx/dc.h>
 
 NAMESPACE_SPH_BEGIN
 
@@ -103,7 +105,7 @@ public:
 private:
     void drawSafe(const Pixel p, const Rgba c) {
         if (p.x >= 0 && p.y >= 0 && p.x < bitmap.size().x && p.y < bitmap.size().y) {
-            bitmap[Pixel(p)] = c;
+            bitmap[Pixel(p)] = c.over(bitmap[Pixel(p)]);
         }
     }
 
@@ -126,8 +128,86 @@ private:
     }
 };
 
+
+/// Render context drawing directly into wxDC. Must be used only in main thread!!
 class WxRenderContext : public IRenderContext {
-    /// \todo just remember all actions and call them later on main thread
+private:
+    wxDC& dc;
+    wxPen pen;
+    wxBrush brush;
+
+public:
+    WxRenderContext(wxDC& dc)
+        : dc(dc) {
+        pen = dc.GetPen();
+        brush = dc.GetBrush();
+    }
+
+    virtual Pixel size() const override {
+        const wxSize s = dc.GetSize();
+        return Pixel(s.x, s.y);
+    }
+
+    virtual void setColor(const Rgba& color, const Flags<ColorFlag> flags) override {
+        if (flags.has(ColorFlag::LINE)) {
+            pen.SetColour(wxColour(color));
+            dc.SetPen(pen);
+        }
+        if (flags.has(ColorFlag::FILL)) {
+            brush.SetColour(wxColour(color));
+            dc.SetBrush(brush);
+        }
+        if (flags.has(ColorFlag::TEXT)) {
+            dc.SetTextForeground(wxColour(color));
+        }
+    }
+
+    virtual void setThickness(const float UNUSED(newThickness)) override { /// \todo
+    }
+
+    virtual void setFontSize(const int newFontSize) override {
+        wxFont font = dc.GetFont();
+        font.SetPointSize(newFontSize);
+        dc.SetFont(font);
+    }
+
+    virtual void fill(const Rgba& color) override {
+        brush.SetColour(wxColour(color));
+        dc.SetBrush(brush);
+        dc.DrawRectangle(wxPoint(0, 0), dc.GetSize());
+    }
+
+    virtual void drawLine(const Coords p1, const Coords p2) override {
+        dc.DrawLine(wxPoint(p1), wxPoint(p2));
+    }
+
+    virtual void drawCircle(const Coords center, const float radius) override {
+        dc.DrawCircle(wxPoint(center), int(radius));
+    }
+
+    virtual void drawTriangle(const Coords, const Coords, const Coords) override {
+        NOT_IMPLEMENTED;
+    }
+
+    virtual void drawBitmap(const Coords, const Bitmap<Rgba>&) override {
+        NOT_IMPLEMENTED;
+    }
+
+    virtual void drawText(const Coords p, const Flags<TextAlign> align, const std::string& s) override {
+        std::wstring ws(s.begin(), s.end());
+        this->drawText(p, align, ws);
+    }
+
+    virtual void drawText(const Coords p, const Flags<TextAlign> align, const std::wstring& s) override {
+        IRenderOutput::Label label;
+        label.text = s;
+        label.align = align;
+        label.fontSize = dc.GetFont().GetPointSize();
+        label.color = Rgba(dc.GetTextForeground());
+        label.position = Pixel(p);
+        printLabels(dc, Array<IRenderOutput::Label>{ label });
+    }
 };
+
 
 NAMESPACE_SPH_END

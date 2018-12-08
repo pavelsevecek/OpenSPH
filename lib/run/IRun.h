@@ -93,7 +93,7 @@ protected:
 
     void setNullToDefaults();
 
-    void tearDownInternal(const Statistics& stats);
+    void tearDownInternal(Statistics& stats);
 };
 
 NAMESPACE_SPH_END

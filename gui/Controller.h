@@ -67,6 +67,9 @@ private:
         /// SPH simulation
         AutoPtr<IRun> run;
 
+        /// Flag read by the simulation; the run is stopped if this is set to zero.
+        std::atomic_bool shouldContinue;
+
         /// \brief List of callbacks executed on the next timestep (on run thread).
         ///
         /// The list is cleared every timestep, only callbacks added between timesteps are executed.
@@ -94,6 +97,9 @@ private:
         ///
         /// Accessed from run thread and render thread, guarded by renderThreadMutex.
         SharedPtr<IColorizer> colorizer;
+
+        /// \brief User-specified palettes to be used instead of default values.
+        FlatMap<ColorizerId, Palette> paletteOverrides;
 
         /// \brief Current camera of the view.
         ///
@@ -147,9 +153,6 @@ public:
     explicit Controller(const GuiSettings& gui, AutoPtr<IPluginControls>&& plugin = nullptr);
 
     ~Controller();
-
-    /// \todo ugly hack, needed to continue render loop after handoff; remove!
-    void setRunning();
 
     /// \addtogroup Run queries
 
@@ -233,6 +236,11 @@ public:
     /// selected particle, and the window can provide information about the selected particle.
     /// \param particleIdx Particle to selected; if NOTHING, the current selection is cleared.
     void setSelectedParticle(const Optional<Size>& particleIdx);
+
+    /// \brief Modifies the color palette for given colorizer.
+    ///
+    /// Function must be called from main thread.
+    void setPaletteOverride(const ColorizerId id, const Palette palette);
 
     /// \brief If possible, redraws the particles with data from storage.
     ///

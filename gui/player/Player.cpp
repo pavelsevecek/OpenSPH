@@ -211,7 +211,7 @@ bool App::OnInit() {
         .set(GuiSettingsId::RAYTRACE_ITERATION_LIMIT, 12)
         .set(GuiSettingsId::IMAGES_WIDTH, 800)
         .set(GuiSettingsId::IMAGES_HEIGHT, 800)
-        .set(GuiSettingsId::IMAGES_SAVE, true)
+        .set(GuiSettingsId::IMAGES_SAVE, false)
         .set(GuiSettingsId::IMAGES_NAME, std::string("frag_%e_%d.png"))
         .set(GuiSettingsId::IMAGES_MOVIE_NAME, std::string("frag_%e.avi"))
         .set(GuiSettingsId::IMAGES_TIMESTEP, 0._f)
@@ -222,10 +222,17 @@ bool App::OnInit() {
         .set(GuiSettingsId::PALETTE_ENERGY, Interval(100._f, 5.e4_f))
         .set(GuiSettingsId::PALETTE_RADIUS, Interval(700._f, 3.e3_f))
         .set(GuiSettingsId::PALETTE_GRADV, Interval(0._f, 1.e-5_f))
-        .set(GuiSettingsId::PLOT_INTEGRALS, PlotEnum::KINETIC_ENERGY);
-    /*.set(GuiSettingsId::PLOT_OVERPLOT_SFD,
-        std::string("/home/pavel/projects/astro/asteroids/hygiea/main_belt_families_2018/10_Hygiea/"
-                    "size_distribution/family.dat_hc"));*/
+        .set(GuiSettingsId::PLOT_INTEGRALS, PlotEnum::ALL)
+        .set(GuiSettingsId::PLOT_OVERPLOT_SFD, std::string("/home/pavel/Dropbox/family.dat_hc"));
+
+    // if (runType == RunTypeEnum::NBODY) {
+    gui.set(GuiSettingsId::PLOT_INTEGRALS,
+        PlotEnum::KINETIC_ENERGY | PlotEnum::INTERNAL_ENERGY | PlotEnum::TOTAL_ENERGY |
+            PlotEnum::TOTAL_MOMENTUM | PlotEnum::TOTAL_ANGULAR_MOMENTUM | PlotEnum::PARTICLE_SFD);
+    //}
+    //"projects/astro/asteroids/hygiea/main_belt_families_2018/10_Hygiea/"
+    //"size_distribution/family.dat_hc"));
+
 
     if (fileMask.native().substr(fileMask.native().size() - 3) == ".bt") {
         // pkdgrav file, override some options

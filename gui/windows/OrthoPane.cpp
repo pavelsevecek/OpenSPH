@@ -4,6 +4,8 @@
 #include "gui/Utils.h"
 #include "gui/objects/Bitmap.h"
 #include "gui/objects/Camera.h"
+#include "gui/objects/Colorizer.h"
+#include "gui/windows/PaletteDialog.h"
 #include "system/Profiler.h"
 #include "thread/CheckFunction.h"
 #include <wx/dcclient.h>
@@ -23,6 +25,7 @@ OrthoPane::OrthoPane(wxWindow* parent, Controller* controller, const GuiSettings
     this->Connect(wxEVT_RIGHT_DOWN, wxMouseEventHandler(OrthoPane::onRightDown));
     this->Connect(wxEVT_RIGHT_UP, wxMouseEventHandler(OrthoPane::onRightUp));
     this->Connect(wxEVT_LEFT_UP, wxMouseEventHandler(OrthoPane::onLeftUp));
+    this->Connect(wxEVT_LEFT_DCLICK, wxMouseEventHandler(OrthoPane::onDoubleClick));
 
     camera = controller->getCurrentCamera();
     particle.lastIdx = -1;
@@ -59,7 +62,7 @@ void OrthoPane::onMouseMotion(wxMouseEvent& evt) {
         Pixel offset = Pixel(position.x - dragging.position.x, -(position.y - dragging.position.y));
         if (evt.RightIsDown()) {
             // right button, rotate view
-            AffineMatrix matrix = arcBall.drag(position);
+            AffineMatrix matrix = arcBall.drag(position, Vector(0._f));
             camera->transform(dragging.initialMatrix * matrix);
         } else {
             // left button (or middle), pan
@@ -77,8 +80,20 @@ void OrthoPane::onRightDown(wxMouseEvent& evt) {
 
 void OrthoPane::onRightUp(wxMouseEvent& evt) {
     CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
-    AffineMatrix matrix = arcBall.drag(Pixel(evt.GetPosition()));
+    AffineMatrix matrix = arcBall.drag(Pixel(evt.GetPosition()), Vector(0._f));
     dragging.initialMatrix = dragging.initialMatrix * matrix;
+}
+
+void OrthoPane::onDoubleClick(wxMouseEvent& UNUSED(evt)) {
+    CHECK_FUNCTION(CheckFunction::MAIN_THREAD);
+    Optional<Palette> palette = controller->getCurrentColorizer()->getPalette();
+    if (palette) {
+        PaletteDialog* paletteDialog = new PaletteDialog(
+            this->GetParent(), wxSize(300, 240), palette.value(), [this](const Palette& selected) {
+                controller->setPaletteOverride(ColorizerId::VELOCITY, selected);
+            });
+        paletteDialog->Show();
+    }
 }
 
 void OrthoPane::onLeftUp(wxMouseEvent& evt) {

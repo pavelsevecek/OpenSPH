@@ -1,6 +1,7 @@
 #include "sph/solvers/AsymmetricSolver.h"
 #include "objects/finders/NeighbourFinder.h"
 #include "quantities/IMaterial.h"
+#include "sph/boundary/Boundary.h"
 #include "sph/equations/Accumulated.h"
 #include "sph/equations/HelperTerms.h"
 #include "sph/kernel/Kernel.h"
@@ -70,7 +71,14 @@ const IBasicFinder& IAsymmetricSolver::getFinder(ArrayView<const Vector> r) {
 AsymmetricSolver::AsymmetricSolver(IScheduler& scheduler,
     const RunSettings& settings,
     const EquationHolder& eqs)
+    : AsymmetricSolver(scheduler, settings, eqs, Factory::getBoundaryConditions(settings)) {}
+
+AsymmetricSolver::AsymmetricSolver(IScheduler& scheduler,
+    const RunSettings& settings,
+    const EquationHolder& eqs,
+    AutoPtr<IBoundaryCondition>&& bc)
     : IAsymmetricSolver(scheduler, settings, eqs)
+    , bc(std::move(bc))
     , threadData(scheduler) {
 
     // creates all derivatives required by the equation terms
@@ -83,6 +91,9 @@ AsymmetricSolver::~AsymmetricSolver() = default;
 
 void AsymmetricSolver::beforeLoop(Storage& storage, Statistics& UNUSED(stats)) {
     PROFILE_SCOPE("AsymmetricSolver::beforeLoop ");
+
+    // initialize boundary conditions first, as they may change the number of particles (ghosts)
+    bc->initialize(storage);
 
     // initialize all equation terms (applies dependencies between quantities)
     equations.initialize(scheduler, storage);
@@ -119,7 +130,7 @@ void AsymmetricSolver::loop(Storage& storage, Statistics& UNUSED(stats)) {
                 continue;
             }
             const Vector gr = symmetrizedKernel.grad(r[i], r[j]);
-            ASSERT(isReal(gr) && dot(gr, r[i] - r[j]) < 0._f, gr, r[i] - r[j]);
+            ASSERT(isReal(gr) && dot(gr, r[i] - r[j]) <= 0._f, gr, r[i] - r[j]);
             data.grads.emplaceBack(gr);
             data.idxs.emplaceBack(j);
         }
@@ -139,6 +150,9 @@ void AsymmetricSolver::afterLoop(Storage& storage, Statistics& stats) {
 
     // using the stored values, integrates all equation terms
     equations.finalize(scheduler, storage);
+
+    // lastly, finalize boundary conditions, to make sure the computed quantities will not change any further
+    bc->finalize(storage);
 
     // compute neighbour statistics
     ArrayView<Size> neighs = storage.getValue<Size>(QuantityId::NEIGHBOUR_CNT);

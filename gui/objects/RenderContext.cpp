@@ -12,7 +12,7 @@ void PreviewRenderContext::setColor(const Rgba& color, const Flags<ColorFlag> fl
     if (flags.has(ColorFlag::TEXT)) {
         colors.text = color;
     }
-    ASSERT(colors.line.alpha() == 1.f);
+    // ASSERT(colors.line.alpha() == 1.f);
 }
 
 void PreviewRenderContext::setThickness(const float newThickness) {
@@ -64,8 +64,11 @@ void PreviewRenderContext::drawCircle(const Coords center, const float radius) {
     const int intRadius(radius);
     for (int y = -intRadius; y <= intRadius; ++y) {
         for (int x = -intRadius; x <= +intRadius; ++x) {
-            if (sqr(x) + sqr(y) <= sqr(radius)) {
+            const int rSqr = sqr(x) + sqr(y);
+            if (rSqr <= sqr(radius - 1)) {
                 drawSafe(p + Pixel(x, y), colors.fill);
+            } else if (rSqr <= sqr(radius)) {
+                drawSafe(p + Pixel(x, y), colors.line);
             }
         }
     }

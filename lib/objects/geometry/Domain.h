@@ -68,7 +68,8 @@ public:
     ///        vectors are projected by default.
     virtual void project(ArrayView<Vector> vs, Optional<ArrayView<Size>> indices = NOTHING) const = 0;
 
-    /// \brief Duplicates vectors located close to the boundary, placing the symmetrically to the other side.
+    /// \brief Duplicates positions located close to the boundary, placing copies ("ghosts") symmetrically to
+    /// the other side of the domain.
     ///
     /// Distance of the copy (ghost) to the boundary shall be the same as the source vector. One vector
     /// can create multiple ghosts.

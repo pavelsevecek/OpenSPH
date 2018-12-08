@@ -188,6 +188,25 @@ TEST_CASE("Array Insert", "[array]") {
     REQUIRE_ASSERT(ar.insert(9, 5));
 }
 
+TEST_CASE("Array Insert range", "[array]") {
+    Array<int> ar;
+    Array<int> toInsert{ 3, 5, 7 };
+    ar.insert(0, toInsert.begin(), toInsert.end());
+    REQUIRE(ar == toInsert);
+
+    toInsert = { 1, 2, 3 };
+    ar.insert(1, toInsert.begin(), toInsert.end());
+    REQUIRE(ar == Array<int>({ 3, 1, 2, 3, 5, 7 }));
+
+    toInsert = { 9 };
+    ar.insert(6, toInsert.begin(), toInsert.end());
+    REQUIRE(ar == Array<int>({ 3, 1, 2, 3, 5, 7, 9 }));
+
+    toInsert = {};
+    ar.insert(3, toInsert.begin(), toInsert.end());
+    REQUIRE(ar == Array<int>({ 3, 1, 2, 3, 5, 7, 9 }));
+}
+
 TEST_CASE("Array Remove by index", "[array]") {
     Array<int> ar{ 1, 5, 3, 6, 2, 3 };
     ar.remove(0);

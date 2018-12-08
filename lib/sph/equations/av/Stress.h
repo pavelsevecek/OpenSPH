@@ -82,7 +82,8 @@ public:
     }
 
     virtual void setDerivatives(DerivativeHolder& derivatives, const RunSettings& settings) override {
-        const DiscretizationEnum formulation = settings.get<DiscretizationEnum>(RunSettingsId::SPH_DISCRETIZATION);
+        const DiscretizationEnum formulation =
+            settings.get<DiscretizationEnum>(RunSettingsId::SPH_DISCRETIZATION);
         /// \todo partially duplicates stuff from EquationTerm.cpp
         switch (formulation) {
         case DiscretizationEnum::STANDARD:
@@ -114,8 +115,7 @@ public:
 
     virtual void initialize(IScheduler& scheduler, Storage& storage) override {
         ArrayView<SymmetricTensor> as = storage.getValue<SymmetricTensor>(QuantityId::AV_STRESS);
-        ArrayView<const TracelessTensor> s =
-            storage.getPhysicalValue<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
+        ArrayView<const TracelessTensor> s = storage.getValue<TracelessTensor>(QuantityId::DEVIATORIC_STRESS);
         ArrayView<const Float> p = storage.getValue<Float>(QuantityId::PRESSURE);
 
         parallelFor(scheduler, 0, p.size(), [&as, &s, &p](const Size i) {

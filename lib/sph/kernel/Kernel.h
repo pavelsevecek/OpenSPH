@@ -268,6 +268,8 @@ public:
 template <Size D>
 class ThomasCouchmanKernel : public Kernel<ThomasCouchmanKernel<D>, D> {
 private:
+    CubicSpline<D> M4;
+
     const Float normalization[3] = { 2._f / 3._f, 10._f / (7._f * PI), 1._f / PI };
 
 public:
@@ -276,9 +278,7 @@ public:
     }
 
     INLINE Float valueImpl(const Float qSqr) const {
-        /// \todo initializes the normalization array, potentially slow?
-        CubicSpline<D> actKernel;
-        return actKernel.valueImpl(qSqr);
+        return M4.valueImpl(qSqr);
     }
 
     INLINE Float gradImpl(const Float qSqr) const {
@@ -460,6 +460,31 @@ public:
         }
         const Float q = sqrt(qSqr);
         return -normalization[D - 1] / q;
+    }
+};
+
+/// \brief Helper kernel wrapper that modifies the support of another kernel.
+template <Size D, typename TKernel>
+class ScalingKernel : public Kernel<ScalingKernel<D, TKernel>, D> {
+private:
+    TKernel kernel;
+    Float scaling;
+
+public:
+    ScalingKernel(const Float newRadius) {
+        scaling = newRadius / kernel.radius();
+    }
+
+    INLINE Float radius() const {
+        return scaling * kernel.radius();
+    }
+
+    INLINE Float valueImpl(const Float qSqr) const {
+        return kernel.valueImpl(qSqr / sqr(scaling)) / pow<D>(scaling);
+    }
+
+    INLINE Float gradImpl(const Float qSqr) const {
+        return kernel.gradImpl(qSqr / sqr(scaling)) / pow<D + 2>(scaling);
     }
 };
 

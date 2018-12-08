@@ -82,7 +82,7 @@ public:
     /// \brief Construct tensor given three vectors as rows.
     ///
     /// Matrix represented by the vectors MUST be symmetric and traceless, checked by assert.
-    INLINE TracelessTensor(const Vector& v0, const Vector& v1, const Vector& UNUSED_IN_RELEASE(v2)) {
+    INLINE TracelessTensor(const Vector& v0, const Vector& v1, const Vector& v2) {
         ASSERT(v0[1] == v1[0]);
         ASSERT(v0[2] == v2[0]);
         ASSERT(v1[2] == v2[1]);

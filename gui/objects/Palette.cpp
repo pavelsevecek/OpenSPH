@@ -29,7 +29,7 @@ float Palette::linearToPalette(const float value) const {
     default:
         NOT_IMPLEMENTED;
     }
-    ASSERT(isReal(palette));
+    ASSERT(isReal(palette), value);
     return palette;
 }
 

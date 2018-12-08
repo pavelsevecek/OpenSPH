@@ -199,10 +199,10 @@ void IRun::run() {
         i++;
     }
     logger->write("Run ended after ", runTimer.elapsed(TimerUnit::SECOND), "s.");
-    callbacks->onRunEnd(*storage, stats);
     if (!result) {
         logger->write(result.error());
     }
+
     this->tearDownInternal(stats);
 }
 
@@ -238,8 +238,11 @@ void IRun::setNullToDefaults() {
     }
 }
 
-void IRun::tearDownInternal(const Statistics& stats) {
+void IRun::tearDownInternal(Statistics& stats) {
     this->tearDown(stats);
+    // needs to be called after tearDown, as we signal the storage is not changing anymore
+    callbacks->onRunEnd(*storage, stats);
+
     triggers.clear();
     output.reset();
     callbacks.reset();

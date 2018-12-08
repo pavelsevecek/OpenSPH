@@ -95,22 +95,6 @@ TEST_CASE("Quantity swap", "[quantity]") {
     /// \todo test all meaningful values of VisitorEnum
 }
 
-TEST_CASE("Quantity modification", "[quantity]") {
-    Quantity q1(OrderEnum::ZERO, makeArray(1._f, 2._f, 3._f));
-    REQUIRE(q1.getValue<Float>() == q1.getPhysicalValue<Float>());
-    REQUIRE_ASSERT(q1.getPhysicalValue<Vector>());
-    q1.getValue<Float>()[0] = 4._f;
-    REQUIRE(q1.getPhysicalValue<Float>() == makeArray(4._f, 2._f, 3._f));
-    ArrayView<Float> v, pv;
-    // create modification, physical value is now a separate buffer
-    tie(v, pv) = q1.modify<Float>();
-    REQUIRE(q1.getPhysicalValue<Float>() == makeArray(4._f, 2._f, 3._f));
-    v[0] = 8._f;
-    pv[0] = -1._f;
-    REQUIRE(q1.getValue<Float>() == makeArray(8._f, 2._f, 3._f));
-    REQUIRE(q1.getPhysicalValue<Float>() == makeArray(-1._f, 2._f, 3._f));
-}
-
 TEST_CASE("Quantity clamp", "[quantity]") {
     Quantity q1(OrderEnum::FIRST, makeArray(0._f, 2._f, 5._f));
     q1.getDt<Float>() = makeArray(8._f, 1._f, -3._f);

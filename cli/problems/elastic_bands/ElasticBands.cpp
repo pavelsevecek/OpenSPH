@@ -3,9 +3,8 @@
 /// \author Pavel Sevecek (sevecek at sirrah.troja.mff.cuni.cz)
 /// \date 2016-2018
 
-#include "Sph.h"
+#include "Common.h"
 #include "catch.hpp"
-#include <iostream>
 
 using namespace Sph;
 
@@ -83,20 +82,6 @@ public:
             const Float,
             const Float) const override {
             NOT_IMPLEMENTED
-        }
-    };
-
-    class ProgressLog : public PeriodicTrigger {
-    public:
-        ProgressLog()
-            : PeriodicTrigger(2.e-4, 0._f) {
-            std::cout << std::endl;
-        }
-
-        virtual AutoPtr<ITrigger> action(Storage& UNUSED(storage), Statistics& stats) override {
-            const Float progress = stats.get<Float>(StatisticsId::RELATIVE_PROGRESS);
-            std::cout << int(progress * 100) << "%" << std::endl;
-            return nullptr;
         }
     };
 

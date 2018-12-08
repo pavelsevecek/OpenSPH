@@ -323,6 +323,22 @@ public:
         data[position] = std::forward<U>(value);
     }
 
+    /// \brief Inserts a range of values into the array, starting at given position.
+    ///
+    /// This has the same effect as calling \ref insert for every element in the range. All the existing
+    /// elements after the given positions are moved using move operator.
+    template <typename TIterator>
+    void insert(const TCounter position, const TIterator first, const TIterator last) {
+        ASSERT(position <= actSize);
+        const Size count = std::distance(first, last);
+        this->resize(actSize + count);
+        std::move_backward(this->begin() + position, this->end() - count, this->end());
+        Size i = position;
+        for (TIterator iter = first; iter != last; ++iter) {
+            data[i++] = *iter;
+        }
+    }
+
     /// \brief Removes the last element from the array and return its value.
     ///
     /// Asserts if the array is empty.

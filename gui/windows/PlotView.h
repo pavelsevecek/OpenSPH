@@ -55,6 +55,8 @@ public:
         const Size defaultSelectedIdx,
         const bool showLabels);
 
+    void resize(const Pixel size);
+
     /// \brief Returns the transformation matrix for managed plot.
     AffineMatrix2 getPlotTransformMatrix(const Interval& rangeX, const Interval& rangeY) const;
 

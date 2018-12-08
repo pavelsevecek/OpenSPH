@@ -4,6 +4,7 @@
 #include "objects/geometry/Domain.h"
 #include "objects/utility/ArrayUtils.h"
 #include "quantities/Storage.h"
+#include "sph/Materials.h"
 #include "sph/initial/Distribution.h"
 #include "sph/initial/Initial.h"
 #include "system/Settings.h"
@@ -233,6 +234,26 @@ TEST_CASE("GhostParticles empty", "[boundary]") {
     ArrayView<Vector> r = storage.getValue<Vector>(QuantityId::POSITION);
     REQUIRE(r.size() == 1);
     REQUIRE(r[0] == Vector(1._f, 0._f, 0._f));
+}
+
+TEST_CASE("GhostParticles with material", "[boundary]") {
+    Storage storage(getDefaultMaterial());
+    AutoPtr<SphericalDomain> domain = makeAuto<SphericalDomain>(Vector(0._f), 1.5_f);
+    InitialConditions ic(*ThreadPool::getGlobalInstance(), RunSettings::getDefaults());
+    BodySettings body;
+    body.set(BodySettingsId::INITIAL_DISTRIBUTION, DistributionEnum::RANDOM);
+    body.set(BodySettingsId::PARTICLE_COUNT, 1000);
+    ic.addMonolithicBody(storage, *domain, body);
+    REQUIRE(storage.getParticleCnt() == 1000);
+    REQUIRE(storage.getMaterialCnt() == 1);
+
+    GhostParticles bc(std::move(domain), 2._f, 0.1_f);
+    bc.initialize(storage);
+    REQUIRE(storage.getParticleCnt() > 1100);
+    REQUIRE(storage.getMaterialCnt() == 1);
+
+    bc.finalize(storage);
+    REQUIRE(storage.getParticleCnt() == 1000);
 }
 
 TEST_CASE("FrozenParticles by flag", "[boundary]") {

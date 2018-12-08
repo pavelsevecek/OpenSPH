@@ -13,6 +13,8 @@
 
 NAMESPACE_SPH_BEGIN
 
+class IBoundaryCondition;
+
 /// \brief Base class for asymmetric SPH solvers.
 class IAsymmetricSolver : public ISolver {
 private:
@@ -79,6 +81,8 @@ protected:
     /// Holds all derivatives (shared for all threads)
     DerivativeHolder derivatives;
 
+    AutoPtr<IBoundaryCondition> bc;
+
     struct ThreadData {
         /// Cached array of neighbours, to avoid allocation every step
         Array<NeighbourRecord> neighs;
@@ -94,6 +98,11 @@ protected:
 
 public:
     AsymmetricSolver(IScheduler& scheduler, const RunSettings& settings, const EquationHolder& eqs);
+
+    AsymmetricSolver(IScheduler& scheduler,
+        const RunSettings& settings,
+        const EquationHolder& eqs,
+        AutoPtr<IBoundaryCondition>&& bc);
 
     ~AsymmetricSolver();
 

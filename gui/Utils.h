@@ -22,6 +22,6 @@ std::wstring toPrintableString(const float value,
     const Size precision = 5,
     const float decimalThreshold = 1000.f);
 
-void printLabels(wxBitmap& bitmap, ArrayView<const IRenderOutput::Label> labels);
+void printLabels(wxDC& dc, ArrayView<const IRenderOutput::Label> labels);
 
 NAMESPACE_SPH_END

@@ -213,11 +213,6 @@ struct NodeData {
     Size to = 0;
 
     bool operator!=(const NodeData& other) const {
-        /*REQUIRE(split == other.split);
-        REQUIRE(type == other.type);
-        REQUIRE(from == other.from);
-        REQUIRE(to == other.to);*/
-
         return split != other.split || type != other.type || from != other.from || to != other.to;
     }
 

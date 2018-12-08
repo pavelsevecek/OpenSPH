@@ -113,6 +113,23 @@ TEST_CASE("Settings save/load flags", "[settings]") {
     REQUIRE(flags == (TimeStepCriterionEnum::COURANT | TimeStepCriterionEnum::ACCELERATION));
 }
 
+TEST_CASE("Settings addEntries", "[settings]") {
+    RunSettings settings(EMPTY_SETTINGS);
+    settings.set(RunSettingsId::COLLISION_HANDLER, CollisionHandlerEnum::ELASTIC_BOUNCE);
+    settings.set(RunSettingsId::COLLISION_OVERLAP, OverlapEnum::INTERNAL_BOUNCE);
+
+    RunSettings overrides(EMPTY_SETTINGS);
+    settings.set(RunSettingsId::COLLISION_HANDLER, CollisionHandlerEnum::PERFECT_MERGING);
+    settings.set(RunSettingsId::TIMESTEPPING_ADAPTIVE_FACTOR, 1._f);
+
+    settings.addEntries(overrides);
+    REQUIRE(settings.get<Float>(RunSettingsId::TIMESTEPPING_ADAPTIVE_FACTOR) == 1._f);
+    REQUIRE(settings.get<CollisionHandlerEnum>(RunSettingsId::COLLISION_HANDLER) ==
+            CollisionHandlerEnum::PERFECT_MERGING);
+    REQUIRE(settings.get<OverlapEnum>(RunSettingsId::COLLISION_OVERLAP) == OverlapEnum::INTERNAL_BOUNCE);
+    REQUIRE(settings.size() == 3);
+}
+
 template <typename T>
 static bool areValuesEqual(const T& t1, const T& t2) {
     return t1 == t2;

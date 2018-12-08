@@ -184,8 +184,8 @@ void EllipsoidalDomain::project(ArrayView<Vector> vs, Optional<ArrayView<Size>> 
 
 void EllipsoidalDomain::addGhosts(ArrayView<const Vector> UNUSED(vs),
     Array<Ghost>& ghosts,
-    const Float UNUSED_IN_RELEASE(eta),
-    const Float UNUSED_IN_RELEASE(eps)) const {
+    const Float eta,
+    const Float eps) const {
     ASSERT(eps < eta);
     ghosts.clear();
     NOT_IMPLEMENTED;
@@ -282,44 +282,34 @@ void BlockDomain::addGhosts(ArrayView<const Vector> vs,
     const Float eps) const {
     ASSERT(eps < eta);
     ghosts.clear();
+
     for (Size i = 0; i < vs.size(); ++i) {
         if (!box.contains(vs[i])) {
             continue;
         }
         const Float h = vs[i][H];
+        const Float limitSqr = sqr(eta * h);
+
         const Vector d1 = max(vs[i] - box.lower(), Vector(eps * h));
         const Vector d2 = max(box.upper() - vs[i], Vector(eps * h));
-        // each face for the box can potentially create a ghost
-        if (d1[X] < eta * h) {
-            Vector v = vs[i] - Vector(2._f * d1[X], 0._f, 0._f);
-            v[H] = h;
-            ghosts.push(Ghost{ v, i });
-        }
-        if (d1[Y] < eta * h) {
-            Vector v = vs[i] - Vector(0._f, 2._f * d1[Y], 0._f);
-            v[H] = h;
-            ghosts.push(Ghost{ v, i });
-        }
-        if (d1[Z] < eta * h) {
-            Vector v = vs[i] - Vector(0._f, 0._f, 2._f * d1[Z]);
-            v[H] = h;
-            ghosts.push(Ghost{ v, i });
-        }
 
-        if (d2[X] < eta * h) {
-            Vector v = vs[i] + Vector(2._f * d2[X], 0._f, 0._f);
-            v[H] = h;
-            ghosts.push(Ghost{ v, i });
-        }
-        if (d2[Y] < eta * h) {
-            Vector v = vs[i] + Vector(0._f, 2._f * d2[Y], 0._f);
-            v[H] = h;
-            ghosts.push(Ghost{ v, i });
-        }
-        if (d2[Z] < eta * h) {
-            Vector v = vs[i] + Vector(0._f, 0._f, 2._f * d2[Z]);
-            v[H] = h;
-            ghosts.push(Ghost{ v, i });
+
+        // each face for the box can potentially create a ghost
+        for (Vector x : { Vector(-d1[X], 0._f, 0._f), Vector(0._f), Vector(d2[X], 0._f, 0._f) }) {
+            for (Vector y : { Vector(0._f, -d1[Y], 0._f), Vector(0._f), Vector(0._f, d2[Y], 0._f) }) {
+                for (Vector z : { Vector(0._f, 0._f, -d1[Z]), Vector(0._f), Vector(0._f, 0._f, d2[Z]) }) {
+                    if (getSqrLength(x) < limitSqr && getSqrLength(y) < limitSqr &&
+                        getSqrLength(z) < limitSqr) {
+                        const Vector offset = x + y + z;
+                        if (offset == Vector(0._f)) {
+                            continue;
+                        }
+                        Vector v = vs[i] + 2._f * offset;
+                        v[H] = h;
+                        ghosts.push(Ghost{ v, i });
+                    }
+                }
+            }
         }
     }
 }

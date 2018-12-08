@@ -43,6 +43,9 @@ enum class QuantityId {
     /// Specific entropy, always a scalar quantity.
     SPECIFIC_ENTROPY = 7,
 
+    /// Temperature, always a scalar quantity
+    TEMPERATURE = 46,
+
     ///@}
 
     /// \name Density-independent SPH formulation
@@ -223,7 +226,7 @@ enum class QuantityId {
 
     FRICTION = 102,
 
-    TEMPERATURE = 103,
+
 };
 
 /// \brief Auxiliary information about quantity that aren't stored directly in \ref Quantity

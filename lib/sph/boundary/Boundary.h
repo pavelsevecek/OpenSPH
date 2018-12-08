@@ -7,6 +7,7 @@
 
 #include "common/ForwardDecl.h"
 #include "objects/containers/Array.h"
+#include "objects/geometry/Domain.h"
 #include "objects/geometry/Vector.h"
 #include "objects/wrappers/AutoPtr.h"
 #include "objects/wrappers/Interval.h"
@@ -36,6 +37,25 @@ public:
     virtual void finalize(Storage& storage) = 0;
 };
 
+/// \brief Provides a way to access ghost particle data outside the solver.
+class GhostParticlesData : public IStorageUserData {
+private:
+    Array<Ghost> ghosts;
+
+public:
+    GhostParticlesData(Array<Ghost>&& ghosts)
+        : ghosts(std::move(ghosts)) {}
+
+    /// \brief Returns the reference to ghost particle with given index.
+    Ghost& getGhost(const Size idx) {
+        return ghosts[idx];
+    }
+
+    /// \brief Returns the total number of ghost particles.
+    Size size() const {
+        return ghosts.size();
+    }
+};
 
 /// \brief Adds ghost particles symmetrically for each SPH particle close to boundary.
 ///
@@ -58,15 +78,33 @@ private:
         Float minimalDist;
     } params;
 
+    /// Optional; specifies a functor returning a velocity assigned to given ghost.
+    Function<Optional<Vector>(const Vector& r)> ghostVelocity;
+
     /// Used as consistency check; currently we don't allow any other object to add or remove particles if
     /// GhostParticles are used.
     Size particleCnt;
 
 public:
+    /// \brief Creates new boundary conditions.
+    /// \param domain Selected computational domain; particles close to the boundary will spawn ghosts.
     /// \param searchRadius Radius of a single particle, in units of smoothing length.
+    /// \param minimalDist Minimal allowed distance between a particle and its ghost.
     GhostParticles(AutoPtr<IDomain>&& domain, const Float searchRadius, const Float minimalDist);
 
+    /// \brief Creates new boundary conditions, using parameters specified in settings.
     GhostParticles(AutoPtr<IDomain>&& domain, const RunSettings& settings);
+
+    /// \brief Specifies a functor that overrides the default velocity assinged to each ghost.
+    ///
+    /// By default, the velocity of a ghost is mirrored with a respect to the boundary; the tangential
+    /// conponents of the velocities of the particle and the corresponding ghost are equal. The provided
+    /// function may return a different velocity to obtain different boundary condition at different parts of
+    /// the boundary, for example it may return zero velocity to create friction between the particles and the
+    /// boundary.
+    /// \param ghostVelocity Functor taking ghost position as parameter and returning velocity assigned to
+    ///                      the ghost or NOTHING to assign the default velocity.
+    void setVelocityOverride(Function<Optional<Vector>(const Vector& r)> ghostVelocity);
 
     virtual void initialize(Storage& storage) override;
 
@@ -85,12 +123,6 @@ public:
         /// Distribution used to create the dummy particles
         AutoPtr<IDistribution> distribution;
 
-        /// Solver used to create necessary quantities for the dummy particles. It shall be the same solver as
-        /// the main solver of the simulation.
-        /// \todo This creates circular dependency (solver holds the boundary condition). Is there a better
-        /// solution?
-        RawPtr<ISolver> solver;
-
         /// Material of the dummy particles. This can be generally different than the material of "real"
         /// particles in the simulation, specifically the material is not copied as for ghost particles.
         AutoPtr<IMaterial> material;
@@ -105,7 +137,7 @@ private:
     Storage fixedParticles;
 
 public:
-    explicit FixedParticles(Params&& params);
+    FixedParticles(const RunSettings& settings, Params&& params);
 
     virtual void initialize(Storage& storage) override;
 
