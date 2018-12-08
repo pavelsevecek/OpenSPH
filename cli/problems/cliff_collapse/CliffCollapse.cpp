@@ -22,7 +22,7 @@ public:
             .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 100._f)
             .set(RunSettingsId::RUN_TIME_RANGE, Interval(0._f, 200._f))
             .set(RunSettingsId::RUN_OUTPUT_TYPE, IoEnum::BINARY_FILE)
-            .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 10._f)
+            .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 20._f)
             .set(RunSettingsId::RUN_OUTPUT_PATH, std::string("cliff_collapse"))
             .set(RunSettingsId::RUN_OUTPUT_NAME, std::string("cliff_%d.ssf"))
             .set(RunSettingsId::SOLVER_FORCES, ForceEnum::PRESSURE | ForceEnum::SOLID_STRESS)
@@ -49,15 +49,16 @@ public:
     }
 
     virtual void setUp() override {
-        Size N = 20000;
+        Size N = 10000;
 
         BodySettings body;
         body.set(BodySettingsId::ENERGY, 10._f)
             .set(BodySettingsId::ENERGY_RANGE, Interval(0._f, INFTY))
             .set(BodySettingsId::MELT_ENERGY, 1.e12_f)
             .set(BodySettingsId::EOS, EosEnum::TILLOTSON)
-            .set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::NONE)
+            .set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::SCALAR_GRADY_KIPP)
             .set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::DRUCKER_PRAGER)
+            .set(BodySettingsId::SHEAR_MODULUS, 1.e9_f)
             .set(BodySettingsId::DISTRIBUTE_MODE_SPH5, false)
             .set(BodySettingsId::INITIAL_DISTRIBUTION, DistributionEnum::HEXAGONAL)
             .set(BodySettingsId::DRY_FRICTION, 0.8_f)

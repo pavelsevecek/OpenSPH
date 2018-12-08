@@ -112,20 +112,14 @@ void ScalarGradyKippModel::integrate(IScheduler& scheduler, Storage& storage, co
 
     IndexSequence seq = material.sequence();
     parallelFor(scheduler, *seq.begin(), *seq.end(), [&](const Size i) {
-        // if damage is already on max value, set stress to zero to avoid limiting timestep by
-        // non-existent stresses
         const Interval range = material->range(QuantityId::DAMAGE);
-        /// \todo skip if the stress tensor is already fully damaged?
-        /// \todo can we set S derivatives to zero? This will break PC timestepping for stress tensor
-        /// but all physics depend on damaged values, anyway
+
         if (damage[i] >= range.upper()) {
-            // we CANNOT set derivative of damage to zero!
-            ddamage[i] = LARGE; /// \todo is this ok?
-            // we set damage derivative to large value, so that it is larger than the derivative from
+            // We CANNOT set derivative of damage to zero, it would break predictor-corrector integrator!
+            // Instead, we set damage derivative to large value, so that it is larger than the derivative from
             // prediction, therefore damage will INCREASE in corrections, but will be immediately clamped
             // to 1 TOGETHER WITH DERIVATIVES, time step is computed afterwards, so it should be ok.
-            s[i] = TracelessTensor::null();
-            ds[i] = TracelessTensor::null(); /// \todo this is the derivative used for computing time step
+            ddamage[i] = LARGE;
             return;
         }
         const SymmetricTensor sigma = SymmetricTensor(s[i]) - p[i] * SymmetricTensor::identity();

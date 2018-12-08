@@ -15,6 +15,7 @@ public:
             .set(RunSettingsId::TIMESTEPPING_INTEGRATOR, TimesteppingEnum::PREDICTOR_CORRECTOR)
             .set(RunSettingsId::TIMESTEPPING_INITIAL_TIMESTEP, 1.e-8_f)
             .set(RunSettingsId::TIMESTEPPING_MAX_TIMESTEP, 100._f)
+            .set(RunSettingsId::TIMESTEPPING_CRITERION, TimeStepCriterionEnum::COURANT)
             .set(RunSettingsId::RUN_OUTPUT_TYPE, IoEnum::BINARY_FILE)
             .set(RunSettingsId::RUN_OUTPUT_INTERVAL, 50._f)
             .set(RunSettingsId::RUN_OUTPUT_PATH, std::string("collision"))
@@ -52,17 +53,15 @@ public:
             .set(BodySettingsId::RHEOLOGY_DAMAGE, FractureEnum::SCALAR_GRADY_KIPP)
             .set(BodySettingsId::RHEOLOGY_YIELDING, YieldingEnum::VON_MISES)
             .set(BodySettingsId::DISTRIBUTE_MODE_SPH5, false)
-            .set(BodySettingsId::INITIAL_DISTRIBUTION, DistributionEnum::HEXAGONAL)
-            .set(BodySettingsId::ENERGY_MIN, 100._f)
-            .set(BodySettingsId::STRESS_TENSOR_MIN, 1.e6_f)
-            .set(BodySettingsId::DAMAGE_MIN, 10._f);
+            .set(BodySettingsId::INITIAL_DISTRIBUTION, DistributionEnum::HEXAGONAL);
 
         params.targetRadius = 10.e3_f;
-        params.impactorRadius = 2.e3_f;
+        params.impactorRadius = 1.e3_f;
         params.targetRotation = 2._f * PI / (3600._f * 4._f);
         params.impactAngle = 45._f * DEG_TO_RAD;
         params.impactSpeed = 5.e3_f;
         params.targetParticleCnt = 10000;
+        params.outputPath = Path("collision");
 
         Presets::Collision collision(*scheduler, settings, params);
         collision.addTarget(*storage);
@@ -81,6 +80,11 @@ TEST_CASE("Collision", "[collision]") {
     for (Path file : filesToCheck) {
         FileSystem::removePath(file);
     }
+
+    // parameters lose some precision after writing to .sph (ascii) file, so we never want to load them if we
+    // wish to get *precisely* the same result (to the bit).
+    FileSystem::removePath(Path("collision/target.sph"));
+    FileSystem::removePath(Path("collision/impactor.sph"));
 
     Collision run;
     run.setUp();
