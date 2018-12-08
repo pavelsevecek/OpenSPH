@@ -11,6 +11,7 @@
 #include "system/Factory.h"
 #include "thread/Scheduler.h"
 #include <numeric>
+#include <set>
 
 NAMESPACE_SPH_BEGIN
 
@@ -186,6 +187,20 @@ Size Post::findComponents(const Storage& storage,
             indices[i] = velocityIndices[indices[i]];
         }
     }
+
+#ifdef SPH_DEBUG
+    std::set<Size> uniqueIndices;
+    for (Size i : indices) {
+        uniqueIndices.insert(i);
+    }
+    ASSERT(uniqueIndices.size() == componentCnt);
+    Size counter = 0;
+    for (Size i : uniqueIndices) {
+        ASSERT(i == counter);
+        counter++;
+    }
+
+#endif
 
     return componentCnt;
 }
@@ -689,7 +704,7 @@ static Array<Float> getComponentValues(const Storage& storage,
 
         Array<Float> values(numComponents);
         values.fill(0._f);
-        for (Size i = 0; i < rho.size(); ++i) {
+        for (Size i = 0; i < m.size(); ++i) {
             Float density;
             if (id == Post::HistogramId::EQUIVALENT_MASS_RADII) {
                 density = params.referenceDensity;

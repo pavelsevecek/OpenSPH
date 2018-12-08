@@ -729,11 +729,11 @@ Outcome BinaryInput::load(const Path& path, Storage& storage, Statistics& stats)
 }
 
 Expected<BinaryInput::Info> BinaryInput::getInfo(const Path& path) const {
-    Deserializer deserializer(path);
-    std::string identifier;
     Info info;
     char runTypeBuffer[16];
+    std::string identifier;
     try {
+        Deserializer deserializer(path);
         deserializer.read(identifier,
             info.runTime,
             info.particleCnt,

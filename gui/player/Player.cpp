@@ -225,11 +225,11 @@ bool App::OnInit() {
         .set(GuiSettingsId::PLOT_INTEGRALS, PlotEnum::ALL)
         .set(GuiSettingsId::PLOT_OVERPLOT_SFD, std::string("/home/pavel/Dropbox/family.dat_hc"));
 
-    // if (runType == RunTypeEnum::NBODY) {
-    gui.set(GuiSettingsId::PLOT_INTEGRALS,
-        PlotEnum::KINETIC_ENERGY | PlotEnum::INTERNAL_ENERGY | PlotEnum::TOTAL_ENERGY |
-            PlotEnum::TOTAL_MOMENTUM | PlotEnum::TOTAL_ANGULAR_MOMENTUM | PlotEnum::PARTICLE_SFD);
-    //}
+    if (runType == RunTypeEnum::NBODY) {
+        gui.set(GuiSettingsId::PLOT_INTEGRALS,
+            PlotEnum::KINETIC_ENERGY | PlotEnum::INTERNAL_ENERGY | PlotEnum::TOTAL_ENERGY |
+                PlotEnum::TOTAL_MOMENTUM | PlotEnum::TOTAL_ANGULAR_MOMENTUM | PlotEnum::PARTICLE_SFD);
+    }
     //"projects/astro/asteroids/hygiea/main_belt_families_2018/10_Hygiea/"
     //"size_distribution/family.dat_hc"));
 
